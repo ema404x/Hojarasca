@@ -36,13 +36,13 @@ function materialAgua() {
         // 3.5: las octavas finas entran de a poco (antes con un corte: a ~80 m y a ~130 m se veía
         // una línea recta en el agua, más clara de un lado, sobre todo con el sol bajo)
         float b = detalle > 0.01 ? mix(a, vnoise(p * 1.1 + vec2(uTiempo * 0.23, -uTiempo * 0.17) - f), smoothstep(0.01, 0.2, detalle)) : a;
-        float c = detalle > 0.35 ? mix(b, vnoise(p * 3.2 - vec2(uTiempo * 0.4, uTiempo * 0.31) - f * 2.0), smoothstep(0.35, 0.65, detalle)) : b;
+        float c = detalle > 0.25 ? mix(b, vnoise(p * 3.2 - vec2(uTiempo * 0.4, uTiempo * 0.31) - f * 2.0), smoothstep(0.25, 0.85, detalle)) : b;
         float gotas = 0.0;
-        if (uLluvia > 0.01 && detalle > 0.5) {
+        if (uLluvia > 0.01 && detalle > 0.3) {
           vec2 celda = floor(p * 1.5); vec2 lf = fract(p * 1.5) - 0.5;
           float fase = fract(uTiempo * 0.8 + hash12(celda));
           float anillo = abs(length(lf) - fase * 0.5);
-          gotas = smoothstep(0.05, 0.0, anillo) * (1.0 - fase) * uLluvia;
+          gotas = smoothstep(0.05, 0.0, anillo) * (1.0 - fase) * uLluvia * smoothstep(0.3, 0.75, detalle);   // 3.5: sin corte
         }
         // las ondas que salen de vos cuando estás metido en el agua
         float estela = 0.0;
@@ -97,13 +97,13 @@ function materialAgua() {
         float sedimento = (1.0 - smoothstep(0.10, 1.05, prof)) * (0.55 + 0.45 * vnoise(vPos.xz * 0.17));
         agua = mix(agua, srgb(vec3(0.30, 0.31, 0.23)), sedimento * 0.22);
         // cáusticas: la luz que atraviesa las ondas y dibuja la red sobre el fondo
-        if (detalle > 0.35 && prof < 3.2) {
+        if (detalle > 0.2 && prof < 3.2) {
           vec2 q = vPos.xz * 1.35 - vFlujo * uTiempo * 0.5;
           float c1 = vnoise(q + vec2(uTiempo * 0.21, -uTiempo * 0.13));
           float c2 = vnoise(q * 1.7 - vec2(uTiempo * 0.17, uTiempo * 0.23));
           float red = pow(max(0.0, 1.0 - abs(c1 - c2) * 3.4), 3.0);
           // 3.4: más suaves (0.5 → 0.28): una red tenue, no garabatos blancos
-          agua += uSolColor * red * max(uSolDir.y, 0.0) * smoothstep(3.2, 0.2, prof) * 0.28 * detalle;
+          agua += uSolColor * red * max(uSolDir.y, 0.0) * smoothstep(3.2, 0.2, prof) * 0.28 * detalle * smoothstep(0.2, 0.6, detalle);   // 3.5: entra de a poco (antes saltaba en detalle 0.35)
         }
         vec3 luzAgua = uAmbiente * 2.2 + uSolColor * max(uSolDir.y, 0.0) * 0.9;
         vec3 col = mix(agua * luzAgua, cielo, clamp(fres * 0.85 + 0.12, 0.0, 1.0));
