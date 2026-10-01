@@ -20,6 +20,7 @@ import { U, GLSL_COMUN, GLSL_MANCHAS, GLSL_FLORES, GLSL_ESTILO } from './materia
 import { nivelTexturas, texturaManchas } from './texturas.js';
 import { rng } from './ruido.js';
 import { texturaCartas, CELDAS_CARTA, FILAS_CARTA } from './vegetacion.js';
+import { PLANTAS_MAX } from './config.js';
 
 // el anillo: cada instancia tiene un lugar fijo en el mundo que se repite cada 2R metros
 const GLSL_ANILLO = /* glsl */`
@@ -127,27 +128,52 @@ export function crearPasto(calidad) {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('aHoja', new THREE.Float32BufferAttribute(cualHoja, 1));
   geo.setIndex(ind);
-  const r = rng(99);
   // 3.4 (sotobosque): un tercio de las hojas de antes en matas de a tres (las mismas hojas,
   // un 8 % más de vértices) y cada mata con su anillo: 38 % cada 0,9R, 30 % cada 1,4R y el
   // resto cada 2R. Cerca de la cámara hay casi tres veces más hojas que antes; lejos, menos
   // (pero más anchas, y el pasto rasante se tapa solo).
+  // 3.5: la distancia de plantas (factor `fp`) estira el anillo de afuera: con fp > 1 el de
+  // afuera llega a fp·R con más matas (las mismas por metro cuadrado: el pasto de cerca queda
+  // igual y el de lejos tan tupido como el borde de antes); con fp < 1 se achican los tres
+  // anillos y quedan fp² de las matas. Con fp = 1 salen exactamente las mismas matas de antes.
+  // Los búferes se arman para el máximo y se rellenan al cambiar el ajuste (sin shaders nuevos).
   const nMatas = Math.round(n * 0.36);
-  const offs = new Float32Array(nMatas * 2), azar = new Float32Array(nMatas), radio = new Float32Array(nMatas);
-  for (let i = 0; i < nMatas; i++) {
-    const k = r(), f = k < 0.38 ? 0.45 : k < 0.68 ? 0.7 : 1;
-    offs[i * 2] = (r() * 2 - 1) * R * f;
-    offs[i * 2 + 1] = (r() * 2 - 1) * R * f;
-    azar[i] = r();
-    radio[i] = f;
+  const capacidad = nMatas + Math.ceil(nMatas * (PLANTAS_MAX * PLANTAS_MAX - 1)) + 16;
+  const offs = new Float32Array(capacidad * 2), azar = new Float32Array(capacidad), radio = new Float32Array(capacidad);
+  function llenarMatas(fp) {
+    const r = rng(99);
+    let k = 0, afuera = 0;
+    const quedan = fp < 1 ? Math.round(nMatas * fp * fp) : nMatas;
+    for (let i = 0; i < nMatas; i++) {
+      const kk = r(), f = kk < 0.38 ? 0.45 : kk < 0.68 ? 0.7 : 1;
+      const ox = r() * 2 - 1, oz = r() * 2 - 1, az = r();
+      if (f === 1) afuera++;
+      if (i >= quedan) continue;
+      // radio del anillo de esta mata en metros, y relativo al uR (= R·fp)
+      const rm = R * f * (fp < 1 || f === 1 ? fp : 1);
+      offs[k * 2] = ox * rm; offs[k * 2 + 1] = oz * rm; azar[k] = az; radio[k] = rm / (R * fp);
+      k++;
+    }
+    if (fp > 1) {
+      const r2 = rng(199);
+      const extra = Math.round(afuera * (fp * fp - 1));
+      for (let i = 0; i < extra && k < capacidad; i++) {
+        offs[k * 2] = (r2() * 2 - 1) * R * fp; offs[k * 2 + 1] = (r2() * 2 - 1) * R * fp; azar[k] = r2(); radio[k] = 1;
+        k++;
+      }
+    }
+    return k;
   }
   geo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(offs, 2));
   geo.setAttribute('aAzar', new THREE.InstancedBufferAttribute(azar, 1));
   geo.setAttribute('aRadio', new THREE.InstancedBufferAttribute(radio, 1));
-  geo.instanceCount = nMatas;
+  geo.instanceCount = llenarMatas(1);
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
 
   const uniforms = uniformesAnillo(R, fino);
+  // 3.5: el presupuesto adaptativo acorta el pasto con el fundido del borde (uCorte), no con el
+  // radio del anillo: cambiar uR corre el lugar de todas las matas (el pasto entero "saltaba")
+  uniforms.uCorte = { value: 1 };
 
   const mat = new THREE.ShaderMaterial({
     uniforms,
@@ -163,6 +189,7 @@ export function crearPasto(calidad) {
       uniform float uTiempo; uniform float uViento;
       uniform float uOtono; uniform float uInvierno; uniform vec3 uJugador; uniform float uEscarcha;
       uniform sampler2D uAlturas; uniform sampler2D uMascara; uniform sampler2D uEstepa;
+      uniform float uCorte;
       attribute vec2 aOffset; attribute float aAzar; attribute float aHoja; attribute float aRadio;
       varying vec3 vColor; varying float vT; varying vec3 vNormal2; varying float vLuzExtra; varying float vEstepa;
       void main() {
@@ -171,7 +198,9 @@ export function crearPasto(calidad) {
         vec2 uv = uvTerreno(b);
         float h = texture2D(uAlturas, uv).r;
         vec4 m = texture2D(uMascara, uv);
-        float estepa = texture2D(uEstepa, uv).r;
+        // (3.5: el canal azul marca los pisos de las construcciones: ahí no sale pasto)
+        vec4 estT = texture2D(uEstepa, uv);
+        float estepa = estT.r;
         float rnd = hash12(floor(b * 7.0) + aAzar * 13.0);
         // En el bosque domina el pasto fino; en la estepa quedan matas ralas tipo coirón
         // aun cuando la máscara de pasto verde es baja.
@@ -180,8 +209,9 @@ export function crearPasto(calidad) {
         float dens = max(baseVerde, baseCoiron) * (1.0 - smoothstep(0.1, 0.7, uInvierno) * mix(0.93, 0.35, estepa));
         float d = length(b - uCam.xz);
         // (3.4: cada mata se desvanece en el borde de su propio anillo: ahí es donde salta)
-        float desvanecer = 1.0 - smoothstep(rMata * 0.6, rMata, d);
-        float vivo = step(rnd, dens) * desvanecer * step(0.05, h) * enPantallaAnillo(b);
+        // (3.5: uCorte, el presupuesto adaptativo: acerca el fundido, no mueve el anillo)
+        float desvanecer = 1.0 - smoothstep(rMata * 0.6 * uCorte, rMata * uCorte, d);
+        float vivo = step(rnd, dens) * desvanecer * step(0.05, h) * enPantallaAnillo(b) * (1.0 - step(0.4, estT.b));
         // 3.4 (sotobosque): cada hoja de la mata con su azar, su giro y su pie (corrido unos
         // centímetros del centro, hacia donde se abre)
         float rh = hash12(vec2(rnd * 91.7 + aHoja * 13.1, aAzar * 37.3 + aHoja));
@@ -323,10 +353,11 @@ export function crearPasto(calidad) {
         float rnd = hash12(floor(b * 3.0) + aAzar * 17.0);
         float d = length(b - uCam.xz);
         float desvanecer = 1.0 - smoothstep(uR * 0.7, uR, d);
-        float vivo = step(rnd, dens * 1.1) * step(0.05, h) * enPantallaAnillo(b) * step(0.02, desvanecer);
+        float vivo = step(rnd, dens * 1.1) * step(0.05, h) * enPantallaAnillo(b) * step(0.02, desvanecer) * (1.0 - step(0.4, est.b));
         float tam = fract(aAzar * 7.3);
         float alto = especie < 0.5 ? 0.85 + 0.4 * tam : (especie < 1.5 ? 0.6 + 0.2 * tam : 0.72 + 0.3 * tam);
-        alto *= mix(0.3, 1.0, desvanecer) * vivo;
+        // (3.5: crece desde cero en el borde del anillo; antes entraba de golpe al 30%)
+        alto *= desvanecer * vivo;
         float segunda = aEsquina.z;
         float esc = alto * (segunda > 0.5 ? 0.78 : 1.0);
         vec2 haciaCam = normalize(uCam.xz - b + vec2(1e-4, 0.0));
@@ -421,10 +452,11 @@ export function crearPasto(calidad) {
         float rnd = hash12(floor(b * 2.0) + aAzar * 23.0);
         float d = length(b - uCam.xz);
         float desvanecer = 1.0 - smoothstep(uR * 0.65, uR, d);
-        float vivo = step(rnd, dens * 0.85) * step(0.05, h) * enPantallaAnillo(b) * step(0.02, desvanecer);
+        float vivo = step(rnd, dens * 0.85) * step(0.05, h) * enPantallaAnillo(b) * step(0.02, desvanecer) * (1.0 - step(0.4, est.b));
         float ang = aAzar * 6.2831;
         mat2 giro = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
-        float esc = (1.0 + 0.9 * fract(aAzar * 5.7)) * mix(0.2, 1.0, desvanecer) * vivo;
+        // (3.5: crece desde cero en el borde del anillo; antes entraba de golpe al 20%)
+        float esc = (1.0 + 0.9 * fract(aAzar * 5.7)) * desvanecer * vivo;
         vec3 q = position * esc;
         q.xz = giro * q.xz;
         float racha = rachaViento(b, uTiempo);
@@ -453,14 +485,33 @@ export function crearPasto(calidad) {
   if (helechos) malla.add(helechos.malla);
   const anillos = [flores, helechos].filter(Boolean);
 
+  // 3.5: la distancia de plantas en vivo: se rellenan los búferes (los mismos programas)
+  let factorPlantas = 1;
+  function ajustar(fp) {
+    const f = Math.min(PLANTAS_MAX, Math.max(0.3, Number(fp) || 1));
+    if (f === factorPlantas) return false;
+    factorPlantas = f;
+    geo.instanceCount = llenarMatas(f);
+    for (const nombre of ['aOffset', 'aAzar', 'aRadio']) geo.attributes[nombre].needsUpdate = true;
+    uniforms.uR.value = R * f;
+    for (const a of anillos) a.ajustar(f);
+    return true;
+  }
   return {
     malla,
+    ajustar,
+    get factorPlantas() { return factorPlantas; },
+    get radio() { return R * factorPlantas; },
+    get matas() { return geo.instanceCount; },
     actualizar(cam, mira, factorDetalle = 1) {
       uniforms.uCam.value.copy(cam);
       if (mira) uniforms.uMira.value.copy(mira);
       // RC22: bajo presión sostenida sólo se acorta el anillo lejano de pasto.
       // La densidad/calidad cercana permanece intacta.
-      uniforms.uR.value = R * Math.max(0.78, Math.min(1, factorDetalle || 1));
+      // 3.5: con el fundido del borde (uCorte), de a poco: el radio del anillo no se toca
+      const corte = Math.max(0.78, Math.min(1, factorDetalle || 1));
+      const u = uniforms.uCorte;
+      u.value += Math.max(-0.004, Math.min(0.004, corte - u.value));
       // 3.2: flores y helechos siguen al pasto (su anillo propio no se acorta: es chico)
       for (const a of anillos) { a.uniforms.uCam.value.copy(cam); if (mira) a.uniforms.uMira.value.copy(mira); }
     },
@@ -471,18 +522,26 @@ export function crearPasto(calidad) {
 // main() del vertex shader: tiene lugarAnillo, enPantallaAnillo, rachaViento, las
 // texturas del valle y los atributos aOffset/aAzar.
 // 3.4 (sotobosque): `cartas`: la malla lee el atlas de cartas (vUvCarta, vVerde, vCentro)
+// 3.5: `ajustar(f)` estira el anillo a f·R con f² de las matas (la misma densidad); con f = 1,
+// las mismas de antes. Los búferes ya vienen del tamaño del máximo.
 function crearAnillo({ R, cantidad, semilla, geometria, vertice, fino, cartas = false }) {
   const geo = geometria();
-  const r = rng(semilla);
-  const offs = new Float32Array(cantidad * 2), azar = new Float32Array(cantidad);
-  for (let i = 0; i < cantidad; i++) {
-    offs[i * 2] = (r() * 2 - 1) * R;
-    offs[i * 2 + 1] = (r() * 2 - 1) * R;
-    azar[i] = r();
+  const capacidad = Math.ceil(cantidad * PLANTAS_MAX * PLANTAS_MAX) + 4;
+  const offs = new Float32Array(capacidad * 2), azar = new Float32Array(capacidad);
+  function llenar(f) {
+    const r = rng(semilla), r2 = rng(semilla + 1000);
+    const n = Math.min(capacidad, Math.round(cantidad * f * f));
+    for (let i = 0; i < n; i++) {
+      const q = i < cantidad ? r : r2;
+      offs[i * 2] = (q() * 2 - 1) * R * f;
+      offs[i * 2 + 1] = (q() * 2 - 1) * R * f;
+      azar[i] = q();
+    }
+    return n;
   }
   geo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(offs, 2));
   geo.setAttribute('aAzar', new THREE.InstancedBufferAttribute(azar, 1));
-  geo.instanceCount = cantidad;
+  geo.instanceCount = llenar(1);
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
   const uniforms = uniformesAnillo(R, fino);
   if (cartas) uniforms.uCartas = { value: texturaCartas() };
@@ -506,5 +565,11 @@ function crearAnillo({ R, cantidad, semilla, geometria, vertice, fino, cartas = 
   const malla = new THREE.Mesh(geo, mat);
   malla.frustumCulled = false;
   malla.renderOrder = 1;
-  return { malla, uniforms };
+  function ajustar(f) {
+    geo.instanceCount = llenar(f);
+    geo.attributes.aOffset.needsUpdate = true;
+    geo.attributes.aAzar.needsUpdate = true;
+    uniforms.uR.value = R * f;
+  }
+  return { malla, uniforms, ajustar };
 }

@@ -670,6 +670,15 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <div class="segmentos" data-ajuste="calidad"><button data-valor="muybaja">Mínima</button><button data-valor="baja">Baja</button><button data-valor="media">Media</button><button data-valor="alta">Alta</button></div>
         <small id="aviso-calidad" class="oculto">Se aplica al volver a la portada.</small>
       </div>
+      <div class="fila-ajuste" id="fila-distancia"><span>Distancia de dibujo</span>
+        <input type="range" min="2" max="10" step="1" id="ajuste-distancia" aria-label="Distancia de dibujo en bloques">
+        <div class="segmentos" data-ajuste="distancia"><button data-valor="calidad">Según la calidad</button></div>
+        <small><b id="texto-distancia"></b>. Bloques de 40 metros: con más se ve más bosque y le pide más a la placa; con menos, la niebla se acerca y el juego anda más liviano.</small>
+      </div>
+      <div class="fila-ajuste"><span>Distancia de plantas</span>
+        <div class="segmentos" data-ajuste="distanciaPlantas"><button data-valor="cerca">Cerca</button><button data-valor="normal">Normal</button><button data-valor="lejos">Lejos</button><button data-valor="muylejos">Muy lejos</button></div>
+        <small>Pasto, flores, helechos, matas y piedras. Lejos y Muy lejos ponen más pasto: le piden más a la placa.</small>
+      </div>
       <div class="fila-ajuste"><span>Guía del primer día</span>
         <div class="segmentos" data-ajuste="guiaPrimerDia"><button data-valor="true">Mostrarla</button><button data-valor="false">Prefiero solo</button></div>
         <small>Sólo en Relax: una lista corta con los primeros pasos, que se tilda sola.</small>

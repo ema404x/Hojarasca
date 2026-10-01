@@ -1,0 +1,7 @@
+# Fines de línea LF en todo el texto (regla del proyecto), también en Windows
+* text=auto eol=lf
+# Los scripts de PowerShell van con UTF-8 con BOM y CRLF no les molesta; se dejan como están
+*.ps1 -text
+*.png binary
+*.ico binary
+*.jpg binary

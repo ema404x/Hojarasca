@@ -236,6 +236,12 @@ export function factorEfectosPorPresupuesto(nivel = 0, minimo = 0.58) {
 // cuadros consecutivos y evita iniciarlas justo después de un frame lento.
 // Los acumuladores de cada subsistema conservan su deuda, así que una tarea
 // pospuesta se ejecuta en el siguiente cuadro disponible sin perder tiempo.
+// 3.5: ninguna tarea pesada espera para siempre. Si la placa no llega nunca al objetivo (33 ms
+// con el límite en 60, o 'libre' en una integrada), todos los cuadros eran "lentos" y la
+// vegetación, el ambiente, la visibilidad y las sombras no corrían NUNCA: el bosque cercano no
+// se actualizaba y las cosas aparecían de golpe al lado del jugador. Ahora una tarea pesada que
+// lleva ESPERA_MAXIMA_S pidiendo turno pasa aunque el cuadro sea lento (de a una por cuadro).
+export const ESPERA_MAXIMA_S = 0.3;
 export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1, maxSecundarias = 3 } = {}) {
   let cuadro = 0;
   let pesadas = 0;
@@ -243,6 +249,8 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
   let frameLento = false;
   let picoEMA = objetivoMs;
   let nivel = 0;
+  let reloj = 0;                 // 3.5: segundos de cuadros vistos
+  const esperando = new Map();   // 3.5: tarea pesada → reloj del primer pedido sin turno
 
   function comenzarCuadro(dtReal = 0, nivelPresupuesto = 0, objetivoActualMs = objetivoMs) {
     cuadro++;
@@ -250,6 +258,7 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
     secundarias = 0;
     nivel = Math.max(0, nivelPresupuesto | 0);
     const ms = Math.max(0, Math.min(200, dtReal * 1000));
+    reloj += ms / 1000;
     const objetivo = Math.max(8, objetivoActualMs || objetivoMs);
     picoEMA += (ms - picoEMA) * 0.18;
     frameLento = ms > objetivo * 1.28 || picoEMA > objetivo * 1.45;
@@ -257,13 +266,17 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
 
   function permitir(clave = '', { pesada = false, urgente = false } = {}) {
     if (urgente) return true;
-    // Tras un frame realmente malo no arrancamos trabajo diferible pesado.
-    if (frameLento && pesada) return false;
     if (pesada) {
+      if (!esperando.has(clave)) esperando.set(clave, reloj);
+      const hambrienta = reloj - esperando.get(clave) >= ESPERA_MAXIMA_S;
+      // Tras un frame realmente malo no arrancamos trabajo diferible pesado (salvo el que ya
+      // esperó demasiado: 3.5)
+      if (frameLento && !hambrienta) return false;
       const max = nivel >= 2 ? 1 : maxPesadas;
       if (pesadas >= max) return false;
       pesadas++;
       secundarias++;
+      esperando.delete(clave);
       return true;
     }
     const max = Math.max(1, maxSecundarias - (nivel >= 2 ? 1 : 0));

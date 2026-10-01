@@ -140,9 +140,21 @@ const uniformesEstilo = () => ({ uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrum
 // aTipo: 0 madera · 1 hoja perenne · 2 hoja caduca · 3 flor · 4 roca/techo
 // 3.2: `copa` y `detalle` quedan por compatibilidad (el estilo pintado no cala copas ni
 // lleva texturas: todas las copas se sombrean igual).
-export function materialVegetal({ flex = 1, doble = false, lod = null, copa = false, detalle = true } = {}) {
+// 3.5: `soto`: { fin, banda } (uniformes compartidos) para el sotobosque: cada mata crece desde el
+// suelo en los últimos `banda` metros antes de `fin` (de la cámara a su pie). Sin `soto`, nada.
+// Los uniformes del LOD quedan en m.userData.lod: la distancia de dibujo los cambia en vivo.
+export function materialVegetal({ flex = 1, doble = false, lod = null, copa = false, detalle = true, soto = null } = {}) {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: doble ? THREE.DoubleSide : THREE.FrontSide });
   m.userData.estilo = { copa, detalle };
+  const uLod = {
+    uLodModo: { value: lod?.modo || 0 },
+    uLodInicio: { value: lod?.inicio || 0 },
+    uLodFin: { value: lod?.fin || 0 },
+    uLodLejos: { value: lod?.lejos || 100000 },
+    uSotoFin: soto?.fin || { value: 0 },
+    uSotoBanda: soto?.banda || { value: 1 },
+  };
+  m.userData.lod = uLod;
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, {
       uTiempo: U.uTiempo, uViento: U.uViento, uOtono: U.uOtono, uInvierno: U.uInvierno, uFlex: { value: flex },
@@ -151,15 +163,12 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
       // 3.4: 1 en árboles y arbustos (copa): la madera es corteza con vetas; 0 en
       // estructuras (tablas y vigas siguen con la pincelada de siempre)
       uCortezaVeg: { value: copa ? 1 : 0 },
-      uLodModo: { value: lod?.modo || 0 },
-      uLodInicio: { value: lod?.inicio || 0 },
-      uLodFin: { value: lod?.fin || 0 },
-      uLodLejos: { value: lod?.lejos || 100000 },
-    }, uniformesEstilo());
+    }, uLod, uniformesEstilo());
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         uniform float uTiempo; uniform float uViento; uniform float uOtono; uniform float uInvierno; uniform float uFlex;
         uniform float uLodModo; uniform float uLodInicio; uniform float uLodFin; uniform float uLodLejos;
+        uniform float uSotoFin; uniform float uSotoBanda;
         attribute float aTipo;
         ${GLSL_COMUN}`)
       .replace('#include <color_vertex>', `#include <color_vertex>
@@ -222,6 +231,12 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             float dRaizLejos = length((modelMatrix * vec4(posI, 1.0)).xz - cameraPosition.xz);
             float quedaLejos = 1.0 - smoothstep(max(uLodFin + 1.0, uLodLejos - 30.0), uLodLejos, dRaizLejos);
             transformed *= quedaLejos;
+          }
+          // 3.5: el sotobosque entra y sale creciendo desde el suelo (por mata, en los últimos
+          // metros de su alcance), no de golpe con el chunk
+          if (uSotoFin > 0.5) {
+            float dSoto = length((modelMatrix * vec4(posI, 1.0)).xz - cameraPosition.xz);
+            transformed *= 1.0 - smoothstep(uSotoFin - uSotoBanda, uSotoFin, dSoto);
           }
         }`);
     // Follaje a contraluz: cuando el sol está detrás de la hoja, la atraviesa.

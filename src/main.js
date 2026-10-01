@@ -1,6 +1,7 @@
 // Hojarasca: arma el bosque, maneja la interfaz y hace latir todo
 import * as THREE from 'three';
 import { CALIDADES, N, RES, LAGO } from './config.js';
+import { distanciasDe, textoDistanciaDibujo, BLOQUES_MIN, BLOQUES_MAX } from './config.js';
 import { smoothstep, clamp, lerp } from './ruido.js';
 import { crearIndiceEspacial2D, crearPresupuestoAdaptativo, crearPerfiladorSubsistemas, factorEfectosPorPresupuesto, crearPlanificadorAntitirones, crearRelojCadencia, crearMedidorRefresco, crearRitmoAuto, planCadencia, crearCronometroGpu } from './rendimiento.js';
 import { crearEscalaFluida } from './rendimiento.js';
@@ -206,6 +207,9 @@ recordarHuerfanas();
 const mando = crearMando({ sensibilidad: ajustes.sensibilidad, invertirY: ajustes.invertirY });
 const calidadInicial = ajustes.calidad;
 const calidad = { ...(CALIDADES[ajustes.calidad] || CALIDADES.media) };
+// 3.5: la calidad que está andando y las distancias que rigen (ver aplicarDistancias)
+let calidadActiva = CALIDADES[calidadInicial] ? calidadInicial : 'media';
+let distActual = distanciasDe(calidadActiva, ajustes.distancia, ajustes.distanciaPlantas);
 // 1.6: el juego mide los cuadros por segundo reales y acomoda la calidad solo.
 const autoCalidad = crearEstadoAutocalidad(ajustes.calidad);
 
@@ -389,7 +393,8 @@ async function construir() {
     const estep = new Uint8Array(N * N * 4);
     for (let i = 0; i < N * N; i++) {
       const v = (T.estepa ? T.estepa[i] : 0) * 255;
-      estep[i * 4] = v; estep[i * 4 + 1] = v; estep[i * 4 + 2] = v; estep[i * 4 + 3] = 255;
+      // (3.5: el azul, que nadie leía, queda para los pisos de las construcciones: marcarPisos)
+      estep[i * 4] = v; estep[i * 4 + 1] = v; estep[i * 4 + 2] = 0; estep[i * 4 + 3] = 255;
     }
     const texE = new THREE.DataTexture(estep, N, N, THREE.RGBAFormat);
     texE.magFilter = texE.minFilter = THREE.LinearFilter;
@@ -541,6 +546,7 @@ async function construir() {
   const ref = T.lugares.refugio;
   chimeneas = [ref.chimenea, ...est.cabañas.map((c) => c.chimenea)];
   marcarTechos();
+  marcarPisos();   // 3.5
   renovales = crearRenovales(T, escena, col);
   majadaMundo = crearMajada(T, escena);
   caballoMundo = esDesafio ? null : crearCaballo(T, escena);
@@ -1520,6 +1526,7 @@ function sincronizarAjustes() {
   document.querySelectorAll('[data-ajuste-rango]').forEach((i) => { i.value = ajustes[i.dataset.ajusteRango]; });
   sonido.setMezcla({ ambiente: ajustes.volumenAmbiente, efectos: ajustes.volumenEfectos, musica: ajustes.volumenMusica });
   $('aviso-calidad').classList.toggle('oculto', ajustes.calidad === calidadInicial);
+  textoAjustesDistancia();   // 3.5
   if ($('modo-texto')) $('modo-texto').textContent = ajustes.modo === 'desafio'
     ? 'Cada noche baja una nave. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
     : 'El bosque de siempre: caminar, anotar, pescar y construir sin apuro. Nada te ataca.';
@@ -1583,6 +1590,8 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     // 3.2: otro límite u otra calidad: el ritmo se vuelve a medir desde cero
     if (clave === 'limiteFps' || clave === 'calidad') ritmoAuto.reiniciar();
     if (clave === 'tamanoLetra' || clave === 'paleta' || clave === 'subtitulos') aplicarAccesibilidad();
+    // 3.5: la distancia de dibujo o de plantas, en vivo (y el ritmo se vuelve a medir)
+    if (clave === 'distancia' || clave === 'distanciaPlantas') { aplicarDistancias(); ritmoAuto.reiniciar(); }
     if (clave === 'calidad' && v === calidadInicial) $('aviso-calidad').classList.add('oculto');
     sincronizarAjustes();
   });
@@ -1593,6 +1602,14 @@ document.querySelectorAll('[data-ajuste-rango]').forEach((i) => {
     guardarAjustes(ajustes);
     if (i.dataset.ajusteRango === 'volumen') sonido.setVolumen(ajustes.volumen);
   });
+});
+// 3.5: la distancia de dibujo en bloques (la barra); «Según la calidad» es un botón aparte
+$('ajuste-distancia')?.addEventListener('input', (ev) => {
+  ajustes.distancia = Math.min(BLOQUES_MAX, Math.max(BLOQUES_MIN, Math.round(Number(ev.target.value) || BLOQUES_MIN)));
+  guardarAjustes(ajustes);
+  aplicarDistancias();
+  ritmoAuto.reiniciar();
+  sincronizarAjustes();
 });
 
 // ---------------------------------------------------------------- 2.3: el código de partida
@@ -3036,6 +3053,47 @@ function marcarTechos() {
   tex.needsUpdate = true;
 }
 
+// 3.5: el canal azul de la misma textura (no lo usaba nadie) marca los pisos de las
+// construcciones: las plataformas de las colisiones que quedan a ras del suelo (pisos, andenes,
+// veredas, las obras del jugador). Ahí no salen pasto, flores ni helechos (pasto.js): antes el
+// coirón atravesaba el piso del almacén. Se rehace sólo cuando cambian las plataformas.
+let firmaPisos = '';
+function marcarPisos() {
+  if (!texturaEstepa || !col?.plataformas) return;
+  const lista = col.plataformas;
+  let suma = 0;
+  for (const p of lista) suma += (p.x || 0) * 0.37 + (p.z || 0) + (p.alto || 0);
+  const firma = lista.length + '|' + suma.toFixed(2);
+  if (firma === firmaPisos) return;
+  firmaPisos = firma;
+  const { datos, n, tex } = texturaEstepa;
+  for (let i = 2; i < datos.length; i += 4) datos[i] = 0;
+  const MARGEN = 0.8;
+  for (const p of lista) {
+    // sólo lo que pisa casi el suelo (un puente, la tirolesa o un mirador alto dejan pasto abajo)
+    // y no las ayudas invisibles de la física (sin techo ni laterales)
+    if (p.sinTecho || p.sinLaterales || !Number.isFinite(p.alto)) continue;
+    const sobre = p.alto - T.altura(p.x, p.z);
+    if (sobre < -0.3 || sobre > 1.4) continue;
+    const circulo = p.radio !== undefined;
+    const cos = Math.cos(p.ang || 0), sin = Math.sin(p.ang || 0);
+    const hx = (circulo ? p.radio : p.largo / 2) + MARGEN, hz = (circulo ? p.radio : p.ancho / 2) + MARGEN;
+    const alcance = circulo ? hx : Math.hypot(hx, hz);
+    if (!(alcance > 0) || alcance > 30) continue;
+    const i0 = Math.max(0, Math.floor((p.x - alcance + 512) / 2)), i1 = Math.min(n - 1, Math.ceil((p.x + alcance + 512) / 2));
+    const j0 = Math.max(0, Math.floor((p.z - alcance + 512) / 2)), j1 = Math.min(n - 1, Math.ceil((p.z + alcance + 512) / 2));
+    for (let j = j0; j <= j1; j++) {
+      for (let i = i0; i <= i1; i++) {
+        const dx = i * 2 - 512 - p.x, dz = j * 2 - 512 - p.z;
+        const dentro = circulo ? dx * dx + dz * dz <= hx * hx
+          : Math.abs(dx * cos + dz * sin) <= hx && Math.abs(-dx * sin + dz * cos) <= hz;
+        if (dentro) datos[(j * n + i) * 4 + 2] = 255;
+      }
+    }
+  }
+  tex.needsUpdate = true;
+}
+
 // Los primeros pasos: pistas que aparecen una sola vez, cuando corresponde,
 // para que el primer rato no sea andar sin saber qué se puede hacer.
 const PISTAS = [
@@ -3230,6 +3288,7 @@ function actualizarVisibilidad(cam, factorDetalle = 1) {
       visiblesTren.delete(ch);
     }
   }
+  marcarPisos();   // 3.5: una obra nueva (o una que se fue) cambia los pisos sin pasto
 }
 
 // ---------------------------------------------------------------- la bitácora del faro
@@ -6108,6 +6167,8 @@ function actualizarMedidor(dt, objetivoMs = medidor.objetivoMs) {
     `${estadoRender.calls || info.render.calls} llamadas   ${((estadoRender.triangles || info.render.triangles) / 1000).toFixed(0)} mil triángulos`,
     `${info.memory.geometries} geometrías   ${info.programs?.length ?? 0} shaders   ${lineaHeap}`,
     `calidad ${ajustes.calidad}   ${Math.round(lienzo.width)}×${Math.round(lienzo.height)}`,
+    // 3.5: la distancia de dibujo y la de plantas que rigen (lo de ahora: se acercan de a poco)
+    `dibujo ${Math.round(veg?.alcanceArboles?.() ?? calidad.lejos)} m (${ajustes.distancia === 'calidad' ? 'según la calidad' : ajustes.distancia + ' bloques'})   plantas ${ajustes.distanciaPlantas}: pasto ${Math.round(pasto?.radio ?? 0)} m, matas ${Math.round(veg?.distancias?.().soto ?? 0)} m`,
     `presupuesto L${presupuestoAdaptativo.nivel}   frame EMA ${presupuestoAdaptativo.emaMs.toFixed(1)} ms`,
     // 3.2: el ritmo (objetivo parejo según el monitor), los tirones y lo que cuesta un cuadro
     `ritmo ${textoRitmo()}`,
@@ -6365,6 +6426,26 @@ function actualizarTiempo(dt) {
 let acumuladoSombra = 99;
 let horaSombra = -99;
 const posSombra = new THREE.Vector3();
+// 3.5: la distancia de dibujo y la de plantas (ver config.js). `calidadActiva`: la calidad que
+// está andando (la automática la cambia en vivo; la elegida a mano rige al recargar). Se aplica
+// en vivo: el corte de las construcciones y la niebla ya; los árboles, sus carteles y el
+// sotobosque se acercan de a poco a lo nuevo (vegetacion.js); el pasto rellena sus búferes.
+// Nada compila shaders nuevos: son los mismos programas con otros uniformes.
+function aplicarDistancias(inmediato = false) {
+  distActual = distanciasDe(calidadActiva, ajustes.distancia, ajustes.distanciaPlantas);
+  calidad.lejos = distActual.lejos;   // el corte de las construcciones y la vía (lejos + 60)
+  calidad.nieblaDistancia = distActual.niebla;
+  veg?.ajustarDistancias({ lejos: distActual.lejos, plantas: distActual.plantas }, inmediato);
+  pasto?.ajustar(distActual.plantas);
+  textoAjustesDistancia();
+}
+function textoAjustesDistancia() {
+  const t = $('texto-distancia');
+  if (t) t.textContent = T_(textoDistanciaDibujo(distActual));
+  const r = $('ajuste-distancia');
+  if (r) r.value = String(ajustes.distancia === 'calidad' ? Math.min(BLOQUES_MAX, Math.max(BLOQUES_MIN, Math.round(distActual.bloques))) : ajustes.distancia);
+}
+
 // Lo que se puede acomodar sin rehacer el mundo se aplica ya (distancias de
 // dibujo y detalle); la densidad de bosque y las sombras, al próximo arranque.
 const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'radioPasto', 'niebla', 'flotantes', 'aves'];
@@ -6372,6 +6453,10 @@ function aplicarCalidadAutomatica(cambio) {
   const nueva = CALIDADES[cambio.hasta];
   if (!nueva) return;
   for (const k of CLAVES_CALIDAD_EN_VIVO) if (nueva[k] !== undefined) calidad[k] = nueva[k];
+  // 3.5: la distancia de dibujo elegida por el jugador no se toca; «según la calidad» sigue a
+  // la nueva (y ahora llega a los árboles, los carteles y la niebla, de a poco)
+  calidadActiva = cambio.hasta;
+  aplicarDistancias();
   // las sombras son lo más caro que se puede acomodar sin rehacer el mundo
   if (nueva.sombras !== calidad.sombras) {
     calidad.sombras = nueva.sombras;
@@ -6569,7 +6654,7 @@ function bucle(tRaf, manual = false) {
   // las nubes tapan el sol de a ratos: la sombra corre por el valle
   U.uNubes.value = clima.estado.nublado * (luzCielo ? luzCielo.dia : 1) * 0.85;
   U.uDetalleSuelo.value = calidad.detalleSuelo ?? 1;
-  U.uBosqueLejos.value = calidad.lejos;
+  U.uBosqueLejos.value = veg.alcanceArboles();   // 3.5: el borde del bosque de ahora (se corre de a poco)
   const tClima = perfilador.iniciar(medirRendimiento);
   diario.clima(dt, clima.estado, U.uInvierno.value);
   // tormenta: el relámpago enciende el valle un instante y el trueno llega después
@@ -7083,6 +7168,7 @@ function bucle(tRaf, manual = false) {
     console.error(err);
     return;
   }
+  aplicarDistancias(true);   // 3.5: la distancia de dibujo y de plantas del jugador, de entrada
   aplicarAccesibilidad();
   traducirPanel(document.body);
   crearValle();   // 3.1
@@ -7130,6 +7216,8 @@ function bucle(tRaf, manual = false) {
     __teclasPropias: () => teclasPropias,
     // 1.10
     // 1.11
+    // 3.5: la distancia de dibujo y de plantas (pruebas y herramientas de medición)
+    pasto, calidad, aplicarDistancias, __distancias: () => ({ ajustes: { distancia: ajustes.distancia, plantas: ajustes.distanciaPlantas }, rigen: distActual, veg: veg.distancias(), pasto: { radio: pasto.radio, matas: pasto.matas }, soto: { ...veg.statsSoto } }),
     __bucle: () => bucle(0, true), __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
     cocinar, hayQueCocinar, __mundoPerro: () => mundoPerro, __abierto: () => ({ enElAlmacen, enLaFeria }),
     __sync: { copiarASync, revisarCarpetaSync, estado: () => ({ carpetaSync, ultimaCopiaSync, copiadoEnSync }) },

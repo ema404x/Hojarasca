@@ -1,7 +1,7 @@
 // Progreso y ajustes en el almacenamiento local.
 // RC2: guardado transaccional, migraciones y saneamiento de datos.
 import { GRILLA_EXPLORADA } from './mapa.js';
-import { LIMITE } from './config.js';
+import { LIMITE, sanearDistancia, sanearPlantas } from './config.js';
 import { sanearDesafio } from './desafio-reglas.js';
 import { sanearChinches } from './chinches.js';
 import { sanearTalados } from './bosque.js';
@@ -160,6 +160,8 @@ export const AJUSTES_BASE = {
   relaxTipo: 'libre',
   // 3.3: modo fluido (resolución dinámica entre 70% y 100%), apagado de fábrica
   modoFluido: false,
+  // 3.5: distancia de dibujo ('calidad' = la de cada calidad, o bloques de 40 m) y de plantas
+  distancia: 'calidad', distanciaPlantas: 'normal',
 };
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -238,6 +240,8 @@ function sanearAjustes(a) {
     desafioTipo: opcion(x.desafioTipo, ['campana', 'sinfin'], AJUSTES_BASE.desafioTipo),
     relaxTipo: opcion(x.relaxTipo, ['libre', 'historia'], AJUSTES_BASE.relaxTipo),
     modoFluido: typeof x.modoFluido === 'boolean' ? x.modoFluido : AJUSTES_BASE.modoFluido,
+    distancia: sanearDistancia(x.distancia),   // 3.5 (un guardado viejo: la de su calidad)
+    distanciaPlantas: sanearPlantas(x.distanciaPlantas),
     teclas: objeto(x.teclas) ? x.teclas : {},
   };
 }

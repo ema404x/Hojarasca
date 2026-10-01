@@ -56,7 +56,8 @@ assert.match(main, /veg\.arbolesCerca/);
 // Presupuesto GPU de detalle: sólo afecta anillo lejano de vegetación/pasto.
 assert.match(veg, /function actualizar\(cam, factorDetalle = 1\)/);
 assert.match(veg, /calidad\.sotobosque, 52\) \* detalle/);
-assert.match(pasto, /uniforms\.uR\.value = R \* Math\.max\(0\.78/);
+// 3.5: el pasto se acorta con el fundido del borde (uCorte), no achicando uR (que corría el anillo entero)
+assert.match(pasto, /const corte = Math\.max\(0\.78, Math\.min\(1, factorDetalle \|\| 1\)\);/);
 assert.match(main, /pasto\.actualizar\(cam, miraPasto, presupuestoAdaptativo\.factorDetalle\(0\.78\)\)/);
 
 console.log('OK Optimización Adaptativa RC22 · presupuesto por frametime · culling espacial estático · recursos locales · microdetalle GPU adaptativo · sombras escalonadas');

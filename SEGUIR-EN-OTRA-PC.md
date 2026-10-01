@@ -1,202 +1,203 @@
-# Hojarasca — cómo seguir trabajando en la otra PC
+# Hojarasca — cómo seguir en la otra PC (traspaso del 01-10-2026, tarde)
 
-Escrito el 2026-10-01 al pasar el trabajo de una PC a la otra. Sirve para vos y para
-Claude: en la otra PC, abrí Claude Code en la carpeta del proyecto y decile
-**"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
+Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
+decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
 
 ---
 
 ## 1. Para vos (pasos en la otra PC)
 
-1. Copiá **`Hojarasca-3.3.0-completo.zip`** (está en Descargas) a la otra PC.
-2. Adentro hay un `Hojarasca-3.3.0-codigo-fuente.zip`. Extraelo con el **Extraer todo** de
-   Windows (o `Expand-Archive` en PowerShell) en
-   `Documents\Hojarasca\src\` → tiene que quedar `Documents\Hojarasca\src\hojarasca-3.3.0`.
-   **No usar `unzip` de Git Bash**: rompe las carpetas de este zip.
-3. Necesitás **Node.js** (18 o más nuevo) y **Git Bash**. En la carpeta del proyecto corré
-   una vez `npm install` (baja Electron y lo necesario; el zip no trae `node_modules`).
-4. Abrí Claude Code en `Documents\Hojarasca\src\hojarasca-3.3.0` y pedile que siga.
-
-**Ojo:** la 3.3.0 está **hecha pero sin verificar del todo**. Lo primero es correr las
-pruebas (punto 3.1). La última versión verificada y entregada es la **3.2.0**.
+1. Copiá este zip (`Hojarasca-traspaso-3.5.zip`) a la otra PC y extraelo con **Extraer todo**
+   de Windows (o `Expand-Archive`). **No uses `unzip` de Git Bash.**
+2. Adentro hay tres carpetas:
+   - `hojarasca-3.5.0-en-curso\` → **seguir desde acá.** Moverla a
+     `Documents\Hojarasca\src\hojarasca-3.5.0`.
+   - `hojarasca-3.4.0\` → la última versión cerrada y verificada (por si hay que comparar).
+   - `herramientas-34\` → scripts de capturas, medición y búsqueda de bugs (ver punto 4.3).
+     Moverla a `Documents\Hojarasca\src\herramientas-34`.
+3. En `hojarasca-3.5.0` corré una vez `npm install` (el zip no trae `node_modules`).
+4. Si querés jugar la 3.4.0 ya armada: `Hojarasca-3.4.0-completo.zip` (en Descargas de esta
+   PC, 344 MB) trae instalador, portable, depot de Steam y código.
+5. Abrí Claude Code en `Documents\Hojarasca\src\hojarasca-3.5.0` y pedile que siga.
 
 ---
 
 ## 2. Para Claude: el proyecto
 
-**Hojarasca** es un juego Electron + three.js (r186, incluido local en
-`three-r186-inline.js`) en un valle andino-patagónico procedural. Dos modos:
-**Relax** (refugio, vecinos, huerta, perro, caballo, kayak, velero, trochita manejable,
-comercio, pueblo, historia guiada) y **Desafío** (invasores de noche, arsenal, fortín,
-asedio, jefe dentro de la nave, modo sin fin). Todo se arma por código: no hay imágenes ni
-audios externos.
+**Hojarasca**: juego Electron + three.js (r186 local en `three-r186-inline.js`) en un valle
+andino-patagónico procedural. Modos **Relax** (refugio, vecinos, huerta, perro, caballo,
+kayak, velero, trochita, comercio, pueblo, historia guiada) y **Desafío** (invasores de noche,
+arsenal, fortín, asedio, jefe en la nave, sin fin). Todo por código: nada descargado (ni
+texturas, ni modelos, ni audio).
 
-- El usuario habla en **castellano rioplatense**. Todo el juego, los comentarios del código
-  y los textos están en castellano.
-- **No hay git.** El trabajo pasa de una PC a la otra con `Hojarasca-<ver>-completo.zip`
-  (instalador, portable, depot de Steam, `codigo-fuente.zip` y `LEEME.txt`).
-- Cada versión vive en `Documents\Hojarasca\src\hojarasca-<ver>`. Antes de tocar nada,
-  confirmar en `RELEASE_STATUS.md` que la carpeta parte de la última versión.
+- El usuario habla **castellano rioplatense**; juego, textos y comentarios en castellano.
+- **No hay git.** El trabajo pasa entre PCs con zips por Descargas + esta nota. Cada versión
+  vive en `Documents\Hojarasca\src\hojarasca-<ver>`. Confirmar en `RELEASE_STATUS.md`.
+- El usuario pidió (01-10) evaluar **un espacio en común** entre las dos PC en lugar de zips
+  (ver punto 6). Preguntale si ya lo armó antes de mandar zips.
 
-### Versiones recientes (lo último arriba)
-- **3.3.0 (hecha, sin verificar):** árboles lejanos pre-dibujados (`impostores.js`, ~7000
-  árboles en un solo dibujo) y bosque en bloques; luces fijas 4+1 (`luces.js`,
-  `compileAsync` al cargar: cero compilaciones a mitad de juego); modo fluido opcional
-  (resolución dinámica, apagado); sólo se generan las texturas que se usan; segunda vuelta
-  del estilo (montañas azules, rayos por los huecos, helechos plumosos, coihue en capas,
-  pehuén en paraguas, luz dorada). Detalle en `CAMBIOS_3_3_0.md` y `CAMBIOS_3_3_0_FLUIDEZ.md`.
-- **3.2.0:** estilo **HushWood** primera vuelta + ritmo de cuadros **Auto** según el
-  monitor + **F3**. (`CAMBIOS_3_2_0.md`, `CAMBIOS_3_2_0_FLUIDEZ.md`)
-- **3.1.0:** historia guiada (8 capítulos), eventos del valle con decisiones, carreras
-  contrarreloj, desafío del día, torneo semanal, oficios, fundar el pueblo.
-- **3.0.1:** auditoría de todas las estructuras (accesos, escaleras, colisiones).
-- **3.0.0:** Desafío en grande (asedio, jefe en la nave, puestos, invasores que se
-  adaptan, sin fin, mapa por código).
-- 2.9 vehículos y construcción · 2.8 personalización (F5) · 2.7 salto visual y sonoro y
-  optimizaciones · 2.5/2.6 arsenal y fortín. Todo está en `CAMBIOS_*.md`.
+### Versiones (lo último arriba)
+- **3.5.0 (EN CURSO, sin verificar):** distancia de dibujo configurable (ver punto 3).
+- **3.4.0 (cerrada y verificada):** "tal cual HushWood, con la Patagonia de verdad".
+  Gate 124/124, las 42 partidas reales en verde. Detalle en `CAMBIOS_3_4_0.md`:
+  luz dorada y paleta sin lima, bruma con techo; copas de cartas de hojas pintadas (atlas por
+  código) con ramas, troncos con vetas, cada especie real (arrayán canela con manchones,
+  coihue en capas, pehuén en pisos, lenga, ñire, maitén, ciprés); helechos plumosos, pasto
+  denso, flores reales (lupinos, margaritas, amancay); sotobosque en bloques; cordillera en
+  cordones con nieve, lago pintado, nubes; gente y animales rehechos (`formas.js` nuevo, ropa
+  de la zona, anatomía real).
+- **3.3.0:** árboles lejanos pre-dibujados (impostores), bosque en bloques, luces fijas,
+  modo fluido. **3.2.0:** primera vuelta HushWood + ritmo Auto + F3. Resto en `CAMBIOS_*.md`.
 
-### Lo que quiere el usuario (dirección actual)
-- **Que se vea como HushWood** (OoyGames, Steam 4842880; estilo Firewatch): estilizado y
-  pintado, coníferas en capas con degradé, sol dorado, rayos de luz, bruma de color
-  (verde azulado lejos, cálido cerca), prados con flores blancas y violetas, helechos,
-  paleta cohesiva. **No realista.** (En la 2.7 se intentó realismo; se cambió de rumbo.)
-- **Que corra fluido en su PC**: Ryzen 5 4600G con **Radeon integrada**, 12 hilos,
-  monitor que ahora tiene en **120 Hz** (es de 144). Ideas acordadas: lo mejor de RAGE
-  (ritmo fijo, todo calculado de antemano, resolución dinámica opcional) y de Minecraft
-  (bloques ya armados, descartar bloques fuera de vista, luz guardada, varios hilos).
-- **Regla de optimización:** no se pierde nada del juego. Lo que no debería cambiar la
-  imagen se compara con capturas píxel por píxel. Se aceptó una diferencia de ±1 nivel de
-  color en unos pocos píxeles a cambio de eliminar tirones (luces fijas).
-- **Inglés al final:** no traducir lo nuevo de cada versión; se traduce todo cuando el
-  juego esté terminado. Las pruebas de idioma existentes tienen que seguir en verde.
-- Le gusta que se vaya **rápido**, con equipos (subagentes) en paralelo, y que le avisen
-  al terminar. Pide el porcentaje de avance seguido: darlo honesto.
-- Ideas que **rechazó** (no proponerlas de nuevo): vida tranquila/conservas/huellas,
-  trineo, globo, trincheras, zorra blindada, arenas, modo pueblo, represa, puerto,
-  sabotaje, expediciones, economía del pueblo (que los vecinos consuman o se vayan),
-  invasores que roban.
+### Lo que quiere el usuario (dirección)
+- **Gráficos "tal cual" HushWood** (OoyGames, Steam 4842880). Miradas sus capturas: NO es
+  low-poly facetado; es pintado con pincelada amplia, corteza rojiza con vetas, coníferas de
+  racimos colgantes, pasto denso, matas de flores, rocas grandes redondeadas, bruma fuerte,
+  luz suave y cálida.
+- **Lo real se respeta**: cada especie patagónica (arrayán, coihue, pehuén…), la gente
+  (ropa de la zona) y los animales (pudú, huemul, caballo criollo…) como son en la realidad,
+  con el acabado de HushWood.
+- **Fluidez** en su PC: Ryzen 5 4600G con Radeon integrada, monitor a 120 Hz. Optimizar sin
+  perder nada del juego. **Todavía nunca se midió en su PC** (pedirle que mire F3).
+- **Inglés al final**: no traducir lo nuevo; las pruebas de idioma existentes siguen verdes.
+- Le gusta ir **rápido con 2 o 3 subagentes en paralelo**, que le muestren **capturas** de
+  cómo va quedando y el **porcentaje de avance honesto** (pregunta "¿por dónde vas?" seguido).
+- Ideas **rechazadas** (no proponer): vida tranquila/conservas/huellas, trineo, globo,
+  trincheras, zorra blindada, arenas, modo pueblo, represa, puerto, sabotaje, expediciones,
+  economía del pueblo, invasores que roban.
 
 ---
 
-## 3. Para Claude: qué hacer ahora
+## 3. Para Claude: qué estaba en curso (3.5.0)
 
-### 3.1 Cerrar la 3.3.0 (primero)
-```bash
-cd "<carpeta>/hojarasca-3.3.0"
-node armar.mjs
-bash herramientas/gate-seguir.sh . ../salida-330          # el gate: npm run verify paso a paso
-bash herramientas/suite.sh . ../salida-330                 # todas las partidas reales (~45 min)
-```
-- Si algo falla, repetir esa prueba **sola** antes de creer que es un bug (algunas
-  dependen del tiempo y fallan si la máquina está cargada). Si falla siempre, es real.
-- Con todo en verde: corregir el `LEEME` (hay uno base en el punto 5) y empaquetar:
-```bash
-bash herramientas/empaquetar.sh . 3.3.0 ../LEEME-330.txt
-```
-  Deja `Hojarasca-3.3.0-completo.zip` en Descargas.
+El usuario: *"las cosas se van generando como muy cerca de uno cuando va pasando, debería haber
+una configuración como en Minecraft para configurar los chunks de distancia"* y *"hay bugs"*.
 
-### 3.2 Lo que quedó pendiente después de la 3.3
-1. **Sotobosque en bloques** (helechos, arbustos, piedras, hojarasca, sombras de contacto
-   todavía se dibujan por bloque y tipo): el próximo gran recorte de dibujos.
-2. Rayos de sol todavía tenues si no hay un hueco del follaje cerca del sol.
-3. Coihue lejano se ve "en platos"; pehuén podría ser más denso de lejos.
-4. Cuadros sueltos de más de 50 ms que no son compilaciones (causa sin encontrar).
-5. Impostores: cambian de ángulo de golpe (fundir dos ángulos ayudaría desde el mirador).
-6. Revisar en F3 el valor "máx" de luces en el pueblo, la estación y las antorchas del
-   Desafío: si se juntan más de 4+1 luces, las más lejanas se apagan.
-7. Probar el modo fluido en una situación donde la placa no llegue (sólo se probó con prueba).
-8. Varios hilos (workers) para la simulación: se dejó porque la fauna cuesta < 0,5 ms.
+### 3.1 Lo que ya está hecho en `hojarasca-3.5.0-en-curso` (gate 125/125; NADA más verificado)
+Archivos que cambian contra la 3.4.0: `src/config.js`, `src/main.js`, `src/plantilla.html`,
+`src/guardado.js`, `src/rendimiento.js`, `src/vegetacion.js`, `src/pasto.js`,
+`src/materiales.js`, `src/cielo.js`, `package.json` (sólo el script verify, la versión sigue
+3.4.0), `pruebas/verificar-optimizacion-adaptativa-rc22.mjs` (actualizada) y
+`pruebas/verificar-3-5-distancia.mjs` (nueva, sumada al gate). Buscar `3.5:` en el código.
+- **Ajustes → Video: "Distancia de dibujo"** en bloques de 40 m (o "Según la calidad", el
+  valor por defecto) y **"Distancia de plantas"**; se aplican en vivo (se acercan de a poco),
+  se guardan (`guardado.js`, un guardado viejo usa la de su calidad) y se ven en F3.
+  `aplicarDistancias` en main.js; constantes en config.js.
+- **Bug grave arreglado (venía de la 3.3):** si la placa no llegaba al objetivo de cuadros
+  (límite fijo o "libre" en una PC que no llega a ~47 fps), `rendimiento.js` marcaba todos los
+  cuadros como lentos y **negaba para siempre las tareas pesadas** (vegetación, ambiente,
+  visibilidad, refugio, sombras): la vegetación se congelaba y después cambiaba de golpe.
+  Ahora ninguna tarea pesada espera para siempre (`esperando`, `reloj` en rendimiento.js).
+  **Probablemente era lo que el usuario veía.**
+- Pasto que no sale bajo pisos de construcciones (`marcarPisos`, canal azul de la máscara).
+- Pasto, flores y sotobosque **crecen desde el suelo** en el borde en vez de aparecer de golpe.
+
+### 3.2 Lo que falta para cerrar la 3.5
+1. **Revisar con capturas** lo hecho (el equipo se frenó en la etapa de medir/capturar):
+   caminando y girando rápido, con distancia mínima, por defecto y máxima, en media y alta.
+   Medir costo con el valor por defecto (tiene que ser igual al de la 3.4) y con el máximo.
+   Probar el bug grave con `herramientas-34\bugs-recorrido\recorrido.cjs` a 33 ms por cuadro
+   (antes: `veg.actualizar` 0 veces en 400 cuadros).
+2. **Bugs pendientes de la 3.4** (evidencia en `herramientas-34\bugs-recorrido\`):
+   - **Ramas del ciprés/maitén que tapan la pantalla** al pasar a 2,5–3,5 m: las cartas que
+     cuelgan del primer piso del ciprés (`vegetacion.js` ~880-888, tamaño `radio*0.52`) y la
+     cortina del maitén (~815-823) quedan a la altura de los ojos y se ven como manchas lisas.
+     Reproducir: alta, verano, refugio −133,74/+2,86 mirando a 120°. Capturas
+     `s7-ab\bosque-fin-ok\f001.png`, `s9-340\bosque-fin\f000.png` (3.3: `s9-330\...`).
+   - **Invierno: copas cercanas verdes y lejanas blancas** (cada árbol cambia al cruzar el
+     LOD, 66 m alta / 44 m media). Probable causa: la nieve sale de la normal del vértice
+     (`materiales.js` ~181-184) y las cartas cercanas llevan normales de follaje desde el
+     centro del racimo (`vegetacion.js` ~518-580). Capturas `s10-invierno-media\`,
+     `s14-invierno-alta-340\` contra `s14-invierno-media-330\`.
+   - Sospechas (vistas una vez): helechos del sotobosque que no se ponen rojizos en otoño
+     (`s10-otono-alta`); una flor naranja sobre la nieve en invierno.
+   - Las líneas de los bugs son de la 3.4.0; en la 3.5 pueden haberse corrido.
+3. Preguntarle al usuario **qué bugs vio él** (dijo "hay bugs" sin detallar).
+4. Cerrar: subir versión a 3.5.0 (`node herramientas-34\subir-version.cjs <proy> 3.4.0 3.5.0`),
+   `CAMBIOS_3_5_0.md`, línea en `RELEASE_STATUS.md`, gate, **las 42 partidas reales**, LEEME
+   con el QA real y empaquetar.
+
+### 3.3 Otros pendientes (de la 3.3/3.4, para después)
+- Cuadros sueltos de más de 50 ms sin causa encontrada; F3 "máx" de luces en pueblo/estación.
+- Medir en la Radeon integrada el costo de las hojas recortadas (`discard`) de cerca y a media
+  distancia (en esta PC: +0,5–1 ms en alta junto a un ciprés).
+- Gente todavía algo rígida (brazos tubo, caras simples), escalones en uniones (cuello del
+  perro/huemul, hombros), crin del caballo como lámina.
+- Piedemonte pálido al ocaso, alguna faceta en cerros cercanos, amancay en franja de cantero,
+  rayos de sol suaves al mediodía, impostores blandos cerca de su límite.
+- Workers para la simulación (se dejó: la fauna cuesta < 0,5 ms).
 
 ---
 
-## 4. Para Claude: cómo se trabaja en este proyecto
+## 4. Para Claude: cómo se trabaja
 
-### Construir y probar
-- `node armar.mjs` arma `index.html` (un solo archivo con todo). **Correrlo antes de
-  cualquier prueba de Electron.**
-- `npm run verify` es el gate (122+ pasos, sólo Node; no necesita `npm install`).
-  `herramientas/gate-seguir.sh` lo corre sin frenar en el primer error.
-- Pruebas de Electron: `npx electron pruebas/humo-<x>.cjs`. **Comparten el localStorage
-  del perfil por defecto: nunca correr dos a la vez.** Para pruebas propias o en paralelo
-  usar `npx electron --user-data-dir=<carpeta propia> ...`.
-- **Nunca** `taskkill //F //IM electron.exe` si hay otras pruebas corriendo.
-- `window.__hojarasca` expone casi todo en `?debug=1`. `__hojarasca.__bucle()` corre un
-  cuadro entero; si se llama seguido, poner `ajustes.limiteFps = 'libre'` o el límite de
-  cuadros los descarta. `H.desafio.actualizar(0.05, {noche:1, dtReal:0.05})` simula el
-  Desafío.
-- Medir: `npm run perfil` / `perfil:desafio` / `perfil:carga` / `diag:dibujo` /
-  `diag:matrices`. F3 en el juego muestra cuadros, tirones, ritmo, dibujos y placa.
-- Nueva prueba al gate: `node herramientas/sumar-prueba.cjs . verificar-x.mjs`
-  (sólo el nombre, sin `pruebas/`).
+### 4.1 Construir y probar
+- `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba.
+- `npm run verify` es el gate (125 pasos en la 3.5, sólo Node).
+- Partidas reales: `pruebas/humo-*.cjs` (42). **Comparten el perfil de Electron: nunca dos a
+  la vez.** Para capturas propias usar perfil propio (`app.setPath('userData', …)`).
+- **Nunca** matar electron por nombre si hay otras pruebas o capturas corriendo; matar por PID
+  o por línea de comandos.
+- `window.__hojarasca` en `?debug=1`. `__bucle()` corre un cuadro (con `limiteFps='libre'`).
+  `H.desafio.actualizar(0.05,{noche:1,dtReal:0.05})` simula el Desafío.
 
-### Reglas del código (cuestan caro si se olvidan)
-- `armar.mjs` sólo entiende imports en una línea `import { x } from './y.js';`.
-  **No** `import './x.js'` suelto, **no** `export ... from`, **no** `export async function`,
-  **no** `export function*`.
-- Módulos de reglas **puros** (sin three ni DOM) en `x.js`; lo visual en `x-mundo.js`.
-  `guardado.js` importa los puros.
-- Identificadores exportados **sin ñ** (las pruebas usan `[\w$]`). Buscar por nombre con
-  `Object.hasOwn` (un guardado con `constructor` o `__proto__` rompía cosas).
-- Geometría de obras: material **tipo 0 o 4** solamente (hay prueba).
-- El three local **no trae** `OctahedronGeometry`, `Vector4` ni `Frustum`: verificar antes
-  de usar una clase.
-- El terreno tiene una **huella fija** (`pruebas/verificar-2-2.mjs`): nunca cambiar su
-  geometría ni alturas.
-- Los invasores se reciclan: todo campo nuevo por invasor se limpia en `bajarAlien`.
-- La tecla **E** y el **aviso** en pantalla tienen que usar la misma prioridad (hay un
-  comentario en main.js): cada interacción nueva va en los dos lugares, en el mismo orden.
-- Muchas pruebas verifican **texto exacto** del código: antes de cambiar una línea, buscar
-  fragmentos en `pruebas/`. Si una prueba describe algo que se cambia a propósito,
-  actualizarla lo mínimo y decirlo.
-- Fines de línea **LF** (con Python en Windows: `newline='\n'`).
-- Comentarios en castellano con la versión adelante (`3.4:`).
-- Subir versión: `package.json` y sólo la raíz de `package-lock.json`
-  (`"name": "hojarasca",\s*"version"`); `@noble/hashes` y `@electron/notarize` no se tocan.
-- Al copiar carpetas con robocopy: excluir sólo `<carpeta>\dist`
-  (`/XD dist` sin ruta borra también `node_modules\electron\dist`).
+### 4.2 Reglas del código (cuestan caro si se olvidan)
+- `armar.mjs` sólo entiende imports en una línea `import { x } from './y.js';` (no
+  `import './x.js'` suelto, no `export ... from`, no `export async function`, no
+  `export function*`).
+- Módulos de reglas puros en `x.js`; lo visual en `x-mundo.js`.
+- Identificadores exportados **sin ñ**; buscar por nombre con `Object.hasOwn`.
+- Geometría de obras: material **tipo 0 o 4** (hay prueba).
+- El three local **no trae** ShapeGeometry, Shape, OctahedronGeometry, Vector4 ni Frustum.
+- El terreno tiene **huella fija** (`pruebas/verificar-2-2.mjs`): no cambiar geometría ni alturas.
+- No mover árboles ni cambiar cuántos hay (`pruebas/verificar-3-3-bosque.mjs`).
+- Invasores reciclados: todo campo nuevo por invasor se limpia en `bajarAlien`.
+- La tecla **E** y el **aviso** comparten prioridad (comentario en main.js).
+- Muchas pruebas verifican **texto exacto**: buscar en `pruebas/` antes de cambiar una línea;
+  si una prueba describe algo cambiado a propósito, actualizarla lo mínimo y decirlo.
+- Fines de línea **LF**; comentarios en castellano con la versión adelante (`3.5:`).
+- Subir versión: sólo `package.json` y la raíz de `package-lock.json`
+  (`"name": "hojarasca",\s*"version"`). **Nunca tocar package.json desde PowerShell** (usar node).
+- robocopy: excluir sólo `<carpeta>\dist` (`/XD dist` sin ruta borra `node_modules\electron\dist`).
+- Sin compilaciones de shaders a mitad de juego; no sumar dibujos por cuadro sin medir.
 
-### Convención de cada versión
-Módulo nuevo + prueba `pruebas/verificar-*.mjs` en el gate + `humo-*.cjs` + un
-`CAMBIOS_<ver>.md` + línea al principio de `RELEASE_STATUS.md` + `LEEME.txt` del paquete
-con "lo que me falta que mires vos" + zip completo en Descargas.
+### 4.3 Herramientas (`herramientas-34\`; en esta PC no hay Git Bash ni git)
+- `verify-todo.cjs <proy>`: corre cada paso del gate y junta las fallas.
+- `<proy>\herramientas\suite.ps1 . <salida> [lista]`: todas las partidas reales, una por vez
+  (PowerShell; en Git Bash está `suite.sh`). `empaquetar.ps1 <proy> <ver> <LEEME>`: instalador,
+  portable, depot, código y `Hojarasca-<ver>-completo.zip` en Descargas (verifica el ASAR).
+  Los `.ps1` necesitan **UTF-8 con BOM**.
+- `bosque-medir\vistas-bosque.cjs . <salida> <calidad>`: capturas sin carteles con perfil
+  propio, **fuerza la vegetación cercana** (la ventana oculta dibuja lento y si no, faltan
+  árboles) y mide dibujos/triángulos/ms. Vistas con la variable `VISTAS` (JSON **hecho con
+  node**: `ConvertTo-Json` de PowerShell aplana los arreglos y cuelga el script). Listas:
+  `lejos-vistas.json`, `bosque-medir\vistas-*.json`.
+- `gente-medir\vistas-gente.cjs`: primeros planos de cada vecino y animal (`SOLO=a,b`).
+- `bugs-recorrido\recorrido.cjs`: camina de verdad con reloj virtual y dt fijo, detecta lo que
+  aparece/desaparece en la vista y junta la consola.
+- `subir-version.cjs`, `diferencias.cjs <base> <otra>` (qué archivos cambiaron),
+  `estado-340.cjs` (ejemplo de cómo tocar RELEASE_STATUS con node).
+- En PowerShell, `node -e "..."` rompe las comillas: escribir scripts en archivos.
 
-### Lecciones de cómo trabajar
-- Repartir en **2 o 3 subagentes en paralelo** con archivos sin pisarse, cada uno con sus
-  pruebas; después revisar con capturas y correr el gate y las partidas reales.
-- **Mirar las capturas a tamaño completo** antes de entregar: en la 2.7.1 se entregaron
-  árboles con pedazos de follaje flotando. Comparar siempre antes y después.
-- Probar caminando de verdad (keydown + `jugador.actualizar`), no teletransportando: así
-  se descubrió que torres, faros y andenes no se podían alcanzar.
+### 4.4 Cómo se trabajó la 3.4 (funcionó bien)
+- Un subagente por área, cada uno en **su copia** `src\trabajo-<x>` con unión a node_modules
+  (`mklink /J`), archivos sin pisarse; juntar copiando sólo los archivos de cada dueño y correr
+  el gate con todo junto. Pasarles capturas de HushWood descritas y las reglas de arriba.
+- Mirar las capturas a tamaño completo antes de dar algo por bueno; mandarle al usuario
+  antes/después con lo que todavía está mal dicho de frente.
 - Una prueba que falla una vez y pasa sola dos veces es de tiempo, no un bug; decirlo igual.
 
 ---
 
-## 5. LEEME base para la 3.3.0
+## 5. Seguridad (pasó hoy)
+AnyDesk de esta PC recibió un pedido de conexión (rechazado) desde la red local (192.168.1.21,
+ID 576041582). El usuario lo resolvió. Nunca abrir ni configurar AnyDesk ni nada de acceso
+remoto.
 
-```
-HOJARASCA 3.3.0 — El bosque en bloques y mas fluidez — Windows x64
-==================================================================
-
-QUE HAY EN ESTA CARPETA
-  Hojarasca-3.3.0-Setup-x64.exe          Instalador (recomendado: arranca mas rapido).
-  Hojarasca-3.3.0-Portable-x64.exe       Un solo archivo, sin instalar.
-  Hojarasca-3.3.0-Steam-depot-win64.zip  Carpeta para depot de Steam.
-  Hojarasca-3.3.0-codigo-fuente.zip      Proyecto: npm install . npm run verify . npm run dist:win
-
-QUE TRAE
-  - Arboles lejanos pre-dibujados y bosque en bloques: mucho menos trabajo para la placa.
-  - Sin trabas al aparecer casas, faros o el tren con luces.
-  - Modo fluido opcional (Ajustes, video): baja un poco la resolucion si hace falta.
-  - Estilo HushWood, segunda vuelta: montanas azules, rayos entre los arboles, helechos
-    plumosos, coihue en capas, pehuen en paraguas, luz dorada en el bosque.
-  Detalle en CAMBIOS_3_3_0.md dentro del codigo fuente.
-
-LO QUE ME FALTA QUE MIRES VOS
-  1. Caminar por el bosque y el pueblo con F3 abierto: cuadros parejos y sin tirones.
-  2. Si el estilo va bien encaminado hacia HushWood.
-
-ESTADO DE QA
-  - npm run verify en verde.
-  - Partidas reales (Electron) en verde, la suite completa.
-```
-(Corregir "ESTADO DE QA" con lo que dé de verdad.)
+## 6. Espacio en común entre las dos PC (propuesto)
+El usuario preguntó por un espacio compartido en vez de zips. Opciones: una carpeta sincronizada
+(OneDrive / Google Drive para escritorio) con el código **sin `node_modules`, `dist` ni
+salidas de pruebas**, o un repositorio privado (GitHub) con git instalado en las dos PC. Con
+una carpeta sincronizada: **no trabajar en las dos PC a la vez** (los conflictos de archivos no
+se resuelven solos) y correr `npm install` en cada PC fuera de la carpeta o con node_modules
+excluido de la sincronización.

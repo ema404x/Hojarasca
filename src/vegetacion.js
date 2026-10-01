@@ -4,7 +4,7 @@ import { rng, smoothstep, clamp } from './ruido.js';
 import { Constructor, abollar, matriz, troncoCurvo, lamina, h3 } from './geometria.js';
 import { materialVegetal, U } from './materiales.js';
 import { crearImpostores } from './impostores.js';
-import { MITAD, LAGO } from './config.js';
+import { MITAD, LAGO, ALCANCE_SOTO } from './config.js';
 import { perfilHabitatPatagonico, elegirArbolPatagonico, formaArbolPatagonico } from './patagonia.js';
 import { crearIndiceEspacial2D } from './rendimiento.js';
 import { bordeBosqueNatural, corredorEscenico, factorRodalPatagonico, firmaComposicionPaisaje } from './paisaje.js';
@@ -1203,6 +1203,51 @@ function conRelevoImpostor(m) {
   return m;
 }
 
+// 3.5: las sombras de contacto (un MeshBasicMaterial) se funden por distancia como el resto del
+// sotobosque (ver materialVegetal, `soto`). Se suma a lo que ya hace el onBeforeCompile de fábrica.
+function conFundidoSoto(m, soto) {
+  const previo = m.onBeforeCompile;
+  m.onBeforeCompile = function (sh, r) {
+    previo.call(this, sh, r);
+    sh.uniforms.uSotoFin = soto.fin;
+    sh.uniforms.uSotoBanda = soto.banda;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uSotoFin; uniform float uSotoBanda;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        if (uSotoFin > 0.5) {
+          float dSoto = length((modelMatrix * vec4(instanceMatrix[3].xyz, 1.0)).xz - cameraPosition.xz);
+          transformed *= 1.0 - smoothstep(uSotoFin - uSotoBanda, uSotoFin, dSoto);
+        }
+      #endif`);
+  };
+  m.customProgramCacheKey = () => 'contacto-soto-3.5';
+  return m;
+}
+
+// 3.5: el medio ángulo horizontal (desde el rumbo de la vista) que abarca la pantalla, mirando
+// las cuatro esquinas del cono de la cámara: inclinada hacia abajo (o desde alto) las esquinas de
+// abajo se abren mucho más que el medio campo horizontal. -1 si alguna esquina apunta para atrás
+// (mirando casi derecho abajo o arriba): entonces no hay cono que valga.
+export function medioAnguloVista(e, fov, aspecto, zoom = 1) {
+  let fx = -e[8], fz = -e[10];
+  const h = Math.hypot(fx, fz);
+  if (h < 1e-6) return -1;
+  fx /= h; fz /= h;
+  const tv = Math.tan((fov * Math.PI) / 360) / (zoom || 1), th = tv * aspecto;
+  let peor = 0;
+  for (let sx = -1; sx <= 1; sx += 2) {
+    for (let sy = -1; sy <= 1; sy += 2) {
+      const dx = -e[8] + sx * th * e[0] + sy * tv * e[4];
+      const dz = -e[10] + sx * th * e[2] + sy * tv * e[6];
+      const adelante = dx * fx + dz * fz, lado = Math.abs(dx * fz - dz * fx);
+      if (adelante <= 1e-3) return -1;
+      peor = Math.max(peor, Math.atan2(lado, adelante));
+    }
+  }
+  return peor;
+}
+
 // ---------------------------------------------------------------- distribución
 export function generarVegetacion(T, calidad, escena) {
   const r = rng(777);
@@ -1212,6 +1257,12 @@ export function generarVegetacion(T, calidad, escena) {
   // RC31.2: anillo de 20 m en el que cada árbol cambia de LOD a su propia distancia
   // (umbral por instancia en el shader): el cambio se reparte y no hay dither en copa.
   const mezclaLod = 10;
+  const lejosCalidad = calidad.lejos;   // 3.5: el alcance de la calidad al cargar
+  // 3.5: el alcance del sotobosque por grupo (matas, hojarasca del piso, sombras de contacto):
+  // cada mata se funde en los últimos metros (`banda`) antes de `fin`. `fin` va de a poco hacia
+  // su objetivo (ver `suavizar`): ni la distancia de plantas ni el presupuesto lo hacen saltar.
+  const fundido = {};
+  for (const g of ['soto', 'suelo', 'contacto']) fundido[g] = { fin: { value: 0 }, banda: { value: 1 } };
   // 3.4: el atlas de cartas de follaje (se pinta acá, al cargar) y el LOD cercano que lo usa
   const cartas = texturaCartas();
   const mats = {
@@ -1222,11 +1273,11 @@ export function generarVegetacion(T, calidad, escena) {
     // 3.4: las matas también llevan cartas de hojas (recortadas, como el LOD cercano)
     // 3.4 (sotobosque): de las dos caras, por las frondas de los helechos (las cartas miran a
     // la cámara: para ellas no cambia nada)
-    arbusto: conCartas(materialVegetal({ flex: 3, copa: true, doble: true }), cartas),
-    hierba: materialVegetal({ flex: 5, doble: true, detalle: false }),
-    roca: materialVegetal({ flex: 0 }),
-    suelo: materialVegetal({ flex: 0, doble: true, detalle: false }),
-    contacto: new THREE.MeshBasicMaterial({ color: 0x211a14, transparent: true, opacity: 0.105, depthWrite: false, depthTest: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    arbusto: conCartas(materialVegetal({ flex: 3, copa: true, doble: true, soto: fundido.soto }), cartas),
+    hierba: materialVegetal({ flex: 5, doble: true, detalle: false, soto: fundido.soto }),
+    roca: materialVegetal({ flex: 0, soto: fundido.soto }),
+    suelo: materialVegetal({ flex: 0, doble: true, detalle: false, soto: fundido.suelo }),
+    contacto: conFundidoSoto(new THREE.MeshBasicMaterial({ color: 0x211a14, transparent: true, opacity: 0.105, depthWrite: false, depthTest: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), fundido.contacto),
   };
 
   const tipos = {};
@@ -1643,28 +1694,48 @@ export function generarVegetacion(T, calidad, escena) {
     im.matrixWorldAutoUpdate = false;
     im.name = 'soto-' + nombre;
     sotoGrupo.add(im);
-    bloques.push({ nombre, im });
+    bloques.push({ nombre, im, grupo: t.grupo });
   }
   escena.add(sotoGrupo);
-  const MOVIDA_SOTO = 4, GIRO_SOTO = 18 * Math.PI / 180, MARGEN_SOTO = 25 * Math.PI / 180, CERCA_SOTO = 14;
-  let sotoSucio = true, sotoX = Infinity, sotoZ = Infinity, sotoRumbo = 0, sotoCono = -2, sotoClave = '';
-  const statsSoto = { veces: 0, ms: 0, instancias: 0 };
+  // 3.5: CERCA_SOTO pasó de 14 a 24 m: lo cercano no depende del cono (una mata ancha con el pie
+  // fuera del cono, o la cámara alta mirando abajo, ya no entran de golpe al girar). El cono se
+  // mide con las cuatro esquinas de la pantalla (ver medioAnguloVista), no sólo con el campo
+  // horizontal. Y cada bloque junta sólo lo que está a menos de su alcance (`fundido`) más el
+  // margen de lo que se camina hasta rehacerlo: los chunks ya no entran enteros.
+  const MOVIDA_SOTO = 4, GIRO_SOTO = 18 * Math.PI / 180, MARGEN_SOTO = 25 * Math.PI / 180, CERCA_SOTO = 24;
+  const MARGEN_ALCANCE = MOVIDA_SOTO + 3;
+  let sotoSucio = true, sotoX = Infinity, sotoZ = Infinity, sotoRumbo = 0, sotoCono = -2, sotoClave = '', sotoMedio = 0;
+  const sotoFin = { soto: 0, suelo: 0, contacto: 0 };   // el alcance con que se rehizo cada grupo
+  const chunksSoto = [];
+  const statsSoto = { veces: 0, ms: 0, instancias: 0, chunks: 0 };
   function compactarSoto(x, z, fx, fz, cosCono) {
     const t0 = performance.now();
     sotoSucio = false; sotoX = x; sotoZ = z;
     const c2 = CERCA_SOTO * CERCA_SOTO;
-    let total = 0;
+    let total = 0, rMax = 0;
+    for (const g in sotoFin) { sotoFin[g] = fundido[g].fin.value; rMax = Math.max(rMax, sotoFin[g] + MARGEN_ALCANCE); }
+    // los chunks que tocan el alcance (distancia de la cámara a su rectángulo)
+    chunksSoto.length = 0;
+    for (const ch of chunks.values()) {
+      const ex = Math.max(0, Math.abs(x - ch.x) - TAM_CHUNK / 2), ez = Math.max(0, Math.abs(z - ch.z) - TAM_CHUNK / 2);
+      if (ex * ex + ez * ez <= rMax * rMax) chunksSoto.push(ch);
+    }
+    statsSoto.chunks = chunksSoto.length;
     for (const b of bloques) {
       const im = b.im, destM = im.instanceMatrix.array, destC = im.instanceColor?.array;
+      const alcance = (sotoFin[b.grupo] ?? sotoFin.soto) + MARGEN_ALCANCE, a2 = alcance * alcance;
       let n = 0;
-      for (const ch of chunks.values()) {
+      for (const ch of chunksSoto) {
         const f = ch.porTipo?.[b.nombre]?.[0];
-        if (!f || !f.userData.aTiro) continue;
+        if (!f) continue;
+        const ex = Math.max(0, Math.abs(x - ch.x) - TAM_CHUNK / 2), ez = Math.max(0, Math.abs(z - ch.z) - TAM_CHUNK / 2);
+        if (ex * ex + ez * ez > a2) continue;
         const M = f.instanceMatrix.array, C = f.instanceColor?.array;
         for (let i = 0; i < f.count; i++) {
           const o = i * 16;
           if (M[o] === 0 && M[o + 5] === 0 && M[o + 10] === 0) continue;   // despejada
           const dx = M[o + 12] - x, dz = M[o + 14] - z, d2 = dx * dx + dz * dz;
+          if (d2 > a2) continue;   // 3.5: más allá de su alcance (el shader ya la tiene en cero)
           if (d2 > c2 && dx * fx + dz * fz < cosCono * Math.sqrt(d2)) continue;
           destM.set(M.subarray(o, o + 16), n * 16);
           if (destC && C) { destC[n * 3] = C[i * 3]; destC[n * 3 + 1] = C[i * 3 + 1]; destC[n * 3 + 2] = C[i * 3 + 2]; }
@@ -1689,23 +1760,97 @@ export function generarVegetacion(T, calidad, escena) {
     // hacia dónde mira, en el plano (la columna z de la cámara apunta hacia atrás)
     let fx = -e[8], fz = -e[10];
     const h = Math.hypot(fx, fz);
-    // el medio ángulo horizontal de la vista; mirando casi derecho arriba o abajo, sin cono
-    const medio = Math.atan(Math.tan((camara.fov * Math.PI) / 360) * camara.aspect);
-    const cono = h < 0.25 ? -2 : Math.cos(Math.min(Math.PI, medio + MARGEN_SOTO));
+    // 3.5: el medio ángulo que abarcan las esquinas de la pantalla (con la inclinación); si
+    // alguna esquina mira para atrás (casi derecho arriba o abajo), sin cono
+    const medio = medioAnguloVista(e, camara.fov, camara.aspect, camara.zoom);
+    const cono = medio < 0 ? -2 : Math.cos(Math.min(Math.PI, medio + MARGEN_SOTO));
     if (h > 1e-6) { fx /= h; fz /= h; }
     const rumbo = Math.atan2(fx, fz);
     let giro = Math.abs(rumbo - sotoRumbo); if (giro > Math.PI) giro = 2 * Math.PI - giro;
+    // (lo que se abrió el cono por inclinar la cámara cuenta como giro)
+    if (medio > sotoMedio) giro += medio - sotoMedio;
     const clave = camara.fov + '|' + camara.aspect;
-    if (sotoSucio || clave !== sotoClave || (cono > -1.5) !== (sotoCono > -1.5) || (cono > -1.5 && giro > GIRO_SOTO) || Math.hypot(x - sotoX, z - sotoZ) > MOVIDA_SOTO) {
-      sotoClave = clave; sotoCono = cono; sotoRumbo = rumbo;
+    let alcance = false;
+    for (const g in sotoFin) { const f = fundido[g].fin.value; if (f > sotoFin[g] + 3 || f < sotoFin[g] - 15) alcance = true; }
+    if (sotoSucio || alcance || clave !== sotoClave || (cono > -1.5) !== (sotoCono > -1.5) || (cono > -1.5 && giro > GIRO_SOTO) || Math.hypot(x - sotoX, z - sotoZ) > MOVIDA_SOTO) {
+      sotoClave = clave; sotoCono = cono; sotoRumbo = rumbo; sotoMedio = Math.max(0, medio);
       compactarSoto(x, z, fx, fz, cono);
     }
   }
   const antesEscena = escena.onBeforeRender;
   escena.onBeforeRender = function (renderer, sc, camara, rt) {
     antesEscena.call(this, renderer, sc, camara, rt);
+    suavizar();   // 3.5
     revisarSoto(camara);
   };
+
+  // ----- 3.5: distancia de dibujo y de plantas, en vivo
+  // `ajustarDistancias` fija los objetivos (lo elige main con los ajustes del jugador y la calidad
+  // que está andando); `suavizar`, antes de cada dibujo, acerca de a poco lo que se usa: el borde
+  // del bosque y el del sotobosque se corren creciendo o achicándose, nunca de un salto.
+  const distancia = { lejos: calidad.lejos, plantas: 1, detalle: 1 };
+  const objetivoSoto = { soto: 0, suelo: 0, contacto: 0 };
+  let lejosActual = calidad.lejos;
+  function alcanceSotoDe(grupo) {
+    // (los mismos cortes de antes por grupo y por presupuesto, ahora como alcance del fundido)
+    const detalle = distancia.detalle;
+    const base = grupo === 'suelo' ? Math.min(calidad.sotobosque, 52) * detalle
+      : grupo === 'contacto' ? Math.min(calidad.sotobosque, 46) * detalle
+      : calidad.sotobosque * detalle;
+    return Math.max(10, Math.min(base * distancia.plantas * ALCANCE_SOTO, distancia.lejos));
+  }
+  function ponerFin(g, fin) {
+    fundido[g].fin.value = fin;
+    fundido[g].banda.value = Math.max(6, fin * 0.3);
+  }
+  function objetivosSoto(inmediato = false) {
+    for (const g in objetivoSoto) {
+      objetivoSoto[g] = alcanceSotoDe(g);
+      if (inmediato || fundido[g].fin.value <= 0) ponerFin(g, objetivoSoto[g]);
+    }
+  }
+  objetivosSoto(true);
+  function aplicarLejos(l) {
+    lejosActual = l;
+    mats.arbol.alta.userData.lod.uLodLejos.value = l;
+    mats.arbol.baja.userData.lod.uLodLejos.value = l;
+    if (impostores) impostores.estado.uLejos.value = l;
+  }
+  // a velocidad pareja (con un mínimo): 10 m/s el sotobosque, 25 m/s el borde del bosque
+  const acercar = (v, obj, minimo, dt) => {
+    const paso = Math.max(minimo, Math.abs(obj - v) * 1.5) * dt;
+    return Math.abs(obj - v) <= paso ? obj : v + Math.sign(obj - v) * paso;
+  };
+  let ultimoSuave = -1;
+  function suavizar() {
+    const ahora = performance.now();
+    const dt = ultimoSuave < 0 ? 0 : Math.min(0.1, Math.max(0, (ahora - ultimoSuave) / 1000));
+    ultimoSuave = ahora;
+    for (const g in objetivoSoto) {
+      const v = fundido[g].fin.value;
+      if (v !== objetivoSoto[g]) ponerFin(g, acercar(v, objetivoSoto[g], 10, dt));
+    }
+    if (lejosActual !== distancia.lejos) aplicarLejos(acercar(lejosActual, distancia.lejos, 25, dt));
+  }
+  function ajustarDistancias({ lejos = distancia.lejos, plantas = distancia.plantas } = {}, inmediato = false) {
+    const cambioLejos = lejos !== distancia.lejos;
+    distancia.lejos = lejos;
+    distancia.plantas = plantas;
+    objetivosSoto(inmediato);
+    if (inmediato) aplicarLejos(lejos);
+    if (cambioLejos) medioSucio = true;
+  }
+  function distancias() {
+    return { lejos: lejosActual, objetivoLejos: distancia.lejos, plantas: distancia.plantas, detalle: distancia.detalle,
+      soto: fundido.soto.fin.value, suelo: fundido.suelo.fin.value, contacto: fundido.contacto.fin.value, objetivoSoto: objetivoSoto.soto };
+  }
+  // a qué escala dibuja el shader una mata del tipo `nombre` a `d` metros (para medir apariciones)
+  function fundidoSoto(nombre, d) {
+    const u = fundido[tipos[nombre]?.grupo] || fundido.soto;
+    const a = u.fin.value - u.banda.value, b = u.fin.value;
+    const t = Math.min(1, Math.max(0, (d - a) / Math.max(1e-6, b - a)));
+    return 1 - t * t * (3 - 2 * t);
+  }
 
   // ----- visibilidad según distancia
   function actualizar(cam, factorDetalle = 1) {
@@ -1714,7 +1859,11 @@ export function generarVegetacion(T, calidad, escena) {
     if (compactoSucio || Math.hypot(cam.x - compactoX, cam.z - compactoZ) > MOVIDA_PARA_COMPACTAR) compactarCercanos(cam);
     // 3.3: con impostores, el LOD simplificado sólo llega hasta donde entra el cartel y lo
     // dibuja una malla compacta por especie (como el LOD cercano), no un pedazo por chunk
-    const alcanceArbol = calidad.lejos;
+    const alcanceArbol = Math.max(lejosActual, distancia.lejos);   // 3.5: la distancia de dibujo
+    // 3.5: el presupuesto acorta el sotobosque como antes (hasta 0,68), pero de a poco y por
+    // mata (el objetivo; `suavizar` lo acerca)
+    // (y sigue a la calidad automática, que cambia calidad.sotobosque)
+    distancia.detalle = detalle; objetivosSoto();
     impostores?.estacion();
     if (impostores && (medioSucio || Math.hypot(cam.x - medioX, cam.z - medioZ) > MOVIDA_MEDIA)) compactarMedios(cam);
     for (const ch of chunks.values()) {
@@ -1732,18 +1881,9 @@ export function generarVegetacion(T, calidad, escena) {
           continue;
         }
         // 3.4 (sotobosque): el sotobosque, la hojarasca y las sombras de contacto ya no se
-        // dibujan por chunk: el chunk sólo dice si está a tiro (con los mismos cortes de
-        // siempre) y las mallas en bloque de cada tipo juntan lo que hay a tiro y a la vista
-        // (ver `compactarSoto`)
-        let aTiro;
-        if (m.grupo === 'suelo') {
-          aTiro = d < Math.min(calidad.sotobosque, 52) * detalle;
-        } else if (m.grupo === 'contacto') {
-          aTiro = d < Math.min(calidad.sotobosque, 46) * detalle;
-        } else {
-          aTiro = d < calidad.sotobosque * detalle;
-        }
-        if (aTiro !== !!m.alta.userData.aTiro) { m.alta.userData.aTiro = aTiro; sotoSucio = true; }
+        // dibujan por chunk: las mallas en bloque de cada tipo juntan lo que hay a la vista
+        // (ver `compactarSoto`). 3.5: y ya no por chunk "a tiro" (entraba un chunk entero de
+        // golpe a 30–64 m): por mata, hasta su alcance, con fundido
         m.alta.visible = false;
       }
       // 3.3: el chunk entra o sale de la escena entero
@@ -1771,8 +1911,10 @@ export function generarVegetacion(T, calidad, escena) {
       const o = a.ref.i;
       lista.push({ fila, matriz: m.instanceMatrix.array.subarray(o * 16, o * 16 + 16), tinte: m.instanceColor ? m.instanceColor.array.subarray(o * 3, o * 3 + 3) : null });
     }
-    const inicio = Math.max(calidad.lod + mezclaLod + 30, Math.min(110, calidad.lejos - 70));
-    impostores = crearImpostores(renderer, especiesImp, lista, { inicio, fin: inicio + 25, lejos: calidad.lejos, cartas });
+    // (3.5: con el alcance de la calidad, no con la distancia de dibujo elegida: el relevo al
+    // cartel queda donde estaba, y la distancia sólo mueve el borde)
+    const inicio = Math.max(calidad.lod + mezclaLod + 30, Math.min(110, lejosCalidad - 70));
+    impostores = crearImpostores(renderer, especiesImp, lista, { inicio, fin: inicio + 25, lejos: lejosActual, cartas });
     mats.arbol.baja.userData.relevo.uImpInicio.value = inicio;
     mats.arbol.baja.userData.relevo.uImpFin.value = inicio + 25;
     escena.add(impostores.malla);
@@ -1808,7 +1950,8 @@ export function generarVegetacion(T, calidad, escena) {
   }
   function compactarMedios(cam) {
     medioX = cam.x; medioZ = cam.z; medioSucio = false;
-    const radio = impostores.estado.uFin.value + 30, r2 = radio * radio;
+    // (3.5: con poca distancia de dibujo, sólo hasta el borde del bosque)
+    const radio = Math.min(impostores.estado.uFin.value + 30, Math.max(lejosActual, distancia.lejos) + MOVIDA_MEDIA), r2 = radio * radio;
     // adentro del LOD cercano el simplificado no se dibuja (el shader lo saca): no se copia
     const adentro = Math.max(0, Math.max(8, calidad.lod - mezclaLod) - MOVIDA_MEDIA - 4), a2 = adentro * adentro;
     for (const [nombre, im] of Object.entries(medias)) {
@@ -2099,5 +2242,5 @@ export function generarVegetacion(T, calidad, escena) {
   const impostoresListos = () => impostores;
   const cantidadTocones = () => tocones.length;
 
-  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, statsSoto, revisarSoto };
+  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual };
 }

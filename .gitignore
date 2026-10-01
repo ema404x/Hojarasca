@@ -1,2 +1,10 @@
 node_modules/
 dist/
+# 3.5: lo arma `node armar.mjs` a partir de src/ (se rearma antes de cada prueba)
+/index.html
+# salidas de las pruebas y capturas; perfiles de Electron de las herramientas
+pruebas/salidas/
+salida-*/
+_perfil/
+*.log
+*.log.err
