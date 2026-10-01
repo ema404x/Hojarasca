@@ -115,7 +115,8 @@ export function danarAncla(a, i, dano, deDia = true) {
   z.baliza = ASEDIO.vidaBaliza;
   a.recuperadas = (a.recuperadas || 0) + 1;
   z.orden = a.recuperadas;
-  return { ok: true, rota: true, zona: z.id, abrePaso: puedeAbordar(a) && zonasLibres(a) === ASEDIO.zonasParaAbordar };
+  // 3.5.1: con menos de tres zonas en el mapa el haz se abre igual (ver puedeAbordar): también se avisa
+  return { ok: true, rota: true, zona: z.id, abrePaso: puedeAbordar(a) && zonasLibres(a) === Math.min(ASEDIO.zonasParaAbordar, a.zonas.length) };
 }
 
 // Al caer la noche: contraatacan la última zona recuperada que todavía no está asegurada.

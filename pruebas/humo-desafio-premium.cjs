@@ -207,7 +207,8 @@ app.whenReady().then(async () => {
     await js(`(()=>{const H=window.__hojarasca, D=H.progreso.desafio; D.oleadas=19; D.especial=null; D.especialAnterior='roja'; H.progreso.dia++; H.progreso.horas=19.4; return 1})()`);
     await js(`(()=>{const H=window.__hojarasca; for(let i=0;i<30;i++){ H.progreso.horas+=0.01; H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); } H.progreso.horas=20.49; return 1})()`);
     await simular(10);
-    const nd = await js(`(()=>{const H=window.__hojarasca, D=H.desafio; return {activa:D.nodrizaActiva, blancos:D.eventos.blancos().length, hud:!document.getElementById('nodriza-hud').classList.contains('oculto')}})()`);
+    // 3.5.1: sin las estructuras de un puesto (3.0) que haya salido cerca: con eso la cuenta fallaba de a ratos
+    const nd = await js(`(()=>{const H=window.__hojarasca, D=H.desafio; return {activa:D.nodrizaActiva, blancos:D.eventos.blancos().filter((b)=>!b.puesto).length, hud:!document.getElementById('nodriza-hud').classList.contains('oculto')}})()`);
     ok(nd.activa && nd.blancos === 3 && nd.hud, 'baja la nave nodriza con sus tres núcleos');
     await foto('03-nodriza');
     const vic = await js(`(()=>{const H=window.__hojarasca, D=H.desafio; for (const n of D.eventos.blancos()) D.eventos.herirNucleo(n, 99999);

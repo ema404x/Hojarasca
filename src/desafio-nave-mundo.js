@@ -79,7 +79,8 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   hudRelleno.style.cssText = 'display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff5a3a,#ffcb52)';
   hudBarra.appendChild(hudRelleno);
   hud.append(hudTitulo, hudBarra);
-  document.body.appendChild(hud);
+  // 3.5.1: dentro del HUD del juego: al volver a la portada desde adentro, la barra de la Madre quedaba encima
+  (document.getElementById('hud') || document.body).appendChild(hud);
   const velo = document.createElement('div');
   velo.id = 'nave-velo';
   velo.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:40;opacity:0;background:#fff';
@@ -379,6 +380,12 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     for (const o of arena.ondas) { o.activa = false; o.m.visible = false; }
     for (const p of arena.puas) { p.activa = false; p.aviso.visible = p.espinas.visible = false; }
     arena.apertura = 0;
+    // 3.5.1: la arena se reusa al volver a subir: los ojos y pilares rotos la vez anterior
+    // seguían reventados (sin globo ni núcleo) aunque la Madre se recompone y les entran los
+    // golpes; no se veía a qué tirarle, y el plasma no salía de esos ojos
+    for (const o of arena.ojos) { o.globo.visible = o.pupila.visible = true; o.herida.visible = false; o.flash = 0; }
+    for (const p of arena.pilares) { p.nucleo.visible = true; p.hilo.visible = false; p.columna.scale.y = 1; p.columna.position.y = 4; p.flash = 0; }
+    arena.corazonFlash = 0;
     ponerFisica();
     arena.grupo.visible = true;
     ocultarValle();
@@ -635,7 +642,11 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   const pisoT = { altura: () => (arena ? arena.y : 0) };
   function actualizar(dt, js) {
     // una partida guardada adentro de la nave (o cualquier caída al vacío): de vuelta al valle
-    if (!adentro && !seq && js.pos.y > T.altura(js.pos.x, js.pos.z) + 250) {
+    // 3.5.1: el guardado acota la altura a 320 m: con el sitio del haz alto, la partida guardada
+    // adentro volvía en el aire sobre el haz (y caía cientos de metros); se la reconoce igual
+    const sh = !adentro && !seq ? api.sitioHaz?.() : null;
+    const sobreElHaz = !!sh && Math.hypot(js.pos.x - sh.x, js.pos.z - sh.z) < NAVE.radioArena + 2 && js.pos.y > sh.y + 20;
+    if (!adentro && !seq && (js.pos.y > T.altura(js.pos.x, js.pos.z) + 250 || sobreElHaz)) {
       const s = api.sitioHaz?.();
       const x = s ? s.x + 4 : js.pos.x, z = s ? s.z + 4 : js.pos.z;
       api.jugador().ubicar(x, z, js.yaw, T.altura(x, z));
@@ -777,7 +788,11 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   const avisoCerca = (pos) => (enLaSalida(pos) ? 'Bajar por el haz al valle' : null);
 
   function limpiar() {
-    if (adentro) { sacarFisica(); if (arena) arena.grupo.visible = false; mostrarValle(); adentro = false; }
+    if (adentro) {
+      sacarFisica(); if (arena) arena.grupo.visible = false; mostrarValle(); adentro = false;
+      // 3.5.1: como al salir por el haz: el ambiente del valle quedaba apagado (al caer o volver a la portada adentro)
+      try { sonido.agaches?.ambiente?.gain?.setTargetAtTime(1, sonido.ctx.currentTime, 0.4); } catch { /* sin audio */ }
+    }
     crias.clear();
     seq = null; pelea = null;
     hud.style.display = 'none';

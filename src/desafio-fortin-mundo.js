@@ -91,6 +91,9 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
   }
   function actualizarHielo() {
     for (const o of paredes) {
+      // 3.5.1: pasado el invierno el hielo se derrite: antes la marca quedaba para siempre y
+      // la pirca volvía a helarse sola cada invierno siguiente, sin la E
+      if (o.datos.helada && invierno() <= 0.5) o.datos.helada = false;
       const quiere = HELABLES.includes(o.plano.id) && helada(o);
       if (o.userHielo && o.userHielo.userData.plano !== o.plano.id) quitarHielo(o);
       if (quiere && !o.userHielo) {
@@ -557,11 +560,16 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
         sonido.golpeRuido?.({ dur: 1.4, frec: 300, q: 0.8, tipo: 'lowpass', vol: 0.35, destino: sonido.fuente?.(o.datos, 1), buffer: sonido.ruido });
         api.nota(o.datos.bajado ? 'Bajaste el puente' : 'Subiste el puente', o.datos.bajado ? 'Se puede cruzar por arriba' : 'Ahora es una pared: tienen que romperlo');
         break;
-      case 'abrojos':
-        for (const [k, n] of Object.entries(o.plano.etapas[0]?.pide || o.plano.pide || {})) api.sumarMaterial(k, n);
+      case 'abrojos': {
+        // 3.5.1: se devuelve lo que queda de ellos: gastados casi enteros se juntaban y
+        // devolvían todo, y se volvían a regar gratis cada noche
+        const max = o.plano.vida || 1, vida = Number.isFinite(o.datos.vida) ? o.datos.vida : max;
+        const k = Math.max(0, Math.min(1, vida / max));
+        for (const [m, n] of Object.entries(o.plano.etapas[0]?.pide || o.plano.pide || {})) { const q = Math.round(n * k); if (q > 0) api.sumarMaterial(m, q); }
         api.destruirObra(o, true);
-        api.nota('Juntaste los abrojos', 'Te devolvieron lo que costaron');
+        api.nota('Juntaste los abrojos', k > 0.75 ? 'Te devolvieron lo que costaron' : 'Estaban gastados: te devolvieron lo que quedaba');
         break;
+      }
       case 'hielo':
         o.datos.helada = true;
         api.nota('La pirca quedó helada', 'Aguanta más y no se puede trepar mientras siga el invierno');

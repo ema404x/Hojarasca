@@ -132,6 +132,12 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
       const dano = danoDeExplosion(arma.dano, arma.radio, Math.hypot(p.x - c.x, p.z - c.z));
       if (dano > 0) api.herirAlien(a, dano, c, 'jugador', 'explosivos');   // 3.0
     }
+    // 3.5.1: la onda también les llega al nido, a los puestos, a las agujas y a la Madre (antes
+    // la granada les hacía 0: el tiro directo no pega y la explosión sólo miraba invasores)
+    for (const n of (api.blancos?.() || []).slice()) {
+      const dano = danoDeExplosion(arma.dano, arma.radio, Math.max(0, Math.hypot(n.pos.x - c.x, n.pos.y - c.y, n.pos.z - c.z) - (n.radio || 0)));
+      if (dano > 0) api.herirBlanco?.(n, dano);
+    }
     const js = api.jugador().estado;
     const dj = Math.hypot(js.pos.x - c.x, js.pos.z - c.z);
     if (dj < arma.radio * 0.8 && Math.abs(js.pos.y - c.y) < 3) api.herirJugador(25 * (1 - dj / arma.radio), c);
@@ -162,7 +168,7 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
       escena.add(r.malla);
       enElSuelo.push(r);
     }
-    const y = T.altura(pos.x, pos.z);
+    const y = api.alturaSuelo?.(pos.x, pos.z) ?? T.altura(pos.x, pos.z);   // 3.5.1: adentro de la nave, su piso (no el valle de abajo)
     r.activo = true; r.x = pos.x; r.z = pos.z; r.t = 0;
     r.malla.visible = true;
     r.malla.position.set(pos.x, y + (tipo === 'jabalina' ? 0.55 : 0.06), pos.z);
@@ -200,7 +206,7 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
         nubes.push(n);
       }
     }
-    const y = T.altura(pos.x, pos.z);
+    const y = api.alturaSuelo?.(pos.x, pos.z) ?? T.altura(pos.x, pos.z);   // 3.5.1: ídem
     Object.assign(n, { activa: true, x: pos.x, y, z: pos.z, t: 0, dura: arma.dura, radio: arma.radio });
     n.g.visible = true;
     n.g.position.set(pos.x, y, pos.z);
@@ -331,10 +337,20 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
       const dx = r.x - p.x, dz = r.z - p.z, d = Math.hypot(dx, dz);
       const paso = Math.min(d, (d / Math.max(0.05, r.t)) * dt);
       const nx = p.x + (dx / Math.max(d, 1e-6)) * paso, nz = p.z + (dz / Math.max(d, 1e-6)) * paso;
-      // contra una pared se suelta: el arpón no lo pasa a través
+      // contra una pared se suelta: el arpón no lo pasa a través.
+      // 3.5.1: en tramos cortos: de lejos el tirón mueve más de un metro por cuadro y una
+      // empalizada (medio metro) quedaba saltada entre un punto y el otro
+      if (d > 0.01) {
+        const n = Math.max(1, Math.ceil(paso / 0.3));
+        for (let k = 1; k < n; k++) {
+          const sx = p.x + (nx - p.x) * (k / n), sz = p.z + (nz - p.z) * (k / n);
+          if (api.obraEnPunto?.(sx, T.altura(sx, sz) + 1, sz)) { a.arrastre = null; salida.quieto = true; return salida; }
+        }
+      }
       if (d > 0.01 && api.obraEnPunto?.(nx, T.altura(nx, nz) + 1, nz)) { a.arrastre = null; salida.quieto = true; return salida; }
       if (d > 0.01) { p.x = nx; p.z = nz; }
       p.y = T.altura(p.x, p.z);
+      api.col?.resolver?.(p, a.def.radio * a.m.esc, a.def.altura * a.m.esc);   // 3.5.1: ni árboles ni piedras
       r.t -= dt;
       if (r.t <= 0 || d < 0.05) a.arrastre = null;
       salida.quieto = true;
