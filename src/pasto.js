@@ -206,7 +206,9 @@ export function crearPasto(calidad) {
         // aun cuando la máscara de pasto verde es baja.
         float baseVerde = m.r * (1.0 - estepa * 0.78);
         float baseCoiron = estepa * (0.16 + 0.12 * hash12(floor(b * 0.45)));
-        float dens = max(baseVerde, baseCoiron) * (1.0 - smoothstep(0.1, 0.7, uInvierno) * mix(0.93, 0.35, estepa));
+        // (3.5: en invierno quedan menos matas secas asomando de la nieve: 0.93 → 0.97 en el prado
+        // y el bosque, 0.35 → 0.55 en la estepa)
+        float dens = max(baseVerde, baseCoiron) * (1.0 - smoothstep(0.1, 0.7, uInvierno) * mix(0.97, 0.55, estepa)) * step(0.5, estT.a);
         float d = length(b - uCam.xz);
         // (3.4: cada mata se desvanece en el borde de su propio anillo: ahí es donde salta)
         // (3.5: uCorte, el presupuesto adaptativo: acerca el fundido, no mueve el anillo)
@@ -342,7 +344,9 @@ export function crearPasto(calidad) {
         vec4 est = texture2D(uEstepa, uv);
         vec2 campo = camposFlores(b);
         float prado = smoothstep(0.35, 0.75, m.r) * (1.0 - smoothstep(0.2, 0.5, m.g)) * (1.0 - est.r) * (1.0 - m.a * 0.6) * (1.0 - est.g);
-        float temporada = (1.0 - smoothstep(0.1, 0.6, uInvierno)) * (1.0 - smoothstep(0.2, 0.9, uOtono) * 0.8);
+        // (3.5: se van apenas llega el invierno, antes que la nieve del suelo: en el pase de
+        // estación quedaba alguna flor suelta, un amancay naranja, parada sobre la nieve)
+        float temporada = (1.0 - smoothstep(0.02, 0.25, uInvierno)) * (1.0 - smoothstep(0.2, 0.9, uOtono) * 0.8);
         // el amancay: en el borde del bosque (ni adentro ni en el prado abierto), en manchones
         float borde = smoothstep(0.12, 0.3, m.a) * (1.0 - smoothstep(0.55, 0.8, m.a)) * (1.0 - smoothstep(0.2, 0.5, m.g)) * (1.0 - est.r) * (1.0 - est.g);
         float amancay = borde * smoothstep(0.62, 0.8, vnoise(b * 0.045 + vec2(31.0, 5.0))) * smoothstep(0.35, 0.65, vnoise(b * 0.21 + vec2(7.0, 2.0))) * 0.5;
@@ -353,7 +357,8 @@ export function crearPasto(calidad) {
         float rnd = hash12(floor(b * 3.0) + aAzar * 17.0);
         float d = length(b - uCam.xz);
         float desvanecer = 1.0 - smoothstep(uR * 0.7, uR, d);
-        float vivo = step(rnd, dens * 1.1) * step(0.05, h) * enPantallaAnillo(b) * step(0.02, desvanecer) * (1.0 - step(0.4, est.b));
+        // (3.5: con densidad cero no sale ninguna, ni la del azar justo en cero)
+        float vivo = step(rnd, dens * 1.1) * step(1e-4, dens) * step(0.5, est.a) * step(0.05, h) * enPantallaAnillo(b) * step(0.02, desvanecer) * (1.0 - step(0.4, est.b));
         float tam = fract(aAzar * 7.3);
         float alto = especie < 0.5 ? 0.85 + 0.4 * tam : (especie < 1.5 ? 0.6 + 0.2 * tam : 0.72 + 0.3 * tam);
         // (3.5: crece desde cero en el borde del anillo; antes entraba de golpe al 30%)
@@ -448,7 +453,9 @@ export function crearPasto(calidad) {
         // piso de bosque (o bajo húmedo), fuera del sendero y de la estepa, en grupos
         float suelo = max(smoothstep(0.35, 0.7, m.a), smoothstep(0.4, 0.8, m.b) * 0.7);
         float grupos = smoothstep(0.36, 0.62, vnoise(b * 0.16 + 3.7));
-        float dens = suelo * grupos * (1.0 - smoothstep(0.15, 0.45, m.g)) * (1.0 - est.r) * (1.0 - est.g) * (1.0 - smoothstep(0.3, 0.9, uInvierno));
+        // (3.5: ni en el agua: el alfa de uEstepa marca el lago y los ríos; los helechos de la
+        // orilla húmeda salían por encima del agua)
+        float dens = suelo * grupos * (1.0 - smoothstep(0.15, 0.45, m.g)) * (1.0 - est.r) * (1.0 - est.g) * (1.0 - smoothstep(0.3, 0.9, uInvierno)) * step(0.5, est.a);
         float rnd = hash12(floor(b * 2.0) + aAzar * 23.0);
         float d = length(b - uCam.xz);
         float desvanecer = 1.0 - smoothstep(uR * 0.65, uR, d);
@@ -471,7 +478,9 @@ export function crearPasto(calidad) {
         vec3 pie = srgb(vec3(0.07, 0.17, 0.10));
         // 3.4: verde de helecho más hondo (sin lima) y a la sombra bajo las copas
         vec3 punta = mix(srgb(vec3(0.24, 0.46, 0.19)), srgb(vec3(0.34, 0.54, 0.21)), fract(aAzar * 9.1));
-        punta = mix(punta, mix(srgb(vec3(0.70, 0.46, 0.14)), srgb(vec3(0.58, 0.30, 0.10)), fract(aAzar * 3.3)), uOtono * 0.85);
+        // (3.5: herrumbre rojiza, no el ocre del piso: antes se perdían contra el suelo de otoño;
+        // y no todas igual de pasadas. La misma paleta que los helechos de vegetacion.js)
+        punta = mix(punta, mix(srgb(vec3(0.70, 0.38, 0.12)), srgb(vec3(0.53, 0.26, 0.10)), fract(aAzar * 3.3)), uOtono * mix(0.6, 0.95, fract(aAzar * 4.7)));
         vColor = mix(pie, punta, smoothstep(0.0, 0.8, aT) * 0.85 + 0.15);
         vColor *= mix(vec3(1.0), vec3(0.78, 0.86, 0.9), smoothstep(0.4, 0.9, m.a));
         // (la fronda usa sólo la luz pintada: verde y centro, el mismo color)
