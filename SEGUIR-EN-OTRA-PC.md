@@ -7,18 +7,20 @@ decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
 
 ## 1. Para vos (pasos en la otra PC)
 
-1. Copiá este zip (`Hojarasca-traspaso-3.5.zip`) a la otra PC y extraelo con **Extraer todo**
-   de Windows (o `Expand-Archive`). **No uses `unzip` de Git Bash.**
-2. Adentro hay tres carpetas:
-   - `hojarasca-3.5.0-en-curso\` → **seguir desde acá.** Moverla a
-     `Documents\Hojarasca\src\hojarasca-3.5.0`.
-   - `hojarasca-3.4.0\` → la última versión cerrada y verificada (por si hay que comparar).
-   - `herramientas-34\` → scripts de capturas, medición y búsqueda de bugs (ver punto 4.3).
-     Moverla a `Documents\Hojarasca\src\herramientas-34`.
-3. En `hojarasca-3.5.0` corré una vez `npm install` (el zip no trae `node_modules`).
-4. Si querés jugar la 3.4.0 ya armada: `Hojarasca-3.4.0-completo.zip` (en Descargas de esta
-   PC, 344 MB) trae instalador, portable, depot de Steam y código.
-5. Abrí Claude Code en `Documents\Hojarasca\src\hojarasca-3.5.0` y pedile que siga.
+**Desde el 01-10-2026 el código vive en GitHub: `https://github.com/ema404x/Hojarasca`
+(privado).** Ya no hacen falta zips para el código.
+
+1. Instalá Git si no está: `winget install --id Git.Git -e --source winget`.
+2. Clonalo en `Documents\Hojarasca`:
+   `git clone https://github.com/ema404x/Hojarasca.git hojarasca`
+   (la primera vez se abre el navegador para iniciar sesión en GitHub).
+3. En `Documents\Hojarasca\hojarasca` corré una vez `npm install`.
+4. Abrí Claude Code en esa carpeta y pedile que siga.
+5. Para pasar el trabajo entre PCs: al terminar en una, **subir** (`git push`); al empezar en
+   la otra, **bajar** (`git pull`). No trabajar en las dos a la vez sin subir/bajar antes.
+6. Las capturas de evidencia y los scripts de `herramientas-34` (punto 4.3) no están en el
+   repositorio (pesan cientos de MB): vienen en `Hojarasca-traspaso-3.5.zip` (Descargas de la
+   PC de origen). El instalador de la 3.4.0 está en `Hojarasca-3.4.0-completo.zip`.
 
 ---
 
@@ -31,10 +33,17 @@ arsenal, fortín, asedio, jefe en la nave, sin fin). Todo por código: nada desc
 texturas, ni modelos, ni audio).
 
 - El usuario habla **castellano rioplatense**; juego, textos y comentarios en castellano.
-- **No hay git.** El trabajo pasa entre PCs con zips por Descargas + esta nota. Cada versión
-  vive en `Documents\Hojarasca\src\hojarasca-<ver>`. Confirmar en `RELEASE_STATUS.md`.
-- El usuario pidió (01-10) evaluar **un espacio en común** entre las dos PC en lugar de zips
-  (ver punto 6). Preguntale si ya lo armó antes de mandar zips.
+- **Repositorio git** (desde el 01-10-2026): `https://github.com/ema404x/Hojarasca`, rama
+  `main`, en `Documents\Hojarasca\hojarasca`. Cada versión cerrada lleva una etiqueta
+  (`v3.4.0`). Antes de empezar: `git pull`; al cerrar algo: commit + `git push` (y etiqueta
+  `v<ver>` al cerrar una versión). `index.html`, `node_modules`, `dist` y las salidas de
+  pruebas no van al repositorio (`.gitignore`). `.gitattributes` fuerza LF.
+- Las carpetas viejas `Documents\Hojarasca\src\hojarasca-<ver>` quedan como archivo; se
+  trabaja en el repositorio. Confirmar la versión en `RELEASE_STATUS.md`.
+- En la PC de origen git se instaló el 01-10 en `C:\Program Files\Git\cmd\git.exe` (si
+  Claude no lo encuentra en el PATH, usar esa ruta). Si `git push` falla con "terminal
+  prompts disabled", correrlo con `GCM_INTERACTIVE=always` y `GIT_TERMINAL_PROMPT=1` para
+  que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
 - **3.5.0 (EN CURSO, sin verificar):** distancia de dibujo configurable (ver punto 3).
@@ -194,10 +203,6 @@ AnyDesk de esta PC recibió un pedido de conexión (rechazado) desde la red loca
 ID 576041582). El usuario lo resolvió. Nunca abrir ni configurar AnyDesk ni nada de acceso
 remoto.
 
-## 6. Espacio en común entre las dos PC (propuesto)
-El usuario preguntó por un espacio compartido en vez de zips. Opciones: una carpeta sincronizada
-(OneDrive / Google Drive para escritorio) con el código **sin `node_modules`, `dist` ni
-salidas de pruebas**, o un repositorio privado (GitHub) con git instalado en las dos PC. Con
-una carpeta sincronizada: **no trabajar en las dos PC a la vez** (los conflictos de archivos no
-se resuelven solos) y correr `npm install` en cada PC fuera de la carpeta o con node_modules
-excluido de la sincronización.
+## 6. Espacio en común entre las dos PC
+Elegido por el usuario: **repositorio privado en GitHub** (ver punto 1 y 2). Historial:
+`v3.4.0` (cerrada) y encima el commit "3.5.0 en curso".
