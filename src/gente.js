@@ -1,0 +1,719 @@
+// Gente del bosque: personajes que cuentan historias de la Patagonia
+import * as THREE from 'three';
+import { limitarSombrasPorDistancia } from './rendimiento.js';
+import { rng, lerp } from './ruido.js';
+import { lam, palo, compactar } from './vida.js';
+import { bola, tubo, torno, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar } from './formas.js';
+import { LAGO } from './config.js';
+
+// ---------------------------------------------------------------- historias
+export const HISTORIAS = [
+  // --- Ramón, el puestero
+  { id: 'h-calafate', quien: 'ramon', titulo: 'El que come calafate, vuelve',
+    partes: [
+      'Ese arbusto espinoso de flores amarillas es calafate. En febrero se llena de frutos morados que tiñen los dedos.',
+      'Dicen que una anciana de un pueblo del sur quedó sola cuando su gente se fue al norte por el invierno. Murió esperándolos, y en ese lugar creció un arbusto espinoso lleno de frutos dulces.',
+      'Desde entonces se repite que el que come calafate siempre vuelve a la Patagonia. Fijate que hasta los que se van lejos terminan contando la misma historia.',
+    ] },
+  { id: 'h-pehuen', quien: 'ramon', titulo: 'El árbol que dio de comer',
+    partes: [
+      '¿Viste el pehuén del mirador? La araucaria. Esa especie ya estaba acá mucho antes que nosotros, y puede pasar los mil años.',
+      'Los pewenche subían a la cordillera en marzo a juntar piñones. Los hervían, los tostaban y los guardaban enterrados para pasar el invierno. De ahí el nombre: gente del pehuén.',
+      'Por eso se lo respeta. No es un árbol más: es el que le dio de comer a la gente de acá durante siglos.',
+    ] },
+  { id: 'h-nieve', quien: 'ramon', titulo: 'El invierno de la ceniza',
+    partes: [
+      'Yo llevo cuarenta inviernos en este puesto. El peor no fue el de más nieve, fue el de la ceniza.',
+      'Reventó un volcán del otro lado de la cordillera y durante días cayó ceniza como si nevara en gris. Se tapó el pasto, el agua quedó turbia y los animales no sabían qué comer.',
+      'Al año siguiente el bosque estaba más verde que nunca. Así es esto: lo que parece el final, muchas veces es abono.',
+    ] },
+  { id: 'h-ciervos', quien: 'ramon', titulo: 'Los que no eran de acá',
+    partes: [
+      'Los ciervos colorados que oís bramar en otoño no son de acá. Los trajeron de Europa en los años veinte para cazarlos, y se les fue de las manos.',
+      'Comen los renovales de lenga y de coihue, o sea que se comen el bosque que viene. Y al huemul, que sí es de acá, lo empujan cada vez más arriba.',
+      'No es culpa del animal, ojo. Es culpa del que lo trajo.',
+    ] },
+
+  { id: 'h-viento', quien: 'ramon', titulo: 'El viento que no para',
+    partes: [
+      'Acá el viento no es un día malo: es el clima. Sopla del oeste, baja de la cordillera seco y empuja todo para el este.',
+      'Fijate los árboles del filo: crecen inclinados, con las ramas todas para un lado, como peinados. Se les dice árboles bandera.',
+      'Cuando aprendés a leerlos sabés de dónde viene el viento sin sacar la mano del bolsillo.',
+    ] },
+  { id: 'h-cabalgata', quien: 'ramon', titulo: 'La veranada',
+    partes: [
+      'Antes subíamos los animales a la montaña en diciembre y los bajábamos en marzo. Veranada, le decimos: arriba hay pasto tierno cuando abajo ya está todo seco.',
+      'Eran tres días de arreo. Se dormía donde te agarraba la noche, con el poncho y el fuego.',
+      'Ahora quedamos pocos haciéndolo. Pero mientras haya pasto arriba, alguien va a seguir subiendo.',
+    ] },
+  // --- Ema, la guardaparque
+  { id: 'h-chucao', quien: 'ema', titulo: 'El pájaro que avisa',
+    partes: [
+      'Ese canto fuerte que sale de la mata y nunca ves de dónde viene es el chucao. Un pajarito de pecho colorado que vive escondido abajo del todo.',
+      'En la tradición mapuche su canto se escucha distinto según de qué lado te llegue: de un lado es buen anuncio para el camino, del otro conviene tener cuidado.',
+      'Yo lo uso para otra cosa: si el chucao canta cerca, el bosque está tranquilo. Cuando se callan todos de golpe, algo pasó.',
+    ] },
+  { id: 'h-huemul', quien: 'ema', titulo: 'Contar los que quedan',
+    partes: [
+      'Mi trabajo más lento es contar huemules. Podés pasar semanas sin ver uno.',
+      'Quedan muy pocos en toda la cordillera. Es Monumento Natural en Argentina y está en el escudo de Chile, y aun así casi nadie lo vio de cerca.',
+      'Si alguna vez te cruzás con uno, quedate quieto y dejalo irse tranquilo. Con no correrlo ya estás ayudando.',
+    ] },
+  { id: 'h-llaollao', quien: 'ema', titulo: 'Lo que crece sobre el árbol',
+    partes: [
+      'Esas bolitas anaranjadas pegadas a las ramas son llao llao, un hongo que vive sobre las lengas y los coihues.',
+      'Le hace nudos a la madera. Se come, y le dio el nombre a una península del Nahuel Huapi.',
+      'Me gusta mostrarlo porque la gente llega buscando animales grandes y se termina yendo hablando de un hongo.',
+    ] },
+  { id: 'h-incendio', quien: 'ema', titulo: 'Una chispa',
+    partes: [
+      'Lo que más miedo me da del verano no es la tormenta: es una fogata mal apagada.',
+      'Este bosque tarda siglos en crecer y arde en horas. Después, donde había coihues quedan cañas y arbustos por décadas.',
+      'Por eso, fuego solo en los lugares habilitados, chico, y bien apagado con agua antes de irte. Nunca con tierra encima nada más: abajo sigue vivo.',
+    ] },
+
+  { id: 'h-semillas', quien: 'ema', titulo: 'El año de la caña',
+    partes: [
+      'La caña colihue florece toda junta, en toda una región, cada varias décadas. Después de florecer, muere.',
+      'Esa lluvia de semillas llena el bosque de ratones. Y detrás de los ratones viene todo lo demás: zorros, lechuzas, chuncos.',
+      'Al año siguiente el bosque queda raro, con claros donde había cañaverales. Ahí es cuando los renovales tienen su oportunidad.',
+    ] },
+  { id: 'h-liquenes', quien: 'ema', titulo: 'La barba del viejo',
+    partes: [
+      'Esos mechones grises colgando de las ramas son líquenes. No son parásitos: viven del aire y de la humedad.',
+      'Son el mejor medidor de aire limpio que existe. Donde hay humo o contaminación, desaparecen primero.',
+      'Cuando veas un bosque cargado de barba de viejo, respirá tranquilo: estás en un lugar sano.',
+    ] },
+  // --- Elsa, la guarda del tren
+  { id: 'h-ramal', quien: 'guarda', titulo: 'El ramal que no cerró',
+    partes: [
+      'Este ramal se terminó en 1945, después de veintitantos años de obra. Trocha de setenta y cinco centímetros, la más angosta que vas a ver.',
+      'Lo quisieron cerrar más de una vez. Cada tanto llegaba la orden y la gente de los pueblos salía a la vía a pararlo. Así siguió andando.',
+      'Hoy anda menos por necesidad y más por cariño. Pero anda.',
+    ] },
+  { id: 'h-nieve-tren', quien: 'guarda', titulo: 'Cuando la nieve lo para',
+    partes: [
+      'En invierno la nieve tapa la vía y el tren se queda. A veces horas, a veces días.',
+      'Se prende la salamandra de los coches, se hace agua caliente y se espera. Nadie se desespera: todos saben que en algún momento pasa la cuadrilla con las palas.',
+      'Un maquinista me contó que la peor nevada la pasó jugando al truco con cuatro pasajeros que no conocía. Terminaron amigos.',
+    ] },
+  { id: 'h-empujar', quien: 'guarda', titulo: 'Bajarse a empujar',
+    partes: [
+      'En las cuestas largas la máquina patina y hay que tirar arena sobre el riel para que agarre.',
+      'Si ni así, los pasajeros bajaban y caminaban al lado, y a veces empujaban. El tren iba tan despacio que después se subían en marcha, sin apuro.',
+      'Ojo, no lo hagas vos. Pero la historia es cierta.',
+    ] },
+  { id: 'h-agua', quien: 'guarda', titulo: 'Parar a tomar agua',
+    partes: [
+      'La máquina toma agua cada tanto, por eso los tanques al lado de la vía.',
+      'Mientras carga, el maquinista aceita las bielas y el fogonero acomoda el carbón. Son quince, veinte minutos.',
+      'Esa parada no está en ningún horario, pero es la mejor: te bajás, estirás las piernas y escuchás el bosque con la máquina resoplando al lado.',
+    ] },
+
+  // --- Ercilia, del almacén
+  { id: 'h-libreta', quien: 'ercilia', titulo: 'La libreta',
+    partes: [
+      'Antes acá nadie pagaba con billetes. Se anotaba en la libreta y se saldaba después de la esquila, cuando entraba la plata de la lana.',
+      'Mi abuela le fiaba a todo el valle. Tenía una libreta por familia, con la letra chiquita, y no le fallaba casi nadie.',
+      'Todavía la tengo guardada. La miro cada tanto: están todos los apellidos que quedan por acá.',
+    ] },
+  { id: 'h-arrieros', quien: 'ercilia', titulo: 'Los que traían todo',
+    partes: [
+      'Antes del tren, la mercadería venía en carros tirados por caballos. Veinte días desde la costa, con suerte.',
+      'Se pedía en marzo lo que ibas a necesitar en agosto. Si te equivocabas en la cuenta, te aguantabas.',
+      'Cuando llegó el ramal, lo primero que bajó fue un cajón de naranjas. La gente vino de tres leguas a mirarlas.',
+    ] },
+
+  // --- Nicanor, el pescador
+  { id: 'h-truchas', quien: 'nicanor', titulo: 'Peces que vinieron en tren',
+    partes: [
+      'Las truchas que hay acá no son criollas. Las trajeron en huevos, en cajones con hielo, a principios del siglo pasado.',
+      'Vinieron en barco, después en tren y al final a lomo de mula hasta los lagos. Muchas murieron en el camino; las que llegaron se hicieron dueñas del agua.',
+      'La perca, esa sí es de acá. Cada vez cuesta más encontrarla grande, porque las truchas le comen la comida.',
+    ] },
+  { id: 'h-faro', quien: 'nicanor', titulo: 'La luz del otro lado',
+    partes: [
+      'Cuando el lago se pone bravo, se levanta como el mar. Ola corta y viento que te empuja para el medio.',
+      'Una tarde me agarró lejos de la costa con el remo partido. Ya estaba oscuro cuando vi girar la luz del faro, y remé con lo que quedaba hasta ahí.',
+      'Desde entonces salgo siempre temprano. Y cuando veo a alguien en kayak a la tardecita, le señalo el faro.',
+    ] },
+  { id: 'h-nahuelito', quien: 'nicanor', titulo: 'Lo que se ve en el agua',
+    partes: [
+      'Vas a escuchar la historia del bicho del lago. Que hay algo grande abajo, que asoma un lomo y desaparece.',
+      'Yo pasé media vida arriba del agua. Vi troncos hundidos que suben cuando cambia la presión, vi cardúmenes que hacen una sombra enorme, vi olas que se cruzan y levantan un bulto.',
+      'Nunca vi al bicho. Pero tampoco digo que no esté: el lago es hondo y guarda lo suyo.',
+    ] },
+  { id: 'h-devolver', quien: 'nicanor', titulo: 'Devolverla al agua',
+    partes: [
+      'Antes nos llevábamos todo lo que picaba. Hoy casi siempre devuelvo.',
+      'Mojate las manos antes de tocarla, sacale el anzuelo rápido y metela en el agua sosteniéndola de frente a la corriente hasta que se vaya sola.',
+      'Una trucha grande tardó años en hacerse grande. Volver a verla el año que viene vale más que comérmela hoy.',
+    ] },
+  { id: 'h-hielo', quien: 'nicanor', titulo: 'El lago que no se congela',
+    partes: [
+      'Mucha gente pregunta si el lago se congela en invierno. Los grandes, casi nunca: son demasiado hondos y el agua se mueve.',
+      'Se congelan las lagunas chicas, los charcos, los bordes de las bahías. Ahí se ven las huellas del zorro cruzando derecho por arriba.',
+      'Al lago grande el invierno lo pone negro y quieto, pero abajo sigue vivo. Las truchas bajan hondo y esperan.',
+    ] },
+  { id: 'h-bosque-hundido', quien: 'nicanor', titulo: 'El bosque de abajo',
+    partes: [
+      'Donde el agua está más clara se ven troncos parados en el fondo, todavía con ramas.',
+      'Son árboles que quedaron bajo el agua cuando subió el nivel, hace mucho. El agua fría los conserva como si fuera ayer.',
+      'Remar por encima de un bosque hundido es de las cosas más raras que hice. Uno mira para abajo y ve copas.',
+    ] },
+];
+
+const PERSONAJES = {
+  ramon: { nombre: 'Don Ramón', oficio: 'puestero', saludo: '¿Qué andás haciendo por acá arriba? Sentate un rato.', despedida: 'Cuando bajes, cerrá la tranquera. Y volvé cuando quieras.' },
+  ema: { nombre: 'Ema', oficio: 'guardaparque', saludo: 'Buenas. Estoy haciendo el recorrido del sendero, ¿todo bien?', despedida: 'Seguí tranquilo. Si ves algo raro en el bosque, avisame.' },
+  ercilia: { nombre: 'Ercilia', oficio: 'del almacén', saludo: 'Pasá, pasá. Si traés algo para cambiar, lo miramos.', despedida: 'Cuando junten más cosas se vuelven, que acá siempre hay.' },
+  guarda: { nombre: 'Elsa', oficio: 'guarda del tren', saludo: 'Bienvenido a bordo. Acomodate donde quieras, que va a haber lugar.', despedida: 'Cualquier cosa me avisás. Y no te bajes en marcha.' },
+  nicanor: { nombre: 'Nicanor', oficio: 'pescador', saludo: 'Justo estaba mirando el agua. ¿Sacaste algo hoy?', despedida: 'Que pique. Y ojo con el viento de la tarde.' },
+};
+
+// ---------------------------------------------------------------- modelo
+// 3.4: la gente al estilo pintado de HushWood: figuras de adulto con volumen (torso, cadera
+// y hombros de torno, brazos y piernas que se afinan, manos de mitón, cabeza con mentón,
+// nariz, orejas y cejas), ropa de la cordillera y colores con degradé pintado en los
+// vértices. Los pivotes son los de siempre (cadera 0.82, hombros 1.30, cabeza 1.46, codo
+// 0.28 abajo del hombro): las animaciones y lo que llevan en la mano no cambian.
+// Además de sus colores, cada uno tiene su ropa de todos los días:
+const ROPA = {
+  ramon: { piel: '#b98d66', bombacha: true, botas: 'altas', pantalon: '#6d6252' },
+  nicanor: { piel: '#c0916a', botas: 'goma', campera: 'larga', abierta: true, pantalon: '#3d4652' },
+  ema: { piel: '#cfa07a', bolsillos: true, trenza: true, botas: 'trekking', pantalon: '#5c5a44' },
+  ercilia: { piel: '#d0a582', pollera: true, delantal: '#c9b48c', rodete: true, abierta: true },
+  guarda: { piel: '#c99c76', botones: '#c9a64a', campera: 'larga', rodete: true, pantalon: '#262c3a' },
+  'poblador-carpintero': { piel: '#c0906a', bombacha: true, chaleco: true, panuelo: '#9a3a2c', botas: 'altas', pantalon: '#7a6c58' },
+  'poblador-panadera': { piel: '#c99a72', pollera: true, delantal: '#e4dccb', rodete: true },
+  'poblador-herrero': { piel: '#a87a56', bombacha: true, delantal: '#3b2a1e', botas: 'altas', chaleco: true, pantalon: '#4c4640' },
+  'poblador-pescador': { piel: '#b58a64', botas: 'goma', panuelo: '#c9b27a', abierta: true, pantalon: '#3e4650' },
+  'poblador-maestra': { piel: '#d6ad8a', pollera: true, trenza: true, abierta: true },
+};
+const ESC_TORSO = [1, 1, 0.74];
+function mallaPersona(colores, clave = '') {
+  const R = ROPA[clave] || {};
+  const g = new THREE.Group();
+  const piel = colores.piel || R.piel || '#c49a70';
+  const ropa = colores.ropa, abrigo = colores.abrigo;
+  const pantalon = colores.pantalon || R.pantalon || '#3f3a33';
+  const pelo = colores.pelo || '#3a2a1e';
+  const bota = R.botas === 'goma' ? '#2a2d2c' : R.botas === 'trekking' ? '#5a4632' : '#3b2f26';
+  const manga = R.chaleco ? ropa : abrigo;
+  // ---- piernas: un torno de la cadera al tobillo y la bota (de caña alta para el campo)
+  const altas = R.botas === 'altas' || R.botas === 'goma';
+  const perfilPierna = R.bombacha
+    ? [[0.05, -0.7], [0.056, -0.6], [0.064, -0.5], [0.088, -0.42], [0.1, -0.3], [0.1, -0.17], [0.092, -0.04], [0.074, 0.06]]
+    : [[0.05, -0.7], [0.055, -0.62], [0.059, -0.52], [0.065, -0.44], [0.077, -0.28], [0.086, -0.12], [0.087, 0.0], [0.072, 0.06]];
+  const perfilBota = altas
+    ? [[0.053, -0.8], [0.06, -0.72], [0.066, -0.6], [0.07, -0.5], [0.075, -0.44], [0.07, -0.435]]
+    : [[0.053, -0.8], [0.058, -0.74], [0.062, -0.66], [0.066, -0.62], [0.062, -0.615]];
+  const patas = [];
+  for (const l of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(l * 0.115, 0.82, 0);
+    piv.add(torno(pantalon, perfilPierna, null, null, [1, 1, 0.92], 11));
+    piv.add(torno(bota, perfilBota, null, null, null, 11));
+    piv.add(bola(bota, [0.06, 0.05, 0.125], [0, -0.78, 0.048]));                    // empeine
+    piv.add(bola(matiz(bota, 0.55), [0.063, 0.018, 0.128], [0, -0.812, 0.043]));    // suela
+    g.add(piv); patas.push(piv);
+  }
+  // ---- torso: cadera, la campera (o el chaleco) sobre la camisa, y lo de cada uno. Todas las
+  // capas pasan por la misma forma (pecho adelante, espalda plana, hombros anchos y finos de
+  // adelante a atrás), así quedan una adentro de la otra.
+  const torso = new THREE.Group(); torso.position.set(0, 0.82, 0);
+  const capa = (c, perfil, lados = 16, desde = 0, arco = Math.PI * 2, zBase = 0.74, ondas = 0) => deformar(torno(c, perfil, null, null, null, lados, desde, arco), (v) => {
+    const pecho = Math.max(0, 1 - Math.abs(v.y - 0.33) / 0.15), hombro = Math.max(0, 1 - Math.abs(v.y - 0.45) / 0.08);
+    // pliegues que se abren hacia el ruedo (la pollera, el faldón de la campera larga)
+    if (ondas) { const k = 1 + ondas * Math.sin(Math.atan2(v.x, v.z) * 8 + 0.3) * Math.min(1, Math.max(0, -v.y / 0.4)); v.x *= k; v.z *= k; }
+    v.z *= zBase * (v.z > 0 ? 1 + 0.08 * pecho : 0.96) * (v.y > 0.44 ? 0.88 : 1);
+    v.x *= 1 + 0.07 * hombro;
+  });
+  torso.add(bola(pantalon, [0.15, 0.12, 0.104], [0, 0.02, 0]));
+  const cuerpoAlto = [[0.16, 0.02], [0.149, 0.12], [0.164, 0.24], [0.19, 0.35], [0.205, 0.43], [0.204, 0.47], [0.178, 0.515], [0.128, 0.548], [0.07, 0.567]];
+  const faldon = R.campera === 'larga' ? [[0.184, -0.22], [0.172, -0.1]] : [[0.163, -0.07]];
+  if (R.chaleco || R.abierta) {
+    // la camisa (o el pulóver) que se ve por adelante
+    torso.add(capa(ropa, [[0.15, -0.02], ...cuerpoAlto.map(([r, y]) => [r - 0.007, y])], 14));
+  }
+  if (R.chaleco) {
+    torso.add(capa(abrigo, [[0.167, -0.06], [0.166, 0.02], [0.156, 0.12], [0.171, 0.24], [0.197, 0.35], [0.211, 0.43], [0.2, 0.478]], 14, 0.42, Math.PI * 2 - 0.84));
+    torso.add(capa('#4a3626', [[0.168, -0.035], [0.168, 0.02]], 14));   // el cinto
+  } else {
+    torso.add(capa(abrigo, [...faldon, ...cuerpoAlto], R.campera === 'larga' ? 24 : 16, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.74, R.campera === 'larga' ? 0.03 : 0));
+    torso.add(capa(matiz(abrigo, 0.88), [[0.084, 0.535], [0.086, 0.572], [0.075, 0.586]], 14, 0, Math.PI * 2, 0.95));   // el cuello
+  }
+  if (R.pollera) {
+    torso.add(capa(mezcla(ropa, '#2a2420', 0.35), [[0.25, -0.5], [0.236, -0.42], [0.206, -0.24], [0.181, -0.08], [0.167, 0.02], [0.16, 0.07]], 32, 0, Math.PI * 2, 0.8, 0.045));
+  }
+  if (R.delantal) {
+    const perfil = R.pollera
+      ? [[0.255, -0.38], [0.235, -0.28], [0.205, -0.14], [0.186, -0.04], [0.175, 0.04], [0.168, 0.12], [0.176, 0.24], [0.198, 0.36]]
+      : [[0.196, -0.4], [0.186, -0.2], [0.174, -0.04], [0.17, 0.04], [0.166, 0.12], [0.176, 0.24], [0.198, 0.36]];
+    torso.add(capa(R.delantal, perfil, 10, -0.68, 1.36, R.pollera ? 0.8 : 0.74));
+  }
+  if (R.bolsillos) for (const l of [-1, 1]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.07, 0.012), color(matiz(abrigo, 0.86)));
+    b.position.set(l * 0.078, 0.33, 0.146); b.rotation.set(-0.12, l * 0.3, 0); torso.add(b);
+    const tapa = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.022, 0.016), color(matiz(abrigo, 0.7)));
+    tapa.position.set(l * 0.078, 0.37, 0.15); tapa.rotation.set(-0.12, l * 0.3, 0); torso.add(tapa);
+  }
+  if (R.botones) for (const l of [-1, 1]) for (const y of [0.16, 0.27, 0.38]) torso.add(bola(R.botones, [0.011, 0.011, 0.008], [l * 0.05, y, 0.122 + (y > 0.3 ? 0.014 : y > 0.2 ? 0.005 : 0)]));
+  if (colores.poncho) {
+    // el poncho cae de los hombros y tapa los brazos, con las puntas adelante y atrás más
+    // bajas que los costados, y la guarda clara y oscura cerca del borde; abajo, los flecos
+    const claroP = mezcla(abrigo, '#e3d6b8', 0.7), oscuroP = matiz(abrigo, 0.55), listaP = matiz(abrigo, 0.78);
+    // los pliegues: la tela ondula más cuanto más abajo, siete pliegues alrededor
+    const caida = (v) => {
+      const r = Math.hypot(v.x, v.z), cz = r > 1e-4 ? v.z / r : 0, fi = Math.atan2(v.x, v.z);
+      const pliegue = 1 + 0.04 * Math.sin(fi * 7 + 0.4) * Math.min(1, Math.max(0, (0.36 - v.y) / 0.45));
+      v.x *= pliegue; v.z *= pliegue;
+      if (v.y < 0.12) v.y -= 0.075 * cz * cz * Math.min(1, (0.12 - v.y) / 0.25);
+      v.z *= 0.64;
+    };
+    const perfilP = [[0.35, -0.18], [0.348, -0.15], [0.347, -0.146], [0.345, -0.12], [0.344, -0.116], [0.342, -0.09], [0.341, -0.086],
+      [0.335, 0.05], [0.325, 0.2], [0.31, 0.33], [0.29, 0.43], [0.255, 0.49], [0.2, 0.53], [0.14, 0.565], [0.095, 0.59], [0.078, 0.605]];
+    const p = torno(abrigo, perfilP, null, null, null, 28);
+    colorear(p, (c, v, i) => {
+      if (v.y >= -0.1465 && v.y <= -0.1195) c.set(claroP);
+      else if (v.y >= -0.1165 && v.y <= -0.0895) c.set(oscuroP);
+      else if (Math.floor(i / perfilP.length) % 7 === 3) c.set(listaP);   // las listas del tejido, en cada pliegue
+    });
+    torso.add(deformar(p, caida));
+    const flecos = torno(abrigo, [[0.352, -0.215], [0.35, -0.178]], null, null, null, 56);
+    colorear(flecos, (c, v, i) => { c.multiplyScalar(Math.floor(i / 2) % 2 ? 0.6 : 1.08); });
+    torso.add(deformar(flecos, caida));
+    torso.add(torno(matiz(abrigo, 0.8), [[0.086, 0.585], [0.082, 0.612], [0.07, 0.62]], null, null, null, 14));
+  }
+  const cuello = colores.bufanda || R.panuelo;
+  if (cuello && !colores.poncho) {
+    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.074, R.panuelo ? 0.02 : 0.03, 8, 18), color(cuello));
+    vuelta.position.set(0, 0.56, 0.008); vuelta.rotation.set(Math.PI / 2 - 0.12, 0, 0); vuelta.scale.set(1, 0.86, 1);
+    torso.add(vuelta);
+    if (R.panuelo) torso.add(bola(cuello, [0.04, 0.055, 0.012], [0, 0.5, 0.138], [-0.15, 0, Math.PI / 4]));   // el nudo
+    else torso.add(bola(cuello, [0.034, 0.1, 0.016], [0.05, 0.45, 0.142], [-0.1, 0, 0.12]));               // la punta que cuelga
+  }
+  // ---- brazos: hombro, codo y mano de mitón (la mano derecha lleva el mate, la caña...).
+  // Las piezas se corren un poco hacia el cuerpo para que hombro y torso sean una sola masa.
+  const brazos = [];
+  for (const l of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(l * 0.225, 1.3, 0);
+    // el brazo cuelga apenas separado del cuerpo y el antebrazo, un poco hacia adelante
+    const x = -l * 0.016;
+    piv.add(bola(manga, [0.06, 0.064, 0.064], [x, -0.03, 0]));
+    piv.add(tubo(manga, 0.058, 0.047, 0.27, [x + l * 0.01, -0.155, 0], [0, 0, l * 0.07]));
+    // (el codo, pivote del antebrazo y de lo que llevan en la mano, queda donde estaba: las
+    // piezas se corren 2 cm afuera adentro del grupo)
+    const ante = new THREE.Group(); ante.position.set(0, -0.28, 0);
+    ante.add(bola(manga, [0.048, 0.05, 0.049], [x + l * 0.02, 0, 0]));
+    const caida = new THREE.Group(); caida.position.x = l * 0.02; caida.rotation.set(-0.1, 0, l * 0.03);   // (sólo da forma: se funde con el antebrazo)
+    caida.add(tubo(manga, 0.047, 0.04, 0.22, [x, -0.11, 0]));
+    caida.add(torno(matiz(manga, 0.82), [[0.043, -0.236], [0.046, -0.2], [0.042, -0.196]], [x, 0, 0], null, null, 11));   // el puño
+    caida.add(bola(piel, [0.036, 0.053, 0.03], [x, -0.278, 0.006]));
+    caida.add(bola(piel, [0.014, 0.026, 0.015], [x - l * 0.029, -0.26, 0.02], [0, 0, l * 0.45]));   // el pulgar
+    for (const m of [...caida.children]) { m.applyMatrix4(caida.matrix.compose(caida.position, caida.quaternion.setFromEuler(caida.rotation), caida.scale)); ante.add(m); }
+    piv.add(ante);
+    piv.userData.ante = ante;
+    g.add(piv); brazos.push(piv);
+  }
+  g.add(torso);
+  // ---- cabeza
+  const cabeza = new THREE.Group(); cabeza.position.set(0, 1.46, 0);
+  cabeza.add(tubo(piel, 0.046, 0.054, 0.17, [0, -0.072, 0.004]));
+  const rubor = mezcla(piel, '#c4554a', 0.5);
+  cabeza.add(pintar(deformar(bola(piel, [0.097, 0.118, 0.107], [0, 0.05, 0.004], null, [18, 14]), (v) => {
+    if (v.y < 0) { const t = -v.y; v.x *= 1 - 0.22 * t * t; v.z += 0.08 * t * Math.max(0, v.z); }   // mandíbula y mentón
+    if (v.z < 0) v.z *= 1.05;                                                                         // la nuca
+    if (v.z > 0.6) v.z = 0.6 + (v.z - 0.6) * 0.6;                                                     // la cara, más plana
+  }), (c, p, n) => { const t = Math.max(0, 1 - Math.abs(Math.abs(n.x) - 0.45) * 4) * Math.max(0, n.z) * Math.max(0, 1 - Math.abs(p.y - 1.49) * 22); entintar(c, rubor, t * 0.5); }));
+  cabeza.add(deformar(bola(matiz(piel, 0.97), [0.016, 0.027, 0.019], [0, 0.034, 0.097], [-0.2, 0, 0]), (v) => { if (v.y > 0) v.z *= 1 - 0.45 * v.y; }));   // la nariz
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#1f1915', [0.012, 0.014, 0.005], [l * 0.034, 0.06, 0.092]));                       // los ojos
+    cabeza.add(bola(matiz(pelo, 0.85), [0.025, 0.0065, 0.006], [l * 0.035, 0.083, 0.095], [0, 0, -l * 0.15]));   // las cejas
+    cabeza.add(bola(piel, [0.015, 0.028, 0.013], [l * 0.096, 0.042, -0.004]));                          // las orejas
+  }
+  if (!colores.barba) cabeza.add(bola(matiz(piel, 0.72), [0.02, 0.0045, 0.006], [0, -0.004, 0.098]));  // la boca
+  // el pelo: un casco que no tapa la cara y baja hasta la nuca
+  cabeza.add(deformar(bola(pelo, [0.103, 0.118, 0.112], [0, 0.067, -0.012], null, [16, 11]), (v) => {
+    if (v.z > 0.15 && v.y < 0.4) v.z -= (v.z - 0.15) * 0.85 * Math.min(1, (0.4 - v.y) * 2.2);
+    if (v.z < -0.1 && v.y < 0) v.y *= 1.3;
+  }));
+  if (R.rodete) cabeza.add(bola(pelo, [0.048, 0.044, 0.042], [0, 0.03, -0.112]));
+  if (R.trenza) for (let i = 0; i < 4; i++) cabeza.add(bola(pelo, [0.026 - i * 0.002, 0.034, 0.024], [0, 0.0 - i * 0.055, -0.108 - i * 0.008]));
+  if (colores.barba) {
+    cabeza.add(deformar(bola(colores.barba, [0.094, 0.082, 0.09], [0, -0.022, 0.022], null, [14, 10]), (v) => {
+      if (v.z < 0) { v.z *= 0.45; v.x *= 0.9; }
+      if (v.y > 0.3 && v.z > 0.5) v.y -= (v.y - 0.3) * 0.6;
+    }));
+    cabeza.add(bola(colores.barba, [0.043, 0.014, 0.02], [0, 0.012, 0.103], [0.1, 0, 0]));            // el bigote
+  }
+  if (colores.gorro === 'boina') {
+    cabeza.add(torno(abrigo, [[0.099, 0.0], [0.118, 0.012], [0.133, 0.03], [0.129, 0.05], [0.1, 0.068], [0.05, 0.078], [0.0, 0.08]], [0.006, 0.122, -0.008], [-0.12, 0, -0.14], null, 18));
+    cabeza.add(bola(abrigo, [0.011, 0.018, 0.011], [0.016, 0.205, -0.016]));
+  } else if (colores.gorro === 'sombrero') {
+    const fieltro = '#5f4730', cinta = '#3a2d21', base = 1.46 + 0.126;
+    cabeza.add(pintar(deformar(torno(fieltro, [[0.104, 0.0], [0.105, 0.026], [0.106, 0.03], [0.107, 0.06], [0.1, 0.098], [0.08, 0.114], [0.0, 0.12]], [0, 0.126, -0.004], null, [1, 1, 0.94], 16),
+      (v) => { if (v.y > 0.09) v.y -= 0.022 * Math.max(0, 1 - Math.abs(v.x) / 0.06); }), franjas([[base - 0.002, base + 0.027, cinta]])));
+    // el ala: arriba y abajo, con los costados apenas levantados
+    for (const s of [1, -1]) {
+      const ala = new THREE.Mesh(new THREE.RingGeometry(0.098, 0.245, 26, 3), color(s > 0 ? fieltro : matiz(fieltro, 0.8)));
+      ala.rotation.x = -s * Math.PI / 2;
+      deformar(ala, (v) => { const r = Math.hypot(v.x, v.y); if (r > 0.15) v.z += (r - 0.15) * (r - 0.15) * 1.6 * (0.45 + 0.55 * Math.abs(v.x) / r) * s; });
+      ala.position.set(0, 0.128 + (s > 0 ? 0.005 : -0.005), -0.004);
+      cabeza.add(ala);
+    }
+    // el borde del ala, con su espesor
+    const borde = deformar(new THREE.Mesh(new THREE.TorusGeometry(0.245, 0.0065, 5, 40), color(matiz(fieltro, 0.9))), (v) => {
+      const r = Math.hypot(v.x, v.y); v.z += (r - 0.15) * (r - 0.15) * 1.6 * (0.45 + 0.55 * Math.abs(v.x) / r);
+    });
+    borde.rotation.x = -Math.PI / 2; borde.position.set(0, 0.128, -0.004);
+    cabeza.add(borde);
+  } else if (colores.gorro === 'gorro') {
+    cabeza.add(torno(ropa, [[0.105, 0.0], [0.11, 0.03], [0.108, 0.06], [0.09, 0.09], [0.05, 0.104], [0.0, 0.108]], [0, 0.112, -0.004], [-0.08, 0, 0], null, 16));
+    cabeza.add(deformar(bola(matiz(ropa, 0.7), [0.1, 0.012, 0.075], [0, 0.118, 0.083], [-0.18, 0, 0], [14, 6]), (v) => { if (v.z < 0) v.z *= 0.15; }));   // la visera
+  }
+  g.add(cabeza);
+
+  compactar(g, { alto: 1.75, pie: 0.8, panza: 0.1, todo: true });
+  // la mano derecha, donde va el mate, la caña o la planilla
+  const mano = brazos[1].userData.ante;
+  return { g, cabeza, torso, patas, brazos, mano };
+}
+
+// ---------------------------------------------------------------- creación
+// Cada personaje camina entre sus puntos y hace algo al llegar
+function caminarHacia(g, dt, destino, velocidad, T, col) {
+  const dx = destino.x - g.pos.x, dz = destino.z - g.pos.z;
+  const d = Math.hypot(dx, dz);
+  if (d < 0.5) { g.vel = 0; return true; }
+  const rumbo = Math.atan2(dx, dz);
+  g.rumboObjetivo = rumbo;
+  g.vel = velocidad;
+  const nx = g.pos.x + Math.sin(rumbo) * velocidad * dt, nz = g.pos.z + Math.cos(rumbo) * velocidad * dt;
+  if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; col.resolver(g.pos, 0.3); }
+  g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
+  return false;
+}
+
+// Sobre qué se para: si hay un entablado o un muelle debajo, ahí; si no, el suelo
+export function alturaDePie(T, col, x, z, yActual = 0) {
+  const suelo = T.altura(x, z);
+  if (col && col.plataformaEn) {
+    const p = col.plataformaEn(x, z, Math.max(yActual, suelo) + 0.6);
+    if (p && p.alto > suelo - 0.1 && p.alto < suelo + 4) return p.alto;
+  }
+  return suelo;
+}
+
+// El saludo cambia según la hora, el clima y la estación
+export function saludoDe(npc, mundo) {
+  const h = mundo.horas;
+  const momento = h < 7 ? 'madrugada' : h < 12 ? 'mañana' : h < 19.5 ? 'tarde' : 'noche';
+  const variantes = {
+    ramon: {
+      madrugada: 'Temprano andás. Recién prendí el fuego, si querés esperá que caliente el agua.',
+      mañana: '¿Qué andás haciendo por acá arriba? Sentate un rato.',
+      tarde: 'Buenas. A esta hora el viento se calma y se escucha todo.',
+      noche: 'Mirá la hora. Si vas a bajar, andá despacio que el sendero engaña de noche.',
+      lluvia: 'Con esta lluvia no se anda. Ponete abajo del alero, que en un rato afloja.',
+      invierno: 'Frío, ¿no? Cuarenta inviernos acá y todavía me sorprende.',
+      otono: 'Mirá cómo se puso el bosque. Dos semanas dura así, ni una más.',
+    },
+    ema: {
+      madrugada: 'Buenas. Salgo temprano porque a esta hora los animales todavía andan.',
+      mañana: 'Buenas. Estoy haciendo el recorrido del sendero, ¿todo bien?',
+      tarde: 'Buenas. Voy anotando lo que veo, ya termino la vuelta.',
+      noche: 'Qué hacés a esta hora acá. ¿Tenés dónde parar?',
+      lluvia: 'Días así son los mejores para el bosque y los peores para el cuaderno.',
+      invierno: 'Con nieve cambia todo el recorrido. Se ven las huellas, eso sí.',
+      otono: 'En otoño hago el censo de lengas. Se ve mejor cuáles están enfermas.',
+    },
+    nicanor: {
+      madrugada: 'Justo la mejor hora. No hagas ruido.',
+      mañana: 'Justo estaba mirando el agua. ¿Sacaste algo hoy?',
+      tarde: 'Ahora pica poco. Hay que esperar que baje el sol.',
+      noche: 'A esta hora ya guardé todo. Pero sentate igual.',
+      lluvia: 'Con lluvia el pique mejora, aunque uno termine empapado.',
+      invierno: 'El agua está helada. Igual salgo, pero poco rato.',
+      otono: 'Las marrones están grandes en esta época. Ojo con el hilo.',
+    },
+    guarda: {
+      madrugada: 'Primer servicio del día. Va despacio, como siempre.',
+      mañana: 'Bienvenido a bordo. Acomodate donde quieras, que va a haber lugar.',
+      tarde: 'Suba, suba. A esta hora el viaje es el más lindo.',
+      noche: 'Último servicio. Vamos con el faro prendido.',
+      lluvia: 'Con lluvia el techo suena que da gusto. Ya va a ver.',
+      invierno: 'Si nieva fuerte, paramos y esperamos. No es la primera vez.',
+      otono: 'Del lado de la ventanilla izquierda se ven las lengas coloradas.',
+    },
+  };
+  const v = variantes[npc.clave];
+  if (!v) return npc.saludo;
+  if (mundo.lluvia > 0.5 && v.lluvia) return v.lluvia;
+  if (mundo.invierno > 0.6 && v.invierno) return v.invierno;
+  if (mundo.otono > 0.6 && v.otono) return v.otono;
+  return v[momento] || npc.saludo;
+}
+
+export function crearGente(T, escena, col, sonido) {
+  const r = rng(31415);
+  const gente = [];
+  const L = T.lugares;
+
+  function ubicarJunto(base, rot, dx, dz) {
+    const x = base.x + dx * Math.cos(rot) + dz * Math.sin(rot);
+    const z = base.z - dx * Math.sin(rot) + dz * Math.cos(rot);
+    return { x, z };
+  }
+
+  function agregar(clave, colores, pos, mirandoA, extra = {}) {
+    const m = mallaPersona(colores, clave);
+    const y = alturaDePie(T, col, pos.x, pos.z, pos.y || 0);
+    m.g.position.set(pos.x, y, pos.z);
+    const rumbo = Math.atan2(mirandoA.x - pos.x, mirandoA.z - pos.z);
+    m.g.rotation.y = rumbo;
+    escena.add(m.g);
+    const p = PERSONAJES[clave];
+    const npc = {
+      ...m, clave, ...p, pos: m.g.position, rumbo, rumboObjetivo: rumbo, vel: 0, paso: 0,
+      fase: r() * 6, historias: HISTORIAS.filter((h) => h.quien === clave),
+      casa: { x: pos.x, z: pos.z }, etapa: 0, espera: 1 + r() * 3, ...extra,
+    };
+    gente.push(npc);
+    return npc;
+  }
+
+  // Lo que cada uno lleva en la mano
+  // 3.4: el mate es una calabaza con su virola y la bombilla; cada cosa queda en una sola malla
+  function darMate(npc) {
+    const mate = new THREE.Group();
+    mate.add(torno('#6b4a2c', [[0.0, -0.055], [0.04, -0.05], [0.058, -0.015], [0.056, 0.025], [0.045, 0.05], [0.042, 0.058]], null, null, null, 12));
+    mate.add(torno('#b8b2a4', [[0.042, 0.056], [0.045, 0.06], [0.045, 0.072], [0.041, 0.074]], null, null, null, 12));   // la virola
+    mate.add(bola('#3b4a2a', [0.04, 0.008, 0.04], [0, 0.064, 0]));                                                 // la yerba
+    mate.add(tubo('#b9b2a0', 0.006, 0.006, 0.16, [0.02, 0.11, 0.01], [0.25, 0, 0.2], 6, true));
+    compactar(mate, { todo: true });
+    npc.mano.add(mate);
+    npc.mate = mate;
+  }
+  function darCaña(npc) {
+    const caña = new THREE.Group();
+    const vara = palo(lam('#5a4530'), 0.012, 2.1, [0, 0.95, 0], [0.35, 0, 0]);
+    caña.add(vara);
+    caña.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8), lam('#4e4a44')));
+    compactar(caña, { todo: true });
+    npc.mano.add(caña);
+    npc.caña = caña;
+  }
+  function darPlanilla(npc) {
+    const tabla = new THREE.Group();
+    tabla.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.02), lam('#8a6b4a')));
+    tabla.add(new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.26, 0.012), lam('#efe7d4')));
+    compactar(tabla, { todo: true });
+    tabla.rotation.set(-1.1, 0, 0);
+    tabla.position.set(0, -0.02, 0.1);
+    npc.mano.add(tabla);
+    npc.planilla = tabla;
+  }
+
+  // Si por alguna razón faltara su lugar, el personaje igual aparece cerca del refugio
+  const puesto = (base, rot, dx, dz, respaldo) => {
+    if (base) return { p: ubicarJunto(base, rot ?? 0, dx, dz), mira: base };
+    const ref = L.refugio;
+    const q = ubicarJunto(ref, ref.rot ?? 0, respaldo[0], respaldo[1]);
+    return { p: q, mira: ref };
+  };
+  // Don Ramón: entre el banco, la leña y la puerta de su puesto, siempre con el mate
+  {
+    const { p, mira } = puesto(L.puesto, L.puesto && L.puesto.rot, 1.55, 2.62, [5.5, 6.5]);
+    const base = L.puesto || L.refugio;
+    const rot = base.rot ?? 0;
+    const ruta = [
+      { ...ubicarJunto(base, rot, 1.55, 2.62), quieto: 14, mirar: base },
+      { ...ubicarJunto(base, rot, 3.4, -1.6), quieto: 9 },
+      { ...ubicarJunto(base, rot, -0.65, 3.18), quieto: 11, mirar: { x: base.x + (base.x - p.x) * 4, z: base.z + (base.z - p.z) * 4 } },
+    ];
+    const npc = agregar('ramon', { ropa: '#9a8b6c', abrigo: '#6b4a3a', poncho: true, gorro: 'boina', barba: '#c8c4bc' }, p, mira, { ruta, velocidad: 0.65 });
+    darMate(npc);
+  }
+  // Nicanor: de la cabaña a la orilla, donde se queda pescando un buen rato
+  {
+    const { p } = puesto(L.cabana, L.cabana && L.cabana.rot, -0.72, 3.32, [-4.5, 7]);
+    const mira = L.cabana ? { x: L.cabana.x + (L.cabana.x - p.x) * 6, z: L.cabana.z + (L.cabana.z - p.z) * 6 } : { x: LAGO.x, z: LAGO.z };
+    // busca un lugar en la orilla, cerca de la cabaña
+    let orilla = null;
+    for (let i = 0; i < 400 && !orilla; i++) {
+      const a2 = (i / 400) * Math.PI * 2;
+      const rad = T.radioLago(a2) * 0.98;
+      const x = LAGO.x + Math.cos(a2) * rad, z = LAGO.z + Math.sin(a2) * rad;
+      if (T.agua(x, z) || T.altura(x, z) < 0.4) continue;
+      if (Math.hypot(x - p.x, z - p.z) < 26) orilla = { x, z };
+    }
+    const ruta = [
+      { x: p.x, z: p.z, quieto: 10, mirar: mira },
+      orilla ? { ...orilla, quieto: 26, pescando: true, mirar: LAGO } : { x: p.x, z: p.z, quieto: 20, mirar: LAGO },
+    ];
+    const npc = agregar('nicanor', { ropa: '#4f6d7a', abrigo: '#2f4756', gorro: 'gorro', barba: '#8a8378' }, p, mira, { ruta, velocidad: 0.8 });
+    darCaña(npc);
+  }
+  // Ema: recorre un tramo del sendero cerca del mirador, anotando lo que ve
+  {
+    const m = L.mirador;
+    const hacia = m ? Math.atan2(150 - m.x, 110 - m.z) : 0;
+    const { p, mira } = puesto(m, hacia, 2.2, 2.6, [0, 8]);
+    // tramo de sendero más cercano al mirador
+    let mejor = 0, dm = Infinity;
+    T.sendero.forEach((q, i) => { const d = Math.hypot(q.x - p.x, q.z - p.z); if (d < dm) { dm = d; mejor = i; } });
+    const paso = Math.max(6, Math.floor(T.sendero.length / 60));
+    const ruta = [
+      { x: p.x, z: p.z, quieto: 12, mirar: mira },
+      { x: T.sendero[mejor].x, z: T.sendero[mejor].z, quieto: 5 },
+      { x: T.sendero[(mejor + paso) % T.sendero.length].x, z: T.sendero[(mejor + paso) % T.sendero.length].z, quieto: 8, anotando: true },
+      { x: T.sendero[(mejor + paso * 2) % T.sendero.length].x, z: T.sendero[(mejor + paso * 2) % T.sendero.length].z, quieto: 6, anotando: true },
+      { x: T.sendero[(mejor + paso) % T.sendero.length].x, z: T.sendero[(mejor + paso) % T.sendero.length].z, quieto: 4 },
+    ];
+    const npc = agregar('ema', { ropa: '#7e8c5a', abrigo: '#4a5a34', gorro: 'sombrero', pelo: '#3a2a1e' }, p, mira, { ruta, velocidad: 0.95 });
+    darPlanilla(npc);
+  }
+
+  // Ercilia: el almacén deja de sentirse vacío. Trabaja detrás del mostrador,
+  // recorre los anaqueles y mira hacia la puerta cuando alguien entra.
+  // Su contenido (historias y saludo) existía desde hace tiempo, pero nunca se
+  // había instanciado como personaje en el mundo.
+  if (L.almacen) {
+    const base = L.almacen;
+    const rot = base.rot ?? 0;
+    const frente = ubicarJunto(base, rot, 0, -3.0);
+    const p = ubicarJunto(base, rot, -1.35, 1.30);
+    const ruta = [
+      { ...p, quieto: 16, mirar: frente, atendiendo: true },
+      { ...ubicarJunto(base, rot, 1.35, 1.30), quieto: 9, mirar: frente, atendiendo: true },
+      { ...ubicarJunto(base, rot, 0.45, 1.82), quieto: 8, anotando: true, mirar: frente },
+      { ...ubicarJunto(base, rot, -0.75, 1.58), quieto: 7, mirar: frente, atendiendo: true },
+    ];
+    const npc = agregar('ercilia', {
+      ropa: '#7f5a45', abrigo: '#594138', gorro: 'boina', pelo: '#4a352a', bufanda: '#a88a63',
+    }, p, frente, { ruta, velocidad: 0.55 });
+    // La libreta de fiado da contexto visual a sus historias y a la función del local.
+    darPlanilla(npc);
+  }
+
+  // Elsa viaja en el tren: su posición la fija el propio tren en cada cuadro
+  let guarda = null;
+  {
+    const m = mallaPersona({ ropa: '#3f4a63', abrigo: '#2b3346', gorro: 'gorro', pelo: '#2e2622' }, 'guarda');
+    m.g.visible = false;
+    escena.add(m.g);
+    const p = PERSONAJES.guarda;
+    guarda = { ...m, clave: 'guarda', ...p, pos: m.g.position, rumbo: 0, fase: 0, historias: HISTORIAS.filter((h) => h.quien === 'guarda'), aBordo: true };
+    gente.push(guarda);
+  }
+
+  const tmp = new THREE.Vector3(), adelante = new THREE.Vector3(), adelantePlano = new THREE.Vector3();
+
+  function cerca(js, camara) {
+    camara.getWorldDirection(adelante);
+    adelantePlano.set(adelante.x, 0, adelante.z).normalize();
+    let mejor = null, mejorD = 3.6;
+    for (const g of gente) {
+      if (g.aBordo && !g.enViaje) continue;
+      const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
+      if (d > mejorD) continue;
+      tmp.set(g.pos.x - camara.position.x, 0, g.pos.z - camara.position.z).normalize();
+      if (tmp.dot(adelantePlano) < 0.45) continue;
+      mejorD = d; mejor = g;
+    }
+    return mejor;
+  }
+
+  function actualizar(dt, js, camara, hablando, presupuestoNivel = 0) {
+    for (const g of gente) {
+      const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
+      g.g.visible = g.aBordo ? !!g.enViaje && d < 40 : d < 130;
+      limitarSombrasPorDistancia(g.g, d, 48);
+      if (!g.g.visible) continue;
+      g.fase += dt;
+      // rutina: camina hasta su próximo punto y se queda un rato haciendo lo suyo
+      const charlando = hablando === g;
+      // en el Desafío, los vecinos instalados en la base siguen con lo suyo aunque pases cerca
+      // 1.11: el que viene de visita no se frena a mitad de camino: llega a la mesa y ahí te mira
+      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0);
+      let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
+      if (g.ruta && !charlando && !cerquita && !g.aBordo) {
+        if (g.espera > 0) {
+          g.espera -= dt;
+          g.vel = 0;
+          if (etapa.mirar) g.rumboObjetivo = Math.atan2(etapa.mirar.x - g.pos.x, etapa.mirar.z - g.pos.z);
+          if (g.espera <= 0) { g.etapa = (g.etapa + 1) % g.ruta.length; etapa = g.ruta[g.etapa]; }
+        } else if (caminarHacia(g, dt, etapa, g.velocidad || 0.8, T, col)) {
+          g.espera = etapa.quieto || 8;
+        }
+      } else {
+        g.vel = 0;
+        if (cerquita || charlando) g.rumboObjetivo = Math.atan2(js.pos.x - g.pos.x, js.pos.z - g.pos.z);
+      }
+      // giro suave hacia donde mira
+      const actual = g.g.rotation.y;
+      g.rumbo = actual + Math.atan2(Math.sin(g.rumboObjetivo - actual), Math.cos(g.rumboObjetivo - actual)) * Math.min(1, dt * 2.6);
+      g.g.rotation.y = g.rumbo;
+
+      // RC23: locomoción/rutina siguen continuas, pero huesos y gestos de NPCs
+      // lejanos se recalculan a menor frecuencia. Cerca o charlando = tiempo real.
+      g.paso += dt * (2.6 + g.vel * 5);
+      g.__poseAcum = (g.__poseAcum || 0) + dt;
+      const pasoPose = (charlando || d < 38) ? 0 : (d < 85 ? 1 / Math.max(6, 12 - presupuestoNivel * 2) : 1 / Math.max(4, 8 - presupuestoNivel));
+      const actualizarPose = pasoPose === 0 || g.__poseAcum >= pasoPose;
+      if (actualizarPose) {
+        g.__poseAcum = 0;
+        const respira = Math.sin(g.fase * 1.4) * 0.02;
+        const andando = g.vel > 0.05;
+        const bote = andando ? Math.abs(Math.sin(g.paso)) * 0.035 : 0;
+        g.torso.position.y = 0.82 + respira + bote;
+        g.cabeza.position.y = 1.46 + respira + bote;
+        g.patas.forEach((p2, i) => { p2.rotation.x = andando ? Math.sin(g.paso + i * Math.PI) * 0.55 : 0; });
+        g.cabeza.rotation.x = charlando ? Math.sin(g.fase * 5) * 0.05 : Math.sin(g.fase * 0.5) * 0.06;
+
+        // gestos según lo que esté haciendo
+        const quieto = !andando && !charlando;
+        const tarea = quieto && g.espera > 0 && etapa ? etapa : null;
+        let bIzq = 0, bDer = 0;
+        if (charlando) { bIzq = Math.sin(g.fase * 3.5) * 0.25; bDer = -bIzq * 0.7; }
+        else if (andando) { bIzq = Math.sin(g.paso + Math.PI) * 0.3; bDer = Math.sin(g.paso) * 0.3; }
+        else if (g.mate) {
+          const ciclo = (g.fase % 9) / 9;
+          bDer = ciclo > 0.55 && ciclo < 0.78 ? -1.45 : -0.25;
+          g.cabeza.rotation.x += ciclo > 0.55 && ciclo < 0.78 ? -0.18 : 0;
+        } else if (g.caña && tarea && tarea.pescando) {
+          const ciclo = (g.fase % 12) / 12;
+          bDer = ciclo > 0.82 ? -1.25 + Math.sin(g.fase * 9) * 0.35 : -0.75;
+        } else if (g.planilla && tarea && tarea.anotando) {
+          bDer = -1.2; bIzq = -0.5 + Math.sin(g.fase * 3) * 0.06;
+          g.cabeza.rotation.x += 0.22;
+        } else if (g.caña) bDer = -0.7;
+        g.brazos[0].rotation.x = bIzq;
+        g.brazos[1].rotation.x = bDer;
+      }
+    }
+  }
+
+  function ubicarGuarda(p, rumbo, enViaje) {
+    if (!guarda) return;
+    guarda.enViaje = enViaje;
+    if (!enViaje) return;
+    guarda.pos.set(p.x, p.y, p.z);
+    guarda.rumbo = rumbo;
+  }
+
+  // 3.1: los pobladores del pueblo que fundás (ver pueblo-mundo.js). Son gente como los
+  // demás: caminan su ruta, se paran a charlar y E habla con ellos.
+  function agregarPoblador(def) {
+    const npc = agregar(def.clave, def.colores || {}, def.pos, def.mira || { x: def.pos.x, z: def.pos.z + 1 }, {
+      nombre: def.nombre, oficio: def.oficio, saludo: def.saludo, despedida: def.despedida,
+      historias: [], ruta: def.ruta || [{ x: def.pos.x, z: def.pos.z, quieto: 99999 }], velocidad: def.velocidad || 0.8, poblador: true,
+    });
+    if (def.mano === 'mate') darMate(npc);
+    else if (def.mano === 'cana') darCaña(npc);
+    else if (def.mano === 'planilla') darPlanilla(npc);
+    return npc;
+  }
+
+  return { gente, cerca, actualizar, guarda, ubicarGuarda, agregarPoblador };
+}

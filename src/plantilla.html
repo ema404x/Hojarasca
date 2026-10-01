@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src data:; img-src 'self' data: blob:; media-src blob:; worker-src blob:">
+<title>Hojarasca</title>
+<!--HOJARASCA_BUILD-->
+<script>
+window.__hojarascaErrores = [];
+window.addEventListener('error', (e) => window.__hojarascaErrores.push(String(e.error?.stack || e.message || 'Error desconocido')));
+window.addEventListener('unhandledrejection', (e) => window.__hojarascaErrores.push(String(e.reason?.stack || e.reason || 'Promesa rechazada')));
+</script>
+<style>
+/*FUENTES*/
+:root {
+  --tinta: #1c2620;
+  --tinta-velo: rgba(20, 28, 23, 0.62);
+  --papel: #d8c7a3;
+  --papel-sombra: #bfa97f;
+  --tinta-papel: #2e2416;
+  --musgo: #8a9b5e;
+  --notro: #b8432f;
+  --luz: #efe6d2;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0e1410; overflow: hidden; }
+body { font-family: 'Spectral', Georgia, serif; color: var(--luz); -webkit-font-smoothing: antialiased; user-select: none; }
+canvas#mundo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--musgo); outline-offset: 3px; }
+kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85em; display: inline-block; min-width: 1.7em; padding: 0.08em 0.45em 0.02em; border: 1px solid rgba(239,230,210,.55); border-bottom-width: 2px; border-radius: 5px; text-align: center; margin-right: 0.45em; }
+.oculto { display: none !important; }
+    /* banco de pruebas: el cartel mientras corre y el informe al final */
+    .banco-corriendo { position: fixed; left: 50%; bottom: 8vh; transform: translateX(-50%); width: min(560px, 82vw); text-align: center; background: rgba(12,16,13,.78); border-radius: 12px; padding: 12px 18px 14px; }
+    .banco-corriendo b { display: block; font-size: 15px; margin-bottom: 2px; }
+    .banco-corriendo p { margin: 0 0 8px; font-size: 13px; opacity: .8; }
+    .banco-corriendo .barra { height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); overflow: hidden; }
+    .banco-corriendo .barra i { display: block; height: 100%; width: var(--avance, 0%); background: var(--musgo); transition: width .2s linear; }
+    .banco-corriendo small { display: block; margin-top: 7px; font-size: 12px; opacity: .55; }
+    #banco .panel-modal { max-width: 700px; width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow: auto; }
+    #banco-informe { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; line-height: 1.45; white-space: pre; overflow-x: auto; background: rgba(0,0,0,.24); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+    /* accesibilidad: toda la interfaz se agranda junta, sin tocar el mundo */
+    :root { --escala-letra: 1; --peligro: #ff5a3d; --salud: #a6ff6e; --aviso-color: #e0b12a; }
+    #hud, #pausa > div, #guia > div, #partidas > div, #teclas > div, #controles-completos > div, #creditos > div, #logros > div, #victoria > div, #inicio > div, #personalizar > div { zoom: var(--escala-letra); }
+    .sonidos-escritos { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
+    .sonidos-escritos p { margin: 0; padding: 1px 10px; font-family: 'Spectral', Georgia, serif; font-style: italic; font-size: calc(17px * var(--escala-letra, 1)); color: #e8e2cf; background: rgba(8,10,8,.55); border-radius: 4px; text-shadow: 0 1px 3px #000; }
+    .subtitulos { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(720px, 76vw); display: flex; flex-direction: column; gap: 3px; text-align: center; pointer-events: none; }
+    .subtitulos p { margin: 0; padding: 3px 12px; border-radius: 6px; background: rgba(12,16,13,.72); font-size: 15px; line-height: 1.35; }
+    .fila-tecla { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px; border-radius: 7px; }
+    .fila-tecla:nth-child(odd) { background: rgba(255,255,255,.045); }
+    .fila-tecla button { min-width: 116px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,.08); font-size: 13px; }
+    .fila-tecla button:disabled { opacity: .45; cursor: default; }
+    #teclas .panel-modal { max-width: 640px; width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow: auto; }
+    #teclas-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px 18px; margin: 10px 0; }
+    #teclas-mando { font-size: 13px; opacity: .78; margin: 0; }
+
+/* ---------- inicio y carga ---------- */
+.portada {
+  position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end;
+  padding: 6vh 6vw; gap: 40px;
+  background: linear-gradient(90deg, rgba(10,16,12,.72) 0%, rgba(10,16,12,.35) 45%, rgba(10,16,12,0) 70%), linear-gradient(0deg, rgba(10,16,12,.55) 0%, rgba(10,16,12,0) 40%);
+}
+.titulo { font-style: italic; font-weight: 400; font-size: clamp(64px, 11vw, 150px); line-height: .85; margin: 0 0 12px -0.04em; letter-spacing: -0.02em; }
+.bajada { font-family: 'Caveat', cursive; font-weight: 500; font-size: clamp(24px, 2.4vw, 32px); margin: 0 0 38px; color: #dcd3b6; }
+.acciones { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.accion-principal { font-size: 26px; font-weight: 600; border-bottom: 1px solid rgba(239,230,210,.6); padding-bottom: 2px; }
+.accion-principal:hover { border-color: var(--luz); }
+.accion-secundaria { font-size: 17px; color: rgba(239,230,210,.75); }
+.accion-secundaria:hover { color: var(--luz); }
+.opciones-rapidas { display: flex; flex-wrap: wrap; gap: 18px 28px; margin-top: 34px; }
+.opcion { display: grid; gap: 6px; }
+.opcion > span { font-size: 14px; color: rgba(239,230,210,.7); }
+.segmentos { display: inline-flex; border: 1px solid rgba(239,230,210,.35); border-radius: 999px; padding: 3px; gap: 2px; }
+.segmentos button { font-size: 15px; padding: 5px 13px 4px; border-radius: 999px; color: rgba(239,230,210,.82); }
+.segmentos button[aria-pressed="true"] { background: var(--luz); color: var(--tinta); }
+/* selector de modo en la portada */
+.modo-juego { display: grid; gap: 8px; margin: 0 0 30px; max-width: 520px; }
+.modo-juego > span { font-size: 14px; color: rgba(239,230,210,.7); }
+.modo-juego .segmentos button { font-size: 18px; padding: 7px 20px 6px; }
+.modo-juego .segmentos button[data-valor="desafio"][aria-pressed="true"] { background: #a6ff6e; color: #16210f; }
+.modo-texto { margin: 0; font-size: 15px; line-height: 1.45; color: rgba(239,230,210,.78); min-height: 2.9em; }
+/* 2.3: el código de partida del Desafío */
+.fila-codigo { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#codigo-partida { flex: 1 1 12em; min-width: 0; font: inherit; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; padding: 7px 12px;
+  border-radius: 999px; border: 1px solid rgba(239,230,210,.35); background: rgba(0,0,0,.25); color: #efe6d2; }
+#codigo-partida:disabled { opacity: .7; }
+#codigo-partida::placeholder { text-transform: none; letter-spacing: 0; color: rgba(239,230,210,.5); }
+/* HUD del modo Desafío */
+.desafio-hud { position: absolute; left: 28px; top: 22px; width: min(420px, 60vw); text-shadow: 0 1px 8px rgba(0,0,0,.85); }
+.desafio-hud .salud { position: relative; height: 12px; background: rgba(20,28,23,.7); border-radius: 99px; overflow: hidden; box-shadow: 0 0 0 1px rgba(239,230,210,.3); }
+.desafio-hud .salud i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #8a9b5e, #a9c46a); transition: width .15s; }
+.desafio-hud.critica .salud i { background: linear-gradient(90deg, #8a2a1f, var(--notro)); }
+.desafio-hud .salud b { position: absolute; right: 8px; top: -2px; font-size: 12px; font-weight: 600; color: var(--luz); }
+.desafio-hud p { margin: 6px 0 0; font-size: 15px; color: #e9f5d8; }
+/* lectura del combate (Desafío) */
+.impacto { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%) rotate(45deg); opacity: 0; pointer-events: none; }
+.impacto::before, .impacto::after { content: ''; position: absolute; background: #f2e6c8; box-shadow: 0 0 4px rgba(0,0,0,.8); }
+.impacto::before { left: 12px; top: 0; width: 2px; height: 9px; box-shadow: 0 17px 0 #f2e6c8; }
+.impacto::after { top: 12px; left: 0; height: 2px; width: 9px; box-shadow: 17px 0 0 #f2e6c8; }
+.impacto.mortal::before { background: #ff6a4d; box-shadow: 0 17px 0 #ff6a4d; }
+.impacto.mortal::after { background: #ff6a4d; box-shadow: 17px 0 0 #ff6a4d; }
+.vida-alien { position: absolute; display: none; width: 46px; height: 5px; transform: translate(-50%, -50%); background: rgba(10,14,12,.7); border-radius: 3px; overflow: hidden; pointer-events: none; box-shadow: 0 0 0 1px rgba(166,255,110,.35); }
+.vida-alien i { display: block; height: 100%; background: var(--salud); }
+.dano-dir { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; pointer-events: none; }
+.dano-dir::before { content: ''; position: absolute; left: -90px; top: -36vh; width: 180px; height: 26px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(220,40,20,.85) 0%, rgba(220,40,20,0) 70%); }
+.brujula b.rumbo { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: rgba(184, 67, 47, .82); }
+    .brujula b.rumbo.llegando { background: rgba(138, 155, 94, .9); }
+    .brujula u.alien { position: absolute; top: 20px; width: 7px; height: 7px; margin-left: -3px; border-radius: 50%; background: var(--peligro); box-shadow: 0 0 6px #ff5a3d; }
+/* Desafío premium: tutorial, noches especiales, nodriza, taller por categorías, victoria */
+.tutorial { position: absolute; left: 28px; top: 92px; width: min(380px, 60vw); padding: 10px 14px 8px; border-radius: 10px;
+  background: rgba(20,28,23,.55); box-shadow: 0 0 0 1px rgba(239,230,210,.18); text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+.tutorial b { display: block; font-family: 'Caveat', cursive; font-size: 22px; font-weight: 700; color: #f2e6c8; margin-bottom: 4px; }
+.tutorial p { margin: 3px 0; font-size: 14px; color: rgba(239,230,210,.55); display: flex; gap: 8px; align-items: baseline; }
+.tutorial p.actual { color: #f2e6c8; }
+.tutorial p.hecho { color: #a9c46a; text-decoration: line-through; text-decoration-color: rgba(169,196,106,.5); }
+.tutorial kbd { min-width: 20px; text-align: center; font-size: 12px; padding: 1px 5px; border-radius: 4px; background: rgba(239,230,210,.14); color: inherit; }
+.velo-especial { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 4s; z-index: 2; }
+.velo-especial.roja { opacity: 1; background: radial-gradient(ellipse at 50% 0%, rgba(160,30,20,.26), rgba(90,10,10,.18) 70%); mix-blend-mode: multiply; }
+.velo-especial.eclipse { opacity: 1; background: radial-gradient(ellipse at center, rgba(0,0,0,.15) 30%, rgba(0,0,8,.55) 100%); }
+.velo-especial.silenciosa { opacity: 1; background: linear-gradient(0deg, rgba(40,60,80,.18), rgba(10,20,30,.08)); }
+.nodriza-hud { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; text-shadow: 0 1px 6px rgba(0,0,0,.8); }
+.nodriza-hud span { font-family: 'Caveat', cursive; font-size: 22px; font-weight: 700; color: #ffb347; margin-right: 6px; }
+.nodriza-hud em { display: block; width: 90px; height: 8px; border-radius: 4px; background: rgba(20,10,8,.7); overflow: hidden; box-shadow: 0 0 0 1px rgba(255,120,60,.45); }
+.nodriza-hud em i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #ff6a3d, #ffb347); transition: width .2s; }
+.taller-categorias { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+.taller-categorias button { font-size: 14px; padding: 4px 10px; border-radius: 99px; color: #5a4524; box-shadow: inset 0 0 0 1px rgba(90,69,36,.35); }
+.taller-categorias button.elegido { background: #5a4524; color: var(--papel); }
+.trueque li { cursor: pointer; }
+.panel-logros { max-height: min(78vh, 720px); overflow: auto; }
+.victoria { text-align: center; }
+.victoria h2 { font-size: clamp(40px, 6vw, 72px); margin: 0 0 6px; }
+.victoria .datos { font-size: 18px; margin: 8px 0 18px; }
+/* 3.0: los récords de la supervivencia sin fin */
+#corrida-records { text-align: left; max-height: 40vh; overflow: auto; margin: 0 auto 16px; max-width: 34em; }
+#corrida-records:empty { display: none; }
+.corrida-lista { margin: 4px 0 10px; padding-left: 1.6em; }
+.corrida-lista li.nueva { font-weight: 700; color: var(--musgo); }
+.dano { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(120,0,0,0) 45%, rgba(150,10,10,.75) 100%); z-index: 3; }
+.controles { font-size: 15px; line-height: 1.9; color: rgba(239,230,210,.82); display: grid; grid-template-columns: auto auto; gap: 0 18px; align-self: end; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+.controles dt { text-align: right; } .controles dd { margin: 0; }
+.carga-linea { width: min(360px, 60vw); height: 2px; background: rgba(239,230,210,.2); margin-top: 8px; }
+.carga-linea i { display: block; height: 100%; width: 0; background: var(--luz); transition: width .3s; }
+.carga-texto { font-family: 'Caveat', cursive; font-size: 26px; margin: 18px 0 0; color: #dcd3b6; }
+#carga { background: #0e1410; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+.brujula { position: absolute; top: 18px; left: 50%; width: 380px; height: 30px; transform: translateX(-50%); overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
+.brujula span { position: absolute; top: 4px; font-size: 16px; transform: translateX(-50%); text-shadow: 0 1px 6px rgba(0,0,0,.7); opacity: .85; }
+.brujula span.menor { font-size: 12px; top: 7px; opacity: .6; }
+.brujula::after { content: ''; position: absolute; left: 50%; bottom: 0; width: 1px; height: 7px; background: var(--luz); opacity: .7; }
+.brujula b { position: absolute; top: 2px; font-family: 'Caveat', cursive; font-weight: 500; font-size: 19px; color: #f2e6c8; transform: translateX(-50%); white-space: nowrap; text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+.brujula b i { display: block; width: 5px; height: 5px; margin: 1px auto 0; border-radius: 50%; background: var(--notro); }
+.cielo-nombres { position: absolute; inset: 0; }
+.cielo-nombres b { position: absolute; font-family: 'Caveat', cursive; font-weight: 500; font-size: 23px; color: rgba(226,236,255,.85);
+  transform: translate(-50%, -50%); text-shadow: 0 1px 10px rgba(0,0,0,.9); white-space: nowrap; letter-spacing: .02em; }
+.tinte { position: absolute; inset: 0; mix-blend-mode: soft-light; opacity: 0; transition: background-color .6s, opacity .6s; }
+.vineta { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 76% at 50% 48%, transparent 55%, rgba(8,12,9,.42) 100%); }
+.mira { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(239,230,210,.7); box-shadow: 0 0 3px rgba(0,0,0,.6); transition: opacity .3s; }
+.aviso { position: absolute; left: 50%; bottom: 13vh; transform: translateX(-50%); font-size: 19px; padding: 9px 18px 7px; border-radius: 10px;
+  background: var(--tinta-velo); backdrop-filter: blur(6px); white-space: nowrap; transition: opacity .2s; }
+.estado { position: absolute; left: 50%; bottom: 6vh; transform: translateX(-50%); font-size: 16px; color: rgba(239,230,210,.85); text-shadow: 0 1px 8px rgba(0,0,0,.8); white-space: nowrap; }
+/* 2.0: escuchar con atención. Arriba del centro, en cursiva y apagado: es lo que se
+   oye, no una orden. */
+.escucha { position: absolute; left: 50%; top: 38vh; transform: translateX(-50%); font: italic 17px Spectral, Georgia, serif; color: rgba(236,228,206,.82); text-shadow: 0 1px 10px rgba(0,0,0,.85); white-space: nowrap; letter-spacing: .02em; transition: opacity .6s; pointer-events: none; }
+.escucha.oculto { opacity: 0; }
+.recursos { position: absolute; left: 28px; bottom: 26px; font-size: 16px; text-shadow: 0 1px 8px rgba(0,0,0,.8); line-height: 1.6; }
+.resumen-pausa { margin: -22px 0 26px; font-size: 15px; color: rgba(239,230,210,.7); }
+.encargos-hud { position: absolute; left: 28px; bottom: 58px; font-size: 15px; line-height: 1.7; white-space: pre-line;
+  color: rgba(239,230,210,.82); text-shadow: 0 1px 8px rgba(0,0,0,.85); max-width: 320px; }
+.notas { position: absolute; top: 26px; right: 26px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.nota { font-family: 'Caveat', cursive; font-size: 25px; font-weight: 500; line-height: 1.1; color: var(--tinta-papel); background: var(--papel); padding: 8px 16px 6px; box-shadow: 0 6px 18px rgba(0,0,0,.35); max-width: 340px; animation: nota 5.5s forwards; }
+.nota small { display: block; font-family: 'Spectral', serif; font-size: 13px; color: #6b5838; }
+.nota.nueva { border-left: 4px solid var(--notro); }
+@keyframes nota { 0% { opacity: 0; transform: translateY(-8px) rotate(-1.2deg); } 6% { opacity: 1; transform: translateY(0) rotate(-1.2deg); } 88% { opacity: 1; } 100% { opacity: 0; transform: rotate(-1.2deg); } }
+.prismaticos { position: absolute; inset: 0; background: #040604; opacity: 0; transition: opacity .2s;
+  -webkit-mask-image: radial-gradient(circle 31vmin at 41% 50%, transparent 96%, #000 100%), radial-gradient(circle 31vmin at 59% 50%, transparent 96%, #000 100%);
+  mask-image: radial-gradient(circle 31vmin at 41% 50%, transparent 96%, #000 100%), radial-gradient(circle 31vmin at 59% 50%, transparent 96%, #000 100%);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+.prismaticos.activo { opacity: 1; }
+.equipo { position: absolute; right: 28px; bottom: 26px; font-size: 16px; text-align: right; white-space: pre-line; line-height: 1.6; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
+.tension { position: absolute; left: 50%; bottom: 20vh; width: 280px; height: 7px; transform: translateX(-50%); background: rgba(20,28,23,.65); border-radius: 99px; overflow: hidden; box-shadow: 0 0 0 1px rgba(239,230,210,.25); }
+.tension i { display: block; height: 100%; width: 0; background: var(--musgo); transition: background .2s; }
+.tension.alta i { background: var(--notro); }
+.barra { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px;
+  background: rgba(20,18,14,.42); border-radius: 8px; backdrop-filter: blur(3px); }
+.barra .ranura { position: relative; width: 54px; height: 54px; border-radius: 6px; background: rgba(30,27,21,.55);
+  border: 2px solid rgba(220,212,190,.22); display: flex; align-items: center; justify-content: center; }
+@keyframes entroCasilla { 0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(240,222,170,0); } 35% { transform: translateY(-6px) scale(1.12); box-shadow: 0 0 18px 4px rgba(240,222,170,.55); } 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(240,222,170,0); } }
+.barra .ranura.entro { animation: entroCasilla .45s ease-out; }
+.barra .ranura.vacia { background: rgba(30,27,21,.35); border-color: rgba(240,222,170,.14); }
+.barra .ranura.elegida { border-color: rgba(240,222,170,.9); background: rgba(60,52,36,.65); transform: translateY(-3px); }
+.barra .ranura.activo { box-shadow: inset 0 0 0 2px rgba(150,220,150,.55); }
+.barra .ranura img { width: 40px; height: 40px; image-rendering: auto; }
+.barra .ranura b { position: absolute; right: 3px; bottom: 1px; font-size: 13px; font-weight: 600; color: #f0ead8; text-shadow: 0 1px 3px #000; }
+.barra .ranura i { position: absolute; left: 4px; top: 1px; font-style: normal; font-size: 11px; color: rgba(240,234,216,.65); }
+.barra .nombre { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); white-space: nowrap;
+  font-size: 15px; color: #f0ead8; text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+.mochila { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(720px, 90vw);
+  background: var(--papel); color: var(--tinta-papel); padding: 22px 26px 16px; border-radius: 5px; box-shadow: 0 18px 50px rgba(0,0,0,.55); }
+.mochila h2 { margin: 0 0 2px; font-family: 'Caveat', cursive; font-size: 30px; color: #5a4524; }
+.mochila .sub { margin: 0 0 14px; font-size: 15px; color: #7a6742; }
+.mochila .cosa { cursor: pointer; transition: background .15s, transform .1s; }
+.mochila .cosa:hover { background: rgba(120,100,60,.14); transform: translateY(-1px); }
+.mochila .cosa.enbarra { box-shadow: inset 0 0 0 2px rgba(120,100,60,.35); border-radius: 6px; }
+.mochila .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.mochila .cosa { display: flex; gap: 9px; align-items: center; padding: 7px 9px; border: 1px solid rgba(90,69,36,.22); border-radius: 4px; }
+.mochila .cosa img { width: 34px; height: 34px; }
+.mochila .cosa span { font-size: 15px; line-height: 1.2; }
+.mochila .cosa small { display: block; color: #7a6742; font-size: 13px; }
+.mochila .seguir { margin: 14px 0 0; font-size: 13px; color: #7a6742; }
+.obra { position: absolute; left: 24px; bottom: 11vh; width: min(500px, 46vw); max-height: 76vh; overflow: auto; pointer-events: auto;
+  background: var(--papel); color: var(--tinta-papel); padding: 18px 24px 14px; border-radius: 5px; box-shadow: 0 16px 44px rgba(0,0,0,.5); }
+.obra .categorias, .obra .planos { display: flex; flex-wrap: wrap; gap: 6px; }
+.obra .categorias { margin: 0 0 9px; padding-bottom: 8px; border-bottom: 1px solid rgba(90,69,36,.18); }
+.obra .planos { margin: 0 0 10px; }
+.obra .categorias button, .obra .planos button { font: inherit; font-size: 13px; padding: 4px 9px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(90,69,36,.3); background: rgba(255,255,255,.25); color: #5a4524; }
+.obra .categorias button { font-size: 12px; text-transform: uppercase; letter-spacing: .045em; }
+.obra .categorias button.elegido, .obra .planos button.elegido { background: #5a4524; color: #f0e6cc; border-color: #5a4524; }
+.obra .planos .pagina { align-self: center; font-size: 11px; letter-spacing: .04em; opacity: .68; padding: 0 3px; }
+.obra .quien { margin: 0 0 3px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 27px; line-height: 1; color: #5a4524; }
+.obra .dicho { margin: 0 0 8px; font-size: 14px; }
+.obra ul { list-style: none; margin: 0; padding: 0; }
+.obra li { display: flex; gap: 6px; align-items: baseline; padding: 4px 0; border-top: 1px solid rgba(90,69,36,.18); font-size: 14px; }
+.obra li b { font-weight: 600; }
+.obra li i { font-style: normal; margin-left: auto; font-size: 14px; color: #8a7a52; }
+.obra li.hecha { opacity: .55; }
+.obra li.hecha i { color: #4b7a4b; }
+.obra li.lista i { color: #3f6a2a; font-weight: 600; }
+.obra .mat { margin: 8px 0 0; font-size: 15px; color: #6b5a34; }
+.obra .costo { margin: 8px 0 0; font-size: 13px; color: #7a6742; }
+.obra .progreso { position: relative; isolation: isolate; margin: 9px 0 4px; padding: 5px 8px; border: 1px solid rgba(90,69,36,.18); border-radius: 4px; overflow: hidden; font-size: 13px; }
+.obra .progreso::before { content: ''; position: absolute; z-index: -1; inset: 0 auto 0 0; width: var(--avance, 0%); background: rgba(82,122,65,.16); transition: width .25s; }
+.obra .sitio { margin: 8px 0 0; padding: 5px 8px; border-radius: 4px; font-size: 13px; background: rgba(90,69,36,.07); }
+.obra .sitio.bueno { color: #3f672d; background: rgba(70,120,60,.10); }
+.obra .sitio.malo { color: #8a4337; background: rgba(150,65,50,.09); }
+.obra .modulo { margin: 6px 0 0; padding: 6px 8px; border-left: 3px solid rgba(90,69,36,.24); font-size: 12px; line-height: 1.35; color: #6c5b38; background: rgba(90,69,36,.045); }
+.obra .modulo.habitable { border-left-color: #527843; background: rgba(82,120,67,.09); color: #416235; }
+.obra .modulo.protegido { border-left-color: #8b7440; background: rgba(139,116,64,.08); }
+.obra .seguir { margin: 8px 0 0; font-size: 13px; color: #7a6742; }
+.trueque { position: absolute; left: 50%; bottom: 9vh; transform: translateX(-50%); width: min(660px, 86vw);
+  background: var(--papel); color: var(--tinta-papel); padding: 20px 26px 16px; border-radius: 4px; box-shadow: 0 16px 44px rgba(0,0,0,.5); }
+.trueque .quien { margin: 0 0 4px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 27px; line-height: 1; color: #5a4524; }
+.trueque .dicho { margin: 0 0 10px; font-size: 17px; }
+.trueque ul { list-style: none; margin: 0; padding: 0; }
+.trueque li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid rgba(90,69,36,.2); font-size: 17px; }
+.trueque li b { font-weight: 600; }
+.trueque li i { font-style: normal; margin-left: auto; font-size: 15px; color: #7a6742; text-align: right; }
+.trueque li.falta { opacity: .5; }
+#partidas-sync { margin: 14px 0 4px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); }
+#partidas-sync .sync-ayuda { font-size: .85em; opacity: .75; margin: 4px 0 8px; }
+#partidas-sync button { margin-right: 8px; }
+.trueque li.hecho i { color: #4b7a4b; }
+.trueque .seguir { margin: 12px 0 0; font-size: 14px; color: #7a6742; }
+/* 2.9: el tablero de la cabina de la trochita */
+.cabina { position: absolute; right: 26px; bottom: 11vh; display: flex; gap: 14px; align-items: flex-end; padding: 10px 14px; border-radius: 6px;
+  background: rgba(24,20,16,.62); color: rgba(239,230,210,.92); font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,.7); pointer-events: none; }
+.cabina-reloj { width: 128px; text-align: center; }
+.cabina-reloj svg { width: 128px; height: 70px; display: block; }
+.cabina-reloj p { margin: -4px 0 0; }
+.cabina-reloj b { font-size: 20px; font-weight: 600; }
+.cabina-arco { fill: none; stroke: rgba(239,230,210,.45); stroke-width: 3; }
+.cabina-marcas line { stroke: rgba(239,230,210,.7); stroke-width: 1.6; }
+.cabina-aguja { stroke: #d9a23a; stroke-width: 3; stroke-linecap: round; }
+.cabina-reloj circle { fill: #d9a23a; }
+.cabina-barras p { margin: 3px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 150px; }
+.cabina-barras i { display: block; width: 84px; height: 7px; border-radius: 4px; background: rgba(239,230,210,.18); overflow: hidden; }
+.cabina-barras em { display: block; height: 100%; width: 0; background: #d9a23a; }
+.cabina-barras .cabina-presion { background: #7fa37a; }
+.cabina-barras .cabina-freno { background: #c0584a; }
+.cabina-barras .cabina-proxima { display: block; margin-top: 6px; color: rgba(239,230,210,.75); }
+.charla { position: absolute; left: 50%; bottom: 9vh; transform: translateX(-50%); width: min(660px, 84vw);
+  background: var(--papel); color: var(--tinta-papel); padding: 20px 26px 16px; border-radius: 4px;
+  box-shadow: 0 16px 44px rgba(0,0,0,.5); }
+.charla .quien { margin: 0 0 6px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 27px; line-height: 1; color: #5a4524; }
+.charla .dicho { margin: 0; font-size: 20px; line-height: 1.55; }
+.charla .seguir { margin: 14px 0 0; font-size: 14px; color: #7a6742; }
+.medidor { position: absolute; left: 26px; top: 110px; margin: 0; font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace; font-size: 13px; line-height: 1.55;
+  color: #dff0d0; background: rgba(10,16,12,.62); padding: 10px 14px; border-radius: 8px; white-space: pre; }
+/* 3.2: el gráfico de tiempos de cuadro de F3, arriba del texto */
+.medidor-grafico { position: absolute; left: 26px; top: 22px; width: 360px; height: 80px; border-radius: 8px; background: rgba(10,16,12,.62); pointer-events: none; }
+.fundido { position: fixed; inset: 0; background: #050806; opacity: 0; pointer-events: none; transition: opacity 1.2s; }
+.fundido.activo { opacity: 1; }
+.flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+.flash.dispara { animation: flash .5s; }
+@keyframes flash { 0% { opacity: .85; } 100% { opacity: 0; } }
+.pista-clic { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); font-size: 18px; background: var(--tinta-velo); padding: 8px 18px 6px; border-radius: 10px; }
+
+/* ---------- menús oscuros ---------- */
+.velo { position: fixed; inset: 0; background: rgba(12,18,14,.66); backdrop-filter: blur(3px); display: grid; place-items: center; }
+.pausa { display: grid; grid-template-columns: auto minmax(0, 420px); gap: 70px; align-items: start; }
+.pausa h2 { font-style: italic; font-weight: 400; font-size: 60px; margin: 0 0 4px; line-height: 1; }
+.pausa .cuando { font-family: 'Caveat', cursive; font-size: 26px; color: #dcd3b6; margin: 0 0 30px; }
+.menu { display: grid; gap: 12px; justify-items: start; }
+.menu button { font-size: 22px; }
+.menu button:hover { color: #fff; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
+.menu kbd { font-size: 14px; margin-left: .5em; margin-right: 0; opacity: .7; }
+.ajustes { display: grid; gap: 18px; min-width: 360px; }
+.ajustes h3 { font-weight: 600; font-size: 20px; margin: 0 0 4px; }
+.fila-ajuste { display: grid; gap: 6px; }
+.fila-ajuste > span { font-size: 15px; color: rgba(239,230,210,.75); }
+.fila-ajuste small { font-size: 13px; color: rgba(239,230,210,.55); }
+input[type=range] { width: 100%; accent-color: var(--musgo); }
+.peligro { font-size: 15px; color: #e3a18f; justify-self: start; }
+
+/* ---------- cuaderno ---------- */
+.cuaderno { width: min(1180px, 94vw); height: min(760px, 90vh); display: grid; grid-template-columns: 1fr 1fr; color: var(--tinta-papel);
+  background: var(--papel); box-shadow: 0 30px 80px rgba(0,0,0,.55); border-radius: 6px; position: relative; }
+.cuaderno::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 44px; transform: translateX(-50%); background: linear-gradient(90deg, transparent, rgba(60,40,15,.22) 45%, rgba(60,40,15,.28) 50%, rgba(60,40,15,.22) 55%, transparent); pointer-events: none; }
+.pagina { padding: 40px 48px; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--papel-sombra) transparent; }
+.pagina h2 { font-family: 'Caveat', cursive; font-weight: 700; font-size: 44px; margin: 0; line-height: 1; }
+.progreso { font-size: 15px; margin: 6px 0 24px; color: #6b5838; }
+.boton-lamina { display: block; margin: -14px 0 20px; padding: 2px 12px 0; font-family: 'Caveat', cursive; font-weight: 600; font-size: 22px; color: #5a4524; background: none; border: 1px solid rgba(90,69,36,.45); border-radius: 6px; cursor: pointer; }
+.boton-lamina:hover, .boton-lamina:focus-visible { background: rgba(90,69,36,.1); }
+.seccion h3 { font-family: 'Caveat', cursive; font-weight: 700; font-size: 27px; margin: 20px 0 6px; color: #5a4524; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 12px; padding: 6px 8px 4px; border-radius: 4px; font-size: 17px; color: var(--tinta-papel); }
+.lista button:hover { background: rgba(80,55,20,.08); }
+.lista button[aria-current="true"] { background: rgba(80,55,20,.14); }
+.lista .desconocida { color: #8b7757; font-style: italic; }
+.pestanas { display: flex; gap: 22px; margin: -6px 0 6px; }
+.pestanas button { font-family: 'Caveat', cursive; font-weight: 700; font-size: 25px; color: #8b7757; border-bottom: 2px solid transparent; padding: 0 2px; }
+.pestanas button[aria-selected="true"] { color: var(--tinta-papel); border-color: var(--notro); }
+.lista .pendiente { color: #6b5838; }
+.polaroid { display: block; width: 100%; max-width: 440px; border: 8px solid #f3ebd8; border-bottom-width: 26px; box-shadow: 0 10px 24px rgba(60,40,15,.3); transform: rotate(-1.2deg); margin: 6px 0 22px; }
+.lista .marca { font-family: 'Caveat', cursive; font-size: 20px; color: var(--notro); }
+.ficha h2 { font-family: 'Spectral', serif; font-weight: 600; font-size: 38px; margin: 0; line-height: 1.1; }
+.ficha .cientifico { font-style: italic; font-size: 18px; margin: 4px 0 0; color: #5d4a2e; }
+.ficha .anotado { font-family: 'Caveat', cursive; font-size: 24px; color: var(--notro); margin: 18px 0 16px; }
+.ficha p.texto { font-size: 19px; line-height: 1.62; max-width: 46ch; margin: 0; }
+.ficha .pista { font-size: 19px; line-height: 1.6; font-style: italic; color: #6b5838; max-width: 42ch; }
+.cerrar-papel { position: absolute; right: 22px; top: 16px; font-size: 15px; color: #6b5838; }
+
+/* ---------- mapa ---------- */
+.hoja-mapa { background: var(--papel); padding: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.55); border-radius: 4px; position: relative; }
+.hoja-mapa canvas { display: block; width: min(84vh, 86vw); height: min(84vh, 86vw); }
+.hoja-mapa .leyenda { position: absolute; left: 30px; bottom: 26px; font-family: 'Caveat', cursive; font-size: 22px; color: var(--tinta-papel); line-height: 1.1; }
+
+
+/* ---------- terminación de producto / release candidate ---------- */
+.build-info { position: fixed; right: 18px; bottom: 14px; z-index: 30; font: 12px/1.2 ui-monospace, monospace; letter-spacing: .04em; color: rgba(239,230,210,.38); pointer-events: none; }
+.estado-guardado { min-height: 1.4em; margin: 12px 0 0; font-size: 13px; color: rgba(239,230,210,.62); }
+.guardado-hud { position: absolute; right: 28px; top: 74px; padding: 6px 10px 5px; border-radius: 7px; background: rgba(20,28,23,.58); backdrop-filter: blur(5px); font-size: 13px; color: rgba(239,230,210,.88); opacity: 0; transform: translateY(-4px); transition: opacity .22s, transform .22s; }
+.guardado-hud.visible { opacity: 1; transform: translateY(0); }
+.menu .separador { width: 100%; height: 1px; background: rgba(239,230,210,.16); margin: 3px 0; }
+.panel-modal { width: min(920px, 92vw); max-height: min(760px, 88vh); overflow: auto; color: var(--luz); background: rgba(17,24,19,.96); border: 1px solid rgba(239,230,210,.18); box-shadow: 0 30px 90px rgba(0,0,0,.6); border-radius: 12px; padding: 34px 38px 30px; }
+.panel-modal h2 { margin: 0 0 8px; font-style: italic; font-weight: 400; font-size: clamp(38px, 5vw, 62px); }
+.panel-modal .sub { margin: 0 0 26px; color: rgba(239,230,210,.65); font-size: 15px; }
+.panel-modal h3 { margin: 24px 0 8px; font-size: 18px; font-weight: 600; }
+.panel-modal p { max-width: 70ch; line-height: 1.55; color: rgba(239,230,210,.82); }
+.panel-modal .acciones-modal { display: flex; gap: 18px; margin-top: 28px; }
+.panel-modal .acciones-modal button { font-size: 18px; border-bottom: 1px solid rgba(239,230,210,.4); }
+.controles-completos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 34px; margin: 22px 0 0; }
+.controles-completos div { display: grid; grid-template-columns: minmax(130px, auto) 1fr; gap: 14px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid rgba(239,230,210,.08); }
+.controles-completos dt { text-align: right; color: rgba(239,230,210,.68); } .controles-completos dd { margin: 0; }
+.error-release { position: fixed; inset: 0; z-index: 999; display: grid; place-items: center; background: #090d0a; padding: 28px; }
+.error-release .panel-modal { border-color: rgba(184,67,47,.55); }
+.error-release pre { max-height: 260px; overflow: auto; user-select: text; white-space: pre-wrap; background: rgba(0,0,0,.25); padding: 14px; border-radius: 7px; font: 12px/1.45 ui-monospace, monospace; color: #e7c8bf; }
+@media (max-width: 760px) { .controles-completos { grid-template-columns: 1fr; } .panel-modal { padding: 26px 24px; } }
+
+/* ---------- 2.8: personalizar ---------- */
+#personalizar .panel-modal { max-width: 760px; width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow: auto; }
+.personal-pestanas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(239,230,210,.14); }
+.personal-pestanas button { font-size: 16px; padding: 5px 14px 4px; border-radius: 999px; color: rgba(239,230,210,.78); box-shadow: inset 0 0 0 1px rgba(239,230,210,.25); }
+.personal-pestanas button[aria-selected="true"] { background: var(--luz); color: var(--tinta); box-shadow: none; }
+.personal-contenido { display: grid; gap: 16px; }
+.personal-fila > span { font-size: 15px; color: rgba(239,230,210,.75); }
+.personal-segmentos { flex-wrap: wrap; border-radius: 18px; justify-self: start; }
+.personal-segmentos button:disabled, .personal-muestra:disabled { opacity: .38; cursor: default; }
+.personal-muestras { display: flex; flex-wrap: wrap; gap: 7px; }
+.personal-muestra { width: 30px; height: 30px; border-radius: 50%; background: var(--muestra); box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 0 1px rgba(239,230,210,.25); }
+.personal-muestra[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 0 3px var(--luz); }
+.personal-muestra.bloqueado { background: repeating-linear-gradient(45deg, var(--muestra) 0 5px, rgba(20,28,23,.9) 5px 8px); }
+.personal-prenda { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.personal-nota { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(239,230,210,.7); }
+.personal-bloqueado { margin: 0; font-size: 14px; font-style: italic; color: rgba(239,230,210,.5); }
+.personal-aviso:empty { display: none; }
+.personal-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.personal-texto { flex: 1 1 12em; min-width: 0; font: inherit; font-size: 15px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(239,230,210,.35); background: rgba(0,0,0,.25); color: var(--luz); user-select: text; }
+.personal-boton { font-size: 15px; padding: 5px 14px 4px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(239,230,210,.35); }
+.personal-boton:hover { background: rgba(239,230,210,.1); }
+.personal-boton.principal { background: var(--luz); color: var(--tinta); }
+.personal-boton.borrar { opacity: .7; }
+.personal-recetas { display: grid; gap: 6px; }
+.personal-receta { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.05); }
+.personal-receta small { display: block; font-size: 12.5px; opacity: .65; }
+.personal-bandera-vista, .victoria-bandera { display: block; width: 180px; height: 120px; border-radius: 3px; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+.victoria-bandera { margin: 0 auto 14px; }
+.mochila .personalizar { margin: 10px 0 0; font-size: 14px; color: #5a4524; border-bottom: 1px solid rgba(90,69,36,.4); }
+.mochila .personalizar kbd { border-color: rgba(90,69,36,.5); }
+/* Tu interfaz: color de los avisos de tecla, mira, brújula y modo mínimo */
+.aviso { box-shadow: inset 3px 0 0 var(--acento-borde, transparent); }
+.aviso kbd { border-color: var(--acento, rgba(239,230,210,.55)); color: var(--acento, inherit); }
+#hud.sin-brujula .brujula { display: none; }
+#hud.mira-cruz .mira { width: 16px; height: 16px; margin: -8px 0 0 -8px; background: none; box-shadow: none; border-radius: 0; }
+#hud.mira-cruz .mira::before, #hud.mira-cruz .mira::after { content: ''; position: absolute; background: rgba(239,230,210,.82); box-shadow: 0 0 2px rgba(0,0,0,.75); }
+#hud.mira-cruz .mira::before { left: 7px; top: 0; width: 2px; height: 16px; }
+#hud.mira-cruz .mira::after { left: 0; top: 7px; width: 16px; height: 2px; }
+#hud.mira-circulo .mira { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: none; border: 2px solid rgba(239,230,210,.78); box-shadow: 0 0 3px rgba(0,0,0,.55), inset 0 0 2px rgba(0,0,0,.45); }
+#hud.mira-ninguna .mira { visibility: hidden; }
+#hud.minimalista .recursos, #hud.minimalista .encargos-hud, #hud.minimalista .equipo { display: none; }
+#hud.minimalista .barra { transition: opacity .5s; }
+#hud.minimalista .barra:not(.reciente) { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) { .nota { animation-duration: 5.5s; } .flash.dispara { animation: none; } }
+@media (max-width: 900px) { .portada { grid-template-columns: 1fr; } .controles { display: none; } .pausa { grid-template-columns: 1fr; gap: 30px; } }
+</style>
+</head>
+<body>
+<canvas id="mundo"></canvas>
+
+<section id="carga" class="portada">
+  <div>
+    <h1 class="titulo">Hojarasca</h1>
+    <p class="bajada">un bosque andino patagónico para recorrer despacio</p>
+    <div class="carga-linea"><i id="carga-barra"></i></div>
+    <p class="carga-texto" id="carga-texto">Preparando el bosque</p>
+  </div>
+</section>
+
+<section id="inicio" class="portada oculto">
+  <div>
+    <h1 class="titulo">Hojarasca</h1>
+    <p class="bajada">un bosque andino patagónico para recorrer despacio</p>
+    <div class="opcion"><span>Idioma · Language</span>
+        <div class="segmentos" data-ajuste="idioma"><button data-valor="es">Español</button><button data-valor="en">English</button></div>
+      </div>
+      <div class="modo-juego"><span>Modo de juego</span>
+      <div class="segmentos" data-ajuste="modo">
+        <button data-valor="relax">Relax</button><button data-valor="desafio">Desafío</button>
+      </div>
+      <p class="modo-texto" id="modo-texto"></p>
+      <div class="opcion oculto" id="opcion-relax"><span>Relax</span>
+        <div class="segmentos" data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button></div>
+        <p class="modo-texto" id="relax-tipo-texto"></p>
+      </div>
+      <div class="opcion oculto" id="opcion-dificultad"><span>Desafío</span>
+        <div class="segmentos" data-ajuste="desafioTipo"><button data-valor="campana">Campaña</button><button data-valor="sinfin">Sin fin</button></div>
+        <p class="modo-texto" id="desafio-tipo-texto"></p>
+        <span>Dificultad</span>
+        <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
+        <p class="modo-texto" id="dificultad-texto"></p>
+        <span>Código de partida</span>
+        <div class="fila-codigo">
+          <input id="codigo-partida" maxlength="18" placeholder="Sin código: noches al azar" autocomplete="off" spellcheck="false" aria-label="Código de partida">
+          <button class="accion-secundaria" id="btn-codigo-semana">El de esta semana</button>
+        </div>
+        <p class="modo-texto" id="codigo-texto"></p>
+      </div>
+    </div>
+    <p class="modo-texto" id="diario-portada"></p>
+    <div class="acciones">
+      <button class="accion-principal" id="btn-entrar">Entrar al bosque</button>
+      <button class="accion-secundaria oculto" id="btn-nuevo">Empezar un recorrido nuevo</button>
+      <button class="accion-secundaria oculto" id="btn-logros-inicio">Logros y récords</button>
+      <button class="accion-secundaria" id="btn-modos-inicio">Carreras, desafío del día y torneo</button>
+      <button class="accion-secundaria" id="btn-banco-inicio">Banco de pruebas</button>
+      <button class="accion-secundaria" id="btn-personalizar-inicio">Personalizar</button>
+      <button class="accion-secundaria" id="btn-teclas-inicio">Teclas y mando</button>
+      <button class="accion-secundaria" id="btn-partidas-inicio">Partidas guardadas</button>
+      <button class="accion-secundaria" id="btn-guia-inicio">Guía del juego</button>
+      <button class="accion-secundaria" id="btn-controles-inicio">Controles</button>
+      <button class="accion-secundaria" id="btn-creditos-inicio">Créditos</button>
+      <button class="accion-secundaria" id="btn-salir-inicio">Salir</button>
+    </div>
+    <div class="opciones-rapidas">
+      <div class="opcion"><span>Estación</span>
+        <div class="segmentos" data-ajuste="estacion">
+          <button data-valor="verano">Verano</button><button data-valor="otono">Otoño</button><button data-valor="invierno">Invierno</button><button data-valor="auto">Solas</button>
+        </div>
+      </div>
+      <div class="opcion"><span>Calidad gráfica</span>
+        <div class="segmentos" data-ajuste="calidad">
+          <button data-valor="muybaja">Mínima</button><button data-valor="baja">Baja</button><button data-valor="media">Media</button><button data-valor="alta">Alta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <dl class="controles">
+    <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>caminar</dd>
+    <dt><kbd>Shift</kbd></dt><dd>correr</dd>
+    <dt><kbd>C</kbd></dt><dd>agacharte y moverte en silencio</dd>
+    <dt><kbd>E</kbd></dt><dd>anotar, juntar, sentarte, subir al kayak, dormir</dd>
+    <dt><kbd>Q</kbd></dt><dd>caña de mosca (clic para lanzar)</dd>
+    <dt><kbd>L</kbd></dt><dd>linterna</dd>
+    <dt><kbd>Z</kbd></dt><dd>prismáticos</dd>
+    <dt><kbd>R</kbd></dt><dd>descansar y dejar pasar el tiempo</dd>
+    <dt><kbd>F</kbd></dt><dd>hacer una fogata</dd>
+    <dt><kbd>G</kbd></dt><dd>cocinar en el fuego</dd>
+    <dt><kbd>T</kbd></dt><dd>armar o levantar la carpa</dd>
+    <dt><kbd>B</kbd></dt><dd>plantar un renoval</dd>
+    <dt><kbd>V</kbd></dt><dd>dejar en el suelo lo que tenés en la mano</dd>
+    <dt><kbd>H</kbd></dt><dd>talar un árbol (tres hachazos) o picar piedra</dd>
+    <dt><kbd>O</kbd></dt><dd>abrir los planos de construcción</dd>
+    <dt><kbd>Retroceso</kbd> · <kbd>X</kbd></dt><dd>con los planos abiertos: deshacer la última etapa (devuelve la mitad) · repetir lo que tenés enfrente</dd>
+    <dt><kbd>T</kbd></dt><dd>con los planos abiertos: teñir la pared, el piso o el techo que tenés al lado (calafate, ocre, cal o natural)</dd>
+    <dt><kbd>Y</kbd></dt><dd>levantar la etapa / aserrar tablas (a mano 2, en el banco 4)</dd>
+    <dt><kbd>F1</kbd></dt><dd>guía del juego</dd>
+    <dt><kbd>I</kbd></dt><dd>abrir la mochila</dd>
+    <dt><kbd>1</kbd>–<kbd>8</kbd> / rueda</dt><dd>elegir qué llevás en la mano</dd>
+    <dt>clic derecho / <kbd>U</kbd></dt><dd>usar lo que tenés en la mano</dd>
+    <dt><kbd>E</kbd></dt><dd>hablar con la gente del bosque</dd>
+    <dt><kbd>J</kbd> <kbd>M</kbd></dt><dd>cuaderno y mapa</dd>
+    <dt><kbd>P</kbd></dt><dd>sacar una foto</dd>
+    <dt><kbd>F2</kbd></dt><dd>modo foto: cámara libre, hora, encuadre y luz</dd>
+    <dt><kbd>F3</kbd></dt><dd>ver el rendimiento</dd>
+    <dt>clic izquierdo</dt><dd>atacar con el arma en la mano (Desafío)</dd>
+    <dt>clic derecho sostenido</dt><dd>bloquear con la lanza · disparo cargado con la pistola mejorada</dd>
+    <dt><kbd>A</kbd><kbd>A</kbd> / <kbd>D</kbd><kbd>D</kbd></dt><dd>esquivar hacia un costado (doble toque)</dd>
+    <dt><kbd>K</kbd></dt><dd>fabricar, mejorar armas, reparar y reforzar (Tab cambia de pestaña)</dd>
+    <dt><kbd>N</kbd></dt><dd>estado de la base: qué defensa está dañada (Desafío)</dd>
+    <dt><kbd>F</kbd></dt><dd>prender una antorcha apagada</dd>
+  </dl>
+  <div class="build-info" id="build-info">Hojarasca · Mega RC</div>
+</section>
+
+<div class="velo-especial" id="velo-especial"></div>
+<div class="dano" id="dano"></div>
+<div id="hud" class="oculto">
+  <div class="prismaticos" id="prismaticos"></div>
+  <div class="brujula" id="brujula"></div>
+  <div class="cielo-nombres" id="cielo-nombres"></div>
+  <div class="tinte" id="tinte"></div>
+  <div class="vineta"></div>
+  <div class="mira" id="mira"></div>
+  <div class="aviso oculto" id="aviso"></div>
+  <div class="estado oculto" id="estado"></div>
+  <div class="carrera-hud oculto" id="carrera-hud"></div>
+  <div class="cabina oculto" id="cabina"></div>
+  <div class="escucha oculto" id="escucha" aria-live="polite"></div>
+  <div class="recursos" id="recursos"></div>
+  <div class="encargos-hud" id="encargos-hud"></div>
+  <div class="equipo" id="equipo"></div>
+  <div class="tension oculto" id="tension"><i id="tension-barra"></i></div>
+  <div class="notas" id="notas"></div>
+  <div class="subtitulos oculto" id="subtitulos"></div>
+  <div class="sonidos-escritos oculto" id="sonidos-escritos" aria-live="polite"></div>
+  <div class="tutorial oculto" id="tutorial"></div>
+  <div class="nodriza-hud oculto" id="nodriza-hud"><span>Nave nodriza</span><em><i></i></em><em><i></i></em><em><i></i></em></div>
+  <div class="desafio-hud oculto" id="desafio-hud">
+    <div class="salud"><i id="salud-barra"></i><b id="salud-texto">100</b></div>
+    <p id="desafio-estado"></p>
+  </div>
+  <div class="trueque oculto" id="taller">
+    <p class="quien">Fabricar</p>
+    <div class="taller-categorias" id="taller-categorias"></div>
+    <p class="dicho" id="taller-intro"></p>
+    <ul id="taller-lista"></ul>
+    <p class="seguir">Número o clic para fabricar · Tab cambia de categoría · K o Escape cierra · arco, flechas y arco reforzado se hacen junto a un banco de trabajo</p>
+  </div>
+  <div class="guardado-hud" id="guardado-hud">✓ Guardado</div>
+  <div class="pista-clic oculto" id="pista-clic">Hacé clic para volver a mirar alrededor</div>
+  <div class="flash" id="flash"></div>
+  <div class="barra oculto" id="barra"></div>
+  <div class="mochila oculto" id="mochila">
+    <h2>Mochila</h2>
+    <p class="sub" id="mochila-sub"></p>
+    <div class="rejilla" id="mochila-rejilla"></div>
+    <p class="seguir">1 a 8 para elegir · rueda del mouse para cambiar · clic derecho o U para usar · I para cerrar</p>
+    <button class="personalizar" id="btn-personalizar-mochila">Personalizar tu ropa, tu bandera y más<kbd>F5</kbd></button>
+  </div>
+  <div class="obra oculto" id="obra">
+    <div class="categorias" id="obra-categorias"></div>
+    <div class="planos" id="obra-planos"></div>
+    <p class="quien" id="obra-nombre">Puesto de troncos</p>
+    <p class="dicho" id="obra-texto"></p>
+    <p class="costo" id="obra-costo"></p>
+    <p class="progreso" id="obra-progreso"></p>
+    <ul id="obra-etapas"></ul>
+    <p class="mat" id="obra-materiales"></p>
+    <p class="sitio" id="obra-sitio">Buscando lugar...</p>
+    <p class="modulo" id="obra-modulo">Módulo cercano · todavía abierto</p>
+    <p class="seguir">1–8 plano visible · [ ] cambia página · Tab cambia categoría · R o rueda gira · N snap · Y construye/confirma · Shift+Y mueve pieza · Supr cancela marca/edición · Shift+Supr desmonta · O cierra</p>
+  </div>
+  <div class="trueque oculto" id="trueque">
+    <p class="quien">Ercilia · Almacén de Ramos Generales</p>
+    <p class="dicho" id="trueque-intro">“Lo que traigas del bosque lo miramos.” · Trueques disponibles en el mostrador.</p>
+    <ul id="trueque-lista"></ul>
+    <p class="seguir" id="trueque-seguir">Elegí con el número o con un clic · Escape para salir</p>
+  </div>
+  <div class="trueque oculto" id="feria">
+    <p class="quien">La feria de la estación</p>
+    <p class="dicho" id="feria-intro">Puestos junto al andén, hasta las seis. Cada cambio, una vez por feria.</p>
+    <ul id="feria-lista"></ul>
+    <p class="seguir">Elegí con el número o con un clic · Escape para salir</p>
+  </div>
+  <!-- 2.9: el puesto de cargas de cada parada (ver comercio-mundo.js) -->
+  <div class="trueque oculto" id="cargas">
+    <p class="quien">Cargas</p>
+    <p class="dicho"></p>
+    <ul id="cargas-lista"></ul>
+    <p class="seguir"></p>
+  </div>
+  <div class="charla oculto" id="charla">
+    <p class="quien" id="charla-quien"></p>
+    <p class="dicho" id="charla-texto"></p>
+    <p class="seguir" id="charla-seguir"></p>
+  </div>
+  <pre class="medidor oculto" id="medidor"></pre>
+  <canvas class="medidor-grafico oculto" id="medidor-grafico" width="360" height="80"></canvas>
+</div>
+
+<div class="fundido" id="fundido"></div>
+
+<div id="foto-guias-capa"></div>
+<aside id="foto-panel" class="oculto">
+  <h3>Modo foto</h3>
+  <p class="ayuda" id="foto-ayuda">WASD vuela · Espacio y Shift suben y bajan · P saca la foto · F2 sale</p>
+  <div id="foto-controles"></div>
+  <div class="acciones-modal"><button id="foto-guardar">Guardar la foto</button><button id="foto-salir">Salir</button></div>
+</aside>
+
+<div class="banco-corriendo oculto" id="banco-corriendo">
+  <b>Banco de pruebas</b>
+  <p id="banco-tramo">Preparando…</p>
+  <div class="barra" id="banco-barra"><i></i></div>
+  <small>La cámara se mueve sola. Esc corta la medición.</small>
+</div>
+
+<section id="pausa" class="velo oculto">
+  <div class="pausa">
+    <div>
+      <h2>En pausa</h2>
+      <p class="cuando" id="cuando"></p>
+      <p class="resumen-pausa" id="resumen-pausa"></p>
+      <div class="menu">
+        <button id="btn-seguir">Seguir recorriendo</button>
+        <button id="btn-cuaderno">Abrir el cuaderno<kbd>J</kbd></button>
+        <button id="btn-logros" class="oculto">Logros y récords</button>
+        <button id="btn-modos">Carreras, desafío del día y torneo</button>
+        <button id="btn-mapa">Ver el mapa<kbd>M</kbd></button>
+        <button id="btn-foto">Sacar una foto<kbd>P</kbd></button>
+        <button id="btn-personalizar">Personalizar<kbd>F5</kbd></button>
+        <div class="separador"></div>
+        <button id="btn-guardar">Guardar ahora</button>
+        <button id="btn-foto-modo">Modo foto<kbd>F2</kbd></button>
+        <button id="btn-album">Llevarte el cuaderno</button>
+        <button id="btn-banco">Banco de pruebas</button>
+        <button id="btn-base" class="oculto">Estado de la base<kbd>N</kbd></button>
+        <button id="btn-vuelta" class="oculto">Otra vuelta al Desafío</button>
+        <button id="btn-teclas">Teclas y mando</button>
+        <button id="btn-partidas">Partidas guardadas</button>
+        <button id="btn-guia">Guía del juego<kbd>F1</kbd></button>
+        <button id="btn-controles">Controles</button>
+        <button id="btn-creditos">Créditos y versión</button>
+        <button id="btn-inicio">Volver a la portada</button>
+        <button id="btn-salir">Salir del juego</button>
+        <p class="estado-guardado" id="estado-guardado">Autoguardado activo.</p>
+      </div>
+    </div>
+    <div class="ajustes">
+      <h3>Ajustes</h3>
+      <div class="fila-ajuste"><span>Estación</span>
+        <div class="segmentos" data-ajuste="estacion"><button data-valor="verano">Verano</button><button data-valor="otono">Otoño</button><button data-valor="invierno">Invierno</button><button data-valor="auto">Que pasen solas</button></div>
+      </div>
+      <div class="fila-ajuste" id="fila-dificultad"><span>Dificultad del Desafío</span>
+        <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Clima</span>
+        <div class="segmentos" data-ajuste="clima"><button data-valor="variable">Cambiante</button><button data-valor="despejado">Siempre despejado</button><button data-valor="lluvioso">Lluvioso</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Duración del día</span>
+        <div class="segmentos" data-ajuste="duracion"><button data-valor="20">20 minutos</button><button data-valor="45">45 minutos</button><button data-valor="reloj">Hora de tu reloj</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Calidad gráfica</span>
+        <div class="segmentos" data-ajuste="calidad"><button data-valor="muybaja">Mínima</button><button data-valor="baja">Baja</button><button data-valor="media">Media</button><button data-valor="alta">Alta</button></div>
+        <small id="aviso-calidad" class="oculto">Se aplica al volver a la portada.</small>
+      </div>
+      <div class="fila-ajuste"><span>Guía del primer día</span>
+        <div class="segmentos" data-ajuste="guiaPrimerDia"><button data-valor="true">Mostrarla</button><button data-valor="false">Prefiero solo</button></div>
+        <small>Sólo en Relax: una lista corta con los primeros pasos, que se tilda sola.</small>
+      </div>
+      <div class="fila-ajuste"><span>Tamaño de letra</span>
+        <div class="segmentos" data-ajuste="tamanoLetra"><button data-valor="normal">Normal</button><button data-valor="grande">Grande</button><button data-valor="enorme">Enorme</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Colores</span>
+        <div class="segmentos" data-ajuste="paleta"><button data-valor="normal">Normales</button><button data-valor="protanopia">Protanopía</button><button data-valor="deuteranopia">Deuteranopía</button><button data-valor="tritanopia">Tritanopía</button></div>
+        <small>Cambia el rojo y el verde del HUD por tonos que se distinguen mejor.</small>
+      </div>
+      <div class="fila-ajuste"><span>Subtítulos de los avisos</span>
+        <div class="segmentos" data-ajuste="subtitulos"><button data-valor="true">Mostrarlos</button><button data-valor="false">No</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Sonidos escritos</span>
+        <div class="segmentos" data-ajuste="sonidosEscritos"><button data-valor="true">Con dirección</button><button data-valor="false">No</button></div>
+        <small>En el Desafío, lo que se oye de noche y de dónde viene: «[gruñido lejos · noroeste]».</small>
+      </div>
+      <div class="fila-ajuste"><span>Vibración del mando</span>
+        <div class="segmentos" data-ajuste="vibracion"><button data-valor="true">Sí</button><button data-valor="false">No</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Calidad automática</span>
+        <div class="segmentos" data-ajuste="autoCalidad"><button data-valor="true">Que se acomode sola</button><button data-valor="false">La dejo fija</button></div>
+        <small>Mide los cuadros por segundo y sube o baja un escalón, avisando.</small>
+      </div>
+      <label class="fila-ajuste"><span>Volumen general</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumen"></label>
+      <label class="fila-ajuste"><span>El bosque</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenAmbiente"><small>Viento, agua, pájaros y lluvia.</small></label>
+      <label class="fila-ajuste"><span>Efectos</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenEfectos"><small>Pasos, hacha, golpes y avisos.</small></label>
+      <label class="fila-ajuste"><span>Música</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenMusica"><small>El piano cambia con la estación y la hora.</small></label>
+      <label class="fila-ajuste"><span>Sensibilidad del mouse</span><input type="range" min="0.3" max="2.5" step="0.05" data-ajuste-rango="sensibilidad"></label>
+      <label class="fila-ajuste"><span>Campo de visión</span><input type="range" min="60" max="90" step="1" data-ajuste-rango="fov"><small>Más alto muestra más mundo a los costados.</small></label>
+      <div class="fila-ajuste"><span>Mirada vertical</span>
+        <div class="segmentos" data-ajuste="invertirY"><button data-valor="false">Normal</button><button data-valor="true">Invertida</button></div>
+      </div>
+      <div class="fila-ajuste"><span>Movimiento de cámara</span>
+        <div class="segmentos" data-ajuste="movimientoCamara"><button data-valor="normal">Normal</button><button data-valor="reducido">Reducido</button></div>
+        <small>Reduce balanceo al caminar y movimiento en tren/kayak.</small>
+      </div>
+      <div class="fila-ajuste"><span>Virado de color</span>
+        <div class="segmentos" data-ajuste="virado"><button data-valor="suave">Suave</button><button data-valor="apagado">Sin virado</button></div>
+        <small>Tiñe apenas la imagen al atardecer y de noche.</small>
+      </div>
+      <div class="fila-ajuste"><span>Límite de cuadros por segundo</span>
+        <div class="segmentos" data-ajuste="limiteFps"><button data-valor="auto">Auto (según tu monitor)</button><button data-valor="30">30</button><button data-valor="60">60</button><button data-valor="120">120</button><button data-valor="libre">Sin límite</button></div>
+        <small>Auto dibuja un cuadro cada tantos refrescos del monitor, siempre la misma cantidad: 72 en uno de 144 Hz, 60 en uno de 60 o de 120. F3 muestra el rendimiento.</small>
+      </div>
+      <div class="fila-ajuste"><span>Modo fluido</span>
+        <div class="segmentos" data-ajuste="modoFluido"><button data-valor="true">Sí</button><button data-valor="false">No</button></div>
+        <small>Si la placa no llega al ritmo, baja la resolución hasta un 70% y la vuelve a subir cuando sobra. F3 muestra cuánto.</small>
+      </div>
+      <div class="fila-ajuste"><span>Música</span>
+        <div class="segmentos" data-ajuste="musica"><button data-valor="true">Con piano</button><button data-valor="false">Solo el bosque</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cuaderno" class="velo oculto">
+  <div class="cuaderno">
+    <div class="pagina" id="cuaderno-lista"></div>
+    <div class="pagina ficha" id="cuaderno-ficha"></div>
+    <button class="cerrar-papel" id="cerrar-cuaderno">Cerrar (J)</button>
+  </div>
+</section>
+
+<section id="mapa" class="velo oculto">
+  <div class="hoja-mapa">
+    <canvas id="lienzo-mapa" width="1100" height="1100"></canvas>
+    <div class="leyenda">Mapa completo del valle · tu posición se marca en rojo · clic para poner una chinche, clic encima para que la brújula te lleve, clic derecho para sacarla</div>
+    <button class="cerrar-papel" id="cerrar-mapa">Cerrar (M)</button>
+  </div>
+</section>
+
+<section id="controles-completos" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Controles</h2>
+    <p class="sub">Todo lo necesario para recorrer Hojarasca sin volver al README.</p>
+    <dl class="controles-completos">
+      <div><dt><kbd>W A S D</kbd></dt><dd>caminar / remar / moverte dentro del tren</dd></div>
+      <div><dt><kbd>Shift</kbd></dt><dd>correr</dd></div>
+      <div><dt><kbd>C</kbd></dt><dd>agacharte</dd></div>
+      <div><dt><kbd>Espacio</kbd></dt><dd>saltar</dd></div>
+      <div><dt><kbd>E</kbd></dt><dd>interactuar, juntar, sentarte, abrir puertas</dd></div>
+      <div><dt><kbd>Q</kbd></dt><dd>caña de mosca</dd></div>
+      <div><dt><kbd>L</kbd></dt><dd>linterna</dd></div>
+      <div><dt><kbd>Z</kbd></dt><dd>prismáticos</dd></div>
+      <div><dt><kbd>U</kbd> / clic derecho</dt><dd>usar el objeto en la mano</dd></div>
+      <div><dt><kbd>O</kbd></dt><dd>planos de construcción</dd></div>
+      <div><dt><kbd>F</kbd></dt><dd>fogata / fogón</dd></div>
+      <div><dt><kbd>G</kbd></dt><dd>cocinar</dd></div>
+      <div><dt><kbd>T</kbd></dt><dd>armar o levantar carpa</dd></div>
+      <div><dt><kbd>B</kbd></dt><dd>plantar renoval</dd></div>
+      <div><dt><kbd>V</kbd></dt><dd>dejar objeto en el suelo</dd></div>
+      <div><dt><kbd>H</kbd></dt><dd>talar árboles o picar piedra con el hacha</dd></div>
+      <div><dt><kbd>Y</kbd></dt><dd>aserrar tablas / levantar etapa</dd></div>
+      <div><dt><kbd>F1</kbd></dt><dd>guía del juego</dd></div>
+      <div><dt><kbd>J</kbd></dt><dd>cuaderno</dd></div>
+      <div><dt><kbd>M</kbd></dt><dd>mapa</dd></div>
+      <div><dt><kbd>P</kbd></dt><dd>fotografía</dd></div>
+      <div><dt><kbd>F3</kbd></dt><dd>rendimiento</dd></div>
+      <div><dt><kbd>F11</kbd></dt><dd>pantalla completa</dd></div>
+      <div><dt><kbd>Esc</kbd></dt><dd>pausa</dd></div>
+    </dl>
+    <div class="acciones-modal"><button id="cerrar-controles-completos">Volver a pausa</button></div>
+  </div>
+</section>
+
+<section id="banco" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Banco de pruebas</h2>
+    <p class="sub">Cuánto rinde tu equipo en el mismo recorrido de siempre.</p>
+    <div id="banco-informe"></div>
+    <div class="acciones-modal"><button id="banco-copiar">Copiar</button><button id="banco-guardar">Guardar archivo</button><button id="cerrar-banco">Volver</button></div>
+  </div>
+</section>
+
+<section id="base" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Estado de la base</h2>
+    <p class="sub">Cómo están tus defensas y qué conviene hacer antes de la noche.</p>
+    <div id="base-contenido"></div>
+    <div class="acciones-modal"><button id="cerrar-base">Volver (N)</button></div>
+  </div>
+</section>
+
+<section id="teclas" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Teclas y mando</h2>
+    <p class="sub">Tocá una acción y apretá la tecla que quieras. Esc cancela.</p>
+    <p id="teclas-mando"></p>
+    <div id="teclas-lista"></div>
+    <div class="acciones-modal"><button id="teclas-defecto">Volver a las de fábrica</button><button id="cerrar-teclas">Volver</button></div>
+  </div>
+</section>
+
+<section id="partidas" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Partidas guardadas</h2>
+    <div id="partidas-lista"></div>
+    <div id="partidas-sync" class="oculto">
+      <p class="sync-titulo">Carpeta sincronizada: <b id="sync-carpeta">ninguna</b></p>
+      <p class="sync-ayuda">Elegí una carpeta de OneDrive, Dropbox o Google Drive: la partida se copia sola ahí, y en tu otra computadora el juego te ofrece la más nueva.</p>
+      <button id="btn-sync-elegir">Elegir carpeta…</button>
+      <button id="btn-sync-olvidar" class="oculto">Dejar de usarla</button>
+    </div>
+    <div class="acciones-modal"><button id="cerrar-partidas">Volver</button></div>
+  </div>
+</section>
+
+<section id="guia" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Guía del juego</h2>
+    <p class="sub">Qué hacer, de dónde sale cada cosa y cómo se construye.</p>
+    <div id="guia-contenido"></div>
+    <div class="acciones-modal"><button id="cerrar-guia">Volver (F1 / Esc)</button></div>
+  </div>
+</section>
+
+<section id="logros" class="velo oculto">
+  <div class="panel-modal panel-logros">
+    <h2>Logros y récords</h2>
+    <div id="logros-contenido"></div>
+    <div class="acciones-modal"><button id="cerrar-logros">Volver</button></div>
+  </div>
+</section>
+
+<section id="victoria" class="velo oculto">
+  <div class="panel-modal victoria">
+    <canvas id="victoria-bandera" class="victoria-bandera" width="180" height="120" role="img" aria-label="Tu bandera"></canvas>
+    <h2 id="victoria-titulo">¡La nave nodriza cayó!</h2>
+    <p class="sub" id="victoria-sub">Ganaste el Desafío</p>
+    <p class="datos" id="victoria-datos"></p>
+    <p id="victoria-texto">El valle respira, pero siguen bajando. Salen de un nido que está enterrado en algún lado: los restos de nave te van a decir dónde, y se rompe de día, cuando el caparazón se abre.</p>
+    <div class="acciones-modal"><button id="victoria-copiar" class="oculto">Copiar el parte</button><button id="victoria-despues" class="oculto">Seguir peleando: las noches después</button><button id="victoria-vuelta" class="oculto">Otra vuelta, más difícil</button><button id="victoria-seguir">Seguir</button></div>
+  </div>
+</section>
+
+<!-- 3.0: la corrida sin fin terminada -->
+<section id="corrida" class="velo oculto">
+  <div class="panel-modal victoria">
+    <h2 id="corrida-titulo">Se terminó la corrida</h2>
+    <p class="sub" id="corrida-sub"></p>
+    <p class="datos" id="corrida-lugar"></p>
+    <div id="corrida-records" class="logro-records"></div>
+    <div class="acciones-modal"><button id="corrida-otra">Otra corrida</button><button id="corrida-repetir">Otra con el mismo código</button><button id="corrida-portada">A la portada</button></div>
+  </div>
+</section>
+
+<!-- 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js) -->
+<section id="modos31" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Carreras, desafío del día y torneo</h2>
+    <div id="modos31-contenido"></div>
+    <div class="acciones-modal"><button id="cerrar-modos31">Volver</button></div>
+  </div>
+</section>
+
+<section id="personalizar" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Personalizar</h2>
+    <p class="sub">Lo tuyo en el valle. Se guarda con la partida y pasa a la próxima que empieces.</p>
+    <div class="personal-pestanas" id="personal-pestanas" role="tablist" aria-label="Secciones"></div>
+    <div class="personal-contenido" id="personal-contenido" role="tabpanel"></div>
+    <div class="acciones-modal"><button id="cerrar-personalizar">Volver (F5 / Esc)</button></div>
+  </div>
+</section>
+
+<section id="creditos" class="velo oculto">
+  <div class="panel-modal">
+    <h2>Hojarasca</h2>
+    <p class="sub" id="version-completa">Versión __HOJARASCA_VERSION__</p>
+    <p>Una experiencia de exploración en un bosque andino patagónico. El terreno, la vegetación, las estructuras, la fauna, el agua, el clima y buena parte del sonido se generan por código en tiempo real.</p>
+    <h3>En el valle</h3>
+    <p>Dieciséis lugares para descubrir, la trochita, pesca y kayak, construcción de refugios de varios niveles, un perro que te acompaña, fauna nativa que reacciona a tu presencia, verano, otoño e invierno, y clima cambiante. El recorrido se guarda solo.</p>
+    <h3>Hecho con</h3>
+    <p>Three.js (licencia MIT) · tipografías Caveat y Spectral (SIL Open Font License) · Electron.</p>
+    <div class="acciones-modal"><button id="cerrar-creditos">Volver a pausa</button></div>
+  </div>
+</section>
+
+<div id="error-release" class="error-release oculto">
+  <div class="panel-modal">
+    <h2>Hojarasca encontró un problema</h2>
+    <p>El juego no pudo continuar de forma segura. Cerrá esta versión y conservá el detalle de abajo para depuración.</p>
+    <pre id="error-release-texto"></pre>
+    <div class="acciones-modal"><button id="error-release-reintentar">Reintentar</button><button id="error-release-salir">Salir</button></div>
+  </div>
+</div>
+
+<script>
+/*JUEGO*/
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const VERSION_FALLBACK = '__HOJARASCA_VERSION__';
+  let origenModal = 'pausa';
+  const cerrarModal = () => {
+    $('controles-completos')?.classList.add('oculto'); $('creditos')?.classList.add('oculto');
+    $(origenModal)?.classList.remove('oculto');
+  };
+  const abrirModal = (id, origen) => { origenModal = origen; $(origen)?.classList.add('oculto'); $(id)?.classList.remove('oculto'); };
+  $('btn-controles')?.addEventListener('click', () => abrirModal('controles-completos', 'pausa'));
+  $('btn-controles-inicio')?.addEventListener('click', () => abrirModal('controles-completos', 'inicio'));
+  $('cerrar-controles-completos')?.addEventListener('click', cerrarModal);
+  $('btn-creditos')?.addEventListener('click', () => abrirModal('creditos', 'pausa'));
+  $('btn-creditos-inicio')?.addEventListener('click', () => abrirModal('creditos', 'inicio'));
+  $('cerrar-creditos')?.addEventListener('click', cerrarModal);
+  $('btn-guardar')?.addEventListener('click', () => window.__hojarasca?.guardar?.());
+  let ocultarGuardado = 0;
+  window.addEventListener('hojarasca:guardado', (ev) => {
+    const ok = ev.detail?.ok !== false;
+    const hora = new Date(ev.detail?.hora || Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const estado = $('estado-guardado');
+    if (estado) estado.textContent = ok ? `Último guardado · ${hora}` : 'No se pudo guardar. Revisá el espacio disponible.';
+    const hud = $('guardado-hud');
+    if (!hud || !ok) return;
+    clearTimeout(ocultarGuardado);
+    hud.textContent = '✓ Guardado';
+    hud.classList.add('visible');
+    ocultarGuardado = setTimeout(() => hud.classList.remove('visible'), 1300);
+  });
+  const salir = () => {
+    window.__hojarasca?.guardar?.();
+    if (window.hojarasca?.salir) window.hojarasca.salir(); else window.close();
+  };
+  $('btn-salir')?.addEventListener('click', salir);
+  $('btn-salir-inicio')?.addEventListener('click', salir);
+  $('error-release-reintentar')?.addEventListener('click', () => location.reload());
+  $('error-release-salir')?.addEventListener('click', () => { if (window.hojarasca?.salir) window.hojarasca.salir(); else window.close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Escape') return;
+    if (!$('controles-completos')?.classList.contains('oculto') || !$('creditos')?.classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); cerrarModal(); }
+  }, true);
+  const aplicarVersion = (v) => {
+    const t = `Hojarasca · ${v || VERSION_FALLBACK}`;
+    if ($('build-info')) $('build-info').textContent = t;
+    if ($('version-completa')) $('version-completa').textContent = `Versión ${v || VERSION_FALLBACK}`;
+  };
+  Promise.resolve(window.hojarasca?.version?.()).then(aplicarVersion).catch(() => aplicarVersion(VERSION_FALLBACK));
+  if (!window.hojarasca?.version) aplicarVersion(VERSION_FALLBACK);
+
+  const mostrarError = (detalle) => {
+    if (!detalle) return;
+    const caja = $('error-release');
+    if (!caja) return;
+    $('error-release-texto').textContent = String(detalle);
+    caja.classList.remove('oculto');
+  };
+  let avisoErrorGameplay = false;
+  const registrarError = (detalle) => {
+    if (!detalle) return;
+    window.hojarasca?.reportarError?.(String(detalle));
+    if (!window.__hojarasca) { mostrarError(detalle); return; }
+    if (!avisoErrorGameplay) {
+      avisoErrorGameplay = true;
+      window.__hojarasca?.nota?.('Hojarasca encontró un problema', 'Se registró el error; podés seguir jugando si todo responde normalmente');
+    }
+  };
+  window.addEventListener('error', (e) => registrarError(e.error?.stack || e.message));
+  window.addEventListener('unhandledrejection', (e) => registrarError(e.reason?.stack || e.reason));
+  $('mundo')?.addEventListener('webglcontextlost', (e) => { e.preventDefault(); mostrarError('Se perdió el contexto gráfico. Reintentá para reconstruir el mundo.'); });
+  $('mundo')?.addEventListener('webglcontextrestored', () => location.reload());
+  setTimeout(() => {
+    if (!window.__hojarasca && window.__hojarascaErrores?.length) mostrarError(window.__hojarascaErrores.join('\n\n'));
+  }, 12000);
+})();
+</script>
+</body>
+</html>
