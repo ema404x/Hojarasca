@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { aspecto } from './personal-personaje.js';
 import { compactar } from './vida.js';
-import { bola, tubo, torno, miembro, deformar, pintar, colorear, matiz, mezcla, color, ruido3 } from './formas.js';
+import { bola, tubo, torno, miembro, huso, deformar, pintar, colorear, matiz, mezcla, color, ruido3 } from './formas.js';
 
 function lam(color) { return new THREE.MeshLambertMaterial({ color: new THREE.Color(color) }); }
 function pieza(geo, mat, pos, rot = null, esc = null) {
@@ -133,10 +133,10 @@ export function crearCuerpoJugador(escena) {
       const piv = new THREE.Group(); piv.position.set(l * 0.25 * k, 1.4, 0);
       const x = -l * 0.03 * k;
       if (!a.poncho) {
-        piv.add(bola(campera, [0.062 * k, 0.066, 0.066], [x, -0.03, 0]));
-        piv.add(tubo(campera, 0.06 * k, 0.049 * k, 0.3, [x + l * 0.01, -0.165, 0], [0, 0, l * 0.07], 12));
-        piv.add(bola(campera, [0.05 * k, 0.052, 0.051], [x + l * 0.02, -0.31, 0]));
-        piv.add(tubo(campera, 0.049 * k, 0.042 * k, 0.24, [x + l * 0.024, -0.43, 0.012], [-0.1, 0, l * 0.03], 12));
+        // 3.5: el brazo de una sola pieza suave, del hombro (que nace adentro del torso) a la
+        // muñeca, como la gente del valle: sin la bola del hombro ni el anillo del codo
+        piv.add(huso(campera, [[x - l * 0.03, 0.025, 0], [x - l * 0.01, -0.02, 0], [x + l * 0.008, -0.15, 0.0], [x + l * 0.018, -0.3, 0.004], [x + l * 0.022, -0.43, 0.014], [x + l * 0.027, -0.54, 0.024]],
+          [0.047 * k, 0.062 * k, 0.058 * k, 0.05 * k, 0.046 * k, 0.042 * k], 18, 12));
         piv.add(torno(matiz(campera, 0.82), [[0.045, -0.02], [0.048, 0.016], [0.044, 0.02]], [x + l * 0.027, -0.55, 0.024], [-0.1, 0, 0], null, 11));
       }
       piv.add(bola(mano, [0.038, 0.055, 0.031], [x + l * 0.03, -0.6, 0.03]));

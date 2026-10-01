@@ -1,7 +1,7 @@
 // El zaino en el mundo: la malla y cómo anda. Las reglas están en caballo.js.
 import * as THREE from 'three';
 import { compactar, inclinacionTerrenoMamifero, MAT_FAUNA } from './vida.js';
-import { bola, tubo, torno, miembro, deformar, pintar, color, ruido3 } from './formas.js';
+import { bola, tubo, torno, miembro, huso, deformar, pintar, color, ruido3 } from './formas.js';
 import { lerp } from './ruido.js';
 import { marcha } from './caballo.js';
 import { sanearCaballoPersonal, firmaCaballo, PELAJE_CABALLO } from './personal-caballo.js';
@@ -83,16 +83,37 @@ function mallaCaballo(ap = sanearCaballoPersonal(null)) {
     g.add(caja(alforja, [0.72, 0.04, 0.26], [0, 1.6, -0.42]));   // el puente sobre el lomo
   }
   // la cola, tupida, que cae desde el maslo
-  g.add(miembro(oscuro, [[0, 1.5, -0.86], [0, 1.42, -1.02], [0, 1.15, -1.1], [0, 0.82, -1.08], [0, 0.6, -1.02]], [0.07, 0.1, 0.12, 0.1, 0.04], 12, 10));
+  // 3.5: la cola en mechones (antes era un solo tubo liso): el maslo corto y, de ahí, siete
+  // mechones que caen abiertos, de largos distintos, con la punta afinada
+  const cerda = (c, p) => { c.multiplyScalar(0.9 + 0.2 * (0.5 + 0.5 * Math.sin(p.x * 140 + p.z * 60))); };
+  g.add(huso(oscuro, [[0, 1.52, -0.84], [0, 1.47, -0.95], [0, 1.36, -1.03]], [0.06, 0.075, 0.07], 6, 10));
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 6 - 0.5), x = a * 0.11, largo = 0.72 + 0.1 * Math.sin(i * 2.3) + (Math.abs(a) < 0.2 ? 0.08 : 0);
+    const z0 = -1.02 - Math.abs(a) * 0.02, abre = 1 + Math.abs(a) * 0.6;
+    g.add(pintar(huso(oscuro, [[x * 0.5, 1.42, -0.99], [x * abre, 1.2, z0 - 0.08], [x * abre * 1.3, 1.42 - largo * 0.62, z0 - 0.07], [x * abre * 1.4, 1.42 - largo, z0 - 0.02 + 0.03 * Math.cos(i * 1.7)]],
+      [0.05, 0.05, 0.035, 0.008], 8, 6), cerda));
+  }
   // ---- el cuello y la cabeza, con la crin (se mueven juntos al pastar)
   const cuello = new THREE.Group(); cuello.position.set(0, 1.55, 0.8);
   const pescuezo = miembro(pelo, [[0, -0.2, -0.2], [0, 0.08, 0.06], [0, 0.36, 0.24], [0, 0.6, 0.36]], [0.28, 0.21, 0.16, 0.135], 10, 14);
   pescuezo.scale.set(0.74, 1, 1);
   cuello.add(conPelaje(pescuezo));
   // la crin, tupida, echada sobre el borde de arriba del pescuezo
-  const crin = miembro(oscuro, [[0.03, 0.08, -0.2], [0.04, 0.34, -0.02], [0.035, 0.56, 0.15], [0.02, 0.7, 0.27]], [0.06, 0.07, 0.055, 0.03], 10, 8);
+  // 3.5: una raíz fina sobre el borde y, colgando de ella hacia un lado, mechones sueltos de
+  // largos distintos (antes era una sola lámina lisa)
+  const lomoCrin = [[0.03, 0.08, -0.2], [0.04, 0.34, -0.02], [0.035, 0.56, 0.15], [0.02, 0.7, 0.27]];
+  const crin = miembro(oscuro, lomoCrin, [0.045, 0.055, 0.045, 0.025], 10, 8);
   crin.scale.set(0.6, 1, 1);
-  cuello.add(crin);
+  cuello.add(pintar(crin, cerda));
+  const curvaCrin = new THREE.CatmullRomCurve3(lomoCrin.map((q) => new THREE.Vector3(...q)));
+  const q = new THREE.Vector3();
+  for (let i = 0; i < 13; i++) {
+    const t = 0.04 + i * 0.07;
+    curvaCrin.getPoint(Math.min(0.97, t), q);
+    const lado = i % 4 === 3 ? -1 : 1, largo = (0.15 + 0.06 * Math.sin(i * 2.7)) * (1 - t * 0.35);
+    cuello.add(pintar(huso(oscuro, [[q.x * 0.6, q.y, q.z], [q.x * 0.6 + lado * 0.07, q.y - largo * 0.45, q.z - 0.03], [q.x * 0.6 + lado * 0.1, q.y - largo, q.z - 0.05 + 0.02 * Math.sin(i)]],
+      [0.032, 0.026, 0.005], 5, 6), cerda));
+  }
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.64, 0.4);
   const testa = miembro(pelo, [[0, 0.07, -0.05], [0, 0.02, 0.14], [0, -0.04, 0.3], [0, -0.075, 0.45]], [0.13, 0.125, 0.105, 0.09], 8, 12);
   testa.scale.set(0.8, 1, 1);
