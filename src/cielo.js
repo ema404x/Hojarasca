@@ -54,6 +54,15 @@ export function crearCielo(escena, calidad) {
         float haze = smoothstep(-0.04, 0.22, h) * (1.0 - smoothstep(0.22, 0.72, h));
         vec3 aire = mix(uHorizonte * 1.04, vec3(1.0), uDia * 0.15 + uTarde * 0.08);
         col = mix(col, aire, haze * (0.16 + uNublado * 0.1));
+        // 3.5: el cielo del alba y del ocaso en franjas de acuarela: sobre el horizonte
+        // durazno sube una franja rosa (más ancha del lado del sol) antes del lavanda del
+        // cenit. Antes era un degradado de dos colores, parejo y lavado.
+        {
+          float haciaSol = max(dot(normalize(d.xz + vec2(1e-4, 0.0)), normalize(uSol.xz + vec2(1e-4, 0.0))), 0.0);
+          float franjaRosa = smoothstep(0.015, 0.13, h) * (1.0 - smoothstep(0.16 + 0.12 * haciaSol, 0.5, h));
+          vec3 rosa = mix(vec3(0.86, 0.36, 0.40), vec3(0.98, 0.50, 0.30), haciaSol) * (0.55 + 0.45 * uDia);
+          col = mix(col, rosa, franjaRosa * max(uTarde, uDorada * 0.4) * (0.22 + 0.2 * haciaSol) * (1.0 - uNublado * 0.85));
+        }
         // 3.4: el resplandor es de color (naranja dorado, no blanco) y no se quema: lo ancho
         // queda por debajo del blanco y sólo el disco y su corona chica llegan a brillar
         vec3 tinteHalo = uSolColor * mix(vec3(1.0, 0.86, 0.66), vec3(1.0, 0.72, 0.42), max(uTarde, uDorada * 0.8));
@@ -111,7 +120,9 @@ export function crearCielo(escena, calidad) {
           // las nubes andan en grupos, con cielo limpio entre uno y otro
           float grupo = smoothstep(0.25, 0.75, vnoise(uv * 0.32 - viento * 0.5 + 4.0));
           float umbral = 0.63 + (1.0 - grupo) * 0.14 * (1.0 - nubLocal) - nubLocal * 0.42;
-          float cobertura = smoothstep(umbral, umbral + 0.05 + nubLocal * 0.2, n + copos * 0.09);
+          // 3.5: el contorno en copos un poco más marcado (0.09 → 0.13): nubes de pincel con
+          // borde de algodón, no manchas corridas
+          float cobertura = smoothstep(umbral, umbral + 0.045 + nubLocal * 0.2, n + copos * 0.13);
           // 3.4: la luz de la nube. Se compara la densidad un paso hacia la luz (hacia el sol y
           // hacia arriba, que en este plano es hacia el centro): el lado que da a la luz es
           // claro y tibio, la panza que mira al horizonte queda lavanda. Misma cantidad de
@@ -123,13 +134,21 @@ export function crearCielo(escena, calidad) {
           vec3 luzNube = mix(uHorizonte * 1.12, vec3(1.0, 0.98, 0.94), uDia * 0.62) * (0.55 + 0.45 * uDia);
           luzNube = mix(luzNube, uSolColor * 0.85 + uHorizonte * 0.45, uTarde * 0.55);
           vec3 sombraNube = mix(uHorizonte, uCenit, 0.45) * vec3(0.74, 0.72, 0.84) * (0.6 + 0.4 * uDia);
-          vec3 nube = mix(sombraNube, luzNube, 0.2 + 0.8 * luzN);
+          // 3.5: la luz de la nube en dos tonos de pincel (sombra y luz con un paso blando)
+          // en vez de un degradado continuo: se lee pintada, como en HushWood
+          float luzP = smoothstep(0.28, 0.5, luzN) * 0.62 + smoothstep(0.62, 0.8, luzN) * 0.38;
+          vec3 nube = mix(sombraNube, luzNube, 0.2 + 0.8 * mix(luzN, luzP, 0.6));
+          // al ocaso la panza de la nube toma el rosa anaranjado del sol que la ilumina de abajo
+          nube = mix(nube, uSolColor * vec3(1.6, 0.9, 0.75) + sombraNube * 0.4, uTarde * (1.0 - luzN) * 0.35 * (1.0 - uNublado * 0.6) * smoothstep(-0.05, 0.03, uSol.y));
           nube = mix(nube, sombraNube * 0.85, smoothstep(0.75, 1.0, n) * 0.4 + nubLocal * 0.35 + delFrente * 0.3);
           // el borde que da al sol se enciende
           float borde = clamp((n - nLuz) * 2.2, 0.0, 1.0) * (1.0 - smoothstep(umbral + 0.05, umbral + 0.3, n) * 0.5);
           nube += uSolColor * borde * (0.35 + uTarde * 1.0) * (1.0 - uNublado * 0.4) * smoothstep(0.0, 0.25, uDia);
           // y el halo alrededor del sol, cuando el sol está detrás de la nube
           nube += uSolColor * pow(ds, 22.0) * 0.5 * (1.0 - uNublado * 0.5);
+          // 3.5: de noche la luna platea las nubes que tiene cerca (antes eran manchas negras)
+          float alLuna = max(dot(d, uLuna), 0.0);
+          nube += vec3(0.30, 0.36, 0.52) * (pow(alLuna, 10.0) * 0.32 + borde * 0.1) * (1.0 - uDia) * uIluminada * (1.0 - uNublado * 0.5);
           col = mix(col, nube, cobertura * smoothstep(-0.02, 0.2, h) * 0.94);
         }
         if (h > 0.14) {
@@ -240,9 +259,30 @@ export function crearCielo(escena, calidad) {
       const x = nC.getX(a) + nC.getX(b), y = nC.getY(a) + nC.getY(b), z = nC.getZ(a) + nC.getZ(b), l = Math.hypot(x, y, z) || 1;
       nC.setXYZ(a, x / l, y / l, z / l); nC.setXYZ(b, x / l, y / l, z / l);
     }
+    // 3.5: facetas. La cresta sube y baja de un vértice al otro y las filas de abajo son
+    // lisas: cada triángulo largo del faldeo tenía su propia normal y la ladera se leía como
+    // un poliedro (caras claras y oscuras en punta). Se suavizan las normales a lo largo de
+    // cada anillo (tres pasadas de un filtro 1-2-1, sin costura): la luz sigue la forma
+    // grande del cordón (contrafuertes, cañadones) y no cada vértice. Sólo al armarla.
+    const arr = nC.array, tmpN = new Float32Array(arr.length);
+    for (let pasada = 0; pasada < 3; pasada++) {
+      tmpN.set(arr);
+      for (const [a, b] of costuras) {
+        const lados = b - a;
+        for (let i = 0; i <= lados; i++) {
+          const ia = a + ((i - 1 + lados) % lados), ib = a + ((i + 1) % lados), ic = a + (i % lados);
+          let x = tmpN[ia * 3] + 2 * tmpN[ic * 3] + tmpN[ib * 3];
+          let y = tmpN[ia * 3 + 1] + 2 * tmpN[ic * 3 + 1] + tmpN[ib * 3 + 1];
+          let z = tmpN[ia * 3 + 2] + 2 * tmpN[ic * 3 + 2] + tmpN[ib * 3 + 2];
+          const l = Math.hypot(x, y, z) || 1;
+          arr[(a + i) * 3] = x / l; arr[(a + i) * 3 + 1] = y / l; arr[(a + i) * 3 + 2] = z / l;
+        }
+      }
+    }
+    nC.needsUpdate = true;
   }
   const matCord = new THREE.ShaderMaterial({
-    uniforms: { uSolDir: U.uSolDir, uSolColor: U.uSolColor, uAmbiente: U.uAmbiente, uHorizonte: U.uHorizonte, uCenit: U.uCenit, uInvierno: U.uInvierno, uOtono: U.uOtono, uNiebla: { value: 1 }, uRasante: { value: 0 }, uHumedadAire: { value: 0 }, uAlturaCam: { value: 0 },
+    uniforms: { uSolDir: U.uSolDir, uSolColor: U.uSolColor, uAmbiente: U.uAmbiente, uHorizonte: U.uHorizonte, uCenit: U.uCenit, uInvierno: U.uInvierno, uOtono: U.uOtono, uNiebla: { value: 1 }, uRasante: { value: 0 }, uHumedadAire: { value: 0 }, uAlturaCam: { value: 0 }, uTardeCord: { value: 0 },
       uColorNiebla: { value: new THREE.Color(0.6, 0.7, 0.75) },
       uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrumaFuerza: U.uBrumaFuerza, uGradoMat: U.uGradoMat, uSolDirEst: U.uSolDir },
     vertexShader: /* glsl */`
@@ -251,7 +291,7 @@ export function crearCielo(escena, calidad) {
     fragmentShader: /* glsl */`
       ${GLSL_COMUN}
       ${GLSL_ESTILO}
-      uniform vec3 uSolDir; uniform vec3 uSolColor; uniform vec3 uAmbiente; uniform vec3 uHorizonte; uniform vec3 uCenit; uniform float uInvierno; uniform float uOtono; uniform float uNiebla; uniform float uRasante; uniform float uHumedadAire; uniform float uAlturaCam;
+      uniform vec3 uSolDir; uniform vec3 uSolColor; uniform vec3 uAmbiente; uniform vec3 uHorizonte; uniform vec3 uCenit; uniform float uInvierno; uniform float uOtono; uniform float uNiebla; uniform float uRasante; uniform float uHumedadAire; uniform float uAlturaCam; uniform float uTardeCord;
       uniform vec3 uColorNiebla;
       varying vec3 vPos; varying vec3 vN;
       void main() {
@@ -314,7 +354,20 @@ export function crearCielo(escena, calidad) {
         // con lluvia la cordillera se borra detrás de la cortina de agua (y no queda más oscura
         // que la niebla del valle)
         aire = mix(aire, 0.97, smoothstep(3.2, 5.0, uNiebla) * aireLejos);
+        // 3.5: al alba y al ocaso el aire tapaba los cordones con un durazno parejo (el
+        // piedemonte y la cordillera quedaban pálidos, sin planos). Ahora, con el sol bajo, hay
+        // algo menos de aire y el de lejos es lavanda (del cenit): cada cordón se separa del de
+        // atrás como en una acuarela, cerca más hondo y tibio, lejos más claro y frío.
+        float tardeC = uTardeCord * (1.0 - smoothstep(3.2, 5.0, uNiebla));
+        aire *= 1.0 - tardeC * 0.24;
+        vec3 lavandaLejos = mix(uCenit, uHorizonte, 0.42) * vec3(1.02, 0.94, 1.12);
+        colorAire = mix(colorAire, lavandaLejos, tardeC * smoothstep(700.0, 3000.0, d) * 0.55);
         col = mix(col, colorAire, aire);
+        // el arrebol: las cumbres que miran al sol bajo se encienden rosa anaranjado (la nieve
+        // más que la roca) y se ven a través del aire. Sin cuentas nuevas de luz.
+        float arrebol = tardeC * smoothstep(260.0, 820.0, vPos.y) * smoothstep(-0.05, 0.45, nl) * (0.45 + 0.55 * nieve);
+        vec3 tonoArrebol = normalize(uSolColor + vec3(1e-4)) * vec3(1.0, 0.72, 0.62) * 1.25;
+        col = mix(col, col * 0.5 + tonoArrebol * (0.42 + 0.3 * nieve), arrebol * (1.0 - aire * 0.45) * 0.62);
         // Una cresta a luz rasante conserva una línea cálida muy sutil incluso
         // cuando el valle de detrás ya entra en perspectiva aérea.
         float cresta = smoothstep(0.18, 0.62, n.y) * smoothstep(0.0, 0.35, max(nl, 0.0));
@@ -472,6 +525,13 @@ export function crearCielo(escena, calidad) {
     // la niebla de siempre toma el mismo color que la bruma: el paisaje lejano se funde
     // con el aire, no con un gris
     escena.fog.color.copy(bruma).multiplyScalar(0.96);
+    // 3.5: con el sol bajo el aire del valle recibe poca luz: la niebla no puede ser más clara
+    // que lo que tapa (el lago y las lomas del borde quedaban como una sábana durazno pálida
+    // al alba y al ocaso). Se oscurece y se enfría un poco hacia el lavanda del cenit.
+    {
+      const bajo = tardeAire * (1 - nub * 0.6) * smoothstep(-0.1, 0.05, solDir.y);
+      escena.fog.color.lerp(tmp2.copy(cenit).lerp(horiz, 0.55), bajo * 0.38).multiplyScalar(1 - bajo * 0.3);
+    }
     const neblinaManana = smoothstep(5, 7.5, h) * (1 - smoothstep(8.5, 11, h));
     const claridadMediodia = smoothstep(0.22, 0.7, solDir.y);
     // Hotfix visual RC30: la densidad anterior lavaba casi por completo el terreno
@@ -485,6 +545,7 @@ export function crearCielo(escena, calidad) {
     matCord.uniforms.uRasante.value = rasante;
     matCord.uniforms.uHumedadAire.value = humedadAire;
     matCord.uniforms.uAlturaCam.value = cam.y;
+    matCord.uniforms.uTardeCord.value = Math.max(tarde, dorada * 0.6) * (1 - nub * 0.8) * smoothstep(-0.06, 0.02, solDir.y);   // 3.5
     matCord.uniforms.uColorNiebla.value.copy(escena.fog.color);
     // 3.4: sin postproceso, la gradación de los materiales (gradoEstilo) también dora la
     // tarde: lo que pasa de 1 en uGradoMat es la tarde (la misma cuenta que le llega a la

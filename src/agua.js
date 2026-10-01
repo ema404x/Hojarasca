@@ -33,14 +33,16 @@ function materialAgua() {
       float ondas(vec2 p, float detalle) {
         vec2 f = vFlujo * uTiempo;
         float a = vnoise(p * 0.35 - f * 0.35 + uTiempo * 0.05);
-        float b = detalle > 0.01 ? vnoise(p * 1.1 + vec2(uTiempo * 0.23, -uTiempo * 0.17) - f) : a;
-        float c = detalle > 0.5 ? vnoise(p * 3.2 - vec2(uTiempo * 0.4, uTiempo * 0.31) - f * 2.0) : b;
+        // 3.5: las octavas finas entran de a poco (antes con un corte: a ~80 m y a ~130 m se veía
+        // una línea recta en el agua, más clara de un lado, sobre todo con el sol bajo)
+        float b = detalle > 0.01 ? mix(a, vnoise(p * 1.1 + vec2(uTiempo * 0.23, -uTiempo * 0.17) - f), smoothstep(0.01, 0.2, detalle)) : a;
+        float c = detalle > 0.25 ? mix(b, vnoise(p * 3.2 - vec2(uTiempo * 0.4, uTiempo * 0.31) - f * 2.0), smoothstep(0.25, 0.85, detalle)) : b;
         float gotas = 0.0;
-        if (uLluvia > 0.01 && detalle > 0.5) {
+        if (uLluvia > 0.01 && detalle > 0.3) {
           vec2 celda = floor(p * 1.5); vec2 lf = fract(p * 1.5) - 0.5;
           float fase = fract(uTiempo * 0.8 + hash12(celda));
           float anillo = abs(length(lf) - fase * 0.5);
-          gotas = smoothstep(0.05, 0.0, anillo) * (1.0 - fase) * uLluvia;
+          gotas = smoothstep(0.05, 0.0, anillo) * (1.0 - fase) * uLluvia * smoothstep(0.3, 0.75, detalle);   // 3.5: sin corte
         }
         // las ondas que salen de vos cuando estás metido en el agua
         float estela = 0.0;
@@ -79,6 +81,12 @@ function materialAgua() {
         vec3 costa = mix(srgb(vec3(0.08, 0.15, 0.12)) * luzLejos, aireLejos, 0.22);
         cielo = mix(cerros, cielo, smoothstep(alturaCerros - 0.03, alturaCerros + 0.05, R.y));
         cielo = mix(costa, cielo, smoothstep(0.012, 0.075, R.y));
+        // 3.5: el camino de luz. Con el sol bajo el lago refleja el resplandor ancho del cielo
+        // alrededor del sol (dorado al ocaso, plateado con la luna), no sólo el disco: una
+        // franja tibia que viene hacia vos y se rompe en las ondas.
+        float haloR = max(dot(R, uSolDir), 0.0);
+        float solBajo = 0.3 + 0.7 * (1.0 - smoothstep(0.08, 0.5, uSolDir.y));
+        cielo += uSolColor * (pow(haloR, 7.0) * 0.32 + pow(haloR, 36.0) * 0.55) * solBajo * (1.0 - uLluvia * 0.7);
         // 3.4: verde azulado hondo; la orilla, turquesa claro sobre la arena
         vec3 aguaSomera = srgb(vec3(0.30, 0.42, 0.36));
         vec3 aguaProfunda = srgb(vec3(0.02, 0.085, 0.09));
@@ -89,13 +97,13 @@ function materialAgua() {
         float sedimento = (1.0 - smoothstep(0.10, 1.05, prof)) * (0.55 + 0.45 * vnoise(vPos.xz * 0.17));
         agua = mix(agua, srgb(vec3(0.30, 0.31, 0.23)), sedimento * 0.22);
         // cáusticas: la luz que atraviesa las ondas y dibuja la red sobre el fondo
-        if (detalle > 0.35 && prof < 3.2) {
+        if (detalle > 0.2 && prof < 3.2) {
           vec2 q = vPos.xz * 1.35 - vFlujo * uTiempo * 0.5;
           float c1 = vnoise(q + vec2(uTiempo * 0.21, -uTiempo * 0.13));
           float c2 = vnoise(q * 1.7 - vec2(uTiempo * 0.17, uTiempo * 0.23));
           float red = pow(max(0.0, 1.0 - abs(c1 - c2) * 3.4), 3.0);
           // 3.4: más suaves (0.5 → 0.28): una red tenue, no garabatos blancos
-          agua += uSolColor * red * max(uSolDir.y, 0.0) * smoothstep(3.2, 0.2, prof) * 0.28 * detalle;
+          agua += uSolColor * red * max(uSolDir.y, 0.0) * smoothstep(3.2, 0.2, prof) * 0.28 * detalle * smoothstep(0.2, 0.6, detalle);   // 3.5: entra de a poco (antes saltaba en detalle 0.35)
         }
         vec3 luzAgua = uAmbiente * 2.2 + uSolColor * max(uSolDir.y, 0.0) * 0.9;
         vec3 col = mix(agua * luzAgua, cielo, clamp(fres * 0.85 + 0.12, 0.0, 1.0));
@@ -111,12 +119,20 @@ function materialAgua() {
         espuma += length(vFlujo) * smoothstep(0.55, 0.85, n0) * 0.35;
         float dj2 = length(vPos.xz - uJugador.xz);
         espuma += smoothstep(1.4, 0.25, dj2) * (0.35 + 0.35 * sin(dj2 * 9.0 - uTiempo * 6.0)) * 0.5;
-        col = mix(col, uHorizonte * 0.9 + uAmbiente, espuma * 0.35);
+        // 3.5: la orilla con su espuma: una línea que va y viene con las olitas (más marcada con
+        // viento), blanca con la luz del momento. Sólo cerca: de lejos no se vería.
+        float ola = sin(prof * 16.0 - uTiempo * 1.7 + vnoise(vPos.xz * 0.35) * 7.0) * 0.5 + 0.5;
+        float lineaOrilla = smoothstep(0.42, 0.04, prof) * smoothstep(0.62, 0.95, ola) * (0.5 + 0.5 * vnoise(vPos.xz * 2.1 - uTiempo * 0.1));
+        espuma += lineaOrilla * (0.6 + uViento * 0.6) * detalle * (1.0 - length(vFlujo) * 0.5);
+        vec3 blancoEspuma = uAmbiente * 2.4 + uSolColor * max(uSolDir.y, 0.0) * 0.95 + uHorizonte * 0.12;
+        col = mix(col, uHorizonte * 0.9 + uAmbiente, espuma * 0.35 * (1.0 - lineaOrilla));
+        col = mix(col, blancoEspuma, clamp(lineaOrilla * detalle * 0.55, 0.0, 0.6));
         col = mix(col, vec3(0.75, 0.8, 0.85) * (uAmbiente * 2.5 + 0.2), uInvierno * smoothstep(0.35, 0.0, prof) * 0.5);
         float transparenciaSomera = smoothstep(0.0, 1.3, prof);
         col = mix(col, col + uHorizonte * 0.035, (1.0 - transparenciaSomera) * (1.0 - uLluvia * 0.55));
         float alfa = smoothstep(0.0, 0.3, prof) * mix(0.58, 0.95, smoothstep(0.0, 2.5, prof));
         alfa = max(alfa, fres * smoothstep(0.0, 0.08, prof));
+        alfa = max(alfa, lineaOrilla * detalle * 0.75 * smoothstep(0.0, 0.035, prof));   // 3.5: la espuma se ve
         gl_FragColor = vec4(col, alfa);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

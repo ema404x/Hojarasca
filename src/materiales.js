@@ -573,10 +573,13 @@ export function materialTerreno() {
           // manchas de rodal, otoño e invierno. Sin geometría extra: sólo color.
           {
             float dMantoLejos = length(cameraPosition.xz - vPosMundo.xz);
-            float manto = smoothstep(uBosqueLejos - 45.0, uBosqueLejos + 10.0, dMantoLejos)
+            // 3.5: el borde del manto era un anillo alrededor de la cámara (45 m de ancho): en
+            // una ladera se leía como un arco o unas manchas redondas más claras. Ahora es más
+            // ancho y se quiebra con las mismas copas (de pincel, sin una línea que lo marque).
+            float copas = vnoise(p * 0.21);
+            float manto = smoothstep(uBosqueLejos - 110.0, uBosqueLejos + 20.0, dMantoLejos + (copas - 0.5) * 70.0)
               * smoothstep(0.28, 0.72, bosque) * (1.0 - estepa) * smoothstep(0.55, 0.25, pend);
             if (manto > 0.001) {
-              float copas = vnoise(p * 0.21);
               vec3 cCopa = mix(srgb(vec3(0.13, 0.25, 0.12)), srgb(vec3(0.24, 0.38, 0.14)), copas);
               vec3 cCopaOtono = mix(srgb(vec3(0.52, 0.15, 0.04)), srgb(vec3(0.66, 0.40, 0.07)), copas);
               cCopa = mix(cCopa, mix(cCopa, cCopaOtono, 0.5), uOtono);
@@ -630,6 +633,13 @@ export function materialTerreno() {
           // 3.4: algo menos (0.32 → 0.2): ahora la niebla de lejos tiene techo y la loma del
           // borde tiene que quedar un poco más oscura que el primer cordón de la cordillera
           float aireSuelo = smoothstep(70.0, 380.0, dAireSuelo) * (0.2 + uNubes * 0.08 + uLluvia * 0.1) * uBrumaFuerza;
+          // 3.5: a contraluz con el sol bajo las lomas son siluetas, no una pared clara: la bruma
+          // dorada del lado del sol pesa menos (antes el piedemonte quedaba pálido al ocaso)
+          {
+            vec3 haciaP = normalize(vPosMundo - cameraPosition);
+            float contraluz35 = pow(max(dot(haciaP, normalize(uSolDirEst)), 0.0), 3.0) * (1.0 - smoothstep(0.06, 0.4, uSolDirEst.y)) * step(0.0, uSolDirEst.y);
+            aireSuelo *= 1.0 - contraluz35 * 0.45 * (1.0 - uNubes * 0.6);
+          }
           // 3.3: donde el sol atraviesa el dosel (la luz directa que dejó pasar la sombra)
           // el piso del bosque se enciende dorado. Sin texturas ni luces nuevas.
           {
