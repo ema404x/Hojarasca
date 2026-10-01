@@ -394,7 +394,8 @@ async function construir() {
     for (let i = 0; i < N * N; i++) {
       const v = (T.estepa ? T.estepa[i] : 0) * 255;
       // (3.5: el azul, que nadie leía, queda para los pisos de las construcciones: marcarPisos)
-      estep[i * 4] = v; estep[i * 4 + 1] = v; estep[i * 4 + 2] = 0; estep[i * 4 + 3] = 255;
+      // (3.5: y el alfa marca el agua, lago y ríos (0): ahí no salen helechos ni pasto)
+      estep[i * 4] = v; estep[i * 4 + 1] = v; estep[i * 4 + 2] = 0; estep[i * 4 + 3] = T.agua((i % N) * 2 - 512, Math.floor(i / N) * 2 - 512) ? 0 : 255;
     }
     const texE = new THREE.DataTexture(estep, N, N, THREE.RGBAFormat);
     texE.magFilter = texE.minFilter = THREE.LinearFilter;

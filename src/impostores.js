@@ -12,7 +12,11 @@ import * as THREE from 'three';
 import { U, GLSL_COMUN, GLSL_ESTILO, conTechoNiebla } from './materiales.js';
 
 export const ANGULOS_IMPOSTOR = 8;
-const CELDA_ANCHO = 80, CELDA_ALTO_MAX = 160;
+// 3.5: 80×160 → 112×204 (el alto que entra en 4096 con las 20 especies): en alta (1,5 de
+// resolución) un coihue a 110 m, donde entra el cartel, ocupa ~175 px de alto y la foto tenía
+// 150: el cartel se veía blando justo en el relevo. Son ~35 MB más de placa entre verano e
+// invierno (con sus mipmaps); el horneado sigue siendo un dibujo por pasada.
+const CELDA_ANCHO = 112, CELDA_ALTO_MAX = 204;
 const MIPMAP_LINEAL = 1008;
 // 3.3: las fotos se toman un poco desde arriba (10°): de lejos el bosque casi siempre se ve
 // desde una loma o un mirador, y las copas en estantes se leen por arriba, no de canto
@@ -234,7 +238,9 @@ function materialImpostor(estado) {
           float lumV = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
           diffuseColor.rgb = mix(diffuseColor.rgb, otono * clamp(lumV / 0.12, 0.45, 1.3), uOtonoImp);
         }
-        if (tipoImp < 2.5 && tipoImp > 0.5 || tipoImp > 3.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.80, 0.84, 0.90), uInviernoImp * smoothstep(0.3, 0.85, nObjImp.y) * 0.9);
+        // (3.5: el follaje con el mismo umbral que el árbol 3D: la normal horneada es la del racimo,
+        // corrida como en promedio las cartas cercanas, que se nievan sólo en su mitad de arriba)
+        if (tipoImp < 2.5 && tipoImp > 0.5 || tipoImp > 3.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.80, 0.84, 0.90), uInviernoImp * (tipoImp > 3.5 ? smoothstep(0.3, 0.85, nObjImp.y) : smoothstep(0.5, 0.95, nObjImp.y - 0.2)) * 0.9);
         vec3 nMundoImp = normalize(vRot0Imp * nObjImp.x + vec3(0.0, 1.0, 0.0) * nObjImp.y + vRot2Imp * nObjImp.z);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         normal = normalize((viewMatrix * vec4(nMundoImp, 0.0)).xyz);`)

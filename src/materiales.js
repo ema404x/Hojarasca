@@ -143,6 +143,9 @@ const uniformesEstilo = () => ({ uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrum
 // 3.5: `soto`: { fin, banda } (uniformes compartidos) para el sotobosque: cada mata crece desde el
 // suelo en los últimos `banda` metros antes de `fin` (de la cámara a su pie). Sin `soto`, nada.
 // Los uniformes del LOD quedan en m.userData.lod: la distancia de dibujo los cambia en vivo.
+// 3.5: el aTipo de las frondas de helecho del sotobosque: follaje perenne (entre 0.5 y 1.5), con su
+// otoño herrumbre y menos nieve encima (ver color_vertex)
+export const TIPO_HELECHO = 1.25;
 export function materialVegetal({ flex = 1, doble = false, lod = null, copa = false, detalle = true, soto = null } = {}) {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: doble ? THREE.DoubleSide : THREE.FrontSide });
   m.userData.estilo = { copa, detalle };
@@ -184,11 +187,26 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             float lumV = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
             vColor.rgb = mix(vColor.rgb, otono * clamp(lumV / 0.12, 0.45, 1.3), uOtono);
           }
+          // 3.5: las frondas de helecho del sotobosque (aTipo ${TIPO_HELECHO}: perennes en todo lo
+          // demás) se ponen herrumbre en otoño, como los helechos del pasto (no todas igual)
+          bool helecho35 = aTipo > 1.2 && aTipo < 1.3;
+          if (helecho35) {
+            vec3 herrumbre = mix(vec3(0.40, 0.11, 0.012), vec3(0.24, 0.06, 0.007), azar);
+            float lumF = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+            vColor.rgb = mix(vColor.rgb, herrumbre * clamp(lumF / 0.1, 0.5, 1.3), uOtono * mix(0.6, 0.95, fract(azar * 4.7)));
+          }
           // oclusión: lo que está cerca del suelo recibe menos luz del cielo
           float ao = mix(0.62, 1.0, smoothstep(0.0, 1.6, position.y));
           vColor.rgb *= ao;
           if (aTipo < 2.5 && aTipo > 0.5 || aTipo > 3.5) {
-            float arriba = smoothstep(0.3, 0.85, normal.y);
+            // 3.5: la nieve del follaje sale de la normal del RACIMO (lo de arriba de cada racimo
+            // se nieva, lo de abajo y el frente quedan verdes) y es la misma en los tres dibujos:
+            // las cartas cercanas llevan la normal del racimo, las manchas lejanas la altura en la
+            // mancha (conCartas cambia esta línea) y los carteles la normal horneada. Antes la
+            // mancha lejana llevaba la normal hacia el cielo: de lejos el árbol entero era blanco
+            // y de cerca verde, y cada árbol cambiaba al cruzar el LOD. Techos y piedras, igual.
+            float nyNieve = normal.y;
+            float arriba = aTipo > 3.5 ? smoothstep(0.3, 0.85, nyNieve) : smoothstep(0.5, 0.95, nyNieve) * (helecho35 ? 0.45 : 1.0);
             vColor.rgb = mix(vColor.rgb, vec3(0.80, 0.84, 0.90), uInvierno * arriba * 0.9);
           }
         }`)
@@ -222,7 +240,9 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             float hojaFina = 0.018 + 0.022 * rafaga;
             transformed += vec3(sin(t), sin(t * 1.3) * 0.5, cos(t * 0.9)) * hojaFina * uViento * min(alt, 4.0) * 0.25;
           }
-          if ((aTipo > 1.5 && aTipo < 3.5) && uInvierno > 0.5) transformed = vec3(0.0, position.y, 0.0);
+          // (3.5: las flores (aTipo 3) se cierran antes, apenas empieza el invierno: en el pase
+          // de estación quedaba alguna flor de los arbustos parada sobre la nieve)
+          if ((aTipo > 1.5 && aTipo < 2.5 && uInvierno > 0.5) || (aTipo > 2.5 && aTipo < 3.5 && uInvierno > 0.2)) transformed = vec3(0.0, position.y, 0.0);
           // RC31.2: borde lejano del LOD simplificado. En vez de disolver la copa con
           // dither (ruido de píxeles sobre las laderas a 150–310 m) el árbol se achica
           // hacia su base en los últimos metros: el límite del bosque queda limpio.
