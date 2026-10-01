@@ -11,6 +11,7 @@ const VERT = `
   attribute float aFase;
   varying vec2 vUv;
   varying float vFase;
+  varying float vVista;
   void main() {
     vUv = uv;
     vFase = aFase;
@@ -20,6 +21,10 @@ const VERT = `
     mundo.x += sin(uTiempo * 0.06 + aFase * 6.28) * (6.0 + uRafaga * 2.5);
     mundo.z += cos(uTiempo * 0.05 + aFase * 4.71) * (6.0 + uRafaga * 1.8);
     mundo.y += sin(uTiempo * 0.11 + aFase * 3.14) * 0.35;
+    // 3.5: cuánto se la ve de canto y de lejos (ver el fragmento)
+    vec3 aCam = mundo.xyz - cameraPosition;
+    float dCam = length(aCam);
+    vVista = mix(1.0, smoothstep(0.03, 0.2, abs(aCam.y) / max(dCam, 1e-3)), smoothstep(30.0, 110.0, dCam)) * (1.0 - smoothstep(170.0, 480.0, dCam) * 0.8);
     gl_Position = projectionMatrix * viewMatrix * mundo;
   }
 `;
@@ -30,13 +35,17 @@ const FRAG = `
   uniform float uTiempo;
   varying vec2 vUv;
   varying float vFase;
+  varying float vVista;
   void main() {
     // mancha suave, con el borde deshilachado
     vec2 d = vUv - 0.5;
     float r = length(d) * 2.0;
     float borde = 1.0 - smoothstep(0.35, 1.0, r);
     float ondas = 0.75 + 0.25 * sin(vUv.x * 9.0 + uTiempo * 0.25 + vFase * 6.0) * sin(vUv.y * 7.0 - uTiempo * 0.2);
-    float a = borde * ondas * uOpacidad;
+    // 3.5: de lejos y de canto los jirones (planos acostados) se juntaban en una franja
+    // pálida y lisa que tapaba el lago entero desde el mirador. Se apagan cuando se los ve
+    // rasantes desde lejos; de cerca y desde arriba quedan como antes.
+    float a = borde * ondas * uOpacidad * vVista;
     if (a < 0.004) discard;
     gl_FragColor = vec4(uColor, a);
   }

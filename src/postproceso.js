@@ -242,6 +242,19 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
         const borde = Math.max(0, 1 - Math.max(Math.abs(solPantalla.x), Math.abs(solPantalla.y)) * 0.62);
         fuerzaRayos = estado.rayos * borde * 1.2;   // 3.4: antes 0.95
       }
+      // 3.5: rayos del mediodía. Con el sol alto (arriba del cuadro) no había rayos: mirando
+      // de frente entre las copas, la luz no bajaba nunca. Se toma la fuente en el borde de
+      // arriba, sobre la vertical del sol, y los haces bajan desde ahí entre las copas; más
+      // tenues cuanto más lejos queda el sol del cuadro. Mismas pasadas.
+      if (solPantalla.z < 1 && solPantalla.y >= 1.0 && Math.abs(solPantalla.x) < 1.6 + solPantalla.y * 0.3) {
+        const arriba = Math.max(0, 1 - Math.max(0, solPantalla.y - 1.0) / 3.2) * Math.max(0, 1 - Math.abs(solPantalla.x) / (1.6 + solPantalla.y * 0.3));
+        const fuerzaArriba = estado.rayos * 0.62 * arriba;
+        if (fuerzaArriba > fuerzaRayos) {
+          fuerzaRayos = fuerzaArriba;
+          solPantalla.x = Math.max(-1.1, Math.min(1.1, solPantalla.x / Math.max(1, solPantalla.y * 0.6)));
+          solPantalla.y = 1.22;
+        }
+      }
     }
     if (fuerzaRayos > 0) matBrillo.uniforms.uSol.value.set(solPantalla.x * 0.5 + 0.5, solPantalla.y * 0.5 + 0.5);
     else matBrillo.uniforms.uSol.value.set(0.5, 9);
