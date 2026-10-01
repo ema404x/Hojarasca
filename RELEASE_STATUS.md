@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.4.0
+# RELEASE STATUS — 3.5.0
 
-- Versión: `3.4.0`
+- Versión: `3.5.0`
+- 3.5.0: distancia de dibujo configurable (bloques de 40 m y plantas, en vivo); la vegetación ya no se congela si la placa no llega; caza de bugs visuales — nieve pareja de cerca y de lejos, ramas de ciprés y maitén que tapaban la pantalla, helechos de otoño, flores sobre la nieve, cordillera sin facetas, lago sin cortes, gente con rodillas y caras, crin en mechones; cielo de alba y ocaso, camino de luz en el lago y rayos al mediodía
 - 3.4.0: tal cual HushWood con la Patagonia de verdad — luz dorada y paleta sin lima, copas de hojas pintadas y troncos con vetas, cada especie como es (arrayán canela, coihue en capas, pehuén en pisos), helechos plumosos, pasto denso y flores reales (lupinos, margaritas, amancay), cordillera nevada por cordones, lago pintado, nubes; gente y animales con formas suaves, ropa de la zona y anatomía real; sotobosque en bloques
 - 3.3.0: bosque en bloques y árboles lejanos pre-dibujados (los ~7000 árboles lejanos en un solo dibujo; -36% de dibujos caminando), luces fijas sin compilaciones a mitad de juego (tirones de hasta 2 s → 0,4 s), modo fluido opcional, carga más rápida; estilo: montañas azules por capas, rayos por los huecos del follaje, helechos plumosos, coihue en capas, pehuén en paraguas, luz dorada en el bosque
 - 3.2.0: el look de HushWood (estilizado, pintado: copas con degradé, cipreses en faldas, sol dorado, bruma de color, rayos, flores y helechos) más barato para la placa (-14 a -29% en media), y fluidez: ritmo de cuadros parejo según el monitor (Auto), contador F3, muchas menos compilaciones a mitad de juego

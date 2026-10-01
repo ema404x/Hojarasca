@@ -1,4 +1,4 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 01-10-2026, tarde)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 01-10-2026, noche)
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
 decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
@@ -46,7 +46,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
-- **3.5.0 (EN CURSO, sin verificar):** distancia de dibujo configurable (ver punto 3).
+- **3.5.0 (cerrada, etiqueta v3.5.0):** distancia de dibujo configurable + caza de bugs visuales (vegetación, paisaje, gente y animales). Detalle en `CAMBIOS_3_5_0.md`.
 - **3.4.0 (cerrada y verificada):** "tal cual HushWood, con la Patagonia de verdad".
   Gate 124/124, las 42 partidas reales en verde. Detalle en `CAMBIOS_3_4_0.md`:
   luz dorada y paleta sin lima, bruma con techo; copas de cartas de hojas pintadas (atlas por
@@ -77,66 +77,30 @@ texturas, ni modelos, ni audio).
 
 ---
 
-## 3. Para Claude: qué estaba en curso (3.5.0)
+## 3. Para Claude: qué sigue (después de la 3.5)
 
-El usuario: *"las cosas se van generando como muy cerca de uno cuando va pasando, debería haber
-una configuración como en Minecraft para configurar los chunks de distancia"* y *"hay bugs"*.
+La 3.5.0 se cerró en la otra PC el 01-10 a la noche: se unieron tres ramas (`v35-vege`,
+`v35-paisaje`, `v35-gente`, cada una hecha en su `git worktree`), gate 126/126 y partidas
+reales. Lo que quedó anotado para seguir mejorando (el usuario quiere **seguir mejorando lo
+visual** y que le muestren capturas):
 
-### 3.1 Lo que ya está hecho en `hojarasca-3.5.0-en-curso` (gate 125/125; NADA más verificado)
-Archivos que cambian contra la 3.4.0: `src/config.js`, `src/main.js`, `src/plantilla.html`,
-`src/guardado.js`, `src/rendimiento.js`, `src/vegetacion.js`, `src/pasto.js`,
-`src/materiales.js`, `src/cielo.js`, `package.json` (sólo el script verify, la versión sigue
-3.4.0), `pruebas/verificar-optimizacion-adaptativa-rc22.mjs` (actualizada) y
-`pruebas/verificar-3-5-distancia.mjs` (nueva, sumada al gate). Buscar `3.5:` en el código.
-- **Ajustes → Video: "Distancia de dibujo"** en bloques de 40 m (o "Según la calidad", el
-  valor por defecto) y **"Distancia de plantas"**; se aplican en vivo (se acercan de a poco),
-  se guardan (`guardado.js`, un guardado viejo usa la de su calidad) y se ven en F3.
-  `aplicarDistancias` en main.js; constantes en config.js.
-- **Bug grave arreglado (venía de la 3.3):** si la placa no llegaba al objetivo de cuadros
-  (límite fijo o "libre" en una PC que no llega a ~47 fps), `rendimiento.js` marcaba todos los
-  cuadros como lentos y **negaba para siempre las tareas pesadas** (vegetación, ambiente,
-  visibilidad, refugio, sombras): la vegetación se congelaba y después cambiaba de golpe.
-  Ahora ninguna tarea pesada espera para siempre (`esperando`, `reloj` en rendimiento.js).
-  **Probablemente era lo que el usuario veía.**
-- Pasto que no sale bajo pisos de construcciones (`marcarPisos`, canal azul de la máscara).
-- Pasto, flores y sotobosque **crecen desde el suelo** en el borde en vez de aparecer de golpe.
-
-### 3.2 Lo que falta para cerrar la 3.5
-1. **Revisar con capturas** lo hecho (el equipo se frenó en la etapa de medir/capturar):
-   caminando y girando rápido, con distancia mínima, por defecto y máxima, en media y alta.
-   Medir costo con el valor por defecto (tiene que ser igual al de la 3.4) y con el máximo.
-   Probar el bug grave con `herramientas-34\bugs-recorrido\recorrido.cjs` a 33 ms por cuadro
-   (antes: `veg.actualizar` 0 veces en 400 cuadros).
-2. **Bugs pendientes de la 3.4** (evidencia en `herramientas-34\bugs-recorrido\`):
-   - **Ramas del ciprés/maitén que tapan la pantalla** al pasar a 2,5–3,5 m: las cartas que
-     cuelgan del primer piso del ciprés (`vegetacion.js` ~880-888, tamaño `radio*0.52`) y la
-     cortina del maitén (~815-823) quedan a la altura de los ojos y se ven como manchas lisas.
-     Reproducir: alta, verano, refugio −133,74/+2,86 mirando a 120°. Capturas
-     `s7-ab\bosque-fin-ok\f001.png`, `s9-340\bosque-fin\f000.png` (3.3: `s9-330\...`).
-   - **Invierno: copas cercanas verdes y lejanas blancas** (cada árbol cambia al cruzar el
-     LOD, 66 m alta / 44 m media). Probable causa: la nieve sale de la normal del vértice
-     (`materiales.js` ~181-184) y las cartas cercanas llevan normales de follaje desde el
-     centro del racimo (`vegetacion.js` ~518-580). Capturas `s10-invierno-media\`,
-     `s14-invierno-alta-340\` contra `s14-invierno-media-330\`.
-   - Sospechas (vistas una vez): helechos del sotobosque que no se ponen rojizos en otoño
-     (`s10-otono-alta`); una flor naranja sobre la nieve en invierno.
-   - Las líneas de los bugs son de la 3.4.0; en la 3.5 pueden haberse corrido.
-3. Preguntarle al usuario **qué bugs vio él** (dijo "hay bugs" sin detallar).
-4. Cerrar: subir versión a 3.5.0 (`node herramientas-34\subir-version.cjs <proy> 3.4.0 3.5.0`),
-   `CAMBIOS_3_5_0.md`, línea en `RELEASE_STATUS.md`, gate, **las 42 partidas reales**, LEEME
-   con el QA real y empaquetar.
-
-### 3.3 Otros pendientes (de la 3.3/3.4, para después)
-- Cuadros sueltos de más de 50 ms sin causa encontrada; F3 "máx" de luces en pueblo/estación.
-- Medir en la Radeon integrada el costo de las hojas recortadas (`discard`) de cerca y a media
-  distancia (en esta PC: +0,5–1 ms en alta junto a un ciprés).
-- Gente todavía algo rígida (brazos tubo, caras simples), escalones en uniones (cuello del
-  perro/huemul, hombros), crin del caballo como lámina.
-- Piedemonte pálido al ocaso, alguna faceta en cerros cercanos, amancay en franja de cantero,
-  rayos de sol suaves al mediodía, impostores blandos cerca de su límite.
-- Workers para la simulación (se dejó: la fauna cuesta < 0,5 ms).
-
----
+- **Vegetación:** ciprés muy de cerca (velo verde del desvanecido y alguna faceta de la falda a
+  3–5 m); manchas de luz redondas en una ladera lejana; árboles lejanos pálidos en la bruma
+  (igualar la desaturación de la bruma de la vegetación con la del terreno); amancay en franja
+  en los canteros (marcar los canteros en `marcarPisos`); coihues cercanos con algo menos de
+  nieve que los lejanos; el coirón desaparece en invierno junto con las flores (decidir); los
+  cuadros lentos cuestan 1–2 ms más de media en el bosque ahora que las tareas pesadas corren.
+- **Paisaje:** niebla que sólo depende de la distancia (franja plana desde el mirador al alba:
+  hace falta niebla por altura o con ruido); cerros del borde del valle brumosos al mediodía;
+  borde estepa-pasto como franja amarilla en una ladera; nieve "a lunares" en el primer
+  cordón; río en pendiente como losa inclinada; árboles nevados al sol con mucho brillo; la
+  nodriza del Desafío no se revisó (la tapaba el bosque).
+- **Gente y animales:** animales viejos de piezas sueltas (jabalí, coipo, cisne, pato, martín
+  pescador, bandurria, cauquén, zorzal); cuello del guanaco, cara de la liebre, patas de la
+  oveja, patas del pudú algo largas; costura en el hombro de cerca; la bufanda puede leerse
+  como corbata; el mate se toma con el brazo estirado; no se revisaron el cuerpo del jugador,
+  lo que se tiene en la mano ni los invasores.
+- **Medir en la PC del usuario** (nunca se midió allá): pedirle F3 caminando.
 
 ## 4. Para Claude: cómo se trabaja
 
@@ -170,7 +134,7 @@ Archivos que cambian contra la 3.4.0: `src/config.js`, `src/main.js`, `src/plant
 - robocopy: excluir sólo `<carpeta>\dist` (`/XD dist` sin ruta borra `node_modules\electron\dist`).
 - Sin compilaciones de shaders a mitad de juego; no sumar dibujos por cuadro sin medir.
 
-### 4.3 Herramientas (`herramientas-34\`; en esta PC no hay Git Bash ni git)
+### 4.3 Herramientas (`herramientas-34\` en la PC sin Git Bash; en la otra PC hay Git Bash y se usan los `.sh` de `herramientas/`)
 - `verify-todo.cjs <proy>`: corre cada paso del gate y junta las fallas.
 - `<proy>\herramientas\suite.ps1 . <salida> [lista]`: todas las partidas reales, una por vez
   (PowerShell; en Git Bash está `suite.sh`). `empaquetar.ps1 <proy> <ver> <LEEME>`: instalador,
@@ -204,5 +168,5 @@ ID 576041582). El usuario lo resolvió. Nunca abrir ni configurar AnyDesk ni nad
 remoto.
 
 ## 6. Espacio en común entre las dos PC
-Elegido por el usuario: **repositorio privado en GitHub** (ver punto 1 y 2). Historial:
-`v3.4.0` (cerrada) y encima el commit "3.5.0 en curso".
+Elegido por el usuario: **repositorio privado en GitHub** (ver punto 1 y 2). Historial: `v3.4.0` y `v3.5.0` (cerradas). Para trabajar en paralelo con subagentes conviene
+`git worktree add -b <rama> ../trabajo/<x> main` + unión a node_modules, y al final `git merge`.
