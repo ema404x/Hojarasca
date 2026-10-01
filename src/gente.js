@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { limitarSombrasPorDistancia } from './rendimiento.js';
 import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
-import { bola, tubo, torno, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar } from './formas.js';
+import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar } from './formas.js';
 import { LAGO } from './config.js';
 
 // ---------------------------------------------------------------- historias
@@ -191,6 +191,7 @@ const ROPA = {
   'poblador-maestra': { piel: '#d6ad8a', pollera: true, trenza: true, abierta: true },
 };
 const ESC_TORSO = [1, 1, 0.74];
+const R_PONCHO = new Set(['ramon']);   // 3.5: los que andan de poncho (ver la ladera en actualizar)
 function mallaPersona(colores, clave = '') {
   const R = ROPA[clave] || {};
   const g = new THREE.Group();
@@ -202,19 +203,30 @@ function mallaPersona(colores, clave = '') {
   const manga = R.chaleco ? ropa : abrigo;
   // ---- piernas: un torno de la cadera al tobillo y la bota (de caña alta para el campo)
   const altas = R.botas === 'altas' || R.botas === 'goma';
-  const perfilPierna = R.bombacha
-    ? [[0.05, -0.7], [0.056, -0.6], [0.064, -0.5], [0.088, -0.42], [0.1, -0.3], [0.1, -0.17], [0.092, -0.04], [0.074, 0.06]]
-    : [[0.05, -0.7], [0.055, -0.62], [0.059, -0.52], [0.065, -0.44], [0.077, -0.28], [0.086, -0.12], [0.087, 0.0], [0.072, 0.06]];
-  const perfilBota = altas
+  // 3.5: la pierna en dos: el muslo cuelga de la cadera y la pierna con la bota, de la rodilla
+  // (37 cm más abajo), que dobla al caminar. Cada parte cierra en cúpula para que la rodilla
+  // doblada no muestre el hueco. (La rodilla ocupa la llamada de dibujo que antes usaba el
+  // antebrazo, que ahora va fundido con el brazo: la figura dibuja lo mismo.)
+  const RODILLA = 0.37;
+  const perfilMuslo = R.bombacha
+    ? [[0.0, -0.49], [0.06, -0.475], [0.086, -0.44], [0.1, -0.3], [0.1, -0.17], [0.092, -0.04], [0.074, 0.06]]
+    : [[0.0, -0.47], [0.05, -0.457], [0.064, -0.43], [0.069, -0.39], [0.077, -0.28], [0.086, -0.12], [0.087, 0.0], [0.072, 0.06]];
+  const perfilCanilla = (R.bombacha
+    ? [[0.05, -0.7], [0.056, -0.6], [0.066, -0.5], [0.082, -0.43], [0.084, -0.38], [0.064, -0.335], [0.0, -0.32]]
+    : [[0.05, -0.7], [0.055, -0.62], [0.059, -0.52], [0.064, -0.44], [0.063, -0.37], [0.046, -0.335], [0.0, -0.325]]).map(([r, y]) => [r, y + RODILLA]);
+  const perfilBota = (altas
     ? [[0.053, -0.8], [0.06, -0.72], [0.066, -0.6], [0.07, -0.5], [0.075, -0.44], [0.07, -0.435]]
-    : [[0.053, -0.8], [0.058, -0.74], [0.062, -0.66], [0.066, -0.62], [0.062, -0.615]];
+    : [[0.053, -0.8], [0.058, -0.74], [0.062, -0.66], [0.066, -0.62], [0.062, -0.615]]).map(([r, y]) => [r, y + RODILLA]);
   const patas = [];
   for (const l of [-1, 1]) {
     const piv = new THREE.Group(); piv.position.set(l * 0.115, 0.82, 0);
-    piv.add(torno(pantalon, perfilPierna, null, null, [1, 1, 0.92], 11));
-    piv.add(torno(bota, perfilBota, null, null, null, 11));
-    piv.add(bola(bota, [0.06, 0.05, 0.125], [0, -0.78, 0.048]));                    // empeine
-    piv.add(bola(matiz(bota, 0.55), [0.063, 0.018, 0.128], [0, -0.812, 0.043]));    // suela
+    piv.add(torno(pantalon, perfilMuslo, null, null, [1, 1, 0.92], 11));
+    const rodilla = new THREE.Group(); rodilla.position.set(0, -RODILLA, 0);
+    rodilla.add(torno(pantalon, perfilCanilla, null, null, [1, 1, 0.92], 11));
+    rodilla.add(torno(bota, perfilBota, null, null, null, 11));
+    rodilla.add(bola(bota, [0.06, 0.05, 0.125], [0, -0.78 + RODILLA, 0.048]));                    // empeine
+    rodilla.add(bola(matiz(bota, 0.55), [0.063, 0.018, 0.128], [0, -0.812 + RODILLA, 0.043]));    // suela
+    piv.add(rodilla); piv.userData.rodilla = rodilla;
     g.add(piv); patas.push(piv);
   }
   // ---- torso: cadera, la campera (o el chaleco) sobre la camisa, y lo de cada uno. Todas las
@@ -237,7 +249,11 @@ function mallaPersona(colores, clave = '') {
   }
   if (R.chaleco) {
     torso.add(capa(abrigo, [[0.167, -0.06], [0.166, 0.02], [0.156, 0.12], [0.171, 0.24], [0.197, 0.35], [0.211, 0.43], [0.2, 0.478]], 14, 0.42, Math.PI * 2 - 0.84));
-    torso.add(capa('#4a3626', [[0.168, -0.035], [0.168, 0.02]], 14));   // el cinto
+    if (R.bombacha) {
+      // 3.5: con bombacha, la faja de los paisanos: ancha y de lana colorada, apenas más angosta
+      // que el delantal (así no lo atraviesa) y sobre el borde del chaleco
+      torso.add(capa('#7a2e26', [[0.163, -0.05], [0.169, -0.038], [0.17, 0.028], [0.165, 0.042]], 16));
+    } else torso.add(capa('#4a3626', [[0.168, -0.035], [0.168, 0.02]], 14));   // el cinto
   } else {
     torso.add(capa(abrigo, [...faldon, ...cuerpoAlto], R.campera === 'larga' ? 24 : 16, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.74, R.campera === 'larga' ? 0.03 : 0));
     torso.add(capa(matiz(abrigo, 0.88), [[0.084, 0.535], [0.086, 0.572], [0.075, 0.586]], 14, 0, Math.PI * 2, 0.95));   // el cuello
@@ -286,31 +302,49 @@ function mallaPersona(colores, clave = '') {
   }
   const cuello = colores.bufanda || R.panuelo;
   if (cuello && !colores.poncho) {
-    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.074, R.panuelo ? 0.02 : 0.03, 8, 18), color(cuello));
-    vuelta.position.set(0, 0.56, 0.008); vuelta.rotation.set(Math.PI / 2 - 0.12, 0, 0); vuelta.scale.set(1, 0.86, 1);
+    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.076, R.panuelo ? 0.017 : 0.025, 8, 20), color(cuello));
+    vuelta.position.set(0, 0.555, 0.01); vuelta.rotation.set(Math.PI / 2 - 0.16, 0, 0); vuelta.scale.set(1, 0.9, 1);
     torso.add(vuelta);
-    if (R.panuelo) torso.add(bola(cuello, [0.04, 0.055, 0.012], [0, 0.5, 0.138], [-0.15, 0, Math.PI / 4]));   // el nudo
-    else torso.add(bola(cuello, [0.034, 0.1, 0.016], [0.05, 0.45, 0.142], [-0.1, 0, 0.12]));               // la punta que cuelga
+    // 3.5: antes el nudo y la punta eran un disco chato pegado al pecho (se veía como un plato).
+    // Ahora el pañuelo tiene su nudito y las dos puntas en triángulo, y la bufanda cae en una
+    // tira que sigue el pecho y se afina abajo.
+    if (R.panuelo) {
+      torso.add(bola(cuello, [0.022, 0.018, 0.016], [0, 0.522, 0.122]));                                         // el nudo
+      for (const l of [-1, 1]) {
+        const punta = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.075, 3, 1), color(matiz(cuello, 0.92))), (v) => { v.z *= 0.3; });
+        punta.position.set(l * 0.012, 0.485, 0.128); punta.rotation.set(Math.PI - 0.32, 0, -l * 0.28); torso.add(punta);
+      }
+    } else {
+      const tira = huso(cuello, [[0.045, 0.53, 0.105], [0.058, 0.46, 0.15], [0.066, 0.38, 0.16], [0.07, 0.32, 0.158]], [0.028, 0.032, 0.031, 0.028], 10, 8);
+      deformar(tira, (v) => { v.z = 0.15 + (v.z - 0.15) * 0.4; });   // una tira de tela, no un tubo
+      torso.add(tira);
+      torso.add(torno(matiz(cuello, 0.75), [[0.031, 0.312], [0.033, 0.32], [0.0, 0.322]], [0.07, 0, 0.158], null, [1, 1, 0.42], 8));   // el fleco
+    }
   }
   // ---- brazos: hombro, codo y mano de mitón (la mano derecha lleva el mate, la caña...).
   // Las piezas se corren un poco hacia el cuerpo para que hombro y torso sean una sola masa.
+  // 3.5: cada brazo es una sola forma suave: del hombro (que nace adentro del torso, sin bola
+  // pegada) al codo, con el bíceps, y del codo a la muñeca, apenas doblado hacia adelante; el
+  // puño de la manga y una mano con palma, dedos juntos que se curvan y el pulgar. Todo se funde
+  // con el brazo (una malla por brazo); el grupo `ante` queda vacío en el codo, para lo que
+  // llevan en la mano. Con poncho, el brazo va debajo: se ve sólo desde el antebrazo.
   const brazos = [];
   for (const l of [-1, 1]) {
     const piv = new THREE.Group(); piv.position.set(l * 0.225, 1.3, 0);
-    // el brazo cuelga apenas separado del cuerpo y el antebrazo, un poco hacia adelante
     const x = -l * 0.016;
-    piv.add(bola(manga, [0.06, 0.064, 0.064], [x, -0.03, 0]));
-    piv.add(tubo(manga, 0.058, 0.047, 0.27, [x + l * 0.01, -0.155, 0], [0, 0, l * 0.07]));
-    // (el codo, pivote del antebrazo y de lo que llevan en la mano, queda donde estaba: las
-    // piezas se corren 2 cm afuera adentro del grupo)
+    // del hombro a la muñeca en una sola pieza (sin costura en el codo), con el codo apenas
+    // doblado hacia adelante; con poncho, desde el codo
+    const muneca = [x + l * 0.02, -0.5, 0.03];
+    const brazo = colores.poncho
+      ? [[[x + l * 0.012, -0.26, 0.002], [x + l * 0.015, -0.32, 0.01], [x + l * 0.018, -0.42, 0.02], muneca], [0.044, 0.046, 0.043, 0.04]]
+      : [[[x - l * 0.045, 0.01, 0], [x - l * 0.016, -0.025, 0], [x + l * 0.006, -0.13, 0.0], [x + l * 0.012, -0.27, 0.002], [x + l * 0.016, -0.38, 0.016], muneca],
+        [0.045, 0.06, 0.056, 0.047, 0.044, 0.04]];
+    piv.add(huso(manga, brazo[0], brazo[1], colores.poncho ? 10 : 18, 12));
+    piv.add(torno(matiz(manga, 0.82), [[0.041, -0.022], [0.045, -0.004], [0.044, 0.018], [0.039, 0.022]], [muneca[0], muneca[1] - 0.004, muneca[2]], [-0.1, 0, 0], null, 12));   // el puño
+    piv.add(bola(piel, [0.032, 0.042, 0.024], [muneca[0], -0.545, 0.034], [-0.1, 0, 0]));                       // la palma
+    piv.add(bola(piel, [0.029, 0.034, 0.021], [muneca[0] + l * 0.002, -0.585, 0.044], [-0.32, 0, 0]));          // los dedos juntos, curvados
+    piv.add(bola(piel, [0.011, 0.024, 0.012], [muneca[0] - l * 0.026, -0.548, 0.05], [-0.25, 0, l * 0.5]));      // el pulgar
     const ante = new THREE.Group(); ante.position.set(0, -0.28, 0);
-    ante.add(bola(manga, [0.048, 0.05, 0.049], [x + l * 0.02, 0, 0]));
-    const caida = new THREE.Group(); caida.position.x = l * 0.02; caida.rotation.set(-0.1, 0, l * 0.03);   // (sólo da forma: se funde con el antebrazo)
-    caida.add(tubo(manga, 0.047, 0.04, 0.22, [x, -0.11, 0]));
-    caida.add(torno(matiz(manga, 0.82), [[0.043, -0.236], [0.046, -0.2], [0.042, -0.196]], [x, 0, 0], null, null, 11));   // el puño
-    caida.add(bola(piel, [0.036, 0.053, 0.03], [x, -0.278, 0.006]));
-    caida.add(bola(piel, [0.014, 0.026, 0.015], [x - l * 0.029, -0.26, 0.02], [0, 0, l * 0.45]));   // el pulgar
-    for (const m of [...caida.children]) { m.applyMatrix4(caida.matrix.compose(caida.position, caida.quaternion.setFromEuler(caida.rotation), caida.scale)); ante.add(m); }
     piv.add(ante);
     piv.userData.ante = ante;
     g.add(piv); brazos.push(piv);
@@ -319,19 +353,31 @@ function mallaPersona(colores, clave = '') {
   // ---- cabeza
   const cabeza = new THREE.Group(); cabeza.position.set(0, 1.46, 0);
   cabeza.add(tubo(piel, 0.046, 0.054, 0.17, [0, -0.072, 0.004]));
-  const rubor = mezcla(piel, '#c4554a', 0.5);
+  const rubor = mezcla(piel, '#c4554a', 0.5), sombraPiel = mezcla(matiz(piel, 0.62), '#5a3a3a', 0.25);
   cabeza.add(pintar(deformar(bola(piel, [0.097, 0.118, 0.107], [0, 0.05, 0.004], null, [18, 14]), (v) => {
     if (v.y < 0) { const t = -v.y; v.x *= 1 - 0.22 * t * t; v.z += 0.08 * t * Math.max(0, v.z); }   // mandíbula y mentón
     if (v.z < 0) v.z *= 1.05;                                                                         // la nuca
     if (v.z > 0.6) v.z = 0.6 + (v.z - 0.6) * 0.6;                                                     // la cara, más plana
-  }), (c, p, n) => { const t = Math.max(0, 1 - Math.abs(Math.abs(n.x) - 0.45) * 4) * Math.max(0, n.z) * Math.max(0, 1 - Math.abs(p.y - 1.49) * 22); entintar(c, rubor, t * 0.5); }));
-  cabeza.add(deformar(bola(matiz(piel, 0.97), [0.016, 0.027, 0.019], [0, 0.034, 0.097], [-0.2, 0, 0]), (v) => { if (v.y > 0) v.z *= 1 - 0.45 * v.y; }));   // la nariz
+  }), (c, p, n) => {
+    const t = Math.max(0, 1 - Math.abs(Math.abs(n.x) - 0.45) * 4) * Math.max(0, n.z) * Math.max(0, 1 - Math.abs(p.y - 1.49) * 22); entintar(c, rubor, t * 0.5);
+    // 3.5: la cuenca de los ojos y la sombrita bajo la nariz, pintadas: la cara toma volumen
+    const fz = Math.max(0, n.z);
+    const cuenca = Math.exp(-(((Math.abs(p.x) - 0.034) / 0.024) ** 2 + ((p.y - 1.527) / 0.016) ** 2));
+    const bajoNariz = Math.exp(-((p.x / 0.016) ** 2 + ((p.y - 1.474) / 0.008) ** 2));
+    entintar(c, sombraPiel, (cuenca * 0.28 + bajoNariz * 0.3) * fz);
+  }));
+  // la nariz: más corta y redonda (antes asomaba como una clavija), con las aletas
+  cabeza.add(deformar(bola(matiz(piel, 0.98), [0.0155, 0.025, 0.016], [0, 0.034, 0.094], [-0.22, 0, 0]), (v) => { if (v.y > 0) v.z *= 1 - 0.4 * v.y; }));
+  for (const l of [-1, 1]) cabeza.add(bola(matiz(piel, 0.95), [0.0095, 0.0085, 0.0085], [l * 0.0125, 0.018, 0.09]));
   for (const l of [-1, 1]) {
-    cabeza.add(bola('#1f1915', [0.012, 0.014, 0.005], [l * 0.034, 0.06, 0.092]));                       // los ojos
-    cabeza.add(bola(matiz(pelo, 0.85), [0.025, 0.0065, 0.006], [l * 0.035, 0.083, 0.095], [0, 0, -l * 0.15]));   // las cejas
+    // 3.5: el ojo con su blanco, la pupila y el párpado de arriba (la mirada se entiende)
+    cabeza.add(bola('#e6ddcf', [0.0145, 0.0098, 0.004], [l * 0.034, 0.06, 0.0905]));                    // el blanco
+    cabeza.add(bola('#21170f', [0.0088, 0.0098, 0.0042], [l * 0.0335, 0.0598, 0.0926]));                  // la pupila
+    cabeza.add(bola(matiz(piel, 0.66), [0.0162, 0.003, 0.0046], [l * 0.034, 0.0705, 0.0916], [0, 0, -l * 0.08]));   // el párpado
+    cabeza.add(bola(matiz(pelo, 0.85), [0.026, 0.0072, 0.0065], [l * 0.035, 0.084, 0.0945], [0, 0, -l * 0.15]));   // las cejas
     cabeza.add(bola(piel, [0.015, 0.028, 0.013], [l * 0.096, 0.042, -0.004]));                          // las orejas
   }
-  if (!colores.barba) cabeza.add(bola(matiz(piel, 0.72), [0.02, 0.0045, 0.006], [0, -0.004, 0.098]));  // la boca
+  if (!colores.barba) cabeza.add(bola(mezcla(matiz(piel, 0.72), '#8c3b35', 0.35), [0.021, 0.0052, 0.006], [0, -0.004, 0.0915]));  // la boca
   // el pelo: un casco que no tapa la cara y baja hasta la nuca
   cabeza.add(deformar(bola(pelo, [0.103, 0.118, 0.112], [0, 0.067, -0.012], null, [16, 11]), (v) => {
     if (v.z > 0.15 && v.y < 0.4) v.z -= (v.z - 0.15) * 0.85 * Math.min(1, (0.4 - v.y) * 2.2);
@@ -381,6 +427,7 @@ function mallaPersona(colores, clave = '') {
 
 // ---------------------------------------------------------------- creación
 // Cada personaje camina entre sus puntos y hace algo al llegar
+const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function caminarHacia(g, dt, destino, velocidad, T, col) {
   const dx = destino.x - g.pos.x, dz = destino.z - g.pos.z;
   const d = Math.hypot(dx, dz);
@@ -665,10 +712,40 @@ export function crearGente(T, escena, col, sonido) {
         g.__poseAcum = 0;
         const respira = Math.sin(g.fase * 1.4) * 0.02;
         const andando = g.vel > 0.05;
-        const bote = andando ? Math.abs(Math.sin(g.paso)) * 0.035 : 0;
+        // 3.5: el cuerpo sube cuando las piernas se cruzan y baja con el paso abierto (antes al revés)
+        const bote = andando ? (1 - Math.abs(Math.sin(g.paso))) * 0.03 : 0;
         g.torso.position.y = 0.82 + respira + bote;
         g.cabeza.position.y = 1.46 + respira + bote;
-        g.patas.forEach((p2, i) => { p2.rotation.x = andando ? Math.sin(g.paso + i * Math.PI) * 0.55 : 0; });
+        // 3.5: la rodilla dobla al llevar la pierna adelante y se estira al apoyar; caderas y
+        // hombros giran apenas contra el paso, el peso se pasa de un lado al otro y la cabeza
+        // compensa. Parado, el peso se mece despacio.
+        // 3.5: parado en una ladera, cada pie busca su suelo: el cuerpo baja hasta el pie de
+        // abajo y la pierna de arriba dobla la rodilla (antes un pie flotaba y el otro se hundía)
+        let bajaObj = 0, alza0 = 0, alza1 = 0;
+        if (!andando && Math.abs(g.pos.y - T.altura(g.pos.x, g.pos.z)) < 0.03) {
+          const cr = Math.cos(g.g.rotation.y), sr = Math.sin(g.g.rotation.y);
+          const h0 = T.altura(g.pos.x - 0.115 * cr + 0.05 * sr, g.pos.z + 0.115 * sr + 0.05 * cr) - g.pos.y;
+          const h1 = T.altura(g.pos.x + 0.115 * cr + 0.05 * sr, g.pos.z - 0.115 * sr + 0.05 * cr) - g.pos.y;
+          // (con tope: más alto, la rodilla saldría por delante del poncho o la pollera)
+          const tope = g.mate || R_PONCHO.has(g.clave) ? 0.035 : 0.07;
+          bajaObj = Math.min(0.1, Math.max(0, -Math.min(h0, h1)));
+          alza0 = Math.min(tope, h0 + bajaObj); alza1 = Math.min(tope, h1 + bajaObj);
+        }
+        g.baja = (g.baja || 0) + (bajaObj - (g.baja || 0)) * 0.25;
+        g.torso.position.y -= g.baja; g.cabeza.position.y -= g.baja;
+        g.brazos[0].position.y = 1.3 - g.baja; g.brazos[1].position.y = 1.3 - g.baja;
+        g.patas.forEach((p2, i) => {
+          const f = g.paso + i * Math.PI;
+          p2.position.y = 0.82 - g.baja;
+          const alza = Math.sqrt(Math.max(0, i ? alza1 : alza0) / 0.41);
+          p2.rotation.x = andando ? Math.sin(f) * 0.5 : -alza;
+          const rod = p2.userData.rodilla;
+          if (rod) rod.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 : 0.03 + alza * 2;
+        });
+        g.torso.rotation.y = andando ? Math.sin(g.paso) * 0.06 : 0;
+        g.torso.rotation.z = andando ? Math.cos(g.paso) * 0.022 : Math.sin(g.fase * 0.45) * 0.012;
+        g.torso.rotation.x = andando ? 0.035 : 0;
+        g.cabeza.rotation.y = -g.torso.rotation.y * 0.7;
         g.cabeza.rotation.x = charlando ? Math.sin(g.fase * 5) * 0.05 : Math.sin(g.fase * 0.5) * 0.06;
 
         // gestos según lo que esté haciendo
@@ -679,17 +756,23 @@ export function crearGente(T, escena, col, sonido) {
         else if (andando) { bIzq = Math.sin(g.paso + Math.PI) * 0.3; bDer = Math.sin(g.paso) * 0.3; }
         else if (g.mate) {
           const ciclo = (g.fase % 9) / 9;
-          bDer = ciclo > 0.55 && ciclo < 0.78 ? -1.45 : -0.25;
-          g.cabeza.rotation.x += ciclo > 0.55 && ciclo < 0.78 ? -0.18 : 0;
+          // 3.5: sube y baja el mate de a poco (antes el brazo saltaba de golpe)
+          const k = suave(0.55, 0.6, ciclo) * (1 - suave(0.73, 0.78, ciclo));
+          bDer = -0.25 - 1.2 * k;
+          g.cabeza.rotation.x -= 0.18 * k;
         } else if (g.caña && tarea && tarea.pescando) {
           const ciclo = (g.fase % 12) / 12;
-          bDer = ciclo > 0.82 ? -1.25 + Math.sin(g.fase * 9) * 0.35 : -0.75;
+          const k = suave(0.8, 0.84, ciclo) * (1 - suave(0.97, 1, ciclo));
+          bDer = -0.75 + k * (-0.5 + Math.sin(g.fase * 9) * 0.35);
         } else if (g.planilla && tarea && tarea.anotando) {
           bDer = -1.2; bIzq = -0.5 + Math.sin(g.fase * 3) * 0.06;
           g.cabeza.rotation.x += 0.22;
         } else if (g.caña) bDer = -0.7;
         g.brazos[0].rotation.x = bIzq;
         g.brazos[1].rotation.x = bDer;
+        // los brazos no van pegados al cuerpo: se abren apenas, un poco más al caminar
+        g.brazos[0].rotation.z = andando ? -0.07 : -0.035;
+        g.brazos[1].rotation.z = andando ? 0.07 : 0.035;
       }
     }
   }

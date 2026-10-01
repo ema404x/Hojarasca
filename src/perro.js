@@ -66,22 +66,25 @@ function mallaPerro(ap = sanearPerro(null)) {
   // ---- cuello y cabeza (el cuello se mueve con la cabeza al olfatear)
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.68, 0.32);
   // el cuello sale de adentro del pecho (más bajo que la cruz, así no hace joroba)
-  cabeza.add(conPelaje(miembro(pelo, [[0, -0.3, -0.21], [0, -0.17, -0.11], [0, -0.06, -0.035], [0, 0.0, -0.005]], [0.07, 0.066, 0.058, 0.052], 8, 12)));
+  cabeza.add(conPelaje(miembro(pelo, [[0, -0.27, -0.2], [0, -0.17, -0.11], [0, -0.06, -0.035], [0, 0.0, -0.005]], [0.078, 0.07, 0.06, 0.052], 8, 12)));
   // la cabeza: cráneo ancho, el stop y un hocico parejo hasta la trufa, de una sola pieza
   const testa = miembro(pelo, [[0, 0.02, -0.07], [0, 0.03, 0.0], [0, 0.01, 0.07], [0, -0.02, 0.13], [0, -0.032, 0.19]], [0.05, 0.078, 0.066, 0.045, 0.032], 10, 12);
   testa.scale.set(1, 0.9, 1);
   cabeza.add(conPelaje(testa));
   cabeza.add(conPelaje(bola(pelo, [0.026, 0.026, 0.03], [0, -0.031, 0.19])));
-  for (const l of [-1, 1]) cabeza.add(conPelaje(bola(pelo, [0.032, 0.04, 0.05], [l * 0.04, -0.02, 0.07])));   // los cachetes
-  cabeza.add(conPelaje(bola(pelo, [0.036, 0.018, 0.07], [0, -0.058, 0.1], [0.14, 0, 0])));         // la mandíbula
+  // 3.5: cachetes más chicos y metidos (antes eran dos bollos sueltos) y la boca como una línea
+  // fina en el labio, no una lámina clara que la hacía parecer un pico abierto
+  for (const l of [-1, 1]) cabeza.add(conPelaje(bola(pelo, [0.028, 0.034, 0.044], [l * 0.034, -0.022, 0.07])));   // los cachetes
+  cabeza.add(conPelaje(bola(pelo, [0.034, 0.017, 0.07], [0, -0.054, 0.1], [0.14, 0, 0])));         // la mandíbula
   cabeza.add(bola(oscuro, [0.022, 0.017, 0.016], [0, -0.022, 0.214]));                              // la trufa
-  cabeza.add(bola(matiz(oscuro, 1.3), [0.03, 0.004, 0.045], [0, -0.056, 0.15]));                     // la boca
+  cabeza.add(bola(oscuro, [0.027, 0.0028, 0.04], [0, -0.046, 0.158], [0.12, 0, 0]));                 // la boca
   for (const l of [-1, 1]) {
     cabeza.add(bola('#16120f', [0.014, 0.015, 0.01], [l * 0.056, 0.042, 0.062]));                   // los ojos
     cabeza.add(conPelaje(bola(pelo, [0.022, 0.01, 0.018], [l * 0.052, 0.06, 0.058], [0, 0, -l * 0.2])));   // el arco de la ceja
     // las orejas semiparadas, con la punta apenas doblada
-    const oreja = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.1, 9, 3), color(pelo)), (v) => { v.z *= 0.36; if (v.y > 0.02) v.z += (v.y - 0.02) * 0.5; });
-    oreja.position.set(l * 0.055, 0.1, -0.03); oreja.rotation.set(-0.3, 0, -l * 0.45);
+    // 3.5: más anchas y chatas, con la punta que se dobla hacia adelante (antes parecían cuernos)
+    const oreja = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.048, 0.088, 9, 3), color(pelo)), (v) => { v.z *= 0.3; if (v.y > 0.0) v.z += v.y * v.y * 9; });
+    oreja.position.set(l * 0.056, 0.088, -0.035); oreja.rotation.set(-0.12, l * 0.25, -l * 0.55);
     cabeza.add(conPelaje(oreja));
   }
   // 2.8: el collar con su chapita, justo abajo de la cabeza; y el pañuelo atado al cuello
@@ -99,6 +102,12 @@ function mallaPerro(ap = sanearPerro(null)) {
     panuelo.scale.set(1, 1, 0.35);
     cabeza.add(panuelo);
   }
+  // 3.5: el pivote de la cabeza baja a la base del cuello, adentro del pecho: al olfatear o
+  // mirar se mueve todo el cuello y la raíz nunca asoma por el lomo (antes giraba sólo la
+  // cabeza arriba y la base del cuello salía por la cruz, con escalón). Mismo lugar en reposo.
+  const BASE = new THREE.Vector3(0, 0.5, 0.2), OFF = new THREE.Vector3().subVectors(cabeza.position, BASE);
+  for (const c of cabeza.children) c.position.add(OFF);
+  cabeza.position.copy(BASE);
   g.add(cabeza);
   // ---- patas: las de adelante derechas (codo, muñeca, mano); las de atrás con muslo,
   // pierna hacia atrás, garrón y pie. Cuelgan del mismo pivote de siempre.
@@ -120,7 +129,7 @@ function mallaPerro(ap = sanearPerro(null)) {
   g.add(cola);
   compactar(g, { alto: 0.7, pie: 0.86, panza: 0.08, todo: true });
   // 2.8: el palito que te trae (si le enseñaste): atravesado en la boca, escondido
-  const palito = palo(lam('#7a5f43'), 0.012, 0.3, [0, -0.045, 0.15], [0, 0, Math.PI / 2]);
+  const palito = palo(lam('#7a5f43'), 0.012, 0.3, [0, 0.135, 0.27], [0, 0, Math.PI / 2]);   // (0, -0.045, 0.15) desde la cabeza
   palito.name = 'palito';
   palito.visible = false;
   cabeza.add(palito);

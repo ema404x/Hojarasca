@@ -85,6 +85,38 @@ export function miembro(c, puntos, radios, tramos = 10, lados = 9) {
   return new THREE.Mesh(geo, color(c));
 }
 
+// 3.5: como `miembro`, pero cada radio vale en su punto (se reparte por la distancia a lo largo
+// de la curva, no por tramos parejos) y las dos puntas se cierran en cúpula: sin bocas abiertas
+// que asomen en hombros, codos o rodillas, y con el ancho donde se lo pide (el bíceps, el codo).
+export function huso(c, puntos, radios, tramos = 12, lados = 10) {
+  const V = puntos.map((p) => new THREE.Vector3(...p));
+  const acum = [0];
+  for (let i = 1; i < V.length; i++) acum.push(acum[i - 1] + V[i].distanceTo(V[i - 1]));
+  const total = acum[acum.length - 1] || 1;
+  const curva = new THREE.CatmullRomCurve3(V);
+  const geo = new THREE.TubeGeometry(curva, tramos, 1, lados, false);
+  const P = geo.attributes.position, v = new THREE.Vector3(), centro = new THREE.Vector3();
+  for (let i = 0; i <= tramos; i++) {
+    const t = i / tramos, s = t * total;
+    curva.getPointAt(t, centro);
+    let k = 0;
+    while (k < acum.length - 2 && acum[k + 1] < s) k++;
+    const f = Math.min(1, Math.max(0, (s - acum[k]) / ((acum[k + 1] - acum[k]) || 1)));
+    let r = radios[k] + (radios[k + 1] - radios[k]) * f;
+    // la cúpula: el primer y el último anillo se cierran, el segundo y el penúltimo se achican
+    const borde = Math.min(i, tramos - i);
+    if (borde === 0) r *= 0.05; else if (borde === 1) r *= 0.78;
+    for (let j = 0; j <= lados; j++) {
+      const idx = i * (lados + 1) + j;
+      v.fromBufferAttribute(P, idx).sub(centro).multiplyScalar(r).add(centro);
+      P.setXYZ(idx, v.x, v.y, v.z);
+    }
+  }
+  geo.computeVertexNormals();
+  coser(geo);
+  return new THREE.Mesh(geo, color(c));
+}
+
 // El cuerpo de un cuadrúpedo: un torno acostado de `atras` a `adelante` (z), con el lomo a la
 // altura `y`. `ancho` y `alto` son los radios; `pecho` ahonda el pecho, `panza` recoge la
 // cintura, `grupa` levanta el anca (el pudú, la liebre).

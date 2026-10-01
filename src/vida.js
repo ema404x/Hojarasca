@@ -200,7 +200,6 @@ function mallaHuemul(macho) {
   };
   const conPelaje = (m) => pintar(m, pelaje);
   g.add(conPelaje(lomo(pelo, { y: 0.94, atras: -0.64, adelante: 0.56, ancho: 0.27, alto: 0.3, pecho: 0.12, panza: 0.08 }, 16)));
-  g.add(conPelaje(miembro(pelo, [[0, 0.98, 0.32], [0, 1.16, 0.46], [0, 1.34, 0.6]], [0.18, 0.14, 0.11], 8, 12)));   // el cuello grueso
   g.add(miembro(oscuro, [[0, 1.02, -0.6], [0, 0.98, -0.66], [0, 0.9, -0.68]], [0.04, 0.05, 0.02], 5, 8));         // la cola
   const cabeza = new THREE.Group(); cabeza.position.set(0, 1.4, 0.65);
   const testa = miembro(pelo, [[0, 0.04, -0.08], [0, 0.02, 0.06], [0, -0.03, 0.2], [0, -0.045, 0.3]], [0.1, 0.11, 0.075, 0.05], 8, 12);
@@ -226,6 +225,13 @@ function mallaHuemul(macho) {
       cabeza.add(miembro(asta, [medio, [l * 0.1, 0.33, 0.07], [l * 0.1, 0.38, 0.1]], [0.014, 0.01, 0.004], 4, 6));
     }
   }
+  // 3.5: el cuello grueso va con la cabeza y el pivote baja a su base, adentro del pecho: al
+  // pastar se baja todo el cuello (antes el cuello quedaba fijo y la cabeza se doblaba arriba,
+  // con un escalón en la nuca y la boca del tubo a la vista). Mismo lugar en reposo.
+  const BASE = new THREE.Vector3(0, 1.0, 0.36), OFF = new THREE.Vector3().subVectors(cabeza.position, BASE);
+  for (const c of cabeza.children) c.position.add(OFF);
+  cabeza.position.copy(BASE);
+  cabeza.add(conPelaje(miembro(pelo, [[0, -0.14, -0.1], [0, -0.02, -0.02], [0, 0.16, 0.1], [0, 0.32, 0.22], [0, 0.42, 0.29]], [0.21, 0.19, 0.155, 0.12, 0.1], 10, 14)));
   g.add(cabeza);
   const ps = [];
   for (const [x, z] of [[-0.14, 0.34], [0.14, 0.34], [-0.14, -0.36], [0.14, -0.36]]) {
