@@ -22,7 +22,9 @@ export function contadores(p) {
   const peces = Object.values(p?.peces || {}).reduce((s, v) => s + (Number(v?.cantidad ?? v) || 0), 0);
   return {
     renovales: (p?.renovales || []).length,
-    talados: (p?.talados || []).length,
+    // 3.5.1: los tocones que rebrotan salen de la lista: se cuenta lo talado en total, que no baja
+    // (antes "La leña del otoño" y el capítulo 2 se podían quedar sin poder cumplir)
+    talados: Math.max((p?.talados || []).length, Math.floor(Number(p?.taladosTotal)) || 0),
     fotos: Number(p?.fotos) || 0,
     vueltas: Number(p?.vueltas) || 0,
     peces,

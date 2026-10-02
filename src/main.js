@@ -64,7 +64,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios, y el pueblo que fundás
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { golpesConFilo, gastarFilo, llamarPoblador } from './pueblo.js';
+import { golpesConFilo, gastarFilo, llamarPoblador, claveCasa } from './pueblo.js';
 import { crearPuebloMundo } from './pueblo-mundo.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -79,7 +79,7 @@ import { calidadParaEquipo, nombrePlaca } from './calidad-equipo.js';
 import { cargarAjustes, guardarAjustes, cargarProgreso, guardarProgreso, guardarFotos, progresoNuevo, borrarProgreso, origenUltimaCarga, usarModoGuardado, listaPartidas, borrarPartida, guardarVista, ranuraActual, leerPartida, escribirPartida, infoPartida } from './guardado.js';
 import { htmlPartidas, CSS_PARTIDAS } from './partidas.js';
 import { empaquetar, leerPaquete, avisoImportar, nombreArchivoPartida } from './transferir.js';
-import { nombreSync, tocaCopiar, compararCopia, textoOferta as textoOfertaSync } from './sincronia.js';
+import { nombreSync, tocaCopiar, compararCopia, textoOferta as textoOfertaSync, textoDosCambiaron } from './sincronia.js';
 import { crearEstadoAutocalidad, revisarCalidad, reiniciarMedicion, sincronizarCalidad } from './autocalidad.js';
 import { crearMando, girarMirada } from './mando.js';
 import { RECORRIDO, crearCorrida, anotarCuadro, informeBanco, nombreArchivoBanco, duracionBanco } from './banco.js';
@@ -896,12 +896,22 @@ function atrapar(pez) {
   guardar();
 }
 
+// 3.5.1: mientras dura el fundido no se vuelve a dormir: un segundo E (o la cama y el
+// fuego a la vez) armaba otra noche encima y salteaba un día entero con dos páginas del diario
+let durmiendo = false;
+// 3.5.1: con la hora de tu reloj la noche no se saltea: dormir la volvía a dejar en la misma
+// hora real y cada E sumaba otro día (la huerta crecía sin fin). Una noche de reloj = un día.
+// La clave va de mediodía a mediodía: la noche entera cae en la misma.
+const claveNocheReloj = (d = new Date()) => new Date(d.getTime() - 12 * 3600e3).toDateString();
 function dormir() {
+  if (durmiendo) return;
   if (desafio) {
     const r = desafio.puedeDormir();
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
   }
   const deNoche = progreso.horas >= 19.5 || progreso.horas < 6;
+  const nocheReloj = !desafio && deNoche && ajustes.duracion === 'reloj' ? claveNocheReloj() : '';
+  if (nocheReloj && progreso.relojNoche === nocheReloj) { nota('Ya dormiste esta noche', 'Con la hora de tu reloj, la noche pasa de verdad'); return; }
   if (desafio) desafio.curar(deNoche ? 100 : 35);
   // 2.3: una noche de invierno sin fuego cerca se paga a la mañana.
   // 2.4: la casa abriga (ver abrigo.js): el calor de la estufa llega por los ambientes,
@@ -923,12 +933,14 @@ function dormir() {
   const f = $('fundido');
   f.classList.add('activo');
   jugador.sentarse(true);
+  durmiendo = true;
   setTimeout(() => {
     if (deNoche) {
       if (como !== 'normal') diario.anotar('noche', como === 'fresco' && inviernoEnCasa ? 'casa' : como);
       const pagina = diario.cerrar(progreso.dia, nombreEstacion(), Math.random);
       progreso.diario = [...(progreso.diario || []), pagina].slice(-40);
       if (progreso.horas > 7) progreso.dia++;
+      if (nocheReloj) progreso.relojNoche = nocheReloj;   // 3.5.1
       progreso.horas = 7.2;
       if (renovales) renovales.actualizar(progreso.dia);
     }
@@ -939,6 +951,7 @@ function dormir() {
     setTimeout(() => {
       f.classList.remove('activo');
       jugador.sentarse(false);
+      durmiendo = false;
       if (deNoche) nota(`Día ${progreso.dia}`, 'Amanece en el bosque');
       else nota('Dormiste una siesta', `Son las ${horaTexto(progreso.horas)}`);
       jugador.estado.entumecido = horasEntumecido(como);
@@ -1556,6 +1569,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     if (clave !== 'idioma') ajustes[clave] = v;
     guardarAjustes(ajustes);
     if (clave === 'musica') sonido.setMusica(v);
+    if (clave === 'invertirY') mando.opciones.invertirY = v;   // 3.5.1: el mando también, sin reiniciar
     if (clave === 'clima' && clima?.estado) clima.estado.t = 0; // aplicar el modo elegido en el siguiente tick
     if (clave === 'clima' && clima?.estado) clima.estado.tramo = undefined;   // 2.9: y el programa del tiempo, desde el tramo de ahora (ver `meteo.js`)
     if (clave === 'virado') acumuladoTinte = 9;
@@ -1987,8 +2001,13 @@ async function mirarCarpetaSync() {
   const enCarpeta = Number(r.paquete.progreso.guardadoEn) || 0;
   const local = infoPartida(modoJuego, ranuraActual());
   // ya la viste (la escribiste vos o la importaste): no se ofrece de nuevo
-  if (enCarpeta <= baseSync || compararCopia(local, r.paquete) !== 'ofrecer') { fijarBaseSync(enCarpeta); return; }
-  const si = confirm(textoOfertaSync(local, r.paquete));
+  // (la misma partida exacta que hay acá, tampoco)
+  if (enCarpeta <= baseSync || (local?.hay && Number(local.guardadoEn) === enCarpeta)) { fijarBaseSync(enCarpeta); return; }
+  // 3.5.1: más nueva que la última que vimos = la escribió la otra computadora. Si la de acá es
+  // igual de nueva (las dos siguieron, o relojes distintos), también se pregunta: antes se fijaba
+  // la base en silencio y la próxima copia de acá pisaba lo de la otra.
+  const masNueva = compararCopia(local, r.paquete) === 'ofrecer';
+  const si = confirm(masNueva ? textoOfertaSync(local, r.paquete) : textoDosCambiaron(local, r.paquete));
   fijarBaseSync(enCarpeta);   // con un sí se importa; con un no, la próxima copia la reemplaza
   if (si) importarTexto(ranuraActual(), texto, false);
 }
@@ -2372,7 +2391,8 @@ document.addEventListener('keydown', (e) => {
   // 2.8: Personalizar. Abierto, sólo Esc o F5 lo cierran; F5 lo abre si no es de otra acción
   if (personalAbierto()) { if (codigo === 'Escape' || e.code === 'F5') { e.preventDefault(); cerrarPersonal(); } return; }
   if (e.code === 'F5' && !accionDeTecla(teclasPropias, 'F5') && !foto.activo) { e.preventDefault(); personalizarDesdeElJuego(); return; }
-  if (e.code === 'F2' && jugador) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
+  // 3.5.1: como F3 y F5: si el jugador le dio F2 a una acción, F2 es de esa acción (antes no llegaba nunca)
+  if (e.code === 'F2' && jugador && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
   if (codigo === 'F1') {
     e.preventDefault();
@@ -2383,6 +2403,9 @@ document.addEventListener('keydown', (e) => {
   }
   if (modo === 'pausa' && codigo === 'Escape' && performance.now() - abiertoEn > 400) { volverAlJuego(); return; }
   if (modo !== 'jugando' || !jugador) return;
+  // 3.5.1: en el modo foto sólo P saca la foto (WASD, Espacio y Shift mueven la cámara): antes E,
+  // F, O... seguían andando con la hora del control (se dormía a las 22 del deslizador y se sumaba un día)
+  if (foto.activo && codigo !== 'KeyP') return;
   if (desafio?.caido) return;
   // Desafío: doble toque de A o D esquiva hacia ese lado
   if (desafio && (codigo === 'KeyA' || codigo === 'KeyD')) {
@@ -2405,6 +2428,8 @@ document.addEventListener('keydown', (e) => {
   }
   const js = jugador.estado;
   // 2.9: colgado de la tirolesa no se hace otra cosa (el aviso tampoco ofrece nada)
+  // 3.5.1: colgado del cable, Esc igual abre la pausa (en un cable largo se quedaba un minuto sin poder pausar)
+  if (js.enCable && codigo === 'Escape') { abrir('pausa'); return; }
   if (js.enCable) return;
   if (js.enTren && !charla.npc && !tren.conduciendo()) {
     // arriba del tren, WASD cambia de asiento o sale a la plataforma (2.9: en la cabina, W y S manejan)
@@ -2569,6 +2594,7 @@ document.addEventListener('keydown', (e) => {
           if (!r.ok) nota('Nada que desmontar', r.motivo);
           else {
             for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
+            devolverContenido(r.datos);   // 3.5.1
             progreso.obras = obras.obras.map((o) => o.datos);
             guardar(); sonido.juntar();
             const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => `${n} ${MATERIALES[k]?.nombre || k}`).join(' · ');
@@ -3462,6 +3488,11 @@ const TECLA_DE_MANDO = {
 const ACCIONES_TECLA_MANDO = Object.keys(TECLA_DE_MANDO);   // 2.7.3: una vez, no en cada cuadro
 const pisadasMando = new Set();
 function golpeDeTecla(code) {
+  // 3.5.1: el mando aprieta la tecla que el jugador eligió para esa acción. Antes apretaba la de
+  // fábrica y, con E movida a otra tecla, el botón X no hacía nada (la de fábrica quedaba huérfana)
+  // o hacía otra cosa (si otra acción había tomado esa tecla).
+  const accion = ACCIONES_TECLA.find((a) => TECLAS_POR_DEFECTO[a] === code);
+  if (accion && teclasPropias[accion]) code = teclasPropias[accion];
   document.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
   document.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
 }
@@ -3476,6 +3507,8 @@ function leerMando(dt) {
     habiaMando = m.conectado;
     document.body.classList.toggle('con-mando', m.conectado);
     nota(m.conectado ? 'Mando conectado' : 'Se desconectó el mando', m.conectado ? m.nombre : 'Volvés al teclado', true);
+    // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
+    if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
   }
   if (!m.conectado || modo !== 'jugando' || !jugador) return;
   girarMirada(jugador.estado, m.mirada, dt);
@@ -3721,6 +3754,9 @@ function usarCantero(c) {
   // La primera cosecha de cada cultivo va al cuaderno; lo juntado, a la mochila.
   registrar(ENTRADA_COSECHA[r.cultivo]);
   if (!progreso.entradas[r.ingrediente]) progreso.entradas[r.ingrediente] = { dia: progreso.dia, hora: progreso.horas, cantidad: 0 };
+  // 3.5.1: lo cosechado en total, para la historia (sin la cuenta todavía, arranca de lo que hay)
+  progreso.cosechasTotal = (progreso.cosechasTotal != null && Number.isFinite(Number(progreso.cosechasTotal)) ? Math.floor(Number(progreso.cosechasTotal))
+    : ['haba', 'papa', 'frutilla-huerta'].reduce((s, k) => s + (Number(progreso.entradas[k]?.cantidad) || 0), 0)) + r.cantidad;
   progreso.entradas[r.ingrediente].cantidad = (progreso.entradas[r.ingrediente].cantidad || 0) + r.cantidad;
   sonido.juntar();
   diario.anotar('cosecha', CULTIVOS[r.cultivo].nombre);
@@ -4408,6 +4444,7 @@ function anotarTalado(arbol) {
   const i = veg.arboles.indexOf(arbol);
   if (i < 0) return;
   talados().push({ i, dia: progreso.dia, esc: 0, apurado: false });
+  progreso.taladosTotal = Math.max(Math.floor(Number(progreso.taladosTotal)) || 0, talados().length - 1) + 1;   // 3.5.1: los tocones rebrotan; esto no baja
   diaRebrote = progreso.dia;
 }
 // Aplica la etapa que le toca a cada tocón. Al cargar la partida hay que forzarlo,
@@ -4597,7 +4634,7 @@ function dibujarPanelObra() {
 
   const ul = $('obra-etapas');
   ul.innerHTML = '';
-  const obra = p.pieza ? null : obras.obraCerca(jugador.estado.pos, 12, p.id);
+  const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obras.obraCerca(jugador.estado.pos, 12, p.id);
   const hechas = obra ? obra.datos.etapas : 0;
   p.etapas.forEach((e, i) => {
     const li = document.createElement('li');
@@ -4639,14 +4676,54 @@ function pedirNombre(obra) {
   nota(obra.datos.nombre, 'Quedó marcado en el mapa', true);
 }
 
+// 3.5.1: lo que se guarda por el lugar de la obra se muda con ella. Antes, mover un gallinero
+// (Shift+Y) dejaba los huevos del día en el lugar viejo y en el nuevo aparecían cuatro más, sin
+// fin; mover un cantero perdía lo sembrado; y el poblador seguía yendo a dormir a donde ya no
+// estaba su casa.
+function mudarDatosDeObra(o, x0, z0) {
+  const x1 = o.datos.x, z1 = o.datos.z;
+  const tabla = o.plano.id === 'cantero' ? huerta() : o.plano.id === 'gallinero' ? gallineros() : null;
+  if (tabla) {
+    const a = claveCantero(x0, z0), b = claveCantero(x1, z1);   // la misma clave que claveGallinero
+    if (a !== b && Object.hasOwn(tabla, a)) { tabla[b] = tabla[a]; delete tabla[a]; }
+  }
+  const viejo = claveCasa(o.plano.id, x0, z0);
+  for (const p of progreso.pueblo?.pobladores || []) {
+    if (p.casa?.id === viejo) p.casa = { ...p.casa, id: claveCasa(o.plano.id, x1, z1), x: x1, z: z1, rot: o.datos.rot || 0 };
+  }
+}
+// 3.5.1: desmontar una obra que trabaja devuelve lo que tenía adentro: antes se perdían los
+// troncos secos de la leñera, la miel, las truchas del ahumadero, las tablas del aserradero y la harina
+function devolverContenido(d) {
+  if (!d || typeof d !== 'object') return;
+  if (d.lenera) sumarMaterial('tronco', sanearLenera(d.lenera).secos);
+  if (d.aserradero) { const a = sanearAserradero(d.aserradero); sumarMaterial('tronco', a.troncos); sumarMaterial('tabla', a.tablas); }
+  if (d.muela) { const m = sanearMuela(d.muela); if (m.habas) sumarEntrada('haba', m.habas); if (m.harina) progreso.cosas.harina = (Number(progreso.cosas.harina) || 0) + m.harina; }
+  if (d.colmena) { const c = sanearColmena(d.colmena); if (c.miel) sumarEntrada('miel', c.miel); }
+  if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
+  refrescarBarra(true);
+}
+// 3.5.1: la pieza de varias etapas de este plano que quedó a medio hacer más cerca (o null)
+function piezaAMedias(plano, pos, radio) {
+  if (!plano?.pieza || !(plano.etapas?.length > 1)) return null;
+  let mejor = null, d0 = radio;
+  for (const o of obras.obrasCerca(pos, radio)) {
+    if (o.plano.id !== plano.id || o.datos.etapas >= o.plano.etapas.length) continue;
+    const d = Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z);
+    if (d < d0) { d0 = d; mejor = o; }
+  }
+  return mejor;
+}
 function accionObra() {
   const js = jugador.estado;
   if (obras.editando) {
     const adelante = obras.plano?.distancia || 2.4;
     const fx = js.pos.x - Math.sin(js.yaw) * adelante;
     const fz = js.pos.z - Math.cos(js.yaw) * adelante;
+    const movida = obras.editando, x0 = movida?.datos.x, z0 = movida?.datos.z;
     const r = obras.confirmarEdicion(fx, fz, js.yaw, js.pos.y);
     if (!r.ok) { nota('Acá no', r.motivo); return; }
+    if (movida) mudarDatosDeObra(movida, x0, z0);   // 3.5.1
     progreso.obras = obras.obras.map((o) => o.datos);
     guardar(); sonido.juntar(); ultimoSitioObra = '';
     nota(`${r.obra.plano.nombre} recolocado`, r.snap ? `Quedó alineado: ${r.snap.descripcion}` : 'Nueva posición guardada', true);
@@ -4654,7 +4731,24 @@ function accionObra() {
     return;
   }
   // las cosas chicas se ponen siempre nuevas; las grandes, se siguen levantando
-  const obra = obras.plano?.pieza ? null : obras.obraCerca(js.pos, 10, obras.plano?.id);
+  // 3.5.1: y las piezas de varias etapas (molino de agua, aserradero, estación meteorológica)
+  // también: antes cada Y fundaba otra y ninguna pasaba de la primera etapa (el capítulo 6 se trababa)
+  const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obras.obraCerca(js.pos, 10, obras.plano?.id);
+  if (obra?.plano.pieza) {
+    const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));
+    if (!r.ok) { nota('Todavía no', r.motivo); return; }
+    avisarSobrante(r);
+    progreso.obras = obras.obras.map((o) => o.datos);
+    sonido.encender();
+    if (r.terminada) {
+      nota(obra.plano.nombre, obra.plano.texto, true);
+      modos?.obraTerminada?.(obra.plano.id, progreso.horas);
+      registrar('piezas');
+    } else nota(r.etapa.nombre, r.etapa.dice);
+    guardar();
+    dibujarPanelObra();
+    return;
+  }
   if (obra) {
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
@@ -4696,9 +4790,13 @@ function accionObra() {
         nota('Todavía no', paso.motivo);
       } else {
         progreso.obras = obras.obras.map((o) => o.datos);
-        nota(obras.plano.nombre, obras.plano.texto, true);
-        modos?.obraTerminada?.(obras.plano.id, progreso.horas);   // 3.1: el desafío del día
-      registrar('piezas');
+        // 3.5.1: una pieza de varias etapas recién fundada todavía no está terminada
+        if (paso.terminada === false) nota(paso.etapa.nombre, `${paso.etapa.dice} · Y para seguir`);
+        else {
+          nota(obras.plano.nombre, obras.plano.texto, true);
+          modos?.obraTerminada?.(obras.plano.id, progreso.horas);   // 3.1: el desafío del día
+          registrar('piezas');
+        }
       }
     }
   } else {
@@ -5671,11 +5769,16 @@ function cobrarPremio(e) {
   if (!premio) return;
   for (const [k, n] of Object.entries(premio.materiales || {})) sumarMaterial(k, n);
   if (premio.ramitas) progreso.ramitas = (progreso.ramitas || 0) + premio.ramitas;
-  if (premio.cosa) progreso.cosas[premio.cosa] = 1;
+  // 3.5.1: Math.max: una cosa que se cuenta (la yerba) no vuelve a 1. El cierre del valle dejaba
+  // la yerba en 1 aunque tuvieras 40.
+  if (premio.cosa) progreso.cosas[premio.cosa] = Math.max(1, Number(progreso.cosas[premio.cosa]) || 0);
   // Lo que se cuenta (yerba, semillas) se suma a lo que ya tenías.
   for (const [k, n] of Object.entries(premio.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
   // El cierre deja varias cosas de una: las que ya tenías no se duplican.
+  const yaTenias = { ...progreso.cosas };
   for (const c of premio.cosas || []) progreso.cosas[c] = 1;
+  // 3.5.1: lo que se cuenta (la yerba) no vuelve a 1: el cierre del valle la dejaba en 1 aunque tuvieras 40
+  for (const c of premio.cosas || []) if (Number(yaTenias[c]) > 1) progreso.cosas[c] = Number(yaTenias[c]);
   refrescarBarra(true);
   setTimeout(() => nota('Te dejaron algo', premio.texto || 'Un regalo por el encargo', true), 1200);
   guardar();
@@ -5899,6 +6002,9 @@ async function sacarFoto() {
       cascada: cascada && cascada.pos,
       nahuelito: lomoVisible(),
     });
+    // 3.5.1: con la cámara libre del modo foto (volar hasta la torre, la hora del deslizador) la foto
+    // se guarda pero no cumple desafíos ni pedidos de cartas
+    if (foto.activo) vistos.length = 0;
     const nuevos = vistos.filter((id) => !progreso.desafios[id]);
     // 1.11: si una carta pedía esta foto, queda guardada para mandarla con Ercilia
     if (!desafio) {
@@ -5929,6 +6035,9 @@ async function sacarFoto() {
 let obrasAjenas = [];
 function guardar() {
   if (reiniciandoPartida || !jugador) return false;
+  // 3.5.1: durante el banco de pruebas el jugador va por el recorrido y la hora es la del tramo:
+  // no se guarda (al cerrar la ventana a mitad quedaba la posición y la hora del banco)
+  if (banco?.activa) return false;
   const m = T.lugares.muelle;
   const e = T.lugares.estacion;
   progreso.pos = jugador.estado.enKayak ? { x: m.punta.x, z: m.punta.z }
@@ -5940,10 +6049,14 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
+  // 3.5.1: en el modo foto la hora es la del deslizador: se guarda la del juego
+  const horasFoto = foto.activo && guardadoFoto ? progreso.horas : null;
+  if (horasFoto !== null) progreso.horas = guardadoFoto.horas;
   // las miniaturas van aparte: si hay alguna nueva, se escribe su clave
   const conImagen = Object.values(progreso.desafios || {}).filter((d) => d && d.img).length;
   if (conImagen !== fotosGuardadas) { guardarFotos(progreso.desafios); fotosGuardadas = conImagen; }
   const ok = guardarProgreso(obrasAjenas.length ? { ...progreso, obras: [...(progreso.obras || []), ...obrasAjenas] } : progreso);
+  if (horasFoto !== null) progreso.horas = horasFoto;   // 3.5.1: y sigue la del deslizador
   window.dispatchEvent(new CustomEvent('hojarasca:guardado', { detail: { ok, hora: Date.now() } }));
   if (!ok && !avisoGuardado) {
     avisoGuardado = true;
@@ -6413,9 +6526,19 @@ function contarAcercamientos() {
 
 function actualizarTiempo(dt) {
   const js = jugador.estado;
+  // 3.5.1: en el modo foto manda el deslizador; "En movimiento" corre la hora pero no cambia el día
+  // (se sumaban días sin fin poniendo 23.9 y esperando). Al salir vuelve la hora de antes.
+  if (foto.activo) {
+    if (ajustes.duracion !== 'reloj' && modo === 'jugando') progreso.horas = (progreso.horas + (dt * 24) / (ajustes.duracion * 60)) % 24;
+    return;
+  }
   if (ajustes.duracion === 'reloj') {
     const d = new Date();
+    const antes = progreso.horas;
     progreso.horas = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    // 3.5.1: con la hora de tu reloj el día no cambiaba nunca a la medianoche (sólo durmiendo):
+    // la huerta, el correo y los encargos quedaban quietos. Si esa noche ya se durmió, el día ya pasó.
+    if (!desafio && antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     const escala = js.sentado && !desafio?.hayAtaque() ? 40 : 1;
@@ -6554,7 +6677,8 @@ function bucle(tRaf, manual = false) {
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)
   contarAcercamientos();
   actualizarEscucha(dtReal);
-  if (modo === 'jugando') { actualizarTendales(); actualizarRastros(dtReal); revisarEstacion(); }
+  // 3.5.1: en el modo foto la hora es la del deslizador: los tendales, la colmena y el ahumadero no cuentan ese tiempo
+  if (modo === 'jugando') { if (!foto.activo) actualizarTendales(); actualizarRastros(dtReal); revisarEstacion(); }
   if (modo === 'jugando') actualizarMaquinas(dt);   // 2.9: el molino, el aserradero y la estación
   if (modo === 'jugando' && !desafio) { revisarColmenas(dtReal); actualizarLomo(dtReal); }
   actualizarTiempo(dt);
@@ -6638,7 +6762,7 @@ function bucle(tRaf, manual = false) {
   if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); }
   if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos);
   if (modo === 'jugando' && !desafio) revisarCorreo();
-  if (modo === 'jugando') revisarTormenta(dt);
+  if (modo === 'jugando' && !foto.activo) revisarTormenta(dt);   // 3.5.1: ni la tormenta
   if (modo === 'jugando') actualizarCaballo(dt);
   if (modo === 'jugando') modos?.actualizar(dt);   // 3.1: la carrera en curso, el desafío del día y el torneo
   if (modo === 'jugando') actualizarFeria();
@@ -7068,7 +7192,8 @@ function bucle(tRaf, manual = false) {
 
     // El mapa es completo desde el inicio; ya no existe niebla ni progreso de exploración cartográfica.
     acumuladoLugares += dt;
-    if (acumuladoLugares > 1) {
+    // 3.5.1: el banco de pruebas lleva la cámara por el valle: no anota lugares ni guarda
+    if (acumuladoLugares > 1 && !banco.activa) {
       acumuladoLugares = 0;
       for (const e of TODOS_LOS_ENCARGOS) {
         if (progreso.encargos[e.id] === 'pedido' && !progreso.encargos[e.id + '-aviso'] && e.cumplido(progreso)) {

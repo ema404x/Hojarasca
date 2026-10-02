@@ -23,8 +23,12 @@ export function caballoNuevo() {
 export function sanearCaballo(v, limite = Infinity) {
   const base = caballoNuevo();
   if (!v || typeof v !== 'object' || Array.isArray(v)) return base;
-  const x = Number(v.x), z = Number(v.z), yaw = Number(v.yaw);
-  if (Number.isFinite(x) && Number.isFinite(z) && Math.abs(x) <= limite && Math.abs(z) <= limite) { base.x = x; base.z = z; }
+  // 3.5.1: `null` (nunca lo moviste) no es el 0: Number(null) daba 0 y, al cargar cualquier
+  // partida, el zaino aparecía en el centro del mapa en vez de en el palenque
+  const num = (n) => (n === null || n === undefined || n === '' ? NaN : Number(n));
+  const x = num(v.x), z = num(v.z), yaw = Number(v.yaw);
+  // (las partidas que ya pasaron por eso traen justo 0,0: vuelven al palenque)
+  if (Number.isFinite(x) && Number.isFinite(z) && !(x === 0 && z === 0) && Math.abs(x) <= limite && Math.abs(z) <= limite) { base.x = x; base.z = z; }
   if (Number.isFinite(yaw)) base.yaw = yaw;
   return base;
 }

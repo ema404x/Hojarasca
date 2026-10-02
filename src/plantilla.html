@@ -43,7 +43,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
     /* accesibilidad: toda la interfaz se agranda junta, sin tocar el mundo */
     :root { --escala-letra: 1; --peligro: #ff5a3d; --salud: #a6ff6e; --aviso-color: #e0b12a; }
     #hud, #pausa > div, #guia > div, #partidas > div, #teclas > div, #controles-completos > div, #creditos > div, #logros > div, #victoria > div, #inicio > div, #personalizar > div { zoom: var(--escala-letra); }
-    .sonidos-escritos { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
+    .sonidos-escritos { position: absolute; left: 50%; bottom: calc(max(13vh, 124px) + 56px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
     .sonidos-escritos p { margin: 0; padding: 1px 10px; font-family: 'Spectral', Georgia, serif; font-style: italic; font-size: calc(17px * var(--escala-letra, 1)); color: #e8e2cf; background: rgba(8,10,8,.55); border-radius: 4px; text-shadow: 0 1px 3px #000; }
     .subtitulos { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(720px, 76vw); display: flex; flex-direction: column; gap: 3px; text-align: center; pointer-events: none; }
     .subtitulos p { margin: 0; padding: 3px 12px; border-radius: 6px; background: rgba(12,16,13,.72); font-size: 15px; line-height: 1.35; }
@@ -160,9 +160,11 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .tinte { position: absolute; inset: 0; mix-blend-mode: soft-light; opacity: 0; transition: background-color .6s, opacity .6s; }
 .vineta { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 76% at 50% 48%, transparent 55%, rgba(8,12,9,.42) 100%); }
 .mira { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(239,230,210,.7); box-shadow: 0 0 3px rgba(0,0,0,.6); transition: opacity .3s; }
-.aviso { position: absolute; left: 50%; bottom: 13vh; transform: translateX(-50%); font-size: 19px; padding: 9px 18px 7px; border-radius: 10px;
+/* 3.5.1: el estado (nadando, agachado, el tren) iba en 6vh, debajo del borde de la barra de casillas
+   (14px + 70px): se dibujaba encima de las casillas. Ahora va justo arriba de la barra y el aviso, arriba de él. */
+.aviso { position: absolute; left: 50%; bottom: max(13vh, 124px); transform: translateX(-50%); font-size: 19px; padding: 9px 18px 7px; border-radius: 10px;
   background: var(--tinta-velo); backdrop-filter: blur(6px); white-space: nowrap; transition: opacity .2s; }
-.estado { position: absolute; left: 50%; bottom: 6vh; transform: translateX(-50%); font-size: 16px; color: rgba(239,230,210,.85); text-shadow: 0 1px 8px rgba(0,0,0,.8); white-space: nowrap; }
+.estado { position: absolute; left: 50%; bottom: 94px; transform: translateX(-50%); font-size: 16px; color: rgba(239,230,210,.85); text-shadow: 0 1px 8px rgba(0,0,0,.8); white-space: nowrap; }
 /* 2.0: escuchar con atención. Arriba del centro, en cursiva y apagado: es lo que se
    oye, no una orden. */
 .escucha { position: absolute; left: 50%; top: 38vh; transform: translateX(-50%); font: italic 17px Spectral, Georgia, serif; color: rgba(236,228,206,.82); text-shadow: 0 1px 10px rgba(0,0,0,.85); white-space: nowrap; letter-spacing: .02em; transition: opacity .6s; pointer-events: none; }
@@ -182,7 +184,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
   -webkit-mask-composite: source-in; mask-composite: intersect; }
 .prismaticos.activo { opacity: 1; }
 .equipo { position: absolute; right: 28px; bottom: 26px; font-size: 16px; text-align: right; white-space: pre-line; line-height: 1.6; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
-.tension { position: absolute; left: 50%; bottom: 20vh; width: 280px; height: 7px; transform: translateX(-50%); background: rgba(20,28,23,.65); border-radius: 99px; overflow: hidden; box-shadow: 0 0 0 1px rgba(239,230,210,.25); }
+.tension { position: absolute; left: 50%; bottom: max(20vh, 172px); width: 280px; height: 7px; transform: translateX(-50%); background: rgba(20,28,23,.65); border-radius: 99px; overflow: hidden; box-shadow: 0 0 0 1px rgba(239,230,210,.25); }
 .tension i { display: block; height: 100%; width: 0; background: var(--musgo); transition: background .2s; }
 .tension.alta i { background: var(--notro); }
 .barra { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px;

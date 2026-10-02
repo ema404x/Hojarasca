@@ -6,7 +6,7 @@
 // Sin THREE: lo del mundo lo hace el juego por medio de `ctx` (ver `historia-ui.js`).
 
 import { EVENTO_VALLE, SEGUIMIENTOS, sanearEventosValle, revisarEventos, forzarEvento, elegirOpcion, seguimientoListo, cerrarSeguimiento, sumarGratitud, faltaPara, nombreCosa, nombreVecinoEvento } from './eventos-valle.js';
-import { mesaPuesta, VISITANTES } from './visitas.js';
+import { mesaPuesta, VISITANTES, VISITA } from './visitas.js';
 import { TRUEQUES } from './trueque.js';
 import { puedeLlegarPoblador, llamarPoblador } from './pueblo.js';
 
@@ -107,10 +107,14 @@ export function crearEventosValleUi(ctx, tarjetas) {
           // viene a la mesa de verdad (lo trae el sistema de visitas): si no hay mesa, no viene
           const v = p.visitas;
           const hayMesa = !!mesaPuesta(ctx.extra().terminadas || []);
-          if (v && !v.activa && hayMesa && ctx.extra().vecinos !== false && Object.hasOwn(VISITANTES, f.quien)) {
+          // 3.5.1: aceptada a la noche, la visita se "terminaba" sola sin que viniera nadie: contaba para el
+          // capítulo 8 y trababa la visita de verdad por tres días. Tarde, no viene.
+          const temprano = (Number(p.horas) || 0) < VISITA.seVa - 1;
+          if (v && !v.activa && hayMesa && temprano && ctx.extra().vecinos !== false && Object.hasOwn(VISITANTES, f.quien)) {
             v.activa = { clave: f.quien, dia: p.dia, charlo: false };
             ctx.nota(`${nombreVecinoEvento(f.quien)} viene a tu mesa`, 'Te espera ahí hasta que caiga la noche', true);
           } else if (!hayMesa) dichos.push(`${nombreVecinoEvento(f.quien)} pasó, pero no tenías mesa puesta`);
+          else if (!temprano) dichos.push(`${nombreVecinoEvento(f.quien)} quería pasar, pero ya se hizo tarde`);
           break;
         }
         case 'poblador': {
@@ -159,7 +163,7 @@ export function crearEventosValleUi(ctx, tarjetas) {
       opciones: [{ id: 'seguir', texto: 'Seguir', detalle: '' }],
       alElegir: () => {
         const p = ctx.progreso();
-        const r = cerrarSeguimiento(ev(), s.id, p.dia);
+        const r = cerrarSeguimiento(ev(), s.id, p.dia, { vecinos: ctx.extra().vecinos !== false });   // 3.5.1
         tarjetas.cerrar();
         if (r) {
           const dichos = aplicar(r.efectos);
