@@ -31,6 +31,9 @@ ipcMain.handle('graficos-fallaron', () => {
 });
 if (process.platform === 'win32') app.setAppUserModelId('ar.hojarasca.juego');
 
+// 3.5.4: con el juego ya abierto, abrirlo otra vez sólo trae al frente la ventana que hay. Antes
+// la segunda copia igual llegaba a abrir su ventana (app.quit() antes de estar listo no frena
+// whenReady) y cargaba el juego con el mismo perfil un par de segundos.
 const primeraInstancia = app.requestSingleInstanceLock();
 if (!primeraInstancia) app.quit();
 let ventanaPrincipal = null;
@@ -113,14 +116,15 @@ function crearVentana() {
       backgroundThrottling: false,
       devTools: !app.isPackaged,
       spellcheck: false,
+      navigateOnDragDrop: false,   // 3.5.4: soltar un archivo sobre la ventana no la lleva a ese archivo
     },
   });
 
   ventanaPrincipal = ventana;
   ventana.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  ventana.webContents.on('will-navigate', (evento, url) => {
-    if (!url.startsWith('file://')) evento.preventDefault();
-  });
+  // 3.5.4: sólo navega al juego mismo (antes pasaba cualquier file://), sin historial para
+  // "atrás", y guarda si Windows cierra la sesión o la compu se suspende (ver ventana-main.cjs)
+  cuidarVentana({ ventana, index: path.join(__dirname, 'index.html'), escribirCrash, powerMonitor: require('electron').powerMonitor });
   ventana.on('closed', () => { if (ventanaPrincipal === ventana) ventanaPrincipal = null; });
   ventana.once('ready-to-show', () => ventana.show());
   ventana.webContents.on('render-process-gone', (_e, d) => {
@@ -221,7 +225,10 @@ const recuperacion = registrarRecuperacion({
 // 1.11: la partida en una carpeta sincronizada (ver sincronia-main.cjs y src/sincronia.js)
 require('./sincronia-main.cjs').registrarSincronia({ ipcMain, dialog, app, ventana: () => ventanaPrincipal, alError: (m) => escribirCrash('sync', m) });
 
+const { cuidarVentana } = require('./ventana-main.cjs');
+
 app.whenReady().then(() => {
+  if (!primeraInstancia) return;   // 3.5.4: la segunda copia no abre nada (ver arriba)
   const build = reconstruirBundleSiHaceFalta();
   if (!build.ok) {
     dialog.showErrorBox(

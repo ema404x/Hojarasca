@@ -42,7 +42,13 @@ export function crearJugador(camara, T, col, opciones) {
     if (bloqueado) fallos = 0;
     if (!bloqueado && !modoArrastre) opciones.alSoltar?.();
   });
-  const fallo = () => { fallos++; if (fallos >= 3) { modoArrastre = true; opciones.alBloquear?.(); } };
+  // 3.5.4: sólo cuenta como fallo un pedido que podía andar: con la ventana enfocada y por un clic
+  // o una tecla del jugador. Antes, tres pedidos fallidos que no podían andar (Esc para pausar y
+  // Esc para volver enseguida: Chromium no vuelve a bloquear sin un clic; o la ventana sin foco)
+  // pasaban el juego para siempre a "arrastrar para mirar": el mouse no se volvía a bloquear en
+  // toda la sesión y la pausa al salir de la ventana dejaba de andar.
+  let pedidoValido = true;
+  const fallo = () => { if (!pedidoValido) return; fallos++; if (fallos >= 3) { modoArrastre = true; opciones.alBloquear?.(); } };
   document.addEventListener('pointerlockerror', fallo);
   lienzo.addEventListener('mousedown', (e) => {
     if (e.button === 2 && estado.alUsar) estado.alUsar();
@@ -89,6 +95,7 @@ export function crearJugador(camara, T, col, opciones) {
 
   function pedirBloqueo() {
     if (modoArrastre) { opciones.alBloquear?.(); return; }
+    pedidoValido = document.hasFocus() && (!navigator.userActivation || navigator.userActivation.isActive);
     try {
       const r = lienzo.requestPointerLock();
       if (r && r.catch) r.catch(() => {});

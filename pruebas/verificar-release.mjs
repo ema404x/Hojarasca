@@ -20,7 +20,9 @@ if (!pkg.build?.nsis?.artifactName || !pkg.build?.portable?.artifactName || pkg.
 if (!pkg.scripts?.['dist:steam:win']?.includes('--win --dir')) fallo.push('falta target de carpeta para depot de Steam');
 const electronMain = fs.readFileSync(path.join(raiz,'main.cjs'),'utf8');
 if (!electronMain.includes('sandbox: true') || !electronMain.includes('contextIsolation: true') || !electronMain.includes('nodeIntegration: false')) fallo.push('BrowserWindow no está endurecido para release');
-if (!electronMain.includes('setWindowOpenHandler') || !electronMain.includes("will-navigate")) fallo.push('faltan bloqueos de navegación/popups externos');
+// 3.5.4: el bloqueo de navegación vive en ventana-main.cjs (cuidarVentana), que main.cjs usa
+const ventanaMain = existe('ventana-main.cjs') ? fs.readFileSync(path.join(raiz,'ventana-main.cjs'),'utf8') : '';
+if (!electronMain.includes('setWindowOpenHandler') || !(electronMain.includes("will-navigate") || (electronMain.includes('cuidarVentana(') && ventanaMain.includes("'will-navigate'")))) fallo.push('faltan bloqueos de navegación/popups externos');
 const index = fs.readFileSync(path.join(raiz,'index.html'),'utf8');
 for (const marca of [`HOJARASCA BUILD ${pkg.version}`,'btn-guardar','btn-controles','btn-salir','Mapa completo del valle',`VERSION_FALLBACK = '${pkg.version}'`,'movimientoCamara','obra-categorias','obra-sitio']) {
   if (!index.includes(marca)) fallo.push(`index.html no contiene ${marca}`);
