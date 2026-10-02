@@ -349,7 +349,15 @@ export function crearPasto(calidad) {
         float temporada = (1.0 - smoothstep(0.02, 0.25, uInvierno)) * (1.0 - smoothstep(0.2, 0.9, uOtono) * 0.8);
         // el amancay: en el borde del bosque (ni adentro ni en el prado abierto), en manchones
         float borde = smoothstep(0.12, 0.3, m.a) * (1.0 - smoothstep(0.55, 0.8, m.a)) * (1.0 - smoothstep(0.2, 0.5, m.g)) * (1.0 - est.r) * (1.0 - est.g);
-        float amancay = borde * smoothstep(0.62, 0.8, vnoise(b * 0.045 + vec2(31.0, 5.0))) * smoothstep(0.35, 0.65, vnoise(b * 0.21 + vec2(7.0, 2.0))) * 0.5;
+        // 3.5.2: el bosque se abre también a lo largo de los senderos, la vía y los ríos (unos metros
+        // de cada lado): ese "borde" es una tira angosta y el amancay salía en franja, como un
+        // cantero plantado a la orilla del camino. Donde el bosque de alrededor (una cruz de 10 m)
+        // es bastante más tupido que el de acá, es un corte, no un borde: ahí no sale. Y en
+        // matas sueltas de unos metros (no un manto parejo dentro del manchón).
+        float bosqueAlrededor = (texture2D(uMascara, uvTerreno(b + vec2(10.0, 0.0))).a + texture2D(uMascara, uvTerreno(b - vec2(10.0, 0.0))).a
+          + texture2D(uMascara, uvTerreno(b + vec2(0.0, 10.0))).a + texture2D(uMascara, uvTerreno(b - vec2(0.0, 10.0))).a) * 0.25;
+        borde *= 1.0 - smoothstep(0.12, 0.3, bosqueAlrededor - m.a);
+        float amancay = borde * smoothstep(0.62, 0.8, vnoise(b * 0.045 + vec2(31.0, 5.0))) * smoothstep(0.5, 0.72, vnoise(b * 0.17 + vec2(7.0, 2.0))) * 0.5;
         float densPrado = max(campo.x, campo.y) * prado;
         float dens = max(densPrado, amancay) * temporada;
         // 0 lupino · 1 margarita · 2 amancay

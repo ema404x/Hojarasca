@@ -166,7 +166,11 @@ function materialImpostor(estado) {
       uAtlasColor: estado.uColor, uAtlasNormal: estado.uNormal,
       uAngulosImp: { value: ANGULOS_IMPOSTOR }, uFilasImp: estado.uFilas,
       uImpInicio: estado.uInicio, uImpFin: estado.uFin, uImpLejos: estado.uLejos,
-      uOtonoImp: U.uOtono, uInviernoImp: U.uInvierno, uTrasluzImp: U.uTrasluz, uLluviaImp: U.uLluvia,
+      uOtonoImp: U.uOtono, uInviernoImp: U.uInvierno, uTrasluzImp: U.uTrasluz, uLluviaImp: U.uLluvia, uNubesImp: U.uNubes,
+      // 3.5.2: el tiempo, para los bancos de niebla que se corren (la niebla por altura del paisaje lo
+      // declara en conTechoNiebla si el fragmento no lo tiene; sin el valor, los bancos quedaban quietos
+      // en los carteles y se movían en el resto del bosque)
+      uTiempo: U.uTiempo,
       uSolDirImp: U.uSolDir, uSolColorImp: U.uSolColor, uCieloBajoImp: U.uCieloBajo,
       uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrumaFuerza: U.uBrumaFuerza, uGradoMat: U.uGradoMat, uSolDirEst: U.uSolDir,
     });
@@ -218,7 +222,7 @@ function materialImpostor(estado) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         uniform sampler2D uAtlasColor; uniform sampler2D uAtlasNormal;
-        uniform float uOtonoImp; uniform float uInviernoImp; uniform float uTrasluzImp; uniform float uLluviaImp;
+        uniform float uOtonoImp; uniform float uInviernoImp; uniform float uTrasluzImp; uniform float uLluviaImp; uniform float uNubesImp;
         uniform vec3 uSolDirImp; uniform vec3 uSolColorImp; uniform vec3 uCieloBajoImp;
         varying vec2 vUvImp; varying vec2 vUvImp1; varying float vMezclaImp; varying vec3 vRot0Imp; varying vec3 vRot2Imp; varying float vAzarImp; varying float vAlturaImp; varying vec3 vPosMundoImp;
         ${GLSL_ESTILO}`)
@@ -242,7 +246,10 @@ function materialImpostor(estado) {
         }
         // (3.5: el follaje con el mismo umbral que el árbol 3D: la normal horneada es la del racimo,
         // corrida como en promedio las cartas cercanas, que se nievan sólo en su mitad de arriba)
-        if (tipoImp < 2.5 && tipoImp > 0.5 || tipoImp > 3.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.80, 0.84, 0.90), uInviernoImp * (tipoImp > 3.5 ? smoothstep(0.3, 0.85, nObjImp.y) : smoothstep(0.5, 0.95, nObjImp.y - 0.2)) * 0.9);
+        // (3.5.2: la nieve del follaje, el mismo color que en materialVegetal)
+        // (3.5.2: y cuánta nieve tiene, para bajarle el trasluz y el dorado como en materialVegetal)
+        float nieveImp = (tipoImp < 2.5 && tipoImp > 0.5 || tipoImp > 3.5) ? uInviernoImp * (tipoImp > 3.5 ? smoothstep(0.3, 0.85, nObjImp.y) : smoothstep(0.5, 0.95, nObjImp.y - 0.2)) * 0.9 : 0.0;
+        diffuseColor.rgb = mix(diffuseColor.rgb, tipoImp > 3.5 ? vec3(0.80, 0.84, 0.90) : vec3(0.72, 0.76, 0.83), nieveImp);
         vec3 nMundoImp = normalize(vRot0Imp * nObjImp.x + vec3(0.0, 1.0, 0.0) * nObjImp.y + vRot2Imp * nObjImp.z);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         normal = normalize((viewMatrix * vec4(nMundoImp, 0.0)).xyz);`)
@@ -260,7 +267,8 @@ function materialImpostor(estado) {
             float alturaCopa = smoothstep(0.7, 7.0, vAlturaImp);
             gl_FragColor.rgb *= mix(0.88, 1.025, alturaCopa * 0.72 + arribaHoja * 0.28);
             gl_FragColor.rgb += uCieloBajoImp * arribaHoja * 0.018;
-            gl_FragColor.rgb *= mix(vec3(0.86, 0.97, 1.06), vec3(1.1, 1.04, 0.84), smoothstep(0.0, 0.8, luzLateral));
+            vec3 temple352 = mix(vec3(0.86, 0.97, 1.06), vec3(1.1, 1.04, 0.84), smoothstep(0.0, 0.8, luzLateral));
+            gl_FragColor.rgb *= mix(temple352, min(temple352, vec3(1.0)), nieveImp);   // 3.5.2
             if (uLluviaImp > 0.01) gl_FragColor.rgb *= mix(1.0, 0.78, uLluviaImp * 0.8);
           } else if (uInviernoImp > 0.05) {
             float acumula = smoothstep(0.45, 0.95, nMundoImp.y) * uInviernoImp * 0.82;
@@ -269,20 +277,21 @@ function materialImpostor(estado) {
           #if NUM_DIR_LIGHTS > 0
           {
             float atras = max(0.0, dot(-vistaM, normalize(uSolDirImp)));
-            float brillo = pow(atras, 8.0) * uTrasluzImp * esHoja * (1.0 - uInviernoImp * 0.75);
+            float brillo = pow(atras, 8.0) * uTrasluzImp * esHoja * (1.0 - uInviernoImp * 0.75) * (1.0 - nieveImp);   // (3.5.2)
             gl_FragColor.rgb += directionalLights[0].color * brillo * (diffuseColor.rgb * 2.4 + 0.02) * vec3(1.0, 0.92, 0.5) * 0.5;
           }
           #endif
           float rasanteVeg = 1.0 - smoothstep(0.07, 0.36, abs(uSolDirImp.y));
           float bordeSolVeg = pow(max(dot(-vistaM, uSolDirImp), 0.0), 4.0);
+          // 3.5.2: el aire del suelo, con la misma cuenta que el árbol 3D (materialVegetal) y que
+          // materialTerreno: el bosque lejano ya no queda pálido y despegado de la ladera
           float dAireVeg = length(vPosMundoImp.xz - cameraPosition.xz);
-          float aireVeg = smoothstep(60.0, 300.0, dAireVeg);
-          float bajoVeg = 1.0 - smoothstep(40.0, 220.0, max(0.0, vPosMundoImp.y - cameraPosition.y));
-          gl_FragColor.rgb += uSolColorImp * bordeSolVeg * rasanteVeg * esHoja * (1.0 - aireVeg * 0.65) * 0.07;
+          float aireVeg = smoothstep(70.0, 380.0, dAireVeg) * (1.0 + uNubesImp * 0.4 + uLluviaImp * 0.5);
+          float bajoVeg = 1.0 - pow(max(dot(-vistaM, normalize(uSolDirImp)), 0.0), 3.0) * (1.0 - smoothstep(0.06, 0.4, uSolDirImp.y)) * step(0.0, uSolDirImp.y) * 0.45 * (1.0 - uNubesImp * 0.6);
+          bajoVeg *= 0.6 + 0.4 * exp(-max(vPosMundoImp.y - vAlturaImp - 14.0, 0.0) / 90.0);   // (la altura del pie)
+          gl_FragColor.rgb += uSolColorImp * bordeSolVeg * rasanteVeg * esHoja * (1.0 - min(aireVeg, 1.0) * 0.65) * (1.0 - nieveImp) * 0.07;
           gl_FragColor.rgb = gradoEstilo(gl_FragColor.rgb);
-          float lumVeg = dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(lumVeg), aireVeg * 0.4);
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBruma(-vistaM), aireVeg * bajoVeg * 0.34 * uBrumaFuerza);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBruma(-vistaM), clamp(aireVeg * bajoVeg * 0.2 * uBrumaFuerza, 0.0, 0.4));
         }`);
   };
   m.customProgramCacheKey = () => 'impostor-3.4';

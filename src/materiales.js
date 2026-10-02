@@ -146,6 +146,9 @@ const uniformesEstilo = () => ({ uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrum
 // 3.5: el aTipo de las frondas de helecho del sotobosque: follaje perenne (entre 0.5 y 1.5), con su
 // otoño herrumbre y menos nieve encima (ver color_vertex)
 export const TIPO_HELECHO = 1.25;
+// 3.5.2: el aTipo del coirón: pasto perenne de la estepa (entre 1.35 y 1.45). No se cierra con el
+// invierno como las flores: queda seco y pajizo, con la nieve en las puntas (ver color_vertex)
+export const TIPO_COIRON = 1.4;
 export function materialVegetal({ flex = 1, doble = false, lod = null, copa = false, detalle = true, soto = null } = {}) {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: doble ? THREE.DoubleSide : THREE.FrontSide });
   m.userData.estilo = { copa, detalle };
@@ -163,6 +166,7 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
       uTiempo: U.uTiempo, uViento: U.uViento, uOtono: U.uOtono, uInvierno: U.uInvierno, uFlex: { value: flex },
       uJugadorVeg: U.uJugador, uCieloBajoVeg: U.uCieloBajo, uSolDirVeg: U.uSolDir, uSolColorVeg: U.uSolColor,
       uMojadoVeg: U.uMojado,
+      uNubesVeg: U.uNubes,   // 3.5.2: el aire del follaje es el del suelo (ver opaque_fragment)
       // 3.4: 1 en árboles y arbustos (copa): la madera es corteza con vetas; 0 en
       // estructuras (tablas y vigas siguen con la pincelada de siempre)
       uCortezaVeg: { value: copa ? 1 : 0 },
@@ -175,6 +179,7 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
         attribute float aTipo;
         ${GLSL_COMUN}`)
       .replace('#include <color_vertex>', `#include <color_vertex>
+        vNieveVeg = 0.0;   // 3.5.2
         {
           vec3 posI = vec3(0.0);
           #ifdef USE_INSTANCING
@@ -195,6 +200,13 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             float lumF = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
             vColor.rgb = mix(vColor.rgb, herrumbre * clamp(lumF / 0.1, 0.5, 1.3), uOtono * mix(0.6, 0.95, fract(azar * 4.7)));
           }
+          // 3.5.2: el coirón (aTipo ${TIPO_COIRON}) en invierno: la paja se seca y se destiñe (más pálida
+          // y gris), no desaparece
+          bool coiron352 = aTipo > 1.35 && aTipo < 1.45;
+          if (coiron352) {
+            float lumC = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+            vColor.rgb = mix(vColor.rgb, mix(vec3(lumC), vColor.rgb, 0.65) * vec3(1.1, 1.06, 1.0), uInvierno * 0.8);
+          }
           // oclusión: lo que está cerca del suelo recibe menos luz del cielo
           float ao = mix(0.62, 1.0, smoothstep(0.0, 1.6, position.y));
           vColor.rgb *= ao;
@@ -207,7 +219,14 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             // y de cerca verde, y cada árbol cambiaba al cruzar el LOD. Techos y piedras, igual.
             float nyNieve = normal.y;
             float arriba = aTipo > 3.5 ? smoothstep(0.3, 0.85, nyNieve) : smoothstep(0.5, 0.95, nyNieve) * (helecho35 ? 0.45 : 1.0);
-            vColor.rgb = mix(vColor.rgb, vec3(0.80, 0.84, 0.90), uInvierno * arriba * 0.9);
+            // (3.5.2: el coirón tiene las hojas paradas: la nieve se apoya en la mitad de arriba de la mata)
+            if (coiron352) arriba = smoothstep(0.25, 1.0, position.y) * 0.6;
+            // (3.5.2: la nieve del follaje un poco menos blanca que la de techos y piedras: al sol, los
+            // árboles nevados encandilaban; los carteles de impostores.js usan el mismo color)
+            vColor.rgb = mix(vColor.rgb, aTipo > 3.5 ? vec3(0.80, 0.84, 0.90) : vec3(0.72, 0.76, 0.83), uInvierno * arriba * 0.9);
+            // 3.5.2: cuánta nieve tiene esta hoja: el fragmento le baja el borde de sol, el trasluz y
+            // el dorado (sobre la nieve blanca encandilaban)
+            if (aTipo < 3.5) vNieveVeg = uInvierno * arriba * 0.9;
           }
         }`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -266,7 +285,7 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
       .replace('#include <common>', `#include <common>
         uniform float uTrasluz;
         uniform float uInvierno;
-        uniform float uLluviaVeg; uniform float uMojadoVeg;
+        uniform float uLluviaVeg; uniform float uMojadoVeg; uniform float uNubesVeg;
         uniform sampler2D uEstepaVeg;
         uniform vec3 uJugadorVeg;
         uniform vec3 uCieloBajoVeg; uniform vec3 uSolDirVeg; uniform vec3 uSolColorVeg;
@@ -279,6 +298,7 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
         varying float vHojas;
         varying float vTipoVeg;
         varying vec2 vRaizVeg;
+        varying float vNieveVeg;
         ${GLSL_COMUN}
         ${GLSL_ESTILO}`)
       .replace('#include <opaque_fragment>', `#include <opaque_fragment>
@@ -320,7 +340,7 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
           // 3.3: luz dorada en el bosque. La mancha de sol que llega al tronco (la luz directa
           // que dejó pasar la sombra) se entibia, y el pie de los troncos toma un rebote dorado
           // suave del piso (más en el lado que da al sol). De noche uSolColor se apaga.
-          gl_FragColor.rgb += reflectedLight.directDiffuse * vec3(0.22, 0.11, -0.03) * (esMadera + esHoja * 0.35);
+          gl_FragColor.rgb += reflectedLight.directDiffuse * vec3(0.22, 0.11, -0.03) * (esMadera + esHoja * 0.35 * (1.0 - vNieveVeg));   // (3.5.2: no sobre la nieve)
           // 3.4: la corteza a la sombra no es negra: rebote tibio del piso del bosque y algo del
           // cielo, en proporción a su color (sombra parda, no negra). Se apaga hacia los 115 m,
           // donde el árbol pasa a ser cartel (impostores.js no lo tiene).
@@ -358,13 +378,16 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
               ladoLuz34 = mix(ladoLuz34, smoothstep(0.12, 0.62, luzLateral + (pinc34 - 0.5) * 0.8), cercaHoja34);
               gl_FragColor.rgb *= 1.0 + (smoothstep(0.25, 0.75, pinc34) - 0.5) * 0.3 * cercaHoja34;
             }
-            gl_FragColor.rgb *= mix(vec3(0.86, 0.97, 1.06), vec3(1.1, 1.04, 0.84), ladoLuz34);
+            vec3 temple352 = mix(vec3(0.86, 0.97, 1.06), vec3(1.1, 1.04, 0.84), ladoLuz34);
+            // (3.5.2: sobre la nieve, sin el refuerzo del lado del sol: la sombra fría queda)
+            gl_FragColor.rgb *= mix(temple352, min(temple352, vec3(1.0)), vNieveVeg);
             // 3.2: borde pintado. El contorno que da al sol se enciende cálido y el que queda
             // a la sombra toma el turquesa del cielo: la copa se lee por su silueta.
             float borde = 1.0 - max(dot(nMV, vistaM), 0.0);
             float borde3 = borde * borde * borde;
             // (teñido por el color propio de la hoja: el borde brilla verde dorado, no blanco)
-            vec3 tinteBorde = diffuseColor.rgb * 2.2 + 0.015;
+            // (3.5.2: con tope: sobre la nieve del follaje el borde era un halo blanco al sol)
+            vec3 tinteBorde = (min(diffuseColor.rgb, vec3(0.4)) * 2.2 + 0.015) * (1.0 - vNieveVeg * 0.8);
             gl_FragColor.rgb += uSolColorVeg * tinteBorde * borde3 * luzLateral * (0.35 + 0.25 * alturaCopa);
             gl_FragColor.rgb += uCieloBajoVeg * tinteBorde * borde3 * (1.0 - luzLateral) * 0.25;
             if (uLluviaVeg > 0.01) gl_FragColor.rgb *= mix(1.0, 0.78, uLluviaVeg * 0.8);
@@ -401,7 +424,8 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             // lo que se enciende es lo que tiene el sol justo detrás
             float atras = max(0.0, dot(-vistaM, normalize(uSolDirVeg)));
             // RC31.2: cono estrecho y aporte moderado, atenuado con nieve en la copa.
-            float brillo = pow(atras, 8.0) * uTrasluz * vHojas * (1.0 - uInvierno * 0.75);
+            // (3.5.2: y nada sobre la hoja nevada: la nieve no deja pasar la luz)
+            float brillo = pow(atras, 8.0) * uTrasluz * vHojas * (1.0 - uInvierno * 0.75) * (1.0 - vNieveVeg);
             // 3.2: la luz que atraviesa la hoja toma el color de la hoja (verde dorado), no blanquea
             gl_FragColor.rgb += directionalLights[0].color * brillo * (diffuseColor.rgb * 2.4 + 0.02) * vec3(1.0, 0.92, 0.5) * 0.5;
           }
@@ -411,19 +435,25 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
           float bordeSolVeg = pow(max(dot(-vistaM, uSolDirVeg), 0.0), 4.0);
           // RC30 → 3.2: perspectiva aérea con color (la bruma del estilo): el bosque medio
           // se aclara hacia el turquesa del aire, o hacia el dorado si se mira al sol.
+          // 3.5.2: la MISMA cuenta que el suelo (materialTerreno, aireSuelo): antes el follaje
+          // empezaba antes (60 m), se desteñía un 40 % y tomaba hasta un 34 % de bruma, y el suelo
+          // sólo un 20 % sin desteñir: a 150–300 m los árboles quedaban pálidos y grises, despegados
+          // de la ladera, y los que se achican en el borde del alcance se leían como manchas claras
+          // redondas. Ahora árbol y suelo toman el mismo aire a la misma distancia.
           float dAireVeg = length(vPosMundoVeg.xz - cameraPosition.xz);
-          float aireVeg = smoothstep(60.0, 300.0, dAireVeg);
-          float bajoVeg = 1.0 - smoothstep(40.0, 220.0, max(0.0, vPosMundoVeg.y - cameraPosition.y));
-          gl_FragColor.rgb += uSolColorVeg * bordeSolVeg * rasanteVeg * esHoja * (1.0 - aireVeg * 0.65) * 0.07;
+          float aireVeg = smoothstep(70.0, 380.0, dAireVeg) * (1.0 + uNubesVeg * 0.4 + uLluviaVeg * 0.5);
+          // (como el suelo: a contraluz con el sol bajo pesa menos)
+          float bajoVeg = 1.0 - pow(max(dot(-vistaM, normalize(uSolDirVeg)), 0.0), 3.0) * (1.0 - smoothstep(0.06, 0.4, uSolDirVeg.y)) * step(0.0, uSolDirVeg.y) * 0.45 * (1.0 - uNubesVeg * 0.6);
+          // (y como el suelo de la 3.5.2 (paisaje), pesa menos en lo alto: con la altura del pie del
+          // árbol, así el árbol toma el aire del suelo que lo rodea)
+          bajoVeg *= 0.6 + 0.4 * exp(-max(vSueloVeg - 14.0, 0.0) / 90.0);
+          gl_FragColor.rgb += uSolColorVeg * bordeSolVeg * rasanteVeg * esHoja * (1.0 - min(aireVeg, 1.0) * 0.65) * (1.0 - vNieveVeg) * 0.07;
           gl_FragColor.rgb = gradoEstilo(gl_FragColor.rgb);
-          // lo lejano pierde color y se azula: el bosque de atrás no es el mismo verde de adelante
-          float lumVeg = dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(lumVeg), aireVeg * 0.4);
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBruma(-vistaM), aireVeg * bajoVeg * 0.34 * uBrumaFuerza);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBruma(-vistaM), clamp(aireVeg * bajoVeg * 0.2 * uBrumaFuerza, 0.0, 0.4));
         }`);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
-        varying vec3 vPosVista; varying float vHojas; varying vec3 vPosMundoVeg; varying vec3 vNormMundoVeg; varying float vSueloVeg; varying vec3 vNormVistaVeg; varying float vTipoVeg; varying vec2 vRaizVeg;`)
+        varying vec3 vPosVista; varying float vHojas; varying vec3 vPosMundoVeg; varying vec3 vNormMundoVeg; varying float vSueloVeg; varying vec3 vNormVistaVeg; varying float vTipoVeg; varying vec2 vRaizVeg; varying float vNieveVeg;`)
       .replace('#include <project_vertex>', `#include <project_vertex>
         vPosVista = mvPosition.xyz;
         // RC31.2: árboles y sotobosque son InstancedMesh. La posición/normal de mundo

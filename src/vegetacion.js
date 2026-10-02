@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { rng, smoothstep, clamp } from './ruido.js';
 import { Constructor, abollar, matriz, troncoCurvo, lamina, h3 } from './geometria.js';
-import { materialVegetal, U, TIPO_HELECHO } from './materiales.js';
+import { materialVegetal, U, TIPO_HELECHO, TIPO_COIRON } from './materiales.js';
 import { crearImpostores } from './impostores.js';
 import { MITAD, LAGO, ALCANCE_SOTO } from './config.js';
 import { perfilHabitatPatagonico, elegirArbolPatagonico, formaArbolPatagonico } from './patagonia.js';
@@ -350,8 +350,24 @@ function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
     // igual que las cartas cercanas con la normal del racimo (ver materialVegetal)
     // De cerca, cada carta se nieva arriba y queda verde abajo (la nieve apoyada sobre la ramita):
     // el ciprés, de normales muy hacia el cielo, era una vela blanca
+    // 3.5.2: la falda cercana del ciprés (aCarta.w = -1) se recoge hacia el tronco cuando la cámara
+    // se acerca al árbol (de 11 a 5 m, hasta no ocupar nada): de cerca quedan el tronco, las ramas y
+    // las ramitas de escamas
+    if (ojo) sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        #ifdef USE_INSTANCING
+          if (aCarta.w < -0.5 && aCarta.w > -1.5) transformed.xz *= smoothstep(5.0, 11.0, length((modelMatrix * vec4(instanceMatrix[3].xyz, 1.0)).xz - cameraPosition.xz));
+        #endif`);
     if (!recorte) sh.vertexShader = sh.vertexShader.replace('float nyNieve = normal.y;', 'float nyNieve = aCarta.w > 0.5 ? clamp(aCarta.y / max(aCarta.z, 1e-3) * 0.9 + 0.2, -1.0, 1.0) : normal.y;');
-    else sh.vertexShader = sh.vertexShader.replace('float nyNieve = normal.y;', 'float nyNieve = dot(aCarta.xy, aCarta.xy) > 1e-6 ? normal.y - 0.3 + 0.45 * aCarta.y / length(aCarta.xy) : normal.y;');
+    // (3.5.2: -0.3 → -0.2: los coihues cercanos quedaban con menos nieve que los lejanos; las cartas
+    // del costado del racimo, que de lejos caen en el tercio de arriba de la mancha, no se nevaban)
+    else sh.vertexShader = sh.vertexShader.replace('float nyNieve = normal.y;', 'float nyNieve = dot(aCarta.xy, aCarta.xy) > 1e-6 ? normal.y - 0.2 + 0.45 * aCarta.y / length(aCarta.xy) : normal.y;');
+    // 3.5.2: la falda del ciprés (aCarta.w = -1) se nieva menos: con su normal muy hacia el cielo
+    // quedaba blanca entera, más que el cartel lejano (que se hornea con -0.2, ver impostores.js).
+    // Y sus ramitas de escamas (las cartas de la celda 3: u > 0.74, v < 0.26), lo mismo: la normal de
+    // su piso sale de muy abajo y mira al cielo; el ciprés nevado era una vela blanca
+    sh.vertexShader = sh.vertexShader.replace('float arriba = ', `if (aCarta.w < -0.5 && aCarta.w > -1.5) nyNieve -= 0.3;
+            if (aCarta.z > 0.74 && aCarta.w > 0.0 && aCarta.w < 0.26 && dot(aCarta.xy, aCarta.xy) > 1e-6) nyNieve -= 0.15;
+            float arriba = `);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         attribute vec4 aCarta; uniform float uInviernoCarta; varying vec3 vCartaVeg;${recorte ? '' : ' varying vec3 vDiscoVeg;'}`)
@@ -371,12 +387,23 @@ function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
           // del maitén: más de un metro de medio lado) a 2-3 m del ojo tapaba media pantalla con
           // una mancha lisa (la textura estirada). Ninguna esquina se abre más que 0,35 veces su
           // distancia al ojo (un tercio de la pantalla a lo sumo). De lejos no cambia nada.
-          abreCarta *= min(1.0, 0.35 * length(mvPosition.xyz) / max(length(abreCarta), 1e-4));` : ''}
+          abreCarta *= min(1.0, 0.35 * length(mvPosition.xyz) / max(length(abreCarta), 1e-4));` : ''}${ojo ? `
+          // 3.5.2: y a menos de 2,2 m del ojo la carta se achica hacia su punto (se aparta como una
+          // ramita), en vez del tramado de la 3.5: el tramado de cartas grandes y cercanas se leía
+          // como un velo verde
+          abreCarta *= smoothstep(0.5, 2.2, length(mvPosition.xyz));` : ''}
           mvPosition.xy += abreCarta;
           gl_Position = projectionMatrix * mvPosition;
           // 3.4 (sotobosque): también llevan textura las piezas fijas con su lugar en el atlas
           // y sin desplazamiento (las frondas de los helechos: aCarta = 0, 0, u, v)
-          vCartaVeg = vec3(aCarta.zw, max(esCarta, step(1e-6, aCarta.z + aCarta.w)));
+          vCartaVeg = vec3(aCarta.zw, max(esCarta, step(1e-6, aCarta.z + aCarta.w)));${recorte ? `
+          // 3.5.2: el núcleo del racimo de las matas (aCarta.w = -(10 + celda); en los árboles son cartas,
+          // ver racimo) toma las hojas pintadas del centro de su celda según su normal, sin recorte
+          // (z = 2): se lee como hojas, no como una bola lisa
+          if (aCarta.w < -9.5) {
+            float celdaN = -aCarta.w - 10.0;
+            vCartaVeg = vec3((vec2(mod(celdaN, 4.0), floor(celdaN / 4.0)) + 0.5) * 0.25 + normal.xz * 0.09, 2.0);
+          }` : ''}
           ${recorte ? '' : `if (aCarta.w > 0.5) {
             // 3.4 (lod): la coordenada de la mancha (0 en el centro, ≈1.1 en el borde de la
             // geometría): aCarta.z es el radio de cada vértice, así la elipse queda redonda acá
@@ -421,7 +448,11 @@ function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
     }
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <color_fragment>', `#include <color_fragment>
-        if (vCartaVeg.z > 0.5) {
+        if (vCartaVeg.z > 1.5) {
+          // 3.5.2: el núcleo: las hojas pintadas, sin recortar (ver el vertex)
+          vec4 nucleoVeg = texture2D(uCartasVeg, vCartaVeg.xy);
+          diffuseColor.rgb *= mix(0.8, mix(0.62, 1.1, nucleoVeg.r), nucleoVeg.a);
+        } else if (vCartaVeg.z > 0.5) {
           vec4 cartaVeg = texture2D(uCartasVeg, vCartaVeg.xy);
           // de lejos el mipmap promedia el alfa: el umbral baja para que la carta no adelgace
           if (cartaVeg.a < mix(0.5, 0.3, smoothstep(14.0, 70.0, length(vViewPosition)))) discard;
@@ -431,7 +462,8 @@ function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
         // apartar las ramas al pasar): ni las cartas ni las faldas lisas del ciprés tapan la
         // pantalla cuando uno camina debajo de la copa. Este material ya recorta (no se pierde
         // el descarte temprano) y el tramado es una cuenta por píxel, sin texturas.
-        if (vHojas > 0.5) {
+        // (3.5.2: sólo lo que no es carta: las cartas se achican cerca del ojo, ver arriba)
+        if (vHojas > 0.5 && vCartaVeg.z < 0.5) {
           float dOjoHoja = length(vViewPosition);
           if (dOjoHoja < 2.6 && fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) > smoothstep(1.0, 2.6, dOjoHoja)) discard;
         }` : ''}`);
@@ -439,14 +471,20 @@ function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
   return m;
 }
 
+// 3.5.2: la marca de la falda cercana del ciprés (aCarta.w = -1: ni carta ni textura)
+const FALDA_CARTA = [0, 0, 0, -1];
+
 // 3.4: constructor de árboles: el de siempre, más el atributo de las cartas. Lo que entra
 // por `agregar` (troncos, raíces, bultos viejos) lleva la carta en cero; `vertice` escribe un
 // vértice a mano (racimos, tubos y cartas, con sus normales de follaje).
 class ConstructorArbol extends Constructor {
   constructor() { super(); this.carta = []; }
+  // (3.5.2: `o.carta` opcional: la carta de todos sus vértices; la falda cercana del ciprés va
+  // marcada con aCarta.w = -1, ver conCartas)
   agregar(geo, o) {
     super.agregar(geo, o);
-    while (this.carta.length < this.tipo.length * 4) this.carta.push(0, 0, 0, 0);
+    const k = o?.carta || [0, 0, 0, 0];
+    while (this.carta.length < this.tipo.length * 4) this.carta.push(k[0], k[1], k[2], k[3]);
     return this;
   }
   vertice(x, y, z, nx, ny, nz, cr, cg, cb, tipo, k0 = 0, k1 = 0, k2 = 0, k3 = 0) {
@@ -572,7 +610,22 @@ function racimo(c, semilla, cen, rad, o) {
   const g = abollar(new THREE.IcosahedronGeometry(1, detalle && !o.cartas ? 1 : 0), detalle ? 0.14 : 0.22, 1.3);
   const giro = new THREE.Quaternion().setFromEuler(new THREE.Euler(r() * 6.28, r() * 6.28, r() * 6.28));
   const P = g.attributes.position, profNucleo = detalle ? 0.5 : 0.86;
-  for (let i = 0; i < P.count; i++) {
+  // 3.5.2: en los árboles de cerca el núcleo ya no es un icosaedro (de abajo y de cerca era una masa
+  // verde oscura, lisa y de bordes rectos) sino tres cartas oscuras de la misma celda en el centro
+  // del racimo, con la normal hundida: rellenan igual los huecos, con borde de hojas, y son 6
+  // triángulos en vez de 20. (Con su propio azar: el resto del racimo queda donde estaba.)
+  const cartasAdentro = detalle && o.cartas && o.hundir !== false;
+  if (cartasAdentro) {
+    const rn = rng(semilla * 7 + 3), med = (rad[0] + rad[1] + rad[2]) / 3;
+    for (let j = 0; j < 3; j++) {
+      const a = j * 2.094 + rn() * 0.8;
+      const x = cen[0] + Math.cos(a) * rad[0] * 0.2, y = cen[1] + (rn() - 0.6) * rad[1] * 0.3, z = cen[2] + Math.sin(a) * rad[2] * 0.2;
+      normal(x, y, z); n.set(n.x * 0.55, n.y * 0.55 - 0.6, n.z * 0.55).normalize();
+      const tam = med * k * 1.3 * (0.9 + rn() * 0.2), osc = 0.86 + 0.34 * h3(x * 1.7, y * 1.9, z * 1.3);
+      carta(c, x, y, z, n, tam, tam * 0.9, (rn() - 0.5) * 0.8, 0, o.celda ?? 0, tipo, (dy) => tinte(x, y + dy * 0.5, z, profNucleo).multiplyScalar(osc));
+    }
+  }
+  for (let i = 0; i < P.count && !cartasAdentro; i++) {
     p.fromBufferAttribute(P, i).applyQuaternion(giro);
     const x = cen[0] + p.x * rad[0] * k, y = cen[1] + p.y * rad[1] * k * ky * (p.y < 0 ? 0.82 : 1), z = cen[2] + p.z * rad[2] * k;
     normal(x, y, z); tinte(x, y, z, profNucleo);
@@ -582,7 +635,9 @@ function racimo(c, semilla, cen, rad, o) {
     // menos oscuro: entre los huecos de las cartas se leía como una masa negra)
     // (3.5: las matas no: el núcleo hundido, de una mata a la sombra al atardecer, se veía negro)
     if (detalle && o.cartas && o.hundir !== false) { n.set(n.x * 0.55, n.y * 0.55 - 0.6, n.z * 0.55).normalize(); col.multiplyScalar(0.86 + 0.34 * h3(x * 1.7, y * 1.9, z * 1.3)); } else if (!detalle) col.multiplyScalar(0.9);
-    c.vertice(x, y, z, n.x, n.y, n.z, col.r, col.g, col.b, tipo);
+    // 3.5.2: de cerca (las matas), el núcleo lleva las hojas pintadas de su celda (aCarta.w =
+    // -(10 + celda), ver conCartas): se leía como una bola lisa
+    c.vertice(x, y, z, n.x, n.y, n.z, col.r, col.g, col.b, tipo, 0, 0, 0, detalle && o.cartas ? -(10 + (o.celda ?? 0)) : 0);
   }
   g.dispose();
   if (!detalle || !o.cartas) return;
@@ -737,7 +792,7 @@ function baseRaices(c, r, color, radio, detalle) {
 }
 
 // 3.4: colores de las ramas: marrón rojizo (las ramas que sostienen los racimos se ven)
-const COLOR_RAMA = { coihue: '#5c3f2d', lenga: '#644634', nire: '#5a4131', maiten: '#66503c', arrayan: '#9c5a32', pehuen: '#5f5246', seco: '#5b5149' };
+const COLOR_RAMA = { coihue: '#5c3f2d', lenga: '#644634', nire: '#5a4131', maiten: '#66503c', arrayan: '#9c5a32', pehuen: '#5f5246', seco: '#5b5149', cipres: '#55402f' };
 
 // 3.4: el coihue es el gigante del bosque húmedo: fuste recto y alto, la copa arriba en
 // capas. Las capas son racimos anchos colgados de sus ramas que suben en espiral alrededor
@@ -849,19 +904,32 @@ function maiten(semilla, detalle) {
 }
 
 // Coirón: la mata dura y amarillenta que cubre la estepa
+// 3.5.2: con el constructor de árboles (aCarta en cero). Va en el material de las matas, que
+// recorta con el atlas de cartas: sin el atributo, la placa leía cualquier cosa, la mata se
+// recortaba entera y el coirón no se veía nunca (lo mismo el notro). Y con su propio tipo
+// (TIPO_COIRON): pasto perenne, que en invierno queda seco y pajizo con nieve en las puntas; antes
+// era una "flor" y se cerraba con el invierno.
 function coiron(semilla) {
-  const r = rng(semilla), c = new Constructor();
+  const r = rng(semilla), c = new ConstructorArbol();
   const hojas = 26 + Math.floor(r() * 12);
   for (let i = 0; i < hojas; i++) {
     const ang = r() * Math.PI * 2;
     const inclina = 0.12 + r() * 0.5;
     const largo = 0.55 + r() * 0.75;
     const color = i % 3 === 0 ? '#b8a46a' : i % 3 === 1 ? '#9c8f56' : '#c6b57e';
-    c.agregar(new THREE.ConeGeometry(0.022, largo, 3), {
-      color, tipo: 3, variar: 0.16,
+    // (3.5.2: sin la tapa de abajo, que no se ve: la mitad de los triángulos; y un poco más ancha:
+    // de cerca la mata se leía como cuatro palitos)
+    c.agregar(new THREE.ConeGeometry(0.03, largo, 3, 1, true), {
+      color, tipo: TIPO_COIRON, variar: 0.16,
       matriz: matriz([Math.cos(ang) * 0.09, largo * 0.45, Math.sin(ang) * 0.09],
         [Math.cos(ang) * inclina, ang, Math.sin(ang) * inclina]),
     });
+  }
+  // 3.5.2: normales de pasto (hacia el cielo y un poco hacia afuera de la mata, como las hojas de
+  // pasto.js): las de los conitos finos miraban de costado y, a la sombra, la mata se veía negra
+  for (let i = 0; i < c.nor.length; i += 3) {
+    const x = c.pos[i] * 1.2, z = c.pos[i + 2] * 1.2, l = Math.hypot(x, 1, z);
+    c.nor[i] = x / l; c.nor[i + 1] = 1 / l; c.nor[i + 2] = z / l;
   }
   return c.geometria({ soldar: true });
 }
@@ -872,10 +940,13 @@ function coiron(semilla) {
 function cipres(semilla, detalle) {
   const r = rng(semilla), c = new ConstructorArbol();
   const alto = 14 + r() * 5;
-  fuste(c, 3, 0.35, 0.28, [0, 0], detalle ? 7 : 6, 1, '#4a3a2e', semilla);
+  // (3.5.2: de cerca el fuste sigue hasta arriba, afinándose: antes terminaba a los 3 m, tapado por
+  // las faldas, que ahora se recogen cuando uno se arrima; de lejos, igual que antes)
+  if (detalle) fuste(c, alto * 0.86, 0.35, 0.04, [0, 0], 7, 5, '#4a3a2e', semilla);
+  else fuste(c, 3, 0.35, 0.28, [0, 0], 6, 1, '#4a3a2e', semilla);
   // 3.2: más pisos (el abeto pintado se lee por capas)
   const pisos = detalle ? 8 : 5;
-  const col = new THREE.Color(), nor = new THREE.Vector3(), rc = rng(semilla * 13 + 5);
+  const col = new THREE.Color(), nor = new THREE.Vector3(), rc = rng(semilla * 13 + 5), rRamas = rng(semilla * 29 + 7);
   for (let i = 0; i < pisos; i++) {
     const t = i / pisos;
     const radio = 2.6 * (1 - t * 0.78);
@@ -894,7 +965,12 @@ function cipres(semilla, detalle) {
     const Mp = matriz([px, py, pz], [0, r() * 6, 0]);
     // 2.7: la normal sale de un punto bajo el piso: mira hacia afuera y hacia arriba,
     // así el cono recibe el cielo como un árbol y no se sombrea como una bola
-    c.agregar(cono, { color: colorPiso, degradado: gradHoja(colorPiso, detalle ? 0.66 : 1), tono: tonoPiso(radio * 1.08, h), tipo: 1, esferica: 1, centro: [0, -h * 0.9, 0], matriz: Mp, variar: 0.04 });
+    // 3.5.2: la falda va marcada (aCarta.w = -1, en los dos LOD): de cerca se recoge hacia el tronco
+    // a menos de 11 m (ver conCartas): de 3 a 5 m sus caras planas grandes se veían como facetas
+    // lisas y, con el tramado, como un velo verde delante de las ramitas. Y en invierno se nieva
+    // menos que las ramitas (el ciprés era una vela blanca que encandilaba al sol, y su cartel
+    // lejano, verde)
+    c.agregar(cono, { color: colorPiso, degradado: gradHoja(colorPiso, detalle ? 0.66 : 1), tono: tonoPiso(radio * 1.08, h), tipo: 1, esferica: 1, centro: [0, -h * 0.9, 0], matriz: Mp, variar: 0.04, carta: FALDA_CARTA });
     if (!detalle) continue;
     // 3.4: las ramitas de escamas del borde del piso (con su propio azar: así los pisos del
     // LOD lejano quedan donde los del cercano)
@@ -910,6 +986,14 @@ function cipres(semilla, detalle) {
       const tam = Math.max(0.5, radio * 0.52);
       carta(c, x, y, z, nor, tam * 0.9, tam, (rc() - 0.5) * 0.5, tam * (borde ? 0.45 : 0.25), CELDAS_CARTA.escamas, 1,
         (dy) => col.copy(bajo).lerp(altoC, clamp((borde ? 0.62 : 0.72) + dy * 0.3, 0, 1)));
+    }
+    // 3.5.2: las ramas que sostienen las ramitas del piso (con su propio azar: el resto del
+    // árbol no cambia). De lejos quedan adentro de la falda; de cerca, con la falda recogida, se
+    // ve el árbol de verdad: el tronco y las ramas que salen en pisos, no ramitas en el aire.
+    const nR = Math.max(2, Math.round(5 - t * 4)), aR = rRamas() * 6.28;
+    for (let k = 0; k < nR; k++) {
+      const a = aR + (k / nR) * Math.PI * 2 + (rRamas() - 0.5) * 0.6, d = radio * (0.72 + rRamas() * 0.12);
+      rama(c, [px * 0.5, py - h * 0.2, pz * 0.5], [px + Math.cos(a) * d, py - h * (0.44 + rRamas() * 0.08), pz + Math.sin(a) * d], 0.065 - 0.03 * t, 0.022, COLOR_RAMA.cipres, 4);
     }
   }
   if (detalle) {
@@ -1134,13 +1218,17 @@ function arbusto(semilla, colorHoja, colorFlor, flores, alto = 1) {
   return c.geometria();
 }
 
+// (3.5.2: con el constructor de árboles, como el coirón: sin aCarta no se veía. Y ya que por
+// fin se ve, con racimos de hojas pintadas como las otras matas, no los bultos lisos de la 3.2)
 function notro(semilla) {
-  const r = rng(semilla), c = new Constructor();
+  const r = rng(semilla), c = new ConstructorArbol();
   const alto = 3 + r() * 1.5;
   c.agregar(troncoCurvo(alto, 0.12, 0.05, [r() - 0.5, r() - 0.5], 5, 3), { color: '#5b4a3a', tipo: 0 });
   for (let i = 0; i < 4; i++) {
     const p = [(r() - 0.5) * 1.4, alto * (0.6 + r() * 0.4), (r() - 0.5) * 1.4];
-    copa(c, r, 0.8 + r() * 0.3, p, [1, 0.8, 1], '#3c5a26', 1, 0);
+    const rr = 0.8 + r() * 0.3;
+    racimo(c, semilla * 37 + i, p, [rr, rr * 0.8, rr], { color: '#3c5a26', tipo: 1, detalle: true, celda: CELDAS_CARTA.densa, cartas: 9, tam: 0.55, nucleo: 0.6, bajar: 0, colgar: 0.15, hundir: false, luz: 1.1 });
+    r();   // (el giro del bulto de antes: las flores quedan donde estaban)
     for (let k = 0; k < 5; k++) {
       c.agregar(new THREE.ConeGeometry(0.07, 0.24, 3, 1, true), { color: '#c8261a', tipo: 3, variar: 0.15, matriz: matriz([p[0] + (r() - 0.5) * 1.3, p[1] + (r() - 0.3) * 0.9, p[2] + (r() - 0.5) * 1.3], [r() * 6, r(), r()]) });
     }
@@ -1661,10 +1749,27 @@ export function generarVegetacion(T, calidad, escena) {
   // cada vez, aunque estuvieras quieto.
   const MOVIDA_PARA_COMPACTAR = 4;
   let compactoX = Infinity, compactoZ = Infinity, compactoSucio = true;
+  // 3.5.2: copiar una instancia sin armar una vista nueva del arreglo por árbol (`subarray` en el
+  // bucle: miles de objetos chicos para el recolector en cada compactado)
+  function copiarInstancia(destM, destC, n, M, C, i) {
+    const o = i * 16, d = n * 16;
+    for (let k = 0; k < 16; k++) destM[d + k] = M[o + k];
+    if (C && destC) { destC[n * 3] = C[i * 3]; destC[n * 3 + 1] = C[i * 3 + 1]; destC[n * 3 + 2] = C[i * 3 + 2]; }
+  }
+  // 3.5.2: a la placa sube sólo lo usado (antes, el búfer entero de cada especie: 250–470 KB en
+  // cada actualización de la vegetación caminando, con 20 a 60 KB de árboles de verdad)
+  function subirUsado(im, n) {
+    im.instanceMatrix.clearUpdateRanges();
+    im.instanceMatrix.addUpdateRange(0, Math.max(16, n * 16));
+    im.instanceMatrix.needsUpdate = true;
+    if (im.instanceColor) { im.instanceColor.clearUpdateRanges(); im.instanceColor.addUpdateRange(0, Math.max(3, n * 3)); im.instanceColor.needsUpdate = true; }
+  }
+  let compactoRecien = false;   // 3.5.2: si en esta actualización ya se rehicieron los cercanos
   function compactarCercanos(cam) {
-    compactoX = cam.x; compactoZ = cam.z; compactoSucio = false;
+    compactoX = cam.x; compactoZ = cam.z; compactoSucio = false; compactoRecien = true;
     const r2 = radioCercano * radioCercano;
-    for (const [nombre, im] of Object.entries(cercanas)) {
+    for (const nombre in cercanas) {
+      const im = cercanas[nombre];
       const destM = im.instanceMatrix.array, destC = im.instanceColor.array, cap = im.instanceMatrix.count;
       let n = 0;
       for (const ch of chunks.values()) {
@@ -1677,14 +1782,12 @@ export function generarVegetacion(T, calidad, escena) {
           if (M[o] === 0 && M[o + 5] === 0 && M[o + 10] === 0) continue;   // árbol despejado
           const dx = M[o + 12] - cam.x, dz = M[o + 14] - cam.z;
           if (dx * dx + dz * dz > r2) continue;
-          destM.set(M.subarray(o, o + 16), n * 16);
-          if (C) { destC[n * 3] = C[i * 3]; destC[n * 3 + 1] = C[i * 3 + 1]; destC[n * 3 + 2] = C[i * 3 + 2]; }
+          copiarInstancia(destM, destC, n, M, C, i);
           n++;
         }
       }
       im.count = n;
-      im.instanceMatrix.needsUpdate = true;
-      im.instanceColor.needsUpdate = true;
+      subirUsado(im, n);
     }
   }
 
@@ -1764,8 +1867,7 @@ export function generarVegetacion(T, calidad, escena) {
           const dx = M[o + 12] - x, dz = M[o + 14] - z, d2 = dx * dx + dz * dz;
           if (d2 > a2) continue;   // 3.5: más allá de su alcance (el shader ya la tiene en cero)
           if (d2 > c2 && dx * fx + dz * fz < cosCono * Math.sqrt(d2)) continue;
-          destM.set(M.subarray(o, o + 16), n * 16);
-          if (destC && C) { destC[n * 3] = C[i * 3]; destC[n * 3 + 1] = C[i * 3 + 1]; destC[n * 3 + 2] = C[i * 3 + 2]; }
+          copiarInstancia(destM, destC, n, M, C, i);
           n++;
         }
       }
@@ -1808,6 +1910,8 @@ export function generarVegetacion(T, calidad, escena) {
   escena.onBeforeRender = function (renderer, sc, camara, rt) {
     antesEscena.call(this, renderer, sc, camara, rt);
     suavizar();   // 3.5
+    // 3.5.2: la banda media que quedó pendiente (el dibujo de este cuadro no; el del siguiente)
+    if (mediosPendientes > 0 && --mediosPendientes === 0 && ultimaCam && impostores) compactarMedios(ultimaCam);
     revisarSoto(camara);
   };
 
@@ -1883,6 +1987,7 @@ export function generarVegetacion(T, calidad, escena) {
   function actualizar(cam, factorDetalle = 1) {
     const detalle = Math.max(0.68, Math.min(1, factorDetalle || 1));
     ultimaCam = cam;
+    compactoRecien = false;
     if (compactoSucio || Math.hypot(cam.x - compactoX, cam.z - compactoZ) > MOVIDA_PARA_COMPACTAR) compactarCercanos(cam);
     // 3.3: con impostores, el LOD simplificado sólo llega hasta donde entra el cartel y lo
     // dibuja una malla compacta por especie (como el LOD cercano), no un pedazo por chunk
@@ -1892,7 +1997,12 @@ export function generarVegetacion(T, calidad, escena) {
     // (y sigue a la calidad automática, que cambia calidad.sotobosque)
     distancia.detalle = detalle; objetivosSoto();
     impostores?.estacion();
-    if (impostores && (medioSucio || Math.hypot(cam.x - medioX, cam.z - medioZ) > MOVIDA_MEDIA)) compactarMedios(cam);
+    // 3.5.2: si en esta actualización ya se rehicieron los cercanos, la banda media se rehace en el
+    // cuadro siguiente (antes del dibujo, ver escena.onBeforeRender): el trabajo se reparte en dos
+    // cuadros en vez de juntarse en uno
+    if (impostores && (medioSucio || Math.hypot(cam.x - medioX, cam.z - medioZ) > MOVIDA_MEDIA)) {
+      if (compactoRecien) mediosPendientes = 2; else compactarMedios(cam);
+    }
     for (const ch of chunks.values()) {
       const d = Math.max(0, Math.hypot(cam.x - ch.x, cam.z - ch.z) - TAM_CHUNK * 0.7);
       let algo = false;
@@ -1955,7 +2065,7 @@ export function generarVegetacion(T, calidad, escena) {
   // margen para lo que se camina), en vez de un pedazo por chunk y especie.
   const medias = {};
   const MOVIDA_MEDIA = 12;
-  let medioSucio = true, medioX = Infinity, medioZ = Infinity;
+  let medioSucio = true, medioX = Infinity, medioZ = Infinity, mediosPendientes = 0;
   function crearMedias() {
     for (const [nombre, t] of Object.entries(tipos)) {
       if (t.grupo !== 'arbol' || !t.baja) continue;
@@ -1994,14 +2104,12 @@ export function generarVegetacion(T, calidad, escena) {
           if (M[o] === 0 && M[o + 5] === 0 && M[o + 10] === 0) continue;   // talado o despejado
           const dx = M[o + 12] - cam.x, dz = M[o + 14] - cam.z, dd = dx * dx + dz * dz;
           if (dd > r2 || dd < a2) continue;
-          destM.set(M.subarray(o, o + 16), n * 16);
-          if (C) { destC[n * 3] = C[i * 3]; destC[n * 3 + 1] = C[i * 3 + 1]; destC[n * 3 + 2] = C[i * 3 + 2]; }
+          copiarInstancia(destM, destC, n, M, C, i);
           n++;
         }
       }
       im.count = n;
-      im.instanceMatrix.needsUpdate = true;
-      im.instanceColor.needsUpdate = true;
+      subirUsado(im, n);   // 3.5.2
     }
   }
 

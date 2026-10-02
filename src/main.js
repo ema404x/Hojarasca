@@ -3090,11 +3090,29 @@ function marcarTechos() {
 // veredas, las obras del jugador). Ahí no salen pasto, flores ni helechos (pasto.js): antes el
 // coirón atravesaba el piso del almacén. Se rehace sólo cuando cambian las plataformas.
 let firmaPisos = '';
+// 3.5.2: los canteros (de huerta y de flores) no son plataformas (no se pisan), pero adentro
+// tampoco tiene que salir pasto, flores del prado ni amancay: entran a la marca como si fueran
+// un piso a ras del suelo, con su caja (cantero de huerta 2,1 × 1,18 m; los de flores, la suya)
+function canterosParaPisos() {
+  const lista = [];
+  let todas = [];
+  try { todas = obras?.obras || []; } catch { return lista; }   // (al cargar, las obras todavía no están)
+  for (const o of todas) {
+    const P = o?.plano, d = o?.datos;
+    if (!P || !d || !Number.isFinite(d.x) || !Number.isFinite(d.z)) continue;
+    const alto = T.altura(d.x, d.z) + 0.3, ang = -(Number(d.rot) || 0);
+    if (P.id === 'cantero') lista.push({ x: d.x, z: d.z, ang, largo: 2.1, ancho: 1.18, alto });
+    else if (P.jardin === 'flores' && !P.apoyaEnPlataforma) {
+      lista.push(P.id === 'macizo-flores' ? { x: d.x, z: d.z, radio: 0.9, alto } : { x: d.x, z: d.z, ang, largo: P.ancho || 2, ancho: P.fondo || 1, alto });
+    }
+  }
+  return lista;
+}
 function marcarPisos() {
   if (!texturaEstepa || !col?.plataformas) return;
-  const lista = col.plataformas;
+  const lista = col.plataformas.concat(canterosParaPisos());
   let suma = 0;
-  for (const p of lista) suma += (p.x || 0) * 0.37 + (p.z || 0) + (p.alto || 0);
+  for (const p of lista) suma += (p.x || 0) * 0.37 + (p.z || 0) + (p.alto || 0) + (p.ang || 0) * 0.71;
   const firma = lista.length + '|' + suma.toFixed(2);
   if (firma === firmaPisos) return;
   firmaPisos = firma;
