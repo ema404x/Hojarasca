@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('hojarasca', {
   // 2.7.3: el 3D no arrancó: el juego se reinicia probando otra forma (devuelve false si no quedan)
   fallaronGraficos: () => ipcRenderer.invoke('graficos-fallaron'),
   reportarError: (detalle) => ipcRenderer.send('reportar-error', String(detalle || '').slice(0, 12000)),
+  // 3.5.1: el proceso principal pide guardar ya (antes de reiniciar por caídas de la placa)
+  alPedirGuardar: (fn) => { if (typeof fn === 'function') ipcRenderer.on('guardar-ya', () => { try { fn(); } catch { /* el juego sigue */ } }); },
   // 1.11: la partida en una carpeta sincronizada
   sync: {
     carpeta: () => ipcRenderer.invoke('sync-carpeta'),

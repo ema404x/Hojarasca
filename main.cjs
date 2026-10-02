@@ -129,7 +129,11 @@ function crearVentana() {
   ventana.webContents.on('did-fail-load', (_e, code, desc, url) => {
     escribirCrash('load', `${code} ${desc} ${url}`);
   });
-  ventana.loadFile(path.join(__dirname, 'index.html'));
+  // 3.5.1: si la página se cae o se cuelga, vuelve sola con la última partida guardada
+  recuperacion.vigilar(ventana);
+  // (reiniciado por caídas de la placa: el juego lo avisa en la portada)
+  const recuperado = process.argv.includes('--hojarasca-recuperado=graficos');
+  ventana.loadFile(path.join(__dirname, 'index.html'), recuperado ? { query: { recuperado: 'graficos' } } : undefined);
 
   // F11: pantalla completa
   ventana.webContents.on('before-input-event', (evento, tecla) => {
@@ -199,6 +203,19 @@ ipcMain.handle('steam-logro', (_evento, api) => {
   const s = conectarSteam();
   if (!s || typeof api !== 'string' || !/^[A-Z0-9_]{3,64}$/.test(api)) return false;
   try { return s.achievement.activate(api) !== false; } catch { return false; }
+});
+
+// 3.5.1: el juego vuelve solo después de una caída (ver recuperacion-main.cjs). Con caídas
+// repetidas de la placa, la próxima forma de iniciar los gráficos de INTENTOS_GRAFICOS.
+const { registrarRecuperacion, siguienteGraficosPorCaidas } = require('./recuperacion-main.cjs');
+const recuperacion = registrarRecuperacion({
+  app, dialog, escribirCrash, index: path.join(__dirname, 'index.html'), ventanaActual: () => ventanaPrincipal,
+  cambiarGraficos: () => {
+    const siguiente = siguienteGraficosPorCaidas(INTENTOS_GRAFICOS, intentoGraficos());
+    if (siguiente < 0) return false;
+    try { fs.writeFileSync(archivoGraficos(), JSON.stringify({ intento: siguiente, porCaidas: true })); } catch { return false; }
+    return true;
+  },
 });
 
 // 1.11: la partida en una carpeta sincronizada (ver sincronia-main.cjs y src/sincronia.js)

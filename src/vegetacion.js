@@ -2269,5 +2269,5 @@ export function generarVegetacion(T, calidad, escena) {
   const impostoresListos = () => impostores;
   const cantidadTocones = () => tocones.length;
 
-  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual };
+  return { actualizar, actualizarCaidas, arbolesAnimados, cantidadTocones, pintarTocones, colisiones, arboles, plantas, calafates, matas, chunks, mats, despejar, talar, sacudir, crecer, derribarPorRayo, arbolesCerca, matasCerca, composicionPaisaje, prepararImpostores, impostoresListos, rehornearImpostores: () => (impostores ? impostores.rehornear() : 0), statsSoto, revisarSoto, ajustarDistancias, distancias, fundidoSoto, alcanceArboles: () => lejosActual };
 }

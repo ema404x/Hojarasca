@@ -151,6 +151,8 @@ import { crearCuerpoJugador, crearManoPropia } from './personal-personaje-mundo.
 import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-bandera-mundo.js';
 // 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js)
 import { crearModos, CSS_MODOS } from './modos-juego.js';
+// 3.5.1: las preguntas del juego (Electron no tiene prompt y confirm traba la ventana)
+import { crearDialogos } from './dialogo.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
@@ -1701,15 +1703,16 @@ $('btn-entrar').addEventListener('click', () => {
 });
 // 2.8: "Tu partida" (Personalizar) empieza una nueva por este mismo botón, con la receta.
 function empezarPartidaNueva() { $('btn-nuevo').click(); }
-$('btn-nuevo').addEventListener('click', () => {
+$('btn-nuevo').addEventListener('click', async () => {
   // sin nada jugado todavía (portada de una partida que nunca se guardó) no hay qué perder
   const hayQuePreguntar = habiaGuardado || modo !== 'inicio';
-  const acepta = !hayQuePreguntar || (esSinFin
-    ? confirm('Esto abandona la corrida sin fin de ahora (no queda récord) y empieza otra. Tu campaña no se toca. ¿Querés continuar?')
+  // 3.5.1: la pregunta es un cuadro del juego (dialogo.js), no el confirm del navegador
+  const acepta = !hayQuePreguntar || await (esSinFin
+    ? dialogos.confirmar('Esto abandona la corrida sin fin de ahora (no queda récord) y empieza otra. Tu campaña no se toca. ¿Querés continuar?')
     : esDesafio
-    ? confirm('Esto borra la partida de Desafío y empieza desde la primera noche. Tu recorrido Relax no se toca. ¿Querés continuar?')
-    : confirm('Esto borra el recorrido guardado y empieza desde cero. ¿Querés continuar?'));
-  if (!acepta) return;
+    ? dialogos.confirmar('Esto borra la partida de Desafío y empieza desde la primera noche. Tu recorrido Relax no se toca. ¿Querés continuar?')
+    : dialogos.confirmar('Esto borra el recorrido guardado y empieza desde cero. ¿Querés continuar?'));
+  if (!acepta || reiniciandoPartida) return;
   // No usar guardar() acá: toma la posición del jugador actual y reinyectaría
   // el recorrido viejo dentro de la partida recién creada. También bloqueamos
   // beforeunload/visibilitychange durante este reload para evitar esa carrera.
@@ -1908,7 +1911,9 @@ function importarTexto(ranura, texto, preguntar = true) {
     nota('Esa partida es del otro modo', motivo);
     return { ok: false, motivo };
   }
-  if (preguntar && !confirm(avisoImportar(r.paquete, infoPartida(modoJuego, ranura)))) return { ok: false, motivo: 'cancelado' };
+  // 3.5.1: preguntando, la respuesta llega después (cuadro del juego): devuelve una promesa
+  if (preguntar) return dialogos.confirmar(avisoImportar(r.paquete, infoPartida(modoJuego, ranura)))
+    .then((si) => (si ? importarTexto(ranura, texto, false) : { ok: false, motivo: 'cancelado' }));
   if (!escribirPartida(modoJuego, ranura, r.paquete.progreso, r.paquete.fotos)) {
     nota('No se pudo guardar la partida importada', 'Puede que no haya espacio libre');
     return { ok: false, motivo: 'no se pudo guardar' };
@@ -1931,7 +1936,7 @@ function importarPartida(ranura) {
   });
   entrada.click();
 }
-$('partidas-lista').addEventListener('click', (e) => {
+$('partidas-lista').addEventListener('click', async (e) => {
   const jugar = e.target.closest('[data-partida-jugar]');
   if (jugar) { irAPartida(Number(jugar.dataset.partidaJugar)); return; }
   const exportar = e.target.closest('[data-partida-exportar]');
@@ -1941,7 +1946,7 @@ $('partidas-lista').addEventListener('click', (e) => {
   const borrar = e.target.closest('[data-partida-borrar]');
   if (!borrar) return;
   const r = Number(borrar.dataset.partidaBorrar);
-  if (!confirm(`Esto borra la partida ${r} del modo ${modoJuego === 'desafio' ? 'Desafío' : 'Relax'}. No se puede deshacer. ¿Seguro?`)) return;
+  if (!await dialogos.confirmar(`Esto borra la partida ${r} del modo ${modoJuego === 'desafio' ? 'Desafío' : 'Relax'}. No se puede deshacer. ¿Seguro?`)) return;
   borrarPartida(modoJuego, r);
   if (r === ranuraActual()) { reiniciandoPartida = true; cancelarGuardadoSuave(); location.reload(); return; }
   dibujarPartidas();
@@ -2007,7 +2012,7 @@ async function mirarCarpetaSync() {
   // igual de nueva (las dos siguieron, o relojes distintos), también se pregunta: antes se fijaba
   // la base en silencio y la próxima copia de acá pisaba lo de la otra.
   const masNueva = compararCopia(local, r.paquete) === 'ofrecer';
-  const si = confirm(masNueva ? textoOfertaSync(local, r.paquete) : textoDosCambiaron(local, r.paquete));
+  const si = await dialogos.confirmar(masNueva ? textoOfertaSync(local, r.paquete) : textoDosCambiaron(local, r.paquete));   // 3.5.1
   fijarBaseSync(enCarpeta);   // con un sí se importa; con un no, la próxima copia la reemplaza
   if (si) importarTexto(ranuraActual(), texto, false);
 }
@@ -2270,12 +2275,12 @@ $('victoria-despues').addEventListener('click', () => {
 // 1.10: Nueva partida+. Arranca de cero con las armas, las mejoras y los planos, y con
 // los invasores más duros. Mismo camino que empezar una partida nueva: sin guardar()
 // en el medio, que reinyectaría la posición vieja en la partida recién armada.
-function otraVuelta() {
+async function otraVuelta() {
   if (!desafio || !puedeOtraVuelta(progreso.desafio)) return;
   const siguiente = (progreso.desafio.vuelta || 0) + 1;
   const m = multiplicadorVuelta(siguiente);
-  const acepta = confirm(`Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras y los planos. Los invasores vienen ${Math.round((m.cantidad - 1) * 100)}% más, aguantan ${Math.round((m.vida - 1) * 100)}% más y pegan ${Math.round((m.dano - 1) * 100)}% más fuerte. ¿Vamos?`);
-  if (!acepta) return;
+  const acepta = await dialogos.confirmar(`Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras y los planos. Los invasores vienen ${Math.round((m.cantidad - 1) * 100)}% más, aguantan ${Math.round((m.vida - 1) * 100)}% más y pegan ${Math.round((m.dano - 1) * 100)}% más fuerte. ¿Vamos?`);
+  if (!acepta || reiniciandoPartida || !puedeOtraVuelta(progreso.desafio)) return;
   const nueva = nuevaVuelta(progreso, progresoNuevo());
   reiniciandoPartida = true;
   cancelarGuardadoSuave();
@@ -4664,9 +4669,11 @@ function dibujarPanelObra() {
   actualizarEstadoSitioObra(obras.estadoSitio);
 }
 // Al terminar, le ponés el nombre que quieras: queda en el mapa y en la brújula
-function pedirNombre(obra) {
-  const puesto = window.prompt('¿Cómo le vas a poner?', obra.datos.nombre || obra.plano.nombre);
-  if (puesto === null) return;
+// 3.5.1: antes era window.prompt, que Electron no tiene: tiraba "prompt() is not supported" y la
+// obra se quedaba sin nombre. Ahora es un cuadro del juego (dialogo.js).
+async function pedirNombre(obra) {
+  const puesto = await dialogos.pedirTexto('¿Cómo le vas a poner?', obra.datos.nombre || obra.plano.nombre, { max: 28 });
+  if (puesto === null || reiniciandoPartida || !obras.obras.includes(obra)) return;
   const nombre = puesto.trim().slice(0, 28);
   obra.datos.nombre = nombre || obra.plano.nombre;
   T.lugares[`obra-${obra.datos.x | 0}-${obra.datos.z | 0}`] = {
@@ -6617,8 +6624,18 @@ function brilloVentana(v, f, dia) {
 }
 
 // `manual`: la medición de rendimiento lo llama cuadro por cuadro, sin que se reagende.
+// 3.5.1: con el contexto 3D perdido el bucle espera (ver "caídas"); y si algo del cuadro tira
+// una excepción, se anota una vez y el mundo se sigue dibujando (antes la pantalla quedaba
+// congelada con el mismo error 60 veces por segundo).
 function bucle(tRaf, manual = false) {
   if (!manual) requestAnimationFrame(bucle);
+  if (estadoGraficos.perdidos) return;
+  try { cuadroDelJuego(tRaf, manual); } catch (err) {
+    fallaSistema('cuadro', err);
+    try { if (luzUltimaFoto) dibujar(luzUltimaFoto, 1 - (luzUltimaFoto.dia ?? 1)); } catch (e2) { fallaSistema('dibujo', e2); }
+  }
+}
+function cuadroDelJuego(tRaf, manual) {
   // 3.2: el reloj del cuadro es el sello de requestAnimationFrame: cae en el vsync y no tiembla
   // con lo que tardó en arrancar el callback. A mano (pruebas) sigue el reloj de siempre.
   const ahora = !manual && tRaf > 0 ? tRaf : performance.now();
@@ -6746,9 +6763,9 @@ function bucle(tRaf, manual = false) {
     ctxEnMano.oculto = js.enKayak || pesca.est.equipada || js.sentado || modo !== 'jugando' || (js.enTren && tren.conduciendo());
     ctxEnMano.bloqueo = !!desafio?.bloqueando;
     ctxEnMano.tension = !!desafio?.tensando;
-    enMano.actualizar(dt, ctxEnMano);
+    try { enMano.actualizar(dt, ctxEnMano); } catch (e) { fallaSistema('en-mano', e); }
   }
-  actualizarMundoPersonal(dt, js);   // 2.8: tu sombra, tu mano y tu bandera
+  try { actualizarMundoPersonal(dt, js); } catch (e) { fallaSistema('personal', e); }   // 2.8: tu sombra, tu mano y tu bandera
   if (modoObra && obras) {
     const adelante = obras.plano?.distancia || (obras.plano?.pieza ? 2.4 : 5.5);
     const fx = js.pos.x - Math.sin(js.yaw) * adelante;
@@ -6758,16 +6775,16 @@ function bucle(tRaf, manual = false) {
   }
   if (modo === 'jugando') revisarPistas(dt);
   if (!esDesafio) revisarGuiaRelax(dt);
-  if (!esDesafio) valle?.actualizar(dt);   // 3.1: la historia y los eventos del valle
-  veg.actualizarCaidas(dt);
-  if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); }
-  if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos);
-  if (modo === 'jugando' && !desafio) revisarCorreo();
-  if (modo === 'jugando' && !foto.activo) revisarTormenta(dt);   // 3.5.1: ni la tormenta
-  if (modo === 'jugando') actualizarCaballo(dt);
-  if (modo === 'jugando') modos?.actualizar(dt);   // 3.1: la carrera en curso, el desafío del día y el torneo
-  if (modo === 'jugando') actualizarFeria();
-  if (modo === 'jugando') revisarLogrosRelax(dt);
+  try { if (!esDesafio) valle?.actualizar(dt); } catch (e) { fallaSistema('valle', e); }   // 3.1: la historia y los eventos del valle
+  try { veg.actualizarCaidas(dt); } catch (e) { fallaSistema('caidas-arboles', e); }
+  try { if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); } } catch (e) { fallaSistema('majada/casa', e); }
+  try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
+  try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
+  try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
+  try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
+  try { if (modo === 'jugando') modos?.actualizar(dt); } catch (e) { fallaSistema('modos', e); }   // 3.1: la carrera en curso, el desafío del día y el torneo
+  try { if (modo === 'jugando') actualizarFeria(); } catch (e) { fallaSistema('feria', e); }
+  try { if (modo === 'jugando') revisarLogrosRelax(dt); } catch (e) { fallaSistema('logros', e); }
   if (modo === 'jugando' && progreso.dia !== diaRebrote) revisarRebrote();
   if (modo === 'jugando' && (progreso.dia !== diaHuerta || (clima?.estado?.lluvia || 0) > 0.35)) revisarHuerta();
   acumuladoVisible += dt;
@@ -6794,7 +6811,7 @@ function bucle(tRaf, manual = false) {
   actualizarCielo(dt, noche, luzCielo);
   ctxClima.invierno = U.uInvierno.value; ctxClima.otono = U.uOtono.value; ctxClima.noche = noche;
   ctxClima.chimeneas = chimeneasTodas || chimeneas; ctxClima.sonido = sonido; ctxClima.bajoTecho = bajoTecho;
-  clima.actualizar(dt, cam, ctxClima);
+  try { clima.actualizar(dt, cam, ctxClima); } catch (e) { fallaSistema('clima', e); }
   // 2.1: el frente que viene se ve sobre la cordillera (ver `pronostico.js`)
   if (cielo?.uniforms) {
     const quiere = frente(clima.estado.objetivo, clima.estado.proximo, horasFaltantesClima());
@@ -6815,7 +6832,7 @@ function bucle(tRaf, manual = false) {
     jugador.estado.escarcha = U.uEscarcha.value;
     diario.escarcha?.(U.uEscarcha.value);
   }
-  huellas?.actualizar(dt, jugador.estado, U.uInvierno.value, clima.estado.lluvia);
+  try { huellas?.actualizar(dt, jugador.estado, U.uInvierno.value, clima.estado.lluvia); } catch (e) { fallaSistema('huellas', e); }
   perfilador.terminar('clima', tClima, medirRendimiento);
   acumuladoFauna += dt;
   const tFauna = perfilador.iniciar(medirRendimiento);
@@ -6830,10 +6847,10 @@ function bucle(tRaf, manual = false) {
     actualizarPeligros(df);
     actualizarSonidoAmbiente(df);
     veg.pintarTocones?.(U.uInvierno.value);
-    fauna.actualizar(df, jugador, camara, ctxMundoVivo);
+    try { fauna.actualizar(df, jugador, camara, ctxMundoVivo); } catch (e) { fallaSistema('fauna', e); }
     iniciarFrameEcosistema();
-    vida.actualizar(df, jugador, camara, ctxMundoVivo);
-    ambienteBichos = bichos.actualizar(df, jugador, camara, ctxMundoVivo);
+    try { vida.actualizar(df, jugador, camara, ctxMundoVivo); } catch (e) { fallaSistema('vida', e); }
+    try { ambienteBichos = bichos.actualizar(df, jugador, camara, ctxMundoVivo); } catch (e) { fallaSistema('bichos', e); }
     rastrosFauna.length = 0;
     for (const s of vida.sujetos?.() || []) rastrosFauna.push(s);
     for (const s of bichos.rastros?.() || []) rastrosFauna.push(s);
@@ -6860,18 +6877,18 @@ function bucle(tRaf, manual = false) {
   }
   const tNPC = perfilador.iniciar(medirRendimiento);
   if (modo === 'jugando' || modo === 'inicio') {
-    gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel);
+    try { gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel); } catch (e) { fallaSistema('gente', e); }
     mundoPerro.noche = noche;
     mundoPerro.ataque = desafio && modo === 'jugando' ? desafio.objetivoPerro(js, perro.est.pos) : null;
     // 2.0: en el Desafío se queda duro mirando hacia lo que vos no ves
     mundoPerro.alerta = desafio && modo === 'jugando' && !mundoPerro.ataque ? desafio.alertaPerro?.() || null : null;
     // 2.0: en el Relax el perro te lleva hasta la fauna que te falta anotar
     mundoPerro.guiar = !desafio && modo === 'jugando';
-    if (modo === 'jugando') actualizarRastro(dt);
-    if (modo === 'jugando') actualizarVisitas(dt);
-    if (modo === 'jugando') actualizarPueblo(dt);   // 3.1
+    try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
+    try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
+    try { if (modo === 'jugando') actualizarPueblo(dt); } catch (e) { fallaSistema('pueblo', e); }   // 3.1
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
-    marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro);
+    try { marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro); } catch (e) { fallaSistema('perro', e); }
     if (perro.est.empezoAGuiar) {
       perro.est.empezoAGuiar = null;
       // se avisa las primeras veces, hasta que el jugador entiende el gesto
@@ -6888,20 +6905,20 @@ function bucle(tRaf, manual = false) {
   estadoTren = tren.actualizar(dt, jugador, camara, ctxTren);
   actualizarCabina(ctxTren.pausado ? 0 : dt);
 
-  if (!kayak.est.activo) kayak.actualizar(dt, () => false, jugador, U.uTiempo.value);
+  try { if (!kayak.est.activo) kayak.actualizar(dt, () => false, jugador, U.uTiempo.value); } catch (e) { fallaSistema('kayak', e); }
   kayak.remo.visible = kayak.est.activo && !pesca.est.equipada;
   // 2.9: el velero amarrado se mece (y aparece con el varadero); los cables y puentes siguen a sus puntas
-  vela?.actualizarQuieto(dt, U.uTiempo.value);
-  tirolesas?.actualizar(dt, jugador);
+  try { vela?.actualizarQuieto(dt, U.uTiempo.value); } catch (e) { fallaSistema('vela', e); }
+  try { tirolesas?.actualizar(dt, jugador); } catch (e) { fallaSistema('tirolesas', e); }
   if (modo === 'jugando') {
     if (js.nadando && pesca.est.equipada) pesca.equipar(false);
-    pesca.actualizar(dt, jugador, mundoPesca());
+    try { pesca.actualizar(dt, jugador, mundoPesca()); } catch (e) { fallaSistema('pesca', e); }
   }
   if (desafio && modo === 'jugando') {
     const tDesafio = perfilador.iniciar(medirRendimiento);
     ctxDesafio.noche = noche;
     ctxDesafio.dtReal = Math.min(0.1, dtReal);
-    desafio.actualizar(dt, ctxDesafio);
+    try { desafio.actualizar(dt, ctxDesafio); } catch (e) { fallaSistema('desafio', e); }
     perfilador.terminar('desafio', tDesafio, medirRendimiento);
   }
 
@@ -7215,7 +7232,9 @@ function bucle(tRaf, manual = false) {
         if (l && !progreso.entradas[id] && cerca(js, l, id === 'mallin' || id === 'arrayanes' ? 45 : 16)) registrar(id);
       }
     }
-    acumuladoGuardado += dt;
+    // 3.5.1: con reloj de verdad (dtReal): con pocos cuadros por segundo o en cámara lenta el dt
+    // del juego se achica y el guardado se espaciaba; así una caída pierde 20 s como mucho
+    acumuladoGuardado += dtReal;
     if (acumuladoGuardado > 20) { acumuladoGuardado = 0; programarGuardadoSuave(); }
   }
 
@@ -7240,7 +7259,7 @@ function bucle(tRaf, manual = false) {
     } else ctxSonido.cascada = null;
   } else ctxSonido.cascada = null;
   ctxSonido.cercaMallin = cerca(js, T.lugares.mallin, 90); ctxSonido.puntoCercano = fauna.puntoCercano;
-  sonido.actualizar(dt, ctxSonido);
+  try { sonido.actualizar(dt, ctxSonido); } catch (e) { fallaSistema('sonido', e); }
 
   // las sombras se rehacen unas pocas veces por segundo
   if (calidad.sombras) {
@@ -7286,6 +7305,114 @@ function bucle(tRaf, manual = false) {
   if (!manual) cerrarCuadro(tCosto, cadencia, plan);
 }
 
+// ------------------------------------------------------------------ 3.5.1: caídas
+// Lo que hace que el juego no se caiga (o que, si se cae, vuelva solo con la partida):
+// las preguntas en un cuadro del juego, los sistemas del bucle que fallan, el contexto 3D que
+// pierde la placa y el aviso de que main.cjs recargó la ventana después de una caída.
+
+// Las preguntas (dialogo.js). Abiertas en pleno juego, el mundo queda quieto como con la
+// tarjeta del valle (`modo` pasa a 'dialogo') y al cerrar se vuelve al juego.
+let modoAntesDialogo = null;
+const NATIVOS_DIALOGO = { confirmar: window.confirm, texto: window.prompt };
+const dialogos = crearDialogos({
+  traducir: T_,
+  alAbrir: () => { if (modo === 'jugando') { modoAntesDialogo = 'jugando'; modo = 'dialogo'; jugador?.soltar(); } },
+  alCerrar: () => {
+    if (modo !== 'dialogo') return;
+    modo = modoAntesDialogo || 'jugando'; modoAntesDialogo = null;
+    if (modo === 'jugando') volverAlJuego();
+  },
+  // con ?debug=1, las pruebas viejas contestan reemplazando window.confirm / window.prompt
+  auto: HOJARASCA_DEBUG ? (tipo, texto, inicial) => {
+    const f = tipo === 'texto' ? window.prompt : window.confirm;
+    return typeof f === 'function' && f !== NATIVOS_DIALOGO[tipo] ? f(texto, inicial) : undefined;
+  } : null,
+});
+
+// Un sistema del bucle que tira una excepción: se anota una vez por sistema y mensaje (consola
+// y registro de caídas, por el mismo reportarError de siempre) y el resto del cuadro sigue.
+const fallasBucle = new Map();
+function fallaSistema(nombre, err) {
+  const mensaje = String(err?.message || err).slice(0, 200);
+  const clave = `${nombre}|${mensaje}`;
+  const f = fallasBucle.get(clave);
+  if (f) { f.veces++; return; }
+  if (fallasBucle.size >= 64) return;
+  fallasBucle.set(clave, { nombre, mensaje, veces: 1 });
+  console.error(`[Hojarasca] falló "${nombre}" en el bucle (el juego sigue sin eso):`, err);
+  try { window.hojarasca?.reportarError?.(`bucle/${nombre}: ${String(err?.stack || mensaje)}`); } catch { /* sin Electron */ }
+}
+
+// El contexto 3D perdido (el driver se reinicia, la compu vuelve de suspender, a la placa
+// integrada le falta memoria). Se guarda la partida, el bucle espera con "Recuperando los
+// gráficos…" y, cuando la placa vuelve, three r186 rehace su estado solo (initGLContext:
+// geometrías, texturas, DataTextures con sus datos y los programas se vuelven a subir al
+// usarse). Lo que no puede rehacer es lo dibujado una sola vez en un render target: las fotos
+// de los árboles lejanos (impostores) se hornean de nuevo. Si la placa no vuelve a tiempo o
+// rehacer falla, se guarda y se recarga: la partida sigue donde estaba.
+const estadoGraficos = { perdidos: false, veces: 0, recuperados: 0, rehaciendo: false, espera: 0, ultimo: '', esperaMs: 15000 };
+const esperarMs = (ms) => new Promise((r) => setTimeout(r, ms));
+function recargarPorGraficos(motivo) {
+  clearTimeout(estadoGraficos.espera);
+  estadoGraficos.ultimo = motivo;
+  try { window.hojarasca?.reportarError?.(`webgl: recarga (${motivo})`); } catch { /* sin Electron */ }
+  if (!reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); }
+  const url = new URL(location.href);
+  url.searchParams.set('recuperado', 'graficos');
+  location.replace(url.toString());
+}
+async function rehacerGraficos() {
+  const gl = renderer.getContext();
+  if (gl.isContextLost?.()) throw new Error('el contexto sigue perdido');
+  veg?.rehornearImpostores?.();                // las fotos de los árboles lejanos
+  renderer.shadowMap.needsUpdate = true;       // el mapa de sombras, ya
+  cronometroGpu = undefined;                   // las consultas de tiempo eran del contexto viejo
+  // los programas, ahora (con el cartel puesto) y no a tirones al volver a caminar
+  if (modo !== 'carga' && jugador) await Promise.race([Promise.resolve(variantesLuces.compilarCarga(jugador.estado.pos)).catch(() => null), esperarMs(8000)]);
+}
+lienzo.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();   // sin esto el navegador no devuelve nunca el contexto
+  if (estadoGraficos.perdidos) return;
+  estadoGraficos.perdidos = true; estadoGraficos.veces++;
+  try { window.hojarasca?.reportarError?.('webgl: se perdió el contexto 3D'); } catch { /* sin Electron */ }
+  $('graficos-recuperando')?.classList.remove('oculto');
+  if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); }
+  clearTimeout(estadoGraficos.espera);
+  estadoGraficos.espera = setTimeout(() => recargarPorGraficos('la placa no devolvió el contexto'), estadoGraficos.esperaMs);
+}, false);
+lienzo.addEventListener('webglcontextrestored', async () => {
+  if (!estadoGraficos.perdidos || estadoGraficos.rehaciendo) return;
+  // perdido en plena carga: no hay nada que perder, se vuelve a cargar de cero
+  if (modo === 'carga' || !jugador) { recargarPorGraficos('se perdió durante la carga'); return; }
+  estadoGraficos.rehaciendo = true;
+  clearTimeout(estadoGraficos.espera);
+  estadoGraficos.espera = setTimeout(() => recargarPorGraficos('rehacer los gráficos tardó demasiado'), estadoGraficos.esperaMs);
+  try {
+    await rehacerGraficos();
+    clearTimeout(estadoGraficos.espera);
+    estadoGraficos.perdidos = false; estadoGraficos.recuperados++;
+    $('graficos-recuperando')?.classList.add('oculto');
+    nota('Gráficos recuperados', 'La placa de video se reinició; seguís donde estabas', true);
+  } catch (err) {
+    recargarPorGraficos('no se pudo rehacer: ' + (err?.message || err));
+  } finally { estadoGraficos.rehaciendo = false; }
+}, false);
+
+// main.cjs recargó la ventana después de una caída (o el juego, sin la placa): se avisa en la
+// portada y al entrar. La partida es la última guardada (el autoguardado va cada 20 s).
+const recuperadoDe = new URLSearchParams(location.search).get('recuperado');
+function avisarRecuperado() {
+  if (!recuperadoDe) return;
+  const texto = recuperadoDe === 'graficos'
+    ? 'La placa de video dejó de responder y el juego volvió a abrir tu partida guardada.'
+    : 'El juego se cerró de golpe y se volvió a abrir solo, con tu partida guardada.';
+  const p = $('aviso-recuperado');
+  if (p) { p.textContent = texto; p.classList.remove('oculto'); }
+  $('btn-entrar')?.addEventListener('click', () => setTimeout(() => nota('El juego se recuperó', 'Seguís desde el último guardado', true), 1200), { once: true });
+}
+// main.cjs pide guardar ya (antes de reiniciar con otras opciones de gráficos)
+window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); } });
+
 // ------------------------------------------------------------------ arranque
 (async () => {
   try {
@@ -7301,6 +7428,7 @@ function bucle(tRaf, manual = false) {
   crearValle();   // 3.1
   $('carga').classList.add('oculto');
   $('inicio').classList.remove('oculto');
+  avisarRecuperado();   // 3.5.1
   if (esDesafio) {
     $('btn-entrar').textContent = 'Empezar el Desafío';
     $('btn-nuevo').textContent = 'Empezar un Desafío nuevo';
@@ -7401,6 +7529,8 @@ function bucle(tRaf, manual = false) {
   // 3.0: la supervivencia sin fin, para las pruebas
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
+  // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__caidas = { dialogos, graficos: estadoGraficos, fallas: () => [...fallasBucle.values()], fallaSistema, rehacerGraficos, pedirNombre, recuperadoDe, modo: () => modo };
   // 3.1: las carreras, el desafío del día y el torneo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;
   if (HOJARASCA_DEBUG) window.__hojarasca.__sinFin = { es: esSinFin, terminar: () => terminarCorrida(), records: () => recordsSinFin(), nueva: (c) => nuevaCorrida(c), empezarMapa: () => empezarMapaDesafio() };
