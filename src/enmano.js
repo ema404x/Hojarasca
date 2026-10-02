@@ -104,6 +104,33 @@ function cajaBiselada(ax, ay, az, bisel) {
   return g;
 }
 
+// 3.5.2: la cabeza del hacha con su forma (antes, tres cajas): el ojo cuadrado atrás, donde
+// entra el mango, y la hoja que se afina y se abre en el filo curvo. Caja de muchos tramos
+// deformada, con normales suaves; sigue siendo una sola pieza por material.
+function cabezaHacha() {
+  const ax = 0.11, ay = 0.05, az = 0.032;
+  const g = new THREE.BoxGeometry(ax, ay, az, 10, 4, 3);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const u = (x + ax / 2) / ax;                                  // 0 en el ojo, 1 en el filo
+    const abre = 1 + 0.95 * Math.max(0, u - 0.35) ** 1.6 * 2.4;   // la hoja se abre hacia el filo
+    y *= abre;
+    z *= 1 - 0.82 * Math.max(0, u - 0.3) ** 1.2 / 0.7 ** 1.2;     // y se afina
+    if (u > 0.98) x += 0.012 * (1 - (y / (ay * 0.5 * abre)) ** 2);   // el filo curvo
+    p.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+function doblar(geo, fn) {
+  const p = geo.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); fn(v); p.setXYZ(i, v.x, v.y, v.z); }
+  geo.computeVertexNormals();
+  return geo;
+}
+
 const EJES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
 function palo(material, radio, largo, pos = [0, 0, 0], rot = [0, 0, 0]) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio * 1.1, largo, nivelTexturas() > 0 ? 14 : 6), material);
@@ -170,7 +197,7 @@ function plumas(color, n = 3, largo = 0.045, radio = 0.006) {
 
 // 2.8: una punta de flecha que mira hacia -Z; encendida si la flecha es de rayo
 function puntaFlecha(rayo, r = 0.011, h = 0.04) {
-  const p = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), rayo ? new THREE.MeshBasicMaterial({ color: 0x9fe4ff }) : lam('#8a8378', 'metal'));
+  const p = new THREE.Mesh(new THREE.ConeGeometry(r, h, 10), rayo ? new THREE.MeshBasicMaterial({ color: 0x9fe4ff }) : lam('#8a8378', 'metal'));
   p.rotation.x = -Math.PI / 2;
   return p;
 }
@@ -293,22 +320,41 @@ const MODELOS = {
     const cabeza = new THREE.Group();
     cabeza.position.set(0.048, 0.155, 0);
     cabeza.rotation.z = 0.3;
-    cabeza.add(caja(lam('#8e8d86', 'metal'), [0.045, 0.075, 0.032], [0, 0, 0]));
-    cabeza.add(caja(lam('#b8b6ac', 'metal'), [0.022, 0.085, 0.028], [0.03, 0, 0]));
-    cabeza.add(caja(lam('#6f6e68', 'metal'), [0.032, 0.03, 0.04], [-0.018, -0.02, 0]));
+    // 3.5.2: la cabeza forjada en una pieza, con el filo afilado más claro (ver cabezaHacha)
+    const hoja = new THREE.Mesh(cabezaHacha(), lam('#85847d', 'metal'));
+    hoja.position.set(0.012, 0, 0);
+    fijarEje(hoja, EJES[0]);
+    cabeza.add(hoja);
+    const filo = new THREE.Mesh(new THREE.CylinderGeometry(0.0036, 0.0036, 0.104, 8, 8), lam('#c4c2b8', 'metal'));
+    doblar(filo.geometry, (v) => { v.x += 0.012 * (1 - (v.y / 0.0535) ** 2); });
+    filo.position.set(0.067, 0, 0);
+    cabeza.add(filo);
     g.add(cabeza);
     return g;
   },
   tronco() {
+    // 3.5.2: el leño redondo y apenas torcido, con la corteza en vetas y los cortes claros con
+    // sus anillos (antes, un prisma de ocho caras)
     const g = new THREE.Group();
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.26, 8), lam('#6b5238'));
+    const geo = doblar(new THREE.CylinderGeometry(0.045, 0.05, 0.26, 16, 4, true), (v) => {
+      const a = Math.atan2(v.z, v.x);
+      const k = 1 + 0.05 * Math.sin(a * 5 + v.y * 9) + 0.025 * Math.sin(a * 11);   // la corteza
+      v.x *= k; v.z *= k; v.x += 0.006 * Math.sin(v.y * 12);
+    });
+    const m = new THREE.Mesh(geo, lam('#6b5238', 'madera'));
     m.rotation.z = Math.PI / 2;
+    fijarEje(m, EJES[1]);
     g.add(m);
+    const anillos = lam('#9a7a55', 'madera'), corazon = lam('#7d5f40', 'madera');
     for (const sx of [-1, 1]) {
-      const tapa = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.008, 8), lam('#8a6b4a'));
-      tapa.rotation.z = Math.PI / 2;
-      tapa.position.x = sx * 0.132;
+      const tapa = new THREE.Mesh(new THREE.CircleGeometry(sx > 0 ? 0.051 : 0.046, 16), anillos);
+      tapa.rotation.y = sx * Math.PI / 2;
+      tapa.position.x = sx * 0.13;
       g.add(tapa);
+      const centro = new THREE.Mesh(new THREE.CircleGeometry(sx > 0 ? 0.022 : 0.02, 12), corazon);
+      centro.rotation.y = sx * Math.PI / 2;
+      centro.position.x = sx * 0.1305;
+      g.add(centro);
     }
     return g;
   },
@@ -336,7 +382,7 @@ const MODELOS = {
     g.add(palo(lam('#6b5238'), 0.014, 0.9, [0, 0, -0.18], [Math.PI / 2 - 0.12, 0, 0]));
     // 2.8: forjada con hielo, la punta queda escarchada y con cristales de escarcha
     const hielo = !!o.forja.lanza;
-    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.12, 5), hielo ? lam('#bfe6f5', 'metal') : lam('#8a8378'));
+    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.12, 10), hielo ? lam('#bfe6f5', 'metal') : lam('#8a8378'));
     punta.position.set(0, 0.07, -0.63);
     punta.rotation.x = -Math.PI / 2 - 0.12;
     g.add(punta);
@@ -362,7 +408,7 @@ const MODELOS = {
   },
   arco(o = OPCIONES_BASE) {
     const g = new THREE.Group();
-    const curva = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 5, 16, Math.PI * 0.75), lam('#7a5f43'));
+    const curva = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 8, 28, Math.PI * 0.75), lam('#7a5f43'));
     curva.rotation.set(0, Math.PI / 2, Math.PI / 2 + Math.PI * 0.375);
     curva.position.set(0, 0, -0.08);
     g.add(curva);
@@ -422,7 +468,7 @@ const MODELOS = {
   ballesta(o = OPCIONES_BASE) {
     const g = new THREE.Group();
     g.add(caja(lam('#6b5238'), [0.05, 0.05, 0.42], [0, 0, -0.1]));
-    const arco = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.012, 5, 14, Math.PI * 0.8), lam('#7a5f43'));
+    const arco = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.012, 8, 22, Math.PI * 0.8), lam('#7a5f43'));
     arco.rotation.set(Math.PI / 2, 0, Math.PI * 1.1);
     arco.position.set(0, 0.02, -0.27);
     g.add(arco);
@@ -464,7 +510,7 @@ const MODELOS = {
   arpon() {
     const g = new THREE.Group();
     g.add(palo(lam('#6b5238'), 0.012, 0.7, [0, 0, -0.1], [Math.PI / 2 - 0.1, 0, 0]));
-    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.14, 6), new THREE.MeshBasicMaterial({ color: 0x7dfff0 }));
+    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.14, 10), new THREE.MeshBasicMaterial({ color: 0x7dfff0 }));
     punta.position.set(0, 0.04, -0.5); punta.rotation.x = -Math.PI / 2 - 0.1;
     g.add(punta);
     return g;
@@ -480,7 +526,7 @@ const MODELOS = {
   jabalina() {
     const g = new THREE.Group();
     g.add(palo(lam('#6b5238'), 0.011, 1.0, [0, 0.02, -0.2], [Math.PI / 2 - 0.08, 0, 0]));
-    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.1, 5), lam('#8a8378'));
+    const punta = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.1, 10), lam('#8a8378'));
     punta.position.set(0, 0.06, -0.72); punta.rotation.x = -Math.PI / 2 - 0.08;
     g.add(punta);
     return g;
@@ -505,7 +551,13 @@ const MODELOS = {
   },
   cuerno() {
     const g = new THREE.Group();
-    const c = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.022, 6, 12, Math.PI * 0.9), lam('#d9c9a6'));
+    // 3.5.2: el cuerno se afina hacia la punta (antes, un aro parejo de seis lados)
+    const geo = doblar(new THREE.TorusGeometry(0.1, 0.022, 10, 20, Math.PI * 0.9), (v) => {
+      const a = Math.atan2(v.y, v.x), k = 1 - 0.75 * Math.min(1, Math.max(0, a / (Math.PI * 0.9)));
+      const cx = Math.cos(a) * 0.1, cy = Math.sin(a) * 0.1;
+      v.x = cx + (v.x - cx) * k; v.y = cy + (v.y - cy) * k; v.z *= k;
+    });
+    const c = new THREE.Mesh(geo, lam('#d9c9a6'));
     c.rotation.set(0, Math.PI / 2, 0.4);
     g.add(c);
     return g;

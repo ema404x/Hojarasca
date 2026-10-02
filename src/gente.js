@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { limitarSombrasPorDistancia } from './rendimiento.js';
 import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
-import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar } from './formas.js';
+import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar, fundirNormales, puntasBufanda } from './formas.js';
 import { LAGO } from './config.js';
 
 // ---------------------------------------------------------------- historias
@@ -192,7 +192,37 @@ const ROPA = {
 };
 const ESC_TORSO = [1, 1, 0.74];
 const R_PONCHO = new Set(['ramon']);   // 3.5: los que andan de poncho (ver la ladera en actualizar)
-function mallaPersona(colores, clave = '') {
+// 3.5.2: el brazo del mate. Antes el mate quedaba en el codo (el grupo de la mano estaba ahí desde
+// que el brazo se hizo de una pieza) y se "tomaba" estirando el brazo. Ahora el brazo derecho de
+// los que toman mate tiene el codo doblado (una sola pieza, como los demás) y la mano con el mate
+// cuelgan de la muñeca, que se contra-gira para que el mate quede derecho; al tomar, el hombro
+// sube el codo y lo gira hacia adentro y la bombilla llega a la boca (pose buscada con
+// herramientas-34/v352-animales-scripts/pose-mate.mjs). Mismas llamadas de dibujo: el brazo
+// (antes brazo y mano) y la muñeca (antes el mate suelto).
+const CODO_MATE = -2.3;                                   // el codo, doblado fijo
+const DIR_MATE = (() => { const c = Math.cos(CODO_MATE), s = Math.sin(CODO_MATE), v = new THREE.Vector3(-0.4, -c, -s); return v.normalize(); })();
+const TOMAR_MATE = { x: -0.6, y: -0.48, inclina: -0.6 };  // hombro y mate en lo alto del sorbo
+const _qMate = new THREE.Quaternion(), _qInclina = new THREE.Quaternion(), _eMate = new THREE.Euler();
+// Suma la geometría de `fuente` (ya fundida, con su posición respecto de `destino`) a la de
+// `destino`: devuelve la geometría junta (las dos son indexadas, con posición, normal y color).
+function juntarGeometrias(destino, fuente, matriz) {
+  const a = destino.geometry, b = fuente.geometry.clone().applyMatrix4(matriz);
+  const na = a.attributes.position.count, nb = b.attributes.position.count;
+  const geo = new THREE.BufferGeometry();
+  for (const k of ['position', 'normal', 'color']) {
+    const arr = new Float32Array((na + nb) * 3);
+    arr.set(a.attributes[k].array, 0); arr.set(b.attributes[k].array, na * 3);
+    geo.setAttribute(k, new THREE.BufferAttribute(arr, 3));
+  }
+  const ia = a.index.array, ib = b.index.array;
+  const idx = (na + nb) > 65535 ? new Uint32Array(ia.length + ib.length) : new Uint16Array(ia.length + ib.length);
+  idx.set(ia, 0); for (let i = 0; i < ib.length; i++) idx[ia.length + i] = ib[i] + na;
+  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  geo.computeBoundingSphere();
+  b.dispose();
+  return geo;
+}
+function mallaPersona(colores, clave = '', conMate = false) {
   const R = ROPA[clave] || {};
   const g = new THREE.Group();
   const piel = colores.piel || R.piel || '#c49a70';
@@ -238,14 +268,16 @@ function mallaPersona(colores, clave = '') {
     // pliegues que se abren hacia el ruedo (la pollera, el faldón de la campera larga)
     if (ondas) { const k = 1 + ondas * Math.sin(Math.atan2(v.x, v.z) * 8 + 0.3) * Math.min(1, Math.max(0, -v.y / 0.4)); v.x *= k; v.z *= k; }
     v.z *= zBase * (v.z > 0 ? 1 + 0.08 * pecho : 0.96) * (v.y > 0.44 ? 0.88 : 1);
-    v.x *= 1 + 0.07 * hombro;
+    v.x *= 1 + 0.1 * hombro;   // 3.5.2: el hombro un poco más ancho, tapa el arranque del brazo
   });
   torso.add(bola(pantalon, [0.15, 0.12, 0.104], [0, 0.02, 0]));
   const cuerpoAlto = [[0.16, 0.02], [0.149, 0.12], [0.164, 0.24], [0.19, 0.35], [0.205, 0.43], [0.204, 0.47], [0.178, 0.515], [0.128, 0.548], [0.07, 0.567]];
   const faldon = R.campera === 'larga' ? [[0.184, -0.22], [0.172, -0.1]] : [[0.163, -0.07]];
+  let capaHombro = null;   // 3.5.2: la tela que cubre el hombro (para la costura con el brazo)
   if (R.chaleco || R.abierta) {
     // la camisa (o el pulóver) que se ve por adelante
-    torso.add(capa(ropa, [[0.15, -0.02], ...cuerpoAlto.map(([r, y]) => [r - 0.007, y])], 14));
+    capaHombro = capa(ropa, [[0.15, -0.02], ...cuerpoAlto.map(([r, y]) => [r - 0.007, y])], 14);
+    torso.add(capaHombro);
   }
   if (R.chaleco) {
     torso.add(capa(abrigo, [[0.167, -0.06], [0.166, 0.02], [0.156, 0.12], [0.171, 0.24], [0.197, 0.35], [0.211, 0.43], [0.2, 0.478]], 14, 0.42, Math.PI * 2 - 0.84));
@@ -255,7 +287,8 @@ function mallaPersona(colores, clave = '') {
       torso.add(capa('#7a2e26', [[0.163, -0.05], [0.169, -0.038], [0.17, 0.028], [0.165, 0.042]], 16));
     } else torso.add(capa('#4a3626', [[0.168, -0.035], [0.168, 0.02]], 14));   // el cinto
   } else {
-    torso.add(capa(abrigo, [...faldon, ...cuerpoAlto], R.campera === 'larga' ? 24 : 16, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.74, R.campera === 'larga' ? 0.03 : 0));
+    capaHombro = capa(abrigo, [...faldon, ...cuerpoAlto], R.campera === 'larga' ? 24 : 16, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.74, R.campera === 'larga' ? 0.03 : 0);
+    torso.add(capaHombro);
     torso.add(capa(matiz(abrigo, 0.88), [[0.084, 0.535], [0.086, 0.572], [0.075, 0.586]], 14, 0, Math.PI * 2, 0.95));   // el cuello
   }
   if (R.pollera) {
@@ -268,10 +301,10 @@ function mallaPersona(colores, clave = '') {
     torso.add(capa(R.delantal, perfil, 10, -0.68, 1.36, R.pollera ? 0.8 : 0.74));
   }
   if (R.bolsillos) for (const l of [-1, 1]) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.07, 0.012), color(matiz(abrigo, 0.86)));
-    b.position.set(l * 0.078, 0.33, 0.146); b.rotation.set(-0.12, l * 0.3, 0); torso.add(b);
-    const tapa = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.022, 0.016), color(matiz(abrigo, 0.7)));
-    tapa.position.set(l * 0.078, 0.37, 0.15); tapa.rotation.set(-0.12, l * 0.3, 0); torso.add(tapa);
+    // 3.5.2: los bolsillos del pecho, cosidos sobre la tela y siguiendo la curva del pecho
+    // (antes eran cajas que de costado se veían salidas del cuerpo)
+    torso.add(bola(matiz(abrigo, 0.88), [0.036, 0.034, 0.004], [l * 0.08, 0.325, 0.134], [-0.1, l * 0.36, 0]));
+    torso.add(bola(matiz(abrigo, 0.74), [0.039, 0.011, 0.006], [l * 0.081, 0.362, 0.134], [-0.1, l * 0.36, 0]));   // la tapa
   }
   if (R.botones) for (const l of [-1, 1]) for (const y of [0.16, 0.27, 0.38]) torso.add(bola(R.botones, [0.011, 0.011, 0.008], [l * 0.05, y, 0.122 + (y > 0.3 ? 0.014 : y > 0.2 ? 0.005 : 0)]));
   if (colores.poncho) {
@@ -302,7 +335,7 @@ function mallaPersona(colores, clave = '') {
   }
   const cuello = colores.bufanda || R.panuelo;
   if (cuello && !colores.poncho) {
-    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.076, R.panuelo ? 0.017 : 0.025, 8, 20), color(cuello));
+    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.076, R.panuelo ? 0.017 : 0.029, 8, 20), color(cuello));
     vuelta.position.set(0, 0.555, 0.01); vuelta.rotation.set(Math.PI / 2 - 0.16, 0, 0); vuelta.scale.set(1, 0.9, 1);
     torso.add(vuelta);
     // 3.5: antes el nudo y la punta eran un disco chato pegado al pecho (se veía como un plato).
@@ -315,10 +348,13 @@ function mallaPersona(colores, clave = '') {
         punta.position.set(l * 0.012, 0.485, 0.128); punta.rotation.set(Math.PI - 0.32, 0, -l * 0.28); torso.add(punta);
       }
     } else {
-      const tira = huso(cuello, [[0.045, 0.53, 0.105], [0.058, 0.46, 0.15], [0.066, 0.38, 0.16], [0.07, 0.32, 0.158]], [0.028, 0.032, 0.031, 0.028], 10, 8);
-      deformar(tira, (v) => { v.z = 0.15 + (v.z - 0.15) * 0.4; });   // una tira de tela, no un tubo
-      torso.add(tira);
-      torso.add(torno(matiz(cuello, 0.75), [[0.031, 0.312], [0.033, 0.32], [0.0, 0.322]], [0.07, 0, 0.158], null, [1, 1, 0.42], 8));   // el fleco
+      // 3.5.2: la bufanda de lana: dos vueltas gruesas al cuello y las dos puntas que caen
+      // adelante, corridas al costado, anchas, con las rayas del tejido y el fleco (antes era
+      // una sola tira al medio del pecho y se leía como corbata)
+      const vuelta2 = new THREE.Mesh(new THREE.TorusGeometry(0.073, 0.025, 8, 20), color(matiz(cuello, 0.93)));
+      vuelta2.position.set(0, 0.527, 0.014); vuelta2.rotation.set(Math.PI / 2 - 0.1, 0.12, 0);
+      torso.add(vuelta2);
+      for (const p of puntasBufanda(cuello, { x: -0.098, y: 0.52, pecho: 0.156, largo: 0.17 })) torso.add(p);
     }
   }
   // ---- brazos: hombro, codo y mano de mitón (la mano derecha lleva el mate, la caña...).
@@ -329,25 +365,72 @@ function mallaPersona(colores, clave = '') {
   // con el brazo (una malla por brazo); el grupo `ante` queda vacío en el codo, para lo que
   // llevan en la mano. Con poncho, el brazo va debajo: se ve sólo desde el antebrazo.
   const brazos = [];
+  let muneca = null;
   for (const l of [-1, 1]) {
     const piv = new THREE.Group(); piv.position.set(l * 0.225, 1.3, 0);
     const x = -l * 0.016;
-    // del hombro a la muñeca en una sola pieza (sin costura en el codo), con el codo apenas
-    // doblado hacia adelante; con poncho, desde el codo
-    const muneca = [x + l * 0.02, -0.5, 0.03];
-    const brazo = colores.poncho
-      ? [[[x + l * 0.012, -0.26, 0.002], [x + l * 0.015, -0.32, 0.01], [x + l * 0.018, -0.42, 0.02], muneca], [0.044, 0.046, 0.043, 0.04]]
-      : [[[x - l * 0.045, 0.01, 0], [x - l * 0.016, -0.025, 0], [x + l * 0.006, -0.13, 0.0], [x + l * 0.012, -0.27, 0.002], [x + l * 0.016, -0.38, 0.016], muneca],
-        [0.045, 0.06, 0.056, 0.047, 0.044, 0.04]];
-    piv.add(huso(manga, brazo[0], brazo[1], colores.poncho ? 10 : 18, 12));
-    piv.add(torno(matiz(manga, 0.82), [[0.041, -0.022], [0.045, -0.004], [0.044, 0.018], [0.039, 0.022]], [muneca[0], muneca[1] - 0.004, muneca[2]], [-0.1, 0, 0], null, 12));   // el puño
-    piv.add(bola(piel, [0.032, 0.042, 0.024], [muneca[0], -0.545, 0.034], [-0.1, 0, 0]));                       // la palma
-    piv.add(bola(piel, [0.029, 0.034, 0.021], [muneca[0] + l * 0.002, -0.585, 0.044], [-0.32, 0, 0]));          // los dedos juntos, curvados
-    piv.add(bola(piel, [0.011, 0.024, 0.012], [muneca[0] - l * 0.026, -0.548, 0.05], [-0.25, 0, l * 0.5]));      // el pulgar
+    if (conMate && l === 1) {
+      // 3.5.2: el brazo del mate: del hombro (o del codo, debajo del poncho) a la muñeca, con el
+      // codo doblado; la mano agarra la calabaza en la muñeca (ver CODO_MATE)
+      const codo = [x + l * 0.012, -0.28, 0.0], D = DIR_MATE;
+      const en = (t) => [codo[0] + D.x * t, codo[1] + D.y * t, codo[2] + D.z * t];
+      const W = en(0.25);
+      const brazo = colores.poncho
+        ? [[[codo[0], -0.24, 0.0], codo, en(0.06), en(0.15), W], [0.044, 0.047, 0.046, 0.044, 0.04]]
+        : [[[x - l * 0.04, -0.014, 0], [x - l * 0.014, -0.042, 0], [x + l * 0.006, -0.13, 0.0], [codo[0], -0.235, 0.0], codo, en(0.05), en(0.14), W],
+          [0.04, 0.052, 0.051, 0.047, 0.046, 0.045, 0.043, 0.04]];
+      piv.add(huso(manga, brazo[0], brazo[1], colores.poncho ? 12 : 22, 12));
+      const puno = torno(matiz(manga, 0.82), [[0.041, -0.022], [0.045, -0.004], [0.044, 0.018], [0.039, 0.022]], W, null, null, 12);
+      puno.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), D);
+      piv.add(puno);
+      // la muñeca: la mano (la palma de costado contra la calabaza, los dedos que la rodean por
+      // adelante y el pulgar por atrás) y el mate, armados derechos como con el brazo quieto
+      muneca = new THREE.Group(); muneca.position.set(W[0], W[1], W[2]);
+      const MC = [-0.045, 0.035, 0.03], en2 = (a, b, c) => [MC[0] + a, MC[1] + b, MC[2] + c];
+      // (la mano va primero: al fundir, sus triángulos quedan adelante y el mate se puede guardar
+      // dibujando sólo esa parte; ver `mateVisible`)
+      const mano = [
+        bola(piel, [0.022, 0.044, 0.034], [0.01, 0.022, 0.018], [0.35, 0, -0.25]),     // la palma
+        bola(piel, [0.022, 0.03, 0.05], en2(0.022, -0.012, 0.04), [0, -0.75, 0]),        // los dedos, por adelante
+        bola(piel, [0.012, 0.03, 0.014], en2(0.02, 0.012, -0.045), [0.3, 0, 0.5]),       // el pulgar, por atrás
+      ];
+      for (const m of mano) muneca.add(m);
+      muneca.userData.indicesMano = mano.reduce((s, m) => s + m.geometry.index.count, 0);
+      // el mate: la calabaza con su virola, la yerba y la bombilla
+      muneca.add(torno('#6b4a2c', [[0.0, -0.055], [0.04, -0.05], [0.058, -0.015], [0.056, 0.025], [0.045, 0.05], [0.042, 0.058]], MC, null, null, 14));
+      muneca.add(torno('#b8b2a4', [[0.042, 0.056], [0.045, 0.06], [0.045, 0.072], [0.041, 0.074]], MC, null, null, 14));   // la virola
+      muneca.add(bola('#3b4a2a', [0.04, 0.008, 0.04], en2(0, 0.064, 0)));                                                 // la yerba
+      muneca.add(tubo('#b9b2a0', 0.006, 0.006, 0.16, en2(0.02, 0.11, 0.01), [0.25, 0, 0.2], 6, true));
+      piv.add(muneca);
+      piv.userData.muneca = muneca;
+    } else {
+      // del hombro a la muñeca en una sola pieza (sin costura en el codo), con el codo apenas
+      // doblado hacia adelante; con poncho, desde el codo
+      const muneca = [x + l * 0.02, -0.5, 0.03];
+      const brazo = colores.poncho
+        ? [[[x + l * 0.012, -0.26, 0.002], [x + l * 0.015, -0.32, 0.01], [x + l * 0.018, -0.42, 0.02], muneca], [0.044, 0.046, 0.043, 0.04]]
+        // (3.5.2: el arranque del brazo, 2 cm más abajo: asomaba arriba del hombro como hombrera)
+        : [[[x - l * 0.04, -0.014, 0], [x - l * 0.014, -0.042, 0], [x + l * 0.006, -0.13, 0.0], [x + l * 0.012, -0.27, 0.002], [x + l * 0.016, -0.38, 0.016], muneca],
+          [0.04, 0.052, 0.051, 0.046, 0.044, 0.04]];
+      piv.add(huso(manga, brazo[0], brazo[1], colores.poncho ? 10 : 18, 12));
+      piv.add(torno(matiz(manga, 0.82), [[0.041, -0.022], [0.045, -0.004], [0.044, 0.018], [0.039, 0.022]], [muneca[0], muneca[1] - 0.004, muneca[2]], [-0.1, 0, 0], null, 12));   // el puño
+      piv.add(bola(piel, [0.032, 0.042, 0.024], [muneca[0], -0.545, 0.034], [-0.1, 0, 0]));                       // la palma
+      piv.add(bola(piel, [0.029, 0.034, 0.021], [muneca[0] + l * 0.002, -0.585, 0.044], [-0.32, 0, 0]));          // los dedos juntos, curvados
+      piv.add(bola(piel, [0.011, 0.024, 0.012], [muneca[0] - l * 0.026, -0.548, 0.05], [-0.25, 0, l * 0.5]));      // el pulgar
+    }
     const ante = new THREE.Group(); ante.position.set(0, -0.28, 0);
     piv.add(ante);
     piv.userData.ante = ante;
     g.add(piv); brazos.push(piv);
+  }
+  // 3.5.2: la costura del hombro. El brazo nace adentro del torso y donde asoma quedaba una
+  // raya de luz (las dos superficies con normales distintas): las normales del brazo cerca del
+  // torso se inclinan hacia las del torso y al revés, y la luz pasa de uno al otro sin raya.
+  if (!colores.poncho && capaHombro) {
+    for (const b of brazos) {
+      const malla = b.children.find((o) => o.isMesh && o.geometry.type === 'TubeGeometry');
+      if (malla) fundirNormales(malla, [b.position.x, b.position.y, 0], capaHombro, [0, 0.82, 0], 0.05, (px, py) => py > 1.16);
+    }
   }
   g.add(torso);
   // ---- cabeza
@@ -421,8 +504,17 @@ function mallaPersona(colores, clave = '') {
 
   compactar(g, { alto: 1.75, pie: 0.8, panza: 0.1, todo: true });
   // la mano derecha, donde va el mate, la caña o la planilla
-  const mano = brazos[1].userData.ante;
-  return { g, cabeza, torso, patas, brazos, mano };
+  let mano = brazos[1].userData.ante, mateVisible = null;
+  if (muneca) {
+    // 3.5.2: la mano y el mate son una sola malla; `mateVisible` (lo que antes era el mate suelto)
+    // guarda el mate dibujando sólo la parte de la mano
+    mano = muneca;
+    const unida = muneca.children.find((o) => o.isMesh), iMano = muneca.userData.indicesMano;
+    mateVisible = new THREE.Object3D();
+    let ver = true;
+    Object.defineProperty(mateVisible, 'visible', { configurable: true, get: () => ver, set: (v) => { ver = !!v; if (unida) unida.geometry.setDrawRange(0, ver ? Infinity : iMano); } });
+  }
+  return { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible };
 }
 
 // ---------------------------------------------------------------- creación
@@ -513,7 +605,7 @@ export function crearGente(T, escena, col, sonido) {
   }
 
   function agregar(clave, colores, pos, mirandoA, extra = {}) {
-    const m = mallaPersona(colores, clave);
+    const m = mallaPersona(colores, clave, !!extra.conMate);
     const y = alturaDePie(T, col, pos.x, pos.z, pos.y || 0);
     m.g.position.set(pos.x, y, pos.z);
     const rumbo = Math.atan2(mirandoA.x - pos.x, mirandoA.z - pos.z);
@@ -530,16 +622,11 @@ export function crearGente(T, escena, col, sonido) {
   }
 
   // Lo que cada uno lleva en la mano
-  // 3.4: el mate es una calabaza con su virola y la bombilla; cada cosa queda en una sola malla
+  // 3.4: el mate es una calabaza con su virola y la bombilla
+  // 3.5.2: ahora va en la mano, fundido con ella (ver el brazo del mate en mallaPersona): el que
+  // toma mate se arma con `conMate`; `npc.mate` es lo que lo muestra o lo guarda
   function darMate(npc) {
-    const mate = new THREE.Group();
-    mate.add(torno('#6b4a2c', [[0.0, -0.055], [0.04, -0.05], [0.058, -0.015], [0.056, 0.025], [0.045, 0.05], [0.042, 0.058]], null, null, null, 12));
-    mate.add(torno('#b8b2a4', [[0.042, 0.056], [0.045, 0.06], [0.045, 0.072], [0.041, 0.074]], null, null, null, 12));   // la virola
-    mate.add(bola('#3b4a2a', [0.04, 0.008, 0.04], [0, 0.064, 0]));                                                 // la yerba
-    mate.add(tubo('#b9b2a0', 0.006, 0.006, 0.16, [0.02, 0.11, 0.01], [0.25, 0, 0.2], 6, true));
-    compactar(mate, { todo: true });
-    npc.mano.add(mate);
-    npc.mate = mate;
+    npc.mate = npc.mateVisible || null;
   }
   function darCaña(npc) {
     const caña = new THREE.Group();
@@ -578,7 +665,7 @@ export function crearGente(T, escena, col, sonido) {
       { ...ubicarJunto(base, rot, 3.4, -1.6), quieto: 9 },
       { ...ubicarJunto(base, rot, -0.65, 3.18), quieto: 11, mirar: { x: base.x + (base.x - p.x) * 4, z: base.z + (base.z - p.z) * 4 } },
     ];
-    const npc = agregar('ramon', { ropa: '#9a8b6c', abrigo: '#6b4a3a', poncho: true, gorro: 'boina', barba: '#c8c4bc' }, p, mira, { ruta, velocidad: 0.65 });
+    const npc = agregar('ramon', { ropa: '#9a8b6c', abrigo: '#6b4a3a', poncho: true, gorro: 'boina', barba: '#c8c4bc' }, p, mira, { ruta, velocidad: 0.65, conMate: true });
     darMate(npc);
   }
   // Nicanor: de la cabaña a la orilla, donde se queda pescando un buen rato
@@ -751,14 +838,17 @@ export function crearGente(T, escena, col, sonido) {
         // gestos según lo que esté haciendo
         const quieto = !andando && !charlando;
         const tarea = quieto && g.espera > 0 && etapa ? etapa : null;
-        let bIzq = 0, bDer = 0;
+        let bIzq = 0, bDer = 0, giroMate = 0, inclinaMate = 0;
         if (charlando) { bIzq = Math.sin(g.fase * 3.5) * 0.25; bDer = -bIzq * 0.7; }
         else if (andando) { bIzq = Math.sin(g.paso + Math.PI) * 0.3; bDer = Math.sin(g.paso) * 0.3; }
         else if (g.mate) {
           const ciclo = (g.fase % 9) / 9;
           // 3.5: sube y baja el mate de a poco (antes el brazo saltaba de golpe)
-          const k = suave(0.55, 0.6, ciclo) * (1 - suave(0.73, 0.78, ciclo));
-          bDer = -0.25 - 1.2 * k;
+          // 3.5.2: el codo sube y gira hacia adentro y el mate llega a la boca, apenas inclinado
+          // (antes se estiraba el brazo); con el mate guardado, no toma
+          const k = g.mate.visible === false ? 0 : suave(0.55, 0.6, ciclo) * (1 - suave(0.73, 0.78, ciclo));
+          if (g.muneca) { bDer = -0.05 + (TOMAR_MATE.x + 0.05) * k; giroMate = TOMAR_MATE.y * k; inclinaMate = TOMAR_MATE.inclina * k; }
+          else bDer = -0.25 - 1.2 * k;
           g.cabeza.rotation.x -= 0.18 * k;
         } else if (g.caña && tarea && tarea.pescando) {
           const ciclo = (g.fase % 12) / 12;
@@ -773,6 +863,14 @@ export function crearGente(T, escena, col, sonido) {
         // los brazos no van pegados al cuerpo: se abren apenas, un poco más al caminar
         g.brazos[0].rotation.z = andando ? -0.07 : -0.035;
         g.brazos[1].rotation.z = andando ? 0.07 : 0.035;
+        if (g.muneca) {
+          // 3.5.2: el que lleva el mate: el brazo se mece menos y la muñeca se contra-gira para
+          // que el mate quede derecho (o apenas inclinado hacia la boca al tomar)
+          g.brazos[1].rotation.x *= andando || charlando ? 0.5 : 1;
+          g.brazos[1].rotation.y = giroMate;
+          _qMate.copy(g.brazos[1].quaternion).invert();
+          g.muneca.quaternion.copy(_qMate.multiply(_qInclina.setFromEuler(_eMate.set(inclinaMate, 0, 0))));
+        }
       }
     }
   }
@@ -791,6 +889,7 @@ export function crearGente(T, escena, col, sonido) {
     const npc = agregar(def.clave, def.colores || {}, def.pos, def.mira || { x: def.pos.x, z: def.pos.z + 1 }, {
       nombre: def.nombre, oficio: def.oficio, saludo: def.saludo, despedida: def.despedida,
       historias: [], ruta: def.ruta || [{ x: def.pos.x, z: def.pos.z, quieto: 99999 }], velocidad: def.velocidad || 0.8, poblador: true,
+      conMate: def.mano === 'mate',
     });
     if (def.mano === 'mate') darMate(npc);
     else if (def.mano === 'cana') darCaña(npc);

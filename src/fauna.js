@@ -31,7 +31,9 @@ function crearPuduMalla(macho) {
   };
   const conPelaje = (m) => pintar(m, pelaje);
   // el cuerpo, un torno acostado: la grupa sube y la panza es pareja
-  const cuerpo = torno(pelo, [[0.0, -0.33], [0.08, -0.31], [0.132, -0.25], [0.152, -0.15], [0.148, -0.04], [0.138, 0.06], [0.132, 0.15], [0.108, 0.22], [0.06, 0.26], [0.0, 0.27]], [0, 0.37, -0.03], [Math.PI / 2, 0, 0], null, 14);
+  // 3.5.2: más hondo y más bajo (las patas se veían largas: el pudú es petiso y retacón), con
+  // más lados y anillos (de cerca se veían las facetas del contorno)
+  const cuerpo = torno(pelo, [[0.0, -0.33], [0.05, -0.322], [0.088, -0.3], [0.118, -0.27], [0.142, -0.22], [0.158, -0.15], [0.162, -0.08], [0.158, -0.01], [0.15, 0.06], [0.144, 0.12], [0.134, 0.17], [0.114, 0.215], [0.084, 0.245], [0.046, 0.264], [0.0, 0.27]], [0, 0.35, -0.03], [Math.PI / 2, 0, 0], null, 18);
   deformar(cuerpo, (v) => {
     const largo = v.y; let alto = -v.z;
     alto += 0.035 * suave(0.1, -0.2, largo) * (alto > 0 ? 1 : 0.4);   // la grupa alta
@@ -39,9 +41,9 @@ function crearPuduMalla(macho) {
     v.z = -alto;
   });
   g.add(conPelaje(cuerpo));
-  g.add(conPelaje(bola(pelo, [0.022, 0.03, 0.022], [0, 0.4, -0.36], [-0.6, 0, 0])));   // la colita
+  g.add(conPelaje(bola(pelo, [0.022, 0.03, 0.022], [0, 0.38, -0.36], [-0.6, 0, 0])));   // la colita
   // ---- la cabeza, con el cuello (cuello corto y grueso, se mueve al pastar)
-  const cabeza = new THREE.Group(); cabeza.position.set(0, 0.46, 0.28);
+  const cabeza = new THREE.Group(); cabeza.position.set(0, 0.44, 0.28);
   cabeza.add(conPelaje(miembro(pelo, [[0, -0.1, -0.12], [0, -0.03, -0.05], [0, 0.04, 0.01]], [0.08, 0.065, 0.055], 6, 10)));
   cabeza.add(conPelaje(bola(pelo, [0.068, 0.068, 0.08], [0, 0.065, 0.04])));
   cabeza.add(conPelaje(miembro(pelo, [[0, 0.06, 0.07], [0, 0.04, 0.13], [0, 0.026, 0.165]], [0.052, 0.038, 0.026], 5, 10)));   // el hocico
@@ -54,11 +56,13 @@ function crearPuduMalla(macho) {
   g.add(cabeza);
   // ---- las patas: finas, la de atrás con su garrón, y la pezuña oscura
   const patas = [];
+  // 3.5.2: las patas, 2 cm más cortas (el pivote baja con el cuerpo) y un poco más gruesas
+  const k = 0.93;
   for (const [x, z] of [[-0.075, 0.17], [0.075, 0.17], [-0.075, -0.18], [0.075, -0.18]]) {
-    const pivote = new THREE.Group(); pivote.position.set(x, 0.3, z);
-    if (z > 0) pivote.add(conPelaje(miembro(pelo, [[0, 0.05, -0.004], [0, -0.08, 0.0], [0, -0.19, 0.004], [0, -0.285, 0.012]], [0.034, 0.024, 0.015, 0.012], 8, 8)));
-    else pivote.add(conPelaje(miembro(pelo, [[0, 0.06, 0.0], [0, -0.05, 0.012], [0, -0.14, -0.026], [0, -0.21, -0.016], [0, -0.285, 0.006]], [0.05, 0.038, 0.018, 0.013, 0.012], 9, 8)));
-    pivote.add(bola(oscuro, [0.016, 0.016, 0.022], [0, -0.3, 0.014]));
+    const pivote = new THREE.Group(); pivote.position.set(x, 0.3 * k, z);
+    if (z > 0) pivote.add(conPelaje(miembro(pelo, [[0, 0.05, -0.004], [0, -0.08 * k, 0.0], [0, -0.19 * k, 0.004], [0, -0.285 * k, 0.012]], [0.037, 0.026, 0.016, 0.013], 8, 8)));
+    else pivote.add(conPelaje(miembro(pelo, [[0, 0.06, 0.0], [0, -0.05 * k, 0.012], [0, -0.14 * k, -0.026], [0, -0.21 * k, -0.016], [0, -0.285 * k, 0.006]], [0.054, 0.04, 0.019, 0.014, 0.013], 9, 8)));
+    pivote.add(bola(oscuro, [0.016, 0.016, 0.022], [0, -0.3 * k, 0.014]));
     g.add(pivote); patas.push(pivote);
   }
   compactar(g, { alto: 0.5, pie: 0.86, panza: 0.08, todo: true });

@@ -9,7 +9,7 @@ import { publicarAnimal, animalMasCercano, destinoEscapeConCobertura, actividadF
 import { crearSombraContacto, actualizarSombraContacto } from './naturaleza-reactiva.js';
 import { actualizarMicroconducta, gestoMicroconducta } from './microconductas.js';
 import { crearPoolPosicional, limitarSombrasPorDistancia, consumirPresupuestoIA } from './rendimiento.js';
-import { bola, miembro, deformar, pintar, lomo, pata, ruido3, color as matDe } from './formas.js';
+import { bola, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, matiz, color as matDe } from './formas.js';
 
 // Los materiales de los animales llevan una luz de borde: el contorno se
 // enciende apenas cuando el sol viene de atrás, y así se recortan del fondo.
@@ -291,20 +291,49 @@ function mallaZorro() {
   return { g, cabeza, patas: ps, cola, orejas };
 }
 
+// 3.5.2: el cisne de cuello negro como es: cuerpo blanco de bote, con la cola corta en punta y
+// las alas plegadas apenas levantadas; el cuello largo en S, negro, que nace del pecho sin
+// escalón; la cabeza negra con la raya blanca detrás del ojo, el pico gris azulado y la
+// carúncula roja de dos lóbulos en la base. Los pichones grises van montados en el lomo. Antes
+// eran una esfera, un cono y un tubo de seis lados. Mismos pivotes (la cabeza).
 function mallaCisne(pichones) {
   const g = new THREE.Group();
-  const blanco = lam('#f1f0ea'), negro = lam('#161616');
-  g.add(esfera(blanco, [0.26, 0.17, 0.52], [0, 0.1, 0]));
-  g.add(cono(blanco, 0.1, 0.25, [0, 0.16, -0.55], [-1.9, 0, 0]));
-  const curva = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.15, 0.38), new THREE.Vector3(0, 0.45, 0.47), new THREE.Vector3(0, 0.7, 0.4), new THREE.Vector3(0, 0.8, 0.5)]);
-  g.add(new THREE.Mesh(new THREE.TubeGeometry(curva, 12, 0.045, 6), negro));
+  const blanco = '#f0efe8', negro = '#141414';
+  const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const sombraPluma = new THREE.Color('#c9cdd2');
+  const plumaje = (c, p, n) => {
+    c.multiplyScalar(1 + ruido3(p.x * 20, p.y * 22, p.z * 19) * 0.025);
+    if (n.y < 0.2) c.lerp(sombraPluma, 0.3 * sv(0.2, -0.5, n.y));   // el blanco en sombra, frío
+  };
+  // el cuerpo: más lleno en el pecho, la panza chata (flota) y la cola que sube en punta
+  g.add(pintar(cuerpoZ(blanco, [[0, -0.54], [0.05, -0.5], [0.11, -0.42], [0.17, -0.31], [0.215, -0.16], [0.235, 0.0], [0.232, 0.12], [0.215, 0.24], [0.18, 0.33], [0.12, 0.4], [0.0, 0.44]], [0, 0.1, 0], 18, (v) => {
+    v.y *= v.y > 0 ? 0.78 : 0.62;
+    if (v.z < -0.28) v.y += (-0.28 - v.z) * 0.55;
+    if (v.z > 0.2 && v.y < 0) v.y *= 1 + (v.z - 0.2) * 0.8;   // el pecho
+  }), plumaje));
+  // las alas plegadas sobre el lomo, con las puntas cruzadas encima de la cola
+  for (const l of [-1, 1]) g.add(pintar(bola(blanco, [0.1, 0.06, 0.3], [l * 0.085, 0.16, -0.14], [-0.14, l * 0.06, l * 0.2]), plumaje));
+  // el cuello: nace adentro del pecho (blanco) y sube en S hasta la cabeza
+  g.add(pintar(huso(negro, [[0, 0.06, 0.28], [0, 0.2, 0.39], [0, 0.4, 0.44], [0, 0.6, 0.42], [0, 0.74, 0.45], [0, 0.82, 0.52]], [0.09, 0.07, 0.05, 0.046, 0.044, 0.04], 18, 10), (c, p) => {
+    c.lerp(new THREE.Color(blanco), sv(0.16, 0.1, p.y));
+  }));
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.82, 0.56);
-  cabeza.add(esfera(negro, [0.06, 0.06, 0.09], [0, 0, 0]));
-  cabeza.add(cono(lam('#c9bcb2'), 0.025, 0.11, [0, -0.02, 0.1], [Math.PI / 2, 0, 0]));
-  cabeza.add(esfera(lam('#c7202a'), [0.022, 0.022, 0.022], [0, 0.02, 0.07]));
+  cabeza.add(deformar(bola(negro, [0.055, 0.058, 0.085], [0, 0, 0.0]), (v) => { if (v.z > 0.5) v.y *= 0.85; }));
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#e9e7df', [0.004, 0.007, 0.034], [l * 0.05, 0.012, -0.022], [0.1, l * 0.12, 0]));   // la raya blanca
+    cabeza.add(bola('#2a1a12', [0.008, 0.008, 0.007], [l * 0.045, 0.008, 0.026]));                     // el ojo
+  }
+  cabeza.add(miembro('#8d99a5', [[0, -0.012, 0.06], [0, -0.018, 0.11], [0, -0.026, 0.16], [0, -0.032, 0.172]], [0.024, 0.018, 0.011, 0.006], 8, 8));   // el pico
+  for (const l of [-1, 1]) cabeza.add(bola('#c41d2a', [0.012, 0.014, 0.019], [l * 0.007, 0.01, 0.074]));    // la carúncula
   g.add(cabeza);
-  if (pichones) for (let i = 0; i < 2; i++) g.add(esfera(lam('#c9c7c2'), [0.07, 0.06, 0.09], [(i - 0.5) * 0.14, 0.27, -0.12]));
-  compactar(g, { alto: 0.8 });
+  if (pichones) for (const l of [-1, 1]) {
+    // los pichones, grises y de plumón, asomando entre las alas
+    g.add(bola('#b9b8b2', [0.06, 0.05, 0.08], [l * 0.06, 0.24, -0.1]));
+    g.add(bola('#a9a8a2', [0.03, 0.032, 0.036], [l * 0.065, 0.3, -0.03]));
+    g.add(miembro('#3c3c3a', [[l * 0.065, 0.296, -0.0], [l * 0.065, 0.292, 0.02]], [0.009, 0.004], 2, 5));
+  }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  compactar(g, { alto: 0.9, pie: 0.9, panza: 0.08, todo: true });
   return { g, cabeza };
 }
 
@@ -321,32 +350,73 @@ export function alas(g, color, largo, ancho, y = 0, z = 0) {
   return lista;
 }
 
+// 3.5.2: el pato de los torrentes (el macho): cuerpo de nadador de correntada, bajo y largo, con
+// el plumaje gris rayado de negro a lo largo y la cola larga y dura, negra; la cabeza blanca con
+// la gorra negra, la raya negra que sale del ojo y baja por el cuello, y el pico rojo, angosto.
+// Mismos pivotes (la cabeza mira a los costados).
 function mallaPato() {
   const g = new THREE.Group();
-  g.add(esfera(lam('#5b5650'), [0.08, 0.07, 0.19], [0, 0.08, 0]));
-  g.add(esfera(lam('#8a5a3a'), [0.065, 0.05, 0.12], [0, 0.05, 0.05]));
+  const negro = new THREE.Color('#161514'), canela = new THREE.Color('#7a5a44');
+  g.add(pintar(cuerpoZ('#6c655c', [[0, -0.2], [0.035, -0.18], [0.06, -0.12], [0.074, -0.04], [0.076, 0.04], [0.068, 0.1], [0.05, 0.15], [0.0, 0.18]], [0, 0.075, 0], 18, (v) => {
+    v.y *= v.y > 0 ? 0.85 : 0.7;
+  }), (c, p, n) => {
+    // las rayas largas del lomo y los flancos (finas, como lanzas)
+    const fi = Math.atan2(p.x, p.y - 0.075);
+    c.lerp(negro, 0.55 * Math.max(0, Math.sin(fi * 9 + p.z * 6)) ** 3);
+    if (n.y < -0.4) c.lerp(canela, 0.45);
+  }));
+  g.add(deformar(miembro('#1c1b19', [[0, 0.09, -0.15], [0, 0.1, -0.22], [0, 0.11, -0.27]], [0.03, 0.022, 0.006], 6, 8), (v) => { v.x *= 1.3; v.y = 0.1 + (v.y - 0.1) * 0.35; }));   // la cola dura
+  // el cuello blanco, con la raya negra por detrás
+  g.add(pintar(huso('#efede6', [[0, 0.09, 0.09], [0, 0.13, 0.13], [0, 0.165, 0.15]], [0.04, 0.034, 0.03], 8, 10), (c, p, n) => { if (n.z < -0.3) c.lerp(negro, 0.9); }));
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.17, 0.15);
-  cabeza.add(esfera(lam('#f2f0ea'), [0.05, 0.05, 0.06], [0, 0, 0]));
-  cabeza.add(esfera(lam('#141414'), [0.052, 0.012, 0.05], [0, 0.015, 0]));
-  cabeza.add(cono(lam('#c4302a'), 0.017, 0.07, [0, -0.01, 0.07], [Math.PI / 2, 0, 0]));
+  cabeza.add(pintar(bola('#f0eee8', [0.04, 0.043, 0.054], [0, 0, 0.0]), (c, p, n) => {
+    const y = p.y - 0.17, z = p.z - 0.15;
+    if (y > 0.02 && n.y > 0.35) c.lerp(negro, 0.92);                                     // la gorra
+    if (Math.abs(y + 0.005 + z * 0.35) < 0.007 && Math.abs(n.x) > 0.5 && z < 0.03) c.lerp(negro, 0.9);   // la raya del ojo
+  }));
+  for (const l of [-1, 1]) cabeza.add(bola('#2a1610', [0.006, 0.006, 0.006], [l * 0.035, 0.006, 0.026]));
+  cabeza.add(miembro('#c4302a', [[0, -0.008, 0.045], [0, -0.013, 0.08], [0, -0.02, 0.1], [0, -0.024, 0.104]], [0.015, 0.01, 0.005, 0.003], 7, 7));   // el pico
   g.add(cabeza);
-  compactar(g, { alto: 0.25 });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  compactar(g, { alto: 0.25, pie: 0.92, todo: true });
   return { g, cabeza };
 }
 
+// 3.5.2: el martín pescador grande (el macho) en su rama, erguido: el lomo y las alas gris
+// azulado con puntitos claros, el pecho y la panza rufos, el collar blanco, la cabeza grande con
+// el copete desgreñado, la mancha blanca delante del ojo y el pico largo y pesado de daga. Mismos
+// pivotes (la cabeza gira; el cuerpo se tira de cabeza al agua).
 function mallaMartin() {
   const g = new THREE.Group();
-  const azul = lam('#566a7c');
-  const cuerpo = esfera(azul, [0.065, 0.075, 0.13], [0, 0, 0]); cuerpo.rotation.x = -0.9; g.add(cuerpo);
-  g.add(esfera(lam('#9c4a2a'), [0.05, 0.06, 0.07], [0, -0.03, 0.05]));
-  g.add(esfera(lam('#e8e5dc'), [0.05, 0.02, 0.05], [0, 0.07, 0.05]));
+  const azul = '#5b6f80', rufo = new THREE.Color('#b8582f'), blanco = new THREE.Color('#ece8de');
+  const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const plumaje = (c, p, n) => {
+    if (n.z > -0.15 && p.y < 0.065) c.lerp(rufo, sv(-0.15, 0.25, n.z));      // el pecho rufo
+    if (p.y > 0.055 && p.y < 0.09 && n.z > -0.4) c.lerp(blanco, 0.95);      // el collar
+  };
+  const cuerpo = pintar(cuerpoZ(azul, perfilHuso(-0.14, 0.12, 0.07, 12, 0.9, 0.7), null, 14), plumaje);
+  cuerpo.rotation.x = -0.95; g.add(cuerpo);
+  for (const l of [-1, 1]) {
+    // las alas plegadas, con los puntitos claros de las cubiertas
+    g.add(pintar(bola(azul, [0.026, 0.1, 0.045], [l * 0.056, -0.01, -0.035], [0.55, 0, l * 0.08]), (c, p) => {
+      if (Math.sin(p.y * 160) * Math.sin(p.z * 150) > 0.75) c.lerp(blanco, 0.6);
+    }));
+  }
+  g.add(bola(azul, [0.034, 0.1, 0.012], [0, -0.15, -0.085], [-0.35, 0, 0]));   // la cola
+  for (const l of [-1, 1]) g.add(bola('#4a4440', [0.01, 0.008, 0.016], [l * 0.02, -0.105, 0.03]));   // las patitas en la rama
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.12, 0.04);
-  cabeza.add(esfera(azul, [0.055, 0.055, 0.06], [0, 0, 0]));
-  cabeza.add(cono(azul, 0.03, 0.08, [0, 0.05, -0.04], [-1.2, 0, 0]));
-  cabeza.add(cono(lam('#2a2a2a'), 0.013, 0.1, [0, -0.01, 0.1], [Math.PI / 2, 0, 0]));
+  cabeza.add(pintar(bola(azul, [0.05, 0.054, 0.06], [0, 0, 0]), (c, p, n) => { if (p.y < 0.11 && n.z > 0.1) c.lerp(blanco, 0.9); }));
+  // el copete desgreñado, hacia atrás
+  cabeza.add(bola(azul, [0.018, 0.016, 0.05], [0, 0.045, -0.035], [0.75, 0, 0]));
+  for (const l of [-1, 1]) cabeza.add(bola(azul, [0.012, 0.012, 0.038], [l * 0.018, 0.035, -0.045], [0.55, l * 0.35, 0]));
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#100c0a', [0.009, 0.009, 0.008], [l * 0.041, 0.012, 0.028]));
+    cabeza.add(bola('#f2efe6', [0.007, 0.006, 0.006], [l * 0.032, 0.014, 0.048]));   // la mancha blanca
+  }
+  cabeza.add(miembro('#2b2b2b', [[0, -0.006, 0.045], [0, -0.01, 0.1], [0, -0.016, 0.15], [0, -0.019, 0.162]], [0.019, 0.012, 0.004, 0.002], 8, 7));   // el pico
   g.add(cabeza);
-  g.add(cono(azul, 0.03, 0.12, [0, -0.13, -0.06], [2.7, 0, 0]));
-  compactar(g, { alto: 0.25 });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  compactar(g, { todo: true });
   return { g, cabeza };
 }
 
@@ -361,19 +431,88 @@ function mallaPicaflor() {
   return { g, alas: a };
 }
 
+// 3.5.2: la bandurria austral: cuerpo de ibis, gris en el lomo con las cubiertas claras, las
+// primarias y la panza negras; el cuello y la cabeza ocres, la cara pelada negra con la barbilla
+// colgante, el pico largo y curvo hacia abajo y las patas largas rojizas con los dedos. En vuelo,
+// alas anchas de punta negra y cubiertas claras, de dos caras y pintadas (antes, triángulos).
+// Mismos pivotes: cabeza, patas y alas (que sólo se ven en vuelo).
+function alasBandurria(g, y, z) {
+  const lista = [];
+  const contorno = [[0, 0.11], [0.3, 0.12], [0.62, 0.08], [0.86, 0.02], [1.0, -0.06], [0.9, -0.1], [0.97, -0.13], [0.82, -0.14], [0.88, -0.18], [0.7, -0.18], [0.45, -0.2], [0.2, -0.19], [0, -0.16]];
+  const w = 0.5;
+  const tinta = (x, zz, arriba) => {
+    const c = new THREE.Color('#6a665e');
+    if (x > 0.68) c.set('#1e1c1a');                                     // las primarias
+    else if (zz < -0.1) c.lerp(new THREE.Color('#2a2826'), 0.75);        // el borde de las secundarias
+    else if (arriba && zz > -0.06) c.lerp(new THREE.Color('#cfc7b6'), 0.45);   // las cubiertas claras
+    if (!arriba) c.multiplyScalar(0.62);
+    return c;
+  };
+  for (const lado of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(0, y, z);
+    const pos = [], col = [], idx = [];
+    for (const arriba of [true, false]) {
+      const base = pos.length / 3;
+      pos.push(0, 0, 0); { const c = tinta(0, 0, arriba); col.push(c.r, c.g, c.b); }
+      for (const [x, zz] of contorno) {
+        pos.push(lado * x * w, (arriba ? 0.003 : -0.003) + Math.sin(x * Math.PI) * 0.02, zz * 0.9);
+        const c = tinta(x, zz, arriba); col.push(c.r, c.g, c.b);
+      }
+      for (let i = 1; i < contorno.length; i++) {
+        const haciaArriba = (lado > 0) === arriba;
+        if (haciaArriba) idx.push(base, base + i, base + i + 1); else idx.push(base, base + i + 1, base + i);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, MAT_FAUNA); m.castShadow = true;
+    piv.add(m); g.add(piv); lista.push(piv);
+  }
+  return lista;
+}
 function mallaBandurria() {
   const g = new THREE.Group();
-  g.add(esfera(lam('#6d6558'), [0.1, 0.1, 0.22], [0, 0.42, 0]));
-  g.add(esfera(lam('#c9a46a'), [0.06, 0.08, 0.08], [0, 0.5, 0.16]));
+  const gris = '#6e6a62', ocre = '#c99d62';
+  const negro = new THREE.Color('#24211e'), claro = new THREE.Color('#d2cab9');
+  // las alas plegadas van pintadas sobre el cuerpo (como bultos aparte se leían como dos
+  // almohadones): la franja clara de las cubiertas en el costado y las primarias negras atrás
+  const plumaje = (c, p, n) => {
+    if (n.y < -0.35) c.lerp(negro, 0.8 * Math.min(1, (-n.y - 0.35) * 2));                                   // la panza negra
+    const costado = Math.max(0, Math.min(1, (Math.abs(n.x) - 0.25) * 3)) * Math.max(0, Math.min(1, (n.y + 0.2) * 3));
+    if (p.z > -0.12 && p.z < 0.08) c.lerp(claro, 0.55 * costado * Math.min(1, (0.08 - p.z) * 12, (p.z + 0.12) * 12));   // las cubiertas
+    if (p.z < -0.13 && n.y > -0.3) c.lerp(negro, 0.85 * Math.min(1, (-0.13 - p.z) * 14));                  // las primarias
+  };
+  const cuerpo = pintar(cuerpoZ(gris, perfilHuso(-0.27, 0.17, 0.092, 14, 0.85, 0.7), null, 16, (v) => { v.y *= 1.08; }), plumaje);
+  cuerpo.position.set(0, 0.43, 0); cuerpo.rotation.x = -0.14;
+  g.add(cuerpo);
+  // las puntas de las alas, negras, cruzadas sobre la cola
+  for (const l of [-1, 1]) g.add(bola('#24211e', [0.026, 0.016, 0.1], [l * 0.022, 0.475, -0.25], [-0.2, l * 0.12, 0]));
+  g.add(bola('#3a3632', [0.045, 0.018, 0.07], [0, 0.45, -0.28], [-0.2, 0, 0]));   // la cola
+  // el cuello ocre, que nace del pecho y sube en curva hasta la cabeza
+  g.add(pintar(huso(ocre, [[0, 0.43, 0.08], [0, 0.5, 0.16], [0, 0.57, 0.2], [0, 0.61, 0.215]], [0.07, 0.045, 0.036, 0.034], 10, 10), (c, p, n) => { if (p.y < 0.47) c.lerp(new THREE.Color(gris), 0.5); }));
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.6, 0.22);
-  cabeza.add(esfera(lam('#b89662'), [0.05, 0.05, 0.06], [0, 0, 0]));
-  const pico = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0.04), new THREE.Vector3(0, -0.03, 0.14), new THREE.Vector3(0, -0.1, 0.22)]);
-  cabeza.add(new THREE.Mesh(new THREE.TubeGeometry(pico, 6, 0.01, 5), lam('#1d1d1d')));
+  cabeza.add(pintar(bola(ocre, [0.042, 0.045, 0.058], [0, 0.0, 0.0]), (c, p, n) => {
+    // la cara pelada negra, del ojo a la base del pico
+    if (n.z > 0.25 && p.y < 0.615 && Math.abs(p.x) < 0.04) c.lerp(negro, 0.9 * Math.min(1, (n.z - 0.25) * 3));
+  }));
+  cabeza.add(bola('#2a2622', [0.011, 0.02, 0.012], [0, -0.04, 0.03]));                                   // la barbilla
+  for (const l of [-1, 1]) cabeza.add(bola('#5a1a14', [0.007, 0.007, 0.006], [l * 0.036, 0.01, 0.022]));
+  cabeza.add(miembro('#1d1c1b', [[0, -0.006, 0.045], [0, -0.016, 0.1], [0, -0.04, 0.16], [0, -0.075, 0.205], [0, -0.11, 0.23]], [0.016, 0.011, 0.008, 0.005, 0.0025], 12, 6));   // el pico curvo
   g.add(cabeza);
   const p = [];
-  for (const l of [-1, 1]) { const piv = new THREE.Group(); piv.position.set(l * 0.04, 0.34, 0); piv.add(palo(lam('#a04a3a'), 0.01, 0.34, [0, -0.17, 0])); g.add(piv); p.push(piv); }
-  compactar(g, { alto: 0.65 });
-  const a = alas(g, '#5d564c', 0.45, 0.2, 0.44, -0.02);
+  for (const l of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(l * 0.04, 0.34, 0);
+    // la pata: el tarso largo rojizo con el talón, y tres dedos adelante y uno atrás
+    piv.add(miembro('#b0503e', [[0, 0.04, 0.0], [0, -0.06, 0.012], [0, -0.16, 0.0], [0, -0.335, 0.01]], [0.013, 0.01, 0.009, 0.008], 8, 6));
+    for (const [dx, dz] of [[-0.03, 0.05], [0, 0.06], [0.03, 0.05], [0, -0.035]]) piv.add(miembro('#9e4636', [[0, -0.336, 0.01], [dx, -0.339, 0.01 + dz]], [0.006, 0.004], 2, 4));
+    g.add(piv); p.push(piv);
+  }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  compactar(g, { alto: 0.65, pie: 0.9, todo: true });
+  const a = alasBandurria(g, 0.44, -0.02);
   a.forEach((w) => { w.visible = false; });
   return { g, cabeza, patas: p, alas: a };
 }
