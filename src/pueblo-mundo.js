@@ -202,7 +202,8 @@ export function crearPuebloMundo(T, escena, col, ctx) {
   }
   function ponerUtil(poblador, i) {
     const viejo = utiles.get(poblador.clave);
-    if (viejo) { grupo.remove(viejo); }
+    // 3.5.4: lo del oficio se arma de nuevo (geometrías y materiales propios): el viejo se suelta
+    if (viejo) { grupo.remove(viejo); viejo.traverse((m) => { if (m.isMesh) { m.geometry.dispose(); m.material.dispose(); } }); }
     const u = utilDeOficio(poblador.clave);
     const pts = puntosDeCasa(poblador.casa, i);
     u.position.set(pts.util.x, T.altura(pts.util.x, pts.util.z), pts.util.z);
