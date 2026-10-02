@@ -4488,6 +4488,7 @@ function abrirObra(abrir) {
   modoObra = abrir;
   $('obra').classList.toggle('oculto', !abrir);
   if (abrir) {
+    desafio?.cambioDeArma?.();   // 3.5.1: como con la mochila: la ráfaga de la ballesta y la cuerda no siguen en los planos
     paginaObra = 0;
     const primero = planosPaginaObra()[0] || PLANOS_JUEGO[0];
     obras.elegir(primero);

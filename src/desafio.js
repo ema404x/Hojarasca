@@ -347,7 +347,18 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     largarDesde: (x, z) => {
       // la nodriza larga grupos chicos mientras siga en el aire (nunca otro jefe)
       const tipos = sinJefe(composicionOleada(Math.max(3, D().oleadas), ctx.dificultad?.(), D().vuelta)).slice(0, 5);
-      empezarOleada(tipos, false, false, { x, z });
+      // 3.5.1: bajan ahí mismo, flotando desde la nodriza. Antes iban a la cola de la nave de
+      // la oleada con la nave escondida: esa cola no se vaciaba nunca (ninguna tanda llegaba
+      // al suelo, no se podía dormir) y si la oleada todavía estaba bajando, la cortaba.
+      let n = 0;
+      for (const t of tipos) {
+        const an = Math.random() * Math.PI * 2, r = Math.random() * 3.5;
+        const a = aparecerEn(t, x + Math.cos(an) * r, z + Math.sin(an) * r);
+        if (!a) continue;
+        a.estado = 'bajar'; a.t = 0; a.m.g.position.y += 16;
+        n++;
+      }
+      if (n) { nocheActual.invasores += n; D().vivos = vivos(); }
     },
     alDerrotarNodriza: () => vencer(),
     hudNodriza: document.getElementById('nodriza-hud'),
@@ -377,6 +388,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.alGuardarObras = () => ctx.alGuardarObras?.();
   api.alFabricar = () => ctx.alFabricar?.({});
   api.puestoTirador = () => fortin.puestoTirador();
+  // 3.5.1: la explosión de la granada también llega a los blancos (nido, puestos, agujas, la
+  // Madre); y lo que queda tirado adentro de la nave va a su piso
+  api.blancos = () => eventos.blancos();
+  api.herirBlanco = (n, dano) => eventos.herirNucleo(n, dano);
+  api.alturaSuelo = (x, z) => alturaSuelo(x, z);
   fortin = crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas);
   // 3.0: el asedio final y la pelea adentro de la nave (ver desafio-asedio*.js y
   // desafio-nave*.js). Las agujas y los puntos débiles de la Madre entran como blancos por
@@ -644,9 +660,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (d.salud <= 0) {
       if (naveMundo.adentro && naveMundo.alCaerAdentro()) return;   // 3.0: adentro de la nave no se cae: te escupe al valle
       caido = true;
+      if (bloqueando) bloquear(false);   // 3.5.1: caído no se suelta el botón (el mando lo ignora): se levantaba bloqueando
       d.racha = 0;
       d.derrotas++;
-      terminarOleada(false);
+      // 3.5.1: de día (la guardia de una aguja o de un puesto) no hay noche que perder: antes
+      // se cerraba otra vez la noche ya cerrada y, en la hora antes del ataque, se borraba la
+      // noche especial ya anunciada
+      if (!d.oleadaTerminada) terminarOleada(false);
       ctx.alCaer?.();
     }
   }
@@ -736,6 +756,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.sinGolpe = 0; a.visto = false; a.tanteo = 0; a.tanteoTotal = 0; a.tRasca = 0;
     a.acecho = 'normal'; a.sentido = Math.random() < 0.5 ? -1 : 1; a.arbol = null; a.tArbol = 0;
     a.mutado = false; a.velMult = 1;
+    a.tLod = 0; a.faseAla = 0; a.tAleteo = 0;   // 3.5.1: el detalle de lejos y el aleteo de la vida anterior
     // Los invasores se reciclan: lo que les quedó de la vida anterior se borra acá. Antes
     // de la 2.6 el congelado de la lanza de hielo, la mordida y el foso quedaban pegados.
     a.congeladoT = 0; a.mordido = 0; a.enFoso = null;
@@ -868,6 +889,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         const tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
         empezarOleada(tipos.slice(0, n), false, true);
         if (d.nodriza && !d.victoria) eventos.iniciarNodriza();
+      } else if (!d.oleadaTerminada && d.nodriza && !d.victoria && !d.asedio && !eventos.nodrizaActiva) {
+        // 3.5.1: guardada en la noche final entre dos tandas de la nodriza (sin invasores
+        // vivos), al abrir la nodriza no volvía: los núcleos quedaban sin blanco y al alba
+        // empezaba el asedio sin haber podido pelearla.
+        eventos.iniciarNodriza();
       } else if (!d.oleadaTerminada && !refuerzoHecho && d.oleadas >= 3 && p.horas >= 1.5 && p.horas < HORA_AMANECER && vivos() < 4 && !eventos.nodrizaActiva) {
         refuerzoHecho = true;
         const refuerzo = sinJefe(d.sinFin ? composicionSinFin(d.oleadas, ctx.dificultad?.(), d.vuelta) : composicionOleada(d.oleadas, ctx.dificultad?.(), d.vuelta));
@@ -1158,7 +1184,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   const cancelarTension = () => { tensandoDesde = null; };
   // 2.5: al cambiar de arma (o abrir un menú) se suelta la cuerda sin tirar y se corta la ráfaga
-  function cambioDeArma() { tensandoDesde = null; arsenal?.programarRafaga(0); }
+  // 3.5.1: también se baja el escudo: con la rueda o un número se seguía bloqueando con el arco o la pistola
+  function cambioDeArma() { tensandoDesde = null; arsenal?.programarRafaga(0); if (bloqueando) bloquear(false); }
   // 2.5: con el carcaj, clic derecho con el arco cambia de clase de flecha
   function cambiarFlecha() {
     const d = D();
@@ -1329,7 +1356,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       efectos.destello(_v, a.def.jefe ? 2.8 : a.tipo === 'bruto' ? 1.5 : 1);
       const [c0, c1] = a.def.cristales;
       const sueltos = c0 + Math.floor(Math.random() * (c1 - c0 + 1));
-      soltarCristales(a.m.g.position, sueltos);
+      // 3.5.1: las crías de adentro de la nave no sueltan: con el reloj quieto adentro y la
+      // Madre llamando crías sin fin, era una mina de cristal infinita
+      if (!a.enNave) soltarCristales(a.m.g.position, sueltos);
       const d = D();
       if (a.def.jefe) {
         // cae el jefe: un instante de cámara lenta y una lluvia de cristales
@@ -1860,6 +1889,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     if (a.estado === 'morir') {
       a.t += dt;
+      // 3.5.1: el volador o el saltador que mueren en el aire caen (antes se disolvían flotando)
+      { const s = T.altura(p.x, p.z); if (p.y > s + 0.05) p.y = Math.max(s, p.y - dt * 9); }
       a.m.caer(a.t);
       if (a.t > 0.9) a.m.disolver(Math.min(1, (a.t - 0.9) / 1.4));
       if (a.t > 2.4) return 'fuera';
@@ -2156,7 +2187,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (velObj !== 0 && a.estado === 'avanzar') {
       const paso = velObj * dt;
       const nx = p.x + Math.sin(a.rumbo) * paso, nz = p.z + Math.cos(a.rumbo) * paso;
-      if (T.agua(nx, nz) || Math.abs(nx) > LIMITE || Math.abs(nz) > LIMITE) {
+      // 3.5.1: si ya está en el agua (apareció ahí: guardia, puesto, bajada), puede salir; antes
+      // todo paso era agua y quedaba quieto para siempre (no se podía dormir ni subir a la nave)
+      if ((T.agua(nx, nz) && !T.agua(p.x, p.z)) || Math.abs(nx) > LIMITE || Math.abs(nz) > LIMITE) {
         if (a.desvioT <= 0) { a.desvio = (Math.random() < 0.5 ? -1 : 1) * 1.3; a.desvioT = 1.6; }
       } else {
         p.x = nx; p.z = nz;
@@ -2213,6 +2246,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     poseAlien.noche = nocheNivel;
     a.m.animar(poseAlien);
   }
+  const empujados = new Set();   // 3.5.1: los que se empujaron en este cuadro
   const poseAlien = { dt: 0, velocidad: 0, golpe: 0, ataca: false, carrera: false, apuntando: false, agazapado: false, enredado: false, saltando: 0, noche: 0, reflejo: 0 };
   // 2.6.1: los argumentos de las reglas puras de cada invasor, en objetos fijos (antes
   // era un objeto nuevo por invasor y por cuadro)
@@ -2627,9 +2661,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
 
   // Aparece un invasor en un punto (pruebas y depuración).
   function invocar(tipo, x, z) {
+    // 3.5.1: el punto de bajada vuelve a su lugar: el jefe llamador, la guardia de una aguja y
+    // las crías corrían la nave de la oleada (y lo que faltaba bajar) a donde invocaban
+    const nx0 = estadoNave.x, nz0 = estadoNave.z;
     estadoNave.x = x; estadoNave.z = z;
     // 2.1: si no pudo bajar (base llena, o ya hay un jefe), no se agarra otro de la lista
     const a = bajarAlien(tipo);
+    estadoNave.x = nx0; estadoNave.z = nz0;
     if (!a) return null;
     a.m.g.position.set(x, T.altura(x, z), z);
     a.estado = 'avanzar';
@@ -3046,6 +3084,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       aliados.restaurar();
       cimientos.sincronizar(obras.obras);
       sincronizarCapullos();   // 2.3: los capullos que quedaron de la partida guardada
+      // 3.5.1: si se cerró el juego mientras la nave caía (derribar ya guardó el asedio
+      // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
+      // sin noche final ni nido, la campaña no terminaba nunca. Se da al abrir.
+      if (D().asedio?.ganado && !D().victoria) vencer({ nave: true });
     }
     // las piedras siguen a las obras: si se cae una empalizada, se va su cimiento
     relojCimientos -= dt;
@@ -3085,7 +3127,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       climaActual = efectoClima(climaVisto);
     }
     recarga = Math.max(0, recarga - dt);
-    if (!caido) revisarHorario();
+    if (!caido && !naveMundo.adentro) revisarHorario();   // 3.5.1: con el día de reloj real la hora corre adentro: la noche no arranca con vos arriba
     actualizarNave(dt);
     actualizarDefensas(dt);
     defensas.actualizar(dt, js, mundo.noche);
@@ -3110,8 +3152,18 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         const dx = b.x - a.x, dz = b.z - a.z;
         if (dx >= r || dx <= -r || dz >= r || dz <= -r) continue;
         const d = Math.hypot(dx, dz);
-        if (d > 0.001 && d < r) { const k = (r - d) / d * 0.5; a.x -= dx * k; a.z -= dz * k; b.x += dx * k; b.z += dz * k; }
+        if (d > 0.001 && d < r) { const k = (r - d) / d * 0.5; a.x -= dx * k; a.z -= dz * k; b.x += dx * k; b.z += dz * k; empujados.add(aliens[i]); empujados.add(aliens[j]); }
       }
+    }
+    // 3.5.1: el empujón no revisaba obras: el montón que llega a una empalizada metía a los de
+    // adelante (rompiendo, quietos) a través de la pared. Los empujados que andan por el suelo
+    // vuelven a chocar con las obras, como al caminar.
+    if (empujados.size) {
+      for (const al of empujados) {
+        if (al.def.vuela || al.enNave || (al.estado !== 'avanzar' && al.estado !== 'romper')) continue;
+        col.resolver(al.m.g.position, al.def.radio * al.m.esc, al.def.altura * al.m.esc);
+      }
+      empujados.clear();
     }
     actualizarProyectiles(dt, js);
     arsenal.actualizar(dt, js);

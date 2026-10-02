@@ -271,6 +271,10 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     }
     // lejos, o de noche: los que siguen durmiendo se van (vuelven cuando vuelvas)
     if (noche || dist > 160 || !enPie(p)) {
+      // 3.5.1: los que ya despertaron dejaron su puesto: se descuentan ahora. Antes, si te
+      // seguían lejos y caían ahí, nadie los contaba y al volver salía la guardia entera otra
+      // vez (cristales y abatidos sin fin)
+      for (const g of lista) if (!g.contado && g.a.puesto === p.id && g.a.estado !== 'dormido') { g.contado = true; p.guardias = Math.max(0, p.guardias - 1); }
       for (const g of lista) if (g.a.puesto === p.id && g.a.estado === 'dormido') { g.a.estado = 'irse'; g.a.t = 0; g.a.puesto = null; }
       guardias.delete(p.id);
     }
