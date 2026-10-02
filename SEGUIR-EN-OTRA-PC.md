@@ -1,4 +1,4 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 01-10-2026, noche)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 02-10-2026, 3.5.1 cerrada)
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
 decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
@@ -46,6 +46,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.5.1 (cerrada, etiqueta v3.5.1):** crashes y revisión de todo el juego: cuadro de preguntas propio (no más `prompt`/`confirm`, que en Electron tiraban error), cada sistema del bucle aislado con `fallaSistema`, recuperación del contexto 3D perdido, reapertura sola si la ventana se cae o se cuelga (`recuperacion-main.cjs`), autoguardado cada 20 s reales; 25 arreglos de Relax, 25 de Desafío, dos fugas chicas de memoria. Detalle en `CAMBIOS_3_5_1.md`.
 - **3.5.0 (cerrada, etiqueta v3.5.0):** distancia de dibujo configurable + caza de bugs visuales (vegetación, paisaje, gente y animales). Detalle en `CAMBIOS_3_5_0.md`.
 - **3.4.0 (cerrada y verificada):** "tal cual HushWood, con la Patagonia de verdad".
   Gate 124/124, las 42 partidas reales en verde. Detalle en `CAMBIOS_3_4_0.md`:
@@ -77,12 +78,28 @@ texturas, ni modelos, ni audio).
 
 ---
 
-## 3. Para Claude: qué sigue (después de la 3.5)
+## 3. Para Claude: qué sigue (después de la 3.5.1)
 
-La 3.5.0 se cerró en la otra PC el 01-10 a la noche: se unieron tres ramas (`v35-vege`,
-`v35-paisaje`, `v35-gente`, cada una hecha en su `git worktree`), gate 126/126 y partidas
-reales. Lo que quedó anotado para seguir mejorando (el usuario quiere **seguir mejorando lo
-visual** y que le muestren capturas):
+La 3.5.1 se cerró el 02-10 en la PC de origen: cuatro ramas en paralelo (`v351-memoria`,
+`v351-caidas`, `v351-relax`, `v351-desafio`), gate 129/129 y las 46 partidas reales.
+
+**El crash del usuario sigue sin causa confirmada.** El registro tenía `prompt() is not
+supported` (arreglado) y "renderer: crashed exitCode=-1" (26-09); el visor de eventos de
+Windows marcó RADAR_PRE_LEAK_64 en Hojarasca.exe (29-09). Las sesiones largas simuladas no
+muestran fuga grande (~107 MB Relax, ~128 MB Desafío). Sospecha: driver de la Radeon
+integrada o memoria compartida. Ahora el juego se recupera solo, pero falta:
+- Preguntarle al usuario **cuándo** se cae (qué hacía, cuánto llevaba jugando) y pedirle
+  `%APPDATA%Hojarascalogshojarasca-crash.log` (ahora anota `bucle/<sistema>` con la pila).
+- Correr en su PC `REAL_LOOP=1 PRELOAD_REAL=1 npx electron herramientas/soak-memoria.cjs`.
+- Pedirle F3 caminando (nunca se midió en su PC).
+
+Pruebas que a veces fallan con la máquina cargada y pasan solas: humo-desafio-premium,
+humo-2-3, humo-relax-2, humo-3-0-asedio. Las ventanas ocultas de las pruebas **no corren
+requestAnimationFrame**: el juego sólo avanza con `__bucle()`, casi sin tiempo entre cuadros;
+lo que se revisa N veces por segundo (quién está enfrente, por ejemplo) necesita esperas
+reales entre tandas (ver `hablarCon` en `humo-3-1-pueblo.cjs`).
+
+Lo visual que quedó anotado de la 3.5.0 sigue pendiente:
 
 - **Vegetación:** ciprés muy de cerca (velo verde del desvanecido y alguna faceta de la falda a
   3–5 m); manchas de luz redondas en una ladera lejana; árboles lejanos pálidos en la bruma
@@ -106,8 +123,8 @@ visual** y que le muestren capturas):
 
 ### 4.1 Construir y probar
 - `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba.
-- `npm run verify` es el gate (125 pasos en la 3.5, sólo Node).
-- Partidas reales: `pruebas/humo-*.cjs` (42). **Comparten el perfil de Electron: nunca dos a
+- `npm run verify` es el gate (129 pasos en la 3.5.1, sólo Node).
+- Partidas reales: `pruebas/humo-*.cjs` (46). **Comparten el perfil de Electron: nunca dos a
   la vez.** Para capturas propias usar perfil propio (`app.setPath('userData', …)`).
 - **Nunca** matar electron por nombre si hay otras pruebas o capturas corriendo; matar por PID
   o por línea de comandos.

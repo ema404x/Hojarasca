@@ -16,7 +16,7 @@ npx @electron/asar list dist/win-unpacked/resources/app.asar | grep -q sincronia
 P="$TMP/paquete-$VER"; O="$P/Hojarasca-$VER"
 rm -rf "$P"; mkdir -p "$O"
 cd "$SRC"
-/c/Windows/System32/tar.exe -a -c -f "$O/Hojarasca-$VER-codigo-fuente.zip" --exclude="$CARPETA/node_modules" --exclude="$CARPETA/dist" --exclude="$CARPETA/pruebas/salidas" "$CARPETA"
+/c/Windows/System32/tar.exe -a -c -f "$O/Hojarasca-$VER-codigo-fuente.zip" --exclude="$CARPETA/node_modules" --exclude="$CARPETA/.git" --exclude="$CARPETA/dist" --exclude="$CARPETA/pruebas/salidas" "$CARPETA"
 cd "$PROY/dist"
 /c/Windows/System32/tar.exe -a -c -f "$O/Hojarasca-$VER-Steam-depot-win64.zip" -C win-unpacked .
 cp "Hojarasca-$VER-Setup-x64.exe" "Hojarasca-$VER-Portable-x64.exe" "$O/"

@@ -57,6 +57,10 @@ app.whenReady().then(async () => {
     if (!p) return { error: 'no está' };
     await frenteA(p.x, p.z, 1.8);
     await cuadros(6);
+    // 3.5.1: la ventana oculta no corre requestAnimationFrame: sólo avanzan estos cuadros a mano,
+    // casi sin tiempo entre sí. Quién está enfrente se mira 15 veces por segundo: dejar pasar
+    // tiempo real entre tandas para que llegue a mirarse (si no, queda el aviso de antes).
+    for (let i = 0; i < 3; i++) { await esperar(70); await cuadros(2); }
     const aviso = await js(`${H}.__aviso()`);
     const textos = [];
     for (let i = 0; i < maximo; i++) {
