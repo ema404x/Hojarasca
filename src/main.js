@@ -7479,7 +7479,13 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // Si el mouse se suelta fuera de la ventana no llega mouseup: cortamos
     // explícitamente el recogido para que la caña no quede enganchada.
     if (pesca?.est?.recogiendo) pesca.clic(false, mundoPesca());
+    // 3.5.4: jugando sin el mouse bloqueado (el bloqueo falló al volver con Esc, o el modo de
+    // arrastrar para mirar) no llegaba la pausa de "soltaste el mouse": con Alt+Tab, la tecla de
+    // Windows u otra ventana encima, la noche del Desafío seguía sin vos. Ahora se pausa igual.
+    if (modo === 'jugando' && jugador && !document.pointerLockElement && !banco.activa) abrir('pausa');
   });
+  // 3.5.4: la compu se suspende o se bloquea la pantalla (lo avisa main.cjs): pausa
+  window.hojarasca?.alPedirPausa?.(() => { if (modo === 'jugando' && jugador && !banco.activa) abrir('pausa'); });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'hidden') return;
     if (pesca?.est?.recogiendo) pesca.clic(false, mundoPesca());

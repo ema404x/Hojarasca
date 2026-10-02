@@ -455,7 +455,11 @@ export function crearFauna(T, veg, col, escena, sonido, registrar, progreso, opc
   // punto al azar alrededor del jugador para sonidos del bosque
   function puntoCercano(min, max) {
     const ang = r() * 6.28, d = min + r() * (max - min);
-    const x = cam.position.x + Math.cos(ang) * d, z = cam.position.z + Math.sin(ang) * d;
+    // 3.5.4: el sonido pide dónde cantar desde el primer cuadro; si la fauna todavía no dio su
+    // primer paso (la ventana minimizada al cargar, o pausada enseguida al perder el foco) no hay
+    // cámara: se usa dónde está el que escucha (antes, error en cada cuadro de esa pausa)
+    const c = cam ? cam.position : (sonido?.oyente || { x: 0, z: 0 });
+    const x = c.x + Math.cos(ang) * d, z = c.z + Math.sin(ang) * d;
     return { x, y: T.altura(x, z) + 4 + r() * 8, z };
   }
 
