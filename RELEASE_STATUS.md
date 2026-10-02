@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.5.1
+# RELEASE STATUS — 3.5.2
 
-- Versión: `3.5.1`
+- Versión: `3.5.2`
+- 3.5.2: pulido — niebla por altura con bancos, río que corre en la cuesta, nieve del cordón por canaletas; jabalí, coipo, cisne, pato de los torrentes, martín pescador, bandurria, cauquén y zorzal rehechos, mate a la boca, bufanda; ciprés de cerca y nevado, árboles lejanos con la bruma del suelo, coirón y notro que no se veían, amancay sin franja; la vegetación sube 5–8 veces menos datos a la placa
 - 3.5.1: crashes y revisión de todo el juego — preguntas propias en vez de prompt/confirm (nombrar obras andaba mal), el juego se recupera solo si se pierden los gráficos o se cae la ventana, autoguardado cada 20 s, sistemas aislados; 25 arreglos en Relax (capítulo 6 imposible, trampas de días y materiales, lo que se perdía al desarmar o mover) y 25 en Desafío (noche 20 trabada, victoria perdida, cristal infinito, invasores trabados); dos fugas de memoria chicas
 - 3.5.0: distancia de dibujo configurable (bloques de 40 m y plantas, en vivo); la vegetación ya no se congela si la placa no llega; caza de bugs visuales — nieve pareja de cerca y de lejos, ramas de ciprés y maitén que tapaban la pantalla, helechos de otoño, flores sobre la nieve, cordillera sin facetas, lago sin cortes, gente con rodillas y caras, crin en mechones; cielo de alba y ocaso, camino de luz en el lago y rayos al mediodía
 - 3.4.0: tal cual HushWood con la Patagonia de verdad — luz dorada y paleta sin lima, copas de hojas pintadas y troncos con vetas, cada especie como es (arrayán canela, coihue en capas, pehuén en pisos), helechos plumosos, pasto denso y flores reales (lupinos, margaritas, amancay), cordillera nevada por cordones, lago pintado, nubes; gente y animales con formas suaves, ropa de la zona y anatomía real; sotobosque en bloques

@@ -27,7 +27,7 @@ $p = Join-Path $tmp "paquete-$ver"; $o = Join-Path $p "Hojarasca-$ver"
 if (Test-Path $p) { Remove-Item -LiteralPath $p -Recurse -Force }
 New-Item -ItemType Directory -Force $o | Out-Null
 Set-Location $src
-& $tar -a -c -f (Join-Path $o "Hojarasca-$ver-codigo-fuente.zip") --exclude="$carpeta/node_modules" --exclude="$carpeta/dist" --exclude="$carpeta/pruebas/salidas" $carpeta
+& $tar -a -c -f (Join-Path $o "Hojarasca-$ver-codigo-fuente.zip") --exclude="$carpeta/node_modules" --exclude="$carpeta/dist" --exclude="$carpeta/pruebas/salidas" --exclude="$carpeta/.git" $carpeta
 Set-Location (Join-Path $proy 'dist')
 & $tar -a -c -f (Join-Path $o "Hojarasca-$ver-Steam-depot-win64.zip") -C win-unpacked .
 Copy-Item "Hojarasca-$ver-Setup-x64.exe", "Hojarasca-$ver-Portable-x64.exe" $o
