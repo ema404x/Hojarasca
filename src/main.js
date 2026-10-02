@@ -247,6 +247,33 @@ configurarTexturas(calidad, renderer);
 // las sombras se recalculan cada varios cuadros, no en todos
 renderer.shadowMap.autoUpdate = false;
 renderer.shadowMap.needsUpdate = true;   // el primer mapa se calcula enseguida
+// 3.5.4: al volver el contexto 3D, three r186 arma de nuevo sus administradores (geometrías,
+// texturas, render targets, mallas instanciadas) pero cada objeto ya subido conserva el oyente
+// de 'dispose' del administrador viejo, que guarda todo lo del contexto perdido (búferes, VAO,
+// programas, sus tablas): ~10 MB y miles de objetos de WebGL más por cada recuperación, para
+// siempre. Se anota (sin retenerlo: WeakRef) cada objeto al que three le pone ese oyente y, al
+// perderse el contexto, se le avisa 'dispose': los administradores viejos lo sueltan. Al volver
+// a dibujarlo, three lo sube con los nuevos (lo mismo que ya hacía). El juego no escucha 'dispose'.
+const subidosATres = new Set();
+let anotadosEnTres = new WeakSet(), altasEnTres = 0;
+{
+  const despachador = Object.getPrototypeOf(THREE.BufferGeometry.prototype);
+  const agregar = despachador.addEventListener;
+  despachador.addEventListener = function (tipo, oyente) {
+    if (tipo === 'dispose' && !anotadosEnTres.has(this)) {
+      anotadosEnTres.add(this); subidosATres.add(new WeakRef(this));
+      if (++altasEnTres % 4096 === 0) for (const r of subidosATres) if (!r.deref()) subidosATres.delete(r);
+    }
+    return agregar.call(this, tipo, oyente);
+  };
+}
+function soltarContextoViejo() {
+  const vivos = [];
+  for (const r of subidosATres) { const o = r.deref(); if (o) vivos.push(o); }
+  subidosATres.clear(); anotadosEnTres = new WeakSet();
+  for (const o of vivos) { try { o.dispatchEvent({ type: 'dispose' }); } catch { /* sigue con el resto */ } }
+  return vivos.length;
+}
 const escena = new THREE.Scene();
 // 2.2: el repaso de matrices salta lo que no se ve. De los ~2300 objetos que recorría
 // en cada cuadro, dos de cada tres estaban adentro de grupos ocultos (bichos y fauna
@@ -7407,6 +7434,7 @@ lienzo.addEventListener('webglcontextlost', (e) => {
   if (estadoGraficos.perdidos) return;
   estadoGraficos.perdidos = true; estadoGraficos.veces++;
   try { window.hojarasca?.reportarError?.('webgl: se perdió el contexto 3D'); } catch { /* sin Electron */ }
+  try { estadoGraficos.soltados = soltarContextoViejo(); } catch (err) { fallaSistema('soltar contexto', err); }   // 3.5.4
   $('graficos-recuperando')?.classList.remove('oculto');
   if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); }
   clearTimeout(estadoGraficos.espera);

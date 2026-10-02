@@ -138,6 +138,9 @@ export function crearBanderaMundo(escena, T, col, { mastilAjeno = null } = {}) {
     for (const [o, g] of torres) {
       if (vivas.has(o)) continue;
       escena.remove(g);
+      // 3.5.4: las geometrías de la banderita son suyas (los materiales, compartidos): antes quedaban
+      // en la placa, dos por cada torre derribada o desarmada
+      g.traverse((m) => { if (m.isMesh) m.geometry.dispose(); });
       const i = panos.indexOf(g.userData.pano);
       if (i >= 0) panos.splice(i, 1);
       torres.delete(o);
