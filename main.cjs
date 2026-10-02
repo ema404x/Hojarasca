@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
@@ -231,6 +231,10 @@ app.whenReady().then(() => {
     app.quit();
     return;
   }
+  // 3.5.3: sin el menú oculto que Electron pone por defecto. Sus atajos le ganaban al juego:
+  // agachado con Ctrl y caminando con W (Ctrl+W) cerraba la ventana como si fuera un crash;
+  // Ctrl+R recargaba y Ctrl+M minimizaba. F11 (pantalla completa) lo maneja crearVentana.
+  Menu.setApplicationMenu(null);
   crearVentana();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) crearVentana(); });
 });

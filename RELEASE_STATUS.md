@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.5.2
+# RELEASE STATUS — 3.5.3
 
-- Versión: `3.5.2`
+- Versión: `3.5.3`
+- 3.5.3: el juego ya no se cierra al agacharse con Ctrl y caminar con W (Ctrl+W era "cerrar ventana" en el menú oculto de Electron; también Ctrl+R recargaba y Ctrl+M minimizaba): main.cjs saca ese menú
 - 3.5.2: pulido — niebla por altura con bancos, río que corre en la cuesta, nieve del cordón por canaletas; jabalí, coipo, cisne, pato de los torrentes, martín pescador, bandurria, cauquén y zorzal rehechos, mate a la boca, bufanda; ciprés de cerca y nevado, árboles lejanos con la bruma del suelo, coirón y notro que no se veían, amancay sin franja; la vegetación sube 5–8 veces menos datos a la placa
 - 3.5.1: crashes y revisión de todo el juego — preguntas propias en vez de prompt/confirm (nombrar obras andaba mal), el juego se recupera solo si se pierden los gráficos o se cae la ventana, autoguardado cada 20 s, sistemas aislados; 25 arreglos en Relax (capítulo 6 imposible, trampas de días y materiales, lo que se perdía al desarmar o mover) y 25 en Desafío (noche 20 trabada, victoria perdida, cristal infinito, invasores trabados); dos fugas de memoria chicas
 - 3.5.0: distancia de dibujo configurable (bloques de 40 m y plantas, en vivo); la vegetación ya no se congela si la placa no llega; caza de bugs visuales — nieve pareja de cerca y de lejos, ramas de ciprés y maitén que tapaban la pantalla, helechos de otoño, flores sobre la nieve, cordillera sin facetas, lago sin cortes, gente con rodillas y caras, crin en mechones; cielo de alba y ocaso, camino de luz en el lago y rayos al mediodía
