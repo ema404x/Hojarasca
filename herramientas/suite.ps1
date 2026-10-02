@@ -16,7 +16,8 @@ foreach ($f in $pruebas) {
   $n = $f.BaseName
   $log = Join-Path $out "$n.log"
   $t0 = Get-Date
-  $p = Start-Process -FilePath 'npx.cmd' -ArgumentList 'electron', '--no-sandbox', $f.FullName -NoNewWindow -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+  # 3.5.4: las ventanas de las pruebas van al monitor externo si hay uno (herramientas\al-monitor.cjs)
+  $p = Start-Process -FilePath 'npx.cmd' -ArgumentList 'electron', '--no-sandbox', '-r', (Join-Path $PWD 'herramientas\al-monitor.cjs'), $f.FullName -NoNewWindow -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
   $null = $p.Handle   # en PowerShell 5.1, sin esto ExitCode queda vacío
   $termino = $p.WaitForExit(900000)
   if (-not $termino) {
