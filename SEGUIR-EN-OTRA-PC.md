@@ -46,6 +46,13 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.5.4 (cerrada el 02-10, etiqueta v3.5.4):** estabilidad — fuga grande del contexto 3D
+  recuperado (candidata firme a las caídas en la Radeon integrada), ventana blindada, caos de
+  ~5 h con 4 arreglos. Gate 133/133, 49 partidas reales. `CAMBIOS_3_5_4.md` (incluye cómo
+  correr el soak largo en la PC de escritorio).
+- **3.5.3 (etiqueta v3.5.3):** Ctrl+W (agacharse con Ctrl + caminar con W) cerraba el juego:
+  sin el menú oculto de Electron. Las ventanas de prueba van al monitor externo con
+  `npx electron --no-sandbox -r herramientas/al-monitor.cjs …`.
 - **3.5.2 (cerrada el 02-10 en la notebook, etiqueta v3.5.2):** pulido de lo anotado en la
   3.5.0 (paisaje, animales, bosque) en tres ramas juntadas; gate 129/129 y las 46 partidas
   reales a la primera. Detalle y lo que quedó para después en `CAMBIOS_3_5_2.md` (reemplaza
