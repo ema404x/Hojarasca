@@ -361,6 +361,15 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 .error-release .panel-modal { border-color: rgba(184,67,47,.55); }
 .error-release pre { max-height: 260px; overflow: auto; user-select: text; white-space: pre-wrap; background: rgba(0,0,0,.25); padding: 14px; border-radius: 7px; font: 12px/1.45 ui-monospace, monospace; color: #e7c8bf; }
 @media (max-width: 760px) { .controles-completos { grid-template-columns: 1fr; } .panel-modal { padding: 26px 24px; } }
+/* 3.5.1: las preguntas del juego (en lugar de prompt/confirm) y el aviso de los gráficos perdidos */
+#dialogo { z-index: 60; }
+#dialogo .panel-modal { width: min(560px, calc(100vw - 32px)); padding: 28px 32px 24px; }
+#dialogo .dialogo-texto { margin: 0; white-space: pre-line; font-size: 18px; line-height: 1.5; color: var(--luz); }
+#dialogo input { display: block; width: 100%; margin: 18px 0 0; padding: 9px 12px 8px; font: inherit; font-size: 20px; color: var(--luz); background: rgba(0,0,0,.28); border: 1px solid rgba(239,230,210,.3); border-radius: 7px; }
+#dialogo .acciones-modal { justify-content: flex-end; margin-top: 22px; }
+#dialogo .dialogo-ayuda { margin: 14px 0 0; font-size: 13px; color: rgba(239,230,210,.5); }
+.graficos-recuperando { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; background: rgba(9,13,10,.9); color: var(--luz); font-size: 22px; font-style: italic; }
+.portada .aviso-recuperado { min-height: 0; margin: 0 0 12px; color: #e9d9a8; }
 
 /* ---------- 2.8: personalizar ---------- */
 #personalizar .panel-modal { max-width: 760px; width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow: auto; }
@@ -426,6 +435,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div>
     <h1 class="titulo">Hojarasca</h1>
     <p class="bajada">un bosque andino patagónico para recorrer despacio</p>
+    <p class="modo-texto aviso-recuperado oculto" id="aviso-recuperado"></p>
     <div class="opcion"><span>Idioma · Language</span>
         <div class="segmentos" data-ajuste="idioma"><button data-valor="es">Español</button><button data-valor="en">English</button></div>
       </div>
@@ -899,6 +909,18 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   </div>
 </section>
 
+<!-- 3.5.1: las preguntas del juego (dialogo.js) -->
+<section id="dialogo" class="velo oculto" role="dialog" aria-modal="true" aria-labelledby="dialogo-texto">
+  <div class="panel-modal">
+    <p class="dialogo-texto" id="dialogo-texto"></p>
+    <input id="dialogo-entrada" class="oculto" type="text" autocomplete="off" spellcheck="false" aria-labelledby="dialogo-texto">
+    <div class="acciones-modal"><button id="dialogo-no">No</button><button id="dialogo-si">Sí</button></div>
+    <p class="dialogo-ayuda">Enter acepta · Esc cancela · con el mando, A y B</p>
+  </div>
+</section>
+<!-- 3.5.1: la placa perdió el contexto 3D (main.js lo rehace o, si no vuelve, recarga la partida guardada) -->
+<div id="graficos-recuperando" class="graficos-recuperando oculto" role="status">Recuperando los gráficos…</div>
+
 <div id="error-release" class="error-release oculto">
   <div class="panel-modal">
     <h2>Hojarasca encontró un problema</h2>
@@ -969,8 +991,14 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     caja.classList.remove('oculto');
   };
   let avisoErrorGameplay = false;
+  // 3.5.1: el mismo error repetido en cada cuadro se anota una vez (antes llenaba el registro
+  // de caídas y mandaba un mensaje al proceso principal 60 veces por segundo)
+  const yaReportados = new Set();
   const registrarError = (detalle) => {
     if (!detalle) return;
+    const clave = String(detalle).slice(0, 300);
+    if (yaReportados.has(clave)) return;
+    if (yaReportados.size < 200) yaReportados.add(clave);
     window.hojarasca?.reportarError?.(String(detalle));
     if (!window.__hojarasca) { mostrarError(detalle); return; }
     if (!avisoErrorGameplay) {
@@ -980,8 +1008,9 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   };
   window.addEventListener('error', (e) => registrarError(e.error?.stack || e.message));
   window.addEventListener('unhandledrejection', (e) => registrarError(e.reason?.stack || e.reason));
-  $('mundo')?.addEventListener('webglcontextlost', (e) => { e.preventDefault(); mostrarError('Se perdió el contexto gráfico. Reintentá para reconstruir el mundo.'); });
-  $('mundo')?.addEventListener('webglcontextrestored', () => location.reload());
+  // 3.5.1: el contexto 3D perdido lo atiende main.js (pausa, "Recuperando los gráficos…", rehace
+  // lo que three no puede y, si la placa no vuelve, guarda y recarga), también durante la carga.
+  $('mundo')?.addEventListener('webglcontextlost', (e) => { e.preventDefault(); });
   setTimeout(() => {
     if (!window.__hojarasca && window.__hojarascaErrores?.length) mostrarError(window.__hojarascaErrores.join('\n\n'));
   }, 12000);

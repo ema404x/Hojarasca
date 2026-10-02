@@ -112,7 +112,9 @@ function crearAtlas(ancho, alto) {
 
 // especies: [{ nombre, geo }] (las geometrías del LOD cercano de cada especie)
 // 3.4: `cartas`: el atlas de cartas de follaje (vegetacion.js), si las geometrías las traen
-export function hornearImpostores(renderer, especies, invierno = false, cartas = null) {
+// 3.5.1: `destino`: los atlas de antes ({ color, normal }), para volver a hornear en los mismos
+// (después de perder el contexto 3D; ver rehornear en crearImpostores)
+export function hornearImpostores(renderer, especies, invierno = false, cartas = null, destino = null) {
   const t0 = performance.now();
   const filas = especies.length;
   const celdaAlto = Math.max(64, Math.min(CELDA_ALTO_MAX, Math.floor(4096 / Math.max(1, filas))));
@@ -137,7 +139,7 @@ export function hornearImpostores(renderer, especies, invierno = false, cartas =
     escena.add(im);
     return im;
   });
-  const color = crearAtlas(ancho, alto), normal = crearAtlas(ancho, alto);
+  const color = destino?.color || crearAtlas(ancho, alto), normal = destino?.normal || crearAtlas(ancho, alto);
   const previo = renderer.getRenderTarget();
   const fondo = new THREE.Color(); renderer.getClearColor(fondo);
   const alfa = renderer.getClearAlpha(), autoClear = renderer.autoClear, sombras = renderer.shadowMap.autoUpdate;
@@ -290,7 +292,7 @@ function materialImpostor(estado) {
 // 3.3: la malla única de impostores. `arboles`: [{ fila, matriz (Float32Array/array 16), tinte [r,g,b] }]
 // 3.4: `cartas`: el atlas de cartas de follaje con que se hornean las copas
 export function crearImpostores(renderer, especies, arboles, { inicio, fin, lejos, cartas = null }) {
-  const verano = hornearImpostores(renderer, especies, false, cartas);
+  let verano = hornearImpostores(renderer, especies, false, cartas);
   let invierno = null;
   const estado = {
     uColor: { value: verano.color.texture }, uNormal: { value: verano.normal.texture }, uFilas: { value: verano.filas },
@@ -334,5 +336,15 @@ export function crearImpostores(renderer, especies, arboles, { inicio, fin, lejo
     malla.instanceMatrix.array.set(elementos, i * 16);
     malla.instanceMatrix.needsUpdate = true;
   }
-  return { malla, estado, ponerMatriz, estacion, msHorneado: verano.ms };
+  // 3.5.1: si la placa pierde el contexto 3D, three rehace sus render targets vacíos: las fotos
+  // de los árboles lejanos se pierden (quedarían carteles vacíos). Se hornean de nuevo en los
+  // mismos atlas (three les vuelve a pedir memoria a la placa al dibujar en ellos; soltarlos
+  // tocaría objetos del contexto viejo) y con las mismas cajas: las celdas no cambian.
+  function rehornear() {
+    verano = hornearImpostores(renderer, especies, false, cartas, verano);
+    if (invierno) invierno = hornearImpostores(renderer, especies, true, cartas, invierno);
+    estado.uColor.value = verano.color.texture; estado.uNormal.value = verano.normal.texture;
+    return verano.ms + (invierno ? invierno.ms : 0);
+  }
+  return { malla, estado, ponerMatriz, estacion, rehornear, atlas: () => ({ verano, invierno }), msHorneado: verano.ms };
 }

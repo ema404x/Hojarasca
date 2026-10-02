@@ -22,7 +22,8 @@ const pkg = JSON.parse(leer('package.json'));
 for (const marca of ['btn-guardar','btn-controles','btn-creditos','btn-salir','controles-completos','creditos','error-release']) {
   exigir(index.includes(marca), `index sin ${marca}`);
 }
-exigir(main.includes("confirm('Esto borra el recorrido guardado"), 'Nuevo recorrido no confirma borrado');
+// 3.5.1: la pregunta es un cuadro del juego (dialogo.js), ya no el confirm del navegador
+exigir(main.includes("dialogos.confirmar('Esto borra el recorrido guardado"), 'Nuevo recorrido no confirma borrado');
 exigir(main.includes("window.addEventListener('beforeunload', guardar)"), 'falta guardado al cerrar');
 
 // Guardado resiliente
