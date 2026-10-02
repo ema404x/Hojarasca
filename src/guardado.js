@@ -300,14 +300,20 @@ function cuentas(v) {
 // tiraba al armar el bosque (y el juego no llegaba al menú). La que tiene un plano que
 // esta versión no conoce se deja pasar: main.js la guarda aparte y la devuelve al
 // guardar, para que una partida de una versión más nueva no la pierda en esta.
+// 3.5.4: una obra fuera del valle (una coordenada enorme como 1e308 en una partida rota) colgaba
+// la carga para siempre: los recorridos por celdas de las colisiones no avanzan con números así
+// (1e308 + 1 sigue siendo 1e308). Ninguna obra se puede fundar tan lejos: se descarta, como la
+// que tiene coordenadas que no son números. Lo mismo una altura imposible: va al suelo.
+const LEJOS_OBRA = LIMITE * 2, ALTO_OBRA = 2000;
+const enElValle = (o) => { const x = Number(o.x), z = Number(o.z); return Number.isFinite(x) && Number.isFinite(z) && Math.abs(x) <= LEJOS_OBRA && Math.abs(z) <= LEJOS_OBRA; };
 function sanearObras(v) {
   const salida = [];
   for (const o of arr(v)) {
     if (!objeto(o) || typeof o.plano !== 'string' || !o.plano) continue;
+    if (!enElValle(o)) continue;
     const x = Number(o.x), z = Number(o.z);
-    if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
     const d = { ...o, x, z, rot: finito(o.rot, 0), etapas: Math.max(0, Math.floor(finito(o.etapas, 0))) };
-    if (d.y !== undefined && !Number.isFinite(Number(d.y))) delete d.y;
+    if (d.y !== undefined && (!Number.isFinite(Number(d.y)) || Math.abs(Number(d.y)) > ALTO_OBRA)) delete d.y;
     else if (d.y !== undefined) d.y = Number(d.y);
     if (d.tinte !== undefined && typeof d.tinte !== 'string') delete d.tinte;
     salida.push(d);
@@ -373,9 +379,10 @@ function sanearProgreso(p) {
     rastreos: Math.max(0, Math.floor(finito(p.rastreos, 0))),
     pescaTarde: Math.max(0, Math.floor(finito(p.pescaTarde, 0))),
     guiaDia: Math.max(0, Math.floor(finito(p.guiaDia, 0))),
-    carpa: objeto(p.carpa) && Number.isFinite(Number(p.carpa.x)) && Number.isFinite(Number(p.carpa.z)) ? { ...p.carpa, x: Number(p.carpa.x), z: Number(p.carpa.z), yaw: finito(p.carpa.yaw, 0) } : null,
+    // 3.5.4: la carpa y los renovales, como las obras: dentro del valle (ver `sanearObras`)
+    carpa: objeto(p.carpa) && enElValle(p.carpa) ? { ...p.carpa, x: Number(p.carpa.x), z: Number(p.carpa.z), yaw: finito(p.carpa.yaw, 0) } : null,
     diario: arr(p.diario).filter(objeto),
-    renovales: arr(p.renovales).filter((r) => objeto(r) && Number.isFinite(Number(r.x)) && Number.isFinite(Number(r.z))),
+    renovales: arr(p.renovales).filter((r) => objeto(r) && enElValle(r)),
     barra: arr(p.barra), obras: sanearObras(p.obras),
     // Las chinches y los tocones tienen su propio saneador en el módulo que los usa.
     // La cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real.

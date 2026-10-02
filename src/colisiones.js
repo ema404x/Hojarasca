@@ -17,7 +17,12 @@ export function crearColisiones() {
   const clave = (cx, cz) => `${cx},${cz}`;
   // 2.6.1: cada alta/baja invalida los vecindarios 3x3 cacheados más abajo.
   let generacion = 0;
+  // 3.5.4: con una coordenada enorme (una partida rota con un 1e308) este recorrido no
+  // terminaba nunca (1e308 + 1 === 1e308) y el juego se colgaba al cargar, para siempre. Nada
+  // con qué chocar vive tan lejos ni es tan largo: eso no se indexa.
+  const LEJOS = 1e5, LARGO_MAX = 4096;
   function meter(obj, x0, z0, x1, z1) {
+    if (!(Math.abs(x0) < LEJOS && Math.abs(x1) < LEJOS && Math.abs(z0) < LEJOS && Math.abs(z1) < LEJOS && x1 - x0 < LARGO_MAX && z1 - z0 < LARGO_MAX)) return;
     generacion++;
     for (let cx = Math.floor(x0 / TAM); cx <= Math.floor(x1 / TAM); cx++)
       for (let cz = Math.floor(z0 / TAM); cz <= Math.floor(z1 / TAM); cz++) {
@@ -105,6 +110,7 @@ export function crearColisiones() {
     plataformas.push(p);
     // se indexa en la grilla: con decenas de escalones no conviene recorrerlas todas
     const radio = p.radio !== undefined ? p.radio + 0.5 : Math.hypot(p.largo, p.ancho) / 2 + 0.5;
+    if (!(Math.abs(p.x) < LEJOS && Math.abs(p.z) < LEJOS && radio < LARGO_MAX)) return;   // 3.5.4: ver `meter`
     for (let cx = Math.floor((p.x - radio) / TAM); cx <= Math.floor((p.x + radio) / TAM); cx++)
       for (let cz = Math.floor((p.z - radio) / TAM); cz <= Math.floor((p.z + radio) / TAM); cz++) {
         const k = clave(cx, cz);
@@ -411,6 +417,8 @@ export function crearColisiones() {
     const tapa = (o, esPuerta = false) => o.seg && (esPuerta || o.r >= 0.13) && (ignorar === null || o.duenio !== ignorar)
       && !(o.alturaMin !== undefined && y1 < o.alturaMin) && !(o.alturaMax !== undefined && y > o.alturaMax)
       && cruzan(ax, az, bx, bz, o.ax, o.az, o.bx, o.bz);
+    // 3.5.4: un tramo con una punta lejísimos (o en NaN) no se recorre celda por celda (ver `meter`)
+    if (!(Math.abs(ax) < LEJOS && Math.abs(bx) < LEJOS && Math.abs(az) < LEJOS && Math.abs(bz) < LEJOS && Math.abs(bx - ax) < LARGO_MAX && Math.abs(bz - az) < LARGO_MAX)) return false;
     for (let cx = Math.floor(Math.min(ax, bx) / TAM); cx <= Math.floor(Math.max(ax, bx) / TAM); cx++)
       for (let cz = Math.floor(Math.min(az, bz) / TAM); cz <= Math.floor(Math.max(az, bz) / TAM); cz++) {
         const lista = celdas.get(clave(cx, cz));

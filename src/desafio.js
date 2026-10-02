@@ -160,7 +160,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // boleadoras: tres bolas atadas que giran en el aire
   const geoBoleadora = (() => {
     const g = new THREE.BufferGeometry();
-    const partes = [0, 1, 2].map((i) => new THREE.IcosahedronGeometry(0.07, 0).toNonIndexed().translate(Math.cos(i * 2.1) * 0.28, 0, Math.sin(i * 2.1) * 0.28));
+    // 3.5.4: el icosaedro ya viene sin índice (toNonIndexed devolvía lo mismo y escribía un aviso por bola)
+    const partes = [0, 1, 2].map((i) => new THREE.IcosahedronGeometry(0.07, 0).translate(Math.cos(i * 2.1) * 0.28, 0, Math.sin(i * 2.1) * 0.28));
     const pos = [];
     for (const p of partes) pos.push(...p.attributes.position.array);
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));

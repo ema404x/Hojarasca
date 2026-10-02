@@ -44,8 +44,10 @@ export function crearJugador(camara, T, col, opciones) {
   });
   const fallo = () => { fallos++; if (fallos >= 3) { modoArrastre = true; opciones.alBloquear?.(); } };
   document.addEventListener('pointerlockerror', fallo);
-  lienzo.addEventListener('mousedown', (e) => {
-    if (e.button === 2 && estado.alUsar) estado.alUsar();
+  lienzo.addEventListener('mousedown', () => {
+    // 3.5.4: el clic derecho lo atiende main.js (usar lo que tenés en la mano, bloquear, cambiar de
+    // flecha). Acá también se usaba: un clic derecho comía dos panes y la linterna o la caña se
+    // prendían y se apagaban en el mismo clic (parecía que no andaba)
     if (modoArrastre) arrastrando = true;
   });
   document.addEventListener('mouseup', (e) => {
