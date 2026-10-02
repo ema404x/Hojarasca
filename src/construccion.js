@@ -3584,7 +3584,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     const recupera = {};
     for (let i = 0; i < Math.min(mejor.datos.etapas, mejor.plano.etapas.length); i++) {
       for (const [k, n] of Object.entries(mejor.plano.etapas[i].pide || {})) {
-        recupera[k] = (recupera[k] || 0) + Math.max(1, Math.floor(n * 0.5));
+        // 3.5.1: lo que costó 1 no vuelve entero: armar y desmontar un seto (1 tronco, 1 piedra) daba
+        // experiencia de constructor gratis y, con el ahorro del oficio, material sin fin
+        if (n > 1) recupera[k] = (recupera[k] || 0) + Math.max(1, Math.floor(n * 0.5));
       }
     }
     retirarObra(mejor);
@@ -3607,7 +3609,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (deps.length) return { ok: false, motivo: `Tiene ${deps.length === 1 ? 'una pieza apoyada' : `${deps.length} piezas apoyadas`} encima` };
     const etapa = mejor.plano.etapas[mejor.datos.etapas - 1];
     const recupera = {};
-    for (const [k, n] of Object.entries(etapa?.pide || {})) recupera[k] = Math.max(1, Math.floor(n * 0.5));
+    for (const [k, n] of Object.entries(etapa?.pide || {})) if (n > 1) recupera[k] = Math.max(1, Math.floor(n * 0.5));   // 3.5.1: ídem
     mejor.datos.etapas--;
     rehacer(mejor);
     ultimoEstado = null;

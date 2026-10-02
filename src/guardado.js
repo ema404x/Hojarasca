@@ -125,7 +125,9 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
         if (typeof img === 'string' && img.startsWith('data:image')) imagenes[k] = { img };
       }
       guardarFotos(imagenes);
+      // 3.5.1: sin miniatura en el archivo, la de la partida que se reemplazó no queda pegada
       if (vista) guardarVista(vista);
+      else { try { localStorage.removeItem(CLAVE_VISTA); } catch {} }
     }
     return ok;
   } catch { return false; }
@@ -379,6 +381,9 @@ function sanearProgreso(p) {
     // La cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real.
     chinches: sanearChinches(p.chinches),
     talados: sanearTalados(p.talados),
+    // 3.5.1: lo talado y lo cosechado en total (no bajan); una partida vieja arranca de lo que tiene
+    taladosTotal: Math.max(arr(p.talados).length, Math.floor(finito(p.taladosTotal, 0))),
+    cosechasTotal: Math.max(0, Math.floor(finito(p.cosechasTotal, ['haba', 'papa', 'frutilla-huerta'].reduce((s, k) => s + (Number(p.entradas?.[k]?.cantidad) || 0), 0)))),
     // 2.0: cómo estabas cuando aceptaste cada encargo de temporada
     encargoBase: sanearBase(p.encargoBase),
     // 2.1: los cantos grabados

@@ -51,7 +51,8 @@ assert.match(preload, /escribirYa: \(nombre, texto, base\) => ipcRenderer\.sendS
 const main = leer('src/main.js');
 assert.match(main, /window\.addEventListener\('beforeunload', guardar\);\n\s+window\.addEventListener\('beforeunload', \(\) => copiarASync\(true, true\)\);/, 'se guarda y después se copia');
 assert.match(main, /guardar\(\);\n\s+copiarASync\(true\);/, 'al dormir');
-assert.match(main, /if \(enCarpeta <= baseSync \|\| compararCopia\(local, r\.paquete\) !== 'ofrecer'\) \{ fijarBaseSync\(enCarpeta\); return; \}/, 'una copia ya vista no se ofrece de nuevo (aunque los relojes no coincidan)');
+// 3.5.1: lo ya visto no se ofrece; lo que la otra escribió después sí, aunque la de acá sea igual de nueva
+assert.match(main, /if \(enCarpeta <= baseSync \|\| \(local\?\.hay && Number\(local\.guardadoEn\) === enCarpeta\)\) \{ fijarBaseSync\(enCarpeta\); return; \}/,'una copia ya vista no se ofrece de nuevo (aunque los relojes no coincidan)');
 assert.match(main, /localStorage\.setItem\(claveBaseSync\(\), String\(baseSync\)\)/, 'y eso se recuerda entre sesiones');
 assert.match(main, /syncApi\.escribirYa\(nombre, texto, base\)/, 'cada copia dice qué versión de la carpeta conoce');
 

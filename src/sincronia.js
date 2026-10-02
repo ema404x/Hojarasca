@@ -50,3 +50,12 @@ export function textoOferta(local, remota) {
   const aca = local?.hay ? `\n\nLa de esta computadora es del día ${local.dia}, guardada el ${cuandoTexto(local.guardadoEn)}, y se reemplaza.` : '';
   return `${cabeza}${aca}\n\n¿Seguimos con la de la carpeta?`;
 }
+// 3.5.1: las dos siguieron. La otra computadora escribió en la carpeta después de la última copia
+// que vio esta, pero la de acá es igual de nueva o más (se siguió jugando acá, o los relojes de
+// las dos no coinciden). Antes no se preguntaba y la próxima copia de acá pisaba lo de la otra.
+export function textoDosCambiaron(local, remota) {
+  const dia = Math.max(1, Math.floor(Number(remota?.progreso?.dia) || 1));
+  const cabeza = `Tu otra computadora dejó en la carpeta sincronizada una partida que esta no vio: día ${dia}, guardada el ${cuandoTexto(remota?.progreso?.guardadoEn)}.`;
+  const aca = local?.hay ? `\n\nAcá también se siguió jugando: día ${local.dia}, guardada el ${cuandoTexto(local.guardadoEn)}.` : '';
+  return `${cabeza}${aca}\n\n¿Seguimos con la de la carpeta? (Si no, la de acá la reemplaza en la carpeta.)`;
+}

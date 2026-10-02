@@ -53,7 +53,9 @@ export function estadoHistoria(p, extra = {}) {
     entregas: Math.max(0, Math.floor(Number(p?.comercio?.entregas) || 0)),
     enVela: !!extra.enVela,
     sembrados: Object.keys(p?.huerta || {}).length,
-    cosechas: cantidad('haba') + cantidad('papa') + cantidad('frutilla-huerta'),
+    // 3.5.1: lo cosechado en total (no lo que queda: lo que se gasta en el molino o la cocina lo
+    // escondía, y la frutilla y el calafate no contaban). Una partida sin la cuenta usa lo de antes.
+    cosechas: Number.isFinite(Number(p?.cosechasTotal)) && p?.cosechasTotal != null ? Math.max(0, Math.floor(Number(p.cosechasTotal))) : cantidad('haba') + cantidad('papa') + cantidad('frutilla-huerta'),
     lena,
     abrigo: !!(p?.cosas?.manta || p?.cosas?.poncho),
     visitas: Math.max(0, Math.floor(Number(p?.visitas?.cuenta) || 0)),

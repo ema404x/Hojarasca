@@ -390,7 +390,9 @@ export function seguimientoListo(ev, s) {
   return ev.pendientes.find((p) => s.dia > p.dia || (s.dia === p.dia && s.horas >= (SEGUIMIENTOS[p.id]?.hora || EVENTOS.seguimientoDesde))) || null;
 }
 // Se mostró: sale de la lista y devuelve sus efectos (y el evento que encadena, si hay).
-export function cerrarSeguimiento(ev, id, dia) {
+// 3.5.1: `opciones.vecinos === false`: una partida sin vecinos no recibe el evento encadenado de un
+// vecino (el puente que cedió traía a Nicanor igual)
+export function cerrarSeguimiento(ev, id, dia, opciones = {}) {
   const i = ev.pendientes.findIndex((p) => p.id === id);
   if (i < 0) return null;
   ev.pendientes.splice(i, 1);
@@ -398,7 +400,8 @@ export function cerrarSeguimiento(ev, id, dia) {
   ev.revisado = Math.max(ev.revisado || 0, ent(dia));
   const seg = SEGUIMIENTOS[id];
   let cadena = null;
-  if (seg.evento && !ev.activo) cadena = forzarEvento(ev, seg.evento, dia, 'cadena');
+  const sinVecino = opciones.vecinos === false && EVENTO_VALLE[seg.evento]?.vecinos;
+  if (seg.evento && !ev.activo && !sinVecino) cadena = forzarEvento(ev, seg.evento, dia, 'cadena');
   return { seguimiento: seg, efectos: seg.efectos || [], cadena };
 }
 

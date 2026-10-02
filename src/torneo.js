@@ -222,7 +222,9 @@ export function leerCodigoPuntaje(texto) {
 export function sumarAmigo(local, entrada) {
   const e = sanearEntrada(entrada);
   if (!e) return false;
-  if (e.nombre.toLocaleLowerCase('es') === nombreVisible(local).toLocaleLowerCase('es')) return false;
+  // 3.5.1: el código lleva el nombre sin acentos ni signos: se compara igual ("José" pegando su propio código no se suma dos veces)
+  const comoCodigo = (s) => nombreCodigo(s).replace(/_/g, ' ').trim().toLocaleLowerCase('es');
+  if (e.nombre.toLocaleLowerCase('es') === nombreVisible(local).toLocaleLowerCase('es') || comoCodigo(e.nombre) === comoCodigo(nombreVisible(local))) return false;
   local.amigos = recortarSemanas(fundirEntradas(local.amigos, [{ ...e, pc: '' }])).slice(-TORNEO.maxAmigos);
   return true;
 }
