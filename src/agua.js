@@ -1,6 +1,6 @@
 // Lago y arroyo: color por profundidad, reflejo del cielo, brillo del sol y corriente
 import * as THREE from 'three';
-import { U, GLSL_COMUN } from './materiales.js';
+import { U, GLSL_COMUN, cuentaNiebla } from './materiales.js';
 import { LAGO } from './config.js';
 
 function materialAgua() {
@@ -15,10 +15,11 @@ function materialAgua() {
       #include <common>
       #include <fog_pars_vertex>
       attribute vec2 aFlujo;
-      varying vec3 vPos; varying vec2 vFlujo;
+      attribute vec2 aCauce;
+      varying vec3 vPos; varying vec2 vFlujo; varying vec2 vCauce;
       void main() {
         vec4 w = modelMatrix * vec4(position, 1.0);
-        vPos = w.xyz; vFlujo = aFlujo;
+        vPos = w.xyz; vFlujo = aFlujo; vCauce = aCauce;
         vec4 mvPosition = viewMatrix * w;
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -29,7 +30,7 @@ function materialAgua() {
       ${GLSL_COMUN}
       uniform float uTiempo; uniform sampler2D uAlturas; uniform vec3 uSolDir; uniform vec3 uSolColor;
       uniform vec3 uCenit; uniform vec3 uHorizonte; uniform vec3 uAmbiente; uniform float uLluvia; uniform float uViento; uniform float uInvierno; uniform vec3 uJugador;
-      varying vec3 vPos; varying vec2 vFlujo;
+      varying vec3 vPos; varying vec2 vFlujo; varying vec2 vCauce;
       float ondas(vec2 p, float detalle) {
         vec2 f = vFlujo * uTiempo;
         float a = vnoise(p * 0.35 - f * 0.35 + uTiempo * 0.05);
@@ -66,6 +67,21 @@ function materialAgua() {
         // 3.4: el agua lejana es más lisa (un lago pintado, no ruido de ondas a 300 m)
         float fuerza = (1.2 + uViento * 1.5 + length(vFlujo) * 1.5) * (0.55 + 0.45 * detalle);
         vec3 N = normalize(vec3((n0 - nx) / e * fuerza * 0.08, 1.0, (n0 - nz) / e * fuerza * 0.08));
+        // 3.5.2: el arroyo en la cuesta (ver abajo). Coordenadas a lo largo y a lo ancho de la
+        // corriente: vetas que bajan con el agua y olas paradas sobre las piedras del fondo; las
+        // dos quiebran el reflejo en franjas.
+        float corre352 = smoothstep(1.0, 2.8, length(vFlujo));
+        float vetas352 = 0.5, rapido352 = 0.0;
+        if (corre352 > 0.01) {
+          vec2 dirF352 = vFlujo / max(length(vFlujo), 1e-3);
+          // (a lo largo: metros río abajo; a lo ancho: metros desde el centro del cauce)
+          vec2 fl352 = vCauce;
+          float tf352 = uTiempo * (0.9 + length(vFlujo) * 1.3);
+          vetas352 = vnoise(vec2(fl352.x * 0.4 - tf352 * 0.8, fl352.y * 1.7)) * 0.6 + vnoise(vec2(fl352.x * 1.2 - tf352 * 1.5, fl352.y * 4.2 + 3.0)) * 0.4;
+          float ola352 = vnoise(fl352 * vec2(0.55, 0.8) + 9.0);
+          rapido352 = smoothstep(0.55, 0.85, ola352 * 0.55 + vetas352 * 0.45) * corre352;
+          N = normalize(N + vec3(-dirF352.y, 0.0, dirF352.x) * (vetas352 - 0.5) * 0.9 * corre352 + vec3(dirF352.x, 0.0, dirF352.y) * (ola352 - 0.5) * 0.6 * corre352);
+        }
         float fres = 0.03 + 0.97 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
         vec3 R = reflect(-V, N);
         vec3 cielo = mix(uHorizonte, uCenit, smoothstep(0.0, 0.6, R.y));
@@ -106,9 +122,22 @@ function materialAgua() {
           agua += uSolColor * red * max(uSolDir.y, 0.0) * smoothstep(3.2, 0.2, prof) * 0.28 * detalle * smoothstep(0.2, 0.6, detalle);   // 3.5: entra de a poco (antes saltaba en detalle 0.35)
         }
         vec3 luzAgua = uAmbiente * 2.2 + uSolColor * max(uSolDir.y, 0.0) * 0.9;
-        vec3 col = mix(agua * luzAgua, cielo, clamp(fres * 0.85 + 0.12, 0.0, 1.0));
+        vec3 col = mix(agua * luzAgua, cielo, clamp(fres * 0.85 + 0.12, 0.0, 1.0) * (1.0 - corre352 * 0.5));
         // 3.4: el lago patagónico es verde azulado aun cuando refleja el cielo
         col *= vec3(0.9, 1.0, 0.95);
+        // 3.5.2: el arroyo que baja por la cuesta se leía como una losa inclinada (el mismo espejo
+        // liso que el agua quieta). Donde corre rápido el agua está batida: refleja menos, se
+        // aclara a un turquesa lechoso y se abre en vetas blancas que bajan con la corriente y en
+        // espuma sobre las olas paradas. La cinta del agua y el terreno no cambian.
+        if (corre352 > 0.01) {
+          vec3 batida352 = (uAmbiente * 2.3 + uSolColor * max(uSolDir.y, 0.0) * 0.85) * srgb(vec3(0.62, 0.78, 0.76));
+          col = mix(col, batida352, corre352 * 0.2);
+          float lineas352 = smoothstep(0.64, 0.86, vetas352);
+          vec3 blanco352 = uAmbiente * 2.5 + uSolColor * max(uSolDir.y, 0.0) * 0.9 + uHorizonte * 0.1;
+          // lo más empinado (una cascada) es casi todo espuma; en la cuesta suave, vetas sueltas
+          float cascada352 = smoothstep(2.5, 3.05, length(vFlujo));
+          col = mix(col, blanco352, clamp((rapido352 * 0.55 + lineas352 * corre352 * 0.22) * (0.55 + 0.45 * cascada352), 0.0, 0.7));
+        }
         float alineadoSol = max(dot(R, uSolDir), 0.0);
         float brillo = pow(alineadoSol, 240.0) * 5.3 + pow(alineadoSol, 20.0) * 0.11;
         // Destellos pequeños repartidos por las ondas: sólo cerca/mediana distancia,
@@ -133,14 +162,17 @@ function materialAgua() {
         float alfa = smoothstep(0.0, 0.3, prof) * mix(0.58, 0.95, smoothstep(0.0, 2.5, prof));
         alfa = max(alfa, fres * smoothstep(0.0, 0.08, prof));
         alfa = max(alfa, lineaOrilla * detalle * 0.75 * smoothstep(0.0, 0.035, prof));   // 3.5: la espuma se ve
+        alfa = max(alfa, (0.72 + 0.25 * rapido352) * corre352 * smoothstep(0.0, 0.06, prof));   // 3.5.2: el agua batida no se transparenta
         gl_FragColor = vec4(col, alfa);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         // 3.4: la niebla con techo (ver materiales.js), y sobre el agua un poco menos: el
         // lago lejano conserva su color y no queda una sábana pálida entre el valle y los cerros
+        // 3.5.2: la misma niebla por altura del resto (con bancos que se corren sobre el lago)
         #ifdef USE_FOG
           #ifdef FOG_EXP2
-            float nieblaAgua = min(1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth), clamp(0.3 + fogDensity * 60.0, 0.0, 1.0) * 0.8);
+            ${cuentaNiebla('vPos', 'uTiempo')}
+            float nieblaAgua = min(fogFactor, techo352 * techoAlto352 * 0.8);
           #else
             float nieblaAgua = smoothstep(fogNear, fogFar, vFogDepth);
           #endif
@@ -225,14 +257,16 @@ export function crearAgua(T, escena) {
   const gLago = new THREE.PlaneGeometry(420, 420, 1, 1);
   gLago.rotateX(-Math.PI / 2);
   gLago.setAttribute('aFlujo', new THREE.Float32BufferAttribute(new Float32Array(8), 2));
+  gLago.setAttribute('aCauce', new THREE.Float32BufferAttribute(new Float32Array(8), 2));   // 3.5.2
   const lago = new THREE.Mesh(gLago, mat);
   lago.position.set(LAGO.x, 0, LAGO.z);
   lago.renderOrder = 5;
   escena.add(lago);
 
   // Arroyo: cinta que sigue el cauce y baja con el terreno
-  const pos = [], flujo = [], ind = [];
+  const pos = [], flujo = [], ind = [], cauce = [];
   const rio = T.rio;
+  let largo = 0;   // 3.5.2: metros río abajo desde la naciente (para las vetas de la corriente)
   for (let i = 0; i < rio.length; i++) {
     const a = rio[Math.max(0, i - 1)], b = rio[Math.min(rio.length - 1, i + 1)];
     const tx = b.x - a.x, tz = b.z - a.z, l = Math.hypot(tx, tz) || 1;
@@ -241,8 +275,10 @@ export function crearAgua(T, escena) {
     const y = p.s - 0.08;
     const pendiente = i > 0 ? Math.max(0, rio[i - 1].s - p.s) : 0;
     const vel = 0.6 + Math.min(2.5, pendiente * 3);
+    if (i > 0) largo += Math.hypot(p.x - rio[i - 1].x, p.z - rio[i - 1].z);
     pos.push(p.x + nx * w, y, p.z + nz * w, p.x - nx * w, y, p.z - nz * w);
     flujo.push(tx / l * vel, tz / l * vel, tx / l * vel, tz / l * vel);
+    cauce.push(largo, w, largo, -w);
     // en el salto de agua la cinta se corta: la caída la hace la cortina
     const corta = T.saltoAgua && (i === T.saltoAgua.i || i === T.saltoAgua.i + 1);
     if (i < rio.length - 1 && !corta) { const k = i * 2; ind.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
@@ -250,6 +286,7 @@ export function crearAgua(T, escena) {
   const gRio = new THREE.BufferGeometry();
   gRio.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   gRio.setAttribute('aFlujo', new THREE.Float32BufferAttribute(flujo, 2));
+  gRio.setAttribute('aCauce', new THREE.Float32BufferAttribute(cauce, 2));   // 3.5.2
   gRio.setIndex(ind);
   gRio.computeBoundingSphere();
   const arroyo = new THREE.Mesh(gRio, mat);

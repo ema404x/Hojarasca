@@ -14,17 +14,65 @@ import { nivelTexturas, texturaManchas } from './texturas.js';
 // El three incluido no exporta ShaderChunk: se cambia el `#include` antes de compilar, en
 // todos los materiales (el onBeforeCompile de fábrica) y en los que tienen el suyo propio
 // de este archivo y de agua.js.
+// 3.5.2: niebla por altura, con bancos que se corren. Hasta la 3.5.1 dependía sólo de la
+// distancia: desde el mirador al alba todo lo que pasaba los ~150 m quedaba en el techo y el
+// valle entero era una franja plana y pareja. Ahora el aire es más denso abajo (los bajos, el
+// lago) y se afina con la altura: se usa la densidad media a lo largo del rayo de la cámara al
+// punto (una exponencial con la altura, integrada en forma cerrada), y el techo también sigue a
+// la altura del punto (el lago puede quedar tapado y las lomas asomar). Cuando la niebla es
+// espesa (neblina de la mañana, lluvia) se junta en bancos que se corren despacio con el
+// tiempo. Desde el piso del valle, mirando a la misma altura, queda casi igual que antes.
+// Sólo cuentas en el lugar de siempre: sin pasadas, texturas ni programas nuevos.
+// `pos` es la posición del punto en el mundo y `t` el tiempo (0 si el material no lo tiene).
+export const cuentaNiebla = (pos, t) => /* glsl */`
+    float techo352 = clamp(0.3 + fogDensity * 60.0, 0.0, 1.0);
+    float espesa352 = smoothstep(0.0032, 0.009, fogDensity);
+    float escala352 = mix(90.0, 30.0, espesa352);
+    float yc352 = clamp((cameraPosition.y - 14.0) / escala352, -1.5, 6.0);
+    float yp352 = clamp((${pos}.y - 14.0) / escala352, -1.5, 6.0);
+    float ec352 = exp(-yc352), ep352 = exp(-yp352);
+    float dy352 = yp352 - yc352;
+    float alto352 = abs(dy352) > 0.01 ? (ec352 - ep352) / (abs(dy352) > 0.01 ? dy352 : 1.0) : 0.5 * (ec352 + ep352);
+    float banco352 = 0.5, mueve352 = 0.0;
+    if (espesa352 > 0.01) {
+      vec2 q352 = ${pos}.xz * 0.0075 + vec2(${t} * 0.0045, ${t} * 0.0028);
+      banco352 = sin(q352.x * 3.1 + sin(q352.y * 2.3) * 1.7) * sin(q352.y * 2.7 - sin(q352.x * 1.9) * 1.3) * 0.5 + 0.5;
+      mueve352 = espesa352 * 0.6 * min(ep352, 1.0);
+    }
+    alto352 = clamp(alto352 * mix(1.0, 0.45 + 1.1 * banco352, mueve352), 0.15, 1.6);
+    float techoAlto352 = clamp(0.3 + 0.35 * (alto352 + ep352 * mix(1.0, 0.5 + banco352, mueve352)), 0.35, 1.1);
+    float fogFactor = min(1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth * alto352), techo352 * techoAlto352);`;
+// (la posición del punto sale de vViewPosition, que tienen Lambert, Phong, Standard, Toon y
+// Matcap; en los demás, como el pasto, se toma la altura de la cámara)
 const NIEBLA_CON_TECHO = /* glsl */`
 #ifdef USE_FOG
   #ifdef FOG_EXP2
-    float fogFactor = min(1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth), clamp(0.3 + fogDensity * 60.0, 0.0, 1.0));
+    #if defined(LAMBERT) || defined(PHONG) || defined(STANDARD) || defined(TOON) || defined(MATCAP)
+      vec3 pN352 = cameraPosition + (vec4(-vViewPosition, 0.0) * viewMatrix).xyz;
+    #else
+      vec3 pN352 = cameraPosition;
+    #endif
+    ${cuentaNiebla('pN352', 'NIEBLA_T')}
   #else
     float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
   #endif
   gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactor);
 #endif`;
-export const conTechoNiebla = (fuente) => fuente.replace('#include <fog_fragment>', NIEBLA_CON_TECHO);
-Object.getPrototypeOf(THREE.MeshBasicMaterial.prototype).onBeforeCompile = function (sh) { sh.fragmentShader = conTechoNiebla(sh.fragmentShader); };
+// 3.5.2: los bancos se corren con uTiempo. Si el fragmento ya lo declara se usa ése; si no, se
+// declara junto a la niebla (el material que no lo pasa queda con los bancos quietos).
+const DECLARA_TIEMPO = /uniform\s+float\s+[\w\s,]*\buTiempo\b/;
+export const conTechoNiebla = (fuente) => {
+  let f = fuente, conTiempo = DECLARA_TIEMPO.test(f);
+  if (!conTiempo && f.includes('#include <fog_pars_fragment>')) {
+    f = f.replace('#include <fog_pars_fragment>', '#include <fog_pars_fragment>\nuniform float uTiempo;');
+    conTiempo = true;
+  }
+  return f.replace('#include <fog_fragment>', `#define NIEBLA_T ${conTiempo ? 'uTiempo' : '0.0'}\n${NIEBLA_CON_TECHO}`);
+};
+Object.getPrototypeOf(THREE.MeshBasicMaterial.prototype).onBeforeCompile = function (sh) {
+  sh.fragmentShader = conTechoNiebla(sh.fragmentShader);
+  if (!sh.uniforms.uTiempo) sh.uniforms.uTiempo = U.uTiempo;   // 3.5.2: los bancos de niebla
+};
 
 export const U = {
   uTiempo: { value: 0 },
@@ -586,7 +634,15 @@ export function materialTerreno() {
           // la estepa: pastizal seco, tierra ocre y matas ralas
           vec3 cEstepa = srgb(vec3(0.70, 0.62, 0.38));
           vec3 cEstepaSeca = srgb(vec3(0.78, 0.68, 0.44));
-          col = mix(col, mix(cEstepa, cEstepaSeca, n1 * 0.5 + 0.5), estepa * 0.82 * (1.0 - nieve));
+          // 3.5.2: el borde de la estepa sigue la altura (se termina entre los 26 y los 58 m): en
+          // una ladera era una franja amarilla pareja y horizontal. Ahora el borde se quiebra en
+          // lenguas con las dos pinceladas del suelo y pasa por un coirón verdoso antes del ocre.
+          // En las laderas la estepa ocre se queda en las que miran al norte (al sol, más secas);
+          // las otras son de matorral verdoso: el borde lo dibuja el relieve, no la altura.
+          float ladera352 = smoothstep(0.03, 0.18, pend) * (1.0 - 0.6 * clamp(-vNormMundo.z * 2.5, 0.0, 1.0));
+          float estepa352 = smoothstep(0.12, 0.88, estepa * (1.0 - ladera352 * 0.55) + (n2 - 0.5) * 0.5 + (n1 - 0.5) * 0.22) * smoothstep(0.0, 0.15, estepa);
+          vec3 cEstepa352 = mix(srgb(vec3(0.43, 0.47, 0.27)), mix(cEstepa, cEstepaSeca, n1 * 0.5 + 0.5), smoothstep(0.35, 0.85, estepa352));
+          col = mix(col, cEstepa352, estepa352 * 0.82 * (1.0 - nieve));
           col *= sombraSuelo;
           // RC31.2: manto de bosque lejano. Donde los árboles del LOD lejano se achican
           // y desaparecen (calidad.lejos), el suelo boscoso toma el tono de las copas con
@@ -653,6 +709,8 @@ export function materialTerreno() {
           // 3.4: algo menos (0.32 → 0.2): ahora la niebla de lejos tiene techo y la loma del
           // borde tiene que quedar un poco más oscura que el primer cordón de la cordillera
           float aireSuelo = smoothstep(70.0, 380.0, dAireSuelo) * (0.2 + uNubes * 0.08 + uLluvia * 0.1) * uBrumaFuerza;
+          // 3.5.2: como la niebla, la bruma pesa menos en lo alto (las lomas del borde al mediodía)
+          aireSuelo *= 0.6 + 0.4 * exp(-max(vPosMundo.y - 14.0, 0.0) / 90.0);
           // 3.5: a contraluz con el sol bajo las lomas son siluetas, no una pared clara: la bruma
           // dorada del lado del sol pesa menos (antes el piedemonte quedaba pálido al ocaso)
           {
