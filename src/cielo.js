@@ -182,7 +182,10 @@ export function crearCielo(escena, calidad) {
   // glaciares), cada uno más alto, más claro y más azul. Un solo dibujo, como antes.
   // (384 lados en los cordones y 192 en el piedemonte, que es liso)
   const LADOS_CORD = 384, LADOS_PIE = 192;
-  const pos = [], ind = [], costuras = [];
+  // 3.5.2: `crestas`: la altura de la cresta del cordón en cada columna (0 en el piedemonte), para
+  // que la nieve del invierno siga la forma del cordón y no la altura absoluta
+  const pos = [], ind = [], costuras = [], crestas = [];
+  let crestaFila = () => 0;
   // ruido sobre el círculo (sin costura en el oeste); `s` es el radio en unidades de ruido:
   // con 384 lados, hasta s ≈ 12 cada rasgo lleva cinco vértices o más (nada de dientes)
   const circ = (a, s, ox, oy) => simplex(Math.cos(a) * s + ox, Math.sin(a) * s + oy);
@@ -203,6 +206,7 @@ export function crearCielo(escena, calidad) {
         const a = (i / lados) * Math.PI * 2;
         const [r, y] = punto(a, j);
         pos.push(Math.cos(a) * r, y, Math.sin(a) * r);
+        crestas.push(crestaFila(a));
       }
       costuras.push([base + j * (lados + 1), base + j * (lados + 1) + lados]);
     }
@@ -234,6 +238,7 @@ export function crearCielo(escena, calidad) {
       // (el primer cordón casi no crece del lado alto: los cerros grandes quedan atrás)
       return c.alto * Math.pow(ladoAlto(a), c.lado ?? 1) * (0.4 + 0.6 * masa) * (0.75 + c.picos * (0.3 * arista * arista + 0.28 * aguja * masa) + quiebre);
     };
+    crestaFila = crestaDe;   // 3.5.2
     filas(T_FALDEO.length + 1, LADOS_CORD, (a, j) => {
       const rc = supEl(a, c.R * (1 + 0.1 * circ(a, 1.8, c.s * 3.3, 1.1)), c.p);
       const hc = crestaDe(a);
@@ -249,6 +254,7 @@ export function crearCielo(escena, calidad) {
   }
   const gC = new THREE.BufferGeometry();
   gC.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  gC.setAttribute('aCresta', new THREE.Float32BufferAttribute(crestas, 1));   // 3.5.2
   gC.setIndex(ind);
   gC.computeVertexNormals();
   // 2.7: el primer y el último vértice de cada anillo son el mismo punto: se promedia su
@@ -286,14 +292,15 @@ export function crearCielo(escena, calidad) {
       uColorNiebla: { value: new THREE.Color(0.6, 0.7, 0.75) },
       uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrumaFuerza: U.uBrumaFuerza, uGradoMat: U.uGradoMat, uSolDirEst: U.uSolDir },
     vertexShader: /* glsl */`
-      varying vec3 vPos; varying vec3 vN;
-      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vPos = w.xyz; vN = normal; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      attribute float aCresta;
+      varying vec3 vPos; varying vec3 vN; varying float vCresta;
+      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vPos = w.xyz; vN = normal; vCresta = aCresta; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: /* glsl */`
       ${GLSL_COMUN}
       ${GLSL_ESTILO}
       uniform vec3 uSolDir; uniform vec3 uSolColor; uniform vec3 uAmbiente; uniform vec3 uHorizonte; uniform vec3 uCenit; uniform float uInvierno; uniform float uOtono; uniform float uNiebla; uniform float uRasante; uniform float uHumedadAire; uniform float uAlturaCam; uniform float uTardeCord;
       uniform vec3 uColorNiebla;
-      varying vec3 vPos; varying vec3 vN;
+      varying vec3 vPos; varying vec3 vN; varying float vCresta;
       void main() {
         vec3 n = normalize(vN);
         // 3.4: los Andes patagónicos pintados. Bosque abajo (coihue oscuro y, en la franja alta,
@@ -311,9 +318,21 @@ export function crearCielo(escena, calidad) {
         float pend = 1.0 - n.y;   // 0.13 ≈ 30°, 0.29 ≈ 45°, 0.5 ≈ 60°
         float lineaBosque = 430.0 + (m1 - 0.5) * 150.0 - pend * 170.0 - canal * 60.0;
         float bosque = (1.0 - smoothstep(lineaBosque - 40.0, lineaBosque + 30.0, vPos.y)) * (1.0 - smoothstep(0.36, 0.52, pend + (m2 - 0.5) * 0.16));
-        float lineaNieve = mix(740.0, 190.0, uInvierno) + (m1 - 0.5) * 200.0 + (surco - 0.5) * 40.0 - canal * 280.0;
+        // 3.5.2: en invierno el primer cordón quedaba "a lunares": la línea de nieve (190 m) caía en
+        // la mitad de su altura y la mancha grande (m1, ±100 m) la subía y bajaba en manchones
+        // redondos. Ahora en invierno la nieve baja hasta el piedemonte (el valle también está
+        // blanco), la mancha pesa menos, y en el bosque de las laderas la nieve sigue la forma
+        // del cordón: cubre la parte alta de cada uno (relativa a su cresta) y baja por las
+        // canaletas en franjas continuas; entre canaleta y canaleta, el bosque escarchado.
+        float lineaNieve = mix(740.0, -60.0, uInvierno) + (m1 - 0.5) * mix(200.0, 70.0, uInvierno) + (surco - 0.5) * 40.0 - canal * 280.0;
         // la nieve se queda en lo tendido y en las canaletas; las paredes muestran la roca
         float nieve = smoothstep(lineaNieve, lineaNieve + 70.0, vPos.y) * (1.0 - smoothstep(0.3, 0.46, pend + (surco - 0.5) * 0.1 - canal * 0.3) * (1.0 - uInvierno * 0.5));
+        {
+          float relCresta = vCresta > 1.0 ? vPos.y / vCresta : 1.0;
+          float cumbre = smoothstep(0.55, 0.78, relCresta + (surco - 0.5) * 0.18 + (m2 - 0.5) * 0.1);
+          float franja = smoothstep(0.35, 0.7, canal + (surco - 0.5) * 0.3);
+          nieve *= 1.0 - bosque * uInvierno * 0.6 * (1.0 - max(cumbre, franja));
+        }
         vec3 cBosque = mix(srgb(vec3(0.13, 0.25, 0.22)), srgb(vec3(0.20, 0.31, 0.21)), m2);
         float lenga = smoothstep(lineaBosque - 210.0, lineaBosque - 40.0, vPos.y);
         vec3 cLenga = mix(srgb(vec3(0.27, 0.36, 0.21)), mix(srgb(vec3(0.60, 0.19, 0.07)), srgb(vec3(0.72, 0.42, 0.12)), m1), uOtono);

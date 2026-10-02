@@ -20,17 +20,35 @@ const BRILLO = `
   uniform float uSuavidad;
   uniform vec2 uSol;
   uniform float uAspecto;
+  uniform float uDia;
+  uniform float uArriba;
   varying vec2 vUv;
   void main() {
     vec4 t = texture2D(uColor, vUv);
     vec3 c = t.rgb;
     float luz = max(c.r, max(c.g, c.b));
-    float f = smoothstep(uUmbral, uUmbral + uSuavidad, luz);
     float cielo = 1.0 - clamp(t.a, 0.0, 1.0);
+    // 3.5.2: de día la nieve al sol (blanca, ancha) pasaba el umbral y florecía entera: árboles
+    // nevados y laderas con un halo lechoso. Lo blanco que no es cielo necesita más luz para
+    // florecer; los destellos del agua, el sol y las luces (con color, o de noche) quedan igual.
+    float blanco352 = 1.0 - smoothstep(0.1, 0.35, (luz - min(c.r, min(c.g, c.b))) / max(luz, 1e-3));
+    float umbral352 = uUmbral + 0.6 * blanco352 * (1.0 - cielo) * uDia;
+    float f = smoothstep(umbral352, umbral352 + uSuavidad, luz);
     // 3.3: la fuente llega más lejos del sol (los huecos del dosel rara vez están justo
     // sobre él) y cae más suave; los rayos débiles se refuerzan en la composición.
     float cerca = 1.0 - smoothstep(0.0, 0.85, length((vUv - uSol) * vec2(uAspecto, 1.0)));
-    gl_FragColor = vec4(c * f, cielo * cerca * cerca * min(luz, 3.0));
+    float fuente = cielo * cerca * cerca * min(luz, 3.0);
+    // 3.5.2: los rayos del mediodía (fuente en el borde de arriba) salían también del cielo
+    // abierto: sobre un paisaje sin copas el haz era un velo parejo y los cerros del borde
+    // quedaban lavados. Ahora, con la fuente arriba, sólo da luz el cielo que se ve entre algo
+    // (huecos del dosel, bordes de las copas); el cielo abierto alrededor casi no.
+    if (uArriba > 0.0) {
+      vec2 r352 = vec2(0.025 / uAspecto, 0.025);
+      float abierto352 = (texture2D(uColor, vUv + vec2(r352.x, 0.0)).a + texture2D(uColor, vUv - vec2(r352.x, 0.0)).a
+        + texture2D(uColor, vUv + vec2(0.0, r352.y)).a + texture2D(uColor, vUv - vec2(0.0, r352.y)).a) * 0.25;
+      fuente *= 1.0 - uArriba * smoothstep(0.5, 0.95, 1.0 - clamp(abierto352, 0.0, 1.0)) * 0.85;
+    }
+    gl_FragColor = vec4(c * f, fuente);
   }
 `;
 
@@ -145,7 +163,9 @@ const COMPONER = `
     c = mix(c, c * vec3(1.1, 1.0, 0.84), uInterior * 0.4);
     c = mix(c, filmico(c * 1.055), uInterior * 0.055);
     // de noche el ojo pierde color y gana grano
-    c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), uNoche * 0.42);
+    // 3.5.2: pero lo que brilla conserva su color (los núcleos rojos de la nodriza, las luces de
+    // la nave, el fuego y los faroles se veían color durazno pálido): sólo se apaga lo tenue
+    c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), uNoche * 0.42 * (1.0 - smoothstep(0.3, 0.75, max(c.r, max(c.g, c.b)))));
 
     // viñeta
     vec2 d = vUv - 0.5;
@@ -183,7 +203,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
 
   const material = (fragmentShader, uniforms) => new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader, uniforms, depthTest: false, depthWrite: false });
 
-  const matBrillo = material(BRILLO, { uColor: { value: null }, uUmbral: { value: 1.0 }, uSuavidad: { value: 0.4 }, uSol: { value: new THREE.Vector2(0.5, 2.0) }, uAspecto: { value: 16 / 9 } });
+  const matBrillo = material(BRILLO, { uColor: { value: null }, uUmbral: { value: 1.0 }, uSuavidad: { value: 0.4 }, uSol: { value: new THREE.Vector2(0.5, 2.0) }, uAspecto: { value: 16 / 9 }, uDia: { value: 1 }, uArriba: { value: 0 } });
   const matBorron = material(BORRON, { uColor: { value: null }, uPaso: { value: new THREE.Vector2() } });
   const matRayos = material(RAYOS, { uColor: { value: null }, uSol: { value: new THREE.Vector2(0.5, 0.5) }, uFuerza: { value: 1 }, uCanal: { value: CANAL_ALFA } });
   const matComponer = material(COMPONER, {
@@ -235,6 +255,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
 
     // 3.2: dónde está el sol en pantalla (para la fuente de los rayos del paso 2)
     let fuerzaRayos = 0;
+    matBrillo.uniforms.uArriba.value = 0;   // 3.5.2: 1 cuando la fuente es el borde de arriba
     if (estado.rayos > 0 && estado.solDir) {
       solPantalla.copy(estado.solDir).multiplyScalar(900).add(camara.position).project(camara);
       const dentro = Math.abs(solPantalla.x) < 1.5 && Math.abs(solPantalla.y) < 1.5 && solPantalla.z < 1;
@@ -251,6 +272,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
         const fuerzaArriba = estado.rayos * 0.62 * arriba;
         if (fuerzaArriba > fuerzaRayos) {
           fuerzaRayos = fuerzaArriba;
+          matBrillo.uniforms.uArriba.value = 1;
           solPantalla.x = Math.max(-1.1, Math.min(1.1, solPantalla.x / Math.max(1, solPantalla.y * 0.6)));
           solPantalla.y = 1.22;
         }
@@ -263,6 +285,7 @@ export function crearPostproceso(renderer, escena, camara, calidad) {
     // 2. lo que brilla, desenfocado dos veces
     matBrillo.uniforms.uColor.value = destino.texture;
     matBrillo.uniforms.uUmbral.value = estado.noche > 0.5 ? 0.92 : 0.92;
+    matBrillo.uniforms.uDia.value = 1 - (estado.noche || 0);   // 3.5.2
     pasada(matBrillo, rtBrillo);
     // el desenfoque del brillo: dos pasadas en Alta, una en Media
     for (let i = 0; i < pasadasBrillo; i++) {
