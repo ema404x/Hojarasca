@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { rng, lerp, clamp } from './ruido.js';
 import { LAGO, LIMITE } from './config.js';
 import { lam, esfera, cono, palo, patas, alas, actualizarCiervo, compactar, inclinacionTerrenoMamifero, marchaMamifero } from './vida.js';
-import { bola, torno, miembro, deformar, pintar, lomo, pata, ruido3, color as matDe } from './formas.js';
+import { bola, torno, miembro, huso, deformar, pintar, lomo, pata, ruido3, cuerpoZ, perfilHuso, color as matDe } from './formas.js';
 import { perfilHabitatPatagonico } from './patagonia.js';
 import { percepcionMamifero, firmaSonoraJugador } from './percepcion.js';
 import { crearSombraContacto, actualizarSombraContacto } from './naturaleza-reactiva.js';
@@ -64,23 +64,76 @@ function mallaCiervo(macho) {
   return { g, cabeza, patas: p };
 }
 
+// 3.5.2: el jabalí como es: alto en la cruz y bajo en el anca, con la crin de cerdas que corre
+// por el espinazo; la cabeza en cuña con el hocico largo que termina en la jeta (el disco de la
+// nariz), los colmillos que asoman del labio, ojos chicos y orejas cortas y peludas; patas
+// cortas y finas con pezuñas, y la cola con su pincel. Pelaje pardo negruzco entrecano pintado
+// en los vértices; el chico, bermejo. Se arma a tamaño de adulto y se achica entero (`e`).
+// Antes era una esfera, un cono y palitos. Mismos pivotes (cabeza y patas) y las mismas llamadas.
 function mallaJabali(cria) {
   const g = new THREE.Group();
   const e = cria ? 0.55 : 1;
-  const pelo = lam(cria ? '#9a7a4c' : '#3b322a'), oscuro = lam('#241f1a');
-  const cuerpo = esfera(pelo, [0.26 * e, 0.3 * e, 0.6 * e], [0, 0.62 * e, 0]);
-  g.add(cuerpo);
-  const cabeza = new THREE.Group(); cabeza.position.set(0, 0.66 * e, 0.52 * e);
-  cabeza.add(cono(pelo, 0.24 * e, 0.52 * e, [0, 0, 0.1 * e], [Math.PI / 2, 0, 0]));
-  cabeza.add(esfera(oscuro, [0.06 * e, 0.05 * e, 0.05 * e], [0, -0.02 * e, 0.34 * e]));
-  if (!cria) for (const l of [-1, 1]) cabeza.add(cono(lam('#d8d2c2'), 0.016, 0.12, [l * 0.07, -0.04, 0.26], [-0.9, 0, -l * 0.3]));
-  for (const l of [-1, 1]) cabeza.add(cono(pelo, 0.05 * e, 0.12 * e, [l * 0.13 * e, 0.16 * e, -0.08 * e], [0, 0, -l * 0.3]));
+  const pelo = cria ? '#87603f' : '#594a3c', oscuro = '#2a231c';
+  const cOsc = new THREE.Color(oscuro), canoso = new THREE.Color(cria ? '#ad8455' : '#9c8c78');
+  const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  // (la pintura se arma a tamaño de adulto: `p` llega en el espacio de la figura ya achicada)
+  const pelaje = (c, p, n) => {
+    const x = p.x / e, y = p.y / e, z = p.z / e;
+    c.multiplyScalar(1 + ruido3(x * 30, y * 28, z * 31) * 0.1);
+    c.lerp(canoso, 0.4 * Math.max(0.3, Math.abs(n.x)) * sv(0.35, 0.65, y) * (0.6 + 0.4 * ruido3(x * 9, y * 11, z * 7)));   // las puntas canosas
+    if (y < 0.32) c.lerp(cOsc, 0.65 * (1 - sv(0.14, 0.32, y)));                                             // las patas, oscuras
+  };
+  const conPelaje = (m) => pintar(m, pelaje);
+  const perfil = [[0, -0.6], [0.1, -0.56], [0.16, -0.48], [0.2, -0.35], [0.22, -0.15], [0.23, 0.05], [0.235, 0.22], [0.22, 0.36], [0.17, 0.45], [0.1, 0.5], [0, 0.53]];
+  const radioEn = (z) => { for (let i = 1; i < perfil.length; i++) if (z <= perfil[i][1]) { const [r0, z0] = perfil[i - 1], [r1, z1] = perfil[i]; return r0 + (r1 - r0) * (z - z0) / (z1 - z0); } return 0; };
+  const subeLomo = (t) => 1.15 + 0.22 * Math.max(0, 1 - Math.abs(t - 0.22) / 0.3) - 0.16 * sv(-0.1, -0.45, t);
+  // el alto del lomo a lo largo del cuerpo (la cruz alta, el anca baja), para la crin
+  const lomoEn = (z) => 0.6 + radioEn(z) * subeLomo(z);
+  g.add(conPelaje(cuerpoZ(pelo, perfil, [0, 0.6, 0], 16, (v) => {
+    const t = v.z;
+    if (v.y > 0) v.y *= subeLomo(t);                                                                        // la cruz alta
+    else v.y *= 1.26 - 0.3 * sv(0.0, -0.4, t) + 0.1 * Math.max(0, 1 - Math.abs(t - 0.25) / 0.2);           // el pecho hondo, la panza recogida
+    v.x *= 1 - 0.12 * sv(0.0, -0.5, t);
+  })));
+  // la crin: una cresta de cerdas a lo largo del espinazo, finita y dentada
+  // (va medio hundida en el lomo: asoma unos 3 cm, más en la cruz)
+  const crin = [0.42, 0.3, 0.15, -0.02, -0.2, -0.36].map((z) => [0, lomoEn(z) - 0.012, z]);
+  g.add(conPelaje(deformar(miembro(oscuro, crin, [0.03, 0.045, 0.04, 0.032, 0.02, 0.006], 12, 6), (v) => {
+    v.x *= 0.4;
+    if (v.y > lomoEn(v.z)) v.y += 0.022 * Math.abs(Math.sin(v.z * 75)) * Math.max(0, 1 - Math.abs(v.z - 0.1) / 0.5);
+  })));
+  // la cola, con el pincel en la punta
+  g.add(conPelaje(miembro(pelo, [[0, 0.7, -0.56], [0, 0.6, -0.63], [0, 0.48, -0.64]], [0.025, 0.016, 0.01], 6, 6)));
+  g.add(bola(oscuro, [0.018, 0.04, 0.018], [0, 0.45, -0.64], null, [7, 5]));
+  const cabeza = new THREE.Group(); cabeza.position.set(0, 0.66, 0.52);
+  // la cabeza en cuña: ancha en las quijadas, con la frente recta que baja hasta la jeta
+  const testa = miembro(pelo, [[0, 0.06, -0.14], [0, 0.035, 0.02], [0, -0.03, 0.17], [0, -0.075, 0.3], [0, -0.095, 0.39]], [0.17, 0.15, 0.1, 0.066, 0.056], 12, 12);
+  testa.scale.set(0.78, 1, 1);
+  cabeza.add(conPelaje(testa));
+  cabeza.add(conPelaje(bola(pelo, [0.11, 0.1, 0.11], [0, -0.05, 0.03], null, [12, 9])));                    // las quijadas
+  cabeza.add(conPelaje(miembro(pelo, [[0, -0.11, 0.06], [0, -0.135, 0.22], [0, -0.13, 0.34]], [0.07, 0.045, 0.03], 6, 9)));   // la mandíbula
+  cabeza.add(bola('#4d3c37', [0.058, 0.05, 0.022], [0, -0.095, 0.4]));                                       // la jeta
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#151110', [0.013, 0.016, 0.008], [l * 0.019, -0.098, 0.418]));                        // las narinas
+    cabeza.add(bola('#0c0a08', [0.012, 0.012, 0.01], [l * 0.062, 0.035, 0.125]));                          // los ojos chicos
+    if (!cria) cabeza.add(miembro('#e2d9c2', [[l * 0.042, -0.138, 0.27], [l * 0.066, -0.118, 0.31], [l * 0.072, -0.078, 0.3]], [0.013, 0.009, 0.002], 5, 6));   // los colmillos
+    // las orejas: cortas, en punta y peludas
+    const oreja = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.11, 8, 2), matDe(pelo)), (v) => { v.z *= 0.42; });
+    oreja.position.set(l * 0.085, 0.14, -0.05); oreja.rotation.set(-0.25, 0, -l * 0.4);
+    cabeza.add(pintar(oreja, (c, p, n) => { if (n.z > 0.2) c.lerp(new THREE.Color('#5a4438'), 0.4); }));
+  }
   g.add(cabeza);
-  // cerdas del lomo
-  for (let i = 0; i < 5; i++) g.add(cono(oscuro, 0.03 * e, 0.16 * e, [0, 0.92 * e, (0.25 - i * 0.13) * e], [-0.3, 0, 0]));
-  const p = patas(g, oscuro, 0.52 * e, 0.15 * e, 0.32 * e, 0.045 * e);
+  const p = [];
+  for (const [px, pz] of [[-0.15, 0.32], [0.15, 0.32], [-0.15, -0.32], [0.15, -0.32]]) {
+    const piv = new THREE.Group(); piv.position.set(px, 0.52, pz);
+    piv.add(conPelaje(pata(pelo, 0.52, pz > 0, pz > 0 ? 0.062 : 0.07, 7)));
+    piv.add(bola('#16120f', [0.026, 0.022, 0.04], [0, -0.508, 0.024], null, [8, 6]));                       // la pezuña
+    g.add(piv); p.push(piv);
+  }
+  // todo se arma a tamaño de adulto: el chico se achica entero (pivotes incluidos)
+  if (e !== 1) for (const h of g.children) { h.position.multiplyScalar(e); h.scale.multiplyScalar(e); }
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  compactar(g, { alto: 0.9 });
+  compactar(g, { alto: 0.9 * e, pie: 0.86, todo: true });
   return { g, cabeza, patas: p };
 }
 
@@ -100,10 +153,21 @@ function mallaLiebre() {
   for (const l of [-1, 1]) g.add(conPelaje(bola(pelo, [0.05, 0.085, 0.1], [l * 0.06, 0.17, -0.1])));   // los cuartos
   g.add(pintar(bola('#e8e2d4', [0.035, 0.035, 0.03], [0, 0.24, -0.215]), (c, p) => { if (p.y > 0.25) c.lerp(negro, 0.8); }));   // la colita
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.3, 0.16);
-  cabeza.add(conPelaje(bola(pelo, [0.05, 0.055, 0.075], [0, 0, 0.02])));
-  cabeza.add(conPelaje(bola(pelo, [0.036, 0.034, 0.042], [0, -0.016, 0.08])));
-  cabeza.add(bola(oscuro, [0.014, 0.012, 0.01], [0, -0.008, 0.118]));
-  for (const l of [-1, 1]) cabeza.add(bola('#1a140e', [0.016, 0.018, 0.012], [l * 0.042, 0.012, 0.045]));   // los ojos grandes
+  // 3.5.2: la cara de la liebre: cabeza larga de perfil recto (antes, dos bolas como de
+  // perrito), el hocico con la nariz y el labio partido, los bigotes, y los ojos grandes a los
+  // COSTADOS, ámbar con el anillo claro (antes miraban de frente, negros).
+  const testa = miembro(pelo, [[0, 0.022, -0.045], [0, 0.018, 0.01], [0, 0.0, 0.05], [0, -0.012, 0.078], [0, -0.016, 0.092]], [0.047, 0.05, 0.043, 0.034, 0.026], 12, 12);
+  testa.scale.set(0.8, 1, 1);
+  cabeza.add(pintar(testa, (c, p, n) => { pelaje(c, p, n); if (p.y < 0.29 && n.y < -0.2) c.lerp(claro, 0.5); }));
+  cabeza.add(conPelaje(bola(pelo, [0.036, 0.03, 0.04], [0, -0.012, 0.035])));                     // los cachetes
+  cabeza.add(bola('#4e3a32', [0.011, 0.008, 0.007], [0, -0.008, 0.1]));                            // la nariz
+  cabeza.add(bola('#3a2a22', [0.0018, 0.006, 0.003], [0, -0.018, 0.099]));                         // el labio partido
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#c4ad86', [0.009, 0.0175, 0.019], [l * 0.032, 0.018, 0.036]));               // el anillo claro
+    cabeza.add(bola('#5e3a16', [0.0085, 0.0145, 0.016], [l * 0.0345, 0.018, 0.037]));              // el ojo ámbar, de costado
+    cabeza.add(bola('#110c08', [0.005, 0.0095, 0.01], [l * 0.0375, 0.018, 0.038]));
+    for (let k = 0; k < 2; k++) cabeza.add(miembro('#e6dfd0', [[l * 0.014, -0.01 + k * 0.006, 0.09], [l * 0.06, -0.014 + k * 0.012, 0.08 - k * 0.01], [l * 0.09, -0.02 + k * 0.02, 0.065 - k * 0.02]], [0.0015, 0.001, 0.0005], 3, 3));
+  }
   const orejas = [];
   for (const l of [-1, 1]) {
     const pivOreja = new THREE.Group(); pivOreja.position.set(l * 0.035, 0.12, -0.03); pivOreja.rotation.z = -l * 0.16;
@@ -114,8 +178,9 @@ function mallaLiebre() {
   const p = [];
   for (const [x, z, largo] of [[-0.07, 0.1, 0.16], [0.07, 0.1, 0.16], [-0.08, -0.09, 0.22], [0.08, -0.09, 0.22]]) {
     const piv = new THREE.Group(); piv.position.set(x, largo, z);
-    if (z > 0) piv.add(conPelaje(miembro(pelo, [[0, 0.03, -0.01], [0, -0.08, 0.005], [0, -0.155, 0.018]], [0.02, 0.014, 0.012], 6, 7)));
-    else piv.add(conPelaje(miembro(pelo, [[0, 0.04, 0.0], [0, -0.08, -0.04], [0, -0.17, -0.055], [0, -0.21, -0.01], [0, -0.215, 0.06]], [0.035, 0.026, 0.017, 0.015, 0.014], 9, 7)));
+    // 3.5.2: patas cerradas en cúpula (la boca abierta del tubo de la de atrás asomaba sobre el anca)
+    if (z > 0) piv.add(conPelaje(huso(pelo, [[0, 0.03, -0.01], [0, -0.08, 0.005], [0, -0.155, 0.018]], [0.02, 0.014, 0.012], 6, 7)));
+    else piv.add(conPelaje(huso(pelo, [[0, 0.03, 0.0], [0, -0.08, -0.04], [0, -0.17, -0.055], [0, -0.21, -0.01], [0, -0.215, 0.06]], [0.035, 0.026, 0.017, 0.015, 0.014], 10, 7)));
     g.add(piv); p.push(piv);
   }
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
@@ -123,18 +188,44 @@ function mallaLiebre() {
   return { g, cabeza, patas: p, orejas };
 }
 
+// 3.5.2: el coipo, el roedor grande del agua: nada con el lomo y la cabeza afuera. Cuerpo
+// macizo pardo, cabeza grande de hocico romo con la punta blanquecina, los bigotes largos, los
+// incisivos anaranjados, ojos y orejas chicos bien arriba, y la cola larga, redonda y casi
+// pelada, con anillos de escamas. Mismos pivotes (la cabeza) y las mismas dos llamadas.
 function mallaCoipo() {
   const g = new THREE.Group();
-  const pelo = lam('#5a4330'), oscuro = lam('#2e241a');
-  g.add(esfera(pelo, [0.14, 0.13, 0.32], [0, 0.1, 0]));
-  const cabeza = new THREE.Group(); cabeza.position.set(0, 0.16, 0.3);
-  cabeza.add(esfera(pelo, [0.09, 0.08, 0.12], [0, 0, 0]));
-  cabeza.add(esfera(lam('#c9a24a'), [0.035, 0.03, 0.03], [0, -0.03, 0.11]));
-  for (const l of [-1, 1]) cabeza.add(esfera(oscuro, [0.025, 0.025, 0.02], [l * 0.06, 0.06, -0.02]));
-  g.add(cabeza);
-  const cola = palo(oscuro, 0.025, 0.42, [0, 0.08, -0.5], [Math.PI / 2 - 0.25, 0, 0]);
+  const pelo = '#5c4430';
+  const claro = new THREE.Color('#cdbfa8'), oscuro = new THREE.Color('#2e241a');
+  const pelaje = (c, p, n) => {
+    c.multiplyScalar(1 + ruido3(p.x * 34, p.y * 30, p.z * 33) * 0.09 + 0.08 * Math.max(0, n.y));
+    if (n.y < -0.3) c.lerp(new THREE.Color('#7a6650'), 0.4);   // la panza, más clara
+  };
+  g.add(pintar(cuerpoZ(pelo, perfilHuso(-0.33, 0.29, 0.152, 14, 0.85, 0.6), [0, 0.07, 0], 16, (v) => {
+    v.y *= v.y > 0 ? 0.85 + 0.1 * Math.max(0, 1 - Math.abs(v.z + 0.05) / 0.25) : 0.75;   // el lomo redondo
+  }), pelaje));
+  // la cola, redonda y casi pelada, con los anillos de las escamas
+  const cola = pintar(miembro('#3a332c', [[0, 0.06, -0.29], [0, 0.04, -0.42], [0, 0.025, -0.56], [0, 0.015, -0.7]], [0.034, 0.025, 0.016, 0.005], 12, 8), (c, p) => { c.multiplyScalar(1 + 0.12 * Math.sin(p.z * 140)); });
   g.add(cola);
-  compactar(g, { alto: 0.3 });
+  const cabeza = new THREE.Group(); cabeza.position.set(0, 0.16, 0.3);
+  const testa = miembro(pelo, [[0, 0.0, -0.11], [0, 0.005, -0.01], [0, -0.012, 0.07], [0, -0.028, 0.125]], [0.09, 0.088, 0.064, 0.04], 10, 12);
+  testa.scale.set(0.95, 1, 1);
+  cabeza.add(pintar(testa, (c, p, n) => {
+    pelaje(c, p, n);
+    if (p.z > 0.4) c.lerp(claro, Math.min(1, (p.z - 0.4) * 14) * 0.85);   // la punta del hocico, blanquecina
+  }));
+  cabeza.add(bola('#231c17', [0.02, 0.013, 0.011], [0, -0.016, 0.135]));                              // la nariz
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#d9781c', [0.0065, 0.012, 0.005], [l * 0.0068, -0.044, 0.124]));                // los incisivos
+    cabeza.add(bola('#0e0b09', [0.011, 0.011, 0.01], [l * 0.052, 0.04, 0.03]));                      // los ojos, arriba
+    cabeza.add(pintar(bola(pelo, [0.022, 0.021, 0.01], [l * 0.066, 0.058, -0.045], [0, l * 0.5, 0]), (c) => c.lerp(oscuro, 0.3)));   // las orejas
+    for (let k = 0; k < 3; k++) {
+      // los bigotes, largos y claros
+      cabeza.add(miembro('#ddd6c6', [[l * 0.03, -0.024 + k * 0.007, 0.11], [l * 0.09, -0.03 + k * 0.012, 0.1 - k * 0.012], [l * 0.13, -0.038 + k * 0.018, 0.085 - k * 0.025]], [0.0022, 0.0015, 0.0006], 3, 3));
+    }
+  }
+  g.add(cabeza);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  compactar(g, { todo: true });
   return { g, cabeza, cola };
 }
 
@@ -142,38 +233,59 @@ function mallaCoipo() {
 // redonda de pico corto. El macho, con la cabeza y el pecho blancos y los flancos barrados
 // de negro (las barras se pintan en los vértices), patas negras; la hembra, canela con un
 // barrado fino, cabeza grisácea y patas amarillas. Mismos pivotes.
+// 3.5.2: el cauquén común (el ganso de la estepa y los mallines), rehecho: cuerpo de ganso
+// horizontal y de pecho lleno, el cuello que nace del pecho sin escalón, cabeza chica y pico
+// corto negro; las alas plegadas a lo largo del lomo con la mancha blanca de las cubiertas y las
+// primarias negras cruzadas sobre la cola negra. El macho: cabeza, cuello y pecho blancos, lomo
+// gris barrado y los flancos con el barrado fino negro; patas negras. La hembra: cabeza gris
+// canela, cuerpo canela con barrado fino, patas amarillas. (Antes: alas como óvalos enormes,
+// barrado manchado y patas largas y finas.) Mismos pivotes.
 function mallaCauquen(macho) {
   const g = new THREE.Group();
-  const base = macho ? '#eeece4' : '#9a6a44';
-  const barra = new THREE.Color(macho ? '#2c2c2a' : '#5e3e26'), cola = new THREE.Color('#1e1e1c');
+  const base = macho ? '#ecebe4' : '#a3683f';
+  const barra = new THREE.Color(macho ? '#262624' : '#3e2616'), gris = new THREE.Color(macho ? '#8d8c86' : '#6e5544');
+  const negro = new THREE.Color('#1c1b1a'), blanco = new THREE.Color('#f1efe8');
+  const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const plumaje = (c, p, n) => {
-    // las barras de los flancos y el lomo, más marcadas abajo del ala
-    if (p.y < 0.52 && p.z < 0.2) {
-      const raya = Math.max(0, Math.sin(p.z * 48 + p.y * 10)) ** 1.5;
-      c.lerp(barra, raya * (macho ? 0.8 : 0.5) * Math.min(1, Math.abs(n.x) * 1.2 + 0.35));
-    }
-    if (p.z < -0.22) c.lerp(cola, 0.85);
+    // el lomo gris (el macho) o pardo (la hembra), barrado
+    c.lerp(gris, 0.85 * sv(0.35, 0.75, n.y) * sv(0.1, -0.05, p.z));
+    // el barrado fino de los flancos y del pecho de la hembra: rayas cada 3 cm a lo largo
+    const raya = Math.max(0, Math.sin(p.z * 210 + p.y * 30)) ** 2;
+    const dondeRaya = macho ? sv(0.5, 0.8, Math.abs(n.x)) * sv(0.4, 0.3, p.y) * sv(0.24, 0.3, p.y) * sv(0.16, 0.08, p.z) : sv(-0.2, 0.3, Math.abs(n.x) + n.z) * sv(0.43, 0.3, p.y);
+    c.lerp(barra, raya * dondeRaya * (macho ? 0.5 : 0.4));
+    if (p.z < -0.26) c.lerp(negro, 0.9 * sv(-0.26, -0.3, p.z));   // la rabadilla y la cola
   };
-  // (el perfil lleva un anillo cada 2 cm, para que entren las barras pintadas)
-  const perfil = [];
-  for (let i = 0; i <= 30; i++) { const z = -0.33 + i * 0.02, u = i / 30; perfil.push([0.15 * Math.sin(Math.PI * Math.pow(u, 0.85)) ** 0.75, z]); }
-  const cuerpo = torno(base, perfil, [0, 0.37, 0], [Math.PI / 2, 0, 0], [1, 1, 1.05], 14);
-  g.add(pintar(cuerpo, plumaje));
-  g.add(pintar(miembro(base, [[0, 0.44, 0.15], [0, 0.56, 0.19], [0, 0.68, 0.2]], [0.06, 0.042, 0.038], 6, 9), null));   // el cuello
-  for (const l of [-1, 1]) g.add(pintar(bola(base, [0.03, 0.075, 0.19], [l * 0.125, 0.4, -0.06], [0.2, 0, l * 0.1]), plumaje));   // las alas plegadas
+  g.add(pintar(cuerpoZ(base, perfilHuso(-0.34, 0.22, 0.13, 40, 0.9, 0.7), [0, 0.32, 0], 16, (v) => {
+    v.y *= v.y > 0 ? 0.95 : 1.05;
+    if (v.y < 0 && v.z > 0.0) v.y *= 1 + v.z * 0.6;   // el pecho lleno
+  }), plumaje));
+  // las alas plegadas: largas y angostas, pegadas al lomo; cubiertas blancas adelante y
+  // primarias negras que se cruzan sobre la cola
+  for (const l of [-1, 1]) {
+    g.add(pintar(bola(base, [0.04, 0.036, 0.21], [l * 0.068, 0.375, -0.11], [-0.07, l * 0.08, l * 0.35]), (c, p, n) => {
+      c.copy(gris);
+      if (p.z > -0.02) c.lerp(blanco, 0.8 * sv(-0.02, 0.06, p.z));
+      if (p.z < -0.16) c.lerp(negro, 0.92 * sv(-0.16, -0.22, p.z));
+    }));
+  }
+  g.add(bola('#1c1b1a', [0.05, 0.022, 0.07], [0, 0.35, -0.33], [-0.25, 0, 0]));   // la cola
+  // el cuello: nace ancho del pecho y sube con una curva suave
+  g.add(huso(macho ? '#efeee8' : '#8f7f72', [[0, 0.31, 0.11], [0, 0.42, 0.165], [0, 0.54, 0.185], [0, 0.65, 0.19], [0, 0.745, 0.2]], [0.1, 0.058, 0.045, 0.04, 0.036], 14, 10));
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.72, 0.2);
-  cabeza.add(bola(macho ? '#f4f2ea' : '#9a8a7a', [0.05, 0.055, 0.065], [0, 0, 0]));
-  cabeza.add(miembro('#2a2a28', [[0, -0.012, 0.05], [0, -0.016, 0.09], [0, -0.02, 0.11]], [0.022, 0.013, 0.004], 4, 7));
-  for (const l of [-1, 1]) cabeza.add(bola('#0e0c0a', [0.009, 0.01, 0.008], [l * 0.04, 0.012, 0.03]));
+  cabeza.add(deformar(bola(macho ? '#f2f0ea' : '#8e8478', [0.046, 0.05, 0.062], [0, 0, 0]), (v) => { if (v.z > 0.4) v.y *= 0.88; }));
+  cabeza.add(miembro('#232322', [[0, -0.012, 0.048], [0, -0.017, 0.082], [0, -0.021, 0.098]], [0.019, 0.012, 0.004], 5, 7));   // el pico corto
+  for (const l of [-1, 1]) cabeza.add(bola('#0e0c0a', [0.008, 0.009, 0.007], [l * 0.038, 0.012, 0.028]));
   g.add(cabeza);
   const p = [];
-  const colorPata = macho ? '#3a3a38' : '#d2a12a';
+  const colorPata = macho ? '#2f2f2d' : '#d39a2a';
   for (const l of [-1, 1]) {
-    const piv = new THREE.Group(); piv.position.set(l * 0.06, 0.22, 0);
-    piv.add(miembro(colorPata, [[0, 0.04, 0], [0, -0.1, 0.01], [0, -0.21, 0.01]], [0.02, 0.014, 0.012], 5, 6));
-    piv.add(bola(colorPata, [0.028, 0.008, 0.04], [0, -0.215, 0.025]));   // el pie palmeado
+    const piv = new THREE.Group(); piv.position.set(l * 0.055, 0.22, 0);
+    piv.add(pintar(bola(base, [0.036, 0.04, 0.042], [0, 0.012, 0]), plumaje));                           // el muslo emplumado
+    piv.add(miembro(colorPata, [[0, 0.0, 0], [0, -0.09, 0.012], [0, -0.205, 0.01]], [0.026, 0.019, 0.017], 6, 7));
+    piv.add(bola(colorPata, [0.034, 0.009, 0.048], [0, -0.213, 0.03]));   // el pie palmeado
     g.add(piv); p.push(piv);
   }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   compactar(g, { alto: 0.75, pie: 0.88, todo: true });
   return { g, cabeza, patas: p };
 }
@@ -207,7 +319,10 @@ function mallaGuanaco(cria = false) {
   const conPelaje = (m) => pintar(m, pelaje);
   g.add(conPelaje(lomo(leonado, { y: 1.04 * e, atras: -0.74 * e, adelante: 0.66 * e, ancho: 0.27 * e, alto: 0.3 * e, pecho: 0.12, panza: 0.18 }, 16)));
   const cuello = new THREE.Group(); cuello.position.set(0, 1.24 * e, 0.5 * e);
-  cuello.add(conPelaje(miembro(leonado, [[0, -0.2 * e, -0.16 * e], [0, 0.1 * e, -0.02 * e], [0, 0.4 * e, 0.04 * e], [0, 0.66 * e, 0.12 * e]], [0.15 * e, 0.095 * e, 0.08 * e, 0.07 * e], 10, 10)));
+  // 3.5.2: el cuello largo, más hondo que ancho, que nace del pecho y de la cruz sin escalón
+  // (antes era un caño parejo que salía de arriba del lomo) y se mete en la cabeza; cierra en
+  // cúpula en las dos puntas.
+  cuello.add(conPelaje(deformar(huso(leonado, [[0, -0.34 * e, -0.24 * e], [0, -0.14 * e, -0.1 * e], [0, 0.06 * e, -0.02 * e], [0, 0.3 * e, 0.03 * e], [0, 0.52 * e, 0.08 * e], [0, 0.73 * e, 0.15 * e]], [0.25 * e, 0.21 * e, 0.13 * e, 0.09 * e, 0.078 * e, 0.06 * e], 16, 12), (v) => { v.x *= 0.82; })));
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.72 * e, 0.18 * e);
   const testa = miembro('#6d6962', [[0, 0.04 * e, -0.1 * e], [0, 0.03 * e, 0.02 * e], [0, -0.01 * e, 0.15 * e], [0, -0.03 * e, 0.25 * e]], [0.075 * e, 0.095 * e, 0.07 * e, 0.042 * e], 8, 10);
   testa.scale.set(0.82, 1, 1);
@@ -235,30 +350,50 @@ function mallaGuanaco(cria = false) {
   return { g, cuello, cabeza, patas, cola, cria, orejas };
 }
 
+// 3.5.2: el zorzal patagónico: lomo pardo oliva, la cabeza más oscura (casi negra), el pecho y
+// la panza anaranjado pardo, la garganta clara rayada, el pico y las patas amarillos y el anillo
+// amarillo del ojo; cuerpo apenas erguido, alas plegadas al costado y cola larga. Mismos pivotes.
+// (Las alas quedan fundidas en el cuerpo como antes: `alas` son dos grupos vacíos, así el vuelo
+// corto no suma llamadas de dibujo.)
 function mallaZorzal() {
   const g = new THREE.Group();
-  const pardo = lam('#6b5341'), naranja = lam('#c07a44');
-  g.add(esfera(pardo, [0.07, 0.08, 0.13], [0, 0.14, 0]));
-  g.add(esfera(naranja, [0.06, 0.055, 0.1], [0, 0.11, 0.02]));
+  const pardo = '#5f4e3a', oscuro = '#33291f';
+  const naranja = new THREE.Color('#c4823f'), crema = new THREE.Color('#d9c29a');
+  const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const plumaje = (c, p, n) => {
+    // el pecho y la panza anaranjados, más claros hacia la cloaca
+    const frente = sv(-0.35, 0.15, n.z - n.y * 0.6);
+    c.lerp(naranja, 0.9 * frente);
+    if (p.z < -0.02 && n.y < -0.3) c.lerp(crema, 0.6);
+  };
+  const cuerpo = pintar(cuerpoZ(pardo, perfilHuso(-0.1, 0.09, 0.064, 10, 0.85, 0.7), null, 14), plumaje);
+  cuerpo.position.set(0, 0.135, 0); cuerpo.rotation.x = -0.4;
+  g.add(cuerpo);
+  for (const l of [-1, 1]) g.add(bola('#4f4031', [0.018, 0.032, 0.08], [l * 0.04, 0.155, -0.035], [-0.38, l * 0.08, l * 0.25]));   // las alas plegadas
+  g.add(bola('#3e3226', [0.022, 0.007, 0.07], [0, 0.128, -0.13], [-0.25, 0, 0]));                                                  // la cola larga
+  g.add(huso(pardo, [[0, 0.17, 0.04], [0, 0.205, 0.06], [0, 0.235, 0.075]], [0.042, 0.036, 0.032], 6, 10));               // el cuello
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.24, 0.08);
-  cabeza.add(esfera(pardo, [0.05, 0.05, 0.055], [0, 0, 0]));
-  cabeza.add(cono(lam('#c9a24a'), 0.016, 0.07, [0, -0.005, 0.06], [Math.PI / 2, 0, 0]));
-  cabeza.add(esfera(lam('#1c1713'), [0.012, 0.012, 0.012], [0.03, 0.015, 0.035]));
-  cabeza.add(esfera(lam('#1c1713'), [0.012, 0.012, 0.012], [-0.03, 0.015, 0.035]));
+  cabeza.add(pintar(bola(oscuro, [0.04, 0.041, 0.047], [0, 0, 0]), (c, p, n) => {
+    // la garganta clara con las rayitas oscuras
+    if (p.y < 0.235 && n.z > 0.0 && n.y < 0.2) c.lerp(crema, 0.75 * (Math.sin(p.x * 260) > 0.2 ? 0.5 : 1));
+  }));
+  cabeza.add(miembro('#d9a52e', [[0, -0.004, 0.035], [0, -0.007, 0.06], [0, -0.01, 0.074]], [0.011, 0.006, 0.0018], 5, 6));   // el pico amarillo
+  for (const l of [-1, 1]) {
+    cabeza.add(bola('#d9a52e', [0.0105, 0.0105, 0.006], [l * 0.031, 0.012, 0.022]));   // el anillo del ojo
+    cabeza.add(bola('#120e0b', [0.0075, 0.0075, 0.006], [l * 0.0335, 0.012, 0.023]));
+  }
   g.add(cabeza);
-  g.add(cono(pardo, 0.035, 0.12, [0, 0.14, -0.15], [-2.5, 0, 0]));
   const patas = [];
   for (const l of [-1, 1]) {
-    const piv = new THREE.Group(); piv.position.set(l * 0.03, 0.08, 0);
-    piv.add(palo(lam('#9a7a4a'), 0.008, 0.08, [0, -0.04, 0]));
+    const piv = new THREE.Group(); piv.position.set(l * 0.026, 0.08, 0);
+    piv.add(miembro('#c99a3e', [[0, 0.012, 0.0], [0, -0.045, 0.006], [0, -0.078, 0.0]], [0.0065, 0.005, 0.0045], 4, 5));
+    for (const dx of [-0.008, 0, 0.008]) piv.add(miembro('#b88a34', [[0, -0.079, 0.0], [dx, -0.08, 0.02]], [0.0035, 0.0025], 2, 4));
     g.add(piv); patas.push(piv);
   }
   const alas = [];
-  for (const l of [-1, 1]) {
-    const a2 = esfera(pardo, [0.02, 0.05, 0.11], [l * 0.07, 0.15, 0]);
-    g.add(a2); alas.push(a2);
-  }
-  compactar(g, { alto: 0.3 });
+  for (let i = 0; i < 2; i++) { const a2 = new THREE.Group(); g.add(a2); alas.push(a2); }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  compactar(g, { alto: 0.3, pie: 0.9, todo: true });
   return { g, cabeza, patas, alas };
 }
 

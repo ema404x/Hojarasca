@@ -143,6 +143,81 @@ export function pata(c, largo, delantera, grosor, lados = 9) {
   return miembro(c, [[0, 0.14 * L, 0.02 * L], [0, -0.16 * L, -0.04 * L], [0, -0.44 * L, -0.12 * L], [0, -0.62 * L, -0.08 * L], [0, -0.86 * L, -0.01 * L], [0, -0.97 * L, 0.03 * L]], [grosor * 1.2, grosor * 0.95, grosor * 0.55, grosor * 0.46, grosor * 0.43, grosor * 0.43], 14, lados);
 }
 
+// 3.5.2: un cuerpo acostado a lo largo de z (aves, roedores): un torno de `perfil` [[radio, z],
+// ...] de atrás hacia adelante, ya girado (x es el ancho, y el alto, z el largo), así `fn(v)` lo
+// deforma en el espacio de la figura (aplanar la panza, levantar la cola...).
+export function cuerpoZ(c, perfil, pos = null, lados = 16, fn = null) {
+  const geo = new THREE.LatheGeometry(perfil.map(([r, z]) => new THREE.Vector2(Math.max(0.0001, r), z)), lados);
+  geo.rotateX(Math.PI / 2);
+  const m = ubicar(new THREE.Mesh(geo, color(c)), pos, null, null);
+  return fn ? deformar(m, fn) : deformar(m, () => {});
+}
+// El perfil de un huso de `z0` a `z1` con `n` anillos: radio r·sen(π·u^a)^b (a < 1 corre la
+// panza hacia adelante, b < 1 la llena).
+export function perfilHuso(z0, z1, r, n = 16, a = 1, b = 0.75) {
+  const p = [];
+  for (let i = 0; i <= n; i++) { const u = i / n; p.push([r * Math.pow(Math.sin(Math.PI * Math.pow(u, a)), b), z0 + (z1 - z0) * u]); }
+  return p;
+}
+// 3.5.2: las dos puntas de una bufanda de lana, que caen adelante corridas al costado (al medio
+// se leen como corbata): anchas y chatas, una más larga que la otra, con las rayas del tejido y
+// el fleco. `y` es donde salen de la vuelta del cuello, `x` el costado, `pecho` la tela del pecho
+// (z) a esa altura; todo en el espacio del torso. Devuelve las piezas (se funden con el torso).
+export function puntasBufanda(c, { x = -0.095, y = 0.52, pecho = 0.155, largo = 0.17 } = {}) {
+  const piezas = [];
+  const tejido = (col, p) => { if (Math.floor(p.y / 0.03) % 2) col.multiplyScalar(0.76); };
+  for (const [x0, z0, l] of [[x, pecho, largo], [x + 0.05, pecho + 0.014, largo * 0.7]]) {
+    const pts = [[x0 * 0.45, y + 0.02, pecho - 0.05], [x0 * 0.9, y - 0.03, z0 - 0.004], [x0, y - l * 0.5, z0], [x0 - 0.004, y - l, z0]];
+    const m = miembro(c, pts, [0.03, 0.045, 0.048, 0.048], 10, 10);
+    deformar(m, (v) => { if (v.y < y - 0.02) v.z = z0 + (v.z - z0) * 0.3; });
+    piezas.push(pintar(m, tejido));
+    const fleco = torno(matiz(c, 0.8), [[0.045, -0.032], [0.049, 0.0], [0.0, 0.003]], [x0 - 0.004, y - l, z0], null, [1, 1, 0.3], 16);
+    colorear(fleco, (col, v, i) => { col.multiplyScalar(Math.floor(i / 3) % 2 ? 0.72 : 1.05); });
+    piezas.push(fleco);
+  }
+  return piezas;
+}
+
+// 3.5.2: la costura entre dos piezas que se tocan (el brazo y el hombro): las normales de `a`
+// cerca de la superficie de `b` se inclinan hacia las de `b` (y un poco al revés), así la luz
+// pasa de una a la otra sin la raya del encuentro. `da` y `db` son las posiciones de cada pieza
+// en un espacio común (sus grupos); `radio` dice hasta dónde llega la mezcla; `filtro(p)` elige
+// qué vértices de `a` entran (en el espacio común).
+export function fundirNormales(a, da, b, db, radio = 0.035, filtro = null) {
+  const PA = a.geometry.attributes.position, NA = a.geometry.attributes.normal;
+  const PB = b.geometry.attributes.position, NB = b.geometry.attributes.normal;
+  const pb = [], nb = [];
+  for (let j = 0; j < PB.count; j++) {
+    const x = PB.getX(j) + db[0], y = PB.getY(j) + db[1], z = PB.getZ(j) + db[2];
+    pb.push(x, y, z); nb.push(NB.getX(j), NB.getY(j), NB.getZ(j));
+  }
+  const cambiosB = new Map();
+  const v = new THREE.Vector3(), n = new THREE.Vector3();
+  for (let i = 0; i < PA.count; i++) {
+    const x = PA.getX(i) + da[0], y = PA.getY(i) + da[1], z = PA.getZ(i) + da[2];
+    if (filtro && !filtro(x, y, z)) continue;
+    let mejor = -1, dm = radio * radio;
+    for (let j = 0; j < pb.length; j += 3) {
+      const dx = pb[j] - x, dy = pb[j + 1] - y, dz = pb[j + 2] - z, d = dx * dx + dy * dy + dz * dz;
+      if (d < dm) { dm = d; mejor = j; }
+    }
+    if (mejor < 0) continue;
+    const w = (1 - Math.sqrt(dm) / radio) ** 1.5;
+    n.set(NA.getX(i), NA.getY(i), NA.getZ(i));
+    v.set(nb[mejor], nb[mejor + 1], nb[mejor + 2]);
+    // la normal del encuentro: casi la de `b` pegado a ella, la propia más lejos
+    NA.setXYZ(i, ...n.clone().lerp(v, w * 0.85).normalize().toArray());
+    const k = mejor / 3, previo = cambiosB.get(k);
+    if (!previo || previo.w < w) cambiosB.set(k, { w, n: n.clone() });
+  }
+  // y `b` acompaña un poco hacia `a` donde se tocan
+  for (const [k, { w, n: na }] of cambiosB) {
+    v.set(NB.getX(k), NB.getY(k), NB.getZ(k)).lerp(na, w * 0.3).normalize();
+    NB.setXYZ(k, v.x, v.y, v.z);
+  }
+  NA.needsUpdate = true; NB.needsUpdate = true;
+}
+
 // Mueve los vértices de una pieza (en su espacio, antes de escalar) y recalcula normales
 // suaves, cosiendo la costura de la esfera para que no quede una raya.
 export function deformar(m, fn) {

@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { aspecto } from './personal-personaje.js';
 import { compactar } from './vida.js';
-import { bola, tubo, torno, miembro, huso, deformar, pintar, colorear, matiz, mezcla, color, ruido3 } from './formas.js';
+import { bola, tubo, torno, miembro, huso, deformar, pintar, colorear, matiz, mezcla, color, ruido3, fundirNormales, puntasBufanda } from './formas.js';
 
 function lam(color) { return new THREE.MeshLambertMaterial({ color: new THREE.Color(color) }); }
 function pieza(geo, mat, pos, rot = null, esc = null) {
@@ -101,11 +101,12 @@ export function crearCuerpoJugador(escena) {
     // el torso con la campera, sobre la cadera; los hombros anchos y el pecho adelante
     const torso = new THREE.Group(); torso.position.set(0, 0.86, 0);
     torso.add(bola(pantalon, [0.155 * k, 0.12, 0.108], [0, 0.02, 0]));
-    torso.add(deformar(torno(campera, [[0.17, -0.08], [0.168, 0.02], [0.158, 0.13], [0.174, 0.26], [0.2, 0.37], [0.214, 0.46], [0.212, 0.5], [0.186, 0.55], [0.134, 0.585], [0.073, 0.605]].map(([r, y]) => [r * k, y]), null, null, null, 16), (v) => {
+    const capaHombro = deformar(torno(campera, [[0.17, -0.08], [0.168, 0.02], [0.158, 0.13], [0.174, 0.26], [0.2, 0.37], [0.214, 0.46], [0.212, 0.5], [0.186, 0.55], [0.134, 0.585], [0.073, 0.605]].map(([r, y]) => [r * k, y]), null, null, null, 16), (v) => {
       const pecho = Math.max(0, 1 - Math.abs(v.y - 0.35) / 0.16), hombro = Math.max(0, 1 - Math.abs(v.y - 0.48) / 0.08);
       v.z *= 0.74 * (v.z > 0 ? 1 + 0.08 * pecho : 0.96) * (v.y > 0.47 ? 0.88 : 1);
-      v.x *= 1 + 0.07 * hombro;
-    }));
+      v.x *= 1 + 0.1 * hombro;   // 3.5.2: el hombro un poco más ancho, tapa el arranque del brazo
+    });
+    torso.add(capaHombro);
     torso.add(torno(matiz(campera, 0.88), [[0.087, 0.57], [0.09, 0.61], [0.078, 0.625]], null, null, [1, 1, 0.95], 14));   // el cuello de la campera
     if (a.poncho) {
       // el poncho cae de los hombros y tapa los brazos, con la guarda clara cerca del borde
@@ -125,7 +126,9 @@ export function crearCuerpoJugador(escena) {
       const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.078, 0.034, 8, 18), color(a.bufanda));
       vuelta.position.set(0, 0.6, 0.008); vuelta.rotation.set(Math.PI / 2 - 0.12, 0, 0); vuelta.scale.set(1, 0.86, 1);
       torso.add(vuelta);
-      torso.add(bola(a.bufanda, [0.036, 0.11, 0.017], [0.05, 0.48, 0.152], [-0.1, 0, 0.12]));
+      // 3.5.2: las dos puntas de la bufanda, corridas al costado, anchas y con fleco (antes era
+      // un óvalo colgando al medio del pecho, que se leía como corbata)
+      for (const p of puntasBufanda(a.bufanda, { x: -0.1 * k, y: 0.565, pecho: 0.162, largo: 0.18 })) torso.add(p);
     }
     g.add(torso);
     // brazos colgados del hombro, con el codo y la mano de mitón al final
@@ -135,8 +138,8 @@ export function crearCuerpoJugador(escena) {
       if (!a.poncho) {
         // 3.5: el brazo de una sola pieza suave, del hombro (que nace adentro del torso) a la
         // muñeca, como la gente del valle: sin la bola del hombro ni el anillo del codo
-        piv.add(huso(campera, [[x - l * 0.03, 0.025, 0], [x - l * 0.01, -0.02, 0], [x + l * 0.008, -0.15, 0.0], [x + l * 0.018, -0.3, 0.004], [x + l * 0.022, -0.43, 0.014], [x + l * 0.027, -0.54, 0.024]],
-          [0.047 * k, 0.062 * k, 0.058 * k, 0.05 * k, 0.046 * k, 0.042 * k], 18, 12));
+        piv.add(huso(campera, [[x - l * 0.028, 0.0, 0], [x - l * 0.009, -0.036, 0], [x + l * 0.008, -0.15, 0.0], [x + l * 0.018, -0.3, 0.004], [x + l * 0.022, -0.43, 0.014], [x + l * 0.027, -0.54, 0.024]],
+          [0.042 * k, 0.054 * k, 0.053 * k, 0.05 * k, 0.046 * k, 0.042 * k], 18, 12));
         piv.add(torno(matiz(campera, 0.82), [[0.045, -0.02], [0.048, 0.016], [0.044, 0.02]], [x + l * 0.027, -0.55, 0.024], [-0.1, 0, 0], null, 11));
       }
       piv.add(bola(mano, [0.038, 0.055, 0.031], [x + l * 0.03, -0.6, 0.03]));
@@ -144,6 +147,11 @@ export function crearCuerpoJugador(escena) {
       g.add(piv); brazos.push(piv);
     }
     if (a.poncho) for (const b of brazos) b.position.x *= 0.8;
+    // 3.5.2: sin la raya de luz donde el brazo asoma del hombro (ver fundirNormales)
+    else for (const b of brazos) {
+      const malla = b.children.find((o) => o.isMesh && o.geometry.type === 'TubeGeometry');
+      if (malla) fundirNormales(malla, [b.position.x, b.position.y, 0], capaHombro, [0, 0.86, 0], 0.05, (px, py) => py > 1.25);
+    }
     // cuello y cabeza: mentón, nariz, orejas, ojos y cejas (que en la foto se sepa para dónde mirás)
     const cab = new THREE.Group(); cab.position.set(0, 1.56, 0);
     cab.add(tubo(piel, 0.049, 0.057, 0.18, [0, -0.06, 0.004]));
@@ -237,10 +245,40 @@ export function crearManoPropia(enMano) {
   grupo.name = 'mano-jugador';
   const matManga = lam('#6b4a3a'), matMano = lam('#c49a70');
   // el puño agarra el mango un poco abajo del centro (ahí queda a la vista, abajo a la derecha)
-  const puno = pieza(new THREE.SphereGeometry(0.036, 14, 10), matMano, [0.004, -0.06, 0.012], null, [1, 1.25, 1.1]);
-  const munieca = pieza(new THREE.CylinderGeometry(0.03, 0.034, 0.05, 12), matMano, [0.012, -0.105, 0.03], [0.35, 0, -0.25]);
-  const manga = pieza(new THREE.CylinderGeometry(0.046, 0.058, 0.34, 14), matManga, [0.06, -0.27, 0.1], [0.5, 0, -0.28]);
-  grupo.add(puno, munieca, manga);
+  // 3.5.2: la mano como las de la gente del valle: el puño cerrado alrededor del mango con los
+  // nudillos y el pulgar encima, la muñeca y la manga que se ensancha hacia el codo con su puño
+  // de tela, todo de formas suaves. Antes eran una esfera y dos cilindros (tres llamadas de
+  // dibujo); ahora es una malla por material (dos).
+  const piezasMano = [
+    bola('#c49a70', [0.034, 0.046, 0.04], [0.006, -0.06, 0.014], [0, 0, -0.1]),                 // la palma y el dorso
+    bola('#c49a70', [0.026, 0.058, 0.024], [-0.02, -0.062, 0.024], [0, 0, 0.05]),                // los dedos cerrados
+    bola('#c49a70', [0.012, 0.03, 0.014], [-0.008, -0.026, 0.034], [0.25, 0, -0.6]),             // el pulgar, encima
+    huso('#c49a70', [[0.012, -0.085, 0.026], [0.02, -0.11, 0.036], [0.03, -0.14, 0.05]], [0.031, 0.03, 0.031], 6, 12),   // la muñeca
+  ];
+  for (let i = 0; i < 4; i++) piezasMano.push(bola('#c49a70', [0.011, 0.01, 0.012], [-0.03, -0.034 - i * 0.017, 0.03], null, [7, 5]));   // los nudillos
+  const piezasManga = [
+    huso('#6b4a3a', [[0.026, -0.12, 0.044], [0.045, -0.2, 0.075], [0.068, -0.3, 0.112], [0.088, -0.42, 0.15]], [0.042, 0.05, 0.056, 0.06], 10, 14),
+    torno('#6b4a3a', [[0.04, -0.016], [0.045, 0.0], [0.044, 0.016], [0.038, 0.02]], [0.028, -0.128, 0.046], [0.5, 0, -0.28], null, 14),   // el puño de la manga
+  ];
+  // una malla por material: las piezas se hornean con su lugar
+  const unir = (piezas, mat) => {
+    const pos = [], nor = [], idx = [];
+    for (const p of piezas) {
+      p.updateMatrix();
+      const q = p.geometry.clone().applyMatrix4(p.matrix);
+      const base = pos.length / 3, P = q.attributes.position, N = q.attributes.normal;
+      for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); }
+      for (let i = 0; i < q.index.count; i++) idx.push(q.index.getX(i) + base);
+      q.dispose(); p.geometry.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setIndex(idx);
+    geo.computeBoundingSphere();
+    return new THREE.Mesh(geo, mat);
+  };
+  grupo.add(unir(piezasMano, matMano), unir(piezasManga, matManga));
   grupo.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } });
   soporte.add(grupo);
   function aplicar(datos) {

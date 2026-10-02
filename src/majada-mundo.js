@@ -32,16 +32,21 @@ function mallaOveja(caraNegra, r) {
   }
   g.add(cabeza);
   const patas = [];
+  // 3.5.2: las patas se leían como palitos largos bajo una bola: ahora son más gruesas, con la
+  // rodilla y el garrón marcados, la caña más oscura abajo y la pezuña partida. (Se probó
+  // bajarles la lana del vellón por el muslo y se leía como medias: quedó sin.)
+  const tono = 0.86 + r() * 0.08;
   for (const [px, pz] of [[-0.14, 0.26], [0.14, 0.26], [-0.14, -0.26], [0.14, -0.26]]) {
     const piv = new THREE.Group(); piv.position.set(px, 0.46, pz);
-    piv.add(pataMiembro(pata, 0.46, pz > 0, 0.038, 7));
-    piv.add(bola(matiz(pata, 0.6), [0.025, 0.02, 0.032], [0, -0.45, 0.015]));
+    piv.add(pintar(pataMiembro(pata, 0.46, pz > 0, 0.05, 9), (c, p) => {
+      if (p.y < 0.12) c.multiplyScalar(0.82 + p.y * 1.5);
+    }));
+    for (const l of [-1, 1]) piv.add(bola(matiz(pata, 0.55), [0.012, 0.018, 0.03], [l * 0.011, -0.448, 0.016]));   // la pezuña partida
     g.add(piv); patas.push(piv);
   }
   compactar(g, { alto: 0.9, pie: 0.88, todo: true });
   // El vellón va aparte y sin compactar: es lo único que cambia de tamaño.
   const vellon = new THREE.Group(); vellon.position.set(0, 0.62, 0);
-  const tono = 0.86 + r() * 0.08;
   const lana = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), lam(new THREE.Color(tono, tono * 0.96, tono * 0.88)));
   lana.scale.set(0.3, 0.27, 0.44);
   // los rulos: la superficie ondula en mechones (la lana se ve en bultos, no lisa)

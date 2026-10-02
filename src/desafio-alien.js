@@ -224,12 +224,26 @@ function construirGeometria(tipo, detalle = 1) {
   const TH = detalle >= 1 ? THREE : menosGajos(detalle);
   const P = TIPOS[tipo], A = new Armador(), G = P.grosor;
   const piel = P.piel, oscura = P.oscura;
+  // 3.5.2: brazos y piernas de cápsula: cada tramo cierra en media esfera centrada en su
+  // articulación, así dos tramos que se doblan quedan siempre unidos sin la bola de muñeco que
+  // asomaba en hombros, codos, rodillas y tobillos (se veían como un maniquí de madera). El
+  // tramo engorda un poco cerca de arriba (el músculo) y se afina hacia abajo. Mismos huesos,
+  // mismos triángulos más o menos (las bolas de las articulaciones ya no están).
+  const capsula = (rArriba, rAbajo, largo, lados = 11, musculo = 0) => {
+    const pts = [];
+    for (let i = 0; i <= 3; i++) { const a = (i / 3) * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, rAbajo * Math.sin(a)), -largo - rAbajo * Math.cos(a))); }
+    for (const t of [0.3, 0.55, 0.78]) pts.push(new THREE.Vector2((rAbajo + (rArriba - rAbajo) * t) * (1 + musculo * Math.exp(-(((t - 0.72) / 0.2) ** 2))), -largo * (1 - t)));
+    for (let i = 3; i >= 0; i--) { const a = (i / 3) * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, rArriba * Math.sin(a)), rArriba * Math.cos(a))); }
+    return new TH.LatheGeometry(pts, lados);
+  };
   // ---- pelvis
-  A.agregar(new TH.SphereGeometry(0.08, 14, 10), { hueso: H.pelvis, color: piel, matriz: M(0, 0.03, -0.005, 0, 0, 0, 1.1 * G, 0.72, 0.72 * Math.sqrt(G)) });
+  A.agregar(new TH.SphereGeometry(0.08, 14, 10), { hueso: H.pelvis, color: piel, matriz: M(0, 0.03, -0.005, 0, 0, 0, 1.0 * G, 0.82, 0.72 * Math.sqrt(G)) });
   // crestas ilíacas: huesos de la cadera que asoman
   for (const s of [-1, 1]) A.agregar(new TH.SphereGeometry(0.02, 8, 6), { hueso: H.pelvis, color: piel, matriz: M(s * 0.06 * G, 0.06, 0.035, 0, 0, s * 0.4, 1.2, 0.6, 0.8) });
   // ---- torso: talle finísimo, caja torácica marcada, hombros huesudos
-  const perfil = [[0.001, 0], [0.06, 0.01], [0.075, 0.06], [0.058, 0.14], [0.1, 0.24], [0.14, 0.33], [0.15, 0.41], [0.135, 0.48], [0.085, 0.53], [0.03, 0.56]]
+  // (3.5.2: el talle cierra redondo y se mete en la cadera: antes era un disco chato apoyado
+  // sobre la pelvis, que se veía como un aro en la cintura)
+  const perfil = [[0.001, -0.04], [0.034, -0.032], [0.054, -0.012], [0.068, 0.02], [0.075, 0.06], [0.058, 0.14], [0.1, 0.24], [0.14, 0.33], [0.15, 0.41], [0.135, 0.48], [0.085, 0.53], [0.03, 0.56]]
     .map(([r, y]) => new THREE.Vector2(r * G, y * P.torso / 0.55));
   const torso = deformar(new TH.LatheGeometry(perfil, 22), (v) => {
     v.z *= 0.64;
@@ -330,10 +344,8 @@ function construirGeometria(tipo, detalle = 1) {
   // ---- brazos: largos, huesudos, con codos y nudillos marcados y tres dedos con garra
   const [lb, la] = P.brazo, rg = Math.sqrt(G);
   for (const [h, hc, s] of [[H.hombroI, H.codoI, -1], [H.hombroD, H.codoD, 1]]) {
-    A.agregar(new TH.SphereGeometry(0.032 * rg, 10, 8), { hueso: h, color: piel });
-    A.agregar(segmento(0.026 * G, 0.034 * G, lb, 9), { hueso: h, color: piel, vena: 0.8 });
-    A.agregar(new TH.SphereGeometry(0.03 * rg, 8, 6), { hueso: hc, color: piel });
-    A.agregar(segmento(0.017 * G, 0.027 * G, la, 9), { hueso: hc, color: piel, vena: 0.8 });
+    A.agregar(capsula(Math.max(0.034 * G, 0.03 * rg), 0.026 * G, lb, 10, 0.18), { hueso: h, color: piel, vena: 0.8 });
+    A.agregar(capsula(Math.max(0.027 * G, 0.026 * rg), 0.017 * G, la, 9, 0.24), { hueso: hc, color: piel, vena: 0.8 });
     if (P.placas) A.agregar(new TH.IcosahedronGeometry(0.07, 0), { hueso: hc, color: oscura, matriz: M(0, -la * 0.45, -0.03, 0, 0, 0, 0.9, 2.4, 0.7) });
     // mano: palma angosta y tres dedos larguísimos que se curvan hacia adelante
     A.agregar(new TH.SphereGeometry(0.03 * rg, 8, 6), { hueso: hc, color: piel, matriz: M(0, -la - 0.02, 0.005, 0, 0, 0, 0.9, 1.3, 0.55) });
@@ -348,17 +360,14 @@ function construirGeometria(tipo, detalle = 1) {
   // ---- piernas digitígradas: muslo, canilla larga y metatarso, con tres garras por pie
   const [lm, lc, lt] = P.pierna;
   for (const [hm, hr, ht] of [[H.musloI, H.rodillaI, H.tobilloI], [H.musloD, H.rodillaD, H.tobilloD]]) {
-    A.agregar(new TH.SphereGeometry(0.043 * Math.sqrt(G), 10, 8), { hueso: hm, color: piel });
-    A.agregar(segmento(0.03 * G, 0.045 * G, lm, 10), { hueso: hm, color: piel, vena: 0.7 });
+    A.agregar(capsula(Math.max(0.045 * G, 0.04 * Math.sqrt(G)), 0.03 * G, lm, 10, 0.14), { hueso: hm, color: piel, vena: 0.7 });
     // saltador: el músculo del muslo y el espolón del talón, de saltamontes
     if (P.espolones) {
       A.agregar(new TH.SphereGeometry(0.062, 10, 8), { hueso: hm, color: piel, vena: 0.7, matriz: M(0, -lm * 0.34, -0.022, 0, 0, 0, 1, 1.7, 1.25) });
       A.agregar(new TH.ConeGeometry(0.019 * rg, 0.14, 5), { hueso: ht, color: P.garra, variar: 0.05, manchas: 0, matriz: M(0, -lt * 0.3, -0.03, -0.55, 0, 0) });
     }
-    A.agregar(new TH.SphereGeometry(0.038 * rg, 8, 6), { hueso: hr, color: piel });
-    A.agregar(segmento(0.022 * G, 0.036 * G, lc, 9), { hueso: hr, color: piel, vena: 0.6 });
-    A.agregar(new TH.SphereGeometry(0.026 * rg, 8, 6), { hueso: ht, color: piel });
-    A.agregar(segmento(0.017 * G, 0.024 * G, lt, 8), { hueso: ht, color: oscura });
+    A.agregar(capsula(Math.max(0.036 * G, 0.033 * rg), 0.022 * G, lc, 9, 0.2), { hueso: hr, color: piel, vena: 0.6 });
+    A.agregar(capsula(Math.max(0.024 * G, 0.022 * rg), 0.017 * G, lt, 8, 0), { hueso: ht, color: oscura });
     for (const rz of [-0.4, 0, 0.4]) {
       const base = M(0, -lt, 0.01, Math.PI / 2 - 0.15, rz, 0);
       A.agregar(segmento(0.01 * rg, 0.014 * rg, 0.1, 5).applyMatrix4(base), { hueso: ht, color: oscura });
