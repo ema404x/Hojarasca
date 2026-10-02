@@ -83,7 +83,7 @@ ok(/import \{ crearDialogos \} from '\.\/dialogo\.js';/.test(main), 'main.js arm
 ok(/async function pedirNombre\(obra\) \{\n\s+const puesto = await dialogos\.pedirTexto\('¿Cómo le vas a poner\?'/.test(main), 'el nombre de la obra, con el cuadro del juego');
 ok(/!obras\.obras\.includes\(obra\)\) return;/.test(main), 'si la obra ya no está, no se nombra');
 ok(main.includes("dialogos.confirmar('Esto borra el recorrido guardado"), 'nuevo recorrido pregunta con el cuadro');
-ok(/await dialogos\.confirmar\(`Esto borra la partida/.test(main) && /await dialogos\.confirmar\(textoOfertaSync/.test(main) && /await dialogos\.confirmar\(`Otra vuelta/.test(main), 'borrar partida, la carpeta sincronizada y otra vuelta, también');
+ok(/await dialogos\.confirmar\(`Esto borra la partida/.test(main) && /await dialogos\.confirmar\((masNueva \? )?textoOfertaSync/.test(main) && /await dialogos\.confirmar\(`Otra vuelta/.test(main), 'borrar partida, la carpeta sincronizada y otra vuelta, también');
 ok(/if \(preguntar\) return dialogos\.confirmar\(avisoImportar/.test(main), 'importar pregunta con el cuadro (y sin preguntar sigue igual)');
 ok(/alAbrir: \(\) => \{ if \(modo === 'jugando'\) \{ modoAntesDialogo = 'jugando'; modo = 'dialogo'; jugador\?\.soltar\(\); \} \}/.test(main), 'con un cuadro abierto el juego queda quieto');
 ok(/if \(modo === 'jugando'\) volverAlJuego\(\);/.test(main), 'y al cerrarlo vuelve al juego');
