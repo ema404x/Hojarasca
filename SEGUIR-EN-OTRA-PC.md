@@ -46,6 +46,10 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.5.2 (cerrada el 02-10 en la notebook, etiqueta v3.5.2):** pulido de lo anotado en la
+  3.5.0 (paisaje, animales, bosque) en tres ramas juntadas; gate 129/129 y las 46 partidas
+  reales a la primera. Detalle y lo que quedó para después en `CAMBIOS_3_5_2.md` (reemplaza
+  la lista "Lo visual que quedó anotado de la 3.5.0" del punto 3).
 - **3.5.1 (cerrada, etiqueta v3.5.1):** crashes y revisión de todo el juego: cuadro de preguntas propio (no más `prompt`/`confirm`, que en Electron tiraban error), cada sistema del bucle aislado con `fallaSistema`, recuperación del contexto 3D perdido, reapertura sola si la ventana se cae o se cuelga (`recuperacion-main.cjs`), autoguardado cada 20 s reales; 25 arreglos de Relax, 25 de Desafío, dos fugas chicas de memoria. Detalle en `CAMBIOS_3_5_1.md`.
 - **3.5.0 (cerrada, etiqueta v3.5.0):** distancia de dibujo configurable + caza de bugs visuales (vegetación, paisaje, gente y animales). Detalle en `CAMBIOS_3_5_0.md`.
 - **3.4.0 (cerrada y verificada):** "tal cual HushWood, con la Patagonia de verdad".
