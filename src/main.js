@@ -5878,7 +5878,7 @@ async function guardarLamina() {
     if (window.hojarasca?.guardarFoto) {
       try { const ruta = await window.hojarasca.guardarFoto(datos, nombre); nota('Lámina guardada', ruta, true); return; } catch {}
     }
-    const a = document.createElement('a'); a.href = datos; a.download = nombre; a.click();
+    bajarDatos(datos, nombre);   // 3.5.1: ver bajarDatos
     nota('Lámina guardada', 'En tu carpeta de descargas', true);
   } finally { armandoLamina = false; }
 }
@@ -5922,8 +5922,22 @@ async function sacarFoto() {
   if (window.hojarasca?.guardarFoto) {
     try { const ruta = await window.hojarasca.guardarFoto(datos, nombre); nota('Foto guardada', ruta); return; } catch {}
   }
-  const a = document.createElement('a'); a.href = datos; a.download = nombre; a.click();
+  bajarDatos(datos, nombre);
   nota('Foto guardada', 'En tu carpeta de descargas');
+}
+// 3.5.1: sin el puente de Electron la foto (y la lámina) se baja con un enlace. Con la dirección
+// data: de varios MB, Chromium se quedaba con cada descarga (≈2 MB más por foto, para siempre);
+// con un Blob y su dirección revocada al rato (como guardarFotoArchivo), la memoria vuelve.
+function bajarDatos(datos, nombre) {
+  const a = document.createElement('a');
+  a.download = nombre;
+  try {
+    const coma = datos.indexOf(','), bin = atob(datos.slice(coma + 1)), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    a.href = URL.createObjectURL(new Blob([bytes], { type: datos.slice(5, datos.indexOf(';')) || 'image/png' }));
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch { a.href = datos; a.click(); }
 }
 
 let obrasAjenas = [];

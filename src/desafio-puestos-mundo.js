@@ -106,6 +106,11 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
       ubicar(p);
     }
     for (const [id, m] of mallas) if (!vivos.has(id)) m.g.visible = false;
+    // 3.5.1: los puestos que ya salieron de la lista (quedan sólo los 4 rotos más nuevos y cada
+    // puesto nuevo trae otro id) se sacan de la escena: antes quedaban colgados, ocultos, uno
+    // más por puesto para siempre. Geometrías y materiales son compartidos: no se tocan.
+    const enLista = new Set(est.lista.map((p) => p.id));
+    for (const [id, m] of mallas) if (!enLista.has(id)) { escena.remove(m.g); mallas.delete(id); }
     sucio = true;
   }
 
