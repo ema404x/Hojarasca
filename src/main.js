@@ -305,8 +305,11 @@ const variantesLuces = crearVariantesLuces(renderer, escena, camara, {
 // un edificio con luces o el tren. Las luces del juego se copian a ésas en cada cuadro.
 const presupuestoLuces = crearPresupuestoLuces(escena, camara);
 presupuestoLuces.activar();
+// 3.5.4: en el modo foto el mouse es de la cámara: ni la rueda ni los clics usan lo que tenés en
+// la mano (antes el clic derecho comía, prendía la linterna o sacaba la caña con la hora congelada,
+// y el izquierdo atacaba en el Desafío o tiraba la línea), como E, F y O desde la 3.5.1
 window.addEventListener('wheel', (e) => {
-  if (modo !== 'jugando' || mochilaAbierta) return;
+  if (modo !== 'jugando' || mochilaAbierta || foto.activo) return;
   if (modoObra && obras) {
     obras.girar(e.deltaY > 0 ? 1 : -1);
     dibujarPanelObra();
@@ -317,7 +320,7 @@ window.addEventListener('wheel', (e) => {
 window.addEventListener('contextmenu', (e) => { if (modo === 'jugando') e.preventDefault(); });
 // botón derecho: usar lo que tenés en la mano
 window.addEventListener('mousedown', (e) => {
-  if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta) return;
+  if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta || foto.activo) return;
   e.preventDefault();
   // Desafío: con la lanza, el clic derecho sostenido bloquea; la pistola mejorada dispara cargado
   const id = ranuras[elegida]?.id;
@@ -340,7 +343,7 @@ window.addEventListener('mouseup', (e) => {
 window.addEventListener('blur', () => { if (desafio?.bloqueando) desafio.bloquear(false); desafio?.cancelarTension?.(); });
 // Desafío: clic izquierdo ataca con el arma en la mano (la caña de pescar conserva su clic)
 window.addEventListener('mousedown', (e) => {
-  if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido) return;
+  if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo) return;
   if (!jugador?.bloqueado() || pesca?.est.equipada) return;
   const js = jugador.estado;
   if (js.enKayak || js.enTren || js.sentado) return;
@@ -2428,6 +2431,10 @@ document.addEventListener('keydown', (e) => {
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
   if (codigo === 'F1') {
     e.preventDefault();
+    // 3.5.4: en el modo foto F1 no hace nada, como las otras teclas (abría la pausa y la guía con el
+    // modo foto prendido debajo: el panel de la foto y la cámara suelta seguían, y desde esa pausa
+    // se podía ir a la portada con el modo foto activo)
+    if (foto.activo) return;
     if (modo === 'jugando' && jugador) { abrir('pausa'); abrirGuia('pausa'); }
     else if (modo === 'pausa') abrirGuia('pausa');
     else if (!$('inicio').classList.contains('oculto')) abrirGuia('inicio');
@@ -6007,7 +6014,7 @@ function actualizarEscucha(dtReal) {
   panel.classList.remove('oculto');
 }
 document.addEventListener('mousedown', (e) => {
-  if (e.button !== 0 || modo !== 'jugando' || !jugador || !jugador.bloqueado()) return;
+  if (e.button !== 0 || modo !== 'jugando' || !jugador || !jugador.bloqueado() || foto.activo) return;   // 3.5.4: ni en el modo foto
   pesca.clic(true, mundoPesca());
 });
 document.addEventListener('mouseup', (e) => {
@@ -7256,7 +7263,6 @@ function cuadroDelJuego(tRaf, manual) {
       const texto = activos.slice(0, 2).map((e) => (e.cumplido(progreso) ? '✓ ' : '· ') + e.resumen).join('\n');
       if ($('encargos-hud').textContent !== texto) $('encargos-hud').textContent = texto;
     }
-    jugador.estado.alUsar = usarRanura;
     if (mostrarNombre > 0) { mostrarNombre -= dt; if (mostrarNombre <= 0) barraVigente = false; }
     refrescarBarra();
     barraEl.classList.toggle('oculto', mochilaAbierta || js.zoom);
