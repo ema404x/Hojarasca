@@ -16,6 +16,7 @@
 // Módulo puro (se prueba en Node): sin three ni DOM.
 import { ENTRADAS } from './cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';
+import { POBLADORES_ALDEA } from './aldea.js';
 
 // Cuándo puede llegar alguien: días entre uno y otro y cuánto tiene que estar anotado
 // el valle (cada poblador pide un poco más).
@@ -23,59 +24,10 @@ export const LLEGADA = { entreDias: 2, anotaciones: 12, porPoblador: 6 };
 // Lo que ofrece cada uno, por día.
 export const SERVICIO = { troncosPorDia: 6, tablasPorTronco: 5, yerbaPorPan: 2, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, yerbaMandado: 4, cantosHacha: 3, cantosTijera: 2 };
 
-export const POBLADORES = {
-  carpintero: {
-    nombre: 'Tito Arrieta', oficio: 'carpintero', mano: null,
-    colores: { ropa: '#8a6d4b', abrigo: '#5d4630', gorro: 'boina', pelo: '#4a3a2c', barba: '#6b5a48' },
-    llegada: [
-      'Buenas. Me llamo Tito Arrieta, soy carpintero. Vengo del valle de abajo, donde ya no queda madera que trabajar.',
-      'En el tren me dijeron que acá arriba alguien anda levantando casas. Donde se construye, un carpintero siempre sirve.',
-    ],
-    saludo: 'Buenas, vecino. La sierra ya está afilada.', despedida: 'Cuando juntes troncos, ya sabés dónde estoy.',
-    resumen: 'Te aserra troncos: cinco tablas por tronco, hasta seis troncos por día.',
-  },
-  panadera: {
-    nombre: 'Rosa Quilodrán', oficio: 'panadera', mano: 'mate',
-    colores: { ropa: '#b08a6a', abrigo: '#7a4f3e', gorro: 'gorro', pelo: '#2e2622', bufanda: '#d8cdb8' },
-    llegada: [
-      'Hola. Soy Rosa Quilodrán, panadera. Me vine con la masa madre en un frasco, envuelta en una toalla para que no se enfríe.',
-      'Un pueblo sin pan no es pueblo. Si me dejás quedarme, el horno va a estar prendido todas las mañanas.',
-    ],
-    saludo: 'Pasá, que recién sale la tanda.', despedida: 'Y no te comas todo en el camino, eh.',
-    resumen: 'Te cambia pan casero por yerba: tres panes por dos de yerba, una vez por día.',
-  },
-  herrero: {
-    nombre: 'Anselmo Ruiz', oficio: 'herrero', mano: null,
-    colores: { ropa: '#5a5048', abrigo: '#3a322c', gorro: 'gorro', pelo: '#2a2420', barba: '#3a322c' },
-    llegada: [
-      'Anselmo Ruiz, herrero. Traigo el yunque en el furgón, que pesa más que yo.',
-      'Donde hay hachas hay filo que se gasta. Si me das un techo, le doy fragua a este lugar.',
-    ],
-    saludo: 'El fuego de la fragua ya está vivo.', despedida: 'Cuidá el filo, que no es eterno.',
-    resumen: 'Forja lo que te falte (el hacha, la tijera) con cantos rodados y te afila el hacha: diez árboles con un hachazo menos, una vez por día.',
-  },
-  pescador: {
-    nombre: 'Aurelio Nahuel', oficio: 'pescador de red', mano: 'cana',
-    colores: { ropa: '#56707e', abrigo: '#34505e', gorro: 'sombrero', pelo: '#2e2622', barba: '#7a746a' },
-    llegada: [
-      'Aurelio Nahuel. Pesco con red y con caña, lo que el lago quiera dar.',
-      'Nicanor me escribió que acá el agua es generosa. Si hay una casa para mí, me quedo a probar.',
-    ],
-    saludo: 'El lago estuvo bueno hoy.', despedida: 'Que pique, vecino.',
-    resumen: 'Te cambia dos truchas frescas por dos troncos de leña, una vez por día.',
-  },
-  maestra: {
-    nombre: 'Delia Ferreyra', oficio: 'maestra', mano: 'planilla',
-    colores: { ropa: '#7c6a8a', abrigo: '#4e4260', gorro: null, pelo: '#5a4232', bufanda: '#c9b89a' },
-    llegada: [
-      'Buen día. Soy Delia Ferreyra, maestra rural. Me mandaron a abrir una escuela donde hubiera chicos, o donde fuera a haberlos.',
-      'Un pueblo que empieza necesita alguien que anote lo que pasa. ¿Me dejás una casa?',
-    ],
-    saludo: 'Buen día. ¿Trajiste el cuaderno?', despedida: 'Seguí anotando, que de eso se aprende.',
-    resumen: 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: cuatro de yerba por cada uno cumplido.',
-  },
-};
 export const ORDEN_POBLADORES = ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra'];
+// 3.6: los cinco se mudaron a la aldea (ver aldea.js): sus definiciones viven allá y acá se
+// toman tal cual, hasta que la integración saque este módulo.
+export const POBLADORES = Object.fromEntries(ORDEN_POBLADORES.map((k) => [k, POBLADORES_ALDEA[k]]));
 export const esPoblador = (clave) => typeof clave === 'string' && Object.hasOwn(POBLADORES, clave);
 
 // ---------------------------------------------------------------- estado y saneo
