@@ -116,6 +116,11 @@ function caminable(ed, R) {
   };
   return { libre, pie };
 }
+// un asiento está sobre el mueble: alcanza con llegar a uno de sus cuatro lados (a 0,6 m)
+function alLado(llega, p) {
+  for (const d of [0.6, 0.95]) for (let k = 0; k < 4; k++) { const a = (p.mira ?? 0) + k * Math.PI / 2; if (llega({ lx: p.lx + Math.sin(a) * d, lz: p.lz + Math.cos(a) * d })) return true; }
+  return false;
+}
 function alcanzables(ed, desde, R, paso = 0.1) {
   const { libre } = caminable(ed, R);
   const o = ed.ocupa;
@@ -205,6 +210,10 @@ for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
     // (al costado de la cama, a la mesa y detrás del mostrador alcanza con 0,72: un cuerpo de 0,7)
     for (const k of ['atiende', 'cama', 'mesa']) if (pp[k]) assert.ok(angosto(pp[k]), `${tag}: no se llega a ${k}`);
     for (const t of pp.trabajo) assert.ok(angosto(t), `${tag}: no se llega al trabajo ${t.nombre}`);
+    for (const [k, p] of Object.entries(N)) {
+      if (k.startsWith('asiento-')) assert.ok(alLado(angosto, p), `${tag}: no se llega al lado de ${k}`);
+      else if (/^(estufa|pizarron|dibujos|camilla|casillas|mapa-valle|pista-baile|fragua|horno|rueca|colmenas|sierra|redes|mastil-soga)/.test(k)) assert.ok(angosto(p), `${tag}: no se llega a ${k}`);
+    }
     for (const [k, p] of Object.entries(N)) if (/^(lugar|pupitre|cliente)/.test(k) || k === 'escenario') assert.ok(angosto({ lx: p.lx + (k.startsWith('lugar') || k.startsWith('pupitre') ? 0 : 0), lz: p.lz }) || /^(lugar|pupitre)/.test(k), `${tag}: no se llega a ${k}`);
   }
 }
@@ -219,6 +228,65 @@ for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
   for (const k of ['adentro', 'cuentos', 'puerta']) assert.ok(bib[k], 'biblioteca: ' + k);
   assert.ok(A.armarEdificio('casa-familia', 4).puntos.nombrados['cama-chicos'], 'casa-familia: cama-chicos');
 }
+// las mecánicas de cada lugar (PLAN_ALDEA §14): puntos, piezas animables y emisores
+{
+  const pide = {
+    escuela: ['pizarron', 'dibujos', 'estufa', 'mastil-soga'], 'puesto-sanitario': ['camilla'], estafeta: ['casillas'], seccional: ['mapa-valle', 'mastil-soga'],
+    salon: ['pista-baile', 'estufa'], herreria: ['fragua'], panaderia: ['horno', 'estufa'], hilanderia: ['rueca'], 'sala-miel': ['colmenas'], carpinteria: ['sierra'],
+    pescaderia: ['redes'], biblioteca: ['estufa', 'cuentos', 'adentro'], 'casa-abuela': ['estufa'], plaza: ['aljibe', 'mastil-soga', 'duende'],
+  };
+  for (const [id, ks] of Object.entries(pide)) {
+    const ed = A.armarEdificio(id, 4);
+    for (const k of ks) assert.ok(ed.puntos.nombrados[k], id + ': falta el punto ' + k);
+    assert.equal(Object.keys(ed.puntos.nombrados).filter((k) => k.startsWith('asiento-')).length, ed.puntos.asientos.length, id + ': cada asiento con su nombre');
+  }
+  const soga = A.armarEdificio('plaza', 4).puntos.nombrados['mastil-soga'];
+  assert.ok(soga.alto > 6 && soga.izada > 5, 'la altura de la bandera como dato');
+  const anim = (id, a) => { const ed = A.armarEdificio(id, 4); const x = ed.animables.find((p) => p.id === a); assert.ok(x && x.geometria.attributes.position.count > 0 && x.eje && x.pivote, id + ': animable ' + a); return x; };
+  anim('plaza', 'bandera'); anim('escuela', 'bandera'); anim('hilanderia', 'rueda-rueca'); anim('herreria', 'fuelle'); anim('panaderia', 'puerta-horno');
+  assert.ok(A.armarEdificio('herreria', 4).chispas, 'herrería: chispas');
+  assert.ok(A.armarEdificio('panaderia', 4).humo, 'panadería: humo del horno');
+  const ag = A.armarAgregadoEstacion();
+  const campana = ag.piezas.find((p) => p.id === 'campana-anden');
+  assert.ok(campana && campana.edificio.animables.some((a) => a.id === 'campana') && campana.edificio.puntos.nombrados['campana-anden'], 'estación: la campana del andén (animable y punto)');
+  assert.ok(ag.piezas.find((p) => p.id === 'horario-trenes')?.edificio.puntos.nombrados['horario-trenes'], 'estación: el pizarrón de horarios');
+}
+// el detalle de superficie: aSuperficie y aLocal en todo lo de la aldea, con valores conocidos
+{
+  const validos = new Set(Object.values(A.SUPERFICIES_ALDEA).flatMap((v) => [v, v + A.SUPERFICIES_ALDEA.adentro]));
+  for (const id of ['casa-abuela', 'herreria', 'plaza', 'biblioteca']) {
+    const ed = A.armarEdificio(id, 4);
+    for (const [capa, k] of [['exterior', 'estructura'], ['interior', 'muebles']]) {
+      const g = ed[capa][k];
+      if (!g) continue;
+      assert.ok(g.attributes.aSuperficie && g.attributes.aLocal, `${id}: ${k} con aSuperficie y aLocal`);
+      assert.equal(g.attributes.aSuperficie.count, g.attributes.position.count, id + ': un valor por vértice');
+      for (const v of new Set(g.attributes.aSuperficie.array)) assert.ok(validos.has(v), `${id}: aSuperficie ${v}`);
+    }
+    const sup = new Set(ed.exterior.estructura.attributes.aSuperficie.array);
+    assert.ok(sup.size >= 3, id + ': varias superficies');
+  }
+  assert.ok(new Set(A.armarEdificio('herreria', 4).exterior.estructura.attributes.aSuperficie.array).has(A.SUPERFICIES_ALDEA.chapa), 'chapa');
+  // el material: suma su variante y engancha los atributos; sin aSuperficie no cambia nada
+  const mat = { onBeforeCompile: null, customProgramCacheKey: () => 'base', userData: {} };
+  A.prepararMaterialAldea(mat);
+  assert.equal(mat.customProgramCacheKey(), 'base|aldea-3.6');
+  const sh = { vertexShader: '#include <common>\n#include <beginnormal_vertex>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>\n#include <normal_fragment_maps>\n#include <opaque_fragment>', uniforms: {} };
+  mat.onBeforeCompile(sh, null);
+  assert.match(sh.vertexShader, /attribute float aSuperficie/); assert.match(sh.vertexShader, /vLocA = aLocal/);
+  assert.match(sh.fragmentShader, /juntaA/); assert.match(sh.fragmentShader, /normal = normalize\(normal \+/);
+  assert.ok(!/for\s*\(/.test(sh.fragmentShader), 'sin bucles en el shader');
+  assert.equal(A.prepararMaterialAldea(mat), mat, 'idempotente');
+  const vid = { onBeforeCompile: null, customProgramCacheKey: () => 'v', userData: {} };
+  A.prepararVidrioAldea(vid);
+  const sv = { vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <opaque_fragment>', uniforms: {} };
+  vid.onBeforeCompile(sv, null);
+  assert.ok(sv.uniforms.uCieloVA && /frA/.test(sv.fragmentShader), 'el vidrio con su reflejo');
+}
+{
+  const cab = A.armarCable({ x: 0, y: 6, z: 0 }, { x: 20, y: 3.2, z: 5 });
+  assert.ok(cab.attributes.position.count > 0 && cab.boundingBox.min.y < 3.2, 'el cable cuelga');
+}
 // la plaza: su frente (+Z) mira a la estación; mástil y duende de ese lado; se llega a todo
 {
   const pl = A.armarEdificio('plaza', 4);
@@ -228,7 +296,7 @@ for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
   for (const k of ['musico', 'mastil', 'duende']) assert.ok(N[k], 'plaza ' + k);
   assert.ok(N.mastil.lz > 0 && N.duende.lz > 0, 'mástil y duende del lado de la estación (+Z)');
   const llega = alcanzables(pl, { lx: 0, lz: 7.6 }, 0.45);
-  for (const [k, p] of Object.entries(N)) assert.ok(llega(p), 'plaza: no se llega a ' + k);
+  for (const [k, p] of Object.entries(N)) assert.ok(k.startsWith('asiento-') ? alLado(llega, p) : llega(p), 'plaza: no se llega a ' + k);
   assert.ok(pl.medidas.triangulos.exterior <= P.plaza.exterior, 'plaza: ' + pl.medidas.triangulos.exterior + ' triángulos');
   tabla.push({ id: 'plaza', e: 4, ext: pl.medidas.triangulos.exterior, int: pl.medidas.triangulos.interior, dib: `${pl.medidas.dibujos.exterior}+${pl.medidas.dibujos.interior}` });
 }
