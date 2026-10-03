@@ -602,30 +602,42 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     const ref = T.lugares.refugio;
     return Math.hypot(b.x - ref.x, b.z - ref.z) < Math.hypot(a.x - ref.x, a.z - ref.z) ? b : a;
   }, sitios[0]);
-  const usados = new Set();
-  for (const sitio of sitios) {
-    let nombre = sitio === principal ? 'Estación del Valle' : null;
-    if (!nombre) {
-      let mejorN = 'Parada del Bosque', mejorD = Infinity;
-      for (const [clave, texto] of cercanos) {
-        const l = T.lugares[clave];
-        if (!l || usados.has(texto) || texto === 'Estación del Valle') continue;
-        const d = Math.hypot(l.x - sitio.x, l.z - sitio.z);
-        if (d < mejorD) { mejorD = d; mejorN = texto; }
+  // (3.6: con los lugares que se pasen, para saber también cómo se llamaba antes cada parada)
+  const nombrar = (lugares) => {
+    const usados = new Set();
+    return sitios.map((sitio) => {
+      let nombre = sitio === principal ? 'Estación del Valle' : null;
+      if (!nombre) {
+        let mejorN = 'Parada del Bosque', mejorD = Infinity;
+        for (const [clave, texto] of cercanos) {
+          const l = lugares[clave];
+          if (!l || usados.has(texto) || texto === 'Estación del Valle') continue;
+          const d = Math.hypot(l.x - sitio.x, l.z - sitio.z);
+          if (d < mejorD) { mejorD = d; mejorN = texto; }
+        }
+        nombre = mejorN;
       }
-      nombre = mejorN;
-    }
-    usados.add(nombre);
+      usados.add(nombre);
+      return nombre;
+    });
+  };
+  const nombres = nombrar(T.lugares);
+  // 3.6: `opciones.lugaresAntes`: dónde estaban los lugares que en el Relax se mudaron a la aldea
+  // (la casa de té y el almacén): con eso sale el nombre que tenía antes cada parada
+  const nombresAntes = opciones.lugaresAntes ? nombrar({ ...T.lugares, ...opciones.lugaresAntes }) : nombres;
+  sitios.forEach((sitio, k) => {
+    let nombre = nombres[k];
     // 3.6: en el Relax la parada del sur es la de la Aldea de los Duendes (ver aldea.js): su
     // cartel y los anuncios del tren dicen eso. `nombreAntes` es el de siempre (el que sigue
     // teniendo en el Desafío), para pasar al nombre nuevo lo guardado del comercio.
     const deLaAldea = !!opciones.aldea && sitio.i === opciones.aldea.indice;
-    const antes = nombre;
+    const antes = nombresAntes[k];
     if (deLaAldea) nombre = opciones.aldea.nombre;
     const parada = construirParada(T, escena, col, mat, opciones.cartel, opciones.sentaderos, sitio.i, nombre, sitio !== principal);
-    if (deLaAldea) { parada.aldea = true; parada.nombreAntes = antes; }
+    if (deLaAldea) parada.aldea = true;
+    if (antes !== nombre) parada.nombreAntes = antes;
     paradas.push(parada);
-  }
+  });
   paradas.sort((a, b) => a.s - b.s);
   const estacion = paradas.find((p) => !p.chica) || paradas[0];
   T.lugares.estacion = estacion;

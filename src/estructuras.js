@@ -72,8 +72,16 @@ function repasoSinOcultos(obj) {
   };
 }
 
-export function crearEstructuras(T, escena, col, veg, puertas) {
+// 3.6: `opciones.aldea` (sólo en el Relax): { almacen, 'casa-te' } con el sitio de cada uno en la
+// Aldea de los Duendes (`sitioEstructura` de aldea.js). Ahí se arman, en vez de donde los ponía
+// el sorteo; el sorteo corre igual (las mismas llamadas a r(), buscarLlano y registrarHuella, en
+// el lugar de siempre), así la torre, la cueva y el galpón no se mueven. `opciones.sorteo`: el
+// terreno de antes de emparejar la aldea (ver aldea-mundo.js), para que el sorteo vea lo mismo
+// que sin aldea.
+export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   const mat = materialVegetal({ flex: 0 });
+  const enAldea = opciones.aldea || null;
+  const TS = opciones.sorteo || T;
   const grupo = new THREE.Group();
   escena.add(grupo);
   const r = rng(31);
@@ -1395,9 +1403,9 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
       let mejor = null, mejorAlto = 0;
       for (let i = 0; i < 4000; i++) {
         const x = (r() * 2 - 1) * 380, z = (r() * 2 - 1) * 380;
-        const y = T.altura(x, z);
+        const y = TS.altura(x, z);
         const k = T.indice(x, z);
-        if (y < alturaMin || T.agua(x, z) || T.pendiente[k] > pendMax || T.distRiel[k] < 20) continue;
+        if (y < alturaMin || TS.agua(x, z) || TS.pendiente[k] > pendMax || T.distRiel[k] < 20) continue;
         if (Math.hypot(x - L.mirador.x, z - L.mirador.z) < 45) continue;
         if (!despejado(x, z, claro)) continue;
         if (invadeHuella(x, z, 6.5, 4)) continue;
@@ -1707,11 +1715,11 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
     let mejor = null, puntaje = -1;
     for (let i = 0; i < 6000; i++) {
       const x = (r() * 2 - 1) * 400, z = (r() * 2 - 1) * 400;
-      const y = T.altura(x, z);
-      if (y < alturaMin || y > alturaMax || T.agua(x, z)) continue;
+      const y = TS.altura(x, z);
+      if (y < alturaMin || y > alturaMax || TS.agua(x, z)) continue;
       const k = T.indice(x, z);
-      if (T.pendiente[k] > pendMax || T.bosque[k] > bosqueMax) continue;
-      const alrededor = [[4, 0], [-4, 0], [0, 4], [0, -4], [3, 3], [-3, -3]].map(([ax, az]) => T.altura(x + ax, z + az));
+      if (TS.pendiente[k] > pendMax || T.bosque[k] > bosqueMax) continue;
+      const alrededor = [[4, 0], [-4, 0], [0, 4], [0, -4], [3, 3], [-3, -3]].map(([ax, az]) => TS.altura(x + ax, z + az));
       if (Math.max(...alrededor) - Math.min(...alrededor) > desnivel) continue;
       const retiroRiel = Math.max(22, radio + 8);
       if (T.distRiel[k] < retiroRiel) continue;   // la huella completa queda fuera de la vía/estaciones
@@ -1967,12 +1975,17 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
 
   // ---------------------------------------------------------------- casa de té
   let casaTe = null;
+  // 3.6: donde la puso el sorteo (con la aldea ahí no queda nada, pero los que vienen después
+  // se siguen alejando de ese lugar, como sin aldea)
+  let casaTeSorteo = null;
   {
-    const sitio = buscarLlano({ bosqueMax: 0.25, alturaMin: 2, pendMax: 0.15, desnivel: 0.8, claro: 11, lejosDe: [L.refugio, L.cabana, L.puesto, molino], distancia: 70 })
+    const sorteado = buscarLlano({ bosqueMax: 0.25, alturaMin: 2, pendMax: 0.15, desnivel: 0.8, claro: 11, lejosDe: [L.refugio, L.cabana, L.puesto, molino], distancia: 70 })
       || buscarLlano({ bosqueMax: 0.4, pendMax: 0.25, desnivel: 1.5, claro: 8, lejosDe: [L.refugio], distancia: 40 });
+    const aldeaTe = enAldea?.['casa-te'] || null;
+    const sitio = aldeaTe ? { x: aldeaTe.x, z: aldeaTe.z, y: aldeaTe.y } : sorteado;
     if (sitio) {
       const p = haciaSendero(sitio.x, sitio.z);
-      const rot = Math.atan2(p.x - sitio.x, p.z - sitio.z);
+      const rot = aldeaTe ? aldeaTe.rot : Math.atan2(p.x - sitio.x, p.z - sitio.z);
       const W = 6.4, D = 5.2, H = 2.7;
       const c = new Constructor();
       const PT = piezas(c, col, { x: sitio.x, z: sitio.z, y: sitio.y, rot }, matriz);
@@ -2149,7 +2162,9 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
       casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, mostrador, puerta: puertaTe,
         radio: Math.max(W / 2 + 1.4, D / 2 + 3.5) };
       T.lugares['casa-te'] = casaTe;
-      registrarHuella('casa-te', casaTe, casaTe.radio, 4);
+      // 3.6: en la aldea, la huella queda donde la dejaba el sorteo
+      casaTeSorteo = aldeaTe ? (sorteado ? { x: sorteado.x, z: sorteado.z } : null) : casaTe;
+      if (casaTeSorteo) registrarHuella('casa-te', casaTeSorteo, casaTe.radio, 4);
       cabañas.push(casaTe);
       const cc = w(-3.4, D / 2 + 4.4);
       cartel('Casa de Té', cc.x, cc.z, rot);
@@ -2160,7 +2175,7 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
   let torre = null;
   {
     // hace falta un claro grande: la escalera se aleja varios metros de la torre
-    const sitio = buscarLlano({ bosqueMax: 0.3, alturaMin: 26, pendMax: 0.15, desnivel: 0.8, claro: 13, lejosDe: [L.puesto, L.mirador, molino, casaTe], distancia: 60 })
+    const sitio = buscarLlano({ bosqueMax: 0.3, alturaMin: 26, pendMax: 0.15, desnivel: 0.8, claro: 13, lejosDe: [L.puesto, L.mirador, molino, casaTeSorteo], distancia: 60 })
       || buscarLlano({ bosqueMax: 0.45, alturaMin: 18, pendMax: 0.22, desnivel: 1.4, claro: 11, lejosDe: [L.puesto], distancia: 30 })
       || buscarLlano({ bosqueMax: 0.6, alturaMin: 10, pendMax: 0.3, desnivel: 2, claro: 9, lejosDe: [], distancia: 0 });
     if (sitio) {
@@ -2348,13 +2363,13 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
     for (let i = 0; i < 6000; i++) {
       const x = (r() * 2 - 1) * 400, z = (r() * 2 - 1) * 400;
       const k = T.indice(x, z);
-      const y = T.altura(x, z);
-      if (y < 20 || T.agua(x, z) || T.pendiente[k] < 0.55) continue;
+      const y = TS.altura(x, z);
+      if (y < 20 || TS.agua(x, z) || TS.pendiente[k] < 0.55) continue;
       if (T.distRio[k] < 30) continue;                     // lejos del arroyo
       if (T.puentesRiel.some((b2) => Math.hypot(b2.x - x, b2.z - z) < 45)) continue;
       if (invadeHuella(x, z, 9, 8)) continue;
       if (T.distRiel[k] < 25) continue;
-      const puntaje = T.pendiente[k] * 30 + y * 0.2;
+      const puntaje = TS.pendiente[k] * 30 + y * 0.2;
       if (puntaje > mejor) { mejor = puntaje; sitio = { x, z, y }; }
     }
     if (sitio) {
@@ -2510,14 +2525,18 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
 
   // ---------------------------------------------------------------- almacén de ramos generales
   let almacen = null;
+  let almacenSorteo = null;   // 3.6: como `casaTeSorteo`
   {
-    const sitio = buscarLlano({ bosqueMax: 0.2, alturaMin: 2, pendMax: 0.14, desnivel: 0.7, claro: 12, lejosDe: [L.refugio, casaTe, molino, L.cabana, L.puesto], distancia: 60 })
+    const sorteado = buscarLlano({ bosqueMax: 0.2, alturaMin: 2, pendMax: 0.14, desnivel: 0.7, claro: 12, lejosDe: [L.refugio, casaTeSorteo, molino, L.cabana, L.puesto], distancia: 60 })
       || buscarLlano({ bosqueMax: 0.35, pendMax: 0.22, desnivel: 1.3, claro: 9, lejosDe: [L.refugio], distancia: 35 });
+    const aldeaAlm = enAldea?.almacen || null;
+    const sitio = aldeaAlm ? { x: aldeaAlm.x, z: aldeaAlm.z, y: aldeaAlm.y } : sorteado;
     if (sitio) {
       const p = haciaSendero(sitio.x, sitio.z);
       // La fachada comercial está construida sobre -Z local. Giramos 180°
       // para que puerta, vidrieras, cartel y vereda miren realmente al sendero.
-      const rot = Math.atan2(p.x - sitio.x, p.z - sitio.z) + Math.PI;
+      // (3.6: en la aldea, de cara a la calle Norte: el giro de `sitioEstructura` ya lo trae)
+      const rot = aldeaAlm ? aldeaAlm.rot : Math.atan2(p.x - sitio.x, p.z - sitio.z) + Math.PI;
       const W = 7.5, D = 5.5, H = 2.9;
       // 3.0.1: del lado alto el terreno tapaba 34 cm de la vereda y asomaba entre los
       // tablones del salón: el piso (0,45 m) y la vereda (0,5 m) quedan por encima
@@ -2715,7 +2734,8 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
       almacen = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Almacén de Ramos Generales', vidrio, luz, interior,
         puerta, mostrador, detras, radio: 9, ancho: W, fondo: D };   // 3.0.1: ancho y fondo, para saber si estás adentro
       T.lugares.almacen = almacen;
-      registrarHuella('almacen', almacen, almacen.radio, 5);
+      almacenSorteo = aldeaAlm ? (sorteado ? { x: sorteado.x, z: sorteado.z } : null) : almacen;
+      if (almacenSorteo) registrarHuella('almacen', almacenSorteo, almacen.radio, 5);
       const cc = w(-4.6, -D / 2 - 3.4);
       cartel('Ramos Generales', cc.x, cc.z, rot + Math.PI);
     }
@@ -2727,8 +2747,8 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
     // El galpón ocupa mucho más que su nave: corrales, manga, cobertizo y
     // molino australiano. El almacén se crea justo antes y debe contarse como
     // vecino real; sin esta restricción ambos complejos podían superponerse.
-    const sitio = buscarLlano({ bosqueMax: 0.16, alturaMin: 2, pendMax: 0.13, desnivel: 0.7, claro: 16, lejosDe: [L.refugio, L.cabana, L.puesto, molino, casaTe, torre, almacen], distancia: 90 })
-      || buscarLlano({ bosqueMax: 0.3, pendMax: 0.2, desnivel: 1.2, claro: 12, lejosDe: [L.refugio, molino, almacen], distancia: 55 });
+    const sitio = buscarLlano({ bosqueMax: 0.16, alturaMin: 2, pendMax: 0.13, desnivel: 0.7, claro: 16, lejosDe: [L.refugio, L.cabana, L.puesto, molino, casaTeSorteo, torre, almacenSorteo], distancia: 90 })
+      || buscarLlano({ bosqueMax: 0.3, pendMax: 0.2, desnivel: 1.2, claro: 12, lejosDe: [L.refugio, molino, almacenSorteo], distancia: 55 });
     if (sitio) {
       const p = haciaSendero(sitio.x, sitio.z);
       // El portón, el cartel y la zona de trabajo están en -Z local; orientamos
@@ -3229,6 +3249,8 @@ export function crearEstructuras(T, escena, col, veg, puertas) {
   // 2.8: `personal` lleva lo de Personalizar → Tu refugio al mundo; `mastil` es el palo de la
   // bandera (su `grupo` es la punta, donde se cuelga el paño, y `tope` su lugar en el mundo)
   // 3.0.1: `col` viaja con las estructuras: objetos.js mira que no haya una pared entre vos y el asiento
+  // 3.6: `lugaresSorteo`: dónde había caído la casa de té y el almacén en el sorteo (con la aldea
+  // ahí no hay nada; trochita.js lo usa para saber cómo se llamaba antes cada parada)
   return { grupo, conjuntos, sentaderos, carteles, mat, cabañas, faro, molino, casaTe, torre, galpon, almacen, cueva, cartel, fusionados: () => fusionados,
-    personal, mastil: personal?.mastil || null, col };
+    personal, mastil: personal?.mastil || null, col, lugaresSorteo: enAldea ? { 'casa-te': casaTeSorteo, almacen: almacenSorteo } : null };
 }

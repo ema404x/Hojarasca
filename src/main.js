@@ -67,6 +67,7 @@ import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPi
 import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
 import { crearAldeaGente } from './aldea-gente.js';
+import { crearAldeaMundo } from './aldea-mundo.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -366,6 +367,7 @@ let modo = 'carga';
 let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, gente, perro, tren, pesca, kayak, fotos, linterna;
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
 let modos = null;   // 3.1: carreras, desafío del día y torneo (ver modos-juego.js)
+let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-mundo.js; sólo en el Relax)
 const sonido = new Sonido();
 sonido.volumen = ajustes.volumen;
 sonido.musicaActiva = ajustes.musica;
@@ -468,11 +470,21 @@ async function construir() {
   veg = await paso('Plantando el bosque andino-patagónico', 45, () => generarVegetacion(T, calidad, escena));
   // 3.3: impostores de los árboles lejanos (se hornean una vez, con el renderer ya creado)
   veg.prepararImpostores(renderer);
+  // 3.6: la Aldea de los Duendes (sólo en el Relax). Su terreno se empareja DESPUÉS de plantar el
+  // bosque (la lista de árboles no cambia: los talados guardados siguen valiendo) y antes de las
+  // estructuras; la malla del suelo y las alturas del pasto se rehacen ahí. El sorteo de sitios de
+  // estructuras.js mira el terreno de antes (`sorteoAldea`): nada más del valle se mueve.
+  let sorteoAldea = null;
+  if (!esDesafio) {
+    aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
+    sorteoAldea = aldeaMundo.emparejar();
+  }
   col = crearColisiones();
   veg.colisiones.forEach((c) => col.agregar(c));
   est = await paso('Clavando los tablones del muelle', 68, () => {
     puertas = crearPuertas(T, escena, col, sonido);
-    const e = crearEstructuras(T, escena, col, veg, puertas);
+    // 3.6: en el Relax el almacén y la casa de té se arman en la aldea (el sorteo corre igual)
+    const e = crearEstructuras(T, escena, col, veg, puertas, aldeaMundo ? { aldea: aldeaMundo.sitiosValle(), sorteo: sorteoAldea } : undefined);
     // el pasto no crece adentro de las casas ni al pie del faro
     const masc = U.uMascara.value.image.data;
     const pelar = (x, z, radio) => {
@@ -510,6 +522,13 @@ async function construir() {
       ...e.cabañas.map((cab) => zona(cab, (cab.radio || 4) + 1.5)),
     ].filter(Boolean);
     limpiar(T.lugares.mirador, 9, 0);
+    // 3.6: la aldea: árboles fuera de las plantas y las calles, calles de ripio pintadas, nada de
+    // frutos ni plumas adentro de los edificios, y sus complejos en la lista del LOD
+    if (aldeaMundo) {
+      aldeaMundo.despejar();
+      edificios.push(...aldeaMundo.zonasObjetos());
+      aldeaMundo.montar({ est: e, col, puertas });
+    }
     pelar(T.lugares.refugio.x, T.lugares.refugio.z, 6);
     if (e.molino) pelar(e.molino.x, e.molino.z, 4.5);
     if (e.casaTe) pelar(e.casaTe.x, e.casaTe.z, e.casaTe.radio + 2);
@@ -521,9 +540,17 @@ async function construir() {
   });
   tren = await paso('Tendiendo las vías de la trochita', 74, () => {
     // 3.6: en el Relax, la parada del sur es la de la Aldea de los Duendes (cartel y anuncios)
-    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA } });
-    // lo del comercio guardado con el nombre de antes de la parada pasa al de la aldea
-    for (const p of t.paradas) if (p.aldea && p.nombreAntes && progreso?.comercio) renombrarParada(progreso.comercio, p.nombreAntes, p.nombre);
+    // (3.6: `lugaresAntes`: dónde estaban la casa de té y el almacén, para el nombre de antes de cada parada)
+    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }, lugaresAntes: est.lugaresSorteo || null });
+    // lo del comercio guardado con el nombre de antes de la parada pasa al de ahora (3.6: la del
+    // sur es la de la aldea, y la que se llamaba como la casa de té toma el nombre de lo que le
+    // queda cerca). En dos pasos: un nombre nuevo puede ser el viejo de otra.
+    if (progreso?.comercio) {
+      const cambian = t.paradas.filter((p) => p.nombreAntes);
+      cambian.forEach((p, i) => renombrarParada(progreso.comercio, p.nombreAntes, `\u0000parada-${i}`));
+      cambian.forEach((p, i) => renombrarParada(progreso.comercio, `\u0000parada-${i}`, p.nombre));
+    }
+    aldeaMundo?.estacion(t.paradas.find((p) => p.aldea));   // 3.6: el galpón de cargas y el cartel de la aldea
     // el andén y el galpón se quedan con su espacio
     const masc = U.uMascara.value.image.data;
     for (const p of t.paradas) {
@@ -632,6 +659,7 @@ async function construir() {
   modos = crearModos({ T, escena, jugador, esDesafio, progreso: () => progreso, guardar: () => guardar(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, api: syncApi, traducir: traducirPanel });
   // 3.1: rangos y oficios (en los dos modos). 3.6: y la gente de la aldea (sólo en el Relax)
   armarOficiosYAldea(esDesafio);
+  aldeaMundo?.arrancar();   // 3.6: los edificios se arman en un Worker mientras termina la carga
   if (esDesafio) desafio = crearDesafio(T, escena, camara, col, obras, sonido, {
     progreso: () => progreso,
     jugador: () => jugador,
@@ -694,7 +722,13 @@ async function construir() {
     veg.actualizar(camara.position);
     objetos.actualizar(camara.position);
     cielo.actualizar(progreso.horas, clima.estado, camara.position, 0);
+    // 3.6: si aparecés en la aldea (o a la vista de ella), se termina de armar antes de entrar
+    if (aldeaMundo) {
+      const p = jugador.estado.pos;
+      if (Math.hypot(p.x - aldeaMundo.centro.x, p.z - aldeaMundo.centro.z) < calidad.lejos + 220) { await aldeaMundo.listo(); aldeaMundo.montarCola(); }
+    }
     await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3: con el presupuesto fijo, todo y en paralelo; 2.7.4: antes renderer.compile(escena, camara); ver luces.js
+    aldeaMundo?.trasCompilar();   // 3.6: las mallas que sólo estaban para compilar sus programas
   });
   infoCarga.texturas = await texturasEnCamino;
   infoCarga.origenTexturas = origenTexturas();
@@ -3106,8 +3140,23 @@ function marcarTechos() {
   agregar(L['casa-te'], 3.0);
   agregar(L.estacion, 3.2);
   agregar(L.cueva, 3.4);
-  if (!techos.length) return;
+  // 3.6: los techos de la aldea (rectángulos girados: el de cada edificio con su galería)
+  const rects = aldeaMundo ? aldeaMundo.techos() : [];
+  if (!techos.length && !rects.length) return;
   const metrosPorTexel = 1024 / n;
+  for (const t of rects) {
+    const c = Math.cos(t.rot), s = Math.sin(t.rot), r = Math.hypot(Math.max(-t.x0, t.x1), Math.max(-t.z0, t.z1)) + 1;
+    const i0 = Math.max(0, Math.floor((t.x + 512 - r) / metrosPorTexel)), i1 = Math.min(n - 1, Math.ceil((t.x + 512 + r) / metrosPorTexel));
+    const j0 = Math.max(0, Math.floor((t.z + 512 - r) / metrosPorTexel)), j1 = Math.min(n - 1, Math.ceil((t.z + 512 + r) / metrosPorTexel));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const dx = i * metrosPorTexel - 512 - t.x, dz = j * metrosPorTexel - 512 - t.z;
+      const bx = dx * c - dz * s, bz = dx * s + dz * c;
+      const borde = Math.min(bx - t.x0, t.x1 - bx, bz - t.z0, t.z1 - bz);
+      if (borde <= 0) continue;
+      const k = (j * n + i) * 4 + 1;
+      datos[k] = Math.max(datos[k], 255 * Math.min(1, borde / 0.8));
+    }
+  }
   for (const t of techos) {
     const i0 = Math.max(0, Math.floor((t.x + 512 - t.r) / metrosPorTexel));
     const i1 = Math.min(n - 1, Math.ceil((t.x + 512 + t.r) / metrosPorTexel));
@@ -3152,6 +3201,7 @@ function canterosParaPisos() {
 function marcarPisos() {
   if (!texturaEstepa || !col?.plataformas) return;
   const lista = col.plataformas.concat(canterosParaPisos());
+  if (aldeaMundo) lista.push(...aldeaMundo.pisos());   // 3.6: y las calles y los pisos de la aldea
   let suma = 0;
   for (const p of lista) suma += (p.x || 0) * 0.37 + (p.z || 0) + (p.alto || 0) + (p.ang || 0) * 0.71;
   const firma = lista.length + '|' + suma.toFixed(2);
@@ -5999,6 +6049,7 @@ function espacioDeAudio() {
   for (const l of techos) {
     if (l && Math.hypot(js.pos.x - l.x, js.pos.z - l.z) < (l.radio || 4.5)) return 'adentro';
   }
+  if (aldeaMundo?.adentro(js.pos)) return 'adentro';   // 3.6: entre las paredes de un edificio de la aldea
   // Las habitaciones modulares cerradas ya son interiores completos también
   // para audio, clima y postproceso; no sólo para la mecánica de dormir.
   if (obras?.dentro(js.pos)) return 'adentro';
@@ -6018,6 +6069,8 @@ function techoDeAudio() {
     const l = T.lugares[clave];
     if (l && Math.hypot(js.pos.x - l.x, js.pos.z - l.z) < (l.radio || 4.5)) return techo;
   }
+  const ta = aldeaMundo?.techoEn(js.pos);   // 3.6: bajo un techo de la aldea (la chapa)
+  if (ta) return ta;
   const o = obras?.dentro(js.pos);
   if (o) return techoDeObra(o.plano.id, o.plano.snap ? obras.estadoModulo?.(o)?.cubierta?.id : null);
   const b = obras?.bajoCubierta?.(js.pos);
@@ -6841,7 +6894,7 @@ function cuadroDelJuego(tRaf, manual) {
     acumuladoInterior = 0;
     posInterior.copy(js.pos);
     espacioAudioActual = espacioDeAudio();
-    bajoCubiertaActual = espacioAudioActual !== 'bosque' || !!obras?.bajoCubierta?.(js.pos);
+    bajoCubiertaActual = espacioAudioActual !== 'bosque' || !!obras?.bajoCubierta?.(js.pos) || !!aldeaMundo?.bajoCubierta(js.pos);   // 3.6: (y las galerías de la aldea)
     techoAudioActual = techoDeAudio();
   }
   bajoTecho = bajoCubiertaActual;
@@ -6912,6 +6965,9 @@ function cuadroDelJuego(tRaf, manual) {
   if (modo === 'jugando' && (progreso.dia !== diaHuerta || (clima?.estado?.lluvia || 0) > 0.35)) revisarHuerta();
   acumuladoVisible += dt;
   if (acumuladoVisible > presupuestoAdaptativo.intervalo(0.25, 2.0) && planificadorAntitirones.permitir('visibilidad', { pesada: true })) { acumuladoVisible = 0; actualizarVisibilidad(cam, presupuestoAdaptativo.factorDetalle()); }
+  // 3.6: la aldea: lo que llegó del Worker se monta de a uno (si el cuadro anda bien) y lo de
+  // adentro, las puertas, las sombras y los álamos según la distancia
+  if (aldeaMundo) { try { aldeaMundo.actualizar(dt, cam, () => planificadorAntitirones.permitir('aldea-mundo', { pesada: true })); } catch (e) { fallaSistema('aldea-mundo', e); } }
   acumuladoRefugio += dt;
   if (refugioVivo && acumuladoRefugio > presupuestoAdaptativo.intervalo(1.5, 1.5) && planificadorAntitirones.permitir('refugio-vivo', { pesada: true })) {
     acumuladoRefugio = 0;
@@ -6934,6 +6990,7 @@ function cuadroDelJuego(tRaf, manual) {
   actualizarCielo(dt, noche, luzCielo);
   ctxClima.invierno = U.uInvierno.value; ctxClima.otono = U.uOtono.value; ctxClima.noche = noche;
   ctxClima.chimeneas = chimeneasTodas || chimeneas; ctxClima.sonido = sonido; ctxClima.bajoTecho = bajoTecho;
+  if (aldeaMundo) ctxClima.chimeneas = aldeaMundo.chimeneasCerca(cam, ctxClima.chimeneas);   // 3.6: en la aldea, el humo sale de las chimeneas más cercanas
   try { clima.actualizar(dt, cam, ctxClima); } catch (e) { fallaSistema('clima', e); }
   // 2.1: el frente que viene se ve sobre la cordillera (ver `pronostico.js`)
   if (cielo?.uniforms) {
@@ -7093,6 +7150,8 @@ function cuadroDelJuego(tRaf, manual) {
     est.almacen.interior.intensity = alcance(cam, est.almacen, 22) ? rellenoInterior * 0.92 : 0;
     est.almacen.interior.color.copy(colorInterior).lerp(COLOR_RAYO, encendido * 0.08);
   }
+  // 3.6: la aldea: ventanas, faroles y la luz de adentro (el presupuesto de luces elige las cercanas)
+  aldeaMundo?.luces(cam, encendido, diaInterior, rellenoInterior, colorInterior);
   if (est.galpon) {
     est.galpon.molino.children[0].rotation.z += dt * (0.8 + clima.estado.viento * 4.5);
     brilloVentana(est.galpon.vidrio, encendido, diaInterior);
@@ -7672,5 +7731,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     accionObra: () => accionObra(), aserrar: () => aserrar(), cuaderno: (p) => { if (p) pestana = p; dibujarCuaderno(); }, golpes: () => golpesParaTalarAhora(), mundoPesca: () => mundoPesca(), entradas: () => ENTRADAS.map((e) => e.id),
     // 3.6: dónde queda cada cosa de la aldea en el mundo
     puntos: (id) => puntosMundo(id), edificio: (id) => edificioEnMundo(id), renglon: () => (renglonAldea && renglonAldea.style.display !== 'none' ? renglonAldea.textContent : '') };
+  // 3.6: los edificios de la aldea en el mundo, para las pruebas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
   requestAnimationFrame(bucle);
 })();

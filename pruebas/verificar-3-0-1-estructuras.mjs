@@ -82,7 +82,7 @@ hay(troch, 'pared([-W / 2, Z0 - D / 2], [-hueco * 0.5 - 0.16, Z0 - D / 2]);', 'l
 // asientos y mostrador
 hay(obj, 'est.col?.paredEntre?.(ojo.x, ojo.z, s.x, s.z, s.y)', 'los asientos vuelven a usarse a través de las paredes');
 hay(obj, 'Math.abs(s.y - 0.45 - jug.estado.pos.y) > 1.1', 'los asientos de otro piso vuelven a ofrecerse');
-hay(est, '    personal, mastil: personal?.mastil || null, col };', 'las estructuras no le pasan las colisiones a los asientos');
+hay(est, '    personal, mastil: personal?.mastil || null, col', 'las estructuras no le pasan las colisiones a los asientos');   // (3.6: después va lugaresSorteo)
 hay(main, 'if (enElAlmacen) return true;   // abierto, se cierra recién al alejarse', 'el mostrador vuelve a atender desde afuera');
 hay(main, 'function sinParedEnMedio(o) {', 'lo de tus obras vuelve a usarse a través de las paredes');
 hay(main, "const o = funcionAlAlcance('huerta', 2.4);", 'el cantero vuelve a usarse a través de las paredes');

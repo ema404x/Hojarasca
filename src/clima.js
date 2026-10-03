@@ -88,7 +88,7 @@ export function crearClima(escena, T, ajustes) {
   const luciernagas = crearNube(160, puntosMaterial({ color: '#e8ff9a', tam: 0.9, aditivo: true, forma: 'brillo' }), 40, 3);
 
   // humo de chimenea
-  const NH = 66;
+  const NH = 120;   // 3.6: más bocanadas (con la aldea hay hasta ocho chimeneas a la vista)
   const humo = crearNube(NH, puntosMaterial({ color: '#b9b6b0', tam: 6, forma: 'humo', opacidad: 0.55 }), 0, 0);
   humo.visible = true;
   const humoVida = new Float32Array(NH).map(() => Math.random());
@@ -296,9 +296,12 @@ export function crearClima(escena, T, ajustes) {
         if (humoVida[i] > 1) humoVida[i] -= 1;
         const v = humoVida[i];
         const chim = chimeneas[i % chimeneas.length];
-        p[i * 3] = chim.x + v * 6 * estado.viento + Math.sin(v * 9 + i) * v * 1.5;
-        p[i * 3 + 1] = chim.y + v * 14;
-        p[i * 3 + 2] = chim.z + Math.cos(v * 7 + i) * v * 1.5;
+        // 3.6: sube rápido al salir y se va frenando; el viento la tumba cada vez más y se abre
+        // (antes subía derecho, a la misma velocidad, como un caño)
+        const abre = 0.25 + v * v * 3.2;
+        p[i * 3] = chim.x + (v * 1.5 + v * v * 7) * estado.viento + Math.sin(v * 9 + i) * abre;
+        p[i * 3 + 1] = chim.y + 13 * v * (1 - 0.38 * v) - v * v * estado.viento * 2.5;
+        p[i * 3 + 2] = chim.z + Math.cos(v * 7 + i * 1.7) * abre;
         vida[i] = v;
       }
       humo.geometry.attributes.position.needsUpdate = true;
