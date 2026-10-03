@@ -1,7 +1,7 @@
 // 3.6: la Aldea de los Duendes. Un pueblo que ya existe en el valle (sólo en el Relax), en la
 // parada chica del sur de la trochita, escondido a casi 600 m del refugio. Empieza chico (la
-// estación, la plaza, la biblioteca popular, el almacén, la escuela a medio hacer y cuatro casas con sus
-// vecinos) y crece: los pobladores bajan del tren en la aldea, les decís que sí y entre todos
+// estación, la plaza, la biblioteca popular, el almacén de Ercilia y la casa de té, la escuela a medio
+// hacer y las casas de los vecinos) y crece: los pobladores bajan del tren en la aldea, les decís que sí y entre todos
 // les levantan el local (la obra del pueblo: vos traés el material, los vecinos ponen la mano).
 // Al terminar la obra abre el local y el poblador vive en el cuarto de atrás.
 //
@@ -65,21 +65,33 @@ export function marcoAldea(parada = PARADA_ALDEA) {
 // aldea-arquitectura.js: no se cambian sin avisar.
 //
 // El pueblo, como uno patagónico de verdad: la estación sobre la vía; enfrente, cruzando la
-// calle de la Vía, la plaza; la biblioteca popular de cara a la plaza del lado oeste; el almacén de ramos
-// generales en la esquina, mirando la estación; la escuela y los locales sobre la calle Norte
-// y la calle de la Vía; las casas de los vecinos en el lado del bosque (oeste) y los oficios
+// calle de la Vía, la plaza; la biblioteca popular de cara a la plaza del lado oeste; la casa de té
+// de las galesas en la esquina de enfrente, con su galería mirando a la estación; el almacén de
+// ramos generales de Ercilia cruzando la calle Norte, en diagonal a la plaza; la escuela al fondo
+// de la calle de la Biblioteca; los locales sobre la calle Norte y la calle de la Vía; las casas de los vecinos en el lado del bosque (oeste) y los oficios
 // que hacen ruido o necesitan campo (herrería, carpintería, miel, seccional) hacia el este,
 // donde el terreno baja. Nada a menos de 22 m del eje de la vía (como `buscarLlano`) salvo la
 // estación; nada en el agua; 3 m o más entre edificios; desnivel de cada planta ≤ 1,5 m.
+//
+// 3.6: el almacén y la casa de té son los mismos del valle (estructuras.js), que en el Relax se
+// mudan a la aldea; en el Desafío quedan donde estaban. Su planta es la REAL completa (vereda,
+// escalones, galería, mesas, alero, chimenea y cartel) y `estructura` dice cómo armarlos con el
+// código de siempre: `id` del sitio, `dz` (dónde cae el centro del cuerpo, el `sitio` de
+// estructuras.js, en el marco de la planta) y `giro` (lo que hay que sumarle al giro de la
+// planta: el almacén tiene la fachada en su −Z, así que va con π). Ver `sitioEstructura`.
 export const EDIFICIOS_ALDEA = {
   'estacion-aldea': { nombre: 'Estación Aldea de los Duendes', rol: 'estacion', inicial: true, fija: true, ancho: 16, fondo: 10, x: 0, z: 0, rot: 0, y: 25.24, huella: { x0: -8, x1: 8, z0: 0, z1: 10 } },
   plaza: { nombre: 'La plaza', rol: 'plaza', inicial: true, abierta: true, ancho: 18, fondo: 14, x: 6, z: 39.5, rot: PI, y: 22.82, calle: 'calle-via' },
   // la biblioteca popular, frente a la plaza (pedido del usuario: nada religioso en el juego)
   biblioteca: { nombre: 'La biblioteca popular', rol: 'biblioteca', inicial: true, ancho: 7, fondo: 11, x: -18, z: 41, rot: PI / 2, y: 21.77, calle: 'calle-oeste', lado: 1 },
-  'almacen-aldea': { nombre: 'Almacén de ramos generales', rol: 'almacen', inicial: true, ancho: 9, fondo: 7, x: 28.5, z: 34, rot: PI, y: 24.2, calle: 'calle-via', lado: -1 },
-  escuela: { nombre: 'La escuela', rol: 'escuela', inicial: true, poblador: 'maestra', ancho: 10, fondo: 7, x: -18, z: 60, rot: PI, y: 21.91, calle: 'calle-norte', lado: -1 },
+  // el almacén de Ercilia: cuerpo de 7,5 × 5,5 m con vereda de 2,4 m, escalones y el cartel
+  almacen: { nombre: 'Almacén de Ramos Generales', rol: 'almacen', inicial: true, ancho: 9.6, fondo: 9.8, x: -17, z: 60.5, rot: PI, y: 21.89, calle: 'calle-norte', estructura: { id: 'almacen', dz: -1.5, giro: PI, ancho: 7.5, fondo: 5.5 } },
+  // la casa de té de las galesas: cuerpo de 6,4 × 5,2 m, galería con dos mesas, escalón y cartel
+  'casa-te': { nombre: 'Casa de Té', rol: 'casa-te', inicial: true, ancho: 8, fondo: 10.6, x: 27.5, z: 36, rot: PI, y: 24.23, calle: 'calle-via', estructura: { id: 'casa-te', dz: -2, giro: 0, ancho: 6.4, fondo: 5.2 } },
+  escuela: { nombre: 'La escuela', rol: 'escuela', inicial: true, poblador: 'maestra', ancho: 10, fondo: 7, x: 0, z: 71, rot: -PI / 2, y: 20.27, calle: 'calle-oeste', lado: 1 },
   'casa-jefe': { nombre: 'La casa del jefe de estación', rol: 'casa', inicial: true, ancho: 6, fondo: 6, x: -35, z: 36, rot: PI, y: 24.21, calle: 'calle-via', lado: 1 },
-  'casa-almacenera': { nombre: 'La casa de la almacenera', rol: 'casa', inicial: true, ancho: 6, fondo: 5, x: 28, z: 45.5, rot: 0, y: 23.53, calle: 'calle-norte', lado: 1 },
+  'casa-ercilia': { nombre: 'La casa de Ercilia', rol: 'casa', inicial: true, ancho: 5, fondo: 5, x: -14, z: 71, rot: PI / 2, y: 21.28, calle: 'calle-oeste', lado: -1 },
+  'casa-nelida': { nombre: 'La casa de Nélida', rol: 'casa', inicial: true, ancho: 6, fondo: 5, x: -32.5, z: 69, rot: PI / 2, y: 23.27, calle: 'pasaje-oeste', lado: -1 },
   'casa-abuela': { nombre: 'La casa de la abuela Herminia', rol: 'casa', inicial: true, ancho: 5, fondo: 5, x: -34, z: 45.5, rot: 0, y: 23.52, calle: 'calle-norte', lado: -1 },
   'casa-familia': { nombre: 'La casa de los Jones', rol: 'casa', inicial: true, ancho: 7, fondo: 6, x: -35, z: 60, rot: PI, y: 23.32, calle: 'calle-norte', lado: 1 },
   // los lotes: uno por poblador (la escuela es inicial y lote a la vez: la termina la maestra)
@@ -109,7 +121,7 @@ export const CALLES_ALDEA = [
   { id: 'calle-estacion', nombre: 'Calle de la Estación', ancho: 5, puntos: [[6, 9], [6, 26]] },
   { id: 'calle-via', nombre: 'Calle de la Vía', ancho: 6, puntos: [[-44, 26], [90, 26]] },
   { id: 'calle-norte', nombre: 'Calle Norte', ancho: 5, puntos: [[-44, 52], [80, 52]] },
-  { id: 'calle-oeste', nombre: 'Calle de la Biblioteca', ancho: 5, puntos: [[-8, 26], [-8, 70]] },
+  { id: 'calle-oeste', nombre: 'Calle de la Biblioteca', ancho: 5, puntos: [[-8, 26], [-8, 78]] },
   { id: 'calle-este', nombre: 'Calle del Almacén', ancho: 5, puntos: [[20, 26], [20, 70]] },
   { id: 'pasaje-oeste', nombre: 'Pasaje de los Coihues', ancho: 4, puntos: [[-27, 26], [-27, 68]] },
   { id: 'pasaje-este', nombre: 'Pasaje de las Chacras', ancho: 4, puntos: [[53, 26], [53, 68]] },
@@ -119,6 +131,16 @@ export const CALLES_ALDEA = [
 function enPlano(e, bx, bz) {
   const c = Math.cos(e.rot), s = Math.sin(e.rot);
   return { x: e.x + bx * c + bz * s, z: e.z - bx * s + bz * c };
+}
+// Dónde y cómo armar con estructuras.js un edificio que viene del valle (el almacén, la casa
+// de té): el `sitio` (centro del cuerpo) en el mundo y el giro que espera ese código. null si
+// el edificio no viene del valle.
+export function sitioEstructura(id, parada = PARADA_ALDEA) {
+  if (!esEdificioAldea(id) || !EDIFICIOS_ALDEA[id].estructura) return null;
+  const e = EDIFICIOS_ALDEA[id], s = e.estructura, m = marcoAldea(parada);
+  const c = enPlano(e, 0, s.dz);
+  const r = m.rotMundo(e.rot + s.giro);
+  return { id: s.id, ...m.aMundo(c.x, c.z), y: e.y, rot: Math.atan2(Math.sin(r), Math.cos(r)), ancho: s.ancho, fondo: s.fondo };
 }
 // La planta en el plano: sus medidas y la caja que ocupa (los giros son de a 90°).
 export function plantaDe(id) {
@@ -173,9 +195,33 @@ function puntosBase(e) {
     trabajo: { x: lado * (W / 2 + 1.4), z: D / 2 - 1.2, rot: lado > 0 ? -PI / 2 : PI / 2 },
   };
 }
+// Los del almacén y la casa de té, leídos de estructuras.js y main.js, en el marco del CUERPO con
+// la puerta en +Z (el almacén, que allá tiene la fachada en −Z, va dado vuelta: x y z cambiadas
+// de signo). El mostrador del almacén está en (0, 0,3) de allá y Ercilia atiende detrás, en
+// (0, 1,3); `cercaDelMostrador` pide estar adentro del cuerpo y a menos de 3,2 m: los clientes
+// van entre el mostrador y las bolsas. En la casa de té se sirve en la galería, junto al
+// `mostrador` de main.js (`enLaCasaDeTe`: a menos de 4,5 m), y las sillas son las de las mesas.
+const PUNTOS_ESTRUCTURA = {
+  almacen: {
+    adentro: { x: 0, z: -1.3, rot: 0 }, mostrador: { x: 0, z: -0.3, rot: 0 },
+    'cliente-1': { x: 1.6, z: 0.4, rot: PI }, 'cliente-2': { x: 0, z: 0.4, rot: PI }, 'cliente-3': { x: -1.2, z: 0.4, rot: PI },
+    reponer: { x: -2.3, z: -1.75, rot: PI }, deposito: { x: 2.4, z: 1.6, rot: 0 },
+    puerta: { x: 0, z: 5.75, rot: 0 }, vereda: { x: -0.9, z: 4.3, rot: 0 }, trabajo: { x: -3.4, z: 4.4, rot: 0 },
+  },
+  'casa-te': {
+    adentro: { x: 0, z: 4.5, rot: 0 }, mostrador: { x: 0, z: 4.1, rot: 0 }, cocina: { x: 1.6, z: -0.8, rot: PI }, cama: { x: 2.2, z: -1.7, rot: 0 },
+    'mesa-1': { x: -2.41, z: 4.0, rot: PI / 2 }, 'mesa-2': { x: -1.39, z: 4.0, rot: -PI / 2 }, 'mesa-3': { x: 1.39, z: 4.0, rot: PI / 2 }, 'mesa-4': { x: 2.41, z: 4.0, rot: -PI / 2 },
+    puerta: { x: 0, z: 5.7, rot: 0 }, trabajo: { x: 3.7, z: 1.2, rot: -PI / 2 },
+  },
+};
 function puntosLocales(id) {
   const e = EDIFICIOS_ALDEA[id];
   const { ancho: W, fondo: D } = e;
+  if (e.estructura) {
+    const p = {};
+    for (const [k, q] of Object.entries(PUNTOS_ESTRUCTURA[e.estructura.id])) p[k] = { x: q.x, z: q.z + e.estructura.dz, rot: q.rot };
+    return p;
+  }
   if (e.rol === 'estacion') {
     // en el marco de la parada: el andén va de 1,15 a 4,75 m de la vía y el galpón de 4,5 a 7,5
     return {
@@ -215,14 +261,6 @@ function puntosLocales(id) {
     p.adentro = { x: -W / 4, z: D / 4 - 0.5, rot: 0 };   // la mesa de la cocina
     p.cama = { x: W / 2 - 1.0, z: -D / 2 + 1.0, rot: 0 };
     if (id === 'casa-familia') p['cama-chicos'] = { x: -W / 2 + 1.0, z: -D / 2 + 1.0, rot: 0 };
-    return p;
-  }
-  if (e.rol === 'almacen') {
-    // el mostrador, tres clientes y el depósito del fondo
-    p.adentro = { x: 0, z: -0.6, rot: 0 };
-    p.deposito = { x: -W / 4, z: -D / 2 + 1.0, rot: PI };
-    delete p.cliente;
-    [-1.8, 0, 1.8].forEach((x, i) => { p[`cliente-${i + 1}`] = { x, z: 1.2, rot: PI }; });
     return p;
   }
   // los locales (y la escuela): el cuarto de atrás con la cama del poblador
@@ -324,13 +362,13 @@ export const VECINOS_ALDEA = {
       'Si ves gente nueva en el andén, hablale: los que bajan acá vienen a quedarse.',
     ],
   },
-  almacenera: {
-    nombre: 'Nélida Ojeda', oficio: 'almacenera', mano: 'mate', casa: 'casa-almacenera', trabajo: 'almacen-aldea',
+  nelida: {
+    nombre: 'Nélida Ojeda', oficio: 'ayudante del almacén', mano: 'mate', casa: 'casa-nelida', trabajo: 'almacen',
     colores: { ropa: '#9a6b5a', abrigo: '#6b4538', gorro: null, pelo: '#3a2a22', bufanda: '#d9c7a8' },
-    saludo: 'Pasá, que adentro está calentito.', despedida: 'Volvé cuando quieras, que siempre hay algo.',
+    saludo: 'Pasá, que Ercilia ya viene. ¿Te busco algo mientras?', despedida: 'Volvé cuando quieras, que siempre hay algo.',
     charla: [
-      'En el almacén hay de todo un poco: yerba, kerosene, alpargatas. Y lo que no hay, se encarga por el tren.',
-      'Ercilia, la del almacén del valle, es prima mía. Nos mandamos las cartas en el mismo tren.',
+      'Le doy una mano a Ercilia: atiendo cuando ella duerme la siesta, repongo los estantes y barro la vereda, que con este viento es de nunca acabar.',
+      'Ercilia es prima de mi madre. Cuando se vino a la aldea con todo el almacén, me dijo: «Nélida, vos sabés sumar». Y acá estoy.',
       'Cuando abran más locales vamos a ser un pueblo de verdad. Ya me imagino la cola para el pan.',
     ],
   },
@@ -381,9 +419,25 @@ export const VECINOS_ALDEA = {
       'Cuando haya maestra voy a tener cuaderno propio, como el tuyo.',
     ],
   },
+  // 3.6: la casa de té ya no está sola: la atiende una galesa de la colonia del Chubut
+  galesa: {
+    nombre: 'Ceinwen Evans', oficio: 'la de la casa de té', mano: null, casa: 'casa-te', trabajo: 'casa-te',
+    colores: { ropa: '#5a6a7a', abrigo: '#3e4a5a', gorro: null, pelo: '#c8b89a', bufanda: '#e8e0d0' },
+    saludo: 'Prynhawn da! Buenas tardes, quiero decir. ¿Un té?', despedida: 'Hwyl fawr! Que te vaya bien.',
+    charla: [
+      'La torta negra lleva frutas secas, especias y paciencia. La receta la trajo mi tatarabuela de Gales, en el Mimosa.',
+      'Los galeses llegamos al Chubut en 1865. Del valle del río subimos a la Colonia 16 de Octubre, y de ahí algunos vinimos hasta acá.',
+      'El té se toma de tarde, con la pava al fuego y sin apuro. Desde las tres te espero en la galería.',
+    ],
+  },
 };
-export const ORDEN_VECINOS_ALDEA = ['jefe', 'almacenera', 'abuela', 'padre', 'madre', 'nene', 'nena'];
-export const esVecinoAldea = (clave) => typeof clave === 'string' && Object.hasOwn(VECINOS_ALDEA, clave);
+export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa'];
+// 3.6: Ercilia, la del almacén, también vive en la aldea (en el Relax), pero su figura, su saludo
+// y sus historias son los de siempre (PERSONAJES.ercilia y HISTORIAS en gente.js): acá sólo
+// están su casa, su trabajo y su rutina.
+export const VECINOS_DEL_VALLE = { ercilia: { casa: 'casa-ercilia', trabajo: 'almacen', definida: 'gente.js' } };
+export const esVecinoAldea = (clave) => typeof clave === 'string' && (Object.hasOwn(VECINOS_ALDEA, clave) || Object.hasOwn(VECINOS_DEL_VALLE, clave));
+const vecinoDe = (clave) => (Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : Object.hasOwn(VECINOS_DEL_VALLE, clave) ? VECINOS_DEL_VALLE[clave] : null);
 
 // Los pobladores: los cinco de la 3.1 (movidos de pueblo.js tal cual, con sus diálogos) y los
 // seis nuevos. `lote`: el local que se les levanta. `afuera`: a la tarde trabajan afuera (la
@@ -457,7 +511,7 @@ export const POBLADORES_ALDEA = {
       'Con una estafeta la aldea queda conectada: cartas, telegramas y el pronóstico que pasan de Bariloche. Hace falta un techo para el aparato, nada más.',
     ],
     saludo: 'Estafeta abierta. ¿Mandamos o recibimos?', despedida: 'Raya, punto, raya: hasta luego.',
-    resumen: 'Te entrega las cartas que llegaron con el tren y despacha las fotos que te pidieron, igual que el almacén del valle. Si no hay nada, te pasa el pronóstico.',
+    resumen: 'Te entrega las cartas que llegaron con el tren y despacha las fotos que te pidieron, igual que Ercilia en el almacén. Si no hay nada, te pasa el pronóstico.',
   },
   tejedora: {
     nombre: 'Elvira Ñancucheo', oficio: 'tejedora', mano: null, lote: 'hilanderia',
@@ -503,9 +557,9 @@ export const POBLADORES_ALDEA = {
 // El orden en que llegan: primero los de la 3.1, como siempre, y después los nuevos.
 export const ORDEN_POBLADORES_ALDEA = ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra', 'enfermera', 'telegrafista', 'tejedora', 'apicultor', 'guardaparque', 'musico'];
 export const esPobladorAldea = (clave) => typeof clave === 'string' && Object.hasOwn(POBLADORES_ALDEA, clave);
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA, ...ORDEN_POBLADORES_ALDEA];
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA, 'ercilia', ...ORDEN_POBLADORES_ALDEA];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
-export const personaAldea = (clave) => (esVecinoAldea(clave) ? VECINOS_ALDEA[clave] : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
+export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
 // ---------------------------------------------------------------- estado y saneo
 // La llegada: días entre la apertura de un local y el próximo que baja del tren, y cuánto
@@ -849,7 +903,7 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
     }
     case 'panadera': {
       if (yaHoy(aldea, clave, dia)) return { partes: ['La tanda de hoy ya salió. Mañana temprano hay más.'] };
-      if (cant(progreso, 'cosa', 'yerba') < S.yerbaPorPan) return { partes: [`Por ${S.yerbaPorPan} de yerba te doy ${S.panes} panes. Yerba hay en el almacén, el de Nélida o el de Ercilia.`] };
+      if (cant(progreso, 'cosa', 'yerba') < S.yerbaPorPan) return { partes: [`Por ${S.yerbaPorPan} de yerba te doy ${S.panes} panes. Yerba hay en el almacén de Ercilia.`] };
       return {
         partes: [`Te cambio ${S.panes} panes caseros por ${S.yerbaPorPan} de yerba. Están calentitos.`],
         seguir: DALE,
@@ -1058,6 +1112,8 @@ export function desfaseDe(persona) {
   return ((h % 81) - 40) / 100;
 }
 const indicePersona = (persona) => Math.max(0, ORDEN_PERSONAS_ALDEA.indexOf(persona));
+// Los que van a los cuentos del domingo, cada uno con su silla (ver `rutinaAldea`).
+const OYENTES = ORDEN_PERSONAS_ALDEA.filter((k) => !['abuela', 'jefe', 'nelida', 'galesa'].includes(k));
 // Quiénes ayudan en las obras: el padre de los Jones, el carpintero y el herrero (si ya
 // tienen su local) y el dueño de la obra.
 export function obrerosDe(aldea, lote) {
@@ -1084,7 +1140,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   const i = indicePersona(persona);
   const ir = (lugar, edificio, punto) => ({ lugar, edificio, punto });
   const plaza = () => ir('plaza', 'plaza', `estar-${(i % 20) + 1}`);
-  const v = esVecinoAldea(persona) ? VECINOS_ALDEA[persona] : null;
+  const v = esVecinoAldea(persona) ? vecinoDe(persona) : null;
   const p = v ? null : POBLADORES_ALDEA[persona];
   // el que acaba de bajar del tren espera en el andén (de noche, adentro del galpón)
   if (p && a.llegando?.clave === persona) return t < 7 || t >= 21 ? ir('estacion', 'estacion-aldea', 'adentro') : ir('estacion', 'estacion-aldea', 'anden');
@@ -1102,12 +1158,13 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   if (t < 6.5 || t >= 22 || (persona === 'musico' && t < 8.5)) return cama();
   // domingo de 10 a 11, los cuentos en la biblioteca: la abuela Herminia lee (y cuenta la
   // leyenda de los duendes) y casi todos van a escucharla; el jefe se queda tomando mate en la
-  // plaza y la almacenera abre un rato el almacén
+  // plaza, Nélida abre un rato el almacén y la galesa hornea la torta de la tarde
   if (domingo && t >= 10 && t < 11) {
     if (persona === 'abuela') return ir('biblioteca', 'biblioteca', 'cuentos');
     if (persona === 'jefe') return plaza();
-    if (persona === 'almacenera') return ir('trabajo', 'almacen-aldea', 'adentro');
-    return ir('biblioteca', 'biblioteca', `lectura-${(i % 16) + 1}`);
+    if (persona === 'nelida') return ir('trabajo', 'almacen', 'adentro');
+    if (persona === 'galesa') return ir('trabajo', 'casa-te', 'cocina');
+    return ir('biblioteca', 'biblioteca', `lectura-${OYENTES.indexOf(persona) + 1}`);
   }
   // sábado a la tarde, todos a la plaza con el músico
   if (musicoEnPlaza) return persona === 'musico' ? ir('plaza', 'plaza', 'musico') : plaza();
@@ -1136,9 +1193,20 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   if (v) {
     if (persona === 'jefe') {
       if (t >= 7 && t < 20) return ir('trabajo', 'estacion-aldea', Math.floor(h) % 2 ? 'anden' : 'adentro');
-    } else if (persona === 'almacenera') {
-      if ((t >= 8.5 && t < 12.5) || (t >= 15 && t < 20)) return ir('trabajo', 'almacen-aldea', 'adentro');
-      if (t >= 13.5 && t < 15) return enCasa('adentro');
+    } else if (persona === 'ercilia') {
+      // horario de almacén de pueblo: de 8:30 a 12:30 y de 16 a 20, con siesta en el medio
+      if ((t >= 8.5 && t < 12.5) || (t >= 16 && t < 20)) return ir('trabajo', 'almacen', 'adentro');
+      if (t >= 13.5 && t < 16) return cama();
+    } else if (persona === 'nelida') {
+      // la ayudante: barre la vereda, repone y atiende mientras Ercilia duerme la siesta
+      if (t >= 8 && t < 9) return ir('trabajo', 'almacen', 'vereda');
+      if (t >= 9 && t < 12.5) return ir('trabajo', 'almacen', 'reponer');
+      if (t >= 13.5 && t < 16) return ir('trabajo', 'almacen', 'adentro');
+      if (t >= 16 && t < 18.5) return ir('trabajo', 'almacen', 'reponer');
+    } else if (persona === 'galesa') {
+      // a la mañana hornea; de 15 a 20 atiende la galería
+      if (t >= 9 && t < 12.5) return ir('trabajo', 'casa-te', 'cocina');
+      if (t >= 15 && t < 20) return ir('trabajo', 'casa-te', 'adentro');
     } else if (persona === 'abuela') {
       if (t >= 15 && t < 18) return plaza();   // cuenta la leyenda a quien quiera escuchar
       if (t >= 9 && t < 12) return ir('biblioteca', 'biblioteca', 'adentro');   // a la mañana atiende la biblioteca
@@ -1147,7 +1215,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
       if ((t >= 8 && t < 12.5) || (t >= 13.5 && t < 18)) return enCasa('trabajo');
     } else if (persona === 'madre') {
       if (t >= 8 && t < 11) return enCasa('trabajo');
-      if (t >= 11 && t < 12.5) return ir('almacen', 'almacen-aldea', 'cliente-1');
+      if (t >= 11 && t < 12.5) return ir('almacen', 'almacen', 'cliente-1');
       if (t >= 16 && t < 18) return plaza();
     }
   } else if (abierto) {
@@ -1169,17 +1237,17 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
 // `obra` (true: con una obra en curso) y `hora` ([desde, hasta)). Los pobladores sólo charlan
 // si ya viven en la aldea.
 export const CHARLAS_ALDEA = [
-  { id: 'lluvia-tren', tema: 'clima', cuando: { clima: ['lluvia'] }, lineas: [['jefe', 'Llueve parejo, Nélida. El tren va a llegar con barro hasta las ventanillas.'], ['almacenera', 'Mejor, Ernesto: con lluvia la gente compra más yerba.']] },
+  { id: 'lluvia-tren', tema: 'clima', cuando: { clima: ['lluvia'] }, lineas: [['jefe', 'Llueve parejo, Ercilia. El tren va a llegar con barro hasta las ventanillas.'], ['ercilia', 'Mejor, Ernesto: con lluvia la gente compra más yerba.']] },
   { id: 'viento-chapas', tema: 'clima', cuando: { clima: ['viento'] }, lineas: [['padre', 'Hoy sopla como para volar las chapas, doña.'], ['abuela', 'Clavalas bien, entonces. El viento de acá no pide permiso.']] },
   { id: 'nieve-duende', tema: 'clima', cuando: { clima: ['nieve'] }, lineas: [['madre', 'Nahuel, ponete el gorro, que está nevando.'], ['nene', '¡Pero con nieve no se ve el duende de la plaza!'], ['abuela', 'Tranquilo, que el duende sabe esperar abajo de la nieve.']] },
-  { id: 'sol-ropa', tema: 'clima', cuando: { clima: ['sol'] }, lineas: [['almacenera', 'Qué día, Gladys. Hasta el lago se ve azul desde acá.'], ['madre', 'Aprovecho para tender la ropa, que mañana dicen que cambia.']] },
+  { id: 'sol-ropa', tema: 'clima', cuando: { clima: ['sol'] }, lineas: [['nelida', 'Qué día, Gladys. Hasta el lago se ve azul desde acá.'], ['madre', 'Aprovecho para tender la ropa, que mañana dicen que cambia.']] },
   { id: 'otono-lengas', tema: 'estacion', cuando: { estacion: ['otono'] }, lineas: [['abuela', 'Ya se pusieron coloradas las lengas del cerro.'], ['padre', 'Y hay que juntar leña antes de las heladas, doña.']] },
   { id: 'invierno-escarcha', tema: 'estacion', cuando: { estacion: ['invierno'] }, lineas: [['jefe', 'Esta mañana la vía estaba blanca de escarcha.'], ['padre', 'Lo mismo el tanque: tuve que romper el hielo con el hacha.']] },
-  { id: 'invierno-kerosene', tema: 'estacion', cuando: { estacion: ['invierno'] }, lineas: [['almacenera', 'Doña Herminia, ¿le guardo kerosene para el farol?'], ['abuela', 'Guardame dos litros, que las noches ya son largas.']] },
-  { id: 'verano-frambuesas', tema: 'estacion', cuando: { estacion: ['verano'] }, lineas: [['madre', 'Con este calor las frambuesas se pasan en dos días.'], ['almacenera', 'Traelas, que hacemos dulce y lo vendemos en el almacén.']] },
+  { id: 'invierno-kerosene', tema: 'estacion', cuando: { estacion: ['invierno'] }, lineas: [['ercilia', 'Doña Herminia, ¿le guardo kerosene para el farol?'], ['abuela', 'Guardame dos litros, que las noches ya son largas.']] },
+  { id: 'verano-frambuesas', tema: 'estacion', cuando: { estacion: ['verano'] }, lineas: [['madre', 'Con este calor las frambuesas se pasan en dos días.'], ['ercilia', 'Traelas, que hacemos dulce y lo vendemos en el almacén.']] },
   { id: 'obra-vigas', tema: 'obra', cuando: { obra: true }, lineas: [['padre', 'La obra va bien. En cuanto llegue el material, seguimos.'], ['jefe', 'Si te faltan clavos, el tren de la tarde trae un cajón.']] },
   { id: 'obra-medir', tema: 'obra', cuando: { obra: true }, lineas: [['padre', 'Tito, ¿esta tabla va o la cortamos?'], ['carpintero', 'Va. Medí dos veces y cortá una, como decía mi viejo.']] },
-  { id: 'obra-vecinos', tema: 'obra', cuando: { obra: true }, lineas: [['almacenera', '¿Viste lo rápido que sube el local nuevo?'], ['abuela', 'Así se hacían los pueblos: entre todos, y con mate.']] },
+  { id: 'obra-vecinos', tema: 'obra', cuando: { obra: true }, lineas: [['nelida', '¿Viste lo rápido que sube el local nuevo?'], ['abuela', 'Así se hacían los pueblos: entre todos, y con mate.']] },
   { id: 'leyenda-puertitas', tema: 'leyenda', lineas: [['abuela', 'Cuando llegaron las vías, los peones encontraron puertitas en las raíces de los coihues.'], ['nena', '¿Y adentro había duendes?'], ['abuela', 'Adentro había lo que cada uno quiso ver. Por eso le pusieron Aldea de los Duendes.']] },
   { id: 'leyenda-galleta', tema: 'leyenda', lineas: [['abuela', '¿Sigue dejando la galleta en el andén, Ernesto?'], ['jefe', 'Una por noche, doña. El primer jefe de estación lo hacía y a mí no me cuesta nada.']] },
   { id: 'leyenda-hongo', tema: 'leyenda', lineas: [['nene', 'Yo vi un gorrito colorado entre los helechos.'], ['nena', 'Era un hongo, Nahuel. Pero no le digas a la abuela.']] },
@@ -1187,7 +1255,10 @@ export const CHARLAS_ALDEA = [
   { id: 'biblioteca-cuentos', tema: 'biblioteca', lineas: [['nena', 'Abuela, ¿el domingo nos leés otra vez la de los duendes?'], ['abuela', 'Si me traen tortas fritas, les leo dos.']] },
   { id: 'biblioteca-libros', tema: 'biblioteca', lineas: [['jefe', 'Llegó en el tren una caja de libros para la biblioteca, Herminia. La manda la Popular de Esquel.'], ['abuela', '¡Qué alegría! Esta tarde los forro con papel madera.']] },
   { id: 'biblioteca-maestra', tema: 'biblioteca', lineas: [['maestra', 'Con la biblioteca frente a la plaza, los chicos leen más que en la escuela.'], ['abuela', 'Es que acá nadie les toma la lección, Delia.']] },
-  { id: 'tren-harina', tema: 'tren', lineas: [['jefe', 'Hoy el tren trae la encomienda de harina.'], ['almacenera', '¡Por fin! Ya estaba raspando la bolsa.']] },
+  { id: 'almacen-fiado', tema: 'almacen', lineas: [['ercilia', 'Nélida, anotá en la libreta: los Jones, un kilo de yerba y uno de azúcar.'], ['nelida', 'Ya está. Y la vereda la barrí dos veces: el viento la volvió a llenar de hojas.']] },
+  { id: 'almacen-te', tema: 'almacen', lineas: [['ercilia', 'Ceinwen, llegaron las cajas de té con el tren. ¿Te separo dos?'], ['galesa', 'Tres, Ercilia: el sábado viene gente de la estación a tomar el té.']] },
+  { id: 'te-torta', tema: 'te', lineas: [['galesa', 'Herminia, hoy hay torta negra recién cortada.'], ['abuela', 'Guardame una porción, Ceinwen, que después de los cuentos vengo con los chicos.']] },
+  { id: 'tren-harina', tema: 'tren', lineas: [['jefe', 'Hoy el tren trae la encomienda de harina.'], ['ercilia', '¡Por fin! Ya estaba raspando la bolsa.']] },
   { id: 'tren-ultimo', tema: 'tren', cuando: { hora: [19, 22] }, lineas: [['jefe', 'Pasó el último tren. Apago el farol del andén.'], ['padre', 'Buenas noches, jefe. Mañana temprano le llevo la leña.']] },
   { id: 'pan-tortas', tema: 'oficio', lineas: [['panadera', 'Mañana hago tortas fritas si sigue gris.'], ['madre', 'Guardame una docena, que los chicos las esperan toda la semana.']] },
   { id: 'herrero-hacha', tema: 'oficio', lineas: [['herrero', 'Traeme el hacha, Mario, que te la dejo cortando el viento.'], ['padre', 'Mañana, Anselmo, que hoy la necesito.']] },
@@ -1195,7 +1266,7 @@ export const CHARLAS_ALDEA = [
   { id: 'maestra-lee', tema: 'oficio', lineas: [['maestra', 'Lucía ya lee de corrido.'], ['madre', 'Lee hasta los carteles del tren, Delia. No para.']] },
   { id: 'enfermera-rodilla', tema: 'oficio', lineas: [['enfermera', '¿Cómo va esa rodilla, Herminia?'], ['abuela', 'Con el té de canelo que me diste, como nueva.']] },
   { id: 'telegrafo-atraso', tema: 'tren', lineas: [['telegrafista', 'Telegrama de Jacobacci: el tren viene con media hora de atraso.'], ['jefe', 'Media hora en la Patagonia es llegar puntual, Benigno.']] },
-  { id: 'tejedora-lana', tema: 'oficio', lineas: [['tejedora', 'Este vellón está lindo, pero hay que lavarlo tres veces.'], ['almacenera', 'Te guardo jabón blanco, Elvira. Del bueno.']] },
+  { id: 'tejedora-lana', tema: 'oficio', lineas: [['tejedora', 'Este vellón está lindo, pero hay que lavarlo tres veces.'], ['nelida', 'Te guardo jabón blanco, Elvira. Del bueno.']] },
   { id: 'abejas-flores', tema: 'estacion', cuando: { estacion: ['verano'] }, lineas: [['apicultor', 'Floreció el notro y las abejas andan locas.'], ['nena', '¿Me dejás ver los cajones?'], ['apicultor', 'De lejito, y sin correr.']] },
   { id: 'guardaparque-huemul', tema: 'oficio', lineas: [['guardaparque', 'Ayer vi un huemul cerca de la vía, Mario. Si lo ven, no lo corran.'], ['padre', 'Quedate tranquila, que acá nadie anda corriendo bichos.']] },
   { id: 'musico-cueca', tema: 'oficio', lineas: [['musico', 'El sábado toco un chamamé para usted, doña Herminia.'], ['abuela', 'Tocá una cueca, que el chamamé me cansa las rodillas.']] },
