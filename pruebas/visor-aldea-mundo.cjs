@@ -41,12 +41,33 @@ const TOMAS = {
   // la aldea completa: los once locales abiertos
   completa: { ojo: [4, 4.2, 6], a: [30, 4, 60], hora: 10.5, completa: true },
   'completa-noche': { ojo: [-30, 1.7, 23], a: [20, 2, 34], hora: 22.2, completa: true },
+  // 3.6 (detalles): las que no salen sin pedirlas (`extra`). `estacion` fuerza la estación y
+  // `mojado` deja el suelo como después de la lluvia.
+  mediodia: { ojo: [-4, 1.7, 30], a: [12, 2.5, 46], hora: 12.5, extra: true },
+  ripio: { ojo: [-2, 1.7, 23.5], a: [14, 0, 27.5], hora: 10.5, extra: true },
+  'ripio-mojado': { ojo: [-2, 1.7, 23.5], a: [14, 0, 27.5], hora: 10.5, mojado: 1, extra: true },
+  desnivel: { ojo: [78.5, 1.7, 22.5], a: [79.5, 0.4, 34], hora: 11, completa: true, extra: true },
+  'desnivel-atras': { ojo: [66, 2.4, 41.5], a: [82, 0.6, 33], hora: 11, completa: true, extra: true },
+  lotes: { ojo: [58, 26, 12], a: [64, 0, 42], hora: 11, extra: true },
+  'lote-cerca': { ojo: [40, 1.7, 22], a: [46, 0.6, 33], hora: 11, extra: true },
+  'borde-oeste': { ojo: [-36, 1.7, 52], a: [-70, 4, 60], hora: 16, extra: true },
+  'borde-fondo': { ojo: [6, 1.7, 76], a: [14, 4, 100], hora: 16, extra: true },
+  'borde-este': { ojo: [84, 1.7, 52], a: [112, 3, 56], hora: 16, extra: true },
+  farol: { ojo: [-14, 1.7, 21], a: [-30, 4.2, 28], hora: 22.2, extra: true },
+  'farol-dia': { ojo: [-14, 1.7, 21], a: [-30, 4.2, 28], hora: 12, extra: true },
+  nieve: { ojo: [4, 4.2, 6], a: [30, 4, 60], hora: 11, completa: true, estacion: 'invierno', extra: true },
+  'nieve-aerea': { ojo: [22, 45, 0], a: [22, 0, 48], hora: 12, completa: true, estacion: 'invierno', extra: true },
+  'nieve-noche': { ojo: [-30, 1.7, 23], a: [20, 2, 34], hora: 21, completa: true, estacion: 'invierno', extra: true },
+  atardecer: { ojo: [30, 1.7, 22], a: [50, 2.5, 30], hora: 19.2, completa: true, extra: true },
+  'interior-nieve': { ojo: 'biblioteca', hora: 11, estacion: 'invierno', extra: true },
+  'galeria-nieve': { ojo: [-31, 1.7, 28.2], a: [-35.5, 0.6, 32.5], hora: 11, estacion: 'invierno', extra: true },
+  humo: { ojo: [-24, 1.7, 34], a: [-33, 6, 40], hora: 21.5, extra: true },
 };
 
 app.whenReady().then(async () => {
   fs.mkdirSync(salida, { recursive: true });
   const arg = process.argv.find((a) => /^[a-z-]+(,[a-z-]+)*$/.test(a) && a.split(',').every((t) => TOMAS[t]));
-  const pedidas = (arg || Object.keys(TOMAS).filter((t) => !TOMAS[t].completa).join(',')).split(',');
+  const pedidas = (arg || Object.keys(TOMAS).filter((t) => !TOMAS[t].completa && !TOMAS[t].extra).join(',')).split(',');
   const calidad = (process.argv.find((a) => /^calidad=/.test(a)) || 'calidad=alta').split('=')[1];
   const w = new BrowserWindow({ show: true, width: 1600, height: 900, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   const js = (c) => w.webContents.executeJavaScript(c);
@@ -85,6 +106,9 @@ app.whenReady().then(async () => {
     await js(`(async () => { const M = window.__hojarasca.__aldeaMundo(); await M.listo(); M.montarCola(); return 1 })()`);
     const poner = `(() => { const H = window.__hojarasca, M = H.__aldeaMundo(), T = H.T, js = H.jugador.estado, t = ${JSON.stringify(t)};
       H.progreso.horas = t.hora; H.clima.estado.nublado = 0.1;
+      H.ajustes.estacion = t.estacion || 'verano';
+      if (t.estacion === 'invierno') H.__U().uInvierno.value = 1;
+      if (t.mojado != null) H.__U().uMojado.value = t.mojado;
       let o, a;
       if (t.ojo === 'biblioteca') {
         const p = H.__aldea.puntos('biblioteca'); const e = H.__aldea.edificio('biblioteca');
@@ -108,6 +132,8 @@ app.whenReady().then(async () => {
     await js(poner);
     await esperar(2500);
     await js(poner);
+    // (pruebas a mano: VISOR_JS se corre antes de cada foto, con H = window.__hojarasca)
+    if (process.env.VISOR_JS) await js(`(() => { const H = window.__hojarasca; ${process.env.VISOR_JS}; return 1 })()`);
     await esperar(400);
     const img = await w.webContents.capturePage();
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());

@@ -134,7 +134,7 @@ const PARA_LOTE = {
   escuela: 'la escuela', 'puesto-sanitario': 'el puesto sanitario', estafeta: 'la estafeta', hilanderia: 'la hilandería',
   'sala-miel': 'la sala de miel', seccional: 'la seccional', salon: 'el salón',
 };
-export const ACCESORIOS_ALDEA = ['faroles', 'banco', 'cerco', 'pirca', 'alamo', 'lena', 'tendedero', 'vereda', 'poste-luz', 'mastil', 'cantero'];
+export const ACCESORIOS_ALDEA = ['faroles', 'banco', 'cerco', 'pirca', 'alamo', 'lena', 'tendedero', 'vereda', 'poste-luz', 'mastil', 'cantero', 'escalones', 'frutal', 'arbusto'];
 
 // Presupuestos (los mide la prueba): triángulos por capa y dibujos.
 export const PRESUPUESTO_ALDEA = {
@@ -1791,7 +1791,19 @@ function posteLuz(K, x, z, o = {}) {
   // el brazo con la lámpara
   viga(c, [x, h - 1.0, z], [x, h - 1.0, z + 0.9], 0.05, 0.05, '#3a3734', { tipo: 4 });
   cono(c, [x, h - 1.05, z + 0.95], 0.2, 0.12, '#3a3734', { lados: 8, abierto: true });
-  quad(K.vid, [x - 0.08, h - 1.12, z + 0.88], [x + 0.08, h - 1.12, z + 0.88], [x + 0.08, h - 1.12, z + 1.02], [x - 0.08, h - 1.12, z + 1.02], { r: 1, g: 0.95, b: 0.8 }, { r: 1, g: 0.95, b: 0.8 }, { r: 1, g: 0.95, b: 0.8 }, { r: 1, g: 0.95, b: 0.8 }, 0);
+  // 3.6 (detalles): la lámpara es un globo de vidrio que cuelga bajo la pantalla (cuatro caras y el
+  // fondo): de noche se ve encendida desde cualquier lado, no sólo desde abajo; de día, apagada
+  // (va con los vidrios: brilloVentana). Con el postproceso, el brillo le hace el halo.
+  {
+    const zc = z + 0.95, a = 0.085, y0 = h - 1.3, y1 = h - 1.09, kb = { r: 1, g: 0.93, b: 0.76 }, ka = { r: 1, g: 0.97, b: 0.86 };
+    for (const [nx, nz] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+      const ux = nz, uz = -nx, P = (s0, y) => [x + nx * a + ux * s0, y, zc + nz * a + uz * s0];
+      quad(K.vid, P(-a, y0), P(a, y0), P(a, y1), P(-a, y1), kb, kb, ka, ka, 0);
+    }
+    quad(K.vid, [x - a, y0, zc - a], [x + a, y0, zc - a], [x + a, y0, zc + a], [x - a, y0, zc + a], kb, kb, kb, kb, 0);
+    // el portalámparas y la virola de chapa entre la pantalla y el globo
+    cilindro(c, [x, h - 1.07, zc], 0.05, 0.06, 0.05, '#2f2c2a', { tipo: 4, lados: 8 });
+  }
   K.circulo(x, z, 0.14, -0.4, h);
   K.luz(x, h - 1.25, z + 0.95, { color: 0xffc58a, radio: 12, intensidad: 1.0, clase: 'farol', cuarto: 'calle' });
   K.extra.cables = [{ lx: x - 0.55, ly: h - 0.18, lz: z }, { lx: x, ly: h - 0.18, lz: z }, { lx: x + 0.55, ly: h - 0.18, lz: z }];
@@ -3168,11 +3180,24 @@ function lote(K) {
     caja(c, [x, 0.2, z], [0.06, 0.6, 0.06], '#b88d5c', { tipo: 0, giro: r() });
     caja(c, [x, 0.48, z], [0.07, 0.04, 0.07], '#c8402a', { tipo: 4 });
   }
+  // 3.6 (detalles): el hilo de albañil (amarillo, de nylon) tirante entre las estacas; sin la línea de
+  // cal en el suelo, que desde lejos dibujaba un rectángulo blanco sobre el pasto. Sólo en las
+  // esquinas, una marca de cal donde se va a cavar el cimiento.
   for (let i = 0; i < puntos.length; i++) {
     const a = puntos[i], b = puntos[(i + 1) % puntos.length];
-    viga(c, [a[0], 0.36, a[1]], [b[0], 0.35, b[1]], 0.008, 0.008, '#e8e0c8', { tipo: 0 });
-    // la línea de cal en el suelo
-    viga(c, [a[0], 0.015, a[1]], [b[0], 0.015, b[1]], 0.07, 0.02, '#e8e4d8', { tipo: 4 });
+    viga(c, [a[0], 0.36, a[1]], [b[0], 0.35, b[1]], 0.007, 0.007, '#d9a23a', { tipo: 0 });
+  }
+  for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [W / 2, D / 2], [-W / 2, D / 2]]) {
+    viga(c, [x - Math.sign(x) * 0.02, 0.015, z], [x - Math.sign(x) * 0.55, 0.015, z], 0.06, 0.02, '#e8e4d8', { tipo: 4 });
+    viga(c, [x, 0.015, z - Math.sign(z) * 0.02], [x, 0.015, z - Math.sign(z) * 0.55], 0.06, 0.02, '#e8e4d8', { tipo: 4 });
+  }
+  // 3.6 (detalles): el lote del que viene (o el de la obra recién aceptada): ya trajeron algo de
+  // material, apilado adentro del hilo
+  if (K.op.proxima || K.op.obraActiva) {
+    pilaTablas(K, W / 2 - 1.7, -D / 2 + 1.0, 0.18, { capas: 5 });
+    pilaPiedras(K, -W / 2 + 1.3, -D / 2 + 1.3, { n: 8 });
+    for (let i = 0; i < 3; i++) palo(c, [-W / 2 + 0.9, 0.16 + (i === 2 ? 0.26 : 0), -0.6 + (i % 2) * 0.32 + (i === 2 ? 0.16 : 0)], [-W / 2 + 3.1, 0.16 + (i === 2 ? 0.26 : 0), -0.4 + (i % 2) * 0.32 + (i === 2 ? 0.16 : 0)], 0.15, elegir(r, ['#6e5a44', '#7a6650', '#5e4c3a']), { lados: 7 });
+    K.mueble(-W / 2 + 2.0, -0.4, 2.3, 0.8, 0.5, 0, 0);
   }
   // el cartel "Lote para ..."
   const x = -W / 2 + 1.0, z = D / 2 + 0.9;
@@ -3416,10 +3441,80 @@ function alamo(K, x0, z0, o) {
   alamo(Kl, 0, 0, { ...o, sinLod: true, lodDe: true, ramitas: 0, ladosNucleo: 5, filasNucleo: 4, cartas: 40, tamCarta: 2.3, alto });
   K.extra.alamo = { lod: { estructura: lt.geometria(), follaje: lf.geometria() }, alto };
 }
+// 3.6 (detalles): los escalones de laja que salvan el desnivel entre dos lotes, junto al murete de
+// pirca. Suben a lo largo de su +X desde x = 0 hasta `alto` (el desnivel); cada escalón es un bloque
+// de piedra desde abajo del suelo (no queda hueco), con la laja de arriba un poco más clara.
+function escalonesLaja(K, o = {}) {
+  const c = K.ext, alto = Math.max(0.2, o.alto ?? 1), ancho = o.ancho ?? 1.3, pisada = o.pisada ?? 0.32;
+  const n = Math.max(2, Math.round(alto / 0.19)), sube = alto / n;
+  const r = azar(semillaDe('escalones|' + alto.toFixed(2)));
+  for (let i = 0; i < n; i++) {
+    const x = (i + 0.5) * pisada, y1 = (i + 1) * sube, y0 = -0.35;
+    caja(c, [x, (y0 + y1 - 0.06) / 2, 0], [pisada + 0.04, y1 - 0.06 - y0, ancho + 0.1], elegir(r, ['#5c574e', '#625c52', '#575249']), { tipo: 4, giro: (r() - 0.5) * 0.04 });
+    caja(c, [x + (r() - 0.5) * 0.02, y1 - 0.035, (r() - 0.5) * 0.04], [pisada + 0.07, 0.07, ancho + (r() - 0.5) * 0.08], elegir(r, PALETA_ALDEA.laja), { tipo: 4, giro: (r() - 0.5) * 0.05 });
+    K.plataforma(x, 0, pisada + 0.02, ancho, y1, 0.3);
+  }
+  // dos piedras grandes de cada lado, de remate
+  for (const sz of [-1, 1]) for (const t of [0.25, 0.75]) bulto(c, [n * pisada * t, sube * n * t * 0.9 - 0.05, sz * (ancho / 2 + 0.2)], 0.22, elegir(r, PALETA_ALDEA.laja), { esc: [1.2, 0.7, 0.9], rot: [r(), r() * 3, r()], tipo: 4 });
+  K.pisos.push({ lx: n * pisada / 2, lz: 0, largo: n * pisada, ancho, giro: 0 });
+}
+// 3.6 (detalles): un frutal viejo de patio (manzano o ciruelo): tronco corto y torcido, unas ramas
+// gruesas que abren la copa y la copa redonda de cartas de hojas, como el bosque. Las hojas son
+// aTipo 2: en otoño amarillean y en invierno caen (queda la ramazón).
+function frutal(K, x0, z0, o = {}) {
+  const c = K.ext, fol = K.fol, r = azar(semillaDe('frutal|' + (o.semilla ?? 0)));
+  const alto = o.alto ?? entre(r, 3.6, 4.6), yC = alto * 0.64, R = entre(r, 1.4, 1.8);
+  const xt = x0 + 0.12, zt = z0 + 0.06, yh = alto * 0.36;
+  palo(c, [x0, -0.25, z0], [xt, yh, zt], 0.13, '#5a4a3c', { lados: 6, punta: 0.75 });
+  const puntas = [];
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.26 + r() * 0.5, rr = R * entre(r, 0.5, 0.8), p = [x0 + Math.cos(a) * rr, yC + entre(r, -0.3, 0.6), z0 + Math.sin(a) * rr];
+    palo(c, [xt, yh - 0.05, zt], p, 0.065 - i * 0.004, '#5e4e3e', { lados: 4, punta: 0.45 });
+    puntas.push(p);
+  }
+  const oscuro = tinte('#2e4423'), claro = tinte('#6f8f3e');
+  const i0 = fol.tipo.length;
+  bulto(fol, [x0, yC + 0.1, z0], R * 0.72, '#3a5428', { tipo: 2, esc: [1, 0.72, 1], detalle: 1, suave: true });
+  fol.marcarCarta(i0, fol.tipo.length - i0, [0, 0, 0, -11]);
+  for (let i = 0; i < (o.cartas ?? 120); i++) {
+    const u = r() * 2 - 1, a = r() * 6.283, sq = Math.sqrt(1 - u * u), rr = R * entre(r, 0.7, 1.02);
+    const nx = sq * Math.cos(a), ny = u, nz = sq * Math.sin(a);
+    const P = [x0 + nx * rr, yC + 0.1 + ny * rr * 0.72, z0 + nz * rr];
+    const k = mezclar(oscuro, claro, Math.min(1, Math.max(0, 0.35 + 0.4 * ny + 0.2 * (nx * 0.6 + nz * 0.5) + (r() - 0.5) * 0.3)));
+    const tam = entre(r, 0.3, 0.42);
+    cartaHojas(fol, P[0], P[1], P[2], [nx, Math.max(0.15, ny), nz], tam, tam * 0.9, (r() - 0.5) * 0.8, tam * 0.1, 1, 2, escalar(k, 0.8), k);
+  }
+  K.circulo(x0, z0, 0.18, -0.2, 2.2);
+}
+// 3.6 (detalles): un arbusto de borde (calafate o rosa mosqueta): una mata baja y redonda de cartas
+// de hojitas sobre unas varas; la mosqueta con flores (aTipo 3: en invierno se cierran).
+function arbusto(K, x0, z0, o = {}) {
+  const c = K.ext, fol = K.fol, r = azar(semillaDe('arbusto|' + (o.semilla ?? 0)));
+  const R = o.radio ?? entre(r, 0.7, 1.05), alto = R * entre(r, 1.1, 1.4), mosqueta = o.flores ?? r() < 0.5;
+  for (let i = 0; i < 5; i++) { const a = i * 1.3 + r(); palo(c, [x0, -0.1, z0], [x0 + Math.cos(a) * R * 0.6, alto * entre(r, 0.6, 0.9), z0 + Math.sin(a) * R * 0.6], 0.025, '#5b4636', { lados: 3, punta: 0.4 }); }
+  const oscuro = tinte(mosqueta ? '#2f4a24' : '#28401f'), claro = tinte(mosqueta ? '#6c8a3a' : '#55703a');
+  const i0 = fol.tipo.length;
+  bulto(fol, [x0, alto * 0.48, z0], R * 0.78, '#30482a', { tipo: 1, esc: [1, 0.8, 1], detalle: 1, suave: true });
+  fol.marcarCarta(i0, fol.tipo.length - i0, [0, 0, 0, -10]);
+  for (let i = 0; i < (o.cartas ?? 46); i++) {
+    const u = r() * 1.2 - 0.2, a = r() * 6.283, sq = Math.sqrt(Math.max(0, 1 - u * u)), rr = R * entre(r, 0.75, 1.05);
+    const nx = sq * Math.cos(a), ny = Math.min(1, u), nz = sq * Math.sin(a);
+    const P = [x0 + nx * rr, alto * 0.48 + ny * rr * 0.8, z0 + nz * rr];
+    const k = mezclar(oscuro, claro, Math.min(1, Math.max(0, 0.3 + 0.45 * ny + (r() - 0.5) * 0.3)));
+    const tam = entre(r, 0.26, 0.36);
+    cartaHojas(fol, P[0], P[1], P[2], [nx, Math.max(0.2, ny), nz], tam, tam * 0.85, (r() - 0.5) * 0.8, tam * 0.1, 0, 1, escalar(k, 0.78), k);
+  }
+  if (mosqueta) for (let i = 0; i < 9; i++) {
+    const a = r() * 6.283, u = r() * 0.8, rr = R * 0.98, sq = Math.sqrt(1 - u * u);
+    bulto(fol, [x0 + sq * Math.cos(a) * rr, alto * 0.48 + u * rr * 0.8, z0 + sq * Math.sin(a) * rr], 0.055, elegir(r, ['#e8a0b4', '#f0c0cc', '#d87a98']), { tipo: 3, esc: [1, 0.6, 1] });
+  }
+  K.circulo(x0, z0, R * 0.7, -0.1, alto);
+}
 export function armarAccesorio(nombre, o = {}) {
   const largo = o.largo ?? 4;
   const tam = { faroles: [1, 1], banco: [1.8, 0.6], cerco: [largo, 0.4], pirca: [largo, 0.8], alamo: [3, 3], lena: [1.6, 0.8], tendedero: [3.4, 0.6],
-    vereda: [largo, o.ancho ?? 1.2], 'poste-luz': [1.6, 1.2], mastil: [1.4, 1.4], cantero: [o.largo ?? 2.4, o.ancho ?? 1.2] }[nombre];
+    vereda: [largo, o.ancho ?? 1.2], 'poste-luz': [1.6, 1.2], mastil: [1.4, 1.4], cantero: [o.largo ?? 2.4, o.ancho ?? 1.2],
+    escalones: [Math.max(2, Math.round((o.alto ?? 1) / 0.19)) * 0.32, o.ancho ?? 1.3], frutal: [3.6, 3.6], arbusto: [2, 2] }[nombre];
   if (!tam) throw new Error('aldea-arquitectura: no conozco el accesorio ' + nombre);
   const K = crearContexto('accesorio-' + nombre + '-' + (o.semilla ?? 0), 4, o, { ancho: tam[0], fondo: tam[1], nombre });
   switch (nombre) {
@@ -3434,9 +3529,12 @@ export function armarAccesorio(nombre, o = {}) {
     case 'poste-luz': posteLuz(K, 0, 0); break;
     case 'mastil': mastil(K, 0, 0, { alto: o.alto ?? 7.5 }); break;
     case 'cantero': cantero(K, 0, 0, { largo: o.largo ?? 2.4, ancho: o.ancho ?? 1.2 }); break;
+    case 'escalones': escalonesLaja(K, o); break;
+    case 'frutal': frutal(K, 0, 0, o); break;
+    case 'arbusto': arbusto(K, 0, 0, o); break;
     default: break;
   }
-  K.ocupa = { x0: -tam[0] / 2, x1: tam[0] / 2, z0: -tam[1] / 2, z1: tam[1] / 2 };
+  K.ocupa = nombre === 'escalones' ? { x0: 0, x1: tam[0], z0: -tam[1] / 2, z1: tam[1] / 2 } : { x0: -tam[0] / 2, x1: tam[0] / 2, z0: -tam[1] / 2, z1: tam[1] / 2 };
   const res = cerrar(K);
   if (nombre === 'alamo') { res.lod = K.extra.alamo.lod; res.alto = K.extra.alamo.alto; }
   return res;
@@ -3523,7 +3621,7 @@ export function armarAgregadoEstacion(opciones = {}) {
 // con el resto (compileAsync). Lo que no tiene aSuperficie (vale 0) sale idéntico.
 const GLSL_ALDEA_COMUN = /* glsl */`
   varying float vSupA; varying vec3 vLocA; varying vec3 vNormWA;
-  float ondaA = 0.0; float tAglob = 0.0;
+  float ondaA = 0.0; float tAglob = 0.0; float nieveA = 1.0;
   float hA(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float nA(vec2 p) {
     vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -3540,6 +3638,9 @@ const GLSL_ALDEA_COLOR = /* glsl */`
     float sA = floor(vSupA + 0.5);
     float dentro = step(9.5, sA);
     float tipo = sA - 10.0 * dentro;
+    // 3.6 (detalles): adentro no nieva nunca, y en el piso de las galerías casi nada (lo bajo techo se
+    // marcaba sólo con la máscara del suelo, de 2 m: en una casa de 7 m nevaba sobre medio piso)
+    nieveA = dentro > 0.5 ? 0.0 : (abs(tipo - 8.0) < 0.5 ? 0.2 : 1.0);
     if (tipo > 0.5) {
       vec3 pL = vLocA;
       vec3 nL = normalize(cross(dFdx(pL), dFdy(pL)) + vec3(0.0, 1e-6, 0.0));
@@ -3651,6 +3752,9 @@ const GLSL_ALDEA_NORMAL = /* glsl */`
     if (lT > 1e-8) normal = normalize(normal + (T / lT) * cos(tAglob * 82.67) * 0.42 * ondaA);
   }
 `;
+// (las dos líneas de la nieve de materialVegetal que se retocan; verificar-3-6-detalles revisa que estén)
+export const NIEVE_FRAG_ALDEA = 'acumula *= 1.0 - texture2D(uEstepaVeg, vec2(vPosMundoVeg.x / 1024.0 + 0.5, vPosMundoVeg.z / 1024.0 + 0.5)).g;';
+export const NIEVE_VERT_ALDEA = 'uInvierno * arriba * 0.9);';
 export function prepararMaterialAldea(mat) {
   if (!mat || mat.userData?.aldea36) return mat;
   const previo = mat.onBeforeCompile;
@@ -3664,7 +3768,11 @@ export function prepararMaterialAldea(mat) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\n' + GLSL_ALDEA_COMUN)
       .replace('#include <color_fragment>', '#include <color_fragment>\n' + GLSL_ALDEA_COLOR)
-      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GLSL_ALDEA_NORMAL);
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GLSL_ALDEA_NORMAL)
+      // 3.6 (detalles): la nieve que se junta arriba (materiales.js) respeta lo de adentro
+      .replace(NIEVE_FRAG_ALDEA, NIEVE_FRAG_ALDEA + '\nacumula *= nieveA;');
+    // (y la de los techos y piedras, que va por vértice: adentro tampoco)
+    sh.vertexShader = sh.vertexShader.replace(NIEVE_VERT_ALDEA, 'uInvierno * arriba * 0.9 * (1.0 - step(9.5, aSuperficie)));');
   };
   mat.userData.aldea36 = true;
   mat.needsUpdate = true;

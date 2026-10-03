@@ -310,6 +310,8 @@ const con = valle({ aldea: true });
   am.montarCola();
   const ab = am.estadoEdificio('carpinteria');
   ok(ab.montada === 'carpinteria|4|0' && ab.techo, 'abrió la carpintería: terminada y con techo');
+  // 3.6 (detalles): el cable del poste a la casa aparece apenas abre (sin esperar la luz de las ventanas)
+  ok((am.medir().acometidas || []).includes('carpinteria'), `el cable de luz llega a la carpintería cuando abre (${(am.medir().acometidas || []).join(', ')})`);
   // las etapas: lo que dice aldea-gente a la etapa de la arquitectura
   ok(AM.etapaVisual(A.aldeaNueva(), 'carpinteria').etapa === 0 && AM.etapaVisual(A.aldeaNueva(), 'escuela').etapa === 3 && AM.etapaVisual(A.aldeaNueva(), 'biblioteca').etapa === 4, 'lote vacío, escuela a medio hacer, biblioteca terminada');
   ok(AM.etapaVisual({ ...A.aldeaNueva(), pobladores: [{ clave: 'maestra', dia: 1 }], obras: { escuela: { etapa: 2, aportado: {}, lista: null, desde: 1 } } }, 'escuela').etapa === 3, 'la escuela nunca vuelve para atrás');
@@ -326,6 +328,58 @@ const con = valle({ aldea: true });
     ok(!A.IDS_EDIFICIOS.some((id) => A.dentroDePlanta(id, a.lx, a.lz, -0.2)), `${a.tipo} (${a.lx.toFixed(1)}, ${a.lz.toFixed(1)}): fuera de los edificios`);
   }
   ok(JSON.stringify(AM.planAccesorios()) === JSON.stringify(plan), 'siempre los mismos');
+}
+
+// ---------------------------------------------------------------- 3.6 (detalles)
+{
+  const { am, T } = con;
+  // el ripio: sobre la misma rejilla del suelo (4 cm arriba, nunca lo atraviesa), con su material propio
+  const calles = am.raices().find((r) => /aldea-calles/.test(r.name));
+  let ripio = null; calles?.traverse((o) => { if (o.isMesh && o.material?.userData?.ripio36) ripio = o; });
+  ok(!!ripio && !!ripio.geometry.attributes.aLocalR, 'el ripio con su material (la grava en dos escalas, huellas, charcos y nieve)');
+  if (ripio) {
+    const p = ripio.geometry.attributes.position, c = ripio.position;
+    let peor = 0;
+    for (let i = 0; i < p.count; i += 7) { const x = p.getX(i) + c.x, z = p.getZ(i) + c.z; peor = Math.max(peor, Math.abs(p.getY(i) + c.y - T.altura(x, z) - 0.04)); }
+    ok(peor < 0.02, `el ripio va 4 cm sobre el suelo en cada vértice (desvío ${peor.toFixed(3)} m)`);
+    ok(ripio.geometry.index.count / 3 < 4000, `el ripio es liviano (${ripio.geometry.index.count / 3} triángulos)`);
+  }
+  // la máscara: calle adentro, pasto afuera, las huellas apisonadas y siempre igual
+  const mk = AM.mascaraRipio(), MR = AM.MARCO_RIPIO;
+  const lee = (lx, lz) => { const i = Math.floor((lx - MR.lx0) / MR.paso), j = Math.floor((lz - MR.lz0) / MR.paso), k = (j * mk.W + i) * 4; return [mk.datos[k], mk.datos[k + 1], mk.datos[k + 2], mk.datos[k + 3]]; };
+  ok(lee(0, 26)[0] > 240 && lee(0, 33)[0] === 0, 'la máscara del ripio: en la calle sí, en la plaza no');
+  let huellas = 0;
+  for (let x = -30; x < 80; x += 1) { let mx = 0; for (let o = -1.3; o <= 1.3; o += 0.25) mx = Math.max(mx, lee(x, 26 + o)[1]); huellas += mx > 60 ? 1 : 0; }
+  ok(huellas > 80, `las dos huellas de las ruedas a lo largo de la calle de la Vía (${huellas} de 110 m)`);
+  ok(AM.mascaraRipio().datos.every((v, i) => v === mk.datos[i]), 'la máscara del ripio sale siempre igual');
+  // las calles niveladas: sin lomos ni pozos (los bordes emparejados de los lotes armaban escalones
+  // a lo largo de la calle): la curvatura, menor que la del mismo terreno con los lotes y sin nivelar
+  const m = A.marcoAldea(), sinNivelar = Te.generarTerreno();
+  AM.emparejarTerreno(sinNivelar, AM.zonasEmparejar(), []);
+  const curva = (Tx) => { let mx = 0; for (let x = -36; x <= 82; x += 1) { const h = (lx) => { const w = m.aMundo(lx, 26); return Tx.altura(w.x, w.z); }; mx = Math.max(mx, Math.abs(h(x - 3) - 2 * h(x) + h(x + 3))); } return mx; };
+  ok(curva(T) < curva(sinNivelar) * 0.75, `la calle de la Vía sin lomos ni pozos (curvatura ${curva(T).toFixed(2)} m; sin nivelar ${curva(sinNivelar).toFixed(2)})`);
+  // los desniveles entre lotes: murete de pirca y escalones de laja donde hace falta
+  const des = AM.planDesniveles(), plan = AM.planAccesorios();
+  ok(des.some((d) => [d.a, d.b].sort().join() === 'carpinteria,pescaderia'), `el desnivel entre la carpintería y la pescadería (${des.map((d) => d.a + '|' + d.b).join(', ')})`);
+  for (const d of des) {
+    const k = `${d.a}|${d.b}`;
+    const muretes = plan.filter((a) => a.tipo === 'murete' && a.desnivel === k), esc = plan.find((a) => a.tipo === 'escalones' && a.desnivel === k);
+    ok(muretes.length >= 1 && esc && Math.abs(esc.especial.opciones.alto - (d.alto - d.bajo)) < 0.01, `${k}: murete (${muretes.length} tramos) y escalones de ${(d.alto - d.bajo).toFixed(2)} m`);
+    ok(muretes.every((a) => Math.abs(a.yFijo + AM.ALTO_MURETE - d.alto - 0.12) < 1e-6), `${k}: el murete al ras del lote de arriba`);
+  }
+  // el borde: frutales, arbustos y cercos de palo a pique
+  const cuenta = (t) => plan.filter((a) => a.tipo === t).length;
+  ok(cuenta('frutal') >= 3 && cuenta('arbusto') >= 10 && cuenta('cerco-pique') >= 3, `el borde de la aldea: ${cuenta('frutal')} frutales, ${cuenta('arbusto')} arbustos, ${cuenta('cerco-pique')} tramos de palo a pique`);
+  // el lote que sigue tiene material apilado
+  ok(AM.etapaVisual(A.aldeaNueva(), A.LOTE_DE[A.quienLlega(A.aldeaNueva())]).opciones.proxima === true && !AM.etapaVisual(A.aldeaNueva(), 'salon').opciones.proxima, 'el lote del próximo poblador, con material apilado');
+}
+{
+  const t = leer('src/clima.js');
+  ok(t.includes('vCerca = smoothstep(3.0, 11.0, -mvPosition.z)') && t.includes('Math.max(0.5 + 2.2 * v,'), 'el humo: se borra pegado a la cámara y nunca baja de la chimenea');
+  const mat = leer('src/materiales.js'), arq = leer('src/aldea-arquitectura.js');
+  const frag = /NIEVE_FRAG_ALDEA = '([^']+)'/.exec(arq)?.[1], vert = /NIEVE_VERT_ALDEA = '([^']+)'/.exec(arq)?.[1];
+  ok(!!frag && mat.includes(frag) && !!vert && mat.includes(vert), 'la nieve de adentro: las líneas de materiales.js que retoca la aldea siguen ahí');
+  ok(/globo de vidrio/.test(arq), 'el farol de los postes: la lámpara es un globo que brilla de todos lados');
 }
 
 if (fallas.length) { console.error(`\nverificar-3-6-mundo: ${fallas.length} de ${pasos} fallaron`); process.exit(1); }
