@@ -27,9 +27,10 @@ import { sanearDiarios } from './diarios.js';
 // 3.1: la historia guiada y los eventos del valle
 import { sanearHistoria } from './historia.js';
 import { sanearEventosValle } from './eventos-valle.js';
-// 3.1: rangos y oficios, y el pueblo que fundás
+// 3.1: rangos y oficios
 import { sanearOficios, oficiosNuevos } from './oficios.js';
-import { sanearPueblo, puebloNuevo } from './pueblo.js';
+// 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
+import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -264,8 +265,8 @@ export function progresoNuevo() {
     personal: sanearPersonal(null),
     // 2.9: el comercio por la trochita y los fletes (ver `comercio.js`)
     comercio: comercioNuevo(),
-    // 3.1: los oficios empiezan en cero y el pueblo, sin nadie
-    oficios: oficiosNuevos(), pueblo: puebloNuevo(),
+    // 3.1: los oficios empiezan en cero. 3.6: la aldea, como el primer día (ya no hay `pueblo`)
+    oficios: oficiosNuevos(), aldea: aldeaNueva(),
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -365,9 +366,11 @@ function sanearProgreso(p) {
   if (!objeto(p)) return null;
   p = migrarCanteros(p);
   const base = progresoNuevo();
+  // 3.6: el pueblo de la 3.1 no pasa: se convierte en la aldea (ver `aldea` más abajo)
+  const { pueblo: _pueblo31, ...resto } = p;
   return {
     ...base,
-    ...p,
+    ...resto,
     versionGuardado: VERSION_GUARDADO,
     entradas: migrarEntradas(p.entradas),
     tomados: arr(p.tomados),
@@ -420,9 +423,11 @@ function sanearProgreso(p) {
     ...(p.historia ? { historia: sanearHistoria(p.historia) } : {}),
     ...(p.eventosValle ? { eventosValle: sanearEventosValle(p.eventosValle) } : {}),
     // 3.1: una partida vieja no los trae: los oficios salen sin acreditar (main.js le
-    // acredita una vez lo que ya había hecho) y el pueblo, vacío
+    // acredita una vez lo que ya había hecho)
     oficios: sanearOficios(p.oficios),
-    pueblo: sanearPueblo(p.pueblo),
+    // 3.6: la aldea. Una partida de la 3.1 trae `pueblo` y no `aldea`: sus pobladores se mudan
+    // a la aldea con el local ya levantado (ver `migrarDesdePueblo`); el resto se descarta
+    aldea: p.aldea !== undefined ? sanearAldea(p.aldea) : objeto(p.pueblo) ? migrarDesdePueblo(p.pueblo, p.dia) : aldeaNueva(),
     // 2.3: las truchas del día, las semillas juntadas hoy, la humedad de la leña y la
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,

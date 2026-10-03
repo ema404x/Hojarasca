@@ -11,6 +11,8 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import * as O from '../src/oficios.js';
 import * as P from '../src/pueblo.js';
+// 3.6: el progreso ya no guarda `pueblo`: guarda la aldea (ver verificar-3-6-aldea.mjs)
+import * as A from '../src/aldea.js';
 import { ENTRADAS } from '../src/cuaderno.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
@@ -254,28 +256,31 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   const G = await import('../src/guardado.js?pueblo31=' + Date.now());
   const nuevo = G.progresoNuevo();
   assert.deepEqual(nuevo.oficios, O.oficiosNuevos(), 'una partida nueva: oficios en cero y ya acreditados');
-  assert.deepEqual(nuevo.pueblo, P.puebloNuevo());
-  const vieja = G.progresoNuevo(); delete vieja.oficios; delete vieja.pueblo; vieja.dia = 7;
+  // 3.6: una partida nueva lleva la aldea y no el pueblo
+  assert.ok(!('pueblo' in nuevo)); assert.deepEqual(nuevo.aldea, A.aldeaNueva());
+  const vieja = G.progresoNuevo(); delete vieja.oficios; delete vieja.aldea; vieja.dia = 7;
   datos.set('hojarasca-v1', JSON.stringify(vieja));
   const cargada = G.cargarProgreso();
   assert.ok(cargada && cargada.dia === 7, 'una partida de antes de la 3.1 carga');
   assert.equal(cargada.oficios.acreditado, false, 'y se le acreditará lo hecho');
-  assert.deepEqual(cargada.pueblo, P.puebloNuevo());
+  assert.deepEqual(cargada.aldea, A.aldeaNueva());
   const con = G.progresoNuevo();
   O.sumarXp(con.oficios, 'hachero', 130);
+  // 3.6: un pueblo de la 3.1 (sin aldea) se muda a la aldea al cargar
+  delete con.aldea; con.pueblo = P.puebloNuevo();
   con.pueblo.pobladores.push({ clave: 'carpintero', casa: { id: 'puesto@1.0,2.0', plano: 'puesto', nombre: 'El Rincón', x: 1, z: 2, rot: 0 }, dia: 3 });
   con.pueblo.nombre = 'Villa Lenga'; con.pueblo.cartel = { x: 4, z: 5, rot: 1 };
   assert.ok(G.guardarProgreso(con));
   const vuelta = G.cargarProgreso();
   assert.equal(O.nivelOficio(vuelta.oficios, 'hachero'), 2, 'los oficios vuelven');
-  assert.deepEqual(vuelta.pueblo, P.sanearPueblo(con.pueblo), 'el pueblo vuelve igual');
-  const rota = G.progresoNuevo(); rota.oficios = 'x'; rota.pueblo = [1, 2];
+  assert.ok(!('pueblo' in vuelta) && A.localAbierto(vuelta.aldea, 'carpinteria'), 'el pueblo vuelve como aldea, con el local del carpintero abierto');
+  const rota = G.progresoNuevo(); rota.oficios = 'x'; rota.aldea = [1, 2];
   datos.set('hojarasca-v1', JSON.stringify(rota));
   const r2 = G.cargarProgreso();
-  assert.ok(r2 && r2.pueblo.pobladores.length === 0 && typeof r2.oficios.xp === 'object', 'lo roto no rompe la partida');
+  assert.ok(r2 && r2.aldea.pobladores.length === 0 && typeof r2.oficios.xp === 'object', 'lo roto no rompe la partida');
   const g = leer('src/guardado.js');
-  assert.ok(g.includes("import { sanearOficios, oficiosNuevos } from './oficios.js';") && g.includes("import { sanearPueblo, puebloNuevo } from './pueblo.js';"));
-  assert.ok(g.includes('oficios: sanearOficios(p.oficios),') && g.includes('pueblo: sanearPueblo(p.pueblo),'));
+  assert.ok(g.includes("import { sanearOficios, oficiosNuevos } from './oficios.js';") && g.includes("import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';"));
+  assert.ok(g.includes('oficios: sanearOficios(p.oficios),') && g.includes('aldea: p.aldea !== undefined ? sanearAldea(p.aldea)'));
 }
 
 // ============================================================ 4. los enganches
