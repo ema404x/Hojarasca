@@ -130,3 +130,16 @@ todo (la aldea y su crecimiento).
   (horarios, vecinos, pobladores nuevos, charlas) e **integración** (sacar lo viejo, obras del
   pueblo con E, cuaderno, mapa, comercio, pruebas).
 - Fase 3: unir, suite completa, capturas, zip y GitHub.
+
+## 12. El almacén y la casa de té se mudan a la aldea (usuario, 03-10)
+- **Relax**: el almacén de Ercilia y la casa de té de las galesas (los de siempre, mismo
+  edificio de `estructuras.js`) se arman en la aldea. El almacén ocupa el lugar del almacén
+  nuevo que estaba planeado. En el valle, donde estaban, no queda nada, pero el sorteo de sitios
+  (`rng(31)`, `buscarLlano`, `registrarHuella`) corre igual, para que la torre, la cueva y el
+  galpón no se muevan.
+- **Ercilia** atiende el almacén en la aldea; **Nélida** es su ayudante. La casa de té tiene
+  quien la atienda.
+- **Desafío**: los dos quedan en el valle como hoy (el almacén es un lugar del asedio).
+- Hay que revisar todo lo que daba por hecho el almacén en el valle: visitas a tu mesa,
+  eventos de Ercilia ("ir al pueblo"), encargos, cartas, la historia, las pistas del cuaderno y
+  el nombre de la parada "Apeadero de la Casa de Té" con su comercio guardado.
