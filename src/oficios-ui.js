@@ -6,6 +6,7 @@ import {
   ORDEN_OFICIOS, OFICIOS, XP, METROS_REMO, sanearOficios, sumarXp, nivelOficio, estadoOficio, rangoGeneral, acreditarOficios, esOficio,
 } from './oficios.js';
 import { ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, NOMBRE_ALDEA } from './aldea.js';
+import { amistades } from './vecindad.js';
 
 export function crearOficiosUI(ctx) {
   let elegido = null;
@@ -59,7 +60,8 @@ export function crearOficiosUI(ctx) {
     const r = rangoGeneral(of);
     lista.appendChild(el('p', 'progreso', `Tu rango: ${r.titulo}`));
     const ul = el('ul', 'lista');
-    const ids = [...ORDEN_OFICIOS, ...(aldea ? ['aldea'] : [])];
+    // 3.6 (vida): y «Tus vecinos» (cómo te llevás con cada uno y lo que le gusta; ver vecindad-juego.js)
+    const ids = [...ORDEN_OFICIOS, ...(aldea ? ['aldea'] : []), ...(aldea?.dibujarVecinos ? ['vecinos'] : [])];
     if (!ids.includes(elegido)) elegido = r.id || ORDEN_OFICIOS[0];
     for (const id of ids) {
       const b = el('button');
@@ -69,6 +71,10 @@ export function crearOficiosUI(ctx) {
         const n = ORDEN_VECINOS_ALDEA.length + Object.keys(VECINOS_DEL_VALLE).length + (a?.pobladores?.length || 0);
         b.appendChild(el('span', a?.descubierta ? '' : 'pendiente', NOMBRE_ALDEA));
         b.appendChild(el('span', 'marca', `${n} vecinos`));
+      } else if (id === 'vecinos') {
+        const conocidos = Object.keys(amistades(ctx.progreso())).length;
+        b.appendChild(el('span', conocidos ? '' : 'pendiente', 'Tus vecinos'));
+        b.appendChild(el('span', 'marca', conocidos === 1 ? '1 conocido' : `${conocidos} conocidos`));
       } else {
         const e = estadoOficio(of, id);
         b.appendChild(el('span', e.nivel ? '' : 'pendiente', e.nivel ? e.titulo : OFICIOS[id].nombre));
@@ -82,6 +88,7 @@ export function crearOficiosUI(ctx) {
     lista.appendChild(ul);
 
     if (elegido === 'aldea' && aldea) { aldea.dibujarCuaderno(ficha, el); return; }
+    if (elegido === 'vecinos' && aldea?.dibujarVecinos) { aldea.dibujarVecinos(ficha, el); return; }
     const e = estadoOficio(of, elegido);
     ficha.appendChild(el('h2', '', e.nivel ? e.titulo : e.nombre));
     ficha.appendChild(el('p', 'anotado', `${e.nombre} · nivel ${e.nivel} de 5 · ${e.xp} de experiencia`));

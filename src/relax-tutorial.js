@@ -6,7 +6,8 @@ export const PASOS_RELAX = [
   { id: 'ramitas', texto: 'Juntá tres ramitas del suelo (E)', tecla: 'E', hecho: (s) => s.ramitas >= 3 || s.fuego },
   { id: 'fuego', texto: 'Encendé una fogata en un claro (F)', tecla: 'F', hecho: (s) => s.fuego },
   { id: 'anotar', texto: 'Anotá dos cosas en el cuaderno: plantas, aves, lugares (E)', tecla: 'E', hecho: (s) => s.anotaciones >= 2 },
-  { id: 'madera', texto: 'Talá un árbol con el hacha: tres golpes (H)', tecla: 'H', hecho: (s) => s.troncos >= 4 || s.tablas >= 2 },
+  // 3.6: el hacha está en el almacén de la Aldea de los Duendes: el primer viaje en la trochita
+  { id: 'madera', texto: 'Con el hacha del almacén de la aldea (en la trochita), talá un árbol: tres golpes (H)', tecla: 'H', hecho: (s) => s.troncos >= 4 || s.tablas >= 2 },
   { id: 'tablas', texto: 'Aserrá un tronco en tablas (Y)', tecla: 'Y', hecho: (s) => s.tablas >= 2 },
   { id: 'techo', texto: 'Abrí los planos y marcá dónde va tu refugio (O)', tecla: 'O', hecho: (s) => s.obras >= 1 },
 ];

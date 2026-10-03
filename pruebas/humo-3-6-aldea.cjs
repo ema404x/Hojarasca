@@ -136,7 +136,8 @@ app.whenReady().then(async () => {
       for (const [k, ed, pt] of quienes) {
         const n = e.npcs.find((x) => x.clave === k);
         const d = n && n.destino ? Math.hypot(n.x - n.destino.x, n.z - n.destino.z) : 99;
-        ok(n && n.destino.edificio === ed && (!pt || n.destino.punto === pt) && d < 1.2 && !n.caminando, `a las ${hora}, ${k} en ${n?.destino?.edificio}/${n?.destino?.punto} (${d.toFixed(2)} m)`);
+        // 3.6 (vida): en su tiempo libre cada uno elige qué hacer (vecindad.js): vale lo del horario o lo que eligió
+        ok(n && (n.libre || (n.destino.edificio === ed && (!pt || n.destino.punto === pt))) && d < 1.2 && !n.caminando, `a las ${hora}, ${k} en ${n?.destino?.edificio}/${n?.destino?.punto}${n?.libre ? ` (libre: ${n.actividad})` : ''} (${d.toFixed(2)} m)`);
       }
     }
     // con vos cerca caminan: de la plaza (16.6) a almorzar a su casa (13), por las calles. Vos,

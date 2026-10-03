@@ -167,3 +167,38 @@ Cada uno sigue cumpliendo su función (abre su local en hora), pero alrededor ti
   del valle mantienen su lugar.
 - Se hace en dos partes: el módulo puro `src/vecindad.js` (ganas, gustos, amistad, memoria,
   temas) ya, en paralelo, y la conexión con el juego después de la fase de gente.
+
+## 14. Detalles y mecánicas de cada cosa, optimización y rendimiento (usuario, 03-10)
+"Trabajá en los detalles también y las mecánicas de cada cosa. Además, al final optimizá el
+código y verificá el rendimiento." Después de unir mundo, vida y pulido:
+- **Cada lugar con algo para hacer** (sin economía nueva, con los sistemas que ya existen):
+  - **Plaza:** sentarse en los bancos; sacar agua del aljibe (llena la cantimplora o el balde si
+    existen); la bandera que se iza a la mañana y se arría a la tarde; el duende tallado con su
+    plaquita (entrada al cuaderno).
+  - **Biblioteca:** sentarse a leer un libro (una página de la leyenda o de la historia del
+    valle, que suma al cuaderno); pedir un libro prestado; los cuentos del domingo con la
+    abuela, para escucharlos sentado.
+  - **Escuela:** el pizarrón con lo que enseñó la maestra ese día (algo del valle); los dibujos
+    de los chicos en la pared, que cambian con lo que anotaste.
+  - **Estación:** la campana del andén cuando llega el tren; el horario de trenes en un pizarrón.
+  - **Casa de té:** sentarse a la mesa y que la galesa traiga el té.
+  - **Almacén:** el mostrador de siempre.
+  - **Locales:** cada uno con un gesto de su oficio que se puede mirar o ayudar: la fragua que
+    chisporrotea, el horno que humea a la mañana, la rueca que gira, las colmenas con abejas,
+    la sierra del carpintero, las redes al sol.
+  - **Salón:** el sábado se baila, con la música del músico.
+  - **Puesto sanitario:** descansar en la camilla.
+  - **Estafeta:** las casillas con tus cartas.
+  - **Seccional:** el mapa del valle con lo que te falta ver.
+  - **En todos:** estufas a leña donde calentarse (si el frío existe en el juego), sillas y
+    bancos donde sentarse, puertas que se abren.
+- **Detalles vivos**:
+  - sonidos propios (la fragua, el horno, las abejas, la campana, el murmullo del salón);
+  - humo, chispas y vapor;
+  - luces que se prenden de noche;
+  - gente que usa las cosas (el panadero amasa, el herrero martilla).
+- **Al final**:
+  - optimizar el código de la 3.6: duplicados, lo que se calcula de más por cuadro, memoria al
+    rearmar los lotes, listeners;
+  - medir el rendimiento en la aldea y en el resto del juego contra la 3.5.4: dibujos,
+    triángulos, ms por cuadro, carga inicial, memoria tras una sesión larga.

@@ -68,6 +68,8 @@ import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
 import { crearAldeaGente } from './aldea-gente.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
+// 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
+import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -313,6 +315,7 @@ presupuestoLuces.activar();
 // y el izquierdo atacaba en el Desafío o tiraba la línea), como E, F y O desde la 3.5.1
 window.addEventListener('wheel', (e) => {
   if (modo !== 'jugando' || mochilaAbierta || foto.activo) return;
+  if (charla.menu) { moverMenuCharla(e.deltaY > 0 ? 1 : -1); return; }   // 3.6 (vida): el menú de la charla
   if (modoObra && obras) {
     obras.girar(e.deltaY > 0 ? 1 : -1);
     dibujarPanelObra();
@@ -951,6 +954,7 @@ function atrapar(pez) {
   registrar(pez.id);
   ganarOficio('pescador', XP.pez);   // 3.1
   diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm });
+  vecindadJuego?.delPez(pez);   // 3.6 (vida): la trucha grande o el pez nativo, para los vecinos
   modos?.pez?.(pez);   // 3.1: el desafío del día y el torneo de la semana
   const nombre = pez.def.nombre.charAt(0).toUpperCase() + pez.def.nombre.slice(1);
   // 2.3: con un ahumadero terminado, dos truchas por día van a la mochila
@@ -992,6 +996,9 @@ function dormir() {
   // 2.4.1: estadoHabitat también encuentra la casa de al lado; sólo cuenta si estás adentro
   const bajoTechoPropio = obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
   const casa = bajoTechoPropio ? obras?.estadoHabitat?.(jp, { fuego: fuegoVivo ? fg.pos : null }) || null : null;
+  // 3.6 (vida): dormir afuera (lejos del refugio y sin techo tuyo) también se comenta en la aldea
+  const refu = T.lugares.refugio;
+  if (!desafio && deNoche && !bajoTechoPropio && refu && Math.hypot(jp.x - refu.x, jp.z - refu.z) > 15) vecindadJuego?.hecho('durmio-afuera');
   const distanciaAlFuego = fuegoVivo ? Math.hypot(fg.pos.x - jp.x, fg.pos.z - jp.z) : Infinity;
   const comoSinRopa = desafio || !deNoche ? 'normal' : comoDormiste({
     invierno: U.uInvierno.value, manta: !!progreso.cosas.manta, distanciaAlFuego, casa, carpa: enLaCarpa(),
@@ -2515,6 +2522,8 @@ document.addEventListener('keydown', (e) => {
     if (paso) { tren.moverse(paso[0], paso[1]); sonido.paso('madera', 0.5); return; }
   }
   if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del zaino con E'); return; }
+  // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
+  if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   switch (codigo) {
     case 'KeyE': {
       if (charla.npc) { seguirCharla(); break; }
@@ -2530,6 +2539,8 @@ document.addEventListener('keydown', (e) => {
       // trueque o una puerta cercana se coman la interacción.
       if (vecino && desafio && vecino.enBase) { ordenarCompanero(vecino); break; }
       if (vecino) { hablar(vecino); break; }
+      // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, E te sienta (el aviso, en el mismo lugar)
+      if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
       // 3.1: en el poste de una carrera, E larga (también montado, en el kayak o en el velero; el aviso va en el mismo lugar)
       if (!objetivo) { const c = modos?.accion(jugador.estado); if (c) { c.hacer(); break; } }
       if (js.montado) { desmontar(); break; }
@@ -2753,7 +2764,7 @@ document.addEventListener('keydown', (e) => {
       else if (enElAlmacen) cerrarAlmacen();
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
-      else if (charla.npc) cerrarCharla();
+      else if (charla.npc) atrasCharla();   // 3.6 (vida): del submenú o de un tema, al menú
       else abrir('pausa');
       break;
     case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4':
@@ -3235,6 +3246,8 @@ function marcarPisos() {
   tex.needsUpdate = true;
 }
 
+// 3.6: el primer viaje, en una línea: dónde se sube y dónde se baja
+const PISTA_PRIMER_VIAJE = 'Subite a la trochita en la Estación del Valle, acá cerca del refugio, y bajate en la Aldea de los Duendes: ahí está el almacén de Ercilia';
 // Los primeros pasos: pistas que aparecen una sola vez, cuando corresponde,
 // para que el primer rato no sea andar sin saber qué se puede hacer.
 const PISTAS = [
@@ -3247,6 +3260,8 @@ const PISTAS = [
   { id: 'p-noche', cuando: (js, p) => p.horas > 20.5 || p.horas < 5.5, titulo: 'Se hizo de noche', texto: 'Con L prendés la linterna, y junto al fuego se puede dormir hasta la mañana' },
   { id: 'p-lluvia', cuando: (js, p, clima) => clima.lluvia > 0.5, titulo: 'Se largó a llover', texto: 'Los peces pican mejor con lluvia, pero los animales se guardan' },
   { id: 'p-tren', cuando: (js, p) => !!p.entradas.estacion, titulo: 'La trochita', texto: 'Para en cada apeadero unos segundos; se sube con E y se viaja hasta donde quieras' },
+  // 3.6: el primer viaje. En el Relax el almacén (y el hacha) está en la Aldea de los Duendes
+  { id: 'p-aldea', cuando: (js, p) => !desafio && !p.cosas?.hacha && !p.aldea?.descubierta && (!!p.entradas.refugio || Object.keys(p.entradas).length >= 2), titulo: 'El hacha está en la aldea', texto: PISTA_PRIMER_VIAJE },
   // Desafío, segundo acto: el nido aparece cuando cae la nodriza
   { id: 'p-nido', cuando: (js, p) => !!p.desafio?.nido && !p.desafio.nido.caido, titulo: 'Siguen bajando', texto: 'Salen de un nido enterrado en el valle. Los restos de nave traen señales que te lo van a ubicar' },
   { id: 'p-cerco', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= 1 && !p.desafio.nido.caido, titulo: 'El cerco se achica', texto: 'Abrí el mapa (M): el redondel a lápiz marca dónde puede estar. Cada resto de nave lo achica' },
@@ -3546,7 +3561,8 @@ function textoHacha(o) {
 function usarHacha() {
   const o = objetivoHacha();
   if (!o) {
-    nota(tieneHacha() ? 'Acá no hay nada que cortar' : 'Te falta el hacha', tieneHacha() ? 'Arrimate a un árbol, un tronco o un pedrero' : 'Se cambia en el almacén');
+    // 3.6: en el Relax el almacén está en la Aldea de los Duendes: se llega en la trochita
+    nota(tieneHacha() ? 'Acá no hay nada que cortar' : 'Te falta el hacha', tieneHacha() ? 'Arrimate a un árbol, un tronco o un pedrero' : desafio ? 'Se cambia en el almacén' : 'Está en el almacén de la Aldea de los Duendes: tomá la trochita en la Estación del Valle');
     return;
   }
   if (o.talar) {
@@ -3632,8 +3648,9 @@ function leerMando(dt) {
   if (m.recien.saltar) golpeDeTecla('Space');
   if (m.recien.agacharse) golpeDeTecla('KeyC');
   for (const a of ACCIONES_TECLA_MANDO) if (m.recien[a]) golpeDeTecla(TECLA_DE_MANDO[a]);
-  if (m.recien.objetoAnterior) elegirRanura(elegida - 1);
-  if (m.recien.objetoSiguiente) elegirRanura(elegida + 1);
+  // 3.6 (vida): con el menú de la charla abierto, LB y RB mueven la opción marcada (X la elige)
+  if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
+  if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
   if (desafio && !desafio.caido && !modoObra) {
     const id = ranuras[elegida]?.id;
     if (m.recien.atacar) { desafio.atacar(id); refrescarBarra(true); }
@@ -3966,9 +3983,11 @@ function mueblesTerminados() {
   return (obras?.obras || []).filter((o) => o.datos.etapas >= o.plano.etapas.length).map((o) => ({ id: o.plano.id, x: o.datos.x, z: o.datos.z }));
 }
 function traerVisita(clave, puesta, llegando) {
-  const npc = gente?.gente?.find((g) => g.clave === clave);
-  if (!npc || npc.enBase || npc.aBordo) return false;
-  visitante = { npc, antes: { ruta: npc.ruta, etapa: npc.etapa, espera: npc.espera, x: npc.pos.x, z: npc.pos.z, velocidad: npc.velocidad, saludo: npc.saludo, despedida: npc.despedida } };
+  // 3.6 (vida): también la gente de la aldea (el compadre que viene a tu mesa), aunque no la hayas visto hoy
+  const npc = gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave) || aldeaGente?.figura?.(clave) || null;
+  if (!npc || npc.enBase || npc.aBordo || npc.deVisita) return false;
+  visitante = { npc, antes: { ruta: npc.ruta, etapa: npc.etapa, espera: npc.espera, x: npc.pos.x, z: npc.pos.z, velocidad: npc.velocidad, saludo: npc.saludo, despedida: npc.despedida, soloCerca: npc.soloCerca, camino: npc.camino } };
+  npc.soloCerca = 0; npc.pose = null; npc.dormido = false; npc.camino = null;   // 3.6 (vida)
   const lugar = lugarEnLaMesa(puesta);
   const desde = llegando ? puntoDeLlegada(puesta.mesa, jugador.estado.pos) : lugar;
   npc.pos.set(desde.x, alturaDePie(T, col, desde.x, desde.z), desde.z);
@@ -3981,7 +4000,7 @@ function traerVisita(clave, puesta, llegando) {
 function devolverVisita() {
   if (!visitante) return;
   const { npc, antes } = visitante;
-  Object.assign(npc, { ruta: antes.ruta, etapa: antes.etapa, espera: antes.espera, velocidad: antes.velocidad, saludo: antes.saludo, despedida: antes.despedida, deVisita: false });
+  Object.assign(npc, { ruta: antes.ruta, etapa: antes.etapa, espera: antes.espera, velocidad: antes.velocidad, saludo: antes.saludo, despedida: antes.despedida, deVisita: false, soloCerca: antes.soloCerca, camino: antes.camino });   // 3.6 (vida): y lo de la aldea
   npc.pos.set(antes.x, alturaDePie(T, col, antes.x, antes.z), antes.z);
   if (charla.npc === npc) cerrarCharla();
   visitante = null;
@@ -3990,6 +4009,14 @@ function regaloDeVisita(npc) {
   const v = visitas();
   if (!v.activa || v.activa.charlo) return;
   v.activa.charlo = true;
+  // 3.6 (vida): el compadre deja lo suyo (ver vecindad-juego.js)
+  if (v.activa.amistad && vecindadJuego) {
+    const texto = vecindadJuego.regaloDeCompadre(v.activa.clave);
+    diario.anotar('visita', npc.nombre);
+    guardar();
+    if (texto) setTimeout(() => nota('Te dejaron algo', texto, true), 1200);
+    return;
+  }
   const def = VISITANTES[npc.clave];
   for (const [k, n] of Object.entries(def.regalo.materiales || {})) sumarMaterial(k, n);
   for (const [k, n] of Object.entries(def.regalo.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
@@ -4039,10 +4066,18 @@ function actualizarVisitas(dt) {
   }
   // 2.8: sin vecinos (Tu partida) nadie viene a la mesa
   if (visitante || !vecinosActivos(progreso) || !tocaVisita(v, progreso.dia, progreso.horas, true)) return;
+  if (vecindadJuego?.cita()) return;   // 3.6 (vida): con alguien invitado a tu mesa, hoy no viene otro
   const puesta = mesaPuesta(mueblesTerminados());
   if (!puesta) return;
-  if (!traerVisita(quienViene(v.cuenta), puesta, true)) { v.cuenta += 1; return; }
-  empezarVisita(v, progreso.dia);
+  // 3.6 (vida): un compadre que no vino hace días viene en lugar del turno de siempre
+  const compadre = vecindadJuego?.visitaDeCompadre();
+  if (compadre && traerVisita(compadre.clave, puesta, true)) {
+    empezarVisita(v, progreso.dia);
+    v.activa.clave = compadre.clave; v.activa.amistad = true;
+  } else {
+    if (!traerVisita(quienViene(v.cuenta), puesta, true)) { v.cuenta += 1; return; }
+    empezarVisita(v, progreso.dia);
+  }
   const lejos = Math.hypot(puesta.mesa.x - js.pos.x, puesta.mesa.z - js.pos.z) > 40;
   nota(`${visitante.npc.nombre} vino a visitarte`, lejos ? 'Te espera en tu mesa hasta que caiga la noche' : 'Viene caminando hacia tu mesa', true);
   guardar();
@@ -4053,6 +4088,13 @@ function actualizarVisitas(dt) {
 // Duendes, sus horarios, los que bajan del tren a quedarse y las obras del pueblo (ver
 // `aldea.js` y `aldea-gente.js`); reemplaza al pueblo que fundabas en la 3.1.
 let oficios = null, aldeaGente = null;
+let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
+// 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
+const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
+const pronosticoDeManana = () => {
+  const manana = pronosticoActual().find((d) => d.cuando === 'Mañana');
+  return manana ? `para mañana: ${manana.texto.charAt(0).toLowerCase()}${manana.texto.slice(1)}` : '';
+};
 const nivelDe = (id) => oficios?.nivel(id) || 0;
 const ganarOficio = (id, cuanto) => oficios?.ganar(id, cuanto) || null;
 function armarOficiosYAldea(esDesafio) {
@@ -4090,6 +4132,17 @@ function armarOficiosYAldea(esDesafio) {
       };
     },
     decir: (texto) => decirCharlaAldea(texto),
+    // 3.6 (vida): el tiempo libre según el clima, y lo que los vecinos recuerdan de vos
+    climaVecindad, alAporteObra: (lote) => vecindadJuego?.hecho('aporte-obra', { lote }),
+    alServicio: (k, efectos) => { if ((efectos || []).some((f) => f.k === 'poncho' && (f.n > 0 || f.fijar > 0))) vecindadJuego?.hecho('poncho'); },
+  });
+  // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
+  vecindadJuego = crearVecindadJuego({
+    progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    mesa: () => mesaPuesta(mueblesTerminados()), hayVisita: () => !!visitante,
+    jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), aldea: () => aldeaGente,
   });
 }
 // 3.6: la carta que te entrega el telegrafista de la aldea, igual que la de Ercilia: queda en
@@ -4120,6 +4173,7 @@ function actualizarAldea(dt) {
   oficios?.remar(jugador.estado);
   if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante'));
   if (!desafio) aldeaGente?.actualizar(dt);
+  if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
 const golpesParaTalarAhora = () => golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea);
@@ -4612,6 +4666,7 @@ function anotarTalado(arbol) {
   talados().push({ i, dia: progreso.dia, esc: 0, apurado: false });
   progreso.taladosTotal = Math.max(Math.floor(Number(progreso.taladosTotal)) || 0, talados().length - 1) + 1;   // 3.5.1: los tocones rebrotan; esto no baja
   diaRebrote = progreso.dia;
+  vecindadJuego?.hecho('talar');   // 3.6 (vida): si talás mucho en un día, se comenta
 }
 // Aplica la etapa que le toca a cada tocón. Al cargar la partida hay que forzarlo,
 // porque el mundo se genera siempre con todos los árboles en pie.
@@ -5817,11 +5872,28 @@ function zumbidoColmena() {
 const charla = { npc: null, historia: null, parte: 0, fin: false };
 function hablar(npc) {
   if (!npc) return;
+  // 3.6 (vida): el que invitaste a tomar algo, ya sentado: E te sienta con él; si todavía va
+  // para la mesa, te lo dice (ver vecindad-juego.js)
+  const enCita = vecindadJuego?.invitado(npc);
+  if (enCita === 'esperando' && sentarseALaCita()) return;
+  if (enCita === 'yendo') {
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: 'vecindad-cita', partes: ['Ya voy, ya voy. Andá sentándote, que te alcanzo.'] }, parte: 0, vec: null, menu: null });
+    $('charla').classList.remove('oculto');
+    mostrarCharla();
+    return;
+  }
   // 3.1: un poblador (3.6: o un vecino de la aldea, o el que bajó del tren) habla de lo suyo
   // (ver aldea-gente.js)
   const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;
-  if (deLaAldea) {
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: deLaAldea, parte: -1 });
+  // (3.6 (vida): de visita en tu mesa, primero la charla de la visita, como los del valle)
+  if (deLaAldea && !(npc.deVisita && visitas().activa)) {
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: deLaAldea, parte: -1, vec: null, menu: null });
+    // 3.6 (vida): con la gente de la aldea, el menú de temas (lo de su oficio, primera opción);
+    // el que recién bajó del tren se presenta como antes
+    if (deLaAldea.tipo !== 'llegada' && vecindadJuego) {
+      charla.vec = vecindadJuego.abrir(npc, { servicio: deLaAldea.tipo === 'servicio' ? deLaAldea : null, linea: deLaAldea.tipo === 'vecino' ? deLaAldea.partes[0] : null });
+      if (charla.vec) charla.historia = null;
+    }
     $('charla').classList.remove('oculto');
     mostrarCharla();
     return;
@@ -5855,9 +5927,20 @@ function hablar(npc) {
   else if (!nuevas.length && suyo) { charla.encargo = suyo; charla.historia = null; }
   else charla.historia = nuevas.length ? nuevas[0] : null;
   charla.parte = -1;
+  // 3.6 (vida): el compadre que vino a visitarte cuenta lo suyo (ver vecindad-juego.js)
+  if (deVisita && visitas().activa.amistad && vecindadJuego) charla.historia.partes = vecindadJuego.charlaDeCompadre(visitas().activa.clave);
   // 2.1: el vecino al que no fuiste a defender no tiene ganas de hablar (ver `desafio-valle.js`)
   charla.enojado = !!desafio?.enojado?.(npc.clave);
   if (charla.enojado) { charla.historia = null; charla.encargo = null; }
+  // 3.6 (vida): en el Relax, los vecinos tienen su menú de temas (ver vecindad-juego.js). Lo de
+  // siempre que no se elige (la visita, el cuento, la carta, el envío, el encargo) va primero,
+  // como antes; la historia que todavía no contó pasa a ser la primera opción del menú.
+  charla.vec = null; charla.menu = null;
+  if (!desafio && !charla.enojado && vecindadJuego) {
+    const nueva = !charla.encargo && charla.historia && nuevas.includes(charla.historia) ? charla.historia : null;
+    charla.vec = vecindadJuego.abrir(npc, { historia: nueva });
+    if (charla.vec && nueva) charla.historia = null;
+  }
   $('charla').classList.remove('oculto');
   mostrarCharla();
 }
@@ -5867,12 +5950,16 @@ const pronosticosDados = new Set();
 function mostrarCharla() {
   const npc = charla.npc;
   $('charla-quien').textContent = `${npc.nombre}, ${npc.oficio}`;
+  // 3.6 (vida): el menú de temas
+  if (charla.menu) { dibujarMenuCharla(); return; }
+  $('charla-opciones')?.classList.add('oculto');
   let texto;
   if (charla.enojado) {
     texto = SALUDO_ENOJADO[npc.clave] || 'Hoy no tengo ganas de hablar.';
     charla.fin = true;
   } else if (charla.parte < 0) {
-    texto = saludoDe(npc, { horas: progreso.horas, lluvia: clima.estado.lluvia, invierno: U.uInvierno.value, otono: U.uOtono.value });
+    // 3.6 (vida): el que ya te tiene confianza te saluda distinto (ver vecindad.js)
+    texto = charla.vec?.saludo || saludoDe(npc, { horas: progreso.horas, lluvia: clima.estado.lluvia, invierno: U.uInvierno.value, otono: U.uOtono.value });
     // 2.1: si se viene un cambio de tiempo, lo dice al saludar (ver `pronostico.js`).
     // Van traducidas por separado porque se juntan en un solo párrafo.
     const frase = frasePronostico(npc.clave, clima.estado.objetivo, clima.estado.proximo, horasFaltantesClima());
@@ -5884,6 +5971,8 @@ function mostrarCharla() {
   }
   else if (charla.historia && charla.parte < charla.historia.partes.length) texto = charla.historia.partes[charla.parte];
   else if (charla.encargo && charla.parte === 0) texto = charla.encargo.modo === 'listo' ? charla.encargo.e.listo : charla.encargo.e.pedido;
+  // 3.6 (vida): terminado lo de antes, el menú (con el cursor en «chau» si ya se contó algo)
+  else if (charla.vec && !charla.vec.chau) { abrirMenuCharla(!!(charla.historia || charla.encargo)); return; }
   else { texto = npc.despedida; charla.fin = true; }
   $('charla-texto').textContent = texto;
   $('charla-seguir').textContent = charla.fin ? 'E o Escape para despedirte' : 'E para seguir escuchando';
@@ -5891,6 +5980,7 @@ function mostrarCharla() {
   if (!charla.fin && charla.historia?.seguir && charla.parte === charla.historia.partes.length - 1) $('charla-seguir').textContent = charla.historia.seguir;
 }
 function seguirCharla() {
+  if (charla.menu) { elegirEnMenuCharla(charla.menu.i); return; }   // 3.6 (vida): E elige la opción marcada
   if (charla.fin) { cerrarCharla(); return; }
   if (charla.parte < 0 && !charla.historia && !charla.encargo) { charla.parte = 99; mostrarCharla(); return; }
   charla.parte++;
@@ -5898,6 +5988,13 @@ function seguirCharla() {
   if (charla.historia?.alTerminar && charla.parte === charla.historia.partes.length) charla.historia.alTerminar();   // 3.1
   if (charla.historia?.visita && charla.parte === charla.historia.partes.length) regaloDeVisita(charla.npc);
   if (charla.historia?.envio && charla.parte === charla.historia.partes.length) mandarFoto(charla.historia.envio);
+  // 3.6 (vida): aceptó la invitación (sale para la mesa) y la charla de la mesa, terminada
+  if (charla.historia?.cita && charla.parte === charla.historia.partes.length) {
+    const c = charla.historia.cita;
+    vecindadJuego?.empezarCita(charla.vec?.clave, c.npc || charla.npc, c.que, c.charla, c.lugares);
+    if (charla.vec) charla.vec.chau = true;
+  }
+  if (charla.historia?.citaCharla && charla.parte === charla.historia.partes.length) vecindadJuego?.citaCharlada();
   // una carta que pide una foto: al terminar de leerla, qué foto y cómo
   const pide = charla.historia && charla.parte === charla.historia.partes.length ? CARTA[charla.historia.id]?.foto : null;
   // 2.6.1: una carta que pide una foto que no está en DESAFIOS ya no rompe el temporizador
@@ -5950,8 +6047,76 @@ function cobrarPremio(e) {
   guardar();
 }
 function cerrarCharla() {
+  if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
   charla.npc = null;
+  charla.menu = null; charla.vec = null;   // 3.6 (vida)
   $('charla').classList.add('oculto');
+  $('charla-opciones')?.classList.add('oculto');
+}
+// ---------------------------------------------------------------- 3.6 (vida): el menú de la charla
+// Al hablarle a un vecino del Relax: «¿Cómo andás?», «Novedades», «Tu historia», «Regalar…»,
+// «Invitar a tomar algo…», «Dar una mano…» (y lo de su oficio primero). Se elige con los números
+// (como en el almacén), o con la ruedita (LB/RB en el mando) y E (X). Escape vuelve del
+// submenú o de un tema al menú, y desde el menú se despide. Las reglas, en vecindad-juego.js.
+function abrirMenuCharla(alFinal = false) {
+  if (!vecindadJuego || !charla.vec) return;
+  charla.vec.sub = null;
+  charla.menu = vecindadJuego.menu(charla.vec, alFinal);
+  charla.historia = null; charla.encargo = null; charla.parte = 0;
+  dibujarMenuCharla();
+}
+function dibujarMenuCharla() {
+  const m = charla.menu;
+  $('charla-texto').textContent = m.texto;
+  const ul = $('charla-opciones');
+  ul.innerHTML = '';
+  m.opciones.forEach((o, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${i + 1}. ${o.titulo}`;
+    if (i === m.i) li.className = 'elegida';
+    li.addEventListener('click', () => elegirEnMenuCharla(i));
+    ul.appendChild(li);
+  });
+  ul.classList.remove('oculto');
+  $('charla-seguir').textContent = (m.tipo === 'charla' ? PIE_MENU : PIE_SUBMENU).replace('{n}', m.opciones.length);
+}
+function moverMenuCharla(paso) {
+  const m = charla.menu;
+  if (!m) return;
+  m.i = (m.i + paso + m.opciones.length) % m.opciones.length;
+  dibujarMenuCharla();
+}
+function elegirEnMenuCharla(i) {
+  const m = charla.menu;
+  if (!m || !vecindadJuego || !charla.vec || i < 0 || i >= m.opciones.length) return;
+  const r = vecindadJuego.elegir(charla.vec, m.opciones[i].id, charla.npc);
+  charla.menu = null;
+  charla.parte = 0;
+  if (r.tipo === 'menu') charla.menu = vecindadJuego.menu(charla.vec);
+  else if (r.tipo === 'renglones') charla.historia = { id: 'vecindad-tema', partes: r.renglones, volver: true };
+  else if (r.tipo === 'historia') charla.historia = { ...r.historia, volver: true };
+  else if (r.tipo === 'cita') charla.historia = { id: 'vecindad-cita', partes: r.renglones, cita: r };
+  else { charla.vec.chau = true; charla.historia = null; charla.encargo = null; charla.parte = 99; }
+  mostrarCharla();
+}
+// Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
+function atrasCharla() {
+  if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; charla.menu = vecindadJuego.menu(charla.vec); mostrarCharla(); return; }
+  if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
+  cerrarCharla();
+}
+// La mesa de la invitación: te sentás en tu lugar, mirando al invitado, y charlan.
+function sentarseALaCita() {
+  const r = vecindadJuego?.sentarse();
+  if (!r) return false;
+  const js = jugador.estado;
+  js.pos.set(r.tuyo.x, alturaDePie(T, col, r.tuyo.x, r.tuyo.z, js.pos.y), r.tuyo.z);
+  js.yaw = Math.atan2(-(r.npc.pos.x - r.tuyo.x), -(r.npc.pos.z - r.tuyo.z)); js.pitch = -0.05;
+  jugador.sentarse(true);
+  Object.assign(charla, { npc: r.npc, fin: false, encargo: null, enojado: false, historia: { id: 'vecindad-cita', partes: r.charla, citaCharla: true }, parte: 0, vec: null, menu: null });
+  $('charla').classList.remove('oculto');
+  mostrarCharla();
+  return true;
 }
 
 // ---------------------------------------------------------------- el almacén
@@ -6175,6 +6340,7 @@ async function sacarFoto() {
     // se guarda pero no cumple desafíos ni pedidos de cartas
     if (foto.activo) vistos.length = 0;
     const nuevos = vistos.filter((id) => !progreso.desafios[id]);
+    if (!desafio) vecindadJuego?.deFotos(vistos);   // 3.6 (vida): la foto de un animal, para los vecinos
     // 1.11: si una carta pedía esta foto, queda guardada para mandarla con Ercilia
     if (!desafio) {
       const paraCarta = fotoParaPedidos(correo(), progreso, vistos, progreso.dia);
@@ -6561,6 +6727,16 @@ const indiceSujetosPerro = crearIndiceEspacial2D(32);
 const mundoPerro = { noche: 0, guiar: false, existe: (id) => ENTRADA[id]?.seccion === 'fauna' };
 let avisosDeGuia = 0;
 const diario = crearDiario();
+// 3.6 (vida): lo que se anota en el diario (la cosecha, la miel, la esquila, la obra terminada, el
+// capítulo, el tren…) también lo ven los vecinos (ver `hechoDelDiario` en vecindad-juego.js)
+{
+  const anotarEnElDiario = diario.anotar;
+  diario.anotar = (tipo, dato) => {
+    const r = anotarEnElDiario.call(diario, tipo, dato);
+    try { vecindadJuego?.delDiario(tipo, dato); } catch (e) { console.warn('vecindad', e); }
+    return r;
+  };
+}
 let avisoMarca = false;
 const COLOR_RAYO = new THREE.Color('#cfe0ff');
 let cascada = null;
@@ -6725,7 +6901,8 @@ function actualizarTiempo(dt) {
     if (!desafio && antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
-    const escala = js.sentado && !desafio?.hayAtaque() ? 40 : 1;
+    // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
+    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }
@@ -7210,7 +7387,9 @@ function cuadroDelJuego(tRaf, manual) {
     let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
     if (charla.npc) aviso = null;
     else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
-    else if (vecino) aviso = { tecla: 'E', texto: `Hablar con ${vecino.nombre}` };
+    else if (vecino) aviso = { tecla: 'E', texto: vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}` };   // 3.6 (vida): el invitado, ya sentado: E te sienta
+    // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
+    else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };
@@ -7705,6 +7884,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __dormir: dormir, __atrapar: atrapar, __fogonDeVisita: fogonDeVisita, __actualizarVisitas: (dt) => { relojVisitas = 0; actualizarVisitas(dt); },
     __lomo: () => ({ lomo, visible: lomoVisible(), malla: lomoMalla?.visible || false }), __forzarLomo: () => { nocheLomo = progreso.horas < 4 ? progreso.dia - 1 : progreso.dia; lomo = { t: -1, pos: null }; },
     __actualizarLomo: actualizarLomo, __hablar: hablar, __datosDe: datosDe,
+    // 3.6 (vida): la vecindad en el juego y el menú de la charla
+    __vecindad: () => vecindadJuego, __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 2.9: las máquinas
     __maquinas: { revisar: revisarMaquinas, actualizar: actualizarMaquinas, usar: usarMaquina, aviso: avisoMaquina, pronostico: pronosticoActual, noches: nochesActuales, meteo: meteoPartida, radio: radioPartida, mundo: () => ({ molino: molinoMundo, meteo: meteoMundo }) },
