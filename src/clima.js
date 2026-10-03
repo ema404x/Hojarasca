@@ -13,19 +13,24 @@ function puntosMaterial({ color, tam, aditivo = false, forma = 'redonda', opacid
       #include <common>
       #include <fog_pars_vertex>
       uniform float uTam; attribute float aAzar; attribute float aVida;
-      varying float vAzar; varying float vVida;
+      varying float vAzar; varying float vVida; varying float vCerca;
       void main() {
         vAzar = aAzar; vVida = aVida;
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * mvPosition;
         gl_PointSize = uTam * (0.6 + aAzar * 0.8) * (300.0 / -mvPosition.z);
+        vCerca = 1.0;
+        ${forma === 'humo' ? `// 3.6 (detalles): la bocanada nace chica y se abre al subir; pegada a la cámara se borra (no
+        // tapa la vista: antes una pasaba por delante y cubría media pantalla)
+        gl_PointSize *= 0.3 + 0.95 * aVida;
+        vCerca = smoothstep(3.0, 11.0, -mvPosition.z);` : ''}
         #include <fog_vertex>
       }`,
     fragmentShader: /* glsl */`
       #include <common>
       #include <fog_pars_fragment>
       uniform vec3 uColor; uniform float uOpacidad; uniform float uTiempo; uniform vec3 uLuz;
-      varying float vAzar; varying float vVida;
+      varying float vAzar; varying float vVida; varying float vCerca;
       void main() {
         vec2 p = gl_PointCoord - 0.5;
         float a;
@@ -42,7 +47,7 @@ function puntosMaterial({ color, tam, aditivo = false, forma = 'redonda', opacid
         vec3 c = uColor;
         ${forma === 'hoja' ? 'c = mix(uColor, vec3(0.55, 0.12, 0.02), fract(vAzar * 7.0)) * uLuz;' : ''}
         ${forma === 'fuego' ? 'c = mix(vec3(1.0, 0.62, 0.18), vec3(0.75, 0.12, 0.01), vVida) * 1.3; a = pow(smoothstep(0.5, 0.0, length(p)), 2.0) * (1.0 - vVida);' : ''}
-        ${forma === 'humo' ? 'a = smoothstep(0.5, 0.1, length(p)) * (1.0 - vVida) * vVida * 3.0; c = uColor * uLuz;' : ''}
+        ${forma === 'humo' ? 'a = smoothstep(0.5, 0.1, length(p)) * (1.0 - vVida) * (1.0 - vVida) * vVida * 5.2 * vCerca; c = uColor * uLuz;' : ''}
         ${forma === 'redonda' ? 'c = uColor * uLuz;' : ''}
         gl_FragColor = vec4(c, a * uOpacidad);
         #include <tonemapping_fragment>
@@ -298,9 +303,11 @@ export function crearClima(escena, T, ajustes) {
         const chim = chimeneas[i % chimeneas.length];
         // 3.6: sube rápido al salir y se va frenando; el viento la tumba cada vez más y se abre
         // (antes subía derecho, a la misma velocidad, como un caño)
-        const abre = 0.25 + v * v * 3.2;
-        p[i * 3] = chim.x + (v * 1.5 + v * v * 7) * estado.viento + Math.sin(v * 9 + i) * abre;
-        p[i * 3 + 1] = chim.y + 13 * v * (1 - 0.38 * v) - v * v * estado.viento * 2.5;
+        // 3.6 (detalles): más fina (se abre menos) y nunca baja de la chimenea: con viento fuerte se
+        // acuesta, pero sigue subiendo (antes bajaba hasta la altura de los ojos)
+        const abre = 0.15 + v * v * 2.0;
+        p[i * 3] = chim.x + (v * 1.2 + v * v * 5.5) * estado.viento + Math.sin(v * 9 + i) * abre;
+        p[i * 3 + 1] = chim.y + Math.max(0.5 + 2.2 * v, 11 * v * (1 - 0.38 * v) - v * v * estado.viento * 2);
         p[i * 3 + 2] = chim.z + Math.cos(v * 7 + i * 1.7) * abre;
         vida[i] = v;
       }

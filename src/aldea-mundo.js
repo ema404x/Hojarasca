@@ -10,7 +10,10 @@
 //     El sorteo de sitios de estructuras.js mira el terreno de ANTES (`terrenoDeSorteo`): la
 //     torre, la cueva y el galpón quedan donde estaban sin aldea;
 //   · las calles de ripio pintadas en la máscara del suelo (canal del sendero: tierra, sin pasto,
-//     flores ni helechos) y marcadas como piso (`pisos`, para marcarPisos de main.js);
+//     flores ni helechos) y marcadas como piso (`pisos`, para marcarPisos de main.js); 3.6 (detalles):
+//     niveladas a lo largo (sin los lomos que dejaban los bordes de los lotes) y con su ripio de
+//     verdad (`materialRipio`: grava sin repetición, huellas, pasto ralo, charcos después de la
+//     lluvia, nieve), sobre la misma rejilla del suelo fino;
 //   · los edificios: cada manzana es un complejo (una raíz en `est.grupo`, en `est.conjuntos`):
 //     el LOD de main.js la apaga lejos y `repasoSinOcultos` no recorre sus matrices. Adentro, el
 //     exterior de todos sus edificios fundido en una pieza por material (estructura, vidrios,
@@ -23,13 +26,15 @@
 //     Worker (Node, o si falla) se arma en el momento;
 //   · faroles a lo largo de las calles, veredas de tablas, cercos atrás de las casas, pircas y
 //     hileras de álamos cortaviento (instanciados, con su LOD: si se funden, el otoño sale parejo);
+//     3.6 (detalles): muretes de pirca y escalones de laja entre lotes a distinta altura
+//     (`planDesniveles`), frutales en los patios, arbustos y cercos de palo a pique en el borde;
 //   · la estación (`armarAgregadoEstacion`) sobre la parada del sur;
 //   · las luces: un interior por edificio, los faroles de la calle y de la plaza, registrados
 //     en luces.js: el presupuesto fijo (4 puntuales + 1 foco) elige los más cercanos, así que
 //     nunca hay más de 4 ni se compila nada; las ventanas brillan con `brilloVentana`;
 //   · bajo techo (lluvia, nieve, sonido), techos (sin nieve adentro), pisos (sin pasto), humo.
 import * as THREE from 'three';
-import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle } from './aldea.js';
+import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle, quienLlega, obraEnCurso, LOTE_DE, plantaDe } from './aldea.js';
 import { estadoVisual } from './aldea-gente.js';
 import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
@@ -60,19 +65,42 @@ export function zonasEmparejar(parada = PARADA_ALDEA) {
   return zonasAldea(parada).filter((z) => z.emparejar).map((z) => ({ id: z.id, x: z.x, z: z.z, rot: z.rot, altura: z.altura, borde: z.borde, ...rectEdificio(z.id),
     planta: { ancho: EDIFICIOS_ALDEA[z.id].ancho, fondo: EDIFICIOS_ALDEA[z.id].fondo } }));
 }
+// 3.6 (detalles): las calles en el mundo, para nivelarlas (de a tramos; las largas primero).
+export function callesNivelar(parada = PARADA_ALDEA) {
+  const m = marcoAldea(parada), lista = [];
+  const orden = [...CALLES_ALDEA].sort((a, b) => (b.ancho - a.ancho) || (b.puntos.length - a.puntos.length));
+  for (const c of orden) for (let s = 0; s < c.puntos.length - 1; s++) {
+    // (la de la Estación, desde el andén: el primer tramo lo arma trochita.js)
+    const desde = c.id === 'calle-estacion' ? 4 : 0;
+    const [ax, az] = c.puntos[s], [bx, bz] = c.puntos[s + 1], L = Math.hypot(bx - ax, bz - az);
+    const a = m.aMundo(ax + (bx - ax) * desde / L, az + (bz - az) * desde / L), b = m.aMundo(bx, bz);
+    lista.push({ id: c.id, ax: a.x, az: a.z, bx: b.x, bz: b.z, medio: c.ancho / 2 });
+  }
+  return lista;
+}
 // Empareja `T.alturas` (y rehace `T.pendiente` alrededor, con la misma cuenta de terreno.js).
 // Devuelve lo de antes (copias enteras: el sorteo de estructuras.js las usa) y la región tocada.
-export function emparejarTerreno(T, zonas = zonasEmparejar()) {
+// 3.6 (detalles): y después nivela las calles (`calles`): cada una sigue el terreno, pero con su
+// perfil suavizado a lo largo y pareja de lado a lado, como una calle de ripio hecha con
+// máquina (antes los bordes emparejados de los lotes le armaban lomos y pozos). Las plantas no
+// se tocan: a menos de un metro de una, manda la planta.
+export function emparejarTerreno(T, zonas = zonasEmparejar(), calles = callesNivelar()) {
   const total = T.alturas.length, N = Math.round(Math.sqrt(total)), RES = N - 1, CEL = 1024 / RES, MIT = 512;
   const antes = { alturas: T.alturas.slice(), pendiente: T.pendiente.slice() };
   // (`ax`, `az`, `cx`, `cz`: la mitad y el centro de la planta en el marco del edificio)
-  const Z = zonas.map((z) => ({ ...z, c: Math.cos(z.rot), s: Math.sin(z.rot), ax: z.planta?.ancho / 2 || 0, az: z.planta?.fondo / 2 || 0, cx: 0, cz: 0 }));
+  const Z = zonas.map((z) => ({ ...z, c: Math.cos(z.rot), s: Math.sin(z.rot), ax: z.planta?.ancho / 2 || 0, az: z.planta?.fondo / 2 || 0, cx: 0, cz: 0,
+    frente: EDIFICIOS_ALDEA[z.id] && !EDIFICIOS_ALDEA[z.id].estructura && EDIFICIOS_ALDEA[z.id].rol !== 'plaza' ? 2.6 : 0.3 }));
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   for (const q of Z) {
     for (const [bx, bz] of [[q.x0 - q.borde, q.z0 - q.borde], [q.x1 + q.borde, q.z0 - q.borde], [q.x0 - q.borde, q.z1 + q.borde], [q.x1 + q.borde, q.z1 + q.borde]]) {
       const wx = q.x + bx * q.c + bz * q.s, wz = q.z - bx * q.s + bz * q.c;
       x0 = Math.min(x0, wx); x1 = Math.max(x1, wx); z0 = Math.min(z0, wz); z1 = Math.max(z1, wz);
     }
+  }
+  const BORDE_CALLE = 1.8;
+  if (Z.length) for (const c of calles) for (const [wx, wz] of [[c.ax, c.az], [c.bx, c.bz]]) {
+    const r = c.medio + BORDE_CALLE + 0.5;
+    x0 = Math.min(x0, wx - r); x1 = Math.max(x1, wx + r); z0 = Math.min(z0, wz - r); z1 = Math.max(z1, wz + r);
   }
   const cl = (v) => Math.max(0, Math.min(RES, v));
   const i0 = cl(Math.floor((x0 + MIT) / CEL)), i1 = cl(Math.ceil((x1 + MIT) / CEL));
@@ -100,6 +128,64 @@ export function emparejarTerreno(T, zonas = zonasEmparejar()) {
     const orig = antes.alturas[k];
     T.alturas[k] = orig + (suma / pesos - orig) * wMax;
     cambiadas++;
+  }
+  // las calles: el perfil (cada metro, del terreno ya emparejado) suavizado dos veces con una
+  // ventana de ±6 m; de lado a lado, pareja hasta el borde y se funde en 1,8 m más
+  const hechas = [];
+  if (Z.length) for (const c of calles) {
+    const L = Math.hypot(c.bx - c.ax, c.bz - c.az), ux = (c.bx - c.ax) / L, uz = (c.bz - c.az) / L, n = Math.max(2, Math.ceil(L));
+    const alturaGrilla = (x, z) => {
+      const fx = Math.max(0, Math.min(RES - 1e-6, (x + MIT) / CEL)), fz = Math.max(0, Math.min(RES - 1e-6, (z + MIT) / CEL));
+      const i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j, A = T.alturas;
+      return (A[j * N + i] * (1 - u) + A[j * N + i + 1] * u) * (1 - v) + (A[(j + 1) * N + i] * (1 - u) + A[(j + 1) * N + i + 1] * u) * v;
+    };
+    const crudo = Float64Array.from({ length: n + 1 }, (_, k) => alturaGrilla(c.ax + ux * L * k / n, c.az + uz * L * k / n));
+    let perfil = crudo;
+    for (let pasada = 0; pasada < 2; pasada++) {
+      const otro = new Float64Array(n + 1);
+      for (let k = 0; k <= n; k++) { let s2 = 0, w2 = 0; for (let q = Math.max(0, k - 6); q <= Math.min(n, k + 6); q++) { s2 += perfil[q]; w2++; } otro[k] = s2 / w2; }
+      perfil = otro;
+    }
+    // en los cruces con una calle ya nivelada manda la de antes: ahí el perfil queda clavado a lo que
+    // hay y se acerca de a poco (8 m), sin escalón en la esquina
+    const clavado = [];
+    for (let k = 0; k <= n; k++) {
+      const x = c.ax + ux * L * k / n, z = c.az + uz * L * k / n;
+      if (hechas.some((h) => { const ex = x - h.ax, ez = z - h.az, hl = Math.hypot(h.bx - h.ax, h.bz - h.az), t2 = (ex * (h.bx - h.ax) + ez * (h.bz - h.az)) / hl; return t2 > -0.5 && t2 < hl + 0.5 && Math.abs((-ex * (h.bz - h.az) + ez * (h.bx - h.ax)) / hl) < h.medio + 0.5; })) clavado.push(k);
+    }
+    if (clavado.length) {
+      const fin = new Float64Array(n + 1);
+      for (let k = 0; k <= n; k++) {
+        let mejor = null;
+        for (const q of clavado) if (!mejor || Math.abs(q - k) < Math.abs(mejor - k)) mejor = q;
+        const d = Math.abs(mejor - k) * L / n, f = d < 0.01 ? 1 : Math.max(0, 1 - d / 8);
+        fin[k] = perfil[k] + (crudo[mejor] - perfil[mejor]) * f;
+      }
+      perfil = fin;
+    }
+    hechas.push(c);
+    const r = c.medio + BORDE_CALLE;
+    const ci0 = cl(Math.floor((Math.min(c.ax, c.bx) - r + MIT) / CEL)), ci1 = cl(Math.ceil((Math.max(c.ax, c.bx) + r + MIT) / CEL));
+    const cj0 = cl(Math.floor((Math.min(c.az, c.bz) - r + MIT) / CEL)), cj1 = cl(Math.ceil((Math.max(c.az, c.bz) + r + MIT) / CEL));
+    for (let j = cj0; j <= cj1; j++) for (let i = ci0; i <= ci1; i++) {
+      const x = i * CEL - MIT, z = j * CEL - MIT, dx = x - c.ax, dz = z - c.az;
+      const t = dx * ux + dz * uz, o = Math.abs(-dx * uz + dz * ux);
+      const fuera = Math.max(0, -t, t - L), d = Math.hypot(fuera, o);
+      let w = 1 - suave01((d - c.medio - 0.3) / (BORDE_CALLE - 0.3));
+      if (w <= 0) continue;
+      // cerca de una planta (con su galería, adelante) manda la planta: la galería no queda en el aire
+      let dp = Infinity;
+      for (const q of Z) {
+        const ex = x - q.x, ez = z - q.z, bx = ex * q.c - ez * q.s, bz = ex * q.s + ez * q.c;
+        const fr = q.frente ?? 0;
+        dp = Math.min(dp, Math.hypot(Math.max(Math.abs(bx) - q.ax, 0), Math.max(-q.az - bz, 0, bz - q.az - fr)));
+      }
+      w *= suave01((dp - 0.6) / 1.4);
+      if (w <= 0) continue;
+      const k = j * N + i, h = perfil[Math.max(0, Math.min(n, Math.round(Math.max(0, Math.min(L, t)) * n / L)))];
+      T.alturas[k] += (h - T.alturas[k]) * w;
+      cambiadas++;
+    }
   }
   const A = T.alturas;
   for (let j = Math.max(0, j0 - 1); j <= Math.min(RES, j1 + 1); j++) for (let i = Math.max(0, i0 - 1); i <= Math.min(RES, i1 + 1); i++) {
@@ -131,13 +217,21 @@ export function etapaVisual(aldea, id) {
   if (!esLote(id)) return { etapa: 4, opciones: {} };
   const v = estadoVisual(aldea, id);
   if (v === 'abierto') return { etapa: 4, opciones: {} };
-  if (v === 'lote') return { etapa: 0, opciones: {} };
+  // 3.6 (detalles): el lote del próximo que viene ya tiene material apilado
+  if (v === 'lote') return { etapa: 0, opciones: proximoLote(aldea) === id ? { proxima: true } : {} };
   if (v === 'a-medio') return { etapa: ESCUELA_A_MEDIO_HACER, opciones: {} };
   const k = Number(String(v).split('-')[1]) || 1;
   const etapa = id === 'escuela' ? Math.max(k - 1, ESCUELA_A_MEDIO_HACER) : k - 1;
   return { etapa, opciones: { obraActiva: true } };
 }
-const claveVisual = (id, v) => `${id}|${v.etapa}|${v.opciones.obraActiva ? 1 : 0}`;
+const claveVisual = (id, v) => `${id}|${v.etapa}|${v.opciones.obraActiva ? 1 : 0}${v.opciones.proxima ? '|p' : ''}`;
+// El lote que se levanta después (el del que espera en el andén o el del próximo en venir), si no
+// hay una obra en curso.
+export function proximoLote(aldea) {
+  if (!aldea || obraEnCurso(aldea)) return null;
+  const quien = aldea.llegando?.clave || quienLlega(aldea);
+  return quien && Object.hasOwn(LOTE_DE, quien) ? LOTE_DE[quien] : null;
+}
 
 // Lo que ocupa de verdad cada edificio (la planta y, adelante, la galería con sus escalones):
 // ahí no va ningún accesorio.
@@ -169,9 +263,66 @@ const enCalle = (lx, lz, margen = 0, menos = null) => CALLES_ALDEA.some((c) => c
 // Las puertas (en el plano): ahí no va un farol ni un cerco (por ahí sale la gente a la calle).
 const PUERTAS_PLANO = IDS_EDIFICIOS.map((id) => puntosDe(id).puerta).filter(Boolean);
 
+// 3.6 (detalles): los desniveles entre lotes vecinos. Donde dos plantas quedan a menos de 5 m una al
+// lado de la otra y a más de medio metro de altura, cada una emparejada a su altura deja un escalón
+// en el medio (antes, un talud brusco con el zócalo de la de arriba al aire): ahí va un murete de
+// pirca de contención (al ras del lote de arriba) y, del lado de la calle, escalones de laja.
+// En el plano: { a, b, eje (en qué sentido están separadas), medio, u0, u1 (a lo largo del murete),
+// frente (-1: la calle queda del lado de u0), ladoAlto (+1/-1 respecto de `medio`), bajo, alto }.
+export function planDesniveles() {
+  const lista = [];
+  const ids = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion');
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    const A = plantaDe(ids[i]), B = plantaDe(ids[j]), ya = EDIFICIOS_ALDEA[ids[i]].y, yb = EDIFICIOS_ALDEA[ids[j]].y;
+    if (Math.abs(ya - yb) < 0.5) continue;
+    const gx = Math.max(A.x0 - B.x1, B.x0 - A.x1), gz = Math.max(A.z0 - B.z1, B.z0 - A.z1);
+    let eje;
+    if (gx > 0 && gz < 0 && gx < 5) eje = 'x'; else if (gz > 0 && gx < 0 && gz < 5) eje = 'z'; else continue;
+    const medio = eje === 'x' ? (A.x1 < B.x0 ? (A.x1 + B.x0) / 2 : (B.x1 + A.x0) / 2) : (A.z1 < B.z0 ? (A.z1 + B.z0) / 2 : (B.z1 + A.z0) / 2);
+    const p = (u) => (eje === 'x' ? [medio, u] : [u, medio]);
+    let u0 = (eje === 'x' ? Math.min(A.z0, B.z0) : Math.min(A.x0, B.x0)) - 1.5;
+    let u1 = (eje === 'x' ? Math.max(A.z1, B.z1) : Math.max(A.x1, B.x1)) + 1.5;
+    const dCalle = (u) => { const [lx, lz] = p(u); return Math.min(...CALLES_ALDEA.map((c) => distanciaACalle(lx, lz, c))); };
+    while (u1 - u0 > 2 && dCalle(u0) < 0.6) u0 += 0.25;
+    while (u1 - u0 > 2 && dCalle(u1) < 0.6) u1 -= 0.25;
+    if (u1 - u0 < 3) continue;
+    const alta = ya > yb ? A : B;
+    const ladoAlto = Math.sign((eje === 'x' ? (alta.x0 + alta.x1) / 2 : (alta.z0 + alta.z1) / 2) - medio);
+    lista.push({ a: ids[i], b: ids[j], eje, medio, u0, u1, frente: dCalle(u0) <= dCalle(u1) ? -1 : 1, ladoAlto, bajo: Math.min(ya, yb), alto: Math.max(ya, yb) });
+  }
+  return lista;
+}
+export const ALTO_MURETE = 1.45;
+// ¿El punto del plano cae sobre un murete (con margen)?
+function sobreMurete(lx, lz, margen, desniveles) {
+  return desniveles.some((d) => {
+    const [a, u] = d.eje === 'x' ? [lx, lz] : [lz, lx];
+    return Math.abs(a - d.medio) < margen && u > d.u0 - margen && u < d.u1 + margen;
+  });
+}
+
 // Los accesorios de la aldea, en el plano: { tipo, lx, lz, giro, largo }. Siempre los mismos.
+// (`especial`: armado con otras medidas que el de su tipo; `yFijo`: a esa altura, sin inclinarse)
 export function planAccesorios() {
   const lista = [];
+  const desniveles = planDesniveles();
+  // 3.6 (detalles): los muretes y sus escalones
+  for (const d of desniveles) {
+    const ESC = 1.3, sube = d.alto - d.bajo, n = Math.max(2, Math.round(sube / 0.19)), largoEsc = n * 0.32;
+    const p = (a, u) => (d.eje === 'x' ? [a, u] : [u, a]);
+    // el murete, de la escalera al fondo, en tramos de unos 2,5 m
+    const ua = d.frente < 0 ? d.u0 + ESC + 0.25 : d.u0, ub = d.frente < 0 ? d.u1 : d.u1 - ESC - 0.25, L = ub - ua, k = Math.max(1, Math.round(L / 2.5));
+    for (let i = 0; i < k; i++) {
+      const [lx, lz] = p(d.medio, ua + (i + 0.5) * L / k);
+      lista.push({ tipo: 'murete', lx, lz, giro: d.eje === 'x' ? -Math.PI / 2 : 0, largo: L / k, yFijo: d.alto + 0.12 - ALTO_MURETE, desnivel: `${d.a}|${d.b}` });
+    }
+    // los escalones: del lado bajo al alto, cruzando la línea del murete, junto a la calle
+    const uE = d.frente < 0 ? d.u0 + ESC / 2 + 0.1 : d.u1 - ESC / 2 - 0.1;
+    const [lx, lz] = p(d.medio - d.ladoAlto * largoEsc / 2, uE);
+    const giro = d.eje === 'x' ? (d.ladoAlto > 0 ? 0 : Math.PI) : -Math.PI / 2 * d.ladoAlto;
+    lista.push({ tipo: 'escalones', lx, lz, giro, yFijo: d.bajo, desnivel: `${d.a}|${d.b}`,
+      especial: { clave: `escalones|${sube.toFixed(2)}`, nombre: 'escalones', opciones: { alto: +sube.toFixed(2), ancho: ESC } } });
+  }
   // de un solo lado de cada calle: en las dos largas (la de la Vía y la Norte), postes de luz
   // cada 21 m con los cables de poste a poste; en las demás, faroles cada 12 m
   CALLES_ALDEA.forEach((c, ic) => {
@@ -247,11 +398,45 @@ export function planAccesorios() {
         const mx = ax + (bx - ax) * (t0 + t1) / 2, mz = az + (bz - az) * (t0 + t1) / 2;
         const c = Math.cos(e.rot), s = Math.sin(e.rot);
         const lx = e.x + mx * c + mz * s, lz = e.z - mx * s + mz * c;
-        if (enCalle(lx, lz, 0.8) || ocupado(lx, lz, 0.2, id)) continue;
+        if (enCalle(lx, lz, 0.8) || ocupado(lx, lz, 0.2, id) || sobreMurete(lx, lz, 0.9, desniveles)) continue;
         lista.push({ tipo: 'cerco', lx, lz, giro: e.rot + Math.atan2(bx - ax, bz - az) - Math.PI / 2, largo: L / n });
       }
     }
   }
+  // 3.6 (detalles): el fondo de los lotes y el borde de la aldea, que no sea un corte: un frutal
+  // viejo en el patio de cada casa, cercos de palo atrás de los locales de la orilla y arbustos
+  // (calafate, rosa mosqueta) entre los álamos y junto a las pircas
+  const azarPlano = (x, z) => { const v = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return v - Math.floor(v); };
+  let nFrutal = 0;
+  for (const id of IDS_EDIFICIOS) {
+    const e = EDIFICIOS_ALDEA[id];
+    if (e.rol !== 'casa') continue;
+    const c = Math.cos(e.rot), s = Math.sin(e.rot), bx = -(e.lado || 1) * (e.ancho / 2 - 0.5), bz = -e.fondo / 2 - 2.0;
+    const lx = e.x + bx * c + bz * s, lz = e.z - bx * s + bz * c;
+    if (enCalle(lx, lz, 2) || ocupado(lx, lz, 0.6, id) || sobreMurete(lx, lz, 1.6, desniveles)) continue;
+    const k = 1 + (nFrutal++ % 3);
+    lista.push({ tipo: 'frutal', lx, lz, giro: azarPlano(lx, lz) * 6.283, especial: { clave: `frutal|${k}`, nombre: 'frutal', opciones: { semilla: k } } });
+  }
+  [['herreria', 'cerco-pique'], ['pescaderia', 'cerco'], ['sala-miel', 'cerco-pique'], ['hilanderia', 'cerco'], ['salon', 'cerco-pique']].forEach(([id, tipo]) => {
+    const e = EDIFICIOS_ALDEA[id], c = Math.cos(e.rot), s = Math.sin(e.rot), zb = -e.fondo / 2 - 2.4, W = e.ancho / 2 + 1.0;
+    const n = Math.max(1, Math.round((2 * W) / 3));
+    for (let k = 0; k < n; k++) {
+      const mx = -W + (k + 0.5) * (2 * W / n), lx = e.x + mx * c + zb * s, lz = e.z - mx * s + zb * c;
+      if (enCalle(lx, lz, 0.8) || ocupado(lx, lz, 0.3, id) || sobreMurete(lx, lz, 0.9, desniveles)) continue;
+      lista.push({ tipo, lx, lz, giro: e.rot, largo: 2 * W / n });
+    }
+  });
+  const bordes = [];
+  for (let x = -42.5; x <= 84.5; x += 7) bordes.push([x, 90, 0]);
+  for (let z = 37.5; z <= 77.5; z += 7) bordes.push([-54.6, z, 1]);
+  for (let z = 37.5; z <= 70.5; z += 7) bordes.push([98.6, z, 2]);
+  for (let x = -40; x <= 10; x += 8.5) bordes.push([x, 83.6, 3]);
+  for (let z = 33; z <= 63; z += 8.5) bordes.push([93.6, z, 4]);
+  bordes.forEach(([lx, lz, g], i) => {
+    if (azarPlano(lx + g, lz) < 0.4 || enCalle(lx, lz, 2) || ocupado(lx, lz, 1.2)) return;
+    const k = 1 + (i % 4);
+    lista.push({ tipo: 'arbusto', lx, lz, giro: azarPlano(lz, lx) * 6.283, especial: { clave: `arbusto|${k}`, nombre: 'arbusto', opciones: { semilla: k, flores: k % 2 === 0 } } });
+  });
   // pircas: al fondo de la aldea, detrás de la escuela y las casas del oeste, y al este
   for (const [ax, az, bx, bz] of [[-44, 82, 14, 82], [92, 30, 92, 66]]) {
     const L = Math.hypot(bx - ax, bz - az), n = Math.round(L / 2.5);
@@ -494,58 +679,213 @@ function texturaDe(datos, ancho, alto) {
   return t;
 }
 const hexRGB = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-// El ripio de las calles: piedritas sueltas, dos huellas de ruedas apisonadas, el lomo del medio
-// con alguna mata, y los bordes que se pierden en la tierra (alfa). u: de costado; v: a lo largo
-// (seis metros por vuelta; las piedritas cruzan la costura).
-function texturaRipio() {
-  const W = 256, H = 512, d = new Uint8Array(W * H * 4), r = azarSemilla(36036);
-  const base = hexRGB('#8b806d');
-  // el fondo: tierra con manchas grandes (dos ondas suaves, sin costura a lo largo)
-  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
-    const u = i / W, v = j / H;
-    const m = 0.06 * Math.sin(v * Math.PI * 2 * 3 + u * 7) + 0.05 * Math.sin(v * Math.PI * 2 * 7 + u * 13 + 1.3);
-    const huella = Math.max(0, 1 - Math.min(Math.abs(u - 0.3), Math.abs(u - 0.7)) / 0.09);
-    const f = (1 + m) * (1 - 0.2 * huella * huella);
-    const k = (j * W + i) * 4;
-    d[k] = base[0] * f; d[k + 1] = base[1] * f; d[k + 2] = base[2] * f; d[k + 3] = 255;
+// 3.6 (detalles): un ruido de valores con semilla, propio (no el de ruido.js). `periodo`: se repite
+// cada tantas celdas (para las texturas que se embaldosan sin costura).
+function ruidoValor(semilla, periodo = 0) {
+  const h = (i, j) => {
+    if (periodo) { i = ((i % periodo) + periodo) % periodo; j = ((j % periodo) + periodo) % periodo; }
+    let n = Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(semilla, 982451653);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
+  return (x, z) => {
+    const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j, u = fx * fx * (3 - 2 * fx), v = fz * fz * (3 - 2 * fz);
+    const a = h(i, j), b = h(i + 1, j), c = h(i, j + 1), d = h(i + 1, j + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  };
+}
+// 3.6 (detalles): el ripio, de cerca. Una baldosa de 2,2 m sin costura: arena y tierra fina de
+// fondo y piedritas de tres tamaños (de 1 a 9 cm), cada una con su color (basalto, granito, canto
+// rodado rojizo), su lado de luz y su sombrita. El alfa es la altura (las piedras arriba, la arena
+// abajo): con eso el agua llena los huecos, el pasto sale entre las piedras y las dos escalas del
+// shader se mezclan sin fantasmas. Se lee dos veces con escala y giro distintos: no se repite.
+// (La baldosa mide 1,6 m: de 1 a 7 cm las piedras, como un ripio de cantera y no un canto rodado.)
+function texturaGrava() {
+  const N = 256, d = new Uint8Array(N * N * 4), alto = new Float32Array(N * N), r = azarSemilla(36037);
+  const n1 = ruidoValor(11, 8), n2 = ruidoValor(12, 32);
+  const fondo = [hexRGB('#8a7e6a'), hexRGB('#7d7262'), hexRGB('#948670')];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const k = j * N + i, m = n1(i / 32, j / 32), f = n2(i / 8, j / 8);
+    const a = fondo[0], b = m < 0.5 ? fondo[1] : fondo[2], t = Math.abs(m - 0.5) * 2;
+    const g = 0.9 + 0.2 * f + (r() - 0.5) * 0.1;
+    d[k * 4] = (a[0] + (b[0] - a[0]) * t) * g; d[k * 4 + 1] = (a[1] + (b[1] - a[1]) * t) * g; d[k * 4 + 2] = (a[2] + (b[2] - a[2]) * t) * g;
+    alto[k] = 0.18 + 0.12 * f;
   }
-  const punto = (cx, cy, rad, col, a = 1) => {
-    for (let y = Math.floor(cy - rad); y <= Math.ceil(cy + rad); y++) for (let x = Math.floor(cx - rad); x <= Math.ceil(cx + rad); x++) {
-      if (x < 0 || x >= W) continue;
-      const dd = Math.hypot(x - cx, y - cy);
-      if (dd > rad) continue;
-      const k = (((y % H) + H) % H * W + x) * 4, t = a * Math.min(1, (rad - dd) * 1.5);
-      d[k] += (col[0] - d[k]) * t; d[k + 1] += (col[1] - d[k + 1]) * t; d[k + 2] += (col[2] - d[k + 2]) * t;
+  const colores = ['#9b958a', '#868079', '#a99d86', '#76716a', '#8f8270', '#ada38e', '#7c6f61', '#9c8572', '#6c6761', '#b2a892'].map(hexRGB);
+  const piedra = (cx, cy, rad, col) => {
+    const ang = r() * Math.PI, ca = Math.cos(ang), sa = Math.sin(ang), asp = 0.6 + r() * 0.4, rel = 0.7 + r() * 0.3;
+    const R = Math.ceil(rad) + 2;
+    for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+      const u = (x * ca + y * sa) / rad, v = (-x * sa + y * ca) / (rad * asp), q = u * u + v * v;
+      const px = (((Math.round(cx) + x) % N) + N) % N, py = (((Math.round(cy) + y) % N) + N) % N, k = py * N + px;
+      if (q > 1) {
+        // la sombrita de contacto (abajo a la derecha, lejos de la luz)
+        const us = ((x - 1.2) * ca + (y - 1.2) * sa) / rad, vs = (-(x - 1.2) * sa + (y - 1.2) * ca) / (rad * asp);
+        if (us * us + vs * vs < 1.15 && alto[k] < 0.5) { d[k * 4] *= 0.87; d[k * 4 + 1] *= 0.87; d[k * 4 + 2] *= 0.86; }
+        continue;
+      }
+      const h = 0.55 + 0.45 * Math.sqrt(1 - q) * rel;
+      if (h <= alto[k]) continue;
+      alto[k] = h;
+      // de arriba a la izquierda viene la luz; el borde, más oscuro
+      const luz = 0.92 + 0.16 * Math.max(-1, Math.min(1, (-x - y) / (rad * 1.4))) - 0.1 * q * q + (r() - 0.5) * 0.05;
+      d[k * 4] = Math.min(255, col[0] * luz); d[k * 4 + 1] = Math.min(255, col[1] * luz); d[k * 4 + 2] = Math.min(255, col[2] * luz);
     }
   };
-  // las piedritas (menos en las huellas), con su sombrita
-  const colores = ['#9a907e', '#837a6b', '#a3977f', '#7a736a', '#90856f', '#ada490', '#716b62'].map(hexRGB);
-  const sombra = [52, 47, 40];
-  for (let n = 0; n < 4200; n++) {
-    const u = r(), v = r() * H;
-    const huella = Math.min(Math.abs(u - 0.3), Math.abs(u - 0.7)) < 0.06;
-    if (huella && r() < 0.75) continue;
-    const t = 0.5 + r() * (huella ? 0.8 : 1.5);
-    if (t > 1.4) punto(u * W + 0.5, v + 0.7, t * 0.85, sombra, 0.25);
-    punto(u * W, v, t, colores[(r() * colores.length) | 0]);
+  for (const [n, r0, r1] of [[60, 3.5, 5.5], [420, 2, 3.5], [1700, 1, 2]]) for (let s = 0; s < n; s++) piedra(r() * N, r() * N, r0 + r() * (r1 - r0), colores[(r() * colores.length) | 0]);
+  for (let k = 0; k < N * N; k++) d[k * 4 + 3] = Math.round(255 * Math.min(1, alto[k]));
+  const t = texturaDe(d, N, N);
+  t.wrapS = t.wrapT = 1000;   // Repeat
+  return t;
+}
+// 3.6 (detalles): dónde hay ripio, en el plano de la aldea (una textura de 0,25 m por píxel que cubre
+// todas las calles; no se repite). R: cuánto ripio (el borde despeinado, el pasto se le mete);
+// G: lo apisonado y lo hundido (las dos huellas de las ruedas, que serpentean, y los baches: ahí
+// junta agua); B: el pasto ralo (el lomo del medio y los bordes); A: zonas de unos metros (más
+// claro o más oscuro, cuál de las dos escalas manda, dónde se junta el agua).
+export const MARCO_RIPIO = { lx0: -52, lz0: 3, ancho: 150, alto: 82, paso: 0.25 };
+export function mascaraRipio(calles = CALLES_ALDEA) {
+  const P = MARCO_RIPIO, W = Math.round(P.ancho / P.paso), H = Math.round(P.alto / P.paso);
+  const d = new Uint8Array(W * H * 4), escrito = new Uint8Array(W * H), r = azarSemilla(36038);
+  const nb = ruidoValor(21), nb2 = ruidoValor(22), nz = ruidoValor(23), nh = ruidoValor(24), np = ruidoValor(25);
+  // cada tramo: punta, dirección, largo, medio ancho, cuánto se usa y las huellas
+  const tramos = [];
+  for (const c of calles) for (let s = 0; s < c.puntos.length - 1; s++) {
+    const [ax, az] = c.puntos[s], [bx, bz] = c.puntos[s + 1], L = Math.hypot(bx - ax, bz - az);
+    tramos.push({ ax, az, ux: (bx - ax) / L, uz: (bz - az) / L, L, m: c.ancho / 2, uso: c.id === 'calle-via' || c.id === 'calle-norte' ? 1 : c.ancho < 5 ? 0.6 : 0.8, fase: r() * 10, separa: c.ancho < 5 ? 0.72 : 0.82 });
   }
-  // matas de pasto en el lomo del medio
-  for (let n = 0; n < 160; n++) {
-    const u = 0.5 + (r() - 0.5) * 0.12, v = r() * H, col = r() < 0.5 ? [96, 112, 60] : [128, 128, 72];
-    for (let k = 0; k < 4; k++) { const dx = (r() - 0.5) * 6, dy = -2 - r() * 5; for (let s = 0; s <= 6; s++) punto(u * W + dx * s / 6, v + dy * s / 6, 0.6, col, 0.55); }
-  }
-  // los bordes: se funden con la tierra (y no son una línea recta)
-  let b0 = 0.1, b1 = 0.1;
-  for (let j = 0; j < H; j++) {
-    if (j % 4 === 0) { b0 = 0.06 + r() * 0.08; b1 = 0.06 + r() * 0.08; }
-    for (let i = 0; i < W; i++) {
-      const u = (i + 0.5) / W;
-      d[(j * W + i) * 4 + 3] = Math.round(255 * 0.94 * suave01(u / (b0 + 0.06)) * suave01((1 - u) / (b1 + 0.06)));
+  // los baches: unos por tramo, fuera de las huellas (cada tramo mira sólo los suyos)
+  for (const t of tramos) {
+    t.baches = [];
+    for (let k = 0; k < Math.round(t.L / 10); k++) {
+      const s = 3 + r() * (t.L - 6), o = (r() - 0.5) * (t.m * 2 - 1.4);
+      t.baches.push({ x: t.ax + t.ux * s - t.uz * o, z: t.az + t.uz * s + t.ux * o, ux: t.ux, uz: t.uz, a: 0.45 + r() * 0.5, b: 0.3 + r() * 0.25 });
     }
   }
-  const t = texturaDe(d, W, H);
-  t.wrapS = 1001; t.wrapT = 1000;   // ClampToEdge a lo ancho, Repeat a lo largo (el three local no exporta los nombres)
-  return t;
+  for (const t of tramos) {
+    const x0 = Math.min(t.ax, t.ax + t.ux * t.L) - t.m - 1.5, x1 = Math.max(t.ax, t.ax + t.ux * t.L) + t.m + 1.5;
+    const z0 = Math.min(t.az, t.az + t.uz * t.L) - t.m - 1.5, z1 = Math.max(t.az, t.az + t.uz * t.L) + t.m + 1.5;
+    const i0 = Math.max(0, Math.floor((x0 - P.lx0) / P.paso)), i1 = Math.min(W - 1, Math.ceil((x1 - P.lx0) / P.paso));
+    const j0 = Math.max(0, Math.floor((z0 - P.lz0) / P.paso)), j1 = Math.min(H - 1, Math.ceil((z1 - P.lz0) / P.paso));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const lx = P.lx0 + (i + 0.5) * P.paso, lz = P.lz0 + (j + 0.5) * P.paso;
+      const dx = lx - t.ax, dz = lz - t.az, s = dx * t.ux + dz * t.uz, o = -dx * t.uz + dz * t.ux;
+      const fuera = Math.max(0, -s, s - t.L), borde = Math.hypot(fuera, Math.abs(o)) - t.m;
+      // el borde despeinado: dos ondas de ruido (2,5 m y 0,7 m); (lo que ni con el ruido llega, ni se
+      // calcula: el ruido mueve el borde medio metro como mucho)
+      if (borde > 0.65) continue;
+      const desp = borde < -0.8 ? 0 : (nb(lx * 0.4, lz * 0.4) - 0.5) * 0.7 + (nb2(lx * 1.4, lz * 1.4) - 0.5) * 0.3;
+      const cub = suave01((0.15 - (borde + desp)) / 0.45);
+      if (cub <= 0) continue;
+      const k = (j * W + i) * 4;
+      // las huellas: serpentean despacio; se pierden en los cruces y en las puntas
+      const sc = Math.min(Math.max(0, Math.min(s, t.L - s)) / 3, 1);
+      const sv = 0.22 * Math.sin(s * 0.061 + t.fase) + 0.09 * Math.sin(s * 0.23 + t.fase * 2.1);
+      const dh = Math.min(Math.abs(o - sv - t.separa), Math.abs(o - sv + t.separa));
+      const enHuella = dh < 0.34 && sc > 0;
+      const huella = enHuella ? suave01((0.34 - dh) / 0.22) * t.uso * sc * (0.75 + 0.25 * nh(lx * 0.3, lz * 0.3)) : 0;
+      // (qué tan hundida está la huella: cambia cada uno o dos metros; ahí, y en los baches, el agua)
+      const hondo = enHuella ? 0.45 + 0.45 * nh(lx * 0.85 + 11, lz * 0.85 - 4) : 0;
+      // el lomo del medio (entre las huellas) y los bordes: pasto ralo
+      const enLomo = Math.abs(o - sv) < 0.4 && sc > 0;
+      const lomo = enLomo ? suave01((0.4 - Math.abs(o - sv)) / 0.3) * sc * (0.35 + 0.65 * np(lx * 0.5, lz * 0.5)) : 0;
+      const orilla = borde > -0.95 ? suave01((borde + 0.95) / 0.9) * (0.4 + 0.6 * np(lx * 0.8 + 7, lz * 0.8)) : 0;
+      const pasto = Math.max(lomo * (1.1 - t.uso * 0.4), orilla) * (1 - huella);
+      let hundido = huella * hondo;
+      for (const b of t.baches) {
+        const bx = lx - b.x, bz = lz - b.z;
+        if (Math.abs(bx) > 1.4 || Math.abs(bz) > 1.4) continue;
+        const u = (bx * b.ux + bz * b.uz) / b.a, v = (-bx * b.uz + bz * b.ux) / b.b;
+        hundido = Math.max(hundido, suave01((1 - Math.hypot(u, v)) / 0.5));
+      }
+      const zona = nz(lx * 0.16, lz * 0.16) * 0.75 + nz(lx * 0.5 + 3, lz * 0.5) * 0.25;
+      d[k] = Math.max(d[k], Math.round(255 * cub));
+      d[k + 1] = Math.max(d[k + 1], Math.round(255 * hundido));
+      // (en un cruce, el pasto es el de la calle que menos tiene: por ahí pasan todos)
+      d[k + 2] = escrito[k >> 2] ? Math.min(d[k + 2], Math.round(255 * pasto)) : Math.round(255 * pasto);
+      escrito[k >> 2] = 1;
+      d[k + 3] = Math.round(255 * zona);
+    }
+  }
+  const t = new THREE.DataTexture(d, W, H);
+  t.magFilter = 1006; t.minFilter = 1008; t.generateMipmaps = true; t.needsUpdate = true;
+  return { tex: t, ...P, W, H, datos: d };
+}
+// 3.6 (detalles): el material del ripio. Un Lambert (la luz, las sombras y la niebla de siempre)
+// que arma el color en el fragmento: la grava en dos escalas giradas que se mezclan por altura
+// (las piedras de una tapan la arena de la otra, sin fantasmas) y por zonas de la máscara; las
+// huellas apisonadas y más oscuras; el pasto ralo entre las piedras del lomo y de los bordes; el
+// suelo mojado más oscuro y, con `uMojado` (lo que dejó la última lluvia), charcos en las huellas
+// y en los baches que devuelven el cielo y el sol; la nieve y la escarcha encima (en las huellas,
+// barro). Un programa más: se compila en la carga con las semillas.
+const GLSL_RIPIO_PARS = /* glsl */`
+  uniform sampler2D uGravaR; uniform sampler2D uMascaraR; uniform vec4 uMarcoR;
+  uniform float uMojadoR; uniform float uInviernoR; uniform float uEscarchaR; uniform float uOtonoR; uniform float uNocheR;
+  uniform vec3 uSolDirR; uniform vec3 uSolColorR; uniform vec3 uCieloR;
+  varying vec2 vLocR; varying vec3 vMundoR;
+  float charcoR = 0.0;
+`;
+const GLSL_RIPIO_COLOR = /* glsl */`
+  {
+    vec4 mk = texture2D(uMascaraR, (vLocR - uMarcoR.xy) * uMarcoR.zw);
+    vec4 g1 = texture2D(uGravaR, vLocR * 0.62);
+    vec4 g2 = texture2D(uGravaR, mat2(0.788, -0.616, 0.616, 0.788) * vLocR * 0.41 + vec2(0.31, 0.67));
+    float wz = clamp(mk.a * 1.8 - 0.4, 0.0, 1.0);
+    float w1 = g1.a + 1.0 - wz, w2 = g2.a + wz, mx = max(w1, w2) - 0.22;
+    float b1 = max(w1 - mx, 0.0), b2 = max(w2 - mx, 0.0);
+    vec4 g = (g1 * b1 + g2 * b2) / max(b1 + b2, 1e-4);
+    float hundido = mk.g, pasto = mk.b;
+    vec3 col = g.rgb * mix(0.84, 1.1, mk.a);
+    // lo apisonado: la piedra hundida en la tierra, más oscura y pareja
+    float huella = smoothstep(0.05, 0.7, hundido);
+    float lum = dot(col, vec3(0.3, 0.55, 0.15));
+    col = mix(col, vec3(lum) * vec3(1.03, 0.96, 0.86) * 0.7, huella * 0.75);
+    // el pasto ralo: matas entre las piedras
+    float mata = smoothstep(0.42, 0.7, pasto + (0.42 - g.a) * 0.9 + (g2.r - 0.45) * 0.4);
+    vec3 cPasto = mix(vec3(0.075, 0.13, 0.035), vec3(0.17, 0.2, 0.06), g1.g * 1.6);
+    cPasto = mix(cPasto, vec3(0.3, 0.22, 0.07), uOtonoR * 0.6);
+    col = mix(col, cPasto, mata * 0.9);
+    // mojado (lo que dejó la lluvia): todo más oscuro, y los charcos donde la tierra está hundida
+    col *= 1.0 - 0.3 * uMojadoR * (1.0 - mata * 0.5);
+    charcoR = uMojadoR * smoothstep(0.6, 0.82, hundido + (0.45 - g.a) * 0.4 + (mk.a - 0.5) * 0.3) * (1.0 - uInviernoR);
+    col = mix(col, col * 0.35, charcoR);
+    // la nieve (en las huellas queda barro) y la escarcha de la mañana
+    float nieve = uInviernoR * (1.0 - 0.6 * huella) * smoothstep(-0.1, 0.35, g.a);
+    col = mix(col, vec3(0.83, 0.86, 0.91) * (0.93 + 0.07 * g.a), nieve);
+    col = mix(col, vec3(0.78, 0.82, 0.88), uEscarchaR * 0.4 * g.a * (1.0 - uInviernoR));
+    diffuseColor.rgb = col;
+    // el borde: la arena se va antes que las piedras
+    float cub = mk.r;
+    diffuseColor.a = clamp(cub * 1.35 - 0.12 + (g.a - 0.45) * 0.7 * (1.0 - cub), 0.0, 1.0);
+    if (diffuseColor.a < 0.01) discard;
+  }
+`;
+const GLSL_RIPIO_BRILLO = /* glsl */`
+  if (charcoR > 0.01) {
+    vec3 vdR = normalize(cameraPosition - vMundoR);
+    float frR = 0.05 + 0.95 * pow(1.0 - clamp(vdR.y, 0.0, 1.0), 5.0);
+    vec3 reR = reflect(-vdR, vec3(0.0, 1.0, 0.0));
+    float solR = pow(max(dot(reR, normalize(uSolDirR)), 0.0), 140.0);
+    // (de noche el cielo que devuelve es oscuro: no una raya clara en la calle)
+    outgoingLight = mix(outgoingLight, uCieloR * mix(0.8, 0.12, uNocheR), clamp(0.2 + frR, 0.0, 1.0) * charcoR * 0.85) + uSolColorR * solR * 3.0 * charcoR;
+  }
+`;
+function materialRipio(grava, mascara) {
+  const m = new THREE.MeshLambertMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+  const propios = { uGravaR: { value: grava }, uMascaraR: { value: mascara.tex }, uMarcoR: { value: { x: mascara.lx0, y: mascara.lz0, z: 1 / mascara.ancho, w: 1 / mascara.alto } } };
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, propios, { uMojadoR: U.uMojado, uInviernoR: U.uInvierno, uEscarchaR: U.uEscarcha, uOtonoR: U.uOtono, uNocheR: U.uNoche, uSolDirR: U.uSolDir, uSolColorR: U.uSolColor, uCieloR: U.uCieloBajo });
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec2 aLocalR; varying vec2 vLocR; varying vec3 vMundoR;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLocR = aLocalR; vMundoR = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n' + GLSL_RIPIO_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\n' + GLSL_RIPIO_COLOR)
+      .replace('#include <opaque_fragment>', GLSL_RIPIO_BRILLO + '\n#include <opaque_fragment>');
+  };
+  m.customProgramCacheKey = () => 'ripio-aldea-3.6';
+  m.userData.ripio36 = true;
+  return m;
 }
 // La mancha de luz de una ventana en el suelo: fuerte contra la pared, se abre y se apaga.
 function texturaCharco() {
@@ -605,7 +945,7 @@ export function crearAldeaMundo(ctx) {
   // ------------------------------------------------ el terreno
   function emparejar() {
     const t0 = performance.now();
-    emparejado = emparejarTerreno(T, zonasEmparejar(parada));
+    emparejado = emparejarTerreno(T, zonasEmparejar(parada), callesNivelar(parada));
     // la textura de alturas (pasto, agua) en la región tocada
     const tex = U.uAlturas.value;
     const N = Math.round(Math.sqrt(T.alturas.length));
@@ -693,6 +1033,21 @@ export function crearAldeaMundo(ctx) {
     g.p.needsUpdate = true;
   }
 
+  // 3.6 (detalles): la rejilla del suelo fino (para apoyar el ripio en sus mismos triángulos). Sin
+  // parche (en Node no hay malla del terreno), una de 2 m sobre el terreno.
+  function rejillaSuelo() {
+    if (suelo && info.parche) {
+      const P = info.parche, pa = suelo.geometry.attributes.position.array, na = suelo.geometry.attributes.normal.array;
+      const k = (i, j) => (j * (P.nx + 1) + i) * 3;
+      return { X0: P.X0, Z0: P.Z0, dx: (P.X1 - P.X0) / P.nx, dz: (P.Z1 - P.Z0) / P.nz, nx: P.nx, nz: P.nz,
+        altura: (i, j) => pa[k(i, j) + 1], normal: (i, j) => [na[k(i, j)], na[k(i, j) + 1], na[k(i, j) + 2]] };
+    }
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const [lx, lz] of [[-52, 3], [98, 3], [-52, 85], [98, 85]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
+    const X0 = Math.floor(x0 / 2) * 2, Z0 = Math.floor(z0 / 2) * 2, nx = Math.ceil((x1 - X0) / 2), nz = Math.ceil((z1 - Z0) / 2);
+    return { X0, Z0, dx: 2, dz: 2, nx, nz, altura: (i, j) => alturaEn(X0 + i * 2, Z0 + j * 2), normal: (i, j) => { const n = T.normal(X0 + i * 2, Z0 + j * 2); return [n.x, n.y, n.z]; } };
+  }
+
   // ------------------------------------------------ despejar y pintar el suelo
   // `pelar(x, z, radio)` de main.js (el pasto alrededor). Devuelve cuántos árboles y matas salieron.
   function despejar() {
@@ -707,7 +1062,12 @@ export function crearAldeaMundo(ctx) {
     // la estación: el galpón de cargas y el cartel
     for (const [lx, lz] of [[-7.2, 7.8], [6.8, 6.4], [-5.2, 6.2]]) { const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 3.5); }
     // y el claro del pueblo: entre las casas no queda bosque (el borde lo hacen los álamos)
-    for (let lx = -47; lx <= 93; lx += 6) for (let lz = 14; lz <= 85; lz += 6) { const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 4.4); }
+    // 3.6 (detalles): en la orilla del claro quedan algunos árboles: el borde no es un corte recto
+    for (let lx = -47; lx <= 93; lx += 6) for (let lz = 14; lz <= 85; lz += 6) {
+      const orilla = Math.min(lx + 47, 93 - lx, 85 - lz, lz - 14), v = Math.sin(lx * 12.9898 + lz * 78.233) * 43758.5453;
+      if (orilla < 5 && v - Math.floor(v) < 0.45) continue;
+      const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 4.4);
+    }
     // `despejar` deja el choque de cada árbol sacado marcado `apagado`, pero colisiones.js no lo
     // mira (con un talado queda el tocón): en la aldea, el choque de lo que salió no frena a nadie
     // (ni a vos ni a la gente) — se le baja el techo por debajo de todo, sin sacarlo de la grilla
@@ -741,26 +1101,46 @@ export function crearAldeaMundo(ctx) {
       pintar(x0 - r, x1 + r, z0 - r, z1 + r, (k, x, z) => {
         const l = M.aLocal(x, z);
         const dist = distanciaACalle(l.lx, l.lz, c);   // < 0: sobre la calle
-        // el borde de pasto pisado: ralo hasta un par de metros de la calle
-        const pisado = suave01((2.4 - dist) / 2.4);
+        // 3.6 (detalles): el pasto se mete hasta el borde (pisado, más ralo, un metro y medio) y la
+        // tierra queda sólo debajo del ripio (antes asomaba un borde naranja de un metro afuera)
+        const pisado = suave01((1.8 - dist) / 1.8);
         if (pisado <= 0) return;
-        d[k] = Math.round(d[k] * (1 - 0.45 * pisado));
-        const g = suave01((0.9 - dist) / 1.6);
+        d[k] = Math.round(d[k] * (1 - 0.3 * pisado));
+        const g = suave01((-0.3 - dist) / 1.2);
         if (g <= 0) return;
         d[k + 1] = Math.max(d[k + 1], Math.round(255 * g));
         d[k] = Math.round(d[k] * (1 - g));
       });
     }
+    // las plantas: lo de alrededor, pasto de patio (antes, un rectángulo oscuro); los lotes, con lo
+    // que tienen ahora (`pintarLote`: el pasto alto del terreno esperando, o el patio de la obra)
+    lotesSuelo = new Map();
     for (const z of zonasEmparejar(parada)) {
       const c = Math.cos(z.rot), s = Math.sin(z.rot), r = Math.hypot(z.x1 - z.x0, z.z1 - z.z0) / 2 + 1;
+      const e = EDIFICIOS_ALDEA[z.id], celdas = [];
       pintar(z.x - r, z.x + r, z.z - r, z.z + r, (k, x, wz) => {
         const dx = x - z.x, dz = wz - z.z, bx = dx * c - dz * s, bz = dx * s + dz * c;
-        if (bx > z.x0 + 0.5 && bx < z.x1 - 0.5 && bz > z.z0 + 0.5 && bz < z.z1 - 0.5) d[k] = Math.round(d[k] * 0.25);
-        const e = EDIFICIOS_ALDEA[z.id];
-        if (Math.abs(bx) < e.ancho / 2 + 0.6 && Math.abs(bz) < e.fondo / 2 + 0.6) d[k] = 0;   // bajo la planta, nada
+        const patio = bx > z.x0 + 0.5 && bx < z.x1 - 0.5 && bz > z.z0 + 0.5 && bz < z.z1 - 0.5;
+        const planta = Math.abs(bx) < e.ancho / 2 + 0.6 && Math.abs(bz) < e.fondo / 2 + 0.6;
+        if (!patio && !planta) return;
+        if (esLote(z.id)) { celdas.push({ k, original: d[k], planta, lote: Math.abs(bx) < e.ancho / 2 + 1.2 && Math.abs(bz) < e.fondo / 2 + 1.2 }); return; }
+        d[k] = planta ? 0 : Math.round(d[k] * 0.82);   // bajo la planta, nada
       });
+      if (celdas.length) lotesSuelo.set(z.id, { celdas, vacio: null });
     }
+    for (const id of lotesSuelo.keys()) pintarLote(id, true, false);
     tex.needsUpdate = true;
+  }
+  // 3.6 (detalles): el suelo de un lote. Vacío: el pasto alto y tupido del terreno que espera
+  // (con la máscara al máximo, el pasto sale más alto); con obra o abierto: bajo la planta nada y
+  // alrededor un patio. Se rehace sólo cuando cambia (sube la máscara entera: un par de ms).
+  let lotesSuelo = null;
+  function pintarLote(id, vacio, subir = true) {
+    const L = lotesSuelo?.get(id), tex = U.uMascara.value, d = tex?.image?.data;
+    if (!L || !d || L.vacio === vacio) return;
+    L.vacio = vacio;
+    for (const q of L.celdas) d[q.k] = vacio ? (q.lote ? Math.max(q.original, 240) : Math.max(q.original, 200)) : q.planta ? 0 : Math.round(q.original * 0.82);
+    if (subir) tex.needsUpdate = true;
   }
   // Para objetos.js: ahí no se dejan frutos, plumas ni piedras.
   function zonasObjetos() {
@@ -770,6 +1150,8 @@ export function crearAldeaMundo(ctx) {
   const sitiosValle = () => ({ almacen: sitioEstructura('almacen', parada), 'casa-te': sitioEstructura('casa-te', parada) });
 
   // ------------------------------------------------ las raíces (los complejos)
+  // (lo que tarda armar las texturas del ripio, en la carga)
+  const medidoR = (fn) => { const t0 = performance.now(); try { return fn(); } finally { info.ripioMs = performance.now() - t0; } };
   function crearMateriales() {
     // (3.6 pulido: un material PROPIO con el detalle de superficie del shader; no el est.mat compartido)
     const estructura = prepararMaterialAldea(materialVegetal({ flex: 0 }));
@@ -780,7 +1162,7 @@ export function crearAldeaMundo(ctx) {
     info.atlasMs = performance.now() - tA;
     return {
       estructura, follaje, muebles: estructura,
-      ripio: new THREE.MeshLambertMaterial({ map: texturaRipio(), transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+      ripio: medidoR(() => { const t0 = performance.now(), g = texturaGrava(); info.gravaMs = performance.now() - t0; return materialRipio(g, mascaraRipio()); }),
       ventanaLuz: new THREE.MeshBasicMaterial({ map: texturaCharco(), color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
       carteles: new THREE.MeshLambertMaterial({ map: atlas }),
       vidrios: prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: U.uCieloBajo }),
@@ -872,7 +1254,8 @@ export function crearAldeaMundo(ctx) {
     for (const a of accesorios) {
       const w = aMundo(a.lx, a.lz);
       a.x = w.x; a.z = w.z; a.y = alturaEn(w.x, w.z); a.rot = M.rotMundo(a.giro);
-      if (a.largo) {
+      // (los muretes y sus escalones van a la altura de los lotes, derechos)
+      if (Number.isFinite(a.yFijo)) { a.y = a.yFijo; a.incl = 0; } else if (a.largo) {
         // apoyada en las dos puntas: sigue la pendiente
         const c = Math.cos(a.rot), s = Math.sin(a.rot), h = a.largo / 2;
         const y0 = alturaEn(w.x - h * c, w.z + h * s), y1 = alturaEn(w.x + h * c, w.z - h * s);
@@ -936,12 +1319,13 @@ export function crearAldeaMundo(ctx) {
       if (attrs.includes('aTipo')) g.setAttribute('aTipo', new THREE.BufferAttribute(new Float32Array(3), 1));
       if (attrs.includes('uv')) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(6), 2));
       if (attrs.includes('aCarta')) g.setAttribute('aCarta', new THREE.BufferAttribute(new Float32Array(12), 4));
+      if (attrs.includes('aLocalR')) g.setAttribute('aLocalR', new THREE.BufferAttribute(new Float32Array(6), 2));
       return g;
     };
     semillas = new THREE.Group();
     semillas.name = 'aldea-semillas';
     const m = materiales;
-    for (const [mat, attrs] of [[m.estructura, ['color', 'aTipo']], [m.follaje, ['color', 'aTipo', 'aCarta']], [m.vidrios, ['color', 'aTipo']], [m.brasas, ['color', 'aTipo']], [m.carteles, ['uv']], [m.puerta, ['color']], [m.ripio, ['uv']], [m.ventanaLuz, ['uv']]]) {
+    for (const [mat, attrs] of [[m.estructura, ['color', 'aTipo']], [m.follaje, ['color', 'aTipo', 'aCarta']], [m.vidrios, ['color', 'aTipo']], [m.brasas, ['color', 'aTipo']], [m.carteles, ['uv']], [m.puerta, ['color']], [m.ripio, ['aLocalR']], [m.ventanaLuz, ['uv']]]) {
       const malla = new THREE.Mesh(tri(attrs), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       semillas.add(malla);
@@ -970,7 +1354,12 @@ export function crearAldeaMundo(ctx) {
     protos.set(clave, q);
     return q.promesa;
   }
-  const PROTO = { farol: ['faroles', {}], poste: ['poste-luz', {}], vereda: ['vereda', { largo: 3, ancho: 1.3 }], cerco: ['cerco', { largo: 3, tipo: 'varas' }], pirca: ['pirca', { largo: 2.5, alto: 0.75 }], alamo: ['alamo', { semilla: 7, alto: 14.5 }] };
+  const PROTO = { farol: ['faroles', {}], poste: ['poste-luz', {}], vereda: ['vereda', { largo: 3, ancho: 1.3 }], cerco: ['cerco', { largo: 3, tipo: 'varas' }], pirca: ['pirca', { largo: 2.5, alto: 0.75 }], alamo: ['alamo', { semilla: 7, alto: 14.5 }],
+    // 3.6 (detalles): el murete de contención, el cerco de palo a pique
+    murete: ['pirca', { largo: 2.5, alto: ALTO_MURETE }], 'cerco-pique': ['cerco', { largo: 3, tipo: 'pique' }] };
+  // (los `especial` se arman con sus medidas: escalones de cada desnivel, frutales, arbustos)
+  const claveProto = (a) => (a.especial ? a.especial.clave : a.tipo);
+  const largoProto = (a) => (a.especial ? a.especial.opciones.largo : PROTO[a.tipo]?.[1].largo) || 1;
   // Lo que hay que pedir ahora: cada edificio en su etapa (los que cambiaron, de nuevo).
   function revisar() {
     const aldea = ctx.progreso()?.aldea || null;
@@ -991,6 +1380,7 @@ export function crearAldeaMundo(ctx) {
     if (pedidosIniciales) return pedidosIniciales;
     const ps = [];
     for (const [k, [nombre, op]] of Object.entries(PROTO)) ps.push(pedirProto(k, nombre, op));
+    for (const a of accesorios) if (a.especial) ps.push(pedirProto(a.especial.clave, a.especial.nombre, a.especial.opciones));
     ps.push(fabrica.pedir({ tipo: 'estacion' }).then((d) => { estacionHecha.datos = d; }));
     revisar();
     pedidosIniciales = Promise.all([...ps, ...promesas]).then(() => {
@@ -1104,6 +1494,12 @@ export function crearAldeaMundo(ctx) {
     // fragua quedan expuestas para la fase de mecánicas)
     b.emisores = ['chispas', 'humo', 'vapor'].filter((k) => d[k]).map((k) => ({ tipo: k, edificio: b.id, ...aMundoEn(s, d[k].lx, d[k].lz), y: s.y + d[k].ly }));
     b.acometida = d.extra?.acometida ? { ...aMundoEn(s, d.extra.acometida.lx, d.extra.acometida.lz), y: s.y + d.extra.acometida.ly } : null;
+    // 3.6 (detalles): el cable del poste a la casa aparece cuando abre el local (antes esperaba a que
+    // se rehiciera la luz de las ventanas en el suelo, que va con el planificador)
+    const firmaAcometida = b.acometida ? `${b.acometida.x.toFixed(2)},${b.acometida.y.toFixed(2)},${b.acometida.z.toFixed(2)}` : '';
+    if (firmaAcometida !== b.firmaAcometida) { b.firmaAcometida = firmaAcometida; if (calles?.lista) rehacerAcometidas(); }
+    // y el suelo del lote: el pasto alto mientras espera, el patio cuando empieza la obra
+    if (esLote(b.id)) pintarLote(b.id, d.etapa === 0);
     // choques y puertas (con dueño: se sacan al rearmar)
     const r = registrarEnMundo({ col, puertas }, d, s, { duenio: `aldea:${b.id}` });
     for (const p of r.puertas) prepararPuerta(p, m);
@@ -1173,10 +1569,9 @@ export function crearAldeaMundo(ctx) {
     for (const b of ids) for (const [capa, geo] of Object.entries(b.datos.exterior)) meter(capa, geo, matrizSitio(b.sitio, origen), b.id);
     const accs = accesorios.filter((a) => a.manzana === m.clave && !a.agua && a.tipo !== 'alamo');
     accs.forEach((a, i) => {
-      const proto = protos.get(a.tipo)?.datos;
+      const proto = protos.get(claveProto(a))?.datos;
       if (!proto) return;
-      const largoProto = PROTO[a.tipo][1].largo || 1;
-      const sx = a.largo ? a.largo / largoProto : 1;
+      const sx = a.largo ? a.largo / largoProto(a) : 1;
       for (const [capa, geo] of Object.entries(proto.exterior)) meter(capa, geo, matrizSitio(a, origen, sx), `acc-${i}`);
     });
     m.fusion = { mallas: {} };
@@ -1197,9 +1592,9 @@ export function crearAldeaMundo(ctx) {
     for (const b of ids) montarEdificio(b, m, false);
     // los accesorios: choques, pisos (veredas) y la luz de cada farol
     accs.forEach((a) => {
-      const proto = protos.get(a.tipo)?.datos;
+      const proto = protos.get(claveProto(a))?.datos;
       if (!proto) return;
-      registrarAccesorio(proto, a, PROTO[a.tipo][1].largo || 1);
+      registrarAccesorio(proto, a, largoProto(a));
       if ((a.tipo === 'farol' || a.tipo === 'poste') && proto.luces[0]) nuevaLuz(m, { x: a.x, y: a.y, z: a.z, rot: a.rot }, proto.luces[0], 'farol');
     });
     // los faroles de la plaza (los cuatro de las esquinas)
@@ -1301,43 +1696,47 @@ export function crearAldeaMundo(ctx) {
     E.lista = true;
   }
   // ------------------------------------------------ las calles
-  // El ripio: una lámina sobre el terreno con la textura de las piedritas y las huellas de las
-  // ruedas (los bordes se funden con la tierra pintada en la máscara). Los cables: de poste a
-  // poste, con su comba. Va todo en un complejo que cubre la aldea.
+  // El ripio (ver `materialRipio` y `mascaraRipio`) y los cables de poste a poste, con su comba. Va
+  // todo en un complejo que cubre la aldea.
   function montarCalles() {
     if (!calles || calles.lista) return;
-    // el ripio
+    // el ripio: 3.6 (detalles) sobre la misma rejilla del suelo fino (los mismos vértices y los
+    // mismos triángulos, 4 cm más arriba): queda paralelo al suelo y nunca lo atraviesa (antes, con
+    // su propia rejilla, la tierra asomaba en triángulos naranjas donde el terreno es curvo). Sólo
+    // las celdas que tocan una calle; el borde y el dibujo los pone la máscara.
     {
-      const pos = [], nor = [], uv = [], ind = [];
-      for (const c of CALLES_ALDEA) for (let s = 0; s < c.puntos.length - 1; s++) {
-        const [ax, az] = c.puntos[s], [bx, bz] = c.puntos[s + 1], L = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / L, uz = (bz - az) / L;
-        const filas = Math.max(2, Math.ceil(L / 1.5)), cols = 4, mitad = c.ancho / 2 + 0.5;
-        const v0 = pos.length / 3;
-        for (let f = 0; f <= filas; f++) for (let k = 0; k <= cols; k++) {
-          const t = (L * f) / filas, o = -mitad + (2 * mitad * k) / cols;
-          const w = aMundo(ax + ux * t - uz * o, az + uz * t + ux * o);
-          const n = T.normal(w.x, w.z);
-          pos.push(w.x - centro.x, alturaEn(w.x, w.z) + 0.035 - centroY, w.z - centro.z);
-          nor.push(n.x, n.y, n.z);
-          uv.push(k / cols, t / 6);
-        }
-        for (let f = 0; f < filas; f++) for (let k = 0; k < cols; k++) {
-          const a = v0 + f * (cols + 1) + k, b = a + cols + 1;
-          ind.push(a, a + 1, b, a + 1, b + 1, b);
-        }
+      const R = rejillaSuelo(), pos = [], nor = [], loc = [], ind = [], vert = new Map();
+      const cerca = (lx, lz) => CALLES_ALDEA.some((c) => distanciaACalle(lx, lz, c) < 1.1);
+      const vertice = (i, j) => {
+        const k = j * (R.nx + 1) + i;
+        if (vert.has(k)) return vert.get(k);
+        const x = R.X0 + i * R.dx, z = R.Z0 + j * R.dz, n = R.normal(i, j), l = M.aLocal(x, z);
+        pos.push(x - centro.x, R.altura(i, j) + 0.04 - centroY, z - centro.z);
+        nor.push(n[0], n[1], n[2]); loc.push(l.lx, l.lz);
+        vert.set(k, pos.length / 3 - 1);
+        return pos.length / 3 - 1;
+      };
+      for (let j = 0; j < R.nz; j++) for (let i = 0; i < R.nx; i++) {
+        let toca = false;
+        for (const [fi, fj] of [[0.5, 0.5], [0, 0], [1, 0], [0, 1], [1, 1]]) { const l = M.aLocal(R.X0 + (i + fi) * R.dx, R.Z0 + (j + fj) * R.dz); if (cerca(l.lx, l.lz)) { toca = true; break; } }
+        if (!toca) continue;
+        // (como el parche: a = (i, j), b = (i, j + 1), c = (i + 1, j + 1), d = (i + 1, j))
+        const a = vertice(i, j), b = vertice(i, j + 1), c = vertice(i + 1, j + 1), d = vertice(i + 1, j);
+        ind.push(a, b, d, b, c, d);
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-      g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setAttribute('aLocalR', new THREE.Float32BufferAttribute(loc, 2));
       g.setIndex(ind);
-      g.computeBoundingSphere();
+      g.computeBoundingSphere(); g.computeBoundingBox();
       const malla = new THREE.Mesh(g, materiales.ripio);
       malla.position.set(centro.x, centroY, centro.z);
       malla.receiveShadow = true; malla.castShadow = false; malla.renderOrder = 1;
       malla.updateMatrix(); malla.matrixAutoUpdate = false;
       calles.raiz.add(malla); malla.updateMatrixWorld(true);
       calles.ripio = malla;
+      info.ripioTris = ind.length / 3;
     }
     // los cables entre los postes de una misma calle
     const proto = protos.get('poste')?.datos;
@@ -1371,6 +1770,7 @@ export function crearAldeaMundo(ctx) {
     }
     calles.lista = true;
     calles.sucio = true;
+    rehacerAcometidas();
   }
   // De noche, la luz de cada ventana de la planta baja cae en la galería o en el suelo de
   // adelante: una mancha cálida (sin luz de verdad: el presupuesto es de 4). Una sola malla.
@@ -1392,6 +1792,7 @@ export function crearAldeaMundo(ctx) {
       const pt = puntas[Math.floor(puntas.length / 2)], w = aMundoEn(mejor, pt.lx, pt.lz);
       piezasCable.push({ geo: armarCable({ x: w.x, y: mejor.y + pt.ly, z: w.z }, b.acometida, {}), matriz: desde, clave: b.id });
     }
+    info.acometidas = piezasCable.map((q) => q.clave);
     const j = juntar(piezasCable);
     if (!j) return;
     const malla = new THREE.Mesh(j.geo, materiales.estructura);
@@ -1404,7 +1805,6 @@ export function crearAldeaMundo(ctx) {
   function rehacerCharcos() {
     if (!calles?.lista) return;
     calles.sucio = false;
-    rehacerAcometidas();
     if (calles.charcos) { calles.raiz.remove(calles.charcos); calles.charcos.geometry.dispose(); calles.charcos = null; }
     const pos = [], uv = [];
     const suelo = (x, z, y0) => {
@@ -1487,10 +1887,11 @@ export function crearAldeaMundo(ctx) {
       if (lejos) { q.luz.intensity = 0; continue; }
       const d = Math.hypot(cam.x - q.x, cam.z - q.z);
       // (los postes de luz cuelgan la lámpara a 5 m: necesitan más que un farol de 3 m)
-      if (q.clase === 'farol') q.luz.intensity = d < 90 ? encendido * (q.alto > 4 ? 15 : 6) * q.intensidad : 0;
-      else if (q.clase === 'fragua') q.luz.intensity = d < 30 ? 1.6 + 0.25 * Math.sin(performance.now() / 170) * Math.sin(performance.now() / 410) : 0;
+      // 3.6 (detalles): al alejarse se apagan de a poco (antes, de golpe en el límite)
+      if (q.clase === 'farol') q.luz.intensity = d < 90 ? encendido * (q.alto > 4 ? 15 : 6) * q.intensidad * (1 - suave01((d - 70) / 20)) : 0;
+      else if (q.clase === 'fragua') q.luz.intensity = d < 30 ? (1.6 + 0.25 * Math.sin(performance.now() / 170) * Math.sin(performance.now() / 410)) * (1 - suave01((d - 22) / 8)) : 0;
       else {
-        q.luz.intensity = d < 18 ? relleno * 0.7 * q.intensidad + encendido * 1.5 : 0;
+        q.luz.intensity = d < 18 ? (relleno * 0.7 * q.intensidad + encendido * 1.5) * (1 - suave01((d - 13) / 5)) : 0;
         if (q.luz.intensity > 0) q.luz.color.copy(colorInterior).lerp(q.color, Math.min(1, 0.35 + encendido));
       }
     }
