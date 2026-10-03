@@ -28,7 +28,8 @@
 //     · carteles: position/normal/uv sobre el atlas de `crearTexturaCarteles()` (UNA textura para
 //       toda la aldea) → MeshLambertMaterial({ map }). Toda la aldea cabe en un solo dibujo.
 //   interior: { muebles, brasas } → muebles con el material de las estructuras (aTipo 0: adentro
-//     no hay nieve), brasas (fragua, horno, cocina) con MeshBasic de color por vértice. El mundo los
+//     no hay nieve; 3.6 pulido: también el machimbre/friso de las paredes de adentro: la estructura
+//     sólo lleva un respaldo liso), brasas (fragua, horno, cocina) con MeshBasic de color por vértice. El mundo los
 //     muestra sólo a menos de ~25 m.
 //   colisiones: { obstaculos: [...], plataformas: [...] } en local, con el formato de
 //     colisiones.js (segmentos/círculos con alturaMin/alturaMax; plataformas con ang/largo/ancho/
@@ -140,12 +141,12 @@ const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a)
 // ---------------------------------------------------------------- colores (apagados, gastados)
 export const PALETA_ALDEA = {
   pared: {
-    cal: '#d3cbb6', crema: '#cdbb94', ocre: '#b98f58', rojo: '#8c4c3c', verde: '#6f7e62', celeste: '#8c9e9e',
+    cal: '#cdc3aa', crema: '#cdbb94', ocre: '#b98f58', rojo: '#8c4c3c', verde: '#6f7e62', celeste: '#8c9e9e',
     amarillo: '#c2a663', rosa: '#ad8d82', alerce: '#8a5c3e', gris: '#928c80', azul: '#6a7b86',
   },
   techo: { oxido: '#87402c', verde: '#4b674d', azul: '#495d74', gris: '#8a8e8c', rojo: '#9b432f', negro: '#46413c' },
   postigo: { verde: '#4b6a51', azul: '#3d5976', rojo: '#863b2f', amarillo: '#ad8a3c', marron: '#5a4636', blanco: '#d9d3c4' },
-  marco: '#d6ccb4',
+  marco: '#cbbfa2',
   crudo: '#b48b5c', crudoGris: '#8d8478', galvanizado: '#9ea3a2',
   madera: '#6e5238', maderaOscura: '#4e3a28', tabla: '#8a6b4a', hierro: '#33302d', laja: ['#8a8579', '#77736a', '#9a8f7c', '#6d6a62', '#857c6e'],
 };
@@ -219,6 +220,7 @@ function cilindro(c, pos, r0, r1, alto, color, o = {}) {
 }
 function bulto(c, pos, radio, color, o = {}) {
   const g = new THREE.IcosahedronGeometry(radio, o.detalle ?? 0);
+  if (o.abollar) abollar(g, o.abollar, o.escalaAbollar ?? 4.5);
   const k = lin(color);
   c.agregar(g, {
     tipo: o.tipo ?? 4, variar: o.variar ?? 0.12, suave: o.suave ?? false,
@@ -317,21 +319,28 @@ function crearContexto(id, etapa, op, def) {
 // Sombreado pintado de una superficie: pincelada amplia, sombra bajo el alero, oclusión en las
 // esquinas, salpicado de barro al pie y pintura gastada en manchas (deja ver la madera).
 function sombrear(K, k, x, y, z, o = {}) {
-  let f = 0.86 + 0.28 * pincel(x, y, z, K.s);
+  let f = 0.8 + 0.4 * pincel(x, y, z, K.s);
   // sombra pintada bajo el alero (fuerte y ancha: el alero de chapa tapa el cielo)
   if (o.alero !== undefined) f *= 1 - (o.sombraAlero ?? 0.34) * suave(o.alero - 1.1, o.alero, y);
   // oclusión en las esquinas
   if (o.esquina !== undefined) f *= 1 - 0.3 * (1 - suave(0, 0.7, o.esquina));
   // arriba más claro y tibio (la luz del cielo), abajo más oscuro y húmedo
   let out = escalar(k, f);
+  // 3.6 (pulido): el matiz también se mueve con la pincelada: manchas tibias (ocre) y frías (gris azulado)
+  const hue = pincel(x * 0.7 - 2, y * 0.5, z * 0.7 + 1, K.s * 2.1);
+  out = mezclar(out, { r: out.r * 1.1, g: out.g * 1.02, b: out.b * 0.86 }, Math.max(0, hue - 0.5) * 0.8);
+  out = mezclar(out, { r: out.r * 0.9, g: out.g * 0.96, b: out.b * 1.08 }, Math.max(0, 0.5 - hue) * 0.8);
   if (o.suelo !== undefined) {
     out = mezclar(out, { r: out.r * 1.06, g: out.g * 1.02, b: out.b * 0.94 }, suave(o.suelo + 0.8, o.suelo + 2.6, y));
-    const sal = 1 - suave(0, 0.85, y - o.suelo);
-    if (sal > 0) out = mezclar(out, TIERRA, sal * 0.45);
+    // barro y salpicaduras al pie: de la tierra hacia arriba, en manchas
+    const sal = (1 - suave(0, 1.15, y - o.suelo)) * (0.75 + 0.5 * pincel(x * 4.1, y * 3, z * 4.1, K.s + 3));
+    if (sal > 0) out = mezclar(out, TIERRA, Math.min(0.8, sal * 0.62));
   }
+  const borde = o.borde ?? 9;
   if (o.desgaste) {
-    const m = pincel(x * 2.3 + 3, y * 1.9, z * 2.3 - 1, K.s * 1.7);
-    if (m > 0.7) out = mezclar(out, o.madera ?? tinte('#7d6247'), Math.min(1, (m - 0.7) * 3.2) * o.desgaste);
+    // pintura saltada: en manchas, y más en los bordes (cantos, junto a puertas y ventanas)
+    const m = pincel(x * 2.3 + 3, y * 1.9, z * 2.3 - 1, K.s * 1.7) + (1 - suave(0, 0.22, borde)) * 0.35;
+    if (m > 0.6) out = mezclar(out, o.madera ?? tinte('#7d6247'), Math.min(1, (m - 0.6) * 2.6) * o.desgaste);
   }
   return out;
 }
@@ -376,15 +385,25 @@ function paramento(K, c, f) {
   const tipo = f.tipo ?? 4;
   const r = azar(semillaDe(K.id + '|' + f.cx.toFixed(2) + f.cz.toFixed(2) + f.estilo + (f.y0 || 0).toFixed(2)));
   const sh = { alero: f.alero ?? f.y1, suelo: f.suelo, desgaste: f.desgaste ?? 0, madera: f.madera, sombraAlero: f.sombraAlero };
+  // la distancia al canto más cercano de un hueco (para la pintura saltada)
+  const alBorde = (s, y) => {
+    let d = 9;
+    for (const h of huecos) {
+      const ds = s < h.s0 ? h.s0 - s : s > h.s1 ? s - h.s1 : 0, dy = y < h.y0 ? h.y0 - y : y > h.y1 ? y - h.y1 : 0;
+      d = Math.min(d, Math.hypot(ds, dy));
+    }
+    return Math.min(d, L2 - Math.abs(s));
+  };
   const col = (k, s, y, d) => {
     const p = P(s, y, d);
-    return sombrear(K, k, p[0], y, p[2], { ...sh, esquina: L2 - Math.abs(s) });
+    return sombrear(K, k, p[0], y, p[2], { ...sh, esquina: L2 - Math.abs(s), borde: alBorde(s, y) });
   };
   const base = f.colorK || tinte(f.color);
   const estilo = f.estilo || 'horizontal';
 
-  if (estilo === 'horizontal' || estilo === 'tejuela' || estilo === 'interior' || estilo === 'cal') {
-    const h = f.fila ?? (estilo === 'tejuela' ? 0.18 : estilo === 'interior' ? 0.34 : estilo === 'cal' ? 0.7 : 0.24);
+  if (estilo === 'horizontal' || estilo === 'tejuela' || estilo === 'interior' || estilo === 'cal' || estilo === 'machimbre') {
+    const h = f.fila ?? (estilo === 'tejuela' ? 0.18 : estilo === 'interior' ? 0.34 : estilo === 'machimbre' ? 0.19 : estilo === 'cal' ? 0.7 : 0.24);
+    const machi = estilo === 'machimbre';
     const lap = estilo === 'horizontal' ? 0.024 : estilo === 'tejuela' ? 0.03 : 0;
     let fila = 0;
     for (let ya = f.y0; ya < ymax - 0.012; ya += h, fila++) {
@@ -393,7 +412,7 @@ function paramento(K, c, f) {
       if (limA < 0.02) break;
       let tramos = [[-limA, limA]];
       for (const hu of huecos) if (hu.y0 < yb - 0.004 && hu.y1 > ya + 0.004) tramos = restarTramos(tramos, hu.s0, hu.s1);
-      const filaF = estilo === 'interior' ? (fila % 2 ? 0.95 : 1.03) * (0.97 + 0.06 * r()) : 1;
+      const filaF = estilo === 'interior' ? (fila % 2 ? 0.95 : 1.03) * (0.97 + 0.06 * r()) : machi ? (fila === 0 ? 0.62 : 0.86 + 0.22 * r()) : 1;
       for (const [a, b] of tramos) {
         const cortes = [a];
         if (estilo === 'tejuela') {
@@ -402,6 +421,11 @@ function paramento(K, c, f) {
         } else if (estilo === 'horizontal') {
           let k = -L2 - r() * 1.6;
           while (k < b) { k += entre(r, 2.2, 3.6); if (k > a + 0.3 && k < b - 0.3) cortes.push(k); }
+        } else if (machi) {
+          let k = -L2 - r() * 2;
+          while (k < b) { k += entre(r, 1.8, 3.2); if (k > a + 0.3 && k < b - 0.3) cortes.push(k); }
+        } else if (estilo === 'cal') {
+          for (let k = a + 0.7 + r() * 0.3; k < b - 0.3; k += entre(r, 0.6, 1.0)) cortes.push(k);
         } else if (b - a > 2.4) {
           for (let k = a + 1.8; k < b - 0.6; k += 1.8) cortes.push(k);
         }
@@ -414,11 +438,13 @@ function paramento(K, c, f) {
           if (estilo === 'tejuela') {
             tono = 0.82 + 0.3 * r();
             if (r() < 0.25) k = mezclar(base, tinte('#9a9286'), 0.35 + 0.3 * r());   // alerce plateado por el sol
-          } else if (estilo === 'horizontal') tono = 0.93 + 0.12 * r();
-          else if (estilo === 'cal') tono = 0.96 + 0.07 * r();
+          } else if (estilo === 'horizontal') tono = 0.84 + 0.26 * r();
+          else if (estilo === 'cal') tono = 0.9 + 0.12 * r();
           const kk = escalar(k, tono);
           // el borde de abajo de cada tabla sale un poco y queda en sombra
-          const kAbajo = escalar(kk, lap > 0 ? 0.84 : 1);
+          // (en el machimbre, la ranura entre tablas: el borde de abajo oscuro)
+          if (machi) tono *= 0.95 + 0.1 * r();
+          const kAbajo = escalar(kk, lap > 0 ? 0.84 : machi ? 0.7 : 1);
           if (tb - ta < 0.01) {
             const tm = Math.min(Math.max((sa + sb) / 2, -limB), limB);
             tri(c, P(sa, ya, lap), P(sb, ya, lap), P(tm, yb, 0), col(kAbajo, sa, ya, lap), col(kAbajo, sb, ya, lap), col(kk, tm, yb, 0), tipo);
@@ -456,7 +482,7 @@ function paramento(K, c, f) {
     if (chapa) {
       if (i % 8 === 0) { hoja++; hojaF = 0.92 + 0.14 * r(); }
       k = escalar(base, hojaF * (i % 2 ? 1.08 : 0.84));
-    } else k = escalar(base, (0.92 + 0.13 * r()) * (i % 2 ? 1.04 : 0.95));
+    } else k = escalar(base, (0.84 + 0.26 * r()) * (i % 2 ? 1.05 : 0.93));
     for (const [ya, yb] of tramos) {
       const arriba = Math.abs(yb - Math.max(topeEn(sa), topeEn(sb))) < 1e-4;
       const yTa = arriba ? topeEn(sa) : yb, yTb = arriba ? topeEn(sb) : yb;
@@ -590,7 +616,7 @@ function chapaPlano(K, c, e0, e1, t1, t0, o) {
     const ox = (hoja.oxido + (o.oxido ?? 0) * 0.5) * (1 - t) * (1 - t) * (0.55 + 0.45 * Math.sin(i * 1.7 + K.s));
     if (ox > 0) k = mezclar(k, tinte('#73452c'), Math.min(0.85, ox));
     // musgo y líquenes: en las canaletas, abajo y del lado de la sombra
-    const musgo = (o.musgo ?? 0.35) * (1 - t) * Math.max(0, pincel(i * 0.21, t * 3.0, hoja.f * 7, K.s * 1.3) - 0.55) * 2.2 * (i % 2 ? 0.6 : 1);
+    const musgo = (o.musgo ?? 0.45) * (1 - t * 0.7) * Math.max(0, pincel(i * 0.21, t * 3.0, hoja.f * 7, K.s * 1.3) - 0.55) * 2.2 * (i % 2 ? 0.6 : 1);
     if (musgo > 0) k = mezclar(k, tinte(i % 3 ? '#5d6b3c' : '#9a9a6a'), Math.min(0.7, musgo));
     return escalar(k, 0.9 + 0.18 * t);
   };
@@ -740,12 +766,12 @@ function ventana(K, f, h, o) {
     return;
   }
   const marco = o.marco ?? PALETA_ALDEA.marco;
-  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.065), yc, dm + 0.01), [0.13, alto + 0.24, prof + 0.02], marco, { giro, tipo: 4 });
-  caja(c, P(s, h.y1 + 0.08, dm + 0.01), [ancho + 0.3, 0.16, prof + 0.04], marco, { giro, tipo: 4 });
-  caja(c, P(s, h.y0 - 0.05, dm + 0.07), [ancho + 0.36, 0.09, prof + 0.15], marco, { giro, tipo: 4 });
+  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.065), yc, dm + 0.01), [0.13, alto + 0.24, prof + 0.02], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
+  caja(c, P(s, h.y1 + 0.08, dm + 0.01), [ancho + 0.3, 0.16, prof + 0.04], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
+  caja(c, P(s, h.y0 - 0.05, dm + 0.07), [ancho + 0.36, 0.09, prof + 0.15], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
   // parteluz en cruz (sobre el vidrio)
-  caja(c, P(s, yc, -MURO * 0.42), [0.05, alto, 0.05], marco, { giro, tipo: 4 });
-  caja(c, P(s, h.y0 + alto * 0.62, -MURO * 0.42), [ancho, 0.05, 0.05], marco, { giro, tipo: 4 });
+  caja(c, P(s, yc, -MURO * 0.42), [0.05, alto, 0.05], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
+  caja(c, P(s, h.y0 + alto * 0.62, -MURO * 0.42), [ancho, 0.05, 0.05], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
   // el vidrio: blanco apenas tibio abajo (de noche se lee como una cortina iluminada)
   const kv0 = { r: 0.78, g: 0.74, b: 0.68 }, kv1 = { r: 0.96, g: 0.95, b: 0.93 };
   quad(K.vid, P(h.s0, h.y0, -MURO * 0.5), P(h.s1, h.y0, -MURO * 0.5), P(h.s1, h.y1, -MURO * 0.5), P(h.s0, h.y1, -MURO * 0.5), kv0, kv0, kv1, kv1, 0);
@@ -770,9 +796,9 @@ function marcoPuerta(K, f, h, o) {
   const color = K.etapa >= 4 ? (o.marco ?? PALETA_ALDEA.marco) : PALETA_ALDEA.crudo;
   const tipo = K.etapa >= 4 ? 4 : 0;
   const y0 = PISO - 0.03, y1 = h.y1;
-  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.06), (y0 + y1) / 2 + 0.03, dm), [0.12, y1 - y0 + 0.1, prof], color, { giro, tipo });
-  caja(c, P(s, y1 + 0.07, dm), [ancho + 0.24, 0.14, prof], color, { giro, tipo });
-  if (K.etapa >= 4 && !h.puerta?.abierta) caja(c, P(s, y1 + 0.17, 0.04), [ancho + 0.4, 0.06, 0.1], color, { giro, tipo });
+  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.06), (y0 + y1) / 2 + 0.03, dm), [0.12, y1 - y0 + 0.1, prof], color, { giro, tipo, bajo: 0.64, variar: 0.14 });
+  caja(c, P(s, y1 + 0.07, dm), [ancho + 0.24, 0.14, prof], color, { giro, tipo, bajo: 0.64, variar: 0.14 });
+  if (K.etapa >= 4 && !h.puerta?.abierta) caja(c, P(s, y1 + 0.17, 0.04), [ancho + 0.4, 0.06, 0.1], color, { giro, tipo, bajo: 0.64, variar: 0.14 });
   // umbral de laja
   caja(c, P(s, PISO - 0.02, dm + 0.05), [ancho + 0.2, 0.06, prof + 0.12], '#7f7a70', { giro, tipo: 4 });
   if (o.tapiada) {
@@ -898,7 +924,7 @@ function casco(K, o) {
     let tope = esF ? (s) => H + alz * (1 - Math.abs(s) / halfA) : null;
     if (falso && f.nombre === 'frente') tope = () => yC + (o.falsoFrente.alto ?? 0.6);
     const hs = huecos[f.nombre];
-    const desgaste = terminado ? (o.desgaste ?? 0.35) : 0;
+    const desgaste = terminado ? (o.desgaste ?? 0.55) : 0;
     const frontEst = terminado && esF && o.fronton ? o.fronton : estilo;
     if (frontEst !== estilo && tope) {
       // el frontón con otro revestimiento (tejuelas, por ejemplo) arriba de la línea del alero
@@ -911,7 +937,13 @@ function casco(K, o) {
     const fi = { nombre: f.nombre + '-in', cx: f.cx - f.nx * MURO, cz: f.cz - f.nz * MURO, nx: -f.nx, nz: -f.nz, largo: f.largo - 2 * MURO };
     const hsIn = hs.map((h) => ({ ...h, s0: -h.s1, s1: -h.s0 }));
     const topeIn = !conCielo && esF ? (s) => H + alz * (1 - Math.abs(s) / halfA) : null;
-    paramento(K, K.ext, { ...fi, y0: PISO, y1: conCielo ? yCielo : H, tope: topeIn, huecos: hsIn, estilo: estiloIn, color: colIn, tipo: 0, alero: conCielo ? yCielo : H, sombraAlero: 0.3 });
+    // 3.6 (pulido): terminado, la cara de la estructura es un respaldo liso (lo que se ve de lejos por
+    // una puerta abierta) y el machimbre con su matiz va en el interior, un dedo más adentro
+    if (terminado) {
+      paramento(K, K.ext, { ...fi, y0: PISO, y1: conCielo ? yCielo : H, tope: topeIn, huecos: hsIn, estilo: 'cal', fila: 3.5, color: colIn, tipo: 0, alero: conCielo ? yCielo : H, sombraAlero: 0.3 });
+      const fm = { ...fi, cx: fi.cx + fi.nx * 0.008, cz: fi.cz + fi.nz * 0.008 };
+      caraAdentro(K, { ...fm }, conCielo ? yCielo : H, topeIn, hsIn, colIn, estiloIn, conCielo ? yCielo : H, o);
+    } else paramento(K, K.ext, { ...fi, y0: PISO, y1: conCielo ? yCielo : H, tope: topeIn, huecos: hsIn, estilo: estiloIn, color: colIn, tipo: 0, alero: conCielo ? yCielo : H, sombraAlero: 0.3 });
     if (falso && f.nombre === 'frente') {
       // la espalda del falso frente, sobre el techo
       paramento(K, K.ext, { nombre: 'falso', cx: 0, cz: D / 2 - 0.06, nx: 0, nz: -1, largo: W, y0: H - 0.2, y1: yC + (o.falsoFrente.alto ?? 0.6), estilo: 'vertical', color: '#7d6448' });
@@ -944,8 +976,20 @@ function casco(K, o) {
     const fT = { nombre: 'tab', cx: 0, cz: t.z + 0.05, nx: 0, nz: 1, largo: W - 2 * MURO };
     const fT2 = { nombre: 'tab2', cx: 0, cz: t.z - 0.05, nx: 0, nz: -1, largo: W - 2 * MURO };
     const yTop = conCielo ? yCielo : H;
-    paramento(K, K.ext, { ...fT, y0: PISO, y1: yTop, huecos: [{ s0: t.x - ancho / 2, s1: t.x + ancho / 2, y0: PISO - 0.1, y1: PISO + PUERTA_ALTO }], estilo: estiloIn, color: colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
-    paramento(K, K.ext, { ...fT2, y0: PISO, y1: yTop, huecos: [{ s0: -t.x - ancho / 2, s1: -t.x + ancho / 2, y0: PISO - 0.1, y1: PISO + PUERTA_ALTO }], estilo: estiloIn, color: o.colorVivienda ?? colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+    {
+      const hT = [{ s0: t.x - ancho / 2, s1: t.x + ancho / 2, y0: PISO - 0.1, y1: PISO + PUERTA_ALTO }];
+      if (terminado) {
+        paramento(K, K.ext, { ...fT, y0: PISO, y1: yTop, huecos: hT, estilo: 'cal', fila: 3.5, color: colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+        caraAdentro(K, { ...fT, cx: fT.cx + fT.nx * 0.008, cz: fT.cz + fT.nz * 0.008 }, yTop, null, hT, colIn, estiloIn, yTop, o);
+      } else paramento(K, K.ext, { ...fT, y0: PISO, y1: yTop, huecos: hT, estilo: estiloIn, color: colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+    }
+    {
+      const hT = [{ s0: -t.x - ancho / 2, s1: -t.x + ancho / 2, y0: PISO - 0.1, y1: PISO + PUERTA_ALTO }];
+      if (terminado) {
+        paramento(K, K.ext, { ...fT2, y0: PISO, y1: yTop, huecos: hT, estilo: 'cal', fila: 3.5, color: o.colorVivienda ?? colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+        caraAdentro(K, { ...fT2, cx: fT2.cx + fT2.nx * 0.008, cz: fT2.cz + fT2.nz * 0.008 }, yTop, null, hT, o.colorVivienda ?? colIn, estiloIn, yTop, o);
+      } else paramento(K, K.ext, { ...fT2, y0: PISO, y1: yTop, huecos: hT, estilo: estiloIn, color: o.colorVivienda ?? colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+    }
     if (!conCielo) caja(K.ext, [0, yTop - 0.03, t.z], [W - 2 * MURO, 0.06, 0.12], madera, { tipo: 0 });
     const colM = terminado ? (o.colorEstructura ?? '#5a4331') : PALETA_ALDEA.crudo;
     for (const l of [-1, 1]) caja(K.ext, [t.x + l * (ancho / 2 + 0.05), PISO + PUERTA_ALTO / 2, t.z], [0.1, PUERTA_ALTO, 0.16], colM, { tipo: 0 });
@@ -970,7 +1014,7 @@ function casco(K, o) {
   const A = halfA + vx, B = halfB + vz;
   for (const l of [1, -1]) {
     const e0 = l > 0 ? [A, yA, B] : [-A, yA, -B], e1 = l > 0 ? [A, yA, -B] : [-A, yA, B];
-    chapaPlano(K, K.ext, M(...e0), M(...e1), M(0, yC, e1[2]), M(0, yC, e0[2]), { color: colTecho, oxido: terminado ? (o.oxido ?? 0.25) : 0.05, debajo: '#80654a' });
+    chapaPlano(K, K.ext, M(...e0), M(...e1), M(0, yC, e1[2]), M(0, yC, e0[2]), { color: colTecho, oxido: terminado ? (o.oxido ?? 0.45) : 0.05, musgo: terminado ? (o.musgo ?? 0.7) : 0, debajo: '#80654a' });
     // tabla de alero (fascia) y cenefas de los frontones
     const colTabla = terminado ? (o.marco ?? PALETA_ALDEA.marco) : PALETA_ALDEA.crudo;
     viga(K.ext, M(l * (A + 0.02), yA - 0.07, -B), M(l * (A + 0.02), yA - 0.07, B), 0.04, 0.18, colTabla, { tipo: 4 });
@@ -1045,6 +1089,37 @@ function casco(K, o) {
   return R;
 }
 
+// Un escalón de entrada: de tablas sobre dos tacos, o una laja grande asentada (según la semilla).
+function escalon(K, x, z, ancho = 1.5) {
+  const c = K.ext, r = azar(semillaDe(K.id + '|escalon'));
+  if (r() < 0.55) {
+    for (const s of [-1, 1]) caja(c, [x + s * (ancho / 2 - 0.12), 0.06, z], [0.12, 0.13, 0.4], '#4e3a28', { tipo: 0, bajo: 0.55 });
+    for (const dz of [-0.105, 0.105]) caja(c, [x + (r() - 0.5) * 0.04, 0.145, z + dz], [ancho, 0.05, 0.2], elegir(r, ['#7a5a3c', '#6e5036', '#86643f']), { tipo: 0, bajo: 0.7, giro: (r() - 0.5) * 0.03 });
+  } else {
+    bulto(c, [x, 0.06, z], 0.5, elegir(r, ['#6d6a62', '#625e57', '#77706480'.slice(0, 7)]), { esc: [ancho / 0.95, 0.24, 0.95], rot: [0, (r() - 0.5) * 0.15, 0], tipo: 4, bajo: 0.5, alto: 0.95, abollar: 0.03 });
+    bulto(c, [x + ancho * 0.42, 0.03, z + 0.1], 0.18, elegir(r, PALETA_ALDEA.laja), { esc: [1.3, 0.4, 1], tipo: 4 });
+  }
+  K.plataforma(x, z, ancho, 0.44, 0.16, 0.16);
+}
+// 3.6 (pulido): la cara de adentro, en el interior. Machimbre con matiz; o, si es de cal, un friso
+// de machimbre pintado hasta la cintura y el revoque blanqueado arriba (manchado, nunca parejo).
+function caraAdentro(K, f, y1, tope, huecos, color, estiloIn, alero, o) {
+  if (estiloIn !== 'cal') {
+    paramento(K, K.int, { ...f, y0: PISO, y1, tope, huecos, estilo: 'machimbre', color, tipo: 0, alero, sombraAlero: 0.35, suelo: PISO - 0.4 });
+    return;
+  }
+  const yF = PISO + 1.05, friso = o.colorFriso ?? '#5f7466';
+  paramento(K, K.int, { ...f, y0: PISO, y1: yF, huecos, estilo: 'machimbre', fila: 0.13, color: friso, tipo: 0, alero: y1, suelo: PISO - 0.4, desgaste: 0.5, madera: tinte('#8a6a48') });
+  paramento(K, K.int, { ...f, y0: yF, y1, tope, huecos, estilo: 'cal', fila: 0.4, color, tipo: 0, alero, sombraAlero: 0.4, desgaste: 0.25, madera: tinte('#b8a888') });
+  // la moldura del friso
+  const L2 = f.largo / 2;
+  let tramos = [[-L2, L2]];
+  for (const h of huecos) if (h.y0 < yF + 0.02 && h.y1 > yF - 0.02) tramos = restarTramos(tramos, h.s0, h.s1);
+  for (const [a, b] of tramos) {
+    const pa = puntoCara(f, a, yF, 0.02), pb = puntoCara(f, b, yF, 0.02);
+    viga(K.int, pa, pb, 0.04, 0.05, '#4e3a28', { tipo: 0 });
+  }
+}
 // La galería del frente: deck de tablas, postes con ménsulas y su techito de chapa.
 function galeria(K, o, R) {
   const { W, D, etapa: e } = K;
@@ -1053,7 +1128,8 @@ function galeria(K, o, R) {
   const x0 = g.x0 ?? -W / 2 - 0.1, x1 = g.x1 ?? W / 2 + 0.1;
   const z1 = D / 2 + G;
   const terminado = e >= 4;
-  const madera = terminado ? (o.colorPostes ?? o.marco ?? PALETA_ALDEA.marco) : PALETA_ALDEA.crudo;
+  // (pintados hace años: la pintura de los postes tira a la madera)
+  const madera = terminado ? (o.colorPostes ?? ('#' + new THREE.Color().copy(lin(o.marco ?? PALETA_ALDEA.marco)).lerp(lin('#7a6048'), 0.32).getHexString())) : PALETA_ALDEA.crudo;
   pisoTablas(K, K.ext, { x0, x1, z0: D / 2 + 0.06, z1, y: GALERIA_PISO, color: terminado ? '#7d5d40' : PALETA_ALDEA.crudo, ancho: 0.22, ocluir: false });
   caja(K.ext, [(x0 + x1) / 2, GALERIA_PISO / 2 - 0.03, z1 - 0.03], [x1 - x0, GALERIA_PISO + 0.04, 0.06], '#5a4331', { tipo: 0 });
   for (const x of [x0 + 0.03, x1 - 0.03]) caja(K.ext, [x, GALERIA_PISO / 2 - 0.03, (D / 2 + z1) / 2], [0.06, GALERIA_PISO + 0.04, G], '#5a4331', { tipo: 0 });
@@ -1108,8 +1184,7 @@ function galeria(K, o, R) {
     K.luz(xl, yl, zl + 0.3, { color: 0xffc070, radio: 5, intensidad: 0.7, clase: 'farol', cuarto: 'afuera' });
   }
   // escalón frente a la puerta
-  caja(K.ext, [xP, 0.08, z1 + 0.22], [1.5, 0.16, 0.44], '#7f7a70', { tipo: 4 });
-  K.plataforma(xP, z1 + 0.22, 1.5, 0.44, 0.16, 0.16);
+  escalon(K, xP, z1 + 0.22, 1.5);
   K.abarcar(x0 - 0.2, x1 + 0.2, -D / 2, zE + 0.5);
 }
 
@@ -1216,7 +1291,7 @@ function estanteria(K, x, z, giro = 0, o = {}) {
       if (tipo === 'libros') {
         // los lomos: un cuadrilátero por libro (de colores apagados) delante de un bloque oscuro
         if (lx === -L / 2 + 0.1) cj(c, F, 0, yb + 0.12, -0.03, L - 0.12, 0.24, P - 0.12, '#3a2c22', { bajo: 0.6 });
-        const a = entre(r, 0.035, 0.075), hh = Math.min(altoHueco, entre(r, 0.19, 0.29));
+        const a = entre(r, 0.045, 0.095), hh = Math.min(altoHueco, entre(r, 0.19, 0.29));
         const k = escalar(tinte(elegir(r, ['#6b2f2a', '#2f4a5f', '#5d5a33', '#7a5a2c', '#3a3a3a', '#8a7a5a', '#4a5a4a', '#7a6a5a', '#5a3a4a'])), 0.85 + 0.25 * r());
         const zl = P / 2 - 0.06, ka = escalar(k, 0.7);
         quad(c, F.p(lx, yb, zl), F.p(lx + a, yb, zl), F.p(lx + a, yb + hh, zl), F.p(lx, yb + hh, zl), ka, ka, k, k, 0);
@@ -1303,7 +1378,7 @@ function lampara(K, x, z, o = {}) {
   palo(c, [x, y + 0.12, z], [x, yC, z], 0.008, '#2a2826');
   cono(c, [x, y + 0.08, z], 0.2, 0.16, o.color ?? '#3f5a48', { tipo: 0, lados: 10, abierto: true });
   caja(K.bra, [x, y + 0.02, z], [0.08, 0.06, 0.08], '#ffe2a8', { tipo: 0, bajo: 1, alto: 1 });
-  K.luz(x, y - 0.1, z, { color: o.luz ?? 0xffc884, radio: o.radio ?? 7, intensidad: 1.1, clase: 'interior', cuarto: o.cuarto ?? 'local' });
+  K.luz(x, y - 0.3, z, { color: o.luz ?? 0xffc884, radio: o.radio ?? 7, intensidad: 0.9, clase: 'interior', cuarto: o.cuarto ?? 'local' });
 }
 function cuadro(K, x, y, z, giro, o = {}) {
   const F = marcoLocal(x, z, giro, y), c = K.int;
@@ -1549,20 +1624,29 @@ function cantero(K, x, z, o = {}) {
   }
   K.mueble(x, z, L, A, 0.3, 0, 0);
 }
-// Un duende tallado en madera (la tradición del lugar: nada mágico). `alto` total.
+// Un duende tallado en madera (la tradición del lugar: nada mágico). `alto` total. Todo es de la misma
+// madera: el gorro aceitado (más oscuro), la barba con las vetas a la vista, los ojos y la boca son
+// cortes de gubia (más hondos, más oscuros). Las caras facetadas son los golpes del formón.
 function tallaDuende(K, c, x, y, z, giro, alto = 0.8, o = {}) {
   const F = marcoLocal(x, z, giro, y), s = alto / 0.8, d = s > 1.2 ? 1 : 0;
-  const madera = o.madera ?? '#8a6440', ropa = o.ropa ?? madera, gorro = o.gorro ?? '#9a3a2c';
-  for (const sx of [-1, 1]) caja(c, F.p(sx * 0.07 * s, 0.035 * s, 0.06 * s), [0.08 * s, 0.07 * s, 0.13 * s], '#4a3424', { giro: F.giro, tipo: 0 });   // botas
-  bulto(c, F.p(0, 0.2 * s, 0), 0.17 * s, ropa, { detalle: d, suave: true, esc: [1, 1.15, 0.9], tipo: 0, bajo: 0.6 });   // cuerpo
-  cl(c, F, 0, 0.17 * s, 0, 0.165 * s, 0.165 * s, 0.035 * s, '#3e2c1e', { lados: 9 });   // cinturón
-  for (const sx of [-1, 1]) bulto(c, F.p(sx * 0.15 * s, 0.24 * s, 0.05 * s), 0.055 * s, ropa, { detalle: 0, esc: [0.8, 1.6, 0.9], rot: [0.5, 0, -sx * 0.3], tipo: 0 });   // brazos
-  cono(c, F.p(0, 0.31 * s, 0.085 * s), 0.12 * s, 0.24 * s, o.barba ?? '#d6cbb5', { rx: Math.PI + 0.25, lados: 8, tipo: 0 });   // barba
-  bulto(c, F.p(0, 0.435 * s, 0.03 * s), 0.088 * s, o.cara ?? '#c39468', { detalle: d, suave: true, tipo: 0 });   // cara
-  bulto(c, F.p(0, 0.43 * s, 0.115 * s), 0.036 * s, '#b86a4a', { detalle: 0, tipo: 0 });   // nariz
-  for (const sx of [-1, 1]) caja(c, F.p(sx * 0.036 * s, 0.468 * s, 0.1 * s), [0.022 * s, 0.018 * s, 0.012 * s], '#1f1610', { giro: F.giro, tipo: 0, abollar: 0 });   // ojos
-  cl(c, F, 0, 0.5 * s, -0.005 * s, 0.11 * s, 0.11 * s, 0.03 * s, gorro, { lados: 9 });
-  cono(c, F.p(0, 0.68 * s, -0.045 * s), 0.115 * s, 0.38 * s, gorro, { lados: 9, tipo: 0, rx: -0.28 });   // gorro
+  const m = tinte(o.madera ?? '#8a6440');
+  const hex = (k, f) => '#' + new THREE.Color(Math.min(1, k.r * f), Math.min(1, k.g * f), Math.min(1, k.b * f)).getHexString();
+  const cuerpo = hex(m, 1.0), gorro = hex(m, o.gorroOscuro ?? 0.62), barba = hex(m, 1.22), cara = hex(m, 1.12), corte = hex(m, 0.42);
+  const ab = 0.012 * s;
+  const B = (p, r, col, op = {}) => bulto(c, F.p(...p), r * s, col, { detalle: d, tipo: 0, variar: 0.16, abollar: ab, bajo: 0.62, alto: 1.12, ...op });
+  B([0, 0.2 * s, 0], 0.17, cuerpo, { esc: [1.02, 1.18, 0.92] });                                   // el cuerpo, de la misma pieza
+  cl(c, F, 0, 0.165 * s, 0.005 * s, 0.168 * s, 0.168 * s, 0.035 * s, hex(m, 0.72), { lados: 9 });   // la faja tallada
+  for (const sx of [-1, 1]) {
+    B([sx * 0.14 * s, 0.25 * s, 0.06 * s], 0.06, cuerpo, { esc: [0.8, 1.55, 0.95], rot: [0.55, 0, -sx * 0.25] });   // los brazos
+    B([sx * 0.07 * s, 0.13 * s, 0.13 * s], 0.045, hex(m, 1.08), { detalle: 0 });                     // las manos sobre la panza
+  }
+  cono(c, F.p(0, 0.255 * s, 0.1 * s), 0.11 * s, 0.2 * s, barba, { rx: Math.PI + 0.3, lados: 7, tipo: 0 });   // la barba (bajo la cara)
+  for (const sx of [-0.04, 0, 0.04]) caja(c, F.p(sx * s, 0.26 * s, 0.15 * s), [0.008 * s, 0.13 * s, 0.01 * s], hex(m, 0.8), { giro: F.giro, rx: 0.3, tipo: 0, abollar: 0 });   // vetas de la barba
+  B([0, 0.43 * s, 0.03 * s], 0.09, cara);                                                            // la cara
+  B([0, 0.425 * s, 0.115 * s], 0.035, hex(m, 1.18), { detalle: 0 });                                // la nariz
+  for (const sx of [-1, 1]) caja(c, F.p(sx * 0.035 * s, 0.462 * s, 0.103 * s), [0.024 * s, 0.012 * s, 0.01 * s], corte, { giro: F.giro, tipo: 0, abollar: 0 });   // los ojos (cortes)
+  cl(c, F, 0, 0.5 * s, -0.005 * s, 0.112 * s, 0.112 * s, 0.035 * s, gorro, { lados: 9 });            // el ala del gorro
+  cono(c, F.p(0, 0.69 * s, -0.05 * s), 0.115 * s, 0.4 * s, gorro, { lados: 7, tipo: 0, rx: -0.3 });   // el gorro, en punta
 }
 function columpio(K, x, z, giro = 0) {
   const F = marcoLocal(x, z, giro), c = K.ext;
@@ -1805,12 +1889,32 @@ function casaAbuela(K) {
   const W = K.W, D = K.D;
   // el hogar de piedra contra la pared de la chimenea
   const xh = -W / 2 + MURO + 0.3;
-  for (let i = 0; i < 4; i++) caja(K.int, [xh, PISO + 0.15 + i * 0.3, 0.8], [0.6, 0.3, 1.2 - (i === 3 ? 0.2 : 0)], elegir(azar(semillaDe('hogar' + i)), PALETA_ALDEA.laja), { bajo: 0.7 });
-  caja(K.int, [xh + 0.31, PISO + 0.45, 0.8], [0.02, 0.5, 0.6], '#1f1b18');
-  caja(K.bra, [xh + 0.32, PISO + 0.3, 0.8], [0.01, 0.16, 0.45], '#ff8a3a', { tipo: 0, bajo: 0.6, alto: 1.2 });
-  caja(K.int, [xh + 0.05, PISO + 1.27, 0.8], [0.7, 0.06, 1.4], '#5a3c26');   // la repisa, con tallas
-  tallaDuende(K, K.int, xh + 0.1, PISO + 1.3, 0.45, Math.PI / 2, 0.3, { gorro: '#7a3a2a' });
-  tallaDuende(K, K.int, xh + 0.1, PISO + 1.3, 1.15, Math.PI / 2, 0.26, { gorro: '#4a5a3a' });
+  {
+    // hogar de piedra: piedras desparejas en dos jambas, el dintel de una laja grande, la boca
+    // ennegrecida con dos leños y brasas, y el pecho de la chimenea hasta el cielorraso
+    const rh = azar(semillaDe('hogar'));
+    const pal = ['#5d5850', '#6a645b', '#4f4a44', '#736b5f', '#5f574c'];
+    caja(K.int, [xh + 0.12, PISO + 0.04, 0.8], [0.85, 0.08, 1.45], '#77726a', { bajo: 0.7 });
+    for (const dz of [-0.48, 0.48]) for (let i = 0; i < 3; i++) caja(K.int, [xh + 0.02 + (rh() - 0.5) * 0.04, PISO + 0.16 + i * 0.27, 0.8 + dz + (rh() - 0.5) * 0.04], [0.58 + rh() * 0.06, 0.25, 0.3 + rh() * 0.06], elegir(rh, pal), { bajo: 0.65, abollar: 0.03 });
+    caja(K.int, [xh + 0.03, PISO + 0.92, 0.8], [0.62, 0.22, 1.32], '#6f6a62', { bajo: 0.7, abollar: 0.03 });
+    caja(K.int, [xh - 0.05, PISO + 0.4, 0.8], [0.4, 0.72, 0.68], '#1b1714', { abollar: 0 });
+    for (const dz of [-0.12, 0.1]) palo(K.int, [xh + 0.08, PISO + 0.14, 0.8 + dz - 0.25], [xh + 0.02, PISO + 0.18, 0.8 + dz + 0.25], 0.06, '#4a3424', { abierto: false });
+    caja(K.bra, [xh + 0.06, PISO + 0.14, 0.8], [0.3, 0.06, 0.5], '#ff7a2a', { tipo: 0, bajo: 0.6, alto: 1.3 });
+    // el pecho de la chimenea: un fondo de mezcla oscura y piedras chicas desparejas encima
+    caja(K.int, [xh - 0.08, PISO + (1.12 + LIBRE) / 2, 0.8], [0.36, LIBRE - 1.12, 0.98], '#3e3a35', { bajo: 0.8 });
+    const filasP = 6, hP = (LIBRE - 1.15) / filasP;
+    for (let j = 0; j < filasP; j++) {
+      let zz = 0.8 - 0.47 + (j % 2) * 0.12;
+      while (zz < 0.8 + 0.42) {
+        const l = entre(rh, 0.2, 0.36), z1 = Math.min(0.8 + 0.47, zz + l);
+        caja(K.int, [xh + 0.11 + rh() * 0.02, PISO + 1.15 + (j + 0.5) * hP, (zz + z1) / 2], [0.06, hP - 0.03, z1 - zz - 0.03], elegir(rh, pal), { bajo: 0.7, abollar: 0.012 });
+        zz = z1;
+      }
+    }
+  }
+  caja(K.int, [xh + 0.12, PISO + 1.08, 0.8], [0.78, 0.07, 1.5], '#5a3c26');   // la repisa, con tallas
+  tallaDuende(K, K.int, xh + 0.3, PISO + 1.115, 0.25, Math.PI / 2, 0.3, { madera: '#9a7050' });
+  tallaDuende(K, K.int, xh + 0.3, PISO + 1.115, 1.38, Math.PI / 2, 0.26, { madera: '#7d5a3c' });
   K.mueble(xh, 0.8, 0.62, 1.22, 1.3);
   K.luz(xh + 0.6, PISO + 0.5, 0.8, { color: 0xff8a40, radio: 4, intensidad: 0.6, clase: 'fuego', cuarto: 'local' });
   // la mecedora
@@ -1827,8 +1931,8 @@ function casaAbuela(K) {
   alfombra(K, -0.6, 0.9, 1.4, 1.0, 0.2, '#8a4a3a', { guarda: '#d8b878' });
   vivienda(K, { z: -0.3, x: 1.3 }, { manta: '#b85a3a', alfombra: '#4a6a5a' });
   // la galería con las tallas de duendes (la abuela cuenta la leyenda)
-  tallaDuende(K, K.ext, -W / 2 + 0.25, GALERIA_PISO, D / 2 + 1.1, 0.6, 0.85, { gorro: '#8a3a2c' });
-  tallaDuende(K, K.ext, W / 2 - 0.2, GALERIA_PISO, D / 2 + 1.15, -0.5, 0.6, { gorro: '#5a6a3a', barba: '#cfc2a8' });
+  tallaDuende(K, K.ext, -W / 2 + 0.25, GALERIA_PISO, D / 2 + 1.1, 0.6, 0.85, { madera: '#8f6644' });
+  tallaDuende(K, K.ext, W / 2 - 0.2, GALERIA_PISO, D / 2 + 1.15, -0.5, 0.6, { madera: '#a0805a' });
   K.circulo(-W / 2 + 0.25, D / 2 + 1.1, 0.2, GALERIA_PISO, GALERIA_PISO + 0.85);
   K.circulo(W / 2 - 0.2, D / 2 + 1.15, 0.18, GALERIA_PISO, GALERIA_PISO + 0.6);
   // y una puertita de duende al pie del zócalo (tradición: nada mágico)
@@ -1909,7 +2013,8 @@ function mapaPintado(K, x, y, z, giro, ancho = 1.5, alto = 1.0) {
     const lago = Math.hypot((u - 0.42) * 1.4, v - 0.42) < 0.22;
     const cerro = v > 0.68 || u > 0.85;
     const col = lago ? '#5f8aa8' : cerro ? (v > 0.82 ? '#e8e6e0' : '#8a7a62') : (Math.sin(u * 9 + v * 7) > -0.2 ? '#5d7a4a' : '#9aa86a');
-    cj(c, F, -ancho / 2 + ancho * u, -alto / 2 + alto * v, 0.018, ancho / nx, alto / ny, 0.004, col, { bajo: 0.95, alto: 1.0, variar: 0.03 });
+    const x0 = -ancho / 2 + ancho * i / nx, x1 = x0 + ancho / nx, y0 = -alto / 2 + alto * j / ny, y1 = y0 + alto / ny, k = escalar(tinte(col), 0.92 + 0.12 * Math.sin(i * 1.7 + j * 2.3));
+    quad(c, F.p(x0, y0, 0.017), F.p(x1, y0, 0.017), F.p(x1, y1, 0.017), F.p(x0, y1, 0.017), k, k, k, k, 0);
   }
 }
 function campanita(K, x, y, z) {
@@ -1941,7 +2046,7 @@ function escuela(K) {
   if (!final(K)) return;
   const xi = W / 2 - MURO;
   // el pizarrón y el escritorio de la maestra
-  caja(K.int, [-xi + 0.03, PISO + 1.5, 1.25], [0.04, 1.1, 2.4], '#2f3a32', { bajo: 0.9 });
+  caja(K.int, [-xi + 0.03, PISO + 1.5, 1.25], [0.04, 1.1, 2.4], '#22392b', { bajo: 0.9 });
   caja(K.int, [-xi + 0.05, PISO + 0.93, 1.25], [0.08, 0.04, 2.4], '#6b4a2e');
   caja(K.int, [-xi + 0.04, PISO + 1.5, 1.25], [0.05, 1.18, 2.48], '#6b4a2e', { bajo: 0.9 });
   for (let i = 0; i < 3; i++) caja(K.int, [-xi + 0.06, PISO + 1.7 - i * 0.18, 0.6 + i * 0.25], [0.005, 0.03, 0.5 - i * 0.1], '#e8e4d8');   // tiza
@@ -1955,7 +2060,11 @@ function escuela(K) {
     cj(c, F, 0, 0.72, 0.1, 1.1, 0.04, 0.42, '#7a5636', { rx: 0.08 });
     cj(c, F, 0, 0.55, 0.12, 1.06, 0.3, 0.02, '#6b4a2e');
     cj(c, F, 0, 0.42, -0.36, 1.1, 0.04, 0.3, '#7a5636');
-    for (const sx of [-1, 1]) cj(c, F, sx * 0.52, 0.36, -0.1, 0.05, 0.72, 0.9, '#3a3734');
+    for (const sx of [-1, 1]) {
+      for (const dz of [0.25, -0.42]) cj(c, F, sx * 0.52, 0.36, dz, 0.035, 0.72, 0.035, '#33302d');
+      cj(c, F, sx * 0.52, 0.06, -0.08, 0.035, 0.035, 0.75, '#33302d');
+      cj(c, F, sx * 0.52, 0.4, -0.08, 0.03, 0.03, 0.7, '#33302d', { rx: 0.0 });
+    }
     K.mueble(x, z, 1.15, 0.95, 0.74, -Math.PI / 2);
     for (const sx of [-0.27, 0.27]) { const p = F.p(sx, 0, -0.36); K.asiento('un pupitre', p[0], PISO + 0.44, p[2], -Math.PI / 2); }
   };
@@ -1983,7 +2092,7 @@ function panaderia(K) {
   const C = coloresDe(K, { pared: ['cal', 'crema'], techo: ['rojo', 'oxido'], postigo: ['azul', 'verde'] });
   const tab = { z: -0.62, x: 2.2 };
   casco(K, {
-    eje: 'z', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#d4c7a8', interior: 'cal', colorPiso: '#8a6a4a',
+    eje: 'z', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#d4c7a8', interior: 'cal', colorFriso: '#7a4e34', colorPiso: '#8a6a4a',
     puertas: [{ cara: 'frente', x: -1.2, ancho: PUERTA_ANCHO, nombre: 'la puerta de la panadería' }],
     ventanas: [{ cara: 'frente', x: 1.5, ancho: 1.4, alto: 1.2, y: 1.35, postigos: false }, { cara: 'izq', z: 1.3, ancho: 0.9, alto: 1.0 }, { cara: 'der', z: 1.4, ancho: 0.9, alto: 1.0 },
       { cara: 'fondo', x: -1.2, ancho: 0.8, alto: 0.9, cuarto: 'vivienda' }],
@@ -2008,6 +2117,11 @@ function panaderia(K) {
   for (const [x, z] of [[-2.95, 2.45], [-2.95, 1.85], [-2.4, 2.5]]) bolsa(K, x, z, { color: '#e2d8c0' });
   K.mueble(-2.75, 2.2, 1.0, 1.05, 0.72);
   lampara(K, 0.4, 1.4, { color: '#8a3a2a' });
+  // la pizarra de precios y el almanaque, sobre el tabique detrás del mostrador
+  caja(K.int, [0.4, PISO + 1.75, tab.z + 0.08], [0.9, 0.6, 0.03], '#2a2e2a', { bajo: 0.9 });
+  caja(K.int, [0.4, PISO + 1.75, tab.z + 0.075], [0.98, 0.68, 0.02], '#6b4a2e');
+  for (let i = 0; i < 4; i++) caja(K.int, [0.25 + (i % 2) * 0.12, PISO + 1.92 - i * 0.11, tab.z + 0.1], [0.32 - (i % 2) * 0.1, 0.02, 0.005], '#e8e4d8');
+  cuadro(K, -1.4, PISO + 1.6, tab.z + 0.08, 0, { ancho: 0.35, alto: 0.5, colores: ['#e8e2d2', '#b8322a', '#e8e2d2'] });
   vivienda(K, tab, { manta: '#b8823a' });
   hornoBarro(K, W / 2 + 1.5, 0.2, 0);
   pilaLena(K, W / 2 + 1.3, -1.8, 0, { largo: 1.5, filas: 4 });
@@ -2036,7 +2150,7 @@ function herreria(K) {
   caja(K.int, [xf + 0.05, PISO + 0.82, zf], [0.7, 0.05, 0.8], '#2a2420');
   caja(K.bra, [xf + 0.05, PISO + 0.86, zf], [0.45, 0.03, 0.5], '#ff7a2a', { tipo: 0, bajo: 0.7, alto: 1.3 });
   // la campana de chapa ennegrecida (cerrada abajo: de lejos se ve su boca oscura) y su conducto de ladrillo
-  cono(K.int, [xf, PISO + 1.85, zf], 0.95, 0.75, '#3a3632', { lados: 4, giro: Math.PI / 4, tipo: 0 });
+  cilindro(K.int, [xf, PISO + 1.85, zf], 0.95, 0.26, 0.75, '#3a3632', { lados: 4, giro: Math.PI / 4, tipo: 0, suave: false });
   const yR = K.R.yTecho(xf, zf), yTop = yR + 1.1;
   caja(K.int, [xf, PISO + (2.15 + LIBRE) / 2, zf], [0.45, LIBRE - 2.15, 0.45], '#8a5a44');
   caja(K.ext, [xf, (yR - 0.4 + yTop) / 2, zf], [0.5, yTop - yR + 0.4, 0.5], '#8a5a44', { tipo: 4, bajo: 0.75 });
@@ -2130,7 +2244,7 @@ function pescaderia(K) {
   const C = coloresDe(K, { pared: ['celeste', 'azul', 'cal'], techo: ['azul', 'gris'], postigo: ['azul', 'blanco', 'rojo'] });
   const tab = { z: -0.75, x: -0.3 };
   casco(K, {
-    eje: 'z', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#c9c3b0', interior: 'cal', colorPiso: '#7a6a5a', alzada: 1.8,
+    eje: 'z', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#c9c3b0', interior: 'cal', colorFriso: '#4f6b7a', colorPiso: '#7a6a5a', alzada: 1.8,
     puertas: [{ cara: 'frente', x: -1.0, ancho: PUERTA_ANCHO, nombre: 'la puerta de la pescadería' }],
     ventanas: [{ cara: 'frente', x: 1.3, ancho: 1.2, alto: 1.0, postigos: false }, { cara: 'izq', z: 1.1, ancho: 0.8, alto: 0.9 }, { cara: 'der', z: -1.6, ancho: 0.7, alto: 0.8, cuarto: 'vivienda' }],
     galeria: { fondo: 1.4 }, tabique: tab, chimenea: chimeneaVivienda(K, tab),
@@ -2324,7 +2438,7 @@ function salaMiel(K) {
   const C = coloresDe(K, { pared: ['amarillo', 'ocre', 'crema'], techo: ['verde', 'oxido'], postigo: ['verde', 'marron'] });
   const tab = { z: -0.75, x: 0.6 };
   casco(K, {
-    eje: 'z', estilo: 'vertical', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#d2c3a0', interior: 'cal', alzada: 1.8,
+    eje: 'z', estilo: 'vertical', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#d2c3a0', interior: 'cal', colorFriso: '#8a6a34', alzada: 1.8,
     puertas: [{ cara: 'frente', x: -0.9, ancho: PUERTA_ANCHO, nombre: 'la puerta de la sala de miel' }],
     ventanas: [{ cara: 'frente', x: 1.3, ancho: 1.1, alto: 1.0 }, { cara: 'izq', z: 0.9, ancho: 0.8, alto: 0.9 }, { cara: 'der', z: 0.8, ancho: 0.8, alto: 0.9 }],
     galeria: { fondo: 1.4 }, tabique: tab, chimenea: chimeneaVivienda(K, tab),
@@ -2479,9 +2593,9 @@ function biblioteca(K) {
   const W = K.W, D = K.D, H = K.H, xi = W / 2 - MURO, zi = D / 2 - MURO;
   cartel(K, 'Biblioteca Popular', [0, H + 0.7, D / 2 + 0.04], 3.0, 0.56, 0);
   // estanterías con libros a lo largo de las paredes (donde no hay ventanas)
-  for (const x of [-2.0, 0, 2.0]) estanteria(K, x, -zi + 0.2, 0, { largo: 1.85, alto: 2.3, cosas: 'libros', estantes: 5 });
-  for (const l of [-1, 1]) for (const z of [-4.3, -0.5]) estanteria(K, l * (xi - 0.2), z, -l * Math.PI / 2, { largo: 1.6, alto: 2.2, cosas: 'libros', estantes: 5 });
-  estanteria(K, -(xi - 0.2), 3.7, Math.PI / 2, { largo: 1.3, alto: 2.0, cosas: 'libros', estantes: 4 });
+  for (const x of [-2.0, 0, 2.0]) estanteria(K, x, -zi + 0.2, 0, { largo: 1.85, alto: 2.2, cosas: 'libros', estantes: 4 });
+  for (const l of [-1, 1]) for (const z of [-4.3, -0.5]) estanteria(K, l * (xi - 0.2), z, -l * Math.PI / 2, { largo: 1.6, alto: 1.75, cosas: 'libros', estantes: 3 });
+  estanteria(K, -(xi - 0.2), 3.7, Math.PI / 2, { largo: 1.3, alto: 1.6, cosas: 'libros', estantes: 3 });
   // el mostrador del bibliotecario, con el fichero
   mostrador(K, -1.9, 2.6, 0, { largo: 1.8, ancho: 0.55, color: '#5d4330', panel: '#6b5a3a', nombre: 'mostrador' });
   const Ff = marcoLocal(-2.45, 2.55, 0, PISO + 0.95);
@@ -2498,16 +2612,35 @@ function biblioteca(K) {
   // la estufa y el sillón de la abuela, donde los domingos lee cuentos; la alfombra para los chicos
   salamandra(K, xi - 0.55, 3.6, {});
   chimeneaExtra(K, xi - 0.55, 3.6);
-  const Fs = marcoLocal(1.6, 3.9, -2.4, PISO);
-  cj(K.int, Fs, 0, 0.3, 0, 0.75, 0.3, 0.7, '#7a3a2a', { bajo: 0.7 });
-  cj(K.int, Fs, 0, 0.47, 0.02, 0.6, 0.08, 0.6, '#8a4a34');
-  cj(K.int, Fs, 0, 0.8, -0.3, 0.75, 0.75, 0.15, '#7a3a2a', { rx: -0.12 });
-  for (const sx of [-1, 1]) cj(K.int, Fs, sx * 0.34, 0.55, 0, 0.12, 0.3, 0.68, '#6e3424');
-  cj(K.int, Fs, 0, 0.53, 0.05, 0.4, 0.02, 0.4, '#e8e2d6');
-  K.mueble(1.6, 3.9, 0.8, 0.75, 0.9, -2.4);
-  K.asiento('el sillón de los cuentos', 1.6, PISO + 0.5, 3.9, -2.4);
-  alfombra(K, 1.3, 2.7, 2.2, 1.5, 0.15, '#7a3f34', { guarda: '#c7a76a' });
-  for (const [x, z] of [[0.9, 2.5], [1.5, 2.2], [2.0, 2.8]]) caja(K.int, [x, PISO + 0.12, z], [0.32, 0.22, 0.32], '#8a6a46', { giro: x });   // banquitos
+  // el sillón de orejas de la abuela, tapizado, con su manta tejida y la mesita del velador
+  const xs = 1.75, zs = 4.0, gs = -2.5;
+  const Fs = marcoLocal(xs, zs, gs, PISO), tela = '#5d3a2e', tela2 = '#6e4636';
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) cj(K.int, Fs, sx * 0.36, 0.06, sz * 0.3, 0.07, 0.12, 0.07, '#3a2618');
+  bulto(K.int, Fs.p(0, 0.3, 0.02), 0.5, tela, { tipo: 0, detalle: 1, suave: true, esc: [0.92, 0.36, 0.82], rot: [0, gs, 0], bajo: 0.6 });   // la base
+  bulto(K.int, Fs.p(0, 0.5, 0.06), 0.4, tela2, { tipo: 0, detalle: 1, suave: true, esc: [0.95, 0.3, 0.85], rot: [0, gs, 0], bajo: 0.75 });   // el almohadón
+  bulto(K.int, Fs.p(0, 0.92, -0.3), 0.5, tela, { tipo: 0, detalle: 1, suave: true, esc: [0.85, 1.05, 0.3], rot: [-0.12, gs, 0], bajo: 0.7 });   // el respaldo
+  for (const sx of [-1, 1]) {
+    bulto(K.int, Fs.p(sx * 0.4, 0.58, 0.02), 0.32, tela2, { tipo: 0, detalle: 1, suave: true, esc: [0.36, 0.48, 1.05], rot: [0, gs, 0] });   // los brazos
+    bulto(K.int, Fs.p(sx * 0.38, 1.05, -0.22), 0.26, tela, { tipo: 0, detalle: 1, suave: true, esc: [0.3, 0.9, 0.6], rot: [0, gs, 0] });   // las orejas
+  }
+  for (let k = 0; k < 4; k++) cj(K.int, Fs, 0.41, 0.66 - k * 0.045, -0.18 + k * 0.12, 0.3, 0.025, 0.12, ['#c8a04a', '#8a3a2a', '#d8cfb8', '#4a6a7a'][k], { rz: -0.35 });   // la manta tejida, sobre el brazo
+  K.mueble(xs, zs, 1.0, 0.95, 1.2, gs);
+  K.asiento('el sillón de los cuentos', xs, PISO + 0.55, zs, gs);
+  const Fm = marcoLocal(xs - 0.85, zs + 0.35, gs, PISO);
+  cl(K.int, Fm, 0, 0.3, 0, 0.04, 0.05, 0.6, '#4a3020');
+  cl(K.int, Fm, 0, 0.61, 0, 0.24, 0.24, 0.03, '#6b4a2e', { lados: 10 });
+  cj(K.int, Fm, 0.05, 0.64, 0.03, 0.18, 0.04, 0.24, '#7a2f2a', { giro: 0.4 });   // el libro de cuentos
+  cl(K.int, Fm, -0.1, 0.7, -0.05, 0.03, 0.04, 0.14, '#a88a5a');
+  cono(K.int, Fm.p(-0.1, 0.84, -0.05), 0.11, 0.12, '#d8c49a', { tipo: 0, lados: 8, abierto: true });
+  caja(K.bra, Fm.p(-0.1, 0.8, -0.05), [0.05, 0.05, 0.05], '#ffd9a0', { tipo: 0, bajo: 1, alto: 1 });
+  K.circulo(Fm.p(0, 0, 0)[0], Fm.p(0, 0, 0)[2], 0.26, PISO, PISO + 0.7);
+  K.luz(Fm.p(0, 0, 0)[0], PISO + 0.95, Fm.p(0, 0, 0)[2], { color: 0xffc888, radio: 4, intensidad: 0.6, clase: 'velador', cuarto: 'local' });
+  alfombra(K, 1.1, 2.7, 2.4, 1.6, 0.15, '#7a3f34', { guarda: '#c7a76a' });
+  // almohadones redondos de tela para los chicos
+  for (const [x, z, col] of [[0.5, 2.6, '#c8a04a'], [1.15, 2.2, '#4a6a7a'], [1.6, 2.85, '#8a4a5a'], [0.75, 3.15, '#6a7a4a']]) {
+    bulto(K.int, [x, PISO + 0.1, z], 0.28, col, { tipo: 0, detalle: 1, suave: true, esc: [1, 0.36, 1], rot: [0, x * 3, 0], bajo: 0.7 });
+
+  }
   // un mapa del valle y una foto vieja de la aldea
   mapaPintado(K, xi - 0.02, PISO + 1.6, 0.6, -Math.PI / 2, 1.4, 0.95);
   cuadro(K, -2.9, PISO + 1.75, zi - 0.01, Math.PI, { ancho: 0.6, alto: 0.42, colores: ['#9a8a70', '#6a5a48', '#b8a888'] });
@@ -2518,29 +2651,39 @@ function biblioteca(K) {
 }
 
 // ---------------------------------------------------------------- la plaza (su +Z mira a la estación)
-// No es un rectángulo pegado al suelo: senderos de lajas irregulares con juntas abiertas (entre una
-// y otra se ve el pasto del terreno), que se ralean hacia los bordes hasta fundirse con el prado.
-function lajasEn(K, c, r, enCamino, x0, x1, z0, z1, borde = 0) {
-  const pal = PALETA_ALDEA.laja.concat(['#9a8a74', '#8f8676']);
-  for (let z = z0; z < z1 - 0.05;) {
-    const h = entre(r, 0.42, 0.7);
-    for (let x = x0 + (r() - 0.5) * 0.3; x < x1 - 0.05;) {
-      const l = entre(r, 0.45, 0.85);
-      const cx = x + l / 2, cz = z + h / 2;
-      x += l;
-      const dentro = enCamino(cx, cz);
-      if (dentro <= 0) continue;
-      if (dentro < 1 && r() > dentro) continue;   // se ralean hacia el borde
-      const j = 0.045 + r() * 0.04;   // la junta
-      const q = () => (r() - 0.5) * 0.09;
-      const y = 0.035 + r() * 0.025;
-      const a = [cx - l / 2 + j + q(), y, cz + h / 2 - j + q()], b = [cx + l / 2 - j + q(), y, cz + h / 2 - j + q()];
-      const d = [cx + l / 2 - j + q(), y, cz - h / 2 + j + q()], e = [cx - l / 2 + j + q(), y, cz - h / 2 + j + q()];
-      const k = escalar(tinte(elegir(r, pal)), 0.85 + 0.25 * r());
-      const ko = escalar(k, 0.78);
-      quad(c, a, b, d, e, ko, k, escalar(k, 1.06), ko, 4);
+// 3.6 (pulido): forma de plaza de pueblo. Un redondel de lajas irregulares en el centro con el duende
+// tallado, ocho senderos de laja que salen a las calles y a las esquinas, un anillo de canteros
+// cortado por los senderos que la contiene, bancos mirando al centro y faroles junto a los senderos.
+// Entre los senderos queda el pasto del terreno (sólo lo pisado lleva plataforma).
+
+// Lajas irregulares: un polígono de 5 a 7 lados por piedra, de tamaños distintos, sobre una grilla
+// hexagonal movida; las juntas dejan ver el suelo. `dentro(x, z)` → 0..1 (en el borde se ralean).
+function lajasIrregulares(K, c, r, dentro, x0, x1, z0, z1, paso = 0.72) {
+  const pal = PALETA_ALDEA.laja.concat(['#9a8a74', '#8f8676', '#a39684', '#7c766c']);
+  const fila = paso * 0.866;
+  for (let j = 0, z = z0; z <= z1; j++, z += fila) {
+    for (let x = x0 + (j % 2) * paso / 2; x <= x1; x += paso) {
+      const cx = x + (r() - 0.5) * paso * 0.3, cz = z + (r() - 0.5) * fila * 0.3;
+      const v = dentro(cx, cz);
+      if (v <= 0 || (v < 1 && r() > v)) continue;
+      const tam = (r() < 0.15 ? 1.3 : 1) * entre(r, 0.72, 1.12);
+      const est = entre(r, 1.0, 1.55), ae = r() * 3.14, ce = Math.cos(ae), se = Math.sin(ae);
+      const n = 5 + Math.floor(r() * 3), a0 = r() * 6.28, y = 0.04 + r() * 0.025;
+      const k = escalar(tinte(elegir(r, pal)), 0.82 + 0.3 * r()), kb = escalar(k, 0.74);
+      const ring = [];
+      for (let i = 0; i < n; i++) {
+        const a = a0 + (i / n) * 6.283 + (r() - 0.5) * 0.7;
+        const rad = paso * 0.52 * tam * entre(r, 0.7, 1.08);
+        // estirada en una dirección: lajas largas, no baldosas
+        const lx = Math.cos(a) * rad * est / 1.25, lz = Math.sin(a) * rad / est * 1.15;
+        ring.push([cx + lx * ce - lz * se, y - 0.012 - r() * 0.01, cz + lx * se + lz * ce]);
+      }
+      const centro = [cx, y + 0.012, cz];
+      for (let i = 0; i < n; i++) {
+        const p = ring[i], q = ring[(i + 1) % n];
+        tri(c, centro, q, p, k, kb, kb, 4);
+      }
     }
-    z += h;
   }
 }
 function aljibe(K, x, z) {
@@ -2557,96 +2700,145 @@ function aljibe(K, x, z) {
   palo(c, [x + 0.1, 0.9, z], [x + 0.1, 1.65, z], 0.012, '#c9b88a');
   cilindro(c, [x + 0.1, 0.85, z], 0.11, 0.09, 0.2, '#6a5a48', { tipo: 4, lados: 8 });
   const F = marcoLocal(x, z, 0);
-  chapaPlano(K, c, F.p(-0.95, 2.15, 0.6), F.p(0.95, 2.15, 0.6), F.p(0.95, 2.55, 0), F.p(-0.95, 2.55, 0), { color: '#7f817d', oxido: 0.5, musgo: 0.6, comba: 0.02 });
-  chapaPlano(K, c, F.p(0.95, 2.15, -0.6), F.p(-0.95, 2.15, -0.6), F.p(-0.95, 2.55, 0), F.p(0.95, 2.55, 0), { color: '#7f817d', oxido: 0.5, musgo: 0.6, comba: 0.02 });
+  chapaPlano(K, c, F.p(-0.95, 2.15, 0.6), F.p(0.95, 2.15, 0.6), F.p(0.95, 2.55, 0), F.p(-0.95, 2.55, 0), { color: '#7f817d', oxido: 0.6, musgo: 0.8, comba: 0.02 });
+  chapaPlano(K, c, F.p(0.95, 2.15, -0.6), F.p(-0.95, 2.15, -0.6), F.p(-0.95, 2.55, 0), F.p(0.95, 2.55, 0), { color: '#7f817d', oxido: 0.6, musgo: 0.8, comba: 0.02 });
   K.circulo(x, z, 0.88, 0, 1.0);
 }
+// El duende tallado en el mismo tronco de coihue: abajo la corteza con sus raíces, arriba la madera
+// trabajada, y la figura saliendo de la pieza. Mira a la estación (+Z).
 function troncoDuende(K, x, z) {
-  // tronco de coihue con corteza: vetas verticales pintadas, raíces, y el duende tallado arriba
-  const g = new THREE.CylinderGeometry(0.44, 0.56, 1.5, 14, 4, true);
+  const g = new THREE.CylinderGeometry(0.47, 0.6, 1.0, 14, 4, true);
   abollar(g, 0.05, 1.4);
   K.ext.agregar(g, {
-    tipo: 0, variar: 0.08, suave: true, matriz: matriz([x, 0.6, z]),
-    degradado: [lin('#45382c'), lin('#7f6650')],
-    tono: (px, py, pz) => 0.5 + 0.38 * Math.sin(Math.atan2(pz, px) * 9 + py * 1.4) + 0.12 * Math.sin(py * 6 + px * 3),
+    tipo: 0, variar: 0.08, suave: true, matriz: matriz([x, 0.35, z]),
+    degradado: [lin('#3e3026'), lin('#76604c')],
+    tono: (px, py, pz) => 0.5 + 0.4 * Math.sin(Math.atan2(pz, px) * 11 + py * 1.6) + 0.1 * Math.sin(py * 7 + px * 3),
   });
   g.dispose();
-  // el corte de arriba, claro, con los anillos
-  cilindro(K.ext, [x, 1.355, z], 0.43, 0.43, 0.02, '#c39a6a', { lados: 14 });
-  cilindro(K.ext, [x, 1.367, z], 0.26, 0.26, 0.01, '#a87a52', { lados: 12 });
+  // el borde de la corteza, desparejo, donde empieza lo tallado
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * 6.283;
+    caja(K.ext, [x + Math.sin(a) * 0.47, 0.84 + (i % 3) * 0.03, z + Math.cos(a) * 0.47], [0.36, 0.12 + (i % 2) * 0.06, 0.06], '#4a3a2c', { giro: a, tipo: 0, bajo: 0.6 });
+  }
+  // la madera trabajada, que se angosta hacia la figura
+  const g2 = new THREE.CylinderGeometry(0.36, 0.45, 0.32, 12, 1, true);
+  abollar(g2, 0.025, 3.5);
+  K.ext.agregar(g2, { tipo: 0, variar: 0.12, matriz: matriz([x, 1.0, z]), degradado: [lin('#7a5a3c'), lin('#a07a52')] });
+  g2.dispose();
   for (let i = 0; i < 6; i++) {
     const a = i * 1.05 + 0.4;
-    const gr = new THREE.ConeGeometry(0.18, 0.75, 6, 1, true);
-    abollar(gr, 0.03);
-    K.ext.agregar(gr, { tipo: 0, variar: 0.1, matriz: matriz([x + Math.sin(a) * 0.55, 0.08, z + Math.cos(a) * 0.55], [Math.cos(a) * 1.25, 0, -Math.sin(a) * 1.25]), degradado: [lin('#3e2c1e'), lin('#6e4c32')] });
-    gr.dispose();
+    bulto(K.ext, [x + Math.sin(a) * 0.62, 0.07, z + Math.cos(a) * 0.62], 0.42, '#45372a', { tipo: 0, detalle: 0, abollar: 0.04, esc: [0.42, 0.32, 1.0], rot: [0, a, 0], bajo: 0.55, alto: 1.05 });
   }
-  tallaDuende(K, K.ext, x, 1.37, z, 0, 1.7, { madera: '#9a6e46', ropa: '#86603c', gorro: '#8e3a2c', cara: '#c99a6e', barba: '#ddd0b8' });
-  K.circulo(x, z, 0.62, 0, 3.1);
+  tallaDuende(K, K.ext, x, 1.08, z, 0, 2.25, { madera: '#9a7250', gorroOscuro: 0.58 });
+  K.circulo(x, z, 0.66, 0, 3.4);
 }
 function plaza(K) {
   const { W, D } = K, c = K.ext;
   const r = azar(semillaDe('plaza|piso'));
-  const zD = 3.2;   // el redondel del duende, hacia la estación
-  // ¿cuánto camino hay en (x, z)? 1 lleno, 0 nada; en el medio se ralean las lajas
-  const camino = (x, z) => {
-    const d = Math.hypot(x, z - zD);
-    if (d < 2.9) return d < 0.6 ? 0 : 1;
-    let v = 0;
-    if (Math.abs(x) < 0.9) v = 1;
-    if (Math.abs(z) < 0.9) v = 1;
-    if (Math.abs(x + 5.2) < 0.9 && z > 1 && z < 6.4) v = 1;   // al mástil
-    if (Math.abs(z + 3.6) < 1.4 && Math.abs(x) < 2.6) v = Math.max(v, 0.45);   // alrededor del cantero
-    // hacia los bordes del terreno se ralean
-    const borde = Math.min(W / 2 - Math.abs(x), D / 2 - Math.abs(z));
-    if (borde < 1.6) v *= Math.max(0, borde / 1.6);
-    return v;
+  const RC = 4.1, ANCHO = 1.8;
+  // los ocho senderos: a las cuatro calles y a las cuatro esquinas
+  const rumbos = [[0, 1], [0, -1], [1, 0], [-1, 0], [W / 2, D / 2], [-W / 2, D / 2], [W / 2, -D / 2], [-W / 2, -D / 2]].map(([a, b]) => {
+    const l = Math.hypot(a, b);
+    const largo = Math.abs(a) < 1e-6 ? D / 2 : Math.abs(b) < 1e-6 ? W / 2 : l;
+    return { ux: a / l, uz: b / l, largo };
+  });
+  const enSendero = (x, z) => rumbos.some((s) => {
+    const t = x * s.ux + z * s.uz, d = Math.abs(-x * s.uz + z * s.ux);
+    return t > 0 && t < s.largo + 0.2 && d < ANCHO / 2;
+  });
+  const dentro = (x, z) => {
+    if (Math.abs(x) > W / 2 - 0.15 || Math.abs(z) > D / 2 - 0.15) return 0;
+    const rr = Math.hypot(x, z);
+    if (rr < 0.75) return 0;   // el tronco
+    if (rr < RC) return 1;
+    return enSendero(x, z) ? 1 : 0;
   };
-  lajasEn(K, c, r, camino, -W / 2, W / 2, -D / 2, D / 2);
-  // (toda la plaza sin pasto alto ni helechos: entre las lajas se ve el prado pintado del terreno)
+  lajasIrregulares(K, c, r, dentro, -W / 2, W / 2, -D / 2, D / 2);
+  // todo el lote sin helechos ni pasto alto (césped de plaza: el prado pintado del terreno)
+  K.plataforma(0, 0, W, D, 0.02, 0.1);
   K.pisos.push({ lx: 0, lz: 0, largo: W, ancho: D });
-  // una plataforma a ras de las lajas: se camina igual, y marcarPisos (main.js) ya la toma sola
-  K.plataforma(0, 0, W, D, 0.05, 0.12);
-  // el duende tallado en el tronco: el que le da el nombre a la aldea, mirando a la estación
-  troncoDuende(K, 0, zD);
-  K.punto('duende', 0, zD + 1.45, Math.PI, 0.05);
-  // el mástil con la bandera, del lado de la estación
-  mastil(K, -5.2, D / 2 - 1.6, { alto: 8.0, giro: 0.3 });
-  K.punto('mastil', -5.2, D / 2 - 0.4, Math.PI, 0.03);
-  // bancos de madera gruesa con patas de hierro, alrededor del redondel y junto al cantero
-  const bancos = [[-3.6, zD, Math.PI / 2], [3.6, zD, -Math.PI / 2], [-3.4, -3.4, Math.PI / 2], [3.4, -3.4, -Math.PI / 2], [-6.0, -4.9, 0], [6.0, -4.9, 0]];
-  for (const [x, z, g] of bancos) banco(K, c, x, z, g, { largo: 1.8, color: '#6e5036', patas: '#2f2c2a', nombre: 'un banco de la plaza', tipo: 0 });
-  cantero(K, 0, -3.6, { largo: 3.4, ancho: 1.6 });
-  cantero(K, -6.4, -1.9, { largo: 2.2, ancho: 1.2 });
-  cantero(K, 6.4, 1.8, { largo: 2.2, ancho: 1.2 });
-  // el aljibe viejo, en un rincón
-  aljibe(K, 6.2, -2.1);
-  // faroles de hierro con su vidrio tibio
-  for (const [x, z] of [[-W / 2 + 1.2, -D / 2 + 1.2], [W / 2 - 1.2, -D / 2 + 1.2], [-W / 2 + 1.2, D / 2 - 1.2], [W / 2 - 1.2, D / 2 - 1.2], [-1.4, -1.4], [1.4, -1.4]]) farol(K, x, z, { alto: 3.1 });
-  // el sube y baja de los chicos
-  const Fs = marcoLocal(5.6, 4.9, 0.2);
-  cj(c, Fs, 0, 0.45, 0, 0.3, 0.9, 0.3, '#5a4636', { tipo: 0 });
-  cj(c, Fs, 0, 0.75, 0, 3.4, 0.1, 0.3, '#a8462e', { tipo: 4, rz: 0.14 });
-  for (const sx of [-1, 1]) cj(c, Fs, sx * 1.45, 0.75 + sx * 0.2 + 0.12, 0, 0.06, 0.28, 0.3, '#2f2c2a', { tipo: 4 });
-  K.circulo(5.6, 4.9, 0.3, 0, 0.9);
-  // cuatro álamos (copa con aTipo 2, en `follaje`)
-  for (const [x, z, s] of [[-W / 2 + 0.6, -D / 2 + 0.4, 1], [W / 2 - 0.6, -D / 2 + 0.4, 2], [-W / 2 + 0.6, 0.4, 3], [W / 2 - 0.6, -2.0 + 2.4, 4]]) alamo(K, x, z, { semilla: s, alto: 11 + s * 0.6, sinLod: true });
-  cartel(K, 'Plaza de los Duendes', [6.6, 1.25, D / 2 + 0.6], 2.2, 0.42, 0, { dosCaras: true });
-  for (const l of [-1, 1]) { palo(c, [6.6 + l * 1.0, -0.2, D / 2 + 0.6], [6.6 + l * 1.0, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(6.6 + l * 1.0, D / 2 + 0.6, 0.08, 0, 1.6); }
-  K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
-  // lo que el núcleo nombra: estar-k, juego-k, músico (ver `nombrar`)
-  const estar = [];
-  for (const [x, z, g] of bancos) for (const s of [-0.45, 0.45]) {
-    const F = marcoLocal(x, z, g);
-    const p = F.p(s, 0, 0.75);
-    estar.push({ lx: p[0], ly: 0.05, lz: p[2], mira: g + Math.PI });
+  // lo pisado: el redondel y los senderos (ahí no sale pasto; entre senderos queda el prado)
+  K.plataforma(0, 0, 2 * RC, 2 * RC, 0.05, 0.12, 0, { radio: RC });
+  K.pisos.push({ lx: 0, lz: 0, largo: 2 * RC, ancho: 2 * RC });
+  for (const s of rumbos) {
+    const L = s.largo - RC + 0.4, m = RC - 0.2 + L / 2, giro = Math.atan2(-s.uz, s.ux);
+    K.plataforma(s.ux * m, s.uz * m, L, ANCHO, 0.05, 0.12, giro);
+    K.pisos.push({ lx: s.ux * m, lz: s.uz * m, largo: L, ancho: ANCHO, giro });
   }
-  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + 0.2; estar.push({ lx: Math.sin(a) * 2.1, ly: 0.05, lz: zD + Math.cos(a) * 2.1, mira: a + Math.PI }); }
+  // el duende tallado en el centro, mirando a la estación
+  troncoDuende(K, 0, 0);
+  K.punto('duende', 0, 1.35, Math.PI, 0.05);
+  // el anillo de canteros, cortado por los senderos: borde de laja, tierra, matas y flores
+  const angulos = rumbos.map((s) => Math.atan2(s.uz, s.ux)).sort((a, b) => a - b);
+  const R0 = RC + 0.25, R1 = RC + 1.05, Rm = (R0 + R1) / 2;
+  for (let i = 0; i < angulos.length; i++) {
+    const a0 = angulos[i], a1 = i + 1 < angulos.length ? angulos[i + 1] : angulos[0] + Math.PI * 2;
+    const m0 = a0 + (ANCHO / 2 + 0.15) / R0, m1 = a1 - (ANCHO / 2 + 0.15) / R0;
+    if (m1 - m0 < 0.15) continue;
+    const n = Math.max(2, Math.round((m1 - m0) * Rm / 0.9));
+    for (let k = 0; k < n; k++) {
+      const b0 = m0 + (m1 - m0) * k / n, b1 = m0 + (m1 - m0) * (k + 1) / n;
+      const P = (rr, a) => [Math.cos(a) * rr, Math.sin(a) * rr];
+      for (const rr of [R0, R1]) {
+        const [ax, az] = P(rr, b0), [bx, bz] = P(rr, b1);
+        viga(c, [ax, 0.08, az], [bx, 0.08, bz], 0.14, 0.18, elegir(r, PALETA_ALDEA.laja), { tipo: 4, bajo: 0.55 });
+      }
+      const [ax, az] = P(R0, b0), [bx, bz] = P(R0, b1), [cx2, cz2] = P(R1, b1), [dx, dz] = P(R1, b0);
+      const kt = tinte('#4a3a2c');
+      quad(c, [dx, 0.13, dz], [cx2, 0.13, cz2], [bx, 0.13, bz], [ax, 0.13, az], kt, kt, escalar(kt, 0.85), escalar(kt, 0.85), 0);
+      const [mx, mz] = P(Rm, (b0 + b1) / 2);
+      bulto(K.fol, [mx, 0.27, mz], 0.3, elegir(r, ['#46613a', '#3d5634', '#55703f']), { tipo: 1, detalle: 0, abollar: 0.03, esferica: 1, variar: 0.03, esc: [1.25, 0.62, 1.25], rot: [0, (b0 + b1) / 2, 0], bajo: 0.5, alto: 1.15 });
+      const flor = elegir(r, ['#7a5aa8', '#c46a9a', '#e0d0e8', '#e8b030', '#f0ece0']);
+      // flores de disco (margaritas, amancay, malvas) sobre la mata
+      for (let f = 0; f < 5; f++) {
+        const [fx, fz] = P(Rm + (r() - 0.5) * 0.5, b0 + (b1 - b0) * (0.1 + 0.2 * f));
+        const fy = 0.34 + r() * 0.1, rf = 0.05 + r() * 0.03, kf = tinte(r() < 0.5 ? flor : elegir(r, ['#f0ece0', '#e8b030', '#c46a9a'])), kc = tinte('#c89a2a');
+        for (let q = 0; q < 6; q++) {
+          const a0 = q * 1.047, a1 = a0 + 1.047;
+          tri(K.fol, [fx, fy + 0.01, fz], [fx + Math.cos(a1) * rf, fy, fz + Math.sin(a1) * rf], [fx + Math.cos(a0) * rf, fy, fz + Math.sin(a0) * rf], kc, kf, kf, 3);
+        }
+      }
+      const [sx0, sz0] = P(Rm, b0), [sx1, sz1] = P(Rm, b1);
+      K.segmento(sx0, sz0, sx1, sz1, 0.42, 0, 0.42);
+    }
+  }
+  // bancos en el borde del redondel, mirando al duende
+  const estar = [];
+  angulos.slice(0, 8).forEach((a0, i) => {
+    if (i % 2) return;   // en cuatro de los ocho tramos
+    const a1 = angulos[i + 1] ?? angulos[0] + Math.PI * 2, am = (a0 + a1) / 2, rr = RC - 0.45;
+    const x = Math.cos(am) * rr, z = Math.sin(am) * rr, giro = Math.atan2(-x, -z);
+    banco(K, c, x, z, giro, { largo: 1.5, color: '#6e5036', patas: '#2f2c2a', nombre: 'un banco de la plaza', tipo: 0 });
+    for (const s of [-0.38, 0.38]) { const F = marcoLocal(x, z, giro); const p = F.p(s, 0, 0.72); estar.push({ lx: p[0], ly: 0.05, lz: p[2], mira: giro + Math.PI }); }
+  });
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + 0.13; estar.push({ lx: Math.cos(a) * 1.65, ly: 0.05, lz: Math.sin(a) * 1.65, mira: Math.atan2(-Math.cos(a), -Math.sin(a)) }); }
   K.extra.estar = estar.slice(0, 20);
-  K.extra.juego = [[4.3, 5.6], [7.0, 5.8], [5.0, 6.2], [6.4, 4.0]].map(([x, z]) => ({ lx: x, ly: 0.03, lz: z, mira: Math.atan2(5.6 - x, 4.9 - z) }));
-  K.punto('musico', 2.0, zD + 2.0, 0, 0.05);
-  K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5]].map(([x, z]) => ({ lx: x, lz: z }));
-  K.luz(0, 3.0, zD, { color: 0xffc070, radio: 10, intensidad: 0.6, clase: 'farol', cuarto: 'calle' });
+  // faroles junto a los senderos (a un costado, sin cortar el paso)
+  for (const s of rumbos.slice(4)) {
+    const t = RC + 2.6, px = s.ux * t - s.uz * (ANCHO / 2 + 0.35), pz = s.uz * t + s.ux * (ANCHO / 2 + 0.35);
+    farol(K, px, pz, { alto: 3.1 });
+  }
+  for (const sx of [-1, 1]) farol(K, sx * (ANCHO / 2 + 0.35), D / 2 - 1.0, { alto: 3.1 });
+  // el mástil con la bandera, del lado de la estación
+  mastil(K, -2.9, D / 2 - 1.5, { alto: 8.0, giro: 0.3 });
+  K.punto('mastil', -2.9, D / 2 - 0.25, Math.PI, 0.03);
+  // el aljibe viejo y el sube y baja, en el pasto entre senderos
+  aljibe(K, -7.0, -2.3);
+  const Fs = marcoLocal(7.1, -2.6, 0.25);
+  cj(c, Fs, 0, 0.45, 0, 0.3, 0.9, 0.3, '#5a4636', { tipo: 0 });
+  cj(c, Fs, 0, 0.75, 0, 3.2, 0.1, 0.3, '#8a5236', { tipo: 0, rz: 0.14 });
+  for (const sx of [-1, 1]) cj(c, Fs, sx * 1.35, 0.75 + sx * 0.19 + 0.12, 0, 0.06, 0.28, 0.3, '#2f2c2a', { tipo: 4 });
+  K.circulo(7.1, -2.6, 0.3, 0, 0.9);
+  K.extra.juego = [[6.1, -1.9], [8.3, -3.1], [7.2, -1.5], [7.4, -3.7]].map(([x, z]) => ({ lx: x, ly: 0.03, lz: z, mira: Math.atan2(7.1 - x, -2.6 - z) }));
+  // dos álamos en la plaza (el resto, en `extra.alamos`, para el mundo)
+  alamo(K, -7.4, 3.6, { semilla: 3, alto: 12.5, sinLod: true });
+  alamo(K, 7.4, 3.6, { semilla: 4, alto: 13.2, sinLod: true });
+  cartel(K, 'Plaza de los Duendes', [5.4, 1.25, D / 2 + 0.6], 2.2, 0.42, 0, { dosCaras: true });
+  for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.0, -0.2, D / 2 + 0.6], [5.4 + l * 1.0, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.0, D / 2 + 0.6, 0.08, 0, 1.6); }
+  K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
+  K.punto('musico', 1.25, 1.15, Math.PI * 0.75, 0.05);
+  K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [4.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));
+  K.luz(0, 3.2, 0, { color: 0xffc070, radio: 10, intensidad: 0.6, clase: 'farol', cuarto: 'calle' });
 }
 
 // ---------------------------------------------------------------- el lote vacío y la obra
@@ -2782,33 +2974,83 @@ export function armarEdificio(id, etapa = 4, opciones = {}) {
 }
 
 // ---------------------------------------------------------------- accesorios sueltos de la aldea
+// Un álamo piramidal (Populus nigra 'Italica', el cortaviento de la Patagonia): copa densa, alta y
+// angosta. 3.6 (pulido): un huso liso hace de masa y encima van racimos chicos de hojas; todos se
+// sombrean como una sola columna (la normal sale del eje del árbol, no de cada racimo), así no
+// quedan "bollos": la silueta se quiebra en hojas y la luz corre pareja. Hojas con aTipo 2 (caen en
+// invierno: quedan el tronco y las ramas que suben pegadas al eje).
+function triN(c, p, n, k, tipo) {
+  for (let i = 0; i < 3; i++) { c.pos.push(p[i][0], p[i][1], p[i][2]); c.nor.push(n[i][0], n[i][1], n[i][2]); c.col.push(k[i].r, k[i].g, k[i].b); c.tipo.push(tipo); }
+}
+const ICOSA = (() => { const g = new THREE.IcosahedronGeometry(1, 0); const a = Array.from(g.attributes.position.array); g.dispose(); return a; })();
 function alamo(K, x0, z0, o) {
   const c = K.ext, fol = K.fol;
   const r = azar(semillaDe('alamo|' + (o.semilla ?? 0)));
   const alto = o.alto ?? entre(r, 13, 17);
+  const yB = 1.7, yT = alto, Rmax = alto * 0.105;
   // tronco y ramas que suben pegadas al eje (lo único que queda en invierno)
   palo(c, [x0, -0.3, z0], [x0 + 0.05, alto * 0.82, z0 + 0.03], 0.26, '#6f6658', { lados: 8, punta: 0.25, abierto: false });
   for (let i = 0; i < 9; i++) {
     const y = 1.8 + i * alto * 0.075, a = r() * 6.28;
     palo(c, [x0, y, z0], [x0 + Math.cos(a) * 0.55, y + alto * 0.18, z0 + Math.sin(a) * 0.55], 0.05, '#6f6658', { lados: 5, punta: 0.3 });
   }
-  // la copa columnar: bultos alargados, oscuros abajo y dorados arriba (aTipo 2: caen en invierno)
-  // muchos racimos chicos en espiral alrededor del eje: la silueta de huso se quiebra en manchas
-  const n = 28;
+  const R = (t) => Rmax * Math.pow(Math.max(0, Math.sin(Math.PI * (0.06 + 0.94 * t))), 0.55) * (1.08 - 0.5 * t);
+  const oscuro = tinte('#253a24'), claro = tinte('#5f7a3c'), sol = tinte('#8e9048');
+  // el color sale sólo de la posición (altura, lado y una pincelada), nunca del racimo: sin contornos
+  const colorEn = (t, afuera, arriba, P = null) => {
+    const pn = P ? pincel(P[0] * 1.3, P[1] * 0.8, P[2] * 1.3, 4.1) : 0.5;
+    let k = mezclar(oscuro, claro, Math.min(1, Math.max(0, 0.1 + 0.55 * t + 0.25 * afuera + 0.35 * (pn - 0.5))));
+    if (P) { const lado = Math.max(0, ((P[0] - x0) * 0.6 + (P[2] - z0) * 0.5) / Math.max(0.3, R(t))); k = mezclar(k, sol, Math.min(0.25, lado * 0.15 + arriba * 0.08)); }
+    return k;
+  };
+  const normal = (x, y, z) => {
+    const t = (y - yB) / (yT - yB);
+    let nx = x - x0, nz = z - z0;
+    const l = Math.hypot(nx, nz) || 1;
+    const ny = 0.25 + 0.6 * Math.max(0, t - 0.75) * 4;
+    const m = Math.hypot(nx / l, ny, nz / l);
+    return [nx / l / m, ny / m, nz / l / m];
+  };
+  // el huso: 8 lados × 8 filas, normales al eje
+  const lados = 8, filas = 8;
+  const anillo = (j) => {
+    const t = j / filas, y = yB + t * (yT - yB), rr = R(t) * 0.82;
+    const pts = [];
+    for (let i = 0; i <= lados; i++) {
+      const a = (i / lados) * 6.283 + j * 0.3;
+      pts.push([x0 + Math.cos(a) * rr, y, z0 + Math.sin(a) * rr]);
+    }
+    return { pts, t };
+  };
+  let prev = anillo(0);
+  for (let j = 1; j <= filas; j++) {
+    const cur = anillo(j);
+    for (let i = 0; i < lados; i++) {
+      const a = prev.pts[i], b = prev.pts[i + 1], d = cur.pts[i + 1], e = cur.pts[i];
+      const K3 = (p, tt) => colorEn(tt, 0.8, 0, p);
+      triN(fol, [a, d, b], [normal(...a), normal(...d), normal(...b)], [K3(a, prev.t), K3(d, cur.t), K3(b, prev.t)], 2);
+      triN(fol, [a, e, d], [normal(...a), normal(...e), normal(...d)], [K3(a, prev.t), K3(e, cur.t), K3(d, cur.t)], 2);
+    }
+    prev = cur;
+  }
+  // los racimos sobre el huso
+  const n = o.racimos ?? 56;
   for (let i = 0; i < n; i++) {
-    const t = i / (n - 1);
-    const y = 1.9 + t * (alto - 2.4);
-    const a = i * 2.39996, d = (1.05 - 0.75 * t) * entre(r, 0.25, 0.85);
-    const rad = (0.95 - 0.5 * t) * entre(r, 0.8, 1.2);
-    const g = new THREE.IcosahedronGeometry(rad, 0);
-    abollar(g, rad * 0.18, 3.1);
-    const claro = entre(r, -0.12, 0.12);
-    fol.agregar(g, {
-      tipo: 2, variar: 0.12, esferica: 1, centro: [0, 0, 0],
-      degradado: [lin('#33502e'), lin('#8fa04f')], tono: (x, yy, zz) => Math.min(1, Math.max(0, 0.22 + 0.6 * t + 0.06 * Math.max(0, yy / rad) + claro * 0.4 + 0.06 * Math.sin(x * 4 + zz * 3))),
-      matriz: matriz([x0 + Math.cos(a) * d, y, z0 + Math.sin(a) * d], [0, r() * 3, 0], [1, 1.55, 1]),
-    });
-    g.dispose();
+    const t = Math.pow(r(), 0.85) * 0.97, y = yB + 0.2 + t * (yT - yB - 0.4), a = i * 2.39996 + r() * 0.6;
+    const rr = R(t) * entre(r, 0.78, 1.0), s = entre(r, 0.26, 0.46) * (1.05 - 0.45 * t);
+    const cx = x0 + Math.cos(a) * rr, cz = z0 + Math.sin(a) * rr;
+    const tilt = r() * 6.28;
+    for (let v = 0; v < ICOSA.length; v += 9) {
+      const p = [], nn = [], k = [];
+      for (let w = 0; w < 3; w++) {
+        const ix = ICOSA[v + w * 3], iy = ICOSA[v + w * 3 + 1], iz = ICOSA[v + w * 3 + 2];
+        const qx = ix * Math.cos(tilt) - iz * Math.sin(tilt), qz = ix * Math.sin(tilt) + iz * Math.cos(tilt);
+        const P = [cx + qx * s, y + iy * s * 1.7, cz + qz * s];
+        p.push(P); nn.push(normal(...P));
+        k.push(colorEn((P[1] - yB) / (yT - yB), 0.8, Math.max(0, iy) * 0.3, P));
+      }
+      triN(fol, p, nn, k, 2);
+    }
   }
   K.circulo(x0, z0, 0.32, -0.3, alto);
   if (o.sinLod) return;
@@ -2875,7 +3117,7 @@ export function armarAgregadoEstacion(opciones = {}) {
     for (const l of [-1, 1]) { palo(K.ext, [l * 1.7, -0.3, 0], [l * 1.7, 2.75, 0], 0.09, '#4e3a28', { lados: 7 }); K.circulo(l * 1.7, 0, 0.1, 0, 2.8); }
     cartel(K, 'Aldea de los Duendes', [0, 2.15, 0], 3.2, 0.62, 0, { dosCaras: true, marco: '#3e2f22' });
     viga(K.ext, [-1.85, 2.55, 0], [1.85, 2.55, 0], 0.12, 0.08, '#3e2f22');
-    tallaDuende(K, K.ext, 1.55, 2.6, 0.02, 0.2, 0.55, { gorro: '#9a3a2c' });
+    tallaDuende(K, K.ext, 1.55, 2.6, 0.02, 0.2, 0.55, { madera: '#8a6440' });
     piezas.push({ id: 'cartel-aldea', lx: 6.8, lz: 6.4, giro: Math.PI, edificio: cerrar(K) });
   }
   piezas.push({ id: 'farol-1', lx: -3.4, lz: 5.4, giro: 0, edificio: armarAccesorio('faroles', { semilla: 1 }) });

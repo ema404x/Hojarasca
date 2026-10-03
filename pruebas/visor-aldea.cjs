@@ -61,7 +61,11 @@ window.__V = (() => {
   let Yref = Y0;
   // lo que hará el mundo con pisos y ocupa (marcarPisos): ahí no salen pasto ni helechos
   const texE = __mod_materiales.U.uEstepa.value;
-  function marcar(x0, x1, z0, z1, v) {
+  let marcas = [];
+  // (marcarPisos del juego rehace el canal cuando cambian las plataformas: se vuelve a marcar antes de cada foto)
+  function remarcar() { for (const m of marcas) marcar(...m, true); }
+  function marcar(x0, x1, z0, z1, v, otra) {
+    if (!otra) { if (v) marcas.push([x0, x1, z0, z1, v]); else marcas = []; }
     if (!texE?.image?.data) return;
     const d = texE.image.data, n = texE.image.width;
     for (let j = Math.max(0, Math.floor((z0 + 512) / 2)); j <= Math.min(n - 1, Math.ceil((z1 + 512) / 2)); j++)
@@ -84,8 +88,8 @@ window.__V = (() => {
       const ed = it.acc ? A.armarAccesorio(it.acc, it.op || {}) : A.armarEdificio(it.id, it.etapa ?? 4, it.op || {});
       // apoyado en el terreno real: el punto más alto de su planta (la plaza, el promedio)
       const o = ed.ocupa; let hi = -1e9, suma = 0, n = 0;
-      for (let a = 0; a <= 4; a++) for (let b = 0; b <= 4; b++) { const h = T.altura(B.x + it.x + o.x0 + (o.x1 - o.x0) * a / 4, B.z + it.z + o.z0 + (o.z1 - o.z0) * b / 4); hi = Math.max(hi, h); suma += h; n++; }
-      const y = it.acc ? suma / n : hi - 0.04;
+      for (let a = 0; a <= 12; a++) for (let b = 0; b <= 12; b++) { const h = T.altura(B.x + it.x + o.x0 + (o.x1 - o.x0) * a / 12, B.z + it.z + o.z0 + (o.z1 - o.z0) * b / 12); hi = Math.max(hi, h); suma += h; n++; }
+      const y = it.acc ? suma / n : it.id === 'plaza' ? hi + 0.15 : hi - 0.04;
       const sitio = { x: B.x + it.x, y, z: B.z + it.z, rot: it.rot || 0 };
       if (!res.length) Yref = y;
       { const c = Math.cos(sitio.rot), s = Math.sin(sitio.rot); const xs = [o.x0, o.x1], zs = [o.z0, o.z1]; let a = 1e9, b = -1e9, e = 1e9, g = -1e9; for (const lx of xs) for (const lz of zs) { const X = sitio.x + lx * c + lz * s, Z = sitio.z - lx * s + lz * c; a = Math.min(a, X); b = Math.max(b, X); e = Math.min(e, Z); g = Math.max(g, Z); } if (!it.acc) marcar(a - 0.6, b + 0.6, e - 0.6, g + 0.6, 255); }
@@ -96,6 +100,7 @@ window.__V = (() => {
       const r = A.registrarEnMundo({ col: H.col, puertas: it.abierta || it.acc ? null : H.puertas }, ed, sitio, { duenio: 'visor' });
       puertas.push(...r.puertas);
       res.push({ id: it.id || it.acc, tri: ed.medidas.triangulos, luces: ed.luces.length });
+      if (res.length === 1) spec = ed.luces.filter((l) => l.cuarto !== 'calle' && l.cuarto !== 'afuera').map((l) => ({ ...l, w: A.aMundoAldea(sitio, l.lx, l.ly, l.lz) }));
     }
     return res;
   }
@@ -115,11 +120,19 @@ window.__V = (() => {
     const f = noche ? 1 : 0;
     vidrio.color.setRGB(0.07 + f * 1.4, 0.07 + f * 0.75, 0.08 + f * 0.25);
   }
+  let spec = [];
+  // las luces del edificio según su spec (como hará el mundo con el pool de 4): las más cercanas a la cámara
+  function lucesSpec() {
+    const c = H.camara.position;
+    for (const l of spec.slice().sort((a, b) => Math.hypot(a.w.x - c.x, a.w.z - c.z) - Math.hypot(b.w.x - c.x, b.w.z - c.z)).slice(0, 4)) {
+      const p = new THREE.PointLight(l.color, l.intensidad * 1.8, l.radio, 1.6); p.position.set(l.w.x, l.w.y, l.w.z); H.escena.add(p); luces.push(p);
+    }
+  }
   function luzEn(x, y, z, color = 0xffb070, i = 2.2, d = 9) {
     const l = new THREE.PointLight(color, i, d, 1.6); l.position.set(B.x + x, Yref + y, B.z + z); H.escena.add(l); luces.push(l);
   }
   function sinLuces() { for (const l of luces) H.escena.remove(l); luces.length = 0; }
-  return { poner, camara, hora, luzEn, sinLuces, Y0, B };
+  return { poner, camara, hora, luzEn, lucesSpec, sinLuces, remarcar, Y0, B };
 })(); 1`;
 
 // Tomas: qué se arma, de dónde se mira (x, y de los ojos, z, yaw, pitch) y a qué hora.
@@ -130,8 +143,8 @@ const locales1 = [{ id: 'panaderia', x: -16, z: 0 }, { id: 'herreria', x: -7, z:
 const locales2 = [{ id: 'puesto-sanitario', x: -21, z: 0 }, { id: 'estafeta', x: -13, z: 0 }, { id: 'hilanderia', x: -5, z: 0 }, { id: 'sala-miel', x: 4, z: 0 }, { id: 'seccional', x: 13, z: 0 }];
 const etapas = [0, 1, 2, 3, 4].map((e, i) => ({ id: 'panaderia', etapa: e, x: -24 + i * 11, z: 0 }));
 const TOMAS = {
-  plaza: { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [2, 5.0, 17], a: [0, 0.5, 0], hora: 18.7 },
-  'plaza-baja': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [4.2, 1.7, 9.4], a: [0, 1.9, 3.2], hora: 18.8 },
+  plaza: { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [4, 7.5, 12.5], a: [0, 0, 0.5], hora: 18.6 },
+  'plaza-baja': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [3.2, 1.7, 6.2], a: [0, 2.3, 0], hora: 18.8 },
   biblioteca: { arma: [{ id: 'biblioteca', x: 0, z: 0 }, { id: 'escuela', x: 11, z: 0 }], ojo: [-6, 2.0, 15], a: [3, 2.0, 3], hora: 10 },
   casas: { arma: casas, ojo: [-19, 2.0, 9.5], a: [-6, 1.8, 3.5], hora: 9 },
   'casas-frente': { arma: casas, ojo: [-2.5, 4.0, 17], a: [-2.5, 1.5, 0], hora: 11 },
@@ -142,11 +155,13 @@ const TOMAS = {
   salon: { arma: [{ id: 'salon', x: 0, z: 0 }, { id: 'escuela', x: -13, z: 0, etapa: 3 }], ojo: [6, 2.0, 14], a: [-5, 2.2, 2], hora: 12 },
   etapas: { arma: etapas, ojo: [-31, 3.5, 13], a: [-10, 1.5, 0], hora: 12 },
   'etapas-frente': { arma: etapas, ojo: [-2, 7, 21], a: [-2, 0.5, 0], hora: 12 },
-  'adentro-panaderia': { arma: [{ id: 'panaderia', x: 0, z: 0, abierta: true }], ojo: [-1.3, 1.95, 2.2], a: [1.5, 1.2, -0.5], hora: 11, luz: [[0.4, 2.6, 1.2], [0, 2.6, -1.8]] },
-  'adentro-escuela': { arma: [{ id: 'escuela', x: 0, z: 0, abierta: true }], ojo: [4.3, 1.95, 2.9], a: [-4.8, 1.3, 1.0], hora: 11, luz: [[-1.5, 2.6, 0.7], [2.0, 2.6, 1.4]] },
-  'adentro-biblioteca': { arma: [{ id: 'biblioteca', x: 0, z: 0, abierta: true }], ojo: [-0.6, 1.95, 4.6], a: [0.8, 1.2, -4], hora: 11, luz: [[0.5, 2.6, 0.9], [0.5, 2.6, -2.5], [2.4, 1.2, 3.6]] },
-  'adentro-herreria': { arma: [{ id: 'herreria', x: 0, z: 0 }], ojo: [1.2, 1.95, 4.3], a: [-2.5, 1.0, 0.2], hora: 17, luz: [[-2.4, 1.4, 0.4, 0xff6a20, 2.6, 7], [0.2, 2.6, 1.2]] },
-  'adentro-casa': { arma: [{ id: 'casa-abuela', x: 0, z: 0, abierta: true }], ojo: [1.2, 1.9, 2.0], a: [-2.2, 1.0, 0.6], hora: 20.5, noche: true, luz: [[-1.6, 0.8, 0.8, 0xff8a40, 2.2, 6], [0.2, 2.4, 0.9]] },
+  'adentro-panaderia': { arma: [{ id: 'panaderia', x: 0, z: 0, abierta: true }], ojo: [-1.3, 1.95, 2.2], a: [1.5, 1.2, -0.5], hora: 11, luz: 'spec' },
+  'adentro-escuela': { arma: [{ id: 'escuela', x: 0, z: 0, abierta: true }], ojo: [4.3, 1.95, 2.9], a: [-4.8, 1.3, 1.0], hora: 11, luz: 'spec' },
+  'adentro-biblioteca': { arma: [{ id: 'biblioteca', x: 0, z: 0, abierta: true }], ojo: [-0.6, 1.95, 4.6], a: [0.8, 1.2, -4], hora: 11, luz: 'spec' },
+  'adentro-herreria': { arma: [{ id: 'herreria', x: 0, z: 0 }], ojo: [1.2, 1.95, 4.3], a: [-2.5, 1.0, 0.2], hora: 17, luz: 'spec' },
+  'adentro-casa': { arma: [{ id: 'casa-abuela', x: 0, z: 0, abierta: true }], ojo: [1.2, 1.9, 2.0], a: [-2.2, 1.0, 0.6], hora: 20.5, noche: true, luz: 'spec' },
+  sillon: { arma: [{ id: 'biblioteca', x: 0, z: 0, abierta: true }], ojo: [-0.4, 1.75, 1.6], a: [1.9, 0.9, 4.0], hora: 18, luz: 'spec' },
+  'duende-cerca': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [1.3, 1.75, 4.6], a: [0, 2.6, 0], hora: 17.5 },
   alamos: { arma: [{ acc: 'alamo', x: -6, z: -4, op: { semilla: 1 } }, { acc: 'alamo', x: 0, z: -5, op: { semilla: 2 } }, { acc: 'alamo', x: 6, z: -4, op: { semilla: 3 } },
     { acc: 'pirca', x: -3, z: 2, op: { largo: 6 } }, { acc: 'cerco', x: 4, z: 2, op: { largo: 5, tipo: 'pique' } }, { acc: 'faroles', x: 0, z: 3 }, { acc: 'banco', x: 1.5, z: 3.2, rot: Math.PI },
     { acc: 'lena', x: -6, z: 4 }, { acc: 'tendedero', x: 7, z: 5 }, { acc: 'poste-luz', x: 10, z: 2 }, { acc: 'vereda', x: 0, z: 6, op: { largo: 10 } }, { acc: 'mastil', x: -10, z: 2 }],
@@ -155,7 +170,7 @@ const TOMAS = {
 
 app.whenReady().then(async () => {
   fs.mkdirSync(salida, { recursive: true });
-  const pedidas = (process.argv.find((a) => /^[a-z-]+(,[a-z-]+)*$/.test(a) && a.split(',').every((t) => TOMAS[t])) || Object.keys(TOMAS).join(',')).split(',');
+  const pedidas = (process.argv.find((a) => /^[a-z0-9-]+(,[a-z0-9-]+)*$/.test(a) && a.split(',').every((t) => TOMAS[t])) || Object.keys(TOMAS).join(',')).split(',');
   const w = new BrowserWindow({ show: true, width: 1600, height: 900, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   const js = (c) => w.webContents.executeJavaScript(c);
   const url = path.join(raiz, 'index.html');
@@ -180,14 +195,14 @@ app.whenReady().then(async () => {
   for (const nombre of pedidas) {
     const t = TOMAS[nombre];
     const res = await js(`JSON.stringify(window.__V.poner(${JSON.stringify(t.arma)}))`);
-    await js(`(() => { const V = window.__V; V.sinLuces(); ${(t.luz || []).map((l) => `V.luzEn(${l.join(',')});`).join(' ')} V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); return 1; })()`);
+    await js(`(() => { const V = window.__V; V.sinLuces(); ${t.luz === 'spec' ? 'V.lucesSpec();' : (t.luz || []).map((l) => `V.luzEn(${l.join(',')});`).join(' ')} V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); return 1; })()`);
     await esperar(3500);
-    await js(`(() => { const V = window.__V; V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); return 1; })()`);
+    await js(`(() => { const V = window.__V; V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); V.remarcar(); return 1; })()`);
     await esperar(2500);
-    await js(`(() => { for (const k of window.__hojarasca.camara.children) k.visible = false; return 1; })()`);
+    await js(`(() => { for (const k of window.__hojarasca.camara.children) k.traverse((o) => o.layers.set(31)); return 1; })()`);
     await esperar(300);
     const img = await w.webContents.capturePage();
-    await js(`(() => { for (const k of window.__hojarasca.camara.children) k.visible = true; return 1; })()`);
+    await js(`(() => { for (const k of window.__hojarasca.camara.children) k.traverse((o) => o.layers.set(0)); return 1; })()`);
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
     const info = await js(`JSON.stringify({ dibujos: window.__hojarasca.renderer.info.render.calls, tri: window.__hojarasca.renderer.info.render.triangles })`);
     const donde = await js(`JSON.stringify({ B: window.__V.B, Y0: window.__V.Y0, pos: window.__hojarasca.jugador.estado.pos, cam: window.__hojarasca.camara.position, pausa: document.pointerLockElement === null, grupo: window.__hojarasca.escena.children.length, tex: (() => { const x = __mod_materiales.U.uEstepa.value; const d = x?.image?.data; if (!d) return 'sin'; const B = window.__V.B; const i = Math.floor((B.x + 512) / 2), j = Math.floor((B.z + 512) / 2); return [x.image.width, d.length, d[(j * x.image.width + i) * 4 + 2]]; })() })`);
