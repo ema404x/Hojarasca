@@ -100,12 +100,12 @@ function distRiel(x, z) {
 {
   // el contrato con aldea-arquitectura.js: ids y tamaños
   const CONTRATO = {
-    'estacion-aldea': null, plaza: [18, 14], biblioteca: [7, 11], 'almacen-aldea': [9, 7], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-almacenera': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
+    'estacion-aldea': null, plaza: [18, 14], biblioteca: [7, 11], almacen: [9.6, 9.8], 'casa-te': [8, 10.6], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-ercilia': [5, 5], 'casa-nelida': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
     panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5], 'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
   for (const [id, t] of Object.entries(CONTRATO)) if (t) eq([E[id].ancho, E[id].fondo], t, `el tamaño de ${id}`);
-  eq(A.INICIALES_ALDEA.length, 9, 'nueve edificios al empezar');
+  eq(A.INICIALES_ALDEA.length, 11, 'once edificios al empezar (con el almacén y la casa de té del valle)');
   eq(A.LOTES_ALDEA.length, 11, 'un lote por poblador');
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id];
@@ -185,6 +185,17 @@ function distRiel(x, z) {
       for (const [k, q] of Object.entries(pts)) ok(A.dentroDePlanta(id, q.x, q.z, 0.2), `plaza: ${k} adentro`);
       continue;
     }
+    if (e.estructura) {
+      // 3.6: el almacén y la casa de té: todo dentro de su planta real; lo de adentro, dentro del cuerpo
+      const s = e.estructura, c = Math.cos(e.rot), sn = Math.sin(e.rot);
+      const enCuerpo = (q, m) => { const dx = q.x - e.x, dz = q.z - e.z; const bx = dx * c - dz * sn, bz = dx * sn + dz * c - s.dz; return Math.abs(bx) <= s.ancho / 2 - m && Math.abs(bz) <= s.fondo / 2 - m; };
+      for (const [k, q] of Object.entries(pts)) {
+        ok(A.dentroDePlanta(id, q.x, q.z, 0.2), `${id}.${k} dentro de la planta`);
+        if (/^(adentro|mostrador|cliente-\d+|reponer|deposito|cocina|cama)$/.test(k) && !(id === 'casa-te' && /^(adentro|mostrador)$/.test(k))) ok(enCuerpo(q, 0.3), `${id}.${k} adentro del local`);
+        else ok(!enCuerpo(q, -0.2), `${id}.${k} afuera del cuerpo`);
+      }
+      continue;
+    }
     for (const k of ['puerta', 'adentro', 'trabajo']) ok(!!pts[k], `${id}: tiene ${k}`);
     if (e.rol !== 'biblioteca') ok(!!pts.cama || e.rol === 'almacen', `${id}: tiene cama`);
     for (const [k, q] of Object.entries(pts)) {
@@ -204,6 +215,36 @@ function distRiel(x, z) {
     if (A.esLote(id)) ok(['obra-1', 'obra-2', 'obra-3', 'obra-4'].every((k) => pts[k]), `${id}: lugares para la obra`);
   }
   ok(Object.keys(A.puntosDe('biblioteca')).filter((k) => k.startsWith('lectura-')).length >= 12, 'la biblioteca con mesas de lectura');
+  // 3.6: el almacén y la casa de té, armados con el código de estructuras.js en el sitio dado:
+  // sus puntos caen donde ese código pone el mostrador, la puerta y las sillas
+  {
+    const est = leer('src/estructuras.js'), mainJs = leer('src/main.js');
+    for (const linea of ['const W = 7.5, D = 5.5, H = 2.9;', 'const rot = Math.atan2(p.x - sitio.x, p.z - sitio.z) + Math.PI;', "caja(c, [0, 0.42, -D / 2 - 1.3], [W + 0.6, 0.16, 2.2], TABLA);",
+      'const zPasosAlmacen = [-D / 2 - 2.78, -D / 2 - 2.38];', 'const mostrador = w(0, 0.3); // centro real del mostrador dibujado', 'const detras = w(0, 1.3);', 'const puerta = w(0, -D / 2 - 3);', 'const cc = w(-4.6, -D / 2 - 3.4);',
+      'const W = 6.4, D = 5.2, H = 2.7;', 'const rot = Math.atan2(p.x - sitio.x, p.z - sitio.z);', 'const mostrador = w(0, D / 2 + 1.5);', 'const puertaTe = w(0, D / 2 + 3.1);', 'const lzAccesoTe = D / 2 + 3.0;',
+      'const cc = w(-3.4, D / 2 + 4.4);', 'const CHIM_TE = { x: -W / 2 - 0.3, z: -1.2 };', "caja(t2, [0, 0, 0], [W + 1.2, 0.12, 3.0], '#5a4a3e', 0, 4);"]) ok(est.includes(linea), `estructuras.js sigue armando igual: ${linea}`);
+    ok(mainJs.includes('if (d >= 3.2) return false;') && mainJs.includes('return Math.hypot(js.pos.x - c.mostrador.x, js.pos.z - c.mostrador.z) < 4.5;'), 'el mostrador y la galería, como los mide main.js');
+    const enSitio = (s, lx, lz) => ({ x: s.x + lx * Math.cos(s.rot) + lz * Math.sin(s.rot), z: s.z - lx * Math.sin(s.rot) + lz * Math.cos(s.rot) });
+    const cerca = (a, b, m) => Math.hypot(a.x - b.x, a.z - b.z) < 1e-6 || ok(false, m);
+    const sa = A.sitioEstructura('almacen'), pa = A.puntosMundo('almacen');
+    ok(sa.id === 'almacen' && sa.ancho === 7.5 && sa.fondo === 5.5, 'el almacén de estructuras.js');
+    cerca(enSitio(sa, 0, 0.3), pa.mostrador, 'el mostrador del almacén'); n++;
+    cerca(enSitio(sa, 0, 1.3), pa.adentro, 'Ercilia detrás del mostrador'); n++;
+    cerca(enSitio(sa, 0, -5.5 / 2 - 3), pa.puerta, 'la puerta del almacén'); n++;
+    for (const k of ['cliente-1', 'cliente-2', 'cliente-3']) ok(Math.hypot(pa[k].x - pa.mostrador.x, pa[k].z - pa.mostrador.z) < 3.2, `${k}: al alcance del mostrador`);
+    const st = A.sitioEstructura('casa-te'), pt = A.puntosMundo('casa-te');
+    ok(st.id === 'casa-te' && st.ancho === 6.4 && st.fondo === 5.2, 'la casa de té de estructuras.js');
+    cerca(enSitio(st, 0, 5.2 / 2 + 1.5), pt.mostrador, 'el mostrador de la galería'); n++;
+    cerca(enSitio(st, 0, 5.2 / 2 + 3.1), pt.puerta, 'la puerta de la casa de té'); n++;
+    cerca(enSitio(st, -1.9 - 0.51, 5.2 / 2 + 1.4), pt['mesa-1'], 'la silla de la mesa de la izquierda (un sentadero)'); n++;
+    cerca(enSitio(st, 1.9 + 0.51, 5.2 / 2 + 1.4), pt['mesa-4'], 'la de la derecha'); n++;
+    ok(Math.hypot(pt.adentro.x - pt.mostrador.x, pt.adentro.z - pt.mostrador.z) < 4.5, 'la galesa sirve donde main.js atiende');
+    // lo que arma cada código cabe en su planta: cartel, escalones, vereda, alero, galería y chimenea
+    for (const [id, s, lista] of [['almacen', sa, [[-4.6, -6.15], [0, -5.805], [4.35, -5.35], [-4.35, 3.33], [4.27, 0]]], ['casa-te', st, [[-3.4, 7.0], [0, 5.92], [3.8, 5.6], [-3.91, -1.2], [3.75, -3.28]]]]) {
+      for (const [lx, lz] of lista) { const q = marco.aLocal(enSitio(s, lx, lz).x, enSitio(s, lx, lz).z); ok(A.dentroDePlanta(id, q.lx, q.lz, -1e-6), `${id}: (${lx}, ${lz}) adentro de la planta`); }
+    }
+    ok(A.sitioEstructura('capilla') === null && A.sitioEstructura('biblioteca') === null, 'los demás no vienen del valle');
+  }
   ok(A.puntosDe('biblioteca').cuentos && !A.puntosDe('biblioteca').campana, 'y el sillón de los cuentos');
   ok(Object.keys(A.puntosDe('escuela')).filter((k) => k.startsWith('pupitre-')).length >= 6, 'la escuela con pupitres');
   ok(Object.keys(A.puntosDe('salon')).filter((k) => k.startsWith('lugar-')).length >= 8 && A.puntosDe('salon').escenario, 'el salón con escenario y sillas');
@@ -217,7 +258,11 @@ function distRiel(x, z) {
 
 // ============================================================ 4. la gente
 {
-  eq(A.ORDEN_VECINOS_ALDEA.length, 7, 'jefe, almacenera, abuela y la familia con dos chicos');
+  eq(A.ORDEN_VECINOS_ALDEA.length, 8, 'jefe, Nélida, abuela, la familia con dos chicos y la galesa');
+  ok(A.esVecinoAldea('ercilia') && A.esPersonaAldea('ercilia') && A.personaAldea('ercilia').casa === 'casa-ercilia' && !Object.hasOwn(A.VECINOS_ALDEA, 'ercilia'), 'Ercilia vive en la aldea, pero se define en gente.js');
+  ok(A.ORDEN_PERSONAS_ALDEA.includes('ercilia') && !leer('src/aldea.js').includes('Pasá, pasá. Si traés algo'), 'sin duplicar su saludo ni sus historias');
+  ok(A.VECINOS_ALDEA.nelida.oficio === 'ayudante del almacén' && A.VECINOS_ALDEA.nelida.casa === 'casa-nelida', 'Nélida, la ayudante');
+  ok(A.VECINOS_ALDEA.galesa.casa === 'casa-te' && A.VECINOS_ALDEA.galesa.charla.length >= 2, 'la galesa de la casa de té');
   eq(A.ORDEN_POBLADORES_ALDEA.length, 11, 'once pobladores');
   eq(new Set(A.ORDEN_POBLADORES_ALDEA).size, 11);
   eq(A.ORDEN_POBLADORES_ALDEA.slice(0, 5), P.ORDEN_POBLADORES, 'primero los de la 3.1');
@@ -309,7 +354,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   eq(A.estadoEdificio(a, 'escuela'), 'a-medio', 'la escuela, a medio hacer');
   eq(A.etapaDe(a, 'escuela').hechas, 2);
   eq(A.estadoEdificio(a, 'biblioteca'), 'abierto');
-  ok(A.localAbierto(a, 'almacen-aldea') && !A.localAbierto(a, 'escuela') && !A.localAbierto(a, 'nada'), 'los iniciales abren desde el día 1 (menos la escuela)');
+  ok(A.localAbierto(a, 'almacen') && A.localAbierto(a, 'casa-te') && !A.localAbierto(a, 'escuela') && !A.localAbierto(a, 'nada'), 'los iniciales abren desde el día 1 (menos la escuela)');
   eq(A.aportar(a, 'panaderia', { tronco: 9 }, 3), { usados: {}, faltan: {}, completa: false }, 'sin obra no se aporta');
   A.empezarLlegada(a, 'panadera', 3);
   A.aceptar(a, 3);
@@ -480,7 +525,8 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   eq(sillas.size, oyen.length, 'nadie se sienta encima de otro');
   ok(oyen.length >= (gente.length - 1) * 0.75 && oyen.length < gente.length - 1, `van casi todos (${oyen.length} de ${gente.length - 1})`);
   ok(['nene', 'nena'].every((k) => oyen.includes(k)), 'los chicos no se lo pierden');
-  ok(A.rutinaAldea('jefe', 10.5, DOMINGO, llena).lugar === 'plaza' && A.rutinaAldea('almacenera', 10.5, DOMINGO, llena).edificio === 'almacen-aldea', 'el jefe en la plaza y la almacenera en el almacén');
+  ok(A.rutinaAldea('jefe', 10.5, DOMINGO, llena).lugar === 'plaza' && A.rutinaAldea('nelida', 10.5, DOMINGO, llena).edificio === 'almacen', 'el jefe en la plaza y Nélida en el almacén');
+  ok(A.rutinaAldea('ercilia', 10.5, DOMINGO, llena).lugar === 'biblioteca', 'Ercilia también va a los cuentos');
   ok(A.rutinaAldea('padre', 10.5, LUNES, llena).lugar !== 'biblioteca', 'el lunes no');
   ok(A.rutinaAldea('abuela', 10, LUNES, llena).edificio === 'biblioteca', 'a la mañana la abuela atiende la biblioteca');
   // sábado a la tarde, música en la plaza (si llegó el músico)
@@ -497,7 +543,11 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
     ok(A.rutinaAldea(k, 15.5, LUNES, llena).lugar === 'plaza', `${k}: juega en la plaza`);
   }
   ok(A.rutinaAldea('maestra', 10, LUNES, llena).edificio === 'escuela', 'la maestra, en la escuela');
-  ok(A.rutinaAldea('almacenera', 10, LUNES, llena).edificio === 'almacen-aldea' && A.rutinaAldea('jefe', 10, LUNES, llena).edificio === 'estacion-aldea', 'cada uno con lo suyo');
+  ok(A.rutinaAldea('ercilia', 10, LUNES, llena).edificio === 'almacen' && A.rutinaAldea('ercilia', 10, LUNES, llena).punto === 'adentro' && A.rutinaAldea('jefe', 10, LUNES, llena).edificio === 'estacion-aldea', 'cada uno con lo suyo');
+  ok(A.rutinaAldea('ercilia', 14.5, LUNES, llena).edificio === 'casa-ercilia' && A.rutinaAldea('nelida', 14.5, LUNES, llena).punto === 'adentro', 'Ercilia duerme la siesta y Nélida atiende');
+  ok(A.rutinaAldea('nelida', 8.5, LUNES, llena).punto === 'vereda' || A.rutinaAldea('nelida', 8.7, LUNES, llena).punto === 'vereda', 'Nélida barre la vereda');
+  ok(A.rutinaAldea('galesa', 16, LUNES, llena).edificio === 'casa-te' && A.rutinaAldea('galesa', 16, LUNES, llena).punto === 'adentro' && A.rutinaAldea('galesa', 2, LUNES, llena).edificio === 'casa-te', 'la galesa atiende el té de 15 a 20 y vive en la casa de té');
+  ok(A.rutinaAldea('galesa', 11, LUNES, llena).punto !== 'adentro', 'a la mañana no hay té');
   ok(A.rutinaAldea('herrero', 15, LUNES, llena).lugar === 'trabajo' && A.rutinaAldea('herrero', 10, LUNES, llena).lugar === 'local', 'el herrero: a la mañana adentro, a la tarde en la fragua');
   ok(A.rutinaAldea('panadera', 13, LUNES, llena).lugar === 'casa', 'el almuerzo, en casa');
   // con una obra abierta, los vecinos van a la obra de día
@@ -525,7 +575,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
     ok(quienes.size >= 2 && quienes.size <= 3 && [...quienes].every(A.esPersonaAldea) && c.lineas.every(([, t]) => typeof t === 'string' && t.length > 5 && t.length < 160), `${c.id}: un par o un trío con líneas cortas`);
   }
   eq(new Set(A.CHARLAS_ALDEA.map((c) => c.id)).size, A.CHARLAS_ALDEA.length, 'ids distintos');
-  for (const tema of ['clima', 'obra', 'estacion', 'leyenda']) ok(A.CHARLAS_ALDEA.some((c) => c.tema === tema), `hay charlas de ${tema}`);
+  for (const tema of ['clima', 'obra', 'estacion', 'leyenda', 'almacen', 'te']) ok(A.CHARLAS_ALDEA.some((c) => c.tema === tema), `hay charlas de ${tema}`);
   const vacia = A.aldeaNueva();
   const c1 = A.elegirCharla({ aldea: vacia, hora: 15, clima: 'lluvia', semilla: 42 });
   eq(A.elegirCharla({ aldea: vacia, hora: 15, clima: 'lluvia', semilla: 42 }), c1, 'la misma semilla, la misma charla');
