@@ -143,3 +143,27 @@ todo (la aldea y su crecimiento).
 - Hay que revisar todo lo que daba por hecho el almacén en el valle: visitas a tu mesa,
   eventos de Ercilia ("ir al pueblo"), encargos, cartas, la historia, las pistas del cuaderno y
   el nombre de la parada "Apeadero de la Casa de Té" con su comercio guardado.
+
+## 13. Vecinos con más vida, "tipo Sims sin exagerar" (usuario, 03-10)
+Cada uno sigue cumpliendo su función (abre su local en hora), pero alrededor tiene vida propia.
+- **Autonomía**: fuera del trabajo cada vecino elige qué hacer según sus ganas y su forma de
+  ser (té, plaza, visitar a un amigo, compras en el almacén, leña, regar), sin barritas a la
+  vista. Reaccionan al clima (galería con lluvia, palear nieve, plaza en días lindos). Tienen
+  amistades entre ellos, que guían quién visita a quién y quién charla con quién.
+- **Interacción** al hablarle (elegido por el usuario: las cuatro):
+  1. Charlar de varios temas: cómo anda, novedades (fauna vista, lo que pasó en la aldea),
+     su historia.
+  2. Regalarle algo: cada uno tiene gustos y lo que le gusta suma amistad.
+  3. Invitarlo a tomar algo: mate en tu mesa o té en la casa de té; camina con vos, se sienta
+     y charla.
+  4. Ayudarlo en su tarea: una ayuda chica de su oficio que suma amistad.
+- **Amistad sutil**: tres niveles (conocido, amigo, compadre) que se ven en el cuaderno, sin
+  barras ni números. Con más amistad te saludan por tu nombre, te cuentan su historia
+  completa, te visitan en el refugio y a veces te dejan un regalo.
+- **Memoria**: comentan lo que hacés ("vi que pescaste una trucha enorme", "gracias por las
+  tablas de la obra"), el último regalo y tu ayuda en las obras.
+- Vale para todos los vecinos del Relax (los de la aldea, los pobladores y los de siempre:
+  Ramón, Nicanor, Ema, Ercilia, Elsa); la autonomía completa es de la gente de la aldea, y los
+  del valle mantienen su lugar.
+- Se hace en dos partes: el módulo puro `src/vecindad.js` (ganas, gustos, amistad, memoria,
+  temas) ya, en paralelo, y la conexión con el juego después de la fase de gente.
