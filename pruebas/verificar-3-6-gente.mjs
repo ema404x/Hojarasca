@@ -372,7 +372,7 @@ function mundo(p) {
   ok(gente.includes("d < (g.soloCerca || 130)") && gente.includes('if (g.camino && !charlando && !cerquita) {'), 'gente.js: con horario y adentro sólo de cerca');
   for (const k of [...A.ORDEN_VECINOS_ALDEA.map((x) => `aldea-${x}`), ...A.ORDEN_POBLADORES_ALDEA.map((x) => `poblador-${x}`)]) ok(gente.includes(`'${k}': {`), `gente.js: la ropa de ${k}`);
   const tro = leer('src/trochita.js');
-  ok(tro.includes('const deLaAldea = !!opciones.aldea && sitio.i === opciones.aldea.indice;') && tro.includes('usados.add(nombre);\n    // 3.6'), 'trochita.js: las demás paradas se siguen llamando igual');
+  ok(tro.includes('const deLaAldea = !!opciones.aldea && sitio.i === opciones.aldea.indice;') && tro.includes('usados.add(nombre);'), 'trochita.js: las demás paradas se siguen llamando igual');
   // el comercio: el perfil de la aldea y lo guardado con el nombre viejo
   ok(C.perfilDe('Aldea de los Duendes').quien.includes('jefe de estación'), 'el puesto de cargas de la aldea tiene quién lo atienda');
   ok(C.bienesDe('Aldea de los Duendes').length >= 4, 'y qué vender');

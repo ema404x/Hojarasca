@@ -13,7 +13,8 @@ const rc = nivelRc(pkg.version);
 assert.ok(rc >= 3, `se esperaba RC3 o posterior y llegó ${pkg.version}`);
 assert.match(estructuras,/const faldaCimientoTerreno/);
 assert.match(estructuras,/const rot = Math\.atan2\(p\.x - sitio\.x, p\.z - sitio\.z\) \+ Math\.PI;/);
-assert.match(estructuras,/lejosDe: \[L\.refugio, L\.cabana, L\.puesto, molino, casaTe, torre, almacen\]/);
+// (3.6: con la aldea, el galpón se aleja de donde el sorteo dejaba la casa de té y el almacén)
+assert.match(estructuras,/lejosDe: \[L\.refugio, L\.cabana, L\.puesto, molino, casaTe(Sorteo)?, torre, almacen(Sorteo)?\]/);
 assert.match(estructuras,/const candidatoFaro/);
 assert.match(estructuras,/if \(!mejor\) \{/);
 assert.match(estructuras,/const y0 = \(mejor\.sueloMax \?\? mejor\.y\) \+ 0\.10/);
