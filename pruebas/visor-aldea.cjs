@@ -59,7 +59,7 @@ window.__V = (() => {
   // el material de la aldea (con el detalle de superficie) y uno pelado, para medir lo que cuesta
   const matAldea = A.prepararMaterialAldea(MV.materialVegetal({ flex: 0 }));
   const matPlano = MV.materialVegetal({ flex: 0 });
-  const mats = { estructura: matAldea, follaje: MV.materialVegetal({ flex: 1 }), vidrio, carteles: new THREE.MeshLambertMaterial({ map: atlas }) };
+  const mats = { estructura: matAldea, follaje: A.prepararFollajeAldea(MV.materialVegetal({ flex: 1, copa: true }), { cartas: __mod_vegetacion.texturaCartas() }), vidrio, carteles: new THREE.MeshLambertMaterial({ map: atlas }) };
   function detalle(si) { mats.estructura = si ? matAldea : matPlano; grupo.traverse((o) => { if (o.isMesh && (o.material === matAldea || o.material === matPlano)) o.material = mats.estructura; }); }
   // ms por cuadro (con gl.finish: incluye la placa), n cuadros
   // (soloAldea: sólo los edificios, con una luz de sol y otra de cielo: lo que cambia es el shader)
@@ -176,6 +176,9 @@ const etapas = [0, 1, 2, 3, 4].map((e, i) => ({ id: 'panaderia', etapa: e, x: -2
 const TOMAS = {
   plaza: { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [4, 7.5, 12.5], a: [0, 0, 0.5], hora: 18.6 },
   'plaza-baja': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [3.2, 1.7, 6.2], a: [0, 2.3, 0], hora: 18.8 },
+  'plaza-arriba': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [0, 21, 13], a: [0, 0, 0.6], hora: 13 },
+  'plaza-jugador': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [-6.5, 1.7, 10.5], a: [0, 1.3, 0], hora: 11 },
+  'duende-10m': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [0.5, 1.7, 10], a: [0, 1.3, 0], hora: 11 },
   biblioteca: { arma: [{ id: 'biblioteca', x: 0, z: 0 }, { id: 'escuela', x: 11, z: 0 }], ojo: [-6, 2.0, 15], a: [3, 2.0, 3], hora: 10 },
   casas: { arma: casas, ojo: [-19, 2.0, 9.5], a: [-6, 1.8, 3.5], hora: 9 },
   'casas-frente': { arma: casas, ojo: [-2.5, 4.0, 17], a: [-2.5, 1.5, 0], hora: 11 },
@@ -202,6 +205,9 @@ const TOMAS = {
     { acc: 'lena', x: -6, z: 4 }, { acc: 'tendedero', x: 7, z: 5 }, { acc: 'poste-luz', x: 10, z: 2 }, { acc: 'vereda', x: 0, z: 6, op: { largo: 10 } }, { acc: 'mastil', x: -10, z: 2 }],
   ojo: [0, 2.0, 17], a: [0, 4, 0], hora: 17 },
 };
+// (las mismas, en otoño: el uniforme del otoño clavado en 1 mientras dura la foto)
+TOMAS['alamos-otono'] = { ...TOMAS.alamos, otono: true };
+TOMAS['alamo-cerca'] = { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [-5.2, 1.7, 6.2], a: [-8.1, 6.5, 2.6], hora: 11 };
 
 app.whenReady().then(async () => {
   fs.mkdirSync(salida, { recursive: true });
@@ -231,6 +237,7 @@ app.whenReady().then(async () => {
     const t = TOMAS[nombre];
     const res = await js(`JSON.stringify(window.__V.poner(${JSON.stringify(t.arma)}))`);
     await js(`(() => { const V = window.__V; V.sinLuces(); ${t.luz === 'spec' ? 'V.lucesSpec();' : (t.luz || []).map((l) => `V.luzEn(${l.join(',')});`).join(' ')} V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); return 1; })()`);
+    if (t.otono) await js(`(() => { Object.defineProperty(__mod_materiales.U.uOtono, 'value', { get: () => 1, set() {}, configurable: true }); return 1; })()`);
     await esperar(3500);
     await js(`(() => { const V = window.__V; V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); V.remarcar(); return 1; })()`);
     await esperar(2500);
@@ -239,6 +246,7 @@ app.whenReady().then(async () => {
     const img = await w.webContents.capturePage();
     await js(`(() => { const cam = window.__hojarasca.camara; for (const k of window.__hijosCam || []) cam.add(k); return 1; })()`);
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
+    if (t.otono) await js(`(() => { delete __mod_materiales.U.uOtono.value; __mod_materiales.U.uOtono.value = 0; return 1; })()`);
     const info = await js(`JSON.stringify({ dibujos: window.__hojarasca.renderer.info.render.calls, tri: window.__hojarasca.renderer.info.render.triangles })`);
     const donde = await js(`JSON.stringify({ B: window.__V.B, Y0: window.__V.Y0, pos: window.__hojarasca.jugador.estado.pos, cam: window.__hojarasca.camara.position, pausa: document.pointerLockElement === null, grupo: window.__hojarasca.escena.children.length, tex: (() => { const x = __mod_materiales.U.uEstepa.value; const d = x?.image?.data; if (!d) return 'sin'; const B = window.__V.B; const i = Math.floor((B.x + 512) / 2), j = Math.floor((B.z + 512) / 2); return [x.image.width, d.length, d[(j * x.image.width + i) * 4 + 2]]; })() })`);
     informe.push(`${nombre}: ${res} ${info} ${donde}`);
