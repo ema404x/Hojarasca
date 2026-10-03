@@ -1,9 +1,11 @@
 // 3.1: los oficios en el juego (las reglas están en oficios.js): suma la experiencia de
 // lo que hacés, avisa cuando subís de nivel, lleva la cuenta de lo remado y dibuja la
-// pestaña «Oficios y pueblo» del cuaderno. Sin three: sólo el DOM del cuaderno.
+// pestaña «Oficios y aldea» del cuaderno (3.6: la ficha de la Aldea de los Duendes la dibuja
+// aldea-gente.js). Sin three: sólo el DOM del cuaderno.
 import {
   ORDEN_OFICIOS, OFICIOS, XP, METROS_REMO, sanearOficios, sumarXp, nivelOficio, estadoOficio, rangoGeneral, acreditarOficios, esOficio,
 } from './oficios.js';
+import { ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, NOMBRE_ALDEA } from './aldea.js';
 
 export function crearOficiosUI(ctx) {
   let elegido = null;
@@ -52,19 +54,21 @@ export function crearOficiosUI(ctx) {
   }
 
   // ---------------------------------------------------------------- el cuaderno
-  function dibujarCuaderno(lista, ficha, el, pueblo = null) {
+  function dibujarCuaderno(lista, ficha, el, aldea = null) {
     const of = oficios();
     const r = rangoGeneral(of);
     lista.appendChild(el('p', 'progreso', `Tu rango: ${r.titulo}`));
     const ul = el('ul', 'lista');
-    const ids = [...ORDEN_OFICIOS, ...(pueblo ? ['pueblo'] : [])];
+    const ids = [...ORDEN_OFICIOS, ...(aldea ? ['aldea'] : [])];
     if (!ids.includes(elegido)) elegido = r.id || ORDEN_OFICIOS[0];
     for (const id of ids) {
       const b = el('button');
-      if (id === 'pueblo') {
-        const pb = ctx.progreso().pueblo;
-        b.appendChild(el('span', pb?.pobladores?.length ? '' : 'pendiente', pb?.nombre || 'Tu pueblo'));
-        if (pb?.pobladores?.length) b.appendChild(el('span', 'marca', `${pb.pobladores.length} ${pb.pobladores.length === 1 ? 'vecino' : 'vecinos'}`));
+      if (id === 'aldea') {
+        // 3.6: la Aldea de los Duendes: los vecinos de siempre (con Ercilia) y los que se quedaron
+        const a = ctx.progreso().aldea;
+        const n = ORDEN_VECINOS_ALDEA.length + Object.keys(VECINOS_DEL_VALLE).length + (a?.pobladores?.length || 0);
+        b.appendChild(el('span', a?.descubierta ? '' : 'pendiente', NOMBRE_ALDEA));
+        b.appendChild(el('span', 'marca', `${n} vecinos`));
       } else {
         const e = estadoOficio(of, id);
         b.appendChild(el('span', e.nivel ? '' : 'pendiente', e.nivel ? e.titulo : OFICIOS[id].nombre));
@@ -77,7 +81,7 @@ export function crearOficiosUI(ctx) {
     }
     lista.appendChild(ul);
 
-    if (elegido === 'pueblo' && pueblo) { pueblo.dibujarCuaderno(ficha, el); return; }
+    if (elegido === 'aldea' && aldea) { aldea.dibujarCuaderno(ficha, el); return; }
     const e = estadoOficio(of, elegido);
     ficha.appendChild(el('h2', '', e.nivel ? e.titulo : e.nombre));
     ficha.appendChild(el('p', 'anotado', `${e.nombre} · nivel ${e.nivel} de 5 · ${e.xp} de experiencia`));

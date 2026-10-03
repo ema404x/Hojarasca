@@ -1,25 +1,23 @@
-// 3.1 "Modos y progreso": rangos y oficios, y fundar un pueblo.
+// 3.1 "Modos y progreso": rangos y oficios.
 //  · oficios.js: los niveles, la experiencia, cada habilidad (chica y de verdad), lo que
 //    sobra de las obras y rinde la huerta con arrastre de fracciones, el crédito de una
 //    partida vieja (una sola vez y con tope) y el saneo;
-//  · pueblo.js: cuándo llega alguien, aceptarlo y darle la casa, el nombre y el cartel,
-//    la rutina, lo que ofrece cada uno, los avisos para la historia y el saneo. Y lo que
-//    NO hay: nadie consume, pasa hambre ni se va;
-//  · guardado.js: una partida vieja carga sin oficios ni pueblo, y todo vuelve igual;
-//  · main.js, gente.js, pesca.js, kayak.js y desafio.js: los enganches.
+//  · guardado.js: una partida vieja carga sin oficios, y todo vuelve igual;
+//  · main.js, pesca.js, kayak.js y desafio.js: los enganches.
+// 3.6: era verificar-3-1-pueblo.mjs. El "fundar un pueblo" de la 3.1 se sacó (la gente llega
+// ahora a la Aldea de los Duendes): sus pruebas están en verificar-3-6-aldea.mjs (el núcleo) y
+// verificar-3-6-gente.mjs (la gente, las obras y los enganches).
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import * as O from '../src/oficios.js';
-import * as P from '../src/pueblo.js';
 // 3.6: el progreso ya no guarda `pueblo`: guarda la aldea (ver verificar-3-6-aldea.mjs)
 import * as A from '../src/aldea.js';
-import { ENTRADAS } from '../src/cuaderno.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
 // ============================================================ 1. los oficios
 {
-  for (const m of [O, P]) for (const k of Object.keys(m)) assert.ok(!/ñ/.test(k), `export sin eñe: ${k}`);
+  for (const k of Object.keys(O)) assert.ok(!/ñ/.test(k), `export sin eñe: ${k}`);
   assert.deepEqual(O.ORDEN_OFICIOS, ['hachero', 'pescador', 'cazador', 'obrero', 'huertero', 'navegante']);
   assert.ok(!O.esOficio('constructor') && !O.esOficio('__proto__') && !O.esOficio('toString') && !O.esOficio(undefined), 'nada heredado es un oficio');
   for (const id of O.ORDEN_OFICIOS) {
@@ -119,137 +117,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   assert.deepEqual(O.sanearOficios(JSON.parse(JSON.stringify(of))).xp, of.xp, 'lo guardado vuelve igual');
 }
 
-// ============================================================ 2. el pueblo
-{
-  const dia = 10;
-  const entradas = Object.fromEntries(ENTRADAS.slice(0, 12).map((e) => [e.id, { dia: 1, hora: 9, cantidad: 0 }]));
-  const partida = () => ({ modo: 'relax', dia, horas: 10, entradas: { ...entradas }, materiales: { tronco: 9 }, cosas: { yerba: 5 }, pueblo: P.puebloNuevo(), personal: {} });
-  const casa = (id, x = 10, z = 20) => ({ id: P.claveCasa('puesto', x, z), plano: 'puesto', nombre: id, x, z, rot: 0 });
-  assert.equal(P.claveCasa('puesto', 10.04, -3), 'puesto@10.0,-3.0');
-
-  // cuándo puede llegar alguien
-  let p = partida();
-  let r = P.puedeLlegarPoblador(p, 1);
-  assert.ok(r.ok, `con casa y el valle anotado llega alguien (${r.motivo})`);
-  assert.equal(r.quien, 'carpintero', 'el primero es el carpintero');
-  assert.ok(!P.puedeLlegarPoblador(p, 0).ok && /casa/.test(P.puedeLlegarPoblador(p, 0).motivo), 'sin casa libre no llega nadie');
-  assert.ok(!P.puedeLlegarPoblador({ ...p, modo: 'desafio' }, 1).ok, 'en el Desafío no');
-  assert.ok(!P.puedeLlegarPoblador(null).ok);
-  const pocas = { ...p, entradas: {} };
-  r = P.puedeLlegarPoblador(pocas, 1);
-  assert.ok(!r.ok && r.faltan === 12, 'con el valle sin anotar todavía no');
-  assert.ok(P.llamarPoblador(pocas.pueblo) && P.puedeLlegarPoblador(pocas, 1).ok, 'la historia puede llamar al próximo');
-  const sinVecinos = { ...partida(), personal: { partida: { actual: { vecinos: false } } } };
-  // (la receta de la partida decide si hay vecinos; con los de fábrica sí hay)
-  assert.equal(typeof P.puedeLlegarPoblador(sinVecinos, 1).ok, 'boolean');
-
-  // los avisos para la historia
-  const avisos = [];
-  const dejar = P.escucharPueblo((a) => avisos.push(a.tipo));
-  P.escucharPueblo(() => { throw new Error('un oyente roto'); });
-  // llega, se acepta y se queda
-  p = partida();
-  assert.ok(P.empezarLlegada(p.pueblo, 'carpintero', dia));
-  assert.equal(P.empezarLlegada(p.pueblo, 'panadera', dia), null, 'de a uno');
-  assert.ok(!P.puedeLlegarPoblador(p, 3).ok, 'con alguien esperando no llega otro');
-  const c1 = casa('el puesto');
-  const nuevo = P.aceptarPoblador(p.pueblo, c1, dia);
-  assert.ok(nuevo && nuevo.clave === 'carpintero' && nuevo.casa.id === c1.id);
-  assert.equal(p.pueblo.llegando, null);
-  assert.equal(P.aceptarPoblador(p.pueblo, casa('otra', 50, 50), dia), null, 'sin nadie esperando no hay a quién aceptar');
-  assert.deepEqual(P.casasLibres([c1, casa('b', 40, 40)], p.pueblo).map((c) => c.nombre), ['b'], 'la casa dada ya no está libre');
-  assert.deepEqual(P.casasLibres([{ ...casa('movida', 11.5, 21), id: 'casilla@11.5,21.0' }], p.pueblo), [], 'una casa movida un poco (otra clave) sigue siendo de su dueño');
-  assert.ok(!P.puedeLlegarPoblador(p, 1).ok, 'el próximo no llega enseguida');
-  assert.ok(!P.puedeLlegarPoblador({ ...p, dia: dia + 2 }, 1).ok, 'y pide más anotaciones');
-  const conMas = { ...p, dia: dia + 2, entradas: Object.fromEntries(ENTRADAS.slice(0, 18).map((e) => [e.id, { dia: 1 }])) };
-  r = P.puedeLlegarPoblador(conMas, 1);
-  assert.ok(r.ok && r.quien === 'panadera', 'después, la panadera');
-  P.empezarLlegada(p.pueblo, 'panadera', dia);
-  assert.equal(P.aceptarPoblador(p.pueblo, c1, dia), null, 'no se le da una casa ocupada');
-  assert.deepEqual(avisos, ['llego', 'asentado', 'llego'], 'la historia se entera de todo (y un oyente roto no frena nada)');
-  dejar();
-
-  // el nombre y el cartel
-  assert.ok(!P.nombrarPueblo(P.puebloNuevo(), 'Sin gente'), 'sin pobladores no hay pueblo que nombrar');
-  assert.ok(!P.nombrarPueblo(p.pueblo, '   '));
-  assert.ok(P.nombrarPueblo(p.pueblo, '  Villa   <b>Lenga</b>\u0007 del Sur, un nombre larguísimo ', { x: 1, z: 2, rot: 0.5 }));
-  assert.equal(p.pueblo.nombre, 'Villa bLenga/b del Sur, un n');
-  assert.deepEqual(p.pueblo.cartel, { x: 1, z: 2, rot: 0.5 });
-  const lugar = P.lugarDelCartel([{ x: 0, z: 0 }, { x: 10, z: 0 }], { x: 5, z: 100 });
-  assert.ok(Math.abs(lugar.x - 5) < 1e-9 && Math.abs(lugar.z - 9) < 1e-9, 'a la entrada, del lado de la estación');
-  assert.equal(P.lugarDelCartel([]), null);
-
-  // la rutina
-  assert.deepEqual([3, 6.9, 7, 11, 12.5, 15, 19.5, 22, 23.9].map(P.rutinaPoblador), ['adentro', 'adentro', 'trabajo', 'trabajo', 'plaza', 'trabajo', 'puerta', 'adentro', 'adentro']);
-  assert.equal(P.rutinaPoblador(-1), 'adentro');
-
-  // lo que ofrece cada uno
-  const q = partida();
-  q.pueblo.pobladores = P.ORDEN_POBLADORES.map((k, i) => ({ clave: k, casa: casa(k, i * 10, 0), dia: 1 }));
-  let s = P.servicioDe('carpintero', q, dia);
-  assert.ok(s.efectos && s.seguir, 'el carpintero ofrece aserrar');
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.materiales.tronco, 3); assert.equal(q.materiales.tabla, 30, 'seis troncos, treinta tablas');
-  assert.ok(!P.servicioDe('carpintero', q, dia).efectos, 'una vez por día');
-  assert.ok(P.servicioDe('carpintero', q, dia + 1).efectos, 'al otro día, otra vez');
-  s = P.servicioDe('panadera', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.cosas.yerba, 3); assert.equal(q.entradas['pan-casero'].cantidad, 3);
-  q.cosas.yerba = 1;
-  assert.ok(!P.servicioDe('panadera', q, dia + 1).efectos, 'sin yerba no hay trato');
-  // el herrero: sin hacha, la forja con cantos; después afila
-  assert.ok(!P.servicioDe('herrero', q, dia).efectos, 'sin cantos no forja');
-  q.entradas.canto = { dia: 1, cantidad: 5 };
-  s = P.servicioDe('herrero', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.cosas.hacha, 1); assert.equal(q.entradas.canto.cantidad, 2);
-  s = P.servicioDe('herrero', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.cosas.tijera, 1, 'después la tijera');
-  s = P.servicioDe('herrero', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.pueblo.afilado, P.SERVICIO.filo, 'y afila el hacha');
-  assert.equal(P.golpesConFilo(3, q.pueblo), 2);
-  for (let i = 0; i < P.SERVICIO.filo; i++) assert.ok(P.gastarFilo(q.pueblo));
-  assert.ok(!P.gastarFilo(q.pueblo)); assert.equal(P.golpesConFilo(3, q.pueblo), 3, 'el filo se gasta');
-  // el pescador
-  s = P.servicioDe('pescador', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.materiales.tronco, 1); assert.equal(q.entradas['trucha-fresca'].cantidad, 2);
-  // la maestra: lee el cuaderno, da un mandado y lo premia
-  s = P.servicioDe('maestra', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  const m = q.pueblo.mandado;
-  assert.ok(m && !Object.hasOwn(q.entradas, m.id) && P.pendientesDelCuaderno(entradas).some((x) => x.id === m.id), 'manda a buscar algo que falta');
-  assert.ok(!P.servicioDe('maestra', q, dia).efectos, 'sin anotarlo, sólo recuerda');
-  q.entradas[m.id] = { dia, cantidad: 0 };
-  const yerba = q.cosas.yerba;
-  s = P.servicioDe('maestra', q, dia);
-  P.aplicarEfectos(q, s.efectos, dia);
-  assert.equal(q.cosas.yerba, yerba + P.SERVICIO.yerbaMandado); assert.equal(q.pueblo.mandado, null); assert.equal(q.pueblo.mandados, 1);
-  assert.deepEqual(P.servicioDe('nadie', q, dia), { partes: [] });
-
-  // nadie consume, pasa hambre ni se va: pasan los días y siguen todos
-  for (let d = dia; d < dia + 60; d++) for (const k of P.ORDEN_POBLADORES) { const x = P.servicioDe(k, q, d); if (x.efectos) P.aplicarEfectos(q, x.efectos, d); }
-  assert.equal(q.pueblo.pobladores.length, 5, 'el pueblo sólo crece');
-  for (const k of Object.keys(P)) assert.ok(!/hambre|irse|seVa|consum|necesidad|abandon/i.test(k), `sin economía de necesidades: ${k}`);
-  const fuente = leer('src/pueblo.js') + leer('src/pueblo-mundo.js');
-  assert.ok(!/pobladores\.(splice|pop|shift)|pobladores = pobladores\.filter/.test(fuente), 'ningún poblador se saca de la lista');
-
-  // el saneo
-  const roto = P.sanearPueblo({ nombre: 42, pobladores: [{ clave: 'carpintero', casa: { id: 'a', x: 1, z: 2 } }, { clave: 'carpintero', casa: { id: 'b', x: 1, z: 2 } }, { clave: '__proto__', casa: { id: 'c', x: 0, z: 0 } }, { clave: 'herrero', casa: { x: 'x' } }, null],
-    llegando: { clave: 'carpintero' }, usos: { panadera: 3, toString: 9 }, afilado: 99, mandado: { id: 'no-existe' }, cartel: { x: 5, z: 5 }, ultimaLlegada: -4 });
-  assert.equal(roto.pobladores.length, 1, 'uno por oficio y con casa de verdad');
-  assert.equal(roto.llegando, null, 'el que ya vive no vuelve a llegar');
-  assert.deepEqual(roto.usos, { panadera: 3 });
-  assert.equal(roto.afilado, P.SERVICIO.filo); assert.equal(roto.mandado, null); assert.equal(roto.cartel, null, 'sin nombre no hay cartel'); assert.equal(roto.ultimaLlegada, 0);
-  for (const basura of [null, 3, 'x', [], { pobladores: 'x' }]) assert.deepEqual(P.sanearPueblo(basura), P.puebloNuevo());
-  assert.deepEqual(P.sanearPueblo(JSON.parse(JSON.stringify(q.pueblo))), P.sanearPueblo(q.pueblo), 'lo guardado vuelve igual');
-  assert.equal(P.quienLlega(q.pueblo), null, 'ya vinieron todos');
-  assert.ok(!P.puedeLlegarPoblador(q, 3).ok);
-}
-
-// ============================================================ 3. el guardado
+// ============================================================ 2. el guardado
 {
   const datos = new Map();
   globalThis.localStorage = { getItem: (k) => (datos.has(k) ? datos.get(k) : null), setItem: (k, v) => datos.set(k, String(v)), removeItem: (k) => datos.delete(k) };
@@ -267,7 +135,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   const con = G.progresoNuevo();
   O.sumarXp(con.oficios, 'hachero', 130);
   // 3.6: un pueblo de la 3.1 (sin aldea) se muda a la aldea al cargar
-  delete con.aldea; con.pueblo = P.puebloNuevo();
+  delete con.aldea; con.pueblo = { nombre: '', cartel: null, pobladores: [], llegando: null, ultimaLlegada: 0, llamado: false, usos: {}, afilado: 0, mandado: null, mandados: 0 };
   con.pueblo.pobladores.push({ clave: 'carpintero', casa: { id: 'puesto@1.0,2.0', plano: 'puesto', nombre: 'El Rincón', x: 1, z: 2, rot: 0 }, dia: 3 });
   con.pueblo.nombre = 'Villa Lenga'; con.pueblo.cartel = { x: 4, z: 5, rot: 1 };
   assert.ok(G.guardarProgreso(con));
@@ -283,12 +151,13 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   assert.ok(g.includes('oficios: sanearOficios(p.oficios),') && g.includes('aldea: p.aldea !== undefined ? sanearAldea(p.aldea)'));
 }
 
-// ============================================================ 4. los enganches
+// ============================================================ 3. los enganches
 {
   const main = leer('src/main.js');
-  for (const imp of ["import { crearOficiosUI } from './oficios-ui.js';", "import { crearPuebloMundo } from './pueblo-mundo.js';"]) assert.ok(main.includes(imp), imp);
-  assert.ok(main.includes('armarOficiosYPueblo(esDesafio);'), 'se arman al cargar');
-  assert.ok(main.includes("if (modo === 'jugando') actualizarPueblo(dt);"), 'y se actualizan en el bucle');
+  assert.ok(main.includes("import { crearOficiosUI } from './oficios-ui.js';"));
+  // (3.6: los oficios se arman junto con la aldea, que reemplazó al pueblo)
+  assert.ok(main.includes('armarOficiosYAldea(esDesafio);'), 'se arman al cargar');
+  assert.ok(main.includes("if (modo === 'jugando') actualizarAldea(dt);"), 'y se actualizan en el bucle');
   // cada acción da su experiencia
   for (const [oficio, xp] of [['hachero', 'tala'], ['hachero', 'mata'], ['hachero', 'aserrar'], ['pescador', 'pez'], ['cazador', 'rastro'], ['cazador', 'rastreo'], ['huertero', 'siembra'], ['huertero', 'cosecha']]) {
     assert.ok(main.includes(`ganarOficio('${oficio}', XP.${xp})`), `${oficio} gana con ${xp}`);
@@ -302,28 +171,23 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   assert.ok(main.includes('conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m))') && main.includes('conMateriales((m) => conOficioDeObra(obras.avanzar(nueva, m), m))'), 'lo que sobra en las dos maneras de construir');
   assert.ok(main.includes("radioHuellas(1.8, nivelDe('cazador'))") && main.includes("factorEsperaRastro(nivelDe('cazador'))") && main.includes("pulso: () => factorPulso(nivelDe('cazador'))"));
   assert.ok(main.includes("kayak.est.brazo = factorRemo(nivelDe('navegante'))"));
-  const pesca = leer('src/pesca.js'), kayak = leer('src/kayak.js'), des = leer('src/desafio.js'), gente = leer('src/gente.js');
+  const pesca = leer('src/pesca.js'), kayak = leer('src/kayak.js'), des = leer('src/desafio.js');
   assert.ok(pesca.includes('if (mundo.pique) espera *= mundo.pique;') && pesca.includes('est.t > (mundo.clavar || 1.1)') && pesca.includes('* (mundo.linea || 1)'));
   assert.ok(kayak.includes('est.vel += empuje * dt * 1.6 * (est.brazo || 1);'));
   assert.ok(des.includes("factorTension(seg * (ctx.pulso?.() || 1))") && des.includes('ctx.alAbatir?.(a);'));
-  // el pueblo usa la gente de siempre y la charla de siempre
-  assert.ok(gente.includes('function agregarPoblador(def)') && gente.includes('return { gente, cerca, actualizar, guarda, ubicarGuarda, agregarPoblador };'));
-  assert.ok(main.includes('const dePueblo = npc.poblador && pueblo ? pueblo.charla(npc) : null;'));
-  assert.ok(main.includes('if (charla.historia?.alTerminar && charla.parte === charla.historia.partes.length) charla.historia.alTerminar();'));
-  assert.ok(main.includes("pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y pueblo']);"), 'la pestaña del cuaderno');
+  // (3.6: la aldea en la pestaña de los oficios)
+  assert.ok(main.includes("pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y aldea']);"), 'la pestaña del cuaderno');
   // los módulos puros no importan three ni tocan el DOM
-  for (const f of ['src/oficios.js', 'src/pueblo.js']) {
+  for (const f of ['src/oficios.js']) {
     const t = leer(f);
     assert.ok(!/from 'three'|document\.|window\./.test(t), `${f} es puro`);
   }
   assert.ok(!/from 'three'/.test(leer('src/oficios-ui.js')), 'oficios-ui.js no usa three');
   // armar.mjs: los imports en una línea, sin `export … from`
-  for (const f of ['src/oficios.js', 'src/pueblo.js', 'src/oficios-ui.js', 'src/pueblo-mundo.js']) {
+  for (const f of ['src/oficios.js', 'src/oficios-ui.js']) {
     const t = leer(f);
     assert.ok(!/^export\s+(async\s+function|function\*|\*|.*\sfrom\s)/m.test(t) && !/^import\s+'/m.test(t), `${f}: lo que entiende armar.mjs`);
   }
-  // no es un modo aparte: es parte del Relax
-  assert.ok(!/modo pueblo|modoPueblo/i.test(main + leer('src/pueblo-mundo.js')), 'no hay «modo pueblo»');
 }
 
-console.log('OK 3.1 pueblo: rangos y oficios (6 oficios, 5 niveles, habilidades modestas, crédito de partidas viejas) y fundar un pueblo (5 pobladores, llegada en tren, servicios, nombre y cartel)');
+console.log('OK 3.1 oficios: rangos y oficios (6 oficios, 5 niveles, habilidades modestas, crédito de partidas viejas)');

@@ -8,7 +8,7 @@
 import { EVENTO_VALLE, SEGUIMIENTOS, sanearEventosValle, revisarEventos, forzarEvento, elegirOpcion, seguimientoListo, cerrarSeguimiento, sumarGratitud, faltaPara, nombreCosa, nombreVecinoEvento } from './eventos-valle.js';
 import { mesaPuesta, VISITANTES, VISITA } from './visitas.js';
 import { TRUEQUES } from './trueque.js';
-import { puedeLlegarPoblador, llamarPoblador } from './pueblo.js';
+import { puedeLlegar, llamarProximo, NOMBRE_ALDEA } from './aldea.js';
 
 // lo que el viento puede voltear: piezas chicas y sueltas, que no estén bajo techo
 const LIVIANAS = ['tendal', 'maceton', 'cerco', 'silla-campo', 'banco', 'mesa-campo', 'lena'];
@@ -118,9 +118,13 @@ export function crearEventosValleUi(ctx, tarjetas) {
           break;
         }
         case 'poblador': {
-          // 3.1 (el pueblo): si queda alguien por venir y no hay nadie esperando, viene sin esperar
-          const r = p.pueblo ? puedeLlegarPoblador(p, 1) : null;
-          if (r?.quien && !p.pueblo.llegando && llamarPoblador(p.pueblo)) dichos.push('Alguien quiere venir a vivir al valle: con una casa libre, llega en el próximo tren');
+          // 3.1: si queda alguien por venir y no hay nadie esperando, viene sin esperar. 3.6: a la
+          // Aldea de los Duendes (sólo en el Relax: en el Desafío `puedeLlegar` dice que no)
+          const r = p.aldea ? puedeLlegar(p) : null;
+          if (r?.quien && !p.aldea.llegando && llamarProximo(p.aldea)) {
+            dichos.push(r.obra ? `Alguien quiere venir a vivir a la ${NOMBRE_ALDEA}: baja del tren en cuanto termine la obra de ahora`
+              : `Alguien quiere venir a vivir a la ${NOMBRE_ALDEA}: baja en el próximo tren que pare allá`);
+          }
           break;
         }
         default: break;

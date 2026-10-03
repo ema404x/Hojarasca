@@ -125,7 +125,7 @@ export const CAPITULOS = [
     // a la mitad del capítulo, Nicanor se tuerce el tobillo (ver eventos-valle.js)
     momento: { evento: 'tobillo', cuando: 'pronto' },
     outro: [
-      'Esa tarde, en la mesa nueva, hubo mate. Nicanor con el pie en alto, Ercilia con novedades del pueblo, Ramón que no decía nada y Ema que llegó tarde con barro hasta las rodillas.',
+      'Esa tarde, en la mesa nueva, hubo mate. Nicanor con el pie en alto, Ercilia con las novedades que trajo el tren, Ramón que no decía nada y Ema que llegó tarde con barro hasta las rodillas.',
       'Nadie lo dijo, pero algo quedó decidido: ya sos del valle. Acá eso no se anuncia; se nota en que te guardan la yerba.',
     ],
     premio: { cuenta: { yerba: 8 }, texto: 'Un kilo de yerba de los vecinos' },

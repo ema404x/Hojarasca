@@ -36,7 +36,7 @@ export const nombreVecinoEvento = (k) => (Object.hasOwn(QUIEN, k) ? QUIEN[k] : k
 //   { tipo: 'voltear' }                 el viento voltea una pieza chica tuya
 //   { tipo: 'cosa', id, sino }          una cosa nueva (o, si ya la tenés, `sino`)
 //   { tipo: 'visita', quien }           el vecino viene a tu mesa esa tarde (si hay mesa puesta)
-//   { tipo: 'poblador' }                corre la voz: el próximo poblador viene sin esperar (ver pueblo.js)
+//   { tipo: 'poblador' }                corre la voz: el próximo poblador viene sin esperar (3.6: a la aldea, ver aldea.js)
 // `luego`: consecuencias para días después: [{ dias, id }] (ver SEGUIMIENTOS).
 export const EVENTOS_VALLE = [
   {
@@ -177,8 +177,10 @@ export const EVENTOS_VALLE = [
     ],
   },
   {
-    id: 'almacen', titulo: 'Ercilia tiene que ir al pueblo', quien: 'ercilia', vecinos: true,
-    texto: 'Ercilia te para en la puerta del almacén, con el sombrero puesto: «Tengo que ir al pueblo por un trámite y no tengo con quién dejar esto. ¿Me lo cuidás un rato? Es atender y no regalar nada».',
+    // 3.6: Ercilia ya vive en la Aldea de los Duendes (sólo en el Relax, como estos eventos): el
+    // trámite es en Esquel, en el tren
+    id: 'almacen', titulo: 'Ercilia tiene que ir a Esquel', quien: 'ercilia', vecinos: true,
+    texto: 'Ercilia te manda a avisar con el chico de los Jones, que llega corriendo: «Dice Ercilia que tiene que ir a Esquel en el tren por un trámite y que Nélida sola no da abasto. ¿Le cuidás el almacén de la aldea un rato? Es atender y no regalar nada».',
     cuando: (s) => s.dia >= 5 && s.horas < 15,
     opciones: [
       { id: 'cuidar', texto: 'Quedarte atendiendo el almacén la tarde', detalle: 'Tres horas detrás del mostrador', efectos: [{ tipo: 'horas', n: 3 }, { tipo: 'gratitud', quien: 'ercilia', n: 2 }],
@@ -248,7 +250,7 @@ export const SEGUIMIENTOS = {
     efectos: [] },
   's-derrumbe-ramal': { titulo: 'Carta del ramal', texto: 'La administración del ramal te mandó unas líneas de agradecimiento con el tren, y unos durmientes viejos que ya no sirven para la vía pero sí para una casa.',
     efectos: [{ tipo: 'dar', premio: { materiales: { tabla: 6 }, texto: 'Seis tablas de durmiente' } }] },
-  's-almacen-harina': { titulo: 'Ercilia volvió del pueblo', hora: 15, texto: 'Ercilia volvió en el tren con bolsas y novedades. Revisó el cuaderno de fiado, asintió, y te mandó harina y yerba: «Esto no es pago. Es de vecina». Dice que a la tarde pasa por tu casa a contarte lo del pueblo.',
+  's-almacen-harina': { titulo: 'Ercilia volvió de Esquel', hora: 15, texto: 'Ercilia volvió en el tren con bolsas y novedades. Revisó el cuaderno de fiado, asintió, y te mandó harina y yerba: «Esto no es pago. Es de vecina». Dice que a la tarde pasa por tu casa a contarte lo de Esquel.',
     efectos: [{ tipo: 'dar', premio: { cuenta: { harina: 4, yerba: 4 }, texto: 'Harina y yerba de Ercilia' } }, { tipo: 'visita', quien: 'ercilia' }] },
   's-helada-salvada': { titulo: 'Amaneció blanco', texto: 'Heló fuerte: el pasto crujía y el balde era un bloque. Pero debajo de las tablas los canteros estaban verdes y enteros.',
     efectos: [] },

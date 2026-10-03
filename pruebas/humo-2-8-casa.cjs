@@ -1,4 +1,4 @@
-// Partida real 2.8 (Electron + WebGL): Personalizar → Tu refugio y tu pueblo, Tu jardín y
+// Partida real 2.8 (Electron + WebGL): Personalizar → Tu refugio, Tu jardín y
 // Tu fortín con estilo. Se eligen cosas tocando los botones del panel (y por
 // `__personal.cambiar`), se mira que el mundo cambie (el refugio pintado y amueblado, tus
 // casas repintadas, el jardín con su paleta, el fortín con pirca, estandarte y fuego de

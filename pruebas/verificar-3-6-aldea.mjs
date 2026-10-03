@@ -11,7 +11,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import * as A from '../src/aldea.js';
-import * as P from '../src/pueblo.js';
+// 3.6 (gente): pueblo.js se sacó; lo que hacía falta de él para probar, acá
+const P = { ORDEN_POBLADORES: ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra'], puebloNuevo: () => ({ nombre: '', cartel: null, pobladores: [], llegando: null, ultimaLlegada: 0, llamado: false, usos: {}, afilado: 0, mandado: null, mandados: 0 }) };
 import { ENTRADAS } from '../src/cuaderno.js';
 import { CARTAS } from '../src/correo.js';
 import { MELODIAS } from '../src/personal-musica.js';
@@ -266,7 +267,8 @@ function distRiel(x, z) {
   eq(A.ORDEN_POBLADORES_ALDEA.length, 11, 'once pobladores');
   eq(new Set(A.ORDEN_POBLADORES_ALDEA).size, 11);
   eq(A.ORDEN_POBLADORES_ALDEA.slice(0, 5), P.ORDEN_POBLADORES, 'primero los de la 3.1');
-  for (const k of P.ORDEN_POBLADORES) ok(P.POBLADORES[k] === A.POBLADORES_ALDEA[k], `${k}: el mismo de la 3.1 (movido)`);
+  // (3.6, gente: pueblo.js ya no está; los cinco viven sólo en aldea.js, con sus diálogos de siempre)
+  for (const k of P.ORDEN_POBLADORES) ok(A.POBLADORES_ALDEA[k].llegada.length === 2 && A.POBLADORES_ALDEA[k].resumen, `${k}: el mismo de la 3.1 (movido)`);
   eq(A.POBLADORES_ALDEA.carpintero.llegada[0], 'Buenas. Me llamo Tito Arrieta, soy carpintero. Vengo del valle de abajo, donde ya no queda madera que trabajar.', 'los diálogos, tal cual');
   eq(A.POBLADORES_ALDEA.maestra.resumen, 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: cuatro de yerba por cada uno cumplido.');
   const lotes = new Set();

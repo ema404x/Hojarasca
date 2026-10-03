@@ -192,11 +192,11 @@ app.whenReady().then(async () => {
     ok(Math.abs(hora1 - hora0 - 3) < 0.2, `la tarde en el almacén lleva tres horas (${hora0.toFixed(1)} → ${hora1.toFixed(1)})`);
     ev = await js(`window.__hojarasca.progreso.eventosValle`);
     ok(ev.gratitud.ercilia === 3 && ev.regalos.ercilia && ev.pendientes.some((p) => p.id === 'regalo-ercilia'), `con tres de gratitud, Ercilia prepara un regalo (${JSON.stringify(ev.gratitud)})`);
-    // al otro día a la tarde: vuelve del pueblo y viene a la mesa
+    // al otro día a la tarde: vuelve de Esquel (3.6: antes «del pueblo»: Ercilia ya vive en la aldea) y viene a la mesa
     await js(`(()=>{ const P = window.__hojarasca.progreso; P.dia += 1; P.horas = 15.2; P.eventosValle.pendientes = P.eventosValle.pendientes.filter((p) => p.id === 's-almacen-harina'); return 1 })()`);
     await revisar();
     t = await tarjeta();
-    ok(t.abierta && /volvió del pueblo/.test(t.texto), 'lo que pasó después: Ercilia volvió');
+    ok(t.abierta && /volvió de Esquel/.test(t.texto), 'lo que pasó después: Ercilia volvió');
     await tecla('Digit1');
     await cuadros(2);
     const visita = await js(`(async ()=>{ const H = window.__hojarasca; H.__actualizarVisitas(1); await new Promise(r => setTimeout(r, 50)); H.__actualizarVisitas(1); return { activa: H.progreso.visitas.activa, visitante: H.__visitante()?.npc?.clave || null, mesa: ${mesa} } })()`);
@@ -220,7 +220,8 @@ app.whenReady().then(async () => {
     ev = await js(`window.__hojarasca.progreso.eventosValle`);
     ok(ev.hechos.tobillo?.opcion === 'avisar' && ev.gratitud.ema === gratAntes.ema + 1, 'avisarle a Ema');
     // el viajero que duerme junto a tu fuego corre la voz: el próximo poblador viene sin esperar
-    await js(`(()=>{ const P = window.__hojarasca.progreso; P.cosas.yerba = (P.cosas.yerba || 0) + 2; P.horas = 14; if (P.pueblo) P.pueblo.llamado = false; return 1 })()`);
+    // (3.6: a la Aldea de los Duendes)
+    await js(`(()=>{ const P = window.__hojarasca.progreso; P.cosas.yerba = (P.cosas.yerba || 0) + 2; P.horas = 14; if (P.aldea) P.aldea.llamado = false; return 1 })()`);
     await js(`window.__hojarasca.__valle.eventos.forzar('viajero')`);
     await revisar();
     await js(`document.querySelector('#valle-tarjeta button[data-valle-opcion="fuego"]').click(); 1`);
@@ -231,8 +232,8 @@ app.whenReady().then(async () => {
     const papas0 = await js(`window.__hojarasca.progreso.cosas['semillas-papa'] || 0`);
     await tecla('Digit1');
     await esperar(1400);
-    const viajero = await js(`(()=>{ const P = window.__hojarasca.progreso; return { papas: P.cosas['semillas-papa'] || 0, llamado: !!P.pueblo?.llamado, hay: !!P.pueblo } })()`);
-    ok(viajero.papas === papas0 + 4 && (!viajero.hay || viajero.llamado), `dejó papas para semilla y corrió la voz en el pueblo (${JSON.stringify(viajero)})`);
+    const viajero = await js(`(()=>{ const P = window.__hojarasca.progreso; return { papas: P.cosas['semillas-papa'] || 0, llamado: !!P.aldea?.llamado, hay: !!P.aldea } })()`);
+    ok(viajero.papas === papas0 + 4 && viajero.hay && viajero.llamado, `dejó papas para semilla y corrió la voz en la aldea (${JSON.stringify(viajero)})`);
     // un evento abierto que queda sin elegir se guarda
     await js(`window.__hojarasca.__valle.eventos.forzar('huemul')`);
     await revisar();

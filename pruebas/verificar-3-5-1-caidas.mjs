@@ -116,8 +116,9 @@ ok(/Context Restored\."\),H=!1;let j=se\.autoReset[^;]*;ct\(\)/.test(three), 'th
 
 // ---------------------------------------------------------------- 4. el bucle
 ok(/try \{ cuadroDelJuego\(tRaf, manual\); \} catch \(err\) \{\n\s+fallaSistema\('cuadro', err\);/.test(main), 'una excepción del cuadro no deja la pantalla congelada');
-for (const s of ['fauna', 'gente', 'perro', 'desafio', 'clima', 'sonido', 'pueblo', 'valle', 'modos']) ok(main.includes(`catch (e) { fallaSistema('${s}', e); }`), `"${s}" falla solo`);
-ok(main.includes("try { if (modo === 'jugando') actualizarPueblo(dt); } catch (e) { fallaSistema('pueblo', e); }"), 'la línea de siempre, adentro');
+// (3.6: el pueblo de la 3.1 pasó a ser la aldea: el sistema se llama 'aldea')
+for (const s of ['fauna', 'gente', 'perro', 'desafio', 'clima', 'sonido', 'aldea', 'valle', 'modos']) ok(main.includes(`catch (e) { fallaSistema('${s}', e); }`), `"${s}" falla solo`);
+ok(main.includes("try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }"), 'la línea de siempre, adentro');
 ok(/if \(f\) \{ f\.veces\+\+; return; \}/.test(main) && /reportarError\?\.\(`bucle\/\$\{nombre\}/.test(main), 'se anota una vez (y por reportarError)');
 ok(/const yaReportados = new Set\(\);/.test(html), 'el registro de errores no repite el mismo');
 ok(/acumuladoGuardado \+= dtReal;\n\s+if \(acumuladoGuardado > 20\) \{ acumuladoGuardado = 0; programarGuardadoSuave\(\); \}/.test(main), 'el autoguardado va cada 20 s de reloj');
