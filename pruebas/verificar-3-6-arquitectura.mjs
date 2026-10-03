@@ -282,6 +282,23 @@ for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
   const sv = { vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <opaque_fragment>', uniforms: {} };
   vid.onBeforeCompile(sv, null);
   assert.ok(sv.uniforms.uCieloVA && /frA/.test(sv.fragmentShader), 'el vidrio con su reflejo');
+  // 3.6 (plaza y álamos): el follaje con las cartas del atlas, el oro del otoño y el invierno
+  const fo = { onBeforeCompile: null, customProgramCacheKey: () => 'f', userData: {} };
+  const atlas = { isTexture: true };
+  A.prepararFollajeAldea(fo, { cartas: atlas });
+  assert.equal(fo.customProgramCacheKey(), 'f|follaje-aldea-3.6');
+  const sf = { vertexShader: '#include <common>\n#include <color_vertex>\n#include <begin_vertex>\n#include <project_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>', uniforms: {} };
+  fo.onBeforeCompile(sf, null);
+  assert.ok(sf.uniforms.uCartasA.value === atlas, 'el atlas de cartas');
+  assert.match(sf.vertexShader, /attribute vec4 aCarta/); assert.match(sf.vertexShader, /mvPosition\.xy \+= abreA/); assert.match(sf.vertexShader, /uOtono/);
+  assert.match(sf.fragmentShader, /discard/);
+  assert.ok(sf.vertexShader.indexOf('oroA') < sf.vertexShader.indexOf('#include <begin_vertex>'), 'el color antes del viento');
+  assert.equal(A.prepararFollajeAldea(fo), fo, 'idempotente');
+  // todo el follaje de la aldea lleva aCarta (cero donde no hay carta): se puede fundir junto
+  for (const id of ['casa-abuela', 'plaza', 'sala-miel']) {
+    const g = A.armarEdificio(id, 4).exterior.follaje;
+    if (g) assert.equal(g.attributes.aCarta?.count, g.attributes.position.count, id + ': aCarta en el follaje');
+  }
 }
 {
   const cab = A.armarCable({ x: 0, y: 6, z: 0 }, { x: 20, y: 3.2, z: 5 });
@@ -295,6 +312,18 @@ for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
   for (let i = 1; i <= 4; i++) assert.ok(N['juego-' + i], 'plaza juego-' + i);
   for (const k of ['musico', 'mastil', 'duende']) assert.ok(N[k], 'plaza ' + k);
   assert.ok(N.mastil.lz > 0 && N.duende.lz > 0, 'mástil y duende del lado de la estación (+Z)');
+  // 3.6 (plaza y álamos): ocho faroles, de a pares en los senderos (a la misma distancia del centro)
+  const faroles = pl.luces.filter((l) => l.clase === 'farol');
+  assert.equal(faroles.length, 8, 'plaza: ocho faroles');
+  const dist = faroles.map((l) => Math.hypot(l.lx, l.lz));
+  assert.ok(Math.max(...dist) - Math.min(...dist) < 0.05, 'plaza: los faroles ordenados, no salpicados');
+  const bancos = pl.puntos.asientos.filter((a) => a.nombre === 'un banco de la plaza');
+  assert.ok(bancos.length >= 12, 'plaza: seis bancos (dos asientos cada uno)');
+  for (const b of bancos) { const h = Math.hypot(b.lx, b.lz); assert.ok(h > 2.5 && h < 3.8, 'plaza: los bancos en el borde del redondel'); }
+  const alto = pl.exterior.estructura.boundingBox;
+  assert.ok(pl.colisiones.obstaculos.some((o) => !o.seg && Math.hypot(o.x, o.z) < 0.01 && o.alturaMax >= 1.8 && o.alturaMax <= 2.3 && o.r >= 0.6), 'plaza: el tronco del duende, de 1,8 a 2,2 m');
+  assert.ok(pl.pisos[0].largo === pl.ancho && pl.pisos[0].ancho === pl.fondo, 'plaza: el lote entero es césped corto (pisos)');
+  assert.ok(alto.max.y > 7.5, 'plaza: el mástil');
   const llega = alcanzables(pl, { lx: 0, lz: 7.6 }, 0.45);
   for (const [k, p] of Object.entries(N)) assert.ok(k.startsWith('asiento-') ? alLado(llega, p) : llega(p), 'plaza: no se llega a ' + k);
   assert.ok(pl.medidas.triangulos.exterior <= P.plaza.exterior, 'plaza: ' + pl.medidas.triangulos.exterior + ' triángulos');
@@ -327,8 +356,18 @@ for (const n of A.ACCESORIOS_ALDEA) {
   for (const t of tiposDe(ac.exterior.estructura)) assert.ok(t === 0 || t === 4, `${n}: aTipo ${t}`);
   assert.ok(ac.medidas.triangulos.exterior < 3000, n + ': ' + ac.medidas.triangulos.exterior + ' triángulos');
   if (n === 'alamo') {
-    assert.ok(ac.exterior.follaje && tiposDe(ac.exterior.follaje).join() === '2', 'álamo: hojas que caen (aTipo 2)');
+    // 3.6 (plaza y álamos): el tronco y las ramitas van con el follaje (aTipo 0) y las hojas caen (aTipo 2)
+    assert.ok(ac.exterior.follaje && tiposDe(ac.exterior.follaje).join() === '0,2', 'álamo: tronco y hojas que caen (aTipo 0 y 2)');
     assert.ok(ac.lod && ac.lod.follaje && tris(ac.lod.estructura) + tris(ac.lod.follaje) < 200, 'álamo: LOD barato');
+    // cartas de follaje (como las del bosque): muchas, y un núcleo con las hojas pintadas; una columna angosta y alta
+    const k4 = ac.exterior.follaje.attributes.aCarta;
+    assert.ok(k4 && k4.itemSize === 4 && k4.count === ac.exterior.follaje.attributes.position.count, 'álamo: aCarta por vértice');
+    let cartas = 0, nucleo = 0;
+    for (let i = 0; i < k4.count; i++) { if (k4.getX(i) * k4.getX(i) + k4.getY(i) * k4.getY(i) > 1e-8) cartas++; else if (k4.getW(i) < -9.5) nucleo++; }
+    assert.ok(cartas / 6 >= 200 && nucleo > 0, 'álamo: ' + cartas / 6 + ' cartas y su núcleo');
+    const bb = ac.exterior.follaje.boundingBox;
+    assert.ok(bb.max.y >= 15 && bb.max.y <= 20.5 && bb.max.x - bb.min.x <= 3.6, 'álamo de Lombardía: alto ' + bb.max.y.toFixed(1) + ' y angosto ' + (bb.max.x - bb.min.x).toFixed(1));
+    assert.ok(ac.lod.follaje.attributes.aCarta, 'álamo: el LOD también con cartas');
   }
   tabla.push({ id: 'accesorio ' + n, e: '-', ext: ac.medidas.triangulos.exterior, int: 0, dib: `${ac.medidas.dibujos.exterior}+0` });
 }

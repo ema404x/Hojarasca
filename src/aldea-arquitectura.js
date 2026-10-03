@@ -51,8 +51,8 @@
 //   medidas: { triangulos: { exterior, interior }, dibujos: { exterior, interior } }.
 // armarAccesorio(nombre, opciones) → la misma forma (faroles, banco, cerco, pirca, alamo, lena,
 //   tendedero, vereda, poste-luz, mastil, cantero). `alamo` trae además `lod` (la versión barata)
-//   y sus hojas van con aTipo 2 (material con viento: materialVegetal({ flex: 1 })): caen en
-//   invierno. Para el otoño variado conviene instanciarlo (el azar del otoño sale de la instancia).
+//   y sus hojas van con aTipo 2 (material con viento): caen en invierno; con el material de
+//   prepararFollajeAldea se ponen amarillas en otoño (ver abajo).
 // armarAgregadoEstacion() → { piezas: [{ id, lx, lz, giro, edificio }] } en el marco local de la
 //   parada (el de construirParada en trochita.js: x a lo largo de la vía, z alejándose; y = 0 la
 //   altura del riel). Cada pieza se apoya en el terreno: el mundo le pone su propia altura.
@@ -76,6 +76,15 @@
 //     altura del mástil y de la bandera izada), pizarron, dibujos, camilla, casillas, mapa-valle,
 //     pista-baile, fragua, horno, rueca, colmenas, sierra, redes; y en la estación campana-anden y
 //     horario-trenes.
+// 3.6 (plaza y álamos), lo que se sumó (ninguna firma cambió):
+//   · El follaje (exterior.follaje) trae aCarta (vec4, el formato de las cartas de vegetacion.js; cero
+//     donde no hay carta): los álamos son cientos de cartas de hojas del atlas pintado alrededor de un
+//     núcleo angosto, y las flores de los canteros de la plaza son cartas de lupino, margarita, amancay
+//     y mata. Su material: uno PROPIO, prepararFollajeAldea(materialVegetal({ flex: 1, copa: true }),
+//     { cartas: texturaCartas() }) (texturaCartas de vegetacion.js). Una variante de programa más
+//     (compilarla en la carga). Sin ese material las cartas no se abren (no se ven) y el resto sale igual.
+//   · El tronco y las ramitas del álamo van con el follaje (aTipo 0), así el viento los mueve juntos.
+//   · La plaza: pisos[0] es el lote entero (con cesped: true): todo el césped corto, sin pasto alto.
 // Presupuesto (Radeon integrada), medido en pruebas/verificar-3-6-arquitectura.mjs: exterior ≤ 3
 // dibujos por edificio (estructura, vidrios, carteles, follaje) e interior ≤ 2 (muebles, brasas), más uno por
 // pieza animable (pocas); las hojas
@@ -158,9 +167,10 @@ const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a)
 
 // ---------------------------------------------------------------- colores (apagados, gastados)
 export const PALETA_ALDEA = {
+  // 3.6 (plaza y álamos): más claros y más tibios (de cerca la madera pintada se leía gris y apagada)
   pared: {
-    cal: '#cdc3aa', crema: '#cdbb94', ocre: '#b98f58', rojo: '#8c4c3c', verde: '#6f7e62', celeste: '#8c9e9e',
-    amarillo: '#c2a663', rosa: '#ad8d82', alerce: '#8a5c3e', gris: '#928c80', azul: '#6a7b86',
+    cal: '#ded3b8', crema: '#e0c99c', ocre: '#cf9e5e', rojo: '#a85a40', verde: '#86a46c', celeste: '#8ab6c2',
+    amarillo: '#d8b86a', rosa: '#d09c88', alerce: '#a46c46', gris: '#b2a68e', azul: '#7d9cab',
   },
   techo: { oxido: '#87402c', verde: '#4b674d', azul: '#495d74', gris: '#8a8e8c', rojo: '#9b432f', negro: '#46413c' },
   postigo: { verde: '#4b6a51', azul: '#3d5976', rojo: '#863b2f', amarillo: '#ad8a3c', marron: '#5a4636', blanco: '#d9d3c4' },
@@ -198,7 +208,10 @@ function pincel(x, y, z, s) {
 export const SUPERFICIES_ALDEA = { nada: 0, tablasVerticales: 1, tablasHorizontales: 2, tejuela: 3, chapa: 4, piedra: 5, revoque: 6, tosca: 7, piso: 8, laja: 9, adentro: 10 };
 const SUP = SUPERFICIES_ALDEA;
 class ConstructorAldea extends Constructor {
-  constructor(sup = 0) { super(); this.sup = []; this.supActual = sup; }
+  // 3.6 (plaza y álamos): `cartas`: además emite aCarta (vec4, el formato de las cartas de vegetacion.js)
+  constructor(sup = 0, { cartas = false } = {}) { super(); this.sup = []; this.supActual = sup; this.cartas = cartas ? [] : null; }
+  // marca n vértices desde i con la misma carta (lo que no se marca lleva cero)
+  marcarCarta(i, n, k) { if (!this.cartas) this.cartas = []; this.cartas.push([i, n, k]); }
   agregar(geo, o) {
     const n0 = this.tipo.length;
     super.agregar(geo, o);
@@ -211,6 +224,11 @@ class ConstructorAldea extends Constructor {
     while (this.sup.length < this.tipo.length) this.sup.push(0);
     g.setAttribute('aSuperficie', new THREE.Float32BufferAttribute(this.sup, 1));
     g.setAttribute('aLocal', new THREE.Float32BufferAttribute(this.pos.slice(), 3));
+    if (this.cartas) {
+      const k4 = new Float32Array(this.tipo.length * 4);
+      for (const [i, n, k] of this.cartas) for (let j = i; j < i + n; j++) k4.set(k, j * 4);
+      g.setAttribute('aCarta', new THREE.Float32BufferAttribute(k4, 4));
+    }
     return g;
   }
 }
@@ -346,7 +364,7 @@ function crearContexto(id, etapa, op, def) {
   const W = def.ancho, D = def.fondo;
   const K = {
     id, etapa, def, op, r, W, D, s: (semilla % 997) * 0.013,
-    ext: new ConstructorAldea(SUP.tosca), int: new ConstructorAldea(SUP.tosca + SUP.adentro), vid: new Constructor(), bra: new Constructor(), fol: new ConstructorAldea(SUP.nada),
+    ext: new ConstructorAldea(SUP.tosca), int: new ConstructorAldea(SUP.tosca + SUP.adentro), vid: new Constructor(), bra: new Constructor(), fol: new ConstructorAldea(SUP.nada, { cartas: true }),
     car: { pos: [], nor: [], uv: [] },
     obst: [], plat: [], puertas: [], luces: [], ventanas: [], carteles: [], pisos: [],
     puntos: { trabajo: [], asientos: [], estufas: [] }, chimenea: null, techo: null, extra: {}, animables: [],
@@ -381,9 +399,10 @@ function crearContexto(id, etapa, op, def) {
 // Sombreado pintado de una superficie: pincelada amplia, sombra bajo el alero, oclusión en las
 // esquinas, salpicado de barro al pie y pintura gastada en manchas (deja ver la madera).
 function sombrear(K, k, x, y, z, o = {}) {
-  let f = 0.8 + 0.4 * pincel(x, y, z, K.s);
+  // (3.6 plaza y álamos: 0.8 + 0.4 → 0.88 + 0.28: menos manchas oscuras en la pared)
+  let f = 0.88 + 0.28 * pincel(x, y, z, K.s);
   // sombra pintada bajo el alero (fuerte y ancha: el alero de chapa tapa el cielo)
-  if (o.alero !== undefined) f *= 1 - (o.sombraAlero ?? 0.34) * suave(o.alero - 1.1, o.alero, y);
+  if (o.alero !== undefined) f *= 1 - (o.sombraAlero ?? 0.26) * suave(o.alero - 1.1, o.alero, y);
   // oclusión en las esquinas
   if (o.esquina !== undefined) f *= 1 - 0.3 * (1 - suave(0, 0.7, o.esquina));
   // arriba más claro y tibio (la luz del cielo), abajo más oscuro y húmedo
@@ -1668,8 +1687,8 @@ function mastil(K, x, z, o = {}) {
   const c = K.ext, h = o.alto ?? 7.5;
   cilindro(c, [x, h / 2, z], 0.08, 0.05, h, '#e6e0d2', { tipo: 4, lados: 8 });
   bulto(c, [x, h + 0.05, z], 0.08, '#c9a64a', { detalle: 1, suave: true });
-  // base de laja
-  cilindro(c, [x, 0.1, z], 0.55, 0.62, 0.22, '#857c6e', { tipo: 4, lados: 10 });
+  // base de laja (la plaza le pone la suya, de piedra)
+  if (o.base !== false) cilindro(c, [x, 0.1, z], 0.55, 0.62, 0.22, '#857c6e', { tipo: 4, lados: 10 });
   // la bandera, celeste y blanca con el sol, un poco ondeada (las dos caras)
   const giro = o.giro ?? 0;
   const L = 1.5, A = 0.95;
@@ -1679,13 +1698,14 @@ function mastil(K, x, z, o = {}) {
   const onda = (u) => Math.sin(u * 5.5) * 0.06 * u;
   const P = (u, v) => { const lx = 0.07 + u * L, lz = onda(u); return [x + lx * cg + lz * sg, y0 + v * A, z - lx * sg + lz * cg]; };
   const seg = 6;
-  K.circulo(x, z, 0.6, 0, 0.25);
+  if (o.base !== false) K.circulo(x, z, 0.6, 0, 0.25);
   K.circulo(x, z, 0.1, 0, h);
   K.extra.bandera = { lx: x, ly: h - 0.15 - A / 2, lz: z, alto: h, izada: y0, arriada: 1.1 };
   // la soga (driza) y la cornamusa donde se ata
   palo(c, [x + 0.06 * cg, 0.9, z - 0.06 * sg], [x + 0.06 * cg, h - 0.1, z - 0.06 * sg], 0.006, '#d8d0bc', { tipo: 0 });
   caja(c, [x + 0.08 * cg, 1.1, z - 0.08 * sg], [0.03, 0.12, 0.03], '#3a3734', { giro, tipo: 4 });
-  K.punto('mastil-soga', x - 1.1 * cg, z + 1.1 * sg, giro + Math.PI / 2, 0.03);
+  const ds = o.soga ?? 1.1;
+  K.punto('mastil-soga', x - ds * cg, z + ds * sg, giro + Math.PI / 2, 0.03);
   K.puntos['mastil-soga'].alto = h;
   K.puntos['mastil-soga'].izada = y0;
   // el paño se mueve: pivote en su borde de abajo junto al mástil (sube de 1,1 m hasta y0)
@@ -2860,40 +2880,97 @@ function biblioteca(K) {
 }
 
 // ---------------------------------------------------------------- la plaza (su +Z mira a la estación)
-// 3.6 (pulido): forma de plaza de pueblo. Un redondel de lajas irregulares en el centro con el duende
-// tallado, ocho senderos de laja que salen a las calles y a las esquinas, un anillo de canteros
-// cortado por los senderos que la contiene, bancos mirando al centro y faroles junto a los senderos.
-// Entre los senderos queda el pasto del terreno (sólo lo pisado lleva plataforma).
+// 3.6 (plaza y álamos): compuesta como la plaza de un pueblo del sur. En el centro, un redondel de lajas
+// asentadas en anillos sobre su cama de mortero, contenido por un cordón de piedra; en el medio el tronco
+// tallado del duende (2,2 m, de frente a la estación). Cuatro senderos de laja, con su cordón, salen a
+// las cuatro esquinas; cada uno con su par de faroles a los costados, todos a la misma distancia. Bancos
+// de 1,7 m en el borde del redondel, mirando al centro. Entre los senderos, césped corto (el prado
+// pintado del terreno: el lote entero va en `pisos`, sin pasto alto) con canteros de borde de troncos;
+// al frente, del lado de la estación, el mástil sobre su base de piedra; en el rincón del fondo, el
+// aljibe con su techito; del otro lado, el sube y baja; y un álamo a cada costado.
 
-// Lajas irregulares: un polígono de 5 a 7 lados por piedra, de tamaños distintos, sobre una grilla
-// hexagonal movida; las juntas dejan ver el suelo. `dentro(x, z)` → 0..1 (en el borde se ralean).
-function lajasIrregulares(K, c, r, dentro, x0, x1, z0, z1, paso = 0.72) {
-  const pal = PALETA_ALDEA.laja.concat(['#9a8a74', '#8f8676', '#a39684', '#7c766c']);
-  const fila = paso * 0.866;
-  for (let j = 0, z = z0; z <= z1; j++, z += fila) {
-    for (let x = x0 + (j % 2) * paso / 2; x <= x1; x += paso) {
-      const cx = x + (r() - 0.5) * paso * 0.3, cz = z + (r() - 0.5) * fila * 0.3;
-      const v = dentro(cx, cz);
-      if (v <= 0 || (v < 1 && r() > v)) continue;
-      const tam = (r() < 0.15 ? 1.3 : 1) * entre(r, 0.72, 1.12);
-      const est = entre(r, 1.0, 1.55), ae = r() * 3.14, ce = Math.cos(ae), se = Math.sin(ae);
-      const n = 5 + Math.floor(r() * 3), a0 = r() * 6.28, y = 0.04 + r() * 0.025;
-      const k = escalar(tinte(elegir(r, pal)), 0.82 + 0.3 * r()), kb = escalar(k, 0.74);
-      const ring = [];
-      for (let i = 0; i < n; i++) {
-        const a = a0 + (i / n) * 6.283 + (r() - 0.5) * 0.7;
-        const rad = paso * 0.52 * tam * entre(r, 0.7, 1.08);
-        // estirada en una dirección: lajas largas, no baldosas
-        const lx = Math.cos(a) * rad * est / 1.25, lz = Math.sin(a) * rad / est * 1.15;
-        ring.push([cx + lx * ce - lz * se, y - 0.012 - r() * 0.01, cz + lx * se + lz * ce]);
-      }
-      const centro = [cx, y + 0.012, cz];
-      for (let i = 0; i < n; i++) {
-        const p = ring[i], q = ring[(i + 1) % n];
-        tri(c, centro, q, p, k, kb, kb, 4);
-      }
+// Una laja asentada: un polígono convexo (en xz) que sube del borde (ya, casi a ras del mortero) a una
+// loma suave en el centro (yc). Un triángulo por lado: el canto queda más oscuro que el lomo.
+function losa(c, pts, ya, yc, k, o = {}) {
+  let cx = 0, cz = 0;
+  for (const [x, z] of pts) { cx += x; cz += z; }
+  cx /= pts.length; cz /= pts.length;
+  const kb = escalar(k, o.canto ?? 0.8), centro = [cx, yc, cz];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const pa = [a[0], ya, a[1]], pb = [b[0], ya, b[1]];
+    // (el orden que deja la normal para arriba)
+    if ((b[1] - a[1]) * (cx - a[0]) - (b[0] - a[0]) * (cz - a[1]) > 0) tri(c, pa, pb, centro, kb, kb, k, o.tipo ?? 4);
+    else tri(c, pb, pa, centro, kb, kb, k, o.tipo ?? 4);
+  }
+}
+// achica un polígono hacia su centro `g` metros (la junta entre lajas)
+function juntaDe(pts, g) {
+  let cx = 0, cz = 0;
+  for (const [x, z] of pts) { cx += x; cz += z; }
+  cx /= pts.length; cz /= pts.length;
+  return pts.map(([x, z]) => { const d = Math.hypot(cx - x, cz - z) || 1, t = Math.min(0.35, g / d); return [x + (cx - x) * t, z + (cz - z) * t]; });
+}
+const PIEDRA_PLAZA = ['#8f887b', '#7f796e', '#9c9180', '#857d70', '#948a7a', '#7a756b', '#a09684'];
+function colorLaja(r) {
+  return escalar(tinte(elegir(r, PIEDRA_PLAZA), 1, '#a08a6a', r() * 0.25), 0.86 + 0.24 * r());
+}
+// Un anillo de lajas entre los radios ra y rb: piedras de 0,55 a 0,75 m de largo, con las juntas
+// radiales un poco torcidas (no es una baldosa: es piedra cortada a mano)
+function anilloLajas(c, r, ra, rb, y) {
+  const rm = (ra + rb) / 2, n = Math.max(6, Math.round(2 * Math.PI * rm / entre(r, 0.6, 0.72)));
+  const a0 = r() * 6.28, cortes = [], tuerce = [];
+  for (let i = 0; i < n; i++) { cortes.push(a0 + (i + (r() - 0.5) * 0.4) * 2 * Math.PI / n); tuerce.push((r() - 0.5) * 0.14 / rm); }
+  const P = (rr, t) => [Math.cos(t) * rr, Math.sin(t) * rr];
+  for (let i = 0; i < n; i++) {
+    const t0 = cortes[i], t1 = i + 1 < n ? cortes[i + 1] : cortes[0] + 2 * Math.PI, w0 = tuerce[i], w1 = tuerce[(i + 1) % n];
+    const pts = [P(ra, t0 - w0), P(rb, t0 + w0)];
+    if (rb * (t1 - t0) > 0.55) pts.push(P(rb, (t0 + t1) / 2));
+    pts.push(P(rb, t1 + w1), P(ra, t1 - w1));
+    losa(c, juntaDe(pts, 0.022), y, y + entre(r, 0.02, 0.03), colorLaja(r));
+  }
+}
+// Un sendero de lajas en hiladas de través (de 0,45 a 0,65 m), de dos o tres piedras cada una.
+// `u`: su rumbo; `desde(d)`: dónde empieza (contra el cordón del redondel); `hasta`: dónde termina.
+function senderoLajas(c, r, u, desde, hasta, A, y) {
+  const v = [-u[1], u[0]], W = (s, d) => [u[0] * s + v[0] * d, u[1] * s + v[1] * d];
+  const bordes = [{ en: desde }];
+  let s = desde(0);
+  while (true) {
+    s += entre(r, 0.45, 0.65);
+    if (s > hasta - 0.3) { bordes.push({ en: () => hasta }); break; }
+    const b = s, m = (r() - 0.5) * 0.08;
+    bordes.push({ en: (d) => b + m * d });
+  }
+  for (let k = 0; k + 1 < bordes.length; k++) {
+    const m = r() < 0.55 ? 2 : 3, cortes = [-A / 2];
+    for (let j = 1; j < m; j++) cortes.push(-A / 2 + A * j / m + (r() - 0.5) * 0.18);
+    cortes.push(A / 2);
+    for (let j = 0; j < m; j++) {
+      const d0 = cortes[j], d1 = cortes[j + 1], b0 = bordes[k].en, b1 = bordes[k + 1].en;
+      const pts = [W(b0(d0), d0), W(b0(d1), d1), W(b1(d1), d1), W(b1(d0), d0)];
+      losa(c, juntaDe(pts, 0.022), y, y + entre(r, 0.02, 0.03), colorLaja(r));
     }
   }
+}
+// Un cantero con borde de troncos de ciprés acostados (se cruzan en las esquinas), tierra y flores
+function canteroTroncos(K, r, x, z, L, A, giro = 0) {
+  const c = K.ext, F = marcoLocal(x, z, giro);
+  const lados = [[[-L / 2 - 0.1, -A / 2], [L / 2 + 0.1, -A / 2]], [[-L / 2 - 0.1, A / 2], [L / 2 + 0.1, A / 2]], [[-L / 2, -A / 2 + 0.12], [-L / 2, A / 2 - 0.12]], [[L / 2, -A / 2 + 0.12], [L / 2, A / 2 - 0.12]]];
+  lados.forEach(([a, b], i) => palo(c, F.p(a[0], i < 2 ? -0.03 : 0.05, a[1]), F.p(b[0], (i < 2 ? -0.03 : 0.05) + (r() - 0.5) * 0.03, b[1]), 0.11, elegir(r, ['#6e5a44', '#7a6650', '#5e4c3a']), { lados: 6, abierto: false }));
+  conSup(c, SUP.nada, () => losa(c, [F.p(-L / 2 + 0.06, 0, -A / 2 + 0.06), F.p(L / 2 - 0.06, 0, -A / 2 + 0.06), F.p(L / 2 - 0.06, 0, A / 2 - 0.06), F.p(-L / 2 + 0.06, 0, A / 2 - 0.06)].map((p) => [p[0], p[2]]), 0.07, 0.11, tinte('#4a3a2c'), { canto: 0.85, tipo: 0 }));
+  // las plantas: cartas del atlas de vegetacion.js, como las flores del prado (matas de hoja, lupinos,
+  // margaritas y amancay; las flores se cierran en invierno, aTipo 3) y unas matas de hojas finas
+  const verde = tinte('#4d6c34'), petalo = elegir(r, ['#8a64c0', '#d07aa8', '#f2ece0', '#e8a040']);
+  for (let q = 0; q < 2; q++) { const p = F.p((r() - 0.5) * (L - 0.35), 0, (r() - 0.5) * (A - 0.35)); manojo(K.fol, r, p[0], 0.1, p[2], 6, 0.26, 0.46); }
+  for (let q = 0, n = Math.round(L * A * 11); q < n; q++) {
+    const p = F.p((r() - 0.5) * (L - 0.3), 0, (r() - 0.5) * (A - 0.3)), que = r();
+    if (que < 0.38) { const h = entre(r, 0.16, 0.24); cartaHojas(K.fol, p[0], 0.1 + h, p[2], [0, 1, 0], h * 1.15, h, (r() - 0.5) * 0.3, 0, 5, 1, escalar(verde, 0.7), verde); continue; }
+    const celda = que < 0.6 ? 7 : que < 0.85 ? 8 : 9, h = celda === 7 ? entre(r, 0.26, 0.36) : entre(r, 0.17, 0.24);
+    const k = tinte(celda === 9 ? '#e88a2a' : r() < 0.7 ? petalo : elegir(r, ['#f2ece0', '#b08ad0', '#d07aa8']));
+    cartaHojas(K.fol, p[0], 0.1 + h, p[2], [0, 1, 0], h * (celda === 7 ? 0.6 : 1.0), h, (r() - 0.5) * 0.2, 0, celda, 3, k, k);
+  }
+  K.mueble(x, z, L + 0.22, A + 0.22, 0.3, giro, 0);
 }
 function aljibe(K, x, z) {
   const c = K.ext;
@@ -2914,142 +2991,171 @@ function aljibe(K, x, z) {
   K.circulo(x, z, 0.88, 0, 1.0);
   K.punto('aljibe', x + 0.1, z + 1.3, Math.PI, 0.03);
 }
-// El duende tallado en el mismo tronco de coihue: abajo la corteza con sus raíces, arriba la madera
-// trabajada, y la figura saliendo de la pieza. Mira a la estación (+Z).
+// El duende tallado en un solo tronco de coihue (2,2 m, de frente a la estación, +Z): abajo la corteza
+// con sus raíces; arriba la madera trabajada con motosierra y gubia. La figura no está encima del tronco:
+// ES el tronco. El gorro en punta es la copa del tronco (aceitado, más oscuro); la cara, lijada y clara,
+// con la nariz grande, los ojos hondos y las cejas; la barba larga le cae sobre la panza, con las manos
+// a los costados, el cinto y las botas que asoman sobre la corteza. Rasgos grandes: se lee a 10 m.
 function troncoDuende(K, x, z) {
-  const g = new THREE.CylinderGeometry(0.47, 0.6, 1.0, 14, 4, true);
-  abollar(g, 0.05, 1.4);
-  K.ext.agregar(g, {
-    tipo: 0, variar: 0.08, suave: true, matriz: matriz([x, 0.35, z]),
-    degradado: [lin('#3e3026'), lin('#76604c')],
-    tono: (px, py, pz) => 0.5 + 0.4 * Math.sin(Math.atan2(pz, px) * 11 + py * 1.6) + 0.1 * Math.sin(py * 7 + px * 3),
+  const c = K.ext;
+  const torno = (pts, lados, colores, o = {}) => {
+    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), lados);
+    if (o.abollar) abollar(g, o.abollar, o.esc ?? 3);
+    c.agregar(g, { tipo: 0, variar: o.variar ?? 0.07, suave: true, matriz: matriz([x, 0, z], [0, o.giro ?? 0, 0]), degradado: colores.map(lin), ...(o.tono ? { tono: o.tono } : {}) });
+    g.dispose();
+  };
+  // la corteza (abajo, con las vetas largas) y las raíces
+  torno([[0, -0.3], [0.64, -0.3], [0.6, 0.0], [0.56, 0.22], [0.53, 0.4], [0.5, 0.46]], 14, ['#33271f', '#5a4636'], {
+    abollar: 0.03, tono: (px, py, pz) => 0.5 + 0.4 * Math.sin(Math.atan2(pz, px) * 11 + py * 1.6) + 0.1 * Math.sin(py * 7 + px * 3),
   });
-  g.dispose();
-  // el borde de la corteza, desparejo, donde empieza lo tallado
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * 6.283;
-    caja(K.ext, [x + Math.sin(a) * 0.47, 0.84 + (i % 3) * 0.03, z + Math.cos(a) * 0.47], [0.36, 0.12 + (i % 2) * 0.06, 0.06], '#4a3a2c', { giro: a, tipo: 0, bajo: 0.6 });
-  }
-  // la madera trabajada, que se angosta hacia la figura
-  const g2 = new THREE.CylinderGeometry(0.36, 0.45, 0.32, 12, 1, true);
-  abollar(g2, 0.025, 3.5);
-  K.ext.agregar(g2, { tipo: 0, variar: 0.12, matriz: matriz([x, 1.0, z]), degradado: [lin('#7a5a3c'), lin('#a07a52')] });
-  g2.dispose();
   for (let i = 0; i < 6; i++) {
     const a = i * 1.05 + 0.4;
-    bulto(K.ext, [x + Math.sin(a) * 0.62, 0.07, z + Math.cos(a) * 0.62], 0.42, '#45372a', { tipo: 0, detalle: 0, abollar: 0.04, esc: [0.42, 0.32, 1.0], rot: [0, a, 0], bajo: 0.55, alto: 1.05 });
+    bulto(c, [x + Math.sin(a) * 0.62, 0.0, z + Math.cos(a) * 0.62], 0.4, '#3e3026', { tipo: 0, detalle: 0, abollar: 0.04, esc: [0.42, 0.32, 1.0], rot: [0, a, 0], bajo: 0.55, alto: 1.05 });
   }
-  tallaDuende(K, K.ext, x, 1.08, z, 0, 2.25, { madera: '#9a7250', gorroOscuro: 0.58 });
-  K.circulo(x, z, 0.66, 0, 3.4);
+  // el cuerpo y la cabeza, de la misma pieza; el gorro alto y en punta es la copa del tronco
+  torno([[0.5, 0.45], [0.47, 0.52], [0.48, 0.72], [0.46, 0.92], [0.41, 1.06], [0.36, 1.12]], 14, ['#76563a', '#97704c'], { abollar: 0.018 });
+  torno([[0.36, 1.11], [0.36, 1.2], [0.365, 1.32], [0.35, 1.42]], 14, ['#b08454', '#c49866']);
+  torno([[0.33, 1.41], [0.42, 1.42], [0.44, 1.47], [0.39, 1.53], [0.33, 1.64], [0.26, 1.78], [0.19, 1.91], [0.12, 2.03], [0.06, 2.13], [0, 2.2]], 14, ['#5a3420', '#7a4a2c'], { abollar: 0.01 });
+  cilindro(c, [x, 1.5, z], 0.41, 0.4, 0.06, '#3e2618', { tipo: 0, lados: 14, abierto: true });   // la cinta del gorro
+  // la cara (mira a +Z): la nariz grande, los cachetes, los ojos hondos bajo las cejas y el bigote
+  const F = marcoLocal(x, z, 0);
+  const B = (p, rad, col, o = {}) => bulto(c, F.p(...p), rad, col, { tipo: 0, detalle: 0, variar: 0.08, bajo: 0.7, alto: 1.1, ...o });
+  B([0, 1.25, 0.4], 0.1, '#cf9e6c', { detalle: 1, esc: [1, 0.95, 1.1] });
+  for (const sx of [-1, 1]) {
+    B([sx * 0.16, 1.22, 0.31], 0.085, '#c39466', { esc: [1, 0.8, 0.7] });
+    caja(c, F.p(sx * 0.125, 1.33, 0.33), [0.1, 0.05, 0.06], '#1e130b', { giro: sx * 0.38, tipo: 0, abollar: 0 });
+    caja(c, F.p(sx * 0.13, 1.385, 0.335), [0.15, 0.045, 0.07], '#6e4c30', { giro: sx * 0.38, rz: -sx * 0.14, tipo: 0, abollar: 0 });
+    B([sx * 0.095, 1.165, 0.38], 0.08, '#e2ccaa', { esc: [1.4, 0.5, 0.6], rot: [0, 0, sx * 0.35] });
+  }
+  // la barba larga (madera lijada, la más clara), que le cae sobre la panza y tapa el cinto, con vetas
+  B([0, 0.84, 0.31], 0.3, '#dcc29c', { detalle: 1, esc: [0.86, 1.45, 0.52], alto: 1.12 });
+  for (const sx of [-0.14, -0.05, 0.05, 0.14]) caja(c, F.p(sx, 0.86, 0.475 - Math.abs(sx) * 0.35), [0.016, 0.52, 0.02], '#9a7a52', { rz: sx * 0.5, tipo: 0, abollar: 0 });
+  // los brazos tallados en relieve, las manos, el cinto con su hebilla a los costados y las botas
+  for (const sx of [-1, 1]) {
+    B([sx * 0.42, 0.86, 0.1], 0.13, '#86603e', { esc: [0.55, 1.6, 0.8], rot: [0.35, 0, -sx * 0.18] });
+    B([sx * 0.31, 0.66, 0.35], 0.08, '#b48a5e', { detalle: 1 });
+    B([sx * 0.18, 0.5, 0.42], 0.11, '#3e2a1c', { esc: [0.9, 0.62, 1.3] });
+  }
+  cilindro(c, [x, 0.6, z], 0.49, 0.49, 0.07, '#4a3222', { tipo: 0, lados: 14, abierto: true });
+  K.circulo(x, z, 0.68, 0, 2.2);
 }
 function plaza(K) {
   const { W, D } = K, c = K.ext;
   const r = azar(semillaDe('plaza|piso'));
-  const RC = 4.1, ANCHO = 1.8;
-  // los ocho senderos: a las cuatro calles y a las cuatro esquinas
-  const rumbos = [[0, 1], [0, -1], [1, 0], [-1, 0], [W / 2, D / 2], [-W / 2, D / 2], [W / 2, -D / 2], [-W / 2, -D / 2]].map(([a, b]) => {
-    const l = Math.hypot(a, b);
-    const largo = Math.abs(a) < 1e-6 ? D / 2 : Math.abs(b) < 1e-6 ? W / 2 : l;
-    return { ux: a / l, uz: b / l, largo };
+  const RC = 3.9, A = 1.7, YL = 0.035;
+  // los cuatro senderos, a las esquinas: su rumbo y hasta dónde llegan sin salirse del lote
+  const sendas = [[W / 2, D / 2], [-W / 2, D / 2], [-W / 2, -D / 2], [W / 2, -D / 2]].map(([a, b]) => {
+    const l = Math.hypot(a, b), u = [a / l, b / l], v = [-u[1], u[0]];
+    let hasta = l;
+    const adentro = (s) => [-1, 1].every((sd) => Math.abs(u[0] * s + v[0] * sd * (A / 2 + 0.1)) < W / 2 - 0.05 && Math.abs(u[1] * s + v[1] * sd * (A / 2 + 0.1)) < D / 2 - 0.05);
+    while (hasta > RC && !adentro(hasta)) hasta -= 0.05;
+    return { u, v, hasta, ang: Math.atan2(u[1], u[0]) };
   });
-  const enSendero = (x, z) => rumbos.some((s) => {
-    const t = x * s.ux + z * s.uz, d = Math.abs(-x * s.uz + z * s.ux);
-    return t > 0 && t < s.largo + 0.2 && d < ANCHO / 2;
+  // la cama de mortero (gris pardo, lo que se ve en las juntas) bajo el redondel y los senderos
+  conSup(c, SUP.revoque, () => {
+    const anillo = [];
+    for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2; anillo.push([Math.cos(a) * (RC + 0.05), Math.sin(a) * (RC + 0.05)]); }
+    losa(c, anillo, YL - 0.005, YL - 0.005, tinte('#5c574d'), { canto: 1 });
+    for (const s of sendas) {
+      const P = (ss, d) => [s.u[0] * ss + s.v[0] * d, s.u[1] * ss + s.v[1] * d];
+      losa(c, [P(RC - 0.4, -A / 2), P(s.hasta, -A / 2), P(s.hasta, A / 2), P(RC - 0.4, A / 2)], YL - 0.005, YL - 0.005, tinte('#5c574d'), { canto: 1 });
+    }
   });
-  const dentro = (x, z) => {
-    if (Math.abs(x) > W / 2 - 0.15 || Math.abs(z) > D / 2 - 0.15) return 0;
-    const rr = Math.hypot(x, z);
-    if (rr < 0.75) return 0;   // el tronco
-    if (rr < RC) return 1;
-    return enSendero(x, z) ? 1 : 0;
-  };
-  lajasIrregulares(K, c, r, dentro, -W / 2, W / 2, -D / 2, D / 2);
-  // todo el lote sin helechos ni pasto alto (césped de plaza: el prado pintado del terreno)
+  // las lajas: el redondel en anillos (desde el pie del duende) y los senderos en hiladas
+  conSup(c, SUP.laja, () => {
+    const anillos = 5, r0 = 1.0;
+    for (let i = 0; i < anillos; i++) anilloLajas(c, r, r0 + (RC - r0) * i / anillos, r0 + (RC - r0) * (i + 1) / anillos, YL);
+    for (const s of sendas) senderoLajas(c, r, s.u, (d) => Math.sqrt(Math.max(0, RC * RC - d * d)) + 0.02, s.hasta, A, YL);
+    // el cordón de piedra que contiene el redondel (cortado donde entran los senderos)
+    const abre = (A / 2 + 0.22) / RC, RK = RC + 0.11;
+    const libres = sendas.map((s) => s.ang).sort((a, b) => a - b);
+    for (let i = 0; i < libres.length; i++) {
+      const a0 = libres[i] + abre, a1 = (i + 1 < libres.length ? libres[i + 1] : libres[0] + Math.PI * 2) - abre;
+      const n = Math.max(1, Math.round((a1 - a0) * RK / 0.62));
+      for (let k = 0; k < n; k++) {
+        const b0 = a0 + (a1 - a0) * k / n + 0.012, b1 = a0 + (a1 - a0) * (k + 1) / n - 0.012;
+        viga(c, [Math.cos(b0) * RK, -0.05, Math.sin(b0) * RK], [Math.cos(b1) * RK, -0.05 + (r() - 0.5) * 0.01, Math.sin(b1) * RK], 0.2, 0.38, elegir(r, PIEDRA_PLAZA), { tipo: 4, bajo: 0.6 });
+      }
+    }
+    // y el de cada sendero, a los dos lados
+    for (const s of sendas) {
+      const s0 = Math.sqrt(RK * RK - (A / 2 + 0.1) ** 2) + 0.06, n = Math.max(1, Math.round((s.hasta - s0) / 1.0));
+      for (const sd of [-1, 1]) for (let k = 0; k < n; k++) {
+        const t0 = s0 + (s.hasta - s0) * k / n + 0.01, t1 = s0 + (s.hasta - s0) * (k + 1) / n - 0.01, d = sd * (A / 2 + 0.1);
+        viga(c, [s.u[0] * t0 + s.v[0] * d, -0.07, s.u[1] * t0 + s.v[1] * d], [s.u[0] * t1 + s.v[0] * d, -0.07, s.u[1] * t1 + s.v[1] * d], 0.16, 0.34, elegir(r, PIEDRA_PLAZA), { tipo: 4, bajo: 0.6 });
+      }
+    }
+    // al pie del duende, un cordoncito redondo con tierra y pasto
+    for (let k = 0; k < 9; k++) {
+      const b0 = k / 9 * Math.PI * 2 + 0.03, b1 = (k + 1) / 9 * Math.PI * 2 - 0.03;
+      viga(c, [Math.cos(b0) * 0.95, 0.0, Math.sin(b0) * 0.95], [Math.cos(b1) * 0.95, 0.0, Math.sin(b1) * 0.95], 0.12, 0.17, elegir(r, PIEDRA_PLAZA), { tipo: 4, bajo: 0.6 });
+    }
+  });
+  conSup(c, SUP.nada, () => {
+    const t = [];
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; t.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9]); }
+    losa(c, t, 0.06, 0.06, tinte('#45362a'), { canto: 1, tipo: 0 });
+  });
+  for (let i = 0; i < 4; i++) { const a = i * 1.57 + 0.6; manojo(K.fol, r, Math.cos(a) * 0.78, 0.06, Math.sin(a) * 0.78, 5, 0.18, 0.32); }
+  // el lote entero es césped corto (sin pasto alto ni helechos: para marcarPisos); lo pisado, aparte
   K.plataforma(0, 0, W, D, 0.02, 0.1);
-  K.pisos.push({ lx: 0, lz: 0, largo: W, ancho: D });
-  // lo pisado: el redondel y los senderos (ahí no sale pasto; entre senderos queda el prado)
-  K.plataforma(0, 0, 2 * RC, 2 * RC, 0.05, 0.12, 0, { radio: RC });
+  K.pisos.push({ lx: 0, lz: 0, largo: W, ancho: D, cesped: true });
+  K.plataforma(0, 0, 2 * RC, 2 * RC, 0.07, 0.12, 0, { radio: RC + 0.1 });
   K.pisos.push({ lx: 0, lz: 0, largo: 2 * RC, ancho: 2 * RC });
-  for (const s of rumbos) {
-    const L = s.largo - RC + 0.4, m = RC - 0.2 + L / 2, giro = Math.atan2(-s.uz, s.ux);
-    K.plataforma(s.ux * m, s.uz * m, L, ANCHO, 0.05, 0.12, giro);
-    K.pisos.push({ lx: s.ux * m, lz: s.uz * m, largo: L, ancho: ANCHO, giro });
+  for (const s of sendas) {
+    const L = s.hasta - RC + 0.3, m = RC - 0.3 + L / 2, giro = Math.atan2(-s.u[1], s.u[0]);
+    K.plataforma(s.u[0] * m, s.u[1] * m, L, A, 0.07, 0.12, giro);
+    K.pisos.push({ lx: s.u[0] * m, lz: s.u[1] * m, largo: L, ancho: A, giro });
   }
   // el duende tallado en el centro, mirando a la estación
   troncoDuende(K, 0, 0);
-  K.punto('duende', 0, 1.35, Math.PI, 0.05);
-  // el anillo de canteros, cortado por los senderos: borde de laja, tierra, matas y flores
-  const angulos = rumbos.map((s) => Math.atan2(s.uz, s.ux)).sort((a, b) => a - b);
-  const R0 = RC + 0.25, R1 = RC + 1.05, Rm = (R0 + R1) / 2;
-  for (let i = 0; i < angulos.length; i++) {
-    const a0 = angulos[i], a1 = i + 1 < angulos.length ? angulos[i + 1] : angulos[0] + Math.PI * 2;
-    const m0 = a0 + (ANCHO / 2 + 0.15) / R0, m1 = a1 - (ANCHO / 2 + 0.15) / R0;
-    if (m1 - m0 < 0.15) continue;
-    const n = Math.max(2, Math.round((m1 - m0) * Rm / 0.9));
-    for (let k = 0; k < n; k++) {
-      const b0 = m0 + (m1 - m0) * k / n, b1 = m0 + (m1 - m0) * (k + 1) / n;
-      const P = (rr, a) => [Math.cos(a) * rr, Math.sin(a) * rr];
-      for (const rr of [R0, R1]) {
-        const [ax, az] = P(rr, b0), [bx, bz] = P(rr, b1);
-        viga(c, [ax, 0.08, az], [bx, 0.08, bz], 0.14, 0.18, elegir(r, PALETA_ALDEA.laja), { tipo: 4, bajo: 0.55 });
-      }
-      const [ax, az] = P(R0, b0), [bx, bz] = P(R0, b1), [cx2, cz2] = P(R1, b1), [dx, dz] = P(R1, b0);
-      const kt = tinte('#4a3a2c');
-      quad(c, [dx, 0.13, dz], [cx2, 0.13, cz2], [bx, 0.13, bz], [ax, 0.13, az], kt, kt, escalar(kt, 0.85), escalar(kt, 0.85), 0);
-      const [mx, mz] = P(Rm, (b0 + b1) / 2);
-      // matas de hojas finas (como el pasto del valle), no bultos
-      for (let q = 0; q < 3; q++) { const [qx, qz] = P(Rm + (r() - 0.5) * 0.35, b0 + (b1 - b0) * (0.2 + 0.3 * q)); manojo(K.fol, r, qx, 0.13, qz, 7, 0.32, 0.5); }
-      const flor = elegir(r, ['#7a5aa8', '#c46a9a', '#e0d0e8', '#e8b030', '#f0ece0']);
-      // flores de disco (margaritas, amancay, malvas) sobre la mata
-      for (let f = 0; f < 5; f++) {
-        const [fx, fz] = P(Rm + (r() - 0.5) * 0.5, b0 + (b1 - b0) * (0.1 + 0.2 * f));
-        const fy = 0.34 + r() * 0.1, rf = 0.05 + r() * 0.03, kf = tinte(r() < 0.5 ? flor : elegir(r, ['#f0ece0', '#e8b030', '#c46a9a'])), kc = tinte('#c89a2a');
-        for (let q = 0; q < 6; q++) {
-          const a0 = q * 1.047, a1 = a0 + 1.047;
-          tri(K.fol, [fx, fy + 0.01, fz], [fx + Math.cos(a1) * rf, fy, fz + Math.sin(a1) * rf], [fx + Math.cos(a0) * rf, fy, fz + Math.sin(a0) * rf], kc, kf, kf, 3);
-        }
-      }
-      const [sx0, sz0] = P(Rm, b0), [sx1, sz1] = P(Rm, b1);
-      K.segmento(sx0, sz0, sx1, sz1, 0.42, 0, 0.42);
-    }
+  K.punto('duende', 0, 1.45, Math.PI, 0.05);
+  // los faroles: un par en cada sendero, a los dos lados y a la misma distancia del centro
+  for (const s of sendas) {
+    const t = (RC + s.hasta) / 2 + 0.3;
+    for (const sd of [-1, 1]) farol(K, s.u[0] * t + s.v[0] * sd * (A / 2 + 0.55), s.u[1] * t + s.v[1] * sd * (A / 2 + 0.55), { alto: 3.2 });
   }
-  // bancos en el borde del redondel, mirando al duende
+  // los bancos (1,7 m) en el borde del redondel, mirando al duende: uno a cada costado, dos adelante
+  // y dos atrás (entre los senderos)
   const estar = [];
-  angulos.slice(0, 8).forEach((a0, i) => {
-    if (i % 2) return;   // en cuatro de los ocho tramos
-    const a1 = angulos[i + 1] ?? angulos[0] + Math.PI * 2, am = (a0 + a1) / 2, rr = RC - 0.45;
-    const x = Math.cos(am) * rr, z = Math.sin(am) * rr, giro = Math.atan2(-x, -z);
-    banco(K, c, x, z, giro, { largo: 1.5, color: '#6e5036', patas: '#2f2c2a', nombre: 'un banco de la plaza', tipo: 0 });
-    for (const s of [-0.38, 0.38]) { const F = marcoLocal(x, z, giro); const p = F.p(s, 0, 0.72); estar.push({ lx: p[0], ly: 0.05, lz: p[2], mira: giro + Math.PI }); }
-  });
-  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + 0.13; estar.push({ lx: Math.cos(a) * 1.65, ly: 0.05, lz: Math.sin(a) * 1.65, mira: Math.atan2(-Math.cos(a), -Math.sin(a)) }); }
-  K.extra.estar = estar.slice(0, 20);
-  // faroles junto a los senderos (a un costado, sin cortar el paso)
-  for (const s of rumbos.slice(4)) {
-    const t = RC + 2.6, px = s.ux * t - s.uz * (ANCHO / 2 + 0.35), pz = s.uz * t + s.ux * (ANCHO / 2 + 0.35);
-    farol(K, px, pz, { alto: 3.1 });
+  for (const am of [0, Math.PI, Math.PI / 2 - 0.33, Math.PI / 2 + 0.33, -Math.PI / 2 - 0.33, -Math.PI / 2 + 0.33]) {
+    const rr = RC - 0.62, x = Math.cos(am) * rr, z = Math.sin(am) * rr, giro = Math.atan2(-x, -z);
+    banco(K, c, x, z, giro, { largo: 1.7, color: '#6e5036', patas: '#2f2c2a', nombre: 'un banco de la plaza', tipo: 0 });
+    for (const sx of [-0.42, 0.42]) { const p = marcoLocal(x, z, giro).p(sx, 0, 0.72); estar.push({ lx: p[0], ly: 0.05, lz: p[2], mira: giro + Math.PI }); }
   }
-  for (const sx of [-1, 1]) farol(K, sx * (ANCHO / 2 + 0.35), D / 2 - 1.0, { alto: 3.1 });
-  // el mástil con la bandera, del lado de la estación
-  mastil(K, -2.9, D / 2 - 1.5, { alto: 8.0, giro: 0.3 });
-  K.punto('mastil', -2.9, D / 2 - 0.25, Math.PI, 0.03);
-  // el aljibe viejo y el sube y baja, en el pasto entre senderos
-  aljibe(K, -7.0, -2.3);
-  const Fs = marcoLocal(7.1, -2.6, 0.25);
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + 0.2; estar.push({ lx: Math.cos(a) * 1.75, ly: 0.05, lz: Math.sin(a) * 1.75, mira: Math.atan2(-Math.cos(a), -Math.sin(a)) }); }
+  K.extra.estar = estar.slice(0, 20);
+  // el mástil al frente, del lado de la estación, sobre su base de piedra (dos escalones)
+  const ZM = D / 2 - 1.75;
+  conSup(c, SUP.piedra, () => {
+    caja(c, [0, 0.0, ZM], [1.5, 0.5, 1.5], '#8a8274', { tipo: 4, abollar: 0.01 });
+    caja(c, [0, 0.33, ZM], [1.0, 0.18, 1.0], '#9a917f', { tipo: 4, abollar: 0.008 });
+  });
+  K.mueble(0, ZM, 1.5, 1.5, 0.42, 0, 0);
+  mastil(K, 0, ZM, { alto: 8.0, giro: 0.3, base: false, soga: 1.45 });
+  K.punto('mastil', 0, ZM + 1.3, Math.PI, 0.03);
+  // los canteros con borde de troncos, entre los senderos
+  canteroTroncos(K, r, -3.15, ZM + 0.1, 1.8, 1.0);
+  canteroTroncos(K, r, 3.15, ZM + 0.1, 1.8, 1.0);
+  canteroTroncos(K, r, 0, -D / 2 + 1.55, 3.6, 1.1);
+  canteroTroncos(K, r, -5.9, 1.0, 1.0, 2.2);
+  canteroTroncos(K, r, 5.9, 1.0, 1.0, 2.2);
+  // el aljibe en el rincón del fondo y el sube y baja del otro lado
+  aljibe(K, -7.6, -1.7);
+  const XS = 7.4, ZS = -1.9, Fs = marcoLocal(XS, ZS, 0.25);
   cj(c, Fs, 0, 0.45, 0, 0.3, 0.9, 0.3, '#5a4636', { tipo: 0 });
   cj(c, Fs, 0, 0.75, 0, 3.2, 0.1, 0.3, '#8a5236', { tipo: 0, rz: 0.14 });
   for (const sx of [-1, 1]) cj(c, Fs, sx * 1.35, 0.75 + sx * 0.19 + 0.12, 0, 0.06, 0.28, 0.3, '#2f2c2a', { tipo: 4 });
-  K.circulo(7.1, -2.6, 0.3, 0, 0.9);
-  K.extra.juego = [[6.1, -1.9], [8.3, -3.1], [7.2, -1.5], [7.4, -3.7]].map(([x, z]) => ({ lx: x, ly: 0.03, lz: z, mira: Math.atan2(7.1 - x, -2.6 - z) }));
-  // dos álamos en la plaza (el resto, en `extra.alamos`, para el mundo)
-  alamo(K, -7.4, 3.6, { semilla: 3, alto: 12.5, sinLod: true });
-  alamo(K, 7.4, 3.6, { semilla: 4, alto: 13.2, sinLod: true });
+  K.circulo(XS, ZS, 0.3, 0, 0.9);
+  K.extra.juego = [[-1.0, 0.7], [1.2, -0.5], [0.1, 1.1], [0.3, -1.1]].map(([dx, dz]) => ({ lx: XS + dx, ly: 0.03, lz: ZS + dz, mira: Math.atan2(-dx, -dz) }));
+  // un álamo a cada costado (el resto, en `extra.alamos`, para el mundo)
+  alamo(K, -8.1, 2.6, { semilla: 3, alto: 16.5, sinLod: true });
+  alamo(K, 8.1, 2.6, { semilla: 4, alto: 17.5, sinLod: true });
   cartel(K, 'Plaza de los Duendes', [5.4, 1.25, D / 2 + 0.6], 2.2, 0.42, 0, { dosCaras: true });
   for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.0, -0.2, D / 2 + 0.6], [5.4 + l * 1.0, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.0, D / 2 + 0.6, 0.08, 0, 1.6); }
   K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
-  K.punto('musico', 1.25, 1.15, Math.PI * 0.75, 0.05);
+  K.punto('musico', 1.3, 1.25, Math.PI * 0.75, 0.05);
   K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [4.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));
-  K.luz(0, 3.2, 0, { color: 0xffc070, radio: 10, intensidad: 0.6, clase: 'farol', cuarto: 'calle' });
 }
 
 // ---------------------------------------------------------------- el lote vacío y la obra
@@ -3205,94 +3311,109 @@ export function armarEdificio(id, etapa = 4, opciones = {}) {
 }
 
 // ---------------------------------------------------------------- accesorios sueltos de la aldea
-// Un álamo piramidal (Populus nigra 'Italica', el cortaviento de la Patagonia): copa densa, alta y
-// angosta. 3.6 (pulido): un huso liso hace de masa y encima van racimos chicos de hojas; todos se
-// sombrean como una sola columna (la normal sale del eje del árbol, no de cada racimo), así no
-// quedan "bollos": la silueta se quiebra en hojas y la luz corre pareja. Hojas con aTipo 2 (caen en
-// invierno: quedan el tronco y las ramas que suben pegadas al eje).
+// Un álamo de Lombardía (Populus nigra 'Italica', el cortaviento de la Patagonia): una columna alta y
+// angosta, de 15 a 20 m y 2,5 a 3 m de ancho, hecha de muchas ramitas que suben pegadas al tronco.
+// 3.6 (plaza y álamos): armado como los árboles pintados de la 3.4 (ver vegetacion.js). El tronco y las
+// ramitas van con el follaje (aTipo 0: el viento los mueve con las hojas, como en el bosque); adentro un
+// huso angosto (el núcleo: las hojas pintadas del atlas, sin recortar) que no deja ver el cielo a través;
+// encima, cientos de cartas de follaje angostas y paradas que miran a la cámara y se recortan con el alfa
+// del atlas de cartas (aCarta, el mismo formato que vegetacion.js). Todo con la normal de la columna: se
+// sombrea como una sola masa, sin bollos. Las hojas son aTipo 2: caen en invierno (quedan el tronco y las
+// ramitas) y con prepararFollajeAldea se ponen amarillas en otoño.
 function triN(c, p, n, k, tipo) {
   for (let i = 0; i < 3; i++) { c.pos.push(p[i][0], p[i][1], p[i][2]); c.nor.push(n[i][0], n[i][1], n[i][2]); c.col.push(k[i].r, k[i].g, k[i].b); c.tipo.push(tipo); if (c.sup) c.sup.push(c.supActual); }
 }
-const ICOSA = (() => { const g = new THREE.IcosahedronGeometry(1, 0); const a = Array.from(g.attributes.position.array); g.dispose(); return a; })();
-function alamo(K, x0, z0, o) {
-  const c = K.ext, fol = K.fol;
-  const r = azar(semillaDe('alamo|' + (o.semilla ?? 0)));
-  const alto = o.alto ?? entre(r, 13, 17);
-  const yB = 1.7, yT = alto, Rmax = alto * 0.105;
-  // tronco y ramas que suben pegadas al eje (lo único que queda en invierno)
-  palo(c, [x0, -0.3, z0], [x0 + 0.05, alto * 0.82, z0 + 0.03], 0.26, '#6f6658', { lados: 8, punta: 0.25, abierto: false });
-  for (let i = 0; i < 9; i++) {
-    const y = 1.8 + i * alto * 0.075, a = r() * 6.28;
-    palo(c, [x0, y, z0], [x0 + Math.cos(a) * 0.55, y + alto * 0.18, z0 + Math.sin(a) * 0.55], 0.05, '#6f6658', { lados: 5, punta: 0.3 });
+// la celda del atlas de cartas de vegetacion.js (CELDAS_CARTA.densa: hojitas chicas apretadas) y sus filas
+const CELDA_ALAMO = 0, FILAS_ATLAS = 4;
+// Una carta: cuatro esquinas en el mismo punto, que se abren en la vista según aCarta.xy (como `carta`
+// en vegetacion.js); zw es su lugar en el atlas. Abajo más oscura que arriba.
+function cartaHojas(c, x, y, z, n, ancho, alto, giro, cuelga, celda, tipo, kAbajo, kArriba) {
+  const cu = (celda % 4) * 0.25, cv = Math.floor(celda / 4) / FILAS_ATLAS, cg = Math.cos(giro), sg = Math.sin(giro);
+  const esq = [];
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    const ox = sx * ancho, oy = sy * alto - cuelga;
+    esq.push([ox * cg - oy * sg, ox * sg + oy * cg, cu + (0.03 + (sx * 0.5 + 0.5) * 0.94) * 0.25, cv + (0.03 + (0.5 - sy * 0.5) * 0.94) / FILAS_ATLAS, sy < 0 ? kAbajo : kArriba]);
   }
-  const R = (t) => Rmax * Math.pow(Math.max(0, Math.sin(Math.PI * (0.06 + 0.94 * t))), 0.55) * (1.08 - 0.5 * t);
-  const oscuro = tinte('#253a24'), claro = tinte('#5f7a3c'), sol = tinte('#8e9048');
-  // el color sale sólo de la posición (altura, lado y una pincelada), nunca del racimo: sin contornos
-  const colorEn = (t, afuera, arriba, P = null) => {
-    const pn = P ? pincel(P[0] * 1.3, P[1] * 0.8, P[2] * 1.3, 4.1) : 0.5;
-    let k = mezclar(oscuro, claro, Math.min(1, Math.max(0, 0.1 + 0.55 * t + 0.25 * afuera + 0.35 * (pn - 0.5))));
-    if (P) { const lado = Math.max(0, ((P[0] - x0) * 0.6 + (P[2] - z0) * 0.5) / Math.max(0.3, R(t))); k = mezclar(k, sol, Math.min(0.25, lado * 0.15 + arriba * 0.08)); }
-    return k;
+  for (const j of [0, 1, 2, 0, 2, 3]) {
+    const e = esq[j];
+    c.marcarCarta(c.tipo.length, 1, [e[0], e[1], e[2], e[3]]);
+    c.pos.push(x, y, z); c.nor.push(n[0], n[1], n[2]); c.col.push(e[4].r, e[4].g, e[4].b); c.tipo.push(tipo); if (c.sup) c.sup.push(c.supActual);
+  }
+}
+function alamo(K, x0, z0, o) {
+  const fol = K.fol;
+  const r = azar(semillaDe('alamo|' + (o.semilla ?? 0)));
+  const alto = o.alto ?? entre(r, 15, 19);
+  const yB = 1.5, yT = alto, Rmax = entre(r, 1.3, 1.5);
+  // el ancho de la columna a cada altura (0 abajo, 1 en la punta): angosta al pie, lo más ancho a un
+  // tercio y en punta arriba
+  const R = (t) => Rmax * Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, 0.1 + 0.9 * t))), 0.6) * (1 - 0.42 * t);
+  // el pie: las raíces que asoman (en la estructura)
+  if (!o.lodDe) for (let i = 0; i < 3; i++) { const a = i * 2.1 + r(); bulto(K.ext, [x0 + Math.cos(a) * 0.3, 0.02, z0 + Math.sin(a) * 0.3], 0.22, '#5e564a', { tipo: 0, detalle: 0, esc: [1.4, 0.5, 0.8], rot: [0, -a, 0], bajo: 0.6 }); }
+  // el tronco y las ramitas que suben pegadas al eje (es lo que queda en invierno)
+  if (o.lodDe) palo(K.ext, [x0, -0.3, z0], [x0, alto * 0.55, z0], 0.26, '#6f6658', { lados: 5, punta: 0.45, abierto: true });
+  else palo(fol, [x0, -0.3, z0], [x0 + 0.04, alto * 0.8, z0 + 0.03], 0.27, '#6f6658', { lados: 7, punta: 0.18, abierto: false });
+  const nr = o.ramitas ?? 24;
+  for (let i = 0; i < nr; i++) {
+    const t = 0.03 + 0.8 * (i / nr), y = yB + t * (yT - yB) * 0.86, a = i * 2.39996 + r() * 0.5;
+    const largo = (yT - yB) * entre(r, 0.12, 0.2), sale = R(Math.min(1, t + 0.08)) * 0.72;
+    palo(fol, [x0 + Math.cos(a) * 0.07, y, z0 + Math.sin(a) * 0.07], [x0 + Math.cos(a) * sale, y + largo, z0 + Math.sin(a) * sale], 0.05 * (1.1 - t * 0.6), '#77705f', { lados: 3, punta: 0.3 });
+  }
+  const oscuro = tinte('#2f4a26'), claro = tinte('#7a9a42'), sol = tinte('#a6b85a');
+  // el color sale de la posición (altura, de qué lado del sol, qué tan afuera y una pincelada)
+  const colorEn = (P, afuera) => {
+    const t = (P[1] - yB) / (yT - yB), pn = pincel(P[0] * 1.3, P[1] * 0.7, P[2] * 1.3, 4.1);
+    let k = mezclar(oscuro, claro, Math.min(1, Math.max(0, 0.08 + 0.45 * t + 0.35 * afuera + 0.35 * (pn - 0.5))));
+    const lado = Math.max(0, ((P[0] - x0) * 0.6 + (P[2] - z0) * 0.5) / Math.max(0.3, R(t)));
+    return mezclar(k, sol, Math.min(0.3, lado * 0.16 * afuera));
   };
   const normal = (x, y, z) => {
     const t = (y - yB) / (yT - yB);
-    let nx = x - x0, nz = z - z0;
-    const l = Math.hypot(nx, nz) || 1;
-    const ny = 0.25 + 0.6 * Math.max(0, t - 0.75) * 4;
+    const nx = x - x0, nz = z - z0, l = Math.hypot(nx, nz) || 1;
+    const ny = 0.2 + 1.6 * Math.max(0, t - 0.7);
     const m = Math.hypot(nx / l, ny, nz / l);
     return [nx / l / m, ny / m, nz / l / m];
   };
-  // el huso: 8 lados × 8 filas, normales al eje
-  const lados = 8, filas = 8;
+  // el núcleo: un huso de 7 lados × 8 filas, angosto (las hojas pintadas, sin recorte)
+  const lados = o.ladosNucleo ?? 7, filas = o.filasNucleo ?? 8;
   const anillo = (j) => {
-    const t = j / filas, y = yB + t * (yT - yB), rr = R(t) * 0.82;
+    const t = j / filas, y = yB + t * (yT - yB), rr = R(t) * 0.6;
     const pts = [];
-    for (let i = 0; i <= lados; i++) {
-      const a = (i / lados) * 6.283 + j * 0.3;
-      pts.push([x0 + Math.cos(a) * rr, y, z0 + Math.sin(a) * rr]);
-    }
-    return { pts, t };
+    for (let i = 0; i <= lados; i++) { const a = (i / lados) * 6.283 + j * 0.4; pts.push([x0 + Math.cos(a) * rr, y, z0 + Math.sin(a) * rr]); }
+    return pts;
   };
+  const i0 = fol.tipo.length;
   let prev = anillo(0);
   for (let j = 1; j <= filas; j++) {
     const cur = anillo(j);
     for (let i = 0; i < lados; i++) {
-      const a = prev.pts[i], b = prev.pts[i + 1], d = cur.pts[i + 1], e = cur.pts[i];
-      const K3 = (p, tt) => colorEn(tt, 0.8, 0, p);
-      triN(fol, [a, d, b], [normal(...a), normal(...d), normal(...b)], [K3(a, prev.t), K3(d, cur.t), K3(b, prev.t)], 2);
-      triN(fol, [a, e, d], [normal(...a), normal(...e), normal(...d)], [K3(a, prev.t), K3(e, cur.t), K3(d, cur.t)], 2);
+      const a = prev[i], b = prev[i + 1], d = cur[i + 1], e = cur[i];
+      const kk = (p) => escalar(colorEn(p, 0.15), 0.8);
+      triN(fol, [a, d, b], [normal(...a), normal(...d), normal(...b)], [kk(a), kk(d), kk(b)], 2);
+      triN(fol, [a, e, d], [normal(...a), normal(...e), normal(...d)], [kk(a), kk(e), kk(d)], 2);
     }
     prev = cur;
   }
-  // los racimos sobre el huso
-  const n = o.racimos ?? 56;
+  fol.marcarCarta(i0, fol.tipo.length - i0, [0, 0, 0, -(10 + CELDA_ALAMO)]);
+  // las cartas: repartidas por la columna (más donde es más ancha), angostas y paradas (las ramitas
+  // suben pegadas), unas sobre el huso y otras más afuera, que le rompen el borde
+  const n = o.cartas ?? 300, tam0 = o.tamCarta ?? 1;
   for (let i = 0; i < n; i++) {
-    const t = Math.pow(r(), 0.85) * 0.97, y = yB + 0.2 + t * (yT - yB - 0.4), a = i * 2.39996 + r() * 0.6;
-    const rr = R(t) * entre(r, 0.78, 1.0), s = entre(r, 0.26, 0.46) * (1.05 - 0.45 * t);
-    const cx = x0 + Math.cos(a) * rr, cz = z0 + Math.sin(a) * rr;
-    const tilt = r() * 6.28;
-    for (let v = 0; v < ICOSA.length; v += 9) {
-      const p = [], nn = [], k = [];
-      for (let w = 0; w < 3; w++) {
-        const ix = ICOSA[v + w * 3], iy = ICOSA[v + w * 3 + 1], iz = ICOSA[v + w * 3 + 2];
-        const qx = ix * Math.cos(tilt) - iz * Math.sin(tilt), qz = ix * Math.sin(tilt) + iz * Math.cos(tilt);
-        const P = [cx + qx * s, y + iy * s * 1.7, cz + qz * s];
-        p.push(P); nn.push(normal(...P));
-        k.push(colorEn((P[1] - yB) / (yT - yB), 0.8, Math.max(0, iy) * 0.3, P));
-      }
-      triN(fol, p, nn, k, 2);
-    }
+    let t = r();
+    for (let q = 0; q < 4 && r() > R(t) / Rmax + 0.2; q++) t = r();
+    const y = yB + 0.25 + t * (yT - yB - 0.45), a = i * 2.39996 + r() * 0.9;
+    const afuera = entre(r, 0.45, 1.0), rr = R(t) * afuera;
+    const P = [x0 + Math.cos(a) * rr, y, z0 + Math.sin(a) * rr];
+    const tam = entre(r, 0.34, 0.46) * (1.08 - 0.45 * t) * tam0;
+    const k = colorEn(P, afuera);
+    cartaHojas(fol, P[0], P[1], P[2], normal(...P), tam * 0.75, tam * 1.35, (r() - 0.5) * 0.3, tam * 0.2, CELDA_ALAMO, 2, escalar(k, 0.78), k);
   }
   K.circulo(x0, z0, 0.32, -0.3, alto);
   if (o.sinLod) return;
-  // el LOD barato: un tronco y dos husos
-  const lt = new Constructor(), lf = new Constructor();
-  palo(lt, [0, -0.3, 0], [0, alto * 0.5, 0], 0.26, '#6f6658', { lados: 5, punta: 0.5, abierto: true });
-  for (const [y, rad, sy] of [[alto * 0.38, 1.4, 3.3], [alto * 0.72, 0.95, 2.6]]) {
-    const g = new THREE.IcosahedronGeometry(rad, 0);
-    lf.agregar(g, { tipo: 2, variar: 0.06, esferica: 0.8, degradado: [lin('#3a5532'), lin('#748f44')], matriz: matriz([0, y, 0], [0, 0, 0], [1, sy, 1]) });
-    g.dispose();
-  }
+  // el LOD barato: el tronco, un huso de 5 × 4 y cuarenta cartas grandes
+  const lt = new ConstructorAldea(SUP.nada), lf = new ConstructorAldea(SUP.nada, { cartas: true });
+  const Kl = { ext: lt, fol: lf, circulo: () => {} };
+  alamo(Kl, 0, 0, { ...o, sinLod: true, lodDe: true, ramitas: 0, ladosNucleo: 5, filasNucleo: 4, cartas: 40, tamCarta: 2.3, alto });
   K.extra.alamo = { lod: { estructura: lt.geometria(), follaje: lf.geometria() }, alto };
 }
 export function armarAccesorio(nombre, o = {}) {
@@ -3492,6 +3613,9 @@ const GLSL_ALDEA_COLOR = /* glsl */`
         alb *= 0.85 + 0.25 * nA(pL.xz * 3.1 + pL.y);
       }
       alb *= 1.0 - junta * 0.45;
+      // 3.6 (plaza y álamos): la madera pintada de afuera, un poco más clara y tibia (la junta y la veta
+      // se leen sobre un color vivo, no sobre gris)
+      alb *= mix(vec3(1.0), vec3(1.1, 1.05, 0.96), madera * (1.0 - dentro));
       if (madera > 0.0) {
         // la pintura se va junto a los cantos y asoma la madera
         float gasto = (1.0 - smoothstep(0.01, 0.06, bordeTabla)) * step(0.55, nA(uv * 7.0)) * madera;
@@ -3572,6 +3696,78 @@ export function prepararVidrioAldea(mat, { cielo = null } = {}) {
       #include <opaque_fragment>`);
   };
   mat.userData.vidrioAldea36 = true;
+  mat.needsUpdate = true;
+  return mat;
+}
+
+// 3.6 (plaza y álamos): el material del follaje de la aldea. Toma uno PROPIO, materialVegetal({ flex: 1,
+// copa: true }), y le suma las cartas de hojas como las del bosque (ver conCartas en vegetacion.js): cada
+// esquina de carta se abre en el plano de la vista según aCarta.xy (con el mismo tope de tamaño aparente
+// y achicándose pegada al ojo), lee su lugar en el atlas (aCarta.zw; el atlas es texturaCartas() de
+// vegetacion.js, que se pasa en `cartas`) y se recorta con su alfa; el núcleo del álamo
+// (aCarta.w = −(10 + celda)) toma las hojas pintadas sin recortar. Las hojas con carta y aTipo 2 (el
+// álamo) se ponen amarillas en otoño (oro, no el rojo de la lenga) y en invierno se cierran (las cartas
+// también). Lo que no lleva carta (matas, flores, pasto de los canteros) sale igual que hoy. Una
+// variante de programa más (clave 'follaje-aldea-3.6'): compilarla en la carga con el resto.
+const GLSL_FOLLAJE_COLOR = /* glsl */`
+  if ((dot(aCarta.xy, aCarta.xy) > 1e-8 || aCarta.w < -9.5) && aTipo > 1.5 && aTipo < 2.5) {
+    float azarA = fract(sin(dot(position.xz, vec2(12.9898, 78.233))) * 43758.5453);
+    vec3 oroA = mix(vec3(0.6, 0.34, 0.02), vec3(0.86, 0.6, 0.07), azarA);
+    float lumA = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    vColor.rgb = mix(color.rgb, oroA * clamp(lumA / 0.12, 0.55, 1.3), uOtono) * mix(0.62, 1.0, smoothstep(0.0, 1.6, position.y));
+  }
+`;
+const GLSL_FOLLAJE_CARTA = /* glsl */`
+  {
+    bool cerradaA = (aTipo > 1.5 && aTipo < 2.5 && uInvierno > 0.5) || (aTipo > 2.5 && aTipo < 3.5 && uInvierno > 0.2);
+    vec2 abreA = aCarta.xy * (cerradaA ? 0.0 : 1.0);
+    if (dot(abreA, abreA) > 1e-8) {
+      float dA = length(mvPosition.xyz);
+      abreA *= min(1.0, 0.35 * dA / max(length(abreA), 1e-4)) * smoothstep(0.5, 2.2, dA);
+      mvPosition.xy += abreA;
+      gl_Position = projectionMatrix * mvPosition;
+    }
+    float celdaA = -aCarta.w - 10.0;
+    vCartaA = dot(aCarta.xy, aCarta.xy) > 1e-8 ? vec3(aCarta.zw, 1.0)
+      : (aCarta.w < -9.5 ? vec3((vec2(mod(celdaA, 4.0), floor(celdaA / 4.0)) + 0.5) * 0.25 + normal.xz * 0.09, 2.0) : vec3(0.0));
+  }
+`;
+const GLSL_FOLLAJE_FRAG = /* glsl */`
+  if (vCartaA.z > 1.5) {
+    vec4 nucA = texture2D(uCartasA, vCartaA.xy);
+    diffuseColor.rgb *= mix(0.8, mix(0.62, 1.1, nucA.r), nucA.a);
+  } else if (vCartaA.z > 0.5) {
+    vec4 cartaA = texture2D(uCartasA, vCartaA.xy);
+    if (cartaA.a < mix(0.5, 0.3, smoothstep(14.0, 70.0, length(vViewPosition)))) discard;
+    // (en las celdas de flores, 7 a 9, G marca el tallo y la hoja y B el centro: el pétalo es el vértice)
+    vec2 celA = floor(vCartaA.xy * 4.0);
+    float nCelA = celA.y * 4.0 + celA.x;
+    float florA = step(6.5, nCelA) * step(nCelA, 9.5);
+    vec3 conFlorA = mix(mix(diffuseColor.rgb, vec3(0.78, 0.5, 0.06), cartaA.b), vec3(0.1, 0.19, 0.05), cartaA.g);
+    diffuseColor.rgb = mix(diffuseColor.rgb, conFlorA, florA) * mix(0.66, 1.1, cartaA.r);
+  }
+`;
+export function prepararFollajeAldea(mat, { cartas = null } = {}) {
+  if (!mat || mat.userData?.follajeAldea36) return mat;
+  // (sin atlas, una textura blanca: las cartas salen cuadradas pero nada se rompe)
+  const tex = cartas ?? Object.assign(new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1), { needsUpdate: true });
+  const uCartas = { value: tex };
+  const previo = mat.onBeforeCompile;
+  const clave = typeof mat.customProgramCacheKey === 'function' ? mat.customProgramCacheKey() : '';
+  mat.customProgramCacheKey = () => clave + '|follaje-aldea-3.6';
+  mat.onBeforeCompile = (sh, r) => {
+    if (typeof previo === 'function') previo(sh, r);
+    sh.uniforms.uCartasA = uCartas;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec4 aCarta; varying vec3 vCartaA;')
+      .replace('#include <begin_vertex>', GLSL_FOLLAJE_COLOR + '\n#include <begin_vertex>')
+      .replace('#include <project_vertex>', '#include <project_vertex>\n' + GLSL_FOLLAJE_CARTA);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform sampler2D uCartasA; varying vec3 vCartaA;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\n' + GLSL_FOLLAJE_FRAG);
+  };
+  mat.userData.follajeAldea36 = true;
+  mat.userData.cartas = tex;
   mat.needsUpdate = true;
   return mat;
 }
