@@ -31,7 +31,8 @@
 import * as THREE from 'three';
 import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle } from './aldea.js';
 import { estadoVisual } from './aldea-gente.js';
-import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, armarCable, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
+import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
+import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
 import { registrarLuz } from './luces.js';
 import { armarTerreno } from './terreno.js';
@@ -772,7 +773,8 @@ export function crearAldeaMundo(ctx) {
   function crearMateriales() {
     // (3.6 pulido: un material PROPIO con el detalle de superficie del shader; no el est.mat compartido)
     const estructura = prepararMaterialAldea(materialVegetal({ flex: 0 }));
-    const follaje = materialVegetal({ flex: 1 });
+    // 3.6 (plaza y álamos): las cartas de hojas pintadas, como el bosque (sin esto los álamos son sólo tronco y ramitas)
+    const follaje = prepararFollajeAldea(materialVegetal({ flex: 1, copa: true }), { cartas: texturaCartas() });
     const tA = performance.now();
     const atlas = crearTexturaCarteles();
     info.atlasMs = performance.now() - tA;
@@ -933,18 +935,19 @@ export function crearAldeaMundo(ctx) {
       if (attrs.includes('color')) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9), 3));
       if (attrs.includes('aTipo')) g.setAttribute('aTipo', new THREE.BufferAttribute(new Float32Array(3), 1));
       if (attrs.includes('uv')) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(6), 2));
+      if (attrs.includes('aCarta')) g.setAttribute('aCarta', new THREE.BufferAttribute(new Float32Array(12), 4));
       return g;
     };
     semillas = new THREE.Group();
     semillas.name = 'aldea-semillas';
     const m = materiales;
-    for (const [mat, attrs] of [[m.estructura, ['color', 'aTipo']], [m.follaje, ['color', 'aTipo']], [m.vidrios, ['color', 'aTipo']], [m.brasas, ['color', 'aTipo']], [m.carteles, ['uv']], [m.puerta, ['color']], [m.ripio, ['uv']], [m.ventanaLuz, ['uv']]]) {
+    for (const [mat, attrs] of [[m.estructura, ['color', 'aTipo']], [m.follaje, ['color', 'aTipo', 'aCarta']], [m.vidrios, ['color', 'aTipo']], [m.brasas, ['color', 'aTipo']], [m.carteles, ['uv']], [m.puerta, ['color']], [m.ripio, ['uv']], [m.ventanaLuz, ['uv']]]) {
       const malla = new THREE.Mesh(tri(attrs), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       semillas.add(malla);
     }
     for (const mat of [m.estructura, m.follaje]) {
-      const im = new THREE.InstancedMesh(tri(['color', 'aTipo']), mat, 1);
+      const im = new THREE.InstancedMesh(tri(['color', 'aTipo', 'aCarta']), mat, 1);
       im.castShadow = true; im.receiveShadow = true;
       semillas.add(im);
     }
