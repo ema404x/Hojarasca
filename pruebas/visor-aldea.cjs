@@ -53,9 +53,40 @@ window.__V = (() => {
   if (!B) { B = { x: 40.3, z: -339.1 + 70 }; Y0 = T.altura(B.x, B.z); }
   Y0 += 0.05;
   const grupo = new THREE.Group(); H.escena.add(grupo);
-  const vidrio = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b });
+  const MV = __mod_materiales;
+  const vidrio = A.prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: MV.U.uCieloBajo });
   const atlas = A.crearTexturaCarteles();
-  const mats = { estructura: est.mat, follaje: est.mat, vidrio, carteles: new THREE.MeshLambertMaterial({ map: atlas }) };
+  // el material de la aldea (con el detalle de superficie) y uno pelado, para medir lo que cuesta
+  const matAldea = A.prepararMaterialAldea(MV.materialVegetal({ flex: 0 }));
+  const matPlano = MV.materialVegetal({ flex: 0 });
+  const mats = { estructura: matAldea, follaje: MV.materialVegetal({ flex: 1 }), vidrio, carteles: new THREE.MeshLambertMaterial({ map: atlas }) };
+  function detalle(si) { mats.estructura = si ? matAldea : matPlano; grupo.traverse((o) => { if (o.isMesh && (o.material === matAldea || o.material === matPlano)) o.material = mats.estructura; }); }
+  // ms por cuadro (con gl.finish: incluye la placa), n cuadros
+  // (soloAldea: sólo los edificios, con una luz de sol y otra de cielo: lo que cambia es el shader)
+  const escenaSola = new THREE.Scene();
+  let soloAldea = false;
+  function medir(n, solo = false) {
+    soloAldea = solo;
+    if (solo && grupo.parent !== escenaSola) { escenaSola.add(new THREE.HemisphereLight(0xbfd4e6, 0x6a5a40, 1.2)); const d = new THREE.DirectionalLight(0xffe0b0, 2.2); d.position.set(30, 40, 20); escenaSola.add(d); }
+    const padre = grupo.parent; if (solo) escenaSola.add(grupo);
+    try {
+    // (el render de la escena tal cual, sin el resto del cuadro: lo que cambia el shader)
+    const gl = H.renderer.getContext(), R = soloAldea ? () => H.renderer.render(escenaSola, H.camara) : () => H.renderer.render(H.escena, H.camara);
+    for (let i = 0; i < 20; i++) R(); gl.finish();
+    // con el temporizador de la placa (si el driver lo da) es tiempo de GPU de verdad
+    const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+    if (ext) {
+      let suma = 0, k = 0;
+      for (let i = 0; i < n; i++) {
+        const q = gl.createQuery(); gl.beginQuery(ext.TIME_ELAPSED_EXT, q); R(); gl.endQuery(ext.TIME_ELAPSED_EXT); gl.finish();
+        if (gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE) && !gl.getParameter(ext.GPU_DISJOINT_EXT)) { suma += gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6; k++; }
+        gl.deleteQuery(q);
+      }
+      if (k > n / 2) return suma / k;
+    }
+    const t0 = performance.now(); for (let i = 0; i < n; i++) { R(); gl.finish(); } return -(performance.now() - t0) / n;
+    } finally { if (solo) padre.add(grupo); }
+  }
   // sin piso propio: el terreno pintado del juego; sólo se despeja el bosque
   for (let x = -75; x <= 75; x += 10) for (let z = -75; z <= 75; z += 10) H.veg.despejar(B.x + x, B.z + z, 9);
   let Yref = Y0;
@@ -100,7 +131,7 @@ window.__V = (() => {
       const r = A.registrarEnMundo({ col: H.col, puertas: it.abierta || it.acc ? null : H.puertas }, ed, sitio, { duenio: 'visor' });
       puertas.push(...r.puertas);
       res.push({ id: it.id || it.acc, tri: ed.medidas.triangulos, luces: ed.luces.length });
-      if (res.length === 1) spec = ed.luces.filter((l) => l.cuarto !== 'calle' && l.cuarto !== 'afuera').map((l) => ({ ...l, w: A.aMundoAldea(sitio, l.lx, l.ly, l.lz) }));
+      if (res.length === 1) spec = ed.luces.filter((l) => l.cuarto !== 'calle').map((l) => ({ ...l, w: A.aMundoAldea(sitio, l.lx, l.ly, l.lz) }));
     }
     return res;
   }
@@ -132,7 +163,7 @@ window.__V = (() => {
     const l = new THREE.PointLight(color, i, d, 1.6); l.position.set(B.x + x, Yref + y, B.z + z); H.escena.add(l); luces.push(l);
   }
   function sinLuces() { for (const l of luces) H.escena.remove(l); luces.length = 0; }
-  return { poner, camara, hora, luzEn, lucesSpec, sinLuces, remarcar, Y0, B };
+  return { poner, camara, hora, luzEn, lucesSpec, sinLuces, remarcar, detalle, medir, Y0, B };
 })(); 1`;
 
 // Tomas: qué se arma, de dónde se mira (x, y de los ojos, z, yaw, pitch) y a qué hora.
@@ -162,6 +193,10 @@ const TOMAS = {
   'adentro-casa': { arma: [{ id: 'casa-abuela', x: 0, z: 0, abierta: true }], ojo: [1.2, 1.9, 2.0], a: [-2.2, 1.0, 0.6], hora: 20.5, noche: true, luz: 'spec' },
   sillon: { arma: [{ id: 'biblioteca', x: 0, z: 0, abierta: true }], ojo: [-0.4, 1.75, 1.6], a: [1.9, 0.9, 4.0], hora: 18, luz: 'spec' },
   'duende-cerca': { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [1.3, 1.75, 4.6], a: [0, 2.6, 0], hora: 17.5 },
+  calle: { arma: casas.concat(locales1.map((l) => ({ ...l, z: -14, rot: Math.PI }))), ojo: [-20, 1.8, -7], a: [12, 1.6, -7], hora: 11 },
+  'casa-cerca': { arma: [{ id: 'casa-familia', x: 0, z: 0 }], ojo: [2.6, 1.7, 6.0], a: [1.4, 1.5, 3.0], hora: 10.5 },
+  'chapa-cerca': { arma: [{ id: 'herreria', x: 0, z: 0 }], ojo: [5.5, 3.4, 5.5], a: [2.0, 3.6, 1.5], hora: 16 },
+  'panaderia-noche': { arma: [{ id: 'panaderia', x: 0, z: 0 }], ojo: [-3, 1.75, 8.5], a: [0, 1.6, 2.5], hora: 22, noche: true, luz: 'spec' },
   alamos: { arma: [{ acc: 'alamo', x: -6, z: -4, op: { semilla: 1 } }, { acc: 'alamo', x: 0, z: -5, op: { semilla: 2 } }, { acc: 'alamo', x: 6, z: -4, op: { semilla: 3 } },
     { acc: 'pirca', x: -3, z: 2, op: { largo: 6 } }, { acc: 'cerco', x: 4, z: 2, op: { largo: 5, tipo: 'pique' } }, { acc: 'faroles', x: 0, z: 3 }, { acc: 'banco', x: 1.5, z: 3.2, rot: Math.PI },
     { acc: 'lena', x: -6, z: 4 }, { acc: 'tendedero', x: 7, z: 5 }, { acc: 'poste-luz', x: 10, z: 2 }, { acc: 'vereda', x: 0, z: 6, op: { largo: 10 } }, { acc: 'mastil', x: -10, z: 2 }],
@@ -199,16 +234,35 @@ app.whenReady().then(async () => {
     await esperar(3500);
     await js(`(() => { const V = window.__V; V.hora(${t.hora}, ${!!t.noche}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); V.remarcar(); return 1; })()`);
     await esperar(2500);
-    await js(`(() => { for (const k of window.__hojarasca.camara.children) k.traverse((o) => o.layers.set(31)); return 1; })()`);
+    await js(`(() => { const cam = window.__hojarasca.camara; window.__hijosCam = cam.children.filter((k) => !k.isLight && (k.isMesh || k.isGroup)); for (const k of window.__hijosCam) cam.remove(k); return 1; })()`);
     await esperar(300);
     const img = await w.webContents.capturePage();
-    await js(`(() => { for (const k of window.__hojarasca.camara.children) k.traverse((o) => o.layers.set(0)); return 1; })()`);
+    await js(`(() => { const cam = window.__hojarasca.camara; for (const k of window.__hijosCam || []) cam.add(k); return 1; })()`);
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
     const info = await js(`JSON.stringify({ dibujos: window.__hojarasca.renderer.info.render.calls, tri: window.__hojarasca.renderer.info.render.triangles })`);
     const donde = await js(`JSON.stringify({ B: window.__V.B, Y0: window.__V.Y0, pos: window.__hojarasca.jugador.estado.pos, cam: window.__hojarasca.camara.position, pausa: document.pointerLockElement === null, grupo: window.__hojarasca.escena.children.length, tex: (() => { const x = __mod_materiales.U.uEstepa.value; const d = x?.image?.data; if (!d) return 'sin'; const B = window.__V.B; const i = Math.floor((B.x + 512) / 2), j = Math.floor((B.z + 512) / 2); return [x.image.width, d.length, d[(j * x.image.width + i) * 4 + 2]]; })() })`);
     informe.push(`${nombre}: ${res} ${info} ${donde}`);
     console.log(donde);
     console.log('foto', nombre, info);
+  }
+  if (process.argv.includes('--medir')) {
+    // la calle entera, con y sin el detalle de superficie (mismo cuadro, mismos dibujos)
+    const t = TOMAS.calle;
+    await js(`JSON.stringify(window.__V.poner(${JSON.stringify(t.arma)}))`);
+    await js(`(() => { const V = window.__V; V.sinLuces(); V.hora(${t.hora}, false); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); return 1; })()`);
+    await esperar(3000);
+    const filas = [];
+    const res = { false: [], true: [] };
+    for (let vuelta = 0; vuelta < 10; vuelta++) for (const si of (vuelta % 2 ? [true, false] : [false, true])) {
+      const ms = await js(`(() => { const V = window.__V; V.detalle(${si}); V.camara(${t.ojo.join(',')}, ${t.a.join(',')}); return V.medir(60, ${process.argv.includes('--solo')}); })()`);
+      res[si].push(ms);
+      filas.push((si ? 'con detalle ' : 'sin detalle ') + ms.toFixed(3) + ' ms');
+      console.log('medir', si ? 'con' : 'sin', ms.toFixed(3));
+    }
+    const med = (a) => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)], min = (a) => Math.min(...a);
+    const resumen = `sin detalle: mediana ${med(res.false).toFixed(3)} ms, mínimo ${min(res.false).toFixed(3)} · con detalle: mediana ${med(res.true).toFixed(3)} ms, mínimo ${min(res.true).toFixed(3)}`;
+    console.log('medir', resumen);
+    informe.push('medición (calle entera, render de la escena con gl.finish, 10 vueltas de 60 cuadros alternadas):', ...filas, resumen);
   }
   fs.writeFileSync(path.join(salida, 'informe.txt'), informe.join('\n'));
   console.log('listo:', salida);

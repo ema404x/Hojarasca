@@ -59,8 +59,26 @@
 // fusionarAldea(lista, capa) junta muchos edificios (cada uno con su sitio) en una geometría por
 //   material: cada manzana, una sola pieza. montarEdificio(edificio, mats) arma los THREE.Mesh.
 //
+// 3.6 (pulido), lo que se sumó (ninguna firma cambió):
+//   · Detalle de superficie en el shader: toda geometría de la aldea trae aSuperficie (ver
+//     SUPERFICIES_ALDEA) y aLocal. El material de estructura que se pase a montarEdificio tiene que ser
+//     uno PROPIO preparado con prepararMaterialAldea(materialVegetal({ flex: 0 })) (no el est.mat
+//     compartido); el vidrio, con prepararVidrioAldea(mat, { cielo: U.uCieloBajo }). Son dos programas
+//     más: compilarlos en la carga (compileAsync) con el resto. El almacén y el salón de té de
+//     estructuras.js no traen aSuperficie: con este material se ven igual que hoy (para darles el
+//     detalle habría que sumar el atributo en su Constructor: anotado para el equipo de mundo).
+//   · animables: [{ id, pivote, eje, movimiento, geometria, material, capa }] piezas que se mueven,
+//     fuera de lo fundido (bandera, rueda de la rueca, fuelle de la fragua, puerta del horno, campana
+//     del andén). montarEdificio las devuelve armadas en animables (un Group en su pivote).
+//   · chispas (fragua), humo (horno, ahumadero), vapor (null por ahora); extra.acometida (donde llega
+//     el cable de luz; armarCable(a, b) lo dibuja), extra.dibujos, extra.mapaValle, extra.abejas.
+//   · puntos.nombrados: también asiento-k (cada silla y banco), estufa, aljibe, mastil-soga (con la
+//     altura del mástil y de la bandera izada), pizarron, dibujos, camilla, casillas, mapa-valle,
+//     pista-baile, fragua, horno, rueca, colmenas, sierra, redes; y en la estación campana-anden y
+//     horario-trenes.
 // Presupuesto (Radeon integrada), medido en pruebas/verificar-3-6-arquitectura.mjs: exterior ≤ 3
-// dibujos por edificio (estructura, vidrios, carteles) e interior ≤ 2 (muebles, brasas); las hojas
+// dibujos por edificio (estructura, vidrios, carteles, follaje) e interior ≤ 2 (muebles, brasas), más uno por
+// pieza animable (pocas); las hojas
 // de puerta de puertas.js son aparte. Triángulos: casa ≤ 4k, local ≤ 7k afuera + 6k adentro,
 // salón y biblioteca ≤ 10k.
 import * as THREE from 'three';
@@ -73,7 +91,7 @@ const PISO = PISO_ALDEA;
 const LIBRE = 2.6;                       // del piso al cielorraso (≥ 2,4)
 const ALTO_MURO = PISO + 2.75;           // tope de las paredes (el cielorraso va abajo)
 const MURO = 0.14;                       // espesor de las paredes
-const PUERTA_ANCHO = 1.1, PUERTA_ALTO = 2.1;
+const PUERTA_ANCHO = 1.0, PUERTA_ALTO = 2.05;   // 3.6 (pulido): medidas de puerta de campo
 const GALERIA_PISO = 0.30;
 export const ETAPAS_ALDEA = ['lote', 'cimientos', 'estructura', 'paredes', 'terminado'];
 export const ESCUELA_A_MEDIO_HACER = 3;
@@ -171,6 +189,39 @@ function pincel(x, y, z, s) {
     + 0.11 * Math.sin((x - z) * 3.7 + y * 1.3 + s * 0.7);
 }
 
+// ---------------------------------------------------------------- 3.6 (pulido): la superficie, para el shader
+// Cada vértice lleva aSuperficie (qué es: tabla, chapa, piedra...; +10 si está adentro, sin musgo ni
+// óxido) y aLocal (su lugar en el edificio, sin girar: las juntas y vetas siguen a la casa aunque se
+// la gire o se la funda en una manzana). El material de la aldea (prepararMaterialAldea) dibuja con eso
+// juntas, vetas, ondas de la chapa, piedras, suciedad, musgo y bordes gastados. Sin el atributo (0),
+// nada cambia.
+export const SUPERFICIES_ALDEA = { nada: 0, tablasVerticales: 1, tablasHorizontales: 2, tejuela: 3, chapa: 4, piedra: 5, revoque: 6, tosca: 7, piso: 8, laja: 9, adentro: 10 };
+const SUP = SUPERFICIES_ALDEA;
+class ConstructorAldea extends Constructor {
+  constructor(sup = 0) { super(); this.sup = []; this.supActual = sup; }
+  agregar(geo, o) {
+    const n0 = this.tipo.length;
+    super.agregar(geo, o);
+    const s = o?.sup ?? this.supActual;
+    for (let i = n0; i < this.tipo.length; i++) this.sup.push(s);
+    return this;
+  }
+  geometria(op) {
+    const g = super.geometria(op);
+    while (this.sup.length < this.tipo.length) this.sup.push(0);
+    g.setAttribute('aSuperficie', new THREE.Float32BufferAttribute(this.sup, 1));
+    g.setAttribute('aLocal', new THREE.Float32BufferAttribute(this.pos.slice(), 3));
+    return g;
+  }
+}
+// cambia la superficie de lo que se emite en c mientras corre fn (adentro suma 10 solo)
+function conSup(c, s, fn) {
+  if (!c.sup) return fn();
+  const prev = c.supActual;
+  c.supActual = s + (prev >= SUP.adentro ? SUP.adentro : 0);
+  try { return fn(); } finally { c.supActual = prev; }
+}
+
 // ---------------------------------------------------------------- emisor de caras con color por vértice
 // Empuja triángulos directo en el Constructor (sin geometrías intermedias): las paredes, el
 // techo y los pisos se arman así, con un color por vértice (degradados, oclusión, desgaste).
@@ -185,6 +236,7 @@ function tri(c, p0, p1, p2, k0, k1, k2, tipo) {
   c.nor.push(nx, ny, nz, nx, ny, nz, nx, ny, nz);
   c.col.push(k0.r, k0.g, k0.b, k1.r, k1.g, k1.b, k2.r, k2.g, k2.b);
   c.tipo.push(tipo, tipo, tipo);
+  if (c.sup) { const s = c.supActual; c.sup.push(s, s, s); }
 }
 // cuadrilátero p0 p1 p2 p3 en sentido antihorario visto desde el frente
 function quad(c, p0, p1, p2, p3, k0, k1, k2, k3, tipo) {
@@ -202,6 +254,7 @@ function caja(c, pos, tam, color, o = {}) {
   const k = lin(color);
   const bajo = o.bajo ?? 0.8, alto = o.alto ?? 1.06;
   c.agregar(g, {
+    ...(o.sup !== undefined ? { sup: o.sup } : {}),
     tipo: o.tipo ?? 0, variar: o.variar ?? 0.07,
     degradado: [new THREE.Color(k.r * bajo, k.g * bajo, k.b * bajo), new THREE.Color(k.r * alto, k.g * alto, k.b * alto)],
     matriz: matriz(pos, [o.rx ?? 0, o.giro ?? 0, o.rz ?? 0]),
@@ -212,6 +265,7 @@ function cilindro(c, pos, r0, r1, alto, color, o = {}) {
   const g = new THREE.CylinderGeometry(r1, r0, alto, o.lados ?? 8, 1, o.abierto ?? false);
   const k = lin(color);
   c.agregar(g, {
+    ...(o.sup !== undefined ? { sup: o.sup } : {}),
     tipo: o.tipo ?? 0, variar: o.variar ?? 0.06, suave: o.suave ?? true,
     degradado: [new THREE.Color(k.r * (o.bajo ?? 0.78), k.g * (o.bajo ?? 0.78), k.b * (o.bajo ?? 0.78)), new THREE.Color(k.r * 1.06, k.g * 1.06, k.b * 1.06)],
     matriz: matriz(pos, [o.rx ?? 0, o.giro ?? 0, o.rz ?? 0], o.esc ?? [1, 1, 1]),
@@ -223,6 +277,7 @@ function bulto(c, pos, radio, color, o = {}) {
   if (o.abollar) abollar(g, o.abollar, o.escalaAbollar ?? 4.5);
   const k = lin(color);
   c.agregar(g, {
+    sup: o.sup ?? ((c.supActual ?? 0) >= SUP.adentro ? SUP.adentro : 0),
     tipo: o.tipo ?? 4, variar: o.variar ?? 0.12, suave: o.suave ?? false,
     degradado: [new THREE.Color(k.r * (o.bajo ?? 0.72), k.g * (o.bajo ?? 0.72), k.b * (o.bajo ?? 0.72)), new THREE.Color(k.r * (o.alto ?? 1.08), k.g * (o.alto ?? 1.08), k.b * (o.alto ?? 1.08))],
     matriz: matriz(pos, o.rot ?? [0, 0, 0], o.esc ?? [1, 1, 1]),
@@ -291,10 +346,10 @@ function crearContexto(id, etapa, op, def) {
   const W = def.ancho, D = def.fondo;
   const K = {
     id, etapa, def, op, r, W, D, s: (semilla % 997) * 0.013,
-    ext: new Constructor(), int: new Constructor(), vid: new Constructor(), bra: new Constructor(), fol: new Constructor(),
+    ext: new ConstructorAldea(SUP.tosca), int: new ConstructorAldea(SUP.tosca + SUP.adentro), vid: new Constructor(), bra: new Constructor(), fol: new ConstructorAldea(SUP.nada),
     car: { pos: [], nor: [], uv: [] },
     obst: [], plat: [], puertas: [], luces: [], ventanas: [], carteles: [], pisos: [],
-    puntos: { trabajo: [], asientos: [] }, chimenea: null, techo: null, extra: {},
+    puntos: { trabajo: [], asientos: [], estufas: [] }, chimenea: null, techo: null, extra: {}, animables: [],
     ocupa: { x0: -W / 2, x1: W / 2, z0: -D / 2, z1: D / 2 },
     H: ALTO_MURO,
   };
@@ -313,6 +368,13 @@ function crearContexto(id, etapa, op, def) {
   K.punto = (nombre, lx, lz, mira = 0, ly = PISO) => { K.puntos[nombre] = { lx, ly, lz, mira }; return K.puntos[nombre]; };
   K.trabajo = (nombre, lx, lz, mira = 0, ly = PISO) => { K.puntos.trabajo.push({ nombre, lx, ly, lz, mira }); };
   K.asiento = (nombre, lx, ly, lz, mira = 0) => { K.puntos.asientos.push({ nombre, lx, ly, lz, mira }); };
+  K.estufa = (lx, lz, mira) => { K.puntos.estufas.push({ lx, ly: PISO, lz, mira }); };
+  // 3.6 (pulido): una pieza que se mueve, fuera de la geometría fundida: su pivote, su eje y lo que es
+  K.animable = (id, pivote, eje, fn, o = {}) => {
+    const c = new ConstructorAldea(o.sup ?? SUP.tosca);
+    fn(c);
+    K.animables.push({ id, pivote: { lx: pivote[0], ly: pivote[1], lz: pivote[2] }, eje, c, material: o.material ?? 'estructura', ...(o.datos || {}) });
+  };
   return K;
 }
 
@@ -374,7 +436,12 @@ const giroCara = (f) => Math.atan2(f.nx, f.nz);
 // f: { cx, cz, nx, nz, largo, y0, y1, tope(s) (frontón), huecos: [{ s0, s1, y0, y1 }], estilo, color }
 // estilos: 'horizontal' (tablas solapadas), 'vertical' (tabla y tapajunta), 'tejuela' (alerce),
 // 'chapa' (acanalada en vertical), 'interior' (machimbre liso) y 'cal' (revoque blanqueado).
+const SUP_ESTILO = { vertical: 1, horizontal: 2, machimbre: 2, interior: 2, tejuela: 3, chapa: 4, cal: 6 };
 function paramento(K, c, f) {
+  if (f.sup !== undefined && c.sup) { const p = c.supActual; c.supActual = f.sup; try { return paramentoBase(K, c, f); } finally { c.supActual = p; } }
+  return conSup(c, SUP_ESTILO[f.estilo || 'horizontal'] ?? 0, () => paramentoBase(K, c, f));
+}
+function paramentoBase(K, c, f) {
   const P = (s, y, d = 0) => puntoCara(f, s, y, d);
   const L2 = f.largo / 2;
   const huecos = f.huecos || [];
@@ -402,28 +469,28 @@ function paramento(K, c, f) {
   const estilo = f.estilo || 'horizontal';
 
   if (estilo === 'horizontal' || estilo === 'tejuela' || estilo === 'interior' || estilo === 'cal' || estilo === 'machimbre') {
-    const h = f.fila ?? (estilo === 'tejuela' ? 0.18 : estilo === 'interior' ? 0.34 : estilo === 'machimbre' ? 0.19 : estilo === 'cal' ? 0.7 : 0.24);
+    // 3.6 (pulido): las juntas, las tablas y las tejuelas las dibuja el shader (aSuperficie); la geometría
+    // sólo da el solape (alineado a su grilla de 0,18 m) y los degradados
+    const h = f.fila ?? (estilo === 'tejuela' ? 0.18 : estilo === 'interior' ? 0.34 : estilo === 'machimbre' ? 0.9 : estilo === 'cal' ? 0.7 : 0.18);
     const machi = estilo === 'machimbre';
     const lap = estilo === 'horizontal' ? 0.024 : estilo === 'tejuela' ? 0.03 : 0;
-    let fila = 0;
-    for (let ya = f.y0; ya < ymax - 0.012; ya += h, fila++) {
-      const yb = Math.min(ya + h, ymax);
+    const alin = estilo === 'horizontal' || estilo === 'tejuela' || machi;
+    const bordes = [f.y0];
+    for (let yy = alin ? (Math.floor(f.y0 / h + 1e-6) + 1) * h : f.y0 + h; yy < ymax - 0.012; yy += h) bordes.push(yy);
+    bordes.push(ymax);
+    for (let fila = 0; fila + 1 < bordes.length; fila++) {
+      const ya = bordes[fila], yb = bordes[fila + 1];
+      if (yb - ya < 0.012) continue;
       const limA = lim(ya), limB = lim(yb);
       if (limA < 0.02) break;
       let tramos = [[-limA, limA]];
       for (const hu of huecos) if (hu.y0 < yb - 0.004 && hu.y1 > ya + 0.004) tramos = restarTramos(tramos, hu.s0, hu.s1);
-      const filaF = estilo === 'interior' ? (fila % 2 ? 0.95 : 1.03) * (0.97 + 0.06 * r()) : machi ? (fila === 0 ? 0.62 : 0.86 + 0.22 * r()) : 1;
+      const filaF = estilo === 'interior' ? (fila % 2 ? 0.95 : 1.03) * (0.97 + 0.06 * r()) : 0.96 + 0.08 * r();
       for (const [a, b] of tramos) {
         const cortes = [a];
-        if (estilo === 'tejuela') {
-          let k = a + (fila % 2) * 0.07;
-          for (;;) { k += entre(r, 0.17, 0.3); if (k >= b - 0.08) break; cortes.push(k); }
-        } else if (estilo === 'horizontal') {
-          let k = -L2 - r() * 1.6;
-          while (k < b) { k += entre(r, 2.2, 3.6); if (k > a + 0.3 && k < b - 0.3) cortes.push(k); }
-        } else if (machi) {
-          let k = -L2 - r() * 2;
-          while (k < b) { k += entre(r, 1.8, 3.2); if (k > a + 0.3 && k < b - 0.3) cortes.push(k); }
+        if (estilo === 'tejuela' || estilo === 'horizontal' || machi) {
+          // cortes sólo para que la pincelada y la oclusión tengan vértices (el color es continuo)
+          for (let k = a + 1.5; k < b - 0.4; k += 1.5) cortes.push(k);
         } else if (estilo === 'cal') {
           for (let k = a + 0.7 + r() * 0.3; k < b - 0.3; k += entre(r, 0.6, 1.0)) cortes.push(k);
         } else if (b - a > 2.4) {
@@ -435,16 +502,10 @@ function paramento(K, c, f) {
           const ta = Math.max(sa, -limB), tb = Math.min(sb, limB);
           let tono = filaF;
           let k = base;
-          if (estilo === 'tejuela') {
-            tono = 0.82 + 0.3 * r();
-            if (r() < 0.25) k = mezclar(base, tinte('#9a9286'), 0.35 + 0.3 * r());   // alerce plateado por el sol
-          } else if (estilo === 'horizontal') tono = 0.84 + 0.26 * r();
-          else if (estilo === 'cal') tono = 0.9 + 0.12 * r();
+          if (estilo === 'cal') tono = 0.9 + 0.12 * r();
           const kk = escalar(k, tono);
           // el borde de abajo de cada tabla sale un poco y queda en sombra
-          // (en el machimbre, la ranura entre tablas: el borde de abajo oscuro)
-          if (machi) tono *= 0.95 + 0.1 * r();
-          const kAbajo = escalar(kk, lap > 0 ? 0.84 : machi ? 0.7 : 1);
+          const kAbajo = escalar(kk, lap > 0 ? 0.84 : 1);
           if (tb - ta < 0.01) {
             const tm = Math.min(Math.max((sa + sb) / 2, -limB), limB);
             tri(c, P(sa, ya, lap), P(sb, ya, lap), P(tm, yb, 0), col(kAbajo, sa, ya, lap), col(kAbajo, sb, ya, lap), col(kk, tm, yb, 0), tipo);
@@ -460,8 +521,8 @@ function paramento(K, c, f) {
 
   // vertical: tabla y tapajunta (relieve escalonado) o chapa acanalada (zigzag)
   const chapa = estilo === 'chapa';
-  const ancho = f.tabla ?? (chapa ? 0.13 : 0.24);
-  const relieve = chapa ? 0.028 : 0.022;
+  const ancho = f.tabla ?? (chapa ? 0.45 : 0.9);
+  const relieve = chapa ? 0.008 : 0;
   const cortesS = new Set();
   for (let s = -L2; s < L2 - 0.02; s += ancho) cortesS.add(+s.toFixed(4));
   cortesS.add(+L2.toFixed(4));
@@ -480,9 +541,9 @@ function paramento(K, c, f) {
     const da = (i % 2) * relieve, db = chapa ? ((i + 1) % 2) * relieve : da;
     let k;
     if (chapa) {
-      if (i % 8 === 0) { hoja++; hojaF = 0.92 + 0.14 * r(); }
-      k = escalar(base, hojaF * (i % 2 ? 1.08 : 0.84));
-    } else k = escalar(base, (0.84 + 0.26 * r()) * (i % 2 ? 1.05 : 0.93));
+      if (i % 2 === 0) { hoja++; hojaF = 0.9 + 0.16 * r(); }
+      k = escalar(base, hojaF);
+    } else k = base;
     for (const [ya, yb] of tramos) {
       const arriba = Math.abs(yb - Math.max(topeEn(sa), topeEn(sb))) < 1e-4;
       const yTa = arriba ? topeEn(sa) : yb, yTb = arriba ? topeEn(sb) : yb;
@@ -514,7 +575,8 @@ function paramento(K, c, f) {
 
 // Zócalo de piedra laja: hiladas de lajas chatas, de largo y alto distintos, que salen un poco
 // de la pared. `anillo`: además la cara de adentro y el lomo ancho (en la etapa de cimientos).
-function zocaloLaja(K, c, { W, D, y0 = -0.14, y1 = PISO + 0.04, salida = 0.05, anillo = false, ancho = 0.3 }) {
+function zocaloLaja(K, c, o) { return conSup(c, SUP.piedra, () => zocaloLajaBase(K, c, o)); }
+function zocaloLajaBase(K, c, { W, D, y0 = -0.14, y1 = PISO + 0.04, salida = 0.05, anillo = false, ancho = 0.3 }) {
   const r = azar(semillaDe(K.id + '|laja' + W + D));
   const pal = PALETA_ALDEA.laja;
   const caras = carasDe(W, D);
@@ -523,15 +585,15 @@ function zocaloLaja(K, c, { W, D, y0 = -0.14, y1 = PISO + 0.04, salida = 0.05, a
     const P = (s, y, d) => puntoCara(f, s, y, d);
     let y = y0;
     while (y < y1 - 0.02) {
-      const h = Math.min(entre(r, 0.14, 0.22), y1 - y);
-      let s = -L2 - r() * 0.3;
+      const h = y1 - y;
+      let s = -L2;
       while (s < L2) {
-        const l = entre(r, 0.55, 1.1);
+        const l = 1.2;
         const sa = Math.max(-L2, s), sb = Math.min(L2, s + l);
         s += l;
         if (sb - sa < 0.04) continue;
-        const d = interior ? -ancho : salida + r() * 0.022;
-        const k = escalar(tinte(elegir(r, pal)), 0.88 + 0.22 * r());
+        const d = interior ? -ancho : salida;
+        const k = tinte('#7f7a70');
         const ka = escalar(k, 0.8), kb = escalar(k, 1.08);
         if (interior) quad(c, P(sb, y, d), P(sa, y, d), P(sa, y + h, d), P(sb, y + h, d), ka, ka, kb, kb, 4);
         else quad(c, P(sa, y, d), P(sb, y, d), P(sb, y + h, d), P(sa, y + h, d), mezclar(ka, TIERRA, 0.2), mezclar(ka, TIERRA, 0.2), kb, kb, 4);
@@ -555,29 +617,32 @@ function zocaloLaja(K, c, { W, D, y0 = -0.14, y1 = PISO + 0.04, salida = 0.05, a
 }
 
 // Piso de tablas (mira para arriba). Tablas a lo largo de x; se oscurece junto a las paredes.
-function pisoTablas(K, c, { x0, x1, z0, z1, y, color, ancho = 0.2, tipo = 0, ocluir = true }) {
+function pisoTablas(K, c, o) { return conSup(c, SUP.piso + (o.adentro ? SUP.adentro : 0), () => pisoTablasBase(K, c, o)); }
+function pisoTablasBase(K, c, { x0, x1, z0, z1, y, color, ancho = 0.6, tipo = 0, ocluir = true, paso = null }) {
   const r = azar(semillaDe(K.id + '|piso' + x0 + z0 + y));
   const k0 = tinte(color);
   for (let z = z0; z < z1 - 0.01; z += ancho) {
     const zb = Math.min(z1, z + ancho);
     let x = x0;
-    let corte = x0 + entre(r, 0.8, 3.2);
+    let corte = x0 + 1.2;
     while (x < x1 - 0.01) {
       const xb = Math.min(x1, corte);
-      const k = escalar(k0, 0.86 + 0.2 * r());
-      const ko = (px, pz) => (ocluir ? escalar(k, 0.7 + 0.3 * suave(0, 0.7, Math.min(px - x0, x1 - px, pz - z0, z1 - pz))) : k);
+      const k = k0;
+      const gasto = (px, pz) => (paso === null ? 0 : Math.exp(-((px - paso) * (px - paso)) / 0.5) * suave(z0, z1, pz) * 0.45);
+      const ko = (px, pz) => { const g = gasto(px, pz); const b = ocluir ? escalar(k, 0.7 + 0.3 * suave(0, 0.7, Math.min(px - x0, x1 - px, pz - z0, z1 - pz))) : k; return g > 0 ? mezclar(b, { r: b.r * 1.12 + 0.02, g: b.g * 1.1 + 0.02, b: b.b * 1.05 + 0.02 }, g) : b; };
       quad(c, [x, y, zb], [xb, y, zb], [xb, y, z], [x, y, z], ko(x, zb), ko(xb, zb), ko(xb, z), ko(x, z), tipo);
-      x = xb; corte = x + entre(r, 2.0, 3.6);
+      x = xb; corte = x + 1.2;
     }
   }
 }
 // Cielorraso de machimbre (mira para abajo).
-function cielorraso(K, c, { x0, x1, z0, z1, y, color, ancho = 0.14 }) {
+function cielorraso(K, c, o) { return conSup(c, SUP.piso + SUP.adentro, () => cielorrasoBase(K, c, o)); }
+function cielorrasoBase(K, c, { x0, x1, z0, z1, y, color, ancho = 0.7 }) {
   const r = azar(semillaDe(K.id + '|cielo' + x0 + z0 + y));
   const k0 = tinte(color);
   for (let x = x0; x < x1 - 0.01; x += ancho) {
     const xb = Math.min(x1, x + ancho);
-    const k = escalar(k0, 0.9 + 0.14 * r());
+    const k = k0; void r;
     const ko = (px, pz) => escalar(k, 0.66 + 0.34 * suave(0, 0.9, Math.min(px - x0, x1 - px, pz - z0, z1 - pz)));
     quad(c, [x, y, z0], [xb, y, z0], [xb, y, z1], [x, y, z1], ko(x, z0), ko(xb, z0), ko(xb, z1), ko(x, z1), 0);
   }
@@ -586,7 +651,8 @@ function cielorraso(K, c, { x0, x1, z0, z1, y, color, ancho = 0.14 }) {
 // Chapa acanalada sobre un cuadrilátero: e0 → e1 es el borde bajo (alero), t0/t1 el alto.
 // Las ondas corren de e0 a e1 (las canaletas bajan por la pendiente). Cresta clara, valle oscuro,
 // hojas de ~0,8 m con su tono, óxido que chorrea desde el alero. `debajo`: color de la cara de abajo.
-function chapaPlano(K, c, e0, e1, t1, t0, o) {
+function chapaPlano(K, c, e0, e1, t1, t0, o) { return conSup(c, SUP.chapa, () => chapaPlanoBase(K, c, e0, e1, t1, t0, o)); }
+function chapaPlanoBase(K, c, e0, e1, t1, t0, o) {
   const r = azar(semillaDe(K.id + '|chapa' + e0.join() + e1.join()));
   const base = tinte(o.color);
   const ux = e1[0] - e0[0], uy = e1[1] - e0[1], uz = e1[2] - e0[2];
@@ -594,10 +660,10 @@ function chapaPlano(K, c, e0, e1, t1, t0, o) {
   const vx = t0[0] - e0[0], vy = t0[1] - e0[1], vz = t0[2] - e0[2];
   let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
   const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
-  const paso = o.paso ?? 0.19;
+  const paso = o.paso ?? 0.43;
   const n = Math.max(2, Math.round(largo / paso));
   const filas = o.filas ?? [0, 0.22, 1];
-  const amp = o.amp ?? 0.022;
+  const amp = o.amp ?? 0.006;
   const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const comba = o.comba ?? 0.035;
   const punto = (i, t) => {
@@ -608,10 +674,10 @@ function chapaPlano(K, c, e0, e1, t1, t0, o) {
     return [p[0] + nx * d, p[1] + ny * d, p[2] + nz * d];
   };
   const hojas = [];
-  for (let h = 0; h <= Math.ceil(n / 6); h++) hojas.push({ f: 0.9 + 0.16 * r(), oxido: r() < (o.oxido ?? 0) * 1.3 ? 0.3 + 0.5 * r() : 0, otra: r() < 0.08 });
+  for (let h = 0; h <= Math.ceil(n / 2); h++) hojas.push({ f: 0.9 + 0.16 * r(), oxido: r() < (o.oxido ?? 0) * 1.3 ? 0.3 + 0.5 * r() : 0, otra: r() < 0.08 });
   const colorEn = (i, t) => {
-    const hoja = hojas[Math.floor(i / 6)];
-    let k = escalar(base, hoja.f * (i % 2 ? 1.1 : 0.8));
+    const hoja = hojas[Math.floor(i / 2)];
+    let k = escalar(base, hoja.f);
     if (hoja.otra) k = mezclar(k, tinte(PALETA_ALDEA.galvanizado), 0.55);
     const ox = (hoja.oxido + (o.oxido ?? 0) * 0.5) * (1 - t) * (1 - t) * (0.55 + 0.45 * Math.sin(i * 1.7 + K.s));
     if (ox > 0) k = mezclar(k, tinte('#73452c'), Math.min(0.85, ox));
@@ -766,8 +832,16 @@ function ventana(K, f, h, o) {
     return;
   }
   const marco = o.marco ?? PALETA_ALDEA.marco;
-  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.065), yc, dm + 0.01), [0.13, alto + 0.24, prof + 0.02], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
-  caja(c, P(s, h.y1 + 0.08, dm + 0.01), [ancho + 0.3, 0.16, prof + 0.04], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
+  // el vano revestido con la tabla de la pared y el marco hundido a mitad del muro (se ve la profundidad)
+  if (o.colorPared) {
+    for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.012), yc, -0.03), [0.024, alto, 0.06], o.colorPared, { giro, tipo: 4, bajo: 0.7 });
+    caja(c, P(s, h.y1 - 0.012, -0.03), [ancho, 0.024, 0.06], o.colorPared, { giro, tipo: 4, bajo: 0.6, alto: 0.8 });
+  }
+  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.065), yc, dm - 0.015), [0.13, alto + 0.24, 0.09], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
+  caja(c, P(s, h.y1 + 0.08, dm - 0.015), [ancho + 0.3, 0.16, 0.09], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
+  // la tapa del marco por afuera (el tapajuntas que cubre la junta con la pared)
+  for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 + 0.11), yc, 0.012), [0.06, alto + 0.3, 0.025], marco, { giro, tipo: 4, bajo: 0.6, variar: 0.14 });
+  caja(c, P(s, h.y1 + 0.13, 0.012), [ancho + 0.28, 0.07, 0.025], marco, { giro, tipo: 4, bajo: 0.6, variar: 0.14 });
   caja(c, P(s, h.y0 - 0.05, dm + 0.07), [ancho + 0.36, 0.09, prof + 0.15], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
   // parteluz en cruz (sobre el vidrio)
   caja(c, P(s, yc, -MURO * 0.42), [0.05, alto, 0.05], marco, { giro, tipo: 4, bajo: 0.64, variar: 0.14 });
@@ -776,7 +850,8 @@ function ventana(K, f, h, o) {
   const kv0 = { r: 0.78, g: 0.74, b: 0.68 }, kv1 = { r: 0.96, g: 0.95, b: 0.93 };
   quad(K.vid, P(h.s0, h.y0, -MURO * 0.5), P(h.s1, h.y0, -MURO * 0.5), P(h.s1, h.y1, -MURO * 0.5), P(h.s0, h.y1, -MURO * 0.5), kv0, kv0, kv1, kv1, 0);
   // cortinas a medio correr (de adentro)
-  if (o.cortina) for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 - ancho * 0.13), yc + 0.02, -MURO - 0.03), [ancho * 0.26, alto * 0.94, 0.03], o.cortina, { giro, tipo: 0, bajo: 0.9 });
+  const cortina = o.cortina ?? elegir(azar(semillaDe(K.id + '|cort' + s.toFixed(2))), ['#d8cdb4', '#c9b089', '#b8a48a', '#d6c6a8']);
+  if (cortina && v.cortina !== false) for (const l of [-1, 1]) caja(c, P(s + l * (ancho / 2 - ancho * 0.13), yc + 0.02, -MURO - 0.03), [ancho * 0.26, alto * 0.94, 0.03], cortina, { giro, tipo: 0, bajo: 0.9 });
   // postigos abiertos contra la pared
   if (o.postigo && v.postigos !== false) {
     for (const l of [-1, 1]) {
@@ -841,7 +916,7 @@ function casco(K, o) {
   }
   for (const v of o.ventanas || []) {
     const s = sDe(v.cara, v.x ?? 0, v.z ?? 0);
-    const yc = PISO + (v.y ?? 1.45);
+    const yc = PISO + (v.y ?? 0.9 + v.alto / 2);   // el antepecho a 0,9 m del piso
     huecos[v.cara].push({ s0: s - v.ancho / 2, s1: s + v.ancho / 2, y0: yc - v.alto / 2, y1: yc + v.alto / 2, ventana: v });
   }
 
@@ -864,9 +939,9 @@ function casco(K, o) {
   const colorPiso = o.colorPiso ?? '#8a6544';
   if (e === 2) {
     for (let z = zi0 + 0.2; z < zi1; z += 0.6) caja(K.ext, [0, PISO - 0.1, z], [W - 0.1, 0.16, 0.1], PALETA_ALDEA.crudo, { tipo: 0 });
-    pisoTablas(K, K.ext, { x0: xi0, x1: xi1, z0: zi0, z1: (zi0 + zi1) / 2, y: PISO, color: PALETA_ALDEA.crudo, ocluir: false });
+    pisoTablas(K, K.ext, { x0: xi0, x1: xi1, z0: zi0, z1: (zi0 + zi1) / 2, y: PISO, color: PALETA_ALDEA.crudo, ocluir: false, adentro: true });
   } else {
-    pisoTablas(K, K.ext, { x0: xi0, x1: xi1, z0: zi0, z1: zi1, y: PISO, color: e >= 4 ? colorPiso : PALETA_ALDEA.crudo });
+    pisoTablas(K, K.ext, { x0: xi0, x1: xi1, z0: zi0, z1: zi1, y: PISO, color: e >= 4 ? colorPiso : PALETA_ALDEA.crudo, adentro: true, paso: o.puertas?.find((p) => p.cara === 'frente')?.x ?? 0 });
   }
   K.plataforma(0, 0, W, D, PISO, PISO + 0.12);
 
@@ -940,7 +1015,7 @@ function casco(K, o) {
     // 3.6 (pulido): terminado, la cara de la estructura es un respaldo liso (lo que se ve de lejos por
     // una puerta abierta) y el machimbre con su matiz va en el interior, un dedo más adentro
     if (terminado) {
-      paramento(K, K.ext, { ...fi, y0: PISO, y1: conCielo ? yCielo : H, tope: topeIn, huecos: hsIn, estilo: 'cal', fila: 3.5, color: colIn, tipo: 0, alero: conCielo ? yCielo : H, sombraAlero: 0.3 });
+      paramento(K, K.ext, { ...fi, y0: PISO, y1: conCielo ? yCielo : H, tope: topeIn, huecos: hsIn, estilo: 'cal', fila: 3.5, sup: SUP.revoque + SUP.adentro, color: colIn, tipo: 0, alero: conCielo ? yCielo : H, sombraAlero: 0.3 });
       const fm = { ...fi, cx: fi.cx + fi.nx * 0.008, cz: fi.cz + fi.nz * 0.008 };
       caraAdentro(K, { ...fm }, conCielo ? yCielo : H, topeIn, hsIn, colIn, estiloIn, conCielo ? yCielo : H, o);
     } else paramento(K, K.ext, { ...fi, y0: PISO, y1: conCielo ? yCielo : H, tope: topeIn, huecos: hsIn, estilo: estiloIn, color: colIn, tipo: 0, alero: conCielo ? yCielo : H, sombraAlero: 0.3 });
@@ -953,7 +1028,7 @@ function casco(K, o) {
     }
     // aberturas
     for (const h of hs) {
-      if (h.ventana) ventana(K, f, h, { marco: o.marco, postigo: o.postigo, tapiada: medioHacer, cortina: o.cortina, cuarto: (h.ventana.cuarto ?? (o.tabique && (f.nombre === 'fondo' || h.ventana.z < o.tabique.z) ? 'vivienda' : 'local')) });
+      if (h.ventana) ventana(K, f, h, { marco: o.marco, postigo: o.postigo, colorPared: terminado ? colPared : null, tapiada: medioHacer, cortina: o.cortina, cuarto: (h.ventana.cuarto ?? (o.tabique && (f.nombre === 'fondo' || h.ventana.z < o.tabique.z) ? 'vivienda' : 'local')) });
       else if (h.puerta) marcoPuerta(K, f, h, { marco: o.marco, tapiada: medioHacer && f.nombre === 'frente' });
     }
   }
@@ -979,14 +1054,14 @@ function casco(K, o) {
     {
       const hT = [{ s0: t.x - ancho / 2, s1: t.x + ancho / 2, y0: PISO - 0.1, y1: PISO + PUERTA_ALTO }];
       if (terminado) {
-        paramento(K, K.ext, { ...fT, y0: PISO, y1: yTop, huecos: hT, estilo: 'cal', fila: 3.5, color: colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+        paramento(K, K.ext, { ...fT, y0: PISO, y1: yTop, huecos: hT, estilo: 'cal', fila: 3.5, sup: SUP.revoque + SUP.adentro, color: colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
         caraAdentro(K, { ...fT, cx: fT.cx + fT.nx * 0.008, cz: fT.cz + fT.nz * 0.008 }, yTop, null, hT, colIn, estiloIn, yTop, o);
       } else paramento(K, K.ext, { ...fT, y0: PISO, y1: yTop, huecos: hT, estilo: estiloIn, color: colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
     }
     {
       const hT = [{ s0: -t.x - ancho / 2, s1: -t.x + ancho / 2, y0: PISO - 0.1, y1: PISO + PUERTA_ALTO }];
       if (terminado) {
-        paramento(K, K.ext, { ...fT2, y0: PISO, y1: yTop, huecos: hT, estilo: 'cal', fila: 3.5, color: o.colorVivienda ?? colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
+        paramento(K, K.ext, { ...fT2, y0: PISO, y1: yTop, huecos: hT, estilo: 'cal', fila: 3.5, sup: SUP.revoque + SUP.adentro, color: o.colorVivienda ?? colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
         caraAdentro(K, { ...fT2, cx: fT2.cx + fT2.nx * 0.008, cz: fT2.cz + fT2.nz * 0.008 }, yTop, null, hT, o.colorVivienda ?? colIn, estiloIn, yTop, o);
       } else paramento(K, K.ext, { ...fT2, y0: PISO, y1: yTop, huecos: hT, estilo: estiloIn, color: o.colorVivienda ?? colIn, tipo: 0, alero: yTop, sombraAlero: 0.3 });
     }
@@ -1027,17 +1102,24 @@ function casco(K, o) {
   }
   viga(K.ext, M(0, yC + 0.035, -B - 0.03), M(0, yC + 0.035, B + 0.03), 0.3, 0.06, terminado ? '#5c5a56' : PALETA_ALDEA.galvanizado, { tipo: 4 });
   // canaleta y caño de bajada (terminado)
-  if (terminado && o.canaleta !== false) {
-    const l = 1;
+  if (terminado && o.canaleta !== false) for (const l of [1, -1]) {
     const p0 = M(l * (A + 0.08), yA - 0.12, -B), p1 = M(l * (A + 0.08), yA - 0.12, B);
     palo(K.ext, p0, p1, 0.055, '#6c706f', { tipo: 4, lados: 6, abierto: false });
-    const pb = M(l * (halfA + 0.07), 0.1, halfB - 0.12), pc = M(l * (A + 0.08), yA - 0.14, halfB - 0.12);
+    const pb = M(l * (halfA + 0.07), 0.1, l * (halfB - 0.12)), pc = M(l * (A + 0.08), yA - 0.14, l * (halfB - 0.12));
     palo(K.ext, pb, [pb[0], yA - 0.45, pb[2]], 0.04, '#6c706f', { tipo: 4 });
     palo(K.ext, [pb[0], yA - 0.45, pb[2]], pc, 0.04, '#6c706f', { tipo: 4 });
   }
 
   // ---- galería
   if (o.galeria) galeria(K, o, R);
+  // la acometida: un caño con su aislador en un costado, debajo del alero (ahí llega el cable)
+  if (terminado && o.acometida !== false) {
+    const xa = W / 2 + 0.06, za = -D / 2 + 0.6;
+    palo(K.ext, [xa, H - 0.3, za], [xa, H + 0.55, za], 0.025, '#5f6362', { tipo: 4 });
+    cilindro(K.ext, [xa, H + 0.58, za], 0.035, 0.045, 0.07, '#cfd6d4', { tipo: 4, lados: 6 });
+    K.extra.acometida = { lx: xa, ly: H + 0.6, lz: za };
+  }
+  if (e >= 3) matasAlPie(K, o, R);
 
   // ---- chimenea
   if (terminado && o.chimenea) {
@@ -1079,7 +1161,7 @@ function casco(K, o) {
     for (const h of huecos.frente) {
       if (!h.puerta || h.puerta.abierta) continue;
       const s = (h.s0 + h.s1) / 2;
-      K.puertas.push({ lx: s, lz: D / 2 - MURO / 2, ancho: h.s1 - h.s0 - 0.04, alto: (h.y1 - PISO) - 0.04, lado: -1, adentro: true, piso: PISO, nombre: h.puerta.nombre ?? ('la puerta de ' + (K.def.nombre || K.id).toLowerCase()) });
+      K.puertas.push({ lx: s, lz: D / 2 - MURO / 2, ancho: +(h.s1 - h.s0).toFixed(3), alto: +((h.y1 - PISO) - 0.02).toFixed(3), lado: -1, adentro: true, piso: PISO, nombre: h.puerta.nombre ?? ('la puerta de ' + (K.def.nombre || K.id).toLowerCase()) });
     }
   }
   const pf = (o.puertas || []).find((p) => p.cara === 'frente');
@@ -1096,7 +1178,7 @@ function escalon(K, x, z, ancho = 1.5) {
     for (const s of [-1, 1]) caja(c, [x + s * (ancho / 2 - 0.12), 0.06, z], [0.12, 0.13, 0.4], '#4e3a28', { tipo: 0, bajo: 0.55 });
     for (const dz of [-0.105, 0.105]) caja(c, [x + (r() - 0.5) * 0.04, 0.145, z + dz], [ancho, 0.05, 0.2], elegir(r, ['#7a5a3c', '#6e5036', '#86643f']), { tipo: 0, bajo: 0.7, giro: (r() - 0.5) * 0.03 });
   } else {
-    bulto(c, [x, 0.06, z], 0.5, elegir(r, ['#6d6a62', '#625e57', '#77706480'.slice(0, 7)]), { esc: [ancho / 0.95, 0.24, 0.95], rot: [0, (r() - 0.5) * 0.15, 0], tipo: 4, bajo: 0.5, alto: 0.95, abollar: 0.03 });
+    bulto(c, [x, 0.06, z], 0.5, elegir(r, ['#58554e', '#4f4c46', '#5f5a50']), { esc: [ancho / 0.95, 0.24, 0.95], rot: [0, (r() - 0.5) * 0.15, 0], tipo: 4, bajo: 0.5, alto: 0.95, abollar: 0.03 });
     bulto(c, [x + ancho * 0.42, 0.03, z + 0.1], 0.18, elegir(r, PALETA_ALDEA.laja), { esc: [1.3, 0.4, 1], tipo: 4 });
   }
   K.plataforma(x, z, ancho, 0.44, 0.16, 0.16);
@@ -1104,6 +1186,13 @@ function escalon(K, x, z, ancho = 1.5) {
 // 3.6 (pulido): la cara de adentro, en el interior. Machimbre con matiz; o, si es de cal, un friso
 // de machimbre pintado hasta la cintura y el revoque blanqueado arriba (manchado, nunca parejo).
 function caraAdentro(K, f, y1, tope, huecos, color, estiloIn, alero, o) {
+  // el zócalo de madera, al pie (salvo en las puertas)
+  {
+    const L2 = f.largo / 2;
+    let tramos = [[-L2, L2]];
+    for (const h of huecos) if (h.y0 < PISO + 0.12) tramos = restarTramos(tramos, h.s0, h.s1);
+    for (const [a, b] of tramos) viga(K.int, puntoCara(f, a, PISO + 0.06, 0.012), puntoCara(f, b, PISO + 0.06, 0.012), 0.025, 0.12, '#4e3a28', { tipo: 0 });
+  }
   if (estiloIn !== 'cal') {
     paramento(K, K.int, { ...f, y0: PISO, y1, tope, huecos, estilo: 'machimbre', color, tipo: 0, alero, sombraAlero: 0.35, suelo: PISO - 0.4 });
     return;
@@ -1119,6 +1208,74 @@ function caraAdentro(K, f, y1, tope, huecos, color, estiloIn, alero, o) {
     const pa = puntoCara(f, a, yF, 0.02), pb = puntoCara(f, b, yF, 0.02);
     viga(K.int, pa, pb, 0.04, 0.05, '#4e3a28', { tipo: 0 });
   }
+}
+// Un manojo de hojas finas de dos caras (aTipo 1): pasto alto, matas de cantero.
+function manojo(c, r, x, y, z, n, h0, h1) {
+  for (let i = 0; i < n; i++) {
+    const a = r() * 6.28, h = entre(r, h0, h1), inc = entre(r, 0.08, 0.3);
+    const bx = x + Math.cos(a) * 0.06, bz = z + Math.sin(a) * 0.06;
+    const tx = bx + Math.cos(a) * inc, tz = bz + Math.sin(a) * inc;
+    const px = -Math.sin(a) * 0.025, pz = Math.cos(a) * 0.025;
+    const k0 = tinte(elegir(r, ['#3e5a2c', '#4d6a34', '#56703a'])), k1 = tinte(elegir(r, ['#8a9650', '#7d8c48', '#9aa058']));
+    tri(c, [bx - px, y, bz - pz], [bx + px, y, bz + pz], [tx, y + h, tz], k0, k0, k1, 1);
+    tri(c, [bx + px, y, bz + pz], [bx - px, y, bz - pz], [tx, y + h, tz], k0, k0, k1, 1);
+  }
+}
+// Pasto alto y matas al pie de las paredes y de los postes de la galería (follaje: aTipo 1 las matas,
+// las hojas del pasto también; en el material de vegetación). Lejos de la puerta.
+function matasAlPie(K, o, R) {
+  const { W, D } = K, c = K.fol;
+  const r = azar(semillaDe(K.id + '|matas'));
+  const pf = (o.puertas || []).find((p) => p.cara === 'frente');
+  const xP = pf ? (pf.x ?? 0) : 0;
+  const puntos = [];
+  for (const [nx, nz, L] of [[1, 0, D], [-1, 0, D], [0, -1, W]]) {
+    for (let k = 0; k < Math.round(L / 2.0); k++) {
+      const s = -L / 2 + 0.4 + r() * (L - 0.8);
+      puntos.push(nx ? [nx * (W / 2 + 0.12), s] : [s, -D / 2 - 0.12]);
+    }
+  }
+  const g = K.extra.galeria;
+  if (g) for (const x of [g.x0 + 0.1, g.x1 - 0.1]) puntos.push([x, g.z1 + 0.12]);
+  else for (const x of [-W / 2 + 0.5, W / 2 - 0.5]) if (Math.abs(x - xP) > 1.0) puntos.push([x, D / 2 + 0.15]);
+  for (const [x, z] of puntos) {
+    if (r() < 0.45) bulto(c, [x, 0.12, z], entre(r, 0.16, 0.26), elegir(r, ['#4a6436', '#56703c', '#3f5832']), { tipo: 1, detalle: 0, esferica: 1, variar: 0.04, esc: [1.3, 0.7, 1.3], abollar: 0.03 });
+    // un manojo de pasto alto: hojas finas de dos caras
+    const n = 4 + Math.floor(r() * 3);
+    for (let i = 0; i < n; i++) {
+      const a = r() * 6.28, h = entre(r, 0.35, 0.62), inc = entre(r, 0.1, 0.35);
+      const bx = x + Math.cos(a) * 0.06, bz = z + Math.sin(a) * 0.06;
+      const tx = bx + Math.cos(a) * inc, tz = bz + Math.sin(a) * inc;
+      const px = -Math.sin(a) * 0.025, pz = Math.cos(a) * 0.025;
+      const k0 = tinte(elegir(r, ['#4d6a34', '#5c763c', '#6d7a3e'])), k1 = tinte(elegir(r, ['#9aa058', '#8a9650', '#b0a86a']));
+      tri(c, [bx - px, 0, bz - pz], [bx + px, 0, bz + pz], [tx, h, tz], k0, k0, k1, 1);
+      tri(c, [bx + px, 0, bz + pz], [bx - px, 0, bz - pz], [tx, h, tz], k0, k0, k1, 1);
+    }
+  }
+  void R;
+}
+// Las cosas de uso alrededor de la casa: un tacho, herramientas apoyadas, un cajón (según la semilla).
+function cosasDeUso(K, lado = -1) {
+  const { W, D } = K, c = K.ext;
+  const r = azar(semillaDe(K.id + '|cosas'));
+  const x = lado * (W / 2 + 0.35);
+  let z = -D / 2 + 0.7 + r() * 0.6;
+  // el tacho de chapa con su tapa
+  cilindro(c, [x, 0.36, z], 0.24, 0.27, 0.72, '#7f8584', { tipo: 4, lados: 10, sup: SUP.chapa });
+  cilindro(c, [x, 0.74, z], 0.28, 0.28, 0.04, '#6a706f', { tipo: 4, lados: 10 });
+  K.circulo(x, z, 0.3, 0, 0.78);
+  z += 0.8;
+  // la pala y el rastrillo apoyados contra la pared
+  for (const [dz, rastrillo] of [[0, false], [0.32, true]]) {
+    const pie = [x - lado * 0.0, 0.02, z + dz], tope = [lado * (W / 2 + 0.04), 1.35, z + dz + 0.05];
+    palo(c, pie, tope, 0.02, '#8a6a48', { sup: SUP.tosca });
+    if (rastrillo) caja(c, [pie[0], 0.05, pie[2]], [0.05, 0.05, 0.38], '#4a4642', { tipo: 4, giro: 0 });
+    else caja(c, [pie[0], 0.12, pie[2]], [0.04, 0.26, 0.2], '#5a5e5c', { tipo: 4, rz: lado * 0.2 });
+  }
+  z += 0.8;
+  // un cajón de fruta dado vuelta, de banquito
+  caja(c, [x, 0.17, z], [0.48, 0.32, 0.36], '#9a7a52', { tipo: 0, giro: r() * 0.5, sup: SUP.tosca });
+  K.mueble(x, z, 0.5, 0.4, 0.34, 0, 0);
 }
 // La galería del frente: deck de tablas, postes con ménsulas y su techito de chapa.
 function galeria(K, o, R) {
@@ -1256,6 +1413,7 @@ function cocinaLena(K, x, z, giro = 0, o = {}) {
   const pl = F.p(-0.75, 0, 0);
   for (let i = 0; i < 5; i++) palo(c, [pl[0] - 0.18 + (i % 3) * 0.14, PISO + 0.06 + Math.floor(i / 3) * 0.12, pl[2] - 0.22], [pl[0] - 0.18 + (i % 3) * 0.14, PISO + 0.06 + Math.floor(i / 3) * 0.12, pl[2] + 0.22], 0.055, i % 2 ? '#7a5a3a' : '#6a4d33', { abierto: false });
   const p = F.p(0, 0, 0.86);
+  K.estufa(p[0], p[2], giro + Math.PI);
   K.punto(o.nombre ?? 'cocina', p[0], p[2], giro + Math.PI);
   K.luz(F.p(0, 0, 0.5)[0], PISO + 0.7, F.p(0, 0, 0.5)[2], { color: 0xff8a40, radio: 3.5, intensidad: 0.5, clase: 'fuego', cuarto: o.cuarto ?? 'vivienda' });
 }
@@ -1268,6 +1426,7 @@ function salamandra(K, x, z, o = {}) {
   const yC = PISO + LIBRE;
   cilindro(c, [x, (PISO + 0.95 + yC) / 2, z], 0.07, 0.07, yC - PISO - 0.95, '#2b2825', { lados: 8, abierto: true });
   K.circulo(x, z, 0.3, PISO, PISO + 1.0);
+  { const l = Math.hypot(x, z) || 1, ex = o.punto?.[0] ?? x - (x / l) * 0.75, ez = o.punto?.[1] ?? z - (z / l) * 0.75; K.estufa(ex, ez, Math.atan2(x - ex, z - ez)); }
   K.luz(x, PISO + 0.6, z + 0.4, { color: 0xff8a40, radio: 3.5, intensidad: 0.5, clase: 'fuego', cuarto: o.cuarto ?? 'local' });
 }
 // estantería contra la pared (frente a +Z), con lo que corresponda al oficio
@@ -1459,6 +1618,13 @@ function pilaLena(K, x, z, giro = 0, o = {}) {
     for (const sx of [-1, 1]) cj(c, F, sx * (L / 2 + 0.05), 0.75, 0, 0.08, 1.5, 0.08, PALETA_ALDEA.maderaOscura);
     chapaPlano(K, c, F.p(-L / 2 - 0.2, 1.42, 0.45), F.p(L / 2 + 0.2, 1.42, 0.45), F.p(L / 2 + 0.2, 1.6, -0.45), F.p(-L / 2 - 0.2, 1.6, -0.45), { color: '#7f817d', oxido: 0.5 });
   }
+  if (o.nylon) {
+    // el nylon azul gastado, tirado encima y sujeto con dos piedras
+    const yT = 0.12 + filas * 0.155;
+    cj(c, F, 0, yT, 0, L + 0.25, 0.02, 0.72, o.nylon, { tipo: 0, bajo: 0.85, alto: 1.1 });
+    for (const sz of [-1, 1]) cj(c, F, 0, yT - 0.22, sz * 0.36, L + 0.2, 0.42, 0.02, o.nylon, { tipo: 0, rx: sz * 0.12, bajo: 0.7 });
+    for (const sx of [-0.35, 0.4]) bulto(c, F.p(sx * L, yT + 0.08, 0.05), 0.11, '#6d6a62', { tipo: 4, esc: [1.2, 0.7, 1] });
+  }
   K.mueble(x, z, L + 0.1, 0.62, 0.08 + filas * 0.14, giro, o.y ?? 0);
 }
 function tendedero(K, x, z, giro = 0, o = {}) {
@@ -1513,20 +1679,29 @@ function mastil(K, x, z, o = {}) {
   const onda = (u) => Math.sin(u * 5.5) * 0.06 * u;
   const P = (u, v) => { const lx = 0.07 + u * L, lz = onda(u); return [x + lx * cg + lz * sg, y0 + v * A, z - lx * sg + lz * cg]; };
   const seg = 6;
-  for (const [col, v0, v1] of franjas) {
-    const k = tinte(col);
-    for (let i = 0; i < seg; i++) {
-      const u0 = i / seg, u1 = (i + 1) / seg;
-      const ka = escalar(k, 0.85 + 0.15 * Math.cos(u0 * 5.5)), kb = escalar(k, 0.85 + 0.15 * Math.cos(u1 * 5.5));
-      quad(c, P(u0, 1 - v1), P(u1, 1 - v1), P(u1, 1 - v0), P(u0, 1 - v0), ka, kb, kb, ka, 0);
-      quad(c, P(u1, 1 - v1), P(u0, 1 - v1), P(u0, 1 - v0), P(u1, 1 - v0), kb, ka, ka, kb, 0);
-    }
-  }
-  const ps = P(0.5, 0.5);
-  bulto(c, [ps[0] + sg * 0.012, ps[1], ps[2] + cg * 0.012], 0.075, '#e0a83a', { detalle: 1, esc: [1, 1, 0.25], rot: [0, giro, 0], tipo: 0 });
   K.circulo(x, z, 0.6, 0, 0.25);
   K.circulo(x, z, 0.1, 0, h);
-  K.extra.bandera = { lx: x, ly: h - 0.15 - A / 2, lz: z };
+  K.extra.bandera = { lx: x, ly: h - 0.15 - A / 2, lz: z, alto: h, izada: y0, arriada: 1.1 };
+  // la soga (driza) y la cornamusa donde se ata
+  palo(c, [x + 0.06 * cg, 0.9, z - 0.06 * sg], [x + 0.06 * cg, h - 0.1, z - 0.06 * sg], 0.006, '#d8d0bc', { tipo: 0 });
+  caja(c, [x + 0.08 * cg, 1.1, z - 0.08 * sg], [0.03, 0.12, 0.03], '#3a3734', { giro, tipo: 4 });
+  K.punto('mastil-soga', x - 1.1 * cg, z + 1.1 * sg, giro + Math.PI / 2, 0.03);
+  K.puntos['mastil-soga'].alto = h;
+  K.puntos['mastil-soga'].izada = y0;
+  // el paño se mueve: pivote en su borde de abajo junto al mástil (sube de 1,1 m hasta y0)
+  K.animable('bandera', [x, y0, z], [0, 1, 0], (cb) => {
+    for (const [col, v0, v1] of franjas) {
+      const k = tinte(col);
+      for (let i = 0; i < seg; i++) {
+        const u0 = i / seg, u1 = (i + 1) / seg;
+        const ka = escalar(k, 0.85 + 0.15 * Math.cos(u0 * 5.5)), kb = escalar(k, 0.85 + 0.15 * Math.cos(u1 * 5.5));
+        quad(cb, P(u0, 1 - v1), P(u1, 1 - v1), P(u1, 1 - v0), P(u0, 1 - v0), ka, kb, kb, ka, 0);
+        quad(cb, P(u1, 1 - v1), P(u0, 1 - v1), P(u0, 1 - v0), P(u1, 1 - v0), kb, ka, ka, kb, 0);
+      }
+    }
+    const ps = P(0.5, 0.5);
+    bulto(cb, [ps[0] + sg * 0.012, ps[1], ps[2] + cg * 0.012], 0.075, '#e0a83a', { detalle: 1, esc: [1, 1, 0.25], rot: [0, giro, 0], tipo: 0 });
+  }, { sup: SUP.nada, datos: { movimiento: 'sube', desde: 1.1 - y0, hasta: 0 } });
 }
 function cerco(K, x0, z0, x1, z1, o = {}) {
   const c = K.ext, L = Math.hypot(x1 - x0, z1 - z0);
@@ -1659,7 +1834,7 @@ function columpio(K, x, z, giro = 0) {
   palo(c, F.p(-1.05, 2.3, 0), F.p(1.05, 2.3, 0), 0.07, '#5e4c3a');
   // la hamaca de neumático
   for (const sx of [-0.18, 0.18]) palo(c, F.p(sx, 0.75, 0), F.p(sx * 0.6, 2.28, 0), 0.012, '#c9b88a');
-  const g = new THREE.TorusGeometry(0.28, 0.09, 6, 12);
+  const g = new THREE.TorusGeometry(0.28, 0.09, 5, 10);
   c.agregar(g, { tipo: 4, variar: 0.05, matriz: matriz(F.p(0, 0.62, 0), [0, giro, 0]), degradado: [lin('#1f1d1c'), lin('#3a3734')] });
   g.dispose();
 }
@@ -1673,7 +1848,13 @@ function hornoBarro(K, x, z, giro = 0) {
   // la boca, con su puertita de chapa apoyada al lado
   cj(c, F, 0, 0.92, 0.74, 0.42, 0.34, 0.12, '#3a2a1e', { tipo: 4 });
   caja(K.bra, F.p(0, 0.88, 0.79), [0.32, 0.22, 0.01], '#ff8f3a', { giro, tipo: 0, bajo: 0.7, alto: 1.2 });
-  cj(c, F, 0.42, 0.95, 0.82, 0.36, 0.3, 0.03, '#4a4642', { tipo: 4, rz: 0.15 });
+  {
+    const piv = F.p(0, 0.76, 0.81), ex = Math.cos(giro), ez = -Math.sin(giro);
+    K.animable('puerta-horno', piv, [ex, 0, ez], (cb) => {
+      cj(cb, F, 0, 0.92, 0.82, 0.4, 0.32, 0.03, '#4a4642', { tipo: 4 });
+      cj(cb, F, 0, 1.0, 0.85, 0.12, 0.03, 0.04, '#2a2624', { tipo: 4 });
+    }, { sup: SUP.chapa, datos: { movimiento: 'gira', abierta: 1.45 } });
+  }
   cl(c, F, 0.0, 1.4, -0.25, 0.07, 0.07, 0.3, '#6b5a4a', { tipo: 4 });
   K.circulo(F.p(0, 0, 0)[0], F.p(0, 0, 0)[2], 0.88, 0, 1.4);
   const p = F.p(0, 0, 1.4);
@@ -1917,13 +2098,14 @@ function casaAbuela(K) {
   tallaDuende(K, K.int, xh + 0.3, PISO + 1.115, 1.38, Math.PI / 2, 0.26, { madera: '#7d5a3c' });
   K.mueble(xh, 0.8, 0.62, 1.22, 1.3);
   K.luz(xh + 0.6, PISO + 0.5, 0.8, { color: 0xff8a40, radio: 4, intensidad: 0.6, clase: 'fuego', cuarto: 'local' });
+  K.estufa(xh + 0.95, 0.8, -Math.PI / 2);
   // la mecedora
-  const F = marcoLocal(-0.95, 1.0, -Math.PI * 0.75, PISO);
+  const F = marcoLocal(-0.7, 1.45, -Math.PI * 0.75, PISO);
   cj(K.int, F, 0, 0.42, 0, 0.5, 0.05, 0.45, '#6b4a2e'); cj(K.int, F, 0, 0.8, -0.24, 0.5, 0.7, 0.05, '#6b4a2e', { rx: -0.2 });
   for (const sx of [-1, 1]) cj(K.int, F, sx * 0.24, 0.12, 0, 0.04, 0.06, 0.8, '#5a3c26', { rx: 0.0 });
   cj(K.int, F, 0, 0.45, 0.02, 0.48, 0.02, 0.4, '#e8e2d6');   // el cuero de oveja
-  K.asiento('la mecedora de la abuela', -0.95, PISO + 0.45, 1.0, -Math.PI * 0.75);
-  K.circulo(-0.95, 1.0, 0.35, PISO, PISO + 1.1);
+  K.asiento('la mecedora de la abuela', -0.7, PISO + 0.45, 1.45, -Math.PI * 0.75);
+  K.circulo(-0.7, 1.45, 0.35, PISO, PISO + 1.1);
   mesa(K, 1.75, 1.55, 0, { largo: 0.8, ancho: 0.6, mantel: '#e2d6bc' });
   silla(K, 1.75, 0.95, 0, {});
   estanteria(K, -1.0, -0.3 + 0.27, 0, { largo: 1.2, alto: 1.6, cosas: 'libros', prof: 0.34 });
@@ -1939,7 +2121,7 @@ function casaAbuela(K) {
   caja(K.ext, [1.8, 0.16, D / 2 + 0.07], [0.22, 0.3, 0.03], '#7a3a2a', { tipo: 4 });
   cartel(K, 'Bienvenidos', [-1.3, PISO + 2.15, D / 2 + 0.04], 0.9, 0.18, 0, { marco: '#5a3c26' });
   maceta(K, -1.9, D / 2 + 0.3, { y: GALERIA_PISO });
-  pilaLena(K, -W / 2 - 0.9, -1.0, Math.PI / 2, { largo: 1.3, filas: 2 });
+  pilaLena(K, -W / 2 - 0.9, -1.0, Math.PI / 2, { largo: 1.3, filas: 2, nylon: '#3f6a8a' });
   K.abarcar(-W / 2 - 1.5, W / 2, -D / 2, D / 2);
 }
 
@@ -1957,10 +2139,10 @@ function casaFamilia(K) {
   if (!final(K)) return;
   const W = K.W, D = K.D;
   cocinaLena(K, coc.x, coc.z, coc.giro, { cuarto: 'local' });
-  mesa(K, 1.6, 1.4, 0, { largo: 1.4, ancho: 0.8, mantel: '#e0d4b6' });
-  for (const [x, z, g] of [[1.2, 0.75, 0], [2.0, 0.75, 0], [1.2, 2.05, Math.PI], [2.0, 2.05, Math.PI]]) silla(K, x, z, g, { color: elegir(azar(semillaDe('sf' + x + z)), ['#8a5a3a', '#4a6a5a', '#7a3a2a']) });
-  K.punto('mesa', 0.4, 1.4, Math.PI / 2);
-  lampara(K, 1.6, 1.4, { color: '#8a3a2a' });
+  mesa(K, 0.8, 1.0, 0, { largo: 1.4, ancho: 0.75, mantel: '#e0d4b6' });
+  for (const [x, z, g] of [[0.4, 0.38, 0], [1.2, 0.38, 0], [0.4, 1.62, Math.PI], [1.2, 1.62, Math.PI]]) silla(K, x, z, g, { color: elegir(azar(semillaDe('sf' + x + z)), ['#8a5a3a', '#4a6a5a', '#7a3a2a']) });
+  K.punto('mesa', 2.15, 1.15, -Math.PI / 2);
+  lampara(K, 0.8, 1.0, { color: '#8a3a2a' });
   // juguetes: pelota, caballito de madera, cubos
   bulto(K.int, [-2.3, PISO + 0.12, 1.9], 0.12, '#c8402a', { detalle: 1, suave: true, tipo: 0 });
   const Fc = marcoLocal(-2.6, 0.6, 0.6, PISO);
@@ -2072,6 +2254,15 @@ function escuela(K) {
   salamandra(K, -4.3, 2.9, {});
   chimeneaExtra(K, -4.3, 2.9);
   mapaPintado(K, 0.6, PISO + 1.6, tab.z + 0.08, 0, 1.4, 0.9);
+  // los dibujos de los chicos en la pared del costado (cambian con lo anotado en el cuaderno)
+  const rd = azar(semillaDe('dibujos'));
+  for (let i = 0; i < 5; i++) {
+    const zz = 0.1 + i * 0.45, yy = PISO + 1.45 + (i % 2) * 0.28;
+    caja(K.int, [xi - 0.012, yy, zz], [0.006, 0.3, 0.38], '#efe8d8', { giro: 0, rz: (rd() - 0.5) * 0.1 });
+    for (let k = 0; k < 3; k++) caja(K.int, [xi - 0.017, yy - 0.08 + k * 0.07, zz + (rd() - 0.5) * 0.18], [0.004, 0.05, 0.08 + rd() * 0.1], elegir(rd, ['#b8322a', '#3a6a9a', '#4a8a4a', '#d8b03a', '#8a5a9a']));
+  }
+  K.punto('dibujos', xi - 0.95, 0.95, Math.PI / 2);
+  K.extra.dibujos = { lx: xi - 0.012, ly: PISO + 1.6, lz: 1.0, ancho: 2.3, alto: 0.7, nx: -1, nz: 0 };
   estanteria(K, -2.6, tab.z + 0.26, 0, { largo: 1.2, alto: 1.4, cosas: 'libros', prof: 0.3, estantes: 3 });
   // la bandera de ceremonias en su rincón
   palo(K.int, [4.5, PISO, -0.55], [4.5, PISO + 2.2, -0.55], 0.02, '#c9a64a');
@@ -2161,7 +2352,12 @@ function herreria(K) {
   K.trabajo('fragua', xf + 1.05, zf, -Math.PI / 2);
   // el fuelle
   const Ff = marcoLocal(xf, zf + 0.95, 0, PISO);
-  cj(K.int, Ff, 0, 0.75, 0, 0.5, 0.25, 0.7, '#5a3c26', { rx: 0.1 }); cj(K.int, Ff, 0, 0.6, 0, 0.06, 0.6, 0.06, '#3a2a1a');
+  cj(K.int, Ff, 0, 0.66, 0, 0.5, 0.06, 0.7, '#4a3020'); cj(K.int, Ff, 0, 0.33, 0, 0.06, 0.6, 0.06, '#3a2a1a');
+  K.animable('fuelle', Ff.p(0, 0.7, -0.35), [1, 0, 0], (cb) => {
+    cj(cb, Ff, 0, 0.8, 0, 0.5, 0.2, 0.7, '#5a3c26', { rx: 0.1 });
+    cj(cb, Ff, 0, 0.92, 0.42, 0.06, 0.06, 0.25, '#3a2a1a');
+  }, { sup: SUP.tosca + SUP.adentro, datos: { movimiento: 'gira', abierta: 0.25, capa: 'interior' } });
+  K.extra.chispas = { lx: xf + 0.05, ly: PISO + 0.95, lz: zf };
   K.mueble(xf, zf + 0.95, 0.5, 0.7, 0.9);
   // el yunque sobre el tronco
   cilindro(K.int, [-1.2, PISO + 0.25, 0.8], 0.26, 0.28, 0.5, '#6a4d33', { lados: 9 });
@@ -2237,6 +2433,7 @@ function carpinteria(K) {
   for (let i = 0; i < 7; i++) palo(K.ext, [-W / 2 - 1.2 + (i % 4) * 0.32 - (i >= 4 ? -0.16 : 0), 0.16 + (i >= 4 ? 0.28 : 0), -1.6], [-W / 2 - 1.2 + (i % 4) * 0.32 - (i >= 4 ? -0.16 : 0), 0.16 + (i >= 4 ? 0.28 : 0), 1.0], 0.15, elegir(rt, ['#6a4d33', '#7a5a3a', '#5e4630']), { abierto: false, lados: 7 });
   K.mueble(-W / 2 - 0.75, -0.3, 1.4, 2.6, 0.6, 0, 0);
   caballete(K, W / 2 + 1.2, 0.8, Math.PI / 2);
+  K.punto('sierra', W / 2 + 2.1, 0.8, -Math.PI / 2, 0);
   K.abarcar(-W / 2 - 1.6, W / 2 + 1.8, -D / 2, D / 2);
 }
 
@@ -2283,6 +2480,7 @@ function pescaderia(K) {
   for (const z of [0.1, 1.3]) { palo(K.ext, [W / 2 + 1.1, -0.2, z], [W / 2 + 1.1, 1.8, z], 0.05, '#6e5a44'); K.circulo(W / 2 + 1.1, z, 0.07, 0, 1.8); }
   for (let i = 0; i < 6; i++) caja(K.ext, [W / 2 + 1.1, 1.0 + i * 0.13, 0.7], [0.012, 0.012, 1.2], '#4a4a3a', { tipo: 0 });
   for (let i = 0; i < 6; i++) caja(K.ext, [W / 2 + 1.1, 1.3, 0.2 + i * 0.2], [0.012, 0.8, 0.012], '#4a4a3a', { tipo: 0 });
+  K.punto('redes', W / 2 + 0.42, 0.7, Math.PI / 2, 0);
   for (const z of [1.7, 1.95]) viga(K.ext, [W / 2 + 0.12, 0.02, z], [W / 2 + 0.16, 2.2, z + 0.1], 0.05, 0.03, '#a8845a', { tipo: 0 });
   K.abarcar(-W / 2 - 2.0, W / 2 + 1.5, -D / 2, D / 2);
 }
@@ -2366,6 +2564,7 @@ function estafeta(K) {
   const rc = azar(semillaDe('casillas'));
   for (let k = 0; k < 9; k++) cj(K.int, Fc, -0.48 + Math.floor(rc() * 5) * 0.24, 0.42 + Math.floor(rc() * 6) * 0.233, 0.14, 0.14, 0.06, 0.005, '#efe8d8');
   K.mueble(-xi + 0.17, 1.55, 0.3, 1.3, 1.75);
+  K.punto('casillas', -xi + 0.95, 1.55, -Math.PI / 2);
   bolsa(K, -xi + 0.3, -0.45, { color: '#8a7a5a' });
   cilindro(K.int, [-0.9, PISO + 2.0, tab.z + 0.08], 0.17, 0.17, 0.04, '#efe8d8', { rx: Math.PI / 2, lados: 12 });   // el reloj
   lampara(K, 0.0, 0.9, { color: '#3b5675' });
@@ -2407,10 +2606,15 @@ function hilanderia(K) {
   cj(K.int, Fr, 0, 0.3, 0, 0.7, 0.06, 0.2, '#7a5636', { rz: 0.15 });
   for (const sx of [-1, 1]) cj(K.int, Fr, sx * 0.28, 0.15, 0, 0.04, 0.3, 0.04, '#6b4a2e');
   cj(K.int, Fr, -0.12, 0.6, 0, 0.04, 0.6, 0.04, '#6b4a2e');
-  const g = new THREE.TorusGeometry(0.3, 0.02, 4, 18);
-  K.int.agregar(g, { tipo: 0, matriz: matriz(Fr.p(-0.12, 0.85, 0.03), [0, 0.3, 0]), degradado: [lin('#5a3c26'), lin('#8a6040')] });
-  g.dispose();
-  for (let i = 0; i < 4; i++) cj(K.int, Fr, -0.12, 0.85, 0.03, 0.58, 0.02, 0.02, '#6b4a2e', { rz: i * Math.PI / 4 });
+  {
+    const centro = Fr.p(-0.12, 0.85, 0.03), giroR = Fr.giro;
+    K.animable('rueda-rueca', centro, [Math.sin(giroR), 0, Math.cos(giroR)], (cb) => {
+      const g = new THREE.TorusGeometry(0.3, 0.02, 4, 18);
+      cb.agregar(g, { tipo: 0, matriz: matriz(centro, [0, giroR, 0]), degradado: [lin('#5a3c26'), lin('#8a6040')] });
+      g.dispose();
+      for (let i = 0; i < 4; i++) cj(cb, Fr, -0.12, 0.85, 0.03, 0.58, 0.02, 0.02, '#6b4a2e', { rz: i * Math.PI / 4 });
+    }, { sup: SUP.tosca + SUP.adentro, datos: { movimiento: 'gira', vueltasPorSegundo: 1.2, capa: 'interior' } });
+  }
   cl(K.int, Fr, 0.25, 0.5, 0, 0.05, 0.05, 0.12, '#e8e0d0', { rz: Math.PI / 2 });
   K.circulo(-2.4, 0.9, 0.4, PISO, PISO + 1.2);
   silla(K, -1.85, 1.25, -2.2, { nombre: 'la silla de la rueca' });
@@ -2466,6 +2670,8 @@ function salaMiel(K) {
   // afuera: las colmenas y un cantero de flores
   const cols = ['#e2dccb', '#9ab0c4', '#e0c870', '#b8cfa8'];
   for (let i = 0; i < 4; i++) colmena(K, W / 2 + 1.5, -1.6 + i * 1.05, Math.PI / 2, cols[i]);
+  K.punto('colmenas', W / 2 + 0.6, -0.05, Math.PI / 2, 0);
+  K.extra.abejas = { lx: W / 2 + 1.5, ly: 1.0, lz: 0, radio: 2.5 };
   cantero(K, W / 2 + 1.6, D / 2 + 1.0, { largo: 1.8, ancho: 0.9 });
   K.abarcar(-W / 2, W / 2 + 2.6, -D / 2, D / 2 + 1.6);
 }
@@ -2494,6 +2700,8 @@ function seccional(K) {
   caja(K.int, [xi - 0.4, PISO + 0.8, 1.35], [0.3, 0.04, 0.22], '#4a3a6a');
   // el mapa del valle en la pared, la biblioteca y el perchero
   mapaPintado(K, -0.6, PISO + 1.55, tab.z + 0.08, 0, 1.6, 1.1);
+  K.punto('mapa-valle', -0.6, tab.z + 0.95, Math.PI);
+  K.extra.mapaValle = { lx: -0.6, ly: PISO + 1.55, lz: tab.z + 0.1, ancho: 1.6, alto: 1.1 };
   estanteria(K, -xi + 0.19, 0.9, Math.PI / 2, { largo: 1.4, alto: 1.8, cosas: 'libros', prof: 0.34 });
   palo(K.int, [-2.5, PISO, 2.45], [-2.5, PISO + 1.8, 2.45], 0.03, '#5a3c26');
   caja(K.int, [-2.5, PISO + 1.25, 2.52], [0.42, 0.75, 0.16], '#4a5a3a');
@@ -2562,8 +2770,9 @@ function salon(K) {
   caja(K.int, [xi - 0.25, PISO + 0.45, 2.0], [0.45, 0.9, 1.4], '#5a3c26');   // el aparador con las damajuanas
   for (let i = 0; i < 3; i++) bulto(K.int, [xi - 0.25, PISO + 1.05, 1.5 + i * 0.4], 0.14, '#3a5a3a', { tipo: 0, detalle: 1, suave: true, esc: [1, 1.3, 1] });
   K.mueble(xi - 0.25, 2.0, 0.45, 1.4, 1.2);
-  salamandra(K, -xi + 0.5, 3.2, {});
+  salamandra(K, -xi + 0.5, 3.2, { punto: [-xi + 0.62, 2.4] });
   chimeneaExtra(K, -xi + 0.5, 3.2);
+  K.punto('pista-baile', 0, 1.7, Math.PI);
   for (const [x, z] of [[-2.0, 1.5], [2.0, 1.5], [0, 2.8]]) lampara(K, x, z, { cuelga: 0.9, color: '#e0c890', radio: 8 });
   vivienda(K, tab, { manta: '#3a6a9a' });
   // afuera: dos faroles de pared junto a la puerta
@@ -2610,8 +2819,8 @@ function biblioteca(K) {
     lampara(K, 0.5, z, { cuelga: 0.8, color: '#3f5a48', radio: 6 });
   }
   // la estufa y el sillón de la abuela, donde los domingos lee cuentos; la alfombra para los chicos
-  salamandra(K, xi - 0.55, 3.6, {});
-  chimeneaExtra(K, xi - 0.55, 3.6);
+  salamandra(K, xi - 0.5, 2.7, {});
+  chimeneaExtra(K, xi - 0.5, 2.7);
   // el sillón de orejas de la abuela, tapizado, con su manta tejida y la mesita del velador
   const xs = 1.75, zs = 4.0, gs = -2.5;
   const Fs = marcoLocal(xs, zs, gs, PISO), tela = '#5d3a2e', tela2 = '#6e4636';
@@ -2626,7 +2835,7 @@ function biblioteca(K) {
   for (let k = 0; k < 4; k++) cj(K.int, Fs, 0.41, 0.66 - k * 0.045, -0.18 + k * 0.12, 0.3, 0.025, 0.12, ['#c8a04a', '#8a3a2a', '#d8cfb8', '#4a6a7a'][k], { rz: -0.35 });   // la manta tejida, sobre el brazo
   K.mueble(xs, zs, 1.0, 0.95, 1.2, gs);
   K.asiento('el sillón de los cuentos', xs, PISO + 0.55, zs, gs);
-  const Fm = marcoLocal(xs - 0.85, zs + 0.35, gs, PISO);
+  const Fm = marcoLocal(xs + 0.82 * Math.cos(gs) + 0.2 * Math.sin(gs), zs - 0.82 * Math.sin(gs) + 0.2 * Math.cos(gs), gs, PISO);
   cl(K.int, Fm, 0, 0.3, 0, 0.04, 0.05, 0.6, '#4a3020');
   cl(K.int, Fm, 0, 0.61, 0, 0.24, 0.24, 0.03, '#6b4a2e', { lados: 10 });
   cj(K.int, Fm, 0.05, 0.64, 0.03, 0.18, 0.04, 0.24, '#7a2f2a', { giro: 0.4 });   // el libro de cuentos
@@ -2703,6 +2912,7 @@ function aljibe(K, x, z) {
   chapaPlano(K, c, F.p(-0.95, 2.15, 0.6), F.p(0.95, 2.15, 0.6), F.p(0.95, 2.55, 0), F.p(-0.95, 2.55, 0), { color: '#7f817d', oxido: 0.6, musgo: 0.8, comba: 0.02 });
   chapaPlano(K, c, F.p(0.95, 2.15, -0.6), F.p(-0.95, 2.15, -0.6), F.p(-0.95, 2.55, 0), F.p(0.95, 2.55, 0), { color: '#7f817d', oxido: 0.6, musgo: 0.8, comba: 0.02 });
   K.circulo(x, z, 0.88, 0, 1.0);
+  K.punto('aljibe', x + 0.1, z + 1.3, Math.PI, 0.03);
 }
 // El duende tallado en el mismo tronco de coihue: abajo la corteza con sus raíces, arriba la madera
 // trabajada, y la figura saliendo de la pieza. Mira a la estación (+Z).
@@ -2787,7 +2997,8 @@ function plaza(K) {
       const kt = tinte('#4a3a2c');
       quad(c, [dx, 0.13, dz], [cx2, 0.13, cz2], [bx, 0.13, bz], [ax, 0.13, az], kt, kt, escalar(kt, 0.85), escalar(kt, 0.85), 0);
       const [mx, mz] = P(Rm, (b0 + b1) / 2);
-      bulto(K.fol, [mx, 0.27, mz], 0.3, elegir(r, ['#46613a', '#3d5634', '#55703f']), { tipo: 1, detalle: 0, abollar: 0.03, esferica: 1, variar: 0.03, esc: [1.25, 0.62, 1.25], rot: [0, (b0 + b1) / 2, 0], bajo: 0.5, alto: 1.15 });
+      // matas de hojas finas (como el pasto del valle), no bultos
+      for (let q = 0; q < 3; q++) { const [qx, qz] = P(Rm + (r() - 0.5) * 0.35, b0 + (b1 - b0) * (0.2 + 0.3 * q)); manojo(K.fol, r, qx, 0.13, qz, 7, 0.32, 0.5); }
       const flor = elegir(r, ['#7a5aa8', '#c46a9a', '#e0d0e8', '#e8b030', '#f0ece0']);
       // flores de disco (margaritas, amancay, malvas) sobre la mata
       for (let f = 0; f < 5; f++) {
@@ -2887,6 +3098,9 @@ function nombrar(K) {
     K.extra.estar.forEach((p, i) => { N['estar-' + (i + 1)] = copia(p); });
     K.extra.juego.forEach((p, i) => { N['juego-' + (i + 1)] = copia(p); });
     N.musico = copia(P.musico); N.mastil = copia(P.mastil); N.duende = copia(P.duende);
+    N.aljibe = copia(P.aljibe);
+    if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };
+    P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
     return N;
   }
   if (P.entrada) N.puerta = copia(P.entrada);
@@ -2894,6 +3108,12 @@ function nombrar(K) {
   const trabajo = P.trabajo[0] || P.atiende || P.cocina || P.pizarron;
   if (trabajo) N.trabajo = copia(trabajo);
   if (P.cama) N.cama = copia(P.cama);
+  // 3.6 (pulido): para las mecánicas de cada lugar (PLAN_ALDEA §14)
+  P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
+  P.estufas.forEach((a, i) => { N[i ? 'estufa-' + (i + 1) : 'estufa'] = copia(a); });
+  for (const k of ['aljibe', 'pizarron', 'dibujos', 'camilla', 'casillas', 'mapa-valle', 'pista-baile', 'colmenas', 'sierra', 'redes', 'campana-anden', 'horario-trenes']) if (P[k]) N[k] = copia(P[k]);
+  if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };
+  for (const tr of P.trabajo) if (['fragua', 'horno', 'rueca'].includes(tr.nombre)) N[tr.nombre] = copia(tr);
   const asientos = (nombre) => P.asientos.filter((a) => a.nombre === nombre);
   if (K.id === 'biblioteca') {
     asientos('una silla de lectura').slice(0, 12).forEach((a, i) => { N['lectura-' + (i + 1)] = copia(a); });
@@ -2947,8 +3167,16 @@ function cerrar(K, extra = {}) {
     colisiones: { obstaculos: redondo(K.obst), plataformas: redondo(K.plat.map(({ cos, sin, ...p }) => p)) },
     puertas: K.puertas, luces: K.luces, ventanas: K.ventanas, puntos,
     chimenea: K.chimenea, chimeneas: K.extra.chimeneas ?? (K.chimenea ? [K.chimenea] : []), humo: K.extra.humo ?? null,
+    chispas: K.extra.chispas ?? null, vapor: K.extra.vapor ?? null,
+    animables: K.animables.map(({ c, pivote, ...a }) => {
+      const g = c.geometria();
+      g.translate(-pivote.lx, -pivote.ly, -pivote.lz);
+      g.computeBoundingSphere(); g.computeBoundingBox();
+      return { ...a, pivote, geometria: g };
+    }),
     techo: K.techo, pisos: K.pisos, carteles: K.carteles,
-    extra: { campana: K.extra.campana ?? null, bandera: K.extra.bandera ?? null, alamos: K.extra.alamos ?? null, cables: K.extra.cables ?? null },
+    extra: { campana: K.extra.campana ?? null, bandera: K.extra.bandera ?? null, alamos: K.extra.alamos ?? null, cables: K.extra.cables ?? null,
+      acometida: K.extra.acometida ?? null, dibujos: K.extra.dibujos ?? null, mapaValle: K.extra.mapaValle ?? null, abejas: K.extra.abejas ?? null },
     medidas: {
       triangulos: { exterior: Object.values(exterior).reduce((s, g) => s + tris(g), 0), interior: Object.values(interior).reduce((s, g) => s + tris(g), 0) },
       dibujos: { exterior: Object.values(exterior).filter(Boolean).length, interior: Object.values(interior).filter(Boolean).length },
@@ -2956,6 +3184,8 @@ function cerrar(K, extra = {}) {
   };
 }
 
+// de qué lado van el tacho, las herramientas y el cajón (el otro costado ya tiene leña, horno, colmenas...)
+const COSAS_DE_USO = { 'casa-jefe': 1, panaderia: -1, 'puesto-sanitario': 1, estafeta: -1, hilanderia: -1, 'sala-miel': -1, seccional: 1, salon: 1, escuela: -1, biblioteca: 1 };
 export function armarEdificio(id, etapa = 4, opciones = {}) {
   const def = EDIFICIOS_ALDEA[id];
   if (!def) throw new Error('aldea-arquitectura: no conozco el edificio ' + id);
@@ -2967,6 +3197,7 @@ export function armarEdificio(id, etapa = 4, opciones = {}) {
   else if (e === 0) lote(K);
   else {
     PLANOS_ALDEA[id](K);
+    if (e === 4 && COSAS_DE_USO[id]) cosasDeUso(K, COSAS_DE_USO[id]);
     const medioHacer = id === 'escuela' && e === ESCUELA_A_MEDIO_HACER && !opciones.obraActiva;
     if (e <= 3 && !opciones.sinMateriales && !medioHacer) materialesObra(K);
   }
@@ -2980,7 +3211,7 @@ export function armarEdificio(id, etapa = 4, opciones = {}) {
 // quedan "bollos": la silueta se quiebra en hojas y la luz corre pareja. Hojas con aTipo 2 (caen en
 // invierno: quedan el tronco y las ramas que suben pegadas al eje).
 function triN(c, p, n, k, tipo) {
-  for (let i = 0; i < 3; i++) { c.pos.push(p[i][0], p[i][1], p[i][2]); c.nor.push(n[i][0], n[i][1], n[i][2]); c.col.push(k[i].r, k[i].g, k[i].b); c.tipo.push(tipo); }
+  for (let i = 0; i < 3; i++) { c.pos.push(p[i][0], p[i][1], p[i][2]); c.nor.push(n[i][0], n[i][1], n[i][2]); c.col.push(k[i].r, k[i].g, k[i].b); c.tipo.push(tipo); if (c.sup) c.sup.push(c.supActual); }
 }
 const ICOSA = (() => { const g = new THREE.IcosahedronGeometry(1, 0); const a = Array.from(g.attributes.position.array); g.dispose(); return a; })();
 function alamo(K, x0, z0, o) {
@@ -3120,11 +3351,244 @@ export function armarAgregadoEstacion(opciones = {}) {
     tallaDuende(K, K.ext, 1.55, 2.6, 0.02, 0.2, 0.55, { madera: '#8a6440' });
     piezas.push({ id: 'cartel-aldea', lx: 6.8, lz: 6.4, giro: Math.PI, edificio: cerrar(K) });
   }
-  piezas.push({ id: 'farol-1', lx: -3.4, lz: 5.4, giro: 0, edificio: armarAccesorio('faroles', { semilla: 1 }) });
-  piezas.push({ id: 'farol-2', lx: 3.4, lz: 5.4, giro: 0, edificio: armarAccesorio('faroles', { semilla: 2 }) });
+  // la campana del andén, en su poste con ménsula (la campana es una pieza animable)
+  {
+    const K = crearContexto('campana-anden', 4, opciones, { ancho: 0.8, fondo: 0.8, nombre: 'Campana del andén' });
+    palo(K.ext, [0, -0.3, 0], [0, 2.55, 0], 0.08, '#4e3a28', { lados: 7, abierto: false });
+    viga(K.ext, [0, 2.45, 0], [0, 2.45, -0.45], 0.07, 0.09, '#4e3a28');
+    viga(K.ext, [0, 2.0, 0], [0, 2.42, -0.4], 0.05, 0.05, '#4e3a28');
+    K.circulo(0, 0, 0.12, 0, 2.6);
+    K.animable('campana', [0, 2.38, -0.4], [1, 0, 0], (cb) => {
+      const perfil = [[0.01, 0], [0.13, 0.01], [0.12, 0.05], [0.09, 0.12], [0.07, 0.2], [0.03, 0.23], [0, 0.235]].map(([a, b]) => new THREE.Vector2(a * 1.3, b * 1.3));
+      const g = new THREE.LatheGeometry(perfil, 10);
+      cb.agregar(g, { tipo: 4, variar: 0.05, suave: true, matriz: matriz([0, 2.38 - 0.31, -0.4]), degradado: [lin('#5a4a2a'), lin('#a8874a')] });
+      g.dispose();
+      palo(cb, [0, 2.07, -0.4], [0, 1.82, -0.4], 0.008, '#c9b88a');
+    }, { sup: SUP.nada, datos: { movimiento: 'gira', abierta: 0.5 } });
+    K.punto('campana-anden', 0.55, -0.3, -Math.PI / 2, 0);
+    K.ocupa = { x0: -0.4, x1: 0.4, z0: -0.4, z1: 0.4 };
+    piezas.push({ id: 'campana-anden', lx: -2.7, lz: 5.4, giro: Math.PI, edificio: cerrar(K) });
+  }
+  // el pizarrón con el horario de los trenes, mirando al andén
+  {
+    const K = crearContexto('horario-trenes', 4, opciones, { ancho: 1.2, fondo: 0.4, nombre: 'Horario de trenes' });
+    for (const l of [-1, 1]) { palo(K.ext, [l * 0.5, -0.2, 0], [l * 0.5, 1.95, 0], 0.045, '#4e3a28', { lados: 6 }); K.circulo(l * 0.5, 0, 0.07, 0, 1.95); }
+    caja(K.ext, [0, 1.45, 0], [1.05, 0.75, 0.04], '#26302a', { tipo: 4, sup: SUP.nada });
+    caja(K.ext, [0, 1.45, -0.005], [1.13, 0.83, 0.03], '#5a3c26', { tipo: 4 });
+    caja(K.ext, [0, 1.9, 0], [1.2, 0.05, 0.12], '#3a3734', { tipo: 4 });
+    const rh = azar(semillaDe('horario'));
+    for (let i = 0; i < 5; i++) for (const sx of [-0.25, 0.25]) caja(K.ext, [sx + (rh() - 0.5) * 0.05, 1.68 - i * 0.1, 0.022], [0.3 + rh() * 0.12, 0.022, 0.004], '#e8e4d8', { tipo: 0, sup: SUP.nada, abollar: 0 });
+    K.punto('horario-trenes', 0, 0.85, Math.PI, 0);
+    K.ocupa = { x0: -0.6, x1: 0.6, z0: -0.2, z1: 0.2 };
+    piezas.push({ id: 'horario-trenes', lx: 2.9, lz: 5.5, giro: Math.PI, edificio: cerrar(K) });
+  }
+  piezas.push({ id: 'farol-1', lx: -4.3, lz: 5.3, giro: 0, edificio: armarAccesorio('faroles', { semilla: 1 }) });
+  piezas.push({ id: 'farol-2', lx: 4.4, lz: 5.4, giro: 0, edificio: armarAccesorio('faroles', { semilla: 2 }) });
   piezas.push({ id: 'farol-3', lx: -5.2, lz: 6.2, giro: 0, edificio: armarAccesorio('faroles', { semilla: 3 }) });
   piezas.push({ id: 'banco', lx: 4.9, lz: 6.3, giro: Math.PI, edificio: armarAccesorio('banco', { semilla: 4 }) });
   return { piezas };
+}
+
+
+// ---------------------------------------------------------------- 3.6 (pulido): el material de la aldea
+// prepararMaterialAldea(mat) toma un material de estructuras NUEVO (materialVegetal({ flex: 0 }), no el
+// `est.mat` compartido) y le suma, con onBeforeCompile, el detalle de superficie según aSuperficie:
+// juntas y vetas de las tablas, tejuelas, ondas de 7,6 cm de la chapa (perturban la normal) con óxido
+// en manchas y chorreado desde los clavos, hiladas de piedra, revoque, piso de tablas; y para todo lo de
+// afuera, humedad que sube del suelo, musgo y líquenes arriba y del lado de la sombra, y la pintura
+// gastada junto a las juntas. Todo procedural (coordenadas locales del edificio, ruido de valor de 2D,
+// sin bucles) y apagado solo cuando la celda queda más chica que un par de píxeles (fwidth): de lejos no
+// titila. Una sola variante de programa más (clave 'aldea-3.6'): conviene compilarla en la carga junto
+// con el resto (compileAsync). Lo que no tiene aSuperficie (vale 0) sale idéntico.
+const GLSL_ALDEA_COMUN = /* glsl */`
+  varying float vSupA; varying vec3 vLocA; varying vec3 vNormWA;
+  float ondaA = 0.0; float tAglob = 0.0;
+  float hA(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float nA(vec2 p) {
+    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hA(i), hA(i + vec2(1.0, 0.0)), f.x), mix(hA(i + vec2(0.0, 1.0)), hA(i + vec2(1.0, 1.0)), f.x), f.y);
+  }
+  // una junta: 1 sobre la línea; w = medio ancho (en celdas). Se apaga cuando la celda mide pocos píxeles.
+  float juntaA(float u, float w) {
+    float d = min(fract(u), 1.0 - fract(u)), fw = fwidth(u);
+    return (1.0 - smoothstep(w, w + max(fw, 1e-4) * 1.5, d)) * (1.0 - smoothstep(0.25, 0.6, fw));
+  }
+`;
+const GLSL_ALDEA_COLOR = /* glsl */`
+  {
+    float sA = floor(vSupA + 0.5);
+    float dentro = step(9.5, sA);
+    float tipo = sA - 10.0 * dentro;
+    if (tipo > 0.5) {
+      vec3 pL = vLocA;
+      vec3 nL = normalize(cross(dFdx(pL), dFdy(pL)) + vec3(0.0, 1e-6, 0.0));
+      float horiz = step(0.7, abs(nL.y));
+      vec2 tg = normalize(vec2(-nL.z, nL.x) + vec2(1e-5, 0.0));
+      float tA = dot(pL.xz, tg);
+      tAglob = tA;
+      vec2 uv = mix(vec2(tA, pL.y), pL.xz, horiz);
+      vec3 alb = diffuseColor.rgb;
+      float madera = 0.0, junta = 0.0, bordeTabla = 1.0;
+      if (tipo < 1.5) {
+        // tablas verticales de 18 cm
+        float u = uv.x / 0.18, id = floor(u);
+        junta = juntaA(u, 0.03); bordeTabla = min(fract(u), 1.0 - fract(u));
+        alb *= (0.9 + 0.2 * hA(vec2(id, 3.1))) * (0.93 + 0.14 * nA(vec2(uv.x * 30.0, uv.y * 1.3 + id * 7.0)));
+        madera = 1.0;
+      } else if (tipo < 2.5) {
+        // tablas horizontales de 18 cm (solapadas afuera, machimbre adentro)
+        float v = uv.y / 0.18, id = floor(v);
+        float corte = (uv.x + hA(vec2(id, 1.7)) * 3.0) / 2.4;
+        junta = max(juntaA(v, 0.04), juntaA(corte, 0.004)); bordeTabla = min(fract(v), 1.0 - fract(v));
+        alb *= (0.9 + 0.2 * hA(vec2(id, floor(corte)))) * (0.93 + 0.14 * nA(vec2(uv.x * 1.3 + id * 5.0, uv.y * 30.0)));
+        alb *= 0.88 + 0.12 * smoothstep(0.0, 0.25, fract(v));
+        madera = 1.0;
+      } else if (tipo < 3.5) {
+        // tejuelas de alerce: filas de 18 cm, cortadas cada 15, algunas plateadas por el sol
+        float v = uv.y / 0.18, id = floor(v);
+        float u = uv.x / 0.15 + mod(id, 2.0) * 0.5 + hA(vec2(id, 9.0)) * 0.3, cid = floor(u);
+        junta = max(juntaA(v, 0.05), juntaA(u, 0.05));
+        float hh = hA(vec2(cid, id));
+        alb *= 0.78 + 0.36 * hh;
+        alb = mix(alb, vec3(dot(alb, vec3(0.333))) * 1.2, step(0.72, hh) * 0.6 * (1.0 - dentro));
+        alb *= 0.84 + 0.16 * smoothstep(0.0, 0.35, fract(v));
+        madera = 1.0;
+      } else if (tipo < 4.5) {
+        // chapa acanalada: la onda de 7,6 cm va en la normal; acá, el valle algo sucio y el óxido
+        float fase = tA * 82.67;
+        ondaA = 1.0 - smoothstep(1.0, 3.0, fwidth(fase));
+        alb *= 0.95 + 0.05 * sin(fase) * ondaA;
+        if (dentro < 0.5) {
+          float manchas = smoothstep(0.55, 0.85, nA(pL.xz * 1.4 + pL.y * 0.7));
+          float clavos = 1.0 - fract(pL.y / 0.9 + 0.13);
+          float chorreo = smoothstep(0.62, 0.95, nA(vec2(tA * 11.0, floor(pL.y / 0.9)))) * clavos * clavos;
+          alb = mix(alb, vec3(0.28, 0.12, 0.05), clamp(manchas * 0.3 + chorreo * 0.45, 0.0, 0.6));
+        }
+      } else if (tipo < 5.5) {
+        // piedra laja en hiladas irregulares, cada piedra con su tono
+        vec2 q = uv + vec2(nA(uv * 2.1) * 0.12, nA(uv * 1.7 + 4.0) * 0.06);
+        float rr = q.y / 0.16, rid = floor(rr);
+        float cc = q.x / 0.34 + hA(vec2(rid, 5.0)) * 0.8 + nA(q * 3.0) * 0.25, cid = floor(cc);
+        junta = max(juntaA(rr, 0.08), juntaA(cc, 0.05));
+        float hh = hA(vec2(cid, rid));
+        alb *= (0.75 + 0.4 * hh) * (0.9 + 0.2 * nA(uv * 9.0));
+        alb = mix(alb, alb * vec3(1.08, 1.0, 0.86), step(0.7, hA(vec2(rid, cid + 3.0))) * 0.5);
+      } else if (tipo < 6.5) {
+        // revoque a la cal
+        alb *= 0.9 + 0.12 * nA(uv * 2.2) + 0.05 * nA(uv * 11.0);
+      } else if (tipo < 7.5) {
+        // madera tosca: veta a lo largo de la pieza
+        vec2 g = horiz > 0.5 ? vec2(pL.x * 1.2, pL.z * 28.0) : vec2(tA * 28.0, pL.y * 1.2);
+        alb *= 0.9 + 0.18 * nA(g);
+      } else if (tipo < 8.5) {
+        // piso de tablas de 15 cm, a lo largo de x
+        float v = pL.z / 0.15, id = floor(v);
+        float corte = (pL.x + hA(vec2(id, 2.3)) * 2.7) / 2.2;
+        junta = max(juntaA(v, 0.04), juntaA(corte, 0.004)); bordeTabla = min(fract(v), 1.0 - fract(v));
+        alb *= (0.86 + 0.24 * hA(vec2(id, floor(corte)))) * (0.92 + 0.16 * nA(vec2(pL.x * 1.1 + id * 3.0, pL.z * 40.0)));
+        madera = 1.0;
+      } else {
+        // laja suelta
+        alb *= 0.85 + 0.25 * nA(pL.xz * 3.1 + pL.y);
+      }
+      alb *= 1.0 - junta * 0.45;
+      if (madera > 0.0) {
+        // la pintura se va junto a los cantos y asoma la madera
+        float gasto = (1.0 - smoothstep(0.01, 0.06, bordeTabla)) * step(0.55, nA(uv * 7.0)) * madera;
+        alb = mix(alb, vec3(0.30, 0.20, 0.12) * (0.8 + 0.4 * hA(floor(uv * 5.0))), gasto * 0.45 * (1.0 - dentro * 0.6));
+      }
+      if (dentro < 0.5) {
+        float h = pL.y;
+        // humedad y barro que suben del suelo
+        float hum = 1.0 - smoothstep(0.0, 0.55 + 0.5 * nA(uv * 1.7), h);
+        alb = mix(alb, alb * vec3(0.52, 0.48, 0.42), hum * 0.5);
+        // musgo arriba y del lado de la sombra, líquenes en la piedra y la chapa
+        float arriba = smoothstep(0.35, 0.9, vNormWA.y);
+        float sombra = 1.0 - smoothstep(-0.25, 0.25, dot(vNormWA, normalize(uSolDirVeg)));
+        float mancha = smoothstep(0.6, 0.86, nA(pL.xz * 2.3 + pL.y * 1.1 + vec2(sA * 1.7)));
+        float cuanto = (arriba * 0.6 + sombra * 0.35 * (1.0 - smoothstep(0.5, 2.5, h))) * mancha;
+        float rugoso = (tipo > 2.5 && tipo < 5.5) || tipo > 8.5 ? 1.0 : 0.45;
+        alb = mix(alb, vec3(0.12, 0.16, 0.07), cuanto * 0.45 * rugoso);
+        float liquen = smoothstep(0.9, 0.97, nA(pL.xz * 13.0 + pL.y * 7.0)) * smoothstep(0.45, 0.7, nA(pL.xz * 0.9 + 3.0)) * ((tipo > 3.5 && tipo < 5.5) || tipo > 8.5 ? 1.0 : 0.0);
+        alb = mix(alb, vec3(0.24, 0.26, 0.19), liquen * 0.4);
+      }
+      diffuseColor.rgb = alb;
+    }
+  }
+`;
+const GLSL_ALDEA_NORMAL = /* glsl */`
+  if (ondaA > 0.001) {
+    // la onda de la chapa: la normal se inclina a lo ancho de la chapa (gradiente de tA en la vista)
+    vec3 pV = -vViewPosition;
+    vec3 dp1 = dFdx(pV), dp2 = dFdy(pV);
+    float du1 = dFdx(tAglob), du2 = dFdy(tAglob);
+    vec3 T = cross(dp2, normal) * du1 + cross(normal, dp1) * du2;
+    float lT = length(T);
+    if (lT > 1e-8) normal = normalize(normal + (T / lT) * cos(tAglob * 82.67) * 0.42 * ondaA);
+  }
+`;
+export function prepararMaterialAldea(mat) {
+  if (!mat || mat.userData?.aldea36) return mat;
+  const previo = mat.onBeforeCompile;
+  const clave = typeof mat.customProgramCacheKey === 'function' ? mat.customProgramCacheKey() : '';
+  mat.customProgramCacheKey = () => clave + '|aldea-3.6';
+  mat.onBeforeCompile = (sh, r) => {
+    if (typeof previo === 'function') previo(sh, r);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float aSuperficie; attribute vec3 aLocal; varying float vSupA; varying vec3 vLocA; varying vec3 vNormWA;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSupA = aSuperficie; vLocA = aLocal; vNormWA = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n' + GLSL_ALDEA_COMUN)
+      .replace('#include <color_fragment>', '#include <color_fragment>\n' + GLSL_ALDEA_COLOR)
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GLSL_ALDEA_NORMAL);
+  };
+  mat.userData.aldea36 = true;
+  mat.needsUpdate = true;
+  return mat;
+}
+// El vidrio de las ventanas: un reflejo frío del cielo por Fresnel (de día; de noche, cuando
+// brilloVentana sube el color del material, el reflejo se apaga y queda la luz de adentro).
+// `cielo`: el uniforme del color del cielo bajo (U.uCieloBajo de materiales.js) o un { value: Color }.
+export function prepararVidrioAldea(mat, { cielo = null } = {}) {
+  if (!mat || mat.userData?.vidrioAldea36) return mat;
+  const uCielo = cielo ?? { value: new THREE.Color(0.55, 0.65, 0.75) };
+  const previo = mat.onBeforeCompile;
+  const clave = typeof mat.customProgramCacheKey === 'function' ? mat.customProgramCacheKey() : '';
+  mat.customProgramCacheKey = () => clave + '|vidrio-aldea-3.6';
+  mat.onBeforeCompile = (sh, r) => {
+    if (typeof previo === 'function') previo(sh, r);
+    sh.uniforms.uCieloVA = uCielo;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vNWVA; varying vec3 vPWVA;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPWVA = (modelMatrix * vec4(transformed, 1.0)).xyz; vNWVA = normalize(mat3(modelMatrix) * normal);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vNWVA; varying vec3 vPWVA; uniform vec3 uCieloVA;')
+      .replace('#include <opaque_fragment>', `{
+        vec3 vdA = normalize(cameraPosition - vPWVA);
+        float frA = pow(1.0 - abs(dot(normalize(vNWVA), vdA)), 3.0);
+        float nocheA = smoothstep(0.45, 1.1, diffuse.r);
+        outgoingLight = mix(outgoingLight, uCieloVA * vec3(0.55, 0.62, 0.7), clamp(0.03 + frA * 0.45, 0.0, 0.45) * (1.0 - nocheA));
+      }
+      #include <opaque_fragment>`);
+  };
+  mat.userData.vidrioAldea36 = true;
+  mat.needsUpdate = true;
+  return mat;
+}
+
+// Un cable de luz entre dos puntos del mundo (de un poste a otro o a la acometida de una casa), con su
+// comba. Devuelve una geometría para el material de las estructuras (aTipo 4, sin aSuperficie).
+export function armarCable(a, b, { comba = null, radio = 0.007, tramos = 10 } = {}) {
+  const c = new Constructor();
+  const L = Math.hypot(b.x - a.x, b.z - a.z), cb = comba ?? Math.min(0.6, 0.012 * L + 0.08);
+  let prev = [a.x, a.y, a.z];
+  for (let i = 1; i <= tramos; i++) {
+    const u = i / tramos, y = a.y + (b.y - a.y) * u - 4 * cb * u * (1 - u);
+    const p = [a.x + (b.x - a.x) * u, y, a.z + (b.z - a.z) * u];
+    palo(c, prev, p, radio, '#1f1d1c', { tipo: 4, lados: 4 });
+    prev = p;
+  }
+  return c.geometria();
 }
 
 // ---------------------------------------------------------------- al mundo (para el equipo de mundo)
@@ -3168,7 +3632,19 @@ export function montarEdificio(edificio, mats = {}) {
     }
     return g;
   };
-  return { exterior: armar(edificio.exterior), interior: armar(edificio.interior), vidrio };
+  // 3.6 (pulido): cada pieza animable, un Group en su pivote (rotarlo o subirlo la mueve); van con el
+  // exterior o con el interior según su capa
+  const exterior = armar(edificio.exterior), interior = armar(edificio.interior);
+  const animables = (edificio.animables || []).map((a) => {
+    const g = new THREE.Group();
+    g.position.set(a.pivote.lx, a.pivote.ly, a.pivote.lz);
+    const m = new THREE.Mesh(a.geometria, material[a.material] ?? material.estructura);
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    (a.capa === 'interior' ? interior : exterior).add(g);
+    return { id: a.id, objeto: g, eje: a.eje, movimiento: a.movimiento, dato: a };
+  });
+  return { exterior, interior, vidrio, animables };
 }
 // Junta muchos edificios en una geometría por material (una manzana, una sola pieza): lista de
 // { edificio, sitio } con el sitio relativo a `origen` (el centro de la manzana).
