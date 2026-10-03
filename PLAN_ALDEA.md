@@ -19,7 +19,7 @@ del pueblo, que el usuario rechazó).
 ## 2. Cómo es al empezar (día 1): unos 9 edificios
 - Estación con cartel y banco.
 - **Plaza**: mástil, bancos, faroles, un duende tallado en un tronco (el que le da el nombre).
-- **Capilla** de madera con campanario (la campana suena el domingo a la mañana).
+- **Biblioteca popular** frente a la plaza (estanterías, mesas de lectura, estufa a leña). El usuario no quiere nada religioso: sin capilla, cura ni misa (03-10).
 - **Almacén de ramos generales** con su almacenera.
 - **Escuela** (cerrada hasta que llega la maestra).
 - **3 o 4 casas** habitadas desde el principio por vecinos de la aldea: el jefe de estación, la
@@ -45,7 +45,7 @@ del pueblo, que el usuario rechazó).
 - Se entra caminando (sin pantalla de carga), como el almacén y la casa de té.
 - Cada local con muebles de su oficio, la persona trabajando adentro y luz cálida: horno y
   mostrador de la panadería, fragua y yunque, banco de carpintero, redes y cajones, pupitres y
-  pizarrón, bancos y altar de la capilla, estanterías del almacén.
+  pizarrón, estanterías y mesas de lectura de la biblioteca, estanterías del almacén.
 - Paredes, pisos y choques salen de la misma declaración (`piezas.js`).
 
 ## 5. Vida de pueblo
@@ -55,7 +55,7 @@ del pueblo, que el usuario rechazó).
 - Chicos jugando en la plaza a la salida de la escuela; perros y gallinas sueltos.
 - Humo en las chimeneas, leña apilada, ropa colgada.
 - Por estación: nieve en los techos, faroles prendidos temprano en invierno.
-- Domingo: campana y gente en la capilla. Sábado: música en la plaza.
+- Domingo a la mañana: la abuela lee cuentos (y la leyenda de los duendes) en la biblioteca. Sábado: música en la plaza.
 
 ## 6. Aspecto patagónico real (con el acabado HushWood)
 - Chapa acanalada de colores (rojo óxido, verde, azul), tablas y tejuelas de alerce, zócalo
