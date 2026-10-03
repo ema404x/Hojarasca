@@ -1,6 +1,7 @@
 // Cuaderno de campo: qué se puede descubrir y cómo
 import { CARTAS } from './correo.js';
 import { CUENTOS } from './cuentos.js';
+import { LIBROS_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
 export const SECCIONES = [
   { id: 'flora', nombre: 'Árboles y plantas' },
   { id: 'frutos', nombre: 'Flores, frutos y hongos' },
@@ -16,6 +17,8 @@ export const SECCIONES = [
   { id: 'fogon', nombre: 'Cuentos del fogón' },
   { id: 'encargos', nombre: 'Encargos' },
   { id: 'cartas', nombre: 'Cartas' },
+  // 3.6 (mecánicas): la plaquita del duende, los libros de la biblioteca y los cuentos del domingo
+  { id: 'pueblo', nombre: 'De la aldea' },
 ];
 
 // modo: observar (acercarse y mirar) · anotar (E sobre la planta) · juntar (E, se guarda) · escuchar · llegar
@@ -439,4 +442,13 @@ ENTRADAS.push({ id: 'avistaje-lago', seccion: 'fogon', nombre: 'Lo que asomó en
 // 3.6: la Aldea de los Duendes (sólo en el Relax: en el Desafío la parada del sur sigue chica)
 ENTRADAS.push({ id: 'aldea', seccion: 'lugares', nombre: 'Aldea de los Duendes', cientifico: 'la parada del sur', modo: 'llegar', pista: 'La trochita para en un pueblito escondido, al sur del valle.',
   texto: 'Un pueblo chico al costado de la vía: la estación, la plaza con un duende tallado en un tronco, el almacén de ramos generales y unas pocas casas de chapa y tablas. Los vecinos dicen que el nombre viene de las puertitas talladas que encontraron los peones en las raíces de los coihues cuando tendieron las vías. Al que baja del tren a quedarse, entre todos le levantan el local.' });
+// 3.6 (mecánicas): lo que se lee y se escucha en la aldea (ver aldea-lecturas.js y aldea-mecanicas.js)
+ENTRADAS.push({ id: PLACA_DUENDE.id, seccion: 'pueblo', nombre: PLACA_DUENDE.titulo, cientifico: 'la plaquita de la plaza', modo: 'observar',
+  pista: 'En la plaza de la aldea, al pie del duende tallado, hay una plaquita para leer.', texto: PLACA_DUENDE.partes.join(' ') });
+for (const l of LIBROS_ALDEA) {
+  ENTRADAS.push({ id: l.id, seccion: 'pueblo', nombre: l.titulo, cientifico: l.de, modo: 'libro',
+    pista: 'Sentate a una mesa de lectura de la biblioteca de la aldea y abrí un libro, o pedilo prestado en el mostrador.', texto: l.partes.join(' ') });
+}
+ENTRADAS.push({ id: CUENTOS_DOMINGO.id, seccion: 'pueblo', nombre: CUENTOS_DOMINGO.titulo, cientifico: 'con la abuela Herminia', modo: 'escuchar',
+  pista: 'El domingo a las diez, en la biblioteca de la aldea: sentate y escuchá a la abuela hasta el final.', texto: CUENTOS_DOMINGO.texto });
 export const ENTRADA = Object.fromEntries(ENTRADAS.map((e) => [e.id, e]));

@@ -171,7 +171,7 @@ function distRiel(x, z) {
 
 // ============================================================ 3. los puntos
 {
-  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|cliente(-\d+)?|escenario|deposito)$/;
+  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|baile-\d+|cliente(-\d+)?|escenario|deposito)$/;   // 3.6 (mecánicas): y la pista de baile del salón
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id], pts = A.puntosDe(id);
     const pl = A.plantaDe(id);
@@ -531,9 +531,11 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(A.rutinaAldea('ercilia', 10.5, DOMINGO, llena).lugar === 'biblioteca', 'Ercilia también va a los cuentos');
   ok(A.rutinaAldea('padre', 10.5, LUNES, llena).lugar !== 'biblioteca', 'el lunes no');
   ok(A.rutinaAldea('abuela', 10, LUNES, llena).edificio === 'biblioteca', 'a la mañana la abuela atiende la biblioteca');
-  // sábado a la tarde, música en la plaza (si llegó el músico)
-  eq(A.rutinaAldea('musico', 18, SABADO, llena), { lugar: 'plaza', edificio: 'plaza', punto: 'musico' }, 'el músico toca en la plaza');
-  for (const k of gente) ok(A.rutinaAldea(k, 18, SABADO, llena).lugar === 'plaza', `${k}: el sábado a la plaza`);
+  // sábado a la tarde, música (si llegó el músico). 3.6 (mecánicas): en el salón, con baile (PLAN_ALDEA
+  // §14): el músico en el escenario, ocho en la pista, ocho en las sillas y los que sobran, en la plaza
+  eq(A.rutinaAldea('musico', 18, SABADO, llena), { lugar: 'salon', edificio: 'salon', punto: 'escenario' }, 'el músico toca en el salón');
+  for (const k of gente) ok(['salon', 'plaza'].includes(A.rutinaAldea(k, 18, SABADO, llena).lugar), `${k}: el sábado al salón (o a la plaza)`);
+  ok(gente.filter((k) => /^baile-\d$/.test(A.rutinaAldea(k, 18, SABADO, llena).punto)).length === 8, 'ocho bailan');
   const sinMusico = A.aldeaNueva();
   ok(gente.filter((k) => A.esVecinoAldea(k)).some((k) => A.rutinaAldea(k, 17.5, SABADO, sinMusico).lugar !== 'plaza'), 'sin músico, sábado como cualquier día');
   // los chicos: escuela si está terminada, plaza a la tarde, almuerzo en casa

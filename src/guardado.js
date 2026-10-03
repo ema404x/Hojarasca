@@ -33,6 +33,8 @@ import { sanearOficios, oficiosNuevos } from './oficios.js';
 import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';
 // 3.6: la vecindad (amistad, ganas y memoria de los vecinos; ver vecindad.js)
 import { sanearVecindad, vecindadNueva } from './vecindad.js';
+// 3.6 (mecánicas): lo de cada lugar de la aldea (el aljibe del día, el libro prestado)
+import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -271,6 +273,8 @@ export function progresoNuevo() {
     oficios: oficiosNuevos(), aldea: aldeaNueva(),
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
+    // 3.6 (mecánicas): sin agua sacada ni libro prestado
+    mecanicas: mecanicasNuevas(),
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -434,6 +438,8 @@ function sanearProgreso(p) {
     aldea: p.aldea !== undefined ? sanearAldea(p.aldea) : objeto(p.pueblo) ? migrarDesdePueblo(p.pueblo, p.dia) : aldeaNueva(),
     // 3.6: la vecindad (una partida vieja no la trae: arranca de cero)
     vecindad: sanearVecindad(p.vecindad),
+    // 3.6 (mecánicas): una partida vieja no lo trae: arranca sin nada
+    mecanicas: sanearMecanicas(p.mecanicas),
     // 2.3: las truchas del día, las semillas juntadas hoy, la humedad de la leña y la
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,

@@ -1287,6 +1287,10 @@ export function crearAldeaMundo(ctx) {
       for (const [capa, geo] of Object.entries(pz.edificio.interior)) if (geo) (capas[capa === 'brasas' ? 'brasas' : 'estructura'] ??= []).push({ geo, matriz: matrizSitio(s, origen), clave: pz.id });
       registrarEnMundo({ col, puertas }, pz.edificio, s, { duenio: 'aldea:estacion' }).puertas.forEach((q) => prepararPuerta(q, { raiz: E.raiz }));
       for (const l of pz.edificio.luces) nuevaLuz({ raiz: E.raiz }, s, l, l.clase === 'farol' ? 'farol' : 'interior');
+      // 3.6 (mecánicas): gancho mínimo: la campana del andén (pieza animable, que no iba en lo
+      // fundido y no se montaba) y los puntos con nombre de cada pieza, para aldea-mecanicas-mundo.js
+      (E.puntos ??= {})[pz.id] = { sitio: { ...s }, nombrados: pz.edificio.puntos?.nombrados || {} };
+      for (const a of pz.edificio.animables || []) (E.animables ??= []).push(animableEnSitio(a, s, E.raiz, 'estacion'));
     }
     for (const [capa, piezas] of Object.entries(capas)) {
       if (!capaMat(capa)) continue;
@@ -1299,6 +1303,46 @@ export function crearAldeaMundo(ctx) {
       E.raiz.add(malla); malla.updateMatrixWorld(true);
     }
     E.lista = true;
+  }
+  // 3.6 (mecánicas): gancho mínimo. Una pieza animable suelta en un sitio (lo mismo que hace
+  // montarEdificio con las de cada edificio), y los puntos con nombre y los asientos (con su
+  // nombre) de un edificio montado, en el mundo. `version` cambia cuando el edificio se rearma.
+  function animableEnSitio(a, s, padre, edificio) {
+    const contenedor = new THREE.Group();
+    contenedor.position.set(s.x, s.y, s.z); contenedor.rotation.y = s.rot;
+    const objeto = new THREE.Group();
+    objeto.position.set(a.pivote.lx, a.pivote.ly, a.pivote.lz);
+    const malla = new THREE.Mesh(a.geometria, capaMat(a.material) || materiales.estructura);
+    malla.castShadow = true; malla.receiveShadow = true;
+    malla.updateMatrix(); malla.matrixAutoUpdate = false;
+    objeto.add(malla); contenedor.add(objeto);
+    contenedor.updateMatrix(); contenedor.matrixAutoUpdate = false;
+    padre.add(contenedor); contenedor.updateMatrixWorld(true);
+    return { id: a.id, edificio, objeto, contenedor, eje: a.eje, movimiento: a.movimiento, dato: a };
+  }
+  function puntosDeEdificio(id) {
+    const enMundo = (s, q) => (q ? { ...aMundoEn(s, q.lx, q.lz), y: s.y + q.ly, mira: s.rot + (q.mira || 0) } : null);
+    if (id === 'estacion') {
+      const E = estacionHecha;
+      if (!E?.lista || !E.puntos) return null;
+      if (E.puntosMundo) return E.puntosMundo;
+      const nombrados = {};
+      for (const { sitio, nombrados: N } of Object.values(E.puntos)) for (const [k, q] of Object.entries(N)) if (!nombrados[k]) nombrados[k] = enMundo(sitio, q);
+      E.puntosMundo = { id, version: 'estacion', etapa: 4, nombrados, asientos: [], extra: {} };
+      return E.puntosMundo;
+    }
+    const b = edificios.get(id);
+    if (!b?.datos || !b.montada) return null;
+    if (b.puntosMundo?.version === b.montada) return b.puntosMundo;
+    const s = b.sitio, P = b.datos.puntos || {}, nombrados = {};
+    for (const [k, q] of Object.entries(P.nombrados || {})) nombrados[k] = enMundo(s, q);
+    const ab = b.datos.extra?.abejas;
+    b.puntosMundo = {
+      id, version: b.montada, etapa: b.datos.etapa, sitio: { ...s }, nombrados,
+      asientos: (P.asientos || []).map((q) => ({ ...enMundo(s, q), nombre: q.nombre })),
+      extra: { abejas: ab ? { ...enMundo(s, ab), radio: ab.radio } : null },
+    };
+    return b.puntosMundo;
   }
   // ------------------------------------------------ las calles
   // El ripio: una lámina sobre el terreno con la textura de las piedritas y las huellas de las
@@ -1577,6 +1621,8 @@ export function crearAldeaMundo(ctx) {
     // 3.6 (pulido): para la fase de mecánicas: lo que se mueve y lo que echa humo o chispas
     animables: (id = null) => [...edificios.values()].filter((b) => !id || b.id === id).flatMap((b) => b.animables || []),
     emisores: () => [...edificios.values()].flatMap((b) => b.emisores || []),
+    // 3.6 (mecánicas): gancho mínimo (ver puntosDeEdificio y animableEnSitio)
+    puntosEdificio: (id) => puntosDeEdificio(id), animablesEstacion: () => estacionHecha?.animables || [],
     centro, accesorios, emparejado: () => emparejado, aMundo: (lx, lz) => aMundo(lx, lz), fabrica: () => fabrica.stats,
   };
 }

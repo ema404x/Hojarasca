@@ -68,13 +68,15 @@ import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
 import { crearAldeaGente } from './aldea-gente.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
+// 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
+import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
 // 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
 import { sanearMajada, esquilar, textoOveja, resumenMajada } from './majada.js';
-import { sanearCorreo, repartir, porRetirar, partesDeCarta, CARTA, dePara, fotoParaPedidos, porEnviar, enviarFoto, partesDeEnvio } from './correo.js';
+import { sanearCorreo, repartir, porRetirar, partesDeCarta, CARTA, dePara, fotoParaPedidos, porEnviar, enviarFoto, partesDeEnvio, cartasLeidas } from './correo.js';
 import { MARCHA_CABALLO, ALTURA_MONTADO, RADIO_MONTAR, AGUA_QUE_NO_PISA, sanearCaballo, dondeEspera, yawCaballo } from './caballo.js';
 import { crearCaballo } from './caballo-mundo.js';
 import { puedeOtraVuelta, nuevaVuelta, multiplicadorVuelta } from './desafio-vuelta.js';
@@ -371,6 +373,7 @@ let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones,
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
 let modos = null;   // 3.1: carreras, desafío del día y torneo (ver modos-juego.js)
 let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-mundo.js; sólo en el Relax)
+let mecanicasAldea = null;   // 3.6 (mecánicas): ver aldea-mecanicas-mundo.js (sólo en el Relax)
 const sonido = new Sonido();
 sonido.volumen = ajustes.volumen;
 sonido.musicaActiva = ajustes.musica;
@@ -748,12 +751,13 @@ function registrar(id, juntado = false) {
   const ya = progreso.entradas[id];
   if (!ya) {
     progreso.entradas[id] = { dia: progreso.dia, hora: progreso.horas, cantidad: juntado ? 1 : 0 };
-    const historia = e.seccion === 'historias' || e.seccion === 'fogon';
+    // 3.6 (mecánicas): lo leído y escuchado en la aldea va al diario como una historia
+    const historia = e.seccion === 'historias' || e.seccion === 'fogon' || e.seccion === 'pueblo';
     diario.anotar(e.seccion === 'lugares' ? 'lugar' : historia ? 'historia'
       : e.seccion === 'encargos' ? 'encargo' : e.seccion === 'recetas' ? 'cocina'
       : e.seccion === 'trueque' ? 'trueque' : e.seccion === 'cartas' ? 'carta' : 'especie', e.nombre.toLowerCase());
     sonido.anotar();
-    nota(e.nombre, e.seccion === 'lugares' ? 'Llegaste a un lugar nuevo' : historia ? 'Historia anotada en el cuaderno' : e.seccion === 'encargos' ? 'Encargo cumplido' : e.seccion === 'cartas' ? 'La carta queda en el cuaderno' : 'Nuevo en el cuaderno', true);
+    nota(e.nombre, e.seccion === 'lugares' ? 'Llegaste a un lugar nuevo' : e.seccion === 'pueblo' ? 'Queda en el cuaderno, en «De la aldea»' : historia ? 'Historia anotada en el cuaderno' : e.seccion === 'encargos' ? 'Encargo cumplido' : e.seccion === 'cartas' ? 'La carta queda en el cuaderno' : 'Nuevo en el cuaderno', true);
     guardar();
   } else if (juntado) {
     ya.cantidad = (ya.cantidad || 0) + 1;
@@ -917,7 +921,7 @@ function dibujarCuaderno() {
     ficha.appendChild(el('h2', '', e.nombre));
     if (e.cientifico) ficha.appendChild(el('p', 'cientifico', e.cientifico));
     // 2.1: 'cambiar' no tenía verbo (las fichas del almacén decían «undefined el día…»)
-    const verbo = { observar: 'Visto', anotar: 'Anotado', juntar: 'Encontrado', escuchar: e.seccion === 'historias' ? 'Te la contaron' : 'Escuchado', llegar: 'Llegaste', pescar: 'Pescado por primera vez', cocinar: 'Cocinado', encargo: 'Encargo cumplido', cambiar: 'Conseguido', rastrear: 'Rastreado', cosechar: 'Cosechado por primera vez', leer: 'Recibida' }[e.modo] || 'Anotado';
+    const verbo = { observar: 'Visto', anotar: 'Anotado', juntar: 'Encontrado', escuchar: e.seccion === 'historias' ? 'Te la contaron' : 'Escuchado', llegar: 'Llegaste', pescar: 'Pescado por primera vez', cocinar: 'Cocinado', encargo: 'Encargo cumplido', cambiar: 'Conseguido', rastrear: 'Rastreado', cosechar: 'Cosechado por primera vez', leer: 'Recibida', libro: 'Leído' }[e.modo] || 'Anotado';   // 3.6 (mecánicas): los libros de la aldea
     const pez = progreso.peces[e.id];
     ficha.appendChild(el('p', 'anotado', `${verbo} el día ${reg.dia} a las ${horaTexto(reg.hora)}${reg.cantidad && !pez ? `, llevás ${reg.cantidad}` : ''}${pez ? `. Pescaste ${pez.cantidad}, la más grande de ${pez.record} cm` : ''}`));
     ficha.appendChild(el('p', 'texto', e.texto));
@@ -2556,12 +2560,14 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !objetivo) { const o = obraQueTrabajaCerca(); if (o) { usarObraQueTrabaja(o); break; } }
       // 3.6: parado en el lote de una obra de la aldea, E aporta lo que tengas (el aviso va en el mismo lugar)
       if (!js.enTren && !js.enKayak && !objetivo && aldeaGente) { const lote = aldeaGente.obraCerca(js.pos); if (lote) { aldeaGente.aportarObra(lote); break; } }
+      // 3.6 (mecánicas): lo de cada lugar de la aldea (el aviso va en el mismo lugar, con la misma función)
+      if (!js.enTren && !js.enKayak && !objetivo && mecanicasAldea) { const m = mecanicasAldea.accion(js); if (m) { m.hacer(); cacheMecanica = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
       if (desafio && !js.enTren && !objetivo && desafio.usarCercaDe?.(js.pos, distanciaAPuerta(js.pos))) break;
       // la puerta solo si no estás mirando algo para juntar: el aviso manda
-      if (!js.enTren && !js.enKayak && !objetivo) {
+      if (!js.enTren && !js.enKayak && !objetivo && !js.sentado) {   // 3.6 (mecánicas): sentado, no (como el aviso)
         const p = puertas && puertas.cerca(js.pos);
         if (p) { puertas.accionar(p); break; }
       }
@@ -2844,6 +2850,8 @@ function servir() {
   const pendientes = CONSUMICIONES.filter((x) => !progreso.entradas[x.id]);
   const elegida = pendientes.length ? pendientes[0] : CONSUMICIONES[Math.floor(Math.random() * CONSUMICIONES.length)];
   sonido.juntar();
+  // 3.6 (mecánicas): en la aldea, sentado a la mesa, la galesa te lo trae
+  if (aldeaMundo && jugador?.estado?.sentado) nota(`La galesa te trae ${elegida.nombre}`, 'Sentado a la mesa de la galería');
   setTimeout(() => {
     registrar(elegida.id);
     if (!pendientes.length) nota(elegida.nombre.charAt(0).toUpperCase() + elegida.nombre.slice(1), 'Otra vuelta en la galería');
@@ -4111,11 +4119,7 @@ function armarOficiosYAldea(esDesafio) {
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn), alAportar: (usados, completa) => ganarOficio('obrero', xpDeAporte(usados, completa)),
     refrescarBarra: () => refrescarBarra(true), hablandoCon: () => charla.npc,
     // lo que dan los pobladores y no es de la mochila
-    alJugador: (campo, valor) => {
-      const js = jugador.estado;
-      if (campo === 'descansado') js.descansado = Math.max(js.descansado || 0, Number(valor) || 0);
-      else if (campo === 'entumecido') js.entumecido = Math.max(0, Number(valor) || 0);
-    },
+    alJugador: (campo, valor) => alJugadorAldea(campo, valor),
     leerCarta: (id) => leerCartaDeLaAldea(id),
     mandarFoto: (id) => mandarFoto(id),
     partitura: (id) => { const m = anotarPartitura(progreso, id); if (m) escucharMuestra(sonido, m.id, 10); },
@@ -4132,6 +4136,7 @@ function armarOficiosYAldea(esDesafio) {
       };
     },
     decir: (texto) => decirCharlaAldea(texto),
+    alTerminarCharla: (c) => mecanicasAldea?.alTerminarCharla(c),   // 3.6 (mecánicas): los cuentos del domingo
     // 3.6 (vida): el tiempo libre según el clima, y lo que los vecinos recuerdan de vos
     climaVecindad, alAporteObra: (lote) => vecindadJuego?.hecho('aporte-obra', { lote }),
     alServicio: (k, efectos) => { if ((efectos || []).some((f) => f.k === 'poncho' && (f.n > 0 || f.fijar > 0))) vecindadJuego?.hecho('poncho'); },
@@ -4144,6 +4149,49 @@ function armarOficiosYAldea(esDesafio) {
     mesa: () => mesaPuesta(mueblesTerminados()), hayVisita: () => !!visitante,
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), aldea: () => aldeaGente,
   });
+  // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea (ver aldea-mecanicas-mundo.js)
+  if (aldeaMundo) mecanicasAldea = crearMecanicasAldea({
+    mundo: aldeaMundo, gente: () => aldeaGente, escena, sonido, col, progreso: () => progreso, jugador: () => jugador, tren: () => tren,
+    sentaderos: est?.sentaderos, registrar: (id) => registrar(id), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+    leer: (l) => leerEnLaAldea(l), sentarEn: (s) => sentarEnLaAldea(s), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
+    abrirCasilla: (p) => abrirCasillaAldea(p), enCasa: (p) => { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); },
+    duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
+    ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4 }),
+  });
+}
+// 3.6: lo que dan los pobladores (y las mecánicas de la aldea) y no es de la mochila
+function alJugadorAldea(campo, valor) {
+  const js = jugador.estado;
+  if (campo === 'descansado') js.descansado = Math.max(js.descansado || 0, Number(valor) || 0);
+  else if (campo === 'entumecido') js.entumecido = Math.max(0, Number(valor) || 0);
+}
+// 3.6 (mecánicas): una página para leer en la aldea (un libro, la plaquita del duende, el pizarrón,
+// el horario, el mapa del valle): el cuadro de la charla, sin nadie. Si el renglón es una entrada
+// del cuaderno (un libro, la plaquita), al terminar de leer queda anotada.
+function leerEnLaAldea(l) {
+  const p = jugador.estado.pos;
+  Object.assign(charla, { npc: { clave: 'lectura', nombre: l.quien, oficio: l.que, despedida: l.despedida || 'Listo.', historias: [], pos: { x: p.x, y: p.y, z: p.z } },
+    fin: false, encargo: null, enojado: false, historia: { id: l.id || 'lectura-aldea', partes: l.partes }, parte: 0, vec: null, menu: null });
+  sonido.juntar?.();
+  $('charla').classList.remove('oculto');
+  mostrarCharla();
+}
+// 3.6 (mecánicas): sentarse (o recostarse) en un punto, como con un sentadero
+function sentarEnLaAldea(s) {
+  const js = jugador.estado;
+  js.pos.set(s.x, Math.max(s.y - 0.45, T.altura(s.x, s.z)), s.z);
+  if (s.mira !== undefined) { js.yaw = s.mira; js.pitch = -0.05; }
+  jugador.sentarse(true);
+}
+// 3.6 (mecánicas): tu casilla en la estafeta de la aldea: lo mismo que el buzón (y que Ercilia)
+function abrirCasillaAldea(p) {
+  const hay = porRetirar(correo(), progreso).length > 0;
+  if (!hay && !porEnviar(correo()).length) {
+    const n = cartasLeidas(progreso);
+    nota('Tu casilla está vacía', n ? `Ya leíste ${n} ${n === 1 ? 'carta' : 'cartas'}: están en el cuaderno` : 'Las cartas llegan con el tren');
+    return;
+  }
+  hablar({ clave: 'buzon', nombre: 'Tu casilla', oficio: 'en la estafeta', saludo: 'Abrís tu casilla con la llavecita de bronce.', despedida: 'Cerrás la casilla con llave.', historias: [], pos: { x: p.x, y: p.y, z: p.z } });
 }
 // 3.6: la carta que te entrega el telegrafista de la aldea, igual que la de Ercilia: queda en
 // el cuaderno y, si pide una foto, se avisa cuál
@@ -5337,7 +5385,7 @@ function actualizarTendales() {
   const js = jugador.estado;
   progreso.humedadLena = humedecer(sanearHumedad(progreso.humedadLena), horas, { lluvia: clima.estado.lluvia, bajoTecho: !!(obras?.dentro?.(js.pos) || obras?.bajoCubierta?.(js.pos)) });
   if (js.entumecido > 0) {
-    js.entumecido = desentumecer(js.entumecido, horas, cercaDelFuego());
+    js.entumecido = desentumecer(js.entumecido, horas, cercaDelFuego() || !!mecanicasAldea?.juntoAEstufa(js.pos));   // 3.6 (mecánicas): y las estufas de la aldea
     if (js.entumecido === 0) nota('Ya entraste en calor', 'El cuerpo arrancó');
   }
   if (js.descansado > 0) js.descansado = gastarDescanso(js.descansado, horas);
@@ -6719,6 +6767,7 @@ let acumuladoBuscar = 0, acumuladoVecino = 99, acumuladoInteraccion = 99;
 const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
+let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
 const sujetosPerro = [];
@@ -6902,7 +6951,8 @@ function actualizarTiempo(dt) {
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
-    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc ? 40 : 1;
+    // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
+    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }
@@ -7145,6 +7195,8 @@ function cuadroDelJuego(tRaf, manual) {
   // 3.6: la aldea: lo que llegó del Worker se monta de a uno (si el cuadro anda bien) y lo de
   // adentro, las puertas, las sombras y los álamos según la distancia
   if (aldeaMundo) { try { aldeaMundo.actualizar(dt, cam, () => planificadorAntitirones.permitir('aldea-mundo', { pesada: true })); } catch (e) { fallaSistema('aldea-mundo', e); } }
+  // 3.6 (mecánicas): la bandera, la campana, los gestos de los oficios, los sonidos y el baile (sólo cerca)
+  if (mecanicasAldea && modo === 'jugando') { try { mecanicasAldea.actualizar(dt, cam); } catch (e) { fallaSistema('aldea-mecanicas', e); } }
   acumuladoRefugio += dt;
   if (refugioVivo && acumuladoRefugio > presupuestoAdaptativo.intervalo(1.5, 1.5) && planificadorAntitirones.permitir('refugio-vivo', { pesada: true })) {
     acumuladoRefugio = 0;
@@ -7371,6 +7423,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheTelar = telarCerca();
       cacheObraTrabaja = obraQueTrabajaCerca();
       cacheObraAldea = aldeaGente ? aldeaGente.obraCerca(js.pos) : null;
+      cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -7408,12 +7461,15 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheObraTrabaja && !js.enTren && !js.enKayak && !objetivo) { const t = avisoObraQueTrabaja(cacheObraTrabaja); if (t) aviso = { tecla: 'E', texto: t }; }
     // 3.6: la obra de la aldea, después de las obras que trabajan, como en la tecla E
     if (!aviso && cacheObraAldea && !js.enTren && !js.enKayak && !objetivo) { const t = aldeaGente.avisoObra(cacheObraAldea); if (t) aviso = { tecla: 'E', texto: t }; }
+    // 3.6 (mecánicas): lo de cada lugar de la aldea, después de la obra, como en la tecla E
+    if (!aviso && cacheMecanica && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheMecanica.texto };
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
     if (!aviso && desafio && !objetivo && !js.enTren) { const t = desafio.avisoCercaDe?.(js.pos, distanciaAPuerta(js.pos)); if (t) aviso = { tecla: 'E', texto: t }; }
     const puertaCerca = !objetivo && !js.enTren && !js.enKayak && puertas && puertas.cerca(js.pos);
-    if (!aviso && puertaCerca) aviso = { tecla: 'E', texto: `${puertaCerca.objetivo > 0.5 ? 'Cerrar' : 'Abrir'} ${puertaCerca.nombre}` };
+    // 3.6 (mecánicas): sentado, E no abre puertas (sentado a la mesa de la casa de té, junto a la puerta, se pide el té)
+    if (!aviso && puertaCerca) aviso = js.sentado ? null : { tecla: 'E', texto: `${puertaCerca.objetivo > 0.5 ? 'Cerrar' : 'Abrir'} ${puertaCerca.nombre}` };
     if (!aviso && !objetivo && !desafio && !js.montado && mirandoAlPerro(js, perro.est.pos) && (rastro || puedoPedirRastro())) aviso = { tecla: 'E', texto: rastro ? 'Dejar el rastro' : 'Pedirle al perro que rastree' };
     if (!aviso && !desafio && !js.enTren && !js.enKayak && !objetivo && tren.puedeConducir(js)) aviso = { tecla: 'E', texto: 'Subir a la cabina y manejar' };
     if (!aviso && !js.enTren && !js.enKayak && !objetivo && tren.puedeSubir(js)) aviso = { tecla: 'E', texto: 'Subir a la trochita' };
@@ -7914,6 +7970,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     puntos: (id) => puntosMundo(id), edificio: (id) => edificioEnMundo(id), renglon: () => (renglonAldea && renglonAldea.style.display !== 'none' ? renglonAldea.textContent : '') };
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
+  // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
   requestAnimationFrame(bucle);
 })();
