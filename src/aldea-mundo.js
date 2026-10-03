@@ -31,7 +31,7 @@
 import * as THREE from 'three';
 import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle } from './aldea.js';
 import { estadoVisual } from './aldea-gente.js';
-import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER } from './aldea-arquitectura.js';
+import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, armarCable, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
 import { materialVegetal, U } from './materiales.js';
 import { registrarLuz } from './luces.js';
 import { armarTerreno } from './terreno.js';
@@ -770,7 +770,8 @@ export function crearAldeaMundo(ctx) {
 
   // ------------------------------------------------ las raíces (los complejos)
   function crearMateriales() {
-    const estructura = est.mat;
+    // (3.6 pulido: un material PROPIO con el detalle de superficie del shader; no el est.mat compartido)
+    const estructura = prepararMaterialAldea(materialVegetal({ flex: 0 }));
     const follaje = materialVegetal({ flex: 1 });
     const tA = performance.now();
     const atlas = crearTexturaCarteles();
@@ -780,10 +781,62 @@ export function crearAldeaMundo(ctx) {
       ripio: new THREE.MeshLambertMaterial({ map: texturaRipio(), transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
       ventanaLuz: new THREE.MeshBasicMaterial({ map: texturaCharco(), color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
       carteles: new THREE.MeshLambertMaterial({ map: atlas }),
-      vidrios: new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }),
+      vidrios: prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: U.uCieloBajo }),
       brasas: new THREE.MeshBasicMaterial({ vertexColors: true }),
       puerta: new THREE.MeshLambertMaterial({ vertexColors: true }),
     };
+  }
+  // El almacén y la casa de té son los de estructuras.js (sin aSuperficie): en la aldea se les suma
+  // el atributo (por la cara: piso, techo, zócalo, tablas o troncos; +10 adentro) y aLocal, y pasan
+  // al material de la aldea, para que combinen con los demás. En el Desafío no se tocan.
+  function vestirEstructuras() {
+    const S = SUPERFICIES_ALDEA || {};
+    const sitios = sitiosValle();
+    const defs = { almacen: { lugar: est.almacen, techo: S.chapa ?? 4, pared: S.tablasVerticales ?? 1, H: 2.9 }, 'casa-te': { lugar: est.casaTe, techo: S.tejuela ?? 3, pared: S.tosca ?? 7, H: 2.7 } };
+    let caras = 0;
+    for (const [clave, def] of Object.entries(defs)) {
+      const raiz = est.conjuntos.find((c) => c.clave === clave)?.obj, l = def.lugar, s0 = sitios[clave];
+      if (!raiz || !l || !s0) continue;
+      const c = Math.cos(l.rot), sn = Math.sin(l.rot), W = s0.ancho / 2, D = s0.fondo / 2;
+      raiz.updateMatrixWorld(true);
+      raiz.traverse((m) => {
+        if (!m.isMesh || m.material !== est.mat || !m.geometry?.attributes?.position) return;
+        const g0 = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
+        const p = g0.attributes.position, col = g0.attributes.color, n = p.count;
+        const loc = new Float32Array(n * 3), sup = new Float32Array(n), v = new THREE.Vector3();
+        for (let i = 0; i < n; i++) {
+          v.fromBufferAttribute(p, i).applyMatrix4(m.matrixWorld);
+          const dx = v.x - l.x, dz = v.z - l.z;
+          loc[i * 3] = dx * c - dz * sn; loc[i * 3 + 1] = v.y - l.y; loc[i * 3 + 2] = dx * sn + dz * c;
+        }
+        for (let t = 0; t + 2 < n; t += 3) {
+          const a = t * 3, b = a + 3, d = a + 6;
+          const ux = loc[b] - loc[a], uy = loc[b + 1] - loc[a + 1], uz = loc[b + 2] - loc[a + 2];
+          const wx = loc[d] - loc[a], wy = loc[d + 1] - loc[a + 1], wz = loc[d + 2] - loc[a + 2];
+          let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+          const ln = Math.hypot(nx, ny, nz) || 1; ny /= ln; nx /= ln; nz /= ln;
+          const cy = (loc[a + 1] + loc[b + 1] + loc[d + 1]) / 3, cx = (loc[a] + loc[b] + loc[d]) / 3, cz = (loc[a + 2] + loc[b + 2] + loc[d + 2]) / 3;
+          let r = 0.5, gg = 0.5, bb = 0.5;
+          if (col) { r = col.getX(t); gg = col.getY(t); bb = col.getZ(t); }
+          const mx = Math.max(r, gg, bb), sat = mx > 0 ? (mx - Math.min(r, gg, bb)) / mx : 0;
+          let tipo = 0;
+          if (Math.abs(ny) > 0.8) tipo = cy < 1.0 && ny > 0 ? (S.piso ?? 8) : 0;
+          else if (Math.abs(ny) > 0.25) tipo = cy > def.H - 0.4 ? def.techo : 0;
+          else if (sat < 0.2 && cy < 1.0) tipo = S.piedra ?? 5;
+          else if (sat >= 0.2 && cy > 0.25 && cy < def.H + 0.2) tipo = def.pared;
+          const adentro = Math.abs(cx) < W - 0.1 && Math.abs(cz) < D - 0.1 && cy > 0.2 && cy < def.H;
+          if (tipo && adentro) tipo += 10;
+          sup[t] = sup[t + 1] = sup[t + 2] = tipo;
+          if (tipo) caras++;
+        }
+        const g = g0 === m.geometry ? m.geometry : g0;
+        g.setAttribute('aSuperficie', new THREE.BufferAttribute(sup, 1));
+        g.setAttribute('aLocal', new THREE.BufferAttribute(loc, 3));
+        if (g !== m.geometry) m.geometry = g;
+        m.material = materiales.estructura;
+      });
+    }
+    info.carasVestidas = caras;
   }
   function nuevaRaiz(clave, x, z, radio) {
     const raiz = new THREE.Group();
@@ -803,6 +856,7 @@ export function crearAldeaMundo(ctx) {
     const tMat = performance.now();
     materiales = crearMateriales();
     info.materialesMs = performance.now() - tMat;
+    vestirEstructuras();
     // cada edificio, con su sitio en el mundo
     for (const id of IDS_MUNDO_ALDEA) {
       const ed = EDIFICIOS_ALDEA[id];
@@ -845,7 +899,14 @@ export function crearAldeaMundo(ctx) {
     }
     // los álamos y la estación, cada uno su complejo
     {
+      // (con los seis de alrededor de la plaza, que la plaza deja para el mundo: `extra.alamos`)
       const lista = accesorios.filter((a) => a.tipo === 'alamo' && !a.agua);
+      const pz = EDIFICIOS_ALDEA.plaza;
+      for (const [i, q] of [[-10.5, -6], [-10.5, 3.5], [10.5, -6], [10.5, 3.5], [-4.5, -8.5], [4.5, -8.5]].entries()) {
+        const c = Math.cos(pz.rot), s = Math.sin(pz.rot);
+        const w = aMundo(pz.x + q[0] * c + q[1] * s, pz.z - q[0] * s + q[1] * c);
+        lista.push({ tipo: 'alamo', x: w.x, z: w.z, y: alturaEn(w.x, w.z), giro: i * 1.7, escala: 0.85 + (i % 3) * 0.06, plaza: true });
+      }
       let gx0 = Infinity, gx1 = -Infinity, gz0 = Infinity, gz1 = -Infinity;
       for (const a of lista) { gx0 = Math.min(gx0, a.x); gx1 = Math.max(gx1, a.x); gz0 = Math.min(gz0, a.z); gz1 = Math.max(gz1, a.z); }
       const x = lista.length ? (gx0 + gx1) / 2 : centro.x, z = lista.length ? (gz0 + gz1) / 2 : centro.z;
@@ -977,6 +1038,8 @@ export function crearAldeaMundo(ctx) {
     info.rearmados++;
   }
   function desmontarEdificio(b) {
+    for (const a of b.animables || []) { a.contenedor.parent?.remove(a.contenedor); a.contenedor.traverse((o) => o.geometry?.dispose()); }
+    b.animables = [];
     if (b.suelto) { b.suelto.parent?.remove(b.suelto); b.suelto.traverse((o) => o.geometry?.dispose()); b.suelto = null; }
     if (b.interior) { b.interior.parent?.remove(b.interior); b.interior.traverse((o) => o.geometry?.dispose()); b.interior = null; }
     col.eliminarPorDuenio(`aldea:${b.id}`);
@@ -1014,8 +1077,30 @@ export function crearAldeaMundo(ctx) {
     gi.visible = false;
     congelar(gi);
     m.raiz.add(gi);
+    // 3.6 (pulido): lo que se mueve (bandera, rueda de la rueca, fuelle, puerta del horno), fuera de
+    // lo fundido: cada pieza en un Group en su pivote (rotarlo la mueve); las de adentro, con el
+    // interior (sólo de cerca). La animación es de la fase de mecánicas: quedan en `animables()`.
+    b.animables = (d.animables || []).map((a) => {
+      const contenedor = new THREE.Group();
+      contenedor.position.set(s.x, s.y, s.z); contenedor.rotation.y = s.rot;
+      const objeto = new THREE.Group();
+      objeto.position.set(a.pivote.lx, a.pivote.ly, a.pivote.lz);
+      const malla = new THREE.Mesh(a.geometria, capaMat(a.material) || materiales.estructura);
+      malla.castShadow = a.capa !== 'interior'; malla.receiveShadow = true;
+      malla.updateMatrix(); malla.matrixAutoUpdate = false;
+      objeto.add(malla);
+      contenedor.add(objeto);
+      contenedor.updateMatrix(); contenedor.matrixAutoUpdate = false;
+      (a.capa === 'interior' ? gi : m.raiz).add(contenedor);
+      contenedor.updateMatrixWorld(true);
+      return { id: a.id, edificio: b.id, objeto, contenedor, eje: a.eje, movimiento: a.movimiento, dato: a };
+    });
     b.interior = gi.children.length ? gi : null;
     if (!b.interior) m.raiz.remove(gi);
+    // los emisores (para las partículas: el humo del horno va con las chimeneas; las chispas de la
+    // fragua quedan expuestas para la fase de mecánicas)
+    b.emisores = ['chispas', 'humo', 'vapor'].filter((k) => d[k]).map((k) => ({ tipo: k, edificio: b.id, ...aMundoEn(s, d[k].lx, d[k].lz), y: s.y + d[k].ly }));
+    b.acometida = d.extra?.acometida ? { ...aMundoEn(s, d.extra.acometida.lx, d.extra.acometida.lz), y: s.y + d.extra.acometida.ly } : null;
     // choques y puertas (con dueño: se sacan al rearmar)
     const r = registrarEnMundo({ col, puertas }, d, s, { duenio: `aldea:${b.id}` });
     for (const p of r.puertas) prepararPuerta(p, m);
@@ -1257,23 +1342,9 @@ export function crearAldeaMundo(ctx) {
     if (puntas.length) {
       const lineas = new Map();
       for (const a of accesorios) if (a.tipo === 'poste' && !a.agua) { if (!lineas.has(a.linea)) lineas.set(a.linea, []); lineas.get(a.linea).push(a); }
-      const pos = [], nor = [], col3 = [], tipo = [];
-      const tubo = (p0, p1, comba) => {
-        const SEG = 10, LADOS = 4, R = 0.014;
-        const dx = p1.x - p0.x, dz = p1.z - p0.z, L = Math.hypot(dx, dz) || 1;
-        const sx = -dz / L, sz = dx / L;   // de costado
-        const anillo = [];
-        for (let i = 0; i <= SEG; i++) {
-          const t = i / SEG, y = p0.y + (p1.y - p0.y) * t - comba * 4 * t * (1 - t);
-          anillo.push({ x: p0.x + dx * t, y, z: p0.z + dz * t });
-        }
-        const q = (p, a) => ({ x: p.x + sx * Math.cos(a) * R, y: p.y + Math.sin(a) * R, z: p.z + sz * Math.cos(a) * R, nx: sx * Math.cos(a), ny: Math.sin(a), nz: sz * Math.cos(a) });
-        for (let i = 0; i < SEG; i++) for (let k = 0; k < LADOS; k++) {
-          const a0 = (k / LADOS) * Math.PI * 2, a1 = ((k + 1) / LADOS) * Math.PI * 2;
-          const v = [q(anillo[i], a0), q(anillo[i + 1], a0), q(anillo[i + 1], a1), q(anillo[i], a0), q(anillo[i + 1], a1), q(anillo[i], a1)];
-          for (const p of v) { pos.push(p.x - centro.x, p.y - centroY, p.z - centro.z); nor.push(p.nx, p.ny, p.nz); col3.push(0.05, 0.045, 0.04); tipo.push(4); }
-        }
-      };
+      // (con `armarCable` de la arquitectura: el mismo cable que llega a cada casa)
+      const piezasCable = [];
+      const desde = new THREE.Matrix4().makeTranslation(-centro.x, -centroY, -centro.z);
       for (const lista of lineas.values()) {
         lista.sort((a, b) => a.x - b.x || a.z - b.z);
         for (let i = 0; i < lista.length - 1; i++) {
@@ -1281,18 +1352,13 @@ export function crearAldeaMundo(ctx) {
           if (d > 32) continue;
           for (const p of puntas) {
             const wa = aMundoEn(a, p.lx, p.lz), wb = aMundoEn(b, p.lx, p.lz);
-            tubo({ x: wa.x, y: a.y + p.ly, z: wa.z }, { x: wb.x, y: b.y + p.ly, z: wb.z }, 0.3 + d * 0.012);
+            piezasCable.push({ geo: armarCable({ x: wa.x, y: a.y + p.ly, z: wa.z }, { x: wb.x, y: b.y + p.ly, z: wb.z }, { comba: 0.3 + d * 0.012 }), matriz: desde, clave: piezasCable.length });
           }
         }
       }
-      if (pos.length) {
-        const g = new THREE.BufferGeometry();
-        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-        g.setAttribute('color', new THREE.Float32BufferAttribute(col3, 3));
-        g.setAttribute('aTipo', new THREE.Float32BufferAttribute(tipo, 1));
-        g.computeBoundingSphere();
-        const malla = new THREE.Mesh(g, materiales.estructura);
+      const j = juntar(piezasCable);
+      if (j) {
+        const malla = new THREE.Mesh(j.geo, materiales.estructura);
         malla.position.set(centro.x, centroY, centro.z);
         malla.castShadow = false; malla.receiveShadow = false;
         malla.updateMatrix(); malla.matrixAutoUpdate = false;
@@ -1305,9 +1371,37 @@ export function crearAldeaMundo(ctx) {
   }
   // De noche, la luz de cada ventana de la planta baja cae en la galería o en el suelo de
   // adelante: una mancha cálida (sin luz de verdad: el presupuesto es de 4). Una sola malla.
+  // Los cables de luz de los postes a la acometida de cada casa y local terminados (el poste más
+  // cercano, a menos de 40 m). Se rehacen cuando abre un local.
+  function rehacerAcometidas() {
+    if (calles.acometidas) { calles.raiz.remove(calles.acometidas); calles.acometidas.geometry.dispose(); calles.acometidas = null; }
+    const proto = protos.get('poste')?.datos;
+    const puntas = proto?.extra?.cables || [];
+    if (!puntas.length) return;
+    const postes = accesorios.filter((a) => a.tipo === 'poste' && !a.agua);
+    const desde = new THREE.Matrix4().makeTranslation(-centro.x, -centroY, -centro.z);
+    const piezasCable = [];
+    for (const b of edificios.values()) {
+      if (!b.acometida) continue;
+      let mejor = null, dm = 40;
+      for (const p of postes) { const d = Math.hypot(p.x - b.acometida.x, p.z - b.acometida.z); if (d < dm) { dm = d; mejor = p; } }
+      if (!mejor) continue;
+      const pt = puntas[Math.floor(puntas.length / 2)], w = aMundoEn(mejor, pt.lx, pt.lz);
+      piezasCable.push({ geo: armarCable({ x: w.x, y: mejor.y + pt.ly, z: w.z }, b.acometida, {}), matriz: desde, clave: b.id });
+    }
+    const j = juntar(piezasCable);
+    if (!j) return;
+    const malla = new THREE.Mesh(j.geo, materiales.estructura);
+    malla.position.set(centro.x, centroY, centro.z);
+    malla.castShadow = false; malla.receiveShadow = false;
+    malla.updateMatrix(); malla.matrixAutoUpdate = false;
+    calles.raiz.add(malla); malla.updateMatrixWorld(true);
+    calles.acometidas = malla;
+  }
   function rehacerCharcos() {
     if (!calles?.lista) return;
     calles.sucio = false;
+    rehacerAcometidas();
     if (calles.charcos) { calles.raiz.remove(calles.charcos); calles.charcos.geometry.dispose(); calles.charcos = null; }
     const pos = [], uv = [];
     const suelo = (x, z, y0) => {
@@ -1477,6 +1571,9 @@ export function crearAldeaMundo(ctx) {
     actualizar, luces: actualizarLuces, adentro, bajoCubierta, techoEn, techos, pisos, chimeneasCerca, medir, estadoEdificio,
     raices: () => [...[...manzanas.values()].map((m) => m.raiz), alamos?.raiz, estacionHecha?.raiz, calles?.raiz].filter(Boolean),
     charcos: () => calles?.charcos || null,
+    // 3.6 (pulido): para la fase de mecánicas: lo que se mueve y lo que echa humo o chispas
+    animables: (id = null) => [...edificios.values()].filter((b) => !id || b.id === id).flatMap((b) => b.animables || []),
+    emisores: () => [...edificios.values()].flatMap((b) => b.emisores || []),
     centro, accesorios, emparejado: () => emparejado, aMundo: (lx, lz) => aMundo(lx, lz), fabrica: () => fabrica.stats,
   };
 }

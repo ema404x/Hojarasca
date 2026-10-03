@@ -134,6 +134,7 @@ app.whenReady().then(async () => {
     ok(e.vis.length === 0 && !e.parche, `a ${Math.round(e.d)} m todos los complejos y el suelo de la aldea están apagados (${e.vis.join(', ') || 'ninguno prendido'})`);
     ok(e.con.dibujos === e.sin.dibujos && e.con.tri === e.sin.tri, `la aldea suma 0 dibujos desde el refugio (${e.con.dibujos} con, ${e.sin.dibujos} sin)`);
     medidas.refugio = e.con;
+    await js(`(()=>{ window.__progs0 = new Set(${H}.renderer.info.programs.map((p) => p.cacheKey)); return 1 })()`);
 
     // ------------------------------------------------------------ llegar
     seccion('llegar a la aldea');
@@ -146,6 +147,16 @@ app.whenReady().then(async () => {
     ok(vueltas >= 0 && e.m.listas === e.m.manzanas && e.m.cola === 0, `la aldea está montada (${e.m.listas} manzanas, ${e.m.montados} edificios, ${vueltas} cuadros)`);
     ok(e.m.fabrica.origen === 'worker' && e.m.fabrica.worker > 0 && e.m.fabrica.momento === 0, `la geometría se armó en el Worker (${e.m.fabrica.worker} pedidos), no en el cuadro`);
     ok(e.vis >= e.total - 1, `desde la estación se ven los complejos (${e.vis} de ${e.total})`);
+    // los programas de la aldea (el material con el detalle de superficie, el vidrio, el ripio...)
+    // se compilaron en la carga: al llegar no se compila nada (con los cuadros del juego, que dibujan
+    // con el postproceso: `A.dibujos()` dibuja directo a la pantalla y ésos son otros programas)
+    await js(`(()=>{ const A = window.__m36; const M = ${H}.__aldeaMundo(); const o = M.aMundo(6, 29), a = M.aMundo(10, 60); A.mirar(o.x, o.z, a.x, a.z); return 1 })()`);
+    await asentar(4);
+    const nuevos = await js(`${H}.renderer.info.programs.filter((p) => !window.__progs0.has(p.cacheKey)).map((p) => ((p.cacheKey.includes("aldea-3.6") || p.cacheKey.includes("vidrio-aldea")) ? "ALDEA " : "") + (p.name || "") + " " + p.cacheKey.slice(0, 40) + " … " + p.cacheKey.slice(-70).split(String.fromCharCode(10)).join(" "))`);
+    console.log('  programas nuevos al llegar: ' + (nuevos.join(' || ') || 'ninguno'));
+    ok(!nuevos.some((n) => n.startsWith('ALDEA')), `al llegar no se compila ningún programa de la aldea (${nuevos.length} nuevos en total, de la gente y el bosque)`);
+    const anim = await js(`(()=>{ const M = ${H}.__aldeaMundo(); return M.animables().map((a) => a.edificio + ':' + a.id) })()`);
+    ok(anim.length >= 1, `las piezas que se mueven quedan a mano (${anim.join(', ')})`);
     medidas.aldea = { luces: e.m.luces, triangulos: e.m.triangulos, mallas: e.m.mallas, msMontar: +e.m.msMontar.toFixed(1), montajes: e.m.montajes };
     ok(e.m.msMontar / Math.max(1, e.m.montajes) < 40, `montar una manzana tarda ${(e.m.msMontar / Math.max(1, e.m.montajes)).toFixed(1)} ms (de a una por cuadro)`);
 

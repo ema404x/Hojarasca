@@ -31,6 +31,8 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 const TOMAS = {
   entrada: { ojo: [6, 3.2, 12], a: [16, 4, 60], hora: 10.5 },
   aerea: { ojo: [22, 75, -30], a: [22, 0, 48], hora: 12 },
+  almacen: { ojo: [-10, 1.7, 49], a: [-17, 2.5, 60], hora: 15 },
+  'casa-te': { ojo: [33, 1.7, 26], a: [27.5, 2.5, 36], hora: 11 },
   'plaza-atardecer': { ojo: [-4, 1.7, 30], a: [12, 2.5, 46], hora: 18.9 },
   'calle-manana': { ojo: [-40, 1.7, 52], a: [30, 2, 52], hora: 8.6 },
   noche: { ojo: [-30, 1.7, 23], a: [20, 2, 34], hora: 22.2 },

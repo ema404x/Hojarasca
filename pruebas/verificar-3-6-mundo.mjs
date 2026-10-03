@@ -240,11 +240,47 @@ const con = valle({ aldea: true });
   for (const r of raices) r.traverse((o) => { if (o.isMesh && o.matrixAutoUpdate && !deHoja.has(o)) sueltas++; });
   ok(sueltas === 0, `las matrices de la aldea quedan congeladas (${sueltas} sueltas)`);
   // dibujos: una pieza por material en cada manzana
-  for (const r of raices.filter((x) => /aldea-(o|c|e)/.test(x.name))) {
+  for (const r of raices.filter((x) => /aldea-(o1|o2|c|e1|e2)-/.test(x.name))) {
     const exterior = r.children.filter((o) => o.isMesh);
     ok(exterior.length <= 5, `${r.name}: ${exterior.length} mallas afuera (una por material)`);
   }
   ok(md.triangulos < 260000, `triángulos de la aldea: ${md.triangulos}`);
+  // 3.6 (pulido): el material propio de la aldea, y lo fundido conserva aSuperficie y aLocal
+  const fundidas = [];
+  for (const r of raices.filter((x) => /aldea-(o1|o2|c|e1|e2)-/.test(x.name))) r.children.forEach((o) => { if (o.isMesh && o.material?.userData?.aldea36) fundidas.push(o); });
+  ok(fundidas.length >= 10 && fundidas.every((o) => o.geometry.attributes.aSuperficie && o.geometry.attributes.aLocal && o.geometry.attributes.aSuperficie.count === o.geometry.attributes.position.count), `lo fundido conserva aSuperficie y aLocal (${fundidas.length} mallas)`);
+  ok(fundidas.some((o) => o.geometry.attributes.aSuperficie.array.some((v) => v > 0)), 'con superficies de verdad (no todo en cero)');
+  ok(raices.every((r) => { let ok2 = true; r.traverse((o) => { if (o.isMesh && o.material === est.mat) ok2 = false; }); return ok2; }), 'con el material propio de la aldea (no el est.mat compartido)');
+  const vidrios = []; for (const r of raices) r.traverse((o) => { if (o.isMesh && o.material?.userData?.vidrioAldea36) vidrios.push(o); });
+  ok(vidrios.length >= 5, `los vidrios con el reflejo del cielo (${vidrios.length})`);
+  // el almacén y la casa de té, vestidos para combinar (en el Relax; en el Desafío, como siempre)
+  for (const clave of ['almacen', 'casa-te']) {
+    const raiz = est.conjuntos.find((c) => c.clave === clave).obj, raizSin = sin.est.conjuntos.find((c) => c.clave === clave).obj;
+    let con = 0, total = 0, conSin = 0;
+    raiz.traverse((o) => { if (o.isMesh && o.geometry.attributes.aTipo) { total++; if (o.geometry.attributes.aSuperficie && o.material.userData.aldea36) con++; } });
+    raizSin.traverse((o) => { if (o.isMesh && (o.geometry.attributes.aSuperficie || o.material?.userData?.aldea36)) conSin++; });
+    ok(con >= 1 && con === total, `${clave}: con aSuperficie y el material de la aldea en el Relax (${con} de ${total})`);
+    ok(conSin === 0, `${clave}: en el Desafío, sin tocar`);
+  }
+  // lo que se mueve y lo que echa humo, para la fase de mecánicas
+  const anim = am.animables();
+  ok(anim.length >= 1 && anim.every((a) => a.objeto.isGroup && raizDe(a.objeto) && a.id && a.edificio), `las piezas que se mueven, por id y por edificio (${anim.map((a) => `${a.edificio}:${a.id}`).join(', ')})`);
+  ok(anim.every((a) => a.objeto.parent?.matrixAutoUpdate === false && a.objeto.matrixAutoUpdate === true), 'su pivote se puede mover (el resto, quieto)');
+  ok(Array.isArray(am.emisores()), `emisores (${am.emisores().map((e) => `${e.edificio}:${e.tipo}`).join(', ') || 'ninguno con la aldea inicial'})`);
+  // nada sobre la vía (la estación es la única pieza pegada al riel)
+  {
+    const T2 = con.T;
+    const lejos = (x, z) => T2.val(T2.distRiel, x, z);
+    for (const b of A.IDS_EDIFICIOS) {
+      const e = A.EDIFICIOS_ALDEA[b]; if (e.rol === 'estacion') continue;
+      const m = A.marcoAldea();
+      let min = Infinity;
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) { const c = Math.cos(e.rot), s = Math.sin(e.rot), bx = sx * e.ancho / 2, bz = sz * e.fondo / 2; const w = m.aMundo(e.x + bx * c + bz * s, e.z - bx * s + bz * c); min = Math.min(min, lejos(w.x, w.z)); }
+      ok(min > 12, `${b}: lejos de la vía (${min.toFixed(1)} m)`);
+    }
+    const cerca = am.accesorios.filter((a) => lejos(a.x, a.z) < 6);
+    ok(cerca.length === 0, `ningún accesorio sobre la vía (${cerca.map((a) => a.tipo).join(', ')})`);
+  }
   // luces: registradas para el presupuesto (no se dibuja ninguna de más)
   ok(md.luces >= 15 && md.luces <= 60, `${md.luces} luces de la aldea registradas`);
   // choques: cada edificio con dueño
