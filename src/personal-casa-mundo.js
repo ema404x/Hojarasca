@@ -1,4 +1,4 @@
-// 2.8: tu refugio y tu pueblo en el mundo (lo que elegís en Personalizar → Tu refugio).
+// 2.8: tu refugio en el mundo (lo que elegís en Personalizar → Tu refugio).
 // Las reglas y las paletas están en estilo-casa.js (puro); acá se pinta y se arma:
 //   · la pintura del Refugio del Arroyo (paredes, aberturas y techo, sobre los colores por
 //     vértice de su malla: sin rehacer el edificio) y de las hojas de puerta,

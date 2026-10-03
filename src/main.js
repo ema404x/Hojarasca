@@ -35,6 +35,7 @@ import { crearPerro } from './perro.js';
 import { crearGente, saludoDe, alturaDePie } from './gente.js';
 import { crearTrochita } from './trochita.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
+import { renombrarParada } from './comercio.js';
 import { crearPesca } from './pesca.js';
 import { crearKayak } from './kayak.js';
 // 2.9: el velero y las tirolesas y puentes colgantes
@@ -61,11 +62,12 @@ import { TEJIDOS, queTejer, textoTelar } from './telar.js';
 import { FERIA, esDiaDeFeria, abierta as feriaAbierta, ofertasDelDia, sanearFeria, feriaDeHoy, alcanza as alcanzaFeria, cambiarEnFeria, textoOferta } from './feria.js';
 import { crearPuestoFeria } from './feria-mundo.js';
 import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, seVa, terminarVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
-// 3.1: rangos y oficios, y el pueblo que fundás
+// 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { golpesConFilo, gastarFilo, llamarPoblador, claveCasa } from './pueblo.js';
-import { crearPuebloMundo } from './pueblo-mundo.js';
+import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
+import { crearAldeaGente } from './aldea-gente.js';
+import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
 import { sanearMajada, esquilar, textoOveja, resumenMajada } from './majada.js';
@@ -518,7 +520,10 @@ async function construir() {
     return e;
   });
   tren = await paso('Tendiendo las vías de la trochita', 74, () => {
-    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos });
+    // 3.6: en el Relax, la parada del sur es la de la Aldea de los Duendes (cartel y anuncios)
+    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA } });
+    // lo del comercio guardado con el nombre de antes de la parada pasa al de la aldea
+    for (const p of t.paradas) if (p.aldea && p.nombreAntes && progreso?.comercio) renombrarParada(progreso.comercio, p.nombreAntes, p.nombre);
     // el andén y el galpón se quedan con su espacio
     const masc = U.uMascara.value.image.data;
     for (const p of t.paradas) {
@@ -625,8 +630,8 @@ async function construir() {
   // 3.1: carreras contrarreloj, desafío del día y torneo de la semana
   { const estilo = document.createElement('style'); estilo.textContent = CSS_MODOS; document.head.appendChild(estilo); }
   modos = crearModos({ T, escena, jugador, esDesafio, progreso: () => progreso, guardar: () => guardar(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, api: syncApi, traducir: traducirPanel });
-  // 3.1: rangos y oficios (en los dos modos) y el pueblo que fundás (sólo en el Relax)
-  armarOficiosYPueblo(esDesafio);
+  // 3.1: rangos y oficios (en los dos modos). 3.6: y la gente de la aldea (sólo en el Relax)
+  armarOficiosYAldea(esDesafio);
   if (esDesafio) desafio = crearDesafio(T, escena, camara, col, obras, sonido, {
     progreso: () => progreso,
     jugador: () => jugador,
@@ -747,8 +752,8 @@ function dibujarCuaderno() {
   const pest = el('div', 'pestanas');
   pest.setAttribute('role', 'tablist');
   const pestanas = [['especies', 'Especies y lugares'], ['fotos', 'Álbum de fotos'], ['diario', 'Diario']];
-  // 3.1: rangos y oficios (y en el Relax, tu pueblo)
-  pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y pueblo']);
+  // 3.1: rangos y oficios (3.6: y en el Relax, la Aldea de los Duendes)
+  pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y aldea']);
   // 2.0: en el Desafío, el bestiario de los invasores
   if (desafio) pestanas.push(['bestiario', 'Bestiario']);
   else if (pestana === 'bestiario') pestana = 'especies';
@@ -762,7 +767,7 @@ function dibujarCuaderno() {
   lista.appendChild(pest);
   const ficha = $('cuaderno-ficha');
   ficha.innerHTML = '';
-  if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : pueblo); return; }
+  if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
 
   if (pestana === 'bestiario' && desafio) {
     const best = desafio.bestiario;
@@ -2504,6 +2509,8 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !objetivo && telarCerca()) { tejer(); break; }
       // 2.3: colmena, ahumadero, vivero y leñera (el aviso sigue el mismo orden)
       if (!js.enTren && !js.enKayak && !objetivo) { const o = obraQueTrabajaCerca(); if (o) { usarObraQueTrabaja(o); break; } }
+      // 3.6: parado en el lote de una obra de la aldea, E aporta lo que tengas (el aviso va en el mismo lugar)
+      if (!js.enTren && !js.enKayak && !objetivo && aldeaGente) { const lote = aldeaGente.obraCerca(js.pos); if (lote) { aldeaGente.aportarObra(lote); break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
@@ -3514,7 +3521,7 @@ function usarHacha() {
     anotarTalado(o.arbol);
     const troncosTala = troncosAlTalar(TRONCOS_TALA, nivelDe('hachero'));   // 3.1
     sumarMaterial('tronco', troncosTala);
-    gastarFilo(progreso.pueblo);
+    gastarFilo(progreso.aldea);   // 3.6: el filo que te dio el herrero de la aldea
     nota(`¡Árbol talado! +${troncosTala} troncos`, `Llevás ${material('tronco')}. Con Y los aserrás en tablas`);
     registrar('tronco-mat');
     ganarOficio('hachero', XP.tala);
@@ -3991,32 +3998,81 @@ function actualizarVisitas(dt) {
   guardar();
 }
 
-// ---------------------------------------------------------------- 3.1: rangos y oficios, y el pueblo
-// Lo que hacés seguido lo hacés mejor (ver `oficios.js`), y con casas terminadas y el valle
-// cuidado llega gente a quedarse (ver `pueblo.js` y `pueblo-mundo.js`).
-let oficios = null, pueblo = null;
+// ---------------------------------------------------------------- 3.1: rangos y oficios. 3.6: la aldea
+// Lo que hacés seguido lo hacés mejor (ver `oficios.js`). 3.6: la gente de la Aldea de los
+// Duendes, sus horarios, los que bajan del tren a quedarse y las obras del pueblo (ver
+// `aldea.js` y `aldea-gente.js`); reemplaza al pueblo que fundabas en la 3.1.
+let oficios = null, aldeaGente = null;
 const nivelDe = (id) => oficios?.nivel(id) || 0;
 const ganarOficio = (id, cuanto) => oficios?.ganar(id, cuanto) || null;
-function armarOficiosYPueblo(esDesafio) {
+function armarOficiosYAldea(esDesafio) {
   const redibujar = () => { if (modo === 'cuaderno') dibujarCuaderno(); };
   oficios = crearOficiosUI({ progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, redibujar });
   oficios.acreditar();
+  // 3.6: en el Desafío no hay aldea (ni gente, ni obras, ni llegadas)
   if (esDesafio) return;
-  pueblo = crearPuebloMundo(T, escena, col, {
-    progreso: () => progreso, gente: () => gente, obras: () => obras, tren: () => tren, estadoTren: () => estadoTren, jugador: () => jugador,
+  aldeaGente = crearAldeaGente({
+    progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
+    alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
-    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), refrescarBarra: () => refrescarBarra(true),
-    hablandoCon: () => charla.npc,
+    registrar: (id) => registrar(id),
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn),
+    refrescarBarra: () => refrescarBarra(true), hablandoCon: () => charla.npc,
+    // lo que dan los pobladores y no es de la mochila
+    alJugador: (campo, valor) => {
+      const js = jugador.estado;
+      if (campo === 'descansado') js.descansado = Math.max(js.descansado || 0, Number(valor) || 0);
+      else if (campo === 'entumecido') js.entumecido = Math.max(0, Number(valor) || 0);
+    },
+    leerCarta: (id) => leerCartaDeLaAldea(id),
+    mandarFoto: (id) => mandarFoto(id),
+    partitura: (id) => { const m = anotarPartitura(progreso, id); if (m) escucharMuestra(sonido, m.id, 10); },
+    pronostico: () => {
+      const manana = pronosticoActual().find((d) => d.cuando === 'Mañana');
+      return manana ? `para mañana: ${manana.texto.charAt(0).toLowerCase()}${manana.texto.slice(1)}` : '';
+    },
+    ambiente: () => {
+      const e = clima?.estado || {};
+      const invierno = U.uInvierno.value;
+      return {
+        estacion: estacionDe({ invierno, otono: U.uOtono.value }),
+        clima: (e.lluvia || 0) > 0.45 ? (invierno > 0.5 ? 'nieve' : 'lluvia') : (e.viento || 0) > 0.7 ? 'viento' : (e.nublado || 0) < 0.35 ? 'sol' : null,
+      };
+    },
+    decir: (texto) => decirCharlaAldea(texto),
   });
 }
-function actualizarPueblo(dt) {
+// 3.6: la carta que te entrega el telegrafista de la aldea, igual que la de Ercilia: queda en
+// el cuaderno y, si pide una foto, se avisa cuál
+function leerCartaDeLaAldea(id) {
+  registrar(id);
+  const pide = CARTA[id]?.foto;
+  if (pide) { const d = DESAFIOS.find((x) => x.id === pide); if (d) setTimeout(() => nota(`Te piden una foto: ${d.nombre}`, d.pista, true), 1400); }
+}
+// 3.6: la charla entre vecinos de la aldea que escuchás al pasar: un renglón chico abajo, sin
+// pausar nada (no es la charla con E, que tiene su cuadro)
+let renglonAldea = null;
+function decirCharlaAldea(texto) {
+  if (!renglonAldea) {
+    if (!texto) return;
+    renglonAldea = document.createElement('div');
+    renglonAldea.id = 'charla-aldea';
+    renglonAldea.setAttribute('aria-live', 'polite');
+    renglonAldea.style.cssText = 'position:fixed;left:50%;bottom:22%;transform:translateX(-50%);max-width:min(60ch,86vw);padding:5px 12px;border-radius:6px;'
+      + 'background:rgba(24,18,12,0.5);color:#f1e7d6;font:15px/1.35 Spectral,Georgia,serif;text-align:center;pointer-events:none;z-index:6;text-shadow:0 1px 2px #000';
+    document.body.appendChild(renglonAldea);
+  }
+  renglonAldea.textContent = texto ? T_(texto) : '';
+  renglonAldea.style.display = texto ? '' : 'none';
+}
+function actualizarAldea(dt) {
   if (!jugador) return;
   oficios?.remar(jugador.estado);
   if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante'));
-  if (!desafio) pueblo?.actualizar(dt);
+  if (!desafio) aldeaGente?.actualizar(dt);
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
-const golpesParaTalarAhora = () => golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.pueblo);
+const golpesParaTalarAhora = () => golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea);
 // Lo que sobra de una etapa de obra, según el oficio (va a la mochila), y la experiencia
 function conOficioDeObra(r, m) {
   if (!r?.ok || !r.etapa) return r;
@@ -4034,10 +4090,10 @@ function avisarSobrante(r) {
   const partes = Object.entries(r?.sobro || {}).map(([k, n]) => `${n} ${MATERIALES[k]?.nombre || k}`);
   if (partes.length) setTimeout(() => nota('Te sobró material', `${partes.join(' · ')}: oficio de constructor`), 700);
 }
-// Para la historia u otro evento: que el próximo poblador venga sin esperar
+// Para la historia u otro evento: que el próximo poblador de la aldea venga sin esperar
 function llamarAlProximoPoblador() {
-  if (desafio || !progreso?.pueblo) return false;
-  llamarPoblador(progreso.pueblo);
+  if (desafio || !progreso?.aldea) return false;
+  llamarProximo(progreso.aldea);
   guardar();
   return true;
 }
@@ -4361,8 +4417,10 @@ function actualizarMajada(dt) {
 }
 
 // ---------------------------------------------------------------- el correo
-// La trochita para en la Estación del Valle aunque estés lejos; si hay carta, llega,
-// y Ercilia la guarda en el almacén. Como mucho una por día.
+// La trochita para en la estación del almacén aunque estés lejos; si hay carta, llega,
+// y Ercilia la guarda en el almacén. Como mucho una por día. 3.6: en el Relax Ercilia y su
+// almacén se mudaron a la Aldea de los Duendes, así que el correo baja en la parada de la
+// aldea (sin aldea, como siempre, en la Estación del Valle).
 function correo() {
   if (!progreso.correo || typeof progreso.correo.llegadas !== 'object') progreso.correo = sanearCorreo(progreso.correo);
   return progreso.correo;
@@ -4375,7 +4433,8 @@ function revisarCorreo(estado = estadoTren) {
   if (trenEnEstacion) return;
   const pos = estado.pos;
   const aqui = tren.paradas.find((p) => Math.hypot(p.anden.x - pos.x, p.anden.z - pos.z) < 30);
-  if (!aqui || aqui.nombre !== 'Estación del Valle') return;
+  const delCorreo = tren.paradas.find((p) => p.aldea) || tren.paradas.find((p) => p.nombre === 'Estación del Valle');
+  if (!aqui || aqui !== delCorreo) return;
   trenEnEstacion = true;
   const c = repartir(correo(), progreso, progreso.dia);
   if (!c) return;
@@ -4738,8 +4797,7 @@ async function pedirNombre(obra) {
 
 // 3.5.1: lo que se guarda por el lugar de la obra se muda con ella. Antes, mover un gallinero
 // (Shift+Y) dejaba los huevos del día en el lugar viejo y en el nuevo aparecían cuatro más, sin
-// fin; mover un cantero perdía lo sembrado; y el poblador seguía yendo a dormir a donde ya no
-// estaba su casa.
+// fin; y mover un cantero perdía lo sembrado.
 function mudarDatosDeObra(o, x0, z0) {
   const x1 = o.datos.x, z1 = o.datos.z;
   const tabla = o.plano.id === 'cantero' ? huerta() : o.plano.id === 'gallinero' ? gallineros() : null;
@@ -4747,10 +4805,7 @@ function mudarDatosDeObra(o, x0, z0) {
     const a = claveCantero(x0, z0), b = claveCantero(x1, z1);   // la misma clave que claveGallinero
     if (a !== b && Object.hasOwn(tabla, a)) { tabla[b] = tabla[a]; delete tabla[a]; }
   }
-  const viejo = claveCasa(o.plano.id, x0, z0);
-  for (const p of progreso.pueblo?.pobladores || []) {
-    if (p.casa?.id === viejo) p.casa = { ...p.casa, id: claveCasa(o.plano.id, x1, z1), x: x1, z: z1, rot: o.datos.rot || 0 };
-  }
+  // (3.6: ya no hay pobladores que vivan en tus casas: viven en la Aldea de los Duendes)
 }
 // 3.5.1: desmontar una obra que trabaja devuelve lo que tenía adentro: antes se perdían los
 // troncos secos de la leñera, la miel, las truchas del ahumadero, las tablas del aserradero y la harina
@@ -5712,10 +5767,11 @@ function zumbidoColmena() {
 const charla = { npc: null, historia: null, parte: 0, fin: false };
 function hablar(npc) {
   if (!npc) return;
-  // 3.1: un poblador de tu pueblo (o el que bajó del tren) habla de lo suyo (ver pueblo-mundo.js)
-  const dePueblo = npc.poblador && pueblo ? pueblo.charla(npc) : null;
-  if (dePueblo) {
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: dePueblo, parte: -1 });
+  // 3.1: un poblador (3.6: o un vecino de la aldea, o el que bajó del tren) habla de lo suyo
+  // (ver aldea-gente.js)
+  const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;
+  if (deLaAldea) {
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: deLaAldea, parte: -1 });
     $('charla').classList.remove('oculto');
     mostrarCharla();
     return;
@@ -6443,6 +6499,7 @@ let estadoTren = null;
 let acumuladoBuscar = 0, acumuladoVecino = 99, acumuladoInteraccion = 99;
 const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
+let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
 const sujetosPerro = [];
@@ -6952,7 +7009,8 @@ function cuadroDelJuego(tRaf, manual) {
     mundoPerro.guiar = !desafio && modo === 'jugando';
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
-    try { if (modo === 'jugando') actualizarPueblo(dt); } catch (e) { fallaSistema('pueblo', e); }   // 3.1
+    try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
+    if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
     try { marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro); } catch (e) { fallaSistema('perro', e); }
     if (perro.est.empezoAGuiar) {
@@ -7076,6 +7134,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheGallinero = gallineroCerca();
       cacheTelar = telarCerca();
       cacheObraTrabaja = obraQueTrabajaCerca();
+      cacheObraAldea = aldeaGente ? aldeaGente.obraCerca(js.pos) : null;
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -7109,6 +7168,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheGallinero && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: textoGallinero(gallineros()[cacheGallinero.clave], progreso.dia) };
     if (!aviso && cacheTelar && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: textoTelar(lanaAMano(), progreso.cosas) };
     if (!aviso && cacheObraTrabaja && !js.enTren && !js.enKayak && !objetivo) { const t = avisoObraQueTrabaja(cacheObraTrabaja); if (t) aviso = { tecla: 'E', texto: t }; }
+    // 3.6: la obra de la aldea, después de las obras que trabajan, como en la tecla E
+    if (!aviso && cacheObraAldea && !js.enTren && !js.enKayak && !objetivo) { const t = aldeaGente.avisoObra(cacheObraAldea); if (t) aviso = { tecla: 'E', texto: t }; }
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
@@ -7606,8 +7667,10 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.1: las carreras, el desafío del día y el torneo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;
   if (HOJARASCA_DEBUG) window.__hojarasca.__sinFin = { es: esSinFin, terminar: () => terminarCorrida(), records: () => recordsSinFin(), nueva: (c) => nuevaCorrida(c), empezarMapa: () => empezarMapaDesafio() };
-  // 3.1: los oficios y el pueblo, para las pruebas
-  if (HOJARASCA_DEBUG) window.__hojarasca.__pueblo = { oficios: () => oficios, mundo: () => pueblo, llamar: llamarAlProximoPoblador, actualizar: (dt = 1) => actualizarPueblo(dt),
-    accionObra: () => accionObra(), aserrar: () => aserrar(), cuaderno: (p) => { if (p) pestana = p; dibujarCuaderno(); }, golpes: () => golpesParaTalarAhora(), mundoPesca: () => mundoPesca(), entradas: () => ENTRADAS.map((e) => e.id) };
+  // 3.1: los oficios (3.6: y la aldea), para las pruebas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__aldea = { oficios: () => oficios, mundo: () => aldeaGente, llamar: llamarAlProximoPoblador, actualizar: (dt = 1) => actualizarAldea(dt),
+    accionObra: () => accionObra(), aserrar: () => aserrar(), cuaderno: (p) => { if (p) pestana = p; dibujarCuaderno(); }, golpes: () => golpesParaTalarAhora(), mundoPesca: () => mundoPesca(), entradas: () => ENTRADAS.map((e) => e.id),
+    // 3.6: dónde queda cada cosa de la aldea en el mundo
+    puntos: (id) => puntosMundo(id), edificio: (id) => edificioEnMundo(id), renglon: () => (renglonAldea && renglonAldea.style.display !== 'none' ? renglonAldea.textContent : '') };
   requestAnimationFrame(bucle);
 })();

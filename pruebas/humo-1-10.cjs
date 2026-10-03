@@ -130,9 +130,10 @@ app.whenReady().then(async () => {
       // el tren de verdad pudo haber traído algo mientras corría lo anterior: de cero
       P.correo = {llegadas:{}, ultimoDia:-1};
       for (const k of Object.keys(P.entradas)) if (k.startsWith('c-')) delete P.entradas[k];
-      const chica = H.tren.paradas.find(p=>p.nombre!=='Estación del Valle');
-      const est = H.tren.paradas.find(p=>p.nombre==='Estación del Valle');
-      if (!est) return {error:'no hay Estación del Valle'};
+      // 3.6: el correo baja donde está el almacén de Ercilia: en el Relax, la parada de la aldea
+      const est = H.tren.paradas.find(p=>p.aldea) || H.tren.paradas.find(p=>p.nombre==='Estación del Valle');
+      const chica = H.tren.paradas.find(p=>p!==est);
+      if (!est) return {error:'no hay parada del almacén'};
       H.revisarCorreo({parado:true, pos:chica.anden});
       const enApeadero = Object.keys(H.correo().llegadas).length;
       H.revisarCorreo({parado:false});
@@ -141,7 +142,7 @@ app.whenReady().then(async () => {
       H.revisarCorreo({parado:false}); H.revisarCorreo({parado:true, pos:est.anden});
       return {enApeadero, enEstacion, mismoDia:Object.keys(H.correo().llegadas).length}})()`);
     ok(!cr.error && cr.enApeadero === 0, `en un apeadero no llega correo (${cr.error || cr.enApeadero})`);
-    ok(cr.enEstacion?.includes('c-casa'), `en la Estación del Valle llega la primera carta (${(cr.enEstacion || []).join(',')})`);
+    ok(cr.enEstacion?.includes('c-casa'), `en la parada del almacén llega la primera carta (${(cr.enEstacion || []).join(',')})`);
     ok(cr.mismoDia === 1, 'y no llega otra el mismo día aunque el tren vuelva a parar');
     // Al almacén, como en el juego: E sólo mientras la charla está abierta. (La primera
     // versión de esta prueba apretaba E de más parada en el corral, y esquilaba.)

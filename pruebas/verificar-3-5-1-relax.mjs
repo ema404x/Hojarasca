@@ -67,7 +67,7 @@ assert.ok(main.includes("function piezaAMedias(plano, pos, radio)"));
 assert.ok(main.includes("const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10)"), 'Y sigue el molino, el aserradero y la estación a medio hacer');
 assert.ok(main.includes("devolverContenido(r.datos);   // 3.5.1"), 'desmontar devuelve lo guardado');
 assert.ok(leer('src/construccion.js').includes("if (n > 1) recupera[k] = (recupera[k] || 0) + Math.max(1, Math.floor(n * 0.5));"), 'lo que costó 1 no vuelve entero');
-assert.ok(main.includes("function mudarDatosDeObra(o, x0, z0)"), 'mover una obra muda sus huevos, su cantero y su poblador');
+assert.ok(main.includes("function mudarDatosDeObra(o, x0, z0)"), 'mover una obra muda sus huevos y su cantero');   // (3.6: ya no hay pobladores en tus casas)
 
 // ---- el modo foto no toca el reloj del juego ni cumple desafíos con la cámara libre
 assert.ok(main.includes("if (foto.activo && codigo !== 'KeyP') return;"));

@@ -616,7 +616,15 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
       nombre = mejorN;
     }
     usados.add(nombre);
-    paradas.push(construirParada(T, escena, col, mat, opciones.cartel, opciones.sentaderos, sitio.i, nombre, sitio !== principal));
+    // 3.6: en el Relax la parada del sur es la de la Aldea de los Duendes (ver aldea.js): su
+    // cartel y los anuncios del tren dicen eso. `nombreAntes` es el de siempre (el que sigue
+    // teniendo en el Desafío), para pasar al nombre nuevo lo guardado del comercio.
+    const deLaAldea = !!opciones.aldea && sitio.i === opciones.aldea.indice;
+    const antes = nombre;
+    if (deLaAldea) nombre = opciones.aldea.nombre;
+    const parada = construirParada(T, escena, col, mat, opciones.cartel, opciones.sentaderos, sitio.i, nombre, sitio !== principal);
+    if (deLaAldea) { parada.aldea = true; parada.nombreAntes = antes; }
+    paradas.push(parada);
   }
   paradas.sort((a, b) => a.s - b.s);
   const estacion = paradas.find((p) => !p.chica) || paradas[0];

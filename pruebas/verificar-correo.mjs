@@ -80,7 +80,8 @@ const main = leer('src/main.js');
 // 2.4: el buzón de tu casa también las da
 assert.match(main, /const correoAca = npc\.clave === 'ercilia' \|\| npc\.clave === 'buzon';\s+const carta = correoAca \? porRetirar\(correo\(\), progreso\)\[0\] : null;/, 'Ercilia (o tu buzón) da las cartas');
 assert.match(main, /if \(carta\) \{ charla\.historia = \{ id: carta\.id, partes: partesDeCarta\(carta\) \}; \}/, 'la carta se lee como una historia y se registra al terminar');
-assert.match(main, /if \(!aqui \|\| aqui\.nombre !== 'Estación del Valle'\) return;/, 'llega sólo a la estación principal');
+// 3.6: llega sólo a la estación del almacén: en el Relax el almacén de Ercilia se mudó a la aldea
+assert.ok(main.includes("const delCorreo = tren.paradas.find((p) => p.aldea) || tren.paradas.find((p) => p.nombre === 'Estación del Valle');") && main.includes('if (!aqui || aqui !== delCorreo) return;'), 'llega sólo a la estación del almacén');
 assert.match(main, /if \(modo === 'jugando' && !desafio\) revisarCorreo\(\);/, 'el correo es del Relax');
 assert.match(main, /for \(const \[k, n\] of Object\.entries\(premio\.cuenta \|\| \{\}\)\) progreso\.cosas\[k\] = \(progreso\.cosas\[k\] \|\| 0\) \+ n;/);
 assert.match(leer('src/trochita.js'), /let nombre = sitio === principal \? 'Estación del Valle' : null;/, 'la estación principal sigue llamándose así');

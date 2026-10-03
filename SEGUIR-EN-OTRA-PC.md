@@ -108,7 +108,7 @@ Pruebas que a veces fallan con la máquina cargada y pasan solas: humo-desafio-p
 humo-2-3, humo-relax-2, humo-3-0-asedio. Las ventanas ocultas de las pruebas **no corren
 requestAnimationFrame**: el juego sólo avanza con `__bucle()`, casi sin tiempo entre cuadros;
 lo que se revisa N veces por segundo (quién está enfrente, por ejemplo) necesita esperas
-reales entre tandas (ver `hablarCon` en `humo-3-1-pueblo.cjs`).
+reales entre tandas (ver `hablarCon` en `humo-3-6-aldea.cjs`).
 
 Lo visual que quedó anotado de la 3.5.0 sigue pendiente:
 

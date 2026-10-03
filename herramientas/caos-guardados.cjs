@@ -34,6 +34,7 @@ const uno = (l) => l[Math.floor(azar() * l.length)];
 
 // Lo que se sumó al guardado en cada versión (para fabricar partidas "viejas")
 const AGREGADOS = [
+  ['3.6', ['aldea']],   // (3.6: la aldea reemplaza a `pueblo`, que una partida 3.1 todavía trae)
   ['3.5.1', ['taladosTotal', 'cosechasTotal']],
   ['3.1', ['carreras', 'diarios', 'historia', 'eventosValle', 'oficios', 'pueblo']],
   ['2.9', ['comercio', 'vela', 'meteo', 'radio']],

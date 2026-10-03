@@ -247,8 +247,8 @@ function AYUDA() {
       const q = uno(['rastro', 'dejarRastro', 'poblador', 'pueblo', 'visitas', 'rayo', 'hacha', 'carpa', 'renoval']);
       if (q === 'rastro') H.pedirRastro();
       else if (q === 'dejarRastro') H.dejarRastro('Dejaste el rastro', 'El perro vuelve con vos');
-      else if (q === 'poblador') H.__pueblo.llamar();
-      else if (q === 'pueblo') H.__pueblo.actualizar(entre(1, 60));
+      else if (q === 'poblador') H.__aldea.llamar();
+      else if (q === 'pueblo') H.__aldea.actualizar(entre(1, 60));   // (3.6: la aldea)
       else if (q === 'visitas') H.__actualizarVisitas(entre(1, 400));
       else if (q === 'rayo') H.caerRayo();
       else if (q === 'hacha') { for (let i = 0; i < entre(1, 8); i++) await tecla('KeyH', 2); }

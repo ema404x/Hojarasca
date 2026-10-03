@@ -68,6 +68,9 @@ const PERFILES = {
   'Parada del Mirador': { quien: 'El baqueano del mirador', produce: ['piedra', 'hongos-secos'], pide: ['frasco-frutilla', 'empanadas', 'poncho'], otros: ['tronco', 'lana', 'cristal'] },
   'Apeadero del Pescador': { quien: 'El pescador del apeadero', produce: ['trucha-fresca', 'trucha-ahumada'], pide: ['tronco', 'pan-casero', 'empanadas'], otros: ['papa', 'lana'] },
   'Parada del Bosque': { quien: 'El hachero de la parada', produce: ['tronco', 'tabla', 'hongos-secos'], pide: ['piedra', 'lana', 'miel'], otros: ['huevo', 'harina'] },
+  // 3.6: la parada del sur en el Relax (ver aldea.js): atiende Ernesto, el jefe de estación. La aldea
+  // crece y necesita material de obra; hace dulce de rosa mosqueta y tiene huevos de sobra.
+  'Aldea de los Duendes': { quien: 'Ernesto, el jefe de estación de la aldea', produce: ['frasco-frutilla', 'huevo', 'calafate-seco'], pide: ['tabla', 'piedra', 'tronco', 'lana'], otros: ['harina', 'pan-casero'] },
 };
 
 // Cómo cambia cada cosa con la estación: en invierno no hay fruta fresca y la leña y la
@@ -176,6 +179,33 @@ export function comercioDeHoy(c, dia) {
   const x = c && typeof c === 'object' && c.hoy ? c : sanearComercio(c);
   if (x.hoy.dia !== dia1(dia)) x.hoy = { dia: dia1(dia), vendidos: {}, comprados: {}, tomados: [] };
   return x;
+}
+
+// 3.6: una parada que cambió de nombre (la del sur pasó a ser la Aldea de los Duendes en el
+// Relax): lo guardado con el nombre viejo (los fletes que llevás y lo movido hoy en el puesto)
+// pasa al nuevo, así no queda un flete imposible de entregar. Devuelve cuántas cosas cambió.
+export function renombrarParada(c, viejo, nuevo) {
+  if (!c || typeof c !== 'object' || typeof viejo !== 'string' || typeof nuevo !== 'string' || !viejo || !nuevo || viejo === nuevo) return 0;
+  let n = 0;
+  for (const f of Array.isArray(c.fletes) ? c.fletes : []) {
+    if (!f || typeof f !== 'object') continue;
+    if (f.desde === viejo) { f.desde = nuevo; n++; }
+    if (f.hasta === viejo) { f.hasta = nuevo; n++; }
+    // (el id lleva la parada de donde sale: 'día|parada|k')
+    if (typeof f.id === 'string') { const p = f.id.split('|'); if (p[1] === viejo) { p[1] = nuevo; f.id = p.join('|'); } }
+  }
+  for (const cuenta of ['vendidos', 'comprados']) {
+    const v = c.hoy?.[cuenta];
+    if (!v || typeof v !== 'object') continue;
+    for (const k of Object.keys(v)) {
+      const [parada, bien] = k.split('|');
+      if (parada !== viejo) continue;
+      const k2 = `${nuevo}|${bien}`;
+      v[k2] = (v[k2] || 0) + v[k]; delete v[k]; n++;
+    }
+  }
+  if (Array.isArray(c.hoy?.tomados)) c.hoy.tomados = c.hoy.tomados.map((id) => { const p = String(id).split('|'); if (p[1] === viejo) { p[1] = nuevo; n++; return p.join('|'); } return id; });
+  return n;
 }
 
 // ---------------------------------------------------------------- precios

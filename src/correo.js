@@ -1,6 +1,7 @@
 // El correo: cartas que llegan con la trochita y que Ercilia guarda en el almacén.
 // El cuaderno ya contaba que el almacén de ramos generales "hacía de correo y de
-// banco"; ahora hace de correo. La trochita para en la Estación del Valle aunque vos
+// banco"; ahora hace de correo. La trochita para en la estación del almacén (3.6: en el Relax,
+// la de la Aldea de los Duendes; sin aldea, la Estación del Valle) aunque vos
 // estés en la otra punta del valle, y si hay carta, llega. Como mucho una por día.
 //
 // Algunas cartas abren los encargos de Ercilia —la única vecina que no pedía nada—,
@@ -129,7 +130,7 @@ export function sanearCorreo(v) {
   return base;
 }
 
-// ¿Llega una carta hoy? La trochita paró en la Estación del Valle. Devuelve la carta
+// ¿Llega una carta hoy? La trochita paró en la estación del almacén. Devuelve la carta
 // que llega (y la anota como llegada) o null. Una por día, en el orden de la lista.
 export function repartir(correo, p, dia) {
   if (correo.ultimoDia === dia) return null;

@@ -1,4 +1,4 @@
-// 2.8: tres secciones de "Personalizar": Tu refugio y tu pueblo, Tu jardín y Tu fortín con
+// 2.8: tres secciones de "Personalizar": Tu refugio, Tu jardín y Tu fortín con
 // estilo. Módulo puro al importarse (guardado.js y las pruebas de Node lo cargan): el DOM
 // sólo se toca adentro de `construir`, que corre en el juego.
 //
@@ -250,7 +250,7 @@ function construirJardin(cont, api) {
 // ---------------------------------------------------------------- las secciones
 export const SECCION_REFUGIO = registrarSeccion({
   id: 'refugio',
-  titulo: 'Tu refugio y tu pueblo',
+  titulo: 'Tu refugio',   // (3.6: era «Tu refugio y tu pueblo»; el pueblo de la 3.1 se sacó)
   orden: 32,
   porDefecto: refugioDefecto,
   sanear: sanearRefugio,

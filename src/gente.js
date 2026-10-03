@@ -189,6 +189,22 @@ const ROPA = {
   'poblador-herrero': { piel: '#a87a56', bombacha: true, delantal: '#3b2a1e', botas: 'altas', chaleco: true, pantalon: '#4c4640' },
   'poblador-pescador': { piel: '#b58a64', botas: 'goma', panuelo: '#c9b27a', abierta: true, pantalon: '#3e4650' },
   'poblador-maestra': { piel: '#d6ad8a', pollera: true, trenza: true, abierta: true },
+  // 3.6: los seis pobladores nuevos de la aldea (ver aldea.js)
+  'poblador-enfermera': { piel: '#d2a684', pollera: true, delantal: '#f0ece2', rodete: true, abierta: true },
+  'poblador-telegrafista': { piel: '#c49a74', botones: '#b89a4a', chaleco: true, pantalon: '#2e2e36' },
+  'poblador-tejedora': { piel: '#b88a62', pollera: true, trenza: true },
+  'poblador-apicultor': { piel: '#d0a27c', bolsillos: true, botas: 'altas', pantalon: '#6a6048' },
+  'poblador-guardaparque': { piel: '#c0916a', bolsillos: true, trenza: true, botas: 'trekking', pantalon: '#4c5236' },
+  'poblador-musico': { piel: '#b5865e', chaleco: true, panuelo: '#c94a3a', pantalon: '#2a2420' },
+  // 3.6: los vecinos de siempre de la aldea (los chicos, más bajitos: ver `talla` en aldea.js)
+  'aldea-jefe': { piel: '#c0906a', botones: '#c9a64a', campera: 'larga', pantalon: '#2a3240' },
+  'aldea-nelida': { piel: '#d0a27e', pollera: true, delantal: '#d9c7a8', rodete: true, abierta: true },
+  'aldea-galesa': { piel: '#e0b898', pollera: true, delantal: '#f2ece0', rodete: true, botones: '#b8a070' },
+  'aldea-abuela': { piel: '#c8a080', pollera: true, rodete: true },
+  'aldea-padre': { piel: '#c49870', bombacha: true, chaleco: true, panuelo: '#8a3a2c', botas: 'altas', pantalon: '#5a5040' },
+  'aldea-madre': { piel: '#b98a62', pollera: true, trenza: true, abierta: true },
+  'aldea-nene': { piel: '#c99a72', botas: 'goma', pantalon: '#3a4250' },
+  'aldea-nena': { piel: '#c49470', pollera: true, trenza: true, botas: 'goma' },
 };
 const ESC_TORSO = [1, 1, 0.74];
 const R_PONCHO = new Set(['ramon']);   // 3.5: los que andan de poncho (ver la ladera en actualizar)
@@ -520,15 +536,19 @@ function mallaPersona(colores, clave = '', conMate = false) {
 // ---------------------------------------------------------------- creación
 // Cada personaje camina entre sus puntos y hace algo al llegar
 const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-function caminarHacia(g, dt, destino, velocidad, T, col) {
+function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
   const dx = destino.x - g.pos.x, dz = destino.z - g.pos.z;
   const d = Math.hypot(dx, dz);
-  if (d < 0.5) { g.vel = 0; return true; }
+  if (d < cerca) { g.vel = 0; return true; }
   const rumbo = Math.atan2(dx, dz);
   g.rumboObjetivo = rumbo;
   g.vel = velocidad;
-  const nx = g.pos.x + Math.sin(rumbo) * velocidad * dt, nz = g.pos.z + Math.cos(rumbo) * velocidad * dt;
-  if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; col.resolver(g.pos, 0.3); }
+  // 3.6: sin pasarse del punto (el último tramo de la gente con horario es de centímetros)
+  const paso = Math.min(velocidad * dt, d);
+  const nx = g.pos.x + Math.sin(rumbo) * paso, nz = g.pos.z + Math.cos(rumbo) * paso;
+  // 3.6: `sinChoque`: el tramo de la puerta para adentro (y de adentro a la puerta) de un
+  // edificio de la aldea no se frena contra el marco ni contra un mueble
+  if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; if (!destino.sinChoque) col.resolver(g.pos, 0.3); }
   g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
   return false;
 }
@@ -760,8 +780,12 @@ export function crearGente(T, escena, col, sonido) {
 
   function actualizar(dt, js, camara, hablando, presupuestoNivel = 0) {
     for (const g of gente) {
+      // 3.6: la gente de la aldea con vos lejos (a más de 150 m): ni se dibuja ni se mueve.
+      // aldea-gente.js la va dejando donde le toca estar a cada hora.
+      if (g.dormido) { if (g.g.visible) g.g.visible = false; continue; }
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
-      g.g.visible = g.aBordo ? !!g.enViaje && d < 40 : d < 130;
+      // (3.6: el que está adentro de un edificio de la aldea se ve sólo de cerca, `soloCerca`)
+      g.g.visible = g.aBordo ? !!g.enViaje && d < 40 : d < (g.soloCerca || 130);
       limitarSombrasPorDistancia(g.g, d, 48);
       if (!g.g.visible) continue;
       g.fase += dt;
@@ -769,9 +793,20 @@ export function crearGente(T, escena, col, sonido) {
       const charlando = hablando === g;
       // en el Desafío, los vecinos instalados en la base siguen con lo suyo aunque pases cerca
       // 1.11: el que viene de visita no se frena a mitad de camino: llega a la mesa y ahí te mira
-      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0);
+      // 3.6: los vecinos de la aldea que charlan entre ellos se miran a ellos, no a vos
+      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos;
       let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
-      if (g.ruta && !charlando && !cerquita && !g.aBordo) {
+      if (g.camino && !charlando && !cerquita) {
+        // 3.6: con horario (la gente de la aldea): `camino` son los puntos que faltan (por las
+        // calles, ver aldea-gente.js); en el último se queda mirando hacia `miraFinal`
+        if (g.camino.length) {
+          const q = g.camino[0];
+          if (caminarHacia(g, dt, q, g.velocidad || 0.8, T, col, q.cerca ?? 0.5)) g.camino.shift();
+        } else {
+          g.vel = 0;
+          if (Number.isFinite(g.miraFinal)) g.rumboObjetivo = g.miraFinal;
+        }
+      } else if (g.ruta && !charlando && !cerquita && !g.aBordo) {
         if (g.espera > 0) {
           g.espera -= dt;
           g.vel = 0;
@@ -814,7 +849,7 @@ export function crearGente(T, escena, col, sonido) {
           const h0 = T.altura(g.pos.x - 0.115 * cr + 0.05 * sr, g.pos.z + 0.115 * sr + 0.05 * cr) - g.pos.y;
           const h1 = T.altura(g.pos.x + 0.115 * cr + 0.05 * sr, g.pos.z - 0.115 * sr + 0.05 * cr) - g.pos.y;
           // (con tope: más alto, la rodilla saldría por delante del poncho o la pollera)
-          const tope = g.mate || R_PONCHO.has(g.clave) ? 0.035 : 0.07;
+          const tope = g.mate || R_PONCHO.has(g.clave) || g.conPoncho ? 0.035 : 0.07;   // (3.6: y los de poncho de la aldea)
           bajaObj = Math.min(0.1, Math.max(0, -Math.min(h0, h1)));
           alza0 = Math.min(tope, h0 + bajaObj); alza1 = Math.min(tope, h1 + bajaObj);
         }
@@ -883,8 +918,9 @@ export function crearGente(T, escena, col, sonido) {
     guarda.rumbo = rumbo;
   }
 
-  // 3.1: los pobladores del pueblo que fundás (ver pueblo-mundo.js). Son gente como los
-  // demás: caminan su ruta, se paran a charlar y E habla con ellos.
+  // 3.1: los pobladores (3.6: y los vecinos de la Aldea de los Duendes, ver aldea-gente.js).
+  // Son gente como los demás: se paran a charlar y E habla con ellos. 3.6: con `camino: []`
+  // andan con horario (no recorren una ruta en vuelta) y `talla` los hace más bajitos (los chicos).
   function agregarPoblador(def) {
     const npc = agregar(def.clave, def.colores || {}, def.pos, def.mira || { x: def.pos.x, z: def.pos.z + 1 }, {
       nombre: def.nombre, oficio: def.oficio, saludo: def.saludo, despedida: def.despedida,
@@ -894,6 +930,9 @@ export function crearGente(T, escena, col, sonido) {
     if (def.mano === 'mate') darMate(npc);
     else if (def.mano === 'cana') darCaña(npc);
     else if (def.mano === 'planilla') darPlanilla(npc);
+    if (Array.isArray(def.camino)) { npc.camino = def.camino; npc.ruta = null; npc.miraFinal = npc.rumbo; }
+    if (Number.isFinite(def.talla) && def.talla > 0.3 && def.talla < 1) npc.g.scale.setScalar(def.talla);
+    npc.conPoncho = !!def.colores?.poncho;
     return npc;
   }
 

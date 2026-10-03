@@ -1,4 +1,4 @@
-// 2.8: Personalizar → Tu refugio y tu pueblo, Tu jardín y Tu fortín con estilo.
+// 2.8: Personalizar → Tu refugio, Tu jardín y Tu fortín con estilo.
 //  · las secciones se registran y sanean cualquier cosa (partidas viejas, rotas o de otra versión),
 //  · `aplicar` pasa el estilo a estilo-casa.js y llama a los enganches del mundo,
 //  · las obras (armadas en una VM con el three local) se pintan, se adornan y se repintan

@@ -3,8 +3,8 @@
 //  1. El contexto 3D recuperado no deja colgado al contexto viejo: main.js anota (con WeakRef) lo que
 //     three sube a la placa y, al perderse el contexto, les avisa 'dispose' a los administradores
 //     viejos. Se prueba el bloque de main.js tal cual, con un despachador de eventos de mentira.
-//  2. La banderita de las torres de vigía suelta sus geometrías; lo del oficio de un poblador que se
-//     muda, también.
+//  2. La banderita de las torres de vigía suelta sus geometrías (3.6: y la gente de la aldea no
+//     arma geometría propia).
 //  3. Las herramientas: soak-largo.cjs (perfil propio, nunca el del jugador) y comparar-snapshots.cjs.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -63,8 +63,10 @@ const bandera = leer('src/personal-bandera-mundo.js');
 const quitar = bandera.slice(bandera.indexOf('for (const [o, g] of torres)'), bandera.indexOf('torres.delete(o);'));
 ok(/escena\.remove\(g\);[\s\S]*g\.traverse\(\(m\) => \{ if \(m\.isMesh\) m\.geometry\.dispose\(\); \}\)/.test(quitar), 'la banderita de una torre que ya no está suelta sus geometrías');
 ok(!/matMastil\.dispose|matPano\.dispose/.test(quitar), 'y no sus materiales (los comparten todas)');
-const pueblo = leer('src/pueblo-mundo.js');
-ok(/if \(viejo\) \{ grupo\.remove\(viejo\); viejo\.traverse\(\(m\) => \{ if \(m\.isMesh\) \{ m\.geometry\.dispose\(\); m\.material\.dispose\(\); \} \}\); \}/.test(pueblo), 'lo del oficio del poblador que se muda se suelta');
+// 3.6: pueblo-mundo.js (lo del oficio al lado de tu casa) se sacó con el pueblo de la 3.1; la gente
+// de la aldea (aldea-gente.js) no arma geometría propia y cada figura se arma una sola vez
+const aldeaGente = leer('src/aldea-gente.js');
+ok(!fs.existsSync(new URL('../src/pueblo-mundo.js', import.meta.url)) && !/from 'three'|new THREE/.test(aldeaGente) && aldeaGente.includes('if (st.npc || !st.destino) continue;'), 'la gente de la aldea no deja geometrías sueltas');
 
 // ---------------------------------------------------------------- 3. las herramientas
 const soak = leer('herramientas/soak-largo.cjs');
