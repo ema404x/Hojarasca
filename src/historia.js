@@ -97,10 +97,12 @@ export const CAPITULOS = [
     id: 'manos', titulo: 'Manos a la obra',
     intro: [
       'Don Ramón pasó a la mañana con la majada y se quedó mirando el techo. «Eso no aguanta el invierno», dijo, sin maldad. «Pero se arregla. Madera hay; lo que falta es hacha y banco.»',
-      '«El hacha la cambia Ercilia en el almacén, por unas ramitas y un par de cantos anotados. Y el banco de carpintero, primero que nada: al lado de él cada tronco rinde el doble.»',
+      // 3.6: el almacén se mudó a la Aldea de los Duendes: el hacha es el primer viaje en la trochita
+      '«El hacha la cambia Ercilia en su almacén, por unas ramitas y un par de cantos rodados. Ahora lo tiene en la Aldea de los Duendes, el pueblito de la parada del sur.»',
+      '«Subite a la trochita en la Estación del Valle, acá nomás del refugio, y bajate en la aldea. Conocé la gente, que vale la pena. Y a la vuelta, el banco de carpintero, primero que nada: al lado de él cada tronco rinde el doble.»',
     ],
     objetivos: [
-      { id: 'hacha', tecla: 'E', texto: 'Conseguí un hacha en el almacén de Ercilia', hecho: (s) => s.hacha },
+      { id: 'hacha', tecla: 'E', texto: 'Tomá la trochita a la Aldea de los Duendes y conseguite el hacha en el almacén', hecho: (s) => s.hacha },
       { id: 'talar', tecla: 'H', texto: 'Talá un árbol: tres hachazos (al pehuén no se lo toca)', hecho: (s, b) => desde(s, b, 'talados') >= 1 },
       { id: 'banco', tecla: 'O', texto: 'Levantá un banco de carpintero (O → Trabajo)', hecho: tiene('banco-trabajo') },
     ],
@@ -113,11 +115,11 @@ export const CAPITULOS = [
   {
     id: 'vecinos', titulo: 'Los vecinos',
     intro: [
-      'En el valle hay pocos vecinos y todos se conocen. Ramón con sus ovejas en el Puesto Alto, Nicanor en el muelle con la caña, Ema, la guardaparque, que anda siempre por el bosque, y Ercilia, que atiende el almacén y sabe todo antes que nadie.',
+      'En el valle hay pocos vecinos y todos se conocen. Ramón con sus ovejas en el Puesto Alto, Nicanor en el muelle con la caña, Ema, la guardaparque, que anda siempre por el bosque, y Ercilia, que atiende el almacén de la Aldea de los Duendes y sabe todo antes que nadie.',
       '«Una casa sin mesa es un galpón», te dijo Ercilia. «Poné una mesa con un par de sillas y vas a ver cómo la gente se arrima.»',
     ],
     objetivos: [
-      { id: 'hablar', tecla: 'E', texto: 'Conocé a los cuatro vecinos: hablá con cada uno', vecinos: true, meta: 4, cuenta: (s) => s.hablados.length },
+      { id: 'hablar', tecla: 'E', texto: 'Conocé a los cuatro vecinos: hablá con cada uno (a Ercilia, en la aldea)', vecinos: true, meta: 4, cuenta: (s) => s.hablados.length },
       { id: 'encargo', tecla: 'E', texto: 'Aceptá un encargo de algún vecino', vecinos: true, hecho: (s, b) => desde(s, b, 'aceptados') >= 1 || s.aceptados >= 1 },
       { id: 'mesa', tecla: 'O', texto: 'Armá una mesa de campo con dos sillas o bancos alrededor', hecho: (s) => s.mesa },
       { id: 'nicanor', tecla: '·', delMomento: true, texto: 'Algo pasó en la orilla: ayudá a Nicanor', vecinos: true, hecho: (s) => s.eventos.has('tobillo') },

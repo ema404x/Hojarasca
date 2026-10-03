@@ -239,7 +239,7 @@ function ganasIniciales(persona) {
 }
 
 // ---------------------------------------------------------------- el estado
-const TOPE_HECHOS = 40, GUARDA_HECHOS = 7, RECIENTE = 2, TOPE_DICHOS = 24, TOPE_COMENT = 16;
+const TOPE_HECHOS = 40, GUARDA_HECHOS = 7, RECIENTE = 2, TOPE_DICHOS = 24, TOPE_COMENT = 16, TOPE_CONOCE = 24;
 export const TRUCHA_GRANDE_CM = 50;
 export const TALA_MUCHA = 8;
 export function vecindadNueva() {
@@ -252,6 +252,7 @@ function fichaNueva(persona) {
     hist: 0, ayudas: 0, regalos: 0,
     hizo: null, con: null, ultimoRegalo: null,
     ganas: ganasIniciales(persona), dichos: [], coment: [],
+    conoce: [],   // 3.6: lo que ya le regalaste (el cuaderno muestra qué le gusta, sin números)
   };
 }
 const esVecindad = (x) => objeto(x) && objeto(x.personas) && Array.isArray(x.hechos);
@@ -299,6 +300,12 @@ export function amistades(estado) {
   const r = {};
   if (v) for (const k of PERSONAS_VECINDAD) if (tieneDe(v.personas, k) && v.personas[k].contacto) r[k] = nivelDe(k, v);
   return r;
+}
+
+// 3.6: lo que ya le regalaste, con lo que le pareció ([{ cosa, gusto }]), para el cuaderno.
+export function gustosConocidos(persona, estado) {
+  const f = fichaSi(partes(estado).v, persona);
+  return f && Array.isArray(f.conoce) ? f.conoce.filter(esRegalable).map((cosa) => ({ cosa, gusto: gustoDe(persona, cosa) })) : [];
 }
 
 // ---------------------------------------------------------------- la autonomía
@@ -798,6 +805,8 @@ export function regalar(persona, cosa, estado, dia, inventario = null) {
   f.regalo = d;
   f.regalos = Math.min(TOPE_DIA, f.regalos + 1);
   f.ultimoRegalo = cosa;
+  if (!Array.isArray(f.conoce)) f.conoce = [];
+  recordar(f.conoce, cosa, TOPE_CONOCE);
   const amistad = sumarAmistad(v, persona, AMISTAD[reaccion], d);
   anotarHecho(progreso || v, 'regalo', d, { persona, cosa });
   return { ok: true, reaccion, renglones: [texto], efectos: [{ tipo: r.tipo, k: cosa, n: -r.n }], amistad };
@@ -967,6 +976,7 @@ function sanearFicha(persona, x0) {
     con: esPersonaVecindad(x.con) ? x.con : null,
     ultimoRegalo: esRegalable(x.ultimoRegalo) ? x.ultimoRegalo : null,
     ganas, dichos: lista(x.dichos, TOPE_DICHOS), coment: lista(x.coment, TOPE_COMENT),
+    conoce: Array.isArray(x.conoce) ? [...new Set(x.conoce.filter(esRegalable))].slice(-TOPE_CONOCE) : [],
   };
 }
 // Todo saneado (un guardado retocado o roto no rompe nada): sólo personas conocidas, números
