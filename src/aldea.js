@@ -1,6 +1,6 @@
 // 3.6: la Aldea de los Duendes. Un pueblo que ya existe en el valle (sólo en el Relax), en la
 // parada chica del sur de la trochita, escondido a casi 600 m del refugio. Empieza chico (la
-// estación, la plaza, la capilla, el almacén, la escuela a medio hacer y cuatro casas con sus
+// estación, la plaza, la biblioteca popular, el almacén, la escuela a medio hacer y cuatro casas con sus
 // vecinos) y crece: los pobladores bajan del tren en la aldea, les decís que sí y entre todos
 // les levantan el local (la obra del pueblo: vos traés el material, los vecinos ponen la mano).
 // Al terminar la obra abre el local y el poblador vive en el cuarto de atrás.
@@ -65,7 +65,7 @@ export function marcoAldea(parada = PARADA_ALDEA) {
 // aldea-arquitectura.js: no se cambian sin avisar.
 //
 // El pueblo, como uno patagónico de verdad: la estación sobre la vía; enfrente, cruzando la
-// calle de la Vía, la plaza; la capilla de cara a la plaza del lado oeste; el almacén de ramos
+// calle de la Vía, la plaza; la biblioteca popular de cara a la plaza del lado oeste; el almacén de ramos
 // generales en la esquina, mirando la estación; la escuela y los locales sobre la calle Norte
 // y la calle de la Vía; las casas de los vecinos en el lado del bosque (oeste) y los oficios
 // que hacen ruido o necesitan campo (herrería, carpintería, miel, seccional) hacia el este,
@@ -74,7 +74,8 @@ export function marcoAldea(parada = PARADA_ALDEA) {
 export const EDIFICIOS_ALDEA = {
   'estacion-aldea': { nombre: 'Estación Aldea de los Duendes', rol: 'estacion', inicial: true, fija: true, ancho: 16, fondo: 10, x: 0, z: 0, rot: 0, y: 25.24, huella: { x0: -8, x1: 8, z0: 0, z1: 10 } },
   plaza: { nombre: 'La plaza', rol: 'plaza', inicial: true, abierta: true, ancho: 18, fondo: 14, x: 6, z: 39.5, rot: PI, y: 22.82, calle: 'calle-via' },
-  capilla: { nombre: 'La capilla', rol: 'capilla', inicial: true, ancho: 7, fondo: 11, x: -18, z: 41, rot: PI / 2, y: 21.77, calle: 'calle-oeste', lado: 1 },
+  // la biblioteca popular, frente a la plaza (pedido del usuario: nada religioso en el juego)
+  biblioteca: { nombre: 'La biblioteca popular', rol: 'biblioteca', inicial: true, ancho: 7, fondo: 11, x: -18, z: 41, rot: PI / 2, y: 21.77, calle: 'calle-oeste', lado: 1 },
   'almacen-aldea': { nombre: 'Almacén de ramos generales', rol: 'almacen', inicial: true, ancho: 9, fondo: 7, x: 28.5, z: 34, rot: PI, y: 24.2, calle: 'calle-via', lado: -1 },
   escuela: { nombre: 'La escuela', rol: 'escuela', inicial: true, poblador: 'maestra', ancho: 10, fondo: 7, x: -18, z: 60, rot: PI, y: 21.91, calle: 'calle-norte', lado: -1 },
   'casa-jefe': { nombre: 'La casa del jefe de estación', rol: 'casa', inicial: true, ancho: 6, fondo: 6, x: -35, z: 36, rot: PI, y: 24.21, calle: 'calle-via', lado: 1 },
@@ -108,7 +109,7 @@ export const CALLES_ALDEA = [
   { id: 'calle-estacion', nombre: 'Calle de la Estación', ancho: 5, puntos: [[6, 9], [6, 26]] },
   { id: 'calle-via', nombre: 'Calle de la Vía', ancho: 6, puntos: [[-44, 26], [90, 26]] },
   { id: 'calle-norte', nombre: 'Calle Norte', ancho: 5, puntos: [[-44, 52], [80, 52]] },
-  { id: 'calle-oeste', nombre: 'Calle de la Capilla', ancho: 5, puntos: [[-8, 26], [-8, 70]] },
+  { id: 'calle-oeste', nombre: 'Calle de la Biblioteca', ancho: 5, puntos: [[-8, 26], [-8, 70]] },
   { id: 'calle-este', nombre: 'Calle del Almacén', ancho: 5, puntos: [[20, 26], [20, 70]] },
   { id: 'pasaje-oeste', nombre: 'Pasaje de los Coihues', ancho: 4, puntos: [[-27, 26], [-27, 68]] },
   { id: 'pasaje-este', nombre: 'Pasaje de las Chacras', ancho: 4, puntos: [[53, 26], [53, 68]] },
@@ -157,7 +158,7 @@ export function distanciaACalle(lx, lz, calle) {
 // ---------------------------------------------------------------- los puntos de cada edificio
 // En el marco del edificio (bx, bz; la puerta en +Z) y con hacia dónde mira cada uno (`rot`,
 // el mismo giro que los edificios: mira hacia (sen rot, cos rot)). Los locales tienen el
-// cuarto de atrás con la cama del poblador; los de la plaza, la capilla, la escuela y el
+// cuarto de atrás con la cama del poblador; los de la plaza, la biblioteca, la escuela y el
 // salón tienen lugares para estar, bancos, pupitres y sillas.
 const atrasDe = (e) => Math.min(2.6, e.fondo * 0.4);
 function puntosBase(e) {
@@ -196,13 +197,17 @@ function puntosLocales(id) {
     return p;
   }
   const p = puntosBase(e);
-  if (e.rol === 'capilla') {
-    // el altar al fondo y veinte lugares en los bancos, mirando al altar
-    delete p.cliente;
-    p.adentro = { x: 0, z: -D / 2 + 1.4, rot: 0 };
-    p.campana = { x: 0, z: D / 2 - 0.8, rot: 0 };
+  if (e.rol === 'biblioteca') {
+    // el mostrador junto a la puerta (el que atiende y el que pide un libro), cuatro mesas de
+    // lectura con cuatro sillas cada una y, al fondo, el sillón de la abuela junto a la estufa
+    // a leña, donde lee los cuentos del domingo
+    p.adentro = { x: W / 2 - 1.1, z: D / 2 - 1.9, rot: 0 };
+    p.cliente = { x: W / 2 - 1.1, z: D / 2 - 0.8, rot: PI };
+    p.cuentos = { x: -W / 2 + 1.3, z: -D / 2 + 1.2, rot: 0 };
     let k = 1;
-    for (const z of [-2.4, -1.2, 0, 1.2, 2.4]) for (const x of [-2.2, -1.2, 1.2, 2.2]) p[`banco-${k++}`] = { x, z, rot: PI };
+    for (const mz of [-1.6, 1.0]) for (const mx of [-1.5, 1.5]) for (const [dx, dz, r] of [[-0.45, -0.6, 0], [0.45, -0.6, 0], [-0.45, 0.6, PI], [0.45, 0.6, PI]]) {
+      p[`lectura-${k++}`] = { x: mx + dx, z: mz + dz, rot: r };
+    }
     return p;
   }
   if (e.rol === 'casa') {
@@ -314,7 +319,7 @@ export const VECINOS_ALDEA = {
     colores: { ropa: '#3d4a5c', abrigo: '#2a3240', gorro: 'gorro', pelo: '#4a4038', barba: '#8a8378' },
     saludo: 'Bienvenido a la Aldea de los Duendes. El tren llega puntual, más o menos.', despedida: 'Cuidado al cruzar la vía.',
     charla: [
-      'Esto era un apeadero de dos tablas. Ahora tiene jefe, que soy yo, y una campana que suena cuando se le antoja.',
+      'Esto era un apeadero de dos tablas. Ahora tiene jefe, que soy yo, y una campana en el andén que avisa cuando viene el tren.',
       'El duende de la plaza lo talló el primer jefe de estación, de un ciprés que tiró la nevada grande.',
       'Si ves gente nueva en el andén, hablale: los que bajan acá vienen a quedarse.',
     ],
@@ -1065,7 +1070,7 @@ export function obrerosDe(aldea, lote) {
 const presente = (aldea, clave) => esVecinoAldea(clave) || (aldea?.pobladores || []).some((p) => p.clave === clave);
 // Dónde está cada uno a cada hora. `persona`: la clave de un vecino o de un poblador;
 // `diaSemana`: 0 (lunes) a 6 (domingo); `estado`: la aldea. Devuelve { lugar, edificio,
-// punto }: `lugar` es 'casa'|'local'|'trabajo'|'plaza'|'capilla'|'almacen'|'escuela'|'obra'|
+// punto }: `lugar` es 'casa'|'local'|'trabajo'|'plaza'|'biblioteca'|'almacen'|'escuela'|'obra'|
 // 'estacion', y `edificio`/`punto` dicen dónde pararse (ver `puntosDe`). Un poblador que todavía
 // no vino da { lugar: null }.
 export function rutinaAldea(persona, hora, diaSemana, estado) {
@@ -1095,8 +1100,15 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
 
   // de noche, adentro (el músico duerme hasta más tarde)
   if (t < 6.5 || t >= 22 || (persona === 'musico' && t < 8.5)) return cama();
-  // domingo a la mañana, misa en la capilla (la campana suena a las 10)
-  if (domingo && t >= 10 && t < 11) return ir('capilla', 'capilla', `banco-${(i % 20) + 1}`);
+  // domingo de 10 a 11, los cuentos en la biblioteca: la abuela Herminia lee (y cuenta la
+  // leyenda de los duendes) y casi todos van a escucharla; el jefe se queda tomando mate en la
+  // plaza y la almacenera abre un rato el almacén
+  if (domingo && t >= 10 && t < 11) {
+    if (persona === 'abuela') return ir('biblioteca', 'biblioteca', 'cuentos');
+    if (persona === 'jefe') return plaza();
+    if (persona === 'almacenera') return ir('trabajo', 'almacen-aldea', 'adentro');
+    return ir('biblioteca', 'biblioteca', `lectura-${(i % 16) + 1}`);
+  }
   // sábado a la tarde, todos a la plaza con el músico
   if (musicoEnPlaza) return persona === 'musico' ? ir('plaza', 'plaza', 'musico') : plaza();
   // los chicos
@@ -1129,7 +1141,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
       if (t >= 13.5 && t < 15) return enCasa('adentro');
     } else if (persona === 'abuela') {
       if (t >= 15 && t < 18) return plaza();   // cuenta la leyenda a quien quiera escuchar
-      if (t >= 9 && t < 12.5) return enCasa('adentro');
+      if (t >= 9 && t < 12) return ir('biblioteca', 'biblioteca', 'adentro');   // a la mañana atiende la biblioteca
       if (t >= 18 && t < 20) return enCasa('trabajo');
     } else if (persona === 'padre') {
       if ((t >= 8 && t < 12.5) || (t >= 13.5 && t < 18)) return enCasa('trabajo');
@@ -1172,6 +1184,9 @@ export const CHARLAS_ALDEA = [
   { id: 'leyenda-galleta', tema: 'leyenda', lineas: [['abuela', '¿Sigue dejando la galleta en el andén, Ernesto?'], ['jefe', 'Una por noche, doña. El primer jefe de estación lo hacía y a mí no me cuesta nada.']] },
   { id: 'leyenda-hongo', tema: 'leyenda', lineas: [['nene', 'Yo vi un gorrito colorado entre los helechos.'], ['nena', 'Era un hongo, Nahuel. Pero no le digas a la abuela.']] },
   { id: 'leyenda-talla', tema: 'leyenda', lineas: [['nena', '¿Quién talló el duende de la plaza?'], ['jefe', 'El primer jefe de estación, con un formón y mucha paciencia. Dicen que le copió la cara al panadero de entonces.']] },
+  { id: 'biblioteca-cuentos', tema: 'biblioteca', lineas: [['nena', 'Abuela, ¿el domingo nos leés otra vez la de los duendes?'], ['abuela', 'Si me traen tortas fritas, les leo dos.']] },
+  { id: 'biblioteca-libros', tema: 'biblioteca', lineas: [['jefe', 'Llegó en el tren una caja de libros para la biblioteca, Herminia. La manda la Popular de Esquel.'], ['abuela', '¡Qué alegría! Esta tarde los forro con papel madera.']] },
+  { id: 'biblioteca-maestra', tema: 'biblioteca', lineas: [['maestra', 'Con la biblioteca frente a la plaza, los chicos leen más que en la escuela.'], ['abuela', 'Es que acá nadie les toma la lección, Delia.']] },
   { id: 'tren-harina', tema: 'tren', lineas: [['jefe', 'Hoy el tren trae la encomienda de harina.'], ['almacenera', '¡Por fin! Ya estaba raspando la bolsa.']] },
   { id: 'tren-ultimo', tema: 'tren', cuando: { hora: [19, 22] }, lineas: [['jefe', 'Pasó el último tren. Apago el farol del andén.'], ['padre', 'Buenas noches, jefe. Mañana temprano le llevo la leña.']] },
   { id: 'pan-tortas', tema: 'oficio', lineas: [['panadera', 'Mañana hago tortas fritas si sigue gris.'], ['madre', 'Guardame una docena, que los chicos las esperan toda la semana.']] },

@@ -100,7 +100,7 @@ function distRiel(x, z) {
 {
   // el contrato con aldea-arquitectura.js: ids y tamaños
   const CONTRATO = {
-    'estacion-aldea': null, plaza: [18, 14], capilla: [7, 11], 'almacen-aldea': [9, 7], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-almacenera': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
+    'estacion-aldea': null, plaza: [18, 14], biblioteca: [7, 11], 'almacen-aldea': [9, 7], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-almacenera': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
     panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5], 'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
@@ -165,12 +165,12 @@ function distRiel(x, z) {
   for (const z of conTerreno.filter((x) => x.emparejar)) ok(Math.abs(z.altura - E[z.id].y) < 0.05, `${z.id}: altura objetivo con el terreno`);
   const pz = conTerreno.find((z) => z.id === 'plaza'), wp = marco.aMundo(E.plaza.x, E.plaza.z);
   ok(Math.abs(pz.x - wp.x) < 1e-9 && Math.abs(pz.rot - marco.rotMundo(E.plaza.rot)) < 1e-9, 'las zonas, en el mundo');
-  ok(A.edificioEnMundo('capilla').rot === marco.rotMundo(Math.PI / 2) && A.edificioEnMundo('nada') === null, 'cada edificio en el mundo');
+  ok(A.edificioEnMundo('biblioteca').rot === marco.rotMundo(Math.PI / 2) && A.edificioEnMundo('nada') === null, 'cada edificio en el mundo');
 }
 
 // ============================================================ 3. los puntos
 {
-  const CERRADOS = /^(adentro|cama|cama-chicos|banco-\d+|pupitre-\d+|lugar-\d+|cliente(-\d+)?|escenario|deposito|campana)$/;
+  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|cliente(-\d+)?|escenario|deposito)$/;
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id], pts = A.puntosDe(id);
     const pl = A.plantaDe(id);
@@ -186,7 +186,7 @@ function distRiel(x, z) {
       continue;
     }
     for (const k of ['puerta', 'adentro', 'trabajo']) ok(!!pts[k], `${id}: tiene ${k}`);
-    if (e.rol !== 'capilla') ok(!!pts.cama || e.rol === 'almacen', `${id}: tiene cama`);
+    if (e.rol !== 'biblioteca') ok(!!pts.cama || e.rol === 'almacen', `${id}: tiene cama`);
     for (const [k, q] of Object.entries(pts)) {
       ok(Number.isFinite(q.x) && Number.isFinite(q.z) && Number.isFinite(q.rot), `${id}.${k}: números`);
       if (CERRADOS.test(k)) ok(A.dentroDePlanta(id, q.x, q.z, 0.3), `${id}.${k} adentro`);
@@ -203,12 +203,13 @@ function distRiel(x, z) {
     ok(Math.hypot(pts.puerta.x - fx, pts.puerta.z - fz) < 1e-9, `${id}: la puerta en su cara +Z`);
     if (A.esLote(id)) ok(['obra-1', 'obra-2', 'obra-3', 'obra-4'].every((k) => pts[k]), `${id}: lugares para la obra`);
   }
-  ok(Object.keys(A.puntosDe('capilla')).filter((k) => k.startsWith('banco-')).length >= 8, 'la capilla con bancos');
+  ok(Object.keys(A.puntosDe('biblioteca')).filter((k) => k.startsWith('lectura-')).length >= 12, 'la biblioteca con mesas de lectura');
+  ok(A.puntosDe('biblioteca').cuentos && !A.puntosDe('biblioteca').campana, 'y el sillón de los cuentos');
   ok(Object.keys(A.puntosDe('escuela')).filter((k) => k.startsWith('pupitre-')).length >= 6, 'la escuela con pupitres');
   ok(Object.keys(A.puntosDe('salon')).filter((k) => k.startsWith('lugar-')).length >= 8 && A.puntosDe('salon').escenario, 'el salón con escenario y sillas');
-  const pm = A.puntosMundo('capilla'), pl = A.puntosDe('capilla');
+  const pm = A.puntosMundo('biblioteca'), pl = A.puntosDe('biblioteca');
   const w = marco.aMundo(pl.adentro.x, pl.adentro.z);
-  ok(Math.abs(pm.adentro.x - w.x) < 1e-9 && pm.adentro.y === E.capilla.y && Math.abs(pm.adentro.rot - marco.rotMundo(pl.adentro.rot)) < 1e-9, 'los puntos en el mundo');
+  ok(Math.abs(pm.adentro.x - w.x) < 1e-9 && pm.adentro.y === E.biblioteca.y && Math.abs(pm.adentro.rot - marco.rotMundo(pl.adentro.rot)) < 1e-9, 'los puntos en el mundo');
   eq(A.puntosDe('nada'), {}, 'un edificio que no existe no tiene puntos');
   A.puntosDe('plaza').mastil.x = 999;
   ok(A.puntosDe('plaza').mastil.x !== 999, 'los puntos no se pisan desde afuera');
@@ -239,6 +240,9 @@ function distRiel(x, z) {
   // nada mágico: los duendes son leyenda y tallas
   const textos = JSON.stringify([A.VECINOS_ALDEA, A.POBLADORES_ALDEA, A.CHARLAS_ALDEA]);
   ok(!/mágic|hechiz|conjur|encantamiento/i.test(textos), 'sin magia');
+  // 3.6: y nada religioso (pedido del usuario)
+  ok(!/capilla|\bmisa\b|\bcura\b|\brez[aoá]|\bdios|\bsant[oa]s?\b|bendi|iglesia|altar|parroq/i.test(textos + JSON.stringify(A.EDIFICIOS_ALDEA) + JSON.stringify(A.CALLES_ALDEA)), 'nada religioso');
+  ok(A.CHARLAS_ALDEA.filter((c) => c.tema === 'biblioteca').length >= 2, 'charlas de la biblioteca');
   ok(/leyenda|cuentos|puertitas/.test(JSON.stringify(A.VECINOS_ALDEA.abuela)), 'la abuela cuenta la leyenda');
   ok(A.esPersonaAldea('jefe') && A.esPersonaAldea('musico') && !A.esPersonaAldea('__proto__') && !A.esPersonaAldea('toString') && A.personaAldea('x') === null, 'quién es de la aldea');
 }
@@ -304,7 +308,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   eq(A.estadoEdificio(a, 'panaderia'), 'lote', 'el lote vacío');
   eq(A.estadoEdificio(a, 'escuela'), 'a-medio', 'la escuela, a medio hacer');
   eq(A.etapaDe(a, 'escuela').hechas, 2);
-  eq(A.estadoEdificio(a, 'capilla'), 'abierto');
+  eq(A.estadoEdificio(a, 'biblioteca'), 'abierto');
   ok(A.localAbierto(a, 'almacen-aldea') && !A.localAbierto(a, 'escuela') && !A.localAbierto(a, 'nada'), 'los iniciales abren desde el día 1 (menos la escuela)');
   eq(A.aportar(a, 'panaderia', { tronco: 9 }, 3), { usados: {}, faltan: {}, completa: false }, 'sin obra no se aporta');
   A.empezarLlegada(a, 'panadera', 3);
@@ -316,7 +320,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
     const q = A.pideEtapa(l, i);
     ok(Object.keys(q).length && Object.entries(q).every(([k, v]) => ['tronco', 'tabla', 'piedra'].includes(k) && Number.isInteger(v) && v > 0 && v <= 40), `${l}, etapa ${i + 1}: materiales del juego en cantidades razonables`);
   }
-  eq(A.pideEtapa('capilla', 0), {}, 'la capilla no es un lote');
+  eq(A.pideEtapa('biblioteca', 0), {}, 'la biblioteca no es un lote');
   eq(A.pideEtapa('panaderia', 9), {});
   // aporte parcial
   const media = Object.fromEntries(Object.entries(pide).map(([k, v]) => [k, Math.floor(v / 2)]));
@@ -469,11 +473,16 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   for (const k of gente) { const r = A.rutinaAldea(k, 2, LUNES, llena); ok(r.lugar === 'casa' && /^cama/.test(r.punto), `${k}: de noche duerme`); }
   ok(A.rutinaAldea('carpintero', 2, LUNES, llena).edificio === 'carpinteria', 'el poblador vive en el cuarto de atrás de su local');
   ok(A.rutinaAldea('jefe', 2, LUNES, llena).edificio === 'casa-jefe' && A.rutinaAldea('nene', 2, LUNES, llena).punto === 'cama-chicos');
-  // domingo a las 10 y media, todos en la capilla, cada uno en su lugar
-  const bancos = new Set();
-  for (const k of gente) { const r = A.rutinaAldea(k, 10.5, DOMINGO, llena); ok(r.lugar === 'capilla', `${k}: el domingo a misa`); bancos.add(r.punto); }
-  eq(bancos.size, gente.length, 'nadie se sienta encima de otro');
-  ok(A.rutinaAldea('almacenera', 10.5, LUNES, llena).lugar !== 'capilla', 'el lunes no');
+  // domingo a las 10 y media, los cuentos de la abuela en la biblioteca: van casi todos
+  eq(A.rutinaAldea('abuela', 10.5, DOMINGO, llena), { lugar: 'biblioteca', edificio: 'biblioteca', punto: 'cuentos' }, 'la abuela lee en su sillón');
+  const sillas = new Set(), oyen = gente.filter((k) => k !== 'abuela' && A.rutinaAldea(k, 10.5, DOMINGO, llena).lugar === 'biblioteca');
+  for (const k of oyen) { const r = A.rutinaAldea(k, 10.5, DOMINGO, llena); ok(/^lectura-\d+$/.test(r.punto), `${k}: el domingo a los cuentos`); sillas.add(r.punto); }
+  eq(sillas.size, oyen.length, 'nadie se sienta encima de otro');
+  ok(oyen.length >= (gente.length - 1) * 0.75 && oyen.length < gente.length - 1, `van casi todos (${oyen.length} de ${gente.length - 1})`);
+  ok(['nene', 'nena'].every((k) => oyen.includes(k)), 'los chicos no se lo pierden');
+  ok(A.rutinaAldea('jefe', 10.5, DOMINGO, llena).lugar === 'plaza' && A.rutinaAldea('almacenera', 10.5, DOMINGO, llena).edificio === 'almacen-aldea', 'el jefe en la plaza y la almacenera en el almacén');
+  ok(A.rutinaAldea('padre', 10.5, LUNES, llena).lugar !== 'biblioteca', 'el lunes no');
+  ok(A.rutinaAldea('abuela', 10, LUNES, llena).edificio === 'biblioteca', 'a la mañana la abuela atiende la biblioteca');
   // sábado a la tarde, música en la plaza (si llegó el músico)
   eq(A.rutinaAldea('musico', 18, SABADO, llena), { lugar: 'plaza', edificio: 'plaza', punto: 'musico' }, 'el músico toca en la plaza');
   for (const k of gente) ok(A.rutinaAldea(k, 18, SABADO, llena).lugar === 'plaza', `${k}: el sábado a la plaza`);
@@ -544,7 +553,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   for (const [i, basura] of [null, undefined, 3, 'x', [], [1, 2], true, { pobladores: 'x' }, { obras: [] }, Object.create(null)].entries()) eq(A.sanearAldea(basura), nueva, `basura ${i}`);
   const rota = A.sanearAldea({
     pobladores: [{ clave: 'carpintero', dia: 3 }, { clave: 'carpintero', dia: 4 }, { clave: '__proto__' }, { clave: 'toString' }, null, 7, { clave: 'herrero', dia: -9 }, { clave: 'maestra', dia: 'x' }],
-    locales: { carpinteria: 4, panaderia: 2, constructor: 1, capilla: 3 }, obras: { herreria: { etapa: 77, aportado: { piedra: 999, cristal: 3, __proto__: { x: 1 } }, lista: { dia: 'x' } } },
+    locales: { carpinteria: 4, panaderia: 2, constructor: 1, biblioteca: 3 }, obras: { herreria: { etapa: 77, aportado: { piedra: 999, cristal: 3, __proto__: { x: 1 } }, lista: { dia: 'x' } } },
     llegando: { clave: 'carpintero' }, usos: { panadera: 3, toString: 9, musico: -1 }, afilado: 99, mandado: { id: 'no-existe' }, ultimaLlegada: -4, fauna: 1e9, partitura: Infinity, llamado: 'si',
   });
   eq(rota.pobladores.map((p) => p.clave), ['carpintero', 'herrero', 'maestra'], 'uno por oficio y sólo los que existen');
@@ -560,7 +569,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   // fuzz: cualquier cosa sale saneada, estable e idéntica tras ir y volver de JSON
   let semilla = 7;
   const r = () => { semilla = (semilla * 1103515245 + 12345) & 0x7fffffff; return semilla / 0x7fffffff; };
-  const claves = [...A.ORDEN_POBLADORES_ALDEA, ...A.LOTES_ALDEA, '__proto__', 'constructor', 'toString', 'x', '', 'capilla'];
+  const claves = [...A.ORDEN_POBLADORES_ALDEA, ...A.LOTES_ALDEA, '__proto__', 'constructor', 'toString', 'x', '', 'biblioteca'];
   const valor = (prof = 0) => {
     const t = r();
     if (prof > 3 || t < 0.25) return [0, -1, 1.5, 1e308, -Infinity, NaN, 'texto', null, true, 3][Math.floor(r() * 10)];
