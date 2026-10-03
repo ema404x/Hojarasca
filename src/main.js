@@ -63,7 +63,7 @@ import { FERIA, esDiaDeFeria, abierta as feriaAbierta, ofertasDelDia, sanearFeri
 import { crearPuestoFeria } from './feria-mundo.js';
 import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, seVa, terminarVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
-import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa } from './oficios.js';
+import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
 import { crearAldeaGente } from './aldea-gente.js';
@@ -4016,7 +4016,7 @@ function armarOficiosYAldea(esDesafio) {
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
-    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn),
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn), alAportar: (usados, completa) => ganarOficio('obrero', xpDeAporte(usados, completa)),
     refrescarBarra: () => refrescarBarra(true), hablandoCon: () => charla.npc,
     // lo que dan los pobladores y no es de la mochila
     alJugador: (campo, valor) => {

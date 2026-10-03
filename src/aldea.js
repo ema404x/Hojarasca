@@ -478,7 +478,7 @@ export const POBLADORES_ALDEA = {
     colores: { ropa: '#56707e', abrigo: '#34505e', gorro: 'sombrero', pelo: '#2e2622', barba: '#7a746a' },
     llegada: [
       'Aurelio Nahuel. Pesco con red y con caña, lo que el lago quiera dar.',
-      'Nicanor me escribió que acá el agua es generosa. Si hay una casa para mí, me quedo a probar.',
+      'Nicanor me escribió que acá el agua es generosa. Si me hacen un lugarcito junto a los otros locales, me quedo a probar.',
     ],
     saludo: 'El lago estuvo bueno hoy.', despedida: 'Que pique, vecino.',
     resumen: 'Te cambia dos truchas frescas por dos troncos de leña, una vez por día.',
@@ -488,7 +488,7 @@ export const POBLADORES_ALDEA = {
     colores: { ropa: '#7c6a8a', abrigo: '#4e4260', gorro: null, pelo: '#5a4232', bufanda: '#c9b89a' },
     llegada: [
       'Buen día. Soy Delia Ferreyra, maestra rural. Me mandaron a abrir una escuela donde hubiera chicos, o donde fuera a haberlos.',
-      'Un pueblo que empieza necesita alguien que anote lo que pasa. ¿Me dejás una casa?',
+      'Un pueblo que empieza necesita alguien que anote lo que pasa. Vi la escuela a medio hacer: ¿me ayudás a terminarla?',
     ],
     saludo: 'Buen día. ¿Trajiste el cuaderno?', despedida: 'Seguí anotando, que de eso se aprende.',
     resumen: 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: cuatro de yerba por cada uno cumplido.',

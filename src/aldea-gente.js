@@ -401,6 +401,7 @@ export function crearAldeaGente(ctx) {
     }
     ctx.sonido?.juntar?.();
     ctx.refrescarBarra?.();
+    ctx.alAportar?.(r.usados, r.completa);   // 3.6: lo que pusiste en la obra del pueblo cuenta para el oficio de constructor
     if (r.completa) ctx.nota(`Aportaste ${listaMateriales(r.usados)}`, 'Los vecinos van a trabajar en la obra: mañana a la mañana está lista la etapa', true);
     else ctx.nota(`Aportaste ${listaMateriales(r.usados)} a la obra de ${nombreLocal(lote)}`, `Faltan ${listaMateriales(r.faltan)}`);
     ctx.guardar();

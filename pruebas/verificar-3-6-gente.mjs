@@ -15,6 +15,7 @@ import * as G from '../src/aldea-gente.js';
 import * as C from '../src/comercio.js';
 import { ENTRADA, ENTRADAS } from '../src/cuaderno.js';
 import { CARTAS, sanearCorreo } from '../src/correo.js';
+import { XP, xpDeAporte } from '../src/oficios.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const existe = (f) => fs.existsSync(new URL('../' + f, import.meta.url));
@@ -390,6 +391,16 @@ function mundo(p) {
   const of = leer('src/oficios-ui.js');
   ok(of.includes("...(aldea ? ['aldea'] : [])") && of.includes('aldea.dibujarCuaderno(ficha, el)'), 'la ficha de la aldea en la pestaña de los oficios');
   ok(leer('package.json').includes('node pruebas/verificar-3-6-gente.mjs') && leer('package.json').includes('node pruebas/verificar-3-1-oficios.mjs') && !leer('package.json').includes('verificar-3-1-pueblo'), 'las pruebas en el gate');
+}
+
+// 3.6: aportar a la obra del pueblo da oficio de constructor, sin que convenga hacerlo de a uno
+{
+  eq(xpDeAporte({ tabla: 6, tronco: 3 }), 3, 'lo puesto cuenta un tercio');
+  eq(xpDeAporte({ tabla: 6 }, true), 2 + XP.etapa, 'la etapa suma sólo al completarse');
+  let deAUno = 0; for (let i = 0; i < 9; i++) deAUno += xpDeAporte({ tabla: 1 });
+  ok(deAUno <= xpDeAporte({ tabla: 9 }), 'de a uno no rinde más que de una vez');
+  eq(xpDeAporte(null), 0); eq(xpDeAporte({ tabla: -5, x: 'a' }), 0, 'basura: nada');
+  ok(leer('src/main.js').includes("alAportar: (usados, completa) => ganarOficio('obrero', xpDeAporte(usados, completa)),") && leer('src/aldea-gente.js').includes('ctx.alAportar?.(r.usados, r.completa);'), 'conectado al aporte');
 }
 
 console.log(`OK 3.6.0 gente · ${n} verificaciones · sin el pueblo de la 3.1, por las calles, horarios, llegada, obras, servicios, charlas y enganches`);
