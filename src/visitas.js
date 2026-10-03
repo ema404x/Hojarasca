@@ -53,7 +53,10 @@ export function sanearVisitas(v) {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return visitasNuevas();
   const n = (x) => Math.max(0, Math.floor(Number(x) || 0));
   const a = v.activa;
-  const activa = a && VISITANTES[a.clave] ? { clave: a.clave, dia: n(a.dia), charlo: !!a.charlo } : null;
+  // 3.6 (vida): la visita de un compadre (cualquier vecino: ver vecindad-juego.js) se marca `amistad`
+  const deAmistad = !!a && a.amistad === true && typeof a.clave === 'string' && /^[a-z]{2,16}$/.test(a.clave);
+  const activa = a && (Object.hasOwn(VISITANTES, String(a.clave)) || deAmistad)
+    ? { clave: a.clave, dia: n(a.dia), charlo: !!a.charlo, ...(deAmistad ? { amistad: true } : {}) } : null;
   return { ultima: n(v.ultima), cuenta: n(v.cuenta), activa };
 }
 

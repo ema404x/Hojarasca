@@ -219,6 +219,51 @@ const CODO_MATE = -2.3;                                   // el codo, doblado fi
 const DIR_MATE = (() => { const c = Math.cos(CODO_MATE), s = Math.sin(CODO_MATE), v = new THREE.Vector3(-0.4, -c, -s); return v.normalize(); })();
 const TOMAR_MATE = { x: -0.6, y: -0.48, inclina: -0.6 };  // hombro y mate en lo alto del sorbo
 const _qMate = new THREE.Quaternion(), _qInclina = new THREE.Quaternion(), _eMate = new THREE.Euler();
+// 3.6 (vida): lo que hacen en su tiempo libre (aldea-gente.js pone `pose`; la invitación a tomar
+// algo, 'sentado'). Sólo giros y alturas de las piezas que ya hay, sin piezas ni programas
+// nuevos: sentado (la cadera a la altura de una silla, el muslo derecho y la canilla al piso),
+// leyendo (sentado, con el libro imaginario en las manos), paleando o partiendo leña (los brazos
+// van y vienen), regando, mirando lejos y jugando (saltitos). Se llama después de los gestos de
+// siempre, que ya pusieron todo en su lugar en este cuadro.
+const SENTADO_BAJA = 0.37;
+function posar(g, charlando) {
+  const t = g.fase;
+  switch (g.pose) {
+    case 'sentado': case 'leyendo': {
+      const b = SENTADO_BAJA;
+      g.torso.position.y -= b; g.cabeza.position.y -= b;
+      g.brazos[0].position.y -= b; g.brazos[1].position.y -= b;
+      for (const p2 of g.patas) {
+        p2.position.y -= b; p2.rotation.x = -1.45;
+        if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 1.45;
+      }
+      g.torso.rotation.x = -0.04;
+      if (g.pose === 'leyendo') { g.brazos[0].rotation.x = -0.95; g.brazos[1].rotation.x = -0.95; g.cabeza.rotation.x += 0.3; }
+      else if (!charlando && !g.mate) { g.brazos[0].rotation.x = -0.45; g.brazos[1].rotation.x = -0.45; }
+      break;
+    }
+    case 'palear': case 'hachar': {
+      const k = Math.sin(t * (g.pose === 'hachar' ? 3.2 : 2.2));
+      g.brazos[0].rotation.x = -0.9 + k * 0.5; g.brazos[1].rotation.x = -0.9 + k * 0.5;
+      g.torso.rotation.x = 0.22 + k * 0.08; g.cabeza.rotation.x += 0.12;
+      break;
+    }
+    case 'regar':
+      g.brazos[1].rotation.x = -0.85 + Math.sin(t * 1.3) * 0.08; g.brazos[0].rotation.x = -0.15;
+      g.torso.rotation.x = 0.1; g.cabeza.rotation.x += 0.2;
+      break;
+    case 'mirar':
+      g.cabeza.rotation.x -= 0.12; g.brazos[0].rotation.x = 0.12; g.brazos[1].rotation.x = 0.12;
+      break;
+    case 'jugar': {
+      const k = Math.abs(Math.sin(t * 5));
+      g.torso.position.y += k * 0.05; g.cabeza.position.y += k * 0.05;
+      g.brazos[0].rotation.x = -0.6 - k * 0.8; g.brazos[1].rotation.x = -0.6 - k * 0.8;
+      break;
+    }
+    default: break;
+  }
+}
 // Suma la geometría de `fuente` (ya fundida, con su posición respecto de `destino`) a la de
 // `destino`: devuelve la geometría junta (las dos son indexadas, con posición, normal y color).
 function juntarGeometrias(destino, fuente, matriz) {
@@ -817,7 +862,8 @@ export function crearGente(T, escena, col, sonido) {
         }
       } else {
         g.vel = 0;
-        if (cerquita || charlando) g.rumboObjetivo = Math.atan2(js.pos.x - g.pos.x, js.pos.z - g.pos.z);
+        // (3.6: sentado o en lo suyo, con vos cerca no se da vuelta: sólo si le hablás)
+        if (charlando || (cerquita && !g.pose)) g.rumboObjetivo = Math.atan2(js.pos.x - g.pos.x, js.pos.z - g.pos.z);
       }
       // giro suave hacia donde mira
       const actual = g.g.rotation.y;
@@ -898,6 +944,7 @@ export function crearGente(T, escena, col, sonido) {
         // los brazos no van pegados al cuerpo: se abren apenas, un poco más al caminar
         g.brazos[0].rotation.z = andando ? -0.07 : -0.035;
         g.brazos[1].rotation.z = andando ? 0.07 : 0.035;
+        if (g.pose && !andando) posar(g, charlando);   // 3.6 (vida)
         if (g.muneca) {
           // 3.5.2: el que lleva el mate: el brazo se mece menos y la muñeca se contra-gira para
           // que el mate quede derecho (o apenas inclinado hacia la boca al tomar)
