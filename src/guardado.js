@@ -31,6 +31,8 @@ import { sanearEventosValle } from './eventos-valle.js';
 import { sanearOficios, oficiosNuevos } from './oficios.js';
 // 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';
+// 3.6: la vecindad (amistad, ganas y memoria de los vecinos; ver vecindad.js)
+import { sanearVecindad, vecindadNueva } from './vecindad.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -267,6 +269,8 @@ export function progresoNuevo() {
     comercio: comercioNuevo(),
     // 3.1: los oficios empiezan en cero. 3.6: la aldea, como el primer día (ya no hay `pueblo`)
     oficios: oficiosNuevos(), aldea: aldeaNueva(),
+    // 3.6: la vecindad: nadie te conoce todavía
+    vecindad: vecindadNueva(),
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -428,6 +432,8 @@ function sanearProgreso(p) {
     // 3.6: la aldea. Una partida de la 3.1 trae `pueblo` y no `aldea`: sus pobladores se mudan
     // a la aldea con el local ya levantado (ver `migrarDesdePueblo`); el resto se descarta
     aldea: p.aldea !== undefined ? sanearAldea(p.aldea) : objeto(p.pueblo) ? migrarDesdePueblo(p.pueblo, p.dia) : aldeaNueva(),
+    // 3.6: la vecindad (una partida vieja no la trae: arranca de cero)
+    vecindad: sanearVecindad(p.vecindad),
     // 2.3: las truchas del día, las semillas juntadas hoy, la humedad de la leña y la
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,
