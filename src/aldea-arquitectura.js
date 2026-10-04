@@ -3202,7 +3202,8 @@ function plaza(K) {
   alamo(K, -8.1, 2.6, { semilla: 3, alto: 16.5, sinLod: true });
   alamo(K, 8.1, 2.6, { semilla: 4, alto: 17.5, sinLod: true });
   cartel(K, 'Plaza de los Duendes', [5.4, 1.25, D / 2 + 0.6], 2.2, 0.42, 0, { dosCaras: true });
-  for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.0, -0.2, D / 2 + 0.6], [5.4 + l * 1.0, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.0, D / 2 + 0.6, 0.08, 0, 1.6); }
+  // 3.6.1 (mundo): los postes en las puntas de la tabla, no adelante de las letras (tapaban la última «s»)
+  for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.15, -0.2, D / 2 + 0.6], [5.4 + l * 1.15, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.15, D / 2 + 0.6, 0.08, 0, 1.6); }
   K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
   K.punto('musico', 1.3, 1.25, Math.PI * 0.75, 0.05);
   K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [4.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));
@@ -3239,7 +3240,8 @@ function lote(K) {
   }
   // el cartel "Lote para ..."
   const x = -W / 2 + 1.0, z = D / 2 + 0.9;
-  for (const l of [-1, 1]) { palo(c, [x + l * 0.75, -0.2, z], [x + l * 0.75, 1.35, z], 0.05, '#6e5036'); K.circulo(x + l * 0.75, z, 0.07, 0, 1.4); }
+  // (3.6.1 (mundo): los postes en las puntas, fuera de las letras)
+  for (const l of [-1, 1]) { palo(c, [x + l * 0.85, -0.2, z], [x + l * 0.85, 1.35, z], 0.05, '#6e5036'); K.circulo(x + l * 0.85, z, 0.07, 0, 1.4); }
   cartel(K, 'Lote para ' + PARA_LOTE[K.id], [x, 1.1, z], 1.6, 0.3, 0, { dosCaras: true, marco: '#6e5036' });
   K.abarcar(-W / 2, W / 2, -D / 2, z + 0.3);
   K.punto('entrada', 0, D / 2 + 1.0, Math.PI, 0);

@@ -400,6 +400,41 @@ export function repartirLuces(candidatas, cupo, previas = []) {
   return lugares;
 }
 
+// 3.6.1 (mundo): el cambio de una luz por otra, fundido. En la aldea de noche hay muchos faroles a
+// tiro y, caminando, la cuarta y la quinta más cercanas se turnaban: el charco de luz de un farol se
+// prendía y se apagaba de golpe (73 cambios en 300 m de calle; algunos, ida y vuelta cada medio
+// metro). Ahora la que pierde su lugar se apaga en `FUNDIDO_LUZ` segundos y recién ahí entra la otra,
+// prendiéndose en el mismo tiempo (si la que se iba vuelve a quedar entre las elegidas, sube de nuevo:
+// sin parpadeo). Lo que deja de contar (oculta, apagada, fuera de la vista) sale en el acto (no se ve);
+// la que llega a un lugar recién dejado se prende de a poco, y a uno libre de antes, entera.
+// `lugares`: [{ fuente, peso, reciente }] (se modifica); `candidatas`: [{ fuente, puntaje }]. Pura.
+export const FUNDIDO_LUZ = 0.4;
+export function fundirLuces(lugares, candidatas, cupo, dt) {
+  while (lugares.length < cupo) lugares.push({ fuente: null, peso: 0, reciente: 0 });
+  const orden = candidatas.slice().sort((a, b) => a.puntaje - b.puntaje);
+  const elegidas = new Set(), todas = new Set();
+  for (const c of orden) { todas.add(c.fuente); if (elegidas.size < cupo) elegidas.add(c.fuente); }
+  const paso = Math.max(0, dt) / FUNDIDO_LUZ;
+  for (const l of lugares) {
+    l.reciente = Math.max(0, l.reciente - Math.max(0, dt));
+    if (!l.fuente) continue;
+    if (!todas.has(l.fuente)) { l.fuente = null; l.peso = 0; l.reciente = FUNDIDO_LUZ * 2; continue; }
+    if (elegidas.has(l.fuente)) { l.peso = Math.min(1, l.peso + paso); continue; }
+    l.peso -= paso;
+    if (l.peso <= 0) { l.fuente = null; l.peso = 0; l.reciente = FUNDIDO_LUZ * 2; }
+  }
+  const ubicadas = new Set(lugares.map((l) => l.fuente).filter(Boolean));
+  for (const c of orden) {
+    if (!elegidas.has(c.fuente) || ubicadas.has(c.fuente)) continue;
+    // un lugar libre: primero uno que no acaba de dejar otra (ahí entra entera)
+    let l = lugares.find((q) => !q.fuente && q.reciente <= 0) || lugares.find((q) => !q.fuente);
+    if (!l) break;   // todavía se están apagando las que se van: espera
+    l.fuente = c.fuente; l.peso = l.reciente > 0 ? 0 : 1;
+    ubicadas.add(c.fuente);
+  }
+  return lugares;
+}
+
 // qué tan importante es una fuente vista desde `cam` (metros que le faltan a la cámara para
 // entrar en su alcance; adentro, 0 menos un poco por cercanía para desempatar)
 export function puntajeLuz(x, y, z, alcance, cam) {
@@ -427,6 +462,8 @@ export function crearPresupuestoLuces(escena, camara, { puntuales = PRESUPUESTO_
   });
   const capas = new Map();   // fuente → su máscara de capas de verdad (three ve 0)
   let previasP = [], previasS = [];
+  const lugaresP = [], lugaresS = [];   // 3.6.1 (mundo): cada fija con su fuente y su peso (ver `fundirLuces`)
+  let ultimoAsignar = null;
   const stats = { vivas: 0, maxVivas: 0, maxP: 0, maxS: 0, fuera: 0, cuadros: 0 };
   // (el three incluido no trae Frustum: los cuatro costados de la vista se arman a mano)
   const enVista = new THREE.Vector3();
@@ -499,10 +536,15 @@ export function crearPresupuestoLuces(escena, camara, { puntuales = PRESUPUESTO_
       }
       (f.isSpotLight ? candS : candP).push({ fuente: f, puntaje: puntajeLuz(e[12], e[13], e[14], f.distance, camPos) });
     }
-    previasP = repartirLuces(candP, puntuales, previasP);
-    previasS = repartirLuces(candS, focos, previasS);
-    for (let i = 0; i < puntuales; i++) previasP[i] ? copiar(fijasP[i], previasP[i]) : apagar(fijasP[i]);
-    for (let i = 0; i < focos; i++) previasS[i] ? copiar(fijasS[i], previasS[i]) : apagar(fijasS[i]);
+    // 3.6.1 (mundo): el reparto con los cambios fundidos (ver `fundirLuces`)
+    const ahora = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const dt = ultimoAsignar === null ? 0 : Math.min(0.1, (ahora - ultimoAsignar) / 1000);
+    ultimoAsignar = ahora;
+    fundirLuces(lugaresP, candP, puntuales, dt);
+    fundirLuces(lugaresS, candS, focos, dt);
+    for (let i = 0; i < puntuales; i++) { const l = lugaresP[i]; if (l.fuente && l.peso > 0) { copiar(fijasP[i], l.fuente); fijasP[i].intensity *= l.peso; } else apagar(fijasP[i]); }
+    for (let i = 0; i < focos; i++) { const l = lugaresS[i]; if (l.fuente && l.peso > 0) { copiar(fijasS[i], l.fuente); fijasS[i].intensity *= l.peso; } else apagar(fijasS[i]); }
+    previasP = lugaresP.map((l) => l.fuente); previasS = lugaresS.map((l) => l.fuente);
     stats.cuadros++;
     stats.vivas = candP.length + candS.length; stats.fuera = fuera;
     stats.maxVivas = Math.max(stats.maxVivas, stats.vivas);
