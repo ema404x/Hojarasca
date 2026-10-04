@@ -769,7 +769,8 @@ export function puedeLlegar(progreso) {
   const dia = diaValido(progreso.dia, 1);
   if (!aldea.llamado && aldea.ultimaApertura && dia - aldea.ultimaApertura < LLEGADA.entreDias) return { ok: false, motivo: 'El próximo tren con gente viene en unos días', quien };
   const faltan = anotacionesPedidas(aldea) - anotacionesDe(progreso);
-  if (!aldea.llamado && faltan > 0) return { ok: false, motivo: `El valle todavía se conoce poco: faltan ${faltan} anotaciones en el cuaderno`, quien, faltan };
+  // (3.6.1: «falta 1 anotación», no «faltan 1 anotaciones»)
+  if (!aldea.llamado && faltan > 0) return { ok: false, motivo: `El valle todavía se conoce poco: ${faltan === 1 ? 'falta 1 anotación' : `faltan ${faltan} anotaciones`} en el cuaderno`, quien, faltan };
   return { ok: true, motivo: '', quien };
 }
 // La historia (o el evento del valle) llama al próximo: viene sin esperar días ni anotaciones

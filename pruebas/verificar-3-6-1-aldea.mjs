@@ -260,6 +260,27 @@ const todo = { tronco: 999, tabla: 999, piedra: 999 };
   ok(leer('src/trochita.js').includes('else { est.proxima = siguienteParada(est.s); est.parado = 30; }'), 'trochita.js sigue dejando el tren parado con la próxima puesta');
 }
 
+// ============================================================ 6b. «falta 1», en singular
+{
+  const p = partida(A.LLEGADA.anotaciones - 1);
+  eq(A.puedeLlegar(p).motivo, 'El valle todavía se conoce poco: falta 1 anotación en el cuaderno', 'una anotación: en singular');
+  eq(A.puedeLlegar(partida(A.LLEGADA.anotaciones - 3)).motivo, 'El valle todavía se conoce poco: faltan 3 anotaciones en el cuaderno', 'varias: en plural');
+  eq(G.verboFalta({ piedra: 1 }), 'falta'); eq(G.verboFalta({ piedra: 2 }), 'faltan'); eq(G.verboFalta({ piedra: 1, tronco: 1 }), 'faltan'); eq(G.verboFalta({ piedra: 1, tronco: 0 }), 'falta');
+  const q = partida(0, { aldea: A.sanearAldea({ pobladores: [{ clave: 'carpintero', dia: 1 }] }) });
+  const pide = A.pideEtapa('carpinteria', 0);
+  q.aldea.obras.carpinteria.aportado = { piedra: pide.piedra - 1, tronco: pide.tronco };
+  const notas = [];
+  const ag = G.crearAldeaGente({ progreso: () => q, gente: () => ({ gente: [], agregarPoblador: () => null }), tren: () => ({ est: {} }), jugador: () => null, alturaDePie: () => 0, nota: (t, s) => notas.push(`${t} · ${s}`), guardar: () => {}, sumarMaterial: () => {} });
+  eq(ag.avisoObra('carpinteria'), 'Aportar a la obra de la carpintería (falta 1 piedra)', 'el aviso: «falta 1 piedra»');
+  q.aldea.obras.carpinteria.aportado = { piedra: pide.piedra - 3, tronco: pide.tronco - 1 };
+  q.materiales = { piedra: 1 };
+  ag.aportarObra('carpinteria');
+  ok(/· Faltan 2 piedras y 1 tronco$/.test(notas.at(-1)), `al aportar, lo que falta (${notas.at(-1)})`);
+  q.materiales = { piedra: 2 };
+  ag.aportarObra('carpinteria');
+  ok(/· Falta 1 tronco$/.test(notas.at(-1)), `y en singular (${notas.at(-1)})`);
+}
+
 // ============================================================ 7. la progresión entera, con el reloj del juego
 {
   // de una partida nueva a los once con sus once locales: el tren pasa cada hora y media, el

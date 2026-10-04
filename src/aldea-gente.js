@@ -58,6 +58,8 @@ export function listaMateriales(m) {
   return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`;
 }
 const nombreLocal = (id) => minus(EDIFICIOS_ALDEA[id].nombre);   // "la panadería"
+// 3.6.1: «falta 1 piedra» (no «faltan 1 piedra»): una sola cosa y una sola unidad, en singular
+export const verboFalta = (m) => { const v = Object.values(m || {}).filter((x) => x > 0); return v.length === 1 && v[0] === 1 ? 'falta' : 'faltan'; };
 
 // ---------------------------------------------------------------- lo que dibuja el mundo
 // La etapa a dibujar de cada edificio: 'abierto' (terminado y abierto), 'a-medio' (la escuela
@@ -483,7 +485,7 @@ export function crearAldeaGente(ctx) {
     const et = etapaDe(aldea(), lote);
     if (!et || et.estado !== 'obra') return null;
     if (et.lista) return `La obra de ${nombreLocal(lote)}: los vecinos están trabajando`;
-    return `Aportar a la obra de ${nombreLocal(lote)} (faltan ${listaMateriales(et.faltan)})`;
+    return `Aportar a la obra de ${nombreLocal(lote)} (${verboFalta(et.faltan)} ${listaMateriales(et.faltan)})`;
   }
   function aportarObra(lote) {
     const a = aldea();
@@ -511,7 +513,7 @@ export function crearAldeaGente(ctx) {
     ctx.alAportar?.(r.usados, r.completa, antes);   // 3.6: lo que pusiste en la obra del pueblo cuenta para el oficio de constructor
     ctx.alAporteObra?.(lote, r.usados);   // 3.6 (vida): y los vecinos se acuerdan
     if (r.completa) ctx.nota(`Aportaste ${listaMateriales(r.usados)}`, 'Los vecinos van a trabajar en la obra: mañana a la mañana está lista la etapa', true);
-    else ctx.nota(`Aportaste ${listaMateriales(r.usados)} a la obra de ${nombreLocal(lote)}`, `Faltan ${listaMateriales(r.faltan)}`);
+    else ctx.nota(`Aportaste ${listaMateriales(r.usados)} a la obra de ${nombreLocal(lote)}`, `${mayus(verboFalta(r.faltan))} ${listaMateriales(r.faltan)}`);
     ctx.guardar();
     ctx.redibujar?.();
     return r;
@@ -782,7 +784,7 @@ export function crearAldeaGente(ctx) {
       const et = etapaDe(a, obra);
       ficha.appendChild(el('p', 'pista', `La obra de ${nombreLocal(obra)}: etapa ${et.hechas + 1} de ${et.total} (${minus(et.etapa.nombre)}). ${et.lista
         ? 'Los vecinos están trabajando: mañana a la mañana está lista.'
-        : `Faltan ${listaMateriales(et.faltan)}: se aportan con E, parado en el lote.`}`));
+        : `${mayus(verboFalta(et.faltan))} ${listaMateriales(et.faltan)}: ${verboFalta(et.faltan) === 'falta' ? 'se aporta' : 'se aportan'} con E, parado en el lote.`}`));
     }
     if (a.llegando) {
       ficha.appendChild(el('p', 'pista', `${POBLADORES_ALDEA[a.llegando.clave].nombre} espera en el andén de la aldea: andá a hablarle.`));
