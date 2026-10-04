@@ -141,12 +141,37 @@ export function crearMapa(T) {
     const aP = (wx, wz) => [((wx + MITAD) / 1024) * W, ((wz + MITAD) / 1024) * H];
     ctx.font = `600 ${Math.round(W / 38)}px Caveat, cursive`;
     ctx.textAlign = 'center';
+    // 3.6.1 (mundo): un nombre no se escribe encima de otro (el almacén y la casa de té, ahora en la aldea,
+    // quedaban uno arriba del otro; pasaba también con otros vecinos): si no entra arriba del punto va
+    // abajo, y si tampoco, queda el punto solo
+    const ocupados = [];
+    const rotular = (texto, px, py, arriba, alto) => {
+      if (!texto) return;
+      // (el mismo nombre ya escrito al lado, como la Estación del Valle y su parada: una vez)
+      if (ocupados.some((o) => o[4] === texto && Math.abs((o[0] + o[1]) / 2 - px) < alto * 3 && Math.abs(o[3] - py) < alto * 3)) return;
+      const a = ctx.measureText(texto).width / 2 + 2, m = arriba * 0.8;
+      // arriba, abajo, a los costados (a la altura del punto o un poco más abajo) y más arriba; si no
+      // entra en ninguno, arriba igual (un nombre perdido es peor que uno encimado)
+      const lugaresTexto = [[px, py - arriba, 'center'], [px, py + arriba + alto * 0.7, 'center'], [px + m, py + alto * 0.28, 'left'], [px - m, py + alto * 0.28, 'right'],
+        [px + m, py + alto * 1.0, 'left'], [px - m, py + alto * 1.0, 'right'], [px, py - arriba - alto * 0.9, 'center']];
+      for (let i = 0; i <= lugaresTexto.length; i++) {
+        const [x, y, alinear] = lugaresTexto[i % lugaresTexto.length];
+        const x0 = alinear === 'center' ? x - a : alinear === 'left' ? x : x - 2 * a;
+        const r = [x0, x0 + 2 * a, y - alto * 0.78, y + alto * 0.22, texto];
+        if (i < lugaresTexto.length && ocupados.some((o) => r[0] < o[1] && r[1] > o[0] && r[2] < o[3] && r[3] > o[2])) continue;
+        ocupados.push(r);
+        ctx.textAlign = alinear;
+        ctx.fillText(texto, x, y);
+        ctx.textAlign = 'center';
+        return;
+      }
+    };
     for (const [id, l] of Object.entries(lugares)) {
       const [px, py] = aP(l.x, l.z);
       ctx.fillStyle = 'rgba(92, 46, 22, 0.9)';
       ctx.beginPath(); ctx.arc(px, py, W / 170, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#3a2614';
-      ctx.fillText(l.nombre, px, py - W / 60);
+      rotular(l.nombre, px, py, W / 60, W / 38);
     }
     // tren, estaciones y apeaderos: el mapa los muestra desde el inicio
     for (const m of marcas) {
@@ -156,7 +181,7 @@ export function crearMapa(T) {
         ctx.fillRect(px - W / 220, py - W / 220, W / 110, W / 110);
         ctx.fillStyle = '#3a2614';
         ctx.font = `600 ${Math.round(W / 50)}px Caveat, cursive`;
-        ctx.fillText(m.nombre, px, py - W / 90);
+        rotular(m.nombre, px, py, W / 90, W / 50);
         continue;
       }
       const [mx, my] = aP(m.x, m.z);
