@@ -269,8 +269,9 @@ export function progresoNuevo() {
     personal: sanearPersonal(null),
     // 2.9: el comercio por la trochita y los fletes (ver `comercio.js`)
     comercio: comercioNuevo(),
-    // 3.1: los oficios empiezan en cero. 3.6: la aldea, como el primer día (ya no hay `pueblo`)
-    oficios: oficiosNuevos(), aldea: aldeaNueva(),
+    // 3.1: los oficios empiezan en cero. 3.6: la aldea, como el primer día (ya no hay `pueblo`;
+    // 3.6.1: y en el Desafío, ninguna: allá no hay aldea)
+    oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva() }),
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
@@ -434,8 +435,10 @@ function sanearProgreso(p) {
     // acredita una vez lo que ya había hecho)
     oficios: sanearOficios(p.oficios),
     // 3.6: la aldea. Una partida de la 3.1 trae `pueblo` y no `aldea`: sus pobladores se mudan
-    // a la aldea con el local ya levantado (ver `migrarDesdePueblo`); el resto se descarta
-    aldea: p.aldea !== undefined ? sanearAldea(p.aldea) : objeto(p.pueblo) ? migrarDesdePueblo(p.pueblo, p.dia) : aldeaNueva(),
+    // a la aldea con el local ya levantado (ver `migrarDesdePueblo`); el resto se descarta.
+    // 3.6.1: con el día de la partida (ninguna fecha de la aldea puede ser del futuro). En el
+    // Desafío no hay aldea: no se guarda (ver abajo, con el Desafío)
+    aldea: p.aldea !== undefined ? sanearAldea(p.aldea, p.dia) : objeto(p.pueblo) ? migrarDesdePueblo(p.pueblo, p.dia) : aldeaNueva(),
     // 3.6: la vecindad (una partida vieja no la trae: arranca de cero)
     vecindad: sanearVecindad(p.vecindad),
     // 3.6 (mecánicas): una partida vieja no lo trae: arranca sin nada
@@ -453,7 +456,8 @@ function sanearProgreso(p) {
     yaw: finito(p.yaw, 0),
     explorado: Array.isArray(p.explorado) && p.explorado.length === base.explorado.length ? p.explorado : base.explorado,
     modo: modoPartida,
-    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio) } : { desafio: undefined }),
+    // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
+    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined } : { desafio: undefined }),
   };
 }
 

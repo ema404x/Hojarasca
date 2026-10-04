@@ -419,7 +419,11 @@ export function crearAldeaGente(ctx) {
     const e = ctx.tren?.()?.est;
     if (!e) return false;
     const aca = (p) => !!p && p.indice === PARADA_ALDEA.indice;
-    return (e.parado > 0 && aca(e.proxima)) || (e.conduce && aca(e.paradaCabina));
+    // 3.6.1: y el tren está ahí: al bajarte de la cabina entre dos paradas, el tren espera parado
+    // donde quedó con la próxima ya puesta (trochita.js), y si la próxima era la aldea, bajaba
+    // alguien «en el andén» con el tren lejos
+    const ahi = !Number.isFinite(e.s) || !Number.isFinite(e.proxima?.s) || Math.abs(e.s - e.proxima.s) < 2;
+    return (e.parado > 0 && aca(e.proxima) && ahi) || (e.conduce && aca(e.paradaCabina));
   }
   function revisarLlegada(forzar = false) {
     const a = aldea();
@@ -490,8 +494,10 @@ export function crearAldeaGente(ctx) {
       return { usados: {}, faltan: {}, completa: true };
     }
     let r = null;
+    // 3.6.1: lo que ya estaba aportado a la etapa (la experiencia se cuenta sobre lo acumulado)
+    const antes = Object.values(et.aportado || {}).reduce((s, n) => s + (Number(n) || 0), 0);
     const hacer = (m) => {
-      r = aportar(a, lote, m, dia());
+      r = aportar(a, lote, m, dia(), horas());   // 3.6.1: con la hora (de madrugada, lista esa mañana)
       for (const [k, n] of Object.entries(r.usados)) m[k] = Math.max(0, (m[k] || 0) - n);
     };
     if (ctx.conMateriales) ctx.conMateriales(hacer);
@@ -502,7 +508,7 @@ export function crearAldeaGente(ctx) {
     }
     ctx.sonido?.juntar?.();
     ctx.refrescarBarra?.();
-    ctx.alAportar?.(r.usados, r.completa);   // 3.6: lo que pusiste en la obra del pueblo cuenta para el oficio de constructor
+    ctx.alAportar?.(r.usados, r.completa, antes);   // 3.6: lo que pusiste en la obra del pueblo cuenta para el oficio de constructor
     ctx.alAporteObra?.(lote, r.usados);   // 3.6 (vida): y los vecinos se acuerdan
     if (r.completa) ctx.nota(`Aportaste ${listaMateriales(r.usados)}`, 'Los vecinos van a trabajar en la obra: mañana a la mañana está lista la etapa', true);
     else ctx.nota(`Aportaste ${listaMateriales(r.usados)} a la obra de ${nombreLocal(lote)}`, `Faltan ${listaMateriales(r.faltan)}`);

@@ -148,7 +148,8 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   assert.ok(r2 && r2.aldea.pobladores.length === 0 && typeof r2.oficios.xp === 'object', 'lo roto no rompe la partida');
   const g = leer('src/guardado.js');
   assert.ok(g.includes("import { sanearOficios, oficiosNuevos } from './oficios.js';") && g.includes("import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';"));
-  assert.ok(g.includes('oficios: sanearOficios(p.oficios),') && g.includes('aldea: p.aldea !== undefined ? sanearAldea(p.aldea)'));
+  // (3.6.1: la aldea se sanea con el día de la partida, ver verificar-3-6-1-aldea.mjs)
+  assert.ok(g.includes('oficios: sanearOficios(p.oficios),') && g.includes('aldea: p.aldea !== undefined ? sanearAldea(p.aldea, p.dia)'));
 }
 
 // ============================================================ 3. los enganches
