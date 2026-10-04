@@ -6106,10 +6106,27 @@ function cerrarCharla() {
 // «Invitar a tomar algo…», «Dar una mano…» (y lo de su oficio primero). Se elige con los números
 // (como en el almacén), o con la ruedita (LB/RB en el mando) y E (X). Escape vuelve del
 // submenú o de un tema al menú, y desde el menú se despide. Las reglas, en vecindad-juego.js.
+// 3.6: lo del lugar donde estás parado, cuando ahí hay alguien (Ercilia detrás del mostrador, la abuela
+// en el de la biblioteca): hablándole, también está en el menú, así nunca te tapa lo que viniste a hacer
+function accionDelLugar() {
+  if (desafio || !jugador) return null;
+  if (cercaDelMostrador() && !enElAlmacen) return { texto: 'Ver qué hay en el almacén', hacer: () => abrirAlmacen() };
+  if (enLaCasaDeTe()) return { texto: 'Pedir algo en la casa de té', hacer: () => servir() };
+  const m = mecanicasAldea?.accion(jugador.estado);
+  if (m && ['prestamo', 'casillas', 'horario', 'mapa', 'camilla'].includes(m.tipo)) return { texto: m.texto, hacer: m.hacer };
+  return null;
+}
 function abrirMenuCharla(alFinal = false) {
   if (!vecindadJuego || !charla.vec) return;
   charla.vec.sub = null;
   charla.menu = vecindadJuego.menu(charla.vec, alFinal);
+  const lugar = charla.menu?.tipo === 'charla' ? accionDelLugar() : null;
+  if (lugar) {
+    // antes de «Nada más, chau» (el último), sin mover la marca de lo de siempre
+    const k = Math.max(0, charla.menu.opciones.length - 1);
+    charla.menu.opciones.splice(k, 0, { id: '__lugar', titulo: lugar.texto, hacer: lugar.hacer });
+    if (charla.menu.i >= k) charla.menu.i++;
+  }
   charla.historia = null; charla.encargo = null; charla.parte = 0;
   dibujarMenuCharla();
 }
@@ -6137,6 +6154,7 @@ function moverMenuCharla(paso) {
 function elegirEnMenuCharla(i) {
   const m = charla.menu;
   if (!m || !vecindadJuego || !charla.vec || i < 0 || i >= m.opciones.length) return;
+  if (m.opciones[i].id === '__lugar') { const hacer = m.opciones[i].hacer; cerrarCharla(); hacer(); return; }   // 3.6
   const r = vecindadJuego.elegir(charla.vec, m.opciones[i].id, charla.npc);
   charla.menu = null;
   charla.parte = 0;
@@ -7409,7 +7427,12 @@ function cuadroDelJuego(tRaf, manual) {
     // Qué hay adelante: NPCs y scans de recursos no necesitan 60/120 consultas por segundo.
     acumuladoVecino += dt;
     if (js.enKayak) vecino = null;
-    else if (acumuladoVecino >= 1 / 15 && acumuladoVecino >= presupuestoAdaptativo.intervalo(1 / 15, 1.35)) { acumuladoVecino = 0; vecino = gente.cerca(js, camara); }
+    else if (acumuladoVecino >= 1 / 15 && acumuladoVecino >= presupuestoAdaptativo.intervalo(1 / 15, 1.35)) {
+      acumuladoVecino = 0; vecino = gente.cerca(js, camara);
+      // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
+      // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || mecanicasAldea?.accion(js))) vecino = gente.cerca(js, camara, true);
+    }
     acumuladoBuscar += dt;
     acumuladoInteraccion += dt;
     const movioInteraccion = Math.hypot(js.pos.x - posInteraccion.x, js.pos.z - posInteraccion.z) > 0.4 || Math.abs(js.pos.y - posInteraccion.y) > 0.35;

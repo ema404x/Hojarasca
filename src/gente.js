@@ -846,16 +846,19 @@ export function crearGente(T, escena, col, sonido) {
 
   const tmp = new THREE.Vector3(), adelante = new THREE.Vector3(), adelantePlano = new THREE.Vector3();
 
-  function cerca(js, camara) {
+  // 3.6: `deFrente`: sólo el que tenés de frente y a mano (al lado de un mostrador o de algo para
+  // hacer, un cliente o la que atiende no te tapan la E si no los mirás a ellos)
+  function cerca(js, camara, deFrente = false) {
     camara.getWorldDirection(adelante);
     adelantePlano.set(adelante.x, 0, adelante.z).normalize();
-    let mejor = null, mejorD = 3.6;
+    const minimo = deFrente ? 0.9 : 0.45;
+    let mejor = null, mejorD = deFrente ? 2.4 : 3.6;
     for (const g of gente) {
       if (g.aBordo && !g.enViaje) continue;
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
       if (d > mejorD) continue;
       tmp.set(g.pos.x - camara.position.x, 0, g.pos.z - camara.position.z).normalize();
-      if (tmp.dot(adelantePlano) < 0.45) continue;
+      if (tmp.dot(adelantePlano) < minimo) continue;
       mejorD = d; mejor = g;
     }
     return mejor;

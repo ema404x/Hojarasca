@@ -375,4 +375,12 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
   ok(Object.keys(A.puntosDe('biblioteca')).filter((k) => k.startsWith('lectura-')).length === 16, 'dieciséis lugares para los cuentos (doce sillas y cuatro almohadones)');
 }
 
+// 3.6: al mostrador no te tapa la E quien está ahí: para hablarle hay que mirarlo de frente, y lo del lugar queda en su menú
+{
+  const main = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const gente = fs.readFileSync(new URL('../src/gente.js', import.meta.url), 'utf8');
+  ok(gente.includes('function cerca(js, camara, deFrente = false)') && gente.includes('const minimo = deFrente ? 0.9 : 0.45;'), 'gente.cerca con deFrente');
+  ok(main.includes('vecino = gente.cerca(js, camara, true);') && main.includes('function accionDelLugar()') && main.includes("if (m.opciones[i].id === '__lugar')"), 'el mostrador gana y queda en el menú de la charla');
+}
+
 console.log(`OK 3.6.0 mecánicas · ${n} verificaciones · ${L.LIBROS_ALDEA.length} libros, ${MC.ORDEN_MECANICAS.length} cosas para hacer con E, una vez por día donde corresponde, sin nada religioso`);

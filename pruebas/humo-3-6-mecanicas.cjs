@@ -204,9 +204,16 @@ app.whenReady().then(async () => {
     ok(await js(`!!${H}.progreso.entradas['${prestado?.id}']`), 'leído en casa, también al cuaderno');
     await js(`(()=>{ ${H}.jugador.sentarse(false); const A = window.__m36m, c = ${JSON.stringify(c)}; A.enPunto(c); return 1 })()`);
     av = await avisoAhora();
-    await tecla();
+    // 3.6: si la que atiende está de frente, la E es para hablarle y devolver queda en su menú
+    let porMenu = false;
+    if (/^Hablar con /.test(av)) {
+      await tecla(); await esperar(150); await cuadros(2);
+      for (let i = 0; i < 4 && !(await js(`[...document.querySelectorAll('#charla-opciones li')].some((li) => /Devolver «/.test(li.textContent))`)); i++) { await tecla(); await esperar(120); await cuadros(2); }
+      porMenu = await js(`(()=>{ const li = [...document.querySelectorAll('#charla-opciones li')].find((x) => /Devolver «/.test(x.textContent)); if (!li) return false; li.click(); return true })()`);
+      await cuadros(3);
+    } else await tecla();
     e = await js(`${H}.progreso.mecanicas`);
-    ok(/^Devolver «/.test(av) && !e.prestado && e.prestamos === 1, `de vuelta en el mostrador: «${av}»`);
+    ok((/^Devolver «/.test(av) || porMenu) && !e.prestado && e.prestamos === 1, `de vuelta en el mostrador: «${av}»${porMenu ? ' (desde el menú de la charla)' : ''}`);
     av = await avisoAhora();
     ok(!/prestado/.test(av), `y por hoy, ninguno más («${av}»)`);
 
