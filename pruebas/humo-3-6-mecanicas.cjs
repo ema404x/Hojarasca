@@ -209,7 +209,7 @@ app.whenReady().then(async () => {
     if (/^Hablar con /.test(av)) {
       await tecla(); await esperar(150); await cuadros(2);
       for (let i = 0; i < 4 && !(await js(`[...document.querySelectorAll('#charla-opciones li')].some((li) => /Devolver «/.test(li.textContent))`)); i++) { await tecla(); await esperar(120); await cuadros(2); }
-      porMenu = await js(`(()=>{ const li = [...document.querySelectorAll('#charla-opciones li')].find((x) => /Devolver «/.test(x.textContent)); if (!li) return false; li.click(); return true })()`);
+      porMenu = await js(`(()=>{ const li = [...document.querySelectorAll('#charla-opciones li')].find((x) => /Devolver «/.test(x.textContent)); if (!li) return false; li.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); return true })()`);
       await cuadros(3);
     } else await tecla();
     e = await js(`${H}.progreso.mecanicas`);
