@@ -60,7 +60,9 @@ app.whenReady().then(async () => {
     for (let i = 0; i < 8 && !(paciente && paciente.acercandose); i++) {
       await esperar(2500);
       paciente = await js(`(()=>{ const H = window.__hojarasca, p = window.__pudu, js = H.jugador.estado;
-        if (!p.acercandose && p.estado === 'pastar') p.t = 0.01;   // que vuelva a elegir
+        // que vuelva a elegir (3.6: también si eligió dar su vuelta antes de que llegara la calma: la ventana
+        // oculta de la prueba anda a un cuadro por segundo y esa vuelta tardaría más que la espera)
+        if (!p.acercandose && (p.estado === 'pastar' || p.estado === 'caminar')) { p.estado = 'pastar'; p.t = 0.01; }
         return { acercandose: !!p.acercandose, calma: +H.__calma().toFixed(2),
           d: p.objetivo ? +Math.hypot(p.objetivo.x - js.pos.x, p.objetivo.z - js.pos.z).toFixed(1) : -1,
           nota: document.getElementById('notas').textContent } })()`);

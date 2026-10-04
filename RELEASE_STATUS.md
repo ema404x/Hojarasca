@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.5.4
+# RELEASE STATUS — 3.6.0
 
-- Versión: `3.5.4`
+- Versión: `3.6.0`
+- 3.6.0: la Aldea de los Duendes — pueblo fijo en la parada sur (sólo Relax) que crece con 11 pobladores y obras del pueblo; biblioteca popular, almacén de Ercilia y casa de té mudados; vecinos con horarios, tiempo libre, menú de charla (regalar, invitar, dar una mano), amistad y memoria; algo para hacer en cada lugar; edificios con interior y detalle de superficie en el shader; se sacó el «fundar el pueblo» de la 3.1 (partidas viejas migran solas). Fuera de la aldea, mismo rendimiento que la 3.5.4. Gate 140/140, 53 partidas reales
 - 3.5.4: estabilidad — fuga grande del contexto 3D recuperado (~10 MB por reinicio de la placa, para siempre) y dos chicas; memoria plana en sesiones largas; la ventana no navega fuera del juego ni se abre dos veces; el mouse no se pierde; Alt+Tab pausa; suspender guarda; partidas con obras lejísimos ya no cuelgan la carga; clic derecho una sola vez; modo foto sin F1 ni clics. Gate 133/133, 49 partidas reales
 - 3.5.3: el juego ya no se cierra al agacharse con Ctrl y caminar con W (Ctrl+W era "cerrar ventana" en el menú oculto de Electron; también Ctrl+R recargaba y Ctrl+M minimizaba): main.cjs saca ese menú
 - 3.5.2: pulido — niebla por altura con bancos, río que corre en la cuesta, nieve del cordón por canaletas; jabalí, coipo, cisne, pato de los torrentes, martín pescador, bandurria, cauquén y zorzal rehechos, mate a la boca, bufanda; ciprés de cerca y nevado, árboles lejanos con la bruma del suelo, coirón y notro que no se veían, amancay sin franja; la vegetación sube 5–8 veces menos datos a la placa

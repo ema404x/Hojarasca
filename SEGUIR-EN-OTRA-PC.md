@@ -1,4 +1,4 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 02-10-2026, 3.5.1 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 03-10-2026, 3.6.0 cerrada)
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
 decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
@@ -28,7 +28,7 @@ decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
 
 **Hojarasca**: juego Electron + three.js (r186 local en `three-r186-inline.js`) en un valle
 andino-patagónico procedural. Modos **Relax** (refugio, vecinos, huerta, perro, caballo,
-kayak, velero, trochita, comercio, pueblo, historia guiada) y **Desafío** (invasores de noche,
+kayak, velero, trochita, comercio, la Aldea de los Duendes, historia guiada) y **Desafío** (invasores de noche,
 arsenal, fortín, asedio, jefe en la nave, sin fin). Todo por código: nada descargado (ni
 texturas, ni modelos, ni audio).
 
@@ -46,6 +46,13 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.6.0 (cerrada el 03-10, etiqueta v3.6.0): la Aldea de los Duendes.** Pueblo fijo en la
+  parada sur (sólo Relax), planificado con el usuario en `PLAN_ALDEA.md` (leelo: tiene todas sus
+  decisiones). Crece con 11 pobladores y obras del pueblo; biblioteca popular (NADA religioso:
+  el usuario lo pidió); el almacén de Ercilia y la casa de té se mudaron a la aldea (en el
+  Desafío siguen en el valle); vecinos con horarios, tiempo libre, menú de charla, amistad y
+  memoria (`vecindad*.js`); mecánicas en cada lugar (`aldea-mecanicas*.js`); se sacó el
+  «fundar el pueblo» de la 3.1. Gate 140/140, 53 partidas reales. `CAMBIOS_3_6_0.md`.
 - **3.5.4 (cerrada el 02-10, etiqueta v3.5.4):** estabilidad — fuga grande del contexto 3D
   recuperado (candidata firme a las caídas en la Radeon integrada), ventana blindada, caos de
   ~5 h con 4 arreglos. Gate 133/133, 49 partidas reales. `CAMBIOS_3_5_4.md` (incluye cómo
@@ -89,53 +96,37 @@ texturas, ni modelos, ni audio).
 
 ---
 
-## 3. Para Claude: qué sigue (después de la 3.5.1)
+## 3. Para Claude: qué sigue (después de la 3.6.0)
 
-La 3.5.1 se cerró el 02-10 en la PC de origen: cuatro ramas en paralelo (`v351-memoria`,
-`v351-caidas`, `v351-relax`, `v351-desafio`), gate 129/129 y las 46 partidas reales.
+La 3.6.0 se cerró el 03-10 en la PC de escritorio con 9 ramas en worktrees (núcleo,
+arquitectura, gente, vecindad, vida, mundo, detalles, mecánicas, optimizar). Módulos nuevos:
+`aldea.js` (plano, reglas, horarios, guardado, puro), `aldea-arquitectura.js` (edificios,
+etapas de obra, shader de superficies `aSuperficie`), `aldea-mundo.js` (terreno emparejado
+después de la vegetación, Worker, manzanas, luces), `aldea-gente.js`, `aldea-mecanicas*.js`,
+`aldea-lecturas.js`, `vecindad.js`/`vecindad-voces.js`/`vecindad-juego.js`.
 
-**El crash del usuario sigue sin causa confirmada.** El registro tenía `prompt() is not
-supported` (arreglado) y "renderer: crashed exitCode=-1" (26-09); el visor de eventos de
-Windows marcó RADAR_PRE_LEAK_64 en Hojarasca.exe (29-09). Las sesiones largas simuladas no
-muestran fuga grande (~107 MB Relax, ~128 MB Desafío). Sospecha: driver de la Radeon
-integrada o memoria compartida. Ahora el juego se recupera solo, pero falta:
-- Preguntarle al usuario **cuándo** se cae (qué hacía, cuánto llevaba jugando) y pedirle
-  `%APPDATA%Hojarascalogshojarasca-crash.log` (ahora anota `bucle/<sistema>` con la pila).
-- Correr en su PC `REAL_LOOP=1 PRELOAD_REAL=1 npx electron herramientas/soak-memoria.cjs`.
-- Pedirle F3 caminando (nunca se midió en su PC).
+Pendiente o para ofrecerle al usuario:
+- **Que la juegue y opine**: el tamaño de las piedras del ripio y el brillo de los charcos, la
+  cantidad de gente, el ritmo de llegada de los pobladores (11 en ~64 días de juego).
+- **Medir en su PC** (nunca se hizo): F3 en la plaza de la aldea, en el refugio y en el bosque.
+- Detalles chicos anotados: las redes de la pescadería sin animación; los chicos sentados en
+  los almohadones de la biblioteca quedan un poco altos; la invitación a tomar algo se pierde si
+  se recarga a la mitad; la primera carga sin cachés tarda 0,8–0,9 s más (programas de la aldea).
+- Lo de la 3.5.4 que sigue: probar con el teclado de verdad Alt+Espacio, F10 y una suspensión;
+  el soak largo en la PC de escritorio.
+- **Inglés**: todo lo nuevo de la 3.6 está sólo en castellano (se traduce al final).
 
-Pruebas que a veces fallan con la máquina cargada y pasan solas: humo-desafio-premium,
-humo-2-3, humo-relax-2, humo-3-0-asedio. Las ventanas ocultas de las pruebas **no corren
-requestAnimationFrame**: el juego sólo avanza con `__bucle()`, casi sin tiempo entre cuadros;
-lo que se revisa N veces por segundo (quién está enfrente, por ejemplo) necesita esperas
-reales entre tandas (ver `hablarCon` en `humo-3-6-aldea.cjs`).
-
-Lo visual que quedó anotado de la 3.5.0 sigue pendiente:
-
-- **Vegetación:** ciprés muy de cerca (velo verde del desvanecido y alguna faceta de la falda a
-  3–5 m); manchas de luz redondas en una ladera lejana; árboles lejanos pálidos en la bruma
-  (igualar la desaturación de la bruma de la vegetación con la del terreno); amancay en franja
-  en los canteros (marcar los canteros en `marcarPisos`); coihues cercanos con algo menos de
-  nieve que los lejanos; el coirón desaparece en invierno junto con las flores (decidir); los
-  cuadros lentos cuestan 1–2 ms más de media en el bosque ahora que las tareas pesadas corren.
-- **Paisaje:** niebla que sólo depende de la distancia (franja plana desde el mirador al alba:
-  hace falta niebla por altura o con ruido); cerros del borde del valle brumosos al mediodía;
-  borde estepa-pasto como franja amarilla en una ladera; nieve "a lunares" en el primer
-  cordón; río en pendiente como losa inclinada; árboles nevados al sol con mucho brillo; la
-  nodriza del Desafío no se revisó (la tapaba el bosque).
-- **Gente y animales:** animales viejos de piezas sueltas (jabalí, coipo, cisne, pato, martín
-  pescador, bandurria, cauquén, zorzal); cuello del guanaco, cara de la liebre, patas de la
-  oveja, patas del pudú algo largas; costura en el hombro de cerca; la bufanda puede leerse
-  como corbata; el mate se toma con el brazo estirado; no se revisaron el cuerpo del jugador,
-  lo que se tiene en la mano ni los invasores.
-- **Medir en la PC del usuario** (nunca se midió allá): pedirle F3 caminando.
+Ojo con las pruebas: las ventanas ocultas de las pruebas **corren requestAnimationFrame a ~1
+cuadro por segundo**. Lo que depende del tiempo de juego necesita esperas o reintentos (ver
+`hablarCon` en `humo-3-6-aldea.cjs` y el pudú de `humo-relax-2.cjs`). La suite completa
+(`bash herramientas/suite.sh . <salida>`) tarda más de 30 min: correrla en tandas.
 
 ## 4. Para Claude: cómo se trabaja
 
 ### 4.1 Construir y probar
 - `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba.
-- `npm run verify` es el gate (129 pasos en la 3.5.1, sólo Node).
-- Partidas reales: `pruebas/humo-*.cjs` (46). **Comparten el perfil de Electron: nunca dos a
+- `npm run verify` es el gate (140 pasos en la 3.6.0, sólo Node).
+- Partidas reales: `pruebas/humo-*.cjs` (53). **Comparten el perfil de Electron: nunca dos a
   la vez.** Para capturas propias usar perfil propio (`app.setPath('userData', …)`).
 - **Nunca** matar electron por nombre si hay otras pruebas o capturas corriendo; matar por PID
   o por línea de comandos.

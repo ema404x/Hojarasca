@@ -103,19 +103,29 @@ ser tuyas.
 - Lotes con estacas e hilo, frutales y cercos en el borde de la aldea, álamos cortaviento con
   las hojas pintadas del bosque.
 
-## Rendimiento
-- Desde el refugio la aldea no suma nada: queda fuera de la distancia de dibujo.
-- En la plaza, medido en una ventana de 1280×720 con calidad media en la misma PC que el
-  usuario:
-  - unos 3,4 ms por cuadro y 126 dibujos;
-  - la aldea completa de noche, unos 5,5 ms y 208 dibujos.
-- La carga suma unos 100 ms. Los edificios se arman en un Worker y se montan de a una manzana
-  por cuadro, sin tirones.
-- De las luces de la aldea, nunca hay más de 4 encendidas a la vez.
-- (La medición final contra la 3.5.4 y la optimización se suman abajo al cerrar.)
+## Rendimiento (medido contra la 3.5.4 en la misma PC: Ryzen 5 4600G con Radeon integrada)
+- **Fuera de la aldea, igual que la 3.5.4**: refugio, bosque, Estación del Valle y todo el Desafío
+  dentro de ±0,3 ms por cuadro (por ejemplo, refugio en alta 10,1 → 10,2 ms; bosque 10 → 10 ms).
+  Desde el refugio la aldea no suma nada: queda fuera de la distancia de dibujo.
+- **En la aldea**: la plaza de día, 3,3 ms por cuadro (172 dibujos); la aldea completa de noche,
+  unos 12,8 ms en alta y 11,3 en media (258 dibujos), con 4 luces encendidas como máximo.
+- **Optimización final**: el humo de las chimeneas de día (casi invisible) se seguía pintando y
+  costaba muchísimo cerca de una chimenea: ahora no se dibuja si no se ve (plaza de día: de 13,3 a
+  3,3 ms). La gente de la aldea, sus luces y las mecánicas ya no arman nada nuevo en cada cuadro;
+  las luces de un edificio rearmado se sueltan; código repetido unificado.
+- **Carga**: 115–140 ms más que la 3.5.4 con las cachés hechas. Las texturas del ripio y los
+  carteles se preparan en la portada. La primera carga de todas (sin cachés) tarda 0,8–0,9 s más:
+  son los programas de la aldea, que se compilan al cargar para que no haya tirones jugando.
+- **Memoria**: en el Relax arranca unos 30 MB más arriba (la aldea) y en una sesión larga crece
+  igual que la 3.5.4; el Desafío, igual. Perder y recuperar los gráficos no acumula memoria.
+
+## Arreglos de último momento
+- Al mostrador del almacén o de la biblioteca, un vecino parado ahí (un cliente, la que atiende) ya no te
+  tapa la E: gana lo del lugar, para hablarle hay que mirarlo de frente, y en su menú también está
+  lo del lugar ("Ver qué hay en el almacén", "Devolver el libro").
 
 ## Pruebas
-- Al gate se sumaron 8 pruebas: aldea, gente, arquitectura, vecindad, vida, mundo, mecánicas y
+- Gate 140/140 y las 53 partidas reales en verde. Al gate se sumaron 8 pruebas: aldea, gente, arquitectura, vecindad, vida, mundo, mecánicas y
   oficios (este último reemplaza a la vieja del pueblo).
 - También 5 partidas reales nuevas: `humo-3-6-aldea`, `humo-3-6-vida`, `humo-3-6-mundo`,
   `humo-3-6-mecanicas` y `humo-3-1-oficios`.
