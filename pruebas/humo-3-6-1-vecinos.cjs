@@ -185,7 +185,7 @@ app.whenReady().then(async () => {
               // (si no cuadra se prueba otra vez: algo del mundo que pasa solo, como el perro que encuentra
               // un rastro o un lugar que se anota, no es de E)
               let aviso = null, mal = '', salto = false;
-              for (let intento = 0; intento < 2; intento++) {
+              for (let intento = 0; intento < 3; intento++) {
                 A.limpiar();
                 A.poner(x, z, yaw, p.y);
                 if (Math.hypot(e.pos.x - x, e.pos.z - z) > 0.3) { salto = true; break; }   // ahí no se puede estar parado
@@ -239,6 +239,13 @@ app.whenReady().then(async () => {
     const P = `${H}.progreso`;
     let e, v;
 
+    // (otra vez la aldea completa, como al principio)
+    if (config !== 'completa') {
+      await js(`(()=>{ const a = ${H}.progreso.aldea; const L = { carpintero: 'carpinteria', panadera: 'panaderia', herrero: 'herreria', pescador: 'pescaderia', maestra: 'escuela', enfermera: 'puesto-sanitario', telegrafista: 'estafeta', tejedora: 'hilanderia', apicultor: 'sala-miel', guardaparque: 'seccional', musico: 'salon' };
+        a.pobladores = Object.keys(L).map((clave) => ({ clave, dia: 1 })); a.obras = {}; a.llegando = null; a.locales = Object.fromEntries(Object.values(L).map((l) => [l, 1])); return 1 })()`);
+      await js(`(()=>{ const M = ${H}.__aldeaMundo(); const o = M.aMundo(6, 29); window.__m361v.poner(o.x, o.z, 0); M.actualizar(4, ${H}.camara.position); return 1 })()`);
+      await aldeaMontada(); await asentar(4); await js(`${H}.__mecanicas().revisar(); 1`);
+    }
     seccion('el menú en el almacén: lo del lugar no se pierde');
     await acomodar(3, 10.5);
     await js(`(()=>{ ${P}.cosas.yerba = 6; ${P}.cosas.harina = 1; return 1 })()`);

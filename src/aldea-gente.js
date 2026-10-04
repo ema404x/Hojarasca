@@ -818,7 +818,8 @@ export function crearAldeaGente(ctx) {
         // falta se mide por el camino (por las calles a veces hay que alejarse para llegar)
         let falta = Math.hypot(n.pos.x - n.camino[0].x, n.pos.z - n.camino[0].z);
         for (let i = 1; i < n.camino.length; i++) falta += Math.hypot(n.camino[i].x - n.camino[i - 1].x, n.camino[i].z - n.camino[i - 1].z);
-        const alLado = Math.hypot(n.pos.x - js.pos.x, n.pos.z - js.pos.z) < 7.5;
+        // (3.6.1: el invitado que va con vos, aunque estés al lado: si se traba, llega igual)
+        const alLado = !n.enCita && Math.hypot(n.pos.x - js.pos.x, n.pos.z - js.pos.z) < 7.5;
         const tr = st.trabado;
         if (!alLado && falta > tr.d - 0.2) tr.t += paso; else tr.t = 0;
         tr.d = Math.min(tr.d, falta);
