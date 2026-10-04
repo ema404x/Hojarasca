@@ -2632,7 +2632,9 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'KeyR':
       if (modoObra && obras) { obras.girar(e.shiftKey ? -1 : 1); dibujarPanelObra(); break; }
-      if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(!js.sentado);
+      // 3.6.1: sentado, R siempre te levanta (en la punta del muelle no lo hacía)
+      if (js.sentado) jugador.sentarse(false);
+      else if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(true);
       break;
     case 'KeyN':
       if (modoObra && obras) {
@@ -6457,6 +6459,8 @@ function guardar() {
   const e = T.lugares.estacion;
   progreso.pos = jugador.estado.enKayak ? { x: m.punta.x, z: m.punta.z }
     : jugador.estado.enTren && e ? { x: e.espera.x, z: e.espera.z }
+    // 3.6.1: sentado, se guarda donde estabas parado (el asiento puede caer adentro de un mueble)
+    : jugador.estado.sentado && jugador.estado.salida ? { x: jugador.estado.salida.x, y: jugador.estado.salida.y, z: jugador.estado.salida.z }
     : { x: jugador.estado.pos.x, y: jugador.estado.pos.y, z: jugador.estado.pos.z };
   // 2.9: guardando arriba del velero se aparece en la orilla; colgado de la tirolesa, en la llegada
   const guardadoVela = vela?.paraGuardar();
