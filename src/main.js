@@ -582,6 +582,8 @@ async function construir() {
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
   bichos = await paso('Escondiendo un panal en un tronco', 91, () => crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos));
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido));
+  // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
+  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)

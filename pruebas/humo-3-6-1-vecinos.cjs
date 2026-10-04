@@ -142,11 +142,22 @@ app.whenReady().then(async () => {
     await js(`${H}.__mecanicas().revisar(); 1`);
 
     // ------------------------------------------------------------ E y el aviso en cada lugar
-    const HORAS = (process.env.HORAS ?? '3,10.5,16.5,20.5').split(',').filter(Boolean).map(Number);
+    // (con «media@» delante: la aldea a medio crecer, con una obra en curso y uno recién bajado del tren)
+    const HORAS = (process.env.HORAS ?? '3,10.5,16.5,20.5,media@10.5,media@15').split(',').filter(Boolean);
+    let config = 'completa';
     const fallas = [];
     let probadas = 0;
-    for (const hora of HORAS) {
-      seccion(`E y el aviso a las ${hora} h`);
+    for (const x of HORAS) {
+      const [conf, hs] = x.includes('@') ? x.split('@') : ['completa', x];
+      const hora = Number(hs);
+      if (conf !== config) {
+        config = conf;
+        await js(`(()=>{ const a = ${H}.progreso.aldea; a.pobladores = [{ clave: 'carpintero', dia: 1 }, { clave: 'panadera', dia: 1 }, { clave: 'herrero', dia: 2 }]; a.locales = { carpinteria: 1, panaderia: 1 };
+          a.obras = { herreria: { etapa: 1, aportado: { tabla: 2 }, lista: null, desde: 2 } }; a.llegando = { clave: 'pescador', dia: 3 }; ${H}.progreso.materiales = { tronco: 2, tabla: 1, piedra: 0 }; return 1 })()`);
+        await js(`(()=>{ const M = ${H}.__aldeaMundo(); const o = M.aMundo(6, 29); window.__m361v.poner(o.x, o.z, 0); M.actualizar(4, ${H}.camara.position); return 1 })()`);
+        await aldeaMontada(); await asentar(4); await js(`${H}.__mecanicas().revisar(); 1`);
+      }
+      seccion(`E y el aviso a las ${hora} h${conf !== 'completa' ? ` (aldea ${conf})` : ''}`);
       // los vecinos, cada uno en su lugar de esa hora (lejos se acomodan de una)
       await js(`(()=>{ const H = ${H}; H.progreso.horas = ${hora}; const A = window.__m361v; A.poner(H.T.lugares.refugio.x + 8, H.T.lugares.refugio.z + 8, 0); H.__aldea.actualizar(1); H.__aldea.actualizar(1); return 1 })()`);
       await asentar(2);
@@ -156,6 +167,8 @@ app.whenReady().then(async () => {
         for (const s of H.est.sentaderos) if (!s.cama) P.push({ que: 'asiento ' + s.nombre, x: s.x, z: s.z, y: s.y - 0.45, r: [0.8, 1.2] });
         for (const p of H.puertas.lista) { const q = p.centro || p.pos || p; if (Number.isFinite(q.x) && cerca(q.x, q.z)) P.push({ que: 'puerta ' + (p.nombre || ''), x: q.x, z: q.z, y: q.y ?? null, r: [0.8] }); }
         for (const c of M.candidatos()) P.push({ que: 'mecánica ' + c.tipo + ' (' + c.edificio + ')', x: c.x, z: c.z, y: c.y, r: [0.5, 1.1] });
+        const ag = H.__aldea.mundo(); const obra = ag.estado().aldea.obras && Object.keys(ag.estado().aldea.obras)[0];
+        if (obra) { const AM = H.__aldeaMundo(); let sx = 0, sz = 0, n = 0; for (let lx = -46; lx <= 92; lx += 1) for (let lz = -2; lz <= 72; lz += 1) { const w = AM.aMundo(lx, lz); if (ag.obraCerca({ x: w.x, z: w.z })) { sx += w.x; sz += w.z; n++; } } if (n) P.push({ que: 'obra ' + obra, x: sx / n, z: sz / n, y: null, r: [0.5, 2, 3.5, 5] }); }
         if (H.est.casaTe) P.push({ que: 'mostrador de la casa de té', x: H.est.casaTe.mostrador.x, z: H.est.casaTe.mostrador.z, y: null, r: [1, 2.5] });
         if (H.est.almacen) { const a = H.est.almacen; const q = a.mostrador || a; P.push({ que: 'mostrador del almacén', x: q.x, z: q.z, y: null, r: [0.9, 1.6] }); }
         for (const g of H.gente.gente) if (!g.dormido && !g.aBordo && g.pos && cerca(g.pos.x, g.pos.z)) P.push({ que: 'vecino ' + g.nombre, x: g.pos.x, z: g.pos.z, y: g.pos.y, r: [1.1] });
@@ -194,11 +207,11 @@ app.whenReady().then(async () => {
           }
           return salida })()`);
         probadas += r.length;
-        for (const x of r) if (x !== 1) fallas.push({ hora, ...x });
+        for (const y of r) if (y !== 1) fallas.push({ hora: x, ...y });
       }
     }
     const unicas = [...new Map(fallas.map((f) => [`${f.que}|${f.aviso}|${f.mal}`, f])).values()];
-    if (HORAS.length) ok(probadas > 1000 && !unicas.length, `${probadas} veces E en ${HORAS.length} horas: el aviso y E hacen lo mismo${unicas.length ? `; no (${unicas.length}):\n    ${unicas.slice(0, 60).map((f) => `${f.hora} h · ${f.que} [${f.x}, ${f.z}] · aviso «${f.aviso}» · ${f.mal}`).join('\n    ')}` : ''}`);
+    if (HORAS.length) ok(probadas > 400 * HORAS.length && !unicas.length, `${probadas} veces E en ${HORAS.length} horas: el aviso y E hacen lo mismo${unicas.length ? `; no (${unicas.length}):\n    ${unicas.slice(0, 60).map((f) => `${f.hora} h · ${f.que} [${f.x}, ${f.z}] · aviso «${f.aviso}» · ${f.mal}`).join('\n    ')}` : ''}`);
 
     // ------------------------------------------------------------ el menú de la charla, en la partida
     const vista = () => js(`(()=>{ const c = document.getElementById('charla'), ul = document.getElementById('charla-opciones');
@@ -221,7 +234,7 @@ app.whenReady().then(async () => {
     // un lugar desde donde el aviso dice `texto` (alrededor de x, z, mirando hacia ahí)
     const dondeDice = (x, z, re, radios = [0.8, 1.2, 1.6, 2.2]) => js(`(async ()=>{ const H = ${H}, A = window.__m361v;
       for (const r of ${JSON.stringify(radios)}) for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, px = ${x} + Math.sin(a) * r, pz = ${z} + Math.cos(a) * r;
-        A.poner(px, pz, Math.atan2(-(${x} - px), -(${z} - pz))); const av = H.__avisoYa(); if (av && ${re}.test(av.texto)) return { x: px, z: pz, yaw: H.jugador.estado.yaw, aviso: av.texto }; }
+        for (const g of [0, 0.45, -0.45]) { A.poner(px, pz, Math.atan2(-(${x} - px), -(${z} - pz)) + g); const av = H.__avisoYa(); if (av && ${re}.test(av.texto)) return { x: px, z: pz, yaw: H.jugador.estado.yaw, aviso: av.texto }; } }
       return null })()`);
     const P = `${H}.progreso`;
     let e, v;
@@ -359,9 +372,10 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const H = ${H}; for (let i = 0; i < 4; i++) { H.__aldea.actualizar(0.6); H.__vecindad().actualizar(0.6); } return 1 })()`);
     e = await js(`(()=>({ c: ${H}.__vecindad().cita(), guardada: ${H}.progreso.vecindad.cita }))()`);
     ok(e.c?.clave === 'madre' && e.c.que === 'te', `después de recargar, la madre sigue yendo a la casa de té (${e.c?.fase})`);
-    // la dejo caminar: llega a su silla, se sienta a la altura de la silla, no queda en el aire
-    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; const c = H.__vecindad().cita(); window.__m361v.poner(c.tuyo.x + 3, c.tuyo.z + 3, 0);
-      for (let i = 0; i < 3000 && H.__vecindad().cita()?.fase === 'yendo'; i++) { H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) { H.__aldea.actualizar(0.5); H.__vecindad().actualizar(0.6); } } return 1 })()`);
+    // la acompaño caminando a 2,5 m (antes se frenaba con vos al lado): llega a su silla, se sienta a la
+    // altura de la silla, no queda en el aire
+    await js(`(()=>{ const H = ${H}, j = H.jugador.estado, n = ${npc('madre')};
+      for (let i = 0; i < 3000 && H.__vecindad().cita()?.fase === 'yendo'; i++) { j.pos.x = n.pos.x + 2.5; j.pos.z = n.pos.z; H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) { H.__aldea.actualizar(0.5); H.__vecindad().actualizar(0.6); } } return 1 })()`);
     e = await js(`(()=>{ const H = ${H}, c = H.__vecindad().cita(), n = ${npc('madre')}; return { fase: c?.fase, d: c ? Math.hypot(n.pos.x - c.lugar.x, n.pos.z - c.lugar.z) : -1, pose: n.pose, asiento: n.asiento, saltos: H.__aldea.mundo().estado().saltos } })()`);
     ok(e.fase === 'esperando' && e.d < 0.6 && e.pose === 'sentado', `llegó caminando y se sentó (${e.fase}, a ${e.d.toFixed(2)} m de su silla)`);
     ok(Number.isFinite(e.asiento) && e.asiento > 0.3 && e.asiento < 0.7, `a la altura de la silla de la casa de té (${e.asiento})`);

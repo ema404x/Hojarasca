@@ -403,6 +403,7 @@ export function crearVecindadJuego(ctx) {
     if (que === 'te' && esPersonaAldea(clave) && npc.claveAldea && ag?.citar) { ag.citar(clave, { edificio: 'casa-te', punto: 'mesa-2' }); c.porAldea = true; }
     else c.antes = llevar(npc, c.lugar);
     cita = c;
+    npc.enCita = true;   // 3.6.1: va con vos (gente.js no lo frena porque estés cerca)
     anotarCita(c);
     const nombre = nombreDeVecino(clave);
     ctx.nota?.(que === 'mate' ? `${nombre} va para tu mesa` : `${nombre} va a la casa de té`, 'Sentate con E en el otro lugar de la mesa', true);
@@ -428,6 +429,7 @@ export function crearVecindadJuego(ctx) {
     if (!c) return;
     cita = null;
     anotarCita(null);
+    if (c.npc) c.npc.enCita = false;
     devolver(c);
     const nombre = nombreDeVecino(c.clave);
     if (motivo === 'cansado') ctx.nota?.(`${nombre} se cansó de esperarte`, 'Se volvió a lo suyo. Otro día será');
@@ -438,7 +440,7 @@ export function crearVecindadJuego(ctx) {
     if (!c) return;
     const p = progreso(), h = horas();
     const npc = c.npc;
-    if (!npc || !npc.pos) { cita = null; return; }
+    if (!npc || !npc.pos) { cita = null; anotarCita(null); return; }   // (3.6.1: y no queda guardada)
     if (c.fase === 'yendo') {
       const llego = distancia(npc.pos, c.lugar) < 0.6 && !(npc.camino && npc.camino.length);
       if (llego) {

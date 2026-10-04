@@ -312,6 +312,8 @@ const main = leer('src/main.js');
   const r = a.vj.elegir(s, 'invitar:mate', a.ramon);
   ok(r.tipo === 'cita' && a.vj.empezarCita('ramon', a.ramon, 'mate', r.charla, r.lugares), 'invitado a tomar mate');
   ok(progreso.vecindad.cita?.clave === 'ramon', 'la cita queda en la partida');
+  // el invitado va con vos: aunque camines al lado, no se frena (gente.js frena a los que pasan cerca)
+  ok(a.ramon.enCita === true && leer('src/gente.js').includes('&& !g.charlaVecinos && !g.enCita;'), 'el invitado no se frena porque lo acompañes');
   // se recarga: otra vecindad-juego con la misma partida (guardada y cargada)
   const cargado = JSON.parse(JSON.stringify(progreso)); cargado.vecindad = V.sanearVecindad(cargado.vecindad);
   const b = hacer(cargado);
@@ -322,11 +324,90 @@ const main = leer('src/main.js');
   ok(b.vj.cita()?.fase === 'esperando' && b.vj.sentarse(), 'llega, te sentás');
   b.vj.citaCharlada();
   ok(cargado.vecindad.cita === null, 'charlada, ya no queda guardada');
+  b.vj.terminarCita('fin');
+  ok(b.ramon.enCita === false && !b.ramon.deVisita, 'terminada, vuelve a lo suyo');
   // pasado el rato que espera, al recargar no vuelve
   const viejo = { dia: 3, horas: 19.5, vecindad: V.sanearVecindad({ cita: { clave: 'ramon', que: 'mate', desde: 3 * 24 + 15 } }), cosas: {}, materiales: {}, entradas: {} };
   const c = hacer(viejo);
   c.vj.actualizar(1);
   ok(!c.vj.cita() && viejo.vecindad.cita === null, 'si ya se cansó de esperar, no vuelve');
+}
+
+// ============================================================ 8. una silla, uno solo: vos o un vecino
+// Te podías sentar encima de un vecino sentado (el aviso ofrecía su silla) y un vecino se sentaba en la
+// silla donde estabas vos. Ahora la silla ocupada no se ofrece y el vecino se queda parado al lado.
+{
+  const A = await import('../src/aldea.js');
+  const G = await import('../src/aldea-gente.js');
+  ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && main.includes("est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo')"), 'la silla con un vecino no se ofrece');
+  const M = A.marcoAldea(A.PARADA_ALDEA);
+  const P = { dia: 2, horas: 16.5, aldea: A.aldeaNueva(), entradas: {}, materiales: {}, cosas: {} };
+  const vec = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });
+  const npcs = [];
+  const gente = { gente: npcs, agregarPoblador(def) { const n = { ...def, pos: vec(def.pos.x, 0, def.pos.z), camino: [], g: { rotation: {} } }; npcs.push(n); return n; } };
+  const mesa2 = A.puntosMundo('casa-te')['mesa-2'];
+  const jug = { estado: { pos: vec(mesa2.x, 0, mesa2.z), sentado: true } };
+  const AG = G.crearAldeaGente({ progreso: () => P, gente: () => gente, jugador: () => jug, tren: () => null, alturaDePie: () => 0, nota() {}, guardar() {}, registrar() {}, climaVecindad: () => 'sol', ambiente: () => ({}), hablandoCon: () => null });
+  AG.citar('madre', { edificio: 'casa-te', punto: 'mesa-2' });
+  for (let i = 0; i < 8; i++) AG.actualizar(0.6);
+  const d = AG.personas.get('madre')?.destino;
+  ok(d && d.punto === 'mesa-2' && !d.sentado && Math.hypot(d.x - mesa2.x, d.z - mesa2.z) > 0.5, `con vos sentado en su silla, se queda parada al lado (${d && Math.hypot(d.x - mesa2.x, d.z - mesa2.z).toFixed(2)} m)`);
+  jug.estado.sentado = false;
+  for (let i = 0; i < 2; i++) AG.actualizar(0.6);
+  const d2 = AG.personas.get('madre')?.destino;
+  ok(d2 && d2.sentado && Math.hypot(d2.x - mesa2.x, d2.z - mesa2.z) < 0.05, 'te levantás y se sienta');
+}
+
+// ============================================================ 9. regalar y dar una mano, con lo justo
+// (revisado: andaba) la última unidad se regala y desaparece del menú; lo que se gastó entre abrir la
+// lista y elegir no se regala ni se pierde el regalo del día; la ayuda que pide lo que no tenés lo dice.
+{
+  const V = await import('../src/vecindad.js');
+  const VJ = await import('../src/vecindad-juego.js');
+  const p = { dia: 4, horas: 12.5, vecindad: V.vecindadNueva(), cosas: { harina: 1, yerba: 2 }, materiales: {}, entradas: {} };
+  const ramon = { clave: 'ramon', nombre: 'Don Ramón', pos: { x: 0, z: 0 } };
+  const vj = VJ.crearVecindadJuego({ progreso: () => p, desafio: () => false, guardar() {}, nota() {} });
+  let s = vj.abrir(ramon);
+  vj.elegir(s, 'regalar', ramon);
+  ok(s.sub.opciones.some((o) => o.id === 'regalar:harina'), 'la última medida de harina, en la lista');
+  p.cosas.yerba = 0;   // se gastó con el submenú abierto
+  let r = vj.elegir(s, 'regalar:yerba', ramon);
+  ok(r.reaccion === 'no-tenes' && p.cosas.yerba === 0 && !s.regalo, 'lo que ya no tenés no se regala, y el regalo del día sigue');
+  r = vj.elegir(s, 'regalar:harina', ramon);
+  ok(r.reaccion !== 'no-tenes' && p.cosas.harina === 0 && s.regalo, 'la última, regalada');
+  ok(!vj.menu(s).opciones.some((o) => o.id === 'regalar'), 'y ya no hay «Regalar…»');
+  // la ayuda que pide algo que no tenés
+  const pidiendo = V.ayudas('tejedora', p, 4).find((a) => a.pide);
+  if (pidiendo) {
+    const tj = { clave: 'aldea-tejedora', claveAldea: 'tejedora', nombre: 'Rosa', pos: { x: 0, z: 0 } };
+    s = vj.abrir(tj);
+    vj.elegir(s, 'ayudar', tj);
+    ok(s.sub.opciones.some((o) => o.id === `ayudar:${pidiendo.id}` && /tenés 0/.test(o.titulo)), 'la ayuda dice lo que pide y que no tenés');
+    r = vj.elegir(s, `ayudar:${pidiendo.id}`, tj);
+    ok(/No tenés|no tenés/.test(r.renglones[0]) && V.ayudas('tejedora', p, 4).length > 0, `sin eso, te lo dice y la ayuda del día sigue: «${r.renglones[0]}»`);
+  }
+}
+
+// ============================================================ 10. las mecánicas, revisadas (andaban)
+// El baile sin el músico, la campana con el tren que pasa sin parar, lo de una vez por día al recargar
+// y el libro prestado de una partida vieja o rota.
+{
+  const A = await import('../src/aldea.js');
+  const MC = await import('../src/aldea-mecanicas.js');
+  const V = await import('../src/vecindad.js');
+  const sabado = [1, 2, 3, 4, 5, 6, 7].find((d) => A.diaSemanaDe(d) === 5);
+  const sinMusico = A.aldeaNueva();
+  ok(!MC.hayBaile(sinMusico, sabado, 17.5), 'sin el músico (el salón cerrado), no hay baile');
+  ok(A.ORDEN_PERSONAS_ALDEA.every((k) => !/^baile-/.test(A.rutinaAldea(k, 17.5, 5, sinMusico).punto || '')), 'y nadie va a bailar');
+  const mundo = leer('src/aldea-mecanicas-mundo.js');
+  ok(mundo.includes('const aqui = !!tren.parado?.() && !!q && (q.metros < 14 || q.metros > tren.largo - 14);'), 'la campana, sólo con el tren parado en el andén (el que pasa sin parar no la toca)');
+  // lo de una vez por día queda en la partida: al recargar, el aljibe sigue usado ese día
+  const m = MC.mecanicasNuevas();
+  MC.sacarAgua(m, 7);
+  const recargada = MC.sanearMecanicas(JSON.parse(JSON.stringify(m)));
+  ok(MC.sacarAgua(recargada, 7).efectos.length === 0 && MC.sacarAgua(recargada, 8).efectos.length === 1, 'el aljibe, una vez por día aunque recargues');
+  // el libro prestado de una partida vieja o rota
+  ok(MC.sanearMecanicas({ prestado: { id: 'libro-que-no-existe', dia: 3 } }).prestado === null && MC.sanearMecanicas(null).prestado === null, 'un préstamo roto se pierde sin romper nada');
 }
 
 console.log(`OK 3.6.1 vecinos · ${n} verificaciones`);

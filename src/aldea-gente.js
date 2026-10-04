@@ -775,6 +775,12 @@ export function crearAldeaGente(ctx) {
     const lista = presentes();
     for (const k of lista) if (!personas.has(k)) personas.set(k, { npc: null, destino: null, clave: '', trabado: { d: Infinity, t: 0 } });
     const destinos = destinosAldea(a, horas(), dia(), lista, M, elegirLibres(lista));   // 3.6 (vida): con su tiempo libre
+    // 3.6.1: en la silla donde estás sentado vos no se sienta nadie: se queda parado al lado
+    if (js.sentado) for (const d of destinos.values()) {
+      if (!d.sentado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) > 0.45) continue;
+      d.sentado = false; d.x += Math.cos(d.mira) * 0.6; d.z -= Math.sin(d.mira) * 0.6; d.clave += '|al-lado';
+      const l = M.aLocal(d.x, d.z); d.lx = l.lx; d.lz = l.lz;
+    }
     const hablando = ctx.hablandoCon?.();
     for (const [k, st] of personas) {
       const d = destinos.get(k);

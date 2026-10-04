@@ -893,7 +893,9 @@ export function crearGente(T, escena, col, sonido) {
       // en el Desafío, los vecinos instalados en la base siguen con lo suyo aunque pases cerca
       // 1.11: el que viene de visita no se frena a mitad de camino: llega a la mesa y ahí te mira
       // 3.6: los vecinos de la aldea que charlan entre ellos se miran a ellos, no a vos
-      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos;
+      // 3.6.1: el que invitaste a tomar algo va con vos: no se frena porque estés al lado (si lo
+      // acompañabas a la casa de té, se quedaba parado en la calle esperando que te alejaras)
+      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos && !g.enCita;
       let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
       if (g.camino && !charlando && !cerquita) {
         // 3.6: con horario (la gente de la aldea): `camino` son los puntos que faltan (por las
