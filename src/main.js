@@ -4151,7 +4151,9 @@ function armarOficiosYAldea(esDesafio) {
     climaVecindad, alAporteObra: (lote) => vecindadJuego?.hecho('aporte-obra', { lote }),
     // 3.6.1 (vecinos): la altura de la silla donde se sienta un vecino (sobre su piso) y cuánto dura una
     // hora del juego (para salir con tiempo a lo que le toca)
-    asientoEn: (x, z, y) => { let m = null, dm = 0.35; for (const s of est?.sentaderos || []) { const d = Math.hypot(s.x - x, s.z - z); if (d < dm && Math.abs(s.y - y) < 1.5 && !s.cama) { dm = d; m = s; } } return m ? Math.max(0, m.y - 0.02 - y) : null; },
+    // (la silla de al lado de la misma mesa o el mismo banco, si la del punto no es de las que usa el jugador:
+    // en la casa de té cada mesa tiene dos sillas iguales y una sola es asiento tuyo)
+    asientoEn: (x, z, y) => { let m = null, dm = 1.2; for (const s of est?.sentaderos || []) { const d = Math.hypot(s.x - x, s.z - z); if (d < dm && Math.abs(s.y - y) < 1.5 && !s.cama) { dm = d; m = s; } } return m ? Math.max(0, m.y - 0.02 - y) : null; },
     segundosPorHora: () => ((ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion) * 60) / 24,
     alServicio: (k, efectos) => { if ((efectos || []).some((f) => f.k === 'poncho' && (f.n > 0 || f.fijar > 0))) vecindadJuego?.hecho('poncho'); },
   });

@@ -106,7 +106,7 @@ const main = leer('src/main.js');
   // aldea-gente pone la altura del asiento (la silla de verdad, o el almohadón)
   const gente = leer('src/aldea-gente.js'), g = leer('src/gente.js');
   ok(gente.includes('npc.asiento = alturaAsiento(d, npc);') && gente.includes('n.asiento = alturaAsiento(d, n);') && g.includes('const b = bajaSentado(g.asiento, g.g?.scale?.y);'), 'la pose usa el asiento');
-  ok(main.includes('asientoEn: (x, z, y) =>'), 'main.js: la altura de la silla de la aldea');
+  ok(main.includes('asientoEn: (x, z, y) => { let m = null, dm = 1.2;'), 'main.js: la altura de la silla de la aldea (o la de al lado, en la casa de té)');
 }
 
 // ============================================================ 3. la aldea, días enteros a todas las horas

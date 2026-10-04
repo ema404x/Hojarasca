@@ -142,7 +142,7 @@ app.whenReady().then(async () => {
     await js(`${H}.__mecanicas().revisar(); 1`);
 
     // ------------------------------------------------------------ E y el aviso en cada lugar
-    const HORAS = (process.env.HORAS || '3,10.5,16.5,20.5').split(',').map(Number);
+    const HORAS = (process.env.HORAS ?? '3,10.5,16.5,20.5').split(',').filter(Boolean).map(Number);
     const fallas = [];
     let probadas = 0;
     for (const hora of HORAS) {
@@ -198,7 +198,173 @@ app.whenReady().then(async () => {
       }
     }
     const unicas = [...new Map(fallas.map((f) => [`${f.que}|${f.aviso}|${f.mal}`, f])).values()];
-    ok(probadas > 1000 && !unicas.length, `${probadas} veces E en ${HORAS.length} horas: el aviso y E hacen lo mismo${unicas.length ? `; no (${unicas.length}):\n    ${unicas.slice(0, 60).map((f) => `${f.hora} h · ${f.que} [${f.x}, ${f.z}] · aviso «${f.aviso}» · ${f.mal}`).join('\n    ')}` : ''}`);
+    if (HORAS.length) ok(probadas > 1000 && !unicas.length, `${probadas} veces E en ${HORAS.length} horas: el aviso y E hacen lo mismo${unicas.length ? `; no (${unicas.length}):\n    ${unicas.slice(0, 60).map((f) => `${f.hora} h · ${f.que} [${f.x}, ${f.z}] · aviso «${f.aviso}» · ${f.mal}`).join('\n    ')}` : ''}`);
+
+    // ------------------------------------------------------------ el menú de la charla, en la partida
+    const vista = () => js(`(()=>{ const c = document.getElementById('charla'), ul = document.getElementById('charla-opciones');
+      const lis = [...ul.querySelectorAll('li')];
+      return { abierta: !c.classList.contains('oculto'), quien: document.getElementById('charla-quien').textContent, texto: document.getElementById('charla-texto').textContent,
+        seguir: document.getElementById('charla-seguir').textContent, menu: !ul.classList.contains('oculto'), opciones: lis.map((l) => l.textContent), elegida: lis.findIndex((l) => l.classList.contains('elegida')) } })()`);
+    const tecla = async (code) => { await js(`(()=>{ window.__m361v.toque('${code}'); return 1 })()`); await cuadros(1); };
+    const npc = (clave) => `(${H}.gente.gente.find((g) => (g.claveAldea || g.clave) === '${clave}'))`;
+    const hastaMenu = async (max = 10) => { let v = await vista(); for (let i = 0; i < max && v.abierta && !v.menu; i++) { await tecla('KeyE'); v = await vista(); } return v; };
+    const hablarCon = async (clave) => { await js(`(()=>{ ${H}.hablar(${npc(clave)}); return 1 })()`); return hastaMenu(); };
+    const opcion = (v, re) => v.opciones.findIndex((t) => re.test(t));
+    const elegir = async (re) => { const v = await vista(); const i = opcion(v, re); if (i < 0) return { error: `no está ${re} en ${v.opciones.join(' / ')}` }; await tecla(`Digit${i + 1}`); return vista(); };
+    const cerrar = () => js(`(()=>{ ${H}.__cerrarCharla(); return 1 })()`);
+    const reloj = (dia, horas) => js(`(()=>{ const P = ${H}.progreso; P.dia = ${dia}; P.horas = ${horas}; return 1 })()`);
+    // los vecinos en su lugar de esa hora (lejos se acomodan de una) y vos donde digas
+    const acomodar = async (dia, horas) => {
+      await reloj(dia, horas);
+      await js(`(()=>{ const H = ${H}; window.__m361v.poner(H.T.lugares.refugio.x + 8, H.T.lugares.refugio.z + 8, 0); H.__aldea.actualizar(1); H.__aldea.actualizar(1); return 1 })()`);
+    };
+    // un lugar desde donde el aviso dice `texto` (alrededor de x, z, mirando hacia ahí)
+    const dondeDice = (x, z, re, radios = [0.8, 1.2, 1.6, 2.2]) => js(`(async ()=>{ const H = ${H}, A = window.__m361v;
+      for (const r of ${JSON.stringify(radios)}) for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, px = ${x} + Math.sin(a) * r, pz = ${z} + Math.cos(a) * r;
+        A.poner(px, pz, Math.atan2(-(${x} - px), -(${z} - pz))); const av = H.__avisoYa(); if (av && ${re}.test(av.texto)) return { x: px, z: pz, yaw: H.jugador.estado.yaw, aviso: av.texto }; }
+      return null })()`);
+    const P = `${H}.progreso`;
+    let e, v;
+
+    seccion('el menú en el almacén: lo del lugar no se pierde');
+    await acomodar(3, 10.5);
+    await js(`(()=>{ ${P}.cosas.yerba = 6; ${P}.cosas.harina = 1; return 1 })()`);
+    const most = await js(`(()=>{ const a = ${H}.est.almacen; return { x: a.mostrador.x, z: a.mostrador.z } })()`);
+    const lugarAlmacen = await dondeDice(most.x, most.z, /Ver qué hay en el almacén/);
+    ok(!!lugarAlmacen, `al mostrador del almacén, el aviso: ${lugarAlmacen?.aviso}`);
+    if (lugarAlmacen) {
+      await js(`(()=>{ window.__m361v.poner(${lugarAlmacen.x}, ${lugarAlmacen.z}, ${lugarAlmacen.yaw}); return 1 })()`);
+      v = await hablarCon('ercilia');
+      ok(v.menu && opcion(v, /Ver qué hay en el almacén/) >= 0 && /Nada más, chau/.test(v.opciones[v.opciones.length - 1]), `hablándole a Ercilia, lo del almacén en el menú (${v.opciones.join(' / ')})`);
+      ok(/1 a \d+, o la ruedita y E, para elegir · Escape para despedirte/.test(v.seguir), `el pie: ${v.seguir}`);
+      v = await elegir(/Regalar/);
+      ok(v.menu && /Mejor no/.test(v.opciones[v.opciones.length - 1]) && opcion(v, /yerba/i) >= 0, `el submenú de regalar (${v.opciones.join(' / ')})`);
+      v = await elegir(/Mejor no/);
+      ok(v.menu && opcion(v, /Ver qué hay en el almacén/) >= 0, `con «Mejor no», de vuelta al menú, con lo del almacén (${v.opciones.join(' / ')})`);
+      await elegir(/Regalar/); await tecla('Escape'); v = await vista();
+      ok(v.menu && opcion(v, /Ver qué hay en el almacén/) >= 0, 'con Escape, también');
+      // la ruedita mueve, E elige
+      const i0 = v.elegida;
+      await js(`(()=>{ window.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 })); return 1 })()`); v = await vista();
+      ok(v.elegida === (i0 + 1) % v.opciones.length, `la ruedita mueve la marca (${i0} → ${v.elegida})`);
+      await js(`(()=>{ window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 })); window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 })); return 1 })()`); v = await vista();
+      ok(v.elegida === (i0 + v.opciones.length - 1) % v.opciones.length, 'y para atrás (da la vuelta)');
+      // el clic en una opción (con el mouse suelto)
+      const iCom = opcion(v, /¿Cómo andás\?/);
+      await js(`(()=>{ const li = document.querySelectorAll('#charla-opciones li')[${iCom}]; li.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); return 1 })()`);
+      v = await vista();
+      ok(v.abierta && !v.menu && v.texto.length > 5, `el clic elige: «${v.texto.slice(0, 60)}»`);
+      
+      v = await hastaMenu();
+      ok((await js(`getComputedStyle(document.querySelector('#charla-opciones li')).pointerEvents`)) === 'auto', 'las opciones reciben el mouse (el HUD no)');
+      // E elige la marcada: la del almacén
+      const iLug = opcion(v, /Ver qué hay en el almacén/);
+      await js(`(()=>{ ${H}.__moverCharla(${iLug} - ${v.elegida}); return 1 })()`);
+      await tecla('KeyE');
+      e = await js(`(()=>({ almacen: ${H}.__abierto().enElAlmacen, charla: !document.getElementById('charla').classList.contains('oculto') }))()`);
+      ok(e.almacen && !e.charla, 'elegido lo del lugar: se abre el almacén y se cierra la charla');
+      await tecla('Escape');
+    }
+
+    seccion('el menú en la biblioteca: el préstamo, las dos veces');
+    await acomodar(3, 10.2);
+    const prest = await js(`(()=>{ const c = ${H}.__mecanicas().candidatos().find((q) => q.tipo === 'prestamo'); return c ? { x: c.x, z: c.z } : null })()`);
+    const lugarBib = prest && await dondeDice(prest.x, prest.z, /Pedir un libro prestado/, [0.5, 0.8, 1.1, 1.3]);
+    ok(!!lugarBib, `al mostrador de la biblioteca: ${lugarBib?.aviso}`);
+    if (lugarBib) {
+      await js(`(()=>{ window.__m361v.poner(${lugarBib.x}, ${lugarBib.z}, ${lugarBib.yaw}); return 1 })()`);
+      v = await hablarCon('abuela');
+      ok(v.menu && opcion(v, /Pedir un libro prestado/) >= 0, `la abuela, con el préstamo en el menú (${v.opciones.join(' / ')})`);
+      v = await elegir(/Pedir un libro prestado/);
+      e = await js(`(()=>({ prestado: ${P}.mecanicas.prestado, notas: document.getElementById('notas').textContent }))()`);
+      ok(!v.abierta && e.prestado && /Te llevás «/.test(e.notas), `se lleva el libro (${e.prestado?.id})`);
+      v = await hablarCon('abuela');
+      ok(v.menu && opcion(v, /^\d+\. Devolver «/) >= 0, `después, devolverlo (${v.opciones.join(' / ')})`);
+      v = await elegir(/Devolver «/);
+      e = await js(`${P}.mecanicas.prestado`);
+      ok(!v.abierta && e === null, 'devuelto');
+    }
+
+    seccion('alejarse, pausar, el modo foto y el que se va a lo suyo');
+    await acomodar(3, 10.5);
+    // el jefe de estación, a las 10:58 (a las 11 cambia de lugar: del andén a adentro, o al revés)
+    await reloj(3, 10.97);
+    await js(`(()=>{ const n = ${npc('jefe')}; window.__m361v.poner(n.pos.x + 1.4, n.pos.z, Math.PI / 2); return 1 })()`);
+    v = await hablarCon('jefe');
+    ok(v.menu, 'charlando con el jefe');
+    const antesJefe = await js(`(()=>{ const n = ${npc('jefe')}; return { x: n.pos.x, z: n.pos.z } })()`);
+    await reloj(3, 11.2);
+    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; for (let i = 0; i < 60; i++) { H.__aldea.actualizar(0.5); H.gente.actualizar(0.05, j, H.camara, ${npc('jefe')}, 0); } return 1 })()`);
+    e = await js(`(()=>{ const n = ${npc('jefe')}; return { d: Math.hypot(n.pos.x - ${antesJefe.x}, n.pos.z - ${antesJefe.z}), camino: n.camino?.length || 0 } })()`);
+    v = await vista();
+    ok(e.d < 0.3 && v.abierta && v.menu, `mientras le hablás no se va (se movió ${e.d.toFixed(2)} m)`);
+    // la pausa con el menú abierto
+    await js(`(()=>{ ${H}.abrir('pausa'); return 1 })()`); await esperar(500);
+    await js(`(()=>{ ${H}.volverAlJuego(); return 1 })()`); await esperar(450); await cuadros(2);
+    v = await vista();
+    ok(v.abierta && v.menu, 'de la pausa se vuelve al menú');
+    // el modo foto: las teclas no tocan el menú; al salir, sí
+    await js(`(()=>{ ${H}.abrirModoFoto(true); return 1 })()`); await cuadros(1);
+    const iAntes = v.elegida;
+    await tecla('Digit2'); await js(`(()=>{ ${H}.__moverCharla(1); return 1 })()`);
+    v = await vista();
+    ok(v.abierta && v.menu && v.elegida === iAntes, 'en el modo foto el menú no se toca');
+    await js(`(()=>{ ${H}.abrirModoFoto(false); return 1 })()`); await cuadros(1);
+    v = await vista();
+    ok(v.abierta && v.menu, 'al salir del modo foto, sigue');
+    // Escape desde el menú se despide
+    await tecla('Escape'); v = await vista();
+    ok(!v.abierta, 'Escape desde el menú se despide');
+    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; for (let i = 0; i < 6; i++) { H.__aldea.actualizar(0.5); H.gente.actualizar(0.05, j, H.camara, null, 0); } return 1 })()`);
+    e = await js(`(()=>{ const n = ${npc('jefe')}; return { camino: n.camino?.length || 0, d: Math.hypot(n.pos.x - ${antesJefe.x}, n.pos.z - ${antesJefe.z}) } })()`);
+    ok(e.camino > 0 || e.d > 0.3, 'y ahí sí sigue a lo suyo');
+    // alejarse con el menú abierto
+    await js(`(()=>{ const n = ${npc('jefe')}; window.__m361v.poner(n.pos.x + 1.4, n.pos.z, Math.PI / 2); return 1 })()`);
+    v = await hablarCon('jefe');
+    await js(`(()=>{ const n = ${npc('jefe')}, e = ${H}.jugador.estado; e.pos.x = n.pos.x + 9; for (let i = 0; i < 3; i++) ${H}.__avisoYa(); return 1 })()`);
+    v = await vista();
+    ok(!v.abierta, 'alejándote, la charla se cierra');
+
+    seccion('de noche, con lluvia y sin nada para regalar');
+    await acomodar(4, 21.4);
+    await js(`(()=>{ ${P}.cosas = { hacha: 1 }; ${P}.materiales = {}; for (const k of Object.keys(${P}.entradas)) if (${P}.entradas[k].cantidad) ${P}.entradas[k].cantidad = 0; ${H}.clima.estado.lluvia = 0.9; return 1 })()`);
+    const madre = await js(`(()=>{ const n = ${npc('madre')}; return n ? { x: n.pos.x, z: n.pos.z } : null })()`);
+    await js(`(()=>{ window.__m361v.poner(${madre.x} + 1.2, ${madre.z}, Math.PI / 2); return 1 })()`);
+    v = await hablarCon('madre');
+    ok(v.menu && opcion(v, /Regalar/) < 0, `sin nada para regalar, no está «Regalar…» (${v.opciones.join(' / ')})`);
+    await elegir(/Invitar/); v = await elegir(/té/);
+    ok(v.abierta && /noche|tarde|mañana/i.test(v.texto), `de noche no acepta: «${v.texto}»`);
+    await cerrar();
+    await js(`(()=>{ ${H}.clima.estado.lluvia = 0; return 1 })()`);
+
+    seccion('invitar a la casa de té, y recargar a la mitad');
+    // un martes a las 16:30: la madre está libre y la galesa atiende la galería
+    await acomodar(2, 16.5);
+    await js(`(()=>{ ${P}.cosas.yerba = 4; ${P}.vecindad.personas.madre && (${P}.vecindad.personas.madre.invito = 0); return 1 })()`);
+    const m2 = await js(`(()=>{ const n = ${npc('madre')}; return { x: n.pos.x, z: n.pos.z } })()`);
+    await js(`(()=>{ window.__m361v.poner(${m2.x} + 1.2, ${m2.z}, Math.PI / 2); return 1 })()`);
+    v = await hablarCon('madre');
+    await elegir(/Invitar/); v = await elegir(/té/);
+    ok(v.abierta && /casa de té/.test(v.texto), `acepta: «${v.texto}»`);
+    await tecla('KeyE'); await tecla('KeyE');
+    e = await js(`(()=>({ c: ${H}.__vecindad().cita(), guardada: ${P}.vecindad.cita }))()`);
+    ok(e.c?.que === 'te' && e.c.porAldea && e.guardada?.clave === 'madre', `va a la casa de té por las calles, y queda guardado (${e.c?.fase})`);
+    await js(`(()=>{ ${H}.guardar(); return 1 })()`);
+    // recargar la partida a la mitad
+    await abrir();
+    ok(await listo(), 'recargada');
+    await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2500);
+    await js(`${H}.volverAlJuego?.(); ${H}.ajustes.limiteFps = 'libre'; 1`);
+    await js(AYUDA);
+    await js(`(()=>{ const H = ${H}; for (let i = 0; i < 4; i++) { H.__aldea.actualizar(0.6); H.__vecindad().actualizar(0.6); } return 1 })()`);
+    e = await js(`(()=>({ c: ${H}.__vecindad().cita(), guardada: ${H}.progreso.vecindad.cita }))()`);
+    ok(e.c?.clave === 'madre' && e.c.que === 'te', `después de recargar, la madre sigue yendo a la casa de té (${e.c?.fase})`);
+    // la dejo caminar: llega a su silla, se sienta a la altura de la silla, no queda en el aire
+    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; const c = H.__vecindad().cita(); window.__m361v.poner(c.tuyo.x + 3, c.tuyo.z + 3, 0);
+      for (let i = 0; i < 3000 && H.__vecindad().cita()?.fase === 'yendo'; i++) { H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) { H.__aldea.actualizar(0.5); H.__vecindad().actualizar(0.6); } } return 1 })()`);
+    e = await js(`(()=>{ const H = ${H}, c = H.__vecindad().cita(), n = ${npc('madre')}; return { fase: c?.fase, d: c ? Math.hypot(n.pos.x - c.lugar.x, n.pos.z - c.lugar.z) : -1, pose: n.pose, asiento: n.asiento, saltos: H.__aldea.mundo().estado().saltos } })()`);
+    ok(e.fase === 'esperando' && e.d < 0.6 && e.pose === 'sentado', `llegó caminando y se sentó (${e.fase}, a ${e.d.toFixed(2)} m de su silla)`);
+    ok(Number.isFinite(e.asiento) && e.asiento > 0.3 && e.asiento < 0.7, `a la altura de la silla de la casa de té (${e.asiento})`);
   } catch (err) {
     errores.push(`excepción: ${err && err.message ? err.message : err}`);
   }
