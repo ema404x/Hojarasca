@@ -1149,18 +1149,45 @@ export function crearAldeaMundo(ctx) {
 
   // ------------------------------------------------ las raíces (los complejos)
   // (lo que tarda armar las texturas del ripio, en la carga)
-  const medidoR = (fn) => { const t0 = performance.now(); try { return fn(); } finally { info.ripioMs = performance.now() - t0; } };
+  // 3.6 (optimizar): las texturas del ripio (la grava y la máscara de las calles, ~60 ms) y el atlas de
+  // los carteles (~70 ms) se LLENAN después de la carga, en la portada (`trasCompilar` las agenda, de a
+  // una, cuando el navegador está libre). En la carga se arman vacías, con su tamaño y sus filtros: los
+  // programas se compilan igual (compilar no sube texturas) y ninguna se dibuja vacía, porque antes de
+  // montar cualquier cosa de la aldea se completan (`completarTexturas`, al momento si hiciera falta:
+  // por ejemplo si aparecés en la aldea y se monta todo en la carga).
+  const texturas = { grava: null, mascara: null, pasos: null };
+  function texturasVacias() {
+    const g = texturaDe(new Uint8Array(256 * 256 * 4), 256, 256);
+    g.wrapS = g.wrapT = 1000;   // Repeat
+    const P = MARCO_RIPIO, W = Math.round(P.ancho / P.paso), H = Math.round(P.alto / P.paso);
+    const t = new THREE.DataTexture(new Uint8Array(W * H * 4), W, H);
+    t.magFilter = 1006; t.minFilter = 1008; t.generateMipmaps = true; t.needsUpdate = true;
+    texturas.grava = g; texturas.mascara = { tex: t, ...P, W, H, datos: t.image.data };
+    texturas.pasos = [
+      () => { const t0 = performance.now(), d = texturaGrava().image.data; texturas.grava.image.data.set(d); texturas.grava.needsUpdate = true; info.gravaMs = performance.now() - t0; },
+      () => { const t0 = performance.now(), d = mascaraRipio().datos; texturas.mascara.datos.set(d); texturas.mascara.tex.needsUpdate = true; info.mascaraMs = performance.now() - t0; info.ripioMs = (info.gravaMs || 0) + info.mascaraMs; },
+      () => { const t0 = performance.now(); materiales.carteles.map.userData.pintar?.(); info.atlasMs = performance.now() - t0; },
+    ];
+  }
+  // (de a un paso si `uno`; si no, todo lo que falte)
+  function completarTexturas(uno = false) {
+    while (texturas.pasos?.length) { texturas.pasos.shift()(); if (uno) break; }
+  }
+  function completarDespues() {
+    if (!texturas.pasos?.length) return;
+    const ocio = typeof requestIdleCallback === 'function' ? (fn) => requestIdleCallback(fn, { timeout: 400 }) : (fn) => setTimeout(fn, 0);
+    ocio(() => { completarTexturas(true); completarDespues(); });
+  }
   function crearMateriales() {
     // (3.6 pulido: un material PROPIO con el detalle de superficie del shader; no el est.mat compartido)
     const estructura = prepararMaterialAldea(materialVegetal({ flex: 0 }));
     // 3.6 (plaza y álamos): las cartas de hojas pintadas, como el bosque (sin esto los álamos son sólo tronco y ramitas)
     const follaje = prepararFollajeAldea(materialVegetal({ flex: 1, copa: true }), { cartas: texturaCartas() });
-    const tA = performance.now();
-    const atlas = crearTexturaCarteles();
-    info.atlasMs = performance.now() - tA;
+    const atlas = crearTexturaCarteles({ despues: true });   // (se pinta en completarTexturas)
+    texturasVacias();
     return {
       estructura, follaje, muebles: estructura,
-      ripio: medidoR(() => { const t0 = performance.now(), g = texturaGrava(); info.gravaMs = performance.now() - t0; return materialRipio(g, mascaraRipio()); }),
+      ripio: materialRipio(texturas.grava, texturas.mascara),
       ventanaLuz: new THREE.MeshBasicMaterial({ map: texturaCharco(), color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
       carteles: new THREE.MeshLambertMaterial({ map: atlas }),
       vidrios: prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: U.uCieloBajo }),
@@ -1336,6 +1363,7 @@ export function crearAldeaMundo(ctx) {
     alamos.raiz.add(semillas);
   }
   function trasCompilar() {
+    setTimeout(completarDespues, 200);   // 3.6 (optimizar): las texturas, en la portada
     if (!semillas) return;
     semillas.parent?.remove(semillas);
     semillas.traverse((o) => o.geometry?.dispose());
@@ -1400,6 +1428,7 @@ export function crearAldeaMundo(ctx) {
   // Monta lo que esté en la cola (todo, o de a uno: `uno`).
   function montarCola(uno = false) {
     let hechos = 0;
+    if (cola.length) completarTexturas();   // 3.6 (optimizar): nada de la aldea se monta con las texturas vacías
     while (cola.length) {
       const t0 = performance.now();
       const q = cola.shift();

@@ -802,8 +802,10 @@ export function pintarCarteles(ctx) {
 // La textura del atlas (necesita `document`).
 // 3.6 (optimizar): se pinta UNA vez, con las letras de los carteles ya cargadas (antes se pintaba con
 // las de repuesto y otra vez al terminar de cargar las letras: dos pintadas de unos 70 ms en la carga)
+// `despues`: no se pinta todavía; `t.userData.pintar()` lo pinta cuando haga falta (aldea-mundo.js lo
+// hace después de la carga). Sin las letras cargadas, se pinta cuando llegan.
 export const LETRAS_CARTELES = ['600 54px "Spectral"', '700 66px "Caveat"'];
-export function crearTexturaCarteles() {
+export function crearTexturaCarteles({ despues = false } = {}) {
   const lienzo = document.createElement('canvas');
   lienzo.width = ATLAS_CARTELES.ancho; lienzo.height = ATLAS_CARTELES.alto;
   const ctx = lienzo.getContext('2d');
@@ -811,14 +813,17 @@ export function crearTexturaCarteles() {
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
   const F = document.fonts || null;
-  let listas = true;
-  try { listas = !F?.check || !F?.load || LETRAS_CARTELES.every((l) => F.check(l)); } catch { listas = true; }
-  if (listas) { pintarCarteles(ctx); return t; }
-  // las letras todavía no están: se piden y se pinta al llegar (si no llegan, con las de repuesto)
-  let pintado = false;
-  const pintar = () => { if (pintado) return; pintado = true; pintarCarteles(ctx); t.needsUpdate = true; };
-  try { Promise.all(LETRAS_CARTELES.map((l) => F.load(l))).then(pintar, pintar); } catch { pintar(); }
-  setTimeout(pintar, 4000);   // (por las dudas: nunca un cartel en blanco)
+  let letras = true, pedido = !despues, pintado = false;
+  try { letras = !F?.check || !F?.load || LETRAS_CARTELES.every((l) => F.check(l)); } catch { letras = true; }
+  const pintar = () => { if (pintado || !pedido || !letras) return; pintado = true; pintarCarteles(ctx); t.needsUpdate = true; };
+  t.userData.pintar = () => { pedido = true; pintar(); };
+  if (!letras) {
+    // las letras todavía no están: se piden y se pinta al llegar (si no llegan, con las de repuesto)
+    const llegaron = () => { letras = true; pintar(); };
+    try { Promise.all(LETRAS_CARTELES.map((l) => F.load(l))).then(llegaron, llegaron); } catch { letras = true; }
+    setTimeout(llegaron, 4000);   // (por las dudas: nunca un cartel en blanco)
+  }
+  pintar();
   return t;
 }
 // Un cartel: la tabla (en la estructura) y el texto (en el atlas), mirando a +Z del giro.

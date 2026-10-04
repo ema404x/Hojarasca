@@ -321,6 +321,9 @@ const con = valle({ aldea: true });
   ok(ab.montada === 'carpinteria|4|0' && ab.techo, 'abrió la carpintería: terminada y con techo');
   // 3.6 (detalles): el cable del poste a la casa aparece apenas abre (sin esperar la luz de las ventanas)
   ok((am.medir().acometidas || []).includes('carpinteria'), `el cable de luz llega a la carpintería cuando abre (${(am.medir().acometidas || []).join(', ')})`);
+  // 3.6 (optimizar): el ripio y los carteles se llenan después de la carga, pero nunca se monta nada con
+  // las texturas vacías: al montar la aldea ya están
+  ok(['gravaMs', 'mascaraMs', 'atlasMs'].every((k) => Number.isFinite(am.medir()[k])) && leer('src/aldea-mundo.js').includes('if (cola.length) completarTexturas();'), `las texturas del ripio y el atlas, completas al montar (grava ${am.medir().gravaMs?.toFixed(0)} ms, máscara ${am.medir().mascaraMs?.toFixed(0)} ms)`);
   // 3.6 (optimizar): rearmar un edificio con luz (la obra de nuevo en su última etapa y abierto otra
   // vez) no deja la luz vieja en la lista que se recorre en cada cuadro
   {
