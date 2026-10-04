@@ -257,6 +257,32 @@ function AYUDA() {
       await cuadros(entre(2, 20));
       return q;
     },
+    // 3.6.1: en la Aldea de los Duendes (sólo en el Relax): ir a un lugar (o al lado de alguien) y
+    // apretar de todo: E (charla con menú, mostradores, mecánicas, obras), números, la rueda, Escape
+    async aldea() {
+      if (D() || modo() !== 'jugando' || !H.__aldeaMundo?.()) return 'aldea (no)';
+      const js = H.jugador.estado;
+      if (js.enKayak || js.enTren || js.montado || js.enCable) return 'aldea (en un vehículo)';
+      const gente = [...(H.__aldea.mundo()?.personas?.values?.() || [])].map((s) => s.npc).filter((n) => n && !n.dormido);
+      let donde;
+      if (gente.length && r() < 0.5) { const n = uno(gente); H.jugador.ubicar(n.pos.x + 1.2, n.pos.z, Math.PI / 2); donde = n.nombre; }
+      else {
+        const id = uno(['plaza', 'biblioteca', 'almacen', 'casa-te', 'escuela', 'estacion', 'salon', 'carpinteria', 'herreria']);
+        const b = H.__aldea.edificio(id);
+        if (!b) return `aldea: no está ${id}`;
+        H.jugador.ubicar(b.x + (r() - 0.5) * 6, b.z + (r() - 0.5) * 6, r() * 6.283); donde = id;
+      }
+      H.__aldea.actualizar(entre(1, 3));
+      await cuadros(entre(3, 10));
+      const n = entre(2, 9);
+      for (let i = 0; i < n; i++) {
+        const t = uno(['KeyE', 'KeyE', 'KeyE', 'Digit1', 'Digit2', 'Digit3', 'Escape', 'KeyW', 'rueda']);
+        if (t === 'rueda') window.dispatchEvent(new WheelEvent('wheel', { deltaY: uno([-100, 100]) })); else await tecla(t, t === 'KeyW' ? 8 : 1);
+        await cuadros(entre(1, 4));
+      }
+      if (r() < 0.4) H.__aldea.actualizar(entre(1, 30));
+      return `aldea: ${donde} (${n} teclas, charla ${!!H.__charla?.()?.npc})`;
+    },
     // ------------------------------------------------ Desafío
     async arma() {
       if (!D() || modo() !== 'jugando') return 'arma (no)';
@@ -416,8 +442,8 @@ function AYUDA() {
       return 'nave (no hay haz)';
     },
   };
-  const PESOS_RELAX = { tecla: 22, caminar: 12, clic: 6, rueda: 3, mirar: 6, salto: 8, hora: 3, apurarTiempo: 2, ajustes: 5, panel: 6, mochila: 4, obra: 7, vehiculo: 8, pesca: 3, foto: 3, dormir: 2, materiales: 2, charla: 4, valle: 3, carrera: 2, vecinos: 4, limites: 2, dias: 2, mando: 3, foco: 2, repetir: 2, mapa: 2, tienda: 3 };
-  const PESOS_DESAFIO = { ...PESOS_RELAX, charla: 1, pesca: 1, valle: 0, carrera: 0, vecinos: 0, tienda: 0, arma: 8, pieza: 5, noche: 5, nocheReal: 4, herida: 4, taller: 3, nave: 1 };
+  const PESOS_RELAX = { tecla: 22, caminar: 12, clic: 6, rueda: 3, mirar: 6, salto: 8, hora: 3, apurarTiempo: 2, ajustes: 5, panel: 6, mochila: 4, obra: 7, vehiculo: 8, pesca: 3, foto: 3, dormir: 2, materiales: 2, charla: 4, valle: 3, carrera: 2, vecinos: 4, limites: 2, dias: 2, mando: 3, foco: 2, repetir: 2, mapa: 2, tienda: 3, aldea: 3 };   // (3.6.1: la aldea)
+  const PESOS_DESAFIO = { ...PESOS_RELAX, aldea: 0, charla: 1, pesca: 1, valle: 0, carrera: 0, vecinos: 0, tienda: 0, arma: 8, pieza: 5, noche: 5, nocheReal: 4, herida: 4, taller: 3, nave: 1 };
 
   async function accion(nombre, semilla) {
     sembrar(semilla);
