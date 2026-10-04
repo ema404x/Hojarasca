@@ -138,7 +138,8 @@ app.whenReady().then(async () => {
       // guardar y volver a abrir: lo guardado tiene que ser lo que había (día, ramitas, obras,
       // anotaciones, materiales, lo del Desafío)
       const foto = `(()=>{ const H = window.__hojarasca, P = H.progreso, D = P.desafio || {}; const suma = (o) => Object.values(o || {}).reduce((a, n) => a + (Number(n) || 0), 0);
-        return { dia: P.dia, ramitas: P.ramitas, obras: P.obras.length, entradas: Object.keys(P.entradas || {}).length, materiales: suma(P.materiales), cosas: Object.keys(P.cosas || {}).length, oleadas: D.oleadas ?? null, abatidos: D.abatidos ?? null } })()`;
+        return { dia: P.dia, ramitas: P.ramitas, obras: P.obras.length, entradas: Object.keys(P.entradas || {}).length, materiales: suma(P.materiales), cosas: Object.values(P.cosas || {}).filter((n) => Math.floor(Number(n)) > 0).length,   // (3.6.1: las que quedaron en 0 no se guardan: no cuentan)
+        oleadas: D.oleadas ?? null, abatidos: D.abatidos ?? null } })()`;
       const antes = await js(`(()=>{ window.__hojarasca.guardar(); return ${foto} })()`);
       navegando = false; await cargar();
       if (!(await recargo('recargar'))) return 'recargar (falló)';
