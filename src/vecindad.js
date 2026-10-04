@@ -233,16 +233,24 @@ function ganasIniciales(persona) {
 
 // ---------------------------------------------------------------- el estado
 const TOPE_HECHOS = 40, GUARDA_HECHOS = 7, RECIENTE = 2, TOPE_DICHOS = 24, TOPE_COMENT = 16, TOPE_CONOCE = 24;
+const COMENT_POR_DIA = 4;   // 3.6.1: (RECIENTE + 1) × 4 ≤ TOPE_COMENT
 export const TRUCHA_GRANDE_CM = 50;
 export const TALA_MUCHA = 8;
 export function vecindadNueva() {
-  return { personas: {}, hechos: [], visita: { ultima: 0, cuenta: 0 }, dia: 0 };
+  return { personas: {}, hechos: [], visita: { ultima: 0, cuenta: 0 }, dia: 0, cita: null };
+}
+// 3.6.1: la invitación a tomar algo que todavía no se tomó ({ clave, que: 'mate'|'te', desde: horas
+// absolutas }), para que no se pierda al recargar la partida (ver vecindad-juego.js)
+export function sanearCita(c) {
+  if (!objeto(c) || !esPersonaVecindad(c.clave) || (c.que !== 'mate' && c.que !== 'te')) return null;
+  const desde = num(c.desde);
+  return Number.isFinite(desde) && desde >= 0 && desde < TOPE_DIA * 24 ? { clave: c.clave, que: c.que, desde } : null;
 }
 function fichaNueva(persona) {
   return {
     p: 0, max: 0, desde: 0, contacto: 0,
     charla: 0, regalo: 0, invito: 0, ayuda: 0, visito: 0, dejo: 0,
-    hist: 0, ayudas: 0, regalos: 0,
+    hist: 0, ayudas: 0, regalos: 0, cd: 0, cn: 0,
     hizo: null, con: null, ultimoRegalo: null,
     ganas: ganasIniciales(persona), dichos: [], coment: [],
     conoce: [],   // 3.6: lo que ya le regalaste (el cuaderno muestra qué le gusta, sin números)
@@ -366,11 +374,18 @@ const almacenAbierto = (aldea, hora, ds) => {
   const e = rutinaAldea('ercilia', hora, ds, aldea), n = rutinaAldea('nelida', hora, ds, aldea);
   return (e.lugar === 'trabajo' && e.punto === 'adentro') || (n.lugar === 'trabajo' && n.punto === 'adentro');
 };
+// 3.6.1: a qué hora (de cada uno, con su corrimiento) ya es de noche para estar afuera, y cuánto rato
+// tiene que quedar antes para empezar algo afuera
+export const NOCHE_AFUERA = 20.5;
+const MINIMO_AFUERA = 0.5;
 function candidatas(persona, hora, ds, c, aldea, sem) {
   const t = hora - desfaseDe(persona);
   const perfil = PERFILES_VECINOS[persona];
   const chico = !!VECINOS_ALDEA[persona]?.chico;
   const noche = t >= 20.5 || t < 7;
+  // 3.6.1: lo de afuera, sólo con luz y con tiempo de hacerlo antes de que oscurezca (a las 20:30):
+  // elegido a las 20:10, el chico seguía jugando en la nieve hasta las 22 (ver NOCHE_AFUERA)
+  const deDia = !noche && t < NOCHE_AFUERA - MINIMO_AFUERA;
   const lluvia = c === 'lluvia', nieve = c === 'nieve';
   const casa = casaDe(persona, aldea);
   const vivienda = casa || 'estacion-aldea';   // el que espera su local duerme en la estación
@@ -398,21 +413,21 @@ function candidatas(persona, hora, ds, c, aldea, sem) {
     } else if (!noche && (ra.lugar === 'local' || ra.lugar === 'trabajo') && ra.edificio !== 'casa-familia') {
       const punto = elPunto(ra.edificio, ['cliente', 'cliente-2', 'mesa-3', 'espera', 'puerta']);
       sumar('visitar', peso, ra.edificio, punto, { con: a });
-    } else if (!noche && !lluvia && ra.lugar === 'plaza') {
+    } else if (deDia && !lluvia && !nieve && ra.lugar === 'plaza') {   // 3.6.1: con nieve, tampoco en el banco de la plaza
       const k = Number(String(ra.punto).replace(/\D/g, '')) || 1;
       sumar('visitar', peso, 'plaza', ra.punto?.startsWith('estar-') ? `estar-${(k % 20) + 1}` : `estar-${(i % 20) + 1}`, { con: a });
     }
   }
   if (!noche && !chico && persona !== 'ercilia' && persona !== 'nelida' && almacenAbierto(aldea, hora, ds)) sumar('compras', 0.7, 'almacen', `cliente-${((i + Math.floor(sem * 3)) % 3) + 1}`);
-  if (!noche && !lluvia) {
-    sumar('plaza', 1, 'plaza', `estar-${((i + Math.floor(sem * 20)) % 20) + 1}`);
+  if (deDia && !lluvia) {
+    if (!nieve) sumar('plaza', 1, 'plaza', `estar-${((i + Math.floor(sem * 20)) % 20) + 1}`);   // 3.6.1: sentado en la plaza con nieve, no
     const destino = [['estacion-aldea', 'anden'], ['estacion-aldea', 'salida'], ['plaza', 'duende']][(i + Math.floor(sem * 3)) % 3];
     sumar('paseo', 0.8, destino[0], destino[1]);
     if (chico) sumar('jugar', 2.5, 'plaza', `juego-${((i + Math.floor(sem * 4)) % 4) + 1}`);
   }
-  if (!noche && !lluvia && casa && !chico) sumar('lena', 0.6, casa, 'trabajo');
-  if (!noche && !lluvia && !nieve && casa && !chico) sumar('regar', 0.4, casa, 'trabajo');
-  if (!noche && nieve && casa && !chico) sumar('palear', 1.4, casa, elPunto(casa, ['vereda', 'puerta']));
+  if (deDia && !lluvia && casa && !chico) sumar('lena', 0.6, casa, 'trabajo');
+  if (deDia && !lluvia && !nieve && casa && !chico) sumar('regar', 0.4, casa, 'trabajo');
+  if (deDia && nieve && casa && !chico) sumar('palear', 1.4, casa, elPunto(casa, ['vereda', 'puerta']));
   if (!noche && (lluvia || nieve)) sumar('galeria', 0.7, vivienda, elPunto(vivienda, ['puerta', 'vereda', 'adentro']));
   return lista;
 }
@@ -466,7 +481,9 @@ export function elegirActividad(persona, hora, diaSemana, clima, estado, semilla
   let elegida = lista[lista.length - 1];
   for (let k = 0; k < lista.length; k++) { q -= pesos[k]; if (q < 0) { elegida = lista[k]; break; } }
   const quiere = 0.75 + Math.floor(sem * 6) * 0.25;
-  const duracion = Math.max(0, Math.floor(Math.min(quiere, disponible) * 100) / 100);
+  // 3.6.1: lo de afuera termina antes de que oscurezca
+  const tope = ACTIVIDADES[elegida.actividad].afuera ? Math.max(0, NOCHE_AFUERA - t) : Infinity;
+  const duracion = Math.max(0, Math.floor(Math.min(quiere, disponible, tope) * 100) / 100);
   const lugar = elegida.edificio === 'plaza' ? 'plaza' : elegida.edificio === 'biblioteca' ? 'biblioteca' : elegida.edificio === 'almacen' ? 'almacen'
     : elegida.edificio === 'casa-te' && persona !== 'galesa' ? 'casa-te' : elegida.edificio === 'estacion-aldea' && elegida.actividad === 'paseo' ? 'paseo'
       : elegida.con ? 'visita' : 'casa';
@@ -579,6 +596,12 @@ export function comentarioSobreVos(persona, estado, dia) {
   const f = fichaSi(v, persona);
   const ya = f ? f.coment : [];
   const recientes = v.hechos.filter((h) => d - h.dia >= 0 && d - h.dia <= RECIENTE).sort((a, b) => b.dia - a.dia);
+  // 3.6.1: lo ya comentado de días que no se comentan más se olvida (si no, con la lista llena, lo
+  // primero que se dijo se borraba y el chismoso lo volvía a contar)
+  if (f) f.coment = f.coment.filter((k) => { const m = /@(d+)$/.exec(k); return !m || d - Number(m[1]) <= RECIENTE; });
+  // y comenta hasta cuatro cosas por día: con eso lo comentado de los días que cuentan (tres) entra en
+  // la lista (16) y nada se dice dos veces (antes, con veinte regalos en un día, la chismosa repetía)
+  if (f && f.cd === d && f.cn >= COMENT_POR_DIA) return null;
   for (const h of recientes) {
     const clave = `${h.id}${h.dato?.persona ? ':' + h.dato.persona : ''}${h.dato?.lote ? ':' + h.dato.lote : ''}@${h.dia}`;
     if (ya.includes(clave)) continue;
@@ -594,7 +617,10 @@ export function comentarioSobreVos(persona, estado, dia) {
     if (!lineas) continue;
     const texto = primeraQueSirva(lineas, datosDeHecho(h), (f?.coment.length || 0) % lineas.length);
     if (!texto) continue;
-    recordar(ficha(v, persona).coment, clave, TOPE_COMENT);
+    const fc = ficha(v, persona);
+    recordar(fc.coment, clave, TOPE_COMENT);
+    if (fc.cd !== d) { fc.cd = d; fc.cn = 0; }
+    fc.cn++;
     return { texto, hecho: h.id };
   }
   return null;
@@ -706,6 +732,33 @@ function novedades(persona, v, aldea, progreso, contexto) {
   if (!elegidos.length) return { renglones: [FRASES.sinNovedades[(d + hashTexto(persona)) % FRASES.sinNovedades.length]], claves: [] };
   return { renglones: elegidos.flatMap((x) => x.renglones), claves: elegidos.map((x) => x.clave) };
 }
+// 3.6.1: lo ya contado que no se puede volver a contar se olvida (el pronóstico y el tren de otro día, el
+// que ya no está llegando, el local que abrió hace días, la etapa de obra que ya pasó, el animal que ya
+// anotaste): así la lista (24) no se llena de cosas viejas y no se borra lo que sí importa, que se
+// volvía a contar (la misma novedad dos veces)
+// Con la lista llena se olvida primero un avistaje viejo (vuelve a contarlo más adelante, como pista)
+// o la sobremesa: nunca lo del pueblo que todavía vale.
+function recordarDicho(lista, clave) {
+  const i = lista.indexOf(clave);
+  if (i >= 0) lista.splice(i, 1);
+  lista.push(clave);
+  while (lista.length > TOPE_DICHOS) {
+    const j = lista.findIndex((k) => /^(fauna|sob|trenx):/.test(k));
+    lista.splice(j >= 0 ? j : 0, 1);
+  }
+}
+function podarDichos(f, aldea, entradas, d) {
+  const obra = obraEnCurso(aldea), hechas = obra ? etapaDe(aldea, obra).hechas : -1;
+  f.dichos = f.dichos.filter((k) => {
+    const [tipo, a, b] = k.split(':');
+    if (tipo === 'fauna') return !tieneDe(entradas, a);
+    if (tipo === 'llego') return aldea.llegando?.clave === a;
+    if (tipo === 'abrio') return objeto(aldea.locales) && Object.hasOwn(aldea.locales, a) && d - entero(aldea.locales[a]) <= 3;
+    if (tipo === 'obra') return a === obra && Number(b) === hechas;
+    if (tipo === 'pron' || tipo === 'tren') return Number(a) === d;
+    return true;
+  });
+}
 function historiaDe(persona, v) {
   const f = fichaSi(v, persona);
   const hist = f ? f.hist : 0;
@@ -748,7 +801,10 @@ export function elegirTema(persona, tema, estado, contexto = {}) {
   const t = lista.find((x) => x.id === tema);
   if (!t) return { renglones: [] };
   const f = ficha(v, persona);
-  if (tema === 'novedades') for (const k of novedades(persona, v, aldea, progreso, contexto).claves) recordar(f.dichos, k, TOPE_DICHOS);
+  if (tema === 'novedades') {
+    podarDichos(f, aldea, objeto(progreso?.entradas) ? progreso.entradas : objeto(contexto?.entradas) ? contexto.entradas : {}, d);
+    for (const k of novedades(persona, v, aldea, progreso, contexto).claves) recordarDicho(f.dichos, k);
+  }
   if (tema === 'historia') { const h = historiaDe(persona, v); if (!h.bloqueada && !h.termino) f.hist = h.parte; }
   const amistad = charlar(persona, progreso || v, d);
   return { renglones: t.renglones, amistad };
@@ -844,7 +900,7 @@ export function invitar(persona, que, estado, hora, extra = {}) {
   let libres = voz.sobremesa.map((_x, i) => i).filter((i) => !f.dichos.includes(`sob:${i}`));
   if (!libres.length) { f.dichos = f.dichos.filter((k) => !k.startsWith('sob:')); libres = voz.sobremesa.map((_x, i) => i); }
   const cuantas = indiceNivel(persona, v) >= 1 ? 2 : 1;
-  for (const i of libres.slice(0, cuantas)) { renglones.push(voz.sobremesa[i]); recordar(f.dichos, `sob:${i}`, TOPE_DICHOS); }
+  for (const i of libres.slice(0, cuantas)) { renglones.push(voz.sobremesa[i]); recordarDicho(f.dichos, `sob:${i}`); }
   f.invito = d;
   const amistad = sumarAmistad(v, persona, AMISTAD.invitar, d);
   anotarHecho(progreso || v, 'invitacion', d, { persona, que });
@@ -899,11 +955,13 @@ export const VISITA_AMISTAD = { cada: 4 };
 // Un compadre que viene a visitarte al refugio (para quien maneje visitas.js: llamarla cuando
 // toca una visita; si devuelve a alguien, viene él en vez del turno de siempre). Devuelve
 // { clave, partes: [2 renglones], regalo: { tipo, k, n }, textoRegalo } o null. La marca hecha.
-export function visitaDeAmistad(estado, dia) {
+// 3.6.1: `puede(clave)`: si ése puede venir ahora (no está en el tren, ni de visita, ni charlando con vos).
+// Antes se marcaba la visita aunque no pudiera venir: se perdía (y volvía a los cuatro días).
+export function visitaDeAmistad(estado, dia, puede = null) {
   const { v } = partes(estado, true);
   const d = diaValido(dia, 1);
   if (v.visita.ultima && d - v.visita.ultima < VISITA_AMISTAD.cada) return null;
-  const compadres = PERSONAS_VECINDAD.filter((k) => indiceNivel(k, v) >= 2);
+  const compadres = PERSONAS_VECINDAD.filter((k) => indiceNivel(k, v) >= 2 && (typeof puede !== 'function' || puede(k)));
   if (!compadres.length) return null;
   compadres.sort((a, b) => (v.personas[a].visito - v.personas[b].visito) || (PERSONAS_VECINDAD.indexOf(a) - PERSONAS_VECINDAD.indexOf(b)));
   const clave = compadres[0];
@@ -969,6 +1027,7 @@ function sanearFicha(persona, x0) {
     p: max >= 1 ? Math.max(p, AMISTAD.umbral.amigo) : p, max, desde: diaOCero(x.desde), contacto: diaOCero(x.contacto),
     charla: diaOCero(x.charla), regalo: diaOCero(x.regalo), invito: diaOCero(x.invito), ayuda: diaOCero(x.ayuda), visito: diaOCero(x.visito), dejo: diaOCero(x.dejo),
     hist: acotar(entero(x.hist), 0, VOCES[persona].historia.partes.length), ayudas: diaOCero(x.ayudas), regalos: diaOCero(x.regalos),
+    cd: diaOCero(x.cd), cn: acotar(entero(x.cn), 0, COMENT_POR_DIA),   // 3.6.1: lo comentado hoy
     hizo: typeof x.hizo === 'string' && Object.hasOwn(ACTIVIDADES, x.hizo) ? x.hizo : null,
     con: esPersonaVecindad(x.con) ? x.con : null,
     ultimoRegalo: esRegalable(x.ultimoRegalo) ? x.ultimoRegalo : null,
@@ -993,5 +1052,5 @@ export function sanearVecindad(v0) {
   }
   const recientes = dia ? hechos.filter((h) => dia - h.dia <= GUARDA_HECHOS && h.dia <= dia + 1) : hechos;
   const visita = objeto(x.visita) ? x.visita : {};
-  return { personas, hechos: recientes.slice(-TOPE_HECHOS), visita: { ultima: diaOCero(visita.ultima), cuenta: diaOCero(visita.cuenta) }, dia };
+  return { personas, hechos: recientes.slice(-TOPE_HECHOS), visita: { ultima: diaOCero(visita.ultima), cuenta: diaOCero(visita.cuenta) }, dia, cita: sanearCita(x.cita) };
 }

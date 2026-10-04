@@ -225,17 +225,30 @@ const _qMate = new THREE.Quaternion(), _qInclina = new THREE.Quaternion(), _eMat
 // leyendo (sentado, con el libro imaginario en las manos), paleando o partiendo leña (los brazos
 // van y vienen), regando, mirando lejos y jugando (saltitos). Se llama después de los gestos de
 // siempre, que ya pusieron todo en su lugar en este cuadro.
-const SENTADO_BAJA = 0.37;
+// 3.6.1: la altura del asiento (`g.asiento`, en metros sobre el piso: la pone aldea-gente.js con la
+// silla de verdad) y la talla (los chicos, más bajitos) deciden cuánto baja la cadera. Antes bajaba
+// siempre 37 cm de la figura: un chico (talla 0,6) quedaba 7 cm arriba de un almohadón de la biblioteca
+// y hundido 18 cm en una silla. Si la cadera queda más baja que el largo de la canilla (un almohadón,
+// el piso), las piernas van estiradas hacia adelante en vez de colgar.
+const ASIENTO_COMUN = 0.47;                // una silla o un banco
+const CADERA = 0.82, CANILLA = 0.44;       // en la figura: la cadera y de la rodilla a la suela
+export function bajaSentado(asiento, talla) {
+  const esc = talla > 0.3 ? talla : 1;
+  const s = Number.isFinite(asiento) && asiento >= 0 ? asiento : ASIENTO_COMUN;
+  return Math.max(0, Math.min(CADERA - 0.12, CADERA + 0.02 - s / esc));   // la cadera, 2 cm abajo del asiento
+}
 function posar(g, charlando) {
   const t = g.fase;
   switch (g.pose) {
     case 'sentado': case 'leyendo': {
-      const b = SENTADO_BAJA;
+      const b = bajaSentado(g.asiento, g.g?.scale?.y);
+      const cadera = CADERA - b;
+      const recoge = cadera < CANILLA ? Math.acos(Math.max(0, cadera - 0.02) / CANILLA) : 0;   // la canilla, adelante
       g.torso.position.y -= b; g.cabeza.position.y -= b;
       g.brazos[0].position.y -= b; g.brazos[1].position.y -= b;
       for (const p2 of g.patas) {
         p2.position.y -= b; p2.rotation.x = -1.45;
-        if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 1.45;
+        if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 1.45 - recoge;
       }
       g.torso.rotation.x = -0.04;
       if (g.pose === 'leyendo') { g.brazos[0].rotation.x = -0.95; g.brazos[1].rotation.x = -0.95; g.cabeza.rotation.x += 0.3; }
@@ -880,7 +893,9 @@ export function crearGente(T, escena, col, sonido) {
       // en el Desafío, los vecinos instalados en la base siguen con lo suyo aunque pases cerca
       // 1.11: el que viene de visita no se frena a mitad de camino: llega a la mesa y ahí te mira
       // 3.6: los vecinos de la aldea que charlan entre ellos se miran a ellos, no a vos
-      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos;
+      // 3.6.1: el que invitaste a tomar algo va con vos: no se frena porque estés al lado (si lo
+      // acompañabas a la casa de té, se quedaba parado en la calle esperando que te alejaras)
+      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos && !g.enCita;
       let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
       if (g.camino && !charlando && !cerquita) {
         // 3.6: con horario (la gente de la aldea): `camino` son los puntos que faltan (por las

@@ -347,6 +347,7 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       if (Math.abs(s.y - 0.45 - jug.estado.pos.y) > 1.1) continue;
       if (d > 0.8 && ((s.x - ojo.x) * adelantePlano.x + (s.z - ojo.z) * adelantePlano.z) / d < 0.55) continue;
       if (est.col?.paredEntre?.(ojo.x, ojo.z, s.x, s.z, s.y)) continue;
+      if (est.ocupado?.(s)) continue;   // 3.6.1: en la silla donde está sentado un vecino, no (te sentabas encima)
       probar({ tipo: 'sentarse', s, texto: s.cama ? 'Acostarte a dormir' : 'Sentarte en ' + s.nombre }, s.cama ? 0.95 : 0.87);
     }
     return mejor;

@@ -587,6 +587,8 @@ async function construir() {
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
   bichos = await paso('Escondiendo un panal en un tronco', 91, () => crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos));
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido));
+  // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
+  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
@@ -2641,7 +2643,9 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'KeyR':
       if (modoObra && obras) { obras.girar(e.shiftKey ? -1 : 1); dibujarPanelObra(); break; }
-      if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(!js.sentado);
+      // 3.6.1: sentado, R siempre te levanta (en la punta del muelle no lo hacía)
+      if (js.sentado) jugador.sentarse(false);
+      else if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(true);
       break;
     case 'KeyN':
       if (modoObra && obras) {
@@ -3663,8 +3667,15 @@ function leerMando(dt) {
   sostenerTecla('KeyD', m.mov.x > 0.2); sostenerTecla('KeyA', m.mov.x < -0.2);
   sostenerTecla('ShiftLeft', !!m.activos.correr);
   if (m.recien.saltar) golpeDeTecla('Space');
-  if (m.recien.agacharse) golpeDeTecla('KeyC');
-  for (const a of ACCIONES_TECLA_MANDO) if (m.recien[a]) golpeDeTecla(TECLA_DE_MANDO[a]);
+  // 3.6.1: charlando, B vuelve atrás o se despide (como Escape; antes te agachaba), y con el menú
+  // abierto la cruceta arriba y abajo mueve la opción (antes abría la mochila y el taller)
+  const enCharla = !!charla.npc && !foto.activo;
+  if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); }
+  for (const a of ACCIONES_TECLA_MANDO) {
+    if (!m.recien[a]) continue;
+    if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }
+    golpeDeTecla(TECLA_DE_MANDO[a]);
+  }
   // 3.6 (vida): con el menú de la charla abierto, LB y RB mueven la opción marcada (X la elige)
   if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
   if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
@@ -4003,6 +4014,7 @@ function traerVisita(clave, puesta, llegando) {
   // 3.6 (vida): también la gente de la aldea (el compadre que viene a tu mesa), aunque no la hayas visto hoy
   const npc = gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave) || aldeaGente?.figura?.(clave) || null;
   if (!npc || npc.enBase || npc.aBordo || npc.deVisita) return false;
+  if (charla.npc === npc) return false;   // 3.6.1: charlando con vos en la aldea, no desaparece a mitad de la frase
   visitante = { npc, antes: { ruta: npc.ruta, etapa: npc.etapa, espera: npc.espera, x: npc.pos.x, z: npc.pos.z, velocidad: npc.velocidad, saludo: npc.saludo, despedida: npc.despedida, soloCerca: npc.soloCerca, camino: npc.camino } };
   npc.soloCerca = 0; npc.pose = null; npc.dormido = false; npc.camino = null;   // 3.6 (vida)
   const lugar = lugarEnLaMesa(puesta);
@@ -4148,6 +4160,12 @@ function armarOficiosYAldea(esDesafio) {
     alTerminarCharla: (c) => mecanicasAldea?.alTerminarCharla(c),   // 3.6 (mecánicas): los cuentos del domingo
     // 3.6 (vida): el tiempo libre según el clima, y lo que los vecinos recuerdan de vos
     climaVecindad, alAporteObra: (lote) => vecindadJuego?.hecho('aporte-obra', { lote }),
+    // 3.6.1 (vecinos): la altura de la silla donde se sienta un vecino (sobre su piso) y cuánto dura una
+    // hora del juego (para salir con tiempo a lo que le toca)
+    // (la silla de al lado de la misma mesa o el mismo banco, si la del punto no es de las que usa el jugador:
+    // en la casa de té cada mesa tiene dos sillas iguales y una sola es asiento tuyo)
+    asientoEn: (x, z, y) => { let m = null, dm = 1.2; for (const s of est?.sentaderos || []) { const d = Math.hypot(s.x - x, s.z - z); if (d < dm && Math.abs(s.y - y) < 1.5 && !s.cama) { dm = d; m = s; } } return m ? Math.max(0, m.y - 0.02 - y) : null; },
+    segundosPorHora: () => ((ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion) * 60) / 24,
     alServicio: (k, efectos) => { if ((efectos || []).some((f) => f.k === 'poncho' && (f.n > 0 || f.fijar > 0))) vecindadJuego?.hecho('poncho'); },
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
@@ -4157,6 +4175,10 @@ function armarOficiosYAldea(esDesafio) {
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     mesa: () => mesaPuesta(mueblesTerminados()), hayVisita: () => !!visitante,
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), aldea: () => aldeaGente,
+    // 3.6.1: la figura de un vecino (para retomar una invitación al recargar)
+    npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
+    // 3.6.1: el compadre que puede venir a tu mesa (no en el tren, ni de visita, ni charlando con vos)
+    puedeVenir: (k) => { const n = gente?.gente?.find((g) => (g.claveAldea || g.clave) === k) || aldeaGente?.figura?.(k); return !!n && !n.enBase && !n.aBordo && !n.deVisita && charla.npc !== n; },
   });
   // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea (ver aldea-mecanicas-mundo.js)
   if (aldeaMundo) mecanicasAldea = crearMecanicasAldea({
@@ -6125,9 +6147,9 @@ function accionDelLugar() {
   if (m && ['prestamo', 'casillas', 'horario', 'mapa', 'camilla'].includes(m.tipo)) return { texto: m.texto, hacer: m.hacer };
   return null;
 }
-function abrirMenuCharla(alFinal = false) {
-  if (!vecindadJuego || !charla.vec) return;
-  charla.vec.sub = null;
+// 3.6.1: el menú (o el submenú) con lo del lugar. Antes lo del lugar se agregaba sólo al abrirlo: al
+// volver de «Regalar…» con «Mejor no» o con Escape, «Ver qué hay en el almacén» ya no estaba.
+function armarMenuCharla(alFinal = false) {
   charla.menu = vecindadJuego.menu(charla.vec, alFinal);
   const lugar = charla.menu?.tipo === 'charla' ? accionDelLugar() : null;
   if (lugar) {
@@ -6136,6 +6158,11 @@ function abrirMenuCharla(alFinal = false) {
     charla.menu.opciones.splice(k, 0, { id: '__lugar', titulo: lugar.texto, hacer: lugar.hacer });
     if (charla.menu.i >= k) charla.menu.i++;
   }
+}
+function abrirMenuCharla(alFinal = false) {
+  if (!vecindadJuego || !charla.vec) return;
+  charla.vec.sub = null;
+  armarMenuCharla(alFinal);
   charla.historia = null; charla.encargo = null; charla.parte = 0;
   dibujarMenuCharla();
 }
@@ -6148,15 +6175,20 @@ function dibujarMenuCharla() {
     const li = document.createElement('li');
     li.textContent = `${i + 1}. ${o.titulo}`;
     if (i === m.i) li.className = 'elegida';
-    li.addEventListener('click', () => elegirEnMenuCharla(i));
+    // 3.6.1: con el mouse suelto, clic en la opción (mousedown, como la barra: que no tire la línea)
+    li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegirEnMenuCharla(i); });
     ul.appendChild(li);
   });
   ul.classList.remove('oculto');
-  $('charla-seguir').textContent = (m.tipo === 'charla' ? PIE_MENU : PIE_SUBMENU).replace('{n}', m.opciones.length);
+  // 3.6.1: con el mando, el pie dice los botones (antes decía la ruedita y E)
+  const pie = habiaMando ? (m.tipo === 'charla' ? PIE_MENU_MANDO : PIE_SUBMENU_MANDO) : (m.tipo === 'charla' ? PIE_MENU : PIE_SUBMENU);
+  $('charla-seguir').textContent = pie.replace('{n}', m.opciones.length);
 }
+const PIE_MENU_MANDO = 'LB y RB, o la cruceta, y X para elegir · B para despedirte';
+const PIE_SUBMENU_MANDO = 'LB y RB, o la cruceta, y X para elegir · B para volver';
 function moverMenuCharla(paso) {
   const m = charla.menu;
-  if (!m) return;
+  if (!m || foto.activo) return;   // 3.6.1: en el modo foto el menú no se ve (LB y RB lo movían a ciegas)
   m.i = (m.i + paso + m.opciones.length) % m.opciones.length;
   dibujarMenuCharla();
 }
@@ -6167,7 +6199,7 @@ function elegirEnMenuCharla(i) {
   const r = vecindadJuego.elegir(charla.vec, m.opciones[i].id, charla.npc);
   charla.menu = null;
   charla.parte = 0;
-  if (r.tipo === 'menu') charla.menu = vecindadJuego.menu(charla.vec);
+  if (r.tipo === 'menu') armarMenuCharla();   // 3.6.1: con lo del lugar
   else if (r.tipo === 'renglones') charla.historia = { id: 'vecindad-tema', partes: r.renglones, volver: true };
   else if (r.tipo === 'historia') charla.historia = { ...r.historia, volver: true };
   else if (r.tipo === 'cita') charla.historia = { id: 'vecindad-cita', partes: r.renglones, cita: r };
@@ -6176,7 +6208,7 @@ function elegirEnMenuCharla(i) {
 }
 // Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
 function atrasCharla() {
-  if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; charla.menu = vecindadJuego.menu(charla.vec); mostrarCharla(); return; }
+  if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }   // 3.6.1: con lo del lugar
   if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
   cerrarCharla();
 }
@@ -6364,6 +6396,9 @@ function actualizarEscucha(dtReal) {
 }
 document.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || modo !== 'jugando' || !jugador || !jugador.bloqueado() || foto.activo) return;   // 3.5.4: ni en el modo foto
+  // 3.6.1: charlando con el mouse bloqueado (sin flecha para apuntar), el clic es E: elige la opción
+  // marcada o sigue la charla (antes tiraba la línea de pesca en medio de la charla)
+  if (charla.npc && document.pointerLockElement) { seguirCharla(); return; }
   pesca.clic(true, mundoPesca());
 });
 document.addEventListener('mouseup', (e) => {
@@ -6466,6 +6501,8 @@ function guardar() {
   const e = T.lugares.estacion;
   progreso.pos = jugador.estado.enKayak ? { x: m.punta.x, z: m.punta.z }
     : jugador.estado.enTren && e ? { x: e.espera.x, z: e.espera.z }
+    // 3.6.1: sentado, se guarda donde estabas parado (el asiento puede caer adentro de un mueble)
+    : jugador.estado.sentado && jugador.estado.salida ? { x: jugador.estado.salida.x, y: jugador.estado.salida.y, z: jugador.estado.salida.z }
     : { x: jugador.estado.pos.x, y: jugador.estado.pos.y, z: jugador.estado.pos.z };
   // 2.9: guardando arriba del velero se aparece en la orilla; colgado de la tirolesa, en la llegada
   const guardadoVela = vela?.paraGuardar();
@@ -7935,7 +7972,11 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 1.11
     // 3.5: la distancia de dibujo y de plantas (pruebas y herramientas de medición)
     pasto, calidad, aplicarDistancias, __distancias: () => ({ ajustes: { distancia: ajustes.distancia, plantas: ajustes.distanciaPlantas }, rigen: distActual, veg: veg.distancias(), pasto: { radio: pasto.radio, matas: pasto.matas }, soto: { ...veg.statsSoto } }),
-    __bucle: () => bucle(0, true), __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
+    __bucle: () => bucle(0, true),
+    // 3.6.1 (vecinos): el aviso de ahora mismo (sin esperar los relojes de lo que hay adelante), para
+    // comparar en cada lugar lo que dice el aviso con lo que hace E (humo-3-6-1-vecinos.cjs)
+    __avisoYa: () => { acumuladoVecino = 99; acumuladoBuscar = 99; acumuladoInteraccion = 99; bucle(0, true); return avisoTexto ? { tecla: avisoTecla, texto: avisoFrase } : null; },
+    __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
     cocinar, hayQueCocinar, __mundoPerro: () => mundoPerro, __abierto: () => ({ enElAlmacen, enLaFeria }),
     __sync: { copiarASync, revisarCarpetaSync, estado: () => ({ carpetaSync, ultimaCopiaSync, copiadoEnSync }) },
     visitas, actualizarVisitas, mueblesTerminados, __visitante: () => visitante,

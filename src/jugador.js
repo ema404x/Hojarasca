@@ -131,9 +131,28 @@ export function crearJugador(camara, T, col, opciones) {
     estado.pos.set(x, y, z);
     estado.yaw = yaw; estado.pitch = 0;
     estado.vel.set(0, 0, 0);
+    hayDePie = false; estado.salida = null;   // 3.6.1: otro lugar: la salida del asiento ya no vale
   }
 
+  // 3.6.1: al levantarte volvés a donde estabas parado cuando te sentaste. Al sentarte, el cuerpo va
+  // al punto del asiento, que puede caer adentro de un mueble que frena (el sillón de los cuentos de
+  // la biblioteca es una caja de cuatro lados con el asiento en el medio; las sillas de lectura
+  // quedan contra la mesa): al levantarte, los lados te empujaban siempre para adentro y no salías
+  // más (lo encontró el usuario). Donde estabas parado es un lugar libre seguro: llegaste caminando.
+  // `dePie` es el último lugar donde estuviste parado en el piso; la salida se toma al sentarte y
+  // se usa al levantarte (con las teclas, el mando, R o al despertarte), si está cerca.
+  const dePie = new THREE.Vector3();
+  let hayDePie = false;
+  const SALIDA_MAX = 3.5;
   function sentarse(valor) {
+    if (valor && !estado.sentado) estado.salida = hayDePie ? dePie.clone() : estado.pos.clone();
+    else if (!valor && estado.sentado) {
+      const s = estado.salida;
+      if (s && Math.hypot(s.x - estado.pos.x, s.z - estado.pos.z) <= SALIDA_MAX && Math.abs(s.y - estado.pos.y) < 2) {
+        estado.pos.copy(s); estado.vy = 0;
+      }
+      estado.salida = null;
+    }
     estado.sentado = valor;
     estado.vel.set(0, 0, 0);
   }
@@ -370,8 +389,10 @@ export function crearJugador(camara, T, col, opciones) {
       }
     }
 
+    // 3.6.1: el último lugar donde estuviste parado (la salida del próximo asiento)
+    if (!estado.sentado && estado.enSuelo && !estado.nadando && !estado.montado) { dePie.copy(estado.pos); hayDePie = true; }
     // altura de ojos
-    const ojos = estado.sentado ? 0.95 : estado.montado ? ALTURA_OJOS + estado.montado.alto : estado.agachado ? ALTURA_AGACHADO : ALTURA_OJOS;
+    const ojos =estado.sentado ? 0.95 : estado.montado ? ALTURA_OJOS + estado.montado.alto : estado.agachado ? ALTURA_AGACHADO : ALTURA_OJOS;
     estado.alturaOjos = lerp(estado.alturaOjos, ojos, 1 - Math.exp(-8 * dt));
 
     // superficie bajo los pies

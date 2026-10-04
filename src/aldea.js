@@ -1155,7 +1155,9 @@ export function desfaseDe(persona) {
 }
 const indicePersona = (persona) => Math.max(0, ORDEN_PERSONAS_ALDEA.indexOf(persona));
 // Los que van a los cuentos del domingo, cada uno con su silla (ver `rutinaAldea`).
-const OYENTES = ORDEN_PERSONAS_ALDEA.filter((k) => !['abuela', 'jefe', 'nelida', 'galesa'].includes(k));
+// 3.6.1 (vecinos): los chicos, al final: les tocan los almohadones de la alfombra (lectura-15 y 16), al
+// pie del sillón; antes se sentaban en las sillas y dos grandes en los almohadones
+const OYENTES = [...ORDEN_PERSONAS_ALDEA.filter((k) => !['abuela', 'jefe', 'nelida', 'galesa', 'nene', 'nena'].includes(k)), 'nene', 'nena'];
 // Quiénes ayudan en las obras: el padre de los Jones, el carpintero y el herrero (si ya
 // tienen su local) y el dueño de la obra.
 export function obrerosDe(aldea, lote) {
