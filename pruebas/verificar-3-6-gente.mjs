@@ -351,7 +351,8 @@ function mundo(p) {
 // ============================================================ 5. los enganches
 {
   const main = leer('src/main.js');
-  for (const imp of ["import { crearAldeaGente } from './aldea-gente.js';", "import { renombrarParada } from './comercio.js';"]) ok(main.includes(imp), imp);
+  // (3.6.1: main.js también trae distanciaAldea, para no construir en la aldea)
+  for (const imp of ["import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';", "import { renombrarParada } from './comercio.js';"]) ok(main.includes(imp), imp);
   ok(main.includes('armarOficiosYAldea(esDesafio);') && /function armarOficiosYAldea\(esDesafio\) \{[\s\S]*?if \(esDesafio\) return;\n  aldeaGente = crearAldeaGente\(/.test(main), 'la aldea se arma sólo en el Relax');
   ok(main.includes("try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }"), 'y se actualiza en el bucle');
   ok(main.includes('const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;'), 'E habla con la gente de la aldea');

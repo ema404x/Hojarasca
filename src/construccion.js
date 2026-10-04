@@ -2622,6 +2622,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   // por lo que una pieza chica y un cobertizo grande recibían la misma prueba.
   function revisarSitio(x, z, plano, rot = 0, ignorarObra = null, baseObjetivo = null, alturaReferencia = null) {
     if (!plano) return { ok: false, motivo: 'Elegí un plano primero' };
+    // 3.6.1: donde no se construye (en el Relax, la Aldea de los Duendes: ver main.js)
+    const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, plano.radio || 1) : null;
+    if (reservado) return { ok: false, motivo: reservado };
     const pieza = !!plano.pieza;
     const soporte = baseColocacion(x, z, plano, alturaReferencia);
     const base = Number.isFinite(baseObjetivo) ? baseObjetivo : soporte + (plano.elevacion || 0);
