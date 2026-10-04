@@ -48,6 +48,9 @@ export function crearRenovales(T, escena, col) {
   // ¿se puede plantar acá? hace falta suelo llano, seco y despejado
   function sitioBueno(x, z, veg) {
     if (T.agua(x, z)) return { ok: false, motivo: 'Acá no: está mojado' };
+    // 3.6.1: ni en la aldea (en el Relax: ver T.sinObras en main.js): crecería en una calle o una casa
+    const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, 1) : null;
+    if (reservado) return { ok: false, motivo: reservado };
     const n = T.normal(x, z);
     if (Math.acos(clamp(n.y, -1, 1)) > 0.45) return { ok: false, motivo: 'Muy en pendiente para un renoval' };
     if (T.distSendero[T.indice(x, z)] < 2.5) return { ok: false, motivo: 'No en el medio del sendero' };

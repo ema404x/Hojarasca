@@ -34,7 +34,9 @@ const uno = (l) => l[Math.floor(azar() * l.length)];
 
 // Lo que se sumó al guardado en cada versión (para fabricar partidas "viejas")
 const AGREGADOS = [
-  ['3.6', ['aldea']],   // (3.6: la aldea reemplaza a `pueblo`, que una partida 3.1 todavía trae)
+  // (3.6: la aldea reemplaza a `pueblo`, que una partida 3.1 todavía trae; 3.6.1: y la vecindad y lo de
+  // las mecánicas, que una 3.5.4 tampoco tiene: ver `PUEBLO_31` en `casos`)
+  ['3.6', ['aldea', 'vecindad', 'mecanicas']],
   ['3.5.1', ['taladosTotal', 'cosechasTotal']],
   ['3.1', ['carreras', 'diarios', 'historia', 'eventosValle', 'oficios', 'pueblo']],
   ['2.9', ['comercio', 'vela', 'meteo', 'radio']],
@@ -186,6 +188,14 @@ app.whenReady().then(async () => {
       const p = copia(p0); for (const c of quitar) delete p[c];
       if (ver === '2.0' || ver === '1.6') { p.obras = (p.obras || []).map((o) => (o.plano === 'cantero' ? { ...o, plano: 'huerta', huerta: { cultivo: 'haba', dia: 2 } } : o)); }
       lista.push([`vieja (antes de la ${ver})`, JSON.stringify(p)]);
+      // 3.6.1: una partida de la 3.1 a la 3.5.4 de verdad trae el pueblo que fundabas (con pobladores
+      // en tus casas, uno esperando en la estación y el filo del herrero): pasa a la aldea
+      if (ver === '3.6' && modo === 'relax') {
+        const q = copia(p); const casa = (q.obras || []).find((o) => o.plano === 'puesto') || { x: 10, z: 10 };
+        q.pueblo = { nombre: 'Villa Ñire', cartel: { x: casa.x + 6, z: casa.z, rot: 0.3 }, pobladores: [{ clave: 'carpintero', dia: 4, casa: { id: `puesto:${Math.round(casa.x)}:${Math.round(casa.z)}`, x: casa.x, z: casa.z, rot: 0 } }, { clave: 'herrero', dia: 9 }, { clave: 'nadie', dia: 2 }],
+          llegando: { clave: 'panadera', dia: q.dia || 3 }, ultimaLlegada: 9, llamado: true, usos: { carpintero: q.dia || 3 }, afilado: 3, mandado: null, mandados: 1 };
+        lista.push(['vieja: de la 3.1 a la 3.5.4, con su pueblo', JSON.stringify(q)]);
+      }
     }
     // a medio escribir: cortada, con la copia buena y sin ella
     for (const f of [0.1, 0.5, 0.97]) {

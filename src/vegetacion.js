@@ -2128,7 +2128,12 @@ export function generarVegetacion(T, calidad, escena) {
   function despejar(x, z, radio, incluirSoto = true) {
     let sacados = 0;
     const quitar = (e) => {
-      if (!e.ref || e.sacado) return;
+      if (!e.ref) return;
+      // 3.6.1: lo que despeja una construcción (la aldea, una obra tuya) queda marcado: un tocón de
+      // ahí no rebrota (antes, en una partida vieja, un árbol talado donde ahora está la Aldea de
+      // los Duendes volvía a crecer en medio de una calle o adentro de un edificio, con su tocón)
+      e.despejado = true;
+      if (e.sacado) return;
       e.sacado = true; sacados++;
       for (const ref of [e.ref, e.contactoRef].filter(Boolean)) {
         for (const m of (ref.ch.porTipo?.[ref.tipo] || [])) {
@@ -2339,6 +2344,7 @@ export function generarVegetacion(T, calidad, escena) {
   // El rebrote: 0 = nada (sólo el tocón), entre 0 y 1 = renoval creciendo, 1 = el árbol
   // de siempre, con su choque y su madera otra vez.
   function crecer(a, escala) {
+    if (a?.despejado) return false;   // 3.6.1: donde hay una construcción no rebrota (ver despejar)
     const M = matrizDe(a);
     if (!M) return false;
     const i = animados.findIndex((x) => x.a === a);

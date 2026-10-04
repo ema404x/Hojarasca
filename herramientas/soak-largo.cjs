@@ -361,6 +361,39 @@ require(${JSON.stringify(path.join(PROY, 'preload.cjs'))});`);
     for (let k = 0; k < 40; k++) { const t = T[Math.floor(azar() * T.length)]; await bajar(t); await cuadros(4); await subir(t); }
     await tecla('Escape'); await volver(); await js(`(()=>{ const H=${H}; if (H.pesca?.est?.equipada) H.pesca.equipar(false); return 1 })()`);
   };
+  // 3.6.1: ida y vuelta a la Aldea de los Duendes en la trochita de verdad (sólo en el Relax): se sube en la
+  // Estación del Valle, el tren anda por la vía (más rápido, sin esperar en los apeaderos) hasta la parada
+  // de la aldea, se baja, se camina por la plaza y adentro de la biblioteca, y se vuelve igual. Lo que se
+  // arma y se suelta al acercarse y alejarse (la gente, las mecánicas, las luces, lo de adentro) no
+  // tiene que acumularse vuelta a vuelta.
+  const viajarA = async (cual) => {
+    const r = await js(`(()=>{ const H=${H}, t=H.tren, js=H.jugador.estado; const dest = ${cual === 'aldea' ? 't.paradas.find((p)=>p.aldea)' : 't.estacion'};
+      if (!dest) return 'sin parada';
+      if (!js.enTren) { const desde = ${cual === 'aldea' ? 't.estacion' : 't.paradas.find((p)=>p.aldea)'}; t.est.s = desde.s; t.est.vel = 0; t.est.parado = 5; t.est.proxima = desde; H.jugador.ubicar(desde.anden.x, desde.anden.z, 0); t.subir(H.jugador); }
+      t.est.objetivo = 22; return 'ok' })()`);
+    if (r !== 'ok') return r;
+    for (let k = 0; k < 400; k++) {
+      const e = await js(`(()=>{ const H=${H}, t=H.tren; const dest = ${cual === 'aldea' ? 't.paradas.find((p)=>p.aldea)' : 't.estacion'};
+        for (let i = 0; i < 40; i++) { if (t.est.parado > 0) { if (Math.abs(t.est.s - dest.s) < 2 && i > 0) return 'llegó'; t.est.parado = Math.min(t.est.parado, 0.02); } H.__bucle(); }
+        return Math.abs(t.est.s - dest.s) < 2 && t.est.parado > 0 ? 'llegó' : 'sigue' })()`);
+      if (e === 'llegó') break;
+      if (k % 10 === 9) await esperar(30);
+    }
+    const bajo = await js(`(()=>{ const H=${H}, t=H.tren; t.est.parado = Math.max(t.est.parado, 3); t.est.objetivo = 7; return t.bajar(H.jugador) })()`);
+    return bajo ? 'ok' : 'no bajó';
+  };
+  A.aldea = async () => {
+    if (!(await js(`!!${H}.__aldeaMundo?.()`))) return;
+    let r = await viajarA('aldea');
+    if (r !== 'ok') { console.log('    aldea (ida): ' + r); return; }
+    for (const id of ['plaza', 'biblioteca', 'almacen', 'plaza']) {
+      await js(`(()=>{ const H=${H}, b=H.__aldea.edificio('${id}'); if (b) H.jugador.ubicar(b.x, b.z, ${azar()} * 6.283); return 1 })()`);
+      for (let i = 0; i < 4; i++) { await js(`(()=>{ ${H}.__aldea.actualizar(0.6); return 1 })()`); await cuadros(40); }
+    }
+    r = await viajarA('estacion');
+    if (r !== 'ok') console.log('    aldea (vuelta): ' + r);
+    await cuadros(60);
+  };
   A.quieto = async () => { for (let k = 0; k < 4; k++) { await js(`${H}.jugador.estado.yaw += 0.4; 1`); await cuadros(200); } };
   // Desafío
   A.noche = async () => {
@@ -380,7 +413,7 @@ require(${JSON.stringify(path.join(PROY, 'preload.cjs'))});`);
     for (const a of ['ballesta', 'facon', 'maza', 'arpon', 'hachuela', 'jabalina', 'granada', 'humo', 'bengala', 'cuerno', 'arco', 'boleadoras', 'lanza', 'honda']) { await js(`(()=>{ try { ${H}.desafio.atacar('${a}'); } catch(e) {} return 1 })()`); await cuadros(10); }
   };
   const PLAN = {
-    relax: ['caminar', 'diaNoche', 'fotos', 'construir', 'talar', 'personal', 'estaciones', 'distancia', 'autoCalidad', 'paneles', 'vehiculos', 'contexto', 'guardar', 'dormir', 'caos', 'quieto'],
+    relax: ['caminar', 'diaNoche', 'fotos', 'construir', 'talar', 'personal', 'estaciones', 'distancia', 'autoCalidad', 'paneles', 'vehiculos', 'contexto', 'guardar', 'dormir', 'caos', 'quieto', 'aldea'],   // (3.6.1: y la aldea en tren)
     desafio: ['quieto', 'noche', 'arsenal', 'construir', 'caminar', 'diaNoche', 'paneles', 'contexto', 'distancia', 'autoCalidad', 'personal', 'fotos', 'guardar'],
   };
 

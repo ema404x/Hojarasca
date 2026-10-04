@@ -66,7 +66,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
-import { crearAldeaGente } from './aldea-gente.js';
+import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
 // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
 import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
@@ -372,6 +372,8 @@ let modo = 'carga';
 let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, gente, perro, tren, pesca, kayak, fotos, linterna;
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
 let modos = null;   // 3.1: carreras, desafío del día y torneo (ver modos-juego.js)
+// 3.6.1: alrededor de la aldea (desde el borde de sus calles y edificios) no se construye
+const MARGEN_SIN_OBRAS = 6, AVISO_SIN_OBRAS = 'En la Aldea de los Duendes no: los lotes son para los que llegan';
 let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-mundo.js; sólo en el Relax)
 let mecanicasAldea = null;   // 3.6 (mecánicas): ver aldea-mecanicas-mundo.js (sólo en el Relax)
 const sonido = new Sonido();
@@ -484,6 +486,9 @@ async function construir() {
   if (!esDesafio) {
     aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
     sorteoAldea = aldeaMundo.emparejar();
+    // 3.6.1: la aldea no es lugar para tus obras ni tus renovales (construccion.js y renovales.js
+    // preguntan acá): antes, en la plaza despejada o adentro de la biblioteca, el plano daba verde
+    T.sinObras = (x, z, radio = 0) => (distanciaAldea(x, z) < radio + MARGEN_SIN_OBRAS ? AVISO_SIN_OBRAS : null);
   }
   col = crearColisiones();
   veg.colisiones.forEach((c) => col.agregar(c));
@@ -1191,6 +1196,10 @@ let abiertoEn = 0;
 function abrir(cual) {
   abiertoEn = performance.now();
   if (cual !== 'jugando') {
+    // 3.6.1: la pausa (o el cuaderno, o el mapa) cierra el modo foto: perder el foco (Alt+Tab, otra
+    // ventana encima) o soltar el mouse en el modo foto abría la pausa con el modo foto prendido
+    // debajo (la cámara libre, el reloj quieto y su panel escondido)
+    if (foto.activo) abrirModoFoto(false);
     pedirFoto = false;
     if (idFotoPendiente) { clearTimeout(idFotoPendiente); idFotoPendiente = 0; }
   }
