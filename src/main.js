@@ -6912,6 +6912,9 @@ function dibujar(luz, noche) {
   }
 }
 let estadoRender = { calls: 0, triangles: 0 };
+// 3.6 (optimizar): el permiso del planificador para montar lo de la aldea, armado una vez (antes era
+// una función nueva en cada cuadro; ahora sólo se llama cuando hay algo para montar)
+const permitirAldeaMundo = () => planificadorAntitirones.permitir('aldea-mundo', { pesada: true });
 let avisoGuardado = false;
 let fotosGuardadas = -1;
 let textoTren = '';
@@ -7212,7 +7215,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (acumuladoVisible > presupuestoAdaptativo.intervalo(0.25, 2.0) && planificadorAntitirones.permitir('visibilidad', { pesada: true })) { acumuladoVisible = 0; actualizarVisibilidad(cam, presupuestoAdaptativo.factorDetalle()); }
   // 3.6: la aldea: lo que llegó del Worker se monta de a uno (si el cuadro anda bien) y lo de
   // adentro, las puertas, las sombras y los álamos según la distancia
-  if (aldeaMundo) { try { aldeaMundo.actualizar(dt, cam, () => planificadorAntitirones.permitir('aldea-mundo', { pesada: true })); } catch (e) { fallaSistema('aldea-mundo', e); } }
+  if (aldeaMundo) { try { aldeaMundo.actualizar(dt, cam, permitirAldeaMundo); } catch (e) { fallaSistema('aldea-mundo', e); } }
   // 3.6 (mecánicas): la bandera, la campana, los gestos de los oficios, los sonidos y el baile (sólo cerca)
   if (mecanicasAldea && modo === 'jugando') { try { mecanicasAldea.actualizar(dt, cam); } catch (e) { fallaSistema('aldea-mecanicas', e); } }
   acumuladoRefugio += dt;

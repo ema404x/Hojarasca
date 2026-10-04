@@ -19,11 +19,11 @@
 //
 // Sin economía (rechazada) ni nada religioso (pedido del usuario). Módulo puro: sin three ni DOM.
 import { ENTRADAS } from './cuaderno.js';
-import { VECINOS_ALDEA, POBLADORES_ALDEA, EDIFICIOS_ALDEA, LOTE_DE, ORDEN_PERSONAS_ALDEA, esPersonaAldea, esEdificioAldea, personaAldea, rutinaAldea, puntosDe, localAbierto, obraEnCurso, etapaDe, desfaseDe, aldeaNueva, obrerosDe, pobladorDeLote, diaSemanaDe } from './aldea.js';
+import { VECINOS_ALDEA, POBLADORES_ALDEA, EDIFICIOS_ALDEA, LOTE_DE, ORDEN_PERSONAS_ALDEA, esPersonaAldea, esEdificioAldea, personaAldea, rutinaAldea, puntosDe, localAbierto, obraEnCurso, etapaDe, desfaseDe, aldeaNueva, obrerosDe, pobladorDeLote, diaSemanaDe, num, azar } from './aldea.js';
 import { VOCES, AYUDAS, COMENTARIOS, CHISMOSOS, FRASES } from './vecindad-voces.js';
 
 // ---------------------------------------------------------------- utilidades
-const num = (v) => (typeof v === 'number' ? v : typeof v === 'string' || typeof v === 'boolean' ? Number(v) : NaN);
+// (3.6 (optimizar): `num` y `azar` son los de aldea.js)
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const entero = (v, d = 0) => (Number.isFinite(num(v)) ? Math.floor(num(v)) : d);
 const TOPE_DIA = 1e6;
@@ -37,13 +37,6 @@ function hashTexto(s) {
   let h = 2166136261;
   for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
   return h >>> 0;
-}
-// Azar con semilla (mulberry32): la misma semilla, la misma elección.
-function azar(semilla) {
-  let s = ((Math.floor(num(semilla) || 0) >>> 0) + 0x6d2b79f5) >>> 0;
-  s = Math.imul(s ^ (s >>> 15), s | 1);
-  s ^= s + Math.imul(s ^ (s >>> 7), s | 61);
-  return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
 }
 // Reemplaza las marcas {x} con `datos`; {Xyz} pone la primera en mayúscula. Si falta alguna,
 // devuelve null (y quien llama prueba con otra línea).

@@ -41,6 +41,7 @@ export function registrarLuz(luz) {
 export function olvidarLuz(luz) {
   const i = fuentes.indexOf(luz);
   if (i >= 0) fuentes.splice(i, 1);
+  presupuestoActivo?.soltar(luz);   // 3.6 (optimizar): y su máscara guardada (si no, el presupuesto la retenía para siempre)
 }
 
 // crear objetos de three toma números de Math.random para los uuid: la escena de muestra
@@ -530,7 +531,10 @@ export function crearPresupuestoLuces(escena, camara, { puntuales = PRESUPUESTO_
     return Promise.resolve(espera).then(() => [puntuales + ',' + focos]);
   }
 
-  const api = { grupo, activar, esconder, asignar, compilarTodo, stats, puntuales, focos, fijasP, fijasS };
+  // (la que ya salió de la escena: vuelve a su máscara de verdad, por si se registra otra vez; una que
+  // sigue colgada queda como estaba, escondida)
+  const soltar = (l) => { if (!capas.has(l) || l.parent) return; l.layers.mask = capas.get(l); capas.delete(l); };
+  const api = { grupo, activar, esconder, soltar, asignar, compilarTodo, stats, puntuales, focos, fijasP, fijasS };
   escena.userData.presupuestoLuces = api;   // para las pruebas y el diagnóstico (F3, ?debug=1)
   return api;
 }

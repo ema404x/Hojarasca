@@ -36,7 +36,7 @@
 // Sin three ni DOM (se prueba en Node): las figuras las arma gente.js y lo demás llega por `ctx`.
 import { elegirActividad, cumplirActividad, estaLibre } from './vecindad.js';
 import { fichaVecinos } from './vecindad-juego.js';
-import { NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega } from './aldea.js';
+import { NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe } from './aldea.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
 // cuántos se arman las figuras
@@ -192,19 +192,23 @@ export function recorridoAldea(desde, hasta) {
 // punto (la familia a la mesa, dos obreros al mismo lado de la obra), se acomodan alrededor.
 // 3.6 (vida): `elegidas` (clave → { lugar, edificio, punto, actividad }) manda sobre el horario:
 // lo que eligió en su tiempo libre, o la mesa de la casa de té a la que lo invitaste.
+const PUNTO_ADENTRO = new Map();   // 'edificio|punto' → ¿el punto cae adentro de un edificio?
 export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA_ALDEA), elegidas = null) {
   const ds = diaSemanaDe(dia);
   const salida = new Map(), juntos = new Map();
   for (const k of personas) {
     const r = elegidas?.get(k) || rutinaAldea(k, horas, ds, aldea);
     if (!r.lugar || !r.edificio) continue;
-    const pts = puntosDe(r.edificio);
+    // 3.6 (optimizar): los puntos sin copiar y si el punto está adentro, una vez por punto (no cambian)
+    const pts = puntosFijosDe(r.edificio);
     const q = pts[r.punto] || pts.adentro || pts.puerta;
     if (!q) continue;
     const clave = `${r.edificio}|${r.punto}`;
     if (!juntos.has(clave)) juntos.set(clave, []);
     juntos.get(clave).push(k);
-    salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro: !!edificioEn(q.x, q.z), sentado: SENTADO.test(r.punto || '') });
+    let adentro = PUNTO_ADENTRO.get(clave);
+    if (adentro === undefined) { adentro = !!edificioEn(q.x, q.z); PUNTO_ADENTRO.set(clave, adentro); }
+    salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro, sentado: SENTADO.test(r.punto || '') });
   }
   for (const lista of juntos.values()) {
     if (lista.length < 2) continue;

@@ -31,7 +31,10 @@ export const NOMBRE_ALDEA = 'Aldea de los Duendes';
 const PI = Math.PI;
 // Un número o NaN, sin tirar nunca: `Number()` de un objeto sin prototipo (o con un
 // `valueOf` roto) tira, y un guardado retocado puede traer cualquier cosa.
-const num = (v) => (typeof v === 'number' ? v : typeof v === 'string' || typeof v === 'boolean' ? Number(v) : NaN);
+// 3.6 (optimizar): `num`, `azar` y `suave01` son de acá; vecindad.js, aldea-mecanicas.js y aldea-mundo.js
+// los usan (antes cada uno tenía su copia)
+export const num = (v) => (typeof v === 'number' ? v : typeof v === 'string' || typeof v === 'boolean' ? Number(v) : NaN);
+export const suave01 = (t) => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 - 2 * x); };
 
 // ---------------------------------------------------------------- el lugar
 // La parada chica del sur: la elige trochita.js sólo con el terreno (el riel, su altura y la
@@ -161,8 +164,12 @@ export function muestrasPlanta(id, paso = 0.5) {
   return lista;
 }
 // ¿El punto (lx, lz) del plano cae dentro de la planta (con `margen` metros hacia adentro)?
+// 3.6 (optimizar): la planta de cada edificio, armada una vez (la tabla no cambia; antes era un objeto
+// nuevo en cada pregunta, y se pregunta por cada edificio)
+const cachePlantas = new Map();
 export function dentroDePlanta(id, lx, lz, margen = 0) {
-  const p = plantaDe(id);
+  let p = cachePlantas.get(id);
+  if (p === undefined) { p = plantaDe(id); cachePlantas.set(id, p ? Object.freeze(p) : null); }
   return !!p && lx >= p.x0 + margen && lx <= p.x1 - margen && lz >= p.z0 + margen && lz <= p.z1 - margen;
 }
 const distSegmento = (px, pz, a, b) => {
@@ -312,6 +319,14 @@ export function puntosDe(id) {
   }
   // copias: quien los use puede moverlos sin pisar los de los demás
   return Object.fromEntries(Object.entries(cachePuntos.get(id)).map(([k, q]) => [k, { ...q }]));
+}
+// 3.6 (optimizar): los mismos SIN copiar, sólo para leer (aldea-gente.js los mira cada medio segundo
+// para cada vecino: antes copiaba todos los puntos del edificio para usar uno)
+const SIN_PUNTOS = Object.freeze({});
+export function puntosFijosDe(id) {
+  if (!esEdificioAldea(id)) return SIN_PUNTOS;
+  if (!cachePuntos.has(id)) puntosDe(id);
+  return cachePuntos.get(id);
 }
 // Los mismos, en el mundo (y: el piso del edificio).
 export function puntosMundo(id, parada = PARADA_ALDEA) {
@@ -1294,7 +1309,7 @@ export const CHARLAS_ALDEA = [
   { id: 'musico-cueca', tema: 'oficio', lineas: [['musico', 'El sábado toco un chamamé para usted, doña Herminia.'], ['abuela', 'Tocá una cueca, que el chamamé me cansa las rodillas.']] },
 ];
 // Azar con semilla (mulberry32): la misma semilla elige la misma charla.
-function azar(semilla) {
+export function azar(semilla) {
   let s = (Math.floor(num(semilla) || 0) >>> 0) + 0x6d2b79f5;
   s = Math.imul(s ^ (s >>> 15), s | 1);
   s ^= s + Math.imul(s ^ (s >>> 7), s | 61);

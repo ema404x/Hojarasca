@@ -48,6 +48,15 @@ const ok = (c, t) => { pasos++; if (!c) { fallas.push(t); console.error('✗ ' +
     ['aldeaMundo?.luces(cam, encendido, diaInterior, rellenoInterior, colorInterior)', 'las luces de la aldea'],
     ["planificadorAntitirones.permitir('aldea-mundo', { pesada: true })", 'se monta con el planificador antitirones'],
   ]) ok(main.includes(txt), `main.js: ${que}`);
+  // 3.6 (optimizar): nada que se arme de nuevo en cada cuadro, y lo que se rearma se suelta
+  ok(main.includes('aldeaMundo.actualizar(dt, cam, permitirAldeaMundo)') && main.includes("const permitirAldeaMundo = () => planificadorAntitirones.permitir('aldea-mundo', { pesada: true });"), 'main.js: el permiso para montar, armado una vez (no una función nueva por cuadro)');
+  ok(!/function lodAlamos[\s\S]{0,600}\.join\(''\)/.test(t) && t.includes('if (!lucesApagadas) {'), 'aldea-mundo.js: los álamos sin arreglos ni textos nuevos; lejos, las luces no se recorren');
+  ok(/function desmontarEdificio[\s\S]*?luces\.splice\(i, 1\);\s*olvidarLuz\(q\.luz\);/.test(t), 'aldea-mundo.js: al rearmar, la luz vieja sale de la lista de cada cuadro y del registro de luces.js');
+  {
+    const mec = leer('src/aldea-mecanicas-mundo.js'), paso = mec.slice(mec.indexOf('function paso(dt, cam) {'), mec.indexOf('function actualizarMusica'));
+    ok(!paso.includes('const dist = ') && !paso.includes('.find(') && mec.includes('paradaAldea.parada = tren?.paradas?.find?.((p) => p.aldea);'), 'aldea-mecanicas-mundo.js: sin funciones nuevas ni búsquedas en cada cuadro');
+    ok(leer('src/luces.js').includes('presupuestoActivo?.soltar(luz);'), 'luces.js: olvidar una luz también la suelta del presupuesto');
+  }
   const est = leer('src/estructuras.js');
   ok(est.includes('const TS = opciones.sorteo || T;') && est.includes('casaTeSorteo') && est.includes('almacenSorteo'), 'estructuras.js: el sorteo corre igual con la aldea');
   ok(!/escena\.add\([^)]*\);\s*\/\/ aldea/.test(t), 'la aldea cuelga de sus complejos');
@@ -312,6 +321,20 @@ const con = valle({ aldea: true });
   ok(ab.montada === 'carpinteria|4|0' && ab.techo, 'abrió la carpintería: terminada y con techo');
   // 3.6 (detalles): el cable del poste a la casa aparece apenas abre (sin esperar la luz de las ventanas)
   ok((am.medir().acometidas || []).includes('carpinteria'), `el cable de luz llega a la carpintería cuando abre (${(am.medir().acometidas || []).join(', ')})`);
+  // 3.6 (optimizar): el ripio y los carteles se llenan después de la carga, pero nunca se monta nada con
+  // las texturas vacías: al montar la aldea ya están
+  ok(['gravaMs', 'mascaraMs', 'atlasMs'].every((k) => Number.isFinite(am.medir()[k])) && leer('src/aldea-mundo.js').includes('if (cola.length) completarTexturas();'), `las texturas del ripio y el atlas, completas al montar (grava ${am.medir().gravaMs?.toFixed(0)} ms, máscara ${am.medir().mascaraMs?.toFixed(0)} ms)`);
+  // 3.6 (optimizar): rearmar un edificio con luz (la obra de nuevo en su última etapa y abierto otra
+  // vez) no deja la luz vieja en la lista que se recorre en cada cuadro
+  {
+    const luces0 = am.medir().luces;
+    progreso.aldea.locales = {}; progreso.aldea.obras = { carpinteria: { etapa: 3, aportado: {}, lista: null, desde: 1 } };
+    am.actualizar(4, { x: 0, z: 0 }); await am.listo(); am.montarCola();
+    const enObra = am.medir().luces;
+    progreso.aldea.obras = {}; progreso.aldea.locales = { carpinteria: 2 };
+    am.actualizar(4, { x: 0, z: 0 }); await am.listo(); am.montarCola();
+    ok(am.estadoEdificio('carpinteria').montada === 'carpinteria|4|0' && enObra <= luces0 && am.medir().luces === luces0, `rearmar dos veces la carpintería deja las mismas luces (${luces0} → ${enObra} → ${am.medir().luces})`);
+  }
   // las etapas: lo que dice aldea-gente a la etapa de la arquitectura
   ok(AM.etapaVisual(A.aldeaNueva(), 'carpinteria').etapa === 0 && AM.etapaVisual(A.aldeaNueva(), 'escuela').etapa === 3 && AM.etapaVisual(A.aldeaNueva(), 'biblioteca').etapa === 4, 'lote vacío, escuela a medio hacer, biblioteca terminada');
   ok(AM.etapaVisual({ ...A.aldeaNueva(), pobladores: [{ clave: 'maestra', dia: 1 }], obras: { escuela: { etapa: 2, aportado: {}, lista: null, desde: 1 } } }, 'escuela').etapa === 3, 'la escuela nunca vuelve para atrás');
@@ -376,6 +399,8 @@ const con = valle({ aldea: true });
 {
   const t = leer('src/clima.js');
   ok(t.includes('vCerca = smoothstep(3.0, 11.0, -mvPosition.z)') && t.includes('Math.max(0.5 + 2.2 * v,'), 'el humo: se borra pegado a la cámara y nunca baja de la chimenea');
+  // 3.6 (optimizar): lo que no se ve no se pinta (de día, el humo transparente costaba hasta 15 ms por cuadro en la plaza)
+  ok(t.includes('if (vCerca <= 0.0) gl_PointSize = 0.0;') && t.includes('humo.visible = humo.material.uniforms.uOpacidad.value > 0.002;') && t.includes('if (!humo.visible) continue;'), 'el humo: sin opacidad no se dibuja ni se recalcula, y la bocanada ya borrada no pinta fragmentos');
   const mat = leer('src/materiales.js'), arq = leer('src/aldea-arquitectura.js');
   const frag = /NIEVE_FRAG_ALDEA = '([^']+)'/.exec(arq)?.[1], vert = /NIEVE_VERT_ALDEA = '([^']+)'/.exec(arq)?.[1];
   ok(!!frag && mat.includes(frag) && !!vert && mat.includes(vert), 'la nieve de adentro: las líneas de materiales.js que retoca la aldea siguen ahí');

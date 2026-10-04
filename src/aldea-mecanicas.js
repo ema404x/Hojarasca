@@ -26,7 +26,7 @@
 // Nada religioso, como en toda la aldea (pedido del usuario).
 import { ENTRADAS } from './cuaderno.js';
 import { LIBROS_ALDEA, LIBRO_ALDEA, PLACA_DUENDE } from './aldea-lecturas.js';
-import { VECINOS_ALDEA, POBLADORES_ALDEA, localAbierto, rutinaAldea, diaSemanaDe, aldeaNueva, aplicarAlAldea, SERVICIO } from './aldea.js';
+import { VECINOS_ALDEA, POBLADORES_ALDEA, localAbierto, rutinaAldea, diaSemanaDe, aldeaNueva, aplicarAlAldea, SERVICIO, suave01 as suave } from './aldea.js';
 
 // ---------------------------------------------------------------- medidas
 export const CERCA_GESTOS = 40;      // los gestos de los oficios, sólo a menos de esto (y apagados lejos)
@@ -103,7 +103,7 @@ function usarHoy(m, clave, dia) { m.usos = objeto(m.usos) ? m.usos : {}; m.usos[
 // ---------------------------------------------------------------- la plaza
 // La bandera: se iza a las 8 y se arría a las 19, despacio (un cuarto de hora). 1 = arriba.
 export const BANDERA = { iza: 8, arria: 19, dura: 0.25 };
-const suave = (t) => { const x = Math.max(0, Math.min(1, t)); return x * x * (3 - 2 * x); };
+// (3.6 (optimizar): `suave` es el suave01 de aldea.js)
 export function izadaA(hora) {
   const h = ((num(hora) % 24) + 24) % 24;
   if (!Number.isFinite(h)) return 0;

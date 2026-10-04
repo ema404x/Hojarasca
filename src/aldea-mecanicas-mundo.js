@@ -241,8 +241,14 @@ export function crearMecanicasAldea(ctx) {
       info.ms = info.ms * 0.95 + ms * 0.05; info.msMax = Math.max(info.msMax * 0.999, ms); info.cuadros++;
     }
   }
+  // 3.6 (optimizar): lo que paso() usa en cada cuadro, armado una vez: la distancia a la cámara (antes
+  // una función nueva por cuadro) y la parada de la aldea (antes se buscaba en cada cuadro)
+  let camX = 0, camZ = 0;
+  const dist = (p) => (p ? Math.hypot(camX - p.x, camZ - p.z) : Infinity);
+  const paradaAldea = { tren: null, parada: null };
   function paso(dt, cam) {
     reloj += dt;
+    camX = cam.x; camZ = cam.z;
     const dAldea = Math.hypot(cam.x - centro.x, cam.z - centro.z);
     acumRevisar += dt;
     if (dAldea > LEJOS_MECANICAS + 180) { if (cerca) { apagar(); cerca = false; } return; }
@@ -261,14 +267,16 @@ export function crearMecanicasAldea(ctx) {
       }
       // qué gestos están andando ahora (rutina del dueño), y cuánta gente hay en la plaza
       for (const ed of Object.keys(GESTOS_OFICIO)) estado.gestos[ed] = trabajando(a, ed, dia(), h);
-      estado.gestos.abejas = estado.gestos['sala-miel'] && hayAbejas(h, ctx.ambiente?.()?.invierno, ctx.ambiente?.()?.lluvia);
+      const amb = estado.gestos['sala-miel'] ? ctx.ambiente?.() : null;
+      estado.gestos.abejas = estado.gestos['sala-miel'] && hayAbejas(h, amb?.invierno, amb?.lluvia);
       let n = 0;
       for (const st of ctx.gente?.()?.personas?.values?.() || []) if (st.destino?.edificio === 'plaza' && st.npc && !st.npc.dormido) n++;
       estado.enPlaza = n;
     }
     // la campana del andén: cuando la trochita para en la aldea
     const tren = ctx.tren?.();
-    const parada = tren?.paradas?.find?.((p) => p.aldea);
+    if (paradaAldea.tren !== tren) { paradaAldea.tren = tren; paradaAldea.parada = tren?.paradas?.find?.((p) => p.aldea); }
+    const parada = paradaAldea.parada;
     if (parada && lugar.campana) {
       const q = tren.proximoTrenA(parada);
       const aqui = !!tren.parado?.() && !!q && (q.metros < 14 || q.metros > tren.largo - 14);
@@ -282,7 +290,6 @@ export function crearMecanicasAldea(ctx) {
       } else if (anim.campana.objeto.quaternion.w < 0.99999) anim.campana.objeto.quaternion.identity();
     }
     // los gestos de los oficios: sólo cerca
-    const dist = (p) => (p ? Math.hypot(cam.x - p.x, cam.z - p.z) : Infinity);
     const g = estado.gestos;
     if (anim.fuelle) {
       if (g.herreria && dist(lugar.fragua) < CERCA_GESTOS) anim.fuelle.objeto.quaternion.setFromAxisAngle(anim.fuelle.ejeV, (anim.fuelle.dato.abierta ?? 0.25) * (0.5 + 0.5 * Math.sin(reloj * 2.4)));
