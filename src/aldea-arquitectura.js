@@ -161,6 +161,7 @@ function azar(semilla) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+export const azarAldea = azar;   // 3.6 (optimizar): el mismo para las texturas de aldea-mundo.js
 const elegir = (r, lista) => lista[Math.floor(r() * lista.length) % lista.length];
 const entre = (r, a, b) => a + (b - a) * r();
 const suave = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -798,16 +799,26 @@ export function pintarCarteles(ctx) {
     ctx.restore();
   });
 }
-// La textura del atlas (necesita `document`). Se repinta cuando terminan de cargar las letras.
+// La textura del atlas (necesita `document`).
+// 3.6 (optimizar): se pinta UNA vez, con las letras de los carteles ya cargadas (antes se pintaba con
+// las de repuesto y otra vez al terminar de cargar las letras: dos pintadas de unos 70 ms en la carga)
+export const LETRAS_CARTELES = ['600 54px "Spectral"', '700 66px "Caveat"'];
 export function crearTexturaCarteles() {
   const lienzo = document.createElement('canvas');
   lienzo.width = ATLAS_CARTELES.ancho; lienzo.height = ATLAS_CARTELES.alto;
   const ctx = lienzo.getContext('2d');
-  pintarCarteles(ctx);
   const t = new THREE.CanvasTexture(lienzo);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
-  try { document.fonts?.ready?.then(() => { pintarCarteles(ctx); t.needsUpdate = true; }); } catch { /* sin fuentes: queda la de repuesto */ }
+  const F = document.fonts || null;
+  let listas = true;
+  try { listas = !F?.check || !F?.load || LETRAS_CARTELES.every((l) => F.check(l)); } catch { listas = true; }
+  if (listas) { pintarCarteles(ctx); return t; }
+  // las letras todavía no están: se piden y se pinta al llegar (si no llegan, con las de repuesto)
+  let pintado = false;
+  const pintar = () => { if (pintado) return; pintado = true; pintarCarteles(ctx); t.needsUpdate = true; };
+  try { Promise.all(LETRAS_CARTELES.map((l) => F.load(l))).then(pintar, pintar); } catch { pintar(); }
+  setTimeout(pintar, 4000);   // (por las dudas: nunca un cartel en blanco)
   return t;
 }
 // Un cartel: la tabla (en la estructura) y el texto (en el atlas), mirando a +Z del giro.

@@ -68,6 +68,14 @@ app.whenReady().then(async () => {
     await cargar('relax');
     seccion('el contexto 3D perdido y devuelto ocho veces');
     await cuadros(20);
+    // 3.6: la Aldea de los Duendes se termina de armar DESPUÉS de la carga (lo del Worker se monta de a
+    // uno por cuadro: ~17 MB). Se espera a que esté entera antes de medir: si no, lo que crece es la
+    // aldea armándose durante las recuperaciones, no las recuperaciones.
+    const aldea = await js(`(async()=>{ const A = ${H}.__aldeaMundo?.(); if (!A) return 'sin aldea';
+      for (let i = 0; i < 150 && A.medir().fabrica.pendientes > 0; i++) await new Promise((ok) => setTimeout(ok, 100));
+      for (let i = 0; i < 2000 && (A.medir().cola > 0 || A.medir().listas < A.medir().manzanas); i++) ${H}.__bucle();
+      const m = A.medir(); return m.listas + ' de ' + m.manzanas + ' manzanas, cola ' + m.cola })()`);
+    ok(aldea === 'sin aldea' || /cola 0$/.test(aldea), `la aldea, armada antes de medir (${aldea})`);
     const fotoAntes = await captura('contexto-antes');
     const atlasAntes = await atlasLleno();
     const h0 = await heapMB();

@@ -34,15 +34,16 @@
 //     nunca hay más de 4 ni se compila nada; las ventanas brillan con `brilloVentana`;
 //   · bajo techo (lluvia, nieve, sonido), techos (sin nieve adentro), pisos (sin pasto), humo.
 import * as THREE from 'three';
-import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle, quienLlega, obraEnCurso, LOTE_DE, plantaDe } from './aldea.js';
+import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle, quienLlega, obraEnCurso, LOTE_DE, plantaDe, suave01 } from './aldea.js';
 import { estadoVisual } from './aldea-gente.js';
-import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
+import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
-import { registrarLuz } from './luces.js';
+import { registrarLuz, olvidarLuz } from './luces.js';
 import { armarTerreno } from './terreno.js';
 
-const suave01 = (t) => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 - 2 * x); };
+// (3.6 (optimizar): `suave01` es el de aldea.js; el azar con semilla y el paso de un edificio al mundo,
+// los de aldea-arquitectura.js)
 
 // a cuántos metros se ve lo de adentro, las hojas de las puertas y las sombras
 export const VER_ADENTRO_ALDEA = 25;
@@ -663,10 +664,7 @@ const matrizSitio = (s, origen, escalaX = 1, escala = 1) => new THREE.Matrix4().
 const trisDe = (g) => (g ? (g.index ? g.index.count : g.attributes.position.count) / 3 : 0);
 
 // ---------------------------------------------------------------- texturas (una vez, en la carga)
-function azarSemilla(s) {
-  let a = s >>> 0;
-  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-}
+const azarSemilla = azarAldea;
 // Una textura de píxeles armados a mano (sin lienzo: dibujar en un canvas y leerlo costaba
 // 150 ms en la carga). Con mipmaps: se ve de lejos sin brillos.
 function texturaDe(datos, ancho, alto) {
@@ -1373,6 +1371,8 @@ export function crearAldeaMundo(ctx) {
         cola.push({ tipo: 'edificio', b, clave, datos });
       }).catch((err) => { console.error('aldea-mundo: no se pudo armar', b.id, err); });
       promesas.push(p);
+      // 3.6 (optimizar): la que ya llegó sale de la lista (antes quedaba toda la partida)
+      p.then(() => { const i = promesas.indexOf(p); if (i >= 0) promesas.splice(i, 1); });
     }
   }
   // Arranca: los accesorios, la estación y cada edificio en su etapa.
@@ -1438,7 +1438,16 @@ export function crearAldeaMundo(ctx) {
     col.eliminarPorDuenio(`aldea:${b.id}`);
     puertas?.eliminarPorDuenio(`aldea:${b.id}`);
     b.puertas = [];
-    if (b.luz) { b.luz.intensity = 0; b.luz.visible = false; b.luz.parent?.remove(b.luz); b.luz = null; }
+    // 3.6 (optimizar): la luz vieja también sale de la lista de cada cuadro y del registro de luces.js
+    // (antes cada rearmado de un edificio con luz dejaba una entrada muerta que se recorría siempre)
+    if (b.luz) {
+      const q = b.luz;
+      q.luz.intensity = 0; q.luz.visible = false; q.luz.parent?.remove(q.luz);
+      const i = luces.indexOf(q);
+      if (i >= 0) luces.splice(i, 1);
+      olvidarLuz(q.luz);
+      b.luz = null;
+    }
   }
   const capaMat = (capa) => materiales[capa];
   // Lo que no va en la pieza fundida: colisiones, puertas, interior, luz, techo, chimeneas.
@@ -1516,7 +1525,7 @@ export function crearAldeaMundo(ctx) {
     rehacerChimeneas();
     if (calles) calles.sucio = true;   // la luz de sus ventanas en el suelo
   }
-  const aMundoEn = (s, lx, lz) => { const c = Math.cos(s.rot), sn = Math.sin(s.rot); return { x: s.x + lx * c + lz * sn, z: s.z - lx * sn + lz * c }; };
+  const aMundoEn = (s, lx, lz) => aMundoAldea(s, lx, 0, lz);
   // La hoja de una puerta de la aldea: de una sola malla (las de puertas.js son cuatro) y colgada
   // de su complejo (el LOD la apaga con el edificio).
   function prepararPuerta(p, m) {
@@ -1643,12 +1652,19 @@ export function crearAldeaMundo(ctx) {
     alamos.cercaDe = null;
     lodAlamos({ x: centro.x, z: centro.z }, true);
   }
+  // 3.6 (optimizar): cuáles están cerca, en un arreglo fijo (antes, un arreglo y un texto nuevos cuatro
+  // veces por segundo); se rehace sólo si alguno cambió
   function lodAlamos(cam, forzar = false) {
     if (!alamos?.mallas) return;
-    const cerca = alamos.lista.map((a) => Math.hypot(a.x - cam.x, a.z - cam.z) < 70);
-    const firma = cerca.join('');
-    if (!forzar && firma === alamos.cercaDe) return;
-    alamos.cercaDe = firma;
+    const n = alamos.lista.length;
+    const cerca = alamos.cerca || (alamos.cerca = new Uint8Array(n));
+    let cambio = forzar || !alamos.cercaDe;
+    for (let i = 0; i < n; i++) {
+      const a = alamos.lista[i], dx = a.x - cam.x, dz = a.z - cam.z, c = dx * dx + dz * dz < 4900 ? 1 : 0;
+      if (cerca[i] !== c) { cerca[i] = c; cambio = true; }
+    }
+    if (!cambio) return;
+    alamos.cercaDe = true;
     const [ce, cf] = alamos.mallas.cerca, [le, lf] = alamos.mallas.lejos;
     let nc = 0, nl = 0;
     alamos.lista.forEach((a, i) => {
@@ -1913,8 +1929,11 @@ export function crearAldeaMundo(ctx) {
       if (b.suelto) for (const k of b.suelto.children) if (k.isMesh && k.material !== materiales.vidrios && k.material !== materiales.carteles) k.castShadow = d < SOMBRA_ALDEA;
     }
     for (const m of manzanas.values()) {
-      const d = Math.hypot(cam.x - m.x, cam.z - m.z);
-      for (const [capa, malla] of Object.entries(m.fusion?.mallas || {})) if (capa === 'estructura' || capa === 'follaje') malla.castShadow = d < SOMBRA_ALDEA + m.radio;
+      const mallas = m.fusion?.mallas;
+      if (!mallas) continue;
+      const sombra = Math.hypot(cam.x - m.x, cam.z - m.z) < SOMBRA_ALDEA + m.radio;
+      if (mallas.estructura) mallas.estructura.castShadow = sombra;
+      if (mallas.follaje) mallas.follaje.castShadow = sombra;
     }
     lodAlamos(cam);
   }
@@ -1926,26 +1945,34 @@ export function crearAldeaMundo(ctx) {
       calles.charcos.visible = k > 0.02;
       materiales.ventanaLuz.color.setRGB(k, k * 0.66, k * 0.32);
     }
-    const lejos = distAldea(cam.x, cam.z) > 520;
+    // 3.6 (optimizar): lejos, apagadas una vez y no se recorren más (las que se arman lejos nacen
+    // apagadas); cerca, la raíz sólo de las que están a tiro
+    if (distAldea(cam.x, cam.z) > 520) {
+      if (!lucesApagadas) { for (const q of luces) q.luz.intensity = 0; lucesApagadas = true; }
+      return;
+    }
+    lucesApagadas = false;
+    const ahora = performance.now(), titila = 1.6 + 0.25 * Math.sin(ahora / 170) * Math.sin(ahora / 410);
     for (const q of luces) {
-      if (lejos) { q.luz.intensity = 0; continue; }
-      const d = Math.hypot(cam.x - q.x, cam.z - q.z);
+      const dx = cam.x - q.x, dz = cam.z - q.z, d2 = dx * dx + dz * dz;
       // (los postes de luz cuelgan la lámpara a 5 m: necesitan más que un farol de 3 m)
       // 3.6 (detalles): al alejarse se apagan de a poco (antes, de golpe en el límite)
-      if (q.clase === 'farol') q.luz.intensity = d < 90 ? encendido * (q.alto > 4 ? 15 : 6) * q.intensidad * (1 - suave01((d - 70) / 20)) : 0;
-      else if (q.clase === 'fragua') q.luz.intensity = d < 30 ? (1.6 + 0.25 * Math.sin(performance.now() / 170) * Math.sin(performance.now() / 410)) * (1 - suave01((d - 22) / 8)) : 0;
+      if (q.clase === 'farol') q.luz.intensity = d2 < 8100 ? encendido * (q.alto > 4 ? 15 : 6) * q.intensidad * (1 - suave01((Math.sqrt(d2) - 70) / 20)) : 0;
+      else if (q.clase === 'fragua') q.luz.intensity = d2 < 900 ? titila * (1 - suave01((Math.sqrt(d2) - 22) / 8)) : 0;
       else {
-        q.luz.intensity = d < 18 ? (relleno * 0.7 * q.intensidad + encendido * 1.5) * (1 - suave01((d - 13) / 5)) : 0;
+        q.luz.intensity = d2 < 324 ? (relleno * 0.7 * q.intensidad + encendido * 1.5) * (1 - suave01((Math.sqrt(d2) - 13) / 5)) : 0;
         if (q.luz.intensity > 0) q.luz.color.copy(colorInterior).lerp(q.color, Math.min(1, 0.35 + encendido));
       }
     }
   }
+  let lucesApagadas = false;
   // ¿Adentro de un edificio de la aldea (bajo su techo, entre sus paredes)? Devuelve el edificio.
   function edificioEn(pos, galeria) {
     if (!pos || distAldea(pos.x, pos.z) > 150) return null;
     for (const b of edificios.values()) {
       if (!b.techo) continue;
-      const s = b.sitio, dx = pos.x - s.x, dz = pos.z - s.z, c = Math.cos(s.rot), sn = Math.sin(s.rot);
+      // 3.6 (optimizar): el giro de cada edificio no cambia: el seno y el coseno se guardan
+      const s = b.sitio, dx = pos.x - s.x, dz = pos.z - s.z, c = b.cos ??= Math.cos(s.rot), sn = b.sen ??= Math.sin(s.rot);
       const bx = dx * c - dz * sn, bz = dx * sn + dz * c;
       if (Number.isFinite(pos.y) && (pos.y < s.y - 1 || pos.y > s.y + 4.2)) continue;
       const r = galeria ? b.techo : { x0: -b.ancho / 2, x1: b.ancho / 2, z0: -b.fondo / 2, z1: b.fondo / 2 };
@@ -1987,8 +2014,10 @@ export function crearAldeaMundo(ctx) {
     if (!chimeneas.length || distAldea(cam.x, cam.z) > 260) return base;
     const ahora = performance.now();
     if (chimCache.lista && chimCache.base === base && ahora - chimCache.t < 1000) return chimCache.lista;
-    const todas = [...chimeneas, ...base.filter((c) => c && Math.hypot(c.x - cam.x, c.z - cam.z) < 260)];
-    todas.sort((a, b) => Math.hypot(a.x - cam.x, a.z - cam.z) - Math.hypot(b.x - cam.x, b.z - cam.z));
+    // (3.6 (optimizar): con la distancia al cuadrado: el mismo orden, sin raíces)
+    const d2 = (c) => (c.x - cam.x) * (c.x - cam.x) + (c.z - cam.z) * (c.z - cam.z);
+    const todas = [...chimeneas, ...base.filter((c) => c && d2(c) < 67600)];
+    todas.sort((a, b) => d2(a) - d2(b));
     chimCache.lista = todas.slice(0, 8); chimCache.t = ahora; chimCache.base = base;
     return chimCache.lista;
   }

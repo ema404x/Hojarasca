@@ -23,7 +23,10 @@ function puntosMaterial({ color, tam, aditivo = false, forma = 'redonda', opacid
         ${forma === 'humo' ? `// 3.6 (detalles): la bocanada nace chica y se abre al subir; pegada a la cámara se borra (no
         // tapa la vista: antes una pasaba por delante y cubría media pantalla)
         gl_PointSize *= 0.3 + 0.95 * aVida;
-        vCerca = smoothstep(3.0, 11.0, -mvPosition.z);` : ''}
+        vCerca = smoothstep(3.0, 11.0, -mvPosition.z);
+        // 3.6 (optimizar): la que ya se borró (a menos de 3 m) no pinta ni un fragmento: era la más grande
+        // (cientos de píxeles de lado) y, aunque transparente, la placa la pintaba entera
+        if (vCerca <= 0.0) gl_PointSize = 0.0;` : ''}
         #include <fog_vertex>
       }`,
     fragmentShader: /* glsl */`
@@ -294,11 +297,18 @@ export function crearClima(escena, T, ajustes) {
     const hayHumo = mundo.noche > 0.5 || invierno || precip > 0.4 || mundo.otono > 0.5;
     humo.material.uniforms.uOpacidad.value = lerp(humo.material.uniforms.uOpacidad.value, hayHumo ? 0.5 : 0, dt);
     humo.material.uniforms.uLuz.value.copy(luz).multiplyScalar(0.8).addScalar(0.08);
+    // 3.6 (optimizar): sin humo (con la opacidad en casi nada: menos de medio tono de 255, no cambia ni
+    // un píxel) las bocanadas (120 desde la 3.6) no se dibujan ni se recalculan. Pintarlas transparentes
+    // costaba hasta 15 ms por cuadro de día en la plaza de la aldea (una bocanada cerca es enorme). Su
+    // vida sigue corriendo igual: al volver están donde estarían (la posición sale sólo de la vida, la
+    // chimenea y el viento)
+    humo.visible = humo.material.uniforms.uOpacidad.value > 0.002;
     {
       const p = humo.geometry.attributes.position.array, vida = humo.geometry.attributes.aVida.array;
       for (let i = 0; i < NH; i++) {
         humoVida[i] += dt * 0.12;
         if (humoVida[i] > 1) humoVida[i] -= 1;
+        if (!humo.visible) continue;
         const v = humoVida[i];
         const chim = chimeneas[i % chimeneas.length];
         // 3.6: sube rápido al salir y se va frenando; el viento la tumba cada vez más y se abre
@@ -311,8 +321,7 @@ export function crearClima(escena, T, ajustes) {
         p[i * 3 + 2] = chim.z + Math.cos(v * 7 + i * 1.7) * abre;
         vida[i] = v;
       }
-      humo.geometry.attributes.position.needsUpdate = true;
-      humo.geometry.attributes.aVida.needsUpdate = true;
+      if (humo.visible) { humo.geometry.attributes.position.needsUpdate = true; humo.geometry.attributes.aVida.needsUpdate = true; }
     }
 
     // fogata
