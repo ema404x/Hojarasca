@@ -34,9 +34,9 @@
 // 'abierto'…).
 //
 // Sin three ni DOM (se prueba en Node): las figuras las arma gente.js y lo demás llega por `ctx`.
-import { elegirActividad, cumplirActividad, estaLibre } from './vecindad.js';
+import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA } from './vecindad.js';
 import { fichaVecinos } from './vecindad-juego.js';
-import { NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe } from './aldea.js';
+import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe } from './aldea.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
 // cuántos se arman las figuras
@@ -227,6 +227,10 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
 // 3.6 (vida): los puntos con silla o banco (la mesa de té, la mesa de lectura, el banco de la
 // plaza, el pupitre, la silla del salón, el sillón de los cuentos): ahí se sientan.
 const SENTADO = /^(mesa-[0-9]|lectura-|estar-|pupitre-|lugar-|cuentos$)/;
+// 3.6.1: los cuatro almohadones de la alfombra de la biblioteca (lectura-13 a 16, ver aldea.js) y su
+// altura (el almohadón de aldea-arquitectura.js: a 10 cm del piso, de 28 cm aplastado a un tercio)
+export const ALMOHADONES = new Set(['lectura-13', 'lectura-14', 'lectura-15', 'lectura-16']);
+export const ALTURA_ALMOHADON = 0.2;
 // La pose de gente.js para lo que está haciendo, ya llegado (null: parado, como siempre).
 export function poseDe(d) {
   if (!d) return null;
@@ -335,6 +339,19 @@ export function crearAldeaGente(ctx) {
     npc.soloCerca = d.adentro ? VER_ADENTRO : 0;
     return npc;
   }
+  // 3.6.1: la altura del asiento donde se sienta (para la pose de gente.js): la silla de verdad que
+  // está en ese punto (`ctx.asientoEn`, de los asientos de la aldea) o, en los almohadones de la
+  // alfombra de la biblioteca (que no son asientos del jugador), su altura. Se guarda por punto.
+  const asientos = new Map();
+  function alturaAsiento(d, npc) {
+    if (!d?.sentado) return undefined;
+    const clave = `${d.clave}|${d.lx.toFixed(2)}|${d.lz.toFixed(2)}`;
+    if (!asientos.has(clave)) {
+      let a = ALMOHADONES.has(d.punto) && d.edificio === 'biblioteca' ? ALTURA_ALMOHADON : ctx.asientoEn?.(d.x, d.z, npc.pos.y);
+      asientos.set(clave, Number.isFinite(a) ? a : undefined);
+    }
+    return asientos.get(clave);
+  }
   function ubicar(npc, d) {
     npc.pos.set(d.x, ctx.alturaDePie(d.x, d.z, npc.pos.y), d.z);
     npc.camino = [];
@@ -344,6 +361,7 @@ export function crearAldeaGente(ctx) {
     if (npc.g?.rotation) npc.g.rotation.y = d.mira;
     npc.soloCerca = d.adentro ? VER_ADENTRO : 0;
     npc.pose = poseDe(d);   // 3.6 (vida)
+    npc.asiento = alturaAsiento(d, npc);   // 3.6.1
   }
   function encaminar(npc, d) {
     const l = M.aLocal(npc.pos.x, npc.pos.z);
@@ -370,23 +388,81 @@ export function crearAldeaGente(ctx) {
   function elegirLibres(lista) {
     const p = progreso(), h = horas(), d = dia(), ds = diaSemanaDe(d), abs = d * 24 + h;
     const elegidas = new Map();
-    let clima = null;
+    let clima = null, palabra = null;
+    const elClima = () => { if (clima === null) { clima = climaVecindad(); palabra = climaDe(clima); } return palabra; };
+    // 3.6.1: las mesas de la casa de té de una invitación quedan para el invitado y para vos
+    const reservadas = new Set([...citas.values()].flatMap((c) => (c.edificio === 'casa-te' ? ['mesa-1', 'mesa-2'] : [c.punto])));
     lista.forEach((k, i) => {
       const st = personas.get(k);
       if (!st) return;
       const cita = citas.get(k);
       if (cita) { elegidas.set(k, { lugar: 'casa-te', edificio: cita.edificio, punto: cita.punto, actividad: 'te' }); st.act = null; return; }
-      if (p.aldea?.llegando?.clave === k || !estaLibre(k, h, ds, p)) { st.act = null; return; }
-      if (!st.act || abs >= st.act.hasta || abs < st.act.desde) {
-        if (clima === null) clima = climaVecindad();
-        const e = elegirActividad(k, h, ds, clima, p, d * 7 + i);
-        st.act = e.libre && e.edificio && e.duracion >= MINIMO_LIBRE ? { e, desde: abs, hasta: abs + e.duracion } : { e: null, desde: abs, hasta: abs + 0.25 };
+      if (p.aldea?.llegando?.clave === k) { st.act = null; return; }
+      if (!estaLibre(k, h, ds, p)) {
+        st.act = null;
+        // 3.6.1: lo que el horario manda en la plaza (la leyenda de la abuela) no se hace bajo la lluvia
+        // ni de noche: a cubierto
+        const r = aCubierto(k, h, ds, elClima());
+        if (r) elegidas.set(k, r);
+        return;
+      }
+      // 3.6.1: sale con tiempo para llegar a lo que le toca (la escuela, el local): a paso de pueblo, a
+      // la otra punta de la aldea hay más de media hora del juego, y llegaba tarde o no llegaba
+      const va = conTiempo(k, st, h, ds, p, abs);
+      if (va) { elegidas.set(k, va); st.act = null; return; }
+      // 3.6.1: con lo de afuera elegido, si se larga a llover (o a nevar), se vuelve a elegir
+      const cambioElTiempo = st.act?.e && ACTIVIDADES[st.act.e.actividad]?.afuera && st.act.clima !== elClima();
+      if (!st.act || abs >= st.act.hasta || abs < st.act.desde || cambioElTiempo) {
+        elClima();
+        let e = elegirActividad(k, h, ds, clima, p, d * 7 + i);
+        // 3.6.1: si eligió la mesa de la casa de té de una invitación, otra mesa (o lo que sigue)
+        if (e.edificio === 'casa-te' && reservadas.has(e.punto)) e = { ...e, punto: ['mesa-3', 'mesa-4'][i % 2] };
+        st.act = e.libre && e.edificio && e.duracion >= MINIMO_LIBRE ? { e, desde: abs, hasta: abs + e.duracion, clima: palabra } : { e: null, desde: abs, hasta: abs + 0.25, clima: palabra };
         if (st.act.e) cumplirActividad(p, k, e);
       }
       const e = st.act.e;
       if (e) elegidas.set(k, { lugar: e.lugar, edificio: e.edificio, punto: e.punto, actividad: e.actividad, con: e.con || null });
+      else { const r = aCubierto(k, h, ds, elClima()); if (r) elegidas.set(k, r); }
     });
     return elegidas;
+  }
+  // 3.6.1: donde vive cada uno (su cama está ahí: la casa, el cuarto de atrás del local o la estación)
+  const viviendaDe = (k, ds) => rutinaAldea(k, 3, ds, aldea()).edificio;
+  // Si el horario lo deja en un banco de la plaza con lluvia, nieve o de noche, a su casa (o null).
+  function aCubierto(k, h, ds, palabra) {
+    const r = rutinaAldea(k, h, ds, aldea());
+    if (r.edificio !== 'plaza' || !/^estar-/.test(r.punto || '')) return null;
+    const t = h - desfaseDe(k);
+    if (palabra !== 'lluvia' && palabra !== 'nieve' && t < NOCHE_AFUERA && t >= 7) return null;
+    const casa = viviendaDe(k, ds);
+    return casa ? { lugar: 'casa', edificio: casa, punto: 'adentro', actividad: 'descansar' } : null;
+  }
+  // Lo que le toca dentro de lo que tarda en llegar caminando (o null si le da el tiempo).
+  // (una vez que salió, sigue yendo aunque llegue antes: no se va a dar otra vuelta mientras espera)
+  function conTiempo(k, st, h, ds, p, abs) {
+    if (st.yendo && abs < st.yendo.hasta && abs >= st.yendo.desde) return st.yendo.d;
+    st.yendo = null;
+    const n = st.npc;
+    if (!n || n.dormido || n.deVisita) return null;
+    const vel = Math.max(0.3, Number(n.velocidad) || 0.85) * (Number(ctx.segundosPorHora?.()) || 75);   // metros por hora del juego
+    let adelanto = 0.75;
+    let r = null, hf = h, dsf = ds;
+    for (let vuelta = 0; vuelta < 2; vuelta++) {
+      hf = h + adelanto; dsf = hf >= 24 ? (ds + 1) % 7 : ds; hf %= 24;
+      r = rutinaAldea(k, hf, dsf, aldea());
+      const q = r.edificio && (puntosFijosDe(r.edificio)[r.punto] || puntosFijosDe(r.edificio).adentro);
+      if (!q) return null;
+      const w = M.aMundo(q.x, q.z);
+      adelanto = Math.min(1.25, (Math.hypot(w.x - n.pos.x, w.z - n.pos.z) * 1.35) / vel + 0.1);
+    }
+    if (estaLibre(k, hf, dsf, p)) return null;   // lo que viene es tiempo libre
+    if (r.punto === 'cama' || r.punto === 'cama-chicos') return null;   // a dormir, a su hora
+    if (r.edificio === 'plaza' && /^estar-/.test(r.punto || '')) return null;   // (a un banco de la plaza no se apura nadie: y con lluvia, no va)
+    const ahora = rutinaAldea(k, h, ds, aldea());
+    if (ahora.edificio === r.edificio && ahora.punto === r.punto) return null;
+    const d = { lugar: r.lugar, edificio: r.edificio, punto: r.punto, actividad: null };
+    st.yendo = { d, desde: abs, hasta: abs + adelanto + 0.05 };
+    return d;
   }
   // La casa de té (o null para soltarlo): mientras dure la invitación, va ahí.
   function citar(k, destino) {
@@ -742,7 +818,7 @@ export function crearAldeaGente(ctx) {
         tr.d = Math.min(tr.d, falta);
         if (tr.t > 12) { ubicar(n, d); tr.t = 0; saltos++; st.saltos = (st.saltos || 0) + 1; }
       } else if (usaRutaPropia(k, st, d)) aRutaPropia(n, st);
-      else { n.soloCerca = d.adentro ? VER_ADENTRO : 0; n.pose = poseDe(d); }   // 3.6 (vida): ya llegó: su pose
+      else { n.soloCerca = d.adentro ? VER_ADENTRO : 0; n.pose = poseDe(d); n.asiento = alturaAsiento(d, n); }   // 3.6 (vida): ya llegó: su pose (3.6.1: y su asiento)
     }
     if (despierta && js) buscarCharla(js);
   }

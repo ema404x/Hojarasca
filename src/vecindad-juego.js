@@ -365,7 +365,7 @@ export function crearVecindadJuego(ctx) {
   const npcDe = (clave) => ctx.npcDe?.(clave) || null;
   function llevar(npc, lugar) {
     const antes = { ruta: npc.ruta, etapa: npc.etapa, espera: npc.espera, velocidad: npc.velocidad, x: npc.pos.x, z: npc.pos.z, camino: npc.camino, soloCerca: npc.soloCerca };
-    npc.deVisita = true; npc.camino = null; npc.soloCerca = 0; npc.pose = null; npc.dormido = false;
+    npc.deVisita = true; npc.camino = null; npc.soloCerca = 0; npc.pose = null; npc.dormido = false; npc.asiento = undefined;   // 3.6.1: el asiento de antes no es el de tu mesa
     if (distancia(npc.pos, lugar) > CITA.caminar) {
       // la mesa queda lejos: te espera ahí (o llega caminando los últimos metros, si estás cerca)
       const j = ctx.jugador?.() || null;

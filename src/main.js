@@ -4141,6 +4141,10 @@ function armarOficiosYAldea(esDesafio) {
     alTerminarCharla: (c) => mecanicasAldea?.alTerminarCharla(c),   // 3.6 (mecánicas): los cuentos del domingo
     // 3.6 (vida): el tiempo libre según el clima, y lo que los vecinos recuerdan de vos
     climaVecindad, alAporteObra: (lote) => vecindadJuego?.hecho('aporte-obra', { lote }),
+    // 3.6.1 (vecinos): la altura de la silla donde se sienta un vecino (sobre su piso) y cuánto dura una
+    // hora del juego (para salir con tiempo a lo que le toca)
+    asientoEn: (x, z, y) => { let m = null, dm = 0.35; for (const s of est?.sentaderos || []) { const d = Math.hypot(s.x - x, s.z - z); if (d < dm && Math.abs(s.y - y) < 1.5 && !s.cama) { dm = d; m = s; } } return m ? Math.max(0, m.y - 0.02 - y) : null; },
+    segundosPorHora: () => ((ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion) * 60) / 24,
     alServicio: (k, efectos) => { if ((efectos || []).some((f) => f.k === 'poncho' && (f.n > 0 || f.fijar > 0))) vecindadJuego?.hecho('poncho'); },
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
@@ -7930,7 +7934,11 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 1.11
     // 3.5: la distancia de dibujo y de plantas (pruebas y herramientas de medición)
     pasto, calidad, aplicarDistancias, __distancias: () => ({ ajustes: { distancia: ajustes.distancia, plantas: ajustes.distanciaPlantas }, rigen: distActual, veg: veg.distancias(), pasto: { radio: pasto.radio, matas: pasto.matas }, soto: { ...veg.statsSoto } }),
-    __bucle: () => bucle(0, true), __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
+    __bucle: () => bucle(0, true),
+    // 3.6.1 (vecinos): el aviso de ahora mismo (sin esperar los relojes de lo que hay adelante), para
+    // comparar en cada lugar lo que dice el aviso con lo que hace E (humo-3-6-1-vecinos.cjs)
+    __avisoYa: () => { acumuladoVecino = 99; acumuladoBuscar = 99; acumuladoInteraccion = 99; bucle(0, true); return avisoTexto ? { tecla: avisoTecla, texto: avisoFrase } : null; },
+    __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
     cocinar, hayQueCocinar, __mundoPerro: () => mundoPerro, __abierto: () => ({ enElAlmacen, enLaFeria }),
     __sync: { copiarASync, revisarCarpetaSync, estado: () => ({ carpetaSync, ultimaCopiaSync, copiadoEnSync }) },
     visitas, actualizarVisitas, mueblesTerminados, __visitante: () => visitante,

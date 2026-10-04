@@ -366,11 +366,18 @@ const almacenAbierto = (aldea, hora, ds) => {
   const e = rutinaAldea('ercilia', hora, ds, aldea), n = rutinaAldea('nelida', hora, ds, aldea);
   return (e.lugar === 'trabajo' && e.punto === 'adentro') || (n.lugar === 'trabajo' && n.punto === 'adentro');
 };
+// 3.6.1: a qué hora (de cada uno, con su corrimiento) ya es de noche para estar afuera, y cuánto rato
+// tiene que quedar antes para empezar algo afuera
+export const NOCHE_AFUERA = 20.5;
+const MINIMO_AFUERA = 0.5;
 function candidatas(persona, hora, ds, c, aldea, sem) {
   const t = hora - desfaseDe(persona);
   const perfil = PERFILES_VECINOS[persona];
   const chico = !!VECINOS_ALDEA[persona]?.chico;
   const noche = t >= 20.5 || t < 7;
+  // 3.6.1: lo de afuera, sólo con luz y con tiempo de hacerlo antes de que oscurezca (a las 20:30):
+  // elegido a las 20:10, el chico seguía jugando en la nieve hasta las 22 (ver NOCHE_AFUERA)
+  const deDia = !noche && t < NOCHE_AFUERA - MINIMO_AFUERA;
   const lluvia = c === 'lluvia', nieve = c === 'nieve';
   const casa = casaDe(persona, aldea);
   const vivienda = casa || 'estacion-aldea';   // el que espera su local duerme en la estación
@@ -398,21 +405,21 @@ function candidatas(persona, hora, ds, c, aldea, sem) {
     } else if (!noche && (ra.lugar === 'local' || ra.lugar === 'trabajo') && ra.edificio !== 'casa-familia') {
       const punto = elPunto(ra.edificio, ['cliente', 'cliente-2', 'mesa-3', 'espera', 'puerta']);
       sumar('visitar', peso, ra.edificio, punto, { con: a });
-    } else if (!noche && !lluvia && ra.lugar === 'plaza') {
+    } else if (deDia && !lluvia && !nieve && ra.lugar === 'plaza') {   // 3.6.1: con nieve, tampoco en el banco de la plaza
       const k = Number(String(ra.punto).replace(/\D/g, '')) || 1;
       sumar('visitar', peso, 'plaza', ra.punto?.startsWith('estar-') ? `estar-${(k % 20) + 1}` : `estar-${(i % 20) + 1}`, { con: a });
     }
   }
   if (!noche && !chico && persona !== 'ercilia' && persona !== 'nelida' && almacenAbierto(aldea, hora, ds)) sumar('compras', 0.7, 'almacen', `cliente-${((i + Math.floor(sem * 3)) % 3) + 1}`);
-  if (!noche && !lluvia) {
-    sumar('plaza', 1, 'plaza', `estar-${((i + Math.floor(sem * 20)) % 20) + 1}`);
+  if (deDia && !lluvia) {
+    if (!nieve) sumar('plaza', 1, 'plaza', `estar-${((i + Math.floor(sem * 20)) % 20) + 1}`);   // 3.6.1: sentado en la plaza con nieve, no
     const destino = [['estacion-aldea', 'anden'], ['estacion-aldea', 'salida'], ['plaza', 'duende']][(i + Math.floor(sem * 3)) % 3];
     sumar('paseo', 0.8, destino[0], destino[1]);
     if (chico) sumar('jugar', 2.5, 'plaza', `juego-${((i + Math.floor(sem * 4)) % 4) + 1}`);
   }
-  if (!noche && !lluvia && casa && !chico) sumar('lena', 0.6, casa, 'trabajo');
-  if (!noche && !lluvia && !nieve && casa && !chico) sumar('regar', 0.4, casa, 'trabajo');
-  if (!noche && nieve && casa && !chico) sumar('palear', 1.4, casa, elPunto(casa, ['vereda', 'puerta']));
+  if (deDia && !lluvia && casa && !chico) sumar('lena', 0.6, casa, 'trabajo');
+  if (deDia && !lluvia && !nieve && casa && !chico) sumar('regar', 0.4, casa, 'trabajo');
+  if (deDia && nieve && casa && !chico) sumar('palear', 1.4, casa, elPunto(casa, ['vereda', 'puerta']));
   if (!noche && (lluvia || nieve)) sumar('galeria', 0.7, vivienda, elPunto(vivienda, ['puerta', 'vereda', 'adentro']));
   return lista;
 }
@@ -466,7 +473,9 @@ export function elegirActividad(persona, hora, diaSemana, clima, estado, semilla
   let elegida = lista[lista.length - 1];
   for (let k = 0; k < lista.length; k++) { q -= pesos[k]; if (q < 0) { elegida = lista[k]; break; } }
   const quiere = 0.75 + Math.floor(sem * 6) * 0.25;
-  const duracion = Math.max(0, Math.floor(Math.min(quiere, disponible) * 100) / 100);
+  // 3.6.1: lo de afuera termina antes de que oscurezca
+  const tope = ACTIVIDADES[elegida.actividad].afuera ? Math.max(0, NOCHE_AFUERA - t) : Infinity;
+  const duracion = Math.max(0, Math.floor(Math.min(quiere, disponible, tope) * 100) / 100);
   const lugar = elegida.edificio === 'plaza' ? 'plaza' : elegida.edificio === 'biblioteca' ? 'biblioteca' : elegida.edificio === 'almacen' ? 'almacen'
     : elegida.edificio === 'casa-te' && persona !== 'galesa' ? 'casa-te' : elegida.edificio === 'estacion-aldea' && elegida.actividad === 'paseo' ? 'paseo'
       : elegida.con ? 'visita' : 'casa';
