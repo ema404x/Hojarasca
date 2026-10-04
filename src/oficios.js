@@ -234,10 +234,14 @@ export function xpDeEtapa(pide) {
 }
 // 3.6: lo que aportás a una obra de la aldea, de a poco: lo puesto cuenta como en tus obras y
 // la etapa suma su parte sólo al completarse (aportar de a uno no rinde más que de una vez).
-export function xpDeAporte(usados, completa = false) {
+// 3.6.1: `antes`: lo que ya estaba aportado a la etapa. El tercio se cuenta sobre lo acumulado:
+// redondeado de a un aporte, de a dos rendía la mitad más que todo junto (dos materiales, un
+// punto) y de a uno no daba nada. Así, en cualquier orden, la etapa da lo mismo.
+export function xpDeAporte(usados, completa = false, antes = 0) {
   let total = 0;
   for (const v of Object.values(usados || {})) total += entero(v);
-  return Math.round(total / 3) + (completa ? XP.etapa : 0);
+  const previo = entero(antes);
+  return Math.round((previo + total) / 3) - Math.round(previo / 3) + (completa ? XP.etapa : 0);
 }
 
 // ---------------------------------------------------------------- partidas viejas

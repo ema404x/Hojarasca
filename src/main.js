@@ -4116,7 +4116,7 @@ function armarOficiosYAldea(esDesafio) {
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
-    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn), alAportar: (usados, completa) => ganarOficio('obrero', xpDeAporte(usados, completa)),
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn), alAportar: (usados, completa, antes) => ganarOficio('obrero', xpDeAporte(usados, completa, antes)),
     refrescarBarra: () => refrescarBarra(true), hablandoCon: () => charla.npc,
     // lo que dan los pobladores y no es de la mochila
     alJugador: (campo, valor) => alJugadorAldea(campo, valor),

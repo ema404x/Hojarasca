@@ -400,7 +400,8 @@ function mundo(p) {
   let deAUno = 0; for (let i = 0; i < 9; i++) deAUno += xpDeAporte({ tabla: 1 });
   ok(deAUno <= xpDeAporte({ tabla: 9 }), 'de a uno no rinde más que de una vez');
   eq(xpDeAporte(null), 0); eq(xpDeAporte({ tabla: -5, x: 'a' }), 0, 'basura: nada');
-  ok(leer('src/main.js').includes("alAportar: (usados, completa) => ganarOficio('obrero', xpDeAporte(usados, completa)),") && leer('src/aldea-gente.js').includes('ctx.alAportar?.(r.usados, r.completa);'), 'conectado al aporte');
+  // (3.6.1: con lo que ya estaba aportado a la etapa, ver verificar-3-6-1-aldea.mjs)
+  ok(leer('src/main.js').includes("alAportar: (usados, completa, antes) => ganarOficio('obrero', xpDeAporte(usados, completa, antes)),") && leer('src/aldea-gente.js').includes('ctx.alAportar?.(r.usados, r.completa, antes);'), 'conectado al aporte');
 }
 
 console.log(`OK 3.6.0 gente · ${n} verificaciones · sin el pueblo de la 3.1, por las calles, horarios, llegada, obras, servicios, charlas y enganches`);

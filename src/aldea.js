@@ -595,7 +595,8 @@ export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) :
 // lo cuenta), y además cada obra lleva por lo menos cuatro días.
 export const LLEGADA = { entreDias: 2, anotaciones: 12, porPoblador: 6 };
 // La obra: con la etapa completa, los vecinos trabajan y queda lista a las 7 de la mañana del
-// día siguiente (si se completa a las 23, igual: los vecinos trabajan de noche con el farol).
+// día siguiente (si se completa a las 23, igual: los vecinos trabajan de noche con el farol;
+// 3.6.1: y si se completa de madrugada, antes de las 7, queda lista esa misma mañana).
 // La escuela arranca a medio hacer: cimientos y estructura ya están.
 export const OBRA = { horaLista: 7, etapaInicial: { escuela: 2 } };
 export const ETAPAS_OBRA = [
@@ -640,7 +641,7 @@ export function aldeaNueva() {
     usos: {}, afilado: 0, mandado: null, mandados: 0, fauna: 0, partitura: 0, descubierta: 0,
   };
 }
-function sanearObra(lote, o) {
+function sanearObra(lote, o, hoy = TOPE_DIA) {
   const x = objeto(o) ? o : {};
   const etapa = Math.max(etapaInicial(lote), Math.min(ETAPAS_OBRA.length - 1, entero(x.etapa, etapaInicial(lote))));
   const pide = pideEtapa(lote, etapa);
@@ -653,51 +654,59 @@ function sanearObra(lote, o) {
   let lista = null;
   if (completa) {
     const d = objeto(x.lista) ? x.lista : null;
-    lista = { dia: diaValido(d?.dia, 1), hora: Math.max(0, Math.min(23.99, Number.isFinite(num(d?.hora)) ? num(d.hora) : OBRA.horaLista)) };
+    // 3.6.1: como mucho, mañana (ver `sanearAldea`)
+    lista = { dia: Math.min(hoy + 1, diaValido(d?.dia, 1)), hora: Math.max(0, Math.min(23.99, Number.isFinite(num(d?.hora)) ? num(d.hora) : OBRA.horaLista)) };
   }
-  return { etapa, aportado, lista, desde: diaValido(x.desde, 1) };
+  return { etapa, aportado, lista, desde: Math.min(hoy, diaValido(x.desde, 1)) };
 }
 // Todo saneado: un guardado retocado a mano o roto no deja la aldea en un estado imposible.
-export function sanearAldea(v) {
+// 3.6.1: `hoy` (opcional): el día de la partida. Ninguna fecha de la aldea puede ser de después
+// (la etapa lista, como mucho, mañana): con una fecha del futuro en un guardado roto, la obra
+// quedaba con «los vecinos están trabajando» para siempre (la etapa lista el día 1.000.000) y no
+// bajaba nadie más del tren (la última apertura en el futuro); el músico, lo mismo.
+export function sanearAldea(v, hoy = null) {
   const x = objeto(v) ? v : {};
+  const tope = Number.isFinite(num(hoy)) ? diaValido(hoy, 1) : TOPE_DIA;
+  const diaHasta = (n, d = 1) => Math.min(tope, diaValido(n, d));
   const base = aldeaNueva();
   const vistos = new Set();
   const pobladores = [];
   for (const p of Array.isArray(x.pobladores) ? x.pobladores : []) {
     if (!objeto(p) || !esPobladorAldea(p.clave) || vistos.has(p.clave)) continue;
     vistos.add(p.clave);
-    pobladores.push({ clave: p.clave, dia: diaValido(p.dia, 1) });
+    pobladores.push({ clave: p.clave, dia: diaHasta(p.dia, 1) });
   }
   const locales = {};
   if (objeto(x.locales)) for (const p of pobladores) {
     const lote = LOTE_DE[p.clave];
-    if (Object.hasOwn(x.locales, lote) && Number.isFinite(num(x.locales[lote]))) locales[lote] = diaValido(x.locales[lote], 1);
+    if (Object.hasOwn(x.locales, lote) && Number.isFinite(num(x.locales[lote]))) locales[lote] = diaHasta(x.locales[lote], 1);
   }
   // cada poblador aceptado tiene su local abierto o su obra en curso
   const obras = {};
   for (const p of pobladores) {
     const lote = LOTE_DE[p.clave];
     if (Object.hasOwn(locales, lote)) continue;
-    obras[lote] = sanearObra(lote, objeto(x.obras) && Object.hasOwn(x.obras, lote) ? x.obras[lote] : { desde: p.dia });
+    obras[lote] = sanearObra(lote, objeto(x.obras) && Object.hasOwn(x.obras, lote) ? x.obras[lote] : { desde: p.dia }, tope);
   }
   const llegando = objeto(x.llegando) && esPobladorAldea(x.llegando.clave) && !vistos.has(x.llegando.clave)
-    ? { clave: x.llegando.clave, dia: diaValido(x.llegando.dia, 1) } : null;
+    ? { clave: x.llegando.clave, dia: diaHasta(x.llegando.dia, 1) } : null;
   const usos = {};
-  if (objeto(x.usos)) for (const k of ORDEN_POBLADORES_ALDEA) if (Object.hasOwn(x.usos, k) && entero(x.usos[k]) > 0) usos[k] = Math.min(TOPE_DIA, entero(x.usos[k]));
-  const mandado = objeto(x.mandado) && typeof x.mandado.id === 'string' && IDS_ENTRADAS.has(x.mandado.id) ? { id: x.mandado.id, dia: diaValido(x.mandado.dia, 1) } : null;
-  const noNeg = (n, tope = TOPE_DIA) => Math.max(0, Math.min(tope, entero(n)));
+  // (un uso del futuro no es de hoy: se descarta, no se lo trae a hoy)
+  if (objeto(x.usos)) for (const k of ORDEN_POBLADORES_ALDEA) if (Object.hasOwn(x.usos, k) && entero(x.usos[k]) > 0 && entero(x.usos[k]) <= tope) usos[k] = entero(x.usos[k]);
+  const mandado = objeto(x.mandado) && typeof x.mandado.id === 'string' && IDS_ENTRADAS.has(x.mandado.id) ? { id: x.mandado.id, dia: diaHasta(x.mandado.dia, 1) } : null;
+  const noNeg = (n, max = TOPE_DIA) => Math.max(0, Math.min(max, entero(n)));
   return {
     ...base,
     pobladores, llegando, obras, locales,
-    ultimaLlegada: noNeg(x.ultimaLlegada), ultimaApertura: noNeg(x.ultimaApertura),
+    ultimaLlegada: noNeg(x.ultimaLlegada, tope), ultimaApertura: noNeg(x.ultimaApertura, tope),
     llamado: x.llamado === true,
     usos,
     afilado: noNeg(x.afilado, SERVICIO.filo),
     mandado,
     mandados: noNeg(x.mandados),
     fauna: noNeg(x.fauna, ENTRADAS.length),
-    partitura: noNeg(x.partitura),
-    descubierta: noNeg(x.descubierta),
+    partitura: noNeg(x.partitura, tope),
+    descubierta: noNeg(x.descubierta, tope),
   };
 }
 
@@ -719,7 +728,7 @@ export function migrarDesdePueblo(pueblo31, dia) {
     pobladores, locales,
     llegando: p.llegando, ultimaLlegada: p.ultimaLlegada, ultimaApertura: pobladores.length ? entero(p.ultimaLlegada) : 0,
     llamado: p.llamado, usos: p.usos, afilado: p.afilado, mandado: p.mandado, mandados: p.mandados,
-  });
+  }, hoy);   // 3.6.1: con el día de la partida (ninguna fecha del futuro)
 }
 
 // ---------------------------------------------------------------- avisos para otros módulos
@@ -760,7 +769,8 @@ export function puedeLlegar(progreso) {
   const dia = diaValido(progreso.dia, 1);
   if (!aldea.llamado && aldea.ultimaApertura && dia - aldea.ultimaApertura < LLEGADA.entreDias) return { ok: false, motivo: 'El próximo tren con gente viene en unos días', quien };
   const faltan = anotacionesPedidas(aldea) - anotacionesDe(progreso);
-  if (!aldea.llamado && faltan > 0) return { ok: false, motivo: `El valle todavía se conoce poco: faltan ${faltan} anotaciones en el cuaderno`, quien, faltan };
+  // (3.6.1: «falta 1 anotación», no «faltan 1 anotaciones»)
+  if (!aldea.llamado && faltan > 0) return { ok: false, motivo: `El valle todavía se conoce poco: ${faltan === 1 ? 'falta 1 anotación' : `faltan ${faltan} anotaciones`} en el cuaderno`, quien, faltan };
   return { ok: true, motivo: '', quien };
 }
 // La historia (o el evento del valle) llama al próximo: viene sin esperar días ni anotaciones
@@ -804,7 +814,11 @@ const faltanDe = (pide, aportado) => {
 // { usados, faltan, completa }: `usados` es lo que hay que descontarle al jugador. Con la
 // etapa completa, los vecinos trabajan y queda lista a las 7 del día siguiente (ver `OBRA`).
 // `dia`: el de hoy (sin él se toma el 1 y la etapa queda lista en el próximo `avanzarObras`).
-export function aportar(aldea, lote, disponibles, dia = 1) {
+// 3.6.1: `hora`: la de ahora. Completada de madrugada (antes de las 7, cuando dormir no cambia
+// el día: ver `dormir` en main.js), queda lista esa misma mañana: antes pedía el día siguiente
+// y, después de dormir, la etapa seguía sin terminar un día entero aunque el aviso dijera
+// «mañana a la mañana».
+export function aportar(aldea, lote, disponibles, dia = 1, hora = 12) {
   const obra = aldea?.obras && Object.hasOwn(aldea.obras, lote) ? aldea.obras[lote] : null;
   if (!obra) return { usados: {}, faltan: {}, completa: false };
   const pide = pideEtapa(lote, obra.etapa);
@@ -819,7 +833,8 @@ export function aportar(aldea, lote, disponibles, dia = 1) {
   const completa = !Object.keys(faltan).length;
   if (Object.keys(usados).length) avisar('aporte', { lote, usados, faltan });
   if (completa) {
-    obra.lista = { dia: diaValido(dia, 1) + 1, hora: OBRA.horaLista };
+    const madrugada = Number.isFinite(num(hora)) && num(hora) >= 0 && num(hora) < OBRA.horaLista;
+    obra.lista = { dia: diaValido(dia, 1) + (madrugada ? 0 : 1), hora: OBRA.horaLista };
     avisar('trabajando', { lote, etapa: obra.etapa, lista: obra.lista });
   }
   return { usados, faltan, completa };
