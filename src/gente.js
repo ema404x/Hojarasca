@@ -261,6 +261,44 @@ function posar(g, charlando) {
       g.brazos[0].rotation.x = -0.6 - k * 0.8; g.brazos[1].rotation.x = -0.6 - k * 0.8;
       break;
     }
+    // 3.6 (mecánicas): el baile del sábado (un balanceo de cadera y un pasito), el músico que
+    // rasguea, el jefe que tira de la soga y el gesto de cada oficio
+    case 'bailar': {
+      const k = Math.sin(t * 3.4), s = Math.abs(Math.sin(t * 3.4));
+      g.torso.rotation.z = k * 0.09; g.torso.position.y += s * 0.035; g.cabeza.position.y += s * 0.035;
+      g.cabeza.rotation.z = -k * 0.05;
+      g.brazos[0].rotation.x = -0.5 + k * 0.25; g.brazos[1].rotation.x = -0.5 - k * 0.25;
+      g.brazos[0].rotation.z = -0.25; g.brazos[1].rotation.z = 0.25;
+      break;
+    }
+    case 'tocar':
+      g.brazos[0].rotation.x = -1.0; g.brazos[0].rotation.z = 0.35;
+      g.brazos[1].rotation.x = -0.6 + Math.sin(t * 9) * 0.18; g.cabeza.rotation.x += 0.15;
+      break;
+    case 'izar': {
+      const k = Math.sin(t * 2.6);
+      g.brazos[0].rotation.x = -2.1 + k * 0.45; g.brazos[1].rotation.x = -2.1 - k * 0.45;
+      g.cabeza.rotation.x -= 0.25;
+      break;
+    }
+    case 'martillar': {
+      const k = Math.max(0, Math.sin(t * 4.2));
+      g.brazos[1].rotation.x = -0.6 - k * 1.3; g.brazos[0].rotation.x = -0.7;
+      g.torso.rotation.x = 0.12; g.cabeza.rotation.x += 0.25;
+      break;
+    }
+    case 'amasar': {
+      const k = Math.sin(t * 3);
+      g.brazos[0].rotation.x = -0.9 + k * 0.2; g.brazos[1].rotation.x = -0.9 - k * 0.2;
+      g.torso.rotation.x = 0.18 + Math.abs(k) * 0.06; g.cabeza.rotation.x += 0.3;
+      break;
+    }
+    case 'serruchar': {
+      const k = Math.sin(t * 5);
+      g.brazos[1].rotation.x = -0.8 + k * 0.35; g.brazos[0].rotation.x = -0.4;
+      g.torso.rotation.x = 0.15 + k * 0.03; g.cabeza.rotation.x += 0.25;
+      break;
+    }
     default: break;
   }
 }

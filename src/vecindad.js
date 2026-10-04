@@ -320,6 +320,7 @@ function obligacion(persona, hora, ds, aldea, r = null) {
   if (ru.punto === 'cama' || ru.punto === 'cama-chicos') return 'dormir';
   if (ds === 6 && t >= 10 && t < 11 && (ru.lugar === 'biblioteca' || persona === 'abuela')) return 'cuentos';
   if (OBLIGA.has(ru.lugar)) return 'trabajo';
+  if (ru.punto === 'soga') return 'trabajo';   // 3.6 (mecánicas): el jefe iza o arría la bandera
   if (ds === 5 && localAbierto(aldea, 'salon') && t >= 17 && t < 19) return 'musica';
   if (ru.lugar === 'casa' && (chico ? t >= 13 && t < 14 : t >= 12.5 && t < 13.5)) return 'almuerzo';
   if (persona === 'abuela' && ru.lugar === 'plaza' && ds !== 6 && t >= 15 && t < 18) return 'leyenda';
@@ -333,13 +334,16 @@ export function estaLibre(persona, hora, diaSemana, estado) {
   return obligacion(persona, horaNorm(hora), ds, partes(estado).aldea) === null;
 }
 // Cuánto dura todavía la situación (libre u obligada), hasta 3 h: la rutina sólo cambia en las
-// medias horas del horario de cada uno (corridas por su desfase) y, la del jefe, en las horas.
+// medias horas del horario de cada uno (corridas por su desfase) y, la del jefe, en las horas (y
+// en las de la bandera).
 function hastaQueCambie(persona, hora, ds, aldea, libre) {
   const des = desfaseDe(persona);
   const ref = rutinaAldea(persona, hora, ds, aldea);
   const marcas = [];
   for (let k = Math.floor((hora - des) * 2) + 1; (k / 2 + des) <= hora + 3; k++) marcas.push(k / 2 + des);
   for (let k = Math.floor(hora) + 1; k <= hora + 3; k++) marcas.push(k);
+  // 3.6 (mecánicas): y la del jefe, también cuando va a izar o a arriar la bandera (ver rutinaAldea)
+  if (persona === 'jefe') for (const b of [7.5, 8.25, 18.5, 19.25]) for (const d of [0, 24]) if (b + d > hora && b + d <= hora + 3) marcas.push(b + d);
   marcas.sort((a, b) => a - b);
   for (const b of marcas) {
     if (b <= hora + 1e-9) continue;

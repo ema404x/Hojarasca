@@ -234,6 +234,9 @@ function puntosLocales(id) {
     // la plaza mira a la estación (su +Z da a la calle de la Vía): el duende tallado recibe al que
     // llega y el músico toca en el medio, de cara a la estación
     const p = { mastil: { x: 0, z: 0, rot: 0 }, duende: { x: -3, z: 2.5, rot: 0 }, musico: { x: 0, z: -2.6, rot: 0 } };
+    // 3.6 (mecánicas): al pie de la soga del mástil (el de aldea-arquitectura.js, en z 5,25), donde
+    // el jefe de estación iza la bandera a las 8 y la arría a las 19, mirando al mástil
+    p.soga = { x: -1.4, z: 5.7, rot: 1.88 };
     // veinte lugares para estar: bancos de a dos en los lados largos y cuatro en los cortos
     let k = 1;
     for (const z of [-5.5, 5.5]) for (const x of [-6.5, -5.5, -2.5, -1.5, 1.5, 2.5, 5.5, 6.5]) p[`estar-${k++}`] = { x, z, rot: z < 0 ? 0 : PI };
@@ -247,13 +250,17 @@ function puntosLocales(id) {
     // el mostrador junto a la puerta (el que atiende y el que pide un libro), cuatro mesas de
     // lectura con cuatro sillas cada una y, al fondo, el sillón de la abuela junto a la estufa
     // a leña, donde lee los cuentos del domingo
-    p.adentro = { x: W / 2 - 1.1, z: D / 2 - 1.9, rot: 0 };
-    p.cliente = { x: W / 2 - 1.1, z: D / 2 - 0.8, rot: PI };
-    p.cuentos = { x: -W / 2 + 1.3, z: -D / 2 + 1.2, rot: 0 };
+    // 3.6 (mecánicas): donde están de verdad los muebles de aldea-arquitectura.js (el mostrador a la
+    // izquierda de la puerta, tres mesas de lectura en el medio y el sillón de orejas junto a la
+    // estufa): los vecinos se sientan en las sillas y la abuela en su sillón, no en el aire
+    // (verificar-3-6-mecanicas.mjs los compara con los puntos con nombre de la arquitectura)
+    p.adentro = { x: -1.9, z: 1.83, rot: 0 };
+    p.cliente = { x: -1.9, z: 3.43, rot: PI };
+    p.cuentos = { x: 1.75, z: 4.0, rot: -2.5 };
     let k = 1;
-    for (const mz of [-1.6, 1.0]) for (const mx of [-1.5, 1.5]) for (const [dx, dz, r] of [[-0.45, -0.6, 0], [0.45, -0.6, 0], [-0.45, 0.6, PI], [0.45, 0.6, PI]]) {
-      p[`lectura-${k++}`] = { x: mx + dx, z: mz + dz, rot: r };
-    }
+    for (const mz of [0.9, -1.3, -3.5]) for (const x of [0.1, 0.9]) for (const [dz, r] of [[-0.62, 0], [0.62, PI]]) p[`lectura-${k++}`] = { x, z: mz + dz, rot: r };
+    // y los cuatro almohadones de la alfombra, mirando al sillón (los domingos no alcanzan las sillas)
+    for (const [x, z] of [[0.5, 2.6], [1.15, 2.2], [1.6, 2.85], [0.75, 3.15]]) p[`lectura-${k++}`] = { x, z, rot: Math.atan2(1.75 - x, 4.0 - z) };
     return p;
   }
   if (e.rol === 'casa') {
@@ -266,17 +273,22 @@ function puntosLocales(id) {
   // los locales (y la escuela): el cuarto de atrás con la cama del poblador
   p.cama = { x: W / 2 - 1.0, z: -D / 2 + 0.9, rot: 0 };
   if (e.rol === 'escuela') {
-    // la maestra frente al pizarrón y ocho pupitres mirando hacia ella
+    // la maestra frente al pizarrón y ocho pupitres mirando hacia ella (3.6 (mecánicas): donde están
+    // de verdad en aldea-arquitectura.js: el pizarrón en la pared de la izquierda y los pupitres dobles)
     delete p.cliente;
-    p.adentro = { x: 0, z: -D / 2 + atrasDe(e) + 0.5, rot: 0 };
+    p.adentro = { x: -4.3, z: 0.2, rot: PI / 2 };
     let k = 1;
-    for (const z of [1.0, 2.3]) for (const x of [-3.2, -1.8, 1.8, 3.2]) p[`pupitre-${k++}`] = { x, z, rot: PI };
+    for (const [x, z] of [[-1.24, -0.27], [-1.24, 0.27], [0.96, -0.27], [0.96, 0.27], [3.16, -0.27], [3.16, 0.27], [-1.24, 1.18], [-1.24, 1.72]]) p[`pupitre-${k++}`] = { x, z, rot: -PI / 2 };
   }
   if (id === 'salon') {
     // el escenario y ocho sillas
     p.escenario = { x: 0, z: -D / 2 + atrasDe(e) + 0.6, rot: 0 };
     let k = 1;
-    for (const z of [1.4, 2.8]) for (const x of [-3, -1, 1, 3]) p[`lugar-${k++}`] = { x, z, rot: PI };
+    // 3.6 (mecánicas): las sillas de verdad de aldea-arquitectura.js (a los costados de las mesas)
+    for (const z of [1.2, 2.9]) for (const x of [-3.45, -1.75, 1.75, 3.45]) p[`lugar-${k++}`] = { x, z, rot: x < -2.6 || (x > 0 && x < 2.6) ? PI / 2 : -PI / 2 };
+    // 3.6 (mecánicas): la pista de baile, en el pasillo entre las mesas: cuatro parejas, frente a frente
+    k = 1;
+    for (const z of [0.6, 1.4, 2.2, 3.0]) for (const x of [-0.6, 0.6]) p[`baile-${k++}`] = { x, z, rot: x < 0 ? PI / 2 : -PI / 2 };
   }
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
@@ -1126,7 +1138,7 @@ export function obrerosDe(aldea, lote) {
 const presente = (aldea, clave) => esVecinoAldea(clave) || (aldea?.pobladores || []).some((p) => p.clave === clave);
 // Dónde está cada uno a cada hora. `persona`: la clave de un vecino o de un poblador;
 // `diaSemana`: 0 (lunes) a 6 (domingo); `estado`: la aldea. Devuelve { lugar, edificio,
-// punto }: `lugar` es 'casa'|'local'|'trabajo'|'plaza'|'biblioteca'|'almacen'|'escuela'|'obra'|
+// punto }: `lugar` es 'casa'|'local'|'trabajo'|'plaza'|'biblioteca'|'almacen'|'escuela'|'obra'|'salon'|
 // 'estacion', y `edificio`/`punto` dicen dónde pararse (ver `puntosDe`). Un poblador que todavía
 // no vino da { lugar: null }.
 export function rutinaAldea(persona, hora, diaSemana, estado) {
@@ -1152,7 +1164,12 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   const enCasa = (punto) => ir('casa', casa, punto);
   const cama = () => enCasa(persona === 'nene' || persona === 'nena' ? 'cama-chicos' : 'cama');
   const obra = obraEnCurso(a);
-  const musicoEnPlaza = sabado && localAbierto(a, 'salon') && t >= 17 && t < 19;
+  // 3.6 (mecánicas): el sábado de 17 a 19 el músico toca en su salón y se baila (PLAN_ALDEA §14;
+  // antes tocaba en la plaza): él en el escenario, ocho en la pista y el resto en las sillas
+  const baileDelSabado = sabado && localAbierto(a, 'salon') && t >= 17 && t < 19;
+  // 3.6 (mecánicas): la bandera de la plaza: el jefe de estación la iza a las 8 y la arría a las 19
+  // (cuenta la hora del reloj, sin su corrimiento: la bandera no espera)
+  const bandera = persona === 'jefe' && ((h >= 7.5 && h < 8.25) || (h >= 18.5 && h < 19.25));
 
   // de noche, adentro (el músico duerme hasta más tarde)
   if (t < 6.5 || t >= 22 || (persona === 'musico' && t < 8.5)) return cama();
@@ -1166,8 +1183,13 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
     if (persona === 'galesa') return ir('trabajo', 'casa-te', 'cocina');
     return ir('biblioteca', 'biblioteca', `lectura-${OYENTES.indexOf(persona) + 1}`);
   }
-  // sábado a la tarde, todos a la plaza con el músico
-  if (musicoEnPlaza) return persona === 'musico' ? ir('plaza', 'plaza', 'musico') : plaza();
+  if (bandera) return ir('plaza', 'plaza', 'soga');
+  // sábado a la tarde, todos al salón con el músico (3.6 (mecánicas): baile)
+  if (baileDelSabado) {
+    if (persona === 'musico') return ir('salon', 'salon', 'escenario');
+    const j = ORDEN_PERSONAS_ALDEA.filter((k) => k !== 'musico').indexOf(persona);
+    return j < 8 ? ir('salon', 'salon', `baile-${j + 1}`) : j < 16 ? ir('salon', 'salon', `lugar-${j - 7}`) : plaza();
+  }
   // los chicos
   if (v?.chico) {
     const juego = ir('plaza', 'plaza', `juego-${persona === 'nene' ? 1 : 2}`);

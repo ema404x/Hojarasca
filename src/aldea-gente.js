@@ -234,8 +234,16 @@ export function poseDe(d) {
   if (act === 'jugar') return 'jugar';
   if (act === 'paseo' || act === 'galeria') return 'mirar';
   if (d.lugar === 'obra') return 'hachar';   // los vecinos trabajando en la obra del pueblo
+  // 3.6 (mecánicas): el jefe con la soga del mástil, el baile y el músico del sábado, y el gesto de
+  // cada oficio mientras trabaja en su local
+  if (d.punto === 'soga') return 'izar';
+  if (/^baile-/.test(d.punto || '')) return 'bailar';
+  if (d.lugar === 'salon' && d.punto === 'escenario') return 'tocar';
+  if ((d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_OFICIO, d.edificio || '')) return GESTO_OFICIO[d.edificio];
   return null;
 }
+// 3.6 (mecánicas): el gesto de cada oficio (el panadero amasa, el herrero martilla, el carpintero sierra)
+const GESTO_OFICIO = { herreria: 'martillar', panaderia: 'amasar', carpinteria: 'serruchar' };
 
 // Lo que se ve de la aldea desde un punto del mundo: cuánto falta para el rectángulo que ocupa.
 export function distanciaAldea(x, z, M = marcoAldea(PARADA_ALDEA)) {
@@ -590,6 +598,8 @@ export function crearAldeaGente(ctx) {
       if (st.destino) st.npc.miraFinal = st.destino.mira;
     }
     oida.vistas.add(c.id);
+    // 3.6 (mecánicas): quién la escuchó entera (los cuentos del domingo dejan un recuerdo)
+    ctx.alTerminarCharla?.({ id: c.id, completa: c.linea >= c.lineas.length, personas: [...c.personas], centro: c.centro });
     oida.activa = null;
     oida.espera = 12;
     ctx.decir?.(null);
@@ -783,6 +793,7 @@ export function crearAldeaGente(ctx) {
   return {
     actualizar, charla, revisarLlegada, revisarObras, obraCerca, avisoObra, aportarObra, dibujarCuaderno, llamar,
     citar, figura, dibujarVecinos: (ficha, el) => fichaVecinos(progreso(), ficha, el),   // 3.6 (vida)
+    oyendo: () => !!oida.activa,   // 3.6 (mecánicas): hay una charla (o un cuento) sonando cerca
     personas, estadoVisual: (id) => estadoVisual(aldea(), id),
     // para las pruebas: cómo está todo
     estado: () => ({
