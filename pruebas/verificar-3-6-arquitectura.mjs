@@ -193,7 +193,7 @@ for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
     assert.ok(ed.luces.length >= 1, tag + ' luces (spec)');
     for (const d of ed.puertas) {
       assert.ok(d.ancho >= 1.0 && d.alto >= 2.0, `${tag}: puerta ${d.ancho}×${d.alto}`);
-      assert.equal(d.piso, A.PISO_ALDEA); assert.equal(d.adentro, true);
+      assert.equal(d.piso, A.PISO_ALDEA); assert.equal(d.adentro, id !== 'escuela', `${tag}: hacia dónde abre`);   // 3.6.1: la de la escuela abre para afuera
     }
     const N = ed.puntos.nombrados;
     for (const k of ['puerta', 'adentro', 'trabajo']) assert.ok(N[k], `${tag}: punto ${k}`);

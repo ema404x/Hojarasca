@@ -88,7 +88,7 @@
 // Presupuesto (Radeon integrada), medido en pruebas/verificar-3-6-arquitectura.mjs: exterior ≤ 3
 // dibujos por edificio (estructura, vidrios, carteles, follaje) e interior ≤ 2 (muebles, brasas), más uno por
 // pieza animable (pocas); las hojas
-// de puerta de puertas.js son aparte. Triángulos: casa ≤ 4k, local ≤ 7k afuera + 6k adentro,
+// de puerta de puertas.js son aparte. Triángulos: casa ≤ 4,1k, local ≤ 7k afuera + 6k adentro,
 // salón y biblioteca ≤ 10k.
 import * as THREE from 'three';
 import { Constructor, matriz, abollar } from './geometria.js';
@@ -138,7 +138,7 @@ export const ACCESORIOS_ALDEA = ['faroles', 'banco', 'cerco', 'pirca', 'alamo', 
 
 // Presupuestos (los mide la prueba): triángulos por capa y dibujos.
 export const PRESUPUESTO_ALDEA = {
-  casa: { exterior: 4000, interior: 6000 },
+  casa: { exterior: 4100, interior: 6000 },   // 3.6.1 (mundo): +100 por las filas que completan las paredes alrededor de los huecos
   local: { exterior: 7000, interior: 6000 },
   grande: { exterior: 10000, interior: 6000 },
   plaza: { exterior: 10000, interior: 0 },
@@ -535,6 +535,22 @@ function paramentoBase(K, c, f) {
           }
         }
       }
+      // 3.6.1 (mundo): la fila que corta un hueco a la mitad se completa abajo y arriba del hueco (antes se
+      // sacaba la fila entera a lo ancho del hueco: debajo de cada ventana quedaba una rendija de hasta una
+      // fila, y desde adentro se veía el pasto de afuera por debajo del alféizar)
+      for (const hu of huecos) {
+        if (!(hu.y0 < yb - 0.004 && hu.y1 > ya + 0.004)) continue;
+        const prof = (y) => lap * (yb - y) / (yb - ya);
+        for (const [y0p, y1p] of [[ya, Math.min(yb, hu.y0)], [Math.max(ya, hu.y1), yb]]) {
+          if (y1p - y0p < 0.004) continue;
+          const l0 = lim(y0p), l1 = lim(y1p);
+          const sa = Math.max(hu.s0, -l0), sb = Math.min(hu.s1, l0), ta = Math.max(hu.s0, -l1), tb = Math.min(hu.s1, l1);
+          if (sb - sa < 0.01 || tb - ta < 0.01) continue;
+          const kk = escalar(base, filaF), kAbajo = escalar(kk, lap > 0 && y0p === ya ? 0.84 : 1);
+          quad(c, P(sa, y0p, prof(y0p)), P(sb, y0p, prof(y0p)), P(tb, y1p, prof(y1p)), P(ta, y1p, prof(y1p)),
+            col(kAbajo, sa, y0p, prof(y0p)), col(kAbajo, sb, y0p, prof(y0p)), col(kk, tb, y1p, prof(y1p)), col(kk, ta, y1p, prof(y1p)), tipo);
+        }
+      }
     }
     return;
   }
@@ -920,7 +936,7 @@ function marcoPuerta(K, f, h, o) {
 // Arma la cáscara de un edificio rectangular de techo a dos aguas según la etapa de la obra.
 // o: { eje ('z': el frontón da a la calle · 'x': el alero da a la calle), alzada, vuelo, vueloFrente,
 //      alto, estilo, color, colorTecho, postigo, marco, oxido, desgaste, cortina,
-//      puertas: [{ cara, x|z, ancho, alto, abierta, nombre }], ventanas: [{ cara, x|z, y, ancho, alto, cuarto }],
+//      puertas: [{ cara, x|z, ancho, alto, abierta, nombre, lado, adentro }], ventanas: [{ cara, x|z, y, ancho, alto, cuarto }],
 //      galeria: { fondo, x0, x1, postes } , tabique: { z, x, ancho }, cielo, interior, colorInterior,
 //      colorPiso, chimenea: { x, z, tipo: 'chapa' | 'piedra', cara, s }, falsoFrente: { alto }, fronton: estilo }
 function casco(K, o) {
@@ -1192,11 +1208,14 @@ function casco(K, o) {
   const zG = o.galeria ? D / 2 + (o.galeria.fondo ?? 1.7) : D / 2;
   K.techo = { x0: -W / 2, x1: W / 2, z0: -D / 2, z1: zG, radio: Math.min(W, D) / 2 };
   K.pisos.push({ lx: 0, lz: (zG - D / 2) / 2, largo: W, ancho: zG + D / 2 });
+  // 3.6.1 (mundo): la hoja abierta queda casi perpendicular a la pared, metida en el cuarto del lado de la
+  // bisagra (`lado` -1: la bisagra a +x). Donde eso corta el paso (la escuela, la sala de miel), la puerta
+  // dice de qué lado va la bisagra o si abre para afuera.
   if (terminado) {
     for (const h of huecos.frente) {
       if (!h.puerta || h.puerta.abierta) continue;
       const s = (h.s0 + h.s1) / 2;
-      K.puertas.push({ lx: s, lz: D / 2 - MURO / 2, ancho: +(h.s1 - h.s0).toFixed(3), alto: +((h.y1 - PISO) - 0.02).toFixed(3), lado: -1, adentro: true, piso: PISO, nombre: h.puerta.nombre ?? ('la puerta de ' + (K.def.nombre || K.id).toLowerCase()) });
+      K.puertas.push({ lx: s, lz: D / 2 - MURO / 2, ancho: +(h.s1 - h.s0).toFixed(3), alto: +((h.y1 - PISO) - 0.02).toFixed(3), lado: h.puerta.lado ?? -1, adentro: h.puerta.adentro ?? true, piso: PISO, nombre: h.puerta.nombre ?? ('la puerta de ' + (K.def.nombre || K.id).toLowerCase()) });
     }
   }
   const pf = (o.puertas || []).find((p) => p.cara === 'frente');
@@ -2261,7 +2280,9 @@ function escuela(K) {
   const tab = { z: -0.9, x: 4.0 };
   casco(K, {
     eje: 'x', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, desgaste: 0.25,
-    puertas: [{ cara: 'frente', x: -1.5, ancho: 1.2, nombre: 'la puerta de la escuela' }],
+    // 3.6.1 (mundo): abre para afuera, como en las escuelas (abierta hacia adentro, entre la hoja y los pupitres
+    // no se pasaba: media aula, el fondo y la vivienda quedaban del otro lado)
+    puertas: [{ cara: 'frente', x: -1.5, ancho: 1.2, nombre: 'la puerta de la escuela', adentro: false }],
     ventanas: [{ cara: 'frente', x: 1.0, ancho: 1.2, alto: 1.3 }, { cara: 'frente', x: 3.2, ancho: 1.2, alto: 1.3 }, { cara: 'frente', x: -3.6, ancho: 1.2, alto: 1.3 },
       { cara: 'izq', z: 1.4, ancho: 1.0, alto: 1.2 }, { cara: 'der', z: 1.4, ancho: 1.0, alto: 1.2 },
       { cara: 'fondo', x: -2.5, ancho: 0.9, alto: 1.0, cuarto: 'vivienda' }, { cara: 'fondo', x: 1.6, ancho: 0.9, alto: 1.0, cuarto: 'vivienda' }],
@@ -2691,7 +2712,8 @@ function salaMiel(K) {
   const tab = { z: -0.75, x: 0.6 };
   casco(K, {
     eje: 'z', estilo: 'vertical', color: C.pared, colorTecho: C.techo, postigo: C.postigo, colorInterior: '#d2c3a0', interior: 'cal', colorFriso: '#8a6a34', alzada: 1.8,
-    puertas: [{ cara: 'frente', x: -0.9, ancho: PUERTA_ANCHO, nombre: 'la puerta de la sala de miel' }],
+    // 3.6.1 (mundo): la bisagra del lado del extractor (abierta del otro lado, la hoja tapaba el paso al mostrador)
+    puertas: [{ cara: 'frente', x: -0.9, ancho: PUERTA_ANCHO, nombre: 'la puerta de la sala de miel', lado: 1 }],
     ventanas: [{ cara: 'frente', x: 1.3, ancho: 1.1, alto: 1.0 }, { cara: 'izq', z: 0.9, ancho: 0.8, alto: 0.9 }, { cara: 'der', z: 0.8, ancho: 0.8, alto: 0.9 }],
     galeria: { fondo: 1.4 }, tabique: tab, chimenea: chimeneaVivienda(K, tab),
   });
@@ -3180,7 +3202,8 @@ function plaza(K) {
   alamo(K, -8.1, 2.6, { semilla: 3, alto: 16.5, sinLod: true });
   alamo(K, 8.1, 2.6, { semilla: 4, alto: 17.5, sinLod: true });
   cartel(K, 'Plaza de los Duendes', [5.4, 1.25, D / 2 + 0.6], 2.2, 0.42, 0, { dosCaras: true });
-  for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.0, -0.2, D / 2 + 0.6], [5.4 + l * 1.0, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.0, D / 2 + 0.6, 0.08, 0, 1.6); }
+  // 3.6.1 (mundo): los postes en las puntas de la tabla, no adelante de las letras (tapaban la última «s»)
+  for (const l of [-1, 1]) { palo(c, [5.4 + l * 1.15, -0.2, D / 2 + 0.6], [5.4 + l * 1.15, 1.55, D / 2 + 0.6], 0.07, '#4e3a28'); K.circulo(5.4 + l * 1.15, D / 2 + 0.6, 0.08, 0, 1.6); }
   K.abarcar(-W / 2, W / 2, -D / 2, D / 2 + 1.0);
   K.punto('musico', 1.3, 1.25, Math.PI * 0.75, 0.05);
   K.extra.alamos = [[-W / 2 - 1.5, -D / 2 + 1], [-W / 2 - 1.5, 3.5], [W / 2 + 1.5, -D / 2 + 1], [W / 2 + 1.5, 3.5], [-4.5, -D / 2 - 1.5], [4.5, -D / 2 - 1.5]].map(([x, z]) => ({ lx: x, lz: z }));
@@ -3217,7 +3240,8 @@ function lote(K) {
   }
   // el cartel "Lote para ..."
   const x = -W / 2 + 1.0, z = D / 2 + 0.9;
-  for (const l of [-1, 1]) { palo(c, [x + l * 0.75, -0.2, z], [x + l * 0.75, 1.35, z], 0.05, '#6e5036'); K.circulo(x + l * 0.75, z, 0.07, 0, 1.4); }
+  // (3.6.1 (mundo): los postes en las puntas, fuera de las letras)
+  for (const l of [-1, 1]) { palo(c, [x + l * 0.85, -0.2, z], [x + l * 0.85, 1.35, z], 0.05, '#6e5036'); K.circulo(x + l * 0.85, z, 0.07, 0, 1.4); }
   cartel(K, 'Lote para ' + PARA_LOTE[K.id], [x, 1.1, z], 1.6, 0.3, 0, { dosCaras: true, marco: '#6e5036' });
   K.abarcar(-W / 2, W / 2, -D / 2, z + 0.3);
   K.punto('entrada', 0, D / 2 + 1.0, Math.PI, 0);

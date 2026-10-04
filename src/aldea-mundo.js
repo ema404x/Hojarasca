@@ -982,10 +982,22 @@ export function crearAldeaMundo(ctx) {
     };
     const nx = Math.max(2, Math.ceil((X1 - X0) / 2)), nz = Math.max(2, Math.ceil((Z1 - Z0) / 2));
     const pos = new Float32Array((nx + 1) * (nz + 1) * 3), nor = new Float32Array(pos.length), uv = new Float32Array((nx + 1) * (nz + 1) * 2);
+    // 3.6.1 (mundo): la gruesa hundida (4 m sus vértices de adentro; los del borde no se tocan), para que el
+    // parche no quede nunca por debajo de ella: en las celdas del borde, donde el terreno emparejado
+    // baja más que la gruesa, asomaba hasta 16 cm de la de abajo (en las esquinas del parche)
+    const hundida = (x, z) => {
+      const fx = (x + 512) / s, fz = (z + 512) / s;
+      const i = Math.min(seg - 1, Math.max(0, Math.floor(fx))), j = Math.min(seg - 1, Math.max(0, Math.floor(fz)));
+      const u = fx - i, v = fz - j;
+      const f = (a, c) => hG(a, c) - (a > ia0 && a < ia1 && c > ja0 && c < ja1 ? 4 : 0);
+      const ha = f(i, j), hb = f(i, j + 1), hc = f(i + 1, j + 1), hd = f(i + 1, j);
+      return u + v <= 1 ? ha + (hd - ha) * u + (hb - ha) * v : hc + (hb - hc) * (1 - u) + (hd - hc) * (1 - v);
+    };
     for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) {
       const x = X0 + ((X1 - X0) * i) / nx, z = Z0 + ((Z1 - Z0) * j) / nz, k = j * (nx + 1) + i;
       const b = suave01(Math.min(x - X0, X1 - x, z - Z0, Z1 - z) / s);
-      const h = gruesa(x, z, -1) + (T.altura(x, z) - gruesa(x, z, -1)) * b;
+      let h = gruesa(x, z, -1) + (T.altura(x, z) - gruesa(x, z, -1)) * b;
+      if (b < 1) h = Math.max(h, hundida(x, z) + 0.05 * b);
       const nt = T.normal(x, z);
       let ax = gruesa(x, z, 0) + (nt.x - gruesa(x, z, 0)) * b, ay = gruesa(x, z, 1) + (nt.y - gruesa(x, z, 1)) * b, az = gruesa(x, z, 2) + (nt.z - gruesa(x, z, 2)) * b;
       const l = Math.hypot(ax, ay, az) || 1;
@@ -1012,9 +1024,12 @@ export function crearAldeaMundo(ctx) {
     escena.add(parche);
     info.parcheTris = nx * nz * 2;
     // la gruesa, adentro del parche, se hunde (las aristas del borde no se tocan). Lejos de la
-    // aldea el parche se apaga y la gruesa vuelve a su altura (desde el refugio no suma nada).
+    // aldea el parche se apaga y la gruesa vuelve a subir (desde el refugio no suma nada).
+    // 3.6.1 (mundo): vuelve a la altura del terreno EMPAREJADO (antes, a la de antes de emparejar: al
+    // cruzar el corte, desde el mirador o el tren, el suelo de la aldea se movía hasta 1,1 m de golpe;
+    // ahora cambia sólo el detalle, unos centímetros)
     const idx = [], alta = [], baja = [];
-    for (let j = ja0 + 1; j < ja1; j++) for (let i = ia0 + 1; i < ia1; i++) { const k = j * (seg + 1) + i; idx.push(k); alta.push(hG(i, j)); baja.push(hG(i, j) - 4); }
+    for (let j = ja0 + 1; j < ja1; j++) for (let i = ia0 + 1; i < ia1; i++) { const k = j * (seg + 1) + i; idx.push(k); alta.push(T.altura(i * s - 512, j * s - 512)); baja.push(hG(i, j) - 4); }
     parche.userData.gruesa = { p, idx, alta, baja, desde: idx.length ? idx[0] : 0, hasta: idx.length ? idx[idx.length - 1] : 0 };
     suelo = parche;
     verParche(true);

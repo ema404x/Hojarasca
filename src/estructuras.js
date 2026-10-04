@@ -37,7 +37,11 @@ function cartelTextura(texto) {
     const y = Math.random() * 128;
     x.beginPath(); x.moveTo(0, y); x.bezierCurveTo(170, y + Math.random() * 8 - 4, 340, y + Math.random() * 8 - 4, 512, y); x.stroke();
   }
-  x.font = '600 58px Spectral, Georgia, serif';
+  // 3.6.1 (mundo): el texto entra en la tabla (como en los carteles de la aldea): «RAMOS GENERALES» medía
+  // más que el lienzo y salía sin la R ni la S (y «Ramos Generales» se pasaba del borde de la tabla)
+  let tam = 58;
+  x.font = `600 ${tam}px Spectral, Georgia, serif`;
+  while (tam > 20 && x.measureText(texto).width > 440) { tam -= 2; x.font = `600 ${tam}px Spectral, Georgia, serif`; }
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillStyle = 'rgba(255,230,190,0.18)'; x.fillText(texto, 258, 68);
   x.fillStyle = '#2a1a0e'; x.fillText(texto, 256, 66);
