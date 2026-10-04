@@ -86,7 +86,9 @@ export function empezarVisita(v, dia) {
 export const seVa = (v, dia, horas) => !!v.activa && (v.activa.dia !== dia || horas >= VISITA.seVa);
 export function terminarVisita(v, dia) {
   v.ultima = v.activa?.dia || dia;
-  v.cuenta += 1;
+  // 3.6.1: la visita de un compadre no le quita el turno al de siempre (antes, cada compadre que
+  // venía salteaba al que le tocaba: Don Ramón, Nicanor, Ema y Ercilia se turnan)
+  if (!v.activa?.amistad) v.cuenta += 1;
   v.activa = null;
 }
 

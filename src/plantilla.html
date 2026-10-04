@@ -283,7 +283,8 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .charla .seguir { margin: 14px 0 0; font-size: 14px; color: #7a6742; }
 /* 3.6 (vida): el menú de la charla con los vecinos (números, ruedita o LB/RB, y E) */
 .charla-opciones { list-style: none; margin: 10px 0 0; padding: 0; }
-.charla-opciones li { padding: 4px 10px; margin: 1px 0; border-radius: 3px; font-size: 17px; line-height: 1.35; cursor: pointer; border-left: 3px solid transparent; }
+.charla-opciones li { padding: 4px 10px; margin: 1px 0; border-radius: 3px; font-size: 17px; line-height: 1.35; cursor: pointer; border-left: 3px solid transparent; pointer-events: auto; }
+/* 3.6.1: el HUD no recibe el mouse; las opciones sí (antes el clic no llegaba nunca) */
 .charla-opciones li.elegida { background: rgba(90,69,36,.13); border-left-color: #8a6b4a; }
 .medidor { position: absolute; left: 26px; top: 110px; margin: 0; font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace; font-size: 13px; line-height: 1.55;
   color: #dff0d0; background: rgba(10,16,12,.62); padding: 10px 14px; border-radius: 8px; white-space: pre; }

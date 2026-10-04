@@ -210,4 +210,123 @@ const main = leer('src/main.js');
   ok(!r.mesaAjena.length, `la mesa de la invitación, libre para el invitado y para vos${muestra(r.mesaAjena)}`);
 }
 
+// ============================================================ 4. el menú de la charla
+// · lo del lugar («Ver qué hay en el almacén», «Devolver el libro») seguía sólo al abrir el menú: al
+//   volver de «Regalar…» con «Mejor no» o con Escape ya no estaba;
+// · el clic en una opción no llegaba nunca (el HUD no recibe el mouse) y con el mouse bloqueado el
+//   clic tiraba la línea de pesca en medio de la charla: ahora el clic elige (o sigue la charla);
+// · con el mando, B te agachaba en vez de volver o despedirte, la cruceta abría la mochila con el menú
+//   abierto, y en el modo foto LB y RB movían el menú escondido; el pie del cuadro dice los botones;
+// · la visita de siempre no se lleva al vecino que te está hablando en la aldea.
+{
+  const pl = leer('src/plantilla.html');
+  ok(/\.charla-opciones li \{[^}]*pointer-events: auto;/.test(pl), 'las opciones reciben el clic');
+  ok(main.includes("li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegirEnMenuCharla(i); });"), 'clic en la opción');
+  ok(main.includes('if (charla.npc && document.pointerLockElement) { seguirCharla(); return; }'), 'con el mouse bloqueado, el clic es E');
+  ok(main.includes("if (r.tipo === 'menu') armarMenuCharla();") && main.includes('charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }') && !main.includes('charla.menu = vecindadJuego.menu(charla.vec);'), 'el menú siempre con lo del lugar');
+  ok(main.includes("if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); }"), 'B vuelve atrás charlando');
+  ok(main.includes("if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }"), 'la cruceta mueve el menú');
+  ok(main.includes('if (!m || foto.activo) return;   // 3.6.1'), 'en el modo foto el menú no se mueve');
+  ok(main.includes("const PIE_MENU_MANDO = 'LB y RB, o la cruceta, y X para elegir · B para despedirte';"), 'el pie, con el mando');
+  ok(main.includes('if (charla.npc === npc) return false;   // 3.6.1'), 'la visita no se lleva al que te habla');
+  // lo del lugar se arma en una sola función, la que usan abrir, volver de un submenú y Escape
+  const arma = main.slice(main.indexOf('function armarMenuCharla('), main.indexOf('function abrirMenuCharla('));
+  ok(arma.includes('accionDelLugar()') && arma.includes("id: '__lugar'"), 'armarMenuCharla agrega lo del lugar');
+}
+
+// ============================================================ 5. la memoria: lo dicho no se repite
+// La lista de lo ya contado (24) se llenaba de cosas viejas (el pronóstico de cada día, el tren de cada
+// día) y lo que todavía valía se borraba: la misma novedad («la obra de la panadería va por…») volvía
+// a contarse. Y lo ya comentado de lo que hiciste, igual (16): el chismoso repetía.
+{
+  const V = await import('../src/vecindad.js');
+  const A = await import('../src/aldea.js');
+  const aldea = A.aldeaNueva();
+  aldea.pobladores = [{ clave: 'carpintero', dia: 1 }];
+  aldea.obras = { carpinteria: { etapa: 1, aportado: {}, lista: null, desde: 1 } };
+  const p = { dia: 1, horas: 10, aldea, vecindad: V.vecindadNueva(), entradas: {} };
+  const dichos = [];
+  for (let d = 1; d <= 30; d++) {
+    p.dia = d;
+    for (let k = 0; k < 3; k++) dichos.push(...V.elegirTema('jefe', 'novedades', p, { dia: d, hora: 10, pronostico: `para mañana: sol ${d}`, tren: 10 + k }).renglones);
+  }
+  const obra = dichos.filter((r) => /obra de la carpinter/i.test(r));
+  ok(obra.length === 1, `la obra (que no avanza) se cuenta una vez en 30 días (${obra.length})`);
+  ok(p.vecindad.personas.jefe.dichos.length <= 24, 'y la lista sigue acotada');
+  // el chismoso: muchos regalos en un día, muchas charlas, nada repetido
+  const q = { dia: 5, horas: 10, aldea: A.aldeaNueva(), vecindad: V.vecindadNueva(), entradas: {}, cosas: { yerba: 99, harina: 99 }, materiales: { tronco: 99 } };
+  const todos = V.PERSONAS_VECINDAD.filter((k) => k !== 'nelida');
+  for (const k of todos) V.regalar(k, 'yerba', q, 5);
+  const dichosChisme = [];
+  for (let d = 5; d <= 8; d++) for (let i = 0; i < 12; i++) { const c = V.comentarioSobreVos('nelida', q, d); if (c) dichosChisme.push(c.texto); }
+  const { CHISMOSOS } = await import('../src/vecindad-voces.js');
+  ok(CHISMOSOS.includes('nelida') && dichosChisme.length >= 8, `la chismosa comenta los regalos de a poco (${dichosChisme.length} en cuatro días)`);
+  ok(new Set(dichosChisme).size === dichosChisme.length, 'y ninguno dos veces');
+  ok(q.vecindad.personas.nelida.coment.length <= 16, 'lo comentado, acotado');
+}
+
+// ============================================================ 6. el compadre y las visitas de siempre
+// · la visita de un compadre le quitaba el turno al de siempre (Don Ramón, Nicanor, Ema y Ercilia se
+//   turnan): ahora no;
+// · un compadre que no podía venir (en el tren, de visita, charlando con vos) igual quedaba marcado y la
+//   visita se perdía: ahora viene uno que pueda.
+{
+  const Vi = await import('../src/visitas.js');
+  const V = await import('../src/vecindad.js');
+  const v = Vi.visitasNuevas();
+  Vi.empezarVisita(v, 3); const antes = v.cuenta; v.activa.amistad = true; v.activa.clave = 'jefe';
+  Vi.terminarVisita(v, 3);
+  ok(v.cuenta === antes && Vi.quienViene(v.cuenta) === 'ramon', 'después del compadre, viene el que le tocaba');
+  Vi.empezarVisita(v, 6); Vi.terminarVisita(v, 6);
+  ok(v.cuenta === antes + 1, 'y la de siempre sí pasa el turno');
+  const p = { vecindad: V.vecindadNueva() };
+  for (const k of ['jefe', 'abuela']) { V.regalar(k, 'yerba', p, 1, () => 99); for (let d = 1; d < 40; d++) { V.charlar(k, p, d); V.invitar(k, 'mate', p, 16, { dia: d, diaSemana: 6 }); } }
+  ok(V.nivelDe('jefe', p) === 'compadre' && V.nivelDe('abuela', p) === 'compadre', 'dos compadres');
+  ok(V.visitaDeAmistad(p, 50, () => false) === null && p.vecindad.visita.ultima === 0, 'si nadie puede venir, no se marca nada');
+  const r = V.visitaDeAmistad(p, 50, (k) => k === 'abuela');
+  ok(r?.clave === 'abuela', 'viene el que puede');
+  const vj = leer('src/vecindad-juego.js');
+  ok(vj.includes('function visitaDeCompadre(puede = ctx.puedeVenir || null)') && main.includes('puedeVenir: (k) =>'), 'main.js dice quién puede venir');
+}
+
+// ============================================================ 7. la invitación no se pierde al recargar
+// Antes la cita vivía sólo en la memoria: recargando a la mitad, el invitado no venía y, como ya lo
+// habías invitado ese día, no se lo podía volver a invitar («ya tomamos hoy»).
+{
+  const V = await import('../src/vecindad.js');
+  const VJ = await import('../src/vecindad-juego.js');
+  ok(V.sanearCita({ clave: 'ramon', que: 'mate', desde: 50 })?.clave === 'ramon' && V.sanearCita({ clave: 'nadie', que: 'mate', desde: 1 }) === null && V.sanearCita({ clave: 'ramon', que: 'vino', desde: 1 }) === null, 'la cita guardada, saneada');
+  ok(V.sanearVecindad({ cita: { clave: 'jefe', que: 'te', desde: 30 } }).cita?.que === 'te' && V.vecindadNueva().cita === null, 'va en la vecindad');
+  const vec3 = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });
+  const hacer = (progreso) => {
+    const ramon = { clave: 'ramon', nombre: 'Don Ramón', pos: vec3(10, 0, 10), ruta: [{ x: 10, z: 10 }], etapa: 0, espera: 0, velocidad: 0.6 };
+    const vj = VJ.crearVecindadJuego({
+      progreso: () => progreso, desafio: () => false, mesa: () => ({ mesa: { x: 0, z: 0 }, asientos: [{ x: 1, z: 0 }, { x: -1, z: 0 }] }), hayVisita: () => false,
+      jugador: () => ({ x: 0, z: 2 }), npcDe: (k) => (k === 'ramon' ? ramon : null), guardar() {}, nota() {},
+    });
+    return { vj, ramon };
+  };
+  const progreso = { dia: 3, horas: 12.5, vecindad: V.vecindadNueva(), cosas: {}, materiales: {}, entradas: {} };
+  const a = hacer(progreso);
+  const s = a.vj.abrir(a.ramon);
+  const r = a.vj.elegir(s, 'invitar:mate', a.ramon);
+  ok(r.tipo === 'cita' && a.vj.empezarCita('ramon', a.ramon, 'mate', r.charla, r.lugares), 'invitado a tomar mate');
+  ok(progreso.vecindad.cita?.clave === 'ramon', 'la cita queda en la partida');
+  // se recarga: otra vecindad-juego con la misma partida (guardada y cargada)
+  const cargado = JSON.parse(JSON.stringify(progreso)); cargado.vecindad = V.sanearVecindad(cargado.vecindad);
+  const b = hacer(cargado);
+  b.vj.actualizar(1);
+  ok(b.vj.cita()?.clave === 'ramon' && b.ramon.deVisita, 'al recargar, Don Ramón vuelve a ir a tu mesa');
+  // ya se tomó: al recargar no vuelve
+  for (let i = 0; i < 400 && b.vj.cita()?.fase !== 'esperando'; i++) { b.ramon.pos.x += (b.vj.cita().lugar.x - b.ramon.pos.x) * 0.5; b.ramon.pos.z += (b.vj.cita().lugar.z - b.ramon.pos.z) * 0.5; b.vj.actualizarCita(); }
+  ok(b.vj.cita()?.fase === 'esperando' && b.vj.sentarse(), 'llega, te sentás');
+  b.vj.citaCharlada();
+  ok(cargado.vecindad.cita === null, 'charlada, ya no queda guardada');
+  // pasado el rato que espera, al recargar no vuelve
+  const viejo = { dia: 3, horas: 19.5, vecindad: V.sanearVecindad({ cita: { clave: 'ramon', que: 'mate', desde: 3 * 24 + 15 } }), cosas: {}, materiales: {}, entradas: {} };
+  const c = hacer(viejo);
+  c.vj.actualizar(1);
+  ok(!c.vj.cita() && viejo.vecindad.cita === null, 'si ya se cansó de esperar, no vuelve');
+}
+
 console.log(`OK 3.6.1 vecinos · ${n} verificaciones`);

@@ -391,22 +391,43 @@ export function crearVecindadJuego(ctx) {
     npc.pos.set(a.x, ctx.alturaDePie ? ctx.alturaDePie(a.x, a.z, npc.pos.y) : npc.pos.y, a.z);
   }
   // Empieza la cita que aceptó (lo que devolvió `elegir` con tipo 'cita').
-  function empezarCita(clave, npc, que, charla, lugares) {
+  // 3.6.1: la cita queda en la partida (`progreso.vecindad.cita`) mientras no se tomó: si recargás a la
+  // mitad, el invitado vuelve a la mesa (antes se perdía, y como ya lo habías invitado ese día, no
+  // se lo podía volver a invitar)
+  const anotarCita = (c) => { const p = progreso(); if (objeto(p.vecindad)) p.vecindad.cita = c ? { clave: c.clave, que: c.que, desde: c.desde } : null; };
+  function empezarCita(clave, npc, que, charla, lugares, desde = null) {
     if (cita || !npc || !lugares) return false;
-    const c = { clave, npc, que, fase: 'yendo', lugar: lugares.suyo, tuyo: lugares.tuyo, mesa: lugares.mesa, charla: charla || [], desde: ahora(), hasta: 0, porAldea: false, antes: null };
+    const c = { clave, npc, que, fase: 'yendo', lugar: lugares.suyo, tuyo: lugares.tuyo, mesa: lugares.mesa, charla: charla || [], desde: Number.isFinite(desde) ? desde : ahora(), hasta: 0, porAldea: false, antes: null };
     // a la casa de té, la gente de la aldea va por las calles (aldea-gente.js); el resto, derecho
     const ag = ctx.aldea?.();
     if (que === 'te' && esPersonaAldea(clave) && npc.claveAldea && ag?.citar) { ag.citar(clave, { edificio: 'casa-te', punto: 'mesa-2' }); c.porAldea = true; }
     else c.antes = llevar(npc, c.lugar);
     cita = c;
+    anotarCita(c);
     const nombre = nombreDeVecino(clave);
     ctx.nota?.(que === 'mate' ? `${nombre} va para tu mesa` : `${nombre} va a la casa de té`, 'Sentate con E en el otro lugar de la mesa', true);
+    ctx.guardar?.();
     return true;
   }
+  // La cita de una partida recargada: el invitado vuelve a ir (o ya se cansó de esperar).
+  function retomarCita() {
+    const p = progreso(), g = p.vecindad?.cita;
+    if (cita || !g) return;
+    const lugares = g.que === 'mate' ? lugaresDeLaMesa(ctx.mesa?.()) : lugaresDeLaCasaTe();
+    const h = horas();
+    if (!lugares || ahora() - g.desde > CITA.espera || ahora() < g.desde || h >= CITA.tarde || (esPersonaAldea(g.clave) && !estaLibre(g.clave, h, diaSemanaDe(dia()), p))) { anotarCita(null); return; }
+    const npc = npcDe(g.clave);
+    if (!npc) return;   // (la figura todavía no está: se reintenta)
+    const charla = invitacionCharla(g.clave, g.que);
+    if (!empezarCita(g.clave, npc, g.que, charla, lugares, g.desde)) anotarCita(null);
+  }
+  // la charla de la mesa de una cita retomada (la de la invitación no se guarda: la sobremesa de siempre)
+  const invitacionCharla = (clave, que) => [(que === 'mate' ? 'Bueno, acá estoy. ¿Lo cebás vos o lo cebo yo?' : 'Acá estoy. Qué lindo lugar para un té, ¿no?'), ...(VOCES[clave]?.sobremesa || []).slice(0, 1)];
   function terminarCita(motivo = 'fin') {
     const c = cita;
     if (!c) return;
     cita = null;
+    anotarCita(null);
     devolver(c);
     const nombre = nombreDeVecino(c.clave);
     if (motivo === 'cansado') ctx.nota?.(`${nombre} se cansó de esperarte`, 'Se volvió a lo suyo. Otro día será');
@@ -451,6 +472,7 @@ export function crearVecindadJuego(ctx) {
   function citaCharlada() {
     if (!cita || cita.fase !== 'charlando') return;
     cita.fase = 'sobremesa';
+    anotarCita(null);   // 3.6.1: ya se tomó: al recargar no vuelve
     cita.hasta = ahora() + CITA.sobremesa;
     const nombre = nombreDeVecino(cita.clave);
     ctx.nota?.(cita.que === 'mate' ? `Tomaste mate con ${nombre}` : `Tomaste el té con ${nombre}`, 'Esas charlas hacen amigos', true);
@@ -460,9 +482,9 @@ export function crearVecindadJuego(ctx) {
 
   // ---------------------------------------------------------------- la visita del compadre
   // Cuando toca una visita a tu mesa (main.js): si hay un compadre que no vino hace días, viene él.
-  function visitaDeCompadre() {
+  function visitaDeCompadre(puede = ctx.puedeVenir || null) {
     if (ctx.desafio?.()) return null;
-    return visitaDeAmistad(progreso(), dia());
+    return visitaDeAmistad(progreso(), dia(), puede);   // 3.6.1: sólo uno que pueda venir
   }
   const charlaDeCompadre = (clave) => [...(VOCES[clave]?.visita || [])];
   function regaloDeCompadre(clave) {
@@ -514,6 +536,7 @@ export function crearVecindadJuego(ctx) {
     if (acum < 0.5) return;
     acum = 0;
     revisarDia();
+    retomarCita();   // 3.6.1
     actualizarCita();
   }
 
