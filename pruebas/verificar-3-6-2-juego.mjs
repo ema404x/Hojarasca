@@ -305,6 +305,41 @@ globalThis.__R = (() => {
   ok(G.largoRecorrido(casa, alm) > 4 * Math.hypot(casa.x - alm.x, casa.z - alm.z), 'de la casa de Ercilia al almacén, más de cuatro veces la línea recta');
 }
 
+// ============================================================ 7b. el que iba caminando cuando te fuiste
+// Si al irte de la aldea un vecino iba caminando para donde le toca, quedaba congelado en la calle hasta que
+// volvías (lejos sólo se acomodaba al que cambiaba de destino). Con la salida a tiempo de la 3.6.2 pasaba más:
+// el carpintero, recién abierta su carpintería, seguía en el andén a las 10 y la E le hablaba a la que bajaba del
+// tren (humo-3-6-aldea). Ahora, lejos, el que estaba en camino llega.
+{
+  const A = await import('../src/aldea.js');
+  const G = await import('../src/aldea-gente.js');
+  const M = A.marcoAldea(A.PARADA_ALDEA);
+  const L = { carpintero: 'carpinteria', panadera: 'panaderia', herrero: 'herreria', pescador: 'pescaderia', maestra: 'escuela', enfermera: 'puesto-sanitario', telegrafista: 'estafeta', tejedora: 'hilanderia', apicultor: 'sala-miel', guardaparque: 'seccional', musico: 'salon' };
+  const P = { dia: 2, horas: 6, aldea: A.aldeaNueva(), entradas: {}, materiales: {}, cosas: {} };
+  P.aldea.pobladores = Object.keys(L).map((clave) => ({ clave, dia: 1 })); P.aldea.locales = Object.fromEntries(Object.values(L).map((l) => [l, 1]));
+  const vec = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });
+  const npcs = [];
+  const gente = { gente: npcs, agregarPoblador(def) { const n = { ...def, pos: vec(def.pos.x, 0, def.pos.z), camino: [], g: { rotation: {} } }; npcs.push(n); return n; } };
+  const c0 = M.aMundo(22, 40);
+  const jug = { estado: { pos: vec(c0.x, 0, c0.z) } };
+  const AG = G.crearAldeaGente({ progreso: () => P, gente: () => gente, jugador: () => jug, tren: () => null, alturaDePie: () => 0, nota() {}, guardar() {}, registrar() {}, climaVecindad: () => 'sol', ambiente: () => ({ clima: 'sol', estacion: 'verano' }), hablandoCon: () => null, segundosPorHora: () => 75 });
+  // con vos en la plaza, a la mañana: alguien sale caminando
+  let yendo = null;
+  for (let m = 0; m < 240 && !yendo; m++) {
+    P.horas = 6 + m / 60;
+    AG.actualizar(1.25);
+    yendo = [...AG.personas.entries()].find(([, st]) => st.npc?.camino?.length > 2 && st.destino);
+  }
+  ok(!!yendo, `alguien sale caminando (${yendo?.[0]} → ${yendo?.[1].destino?.edificio})`);
+  // te vas al refugio (lejos) sin que cambie su destino: llega igual
+  const [k, st] = yendo;
+  jug.estado.pos.x = 0; jug.estado.pos.z = 0;
+  AG.actualizar(1.25);
+  const n = st.npc, d = st.destino;
+  ok(n.dormido && !n.camino?.length && Math.hypot(n.pos.x - d.x, n.pos.z - d.z) < 0.01, `${k}, con vos lejos, ya está donde le toca (y no a mitad de la calle)`);
+  ok(leer('src/aldea-gente.js').includes('if (st.clave !== d.clave || n.camino?.length) {'), 'aldea-gente.js: lejos, también al que estaba en camino');
+}
+
 const pkg = JSON.parse(leer('package.json'));
 ok(pkg.scripts.verify.includes('node pruebas/verificar-3-6-2-juego.mjs'), 'la prueba corre en verify');
 console.log(`verificar-3-6-2-juego: ok (${pasos} pasos)`);
