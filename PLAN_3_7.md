@@ -1,6 +1,6 @@
-# Plan 3.7 — La aldea crece, Amor, Cocina y Tradiciones
+# Plan 3.7 — La aldea crece, Amor, Cocina, La trochita y Tradiciones
 
-Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suyas). Se ejecuta en 4 versiones, una detrás de otra. Reglas que siguen valiendo: nada religioso, sin economía nueva (trueque y servicios sí), sólo Relax, inglés al final.
+Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suyas). Se ejecuta en 5 versiones, una detrás de otra. Reglas que siguen valiendo: nada religioso, sin economía nueva (trueque y servicios sí), sólo Relax, inglés al final.
 
 ## 3.7.0 — La aldea crece
 - Llegan 8 pobladoras nuevas, intercaladas con los 11 de la 3.6, en una calle nueva que sube hacia la loma:
@@ -39,7 +39,13 @@ Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suy
   - producidos por el jugador: vaca lechera, corderos, chanchos y frutales.
 - La comida no se echa a perder.
 
-## 3.7.3 — Tradiciones
+## 3.7.3 — La trochita (inspirada en el tren de Forest Escape: Last Train; sólo el tren)
+- Locomotora: caldera y freno por niveles; farol para la noche y silbatos a elegir; quitanieves (abre la vía en la gran nevada) y arenero (no patina con lluvia o hielo); pintura, guardas, banderines y nombre.
+- Vagones: pasajeros con salamandra (viajás calentito, descansás, los vecinos viajan y charlan); comedor (cocinar y matear en viaje, con la cocina de la 3.7.2); carga (más fletes) y para el caballo; mirador abierto para fotos; dormitorio para hacer noche donde quieras.
+- Taller ferroviario: galpón junto a la estación de la aldea; llevás materiales, el herrero forja las piezas de hierro y las arman Ernesto (jefe de estación) y Martín, un maquinista retirado nuevo en la aldea, en unos días (como las obras del pueblo).
+- Sin combustible: la locomotora anda sola, como ahora.
+
+## 3.7.4 — Tradiciones
 - Fiestas por estación, con baile, juegos, jineteada y mesa larga.
 - Día de la aldea, fechas patrias o de calendario, minga, truco y noche de la leyenda.
 - Nevada solidaria.
@@ -72,7 +78,7 @@ Pulidos pendientes:
 - 3.7.0: escena de llegada de cada pobladora con su objeto; los chicos cambian de verdad por etapa.
 - 3.7.1: lugar favorito de cada una (declararse/proponer); ramos de flores y cartas de amor por el correo; en público se nota la pareja; ñiki ñiki sólo con los hijos dormidos en su cuarto; chisme con humor en la radio y el diario.
 - 3.7.2: recetario en el cuaderno; el humo del asado atrae vecinos y al perro (que roba un chorizo); alacena que se llena; nada se pudre; con lluvia el asado necesita techito.
-- 3.7.3: música de cada fiesta (chamamé, loncomeo, folklore del sur); invitados de otras paradas; recuerdo de cada fiesta para colgar; fotos de la fiesta al álbum y al concurso.
+- 3.7.4: música de cada fiesta (chamamé, loncomeo, folklore del sur); invitados de otras paradas; recuerdo de cada fiesta para colgar; fotos de la fiesta al álbum y al concurso.
 - Más: cumpleaños del jugador (fiesta sorpresa); casa propia en la calle de la loma; el camino refugio–aldea con minga, faroles y un sulky; cartas de la aldea si no vas; chinchón, damas y taba; clases de baile con Pocha (chamamé, chacarera); club de lectura; noche de estrellas abierta con Valentina; campamento con tus hijos; huerta de los chicos en la escuela; los 90 de la abuela; tren especial de fiesta.
 
 ## Personajes: estilo P (elegido por el usuario)
