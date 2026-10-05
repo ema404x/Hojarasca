@@ -181,4 +181,11 @@ const A = ctx.__A;
   ok(mm.includes("anim.redes = preparar(todas.find((a) => a.id === 'redes'));") && mm.includes('const viento = g.pescaderia ? (ctx.ambiente?.()?.viento ?? 0.4) : 0;'), 'se mece con el viento mientras el pescador trabaja');
 }
 
+// lo barato de la medición: las mallas instanciadas vacías no se mandan a la placa
+{
+  const main = leer('src/main.js');
+  ok(/if \(o\.isInstancedMesh && o\.visible && o\.count === 0\) \{ o\.visible = false; vaciasApagadas\.push\(o\); \}/.test(main), 'las instanciadas sin instancias se apagan mientras se dibuja el cuadro');
+  ok(/function dibujar\(luz, noche\) \{\n  apagarVacias\(\);\n  try \{ dibujarCuadro\(luz, noche\); \} finally \{ prenderVacias\(\); \}/.test(main), 'y se vuelven a prender después (aunque falle el dibujo)');
+}
+
 console.log(`verificar-3-6-2-visual: ${pasos} comprobaciones en verde`);

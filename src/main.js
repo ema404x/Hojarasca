@@ -6950,8 +6950,26 @@ const perfilador = crearPerfiladorSubsistemas();
 const planificadorAntitirones = crearPlanificadorAntitirones({ objetivoMs: 16.7, maxPesadas: 1, maxSecundarias: 3 });
 let dtVisualPost = 1 / 60;
 
+// 3.6.2 (visual): las mallas instanciadas sin ninguna instancia (count 0: los árboles de una especie que
+// no tiene ninguno cerca, la huerta sin plantar, las gallinas sin gallinero...) igual se mandaban a la
+// placa: un dibujo vacío cada una, una docena por cuadro en la aldea de noche. Se apagan mientras se
+// dibuja el cuadro y se vuelven a prender después (no se toca lo que decide cada sistema). Sólo se miran
+// los hijos directos de la escena, que es donde viven.
+const vaciasApagadas = [];
+function apagarVacias() {
+  const hijos = escena.children;
+  for (let i = 0, n = hijos.length; i < n; i++) { const o = hijos[i]; if (o.isInstancedMesh && o.visible && o.count === 0) { o.visible = false; vaciasApagadas.push(o); } }
+}
+function prenderVacias() {
+  for (let i = 0; i < vaciasApagadas.length; i++) vaciasApagadas[i].visible = true;
+  vaciasApagadas.length = 0;
+}
 // Dibuja la escena: con post-procesado si la calidad lo permite, o directo
 function dibujar(luz, noche) {
+  apagarVacias();
+  try { dibujarCuadro(luz, noche); } finally { prenderVacias(); }
+}
+function dibujarCuadro(luz, noche) {
   const medirRender = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   if (post && ajustes.post !== 'apagado') {
     if (medirRender) { renderer.info.autoReset = false; renderer.info.reset(); }
