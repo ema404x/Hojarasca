@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { IDS_EDIFICIOS, EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea } from './aldea.js';
 import { empezarMelodia, seguirMelodia, callarMelodia } from './personal-musica.js';
 import { LIBRO_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
-import { CERCA_GESTOS, LEJOS_MECANICAS, RADIO_ESTUFA, MECANICAS, AVISOS_MECANICAS, avisoPrestado, elegirMecanica, sanearMecanicas, izadaA, sacarAgua, libroParaLeer, textoPrestamo, pedirPrestado, devolverLibro, cuentoEscuchado, pizarronDelDia, dibujosDeLosChicos, horarioTrenes, descansarEnCamilla, faltanDelValle, hayBaile, melodiaDelBaile, GESTOS_OFICIO, trabajando, asientoValido, nombreAsiento, hayMurmullo, hayPerros, hayAbejas } from './aldea-mecanicas.js';
+import { CERCA_GESTOS, LEJOS_MECANICAS, RADIO_ESTUFA, MECANICAS, AVISOS_MECANICAS, avisoPrestado, elegirMecanica, sanearMecanicas, izadaA, sacarAgua, libroParaLeer, textoPrestamo, pedirPrestado, devolverLibro, cuentoEscuchado, pizarronDelDia, dibujosDeLosChicos, horarioTrenes, descansarEnCamilla, faltanDelValle, hayBaile, melodiaDelBaile, GESTOS_OFICIO, trabajando, asientoValido, nombreAsiento, hayMurmullo, hayPerros, hayAbejas, cieloDelTelescopio, cartasDelCielo, mapaDeLasCumbres, espejoDeLaCosturera } from './aldea-mecanicas.js';
 
 const azar = (a, b) => a + Math.random() * (b - a);
 const IDS = [...IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura), 'estacion'];
@@ -30,6 +30,9 @@ const VOCALES = [[[800, 5, 1], [1200, 7, 0.5]], [[500, 5, 1], [1900, 7, 0.45]], 
 export function crearMecanicasAldea(ctx) {
   const M = marcoAldea(PARADA_ALDEA);
   const centro = M.aMundo(22, 50);
+  // 3.7.0 (integración): cuánto falta para el rectángulo de la aldea (con la calle de la Loma: el observatorio queda
+  // a 160 m del centro, y con la distancia al centro sus cosas no se podían usar)
+  const fueraAldea = (x, z) => { const l = M.aLocal(x, z); return Math.hypot(Math.max(-152 - l.lx, 0, l.lx - 100), Math.max(-6 - l.lz, 0, l.lz - 94)); };
   const S = () => (ctx.sonido?.ctx ? ctx.sonido : null);
   const prog = () => ctx.progreso() || {};
   const mec = () => { const p = prog(); if (!p.mecanicas || typeof p.mecanicas !== 'object') p.mecanicas = sanearMecanicas(p.mecanicas); return p.mecanicas; };
@@ -41,8 +44,8 @@ export function crearMecanicasAldea(ctx) {
   // ------------------------------------------------ los puntos del mundo (se rehacen al rearmarse un edificio)
   const versiones = new Map(), puntos = new Map(), propios = new Map();
   let cands = [], lectura = [], estufas = [], camilla = null;
-  const anim = { banderas: [], fuelle: null, rueca: null, campana: null };
-  const lugar = { fragua: null, sierra: null, colmenas: null, plaza: null, salon: null, escenario: null, campana: null, biblioteca: null, horno: null, chispas: null, abejas: null };
+  const anim = { banderas: [], fuelle: null, rueca: null, campana: null, cupula: null, telescopio: null, torno: null, pedal: null };
+  const lugar = { fragua: null, sierra: null, colmenas: null, plaza: null, salon: null, escenario: null, campana: null, biblioteca: null, horno: null, chispas: null, abejas: null, hornoCeramica: null, costurera: null };
   let listo = false;
   function sentaderosDe(id, p) {
     const lista = ctx.sentaderos;
@@ -97,7 +100,9 @@ export function crearMecanicasAldea(ctx) {
     for (const e of ctx.mundo?.emisores?.() || []) {
       if (e.tipo === 'chispas' && e.edificio === 'herreria') lugar.chispas = e;
       if (e.tipo === 'humo' && e.edificio === 'panaderia') lugar.horno = e;
+      if (e.tipo === 'humo' && e.edificio === 'ceramica') lugar.hornoCeramica = e;   // 3.7.0 (integración)
     }
+    lugar.costurera = puntos.get('costureria')?.nombrados?.['maquina-coser'] || null;
     // lo que se mueve (cada rearmado trae piezas nuevas: se vuelven a buscar)
     const todas = [...(ctx.mundo?.animables?.() || []), ...(ctx.mundo?.animablesEstacion?.() || [])];
     const preparar = (a) => { if (!a) return null; a.base ??= a.objeto.position.clone(); a.ejeV ??= new THREE.Vector3(...(a.eje || [1, 0, 0])).normalize(); return a; };
@@ -106,7 +111,13 @@ export function crearMecanicasAldea(ctx) {
     anim.rueca = preparar(todas.find((a) => a.id === 'rueda-rueca'));
     anim.campana = preparar(todas.find((a) => a.id === 'campana'));
     anim.redes = preparar(todas.find((a) => a.id === 'redes'));   // 3.6.2 (visual)
-    anim.fase = { rueca: 0, banderaF: -1, redes: 0 };
+    // 3.7.0 (integración): la cúpula y el telescopio del observatorio, el torno de la cerámica y el pedal de la costurería
+    anim.cupula = preparar(todas.find((a) => a.id === 'cupula'));
+    anim.telescopio = preparar(todas.find((a) => a.id === 'telescopio'));
+    anim.torno = preparar(todas.find((a) => a.id === 'torno'));
+    anim.pedal = preparar(todas.find((a) => a.id === 'pedal'));
+    // (la cúpula sigue como estaba: un rearmado del observatorio no la cierra de golpe)
+    anim.fase = { rueca: 0, banderaF: -1, redes: 0, cupula: anim.fase?.cupula ?? 0, cupulaF: -1, torno: 0, pedal: 0 };
     info.candidatos = cands.length;
     info.sentaderos = [...propios.values()].reduce((s, l) => s + l.length, 0);
     listo = puntos.size > 0 && [...puntos.values()].some(Boolean);
@@ -295,13 +306,13 @@ export function crearMecanicasAldea(ctx) {
     if (anim.fuelle) {
       if (g.herreria && dist(lugar.fragua) < CERCA_GESTOS) anim.fuelle.objeto.quaternion.setFromAxisAngle(anim.fuelle.ejeV, (anim.fuelle.dato.abierta ?? 0.25) * (0.5 + 0.5 * Math.sin(reloj * 2.4)));
     }
-    if (anim.rueca && g.hilanderia && dist(anim.rueca.contenedor.position) < CERCA_GESTOS) {
+    if (anim.rueca && g.hilanderia && dist(anim.rueca.sitio || anim.rueca.contenedor.position) < CERCA_GESTOS) {
       anim.fase.rueca += dt * Math.PI * 2 * (anim.rueca.dato.vueltasPorSegundo ?? 1.2);
       anim.rueca.objeto.quaternion.setFromAxisAngle(anim.rueca.ejeV, anim.fase.rueca % (Math.PI * 2));
     }
     // 3.6.2 (visual): la red colgada se mece con el viento mientras el pescador trabaja (más con las
     // ráfagas); cuando no, vuelve despacio a quedar quieta
-    if (anim.redes && dist(anim.redes.contenedor.position) < CERCA_GESTOS) {
+    if (anim.redes && dist(anim.redes.sitio || anim.redes.contenedor.position) < CERCA_GESTOS) {
       const viento = g.pescaderia ? (ctx.ambiente?.()?.viento ?? 0.4) : 0;
       anim.fase.redes += (viento - anim.fase.redes) * Math.min(1, dt * 0.8);
       const k = anim.fase.redes;
@@ -310,12 +321,45 @@ export function crearMecanicasAldea(ctx) {
         anim.redes.objeto.quaternion.setFromAxisAngle(anim.redes.ejeV, ang);
       }
     }
+    // 3.7.0 (integración): la cúpula se abre de noche, cuando Valentina sube a trabajar (despacio: medio minuto), y
+    // el telescopio sale de su reposo y apunta por la ranura; de día los dos vuelven a cerrarse
+    if (anim.cupula || anim.telescopio) {
+      const objetivo = g.observatorio ? 1 : 0, f0 = anim.fase.cupula;
+      anim.fase.cupula = objetivo > f0 ? Math.min(objetivo, f0 + dt / 25) : Math.max(objetivo, f0 - dt / 25);
+      const f = anim.fase.cupula;
+      if (Math.abs(f - anim.fase.cupulaF) > 0.0005) {
+        anim.fase.cupulaF = f;
+        const k = f * f * (3 - 2 * f);
+        if (anim.cupula) anim.cupula.objeto.quaternion.setFromAxisAngle(anim.cupula.ejeV, (anim.cupula.dato.abierta ?? -1.3) * k);
+        if (anim.telescopio) { const d = anim.telescopio.dato; anim.telescopio.objeto.quaternion.setFromAxisAngle(anim.telescopio.ejeV, (d.reposo ?? 0) + ((d.abierta ?? -0.85) - (d.reposo ?? 0)) * k); }
+      }
+    }
+    // el torno de Malena gira mientras trabaja (y frena despacio), y el pedal de la máquina de Pocha se mece
+    if (anim.torno && dist(anim.torno.sitio) < CERCA_GESTOS) {
+      anim.fase.tornoV = (anim.fase.tornoV ?? 0) + ((g.ceramica ? 1 : 0) - (anim.fase.tornoV ?? 0)) * Math.min(1, dt * 0.7);
+      if (anim.fase.tornoV > 0.002) {
+        anim.fase.torno += dt * Math.PI * 2 * (anim.torno.dato.vueltasPorSegundo ?? 1.5) * anim.fase.tornoV;
+        anim.torno.objeto.quaternion.setFromAxisAngle(anim.torno.ejeV, anim.fase.torno % (Math.PI * 2));
+      }
+    }
+    if (anim.pedal && dist(anim.pedal.sitio) < CERCA_GESTOS) {
+      // (sólo con Pocha sentada a la máquina: si se levanta a atender, el pedal queda quieto)
+      const pocha = g.costureria ? ctx.gente?.()?.personas?.get?.('modista')?.npc : null;
+      const cose = !!pocha && !pocha.camino?.length && !!lugar.costurera && Math.hypot(pocha.pos.x - lugar.costurera.x, pocha.pos.z - lugar.costurera.z) < 0.9;
+      if (cose) { anim.fase.pedal += dt; anim.pedal.objeto.quaternion.setFromAxisAngle(anim.pedal.ejeV, (anim.pedal.dato.abierta ?? 0.16) * (0.5 + 0.5 * Math.sin(anim.fase.pedal * 7.5))); }
+      else if (anim.pedal.objeto.quaternion.w < 0.99999) anim.pedal.objeto.quaternion.identity();
+    }
     chispas.p.visible = !!(g.herreria && lugar.chispas && dist(lugar.chispas) < CERCA_GESTOS);
     if (chispas.p.visible) moverChispas(dt, lugar.chispas);
     abejas.p.visible = !!(g.abejas && lugar.abejas && dist(lugar.abejas) < CERCA_GESTOS);
     if (abejas.p.visible) moverAbejas(lugar.abejas);
-    humo.p.visible = !!(g.panaderia && lugar.horno && dist(lugar.horno) < CERCA_GESTOS);
-    if (humo.p.visible) moverHumo(dt, lugar.horno);
+    // (3.7.0 (integración): una sola nube de humo: el horno de la panadería o el de barro de la cerámica, el más cercano
+    // de los que están prendidos)
+    const hornoPan = g.panaderia && lugar.horno && dist(lugar.horno) < CERCA_GESTOS ? lugar.horno : null;
+    const hornoCer = g.ceramica && lugar.hornoCeramica && dist(lugar.hornoCeramica) < CERCA_GESTOS ? lugar.hornoCeramica : null;
+    const hornoHumo = hornoPan && hornoCer ? (dist(hornoPan) <= dist(hornoCer) ? hornoPan : hornoCer) : hornoPan || hornoCer;
+    humo.p.visible = !!hornoHumo;
+    if (humo.p.visible) moverHumo(dt, hornoHumo);
     // los sonidos de cada cosa (con su ritmo y sin saturar)
     if (S()) {
       if (g.herreria && dist(lugar.fragua) < CERCA_GESTOS && reloj > prox.golpe) { golpeFragua({ x: lugar.fragua.x, y: lugar.fragua.y + 0.9, z: lugar.fragua.z }); prox.golpe = reloj + (Math.random() < 0.3 ? azar(1.6, 3) : azar(0.45, 0.65)); }
@@ -359,7 +403,7 @@ export function crearMecanicasAldea(ctx) {
       for (const s of lectura) { const d = Math.hypot(s.x - p.x, s.z - p.z); if (d < MECANICAS.libro.radio && Math.abs(s.y - 0.45 - p.y) < 1.1) { lista.push({ tipo: 'libro', d }); break; } }
       if (m.prestado && ctx.enCasa?.(p)) lista.push({ tipo: 'libro-prestado', d: 0 });
     }
-    if (Math.hypot(p.x - centro.x, p.z - centro.z) < 160) {
+    if (fueraAldea(p.x, p.z) < 10) {   // (3.7.0 (integración): antes, a menos de 160 m del centro)
       const fx = -Math.sin(js.yaw || 0), fz = -Math.cos(js.yaw || 0);
       for (const c of cands) {
         const def = MECANICAS[c.tipo];
@@ -449,6 +493,24 @@ export function crearMecanicasAldea(ctx) {
       case 'mapa':
         ctx.leer({ quien: 'El mapa del valle', que: 'la seccional de guardaparques', partes: faltanDelValle(entradas, dia()), despedida: '«Andá con cuidado y mirá sin molestar», te dice la guardaparque.' });
         break;
+      // 3.7.0 (integración): lo de la calle de la Loma
+      case 'telescopio': {
+        const h = hora(), noche = h >= 20.5 || h < 4.5;
+        ctx.leer({ quien: 'El telescopio', que: 'el observatorio', partes: cieloDelTelescopio({ noche, abierta: anim.fase?.cupula ?? 0, dia: dia(), nublado: ctx.ambiente?.()?.nublado ?? 0 }), despedida: noche ? 'Le devolvés el ocular a Valentina. Afuera, el cielo sigue ahí, más grande que antes.' : 'Bajás despacio la escalera de la torreta.' });
+        break;
+      }
+      case 'cartas-cielo':
+        ctx.leer({ quien: 'Las cartas del cielo', que: 'el observatorio', partes: cartasDelCielo(), despedida: 'Esta noche, si está despejado, vas a buscar la Cruz del Sur.' });
+        break;
+      case 'mapa-cumbres':
+        ctx.leer({ quien: 'El mapa de las cumbres', que: 'el refugio andinista', partes: mapaDeLasCumbres(), despedida: '«Si querés subir alguna, avisame antes», te dice Rocío.' });
+        break;
+      case 'espejo': {
+        const pocha = ctx.gente?.()?.personas?.get?.('modista')?.npc;
+        const conPocha = !!pocha && !pocha.dormido && Math.hypot(pocha.pos.x - e.c.x, pocha.pos.z - e.c.z) < 6;
+        ctx.leer({ quien: 'El espejo de pie', que: 'la costurería', partes: espejoDeLaCosturera(dia(), conPocha), despedida: 'Te acomodás el cuello de la campera, por las dudas.' });
+        break;
+      }
       default: break;
     }
   }
@@ -456,7 +518,7 @@ export function crearMecanicasAldea(ctx) {
   // ------------------------------------------------ lo demás que pregunta main.js
   // ¿Al lado de una estufa encendida? (el entumecido se va como junto al fuego)
   function juntoAEstufa(pos) {
-    if (!listo || !pos || !estufas.length || Math.hypot(pos.x - centro.x, pos.z - centro.z) > 160) return false;
+    if (!listo || !pos || !estufas.length || fueraAldea(pos.x, pos.z) > 10) return false;   // (3.7.0 (integración))
     for (const c of estufas) if (Math.hypot(c.x - pos.x, c.z - pos.z) < RADIO_ESTUFA && Math.abs(c.y - pos.y) < 1.6 && !paredEntre(pos, c)) return true;
     return false;
   }

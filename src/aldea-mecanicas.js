@@ -23,6 +23,10 @@
 //   · la estafeta: tus casillas (las cartas, como el correo); la seccional: el mapa del valle con
 //     lo que te falta ver;
 //   · las estufas a leña: el entumecido (el frío de la 2.3) se va junto a ellas.
+//   · 3.7.0 (integración), en la calle de la Loma: el telescopio del observatorio (de noche, con la cúpula
+//     abierta), las cartas del cielo, el mapa de las cumbres del refugio andinista y el espejo de la costurería; el
+//     gesto de las nuevas mientras trabajan (el torno de Malena y el humo de su horno, el pedal de la máquina de
+//     Pocha, la cúpula y el telescopio de Valentina, que se abren de noche) y sus bancos y sillas para sentarse.
 // Nada religioso, como en toda la aldea (pedido del usuario).
 import { ENTRADAS } from './cuaderno.js';
 import { LIBROS_ALDEA, LIBRO_ALDEA, PLACA_DUENDE } from './aldea-lecturas.js';
@@ -35,7 +39,8 @@ export const RADIO_ESTUFA = 2.3;     // a esta distancia de una estufa encendida
 // El orden de prioridad de lo que se hace con E (y del aviso: es la misma lista y la misma función).
 // Lo que se hace sentado va primero (sentado no hay otra cosa a mano); después la camilla, la
 // estufa y lo que se mira o se usa parado.
-export const ORDEN_MECANICAS = ['libro', 'libro-prestado', 'estufa', 'camilla', 'prestamo', 'aljibe', 'duende', 'pizarron', 'dibujos', 'horario', 'casillas', 'mapa'];
+export const ORDEN_MECANICAS = ['libro', 'libro-prestado', 'estufa', 'camilla', 'prestamo', 'aljibe', 'duende', 'pizarron', 'dibujos', 'horario', 'casillas', 'mapa',
+  'telescopio', 'cartas-cielo', 'mapa-cumbres', 'espejo'];   // 3.7.0 (integración): las de la calle de la Loma
 // Para cada una: hace falta estar sentado (true), parado (false) o da igual (null), el radio y el
 // punto con nombre de aldea-arquitectura.js (en su edificio) de donde sale.
 export const MECANICAS = {
@@ -51,6 +56,11 @@ export const MECANICAS = {
   horario: { sentado: false, radio: 2.0, edificio: 'estacion', punto: 'horario-trenes' },
   casillas: { sentado: false, radio: 1.6, edificio: 'estafeta', punto: 'casillas' },
   mapa: { sentado: false, radio: 1.8, edificio: 'seccional', punto: 'mapa-valle' },
+  // 3.7.0 (integración)
+  telescopio: { sentado: null, radio: 1.3, edificio: 'observatorio', punto: 'telescopio' },
+  'cartas-cielo': { sentado: false, radio: 1.8, edificio: 'observatorio', punto: 'cartas-cielo' },
+  'mapa-cumbres': { sentado: false, radio: 1.8, edificio: 'refugio-andinista', punto: 'mapa-cumbres' },
+  espejo: { sentado: false, radio: 1.5, edificio: 'costureria', punto: 'espejo' },
 };
 // Lo que dice el aviso de cada una (los de texto fijo; el préstamo dice qué libro).
 export const AVISOS_MECANICAS = {
@@ -65,6 +75,7 @@ export const AVISOS_MECANICAS = {
   horario: 'Mirar el horario de trenes',
   casillas: 'Abrir tu casilla de correo',
   mapa: 'Mirar el mapa del valle',
+  telescopio: 'Mirar por el telescopio', 'cartas-cielo': 'Mirar las cartas del cielo', 'mapa-cumbres': 'Mirar el mapa de las cumbres', espejo: 'Mirarte en el espejo',   // 3.7.0 (integración)
 };
 export const avisoPrestado = (libro) => `Leer «${libro.titulo}», el libro prestado`;
 export const avisoDevolver = (libro) => `Devolver «${libro.titulo}»`;
@@ -72,9 +83,11 @@ export const avisoDevolver = (libro) => `Devolver «${libro.titulo}»`;
 // 3.6.2: lo del lugar que, con alguien al lado, le gana a la charla (para hablarle hay que mirarlo de frente: el
 // mostrador de la biblioteca con la abuela atendiendo). Leer el libro prestado sentado en tu casa no: la visita
 // en tu mesa gana, como antes de la 3.6, y leer queda para cuando no hay visita o en el menú de la charla
-export const lugarTapaVecino = (tipo) => typeof tipo === 'string' && Object.hasOwn(MECANICAS, tipo) && tipo !== 'libro-prestado';
+// (3.7.0 (integración): el telescopio tampoco: Valentina trabaja parada al lado y hablarle va primero; mirar por el
+// telescopio queda en el menú de su charla)
+export const lugarTapaVecino = (tipo) => typeof tipo === 'string' && Object.hasOwn(MECANICAS, tipo) && tipo !== 'libro-prestado' && tipo !== 'telescopio';
 // Lo del lugar que también está en el menú de la charla (con alguien al lado no te tapa lo que viniste a hacer)
-export const MECANICAS_EN_LA_CHARLA = ['prestamo', 'casillas', 'horario', 'mapa', 'camilla', 'libro-prestado'];
+export const MECANICAS_EN_LA_CHARLA = ['prestamo', 'casillas', 'horario', 'mapa', 'camilla', 'libro-prestado', 'telescopio'];
 
 // Elegir, entre las que están a mano, la de más prioridad (y entre iguales, la más cercana).
 // `cands`: [{ tipo, d }]. La usan el aviso y la tecla E: por eso tienen siempre el mismo orden.
@@ -269,6 +282,11 @@ export const GESTOS_OFICIO = {
   'sala-miel': { quien: 'apicultor', piezas: [], emisor: 'abejas', sonido: 'colmenas', siempre: true },
   carpinteria: { quien: 'carpintero', piezas: [], emisor: null, sonido: 'sierra' },
   pescaderia: { quien: 'pescador', piezas: ['redes'], emisor: null, sonido: null },   // 3.6.2 (visual): la red que se mece
+  // 3.7.0 (integración): Malena en el torno (y el horno de barro humea), Pocha con el pedal de la máquina de coser y
+  // Valentina de noche, con la cúpula abierta y el telescopio apuntando por la ranura
+  ceramica: { quien: 'ceramista', piezas: ['torno'], emisor: 'humo', sonido: null },
+  costureria: { quien: 'modista', piezas: ['pedal'], emisor: null, sonido: null },
+  observatorio: { quien: 'astronoma', piezas: ['cupula', 'telescopio'], emisor: null, sonido: null },
 };
 // ¿Está trabajando el dueño en su local (o en la puerta)? Con la rutina de la aldea.
 export function trabajando(aldea, edificio, dia, hora) {
@@ -292,6 +310,9 @@ const DE_EDIFICIO = {
   plaza: 'de la plaza', biblioteca: 'de la biblioteca', escuela: 'de la escuela', salon: 'del salón', 'puesto-sanitario': 'del puesto sanitario',
   estafeta: 'de la estafeta', hilanderia: 'de la hilandería', seccional: 'de la seccional', carpinteria: 'de la carpintería', panaderia: 'de la panadería',
   herreria: 'de la herrería', pescaderia: 'de la pescadería', 'sala-miel': 'de la sala de miel',
+  // 3.7.0 (integración): los de la calle de la Loma
+  veterinaria: 'de la veterinaria', 'estudio-fotos': 'del estudio de fotos', 'refugio-andinista': 'del refugio andinista', herboristeria: 'de la herboristería',
+  'taller-arte': 'del taller de arte', ceramica: 'de la cerámica', varadero: 'del varadero', observatorio: 'del observatorio', costureria: 'de la costurería',
 };
 const CASAS = new Set(['casa-jefe', 'casa-ercilia', 'casa-nelida', 'casa-abuela', 'casa-familia']);
 export function asientoValido(nombre, edificio) {
@@ -314,6 +335,47 @@ export const hayPerros = (hora) => { const h = num(hora); return h >= 7 && h < 2
 // Las abejas no salen en invierno ni con lluvia.
 export const hayAbejas = (hora, invierno, lluvia) => { const h = num(hora); return h >= 9 && h < 19 && !(num(invierno) > 0.5) && !(num(lluvia) > 0.35); };
 
+// ---------------------------------------------------------------- 3.7.0 (integración): la calle de la Loma
+// El telescopio de Valentina: de día está tapado (al sol no se lo mira nunca); de noche, con la cúpula abierta, lo
+// que muestra cambia con la noche: la Luna, Saturno, la Cruz del Sur, las Nubes de Magallanes, las Pléyades…
+const CIELOS = [
+  ['La Luna, tan cerca que parece que se le puede tocar el borde: los cráteres tienen sombra, como pozos de un camino de ripio.', 'Valentina dice que el mar de la Tranquilidad no tiene una gota de agua: le pusieron nombres de mar por las dudas.'],
+  ['Saturno, chiquito y amarillento, con el anillo de costado como el ala de un sombrero.', '«La primera vez que lo vi me reí sola», dice Valentina. «No podía creer que fuera de verdad».'],
+  ['La Cruz del Sur, y al lado el Saco de Carbón: una mancha negra donde no hay estrellas, porque el polvo las tapa.', '«Con la Cruz y los dos punteros se encuentra el sur sin brújula», te explica, y te muestra cómo.'],
+  ['Las Nubes de Magallanes: dos manchones de luz que parecen nubes y son galaxias enteras, vecinas de la nuestra.', '«Desde el hemisferio norte no se ven», dice Valentina. «Son nuestras».'],
+  ['Las Pléyades, siete hermanas muy juntas que en el ocular se vuelven decenas, azuladas, como escarcha en un vidrio.', 'Valentina las llama «las cabrillas», como les decía su abuela en el campo.'],
+  ['Júpiter con sus cuatro lunas en fila, como cuentas de un collar. Una noche hay tres; otra, cuatro: se esconden detrás.', '«Galileo vio lo mismo con un telescopio peor que este», dice Valentina, orgullosa del suyo.'],
+];
+export function cieloDelTelescopio({ noche = false, abierta = 0, dia = 1, nublado = 0 } = {}) {
+  if (!noche) return ['El telescopio está tapado con su funda. Una tarjeta, con la letra de Valentina: «De día no. Al sol no se lo mira nunca, ni de reojo».', 'Volvé de noche, cuando abre la cúpula.'];
+  if (!(num(abierta) > 0.6)) return ['La cúpula todavía está cerrada: el telescopio apunta a la chapa.', 'Valentina la abre cuando sube a trabajar, a eso de las nueve.'];
+  if (num(nublado) > 0.7) return ['Por el ocular, sólo nubes: grises, quietas, como algodón sucio.', '«Hay noches así», dice Valentina. «Se anota que estuvo nublado y se espera la próxima».'];
+  return CIELOS[((entero(dia, 1) % CIELOS.length) + CIELOS.length) % CIELOS.length];
+}
+// Las cartas del cielo de las paredes del observatorio
+export function cartasDelCielo() {
+  return ['En la pared, la carta del cielo del sur, dibujada a mano: la Cruz, los punteros, Escorpio con su estrella roja y las Tres Marías, que acá se ven al revés.',
+    'Al lado, el mapa de la Luna con los nombres de sus mares, y un planisferio de cartón que se gira para saber qué se ve cada noche del año.',
+    'Abajo, con la letra de Valentina: «Primero se aprende a mirar sin aparatos. El telescopio viene después».'];
+}
+// El mapa de las cumbres de Rocío, en el refugio andinista
+export function mapaDeLasCumbres() {
+  return ['Un mapa de las cumbres del valle, con las sendas en rojo y los refugios marcados con un triangulito. Al lado de cada cerro, la altura y una fecha: cuándo subió Rocío.',
+    'Hay cumbres con una cruz de lápiz: «no se sube en invierno». Otras, con un número de horas: lo que tarda una persona caminando tranquila, con descansos.',
+    'Abajo, con chinches, una regla del refugio: «Avisar siempre adónde vas y a qué hora pensás volver. La montaña no apura; el que apura es uno».'];
+}
+// El espejo de la costurería, y lo que te dice Pocha (si está)
+const DICHOS_ESPEJO = [
+  '«Esa campera tiene más remiendos que un mapa», dice Pocha desde la máquina. «Traémela un día y te la dejo como nueva».',
+  '«Parate derecho, que el espejo no cobra», te dice Pocha sin levantar la vista de la costura.',
+  '«Te queda bien el gorro», dice Pocha. «Ahora, la bufanda… la bufanda es otro tema».',
+];
+export function espejoDeLaCosturera(dia = 1, conPocha = true) {
+  const partes = ['En el espejo de pie te ves de cuerpo entero, con la ropa del valle, el barro de las botas y algo de pasto en el pelo.'];
+  partes.push(conPocha ? DICHOS_ESPEJO[((entero(dia, 1) % DICHOS_ESPEJO.length) + DICHOS_ESPEJO.length) % DICHOS_ESPEJO.length] : 'Desde la pared, un cartel bordado: «Se hacen arreglos. Se toman medidas. Se cuentan chismes».');
+  return partes;
+}
+
 // Todos los textos que se muestran (para la prueba: sin nada religioso).
 export function textosMecanicas() {
   const t = [...Object.values(AVISOS_MECANICAS), ...PLACA_DUENDE.partes];
@@ -325,5 +387,8 @@ export function textosMecanicas() {
   const p = pedirPrestado(m, {}, 1); t.push(p.titulo, p.sub);
   const d = devolverLibro(m); t.push(d.titulo, d.sub);
   const c = descansarEnCamilla(aldeaNueva(), 1); t.push(c.titulo, c.sub);
+  // 3.7.0 (integración)
+  for (const x of CIELOS) t.push(...x);
+  t.push(...cieloDelTelescopio({}), ...cieloDelTelescopio({ noche: true }), ...cieloDelTelescopio({ noche: true, abierta: 1, nublado: 1 }), ...cartasDelCielo(), ...mapaDeLasCumbres(), ...DICHOS_ESPEJO, ...espejoDeLaCosturera(1, false));
   return t;
 }

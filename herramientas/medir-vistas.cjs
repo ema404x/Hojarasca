@@ -13,6 +13,7 @@
 //   HTML=<index.html> SALIDA=<archivo.json> CALIDAD=media|alta MODO=relax|desafio
 //   npx electron herramientas/medir-vistas.cjs --user-data-dir=<carpeta propia>
 // Opciones: CUADROS=200 (medidos por vista), ASIENTO=150 (cuadros sin medir antes), VISTAS=a,b (sólo ésas)
+// 3.7.0 (integración): COMPLETA=1, la aldea completa (todos los pobladores que tenga la versión, con su local abierto)
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -23,6 +24,7 @@ const MODO = process.env.MODO || 'relax';
 const CUADROS = Number(process.env.CUADROS || 200);
 const ASIENTO = Number(process.env.ASIENTO || 150);
 const SOLO = process.env.VISTAS ? process.env.VISTAS.split(',') : null;
+const COMPLETA = process.env.COMPLETA === '1';
 const perfil = (process.argv.find((a) => a.startsWith('--user-data-dir=')) || '').slice(16);
 if (!perfil) { console.error('falta --user-data-dir=<carpeta propia>'); process.exit(2); }
 app.setPath('userData', path.resolve(perfil));
@@ -52,6 +54,12 @@ const VISTAS = [
       const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()` },
   { id: 'aldea-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-38, 22), c = A.centro;
       return { x: p.x, z: p.z, yaw: Math.atan2(-(c.x - p.x), -(c.z - p.z)), horas: 22 } })()` },
+  // 3.7.0 (integración): la calle de la Loma, desde la esquina con la calle Norte mirando hacia el observatorio, a la
+  // tarde y de noche (en la 3.6.2 ahí no hay nada: no se comparan)
+  { id: 'aldea-loma-tarde', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52);
+      return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 17 } })()` },
+  { id: 'aldea-loma-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52);
+      return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22 } })()` },
 ];
 
 app.whenReady().then(async () => {
@@ -98,6 +106,12 @@ app.whenReady().then(async () => {
       r.cargas.guardada = await cargar();
       await entrar();
     }
+    // 3.7.0 (integración): la aldea completa (los que existen en esta versión)
+    if (COMPLETA && MODO === 'relax') r.completa = await js(`(()=>{ const H = window.__hojarasca, A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const a = H.progreso.aldea;
+      const L = { carpintero: 'carpinteria', veterinaria: 'veterinaria', panadera: 'panaderia', herbolaria: 'herboristeria', herrero: 'herreria', modista: 'costureria', pescador: 'pescaderia', botera: 'varadero', maestra: 'escuela', pintora: 'taller-arte', enfermera: 'puesto-sanitario', andinista: 'refugio-andinista', telegrafista: 'estafeta', fotografa: 'estudio-fotos', tejedora: 'hilanderia', ceramista: 'ceramica', apicultor: 'sala-miel', astronoma: 'observatorio', guardaparque: 'seccional', musico: 'salon' };
+      const ks = Object.keys(L).filter((k) => A.estadoEdificio(L[k]));
+      a.pobladores = ks.map((clave) => ({ clave, dia: 1 })); a.obras = {}; a.locales = Object.fromEntries(ks.map((k) => [L[k], 1])); a.descubierta = 1; a.llegando = null;
+      A.actualizar(4, H.camara.position); return ks.length })()`);
     // (3.6: con la aldea, lo que arma el Worker se monta de a uno por cuadro después de la carga; la
     // ventana oculta no corre requestAnimationFrame: se cuentan los cuadros a mano hasta que esté)
     r.cargas.aldea = await js(`(async()=>{ const H = window.__hojarasca, A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null;
@@ -106,6 +120,10 @@ app.whenReady().then(async () => {
       const t1 = performance.now();
       while (cuadros < 3000 && (A.medir().cola > 0 || A.medir().listas < A.medir().manzanas)) { H.__bucle(); cuadros++; }
       const m = A.medir(); return { worker: Math.round(t1 - t0), cuadros, montarMs: Math.round(performance.now() - t1), listas: m.listas, manzanas: m.manzanas, montajes: m.montajes, msMontar: Math.round(m.msMontar), fabrica: m.fabrica } })()`);
+    // (3.7.0 (integración): con la aldea completa, un rato en la plaza: que se arme la gente antes de medir)
+    if (r.completa) r.cargas.gente = await js(`(async()=>{ const H = window.__hojarasca, A = H.__aldeaMundo(), s = A.estadoEdificio('plaza').sitio, js = H.jugador.estado; const t0 = performance.now();
+      js.pos.set(s.x, H.T.altura(s.x, s.z) + 1.65, s.z); for (let i = 0; i < 600; i++) { js.pos.x = s.x; js.pos.z = s.z; H.__bucle(); if (i % 50 === 49) await new Promise((ok) => setTimeout(ok, 0)); }
+      const G = H.__aldea && H.__aldea.mundo(); return { ms: Math.round(performance.now() - t0), faltan: G && G.faltanFiguras ? G.faltanFiguras() : null } })()`);
     r.lugares = await js(`(()=>{ const H = window.__hojarasca, e = H.est, pt = (o) => (o ? { x: +o.x.toFixed(1), z: +o.z.toFixed(1) } : null);
       return { refugio: pt(H.T.lugares.refugio), almacen: pt(e.almacen), casaTe: pt(e.casaTe), sorteo: e.lugaresSorteo ? { almacen: pt(e.lugaresSorteo.almacen), casaTe: pt(e.lugaresSorteo['casa-te']) } : null,
         paradas: (H.tren.paradas || []).map((p) => ({ nombre: p.nombre, ...pt(p.anden) })) } })()`);

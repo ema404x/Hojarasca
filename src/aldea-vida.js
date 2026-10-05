@@ -11,7 +11,7 @@
 // Sin economía nueva (nadie cobra ni vende) y nada religioso (pedido del usuario). Módulo puro: sin three
 // ni DOM (se prueba en Node). Lo conectan aldea-gente.js (la gente, los visitantes, la familia, el
 // cuaderno) y aldea-animales-mundo.js (los perros, los caballos, las gallinas y el cachorro).
-import { DIAS_ANIO, diaDelAnio, CUMPLES_ALDEA, cumpleDe, fiestaDeCumple, ORDEN_PERSONAS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, personaAldea, esVecinoAldea, esPobladorAldea, POBLADORES_ALDEA, NOMBRE_ALDEA, obraEnCurso, etapaDe, EDIFICIOS_ALDEA, LOTE_DE, localAbierto, num, azar, quienLlega } from './aldea.js';
+import { DIAS_ANIO, diaDelAnio, CUMPLES_ALDEA, cumpleDe, fiestaDeCumple, festejaCumple, noventaDeLaAbuela, ORDEN_PERSONAS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, personaAldea, esVecinoAldea, esPobladorAldea, POBLADORES_ALDEA, NOMBRE_ALDEA, obraEnCurso, etapaDe, EDIFICIOS_ALDEA, LOTE_DE, localAbierto, num, azar, quienLlega } from './aldea.js';
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const entero = (v, d = 0) => (Number.isFinite(num(v)) ? Math.floor(num(v)) : d);
@@ -81,17 +81,30 @@ export function eventosDelDia(dia, { aldea = null, fiestas = FIESTAS_ALDEA } = {
   return lista;
 }
 // El aviso del día antes: { titulo, texto } o null.
+// 3.7.0 (integración), decisión del usuario: se avisa sólo lo que se festeja (los cumpleaños de los más cercanos, los
+// 90 de la abuela y las fiestas); los demás cumpleaños, el mismo día y sin fiesta (`avisoDelDia`).
 export function avisoDiaAntes(dia, opciones = {}) {
-  const ev = eventosDelDia(diaValido(dia, 1) + 1, opciones);
+  const manana = diaValido(dia, 1) + 1;
+  const ev = eventosDelDia(manana, opciones).filter((e) => e.tipo !== 'cumple' || festejaCumple(opciones.aldea, e.clave, manana));
   if (!ev.length) return null;
   const cumples = ev.filter((e) => e.tipo === 'cumple');
   const fiestas = ev.filter((e) => e.tipo === 'fiesta');
+  const fiesta = fiestaDeCumple(manana, opciones.aldea);
+  if (fiesta?.noventa && !fiestas.length) return { titulo: 'Mañana la abuela Herminia cumple 90 años', texto: 'A la tardecita la festeja toda la aldea en la plaza. Un regalo que le guste vale el doble.' };
   const partes = [];
   if (cumples.length) partes.push(`${cumples.length === 1 ? 'cumple años' : 'cumplen años'} ${unir(cumples.map((e) => nombreCortoDe(e.clave)))}`);
   for (const x of fiestas) partes.push(minus(x.nombre));
-  const fiesta = fiestaDeCumple(diaValido(dia, 1) + 1, opciones.aldea);
   const donde = fiesta ? (fiesta.donde === 'plaza' ? 'A la tardecita festejan juntos en la plaza de la aldea. Un regalo que les guste vale el doble.' : `A la tardecita festeja en ${minus(EDIFICIOS_ALDEA[fiesta.edificio]?.nombre || 'su casa')}. Un regalo que le guste vale el doble.`) : 'Si lo ves, un regalo que le guste vale el doble.';
   return { titulo: `Mañana ${unir(partes)}`, texto: donde };
+}
+// 3.7.0 (integración): los que cumplen hoy sin fiesta (los que no son de los más cercanos): te enterás por una nota
+// (cuando haya radio y diario, en la 3.7.3, por ahí). { titulo, texto } o null.
+export function avisoDelDia(dia, opciones = {}) {
+  const hoy = diaValido(dia, 1);
+  const sin = eventosDelDia(hoy, opciones).filter((e) => e.tipo === 'cumple' && !festejaCumple(opciones.aldea, e.clave, hoy));
+  if (!sin.length) return null;
+  const uno = sin.length === 1;
+  return { titulo: `Hoy ${uno ? 'cumple' : 'cumplen'} años ${unir(sin.map((e) => nombreCortoDe(e.clave)))}`, texto: uno ? 'No hace fiesta. Si lo cruzás, saludalo: un regalo que le guste vale el doble.' : 'No hacen fiesta. Si los cruzás, saludalos: un regalo que les guste vale el doble.' };
 }
 // El año en el cuaderno: los doce días con lo que pasa en cada uno. `dia`: hoy (marca el día y el año).
 export function calendarioDelAnio(dia, opciones = {}) {

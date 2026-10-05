@@ -77,6 +77,7 @@ import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
 import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 // 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
+import { sumarAmistadDe } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -496,7 +497,8 @@ async function construir() {
   if (!esDesafio) {
     aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
     // 3.7.0: los animales de la aldea (y tu cachorro, en el refugio)
-    animalesAldea = crearAnimalesAldea({ T, escena, progreso: () => progreso, jugador: () => jugador?.estado || null, refugio: () => T.lugares.refugio || null, distanciaAldea: (x, z) => distanciaAldea(x, z) });
+    animalesAldea = crearAnimalesAldea({ T, escena, progreso: () => progreso, jugador: () => jugador?.estado || null, refugio: () => T.lugares.refugio || null, distanciaAldea: (x, z) => distanciaAldea(x, z),
+      col: () => col, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y) });   // 3.7.0 (integración): chocan y pisan los pisos
     sorteoAldea = aldeaMundo.emparejar();
     // 3.6.1: la aldea no es lugar para tus obras ni tus renovales (construccion.js y renovales.js
     // preguntan acá): antes, en la plaza despejada o adentro de la biblioteca, el plano daba verde
@@ -765,12 +767,28 @@ async function construir() {
     // gente se pinta en la portada
     gente?.precalentar?.(camara, () => { renderer.shadowMap.needsUpdate = true; dibujar(null, 0); });
     gente?.trasCompilar?.();
+    prearmarAldea();   // 3.7.0 (integración): la gente de la aldea se arma en la portada
   });
   infoCarga.texturas = await texturasEnCamino;
   infoCarga.origenTexturas = origenTexturas();
   infoCarga.fin = Math.round(performance.now());
   $('carga-barra').style.width = '100%';
   await esperar();
+}
+
+// 3.7.0 (integración): la gente de la aldea (los que están ahora) se arma en la portada, en los ratos libres: al
+// llegar a la aldea ya está armada. Lo que falte al empezar a jugar se arma de a poco (aldea-gente.js, unos ms
+// por cuadro, cuando te acercás). Armar a cada uno cuesta 20 a 30 ms.
+function prearmarAldea() {
+  if (!aldeaGente?.prearmar || desafio) return;
+  const ocio = typeof requestIdleCallback === 'function' ? (fn) => requestIdleCallback(fn, { timeout: 150 }) : (fn) => setTimeout(fn, 30);
+  const paso = (plazo) => {
+    if (modo === 'jugando' || !aldeaGente?.prearmar) return;
+    // (en la portada no hay juego que cuidar: una persona entera por vez, unos 25 ms)
+    const ms = Math.max(25, plazo?.timeRemaining?.() ?? 0);
+    try { if (aldeaGente.prearmar(ms) > 0) ocio(paso); } catch (e) { console.error('prearmar la aldea', e); }
+  };
+  setTimeout(() => ocio(paso), 500);
 }
 
 // 3.7.0: ¿arranca en invierno? (lo mismo que calcula el cuadro para las estaciones, al empezar)
@@ -4257,6 +4275,8 @@ function armarOficiosYAldea(esDesafio) {
       return r ? { x: (r.puerta?.x ?? r.x) + 2.4, z: (r.puerta?.z ?? r.z) + 1.6, mira: 0 } : null;
     },
     nombrePerro: () => perro?.nombre?.() || '',
+    // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
+    msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
@@ -4278,7 +4298,7 @@ function armarOficiosYAldea(esDesafio) {
     leer: (l) => leerEnLaAldea(l), sentarEn: (s) => sentarEnLaAldea(s), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
     abrirCasilla: (p) => abrirCasillaAldea(p), enCasa: (p) => { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); },
     duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
-    ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4 }),
+    ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),   // (3.7.0 (integración): y lo nublado, para el telescopio)
   });
 }
 // 3.6: lo que dan los pobladores (y las mecánicas de la aldea) y no es de la mochila
@@ -8314,7 +8334,9 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     accionObra: () => accionObra(), aserrar: () => aserrar(), cuaderno: (p) => { if (p) pestana = p; dibujarCuaderno(); }, golpes: () => golpesParaTalarAhora(), mundoPesca: () => mundoPesca(), entradas: () => ENTRADAS.map((e) => e.id),
     // 3.6: dónde queda cada cosa de la aldea en el mundo
     puntos: (id) => puntosMundo(id), edificio: (id) => edificioEnMundo(id), renglon: () => (renglonAldea && renglonAldea.style.display !== 'none' ? renglonAldea.textContent : ''),
-    animales: () => animalesAldea };   // 3.7.0: los animales de la aldea y tu cachorro
+    animales: () => animalesAldea,   // 3.7.0: los animales de la aldea y tu cachorro
+    // 3.7.0 (integración): hacerte amigo de alguien (para probar los cumpleaños que se festejan)
+    amigo: (k, puntos = 60) => { for (let i = 0; i < 12; i++) sumarAmistadDe(progreso, k, puntos, progreso.dia); return progreso.vecindad?.personas?.[k]?.p ?? null; } };
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas

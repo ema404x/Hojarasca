@@ -226,9 +226,16 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(ev4.some((e) => e.clave === 'nene') && ev4.some((e) => e.clave === 'guarda') && !ev4.some((e) => e.clave === 'veterinaria'), 'el día 4: Nahuel y Elsa (la veterinaria todavía no llegó)');
   a.pobladores.push({ clave: 'veterinaria', dia: 1 }); a.locales.veterinaria = 2;
   ok(V.eventosDelDia(16, { aldea: a }).some((e) => e.clave === 'veterinaria'), 'cuando llega, también cuenta su cumpleaños (y se repite cada año)');
+  // 3.7.0 (integración), decisión del usuario: sólo se festejan (y se avisan el día antes) los cumpleaños de los más
+  // cercanos; los demás, una nota el mismo día
+  ok(V.avisoDiaAntes(3, { aldea: a }) === null, 'sin amigos en la aldea, mañana no hay fiesta que avisar');
+  const hoy = V.avisoDelDia(4, { aldea: a });
+  ok(hoy && hoy.titulo === 'Hoy cumplen años Nahuel, Ayelén y Elsa' && /^No hacen fiesta/.test(hoy.texto), `el mismo día, sin fiesta: ${hoy?.titulo}`);
+  a.cercanos = ['nene', 'veterinaria'];
   const av = V.avisoDiaAntes(3, { aldea: a });
-  ok(av && /^Mañana cumplen años Nahuel, Ayelén y Elsa$/.test(av.titulo), `el aviso del día antes: ${av?.titulo}`);
+  ok(av && /^Mañana cumplen años Nahuel y Ayelén$/.test(av.titulo), `el aviso del día antes, de tus amigos: ${av?.titulo}`);
   ok(/plaza/.test(av.texto), 'dos o más de la aldea festejan juntos en la plaza');
+  ok(V.avisoDelDia(4, { aldea: a }).titulo === 'Hoy cumple años Elsa', 'y Elsa, sin fiesta (es del valle)');
   ok(V.avisoDiaAntes(1, { aldea: A.aldeaNueva() }) === null || V.avisoDiaAntes(1, { aldea: A.aldeaNueva() }).titulo.startsWith('Mañana'), 'un día sin nada no avisa');
   // las fiestas (las suma la 3.7.3): el calendario ya las sabe mostrar
   eq(V.FIESTAS_ALDEA, [], 'sin fiestas todavía (son de la 3.7.3)');
@@ -245,7 +252,9 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 
 // ============================================================ 4. los cumpleaños
 {
-  const llena = A.aldeaNueva();
+  // (3.7.0 (integración): sólo festejan los más cercanos: acá, todos amigos tuyos)
+  const amigos = (a) => { a.cercanos = [...A.ORDEN_PERSONAS_ALDEA]; return a; };
+  const llena = amigos(A.aldeaNueva());
   llena.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 }));
   llena.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
   // el día 10: la abuela y la enfermera (dos): en la plaza
@@ -254,16 +263,28 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   eq(A.rutinaAldea('abuela', 19, 1, llena, 10), { lugar: 'fiesta', edificio: 'plaza', punto: 'mastil' }, 'a la tardecita, en el medio de la plaza');
   ok(A.rutinaAldea('abuela', 19, 1, llena).lugar !== 'fiesta' && A.rutinaAldea('abuela', 16, 1, llena, 10).lugar !== 'fiesta', 'sin el día, o a otra hora, no');
   // uno solo: en su casa (o su local)
-  const sola = A.aldeaNueva(); sola.pobladores = [{ clave: 'apicultor', dia: 1 }]; sola.locales = { 'sala-miel': 1 };
+  const sola = amigos(A.aldeaNueva()); sola.pobladores = [{ clave: 'apicultor', dia: 1 }]; sola.locales = { 'sala-miel': 1 };
   f = A.fiestaDeCumple(13, sola);   // el día 1 del año: el jefe y el apicultor
   ok(f.donde === 'plaza', 'el jefe y Guido, juntos');
-  f = A.fiestaDeCumple(13, A.aldeaNueva());
+  f = A.fiestaDeCumple(13, amigos(A.aldeaNueva()));
   eq(f, { claves: ['jefe'], donde: 'casa', edificio: 'casa-jefe' }, 'el jefe solo, en su casa');
-  eq(A.rutinaAldea('jefe', 19.4, 2, A.aldeaNueva(), 13), { lugar: 'fiesta', edificio: 'casa-jefe', punto: 'adentro' }, 'después de arriar la bandera');
+  eq(A.rutinaAldea('jefe', 19.4, 2, amigos(A.aldeaNueva()), 13), { lugar: 'fiesta', edificio: 'casa-jefe', punto: 'adentro' }, 'después de arriar la bandera');
   // el de un chico: la familia en casa
-  f = A.fiestaDeCumple(4, A.aldeaNueva());
+  f = A.fiestaDeCumple(4, amigos(A.aldeaNueva()));
   ok(f.claves.includes('nene') && f.edificio === 'casa-familia', 'Nahuel festeja en la casa de los Jones');
-  for (const k of ['padre', 'madre', 'nena']) eq(A.rutinaAldea(k, 19, 3, A.aldeaNueva(), 4).edificio, 'casa-familia', `${k}: en el cumpleaños de Nahuel`);
+  for (const k of ['padre', 'madre', 'nena']) eq(A.rutinaAldea(k, 19, 3, amigos(A.aldeaNueva()), 4).edificio, 'casa-familia', `${k}: en el cumpleaños de Nahuel`);
+  // 3.7.0 (integración): los que no son de tus más cercanos cumplen sin fiesta (siguen con lo suyo)
+  ok(A.fiestaDeCumple(13, A.aldeaNueva()) === null && A.rutinaAldea('jefe', 19.4, 2, A.aldeaNueva(), 13).lugar !== 'fiesta', 'el jefe, si no es tu amigo, cumple sin fiesta');
+  const unAmigo = A.aldeaNueva(); unAmigo.cercanos = ['nene'];
+  ok(A.fiestaDeCumple(4, unAmigo)?.claves.join() === 'nene' && A.fiestaDeCumple(10, unAmigo) === null, 'sólo el de tu amigo');
+  ok(A.sanearAldea({ cercanos: ['nene', 'nene', 'nadie', '__proto__', 7] }).cercanos.join() === 'nene' && A.sanearAldea({}).cercanos.length === 0, 'los cercanos, saneados');
+  // los 90 de la abuela: su primer cumpleaños después de un año entero de partida, en la plaza con toda la aldea
+  const noventa = A.aldeaNueva(); noventa.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 })); noventa.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
+  ok(!A.noventaDeLaAbuela(noventa, 10) && A.noventaDeLaAbuela(noventa, 22) && !A.noventaDeLaAbuela(noventa, 34), 'los 90 de la abuela, el día 22 (y una sola vez)');
+  eq(A.fiestaDeCumple(22, noventa), { claves: ['abuela'], donde: 'plaza', edificio: 'plaza', noventa: true }, 'los 90, en la plaza');
+  eq(A.rutinaAldea('abuela', 19, 1, noventa, 22).punto, 'mastil', 'la abuela, en el medio');
+  ok(['jefe', 'panadera', 'astronoma', 'nene'].every((k) => A.rutinaAldea(k, 19.5, 1, noventa, 22).edificio === 'plaza' && A.rutinaAldea(k, 19.5, 1, noventa, 22).lugar === 'fiesta'), 'toda la aldea, en la plaza (el jefe, después de arriar la bandera)');
+  ok(V.avisoDiaAntes(21, { aldea: noventa })?.titulo === 'Mañana la abuela Herminia cumple 90 años', 'y el aviso del día antes');
   // la fiesta manda (no es tiempo libre)
   const p = { dia: 10, horas: 19, aldea: llena };
   ok(!VE.estaLibre('abuela', 19, 1, p) && VE.elegirActividad('abuela', 19, 1, 'sol', p).nombre === 'fiesta', 'la fiesta no es tiempo libre');
@@ -277,7 +298,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(VZ.FRASES.cumpleSaludo.includes(VE.abrirCharla('nene', { dia: 16, horas: 10, aldea: A.aldeaNueva() }, { dia: 16 }).saludo), 'ese día te lo dice al saludarte');
   // los amigos lo van a saludar: el que cumple está en su casa, y su amigo lo visita (en su tiempo libre)
   // (a las 19:24: de 18:30 a 19:15 el jefe arría la bandera)
-  const fiesta = { dia: 13, horas: 19.4, aldea: A.aldeaNueva() };
+  const fiesta = { dia: 13, horas: 19.4, aldea: amigos(A.aldeaNueva()) };
   let visitas = 0;
   for (let s = 0; s < 40; s++) { const e = VE.elegirActividad('abuela', 19.4, 0, 'sol', fiesta, s); if (e.con === 'jefe') visitas++; }
   ok(visitas >= 10, `la abuela va a saludar al jefe en su cumpleaños (${visitas} de 40)`);
@@ -630,7 +651,8 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const ir = (lx, lz) => { const w = M.aMundo(lx, lz); jugador.estado.pos.x = w.x; jugador.estado.pos.z = w.z; };
   const tick = (k = 1) => { for (let i = 0; i < k; i++) ag.actualizar(0.6); };
   ir(6, 40); tick(4);
-  ok(notas.some((x) => /^Mañana cumplen? años/.test(x)), `el aviso del día antes (${notas.find((x) => x.startsWith('Mañana'))})`);
+  // (3.7.0 (integración): sin amigos todavía, los cumpleaños de hoy llegan en una nota, sin fiesta)
+  ok(notas.some((x) => /^Hoy cumplen? años/.test(x)), `el aviso de los cumpleaños de hoy (${notas.find((x) => x.startsWith('Hoy'))})`);
   ok(ag.dibujarCalendario && ag.vida().avisado === 4, 'una vez por día');
   // Martina: en el muelle de 8 a 17 (se la ve si estás cerca de ella, no de la aldea)
   for (let i = 0; i < 40; i++) tick(1);

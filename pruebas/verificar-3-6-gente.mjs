@@ -92,7 +92,8 @@ const M = A.marcoAldea();
   eq(G.caminoAldea({ x: 0, z: 30 }, { x: 3, z: 33 }), [{ x: 3, z: 33 }], 'cerca, derecho');
   // salir de un edificio: por la puerta (sin chocar con el marco); en la estación, por su salida
   const sale = G.recorridoAldea(A.puntosDe('casa-abuela').cama, A.puntosDe('plaza')['estar-1']);
-  ok(sale[0].sinChoque && Math.hypot(sale[0].x - A.puntosDe('casa-abuela').puerta.x, sale[0].z - A.puntosDe('casa-abuela').puerta.z) < 1e-6, 'de la cama sale por la puerta');
+  // (3.7.0 (integración): por el zaguán, frente a la puerta de verdad, y de ahí afuera: no atraviesa la pared)
+  ok(sale[0].sinChoque && Math.hypot(sale[0].x - A.puntosDe('casa-abuela').zaguan.x, sale[0].z - A.puntosDe('casa-abuela').zaguan.z) < 1e-6 && sale[1].sinChoque && Math.hypot(sale[1].x - A.puntosDe('casa-abuela').puerta.x, sale[1].z - A.puntosDe('casa-abuela').puerta.z) < 1e-6, 'de la cama sale por la puerta');
   const anden = G.recorridoAldea(A.puntosDe('estacion-aldea').anden, A.puntosDe('plaza')['estar-1']);
   ok(anden[0].sinChoque && anden[1].sinChoque && Math.hypot(anden[1].x - 6, anden[1].z - 9) < 1e-6, 'del andén, por la salida de la estación');
   const entra = G.recorridoAldea(A.puntosDe('plaza')['estar-1'], A.puntosDe('almacen').adentro);
