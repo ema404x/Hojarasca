@@ -460,7 +460,9 @@ export function crearMecanicasAldea(ctx) {
     else ctx.nota('Otro cuento de la abuela', 'Los chicos piden otro, y otro más');
   }
   // Sentado escuchando los cuentos o con la música del salón, el reloj no se apura
-  const sinApuro = () => musica.activa || (!!ctx.gente?.()?.oyendo?.() && cerca);
+  // (3.6.2: sólo los cuentos del domingo: antes cualquier charla de vecinos que se oía lo frenaba, y en la
+  // plaza, donde casi siempre hay alguna, estar sentado ya casi no adelantaba la tarde)
+  const sinApuro = () => musica.activa || (!!ctx.gente?.()?.oyendoCuento?.() && cerca);
   function medir() {
     return {
       ms: +info.ms.toFixed(4), msMax: +info.msMax.toFixed(3), dibujos: nubes.filter((q) => q.p.visible).length, ...info,

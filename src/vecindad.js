@@ -324,7 +324,7 @@ function obligacion(persona, hora, ds, aldea, r = null) {
   if (ru.punto === 'soga') return 'trabajo';   // 3.6 (mecánicas): el jefe iza o arría la bandera
   if (ds === 5 && localAbierto(aldea, 'salon') && t >= 17 && t < 19) return 'musica';
   if (ru.lugar === 'casa' && (chico ? t >= 13 && t < 14 : t >= 12.5 && t < 13.5)) return 'almuerzo';
-  if (persona === 'abuela' && ru.lugar === 'plaza' && ds !== 6 && t >= 15 && t < 18) return 'leyenda';
+  if (persona === 'abuela' && ru.lugar === 'plaza' && ds !== 6 && t >= 15.5 && t < 18) return 'leyenda';   // (3.6.2: desde las 15:30)
   if ((persona === 'padre' || persona === 'madre') && ru.lugar === 'casa' && ru.punto === 'trabajo' && ds !== 6 && t < 18) return 'trabajo';
   return null;
 }
@@ -334,17 +334,18 @@ export function estaLibre(persona, hora, diaSemana, estado) {
   const ds = ((entero(diaSemana) % 7) + 7) % 7;
   return obligacion(persona, horaNorm(hora), ds, partes(estado).aldea) === null;
 }
-// Cuánto dura todavía la situación (libre u obligada), hasta 3 h: la rutina sólo cambia en las
-// medias horas del horario de cada uno (corridas por su desfase) y, la del jefe, en las horas (y
-// en las de la bandera).
+// Cuánto dura todavía la situación (libre u obligada), hasta 3 h: la rutina sólo cambia en los
+// cuartos de hora del horario de cada uno (corridas por su desfase; 3.6.2: antes, las medias horas: la
+// siesta de Ercilia termina a las 15:15) y, la del jefe, en las horas (y en las de la bandera).
 function hastaQueCambie(persona, hora, ds, aldea, libre) {
   const des = desfaseDe(persona);
   const ref = rutinaAldea(persona, hora, ds, aldea);
   const marcas = [];
-  for (let k = Math.floor((hora - des) * 2) + 1; (k / 2 + des) <= hora + 3; k++) marcas.push(k / 2 + des);
+  for (let k = Math.floor((hora - des) * 4) + 1; (k / 4 + des) <= hora + 3; k++) marcas.push(k / 4 + des);
   for (let k = Math.floor(hora) + 1; k <= hora + 3; k++) marcas.push(k);
   // 3.6 (mecánicas): y la del jefe, también cuando va a izar o a arriar la bandera (ver rutinaAldea)
-  if (persona === 'jefe') for (const b of [7.5, 8.25, 18.5, 19.25]) for (const d of [0, 24]) if (b + d > hora && b + d <= hora + 3) marcas.push(b + d);
+  // (3.6.2: y cuando abre y cierra la estación, que también va por la hora del reloj)
+  if (persona === 'jefe') for (const b of [7.5, 8.25, 8.75, 18, 18.5, 19.25]) for (const d of [0, 24]) if (b + d > hora && b + d <= hora + 3) marcas.push(b + d);
   marcas.sort((a, b) => a - b);
   for (const b of marcas) {
     if (b <= hora + 1e-9) continue;

@@ -176,6 +176,12 @@ function umbral(id) {
 }
 // El recorrido completo de un punto a otro del plano: de adentro sale por la puerta, va por
 // las calles y entra por la puerta del otro (los tramos de puerta para adentro, sin choques).
+// 3.6.2: cuántos metros se caminan de verdad de un punto del plano a otro (por las puertas y las calles)
+export function largoRecorrido(desde, hasta) {
+  let p = desde, s = 0;
+  for (const q of recorridoAldea(desde, hasta)) { s += Math.hypot(q.x - p.x, q.z - p.z); p = q; }
+  return s;
+}
 export function recorridoAldea(desde, hasta) {
   const sale = edificioEn(desde.x, desde.z), entra = edificioEn(hasta.x, hasta.z);
   const pasos = [];
@@ -382,6 +388,8 @@ export function crearAldeaGente(ctx) {
   // alcanza para empezar nada (se queda con lo del horario).
   const citas = new Map();   // clave → { edificio, punto } (la mesa de la casa de té a la que lo invitaste)
   const MINIMO_LIBRE = 0.5;
+  // 3.6.2: para salir con tiempo: hasta cuántas horas antes se mira lo que viene, y de a cuánto (ver conTiempo)
+  const LEJOS_TIEMPO = 1.5, PASO_ANTES = 0.125;
   function climaVecindad() {
     const c = ctx.climaVecindad?.();
     if (c) return c;
@@ -410,7 +418,7 @@ export function crearAldeaGente(ctx) {
       }
       // 3.6.1: sale con tiempo para llegar a lo que le toca (la escuela, el local): a paso de pueblo, a
       // la otra punta de la aldea hay más de media hora del juego, y llegaba tarde o no llegaba
-      const va = conTiempo(k, st, h, ds, p, abs);
+      const va = conTiempo(k, st, h, ds, p, abs, elClima);
       if (va) { elegidas.set(k, va); st.act = null; return; }
       // 3.6.1: con lo de afuera elegido, si se larga a llover (o a nevar), se vuelve a elegir
       const cambioElTiempo = st.act?.e && ACTIVIDADES[st.act.e.actividad]?.afuera && st.act.clima !== elClima();
@@ -441,29 +449,38 @@ export function crearAldeaGente(ctx) {
   }
   // Lo que le toca dentro de lo que tarda en llegar caminando (o null si le da el tiempo).
   // (una vez que salió, sigue yendo aunque llegue antes: no se va a dar otra vuelta mientras espera)
-  function conTiempo(k, st, h, ds, p, abs) {
-    if (st.yendo && abs < st.yendo.hasta && abs >= st.yendo.desde) return st.yendo.d;
+  function conTiempo(k, st, h, ds, p, abs, palabra) {
+    // (3.6.2: salvo que cambie el tiempo: iba a la leyenda de la plaza y se largó a llover)
+    if (st.yendo && abs < st.yendo.hasta && abs >= st.yendo.desde && st.yendo.clima === palabra()) return st.yendo.d;
     st.yendo = null;
     const n = st.npc;
     if (!n || n.dormido || n.deVisita) return null;
     const vel = Math.max(0.3, Number(n.velocidad) || 0.85) * (Number(ctx.segundosPorHora?.()) || 75);   // metros por hora del juego
-    let adelanto = 0.75;
-    let r = null, hf = h, dsf = ds;
-    for (let vuelta = 0; vuelta < 2; vuelta++) {
-      hf = h + adelanto; dsf = hf >= 24 ? (ds + 1) % 7 : ds; hf %= 24;
-      r = rutinaAldea(k, hf, dsf, aldea());
-      const q = r.edificio && (puntosFijosDe(r.edificio)[r.punto] || puntosFijosDe(r.edificio).adentro);
-      if (!q) return null;
-      const w = M.aMundo(q.x, q.z);
-      adelanto = Math.min(1.25, (Math.hypot(w.x - n.pos.x, w.z - n.pos.z) * 1.35) / vel + 0.1);
+    // 3.6.2: lo primero que le toca en la próxima hora y media (antes se miraba a tres cuartos de hora y a lo
+    // que eso tardaba: si lo de tres cuartos de hora después seguía libre, salía tarde)
+    let r = null, hf = h, dsf = ds, falta = 0;
+    for (let paso = PASO_ANTES; paso <= LEJOS_TIEMPO + 1e-9; paso += PASO_ANTES) {
+      hf = h + paso; dsf = hf >= 24 ? (ds + 1) % 7 : ds; hf %= 24;
+      if (estaLibre(k, hf, dsf, p)) continue;
+      r = rutinaAldea(k, hf, dsf, aldea()); falta = paso;
+      break;
     }
-    if (estaLibre(k, hf, dsf, p)) return null;   // lo que viene es tiempo libre
+    if (!r) return null;   // lo que viene es tiempo libre
     if (r.punto === 'cama' || r.punto === 'cama-chicos') return null;   // a dormir, a su hora
-    if (r.edificio === 'plaza' && /^estar-/.test(r.punto || '')) return null;   // (a un banco de la plaza no se apura nadie: y con lluvia, no va)
-    const ahora = rutinaAldea(k, h, ds, aldea());
-    if (ahora.edificio === r.edificio && ahora.punto === r.punto) return null;
+    // 3.6.2: lo que el horario manda en la plaza (la leyenda de la abuela) también se sale a tiempo; con
+    // lluvia, nieve o de noche, a cubierto (como cuando ya le toca: ver aCubierto)
+    if (r.edificio === 'plaza' && /^estar-/.test(r.punto || '')) r = aCubierto(k, hf, dsf, palabra()) || r;
+    const q = r.edificio && (puntosFijosDe(r.edificio)[r.punto] || puntosFijosDe(r.edificio).adentro);
+    if (!q) return null;
+    const w = M.aMundo(q.x, q.z), l0 = M.aLocal(n.pos.x, n.pos.z);
     const d = { lugar: r.lugar, edificio: r.edificio, punto: r.punto, actividad: null };
-    st.yendo = { d, desde: abs, hasta: abs + adelanto + 0.05 };
+    // si ya está ahí y falta poco, ahí espera (no se va a hacer otra cosa para volver caminando enseguida)
+    if (Math.hypot(w.x - n.pos.x, w.z - n.pos.z) < 1.5) return falta <= 0.5 ? d : null;
+    // 3.6.2: lo que tarda de verdad, por las puertas y las calles (antes, la línea recta por 1,35: de la casa de
+    // Ercilia al almacén hay 6 m en línea recta y 47 por la calle, y llegaban tarde igual), con un poco de margen
+    const adelanto = largoRecorrido({ x: l0.lx, z: l0.lz }, q) / vel + 0.15;
+    if (adelanto < falta) return null;   // todavía tiene tiempo
+    st.yendo = { d, desde: abs, hasta: abs + adelanto + 0.05, clima: palabra() };
     return d;
   }
   // La casa de té (o null para soltarlo): mientras dure la invitación, va ahí.
@@ -665,9 +682,10 @@ export function crearAldeaGente(ctx) {
     for (const k of c.personas) { const n = personas.get(k).npc; x += n.pos.x; z += n.pos.z; }
     return { x: x / c.personas.length, z: z / c.personas.length };
   }
-  function empezarCharla(c, personasCharla, monologo = null) {
+  // (3.6.2: `cuento`: los cuentos de la abuela del domingo; ésos sí frenan el reloj de estar sentado)
+  function empezarCharla(c, personasCharla, monologo = null, cuento = false) {
     const lineas = monologo || c.lineas;
-    oida.activa = { id: c?.id || 'cuentos', lineas, personas: personasCharla, linea: -1, t: 0.4 };
+    oida.activa = { id: c?.id || 'cuentos', lineas, personas: personasCharla, linea: -1, t: 0.4, cuento };
     const centro = dondeEs(oida.activa);
     oida.activa.centro = centro;
     for (const k of personasCharla) {
@@ -727,8 +745,8 @@ export function crearAldeaGente(ctx) {
         const cuentos = charlasPosibles({ aldea: a, hora: horas(), estacion: amb.estacion, clima: amb.clima, presentes: oyentes })
           .filter((c) => ['biblioteca', 'leyenda'].includes(c.tema) && c.lineas.some(([q]) => q === 'abuela') && !oida.vistas.has(c.id));
         const c = cuentos[(dia() + oida.vistas.size) % (cuentos.length || 1)];
-        if (c) { empezarCharla(c, [...new Set(c.lineas.map(([q]) => q))]); return; }
-        if (!oida.vistas.has('cuentos')) { empezarCharla(null, ['abuela'], VECINOS_ALDEA.abuela.charla.map((t) => ['abuela', t])); return; }
+        if (c) { empezarCharla(c, [...new Set(c.lineas.map(([q]) => q))], null, true); return; }
+        if (!oida.vistas.has('cuentos')) { empezarCharla(null, ['abuela'], VECINOS_ALDEA.abuela.charla.map((t) => ['abuela', t]), true); return; }
       }
     }
     for (const k of quietos) {
@@ -889,6 +907,7 @@ export function crearAldeaGente(ctx) {
     actualizar, charla, revisarLlegada, revisarObras, obraCerca, avisoObra, aportarObra, dibujarCuaderno, llamar,
     citar, figura, dibujarVecinos: (ficha, el) => fichaVecinos(progreso(), ficha, el),   // 3.6 (vida)
     oyendo: () => !!oida.activa,   // 3.6 (mecánicas): hay una charla (o un cuento) sonando cerca
+    oyendoCuento: () => !!oida.activa?.cuento,   // 3.6.2: y si es uno de los cuentos del domingo
     personas, estadoVisual: (id) => estadoVisual(aldea(), id),
     // para las pruebas: cómo está todo
     estado: () => ({

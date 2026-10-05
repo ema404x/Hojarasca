@@ -175,7 +175,8 @@ const ENTRADA = Object.fromEntries(ENTRADAS.map((e) => [e.id, e]));
   assert.match(leer('src/objetos.js'), /juntableTrasAnotar: true/);
   // 2.2: con once cambios van de a nueve por página (Tab), y el número es de la página
   assert.match(main, /if \(enElAlmacen\) \{ cambiarDeLaPagina\(Number\(codigo\.slice\(5\)\)\); break; \}/);
-  assert.match(main, /li\.addEventListener\('click', \(\) => cambiar\(i\)\)/);
+  // (3.6.2: el clic va con mousedown, ver alClicHud en main.js: el click no llegaba)
+  assert.match(main, /alClicHud\(li, \(\) => cambiar\(i\)\)/);
   assert.match(main, /cambiar: 'Conseguido', rastrear: 'Rastreado'/, 'las fichas del almacén ya no dicen «undefined»');
 }
 

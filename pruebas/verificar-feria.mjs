@@ -79,7 +79,8 @@ assert.match(main, /if \(desafio \|\| !puestoFeria \|\| !feriaAbierta\(progreso\
 assert.match(main, /feriaCerca\(\) && !enLaFeria\) aviso = \{ tecla: 'E', texto: 'Ver la feria' \}/, 'el aviso');
 assert.match(main, /if \(!objetivo && feriaCerca\(\)\) \{ abrirFeria\(\); break; \}/, 'la tecla E');
 assert.match(main, /if \(enLaFeria\) \{ cambiarFeria\(Number\(codigo\.slice\(5\)\) - 1\); break; \}/, 'los números eligen');
-assert.match(main, /li\.addEventListener\('click', \(\) => cambiarFeria\(i\)\);/, 'y el clic también');
+// (3.6.2: con mousedown, ver alClicHud en main.js: el click no llegaba)
+assert.match(main, /alClicHud\(li, \(\) => cambiarFeria\(i\)\);/, 'y el clic también');
 assert.match(main, /else if \(enLaFeria\) cerrarFeria\(\);/, 'Escape cierra');
 // el aviso y la tecla E van en el mismo orden (ver el comentario en main.js)
 const iAviso = main.indexOf("feriaCerca() && !enLaFeria) aviso"), iAvisoCaballo = main.indexOf("caballoCerca()) aviso");

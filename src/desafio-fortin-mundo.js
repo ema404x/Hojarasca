@@ -341,7 +341,7 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
       const px = x + t.dz * s, pz = z - t.dx * s;
       if (api.obraEnPunto?.(px, T.altura(px, pz) + 0.3, pz)) return true;
       for (const c of col.cercanos(px, pz)) {
-        if (c.duenio || c.alturaMin > y + 0.6 || (c.alturaMax !== undefined && c.alturaMax < y + 0.1)) continue;
+        if (c.duenio || c.despejado || c.alturaMin > y + 0.6 || (c.alturaMax !== undefined && c.alturaMax < y + 0.1)) continue;   // (3.6.2: lo despejado no está)
         const d = c.seg ? distSeg(px, pz, c) : Math.hypot(px - c.x, pz - c.z);
         if (d < (c.r || 0) + 0.25) return true;
       }
