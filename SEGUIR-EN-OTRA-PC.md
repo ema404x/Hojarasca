@@ -46,7 +46,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
-- **3.7.0 (etiqueta v3.7.0): La aldea crece.** Primera de las 5 versiones de `PLAN_3_7.md` (leelo: siguen 3.7.1 Amor, 3.7.2 Cocina, 3.7.3 La trochita, 3.7.4 Tradiciones). `CAMBIOS_3_7_0.md`. Quedaron sin unir unos retoques de poses (en el stash de la rama v370-integracion, si existe).
+- **3.7.0 (etiqueta v3.7.0): La aldea crece.** Primera de las 5 versiones de `PLAN_3_7.md` (leelo: siguen 3.7.1 Amor, 3.7.2 Cocina, 3.7.3 La trochita, 3.7.4 Tradiciones). `CAMBIOS_3_7_0.md`. Quedaron sin unir unos retoques de poses: rama `v370-retoques-wip` en GitHub (sin probar). Prototipos aprobados por el usuario en las ramas `proto-personajes` (ya pasado al juego en la 3.7.0) y `proto-tren` (diseño de la 3.7.3, `?debug=1&tren=proto`). Sigue: retoques de la 3.7.0 y la 3.7.1 Amor.
 - **3.6.2 (cerrada el 05-10, etiqueta v3.6.2):** lo pendiente de la 3.6 (obras viejas encimadas, clic y mando en el HUD, mapa de la aldea, lluvia bajo techo, etc.). Gate 146/146. `CAMBIOS_3_6_2.md`. **Hay un plan grande en charla con el usuario para la 3.7 (aldea que crece, romance, tradiciones): todavía no está escrito en el repo; preguntarle antes de empezar.**
 - **3.6.1 (cerrada el 04-10, etiqueta v3.6.1):** caza de bugs de la 3.6 en 4 equipos, 33 arreglos (el sillón de la biblioteca que no te dejaba salir, etc.). Gate 144/144. Lo que quedó para después, al final de `CAMBIOS_3_6_1.md`.
 - **3.6.0 (cerrada el 03-10, etiqueta v3.6.0): la Aldea de los Duendes.** Pueblo fijo en la
