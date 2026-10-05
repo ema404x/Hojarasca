@@ -52,7 +52,8 @@ function llenar(texto, datos = {}) {
     if (v === undefined || v === null) { falta = true; return ''; }
     return String(v);
   });
-  return falta ? null : cap(r);
+  // (3.7.0: la mayúscula, después de los signos de apertura: «¡El pescador del valle!», con el apodo)
+  return falta ? null : r.replace(/^([¡¿«"\s]*)(\p{L})/u, (_m, a, b) => a + b.toUpperCase());
 }
 const primeraQueSirva = (lineas, datos, desde = 0) => {
   const l = Array.isArray(lineas) ? lineas : [lineas];

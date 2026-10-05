@@ -388,6 +388,10 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(V.apodoDe({ peces: { trucha: { cantidad: 12 } }, fotos: 45 }).id === 'fotografo', 'el que más (en proporción)');
   ok(V.APODOS.every((a) => /^el /.test(a.texto)), 'en masculino (el personaje del jugador es hombre)');
   ok(V.fraseApodo({ texto: 'el fotógrafo' }).includes('el fotógrafo'), 'los vecinos te lo dicen');
+  // con confianza, te saludan por tu apodo (vecindad-juego.js lo pasa como tu nombre)
+  const amigo = { dia: 3, aldea: A.aldeaNueva(), vecindad: { personas: { jefe: { p: 60, max: 1 } }, hechos: [], visita: {}, dia: 0 } };
+  eq(VE.saludoDeAmistad('jefe', amigo, { nombre: 'el pescador del valle' }), '¡El pescador del valle! Justo estaba por tocar la campana. Para vos la toco igual.', 'el jefe te saluda por tu apodo');
+  ok(leer('src/vecindad-juego.js').includes('nombre: ctx.apodo?.() || null') && leer('src/main.js').includes('apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null'), 'en el juego, el apodo que te ganaste');
 }
 
 // ============================================================ 9. tu familia

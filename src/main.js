@@ -68,7 +68,7 @@ import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
-import { LUGARES_VISITA } from './aldea-vida.js';
+import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
 import { crearAnimalesAldea } from './aldea-animales-mundo.js';
 import { gruposDeObras, buscarLugar, materialesDeObra, sumarMateriales, devolucionDeRenoval, textoDesalojo } from './aldea-desalojo.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
@@ -4247,6 +4247,7 @@ function armarOficiosYAldea(esDesafio) {
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
+    apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     mesa: () => mesaPuesta(mueblesTerminados()), hayVisita: () => !!visitante,

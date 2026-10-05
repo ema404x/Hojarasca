@@ -221,7 +221,8 @@ export function crearVecindadJuego(ctx) {
   const dia = () => Math.max(1, Math.floor(Number(progreso().dia) || 1));
   const horas = () => Number(progreso().horas) || 0;
   const ahora = () => dia() * 24 + horas();
-  const contexto = () => ({ dia: dia(), hora: horas(), clima: ctx.clima?.() || null, pronostico: ctx.pronostico?.() || '' });
+  // (3.7.0: `nombre`: tu apodo en la aldea, si ya te lo ganaste: con confianza, te saludan así)
+  const contexto = () => ({ dia: dia(), hora: horas(), clima: ctx.clima?.() || null, pronostico: ctx.pronostico?.() || '', nombre: ctx.apodo?.() || null });
   const avisarAmistad = (clave, am) => {
     if (!am?.subio) return;
     ctx.nota?.(`${nombreDeVecino(clave)} te tiene confianza`, am.nivel === 'compadre' ? 'Ya son compadres' : 'Ya son amigos', true);

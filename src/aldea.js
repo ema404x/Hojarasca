@@ -21,6 +21,13 @@
 //   · los horarios de cada uno y las charlas entre vecinos;
 //   · el guardado (`progreso.aldea`) y la migración de un pueblo de la 3.1.
 //
+// 3.7.0 «La aldea crece» (PLAN_3_7.md): la calle de la Loma con sus nueve lotes; las ocho pobladoras
+// nuevas y Pocha, la modista, intercaladas con los once de la 3.6; lo que da cada una por día; el año de
+// doce días con los cumpleaños de todos; los chicos que crecen una etapa por año; las charlas nuevas (y
+// las de la radio de la seccional, Julia con Josefina: Ema pasó a llamarse Josefina). Lo demás
+// de la vida de la aldea (calendario, visitantes, mascota, apodo, familia, ritmo y cartas) está en
+// aldea-vida.js.
+//
 // Módulo puro (se prueba en Node): sin three ni DOM.
 import { ENTRADAS } from './cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';

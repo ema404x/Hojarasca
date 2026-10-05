@@ -252,7 +252,8 @@ export function textosVisitante(v) {
   if (!def || !l) return null;
   return {
     nombre: def.nombre, de: def.de, saludo: def.saludo, despedida: def.despedida,
-    pide: [def.saludo, `${l.pide} ¿Me llevarías hasta ${l.nombre}? Te sigo, prometo no perderme.`],
+    // (el saludo lo dice al hablarle, como todos: acá, lo que pide)
+    pide: [l.pide, `¿Me llevarías hasta ${l.nombre}? Te sigo, prometo no perderme.`],
     seguir: 'E: vamos · Escape: ahora no',
     acepta: `¡Genial! Voy detrás tuyo. Avisame si camino muy despacio.`,
     yendo: `Te sigo. ${mayus(l.nombre)}, ¿falta mucho?`,

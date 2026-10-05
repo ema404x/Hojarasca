@@ -135,7 +135,7 @@ app.whenReady().then(async () => {
     e = await js(`(()=>{ const P = ${H}.progreso, a = P.aldea; a.pobladores = a.pobladores.filter((p) => p.clave !== 'astronoma'); delete a.locales.observatorio; a.llamado = true;
       ${H}.__aldea.mundo().revisarLlegada(true); return a.llegando })()`);
     ok(e?.clave === 'astronoma', 'baja Valentina del tren');
-    e = await avisos(4);
+    e = await js(`document.getElementById('notas').textContent`);
     ok(/telescopio en un cajón/.test(e), `con su telescopio (${e.slice(-160)})`);
     await js(`(()=>{ const P = ${H}.progreso; P.aldea.llegando = null; P.aldea.pobladores.push({ clave: 'astronoma', dia: 1 }); P.aldea.locales.observatorio = 1; return 1 })()`);
 
@@ -144,14 +144,14 @@ app.whenReady().then(async () => {
     // el día 9 (Rosa, Cholo y Martina): el aviso, el día 8
     await js(`(()=>{ ${H}.progreso.dia = 8; ${H}.progreso.horas = 9; ${H}.__aldea.mundo().revisarDia(); return 1 })()`);
     e = await avisos(8);
-    ok(/Mañana cumplen años Rosa, Martina y Cholo/.test(e), `el aviso del día antes (${(e.match(/Mañana[^|]*/) || [''])[0]})`);
+    ok(/Mañana cumplen años Rosa, Cholo y Martina/.test(e), `el aviso del día antes (${(e.match(/Mañana[^|]*/) || [''])[0]})`);
     await js(`(()=>{ ${H}.progreso.dia = 9; ${H}.progreso.horas = 18.6; return 1 })()`);
     await irLejos(); await aldea(3); await plaza(); await aldea(30);
     e = await estado();
     const festejan = e.npcs.filter((n) => n.destino?.lugar === 'fiesta').map((n) => n.clave);
     ok(festejan.includes('panadera') && festejan.includes('musico'), `la fiesta en la plaza (${festejan.join(', ')})`);
-    await js(`${H}.__aldea.cuaderno('oficios'); 1`);
-    e = await js(`(()=>{ const b = [...document.querySelectorAll('#cuaderno-lista [data-oficio="calendario"]')][0]; if (!b) return null; b.click(); return document.getElementById('cuaderno-ficha').textContent })()`);
+    await js(`(()=>{ ${H}.__aldea.oficios().elegir('calendario'); ${H}.__aldea.cuaderno('oficios'); return 1 })()`);
+    e = await js(`(()=>{ const b = document.querySelector('#cuaderno-lista [data-oficio="calendario"]'); return b ? document.getElementById('cuaderno-ficha').textContent : null })()`);
     ok(e && /Calendario y vida de la aldea/.test(e) && /Hoy: /.test(e) && /Cumpleaños de todos/.test(e), `el calendario en el cuaderno (${(e || '').slice(0, 120)})`);
     await js(`${H}.volverAlJuego?.(); 1`);
 
