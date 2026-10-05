@@ -122,13 +122,14 @@ export const EDIFICIOS_ALDEA = {
   // observatorio, a unos 8 m sobre la plaza, con la aldea, el valle y la cordillera adelante.
   // `anexo`: lo que va afuera en su propio lugar (el corral de la veterinaria, el horno de la ceramista),
   // en el marco del edificio; `cupula`: el observatorio lleva cúpula. Tamaños del contrato con
-  // aldea-arquitectura.js (no se cambian sin avisar).
-  veterinaria: { nombre: 'La veterinaria', rol: 'local', poblador: 'veterinaria', ancho: 8, fondo: 6, x: -65, z: 61.5, rot: PI, y: 21.41, calle: 'calle-loma', lado: 1, anexo: { id: 'corral', x: -8.5, z: 0, ancho: 6, fondo: 6 } },
+  // aldea-arquitectura.js (no se cambian sin avisar). 3.7.0 (integración): el corral y el horno, donde los arma
+  // aldea-arquitectura.js con `espejoAnexo` (del costado −X: el +X de la veterinaria da al estudio de fotos).
+  veterinaria: { nombre: 'La veterinaria', rol: 'local', poblador: 'veterinaria', ancho: 8, fondo: 6, x: -65, z: 61.5, rot: PI, y: 21.41, calle: 'calle-loma', lado: 1, anexo: { id: 'corral', x: -7.8, z: 0, ancho: 6, fondo: 6 } },
   'estudio-fotos': { nombre: 'El estudio de fotos', rol: 'local', poblador: 'fotografa', ancho: 6, fondo: 6, x: -78, z: 61.5, rot: PI, y: 23.24, calle: 'calle-loma', lado: 1 },
   'refugio-andinista': { nombre: 'El refugio andinista', rol: 'local', poblador: 'andinista', ancho: 7, fondo: 6, x: -128.5, z: 44.5, rot: 0, y: 30.01, calle: 'calle-loma', lado: 1 },
   herboristeria: { nombre: 'La herboristería', rol: 'local', poblador: 'herbolaria', ancho: 6, fondo: 6, x: -105, z: 59.5, rot: PI, y: 26.66, calle: 'calle-loma', lado: 1 },
   'taller-arte': { nombre: 'El taller de arte', rol: 'local', poblador: 'pintora', ancho: 7, fondo: 6, x: -51, z: 43, rot: 0, y: 25.26, calle: 'calle-loma', lado: 1 },
-  ceramica: { nombre: 'La cerámica', rol: 'local', poblador: 'ceramista', ancho: 7, fondo: 6, x: -62, z: 43, rot: 0, y: 24.66, calle: 'calle-loma', lado: -1, anexo: { id: 'horno', x: -5.8, z: -1.5, ancho: 2, fondo: 2 } },
+  ceramica: { nombre: 'La cerámica', rol: 'local', poblador: 'ceramista', ancho: 7, fondo: 6, x: -62, z: 43, rot: 0, y: 24.66, calle: 'calle-loma', lado: -1, anexo: { id: 'horno', x: -5.1, z: -0.7, ancho: 2, fondo: 2 } },
   varadero: { nombre: 'El varadero', rol: 'local', poblador: 'botera', ancho: 8, fondo: 6, x: -110, z: 43, rot: 0, y: 27.71, calle: 'calle-loma', lado: -1 },
   observatorio: { nombre: 'El observatorio', rol: 'local', poblador: 'astronoma', ancho: 6, fondo: 6, x: -138, z: 43, rot: 0, y: 30.68, calle: 'calle-loma', lado: -1, cupula: true },
   costureria: { nombre: 'La costurería', rol: 'local', poblador: 'modista', ancho: 6, fondo: 5, x: -46.5, z: 59.5, rot: PI, y: 23.94, calle: 'calle-loma', lado: -1 },
@@ -226,15 +227,52 @@ function desdePlano(e, lx, lz, rot) {
   const c = Math.cos(e.rot), s = Math.sin(e.rot), dx = lx - e.x, dz = lz - e.z;
   return { x: dx * c - dz * s, z: dx * s + dz * c, rot: rot - e.rot };
 }
+// 3.7.0 (integración): los puntos de los locales de la calle de la Loma, en el marco de cada uno ([x, z, rot]):
+// adentro, su lugar de trabajo (la camilla, la cámara, el mapa, el mortero, el atril, el torno, el bote, las
+// cartas del cielo, la máquina de coser), con el cliente enfrente; la cama de la vivienda; la silla del retrato,
+// la del modelo y la de la clienta (lugar-1); y en el observatorio, la escalera y el telescopio, arriba
+export const PUNTOS_LOMA = {
+  veterinaria: { adentro: [1.6, 1.91, PI], cliente: [0.4, 1.3, PI / 2], cama: [-2.42, -1.66, -1.78] },
+  'estudio-fotos': { adentro: [1.12, 1.31, -1.45], cliente: [-1.1, 1.75, PI / 2], cama: [1.42, -1.66, 1.78], 'lugar-1': [-1.9, 1.2, PI / 2] },
+  'refugio-andinista': { adentro: [2.74, 1.4, -PI / 2], cliente: [1.95, 2.4, PI / 2], cama: [-1.92, -1.66, -1.78] },
+  herboristeria: { adentro: [-1.72, 0.5, -PI / 2], cliente: [-0.9, 1.15, -2.2], cama: [-1.42, -1.66, -1.78] },
+  'taller-arte': { adentro: [2.1, 1.45, PI], cliente: [1.15, 1.25, 1.4], cama: [1.92, -1.66, 1.78], 'lugar-1': [-0.6, 1.95, PI - 0.5] },
+  ceramica: { adentro: [1.3, 1.88, PI], cliente: [0.2, 1.6, PI / 2], cama: [-1.92, -1.66, -1.78] },
+  varadero: { adentro: [0.3, 1.15, -PI / 2], cliente: [-1.2, 2.1, PI / 2], cama: [-2.42, -1.66, -1.78] },
+  observatorio: { adentro: [-1.35, 0.4, -1.97], cliente: [-0.4, 1.45, -2.4], cama: [-1.42, -1.66, -1.78], escalera: [1.65, 2.17, -PI / 2], 'escalera-arriba': [-0.88, 2.2, -PI / 2], telescopio: [-0.45, 0.62, PI / 2],
+    // (por delante de la escalera, sin pasar por debajo)
+    'escalera-rodeo-1': [-1.5, 1.3, PI / 2], 'escalera-rodeo-2': [1.65, 1.3, 0], 'escalera-base': [1.3, 2.175, -PI / 2], 'escalera-cima': [-0.44, 2.175, -PI / 2] },
+  costureria: { adentro: [-1.6, 1.44, 0], cliente: [-0.4, 1.95, -2.0], cama: [1.42, -1.16, 1.78], 'lugar-1': [2.26, 2.04, -2.4] },
+};
+// 3.7.0 (integración): adentro de su local, sentadas en lo suyo: Malena en el banco del torno y Pocha en la silla
+// de la máquina de coser
+export const SENTADO_ADENTRO = ['ceramica', 'costureria'];
+// 3.7.0 (integración): las escaleras que la gente sube de verdad (el observatorio: a la torreta del telescopio).
+// Lo de arriba (`altos`) se alcanza por el pie y el tope de la escalera; `alto`: el piso de arriba sobre el lote.
+// (`rodeo`: por dónde se llega al pie desde la puerta, sin pasar por debajo de la escalera; `base` y `cima`: el
+// primer y el último escalón, con la altura de cada uno sobre el lote: la gente sube por la rampa entre los dos)
+export const ESCALERAS_ALDEA = {
+  observatorio: { pie: 'escalera', base: 'escalera-base', cima: 'escalera-cima', tope: 'escalera-arriba', rodeo: ['escalera-rodeo-1', 'escalera-rodeo-2'], altos: ['escalera-arriba', 'telescopio'], piso: 0.32, alto: 2.98 },
+};
 // ¿El punto queda lejos de la aldea (fuera del rectángulo que ocupa)? Lo de Martina en el muelle.
 export const esPuntoLejano = (punto) => punto === 'trabajo-muelle';
-function puntosBase(e) {
+// 3.7.0 (integración): dónde está de verdad la puerta de cada uno (su x en el marco del edificio, la de
+// aldea-arquitectura.js; la prueba las compara). Antes la gente entraba y salía por el medio del frente: con la
+// puerta a un metro y medio de ahí, atravesaba la pared. Se sale por el zaguán (adentro, frente a la puerta).
+export const PUERTA_X = {
+  biblioteca: -1.6, escuela: -1.5, 'casa-jefe': -1, 'casa-ercilia': 0.7, 'casa-nelida': -0.9, 'casa-abuela': 0.6, 'casa-familia': -1.2,
+  panaderia: -1.2, carpinteria: -1, pescaderia: -1, 'puesto-sanitario': -0.9, estafeta: 0.8, hilanderia: -1.4, 'sala-miel': -0.9, seccional: -1,
+  veterinaria: -0.6, 'estudio-fotos': 1.5, 'refugio-andinista': -0.9, herboristeria: -1, 'taller-arte': -1.4, ceramica: -0.6, observatorio: -1.7, costureria: 1,
+};
+function puntosBase(e, id) {
   const { ancho: W, fondo: D } = e;
   const frente0 = -D / 2 + atrasDe(e);            // donde empieza el cuarto del frente
   const medio = (frente0 + D / 2) / 2;
   const lado = e.lado || 1;
+  const xP = Object.hasOwn(PUERTA_X, id) ? PUERTA_X[id] : 0;
   return {
-    puerta: { x: 0, z: D / 2 + 0.9, rot: 0 },
+    puerta: { x: xP, z: D / 2 + 0.9, rot: 0 },
+    zaguan: { x: xP, z: D / 2 - 0.75, rot: 0 },
     adentro: { x: W / 4, z: medio - 0.3, rot: 0 },
     cliente: { x: W / 4, z: Math.min(D / 2 - 0.5, medio + 0.9), rot: PI },
     trabajo: { x: lado * (W / 2 + 1.4), z: D / 2 - 1.2, rot: lado > 0 ? -PI / 2 : PI / 2 },
@@ -290,7 +328,7 @@ function puntosLocales(id) {
     [[-3, -2], [3, -2], [-2, 3.8], [2.5, 4]].forEach(([x, z], i) => { p[`juego-${i + 1}`] = { x, z, rot: 0 }; });
     return p;
   }
-  const p = puntosBase(e);
+  const p = puntosBase(e, id);
   if (e.rol === 'biblioteca') {
     // el mostrador junto a la puerta (el que atiende y el que pide un libro), cuatro mesas de
     // lectura con cuatro sillas cada una y, al fondo, el sillón de la abuela junto a la estufa
@@ -338,9 +376,14 @@ function puntosLocales(id) {
   // 3.7.0: lo propio de los locales de la calle de la Loma: el corral de la veterinaria y el horno de la
   // ceramista (adentro del corral, y frente a la boca del horno), la silla de los retratos, la del modelo
   // y la de la clienta que se prueba, y el lugar de Martina junto al muelle del lago (lejos: trabaja allá)
-  if (e.anexo?.id === 'corral') p.corral = { x: e.anexo.x + 2, z: e.anexo.z, rot: -PI / 2 };
+  // 3.7.0 (integración): adentro (donde atiende y trabaja: junto a su herramienta), el cliente enfrente, la cama
+  // y las sillas, donde están de verdad en aldea-arquitectura.js (la prueba los compara); los de la base caían
+  // adentro de la camilla, del torno, del atril o de la mesa del refugio
+  if (Object.hasOwn(PUNTOS_LOMA, id)) for (const [k, q] of Object.entries(PUNTOS_LOMA[id])) p[k] = { x: q[0], z: q[1], rot: q[2] };
+  // (3.7.0 (integración): frente a la tranquera, adentro: se entra por ahí y no a través del cerco)
+  if (e.anexo?.id === 'corral') p.corral = { x: e.anexo.x, z: e.anexo.z + 1.7, rot: PI };
   if (e.anexo?.id === 'horno') p.horno = { x: e.anexo.x, z: e.anexo.z + 1.7, rot: PI };
-  if (id === 'estudio-fotos' || id === 'taller-arte' || id === 'costureria') p['lugar-1'] = { x: -W / 4, z: medioDe(e), rot: PI / 2 };
+  if ((id === 'estudio-fotos' || id === 'taller-arte' || id === 'costureria') && !p['lugar-1']) p['lugar-1'] = { x: -W / 4, z: medioDe(e), rot: PI / 2 };
   if (id === 'varadero') p['trabajo-muelle'] = desdePlano(e, MUELLE_ALDEA.lx, MUELLE_ALDEA.lz, MUELLE_ALDEA.rot);
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
@@ -783,11 +826,25 @@ export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe
 // visita al que cumple). De 18 a 20 (ver `rutinaAldea`; con lluvia o nieve, la de la plaza pasa a la casa de cada
 // uno: ver `aCubierto` en aldea-gente.js). Con un año de doce días, casi todos los días
 // cumple alguien: por eso la fiesta es chica y no se lleva a toda la aldea.
+// 3.7.0 (integración), decisión del usuario: sólo se FESTEJAN los cumpleaños de los más cercanos (tus amigos y
+// compadres de la vecindad, `aldea.cercanos`, que aldea-gente.js renueva cada día; en la 3.7.1, también tu
+// pareja y tus hijos) y los 90 de la abuela Herminia, en la plaza, con toda la aldea. Los demás cumplen sin
+// fiesta: te enterás por una nota (`avisoDelDia` de aldea-vida.js) o en la charla (te lo dice al saludarte);
+// cuando haya radio y diario (3.7.3), por ahí.
 export const HORA_FIESTA = [18, 20];
+// (el día desde el que se cuenta la vida de la aldea: el de los chicos, que en una partida nueva es el 1)
+const inicioAldea = (a) => (objeto(a?.chicos?.nene) ? diaValido(a.chicos.nene.desde, 1) : 1);
+// Los 90 de la abuela: su primer cumpleaños después de un año entero de partida (cumple 89 cuando llegás).
+export const EDAD_ABUELA = 89;
+export const noventaDeLaAbuela = (aldea, dia) => esCumpleanos('abuela', dia) && crecimientos('abuela', inicioAldea(aldea || {}), dia) === 1;
+export const esCercano = (aldea, clave) => Array.isArray(aldea?.cercanos) && aldea.cercanos.includes(clave);
+export const festejaCumple = (aldea, clave, dia) => esCercano(aldea, clave) || (clave === 'abuela' && noventaDeLaAbuela(aldea, dia));
 export function fiestaDeCumple(dia, aldea) {
   const a = aldea || aldeaNueva();
-  const claves = ORDEN_PERSONAS_ALDEA.filter((k) => esCumpleanos(k, dia) && (esVecinoAldea(k) || (a.pobladores || []).some((p) => p.clave === k && localAbierto(a, LOTE_DE[k]))) && !chicoAfuera(a, k));
+  const claves = ORDEN_PERSONAS_ALDEA.filter((k) => esCumpleanos(k, dia) && (esVecinoAldea(k) || (a.pobladores || []).some((p) => p.clave === k && localAbierto(a, LOTE_DE[k]))) && !chicoAfuera(a, k) && festejaCumple(a, k, dia));
   if (!claves.length) return null;
+  // (los 90 de la abuela: en la plaza, con toda la aldea)
+  if (claves.includes('abuela') && noventaDeLaAbuela(a, dia)) return { claves, donde: 'plaza', edificio: 'plaza', noventa: true };
   if (claves.length > 1) return { claves, donde: 'plaza', edificio: 'plaza' };
   const k = claves[0];
   const edificio = Object.hasOwn(VECINOS_ALDEA, k) ? VECINOS_ALDEA[k].casa : k === 'ercilia' ? VECINOS_DEL_VALLE.ercilia.casa : LOTE_DE[k];
@@ -995,6 +1052,7 @@ export function aldeaNueva() {
     usos: {}, afilado: 0, mandado: null, mandados: 0, fauna: 0, partitura: 0, descubierta: 0,
     // 3.7.0: el kayak calafateado y el zaino herrado (el día: dura hasta la noche) y los chicos que crecen
     calafateado: 0, herrado: 0, chicos: chicosNuevos(1),
+    cercanos: [],   // 3.7.0 (integración): tus amigos y compadres de la aldea (sólo sus cumpleaños se festejan)
   };
 }
 function sanearObra(lote, o, hoy = TOPE_DIA) {
@@ -1066,6 +1124,7 @@ export function sanearAldea(v, hoy = null) {
     // 3.7.0 (una partida de la 3.6 no los trae: los chicos empiezan a crecer desde hoy)
     calafateado: noNeg(x.calafateado, tope), herrado: noNeg(x.herrado, tope),
     chicos: sanearChicos(x.chicos, Number.isFinite(num(hoy)) ? diaValido(hoy, 1) : 1, tope),
+    cercanos: Array.isArray(x.cercanos) ? [...new Set(x.cercanos.filter((k) => esPersonaAldea(k)))].slice(0, 60) : [],   // 3.7.0 (integración)
   };
 }
 
@@ -1699,7 +1758,8 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   const noctambula = persona === 'astronoma' && abierto;
   if (noctambula) {
     if (t >= 3.5 && t < 13) return cama();
-    if (t >= 20 || t < 3.5) return ir('local', lote, 'adentro');
+    // (3.7.0 (integración): de 21 a 2:30, arriba, en la torreta, con el telescopio; antes y después, con las cartas)
+    if (t >= 20 || t < 3.5) return ir('local', lote, t >= 21 || t < 2.5 ? 'telescopio' : 'adentro');
   }
   // de noche, adentro (el músico duerme hasta más tarde)
   else if (t < 6.5 || t >= 22 || (persona === 'musico' && t < 8.5)) return cama();
@@ -1732,6 +1792,8 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   if (dia !== null && t >= HORA_FIESTA[0] && t < HORA_FIESTA[1]) {
     const fiesta = fiestaDeCumple(dia, a);
     if (fiesta?.claves.includes(persona)) return fiesta.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', fiesta.edificio, 'adentro');
+    // (3.7.0 (integración): los 90 de la abuela: toda la aldea en la plaza)
+    if (fiesta?.noventa) return ir('fiesta', 'plaza', `estar-${(i % 20) + 1}`);
     // (el cumpleaños de uno de los chicos: la familia, en casa)
     if (fiesta?.edificio === 'casa-familia' && ['padre', 'madre', 'nene', 'nena'].includes(persona)) return ir('fiesta', 'casa-familia', 'adentro');
   }

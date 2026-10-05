@@ -3587,12 +3587,15 @@ function veterinaria(K) {
   lampara(K, -1.4, 1.3, { color: '#5f7a86' });
   vivienda(K, tab, { manta: '#5a7a6a' });
   // afuera: el corral al costado (+X), la cucha, las botas junto a la puerta y el banco de la galería
-  corral(K, W / 2 + 0.8, W / 2 + 6.8, -D / 2, D / 2);
-  cucha(K, -W / 2 - 0.85, 1.6, Math.PI / 2);
+  // (3.7.0 (integración): con `opciones.espejoAnexo` el corral va del otro costado (−X) y la cucha a +X, atrás:
+  // en la calle de la Loma el costado +X de la veterinaria da al estudio de fotos)
+  const ladoA = K.op.espejoAnexo ? -1 : 1;
+  if (ladoA > 0) corral(K, W / 2 + 0.8, W / 2 + 6.8, -D / 2, D / 2); else corral(K, -W / 2 - 6.8, -W / 2 - 0.8, -D / 2, D / 2);
+  if (ladoA > 0) cucha(K, -W / 2 - 0.85, 1.6, Math.PI / 2); else cucha(K, W / 2 + 0.85, -1.4, -Math.PI / 2);
   botas(K.ext, marcoLocal(-1.35, D / 2 + 0.35, 0.2, GALERIA_PISO), 0, 0, { tipo: 4 });
   banco(K, K.ext, 1.8, D / 2 + 0.4, 0, { y: GALERIA_PISO, largo: 1.6, tipo: 0, nombre: 'el banco de la veterinaria' });
   maceta(K, -3.4, D / 2 + 0.3, { y: GALERIA_PISO });
-  K.abarcar(-W / 2 - 1.4, W / 2, -D / 2, D / 2);
+  if (ladoA > 0) K.abarcar(-W / 2 - 1.4, W / 2, -D / 2, D / 2); else K.abarcar(-W / 2, W / 2 + 1.4, -D / 2, D / 2);
 }
 
 // ================================================================ estudio de fotos (Sofía)
@@ -3950,16 +3953,25 @@ function tallerArte(K) {
   casco(K, {
     eje: 'x', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, alzada: 1.6, cielo: false, colorInterior: '#e6dfcc', interior: 'cal', colorFriso: '#7a6a8a', colorPiso: '#8a6a4a', marco: '#f0e8d4', cortina: '#e8e0d0',
     puertas: [{ cara: 'frente', x: -1.4, ancho: PUERTA_ANCHO, nombre: 'la puerta del taller de arte' }],
-    ventanas: [{ cara: 'der', z: 1.1, ancho: 2.6, alto: 1.8, y: 1.35, postigos: false, cortina: false }, { cara: 'frente', x: 1.6, ancho: 1.1, alto: 1.2 }, { cara: 'izq', z: 1.6, ancho: 0.8, alto: 1.0 },
-      { cara: 'fondo', x: 1.8, ancho: 0.9, alto: 0.9, cuarto: 'vivienda' }],
+    // (3.7.0 (integración): con `opciones.ventanal: 'frente'` el ventanal va en el frente, a la derecha de la
+    // puerta, y el costado lleva una ventana común: en la calle de la Loma el frente del taller mira al norte)
+    ventanas: K.op.ventanal === 'frente'
+      ? [{ cara: 'frente', x: 1.75, ancho: 2.6, alto: 1.8, y: 1.35, postigos: false, cortina: false }, { cara: 'der', z: 1.1, ancho: 0.9, alto: 1.1 }, { cara: 'izq', z: 1.6, ancho: 0.8, alto: 1.0 },
+        { cara: 'fondo', x: 1.8, ancho: 0.9, alto: 0.9, cuarto: 'vivienda' }]
+      : [{ cara: 'der', z: 1.1, ancho: 2.6, alto: 1.8, y: 1.35, postigos: false, cortina: false }, { cara: 'frente', x: 1.6, ancho: 1.1, alto: 1.2 }, { cara: 'izq', z: 1.6, ancho: 0.8, alto: 1.0 },
+        { cara: 'fondo', x: 1.8, ancho: 0.9, alto: 0.9, cuarto: 'vivienda' }],
     galeria: { fondo: 1.6 }, tabique: tab, chimenea: chimeneaVivienda(K, tab),
   });
-  K.extra.ventanal = { cara: 'der', lz: 1.1, ancho: 2.6, alto: 1.8 };
+  const alFrente = K.op.ventanal === 'frente';
+  K.extra.ventanal = alFrente ? { cara: 'frente', lx: 1.75, ancho: 2.6, alto: 1.8 } : { cara: 'der', lz: 1.1, ancho: 2.6, alto: 1.8 };
   if (!final(K)) return;
   const W = K.W, D = K.D, xi = W / 2 - MURO, zi = D / 2 - MURO;
   cartelGaleria(K, 'Taller de Arte', -1.4, 2.4, 0.46);
   // el ventanal: dos parteluces más (la luz pareja que piden los pintores)
-  for (const dz of [-0.65, 0.65]) caja(K.ext, [W / 2 - MURO * 0.42, PISO + 1.35, 1.1 + dz], [0.05, 1.8, 0.05], '#f0e8d4', { tipo: 4, bajo: 0.64 });
+  for (const d of [-0.65, 0.65]) {
+    if (alFrente) caja(K.ext, [1.75 + d, PISO + 1.35, D / 2 - MURO * 0.42], [0.05, 1.8, 0.05], '#f0e8d4', { tipo: 4, bajo: 0.64 });
+    else caja(K.ext, [W / 2 - MURO * 0.42, PISO + 1.35, 1.1 + d], [0.05, 1.8, 0.05], '#f0e8d4', { tipo: 4, bajo: 0.64 });
+  }
   // los atriles: el grande junto al ventanal (la luz de costado) y otro con un cuadro de flores
   atril(K, 2.1, 0.55, 0, { pinta: paisaje('lago-azul', { cielo0: '#f0d8a8', cielo1: '#6f9ac0', lago: '#4f87a8', bosque: '#3f6a3a' }) });
   K.trabajo('atril', 2.1, 1.45, Math.PI);
@@ -4078,8 +4090,10 @@ function ceramica(K) {
   lampara(K, 0.4, 1.4, { color: '#9a5a3a' });
   vivienda(K, tab, { manta: '#c86a4a', alfombra: '#7a4a3a' });
   // afuera: el horno de barro (humea), la leña, la tabla con vasijas secándose y la tinaja
-  hornoBarro(K, W / 2 + 1.6, -0.7, 0);
-  pilaLena(K, W / 2 + 1.4, -2.55, 0, { largo: 1.4, filas: 3 });
+  // (3.7.0 (integración): con `opciones.espejoAnexo`, el horno y la leña van del otro costado (−X))
+  const ladoH = K.op.espejoAnexo ? -1 : 1;
+  hornoBarro(K, ladoH * (W / 2 + 1.6), -0.7, 0);
+  pilaLena(K, ladoH * (W / 2 + 1.4), -2.55, 0, { largo: 1.4, filas: 3 });
   {
     const c = K.ext, y0 = GALERIA_PISO, z = D / 2 + 0.3;
     for (const x of [1.15, 2.35]) caja(c, [x, y0 + 0.2, z], [0.18, 0.4, 0.22], '#9a5a3a', { tipo: 4, sup: SUP.piedra });
@@ -4091,7 +4105,7 @@ function ceramica(K) {
     K.circulo(-1.6, D / 2 + 0.45, 0.32, y0, y0 + 0.75);
   }
   banco(K, K.ext, -2.6, D / 2 + 0.4, 0, { y: GALERIA_PISO, largo: 1.0, tipo: 0, nombre: 'el banco de la cerámica' });
-  K.abarcar(-W / 2, W / 2 + 2.6, -D / 2, D / 2);
+  if (ladoH > 0) K.abarcar(-W / 2, W / 2 + 2.6, -D / 2, D / 2); else K.abarcar(-W / 2 - 2.6, W / 2, -D / 2, D / 2);
 }
 
 
@@ -4887,7 +4901,8 @@ export function armarEdificio(id, etapa = 4, opciones = {}) {
     if (e <= 3 && !opciones.sinMateriales && !medioHacer) materialesObra(K);
   }
   // 3.7.0 (loma): el anexo (el corral) tiene su lugar desde el lote; y la escalinata hasta la calle
-  if (def.anexo) K.abarcar(def.anexo.x0, def.anexo.x1, def.anexo.z0, def.anexo.z1);
+  // (3.7.0 (integración): `opciones.espejoAnexo`, del otro costado)
+  if (def.anexo) { const k = opciones.espejoAnexo ? -1 : 1, a = k * def.anexo.x0, b = k * def.anexo.x1; K.abarcar(Math.min(a, b), Math.max(a, b), def.anexo.z0, def.anexo.z1); }
   if (def.loma) { const des = Number(opciones.desnivel ?? 0); if (des > 0.05) escalinata(K, Math.min(3, des)); }
   return cerrar(K);
 }

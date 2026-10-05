@@ -142,9 +142,14 @@ app.whenReady().then(async () => {
     // ------------------------------------------------------------ 3. el cumpleaños y el calendario
     seccion('el cumpleaños y el calendario');
     // el día 9 (Rosa, Cholo y Martina): el aviso, el día 8
+    // (3.7.0 (integración), decisión del usuario: sólo se festejan los cumpleaños de los más cercanos: sin amigos, los
+    // de hoy llegan en una nota y no hay fiesta que avisar; amigo de los tres, sí)
     await js(`(()=>{ ${H}.progreso.dia = 8; ${H}.progreso.horas = 9; ${H}.__aldea.mundo().revisarDia(); return 1 })()`);
     e = await avisos(8);
-    ok(/Mañana cumplen años Rosa, Cholo y Martina/.test(e), `el aviso del día antes (${(e.match(/Mañana[^|]*/) || [''])[0]})`);
+    ok(/Hoy cumplen años/.test(e) && !/Mañana cumplen años Rosa/.test(e), `sin amigos: los de hoy, sin fiesta (${(e.match(/Hoy[^|]*/) || [''])[0]})`);
+    await js(`(()=>{ for (const k of ['panadera', 'musico', 'botera']) ${H}.__aldea.amigo(k); ${H}.progreso.vidaAldea.avisado = 7; ${H}.__aldea.mundo().revisarDia(); return 1 })()`);
+    e = await avisos(8);
+    ok(/Mañana cumplen años Rosa, Cholo y Martina/.test(e), `el aviso del día antes, de tus amigos (${(e.match(/Mañana[^|]*/) || [''])[0]})`);
     await js(`(()=>{ ${H}.progreso.dia = 9; ${H}.progreso.horas = 18.6; return 1 })()`);
     await irLejos(); await aldea(3); await plaza(); await aldea(30);
     e = await estado();

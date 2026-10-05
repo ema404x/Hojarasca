@@ -40,10 +40,10 @@
 // 'abierto'…).
 //
 // Sin three ni DOM (se prueba en Node): las figuras las arma gente.js y lo demás llega por `ctx`.
-import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto } from './vecindad.js';
-import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
+import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
+import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
-import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS } from './aldea.js';
+import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
 // cuántos se arman las figuras
@@ -179,7 +179,8 @@ export function edificioEn(lx, lz) {
 // calle (el galpón queda entre el andén y la calle).
 function umbral(id) {
   const p = puntosDe(id);
-  return p.salida ? [p.puerta, p.salida] : p.puerta ? [p.puerta] : [];
+  // (3.7.0 (integración): por el zaguán, frente a la puerta de verdad: no se atraviesa la pared)
+  return p.salida ? [p.puerta, p.salida] : p.puerta ? (p.zaguan ? [p.zaguan, p.puerta] : [p.puerta]) : [];
 }
 // El recorrido completo de un punto a otro del plano: de adentro sale por la puerta, va por
 // las calles y entra por la puerta del otro (los tramos de puerta para adentro, sin choques).
@@ -223,7 +224,10 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
     juntos.get(clave).push(k);
     let adentro = PUNTO_ADENTRO.get(clave);
     if (adentro === undefined) { adentro = !!edificioEn(q.x, q.z); PUNTO_ADENTRO.set(clave, adentro); }
-    salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro, sentado: SENTADO.test(r.punto || ''), lejano: esPuntoLejano(r.punto) });   // (3.7.0: lejano: el muelle del lago)
+    // (3.7.0 (integración): Malena en el banco del torno y Pocha en la silla de la máquina, sentadas; lo de arriba
+    // de una escalera, `arriba`)
+    const sentado = SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio));
+    salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro, sentado, lejano: esPuntoLejano(r.punto), arriba: esArriba(r.edificio, r.punto) });   // (3.7.0: lejano: el muelle del lago)
   }
   for (const lista of juntos.values()) {
     if (lista.length < 2) continue;
@@ -239,6 +243,19 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
   return salida;
 }
 
+// 3.7.0 (integración): ¿el punto está arriba de una escalera (la torreta del observatorio)?
+export const esArriba = (edificio, punto) => Object.hasOwn(ESCALERAS_ALDEA, edificio || '') && ESCALERAS_ALDEA[edificio].altos.includes(punto);
+// El recorrido (en el plano) a lo de arriba de una escalera y desde ahí: por el rodeo, el pie y el tope, sin
+// choques (adentro). `subir`: los pasos desde el rodeo hasta el punto; `bajar`: desde arriba hasta el rodeo.
+// (`alto`: la altura sobre el lote, en los escalones y arriba: ahí la gente va por la rampa, no por el piso)
+export function tramoEscalera(edificio, punto, subir = true) {
+  const E = ESCALERAS_ALDEA[edificio], P = puntosFijosDe(edificio);
+  if (!E) return [];
+  const q = (k, alto) => ({ x: P[k].x, z: P[k].z, sinChoque: true, precisa: true, ...(Number.isFinite(alto) ? { alto } : {}) });
+  const lista = [...E.rodeo.map((k) => q(k)), q(E.pie), q(E.base, E.piso), q(E.cima, E.alto), q(E.tope, E.alto)];
+  if (subir) { if (punto !== E.tope && P[punto]) lista.push(q(punto, E.alto)); return lista.slice(1); }
+  return lista.reverse();
+}
 // 3.6 (vida): los puntos con silla o banco (la mesa de té, la mesa de lectura, el banco de la
 // plaza, el pupitre, la silla del salón, el sillón de los cuentos): ahí se sientan.
 const SENTADO = /^(mesa-[0-9]|lectura-|estar-|pupitre-|lugar-|cuentos$)/;
@@ -341,28 +358,100 @@ export function crearAldeaGente(ctx) {
     n.etapa = 0; n.espera = 0;
     n.soloCerca = 0;
   }
-  function crearFigura(k, d) {
-    if (Object.hasOwn(VECINOS_DEL_VALLE, k)) return adoptar(k);
-    const g = ctx.gente?.();
-    if (!g?.agregarPoblador) return null;
+  // (3.7.0 (integración): en tres partes: lo que se le pide a gente.js, armarla (de una o de a poco) y completarla)
+  function defFigura(k, d) {
     const def = defDe(k);
     const vecino = esVecinoAldea(k);
     const llegando = aldea().llegando?.clave === k;
     // 3.7.0: los chicos, según la etapa (la ropa, la talla y lo que dicen)
     const dichos = dichosDe(k, aldea()) || def;
-    const npc = g.agregarPoblador({
+    return {
       clave: `${vecino ? 'aldea' : 'poblador'}-${k}`, colores: coloresDe(k, aldea()) || def.colores, pos: { x: d.x, z: d.z },
       mira: { x: d.x + Math.sin(d.mira), z: d.z + Math.cos(d.mira) },
       nombre: def.nombre, oficio: dichos.oficio, saludo: llegando ? 'Buenas. ¿Usted es de la aldea?' : dichos.saludo,
       despedida: llegando ? 'Lo espero acá, en el andén.' : dichos.despedida,
       mano: def.mano, velocidad: def.chico ? 1.05 : 0.85, camino: [], talla: tallaDe(k, aldea()) ?? def.talla,
-    });
+      llegando,
+    };
+  }
+  function completarFigura(npc, k, d, llegando) {
     if (!npc) return null;
     npc.claveAldea = k;
     npc.llegando = llegando;
     npc.miraFinal = d.mira;
     npc.soloCerca = d.adentro ? VER_ADENTRO : 0;
     return npc;
+  }
+  function crearFigura(k, d) {
+    if (Object.hasOwn(VECINOS_DEL_VALLE, k)) return adoptar(k);
+    const g = ctx.gente?.();
+    if (!g?.agregarPoblador) return null;
+    const def = defFigura(k, d);
+    return completarFigura(g.agregarPoblador(def), k, d, def.llegando);
+  }
+  // 3.7.0 (integración): las figuras se arman de a una y de a poco (unos ms por cuadro, ver armarPobladorDeAPoco
+  // en gente.js): armar a alguien entero costaba 20 a 30 ms en el cuadro en que te acercabas. En la portada se
+  // arman todas las de los que están en la aldea (`prearmar`), así al llegar ya están.
+  let armando = null;   // { k, tarea, def }
+  const MS_FIGURA = 3;
+  function ubicarNueva(k, st) {
+    st.clave = st.destino.clave;
+    ubicar(st.npc, st.destino);
+    if (usaRutaPropia(k, st, st.destino)) aRutaPropia(st.npc, st, true);
+    st.npc.dormido = lejos > RADIO_ALDEA;
+    if (st.destino.lejano) { st.npc.enLejano = true; st.npc.dormido = !cercaDe(st.npc); }   // 3.7.0
+  }
+  // Avanza el armado (`ms`: cuánto puede tardar); empieza el de la próxima que falte. Devuelve cuántas faltan.
+  function avanzarArmado(ms, dt = 0) {
+    if (!(ms > 0)) return faltan();   // (el planificador no dio lugar en este cuadro)
+    const g = ctx.gente?.();
+    if (armando) {
+      const st = personas.get(armando.k);
+      // (si en el medio se armó de otra forma, o ya no está, se descarta)
+      if (!st || st.npc || !st.destino) { armando.tarea?.npc && g?.quitar?.(armando.tarea.npc); armando = null; }
+      else if (armando.tarea.avanzar(ms)) {
+        const k = armando.k;
+        st.npc = completarFigura(armando.tarea.npc, k, st.destino, armando.def.llegando);
+        armando = null;
+        if (st.npc) ubicarNueva(k, st);
+        return faltan();
+      } else return faltan();
+    }
+    for (const [k, st] of personas) {
+      if (st.npc || !st.destino) continue;
+      // (la que no se pudo tomar, como Ercilia de visita en tu mesa, se reintenta más tarde)
+      if (st.reintento > 0) { st.reintento -= dt; continue; }
+      if (Object.hasOwn(VECINOS_DEL_VALLE, k) || !g?.armarPobladorDeAPoco) {
+        st.npc = crearFigura(k, st.destino);
+        if (!st.npc) { st.reintento = 3; continue; }
+        ubicarNueva(k, st);
+        break;
+      }
+      const def = defFigura(k, st.destino);
+      armando = { k, def, tarea: g.armarPobladorDeAPoco(def) };
+      if (armando.tarea.avanzar(ms)) {
+        st.npc = completarFigura(armando.tarea.npc, k, st.destino, def.llegando);
+        armando = null;
+        if (st.npc) ubicarNueva(k, st);
+      }
+      break;
+    }
+    return faltan();
+  }
+  const faltan = () => { let n = 0; for (const st of personas.values()) if (!st.npc && st.destino) n++; return n; };
+  // En la portada: los que están en la aldea, a la hora de la partida (`ms` por llamada). Devuelve cuántas faltan.
+  function prearmar(ms = 10) {
+    const lista = presentes();
+    for (const k of lista) if (!personas.has(k)) personas.set(k, { npc: null, destino: null, clave: '', trabado: { d: Infinity, t: 0 } });
+    const sinDestino = [...personas.values()].some((st) => !st.npc && !st.destino);
+    if (sinDestino) {
+      const destinos = destinosAldea(aldea(), horas(), dia(), lista, M);
+      for (const [k, st] of personas) if (!st.destino && destinos.get(k)) st.destino = destinos.get(k);
+    }
+    const t0 = performance.now();
+    let n = faltan();
+    while (n && performance.now() - t0 < ms) n = avanzarArmado(Math.max(1, ms - (performance.now() - t0)));
+    return n;
   }
   // 3.6.1: la altura del asiento donde se sienta (para la pose de gente.js): la silla de verdad que
   // está en ese punto (`ctx.asientoEn`, de los asientos de la aldea) o, en los almohadones de la
@@ -377,8 +466,10 @@ export function crearAldeaGente(ctx) {
     }
     return asientos.get(clave);
   }
+  // 3.7.0 (integración): lo de arriba de una escalera se busca desde el piso de arriba (si no, quedaba abajo)
+  const yDesde = (npc, d) => (d.arriba ? EDIFICIOS_ALDEA[d.edificio].y + ESCALERAS_ALDEA[d.edificio].alto + 0.1 : npc.pos.y);
   function ubicar(npc, d) {
-    npc.pos.set(d.x, ctx.alturaDePie(d.x, d.z, npc.pos.y), d.z);
+    npc.pos.set(d.x, ctx.alturaDePie(d.x, d.z, yDesde(npc, d)), d.z);
     npc.camino = [];
     npc.espera = 0;
     npc.miraFinal = d.mira;
@@ -390,8 +481,30 @@ export function crearAldeaGente(ctx) {
   }
   function encaminar(npc, d) {
     const l = M.aLocal(npc.pos.x, npc.pos.z);
-    const pasos = recorridoAldea({ x: l.lx, z: l.lz }, { x: d.lx, z: d.lz });
-    npc.camino = pasos.map((q, i) => ({ ...M.aMundo(q.x, q.z), sinChoque: !!q.sinChoque, cerca: i === pasos.length - 1 ? 0.12 : 0.6 }));
+    // 3.7.0 (integración): por la escalera: si está arriba, baja primero (hasta el rodeo); si va arriba, sube
+    // desde el rodeo
+    const pasos = [];
+    let desde = { x: l.lx, z: l.lz };
+    const ed = edificioEn(l.lx, l.lz);
+    if (ed && Object.hasOwn(ESCALERAS_ALDEA, ed) && npc.pos.y > EDIFICIOS_ALDEA[ed].y + 1.5 && !(d.arriba && d.edificio === ed)) {
+      const baja = tramoEscalera(ed, null, false);
+      pasos.push(...baja);
+      desde = baja[baja.length - 1];
+    }
+    if (d.arriba) {
+      const P = puntosFijosDe(d.edificio), E = ESCALERAS_ALDEA[d.edificio];
+      const yaArriba = ed === d.edificio && npc.pos.y > EDIFICIOS_ALDEA[ed].y + 1.5;
+      if (yaArriba) pasos.push({ x: d.lx, z: d.lz, sinChoque: true });
+      else {
+        const r0 = P[E.rodeo[0]];
+        pasos.push(...recorridoAldea(desde, { x: r0.x, z: r0.z }), ...tramoEscalera(d.edificio, d.punto, true));
+        // (el último, donde le toca: el punto, acomodado si hay más de uno)
+        pasos[pasos.length - 1] = { x: d.lx, z: d.lz, sinChoque: true };
+      }
+    } else pasos.push(...recorridoAldea(desde, { x: d.lx, z: d.lz }));
+    // (3.7.0 (integración): los de la escalera, con su altura y precisos: si no, se cortaba camino y no subía)
+    const yEsc = (q) => (Number.isFinite(q.alto) ? { y: EDIFICIOS_ALDEA[d.arriba ? d.edificio : ed]?.y + q.alto } : {});
+    npc.camino = pasos.map((q, i) => ({ ...M.aMundo(q.x, q.z), sinChoque: !!q.sinChoque, cerca: i === pasos.length - 1 ? 0.12 : q.precisa ? 0.12 : 0.6, ...yEsc(q) }));
     npc.espera = 0;
     npc.miraFinal = d.mira;
     // caminando se lo ve como a todos; adentro, sólo de cerca (se pone al llegar)
@@ -854,22 +967,9 @@ export function crearAldeaGente(ctx) {
     acum += dt;
     avanzarCharla(dt);
     const js = ctx.jugador?.()?.estado;
-    // las figuras se arman de a una por cuadro, cuando te acercás (o si no hay ninguna lejos)
-    if (js && lejos < RADIO_FIGURAS) {
-      for (const [k, st] of personas) {
-        if (st.npc || !st.destino) continue;
-        // (la que no se pudo tomar, como Ercilia de visita en tu mesa, se reintenta más tarde)
-        if (st.reintento > 0) { st.reintento -= dt; continue; }
-        st.npc = crearFigura(k, st.destino);
-        if (!st.npc) { st.reintento = 3; continue; }
-        st.clave = st.destino.clave;
-        ubicar(st.npc, st.destino);
-        if (usaRutaPropia(k, st, st.destino)) aRutaPropia(st.npc, st, true);
-        st.npc.dormido = lejos > RADIO_ALDEA;
-        if (st.destino.lejano) { st.npc.enLejano = true; st.npc.dormido = !cercaDe(st.npc); }   // 3.7.0
-        break;
-      }
-    }
+    // las figuras se arman de a una, cuando te acercás (o si no hay ninguna lejos); 3.7.0 (integración): y de a
+    // poco, unos ms por cuadro (ver avanzarArmado)
+    if (js && lejos < RADIO_FIGURAS) avanzarArmado(ctx.msFigura?.() ?? MS_FIGURA, dt);
     if (acum < 0.5) return;
     const paso = acum;
     acum = 0;
@@ -954,6 +1054,9 @@ export function crearAldeaGente(ctx) {
   }
 
   // ---------------------------------------------------------------- 3.7.0: lo de cada día
+  // 3.7.0 (integración): los de la aldea que son tus amigos o tus compadres (la vecindad); en la 3.7.1 se suman tu
+  // pareja y tus hijos
+  const cercanosDe = (p) => Object.entries(amistades(p) || {}).filter(([, n]) => n === 'amigo' || n === 'compadre').map(([k]) => k).filter((k) => esVecinoAldea(k) || esPobladorAldea(k) || k === 'ercilia');
   let diaRevisado = 0;
   const NOMBRE_ETAPA = { adolescente: 'ya es adolescente', joven: 'ya es grande' };
   function revisarDia() {
@@ -972,9 +1075,14 @@ export function crearAldeaGente(ctx) {
     actualizarChicos();
     // la Chola tiene cachorros
     if (cachorrosNacen(v, a, d) && nacenCachorros(v, d)) ctx.nota('La Chola tuvo cachorros', 'Ernesto, el jefe de estación, les anda buscando casa', true);
-    // mañana: cumpleaños (y las fiestas, cuando las haya) y tu familia
+    // 3.7.0 (integración): los más cercanos (tus amigos y compadres de la aldea): sólo sus cumpleaños se festejan
+    a.cercanos = cercanosDe(p);
+    // mañana: cumpleaños (y las fiestas, cuando las haya) y tu familia; (3.7.0 (integración): y hoy, los que cumplen
+    // sin fiesta)
     if (v.avisado < d && a.descubierta) {
       v.avisado = d;
+      const hoy = avisoDelDia(d, { aldea: a, fiestas: FIESTAS_ALDEA });
+      if (hoy) ctx.nota(hoy.titulo, hoy.texto, true);
       const av = avisoDiaAntes(d, { aldea: a, fiestas: FIESTAS_ALDEA });
       if (av) ctx.nota(av.titulo, av.texto, true);
     }
@@ -1234,6 +1342,7 @@ export function crearAldeaGente(ctx) {
   return {
     actualizar, charla, revisarLlegada, revisarObras, obraCerca, avisoObra, aportarObra, dibujarCuaderno, llamar,
     citar, figura, dibujarVecinos: (ficha, el) => fichaVecinos(progreso(), ficha, el),   // 3.6 (vida)
+    prearmar, faltanFiguras: faltan, armando: () => (armando ? { k: armando.k, pasos: armando.tarea.tarea?.pasos || 0, msMax: armando.tarea.tarea?.msMax || 0 } : null),   // 3.7.0 (integración)
     dibujarCalendario, vida, adoptarCachorro, revisarDia: () => { diaRevisado = 0; revisarDia(); },   // 3.7.0
     oyendo: () => !!oida.activa,   // 3.6 (mecánicas): hay una charla (o un cuento) sonando cerca
     oyendoCuento: () => !!oida.activa?.cuento,   // 3.6.2: y si es uno de los cuentos del domingo

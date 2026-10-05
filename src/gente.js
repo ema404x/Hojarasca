@@ -7,6 +7,7 @@ import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, me
 import { LAGO } from './config.js';
 // 3.7.0: la gente al estilo P (ver gente-cuerpo.js), su ropa (gente-ropa.js) y el atlas pintado
 import { crearPersona, soltarPersona } from './gente-cuerpo.js';
+import { armarPersonaDeAPoco } from './gente-cuerpo.js';
 import { pintarAtlasDespues, completarAtlas, atlasListo } from './gente-atlas.js';
 
 // ---------------------------------------------------------------- historias
@@ -368,6 +369,12 @@ function mallaPersona(colores, clave = '', conMate = false, opciones = {}) {
   if (!ESTILO_VIEJO) return crearPersona(colores || {}, clave, conMate, R, opciones);
   return mallaVieja(colores || {}, clave, conMate, R);
 }
+// 3.7.0 (integración): la misma figura, armada de a poco (ver armarPersonaDeAPoco): { avanzar(ms), hecho, resultado }
+function mallaDeAPoco(colores, clave = '', conMate = false, opciones = {}) {
+  const R = ROPA[clave] || {};
+  if (ESTILO_VIEJO) { const r = mallaVieja(colores || {}, clave, conMate, R); return { hecho: true, resultado: r, avanzar: () => true }; }
+  return armarPersonaDeAPoco(colores || {}, clave, conMate, R, opciones);
+}
 function mallaVieja(colores, clave, conMate, R) {
   const g = new THREE.Group();
   const piel = colores.piel || R.piel || '#c49a70';
@@ -678,7 +685,10 @@ function caminarHacia(g, dt, destino, velocidad, T, col, cerca = 0.5) {
   // 3.6: `sinChoque`: el tramo de la puerta para adentro (y de adentro a la puerta) de un
   // edificio de la aldea no se frena contra el marco ni contra un mueble
   if (!T.agua(nx, nz)) { g.pos.x = nx; g.pos.z = nz; if (!destino.sinChoque) col.resolver(g.pos, 0.3); }
-  g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
+  // 3.7.0 (integración): en una escalera (la de la torreta del observatorio) el punto trae su altura: se sube por
+  // la rampa de los escalones (entre un escalón y el piso de arriba hay una rendija y se caía al piso de abajo)
+  if (Number.isFinite(destino.y)) g.pos.y += (destino.y - g.pos.y) * Math.min(1, paso / d);
+  else g.pos.y = alturaDePie(T, col, g.pos.x, g.pos.z, g.pos.y);
   return false;
 }
 
@@ -759,8 +769,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     return { x, z };
   }
 
-  function agregar(clave, colores, pos, mirandoA, extra = {}) {
-    const m = mallaPersona(colores, clave, !!extra.conMate, { talla: extra.talla, invierno });
+  // (3.7.0 (integración): `hecha`: la figura ya armada de a poco, con la ropa de `inv`)
+  function agregar(clave, colores, pos, mirandoA, extra = {}, hecha = null, inv = invierno) {
+    const m = hecha || mallaPersona(colores, clave, !!extra.conMate, { talla: extra.talla, invierno: inv });
     const y = alturaDePie(T, col, pos.x, pos.z, pos.y || 0);
     m.g.position.set(pos.x, y, pos.z);
     const rumbo = Math.atan2(mirandoA.x - pos.x, mirandoA.z - pos.z);
@@ -771,7 +782,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       ...m, clave, ...p, pos: m.g.position, rumbo, rumboObjetivo: rumbo, vel: 0, paso: 0,
       fase: r() * 6, historias: HISTORIAS.filter((h) => h.quien === clave),
       casa: { x: pos.x, z: pos.z }, etapa: 0, espera: 1 + r() * 3, ...extra,
-      __coloresBase: colores, __invierno: invierno,   // 3.7.0: para cambiarle la ropa con la estación
+      __coloresBase: colores, __invierno: hecha ? inv : invierno,   // 3.7.0: para cambiarle la ropa con la estación
     };
     gente.push(npc);
     return npc;
@@ -920,7 +931,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
 
   function actualizar(dt, js, camara, hablando, presupuestoNivel = 0) {
     if (!atlasListo()) completarAtlas();   // 3.7.0: si se empezó a jugar antes de que la portada lo terminara
-    if (pendientesRopa) cambiarRopa(dt, js);
+    if (pendientesRopa) cambiarRopa(dt, js, camara);
     for (const g of gente) {
       // 3.6: la gente de la aldea con vos lejos (a más de 150 m): ni se dibuja ni se mueve.
       // aldea-gente.js la va dejando donde le toca estar a cada hora.
@@ -1068,12 +1079,12 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
   // 3.1: los pobladores (3.6: y los vecinos de la Aldea de los Duendes, ver aldea-gente.js).
   // Son gente como los demás: se paran a charlar y E habla con ellos. 3.6: con `camino: []`
   // andan con horario (no recorren una ruta en vuelta) y `talla` los hace más bajitos (los chicos).
-  function agregarPoblador(def) {
+  function agregarPoblador(def, hecha = null, inv = invierno) {
     const npc = agregar(def.clave, def.colores || {}, def.pos, def.mira || { x: def.pos.x, z: def.pos.z + 1 }, {
       nombre: def.nombre, oficio: def.oficio, saludo: def.saludo, despedida: def.despedida,
       historias: [], ruta: def.ruta || [{ x: def.pos.x, z: def.pos.z, quieto: 99999 }], velocidad: def.velocidad || 0.8, poblador: true,
       conMate: def.mano === 'mate', talla: Number.isFinite(def.talla) ? def.talla : undefined,
-    });
+    }, hecha, inv);
     if (def.mano === 'mate') darMate(npc);
     else if (def.mano === 'cana') darCaña(npc);
     else if (def.mano === 'planilla') darPlanilla(npc);
@@ -1082,6 +1093,23 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     npc.conPoncho = npc.conPoncho !== undefined ? !!npc.conPoncho : !!def.colores?.poncho;   // (3.7.0: el de la figura: en invierno, todos de poncho)
     npc.__colores = def.colores;   // (para copiar la figura en las mediciones: pruebas/visor-personajes.cjs)
     return npc;
+  }
+
+  // 3.7.0 (integración): un poblador armado de a poco: `avanzar(ms)` arma unos ms (al menos un paso) y, cuando
+  // termina, lo da de alta como agregarPoblador (`npc`). Armarlo entero en un cuadro costaba 20 a 30 ms (el tirón
+  // al acercarte a la aldea, una persona por cuadro).
+  function armarPobladorDeAPoco(def) {
+    const inv = invierno;
+    const tarea = mallaDeAPoco(def.colores || {}, def.clave, def.mano === 'mate', { talla: Number.isFinite(def.talla) ? def.talla : undefined, invierno: inv });
+    const t = { hecho: false, npc: null, tarea };
+    t.avanzar = (ms = 3) => {
+      if (t.hecho) return true;
+      if (!tarea.avanzar(ms)) return false;
+      t.npc = agregarPoblador(def, tarea.resultado, inv);
+      t.hecho = true;
+      return true;
+    };
+    return t;
   }
 
   // 3.7.0: alguien que se va del todo (una visita del tren, por ejemplo): sale de la lista y de la
@@ -1097,31 +1125,52 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
   // con los suyos: gente-ropa.js); al cambiar la estación se viste de a uno, sin que nadie lo vea (lejos
   // o fuera de la vista), uno cada medio segundo: así no hay tirones.
   let pendientesRopa = 0, relojRopa = 0;
+  let vistiendo = null;   // 3.7.0 (integración): { npc, inv, tarea }: la figura nueva, que se arma de a poco
   function abrigar(si) {
     si = !!si;
     if (si === invierno || ESTILO_VIEJO) return;
     invierno = si;
     pendientesRopa = gente.filter((g) => g.__invierno !== invierno).length;
   }
-  function cambiarRopa(dt, js) {
+  const dirCamRopa = new THREE.Vector3();
+  function cambiarRopa(dt, js, camara = null) {
+    // (3.7.0 (integración): la figura nueva se arma de a poco, unos ms por cuadro; antes, de una: un tirón cada medio
+    // segundo hasta vestir a todos)
+    if (vistiendo) {
+      if (!gente.includes(vistiendo.npc)) { vistiendo = null; return; }
+      if (!vistiendo.tarea.hecho && !vistiendo.tarea.avanzar(3)) return;
+      // (lista: se cambia cuando no se la ve; si en el medio te diste vuelta y la mirás de cerca, espera)
+      const n = vistiendo.npc, dn = js ? Math.hypot(n.pos.x - js.pos.x, n.pos.z - js.pos.z) : Infinity;
+      if (camara && !n.dormido && n.g.visible && dn < 40) {
+        camara.getWorldDirection(dirCamRopa);
+        if (dn < 2.5 || ((n.pos.x - camara.position.x) * dirCamRopa.x + (n.pos.z - camara.position.z) * dirCamRopa.z) > -0.3 * dn) return;
+      }
+      vestir(vistiendo.npc, vistiendo.inv, vistiendo.tarea.resultado);
+      vistiendo = null;
+      pendientesRopa = gente.filter((g) => g.__invierno !== invierno).length;
+      relojRopa = 0.5;
+      return;
+    }
     relojRopa -= dt;
     if (relojRopa > 0) return;
     let elegido = null;
+    // (3.7.0 (integración): también el que está a tu espalda: con vos en la plaza cuando llegaba el invierno, nadie se
+    // ponía la ropa de abrigo hasta que te alejabas 40 m)
+    if (camara) camara.getWorldDirection(dirCamRopa);
     for (const g of gente) {
       if (g.__invierno === invierno) continue;
       const d = js ? Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z) : Infinity;
-      if (g.dormido || !g.g.visible || d > 40 || (g.aBordo && !g.enViaje)) { elegido = g; break; }
+      const detras = !!camara && d > 2.5 && ((g.pos.x - camara.position.x) * dirCamRopa.x + (g.pos.z - camara.position.z) * dirCamRopa.z) < -0.3 * Math.hypot(g.pos.x - camara.position.x, g.pos.z - camara.position.z);
+      if (g.dormido || !g.g.visible || d > 40 || detras || (g.aBordo && !g.enViaje)) { elegido = g; break; }
     }
     pendientesRopa = gente.filter((g) => g.__invierno !== invierno).length;
     if (!elegido) { relojRopa = 1; return; }
-    vestir(elegido, invierno);
-    pendientesRopa--;
-    relojRopa = 0.5;
+    vistiendo = { npc: elegido, inv: invierno, tarea: mallaDeAPoco(elegido.__coloresBase || elegido.__colores || {}, elegido.clave, !!elegido.muneca, { talla: elegido.talla, invierno }) };
   }
   // arma la figura de nuevo con la ropa de la estación y la pone en el lugar de la vieja (el mismo
   // grupo, con su lugar, su giro y su talla; lo que tenía en la mano pasa a la mano nueva)
-  function vestir(npc, inv) {
-    const m = mallaPersona(npc.__coloresBase || npc.__colores || {}, npc.clave, !!npc.muneca, { talla: npc.talla, invierno: inv });
+  function vestir(npc, inv, hecha = null) {
+    const m = hecha || mallaPersona(npc.__coloresBase || npc.__colores || {}, npc.clave, !!npc.muneca, { talla: npc.talla, invierno: inv });
     const g = npc.g, enMano = npc.mano ? npc.mano.children.slice() : [];
     for (const h of enMano) m.mano.add(h);
     soltarPersona(npc);
@@ -1154,5 +1203,5 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     return true;
   }
 
-  return { gente, cerca, actualizar, guarda, ubicarGuarda, agregarPoblador, quitar, abrigar, vestir, trasCompilar, precalentar };
+  return { gente, cerca, actualizar, guarda, ubicarGuarda, agregarPoblador, armarPobladorDeAPoco, quitar, abrigar, vestir, trasCompilar, precalentar, vistiendo: () => vistiendo };
 }

@@ -61,7 +61,15 @@ function rectEdificio(id) {
   const e = EDIFICIOS_ALDEA[id];
   // (al menos 2 m, una celda del terreno: así toda la planta cae entre puntos emparejados del todo)
   const mg = e.estructura || e.rol === 'plaza' ? { lado: 2.1, atras: 2.1, frente: 2.1 } : MARGEN_EMPAREJAR;
-  return { x0: -e.ancho / 2 - mg.lado, x1: e.ancho / 2 + mg.lado, z0: -e.fondo / 2 - mg.atras, z1: e.fondo / 2 + mg.frente };
+  const r = { x0: -e.ancho / 2 - mg.lado, x1: e.ancho / 2 + mg.lado, z0: -e.fondo / 2 - mg.atras, z1: e.fondo / 2 + mg.frente };
+  // 3.7.0 (integración): y lo de afuera que tiene su lugar (el corral de la veterinaria, el horno de la cerámica)
+  return conAnexo(e, r, 1.2);
+}
+// 3.7.0 (integración): el rectángulo (en el marco del edificio) agrandado hasta cubrir su anexo, con margen
+function conAnexo(e, r, margen) {
+  const x = e.anexo;
+  if (!x) return r;
+  return { x0: Math.min(r.x0, x.x - x.ancho / 2 - margen), x1: Math.max(r.x1, x.x + x.ancho / 2 + margen), z0: Math.min(r.z0, x.z - x.fondo / 2 - margen), z1: Math.max(r.z1, x.z + x.fondo / 2 + margen) };
 }
 // Lo que se empareja: cada edificio (menos la estación, que arma trochita.js) a la altura de su
 // piso (la de la tabla de aldea.js: la media del terreno en la planta), con el borde de `zonasAldea`.
@@ -92,8 +100,10 @@ export function emparejarTerreno(T, zonas = zonasEmparejar(), calles = callesNiv
   const total = T.alturas.length, N = Math.round(Math.sqrt(total)), RES = N - 1, CEL = 1024 / RES, MIT = 512;
   const antes = { alturas: T.alturas.slice(), pendiente: T.pendiente.slice() };
   // (`ax`, `az`, `cx`, `cz`: la mitad y el centro de la planta en el marco del edificio)
+  // (3.7.0 (integración): `an`: el anexo (el corral, el horno), que manda como la planta)
   const Z = zonas.map((z) => ({ ...z, c: Math.cos(z.rot), s: Math.sin(z.rot), ax: z.planta?.ancho / 2 || 0, az: z.planta?.fondo / 2 || 0, cx: 0, cz: 0,
-    frente: EDIFICIOS_ALDEA[z.id] && !EDIFICIOS_ALDEA[z.id].estructura && EDIFICIOS_ALDEA[z.id].rol !== 'plaza' ? 2.6 : 0.3 }));
+    frente: EDIFICIOS_ALDEA[z.id] && !EDIFICIOS_ALDEA[z.id].estructura && EDIFICIOS_ALDEA[z.id].rol !== 'plaza' ? 2.6 : 0.3,
+    an: EDIFICIOS_ALDEA[z.id]?.anexo ? { x: EDIFICIOS_ALDEA[z.id].anexo.x, z: EDIFICIOS_ALDEA[z.id].anexo.z, ax: EDIFICIOS_ALDEA[z.id].anexo.ancho / 2, az: EDIFICIOS_ALDEA[z.id].anexo.fondo / 2 } : null }));
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   for (const q of Z) {
     for (const [bx, bz] of [[q.x0 - q.borde, q.z0 - q.borde], [q.x1 + q.borde, q.z0 - q.borde], [q.x0 - q.borde, q.z1 + q.borde], [q.x1 + q.borde, q.z1 + q.borde]]) {
@@ -124,7 +134,8 @@ export function emparejarTerreno(T, zonas = zonasEmparejar(), calles = callesNiv
       if (w > wMax) wMax = w;
       // a menos de una celda de la planta de un edificio manda ese edificio (dos lotes vecinos
       // a distinta altura no se promedian encima de una planta)
-      const dp = Math.hypot(Math.max(Math.abs(bx - q.cx) - q.ax, 0), Math.max(Math.abs(bz - q.cz) - q.az, 0));
+      let dp = Math.hypot(Math.max(Math.abs(bx - q.cx) - q.ax, 0), Math.max(Math.abs(bz - q.cz) - q.az, 0));
+      if (q.an) dp = Math.min(dp, Math.hypot(Math.max(Math.abs(bx - q.an.x) - q.an.ax, 0), Math.max(Math.abs(bz - q.an.z) - q.an.az, 0)));
       if (dp <= CEL * 1.42 && dp < dPropio) { dPropio = dp; propio = q; }
     }
     if (propio) { wMax = 1; suma = propio.altura; pesos = 1; }
@@ -207,16 +218,22 @@ export function terrenoDeSorteo(T, antes) {
 // ---------------------------------------------------------------- qué se dibuja (puro)
 // Las manzanas: entre calles (la calle de la Vía y la Norte; los pasajes y las calles de la
 // Biblioteca y del Almacén). Cada una es un complejo.
+// 3.7.0 (integración): la calle de la Loma (de x = −44 a −146) va en cuatro columnas propias (l1 a l4): antes
+// todo lo de x < −27 caía en 'o2', una manzana de más de cien metros que el LOD no apagaba nunca
 export function manzanaDe(id) {
   const e = EDIFICIOS_ALDEA[id];
   if (!e || e.rol === 'estacion') return null;
-  const col = e.x < -27 ? 'o2' : e.x < -8 ? 'o1' : e.x < 20 ? 'c' : e.x < 53 ? 'e1' : 'e2';
+  const col = e.x < -120 ? 'l4' : e.x < -95 ? 'l3' : e.x < -70 ? 'l2' : e.x < -44 ? 'l1' : e.x < -27 ? 'o2' : e.x < -8 ? 'o1' : e.x < 20 ? 'c' : e.x < 53 ? 'e1' : 'e2';
   return `${col}-${e.z < 52 ? 's' : 'n'}`;
 }
 // Los edificios que arma este módulo (el almacén y la casa de té los arma estructuras.js).
-// (3.7.0: sólo los que aldea-arquitectura.js ya sabe armar: los locales de la calle de la Loma los suma el
-// equipo de arquitectura; mientras tanto, su lote queda despejado y parejo, sin edificio)
-export const IDS_MUNDO_ALDEA = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura && Object.hasOwn(EDIFICIOS_ARQUITECTURA, id));
+// (3.7.0 (integración): los veinte, con los nueve de la calle de la Loma)
+export const IDS_MUNDO_ALDEA = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura);
+// 3.7.0 (integración): lo propio de algunos locales de la calle de la Loma al armarlos (ver aldea-arquitectura.js):
+// el corral de la veterinaria y el horno de la cerámica del costado −X (donde los pone el plano de aldea.js: del
+// otro lado están el estudio de fotos y el taller de arte) y el ventanal del taller de arte en el frente, que en
+// la calle de la Loma mira al norte (la luz pareja que piden los pintores)
+export const OPCIONES_MUNDO = { veterinaria: { espejoAnexo: true }, ceramica: { espejoAnexo: true }, 'taller-arte': { ventanal: 'frente' } };
 // La etapa de aldea-arquitectura.js para lo que dice `estadoVisual`. La escuela nunca vuelve para
 // atrás: a medio hacer ya tiene paredes y techo.
 export function etapaVisual(aldea, id) {
@@ -244,7 +261,8 @@ export function proximoLote(aldea) {
 function rectOcupa(id) {
   const e = EDIFICIOS_ALDEA[id];
   const frente = e.estructura || e.rol === 'plaza' ? 0.3 : 2.5;
-  return { x0: -e.ancho / 2 - 0.3, x1: e.ancho / 2 + 0.3, z0: -e.fondo / 2 - 0.3, z1: e.fondo / 2 + frente };
+  // (3.7.0 (integración): con su anexo)
+  return conAnexo(e, { x0: -e.ancho / 2 - 0.3, x1: e.ancho / 2 + 0.3, z0: -e.fondo / 2 - 0.3, z1: e.fondo / 2 + frente }, 0.3);
 }
 // En el marco de un edificio (bx, bz) un punto del plano (lx, lz).
 function aEdificio(e, lx, lz) {
@@ -331,10 +349,11 @@ export function planAccesorios() {
   }
   // de un solo lado de cada calle: en las dos largas (la de la Vía y la Norte), postes de luz
   // cada 21 m con los cables de poste a poste; en las demás, faroles cada 12 m
+  // (3.7.0 (integración): la de la Loma sigue a la Norte con sus postes y sus cables, del mismo lado)
   CALLES_ALDEA.forEach((c, ic) => {
     if (c.id === 'calle-estacion') return;   // ahí van las veredas y los faroles de la estación
-    const lado = ic % 2 ? -1 : 1;
-    const postes = c.id === 'calle-via' || c.id === 'calle-norte';
+    const postes = c.id === 'calle-via' || c.id === 'calle-norte' || c.id === 'calle-loma';
+    const lado = c.id === 'calle-loma' ? -1 : ic % 2 ? -1 : 1;
     for (let s = 0; s < c.puntos.length - 1; s++) {
       const [ax, az] = c.puntos[s], [bx, bz] = c.puntos[s + 1];
       const largo = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / largo, uz = (bz - az) / largo;
@@ -344,7 +363,8 @@ export function planAccesorios() {
         if (lz < 13 || enCalle(lx, lz, 2, c) || ocupado(lx, lz, 0.8)) continue;
         if (PUERTAS_PLANO.some((p) => Math.abs((p.x - ax) * ux + (p.z - az) * uz - t) < 2.4 && Math.abs((p.x - ax) * -uz + (p.z - az) * ux) < 9)) continue;
         // (el poste lleva su z a lo largo de la calle: los cables van de punta a punta)
-        lista.push(postes ? { tipo: 'poste', lx, lz, giro: Math.atan2(ux, uz), linea: `${c.id}|${s}` } : { tipo: 'farol', lx, lz, giro: 0 });
+        // (3.7.0 (integración): los cables de la Loma siguen a los de la calle Norte, sin corte en la esquina)
+        lista.push(postes ? { tipo: 'poste', lx, lz, giro: c.id === 'calle-loma' ? Math.atan2(-ux, -uz) : Math.atan2(ux, uz), linea: c.id === 'calle-loma' ? 'calle-norte|0' : `${c.id}|${s}` } : { tipo: 'farol', lx, lz, giro: 0 });
       }
     }
   });
@@ -414,16 +434,21 @@ export function planAccesorios() {
   // (calafate, rosa mosqueta) entre los álamos y junto a las pircas
   const azarPlano = (x, z) => { const v = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return v - Math.floor(v); };
   let nFrutal = 0;
+  // (3.7.0 (integración): y en el patio de los locales de la loma que viven con huerta: la herboristería, la
+  // costurería y el estudio de fotos)
+  const CON_FRUTAL = new Set(['herboristeria', 'costureria', 'estudio-fotos']);
   for (const id of IDS_EDIFICIOS) {
     const e = EDIFICIOS_ALDEA[id];
-    if (e.rol !== 'casa') continue;
+    if (e.rol !== 'casa' && !CON_FRUTAL.has(id)) continue;
     const c = Math.cos(e.rot), s = Math.sin(e.rot), bx = -(e.lado || 1) * (e.ancho / 2 - 0.5), bz = -e.fondo / 2 - 2.0;
     const lx = e.x + bx * c + bz * s, lz = e.z - bx * s + bz * c;
     if (enCalle(lx, lz, 2) || ocupado(lx, lz, 0.6, id) || sobreMurete(lx, lz, 1.6, desniveles)) continue;
     const k = 1 + (nFrutal++ % 3);
     lista.push({ tipo: 'frutal', lx, lz, giro: azarPlano(lx, lz) * 6.283, especial: { clave: `frutal|${k}`, nombre: 'frutal', opciones: { semilla: k } } });
   }
-  [['herreria', 'cerco-pique'], ['pescaderia', 'cerco'], ['sala-miel', 'cerco-pique'], ['hilanderia', 'cerco'], ['salon', 'cerco-pique']].forEach(([id, tipo]) => {
+  // (3.7.0 (integración): y los de la calle de la Loma que dan al monte)
+  [['herreria', 'cerco-pique'], ['pescaderia', 'cerco'], ['sala-miel', 'cerco-pique'], ['hilanderia', 'cerco'], ['salon', 'cerco-pique'],
+    ['herboristeria', 'cerco'], ['costureria', 'cerco'], ['estudio-fotos', 'cerco-pique'], ['refugio-andinista', 'cerco-pique'], ['varadero', 'cerco']].forEach(([id, tipo]) => {
     const e = EDIFICIOS_ALDEA[id], c = Math.cos(e.rot), s = Math.sin(e.rot), zb = -e.fondo / 2 - 2.4, W = e.ancho / 2 + 1.0;
     const n = Math.max(1, Math.round((2 * W) / 3));
     for (let k = 0; k < n; k++) {
@@ -434,7 +459,12 @@ export function planAccesorios() {
   });
   const bordes = [];
   for (let x = -42.5; x <= 84.5; x += 7) bordes.push([x, 90, 0]);
-  for (let z = 37.5; z <= 77.5; z += 7) bordes.push([-54.6, z, 1]);
+  // (3.7.0 (integración): el borde oeste de antes quedó adentro de la calle de la Loma: sólo atrás, al fondo)
+  for (let z = 72.5; z <= 77.5; z += 7) bordes.push([-54.6, z, 1]);
+  // y el de la loma: al fondo de los lotes de cada lado y en la punta, pasando el observatorio
+  for (let x = -60.5; x >= -144; x -= 8) bordes.push([x, 70.5, 5]);
+  for (let x = -66.5; x >= -144; x -= 9) bordes.push([x, 35.5, 6]);
+  for (let z = 37.5; z <= 66; z += 7) bordes.push([-151.5, z, 7]);
   for (let z = 37.5; z <= 70.5; z += 7) bordes.push([98.6, z, 2]);
   for (let x = -40; x <= 10; x += 8.5) bordes.push([x, 83.6, 3]);
   for (let z = 33; z <= 63; z += 8.5) bordes.push([93.6, z, 4]);
@@ -455,8 +485,15 @@ export function planAccesorios() {
   // álamos cortaviento: una hilera al fondo y otra del lado del bosque
   const alamos = [];
   for (let x = -46; x <= 88; x += 7) alamos.push([x, 88.5]);
-  for (let z = 34; z <= 81; z += 7) alamos.push([-53, z]);
+  // (3.7.0 (integración): la del lado del bosque, desde atrás de las casas del oeste: hasta la calle de la Loma
+  // quedaba en el medio del pueblo nuevo)
+  for (let z = 69; z <= 81; z += 7) alamos.push([-53, z]);
   for (let z = 34; z <= 74; z += 7) alamos.push([97, z]);
+  // 3.7.0 (integración): los de la calle de la Loma: una hilera al fondo de los lotes de arriba (el viento del
+  // oeste baja por la ladera), unos pocos atrás de los de abajo y la punta, pasando el observatorio
+  for (let x = -57; x >= -146; x -= 7.5) alamos.push([x, 73]);
+  for (let x = -70; x >= -146; x -= 15) alamos.push([x, 33.5]);
+  for (let z = 40; z <= 64; z += 8) alamos.push([-153, z]);
   alamos.forEach(([lx, lz], i) => {
     if (enCalle(lx, lz, 2) || ocupado(lx, lz, 1.5)) return;
     lista.push({ tipo: 'alamo', lx, lz, giro: (i * 2.39996) % (Math.PI * 2), escala: 0.88 + ((i * 7919) % 25) / 100 });
@@ -746,7 +783,8 @@ function texturaGrava() {
 // G: lo apisonado y lo hundido (las dos huellas de las ruedas, que serpentean, y los baches: ahí
 // junta agua); B: el pasto ralo (el lomo del medio y los bordes); A: zonas de unos metros (más
 // claro o más oscuro, cuál de las dos escalas manda, dónde se junta el agua).
-export const MARCO_RIPIO = { lx0: -52, lz0: 3, ancho: 150, alto: 82, paso: 0.25 };
+// (3.7.0 (integración): desde x = −150, con la calle de la Loma)
+export const MARCO_RIPIO = { lx0: -150, lz0: 3, ancho: 248, alto: 82, paso: 0.25 };
 export function mascaraRipio(calles = CALLES_ALDEA) {
   const P = MARCO_RIPIO, W = Math.round(P.ancho / P.paso), H = Math.round(P.alto / P.paso);
   const d = new Uint8Array(W * H * 4), escrito = new Uint8Array(W * H), r = azarSemilla(36038);
@@ -945,6 +983,8 @@ export function crearAldeaMundo(ctx) {
   const centro = aMundo(22, 50);
   const centroY = T.altura(centro.x, centro.z);
   const distAldea = (x, z) => Math.hypot(x - centro.x, z - centro.z);
+  // 3.7.0 (integración): cuánto falta para el rectángulo que ocupa la aldea (con la calle de la Loma, hasta x = −152)
+  const fueraAldea = (x, z) => { const l = M.aLocal(x, z); return Math.hypot(Math.max(-152 - l.lx, 0, l.lx - 100), Math.max(-6 - l.lz, 0, l.lz - 94)); };
 
   // ------------------------------------------------ el terreno
   function emparejar() {
@@ -971,7 +1011,8 @@ export function crearAldeaMundo(ctx) {
     const seg = Math.round(Math.sqrt(p.count)) - 1, s = 1024 / seg;
     // lo que cubre: toda la aldea (con la estación, los álamos y las pircas) y un margen de una celda gruesa
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (const [lx, lz] of [[-60, -4], [104, -4], [-60, 96], [104, 96]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
+    // (3.7.0 (integración): desde x = −158, con la calle de la Loma)
+    for (const [lx, lz] of [[-158, -4], [104, -4], [-158, 96], [104, 96]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
     const ia0 = Math.max(0, Math.floor((x0 - s + 512) / s)), ia1 = Math.min(seg, Math.ceil((x1 + s + 512) / s));
     const ja0 = Math.max(0, Math.floor((z0 - s + 512) / s)), ja1 = Math.min(seg, Math.ceil((z1 + s + 512) / s));
     const X0 = ia0 * s - 512, X1 = ia1 * s - 512, Z0 = ja0 * s - 512, Z1 = ja1 * s - 512;
@@ -1062,7 +1103,7 @@ export function crearAldeaMundo(ctx) {
         altura: (i, j) => pa[k(i, j) + 1], normal: (i, j) => [na[k(i, j)], na[k(i, j) + 1], na[k(i, j) + 2]] };
     }
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (const [lx, lz] of [[-52, 3], [98, 3], [-52, 85], [98, 85]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
+    for (const [lx, lz] of [[-150, 3], [98, 3], [-150, 85], [98, 85]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
     const X0 = Math.floor(x0 / 2) * 2, Z0 = Math.floor(z0 / 2) * 2, nx = Math.ceil((x1 - X0) / 2), nz = Math.ceil((z1 - Z0) / 2);
     return { X0, Z0, dx: 2, dz: 2, nx, nz, altura: (i, j) => alturaEn(X0 + i * 2, Z0 + j * 2), normal: (i, j) => { const n = T.normal(X0 + i * 2, Z0 + j * 2); return [n.x, n.y, n.z]; } };
   }
@@ -1087,6 +1128,12 @@ export function crearAldeaMundo(ctx) {
       if (orilla < 5 && v - Math.floor(v) < 0.45) continue;
       const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 4.4);
     }
+    // 3.7.0 (integración): y el de la calle de la Loma (los lotes de los dos lados, sus fondos y la punta)
+    for (let lx = -155; lx < -47; lx += 6) for (let lz = 30; lz <= 76; lz += 6) {
+      const orilla = Math.min(lx + 155, 76 - lz, lz - 30), v = Math.sin(lx * 12.9898 + lz * 78.233) * 43758.5453;
+      if (orilla < 5 && v - Math.floor(v) < 0.45) continue;
+      const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 4.4);
+    }
     // `despejar` deja el choque de cada árbol sacado marcado `apagado`, pero colisiones.js no lo
     // mira (con un talado queda el tocón): en la aldea, el choque de lo que salió no frena a nadie
     // (ni a vos ni a la gente) — se le baja el techo por debajo de todo, sin sacarlo de la grilla
@@ -1094,7 +1141,7 @@ export function crearAldeaMundo(ctx) {
     for (const lista of [veg.arboles, veg.matas]) for (const a of lista || []) {
       if (!a?.sacado || !a.choque || a.choque.alturaMax === -1e9) continue;
       const l = M.aLocal(a.x, a.z);
-      if (l.lx < -62 || l.lx > 108 || l.lz < -8 || l.lz > 98) continue;
+      if (l.lx < -160 || l.lx > 108 || l.lz < -8 || l.lz > 98) continue;   // (3.7.0 (integración): con la loma)
       a.choque.alturaMax = -1e9; choques++;
     }
     info.choquesApagados = choques;
@@ -1140,7 +1187,9 @@ export function crearAldeaMundo(ctx) {
       pintar(z.x - r, z.x + r, z.z - r, z.z + r, (k, x, wz) => {
         const dx = x - z.x, dz = wz - z.z, bx = dx * c - dz * s, bz = dx * s + dz * c;
         const patio = bx > z.x0 + 0.5 && bx < z.x1 - 0.5 && bz > z.z0 + 0.5 && bz < z.z1 - 0.5;
-        const planta = Math.abs(bx) < e.ancho / 2 + 0.6 && Math.abs(bz) < e.fondo / 2 + 0.6;
+        // (3.7.0 (integración): el corral de la veterinaria es tierra pisada, sin pasto ni helechos, como la planta)
+        const an = e.anexo, enAnexo = !!an && Math.abs(bx - an.x) < an.ancho / 2 + 0.2 && Math.abs(bz - an.z) < an.fondo / 2 + 0.2;
+        const planta = (Math.abs(bx) < e.ancho / 2 + 0.6 && Math.abs(bz) < e.fondo / 2 + 0.6) || enAnexo;
         if (!patio && !planta) return;
         if (esLote(z.id)) { celdas.push({ k, original: d[k], planta, lote: Math.abs(bx) < e.ancho / 2 + 1.2 && Math.abs(bz) < e.fondo / 2 + 1.2 }); return; }
         d[k] = planta ? 0 : Math.round(d[k] * 0.82);   // bajo la planta, nada
@@ -1301,6 +1350,16 @@ export function crearAldeaMundo(ctx) {
         pedida: null, montada: null, datos: null, enFusion: null, suelto: null, interior: null, puertas: [], luz: null, techo: null, chim: [],
       });
     }
+    // 3.7.0 (integración): el desnivel con la calle de los de la loma que lo piden (el refugio y el observatorio):
+    // si la calle, un metro más allá de donde arranca la escalinata (al pie de los escalones de la galería),
+    // queda más abajo que el lote, la escalinata de laja baja hasta ahí (hasta lo que sugiere la arquitectura)
+    for (const b of edificios.values()) {
+      const sug = EDIFICIOS_ARQUITECTURA[b.id]?.desnivelSugerido;
+      if (!(sug > 0)) continue;
+      const pie = aMundoEn(b.sitio, 0, b.fondo / 2 + 2.95 + 1.0);
+      const des = Math.min(sug, b.sitio.y - alturaEn(pie.x, pie.z));
+      b.desnivel = des > 0.25 ? +des.toFixed(2) : 0;
+    }
     // los accesorios, en el mundo y a su altura
     for (const a of accesorios) {
       const w = aMundo(a.lx, a.lz);
@@ -1354,7 +1413,8 @@ export function crearAldeaMundo(ctx) {
       estacionHecha = { x: w.x, z: w.z, raiz: nuevaRaiz('aldea-estacion', w.x, w.z, 14), lista: false, parada: null };
     }
     // las calles: el ripio, los cables entre los postes y, de noche, la luz de las ventanas en el suelo
-    calles = { raiz: nuevaRaiz('aldea-calles', centro.x, centro.z, 98), lista: false, charcos: null, sucio: false };
+    // (3.7.0 (integración): el radio alcanza la punta de la calle de la Loma, a 170 m del centro)
+    calles = { raiz: nuevaRaiz('aldea-calles', centro.x, centro.z, 178), lista: false, charcos: null, sucio: false };
     semillasDeCompilar();
     // lo que cambia en las obras: se rearma sólo ese lote
     escucharAldea((e) => { if (['aceptado', 'trabajando', 'etapa', 'abierto', 'llamado'].includes(e?.tipo)) revisar(); });
@@ -1420,7 +1480,9 @@ export function crearAldeaMundo(ctx) {
       const clave = claveVisual(b.id, v);
       if (b.pedida === clave) continue;
       b.pedida = clave;
-      const p = fabrica.pedir({ tipo: 'edificio', id: b.id, etapa: v.etapa, opciones: v.opciones }).then((datos) => {
+      // (3.7.0 (integración): con lo propio de cada uno: el anexo, el ventanal y el desnivel con la calle)
+      const opciones = { ...v.opciones, ...(OPCIONES_MUNDO[b.id] || {}), ...(b.desnivel > 0 ? { desnivel: b.desnivel } : {}) };
+      const p = fabrica.pedir({ tipo: 'edificio', id: b.id, etapa: v.etapa, opciones }).then((datos) => {
         if (b.pedida !== clave) return;   // ya se pidió otra
         cola.push({ tipo: 'edificio', b, clave, datos });
       }).catch((err) => { console.error('aldea-mundo: no se pudo armar', b.id, err); });
@@ -1537,9 +1599,12 @@ export function crearAldeaMundo(ctx) {
     // 3.6 (pulido): lo que se mueve (bandera, rueda de la rueca, fuelle, puerta del horno), fuera de
     // lo fundido: cada pieza en un Group en su pivote (rotarlo la mueve); las de adentro, con el
     // interior (sólo de cerca). La animación es de la fase de mecánicas: quedan en `animables()`.
+    // (3.7.0 (integración): las de adentro cuelgan del interior, que ya está en el sitio del edificio: con el sitio
+    // también en el contenedor quedaban al doble de lejos en cuanto se veía el interior (la rueca, el fuelle, el
+    // torno, el pedal y el telescopio volaban). `sitio`: dónde está el edificio, para medir distancias)
     b.animables = (d.animables || []).map((a) => {
       const contenedor = new THREE.Group();
-      contenedor.position.set(s.x, s.y, s.z); contenedor.rotation.y = s.rot;
+      if (a.capa !== 'interior') { contenedor.position.set(s.x, s.y, s.z); contenedor.rotation.y = s.rot; }
       const objeto = new THREE.Group();
       objeto.position.set(a.pivote.lx, a.pivote.ly, a.pivote.lz);
       const malla = new THREE.Mesh(a.geometria, capaMat(a.material) || materiales.estructura);
@@ -1550,7 +1615,7 @@ export function crearAldeaMundo(ctx) {
       contenedor.updateMatrix(); contenedor.matrixAutoUpdate = false;
       (a.capa === 'interior' ? gi : m.raiz).add(contenedor);
       contenedor.updateMatrixWorld(true);
-      return { id: a.id, edificio: b.id, objeto, contenedor, eje: a.eje, movimiento: a.movimiento, dato: a };
+      return { id: a.id, edificio: b.id, objeto, contenedor, eje: a.eje, movimiento: a.movimiento, dato: a, sitio: { x: s.x, y: s.y, z: s.z } };
     });
     b.interior = gi.children.length ? gi : null;
     if (!b.interior) m.raiz.remove(gi);
@@ -2032,7 +2097,7 @@ export function crearAldeaMundo(ctx) {
   let lucesApagadas = false;
   // ¿Adentro de un edificio de la aldea (bajo su techo, entre sus paredes)? Devuelve el edificio.
   function edificioEn(pos, galeria) {
-    if (!pos || distAldea(pos.x, pos.z) > 150) return null;
+    if (!pos || fueraAldea(pos.x, pos.z) > 20) return null;   // (3.7.0 (integración): el observatorio está a 160 m del centro)
     for (const b of edificios.values()) {
       if (!b.techo) continue;
       // 3.6 (optimizar): el giro de cada edificio no cambia: el seno y el coseno se guardan

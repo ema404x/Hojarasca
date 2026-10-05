@@ -111,6 +111,8 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
     libro: 'Leer un libro', estufa: 'Calentarte junto a la estufa', camilla: 'Recostarte en la camilla', prestamo: 'Pedir un libro prestado', aljibe: 'Sacar agua del aljibe',
     duende: 'Leer la plaquita del duende', pizarron: 'Mirar el pizarrón', dibujos: 'Mirar los dibujos de los chicos', horario: 'Mirar el horario de trenes',
     casillas: 'Abrir tu casilla de correo', mapa: 'Mirar el mapa del valle',
+    // 3.7.0 (integración): los de la calle de la Loma
+    telescopio: 'Mirar por el telescopio', 'cartas-cielo': 'Mirar las cartas del cielo', 'mapa-cumbres': 'Mirar el mapa de las cumbres', espejo: 'Mirarte en el espejo',
   }, 'los avisos');
 }
 

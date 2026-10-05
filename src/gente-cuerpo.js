@@ -111,6 +111,21 @@ function pintarPieza(m, fn) {
   g.setAttribute('color', new THREE.BufferAttribute(out, 3));
   return m;
 }
+// 3.7.0 (integración): lo mismo, cortando cada `lote` vértices (la cara: miles de vértices pintados uno por uno)
+function* pintarPiezaPasos(m, fn, lote = 500) {
+  const g = m.geometry; if (!g.attributes.normal) g.computeVertexNormals();
+  const P = g.attributes.position, N = g.attributes.normal, C = g.attributes.color;
+  const out = new Float32Array(P.count * 3), p = new THREE.Vector3(), n = new THREE.Vector3(), c = new THREE.Color();
+  for (let i = 0; i < P.count; i++) {
+    if (i && i % lote === 0) yield;
+    p.fromBufferAttribute(P, i); n.fromBufferAttribute(N, i);
+    if (C) c.setRGB(C.getX(i), C.getY(i), C.getZ(i)); else c.copy(m.material.color);
+    fn(c, p, n, i);
+    out[i * 3] = c.r; out[i * 3 + 1] = c.g; out[i * 3 + 2] = c.b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(out, 3));
+  return m;
+}
 const piel = (m) => { m.userData.piel = 1; return m; };
 const noTapa = (m) => { m.userData.noTapa = 1; return m; };
 // 3.7.0: las piezas chicas que de lejos no se ven (dedos, pestañas, ojos, plata, botones): van al
@@ -237,7 +252,9 @@ function pintarCara(c, p, n, F, colPiel) {
 // el cráneo con la cara (la forma se esculpe una vez por cara y se copia; cada uno la pinta con lo suyo)
 const MOLDES = new Map();
 const molde = (clave, hacer) => { let g = MOLDES.get(clave); if (!g) { g = hacer(); MOLDES.set(clave, g); } return g.clone(); };
-function craneo(F, colPiel, marcas) {
+// (3.7.0 (integración): de a partes, ver figuraPasos)
+function* craneoPasos(F, colPiel, marcas) {
+  const nuevo = !MOLDES.has('craneo' + F.clave);
   const g = molde('craneo' + F.clave, () => {
     const g = esferaDensa(36, 30);
     const P = g.attributes.position, v = new THREE.Vector3();
@@ -249,7 +266,8 @@ function craneo(F, colPiel, marcas) {
     g.computeVertexNormals(); coser(g);
     return g;
   });
-  const m = pintarPieza(piel(new THREE.Mesh(g, color(colPiel))), (c, p, n) => { p.y -= F.cy; pintarCara(c, p, n, F, colPiel); });
+  if (nuevo) yield;
+  const m = yield* pintarPiezaPasos(piel(new THREE.Mesh(g, color(colPiel))), (c, p, n) => { p.y -= F.cy; pintarCara(c, p, n, F, colPiel); });
   m.userData.tela = TELA.cara + marcas;
   return m;
 }
@@ -693,13 +711,16 @@ function casco(F, hex, conRasgos, grosor, oculta, pinta, nAz = 34, nPol = 26, cl
   const m = mallaDe(g, hex);
   return pinta ? pintarPieza(m, (c, p, n) => { p.y -= F.cy; pinta(c, p, n); }) : m;
 }
-function armarCabeza(cabeza, F, colores, R, colPiel, marcas) {
+// (3.7.0 (integración): de a partes, ver figuraPasos)
+function* armarCabezaPasos(cabeza, F, colores, R, colPiel, marcas) {
   const colPelo = colores.pelo || '#3a2a1e';
   // 3.7.0: el cuello, más fino (se leía grueso, sobre todo de lejos)
   const kc = R.robusto ? 1.04 : F.chico ? 0.82 : F.mujer ? 0.84 : 0.93;
   const cuello = torno(colPiel, [[0.05, -0.13], [0.045, -0.09], [0.04, -0.06], [0.041, -0.03], [0.034, -0.0], [0.02, 0.01]].map(([r, y]) => [r * kc, y]), [0, 0, -0.012], null, [1, 1, 1.06], 14);
   cabeza.add(piel(pintarPieza(cuello, (c, p) => { c.multiplyScalar(1 - 0.14 * sv(-0.08, -0.03, p.y) * sv(-0.02, 0.03, p.z)); })));
-  cabeza.add(craneo(F, colPiel, marcas));
+  yield;
+  cabeza.add(yield* craneoPasos(F, colPiel, marcas));
+  yield;
   const ojos = [], parp = [], centros = [];
   const iris = colores.iris || IRIS[Math.floor(hash(colPelo + colPiel + (colores.ropa || '')) * IRIS.length)];
   for (const l of [-1, 1]) {
@@ -717,12 +738,14 @@ function armarCabeza(cabeza, F, colores, R, colPiel, marcas) {
     const ox = l * (F.rx * 0.94 + 0.006), oy = F.cy - 0.014, oz = -0.012;
     const borde = [[0.019, 0.006], [0.023, -0.005], [0.016, -0.015], [0.002, -0.018], [-0.012, -0.013], [-0.019, -0.004]].map(([dy, dz]) => [ox, oy + dy, oz + dz]);
     cabeza.add(fino(piel(huso(mezcla(colPiel, '#e08a78', 0.2), borde, [0.0025, 0.0032, 0.0034, 0.0032, 0.003, 0.0036], 8, 5))));
+    yield;
   }
   cabeza.userData.ojos = ojos; cabeza.userData.parpados = parp;
   const colCeja = mezcla(colPelo, '#120c08', 0.25);
   const colBarba = colores.barba ? mezcla(colores.barba, '#5e3f28', 0.35) : null;
   const canas = Math.max(0, Math.min(1, R.canas || 0));
   const r = rostro(F, colPiel, colCeja, colBarba, centros, Math.max(0.3, canas));
+  yield;
   r.visible = false;   // (se muestra de cerca: ver alPosar)
   cabeza.add(r); cabeza.userData.rostro = r;
   // De lejos, los rasgos quietos (neutral) van fundidos en el cuerpo, en un hueso propio; de cerca
@@ -733,7 +756,9 @@ function armarCabeza(cabeza, F, colores, R, colPiel, marcas) {
   const fijo = new THREE.Mesh(gf, color('#ffffff')); fijo.position.set(0, -F.cy, 0.03);
   fijo.userData.crudo = 1; fijo.userData.noTapa = 1; fijo.userData.fino = 1;
   ras.add(fijo); cabeza.add(ras); cabeza.userData.rasgos = ras;
+  yield;
   for (const p of peloDe(F, colPelo, R, !!colores.gorro)) cabeza.add(p);
+  yield;
   if (colBarba) cabeza.add(barba(F, colBarba, colPiel, Math.max(0.3, canas)));
   sombreros(cabeza, F, colores, R);
   cabeza.userData.esCabeza = true;
@@ -940,7 +965,13 @@ function aTierra(hex) {
 const CODO_MATE = -2.3;
 const DIR_MATE = (() => { const c = Math.cos(CODO_MATE), s = Math.sin(CODO_MATE); return new THREE.Vector3(-0.4, -c, -s).normalize(); })();
 
-function figura(colores, clave, conMate, R, A, talla) {
+// 3.7.0 (integración): `figuraPasos` y `continuoPasos` arman de a partes (generadores: cada `yield` es un buen
+// lugar para cortar): `armarPersonaDeAPoco` reparte el armado de una persona en varios cuadros, unos pocos ms por
+// cuadro (armarla entera costaba 20 a 30 ms en un solo cuadro: el tirón al llegar a la aldea). `figura` y
+// `continuo` las corren de una (como antes).
+function correr(it) { for (;;) { const r = it.next(); if (r.done) return r.value; } }
+function figura(...a) { return correr(figuraPasos(...a)); }
+function* figuraPasos(colores, clave, conMate, R, A, talla) {
   const mujer = R.mujer !== undefined ? !!R.mujer : !!(R.pollera || R.trenza || R.rodete);
   const chico = R.chico !== undefined ? !!R.chico : /^aldea-nen[ae]$/.test(clave);
   const C = A.cuerpo || {};
@@ -1003,6 +1034,7 @@ function figura(colores, clave, conMate, R, A, talla) {
     piv.add(rodilla); piv.userData.rodilla = rodilla;
     g.add(piv); patas.push(piv);
   }
+  yield;
 
   // ---- torso: cintura y caderas de adulto, pecho, hombros; la ropa de cada uno
   const torso = new THREE.Group(); torso.position.set(0, 0.82, 0); torso.scale.set(anchoT[0], 1, anchoT[1]);
@@ -1168,6 +1200,7 @@ function figura(colores, clave, conMate, R, A, talla) {
     torso.add(fino(bola('#c8b088', [0.017, 0.003, 0.011], [bx - 0.01, yc - 0.031, bz], [0, -0.5, 0], [7, 3])));                 // el cordón
     torso.add(conTela(bola(cuero, [0.004, 0.024, 0.003], [bx - 0.012, yc - 0.015, bz - 0.006], [0, -0.5, 0]), TELA.cuero));
   }
+  yield;
   const cuello = colores.bufanda || R.panuelo;
   if (cuello) {
     // (3.7.0: la bufanda también sobre el poncho, en invierno)
@@ -1215,6 +1248,7 @@ function figura(colores, clave, conMate, R, A, talla) {
     torso.add(conTela(soga, TELA.punto));
   }
 
+  yield;
   // ---- brazos: hombro, codo (grupo propio: hueso), muñeca y mano con dedos
   const brazos = [];
   let muneca = null;
@@ -1300,6 +1334,7 @@ function figura(colores, clave, conMate, R, A, talla) {
     piv.add(ante);
     piv.userData.ante = ante; piv.userData.codo = conCodo ? codo : null;
     g.add(piv); brazos.push(piv);
+    yield;
   }
   g.add(torso);
 
@@ -1309,7 +1344,8 @@ function figura(colores, clave, conMate, R, A, talla) {
   const cara = A.cara || {};
   const marcas = (cara.pecas || R.pecas ? MARCA_CARA.pecas : 0) + (cara.arrugas === 'risa' ? MARCA_CARA.risa : 0) + (cara.arrugas === 'mayor' ? MARCA_CARA.risa + MARCA_CARA.mayor : 0)
     + (cara.cicatriz ? MARCA_CARA.cicatriz : 0) + (cara.ojeras ? MARCA_CARA.ojeras : 0);
-  armarCabeza(cabeza, F, { ...colores, iris: cara.iris || null }, conPoncho ? { ...R, sobrePoncho: true } : R, colPiel, marcas);
+  yield* armarCabezaPasos(cabeza, F, { ...colores, iris: cara.iris || null }, conPoncho ? { ...R, sobrePoncho: true } : R, colPiel, marcas);
+  yield;
   // la cabeza apenas grande (estilo Sims Medieval); los chicos, la de un chico de su edad (cuanto más
   // chico, más grande la cabeza para el cuerpo)
   const t = Number.isFinite(talla) && talla > 0.3 && talla < 1 ? talla : 0.76;
@@ -1621,7 +1657,8 @@ function telaS(c, n, esPiel) {
   c.setHSL(_hsl.h, Math.min(1, _hsl.s * (esPiel ? 0.9 : 1.0)), l);
   if (!esPiel) c.lerp(_tibio, 0.06 * Math.max(0, n.y));
 }
-function continuo(f) {
+function continuo(f) { return correr(continuoPasos(f)); }
+function* continuoPasos(f) {
   const { g, cabeza, torso, brazos, patas, muneca } = f;
   g.updateMatrixWorld(true);
   _mInvRaiz.copy(g.matrixWorld).invert();
@@ -1661,7 +1698,10 @@ function continuo(f) {
     if (k < 0 && nh < 8) { k = nh++; hs[k] = otro; ws[k] = 0; }
     if (k >= 0) ws[k] += t;
   };
-  mallas.forEach((m, k) => {
+  // (3.7.0 (integración): pieza por pieza, cortando cada unos miles de vértices)
+  let hechos = 0;
+  for (let k = 0; k < mallas.length; k++) {
+    const m = mallas[k];
     const geo = m.geometry, P = geo.attributes.position, C = geo.attributes.color;
     if (!geo.attributes.normal) geo.computeVertexNormals();
     const N = geo.attributes.normal;
@@ -1735,14 +1775,17 @@ function continuo(f) {
     if (geo.index) for (let i = 0; i < geo.index.count; i++) ind[oi++] = geo.index.getX(i) + ov;
     else for (let i = 0; i < P.count; i++) ind[oi++] = i + ov;
     ov += P.count;
-  });
+    hechos += P.count;
+    if (hechos > 1500) { hechos = 0; yield; }
+  }
+  yield;
   for (const m of mallas) { m.parent.remove(m); m.geometry.dispose(); }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
   geo.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4));
   geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
-  oclusion(pos, nor, pieza, zona, col, tapa, 0.5, 0.35, crudo);
+  yield* oclusionPasos(pos, nor, pieza, zona, col, tapa, 0.5, 0.35, crudo);
   geo.setAttribute('zona', new THREE.BufferAttribute(zona, 2));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.setAttribute('aTela', new THREE.BufferAttribute(aTela, 3));
@@ -1762,7 +1805,8 @@ function continuo(f) {
 // Oclusión por cercanía: cada vértice mira los vértices de otras piezas que tiene delante (en el
 // hemisferio de su normal) a menos de 5 cm; cuantos más y más cerca, más oscuro (bajo el mentón,
 // las axilas, entre las piernas, bajo la bufanda, el borde del gorro). Se hace una vez, al armar.
-function oclusion(pos, nor, pieza, zona, col, tapa, fuerza = 1, fuerzaPiel = 1, crudo = null) {
+function oclusion(...a) { return correr(oclusionPasos(...a)); }
+function* oclusionPasos(pos, nor, pieza, zona, col, tapa, fuerza = 1, fuerzaPiel = 1, crudo = null) {
   const n = pieza.length, R = 0.05, mapa = new Map();
   const clave = (x, y, z) => (x + 64) * 16384 + (y + 64) * 128 + (z + 64);
   for (let i = 0; i < n; i += 3) {   // (3.7.0: uno de cada tres alcanza para la sombra de contacto)
@@ -1770,7 +1814,9 @@ function oclusion(pos, nor, pieza, zona, col, tapa, fuerza = 1, fuerzaPiel = 1, 
     const k = clave(Math.floor(pos[i * 3] / R), Math.floor(pos[i * 3 + 1] / R), Math.floor(pos[i * 3 + 2] / R));
     let l = mapa.get(k); if (!l) mapa.set(k, l = []); l.push(i);
   }
+  yield;
   for (let i = 0; i < n; i++) {
+    if ((i & 1023) === 1023) yield;   // (3.7.0 (integración))
     if (crudo && crudo[i]) continue;
     const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], nx = nor[i * 3], ny = nor[i * 3 + 1], nz = nor[i * 3 + 2];
     const cx = Math.floor(x / R), cy = Math.floor(y / R), cz = Math.floor(z / R);
@@ -1925,7 +1971,27 @@ function quietud(g, st, dt, andando, charlando) {
 // ---------------------------------------------------------------- la entrada
 // colores y R: los de quien la arma (gente.js, aldea.js); `opciones`: { talla, invierno, fiesta }.
 // 3.7.0: `opciones.aspecto` (el cuerpo del jugador): el aspecto armado afuera, sin gente-ropa.js
-export function crearPersona(colores = {}, clave = '', conMate = false, R = {}, opciones = {}) {
+export function crearPersona(colores = {}, clave = '', conMate = false, R = {}, opciones = {}) { return correr(crearPersonaPasos(colores, clave, conMate, R, opciones)); }
+// 3.7.0 (integración): la misma persona, armada de a poco: `avanzar(ms)` arma hasta gastar unos `ms` (al menos un
+// paso) y dice si terminó; `resultado`, lo mismo que devuelve crearPersona.
+export function armarPersonaDeAPoco(colores = {}, clave = '', conMate = false, R = {}, opciones = {}) {
+  const it = crearPersonaPasos(colores, clave, conMate, R, opciones);
+  const tarea = { hecho: false, resultado: null, pasos: 0, msMax: 0, tiempos: [] };
+  tarea.avanzar = (ms = 3) => {
+    const t0 = performance.now();
+    while (!tarea.hecho) {
+      const t1 = performance.now();
+      const r = it.next();
+      tarea.pasos++;
+      const ms1 = performance.now() - t1; tarea.msMax = Math.max(tarea.msMax, ms1); if (tarea.tiempos.length < 80) tarea.tiempos.push(+ms1.toFixed(2));
+      if (r.done) { tarea.hecho = true; tarea.resultado = r.value; break; }
+      if (performance.now() - t0 >= ms) break;
+    }
+    return tarea.hecho;
+  };
+  return tarea;
+}
+function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
   const A = opciones.aspecto ? { conocido: true, cuerpo: {}, cara: {}, guardas: {}, poses: null, ...opciones.aspecto } : aspectoGente(clave, colores || {}, R || {}, opciones);
   let col = A.colores, ropa = A.R;
   if (!A.conocido) {
@@ -1934,9 +2000,9 @@ export function crearPersona(colores = {}, clave = '', conMate = false, R = {}, 
     for (const k of ['ropa', 'abrigo', 'pantalon', 'bufanda']) if (col[k]) col[k] = aTierra(col[k]);
     ropa = { ...ropa, pantalon: aTierra(ropa.pantalon), delantal: aTierra(ropa.delantal), arremangado: !!(ropa.chaleco || ropa.delantal) };
   }
-  const f = figura(col, clave, conMate, ropa, A, opciones.talla);
+  const f = yield* figuraPasos(col, clave, conMate, ropa, A, opciones.talla);
   const { g, cabeza, torso, patas, brazos } = f;
-  const malla = continuo(f);
+  const malla = yield* continuoPasos(f);
   g.scale.setScalar(f.escala);
   // lo que se dibuja: todo, sin lo fino (lejos) o sin el mate (guardado)
   const est = {

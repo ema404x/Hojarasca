@@ -235,7 +235,8 @@ const con = valle({ aldea: true });
     const c = est.conjuntos.find((k) => k.obj === r);
     ok(!!c && r.userData.estructuraRaiz === true && r.parent === est.grupo, `${r.name}: raíz en la lista de complejos`);
     ok(r.children.length > 0, `${r.name}: no está vacío`);
-    ok(c && Number.isFinite(c.radio) && c.radio > 5 && c.radio < 110, `${r.name}: con su radio para el LOD (${c?.radio?.toFixed(1)})`);
+    // (3.7.0 (integración): las calles y los álamos llegan hasta la punta de la calle de la Loma: hasta 200 m)
+    ok(c && Number.isFinite(c.radio) && c.radio > 5 && c.radio < 200, `${r.name}: con su radio para el LOD (${c?.radio?.toFixed(1)})`);
   }
   const raizDe = (o) => { for (let p = o; p; p = p.parent) if (p.userData?.estructuraRaiz) return p; return null; };
   const deAldea = puertas.lista.filter((p) => String(p.duenio || '').startsWith('aldea:'));

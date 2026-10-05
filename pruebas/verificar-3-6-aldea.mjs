@@ -173,7 +173,7 @@ function distRiel(x, z) {
 
 // ============================================================ 3. los puntos
 {
-  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|baile-\d+|cliente(-\d+)?|escenario|deposito)$/;   // 3.6 (mecánicas): y la pista de baile del salón
+  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|baile-\d+|cliente(-\d+)?|escenario|deposito|zaguan|escalera(-[a-z0-9-]+)?|telescopio)$/;   // 3.6 (mecánicas): y la pista de baile del salón (3.7.0 (integración): el zaguán, y la escalera y el telescopio del observatorio)
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id], pts = A.puntosDe(id);
     const pl = A.plantaDe(id);
@@ -207,13 +207,15 @@ function distRiel(x, z) {
       else {
         ok(!A.dentroDePlanta(id, q.x, q.z, -0.3), `${id}.${k} afuera`);
         const d = Math.hypot(Math.max(0, pl.x0 - q.x, q.x - pl.x1), Math.max(0, pl.z0 - q.z, q.z - pl.z1));
-        ok(d <= 3 || A.esPuntoLejano(k), `${id}.${k} pegado al edificio (${d.toFixed(1)} m)`);   // (3.7.0: menos el de Martina en el muelle del lago)
+        // (3.7.0: menos el de Martina en el muelle del lago; 3.7.0 (integración): y el del corral, adentro del corral, frente a la tranquera)
+        ok(d <= 3 || A.esPuntoLejano(k) || (k === e.anexo?.id && d <= e.anexo.ancho), `${id}.${k} pegado al edificio (${d.toFixed(1)} m)`);
         for (const otro of A.IDS_EDIFICIOS) if (otro !== id && !E[otro].fija) ok(!A.dentroDePlanta(otro, q.x, q.z), `${id}.${k} no cae en ${otro}`);
         if (k !== 'puerta') for (const c of A.CALLES_ALDEA) ok(A.distanciaACalle(q.x, q.z, c) > 0, `${id}.${k} no está en ${c.id}`);
       }
     }
-    // la puerta, frente a la cara +Z
-    const fx = e.x + (e.fondo / 2 + 0.9) * Math.sin(e.rot), fz = e.z + (e.fondo / 2 + 0.9) * Math.cos(e.rot);
+    // la puerta, frente a la cara +Z (3.7.0 (integración): donde está la puerta de verdad, `PUERTA_X`)
+    const xP = A.PUERTA_X[id] ?? 0;
+    const fx = e.x + xP * Math.cos(e.rot) + (e.fondo / 2 + 0.9) * Math.sin(e.rot), fz = e.z - xP * Math.sin(e.rot) + (e.fondo / 2 + 0.9) * Math.cos(e.rot);
     ok(Math.hypot(pts.puerta.x - fx, pts.puerta.z - fz) < 1e-9, `${id}: la puerta en su cara +Z`);
     if (A.esLote(id)) ok(['obra-1', 'obra-2', 'obra-3', 'obra-4'].every((k) => pts[k]), `${id}: lugares para la obra`);
   }
