@@ -264,7 +264,8 @@ export function bajaSentado(asiento, talla) {
 function posar(g, charlando) {
   const t = g.fase;
   switch (g.pose) {
-    case 'sentado': case 'leyendo': {
+    // (3.7.0 (integración): y sentadas en lo suyo: Malena en el torno, Pocha en la máquina de coser)
+    case 'sentado': case 'leyendo': case 'tornear': case 'coser': {
       const b = bajaSentado(g.asiento, g.g?.scale?.y);
       const cadera = CADERA - b;
       const recoge = cadera < CANILLA ? Math.acos(Math.max(0, cadera - 0.02) / CANILLA) : 0;   // la canilla, adelante
@@ -276,6 +277,8 @@ function posar(g, charlando) {
       }
       g.torso.rotation.x = -0.04;
       if (g.pose === 'leyendo') { g.brazos[0].rotation.x = -0.95; g.brazos[1].rotation.x = -0.95; g.cabeza.rotation.x += 0.3; }
+      else if (g.pose === 'tornear') { const k = Math.sin(t * 2.2); g.brazos[0].rotation.x = -1.05 + k * 0.05; g.brazos[1].rotation.x = -1.05 - k * 0.05; g.torso.rotation.x = 0.16; g.cabeza.rotation.x += 0.38; }
+      else if (g.pose === 'coser') { const k = Math.sin(t * 7); g.brazos[0].rotation.x = -0.95 + k * 0.04; g.brazos[1].rotation.x = -0.85; g.torso.rotation.x = 0.12; g.cabeza.rotation.x += 0.32; }
       else if (!charlando && !g.mate) { g.brazos[0].rotation.x = -0.45; g.brazos[1].rotation.x = -0.45; }
       break;
     }
@@ -334,6 +337,23 @@ function posar(g, charlando) {
       const k = Math.sin(t * 5);
       g.brazos[1].rotation.x = -0.8 + k * 0.35; g.brazos[0].rotation.x = -0.4;
       g.torso.rotation.x = 0.15 + k * 0.03; g.cabeza.rotation.x += 0.25;
+      break;
+    }
+    // 3.7.0 (integración): las nuevas de la calle de la Loma: Valentina mirando por el telescopio, Abril pintando en el
+    // atril, Ayelén curando en la camilla
+    case 'telescopio':
+      g.torso.rotation.x = 0.2; g.brazos[0].rotation.x = -1.25; g.brazos[1].rotation.x = -1.05 + Math.sin(t * 0.7) * 0.05; g.cabeza.rotation.x += 0.05;
+      break;
+    case 'pintar': {
+      const k = Math.sin(t * 1.8);
+      g.brazos[1].rotation.x = -1.35 + k * 0.12; g.brazos[1].rotation.z = 0.1 * k; g.brazos[0].rotation.x = -0.35;
+      g.cabeza.rotation.x += 0.05;
+      break;
+    }
+    case 'curar': {
+      const k = Math.sin(t * 2.4);
+      g.brazos[0].rotation.x = -0.95 + k * 0.08; g.brazos[1].rotation.x = -0.95 - k * 0.08;
+      g.torso.rotation.x = 0.22; g.cabeza.rotation.x += 0.3;
       break;
     }
     default: break;

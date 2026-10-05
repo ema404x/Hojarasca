@@ -267,6 +267,8 @@ export const ALTURA_ALMOHADON = 0.2;
 export function poseDe(d) {
   if (!d) return null;
   const act = d.actividad;
+  // (3.7.0 (integración): sentadas en lo suyo, el gesto de su oficio)
+  if (d.sentado && d.punto === 'adentro' && (d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_SENTADO, d.edificio || '')) return GESTO_SENTADO[d.edificio];
   if (d.sentado) return act === 'leer' ? 'leyendo' : 'sentado';
   if (act === 'palear') return 'palear';
   if (act === 'lena') return 'hachar';
@@ -279,11 +281,20 @@ export function poseDe(d) {
   if (d.punto === 'soga') return 'izar';
   if (/^baile-/.test(d.punto || '')) return 'bailar';
   if (d.lugar === 'salon' && d.punto === 'escenario') return 'tocar';
-  if ((d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_OFICIO, d.edificio || '')) return GESTO_OFICIO[d.edificio];
+  if ((d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_OFICIO, d.edificio || '')) {
+    const g = GESTO_OFICIO[d.edificio];
+    return typeof g === 'function' ? g(d) : g;
+  }
   return null;
 }
 // 3.6 (mecánicas): el gesto de cada oficio (el panadero amasa, el herrero martilla, el carpintero sierra)
-const GESTO_OFICIO = { herreria: 'martillar', panaderia: 'amasar', carpinteria: 'serruchar' };
+const GESTO_OFICIO = { herreria: 'martillar', panaderia: 'amasar', carpinteria: 'serruchar',
+  // 3.7.0 (integración): Valentina en el telescopio, Abril en el atril, Ayelén en la camilla, Inés con el mortero,
+  // Martina con el bote
+  observatorio: (d) => (d.punto === 'telescopio' ? 'telescopio' : null), 'taller-arte': (d) => (d.punto === 'adentro' ? 'pintar' : null),
+  veterinaria: (d) => (d.punto === 'adentro' || d.punto === 'corral' ? 'curar' : null), herboristeria: (d) => (d.punto === 'adentro' ? 'amasar' : null),
+  varadero: (d) => (d.punto === 'adentro' ? 'martillar' : null) };
+const GESTO_SENTADO = { ceramica: 'tornear', costureria: 'coser' };
 
 // Lo que se ve de la aldea desde un punto del mundo: cuánto falta para el rectángulo que ocupa.
 export function distanciaAldea(x, z, M = marcoAldea(PARADA_ALDEA)) {

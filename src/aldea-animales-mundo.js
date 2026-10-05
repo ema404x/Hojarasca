@@ -180,7 +180,10 @@ export function crearAnimalesAldea(ctx) {
     const m = p.vidaAldea?.mascota;
     const casa = ctx.refugio?.();
     if (!m || m.estado !== 'adoptado' || !casa) { if (cachorro) cachorro.m.g.visible = false; return; }
-    const centro = { x: casa.x + 2.2, z: casa.z + 2.2 };
+    // (3.7.0 (integración): frente a la puerta, del lado de afuera: con el centro del refugio a 2 m, jugaba adentro de
+    // la casa, atravesando las paredes)
+    const pu = casa.puerta, ox = pu ? pu.x - casa.x : 1, oz = pu ? pu.z - casa.z : 1, ol = Math.hypot(ox, oz) || 1;
+    const centro = pu ? { x: pu.x + (ox / ol) * 2.6, z: pu.z + (oz / ol) * 2.6 } : { x: casa.x + 2.2, z: casa.z + 2.2 };
     const dj = Math.hypot(centro.x - js.pos.x, centro.z - js.pos.z);
     if (!cachorro) {
       if (dj > ARMAR) return;
