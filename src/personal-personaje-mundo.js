@@ -11,19 +11,10 @@
 //     ver main.js): para que tu sombra no quede atrás mientras caminás, la silueta sólo
 //     está cuando estás quieto, y al quedarte quieto (o arrancar) se pide un mapa nuevo.
 // Además, la mano y la manga en primera persona, debajo de lo que llevás en la mano.
+// 3.7.0: el cuerpo y la mano, al estilo de la gente (gente-cuerpo.js).
 import * as THREE from 'three';
 import { aspecto } from './personal-personaje.js';
-import { compactar } from './vida.js';
-import { bola, tubo, torno, miembro, huso, deformar, pintar, colorear, matiz, mezcla, color, ruido3, fundirNormales, puntasBufanda } from './formas.js';
-
-function lam(color) { return new THREE.MeshLambertMaterial({ color: new THREE.Color(color) }); }
-function pieza(geo, mat, pos, rot = null, esc = null) {
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(pos[0], pos[1], pos[2]);
-  if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
-  if (esc) m.scale.set(esc[0], esc[1], esc[2]);
-  return m;
-}
+import { crearPersona, soltarPersona, manoPrimeraPersona } from './gente-cuerpo.js';
 
 // Todas las mallas de `g` en una sola geometría (sólo posiciones: es para la sombra).
 function siluetaDe(g) {
@@ -62,129 +53,24 @@ export function crearCuerpoJugador(escena) {
   silueta.frustumCulled = false;
   raiz.add(silueta);
   let cuerpo = null, piernas = [], brazos = [], verEnCamara = false, paso = 0, quieto = 0, conSilueta = null;
-  const materiales = [];
-  const geometrias = [];
-  const geo = (g) => { geometrias.push(g); return g; };
-  const mat = (c) => { const m = lam(c); materiales.push(m); return m; };
 
+  let persona = null;
   function tirar() {
     if (cuerpo) raiz.remove(cuerpo);
-    for (const m of materiales) m.dispose();
-    for (const g of geometrias) g.dispose();
-    materiales.length = 0; geometrias.length = 0;
-    cuerpo = null; piernas = []; brazos = [];
+    if (persona) soltarPersona(persona);
+    persona = null; cuerpo = null; piernas = []; brazos = [];
   }
 
+  // 3.7.0: tu cuerpo, al estilo de la gente del valle (gente-cuerpo.js): la misma figura con piel
+  // por huesos, con la ropa que elegiste (la campera, el poncho con su guarda, el gorro de lana, la
+  // bufanda, los guantes, las botas) y tu peinado. Los pivotes de siempre (la figura de varón, a 1,07:
+  // cadera a 0,88 y cabeza a 1,56). Sin sombra propia: la sombra es la silueta.
   function armar(datos) {
     tirar();
-    const a = aspecto(datos);
-    const k = a.ancho;
-    const g = new THREE.Group();
-    // 3.4: el cuerpo al estilo de la gente del valle (ver mallaPersona en gente.js): piernas de
-    // torno con la bota, torso con la campera, hombros, codos y manos de mitón, cabeza con
-    // nariz, orejas, cejas y el peinado elegido, gorro de lana con pompón y la bufanda que
-    // cuelga. Cada grupo se funde en una malla (antes, una veintena de piezas sueltas). Los
-    // pivotes de piernas (0.86) y brazos (1.40) son los de siempre.
-    const piel = a.piel, campera = a.campera, pantalon = a.pantalon, botas = a.botas, pelo = a.pelo;
-    const mano = a.guantes || piel;
-    // piernas (con la bota), colgadas de la cadera para poder moverlas al caminar
-    for (const l of [-1, 1]) {
-      const piv = new THREE.Group(); piv.position.set(l * 0.1 * k, 0.86, 0);
-      piv.add(torno(pantalon, [[0.052, -0.74], [0.057, -0.66], [0.061, -0.55], [0.068, -0.46], [0.08, -0.3], [0.088 * k, -0.13], [0.089 * k, 0.0], [0.074 * k, 0.06]], null, null, [1, 1, 0.92], 11));
-      piv.add(torno(botas, a.botasAltas
-        ? [[0.055, -0.84], [0.062, -0.76], [0.068, -0.62], [0.072, -0.52], [0.077, -0.46], [0.072, -0.455]]
-        : [[0.055, -0.84], [0.06, -0.78], [0.064, -0.7], [0.068, -0.65], [0.064, -0.645]], null, null, null, 11));
-      piv.add(bola(botas, [0.062, 0.052, 0.13], [0, -0.818, 0.05]));
-      piv.add(bola(matiz(botas, 0.55), [0.065, 0.019, 0.133], [0, -0.851, 0.045]));
-      g.add(piv); piernas.push(piv);
-    }
-    // el torso con la campera, sobre la cadera; los hombros anchos y el pecho adelante
-    const torso = new THREE.Group(); torso.position.set(0, 0.86, 0);
-    torso.add(bola(pantalon, [0.155 * k, 0.12, 0.108], [0, 0.02, 0]));
-    const capaHombro = deformar(torno(campera, [[0.17, -0.08], [0.168, 0.02], [0.158, 0.13], [0.174, 0.26], [0.2, 0.37], [0.214, 0.46], [0.212, 0.5], [0.186, 0.55], [0.134, 0.585], [0.073, 0.605]].map(([r, y]) => [r * k, y]), null, null, null, 16), (v) => {
-      const pecho = Math.max(0, 1 - Math.abs(v.y - 0.35) / 0.16), hombro = Math.max(0, 1 - Math.abs(v.y - 0.48) / 0.08);
-      v.z *= 0.74 * (v.z > 0 ? 1 + 0.08 * pecho : 0.96) * (v.y > 0.47 ? 0.88 : 1);
-      v.x *= 1 + 0.1 * hombro;   // 3.5.2: el hombro un poco más ancho, tapa el arranque del brazo
-    });
-    torso.add(capaHombro);
-    torso.add(torno(matiz(campera, 0.88), [[0.087, 0.57], [0.09, 0.61], [0.078, 0.625]], null, null, [1, 1, 0.95], 14));   // el cuello de la campera
-    if (a.poncho) {
-      // el poncho cae de los hombros y tapa los brazos, con la guarda clara cerca del borde
-      const claroP = mezcla(a.poncho, '#e3d6b8', 0.7), oscuroP = matiz(a.poncho, 0.55);
-      const p = torno(a.poncho, [[0.37, -0.2], [0.368, -0.17], [0.367, -0.166], [0.365, -0.14], [0.364, -0.136], [0.362, -0.11], [0.361, -0.106],
-        [0.355, 0.04], [0.345, 0.2], [0.33, 0.34], [0.31, 0.45], [0.27, 0.515], [0.21, 0.56], [0.15, 0.59], [0.1, 0.615], [0.08, 0.635]].map(([r, y]) => [r * k, y]), null, null, null, 28);
-      colorear(p, (c, v) => { if (v.y >= -0.1665 && v.y <= -0.1395) c.set(claroP); else if (v.y >= -0.1365 && v.y <= -0.1095) c.set(oscuroP); });
-      torso.add(deformar(p, (v) => {
-        const r = Math.hypot(v.x, v.z), cz = r > 1e-4 ? v.z / r : 0, fi = Math.atan2(v.x, v.z);
-        const pl = 1 + 0.04 * Math.sin(fi * 7 + 0.4) * Math.min(1, Math.max(0, (0.38 - v.y) / 0.45));
-        v.x *= pl; v.z *= pl;
-        if (v.y < 0.12) v.y -= 0.075 * cz * cz * Math.min(1, (0.12 - v.y) / 0.25);
-        v.z *= 0.64;
-      }));
-    }
-    if (a.bufanda && !a.poncho) {
-      const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.078, 0.034, 8, 18), color(a.bufanda));
-      vuelta.position.set(0, 0.6, 0.008); vuelta.rotation.set(Math.PI / 2 - 0.12, 0, 0); vuelta.scale.set(1, 0.86, 1);
-      torso.add(vuelta);
-      // 3.5.2: las dos puntas de la bufanda, corridas al costado, anchas y con fleco (antes era
-      // un óvalo colgando al medio del pecho, que se leía como corbata)
-      for (const p of puntasBufanda(a.bufanda, { x: -0.1 * k, y: 0.565, pecho: 0.162, largo: 0.18 })) torso.add(p);
-    }
-    g.add(torso);
-    // brazos colgados del hombro, con el codo y la mano de mitón al final
-    for (const l of [-1, 1]) {
-      const piv = new THREE.Group(); piv.position.set(l * 0.25 * k, 1.4, 0);
-      const x = -l * 0.03 * k;
-      if (!a.poncho) {
-        // 3.5: el brazo de una sola pieza suave, del hombro (que nace adentro del torso) a la
-        // muñeca, como la gente del valle: sin la bola del hombro ni el anillo del codo
-        piv.add(huso(campera, [[x - l * 0.028, 0.0, 0], [x - l * 0.009, -0.036, 0], [x + l * 0.008, -0.15, 0.0], [x + l * 0.018, -0.3, 0.004], [x + l * 0.022, -0.43, 0.014], [x + l * 0.027, -0.54, 0.024]],
-          [0.042 * k, 0.054 * k, 0.053 * k, 0.05 * k, 0.046 * k, 0.042 * k], 18, 12));
-        piv.add(torno(matiz(campera, 0.82), [[0.045, -0.02], [0.048, 0.016], [0.044, 0.02]], [x + l * 0.027, -0.55, 0.024], [-0.1, 0, 0], null, 11));
-      }
-      piv.add(bola(mano, [0.038, 0.055, 0.031], [x + l * 0.03, -0.6, 0.03]));
-      piv.add(bola(mano, [0.014, 0.027, 0.016], [x + l * 0.003, -0.582, 0.046], [0, 0, l * 0.45]));
-      g.add(piv); brazos.push(piv);
-    }
-    if (a.poncho) for (const b of brazos) b.position.x *= 0.8;
-    // 3.5.2: sin la raya de luz donde el brazo asoma del hombro (ver fundirNormales)
-    else for (const b of brazos) {
-      const malla = b.children.find((o) => o.isMesh && o.geometry.type === 'TubeGeometry');
-      if (malla) fundirNormales(malla, [b.position.x, b.position.y, 0], capaHombro, [0, 0.86, 0], 0.05, (px, py) => py > 1.25);
-    }
-    // cuello y cabeza: mentón, nariz, orejas, ojos y cejas (que en la foto se sepa para dónde mirás)
-    const cab = new THREE.Group(); cab.position.set(0, 1.56, 0);
-    cab.add(tubo(piel, 0.049, 0.057, 0.18, [0, -0.06, 0.004]));
-    cab.add(deformar(bola(piel, [0.104, 0.126, 0.114], [0, 0.07, 0.004], null, [18, 14]), (v) => {
-      if (v.y < 0) { const t = -v.y; v.x *= 1 - 0.22 * t * t; v.z += 0.08 * t * Math.max(0, v.z); }
-      if (v.z < 0) v.z *= 1.05;
-      if (v.z > 0.6) v.z = 0.6 + (v.z - 0.6) * 0.6;
-    }));
-    cab.add(deformar(bola(matiz(piel, 0.97), [0.017, 0.029, 0.02], [0, 0.055, 0.105], [-0.2, 0, 0]), (v) => { if (v.y > 0) v.z *= 1 - 0.45 * v.y; }));
-    for (const l of [-1, 1]) {
-      cab.add(bola('#241c16', [0.013, 0.015, 0.005], [l * 0.036, 0.085, 0.098]));
-      cab.add(bola(matiz(pelo, 0.85), [0.027, 0.007, 0.006], [l * 0.037, 0.109, 0.101], [0, 0, -l * 0.15]));
-      cab.add(bola(piel, [0.016, 0.03, 0.014], [l * 0.103, 0.064, -0.004]));
-    }
-    cab.add(bola(matiz(piel, 0.72), [0.021, 0.0048, 0.0065], [0, 0.017, 0.104]));
-    // el pelo según el peinado (con gorro, se ve lo que asoma)
-    if (a.peinado !== 'rapado') {
-      cab.add(deformar(bola(pelo, [0.11, 0.126, 0.12], [0, 0.088, -0.013], null, [16, 11]), (v) => {
-        if (v.z > 0.15 && v.y < 0.4) v.z -= (v.z - 0.15) * 0.85 * Math.min(1, (0.4 - v.y) * 2.2);
-        if (v.z < -0.1 && v.y < 0) v.y *= a.peinado === 'largo' ? 2.4 : 1.3;
-      }));
-    }
-    if (a.peinado === 'trenza') cab.add(miembro(pelo, [[0, 0.02, -0.11], [0, -0.1, -0.13], [0, -0.24, -0.15]], [0.034, 0.03, 0.018], 8, 7));
-    if (a.peinado === 'rodete') cab.add(bola(pelo, [0.055, 0.05, 0.048], [0, 0.17, -0.105]));
-    if (a.gorro) {
-      // el gorro de lana: copa, el doblez de abajo y el pompón
-      cab.add(torno(a.gorro, [[0.118, 0.0], [0.121, 0.035], [0.11, 0.075], [0.08, 0.11], [0.04, 0.126], [0.0, 0.13]], [0, 0.112, -0.006], null, null, 16));
-      cab.add(torno(matiz(a.gorro, 0.85), [[0.122, -0.006], [0.127, 0.02], [0.124, 0.045], [0.119, 0.05]], [0, 0.112, -0.006], null, null, 16));
-      cab.add(pintar(bola(a.gorro, [0.042, 0.04, 0.042], [0, 0.255, -0.006]), (c, p) => { c.multiplyScalar(1 + ruido3(p.x * 60, p.y * 60, p.z * 60) * 0.08); }));
-    }
-    g.add(cab);
-    compactar(g, { alto: 1.8, pie: 0.8, panza: 0.1, todo: true });
-    g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; geo(o.geometry); } });
+    persona = crearPersona({}, 'jugador', false, {}, { aspecto: aspectoJugador(aspecto(datos)) });
+    const g = persona.g;
+    piernas = persona.patas; brazos = persona.brazos;
+    g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
     // la silueta, de pie y quieta (se arma antes de colgar el cuerpo, en su lugar de origen)
     const vieja = silueta.geometry;
     silueta.geometry = siluetaDe(g);
@@ -243,49 +129,20 @@ export function crearManoPropia(enMano) {
   if (!soporte) return { aplicar() {}, actualizar() {}, grupo: null };
   const grupo = new THREE.Group();
   grupo.name = 'mano-jugador';
-  const matManga = lam('#6b4a3a'), matMano = lam('#c49a70');
   // el puño agarra el mango un poco abajo del centro (ahí queda a la vista, abajo a la derecha)
   // 3.5.2: la mano como las de la gente del valle: el puño cerrado alrededor del mango con los
-  // nudillos y el pulgar encima, la muñeca y la manga que se ensancha hacia el codo con su puño
-  // de tela, todo de formas suaves. Antes eran una esfera y dos cilindros (tres llamadas de
-  // dibujo); ahora es una malla por material (dos).
-  const piezasMano = [
-    bola('#c49a70', [0.034, 0.046, 0.04], [0.006, -0.06, 0.014], [0, 0, -0.1]),                 // la palma y el dorso
-    bola('#c49a70', [0.026, 0.058, 0.024], [-0.02, -0.062, 0.024], [0, 0, 0.05]),                // los dedos cerrados
-    bola('#c49a70', [0.012, 0.03, 0.014], [-0.008, -0.026, 0.034], [0.25, 0, -0.6]),             // el pulgar, encima
-    huso('#c49a70', [[0.012, -0.085, 0.026], [0.02, -0.11, 0.036], [0.03, -0.14, 0.05]], [0.031, 0.03, 0.031], 6, 12),   // la muñeca
-  ];
-  for (let i = 0; i < 4; i++) piezasMano.push(bola('#c49a70', [0.011, 0.01, 0.012], [-0.03, -0.034 - i * 0.017, 0.03], null, [7, 5]));   // los nudillos
-  const piezasManga = [
-    huso('#6b4a3a', [[0.026, -0.12, 0.044], [0.045, -0.2, 0.075], [0.068, -0.3, 0.112], [0.088, -0.42, 0.15]], [0.042, 0.05, 0.056, 0.06], 10, 14),
-    torno('#6b4a3a', [[0.04, -0.016], [0.045, 0.0], [0.044, 0.016], [0.038, 0.02]], [0.028, -0.128, 0.046], [0.5, 0, -0.28], null, 14),   // el puño de la manga
-  ];
-  // una malla por material: las piezas se hornean con su lugar
-  const unir = (piezas, mat) => {
-    const pos = [], nor = [], idx = [];
-    for (const p of piezas) {
-      p.updateMatrix();
-      const q = p.geometry.clone().applyMatrix4(p.matrix);
-      const base = pos.length / 3, P = q.attributes.position, N = q.attributes.normal;
-      for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); }
-      for (let i = 0; i < q.index.count; i++) idx.push(q.index.getX(i) + base);
-      q.dispose(); p.geometry.dispose();
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-    geo.setIndex(idx);
-    geo.computeBoundingSphere();
-    return new THREE.Mesh(geo, mat);
-  };
-  grupo.add(unir(piezasMano, matMano), unir(piezasManga, matManga));
-  grupo.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } });
-  soporte.add(grupo);
+  // nudillos y el pulgar encima, la muñeca y la manga que se ensancha hacia el codo con su puño.
+  // 3.7.0: al estilo P (gente-cuerpo.js): la piel con su pincelada (o el guante de lana) y la manga
+  // con la tela y la guarda en el puño; una sola malla, que se rearma al cambiar la ropa.
+  let malla = null;
   function aplicar(datos) {
     const a = aspecto(datos);
-    matManga.color.set(a.poncho || a.campera);
-    matMano.color.set(a.guantes || a.piel);
+    if (malla) { grupo.remove(malla); malla.geometry.dispose(); }
+    malla = manoPrimeraPersona({ piel: a.piel, guantes: a.guantes, manga: a.poncho || a.campera, guarda: a.poncho ? 2 : 1 });
+    grupo.add(malla);
   }
+  aplicar(null);
+  soporte.add(grupo);
   // Se ve sólo si hay algo en la mano y se está viendo (los prismáticos lo esconden).
   function actualizar() {
     let hay = false;
@@ -293,4 +150,24 @@ export function crearManoPropia(enMano) {
     grupo.visible = hay;
   }
   return { aplicar, actualizar, grupo };
+}
+
+// 3.7.0: lo que elegiste en "Tu personaje", como el aspecto de la gente (gente-ropa.js): la campera
+// cerrada (el pulóver debajo no se ve), el pantalón de trabajo, las botas, el gorro de lana con su
+// pompón, la bufanda, el poncho con la guarda de telar, los guantes y el peinado
+function aspectoJugador(a) {
+  const k = a.ancho || 1;
+  return {
+    colores: {
+      piel: a.piel, pelo: a.pelo, ropa: a.campera, abrigo: a.campera, poncho: a.poncho || null, bufanda: a.bufanda || null,
+      gorro: a.gorro ? 'gorroPunto' : null, gorroColor: a.gorro || null, pantalon: a.pantalon,
+    },
+    R: {
+      mujer: false, botas: a.botasAltas ? 'goma' : 'altas', botaCol: a.botas, pantalon: a.pantalon, guantes: a.guantes || null,
+      melena: a.peinado === 'largo', trenza: a.peinado === 'trenza', rodete: a.peinado === 'rodete', canas: /^#b9b4ab$/i.test(a.pelo) ? 0.6 : 0,
+    },
+    cuerpo: { ancho: k, fondo: 0.5 + 0.5 * k, brazos: 0.5 + 0.5 * k, piernas: 0.6 + 0.4 * k, panza: k > 1.1 ? 0.06 : 0 },
+    cara: { sonrisa: 0.3 },
+    guardas: { cuello: [1, 0, 'todo'], puno: [1, 0, 'todo'], poncho: [2, 0.07] },
+  };
 }

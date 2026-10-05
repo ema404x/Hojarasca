@@ -168,6 +168,8 @@ import { crearDialogos } from './dialogo.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
+// 3.7.0: la gente de antes (la de la 3.6), sólo para comparar en depuración (`?debug=1&gente=vieja`)
+const GENTE_VIEJA = HOJARASCA_DEBUG && new URLSearchParams(location.search).get('gente') === 'vieja';
 const esperar = () => new Promise((r) => setTimeout(r, 30));
 
 // 2.7.3: ¿es la primera vez que se abre el juego? (antes de leer los ajustes)
@@ -596,7 +598,8 @@ async function construir() {
   fauna = await paso('Despertando la fauna patagónica', 86, () => crearFauna(T, veg, col, escena, sonido, registrar, progreso, { animales: factorAnimales(progreso) }));
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
   bichos = await paso('Escondiendo un panal en un tronco', 91, () => crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos));
-  gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido));
+  // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
+  gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
   est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
@@ -758,12 +761,23 @@ async function construir() {
     }
     await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3: con el presupuesto fijo, todo y en paralelo; 2.7.4: antes renderer.compile(escena, camara); ver luces.js
     aldeaMundo?.trasCompilar();   // 3.6: las mallas que sólo estaban para compilar sus programas
+    // 3.7.0: la sombra de la gente (piel por huesos) también se compila en la carga; el atlas de la
+    // gente se pinta en la portada
+    gente?.precalentar?.(camara, () => { renderer.shadowMap.needsUpdate = true; dibujar(null, 0); });
+    gente?.trasCompilar?.();
   });
   infoCarga.texturas = await texturasEnCamino;
   infoCarga.origenTexturas = origenTexturas();
   infoCarga.fin = Math.round(performance.now());
   $('carga-barra').style.width = '100%';
   await esperar();
+}
+
+// 3.7.0: ¿arranca en invierno? (lo mismo que calcula el cuadro para las estaciones, al empezar)
+function inviernoDeAjustes() {
+  if (ajustes.estacion !== 'auto') return ajustes.estacion === 'invierno';
+  const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
+  return smoothstep(0.63, 0.73, fase) * (1 - smoothstep(0.96, 1.0, fase)) > 0.5;
 }
 
 // ------------------------------------------------------------------ cuaderno
@@ -7394,6 +7408,7 @@ function cuadroDelJuego(tRaf, manual) {
   U.uInvierno.value = lerp(U.uInvierno.value, inv, 1 - Math.exp(-dt * 1.5));
   if (Math.abs(U.uOtono.value - oto) < 0.01) U.uOtono.value = oto;
   if (Math.abs(U.uInvierno.value - inv) < 0.01) U.uInvierno.value = inv;
+  gente?.abrigar?.(U.uInvierno.value > 0.5);   // 3.7.0: la ropa de abrigo, con el invierno
 
   const js = jugador.estado;
   if (modo === 'inicio') {
