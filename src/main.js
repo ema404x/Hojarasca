@@ -95,7 +95,7 @@ import { estadoFotoInicial, aplicarControl, textoControl, htmlPanelFoto, nombreA
 import { riesgoDePeligros, avanzarCalma, calmaDe, acercamientos, quietoDeVerdad } from './percepcion.js';
 import { afinarOido, mezclaAlEscuchar, queCantaCerca, textoEscucha, rumboDe } from './oido.js';
 import { escarchaDe } from './escarcha.js';
-import { TECHO_DE_LUGAR, techoDeObra } from './techo-lluvia.js';
+import { TECHO_DE_LUGAR, techoDeObra, crearMapaCubiertas } from './techo-lluvia.js';
 import { datosLamina, nombreArchivoLamina } from './lamina.js';
 import { apilarSubtitulo, renglonSubtitulo, pulsoVibracion, dejarVibrar } from './desafio-sentidos.js';
 import { fichaBestiario, BESTIARIO } from './desafio-noche2.js';
@@ -3152,6 +3152,27 @@ function asignarRanura(id) {
   guardar();
   refrescarBarra(true);
   nota('Lo pusiste en la casilla ' + (elegida + 1), 'Se elige con los números o la rueda');
+}
+
+// 3.6.2 (visual): no llueve debajo de las galerías ni de los aleros (con el jugador afuera: bajo techo
+// la lluvia ya se apagaba entera). Los techos de alrededor de la cámara, con su altura, en una grilla
+// (techo-lluvia.js) que clima.js lee gota por gota. Se rehace al moverse 10 m o si cambia un techo (la
+// aldea que crece, tus obras: se mira una vez por segundo), y sólo mientras llueve.
+const mapaLluvia = crearMapaCubiertas();
+let firmaLluvia = '', acumLluvia = 99;
+function revisarMapaLluvia(cam, dt) {
+  acumLluvia += dt;
+  const moverse = mapaLluvia.lejos(cam.x, cam.z);
+  if (!moverse && acumLluvia < 1) return;
+  acumLluvia = 0;
+  const firma = (aldeaMundo?.versionCubiertas?.() ?? 0) + '|' + (obras?.firmaCubiertas?.() ?? 0).toFixed(3);
+  if (!moverse && firma === firmaLluvia) return;
+  firmaLluvia = firma;
+  const lista = [...(est?.cubiertas || [])];
+  for (const p of tren?.paradas || []) if (p.cubiertas) lista.push(...p.cubiertas);
+  if (aldeaMundo) lista.push(...aldeaMundo.cubiertas());
+  if (obras?.cubiertasLluvia) lista.push(...obras.cubiertasLluvia(cam, 70));
+  mapaLluvia.rehacer(cam.x, cam.z, lista);
 }
 
 // Pinta en la textura del terreno lo que queda bajo techo, para que la nieve
@@ -7287,6 +7308,8 @@ function cuadroDelJuego(tRaf, manual) {
   ctxClima.invierno = U.uInvierno.value; ctxClima.otono = U.uOtono.value; ctxClima.noche = noche;
   ctxClima.chimeneas = chimeneasTodas || chimeneas; ctxClima.sonido = sonido; ctxClima.bajoTecho = bajoTecho;
   if (aldeaMundo) ctxClima.chimeneas = aldeaMundo.chimeneasCerca(cam, ctxClima.chimeneas);   // 3.6: en la aldea, el humo sale de las chimeneas más cercanas
+  // 3.6.2 (visual): con lluvia, los techos de alrededor (las gotas que llegan a uno se cortan ahí)
+  if (clima.estado.lluvia > 0.05 && U.uInvierno.value <= 0.5 && !bajoTecho) { try { revisarMapaLluvia(cam, dt); ctxClima.techos = mapaLluvia; } catch (e) { ctxClima.techos = null; fallaSistema('techos-lluvia', e); } }
   try { clima.actualizar(dt, cam, ctxClima); } catch (e) { fallaSistema('clima', e); }
   // 2.1: el frente que viene se ve sobre la cordillera (ver `pronostico.js`)
   if (cielo?.uniforms) {

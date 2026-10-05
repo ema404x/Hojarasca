@@ -261,7 +261,7 @@ export const GESTOS_OFICIO = {
   hilanderia: { quien: 'tejedora', piezas: ['rueda-rueca'], emisor: null, sonido: null },
   'sala-miel': { quien: 'apicultor', piezas: [], emisor: 'abejas', sonido: 'colmenas', siempre: true },
   carpinteria: { quien: 'carpintero', piezas: [], emisor: null, sonido: 'sierra' },
-  pescaderia: { quien: 'pescador', piezas: [], emisor: null, sonido: null },
+  pescaderia: { quien: 'pescador', piezas: ['redes'], emisor: null, sonido: null },   // 3.6.2 (visual): la red que se mece
 };
 // ¿Está trabajando el dueño en su local (o en la puerta)? Con la rutina de la aldea.
 export function trabajando(aldea, edificio, dia, hora) {

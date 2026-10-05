@@ -9,6 +9,7 @@ import { fusionarPorMaterial } from './fusion.js';
 import { registrarLuz } from './luces.js';
 import { marcarConstructor } from './estilo-casa.js';
 import { crearDecoRefugio } from './personal-casa-mundo.js';
+import { cubierta } from './techo-lluvia.js';
 
 const MADERA = '#6e5238', MADERA_OSCURA = '#4e3a28', TABLA = '#8a6b4a';
 
@@ -92,7 +93,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   const L = T.lugares;
   const sentaderos = [];   // lugares para sentarse con buena vista
   const carteles = [];
-  let fusionados = 0;      // cuántas llamadas de dibujo ahorró juntar lo que no se mueve
+  // 3.6.2 (visual): los techos, para que no llueva debajo (ver `cubierta` en techo-lluvia.js)
+  const cubiertas = [];
+  let fusionados = 0;     // cuántas llamadas de dibujo ahorró juntar lo que no se mueve
   let armado = false;      // 2.7.3: ya se fusionó y se fijaron las matrices (ver el final)
   // Vidrio estructural de doble cara. Las ventanas son planos muy finos; con
   // FrontSide podían desaparecer al mirarlas desde el interior y, si el resto
@@ -251,7 +254,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   const techoDosAguasDetallado = (c, {
     W, D, H, alzada, vueloX = 0.55, vueloZ = 0.55,
     estilo = 'madera', colores = null, canaleta = false, colorEstructura = MADERA_OSCURA,
-    sitio = null, rotY = 0,
+    sitio = null, rotY = 0, cubre = null,
   }) => {
     const paleta = colores || (estilo === 'chapa'
       ? ['#77756f', '#85817a', '#706e68', '#8a7667']
@@ -267,6 +270,8 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     const modulo = estilo === 'chapa' ? 0.78 : 0.56;
     const n = Math.max(5, Math.ceil(totalZ / modulo));
     const anchoPanel = totalZ / n;
+    // 3.6.2 (visual): `cubre` ({ sitio, rot }): abajo de este techo no llueve (la cara de abajo del faldón)
+    if (cubre?.sitio) cubiertas.push(cubierta(cubre.sitio, cubre.rot, -run, run, -totalZ / 2, totalZ / 2, (cubre.sitio.y ?? 0) + yCumbrera - 0.06, { ab: -subida / run }));
 
     for (const lado of [-1, 1]) {
       const rz = -lado * incl;
@@ -678,7 +683,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     techoDosAguasDetallado(c, {
       W, D, H, alzada: 1.7, vueloX: 0.58, vueloZ: 0.72,
       estilo: 'madera', colores: ['#43372f', '#493b31', '#3f342d', '#4d3f34'],
-      canaleta: false, colorEstructura: '#44352a',
+      canaleta: false, colorEstructura: '#44352a', cubre: { sitio: ref, rot },
     });
     marcasRef.zona = null;
 
@@ -1107,7 +1112,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     techoDosAguasDetallado(c, {
       W, D, H, alzada: ALTO_HASTIAL, vueloX: 0.55, vueloZ: 0.6,
       estilo: 'madera', colores: ['#45382f', '#4a3b30', '#413428', '#503f33'],
-      canaleta: false, colorEstructura: '#4a382b',
+      canaleta: false, colorEstructura: '#4a382b', cubre: { sitio: { x, z, y }, rot },
     });
     // chimenea de piedra por fuera: baja hasta bien abajo para que en la
     // ladera no quede colgada, y el remate coincide con el cuerpo
@@ -1237,6 +1242,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       matriz: matriz([0, 2.48, zTechoGaleria], [INCL_GALERIA, 0, 0]),
     });
     caja(c, [0, 2.34, D / 2 + GAL - 0.10], [W + 1.25, 0.18, 0.18], '#4a382b');
+    // 3.6.2 (visual): abajo de la galería no llueve
+    cubiertas.push(cubierta({ x, z }, rot, -(W + 1.35) / 2, (W + 1.35) / 2, zTechoGaleria - (GAL + 0.75) / 2, zTechoGaleria + (GAL + 0.75) / 2,
+      y + 2.4 + zTechoGaleria * INCL_GALERIA, { az: -INCL_GALERIA }));
     const zPosteGaleria = D / 2 + GAL - 0.15;
     const yPosteGaleria = 2.48 - (zPosteGaleria - zTechoGaleria) * Math.sin(INCL_GALERIA)
       - 0.08 * Math.cos(INCL_GALERIA);
@@ -2082,8 +2090,11 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       techoDosAguasDetallado(c, {
         W, D, H, alzada: 1.6, vueloX: 0.55, vueloZ: 0.68,
         estilo: 'madera', colores: ['#4e4038', '#59483d', '#463a32', '#514238'],
-        canaleta: true, colorEstructura: '#47382f', sitio, rotY: rot,
+        canaleta: true, colorEstructura: '#47382f', sitio, rotY: rot, cubre: { sitio, rot },
       });
+      // 3.6.2 (visual): y abajo del alero de la galería tampoco llueve
+      cubiertas.push(cubierta(sitio, rot, -(W + 1.2) / 2, (W + 1.2) / 2, zCentroAleroTe - 1.5, zCentroAleroTe + 1.5,
+        sitio.y + 2.49 + zCentroAleroTe * INCL_ALERO_TE, { az: -INCL_ALERO_TE }));
       // tres tirantes visibles explican la cubierta desde la galería/interior
       for (const zt of [-D * 0.32, 0, D * 0.32]) {
         cilindroEntre(c, [-W / 2 + 0.18, H - 0.06, zt], [W / 2 - 0.18, H - 0.06, zt], 0.05, '#5b4633');
@@ -2577,8 +2588,12 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         c.agregar(new THREE.BoxGeometry(0.12, H, 0.32), { color: Math.round(z * 10) % 2 ? '#9a7248' : '#8a6440', tipo: 4, variar: 0.09, matriz: matriz([l * W / 2, 0.45 + H / 2, z + 0.17]) });
       }
       // frontón, cornisa alta a la calle y cartel pintado
-      caja(c, [0, H + 1.05, -D / 2 - 0.1], [W + 0.8, 1.5, 0.22], '#7d5f3f');
-      caja(c, [0, H + 1.05, -D / 2 - 0.24], [W - 0.4, 0.9, 0.06], '#3f5a52');
+      // 3.6.2 (visual): el frontón va delante del techo (antes, metido 0,5 m detrás del testero: los
+      // remates inclinados y la cumbrera del alero cruzaban el rótulo «RAMOS GENERALES»). Baja hasta
+      // apoyarse en el alero de la vereda, así no queda una rendija entre los dos.
+      const zFronton = -D / 2 - 0.8;
+      caja(c, [0, H + 0.95, zFronton], [W + 0.8, 1.7, 0.22], '#7d5f3f');
+      caja(c, [0, H + 1.05, zFronton - 0.14], [W - 0.4, 0.9, 0.06], '#3f5a52');
       caja(c, [0, H + 0.3, -D / 2 - 0.2], [W + 0.9, 0.18, 0.3], '#5f462d');
       for (const dz of [-D / 2, D / 2]) {
         const tri = new THREE.BufferGeometry();
@@ -2651,8 +2666,11 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       techoDosAguasDetallado(c, {
         W, D, H, alzada: 1.3, vueloX: 0.52, vueloZ: 0.58,
         estilo: 'chapa', colores: ['#77726a', '#81796f', '#6f6c67', '#8b735f'],
-        canaleta: true, colorEstructura: '#4b3b31', sitio, rotY: rot,
+        canaleta: true, colorEstructura: '#4b3b31', sitio, rotY: rot, cubre: { sitio, rot },
       });
+      // 3.6.2 (visual): abajo del alero de la vereda no llueve (cae hacia la calle, −z)
+      cubiertas.push(cubierta(sitio, rot, -(W + 1.2) / 2, (W + 1.2) / 2, zCentroAleroAlm - 1.3, zCentroAleroAlm + 1.3,
+        sitio.y + 2.85 + zCentroAleroAlm * INCL_ALERO_ALM, { az: -INCL_ALERO_ALM }));
       // tirantes del cielorraso vistos desde el salón
       for (const zt of [-D * 0.32, 0, D * 0.32]) {
         cilindroEntre(c, [-W / 2 + 0.18, H - 0.04, zt], [W / 2 - 0.18, H - 0.04, zt], 0.05, '#4b3b31');
@@ -2692,7 +2710,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         new THREE.PlaneGeometry(5.6, 1.05),
         new THREE.MeshBasicMaterial({ map: cartelTextura('RAMOS GENERALES'), side: THREE.DoubleSide }),
       );
-      rotulo.position.set(0, H + 1.05, -D / 2 - 0.285);
+      rotulo.position.set(0, H + 1.05, zFronton - 0.185);
       rotulo.rotation.y = Math.PI;
       g.add(rotulo);
       // alero de la vereda
@@ -2885,6 +2903,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         matriz: matriz([COB_X, 2.72, 0], [0, 0, INCL_COB_GAL]),
       });
       caja(c, [-W / 2 - 0.18, 2.92, 0], [0.18, 0.18, D - 0.4], '#514234');
+      // 3.6.2 (visual): abajo del cobertizo no llueve (sube hacia la pared, +x)
+      cubiertas.push(cubierta(sitio, rot, COB_X - 2.4, COB_X + 2.4, -(D - 0.7) / 2, (D - 0.7) / 2,
+        sitio.y + 2.64 - COB_X * INCL_COB_GAL, { ax: INCL_COB_GAL }));
       // Piso de trabajo continuo: los aperos ya no quedan suspendidos sobre
       // un terreno que puede variar varios centímetros a esta distancia.
       caja(c, [COB_X, 0.24, 0], [4.55, 0.16, D - 0.95], '#806447', 0, 4);
@@ -2922,7 +2943,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       techoDosAguasDetallado(c, {
         W, D, H, alzada: 2.1, vueloX: 0.7, vueloZ: 0.62,
         estilo: 'chapa', colores: [CHAPA, '#81776b', '#746f68', CHAPA_OX, CHAPA],
-        canaleta: true, colorEstructura: '#514234', sitio, rotY: rot,
+        canaleta: true, colorEstructura: '#514234', sitio, rotY: rot, cubre: { sitio, rot },
       });
       // farol colgado de un tirante
       const vidrio = materialVidrio(0x241d16);
@@ -3255,6 +3276,6 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   // 3.0.1: `col` viaja con las estructuras: objetos.js mira que no haya una pared entre vos y el asiento
   // 3.6: `lugaresSorteo`: dónde había caído la casa de té y el almacén en el sorteo (con la aldea
   // ahí no hay nada; trochita.js lo usa para saber cómo se llamaba antes cada parada)
-  return { grupo, conjuntos, sentaderos, carteles, mat, cabañas, faro, molino, casaTe, torre, galpon, almacen, cueva, cartel, fusionados: () => fusionados,
+  return { grupo, conjuntos, sentaderos, carteles, mat, cabañas, cubiertas, faro, molino, casaTe, torre, galpon, almacen, cueva, cartel, fusionados: () => fusionados,
     personal, mastil: personal?.mastil || null, col, lugaresSorteo: enAldea ? { 'casa-te': casaTeSorteo, almacen: almacenSorteo } : null };
 }

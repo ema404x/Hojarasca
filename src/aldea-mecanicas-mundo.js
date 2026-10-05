@@ -105,7 +105,8 @@ export function crearMecanicasAldea(ctx) {
     anim.fuelle = preparar(todas.find((a) => a.id === 'fuelle'));
     anim.rueca = preparar(todas.find((a) => a.id === 'rueda-rueca'));
     anim.campana = preparar(todas.find((a) => a.id === 'campana'));
-    anim.fase = { rueca: 0, banderaF: -1 };
+    anim.redes = preparar(todas.find((a) => a.id === 'redes'));   // 3.6.2 (visual)
+    anim.fase = { rueca: 0, banderaF: -1, redes: 0 };
     info.candidatos = cands.length;
     info.sentaderos = [...propios.values()].reduce((s, l) => s + l.length, 0);
     listo = puntos.size > 0 && [...puntos.values()].some(Boolean);
@@ -297,6 +298,17 @@ export function crearMecanicasAldea(ctx) {
     if (anim.rueca && g.hilanderia && dist(anim.rueca.contenedor.position) < CERCA_GESTOS) {
       anim.fase.rueca += dt * Math.PI * 2 * (anim.rueca.dato.vueltasPorSegundo ?? 1.2);
       anim.rueca.objeto.quaternion.setFromAxisAngle(anim.rueca.ejeV, anim.fase.rueca % (Math.PI * 2));
+    }
+    // 3.6.2 (visual): la red colgada se mece con el viento mientras el pescador trabaja (más con las
+    // ráfagas); cuando no, vuelve despacio a quedar quieta
+    if (anim.redes && dist(anim.redes.contenedor.position) < CERCA_GESTOS) {
+      const viento = g.pescaderia ? (ctx.ambiente?.()?.viento ?? 0.4) : 0;
+      anim.fase.redes += (viento - anim.fase.redes) * Math.min(1, dt * 0.8);
+      const k = anim.fase.redes;
+      if (k > 0.002 || anim.redes.objeto.quaternion.w < 0.99999) {
+        const ang = k * (0.11 * Math.sin(reloj * 1.35) + 0.035 * Math.sin(reloj * 3.1 + 1.3));
+        anim.redes.objeto.quaternion.setFromAxisAngle(anim.redes.ejeV, ang);
+      }
     }
     chispas.p.visible = !!(g.herreria && lugar.chispas && dist(lugar.chispas) < CERCA_GESTOS);
     if (chispas.p.visible) moverChispas(dt, lugar.chispas);

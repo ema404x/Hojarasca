@@ -275,6 +275,20 @@ app.whenReady().then(async () => {
     await asentar(8);
     e = await js(`${H}.__mecanicas().medir()`);
     ok(!e.chispas && !e.abejas, 'a 72 m, apagadas');
+    // 3.6.2 (visual): la red de la pescadería se mece con el viento mientras el pescador trabaja
+    seccion('la red de la pescadería se mece');
+    const red = await js(`(()=>{ const a = ${H}.__mecanicas().animables().redes; return a ? { x: a.contenedor.position.x, z: a.contenedor.position.z } : null })()`);
+    if (!red) ok(false, 'la red de la pescadería es una pieza animable');
+    else {
+      let hora = null;
+      for (const h of [10, 11, 15, 16, 9, 17]) { await reloj(1, h); await asentar(3); if ((await js(`${H}.__mecanicas().medir().gestos`)).pescaderia) { hora = h; break; } }
+      await js(`(()=>{ window.__m36m.mirar(${red.x} + 9, ${red.z} + 9, ${red.x}, ${red.z}); return 1 })()`);
+      await asentar(8);
+      const r0 = await js(`${H}.__mecanicas().animables().redes.objeto.quaternion.z`);
+      await asentar(8);
+      const r1 = await js(`${H}.__mecanicas().animables().redes.objeto.quaternion.z`);
+      ok(hora !== null && Math.abs(r1 - r0) > 1e-4, `con el pescador trabajando (a las ${hora}), la red se mece (${r0.toFixed(4)} → ${r1.toFixed(4)})`);
+    }
     const ab = await js(`${H}.__mecanicas().lugares().abejas`);
     await js(`(()=>{ window.__m36m.mirar(${ab.x} + 8, ${ab.z} + 8, ${ab.x}, ${ab.z}); return 1 })()`);
     await reloj(1, 12); await asentar(8);

@@ -106,6 +106,81 @@ export function camaDeTecho(techo, lluvia) {
   return { vol: T.cama.vol * Math.pow(l, 1.1), grave: T.grave.vol * l, frec: T.cama.frec, q: T.cama.q, frecGrave: T.grave.frec };
 }
 
+// ---------------------------------------------------------------- 3.6.2 (visual): dónde no llueve
+// Las gotas de clima.js caían debajo de las galerías y los aleros (con el jugador afuera: bajo techo
+// se apaga toda la lluvia). Cada techo del juego se anota como una CUBIERTA: un rectángulo girado
+// en el mundo con la altura de su techo:
+//   { x, z, rot, x0, x1, z0, z1, y, ax, ab, az }
+// En el marco local (giro `rot`, como rotation.y de un Group: lx = dx·cos − dz·sin, lz = dx·sin +
+// dz·cos) el techo está a  y + ax·lx + ab·|lx| + az·lz  (ab < 0: dos aguas con la cumbrera en lx = 0;
+// ax o az: una agua que cae a lo largo de x o de z). La gota que baja de esa altura dentro del
+// rectángulo pegó en el techo.
+export function cubierta(sitio, rot, x0, x1, z0, z1, y, { ax = 0, ab = 0, az = 0 } = {}) {
+  return { x: sitio.x, z: sitio.z, rot: Number(rot) || 0, x0, x1, z0, z1, y, ax, ab, az };
+}
+// La altura del techo de una cubierta en (x, z) del mundo, o null si (x, z) queda afuera.
+export function techoDeCubierta(c, x, z) {
+  const co = Math.cos(c.rot), si = Math.sin(c.rot), dx = x - c.x, dz = z - c.z;
+  const lx = dx * co - dz * si, lz = dx * si + dz * co;
+  if (lx < c.x0 || lx > c.x1 || lz < c.z0 || lz > c.z1) return null;
+  return c.y + (c.ax || 0) * lx + (c.ab || 0) * Math.abs(lx) + (c.az || 0) * lz;
+}
+// El mapa de las cubiertas alrededor de la cámara: una grilla de `lado` metros en celdas de `celda`
+// con la altura del techo más alto de cada celda (se rehace al alejarse la cámara del centro o al
+// cambiar un techo). Preguntar por una gota es leer una celda: 3.200 gotas cuestan centésimas de ms.
+const SIN_TECHO = -1e9;
+export function crearMapaCubiertas({ lado = 96, celda = 0.5 } = {}) {
+  const n = Math.round(lado / celda), alto = new Float32Array(n * n).fill(SIN_TECHO);
+  const m = { x0: 0, z0: 0, cx: Infinity, cz: Infinity, hay: false, cubiertas: 0, n, celda, lado, techoMax: SIN_TECHO };
+  const inv = 1 / celda;
+  // `lista`: las cubiertas (se dibujan sólo las que tocan la grilla)
+  m.rehacer = (cx, cz, lista) => {
+    alto.fill(SIN_TECHO);
+    m.cx = cx; m.cz = cz; m.x0 = cx - lado / 2; m.z0 = cz - lado / 2;
+    let k = 0, maximo = SIN_TECHO;
+    for (const c of lista || []) {
+      if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.z) || !Number.isFinite(c.y)) continue;
+      const r = Math.hypot(Math.max(-c.x0, c.x1), Math.max(-c.z0, c.z1));
+      if (!(r < lado) || Math.abs(c.x - cx) > lado / 2 + r || Math.abs(c.z - cz) > lado / 2 + r) continue;
+      const co = Math.cos(c.rot || 0), si = Math.sin(c.rot || 0), ax = c.ax || 0, ab = c.ab || 0, az = c.az || 0;
+      const i0 = Math.max(0, Math.floor((c.x - r - m.x0) / celda)), i1 = Math.min(n - 1, Math.floor((c.x + r - m.x0) / celda));
+      const j0 = Math.max(0, Math.floor((c.z - r - m.z0) / celda)), j1 = Math.min(n - 1, Math.floor((c.z + r - m.z0) / celda));
+      let toca = false;
+      for (let j = j0; j <= j1; j++) {
+        const dz = m.z0 + (j + 0.5) * celda - c.z;
+        for (let i = i0; i <= i1; i++) {
+          const dx = m.x0 + (i + 0.5) * celda - c.x;
+          const lx = dx * co - dz * si, lz = dx * si + dz * co;
+          if (lx < c.x0 || lx > c.x1 || lz < c.z0 || lz > c.z1) continue;
+          const h = c.y + ax * lx + ab * Math.abs(lx) + az * lz, q = j * n + i;
+          if (h > alto[q]) alto[q] = h;
+          if (h > maximo) maximo = h;
+          toca = true;
+        }
+      }
+      if (toca) k++;
+    }
+    m.cubiertas = k; m.hay = k > 0; m.techoMax = maximo;
+  };
+  // ¿Esta gota (su punta de abajo) está debajo de un techo? (la que va más alta que todos los techos ni se mira)
+  m.tapa = (x, y, z) => {
+    if (y >= m.techoMax) return false;
+    const fx = (x - m.x0) * inv, fz = (z - m.z0) * inv;
+    if (fx < 0 || fz < 0 || fx >= n || fz >= n) return false;
+    return y < alto[(fz | 0) * n + (fx | 0)];
+  };
+  // La altura del techo en (x, z) (o null): para las pruebas
+  m.techo = (x, z) => {
+    const i = Math.floor((x - m.x0) / celda), j = Math.floor((z - m.z0) / celda);
+    if (i < 0 || j < 0 || i >= n || j >= n) return null;
+    const h = alto[j * n + i];
+    return h > SIN_TECHO ? h : null;
+  };
+  // ¿Hay que rehacerlo? (la cámara se fue más de `margen` metros del centro)
+  m.lejos = (cx, cz, margen = 10) => Math.abs(cx - m.cx) > margen || Math.abs(cz - m.cz) > margen;
+  return m;
+}
+
 // ¿Cruje la estructura? Con las rachas fuertes, la madera trabaja y la lona flamea.
 // Devuelve la probabilidad por segundo.
 export function crujidosPorSegundo(espacio, viento) {
