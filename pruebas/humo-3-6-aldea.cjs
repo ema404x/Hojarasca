@@ -54,7 +54,8 @@ app.whenReady().then(async () => {
   const tecla = (code) => `document.dispatchEvent(new KeyboardEvent('keydown', { code: '${code}', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: '${code}', bubbles: true }));`;
   const cuadros = (n = 4) => js(`(()=>{ for (let i = 0; i < ${n}; i++) ${H}.__bucle(); return 1 })()`);
   // la aldea: lo que pasa cada medio segundo, `n` veces (las figuras se arman de a una por llamada)
-  const aldea = (n = 1, dt = 0.6) => js(`(()=>{ for (let i = 0; i < ${n}; i++) ${H}.__aldea.actualizar(${dt}); return 1 })()`);
+  // 3.7.0: la gente se arma de a poco con los cuadros; acá la aldea avanza sin cuadros, así que se terminan de armar antes
+  const aldea = (n = 1, dt = 0.6) => js(`(()=>{ for (let i = 0; i < ${n}; i++) { ${H}.__aldea.actualizar(${dt}); ${H}.__aldea.mundo()?.prearmar?.(1e6); } return 1 })()`);
   const estado = () => js(`${H}.__aldea.mundo().estado()`);
   // pone al jugador en (x, z) mirando hacia (mx, mz)
   const ubicar = (x, z, mx = null, mz = null) => js(`(()=>{ const j = ${H}.jugador; const x = ${x}, z = ${z}; const mx = ${mx === null ? 'x' : mx}, mz = ${mz === null ? 'z + 1' : mz};

@@ -50,7 +50,8 @@ app.whenReady().then(async () => {
   // 3.5.1: la ventana oculta no corre requestAnimationFrame: quién está enfrente y el aviso se
   // miran unas veces por segundo, así que entre tandas de cuadros tiene que pasar tiempo real
   const asentar = async (t = 3) => { await cuadros(4); for (let i = 0; i < t; i++) { await esperar(110); await cuadros(2); } };
-  const aldea = (n = 1, dt = 0.6) => js(`(()=>{ for (let i = 0; i < ${n}; i++) ${H}.__aldea.actualizar(${dt}); return 1 })()`);
+  // 3.7.0: la gente se arma de a poco con los cuadros; acá la aldea avanza sin cuadros, así que se terminan de armar antes
+  const aldea = (n = 1, dt = 0.6) => js(`(()=>{ for (let i = 0; i < ${n}; i++) { ${H}.__aldea.actualizar(${dt}); ${H}.__aldea.mundo()?.prearmar?.(1e6); } return 1 })()`);
   const tarjeta = () => js(`(()=>{ const t = document.getElementById('valle-tarjeta'); return { abierta: !t.classList.contains('oculto') && ${H}.__valle.abierta(), texto: t.textContent } })()`);
   const revisar = () => js(`${H}.__valle.revisarAhora()`);
   const notas = () => js(`document.getElementById('notas').textContent`);
@@ -270,7 +271,7 @@ app.whenReady().then(async () => {
     ok(e.c && e.c.que === 'mate' && e.deVisita, `sale para tu mesa (${e.c?.fase})`);
     ok(/Don Ramón va para tu mesa/.test(await avisos()), 'con su aviso');
     // lo dejo caminar (o ya está, si la mesa quedaba lejos)
-    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; for (let i = 0; i < 1200; i++) { H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) H.__aldea.actualizar(0.5); } return 1 })()`);
+    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; for (let i = 0; i < 1200; i++) { H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) { H.__aldea.actualizar(0.5); H.__aldea.mundo()?.prearmar?.(1e6); } } return 1 })()`);
     e = await js(`(()=>{ const c = ${H}.__vecindad().cita(), n = ${npc('ramon')}; return { fase: c?.fase, pose: n.pose, d: Math.hypot(n.pos.x - c.lugar.x, n.pos.z - c.lugar.z), tuyo: c.tuyo } })()`);
     ok(e.fase === 'esperando' && e.pose === 'sentado' && e.d < 0.6, `llegó y se sentó en su silla (${e.fase}, ${e.d.toFixed(2)} m)`);
     await js(`(()=>{ const j = ${H}.jugador; j.ubicar(${e.tuyo.x} + 0.7, ${e.tuyo.z} + 0.5, 0); return 1 })()`);
@@ -285,7 +286,7 @@ app.whenReady().then(async () => {
     for (let i = 0; i < 6 && (await vista()).abierta; i++) { await tecla('KeyE'); const x = await vista(); if (x.abierta) sob.push(x.texto); }
     ok(sob.length >= 2 && (await js(`${H}.__vecindad().cita()?.fase`)) === 'sobremesa' && /Tomaste mate con Don Ramón/.test(await avisos()), `la sobremesa (${sob.length} renglones)`);
     // se va al rato
-    await js(`(()=>{ ${P}.horas = 14.4; ${H}.__aldea.actualizar(1); return 1 })()`);
+    await js(`(()=>{ ${P}.horas = 14.4; ${H}.__aldea.actualizar(1); ${H}.__aldea.mundo()?.prearmar?.(1e6); return 1 })()`);
     e = await js(`(()=>({ cita: ${H}.__vecindad().cita(), deVisita: !!${npc('ramon')}.deVisita, pose: ${npc('ramon')}.pose || null }))()`);
     ok(!e.cita && !e.deVisita && !e.pose, 'después se vuelve a lo suyo');
 
@@ -329,7 +330,7 @@ app.whenReady().then(async () => {
     let visita = null, dias = 0;
     for (; dias < 8 && !visita; dias++) {
       visita = await js(`(()=>{ const H = ${H}, P = H.progreso, j = H.jugador; P.dia += 1; P.horas = 16.5; j.ubicar(${mesa.x} + 45, ${mesa.z}, 0);
-        H.__aldea.actualizar(1); H.__actualizarVisitas(2); const v = H.__visitante();
+        H.__aldea.actualizar(1); H.__aldea.mundo()?.prearmar?.(1e6); H.__actualizarVisitas(2); const v = H.__visitante();
         return v ? { clave: v.npc.claveAldea || v.npc.clave, amistad: !!P.visitas.activa?.amistad, d: Math.hypot(v.npc.pos.x - ${mesa.x}, v.npc.pos.z - ${mesa.z}) } : null })()`);
     }
     ok(visita && visita.clave === 'jefe' && visita.amistad && visita.d < 40, `a los ${dias} días viene el compadre: el jefe de estación, desde la aldea (${JSON.stringify(visita)})`);
@@ -351,7 +352,7 @@ app.whenReady().then(async () => {
       P.aldea.pobladores.push({ clave: 'carpintero', dia: P.dia - 3 }); P.aldea.locales.carpinteria = P.dia - 1; P.aldea.ultimaApertura = P.dia - 1; return 1 })()`);
     await js(`(()=>{ const p = ${H}.__aldea.edificio('plaza'); ${H}.jugador.ubicar(p.x, p.z, 0); return 1 })()`);
     await aldea(30);
-    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; for (let i = 0; i < 3000; i++) { H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) H.__aldea.actualizar(0.5); } return 1 })()`);
+    await js(`(()=>{ const H = ${H}, j = H.jugador.estado; for (let i = 0; i < 3000; i++) { H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) { H.__aldea.actualizar(0.5); H.__aldea.mundo()?.prearmar?.(1e6); } } return 1 })()`);
     e = await js(`${H}.__aldea.mundo().estado()`);
     const libres = e.npcs.filter((x) => x.libre);
     ok(libres.length >= 1, `gente libre haciendo lo suyo: ${libres.map((x) => `${x.clave} ${x.actividad} (${x.destino.edificio}/${x.destino.punto}${x.pose ? `, ${x.pose}` : ''})`).join(', ')}`);
