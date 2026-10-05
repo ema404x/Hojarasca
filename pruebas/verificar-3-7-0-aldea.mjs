@@ -339,7 +339,8 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(eventos.includes('16:nene:crecio:adolescente') && eventos.includes('28:nene:crecio:joven') && eventos.includes('20:nena:crecio:adolescente') && eventos.includes('32:nena:crecio:joven'), `crecen en su cumpleaños (${eventos.join(' ')})`);
   ok(eventos.includes('32:nena:aprendiz:veterinaria'), 'Lucía aprende el oficio con Ayelén, con quien más tiempo pasó');
   ok(eventos.includes('28:nene:estudiar:maquinista') && eventos.includes('32:nene:volvio:maquinista'), 'Nahuel no tuvo con quién: se fue a estudiar y volvió maquinista');
-  for (const k of ['nene', 'nena']) ok(tallas[k].every((x, i, l) => !i || x >= l[i - 1]) && tallas[k][0] < 0.7 && tallas[k][39] > 0.9, `${k}: la talla crece (${tallas[k][0]} → ${tallas[k][39]})`);
+  // 3.7.0 (personajes): con los cuerpos nuevos Lucía de chica mide 0.76 (unos 1,32 m), así que el tope de "chica" sube a 0.8
+  for (const k of ['nene', 'nena']) ok(tallas[k].every((x, i, l) => !i || x >= l[i - 1]) && tallas[k][0] < 0.8 && tallas[k][39] > 0.9, `${k}: la talla crece (${tallas[k][0]} → ${tallas[k][39]})`);
   ok(A.coloresDe('nene', a).barba && !A.coloresDe('nena', a).barba, 'la ropa de cada etapa');
   eq(A.dichosDe('nene', a).oficio, 'maquinista de la trochita');
   eq(A.dichosDe('nena', a).oficio, 'aprendiz de veterinaria');
