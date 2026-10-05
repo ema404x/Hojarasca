@@ -1,4 +1,4 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 04-10-2026, 3.6.1 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 05-10-2026, 3.6.2 cerrada)
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
 decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
@@ -46,6 +46,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.6.2 (cerrada el 05-10, etiqueta v3.6.2):** lo pendiente de la 3.6 (obras viejas encimadas, clic y mando en el HUD, mapa de la aldea, lluvia bajo techo, etc.). Gate 146/146. `CAMBIOS_3_6_2.md`. **Hay un plan grande en charla con el usuario para la 3.7 (aldea que crece, romance, tradiciones): todavía no está escrito en el repo; preguntarle antes de empezar.**
 - **3.6.1 (cerrada el 04-10, etiqueta v3.6.1):** caza de bugs de la 3.6 en 4 equipos, 33 arreglos (el sillón de la biblioteca que no te dejaba salir, etc.). Gate 144/144. Lo que quedó para después, al final de `CAMBIOS_3_6_1.md`.
 - **3.6.0 (cerrada el 03-10, etiqueta v3.6.0): la Aldea de los Duendes.** Pueblo fijo en la
   parada sur (sólo Relax), planificado con el usuario en `PLAN_ALDEA.md` (leelo: tiene todas sus
@@ -126,8 +127,8 @@ cuadro por segundo**. Lo que depende del tiempo de juego necesita esperas o rein
 
 ### 4.1 Construir y probar
 - `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba.
-- `npm run verify` es el gate (144 pasos en la 3.6.1, sólo Node).
-- Partidas reales: `pruebas/humo-*.cjs` (55). **Comparten el perfil de Electron: nunca dos a
+- `npm run verify` es el gate (146 pasos en la 3.6.2, sólo Node).
+- Partidas reales: `pruebas/humo-*.cjs` (57). **Comparten el perfil de Electron: nunca dos a
   la vez.** Para capturas propias usar perfil propio (`app.setPath('userData', …)`).
 - **Nunca** matar electron por nombre si hay otras pruebas o capturas corriendo; matar por PID
   o por línea de comandos.

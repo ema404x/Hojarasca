@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.6.1
+# RELEASE STATUS — 3.6.2
 
-- Versión: `3.6.1`
+- Versión: `3.6.2`
+- 3.6.2: lo pendiente de la 3.6 — obras viejas encimadas en la aldea se mudan solas, clic y mando en las listas del HUD (almacén, feria, cargas, barra), árboles invisibles que chocaban, la visita gana al libro prestado, el reloj sentado, la aldea en el mapa, horarios con menos caminata, no llueve bajo techo, álamos sin salto, rótulo del almacén, red de la pescadería. Gate 146/146
 - 3.6.1: caza de bugs de la 3.6 en 4 equipos — 33 arreglos (el sillón de la biblioteca que no te dejaba salir, obras trabadas de madrugada, el Desafío guardando la aldea, rebrotes y obras dentro de la aldea, vecinos afuera de noche con lluvia, mesas e invitaciones, clic y mando en la charla, puertas de la escuela y la sala de miel, rendijas en las ventanas, carteles cortados, el suelo que se movía al alejarse, luces que parpadeaban, nombres encimados en el mapa…). Gate 144/144
 - 3.6.0: la Aldea de los Duendes — pueblo fijo en la parada sur (sólo Relax) que crece con 11 pobladores y obras del pueblo; biblioteca popular, almacén de Ercilia y casa de té mudados; vecinos con horarios, tiempo libre, menú de charla (regalar, invitar, dar una mano), amistad y memoria; algo para hacer en cada lugar; edificios con interior y detalle de superficie en el shader; se sacó el «fundar el pueblo» de la 3.1 (partidas viejas migran solas). Fuera de la aldea, mismo rendimiento que la 3.5.4. Gate 140/140, 53 partidas reales
 - 3.5.4: estabilidad — fuga grande del contexto 3D recuperado (~10 MB por reinicio de la placa, para siempre) y dos chicas; memoria plana en sesiones largas; la ventana no navega fuera del juego ni se abre dos veces; el mouse no se pierde; Alt+Tab pausa; suspender guarda; partidas con obras lejísimos ya no cuelgan la carga; clic derecho una sola vez; modo foto sin F1 ni clics. Gate 133/133, 49 partidas reales
