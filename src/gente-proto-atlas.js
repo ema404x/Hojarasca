@@ -1,0 +1,256 @@
+// PROTOTIPO (rama proto-personajes, variante P): el atlas de la gente, pintado por código al cargar
+// (como crearTexturaCarteles): nada se descarga. Un lienzo de 2048 × 2048, una sola vez para todos.
+//   · fila de arriba, cuadros de 256: los detalles de las telas en gris (0,5 = sin cambio): 0 lana,
+//     1 lienzo, 2 cuero, 3 punto, 4 fieltro, 5 hebras de pelo, 6 plata grabada, 7 paño de fiesta;
+//   · guardas de 1024 × 128 que se repiten a lo largo (en color, con alfa = cubre): 1 ribete tejido,
+//     2 escalonado de telar, 3 lukutuwe, 4 trarüwe (faja), 5 bordado de amancay, 6 bordado de lupino,
+//     7 cuero repujado;
+//   · la cara (512 × 512, en canales: R rubor, G sombra de párpados, B pecas), las cejas con pelito
+//     (512 × 128) y los labios (512 × 256: las líneas en rojo, el brillo en verde).
+// Sin flipY: (u, v) = (x, y) del lienzo / 2048. Los datos van en lineal (los colores se pasan a
+// lineal en el shader).
+import * as THREE from 'three';
+
+export const ATLAS = { lado: 2048, tela: 256, guardaAncho: 1024, guardaAlto: 128, guardaY: 256, cara: [0, 1024, 512, 512], ceja: [512, 1024, 512, 128], labios: [512, 1152, 512, 256] };
+let TEX = null;
+export function atlasPersonajes() {
+  if (TEX) return TEX;
+  const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
+  const lienzo = document.createElement('canvas');
+  lienzo.width = lienzo.height = ATLAS.lado;
+  const ctx = lienzo.getContext('2d');
+  ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, ATLAS.lado, ATLAS.lado);
+  pintarTelas(ctx);
+  for (let g = 1; g <= 7; g++) pintarGuarda(ctx, g);
+  pintarCara(ctx); pintarCeja(ctx); pintarLabios(ctx);
+  TEX = new THREE.CanvasTexture(lienzo);
+  TEX.flipY = false;
+  TEX.colorSpace = 'srgb-linear';   // (datos en lineal: los colores se pasan en el shader)
+  TEX.generateMipmaps = true;
+  TEX.minFilter = 1008;   // (LinearMipmapLinearFilter: el three del juego no exporta el nombre)
+  TEX.anisotropy = 4;
+  TEX.userData.ms = typeof performance !== 'undefined' ? performance.now() - t0 : 0;
+  TEX.userData.bytes = ATLAS.lado * ATLAS.lado * 4 * (4 / 3);   // con los mipmaps
+  return TEX;
+}
+
+// ---------------------------------------------------------------- ayudas
+function azar(s) { return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+const TAU = Math.PI * 2;
+// un cuadro de 256 en gris, que se repite sin costura (las ondas tienen períodos enteros)
+function cuadroGris(ctx, k, fn) {
+  const N = ATLAS.tela, img = ctx.createImageData(N, N), r = azar(97 + k * 31);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const v = Math.max(0, Math.min(1, fn(x, y, r)));
+    const i = (y * N + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = v * 255; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, k * N, 0);
+}
+// ruido periódico suave (suma de ondas de período entero)
+function ondas(seed, n, amp) {
+  const r = azar(seed), lista = [];
+  for (let i = 0; i < n; i++) lista.push([1 + Math.floor(r() * 4), 1 + Math.floor(r() * 4), r() * TAU, r() * TAU, amp * (0.5 + r())]);
+  return (x, y) => lista.reduce((s, [a, b, p, q, m]) => s + m * Math.sin(TAU * a * x / 256 + p) * Math.sin(TAU * b * y / 256 + q), 0);
+}
+function pintarTelas(ctx) {
+  const o1 = ondas(1, 5, 0.03), o2 = ondas(2, 6, 0.05), o3 = ondas(3, 6, 0.04);
+  // 0 lana tejida: hilos gruesos (8 px), arriba y abajo, con mota
+  cuadroGris(ctx, 0, (x, y, r) => {
+    const cel = (Math.floor(x / 8) + Math.floor(y / 8)) % 2, a = Math.sin(TAU * x / 8) ** 2, b = Math.sin(TAU * y / 8) ** 2;
+    return 0.42 + 0.16 * (cel ? a : b) + o1(x, y) + (r() - 0.5) * 0.08;
+  });
+  // 1 lienzo: trama fina (4 px) y algún hilo más grueso a lo largo
+  const filas = Array.from({ length: 256 }, (_, i) => azar(i + 7)() < 0.12 ? 0.07 : 0);
+  cuadroGris(ctx, 1, (x, y, r) => {
+    const cel = (Math.floor(x / 4) + Math.floor(y / 4)) % 2, a = Math.sin(TAU * x / 4) ** 2, b = Math.sin(TAU * y / 4) ** 2;
+    return 0.46 + 0.09 * (cel ? a : b) + filas[y] + o2(x, y) * 0.5 + (r() - 0.5) * 0.05;
+  });
+  // 2 cuero: grano, arrugas y raspones
+  cuadroGris(ctx, 2, (x, y, r) => 0.5 + o2(x, y) * 1.6 + 0.05 * Math.sin(TAU * (3 * x + 2 * y) / 256 + Math.sin(TAU * y / 64) * 2) + (r() - 0.5) * 0.12);
+  // 3 punto: filas de "V" (16 × 12 px)
+  cuadroGris(ctx, 3, (x, y, r) => {
+    const u = (x % 16) / 16, v = Math.abs(u - 0.5) * 2, f = Math.sin(TAU * (y / 12 + v * 0.55));
+    return 0.38 + 0.2 * (f > -0.3 ? 1 : 0) * (1 - 0.6 * Math.max(0, v - 0.85) / 0.15) + o1(x, y) + (r() - 0.5) * 0.06;
+  });
+  // 4 fieltro: manchado suave y pelusa
+  cuadroGris(ctx, 4, (x, y, r) => 0.5 + o3(x, y) * 1.6 + (r() - 0.5) * 0.14);
+  // 5 hebras de pelo: a lo largo (y), con ondas, mechones más claros y más oscuros
+  const col = Array.from({ length: 256 }, (_, i) => azar(i * 3 + 11)());
+  cuadroGris(ctx, 5, (x, y) => {
+    const xx = (x + 3 * Math.sin(TAU * y / 256) + 2 * Math.sin(TAU * 3 * y / 256 + x * 0.05) + 256) % 256, i = Math.floor(xx);
+    const v = col[i] * 0.6 + col[(i + 1) % 256] * 0.4;
+    return 0.3 + 0.4 * v + 0.12 * Math.sin(TAU * 2 * x / 256);
+  });
+  // 6 plata grabada: arcos y puntitos, con luz de metal
+  cuadroGris(ctx, 6, (x, y, r) => {
+    const cx = x % 64 - 32, cy = y % 64 - 32, d = Math.hypot(cx, cy);
+    const arco = Math.abs(d - 22) < 1.4 || Math.abs(d - 12) < 1.1 ? -0.25 : 0, punto = d < 3 ? -0.2 : 0;
+    return 0.58 + arco + punto + o1(x, y) * 2 + (r() - 0.5) * 0.04;
+  });
+  // 7 paño de fiesta (lana fina, en sarga)
+  cuadroGris(ctx, 7, (x, y, r) => 0.47 + 0.08 * Math.sin(TAU * (x + y) / 6) + o2(x, y) * 0.6 + (r() - 0.5) * 0.05);
+}
+
+// las guardas: 1024 × 128, se repiten a lo largo (los motivos, de período que divide a 1024)
+function origenGuarda(g) { return [((g - 1) % 2) * ATLAS.guardaAncho, ATLAS.guardaY + Math.floor((g - 1) / 2) * ATLAS.guardaAlto]; }
+function pintarGuarda(ctx, g) {
+  const [ox, oy] = origenGuarda(g), W = ATLAS.guardaAncho, H = ATLAS.guardaAlto, r = azar(g * 101);
+  ctx.save(); ctx.translate(ox, oy);
+  ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  ctx.clearRect(0, 0, W, H);
+  const rect = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+  // la pincelada: manchas tenues encima (pintado, no impreso)
+  const pincel = (alfa) => { for (let i = 0; i < 260; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '255,240,210' : '40,20,10'},${alfa * r()})`; ctx.beginPath(); ctx.ellipse(r() * W, r() * H, 6 + r() * 26, 2 + r() * 6, r() * 0.6 - 0.3, 0, TAU); ctx.fill(); } };
+  const ROJO = '#9a2c24', NEGRO = '#221c1a', BLANCO = '#e8dcc2', OCRE = '#c89a48', VERDE = '#4e6a34';
+  if (g === 1) {
+    // ribete tejido: ocre con zigzag rojo y filetes oscuros
+    rect(OCRE, 0, 0, W, H); rect(NEGRO, 0, 10, W, 8); rect(NEGRO, 0, H - 18, W, 8);
+    ctx.strokeStyle = ROJO; ctx.lineWidth = 12; ctx.beginPath();
+    for (let x = -32; x <= W + 32; x += 32) ctx.lineTo(x, (x / 32) % 2 ? 40 : 88);
+    ctx.stroke(); pincel(0.06);
+  } else if (g === 2) {
+    // escalonado de telar: rombos de escalones negros con borde blanco, sobre rojo
+    rect(ROJO, 0, 0, W, H); rect(BLANCO, 0, 6, W, 6); rect(BLANCO, 0, H - 12, W, 6);
+    for (let c = 0; c < W; c += 128) for (const [col, k] of [[BLANCO, 0], [NEGRO, 8]]) {
+      ctx.fillStyle = col;
+      for (let s = 0; s < 6; s++) { const w = 104 - s * 16 - k * 2, h = 12; ctx.fillRect(c + 64 - w / 2, 64 - (s + 1) * h + k / 2, w, h); ctx.fillRect(c + 64 - w / 2, 64 + s * h - k / 2, w, h); }
+    }
+    for (let c = 0; c < W; c += 128) rect(ROJO, c + 56, 56, 16, 16);
+    pincel(0.06);
+  } else if (g === 3) {
+    // lukutuwe: la figura escalonada (la persona que reza), roja sobre crudo, entre filetes negros
+    rect(BLANCO, 0, 0, W, H); rect(NEGRO, 0, 0, W, 10); rect(NEGRO, 0, H - 10, W, 10);
+    for (let c = 0; c < W; c += 128) {
+      const m = c + 64;
+      rect(ROJO, m - 8, 22, 16, 84);                 // el cuerpo
+      rect(ROJO, m - 28, 30, 56, 12);                // los brazos
+      rect(ROJO, m - 40, 18, 12, 24); rect(ROJO, m + 28, 18, 12, 24);   // las manos arriba
+      rect(ROJO, m - 26, 92, 52, 12);                // las piernas
+      rect(ROJO, m - 38, 92, 12, 24); rect(ROJO, m + 26, 92, 12, 24);
+      rect(NEGRO, m - 4, 50, 8, 30);
+      ctx.fillStyle = NEGRO; for (const dx of [-56, 56]) { ctx.beginPath(); ctx.moveTo(c + 64 + dx, 50); ctx.lineTo(c + 64 + dx + 10, 64); ctx.lineTo(c + 64 + dx, 78); ctx.lineTo(c + 64 + dx - 10, 64); ctx.fill(); }
+    }
+    pincel(0.05);
+  } else if (g === 4) {
+    // trarüwe: la faja; rojo, una cadena de rombos blancos y negros al medio, listas a los lados
+    rect(ROJO, 0, 0, W, H);
+    for (const [y, h, c] of [[4, 6, VERDE], [12, 4, OCRE], [18, 6, NEGRO], [H - 24, 6, NEGRO], [H - 16, 4, OCRE], [H - 10, 6, VERDE]]) rect(c, 0, y, W, h);
+    for (let c = 0; c < W; c += 64) {
+      ctx.fillStyle = BLANCO; ctx.beginPath(); ctx.moveTo(c, 64); ctx.lineTo(c + 32, 30); ctx.lineTo(c + 64, 64); ctx.lineTo(c + 32, 98); ctx.fill();
+      ctx.fillStyle = NEGRO; ctx.beginPath(); ctx.moveTo(c + 10, 64); ctx.lineTo(c + 32, 41); ctx.lineTo(c + 54, 64); ctx.lineTo(c + 32, 87); ctx.fill();
+      ctx.fillStyle = ROJO; ctx.fillRect(c + 26, 58, 12, 12);
+      ctx.fillStyle = OCRE; ctx.fillRect(c - 3, 61, 6, 6);
+    }
+    pincel(0.07);
+  } else if (g === 5) {
+    // bordado de amancay: una enredadera verde con flores naranjas (seis pétalos, pintas rojas)
+    ctx.strokeStyle = VERDE; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); for (let x = 0; x <= W; x += 8) ctx.lineTo(x, 66 + 14 * Math.sin(TAU * x / 256)); ctx.stroke();
+    for (let c = 0; c < W; c += 128) {
+      for (const s of [-1, 1]) { ctx.fillStyle = '#5e7a3c'; ctx.beginPath(); ctx.ellipse(c + 64 + s * 30, 66 + 14 * Math.sin(TAU * (c + 64 + s * 30) / 256) + s * 10, 18, 7, s * 0.6, 0, TAU); ctx.fill(); }
+      const fx = c + 64 + ((c / 128) % 2 ? 0 : 0), fy = 64;
+      for (let p = 0; p < 6; p++) {
+        const a = p / 6 * TAU;
+        ctx.fillStyle = p % 2 ? '#e8902c' : '#f0a838';
+        ctx.beginPath(); ctx.ellipse(fx + Math.cos(a) * 17, fy + Math.sin(a) * 17, 17, 8, a, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#b8401e'; for (let d = 0; d < 3; d++) { ctx.beginPath(); ctx.arc(fx + Math.cos(a) * (10 + d * 5), fy + Math.sin(a) * (10 + d * 5), 1.8, 0, TAU); ctx.fill(); }
+      }
+      ctx.fillStyle = '#f4d070'; ctx.beginPath(); ctx.arc(fx, fy, 7, 0, TAU); ctx.fill();
+      // las puntadas: rayitas claras sobre los pétalos
+      ctx.strokeStyle = 'rgba(255,230,180,0.5)'; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 18; i++) { const a = r() * TAU, d = 8 + r() * 22; ctx.beginPath(); ctx.moveTo(fx + Math.cos(a) * d, fy + Math.sin(a) * d); ctx.lineTo(fx + Math.cos(a) * (d - 6), fy + Math.sin(a) * (d - 6)); ctx.stroke(); }
+    }
+    // los filetes del borde, bordados
+    ctx.fillStyle = '#c03a28'; ctx.fillRect(0, 4, W, 5); ctx.fillRect(0, H - 9, W, 5);
+  } else if (g === 6) {
+    // bordado de lupino: espigas violetas y lilas, con hojas de dedos
+    ctx.fillStyle = '#c8a050'; ctx.fillRect(0, 2, W, 4); ctx.fillRect(0, H - 6, W, 4);
+    for (let c = 0; c < W; c += 64) {
+      const x0 = c + 32, alto = 70 + ((c / 64) % 3) * 10;
+      ctx.strokeStyle = '#4e6a34'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x0, 120); ctx.lineTo(x0, 120 - alto); ctx.stroke();
+      for (let i = 0; i < 9; i++) {
+        const y = 112 - alto + i * 8, k = i / 9;
+        ctx.fillStyle = k < 0.3 ? '#d8b8e8' : k < 0.6 ? '#9c6cc8' : '#6a3e9c';
+        for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x0 + s * (4 + k * 6), y, 5 + k * 2, 3.5, 0, 0, TAU); ctx.fill(); }
+      }
+      ctx.fillStyle = '#5e7a3c';
+      for (let i = 0; i < 5; i++) { const a = Math.PI + 0.3 + i * 0.6; ctx.beginPath(); ctx.ellipse(x0 + Math.cos(a) * 12, 116 + Math.sin(a) * 5, 11, 3, a, 0, TAU); ctx.fill(); }
+    }
+  } else if (g === 7) {
+    // cuero repujado: el borde con medialunas y puntos estampados (alfa: lo que oscurece)
+    ctx.fillStyle = 'rgba(30,16,8,0.75)'; ctx.fillRect(0, 10, W, 4); ctx.fillRect(0, H - 14, W, 4);
+    ctx.strokeStyle = 'rgba(30,16,8,0.7)'; ctx.lineWidth = 4;
+    for (let c = 0; c < W; c += 64) { ctx.beginPath(); ctx.arc(c + 32, 64, 18, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); ctx.beginPath(); ctx.arc(c + 32, 40, 4, 0, TAU); ctx.fill(); }
+    ctx.strokeStyle = 'rgba(240,200,150,0.5)'; ctx.setLineDash([10, 8]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(W, 24); ctx.moveTo(0, H - 24); ctx.lineTo(W, H - 24); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+// la cara (en el espacio de la cabeza: x de −0,085 a 0,085, y de −0,115 a 0,085; arriba en el lienzo = y alto)
+const CX = (x) => ATLAS.cara[0] + (x + 0.085) / 0.17 * ATLAS.cara[2];
+const CY = (y) => ATLAS.cara[1] + (0.085 - y) / 0.2 * ATLAS.cara[3];
+const CS = ATLAS.cara[2] / 0.17;
+function manchaCara(ctx, canal, x, y, rx, ry, a) {
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  const c = canal === 0 ? '255,0,0' : canal === 1 ? '0,255,0' : '0,0,255';
+  g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},0)`);
+  ctx.save(); ctx.translate(CX(x), CY(y)); ctx.scale(rx * CS, ry * CS); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
+}
+function pintarCara(ctx) {
+  const [x0, y0, w, h] = ATLAS.cara;
+  ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+  ctx.fillStyle = '#000000'; ctx.fillRect(x0, y0, w, h);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of [-1, 1]) {
+    manchaCara(ctx, 0, s * 0.041, -0.022, 0.024, 0.018, 0.9);      // el rubor, en la manzana del cachete
+    manchaCara(ctx, 0, s * 0.05, -0.012, 0.016, 0.014, 0.35);      // y hacia la sien
+    manchaCara(ctx, 1, s * 0.034, 0.007, 0.019, 0.009, 0.85);      // la sombra del párpado
+    manchaCara(ctx, 1, s * 0.047, 0.004, 0.012, 0.008, 0.5);       // hacia el rabillo
+    manchaCara(ctx, 1, s * 0.046, -0.035, 0.012, 0.012, 0.25);     // bajo el pómulo
+  }
+  manchaCara(ctx, 0, 0, -0.034, 0.009, 0.008, 0.45);               // la punta de la nariz
+  manchaCara(ctx, 0, 0, -0.098, 0.016, 0.01, 0.25);                // el mentón
+  // las pecas: puntos chicos en la nariz y los cachetes
+  const r = azar(4242);
+  for (let i = 0; i < 260; i++) {
+    const x = (r() - 0.5) * 0.11, y = -0.012 - r() * 0.026;
+    const zona = Math.exp(-(((Math.abs(x) - 0.024) / 0.026) ** 2) - (((y + 0.02) / 0.013) ** 2)) + Math.exp(-((x / 0.01) ** 2) - (((y + 0.017) / 0.012) ** 2));
+    if (r() > zona) continue;
+    ctx.fillStyle = `rgba(0,0,255,${0.5 + r() * 0.5})`; ctx.beginPath(); ctx.arc(CX(x), CY(y), 0.0008 * CS * (0.7 + r() * 0.8), 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+}
+// las cejas: pelitos en diagonal sobre claro (u: de adentro hacia la cola; v: de abajo hacia arriba)
+function pintarCeja(ctx) {
+  const [x0, y0, w, h] = ATLAS.ceja, r = azar(77);
+  ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+  ctx.fillStyle = '#b0b0b0'; ctx.fillRect(x0, y0, w, h);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 700; i++) {
+    const u = r(), v = r(), adentro = u < 0.2;
+    const x = x0 + u * w, y = y0 + h - v * h, L = 18 + r() * 22;
+    const a = adentro ? -1.25 + r() * 0.3 : -0.45 - r() * 0.25;   // adentro, para arriba; después, hacia la cola
+    ctx.strokeStyle = `rgba(${20 + r() * 40},${15 + r() * 25},${10 + r() * 20},${0.55 + r() * 0.4})`;
+    ctx.lineWidth = 2 + r() * 2.5;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); ctx.stroke();
+  }
+  ctx.restore();
+}
+// los labios: la mitad de arriba es el labio de arriba (v crece hacia el borde), la de abajo el de
+// abajo; rayitas verticales y el brillo (alfa) en el centro del de abajo
+function pintarLabios(ctx) {
+  const [x0, y0, w, h] = ATLAS.labios, r = azar(55);
+  const img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const u = x / w, v = y / h, i = (y * w + x) * 4;
+    const raya = 0.12 * Math.max(0, Math.sin(u * 180 + Math.sin(v * 9) * 2)) ** 8;
+    const linea = Math.exp(-(((v - 0.5) / 0.03) ** 2)) * 0.25;            // la línea de la boca, más oscura
+    const g = 0.52 - raya - linea + (r() - 0.5) * 0.03;
+    const br = Math.exp(-(((u - 0.5) / 0.16) ** 2) - (((v - 0.72) / 0.07) ** 2)) + 0.5 * Math.exp(-(((u - 0.38) / 0.06) ** 2) - (((v - 0.28) / 0.04) ** 2));
+    // (todo opaco: con alfa el lienzo premultiplica y se pierde el gris; el brillo va en el verde)
+    img.data[i] = img.data[i + 2] = Math.max(0, Math.min(1, g)) * 255;
+    img.data[i + 1] = Math.min(1, br) * 255; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, x0, y0);
+}
