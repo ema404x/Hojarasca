@@ -32,7 +32,7 @@ export const VISITANTES = {
     ],
   },
   ema: {
-    regalo: { cuenta: { 'semillas-habas': 3 } }, textoRegalo: 'Ema te dejó semillas de habas',
+    regalo: { cuenta: { 'semillas-habas': 3 } }, textoRegalo: 'Josefina te dejó semillas de habas',
     charlas: [
       ['Estaba haciendo el recorrido y dije: paso a saludar. ¡Qué linda te quedó la mesa!', 'Te traje semillas de habas del vivero del parque. Se dan bien en esta tierra.'],
       ['Vi rastros de huemul cerca del arroyo. Si los ves, no te acerques mucho: son pocos y se asustan.', 'Las semillas son de las que guardamos para repartir. Plantalas en otoño.'],
@@ -87,7 +87,7 @@ export const seVa = (v, dia, horas) => !!v.activa && (v.activa.dia !== dia || ho
 export function terminarVisita(v, dia) {
   v.ultima = v.activa?.dia || dia;
   // 3.6.1: la visita de un compadre no le quita el turno al de siempre (antes, cada compadre que
-  // venía salteaba al que le tocaba: Don Ramón, Nicanor, Ema y Ercilia se turnan)
+  // venía salteaba al que le tocaba: Don Ramón, Nicanor, Josefina y Ercilia se turnan)
   if (!v.activa?.amistad) v.cuenta += 1;
   v.activa = null;
 }

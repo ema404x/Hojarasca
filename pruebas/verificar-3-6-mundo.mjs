@@ -214,7 +214,8 @@ const con = valle({ aldea: true });
   ok(v.arboles.length === 2600 && sin.veg.arboles.length === 2600, 'la lista de árboles no cambia de tamaño');
   ok(v.despejadas.length > 50, `la aldea despeja con veg.despejar (${v.despejadas.length} pedidos)`);
   const m = A.marcoAldea();
-  const lejos = v.despejadas.filter((d) => { const l = m.aLocal(d.x, d.z); return !(l.lx > -60 && l.lx < 106 && l.lz > -6 && l.lz < 96); });
+  // (3.7.0: con la calle de la Loma, la aldea llega hasta x = −150)
+  const lejos = v.despejadas.filter((d) => { const l = m.aLocal(d.x, d.z); return !(l.lx > -160 && l.lx < 106 && l.lz > -6 && l.lz < 96); });
   ok(lejos.length <= 40, `los despejes de la aldea quedan en la aldea (afuera: ${lejos.length}, los de las estructuras de siempre)`);
   const quedan = v.arboles.filter((a) => !a.sacado && AM.zonasEmparejar().some((z) => Math.hypot(a.x - z.x, a.z - z.z) < Math.min(z.x1 - z.x0, z.z1 - z.z0) / 2));
   ok(quedan.length === 0, 'ningún árbol en pie adentro de un edificio');

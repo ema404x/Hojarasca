@@ -684,7 +684,7 @@ export const VOCES = {
     ] },
     sobremesa: [
       'El bosque te habla si sabés escuchar. Un silencio de golpe quiere decir que algo grande anda cerca.',
-      'Ema y yo nos pasamos los registros. Entre las dos tenemos medio valle anotado.',
+      'Josefina y yo somos compañeras: ella recorre el valle y yo atiendo la seccional. Por la radio nos pasamos los registros; entre las dos tenemos medio valle anotado.',
       'Los chicos de la aldea me traen cada cosa… Nahuel me trajo una piedra «con forma de huella de puma». Era una piedra.',
     ],
     visita: [
@@ -731,6 +731,331 @@ export const VOCES = {
     saludoCompadre: '¡{nombre}, hermano! Esta te la toco a vos.',
     fauna: 'Afinando en la plaza a la mañana, escuché y vi {unbicho}. Me tiró una nota que no conocía.',
     regalo: 'Cholo, el músico, te dejó empanadas del baile',
+  },
+  // ---------------------------------------------------------------- 3.7.0: las de la calle de la Loma
+  veterinaria: {
+    encanta: {
+      yerba: 'Yerba. En las recorridas por los puestos, el mate es lo único que me espera en todos lados. Gracias.',
+      empanadas: '¡Empanadas! Me las llevo para la visita al Puesto Alto: Don Ramón dice que vive de aire, pero las empanadas no las desprecia.',
+      pinon: 'Piñones… Mi chuchu, mi abuela, los hervía en invierno y los guardaba en una bolsa colgada del techo. Me trajiste el olor de su casa.',
+    },
+    gusta: '{cosa}. Gracias, de verdad. Lo guardo para cuando vuelva de una guardia.',
+    noGusta: 'Una pluma… Te lo agradezco, pero cada pluma suelta me hace pensar en un pájaro lastimado. Dejala donde estaba.',
+    ocupado: 'Ahora tengo un animal en el corral y no lo puedo dejar solo. A la tardecita, si querés.',
+    acepta: 'Dale. Me lavo las manos, que vengo del corral, y vamos a {lugar}.',
+    animo: {
+      bien: 'Bien. Hoy nació un ternero en lo de un puestero y salió parado a la primera.',
+      cansado: 'Cansada. Pasé la noche en vela con una oveja que no quería parir.',
+      inquieto: 'Con ganas de salir al campo. Acá adentro huelo a desinfectante.',
+      charla: 'Con ganas de charlar con alguien que no muja ni relinche.',
+    },
+    historia: { titulo: 'Las manos de mi chuchu', partes: [
+      'Me crié en Junín de los Andes, en el campo de mi familia. Mi chuchu, mi abuela, curaba a los animales con yuyos y con paciencia, y nunca le cobró a nadie.',
+      'Estudié veterinaria en Esquel, con becas y con lo que daban las ovejas de mi papá. El primer año lloré todas las noches. El segundo, ya no.',
+      'Una vez salvé a la perra de un puestero que había comido veneno de zorro. Estuvimos toda la noche en la cocina, yo con el suero y él con el mate. A la mañana la perra se levantó y le lamió la cara. Ese día supe que no me iba a ir nunca del campo.',
+    ] },
+    sobremesa: [
+      'Los animales no mienten: si un perro te huele las manos y se queda, es que sos buena gente.',
+      'La Chola, la perra de Ernesto, es la que manda en la estación. Ernesto cree que manda él. No le digas nada.',
+      'El zaino de Don Ramón tiene mañas, pero es noble. Si lo montás, hablale: los caballos escuchan.',
+    ],
+    visita: [
+      'Venía de revisar las gallinas de un vecino y dije: paso a ver las tuyas. Están lindas, eh.',
+      'Te dejé unos huevos que me regalaron en una guardia. Yo con uno por día me arreglo.',
+    ],
+    saludoAmigo: 'Hola, {nombre}. ¿Cómo andan tus animales? ¿Y vos?',
+    saludoCompadre: '¡{nombre}! Vos sos de los que se dejan revisar sin protestar. Vení, sentate.',
+    fauna: 'Volviendo de un puesto vi {unbicho}. Tenía el pelo lindo: anda bien comido.',
+    pronostico: 'Las vacas se juntaron todas en el bajo: {pronostico}. Nunca fallan.',
+    regalo: 'Ayelén, la veterinaria, te dejó unos huevos de una guardia',
+  },
+  fotografa: {
+    encanta: {
+      'frasco-frutilla': '¡Dulce de frutilla! Esto lo fotografío antes de abrirlo, a contraluz. Después me lo como todo, eh.',
+      miel: 'Miel… ¿Viste el color? Ámbar con luz adentro. Te voy a sacar una foto con el frasco.',
+      empanadas: 'Empanadas. En el cuarto oscuro uno se olvida de comer. Con esto, no me olvido más. ¡Gracias!',
+    },
+    gusta: '{cosa}. ¡Qué lindo! Para la naturaleza muerta del jueves.',
+    noGusta: 'Ay, una trucha cruda… Después el estudio huele a muelle una semana. Llevásela a Martina, que a ella le gusta el olor.',
+    ocupado: 'Estoy revelando: si abro la puerta, se velan todas. Más tarde, cuando se seque el papel.',
+    acepta: '¡Sí! Llevo la cámara, por las dudas. A {lugar}.',
+    animo: {
+      bien: 'Bien. Me salió una foto del cerro con nubes que parece pintada. Abril se va a morir de envidia.',
+      cansado: 'Cansada. Estuve en el cuarto oscuro hasta las tres, con la luz roja.',
+      inquieto: 'Con ganas de salir a sacar. Hay una luz afuera que se me escapa.',
+      charla: 'Con ganas de charlar. Las fotos no contestan, por lindas que salgan.',
+    },
+    historia: { titulo: 'La cámara del abuelo Jalil', partes: [
+      'Mi abuelo Jalil vino del Líbano con una valija y una cámara de fuelle. En Bahía Blanca sacó fotos de casamientos, bautismos y carnavales durante cuarenta años.',
+      'Yo trabajé diez años en un diario de Buenos Aires: choques, actos, gente enojada. Un día me di cuenta de que nunca fotografiaba nada que me gustara mirar.',
+      'Antes de morir, mi abuelo me dijo: «La foto no es lo que se ve, es lo que se queda». Me traje su cámara a la cordillera porque acá todo se queda: la luz, la gente, el silencio.',
+    ] },
+    sobremesa: [
+      'La mejor luz es la de las cinco de la tarde en otoño. Todo parece dorado, hasta Benigno.',
+      'Benigno me despacha los sobres con las fotos. Dice que el telégrafo es más rápido. Yo le digo que el telégrafo no tiene colores.',
+      'Saqué una foto de toda la aldea en la plaza. El único que salió movido fue el perro de Ernesto.',
+    ],
+    visita: [
+      'Vine a sacar una foto de tu refugio con la luz de la tarde. Quedate ahí, no te muevas… ¡Listo!',
+      'Te dejé yerba. Me la regaló Ercilia por una foto del almacén, y yo tomo café.',
+    ],
+    saludoAmigo: '¡{nombre}! Justo, quedate ahí, que te da la luz.',
+    saludoCompadre: '¡{nombre}! Mi modelo preferido. No, en serio: sos el único que no pone cara rara.',
+    fauna: 'Ayer casi fotografío {unbicho}, pero se me trabó el obturador. Típico.',
+    pronostico: 'Las nubes de la tarde estaban como algodón deshilachado: {pronostico}.',
+    regalo: 'Sofía, la fotógrafa, te dejó yerba que le dio Ercilia por una foto',
+  },
+  andinista: {
+    encanta: {
+      'calafate-seco': 'Calafates secos: la mejor comida de montaña que existe. Pesan nada y te levantan el ánimo. ¡Gracias!',
+      pinon: 'Piñones. En la mochila no hay nada mejor para una subida larga. Me los llevo al filo.',
+      yerba: 'Yerba. El mate en la cumbre, con el viento en la cara, sabe a otra cosa. Te debo uno arriba.',
+    },
+    gusta: '{cosa}. ¡Va a la mochila! Gracias.',
+    noGusta: 'Un poncho… Lindo, eh, pero en la montaña el poncho se engancha en todo y se moja como esponja. Para la plaza, sí.',
+    ocupado: 'Estoy preparando una salida: si dejo las cuerdas a medio enrollar, mañana no las desenredo más. Después.',
+    acepta: '¡Vamos! Una caminata es una caminata, aunque sea hasta {lugar}.',
+    animo: {
+      bien: 'Bárbara. Subí al filo antes del amanecer y vi el sol salir detrás del volcán.',
+      cansado: 'Molida. Bajé con dos mochileros que no sabían caminar en pedrero. Ahora saben.',
+      inquieto: 'Con ganas de subir algo. Lo que sea. Hasta el techo del galpón me sirve.',
+      charla: 'Con ganas de charlar con alguien que no me pregunte si falta mucho.',
+    },
+    historia: { titulo: 'El sombrero del Tronador', partes: [
+      'Empecé a subir montañas a los doce, detrás de mi tío, que era baqueano en el Tronador. Me llevaba atada con una cuerda, como un perrito.',
+      'A los veinte guiaba gente en el Lanín. Una vez, en la cumbre, un turista se puso a llorar. Pensé que le dolía algo. Me dijo: «Es que nunca vi tan lejos».',
+      'Lo del sombrero es verdad: se lo voló el viento a un señor en el Tronador y quedó enganchado en una grieta. Hace diez años que está ahí. Cada vez que subo, lo saludo. Es la única vez que dejé algo arriba.',
+    ] },
+    sobremesa: [
+      'Regla de montaña: si dudás, volvés. La montaña va a seguir ahí mañana. Vos, quizás no.',
+      'Julia me avisa dónde andan los huemules, y yo llevo a la gente por otro lado. Josefina me pasa el estado del sendero por la radio.',
+      'Nahuel me pide todos los días que lo lleve a la montaña. Un día de estos lo llevo, cuando llegue a la cintura de la mochila.',
+    ],
+    visita: [
+      '¡Hola! Bajaba del filo y vi el humo de tu chimenea. Pasé a saludar, que el que sube solo tiene que avisar que bajó.',
+      'Te dejé calafates secos de los míos. Para cuando salgas a caminar lejos.',
+    ],
+    saludoAmigo: '¡Hola, {nombre}! ¿Hoy a dónde vamos?',
+    saludoCompadre: '¡{nombre}! Compañero de cordada. Vos y yo, un día, al Tronador.',
+    fauna: 'Bajando del filo vi {unbicho}. Me quedé quieta para no espantarlo, y el que se espantó fue un mochilero.',
+    pronostico: 'El volcán tenía una nube de sombrero: {pronostico}.',
+    regalo: 'Rocío, la guía de montaña, te dejó calafates secos para el camino',
+  },
+  herbolaria: {
+    encanta: {
+      calafate: 'Calafate. Lo juntaste con cuidado, se nota: sin arrancar la rama. Gracias, de verdad.',
+      llaollao: 'Llao llao fresco. Mi abuela decía que el que lo encuentra tiene buena vista y buen corazón.',
+      miel: 'Miel de acá. Con canelo y un poco de esto, el resfrío no tiene chance. Gracias.',
+    },
+    gusta: '{cosa}. Gracias. Todo lo del monte tiene su uso.',
+    noGusta: 'Un tronco… Te lo agradezco, pero yo de los árboles prefiero lo que se les cae solo. Llevalo para tu fuego.',
+    ocupado: 'Estoy secando hojas: si las dejo, se me queman. Más tarde.',
+    acepta: 'Bueno. Llevo un poco de poleo para el agua, por las dudas. A {lugar}.',
+    animo: {
+      bien: 'Bien. Florecieron los amancay del bajo, y eso siempre es buena señal.',
+      cansado: 'Cansada. Salí antes del alba a juntar canelo y la helada no me dejó los dedos.',
+      inquieto: 'Con ganas de salir al monte. Adentro, con tanto frasquito, me falta aire.',
+      charla: 'Con ganas de charlar un rato. Las plantas escuchan, pero contestan despacio.',
+    },
+    historia: { titulo: 'Pedir permiso', partes: [
+      'Mi abuela curaba con plantas: lawen, le decía al remedio, en mapuzungun. De chica me llevaba al monte antes del sol y me hacía saludar a cada árbol antes de sacarle una hoja.',
+      'De grande estudié enfermería, pero me quedé a mitad de camino. Me daba más remedio el monte que la farmacia, y en el pueblo me miraban raro.',
+      'Lo que me enseñó mi abuela es que todo se pide. Al monte, al agua, al que tenés al lado. El que pide permiso nunca se lleva de más. Eso es lo único que sé de verdad; lo demás son yuyos.',
+    ] },
+    sobremesa: [
+      'El matico sana raspaduras, el canelo el resfrío y el poleo la panza. Y el mate, todo lo demás.',
+      'Marta, la enfermera, me pide té de canelo para los resfriados. Nos repartimos el trabajo: ella el cuerpo, yo el resto.',
+      'Si encontrás frutillas silvestres, dejá siempre algunas. Los pájaros también tienen hambre.',
+    ],
+    visita: [
+      'Pasaba juntando hongos por el bajo y vi tu refugio. Te traje un atadito de poleo para colgar en la puerta.',
+      'Te dejé calafates. Dicen que el que come calafate, vuelve. Yo volví, y acá estoy.',
+    ],
+    saludoAmigo: 'Mari mari, {nombre}. ¿Todo bien en tu casa?',
+    saludoCompadre: '¡{nombre}! Vení, que te preparé un té de los que no le doy a cualquiera.',
+    fauna: 'Juntando hojas vi {unbicho}. Me miró como pidiéndome permiso. Se lo di.',
+    pronostico: 'Las hojas del canelo se dieron vuelta: {pronostico}.',
+    regalo: 'Inés, la herbolaria, te dejó calafates frescos',
+  },
+  pintora: {
+    encanta: {
+      calafate: '¡Calafates! Con esto saco un violeta que no existe en ningún tubo. ¿Ves? Te lo dije el primer día.',
+      pluma: 'Una pluma de cachaña… Con esto hago un pincel finito para los detalles. Es perfecta. Gracias, de verdad.',
+      frutilla: 'Frutillas. Primero las pinto, después me las como. El cuadro dura más, pero las frutillas son más ricas.',
+    },
+    gusta: '{cosa}. Ay, qué lindo. Va directo a la naturaleza muerta.',
+    noGusta: 'Una trucha cruda… Es linda para pintar, eh, pero a las dos horas el taller no se aguanta. Llevásela a Martina.',
+    ocupado: 'Estoy con una capa de óleo fresca: si la dejo, se seca mal. Después, cuando cambie la luz.',
+    acepta: 'Sí, vamos. Llevo la libreta de dibujo. A {lugar}.',
+    animo: {
+      bien: 'Bien. Terminé el cerro de la mañana. Bueno, terminado no: los cuadros no se terminan, se abandonan.',
+      cansado: 'Cansada. Pinté de noche con un farol y ahora todo me parece amarillo.',
+      inquieto: 'Con ganas de salir a pintar afuera. El taller tiene buena ventana, pero el mundo es más grande.',
+      charla: 'Con ganas de charlar. Cuando pinto me quedo callada horas, y después me sale todo junto.',
+    },
+    historia: { titulo: 'Tres veranos', partes: [
+      'Nací en Tandil, en una casa con siete hermanos y ninguna pared sin dibujar. Mi mamá decía que yo pintaba antes de caminar. Exageraba: fue después.',
+      'Vine a la cordillera un verano a pintar paisajes para una galería de Buenos Aires. Mandé dos cuadros, y con lo que me dieron me alcanzó para quedarme otro verano. Ya van tres.',
+      'El primer invierno acá casi me vuelvo. Una mañana de helada salí y todo el valle brillaba. Lo quise pintar y no pude: me temblaban las manos de frío y de otra cosa. Desde ese día pinto para alcanzar esa mañana. Todavía no la alcancé.',
+    ] },
+    sobremesa: [
+      'Las sombras nunca son negras. Mirá la de ese álamo: es azul, con un poquito de violeta.',
+      'Le pinté el cartel a Ceinwen. Me pagó con torta negra. Fue el mejor trato de mi vida.',
+      'Cholo me dejó pintarlo tocando. Salió más joven, como quería. Bueno, un poco.',
+    ],
+    visita: [
+      'Vine a pintar tu refugio desde el sendero. Mirá, ya tengo el boceto. Le agregué humo en la chimenea, que queda más lindo.',
+      'Te dejé una pluma que encontré en el camino. Es demasiado linda para pintar con ella.',
+    ],
+    saludoAmigo: 'Hola, {nombre}. Hoy tenés la luz de costado: quedate quieto un segundo.',
+    saludoCompadre: '¡{nombre}! Te estoy pintando en un cuadro y no sabés. Bueno, ahora sí sabés.',
+    fauna: 'Estaba pintando en el bajo y se me paró {unbicho} adelante, como posando. Lo dibujé rapidito.',
+    pronostico: 'El cielo de la tarde estaba color durazno: {pronostico}.',
+    regalo: 'Abril, la pintora, te dejó una pluma de cachaña',
+  },
+  ceramista: {
+    encanta: {
+      empanadas: '¡Empanadas! Mario dice que las de su mujer son las mejores. No se lo digas, pero estas están a la altura.',
+      piedra: 'Piedras para moler el esmalte… Sos el primero que entiende lo que necesita una ceramista. ¡Gracias!',
+      'trucha-ahumada': 'Trucha ahumada. En Gaiman la comíamos los domingos con pan casero. Me vino la nostalgia de golpe.',
+    },
+    gusta: '{cosa}. ¡Qué bueno! Gracias, primo. Digo, vecino. Bueno, es lo mismo.',
+    noGusta: 'Miel… Me encanta, pero me pica la garganta de una forma que no te imaginás. Llevásela a Sofía, que es golosa.',
+    ocupado: 'Tengo el horno prendido: si lo dejo, se me rajan todas las piezas. Más tarde, con las manos limpias.',
+    acepta: '¡Vamos! Me saco el barro de las uñas en el camino. A {lugar}.',
+    animo: {
+      bien: 'Bien. Salió una tanda entera sin una sola rajadura. Eso en el oficio pasa una vez por año.',
+      cansado: 'Cansada. Amasé barro toda la mañana: tengo los brazos como de herrero.',
+      inquieto: 'Con ganas de ir al arroyo a buscar arcilla. Ahí pienso mejor.',
+      charla: 'Con ganas de charlar. Con el torno uno habla sola, y ya me estoy contestando.',
+    },
+    historia: { titulo: 'El barro de Gaiman', partes: [
+      'Mi familia es la misma de Mario: los Jones que llegaron al Chubut en el siglo pasado. La rama de Mario subió a la cordillera; la mía se quedó en Gaiman, entre chacras y casas de té.',
+      'Aprendí cerámica con una señora del valle que hacía tazas para las casas de té. Me decía que el barro tiene memoria: si lo tratás mal antes del horno, se acuerda en el horno.',
+      'Me vine porque Mario me escribió que acá el arroyo trae barro colorado y fino. No me dijo que también traía vecinos. Ahora no me iría ni aunque se secara el arroyo.',
+    ] },
+    sobremesa: [
+      'Mario de chico se comía el barro. Yo no, eh. Yo lo usaba para hacer tortitas. Que después se comía Mario.',
+      'Los chicos de Gladys vienen los sábados a hacer jarros. Salen todos torcidos y son los más lindos de la aldea.',
+      'El horno es como una persona: hay que conocerle las mañas. El mío tira más fuerte de la izquierda.',
+    ],
+    visita: [
+      '¡Hola! Vine a ver si te sirven unos jarros para el mate. Están un poco torcidos, pero el mate no se entera.',
+      'Te dejé unas piedras del arroyo, de las lisas. Para trabar la puerta, o para lo que se te ocurra.',
+    ],
+    saludoAmigo: '¡Hola, {nombre}! Perdón el barro, ya sabés.',
+    saludoCompadre: '¡{nombre}! Ya sos de la familia Jones. Y esto no tiene vuelta atrás.',
+    fauna: 'Juntando arcilla en el arroyo vi {unbicho}. Nos miramos los dos con barro hasta las rodillas.',
+    pronostico: 'El barro del arroyo estaba duro esta mañana: {pronostico}.',
+    regalo: 'Malena, la ceramista, te dejó piedras lisas del arroyo',
+  },
+  botera: {
+    encanta: {
+      tabla: 'Tablas. Derechas, sin nudos. Esto vale más que un regalo, vale un bote. Gracias.',
+      'trucha-ahumada': 'Trucha ahumada. Como la que hacía mi viejo en el varadero, en una lata de dulce de batata.',
+      yerba: 'Yerba. En el muelle, a las siete de la mañana, el mate es lo único que te mantiene en pie.',
+    },
+    gusta: '{cosa}. Gracias. No soy de muchas palabras, pero gracias.',
+    noGusta: 'Dulce… No, gracias. Lo dulce no me va. Dáselo a Pocha, que se lo come con cuchara.',
+    ocupado: 'Tengo un casco dado vuelta con la brea caliente. Si lo dejo, se arruina. Después.',
+    acepta: 'Bueno. Pero rápido, que la brea se enfría. A {lugar}.',
+    animo: {
+      bien: 'Bien. El lago estaba planchado esta mañana. Así da gusto.',
+      cansado: 'Cansada. Di vuelta un bote sola. No lo hagas nunca.',
+      inquieto: 'Con ganas de salir al agua. En tierra me mareo.',
+      charla: 'Con ganas de charlar un poco. Nicanor y yo pasamos el día sin decir diez palabras.',
+    },
+    historia: { titulo: 'El varadero de Madryn', partes: [
+      'Me crié en el varadero de mi viejo, en Puerto Madryn. Antes de caminar ya sabía el olor de la brea y de la madera mojada.',
+      'Mi viejo quería que estudiara algo «de escritorio». Estudié dos años de contadora y un día me escapé a calafatear un pesquero. Nunca volví a la facultad.',
+      'Cuando mi viejo se murió, cerraron el varadero. Me quedé con un remo partido, el que tenía colgado en la pared. Lo traje hasta acá. Algún día lo arreglo. O no: quizás está bien así, partido, para acordarme.',
+    ] },
+    sobremesa: [
+      'Un bote se cuida como un caballo: después de usarlo, se lo seca, se lo revisa y se lo deja descansar.',
+      'Nicanor y yo nos entendemos sin hablar. Él mira el agua, yo miro los botes, y el lago nos mira a los dos.',
+      'Vivo en la loma y trabajo en el lago. Media hora para cada lado. Es lo mejor del día: pensar caminando.',
+    ],
+    visita: [
+      'Volvía del muelle por el sendero y vi tu refugio. Pasé a ver si tenés el kayak bien guardado. Más o menos, eh.',
+      'Te dejé unas tablas de ciprés que me sobraron. Para lo que quieras, que son buenas.',
+    ],
+    saludoAmigo: 'Buenas, {nombre}. ¿Todo seco?',
+    saludoCompadre: '¡{nombre}! Si alguna vez te hundís, sos el primero que voy a sacar del agua.',
+    fauna: 'Desde el muelle vi {unbicho} en la orilla. Nicanor ni levantó la vista: él ya lo había visto ayer.',
+    pronostico: 'El lago estaba picado en la punta: {pronostico}.',
+    regalo: 'Martina, la del varadero, te dejó tablas de ciprés',
+  },
+  astronoma: {
+    encanta: {
+      miel: 'Miel. Para el té de las tres de la mañana, cuando el cielo está más lindo y yo más dormida.',
+      'calafate-seco': 'Calafates secos. En la cúpula, de noche, como de a uno, contando estrellas. Gracias.',
+      'pan-casero': 'Pan casero. Es lo primero que como cuando me despierto, a la hora en que ustedes almuerzan.',
+    },
+    gusta: '{cosa}. Gracias. Lo guardo para la guardia de esta noche.',
+    noGusta: 'Hongos secos… Te lo agradezco, pero a mí me caen mal de noche, y yo vivo de noche.',
+    ocupado: 'Estoy calibrando el telescopio. Si me equivoco en un grado, miro Marte y veo una vaca. Después.',
+    acepta: 'Bueno, pero vuelvo antes de que oscurezca, que esta noche hay cielo. A {lugar}.',
+    animo: {
+      bien: 'Bien. Anoche vi la nebulosa de Carina como nunca. Todavía la tengo en los ojos.',
+      cansado: 'Dormida. Me acosté a las cinco. Para mí son las seis de la mañana.',
+      inquieto: 'Con ganas de que se haga de noche. El día me parece muy largo.',
+      charla: 'Con ganas de charlar. De noche, en la cúpula, la única que habla es la estufa.',
+    },
+    historia: { titulo: 'La luz que llega tarde', partes: [
+      'De chica, en Córdoba, mi papá me subía al techo a mirar las estrellas. Me decía que muchas ya no estaban: lo que veíamos era la luz que había salido hace miles de años.',
+      'Trabajé en el observatorio de Bosque Alegre doce años. Pero cada año la ciudad crecía y el cielo se iba apagando. Un día el telescopio veía más farolas que estrellas.',
+      'Mi papá se murió el invierno pasado. La primera noche acá, en la loma, miré la Cruz del Sur y pensé en lo que él decía de la luz que llega tarde. Yo también llegué tarde a muchas cosas. Pero llegué.',
+    ] },
+    sobremesa: [
+      'Acá no hay una sola luz en kilómetros. Es uno de los cielos más oscuros que vi en mi vida. Y eso que vi muchos.',
+      'Ernesto me apaga el farol del andén a las once. Es el mejor regalo que me hicieron en la aldea.',
+      'Si mirás la Vía Láctea mucho rato, te mareás. Es normal: estás mirando para afuera de la galaxia.',
+    ],
+    visita: [
+      'Me levanté temprano, a las cuatro de la tarde, y vine a verte. Tu refugio tiene buen cielo: nada te tapa el sur.',
+      'Te dejé un frasco de miel. Esta noche, si está despejado, mirá al sur: ahí está la Cruz.',
+    ],
+    saludoAmigo: 'Hola, {nombre}. ¿Viste qué cielo anoche?',
+    saludoCompadre: '¡{nombre}! Esta noche hay lluvia de estrellas. Te guardo el mejor lugar de la cúpula.',
+    fauna: 'Anoche, volviendo de la cúpula, vi {unbicho}. De noche el valle es de ellos.',
+    pronostico: 'Anoche el cielo titilaba mucho: {pronostico}.',
+    regalo: 'Valentina, la astrónoma, te dejó un frasco de miel',
+  },
+  modista: {
+    encanta: {
+      lana: '¡Lana! Ay, qué linda, qué suave. Con esto te tejo… bueno, te coso algo. Ya veré. ¡Gracias, mi amor!',
+      'frasco-frutilla': '¡Dulce de frutilla! Me lo como con cuchara, mirando la novela de la radio. No le digas a Anselmo, que me lo pide.',
+      empanadas: 'Empanadas… Como las de Corrientes no hay, pero éstas se defienden. ¡Gracias!',
+    },
+    gusta: '{cosa}. Ay, qué detalle. Vos sí sabés tratar a una señora.',
+    noGusta: '¿Una piedra? Ay, no, mi amor, ¿qué hago con una piedra? ¿La coso? Llevásela a Malena, que ella las muele.',
+    ocupado: 'Tengo un dobladillo a medio hacer y la clienta espera. ¡Pero después venite, que te cuento todo!',
+    acepta: '¡Ay, sí! Me pongo los aros y vamos a {lugar}.',
+    animo: {
+      bien: 'Divina. Terminé el vestido de la hija de Ercilia… bueno, de la sobrina. Le queda pintado.',
+      cansado: 'Molida. Cosí toda la noche con la luz del farol. La vista ya no es la de antes.',
+      inquieto: 'Con ganas de salir a dar una vuelta. Acá sentada, con la máquina, se entera una de todo pero no ve nada.',
+      charla: '¡Con ganas de charlar! Como siempre. Sentate, que tengo para rato.',
+    },
+    historia: { titulo: 'El vestido azul', partes: [
+      'Nací en Goya, Corrientes. A los doce ya cosía los guardapolvos de todo el barrio. A los veinte, los vestidos de quince de media provincia.',
+      'Me casé con Raúl, un camionero que me trajo a la Patagonia. Era bueno como el pan y nunca se acordaba de los cumpleaños. Treinta años de casados. Se fue hace cinco inviernos, dormido, sin molestar a nadie, como era él.',
+      'Todavía tengo el vestido azul que me cosí para el casamiento. No me entra, eh. Pero lo saco una vez por año, lo plancho y lo vuelvo a guardar. Algún día, quién sabe, me cose otra fiesta.',
+    ] },
+    sobremesa: [
+      '¿Vos sabías que Anselmo, el herrero, sabe bailar chamamé? Bueno, sabe pisar. Pero con ganas.',
+      'En esta aldea todo se sabe. Yo no lo cuento, eh: lo comento, que no es lo mismo.',
+      'Cuando llegué, Elvira me miró como si fuera la competencia. Ahora nos pasamos los ovillos y los chismes.',
+    ],
+    visita: [
+      '¡Ay, qué lindo lo tuyo! Vine caminando desde la aldea, con estos zapatos. Si me desmayo, avisale a Anselmo.',
+      'Te dejé un poco de lana que me sobró. Y te cosí el botón de la campera que tenías colgada. De nada.',
+    ],
+    saludoAmigo: '¡{nombre}, mi amor! Pasá, que tengo novedades.',
+    saludoCompadre: '¡{nombre}! Sos como el hijo que no tuve. Bueno, como el sobrino. Vení que te abrazo.',
+    fauna: 'El otro día, tendiendo la ropa, vi {unbicho}. Casi se me cae la sábana del susto.',
+    pronostico: 'Me duelen los juanetes: {pronostico}. Nunca fallan, los juanetes.',
+    regalo: 'Pocha, la modista, te dejó lana y te cosió un botón',
   },
   ramon: {
     encanta: {
@@ -829,7 +1154,7 @@ export const VOCES = {
     ] },
     sobremesa: [
       'El chucao canta fuerte y nunca lo ves. Es el pájaro más tímido y más ruidoso del bosque.',
-      'Julia, la de la seccional de la aldea, me pasa sus registros. Entre las dos tenemos medio valle anotado.',
+      'Julia y yo somos compañeras: yo recorro el valle y ella atiende la seccional de la aldea. Entre las dos tenemos medio valle anotado.',
       'Lo más lindo de este trabajo es cuando alguien empieza a anotar sin que se lo pidas. Como vos.',
     ],
     visita: [
@@ -840,7 +1165,7 @@ export const VOCES = {
     saludoCompadre: '¡{nombre}! Te estaba por ir a buscar: tengo algo para mostrarte.',
     fauna: 'En la recorrida de esta mañana vi {unbicho}. Me quedé un rato largo mirándolo.',
     pronostico: 'Por cómo se cerró el cerro esta tarde, {pronostico}.',
-    regalo: 'Ema te dejó semillas de habas del vivero del parque',
+    regalo: 'Josefina te dejó semillas de habas del vivero del parque',
   },
   guarda: {
     encanta: {
@@ -1009,6 +1334,58 @@ export const AYUDAS = {
       gracias: ['Ya está. Escuchá… ¡qué lindo suena! Esa nota la cantás vos el sábado.'],
       consejo: 'Una vez por semana te enseño una melodía para el tocadiscos del refugio. Pasá, que tengo varias.' },
   ],
+  // 3.7.0: las de la calle de la Loma
+  veterinaria: [
+    { id: 'sostener-oveja', titulo: 'Sostenerle una oveja mientras la revisa', hace: true,
+      gracias: ['Así, firme pero sin apretar. Ya está: tenía una espina en la pata, nada más. Tenés buena mano con los animales.'],
+      devuelve: { tipo: 'entrada', k: 'huevo', n: 2, texto: 'Llevate estos huevos, que me regalaron en una guardia.' },
+      consejo: 'A los animales no se los mira a los ojos de entrada. Se les deja oler la mano, y después se habla.' },
+  ],
+  fotografa: [
+    { id: 'reflector', titulo: 'Sostenerle el reflector para un retrato', hace: true,
+      gracias: ['¡Perfecto! Un poquito más arriba… ¡ahí! Salió divina la luz. Vos tenés ojo, eh.'],
+      consejo: 'Para fotografiar un animal, ponete con el sol en la espalda y esperá. El que se apura, saca colas.' },
+  ],
+  andinista: [
+    { id: 'cuerdas', titulo: 'Ayudarla a enrollar las cuerdas', hace: true,
+      gracias: ['Así, en ocho, que no se enrede. Si un día te toca colgarte de una, vas a agradecer haber aprendido.'],
+      devuelve: { tipo: 'entrada', k: 'calafate-seco', n: 1, texto: 'Tomá unos calafates secos, de los de la mochila.' },
+      consejo: 'Si salís lejos, avisá siempre a dónde vas. Y llevá abrigo aunque salga el sol: en la montaña el tiempo cambia en diez minutos.' },
+  ],
+  herbolaria: [
+    { id: 'atar-hojas', titulo: 'Ayudarla a atar los atados de hojas para secar', hace: true,
+      gracias: ['Así, con el hilo flojo, que respiren. Gracias: entre dos se hace en un rato y se charla.'],
+      devuelve: { tipo: 'entrada', k: 'calafate', n: 2, texto: 'Llevate unos calafates, que son de esta mañana.' },
+      consejo: 'Lo que juntes del monte, juntalo de día y sin arrancar la raíz. Así vuelve a crecer.' },
+  ],
+  pintora: [
+    { id: 'estirar-tela', titulo: 'Ayudarla a estirar una tela en el bastidor', hace: true,
+      gracias: ['Tirá parejo… ¡ahí! Tensa como un tambor. Ahora sí se puede pintar el cerro entero.'],
+      consejo: 'Cuando mires el paisaje, entrecerrá los ojos: desaparecen los detalles y queda lo que importa.' },
+  ],
+  ceramista: [
+    { id: 'amasar-barro', titulo: 'Amasar barro con ella', hace: true,
+      gracias: ['¡Así se amasa! Sin aire adentro, que si no, en el horno revienta. Tenés manos de alfarero. Bueno, de primo de alfarera.'],
+      devuelve: { tipo: 'material', k: 'piedra', n: 1, texto: 'Llevate esta piedra lisa del arroyo. No sirve para nada, pero es linda.' },
+      consejo: 'Las macetas de barro respiran: los plantines crecen mejor que en lata. Por eso te las hago.' },
+  ],
+  botera: [
+    { id: 'lijar-casco', titulo: 'Lijarle el casco de un bote', hace: true,
+      gracias: ['Parejo, sin apurarse. Está bien. Si un día querés aprender a calafatear, avisame.'],
+      devuelve: { tipo: 'material', k: 'tabla', n: 1, texto: 'Llevate esta tabla, que me sobró.' },
+      consejo: 'Un kayak se guarda dado vuelta y lejos del agua. El agua es buena para navegar, no para dormir.' },
+  ],
+  astronoma: [
+    { id: 'cupula', titulo: 'Ayudarla a girar la cúpula del observatorio', hace: true,
+      gracias: ['¡Uf! Pesa, ¿no? Ahora quedó mirando al sur. Esta noche te debo una estrella.'],
+      consejo: 'Para ver bien de noche, no mires ninguna luz media hora antes. Los ojos se acostumbran despacio.' },
+  ],
+  modista: [
+    { id: 'enhebrar-pocha', titulo: 'Enhebrarle la máquina de coser', hace: true,
+      gracias: ['¡Ay, qué vista tenés! Yo hace media hora que le erro al agujerito. Sentate, que te cuento lo de ayer.'],
+      devuelve: { tipo: 'material', k: 'lana', n: 1, texto: 'Llevate este poquito de lana, que me sobró de un pulóver.' },
+      consejo: 'A los vecinos hay que regalarles lo que les gusta, no lo que te sobra. Preguntame a mí, que sé de todos.' },
+  ],
   ramon: [
     { id: 'tranquera', titulo: 'Llevarle troncos para los postes de la tranquera', pide: { tipo: 'material', k: 'tronco', n: 2 },
       gracias: ['Buenos troncos, derechos. Con esto la tranquera aguanta otros veinte inviernos.'],
@@ -1047,6 +1424,8 @@ export const COMENTARIOS = {
     nene: ['¡Me dijeron que sacaste una trucha más grande que yo! ¿Es verdad?'],
     jefe: ['En la estación no se habla de otra cosa: la trucha de {cm} centímetros. El maquinista ya dice que medía un metro.', 'En la estación no se habla de otra cosa que de tu trucha.'],
     guarda: ['En el tren contaban de una trucha de {cm}. Para cuando lleguemos a la última estación, va a medir dos metros.'],
+    botera: ['Nicanor me contó lo de la trucha de {cm}. Dijo «grande», que en él es como un aplauso.', 'Nicanor me contó lo de tu trucha. Dijo «grande», que en él es como un aplauso.'],
+    modista: ['¡Me contaron de la trucha de {cm}! En la aldea ya dicen que medía como Anselmo.'],
   },
   'pez-nativo': {
     ema: ['Me contaron que sacaste una {especie}. Esa es de acá, de antes que las truchas. Ojalá la hayas devuelto.', 'Me contaron que sacaste un pez nativo. Ojalá lo hayas devuelto.'],
@@ -1065,6 +1444,7 @@ export const COMENTARIOS = {
     guardaparque: ['Lo anoté en el registro: un renoval plantado. Pocos lo hacen.'],
     abuela: ['Plantaste un árbol, me contaron. Dicen que los duendes se ponen contentos con eso.'],
     ramon: ['Así me gusta: el que saca, devuelve.'],
+    herbolaria: ['Me dijeron que plantaste un renoval. Al árbol se le pide permiso para sacarle, y se le devuelve así.'],
   },
   'aporte-obra': {
     _dueno: ['Vi lo que trajiste para {lugar}. Sin eso, mi local era un dibujo en un papel. Gracias.', 'Gracias por lo de {lugar}. Cada tabla que traés es una mañana menos de espera.'],
@@ -1088,6 +1468,7 @@ export const COMENTARIOS = {
     abuela: ['Con ese poncho no te agarra ni el viento del lago.'],
     musico: ['Con ese poncho podés subir al escenario el sábado. Ya tenés la pinta.'],
     madre: ['¡Qué lindo poncho! Lucía va a querer uno igual.'],
+    modista: ['¡Ay, poncho nuevo! Te queda pintado. Bueno, un poquito largo: pasá que te lo emparejo.'],
   },
   'durmio-afuera': {
     enfermera: ['¿Dormiste afuera? Contame cómo amaneciste. Y la próxima, manta y medias de lana.'],
@@ -1095,6 +1476,8 @@ export const COMENTARIOS = {
     ema: ['Si dormís afuera, apagá bien el fuego antes de cerrar los ojos. Con agua, no con tierra.'],
     nene: ['¡Dormiste en carpa! Yo también quiero. ¿Viste algún duende?'],
     guardaparque: ['Me dijeron que dormiste afuera. ¿Escuchaste al concón? De noche es el dueño del bosque.'],
+    andinista: ['¿Dormiste afuera? ¡Así me gusta! La próxima, conmigo, en el filo, que el amanecer de allá no se compara.'],
+    astronoma: ['¿Dormiste afuera? ¿Y miraste para arriba? Decime que miraste para arriba.'],
   },
   cosecha: {
     madre: ['Me dijeron que levantaste la cosecha. ¿Tenés papas? Hago unas tortillas que no te imaginás.'],
@@ -1115,6 +1498,7 @@ export const COMENTARIOS = {
   esquila: {
     tejedora: ['Me enteré de que esquilaste. Si tenés vellones lindos, mostrámelos antes de hacer cualquier cosa.'],
     ramon: ['Esquilar no es fácil. La primera oveja que esquilé me dejó un ojo morado.'],
+    veterinaria: ['Me dijeron que esquilaste. ¿No la lastimaste? Si se te escapó un tijeretazo, traémela.'],
   },
   tren: {
     jefe: ['Te vi bajar del tren. ¿Viajaste cómodo? El coche dos tiene la mejor salamandra.'],
@@ -1131,6 +1515,8 @@ export const COMENTARIOS = {
     guardaparque: ['Me llegó tu foto de {especie}. Va derecho al registro de la seccional.', 'Me llegó tu foto. Va derecho al registro de la seccional.'],
     ema: ['¡Qué foto la de {especie}! Esa la pegaría en la puerta de la guardería.', '¡Qué foto! Esa la pegaría en la puerta de la guardería.'],
     nena: ['¿Me mostrás la foto de {especie}? ¡Quiero dibujarla!', '¿Me mostrás tu foto? ¡Quiero dibujarla!'],
+    fotografa: ['Me mostró Benigno tu foto de {especie} antes de despacharla. Bien encuadrada. Te robo el puesto, eh.', 'Me mostró Benigno tu foto antes de despacharla. Bien encuadrada.'],
+    pintora: ['Vi tu foto de {especie}. ¿Me la prestás para pintarla?', 'Vi tu foto. ¿Me la prestás para pintarla?'],
   },
   regalo: {
     _recibe: ['Todavía me acuerdo de {lacosa} que me trajiste. Gracias otra vez.', 'Gracias de nuevo por {lacosa}. Me alegró el día.', '{Lacosa} que me regalaste ya tiene su lugar en casa.'],
@@ -1146,7 +1532,7 @@ export const COMENTARIOS = {
   },
 };
 // Los que cuentan lo que pasa (se enteran de los regalos, las ayudas y las invitaciones a otros).
-export const CHISMOSOS = ['abuela', 'nelida', 'ercilia', 'madre', 'telegrafista'];
+export const CHISMOSOS = ['abuela', 'nelida', 'ercilia', 'madre', 'telegrafista', 'modista'];   // (3.7.0: y Pocha)
 
 // ---------------------------------------------------------------- las frases de todos
 export const FRASES = {
@@ -1227,6 +1613,15 @@ export const FRASES = {
     'La trochita pasó con un vagón lleno de lana para la feria. Olía a oveja hasta la plaza.',
   ],
   pronostico: 'Dicen {pronostico}.',
+  // 3.7.0: el cumpleaños (el saludo de ese día y lo que dice si le regalás algo: vale el doble)
+  cumpleSaludo: [
+    '¡Hoy cumplo años! A la tardecita festejamos. Venite, que hay torta.',
+    '¿Sabías que hoy es mi cumpleaños? No digas nada, que me pongo colorado. Bueno, decí.',
+    '¡Es mi cumpleaños! Uno más, uno menos, ¿quién cuenta? Yo, pero no digo cuántos.',
+  ],
+  cumpleRegalo: 'Y justo hoy, que es mi cumpleaños. Gracias, de verdad.',
+  // 3.7.0: lo que te dicen con tu apodo (cuando ya te tienen confianza)
+  apodo: '¡Mirá quién vino: {apodo}!',
   faunaGenerica: 'Hace poco vi {unbicho} por acá cerca.',
   pista: 'Para tu cuaderno: {pista}',
   // cómo andan: lo que vienen haciendo

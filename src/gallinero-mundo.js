@@ -11,7 +11,7 @@ const RADIO = 3.2;                      // hasta dónde se alejan del gallinero
 // 3.4: la gallina criolla, redondeada y con sombreado suave: cuerpo de pecho lleno, el
 // plumaje con degradé (más oscuro abajo y en la cola, más claro en el cuello), alas
 // plegadas, cresta y barbilla coloradas, pico, cola alzada en abanico y patas con dedos.
-function geometriaGallina() {
+export function geometriaGallina() {
   const c = new Constructor();
   const pluma = '#8a5a34', clara = '#b8834e', oscura = '#5e3a20', cresta = '#b3261e', pico = '#d9a13a', pata = '#c28a2e';
   c.agregar(new THREE.SphereGeometry(0.16, 12, 9), { color: pluma, tipo: 2, variar: 0.06, suave: true, degradado: [oscura, clara], rangoY: [-0.16, 0.16], matriz: matriz([0, 0.24, 0.0], [-0.12, 0, 0], [1, 0.92, 1.3]) });

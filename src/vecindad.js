@@ -19,7 +19,7 @@
 //
 // Sin economía (rechazada) ni nada religioso (pedido del usuario). Módulo puro: sin three ni DOM.
 import { ENTRADAS } from './cuaderno.js';
-import { VECINOS_ALDEA, POBLADORES_ALDEA, EDIFICIOS_ALDEA, LOTE_DE, ORDEN_PERSONAS_ALDEA, esPersonaAldea, esEdificioAldea, personaAldea, rutinaAldea, puntosDe, localAbierto, obraEnCurso, etapaDe, desfaseDe, aldeaNueva, obrerosDe, pobladorDeLote, diaSemanaDe, num, azar } from './aldea.js';
+import { VECINOS_ALDEA, POBLADORES_ALDEA, EDIFICIOS_ALDEA, LOTE_DE, ORDEN_PERSONAS_ALDEA, esPersonaAldea, esEdificioAldea, personaAldea, rutinaAldea, puntosDe, localAbierto, obraEnCurso, etapaDe, desfaseDe, aldeaNueva, obrerosDe, pobladorDeLote, diaSemanaDe, num, azar, esCumpleanos, esVecinoAldea } from './aldea.js';
 import { VOCES, AYUDAS, COMENTARIOS, CHISMOSOS, FRASES } from './vecindad-voces.js';
 
 // ---------------------------------------------------------------- utilidades
@@ -64,7 +64,8 @@ const primeraQueSirva = (lineas, datos, desde = 0) => {
 // Los del valle que no viven en la aldea: siguen en su lugar (autonomía mínima).
 export const VALLE_VECINDAD = ['ramon', 'nicanor', 'ema', 'guarda'];
 export const PERSONAS_VECINDAD = [...ORDEN_PERSONAS_ALDEA, ...VALLE_VECINDAD];
-const NOMBRES_VALLE = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Ema', guarda: 'Elsa', ercilia: 'Ercilia' };
+// (3.7.0: Ema pasó a llamarse Josefina; el id interno sigue siendo `ema`, para no romper partidas)
+const NOMBRES_VALLE = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', guarda: 'Elsa', ercilia: 'Ercilia' };
 const OFICIOS_VALLE = { ramon: 'puestero', nicanor: 'pescador', ema: 'guardaparque', guarda: 'guarda del tren', ercilia: 'del almacén' };
 export const esPersonaVecindad = (k) => typeof k === 'string' && Object.hasOwn(PERFILES_VECINOS, k);
 // "Ernesto", "Nélida", "Don Ramón": como lo nombran los demás.
@@ -81,6 +82,9 @@ const TRATO = {
   galesa: 'cariad', ercilia: 'querido', carpintero: 'vecino', panadera: 'vecino', herrero: 'vecino', pescador: 'vecino',
   maestra: 'vecino', enfermera: 'vecino', telegrafista: 'colega', tejedora: 'vecino', apicultor: 'amico', guardaparque: 'colega',
   musico: 'hermano', ramon: 'm\'hijo', nicanor: 'vecino', ema: 'vecino', guarda: 'pasajero',
+  // 3.7.0
+  veterinaria: 'vecino', fotografa: 'che', andinista: 'compañero', herbolaria: 'vecino', pintora: 'querido', ceramista: 'primo',
+  botera: 'marinero', astronoma: 'vecino', modista: 'mi amor',
 };
 
 // ---------------------------------------------------------------- lo que se puede regalar
@@ -145,6 +149,16 @@ export const PERFILES_VECINOS = {
   nicanor: P(['madrugador', 'solitario', 'curioso'], ['yerba', 'pan-casero', 'empanadas'], ['papa', 'tronco'], 'trucha-fresca', ['pescador', 'ramon'], { tipo: 'material', k: 'tronco', n: 4 }),
   ema: P(['andariego', 'curioso', 'madrugador'], ['frutilla', 'calafate-seco', 'yerba'], ['miel', 'pan-casero'], 'pluma', ['guardaparque', 'ramon'], { tipo: 'cosa', k: 'semillas-habas', n: 3 }),
   guarda: P(['charlatan', 'trabajador', 'curioso'], ['yerba', 'empanadas', 'calafate-seco'], ['pan-casero', 'frasco-frutilla'], 'piedra', ['telegrafista', 'ercilia', 'jefe'], { tipo: 'entrada', k: 'pan-casero', n: 2 }),
+  // 3.7.0: las de la calle de la Loma
+  veterinaria: P(['madrugador', 'trabajador', 'andariego'], ['yerba', 'empanadas', 'pinon'], ['lana', 'pan-casero'], 'pluma', ['jefe', 'apicultor', 'ramon'], { tipo: 'entrada', k: 'huevo', n: 2 }),
+  fotografa: P(['curioso', 'andariego', 'charlatan'], ['frasco-frutilla', 'miel', 'empanadas'], ['pan-casero', 'calafate-seco'], 'trucha-fresca', ['telegrafista', 'galesa', 'pintora'], { tipo: 'cosa', k: 'yerba', n: 2 }),
+  andinista: P(['andariego', 'madrugador', 'jugueton'], ['calafate-seco', 'pinon', 'yerba'], ['empanadas', 'trucha-ahumada'], 'poncho', ['guardaparque', 'ema', 'nene'], { tipo: 'entrada', k: 'calafate-seco', n: 2 }),
+  herbolaria: P(['jardinero', 'solitario', 'madrugador'], ['calafate', 'llaollao', 'miel'], ['yerba', 'papa'], 'tronco', ['abuela', 'enfermera', 'tejedora'], { tipo: 'entrada', k: 'calafate', n: 3 }),
+  pintora: P(['curioso', 'trasnochador', 'solitario'], ['calafate', 'pluma', 'frutilla'], ['miel', 'frasco-frutilla'], 'trucha-fresca', ['musico', 'fotografa', 'nena'], { tipo: 'entrada', k: 'pluma', n: 1 }),
+  ceramista: P(['trabajador', 'charlatan', 'goloso'], ['empanadas', 'piedra', 'trucha-ahumada'], ['tronco', 'yerba'], 'miel', ['padre', 'madre', 'herrero'], { tipo: 'material', k: 'piedra', n: 3 }),
+  botera: P(['trabajador', 'solitario', 'madrugador'], ['tabla', 'trucha-ahumada', 'yerba'], ['tronco', 'empanadas'], 'frasco-frutilla', ['pescador', 'nicanor', 'carpintero'], { tipo: 'material', k: 'tabla', n: 3 }),
+  astronoma: P(['trasnochador', 'lector', 'solitario'], ['miel', 'calafate-seco', 'pan-casero'], ['yerba', 'huevo'], 'hongos-secos', ['maestra', 'jefe', 'telegrafista'], { tipo: 'entrada', k: 'miel', n: 1 }),
+  modista: P(['charlatan', 'casero', 'goloso'], ['lana', 'frasco-frutilla', 'empanadas'], ['yerba', 'miel'], 'piedra', ['herrero', 'nelida', 'tejedora'], { tipo: 'material', k: 'lana', n: 2 }),
 };
 // Qué le parece una cosa: 'encanta' | 'gusta' | 'noGusta' | 'neutro'.
 export function gustoDe(persona, cosa) {
@@ -223,11 +237,13 @@ export function climaDe(c) {
 function ganasIniciales(persona) {
   const r = PERFILES_VECINOS[persona]?.rasgos || [];
   const t = (k) => (r.includes(k) ? 1 : 0);
+  // (3.7.0: redondeadas a centésimos, como las guarda sanearFicha: andariega y juguetona, Rocío daba 0,7999…)
+  const r2 = (x) => Math.round(acotar(x, 0, 1) * 100) / 100;
   return {
-    social: acotar(0.5 + 0.2 * t('charlatan') - 0.2 * t('solitario'), 0, 1),
-    descanso: acotar(0.4 + 0.1 * t('casero'), 0, 1),
-    aire: acotar(0.5 + 0.2 * t('andariego') + 0.1 * t('jugueton'), 0, 1),
-    hacer: acotar(0.5 + 0.2 * t('trabajador'), 0, 1),
+    social: r2(0.5 + 0.2 * t('charlatan') - 0.2 * t('solitario')),
+    descanso: r2(0.4 + 0.1 * t('casero')),
+    aire: r2(0.5 + 0.2 * t('andariego') + 0.1 * t('jugueton')),
+    hacer: r2(0.5 + 0.2 * t('trabajador')),
   };
 }
 
@@ -313,8 +329,10 @@ export function gustosConocidos(persona, estado) {
 // Lo que la rutina obliga (y entonces manda): dormir, almorzar, trabajar, la música del sábado,
 // los cuentos del domingo, la leyenda de la abuela. Devuelve el motivo o null (tiempo libre).
 const OBLIGA = new Set(['trabajo', 'local', 'escuela', 'obra', 'estacion', 'biblioteca', 'almacen']);
-function obligacion(persona, hora, ds, aldea, r = null) {
-  const ru = r || rutinaAldea(persona, hora, ds, aldea);
+// 3.7.0: `dia` (opcional): el de la partida, para la fiesta de cumpleaños de la tardecita (que también manda)
+function obligacion(persona, hora, ds, aldea, r = null, dia = null) {
+  const ru = r || rutinaAldea(persona, hora, ds, aldea, dia);
+  if (ru.lugar === 'fiesta') return 'fiesta';
   if (!ru.lugar) return 'ausente';
   const t = horaNorm(hora) - desfaseDe(persona);
   const chico = !!VECINOS_ALDEA[persona]?.chico;
@@ -332,27 +350,33 @@ function obligacion(persona, hora, ds, aldea, r = null) {
 export function estaLibre(persona, hora, diaSemana, estado) {
   if (!esPersonaAldea(persona)) return false;
   const ds = ((entero(diaSemana) % 7) + 7) % 7;
-  return obligacion(persona, horaNorm(hora), ds, partes(estado).aldea) === null;
+  const { aldea, progreso } = partes(estado);
+  return obligacion(persona, horaNorm(hora), ds, aldea, null, diaDe(progreso)) === null;
 }
+// 3.7.0: el día de la partida (o null, si `estado` es la vecindad sola)
+const diaDe = (progreso) => (progreso && Number.isFinite(num(progreso.dia)) ? diaValido(progreso.dia, 1) : null);
 // Cuánto dura todavía la situación (libre u obligada), hasta 3 h: la rutina sólo cambia en los
 // cuartos de hora del horario de cada uno (corridas por su desfase; 3.6.2: antes, las medias horas: la
 // siesta de Ercilia termina a las 15:15) y, la del jefe, en las horas (y en las de la bandera).
-function hastaQueCambie(persona, hora, ds, aldea, libre) {
+function hastaQueCambie(persona, hora, ds, aldea, libre, dia = null) {
   const des = desfaseDe(persona);
-  const ref = rutinaAldea(persona, hora, ds, aldea);
+  const ref = rutinaAldea(persona, hora, ds, aldea, dia);
   const marcas = [];
   for (let k = Math.floor((hora - des) * 4) + 1; (k / 4 + des) <= hora + 3; k++) marcas.push(k / 4 + des);
   for (let k = Math.floor(hora) + 1; k <= hora + 3; k++) marcas.push(k);
   // 3.6 (mecánicas): y la del jefe, también cuando va a izar o a arriar la bandera (ver rutinaAldea)
   // (3.6.2: y cuando abre y cierra la estación, que también va por la hora del reloj)
   if (persona === 'jefe') for (const b of [7.5, 8.25, 8.75, 18, 18.5, 19.25]) for (const d of [0, 24]) if (b + d > hora && b + d <= hora + 3) marcas.push(b + d);
+  // 3.7.0: y la fiesta de cumpleaños (de 18 a 20:30, por el reloj de cada uno)
+  if (dia !== null) for (const b of [18, 20.5]) for (const d of [0, 24]) if (b + des + d > hora && b + des + d <= hora + 3) marcas.push(b + des + d);
   marcas.sort((a, b) => a - b);
   for (const b of marcas) {
     if (b <= hora + 1e-9) continue;
     const h2 = b + 1e-6, dia2 = h2 >= 24 ? (ds + 1) % 7 : ds, hh = h2 % 24;
-    const r2 = rutinaAldea(persona, hh, dia2, aldea);
-    const cambia = libre ? obligacion(persona, hh, dia2, aldea, r2) !== null
-      : r2.edificio !== ref.edificio || r2.punto !== ref.punto || obligacion(persona, hh, dia2, aldea, r2) === null;
+    const d2 = dia === null ? null : h2 >= 24 ? dia + 1 : dia;
+    const r2 = rutinaAldea(persona, hh, dia2, aldea, d2);
+    const cambia = libre ? obligacion(persona, hh, dia2, aldea, r2, d2) !== null
+      : r2.edificio !== ref.edificio || r2.punto !== ref.punto || obligacion(persona, hh, dia2, aldea, r2, d2) === null;
     if (cambia) return Math.max(0, b - hora);
   }
   return 3;
@@ -379,7 +403,7 @@ const almacenAbierto = (aldea, hora, ds) => {
 // tiene que quedar antes para empezar algo afuera
 export const NOCHE_AFUERA = 20.5;
 const MINIMO_AFUERA = 0.5;
-function candidatas(persona, hora, ds, c, aldea, sem) {
+function candidatas(persona, hora, ds, c, aldea, sem, dia = null) {
   const t = hora - desfaseDe(persona);
   const perfil = PERFILES_VECINOS[persona];
   const chico = !!VECINOS_ALDEA[persona]?.chico;
@@ -404,10 +428,17 @@ function candidatas(persona, hora, ds, c, aldea, sem) {
   // visitar a un amigo: a su casa (o su local, o la plaza, si anda por ahí)
   const amigos = perfil.amigos.filter((a) => esPersonaAldea(a));
   for (const a of amigos) {
-    const ra = rutinaAldea(a, hora, ds, aldea);
+    const ra = rutinaAldea(a, hora, ds, aldea, dia);
     if (!ra.lugar || ra.punto === 'cama' || ra.punto === 'cama-chicos') continue;
     const tarde = t >= (perfil.rasgos.includes('trasnochador') ? 21.75 : 21.25);
-    const peso = 1.2 / Math.max(1, amigos.length);
+    // 3.7.0: al amigo que cumple años se lo va a saludar (pesa más)
+    const peso = (1.2 / Math.max(1, amigos.length)) * (dia !== null && esCumpleanos(a, dia) && ra.lugar === 'fiesta' ? 10 : 1);
+    if (ra.lugar === 'fiesta') {
+      // (en la plaza, sólo con luz y sin lluvia ni nieve; en su casa, hasta que se hace tarde)
+      if (ra.edificio === 'plaza') { if (deDia && !lluvia && !nieve) sumar('visitar', peso, 'plaza', `estar-${(i % 20) + 1}`, { con: a }); }
+      else if (!tarde) sumar('visitar', peso, ra.edificio, elPunto(ra.edificio, ['cliente', 'adentro']) || 'adentro', { con: a });
+      continue;
+    }
     if (ra.lugar === 'casa') {
       if (tarde) continue;
       sumar('visitar', peso, ra.edificio, noche || lluvia || nieve ? 'adentro' : (elPunto(ra.edificio, ['puerta']) || 'adentro'), { con: a });
@@ -458,18 +489,19 @@ export function elegirActividad(persona, hora, diaSemana, clima, estado, semilla
     const nombre = noche ? 'quedarse adentro' : c === 'lluvia' || c === 'nieve' ? 'quedarse bajo techo' : v[Math.floor(sem * v.length) % v.length];
     return { actividad: 'suyo', nombre, lugar: 'suyo', edificio: null, punto: null, duracion: 1, libre: true };
   }
-  const { v, aldea } = partes(estado);
-  const r = rutinaAldea(persona, h, ds, aldea);
+  const { v, aldea, progreso } = partes(estado);
+  const dia = diaDe(progreso);
+  const r = rutinaAldea(persona, h, ds, aldea, dia);
   if (!r.lugar) return nada;
-  const motivo = obligacion(persona, h, ds, aldea, r);
+  const motivo = obligacion(persona, h, ds, aldea, r, dia);
   if (motivo) {
-    return { actividad: 'rutina', nombre: motivo, lugar: r.lugar, edificio: r.edificio, punto: r.punto, duracion: Math.max(0.05, Math.floor(hastaQueCambie(persona, h, ds, aldea, false) * 100) / 100), libre: false };
+    return { actividad: 'rutina', nombre: motivo, lugar: r.lugar, edificio: r.edificio, punto: r.punto, duracion: Math.max(0.05, Math.floor(hastaQueCambie(persona, h, ds, aldea, false, dia) * 100) / 100), libre: false };
   }
-  const disponible = hastaQueCambie(persona, h, ds, aldea, true);
+  const disponible = hastaQueCambie(persona, h, ds, aldea, true, dia);
   const ganas = fichaSi(v, persona)?.ganas || ganasIniciales(persona);
   const rasgos = PERFILES_VECINOS[persona].rasgos;
   const t = h - desfaseDe(persona);
-  const lista = candidatas(persona, h, ds, c, aldea, sem);
+  const lista = candidatas(persona, h, ds, c, aldea, sem, dia);
   const pesos = lista.map((x) => {
     const a = ACTIVIDADES[x.actividad];
     let w = x.base * (0.3 + Object.entries(a.ganas).reduce((s, [g, k]) => s + (ganas[g] || 0) * k, 0));
@@ -662,6 +694,8 @@ function tipoDeAnimo(f, hora) {
 const SECCIONES_NOVEDAD = {
   guardaparque: ['fauna', 'rastros'], ema: ['fauna', 'rastros'], pescador: ['peces', 'fauna'], nicanor: ['peces', 'fauna'],
   apicultor: ['fauna', 'flora'], madre: ['flora', 'fauna'], abuela: ['fauna', 'flora'], tejedora: ['flora', 'fauna'],
+  // 3.7.0
+  herbolaria: ['flora', 'frutos'], veterinaria: ['fauna', 'rastros'], andinista: ['fauna', 'lugares'], fotografa: ['fauna', 'flora'], botera: ['peces', 'fauna'], astronoma: ['cielo', 'fauna'],
 };
 const NO_SE_VEN = new Set(['perro', 'oveja', 'gallina', 'caballo', 'rastreo']);
 const HABLAN_DEL_TREN = ['jefe', 'guarda', 'telegrafista', 'nelida', 'ercilia'];
@@ -817,7 +851,8 @@ export function abrirCharla(persona, estado, contexto = {}) {
   const { v, progreso } = partes(estado, true);
   const base = progreso || v;
   const d = diaDeEstado(progreso, contexto);
-  const saludo = saludoDeAmistad(persona, base, contexto);
+  // 3.7.0: el día de su cumpleaños te lo dice al saludarte
+  const saludo = esCumpleanos(persona, d) ? FRASES.cumpleSaludo[hashTexto(persona) % FRASES.cumpleSaludo.length] : saludoDeAmistad(persona, base, contexto);
   const comentario = comentarioSobreVos(persona, base, d);
   const temas = temasDeCharla(persona, base, contexto);
   const f = ficha(v, persona);
@@ -861,9 +896,11 @@ export function regalar(persona, cosa, estado, dia, inventario = null) {
   f.ultimoRegalo = cosa;
   if (!Array.isArray(f.conoce)) f.conoce = [];
   recordar(f.conoce, cosa, TOPE_CONOCE);
-  const amistad = sumarAmistad(v, persona, AMISTAD[reaccion], d);
+  // 3.7.0: el día de su cumpleaños, lo que le gusta vale el doble (y te lo dice)
+  const cumple = esCumpleanos(persona, d) && reaccion !== 'noGusta';
+  const amistad = sumarAmistad(v, persona, AMISTAD[reaccion] * (cumple ? 2 : 1), d);
   anotarHecho(progreso || v, 'regalo', d, { persona, cosa });
-  return { ok: true, reaccion, renglones: [texto], efectos: [{ tipo: r.tipo, k: cosa, n: -r.n }], amistad };
+  return { ok: true, reaccion, renglones: cumple ? [texto, FRASES.cumpleRegalo] : [texto], efectos: [{ tipo: r.tipo, k: cosa, n: -r.n }], amistad, cumple };
 }
 
 // ---------------------------------------------------------------- invitar
@@ -988,6 +1025,40 @@ export function regaloDeAmistad(estado, dia) {
     return { clave: k, efectos: [{ tipo: r.tipo, k: r.k, n: r.n }], texto: VOCES[k].regalo };
   }
   return null;
+}
+
+// ---------------------------------------------------------------- 3.7.0: de parte tuya y los chismes
+// Lo que le llega a alguien de tu parte (el dibujito que le pinta Abril): suma amistad como un regalo.
+export function sumarAmistadDe(estado, persona, n, dia) {
+  if (!esPersonaVecindad(persona)) return null;
+  const { v } = partes(estado, true);
+  return sumarAmistad(v, persona, acotar(entero(n), 0, AMISTAD.encanta), diaValido(dia, 1));
+}
+// Lo que Pocha sabe de un vecino y vos todavía no: { persona, quien, k, cosa, gusto } (o null). De los que
+// viven en la aldea (y los del valle), lo primero que le encanta, le gusta o no le gusta y que no conocés.
+export function proximoChisme(estado, dia = 1) {
+  const { v, aldea } = partes(estado);
+  const lista = PERSONAS_VECINDAD.filter((k) => k !== 'modista' && (!esPersonaAldea(k) || esVecinoAldea(k) || (aldea.pobladores || []).some((p) => p.clave === k)));
+  const desde = hashTexto(`chisme${diaValido(dia, 1)}`) % Math.max(1, lista.length);
+  for (let i = 0; i < lista.length; i++) {
+    const k = lista[(desde + i) % lista.length];
+    const ya = fichaSi(v, k)?.conoce || [];
+    const g = PERFILES_VECINOS[k].gustos;
+    for (const [cosa, gusto] of [...g.encanta.map((c) => [c, 'encanta']), ...g.gusta.map((c) => [c, 'gusta']), [g.noGusta, 'noGusta']]) {
+      if (!esRegalable(cosa) || ya.includes(cosa)) continue;
+      return { persona: k, quien: nombreCorto(k), k: cosa, cosa: REGALABLES[cosa].el, gusto };
+    }
+  }
+  return null;
+}
+// Lo que te contó Pocha queda en el cuaderno («Tus vecinos»), como si se lo hubieras regalado.
+export function revelarGusto(estado, persona, cosa) {
+  if (!esPersonaVecindad(persona) || !esRegalable(cosa)) return false;
+  const { v } = partes(estado, true);
+  const f = ficha(v, persona);
+  if (!Array.isArray(f.conoce)) f.conoce = [];
+  recordar(f.conoce, cosa, TOPE_CONOCE);
+  return true;
 }
 
 // ---------------------------------------------------------------- el paso de los días

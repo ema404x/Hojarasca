@@ -16,7 +16,7 @@ import { tono, desechar } from './personal-mallas.js';
 // derechas y las de atrás tienen muslo y garrón; la cola es tupida. El dibujo (pecho blanco,
 // manchas, antifaz) y el pelaje (lomo más oscuro, panza más clara) se pintan en los vértices.
 // Los pivotes de cabeza, patas y cola están donde estaban: las animaciones no cambian.
-function mallaPerro(ap = sanearPerro(null)) {
+export function mallaPerro(ap = sanearPerro(null)) {
   const g = new THREE.Group();
   const claro = ap.pelo === '#c9b89a' || ap.pelo === '#a8804f';
   const pelo = ap.pelo, oscuro = '#1f1b17';

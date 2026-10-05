@@ -93,8 +93,8 @@ export const EN_B = {
     "A fungus that lives on Nothofagus branches and knots them. Its fruiting bodies, orange, round and full of little pits, are edible. It gave its name to a peninsula on the Nahuel Huapi.",
   'Pardo con el pecho anaranjado y el pico amarillo. Anda por el suelo dando saltitos y picoteando lombrices. Es el que canta primero, antes de que aclare, y el último en callarse.':
     "Brown, with an orange breast and a yellow bill. It hops along the ground pulling up worms. It is the first to sing, before daybreak, and the last to go quiet.",
-  'Para la tradición mapuche el canto del chucao se interpreta según de qué lado llega. Ema lo usa además como termómetro: si los pájaros callan de golpe, algo pasó en el bosque.':
-    "In Mapuche tradition the chucao's call is read by which side it comes from. Ema also uses it as a thermometer: if the birds go quiet all at once, something has happened in the forest.",
+  'Para la tradición mapuche el canto del chucao se interpreta según de qué lado llega. Josefina lo usa además como termómetro: si los pájaros callan de golpe, algo pasó en el bosque.':
+    "In Mapuche tradition the chucao's call is read by which side it comes from. Josefina also uses it as a thermometer: if the birds go quiet all at once, something has happened in the forest.",
   'El ramal se terminó en 1945 tras más de veinte años de obra. Lo quisieron cerrar varias veces y la gente salió a la vía a impedirlo. Hoy anda más por cariño que por necesidad.':
     "The branch line was finished in 1945 after more than twenty years of work. They tried to close it several times and people came out onto the track to stop them. It runs now more out of affection than need.",
   'El viento del oeste baja seco de la cordillera y no para nunca. Los árboles del filo crecen con todas las ramas para un lado: se les dice árboles bandera, y sirven de veleta.':
@@ -269,8 +269,8 @@ export const EN_B = {
     "Cinnamon trunks glowing in the afternoon light, along the lakeshore.",
   'El árbol más alto del bosque. Acercate a un tronco grueso y anotalo.':
     "The tallest tree in the forest. Go up to a thick trunk and note it down.",
-  'Ema no lo va a pedir hasta que no quede ningún otro encargo abierto.':
-    "Ema won't ask for this one until there is no other errand left open.",
+  'Josefina no lo va a pedir hasta que no quede ningún otro encargo abierto.':
+    "Josefina won't ask for this one until there is no other errand left open.",
   'Pradera empapada donde el agua aflora. De noche se llena de ranitas.':
     "A soaked meadow where the water comes to the surface. At night it fills with little frogs.",
   'Seguí el golpeteo doble sobre los troncos. Los prismáticos ayudan.':
@@ -337,8 +337,8 @@ export const EN_B = {
     "Rounded crowns that change colour in autumn.",
   'Lo mejor para un día de lluvia en la casa de té.':
     "The best thing for a rainy day at the tea house.",
-  'Ema te lo va a pedir cuando terminen de charlar.':
-    "Ema will ask you for it when you finish talking.",
+  'Josefina te lo va a pedir cuando terminen de charlar.':
+    "Josefina will ask you for it when you finish talking.",
   'Preguntale por los mechones grises de las ramas.':
     "Ask her about the grey tufts on the branches.",
   'Seguí la vía angosta: en algún lado tiene andén.':
@@ -447,8 +447,8 @@ export const EN_B = {
     "Works the trails when the sun goes down.",
   'Sentate en la galería de la Casa de Té.':
     "Sit on the veranda of the Tea House.",
-  'Ema necesita una foto para el registro.':
-    "Ema needs a photo for the record.",
+  'Josefina necesita una foto para el registro.':
+    "Josefina needs a photo for the record.",
   'La guarda del tren te lo va a proponer.':
     "The train conductor will put it to you.",
   'Nicanor quiere saber cuál te gustó más.':
@@ -473,8 +473,8 @@ export const EN_B = {
     "Stay near a chilco in flower.",
   'Al sol sobre una piedra, al mediodía.':
     "In the sun on a rock, at midday.",
-  'Ema piensa en los que vienen después.':
-    "Ema is thinking about the ones who come after.",
+  'Josefina piensa en los que vienen después.':
+    "Josefina is thinking about the ones who come after.",
   'Preguntale por los bramidos de otoño.':
     "Ask him about the bellowing in autumn.",
   'Preguntale cómo devuelve las truchas.':
@@ -521,8 +521,8 @@ export const EN_B = {
     "Round stones down by the water.",
   'Parejas pastando en los claros.':
     "Pairs grazing in the clearings.",
-  'Ema quiere que salgas de noche.':
-    "Ema wants you out at night.",
+  'Josefina quiere que salgas de noche.':
+    "Josefina wants you out at night.",
   'leída en la sala de la linterna':
     "read in the lantern room",
   'Espera quieto sobre el arroyo.':
@@ -727,14 +727,14 @@ export const EN_B = {
     "Las Tres Marías",
   'encargo de Elsa':
     "errand for Elsa",
-  'contada por Ema':
-    "told by Ema",
+  'contada por Josefina':
+    "told by Josefina",
   'Muelle del Lago':
     "Lake Dock",
   'Mosca de pescar':
     "Fishing fly",
-  'encargo de Ema':
-    "errand for Ema",
+  'encargo de Josefina':
+    "errand for Josefina",
   'Subite una vez':
     "Ride it once",
   'Turno de noche':

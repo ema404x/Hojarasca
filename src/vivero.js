@@ -20,11 +20,13 @@ export const ARBOLES_VIVERO = {
 export const ESPECIES_VIVERO = Object.keys(ARBOLES_VIVERO);
 
 export function viveroVacio() { return { macetas: [] }; }
-export function sanearVivero(v) {
+// 3.7.0: `extra`: las macetas de barro que te hizo Malena, la ceramista de la aldea (hasta 4 más)
+export const macetasDe = (extra = 0) => VIVERO.macetas + Math.max(0, Math.min(4, Math.floor(Number(extra) || 0)));
+export function sanearVivero(v, extra = 0) {
   const x = v && typeof v === 'object' ? v : {};
   const macetas = (Array.isArray(x.macetas) ? x.macetas : [])
     .filter((m) => m && ARBOLES_VIVERO[m.especie] && Number.isFinite(Number(m.dia)))
-    .slice(0, VIVERO.macetas)
+    .slice(0, macetasDe(extra))
     .map((m) => ({ especie: m.especie, dia: Math.floor(Number(m.dia)) }));
   return { macetas };
 }
@@ -49,7 +51,7 @@ export const listaParaPlantar = (m, dia) => dia - m.dia >= VIVERO.diasPlantin;
 
 // E en el vivero: primero se sacan los plantines listos; si no hay, se siembra todo lo
 // que entre de las semillas que tengas. `entradas`: progreso.entradas.
-export function usarVivero(v, entradas, dia) {
+export function usarVivero(v, entradas, dia, extra = 0) {
   if (!v) return { accion: 'nada' };
   const listas = v.macetas.filter((m) => listaParaPlantar(m, dia));
   if (listas.length) {
@@ -58,7 +60,7 @@ export function usarVivero(v, entradas, dia) {
     for (const m of listas) porEspecie[m.especie] = (porEspecie[m.especie] || 0) + 1;
     return { accion: 'sacar', plantines: porEspecie, total: listas.length };
   }
-  const lugar = VIVERO.macetas - v.macetas.length;
+  const lugar = macetasDe(extra) - v.macetas.length;
   const sembradas = {};
   let n = 0;
   for (const esp of ESPECIES_VIVERO) {
@@ -78,12 +80,12 @@ export function usarVivero(v, entradas, dia) {
   return { accion: 'sinSemillas' };
 }
 
-export function avisoVivero(v, entradas, dia) {
+export function avisoVivero(v, entradas, dia, extra = 0) {
   if (!v) return null;
   const listas = v.macetas.filter((m) => listaParaPlantar(m, dia)).length;
   if (listas) return `Sacar ${listas} ${listas === 1 ? 'plantín' : 'plantines'}`;
   const semillas = ESPECIES_VIVERO.reduce((s, e) => s + (entradas?.[ARBOLES_VIVERO[e].semilla]?.cantidad || 0), 0);
-  if (semillas && v.macetas.length < VIVERO.macetas) return `Sembrar en el vivero (${Math.min(semillas, VIVERO.macetas - v.macetas.length)})`;
+  if (semillas && v.macetas.length < macetasDe(extra)) return `Sembrar en el vivero (${Math.min(semillas, macetasDe(extra) - v.macetas.length)})`;
   if (v.macetas.length) return `Germinando: ${v.macetas.length} ${v.macetas.length === 1 ? 'almácigo' : 'almácigos'}`;
   return 'Vivero vacío: en otoño, juntá semillas de los árboles grandes';
 }

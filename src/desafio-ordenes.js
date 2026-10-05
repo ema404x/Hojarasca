@@ -1,11 +1,11 @@
-// Órdenes a los compañeros del Desafío. Hasta la 1.10 Don Ramón y Ema hacían siempre
+// Órdenes a los compañeros del Desafío. Hasta la 1.10 Don Ramón y Josefina hacían siempre
 // lo mismo: él emparchaba lo más roto de la base, ella tiraba flechas desde el centro.
 // Ahora, mirándolos y con E, les cambiás la orden:
 //
 //   Don Ramón — arreglá lo roto (en la base) · vení conmigo · cuidá el portón
-//   Ema       — quedate en la base · vení conmigo · cuidá el portón
+//   Josefina       — quedate en la base · vení conmigo · cuidá el portón
 //
-// Con "vení conmigo" te siguen (Ramón arregla lo que se rompa cerca tuyo; Ema tira
+// Con "vení conmigo" te siguen (Ramón arregla lo que se rompa cerca tuyo; Josefina tira
 // desde donde esté). Con "cuidá el portón" se paran adentro del portón más cercano a la
 // base (Ramón arregla lo que haya ahí). Si no hay portón, se quedan en la base.
 //

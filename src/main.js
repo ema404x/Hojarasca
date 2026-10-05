@@ -67,6 +67,9 @@ import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPi
 import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
+// 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
+import { LUGARES_VISITA } from './aldea-vida.js';
+import { crearAnimalesAldea } from './aldea-animales-mundo.js';
 import { gruposDeObras, buscarLugar, materialesDeObra, sumarMateriales, devolucionDeRenoval, textoDesalojo } from './aldea-desalojo.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
 // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
@@ -380,6 +383,7 @@ let modos = null;   // 3.1: carreras, desafío del día y torneo (ver modos-jueg
 const MARGEN_SIN_OBRAS = 6, AVISO_SIN_OBRAS = 'En la Aldea de los Duendes no: los lotes son para los que llegan';
 let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-mundo.js; sólo en el Relax)
 let mecanicasAldea = null;   // 3.6 (mecánicas): ver aldea-mecanicas-mundo.js (sólo en el Relax)
+let animalesAldea = null;   // 3.7.0: los perros, los caballos y las gallinas de la aldea y tu cachorro (sólo en el Relax)
 const sonido = new Sonido();
 sonido.volumen = ajustes.volumen;
 sonido.musicaActiva = ajustes.musica;
@@ -489,6 +493,8 @@ async function construir() {
   let sorteoAldea = null;
   if (!esDesafio) {
     aldeaMundo = crearAldeaMundo({ T, escena, veg, calidad, progreso: () => progreso, brilloVentana: (v, f, dia) => brilloVentana(v, f, dia), alCambiar: () => marcarTechos() });
+    // 3.7.0: los animales de la aldea (y tu cachorro, en el refugio)
+    animalesAldea = crearAnimalesAldea({ T, escena, progreso: () => progreso, jugador: () => jugador?.estado || null, refugio: () => T.lugares.refugio || null, distanciaAldea: (x, z) => distanciaAldea(x, z) });
     sorteoAldea = aldeaMundo.emparejar();
     // 3.6.1: la aldea no es lugar para tus obras ni tus renovales (construccion.js y renovales.js
     // preguntan acá): antes, en la plaza despejada o adentro de la biblioteca, el plano daba verde
@@ -4035,7 +4041,7 @@ function usarGallinero(c) {
 }
 
 // ---------------------------------------------------------------- órdenes a los compañeros
-// En el Desafío, mirando a Don Ramón o a Ema, E les cambia la orden (ver desafio-ordenes.js).
+// En el Desafío, mirando a Don Ramón o a Josefina, E les cambia la orden (ver desafio-ordenes.js).
 function textoOrdenar(npc) {
   const sig = siguienteOrden(npc.clave, desafio.ordenDe(npc.clave));
   return sig ? `${npc.nombre}: ${NOMBRE_ORDEN[sig].toLowerCase()}` : `Hablar con ${npc.nombre}`;
@@ -4216,6 +4222,27 @@ function armarOficiosYAldea(esDesafio) {
     asientoEn: (x, z, y) => { let m = null, dm = 1.2; for (const s of est?.sentaderos || []) { const d = Math.hypot(s.x - x, s.z - z); if (d < dm && Math.abs(s.y - y) < 1.5 && !s.cama) { dm = d; m = s; } } return m ? Math.max(0, m.y - 0.02 - y) : null; },
     segundosPorHora: () => ((ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion) * 60) / 24,
     alServicio: (k, efectos) => { if ((efectos || []).some((f) => f.k === 'poncho' && (f.n > 0 || f.fijar > 0))) vecindadJuego?.hecho('poncho'); },
+    // 3.7.0: el ritmo de la aldea, lo que necesitan las nuevas, los visitantes y tu familia
+    ritmo: () => ajustes.ritmoAldea || 'normal', desafio: () => !!desafio,
+    lugaresConMapa: () => new Set(Object.keys(T.lugares).filter((k) => Number.isFinite(T.lugares[k]?.x))),
+    fotoPendiente: () => { const d = DESAFIOS.find((x) => !progreso.desafios?.[x.id]); return d ? { nombre: d.nombre, pista: d.pista } : null; },
+    chinche: (k, nombre) => {
+      const l = T.lugares[k];
+      if (!l) return;
+      const r = ponerChinche(chinches(), l.x, l.z, nombre || nombreLibre(chinches()));
+      if (r.estado === 'llena') { nota('No entran más chinches', `El mapa aguanta ${MAX_CHINCHES}: sacá alguna con el clic derecho`); return; }
+      progreso.chinches = r.lista;
+      chincheActiva = r.chinche;
+    },
+    lugaresVisita: () => Object.keys(LUGARES_VISITA).filter((k) => Number.isFinite(T.lugares[k]?.x)),
+    lugarPos: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null),
+    lugarFamilia: () => {
+      const puesta = mesaPuesta(mueblesTerminados());
+      if (puesta?.asientos?.length) { const a = puesta.asientos[0]; return { x: a.x, z: a.z, mira: Math.atan2(puesta.mesa.x - a.x, puesta.mesa.z - a.z) }; }
+      const r = T.lugares.refugio;
+      return r ? { x: (r.puerta?.x ?? r.x) + 2.4, z: (r.puerta?.z ?? r.z) + 1.6, mira: 0 } : null;
+    },
+    nombrePerro: () => perro?.nombre?.() || '',
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
@@ -4299,9 +4326,11 @@ function decirCharlaAldea(texto) {
 function actualizarAldea(dt) {
   if (!jugador) return;
   oficios?.remar(jugador.estado);
-  if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante'));
+  // (3.7.0: y si Martina, la del varadero, te lo calafateó hoy, un 15 % más)
+  if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1);
   if (!desafio) aldeaGente?.actualizar(dt);
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
+  if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
 const golpesParaTalarAhora = () => golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea);
@@ -4756,6 +4785,8 @@ function montar() {
   js.yaw = d.yaw - Math.PI;
   js.agachado = false; js.sentado = false;
   js.montado = { ...MARCHA_CABALLO, alto: ALTURA_MONTADO, aguaMax: AGUA_QUE_NO_PISA };
+  // 3.7.0: con las herraduras que le revisó Ayelén hoy, el zaino anda un 10 % más liviano
+  if (progreso.aldea?.herrado === progreso.dia) { js.montado.trote *= 1.1; js.montado.galope *= 1.1; }
   registrar('caballo');
   diario.anotar('caballo');
   sonido.casco?.('tierra', 1);
@@ -5605,7 +5636,7 @@ function avisoObraQueTrabaja(o) {
   switch (o.plano.id) {
     case 'colmena': return avisoColmena(datosDe(o, 'colmena', sanearColmena), estadoAbejas(o));
     case 'ahumadero': return avisoAhumadero(datosDe(o, 'ahumadero', sanearAhumadero), truchasFrescas(), troncosAMano());
-    case 'vivero': return avisoVivero(datosDe(o, 'vivero', sanearVivero), progreso.entradas, progreso.dia);
+    case 'vivero': return avisoVivero(datosDe(o, 'vivero', (d) => sanearVivero(d, progreso.cosas?.['macetas-barro'])), progreso.entradas, progreso.dia, progreso.cosas?.['macetas-barro']);   // (3.7.0: con las macetas de Malena)
     case 'lenera': return avisoLenera(datosDe(o, 'lenera', sanearLenera), material('tronco'));
     case 'molino-agua': case 'aserradero': case 'estacion-meteo': case 'radio-refugio': return avisoMaquina(o);   // 2.9
     default: return avisoObra24(o);
@@ -5640,7 +5671,7 @@ function usarObraQueTrabaja(o) {
     else if (r.accion === 'sinLena') nota('Falta leña', 'Un tronco por tanda, para el fuego de abajo');
     else nota('No tenés truchas', `Con el ahumadero, de lo que pescás te quedás con ${AHUMADERO.porDia} truchas por día`);
   } else if (o.plano.id === 'vivero') {
-    const r = usarVivero(datosDe(o, 'vivero', sanearVivero), progreso.entradas, progreso.dia);
+    const r = usarVivero(datosDe(o, 'vivero', (d) => sanearVivero(d, progreso.cosas?.['macetas-barro'])), progreso.entradas, progreso.dia, progreso.cosas?.['macetas-barro']);   // (3.7.0)
     if (r.accion === 'sacar') {
       for (const [esp, n] of Object.entries(r.plantines)) sumarEntrada(ARBOLES_VIVERO[esp].plantin, n);
       sonido.juntar();
@@ -6236,7 +6267,7 @@ const npcNombre = (npc) => npc.nombre;
 // Los de la lista principal y los de temporada, para lo que los trata a todos igual:
 // el aviso de cumplido y la lista de lo que tenés pendiente en pantalla.
 const TODOS_LOS_ENCARGOS = [...ENCARGOS, ...ENCARGOS_TEMPORADA];
-const NOMBRE_VECINO = { ema: 'Ema', ramon: 'Don Ramón', nicanor: 'Nicanor', guarda: 'Elsa', ercilia: 'Ercilia' };
+const NOMBRE_VECINO = { ema: 'Josefina', ramon: 'Don Ramón', nicanor: 'Nicanor', guarda: 'Elsa', ercilia: 'Ercilia' };
 // 1.11: la foto sale con el tren; lo que dejaron pagado, si dejaron algo, es tuyo.
 function mandarFoto(id) {
   const c = CARTA[id];
@@ -6638,7 +6669,7 @@ async function sacarFoto() {
   {
     const js = jugador.estado;
     const vistos = fotos.evaluar({
-      sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren,
+      sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren, lente: !!progreso.cosas?.lente,   // (3.7.0: el lente de Sofía)
       pezEnMano: pesca.mostrandoPez(), noche: 1 - (luzUltimaFoto?.dia ?? 1), lunaDir: luzUltimaFoto?.lunaDir,
       fogata: clima.fogata.activa && clima.fogata.vida > 0 ? clima.fogata.pos : null,
       otono: U.uOtono.value, invierno: U.uInvierno.value, arboles: veg.arboles, enKayak: js.enKayak,
@@ -8266,7 +8297,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldea = { oficios: () => oficios, mundo: () => aldeaGente, llamar: llamarAlProximoPoblador, actualizar: (dt = 1) => actualizarAldea(dt),
     accionObra: () => accionObra(), aserrar: () => aserrar(), cuaderno: (p) => { if (p) pestana = p; dibujarCuaderno(); }, golpes: () => golpesParaTalarAhora(), mundoPesca: () => mundoPesca(), entradas: () => ENTRADAS.map((e) => e.id),
     // 3.6: dónde queda cada cosa de la aldea en el mundo
-    puntos: (id) => puntosMundo(id), edificio: (id) => edificioEnMundo(id), renglon: () => (renglonAldea && renglonAldea.style.display !== 'none' ? renglonAldea.textContent : '') };
+    puntos: (id) => puntosMundo(id), edificio: (id) => edificioEnMundo(id), renglon: () => (renglonAldea && renglonAldea.style.display !== 'none' ? renglonAldea.textContent : ''),
+    animales: () => animalesAldea };   // 3.7.0: los animales de la aldea y tu cachorro
   // 3.6: los edificios de la aldea en el mundo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas

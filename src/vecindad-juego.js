@@ -5,7 +5,7 @@
 //
 // Lo que hace:
 //   · la charla con temas: al hablarle a un vecino (los de la aldea, los pobladores, Ramón,
-//     Nicanor, Ema, Ercilia y Elsa) saluda según la amistad, comenta lo que hiciste y ofrece un
+//     Nicanor, Josefina, Ercilia y Elsa) saluda según la amistad, comenta lo que hiciste y ofrece un
 //     menú corto: lo de su oficio (el servicio del día del poblador, o una historia de las de
 //     siempre si tiene una sin contar), «¿Cómo andás?», «Novedades», «Tu historia», «Regalar…»,
 //     «Invitar a tomar algo…», «Dar una mano…» y «Nada más, chau». Se elige con los números,
@@ -41,7 +41,7 @@ export function claveVecindad(npc) {
   return esPersonaVecindad(k) ? k : null;
 }
 const OFICIO_VALLE = { ramon: 'puestero', nicanor: 'pescador', ema: 'guardaparque', guarda: 'guarda de la trochita', ercilia: 'almacenera' };
-const NOMBRE_VALLE = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Ema', guarda: 'Elsa', ercilia: 'Ercilia' };
+const NOMBRE_VALLE = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', guarda: 'Elsa', ercilia: 'Ercilia' };
 export function nombreDeVecino(k) { return Object.hasOwn(NOMBRE_VALLE, k) ? NOMBRE_VALLE[k] : personaAldea(k)?.nombre || nombreCorto(k) || k; }
 export function oficioDeVecino(k) { return Object.hasOwn(OFICIO_VALLE, k) ? OFICIO_VALLE[k] : personaAldea(k)?.oficio || ''; }
 

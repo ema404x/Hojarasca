@@ -52,7 +52,7 @@ export const CARTAS = [
     // llega cuando tu cuaderno ya es un cuaderno
     llega: (p) => Object.keys(p.entradas || {}).length >= 25,
     texto: [
-      'Estimado: Ema, la guardaparque, me pasó su dirección. Me cuenta que lleva un cuaderno de campo con más de veinte anotaciones, y que las hace bien.',
+      'Estimado: Josefina, la guardaparque, me pasó su dirección. Me cuenta que lleva un cuaderno de campo con más de veinte anotaciones, y que las hace bien.',
       'Le pido un favor: si ve bandurrias, anote la hora y el lugar. Las estamos contando en toda la cordillera y cada dato sirve. Lo que se anota con cuidado no se pierde nunca.',
     ],
   },

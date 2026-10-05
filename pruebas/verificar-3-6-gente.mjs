@@ -58,7 +58,7 @@ const M = A.marcoAldea();
   const enCalle = (q) => A.CALLES_ALDEA.some((c) => A.distanciaACalle(q.x, q.z, c) < 0.05);
   // de cada puerta (y de cada lugar de afuera) a cada lugar de la aldea
   const lugares = [];
-  for (const id of A.IDS_EDIFICIOS) for (const [k, q] of Object.entries(A.puntosDe(id))) lugares.push({ id, k, x: q.x, z: q.z });
+  for (const id of A.IDS_EDIFICIOS) for (const [k, q] of Object.entries(A.puntosDe(id))) if (!A.esPuntoLejano(k)) lugares.push({ id, k, x: q.x, z: q.z });   // (3.7.0: sin el muelle del lago, que no se camina por las calles)
   let caminos = 0, largoMax = 0;
   const muestra = lugares.filter((_, i) => i % 7 === 0);
   for (const a of muestra) for (const b of muestra) {
@@ -338,7 +338,7 @@ function mundo(p) {
   m.ag.dibujarCuaderno(ficha, el);
   const texto = nodos.map((x) => x.texto).join(' | ');
   ok(/Aldea de los Duendes/.test(texto) && /Tito Arrieta, carpintero: atiende la carpintería/.test(texto) && /Ernesto Llancafil, jefe de estación/.test(texto), 'la ficha: quién vive y qué abrió');
-  ok(/El próximo en llegar: Rosa Quilodrán, panadera/.test(texto), 'y quién sigue');
+  ok(/El próximo en llegar: Ayelén Catriel, veterinaria/.test(texto), 'y quién sigue');   // (3.7.0: intercalados: después del carpintero, la veterinaria)
 }
 {
   // el Desafío: no llega nadie

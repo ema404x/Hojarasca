@@ -123,8 +123,8 @@ app.whenReady().then(async () => {
       return {orden:H.progreso.desafio.ordenes.ramon, d:Math.hypot(r.x-(${porton.x}), r.z-(${porton.z}))}})()`);
     ok(pt.orden === 'porton' && pt.d < 4, `"cuidá el portón": va a pararse junto al portón (${JSON.stringify(pt)})`);
     await mirarA('ema'); await esperar(1500);
-    const av2 = await aviso('/Ema/');
-    ok(/Ema: vení conmigo/.test(av2), `con Ema también ("${av2}")`);
+    const av2 = await aviso('/Josefina/');
+    ok(/Josefina: vení conmigo/.test(av2), `con Josefina también ("${av2}")`);
     await mirarA('ema'); await tecla('KeyE'); await esperar(300);
     ok((await js(`window.__hojarasca.progreso.desafio.ordenes.ema`)) === 'seguime', 'Ema te sigue');
     await foto('02-ordenes');

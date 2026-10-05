@@ -20,7 +20,7 @@ const t = crearTraductor(EN, 'en').t;
 const falta = [];
 // lo que en inglés se dice igual ("Torta frita", "2 ponchos") cuenta si está en el diccionario
 const traducido = (texto, donde) => { if (texto && t(texto) === texto && EN[texto] === undefined) falta.push(`${donde}: «${texto}»`); };
-const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Ema', ercilia: 'Ercilia' };
+const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', ercilia: 'Ercilia' };
 const may = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // ---------------------------------------------------------------- el cuaderno
@@ -104,7 +104,7 @@ for (const s of ['Esta foto sirve para una carta', 'Lo que dejaron por la foto']
 
 // ---------------------------------------------------------------- órdenes y cimiento (Desafío)
 for (const [k, lista] of Object.entries(ORDENES)) {
-  const nombre = k === 'ramon' ? 'Don Ramón' : 'Ema';
+  const nombre = k === 'ramon' ? 'Don Ramón' : 'Josefina';
   for (const o of lista) {
     traducido(`${nombre}: ${NOMBRE_ORDEN[o].toLowerCase()}`, `orden ${k} ${o}`);
     traducido(`“${RESPUESTAS[k][o]}”`, `respuesta ${k} ${o}`);

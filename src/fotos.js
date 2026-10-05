@@ -54,7 +54,8 @@ export function crearFotos(T, camara) {
     camara.getWorldDirection(dir);
     const L = T.lugares;
     const h = c.horas;
-    const animal = (tipo, dist) => c.sujetos.some((s) => s.tipo === tipo && enCuadro(s.pos, dist * (c.zoom ? 3 : 1)));
+    // (3.7.0: con el lente de Sofía, la fotógrafa de la aldea, los animales salen desde un poco más lejos)
+    const animal = (tipo, dist) => c.sujetos.some((s) => s.tipo === tipo && enCuadro(s.pos, dist * (c.zoom ? 3 : 1) * (c.lente ? 1.5 : 1)));
     const cerca = (l, r) => Math.hypot(camara.position.x - l.x, camara.position.z - l.z) < r;
     const haciaLago = () => {
       const lx = LAGO.x - camara.position.x, lz = LAGO.z - camara.position.z, l = Math.hypot(lx, lz) || 1;
