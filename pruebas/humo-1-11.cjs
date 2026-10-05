@@ -71,7 +71,8 @@ app.whenReady().then(async () => {
     await tecla('Digit' + (iHarina + 1)); await esperar(300);
     const h1 = await js(`window.__hojarasca.progreso.cosas.harina||0`);
     ok(iHarina >= 4 && h1 === 4, `el ${iHarina + 1} compra la harina (${h1}): del 5 en adelante también se compra`);
-    await js(`document.querySelectorAll('#trueque li')[${iHarina}].click(); 1`); await esperar(300);
+    // (3.6.2: el clic en las opciones va con mousedown, como el menú de la charla: el click no llegaba al #hud)
+    await js(`document.querySelectorAll('#trueque li')[${iHarina}].dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true, cancelable: true })); 1`); await esperar(300);
     const h2 = await js(`window.__hojarasca.progreso.cosas.harina||0`);
     ok(h2 === 8, `y un clic también (${h2})`);
     await tecla('Escape'); await esperar(300);
