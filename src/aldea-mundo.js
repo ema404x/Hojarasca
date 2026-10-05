@@ -36,7 +36,7 @@
 import * as THREE from 'three';
 import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle, quienLlega, obraEnCurso, LOTE_DE, plantaDe, suave01 } from './aldea.js';
 import { estadoVisual } from './aldea-gente.js';
-import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea } from './aldea-arquitectura.js';
+import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea, EDIFICIOS_ALDEA as EDIFICIOS_ARQUITECTURA } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
 import { registrarLuz, olvidarLuz } from './luces.js';
@@ -214,7 +214,9 @@ export function manzanaDe(id) {
   return `${col}-${e.z < 52 ? 's' : 'n'}`;
 }
 // Los edificios que arma este módulo (el almacén y la casa de té los arma estructuras.js).
-export const IDS_MUNDO_ALDEA = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura);
+// (3.7.0: sólo los que aldea-arquitectura.js ya sabe armar: los locales de la calle de la Loma los suma el
+// equipo de arquitectura; mientras tanto, su lote queda despejado y parejo, sin edificio)
+export const IDS_MUNDO_ALDEA = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura && Object.hasOwn(EDIFICIOS_ARQUITECTURA, id));
 // La etapa de aldea-arquitectura.js para lo que dice `estadoVisual`. La escuela nunca vuelve para
 // atrás: a medio hacer ya tiene paredes y techo.
 export function etapaVisual(aldea, id) {

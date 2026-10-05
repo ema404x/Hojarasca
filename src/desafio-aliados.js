@@ -1,7 +1,7 @@
 // Modo Desafío: los que se quedan a pelear con vos.
 // - El perro ladra cuando se acercan y muerde a los invasores cerca tuyo.
 // - Don Ramón (puestero) repara las defensas dañadas de la base.
-// - Ema (guardaparque) tira flechas desde la base.
+// - Josefina (guardaparque) tira flechas desde la base.
 // Los compañeros son los mismos vecinos del valle: cuando tu fuerte es seguro,
 // dejan su recorrido y se instalan en la base.
 import * as THREE from 'three';
@@ -217,14 +217,14 @@ export function crearAliados(api) {
         for (const a of api.aliens) {
           if (a.estado === 'morir' || a.estado === 'irse' || a.estado === 'bajar') continue;
           if (a.estado === 'bajoTierra') continue;   // 2.6.1: no se ve ni le entra nada: la flecha se clavaba en el suelo
-          if (a.enNave || a.estado === 'dormido') continue;   // 3.5.1: Ema no sube a la nave (no le tira a las crías desde el valle) ni despierta a los dormidos de las ruinas y los puestos
+          if (a.enNave || a.estado === 'dormido') continue;   // 3.5.1: Josefina no sube a la nave (no le tira a las crías desde el valle) ni despierta a los dormidos de las ruinas y los puestos
           const d = Math.hypot(a.m.g.position.x - npc.pos.x, a.m.g.position.z - npc.pos.z);
           if (d < d0) { d0 = d; mejor = a; }
         }
         if (!mejor) { c.t = 0.5; continue; }
         c.t = (apostada ? FORTIN.puesto.cadencia : 2.2) + Math.random() * 0.6;
         const ap = mejor.m.g.position;
-        npc.ruta[0].mirar = { x: ap.x, z: ap.z };   // 3.5.1: una copia: el invasor se recicla y Ema quedaba mirando al que lo reemplazaba
+        npc.ruta[0].mirar = { x: ap.x, z: ap.z };   // 3.5.1: una copia: el invasor se recicla y Josefina quedaba mirando al que lo reemplazaba
         npc.rumboObjetivo = Math.atan2(ap.x - npc.pos.x, ap.z - npc.pos.z);
         _v.set(npc.pos.x, npc.pos.y + 1.5, npc.pos.z);
         _w.set(ap.x, ap.y + mejor.def.altura * mejor.m.esc * 0.55, ap.z).sub(_v);

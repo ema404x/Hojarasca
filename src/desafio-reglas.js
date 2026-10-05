@@ -317,7 +317,7 @@ export const COMPANEROS = {
     saludo: 'Tranquilo, que las empalizadas las voy emparchando yo. Vos ocupate de los bichos esos.',
   },
   ema: {
-    nombre: 'Ema', llega: { noches: 4, defensas: 10 },
+    nombre: 'Josefina', llega: { noches: 4, defensas: 10 },
     aviso: 'Traje el arco del guardaparque. Desde acá te cubro',
     saludo: 'Tengo flechas para rato. Si ves que se me acercan, avisá.',
   },

@@ -32,7 +32,7 @@ function caja(mat, tam, pos, rot = [0, 0, 0]) {
 // rodilla, garrón, menudillo y casco, y cola tupida. Los cabos oscuros (crin, cola, hocico y
 // medias) y las manchas del overo se pintan en los vértices; también la cabezada. Los pivotes
 // (cuello, cabeza y patas) y lo del recado están donde estaban.
-function mallaCaballo(ap = sanearCaballoPersonal(null)) {
+export function mallaCaballo(ap = sanearCaballoPersonal(null)) {
   const g = new THREE.Group();
   const pj = PELAJE_CABALLO[ap.pelaje] || PELAJE_CABALLO.zaino;
   const pelo = pj.pelo, oscuro = pj.oscuro, ojo = '#0a0806';

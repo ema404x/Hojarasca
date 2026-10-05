@@ -233,7 +233,7 @@ app.whenReady().then(async () => {
       aviso = await js(`(()=>({ marca: window.__hojarasca.progreso.encargos['t-renovales-aviso'] || 0, texto: document.getElementById('notas').textContent }))()`);
     }
     ok(aviso.marca === 1, 'con tres nuevos, el juego avisa que está cumplido');
-    ok(!aviso.texto.includes('contale') || /contale a Ema/.test(aviso.texto), `y a quién contarle: a Ema (${aviso.texto.slice(0, 60)})`);
+    ok(!aviso.texto.includes('contale') || /contale a Josefina/.test(aviso.texto), `y a quién contarle: a Josefina (${aviso.texto.slice(0, 60)})`);
     await js(`(()=>{ const H = window.__hojarasca; const ema = H.gente.gente.find((n) => n.clave === 'ema'); H.hablar(ema); return 1 })()`);
     const cobro = await js(`window.__hojarasca.__charla()`);
     ok(cobro.encargo && cobro.encargo.modo === 'listo', 'Ema lo da por cumplido');

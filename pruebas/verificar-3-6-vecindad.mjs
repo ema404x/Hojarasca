@@ -254,7 +254,9 @@ const aldeaConObra = () => {
     const neutra = Object.keys(V.REGALABLES).find((c) => V.gustoDe(k, c) === 'neutro');
     const r5 = V.regalar(k, neutra, p, 7, inv);
     ok(r5.ok && r5.reaccion === 'neutro' && VZ.FRASES.neutro.includes(r5.renglones[0]), `${k}: lo demás, un gracias`);
-    ok(p.vecindad.personas[k].p === V.AMISTAD.encanta + V.AMISTAD.gusta + V.AMISTAD.noGusta + V.AMISTAD.neutro, `${k}: la amistad según el gusto`);
+    // (3.7.0: el día de su cumpleaños, lo que le gusta vale el doble)
+    const x2 = (d) => (A.esCumpleanos(k, d) ? 2 : 1);
+    ok(p.vecindad.personas[k].p === V.AMISTAD.encanta * x2(4) + V.AMISTAD.gusta * x2(5) + V.AMISTAD.noGusta + V.AMISTAD.neutro * x2(7), `${k}: la amistad según el gusto`);
   }
   const p = partida({ dia: 2, cosas: { yerba: 0 } });
   const sin = V.regalar('jefe', 'yerba', p, 2);
@@ -576,7 +578,8 @@ const aldeaConObra = () => {
   }
   ok(p.vecindad.hechos.length <= 40, 'los hechos, acotados');
   ok(Object.values(p.vecindad.personas).every((f) => f.dichos.length <= 24 && f.coment.length <= 16), 'la memoria de cada uno, acotada');
-  ok(mayor < 36000 && mayor <= mitad * 1.1, `el guardado no crece sin límite (${mitad} a los 500 días, ${mayor} a los 1000)`);
+  // (3.7.0: con las nueve de la calle de la Loma hay 33 personas en vez de 24: el tope crece igual)
+  ok(mayor < 36000 * PERSONAS.length / 24 && mayor <= mitad * 1.1, `el guardado no crece sin límite (${mitad} a los 500 días, ${mayor} a los 1000)`);
   ok(comentarios > 100 && visitas > 50 && regalos > 50, `en mil días pasan cosas (${comentarios} comentarios, ${visitas} visitas, ${regalos} regalos)`);
   ok(Object.values(V.amistades(p)).includes('compadre'), 'hay compadres');
 }

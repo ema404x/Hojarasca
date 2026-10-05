@@ -18,7 +18,7 @@ import { mesaPuesta } from './visitas.js';
 import { CUENTOS } from './cuentos.js';
 
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia'];
-const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Ema', ercilia: 'Ercilia' };
+const NOMBRES = { ramon: 'Don Ramón', nicanor: 'Nicanor', ema: 'Josefina', ercilia: 'Ercilia' };
 
 // Lo que el juego sabe de la partida, en números y banderas. `extra` trae lo que no está
 // en el guardado: el fuego prendido, si manejás la trochita o vas en el velero, y las
@@ -115,7 +115,7 @@ export const CAPITULOS = [
   {
     id: 'vecinos', titulo: 'Los vecinos',
     intro: [
-      'En el valle hay pocos vecinos y todos se conocen. Ramón con sus ovejas en el Puesto Alto, Nicanor en el muelle con la caña, Ema, la guardaparque, que anda siempre por el bosque, y Ercilia, que atiende el almacén de la Aldea de los Duendes y sabe todo antes que nadie.',
+      'En el valle hay pocos vecinos y todos se conocen. Ramón con sus ovejas en el Puesto Alto, Nicanor en el muelle con la caña, Josefina, la guardaparque, que anda siempre por el bosque, y Ercilia, que atiende el almacén de la Aldea de los Duendes y sabe todo antes que nadie.',
       '«Una casa sin mesa es un galpón», te dijo Ercilia. «Poné una mesa con un par de sillas y vas a ver cómo la gente se arrima.»',
     ],
     objetivos: [
@@ -127,7 +127,7 @@ export const CAPITULOS = [
     // a la mitad del capítulo, Nicanor se tuerce el tobillo (ver eventos-valle.js)
     momento: { evento: 'tobillo', cuando: 'pronto' },
     outro: [
-      'Esa tarde, en la mesa nueva, hubo mate. Nicanor con el pie en alto, Ercilia con las novedades que trajo el tren, Ramón que no decía nada y Ema que llegó tarde con barro hasta las rodillas.',
+      'Esa tarde, en la mesa nueva, hubo mate. Nicanor con el pie en alto, Ercilia con las novedades que trajo el tren, Ramón que no decía nada y Josefina que llegó tarde con barro hasta las rodillas.',
       'Nadie lo dijo, pero algo quedó decidido: ya sos del valle. Acá eso no se anuncia; se nota en que te guardan la yerba.',
     ],
     premio: { cuenta: { yerba: 8 }, texto: 'Un kilo de yerba de los vecinos' },
@@ -169,7 +169,7 @@ export const CAPITULOS = [
   {
     id: 'molino', titulo: 'El molino',
     intro: [
-      'Ema te llevó hasta el arroyo, donde quedan las piedras de un molino viejo. «Acá se molía el trigo de todo el valle», contó. «Con el agua que baja de la nieve alcanza para mover una muela y una sierra.»',
+      'Josefina te llevó hasta el arroyo, donde quedan las piedras de un molino viejo. «Acá se molía el trigo de todo el valle», contó. «Con el agua que baja de la nieve alcanza para mover una muela y una sierra.»',
       '«Si armás el molino, la harina sale de tus habas, y el aserradero te hace las tablas mientras dormís. El arroyo trabaja gratis.»',
     ],
     objetivos: [
@@ -181,7 +181,7 @@ export const CAPITULOS = [
     momento: { evento: 'puente', cuando: 'pronto' },
     outro: [
       'La rueda empezó a girar con un quejido de madera nueva y después agarró su ritmo, el mismo del arroyo. Adentro, la muela hace un ruido hondo que se siente en los pies.',
-      'Ema se quedó un rato largo mirando. «Mi abuelo traía el trigo en carro desde la estepa», dijo. «Le va a gustar saber que volvió a moler.»',
+      'Josefina se quedó un rato largo mirando. «Mi abuelo traía el trigo en carro desde la estepa», dijo. «Le va a gustar saber que volvió a moler.»',
     ],
     premio: { cuenta: { harina: 4, 'semillas-habas': 3 }, texto: 'Cuatro medidas de harina y semillas de habas' },
   },

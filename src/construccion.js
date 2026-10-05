@@ -1837,7 +1837,7 @@ const PIEZAS = [
   {
     id: 'puesto-tirador', nombre: 'Puesto de tirador', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.5, ancho: 2.4, fondo: 1.6, alto: 1.0, separacion: 2.0, vida: 380,
-    texto: 'Un parapeto de piedra con apoyo para el arco. Ema, con la orden "quedate en la base", se aposta acá: tira más lejos, más seguido y más fuerte.',
+    texto: 'Un parapeto de piedra con apoyo para el arco. Josefina, con la orden "quedate en la base", se aposta acá: tira más lejos, más seguido y más fuerte.',
     pide: { piedra: 8, tabla: 2 }, pendienteMax: 0.45, distSendero: 0.4,
     defensa: { tipo: 'puesto' },
     arma(c, P, datos, suelo) {

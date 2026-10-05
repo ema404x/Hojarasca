@@ -1,4 +1,4 @@
-// Encargos: lo que te piden Ema, Ramón y Nicanor, y cómo se sabe que están cumplidos
+// Encargos: lo que te piden Josefina, Ramón y Nicanor, y cómo se sabe que están cumplidos
 export const ENCARGOS = [
   {
     id: 'e-arboles', quien: 'ema', titulo: 'Los cinco árboles',
@@ -173,12 +173,12 @@ export const ENCARGOS = [
     premio: { materiales: { tabla: 6 }, texto: 'seis tablas' },
     cumplido: (p) => (p.materiales?.lana || 0) + (p.acopio?.lana || 0) >= 6,
   },
-  // ---- El cierre. Ema abrió la lista con los cinco árboles; le toca cerrarla.
+  // ---- El cierre. Josefina abrió la lista con los cinco árboles; le toca cerrarla.
   // No pide nada nuevo: pide volver, que a esta altura es lo único que falta.
   {
     id: 'e-valle', quien: 'ema', cierre: true, titulo: 'Lo que aprendiste',
     pedido: 'Ya no me queda nada para pedirte. Hiciste todo lo que se le puede pedir a alguien que recién llega: aprendiste a sacar madera sin arruinar el monte, a devolver lo que sacaste, a leer el agua y a caminar el valle de punta a punta. Así que te pido lo último y es lo más fácil: volvé a verme cuando quieras y charlamos un rato, como se charla entre los que conocen el lugar.',
-    resumen: 'Volver a hablar con Ema.',
+    resumen: 'Volver a hablar con Josefina.',
     listo: 'Listo. Ya no sos alguien que anda por acá: sos alguien de acá. El bosque no se termina de conocer nunca, pero ya sabés lo suficiente como para que te deje quedarte. Llevate estas cosas del almacén, que las vas a necesitar más que nosotros.',
     premio: { cosas: ['mosca', 'farol', 'manta', 'yerba'], texto: 'la mosca, el farol, la manta y la yerba' },
     cumplido: (p) => ENCARGOS.every((e) => e.cierre || p.encargos?.[e.id] === 'hecho'),

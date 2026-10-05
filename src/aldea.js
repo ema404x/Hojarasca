@@ -21,6 +21,13 @@
 //   · los horarios de cada uno y las charlas entre vecinos;
 //   · el guardado (`progreso.aldea`) y la migración de un pueblo de la 3.1.
 //
+// 3.7.0 «La aldea crece» (PLAN_3_7.md): la calle de la Loma con sus nueve lotes; las ocho pobladoras
+// nuevas y Pocha, la modista, intercaladas con los once de la 3.6; lo que da cada una por día; el año de
+// doce días con los cumpleaños de todos; los chicos que crecen una etapa por año; las charlas nuevas (y
+// las de la radio de la seccional, Julia con Josefina: Ema pasó a llamarse Josefina). Lo demás
+// de la vida de la aldea (calendario, visitantes, mascota, apodo, familia, ritmo y cartas) está en
+// aldea-vida.js.
+//
 // Módulo puro (se prueba en Node): sin three ni DOM.
 import { ENTRADAS } from './cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';
@@ -108,6 +115,23 @@ export const EDIFICIOS_ALDEA = {
   'sala-miel': { nombre: 'La sala de miel', rol: 'local', poblador: 'apicultor', ancho: 6, fondo: 5, x: 72, z: 58.5, rot: PI, y: 19.99, calle: 'calle-norte', lado: 1 },
   seccional: { nombre: 'La seccional de guardaparques', rol: 'local', poblador: 'guardaparque', ancho: 6, fondo: 6, x: 69.5, z: 45, rot: 0, y: 19.13, calle: 'calle-norte', lado: 1 },
   salon: { nombre: 'El salón', rol: 'local', poblador: 'musico', ancho: 10, fondo: 8, x: 34, z: 61, rot: PI, y: 20.85, calle: 'calle-norte', lado: 1 },
+  // 3.7.0: la calle de la Loma. Detrás de la aldea (hacia el norte del plano) está la ladera del valle, que
+  // sube casi un metro por metro: ahí no entra una planta de 6 m con menos de 1,5 m de desnivel. La loma
+  // de verdad está al oeste: la calle Norte sigue derecho y sube de 24 a 31 m, entre mesetitas donde sí
+  // entran los lotes (medido con el terreno real en verificar-3-7-0-aldea.mjs). Arriba de todo, el
+  // observatorio, a unos 8 m sobre la plaza, con la aldea, el valle y la cordillera adelante.
+  // `anexo`: lo que va afuera en su propio lugar (el corral de la veterinaria, el horno de la ceramista),
+  // en el marco del edificio; `cupula`: el observatorio lleva cúpula. Tamaños del contrato con
+  // aldea-arquitectura.js (no se cambian sin avisar).
+  veterinaria: { nombre: 'La veterinaria', rol: 'local', poblador: 'veterinaria', ancho: 8, fondo: 6, x: -65, z: 61.5, rot: PI, y: 21.41, calle: 'calle-loma', lado: 1, anexo: { id: 'corral', x: -8.5, z: 0, ancho: 6, fondo: 6 } },
+  'estudio-fotos': { nombre: 'El estudio de fotos', rol: 'local', poblador: 'fotografa', ancho: 6, fondo: 6, x: -78, z: 61.5, rot: PI, y: 23.24, calle: 'calle-loma', lado: 1 },
+  'refugio-andinista': { nombre: 'El refugio andinista', rol: 'local', poblador: 'andinista', ancho: 7, fondo: 6, x: -128.5, z: 44.5, rot: 0, y: 30.01, calle: 'calle-loma', lado: 1 },
+  herboristeria: { nombre: 'La herboristería', rol: 'local', poblador: 'herbolaria', ancho: 6, fondo: 6, x: -105, z: 59.5, rot: PI, y: 26.66, calle: 'calle-loma', lado: 1 },
+  'taller-arte': { nombre: 'El taller de arte', rol: 'local', poblador: 'pintora', ancho: 7, fondo: 6, x: -51, z: 43, rot: 0, y: 25.26, calle: 'calle-loma', lado: 1 },
+  ceramica: { nombre: 'La cerámica', rol: 'local', poblador: 'ceramista', ancho: 7, fondo: 6, x: -62, z: 43, rot: 0, y: 24.66, calle: 'calle-loma', lado: -1, anexo: { id: 'horno', x: -5.8, z: -1.5, ancho: 2, fondo: 2 } },
+  varadero: { nombre: 'El varadero', rol: 'local', poblador: 'botera', ancho: 8, fondo: 6, x: -110, z: 43, rot: 0, y: 27.71, calle: 'calle-loma', lado: -1 },
+  observatorio: { nombre: 'El observatorio', rol: 'local', poblador: 'astronoma', ancho: 6, fondo: 6, x: -138, z: 43, rot: 0, y: 30.68, calle: 'calle-loma', lado: -1, cupula: true },
+  costureria: { nombre: 'La costurería', rol: 'local', poblador: 'modista', ancho: 6, fondo: 5, x: -46.5, z: 59.5, rot: PI, y: 23.94, calle: 'calle-loma', lado: -1 },
 };
 export const IDS_EDIFICIOS = Object.keys(EDIFICIOS_ALDEA);
 export const esEdificioAldea = (id) => typeof id === 'string' && Object.hasOwn(EDIFICIOS_ALDEA, id);
@@ -128,6 +152,8 @@ export const CALLES_ALDEA = [
   { id: 'calle-este', nombre: 'Calle del Almacén', ancho: 5, puntos: [[20, 26], [20, 70]] },
   { id: 'pasaje-oeste', nombre: 'Pasaje de los Coihues', ancho: 4, puntos: [[-27, 26], [-27, 68]] },
   { id: 'pasaje-este', nombre: 'Pasaje de las Chacras', ancho: 4, puntos: [[53, 26], [53, 68]] },
+  // 3.7.0: la que sigue a la calle Norte y sube a la loma, hasta el observatorio
+  { id: 'calle-loma', nombre: 'Calle de la Loma', ancho: 5, puntos: [[-44, 52], [-146, 52]] },
 ];
 
 // De la planta de un edificio: dónde cae un punto suyo (bx, bz) en el plano de la aldea.
@@ -190,6 +216,18 @@ export function distanciaACalle(lx, lz, calle) {
 // cuarto de atrás con la cama del poblador; los de la plaza, la biblioteca, la escuela y el
 // salón tienen lugares para estar, bancos, pupitres y sillas.
 const atrasDe = (e) => Math.min(2.6, e.fondo * 0.4);
+const medioDe = (e) => (-e.fondo / 2 + atrasDe(e) + e.fondo / 2) / 2;
+// 3.7.0: el muelle del lago (el `muelle` de terreno.js, a casi 500 m de la aldea), en el plano: Martina, la
+// del varadero, trabaja de día al lado de donde arranca el muelle, en la orilla (2,8 m al costado y un metro
+// antes de la primera tabla), mirando al agua. La prueba lo vuelve a calcular desde el terreno.
+export const MUELLE_ALDEA = { lx: -74.16, lz: -489.71, rot: -1.0 };
+// De un punto del plano (lx, lz, giro) al marco de un edificio (lo contrario de `enPlano`).
+function desdePlano(e, lx, lz, rot) {
+  const c = Math.cos(e.rot), s = Math.sin(e.rot), dx = lx - e.x, dz = lz - e.z;
+  return { x: dx * c - dz * s, z: dx * s + dz * c, rot: rot - e.rot };
+}
+// ¿El punto queda lejos de la aldea (fuera del rectángulo que ocupa)? Lo de Martina en el muelle.
+export const esPuntoLejano = (punto) => punto === 'trabajo-muelle';
 function puntosBase(e) {
   const { ancho: W, fondo: D } = e;
   const frente0 = -D / 2 + atrasDe(e);            // donde empieza el cuarto del frente
@@ -297,6 +335,13 @@ function puntosLocales(id) {
     k = 1;
     for (const z of [0.6, 1.4, 2.2, 3.0]) for (const x of [-0.6, 0.6]) p[`baile-${k++}`] = { x, z, rot: x < 0 ? PI / 2 : -PI / 2 };
   }
+  // 3.7.0: lo propio de los locales de la calle de la Loma: el corral de la veterinaria y el horno de la
+  // ceramista (adentro del corral, y frente a la boca del horno), la silla de los retratos, la del modelo
+  // y la de la clienta que se prueba, y el lugar de Martina junto al muelle del lago (lejos: trabaja allá)
+  if (e.anexo?.id === 'corral') p.corral = { x: e.anexo.x + 2, z: e.anexo.z, rot: -PI / 2 };
+  if (e.anexo?.id === 'horno') p.horno = { x: e.anexo.x, z: e.anexo.z + 1.7, rot: PI };
+  if (id === 'estudio-fotos' || id === 'taller-arte' || id === 'costureria') p['lugar-1'] = { x: -W / 4, z: medioDe(e), rot: PI / 2 };
+  if (id === 'varadero') p['trabajo-muelle'] = desdePlano(e, MUELLE_ALDEA.lx, MUELLE_ALDEA.lz, MUELLE_ALDEA.rot);
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
     let k = 1;
@@ -579,7 +624,7 @@ export const POBLADORES_ALDEA = {
     colores: { ropa: '#5a6a3a', abrigo: '#4a5630', gorro: 'sombrero', pelo: '#2a2220' },
     llegada: [
       'Julia Antiñir, guardaparque. Me asignaron esta seccional, que hasta ahora era un mástil y un cartel con la pintura saltada.',
-      'Cuido el bosque y llevo el registro de la fauna. Si anotás lo que ves, nos vamos a llevar muy bien.',
+      'Cuido el bosque y llevo el registro de la fauna, con Josefina, mi compañera, que recorre el valle. Si anotás lo que ves, nos vamos a llevar muy bien.',
     ],
     saludo: 'Buen día. ¿Algún avistaje para el registro?', despedida: 'Mirá dónde pisás, que el bosque es de todos.',
     resumen: 'Pasa al registro de la seccional la fauna y los rastros que anotaste: por cada uno nuevo, una de yerba (hasta cuatro por día). Si no hay nada nuevo, te dice qué buscar.',
@@ -594,20 +639,312 @@ export const POBLADORES_ALDEA = {
     saludo: 'Pasá, que estoy afinando.', despedida: 'El sábado a la tarde, en la plaza. No faltes.',
     resumen: 'Una vez por semana te enseña una melodía del valle que te falte, para el tocadiscos del refugio. Los sábados a la tarde toca en la plaza.',
   },
+  // ---------------------------------------------------------------- 3.7.0: las pobladoras nuevas
+  // Ocho que llegan intercaladas con los once de la 3.6 (ver ORDEN_POBLADORES_ALDEA), cada una con su local
+  // en la calle de la Loma y con el objeto que baja del tren (`objeto`, para la escena de llegada), y Pocha,
+  // la modista, viuda y charlatana, que forma pareja con Anselmo, el herrero (el romance es de la 3.7.1:
+  // `pareja` y `romance: false` lo dejan dicho: nunca es candidata del jugador). `edad`, en años. Ninguna
+  // vende ni cobra: cada una da lo suyo una vez por día, con lo que ya existe en el valle.
+  veterinaria: {
+    nombre: 'Ayelén Catriel', oficio: 'veterinaria', edad: 29, mano: null, lote: 'veterinaria', afuera: true,
+    objeto: 'un maletín de cuero gastado, con el estetoscopio colgando del asa',
+    colores: { ropa: '#6b7a58', abrigo: '#3e4a36', gorro: null, pelo: '#1e1a18', bufanda: '#c8a878' },
+    llegada: [
+      'Hola. Soy Ayelén Catriel, veterinaria rural. Vengo de Junín de los Andes, de atender ovejas, caballos y algún que otro perro mordido por un zorro.',
+      'Me contaron que acá hay majada, un zaino que presta Don Ramón y gallinas en cada patio. Donde hay animales, alguien tiene que mirarles los dientes.',
+    ],
+    saludo: 'Hola. ¿Algún animal que ande raro?', despedida: 'Y si el perro come pasto, no es nada: se está purgando.',
+    resumen: 'Ayuda con tus animales una vez por día: le revisa las herraduras al zaino (anda más liviano hasta la noche), carda la lana que quedó en la majada o vitamina tus gallinas.',
+  },
+  fotografa: {
+    nombre: 'Sofía Haddad', oficio: 'fotógrafa', edad: 31, mano: null, lote: 'estudio-fotos', afuera: true,
+    objeto: 'una cámara de fuelle de su abuelo, en un estuche de madera con herrajes de bronce',
+    colores: { ropa: '#7a3e48', abrigo: '#2e2a30', gorro: 'boina', pelo: '#2a1e1a', bufanda: '#d8c8a8' },
+    llegada: [
+      'Sofía Haddad, fotógrafa. Me vine de Buenos Aires con la cámara de mi abuelo, que sacó fotos de casamientos en Bahía Blanca durante cuarenta años.',
+      'Allá todo el mundo tiene una cámara en el bolsillo y nadie mira. Acá la luz cambia cada diez minutos. Si me dejan un cuarto oscuro, me quedo.',
+    ],
+    saludo: '¡No te muevas! Ah, no, perdón, la costumbre. Hola.', despedida: 'Y mirá la luz de las cinco, que es la mejor.',
+    resumen: 'Te mejora la cámara (un lente que se acerca más) y, una vez por día, mira tu álbum y te dice qué foto te falta y cómo sacarla. Las fotos las sigue despachando Benigno.',
+  },
+  andinista: {
+    nombre: 'Rocío Lagos', oficio: 'guía de montaña', edad: 33, mano: null, lote: 'refugio-andinista', afuera: true,
+    objeto: 'una mochila más alta que ella, con un piolet atado y una cuerda roja enrollada',
+    colores: { ropa: '#b0502e', abrigo: '#3a4a5e', gorro: 'gorro', pelo: '#6a4228', bufanda: '#e0c060' },
+    llegada: [
+      '¡Buenas! Rocío Lagos, guía de montaña. Diez años subiendo gente al Tronador y al Lanín, y nunca dejé a nadie arriba. Bueno, una vez a un sombrero.',
+      'Este valle tiene filos y lagunas que no salen en ningún mapa. Si me dan un refugio para las cuerdas y los mapas, les enseño cada rincón.',
+    ],
+    saludo: '¡Hola! ¿Hoy a dónde subimos?', despedida: 'Agua, abrigo y avisar a dónde vas. Siempre.',
+    resumen: 'Una vez por día te cuenta cómo llegar a un lugar del valle que todavía no conocés y te lo marca en el mapa.',
+  },
+  herbolaria: {
+    nombre: 'Inés Ancalao', oficio: 'herbolaria', edad: 35, mano: 'mate', lote: 'herboristeria', afuera: true,
+    objeto: 'un canasto de mimbre lleno de frasquitos rotulados a mano y atados con lana',
+    colores: { ropa: '#5e6a4a', abrigo: '#4a3e34', gorro: null, pelo: '#1a1614', bufanda: '#b8786a', poncho: true },
+    llegada: [
+      'Inés Ancalao. Conozco los yuyos del monte desde chica: mi abuela me llevaba a juntar canelo y matico antes de que saliera el sol.',
+      'Acá crecen el calafate, la frutilla del bosque y el maqui casi en la puerta. Con una herboristería, nada de eso se pierde y nadie se queda sin remedio.',
+    ],
+    saludo: 'Buenas. Pasá, que hay olor a poleo.', despedida: 'Lo que juntes del monte, juntalo con permiso y dejá para otros.',
+    resumen: 'Una vez por día te cambia un poco de yerba por un puñado de frutos del monte y te da pistas de las plantas que te faltan en el cuaderno (las de los animales las da Julia).',
+  },
+  pintora: {
+    nombre: 'Abril Moretti', oficio: 'pintora', edad: 27, mano: null, lote: 'taller-arte', afuera: true,
+    objeto: 'un caballete plegable atado con un cinturón y una caja de óleos manchada de todos los colores',
+    colores: { ropa: '#3e6a8a', abrigo: '#c8a050', gorro: null, pelo: '#8a4a2a', bufanda: '#c84a4a' },
+    llegada: [
+      'Hola… Abril Moretti, pintora. Perdón, me quedé mirando el cerro: tiene un violeta que no existe en ningún tubo de pintura.',
+      'Vine a pintar la cordillera un verano y ya van tres. Si me dejan un taller con buena ventana, le pinto los carteles a todo el pueblo.',
+    ],
+    saludo: 'Hola. Quedate quieto ahí, que te da la luz justo.', despedida: 'Chau. Fijate en las sombras: nunca son negras.',
+    resumen: 'Por una tabla para el bastidor, una vez por día, le pinta un dibujito de tu parte a un vecino con el que todavía no tenés mucha confianza (le suma amistad).',
+  },
+  ceramista: {
+    nombre: 'Malena Jones', oficio: 'ceramista', edad: 30, mano: null, lote: 'ceramica', afuera: true,
+    objeto: 'una bolsa de arpillera con arcilla de Gaiman y el torno desarmado en un cajón',
+    colores: { ropa: '#9a6248', abrigo: '#5a4a3e', gorro: null, pelo: '#7a4a2e', bufanda: '#d8c8b0' },
+    llegada: [
+      '¡Hola! Malena Jones, ceramista, y prima de Mario, que seguro no te contó que tiene una prima. Vengo de Gaiman con arcilla en la valija en vez de ropa.',
+      'El barro del arroyo de acá es colorado y fino: con eso se hacen ollas, macetas y jarros que duran cien años. Si me ayudan con el taller y el horno, me quedo cerca de la familia.',
+    ],
+    saludo: '¡Hola! Perdón que no te doy la mano: barro.', despedida: 'Volvé, que el horno siempre tiene algo adentro.',
+    resumen: 'Por cuatro piedras te hace macetas de barro para el vivero (dos por vez, hasta cuatro más). Después te muestra el horno y te cuenta del barro.',
+  },
+  botera: {
+    nombre: 'Martina Roldán', oficio: 'la del varadero', edad: 28, mano: null, lote: 'varadero', afuera: true,
+    objeto: 'un remo partido al medio, atado con alambre, y una lata de brea',
+    colores: { ropa: '#2e4a5e', abrigo: '#c88a2e', gorro: 'gorro', pelo: '#3a2a1e', bufanda: '#e8e0d0' },
+    llegada: [
+      'Martina Roldán. Arreglo botes. Mi viejo tenía un varadero en Puerto Madryn y yo me crié entre virutas y brea.',
+      'Vi que en el lago hay un muelle y un velero que pide mano. Si me levantan un varadero, de día estoy en el muelle con Nicanor y de noche duermo acá, en la loma.',
+    ],
+    saludo: 'Buenas. ¿El kayak sigue entero?', despedida: 'Al agua siempre con el viento de cara.',
+    resumen: 'Por una tabla te calafatea el kayak: hasta la noche remás más rápido. De día trabaja en el muelle del lago; a la tardecita, en el varadero.',
+  },
+  astronoma: {
+    nombre: 'Valentina Ruiz Díaz', oficio: 'astrónoma', edad: 32, mano: null, lote: 'observatorio',
+    objeto: 'un telescopio en un cajón largo de madera, cargado como si fuera un bebé',
+    colores: { ropa: '#2e3450', abrigo: '#1e2234', gorro: 'gorro', pelo: '#1e1a18', bufanda: '#8a7ab0' },
+    llegada: [
+      'Buenas noches… digo, buenas tardes. Valentina Ruiz Díaz, astrónoma. Trabajé en el observatorio de Bosque Alegre, en Córdoba, hasta que las luces de la ciudad me taparon las estrellas.',
+      'Acá de noche no hay una sola luz en kilómetros. Si me ayudan a levantar un observatorio en la loma, les muestro el cielo como nunca lo vieron.',
+    ],
+    saludo: 'Hola. Perdón la cara: anoche hubo cielo limpio.', despedida: 'Mirá para arriba antes de dormir.',
+    resumen: 'De noche, en el observatorio, una vez por día te muestra por el telescopio algo del cielo que todavía no anotaste. De día duerme hasta la siesta.',
+  },
+  modista: {
+    nombre: 'Pocha Benítez', oficio: 'modista', edad: 58, mano: 'mate', lote: 'costureria', pareja: 'herrero', romance: false,
+    objeto: 'una máquina de coser a pedal, con el mueble y todo, que bajaron entre tres del furgón',
+    colores: { ropa: '#8a3a5a', abrigo: '#4a3040', gorro: null, pelo: '#a8a098', bufanda: '#e0b8c8' },
+    llegada: [
+      '¡Ay, qué viaje! Pocha Benítez, modista. Viuda, pero alegre, que el finado no hubiera querido otra cosa. Cosí para medio Corrientes y para la otra mitad de Esquel.',
+      'Me dijeron que acá hay una tejedora, un herrero soltero y ninguna costurera. Lo del herrero lo digo por decir, eh. Si me arman una costurería, les arreglo la ropa a todos.',
+    ],
+    saludo: '¡Pasá, pasá! ¿Te enteraste de lo último?', despedida: 'Y no le cuentes a nadie lo que te conté, eh.',
+    resumen: 'Te arregla la ropa y, de paso, una vez por día te cuenta qué le gusta a algún vecino (queda en el cuaderno, en «Tus vecinos»).',
+  },
 };
-// El orden en que llegan: primero los de la 3.1, como siempre, y después los nuevos.
-export const ORDEN_POBLADORES_ALDEA = ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra', 'enfermera', 'telegrafista', 'tejedora', 'apicultor', 'guardaparque', 'musico'];
+// 3.7.0: los once de la 3.6 y las nueve de la 3.7, por separado (para la migración, las pruebas y el orden de
+// siempre de los índices: ver ORDEN_PERSONAS_ALDEA)
+export const POBLADORES_36 = ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra', 'enfermera', 'telegrafista', 'tejedora', 'apicultor', 'guardaparque', 'musico'];
+export const POBLADORAS_37 = ['veterinaria', 'herbolaria', 'modista', 'botera', 'pintora', 'andinista', 'fotografa', 'ceramista', 'astronoma'];
+// El orden en que llegan. 3.7.0: intercalados, uno de la 3.6 y una de la 3.7 (el carpintero primero, como
+// siempre: sin tablas no hay obra; Pocha justo después de Anselmo; la fotógrafa después de Benigno, que le
+// despacha las fotos; la astrónoma casi al final, arriba de la loma). Una partida vieja intercala desde
+// donde está (ver `quienLlega`).
+export const ORDEN_POBLADORES_ALDEA = ['carpintero', 'veterinaria', 'panadera', 'herbolaria', 'herrero', 'modista', 'pescador', 'botera', 'maestra', 'pintora',
+  'enfermera', 'andinista', 'telegrafista', 'fotografa', 'tejedora', 'ceramista', 'apicultor', 'astronoma', 'guardaparque', 'musico'];
 export const esPobladorAldea = (clave) => typeof clave === 'string' && Object.hasOwn(POBLADORES_ALDEA, clave);
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA, 'ercilia', ...ORDEN_POBLADORES_ALDEA];
+export const esPobladora37 = (clave) => POBLADORAS_37.includes(clave);
+// (3.7.0: los índices de siempre para los de la 3.6, que deciden su banco de la plaza o su lado de la obra, y
+// las nuevas al final: el orden de llegada intercalado no los mueve)
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA, 'ercilia', ...POBLADORES_36, ...POBLADORAS_37];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
 export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
+// ---------------------------------------------------------------- 3.7.0: el año, los cumpleaños y los chicos
+// El año del juego es el de las estaciones de main.js (`DIAS_ANIO`): doce días, cuatro de verano, cuatro
+// de otoño y cuatro de invierno (el calendario completo está en aldea-vida.js). Cada vecino cumple años un
+// día del año (1 a 12): están repartidos, dos o tres por día, y el que cumple festeja a la tardecita.
+export const DIAS_ANIO = 12;
+export const diaDelAnio = (dia) => ((Math.max(1, Math.floor(num(dia) || 1)) - 1) % DIAS_ANIO) + 1;
+export const CUMPLES_ALDEA = {
+  jefe: 1, apicultor: 1, carpintero: 2, andinista: 2, madre: 3, maestra: 3, modista: 3, nene: 4, veterinaria: 4, guarda: 4,
+  nelida: 5, guardaparque: 5, pintora: 5, ercilia: 6, pescador: 6, nicanor: 6, padre: 7, telegrafista: 7, ceramista: 7,
+  nena: 8, fotografa: 8, ema: 8, panadera: 9, musico: 9, botera: 9, abuela: 10, enfermera: 10, herrero: 11, herbolaria: 11, ramon: 11,
+  galesa: 12, tejedora: 12, astronoma: 12,
+};
+export const cumpleDe = (clave) => (typeof clave === 'string' && Object.hasOwn(CUMPLES_ALDEA, clave) ? CUMPLES_ALDEA[clave] : null);
+export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe(clave) === diaDelAnio(dia);
+// La fiesta de cumpleaños de hoy, si hay: los que cumplen (de los que viven en la aldea) y dónde festejan.
+// Uno solo festeja en su casa (los chicos, en la de los Jones, con la familia); si cumplen dos o más el mismo
+// día, festejan juntos en la plaza. Los amigos van solos, en su tiempo libre (vecindad.js los manda de
+// visita al que cumple). De 18 a 20 (ver `rutinaAldea`; con lluvia o nieve, la de la plaza pasa a la casa de cada
+// uno: ver `aCubierto` en aldea-gente.js). Con un año de doce días, casi todos los días
+// cumple alguien: por eso la fiesta es chica y no se lleva a toda la aldea.
+export const HORA_FIESTA = [18, 20];
+export function fiestaDeCumple(dia, aldea) {
+  const a = aldea || aldeaNueva();
+  const claves = ORDEN_PERSONAS_ALDEA.filter((k) => esCumpleanos(k, dia) && (esVecinoAldea(k) || (a.pobladores || []).some((p) => p.clave === k && localAbierto(a, LOTE_DE[k]))) && !chicoAfuera(a, k));
+  if (!claves.length) return null;
+  if (claves.length > 1) return { claves, donde: 'plaza', edificio: 'plaza' };
+  const k = claves[0];
+  const edificio = Object.hasOwn(VECINOS_ALDEA, k) ? VECINOS_ALDEA[k].casa : k === 'ercilia' ? VECINOS_DEL_VALLE.ercilia.casa : LOTE_DE[k];
+  return { claves, donde: 'casa', edificio };
+}
+
+// Los chicos crecen una etapa por año, el día de su cumpleaños (el primero que cae a un año entero de que
+// se empezó a contar: en una partida nueva, desde el día 1; en una de la 3.6, desde el día en que se cargó).
+// De jóvenes toman el oficio del poblador con el que más tiempo pasaron (`junto`, que suma cada día lo que
+// le gusta a cada uno de los locales abiertos) o, si no hubo ninguno, se van a estudiar a la ciudad unos
+// días y vuelven con algo nuevo. Nunca entran en el romance (ver `sinRomance`).
+export const ETAPAS_CHICOS = ['bebe', 'chico', 'adolescente', 'joven'];
+export const CHICOS_ALDEA = ['nene', 'nena'];
+export const ETAPA_INICIAL = { nene: 1, nena: 1 };
+const AFINIDAD = {
+  nene: { pescador: 2, guardaparque: 2, andinista: 2, carpintero: 1, herrero: 1, botera: 1, astronoma: 1 },
+  nena: { maestra: 2, pintora: 2, veterinaria: 2, tejedora: 1, fotografa: 1, enfermera: 1, herbolaria: 1, apicultor: 1 },
+};
+export const ESTUDIO = { dias: 4, umbral: 24 };
+// Lo que estudia cada uno si se va, y dónde trabaja al volver
+export const CARRERAS = {
+  nene: { id: 'maquinista', oficio: 'maquinista de la trochita', edificio: 'estacion-aldea', punto: 'anden',
+    vuelve: 'Volví de Jacobacci con el título de maquinista. El primer tren que maneje va a parar acá, aunque no tenga que parar.' },
+  nena: { id: 'bibliotecaria', oficio: 'bibliotecaria', edificio: 'biblioteca', punto: 'adentro',
+    vuelve: 'Volví de Esquel recibida de bibliotecaria. La abuela me dio la llave de la biblioteca como si fuera un tesoro.' },
+};
+// Cómo es cada uno en cada etapa: la talla (como dato: el dibujo es de gente.js), la ropa, lo que dice.
+export const ETAPAS_DE = {
+  nene: {
+    adolescente: { talla: 0.84, oficio: 'adolescente de la aldea', colores: { ropa: '#3f5a7a', abrigo: '#2a3a4e', gorro: 'gorro', pelo: '#2a2220' },
+      saludo: 'Hola. ¿Viste que ya llego a la cumbrera del galpón?', despedida: 'Nos vemos.',
+      charla: ['Mi vieja dice que crecí como el álamo del patio: de golpe y torcido.', 'Ya no busco duendes. Bueno, a veces. Cuando no me ve nadie.'] },
+    joven: { talla: 0.98, oficio: 'joven de la aldea', colores: { ropa: '#4a4a52', abrigo: '#2a2e36', gorro: 'boina', pelo: '#2a2220', barba: '#3a2e26' },
+      saludo: 'Buenas, vecino. ¿Cómo anda el refugio?', despedida: 'Cuidate, eh.',
+      charla: ['Todavía me acuerdo cuando te preguntaba si habías visto el duende de la plaza.', 'De grande uno entiende por qué la abuela cuenta la leyenda: para que la aldea no se olvide de dónde viene.'] },
+  },
+  nena: {
+    adolescente: { talla: 0.82, oficio: 'adolescente de la aldea', colores: { ropa: '#8a4a3e', abrigo: '#5a2e2a', gorro: null, pelo: '#3a2a22', bufanda: '#e0c890' },
+      saludo: 'Hola. Estoy leyendo uno de los libros grandes de la biblioteca.', despedida: 'Chau.',
+      charla: ['Nahuel dice que leo demasiado. Yo digo que él lee demasiado poco.', 'Delia me presta los libros de los grandes. No le cuentes a mamá.'] },
+    joven: { talla: 0.94, oficio: 'joven de la aldea', colores: { ropa: '#6a3a4a', abrigo: '#3a2a34', gorro: null, pelo: '#3a2a22', bufanda: '#d8c8a0' },
+      saludo: 'Hola. ¡Qué grande está todo: la aldea, vos, yo!', despedida: 'Hasta luego.',
+      charla: ['Cuando era chica te dije que ya sabía leer. Ahora sé leer el valle, que es más difícil.', 'La aldea creció conmigo. A veces no sé quién acompañó a quién.'] },
+  },
+};
+export function chicosNuevos(dia = 1) {
+  const desde = diaValido(dia, 1);
+  return Object.fromEntries(CHICOS_ALDEA.map((k) => [k, { desde, etapa: ETAPA_INICIAL[k], junto: {}, oficio: null, estudia: 0, carrera: null, afuera: false, dia: 0 }]));
+}
+function sanearChicos(v, hoy, tope) {
+  const base = chicosNuevos(hoy);
+  if (!objeto(v)) return base;
+  for (const k of CHICOS_ALDEA) {
+    const x = objeto(v[k]) ? v[k] : null;
+    if (!x) continue;
+    const c = base[k];
+    c.desde = Math.min(tope, diaValido(x.desde, hoy));
+    c.etapa = Math.max(ETAPA_INICIAL[k], Math.min(ETAPAS_CHICOS.length - 1, entero(x.etapa, ETAPA_INICIAL[k])));
+    if (objeto(x.junto)) for (const p of [...POBLADORES_36, ...POBLADORAS_37]) if (Object.hasOwn(x.junto, p)) { const n = Math.max(0, Math.min(TOPE_DIA, entero(x.junto[p]))); if (n) c.junto[p] = n; }
+    c.oficio = c.etapa >= 3 && esPobladorAldea(x.oficio) ? x.oficio : null;
+    c.carrera = c.etapa >= 3 && !c.oficio && x.carrera === CARRERAS[k].id ? x.carrera : null;
+    c.estudia = c.etapa >= 3 && !c.oficio ? Math.max(0, Math.min(tope + ESTUDIO.dias, entero(x.estudia))) : 0;
+    // (un joven sin oficio ni estudio, de un guardado roto, se va a estudiar desde hoy)
+    if (c.etapa >= 3 && !c.oficio && !c.estudia) c.estudia = Math.min(tope, hoy) + ESTUDIO.dias;
+    c.afuera = !!c.estudia && !c.carrera;
+    c.dia = Math.min(tope, Math.max(0, entero(x.dia)));
+  }
+  return base;
+}
+const chicoDe = (a, k) => (CHICOS_ALDEA.includes(k) && objeto(a?.chicos) && objeto(a.chicos[k]) ? a.chicos[k] : null);
+export const etapaDeChico = (a, k) => chicoDe(a, k)?.etapa ?? (CHICOS_ALDEA.includes(k) ? ETAPA_INICIAL[k] : null);
+export const chicoAfuera = (a, k) => !!chicoDe(a, k)?.afuera;
+// Cuántas etapas creció desde que se empezó a contar, hasta `dia` (por los cumpleaños).
+export function crecimientos(k, desde, dia) {
+  const c = cumpleDe(k);
+  if (c === null) return 0;
+  const d0 = diaValido(desde, 1) + DIAS_ANIO;   // un año entero
+  const primero = d0 + ((c - diaDelAnio(d0) + DIAS_ANIO) % DIAS_ANIO);
+  const hoy = diaValido(dia, 1);
+  if (hoy < primero) return 0;
+  return Math.floor((hoy - primero) / DIAS_ANIO) + 1;
+}
+// Pasa el día para los chicos: crecen el día de su cumpleaños, suman el tiempo con cada poblador y, de
+// jóvenes, eligen. Llamarla una vez por día (si se llama más, no cambia nada). Devuelve los eventos:
+// { tipo: 'crecio', clave, etapa } · { tipo: 'aprendiz', clave, con } · { tipo: 'estudiar', clave, carrera }
+// · { tipo: 'volvio', clave, carrera }.
+export function pasarDiaChicos(aldea, dia) {
+  const eventos = [];
+  if (!aldea || typeof aldea !== 'object') return eventos;
+  const hoy = diaValido(dia, 1);
+  if (!objeto(aldea.chicos)) aldea.chicos = chicosNuevos(hoy);
+  for (const k of CHICOS_ALDEA) {
+    if (!objeto(aldea.chicos[k])) aldea.chicos[k] = chicosNuevos(hoy)[k];
+    const c = aldea.chicos[k];
+    if (c.dia >= hoy) continue;
+    c.dia = hoy;
+    // el tiempo con cada uno: lo que le gusta de los locales abiertos (de chico, la mitad)
+    if (c.etapa <= 2) for (const [p, n] of Object.entries(AFINIDAD[k])) if (localAbierto(aldea, LOTE_DE[p])) c.junto[p] = Math.min(TOPE_DIA, (c.junto[p] || 0) + (c.etapa === 2 ? n : Math.max(1, n / 2)));
+    const etapa = Math.min(ETAPAS_CHICOS.length - 1, ETAPA_INICIAL[k] + crecimientos(k, c.desde, hoy));
+    if (etapa > c.etapa) {
+      c.etapa = etapa;
+      eventos.push({ tipo: 'crecio', clave: k, etapa: ETAPAS_CHICOS[etapa] });
+      if (etapa === 3) {
+        const [con, n] = Object.entries(c.junto).sort((x, y) => y[1] - x[1] || ORDEN_POBLADORES_ALDEA.indexOf(x[0]) - ORDEN_POBLADORES_ALDEA.indexOf(y[0]))[0] || [null, 0];
+        if (con && n >= ESTUDIO.umbral && localAbierto(aldea, LOTE_DE[con])) { c.oficio = con; eventos.push({ tipo: 'aprendiz', clave: k, con }); }
+        else { c.estudia = hoy + ESTUDIO.dias; c.afuera = true; eventos.push({ tipo: 'estudiar', clave: k, carrera: CARRERAS[k].id }); }
+      }
+    }
+    if (c.estudia && !c.carrera && !c.oficio && hoy >= c.estudia) { c.carrera = CARRERAS[k].id; c.afuera = false; eventos.push({ tipo: 'volvio', clave: k, carrera: c.carrera }); }
+  }
+  return eventos;
+}
+// Cómo se ve y qué dice ahora (la etapa de ETAPAS_DE, o la de siempre de VECINOS_ALDEA).
+function etapaVisible(a, k) {
+  const e = etapaDeChico(a, k);
+  return e !== null && e >= 2 ? ETAPAS_DE[k][ETAPAS_CHICOS[e]] : null;
+}
+export function tallaDe(clave, aldea) {
+  const v = Object.hasOwn(VECINOS_ALDEA, clave) ? VECINOS_ALDEA[clave] : null;
+  const e = v ? etapaVisible(aldea, clave) : null;
+  return e ? e.talla : v?.talla;
+}
+export function coloresDe(clave, aldea) {
+  const e = etapaVisible(aldea, clave);
+  return e ? e.colores : personaAldea(clave)?.colores || null;
+}
+// Lo que dice al hablarle (y su oficio, el saludo y la despedida), según la etapa y lo que eligió.
+export function dichosDe(clave, aldea) {
+  const def = personaAldea(clave);
+  if (!def) return null;
+  const e = etapaVisible(aldea, clave);
+  const c = chicoDe(aldea, clave);
+  let oficio = e?.oficio || def.oficio;
+  const charla = [...(e?.charla || def.charla || [])];
+  if (c?.oficio && esPobladorAldea(c.oficio)) {
+    const m = POBLADORES_ALDEA[c.oficio];
+    oficio = `aprendiz de ${m.oficio}`;
+    charla.unshift(`Aprendo el oficio con ${m.nombre.split(' ')[0]}. Me dice que tengo buena mano, pero que todavía me falta paciencia.`);
+  } else if (c?.carrera) {
+    oficio = CARRERAS[clave].oficio;
+    charla.unshift(CARRERAS[clave].vuelve);
+  }
+  return { oficio, saludo: e?.saludo || def.saludo, despedida: e?.despedida || def.despedida, charla };
+}
+// 3.7.0: con quién no hay romance nunca (lo usa la 3.7.1): los chicos, en cualquier etapa, los Jones (que
+// están casados) y Pocha (`romance: false`: forma pareja con Anselmo, que tampoco).
+const SIN_ROMANCE = new Set(['nene', 'nena', 'padre', 'madre']);
+export const sinRomance = (clave) => !esPersonaAldea(clave) || SIN_ROMANCE.has(clave) || POBLADORES_ALDEA[clave]?.romance === false || clave === POBLADORES_ALDEA.modista.pareja;
+
 // ---------------------------------------------------------------- estado y saneo
 // La llegada: días entre la apertura de un local y el próximo que baja del tren, y cuánto
-// tiene que estar anotado el valle (cada poblador pide un poco más). Es el ritmo de la 3.1:
-// el undécimo pide 12 + 6 × 10 = 72 anotaciones, de las 207 que tiene el cuaderno (la prueba
-// lo cuenta), y además cada obra lleva por lo menos cuatro días.
-export const LLEGADA = { entreDias: 2, anotaciones: 12, porPoblador: 6 };
+// tiene que estar anotado el valle (cada poblador pide un poco más). Era el ritmo de la 3.1 (el
+// undécimo pedía 12 + 6 × 10 = 72 anotaciones y los once tardaban unos 66 días). 3.7.0: con veinte, el
+// ritmo es otro: un día entre una apertura y el próximo tren, y cuatro anotaciones más por cada uno: la
+// vigésima pide 10 + 4 × 19 = 86 de las 207 del cuaderno (la prueba lo cuenta y simula la partida entera:
+// los veinte en unos 100 días; cada obra sigue llevando por lo menos cuatro).
+export const LLEGADA = { entreDias: 1, anotaciones: 10, porPoblador: 4 };
 // La obra: con la etapa completa, los vecinos trabajan y queda lista a las 7 de la mañana del
 // día siguiente (si se completa a las 23, igual: los vecinos trabajan de noche con el farol;
 // 3.6.1: y si se completa de madrugada, antes de las 7, queda lista esa misma mañana).
@@ -640,6 +977,9 @@ const etapaInicial = (lote) => (Object.hasOwn(OBRA.etapaInicial, lote) ? OBRA.et
 export const SERVICIO = {
   troncosPorDia: 6, tablasPorTronco: 5, yerbaPorPan: 2, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, yerbaMandado: 4, cantosHacha: 3, cantosTijera: 2,
   descanso: 3, lanaPoncho: 2, lanaManta: 3, tablasMiel: 3, miel: 2, yerbaPorAvistaje: 1, avistajesPorDia: 4, diasPartitura: 7,
+  // 3.7.0: las de la calle de la Loma
+  huevosVet: 2, lanaVet: 1, fotosLente: 3, yerbaPorFrutos: 1, frutos: 3, tablaBastidor: 1, amistadDibujo: 8,
+  piedrasMacetas: 4, macetasPorVez: 2, macetasMax: 4, tablaKayak: 1,
 };
 
 const TOPE_DIA = 1e6;
@@ -653,6 +993,8 @@ export function aldeaNueva() {
     pobladores: [], llegando: null, ultimaLlegada: 0, ultimaApertura: 0, llamado: false,
     obras: {}, locales: {},
     usos: {}, afilado: 0, mandado: null, mandados: 0, fauna: 0, partitura: 0, descubierta: 0,
+    // 3.7.0: el kayak calafateado y el zaino herrado (el día: dura hasta la noche) y los chicos que crecen
+    calafateado: 0, herrado: 0, chicos: chicosNuevos(1),
   };
 }
 function sanearObra(lote, o, hoy = TOPE_DIA) {
@@ -721,6 +1063,9 @@ export function sanearAldea(v, hoy = null) {
     fauna: noNeg(x.fauna, ENTRADAS.length),
     partitura: noNeg(x.partitura, tope),
     descubierta: noNeg(x.descubierta, tope),
+    // 3.7.0 (una partida de la 3.6 no los trae: los chicos empiezan a crecer desde hoy)
+    calafateado: noNeg(x.calafateado, tope), herrado: noNeg(x.herrado, tope),
+    chicos: sanearChicos(x.chicos, Number.isFinite(num(hoy)) ? diaValido(hoy, 1) : 1, tope),
   };
 }
 
@@ -757,10 +1102,20 @@ function avisar(tipo, datos) {
 }
 
 // ---------------------------------------------------------------- la llegada
+// 3.7.0: intercalados. El que sigue es el primero que falta de la otra tanda que la del último que llegó (de
+// las de la 3.7 si el último fue de la 3.6, y al revés); si de esa tanda no queda nadie, el que falte. En una
+// partida nueva sale el orden de ORDEN_POBLADORES_ALDEA; una partida de la 3.6 que ya tenía a varios sigue
+// con las nuevas una por una entre los que le faltan.
 export function quienLlega(aldea) {
   const a = aldea || aldeaNueva();
-  const ya = new Set((a.pobladores || []).map((x) => x.clave));
-  return ORDEN_POBLADORES_ALDEA.find((k) => !ya.has(k)) || null;
+  const lista = Array.isArray(a.pobladores) ? a.pobladores : [];
+  const ya = new Set(lista.map((x) => x.clave));
+  const faltan = ORDEN_POBLADORES_ALDEA.filter((k) => !ya.has(k));
+  if (!faltan.length) return null;
+  const ultimo = lista.length ? lista[lista.length - 1].clave : null;
+  if (!ultimo) return faltan[0];
+  const otra = faltan.find((k) => esPobladora37(k) !== esPobladora37(ultimo));
+  return otra || faltan[0];
 }
 export const anotacionesDe = (progreso) => Object.keys(progreso?.entradas || {}).length;
 export const anotacionesPedidas = (aldea) => LLEGADA.anotaciones + LLEGADA.porPoblador * (aldea?.pobladores?.length || 0);
@@ -933,6 +1288,23 @@ export function pendientesDelCuaderno(entradas = {}, secciones = SECCIONES_MANDA
 const SECCIONES_REGISTRO = ['fauna', 'rastros'];
 export const avistajesDe = (entradas = {}) => ENTRADAS.filter((e) => SECCIONES_REGISTRO.includes(e.seccion) && Object.hasOwn(entradas || {}, e.id)).length;
 
+// 3.7.0: lo del cielo que se ve por el telescopio de Valentina (el rayo, la luna llena y la lluvia de
+// estrellas no: ésos se anotan cuando pasan)
+const CIELO_TELESCOPIO = ['cruz-del-sur', 'tres-marias', 'magallanes', 'escorpio'];
+const minusc = (s) => (typeof s === 'string' && s ? s.charAt(0).toLowerCase() + s.slice(1) : '');
+// 3.7.0: el vecino de la aldea con el que menos confianza tenés (para el dibujo de Abril): de los que viven
+// en la aldea, el de menos puntos de amistad (lo que guarda vecindad.js), sin llegar a compadre.
+function menosConfianza(progreso, aldea) {
+  const fichas = objeto(progreso?.vecindad?.personas) ? progreso.vecindad.personas : {};
+  const puntos = (k) => (Object.hasOwn(fichas, k) && Number.isFinite(num(fichas[k]?.p)) ? num(fichas[k].p) : 0);
+  const lista = ORDEN_PERSONAS_ALDEA.filter((k) => k !== 'pintora' && (esVecinoAldea(k) || (aldea.pobladores || []).some((p) => p.clave === k && localAbierto(aldea, LOTE_DE[k]))) && puntos(k) < 140);
+  if (!lista.length) return null;
+  return lista.reduce((m, k) => (puntos(k) < puntos(m) ? k : m), lista[0]);
+}
+// 3.7.0: `extra`: { pronostico, hora (la del juego: la astrónoma, de noche), lugares (un Set con los lugares
+// del cuaderno que tienen dónde en el mapa: la guía te los marca), fotoPendiente ({ nombre, pista }: la foto
+// del álbum que falta, que la fotógrafa te cuenta), chisme ({ persona, quien, k, cosa, gusto }: lo que Pocha
+// sabe de un vecino, de vecindad.js) }.
 export function servicioDe(clave, progreso, dia, extra = {}) {
   const aldea = progreso?.aldea || aldeaNueva();
   const S = SERVICIO;
@@ -1109,6 +1481,100 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
         titulo: `Melodía: ${m.nombre}`,
       };
     }
+    // ---------------------------------------------------------------- 3.7.0: las de la calle de la Loma
+    case 'veterinaria': {
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Por hoy ya revisé a tus animales. Están bien: los animales sanos se aburren de que los revisen.'] };
+      const hoy = diaValido(dia, 1);
+      const op = [];
+      if (cant(progreso, 'cosa', 'caballo') && entero(aldea.herrado) !== hoy) op.push({ partes: ['Traeme al zaino, que le miro los vasos. Tenía una herradura floja: ya está.', 'Vas a ver que hasta la noche anda más liviano, como si tuviera ganas.'],
+        efectos: [{ tipo: 'aldea', campo: 'herrado', valor: hoy }, uso], titulo: 'La veterinaria le revisó las herraduras al zaino' });
+      if (Object.keys(objeto(progreso?.gallineros) ? progreso.gallineros : {}).length) op.push({ partes: ['Pasé por tus gallinas: les di conchilla molida y un poco de ortiga. Pusieron de más.', `Tomá, te traje ${S.huevosVet} huevos que encontré escondidos debajo del nidal.`],
+        efectos: [{ tipo: 'entrada', k: 'huevo', n: S.huevosVet }, uso], titulo: `${S.huevosVet} huevos de tus gallinas` });
+      if (cant(progreso, 'cosa', 'tijera')) op.push({ partes: ['Le revisé las pezuñas a la majada de Don Ramón. En el corral quedaban mechones de lana enganchados en el alambre.', 'Los cardé y salió un vellón. Es tuyo, que vos las esquilás.'],
+        efectos: [{ tipo: 'material', k: 'lana', n: S.lanaVet }, uso], titulo: 'Un vellón de la majada' });
+      if (!op.length) return { partes: ['Todavía no tenés animales que atender. Cuando Don Ramón te preste el zaino, o tengas gallinas, traémelos.', 'Mientras tanto, vigilá que tu perro tome agua limpia.'] };
+      const o = op[hoy % op.length];
+      return { ...o, seguir: DALE };
+    }
+    case 'fotografa': {
+      if (!cant(progreso, 'cosa', 'lente') && entero(progreso?.fotos) >= S.fotosLente) {
+        return { partes: ['A ver esa cámara… El lente está rayado. Tomá este, que era de mi abuelo: acerca el doble.', 'Con esto, los bichos que antes eran un punto ahora salen con ojos.'], seguir: DALE,
+          efectos: [{ tipo: 'cosa', k: 'lente', fijar: 1 }, uso], titulo: 'Sofía te mejoró la cámara' };
+      }
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Hoy ya miramos tu álbum. Salí a sacar, que las fotos no se sacan solas.'] };
+      if (!cant(progreso, 'cosa', 'lente')) return { partes: [`Sacá unas fotos y traeme la cámara: con ${S.fotosLente} ya veo qué le falta.`, 'Y la próxima, no le pongas el dedo al lente.'] };
+      const f = objeto(extra?.fotoPendiente) && typeof extra.fotoPendiente.nombre === 'string' ? extra.fotoPendiente : null;
+      if (!f) return { partes: ['Tu álbum está completo. Ahora te falta la foto que nadie te pidió: ésa es la mejor.'] };
+      return { partes: [`Miré tu álbum: te falta «${f.nombre}».`, `Un consejo de fotógrafa: ${minusc(f.pista || 'paciencia y luz de costado.')}`], efectos: [uso], titulo: `Foto que falta: ${f.nombre}` };
+    }
+    case 'andinista': {
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Hoy ya te conté un lugar. Andá y volvé, que el valle no se termina en un día.'] };
+      const entradas = progreso?.entradas || {};
+      const conLugar = extra?.lugares instanceof Set ? extra.lugares : null;
+      const pend = pendientesDelCuaderno(entradas, ['lugares']).filter((e) => !conLugar || conLugar.has(e.id));
+      if (!pend.length) return { partes: ['Conocés el valle mejor que yo. La próxima la guía la hacés vos y yo te sigo.'] };
+      const e = pend[(diaValido(dia, 1) * 5) % pend.length];
+      return {
+        partes: [`¿Ya fuiste a ${minusc(e.nombre)}? Para llegar: ${minusc(e.pista)}`, conLugar ? 'Te lo marco en el mapa con una chinche. Llevá agua y avisá a dónde vas.' : 'Llevá agua y avisá a dónde vas.'],
+        seguir: DALE, efectos: [...(conLugar ? [{ tipo: 'chinche', k: e.id, nombre: e.nombre }] : []), uso], titulo: `Rocío te contó cómo llegar a ${minusc(e.nombre)}`,
+      };
+    }
+    case 'herbolaria': {
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Por hoy ya te di lo del monte. Lo que queda, queda para los pájaros.'] };
+      const fruto = diaValido(dia, 1) % 2 ? 'calafate' : 'frutilla';
+      const nombre = fruto === 'calafate' ? 'calafates' : 'frutillas del bosque';
+      if (cant(progreso, 'cosa', 'yerba') >= S.yerbaPorFrutos) {
+        return { partes: [`Por un poco de yerba te doy ${S.frutos} ${nombre} que junté esta mañana, antes de que salga el sol.`, 'Comelas despacio, que el monte las hizo despacio.'], seguir: DALE,
+          efectos: [{ tipo: 'cosa', k: 'yerba', n: -S.yerbaPorFrutos }, { tipo: 'entrada', k: fruto, n: S.frutos }, uso], titulo: `${S.frutos} ${nombre} de la herboristería` };
+      }
+      const pend = pendientesDelCuaderno(progreso?.entradas || {}, ['flora', 'frutos']);
+      if (!pend.length) return { partes: ['Ya anotaste todas las plantas del valle. Ahora aprendé para qué sirve cada una: eso no entra en ningún cuaderno.'] };
+      const e = pend[(diaValido(dia, 1) * 3) % pend.length];
+      return { partes: [`Si me traés yerba te doy frutos del monte. Mientras: ¿anotaste ${minusc(e.nombre)}?`, `${e.pista} Los bichos te los cuenta Julia; las plantas, yo.`] };
+    }
+    case 'pintora': {
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Hoy ya pinté uno. Si pinto dos, el segundo sale feo y lo tengo que regalar igual.'] };
+      const quien = menosConfianza(progreso, aldea);
+      if (!quien) return { partes: ['Ya te llevás bien con todos. Te pinto a vos, entonces, pero otro día: hoy la luz está rara.'] };
+      const nombre = personaAldea(quien)?.nombre?.split(' ')[0] || quien;
+      if (cant(progreso, 'material', 'tabla') < S.tablaBastidor) return { partes: [`Traeme una tabla para el bastidor y le pinto un dibujito a ${nombre} de tu parte. Así te va conociendo.`] };
+      return { partes: [`Por una tabla le pinto a ${nombre} un dibujito de su casa, de tu parte. Nadie se resiste a un dibujo de su casa.`, 'Se lo llevo esta tarde, con el óleo todavía fresco.'], seguir: DALE,
+        efectos: [{ tipo: 'material', k: 'tabla', n: -S.tablaBastidor }, { tipo: 'amistad', k: quien, n: S.amistadDibujo }, uso], titulo: `Abril le pintó un dibujo a ${nombre} de tu parte` };
+    }
+    case 'ceramista': {
+      const tiene = cant(progreso, 'cosa', 'macetas-barro');
+      if (tiene >= S.macetasMax) return { partes: ['Ya tenés todas las macetas que entran en tu vivero. Pasá cuando quieras a ver el horno: hoy hay jarros adentro.', 'El barro de acá es colorado por el hierro. Cocido queda como una teja vieja.'] };
+      if (yaHoy(aldea, clave, dia)) return { partes: ['El horno ya está cargado por hoy. Mañana sale otra tanda.'] };
+      if (cant(progreso, 'material', 'piedra') < S.piedrasMacetas) return { partes: [`Traeme ${S.piedrasMacetas} piedras para moler el esmalte y te hago ${S.macetasPorVez} macetas de barro para el vivero. Así sembrás más.`] };
+      return { partes: [`Por ${S.piedrasMacetas} piedras te hago ${S.macetasPorVez} macetas de barro para el vivero. Mañana salen del horno, pero llevátelas hoy, que te las guardo yo.`, 'Mario dice que son las macetas más lindas de la cordillera. Mario no sabe nada de macetas, pero es mi primo.'], seguir: DALE,
+        efectos: [{ tipo: 'material', k: 'piedra', n: -S.piedrasMacetas }, { tipo: 'cosa', k: 'macetas-barro', fijar: Math.min(S.macetasMax, tiene + S.macetasPorVez) }, uso], titulo: `${S.macetasPorVez} macetas de barro para el vivero` };
+    }
+    case 'botera': {
+      const hoy = diaValido(dia, 1);
+      if (entero(aldea.calafateado) === hoy) return { partes: ['El kayak ya está calafateado. Andá al agua antes de que se enfríe la brea, que corre como pez.'] };
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Hoy ya trabajé lo tuyo. Mañana me traés el kayak de nuevo.'] };
+      if (cant(progreso, 'material', 'tabla') < S.tablaKayak) return { partes: ['Traeme una tabla para el parche y te calafateo el kayak. Vas a remar como si el lago te empujara.'] };
+      return { partes: ['Por una tabla te emparcho la proa y le paso brea al casco. Hasta la noche remás más rápido.', 'Y no lo arrastres por las piedras, que la brea es buena pero no es de fierro.'], seguir: DALE,
+        efectos: [{ tipo: 'material', k: 'tabla', n: -S.tablaKayak }, { tipo: 'aldea', campo: 'calafateado', valor: hoy }, uso], titulo: 'Martina te calafateó el kayak' };
+    }
+    case 'astronoma': {
+      const h = Number.isFinite(num(extra?.hora)) ? (((num(extra.hora) % 24) + 24) % 24) : 12;
+      const noche = h >= 20 || h < 5;
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Por hoy ya miramos. El telescopio también necesita que lo dejen pensar.'] };
+      const pend = pendientesDelCuaderno(progreso?.entradas || {}, ['cielo']).filter((e) => CIELO_TELESCOPIO.includes(e.id));
+      if (!noche) return { partes: ['De día no hay nada que mirar, salvo el sol, y al sol no se lo mira. Volvé de noche al observatorio.', pend.length ? `Esta noche, si está limpio, te muestro ${minusc(pend[0].nombre)}.` : 'Esta noche te muestro la Vía Láctea entera.'] };
+      if (!pend.length) return { partes: ['Ya anotaste todo lo que se ve con este telescopio. Ahora mirá sin él: es otro cielo.'] };
+      const e = pend[0];
+      return { partes: ['Acercá el ojo, despacio, sin tocar el tubo.', `Eso es ${minusc(e.nombre)}. ${e.pista} Anotalo, que esta noche es tuya.`], seguir: DALE,
+        efectos: [{ tipo: 'registrar', k: e.id }, uso], titulo: `Por el telescopio: ${e.nombre}` };
+    }
+    case 'modista': {
+      if (yaHoy(aldea, clave, dia)) return { partes: ['Hoy ya te conté lo mío. Si te cuento más, después no tengo de qué hablar con Anselmo.'] };
+      const ch = objeto(extra?.chisme) && typeof extra.chisme.quien === 'string' && typeof extra.chisme.cosa === 'string' ? extra.chisme : null;
+      if (!ch) return { partes: ['Te arreglé el dobladillo del pantalón, que lo arrastrabas como una cola.', 'Y de chismes, hoy nada: esta aldea es tan tranquila que me tengo que inventar las novedades.'] };
+      const verbo = ch.gusto === 'encanta' ? 'le encanta' : ch.gusto === 'noGusta' ? 'no le gusta nada' : 'le gusta';
+      return { partes: ['Sentate que te cosí ese botón que te colgaba. Y escuchá, que esto no se lo conté a nadie… bueno, a casi nadie.', `A ${ch.quien} ${verbo} ${ch.cosa}. Yo no te dije nada, eh.`], efectos: [{ tipo: 'gusto', k: ch.persona, cosa: ch.k }, uso], titulo: `Pocha te contó un chisme de ${ch.quien}` };
+    }
     default: return { partes: [] };
   }
 }
@@ -1122,6 +1588,7 @@ export function aplicarAlAldea(aldea, efectos, dia) {
     else if (f.campo === 'mandados') aldea.mandados = Math.max(0, entero(aldea.mandados)) + Math.max(0, entero(f.valor));
     else if (f.campo === 'fauna') aldea.fauna = Math.max(0, entero(aldea.fauna)) + Math.max(0, entero(f.valor));
     else if (f.campo === 'partitura') aldea.partitura = Math.max(0, entero(f.valor));
+    else if (f.campo === 'calafateado' || f.campo === 'herrado') aldea[f.campo] = Math.max(0, entero(f.valor));   // 3.7.0
   }
 }
 // Para las pruebas y para lo que no pasa por el mundo: aplica todo sobre una partida. Los
@@ -1143,7 +1610,11 @@ export function aplicarEfectos(progreso, efectos, dia) {
       if (progreso.correo) enviarFoto(progreso.correo, f.k);
     } else if (f.tipo === 'partitura') {
       anotarPartitura(progreso, f.k);
-    } else if (f.tipo === 'jugador') alJugador.push(f);
+    } else if (f.tipo === 'registrar') {
+      // 3.7.0: lo que te mostró la astrónoma queda anotado
+      progreso.entradas = progreso.entradas || {};
+      if (!Object.hasOwn(progreso.entradas, f.k)) progreso.entradas[f.k] = { dia: diaValido(dia, 1), hora: 22, cantidad: 0 };
+    } else if (f.tipo === 'jugador' || f.tipo === 'chinche' || f.tipo === 'amistad' || f.tipo === 'gusto') alJugador.push(f);   // 3.7.0: el mapa y la vecindad, de quien los tenga
   }
   progreso.aldea = progreso.aldea || aldeaNueva();
   aplicarAlAldea(progreso.aldea, efectos, dia);
@@ -1171,7 +1642,11 @@ const indicePersona = (persona) => Math.max(0, ORDEN_PERSONAS_ALDEA.indexOf(pers
 // Los que van a los cuentos del domingo, cada uno con su silla (ver `rutinaAldea`).
 // 3.6.1 (vecinos): los chicos, al final: les tocan los almohadones de la alfombra (lectura-15 y 16), al
 // pie del sillón; antes se sentaban en las sillas y dos grandes en los almohadones
-const OYENTES = [...ORDEN_PERSONAS_ALDEA.filter((k) => !['abuela', 'jefe', 'nelida', 'galesa', 'nene', 'nena'].includes(k)), 'nene', 'nena'];
+// 3.7.0: con veinte pobladores no alcanzan las sillas: los catorce de siempre tienen la suya (y los chicos,
+// los almohadones 15 y 16); los demás se quedan en la plaza
+const OYENTES = [...ORDEN_PERSONAS_ALDEA.filter((k) => !['abuela', 'jefe', 'nelida', 'galesa', 'nene', 'nena'].includes(k)).slice(0, 14), 'nene', 'nena'];
+// 3.7.0: dónde trabajan afuera a la tarde los que tienen algo propio (si no, en `trabajo`)
+const PUNTO_AFUERA = { veterinaria: 'corral', ceramista: 'horno' };
 // Quiénes ayudan en las obras: el padre de los Jones, el carpintero y el herrero (si ya
 // tienen su local) y el dueño de la obra.
 export function obrerosDe(aldea, lote) {
@@ -1187,7 +1662,8 @@ const presente = (aldea, clave) => esVecinoAldea(clave) || (aldea?.pobladores ||
 // punto }: `lugar` es 'casa'|'local'|'trabajo'|'plaza'|'biblioteca'|'almacen'|'escuela'|'obra'|'salon'|
 // 'estacion', y `edificio`/`punto` dicen dónde pararse (ver `puntosDe`). Un poblador que todavía
 // no vino da { lugar: null }.
-export function rutinaAldea(persona, hora, diaSemana, estado) {
+// 3.7.0: `dia` (opcional): el día de la partida, para los cumpleaños (la fiesta de la tardecita).
+export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   const a = estado || aldeaNueva();
   const fuera = { lugar: null, edificio: null, punto: null };
   if (!esPersonaAldea(persona)) return fuera;
@@ -1203,6 +1679,8 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   // el que acaba de bajar del tren espera en el andén (de noche, adentro del galpón)
   if (p && a.llegando?.clave === persona) return t < 7 || t >= 21 ? ir('estacion', 'estacion-aldea', 'adentro') : ir('estacion', 'estacion-aldea', 'anden');
   if (p && !presente(a, persona)) return fuera;
+  // 3.7.0: el chico que se fue a estudiar a la ciudad no está
+  if (v?.chico && chicoAfuera(a, persona)) return fuera;
   const lote = p ? LOTE_DE[persona] : null;
   const abierto = p ? localAbierto(a, lote) : true;
   // dónde vive: su casa, su local (el cuarto de atrás) o, mientras se levanta, la estación
@@ -1217,8 +1695,14 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   // (cuenta la hora del reloj, sin su corrimiento: la bandera no espera)
   const bandera = persona === 'jefe' && ((h >= 7.5 && h < 8.25) || (h >= 18.5 && h < 19.25));
 
+  // 3.7.0: la astrónoma, con su observatorio abierto, trabaja de noche (de 20 a 3:30) y duerme hasta la siesta
+  const noctambula = persona === 'astronoma' && abierto;
+  if (noctambula) {
+    if (t >= 3.5 && t < 13) return cama();
+    if (t >= 20 || t < 3.5) return ir('local', lote, 'adentro');
+  }
   // de noche, adentro (el músico duerme hasta más tarde)
-  if (t < 6.5 || t >= 22 || (persona === 'musico' && t < 8.5)) return cama();
+  else if (t < 6.5 || t >= 22 || (persona === 'musico' && t < 8.5)) return cama();
   // domingo de 10 a 11, los cuentos en la biblioteca: la abuela Herminia lee (y cuenta la
   // leyenda de los duendes) y casi todos van a escucharla; el jefe se queda tomando mate en la
   // plaza, Nélida abre un rato el almacén y la galesa hornea la torta de la tarde
@@ -1227,7 +1711,9 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
     if (persona === 'jefe') return plaza();
     if (persona === 'nelida') return ir('trabajo', 'almacen', 'adentro');
     if (persona === 'galesa') return ir('trabajo', 'casa-te', 'cocina');
-    return ir('biblioteca', 'biblioteca', `lectura-${OYENTES.indexOf(persona) + 1}`);
+    const j = OYENTES.indexOf(persona);
+    if (j < 0) return plaza();   // 3.7.0: los que no tienen silla, en la plaza
+    return ir('biblioteca', 'biblioteca', `lectura-${j + 1}`);
   }
   if (bandera) return ir('plaza', 'plaza', 'soga');
   // 3.6.2: el sábado, tres cuartos de hora antes del baile se deja lo que se esté haciendo (para llegar
@@ -1241,12 +1727,37 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
     const j = ORDEN_PERSONAS_ALDEA.filter((k) => k !== 'musico').indexOf(persona);
     return j < 8 ? ir('salon', 'salon', `baile-${j + 1}`) : j < 16 ? ir('salon', 'salon', `lugar-${j - 7}`) : plaza();
   }
+  // 3.7.0: el cumpleaños: a la tardecita, el que cumple festeja en la plaza con toda la aldea (los chicos, en
+  // su casa, con la familia). El almacén, la casa de té y los locales cierran un rato.
+  if (dia !== null && t >= HORA_FIESTA[0] && t < HORA_FIESTA[1]) {
+    const fiesta = fiestaDeCumple(dia, a);
+    if (fiesta?.claves.includes(persona)) return fiesta.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', fiesta.edificio, 'adentro');
+    // (el cumpleaños de uno de los chicos: la familia, en casa)
+    if (fiesta?.edificio === 'casa-familia' && ['padre', 'madre', 'nene', 'nena'].includes(persona)) return ir('fiesta', 'casa-familia', 'adentro');
+  }
+  // 3.7.0: los chicos que ya son jóvenes trabajan con el que les enseña el oficio, o en lo que estudiaron
+  const etapa = v?.chico ? etapaDeChico(a, persona) : null;
+  if (v?.chico && etapa >= 3) {
+    const c = a.chicos?.[persona] || {};
+    const mentor = esPobladorAldea(c.oficio) && localAbierto(a, LOTE_DE[c.oficio]) ? c.oficio : null;
+    const lugarTrabajo = mentor ? [LOTE_DE[mentor], POBLADORES_ALDEA[mentor].afuera ? 'trabajo' : 'cliente'] : c.carrera ? [CARRERAS[persona].edificio, CARRERAS[persona].punto] : null;
+    if (habil && lugarTrabajo && ((t >= 8.5 && t < 12.5) || (t >= 13.5 && t < 17.5))) return ir('trabajo', lugarTrabajo[0], lugarTrabajo[1]);
+    if (t >= 12.5 && t < 13.5) return enCasa('adentro');
+    if (t >= 18 && t < 20) return i % 2 ? enCasa('trabajo') : plaza();
+    return enCasa('adentro');
+  }
   // los chicos
   if (v?.chico) {
     const juego = ir('plaza', 'plaza', `juego-${persona === 'nene' ? 1 : 2}`);
     // (3.6.2: hasta las 12:30, y a las 13 almuerzan en casa: la media hora del medio es para volver caminando)
     if (habil && localAbierto(a, 'escuela') && t >= 8.5 && t < 12.5) return ir('escuela', 'escuela', `pupitre-${persona === 'nene' ? 1 : 2}`);
     if (t >= 13 && t < 14) return enCasa('adentro');
+    // 3.7.0: de adolescente, a la tarde le da una mano al que más le gusta de los que tienen el local abierto
+    if (etapa === 2 && habil && t >= 14 && t < 17) {
+      const c = a.chicos?.[persona] || {};
+      const con = Object.entries(c.junto || {}).filter(([q]) => esPobladorAldea(q) && localAbierto(a, LOTE_DE[q])).sort((x, y) => y[1] - x[1])[0]?.[0];
+      if (con) return ir('trabajo', LOTE_DE[con], POBLADORES_ALDEA[con].afuera ? 'trabajo' : 'cliente');
+    }
     if (t >= 14 && t < 18) return juego;
     if (!habil && t >= 10 && t < 12.5) return juego;
     if (t >= 18 && t < 20) return enCasa('trabajo');
@@ -1255,6 +1766,9 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   // 3.6.2: el jefe de estación almuerza en la estación, con la vianda (su casa queda en la otra punta: iba y
   // volvía caminando toda la hora del almuerzo)
   if (persona === 'jefe' && !domingo && t >= 12.5 && t < 13.5) return ir('trabajo', 'estacion-aldea', 'adentro');
+  // 3.7.0: Martina trabaja de día en el muelle del lago, y almuerza ahí, con la vianda (el varadero le queda a
+  // medio kilómetro)
+  if (persona === 'botera' && abierto && !domingo && t >= 8 && t < 17) return ir('trabajo', lote, 'trabajo-muelle');
   // el almuerzo, en casa
   if (t >= 12.5 && t < 13.5) return enCasa('adentro');
   // la obra del pueblo, de día y de lunes a sábado
@@ -1309,8 +1823,13 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   } else if (abierto) {
     if (persona === 'musico') {
       if (t >= 15 && t < 20) return ir('local', lote, 'escenario');
-    } else if (t >= 8 && t < 18 && !(t >= 12.5 && t < 13.5)) {
-      if (p.afuera && t >= 13.5) return ir('trabajo', lote, 'trabajo');
+    } else if (persona === 'modista' && habil && t >= 16.5 && t < 17.5 && localAbierto(a, 'herreria')) {
+      // 3.7.0: Pocha le lleva unos mates a Anselmo a la herrería, a la tardecita (la pareja de la aldea)
+      return ir('trabajo', 'herreria', 'cliente');
+    } else if (persona === 'botera') {
+      if (t >= 17 && t < 18) return ir('trabajo', lote, 'trabajo');
+    } else if (!noctambula && t >= 8 && t < 18 && !(t >= 12.5 && t < 13.5)) {
+      if (p.afuera && t >= 13.5) return ir('trabajo', lote, Object.hasOwn(PUNTO_AFUERA, persona) ? PUNTO_AFUERA[persona] : 'trabajo');
       return ir('local', lote, 'adentro');
     }
   }
@@ -1358,6 +1877,32 @@ export const CHARLAS_ALDEA = [
   { id: 'abejas-flores', tema: 'estacion', cuando: { estacion: ['verano'] }, lineas: [['apicultor', 'Floreció el notro y las abejas andan locas.'], ['nena', '¿Me dejás ver los cajones?'], ['apicultor', 'De lejito, y sin correr.']] },
   { id: 'guardaparque-huemul', tema: 'oficio', lineas: [['guardaparque', 'Ayer vi un huemul cerca de la vía, Mario. Si lo ven, no lo corran.'], ['padre', 'Quedate tranquila, que acá nadie anda corriendo bichos.']] },
   { id: 'musico-cueca', tema: 'oficio', lineas: [['musico', 'El sábado toco un chamamé para usted, doña Herminia.'], ['abuela', 'Tocá una cueca, que el chamamé me cansa las rodillas.']] },
+  // ---------------------------------------------------------------- 3.7.0: las de la calle de la Loma
+  // `radio`: los que hablan por la radio de la seccional y no están ahí (Josefina, que recorre el valle,
+  // con Julia, que atiende la seccional): no hace falta que estén presentes.
+  { id: 'radio-condor', tema: 'radio', radio: ['ema'], lineas: [['guardaparque', 'Seccional a Josefina, ¿me copiás?'], ['ema', 'Te copio, Julia. Estoy en el mirador: el cóndor volvió al nido de la pared.'], ['guardaparque', 'Anotado en el registro. Volvé antes de que oscurezca, que se viene el viento.']] },
+  { id: 'radio-arroyo', tema: 'radio', radio: ['ema'], lineas: [['ema', 'Julia, acá Josefina. Bajó el arroyo: el vado del sendero se puede cruzar.'], ['guardaparque', 'Buenísimo. Le aviso a Rocío, que mañana sube con dos mochileros.'], ['ema', 'Decile que pasen callados por el mallín, que hay huemules.']] },
+  { id: 'radio-mate', tema: 'radio', radio: ['ema'], cuando: { hora: [8, 12] }, lineas: [['guardaparque', 'Josefina, ¿pasás por la seccional al mediodía? Hay mate y pan de Rosa.'], ['ema', 'Si el pan es de Rosa, llego antes del mediodía. Cambio y fuera.']] },
+  { id: 'pocha-anselmo', tema: 'pareja', lineas: [['modista', 'Anselmo, te traje unos mates, que con la fragua se te seca la garganta.'], ['herrero', 'Gracias, Pocha. ¿Y esa flor en el ojal?'], ['modista', 'La cosí yo. Es de tela: no se marchita, como algunas cosas.']] },
+  { id: 'pocha-chisme', tema: 'chisme', lineas: [['modista', '¿Viste que la de la fotografía le saca fotos a todo el que pasa?'], ['nelida', 'Pocha, le saca fotos hasta al perro de Ernesto.'], ['modista', 'Por eso. El perro no se queja.']] },
+  { id: 'pocha-elvira', tema: 'oficio', lineas: [['modista', 'Elvira, ¿me vendés… digo, me cambiás un ovillo de ese colorado?'], ['tejedora', 'Te lo regalo, Pocha, si me enseñás ese pespunte que hacés.']] },
+  { id: 'malena-mario', tema: 'familia', lineas: [['ceramista', 'Mario, primo, ¿me prestás la carretilla para traer arcilla del arroyo?'], ['padre', 'Llevala, pero devolvémela limpia, que la última vez volvió colorada.']] },
+  { id: 'malena-gladys', tema: 'familia', lineas: [['madre', 'Malena, los chicos quieren que les enseñes a hacer jarros.'], ['ceramista', 'Que vengan el sábado, con ropa vieja. Mucha ropa vieja.']] },
+  { id: 'ayelen-chola', tema: 'oficio', lineas: [['veterinaria', 'Ernesto, la Chola está más mimosa que de costumbre. Me parece que hay cachorros en camino.'], ['jefe', '¡Mirá vos! Con razón se acuesta en la boletería, al lado de la estufa.']] },
+  { id: 'ayelen-guido', tema: 'oficio', lineas: [['apicultor', 'Ayelén, ¿las abejas también son pacientes tuyas?'], ['veterinaria', 'Las abejas se curan solas, Guido. Vos sos el que me preocupa, con tantas picaduras.']] },
+  { id: 'ines-abuela', tema: 'oficio', lineas: [['herbolaria', 'Doña Herminia, el canelo de su patio está pidiendo poda.'], ['abuela', 'Ese canelo lo plantó mi madre. Podalo vos, Inés, que tenés buena mano.']] },
+  { id: 'ines-marta', tema: 'oficio', lineas: [['enfermera', 'Inés, se me terminó el té de canelo para los resfriados.'], ['herbolaria', 'Mañana te traigo, Marta. Y matico para las raspaduras de los chicos.']] },
+  { id: 'rocio-julia', tema: 'oficio', lineas: [['andinista', 'Julia, mañana subo con dos mochileros al filo. ¿Algún aviso?'], ['guardaparque', 'Hay huemules del lado del arroyo. Que pasen callados y sin perro.']] },
+  { id: 'rocio-nahuel', tema: 'oficio', lineas: [['nene', 'Rocío, ¿me llevás a la montaña?'], ['andinista', 'Cuando me alcances a la cintura sin ponerte en puntas de pie.']] },
+  { id: 'sofia-benigno', tema: 'oficio', lineas: [['fotografa', 'Benigno, ¿salió mi sobre para Buenos Aires?'], ['telegrafista', 'En la saca de la tarde, Sofía. Con sello y todo.']] },
+  { id: 'sofia-ceinwen', tema: 'te', lineas: [['fotografa', 'Ceinwen, ¿me dejás fotografiar la torta negra antes de cortarla?'], ['galesa', 'Rápido, cariad, que se enfría el té y la torta se pone celosa.']] },
+  { id: 'abril-cholo', tema: 'oficio', lineas: [['pintora', 'Cholo, ¿me dejás pintarte mientras tocás?'], ['musico', 'Si me sacás más joven, sí.'], ['pintora', 'Te saco como sos. Es más difícil, pero más lindo.']] },
+  { id: 'abril-lucia', tema: 'oficio', lineas: [['nena', 'Abril, ¿por qué pintás el cerro violeta si es marrón?'], ['pintora', 'Miralo a las siete de la tarde y después me contás.']] },
+  { id: 'martina-aurelio', tema: 'oficio', lineas: [['botera', 'Aurelio, el bote tuyo tiene una tabla floja en la proa.'], ['pescador', 'Ya sé, Martina. Hace dos años que sé.'], ['botera', 'Mañana la cambio. Vos traé el mate.']] },
+  { id: 'martina-tito', tema: 'oficio', lineas: [['botera', 'Tito, ¿te queda ciprés seco? Para un remo.'], ['carpintero', 'Para un remo, el mejor que tenga. Que el lago no perdona la madera mala.']] },
+  { id: 'valentina-jefe', tema: 'cielo', lineas: [['astronoma', 'Ernesto, ¿podría apagar el farol del andén un rato a las once?'], ['jefe', 'Para usted y sus estrellas, lo que quiera. Mientras no pase el tren.']] },
+  { id: 'valentina-delia', tema: 'cielo', lineas: [['maestra', 'Valentina, ¿vendrías una noche con los chicos de la escuela?'], ['astronoma', 'Encantada. Que traigan abrigo y ganas de quedarse callados mirando para arriba.']] },
+  { id: 'loma-subida', tema: 'loma', lineas: [['madre', 'Cada vez hay más casas en la loma. Desde la plaza se ven las luces de noche.'], ['abuela', 'Así crece un pueblo, Gladys: para arriba y para los costados, como los álamos.']] },
 ];
 // Azar con semilla (mulberry32): la misma semilla elige la misma charla.
 export function azar(semilla) {
@@ -1366,7 +1911,11 @@ export function azar(semilla) {
   s ^= s + Math.imul(s ^ (s >>> 7), s | 61);
   return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
 }
-const conQuien = (c) => [...new Set(c.lineas.map(([q]) => q))];
+// (3.7.0: sin los que hablan por la radio)
+const conQuien = (c) => [...new Set(c.lineas.map(([q]) => q))].filter((q) => !(c.radio || []).includes(q));
+export const quienesCharlan = conQuien;
+// 3.7.0: cómo se nombra al que habla por la radio
+export const NOMBRES_RADIO = { ema: 'Josefina' };
 // Las charlas que pueden darse ahora. `presentes`: si se da, todos los de la charla tienen que
 // estar ahí (los que el mundo ve juntos).
 export function charlasPosibles({ aldea = null, hora = 12, estacion = null, clima = null, presentes = null } = {}) {

@@ -156,7 +156,7 @@ const todo = { tronco: 999, tabla: 999, piedra: 999 };
   for (let e = 2; e < 4; e++) { A.aportar(p.aldea, 'panaderia', todo, p.dia, 12); dormir(p); A.avanzarObras(p.aldea, p.dia, p.horas); }
   ok(A.localAbierto(p.aldea, 'panaderia'), 'y la panadería abre');
   p.dia += 2;
-  ok(A.puedeLlegar(p).ok && A.puedeLlegar(p).quien === 'herrero', 'y el próximo baja del tren (la última apertura ya no está en el futuro)');
+  ok(A.puedeLlegar(p).ok && A.puedeLlegar(p).quien === 'veterinaria', 'y el próximo baja del tren (la última apertura ya no está en el futuro)');   // (3.7.0: intercalado, la veterinaria)
   // el músico
   const q = partida(0, { dia: 20, aldea: A.sanearAldea({ pobladores: [pob('musico', 1)], locales: { salon: 1 }, partitura: 1e6 }, 20) });
   ok(!!A.servicioDe('musico', q, 27).efectos, 'el músico vuelve a enseñar a la semana');
@@ -321,7 +321,7 @@ const todo = { tronco: 999, tabla: 999, piedra: 999 };
   for (const [semilla, op] of [[1, {}], [2, { visita: [2.5, 16] }], [3, { visita: [13], cada: 6 }], [4, { visita: [6.5, 20] }], [5, {}]]) {
     const { p, abiertos, cargas } = correr(semilla, op);
     eq(abiertos, A.ORDEN_POBLADORES_ALDEA, `semilla ${semilla}: los once, en orden, cada uno con su local (día ${p.dia}, ${cargas} cargas)`);
-    ok(p.aldea.pobladores.length === 11 && !p.aldea.llegando && !A.obraEnCurso(p.aldea) && !A.puedeLlegar(p).ok, `semilla ${semilla}: nadie más espera`);
+    ok(p.aldea.pobladores.length === A.ORDEN_POBLADORES_ALDEA.length && !p.aldea.llegando && !A.obraEnCurso(p.aldea) && !A.puedeLlegar(p).ok, `semilla ${semilla}: nadie más espera`);
     ok(p.dia < 140, `semilla ${semilla}: en un tiempo razonable (${p.dia} días)`);
   }
   // si el jugador nunca va: el primero baja y espera en el andén, sin trabar nada

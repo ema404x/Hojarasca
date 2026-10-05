@@ -103,11 +103,13 @@ function distRiel(x, z) {
   const CONTRATO = {
     'estacion-aldea': null, plaza: [18, 14], biblioteca: [7, 11], almacen: [9.6, 9.8], 'casa-te': [8, 10.6], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-ercilia': [5, 5], 'casa-nelida': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
     panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5], 'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
+    // 3.7.0: los de la calle de la Loma (los mide verificar-3-7-0-aldea.mjs)
+    veterinaria: [8, 6], 'estudio-fotos': [6, 6], 'refugio-andinista': [7, 6], herboristeria: [6, 6], 'taller-arte': [7, 6], ceramica: [7, 6], varadero: [8, 6], observatorio: [6, 6], costureria: [6, 5],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
   for (const [id, t] of Object.entries(CONTRATO)) if (t) eq([E[id].ancho, E[id].fondo], t, `el tamaño de ${id}`);
   eq(A.INICIALES_ALDEA.length, 11, 'once edificios al empezar (con el almacén y la casa de té del valle)');
-  eq(A.LOTES_ALDEA.length, 11, 'un lote por poblador');
+  eq(A.LOTES_ALDEA.length, A.ORDEN_POBLADORES_ALDEA.length, 'un lote por poblador');   // (3.7.0: veinte)
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id];
     ok(typeof e.nombre === 'string' && e.nombre && Number.isFinite(e.x) && Number.isFinite(e.z) && Number.isFinite(e.y) && Number.isFinite(e.rot), `${id}: datos completos`);
@@ -205,7 +207,7 @@ function distRiel(x, z) {
       else {
         ok(!A.dentroDePlanta(id, q.x, q.z, -0.3), `${id}.${k} afuera`);
         const d = Math.hypot(Math.max(0, pl.x0 - q.x, q.x - pl.x1), Math.max(0, pl.z0 - q.z, q.z - pl.z1));
-        ok(d <= 3, `${id}.${k} pegado al edificio (${d.toFixed(1)} m)`);
+        ok(d <= 3 || A.esPuntoLejano(k), `${id}.${k} pegado al edificio (${d.toFixed(1)} m)`);   // (3.7.0: menos el de Martina en el muelle del lago)
         for (const otro of A.IDS_EDIFICIOS) if (otro !== id && !E[otro].fija) ok(!A.dentroDePlanta(otro, q.x, q.z), `${id}.${k} no cae en ${otro}`);
         if (k !== 'puerta') for (const c of A.CALLES_ALDEA) ok(A.distanciaACalle(q.x, q.z, c) > 0, `${id}.${k} no está en ${c.id}`);
       }
@@ -264,9 +266,9 @@ function distRiel(x, z) {
   ok(A.ORDEN_PERSONAS_ALDEA.includes('ercilia') && !leer('src/aldea.js').includes('Pasá, pasá. Si traés algo'), 'sin duplicar su saludo ni sus historias');
   ok(A.VECINOS_ALDEA.nelida.oficio === 'ayudante del almacén' && A.VECINOS_ALDEA.nelida.casa === 'casa-nelida', 'Nélida, la ayudante');
   ok(A.VECINOS_ALDEA.galesa.casa === 'casa-te' && A.VECINOS_ALDEA.galesa.charla.length >= 2, 'la galesa de la casa de té');
-  eq(A.ORDEN_POBLADORES_ALDEA.length, 11, 'once pobladores');
-  eq(new Set(A.ORDEN_POBLADORES_ALDEA).size, 11);
-  eq(A.ORDEN_POBLADORES_ALDEA.slice(0, 5), P.ORDEN_POBLADORES, 'primero los de la 3.1');
+  eq(A.ORDEN_POBLADORES_ALDEA.length, 20, 'veinte pobladores (3.7.0)');
+  eq(new Set(A.ORDEN_POBLADORES_ALDEA).size, 20);
+  eq(A.ORDEN_POBLADORES_ALDEA.filter((k) => P.ORDEN_POBLADORES.includes(k)), P.ORDEN_POBLADORES, 'los de la 3.1, en su orden (3.7.0: intercalados con los nuevos)');
   // (3.6, gente: pueblo.js ya no está; los cinco viven sólo en aldea.js, con sus diálogos de siempre)
   for (const k of P.ORDEN_POBLADORES) ok(A.POBLADORES_ALDEA[k].llegada.length === 2 && A.POBLADORES_ALDEA[k].resumen, `${k}: el mismo de la 3.1 (movido)`);
   eq(A.POBLADORES_ALDEA.carpintero.llegada[0], 'Buenas. Me llamo Tito Arrieta, soy carpintero. Vengo del valle de abajo, donde ya no queda madera que trabajar.', 'los diálogos, tal cual');
@@ -278,7 +280,7 @@ function distRiel(x, z) {
     ok(A.esLote(p.lote) && A.LOTE_DE[k] === p.lote && A.pobladorDeLote(p.lote) === k, `${k}: su lote es ${p.lote}`);
     lotes.add(p.lote);
   }
-  eq(lotes.size, 11, 'un lote para cada uno');
+  eq(lotes.size, 20, 'un lote para cada uno');
   for (const k of A.ORDEN_VECINOS_ALDEA) {
     const v = A.VECINOS_ALDEA[k];
     ok(v.nombre && v.oficio && v.saludo && v.despedida && v.charla.length >= 2 && v.charla.length <= 3 && v.colores.ropa && A.esEdificioAldea(v.casa) && A.esEdificioAldea(v.trabajo), `${k}: completo`);
@@ -298,7 +300,7 @@ function distRiel(x, z) {
 const IDS = ENTRADAS.map((e) => e.id);
 const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 10, entradas: Object.fromEntries(IDS.slice(0, anotadas).map((id) => [id, { dia: 1, hora: 9, cantidad: 0 }])), materiales: {}, cosas: {}, aldea: A.aldeaNueva(), personal: {}, ...extra });
 {
-  const pedidasUltimo = A.LLEGADA.anotaciones + A.LLEGADA.porPoblador * 10;
+  const pedidasUltimo = A.LLEGADA.anotaciones + A.LLEGADA.porPoblador * 10;   // (3.7.0: el undécimo; el vigésimo lo mide verificar-3-7-0-aldea)
   console.log(`  el cuaderno tiene ${ENTRADAS.length} entradas; el undécimo poblador pide ${pedidasUltimo}`);
   ok(pedidasUltimo <= ENTRADAS.length * 0.5, 'el undécimo pide menos de la mitad del cuaderno');
   let p = partida(0);
@@ -317,7 +319,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   A.escucharAldea(() => { throw new Error('un oyente roto'); });
   A.llamarProximo(A.aldeaNueva());
   let anotadas = A.LLEGADA.anotaciones, bloqueoObra = false;
-  for (let dia = 1; dia <= 200 && p.aldea.pobladores.length + Object.keys(p.aldea.locales).length < 22; dia++) {
+  for (let dia = 1; dia <= 200 && p.aldea.pobladores.length + Object.keys(p.aldea.locales).length < A.ORDEN_POBLADORES_ALDEA.length * 2; dia++) {
     p.dia = dia;
     anotadas = Math.min(ENTRADAS.length, anotadas + 1);
     p.entradas = Object.fromEntries(IDS.slice(0, anotadas).map((id) => [id, { dia: 1, hora: 9, cantidad: 0 }]));
@@ -496,7 +498,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   // nadie consume ni se va: pasan los días y siguen todos
   q = todos();
   for (let d = dia; d < dia + 60; d++) for (const k of A.ORDEN_POBLADORES_ALDEA) { const x = A.servicioDe(k, q, d); if (x.efectos) A.aplicarEfectos(q, x.efectos, d); }
-  ok(q.aldea.pobladores.length === 11 && Object.keys(q.aldea.locales).length === 11, 'la aldea sólo crece');
+  ok(q.aldea.pobladores.length === 20 && Object.keys(q.aldea.locales).length === 20, 'la aldea sólo crece');   // (3.7.0: veinte)
   for (const k of Object.keys(A)) ok(!/hambre|irse|seVa|consum|necesidad|abandon/i.test(k), `sin economía de necesidades: ${k}`);
   ok(!/pobladores\.(splice|pop|shift)|pobladores = pobladores\.filter/.test(leer('src/aldea.js')), 'ningún poblador se saca de la lista');
 }
@@ -517,15 +519,17 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   }
   n++;
   // de noche, en la cama
-  for (const k of gente) { const r = A.rutinaAldea(k, 2, LUNES, llena); ok(r.lugar === 'casa' && /^cama/.test(r.punto), `${k}: de noche duerme`); }
+  for (const k of gente.filter((x) => x !== 'astronoma')) { const r = A.rutinaAldea(k, 2, LUNES, llena); ok(r.lugar === 'casa' && /^cama/.test(r.punto), `${k}: de noche duerme`); }   // (3.7.0: la astrónoma trabaja de noche)
   ok(A.rutinaAldea('carpintero', 2, LUNES, llena).edificio === 'carpinteria', 'el poblador vive en el cuarto de atrás de su local');
   ok(A.rutinaAldea('jefe', 2, LUNES, llena).edificio === 'casa-jefe' && A.rutinaAldea('nene', 2, LUNES, llena).punto === 'cama-chicos');
   // domingo a las 10 y media, los cuentos de la abuela en la biblioteca: van casi todos
   eq(A.rutinaAldea('abuela', 10.5, DOMINGO, llena), { lugar: 'biblioteca', edificio: 'biblioteca', punto: 'cuentos' }, 'la abuela lee en su sillón');
-  const sillas = new Set(), oyen = gente.filter((k) => k !== 'abuela' && A.rutinaAldea(k, 10.5, DOMINGO, llena).lugar === 'biblioteca');
+  // (3.7.0: las sillas son para los de la 3.6; las nuevas, a la plaza)
+  const sillas = new Set(), oyen = gente.filter((k) => k !== 'abuela' && !A.POBLADORAS_37.includes(k) && A.rutinaAldea(k, 10.5, DOMINGO, llena).lugar === 'biblioteca');
   for (const k of oyen) { const r = A.rutinaAldea(k, 10.5, DOMINGO, llena); ok(/^lectura-\d+$/.test(r.punto), `${k}: el domingo a los cuentos`); sillas.add(r.punto); }
   eq(sillas.size, oyen.length, 'nadie se sienta encima de otro');
-  ok(oyen.length >= (gente.length - 1) * 0.75 && oyen.length < gente.length - 1, `van casi todos (${oyen.length} de ${gente.length - 1})`);
+  const gente36 = gente.filter((k) => !A.POBLADORAS_37.includes(k));
+  ok(oyen.length >= (gente36.length - 1) * 0.75 && oyen.length < gente36.length - 1, `van casi todos (${oyen.length} de ${gente36.length - 1})`);
   ok(['nene', 'nena'].every((k) => oyen.includes(k)), 'los chicos no se lo pierden');
   ok(A.rutinaAldea('jefe', 10.5, DOMINGO, llena).lugar === 'plaza' && A.rutinaAldea('nelida', 10.5, DOMINGO, llena).edificio === 'almacen', 'el jefe en la plaza y Nélida en el almacén');
   ok(A.rutinaAldea('ercilia', 10.5, DOMINGO, llena).lugar === 'biblioteca', 'Ercilia también va a los cuentos');
@@ -576,7 +580,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 {
   for (const c of A.CHARLAS_ALDEA) {
     const quienes = new Set(c.lineas.map(([q]) => q));
-    ok(quienes.size >= 2 && quienes.size <= 3 && [...quienes].every(A.esPersonaAldea) && c.lineas.every(([, t]) => typeof t === 'string' && t.length > 5 && t.length < 160), `${c.id}: un par o un trío con líneas cortas`);
+    ok(quienes.size >= 2 && quienes.size <= 3 && [...quienes].every((q) => A.esPersonaAldea(q) || (c.radio || []).includes(q)) && c.lineas.every(([, t]) => typeof t === 'string' && t.length > 5 && t.length < 160), `${c.id}: un par o un trío con líneas cortas`);
   }
   eq(new Set(A.CHARLAS_ALDEA.map((c) => c.id)).size, A.CHARLAS_ALDEA.length, 'ids distintos');
   for (const tema of ['clima', 'obra', 'estacion', 'leyenda', 'almacen', 'te']) ok(A.CHARLAS_ALDEA.some((c) => c.tema === tema), `hay charlas de ${tema}`);
@@ -669,11 +673,11 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(a.llamado && a.afilado === 7 && a.usos.panadera === 9 && a.mandado.id === ENTRADAS[3].id && a.mandados === 2, 'el filo, el llamado, lo usado hoy y el mandado siguen');
   ok(!('nombre' in a) && !('cartel' in a) && !JSON.stringify(a).includes('casa') && !JSON.stringify(a).includes('Villa Lenga'), 'sin casa, nombre ni cartel');
   eq(A.sanearAldea(a), a, 'ya saneada');
-  eq(A.migrarDesdePueblo(null, 3), A.aldeaNueva(), 'un pueblo roto, aldea nueva');
+  eq({ ...A.migrarDesdePueblo(null, 3), chicos: null }, { ...A.aldeaNueva(), chicos: null }, 'un pueblo roto, aldea nueva');   // (3.7.0: los chicos crecen desde el día de la migración)
   eq(A.migrarDesdePueblo({ pobladores: [{ clave: 'musico', casa: null }] }, 3).locales, { salon: 3 }, 'cualquier poblador que venga con casa, con su local');
   // la aldea sigue creciendo después de migrar
   const p = partida(60, { dia: 12, aldea: A.sanearAldea({ ...a, llegando: null, llamado: false }) });
-  ok(A.puedeLlegar(p).ok && A.puedeLlegar(p).quien === 'herrero', 'después de migrar, sigue el próximo');
+  ok(A.puedeLlegar(p).ok && A.puedeLlegar(p).quien === 'veterinaria', 'después de migrar, sigue el próximo');   // (3.7.0: intercalado: después de dos de la 3.6, una de la 3.7)
 
   // por guardado.js
   const datos = new Map();

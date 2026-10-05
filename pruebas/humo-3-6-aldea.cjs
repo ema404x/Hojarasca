@@ -259,7 +259,8 @@ app.whenReady().then(async () => {
     e = await js(`(()=>{ const b = [...document.querySelectorAll('#cuaderno-lista .pestanas button')].find((x) => /Oficios/.test(x.textContent)); if (!b) return 'sin pestaña'; b.click();
       const a = document.querySelector('#cuaderno-lista button[data-oficio="aldea"]'); if (!a) return 'sin aldea'; a.click();
       return { pestana: b.textContent, ficha: document.getElementById('cuaderno-ficha').textContent } })()`);
-    ok(e.pestana === 'Oficios y aldea' && /Aldea de los Duendes/.test(e.ficha) && /Tito Arrieta, carpintero: atiende la carpintería/.test(e.ficha) && /(El próximo en llegar: Rosa Quilodrán|Rosa Quilodrán espera en el andén)/.test(e.ficha), `la ficha dice quién vive, qué abrió y quién sigue (${String(e.ficha).slice(-420)})`);
+    // (3.7.0: intercalados: después del carpintero, la veterinaria)
+    ok(e.pestana === 'Oficios y aldea' && /Aldea de los Duendes/.test(e.ficha) && /Tito Arrieta, carpintero: atiende la carpintería/.test(e.ficha) && /(El próximo en llegar: Ayelén Catriel|Ayelén Catriel espera en el andén)/.test(e.ficha), `la ficha dice quién vive, qué abrió y quién sigue (${String(e.ficha).slice(-420)})`);
     await js(`${tecla('KeyJ')} 1`);
     await js(`${H}.guardar(); 1`);
 

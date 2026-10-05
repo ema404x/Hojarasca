@@ -27,7 +27,7 @@ export function frente(actual, proximo, horas) {
 }
 
 // Lo que dice cada vecino. Cada uno a su manera: Don Ramón mira los cerros, Nicanor el
-// lago, Ema el cielo, Elsa el humo de la locomotora.
+// lago, Josefina el cielo, Elsa el humo de la locomotora.
 const FRASES = {
   lluvia: {
     ramon: ['Mirá cómo se tapó el cerro. A la tarde se larga, acordate de lo que te digo.', 'Se viene agua del lado de la cordillera. Guardá la leña.'],

@@ -145,7 +145,7 @@ const L = {
   'La harina es de la buena, de la que viene en el tren de los jueves.': 'The flour is the good kind, the one that comes on the Thursday train.',
   'Don Ramón te dejó un kilo de yerba': 'Don Ramón left you a kilo of yerba',
   'Nicanor te dejó cuatro troncos secos': 'Nicanor left you four dry logs',
-  'Ema te dejó semillas de habas': 'Ema left you broad bean seeds',
+  'Josefina te dejó semillas de habas': 'Josefina left you broad bean seeds',
   'Ercilia te dejó un kilo de harina': 'Ercilia left you a kilo of flour',
   '{0} vino a visitarte': '{0} came to visit you',
   'Vino {0} a la tarde. Nos sentamos a la mesa y el tiempo pasó sin que nadie lo mirara.': '{0} came by in the afternoon. We sat at the table and time went by without anyone watching it.',
@@ -284,7 +284,7 @@ const RESPUESTA_EN = {
   ema: { base: 'I\'ll stay here, from the middle I can see everything.', seguime: 'I\'ll be right behind you. You set the pace.', porton: 'I\'ll cover the gate. Let them show their faces.' },
 };
 for (const [k, lista] of Object.entries(ORDENES)) {
-  const nombre = k === 'ramon' ? 'Don Ramón' : 'Ema';
+  const nombre = k === 'ramon' ? 'Don Ramón' : 'Josefina';
   for (const o of lista) {
     L[`${nombre}: ${NOMBRE_ORDEN[o].toLowerCase()}`] = `${nombre}: ${ORDEN_EN[o]}`;
     L[`“${RESPUESTAS[k][o]}”`] = `“${RESPUESTA_EN[k][o]}”`;

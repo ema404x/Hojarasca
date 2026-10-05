@@ -243,7 +243,7 @@ const CARTAS_EN = {
     'We remind you that the 75-centimetre gauge is the same as La Trochita, which has linked Ingeniero Jacobacci and Esquel since 1945 with Baldwin and Henschel engines from 1922. Take care of it; they do not make them anymore.',
   ]],
   'c-naturalista': ['A naturalist from Bariloche', [
-    'Dear sir or madam: Ema, the park ranger, passed on your address. She tells me you keep a field notebook with more than twenty entries, and that you keep it well.',
+    'Dear sir or madam: Josefina, the park ranger, passed on your address. She tells me you keep a field notebook with more than twenty entries, and that you keep it well.',
     'A favour: if you see black-faced ibis, write down the time and the place. We are counting them all along the mountains and every record helps. What is written down with care is never lost.',
   ]],
   'c-vuelta': ['Your sister, from Buenos Aires', [

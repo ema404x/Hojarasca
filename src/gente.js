@@ -46,7 +46,7 @@ export const HISTORIAS = [
       'Eran tres días de arreo. Se dormía donde te agarraba la noche, con el poncho y el fuego.',
       'Ahora quedamos pocos haciéndolo. Pero mientras haya pasto arriba, alguien va a seguir subiendo.',
     ] },
-  // --- Ema, la guardaparque
+  // --- Josefina, la guardaparque
   { id: 'h-chucao', quien: 'ema', titulo: 'El pájaro que avisa',
     partes: [
       'Ese canto fuerte que sale de la mata y nunca ves de dónde viene es el chucao. Un pajarito de pecho colorado que vive escondido abajo del todo.',
@@ -165,7 +165,7 @@ export const HISTORIAS = [
 
 const PERSONAJES = {
   ramon: { nombre: 'Don Ramón', oficio: 'puestero', saludo: '¿Qué andás haciendo por acá arriba? Sentate un rato.', despedida: 'Cuando bajes, cerrá la tranquera. Y volvé cuando quieras.' },
-  ema: { nombre: 'Ema', oficio: 'guardaparque', saludo: 'Buenas. Estoy haciendo el recorrido del sendero, ¿todo bien?', despedida: 'Seguí tranquilo. Si ves algo raro en el bosque, avisame.' },
+  ema: { nombre: 'Josefina', oficio: 'guardaparque', saludo: 'Buenas. Estoy haciendo el recorrido del sendero, ¿todo bien?', despedida: 'Seguí tranquilo. Si ves algo raro en el bosque, avisame.' },
   ercilia: { nombre: 'Ercilia', oficio: 'del almacén', saludo: 'Pasá, pasá. Si traés algo para cambiar, lo miramos.', despedida: 'Cuando junten más cosas se vuelven, que acá siempre hay.' },
   guarda: { nombre: 'Elsa', oficio: 'guarda del tren', saludo: 'Bienvenido a bordo. Acomodate donde quieras, que va a haber lugar.', despedida: 'Cualquier cosa me avisás. Y no te bajes en marcha.' },
   nicanor: { nombre: 'Nicanor', oficio: 'pescador', saludo: 'Justo estaba mirando el agua. ¿Sacaste algo hoy?', despedida: 'Que pique. Y ojo con el viento de la tarde.' },
@@ -196,6 +196,25 @@ const ROPA = {
   'poblador-apicultor': { piel: '#d0a27c', bolsillos: true, botas: 'altas', pantalon: '#6a6048' },
   'poblador-guardaparque': { piel: '#c0916a', bolsillos: true, trenza: true, botas: 'trekking', pantalon: '#4c5236' },
   'poblador-musico': { piel: '#b5865e', chaleco: true, panuelo: '#c94a3a', pantalon: '#2a2420' },
+  // 3.7.0: las pobladoras de la calle de la Loma (sólo los datos de su ropa: el dibujo es el de siempre)
+  'poblador-veterinaria': { piel: '#b88a62', bolsillos: true, trenza: true, botas: 'altas', pantalon: '#4a4a3a' },
+  'poblador-fotografa': { piel: '#c9986e', campera: 'larga', abierta: true, rodete: true, pantalon: '#2e2a30' },
+  'poblador-andinista': { piel: '#d0a27c', bolsillos: true, trenza: true, botas: 'trekking', pantalon: '#3a4a5e' },
+  'poblador-herbolaria': { piel: '#b07e58', pollera: true, trenza: true, delantal: '#c8b48e' },
+  'poblador-pintora': { piel: '#e0b090', pollera: true, delantal: '#d8d0c0', abierta: true },
+  'poblador-ceramista': { piel: '#d2a684', delantal: '#8a6a50', rodete: true, botas: 'goma', pantalon: '#5a4a3e' },
+  'poblador-botera': { piel: '#c0916a', bolsillos: true, rodete: true, botas: 'goma', pantalon: '#2e3a46' },
+  'poblador-astronoma': { piel: '#cfa07a', campera: 'larga', trenza: true, pantalon: '#2a2e40' },
+  'poblador-modista': { piel: '#c8a080', pollera: true, rodete: true, botones: '#c8a050' },
+  // 3.7.0: tu familia y los visitantes del tren
+  'familia-mama': { piel: '#d0a582', pollera: true, rodete: true, abierta: true },
+  'familia-hermano': { piel: '#c49870', bolsillos: true, botas: 'trekking', pantalon: '#3a4a3a' },
+  'visitante-lena': { piel: '#e8c8a8', bolsillos: true, trenza: true, botas: 'trekking', pantalon: '#4a5a3a' },
+  'visitante-tomas': { piel: '#c99a72', bolsillos: true, botas: 'trekking', pantalon: '#5a5040' },
+  'visitante-kenji': { piel: '#d8b890', campera: 'larga', pantalon: '#2e2e3a' },
+  'visitante-chela': { piel: '#d6ad8a', pollera: true, rodete: true },
+  'visitante-mateo': { piel: '#c0906a', bolsillos: true, botas: 'altas', pantalon: '#6a5a3a' },
+  'visitante-ana': { piel: '#c49470', pollera: true, trenza: true, abierta: true },
   // 3.6: los vecinos de siempre de la aldea (los chicos, más bajitos: ver `talla` en aldea.js)
   'aldea-jefe': { piel: '#c0906a', botones: '#c9a64a', campera: 'larga', pantalon: '#2a3240' },
   'aldea-nelida': { piel: '#d0a27e', pollera: true, delantal: '#d9c7a8', rodete: true, abierta: true },
@@ -804,7 +823,7 @@ export function crearGente(T, escena, col, sonido) {
     const npc = agregar('nicanor', { ropa: '#4f6d7a', abrigo: '#2f4756', gorro: 'gorro', barba: '#8a8378' }, p, mira, { ruta, velocidad: 0.8 });
     darCaña(npc);
   }
-  // Ema: recorre un tramo del sendero cerca del mirador, anotando lo que ve
+  // Josefina: recorre un tramo del sendero cerca del mirador, anotando lo que ve
   {
     const m = L.mirador;
     const hacia = m ? Math.atan2(150 - m.x, 110 - m.z) : 0;

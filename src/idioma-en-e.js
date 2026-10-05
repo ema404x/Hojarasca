@@ -1,7 +1,7 @@
 // Tanda E: la gente del valle, los encargos y el diario.
 //
 // Cada vecino habla distinto y eso es lo que hay que sostener en inglés.
-// Don Ramón: frases cortas, sentenciosas, refranes. Ema: precisa, curiosa,
+// Don Ramón: frases cortas, sentenciosas, refranes. Josefina: precisa, curiosa,
 // de oración entera. Nicanor: socarrón, seco. Elsa: cortés, de servicio.
 // Ercilia: memoriosa. El diario es la voz del jugador: telegráfica, sin sujeto.
 // El voseo se resuelve con registro coloquial y contracciones, no con acento escrito.
@@ -526,7 +526,7 @@ export const EN_E = {
 
   "Atardecer desde el muelle": "Sunset from the dock",
 
-  "Volver a hablar con Ema.": "Go and talk to Ema again.",
+  "Volver a hablar con Josefina.": "Go and talk to Josefina again.",
 
   "Estuvo garuando a ratos.": "Drizzled on and off.",
 
