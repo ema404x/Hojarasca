@@ -102,9 +102,11 @@
 //     de noche, `noche: true`), telescopio (elevación sobre su eje X; `abierta` de noche, `reposo` de día),
 //     torno (gira; `vueltasPorSegundo`) y pedal (mece; `abierta` el ángulo). El horno de la cerámica trae la
 //     misma `puerta-horno` de la panadería.
-//   · opciones.desnivel (m, sólo los de la loma; si falta, EDIFICIOS_ALDEA[id].desnivel o 0): cuánto más baja
-//     queda la calle al frente del lote. Un murete de laja contiene el frente y una escalinata baja desde la
-//     entrada hasta la calle (punto `escalinata`, abajo, con ly = −desnivel). Con 0 no cambia nada.
+//   · opciones.desnivel (m, sólo los de la loma; por defecto 0): cuánto más baja queda la calle al frente del
+//     lote. Un murete de laja contiene el frente y una escalinata baja desde la entrada hasta la calle (punto
+//     `escalinata`, abajo, con ly = −desnivel; `ocupa` crece hacia el frente lo que mide la escalinata). Con 0
+//     no cambia nada. EDIFICIOS_ALDEA[id].desnivelSugerido: el del refugio y el del observatorio, si el lote
+//     queda en la falda.
 //   · casco: zocaloAlto (la piedra hasta esa altura, cortada en las puertas), huecoTecho y huecoCielo
 //     (rectángulos en planta que el techo y el cielorraso dejan abiertos: la torreta y su escotilla).
 //   · El atlas de carteles pasa a 1024 × 2560 (52 celdas; las de antes quedan donde estaban).
@@ -151,12 +153,12 @@ export const EDIFICIOS_ALDEA = {
   // 3.7.0: la calle de la loma (contrato con el núcleo: ids y tamaños, igual que los de arriba)
   veterinaria: { ancho: 8, fondo: 6, nombre: 'Veterinaria', clase: 'local', lote: true, loma: true, anexo: { x0: 4.6, x1: 10.9, z0: -3.15, z1: 3.15 } },
   'estudio-fotos': { ancho: 6, fondo: 6, nombre: 'Estudio de Fotos', clase: 'local', lote: true, loma: true },
-  'refugio-andinista': { ancho: 7, fondo: 6, nombre: 'Refugio Andinista', clase: 'local', lote: true, loma: true },
+  'refugio-andinista': { ancho: 7, fondo: 6, nombre: 'Refugio Andinista', clase: 'local', lote: true, loma: true, desnivelSugerido: 0.5 },
   herboristeria: { ancho: 6, fondo: 6, nombre: 'Herboristería', clase: 'local', lote: true, loma: true },
   'taller-arte': { ancho: 7, fondo: 6, nombre: 'Taller de Arte', clase: 'local', lote: true, loma: true },
   ceramica: { ancho: 7, fondo: 6, nombre: 'Cerámica', clase: 'local', lote: true, loma: true },
   varadero: { ancho: 8, fondo: 6, nombre: 'Varadero', clase: 'local', lote: true, loma: true },
-  observatorio: { ancho: 6, fondo: 6, nombre: 'Observatorio', clase: 'local', lote: true, loma: true, desnivel: 0.6 },
+  observatorio: { ancho: 6, fondo: 6, nombre: 'Observatorio', clase: 'local', lote: true, loma: true, desnivelSugerido: 0.6 },
   costureria: { ancho: 6, fondo: 5, nombre: 'Costurería', clase: 'local', lote: true, loma: true },
 };
 export const LOTES_ALDEA = ['panaderia', 'herreria', 'carpinteria', 'pescaderia', 'escuela', 'puesto-sanitario',
@@ -537,6 +539,10 @@ function paramentoBase(K, c, f) {
     const bordes = [f.y0];
     for (let yy = alin ? (Math.floor(f.y0 / h + 1e-6) + 1) * h : f.y0 + h; yy < ymax - 0.012; yy += h) bordes.push(yy);
     bordes.push(ymax);
+    // 3.7.0: ninguna fila cruza la línea del alero de un frontón (una fila alta que la cruzaba se angostaba
+    // en diagonal desde abajo: quedaba un triángulo sin pared en el rincón y una franja cruzada delante de
+    // las ventanas grandes; se veía en los cuartos sin cielorraso)
+    if (f.tope && !parejo && f.y1 > f.y0 + 0.02 && f.y1 < ymax - 0.02 && !bordes.some((b) => Math.abs(b - f.y1) < 0.012)) { bordes.push(f.y1); bordes.sort((a, b) => a - b); }
     for (let fila = 0; fila + 1 < bordes.length; fila++) {
       const ya = bordes[fila], yb = bordes[fila + 1];
       if (yb - ya < 0.012) continue;
@@ -3596,7 +3602,7 @@ function telon(K, x, z, giro, ancho, alto) {
   palo(c, F.p(-ancho / 2 - 0.12, alto + 0.08, 0.04), F.p(ancho / 2 + 0.12, alto + 0.08, 0.04), 0.05, '#6b4a2e', { abierto: false, lados: 8 });
   for (const sx of [-1, 1]) cj(c, F, sx * (ancho / 2 + 0.1), alto + 0.1, 0.0, 0.05, 0.14, 0.12, '#3a3734');
   const pinta = paisaje('telon', { cielo0: '#ddd0b4', cielo1: '#8fa6b4', cerro: '#7d8a96', bosque: '#4a5e3e', lago: '#8aa2ac' });
-  pintura(c, F, [0, (alto + 0.2) / 2 + 0.05, 0.03], ancho, alto - 0.1, 12, 10, (u, v) => escalar(pinta(u, v), 0.9 + 0.1 * Math.sin(u * Math.PI)));
+  pintura(c, F, [0, (alto + 0.2) / 2 + 0.05, 0.03], ancho, alto - 0.1, 20, 16, (u, v) => escalar(pinta(u, v), 0.9 + 0.1 * Math.sin(u * Math.PI)));
   // la curva sobre el piso (sigue el color de abajo del telón)
   const kb = escalar(tinte('#8a9a94'), 0.85);
   conSup(c, SUP.nada, () => {
@@ -3642,7 +3648,8 @@ function estudioFotos(K) {
   const C = coloresDe(K, { pared: ['rosa', 'amarillo', 'celeste', 'crema'], techo: ['negro', 'gris', 'azul'], postigo: ['blanco', 'azul', 'verde'] });
   const tab = { z: -0.6, x: -1.6 };
   casco(K, {
-    eje: 'z', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, alzada: 1.5, falsoFrente: { alto: 0.7 }, colorInterior: '#cbbb9c', colorPiso: '#6e5440', cortina: '#7a2f2a', marco: '#e8e0cc',
+    // (el techo no sale por delante del falso frente: queda escondido atrás del paño)
+    eje: 'z', estilo: 'horizontal', color: C.pared, colorTecho: C.techo, postigo: C.postigo, alzada: 1.5, falsoFrente: { alto: 0.7 }, vueloFrente: -0.1, colorInterior: '#cbbb9c', colorPiso: '#6e5440', cortina: '#7a2f2a', marco: '#e8e0cc',
     puertas: [{ cara: 'frente', x: 1.5, ancho: PUERTA_ANCHO, nombre: 'la puerta del estudio de fotos' }],
     ventanas: [{ cara: 'frente', x: -1.0, ancho: 1.6, alto: 1.3, y: 1.3, postigos: false }, { cara: 'der', z: 1.9, ancho: 0.8, alto: 1.0 },
       { cara: 'izq', z: -1.8, ancho: 0.7, alto: 0.8, cuarto: 'vivienda' }, { cara: 'fondo', x: 1.2, ancho: 0.8, alto: 0.9, cuarto: 'vivienda' }],
@@ -3650,7 +3657,7 @@ function estudioFotos(K) {
   });
   if (!final(K)) return;
   const W = K.W, D = K.D, H = K.H, xi = W / 2 - MURO;
-  cartel(K, 'Foto Estudio', [0, H + 0.9, D / 2 + 0.05], 2.8, 0.56, 0);
+  cartel(K, 'Foto Estudio', [0, H + 1.1, D / 2 + 0.05], 2.8, 0.56, 0);
   // el set: el telón pintado contra la pared, el banquito, el reflector y la cámara de fuelle
   telon(K, -xi + 0.1, 1.2, Math.PI / 2, 2.4, 2.35);
   {
@@ -3711,7 +3718,7 @@ function mapaCumbres(K, c, x, y, z, giro, ancho, alto) {
   const picos = [[0.3, 0.68, 1.0], [0.62, 0.44, 0.82], [0.8, 0.76, 0.72], [0.14, 0.3, 0.5], [0.48, 0.84, 0.62], [0.9, 0.2, 0.4]];
   const h = (u, v) => { let s = 0; for (const [pu, pv, ph] of picos) s += ph * Math.exp(-((u - pu) ** 2 + (v - pv) ** 2) / 0.018); return Math.min(0.999, s); };
   const bandas = ['#7c9a64', '#a3ad76', '#c6b888', '#a88a62', '#8c7c6c', '#eeece4'];
-  pintura(c, F, [0, 0, 0.017], ancho, alto, 16, 11, (u, v) => { const hh = h(u, v) * 6, i = Math.floor(hh); return escalar(tinte(bandas[i]), hh - i < 0.15 ? 0.84 : 1); });
+  pintura(c, F, [0, 0, 0.017], ancho, alto, 22, 15, (u, v) => { const hh = h(u, v) * 6, i = Math.floor(hh); return escalar(tinte(bandas[i]), hh - i < 0.15 ? 0.84 : 1); });
   conSup(c, SUP.nada, () => {
     const kr = tinte('#b8322a'), ruta = [[0.06, 0.08], [0.16, 0.2], [0.22, 0.36], [0.25, 0.52], [0.3, 0.66]];
     const Q = (u, v) => [-ancho / 2 + ancho * u, -alto / 2 + alto * v];
@@ -3740,8 +3747,10 @@ function mapaMesa(c, x, y, z, ancho, largo, giro) {
 // una soga enrollada colgada de su clavija, en una pared que mira a `nx`, `nz`
 function sogaColgada(c, x, y, z, nx, nz, color) {
   const giro = Math.atan2(nx, nz);
-  toro(c, [x + nx * 0.06, y, z + nz * 0.06], 0.17, 0.024, color, [0, giro, 0], { tubo: 4, lados: 11 });
-  toro(c, [x + nx * 0.09, y - 0.015, z + nz * 0.09], 0.15, 0.022, color, [0.08, giro, 0], { tubo: 4, lados: 11 });
+  // (tres vueltas de soga gruesa, un poco corridas: se lee el rollo)
+  toro(c, [x + nx * 0.07, y, z + nz * 0.07], 0.17, 0.04, color, [0, giro, 0], { tubo: 5, lados: 12 });
+  toro(c, [x + nx * 0.11, y - 0.03, z + nz * 0.11], 0.16, 0.036, color, [0.1, giro, 0.05], { tubo: 5, lados: 12 });
+  toro(c, [x + nx * 0.15, y - 0.05, z + nz * 0.15], 0.15, 0.034, color, [0.18, giro, -0.04], { tubo: 5, lados: 12 });
   caja(c, [x + nx * 0.06, y + 0.17, z + nz * 0.06], [0.04, 0.04, 0.12], '#4a3a2a', { giro });
 }
 // una mochila de montaña (cuerpo, tapa, bolsillo, correas y el aislante enrollado arriba), en el marco F
@@ -4172,7 +4181,14 @@ function varadero(K) {
   const W = K.W, D = K.D, H = K.H, xi = W / 2 - MURO, zi = D / 2 - MURO;
   cartel(K, 'Varadero', [0, PISO + 2.6 + 0.62, D / 2 + 0.04], 2.2, 0.44, 0);
   // los portones abiertos contra la fachada
-  for (const l of [-1, 1]) paramento(K, K.ext, { cx: l * 2.4, cz: D / 2 + 0.07, nx: 0, nz: 1, largo: 1.6, y0: PISO - 0.02, y1: PISO + 2.55, estilo: 'vertical', color: C.pared, tabla: 0.18, alero: PISO + 2.55, sombraAlero: 0.1, desgaste: 0.5 });
+  for (const l of [-1, 1]) paramento(K, K.ext, { cx: l * 2.4, cz: D / 2 + 0.07, nx: 0, nz: 1, largo: 1.6, y0: PISO - 0.02, y1: PISO + 2.55, estilo: 'vertical', color: '#5f4c3c', tabla: 0.18, alero: PISO + 2.55, sombraAlero: 0.1 });
+  // dos remos cruzados en el frontón, sobre el cartel
+  for (const s of [-1, 1]) {
+    const a = [s * 1.0, PISO + 3.25, D / 2 + 0.08], b = [-s * 0.95, PISO + 4.15, D / 2 + 0.1];
+    palo(K.ext, a, b, 0.025, '#c39a68', { tipo: 4, lados: 6 });
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
+    caja(K.ext, [a[0] - dx / l * 0.22, a[1] - dy / l * 0.22, a[2]], [0.15, 0.48, 0.025], '#c39a68', { tipo: 4, rz: Math.atan2(-dx, dy) });
+  }
   for (const l of [-1, 1]) paramento(K, K.ext, { cx: l * 2.4, cz: D / 2 + 0.05, nx: 0, nz: -1, largo: 1.6, y0: PISO - 0.02, y1: PISO + 2.55, estilo: 'interior', color: '#5a4a3e', tipo: 0 });
   // el bote a medio hacer, sobre sus caballetes: la quilla, la roda, el espejo, las cuadernas y tres tracas
   {
@@ -4182,7 +4198,8 @@ function varadero(K) {
     K.mueble(-1.1, 1.15, 1.3, 3.05, 1.1);
     K.trabajo('bote', 0.3, 1.15, -Math.PI / 2);
     // las virutas en el piso
-    for (let i = 0; i < 4; i++) bulto(c, [-0.3 + (i % 2) * 0.25, PISO + 0.01, 0.3 + i * 0.45], 0.22, '#e0c898', { tipo: 0, esc: [1.4, 0.04, 1], detalle: 1 });
+    const rv = azar(semillaDe('virutas'));
+    for (let i = 0; i < 9; i++) bulto(c, [-0.35 + rv() * 0.5, PISO + 0.012, 0.1 + rv() * 2.1], entre(rv, 0.05, 0.1), elegir(rv, ['#e0c898', '#d8bc88', '#ead4a8']), { tipo: 0, esc: [1.5, 0.35, 1], detalle: 0, rot: [0, rv() * 3, 0] });
   }
   // las tablas curvadas contra la pared, los remos en el rincón y la olla de brea en su brasero
   tablasCurvas(K.int, -xi, -0.4, 5, azar(semillaDe('tablas-curvas')));
@@ -4373,6 +4390,20 @@ function observatorio(K) {
     }
   });
   cilindro(K.ext, [cx, yT + 0.08, cz], Ra, Ra, 0.16, e >= 4 ? '#6c706f' : PALETA_ALDEA.galvanizado, { tipo: 4, lados: 18, abierto: true, sup: SUP.chapa });
+  if (e >= 4) {
+    // de adentro: el cielorraso de tablas alrededor del aro y la cara de adentro del aro (si no, desde la
+    // torreta se veía el cielo entre las paredes y la cúpula)
+    const c = K.int, n = 16, L2 = LT / 2 - MT, kc = tinte('#7a5e44'), ka = tinte('#6c706f');
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * Math.PI * 2, a1 = ((i + 1) / n) * Math.PI * 2;
+      const borde = (a) => { const cs = Math.cos(a), sn = Math.sin(a), d = L2 / Math.max(Math.abs(cs), Math.abs(sn)); return [cx + cs * d, yT - 0.01, cz + sn * d]; };
+      const aro = (a, y = yT - 0.01, r = Ra - 0.02) => [cx + Math.cos(a) * r, y, cz + Math.sin(a) * r];
+      quadHacia(c, aro(a0), borde(a0), borde(a1), aro(a1), kc, escalar(kc, 0.8), escalar(kc, 0.8), kc, 0, [cx, yT + 1, cz], true);
+      quadHacia(c, aro(a0), aro(a1), aro(a1, yT + 0.17), aro(a0, yT + 0.17), ka, ka, escalar(ka, 0.8), escalar(ka, 0.8), 0, [cx, yT, cz], false);
+      // (y el borde de arriba del aro, hasta la cara de adentro de la cúpula: sin rendija al cielo)
+      quadHacia(c, aro(a0, yT + 0.17), aro(a1, yT + 0.17), aro(a1, yT + 0.17, 1.2 - 0.06), aro(a0, yT + 0.17, 1.2 - 0.06), ka, ka, ka, ka, 0, [cx, yT + 1, cz], true);
+    }
+  }
   // la colisión de las paredes de la torreta (sólo arriba: abajo se pasa)
   for (const f of Object.values(caras)) {
     const a = puntoCara(f, -LT / 2, 0, -MT / 2), b = puntoCara(f, LT / 2, 0, -MT / 2);
@@ -4469,11 +4500,12 @@ function observatorio(K) {
     for (const x of [escotilla.x0 + 0.03, (escotilla.x0 + escotilla.x1) / 2, escotilla.x1 - 0.03]) caja(c, [x, yF + 0.48, escotilla.z0 - 0.02], [0.05, 0.95, 0.05], '#5a4331');
     K.segmento(escotilla.x0, escotilla.z0 - 0.02, escotilla.x1, escotilla.z0 - 0.02, 0.03, yF - 0.05, yF + 1.0);
     // el pilar y la horquilla del telescopio
-    const xt = 0.15, zt = 0.95, yP = yF + 1.2;
-    cilindro(c, [xt, yF + 0.48, zt], 0.13, 0.16, 0.96, '#6d6a62', { lados: 10 });
-    caja(c, [xt, yF + 0.98, zt], [0.3, 0.05, 0.3], '#3a3734');
-    for (const s of [-1, 1]) caja(c, [xt + s * 0.16, yF + 1.1, zt], [0.04, 0.26, 0.1], '#3a3734');
-    K.circulo(xt, zt, 0.2, yF, yF + 1.3);
+    // (alto: el tubo apunta por la ranura de la cúpula, por encima del aro)
+    const xt = 0.15, zt = 0.95, yP = yF + 1.58;
+    cilindro(c, [xt, yF + 0.67, zt], 0.13, 0.16, 1.34, '#6d6a62', { lados: 10 });
+    caja(c, [xt, yF + 1.36, zt], [0.3, 0.05, 0.3], '#3a3734');
+    for (const s of [-1, 1]) caja(c, [xt + s * 0.16, yF + 1.48, zt], [0.04, 0.26, 0.1], '#3a3734');
+    K.circulo(xt, zt, 0.2, yF, yF + 1.7);
     K.animable('telescopio', [xt, yP, zt], [1, 0, 0], (cb) => {
       cilindro(cb, [xt, yP, zt + 0.2], 0.1, 0.1, 1.4, '#e8e4d8', { rx: Math.PI / 2, lados: 12 });
       cilindro(cb, [xt, yP, zt + 0.95], 0.115, 0.115, 0.14, '#2a2826', { rx: Math.PI / 2, lados: 12 });
@@ -4856,7 +4888,7 @@ export function armarEdificio(id, etapa = 4, opciones = {}) {
   }
   // 3.7.0 (loma): el anexo (el corral) tiene su lugar desde el lote; y la escalinata hasta la calle
   if (def.anexo) K.abarcar(def.anexo.x0, def.anexo.x1, def.anexo.z0, def.anexo.z1);
-  if (def.loma) { const des = Number(opciones.desnivel ?? def.desnivel ?? 0); if (des > 0.05) escalinata(K, Math.min(3, des)); }
+  if (def.loma) { const des = Number(opciones.desnivel ?? 0); if (des > 0.05) escalinata(K, Math.min(3, des)); }
   return cerrar(K);
 }
 

@@ -187,7 +187,7 @@ const P = A.PRESUPUESTO_ALDEA;
 const tabla = [];
 const OFICIO = {
   veterinaria: ['camilla-animal', 'corral'], 'estudio-fotos': ['camara', 'cuarto-oscuro'], 'refugio-andinista': ['mapa', 'mapa-cumbres'], herboristeria: ['mortero'],
-  'taller-arte': ['atril'], ceramica: ['torno', 'horno'], varadero: ['bote'], observatorio: ['telescopio', 'cartas', 'cartas-cielo', 'escalera', 'escalera-arriba', 'escalinata'],
+  'taller-arte': ['atril'], ceramica: ['torno', 'horno'], varadero: ['bote'], observatorio: ['telescopio', 'cartas', 'cartas-cielo', 'escalera', 'escalera-arriba'],
   costureria: ['maquina-coser', 'espejo', 'mesa-corte'],
 };
 const CARTEL = { veterinaria: 'Veterinaria', 'estudio-fotos': 'Foto Estudio', 'refugio-andinista': 'Refugio Andino', herboristeria: 'Herboristería', 'taller-arte': 'Taller de Arte',
@@ -306,14 +306,15 @@ for (const id of IDS.filter((x) => !process.env.SOLO || process.env.SOLO.split('
   const ta = A.armarEdificio('taller-arte', 4);
   assert.ok(ta.extra.ventanal?.cara === 'der' && ta.ventanas.some((v) => v.ancho >= 2.5 && v.alto >= 1.7), 'el ventanal del taller');
   // la escalinata: con desnivel se baja a la calle y desde la calle se entra
-  for (const [id, des] of [['observatorio', undefined], ['refugio-andinista', 1.0], ['costureria', 0.7]]) {
-    const ed = A.armarEdificio(id, 4, des === undefined ? {} : { desnivel: des }), N = ed.puntos.nombrados, d = des ?? A.EDIFICIOS_ALDEA[id].desnivel;
+  for (const [id, des] of [['observatorio', A.EDIFICIOS_ALDEA.observatorio.desnivelSugerido], ['refugio-andinista', 1.0], ['costureria', 0.7]]) {
+    const ed = A.armarEdificio(id, 4, { desnivel: des }), N = ed.puntos.nombrados, d = des;
     assert.ok(N.escalinata && Math.abs(N.escalinata.ly + d) < 1e-6, `${id}: la escalinata baja ${d} m`);
     const zM = ed.puntos.entrada.lz + 0.45;
     const llegaE = alcanzables(ed, { ...N.escalinata }, 0.36, { suelo: (x, z) => (z > zM ? -d : 0) });
     assert.ok(llegaE(N.puerta) && llegaE(N.adentro), `${id}: desde la calle se sube la escalinata y se entra`);
   }
-  assert.ok(!A.armarEdificio('costureria', 4).puntos.nombrados.escalinata, 'sin desnivel, sin escalinata');
+  assert.ok(!A.armarEdificio('costureria', 4).puntos.nombrados.escalinata && !A.armarEdificio('observatorio', 4).puntos.nombrados.escalinata, 'sin desnivel, sin escalinata');
+  assert.equal(A.armarEdificio('observatorio', 4).ocupa.z1, A.armarEdificio('observatorio', 4, { desnivel: 0 }).ocupa.z1, 'sin desnivel el lote no crece');
 }
 // ---------------------------------------------------------------- dibujos fundidos y carteles
 {

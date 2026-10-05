@@ -218,11 +218,13 @@ const VISTA_LOMA = {
   herboristeria: { ojo: [6.8, 1.9, 9.2], a: [-0.2, 2.1, 1.0] }, 'taller-arte': { ojo: [9.0, 2.1, 8.0], a: [0.4, 2.0, 0.6] }, ceramica: { ojo: [9.0, 2.0, 8.5], a: [1.0, 1.8, 0.2] },
   varadero: { ojo: [-7.0, 2.0, 10.5], a: [0.8, 2.0, 1.0] }, observatorio: { ojo: [-7.0, 2.2, 11.5], a: [0.0, 3.3, 0.5] }, costureria: { ojo: [-6.5, 1.9, 8.5], a: [0.3, 1.8, 1.0] },
 };
-for (const id of LOMA) TOMAS['loma-' + id] = { arma: [{ id, x: 0, z: 0 }], ...VISTA_LOMA[id], hora: 11 };
+// (el observatorio y el refugio, con el desnivel sugerido: la escalinata baja a la calle)
+const OP_LOMA = { observatorio: { desnivel: 0.6 }, 'refugio-andinista': { desnivel: 0.5 } };
+for (const id of LOMA) TOMAS['loma-' + id] = { arma: [{ id, x: 0, z: 0, op: OP_LOMA[id] || {} }], ...VISTA_LOMA[id], hora: 11 };
 TOMAS['loma-calle-1'] = { arma: [{ id: 'veterinaria', x: -17, z: 0 }, { id: 'estudio-fotos', x: 2, z: 0 }, { id: 'refugio-andinista', x: 11.5, z: 0 }], ojo: [-9, 3.0, 17], a: [2, 2.0, 0], hora: 10 };
 TOMAS['loma-calle-2'] = { arma: [{ id: 'herboristeria', x: -11, z: 0 }, { id: 'taller-arte', x: -1, z: 0 }, { id: 'ceramica', x: 10, z: 0 }], ojo: [-4, 3.0, 17], a: [0, 2.0, 0], hora: 15 };
 TOMAS['loma-calle-3'] = { arma: [{ id: 'varadero', x: -13, z: 0 }, { id: 'observatorio', x: 1, z: 0 }, { id: 'costureria', x: 11, z: 0 }], ojo: [-4, 3.2, 18], a: [0, 2.4, 0], hora: 12 };
-TOMAS['loma-observatorio-noche'] = { arma: [{ id: 'observatorio', x: 0, z: 0, anim: { cupula: true, telescopio: true } }], ojo: [-5.5, 2.2, 10.5], a: [0.0, 4.6, 1.2], hora: 22.5, noche: true, luz: 'spec' };
+TOMAS['loma-observatorio-noche'] = { arma: [{ id: 'observatorio', x: 0, z: 0, op: { desnivel: 0.6 }, anim: { cupula: true, telescopio: true } }], ojo: [-4.5, 2.6, 9.5], a: [0.0, 4.6, 1.2], hora: 22.5, noche: true, luz: 'spec' };
 TOMAS['loma-observatorio-cupula'] = { arma: [{ id: 'observatorio', x: 0, z: 0, anim: { cupula: true, telescopio: true } }], ojo: [2.5, 6.5, 7.5], a: [0.0, 5.6, 1.4], hora: 17.5 };
 TOMAS['loma-adentro-estudio'] = { arma: [{ id: 'estudio-fotos', x: 0, z: 0, abierta: true }], ojo: [2.0, 1.95, 2.45], a: [-2.4, 1.2, 0.9], hora: 11, luz: 'spec' };
 TOMAS['loma-adentro-ceramica'] = { arma: [{ id: 'ceramica', x: 0, z: 0, abierta: true }], ojo: [-1.6, 1.95, 2.55], a: [2.0, 1.0, 0.2], hora: 11, luz: 'spec' };
