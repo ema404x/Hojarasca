@@ -320,6 +320,7 @@ presupuestoLuces.activar();
 window.addEventListener('wheel', (e) => {
   if (modo !== 'jugando' || mochilaAbierta || foto.activo) return;
   if (charla.menu) { moverMenuCharla(e.deltaY > 0 ? 1 : -1); return; }   // 3.6 (vida): el menú de la charla
+  if (listaHudAbierta()) { marcarHud(e.deltaY > 0 ? 1 : -1); return; }   // 3.6.2: la marca del almacén, la feria o las cargas
   if (modoObra && obras) {
     obras.girar(e.deltaY > 0 ? 1 : -1);
     dibujarPanelObra();
@@ -2761,6 +2762,7 @@ document.addEventListener('keydown', (e) => {
       // adelante elegían casilleros de la barra: la yerba, las semillas, la tijera y la
       // harina no se podían cambiar.
       if (enElAlmacen) { cambiarDeLaPagina(Number(codigo.slice(5))); break; }
+      if (enLasCargas()) marcarEn('cargas', Number(codigo.slice(5)) - 1);   // 3.6.2: y queda marcada
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
       if (codigo === 'Digit9') break;
       elegirRanura(Number(codigo.slice(5)) - 1);
@@ -2777,6 +2779,7 @@ document.addEventListener('keydown', (e) => {
       sonido.carrete();
       break;
     case 'KeyJ': abrir('cuaderno'); break;
+    case 'Enter': case 'NumpadEnter': if (listaHudAbierta()) elegirHud(); break;   // 3.6.2: la opción marcada
     // 2.9: en la cabina, Espacio (A en el mando) silba y C (B) abre el puesto de cargas del andén
     case 'Space': if (js.enTren && tren.conduciendo()) tren.silbar(); break;
     case 'KeyC':
@@ -2802,6 +2805,7 @@ document.addEventListener('keydown', (e) => {
       if (modoObra) { elegirPlano(Number(codigo.slice(5)) - 1); break; }
       if (enElAlmacen) { cambiarDeLaPagina(Number(codigo.slice(5))); break; }
       if (enLaFeria) { cambiarFeria(Number(codigo.slice(5)) - 1); break; }
+      if (enLasCargas()) marcarEn('cargas', Number(codigo.slice(5)) - 1);   // 3.6.2: y queda marcada
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
@@ -3678,19 +3682,31 @@ function leerMando(dt) {
   sostenerTecla('KeyW', m.mov.z > 0.2); sostenerTecla('KeyS', m.mov.z < -0.2);
   sostenerTecla('KeyD', m.mov.x > 0.2); sostenerTecla('KeyA', m.mov.x < -0.2);
   sostenerTecla('ShiftLeft', !!m.activos.correr);
-  if (m.recien.saltar) golpeDeTecla('Space');
   // 3.6.1: charlando, B vuelve atrás o se despide (como Escape; antes te agachaba), y con el menú
   // abierto la cruceta arriba y abajo mueve la opción (antes abría la mochila y el taller)
   const enCharla = !!charla.npc && !foto.activo;
-  if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); }
+  // 3.6.2: con el almacén, la feria o las cargas abiertos: LB y RB o la cruceta mueven la marca, A elige y B sale
+  // (antes con el mando no se podía elegir nada: A saltaba y la cruceta abría la mochila o el taller)
+  const enLista = !enCharla && !!listaHudAbierta();
+  if (enLista) {
+    if (m.recien.objetoAnterior || m.recien.mochila) marcarHud(-1);
+    if (m.recien.objetoSiguiente || m.recien.taller) marcarHud(1);
+    if (m.recien.saltar) elegirHud();
+    if (m.recien.agacharse) golpeDeTecla('Escape');
+  }
+  if (!enLista) { if (m.recien.saltar) golpeDeTecla('Space'); }
+  if (!enLista) { if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); } }
   for (const a of ACCIONES_TECLA_MANDO) {
     if (!m.recien[a]) continue;
     if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }
+    if (enLista && (a === 'mochila' || a === 'taller')) continue;
     golpeDeTecla(TECLA_DE_MANDO[a]);
   }
   // 3.6 (vida): con el menú de la charla abierto, LB y RB mueven la opción marcada (X la elige)
-  if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
-  if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
+  if (!enLista) {
+    if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
+    if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
+  }
   if (desafio && !desafio.caido && !modoObra) {
     const id = ranuras[elegida]?.id;
     if (m.recien.atacar) { desafio.atacar(id); refrescarBarra(true); }
@@ -4442,9 +4458,11 @@ function gastarFeria(k, n) {
 }
 function abrirFeria() {
   enLaFeria = true;
+  marcarEn('feria', 0);   // 3.6.2
   registrar('feria');
   $('feria').classList.remove('oculto');
   dibujarFeria();
+  marcarHud(0, true);
 }
 function cerrarFeria() {
   enLaFeria = false;
@@ -4468,6 +4486,7 @@ function dibujarFeria() {
   });
 }
 function cambiarFeria(i) {
+  marcarEn('feria', i);   // 3.6.2: lo elegido (con el número, el clic o Enter) queda marcado
   const o = ofertasDelDia(progreso.dia, progreso.cosas, feria().tomadas)[i];
   if (!o) return;
   const r = cambiarEnFeria(feria(), o.id, cuantoFeria);
@@ -6352,6 +6371,7 @@ let paginaAlmacen = 0;
 const paginasAlmacen = () => Math.ceil(TRUEQUES.length / POR_PAGINA_ALMACEN);
 function pasarPaginaAlmacen(dir = 1) {
   paginaAlmacen = (paginaAlmacen + dir + paginasAlmacen()) % paginasAlmacen();
+  marcarEn('almacen', 0);   // 3.6.2
   dibujarAlmacen();
 }
 // el número de la tecla (1 a 9) en la página que se ve
@@ -6359,8 +6379,10 @@ const cambiarDeLaPagina = (n) => cambiar(paginaAlmacen * POR_PAGINA_ALMACEN + n 
 function abrirAlmacen() {
   enElAlmacen = true;
   paginaAlmacen = 0;
+  marcarEn('almacen', 0);   // 3.6.2
   $('trueque').classList.remove('oculto');
   dibujarAlmacen();
+  marcarHud(0, true);
 }
 function cerrarAlmacen() {
   enElAlmacen = false;
@@ -6393,6 +6415,7 @@ function dibujarAlmacen() {
   $('trueque-seguir').textContent = T_(n > 1 ? `Elegí con el número o con un clic · Tab: más cambios (${paginaAlmacen + 1} de ${n}) · Escape para salir` : 'Elegí con el número o con un clic · Escape para salir');
 }
 function cambiar(i) {
+  marcarEn('almacen', i - paginaAlmacen * POR_PAGINA_ALMACEN);   // 3.6.2: lo elegido queda marcado
   const t = TRUEQUES[i];
   if (!t) return;
   if (tieneYa(t, progreso.cosas)) { nota('Eso ya lo tenés', 'Pedile otra cosa'); return; }
@@ -6497,6 +6520,52 @@ function actualizarEscucha(dtReal) {
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
 const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto;
+// 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
+// Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
+// en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
+// en una ventana de 700 px las primeras opciones del almacén quedaban fuera, y con el mando no se elegía nada.
+const PIE_PANEL_MANDO = 'LB y RB, o la cruceta, para marcar · A para elegir · B para salir';
+let marcaHud = { panel: null, i: 0 };
+function listaHudAbierta() {
+  if (foto.activo) return null;
+  if (enElAlmacen) return { id: 'almacen', ul: $('trueque-lista'), pie: $('trueque-seguir'), elegir: (i) => cambiar(paginaAlmacen * POR_PAGINA_ALMACEN + i) };
+  if (enLaFeria) return { id: 'feria', ul: $('feria-lista'), pie: $('feria')?.querySelector('.seguir'), elegir: (i) => cambiarFeria(i) };
+  if (enLasCargas()) return { id: 'cargas', ul: $('cargas-lista'), pie: $('cargas')?.querySelector('.seguir'), elegir: (i) => puestoCargas.elegir(i) };
+  return null;
+}
+const marcarEn = (panel, i) => { marcaHud = { panel, i: Math.max(0, i) }; };
+function marcarHud(mover = 0, mostrar = false) {
+  const l = listaHudAbierta();
+  if (!l?.ul) { marcaHud.panel = null; return null; }
+  if (marcaHud.panel !== l.id) { marcarEn(l.id, 0); mostrar = true; }
+  let lis = l.ul.children;
+  if (!lis.length) return l;
+  let i = Math.min(marcaHud.i, lis.length - 1) + mover;
+  // (en el almacén, más allá de la página se pasa a la de al lado: con el mando no hay Tab)
+  if (l.id === 'almacen' && (i < 0 || i >= lis.length) && paginasAlmacen() > 1) {
+    pasarPaginaAlmacen(i < 0 ? -1 : 1);
+    lis = l.ul.children;
+    i = i < 0 ? lis.length - 1 : 0;
+  }
+  i = ((i % lis.length) + lis.length) % lis.length;
+  if (i !== marcaHud.i) mostrar = true;
+  marcaHud.i = i;
+  for (let k = 0; k < lis.length; k++) {
+    const si = k === i;
+    if (lis[k].classList.contains('elegida') !== si) { lis[k].classList.toggle('elegida', si); if (si) mostrar = true; }
+  }
+  if (mostrar) lis[i].scrollIntoView?.({ block: 'nearest' });
+  if (habiaMando && l.pie && l.pie.textContent !== PIE_PANEL_MANDO) l.pie.textContent = PIE_PANEL_MANDO;
+  return l;
+}
+function elegirHud(i = null) {
+  const l = marcarHud();
+  if (!l) return false;
+  if (i !== null) marcaHud.i = i;
+  l.elegir(marcaHud.i);
+  marcarHud(0, true);
+  return true;
+}
 // 3.6.2: las opciones de las listas del HUD (el #hud no recibe el mouse: cada lista lo pide en plantilla.html) se
 // eligen con mousedown, como el menú de la charla en la 3.6.1, y el clic no sigue de largo
 function alClicHud(el, fn) {
@@ -7676,6 +7745,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
+    if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
     if (js.enTren) {
       if (vecino) aviso = { tecla: 'E', texto: `Hablar con ${vecino.nombre}` };
       else aviso = tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : null;

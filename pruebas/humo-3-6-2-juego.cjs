@@ -90,6 +90,36 @@ app.whenReady().then(async () => {
     if (feria) ok((await llegaElClic('#feria-lista li')) === 'sí' && (await sigueDeLargo('#feria-lista li')) === 0, 'la feria: el clic llega y no sigue de largo');
     await tecla('Escape'); await js(`${H}.volverAlJuego?.(); 1`); await cuadros(1);
 
+    seccion('las listas entran en una ventana chica (700 px) y la opción marcada siempre se ve');
+    // (el almacén, la feria y las cargas: el panel no pasa del borde; la ruedita recorre todas las opciones, la
+    // marcada queda adentro de la lista y de la ventana; Enter elige la marcada)
+    const enVentana = (abrirPanel, sel) => js(`(()=>{ const H = ${H}; ${abrirPanel}; const ul = document.querySelector('${sel}'), panel = ul?.parentElement;
+      if (!ul || panel.classList.contains('oculto')) return null;
+      const p = panel.getBoundingClientRect(), n = ul.children.length, mal = [];
+      for (let k = 0; k < n * 2 + 1; k++) {
+        window.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 }));
+        const li = ul.querySelector('li.elegida');
+        if (!li) { mal.push(k + ': sin marca'); continue; }
+        const r = li.getBoundingClientRect(), u = ul.getBoundingClientRect();
+        if (r.top < u.top - 1 || r.bottom > u.bottom + 1 || r.top < 0 || r.bottom > innerHeight) mal.push(k + ': ' + li.textContent.slice(0, 24) + ' fuera');
+      }
+      return { n, adentro: p.top >= 0 && p.bottom <= innerHeight, alto: Math.round(p.height), ventana: innerHeight, mal };
+    })()`);
+    const alm = await enVentana(`H.__hud.abrirAlmacen()`, '#trueque-lista');
+    ok(!!alm && alm.adentro && alm.n > 0 && !alm.mal.length, `el almacén entra (${alm?.alto} de ${alm?.ventana} px) y la marca recorre sus ${alm?.n} opciones a la vista${alm?.mal.length ? ': ' + alm.mal.slice(0, 3).join('; ') : ''}`);
+    // (la marca en un cambio que se puede hacer)
+    const sePuede = await js(`(()=>{ for (let k = 0; k < 20; k++) { const li = document.querySelector('#trueque-lista li.elegida'); if (li && !li.classList.contains('falta') && !li.classList.contains('hecho')) return li.textContent; window.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 })); } return null })()`);
+    const cosas0 = await js(`JSON.stringify(${H}.progreso.cosas)`);
+    await tecla('Enter');
+    ok(!!sePuede && (await js(`JSON.stringify(${H}.progreso.cosas)`)) !== cosas0, `Enter elige la marcada («${(sePuede || '').slice(0, 40)}»)`);
+    await js(`${H}.__hud.cerrarAlmacen(); 1`);
+    const fer = await enVentana(`H.abrirFeria()`, '#feria-lista');
+    if (fer) ok(fer.adentro && !fer.mal.length, `la feria entra y la marca se ve (${fer.n} opciones)${fer.mal.length ? ': ' + fer.mal.join('; ') : ''}`);
+    await tecla('Escape');
+    const car = await enVentana(`H.__cargas().abrir(H.tren.paradas[0])`, '#cargas-lista');
+    ok(!!car && car.adentro && !car.mal.length, `las cargas entran y la marca se ve (${car?.n} opciones)${car?.mal.length ? ': ' + car.mal.join('; ') : ''}`);
+    await tecla('Escape'); await js(`${H}.volverAlJuego?.(); 1`); await cuadros(1);
+
     seccion('los árboles despejados no chocan');
     const arb = await js(`(()=>{ const H = ${H}, T = H.T;
       const lugares = { galpon: T.lugares.galpon, cueva: T.lugares.cueva, ...Object.fromEntries((H.tren?.paradas || []).map((p, i) => ['parada-' + i, p])) };

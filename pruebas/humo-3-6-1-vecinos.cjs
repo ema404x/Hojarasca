@@ -143,6 +143,8 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ E y el aviso en cada lugar
     // (con «media@» delante: la aldea a medio crecer, con una obra en curso y uno recién bajado del tren)
+    // 3.6.2: la partida como está ahora, para volver a ella después de la recorrida de E (ver más abajo)
+    const partidaLimpia = await js(`(()=>{ ${H}.guardar(); return Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith('hojarasca')).map((k) => [k, localStorage.getItem(k)])) })()`);
     const HORAS = (process.env.HORAS ?? '3,10.5,16.5,20.5,media@10.5,media@15').split(',').filter(Boolean);
     let config = 'completa';
     const fallas = [];
@@ -239,13 +241,33 @@ app.whenReady().then(async () => {
     const P = `${H}.progreso`;
     let e, v;
 
-    // (otra vez la aldea completa, como al principio)
-    if (config !== 'completa') {
-      await js(`(()=>{ const a = ${H}.progreso.aldea; const L = { carpintero: 'carpinteria', panadera: 'panaderia', herrero: 'herreria', pescador: 'pescaderia', maestra: 'escuela', enfermera: 'puesto-sanitario', telegrafista: 'estafeta', tejedora: 'hilanderia', apicultor: 'sala-miel', guardaparque: 'seccional', musico: 'salon' };
-        a.pobladores = Object.keys(L).map((clave) => ({ clave, dia: 1 })); a.obras = {}; a.llegando = null; a.locales = Object.fromEntries(Object.values(L).map((l) => [l, 1])); return 1 })()`);
+    // 3.6.2: la recorrida de E deja la partida usada: miles de E en el mismo día (el 3) piden y devuelven el libro
+    // del día (y después la biblioteca ya no lo ofrece: «Por hoy ya está»), cambian en el almacén, charlan con todos,
+    // invitan, se sientan, suben al tren y te dejan lejos de la aldea, con las figuras sin armar. Lo que sigue
+    // empezaba con esa partida y fallaba en cadena (13 cruces y un `pose` de undefined): se vuelve a la partida de
+    // antes de la recorrida, como recién cargada, con la aldea completa.
+    if (HORAS.length) {
+      // (primero se sale del juego a una página en blanco del mismo origen, file://: al irse, el juego guarda
+      // la partida usada en beforeunload, y si se escribía antes la copia limpia quedaba pisada)
+      const blanco = path.join(os.tmpdir(), 'hojarasca-humo-en-blanco.html');
+      require('fs').writeFileSync(blanco, '<!doctype html><meta charset="utf-8"><title>en blanco</title>');
+      await w.loadFile(blanco);
+      await js(`(()=>{ localStorage.clear(); const g = ${JSON.stringify(JSON.stringify(partidaLimpia))}; for (const [k, v] of Object.entries(JSON.parse(g))) localStorage.setItem(k, v); return 1 })()`);
+      await abrir();
+      ok(await listo(), 'de vuelta a la partida de antes de la recorrida');
+      ok(await js(`!(${H}.progreso.mecanicas?.usos?.prestamo === ${H}.progreso.dia)`), 'sin lo que usó la recorrida (el préstamo del día)');
+      await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2500);
+      await js(`${H}.volverAlJuego?.(); ${H}.ajustes.limiteFps = 'libre'; 1`);
+      await js(AYUDA);
+      await js(`window.__m361v.cuadra = (${fabricaCuadra.toString()})(); 1`);
       await js(`(()=>{ const M = ${H}.__aldeaMundo(); const o = M.aMundo(6, 29); window.__m361v.poner(o.x, o.z, 0); M.actualizar(4, ${H}.camara.position); return 1 })()`);
       await aldeaMontada(); await asentar(4); await js(`${H}.__mecanicas().revisar(); 1`);
+      // (las figuras de la aldea se arman de a una por cuadro con vos cerca: que estén las veinte antes de irse)
+      const figuras = await js(`(()=>{ const H = ${H}, n = () => H.gente.gente.filter((g) => g.claveAldea).length; for (let i = 0; i < 300 && n() < 20; i++) H.__bucle(); return n() })()`);
+      ok(figuras >= 20, `la gente de la aldea, armada (${figuras})`);
+      config = 'completa';
     }
+
     seccion('el menú en el almacén: lo del lugar no se pierde');
     await acomodar(3, 10.5);
     await js(`(()=>{ ${P}.cosas.yerba = 6; ${P}.cosas.harina = 1; return 1 })()`);
@@ -383,7 +405,7 @@ app.whenReady().then(async () => {
     // altura de la silla, no queda en el aire
     await js(`(()=>{ const H = ${H}, j = H.jugador.estado, n = ${npc('madre')};
       for (let i = 0; i < 3000 && H.__vecindad().cita()?.fase === 'yendo'; i++) { j.pos.x = n.pos.x + 2.5; j.pos.z = n.pos.z; H.gente.actualizar(0.05, j, H.camara, null, 0); if (i % 10 === 0) { H.__aldea.actualizar(0.5); H.__vecindad().actualizar(0.6); } } return 1 })()`);
-    e = await js(`(()=>{ const H = ${H}, c = H.__vecindad().cita(), n = ${npc('madre')}; return { fase: c?.fase, d: c ? Math.hypot(n.pos.x - c.lugar.x, n.pos.z - c.lugar.z) : -1, pose: n.pose, asiento: n.asiento, saltos: H.__aldea.mundo().estado().saltos } })()`);
+    e = await js(`(()=>{ const H = ${H}, c = H.__vecindad().cita(), n = ${npc('madre')}; if (!n) return { fase: 'sin la figura de la madre', d: -1 }; return { fase: c?.fase, d: c ? Math.hypot(n.pos.x - c.lugar.x, n.pos.z - c.lugar.z) : -1, pose: n.pose, asiento: n.asiento, saltos: H.__aldea.mundo().estado().saltos } })()`);
     ok(e.fase === 'esperando' && e.d < 0.6 && e.pose === 'sentado', `llegó caminando y se sentó (${e.fase}, a ${e.d.toFixed(2)} m de su silla)`);
     ok(Number.isFinite(e.asiento) && e.asiento > 0.3 && e.asiento < 0.7, `a la altura de la silla de la casa de té (${e.asiento})`);
   } catch (err) {
