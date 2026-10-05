@@ -16,15 +16,21 @@
 // Devuelve lo mismo que la gente vieja (g, cabeza, torso, patas, brazos, mano, muneca,
 // mateVisible) y usa los mismos pivotes (cadera 0,82, hombros 1,30, cabeza 1,46).
 import * as THREE from 'three';
-import { bola, tubo, torno, huso, deformar, coser, matiz, mezcla, color, puntasBufanda } from './formas.js';
+import { bola, tubo, torno, huso, deformar, coser, matiz as matizF, mezcla as mezclaF, color, puntasBufanda } from './formas.js';
 import { MAT_FAUNA } from './vida.js';
 import { atlasPersonajes } from './gente-atlas.js';
 import { aspectoGente } from './gente-ropa.js';
 
 const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const gauss = (x, y, sx, sy) => Math.exp(-((x / sx) ** 2 + (y / sy) ** 2));
-const _c = new THREE.Color(), _c2 = new THREE.Color();
-const tinta = (c, hex, t) => { if (t > 0) c.lerp(_c2.set(hex), Math.min(1, t)); };
+const _c = new THREE.Color();
+// 3.7.0: los colores se calculan una vez (armar a alguien pinta miles de vértices: leer un "#rrggbb" o
+// mezclar dos colores en cada uno era la mitad de lo que tardaba)
+const memo = (fn) => { const m = new Map(); return (...a) => { const k = a.join('|'); let v = m.get(k); if (v === undefined) { v = fn(...a); if (m.size > 4000) m.clear(); m.set(k, v); } return v; }; };
+const matiz = memo(matizF), mezcla = memo(mezclaF);
+const COLORES = new Map();
+const colorDe = (hex) => { let c = COLORES.get(hex); if (!c) { c = new THREE.Color(hex); COLORES.set(hex, c); } return c; };
+const tinta = (c, hex, t) => { if (t > 0) c.lerp(colorDe(hex), Math.min(1, t)); };
 function hash(s) { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; }
 
 // ---------------------------------------------------------------- geometrías propias
@@ -969,10 +975,12 @@ function figura(colores, clave, conMate, R, A, talla) {
     ? [[0.05, -0.76], [0.057, -0.72], [0.063, -0.6], [0.067, -0.5], [0.072, -0.44], [0.067, -0.435]]
     : [[0.05, -0.76], [0.055, -0.74], [0.059, -0.66], [0.063, -0.62], [0.059, -0.615]]).map(([r, y]) => [r, y + RODILLA]);
   const barroPie = R.barroBotas ? (c) => tinta(c, '#5a4632', 0.55) : null;
+  const colPollera = R.colPollera || mezcla(ropa, '#2a2420', 0.35);
   const patas = [];
   for (const l of [-1, 1]) {
     const piv = new THREE.Group(); piv.position.set(l * lx, 0.82, 0); piv.scale.set(anchoP, 1, anchoP);
-    const muslo = torno(pantalon, perfilMuslo, null, null, [1, 1, 0.92], 12);
+    // (3.7.0: con pollera, el muslo es de la tela de la pollera: sentada, la pollera cubre las piernas)
+    const muslo = torno(R.pollera ? colPollera : pantalon, perfilMuslo, null, null, [1, 1, 0.92], 12);
     pintarPieza(muslo, (c, p) => { surcos(c, Math.sin(p.y * 70 + p.x * 40) * sv(-0.32, -0.42, p.y), 0.14); c.multiplyScalar(1 - 0.12 * sv(-0.02, 0.05, p.y)); });
     piv.add(muslo);
     const rodilla = new THREE.Group(); rodilla.position.set(0, -RODILLA, 0);
@@ -1061,7 +1069,7 @@ function figura(colores, clave, conMate, R, A, talla) {
   if (R.pollera) {
     const perfilPollera = [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
     if (R.chamal) perfilPollera.splice(0, 1, [0.262, -0.71], [0.25, -0.6], [0.238, -0.5]);   // el chamal, hasta los tobillos
-    torso.add(rol(bordeTorno(pintarPieza(capa(R.colPollera || mezcla(ropa, '#2a2420', 0.35), perfilPollera, 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
+    torso.add(rol(bordeTorno(pintarPieza(capa(colPollera, perfilPollera, 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
       surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.1, -0.3, p.y), 0.3);
       if (p.y < perfilPollera[0][1] + 0.04) c.multiplyScalar(0.84);  // el ruedo
       if (p.y > 0.17) c.multiplyScalar(0.9);                         // la pretina
@@ -1483,7 +1491,7 @@ const GLSL_COLOR = /* glsl */`
         vec4 a = unoA(vec2(1024.0, 1024.0), vec2(512.0), uc);
         float arr = a.r * (0.4 * risa + 0.35 * mayor) + a.g * 0.6 * mayor;
         alb = mix(alb, alb * vec3(0.74, 0.6, 0.56), clamp(arr, 0.0, 1.0) * 0.55);
-        alb = mix(alb, alb * vec3(1.18, 0.86, 0.82) + vec3(0.03, 0.0, 0.0), a.b * cicatriz * 0.85);
+        alb = mix(alb, vec3(0.62, 0.36, 0.33), a.b * cicatriz * 0.8);   // (la cicatriz, más clara y rosada que la piel)
         float oj = exp(-pow((abs(fc.x) - 0.034) / 0.014, 2.0) - pow((fc.y + 0.017) / 0.006, 2.0));
         alb = mix(alb, alb * vec3(0.78, 0.68, 0.76), oj * ojeras * 0.55);
         // 3.7.0: la pincelada de la piel (antes la cara era lisa)
@@ -1644,6 +1652,15 @@ function continuo(f) {
   const [hombroIzq, hombroDer] = brazos;
   const rodillas = patas.map((pt) => pt.userData.rodilla);
   let ov = 0, oi = 0, iMate = -1, iFino = -1;
+  const hs = new Int32Array(8), ws = new Float32Array(8);
+  let nh = 0;
+  const mezclar = (otro, t) => {
+    if (otro == null || t <= 0) return;
+    let k = -1;
+    for (let a = 0; a < nh; a++) { ws[a] *= 1 - t; if (hs[a] === otro) k = a; }
+    if (k < 0 && nh < 8) { k = nh++; hs[k] = otro; ws[k] = 0; }
+    if (k >= 0) ws[k] += t;
+  };
   mallas.forEach((m, k) => {
     const geo = m.geometry, P = geo.attributes.position, C = geo.attributes.color;
     if (!geo.attributes.normal) geo.computeVertexNormals();
@@ -1680,9 +1697,9 @@ function continuo(f) {
       col[j * 3] = c.r; col[j * 3 + 1] = c.g; col[j * 3 + 2] = c.b;
       zona[j * 2] = Z ? Z.getX(i) : m.userData.piel ? 1 : 0; zona[j * 2 + 1] = 1; crudo[j] = esCrudo ? 1 : 0;
       pieza[j] = k; tapa[j] = m.userData.noTapa ? 0 : 1;
-      // los pesos: el hueso de la pieza, y las mezclas en las juntas
-      const w = new Map([[hueso, 1]]);
-      const mezclar = (otro, t) => { if (otro == null || t <= 0) return; for (const [h, v] of w) w.set(h, v * (1 - t)); w.set(otro, (w.get(otro) || 0) + t); };
+      // los pesos: el hueso de la pieza, y las mezclas en las juntas (3.7.0: en arreglos chicos, sin
+      // armar un Map por vértice)
+      nh = 1; hs[0] = hueso; ws[0] = 1;
       if (grupo === hombroIzq || grupo === hombroDer) {
         if (!m.userData.mate) mezclar(0, 0.55 * sv(-0.07, 0.01, q.y));                     // el hombro, con el torso
         const cd = grupo.userData.codo;
@@ -1703,12 +1720,17 @@ function continuo(f) {
         mezclar(0, sv(-0.075, -0.125, q.y));                                                // el cuello (y las trenzas y la melena) baja al torso
       } else if (sup) {
         // el párpado de abajo se queda con la cabeza; el de arriba, con su hueso (parpadea)
-        w.clear(); w.set(idx.get(grupo), sup[i]); w.set(1, 1 - sup[i]);
+        nh = 2; hs[0] = idx.get(grupo); ws[0] = sup[i]; hs[1] = 1; ws[1] = 1 - sup[i];
       }
-      const lista = [...w].filter(([, v]) => v > 1e-3).sort((a, b) => b[1] - a[1]).slice(0, 4);
-      const tot = lista.reduce((s, [, v]) => s + v, 0) || 1;
-      lista.forEach(([h, v], r) => { si[j * 4 + r] = h + baseH; sw[j * 4 + r] = v / tot; });
-      for (let r = lista.length; r < 4; r++) si[j * 4 + r] = baseH;
+      // los cuatro más pesados, normalizados
+      for (let a = 0; a < nh; a++) for (let b = a + 1; b < nh; b++) if (ws[b] > ws[a]) { const x = ws[a]; ws[a] = ws[b]; ws[b] = x; const y = hs[a]; hs[a] = hs[b]; hs[b] = y; }
+      let usados = 0, tot = 0;
+      for (let r = 0; r < nh && usados < 4; r++) if (ws[r] > 1e-3) { tot += ws[r]; usados++; }
+      tot = tot || 1;
+      for (let r = 0; r < 4; r++) {
+        const vale = r < usados;
+        si[j * 4 + r] = (vale ? hs[r] : 0) + baseH; sw[j * 4 + r] = vale ? ws[r] / tot : 0;
+      }
     }
     if (geo.index) for (let i = 0; i < geo.index.count; i++) ind[oi++] = geo.index.getX(i) + ov;
     else for (let i = 0; i < P.count; i++) ind[oi++] = i + ov;
@@ -1743,7 +1765,7 @@ function continuo(f) {
 function oclusion(pos, nor, pieza, zona, col, tapa, fuerza = 1, fuerzaPiel = 1, crudo = null) {
   const n = pieza.length, R = 0.05, mapa = new Map();
   const clave = (x, y, z) => (x + 64) * 16384 + (y + 64) * 128 + (z + 64);
-  for (let i = 0; i < n; i += 2) {
+  for (let i = 0; i < n; i += 3) {   // (3.7.0: uno de cada tres alcanza para la sombra de contacto)
     if (!tapa[i]) continue;
     const k = clave(Math.floor(pos[i * 3] / R), Math.floor(pos[i * 3 + 1] / R), Math.floor(pos[i * 3 + 2] / R));
     let l = mapa.get(k); if (!l) mapa.set(k, l = []); l.push(i);
@@ -1761,8 +1783,9 @@ function oclusion(pos, nor, pieza, zona, col, tapa, fuerza = 1, fuerzaPiel = 1, 
         if (d2 > R * R || d2 < 1e-8) continue;
         const dd = Math.sqrt(d2), fr = (dx * nx + dy * ny + dz * nz) / dd;
         if (fr < 0.15) continue;
-        occ += fr * (1 - dd / R);
+        occ += fr * (1 - dd / R) * 1.5;   // (compensa los vecinos que ya no se miran)
       }
+      if (occ > 14) break;   // (ya está todo lo oscuro que puede estar)
     }
     const ao = 1 - (zona[i * 2] ? fuerzaPiel : fuerza) * Math.min(zona[i * 2] ? 0.3 : 0.55, occ * (zona[i * 2] ? 0.025 : 0.045));
     zona[i * 2 + 1] = ao;

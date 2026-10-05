@@ -366,7 +366,7 @@ function pintarArrugas(ctx) {
   }
   // la cicatriz: una raya clara que cruza la ceja izquierda (la de ella) y baja hacia el pómulo
   ctx.filter = 'blur(1px)';
-  linea(2, [[0.046, 0.04], [0.041, 0.028], [0.037, 0.016], [0.034, 0.009]], 0.0019, 0.95);
+  linea(2, [[0.047, 0.042], [0.042, 0.029], [0.038, 0.017], [0.035, 0.009]], 0.0026, 1);
   linea(2, [[0.05, -0.022], [0.056, -0.03]], 0.0013, 0.6);
   ctx.filter = 'none';
   ctx.restore();
