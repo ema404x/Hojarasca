@@ -1,5 +1,5 @@
 // PROTOTIPO (rama proto-personajes, no va al juego): capturas y medición de las variantes de la
-// gente (gente-proto.js, `?personajes=A|B|C|D`). Para cada variante abre el juego real, pone la
+// gente (gente-proto.js, `?personajes=A|B|C|D|S`). Para cada variante abre el juego real, pone la
 // aldea completa, para a Rosa (la panadera), a Anselmo (el herrero) y a Lucía en la plaza con la
 // luz de la tarde y saca:
 //   · <v>-cuerpo.png: los tres de frente, cuerpo entero a 3 m (lente de 45°);
@@ -39,7 +39,7 @@ const MEDIR = arg('medir', '1') !== '0';
 const LAMINA = arg('lamina', '1') !== '0';
 const CALIDAD = arg('calidad', 'media');
 const HORA = Number(arg('hora', '17.2'));
-const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista' };
+const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista', S: 'S · tipo Sims, más simple' };
 
 // Lo que corre en la página. Los tres: Rosa (panadera), Anselmo (herrero) y Lucía (nena).
 const AYUDA = String.raw`(() => {
@@ -147,6 +147,8 @@ app.whenReady().then(async () => {
         const pr = { x: c.x + lx * 0.55, z: c.z + lz * 0.55 }, pa = { x: c.x - lx * 0.55 + fx * 0.25, z: c.z - lz * 0.55 + fz * 0.25 }, pl = { x: c.x + lx * 0.85 + fx * 0.75, z: c.z + lz * 0.85 + fz * 0.75 };
         const hacia = (a, b) => Math.atan2(b.x - a.x, b.z - a.z);
         P.parar(rosa, pr.x, pr.z, hacia(pr, pa) + 0.5); P.parar(anselmo, pa.x, pa.z, hacia(pa, pr) - 0.45); P.parar(lucia, pl.x, pl.z, hacia(pl, pa) + 0.2);
+        // (S: charlando contentos; las otras variantes no tienen gestos)
+        rosa.__gesto = 'sonrisa'; anselmo.__gesto = 'risa'; lucia.__gesto = 'sonrisa';
         for (const n of otros) n.dormido = false;
         const o = { x: c.x + fx * 3.5 - lx * 0.4, z: c.z + fz * 3.5 - lz * 0.4 }; o.y = T.altura(o.x, o.z) + 1.65;
         P.camara(o, { x: c.x, z: c.z, y: T.altura(c.x, c.z) + 1.05 }, 70);
@@ -155,6 +157,7 @@ app.whenReady().then(async () => {
         const lugar = [[0.9, 0], [0, 0], [-0.8, 0]];
         [rosa, anselmo, lucia].forEach((n, i) => P.parar(n, c.x + lx * lugar[i][0], c.z + lz * lugar[i][0], r));
         for (const n of otros) n.dormido = true;   // nadie que tape
+        for (const n of [rosa, anselmo, lucia]) n.__gesto = null;
         if (toma === 'cuerpo') {
           const o = { x: c.x + fx * 3, z: c.z + fz * 3 }; o.y = T.altura(o.x, o.z) + 0.95;
           P.camara(o, { x: c.x, z: c.z, y: T.altura(c.x, c.z) + 0.85 }, 45);
@@ -235,6 +238,25 @@ app.whenReady().then(async () => {
       const img = await w.webContents.capturePage();
       fs.writeFileSync(path.join(salida, `${v}-treinta.png`), img.toPNG());
       linea += `\n  30 personas (${r}): cuadro con gente ${m.con.med} ms (p90 ${m.con.p90}), sin gente ${m.sin.med} ms → la gente cuesta ${m.gente} ms [corridas: ${corridas.map((c) => c.gente).join(', ')}]; dibujos ${m.con.dibujos} (sin gente ${m.sin.dibujos}), triángulos ${m.con.tri} (sin gente ${m.sin.tri}); programas al llegar ${programasAntes} → ${m.con.programas}`;
+      // experimentos=huesos,posar,sombra,material: dónde se va el costo (se apaga una cosa y se vuelve a medir)
+      for (const ex of arg('experimentos', '').split(',').filter(Boolean)) {
+        const cambiar = (poner) => `(() => { const H = window.__hojarasca, P = window.__proto, ex = '${ex}', poner = ${poner};
+          const todos = P.todos || (P.todos = [...P.deAldea(), ...P.extras]);
+          for (const n of todos) {
+            const s = []; n.g.traverse((o) => { if (o.isMesh) s.push(o); });
+            const piel = s.find((o) => o.isSkinnedMesh);
+            if (ex === 'huesos' && piel) { if (poner) { piel.__upd = piel.skeleton.update; piel.skeleton.update = () => {}; } else if (piel.__upd) piel.skeleton.update = piel.__upd; }
+            if (ex === 'posar') { if (poner) { n.__ap = n.alPosar; n.alPosar = null; } else n.alPosar = n.__ap; }
+            if (ex === 'sombra') for (const o of s) { if (poner) { o.__cs = o.castShadow; o.castShadow = false; } else o.castShadow = o.__cs; }
+            if (ex === 'material') for (const o of s) { if (poner) { o.__mat = o.material; o.material = P.matSimple || (P.matSimple = new H.THREE.MeshLambertMaterial({ vertexColors: true })); } else o.material = o.__mat; }
+          } return 1 })()`;
+        await js(cambiar(true));
+        const cs = [];
+        for (let k = 0; k < 3; k++) { const sin = JSON.parse(await js(medir(false))); const con = JSON.parse(await js(medir(true))); cs.push(+(con.med - sin.med).toFixed(2)); }
+        await js(cambiar(false));
+        cs.sort((a, b) => a - b);
+        linea += `\n  sin ${ex}: la gente cuesta ${cs[1]} ms [${cs.join(', ')}]`;
+      }
     }
     console.log(linea);
     informe.push(linea);
@@ -275,7 +297,7 @@ app.whenReady().then(async () => {
     const { nativeImage } = require('electron');
     for (const toma of ['cuerpo', 'cara', 'grupo']) {
       const filas = [], etiquetas = [];
-      for (const v of ['base', 'A', 'B', 'C', 'D']) {
+      for (const v of ['base', 'A', 'B', 'C', 'D', 'S']) {
         const f = path.join(salida, `${v}-${toma}.png`);
         if (!fs.existsSync(f)) continue;
         let img = nativeImage.createFromPath(f);

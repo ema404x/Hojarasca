@@ -58,12 +58,38 @@ app.whenReady().then(async () => {
   const js = (c) => w.webContents.executeJavaScript(c);
   for (let i = 0; i < 50 && !(await js('!!window.estudioListo').catch(() => false)); i++) await new Promise((r) => setTimeout(r, 200));
   if (!(await js('!!window.estudioListo'))) { console.log('no cargó:\n' + errores.join('\n')); app.exit(1); return; }
-  for (const v of arg('variantes', 'base,A,B,C,D').split(',')) {
+  for (const v of arg('variantes', 'base,A,B,C,D').split(',').filter(Boolean)) {
     for (const t of arg('tomas', 'cuerpo,cara,grupo').split(',')) {
       const d = await js(`window.estudio.toma('${v}', '${t}')`);
       fs.writeFileSync(path.join(salida, `${v}-${t}.png`), Buffer.from(d.split(',')[1], 'base64'));
     }
-    if (arg('medir', '0') === '1') console.log(v, JSON.stringify(await js(`window.estudio.medir('${v}')`)), 'armado ms', (await js(`window.estudio.tiempoArmado('${v}', 4)`)).toFixed(1));
+    if (arg('medir', '0') === '2') console.log(JSON.stringify(await js(`window.estudio.partes('${v}')`), null, 1));
+    if (arg('medir', '0') !== '0') console.log(v, JSON.stringify(await js(`window.estudio.medir('${v}')`)), 'armado ms', (await js(`window.estudio.tiempoArmado('${v}', 4)`)).toFixed(1));
+  }
+  // comparar=base,B,D,S: una lámina con las caras lado a lado (una fila por persona, una columna
+  // por variante), de los <v>-cara.png que ya están → comparacion-<última>.png
+  const comparar = arg('comparar', '');
+  if (comparar) {
+    const vs = comparar.split(',').filter((v) => fs.existsSync(path.join(salida, `${v}-cara.png`)));
+    const TIT = { base: 'Hoy', A: 'A', B: 'B · ropa y pelo', C: 'C', D: 'D · lo más realista', S: 'S · tipo Sims, más simple' };
+    const datos = vs.map((v) => 'data:image/png;base64,' + fs.readFileSync(path.join(salida, `${v}-cara.png`)).toString('base64'));
+    const png = await js(`(async () => {
+      const vs = ${JSON.stringify(vs)}, tit = ${JSON.stringify(vs.map((v) => TIT[v] || v))}, src = ${JSON.stringify(datos)};
+      const imgs = await Promise.all(src.map((s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; })));
+      const k = 0.62, cw = Math.round(560 * k), ch = Math.round(640 * k), sep = 8, arriba = 54, izq = 150;
+      const cv = document.createElement('canvas'); cv.width = izq + vs.length * (cw + sep); cv.height = arriba + 3 * (ch + sep);
+      const x = cv.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, cv.width, cv.height);
+      x.fillStyle = '#efe6d6'; x.font = 'bold 26px Georgia, serif'; x.textAlign = 'center';
+      tit.forEach((t, j) => x.fillText(t, izq + j * (cw + sep) + cw / 2, 36));
+      x.textAlign = 'left'; x.font = 'bold 26px Georgia, serif';
+      ['Rosa', 'Anselmo', 'Lucía'].forEach((n, f) => {
+        x.fillText(n, 18, arriba + f * (ch + sep) + ch / 2 + 8);
+        imgs.forEach((im, j) => x.drawImage(im, f * 566, 0, 560, 640, izq + j * (cw + sep), arriba + f * (ch + sep), cw, ch));
+      });
+      return cv.toDataURL('image/png'); })()`);
+    const nombre = `comparacion-${vs[vs.length - 1]}.png`;
+    fs.writeFileSync(path.join(salida, nombre), Buffer.from(png.split(',')[1], 'base64'));
+    console.log('lámina', nombre);
   }
   if (errores.length) console.log('consola:\n' + [...new Set(errores)].slice(0, 15).join('\n'));
   console.log('listo', salida);

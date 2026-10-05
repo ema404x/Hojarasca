@@ -5,7 +5,7 @@ import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
 import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar, fundirNormales, puntasBufanda } from './formas.js';
 import { LAGO } from './config.js';
-// PROTOTIPO (rama proto-personajes): las variantes de la gente, con ?personajes=A|B|C|D
+// PROTOTIPO (rama proto-personajes): las variantes de la gente, con ?personajes=A|B|C|D|S
 import { VARIANTE_PERSONAJES, protoPersona } from './gente-proto.js';
 
 // ---------------------------------------------------------------- historias

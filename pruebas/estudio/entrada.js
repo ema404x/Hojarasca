@@ -3,7 +3,7 @@
 // variantes sin cargar el valle. No es la captura final: esas son las del juego (visor-personajes).
 import * as THREE from 'three';
 import { __mallaPersona, __ROPA } from '../../src/gente.js';
-import { protoPersona } from '../../src/gente-proto.js';
+import { protoPersona, __piezasProto } from '../../src/gente-proto.js';
 import { POBLADORES_ALDEA, VECINOS_ALDEA } from '../../src/aldea.js';
 
 const lienzo = document.createElement('canvas');
@@ -69,14 +69,17 @@ window.estudio = {
     if (toma === 'cuerpo') { mirar([0, 0.95, 3.0], [0, 0.85, 0], 45); for (let i = 0; i < 30; i++) posar(); return foto(); }
     if (toma === 'grupo') { mirar([0.5, 1.65, 3.4], [0.1, 1.0, 0.2], 70); for (let i = 0; i < 30; i++) posar(); return foto(); }
     if (toma === 'espalda') { mirar([0.3, 1.2, -2.6], [0, 0.95, 0], 45); for (let i = 0; i < 30; i++) posar(); return foto(); }
-    // la cara: cada uno a 1 m (lente de 30°), las tres juntas en una tira (o de tres cuartos)
+    // la cara: cada uno a 1 m (lente de 30°), las tres juntas en una tira (o de tres cuartos);
+    // `sonrisa` y `risa` (S): la misma toma con el gesto puesto
     const tiras = [];
+    for (const m of actuales) m.__gesto = toma === 'sonrisa' || toma === 'risa' ? toma : 'neutral';
+    for (const m of actuales) m.__lejos = toma === 'lejos';   // (S: la cara fundida en el cuerpo, la de lejos)
     for (const m of actuales) {
       m.g.updateMatrixWorld(true);
       const c = new THREE.Vector3(); m.cabeza.getWorldPosition(c); c.y += 0.045 * m.g.scale.y;
       const ang = toma === 'perfil' ? 0.75 : 0;
       mirar([c.x + Math.sin(ang) * 1.0, c.y + 0.02, c.z + Math.cos(ang) * 1.0], [c.x, c.y, c.z], 30);
-      for (let i = 0; i < 30; i++) posar();
+      for (let i = 0; i < 45; i++) posar();
       renderer.render(escena, camara);
       const cv = document.createElement('canvas'); cv.width = 560; cv.height = 640;
       cv.getContext('2d').drawImage(lienzo, (1600 - 560) / 2, (900 - 640) / 2, 560, 640, 0, 0, 560, 640);
@@ -91,6 +94,7 @@ window.estudio = {
     armar(V);
     return actuales.map((m) => { let tri = 0, dib = 0; m.g.traverse((o) => { if (o.isMesh) { dib++; tri += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } }); return { tri: Math.round(tri), dib }; });
   },
+  partes(V) { return QUIENES.map(({ clave, def }) => [clave, __piezasProto(V, def.colores, clave, def.mano === 'mate', __ROPA[clave] || {}).map(([k, e]) => `${k} ${Math.round(e.tri)}/${e.ver} (${e.n})`).join(' | ')]); },
   tiempoArmado(V, n = 10) {
     const t0 = performance.now();
     for (let i = 0; i < n; i++) for (const { clave, def } of QUIENES) {
