@@ -44,6 +44,7 @@ Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suy
 - Vagones: pasajeros con salamandra (viajás calentito, descansás, los vecinos viajan y charlan); comedor (cocinar y matear en viaje, con la cocina de la 3.7.2); carga (más fletes) y para el caballo; mirador abierto para fotos; dormitorio para hacer noche donde quieras.
 - Taller ferroviario: galpón junto a la estación de la aldea; llevás materiales, el herrero forja las piezas de hierro y las arman Ernesto (jefe de estación) y Martín, un maquinista retirado nuevo en la aldea, en unos días (como las obras del pueblo).
 - Sin combustible: la locomotora anda sola, como ahora.
+- **Diseño aprobado por el usuario** ("me encanta"): prototipo en la rama `proto-tren` (`?debug=1&tren=proto`, `src/tren-proto.js`, capturas en `pruebas/salidas/proto-tren/`): Baldwin a vapor "La Hojarasca" con ténder de leña, 13 dibujos (antes 63). Pulir al pasarlo al juego: andenes cortos para 70 m de tren (alargar o limitar vagones), interiores apagados de lejos, el caballo de la jaula es el tuyo, más luz en el dormitorio de noche, poses de Ernesto y Martín, colisiones del taller, el desvío al taller sin cambio de vía, brillo del farol sobre las copas.
 
 ## 3.7.4 — Tradiciones
 - Fiestas por estación, con baile, juegos, jineteada y mesa larga.
