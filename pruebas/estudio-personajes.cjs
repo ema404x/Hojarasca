@@ -1,12 +1,15 @@
-// PROTOTIPO: el estudio de personajes. Empaqueta pruebas/estudio/entrada.js (como armar.mjs, pero
-// con otra entrada y sin el juego) y saca las tomas de cada variante en una escena chica, para
-// mirar de cerca sin cargar el valle. Las capturas de verdad son las de visor-personajes.cjs.
-// Uso: npx electron pruebas/estudio-personajes.cjs [variantes=base,A,B,C,D] [tomas=cuerpo,cara,grupo]
+// 3.7.0: el estudio de personajes. Empaqueta pruebas/estudio/entrada.js (como armar.mjs, pero con
+// otra entrada y sin el juego) y saca tomas de la gente en una escena chica, para mirar de cerca sin
+// cargar el valle. Las capturas de verdad son las del juego (visor-personajes.cjs). Perfil propio;
+// nunca un cartel de error en la pantalla.
+// Uso: npx electron pruebas/estudio-personajes.cjs quienes=poblador-panadera,aldea-nena tomas=cuerpo,cara
+//      [nombre=prueba] [invierno=1] [fiesta=1] [medir=1]
+// Deja <nombre>-<toma>.png en pruebas/salidas/personajes-370/estudio/.
 const { app, BrowserWindow, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const raiz = path.resolve(__dirname, '..');
-const salida = path.join(raiz, 'pruebas', 'salidas', 'proto-personajes', 'estudio');
+const salida = path.join(raiz, 'pruebas', 'salidas', 'personajes-370', 'estudio');
 const anotarError = (tipo, e) => {
   const texto = `[estudio-personajes] ${tipo}: ${e && e.stack ? e.stack : e}\n`;
   try { console.error(texto); fs.mkdirSync(salida, { recursive: true }); fs.appendFileSync(path.join(salida, 'errores.log'), texto); } catch { /* nada */ }
@@ -56,66 +59,23 @@ app.whenReady().then(async () => {
   w.webContents.on('console-message', (e) => { if (e.level === 'error' || e.level === 'warning') errores.push(String(e.message).slice(0, 400)); });
   await w.loadFile(html);
   const js = (c) => w.webContents.executeJavaScript(c);
-  for (let i = 0; i < 50 && !(await js('!!window.estudioListo').catch(() => false)); i++) await new Promise((r) => setTimeout(r, 200));
+  for (let i = 0; i < 80 && !(await js('!!window.estudioListo').catch(() => false)); i++) await new Promise((r) => setTimeout(r, 200));
   if (!(await js('!!window.estudioListo'))) { console.log('no cargó:\n' + errores.join('\n')); app.exit(1); return; }
-  for (const v of arg('variantes', 'base,A,B,C,D').split(',').filter(Boolean)) {
-    for (const t of arg('tomas', 'cuerpo,cara,grupo').split(',')) {
-      const d = await js(`window.estudio.toma('${v}', '${t}')`);
-      fs.writeFileSync(path.join(salida, `${v}-${t}.png`), Buffer.from(d.split(',')[1], 'base64'));
-    }
-    if (arg('medir', '0') === '2') console.log(JSON.stringify(await js(`window.estudio.partes('${v}')`), null, 1));
-    if (arg('medir', '0') !== '0' && v === 'P') console.log('atlas', JSON.stringify(await js('window.estudio.atlas()')));
-    if (arg('medir', '0') !== '0') console.log(v, JSON.stringify(await js(`window.estudio.medir('${v}')`)), 'armado ms', (await js(`window.estudio.tiempoArmado('${v}', 4)`)).toFixed(1));
+  const quienes = arg('quienes', 'poblador-panadera,poblador-herrero,aldea-nena,poblador-herbolaria');
+  const nombre = arg('nombre', 'estudio');
+  const opciones = JSON.stringify({ invierno: arg('invierno', '0') === '1', fiesta: arg('fiesta', '0') === '1' });
+  for (const t of arg('tomas', 'cuerpo,cara').split(',').filter(Boolean)) {
+    const d = await js(`window.estudio.toma(${JSON.stringify(quienes)}, '${t}', ${opciones})`);
+    fs.writeFileSync(path.join(salida, `${nombre}-${t}.png`), Buffer.from(d.split(',')[1], 'base64'));
+    console.log('toma', `${nombre}-${t}.png`);
   }
-  // comparar=base,B,D,S: una lámina con las caras lado a lado (una fila por persona, una columna
-  // por variante), de los <v>-cara.png que ya están → comparacion-<última>.png
-  const comparar = arg('comparar', '');
-  if (comparar) {
-    const vs = comparar.split(',').filter((v) => fs.existsSync(path.join(salida, `${v}-cara.png`)));
-    const TIT = { base: 'Hoy', A: 'A', B: 'B · ropa y pelo', C: 'C', D: 'D · lo más realista', S: 'S · tipo Sims, más simple' };
-    const datos = vs.map((v) => 'data:image/png;base64,' + fs.readFileSync(path.join(salida, `${v}-cara.png`)).toString('base64'));
-    const png = await js(`(async () => {
-      const vs = ${JSON.stringify(vs)}, tit = ${JSON.stringify(vs.map((v) => TIT[v] || v))}, src = ${JSON.stringify(datos)};
-      const imgs = await Promise.all(src.map((s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; })));
-      const k = 0.62, cw = Math.round(560 * k), ch = Math.round(640 * k), sep = 8, arriba = 54, izq = 150;
-      const cv = document.createElement('canvas'); cv.width = izq + vs.length * (cw + sep); cv.height = arriba + 3 * (ch + sep);
-      const x = cv.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, cv.width, cv.height);
-      x.fillStyle = '#efe6d6'; x.font = 'bold 26px Georgia, serif'; x.textAlign = 'center';
-      tit.forEach((t, j) => x.fillText(t, izq + j * (cw + sep) + cw / 2, 36));
-      x.textAlign = 'left'; x.font = 'bold 26px Georgia, serif';
-      ['Rosa', 'Anselmo', 'Lucía'].forEach((n, f) => {
-        x.fillText(n, 18, arriba + f * (ch + sep) + ch / 2 + 8);
-        imgs.forEach((im, j) => x.drawImage(im, f * 566, 0, 560, 640, izq + j * (cw + sep), arriba + f * (ch + sep), cw, ch));
-      });
-      return cv.toDataURL('image/png'); })()`);
-    const nombre = `comparacion-${vs[vs.length - 1]}.png`;
-    fs.writeFileSync(path.join(salida, nombre), Buffer.from(png.split(',')[1], 'base64'));
-    console.log('lámina', nombre);
+  if (arg('medir', '0') !== '0') {
+    console.log('atlas', JSON.stringify(await js('window.estudio.atlas()')));
+    console.log('personas', JSON.stringify(await js(`window.estudio.medir(${JSON.stringify(quienes)})`)));
+    console.log('armado', JSON.stringify(await js(`window.estudio.tiempoArmado(${JSON.stringify(quienes)}, 3)`)));
+    if (arg('medir', '0') === '2') for (const q of quienes.split(',')) console.log(q, await js(`window.estudio.partes(${JSON.stringify(q)})`));
   }
   if (errores.length) console.log('consola:\n' + [...new Set(errores)].slice(0, 15).join('\n'));
-  // dos=S,M: dos variantes lado a lado, las caras arriba y los cuerpos abajo → comparacion-<segunda>.png
-  const dos = arg('dos', '').split(',').filter(Boolean);
-  if (dos.length === 2) {
-    const leer = (n) => 'data:image/png;base64,' + fs.readFileSync(path.join(salida, n)).toString('base64');
-    const src = dos.flatMap((v) => [leer(`${v}-cara.png`), leer(`${v}-cuerpo.png`)]);
-    const TIT = { S: 'S · tipo Sims', M: 'M · a lo Sims Medieval', P: 'P · atlas pintado' };
-    const png = await js(`(async () => {
-      const src = ${JSON.stringify(src)}, tit = ${JSON.stringify(dos.map((v) => TIT[v] || v))};
-      const im = await Promise.all(src.map((s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; })));
-      const W = 850, sep = 10, arriba = 54, hc = Math.round(640 * W / Math.min(im[0].width, im[2].width)), hb = Math.round(780 * W / 1300);
-      const cv = document.createElement('canvas'); cv.width = 2 * W + sep; cv.height = arriba + hc + sep + hb;
-      const x = cv.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, cv.width, cv.height);
-      x.fillStyle = '#efe6d6'; x.font = 'bold 28px Georgia, serif'; x.textAlign = 'center';
-      tit.forEach((t, j) => {
-        x.fillText(t, j * (W + sep) + W / 2, 38);
-        const hj = Math.round(640 * W / im[j * 2].width);   // (cada tira a su escala, centrada en su alto)
-        x.drawImage(im[j * 2], 0, 0, im[j * 2].width, 640, j * (W + sep), arriba + (hc - hj) / 2, W, hj);
-        x.drawImage(im[j * 2 + 1], 150, 70, 1300, 780, j * (W + sep), arriba + hc + sep, W, hb);
-      });
-      return cv.toDataURL('image/png'); })()`);
-    fs.writeFileSync(path.join(salida, `comparacion-${dos[1]}.png`), Buffer.from(png.split(',')[1], 'base64'));
-    console.log('lámina', `comparacion-${dos[1]}.png`);
-  }
   console.log('listo', salida);
   app.exit(0);
 });

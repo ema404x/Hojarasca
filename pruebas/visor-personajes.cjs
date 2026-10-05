@@ -1,25 +1,25 @@
-// PROTOTIPO (rama proto-personajes, no va al juego): capturas y medición de las variantes de la
-// gente (gente-proto.js, `?personajes=A|B|C|D|S|M|P`). Para cada variante abre el juego real, pone la
-// aldea completa, para a Rosa (la panadera), a Anselmo (el herrero) y a Lucía en la plaza con la
-// luz de la tarde y saca:
+// 3.7.0: capturas y medición de la gente en el juego real (gente-cuerpo.js, el estilo P). Para cada
+// variante (`nueva`: la de la 3.7.0; `vieja`: la de la 3.6, con `?gente=vieja`, sólo en depuración)
+// abre el juego, pone la aldea completa, para a Rosa (la panadera), a Anselmo (el herrero) y a Lucía en
+// la plaza con la luz de la tarde y saca:
 //   · <v>-cuerpo.png: los tres de frente, cuerpo entero a 3 m (lente de 45°);
 //   · <v>-cara.png: la cara de cada uno a 1 m (lente de retrato de 30°), las tres juntas;
-//   · <v>-grupo.png: los tres charlando, como los ve el jugador (ojos a 1,65 m, 70°, a 3,5 m);
+//   · <v>-grupo.png: los tres charlando con Inés, como los ve el jugador (ojos a 1,65 m, 70°, a 3,5 m);
 // y mide: triángulos y dibujos por persona, y el costo por cuadro de la gente con 30 personas en la
 // plaza (cuadro con la gente menos cuadro sin la gente, en calidad media, sincronizado con la
-// placa). Al final arma las láminas comparativas (lamina-<toma>.png). Todo queda en
-// pruebas/salidas/proto-personajes/ (no va al repositorio). Perfil propio.
+// placa). Todo queda en pruebas/salidas/personajes-370/ (no va al repositorio). Perfil propio.
 //
-// Uso (después de `node armar.mjs`), con la ventana en el monitor externo si hay:
-//   $env:NODE_OPTIONS="-r ./herramientas/al-monitor.cjs"; npx electron pruebas/visor-personajes.cjs [variantes=base,A,B,C,D] [tomas=cuerpo,cara,grupo] [medir=0] [lamina=1]
+// Uso (después de `node armar.mjs`):
+//   npx electron pruebas/visor-personajes.cjs [variantes=vieja,nueva] [tomas=cuerpo,cara,grupo] [medir=1] [calidad=media]
 const { app, BrowserWindow, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const raiz = path.resolve(__dirname, '..');
-const salida = path.join(raiz, 'pruebas', 'salidas', 'proto-personajes');
+const salida = path.join(raiz, 'pruebas', 'salidas', 'personajes-370');
 // nunca un cartel en la pantalla del usuario: el error va a la consola y a un archivo, y se cierra
+const errores = [];
 const anotarError = (tipo, e) => {
-  const texto = `[visor-personajes] ${tipo}: ${e && e.stack ? e.stack : e}\n`;
+  const texto = `[visor-personajes] ${tipo}: ${e && e.stack ? e.stack : e}\n${errores.slice(-8).join('\n')}\n`;
   try { console.error(texto); fs.mkdirSync(salida, { recursive: true }); fs.appendFileSync(path.join(salida, 'errores.log'), texto); } catch { /* nada */ }
   try { app.exit(1); } catch { process.exit(1); }
 };
@@ -33,13 +33,13 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 const arg = (nombre, defecto) => { const a = process.argv.find((x) => x.startsWith(`${nombre}=`)); return a ? a.slice(nombre.length + 1) : defecto; };
 
-const VARIANTES = arg('variantes', 'base,A,B,C,D').split(',');
+const VARIANTES = arg('variantes', 'vieja,nueva').split(',');
 const TOMAS = arg('tomas', 'cuerpo,cara,grupo').split(',').filter(Boolean);
 const MEDIR = arg('medir', '1') !== '0';
-const LAMINA = arg('lamina', '1') !== '0';
+const LAMINA = arg('lamina', '0') !== '0';
 const CALIDAD = arg('calidad', 'media');
 const HORA = Number(arg('hora', '17.2'));
-const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista', S: 'S · tipo Sims, más simple', M: 'M · a lo Sims Medieval', P: 'P · atlas pintado' };
+const TITULOS = { vieja: 'La de la 3.6', nueva: 'La de la 3.7.0' };
 
 // Lo que corre en la página. Los tres: Rosa (panadera), Anselmo (herrero) y Lucía (nena).
 const AYUDA = String.raw`(() => {
@@ -88,19 +88,17 @@ const AYUDA = String.raw`(() => {
 app.whenReady().then(async () => {
   fs.mkdirSync(salida, { recursive: true });
   const informe = [];
-  const w = new BrowserWindow({ show: true, width: 1600, height: 900, useContentSize: true, webPreferences: { backgroundThrottling: false } });
+  const w = new BrowserWindow({ show: arg('ver', '0') === '1', width: 1600, height: 900, useContentSize: true, webPreferences: { backgroundThrottling: false } });   // (oculta: con la pantalla apagada, una ventana a la vista no dibuja)
   const js = (c) => w.webContents.executeJavaScript(c);
-  const errores = [];
   w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|Autofill|favicon/.test(m)) errores.push(m.slice(0, 300)); });
   const url = path.join(raiz, 'index.html');
   for (const v of VARIANTES) {
-    const search = v === 'base' ? '?debug=1' : `?debug=1&personajes=${v}`;
+    const search = v === 'vieja' ? '?debug=1&gente=vieja' : '?debug=1';
     await w.loadFile(url, { search });
     await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'${CALIDAD}', clima:'despejado', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, estacion:'verano'})); 1`);
     await w.loadFile(url, { search });
     for (let i = 0; i < 300; i++) { await esperar(1000); if (await js('!!window.__hojarasca && !!window.__hojarasca.gente').catch(() => false)) break; }
-    const variante = await js(`window.__protoPersonajes || 'base'`).catch(() => '?');
-    console.log('variante', v, '→', variante);
+    console.log('variante', v);
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(3000);
     await js(`(() => { const s = document.createElement('style'); s.textContent = 'body > *:not(canvas):not(script) { visibility: hidden !important; } canvas { visibility: visible !important; }'; document.head.appendChild(s); return 1; })()`);
@@ -113,7 +111,9 @@ app.whenReady().then(async () => {
     const programasAntes = await js(`(() => { const H = window.__hojarasca, M = H.__aldeaMundo(), js = H.jugador.estado, p = M.aMundo(-2, 33);
       js.pos.set(p.x, H.T.altura(p.x, p.z), p.z); js.vel.set(0, 0, 0); window.__proto.hora(${HORA}); return H.renderer.info.programs.length })()`);
     await js(`(async () => { const M = window.__hojarasca.__aldeaMundo(); M.actualizar(4, window.__hojarasca.camara.position); await M.listo(); M.montarCola(); return 1 })()`);
-    for (let i = 0; i < 40; i++) { await esperar(500); const n = await js(`(() => { window.__proto.hora(${HORA}); return window.__proto.tres.filter((k) => window.__proto.npc(k)).length + ':' + window.__proto.deAldea().length })()`); if (n.startsWith('3:') && Number(n.split(':')[1]) >= 20) break; }
+    let cuantos = '';
+    for (let i = 0; i < 80; i++) { await esperar(500); cuantos = await js(`(() => { window.__proto.hora(${HORA}); return window.__proto.tres.filter((k) => window.__proto.npc(k)).length + ':' + window.__proto.deAldea().length + ':' + window.__hojarasca.progreso.dia })()`); if (cuantos.startsWith('3:') && Number(cuantos.split(':')[1]) >= 20) break; }
+    console.log('gente de la aldea', cuantos);
     // la cámara libre (F4, sólo en depuración): la cámara no sigue al cuerpo
     await js(`(() => { document.dispatchEvent(new KeyboardEvent('keydown', { code: 'F4', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'F4', bubbles: true })); return 1 })()`);
     await esperar(500);
@@ -151,7 +151,7 @@ app.whenReady().then(async () => {
         rosa.__gesto = 'sonrisa'; anselmo.__gesto = 'risa'; lucia.__gesto = 'sonrisa';
         anselmo.__quietud = 'cintura'; lucia.__quietud = 'atras';   // (M: poses de quietud)
         // P: Inés Ancalao, la herbolaria (pobladora nueva del prototipo), al lado de Rosa
-        if (window.__protoPersonajes === 'P') {
+        if ('${v}' === 'nueva') {
           if (!P.ines) P.ines = H.gente.agregarPoblador({ clave: 'poblador-herbolaria', colores: {}, pos: { x: c.x, z: c.z }, nombre: 'Inés Ancalao', oficio: 'herbolaria', saludo: '', despedida: '', camino: [] });
           const pi = { x: c.x + lx * 1.75 + fx * 0.35, z: c.z + lz * 1.75 + fz * 0.35 };
           P.parar(P.ines, pi.x, pi.z, hacia(pi, pa) - 0.3); P.ines.__gesto = 'sonrisa'; P.ines.dormido = false;
@@ -304,7 +304,7 @@ app.whenReady().then(async () => {
     const { nativeImage } = require('electron');
     for (const toma of ['cuerpo', 'cara', 'grupo']) {
       const filas = [], etiquetas = [];
-      for (const v of ['base', 'A', 'B', 'C', 'D', 'S']) {
+      for (const v of ['vieja', 'nueva']) {
         const f = path.join(salida, `${v}-${toma}.png`);
         if (!fs.existsSync(f)) continue;
         let img = nativeImage.createFromPath(f);

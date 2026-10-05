@@ -452,7 +452,7 @@ export const VECINOS_ALDEA = {
     ],
   },
   nena: {
-    nombre: 'Lucía', oficio: 'chica de la aldea', mano: null, casa: 'casa-familia', trabajo: 'casa-familia', chico: true, talla: 0.58,
+    nombre: 'Lucía', oficio: 'chica de la aldea', mano: null, casa: 'casa-familia', trabajo: 'casa-familia', chico: true, talla: 0.76,
     colores: { ropa: '#a0523e', abrigo: '#7a3a2e', gorro: 'gorro', pelo: '#3a2a22', bufanda: '#e0c890' },
     saludo: '¡Hola! Yo ya sé leer.', despedida: '¡Chau, chau!',
     charla: [

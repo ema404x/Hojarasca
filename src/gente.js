@@ -5,8 +5,9 @@ import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
 import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar, fundirNormales, puntasBufanda } from './formas.js';
 import { LAGO } from './config.js';
-// PROTOTIPO (rama proto-personajes): las variantes de la gente, con ?personajes=A|B|C|D|S|M|P
-import { VARIANTE_PERSONAJES, protoPersona } from './gente-proto.js';
+// 3.7.0: la gente al estilo P (ver gente-cuerpo.js), su ropa (gente-ropa.js) y el atlas pintado
+import { crearPersona, soltarPersona } from './gente-cuerpo.js';
+import { pintarAtlasDespues, completarAtlas, atlasListo } from './gente-atlas.js';
 
 // ---------------------------------------------------------------- historias
 export const HISTORIAS = [
@@ -198,6 +199,17 @@ const ROPA = {
   'poblador-apicultor': { piel: '#d0a27c', bolsillos: true, botas: 'altas', pantalon: '#6a6048' },
   'poblador-guardaparque': { piel: '#c0916a', bolsillos: true, trenza: true, botas: 'trekking', pantalon: '#4c5236' },
   'poblador-musico': { piel: '#b5865e', chaleco: true, panuelo: '#c94a3a', pantalon: '#2a2420' },
+  // 3.7.0: las nueve pobladoras nuevas (su ropa de verdad está en gente-ropa.js; esto es para el
+  // estilo de antes, el de la calidad "muy baja")
+  'poblador-veterinaria': { piel: '#b07d55', bolsillos: true, botas: 'altas', pantalon: '#5a4e3a', mujer: true },
+  'poblador-fotografa': { piel: '#c9996c', chaleco: true, panuelo: '#8a3c4a', botas: 'trekking', pantalon: '#4a4236', mujer: true },
+  'poblador-andinista': { piel: '#c49a74', botas: 'trekking', abierta: true, pantalon: '#4a4a3e', mujer: true },
+  'poblador-herbolaria': { piel: '#b98a62', pollera: true, trenza: true, delantal: '#c8b88e' },
+  'poblador-pintora': { piel: '#e2b898', campera: 'larga', abierta: true, panuelo: '#b8963e', pantalon: '#3a3a44', mujer: true },
+  'poblador-ceramista': { piel: '#dcb090', pollera: true, delantal: '#b8a88a', rodete: true },
+  'poblador-botera': { piel: '#cfa07a', botas: 'goma', delantal: '#3b4a5e', pantalon: '#3b4a5e', mujer: true },
+  'poblador-astronoma': { piel: '#d8b090', botas: 'trekking', pantalon: '#3a3a44', mujer: true },
+  'poblador-modista': { piel: '#d6ad8a', pollera: true, rodete: true, chaleco: true },
   // 3.6: los vecinos de siempre de la aldea (los chicos, más bajitos: ver `talla` en aldea.js)
   'aldea-jefe': { piel: '#c0906a', botones: '#c9a64a', campera: 'larga', pantalon: '#2a3240' },
   'aldea-nelida': { piel: '#d0a27e', pollera: true, delantal: '#d9c7a8', rodete: true, abierta: true },
@@ -336,9 +348,18 @@ function juntarGeometrias(destino, fuente, matriz) {
   b.dispose();
   return geo;
 }
-function mallaPersona(colores, clave = '', conMate = false) {
+// 3.7.0: la gente se arma al estilo P (gente-cuerpo.js) en todas las calidades. Medido con 30
+// personas en la plaza (pruebas/visor-personajes.cjs): +0,6 ms sobre la gente de antes en calidad media
+// y +0,5 ms en "muy baja", así que no hizo falta dejar la de antes como plan B. `mallaVieja` (la de la
+// 3.6) queda sólo para comparar en depuración (`?debug=1&gente=vieja`, ver ESTILO_VIEJO en crearGente).
+// `opciones`: { talla, invierno } (los chicos, la ropa de abrigo).
+let ESTILO_VIEJO = false;
+function mallaPersona(colores, clave = '', conMate = false, opciones = {}) {
   const R = ROPA[clave] || {};
-  if (VARIANTE_PERSONAJES) return protoPersona(VARIANTE_PERSONAJES, colores, clave, conMate, R);   // PROTOTIPO: sin el ajuste, lo de siempre
+  if (!ESTILO_VIEJO) return crearPersona(colores || {}, clave, conMate, R, opciones);
+  return mallaVieja(colores || {}, clave, conMate, R);
+}
+function mallaVieja(colores, clave, conMate, R) {
   const g = new THREE.Group();
   const piel = colores.piel || R.piel || '#c49a70';
   const ropa = colores.ropa, abrigo = colores.abrigo;
@@ -712,13 +733,16 @@ export function saludoDe(npc, mundo) {
   return v[momento] || npc.saludo;
 }
 
-export const __ROPA = ROPA;   // PROTOTIPO: el estudio de personajes
-export const __mallaPersona = (colores, clave, conMate) => mallaPersona(colores, clave, conMate);   // PROTOTIPO: el estudio de personajes
+export const __ROPA = ROPA;   // 3.7.0: para el estudio de personajes (pruebas/estudio-personajes.cjs)
+export const __mallaPersona = (colores, clave, conMate, opciones) => mallaPersona(colores, clave, conMate, opciones);   // (ídem)
 
-export function crearGente(T, escena, col, sonido) {
+// 3.7.0: `opciones`: { estiloViejo (la gente de la 3.6, para comparar en depuración), invierno (la ropa de abrigo) }
+export function crearGente(T, escena, col, sonido, opciones = {}) {
   const r = rng(31415);
   const gente = [];
   const L = T.lugares;
+  ESTILO_VIEJO = !!opciones.estiloViejo;
+  let invierno = !!opciones.invierno;
 
   function ubicarJunto(base, rot, dx, dz) {
     const x = base.x + dx * Math.cos(rot) + dz * Math.sin(rot);
@@ -727,7 +751,7 @@ export function crearGente(T, escena, col, sonido) {
   }
 
   function agregar(clave, colores, pos, mirandoA, extra = {}) {
-    const m = mallaPersona(colores, clave, !!extra.conMate);
+    const m = mallaPersona(colores, clave, !!extra.conMate, { talla: extra.talla, invierno });
     const y = alturaDePie(T, col, pos.x, pos.z, pos.y || 0);
     m.g.position.set(pos.x, y, pos.z);
     const rumbo = Math.atan2(mirandoA.x - pos.x, mirandoA.z - pos.z);
@@ -738,6 +762,7 @@ export function crearGente(T, escena, col, sonido) {
       ...m, clave, ...p, pos: m.g.position, rumbo, rumboObjetivo: rumbo, vel: 0, paso: 0,
       fase: r() * 6, historias: HISTORIAS.filter((h) => h.quien === clave),
       casa: { x: pos.x, z: pos.z }, etapa: 0, espera: 1 + r() * 3, ...extra,
+      __coloresBase: colores, __invierno: invierno,   // 3.7.0: para cambiarle la ropa con la estación
     };
     gente.push(npc);
     return npc;
@@ -855,11 +880,12 @@ export function crearGente(T, escena, col, sonido) {
   // Elsa viaja en el tren: su posición la fija el propio tren en cada cuadro
   let guarda = null;
   {
-    const m = mallaPersona({ ropa: '#3f4a63', abrigo: '#2b3346', gorro: 'gorro', pelo: '#2e2622' }, 'guarda');
+    const colores = { ropa: '#3f4a63', abrigo: '#2b3346', gorro: 'gorro', pelo: '#2e2622' };
+    const m = mallaPersona(colores, 'guarda', false, { invierno });
     m.g.visible = false;
     escena.add(m.g);
     const p = PERSONAJES.guarda;
-    guarda = { ...m, clave: 'guarda', ...p, pos: m.g.position, rumbo: 0, fase: 0, historias: HISTORIAS.filter((h) => h.quien === 'guarda'), aBordo: true };
+    guarda = { ...m, clave: 'guarda', ...p, pos: m.g.position, rumbo: 0, fase: 0, historias: HISTORIAS.filter((h) => h.quien === 'guarda'), aBordo: true, __coloresBase: colores, __invierno: invierno };
     gente.push(guarda);
   }
 
@@ -884,6 +910,8 @@ export function crearGente(T, escena, col, sonido) {
   }
 
   function actualizar(dt, js, camara, hablando, presupuestoNivel = 0) {
+    if (!atlasListo()) completarAtlas();   // 3.7.0: si se empezó a jugar antes de que la portada lo terminara
+    if (pendientesRopa) cambiarRopa(dt, js);
     for (const g of gente) {
       // 3.6: la gente de la aldea con vos lejos (a más de 150 m): ni se dibuja ni se mueve.
       // aldea-gente.js la va dejando donde le toca estar a cada hora.
@@ -1015,7 +1043,7 @@ export function crearGente(T, escena, col, sonido) {
           _qMate.copy(g.brazos[1].quaternion).invert();
           g.muneca.quaternion.copy(_qMate.multiply(_qInclina.setFromEuler(_eMate.set(inclinaMate, 0, 0))));
         }
-        if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // PROTOTIPO (gente-proto.js): el cuerpo continuo y la mirada
+        if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // 3.7.0 (gente-cuerpo.js): codos, pies, la mirada, los gestos y la quietud
       }
     }
   }
@@ -1035,17 +1063,87 @@ export function crearGente(T, escena, col, sonido) {
     const npc = agregar(def.clave, def.colores || {}, def.pos, def.mira || { x: def.pos.x, z: def.pos.z + 1 }, {
       nombre: def.nombre, oficio: def.oficio, saludo: def.saludo, despedida: def.despedida,
       historias: [], ruta: def.ruta || [{ x: def.pos.x, z: def.pos.z, quieto: 99999 }], velocidad: def.velocidad || 0.8, poblador: true,
-      conMate: def.mano === 'mate',
+      conMate: def.mano === 'mate', talla: Number.isFinite(def.talla) ? def.talla : undefined,
     });
     if (def.mano === 'mate') darMate(npc);
     else if (def.mano === 'cana') darCaña(npc);
     else if (def.mano === 'planilla') darPlanilla(npc);
     if (Array.isArray(def.camino)) { npc.camino = def.camino; npc.ruta = null; npc.miraFinal = npc.rumbo; }
     if (Number.isFinite(def.talla) && def.talla > 0.3 && def.talla < 1) npc.g.scale.setScalar(def.talla);
-    npc.conPoncho = !!def.colores?.poncho;
-    npc.__colores = def.colores;   // PROTOTIPO: para copiar la figura en las mediciones
+    npc.conPoncho = npc.conPoncho !== undefined ? !!npc.conPoncho : !!def.colores?.poncho;   // (3.7.0: el de la figura: en invierno, todos de poncho)
+    npc.__colores = def.colores;   // (para copiar la figura en las mediciones: pruebas/visor-personajes.cjs)
     return npc;
   }
 
-  return { gente, cerca, actualizar, guarda, ubicarGuarda, agregarPoblador };
+  // 3.7.0: alguien que se va del todo (una visita del tren, por ejemplo): sale de la lista y de la
+  // escena, y su tramo de huesos y sus geometrías quedan libres
+  function quitar(npc) {
+    const i = gente.indexOf(npc);
+    if (i >= 0) gente.splice(i, 1);
+    if (npc?.g?.parent) npc.g.parent.remove(npc.g);
+    if (npc?.g) soltarPersona(npc);
+  }
+
+  // 3.7.0: la ropa por estación. En invierno todos salen con poncho, gorro de lana y bufanda (cada uno
+  // con los suyos: gente-ropa.js); al cambiar la estación se viste de a uno, sin que nadie lo vea (lejos
+  // o fuera de la vista), uno cada medio segundo: así no hay tirones.
+  let pendientesRopa = 0, relojRopa = 0;
+  function abrigar(si) {
+    si = !!si;
+    if (si === invierno || ESTILO_VIEJO) return;
+    invierno = si;
+    pendientesRopa = gente.filter((g) => g.__invierno !== invierno).length;
+  }
+  function cambiarRopa(dt, js) {
+    relojRopa -= dt;
+    if (relojRopa > 0) return;
+    let elegido = null;
+    for (const g of gente) {
+      if (g.__invierno === invierno) continue;
+      const d = js ? Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z) : Infinity;
+      if (g.dormido || !g.g.visible || d > 40 || (g.aBordo && !g.enViaje)) { elegido = g; break; }
+    }
+    pendientesRopa = gente.filter((g) => g.__invierno !== invierno).length;
+    if (!elegido) { relojRopa = 1; return; }
+    vestir(elegido, invierno);
+    pendientesRopa--;
+    relojRopa = 0.5;
+  }
+  // arma la figura de nuevo con la ropa de la estación y la pone en el lugar de la vieja (el mismo
+  // grupo, con su lugar, su giro y su talla; lo que tenía en la mano pasa a la mano nueva)
+  function vestir(npc, inv) {
+    const m = mallaPersona(npc.__coloresBase || npc.__colores || {}, npc.clave, !!npc.muneca, { talla: npc.talla, invierno: inv });
+    const g = npc.g, enMano = npc.mano ? npc.mano.children.slice() : [];
+    for (const h of enMano) m.mano.add(h);
+    soltarPersona(npc);
+    for (const o of g.children.slice()) g.remove(o);
+    for (const o of m.g.children.slice()) g.add(o);
+    const mateVisto = npc.mateVisible ? npc.mateVisible.visible : true;
+    Object.assign(npc, { cabeza: m.cabeza, torso: m.torso, patas: m.patas, brazos: m.brazos, mano: m.mano, muneca: m.muneca, mateVisible: m.mateVisible,
+      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, soltar: m.soltar, __est: m.__est, __mira: null, __invierno: inv });
+    if (npc.mate) { npc.mate = m.mateVisible; if (npc.mate) npc.mate.visible = mateVisto; }
+    g.updateMatrixWorld(true);
+  }
+  // 3.7.0: el atlas se pinta en la portada (después de compilar), de a un paso
+  function trasCompilar() { if (!ESTILO_VIEJO) setTimeout(pintarAtlasDespues, 250); }
+  // 3.7.0: que ningún programa se compile al cruzarse con alguien: con la escena ya compilada, un
+  // cuadro con alguien adelante de la cámara (con su cara de cerca y su sombra) compila la sombra de
+  // la piel por huesos, que `compile` no hace. `dibujar` es el dibujo de siempre del juego.
+  function precalentar(camara, dibujar) {
+    const n = guarda || gente[0];
+    if (!n || ESTILO_VIEJO || !camara) return false;
+    const antes = { visible: n.g.visible, x: n.pos.x, y: n.pos.y, z: n.pos.z, ry: n.g.rotation.y };
+    const dir = new THREE.Vector3(); camara.getWorldDirection(dir);
+    n.g.position.set(camara.position.x + dir.x * 3, camara.position.y - 1.4, camara.position.z + dir.z * 3);
+    n.g.visible = true;
+    if (n.cara) n.cara.visible = true;
+    n.g.updateMatrixWorld(true);
+    try { dibujar(); } finally {
+      n.g.visible = antes.visible; n.g.position.set(antes.x, antes.y, antes.z); n.g.rotation.y = antes.ry;
+      if (n.cara) n.cara.visible = false;
+    }
+    return true;
+  }
+
+  return { gente, cerca, actualizar, guarda, ubicarGuarda, agregarPoblador, quitar, abrigar, vestir, trasCompilar, precalentar };
 }
