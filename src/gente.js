@@ -5,6 +5,8 @@ import { rng, lerp } from './ruido.js';
 import { lam, palo, compactar } from './vida.js';
 import { bola, tubo, torno, huso, deformar, pintar, colorear, franjas, matiz, mezcla, color, entintar, fundirNormales, puntasBufanda } from './formas.js';
 import { LAGO } from './config.js';
+// PROTOTIPO (rama proto-personajes): las variantes de la gente, con ?personajes=A|B|C|D
+import { VARIANTE_PERSONAJES, protoPersona } from './gente-proto.js';
 
 // ---------------------------------------------------------------- historias
 export const HISTORIAS = [
@@ -336,6 +338,7 @@ function juntarGeometrias(destino, fuente, matriz) {
 }
 function mallaPersona(colores, clave = '', conMate = false) {
   const R = ROPA[clave] || {};
+  if (VARIANTE_PERSONAJES) return protoPersona(VARIANTE_PERSONAJES, colores, clave, conMate, R);   // PROTOTIPO: sin el ajuste, lo de siempre
   const g = new THREE.Group();
   const piel = colores.piel || R.piel || '#c49a70';
   const ropa = colores.ropa, abrigo = colores.abrigo;
@@ -709,6 +712,9 @@ export function saludoDe(npc, mundo) {
   return v[momento] || npc.saludo;
 }
 
+export const __ROPA = ROPA;   // PROTOTIPO: el estudio de personajes
+export const __mallaPersona = (colores, clave, conMate) => mallaPersona(colores, clave, conMate);   // PROTOTIPO: el estudio de personajes
+
 export function crearGente(T, escena, col, sonido) {
   const r = rng(31415);
   const gente = [];
@@ -1009,6 +1015,7 @@ export function crearGente(T, escena, col, sonido) {
           _qMate.copy(g.brazos[1].quaternion).invert();
           g.muneca.quaternion.copy(_qMate.multiply(_qInclina.setFromEuler(_eMate.set(inclinaMate, 0, 0))));
         }
+        if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // PROTOTIPO (gente-proto.js): el cuerpo continuo y la mirada
       }
     }
   }
@@ -1036,6 +1043,7 @@ export function crearGente(T, escena, col, sonido) {
     if (Array.isArray(def.camino)) { npc.camino = def.camino; npc.ruta = null; npc.miraFinal = npc.rumbo; }
     if (Number.isFinite(def.talla) && def.talla > 0.3 && def.talla < 1) npc.g.scale.setScalar(def.talla);
     npc.conPoncho = !!def.colores?.poncho;
+    npc.__colores = def.colores;   // PROTOTIPO: para copiar la figura en las mediciones
     return npc;
   }
 
