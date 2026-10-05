@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { __mallaPersona, __ROPA } from '../../src/gente.js';
 import { protoPersona, __piezasProto } from '../../src/gente-proto.js';
+import { atlasPersonajes } from '../../src/gente-proto-atlas.js';
 import { POBLADORES_ALDEA, VECINOS_ALDEA } from '../../src/aldea.js';
 
 const lienzo = document.createElement('canvas');
@@ -30,14 +31,18 @@ const QUIENES = [
   { clave: 'poblador-herrero', def: POBLADORES_ALDEA.herrero },
   { clave: 'aldea-nena', def: VECINOS_ALDEA.nena },
 ];
+// P: Inés Ancalao, la herbolaria (pobladora nueva, sólo en el prototipo: su ropa va en gente-proto.js)
+const INES = { clave: 'poblador-herbolaria', def: { colores: {} } };
 let actuales = [];
 function armar(V, opciones = {}) {
   for (const a of actuales) escena.remove(a.g);
-  actuales = QUIENES.map(({ clave, def }, i) => {
+  const lista = V === 'P' ? [...QUIENES, INES] : QUIENES;
+  const xs = lista.length === 4 ? [-1.35, -0.45, 0.45, 1.3] : [-0.9, 0, 0.8];
+  actuales = lista.map(({ clave, def }, i) => {
     const conMate = def.mano === 'mate';
     const m = V === 'base' ? __mallaPersona(def.colores, clave, conMate) : protoPersona(V, def.colores, clave, conMate, __ROPA[clave] || {});
     if (def.talla) m.g.scale.setScalar(def.talla);
-    m.g.position.set([-0.9, 0, 0.8][i], 0, 0);
+    m.g.position.set(xs[i], 0, 0);
     m.g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     escena.add(m.g);
     // una pose de reposo como la del juego (los brazos apenas abiertos)
@@ -52,8 +57,18 @@ function armar(V, opciones = {}) {
     a.g.position.set(-0.55, 0, 0.2); a.g.rotation.y = 1.1;
     l.g.position.set(0.85, 0, 0.75); l.g.rotation.y = -1.2;
     a.brazos[1].rotation.x = -0.7; a.brazos[0].rotation.x = -0.25;
+    if (actuales[3]) { actuales[3].g.position.set(1.45, 0, 0.15); actuales[3].g.rotation.y = -1.35; }
   }
 }
+// una toma recortada del lienzo (x, y, ancho, alto) a un lienzo nuevo
+function recorte(x, y, w, h) { renderer.render(escena, camara); const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(lienzo, x, y, w, h, 0, 0, w, h); return cv; }
+function lado(cvs, sep = 6) {
+  const out = document.createElement('canvas'); out.width = cvs.reduce((s, c) => s + c.width + sep, -sep); out.height = Math.max(...cvs.map((c) => c.height));
+  const x = out.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, out.width, out.height);
+  let px = 0; for (const c of cvs) { x.drawImage(c, px, 0); px += c.width + sep; }
+  return out;
+}
+function soloVer(m) { for (const a of actuales) a.g.visible = !m || a === m; }
 function posar(dt = 1 / 60) {
   escena.updateMatrixWorld(true);
   for (const m of actuales) { m.cabeza.rotation.y = 0; m.cabeza.rotation.x = 0; if (m.alPosar) m.alPosar(m, dt, camara, false, false); }
@@ -68,6 +83,32 @@ window.estudio = {
     armar(V, { grupo: toma === 'grupo' });
     for (const m of actuales) m.__quietud = null;   // (M: parados, sin pose de quietud, salvo que la toma la pida)
     if (toma === 'grupo') { actuales[1].__quietud = 'cintura'; actuales[1].__gesto = 'risa'; actuales[0].__gesto = 'sonrisa'; actuales[2].__quietud = 'atras'; }
+    // P: Inés de cuerpo entero (de frente y de costado), su cara de cerca y el detalle de cerca
+    const ines = actuales[3];
+    if (ines && (toma === 'ines-cuerpo' || toma === 'ines-cara' || toma === 'detalle')) {
+      soloVer(ines); ines.g.position.set(0, 0, 0); ines.__gesto = 'sonrisa';
+      const vista = (ang, dist, alto, mira, fov) => { mirar([Math.sin(ang) * dist, alto, Math.cos(ang) * dist], [0, mira, 0], fov); for (let i = 0; i < 45; i++) posar(); };
+      let out;
+      if (toma === 'ines-cuerpo') {
+        vista(0.12, 3.1, 1.0, 0.88, 40); const a = recorte(470, 0, 660, 900);
+        vista(1.25, 3.1, 1.0, 0.88, 40); const b = recorte(470, 0, 660, 900);
+        out = lado([a, b]);
+      } else if (toma === 'ines-cara') {
+        vista(0.35, 0.62, 1.58, 1.555, 30); out = recorte(380, 0, 840, 900);
+      } else {
+        // el pecho (trapelacucha y faja), el puño y el ruedo (bordados), la cabeza de costado (trarilonko y aro)
+        vista(0.2, 0.75, 1.3, 1.17, 34); const a = recorte(500, 50, 600, 800);
+        ines.__quietud = 'nada';
+        vista(0.35, 0.95, 0.4, 0.2, 34); const b = recorte(500, 50, 600, 800);
+        mirar([-0.55, 1.0, 0.55], [-0.17, 0.86, 0.05], 30); for (let i = 0; i < 20; i++) posar(); const b2 = recorte(500, 50, 600, 800);
+        vista(0.95, 0.5, 1.6, 1.56, 32); const c = recorte(500, 50, 600, 800);
+        soloVer(actuales[2]); const l = actuales[2]; l.g.position.set(0, 0, 0);
+        vista(-0.3, 1.0, 0.55, 0.42, 34); const d = recorte(500, 50, 600, 800);
+        out = lado([a, b2, b, c, d]);
+      }
+      soloVer(null);
+      return out.toDataURL('image/png');
+    }
     // M: las poses de quietud, tres por persona (una fila por persona)
     if (toma === 'poses') {
       const filas = [];
@@ -130,7 +171,7 @@ window.estudio = {
       cv.getContext('2d').drawImage(lienzo, (1600 - 560) / 2, (900 - 640) / 2, 560, 640, 0, 0, 560, 640);
       tiras.push(cv);
     }
-    const out = document.createElement('canvas'); out.width = 560 * 3 + 12; out.height = 640;
+    const out = document.createElement('canvas'); out.width = 566 * tiras.length - 6; out.height = 640;
     const x = out.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, out.width, out.height);
     tiras.forEach((t, i) => x.drawImage(t, i * 566, 0));
     return out.toDataURL('image/png');
@@ -139,6 +180,7 @@ window.estudio = {
     armar(V);
     return actuales.map((m) => { let tri = 0, dib = 0; m.g.traverse((o) => { if (o.isMesh) { dib++; tri += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } }); return { tri: Math.round(tri), dib }; });
   },
+  atlas() { const t = atlasPersonajes(); return { ms: +t.userData.ms.toFixed(1), mb: +(t.userData.bytes / 1048576).toFixed(1) }; },
   partes(V) { return QUIENES.map(({ clave, def }) => [clave, __piezasProto(V, def.colores, clave, def.mano === 'mate', __ROPA[clave] || {}).map(([k, e]) => `${k} ${Math.round(e.tri)}/${e.ver} (${e.n})`).join(' | ')]); },
   tiempoArmado(V, n = 10) {
     const t0 = performance.now();

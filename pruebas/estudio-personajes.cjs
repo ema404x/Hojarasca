@@ -64,6 +64,7 @@ app.whenReady().then(async () => {
       fs.writeFileSync(path.join(salida, `${v}-${t}.png`), Buffer.from(d.split(',')[1], 'base64'));
     }
     if (arg('medir', '0') === '2') console.log(JSON.stringify(await js(`window.estudio.partes('${v}')`), null, 1));
+    if (arg('medir', '0') !== '0' && v === 'P') console.log('atlas', JSON.stringify(await js('window.estudio.atlas()')));
     if (arg('medir', '0') !== '0') console.log(v, JSON.stringify(await js(`window.estudio.medir('${v}')`)), 'armado ms', (await js(`window.estudio.tiempoArmado('${v}', 4)`)).toFixed(1));
   }
   // comparar=base,B,D,S: una lámina con las caras lado a lado (una fila por persona, una columna
@@ -97,18 +98,19 @@ app.whenReady().then(async () => {
   if (dos.length === 2) {
     const leer = (n) => 'data:image/png;base64,' + fs.readFileSync(path.join(salida, n)).toString('base64');
     const src = dos.flatMap((v) => [leer(`${v}-cara.png`), leer(`${v}-cuerpo.png`)]);
-    const TIT = { S: 'S · tipo Sims', M: 'M · a lo Sims Medieval' };
+    const TIT = { S: 'S · tipo Sims', M: 'M · a lo Sims Medieval', P: 'P · atlas pintado' };
     const png = await js(`(async () => {
       const src = ${JSON.stringify(src)}, tit = ${JSON.stringify(dos.map((v) => TIT[v] || v))};
       const im = await Promise.all(src.map((s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; })));
-      const W = 850, sep = 10, arriba = 54, hc = Math.round(640 * W / 1692), hb = Math.round(780 * W / 1100);
+      const W = 850, sep = 10, arriba = 54, hc = Math.round(640 * W / Math.min(im[0].width, im[2].width)), hb = Math.round(780 * W / 1300);
       const cv = document.createElement('canvas'); cv.width = 2 * W + sep; cv.height = arriba + hc + sep + hb;
       const x = cv.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, cv.width, cv.height);
       x.fillStyle = '#efe6d6'; x.font = 'bold 28px Georgia, serif'; x.textAlign = 'center';
       tit.forEach((t, j) => {
         x.fillText(t, j * (W + sep) + W / 2, 38);
-        x.drawImage(im[j * 2], 0, 0, 1692, 640, j * (W + sep), arriba, W, hc);
-        x.drawImage(im[j * 2 + 1], 250, 70, 1100, 780, j * (W + sep), arriba + hc + sep, W, hb);
+        const hj = Math.round(640 * W / im[j * 2].width);   // (cada tira a su escala, centrada en su alto)
+        x.drawImage(im[j * 2], 0, 0, im[j * 2].width, 640, j * (W + sep), arriba + (hc - hj) / 2, W, hj);
+        x.drawImage(im[j * 2 + 1], 150, 70, 1300, 780, j * (W + sep), arriba + hc + sep, W, hb);
       });
       return cv.toDataURL('image/png'); })()`);
     fs.writeFileSync(path.join(salida, `comparacion-${dos[1]}.png`), Buffer.from(png.split(',')[1], 'base64'));

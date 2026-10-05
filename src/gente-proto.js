@@ -25,12 +25,17 @@
 //       delantal, cinturón con bolsita, botas de cuero), paleta de tierra, caras con más carácter
 //       (pómulos, mandíbula, arrugas de la risa, pecas, canas), hebras pintadas en el pelo y poses de
 //       quietud (manos en la cintura, brazos cruzados, rascarse la barba, acomodarse el gorro).
+//   P · M con un atlas pintado por código al cargar (gente-proto-atlas.js) y mapeado con UV: telas,
+//       guardas patagónicas en los bordes (telar mapuche, trarüwe, bordados de amancay y lupino),
+//       la cara pintada, labios con brillo, cejas con pelito, plata (trarilonko, trapelacucha, aros) y
+//       una pobladora nueva de fiesta: Inés Ancalao, la herbolaria.
 import * as THREE from 'three';
 import { bola, tubo, torno, huso, deformar, coser, colorear, matiz, mezcla, color, puntasBufanda } from './formas.js';
 import { compactar, MAT_FAUNA } from './vida.js';
+import { atlasPersonajes } from './gente-proto-atlas.js';
 
 const pedido = typeof location !== 'undefined' && location.search ? new URLSearchParams(location.search).get('personajes') : null;
-export const VARIANTE_PERSONAJES = /^[ABCDSM]$/.test(pedido || '') ? pedido : null;
+export const VARIANTE_PERSONAJES = /^[ABCDSMP]$/.test(pedido || '') ? pedido : null;
 if (VARIANTE_PERSONAJES && typeof window !== 'undefined') window.__protoPersonajes = VARIANTE_PERSONAJES;
 
 const OPC = {
@@ -40,6 +45,7 @@ const OPC = {
   D: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1 },
   S: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1, sims: 1 },
   M: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1, sims: 1, medieval: 1 },
+  P: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1, sims: 1, medieval: 1, atlas: 1 },
 };
 
 const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -224,7 +230,7 @@ function pintarCara(c, p, n, F, colPiel, op) {
 // vez y se copia; cada uno la pinta con lo suyo)
 const MOLDES = new Map();
 const molde = (clave, hacer) => { let g = MOLDES.get(clave); if (!g) { g = hacer(); MOLDES.set(clave, g); } return g.clone(); };
-const claveCara = (F) => `${F.mujer ? 'm' : 'v'}${F.chico ? 'c' : ''}${F.sims ? 's' + (F.robusto ? 'r' : '') : ''}${F.medieval ? 'M' : ''}`;
+const claveCara = (F) => `${F.mujer ? 'm' : 'v'}${F.chico ? 'c' : ''}${F.sims ? 's' + (F.robusto ? 'r' : '') : ''}${F.medieval ? 'M' : ''}${F.atlas ? 'P' : ''}`;
 function craneo(F, colPiel, op) {
   if (F.sims) return craneoS(F, colPiel);
   const g = molde('craneo' + claveCara(F), () => {
@@ -358,7 +364,7 @@ function formaRostroS(F, P, barba, ojos) {
   const hU = (u) => { const q = Math.max(0, 1 - u * u); return (F.mujer && !F.chico ? 0.0048 : F.chico ? 0.0042 : 0.0039) * (1 - 0.22 * P.s) * Math.sqrt(q) * (1 + 0.22 * Math.exp(-(((Math.abs(u) - 0.3) / 0.16) ** 2)) - 0.14 * Math.exp(-((u / 0.09) ** 2))); };
   const hL = (u) => { const q = Math.max(0, 1 - u * u); return (F.mujer && !F.chico ? 0.0064 : F.chico ? 0.0056 : 0.005) * (1 - 0.18 * P.s) * Math.pow(q, 0.55); };
   const lev = 0.0003 + (barba ? 0.0042 : 0);
-  const bulto = (w, u) => Math.sin(Math.PI * (0.18 + 0.82 * w)) * Math.sqrt(Math.max(0, 1 - u * u));
+  const bulto = (w, u) => (F.atlas ? 1.45 : 1) * Math.sin(Math.PI * (0.18 + 0.82 * w)) * Math.sqrt(Math.max(0, 1 - u * u));
   const sobre = (x, y, alza) => { const q = sobreCara(x, y, F); return [x, y + F.cy, q.z + alza]; };
   // una grilla: f(u, v) -> [x, y, z]; con `voltear`, las caras al revés (que miren adelante)
   const tira = (parte, nu, nv, u0, u1, f, voltear = false) => {
@@ -456,6 +462,17 @@ function rostroS(F, colPiel, colCeja, colBarba, ojos) {
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(normales[0], 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.setAttribute('zona', new THREE.BufferAttribute(zona, 2));
+  if (F.atlas) {
+    // P: los labios y las cejas leen el atlas con su (u, v) de la grilla
+    const at = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const parte = partes[i * 3], u = partes[i * 3 + 1], v = partes[i * 3 + 2];
+      if (parte === PARTES_S.labioSup) at.set([TELA.labio, u, 0.5 - 0.5 * v], i * 3);
+      else if (parte === PARTES_S.labioInf) at.set([TELA.labio, u, 1 - 0.5 * v], i * 3);
+      else if (parte === PARTES_S.ceja) at.set([TELA.ceja, u, 1 - v], i * 3);
+    }
+    geo.setAttribute('aTela', new THREE.BufferAttribute(at, 3));
+  }
   geo.setIndex(vs[0].idx);
   geo.morphAttributes.position = [1, 2].map((k) => new THREE.Float32BufferAttribute(vs[k].pos, 3));
   geo.morphAttributes.normal = [1, 2].map((k) => new THREE.Float32BufferAttribute(normales[k], 3));
@@ -497,7 +514,8 @@ function barbaS(F, colBarba, colPiel = null) {
 // que asoman bajo el gorro, el rodete o las trenzas
 function peloS(F, colPelo, R, gorro) {
   const piezas = peloS0(F, colPelo, R, gorro);
-  if (F.medieval) for (const p of piezas) if (p.material.color.getHexString() !== 'c8443a' && p.material.color.getHexString() !== 'a8342c') p.userData.tela = TELA.pelo;
+  if (F.atlas && !gorro && (R.rodete || R.trenza)) { piezas[0].userData.raya = true; for (const p of piezas.slice(1, 3)) if (p.geometry.type === 'TubeGeometry') p.userData.raya = true; }   // (P: las hebras salen de la raya)
+  if (F.medieval) for (const p of piezas) if (p.userData.tela === undefined && p.material.color.getHexString() !== 'c8443a' && p.material.color.getHexString() !== 'a8342c') p.userData.tela = TELA.pelo;
   return piezas;
 }
 function peloS0(F, colPelo, R, gorro) {
@@ -520,6 +538,7 @@ function peloS0(F, colPelo, R, gorro) {
     const a = Math.atan2(p.x, p.z);
     c.multiplyScalar(0.94 + 0.12 * Math.max(0, Math.sin(a * 7 + p.y * 22)));
     tinta(c, brillo, 0.22 * gauss(p.y - 0.035, 0, 0.02, 1) * sv(-0.2, 0.5, n.y + n.z * 0.3));
+    if (!gorro && !corto) tinta(c, matiz(colPelo, 0.5), 0.7 * Math.exp(-((p.x / 0.0028) ** 2)) * sv(0.02, 0.06, p.y) * sv(-0.06, 0.0, p.z));   // la raya al medio
     c.multiplyScalar(0.84 + 0.22 * sv(-0.6, 0.8, n.y));
   }, 36, 30, `peloS${corto ? 'c' : 'l'}`));
   // las mujeres y los chicos: un mechón grande a cada lado, de la sien a detrás de la oreja
@@ -538,19 +557,27 @@ function peloS0(F, colPelo, R, gorro) {
   }
   if (R.trenza) {
     // los chicos, dos trenzas por delante de los hombros; las grandes, una por la espalda
-    for (const l of F.chico ? [-1, 1] : [0]) {
+    const dos = F.chico || R.dosTrenzas, larga = !F.chico && R.dosTrenzas;
+    const zT = (i, l) => (larga ? Math.min(i, 7) * 0.019 + Math.max(0, i - 7) * 0.003 : l ? i * 0.0035 : -i * 0.006);
+    const xT = (i, l) => l * (larga ? Math.min(i, 5) * 0.006 : Math.min(i, 3) * 0.003);
+    for (const l of dos ? [-1, 1] : [0]) {
       const x0 = l * (F.rx - 0.006), z0 = l ? -0.026 : -F.rz - 0.004, y0 = F.cy - 0.04;
-      const n = 7, paso = 0.0185;
+      const n = larga ? 13 : 7, paso = larga ? 0.021 : 0.0185;
       for (let i = 0; i < n; i++) {
-        const y = y0 - i * paso, r = 1 - i * 0.04, afuera = l * Math.min(i, 3) * 0.003;
-        piezas.push(bola(matiz(colPelo, i % 2 ? 0.92 : 1.08), [0.0128 * r, 0.0185 * r, 0.0115 * r], [x0 + afuera + (i % 2 ? 0.0042 : -0.0042), y, z0 + (l ? i * 0.0035 : -i * 0.006)], [0, 0, i % 2 ? 0.55 : -0.55], [8, 6]));
+        const y = y0 - i * paso, r = 1 - i * (larga ? 0.022 : 0.04);
+        piezas.push(bola(matiz(colPelo, i % 2 ? 0.92 : 1.08), [0.0128 * r, 0.0185 * r, 0.0115 * r], [x0 + xT(i, l) + (i % 2 ? 0.0042 : -0.0042), y, z0 + zT(i, l)], [0, 0, i % 2 ? 0.55 : -0.55], [8, 6]));
       }
-      const yf = y0 - n * paso + 0.006, xf = x0 + l * 0.009, zf = z0 + (l ? n * 0.0035 : -n * 0.006);
-      if (F.chico) {
+      const yf = y0 - n * paso + 0.006, xf = x0 + xT(n, l) + (larga ? 0 : l * 0.009), zf = z0 + zT(n, l);
+      if (larga) {
+        // la lana roja que ata la punta
+        const lana = torno('#a8302a', [[0.0085, -0.014], [0.0095, -0.007], [0.0095, 0.007], [0.0085, 0.014]], [xf, yf + 0.008, zf], null, null, 10);
+        lana.userData.tela = TELA.punto; piezas.push(lana);
+      }
+      if (F.chico && !larga) {
         // un moño
         for (const s of [-1, 1]) piezas.push(bola('#c8443a', [0.013, 0.008, 0.005], [xf + s * 0.011, yf, zf + 0.003], [0, l * 0.5, s * 0.35], [8, 6]));
         piezas.push(bola('#a8342c', [0.005, 0.005, 0.005], [xf, yf, zf + 0.004], null, [7, 5]));
-      } else piezas.push(bola(matiz(colPelo, 0.7), [0.01, 0.006, 0.01], [xf, yf, zf]));
+      } else if (!larga) piezas.push(bola(matiz(colPelo, 0.7), [0.01, 0.006, 0.01], [xf, yf, zf]));
       const pun = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.011, 0.026, 8, 1), color(colPelo)), (v) => { v.x *= 1 + 0.35 * Math.sin(v.y * 90); });
       pun.position.set(xf, yf - 0.014, zf); pun.rotation.set(Math.PI, 0, 0);
       piezas.push(pun);
@@ -844,13 +871,18 @@ function armarCabezaS(cabeza, F, colores, R, op, colPiel) {
     const oreja = bola(colPiel, [0.0098, 0.023, 0.0145], [l * (F.rx * 0.94), F.cy - 0.014, -0.012], [0, l * 0.3, 0], [10, 7]);
     deformar(oreja, (v) => { if (v.x * l > 0) v.x -= l * 0.5 * Math.exp(-((v.y / 0.6) ** 2 + (v.z / 0.55) ** 2)); });
     cabeza.add(piel(pintarPieza(oreja, (c, p) => { if (p.x * l > -0.2 && Math.abs(p.y) < 0.62 && Math.abs(p.z) < 0.58) tinta(c, mezcla(colPiel, '#8a4038', 0.4), 0.38); tinta(c, mezcla(colPiel, '#d8605a', 0.5), 0.22); })));
+    if (F.atlas) {
+      const ox = l * (F.rx * 0.94 + 0.006), oy = F.cy - 0.014, oz = -0.012;
+      const borde = [[0.019, 0.006], [0.023, -0.005], [0.016, -0.015], [0.002, -0.018], [-0.012, -0.013], [-0.019, -0.004]].map(([dy, dz]) => [ox, oy + dy, oz + dz]);
+      cabeza.add(piel(huso(mezcla(colPiel, '#e08a78', 0.2), borde, [0.0025, 0.0032, 0.0034, 0.0032, 0.003, 0.0036], 8, 5)));
+    }
   }
   cabeza.userData.ojos = ojos; cabeza.userData.parpados = parp;
   const colCeja = mezcla(colPelo, '#120c08', 0.25);
   const colBarba = colores.barba ? mezcla(colores.barba, '#5e3f28', 0.35) : null;
   const rostro = rostroS(F, colPiel, colCeja, colBarba, centros);
   rostro.visible = false;   // (se muestra de cerca: ver alPosar)
-  if (F.medieval) rostro.material = materialTela();
+  if (F.medieval) rostro.material = F.atlas ? materialAtlas() : materialTela();
   cabeza.add(rostro); cabeza.userData.rostro = rostro;
   // De lejos, los rasgos quietos (neutral) van fundidos en el cuerpo, en un hueso propio; de cerca
   // ese hueso se achica a nada (adentro de la cabeza) y se dibuja el rostro con gestos. Así lejos
@@ -924,6 +956,28 @@ function sombreros(cabeza, F, colores, op) {
       cabeza.add(bola(mezcla(ropa, '#e8d8b0', 0.45), [0.019, 0.017, 0.019], [0, y0 + 0.11, -0.02], null, [8, 6]));
     }
     for (let i = antes; i < cabeza.children.length; i++) { const o = cabeza.children[i]; if (o.isMesh) o.userData.tela = t; }
+  }
+  if (F.atlas) {
+    const plata = '#8e9298', kx = F.rx + 0.006, kz = F.rz + 0.006, pl = [];
+    if (colores.trarilonko) {
+      // el trarilonko: la cinta de plata en la frente, con sus colgantes
+      const yb = 0.042, fb = Math.sqrt(1 - (yb / F.ry) ** 2) * 1.02;   // (la cabeza se angosta arriba: la cinta la abraza)
+      pl.push(torno(plata, [[1.0, -0.004], [1.025, -0.002], [1.025, 0.002], [1.0, 0.004]], [0, F.cy + yb, -0.006], [-0.12, 0, 0], [(F.rx + 0.01) * fb, 1, (F.rz + 0.01) * fb], 26));
+      for (let i = -2; i <= 2; i++) {
+        const x = i * 0.013, yy = yb - 0.0065 - Math.abs(i) * 0.0008, q = superficie(x, yy, F);
+        pl.push(bola(plata, [0.0028, 0.0036, 0.0009], [x, F.cy + yy, q.z + 0.0018], [-0.15, 0, 0], [7, 5]));
+      }
+    }
+    for (const l of colores.aros ? [-1, 1] : []) {
+      const x = l * (F.rx * 0.97), y = F.cy - 0.038, z = -0.01;
+      if (colores.aros === 'chawai') {
+        // el chawai: el aro y la placa en trapecio que cuelga
+        pl.push(new THREE.Mesh(new THREE.TorusGeometry(0.005, 0.0011, 5, 10), color(plata))); pl[pl.length - 1].position.set(x, y, z); pl[pl.length - 1].rotation.y = Math.PI / 2;
+        pl.push(deformar(bola(plata, [0.0025, 0.014, 0.009], [x, y - 0.019, z], null, [6, 6]), (v) => { v.z *= 1 + 0.6 * Math.max(0, -v.y); }));   // (en la esfera unidad)
+        for (const dz of [-0.008, 0, 0.008]) pl.push(bola(plata, [0.0015, 0.0035, 0.002], [x, y - 0.036, z + dz], null, [5, 4]));
+      } else pl.push(bola(plata, [0.002, 0.0045, 0.0045], [x, y - 0.002, z], null, [6, 5]));
+    }
+    for (const m of pl) { m.userData.tela = TELA.plata; cabeza.add(m); }
   }
 }
 function sombreros0(cabeza, F, colores, op, abrigo, ropa) {
@@ -1128,9 +1182,12 @@ function figura(colores, clave, conMate, R, op) {
     torso.add(capaHombro);
   }
   if (R.chaleco) {
-    torso.add(bordeTorno(med, conTela(pintarPieza(capa(abrigo, [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.196, 0.43], [0.188, 0.478]].map(([r, y]) => [r * (mujer ? 0.92 : 1), y]), 16, 0.4, Math.PI * 2 - 0.8), (c, p) => {
+    const perfilChaleco = R.chamal
+      ? [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.192, 0.43], [0.172, 0.478], [0.13, 0.5]]
+      : [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.196, 0.43], [0.188, 0.478]];
+    torso.add(rol(bordeTorno(med, conTela(pintarPieza(capa(abrigo, perfilChaleco.map(([r, y]) => [r * (mujer ? 0.92 : 1), y]), 16, R.chamal ? 0 : 0.4, R.chamal ? Math.PI * 2 : Math.PI * 2 - 0.8), (c, p) => {
       if (op.ropa) { if (!med && Math.abs(Math.atan2(p.x, p.z)) < 0.5) c.multiplyScalar(0.82); arrugasTorso(c, p); }
-    }), med ? TELA[R.telaChaleco || 'lana'] : 0), 7, 16, true, true));
+    }), med ? TELA[R.telaChaleco || 'lana'] : 0), perfilChaleco.length, 16, !R.chamal, true), 'chaleco', perfilChaleco.length, 16));
     if (R.bombacha) torso.add(capa(R.faja || '#7a2e26', [[0.155, -0.05], [0.161, -0.038], [0.162, 0.028], [0.157, 0.042]], 18));
     else torso.add(capa('#4a3626', [[0.16, -0.035], [0.16, 0.02]], 16));
     if (op.ropa && !(med && R.delantal)) for (const y of [0.1, 0.2, 0.3]) torso.add(bola('#2a2018', [0.008, 0.008, 0.005], [0.064, y, 0.118 * zPecho(0.064, y) + 0.004]));
@@ -1147,31 +1204,33 @@ function figura(colores, clave, conMate, R, op) {
       if (op.ropa) { torso.add(bola('#b8a070', [0.022, 0.016, 0.006], [0, -0.022, 0.108])); torso.add(bola('#3a2a1e', [0.014, 0.009, 0.004], [0, -0.022, 0.112])); }
     }
   }
-  if (op.ropa && !colores.poncho && !(colores.bufanda || R.panuelo) && (sims || !colores.barba)) {
+  if (op.ropa && !colores.poncho && !(colores.bufanda || R.panuelo) && (sims || !colores.barba) && !R.fiesta) {
     // el cuello de la camisa: dos solapas en punta
     const tela = R.chaleco || R.abierta ? ropa : matiz(abrigo, 0.95);
     torso.add(capa(tela, [[0.066, 0.528], [0.07, 0.548], [0.066, 0.572], [0.06, 0.578]], 16, 0.35, Math.PI * 2 - 0.7, 0.98));
     for (const l of [-1, 1]) torso.add(bola(tela, med ? [0.015, 0.021, 0.003] : [0.02, 0.028, 0.0035], [l * 0.027, 0.535, 0.066], [0.55, l * 0.3, l * 0.7]));
   }
   if (R.pollera) {
-    torso.add(bordeTorno(med, pintarPieza(capa(R.colPollera || mezcla(ropa, '#2a2420', 0.35), [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]], 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
+    const perfilPollera = [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
+    if (R.chamal) perfilPollera.splice(0, 1, [0.262, -0.71], [0.25, -0.6], [0.238, -0.5]);   // el chamal, hasta los tobillos
+    torso.add(rol(bordeTorno(med, pintarPieza(capa(R.colPollera || mezcla(ropa, '#2a2420', 0.35), perfilPollera, 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
       if (!op.ropa) return;
       surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.1, -0.3, p.y), 0.3);
-      if (p.y < -0.48) c.multiplyScalar(0.84);                       // el ruedo
+      if (p.y < perfilPollera[0][1] + 0.04) c.multiplyScalar(0.84);  // el ruedo
       if (p.y > 0.17) c.multiplyScalar(0.9);                         // la pretina
-    }), 8, 36, false, true));
+    }), perfilPollera.length, 36, false, true), 'pollera', perfilPollera.length, 36));
   }
   if (R.delantal) {
     const perfil = R.pollera
       ? [[0.245, -0.4], [0.226, -0.28], [0.198, -0.14], [0.178, -0.04], [0.166, 0.04], [0.158, 0.12], [0.168, 0.24], [0.188, 0.36]]
       : [[0.186, -0.4], [0.178, -0.2], [0.166, -0.04], [0.162, 0.04], [0.158, 0.12], [0.168, 0.24], [0.19, 0.36]];
-    torso.add(bordeTorno(med, conTela(pintarPieza(capa(R.delantal, perfil.map(([r, y]) => [r * (mujer ? 1 : 1.03), y]), 14, -0.68, 1.36, R.pollera ? 0.79 : 0.72), (c, p) => {
+    torso.add(rol(bordeTorno(med, conTela(pintarPieza(capa(R.delantal, perfil.map(([r, y]) => [r * (mujer ? 1 : 1.03), y]), 14, -0.68, 1.36, R.pollera ? 0.79 : 0.72), (c, p) => {
       if (!op.ropa) return;
       surcos(c, Math.sin(p.x * 70 + 0.5) * sv(0.05, -0.3, p.y), 0.14);
       if (p.y < -0.37) c.multiplyScalar(0.88);
       if (p.y > -0.2 && p.y < -0.08 && Math.abs(p.x - 0.06) < 0.05) c.multiplyScalar(0.92);    // el bolsillo
       if (Math.abs(p.y + 0.08) < 0.004 && Math.abs(p.x - 0.06) < 0.05) c.multiplyScalar(0.75);
-    }), med ? TELA[R.telaDelantal || 'lienzo'] : 0), perfil.length, 14, true, true));
+    }), med ? TELA[R.telaDelantal || 'lienzo'] : 0), perfil.length, 14, true, true), 'delantal', perfil.length, 14));
     if (op.ropa) {
       // la tira a la cintura y el moño atrás
       torso.add(capa(matiz(R.delantal, 0.9), [[0.137, 0.17], [0.138, 0.19]], 18));
@@ -1209,7 +1268,19 @@ function figura(colores, clave, conMate, R, op) {
     torso.add(deformar(flecos, caida));
     torso.add(torno(matiz(abrigo, 0.8), [[0.08, 0.578], [0.077, 0.605], [0.066, 0.612]], null, null, null, 14));
   }
-  if (med && !colores.poncho) {
+  if (R.fiesta) {
+    const perfilFaja = [[0.152, 0.1], [0.157, 0.112], [0.158, 0.2], [0.153, 0.212]];
+    torso.add(rol(capa('#9a2c24', perfilFaja, 24), 'faja', perfilFaja.length, 24));
+    // la trapelacucha: la placa de arriba, dos cadenas, la cruz y los colgantes
+    const plata = '#8e9298', pz = (y) => 0.142 + 0.008 * Math.exp(-(((y - 0.36) / 0.08) ** 2));
+    const pl = [bola(plata, [0.032, 0.016, 0.005], [0, 0.462, pz(0.462)], null, [10, 6])];
+    for (const s of [-1, 1]) pl.push(huso(plata, [[s * 0.022, 0.455, pz(0.455)], [s * 0.019, 0.41, pz(0.41) + 0.002], [s * 0.014, 0.365, pz(0.365) + 0.003]], [0.0022, 0.0022, 0.0022], 6, 4));
+    pl.push(bola(plata, [0.024, 0.024, 0.005], [0, 0.34, pz(0.34) + 0.004], [0, 0, Math.PI / 4], [8, 5]));
+    pl.push(bola(plata, [0.009, 0.009, 0.006], [0, 0.34, pz(0.34) + 0.008], null, [6, 5]));
+    for (const dx of [-0.016, 0, 0.016]) pl.push(bola(plata, [0.0065, 0.0085, 0.0015], [dx, 0.303 - Math.abs(dx) * 0.4, pz(0.3) + 0.004], null, [7, 5]));
+    for (const m of pl) { m.userData.tela = TELA.plata; torso.add(m); }
+  }
+  if (med && !colores.poncho && !R.fiesta) {
     const yc = R.pollera ? 0.19 : 0.005, rc = R.pollera ? 0.152 : R.chaleco ? 0.166 : 0.158, cuero = '#4e3420';
     torso.add(conTela(capa(cuero, [[rc - 0.002, yc - 0.013], [rc + 0.002, yc - 0.008], [rc + 0.002, yc + 0.008], [rc - 0.002, yc + 0.013]], 20), TELA.cuero));
     const zf = rc * 0.75 * zPecho(0, yc) + 0.004;
@@ -1306,7 +1377,7 @@ function figura(colores, clave, conMate, R, op) {
       const rad = colores.poncho ? [0.038, 0.037, 0.034, 0.028] : [0.032, 0.046 * kb, 0.045 * kb, 0.041 * kb, 0.035 * kb, 0.034 * kb, 0.034 * kb, 0.027];
       const remango = med && R.arremangado && !colores.poncho;
       if (remango) { arremangar(piv, pts, rad, 4, manga, colPiel, 14, 10); const Wm = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z]; codo.add(piel(bola(colPiel, [0.023 * kb, 0.03, 0.02 * kb], [Wm[0], Wm[1] + 0.006, Wm[2]], null, [8, 6]))); }
-      else piv.add(pintarPieza(huso(manga, pts, rad, colores.poncho ? 10 : sims ? 14 : 22, sims ? 10 : 12), arrugaManga));
+      else piv.add(rol(pintarPieza(huso(manga, pts, rad, colores.poncho ? 10 : sims ? 14 : 22, sims ? 10 : 12), arrugaManga), 'manga', colores.poncho ? 10 : sims ? 14 : 22, sims ? 10 : 12));
       // el puño y la mano, en el codo (así en C y D el antebrazo dobla)
       const Wc = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z];
       if (!remango) {
@@ -1329,10 +1400,12 @@ function figura(colores, clave, conMate, R, op) {
   const cabeza = new THREE.Group(); cabeza.position.set(0, 1.46, 0);
   const F = sims ? medidasS(mujer, chico, robusto) : medidasCara(mujer, chico);
   if (med) medidasM(F, R);
+  if (op.atlas) F.atlas = true;
   armarCabeza(cabeza, F, colores, R, op, colPiel);
   if (chico) cabeza.scale.setScalar(1.42);   // los chicos: la cabeza grande para el cuerpo
   if (sims) cabeza.scale.setScalar(chico ? 1.24 : 1.08);   // S: la cabeza apenas grande (Lucía: la de una chica de 9)
   if (med) { cabeza.scale.setScalar(chico ? 1.2 : 1.05); telasPorColor(g, colores, R, bota, pantalon); }
+  if (op.atlas) guardasP(g, clave);
   g.add(cabeza);
   return { g, cabeza, torso, patas, brazos, muneca, mujer, chico, escala: mujer || chico ? 1 : 1.07 };
 }
@@ -1576,7 +1649,7 @@ function materialTela() {
   MAT_TELA.customProgramCacheKey = () => 'proto-tela-M1';
   return MAT_TELA;
 }
-const TELA = { lana: 1, lienzo: 2, cuero: 3, punto: 4, fieltro: 5, pelo: 6, harina: 7, barba: 8, pecas: 9, arrugas: 10, cara: 11 };
+const TELA = { lana: 1, lienzo: 2, cuero: 3, punto: 4, fieltro: 5, pelo: 6, harina: 7, barba: 8, pecas: 9, arrugas: 10, cara: 11, plata: 12, labio: 13, ceja: 14, fiesta: 15 };
 const conTela = (m, t) => { m.userData.tela = t; return m; };
 // La paleta de tierra y la ropa de M: ocres, verde oliva, marrones y rojos apagados. Los tres de la
 // prueba tienen la suya; al resto se le corre el color hacia la tierra.
@@ -1610,6 +1683,189 @@ function paletaM(clave, colores, R) {
   return { colores: c, R: { ...R, pantalon: aTierra(R.pantalon), delantal: aTierra(R.delantal), arremangado: !!(R.chaleco || R.delantal) } };
 }
 
+// ---------------------------------------------------------------- P: el atlas pintado (gente-proto-atlas.js)
+// Como M, pero el detalle sale de un atlas pintado por código al cargar: las telas (en la posición de
+// reposo, como M), las guardas a lo largo de los bordes (`aGuarda` = tipo, distancia al borde, largo
+// a lo largo del borde, ancho de la guarda; en metros), la cara pintada (rubor, sombra de párpados,
+// pecas), los labios (líneas y brillo), las cejas con pelito, las hebras del pelo y la plata (con un
+// brillo suave). Tipos nuevos: 12 plata, 13 labio, 14 ceja, 15 paño de fiesta. De lejos (más de ~6 mm
+// por píxel) no se lee el detalle de las telas, sólo las guardas (con su mipmap).
+const GLSL_P = /* glsl */`
+  uniform sampler2D uAtlas; varying vec4 vGuarda; float brilloT = 0.0;
+  // un cuadro del atlas, repetido (fract) con su derivada propia (sin costura en el mip)
+  vec4 cuadroA(vec2 o, vec2 s, vec2 uv) {
+    vec2 base = (o + 4.0) / 2048.0, sz = (s - 8.0) / 2048.0;
+    vec2 dx = dFdx(uv) * sz, dy = dFdy(uv) * sz;
+    float m = max(length(dx), length(dy)) * 2048.0;
+    if (m > 6.0) { dx *= 6.0 / m; dy *= 6.0 / m; }
+    return textureGrad(uAtlas, base + fract(uv) * sz, dx, dy);
+  }
+  // un cuadro sin repetir (la cara, los labios, las cejas)
+  vec4 unoA(vec2 o, vec2 s, vec2 uv) {
+    vec2 base = (o + 2.0) / 2048.0, sz = (s - 4.0) / 2048.0;
+    return textureGrad(uAtlas, base + clamp(uv, 0.0, 1.0) * sz, dFdx(uv) * sz, dFdy(uv) * sz);
+  }
+`;
+const GLSL_P_COLOR = /* glsl */`
+  {
+    float tipo = floor(vTela.x + 0.5);
+    float borde = clamp((vTela.x - tipo) / 0.4, 0.0, 1.0);
+    float px = max(length(dFdx(vPosT)), length(dFdy(vPosT)));
+    bool cerca = px < 0.006;
+    vec3 alb = diffuseColor.rgb;
+    if (tipo > 0.5 || vGuarda.x > 0.5) {
+      vec3 an = abs(normalize(vNorT));
+      vec2 uvp = an.y > 0.75 ? vPosT.xz : (an.x > an.z ? vPosT.zy : vPosT.xy);
+      bool pelo = (tipo > 5.5 && tipo < 6.5) || (tipo > 7.5 && tipo < 8.5);
+      bool cara = tipo > 8.5 && tipo < 11.5, plata = tipo > 11.5 && tipo < 12.5;
+      bool labio = tipo > 12.5 && tipo < 13.5, ceja = tipo > 13.5 && tipo < 14.5;
+      bool tela = !(pelo || cara || plata || labio || ceja);
+      float det = 1.0;
+      float pin = nT(vec2(uvp.x * 5.0 + 1.7 * nT(uvp * 1.3), uvp.y * 2.2)) * 0.65 + nT(uvp * 13.0 + 7.3) * 0.35;
+      if (tela) {
+        alb *= mix(vec3(0.88, 0.9, 0.96), vec3(1.07, 1.03, 0.94), pin);
+        float k = tipo < 0.5 ? 1.0 : tipo < 1.5 ? 0.0 : (tipo < 2.5 || abs(tipo - 7.0) < 0.5) ? 1.0 : tipo < 3.5 ? 2.0 : tipo < 4.5 ? 3.0 : tipo < 5.5 ? 4.0 : 7.0;
+        float esc = k < 0.5 ? 0.045 : k < 1.5 ? 0.03 : k < 2.5 ? 0.14 : k < 3.5 ? 0.045 : k < 4.5 ? 0.09 : 0.025;
+        float con = abs(k - 2.0) < 0.5 ? 0.7 : 1.4;   // (el cuero, más parejo)
+        if (cerca && tipo > 0.5) det = 1.0 - 0.5 * con + con * cuadroA(vec2(k * 256.0, 0.0), vec2(256.0), uvp / esc).r;
+        if (abs(tipo - 7.0) < 0.5) {   // la harina
+          float h = smoothstep(0.42, 0.7, nT(uvp * 6.0 + 2.0)) * (0.5 + 0.5 * nT(uvp * 40.0)) * smoothstep(0.55, 0.9, vPosT.y);
+          alb = mix(alb, vec3(0.95, 0.93, 0.88), h * 0.9);
+        }
+        if (cerca && tipo > 0.5) {
+          float pesp = step(0.45, fract((uvp.x + uvp.y) * 230.0));
+          det *= 1.0 - 0.35 * (1.0 - smoothstep(0.012, 0.03, abs(borde - 0.1))) * pesp * (1.0 - smoothstep(0.3, 0.8, fwT(uvp * 230.0)));
+        }
+      } else if (pelo) {
+        det = cerca ? 0.62 + 0.75 * cuadroA(vec2(1280.0, 0.0), vec2(256.0), vec2(vTela.y / 0.012, vTela.z / 0.05)).r : 0.97;
+        if (tipo > 7.5 && cerca) {
+          float cana = smoothstep(0.76, 0.88, nT(vec2(vTela.y * 900.0, vTela.z * 70.0))) * (0.35 + 0.65 * smoothstep(0.4, 0.75, nT(vTela.yz * 24.0)));
+          alb = mix(alb, vec3(0.3, 0.28, 0.26), cana * 0.5);
+        }
+      } else if (cara) {
+        vec2 fc = vTela.yz, uc = vec2((fc.x + 0.085) / 0.17, (0.085 - fc.y) / 0.2);
+        vec4 m = unoA(vec2(0.0, 1024.0), vec2(512.0), uc);
+        alb = mix(alb, alb * vec3(1.12, 0.72, 0.7), m.r * 0.5);
+        alb *= mix(vec3(1.0), vec3(0.8, 0.64, 0.66), m.g * 0.6);
+        if (tipo < 9.5) alb = mix(alb, alb * vec3(0.68, 0.5, 0.38), m.b * 0.8);
+        alb *= 0.97 + 0.06 * nT(fc * 70.0);
+      } else if (plata) {
+        float g = cerca ? cuadroA(vec2(1536.0, 0.0), vec2(256.0), uvp / 0.04).r : 0.58;
+        alb = vec3(0.5, 0.52, 0.56) * (0.45 + g);
+        brilloT = 0.55;
+      } else if (labio) {
+        vec4 t = unoA(vec2(512.0, 1152.0), vec2(512.0, 256.0), vec2(vTela.y * 0.5 + 0.5, vTela.z));
+        det = 0.45 + 1.1 * t.r; brilloT = t.g * 0.6;
+      } else if (ceja) {
+        vec4 t = unoA(vec2(512.0, 1024.0), vec2(512.0, 128.0), vTela.yz);
+        det = 0.6 + 1.25 * (t.r - 0.3);
+      }
+      // la guarda: tejida (tapa la tela) o bordada (encima, donde hay hilo)
+      if (vGuarda.x > 0.5 && vGuarda.y > -0.001 && vGuarda.y < vGuarda.w) {
+        float g = floor(vGuarda.x + 0.5);
+        vec2 o = vec2(mod(g - 1.0, 2.0) * 1024.0, 256.0 + floor((g - 1.0) / 2.0) * 128.0);
+        vec4 t = cuadroA(o, vec2(1024.0, 128.0), vec2(vGuarda.z / (vGuarda.w * 8.0), vGuarda.y / vGuarda.w));
+        vec3 cg = pow(t.rgb, vec3(2.2)) * (0.9 + 0.2 * pin);
+        if (abs(g - 7.0) < 0.5) alb = mix(alb, alb * 0.35, t.a);
+        else alb = mix(alb, cg, t.a);
+      }
+      if (tela) {
+        float suc = 1.0 - smoothstep(0.05, 0.5 + 0.3 * nT(uvp * 3.0), vPosT.y);
+        alb = mix(alb, alb * vec3(0.6, 0.52, 0.42), suc * 0.6);
+      }
+      diffuseColor.rgb = alb * det;
+    }
+  }
+`;
+// la plata y los labios: un brillo suave (Lambert no tiene; se suma uno chico de la luz del sol)
+const GLSL_P_BRILLO = /* glsl */`
+  #if NUM_DIR_LIGHTS > 0
+  if (brilloT > 0.0) {
+    vec3 hv = normalize(directionalLights[0].direction + normalize(vViewPosition));
+    float sp = pow(max(dot(normal, hv), 0.0), 36.0);
+    float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
+    reflectedLight.directDiffuse += directionalLights[0].color * (sp * 0.9 + fr * 0.12) * brilloT;
+  }
+  #endif
+`;
+let MAT_ATLAS = null;
+function materialAtlas() {
+  if (MAT_ATLAS) return MAT_ATLAS;
+  MAT_ATLAS = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const tex = atlasPersonajes();
+  MAT_ATLAS.onBeforeCompile = (sh) => {
+    materialPiel().onBeforeCompile(sh);
+    sh.uniforms.uAtlas = { value: tex };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 aTela; attribute vec4 aGuarda; varying vec3 vTela; varying vec3 vPosT; varying vec3 vNorT; varying vec4 vGuarda;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvTela = aTela; vPosT = position; vNorT = normal; vGuarda = aGuarda;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n' + GLSL_TELA + GLSL_P)
+      .replace('#include <color_fragment>', '#include <color_fragment>\n' + GLSL_P_COLOR)
+      .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + GLSL_P_BRILLO);
+  };
+  MAT_ATLAS.customProgramCacheKey = () => 'proto-atlas-P1';
+  return MAT_ATLAS;
+}
+// las guardas: en una pieza de torno (los vértices van por gajo: i·npts + j) o de huso (por anillo)
+function guardaTorno(m, npts, segs, tipo, ancho, desde = 'abajo') {
+  const P = m.geometry.attributes.position, n = P.count, gu = new Float32Array(n * 4), a = new THREE.Vector3(), b = new THREE.Vector3();
+  const d = [0];
+  for (let j = 1; j < npts; j++) { a.fromBufferAttribute(P, j); b.fromBufferAttribute(P, j - 1); d.push(d[j - 1] + a.distanceTo(b)); }
+  const total = d[npts - 1], jE = desde === 'arriba' ? npts - 1 : 0, largo = [0];
+  for (let i = 1; i <= segs; i++) { a.fromBufferAttribute(P, i * npts + jE); b.fromBufferAttribute(P, (i - 1) * npts + jE); largo.push(largo[i - 1] + a.distanceTo(b)); }
+  for (let k = 0; k < n; k++) {
+    const i = Math.floor(k / npts), j = k % npts;
+    const dist = desde === 'arriba' ? total - d[j] : d[j];
+    gu.set([tipo, dist, largo[Math.min(i, segs)], desde === 'todo' ? total + 1e-4 : ancho], k * 4);
+  }
+  m.geometry.setAttribute('guarda', new THREE.BufferAttribute(gu, 4));
+  return m;
+}
+function guardaHuso(m, tramos, lados, tipo, ancho) {
+  const P = m.geometry.attributes.position, n = P.count, gu = new Float32Array(n * 4), K = lados + 1;
+  const c = [], v = new THREE.Vector3();
+  for (let r = 0; r <= tramos; r++) { const s = new THREE.Vector3(); for (let q = 0; q < K; q++) s.add(v.fromBufferAttribute(P, r * K + q)); c.push(s.divideScalar(K)); }
+  const hasta = [0];   // la distancia al final del huso, anillo por anillo
+  for (let r = tramos - 1; r >= 0; r--) hasta.unshift(hasta[0] + c[r].distanceTo(c[r + 1]));
+  for (let k = 0; k < n; k++) {
+    const r = Math.floor(k / K), q = k % K;
+    const rad = v.fromBufferAttribute(P, r * K).distanceTo(c[r]);
+    gu.set([tipo, hasta[r], (q / lados) * Math.PI * 2 * rad, ancho], k * 4);
+  }
+  m.geometry.setAttribute('guarda', new THREE.BufferAttribute(gu, 4));
+  return m;
+}
+const rol = (m, nombre, a, b) => { m.userData.rol = nombre; m.userData.dims = [a, b]; return m; };
+// La ropa de P: la de M con guardas (y la de fiesta de Inés)
+const GUARDAS_P = {
+  'poblador-panadera': { pollera: [2, 0.05], delantal: [1, 0.03] },
+  'poblador-herrero': { delantal: [7, 0.06] },
+  'aldea-nena': { pollera: [3, 0.06], chaleco: [2, 0.035] },
+  'poblador-herbolaria': { pollera: [5, 0.1], manga: [6, 0.075], faja: [4, 0], chaleco: [1, 0.028, 'arriba'] },
+};
+function guardasP(g, clave) {
+  const G = GUARDAS_P[clave] || { pollera: [1, 0.03] };
+  g.traverse((o) => {
+    const r = o.userData.rol; if (!r || !G[r]) return;
+    const [tipo, ancho, desde] = G[r], [a, b] = o.userData.dims;
+    if (r === 'manga') guardaHuso(o, a, b, tipo, ancho);
+    else guardaTorno(o, a, b, tipo, ancho, r === 'faja' ? 'todo' : desde || 'abajo');
+  });
+}
+// Inés Ancalao, la herbolaria (35): de fiesta, con chamal, faja tejida, trarilonko y trapelacucha
+const PALETA_P = {
+  'poblador-herbolaria': {
+    colores: { ropa: '#e6dcc4', abrigo: '#2c2834', pelo: '#1c1410', gorro: null, bufanda: null, piel: '#b98a62', trarilonko: true, aros: 'chawai' },
+    R: { pollera: true, chaleco: true, chamal: true, fiesta: true, dosTrenzas: true, trenza: true, colPollera: '#2c2834', telaChaleco: 'fiesta', botaCol: '#3a2a1e', piel: '#b98a62' },
+  },
+};
+function paletaP(clave, colores, R) {
+  const p = PALETA_P[clave];
+  const base = p ? { colores: { ...colores, ...p.colores }, R: { ...R, ...p.R } } : paletaM(clave, colores, R);
+  if (clave === 'poblador-panadera' || clave === 'aldea-nena') base.colores = { ...base.colores, aros: 'chicos' };
+  return base;
+}
 const _mRel = new THREE.Matrix4(), _mInvRaiz = new THREE.Matrix4(), _nmRel = new THREE.Matrix3();
 const _frio = new THREE.Color('#2b3442'), _tibio = new THREE.Color('#fff1d8');
 function sombraPintada(c, p, n) {
@@ -1651,6 +1907,7 @@ function continuo(f, op) {
   for (const m of mallas) { nv += m.geometry.attributes.position.count; ni += m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count; }
   const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3), zona = new Float32Array(nv * 2);
   const aTela = op.medieval ? new Float32Array(nv * 3) : null;   // M: la tela de cada vértice
+  const aGuarda = op.atlas ? new Float32Array(nv * 4) : null;    // P: la guarda
   const si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4), pieza = new Uint16Array(nv), tapa = new Uint8Array(nv), crudo = new Uint8Array(nv);
   const ind = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   const p = new THREE.Vector3(), q = new THREE.Vector3(), n = new THREE.Vector3(), c = new THREE.Color();
@@ -1665,7 +1922,7 @@ function continuo(f, op) {
     _mRel.multiplyMatrices(_mInvRaiz, m.matrixWorld); _nmRel.getNormalMatrix(_mRel);
     const grupo = m.parent, hueso = idx.has(grupo) ? idx.get(grupo) : 0;
     const sup = m.userData.superior, Z = geo.attributes.zona, esCrudo = !!m.userData.crudo;
-    const TV = geo.attributes.telaV, B = geo.attributes.borde, telaPieza = m.userData.tela || 0;
+    const TV = geo.attributes.telaV, B = geo.attributes.borde, telaPieza = m.userData.tela || 0, AT = geo.attributes.aTela, GU = geo.attributes.guarda;
     if (m.userData.mate && iMate < 0) iMate = oi;
     for (let i = 0; i < P.count; i++) {
       const j = ov + i;
@@ -1681,11 +1938,14 @@ function continuo(f, op) {
       if (aTela) {
         const tp = TV ? TV.getX(i) : telaPieza;
         let x = tp, y = 0, z = 0;
-        if (tp === TELA.pelo || tp === TELA.barba) { y = Math.atan2(q.x, q.z) * 0.08; z = q.y - 0.05; }
+        if (tp === TELA.pelo && m.userData.raya) { y = q.z; z = Math.atan2(Math.abs(q.x), q.y - 0.05) * 0.08; }   // (de la raya hacia los costados)
+        else if (tp === TELA.pelo || tp === TELA.barba) { y = Math.atan2(q.x, q.z) * 0.08; z = q.y - 0.05; }
         else if (tp >= TELA.pecas) { y = q.x; z = q.y - 0.05; }
         else if (tp > 0) x = tp + 0.4 * (B ? B.getX(i) : 1);
+        if (AT) { x = AT.getX(i); y = AT.getY(i); z = AT.getZ(i); }   // (el rostro trae la suya)
         aTela[j * 3] = x; aTela[j * 3 + 1] = y; aTela[j * 3 + 2] = z;
       }
+      if (aGuarda && GU) { aGuarda[j * 4] = GU.getX(i); aGuarda[j * 4 + 1] = GU.getY(i); aGuarda[j * 4 + 2] = GU.getZ(i); aGuarda[j * 4 + 3] = GU.getW(i); }
       col[j * 3] = c.r; col[j * 3 + 1] = c.g; col[j * 3 + 2] = c.b;
       zona[j * 2] = Z ? Z.getX(i) : m.userData.piel ? 1 : 0; zona[j * 2 + 1] = 1; crudo[j] = esCrudo ? 1 : 0;
       pieza[j] = k; tapa[j] = m.userData.noTapa ? 0 : 1;
@@ -1734,7 +1994,8 @@ function continuo(f, op) {
   if (aTela) geo.setAttribute('aTela', new THREE.BufferAttribute(aTela, 3));
   geo.setIndex(new THREE.BufferAttribute(ind, 1));
   geo.computeBoundingSphere();
-  const malla = new MallaConPiel(geo, op.medieval ? materialTela() : op.piel ? materialPiel() : MAT_FAUNA);
+  if (op.atlas) geo.setAttribute('aGuarda', new THREE.BufferAttribute(aGuarda, 4));
+  const malla = new MallaConPiel(geo, op.atlas ? materialAtlas() : op.medieval ? materialTela() : op.piel ? materialPiel() : MAT_FAUNA);
   malla.castShadow = true;
   g.add(malla);
   g.updateMatrixWorld(true);
@@ -1888,7 +2149,7 @@ function quietudM(g, st, dt, andando, charlando) {
 const TALLA_CHICO_S = 0.76 / 0.58;
 export function protoPersona(V, colores, clave = '', conMate = false, R = {}) {
   const op = OPC[V] || OPC.A;
-  if (op.medieval) ({ colores, R } = paletaM(clave, colores || {}, R || {}));
+  if (op.medieval) ({ colores, R } = (op.atlas ? paletaP : paletaM)(clave, colores || {}, R || {}));
   const f = figura(colores || {}, clave, conMate, R || {}, op);
   const { g, cabeza, torso, patas, brazos } = f;
   let malla = null;

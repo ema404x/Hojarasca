@@ -1,5 +1,5 @@
 // PROTOTIPO (rama proto-personajes, no va al juego): capturas y medición de las variantes de la
-// gente (gente-proto.js, `?personajes=A|B|C|D|S`). Para cada variante abre el juego real, pone la
+// gente (gente-proto.js, `?personajes=A|B|C|D|S|M|P`). Para cada variante abre el juego real, pone la
 // aldea completa, para a Rosa (la panadera), a Anselmo (el herrero) y a Lucía en la plaza con la
 // luz de la tarde y saca:
 //   · <v>-cuerpo.png: los tres de frente, cuerpo entero a 3 m (lente de 45°);
@@ -39,7 +39,7 @@ const MEDIR = arg('medir', '1') !== '0';
 const LAMINA = arg('lamina', '1') !== '0';
 const CALIDAD = arg('calidad', 'media');
 const HORA = Number(arg('hora', '17.2'));
-const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista', S: 'S · tipo Sims, más simple', M: 'M · a lo Sims Medieval' };
+const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista', S: 'S · tipo Sims, más simple', M: 'M · a lo Sims Medieval', P: 'P · atlas pintado' };
 
 // Lo que corre en la página. Los tres: Rosa (panadera), Anselmo (herrero) y Lucía (nena).
 const AYUDA = String.raw`(() => {
@@ -150,6 +150,12 @@ app.whenReady().then(async () => {
         // (S: charlando contentos; las otras variantes no tienen gestos)
         rosa.__gesto = 'sonrisa'; anselmo.__gesto = 'risa'; lucia.__gesto = 'sonrisa';
         anselmo.__quietud = 'cintura'; lucia.__quietud = 'atras';   // (M: poses de quietud)
+        // P: Inés Ancalao, la herbolaria (pobladora nueva del prototipo), al lado de Rosa
+        if (window.__protoPersonajes === 'P') {
+          if (!P.ines) P.ines = H.gente.agregarPoblador({ clave: 'poblador-herbolaria', colores: {}, pos: { x: c.x, z: c.z }, nombre: 'Inés Ancalao', oficio: 'herbolaria', saludo: '', despedida: '', camino: [] });
+          const pi = { x: c.x + lx * 1.75 + fx * 0.35, z: c.z + lz * 1.75 + fz * 0.35 };
+          P.parar(P.ines, pi.x, pi.z, hacia(pi, pa) - 0.3); P.ines.__gesto = 'sonrisa'; P.ines.dormido = false;
+        }
         for (const n of otros) n.dormido = false;
         const o = { x: c.x + fx * 3.5 - lx * 0.4, z: c.z + fz * 3.5 - lz * 0.4 }; o.y = T.altura(o.x, o.z) + 1.65;
         P.camara(o, { x: c.x, z: c.z, y: T.altura(c.x, c.z) + 1.05 }, 70);
