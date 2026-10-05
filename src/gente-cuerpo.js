@@ -1491,7 +1491,7 @@ const GLSL_COLOR = /* glsl */`
         vec4 a = unoA(vec2(1024.0, 1024.0), vec2(512.0), uc);
         float arr = a.r * (0.4 * risa + 0.35 * mayor) + a.g * 0.6 * mayor;
         alb = mix(alb, alb * vec3(0.74, 0.6, 0.56), clamp(arr, 0.0, 1.0) * 0.55);
-        alb = mix(alb, vec3(0.62, 0.36, 0.33), a.b * cicatriz * 0.8);   // (la cicatriz, más clara y rosada que la piel)
+        alb = mix(alb, vec3(0.7, 0.36, 0.34), a.b * cicatriz * 0.95);   // (la cicatriz, más clara y rosada que la piel)
         float oj = exp(-pow((abs(fc.x) - 0.034) / 0.014, 2.0) - pow((fc.y + 0.017) / 0.006, 2.0));
         alb = mix(alb, alb * vec3(0.78, 0.68, 0.76), oj * ojeras * 0.55);
         // 3.7.0: la pincelada de la piel (antes la cara era lisa)

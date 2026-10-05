@@ -69,6 +69,7 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(salida, `${nombre}-${t}.png`), Buffer.from(d.split(',')[1], 'base64'));
     console.log('toma', `${nombre}-${t}.png`);
   }
+  if (arg('atlas', '0') === '1') { const d = await js('window.estudio.atlasPng()'); fs.writeFileSync(path.join(salida, 'atlas.png'), Buffer.from(d.split(',')[1], 'base64')); console.log('atlas.png'); }
   if (arg('medir', '0') !== '0') {
     console.log('atlas', JSON.stringify(await js('window.estudio.atlas()')));
     console.log('personas', JSON.stringify(await js(`window.estudio.medir(${JSON.stringify(quienes)})`)));

@@ -168,6 +168,7 @@ window.estudio = {
     for (let i = 0; i < n; i++) for (const clave of claves) { const def = defDe(clave); const m = __mallaPersona(def.colores || {}, clave, def.mano === 'mate', { talla: def.talla, invierno: i % 2 === 1 }); m.soltar?.(); }
     return { ms: +((performance.now() - t0) / (n * claves.length)).toFixed(1), huesos: huesosEnUso() };
   },
+  atlasPng() { return atlasPersonajes().image.toDataURL('image/png'); },
   atlas() { const t = atlasPersonajes(); return { ms: +t.userData.info.ms.toFixed(1), pasos: t.userData.info.pasos, mb: +(t.userData.bytes / 1048576).toFixed(1) }; },
 };
 window.estudioListo = true;
