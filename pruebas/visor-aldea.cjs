@@ -21,12 +21,14 @@ process.on('unhandledRejection', (e) => anotarError('promesa', e));
 const path = require('path');
 const fs = require('fs');
 const raiz = path.resolve(__dirname, '..');
-const perfil = path.join(raiz, 'pruebas', 'salidas', 'aldea', '_perfil');
+// 3.7.0: VISOR_SALIDA=<carpeta> (dentro de pruebas/salidas) para guardar las fotos en otro lado
+const carpetaSalida = process.env.VISOR_SALIDA || 'aldea';
+const perfil = path.join(raiz, 'pruebas', 'salidas', carpetaSalida, '_perfil');
 try { fs.rmSync(perfil, { recursive: true, force: true }); } catch { /* que quede */ }
 app.setPath('userData', perfil);
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-const salida = path.join(raiz, 'pruebas', 'salidas', 'aldea');
+const salida = path.join(raiz, 'pruebas', 'salidas', carpetaSalida);
 
 // el módulo, pasado a un script común: los imports se toman de lo que el juego ya armó
 function moduloAldea() {
@@ -125,6 +127,8 @@ window.__V = (() => {
       if (!res.length) Yref = y;
       { const c = Math.cos(sitio.rot), s = Math.sin(sitio.rot); const xs = [o.x0, o.x1], zs = [o.z0, o.z1]; let a = 1e9, b = -1e9, e = 1e9, g = -1e9; for (const lx of xs) for (const lz of zs) { const X = sitio.x + lx * c + lz * s, Z = sitio.z - lx * s + lz * c; a = Math.min(a, X); b = Math.max(b, X); e = Math.min(e, Z); g = Math.max(g, Z); } if (!it.acc) marcar(a - 0.6, b + 0.6, e - 0.6, g + 0.6, 255); }
       const m = A.montarEdificio(ed, mats);
+      // 3.7.0: anim { id: ángulo | true (= abierta) } deja cada pieza animable en su pose (la cúpula abierta...)
+      if (it.anim) for (const a of m.animables) if (it.anim[a.id] !== undefined) { const v = it.anim[a.id] === true ? (a.dato.abierta ?? 0) : it.anim[a.id]; if (a.movimiento === 'sube') a.objeto.position.y += v; else a.objeto.quaternion.setFromAxisAngle(new THREE.Vector3(...a.eje).normalize(), v); }
       const g = new THREE.Group(); g.position.set(sitio.x, sitio.y, sitio.z); g.rotation.y = sitio.rot;
       g.add(m.exterior); if (it.interior !== false) g.add(m.interior);
       grupo.add(g);
@@ -207,6 +211,33 @@ const TOMAS = {
 };
 // (las mismas, en otoño: el uniforme del otoño clavado en 1 mientras dura la foto)
 TOMAS['alamos-otono'] = { ...TOMAS.alamos, otono: true };
+// 3.7.0: la calle de la loma (VISOR_SALIDA=arquitectura-370)
+const LOMA = ['veterinaria', 'estudio-fotos', 'refugio-andinista', 'herboristeria', 'taller-arte', 'ceramica', 'varadero', 'observatorio', 'costureria'];
+const VISTA_LOMA = {
+  veterinaria: { ojo: [9.5, 2.1, 10.5], a: [3.2, 1.7, 0.3] }, 'estudio-fotos': { ojo: [-6.5, 2.0, 9.5], a: [0.2, 2.4, 1.0] }, 'refugio-andinista': { ojo: [-7.5, 2.0, 9.5], a: [0.3, 2.3, 0.8] },
+  herboristeria: { ojo: [6.8, 1.9, 9.2], a: [-0.2, 2.1, 1.0] }, 'taller-arte': { ojo: [9.0, 2.1, 8.0], a: [0.4, 2.0, 0.6] }, ceramica: { ojo: [9.0, 2.0, 8.5], a: [1.0, 1.8, 0.2] },
+  varadero: { ojo: [-7.0, 2.0, 10.5], a: [0.8, 2.0, 1.0] }, observatorio: { ojo: [-7.0, 2.2, 11.5], a: [0.0, 3.3, 0.5] }, costureria: { ojo: [-6.5, 1.9, 8.5], a: [0.3, 1.8, 1.0] },
+};
+// (el observatorio y el refugio, con el desnivel sugerido: la escalinata baja a la calle)
+const OP_LOMA = { observatorio: { desnivel: 0.6 }, 'refugio-andinista': { desnivel: 0.5 } };
+for (const id of LOMA) TOMAS['loma-' + id] = { arma: [{ id, x: 0, z: 0, op: OP_LOMA[id] || {} }], ...VISTA_LOMA[id], hora: 11 };
+TOMAS['loma-calle-1'] = { arma: [{ id: 'veterinaria', x: -17, z: 0 }, { id: 'estudio-fotos', x: 2, z: 0 }, { id: 'refugio-andinista', x: 11.5, z: 0 }], ojo: [-9, 3.0, 17], a: [2, 2.0, 0], hora: 10 };
+TOMAS['loma-calle-2'] = { arma: [{ id: 'herboristeria', x: -11, z: 0 }, { id: 'taller-arte', x: -1, z: 0 }, { id: 'ceramica', x: 10, z: 0 }], ojo: [-4, 3.0, 17], a: [0, 2.0, 0], hora: 15 };
+TOMAS['loma-calle-3'] = { arma: [{ id: 'varadero', x: -13, z: 0 }, { id: 'observatorio', x: 1, z: 0 }, { id: 'costureria', x: 11, z: 0 }], ojo: [-4, 3.2, 18], a: [0, 2.4, 0], hora: 12 };
+TOMAS['loma-observatorio-noche'] = { arma: [{ id: 'observatorio', x: 0, z: 0, op: { desnivel: 0.6 }, anim: { cupula: true, telescopio: true } }], ojo: [-4.5, 2.6, 9.5], a: [0.0, 4.6, 1.2], hora: 22.5, noche: true, luz: 'spec' };
+TOMAS['loma-observatorio-cupula'] = { arma: [{ id: 'observatorio', x: 0, z: 0, anim: { cupula: true, telescopio: true } }], ojo: [2.5, 6.5, 7.5], a: [0.0, 5.6, 1.4], hora: 17.5 };
+TOMAS['loma-adentro-estudio'] = { arma: [{ id: 'estudio-fotos', x: 0, z: 0, abierta: true }], ojo: [2.0, 1.95, 2.45], a: [-2.4, 1.2, 0.9], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-ceramica'] = { arma: [{ id: 'ceramica', x: 0, z: 0, abierta: true }], ojo: [-1.6, 1.95, 2.55], a: [2.0, 1.0, 0.2], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-costureria'] = { arma: [{ id: 'costureria', x: 0, z: 0, abierta: true }], ojo: [2.1, 1.95, 0.35], a: [-1.8, 1.15, 1.8], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-refugio'] = { arma: [{ id: 'refugio-andinista', x: 0, z: 0, abierta: true }], ojo: [-2.3, 1.95, 2.4], a: [2.2, 1.3, 0.3], hora: 17, luz: 'spec' };
+TOMAS['loma-adentro-veterinaria'] = { arma: [{ id: 'veterinaria', x: 0, z: 0, abierta: true }], ojo: [-2.2, 1.95, 2.4], a: [2.0, 1.1, 0.4], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-torreta'] = { arma: [{ id: 'observatorio', x: 0, z: 0, abierta: true, anim: { cupula: true, telescopio: true } }], ojo: [-0.9, 4.6, 2.3], a: [0.2, 4.6, 0.6], hora: 22.5, noche: true, luz: 'spec' };
+TOMAS['loma-adentro-observatorio'] = { arma: [{ id: 'observatorio', x: 0, z: 0, abierta: true }], ojo: [-1.9, 1.95, 2.4], a: [1.2, 1.9, 1.6], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-taller'] = { arma: [{ id: 'taller-arte', x: 0, z: 0, abierta: true }], ojo: [-1.9, 1.95, 2.4], a: [2.4, 1.3, 0.4], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-varadero'] = { arma: [{ id: 'varadero', x: 0, z: 0 }], ojo: [1.2, 1.95, 4.2], a: [-1.5, 0.9, 0.3], hora: 11, luz: 'spec' };
+TOMAS['loma-adentro-herboristeria'] = { arma: [{ id: 'herboristeria', x: 0, z: 0, abierta: true }], ojo: [-1.3, 1.95, 2.5], a: [1.0, 1.5, -0.3], hora: 11, luz: 'spec' };
+TOMAS['loma-etapas'] = { arma: [0, 1, 2, 3, 4].map((e, i) => ({ id: 'observatorio', etapa: e, x: -24 + i * 11, z: 0 })), ojo: [-3, 9, 23], a: [-2, 1.5, 0], hora: 12 };
+TOMAS['loma-etapas-cerca'] = { arma: [2, 3, 4].map((e, i) => ({ id: 'refugio-andinista', etapa: e, x: -11 + i * 11, z: 0 })), ojo: [-2, 4.5, 15], a: [-1, 1.8, 0], hora: 12 };
 TOMAS['alamo-cerca'] = { arma: [{ id: 'plaza', x: 0, z: 0 }], ojo: [-5.2, 1.7, 6.2], a: [-8.1, 6.5, 2.6], hora: 11 };
 
 app.whenReady().then(async () => {
@@ -243,7 +274,14 @@ app.whenReady().then(async () => {
     await esperar(2500);
     await js(`(() => { const cam = window.__hojarasca.camara; window.__hijosCam = cam.children.filter((k) => !k.isLight && (k.isMesh || k.isGroup)); for (const k of window.__hijosCam) cam.remove(k); return 1; })()`);
     await esperar(300);
-    const img = await w.webContents.capturePage();
+    // 3.7.0: si la captura de la ventana falla (pantalla bloqueada o apagada: UnknownVizError), el cuadro se
+    // dibuja a mano y se lee del lienzo en la misma tarea
+    let img;
+    try { img = await w.webContents.capturePage(); if (img.isEmpty()) throw new Error('vacía'); } catch (e) {
+      const url = await js(`(() => { const H = window.__hojarasca; try { H.__bucle(); } catch { H.renderer.render(H.escena, H.camara); } return H.renderer.domElement.toDataURL('image/png'); })()`);
+      img = require('electron').nativeImage.createFromDataURL(url);
+      console.log('foto por el lienzo (' + e.message + ')');
+    }
     await js(`(() => { const cam = window.__hojarasca.camara; for (const k of window.__hijosCam || []) cam.add(k); return 1; })()`);
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
     if (t.otono) await js(`(() => { delete __mod_materiales.U.uOtono.value; __mod_materiales.U.uOtono.value = 0; return 1; })()`);

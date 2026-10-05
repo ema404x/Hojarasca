@@ -68,7 +68,9 @@ const CONTRATO = {
   'casa-abuela': [5, 5], 'casa-familia': [7, 6], panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5],
   'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
 };
-assert.deepEqual(Object.keys(A.EDIFICIOS_ALDEA).sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato, ni uno más');
+// (3.7.0: los de la calle de la loma, `loma: true`, los prueba verificar-3-7-0-arquitectura.mjs)
+const IDS_36 = Object.keys(A.EDIFICIOS_ALDEA).filter((id) => !A.EDIFICIOS_ALDEA[id].loma);
+assert.deepEqual(IDS_36.sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato, ni uno más');
 for (const [id, [w, d]] of Object.entries(CONTRATO)) {
   assert.ok(Object.hasOwn(A.EDIFICIOS_ALDEA, id), 'falta ' + id);
   assert.equal(A.EDIFICIOS_ALDEA[id].ancho, w, id + ' ancho'); assert.equal(A.EDIFICIOS_ALDEA[id].fondo, d, id + ' fondo');
@@ -159,7 +161,7 @@ function alcanzables(ed, desde, R, paso = 0.1) {
 // ---------------------------------------------------------------- todos los edificios, todas las etapas
 const tabla = [];
 const P = A.PRESUPUESTO_ALDEA;
-for (const id of Object.keys(A.EDIFICIOS_ALDEA)) {
+for (const id of IDS_36) {
   const def = A.EDIFICIOS_ALDEA[id];
   const etapas = def.lote ? [0, 1, 2, 3, 4] : [4];
   for (const e of etapas) {
