@@ -258,6 +258,20 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 #partidas-sync button { margin-right: 8px; }
 .trueque li.hecho i { color: #4b7a4b; }
 .trueque .seguir { margin: 12px 0 0; font-size: 14px; color: #7a6742; }
+/* 3.6.2: en una ventana chica el panel no pasa del borde de arriba: el título y el pie quedan, la lista tiene
+   scroll (la opción marcada se trae a la vista: ver marcarHud en main.js). Antes, en una ventana de 700 px, las
+   primeras opciones del almacén quedaban fuera de la pantalla */
+.trueque { display: flex; flex-direction: column; max-height: calc(91vh - 12px); box-sizing: border-box; }
+.trueque > * { flex: none; }
+.trueque > ul { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.trueque li.elegida { background: rgba(120,100,60,.16); box-shadow: inset 3px 0 0 #5a4524; }
+@media (max-height: 760px) {
+  .trueque { padding: 12px 20px 10px; }
+  .trueque .quien { font-size: 23px; }
+  .trueque .dicho { margin-bottom: 6px; font-size: 15px; }
+  .trueque li { padding: 4px 0; font-size: 15px; }
+  .trueque .seguir { margin-top: 6px; }
+}
 /* 2.9: el tablero de la cabina de la trochita */
 .cabina { position: absolute; right: 26px; bottom: 11vh; display: flex; gap: 14px; align-items: flex-end; padding: 10px 14px; border-radius: 6px;
   background: rgba(24,20,16,.62); color: rgba(239,230,210,.92); font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,.7); pointer-events: none; }

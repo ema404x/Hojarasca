@@ -86,6 +86,7 @@ const tramo = (texto, desde, hasta) => { const i = texto.indexOf(desde); assert.
   // con mousedown (como el menú de la charla en la 3.6.1): el click no llegaba, y el clic seguía al juego
   ok(main.includes("function alClicHud(el, fn) {\n  el.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); fn(); });"), 'alClicHud: mousedown, sin seguir de largo');
   ok(main.includes('alClicHud(li, () => cambiar(i));') && main.includes('alClicHud(li, () => cambiarFeria(i));') && main.includes('alClicHud(d, asignar);'), 'el almacén, la feria y la mochila');
+  ok(main.includes("function cambiar(i) {\n  marcarEn('almacen', i - paginaAlmacen * POR_PAGINA_ALMACEN);") && main.includes("function cambiarFeria(i) {\n  marcarEn('feria', i);"), 'lo elegido (con el número, el clic o Enter) queda marcado');
   ok(comercio.includes("li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegir(i); });"), 'las cargas');
   ok(main.includes("d.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); elegirRanura(i); });") && desafio.includes("li.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); fabricar(i); });"), 'la barra y el taller ya usaban mousedown');
   ok(!/addEventListener\('click', \(\) => (cambiar|cambiarFeria|elegir)\(i\)\)/.test(main + comercio), 'ya no queda ninguna lista con click');
@@ -96,6 +97,13 @@ const tramo = (texto, desde, hasta) => { const i = texto.indexOf(desde); assert.
   const arma = tramo(main, "window.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || !desafio", 'desafio.atacar(id);');
   ok(arma.includes('if (panelDelHudAbierto()) return;'), 'el arma del Desafío');
   ok(main.includes("$('btn-personalizar-mochila').addEventListener('mousedown', (ev) => ev.stopPropagation());"), 'el botón de la mochila');
+  // en una ventana chica (700 px) el almacén pasaba del borde de arriba: ahora el panel no pasa de la ventana y la
+  // lista tiene scroll; la opción marcada (ruedita, LB y RB o la cruceta; Enter o A la eligen) siempre se ve
+  ok(plantilla.includes('.trueque { display: flex; flex-direction: column; max-height: calc(91vh - 12px); box-sizing: border-box; }') && plantilla.includes('.trueque > ul { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }'), 'el almacén, la feria y las cargas: la lista con scroll');
+  ok(main.includes("if (mostrar) lis[i].scrollIntoView?.({ block: 'nearest' });") && plantilla.includes('.trueque li.elegida {'), 'la marcada, a la vista');
+  ok(main.includes("case 'Enter': case 'NumpadEnter': if (listaHudAbierta()) elegirHud(); break;") && main.includes('if (listaHudAbierta()) { marcarHud(e.deltaY > 0 ? 1 : -1); return; }'), 'el teclado: la ruedita y Enter');
+  const mandoPanel = tramo(main, 'const enLista = !enCharla && !!listaHudAbierta();', 'for (const a of ACCIONES_TECLA_MANDO)');
+  ok(mandoPanel.includes('if (m.recien.objetoAnterior || m.recien.mochila) marcarHud(-1);') && mandoPanel.includes('if (m.recien.saltar) elegirHud();') && mandoPanel.includes("if (m.recien.agacharse) golpeDeTecla('Escape');"), 'el mando: LB y RB o la cruceta, A elige y B sale');
 }
 
 // ============================================================ 3. lo despejado no choca
