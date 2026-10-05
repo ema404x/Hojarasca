@@ -653,7 +653,11 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
 
   const cruces = construirPasosANivel(T, escena, mat, paradas);
 
-  const tren = construirTren(mat);
+  // 3.7.3 (prototipo): `opciones.armarTren` arma otro tren (ver tren-proto.js) con la misma forma
+  // (g, loco, tender, coches, faro, luzFaro, luzCoche) y, si quiere, `colocar` (dónde va cada vagón),
+  // `offCoches` (cuánto atrás de la locomotora va cada coche), `boca` (la chimenea) y `alActualizar`
+  const tren = opciones.armarTren ? opciones.armarTren({ mat, trocha: TROCHA, escena }) : construirTren(mat);
+  const offCoche = (i) => (tren.offCoches ? tren.offCoches[i] : -5.2 - i * 6.6);
   escena.add(tren.g);
   // 2.8: lo personal (ver `personalizar`): la pintura de siempre y sin nombre
   let personal = sanearTrochita(null), placas = [];
@@ -759,12 +763,16 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
       }
     }
 
-    colocarVagon(tren.loco, est.s, 0);
-    colocarVagon(tren.g.children[1], est.s, -2.6);
-    tren.coches.forEach((coche, i) => colocarVagon(coche, est.s, -5.2 - i * 6.6));
+    if (tren.colocar) tren.colocar(enVia, est.s);
+    else {
+      colocarVagon(tren.loco, est.s, 0);
+      colocarVagon(tren.g.children[1], est.s, -2.6);
+      tren.coches.forEach((coche, i) => colocarVagon(coche, est.s, offCoche(i)));
+    }
     for (const rd of tren.ruedas) rd.malla.rotation.y += est.vel * dt / rd.radio;
 
-    const chimeneaMundo = tmp.set(0, 1.9, 1.45).applyMatrix4(tren.loco.matrixWorld);
+    if (tren.colocar) tren.loco.updateMatrixWorld();
+    const chimeneaMundo = (tren.boca ? tmp.set(...tren.boca) : tmp.set(0, 1.9, 1.45)).applyMatrix4(tren.loco.matrixWorld);
     const arr = humo.puntos.geometry.attributes.position.array;
     // 2.9: manejando, el humo sale con el regulador: resopla más cuanto más vapor le das
     const vapor = est.conduce ? 0.6 + est.cabina.regulador * 1.6 : 1;
@@ -828,7 +836,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     } else if (est.subido) {
       // el asiento elegido: fila, lado y coche; la última posición es la plataforma abierta
       const a = ASIENTOS[est.asiento];
-      const base = -5.2 - a.coche * 6.6;
+      const base = offCoche(a.coche);
       const p = enVia(est.s + base + a.z);
       const nx = Math.cos(p.ang), nz = -Math.sin(p.ang);
       js.pos.set(p.x + nx * a.x, p.y + 0.72 + (a.plataforma ? 0 : 0.42), p.z + nz * a.x);
@@ -844,8 +852,9 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     tren.luzFaro.intensity = noche * 3.2 * (lejos < 90 ? 1 : 0);
     tren.luzCoche.intensity = est.subido ? 0.9 + noche * 2.8 : 0;
     if (est.subido) tren.luzCoche.position.set(js.pos.x, js.pos.y + 1.1, js.pos.z);
+    tren.alActualizar?.({ dt, s: est.s, vel: est.vel, noche, lejos, subido: est.subido, camara, enVia });
     // la guarda viaja parada en el pasillo del primer coche
-    const pg = enVia(est.s - 5.2 + 1.6);
+    const pg = enVia(est.s + offCoche(0) + 1.6);
     const guarda = { x: pg.x, z: pg.z, y: pg.y + 0.72, rumbo: pg.ang + Math.PI / 2 };
     // 2.9: la llegada a un andén manejando se avisa una sola vez
     const llegada = est.llegada;
@@ -1041,6 +1050,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     return true;
   }
 
+  if (tren.proto) vaporDeCabina(true);   // 3.7.3 (prototipo): bocanadas redondas siempre
   function varar(s) { est.varado = true; est.s = ((s % total) + total) % total; est.vel = 0; est.velVarado = 0; }
   function soltar(esperar = 0) { est.varado = false; est.velVarado = 0; est.proxima = siguienteParada(est.s); est.parado = esperar; }
   return {
