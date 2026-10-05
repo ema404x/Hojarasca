@@ -823,7 +823,10 @@ export function crearAldeaGente(ctx) {
       n.dormido = !despierta;
       if (!despierta) {
         // lejos: nadie lo ve caminar, se lo deja en su lugar
-        if (st.clave !== d.clave) {
+        // (3.6.2: también al que quedó a mitad de camino: si al irte iba ya para donde le toca ahora, se quedaba
+        // congelado en la calle hasta que volvías, horas después. Pasaba con el que sale con tiempo: el carpintero,
+        // recién abierta su carpintería, seguía en el andén a las 10 y la E le hablaba a la que bajaba del tren)
+        if (st.clave !== d.clave || n.camino?.length) {
           st.clave = d.clave;
           ubicar(n, d);
           if (usaRutaPropia(k, st, d)) aRutaPropia(n, st, true);
