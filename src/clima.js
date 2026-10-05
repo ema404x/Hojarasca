@@ -216,15 +216,18 @@ export function crearClima(escena, T, ajustes) {
       mLluvia.color.setRGB(0.55 + luz.r * 0.2, 0.6 + luz.g * 0.2, 0.66 + luz.b * 0.2);
       const n = Math.floor(NL * precip);
       gLluvia.setDrawRange(0, n * 2);
+      // 3.6.2 (visual): la gota que llega a un techo (galería, alero, andén) se corta ahí: abajo no
+      // llueve. `mundo.techos`: el mapa de techos de alrededor (techo-lluvia.js); se mira la punta de abajo
+      const techos = mundo.techos && mundo.techos.hay ? mundo.techos : null;
+      const inc = estado.viento * 0.12;
       for (let i = 0; i < n; i++) {
         const j = i * 6;
         let y = posL[j + 1] - velL[i] * dt;
         let x = posL[j], z = posL[j + 2];
         const rx = x - cam.x, rz = z - cam.z;
-        if (y < cam.y - 8 || Math.abs(rx) > CAJA || Math.abs(rz) > CAJA) {
+        if (y < cam.y - 8 || Math.abs(rx) > CAJA || Math.abs(rz) > CAJA || (techos && techos.tapa(x - inc, y - 0.55, z - inc * 0.3))) {
           x = cam.x + (Math.random() - 0.5) * CAJA * 2; z = cam.z + (Math.random() - 0.5) * CAJA * 2; y = cam.y + 12 + Math.random() * 14;
         }
-        const inc = estado.viento * 0.12;
         posL[j] = x; posL[j + 1] = y; posL[j + 2] = z;
         posL[j + 3] = x - inc; posL[j + 4] = y - 0.55; posL[j + 5] = z - inc * 0.3;
       }

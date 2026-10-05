@@ -62,6 +62,18 @@ const TOMAS = {
   'interior-nieve': { ojo: 'biblioteca', hora: 11, estacion: 'invierno', extra: true },
   'galeria-nieve': { ojo: [-31, 1.7, 28.2], a: [-35.5, 0.6, 32.5], hora: 11, estacion: 'invierno', extra: true },
   humo: { ojo: [-24, 1.7, 34], a: [-33, 6, 40], hora: 21.5, extra: true },
+  // 3.6.2 (visual): con lluvia (`lluvia`: cuánto llueve), para ver que no llueva bajo las galerías y
+  // los aleros. `lugar`: el ojo y la mira en el marco de ese lugar del valle (T.lugares, con su giro);
+  // `edificio`: en el marco de ese edificio de la aldea
+  'lluvia-galeria': { edificio: 'casa-jefe', ojo: [3.5, 1.7, 8.5], a: [-0.5, 1.3, 3], hora: 11, lluvia: 1, extra: true },
+  'lluvia-biblioteca': { edificio: 'biblioteca', ojo: [5, 1.7, 11], a: [0, 1.6, 4], hora: 11, lluvia: 1, extra: true },
+  'lluvia-almacen': { ojo: [-10, 1.7, 49], a: [-17, 2.5, 60], hora: 11, lluvia: 1, extra: true },
+  'lluvia-calle': { ojo: [-40, 1.7, 52], a: [30, 2, 52], hora: 11, lluvia: 1, completa: true, extra: true },
+  'lluvia-refugio': { lugar: 'refugio', ojo: [-5, 1.7, 9], a: [0, 1.2, 2.6], hora: 11, lluvia: 1, extra: true },
+  'lluvia-estacion': { lugar: 'estacion', ojo: [9, 1.7, -4], a: [0, 1.5, 3], hora: 11, lluvia: 1, extra: true },
+  // 3.6.2 (visual): la pescadería abierta (la red que se mece) y el rótulo del almacén de cerca
+  pescaderia: { edificio: 'pescaderia', ojo: [7.5, 1.6, 4.5], a: [4.1, 1.3, 0.7], hora: 11, completa: true, extra: true },
+  'almacen-rotulo': { ojo: [-11, 1.7, 51], a: [-17, 3.6, 60], hora: 11, extra: true },
 };
 
 app.whenReady().then(async () => {
@@ -109,8 +121,16 @@ app.whenReady().then(async () => {
       H.ajustes.estacion = t.estacion || 'verano';
       if (t.estacion === 'invierno') H.__U().uInvierno.value = 1;
       if (t.mojado != null) H.__U().uMojado.value = t.mojado;
+      if (t.lluvia) { H.ajustes.clima = 'lluvioso'; Object.assign(H.clima.estado, { lluvia: t.lluvia, nublado: 0.9, objetivo: 'lluvia', proximo: 'lluvia', t: 9999 }); }
       let o, a;
-      if (t.ojo === 'biblioteca') {
+      const marco = t.lugar ? H.T.lugares[t.lugar] : t.edificio ? M.estadoEdificio(t.edificio)?.sitio : null;
+      if (marco) {
+        const r = marco.rot ?? marco.ang ?? 0, c = Math.cos(r), s = Math.sin(r);
+        const aM = (lx, lz) => ({ x: marco.x + lx * c + lz * s, z: marco.z - lx * s + lz * c });
+        const wo = aM(t.ojo[0], t.ojo[2]), wa = aM(t.a[0], t.a[2]);
+        o = { x: wo.x, z: wo.z, y: T.altura(wo.x, wo.z) + t.ojo[1] };
+        a = { x: wa.x, z: wa.z, y: T.altura(wa.x, wa.z) + t.a[1] };
+      } else if (t.ojo === 'biblioteca') {
         const p = H.__aldea.puntos('biblioteca'); const e = H.__aldea.edificio('biblioteca');
         const pu = p.puerta, ad = p.cuentos || p.adentro;
         // adentro, junto a la puerta, mirando al fondo

@@ -3465,6 +3465,30 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     }
     return null;
   }
+  // 3.6.2 (visual): los techos de lo que construiste cerca de `pos`, para que no llueva abajo (el formato
+  // de `cubierta` en techo-lluvia.js): las galerías e invernaderos, los techos de los módulos y los
+  // refugios de una pieza. Sólo lo terminado. `firma`: cambia cuando cambia algo de eso.
+  function cubiertasLluvia(pos, radio = 70) {
+    const lista = [];
+    if (!pos) return lista;
+    for (const o of obrasCerca(pos, radio, [])) {
+      const P = o.plano, d = o.datos;
+      if (!P || !d || d.etapas < P.etapas.length || !Number.isFinite(d.x) || !Number.isFinite(d.z)) continue;
+      const rot = d.rot || 0, base = Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z);
+      const rect = (ancho, fondo, y, o2 = {}) => lista.push({ x: d.x, z: d.z, rot, x0: -ancho / 2, x1: ancho / 2, z0: -fondo / 2, z1: fondo / 2, y, ax: 0, ab: 0, az: 0, ...o2 });
+      // (el alero: techo a una agua de 2,62 m atrás a 2,22 m adelante)
+      if (P.id === 'alero') rect(P.ancho, P.fondo, base + 2.38, { az: -0.14 });
+      else if (P.cubreArea) rect(P.ancho || 3, P.fondo || 3, base + (P.alto || 2.4) - 0.3);
+      else if (P.snap?.tipo === 'techo') rect(P.ancho || 3.45, P.fondo || 3.45, base);
+      else if (P.habitable && !P.snap) rect((P.ancho || 3) + 0.4, (P.fondo || 3) + 0.4, base + Math.max(1.25, (P.alto || 2.3) - 0.1));
+    }
+    return lista;
+  }
+  function firmaCubiertas() {
+    let s = obras.length;
+    for (const o of obras) s += (o.datos.etapas || 0) * 0.37 + (o.datos.x || 0) * 0.013 + (o.datos.z || 0) * 0.017;
+    return s;
+  }
   function bajoCubierta(pos) {
     const pieza = cubiertaDePieza(pos);
     if (pieza) return { base: pieza, cubierta: { id: pieza.plano.id === 'invernadero' ? 'techo-una-agua' : 'alero' }, pieza: pieza.plano.id };
@@ -3811,7 +3835,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   return { repintar, pintarCasa, restilizarJardin, casas: (desde = null) => agruparCasas(obras, desde),
     elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
     destruir, portonAbierto, reemplazarPlano, obrasCerca: (pos, radio, salida = []) => obrasCerca(pos, radio, salida),
-    cancelarMarcada, obraCerca, tieneFuncionCerca, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, actualizarAmbiente, obras, revisarSitio,
+    cancelarMarcada, obraCerca, tieneFuncionCerca, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
     get plano() { return planoElegido; }, get rotacion() { return rotacionFantasma || 0; }, get estadoSitio() { return ultimoEstado; },
     get snapActivo() { return snapActivo; }, get editando() { return edicion?.obra || null; } };
 }

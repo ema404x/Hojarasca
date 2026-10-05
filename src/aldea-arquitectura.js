@@ -1207,6 +1207,14 @@ function casco(K, o) {
   // lo que queda bajo techo (para que no nieve adentro) y la puerta para puertas.js
   const zG = o.galeria ? D / 2 + (o.galeria.fondo ?? 1.7) : D / 2;
   K.techo = { x0: -W / 2, x1: W / 2, z0: -D / 2, z1: zG, radio: Math.min(W, D) / 2 };
+  // 3.6.2 (visual): para que no llueva abajo (ver `cubierta` en techo-lluvia.js), en local: el cuerpo con
+  // sus aleros hasta la altura del alero (más arriba es el entretecho) y la galería con su caída
+  if (e >= 3) {
+    const vX = eje === 'z' ? vx : vz, vZ = eje === 'z' ? vz : vx;
+    K.techo.cubiertas = [{ x0: -W / 2 - vX, x1: W / 2 + vX, z0: -D / 2 - vZ, z1: D / 2 + vZ, y: yA - 0.06, ax: 0, ab: 0, az: 0 }];
+    const G = K.extra.galeria;
+    if (G && e >= 4) K.techo.cubiertas.push({ x0: G.x0 - 0.15, x1: G.x1 + 0.15, z0: D / 2, z1: G.zE, y: G.yG0 - 0.08 + (D / 2) * 0.16, ax: 0, ab: 0, az: -0.16 });
+  }
   K.pisos.push({ lx: 0, lz: (zG - D / 2) / 2, largo: W, ancho: zG + D / 2 });
   // 3.6.1 (mundo): la hoja abierta queda casi perpendicular a la pared, metida en el cuarto del lado de la
   // bisagra (`lado` -1: la bisagra a +x). Donde eso corta el paso (la escuela, la sala de miel), la puerta
@@ -2547,8 +2555,15 @@ function pescaderia(K) {
   K.extra.humo = { lx: xa, ly: 2.45, lz: za };
   K.mueble(xa, za, 1.05, 1.05, 1.6, 0, 0);
   for (const z of [0.1, 1.3]) { palo(K.ext, [W / 2 + 1.1, -0.2, z], [W / 2 + 1.1, 1.8, z], 0.05, '#6e5a44'); K.circulo(W / 2 + 1.1, z, 0.07, 0, 1.8); }
-  for (let i = 0; i < 6; i++) caja(K.ext, [W / 2 + 1.1, 1.0 + i * 0.13, 0.7], [0.012, 0.012, 1.2], '#4a4a3a', { tipo: 0 });
-  for (let i = 0; i < 6; i++) caja(K.ext, [W / 2 + 1.1, 1.3, 0.2 + i * 0.2], [0.012, 0.8, 0.012], '#4a4a3a', { tipo: 0 });
+  // 3.6.2 (visual): la red cuelga de una vara entre los dos postes y se mece con el viento mientras el
+  // pescador trabaja (aldea-mecanicas-mundo.js): es una pieza animable que gira sobre la vara
+  palo(K.ext, [W / 2 + 1.1, 1.74, 0.06], [W / 2 + 1.1, 1.74, 1.34], 0.022, '#7a6448');
+  K.animable('redes', [W / 2 + 1.1, 1.73, 0.7], [0, 0, 1], (cb) => {
+    for (let i = 0; i < 6; i++) caja(cb, [W / 2 + 1.1, 1.0 + i * 0.13, 0.7], [0.012, 0.012, 1.2], '#4a4a3a', { tipo: 0 });
+    for (let i = 0; i < 6; i++) caja(cb, [W / 2 + 1.1, 1.31, 0.2 + i * 0.2], [0.012, 0.82, 0.012], '#4a4a3a', { tipo: 0 });
+    // los corchos de la relinga de abajo
+    for (let i = 0; i < 4; i++) bulto(cb, [W / 2 + 1.1, 0.97, 0.25 + i * 0.3], 0.035, '#c9a35a', { tipo: 0, detalle: 1, suave: true });
+  }, { sup: SUP.nada, datos: { movimiento: 'mece', capa: 'exterior' } });
   K.punto('redes', W / 2 + 0.42, 0.7, Math.PI / 2, 0);
   for (const z of [1.7, 1.95]) viga(K.ext, [W / 2 + 0.12, 0.02, z], [W / 2 + 0.16, 2.2, z + 0.1], 0.05, 0.03, '#a8845a', { tipo: 0 });
   K.abarcar(-W / 2 - 2.0, W / 2 + 1.5, -D / 2, D / 2);
@@ -3467,7 +3482,7 @@ function alamo(K, x0, z0, o) {
     let t = r();
     for (let q = 0; q < 4 && r() > R(t) / Rmax + 0.2; q++) t = r();
     const y = yB + 0.25 + t * (yT - yB - 0.45), a = i * 2.39996 + r() * 0.9;
-    const afuera = entre(r, 0.45, 1.0), rr = R(t) * afuera;
+    const afuera = entre(r, o.afuera?.[0] ?? 0.45, o.afuera?.[1] ?? 1.0), rr = R(t) * afuera;
     const P = [x0 + Math.cos(a) * rr, y, z0 + Math.sin(a) * rr];
     const tam = entre(r, 0.34, 0.46) * (1.08 - 0.45 * t) * tam0;
     const k = colorEn(P, afuera);
@@ -3475,10 +3490,13 @@ function alamo(K, x0, z0, o) {
   }
   K.circulo(x0, z0, 0.32, -0.3, alto);
   if (o.sinLod) return;
-  // el LOD barato: el tronco, un huso de 5 × 4 y cuarenta cartas grandes
+  // el LOD barato: el tronco, un huso de 5 × 5 y sesenta cartas medianas (menos de 200 triángulos)
+  // 3.6.2 (visual): antes, un huso de 5 × 4 y cuarenta cartas de 2,3 veces el tamaño, hasta el borde de la columna:
+  // sobresalían y el álamo lejano era más ancho, petiso y con bultos (se notaba el cambio a 70 m). Ahora
+  // las cartas son más chicas y van hacia adentro, y el huso tiene más filas: la misma silueta angosta.
   const lt = new ConstructorAldea(SUP.nada), lf = new ConstructorAldea(SUP.nada, { cartas: true });
   const Kl = { ext: lt, fol: lf, circulo: () => {} };
-  alamo(Kl, 0, 0, { ...o, sinLod: true, lodDe: true, ramitas: 0, ladosNucleo: 5, filasNucleo: 4, cartas: 40, tamCarta: 2.3, alto });
+  alamo(Kl, 0, 0, { ...o, sinLod: true, lodDe: true, ramitas: 0, ladosNucleo: 5, filasNucleo: 5, cartas: 60, tamCarta: 1.6, afuera: [0.3, 0.72], alto });
   K.extra.alamo = { lod: { estructura: lt.geometria(), follaje: lf.geometria() }, alto };
 }
 // 3.6 (detalles): los escalones de laja que salvan el desnivel entre dos lotes, junto al murete de

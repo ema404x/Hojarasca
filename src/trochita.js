@@ -8,6 +8,7 @@ import { registrarLuz } from './luces.js';
 import { sanearTrochita } from './personal-trochita.js';
 import { repintarVertices, cartelNombre, desechar } from './personal-mallas.js';
 import { cabinaNueva, pasoCabina, enElAnden, CABINA } from './maquinista.js';
+import { cubierta } from './techo-lluvia.js';
 
 const MADERA = '#6e5238', MADERA_OSCURA = '#4e3a28', TABLA = '#8a6b4a';
 const TROCHA = 0.75;          // metros entre rieles, como la de verdad
@@ -330,7 +331,8 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
     m.castShadow = true;
     grupo.add(m);
   }
-  const alero = new THREE.Mesh(new THREE.BoxGeometry(W + 2.2, 0.16, chica ? 3.2 : 4.2), new THREE.MeshLambertMaterial({ color: 0x5a4a3e }));
+  const anchoAlero = chica ? 3.2 : 4.2;
+  const alero = new THREE.Mesh(new THREE.BoxGeometry(W + 2.2, 0.16, anchoAlero), new THREE.MeshLambertMaterial({ color: 0x5a4a3e }));
   alero.position.set(0, 3.02, bordeAnden + 1.1);
   alero.rotation.x = -0.14;
   alero.castShadow = true;
@@ -412,6 +414,12 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
     s: p.s, anden, indice: indiceEstacion,
     espera: { x: anden.x, z: anden.z, y: y + 0.6 },
     cargas: { ...w(puestoX, puestoZ), y: y + 0.6 },   // 2.9: donde se para uno para comerciar
+    // 3.6.2 (visual): abajo del techo del galpón y del alero del andén no llueve (ver techo-lluvia.js)
+    cubiertas: [
+      cubierta(p, rot, -W / 2 - 0.7, W / 2 + 0.7, Z0 - D / 2 - 0.6, Z0 + D / 2 + 0.6, y + H + 2.22, { ab: -1.5 / (W / 2) }),
+      cubierta(p, rot, -(W + 2.2) / 2, (W + 2.2) / 2, bordeAnden + 1.1 - anchoAlero / 2, bordeAnden + 1.1 + anchoAlero / 2,
+        y + 2.95 - (bordeAnden + 1.1) * Math.sin(0.14), { az: Math.sin(0.14) }),
+    ],
   };
 }
 

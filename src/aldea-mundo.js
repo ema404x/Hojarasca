@@ -49,6 +49,9 @@ import { armarTerreno } from './terreno.js';
 export const VER_ADENTRO_ALDEA = 25;
 export const VER_PUERTAS_ALDEA = 80;
 export const SOMBRA_ALDEA = 60;
+// 3.6.2 (visual): el LOD de los álamos (a cuántos metros pasan a la versión barata) y el anillo en el que
+// cada uno cambia a su propia distancia
+export const ALAMO_LOD = 70, ALAMO_BANDA = 10;
 // cuánto más que la planta se empareja (en el marco de cada edificio, la puerta en +Z): la galería,
 // el horno o la leña del costado, los materiales de la obra y el frente hasta la vereda
 export const MARGEN_EMPAREJAR = { lado: 2.2, atras: 2.1, frente: 3.2 };
@@ -926,6 +929,7 @@ export function crearAldeaMundo(ctx) {
   let est = null, col = null, puertas = null;
   let emparejado = null;
   const edificios = new Map();     // id → estado de cada edificio
+  let cubiertasHechas = null, versionCubiertas = 0;   // 3.6.2 (visual): ver cubiertas()
   const manzanas = new Map();      // clave → { raiz, x, z, radio, ids, fusion }
   const accesorios = planAccesorios();
   const cola = [];                 // lo armado que espera montarse (de a uno por cuadro)
@@ -1200,8 +1204,13 @@ export function crearAldeaMundo(ctx) {
     const follaje = prepararFollajeAldea(materialVegetal({ flex: 1, copa: true }), { cartas: texturaCartas() });
     const atlas = crearTexturaCarteles({ despues: true });   // (se pinta en completarTexturas)
     texturasVacias();
+    // 3.6.2 (visual): los álamos cambian de LOD como el bosque: en un anillo de ALAMO_LOD ± ALAMO_BANDA m
+    // cada uno pasa a su propia distancia (el umbral por árbol del shader de materialVegetal) y no todos de
+    // golpe a 70 m. Mismos programas que `estructura` y `follaje` (sólo cambian los uniformes del LOD).
+    const lodAlamo = (modo) => ({ modo, inicio: ALAMO_LOD - ALAMO_BANDA, fin: ALAMO_LOD + ALAMO_BANDA });
+    const alamo = (modo) => [prepararMaterialAldea(materialVegetal({ flex: 0, lod: lodAlamo(modo) })), prepararFollajeAldea(materialVegetal({ flex: 1, copa: true, lod: lodAlamo(modo) }), { cartas: follaje.userData.cartas })];
     return {
-      estructura, follaje, muebles: estructura,
+      estructura, follaje, muebles: estructura, alamoCerca: alamo(1), alamoLejos: alamo(2),
       ripio: materialRipio(texturas.grava, texturas.mascara),
       ventanaLuz: new THREE.MeshBasicMaterial({ map: texturaCharco(), color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
       carteles: new THREE.MeshLambertMaterial({ map: atlas }),
@@ -1562,6 +1571,7 @@ export function crearAldeaMundo(ctx) {
     if (spec && b.datos.etapa >= 3) b.luz = nuevaLuz(m, s, spec, spec.clase === 'fragua' ? 'fragua' : 'interior');
     // techo, planta y chimeneas en el mundo
     b.techo = d.techo && d.etapa >= 3 ? { ...d.techo } : null;
+    cubiertasHechas = null; versionCubiertas++;   // 3.6.2 (visual)
     b.chim = d.etapa >= 4 ? [...(d.chimeneas || []), ...(d.humo ? [d.humo] : [])].map((c) => ({ ...aMundoEn(s, c.lx, c.lz), y: s.y + c.ly })) : [];
     b.pisos = (d.pisos || []).map((q) => { const w = aMundoEn(s, q.lx, q.lz); return { x: w.x, z: w.z, ang: -(s.rot + (q.giro || 0)), largo: q.largo, ancho: q.ancho, alto: alturaEn(w.x, w.z) }; });
     // desde los cimientos, la planta entera (entre los tablones de una obra no asoma el pasto)
@@ -1687,9 +1697,11 @@ export function crearAldeaMundo(ctx) {
       alamos.raiz.add(im);
       return im;
     };
+    const [mce, mcf] = materiales.alamoCerca || [materiales.estructura, materiales.follaje];
+    const [mle, mlf] = materiales.alamoLejos || [materiales.estructura, materiales.follaje];
     alamos.mallas = {
-      cerca: [crear(proto.exterior.estructura, materiales.estructura), crear(proto.exterior.follaje, materiales.follaje)],
-      lejos: [crear(proto.lod?.estructura, materiales.estructura), crear(proto.lod?.follaje, materiales.follaje)],
+      cerca: [crear(proto.exterior.estructura, mce), crear(proto.exterior.follaje, mcf)],
+      lejos: [crear(proto.lod?.estructura, mle), crear(proto.lod?.follaje, mlf)],
     };
     alamos.matrices = alamos.lista.map((a) => new THREE.Matrix4().compose(new THREE.Vector3(a.x, a.y, a.z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a.giro), new THREE.Vector3(a.escala, a.escala, a.escala)));
     for (const a of alamos.lista) col.agregar({ x: a.x, z: a.z, r: 0.32 * a.escala, alturaMin: a.y - 0.3, alturaMax: a.y + 15, duenio: 'aldea:accesorios' });
@@ -1701,10 +1713,13 @@ export function crearAldeaMundo(ctx) {
   function lodAlamos(cam, forzar = false) {
     if (!alamos?.mallas) return;
     const n = alamos.lista.length;
+    // 3.6.2 (visual): 1 sólo el de cerca, 2 sólo el de lejos, 3 los dos (en el anillo del LOD: el shader
+    // dibuja uno u otro según el umbral de cada árbol; ver ALAMO_LOD)
     const cerca = alamos.cerca || (alamos.cerca = new Uint8Array(n));
+    const r0 = (ALAMO_LOD - ALAMO_BANDA - 1) ** 2, r1 = (ALAMO_LOD + ALAMO_BANDA + 1) ** 2;
     let cambio = forzar || !alamos.cercaDe;
     for (let i = 0; i < n; i++) {
-      const a = alamos.lista[i], dx = a.x - cam.x, dz = a.z - cam.z, c = dx * dx + dz * dz < 4900 ? 1 : 0;
+      const a = alamos.lista[i], dx = a.x - cam.x, dz = a.z - cam.z, d2 = dx * dx + dz * dz, c = (d2 < r1 ? 1 : 0) | (d2 > r0 ? 2 : 0);
       if (cerca[i] !== c) { cerca[i] = c; cambio = true; }
     }
     if (!cambio) return;
@@ -1712,8 +1727,8 @@ export function crearAldeaMundo(ctx) {
     const [ce, cf] = alamos.mallas.cerca, [le, lf] = alamos.mallas.lejos;
     let nc = 0, nl = 0;
     alamos.lista.forEach((a, i) => {
-      if (cerca[i]) { ce?.setMatrixAt(nc, alamos.matrices[i]); cf?.setMatrixAt(nc, alamos.matrices[i]); nc++; }
-      else { le?.setMatrixAt(nl, alamos.matrices[i]); lf?.setMatrixAt(nl, alamos.matrices[i]); nl++; }
+      if (cerca[i] & 1) { ce?.setMatrixAt(nc, alamos.matrices[i]); cf?.setMatrixAt(nc, alamos.matrices[i]); nc++; }
+      if (cerca[i] & 2) { le?.setMatrixAt(nl, alamos.matrices[i]); lf?.setMatrixAt(nl, alamos.matrices[i]); nl++; }
     });
     for (const [im, k] of [[ce, nc], [cf, nc], [le, nl], [lf, nl]]) {
       if (!im) continue;
@@ -1746,7 +1761,10 @@ export function crearAldeaMundo(ctx) {
       // fundido y no se montaba) y los puntos con nombre de cada pieza, para aldea-mecanicas-mundo.js
       (E.puntos ??= {})[pz.id] = { sitio: { ...s }, nombrados: pz.edificio.puntos?.nombrados || {} };
       for (const a of pz.edificio.animables || []) (E.animables ??= []).push(animableEnSitio(a, s, E.raiz, 'estacion'));
+      // 3.6.2 (visual): y sus techos (el galpón de cargas), para que no llueva abajo
+      for (const c of pz.edificio.techo?.cubiertas || []) (E.cubiertas ??= []).push({ x: s.x, z: s.z, rot: s.rot, x0: c.x0, x1: c.x1, z0: c.z0, z1: c.z1, y: s.y + c.y, ax: c.ax || 0, ab: c.ab || 0, az: c.az || 0 });
     }
+    cubiertasHechas = null; versionCubiertas++;
     for (const [capa, piezas] of Object.entries(capas)) {
       if (!capaMat(capa)) continue;
       const j = juntar(piezas);
@@ -2033,6 +2051,17 @@ export function crearAldeaMundo(ctx) {
     for (const b of edificios.values()) if (b.techo) lista.push({ x: b.sitio.x, z: b.sitio.z, rot: b.sitio.rot, x0: b.techo.x0, x1: b.techo.x1, z0: b.techo.z0, z1: b.techo.z1 });
     return lista;
   }
+  // 3.6.2 (visual): los techos de cada edificio con su altura, para que no llueva abajo (el formato de
+  // `cubierta` de techo-lluvia.js); se arma de nuevo sólo cuando cambia algún edificio (`versionCubiertas`)
+  function cubiertas() {
+    if (cubiertasHechas) return cubiertasHechas;
+    cubiertasHechas = [...(estacionHecha?.cubiertas || [])];
+    for (const b of edificios.values()) {
+      const s = b.sitio;
+      for (const c of b.techo?.cubiertas || []) cubiertasHechas.push({ x: s.x, z: s.z, rot: s.rot || 0, x0: c.x0, x1: c.x1, z0: c.z0, z1: c.z1, y: (s.y || 0) + c.y, ax: c.ax || 0, ab: c.ab || 0, az: c.az || 0 });
+    }
+    return cubiertasHechas;
+  }
   // Lo pisado sin pasto (para marcarPisos): las calles (en tramos de 20 m) y los pisos de cada edificio.
   let pisosCalles = null;
   function pisos() {
@@ -2089,7 +2118,7 @@ export function crearAldeaMundo(ctx) {
   }
   return {
     emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,
-    actualizar, luces: actualizarLuces, adentro, bajoCubierta, techoEn, techos, pisos, chimeneasCerca, medir, estadoEdificio,
+    actualizar, luces: actualizarLuces, adentro, bajoCubierta, techoEn, techos, pisos, cubiertas, versionCubiertas: () => versionCubiertas, chimeneasCerca, medir, estadoEdificio,
     raices: () => [...[...manzanas.values()].map((m) => m.raiz), alamos?.raiz, estacionHecha?.raiz, calles?.raiz].filter(Boolean),
     charcos: () => calles?.charcos || null,
     // 3.6 (pulido): para la fase de mecánicas: lo que se mueve y lo que echa humo o chispas
