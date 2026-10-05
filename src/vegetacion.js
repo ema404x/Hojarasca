@@ -2142,7 +2142,10 @@ export function generarVegetacion(T, calidad, escena) {
         }
         if (impostores && ref.imp !== undefined) impostores.ponerMatriz(ref.imp, cero.elements);
       }
-      if (e.choque) e.choque.apagado = true;
+      // 3.6.2: y su choque deja de frenar (colisiones.js mira `despejado`): quedaban árboles invisibles que
+      // chocaban junto al galpón, la cueva y las estaciones. (Lo talado no: ahí queda el tocón, que sí frena;
+      // y un despejado no rebrota, así que no hay que volver a prenderlo)
+      if (e.choque) { e.choque.apagado = true; e.choque.despejado = true; }
       if (e.planta) e.planta.sacado = true;
       compactoSucio = true;
       medioSucio = true;

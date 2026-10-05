@@ -65,11 +65,13 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo } from './aldea.js';
+import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
+import { gruposDeObras, buscarLugar, materialesDeObra, sumarMateriales, devolucionDeRenoval, textoDesalojo } from './aldea-desalojo.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
 // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
 import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
+import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 // 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
@@ -352,6 +354,7 @@ window.addEventListener('blur', () => { if (desafio?.bloqueando) desafio.bloquea
 // Desafío: clic izquierdo ataca con el arma en la mano (la caña de pescar conserva su clic)
 window.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo) return;
+  if (panelDelHudAbierto()) return;   // 3.6.2: con el taller (o el almacén del valle) abierto, el clic no ataca
   if (!jugador?.bloqueado() || pesca?.est.equipada) return;
   const js = jugador.estado;
   if (js.enKayak || js.enTren || js.sentado) return;
@@ -592,7 +595,9 @@ async function construir() {
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
-  mapa = crearMapa(T);
+  // 3.6.2: en el Relax, el mapa dibuja las calles y los edificios de la aldea (y ahí no pone bosque: el claro
+  // llega hasta la escuela y el fondo de la calle de la Biblioteca, unos metros más allá de distanciaAldea)
+  mapa = crearMapa(T, aldeaMundo ? { aldea: { ...planoAldeaMapa(), dentro: (x, z) => distanciaAldea(x, z) < 7 } } : null);
   jugador = crearJugador(camara, T, col, {
     lienzo,
     activo: () => modo === 'jugando',
@@ -629,7 +634,8 @@ async function construir() {
   majadaMundo = crearMajada(T, escena);
   caballoMundo = esDesafio ? null : crearCaballo(T, escena);
   majadaMundo?.refrescarLana(majada(), progreso.dia);
-  renovales.sincronizar(progreso.renovales);
+  desalojo = { obras: { mudadas: 0, desarmadas: 0 }, renovales: { mudados: 0, devueltos: 0 }, carpa: null, materiales: {} };   // 3.6.2
+  progreso.renovales = desalojarRenovales(progreso.renovales);   // 3.6.2: (antes, renovales.sincronizar)
   renovales.actualizar(progreso.dia);
   // el mundo se genera con todos los árboles en pie: acá se vuelven a sacar los talados
   progreso.talados = sanearTalados(progreso.talados, veg.arboles.length);
@@ -652,8 +658,11 @@ async function construir() {
   // 2.4.1: las obras de un plano que esta versión no conoce (una partida de la otra PC,
   // con una versión más nueva) no se arman, pero tampoco se pierden: vuelven al guardar.
   obrasAjenas = (progreso.obras || []).filter((d) => d && !PLANO[d.plano]);
-  obras.sincronizar(progreso.obras);
+  desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
+  desalojarCarpa();   // 3.6.2
+  avisoDesalojo = textoDesalojo(desalojo);
+  if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
   refrescarHuerta();
   gallinasMundo = crearGallinas(T, escena);
@@ -1789,6 +1798,8 @@ $('btn-entrar').addEventListener('click', () => {
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
   }
   else if (!habiaGuardado || !progreso.pos) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
+  // 3.6.2: lo tuyo que quedó donde ahora está la aldea (una partida de antes de la 3.6): una sola nota
+  if (avisoDesalojo) { const a = avisoDesalojo; avisoDesalojo = null; setTimeout(() => nota(a.titulo, a.sub, true), 2600); }
   valle?.alEntrar();   // 3.1: con Historia elegida, empieza (o sigue) el capítulo
   volverAlJuego();
 });
@@ -2284,6 +2295,7 @@ function personalizarDesdeElJuego() {
 $('btn-personalizar').addEventListener('click', () => abrirPersonal('pausa'));
 $('btn-personalizar-inicio').addEventListener('click', () => abrirPersonal('inicio'));
 $('btn-personalizar-mochila').addEventListener('click', personalizarDesdeElJuego);
+$('btn-personalizar-mochila').addEventListener('mousedown', (ev) => ev.stopPropagation());   // 3.6.2: que el clic no tire la línea
 $('cerrar-personalizar').addEventListener('click', cerrarPersonal);
 
 // "Tu interfaz" en el HUD: clases en #hud y el color de acento (ver personal-interfaz.js).
@@ -3127,7 +3139,7 @@ function abrirMochila(abrir) {
     d.tabIndex = 0;
     d.title = 'Clic o Enter para ponerlo en la casilla elegida';
     const asignar = () => { asignarRanura(c.id); abrirMochila(true); };
-    d.addEventListener('click', asignar);
+    alClicHud(d, asignar);   // 3.6.2: mousedown (el click tiraba la línea antes de llegar)
     d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); asignar(); } });
     const img = document.createElement('img');
     img.src = icono(c.icono); img.alt = c.nombre;
@@ -4451,7 +4463,7 @@ function dibujarFeria() {
     const span = document.createElement('span'); span.textContent = ` — ${T_(`da ${t.da} por ${t.pide}`)}`;
     const marca = document.createElement('i'); marca.textContent = T_(hecho ? 'ya cambiado' : tengo ? 'se puede cambiar' : 'falta juntar');
     li.append(b, span, marca);
-    li.addEventListener('click', () => cambiarFeria(i));
+    alClicHud(li, () => cambiarFeria(i));   // 3.6.2
     ul.appendChild(li);
   });
 }
@@ -4990,6 +5002,94 @@ function mudarDatosDeObra(o, x0, z0) {
     if (a !== b && Object.hasOwn(tabla, a)) { tabla[b] = tabla[a]; delete tabla[a]; }
   }
   // (3.6: ya no hay pobladores que vivan en tus casas: viven en la Aldea de los Duendes)
+}
+// ---------------------------------------------------------------- 3.6.2: lo tuyo que quedó en la aldea
+// En una partida de antes de la 3.6, las obras, los renovales y la carpa que tenías cerca de la parada sur
+// quedan encimados sobre las calles o adentro de los edificios de la Aldea de los Duendes. Al cargar (sólo en el
+// Relax: T.sinObras) cada cosa se muda al lugar libre más cercano fuera de la aldea, con sus datos (lo sembrado,
+// los huevos, la miel); una casa de piezas se muda entera. Si no hay lugar, se desarma y se devuelve todo lo
+// que costó (las obras, sus materiales y lo que tenían adentro; los renovales, su plantín). Una sola nota.
+// Las reglas, en aldea-desalojo.js.
+let desalojo = null, avisoDesalojo = null;
+// hacia dónde queda "afuera" desde un punto (para probar primero de ese lado)
+function rumboAfueraDeLaAldea(x, z) {
+  const c = edificioEnMundo('plaza');
+  return c ? Math.atan2(x - c.x, z - c.z) : 0;
+}
+function desalojarRenovales(lista) {
+  if (typeof T.sinObras !== 'function' || !Array.isArray(lista)) { renovales.sincronizar(lista); return lista; }
+  const quedan = [], adentro = [];
+  for (const d of lista) (d && Number.isFinite(d.x) && Number.isFinite(d.z) && T.sinObras(d.x, d.z, 1) ? adentro : quedan).push(d);
+  renovales.sincronizar(quedan);
+  for (const d of adentro) {
+    const l = buscarLugar((dx, dz) => renovales.sitioBueno(d.x + dx, d.z + dz, veg).ok, { haciaAfuera: rumboAfueraDeLaAldea(d.x, d.z) });
+    if (l) { d.x += l.dx; d.z += l.dz; renovales.sincronizar([d]); quedan.push(d); desalojo.renovales.mudados++; continue; }
+    // (sin la fanfarria de sumarEntrada: es la carga)
+    const id = devolucionDeRenoval(d.especie);
+    const e = progreso.entradas[id] || (progreso.entradas[id] = { dia: progreso.dia, hora: progreso.horas, cantidad: 0 });
+    e.cantidad = (Number(e.cantidad) || 0) + 1;
+    desalojo.renovales.devueltos++;
+  }
+  return quedan;
+}
+function desalojarObras(lista) {
+  // las que se arman (como en obras.sincronizar: un dato roto o un plano de otra versión siguen su camino)
+  const validos = [], otros = [];
+  for (const d of lista) {
+    const ok = d && typeof d === 'object' && Number.isFinite(d.x) && Number.isFinite(d.z) && Object.hasOwn(PLANO, d.plano) && !(PLANO[d.plano].pieza && !(Number(d.etapas) > 0));
+    (ok ? validos : otros).push(d);
+  }
+  if (typeof T.sinObras !== 'function') { obras.sincronizar(lista); return; }
+  const radio = (d) => PLANO[d.plano].radio || 1;
+  const grupos = gruposDeObras(validos, radio, (d) => !!T.sinObras(d.x, d.z, radio(d)));
+  const enGrupo = new Set(grupos.flat());
+  obras.sincronizar([...otros, ...validos.filter((_, i) => !enGrupo.has(i))]);
+  for (const g of grupos) {
+    const ds = g.map((i) => validos[i]);
+    // las que apoyan en el suelo se revisan como si las pusieras vos (agua, pendiente, la vía, el sendero, los
+    // árboles, tus otras obras); las de arriba (paredes, techos, entrepisos) van con ellas
+    const yDe = (d) => (Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z));
+    const y0 = Math.min(...ds.map(yDe));
+    const suelo = ds.filter((d) => { const p = PLANO[d.plano]; return !p.requierePlataforma && !p.requiereSoporteVertical && !p.requiereHuecoEscalera && yDe(d) - y0 < 0.35; });
+    const ancla = suelo.reduce((a, d) => (yDe(d) < yDe(a) ? d : a), suelo[0] || ds[0]);
+    let base = null;
+    const libre = (dx, dz) => {
+      for (const d of ds) if (T.sinObras(d.x + dx, d.z + dz, radio(d))) return false;
+      base = null;
+      for (const d of suelo) {
+        const r = obras.revisarSitio(d.x + dx, d.z + dz, PLANO[d.plano], Number.isFinite(d.rot) ? d.rot : 0);
+        if (!r.ok) return false;
+        if (d === ancla) base = r.base;
+      }
+      if (!suelo.length) {   // (nada en el suelo: al menos seco y no muy empinado)
+        const x = ancla.x + dx, z = ancla.z + dz;
+        if (T.agua(x, z) || Math.acos(clamp(T.normal(x, z).y, -1, 1)) > 0.3) return false;
+      }
+      return true;
+    };
+    const l = buscarLugar(libre, { haciaAfuera: rumboAfueraDeLaAldea(ancla.x, ancla.z) });
+    if (l) {
+      const dy = (Number.isFinite(base) ? base : T.altura(ancla.x + l.dx, ancla.z + l.dz)) - yDe(ancla);
+      const antes = new Map(ds.map((d) => [d, { x: d.x, z: d.z }]));
+      for (const d of ds) { d.x += l.dx; d.z += l.dz; if (Number.isFinite(d.y)) d.y += dy; }
+      obras.sincronizar(ds);
+      for (const o of obras.obras) { const a = antes.get(o.datos); if (a) mudarDatosDeObra(o, a.x, a.z); }
+      desalojo.obras.mudadas += ds.length;
+    } else {
+      for (const d of ds) { sumarMateriales(desalojo.materiales, materialesDeObra(d, PLANO[d.plano])); devolverContenido(d); }
+      desalojo.obras.desarmadas += ds.length;
+    }
+  }
+}
+function desalojarCarpa() {
+  const c = progreso.carpa;
+  if (!c || typeof T.sinObras !== 'function' || !Number.isFinite(c.x) || !Number.isFinite(c.z) || !T.sinObras(c.x, c.z, 1.6)) return;
+  const libre = (dx, dz) => {
+    const x = c.x + dx, z = c.z + dz;
+    return !T.sinObras(x, z, 1.6) && !T.agua(x, z) && Math.acos(clamp(T.normal(x, z).y, -1, 1)) <= 0.45;
+  };
+  const l = buscarLugar(libre, { haciaAfuera: rumboAfueraDeLaAldea(c.x, c.z) });
+  if (l) { c.x += l.dx; c.z += l.dz; desalojo.carpa = 'mudada'; } else { progreso.carpa = null; desalojo.carpa = 'levantada'; }
 }
 // 3.5.1: desmontar una obra que trabaja devuelve lo que tenía adentro: antes se perdían los
 // troncos secos de la leñera, la miel, las truchas del ahumadero, las tablas del aserradero y la harina
@@ -6144,7 +6244,7 @@ function accionDelLugar() {
   if (cercaDelMostrador() && !enElAlmacen) return { texto: 'Ver qué hay en el almacén', hacer: () => abrirAlmacen() };
   if (enLaCasaDeTe()) return { texto: 'Pedir algo en la casa de té', hacer: () => servir() };
   const m = mecanicasAldea?.accion(jugador.estado);
-  if (m && ['prestamo', 'casillas', 'horario', 'mapa', 'camilla'].includes(m.tipo)) return { texto: m.texto, hacer: m.hacer };
+  if (m && MECANICAS_EN_LA_CHARLA.includes(m.tipo)) return { texto: m.texto, hacer: m.hacer };   // (3.6.2: y el libro prestado)
   return null;
 }
 // 3.6.1: el menú (o el submenú) con lo del lugar. Antes lo del lugar se agregaba sólo al abrirlo: al
@@ -6285,8 +6385,8 @@ function dibujarAlmacen() {
     const guardadas = t.repetible && progreso.cosas[t.id] ? ` · tenés ${progreso.cosas[t.id]}` : '';
     marca.textContent = (hecho ? 'ya lo tenés' : tengo ? 'se puede' : 'falta juntar') + guardadas;
     li.append(b, span, marca);
-    // 2.1: también con un clic
-    li.addEventListener('click', () => cambiar(i));
+    // 2.1: también con un clic (3.6.2: mousedown: el click no llegaba, ver alClicHud)
+    alClicHud(li, () => cambiar(i));
     ul.appendChild(li);
   });
   const n = paginasAlmacen();
@@ -6394,8 +6494,17 @@ function actualizarEscucha(dtReal) {
   if (texto !== ultimaEscucha) { panel.textContent = texto; ultimaEscucha = texto; }
   panel.classList.remove('oculto');
 }
+// 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
+// elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto;
+// 3.6.2: las opciones de las listas del HUD (el #hud no recibe el mouse: cada lista lo pide en plantilla.html) se
+// eligen con mousedown, como el menú de la charla en la 3.6.1, y el clic no sigue de largo
+function alClicHud(el, fn) {
+  el.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); fn(); });
+}
 document.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || modo !== 'jugando' || !jugador || !jugador.bloqueado() || foto.activo) return;   // 3.5.4: ni en el modo foto
+  if (panelDelHudAbierto()) return;   // 3.6.2
   // 3.6.1: charlando con el mouse bloqueado (sin flecha para apuntar), el clic es E: elige la opción
   // marcada o sigue la charla (antes tiraba la línea de pesca en medio de la charla)
   if (charla.npc && document.pointerLockElement) { seguirCharla(); return; }
@@ -7480,7 +7589,8 @@ function cuadroDelJuego(tRaf, manual) {
       acumuladoVecino = 0; vecino = gente.cerca(js, camara);
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
-      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || mecanicasAldea?.accion(js))) vecino = gente.cerca(js, camara, true);
+      // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);
     }
     acumuladoBuscar += dt;
     acumuladoInteraccion += dt;
@@ -8019,6 +8129,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.6 (vida): la vecindad en el juego y el menú de la charla
     __vecindad: () => vecindadJuego, __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
+    // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
+    __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },
     // 2.9: las máquinas
     __maquinas: { revisar: revisarMaquinas, actualizar: actualizarMaquinas, usar: usarMaquina, aviso: avisoMaquina, pronostico: pronosticoActual, noches: nochesActuales, meteo: meteoPartida, radio: radioPartida, mundo: () => ({ molino: molinoMundo, meteo: meteoMundo }) },
     // 2.9: la trochita de maquinista y el comercio

@@ -344,6 +344,20 @@ export function edificioEnMundo(id, parada = PARADA_ALDEA) {
   return { id, ...m.aMundo(e.x, e.z), y: e.y, rot: m.rotMundo(e.rot), ancho: e.ancho, fondo: e.fondo };
 }
 
+// 3.6.2: la aldea para el mapa del valle (mapa.js), en coordenadas del mundo: las calles (su eje y su ancho) y la
+// planta de cada edificio (sus cuatro esquinas): 'plaza', 'lote' (el de un poblador que todavía puede no haber
+// llegado: el lote con sus estacas también está) o 'edificio'
+export function planoAldeaMapa(parada = PARADA_ALDEA) {
+  const m = marcoAldea(parada);
+  const calles = CALLES_ALDEA.map((c) => ({ id: c.id, ancho: c.ancho, puntos: c.puntos.map(([lx, lz]) => m.aMundo(lx, lz)) }));
+  const edificios = IDS_EDIFICIOS.map((id) => {
+    const p = plantaDe(id), e = EDIFICIOS_ALDEA[id];
+    const esquinas = [[p.x0, p.z0], [p.x1, p.z0], [p.x1, p.z1], [p.x0, p.z1]].map(([lx, lz]) => m.aMundo(lx, lz));
+    return { id, esquinas, tipo: e.abierta ? 'plaza' : e.poblador && !e.inicial ? 'lote' : 'edificio' };
+  });
+  return { calles, edificios };
+}
+
 // Lo que el mundo tiene que despejar (sacar árboles, con `veg.despejar`) y emparejar antes
 // de armar la malla del suelo: un rectángulo por edificio (con 2,5 m de borde para fundirse
 // con el terreno), a la altura objetivo de su piso, y las calles, que se despejan pero siguen
@@ -1216,6 +1230,11 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
     return ir('biblioteca', 'biblioteca', `lectura-${OYENTES.indexOf(persona) + 1}`);
   }
   if (bandera) return ir('plaza', 'plaza', 'soga');
+  // 3.6.2: el sábado, tres cuartos de hora antes del baile se deja lo que se esté haciendo (para llegar
+  // caminando sin que la ida se coma el baile: ver conTiempo en aldea-gente.js), y después del baile nadie
+  // vuelve a trabajar (antes volvían al almacén o a la casa de té para una hora: más camino que trabajo)
+  const sabadoDeBaile = sabado && localAbierto(a, 'salon') && persona !== 'musico' && !v?.chico;
+  if (sabadoDeBaile && ((t >= 16.25 && t < 17) || (t >= 19 && t < 20 && !bandera))) return enCasa('adentro');
   // sábado a la tarde, todos al salón con el músico (3.6 (mecánicas): baile)
   if (baileDelSabado) {
     if (persona === 'musico') return ir('salon', 'salon', 'escenario');
@@ -1225,13 +1244,17 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   // los chicos
   if (v?.chico) {
     const juego = ir('plaza', 'plaza', `juego-${persona === 'nene' ? 1 : 2}`);
-    if (habil && localAbierto(a, 'escuela') && t >= 8.5 && t < 13) return ir('escuela', 'escuela', `pupitre-${persona === 'nene' ? 1 : 2}`);
+    // (3.6.2: hasta las 12:30, y a las 13 almuerzan en casa: la media hora del medio es para volver caminando)
+    if (habil && localAbierto(a, 'escuela') && t >= 8.5 && t < 12.5) return ir('escuela', 'escuela', `pupitre-${persona === 'nene' ? 1 : 2}`);
     if (t >= 13 && t < 14) return enCasa('adentro');
     if (t >= 14 && t < 18) return juego;
     if (!habil && t >= 10 && t < 12.5) return juego;
     if (t >= 18 && t < 20) return enCasa('trabajo');
     return enCasa('adentro');
   }
+  // 3.6.2: el jefe de estación almuerza en la estación, con la vianda (su casa queda en la otra punta: iba y
+  // volvía caminando toda la hora del almuerzo)
+  if (persona === 'jefe' && !domingo && t >= 12.5 && t < 13.5) return ir('trabajo', 'estacion-aldea', 'adentro');
   // el almuerzo, en casa
   if (t >= 12.5 && t < 13.5) return enCasa('adentro');
   // la obra del pueblo, de día y de lunes a sábado
@@ -1246,30 +1269,41 @@ export function rutinaAldea(persona, hora, diaSemana, estado) {
   // de lunes a sábado, cada uno con lo suyo
   if (v) {
     if (persona === 'jefe') {
-      if (t >= 7 && t < 20) return ir('trabajo', 'estacion-aldea', Math.floor(h) % 2 ? 'anden' : 'adentro');
+      // 3.6.2: de su casa va derecho a izar la bandera, toma unos mates en la plaza y abre la estación a las
+      // 8:45; a las 18 la cierra, espera en la plaza y arría (a las 19:15 ya está libre). En la estación
+      // cambia del andén a adentro cada dos horas (antes cada hora, y entre la estación y la plaza: se pasaba
+      // casi la mitad del horario caminando)
+      if (h >= 8.75 && h < 18) return ir('trabajo', 'estacion-aldea', Math.floor((h - 1) / 2) % 2 ? 'anden' : 'adentro');
+      if (h >= 8.25 && h < 8.75) return plaza();
+      if (h >= 18 && h < 18.5) return plaza();
     } else if (persona === 'ercilia') {
-      // horario de almacén de pueblo: de 8:30 a 12:30 y de 16 a 20, con siesta en el medio
-      if ((t >= 8.5 && t < 12.5) || (t >= 16 && t < 20)) return ir('trabajo', 'almacen', 'adentro');
-      if (t >= 13.5 && t < 16) return cama();
+      // horario de almacén de pueblo: de 8:30 a 12 y de 16 a 20, con siesta en el medio
+      // (3.6.2: cierra a las 12 y la siesta es hasta las 15:15: su casa queda a 47 m por la calle, y la ida y la
+      // vuelta se comían el almuerzo y la apertura de la tarde)
+      if ((t >= 8.5 && t < 12) || (t >= 16 && t < 20)) return ir('trabajo', 'almacen', 'adentro');
+      if (t >= 13.5 && t < 15.25) return cama();
     } else if (persona === 'nelida') {
       // la ayudante: barre la vereda, repone y atiende mientras Ercilia duerme la siesta
       if (t >= 8 && t < 9) return ir('trabajo', 'almacen', 'vereda');
-      if (t >= 9 && t < 12.5) return ir('trabajo', 'almacen', 'reponer');
-      if (t >= 13.5 && t < 16) return ir('trabajo', 'almacen', 'adentro');
+      // (3.6.2: a las 12 se va a almorzar y vuelve a las 14: vive lejos, y la ida y la vuelta se comían el horario)
+      if (t >= 9 && t < 12) return ir('trabajo', 'almacen', 'reponer');
+      if (t >= 14 && t < 16) return ir('trabajo', 'almacen', 'adentro');
       if (t >= 16 && t < 18.5) return ir('trabajo', 'almacen', 'reponer');
     } else if (persona === 'galesa') {
       // a la mañana hornea; de 15 a 20 atiende la galería
       if (t >= 9 && t < 12.5) return ir('trabajo', 'casa-te', 'cocina');
       if (t >= 15 && t < 20) return ir('trabajo', 'casa-te', 'adentro');
     } else if (persona === 'abuela') {
-      if (t >= 15 && t < 18) return plaza();   // cuenta la leyenda a quien quiera escuchar
-      if (t >= 9 && t < 12) return ir('biblioteca', 'biblioteca', 'adentro');   // a la mañana atiende la biblioteca
+      // cuenta la leyenda a quien quiera escuchar (3.6.2: desde las 15:30: su casa queda lejos de la plaza)
+      if (t >= 15.5 && t < 18) return plaza();
+      if (t >= 9 && t < 11.75) return ir('biblioteca', 'biblioteca', 'adentro');   // a la mañana atiende la biblioteca (3.6.2: hasta las 11:45, para llegar a almorzar)
       if (t >= 18 && t < 20) return enCasa('trabajo');
     } else if (persona === 'padre') {
       if ((t >= 8 && t < 12.5) || (t >= 13.5 && t < 18)) return enCasa('trabajo');
     } else if (persona === 'madre') {
-      if (t >= 8 && t < 11) return enCasa('trabajo');
-      if (t >= 11 && t < 12.5) return ir('almacen', 'almacen', 'cliente-1');
+      // (3.6.2: deja el telar media hora antes de las compras y vuelve a almorzar con tiempo)
+      if (t >= 8 && t < 10.5) return enCasa('trabajo');
+      if (t >= 11 && t < 12) return ir('almacen', 'almacen', 'cliente-1');
       if (t >= 16 && t < 18) return plaza();
     }
   } else if (abierto) {

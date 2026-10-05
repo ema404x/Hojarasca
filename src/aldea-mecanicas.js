@@ -69,6 +69,13 @@ export const AVISOS_MECANICAS = {
 export const avisoPrestado = (libro) => `Leer «${libro.titulo}», el libro prestado`;
 export const avisoDevolver = (libro) => `Devolver «${libro.titulo}»`;
 
+// 3.6.2: lo del lugar que, con alguien al lado, le gana a la charla (para hablarle hay que mirarlo de frente: el
+// mostrador de la biblioteca con la abuela atendiendo). Leer el libro prestado sentado en tu casa no: la visita
+// en tu mesa gana, como antes de la 3.6, y leer queda para cuando no hay visita o en el menú de la charla
+export const lugarTapaVecino = (tipo) => typeof tipo === 'string' && Object.hasOwn(MECANICAS, tipo) && tipo !== 'libro-prestado';
+// Lo del lugar que también está en el menú de la charla (con alguien al lado no te tapa lo que viniste a hacer)
+export const MECANICAS_EN_LA_CHARLA = ['prestamo', 'casillas', 'horario', 'mapa', 'camilla', 'libro-prestado'];
+
 // Elegir, entre las que están a mano, la de más prioridad (y entre iguales, la más cercana).
 // `cands`: [{ tipo, d }]. La usan el aviso y la tecla E: por eso tienen siempre el mismo orden.
 export function elegirMecanica(cands) {

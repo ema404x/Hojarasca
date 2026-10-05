@@ -135,7 +135,8 @@ const M = A.marcoAldea();
   n++;
   const ds = G.destinosAldea(a, 13, 1, quienes);
   eq(ds.get('madre').edificio, 'casa-familia');
-  ok(ds.get('madre').adentro && !ds.get('padre').punto.startsWith('obra') && ds.get('jefe').edificio === 'casa-jefe', 'al mediodía, cada uno en su casa');
+  // (3.6.2: el jefe de estación almuerza en la estación, con la vianda: su casa queda en la otra punta)
+  ok(ds.get('madre').adentro && !ds.get('padre').punto.startsWith('obra') && ds.get('jefe').edificio === 'estacion-aldea', 'al mediodía, cada uno en su casa (el jefe, en la estación)');
 }
 
 // ============================================================ 4. en el juego (con gente de mentira)

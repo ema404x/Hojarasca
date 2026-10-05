@@ -1614,7 +1614,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function arbolCerca(p, jp) {
     let mejor = null, d0 = 11;
     for (const o of col.cercanos(p.x, p.z)) {
-      if (o.seg || o.duenio || o.dinamico || !(o.r > 0.15 && o.r < 1.4)) continue;
+      if (o.seg || o.duenio || o.dinamico || o.despejado || !(o.r > 0.15 && o.r < 1.4)) continue;   // (3.6.2: ni detrás de un árbol que ya no está)
       const d = Math.hypot(o.x - p.x, o.z - p.z);
       if (d < d0 && Math.hypot(o.x - jp.x, o.z - jp.z) > 6) { d0 = d; mejor = o; }
     }

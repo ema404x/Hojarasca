@@ -155,6 +155,9 @@ export function crearColisiones() {
     for (const o of lista) {
       if (o.__pasada === marca) continue;
       o.__pasada = marca;
+      // 3.6.2: lo que despejó una construcción (un árbol o una mata que ya no se ve) no frena. Antes esto se
+      // arreglaba sólo en la aldea (bajándole el techo); el resto del valle tenía árboles invisibles que chocaban
+      if (o.despejado) continue;
       if (o.alturaMax !== undefined && pie > o.alturaMax + 0.01) continue;
       // Si todo el cuerpo queda por debajo, no hay choque. Antes se
       // comparaban solo los pies con alturaMin y los muebles elevados

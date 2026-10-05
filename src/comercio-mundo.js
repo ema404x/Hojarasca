@@ -100,7 +100,8 @@ export function crearPuestoDeCargas(ctx) {
       const span = document.createElement('span'); span.textContent = ` — ${T_(f.detalle)}`;
       const marca = document.createElement('i'); marca.textContent = T_(f.marca);
       li.append(b, span, marca);
-      li.addEventListener('click', () => elegir(i));
+      // 3.6.2: mousedown, como el menú de la charla (el click no llegaba y el clic seguía de largo al juego)
+      li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegir(i); });
       ul.appendChild(li);
     });
     if (!ul.children.length) {

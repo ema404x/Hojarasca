@@ -31,7 +31,10 @@ const DIBUJOS_SEMILLA = {
   },
 };
 
-export function crearMapa(T) {
+// 3.6.2: `extra.aldea` (sólo en el Relax): { calles: [{ ancho, puntos: [{ x, z }] }], edificios: [{ esquinas:
+// [{ x, z }], tipo: 'edificio'|'lote'|'plaza' }], dentro(x, z) } en coordenadas del valle (ver planoAldeaMapa en aldea.js)
+export function crearMapa(T, extra = null) {
+  const aldea = extra?.aldea || null;
   const TAM = 640;
   let base = null;
   function hornear() {
@@ -124,7 +127,30 @@ export function crearMapa(T) {
   for (let i = 0; i < 5000; i++) {
     const px = azarMapa() * TAM, py = azarMapa() * TAM;
     const wx = (px / TAM) * 1024 - MITAD, wz = (py / TAM) * 1024 - MITAD;
-    if (T.val(T.bosque, wx, wz) > 0.55 && !T.agua(wx, wz)) { x.beginPath(); x.arc(px, py, 1.6, 0, Math.PI * 2); x.fill(); }
+    // (3.6.2: en la aldea no hay bosque: es un claro con calles)
+    if (T.val(T.bosque, wx, wz) > 0.55 && !T.agua(wx, wz) && !aldea?.dentro?.(wx, wz)) { x.beginPath(); x.arc(px, py, 1.6, 0, Math.PI * 2); x.fill(); }
+  }
+
+  // 3.6.2: la Aldea de los Duendes: las calles de ripio y los edificios como manchitas (los lotes, más claros)
+  if (aldea) {
+    const m = TAM / 1024;
+    x.lineCap = 'round';
+    for (const [color, mas] of [['rgba(92, 64, 36, 0.55)', 1.2], ['rgba(196, 170, 124, 0.95)', 0]]) {
+      x.strokeStyle = color;
+      for (const c of aldea.calles || []) {
+        x.lineWidth = Math.max(1.4, c.ancho * m + mas);
+        x.beginPath();
+        c.puntos.forEach((p, i) => { const q = aMapa(p.x, p.z); if (i === 0) x.moveTo(...q); else x.lineTo(...q); });
+        x.stroke();
+      }
+    }
+    const relleno = { edificio: 'rgba(86, 52, 30, 0.82)', lote: 'rgba(110, 80, 50, 0.32)', plaza: 'rgba(120, 132, 84, 0.45)' };
+    for (const e of aldea.edificios || []) {
+      x.fillStyle = relleno[e.tipo] || relleno.edificio;
+      x.beginPath();
+      e.esquinas.forEach((p, i) => { const q = aMapa(p.x, p.z); if (i === 0) x.moveTo(...q); else x.lineTo(...q); });
+      x.closePath(); x.fill();
+    }
   }
 
   }
@@ -147,8 +173,10 @@ export function crearMapa(T) {
     const ocupados = [];
     const rotular = (texto, px, py, arriba, alto) => {
       if (!texto) return;
-      // (el mismo nombre ya escrito al lado, como la Estación del Valle y su parada: una vez)
-      if (ocupados.some((o) => o[4] === texto && Math.abs((o[0] + o[1]) / 2 - px) < alto * 3 && Math.abs(o[3] - py) < alto * 3)) return;
+      // (el mismo nombre ya escrito al lado, como la Estación del Valle y su parada: una vez; 3.6.2: sin mirar
+      // mayúsculas: el galpón de esquila es un lugar y una marca automática)
+      const igual = String(texto).toLowerCase();
+      if (ocupados.some((o) => o[4] && o[4].toLowerCase() === igual && Math.abs((o[0] + o[1]) / 2 - px) < alto * 3 && Math.abs(o[3] - py) < alto * 3)) return;
       const a = ctx.measureText(texto).width / 2 + 2, m = arriba * 0.8;
       // arriba, abajo, a los costados (a la altura del punto o un poco más abajo) y más arriba; si no
       // entra en ninguno, arriba igual (un nombre perdido es peor que uno encimado)
@@ -166,6 +194,12 @@ export function crearMapa(T) {
         return;
       }
     };
+    // 3.6.2: los dibujos (puntos, paradas, marcas automáticas) se reservan antes de escribir: un nombre no se
+    // escribe encima del punto de otro lugar
+    const reservar = (wx, wz, r) => { const [px, py] = aP(wx, wz); ocupados.push([px - r, px + r, py - r, py + r, null]); };
+    for (const l of Object.values(lugares)) reservar(l.x, l.z, W / 170);
+    for (const m of marcas) if (m.tipo === 'parada') reservar(m.x, m.z, W / 220);
+    for (const a of automaticas) if (a.clase !== 'cerco') reservar(a.x, a.z, a.clase === 'puesto' ? W / 60 : Object.hasOwn(DIBUJOS_SEMILLA, a.clase) ? W / 90 : W / 130);
     for (const [id, l] of Object.entries(lugares)) {
       const [px, py] = aP(l.x, l.z);
       ctx.fillStyle = 'rgba(92, 46, 22, 0.9)';
@@ -219,7 +253,7 @@ export function crearMapa(T) {
         ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#2f4a26';
         ctx.font = `600 ${Math.round(W / 50)}px Caveat, cursive`;
-        ctx.fillText(a.nombre, px, py - s * 2.1);
+        rotular(a.nombre, px, py, s * 2.1, W / 50);   // 3.6.2: como los nombres (arriba, abajo, a los costados)
         continue;
       }
       // 3.0: el mapa de la semilla, cada lugar con su dibujito (ver desafio-mapa.js)
@@ -228,7 +262,7 @@ export function crearMapa(T) {
         DIBUJOS_SEMILLA[a.clase](ctx, px, py, s);
         ctx.fillStyle = '#3a2614';
         ctx.font = `600 ${Math.round(W / 52)}px Caveat, cursive`;
-        ctx.fillText(a.nombre, px, py - s * 2);
+        rotular(a.nombre, px, py, s * 2, W / 52);   // 3.6.2
         continue;
       }
       const r = W / 130;
@@ -239,7 +273,7 @@ export function crearMapa(T) {
       ctx.moveTo(px, py - r * 1.5); ctx.lineTo(px, py + r * 1.5); ctx.stroke();
       ctx.fillStyle = '#3a2614';
       ctx.font = `600 ${Math.round(W / 50)}px Caveat, cursive`;
-      ctx.fillText(a.nombre, px, py - W / 75);
+      rotular(a.nombre, px, py, W / 75, W / 50);   // 3.6.2: las largadas y el galpón ya no se enciman
     }
     // chinches: las marcas que puso el jugador
     for (const c of chinches) {
