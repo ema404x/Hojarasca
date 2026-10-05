@@ -39,7 +39,7 @@ const MEDIR = arg('medir', '1') !== '0';
 const LAMINA = arg('lamina', '1') !== '0';
 const CALIDAD = arg('calidad', 'media');
 const HORA = Number(arg('hora', '17.2'));
-const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista', S: 'S · tipo Sims, más simple' };
+const TITULOS = { base: 'Hoy (3.6.2)', A: 'A · proporciones y cara', B: 'B · ropa y pelo', C: 'C · cuerpo continuo', D: 'D · lo más realista', S: 'S · tipo Sims, más simple', M: 'M · a lo Sims Medieval' };
 
 // Lo que corre en la página. Los tres: Rosa (panadera), Anselmo (herrero) y Lucía (nena).
 const AYUDA = String.raw`(() => {
@@ -149,6 +149,7 @@ app.whenReady().then(async () => {
         P.parar(rosa, pr.x, pr.z, hacia(pr, pa) + 0.5); P.parar(anselmo, pa.x, pa.z, hacia(pa, pr) - 0.45); P.parar(lucia, pl.x, pl.z, hacia(pl, pa) + 0.2);
         // (S: charlando contentos; las otras variantes no tienen gestos)
         rosa.__gesto = 'sonrisa'; anselmo.__gesto = 'risa'; lucia.__gesto = 'sonrisa';
+        anselmo.__quietud = 'cintura'; lucia.__quietud = 'atras';   // (M: poses de quietud)
         for (const n of otros) n.dormido = false;
         const o = { x: c.x + fx * 3.5 - lx * 0.4, z: c.z + fz * 3.5 - lz * 0.4 }; o.y = T.altura(o.x, o.z) + 1.65;
         P.camara(o, { x: c.x, z: c.z, y: T.altura(c.x, c.z) + 1.05 }, 70);
@@ -157,7 +158,7 @@ app.whenReady().then(async () => {
         const lugar = [[0.9, 0], [0, 0], [-0.8, 0]];
         [rosa, anselmo, lucia].forEach((n, i) => P.parar(n, c.x + lx * lugar[i][0], c.z + lz * lugar[i][0], r));
         for (const n of otros) n.dormido = true;   // nadie que tape
-        for (const n of [rosa, anselmo, lucia]) n.__gesto = null;
+        for (const n of [rosa, anselmo, lucia]) { n.__gesto = null; n.__quietud = undefined; }
         if (toma === 'cuerpo') {
           const o = { x: c.x + fx * 3, z: c.z + fz * 3 }; o.y = T.altura(o.x, o.z) + 0.95;
           P.camara(o, { x: c.x, z: c.z, y: T.altura(c.x, c.z) + 0.85 }, 45);

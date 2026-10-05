@@ -92,6 +92,28 @@ app.whenReady().then(async () => {
     console.log('lámina', nombre);
   }
   if (errores.length) console.log('consola:\n' + [...new Set(errores)].slice(0, 15).join('\n'));
+  // dos=S,M: dos variantes lado a lado, las caras arriba y los cuerpos abajo → comparacion-<segunda>.png
+  const dos = arg('dos', '').split(',').filter(Boolean);
+  if (dos.length === 2) {
+    const leer = (n) => 'data:image/png;base64,' + fs.readFileSync(path.join(salida, n)).toString('base64');
+    const src = dos.flatMap((v) => [leer(`${v}-cara.png`), leer(`${v}-cuerpo.png`)]);
+    const TIT = { S: 'S · tipo Sims', M: 'M · a lo Sims Medieval' };
+    const png = await js(`(async () => {
+      const src = ${JSON.stringify(src)}, tit = ${JSON.stringify(dos.map((v) => TIT[v] || v))};
+      const im = await Promise.all(src.map((s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; })));
+      const W = 850, sep = 10, arriba = 54, hc = Math.round(640 * W / 1692), hb = Math.round(780 * W / 1100);
+      const cv = document.createElement('canvas'); cv.width = 2 * W + sep; cv.height = arriba + hc + sep + hb;
+      const x = cv.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, cv.width, cv.height);
+      x.fillStyle = '#efe6d6'; x.font = 'bold 28px Georgia, serif'; x.textAlign = 'center';
+      tit.forEach((t, j) => {
+        x.fillText(t, j * (W + sep) + W / 2, 38);
+        x.drawImage(im[j * 2], 0, 0, 1692, 640, j * (W + sep), arriba, W, hc);
+        x.drawImage(im[j * 2 + 1], 250, 70, 1100, 780, j * (W + sep), arriba + hc + sep, W, hb);
+      });
+      return cv.toDataURL('image/png'); })()`);
+    fs.writeFileSync(path.join(salida, `comparacion-${dos[1]}.png`), Buffer.from(png.split(',')[1], 'base64'));
+    console.log('lámina', `comparacion-${dos[1]}.png`);
+  }
   console.log('listo', salida);
   app.exit(0);
 });

@@ -56,7 +56,7 @@ function armar(V, opciones = {}) {
 }
 function posar(dt = 1 / 60) {
   escena.updateMatrixWorld(true);
-  for (const m of actuales) { m.cabeza.rotation.y = 0; if (m.alPosar) m.alPosar(m, dt, camara, false, false); }
+  for (const m of actuales) { m.cabeza.rotation.y = 0; m.cabeza.rotation.x = 0; if (m.alPosar) m.alPosar(m, dt, camara, false, false); }
 }
 function mirar(o, a, fov) {
   camara.position.set(...o); camara.lookAt(...a);
@@ -66,6 +66,51 @@ function foto() { renderer.render(escena, camara); return lienzo.toDataURL('imag
 window.estudio = {
   async toma(V, toma) {
     armar(V, { grupo: toma === 'grupo' });
+    for (const m of actuales) m.__quietud = null;   // (M: parados, sin pose de quietud, salvo que la toma la pida)
+    if (toma === 'grupo') { actuales[1].__quietud = 'cintura'; actuales[1].__gesto = 'risa'; actuales[0].__gesto = 'sonrisa'; actuales[2].__quietud = 'atras'; }
+    // M: las poses de quietud, tres por persona (una fila por persona)
+    if (toma === 'poses') {
+      const filas = [];
+      for (const m of actuales) m.g.visible = false;
+      for (const m of actuales) {
+        m.g.visible = true;
+        const fila = [];
+        for (const p of m.posesM || []) {
+          m.__quietud = p; m.__gesto = 'sonrisa';
+          const c = m.g.position, alto = 1.05 * m.g.scale.y;
+          const k = m.g.scale.y / 1.07;
+          mirar([c.x + 0.55 * k, c.y + 1.05 * k, c.z + 3.6 * k], [c.x, c.y + 0.95 * k, c.z], 36);
+          for (let i = 0; i < 60; i++) posar();
+          renderer.render(escena, camara);
+          const cv = document.createElement('canvas'); cv.width = 520; cv.height = 760;
+          cv.getContext('2d').drawImage(lienzo, (1600 - 520) / 2, (900 - 760) / 2, 520, 760, 0, 0, 520, 760);
+          const x = cv.getContext('2d'); x.fillStyle = 'rgba(29,26,23,0.75)'; x.fillRect(0, 0, 520, 44);
+          x.fillStyle = '#efe6d6'; x.font = 'bold 26px Georgia, serif'; x.fillText(p, 16, 31);
+          fila.push(cv);
+        }
+        m.g.visible = false; m.__quietud = null;
+        filas.push(fila);
+      }
+      const out = document.createElement('canvas'); out.width = 3 * 526 - 6; out.height = filas.length * 766 - 6;
+      const x = out.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, out.width, out.height);
+      filas.forEach((f, j) => f.forEach((cv, i) => x.drawImage(cv, i * 526, j * 766)));
+      return out.toDataURL('image/png');
+    }
+    // M: primer plano de la ropa (el delantal y el chaleco de Anselmo; el de Rosa, con harina)
+    if (toma === 'detalle') {
+      const out = document.createElement('canvas'); out.width = 1606; out.height = 900;
+      const x = out.getContext('2d'); x.fillStyle = '#1d1a17'; x.fillRect(0, 0, out.width, out.height);
+      [[1, 0.25], [0, -0.3]].forEach(([k, ang], i) => {
+        const m = actuales[k], c = m.g.position, y = 1.02 * m.g.scale.y;
+        for (let j = 0; j < 3; j++) actuales[j].g.visible = j === k;
+        mirar([c.x + Math.sin(ang) * 0.75, c.y + y + 0.08, c.z + Math.cos(ang) * 0.75], [c.x, c.y + y - 0.05, c.z], 40);
+        for (let j = 0; j < 30; j++) posar();
+        renderer.render(escena, camara);
+        x.drawImage(lienzo, 400, 0, 800, 900, i * 806, 0, 800, 900);
+      });
+      for (const m of actuales) m.g.visible = true;
+      return out.toDataURL('image/png');
+    }
     if (toma === 'cuerpo') { mirar([0, 0.95, 3.0], [0, 0.85, 0], 45); for (let i = 0; i < 30; i++) posar(); return foto(); }
     if (toma === 'grupo') { mirar([0.5, 1.65, 3.4], [0.1, 1.0, 0.2], 70); for (let i = 0; i < 30; i++) posar(); return foto(); }
     if (toma === 'espalda') { mirar([0.3, 1.2, -2.6], [0, 0.95, 0], 45); for (let i = 0; i < 30; i++) posar(); return foto(); }

@@ -20,12 +20,17 @@
 //       Rosa mediana, Lucía de 9 años) y una cara suave y redonda: ojos algo grandes con iris de
 //       color, brillo y pestañas; cejas marcadas; nariz chica; boca chica y nítida (labios de
 //       geometría, no pintados) y gestos (neutral, sonrisa, risa) con formas de mezcla.
+//   M · S "a lo Sims Medieval": telas pintadas en el shader (lana, lienzo, cuero, punto, fieltro,
+//       con trama, costuras, remiendos y mugre abajo), ropa en capas (camisa arremangada, chaleco o
+//       delantal, cinturón con bolsita, botas de cuero), paleta de tierra, caras con más carácter
+//       (pómulos, mandíbula, arrugas de la risa, pecas, canas), hebras pintadas en el pelo y poses de
+//       quietud (manos en la cintura, brazos cruzados, rascarse la barba, acomodarse el gorro).
 import * as THREE from 'three';
 import { bola, tubo, torno, huso, deformar, coser, colorear, matiz, mezcla, color, puntasBufanda } from './formas.js';
 import { compactar, MAT_FAUNA } from './vida.js';
 
 const pedido = typeof location !== 'undefined' && location.search ? new URLSearchParams(location.search).get('personajes') : null;
-export const VARIANTE_PERSONAJES = /^[ABCDS]$/.test(pedido || '') ? pedido : null;
+export const VARIANTE_PERSONAJES = /^[ABCDSM]$/.test(pedido || '') ? pedido : null;
 if (VARIANTE_PERSONAJES && typeof window !== 'undefined') window.__protoPersonajes = VARIANTE_PERSONAJES;
 
 const OPC = {
@@ -34,6 +39,7 @@ const OPC = {
   C: { cara: 1, continuo: 1 },
   D: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1 },
   S: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1, sims: 1 },
+  M: { cara: 1, ropa: 1, pelo: 1, continuo: 1, piel: 1, mirar: 1, sims: 1, medieval: 1 },
 };
 
 const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -218,7 +224,7 @@ function pintarCara(c, p, n, F, colPiel, op) {
 // vez y se copia; cada uno la pinta con lo suyo)
 const MOLDES = new Map();
 const molde = (clave, hacer) => { let g = MOLDES.get(clave); if (!g) { g = hacer(); MOLDES.set(clave, g); } return g.clone(); };
-const claveCara = (F) => `${F.mujer ? 'm' : 'v'}${F.chico ? 'c' : ''}${F.sims ? 's' + (F.robusto ? 'r' : '') : ''}`;
+const claveCara = (F) => `${F.mujer ? 'm' : 'v'}${F.chico ? 'c' : ''}${F.sims ? 's' + (F.robusto ? 'r' : '') : ''}${F.medieval ? 'M' : ''}`;
 function craneo(F, colPiel, op) {
   if (F.sims) return craneoS(F, colPiel);
   const g = molde('craneo' + claveCara(F), () => {
@@ -278,14 +284,23 @@ function rasgosS(v, F) {
   v.z += 0.003 * gauss(v.x, y - F.boca, 0.024, 0.012) * fr;                              // el morro
   v.z -= 0.0011 * gauss(v.x, y - F.boca + 0.016, 0.018, 0.004) * fr;                     // bajo el labio
   v.z += 0.003 * F.cachete * gauss(ax - 0.038, y + 0.024, 0.017, 0.015) * fr;            // los cachetes
+  if (F.medieval) {
+    const k = F.chico ? 0.45 : 1;
+    v.z += 0.0034 * k * gauss(ax - 0.046, y + 0.008, 0.014, 0.011) * fr;                       // los pómulos
+    v.x += Math.sign(v.x) * 0.0022 * k * gauss(ax - 0.052, y + 0.008, 0.014, 0.012) * fr;
+    v.z -= 0.0018 * k * gauss(ax - 0.046, y + 0.036, 0.012, 0.01) * fr;                        // bajo el pómulo
+    if (!F.chico) v.x += Math.sign(v.x) * (F.mujer ? 0.0018 : 0.0042) * gauss(ax - 0.058, y - F.menton - 0.03, 0.014, 0.016);   // la mandíbula
+    v.z += (F.mujer || F.chico ? 0.0014 : 0.0028) * gauss(v.x, y - F.menton - 0.01, 0.012, 0.01) * fr;                         // el mentón
+  }
   return v;
 }
 // La piel pareja y tibia: poca forma pintada, mejillas apenas rosadas, la sombra bajo la nariz
 function pintarCaraS(c, p, n, F, colPiel) {
   const ax = Math.abs(p.x), fr = sv(0.2, 0.7, p.z / F.rz), y = p.y;
   c.multiplyScalar(0.92 + 0.11 * sv(-0.2, 0.9, 0.5 * n.z + 0.4 * n.y));
-  const rub = mezcla(colPiel, '#f6a2a2', 0.55);
-  tinta(c, rub, (F.chico ? 0.32 : F.mujer ? 0.24 : 0.1) * gauss(ax - 0.039, y + 0.02, 0.018, 0.013) * fr);
+  const rub = mezcla(colPiel, F.medieval ? '#d8645a' : '#f6a2a2', 0.55);
+  tinta(c, rub, (F.medieval ? (F.chico ? 0.36 : F.mujer ? 0.3 : 0.24) : F.chico ? 0.32 : F.mujer ? 0.24 : 0.1) * gauss(ax - 0.039, y + 0.02, 0.018, 0.013) * fr);
+  if (F.medieval && !F.chico) tinta(c, mezcla(matiz(colPiel, 0.8), '#6a4a48', 0.2), 0.16 * gauss(ax - 0.048, y + 0.036, 0.012, 0.009) * fr);
   tinta(c, rub, 0.1 * gauss(p.x, y - F.punta, 0.01, 0.009) * fr);
   // la nariz definida: los costados apenas en sombra, la punta y el puente con luz
   const zonaNariz = gauss(p.x, y - F.punta - 0.008, 0.012, 0.016) * fr;
@@ -312,7 +327,9 @@ function craneoS(F, colPiel) {
     g.computeVertexNormals(); coser(g);
     return g;
   });
-  return pintarPieza(piel(new THREE.Mesh(g, color(colPiel))), (c, p, n) => { p.y -= F.cy; pintarCaraS(c, p, n, F, colPiel); });
+  const m = pintarPieza(piel(new THREE.Mesh(g, color(colPiel))), (c, p, n) => { p.y -= F.cy; pintarCaraS(c, p, n, F, colPiel); });
+  if (F.medieval) m.userData.tela = F.pecas ? TELA.pecas : F.chico ? TELA.cara : TELA.arrugas;
+  return m;
 }
 // el punto de la cara en (x, y) (la mandíbula angosta la x: se corrige)
 function sobreCara(x, y, F) {
@@ -367,8 +384,10 @@ function formaRostroS(F, P, barba, ojos) {
   // las cejas: del lado de adentro a la cola, más gruesas adentro
   for (const l of [-1, 1]) {
     tira(PARTES_S.ceja, 10, 2, 0, 1, (u, v) => {
-      const arco = (F.mujer || F.chico ? 1 : 0.6) * (0.0034 * Math.sin(Math.PI * Math.pow(u, 0.75))) - 0.0018 * u;
-      const grueso = (F.chico ? 0.0041 : F.mujer ? 0.0043 : 0.0058) * Math.min(1, 0.8 + u * 1.5) * (1 - 0.72 * sv(0.5, 1, u));
+      const arco = F.medieval
+        ? (F.mujer || F.chico ? 1 : 0.75) * 0.0042 * Math.sin(Math.PI * Math.pow(u, 1.25)) - 0.0022 * u - 0.0012 * (1 - u)
+        : (F.mujer || F.chico ? 1 : 0.6) * (0.0034 * Math.sin(Math.PI * Math.pow(u, 0.75))) - 0.0018 * u;
+      const grueso = (F.medieval ? (F.chico ? 0.0042 : F.mujer ? 0.0046 : 0.0066) : F.chico ? 0.0041 : F.mujer ? 0.0043 : 0.0058) * Math.min(1, 0.8 + u * 1.5) * (1 - 0.72 * sv(0.5, 1, u));
       const y = F.ceja + arco + P.b * 0.0042 * (1 - 0.35 * u) + P.s * 0.0006 + (v - 0.42) * grueso;
       return sobre(l * (F.ex - 0.016 + u * 0.037), y, 0.0008 + 0.0007 * Math.sin(Math.PI * v));
     }, l < 0);
@@ -447,11 +466,12 @@ function rostroS(F, colPiel, colCeja, colBarba, ojos) {
   return m;
 }
 // La barba con forma: llena, prolija, con mechones grandes; la boca a la vista (el bigote va en el rostro)
-function barbaS(F, colBarba) {
+function barbaS(F, colBarba, colPiel = null) {
+  const M = !!F.medieval;
   const oculta = (v) => {
     const ax = Math.abs(v.x);
     // el borde en el cachete baja de la patilla (al costado, junto a la oreja) hasta la comisura
-    const frente = F.base - 0.006 + 0.55 * Math.max(0, ax - 0.03);
+    const frente = F.base - 0.006 + 0.55 * Math.max(0, ax - 0.03) + (M ? 0.0035 * Math.sin(v.x * 430 + v.z * 200) - 0.004 : 0);
     const techo = frente + (F.ey + 0.006 - frente) * sv(0.035, 0.0, v.z);
     let m = sv(techo + 0.009, techo - 0.009, v.y) * sv(-0.05, -0.02, v.z);
     const e = (v.x / (F.bocaW * 1.25)) ** 2 + ((v.y - F.boca - 0.001) / 0.0058) ** 2;
@@ -466,7 +486,9 @@ function barbaS(F, colBarba) {
   const m = casco(F, colBarba, true, grosor, oculta, (c, p, n) => {
     c.multiplyScalar(1 + 0.08 * Math.sin(Math.atan2(p.x, p.z) * 18 + p.y * 80));
     c.multiplyScalar(0.84 + 0.24 * sv(-0.6, 0.6, n.y));
-  }, 36, 30, 'barbaS');   // (la misma grilla que el cráneo: el borde sale parejo)
+    if (M && colPiel) tinta(c, colPiel, 0.6 * (1 - sv(0.08, 0.7, oculta(p))));   // en el borde, la piel asoma
+  }, 36, 30, M ? 'barbaM' : 'barbaS');
+  if (M) m.userData.tela = TELA.barba;   // (la misma grilla que el cráneo: el borde sale parejo)
   // abajo, redonda (sin flecos)
   deformar(m, (v) => { const y = v.y - F.cy; if (y < F.menton + 0.03 && v.z > -0.01) v.y -= 0.015 * sv(F.menton + 0.03, F.menton - 0.005, y) * Math.exp(-((v.x / 0.06) ** 2)); });
   return m;
@@ -474,6 +496,11 @@ function barbaS(F, colBarba) {
 // El pelo de S: un casco con mechones grandes esculpidos (sin hebras), más los mechones sueltos
 // que asoman bajo el gorro, el rodete o las trenzas
 function peloS(F, colPelo, R, gorro) {
+  const piezas = peloS0(F, colPelo, R, gorro);
+  if (F.medieval) for (const p of piezas) if (p.material.color.getHexString() !== 'c8443a' && p.material.color.getHexString() !== 'a8342c') p.userData.tela = TELA.pelo;
+  return piezas;
+}
+function peloS0(F, colPelo, R, gorro) {
   const corto = !(R.rodete || R.trenza);
   const linea = (x) => F.frente - 5.5 * x * x;
   const piezas = [];
@@ -692,7 +719,7 @@ function casco(F, hex, conRasgos, grosor, oculta, pinta, nAz = 34, nPol = 26, cl
     return pintarPieza(new THREE.Mesh(g, color(hex)), (c, p, n) => { p.y -= F.cy; pinta(c, p, n); });
   }
   const g = esferaDensa(nAz, nPol, conRasgos ? 2.6 : 1.4, conRasgos ? 2.2 : 1.1);
-  const P = g.attributes.position, v = new THREE.Vector3(), oc = [];
+  const P = g.attributes.position, v = new THREE.Vector3(), oc = [], bordes = [];
   for (let i = 0; i < P.count; i++) {
     v.fromBufferAttribute(P, i);
     v.set(v.x * F.rx, v.y * F.ry, v.z * F.rz);
@@ -700,11 +727,12 @@ function casco(F, hex, conRasgos, grosor, oculta, pinta, nAz = 34, nPol = 26, cl
     const n = v.clone().normalize();
     // `oculta` da cuánto es pelo (0..1, suave): el borde es donde el casco cruza la piel (sin dientes)
     const m = oculta(v);
-    oc.push(m < 0.02);
+    oc.push(m < 0.02); bordes.push(m);
     v.addScaledVector(n, -0.0035 + (grosor(v) + 0.0035) * m);
     P.setXYZ(i, v.x, v.y + F.cy, v.z);
   }
   recortar(g, oc);
+  g.setAttribute('borde', new THREE.Float32BufferAttribute(bordes, 1));
   const m = mallaDe(g, hex);
   return pinta ? pintarPieza(m, (c, p, n) => { p.y -= F.cy; pinta(c, p, n); }) : m;
 }
@@ -822,6 +850,7 @@ function armarCabezaS(cabeza, F, colores, R, op, colPiel) {
   const colBarba = colores.barba ? mezcla(colores.barba, '#5e3f28', 0.35) : null;
   const rostro = rostroS(F, colPiel, colCeja, colBarba, centros);
   rostro.visible = false;   // (se muestra de cerca: ver alPosar)
+  if (F.medieval) rostro.material = materialTela();
   cabeza.add(rostro); cabeza.userData.rostro = rostro;
   // De lejos, los rasgos quietos (neutral) van fundidos en el cuerpo, en un hueso propio; de cerca
   // ese hueso se achica a nada (adentro de la cabeza) y se dibuja el rostro con gestos. Así lejos
@@ -832,8 +861,10 @@ function armarCabezaS(cabeza, F, colores, R, op, colPiel) {
   fijo.userData.crudo = 1; fijo.userData.noTapa = 1;
   rasgos.add(fijo); cabeza.add(rasgos); cabeza.userData.rasgos = rasgos;
   for (const p of peloS(F, colPelo, R, !!colores.gorro)) cabeza.add(p);
-  if (colBarba) cabeza.add(barbaS(F, colBarba));
+  if (colBarba) cabeza.add(barbaS(F, colBarba, colPiel));
   sombreros(cabeza, F, colores, op);
+  cabeza.userData.esCabeza = true;
+  if (F.medieval) cabeza.traverse((o) => { if (o.isMesh && o.userData.tela === undefined && !o.userData.piel) o.userData.tela = 0; });
 }
 function armarCabeza(cabeza, F, colores, R, op, colPiel) {
   if (F.sims) return armarCabezaS(cabeza, F, colores, R, op, colPiel);
@@ -869,7 +900,33 @@ function armarCabeza(cabeza, F, colores, R, op, colPiel) {
   sombreros(cabeza, F, colores, op);
 }
 function sombreros(cabeza, F, colores, op) {
-  const abrigo = colores.abrigo || '#4a3a30', ropa = colores.ropa || '#7a6a5a';
+  const abrigo = colores.abrigo || '#4a3a30', ropa = colores.gorroColor || colores.ropa || '#7a6a5a';
+  const M = !!F.medieval, antes = cabeza.children.length;
+  sombreros0(cabeza, F, colores, op, abrigo, ropa);
+  if (M) {
+    const kx = F.rx + 0.008, kz = F.rz + 0.008, t = colores.gorro === 'panuelo' ? TELA.lienzo : colores.gorro === 'gorroPunto' ? TELA.punto : TELA.fieltro;
+    if (colores.gorro === 'panuelo') {
+      // el pañuelo atado atrás: cubre la cabeza hasta la nuca, con el nudo y las puntas
+      const p = torno(ropa, [[1.03, 0.0], [1.07, 0.022], [1.05, 0.05], [0.88, 0.078], [0.46, 0.094], [0.0, 0.097]], [0, F.cy + 0.03, -0.01], [-0.42, 0, 0], [kx, 1, kz], 18);
+      pintarPieza(p, (c, q) => { c.multiplyScalar(0.88 + 0.16 * sv(0.0, 0.09, q.y)); c.multiplyScalar(1 + 0.08 * Math.sin(Math.atan2(q.x, q.z) * 7 + q.y * 30)); if (q.y < 0.014) c.multiplyScalar(0.78); });   // (el dobladillo)
+      cabeza.add(p);
+      cabeza.add(bola(matiz(ropa, 0.9), [0.022, 0.017, 0.016], [0, F.cy + 0.012, -F.rz - 0.03], null, [8, 6]));
+      for (const l of [-1, 1]) {
+        const punta = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.06, 4, 1), color(matiz(ropa, 0.85))), (v) => { v.z *= 0.35; });
+        punta.position.set(l * 0.014, F.cy - 0.018, -F.rz - 0.035); punta.rotation.set(Math.PI + 0.35, 0, l * 0.35); cabeza.add(punta);
+      }
+    } else if (colores.gorro === 'gorroPunto') {
+      // el gorro tejido, con el borde doblado y un pompón
+      const y0 = F.cy + 0.03;
+      const gp = torno(ropa, [[1.03, 0.0], [1.07, 0.012], [1.07, 0.028], [1.02, 0.032], [0.99, 0.06], [0.84, 0.088], [0.46, 0.104], [0.0, 0.108]], [0, y0, -0.006], [-0.12, 0, 0], [kx, 1, kz], 18);
+      pintarPieza(gp, (c, q) => { if (q.y < 0.03) c.multiplyScalar(0.9); });
+      cabeza.add(gp);
+      cabeza.add(bola(mezcla(ropa, '#e8d8b0', 0.45), [0.019, 0.017, 0.019], [0, y0 + 0.11, -0.02], null, [8, 6]));
+    }
+    for (let i = antes; i < cabeza.children.length; i++) { const o = cabeza.children[i]; if (o.isMesh) o.userData.tela = t; }
+  }
+}
+function sombreros0(cabeza, F, colores, op, abrigo, ropa) {
   const kx = F.rx + 0.008, kz = F.rz + 0.008;
   if (colores.gorro === 'boina') {
     const b = torno(abrigo, [[1.0, 0.0], [1.14, 0.012], [1.28, 0.03], [1.24, 0.05], [0.96, 0.066], [0.48, 0.074], [0.0, 0.076]], [0.004, F.cy + 0.052, -0.006], [-0.12, 0, -0.14], [kx, 1, kz], 20);
@@ -904,6 +961,77 @@ function sombreros(cabeza, F, colores, op) {
   }
 }
 
+// ---------------------------------------------------------------- M: ayudas de la ropa y la cara
+// el borde de una pieza de torno (0 en el borde, 1 a un segmento): para el cuero gastado y el dobladillo
+// (los vértices de LatheGeometry van por gajo: i·npts + j)
+function bordeTorno(activo, m, npts, segs, lados, abajo, arriba = abajo) {
+  if (!activo) return m;
+  const P = m.geometry.attributes.position, b = new Float32Array(P.count);
+  for (let k = 0; k < P.count; k++) {
+    const i = Math.floor(k / npts), j = k % npts;
+    let d = 9;
+    if (lados) d = Math.min(d, i, segs - i);
+    if (abajo) d = Math.min(d, j);
+    if (arriba) d = Math.min(d, npts - 1 - j);
+    b[k] = Math.min(1, d);
+  }
+  m.geometry.setAttribute('borde', new THREE.BufferAttribute(b, 1));
+  return m;
+}
+// la manga arremangada: camisa hasta pasado el codo (el punto `iCorte`), el antebrazo con la piel y el
+// rollo de la manga en el corte
+function arremangar(piv, pts, rad, iCorte, manga, colPiel, tramos, lados) {
+  const V = pts.map((p) => new THREE.Vector3(...p)), acum = [0];
+  for (let i = 1; i < V.length; i++) acum.push(acum[i - 1] + V[i].distanceTo(V[i - 1]));
+  const tCorte = acum[iCorte] / acum[acum.length - 1];
+  const r2 = rad.map((r, i) => (i > iCorte ? r * 0.82 : r));
+  const m = huso(manga, pts, r2, tramos, lados);
+  const P = m.geometry.attributes.position, n = P.count;
+  const col = new Float32Array(n * 3), tel = new Float32Array(n), zon = new Float32Array(n * 2);
+  const cS = new THREE.Color(manga), cP = new THREE.Color(colPiel);
+  for (let i = 0; i < n; i++) {
+    const tt = Math.floor(i / (lados + 1)) / tramos, esPiel = tt > tCorte + 0.02;
+    const c = esPiel ? cP : cS;
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    tel[i] = esPiel ? 0 : TELA.lienzo; zon[i * 2] = esPiel ? 1 : 0; zon[i * 2 + 1] = 1;
+  }
+  m.geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  m.geometry.setAttribute('telaV', new THREE.BufferAttribute(tel, 1));
+  m.geometry.setAttribute('zona', new THREE.BufferAttribute(zon, 2));
+  piv.add(m);
+  // el rollo
+  const curva = new THREE.CatmullRomCurve3(V), c0 = curva.getPointAt(tCorte + 0.01), tg = curva.getTangentAt(tCorte + 0.01);
+  const rr = rad[iCorte] * 1.0 + 0.003;
+  const rollo = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.0095, 7, 16), color(matiz(manga, 0.94)));
+  rollo.position.copy(c0); rollo.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tg);
+  piv.add(conTela(rollo, TELA.lienzo));
+}
+// a cada pieza de ropa, su tela: por el color más parecido de la paleta (la pieza conserva el color
+// de base en su material)
+function telasPorColor(g, colores, R, bota, pantalon) {
+  const lista = [
+    [colores.ropa, TELA.lienzo], [colores.abrigo, R.telaChaleco ? TELA[R.telaChaleco] : TELA.lana], [pantalon, TELA.lana],
+    [bota, TELA.cuero], [R.colPollera, TELA.lana], [colores.bufanda, TELA.punto], [R.faja, TELA.lana], ['#4e3420', TELA.cuero],
+  ].filter(([h]) => h && typeof h === 'string').map(([h, t]) => [new THREE.Color(h), t]);
+  const c = new THREE.Color();
+  g.traverse((o) => {
+    if (!o.isMesh || o.userData.tela !== undefined || o.userData.piel || o.userData.mate) return;
+    let p = o.parent; while (p && p !== g) { if (p.userData.esCabeza) return; p = p.parent; }
+    c.copy(o.material.color);
+    let mejor = 0, dmin = Infinity;
+    for (const [h, t] of lista) { const d = (h.r - c.r) ** 2 + (h.g - c.g) ** 2 + (h.b - c.b) ** 2; if (d < dmin) { dmin = d; mejor = t; } }
+    o.userData.tela = mejor;
+  });
+}
+// la cara de M: con más carácter que la de S (ojos un poco más chicos, nariz con más forma, pómulos y
+// mandíbula; arrugas de la risa en los grandes y pecas en Lucía, en el shader)
+function medidasM(F, R) {
+  F.medieval = true; F.pecas = !!R.pecas;
+  F.re *= 0.9; F.abre *= 0.94;
+  F.nariz *= 1.22; F.cachete *= 0.6;
+  F.mand = F.chico ? 0.2 : F.mujer ? 0.3 : 0.34;
+  F.bocaW *= 1.03;
+}
 // ---------------------------------------------------------------- el cuerpo
 const CODO_MATE = -2.3;
 const DIR_MATE = (() => { const c = Math.cos(CODO_MATE), s = Math.sin(CODO_MATE); return new THREE.Vector3(-0.4, -c, -s).normalize(); })();
@@ -915,7 +1043,8 @@ function figura(colores, clave, conMate, R, op) {
   const colPiel = colores.piel || R.piel || '#c49a70';
   const ropa = colores.ropa || '#7a6a5a', abrigo = colores.abrigo || '#4a3a30';
   const pantalon = colores.pantalon || R.pantalon || '#3f3a33';
-  const bota = R.botas === 'goma' ? '#2a2d2c' : R.botas === 'trekking' ? '#5a4632' : '#3b2f26';
+  const bota = (op.medieval && R.botaCol) || (R.botas === 'goma' ? '#2a2d2c' : R.botas === 'trekking' ? '#5a4632' : '#3b2f26');
+  const med = !!op.medieval;
   const manga = R.chaleco ? ropa : abrigo;
   const k = mujer ? 1 : 1.06;         // los varones, un poco más anchos
   // S: cada cuerpo distinto (Anselmo robusto, Lucía de 9 años; el resto, como siempre): el ancho
@@ -956,6 +1085,11 @@ function figura(colores, clave, conMate, R, op) {
     const tobillo = new THREE.Group(); tobillo.position.set(0, TOBILLO, 0.0);
     tobillo.add(bola(bota, [0.056, 0.046, 0.122], [0, -0.39 - TOBILLO, 0.05], null, sims ? [10, 7] : null));                       // el empeine
     tobillo.add(bola(matiz(bota, 0.5), [0.059, 0.017, 0.125], [0, -0.425 - TOBILLO, 0.045], null, sims ? [10, 6] : null));         // la suela
+    if (med) {
+      const yTop = (altas ? -0.435 : -0.615) + RODILLA;
+      rodilla.add(conTela(torno(matiz(bota, 1.2), [[altas ? 0.07 : 0.06, yTop - 0.03], [altas ? 0.078 : 0.066, yTop - 0.012], [altas ? 0.075 : 0.064, yTop + 0.004], [altas ? 0.066 : 0.058, yTop + 0.008]], null, null, null, 12), TELA.cuero));
+      if (!altas) for (let i = 0; i < 3; i++) for (const s of [-1, 1]) rodilla.add(bola('#2e2216', [0.016, 0.0028, 0.003], [0, yTop - 0.022 - i * 0.017, 0.056 - i * 0.002], [0.25, 0, s * 0.5], [5, 3]));
+    }
     if (op.ropa && R.botas === 'trekking') for (let i = 0; i < 3; i++) tobillo.add(bola('#c8b89a', [0.022, 0.0035, 0.005], [0, -0.36 - TOBILLO + i * 0.016, 0.09 - i * 0.012], [0.5, 0, 0]));
     rodilla.add(tobillo); rodilla.userData.tobillo = tobillo;
     piv.add(rodilla); piv.userData.rodilla = rodilla;
@@ -994,12 +1128,12 @@ function figura(colores, clave, conMate, R, op) {
     torso.add(capaHombro);
   }
   if (R.chaleco) {
-    torso.add(pintarPieza(capa(abrigo, [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.196, 0.43], [0.188, 0.478]].map(([r, y]) => [r * (mujer ? 0.92 : 1), y]), 16, 0.4, Math.PI * 2 - 0.8), (c, p) => {
-      if (op.ropa) { if (Math.abs(Math.atan2(p.x, p.z)) < 0.5) c.multiplyScalar(0.82); arrugasTorso(c, p); }
-    }));
-    if (R.bombacha) torso.add(capa('#7a2e26', [[0.155, -0.05], [0.161, -0.038], [0.162, 0.028], [0.157, 0.042]], 18));
+    torso.add(bordeTorno(med, conTela(pintarPieza(capa(abrigo, [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.196, 0.43], [0.188, 0.478]].map(([r, y]) => [r * (mujer ? 0.92 : 1), y]), 16, 0.4, Math.PI * 2 - 0.8), (c, p) => {
+      if (op.ropa) { if (!med && Math.abs(Math.atan2(p.x, p.z)) < 0.5) c.multiplyScalar(0.82); arrugasTorso(c, p); }
+    }), med ? TELA[R.telaChaleco || 'lana'] : 0), 7, 16, true, true));
+    if (R.bombacha) torso.add(capa(R.faja || '#7a2e26', [[0.155, -0.05], [0.161, -0.038], [0.162, 0.028], [0.157, 0.042]], 18));
     else torso.add(capa('#4a3626', [[0.16, -0.035], [0.16, 0.02]], 16));
-    if (op.ropa) for (const y of [0.1, 0.2, 0.3]) torso.add(bola('#2a2018', [0.008, 0.008, 0.005], [0.064, y, 0.118 * zPecho(0.064, y) + 0.004]));
+    if (op.ropa && !(med && R.delantal)) for (const y of [0.1, 0.2, 0.3]) torso.add(bola('#2a2018', [0.008, 0.008, 0.005], [0.064, y, 0.118 * zPecho(0.064, y) + 0.004]));
   } else {
     capaHombro = pintarPieza(capa(abrigo, [...faldon, ...cuerpoAlto], R.campera === 'larga' ? 26 : 18, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.7, R.campera === 'larga' ? 0.03 : 0), (c, p) => {
       arrugasTorso(c, p);
@@ -1017,27 +1151,27 @@ function figura(colores, clave, conMate, R, op) {
     // el cuello de la camisa: dos solapas en punta
     const tela = R.chaleco || R.abierta ? ropa : matiz(abrigo, 0.95);
     torso.add(capa(tela, [[0.066, 0.528], [0.07, 0.548], [0.066, 0.572], [0.06, 0.578]], 16, 0.35, Math.PI * 2 - 0.7, 0.98));
-    for (const l of [-1, 1]) torso.add(bola(tela, [0.02, 0.028, 0.0035], [l * 0.027, 0.53, 0.066], [0.55, l * 0.3, l * 0.7]));
+    for (const l of [-1, 1]) torso.add(bola(tela, med ? [0.015, 0.021, 0.003] : [0.02, 0.028, 0.0035], [l * 0.027, 0.535, 0.066], [0.55, l * 0.3, l * 0.7]));
   }
   if (R.pollera) {
-    torso.add(pintarPieza(capa(mezcla(ropa, '#2a2420', 0.35), [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]], 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
+    torso.add(bordeTorno(med, pintarPieza(capa(R.colPollera || mezcla(ropa, '#2a2420', 0.35), [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]], 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
       if (!op.ropa) return;
       surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.1, -0.3, p.y), 0.3);
       if (p.y < -0.48) c.multiplyScalar(0.84);                       // el ruedo
       if (p.y > 0.17) c.multiplyScalar(0.9);                         // la pretina
-    }));
+    }), 8, 36, false, true));
   }
   if (R.delantal) {
     const perfil = R.pollera
       ? [[0.245, -0.4], [0.226, -0.28], [0.198, -0.14], [0.178, -0.04], [0.166, 0.04], [0.158, 0.12], [0.168, 0.24], [0.188, 0.36]]
       : [[0.186, -0.4], [0.178, -0.2], [0.166, -0.04], [0.162, 0.04], [0.158, 0.12], [0.168, 0.24], [0.19, 0.36]];
-    torso.add(pintarPieza(capa(R.delantal, perfil.map(([r, y]) => [r * (mujer ? 1 : 1.03), y]), 14, -0.68, 1.36, R.pollera ? 0.79 : 0.72), (c, p) => {
+    torso.add(bordeTorno(med, conTela(pintarPieza(capa(R.delantal, perfil.map(([r, y]) => [r * (mujer ? 1 : 1.03), y]), 14, -0.68, 1.36, R.pollera ? 0.79 : 0.72), (c, p) => {
       if (!op.ropa) return;
       surcos(c, Math.sin(p.x * 70 + 0.5) * sv(0.05, -0.3, p.y), 0.14);
       if (p.y < -0.37) c.multiplyScalar(0.88);
       if (p.y > -0.2 && p.y < -0.08 && Math.abs(p.x - 0.06) < 0.05) c.multiplyScalar(0.92);    // el bolsillo
       if (Math.abs(p.y + 0.08) < 0.004 && Math.abs(p.x - 0.06) < 0.05) c.multiplyScalar(0.75);
-    }));
+    }), med ? TELA[R.telaDelantal || 'lienzo'] : 0), perfil.length, 14, true, true));
     if (op.ropa) {
       // la tira a la cintura y el moño atrás
       torso.add(capa(matiz(R.delantal, 0.9), [[0.137, 0.17], [0.138, 0.19]], 18));
@@ -1075,6 +1209,21 @@ function figura(colores, clave, conMate, R, op) {
     torso.add(deformar(flecos, caida));
     torso.add(torno(matiz(abrigo, 0.8), [[0.08, 0.578], [0.077, 0.605], [0.066, 0.612]], null, null, null, 14));
   }
+  if (med && !colores.poncho) {
+    const yc = R.pollera ? 0.19 : 0.005, rc = R.pollera ? 0.152 : R.chaleco ? 0.166 : 0.158, cuero = '#4e3420';
+    torso.add(conTela(capa(cuero, [[rc - 0.002, yc - 0.013], [rc + 0.002, yc - 0.008], [rc + 0.002, yc + 0.008], [rc - 0.002, yc + 0.013]], 20), TELA.cuero));
+    const zf = rc * 0.75 * zPecho(0, yc) + 0.004;
+    // la hebilla: adelante, o al costado si hay delantal
+    const ah = R.delantal ? 1.15 : 0, hx0 = Math.sin(ah) * rc * 1.02, hz0 = Math.cos(ah) * (R.delantal ? rc * 0.8 : zf);
+    torso.add(conTela(torno('#a08a58', [[0.014, -0.012], [0.016, 0], [0.014, 0.012]], [hx0, yc, hz0], [Math.PI / 2, 0, -ah], [1, 0.25, 1], 8), 0));
+    torso.add(bola('#3a2616', [0.008, 0.007, 0.004], [hx0 + Math.sin(ah) * 0.004, yc, hz0 + Math.cos(ah) * 0.004], [0, ah, 0]));
+    // la bolsita, colgada a la izquierda
+    const bx = -rc * 0.86, bz = rc * 0.32;
+    torso.add(conTela(bola('#7a5434', [0.03, 0.03, 0.016], [bx - 0.01, yc - 0.058, bz], [0, -0.5, 0.08], [8, 6]), TELA.cuero));   // la bolsa
+    torso.add(conTela(bola('#684628', [0.014, 0.012, 0.009], [bx - 0.01, yc - 0.026, bz], [0, -0.5, 0], [7, 5]), TELA.cuero));    // el cuello atado
+    torso.add(bola('#c8b088', [0.017, 0.003, 0.011], [bx - 0.01, yc - 0.031, bz], [0, -0.5, 0], [7, 3]));                       // el cordón
+    torso.add(conTela(bola(cuero, [0.004, 0.024, 0.003], [bx - 0.012, yc - 0.015, bz - 0.006], [0, -0.5, 0]), TELA.cuero));
+  }
   const cuello = colores.bufanda || R.panuelo;
   if (cuello && !colores.poncho) {
     const vuelta = new THREE.Mesh(new THREE.TorusGeometry(0.07, R.panuelo ? 0.016 : 0.027, 8, 22), color(cuello));
@@ -1101,11 +1250,13 @@ function figura(colores, clave, conMate, R, op) {
   const kb = mujer ? 1 : 1.1;
   const manoCon5 = (grupo, W, l) => {
     // la palma (de canto, mirando al muslo), cuatro dedos un poco curvos y el pulgar adelante
-    grupo.add(piel(bola(colPiel, [0.0125 * kb, 0.04 * kb, 0.024 * kb], [W[0] - l * 0.002, W[1] - 0.045, W[2] + 0.003], [0.05, 0, 0], sims ? [9, 7] : [12, 9])));
-    for (const [dz, L] of [[0.015, 0.06], [0.0055, 0.068], [-0.0045, 0.064], [-0.0135, 0.052]]) {
-      const y0 = W[1] - 0.074 * kb, z0 = W[2] + dz * kb, Lk = L * kb;
-      const pts = [[W[0] - l * 0.001, y0 + 0.006, z0], [W[0] - l * 0.003, y0 - Lk * 0.45, z0 + 0.004], [W[0] - l * 0.011, y0 - Lk * 0.85, z0 + 0.003], [W[0] - l * 0.017, y0 - Lk, z0 + 0.001]];
-      const d = huso(colPiel, pts, [0.0064 * kb, 0.0058 * kb, 0.0052 * kb, 0.0047 * kb], sims ? 4 : 6, sims ? 5 : 6);
+    grupo.add(piel(bola(colPiel, med ? [0.015 * kb, 0.043 * kb, 0.029 * kb] : [0.0125 * kb, 0.04 * kb, 0.024 * kb], [W[0] - l * 0.002, W[1] - 0.045, W[2] + 0.003], [0.05, 0, 0], sims ? [9, 7] : [12, 9])));
+    const dedos = med ? [[0.016, 0.041], [0.0055, 0.046], [-0.005, 0.044], [-0.015, 0.037]] : [[0.015, 0.06], [0.0055, 0.068], [-0.0045, 0.064], [-0.0135, 0.052]];
+    const kd = med ? 1.25 : 1, curva = med ? 2.1 : 1;
+    for (const [dz, L] of dedos) {
+      const y0 = W[1] - (med ? 0.078 : 0.074) * kb, z0 = W[2] + dz * kb, Lk = L * kb;
+      const pts = [[W[0] - l * 0.001, y0 + 0.006, z0], [W[0] - l * 0.003 * curva, y0 - Lk * 0.45, z0 + 0.004], [W[0] - l * 0.011 * curva, y0 - Lk * 0.85, z0 + 0.003], [W[0] - l * 0.017 * curva, y0 - Lk, z0 + 0.001]];
+      const d = huso(colPiel, pts, [0.0064 * kb * kd, 0.0058 * kb * kd, 0.0052 * kb * kd, 0.0047 * kb * kd], sims ? 4 : 6, sims ? 5 : 6);
       grupo.add(piel(pintarPieza(d, (c, p) => { tinta(c, mezcla(colPiel, '#c4544a', 0.4), 0.25 * sv(y0 - Lk * 0.6, y0 - Lk, p.y)); })));
     }
     grupo.add(piel(huso(colPiel, [[W[0] - l * 0.006, W[1] - 0.03, W[2] + 0.02], [W[0] - l * 0.012, W[1] - 0.055, W[2] + 0.029], [W[0] - l * 0.012, W[1] - 0.077, W[2] + 0.03]], [0.0095 * kb, 0.0068 * kb, 0.0055 * kb], sims ? 4 : 6, sims ? 5 : 6)));
@@ -1124,10 +1275,13 @@ function figura(colores, clave, conMate, R, op) {
         ? [[[codoP[0], -0.24, 0.0], codoP, en(0.06), en(0.15), W], [0.042, 0.045, 0.044, 0.042, 0.036]]
         : [[[-l * 0.035, 0.012, 0], [-l * 0.012, -0.02, 0], [l * 0.002, -0.1, 0.0], [codoP[0], -0.235, 0.0], codoP, en(0.05), en(0.14), W],
           [0.032, 0.046 * kb, 0.043 * kb, 0.038 * kb, 0.036 * kb, 0.036 * kb, 0.033 * kb, 0.028]];
-      piv.add(pintarPieza(huso(manga, brazo[0], brazo[1], colores.poncho ? 12 : sims ? 14 : 22, sims ? 10 : 12), arrugaManga));
-      const puno = torno(matiz(manga, 0.82), [[0.031, -0.02], [0.034, -0.004], [0.033, 0.016], [0.029, 0.02]], W, null, null, 12);
-      puno.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), D);
-      piv.add(puno);
+      if (med && R.arremangado && !colores.poncho) { arremangar(piv, brazo[0], brazo[1], 3, manga, colPiel, 14, 10); piv.add(piel(bola(colPiel, [0.022, 0.022, 0.022], W, null, [8, 6]))); }
+      else {
+        piv.add(pintarPieza(huso(manga, brazo[0], brazo[1], colores.poncho ? 12 : sims ? 14 : 22, sims ? 10 : 12), arrugaManga));
+        const puno = torno(matiz(manga, 0.82), [[0.031, -0.02], [0.034, -0.004], [0.033, 0.016], [0.029, 0.02]], W, null, null, 12);
+        puno.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), D);
+        piv.add(puno);
+      }
       muneca = new THREE.Group(); muneca.position.set(W[0], W[1], W[2]);
       const MC = [-0.045, 0.035, 0.03], en2 = (a, b, c) => [MC[0] + a, MC[1] + b, MC[2] + c];
       const mano = [
@@ -1150,13 +1304,17 @@ function figura(colores, clave, conMate, R, op) {
         ? [[l * 0.006, -0.26, 0.004], [l * 0.008, -0.32, 0.01], [l * 0.01, -0.42, 0.02], W]
         : [[-l * 0.035, 0.012, 0], [-l * 0.012, -0.02, 0], [0, -0.06, 0], [l * 0.002, -0.14, 0.0], [l * 0.004, -0.25, 0.004], [l * 0.006, -0.29, 0.008], [l * 0.008, -0.37, 0.018], W];
       const rad = colores.poncho ? [0.038, 0.037, 0.034, 0.028] : [0.032, 0.046 * kb, 0.045 * kb, 0.041 * kb, 0.035 * kb, 0.034 * kb, 0.034 * kb, 0.027];
-      piv.add(pintarPieza(huso(manga, pts, rad, colores.poncho ? 10 : sims ? 14 : 22, sims ? 10 : 12), arrugaManga));
+      const remango = med && R.arremangado && !colores.poncho;
+      if (remango) { arremangar(piv, pts, rad, 4, manga, colPiel, 14, 10); const Wm = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z]; codo.add(piel(bola(colPiel, [0.023 * kb, 0.03, 0.02 * kb], [Wm[0], Wm[1] + 0.006, Wm[2]], null, [8, 6]))); }
+      else piv.add(pintarPieza(huso(manga, pts, rad, colores.poncho ? 10 : sims ? 14 : 22, sims ? 10 : 12), arrugaManga));
       // el puño y la mano, en el codo (así en C y D el antebrazo dobla)
       const Wc = [W[0] - codo.position.x, W[1] - codo.position.y, W[2] - codo.position.z];
-      const puno = torno(matiz(manga, 0.82), [[0.03, -0.02], [0.033, -0.004], [0.032, 0.016], [0.028, 0.02]], [Wc[0], Wc[1] - 0.004, Wc[2]], [-0.1, 0, 0], null, 12);
-      if (op.ropa) pintarPieza(puno, (c, p) => { if (Math.abs(p.y) < 0.003) c.multiplyScalar(0.8); });
-      codo.add(puno);
-      if (op.ropa) codo.add(bola('#d8d0c0', [0.004, 0.004, 0.003], [Wc[0] + l * 0.03, Wc[1] + 0.004, Wc[2] + 0.004]));
+      if (!remango) {
+        const puno = torno(matiz(manga, 0.82), [[0.03, -0.02], [0.033, -0.004], [0.032, 0.016], [0.028, 0.02]], [Wc[0], Wc[1] - 0.004, Wc[2]], [-0.1, 0, 0], null, 12);
+        if (op.ropa) pintarPieza(puno, (c, p) => { if (Math.abs(p.y) < 0.003) c.multiplyScalar(0.8); });
+        codo.add(puno);
+        if (op.ropa) codo.add(bola('#d8d0c0', [0.004, 0.004, 0.003], [Wc[0] + l * 0.03, Wc[1] + 0.004, Wc[2] + 0.004]));
+      }
       manoCon5(codo, Wc, l);
       piv.add(codo);
     }
@@ -1170,9 +1328,11 @@ function figura(colores, clave, conMate, R, op) {
   // ---- cabeza
   const cabeza = new THREE.Group(); cabeza.position.set(0, 1.46, 0);
   const F = sims ? medidasS(mujer, chico, robusto) : medidasCara(mujer, chico);
+  if (med) medidasM(F, R);
   armarCabeza(cabeza, F, colores, R, op, colPiel);
   if (chico) cabeza.scale.setScalar(1.42);   // los chicos: la cabeza grande para el cuerpo
   if (sims) cabeza.scale.setScalar(chico ? 1.24 : 1.08);   // S: la cabeza apenas grande (Lucía: la de una chica de 9)
+  if (med) { cabeza.scale.setScalar(chico ? 1.2 : 1.05); telasPorColor(g, colores, R, bota, pantalon); }
   g.add(cabeza);
   return { g, cabeza, torso, patas, brazos, muneca, mujer, chico, escala: mujer || chico ? 1 : 1.07 };
 }
@@ -1278,6 +1438,178 @@ function materialPiel() {
   return MAT_PIEL;
 }
 
+// ---------------------------------------------------------------- M: las telas pintadas en el shader
+// Como el detalle de superficie de la aldea (aSuperficie): cada vértice trae `aTela` = (tipo + 0,4 ×
+// borde, y, z). Los tipos: 1 lana tejida, 2 lienzo, 3 cuero, 4 punto, 5 fieltro, 6 pelo, 7 lienzo con
+// harina, 8 barba (con canas), 9 cara con pecas, 10 cara con arrugas de la risa, 11 cara lisa. La ropa
+// usa la posición de reposo (la tela no "nada" al moverse) y `borde` (0 en el borde de la pieza:
+// cuero gastado, dobladillo cosido); el pelo, la barba y la cara usan (y, z) en el espacio de la
+// cabeza. Todo procedural, con la pincelada ancha encima, y apagado con fwidth cuando la trama queda
+// más chica que un par de píxeles (de lejos no titila). Una sola variante de programa más.
+const GLSL_TELA = /* glsl */`
+  varying vec3 vTela; varying vec3 vPosT; varying vec3 vNorT;
+  float hT(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float nT(vec2 p) {
+    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hT(i), hT(i + vec2(1.0, 0.0)), f.x), mix(hT(i + vec2(0.0, 1.0)), hT(i + vec2(1.0, 1.0)), f.x), f.y);
+  }
+  float fwT(vec2 g) { return max(fwidth(g.x), fwidth(g.y)); }
+  // la trama: hilos que pasan por arriba y por abajo (damero de franjas)
+  float tramaT(vec2 uv, float esc) {
+    vec2 g = uv * esc;
+    float a = sin(g.x * 6.2832), b = sin(g.y * 6.2832);
+    float cel = step(0.5, fract(floor(g.x) * 0.5 + floor(g.y) * 0.5));
+    return mix(mix(a * a, b * b, cel), 0.5, smoothstep(0.25, 0.7, fwT(g)));
+  }
+`;
+const GLSL_TELA_COLOR = /* glsl */`
+  {
+    float tipo = floor(vTela.x + 0.5);
+    float borde = clamp((vTela.x - tipo) / 0.4, 0.0, 1.0);
+    if (tipo > 0.5) {
+      vec3 alb = diffuseColor.rgb;
+      vec3 an = abs(normalize(vNorT));
+      vec2 uv = an.y > 0.75 ? vPosT.xz : (an.x > an.z ? vPosT.zy : vPosT.xy);
+      bool cabeza = tipo > 5.5 && abs(tipo - 7.0) > 0.5;
+      if (cabeza) uv = vTela.yz;
+      bool tela = !cabeza;
+      // la pincelada: manchas anchas, entre tibio y frío (nada fotográfico)
+      float pin = nT(vec2(uv.x * 5.0 + 1.7 * nT(uv * 1.3), uv.y * 2.2)) * 0.65 + nT(uv * 13.0 + 7.3) * 0.35;
+      if (tela) alb *= mix(vec3(0.86, 0.88, 0.95), vec3(1.08, 1.03, 0.93), pin);
+      // de lejos (más de ~6 mm por píxel) la trama ya no se ve: sólo la pincelada y la mugre (más barato)
+      float px = max(length(dFdx(vPosT)), length(dFdy(vPosT)));
+      if (px > 0.006) {
+        // (el mismo tono medio que de cerca, para que no salte al cruzar el umbral)
+        if (tipo > 2.5 && tipo < 3.5) alb *= 0.8 + 0.3 * nT(uv * 3.0);
+        else if (tipo < 8.5 && abs(tipo - 7.0) > 0.5 && tipo > 5.5) alb *= 0.885;
+        else if (tela) alb *= 0.96;
+      } else if (tipo < 1.5) {
+        alb *= 0.88 + 0.16 * tramaT(uv, 210.0);                                   // lana tejida
+      } else if (tipo < 2.5 || abs(tipo - 7.0) < 0.5) {
+        alb *= 0.92 + 0.1 * tramaT(uv, 330.0);                                    // lienzo
+        alb *= 0.95 + 0.08 * smoothstep(0.62, 0.9, nT(vec2(uv.x * 2.0, uv.y * 140.0)));
+        if (tipo > 6.5) {                                                         // la harina
+          float h = smoothstep(0.42, 0.7, nT(uv * 6.0 + 2.0)) * (0.5 + 0.5 * nT(uv * 40.0)) * smoothstep(0.55, 0.9, vPosT.y);
+          alb = mix(alb, vec3(0.95, 0.93, 0.88), h * 0.9);
+        }
+      } else if (tipo < 3.5) {                                                    // cuero
+        alb *= 0.7 + 0.5 * nT(uv * 18.0) * (0.75 + 0.5 * nT(uv * 3.0));
+        float rasp = smoothstep(0.7, 0.9, nT(vec2(uv.x * 30.0, uv.y * 8.0)));
+        alb = mix(alb, alb * 1.5 + 0.01, rasp * 0.45);
+        float gasto = (1.0 - smoothstep(0.0, 0.3, borde)) * (0.55 + 0.45 * nT(uv * 60.0));
+        alb = mix(alb, alb * vec3(1.8, 1.55, 1.25) + 0.015, gasto * 0.85);
+        alb *= 1.0 - 0.55 * step(0.965, hT(floor(uv * 38.0))) * step(0.5, nT(uv * 4.0));   // marcas de chispas
+      } else if (tipo < 4.5) {                                                    // punto (tejido)
+        vec2 g = vec2(uv.x * 105.0, uv.y * 130.0);
+        float v = abs(fract(g.x) - 0.5) * 2.0;
+        float pt = sin((g.y + v * 0.6) * 6.2832);
+        alb *= mix(0.8 + 0.28 * smoothstep(-0.4, 0.7, pt) - 0.12 * smoothstep(0.82, 1.0, v), 0.95, smoothstep(0.3, 0.8, fwT(g)));
+      } else if (tipo < 5.5) {                                                    // fieltro
+        alb *= 0.9 + 0.14 * nT(uv * 45.0) + 0.06 * nT(uv * 160.0);
+      } else if (tipo < 6.5 || abs(tipo - 8.0) < 0.5) {                           // pelo y barba: hebras
+        vec2 g = vec2(uv.x * 380.0 + 7.0 * nT(uv * vec2(18.0, 26.0)), uv.y * 16.0);
+        float heb = nT(g) * 0.6 + nT(g * vec2(2.3, 1.7) + 5.0) * 0.4;
+        heb = mix(heb, 0.5, smoothstep(0.35, 0.9, fwT(g)));
+        float mech = nT(vec2(uv.x * 40.0, uv.y * 7.0));
+        alb *= 0.6 + 0.6 * heb * (0.7 + 0.5 * mech);
+        if (tipo > 7.5) {
+          float cana = smoothstep(0.76, 0.88, nT(vec2(uv.x * 900.0, uv.y * 70.0))) * (0.35 + 0.65 * smoothstep(0.4, 0.75, nT(uv * 24.0)));
+          cana *= 1.0 - smoothstep(0.35, 0.9, fwT(g));
+          alb = mix(alb, vec3(0.3, 0.28, 0.26), cana * 0.5);
+        }
+      } else {                                                                    // la cara
+        float ax = abs(uv.x), y = uv.y;
+        alb *= 0.97 + 0.06 * nT(uv * 70.0);
+        if (tipo < 9.5) {                                                         // pecas
+          vec2 c = uv / 0.0042, id = floor(c);
+          vec2 f = fract(c) - 0.5 - (vec2(hT(id), hT(id + 3.7)) - 0.5) * 0.5;
+          float zona = exp(-pow((ax - 0.024) / 0.024, 2.0) - pow((y + 0.019) / 0.013, 2.0)) + exp(-pow(uv.x / 0.009, 2.0) - pow((y + 0.017) / 0.012, 2.0));
+          float p = (1.0 - smoothstep(0.16, 0.3, length(f))) * step(0.4, hT(id + 9.1)) * clamp(zona, 0.0, 1.0);
+          p *= 1.0 - smoothstep(0.3, 0.8, fwT(c));
+          alb = mix(alb, alb * vec3(0.7, 0.52, 0.4), p * 0.75);
+        } else if (tipo < 10.5) {                                                 // arrugas de la risa
+          vec2 d = vec2(ax - 0.046, y + 0.002);
+          float r = length(d), a = atan(d.y, d.x);
+          float rayas = smoothstep(0.8, 0.98, cos(a * 9.0)) * step(abs(a), 0.7) * smoothstep(0.003, 0.006, r) * (1.0 - smoothstep(0.008, 0.012, r));
+          float xs = 0.014 + (-0.039 - y) * 0.36;
+          float surco = (1.0 - smoothstep(0.0006, 0.0018, abs(ax - xs))) * smoothstep(-0.058, -0.052, y) * (1.0 - smoothstep(-0.044, -0.039, y));
+          float arr = max(rayas * 0.8, surco) * (1.0 - smoothstep(0.3, 0.8, fwT(uv * 400.0)));
+          alb = mix(alb, alb * vec3(0.8, 0.68, 0.62), arr * 0.38);
+        }
+      }
+      if (tela && px <= 0.006) {
+        // el dobladillo cosido junto al borde
+        float pesp = step(0.45, fract((uv.x + uv.y) * 230.0));
+        float hilo = (1.0 - smoothstep(0.012, 0.03, abs(borde - 0.1))) * pesp * (1.0 - smoothstep(0.3, 0.8, fwT(uv * 230.0)));
+        alb *= 1.0 - 0.35 * hilo;
+        // algún remiendo, con su puntada alrededor (en la lana, el lienzo y el cuero)
+        if (tipo < 3.5 || abs(tipo - 7.0) < 0.5) {
+          vec2 q = uv / 0.13, cel = floor(q), l = fract(q);
+          float dentro = step(0.22, l.x) * step(l.x, 0.78) * step(0.26, l.y) * step(l.y, 0.74) * step(0.972, hT(cel + 13.1)) * step(0.35, vPosT.y);
+          alb = mix(alb, alb * vec3(1.12, 1.04, 0.88) * (0.92 + 0.16 * nT(uv * 90.0)), dentro);
+          float dd = min(min(l.x - 0.22, 0.78 - l.x), min(l.y - 0.26, 0.74 - l.y));
+          alb *= 1.0 - 0.45 * dentro * (1.0 - smoothstep(0.0, 0.025, abs(dd - 0.035))) * pesp;
+        }
+      }
+      if (tela) {
+        // abajo, la tela más sucia y oscura (barro y polvo)
+        float suc = 1.0 - smoothstep(0.05, 0.5 + 0.3 * nT(uv * 3.0), vPosT.y);
+        alb = mix(alb, alb * vec3(0.6, 0.52, 0.42), suc * 0.6);
+      }
+      diffuseColor.rgb = alb;
+    }
+  }
+`;
+let MAT_TELA = null;
+function materialTela() {
+  if (MAT_TELA) return MAT_TELA;
+  MAT_TELA = new THREE.MeshLambertMaterial({ vertexColors: true });
+  MAT_TELA.onBeforeCompile = (sh) => {
+    materialPiel().onBeforeCompile(sh);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 aTela; varying vec3 vTela; varying vec3 vPosT; varying vec3 vNorT;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvTela = aTela; vPosT = position; vNorT = normal;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n' + GLSL_TELA)
+      .replace('#include <color_fragment>', '#include <color_fragment>\n' + GLSL_TELA_COLOR);
+  };
+  MAT_TELA.customProgramCacheKey = () => 'proto-tela-M1';
+  return MAT_TELA;
+}
+const TELA = { lana: 1, lienzo: 2, cuero: 3, punto: 4, fieltro: 5, pelo: 6, harina: 7, barba: 8, pecas: 9, arrugas: 10, cara: 11 };
+const conTela = (m, t) => { m.userData.tela = t; return m; };
+// La paleta de tierra y la ropa de M: ocres, verde oliva, marrones y rojos apagados. Los tres de la
+// prueba tienen la suya; al resto se le corre el color hacia la tierra.
+const PALETA_M = {
+  'poblador-herrero': {
+    colores: { ropa: '#b39466', abrigo: '#6b5a36', gorro: 'gorro', gorroColor: '#5c4a32', pelo: '#3a2a1e', barba: '#4a3626' },
+    R: { pantalon: '#5e4c36', delantal: '#6c4a2c', telaDelantal: 'cuero', faja: '#8a3c2a', botaCol: '#5a3c26', arremangado: true },
+  },
+  'poblador-panadera': {
+    colores: { ropa: '#d8c8a4', abrigo: '#66673a', gorro: 'panuelo', gorroColor: '#b05c38', pelo: '#3a2a22', bufanda: null },
+    R: { chaleco: true, colPollera: '#9c7440', delantal: '#e2d8c0', telaDelantal: 'harina', botaCol: '#6a4a30', arremangado: true },
+  },
+  'aldea-nena': {
+    colores: { ropa: '#d4c29c', abrigo: '#6c6e3e', gorro: 'gorroPunto', gorroColor: '#a8562e', pelo: '#4a2e1e', bufanda: '#c8a464' },
+    R: { chaleco: true, telaChaleco: 'punto', colPollera: '#94443a', botas: 'altas', botaCol: '#5c3e2a', pecas: true },
+  },
+};
+function aTierra(hex) {
+  if (!hex || typeof hex !== 'string' || hex[0] !== '#') return hex;
+  const c = new THREE.Color(hex); c.getHSL(_hsl);
+  // el tono se corre hacia el ocre (unos 30°) y se apaga un poco
+  const h = _hsl.h; let d = 0.085 - h; if (d > 0.5) d -= 1; if (d < -0.5) d += 1;
+  c.setHSL((h + d * 0.3 + 1) % 1, _hsl.s * 0.72, _hsl.l);
+  return `#${c.getHexString()}`;
+}
+function paletaM(clave, colores, R) {
+  const p = PALETA_M[clave];
+  if (p) return { colores: { ...colores, ...p.colores }, R: { ...R, ...p.R } };
+  const c = { ...colores };
+  for (const k of ['ropa', 'abrigo', 'pantalon', 'bufanda']) if (c[k]) c[k] = aTierra(c[k]);
+  return { colores: c, R: { ...R, pantalon: aTierra(R.pantalon), delantal: aTierra(R.delantal), arremangado: !!(R.chaleco || R.delantal) } };
+}
+
 const _mRel = new THREE.Matrix4(), _mInvRaiz = new THREE.Matrix4(), _nmRel = new THREE.Matrix3();
 const _frio = new THREE.Color('#2b3442'), _tibio = new THREE.Color('#fff1d8');
 function sombraPintada(c, p, n) {
@@ -1289,11 +1621,11 @@ function sombraPintada(c, p, n) {
 }
 // S: las telas con un poco más de color (y la piel apenas), y lo que mira arriba, tibio
 const _hsl = { h: 0, s: 0, l: 0 };
-function telaS(c, n, esPiel) {
+function telaS(c, n, esPiel, medieval = false) {
   c.getHSL(_hsl);
   let l = Math.min(1, _hsl.l * (esPiel ? 1.06 : 1.04) + 0.008);
   if (!esPiel && l < 0.05) l += (0.05 - l) * 0.3;   // las telas casi negras, apenas levantadas (que se lea la forma; en lineal)
-  c.setHSL(_hsl.h, Math.min(1, _hsl.s * (esPiel ? 0.9 : 1.16)), l);
+  c.setHSL(_hsl.h, Math.min(1, _hsl.s * (esPiel ? 0.9 : medieval ? 1.0 : 1.16)), l);   // (M: la paleta de tierra, sin avivar)
   if (!esPiel) c.lerp(_tibio, 0.06 * Math.max(0, n.y));
 }
 function continuo(f, op) {
@@ -1318,6 +1650,7 @@ function continuo(f, op) {
   let nv = 0, ni = 0;
   for (const m of mallas) { nv += m.geometry.attributes.position.count; ni += m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count; }
   const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3), zona = new Float32Array(nv * 2);
+  const aTela = op.medieval ? new Float32Array(nv * 3) : null;   // M: la tela de cada vértice
   const si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4), pieza = new Uint16Array(nv), tapa = new Uint8Array(nv), crudo = new Uint8Array(nv);
   const ind = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   const p = new THREE.Vector3(), q = new THREE.Vector3(), n = new THREE.Vector3(), c = new THREE.Color();
@@ -1332,6 +1665,7 @@ function continuo(f, op) {
     _mRel.multiplyMatrices(_mInvRaiz, m.matrixWorld); _nmRel.getNormalMatrix(_mRel);
     const grupo = m.parent, hueso = idx.has(grupo) ? idx.get(grupo) : 0;
     const sup = m.userData.superior, Z = geo.attributes.zona, esCrudo = !!m.userData.crudo;
+    const TV = geo.attributes.telaV, B = geo.attributes.borde, telaPieza = m.userData.tela || 0;
     if (m.userData.mate && iMate < 0) iMate = oi;
     for (let i = 0; i < P.count; i++) {
       const j = ov + i;
@@ -1342,7 +1676,16 @@ function continuo(f, op) {
       nor[j * 3] = n.x; nor[j * 3 + 1] = n.y; nor[j * 3 + 2] = n.z;
       if (C) c.setRGB(C.getX(i), C.getY(i), C.getZ(i)); else c.copy(m.material.color);
       // (los rasgos de S ya vienen con su color: como el rostro de cerca, sin sombra pintada ni oclusión)
-      if (!esCrudo) { sombraPintada(c, p, n); if (op.sims) telaS(c, n, !!m.userData.piel); }
+      const esPiel = Z ? Z.getX(i) > 0.5 : !!m.userData.piel;
+      if (!esCrudo) { sombraPintada(c, p, n); if (op.sims) telaS(c, n, esPiel, !!op.medieval); }
+      if (aTela) {
+        const tp = TV ? TV.getX(i) : telaPieza;
+        let x = tp, y = 0, z = 0;
+        if (tp === TELA.pelo || tp === TELA.barba) { y = Math.atan2(q.x, q.z) * 0.08; z = q.y - 0.05; }
+        else if (tp >= TELA.pecas) { y = q.x; z = q.y - 0.05; }
+        else if (tp > 0) x = tp + 0.4 * (B ? B.getX(i) : 1);
+        aTela[j * 3] = x; aTela[j * 3 + 1] = y; aTela[j * 3 + 2] = z;
+      }
       col[j * 3] = c.r; col[j * 3 + 1] = c.g; col[j * 3 + 2] = c.b;
       zona[j * 2] = Z ? Z.getX(i) : m.userData.piel ? 1 : 0; zona[j * 2 + 1] = 1; crudo[j] = esCrudo ? 1 : 0;
       pieza[j] = k; tapa[j] = m.userData.noTapa ? 0 : 1;
@@ -1388,9 +1731,10 @@ function continuo(f, op) {
   geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
   if (op.piel) { oclusion(pos, nor, pieza, zona, col, tapa, op.sims ? 0.5 : 1, op.sims ? 0.35 : 1, crudo); geo.setAttribute('zona', new THREE.BufferAttribute(zona, 2)); }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  if (aTela) geo.setAttribute('aTela', new THREE.BufferAttribute(aTela, 3));
   geo.setIndex(new THREE.BufferAttribute(ind, 1));
   geo.computeBoundingSphere();
-  const malla = new MallaConPiel(geo, op.piel ? materialPiel() : MAT_FAUNA);
+  const malla = new MallaConPiel(geo, op.medieval ? materialTela() : op.piel ? materialPiel() : MAT_FAUNA);
   malla.castShadow = true;
   g.add(malla);
   g.updateMatrixWorld(true);
@@ -1460,6 +1804,7 @@ function alPosar(op) {
         if (cerca !== g.cara.visible) { g.cara.visible = cerca; g.cabeza.userData.rasgos.scale.setScalar(cerca ? 0.001 : 1); }
       }
     }
+    if (op.medieval) quietudM(g, st, dt, andando, charlando);   // M: manos en la cintura, brazos cruzados...
     if (!op.mirar || !camara) return;
     // mirar al jugador: la cabeza gira la mitad y los ojos el resto; de vez en cuando miran a otro lado
     const cab = g.cabeza;
@@ -1490,10 +1835,60 @@ function alPosar(op) {
   };
 }
 
+// ---------------------------------------------------------------- M: las poses de quietud
+// Cada brazo: x (adelante, negativo), yl (giro sobre su eje, hacia adentro negativo), zl (abrirlo),
+// codo (doblar, negativo); yl y zl van espejados según el lado. `uno`: la pose usa un solo brazo
+// (si esa mano tiene el mate, la hace la otra). El orden de los giros del hombro pasa a XZY (con y = 0
+// es el mismo de siempre): primero el giro sobre el eje del brazo, después abrirlo, después adelante.
+const POSES_M = {
+  cintura: { izq: { x: 0.08, yl: -1.4, zl: 0.5, codo: -1.6 }, der: { x: 0.08, yl: -1.4, zl: 0.5, codo: -1.6 } },
+  cruzados: { izq: { x: -0.62, yl: -1.3, zl: -0.06, codo: -2.05 }, der: { x: -0.72, yl: -1.38, zl: -0.04, codo: -1.95 } },
+  barba: { uno: true, der: { x: -1.05, yl: -0.62, zl: -0.12, codo: -2.5 }, cabeza: -0.12 },
+  gorro: { uno: true, der: { x: -2.35, yl: -0.35, zl: 0.42, codo: -1.75 }, cabeza: 0.1 },
+  atras: { izq: { x: 0.5, yl: -1.45, zl: 0.08, codo: -1.3 }, der: { x: 0.5, yl: -1.45, zl: 0.08, codo: -1.3 } },
+  delantal: { uno: true, izq: { x: -0.42, yl: -1.05, zl: -0.04, codo: -1.05 } },
+};
+const POSES_DE = { 'poblador-herrero': ['cintura', 'cruzados', 'barba'], 'poblador-panadera': ['cintura', 'gorro', 'delantal'], 'aldea-nena': ['atras', 'cruzados', 'gorro'] };
+const posesDe = (clave) => POSES_DE[clave] || ['cintura', 'cruzados', 'atras'];
+function quietudM(g, st, dt, andando, charlando) {
+  const q = st.q || (st.q = { nombre: null, sig: null, w: 0, t: 2 + Math.random() * 4 });
+  if (g.__quietud !== undefined) q.sig = g.__quietud;
+  else if (!andando && !charlando && !g.pose) {
+    q.t -= dt;
+    if (q.t <= 0) {
+      const lista = g.posesM || [];
+      q.sig = Math.random() < 0.65 && lista.length ? lista[Math.floor(Math.random() * lista.length)] : null;
+      q.t = q.sig ? 5 + Math.random() * 7 : 3 + Math.random() * 4;
+    }
+  } else q.sig = null;
+  if (q.nombre !== q.sig) { q.w = Math.max(0, q.w - dt * 2.5); if (q.w === 0) q.nombre = q.sig; } else q.w = Math.min(1, q.w + dt * 2.5);
+  const P = POSES_M[q.nombre];
+  if (!P || q.w <= 0) return;
+  const w = q.w * q.w * (3 - 2 * q.w);
+  let defs = [P.izq || null, P.der || null];
+  if (P.uno) {
+    const lado = P.der ? 1 : 0, def = P.der || P.izq;
+    defs = [null, null];
+    defs[g.brazos[lado].userData.muneca ? 1 - lado : lado] = def;
+  }
+  g.brazos.forEach((b, s) => {
+    const d = defs[s];
+    if (!d || b.userData.muneca) return;
+    const l = s ? 1 : -1;
+    if (b.userData.z0 === undefined) b.userData.z0 = b.rotation.z;
+    b.rotation.order = 'XZY';
+    b.rotation.x += (d.x - b.rotation.x) * w;
+    b.rotation.y = d.yl * l * w;
+    b.rotation.z = b.userData.z0 + (d.zl * l - b.userData.z0) * w;
+    const cd = b.userData.codo; if (cd) cd.rotation.x += (d.codo - cd.rotation.x) * w;
+  });
+  if (P.cabeza) g.cabeza.rotation.x += P.cabeza * w;
+}
 // ---------------------------------------------------------------- la entrada
 const TALLA_CHICO_S = 0.76 / 0.58;
 export function protoPersona(V, colores, clave = '', conMate = false, R = {}) {
   const op = OPC[V] || OPC.A;
+  if (op.medieval) ({ colores, R } = paletaM(clave, colores || {}, R || {}));
   const f = figura(colores || {}, clave, conMate, R || {}, op);
   const { g, cabeza, torso, patas, brazos } = f;
   let malla = null;
@@ -1514,6 +1909,7 @@ export function protoPersona(V, colores, clave = '', conMate = false, R = {}) {
   if (op.continuo && brazos[1].userData.codo) { const a = brazos[1].userData.ante; brazos[1].userData.codo.add(a); a.position.set(0, -0.01, 0); mano = a; }
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible };
   if (op.continuo) r.alPosar = alPosar(op);
+  if (op.medieval) r.posesM = posesDe(clave);
   if (op.sims) {
     r.cara = cabeza.userData.rostro || null;
     // Lucía (y los chicos): de 9 años, no de 5. La talla de aldea.js (0,58) los deja de 1 m; en el
