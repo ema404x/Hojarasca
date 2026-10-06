@@ -164,7 +164,9 @@ app.whenReady().then(async () => {
     // ------------------------------------------------------------ 4. un visitante
     seccion('un visitante baja del tren');
     await js(`(()=>{ const P = ${H}.progreso; P.dia = 10; P.horas = 10; P.vidaAldea.visitante = { id: 'lena', lugar: 'mirador', dia: 10, estado: 'anden' }; return 1 })()`);
-    await plaza(); await aldea(4);
+    // (3.7.3: un rato más, que los que van de un lado al otro por el andén lleguen a lo suyo: con Martín y el taller
+    // del otro lado de la vía, a las 10 de un día adelantado pasaba gente al lado de Lena y E le hablaba a otro)
+    await plaza(); await aldea(40);
     e = await js(`(()=>{ const f = ${H}.gente.gente.find((g) => g.claveAldea === 'visitante'); return f ? { x: f.pos.x, z: f.pos.z, nombre: f.nombre } : null })()`);
     ok(e && e.nombre === 'Lena', 'Lena espera en el andén');
     h = await hablarCon(`${H}.gente.gente.find((g) => g.claveAldea === 'visitante')`, 4);
