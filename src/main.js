@@ -1095,6 +1095,7 @@ function dormir() {
       else nota('Dormiste una siesta', `Son las ${horaTexto(progreso.horas)}`);
       jugador.estado.entumecido = horasEntumecido(como);
       if (deNoche) jugador.estado.descansado = descanso;
+      if (deNoche && amorJuego?.bonos().dormir) jugador.estado.descansado += amorJuego.bonos().dormir;   // 3.7.1: y lo que te enseñó Marta
       if (descanso > 0) { diario.anotar('descanso'); setTimeout(() => nota('Descansaste de verdad', 'La casa ya es casa: vas a andar más liviano un rato'), 3200); }
       if (como === 'calentito' && calorDeLaCasa) setTimeout(() => nota('Dormiste calentito', 'El calor de la estufa llegó a toda la casa'), 1600);
       else if (como === 'calentito') setTimeout(() => nota('Dormiste calentito', 'El fuego aguantó toda la noche'), 1600);
@@ -2693,6 +2694,7 @@ document.addEventListener('keydown', (e) => {
       // 2.3: en otoño, junto a un árbol grande, E junta semilla para el vivero
       if (!objetivo && !js.enTren && !js.enKayak) { const s = arbolParaSemilla(); if (s) { juntarSemilla(s); break; } }
       const r = objetos.usar(objetivo, registrar, sonido);
+      if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
       if (r) destellarRanura(objetivo?.tipo);
       if (r?.sentarse?.cama) { dormir(); break; }
       if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
@@ -4234,7 +4236,7 @@ const pronosticoDeManana = () => {
   const manana = pronosticoActual().find((d) => d.cuando === 'Mañana');
   return manana ? `para mañana: ${manana.texto.charAt(0).toLowerCase()}${manana.texto.slice(1)}` : '';
 };
-const nivelDe = (id) => oficios?.nivel(id) || 0;
+const nivelDe = (id) => Math.min(5, (oficios?.nivel(id) || 0) + (amorJuego?.bonos().oficios[id] || 0));   // (3.7.1: más lo que te enseñó tu esposa)
 const ganarOficio = (id, cuanto) => oficios?.ganar(id, cuanto) || null;
 function armarOficiosYAldea(esDesafio) {
   const redibujar = () => { if (modo === 'cuaderno') dibujarCuaderno(); };
@@ -4310,6 +4312,8 @@ function armarOficiosYAldea(esDesafio) {
     lugarValle: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null), invierno: () => U.uInvierno.value > 0.5,
     enCasa: (p, edificio) => { if (!p) return false; if (edificio === 'refugio') { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); } return !!aldeaMundo && !!edificio && Object.values(puntosMundo(edificio)).some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 6); },
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
+    // lo que te enseñó tu esposa y vale siempre: el paso y los animales más mansos (jugador.js y fauna.js lo leen)
+    alBonos: (b) => { const js = jugador?.estado; if (js) { js.pasoAmor = b.paso; js.huidaAmor = b.huida; } },
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
@@ -4396,7 +4400,7 @@ function actualizarAldea(dt) {
   if (!jugador) return;
   oficios?.remar(jugador.estado);
   // (3.7.0: y si Martina, la del varadero, te lo calafateó hoy, un 15 % más)
-  if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1);
+  if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1) * (amorJuego?.bonos().remo || 1);   // (3.7.1: y la remada de Martina)
   if (!desafio) aldeaGente?.actualizar(dt);
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
   if (!desafio) amorJuego?.actualizar(dt);   // 3.7.1: el día del amor, las citas y el casamiento
@@ -6752,7 +6756,7 @@ async function sacarFoto() {
   {
     const js = jugador.estado;
     const vistos = fotos.evaluar({
-      sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren, lente: !!progreso.cosas?.lente,   // (3.7.0: el lente de Sofía)
+      sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren, lente: !!progreso.cosas?.lente || !!amorJuego?.bonos().lente,   // (3.7.0: el lente de Sofía)
       pezEnMano: pesca.mostrandoPez(), noche: 1 - (luzUltimaFoto?.dia ?? 1), lunaDir: luzUltimaFoto?.lunaDir,
       fogata: clima.fogata.activa && clima.fogata.vida > 0 ? clima.fogata.pos : null,
       otono: U.uOtono.value, invierno: U.uInvierno.value, arboles: veg.arboles, enKayak: js.enKayak,
@@ -6921,7 +6925,7 @@ function cieloDeLaNoche(dt, noche, luz) {
   // la luna llena se anota mirándola un rato, como una constelación
   if (luz?.lunaDir && noche > 0.7 && nub < 0.6 && lunaAnotable(fase) && !progreso.entradas['luna-llena']) {
     camara.getWorldDirection(mirada);
-    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) : 0;
+    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) : 0;
     if (nocheCielo.mirandoLuna > 2.2) registrar('luna-llena');
   }
 }
@@ -6952,7 +6956,7 @@ function actualizarCielo(dt, noche, luz) {
       n++;
       // mirarla un rato la anota en el cuaderno
       if (!conocida) {
-        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1);
+        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1);   // (3.7.1: los ojos de noche de Valentina)
         if (tiempoMirando[c.id] > 2.2) registrar(c.id);
       }
     }

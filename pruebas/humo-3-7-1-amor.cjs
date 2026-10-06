@@ -289,16 +289,28 @@ app.whenReady().then(async () => {
     ok(hijos.length === 1 && hijos[0].etapa === 'bebe' && hijos[0].madre === 'veterinaria', `nació ${hijos[0]?.nombre}`);
     ok(/¡Nació/.test(await js(`${H}.__avisos().join(' | ')`)), 'el aviso del nacimiento');
 
+    // ------------------------------------------------------------ 9b. lo que te enseñó (rinde y mejora para siempre)
+    seccion('las habilidades');
+    const hab = await js(`${P}.amor.habilidades.veterinaria`);
+    ok(hab && hab.nivel === 3, `aprendiste los tres niveles de Ayelén (una por estación desde el día ${boda.dia})`);
+    await amor(2);
+    ok((await js(`${H}.jugador.estado.huidaAmor`)) === 0.7 && (await js(`${H}.__amor().bonos().huida`)) === 0.7, 'para siempre: los animales se espantan desde más cerca');
+    const huevos = await js(`${P}.entradas.huevo?.cantidad || 0`);
+    await nuevoDia(emb.nace + 1, 9);
+    ok((await js(`${P}.entradas.huevo?.cantidad || 0`)) === huevos + 2 && (await js(`${P}.aldea.herrado`)) === emb.nace + 1, 'cada mañana rinde: dos huevos y el zaino herrado');
+
     // ------------------------------------------------------------ 10. el ajuste apagado
     seccion('el ajuste apagado');
     await js(`document.querySelector('[data-ajuste="romance"] button[data-valor="false"]').click(); 1`);
     ok((await js(`${H}.ajustes.romance`)) === false && JSON.parse(await js(`localStorage.getItem('hojarasca-ajustes-v1')`)).romance === false, 'apagado y guardado');
-    await dia(emb.nace, 21.2);
+    await dia(emb.nace + 1, 21.2);
     await ubicar(vet.x, vet.z, vet.x + 1, vet.z); await aldea(20);
     h = await hablarCon('veterinaria');
     ok(h.menu && !h.menu.some((o) => /Coquetear|Lo nuestro|anillo|carta de amor/.test(o)), `apagado: nada en su menú (${(h.menu || []).join(' / ')})`);
     await cerrarCharla();
     ok((await js(`JSON.stringify(${H}.__amor().mundo())`)) === '{"activo":false}', 'el mundo no muestra nada');
+    await amor(2);
+    ok((await js(`${H}.jugador.estado.huidaAmor`)) === 1, 'ni las mejoras de lo aprendido');
     h = await hablarCon('telegrafista');
     ok(!h.menu || !h.menu.some((o) => /carta de amor/.test(o)), 'ni el correo');
     await cerrarCharla();

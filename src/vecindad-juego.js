@@ -330,6 +330,7 @@ export function crearVecindadJuego(ctx) {
       if (r.ok) {
         aplicarEfectos(p, r.efectos, ctx);
         s.regalo = true;
+        ctx.amor?.alRegalar?.(s.clave, r.reaccion);   // 3.7.1: el dibujito de regalo (lo que te enseñó Abril o Nélida)
         ctx.refrescarBarra?.();
         ctx.guardar?.();
         avisarAmistad(s.clave, r.amistad);

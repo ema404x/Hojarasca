@@ -82,12 +82,15 @@ function llevarHasta(p, k, etapa, d0 = 1) {
     "if (clave === 'romance') v = v === 'true';", 'const deAmor = !desafio ? amorJuego?.hablar(npc) : null;', 'amorJuego?.alCerrar();',
     "else if (r.tipo === 'fundido') charla.historia = { id: 'amor-fundido'", 'function fundidoAmor(r) {',
     "else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando'",
+    "const nivelDe = (id) => Math.min(5, (oficios?.nivel(id) || 0) + (amorJuego?.bonos().oficios[id] || 0));", "* (amorJuego?.bonos().remo || 1);", "lente: !!progreso.cosas?.lente || !!amorJuego?.bonos().lente,",
+    "* (amorJuego?.bonos().cielo || 1);", "if (deNoche && amorJuego?.bonos().dormir) jugador.estado.descansado += amorJuego.bonos().dormir;", "if (r?.juntado) amorJuego?.alJuntar(r.juntado);", 'alBonos: (b) => { const js = jugador?.estado; if (js) { js.pasoAmor = b.paso; js.huidaAmor = b.huida; } },',
   ]) ok(main.includes(t), `main.js: ${t.slice(0, 80)}`);
   // la tecla E y el aviso: lo de la cita va en la rama del vecino en los dos (hablar() lo resuelve primero)
   const iE = main.indexOf('if (vecino) { hablar(vecino); break; }'), iAviso = main.indexOf('amorJuego?.textoAviso(vecino)');
   ok(iE > 0 && iAviso > 0 && main.indexOf('const deAmor = !desafio ? amorJuego?.hablar(npc) : null;') < main.indexOf('const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;'), 'E y el aviso con la misma prioridad');
   const vj = leer('src/vecindad-juego.js');
-  ok(vj.includes('for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('const amor = ctx.amor?.alAbrir?.(clave) || null;'), 'vecindad-juego.js: el amor en el menú y al saludar');
+  ok(leer('src/jugador.js').includes('if (!estado.montado && estado.pasoAmor > 1) vmax *= Math.min(1.2, estado.pasoAmor);') && leer('src/fauna.js').includes('* Math.max(0.5, Math.min(1, js.huidaAmor || 1));'), 'jugador.js y fauna.js: el paso y los animales mansos');
+  ok(vj.includes('ctx.amor?.alRegalar?.(s.clave, r.reaccion);') && vj.includes('for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('const amor = ctx.amor?.alAbrir?.(clave) || null;'), 'vecindad-juego.js: el amor en el menú y al saludar');
 }
 
 // ============================================================ 1. la elegibilidad (lo que pidió el usuario: por reglas)
@@ -292,12 +295,21 @@ function llevarHasta(p, k, etapa, d0 = 1) {
   eq(niveles, [[13, 1], [17, 2], [21, 3]], 'a la mañana siguiente, el primero; después, uno por estación');
   eq(M.habilidadesDe(p)[0].niveles, M.HABILIDADES.andinista.niveles.map((x) => x.nombre), 'los tres niveles de Rocío');
   const ef = M.efectosDeHabilidades(p, 40);
-  ok(ef.some((e) => e.k === 'pinon' && e.n === 3) && ef.some((e) => e.k === 'calafate-seco') && ef.some((e) => e.campo === 'descansado'), 'lo que rinde cada mañana');
+  ok(ef.some((e) => e.k === 'pinon' && e.n === 3) && ef.some((e) => e.k === 'calafate-seco'), 'lo que rinde cada mañana');
+  ok(M.bonosDeHabilidades(p).paso === 1.07 && M.bonosDeHabilidades(p, { romance: false }).paso === 1, 'y la mejora permanente (el paso de Rocío); apagado, nada');
   const r2 = M.pasarDiaAmor(p, 41);
   ok(r2.efectos.length > 0 && M.pasarDiaAmor(p, 41).efectos.length === 0, 'una vez por día');
   for (const k of CAND) {
     const h = M.HABILIDADES[k];
-    ok(h.niveles.length === 3 && h.niveles.every((x) => x.nombre && x.texto && x.efectos.length && x.efectos.every((e) => ['material', 'cosa', 'entrada', 'jugador', 'aldea'].includes(e.tipo))), `${k}: tres niveles con efectos que el juego sabe aplicar`);
+    ok(h.niveles.length === 3 && h.niveles.every((x) => x.nombre && x.texto && (x.efectos.length || x.bono) && x.efectos.every((e) => ['material', 'cosa', 'entrada', 'jugador', 'aldea'].includes(e.tipo))), `${k}: tres niveles con efectos que el juego sabe aplicar`);
+    // «las dos cosas» (pedido del usuario): lo que rinde cada mañana y al menos una mejora permanente
+    ok(h.niveles.some((x) => x.efectos.length) && h.niveles.some((x) => x.bono), `${k}: rinde y mejora`);
+    for (const x of h.niveles) if (x.bono) for (const c of Object.keys(x.bono)) ok(Object.hasOwn(M.BONOS, c), `${k}: un bono que el juego entiende (${c})`);
+    for (const x of h.niveles) for (const o of Object.keys(x.bono?.oficios || {})) ok(['obrero', 'huertero', 'cazador', 'hachero', 'pescador', 'navegante'].includes(o), `${k}: un oficio de verdad (${o})`);
+    const q = { ...M.amorNuevo(), habilidades: { [k]: { nivel: 1, estacion: 0 } } };
+    const b1 = JSON.stringify(M.bonosDeHabilidades(q));
+    q.habilidades[k].nivel = 3;
+    ok(JSON.stringify(M.bonosDeHabilidades(q)) !== b1, `${k}: con los tres niveles cambia cómo se juega`);
     for (const x of h.niveles) for (const e of x.efectos) if (e.tipo === 'aldea') ok(['herrado', 'calafateado'].includes(e.campo), 'aldea: lo que entiende aplicarAlAldea');
   }
 }
@@ -522,6 +534,22 @@ function llevarHasta(p, k, etapa, d0 = 1) {
   ok(vj.menu(sn).opciones.some((o) => o.id === 'amor:niki'), 'de noche, viviendo juntos: «Ñiki ñiki…»');
   const rn = vj.elegir(sn, 'amor:niki');
   ok(rn.tipo === 'fundido' && rn.efectos.length === 2 && rn.renglones.length === 1, 'el ñiki ñiki: el fundido');
+  // lo que te enseñó y vale siempre (Ayelén: los animales mansos), desde el juego
+  const js = {};
+  const am2 = AJ.crearAmorJuego({ progreso: () => p, ajustes: () => ({ romance }), desafio: () => false, alBonos: (b) => { js.paso = b.paso; js.huida = b.huida; }, sumarEntrada: (k, n2) => { p.entradas[k] = { cantidad: (p.entradas[k]?.cantidad || 0) + n2 }; } });
+  p.amor.habilidades.veterinaria = { nivel: 2, estacion: 0 };
+  am2.actualizar(1);
+  ok(js.huida === 0.7 && am2.bonos().huida === 0.7 && am2.alJuntar('frutillas') === 0, 'Ayelén: los animales más mansos (y no los frutos)');
+  p.amor.habilidades = { herbolaria: { nivel: 2, estacion: 0 }, pintora: { nivel: 3, estacion: 0 } };
+  am2.actualizar(1);
+  const fr = p.entradas.frutilla?.cantidad || 0;
+  ok(am2.alJuntar('frutillas') === 1 && p.entradas.frutilla.cantidad === fr + 1 && am2.alJuntar('canto rodado') === 0, 'Inés: una frutilla más al juntar');
+  const antesAm = p.vecindad.personas.jefe?.p || 0;
+  ok(am2.alRegalar('jefe', 'encanta') === 3 && p.vecindad.personas.jefe.p === antesAm + 3 && am2.alRegalar('jefe', 'noGusta') === 0, 'Abril: el regalo que gusta suma más');
+  romance = false; am2.actualizar(1);
+  ok(am2.bonos().huida === 1 && am2.bonos().frutos === 0 && am2.alJuntar('frutillas') === 0, 'apagado: sin mejoras');
+  romance = true;
+  p.amor.habilidades = {};
   // la API del mundo, desde el juego
   ok(am.mundo().activo && am.mundo().convivencia.edificio === 'veterinaria', 'am.mundo()');
   romance = false;

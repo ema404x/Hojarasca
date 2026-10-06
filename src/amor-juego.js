@@ -17,7 +17,7 @@
 // El ñiki ñiki lo funde main.js (`ctx.fundido`), sin mostrar nada.
 //
 // Sin three ni DOM (se prueba en Node): las figuras y la pantalla llegan por `ctx`.
-import { esCandidata, puedeRomance, romanceActivo, etapaAmor, ETAPAS_AMOR, LUGARES_CITA, lugaresDeCita, coquetear, regalarFlores, invitarACita, citaAhora, empezarCita, terminarCita, vencerCita, declararse, encargarAnillo, retirarAnillo, tenesAnillo, anilloListo, proponer, bodaHoy, casarse, convivir, hablarDeLosChicos, buscarHijo, puedeBuscarHijo, puedeNikiNiki, nikiNiki, reconquistar, verla, comentarioDeAmor, pasarDiaAmor, puedeEscribirle, mandarCorreo, mundoAmor, ORDEN_CANDIDATAS, casaDeElla, horaTextoAmor, AMOR, llenarAmor } from './amor.js';
+import { bonosDeHabilidades, BONOS, esCandidata, puedeRomance, romanceActivo, etapaAmor, ETAPAS_AMOR, LUGARES_CITA, lugaresDeCita, coquetear, regalarFlores, invitarACita, citaAhora, empezarCita, terminarCita, vencerCita, declararse, encargarAnillo, retirarAnillo, tenesAnillo, anilloListo, proponer, bodaHoy, casarse, convivir, hablarDeLosChicos, buscarHijo, puedeBuscarHijo, puedeNikiNiki, nikiNiki, reconquistar, verla, comentarioDeAmor, pasarDiaAmor, puedeEscribirle, mandarCorreo, mundoAmor, ORDEN_CANDIDATAS, casaDeElla, horaTextoAmor, AMOR, llenarAmor } from './amor.js';
 import { FRASES_AMOR } from './amor-voces.js';
 import { nombreCorto, sumarAmistadDe } from './vecindad.js';
 import { CHISMOSOS } from './vecindad-voces.js';
@@ -321,6 +321,27 @@ export function crearAmorJuego(ctx) {
     ctx.guardar?.();
     return r;
   }
+  // ---------------------------------------------------------------- lo que te enseñó tu esposa y vale siempre
+  // Las mejoras permanentes (amor.js, BONOS): se recalculan cada medio segundo (main.js las lee cada cuadro) y van
+  // al jugador por `ctx.alBonos`. En el Desafío o con el ajuste apagado, las de fábrica.
+  const BASE = { ...BONOS, oficios: {} };
+  let bonosHoy = BASE;
+  function rearmarBonos() {
+    bonosHoy = ctx.desafio?.() ? BASE : bonosDeHabilidades(progreso(), ajustes());
+    ctx.alBonos?.(bonosHoy);
+  }
+  const FRUTOS = { frutillas: 'frutilla', 'frutos de calafate': 'calafate', 'piñones': 'pinon' };
+  function alJuntar(etiqueta) {
+    const k = Object.hasOwn(FRUTOS, etiqueta) ? FRUTOS[etiqueta] : null;
+    if (!k || !activo() || !(bonosHoy.frutos > 0)) return 0;
+    if (ctx.sumarEntrada) ctx.sumarEntrada(k, bonosHoy.frutos); else aplicarEfectos(progreso(), [{ tipo: 'entrada', k, n: bonosHoy.frutos }], ctx);
+    return bonosHoy.frutos;
+  }
+  function alRegalar(clave, reaccion) {
+    if (!activo() || !(bonosHoy.regalos > 0) || (reaccion !== 'encanta' && reaccion !== 'gusta')) return 0;
+    sumarAmistadDe(progreso(), clave, bonosHoy.regalos, dia());
+    return bonosHoy.regalos;
+  }
   let acum = 0, acumNota = 99;
   function actualizar(dt) {
     if (ctx.desafio?.()) return;
@@ -329,12 +350,14 @@ export function crearAmorJuego(ctx) {
     if (acum < 0.5) return;
     acum = 0;
     revisarDia();
+    rearmarBonos();
     if (!activo()) { if (puesta) soltar(); return; }
     actualizarLugar();
   }
 
   return {
     activo, opciones, submenu, elegir, alAbrir, hablar, alCerrar, textoAviso, actualizar, revisarDia,
+    bonos: () => bonosHoy, alJuntar, alRegalar,   // lo que te enseñó tu esposa y vale siempre
     // para el mundo y las pruebas
     mundo: () => mundoAmor(progreso(), { dia: dia(), hora: horas(), romance: ajustes().romance, desafio: !!ctx.desafio?.(), aldea: progreso().aldea }),
     puesta: () => (puesta ? { clave: puesta.clave, por: puesta.por, lugar: puesta.lugar } : null),

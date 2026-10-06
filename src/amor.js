@@ -185,61 +185,90 @@ export const AMOR = {
 const sumarAfecto = (f, n) => { f.afecto = acotar(Math.round((f.afecto + n) * 10) / 10, 0, AMOR.tope); };
 
 // ---------------------------------------------------------------- las habilidades (lo que te enseña tu esposa)
-// Tres niveles, uno por estación de casados (el primero, a la mañana siguiente del casamiento). Cada nivel
-// rinde algo cada mañana (con los efectos de siempre: material, cosa, entrada, el jugador descansado, el
-// zaino herrado o el kayak calafateado de aldea.js); los niveles se suman. Lo aprendido no se olvida aunque se
-// separen, pero sólo se aprende casados y sin separarse. `hoy` en un valor: el día de la partida.
-const N = (nombre, texto, efectos) => ({ nombre, texto, efectos });
+// Tres niveles, uno por estación de casados (el primero, a la mañana siguiente del casamiento). Pedido del usuario:
+// «las dos cosas». Cada oficio da lo que RINDE cada mañana (`efectos`, los de siempre: material, cosa, entrada,
+// el jugador descansado, el zaino herrado o el kayak calafateado de aldea.js) y, en el segundo nivel, una MEJORA
+// PERMANENTE del jugador que cambia cómo se juega (`bono`, ver BONOS). Los niveles se suman. Lo aprendido no se
+// olvida aunque se separen, pero sólo se aprende casados y sin separarse. `hoy` en un valor: el día de la partida.
+// 3.7.1: las mejoras permanentes que entiende el juego (main.js, jugador.js y fauna.js las aplican; con el ajuste
+// apagado no corren). `paso`: caminar más rápido (factor); `huida`: los animales se espantan desde más cerca
+// (factor del radio de huida: menos de 1 = más mansos); `remo`: el kayak más rápido (factor); `lente`: el lente
+// de Sofía para siempre (fotos de más lejos); `cielo`: las estrellas y la luna se anotan más rápido (factor);
+// `frutos`: uno más al juntar frutillas, calafate o piñones; `regalos`: amistad de más cuando le regalás algo que
+// le gusta o le encanta; `dormir`: horas descansado de más al despertar de noche; `oficios`: niveles de más en un
+// oficio del jugador (oficios.js: obrero = las obras piden menos; huertero = más cosecha; cazador = las huellas
+// de más lejos).
+export const BONOS = { paso: 1, huida: 1, remo: 1, lente: false, cielo: 1, frutos: 0, regalos: 0, dormir: 0, oficios: {} };
+const N = (nombre, texto, efectos, bono = null) => (bono ? { nombre, texto, efectos, bono } : { nombre, texto, efectos });
 export const HABILIDADES = {
   veterinaria: { id: 'animales', nombre: 'Mano con los animales', niveles: [
     N('Gallinas sanas', 'Vitaminás a las gallinas como Ayelén: cada mañana, un par de huevos más.', [{ tipo: 'entrada', k: 'huevo', n: 2 }]),
-    N('La majada al día', 'Cardás la lana que dejan las ovejas en el alambrado: un vellón por día.', [{ tipo: 'material', k: 'lana', n: 1 }]),
+    N('Paso manso', 'Te movés como Ayelén entre los animales: el monte se espanta mucho menos cuando te acercás.', [], { huida: 0.7 }),
     N('Herrar al zaino', 'Le revisás las herraduras al zaino vos solo: anda más liviano todo el día.', [{ tipo: 'aldea', campo: 'herrado', valor: 'hoy' }])] },
   fotografa: { id: 'luz', nombre: 'Ojo de fotógrafa', niveles: [
     N('Acercarse sin espantar', 'Caminás despacio como Sofía: los pájaros no se espantan y encontrás plumas.', [{ tipo: 'entrada', k: 'pluma', n: 1 }]),
-    N('Esperar la luz', 'Salís a la hora de la luz buena: arrancás el día más liviano.', [{ tipo: 'jugador', campo: 'descansado', valor: 2 }]),
+    N('El lente del abuelo Jalil', 'Sofía te deja el lente para siempre: las fotos te salen de más lejos.', [], { lente: true }),
     N('Retratos de la aldea', 'Los vecinos te piden retratos y te lo agradecen con algo rico.', [{ tipo: 'entrada', k: 'pan-casero', n: 1 }])] },
   andinista: { id: 'montana', nombre: 'Piernas de montaña', niveles: [
-    N('Paso de montaña', 'Caminás con el paso de Rocío: arrancás el día sin cansancio.', [{ tipo: 'jugador', campo: 'descansado', valor: 2 }]),
     N('Frutos de altura', 'Sabés dónde maduran los calafates de las laderas: un puñado seco por día.', [{ tipo: 'entrada', k: 'calafate-seco', n: 1 }]),
+    N('Paso de montaña', 'Caminás con el paso de Rocío: andás más rápido por el monte, sin cansarte.', [], { paso: 1.07 }),
     N('Leer el filo', 'Subís hasta las araucarias del filo y bajás con piñones.', [{ tipo: 'entrada', k: 'pinon', n: 3 }])] },
   herbolaria: { id: 'yuyos', nombre: 'Los yuyos del monte', niveles: [
     N('Pedir permiso', 'Juntás con permiso, como Inés: cada mañana, un puñado de calafate.', [{ tipo: 'entrada', k: 'calafate', n: 3 }]),
-    N('Hongos del bosque', 'Reconocés el llao llao en los coihues: un par por día.', [{ tipo: 'entrada', k: 'llaollao', n: 2 }]),
+    N('Ojo para los frutos', 'Ves los frutos que antes se te pasaban: cada vez que juntás frutillas, calafate o piñones, uno más.', [], { frutos: 1 }),
     N('Té de canelo', 'Un té de canelo a la mañana: ni frío ni cansancio.', [{ tipo: 'jugador', campo: 'entumecido', valor: 0 }, { tipo: 'jugador', campo: 'descansado', valor: 2 }])] },
   pintora: { id: 'color', nombre: 'Ojo de pintor', niveles: [
     N('Mirar las sombras', 'Mirás el valle como Abril: salís a caminar más liviano.', [{ tipo: 'jugador', campo: 'descansado', valor: 1 }]),
-    N('Colores del monte', 'Juntás calafate para teñir: un puñado por día.', [{ tipo: 'entrada', k: 'calafate', n: 2 }]),
+    N('El dibujito de regalo', 'Acompañás cada regalo con un dibujito, como Abril: lo que regalás y gusta suma más amistad.', [], { regalos: 3 }),
     N('Cartelitos pintados', 'Pintás los cartelitos de los vecinos y te lo agradecen con empanadas.', [{ tipo: 'entrada', k: 'empanadas', n: 2 }])] },
   ceramista: { id: 'barro', nombre: 'Manos de barro', niveles: [
     N('Elegir las piedras', 'Sabés qué piedras sirven para moler el esmalte: dos por día.', [{ tipo: 'material', k: 'piedra', n: 2 }]),
-    N('Leña para el horno', 'Aprendés a juntar la leña justa para el horno: dos troncos por día.', [{ tipo: 'material', k: 'tronco', n: 2 }]),
+    N('Paciencia de horno', 'Con Malena aprendiste a no desperdiciar: el oficio de obrero sube un escalón (las obras piden menos material).', [], { oficios: { obrero: 1 } }),
     N('Jarros para el mate', 'Los jarros que hacés con Malena se cambian en el almacén por yerba.', [{ tipo: 'cosa', k: 'yerba', n: 1 }])] },
   botera: { id: 'agua', nombre: 'Mano de varadero', niveles: [
     N('Calafatear', 'Calafateás el kayak vos solo cada mañana: remás más rápido todo el día.', [{ tipo: 'aldea', campo: 'calafateado', valor: 'hoy' }]),
-    N('Pescar desde el bote', 'Salís temprano con Martina: una trucha por día.', [{ tipo: 'entrada', k: 'trucha-fresca', n: 1 }]),
+    N('Remar como Martina', 'Martina te corrigió la remada: el kayak anda más rápido para siempre.', [], { remo: 1.12 }),
     N('Madera de deriva', 'Juntás la madera que trae el lago: dos tablas por día.', [{ tipo: 'material', k: 'tabla', n: 2 }])] },
   astronoma: { id: 'cielo', nombre: 'Leer el cielo', niveles: [
     N('Dormir poco y bien', 'Dormís como Valentina: poco, pero de verdad.', [{ tipo: 'jugador', campo: 'descansado', valor: 2 }]),
-    N('Mate de madrugada', 'Las noches de observación se pasan con mate: yerba que te dejan los vecinos.', [{ tipo: 'cosa', k: 'yerba', n: 1 }]),
-    N('Miel para el desvelo', 'Una cucharada de miel en el té de la noche: te la traen del sala de miel.', [{ tipo: 'entrada', k: 'miel', n: 1 }])] },
+    N('Ojos de noche', 'Valentina te enseñó a mirar el cielo: las estrellas y la luna se te anotan el doble de rápido.', [], { cielo: 2 }),
+    N('Miel para el desvelo', 'Una cucharada de miel en el té de la noche: te la traen de la sala de miel.', [{ tipo: 'entrada', k: 'miel', n: 1 }])] },
   guardaparque: { id: 'monte', nombre: 'Ojo de guardaparque', niveles: [
-    N('Leer las huellas', 'Caminás el monte como Julia y volvés con piñones.', [{ tipo: 'entrada', k: 'pinon', n: 2 }]),
-    N('La recorrida', 'La recorrida de la mañana te deja el cuerpo despierto.', [{ tipo: 'jugador', campo: 'descansado', valor: 2 }]),
+    N('La recorrida', 'Caminás el monte como Julia y volvés con piñones.', [{ tipo: 'entrada', k: 'pinon', n: 2 }]),
+    N('Leer las huellas', 'Julia te enseñó a leer el suelo: el oficio de rastreador sube un escalón (las huellas, de más lejos).', [], { oficios: { cazador: 1 } }),
     N('Poda de senderos', 'La leña de la poda de los senderos es tuya: dos troncos por día.', [{ tipo: 'material', k: 'tronco', n: 2 }])] },
   enfermera: { id: 'cuidar', nombre: 'Cuidar antes', niveles: [
     N('Abrigar los pies', 'Marta te enseñó a abrigarte bien: no te levantás entumecido.', [{ tipo: 'jugador', campo: 'entumecido', valor: 0 }]),
-    N('Té de canelo', 'Un té de canelo con Marta a la mañana: arrancás descansado.', [{ tipo: 'jugador', campo: 'descansado', valor: 2 }]),
+    N('Dormir bien', 'Con Marta aprendiste a dormir: cada noche te levantás descansado unas horas más.', [], { dormir: 3 }),
     N('El botiquín', 'Los vecinos que atendés te dejan miel.', [{ tipo: 'entrada', k: 'miel', n: 1 }])] },
   galesa: { id: 'te', nombre: 'La pava siempre puesta', niveles: [
     N('Torta negra', 'Aprendiste la torta negra de Ceinwen: cada mañana, un pan casero de regalo.', [{ tipo: 'entrada', k: 'pan-casero', n: 1 }]),
-    N('Té de la tarde', 'El té de la tarde rinde: yerba para el mate.', [{ tipo: 'cosa', k: 'yerba', n: 1 }]),
+    N('La chacra de Trevelin', 'Ceinwen te enseñó la huerta de su familia: el oficio de huertero sube un escalón (más cosecha).', [], { oficios: { huertero: 1 } }),
     N('La tetera del Mimosa', 'Un té en la tetera de la familia: arrancás el día descansado.', [{ tipo: 'jugador', campo: 'descansado', valor: 3 }])] },
   nelida: { id: 'sumar', nombre: 'Saber sumar', niveles: [
     N('El cuaderno del almacén', 'Nélida te enseñó a no desperdiciar nada: yerba de lo que sobra.', [{ tipo: 'cosa', k: 'yerba', n: 1 }]),
-    N('La harina justa', 'Sabés pedir la harina justa: una medida por día.', [{ tipo: 'cosa', k: 'harina', n: 1 }]),
+    N('Las cuentas de la obra', 'Sabés sumar como Nélida: el oficio de obrero sube un escalón (las obras piden menos material).', [], { oficios: { obrero: 1 } }),
     N('Dulce del estante', 'Lo que se guarda bien, rinde: un frasco de dulce de frutilla.', [{ tipo: 'entrada', k: 'frasco-frutilla', n: 1 }])] },
 };
+// Las mejoras permanentes que aprendiste, todas juntas (los factores se multiplican y lo demás se suma). Con el
+// ajuste apagado, las de fábrica (sin nada).
+export function bonosDeHabilidades(estado, opciones = {}) {
+  const b = { ...BONOS, oficios: {} };
+  const a = partes(estado).amor;
+  if (!a || !romanceActivo(opciones)) return b;
+  for (const [k, x] of Object.entries(a.habilidades)) {
+    if (!Object.hasOwn(HABILIDADES, k)) continue;
+    for (const n of HABILIDADES[k].niveles.slice(0, Math.min(3, x.nivel))) {
+      const o = n.bono;
+      if (!o) continue;
+      for (const c of ['paso', 'huida', 'remo', 'cielo']) if (Object.hasOwn(o, c)) b[c] *= o[c];
+      for (const c of ['frutos', 'regalos', 'dormir']) if (Object.hasOwn(o, c)) b[c] += o[c];
+      if (o.lente) b.lente = true;
+      for (const [of, m] of Object.entries(o.oficios || {})) b.oficios[of] = (b.oficios[of] || 0) + m;
+    }
+  }
+  return b;
+}
 export const NIVELES_HABILIDAD = 3;
 const estacionAbs = (dia) => Math.floor((diaValido(dia, 1) - 1) / 4);   // la estación del año de 12 días (cuatro días cada una)
 
