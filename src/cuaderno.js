@@ -2,6 +2,8 @@
 import { CARTAS } from './correo.js';
 import { CUENTOS } from './cuentos.js';
 import { LIBROS_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
+// 3.7.2: lo que sale de la cocina en pasos y lo de la cocina en el almacén (ver cocina-pasos.js)
+import { ENTRADAS_COCINA } from './cocina-pasos.js';
 export const SECCIONES = [
   { id: 'flora', nombre: 'Árboles y plantas' },
   { id: 'frutos', nombre: 'Flores, frutos y hongos' },
@@ -417,6 +419,8 @@ ENTRADAS.push(
   { id: 'empanadas', seccion: 'recetas', nombre: 'Empanadas', modo: 'cocinar', pista: 'Harina del almacén, un huevo y una papa del cantero, en el horno de barro.',
     texto: 'Masa de harina y grasa, rellena de lo que haya: acá, papa y huevo. En el horno de barro se doran parejas. Se llevan envueltas para el trabajo, y la cuadrilla de la vía las cambia por lo que sea.' },
 );
+// 3.7.2: la cocina en pasos: lo que sale de la parrilla, el horno y la cocina a leña, y lo del almacén
+ENTRADAS.push(...ENTRADAS_COCINA);
 // El vivero: las semillas que se juntan en otoño y los plantines que salen.
 for (const [esp, nombre, cientifico, texto] of [
   ['coihue', 'coihue', 'Nothofagus dombeyi', 'Nuececillas diminutas, de a tres dentro de una cúpula con escamas. Un coihue grande larga miles, y casi ninguna llega a árbol: por eso en el vivero se cuida cada una.'],

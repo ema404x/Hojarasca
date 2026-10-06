@@ -81,6 +81,10 @@ import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 import { crearAmorJuego } from './amor-juego.js';
 // 3.7.1 (mundo): el amor en el mundo (la cita caminando, de la mano, el casamiento, el cuarto de los chicos, el anillo)
 import { crearAmorMundo } from './amor-mundo.js';
+// 3.7.2: la cocina en pasos (reglas en cocina-pasos.js; el juego en cocina-juego.js; lo que se ve en cocina-mundo.js)
+import { crearCocinaJuego } from './cocina-juego.js';
+import { crearCocinaMundo } from './cocina-mundo.js';
+import { PLANOS_COCINA_E } from './cocina-pasos.js';
 import { sumarAmistadDe } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
@@ -768,6 +772,7 @@ async function construir() {
     }
     await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3: con el presupuesto fijo, todo y en paralelo; 2.7.4: antes renderer.compile(escena, camara); ver luces.js
     aldeaMundo?.trasCompilar();   // 3.6: las mallas que sólo estaban para compilar sus programas
+    cocinaMundo?.trasCompilar();   // 3.7.2: lo mismo con el fuego, las brasas y el humo de la cocina
     // 3.7.0: la sombra de la gente (piel por huesos) también se compila en la carga; el atlas de la
     // gente se pinta en la portada
     gente?.precalentar?.(camara, () => { renderer.shadowMap.needsUpdate = true; dibujar(null, 0); });
@@ -855,6 +860,8 @@ function dibujarCuaderno() {
   const pestanas = [['especies', 'Especies y lugares'], ['fotos', 'Álbum de fotos'], ['diario', 'Diario']];
   // 3.1: rangos y oficios (3.6: y en el Relax, la Aldea de los Duendes)
   pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y aldea']);
+  if (!desafio && cocinaJuego) pestanas.push(['recetario', 'Recetario']);   // 3.7.2
+  else if (pestana === 'recetario') pestana = 'especies';
   // 2.0: en el Desafío, el bestiario de los invasores
   if (desafio) pestanas.push(['bestiario', 'Bestiario']);
   else if (pestana === 'bestiario') pestana = 'especies';
@@ -869,6 +876,7 @@ function dibujarCuaderno() {
   const ficha = $('cuaderno-ficha');
   ficha.innerHTML = '';
   if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
+  if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
 
   if (pestana === 'bestiario' && desafio) {
     const best = desafio.bestiario;
@@ -2625,6 +2633,8 @@ document.addEventListener('keydown', (e) => {
       if (enLaFeria) { cerrarFeria(); break; }
       // 2.9: y el puesto de cargas, igual
       if (enLasCargas()) { puestoCargas.cerrar(); break; }
+      // 3.7.2: y el panel de recetas de la cocina, igual
+      if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
       // El aviso visual y la acción usan la misma prioridad: si estás mirando a
       // una persona, E habla con ella antes de accionar puertas/mostradores.
       // Esto hace posible conversar con Ercilia detrás del mostrador sin que el
@@ -2829,6 +2839,7 @@ document.addEventListener('keydown', (e) => {
       if (enElAlmacen) { cambiarDeLaPagina(Number(codigo.slice(5))); break; }
       if (enLasCargas()) marcarEn('cargas', Number(codigo.slice(5)) - 1);   // 3.6.2: y queda marcada
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
+      if (cocinaJuego?.panelAbierto()) { marcarEn('cocina', Number(codigo.slice(5)) - 1); cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.2
       if (codigo === 'Digit9') break;
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
@@ -2863,6 +2874,7 @@ document.addEventListener('keydown', (e) => {
       else if (enElAlmacen) cerrarAlmacen();
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
+      else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
       else if (charla.npc) atrasCharla();   // 3.6 (vida): del submenú o de un tema, al menú
       else abrir('pausa');
       break;
@@ -2872,6 +2884,7 @@ document.addEventListener('keydown', (e) => {
       if (enLaFeria) { cambiarFeria(Number(codigo.slice(5)) - 1); break; }
       if (enLasCargas()) marcarEn('cargas', Number(codigo.slice(5)) - 1);   // 3.6.2: y queda marcada
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
+      if (cocinaJuego?.panelAbierto()) { marcarEn('cocina', Number(codigo.slice(5)) - 1); cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.2
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
   }
@@ -3100,6 +3113,7 @@ function usarRanura() {
     case 'foto': pedirFoto = true; break;
     // 2.4.1: lo del horno se come en el camino: saca el frío y da una hora liviana
     case 'comer': {
+      if (cocinaJuego?.comer(r.id)) break;   // 3.7.2: lo de la alacena (el asado, el locro, el chocolate…)
       const e = progreso.entradas[r.id];
       if (!e || !(e.cantidad > 0)) break;
       e.cantidad -= 1;
@@ -3329,6 +3343,8 @@ function canterosParaPisos() {
     else if (P.jardin === 'flores' && !P.apoyaEnPlataforma) {
       lista.push(P.id === 'macizo-flores' ? { x: d.x, z: d.z, radio: 0.9, alto } : { x: d.x, z: d.z, ang, largo: P.ancho || 2, ancho: P.fondo || 1, alto });
     }
+    // 3.7.2: alrededor del fuego de la parrilla y del horno de barro tampoco crece pasto (es tierra pisada)
+    else if (P.id === 'parrilla' || P.id === 'horno') lista.push({ x: d.x, z: d.z, radio: P.id === 'parrilla' ? 1.7 : 1.1, alto });
   }
   return lista;
 }
@@ -4234,6 +4250,7 @@ let oficios = null, aldeaGente = null;
 let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
 let amorJuego = null;   // 3.7.1: ver amor-juego.js
 let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
+let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
 const pronosticoDeManana = () => {
@@ -4306,7 +4323,7 @@ function armarOficiosYAldea(esDesafio) {
     nombrePerro: () => perro?.nombre?.() || '',
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
-    amorDestino: (k) => amorMundo?.destino(k) || null,   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos
+    amorDestino: (k) => amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado)
   });
   // 3.7.1: el amor en la aldea (sólo en el Relax y con el ajuste «Romance» encendido)
   amorJuego = crearAmorJuego({
@@ -4329,9 +4346,26 @@ function armarOficiosYAldea(esDesafio) {
     msFigura: () => (planificadorAntitirones.permitir('amor-mundo') ? 3 : 0),
     tomarMano: (lado) => cuerpoJugador?.tomarMano?.(lado),
   });
+  // 3.7.2: la cocina en pasos (las estaciones, el panel de recetas, el olor del asado, el perro, el recetario)
+  cocinaJuego = crearCocinaJuego({
+    progreso: () => progreso, desafio: () => !!desafio, obras: () => obras, jugador: () => jugador?.estado || null,
+    lluvia: () => clima?.estado?.lluvia || 0, invierno: () => U.uInvierno.value > 0.5,
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
+    troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato),
+    aldea: () => aldeaGente, perro: () => perro, nombrePerro: () => perro?.nombre?.() || '', decir: (texto) => decirCharlaAldea(texto),
+    mundo: () => cocinaMundo, alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
+    sendero: () => T.sendero || [], centroAldea: () => aldeaMundo?.centro || null, seco: (x, z) => !T.agua(x, z),
+    redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); }, alAbrirPanel: () => { marcarEn('cocina', 0); marcarHud(0, true); },
+  });
+  cocinaMundo = crearCocinaMundo({
+    T, escena, mat: est?.mat, cocina: () => cocinaJuego, progreso: () => progreso, obras: () => obras, camara: () => camara?.position || null,
+    noche: () => 1 - (luzUltimaFoto?.dia ?? 1), viento: () => clima?.estado?.viento ?? 0.3, perro: () => perro, jugador: () => jugador?.estado || null,
+  });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
+    cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
     apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
@@ -5722,6 +5756,7 @@ function leneraCerca(radio = LENA.radioLenera) {
   return mejor;
 }
 function avisoObraQueTrabaja(o) {
+  if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo()) return cocinaJuego.aviso(o);   // 3.7.2: la cocina (la misma función que usa la tecla E)
   switch (o.plano.id) {
     case 'colmena': return avisoColmena(datosDe(o, 'colmena', sanearColmena), estadoAbejas(o));
     case 'ahumadero': return avisoAhumadero(datosDe(o, 'ahumadero', sanearAhumadero), truchasFrescas(), troncosAMano());
@@ -5732,6 +5767,7 @@ function avisoObraQueTrabaja(o) {
   }
 }
 function usarObraQueTrabaja(o) {
+  if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo() && cocinaJuego.usar(o)) { refrescarBarra(true); return; }   // 3.7.2: la cocina
   if (usarObra24(o)) { refrescarBarra(true); guardar(); return; }
   if (usarMaquina(o)) { refrescarBarra(true); guardar(); return; }   // 2.9
   if (o.plano.id === 'colmena') {
@@ -5790,6 +5826,10 @@ function usarObraQueTrabaja(o) {
 // corren en horas de juego y se ponen al día solas (ver `molino.js`); el tiempo que
 // anuncia la estación es el que el clima va a seguir (ver `meteo.js`).
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
+// 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
+// tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
+// (en el Relax: en el Desafío no hay cocina y sigue horneando de una, como en la 2.4)
+OBRAS_QUE_TRABAJAN.push(...PLANOS_COCINA_E);
 let molinoMundo = null, meteoMundo = null;
 let relojMaquinas = 0, relojSierra = 0, relojRueda = 0;
 function horaDeJuego() { return horaAbsoluta(progreso.dia, progreso.horas); }
@@ -6673,7 +6713,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto;
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto();   // (3.7.2: y el de la cocina)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -6685,6 +6725,7 @@ function listaHudAbierta() {
   if (enElAlmacen) return { id: 'almacen', ul: $('trueque-lista'), pie: $('trueque-seguir'), elegir: (i) => cambiar(paginaAlmacen * POR_PAGINA_ALMACEN + i) };
   if (enLaFeria) return { id: 'feria', ul: $('feria-lista'), pie: $('feria')?.querySelector('.seguir'), elegir: (i) => cambiarFeria(i) };
   if (enLasCargas()) return { id: 'cargas', ul: $('cargas-lista'), pie: $('cargas')?.querySelector('.seguir'), elegir: (i) => puestoCargas.elegir(i) };
+  if (cocinaJuego?.panelAbierto()) return { id: 'cocina', ...cocinaJuego.lista() };   // 3.7.2
   return null;
 }
 const marcarEn = (panel, i) => { marcaHud = { panel, i: Math.max(0, i) }; };
@@ -7713,9 +7754,12 @@ function cuadroDelJuego(tRaf, manual) {
     mundoPerro.alerta = desafio && modo === 'jugando' && !mundoPerro.ataque ? desafio.alertaPerro?.() || null : null;
     // 2.0: en el Relax el perro te lleva hasta la fauna que te falta anotar
     mundoPerro.guiar = !desafio && modo === 'jugando';
+    // 3.7.2: el olor del asado: el perro va a la parrilla y se roba un chorizo (ver cocina-juego.js)
+    mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
+    try { if (modo === 'jugando' && !desafio) { cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
     try { marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro); } catch (e) { fallaSistema('perro', e); }
@@ -7919,6 +7963,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (!marcaPerro) avisoMarca = false;
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
+    if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
     if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
     if (js.enTren) {
@@ -8374,6 +8419,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.6 (vida): la vecindad en el juego y el menú de la charla
     __amor: () => amorJuego,   // 3.7.1
     __amorMundo: () => amorMundo,   // 3.7.1 (mundo)
+    __cocina: () => cocinaJuego, __cocinaMundo: () => cocinaMundo,   // 3.7.2
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
     // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)
     __visibilidad: () => { actualizarVisibilidad(camara.position, 1); return true; },

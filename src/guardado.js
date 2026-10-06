@@ -39,6 +39,8 @@ import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
 import { sanearVidaAldea, vidaNueva, sanearRitmo } from './aldea-vida.js';
 // 3.7.1: el amor en la aldea (y el ajuste para apagarlo)
 import { sanearAmor, amorNuevo, sanearAjusteRomance } from './amor.js';
+// 3.7.2: la cocina en pasos (el recetario, los trueques del día con los vecinos, las estaciones móviles)
+import { sanearCocina, cocinaNueva, sanearCoccion } from './cocina-pasos.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -282,6 +284,7 @@ export function progresoNuevo() {
     // 3.1: los oficios empiezan en cero. 3.6: la aldea, como el primer día (ya no hay `pueblo`;
     // 3.6.1: y en el Desafío, ninguna: allá no hay aldea)
     oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1), amor: amorNuevo() }),   // (3.7.0: y la vida de la aldea; 3.7.1: y el amor)
+    ...(desafio ? {} : { cocina: cocinaNueva() }),   // 3.7.2: la cocina (el recetario de siempre, nada al fuego)
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
@@ -336,6 +339,8 @@ function sanearObras(v) {
     if (d.y !== undefined && (!Number.isFinite(Number(d.y)) || Math.abs(Number(d.y)) > ALTO_OBRA)) delete d.y;
     else if (d.y !== undefined) d.y = Number(d.y);
     if (d.tinte !== undefined && typeof d.tinte !== 'string') delete d.tinte;
+    // 3.7.2: lo que se está cocinando en la obra (la parrilla, el horno, la cocina a leña)
+    if (d.coccion !== undefined) { const c = sanearCoccion(d.coccion); if (c) d.coccion = c; else delete d.coccion; }
     salida.push(d);
   }
   return salida;
@@ -459,6 +464,9 @@ function sanearProgreso(p) {
     // 3.7.1: el amor. Una partida vieja no lo trae: nadie te conoce de ese modo todavía (un guardado roto, saneado:
     // sólo candidatas adultas y solteras, una sola pareja, hasta dos hijos, fechas posibles)
     amor: sanearAmor(p.amor, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    // 3.7.2: la cocina. Una partida vieja no la trae: el recetario de siempre (asado, pan, empanadas), sin trueques del día
+    // ni nada al fuego (lo que se cocina en una obra viaja en la obra: `datos.coccion`, saneado al usarla)
+    cocina: sanearCocina(p.cocina, Math.max(1, Math.floor(finito(p.dia, 1)))),
     // 2.3: las truchas del día, las semillas juntadas hoy, la humedad de la leña y la
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,
@@ -473,7 +481,7 @@ function sanearProgreso(p) {
     explorado: Array.isArray(p.explorado) && p.explorado.length === base.explorado.length ? p.explorado : base.explorado,
     modo: modoPartida,
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
-    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined } : { desafio: undefined }),
+    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined } : { desafio: undefined }),
   };
 }
 
