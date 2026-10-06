@@ -258,6 +258,7 @@ export function crearVecindadJuego(ctx) {
     if (!s.invito) lista.push({ id: 'invitar', titulo: TITULOS.invitar });
     if (ayudas(s.clave, p, dia()).length) lista.push({ id: 'ayudar', titulo: TITULOS.ayudar });
     for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.1: el romance, el anillo y el correo
+    for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -317,6 +318,14 @@ export function crearVecindadJuego(ctx) {
     // 3.7.1: lo del amor (amor-juego.js): un submenú propio o lo que contesta ella
     if (/^amor(?:-|:|$)/.test(String(id)) && ctx.amor) {
       const r = ctx.amor.elegir(s, id, npc);
+      if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
+    // 3.7.2 (granja): los trueques de la granja (granja-juego.js): el submenú o lo que contesta el vecino
+    if (/^granja(?::|$)/.test(String(id)) && ctx.granja) {
+      const r = ctx.granja.elegir(s, id);
       if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
       s.sub = null;
       if (r.tipo !== 'menu') s.vueltas++;

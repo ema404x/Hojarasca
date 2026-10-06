@@ -39,6 +39,8 @@ import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
 import { sanearVidaAldea, vidaNueva, sanearRitmo } from './aldea-vida.js';
 // 3.7.1: el amor en la aldea (y el ajuste para apagarlo)
 import { sanearAmor, amorNuevo, sanearAjusteRomance } from './amor.js';
+// 3.7.2 (granja): la vaca, los chanchos, los corderos y los frutales (sólo en el Relax)
+import { sanearGranja, granjaNueva } from './granja.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -286,6 +288,8 @@ export function progresoNuevo() {
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
     mecanicas: mecanicasNuevas(),
+    // 3.7.2 (granja): vacía (en el Desafío, ninguna); la semilla decide el pelaje de la vaca, los mellizos y las camadas
+    ...(desafio ? {} : { granja: granjaNueva(1 + Math.floor(Math.random() * 1e9)) }),
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -424,6 +428,9 @@ function sanearProgreso(p) {
     majada: sanearMajada(p.majada),
     // 2.4: el corral propio (null hasta que Don Ramón trae las ovejas)
     corral: sanearCorral(p.corral),
+    // 3.7.2 (granja): una partida vieja no la trae: arranca vacía. Un guardado roto, saneado (fechas posibles, topes, ids únicos);
+    // en el Desafío no hay granja
+    granja: modoPartida === 'desafio' ? undefined : sanearGranja(p.granja, Math.max(1, Math.floor(finito(p.dia, 1))), 1 + Math.floor(Math.random() * 1e9)),
     correo: sanearCorreo(p.correo),
     // la cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real
     tormenta: sanearTormenta(p.tormenta),

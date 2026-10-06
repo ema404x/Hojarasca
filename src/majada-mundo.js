@@ -17,7 +17,8 @@ const RADIO_PASTO = 7.4;   // hasta dónde andan: el alambrado está a nueve met
 // antes), orejas caídas hacia los costados, patas finas con rodilla y pezuña, y el vellón
 // con los rulos de la lana (un bulto ondulado, no una esfera lisa). Mismos pivotes, y el
 // vellón sigue aparte con su material de siempre (es lo único que cambia de tamaño).
-function mallaOveja(caraNegra, r) {
+// (3.7.2 (granja): exportada: el cordero de tu corral sale de esta misma oveja, ver granja-mundo.js)
+export function mallaOveja(caraNegra, r) {
   const g = new THREE.Group();
   const cara = caraNegra ? '#2c2622' : '#d9cfbd', pata = caraNegra ? '#2c2622' : '#6a5d4c';
   const cabeza = new THREE.Group(); cabeza.position.set(0, 0.66, 0.46);
