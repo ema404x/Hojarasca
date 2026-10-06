@@ -603,7 +603,8 @@ async function construir() {
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
-  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
+  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo)
+  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo' || g.pose === 'tornear' || g.pose === 'coser') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)

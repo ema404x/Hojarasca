@@ -140,6 +140,14 @@ const local = (id, q) => { const e = EA[id], c = Math.cos(e.rot), s = Math.sin(e
   ok(sube.length >= 5 && sube.every((q) => q.sinChoque) && sube[sube.length - 1].alto === A.ESCALERAS_ALDEA.observatorio.alto && sube.some((q) => q.alto === A.ESCALERAS_ALDEA.observatorio.piso), 'sube por el pie, el primer escalón y el último, con su altura');
   ok(baja[0].alto === A.ESCALERAS_ALDEA.observatorio.alto && baja[baja.length - 1].alto === undefined, 'y baja al revés, hasta el rodeo');
   ok(A.rutinaAldea('astronoma', 22, 1, { ...A.aldeaNueva(), pobladores: [{ clave: 'astronoma', dia: 1 }], locales: { observatorio: 1 } }).punto === 'telescopio', 'Valentina, de noche, en el telescopio');
+  // 3.7.0 (retoques): el gesto de cada una en lo suyo, y Martina a la tardecita con el bote del varadero
+  ok(G.poseDe({ lugar: 'local', edificio: 'observatorio', punto: 'telescopio' }) === 'telescopio' && G.poseDe({ lugar: 'local', edificio: 'taller-arte', punto: 'adentro' }) === 'pintar'
+    && G.poseDe({ lugar: 'trabajo', edificio: 'veterinaria', punto: 'corral' }) === 'curar' && G.poseDe({ lugar: 'local', edificio: 'herboristeria', punto: 'adentro' }) === 'mortero'
+    && G.poseDe({ lugar: 'local', edificio: 'ceramica', punto: 'adentro', sentado: true }) === 'tornear' && G.poseDe({ lugar: 'local', edificio: 'costureria', punto: 'adentro', sentado: true }) === 'coser'
+    && G.poseDe({ lugar: 'trabajo', edificio: 'varadero', punto: 'adentro' }) === 'calafatear' && G.poseDe({ lugar: 'trabajo', edificio: 'taller-arte', punto: 'trabajo' }) === null, 'los gestos de las nuevas en lo suyo');
+  ok(G.poseDe({ lugar: 'trabajo', edificio: 'herreria', punto: 'cliente' }) === null && G.poseDe({ lugar: 'local', edificio: 'herreria', punto: 'adentro' }) === 'martillar', 'Pocha, con el mate en la herrería, no martilla');
+  ok(['tornear', 'coser', 'telescopio', 'pintar', 'curar', 'mortero', 'calafatear'].every((p) => leer('src/gente.js').includes(`'${p}':`)), 'gente.js: sus poses');
+  ok(A.rutinaAldea('botera', 17.5 + A.desfaseDe('botera'), 1, { ...A.aldeaNueva(), pobladores: [{ clave: 'botera', dia: 1 }], locales: { varadero: 1 } }).punto === 'adentro', 'Martina, a la tardecita, con el bote');
   ok(leer('src/gente.js').includes('if (Number.isFinite(destino.y)) g.pos.y += (destino.y - g.pos.y) * Math.min(1, paso / d);'), 'gente.js: en la escalera, por la rampa de los escalones');
   // el corral, por la tranquera
   const pc = local('veterinaria', A.puntosDe('veterinaria').corral);

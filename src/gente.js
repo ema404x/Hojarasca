@@ -261,6 +261,8 @@ export function bajaSentado(asiento, talla) {
   const s = Number.isFinite(asiento) && asiento >= 0 ? asiento : ASIENTO_COMUN;
   return Math.max(0, Math.min(CADERA - 0.12, CADERA + 0.02 - s / esc));   // la cadera, 2 cm abajo del asiento
 }
+// 3.7.0: las poses de trabajo con las dos manos ocupadas (ahí el que toma mate lo deja)
+const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar']);
 function posar(g, charlando) {
   const t = g.fase;
   switch (g.pose) {
@@ -351,9 +353,25 @@ function posar(g, charlando) {
       break;
     }
     case 'curar': {
+      // (3.7.0: las manos sobre la camilla, no a la altura del pecho)
       const k = Math.sin(t * 2.4);
-      g.brazos[0].rotation.x = -0.95 + k * 0.08; g.brazos[1].rotation.x = -0.95 - k * 0.08;
-      g.torso.rotation.x = 0.22; g.cabeza.rotation.x += 0.3;
+      g.brazos[0].rotation.x = -0.62 + k * 0.08; g.brazos[1].rotation.x = -0.62 - k * 0.08;
+      g.torso.rotation.x = 0.28; g.cabeza.rotation.x += 0.35;
+      break;
+    }
+    // 3.7.0: Martina con el bote: agachada sobre el casco, una mano en la tabla y golpecitos cortos con la maza de
+    // calafatear (el martillo del herrero, por arriba de la cabeza, parecía que saludaba)
+    case 'calafatear': {
+      const k = Math.max(0, Math.sin(t * 5));
+      g.brazos[0].rotation.x = -0.55; g.brazos[1].rotation.x = -0.5 - k * 0.6;
+      g.torso.rotation.x = 0.32; g.cabeza.rotation.x += 0.35;
+      break;
+    }
+    // 3.7.0: Inés con el mortero: una mano lo sostiene y la otra machaca, cortito (el amasar del panadero le
+    // dejaba los brazos a la altura de los hombros)
+    case 'mortero': {
+      g.brazos[0].rotation.x = -0.55; g.brazos[1].rotation.x = -0.75 + Math.sin(t * 4.5) * 0.12;
+      g.torso.rotation.x = 0.18; g.cabeza.rotation.x += 0.3;
       break;
     }
     default: break;
@@ -1074,7 +1092,17 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         // los brazos no van pegados al cuerpo: se abren apenas, un poco más al caminar
         g.brazos[0].rotation.z = andando ? -0.07 : -0.035;
         g.brazos[1].rotation.z = andando ? 0.07 : 0.035;
+        // 3.7.0: con las dos manos en lo suyo (Pocha cosiendo, Inés con el mortero), el mate se deja a un lado
+        // (`__mateDejado`: lo guardó esto; lo que guardó otro, como los aliados del Desafío, no se toca)
+        if (g.mate) {
+          const deja = !!g.pose && !andando && MANOS_OCUPADAS.has(g.pose);
+          if (deja && g.mate.visible !== false) { g.mate.visible = false; g.__mateDejado = true; }
+          else if (!deja && g.__mateDejado) { g.mate.visible = true; g.__mateDejado = false; }
+        }
         if (g.pose && !andando) posar(g, charlando);   // 3.6 (vida)
+        // (3.7.0: el brazo del mate tiene el codo doblado fijo: con el gesto de los demás la mano le quedaba en la
+        // cara o atrás de la espalda; el hombro queda casi quieto y el antebrazo adelante, trabajando cortito)
+        if (g.__mateDejado && g.muneca && !andando) g.brazos[1].rotation.x = 0.12 + Math.sin(g.fase * 4.5) * 0.06;
         if (g.muneca) {
           // 3.5.2: el que lleva el mate: el brazo se mece menos y la muñeca se contra-gira para
           // que el mate quede derecho (o apenas inclinado hacia la boca al tomar)
