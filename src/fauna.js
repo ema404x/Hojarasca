@@ -216,7 +216,8 @@ export function crearFauna(T, veg, col, escena, sonido, registrar, progreso, opc
     if (dtIAP > 0 || !sensorP) { sensorP = percepcionMamifero(T, p.pos, js, ambiente || {}, 18, 24); p.__sensorIA = sensorP; }
     p.percepcion = sensorP;
     const radioAlerta = Math.max(js.agachado ? 8 : js.corriendo ? 34 : 18, sensorP.radioVisual * 0.9, sensorP.radioOido * 0.72);
-    const radioHuida = Math.max(js.agachado ? 3.2 : js.corriendo ? 24 : 9, 6 + sensorP.firma * 8);
+    // (3.7.1: con lo que te enseñó Ayelén, la veterinaria, los animales se espantan desde más cerca: `huidaAmor`)
+    const radioHuida = Math.max(js.agachado ? 3.2 : js.corriendo ? 24 : 9, 6 + sensorP.firma * 8) * Math.max(0.5, Math.min(1, js.huidaAmor || 1));
 
     if (p.estado !== 'huir') {
       if ((d < radioHuida && (vj > 0.6 || d < 2.4)) || sensorP.riesgo > 0.78) { p.estado = 'huir'; p.t = 4 + r() * 2; }

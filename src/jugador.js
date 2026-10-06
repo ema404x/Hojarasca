@@ -242,6 +242,8 @@ export function crearJugador(camara, T, col, opciones) {
     if (estado.entumecido > 0 && !estado.montado) vmax *= 1 - 0.25 * Math.min(1, estado.entumecido);
     // 2.4: después de una buena noche en una casa con confort, un poco más liviano
     else if (estado.descansado > 0 && !estado.montado) vmax *= 1.08;
+    // 3.7.1: lo que te enseñó tu esposa (el paso de montaña de Rocío): un poco más rápido a pie, siempre
+    if (!estado.montado && estado.pasoAmor > 1) vmax *= Math.min(1.2, estado.pasoAmor);
     if (estado.sentado) vmax = 0;
 
     deseo.set(0, 0, 0).addScaledVector(adelante, mz).addScaledVector(derecha, mx);

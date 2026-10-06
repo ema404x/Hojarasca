@@ -37,6 +37,8 @@ import { sanearVecindad, vecindadNueva } from './vecindad.js';
 import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
 // 3.7.0: la vida de la aldea (calendario, visitantes, mascota, apodo, familia, cartas) y su ritmo
 import { sanearVidaAldea, vidaNueva, sanearRitmo } from './aldea-vida.js';
+// 3.7.1: el amor en la aldea (y el ajuste para apagarlo)
+import { sanearAmor, amorNuevo, sanearAjusteRomance } from './amor.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -173,6 +175,8 @@ export const AJUSTES_BASE = {
   distancia: 'calidad', distanciaPlantas: 'normal',
   // 3.7.0: el ritmo de la aldea (cuántos visitantes, cartas, visitas y chismes): tranquilo, normal o animado
   ritmoAldea: 'normal',
+  // 3.7.1: el romance (coquetear, citas, casamiento, hijos): encendido de fábrica; apagado, no aparece nada
+  romance: true,
 };
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -254,6 +258,7 @@ function sanearAjustes(a) {
     distancia: sanearDistancia(x.distancia),   // 3.5 (un guardado viejo: la de su calidad)
     distanciaPlantas: sanearPlantas(x.distanciaPlantas),
     ritmoAldea: sanearRitmo(x.ritmoAldea),   // 3.7.0
+    romance: sanearAjusteRomance(x.romance),   // 3.7.1 (sin el ajuste guardado: encendido)
     teclas: objeto(x.teclas) ? x.teclas : {},
   };
 }
@@ -276,7 +281,7 @@ export function progresoNuevo() {
     comercio: comercioNuevo(),
     // 3.1: los oficios empiezan en cero. 3.6: la aldea, como el primer día (ya no hay `pueblo`;
     // 3.6.1: y en el Desafío, ninguna: allá no hay aldea)
-    oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1) }),   // (3.7.0: y la vida de la aldea)
+    oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1), amor: amorNuevo() }),   // (3.7.0: y la vida de la aldea; 3.7.1: y el amor)
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
@@ -451,6 +456,9 @@ function sanearProgreso(p) {
     // 3.7.0: la vida de la aldea. Una partida de la 3.6 no la trae: arranca hoy (sin cartas atrasadas, la
     // familia dentro de unos días, los chicos creciendo desde hoy: ver `sanearAldea`)
     vidaAldea: sanearVidaAldea(p.vidaAldea, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    // 3.7.1: el amor. Una partida vieja no lo trae: nadie te conoce de ese modo todavía (un guardado roto, saneado:
+    // sólo candidatas adultas y solteras, una sola pareja, hasta dos hijos, fechas posibles)
+    amor: sanearAmor(p.amor, Math.max(1, Math.floor(finito(p.dia, 1)))),
     // 2.3: las truchas del día, las semillas juntadas hoy, la humedad de la leña y la
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,
@@ -465,7 +473,7 @@ function sanearProgreso(p) {
     explorado: Array.isArray(p.explorado) && p.explorado.length === base.explorado.length ? p.explorado : base.explorado,
     modo: modoPartida,
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
-    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined } : { desafio: undefined }),
+    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined } : { desafio: undefined }),
   };
 }
 

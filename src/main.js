@@ -77,6 +77,8 @@ import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
 import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 // 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
+// 3.7.1: el amor en la aldea (las reglas en amor.js; en el juego, amor-juego.js)
+import { crearAmorJuego } from './amor-juego.js';
 import { sumarAmistadDe } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
@@ -1094,6 +1096,7 @@ function dormir() {
       else nota('Dormiste una siesta', `Son las ${horaTexto(progreso.horas)}`);
       jugador.estado.entumecido = horasEntumecido(como);
       if (deNoche) jugador.estado.descansado = descanso;
+      if (deNoche && amorJuego?.bonos().dormir) jugador.estado.descansado += amorJuego.bonos().dormir;   // 3.7.1: y lo que te enseñó Marta
       if (descanso > 0) { diario.anotar('descanso'); setTimeout(() => nota('Descansaste de verdad', 'La casa ya es casa: vas a andar más liviano un rato'), 3200); }
       if (como === 'calentito' && calorDeLaCasa) setTimeout(() => nota('Dormiste calentito', 'El calor de la estufa llegó a toda la casa'), 1600);
       else if (como === 'calentito') setTimeout(() => nota('Dormiste calentito', 'El fuego aguantó toda la noche'), 1600);
@@ -1104,6 +1107,25 @@ function dormir() {
       if (como !== comoSinRopa) setTimeout(() => nota('La ropa abrigó', 'Con el poncho, el gorro y la bufanda la noche se pasó mejor'), 4600);
     }, 900);
   }, 1300);
+}
+
+// 3.7.1: el ñiki ñiki, estilo Sims: el fundido de dormir (pantalla a negro) y nada más. Da descanso, saca el
+// entumecido y deja el día de buen ánimo (ver amor.js). No pasa la noche: después se duerme como siempre.
+function fundidoAmor(r) {
+  if (durmiendo) return;
+  const f = $('fundido');
+  f.classList.add('activo');
+  durmiendo = true;
+  setTimeout(() => {
+    cerrarCharla();
+    for (const e of r?.efectos || []) if (e.tipo === 'jugador') alJugadorAldea(e.campo, e.valor);
+    guardar();
+    setTimeout(() => {
+      f.classList.remove('activo');
+      durmiendo = false;
+      nota('Buenas noches', r?.despues || '', true);
+    }, 900);
+  }, 1500);
 }
 
 // ------------------------------------------------------------------ notas y HUD
@@ -1706,6 +1728,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     if (clave === 'limiteFps' && v !== 'libre' && v !== 'auto') v = Number(v);   // 3.2: 'auto', según el monitor
     if (clave === 'musica' || clave === 'invertirY' || clave === 'autoCalidad' || clave === 'subtitulos' || clave === 'guiaPrimerDia' || clave === 'sonidosEscritos' || clave === 'vibracion') v = v === 'true';
     if (clave === 'modoFluido') v = v === 'true';   // 3.3
+    if (clave === 'romance') v = v === 'true';   // 3.7.1: el romance, encendido o apagado
     if (clave === 'vibracion' && v) { ajustes.vibracion = true; ultimoPulso = null; vibrarMando('golpe', 1); }   // que se sienta que anda
     // 2.6.1: el idioma no se pisa acá: si no, la comparación de abajo nunca veía el cambio y no recargaba
     if (clave !== 'idioma') ajustes[clave] = v;
@@ -2672,6 +2695,7 @@ document.addEventListener('keydown', (e) => {
       // 2.3: en otoño, junto a un árbol grande, E junta semilla para el vivero
       if (!objetivo && !js.enTren && !js.enKayak) { const s = arbolParaSemilla(); if (s) { juntarSemilla(s); break; } }
       const r = objetos.usar(objetivo, registrar, sonido);
+      if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
       if (r) destellarRanura(objetivo?.tipo);
       if (r?.sentarse?.cama) { dormir(); break; }
       if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
@@ -4206,13 +4230,14 @@ function actualizarVisitas(dt) {
 // `aldea.js` y `aldea-gente.js`); reemplaza al pueblo que fundabas en la 3.1.
 let oficios = null, aldeaGente = null;
 let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
+let amorJuego = null;   // 3.7.1: ver amor-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
 const pronosticoDeManana = () => {
   const manana = pronosticoActual().find((d) => d.cuando === 'Mañana');
   return manana ? `para mañana: ${manana.texto.charAt(0).toLowerCase()}${manana.texto.slice(1)}` : '';
 };
-const nivelDe = (id) => oficios?.nivel(id) || 0;
+const nivelDe = (id) => Math.min(5, (oficios?.nivel(id) || 0) + (amorJuego?.bonos().oficios[id] || 0));   // (3.7.1: más lo que te enseñó tu esposa)
 const ganarOficio = (id, cuanto) => oficios?.ganar(id, cuanto) || null;
 function armarOficiosYAldea(esDesafio) {
   const redibujar = () => { if (modo === 'cuaderno') dibujarCuaderno(); };
@@ -4279,8 +4304,21 @@ function armarOficiosYAldea(esDesafio) {
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
   });
+  // 3.7.1: el amor en la aldea (sólo en el Relax y con el ajuste «Romance» encendido)
+  amorJuego = crearAmorJuego({
+    progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio,
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
+    npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
+    lugarValle: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null), invierno: () => U.uInvierno.value > 0.5,
+    enCasa: (p, edificio) => { if (!p) return false; if (edificio === 'refugio') { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); } return !!aldeaMundo && !!edificio && Object.values(puntosMundo(edificio)).some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 6); },
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
+    // lo que te enseñó tu esposa y vale siempre: el paso y los animales más mansos (jugador.js y fauna.js lo leen)
+    alBonos: (b) => { const js = jugador?.estado; if (js) { js.pasoAmor = b.paso; js.huidaAmor = b.huida; } },
+  });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
+    amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
     apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
@@ -4363,9 +4401,10 @@ function actualizarAldea(dt) {
   if (!jugador) return;
   oficios?.remar(jugador.estado);
   // (3.7.0: y si Martina, la del varadero, te lo calafateó hoy, un 15 % más)
-  if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1);
+  if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1) * (amorJuego?.bonos().remo || 1);   // (3.7.1: y la remada de Martina)
   if (!desafio) aldeaGente?.actualizar(dt);
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
+  if (!desafio) amorJuego?.actualizar(dt);   // 3.7.1: el día del amor, las citas y el casamiento
   if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
@@ -6162,6 +6201,16 @@ function hablar(npc) {
   // para la mesa, te lo dice (ver vecindad-juego.js)
   const enCita = vecindadJuego?.invitado(npc);
   if (enCita === 'esperando' && sentarseALaCita()) return;
+  // 3.7.1: la que te espera en la cita (o en la biblioteca, el día del casamiento): al hablarle, empieza (el aviso
+  // lo dice en el mismo lugar: el del vecino). Después, el menú de siempre.
+  const deAmor = !desafio ? amorJuego?.hablar(npc) : null;
+  if (deAmor) {
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: deAmor.id, partes: deAmor.partes, alTerminar: deAmor.alTerminar }, parte: 0, vec: null, menu: null });
+    charla.vec = vecindadJuego?.abrir(npc) || null;
+    $('charla').classList.remove('oculto');
+    mostrarCharla();
+    return;
+  }
   if (enCita === 'yendo') {
     Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: 'vecindad-cita', partes: ['Ya voy, ya voy. Andá sentándote, que te alcanzo.'] }, parte: 0, vec: null, menu: null });
     $('charla').classList.remove('oculto');
@@ -6334,6 +6383,7 @@ function cobrarPremio(e) {
 }
 function cerrarCharla() {
   if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
+  amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
   charla.npc = null;
   charla.menu = null; charla.vec = null;   // 3.6 (vida)
   $('charla').classList.add('oculto');
@@ -6410,6 +6460,8 @@ function elegirEnMenuCharla(i) {
   else if (r.tipo === 'renglones') charla.historia = { id: 'vecindad-tema', partes: r.renglones, volver: true };
   else if (r.tipo === 'historia') charla.historia = { ...r.historia, volver: true };
   else if (r.tipo === 'cita') charla.historia = { id: 'vecindad-cita', partes: r.renglones, cita: r };
+  // 3.7.1: el ñiki ñiki: lo que dice ella y, al terminar, el fundido (sin mostrar nada)
+  else if (r.tipo === 'fundido') charla.historia = { id: 'amor-fundido', partes: r.renglones, alTerminar: () => { if (charla.vec) charla.vec.chau = true; fundidoAmor(r); } };
   else { charla.vec.chau = true; charla.historia = null; charla.encargo = null; charla.parte = 99; }
   mostrarCharla();
 }
@@ -6705,7 +6757,7 @@ async function sacarFoto() {
   {
     const js = jugador.estado;
     const vistos = fotos.evaluar({
-      sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren, lente: !!progreso.cosas?.lente,   // (3.7.0: el lente de Sofía)
+      sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren, lente: !!progreso.cosas?.lente || !!amorJuego?.bonos().lente,   // (3.7.0: el lente de Sofía)
       pezEnMano: pesca.mostrandoPez(), noche: 1 - (luzUltimaFoto?.dia ?? 1), lunaDir: luzUltimaFoto?.lunaDir,
       fogata: clima.fogata.activa && clima.fogata.vida > 0 ? clima.fogata.pos : null,
       otono: U.uOtono.value, invierno: U.uInvierno.value, arboles: veg.arboles, enKayak: js.enKayak,
@@ -6874,7 +6926,7 @@ function cieloDeLaNoche(dt, noche, luz) {
   // la luna llena se anota mirándola un rato, como una constelación
   if (luz?.lunaDir && noche > 0.7 && nub < 0.6 && lunaAnotable(fase) && !progreso.entradas['luna-llena']) {
     camara.getWorldDirection(mirada);
-    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) : 0;
+    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) : 0;
     if (nocheCielo.mirandoLuna > 2.2) registrar('luna-llena');
   }
 }
@@ -6905,7 +6957,7 @@ function actualizarCielo(dt, noche, luz) {
       n++;
       // mirarla un rato la anota en el cuaderno
       if (!conocida) {
-        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1);
+        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1);   // (3.7.1: los ojos de noche de Valentina)
         if (tiempoMirando[c.id] > 2.2) registrar(c.id);
       }
     }
@@ -7800,7 +7852,7 @@ function cuadroDelJuego(tRaf, manual) {
     let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
     if (charla.npc) aviso = null;
     else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
-    else if (vecino) aviso = { tecla: 'E', texto: vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}` };   // 3.6 (vida): el invitado, ya sentado: E te sienta
+    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
     // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
@@ -8306,6 +8358,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __lomo: () => ({ lomo, visible: lomoVisible(), malla: lomoMalla?.visible || false }), __forzarLomo: () => { nocheLomo = progreso.horas < 4 ? progreso.dia - 1 : progreso.dia; lomo = { t: -1, pos: null }; },
     __actualizarLomo: actualizarLomo, __hablar: hablar, __datosDe: datosDe,
     // 3.6 (vida): la vecindad en el juego y el menú de la charla
+    __amor: () => amorJuego,   // 3.7.1
     __vecindad: () => vecindadJuego, __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
