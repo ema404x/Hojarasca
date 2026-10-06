@@ -395,6 +395,13 @@ function posar(g, charlando) {
     default: break;
   }
 }
+// 3.7.2: la cabeza, al final de los gestos, dentro de lo que dobla un cuello (las poses de siempre no pasan de 0,5 rad
+// de cabeceo ni de 0,6 de giro: no las toca) y sin NaN (un NaN se quedaría: lo demás le suma encima)
+const topeCabeza = (v, m) => (!Number.isFinite(v) ? 0 : v > m ? m : v < -m ? -m : v);
+function limitarCabeza(g) {
+  const r = g.cabeza.rotation;
+  r.set(topeCabeza(r.x, 0.8), topeCabeza(r.y, 1.2), topeCabeza(r.z, 0.5));
+}
 // 3.7.1 (mundo): los gestos del amor (los pide amor-mundo.js en `g.gestoAmor`): de la mano o del brazo con vos (el brazo de
 // tu lado: `lado` es el índice en `brazos`; el 1 es el izquierdo de ella) y el bebé en brazos (`acunar`). Van al final, también caminando.
 function gestoAmor(g) {
@@ -1099,6 +1106,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         g.torso.rotation.x = andando ? 0.035 : 0;
         g.cabeza.rotation.y = -g.torso.rotation.y * 0.7;
         g.cabeza.rotation.x = charlando ? Math.sin(g.fase * 5) * 0.05 : Math.sin(g.fase * 0.5) * 0.06;
+        // 3.7.2: y el ladeo. "Acomodar el gorro" (gente-cuerpo.js, quietud) le suma a la z; sin ponerla de nuevo cada
+        // cuadro se acumulaba (0,14 rad por cuadro) y la cabeza daba vueltas de costado o quedaba doblada al terminar
+        g.cabeza.rotation.z = 0;
 
         // gestos según lo que esté haciendo
         const quieto = !andando && !charlando;
@@ -1151,6 +1161,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // 3.7.0 (gente-cuerpo.js): codos, pies, la mirada, los gestos y la quietud
         if (g.gestoAmor) gestoAmor(g);   // 3.7.1 (mundo): de la mano, del brazo, el bebé en brazos
         if (g.pose === 'dormir' && !andando) for (const pp of g.cabeza.userData?.parpados || []) pp.rotation.x = 0.95;   // (y dormida, con los ojos cerrados)
+        limitarCabeza(g);   // 3.7.2
       }
     }
   }
