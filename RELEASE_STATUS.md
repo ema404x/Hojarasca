@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.7.1
+# RELEASE STATUS — 3.7.2
 
-- Versión: `3.7.1`
+- Versión: `3.7.2`
+- 3.7.2: La cocina — parrilla con cruz (con techito), horno de barro y cocina a leña con recetas en pasos (asado, cordero, pan, empanadas, mermeladas, dulce de leche, locro, chocolate, curanto), alacena y recetario; el humo trae vecinos y el perro roba un chorizo; la granja: vaca lechera, corderos, chanchos y frutales. Gate 154/154, 62 partidas reales
 - 3.7.1: Amor en la aldea — 12 candidatas adultas y solteras, citas en su lugar favorito, celos, el anillo de Anselmo, casamiento civil en la biblioteca con fiesta, vivir juntos, de la mano por la aldea, hasta 2 hijos con su cuarto, habilidades por oficio (rinden cada mañana y una mejora permanente), separación y reconquista; se apaga desde Ajustes. Retoques de la 3.7.0. Partidas reales de a 4 (suite-paralela). Gate 152/152, 60 partidas reales
 - 3.7.0: la aldea crece — toda la gente en el estilo P (a lo Sims Medieval, con telas y guardas patagónicas pintadas por código); 9 pobladoras nuevas (y Pocha) en la calle de la Loma con sus locales; Ema pasa a ser Josefina; calendario, cumpleaños de los cercanos, visitantes en el tren, chicos que crecen, animales y cachorro adoptado, apodo, visita de tu familia, ritmo de la aldea, ropa de invierno. Gate 150/150
 - 3.6.2: lo pendiente de la 3.6 — obras viejas encimadas en la aldea se mudan solas, clic y mando en las listas del HUD (almacén, feria, cargas, barra), árboles invisibles que chocaban, la visita gana al libro prestado, el reloj sentado, la aldea en el mapa, horarios con menos caminata, no llueve bajo techo, álamos sin salto, rótulo del almacén, red de la pescadería. Gate 146/146
