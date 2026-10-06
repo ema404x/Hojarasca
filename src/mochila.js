@@ -5,6 +5,8 @@
 // 2.5: la flecha elegida en el carcaj (ver desafio-arsenal.js)
 import { tipoFlecha, flechasDe, FLECHAS } from './desafio-arsenal.js';
 import { nombreDeBallesta } from './personal-armas.js';
+// 3.7.2: lo de la cocina (cocina-pasos.js)
+import { ranurasCocina } from './cocina-pasos.js';
 import { ranurasGranja, ICONOS_GRANJA } from './granja.js';
 // ---------------------------------------------------------------- iconos
 // Cada icono se dibuja por código sobre un lienzo chico, y se guarda en caché.
@@ -377,6 +379,33 @@ function icono(tipo) {
       x.strokeStyle = '#8a5a2c'; x.lineWidth = 2.5;
       x.beginPath(); x.moveTo(22, 34); x.lineTo(28, 42); x.moveTo(30, 32); x.lineTo(36, 42); x.moveTo(38, 32); x.lineTo(44, 40); x.stroke();
     },
+    // 3.7.2: lo de la cocina (cocina-pasos.js): la fuente del asado, la olla, la taza y la fruta (la leche, las carnes
+    // crudas, los chorizos y cada fruta de la granja los dibuja granja.js)
+    asado() {
+      x.fillStyle = '#9a4a32';
+      x.beginPath(); x.ellipse(32, 36, 21, 13, -0.25, 0, 6.3); x.fill();
+      x.fillStyle = '#e8d2b0'; x.beginPath(); x.ellipse(26, 33, 9, 4, -0.25, 0, 6.3); x.fill();
+      x.strokeStyle = '#6a2e1e'; x.lineWidth = 2;
+      for (const dx of [-8, 0, 8]) { x.beginPath(); x.moveTo(30 + dx, 26); x.lineTo(34 + dx, 46); x.stroke(); }
+    },
+    olla() {
+      x.fillStyle = '#4a4642'; x.fillRect(14, 26, 36, 24);
+      x.fillStyle = '#5e5a55'; x.fillRect(11, 22, 42, 6);
+      x.fillStyle = '#2e2b28'; x.fillRect(28, 15, 8, 7);
+      x.strokeStyle = '#c8c0b0'; x.lineWidth = 2; x.globalAlpha = 0.6;
+      x.beginPath(); x.moveTo(24, 14); x.quadraticCurveTo(20, 8, 26, 4); x.moveTo(40, 14); x.quadraticCurveTo(44, 8, 38, 4); x.stroke(); x.globalAlpha = 1;
+    },
+    taza() {
+      x.fillStyle = '#e8e2d4'; x.fillRect(16, 24, 26, 26);
+      x.strokeStyle = '#e8e2d4'; x.lineWidth = 5; x.beginPath(); x.arc(44, 36, 7, -1.3, 1.3); x.stroke();
+      x.fillStyle = '#5a3424'; x.fillRect(19, 24, 20, 5);
+    },
+    fruta() {
+      x.fillStyle = '#b8323a'; x.beginPath(); x.arc(26, 38, 11, 0, 6.3); x.fill();
+      x.fillStyle = '#c8a03a'; x.beginPath(); x.arc(40, 36, 11, 0, 6.3); x.fill();
+      x.strokeStyle = '#5a4a2a'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(26, 27); x.lineTo(30, 18); x.moveTo(40, 25); x.lineTo(38, 16); x.stroke();
+      x.fillStyle = '#5a7a3a'; x.beginPath(); x.ellipse(34, 18, 6, 3, 0.4, 0, 6.3); x.fill();
+    },
     empanada() {
       x.fillStyle = '#d4a15c';
       x.beginPath(); x.arc(32, 44, 20, Math.PI, 0); x.closePath(); x.fill();
@@ -486,6 +515,8 @@ export function armarMochila(progreso, estado) {
   // 3.7.2 (granja): lo de tu granja (ver granja.js)
   for (const r of ranurasGranja(cant)) ranuras.push(r);
 
+  // 3.7.2: lo de la cocina (lo cocinado, lo del almacén, lo de los vecinos y lo de la granja), sin repetir casilla
+  if (progreso.modo !== 'desafio') { const ya = new Set(ranuras.map((r) => r.id)); for (const r of ranurasCocina(progreso, ya)) ranuras.push(r); }
   // Modo Desafío: armas y curas van adelante, para tenerlas en 1–4 al empezar la noche
   const D = progreso.modo === 'desafio' ? progreso.desafio : null;
   if (D) {

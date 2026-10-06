@@ -259,6 +259,7 @@ export function crearVecindadJuego(ctx) {
     if (ayudas(s.clave, p, dia()).length) lista.push({ id: 'ayudar', titulo: TITULOS.ayudar });
     for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.1: el romance, el anillo y el correo
     for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
+    for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2: una receta y el trueque para la cocina (una sola opción, «Para la cocina…»)
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -318,6 +319,14 @@ export function crearVecindadJuego(ctx) {
     // 3.7.1: lo del amor (amor-juego.js): un submenú propio o lo que contesta ella
     if (/^amor(?:-|:|$)/.test(String(id)) && ctx.amor) {
       const r = ctx.amor.elegir(s, id, npc);
+      if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
+    // 3.7.2: lo de la cocina (cocina-juego.js): te enseña una receta, o el submenú del trueque
+    if (/^cocina(?:-|:|$)/.test(String(id)) && ctx.cocina) {
+      const r = ctx.cocina.elegir(s, id, npc);
       if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
       s.sub = null;
       if (r.tipo !== 'menu') s.vueltas++;

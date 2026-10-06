@@ -12,6 +12,8 @@ import { ESTILO, marcarConstructor, zonaCasa, zonaFortin, pinturaDeObra, rangosP
 import { pintarHoja } from './personal-casa-mundo.js';
 import { PLANOS_MAQUINAS } from './planos-maquinas.js';
 import { PLANOS_VEHICULOS } from './planos-vehiculos.js';
+// 3.7.2: la cocina (la parrilla con cruz y su techito, la cocina a leña y la alacena)
+import { PIEZAS_COCINA } from './planos-cocina.js';
 import { PLANOS_GRANJA } from './planos-granja.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
@@ -767,12 +769,28 @@ const PIEZAS = [
     pide: { piedra: 8, tronco: 1 }, pendienteMax: 0.5,
     fisica(h) { h.segmento(-0.6, 0, 0.6, 0, 0.62, -0.02, 1.25); },
     arma(c, P, datos, suelo) {
-      c.agregar(new THREE.BoxGeometry(1.5, 0.62, 1.3), { color: PIEDRA, tipo: 4, variar: 0.12, matriz: matriz([0, 0.31, 0]) });
+      // 3.7.2: el horno de verdad (cocina en pasos: se ve el fuego en la boca): la base de piedras asentadas en barro, la
+      // losa, la cúpula de barro pintada (más clara arriba, donde pega el sol), la boca en arco con su marco de ladrillo
+      // y el respiradero. La misma huella y la misma física de la 2.4.
+      c.agregar(new THREE.BoxGeometry(1.42, 0.56, 1.22), { color: '#5e5850', tipo: 4, variar: 0.1, matriz: matriz([0, 0.28, 0]) });
       zocalo(c, suelo, -0.72, 0, 0.72, 0, 0.02, 1.26);   // 3.0.1
-      c.agregar(new THREE.SphereGeometry(0.62, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), { color: '#9c6a4a', tipo: 4, variar: 0.06, matriz: matriz([0, 0.62, 0], [0, 0, 0], [1, 0.9, 1]) });
-      c.agregar(new THREE.BoxGeometry(0.34, 0.3, 0.3), { color: '#1c1714', tipo: 4, matriz: matriz([0, 0.78, 0.5]) });
-      c.agregar(new THREE.BoxGeometry(0.46, 0.06, 0.3), { color: '#7d5a40', tipo: 4, matriz: matriz([0, 0.95, 0.52]) });
-      c.agregar(new THREE.CylinderGeometry(0.06, 0.07, 0.2, 6), { color: '#8a5d40', tipo: 4, matriz: matriz([0.2, 1.18, -0.15]) });
+      for (let fila = 0; fila < 2; fila++) for (let i = 0; i < 6; i++) {
+        const t = (i + (fila ? 0.5 : 0)) / 6, y = 0.15 + fila * 0.27;
+        for (const [x, z, ry] of [[-0.71 + t * 1.42, 0.62, 0], [-0.71 + t * 1.42, -0.62, 0], [0.72, -0.6 + t * 1.2, Math.PI / 2], [-0.72, -0.6 + t * 1.2, Math.PI / 2]]) {
+          c.agregar(new THREE.BoxGeometry(0.26, 0.24, 0.1), { color: (i + fila) % 3 ? PIEDRA : '#8a8276', tipo: 4, variar: 0.16, matriz: matriz([x, y, z], [0.04 * (i % 2), ry + 0.05 * (i % 3 - 1), 0]) });
+        }
+      }
+      c.agregar(new THREE.BoxGeometry(1.56, 0.08, 1.36), { color: '#8a7a66', tipo: 4, variar: 0.08, matriz: matriz([0, 0.6, 0]) });
+      c.agregar(new THREE.SphereGeometry(0.62, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), { color: '#a8704a', tipo: 4, variar: 0.07, degradado: ['#94603e', '#c8946a'], matriz: matriz([0, 0.63, 0], [0, 0, 0], [1, 0.9, 1]) });
+      c.agregar(new THREE.TorusGeometry(0.6, 0.05, 5, 22), { color: '#8a5a3c', tipo: 4, variar: 0.08, matriz: matriz([0, 0.66, 0], [Math.PI / 2, 0, 0]) });
+      // la boca: un arco oscuro con su marco de ladrillo
+      c.agregar(new THREE.BoxGeometry(0.34, 0.16, 0.3), { color: '#1c1714', tipo: 4, matriz: matriz([0, 0.72, 0.5]) });
+      c.agregar(new THREE.CylinderGeometry(0.17, 0.17, 0.3, 12, 1, false, Math.PI / 2, Math.PI), { color: '#1c1714', tipo: 4, matriz: matriz([0, 0.8, 0.5], [Math.PI / 2, 0, 0]) });
+      c.agregar(new THREE.TorusGeometry(0.2, 0.045, 5, 12, Math.PI), { color: '#8a4a32', tipo: 4, variar: 0.1, matriz: matriz([0, 0.8, 0.645]) });
+      for (const sx of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.08, 0.17, 0.09), { color: '#8a4a32', tipo: 4, variar: 0.1, matriz: matriz([sx * 0.2, 0.72, 0.645]) });
+      c.agregar(new THREE.BoxGeometry(0.5, 0.04, 0.16), { color: '#7d5a40', tipo: 4, matriz: matriz([0, 0.645, 0.68]) });   // el umbral
+      // el respiradero, de barro, atrás
+      c.agregar(new THREE.CylinderGeometry(0.06, 0.08, 0.24, 8), { color: '#8a5d40', tipo: 4, variar: 0.08, matriz: matriz([0.16, 1.16, -0.18], [0.1, 0, -0.12]) });
     },
   },
   // El invernadero: arcos de madera y nylon. Va encima de los canteros (cubreOtras):
@@ -2187,6 +2205,7 @@ function matasJardin(c, x, z, y, f, k, esc = 1) {
     matriz: matriz([x + Math.cos(k * 2.1) * 0.07 * esc, y + 0.185 * esc, z + Math.sin(k * 2.1) * 0.07 * esc]) });
 }
 
+PIEZAS.push(...PIEZAS_COCINA);   // 3.7.2: la cocina (ver planos-cocina.js)
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,

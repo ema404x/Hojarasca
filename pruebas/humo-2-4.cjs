@@ -118,9 +118,15 @@ app.whenReady().then(async () => {
     await pararse(horno.x, horno.z, 1.3);
     const aHorno = await aviso('/Hornear/');
     ok(/Hornear pan casero/.test(aHorno), `el aviso dice qué se hornea («${aHorno}»)`);
-    await tecla('KeyE'); await esperar(500);
+    // 3.7.2: el horno cocina en pasos: E abre el panel de recetas, el 1 prende el horno; después, meter y sacar el pan
+    // (el reloj del juego se adelanta a mano: el barro tarda una hora en calentarse y el pan, otra en hornearse)
+    const pasoHorno = (h) => js(`(()=>{ const H = window.__hojarasca; H.__cocina().actualizar(1); H.progreso.horas += ${h}; H.__cocina().actualizar(1); return 1 })()`);
+    await tecla('KeyE'); await esperar(300);
+    await tecla('Digit1'); await esperar(300);
+    await pasoHorno(1.05); await tecla('KeyE'); await esperar(300);
+    await pasoHorno(1.05); await tecla('KeyE'); await esperar(500);
     const pan = await js(`(()=>{ const P = window.__hojarasca.progreso; return { pan: P.entradas['pan-casero']?.cantidad, harina: P.cosas.harina, tronco: P.materiales.tronco } })()`);
-    ok(pan.pan === 3 && pan.harina === 0 && pan.tronco === 2, `E hornea tres panes con dos medidas y un tronco (${JSON.stringify(pan)})`);
+    ok(pan.pan === 3 && !pan.harina && pan.tronco === 2, `E hornea tres panes con dos medidas y un tronco, en pasos (${JSON.stringify(pan)})`);
 
     seccion('4. el buzón');
     const buzon = await construir('buzon', 4);

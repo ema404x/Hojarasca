@@ -71,6 +71,37 @@ export const TRUEQUES = [
     texto: 'Papas chicas con los ojos ya brotados, en una bolsa de arpillera.',
     efecto: 'Dos siembras para el cantero. Tardan siete días, pero rinden.',
   },
+  // 3.7.2: lo de la cocina que no se produce (ver cocina-pasos.js). Se gasta: se cambia todas las veces.
+  {
+    id: 'azucar', nombre: 'Un kilo de azúcar', repetible: true, da: 4,
+    pide: [['pinon', 2], ['ramita', 3]],
+    texto: 'Azúcar blanca en bolsa de papel, de la que sube con el tren desde el valle.',
+    efecto: 'Para las mermeladas, el dulce de leche y el chocolate.',
+  },
+  {
+    id: 'sal', nombre: 'Sal gruesa', repetible: true, da: 6,
+    pide: [['canto', 1], ['ramita', 2]],
+    texto: 'Sal gruesa de las salinas de la costa, en un cucurucho de papel de estraza.',
+    efecto: 'Sin sal gruesa no hay asado: una medida por asado.',
+  },
+  {
+    id: 'cacao', nombre: 'Cacao amargo', repetible: true, da: 3,
+    pide: [['calafate', 3], ['pluma', 1]],
+    texto: 'Cacao amargo en polvo, en una lata con un barco pintado.',
+    efecto: 'Con leche y azúcar, el chocolate de los días de nieve.',
+  },
+  {
+    id: 'maiz', nombre: 'Maíz blanco pisado', repetible: true, da: 4,
+    pide: [['pinon', 3]],
+    texto: 'Maíz blanco partido, en bolsa de arpillera chica.',
+    efecto: 'Para el locro: se deja en remojo desde la noche antes.',
+  },
+  {
+    id: 'porotos', nombre: 'Porotos', repetible: true, da: 3,
+    pide: [['calafate', 2], ['canto', 1]],
+    texto: 'Porotos blancos secos, de la cosecha pasada, en un cucurucho.',
+    efecto: 'Para el locro y los guisos de invierno.',
+  },
 ];
 
 // Lo que se gasta (semillas, yerba) se puede volver a cambiar; lo demás, una vez.

@@ -240,10 +240,13 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
       // 1.11 (2.2: rastrear lejos): nariz al piso hacia la presa; si te quedaste atrás,
       // te espera. Le gana a la guía de la 2.0 mientras dura.
       est.estado = 'rastrear';
-    } else if (est.estado === 'atacar' || est.estado === 'alerta' || est.estado === 'rastrear') {
+    } else if (mundo?.antojo) {
+      // 3.7.2: el olor del asado: va a la parrilla, se roba un chorizo y se escapa (lo decide cocina-juego.js)
+      est.estado = 'antojo';
+    } else if (est.estado === 'atacar' || est.estado === 'alerta' || est.estado === 'rastrear' || est.estado === 'antojo') {
       est.estado = 'seguir'; est.t = 1;
     }
-    if (est.estado === 'atacar' || est.estado === 'alerta' || est.estado === 'rastrear') {
+    if (est.estado === 'atacar' || est.estado === 'alerta' || est.estado === 'rastrear' || est.estado === 'antojo') {
       // (el daño lo aplica el Desafío; acá sólo se mueve y se anima)
     } else if (js.sentado || js.nadando) {
       est.estado = 'esperar';
@@ -286,6 +289,13 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
         destino = mundo.rastro;
         velocidad = Math.hypot(destino.x - est.pos.x, destino.z - est.pos.z) < 0.6 ? 0 : 2.6;
       }
+    } else if (est.estado === 'antojo') {
+      // 3.7.2: al trote hasta la parrilla (olfateando), o a la carrera con el chorizo; quieto cuando come
+      const a = mundo.antojo;
+      const dd = Math.hypot(a.x - est.pos.x, a.z - est.pos.z);
+      if (a.quieto || dd < (a.cerca ?? 1)) { velocidad = 0; if (!a.quieto) est.rumboObjetivo = Math.atan2(a.x - est.pos.x, a.z - est.pos.z); }
+      else { destinoTmp.x = a.x; destinoTmp.z = a.z; destino = destinoTmp; velocidad = a.corre ? 5.2 : 2.6; }
+      est.olfateo = a.corre ? 0 : 1;   // (comiendo, también la cabeza abajo)
     } else if (est.estado === 'marcar') {
       velocidad = 0;
       est.rumboObjetivo = Math.atan2(est.marcando.pos.x - est.pos.x, est.marcando.pos.z - est.pos.z);
