@@ -176,11 +176,15 @@ import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-b
 import { crearModos, CSS_MODOS } from './modos-juego.js';
 // 3.5.1: las preguntas del juego (Electron no tiene prompt y confirm traba la ventana)
 import { crearDialogos } from './dialogo.js';
+// 3.8 (prototipo de imágenes): los duendes del Desafío, sólo con `?debug=1&duendes=proto`
+import { crearDuendesProto } from './duendes-proto.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 // 3.7.0: la gente de antes (la de la 3.6), sólo para comparar en depuración (`?debug=1&gente=vieja`)
 const GENTE_VIEJA = HOJARASCA_DEBUG && new URLSearchParams(location.search).get('gente') === 'vieja';
+// 3.8 (prototipo): los duendes, el Rey, el Coihue Viejo y sus cosas, para las capturas (`?debug=1&duendes=proto`)
+const DUENDES_PROTO = HOJARASCA_DEBUG && new URLSearchParams(location.search).get('duendes') === 'proto';
 const esperar = () => new Promise((r) => setTimeout(r, 30));
 
 // 2.7.3: ¿es la primera vez que se abre el juego? (antes de leer los ajustes)
@@ -8463,6 +8467,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
       aplicar: aplicarPersonal, cuerpo: () => cuerpoJugador, mano: () => manoPropia, bandera: () => banderaMundo, texturaBandera,
     },
   });
+  // 3.8 (prototipo): las escenas de los duendes las arma el visor (pruebas/visor-duendes-proto.cjs)
+  if (DUENDES_PROTO) window.__hojarasca.__duendes = crearDuendesProto({ escena, T, veg, camara, renderer, U });
   // 3.0: la supervivencia sin fin, para las pruebas
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
