@@ -283,7 +283,7 @@ const con = valle({ aldea: true });
     const T2 = con.T;
     const lejos = (x, z) => T2.val(T2.distRiel, x, z);
     for (const b of A.IDS_EDIFICIOS) {
-      const e = A.EDIFICIOS_ALDEA[b]; if (e.rol === 'estacion') continue;
+      const e = A.EDIFICIOS_ALDEA[b]; if (e.rol === 'estacion' || e.rol === 'taller-tren') continue;   // (3.7.3: el taller ferroviario va pegado al desvío: lo mide verificar-3-7-3-taller.mjs)
       const m = A.marcoAldea();
       let min = Infinity;
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) { const c = Math.cos(e.rot), s = Math.sin(e.rot), bx = sx * e.ancho / 2, bz = sz * e.fondo / 2; const w = m.aMundo(e.x + bx * c + bz * s, e.z - bx * s + bz * c); min = Math.min(min, lejos(w.x, w.z)); }

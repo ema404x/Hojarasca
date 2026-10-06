@@ -126,7 +126,7 @@ const ok = (c, t) => { n++; assert.ok(c, t); };
   ok(!/tren=proto|TREN_PROTO|tren-proto|armarTrenProto|crearTallerProto/.test(main), 'main.js no tiene más `?tren=proto`');
   ok(/^import \{ armarTren, aplicarMejoras \} from '\.\/tren\.js';$/m.test(main), 'main.js arma el tren de tren.js');
   ok(main.includes('armarTren: esDesafio ? null : (o) => armarTren({ ...o, T, estado: progreso?.tren,'), 'sólo en el Relax (en el Desafío, el tren de siempre)');
-  ok(/^export function aplicarMejoras\(estado\) \{$/m.test(tren) && /^export function armarTren\(o = \{\}\) \{$/m.test(tren) && /^export function crearTaller\(/m.test(tren), 'tren.js: armarTren, aplicarMejoras (para el taller) y el taller del prototipo');
+  ok(/^export function aplicarMejoras\(estado\) \{$/m.test(tren) && /^export function armarTren\(o = \{\}\) \{$/m.test(tren) && !/^export function crearTaller\(/m.test(tren), 'tren.js: armarTren y aplicarMejoras (para el taller; 3.7.3 (taller): el taller del prototipo se sacó, el del juego es el de la aldea)');
   // armar.mjs: imports en una línea, sin `export ... from`, sin export async/function*; sin ñ en lo exportado
   for (const [f, t] of [['tren.js', tren], ['tren-viaje.js', viaje]]) {
     ok(!/^export (async function|function\*)|^export .* from |^import '/m.test(t), `${f}: exports e imports que entiende armar.mjs`);

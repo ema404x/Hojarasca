@@ -70,7 +70,8 @@ export function sanearFiesta(f) {
 }
 // Lo que pasa un día: los cumpleaños y las fiestas. `aldea`: para saber quién vive ya en la aldea;
 // `fiestas`: las del año (FIESTAS_ALDEA si no se pasan).
-export function eventosDelDia(dia, { aldea = null, fiestas = FIESTAS_ALDEA } = {}) {
+// (3.7.3: `extras`: otros eventos con su día, { dia, tipo, nombre, texto }: lo que queda listo en el taller ferroviario)
+export function eventosDelDia(dia, { aldea = null, fiestas = FIESTAS_ALDEA, extras = null } = {}) {
   const d = diaValido(dia, 1), f = fechaDe(d);
   const lista = [];
   for (const k of personasDelCalendario(aldea)) if (cumpleDe(k) === f.diaDelAnio) lista.push({ tipo: 'cumple', clave: k, nombre: nombreDe(k), texto: `Cumpleaños de ${nombreDe(k)}` });
@@ -78,6 +79,7 @@ export function eventosDelDia(dia, { aldea = null, fiestas = FIESTAS_ALDEA } = {
     const s = sanearFiesta(x);
     if (s && s.diaDelAnio === f.diaDelAnio && f.anio >= s.desdeAnio) lista.push({ tipo: 'fiesta', id: s.id, nombre: s.nombre, texto: s.texto || s.nombre });
   }
+  for (const x of Array.isArray(extras) ? extras : []) if (x && x.dia === d && typeof x.texto === 'string') lista.push({ tipo: String(x.tipo || 'extra'), id: x.id ?? null, nombre: String(x.nombre || x.texto), texto: x.texto });
   return lista;
 }
 // El aviso del día antes: { titulo, texto } o null.

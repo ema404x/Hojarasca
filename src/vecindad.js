@@ -86,6 +86,8 @@ const TRATO = {
   // 3.7.0
   veterinaria: 'vecino', fotografa: 'che', andinista: 'compañero', herbolaria: 'vecino', pintora: 'querido', ceramista: 'primo',
   botera: 'marinero', astronoma: 'vecino', modista: 'mi amor',
+  // 3.7.3
+  martin: 'muchacho',
 };
 
 // ---------------------------------------------------------------- lo que se puede regalar
@@ -160,6 +162,10 @@ export const PERFILES_VECINOS = {
   botera: P(['trabajador', 'solitario', 'madrugador'], ['tabla', 'trucha-ahumada', 'yerba'], ['tronco', 'empanadas'], 'frasco-frutilla', ['pescador', 'nicanor', 'carpintero'], { tipo: 'material', k: 'tabla', n: 3 }),
   astronoma: P(['trasnochador', 'lector', 'solitario'], ['miel', 'calafate-seco', 'pan-casero'], ['yerba', 'huevo'], 'hongos-secos', ['maestra', 'jefe', 'telegrafista'], { tipo: 'entrada', k: 'miel', n: 1 }),
   modista: P(['charlatan', 'casero', 'goloso'], ['lana', 'frasco-frutilla', 'empanadas'], ['yerba', 'miel'], 'piedra', ['herrero', 'nelida', 'tejedora'], { tipo: 'material', k: 'lana', n: 2 }),
+  // 3.7.3: Martín, el maquinista retirado del taller ferroviario: el mate, la leña de la fragua y la trucha
+  // ahumada (la de los parajes de la línea); lo dulce no ("se pega en el bigote"). Sus amigos: Ernesto, Anselmo
+  // (le forja las piezas) y Nahuel, su aprendiz
+  martin: P(['madrugador', 'trabajador', 'curioso'], ['yerba', 'tronco', 'trucha-ahumada'], ['pan-casero', 'empanadas'], 'frasco-frutilla', ['jefe', 'herrero', 'nene'], { tipo: 'material', k: 'tronco', n: 3 }),
 };
 // Qué le parece una cosa: 'encanta' | 'gusta' | 'noGusta' | 'neutro'.
 export function gustoDe(persona, cosa) {
@@ -699,7 +705,7 @@ const SECCIONES_NOVEDAD = {
   herbolaria: ['flora', 'frutos'], veterinaria: ['fauna', 'rastros'], andinista: ['fauna', 'lugares'], fotografa: ['fauna', 'flora'], botera: ['peces', 'fauna'], astronoma: ['cielo', 'fauna'],
 };
 const NO_SE_VEN = new Set(['perro', 'oveja', 'gallina', 'caballo', 'rastreo']);
-const HABLAN_DEL_TREN = ['jefe', 'guarda', 'telegrafista', 'nelida', 'ercilia'];
+const HABLAN_DEL_TREN = ['jefe', 'guarda', 'telegrafista', 'nelida', 'ercilia', 'martin'];   // (3.7.3: y Martín)
 const FEMENINOS = new Set(['liebre']);
 function unBicho(e) {
   const n = e.nombre.charAt(0).toLowerCase() + e.nombre.slice(1);

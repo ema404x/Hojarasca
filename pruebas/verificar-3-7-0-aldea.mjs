@@ -247,7 +247,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const cal = V.calendarioDelAnio(15, { aldea: a, fiestas });
   ok(cal.anio === 2 && cal.filas.length === 12 && cal.filas.filter((x) => x.hoy).length === 1 && cal.filas[2].hoy && cal.filas[3].manana, 'el año en el cuaderno: doce filas, hoy y mañana');
   ok(cal.filas[5].eventos.some((e) => e.tipo === 'fiesta'), 'con las fiestas');
-  ok(V.listaCumples(a).length === 8 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');
+  ok(V.listaCumples(a).length === 9 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín)
 }
 
 // ============================================================ 4. los cumpleaños
@@ -259,7 +259,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   llena.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
   // el día 10: la abuela y la enfermera (dos): en la plaza
   let f = A.fiestaDeCumple(10, llena);
-  eq(f, { claves: ['abuela', 'enfermera'], donde: 'plaza', edificio: 'plaza' }, 'dos que cumplen el mismo día, juntos en la plaza');
+  eq(f, { claves: ['abuela', 'enfermera', 'martin'], donde: 'plaza', edificio: 'plaza' }, 'dos que cumplen el mismo día, juntos en la plaza');   // (3.7.3: y Martín: tres)
   eq(A.rutinaAldea('abuela', 19, 1, llena, 10), { lugar: 'fiesta', edificio: 'plaza', punto: 'mastil' }, 'a la tardecita, en el medio de la plaza');
   ok(A.rutinaAldea('abuela', 19, 1, llena).lugar !== 'fiesta' && A.rutinaAldea('abuela', 16, 1, llena, 10).lugar !== 'fiesta', 'sin el día, o a otra hora, no');
   // uno solo: en su casa (o su local)

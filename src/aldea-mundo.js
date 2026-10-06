@@ -223,6 +223,7 @@ export function terrenoDeSorteo(T, antes) {
 export function manzanaDe(id) {
   const e = EDIFICIOS_ALDEA[id];
   if (!e || e.rol === 'estacion') return null;
+  if (e.rol === 'taller-tren') return 'taller';   // 3.7.3: el taller ferroviario, del otro lado de la vía, es su propio complejo
   const col = e.x < -120 ? 'l4' : e.x < -95 ? 'l3' : e.x < -70 ? 'l2' : e.x < -44 ? 'l1' : e.x < -27 ? 'o2' : e.x < -8 ? 'o1' : e.x < 20 ? 'c' : e.x < 53 ? 'e1' : 'e2';
   return `${col}-${e.z < 52 ? 's' : 'n'}`;
 }
@@ -234,6 +235,43 @@ export const IDS_MUNDO_ALDEA = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].
 // otro lado están el estudio de fotos y el taller de arte) y el ventanal del taller de arte en el frente, que en
 // la calle de la Loma mira al norte (la luz pareja que piden los pintores)
 export const OPCIONES_MUNDO = { veterinaria: { espejoAnexo: true }, ceramica: { espejoAnexo: true }, 'taller-arte': { ventanal: 'frente' } };
+// 3.7.3: el taller ferroviario: viejo y a medio usar (etapa 3) hasta que se termina la primera mejora del tren; después,
+// arreglado (4). Lo dice `progreso.tren.taller.arreglado` (tren-mejoras.js), no la aldea.
+export const etapaTaller = (tren) => ({ etapa: tren?.taller?.arreglado ? 4 : 3, opciones: {} });
+// 3.7.3: lo que el taller necesita del terreno (el Worker no lo ve), en su marco (el de aldea-arquitectura.js: y = 0 el
+// nivel del lote, `EDIFICIOS_ALDEA['taller-tren'].y`): la grilla de alturas del suelo (el zócalo, el foso, la
+// escalerita y el terraplén bajan hasta ahí), el desvío (de la vía principal, unos 34 m al oeste del taller, hasta el
+// portón, en S: [x, y, z], y = el punto de la vía como en trochita.js) y el cruce de tablones sobre la vía principal.
+export function opcionesTaller(T, parada = PARADA_ALDEA) {
+  const e = EDIFICIOS_ALDEA['taller-tren'], m = marcoAldea(parada);
+  if (!e || !T?.altura) return {};
+  const enMundo = (x, z) => m.aMundo(e.x + x, e.z + z);   // (rot 0: el marco del taller es el del plano, corrido)
+  const paso = 1, x0 = -40, z0 = -7, nx = 53, nz = 20, h = [];
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const w = enMundo(x0 + i * paso, z0 + j * paso); h.push(+(T.altura(w.x, w.z) - e.y).toFixed(3)); }
+  const riel = Array.isArray(T.riel) ? T.riel : [];
+  const cerca = [];
+  for (const q of riel) { const l = m.aLocal(q.x, q.z); if (Math.abs(l.lx) < 60 && Math.abs(l.lz) < 6) cerca.push({ lx: l.lx, lz: l.lz, h: q.h }); }
+  // el punto de la vía (interpolado) en una x del plano
+  const viaEn = (lx) => {
+    let a = null, b = null;
+    for (const q of cerca) { if (q.lx <= lx && (!a || q.lx > a.lx)) a = q; if (q.lx >= lx && (!b || q.lx < b.lx)) b = q; }
+    if (!a || !b) return { lz: 0, h: parada.y ?? e.y };
+    const t = b.lx === a.lx ? 0 : (lx - a.lx) / (b.lx - a.lx);
+    return { lz: a.lz + (b.lz - a.lz) * t, h: a.h + (b.h - a.h) * t };
+  };
+  const A = viaEn(-14), xB = e.x - e.ancho / 2;
+  const desvio = [];
+  for (let i = 0; i <= 48; i++) {
+    const t = i / 48, u = (1 - Math.cos(t * Math.PI)) / 2, lx = -14 + (xB + 14) * t;
+    const lz = A.lz + (e.z - A.lz) * u;
+    // la altura: la de la vía principal mientras va pegado a ella; después baja derecho hasta el piso del galpón
+    const hv = viaEn(lx).h, hp = e.y + 0.3, w = suave01(u / 0.2);
+    const y = hv + (A.h + (hp - A.h) * t - hv) * w;
+    desvio.push([+(lx - e.x).toFixed(3), +(y - e.y).toFixed(3), +(lz - e.z).toFixed(3)]);
+  }
+  const c = viaEn(e.x - 7);   // (el cruce de tablones: PUNTOS_TALLER.cruce de aldea.js)
+  return { suelo: { x0, z0, paso, nx, nz, h }, desvio, cruce: { z: +(c.lz - e.z).toFixed(3), y: +(c.h + 0.115 - e.y).toFixed(3) } };
+}
 // La etapa de aldea-arquitectura.js para lo que dice `estadoVisual`. La escuela nunca vuelve para
 // atrás: a medio hacer ya tiene paredes y techo.
 export function etapaVisual(aldea, id) {
@@ -295,7 +333,7 @@ const PUERTAS_PLANO = IDS_EDIFICIOS.map((id) => puntosDe(id).puerta).filter(Bool
 // frente (-1: la calle queda del lado de u0), ladoAlto (+1/-1 respecto de `medio`), bajo, alto }.
 export function planDesniveles() {
   const lista = [];
-  const ids = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion');
+  const ids = IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].fija);   // (3.7.3: ni el taller ferroviario)
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
     const A = plantaDe(ids[i]), B = plantaDe(ids[j]), ya = EDIFICIOS_ALDEA[ids[i]].y, yb = EDIFICIOS_ALDEA[ids[j]].y;
     if (Math.abs(ya - yb) < 0.5) continue;
@@ -977,6 +1015,7 @@ export function crearAldeaMundo(ctx) {
   let chimeneas = [];
   let materiales = null, semillas = null, alamos = null, estacionHecha = null, calles = null;
   let pedidosIniciales = null;
+  let tallerOp = null;   // 3.7.3: lo del terreno para el taller ferroviario (ver opcionesTaller)
   const info = { emparejarMs: 0, parcheTris: 0, montajes: 0, rearmados: 0, msMontar: 0 };
 
   // el centro de la aldea (para saber si estás cerca)
@@ -1121,6 +1160,15 @@ export function crearAldeaMundo(ctx) {
     for (const a of accesorios) { const w = aMundo(a.lx, a.lz); sacados += veg.despejar(w.x, w.z, a.tipo === 'alamo' ? 2.6 : 1.8); }
     // la estación: el galpón de cargas y el cartel
     for (const [lx, lz] of [[-7.2, 7.8], [6.8, 6.4], [-5.2, 6.2]]) { const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 3.5); }
+    // 3.7.3: el taller ferroviario (con la escalerita del frente) y el desvío hasta la vía principal
+    {
+      const e = EDIFICIOS_ALDEA['taller-tren'];
+      for (const dx of [-5, 0, 5]) { const w = aMundo(e.x + dx, e.z); sacados += veg.despejar(w.x, w.z, 6.2); }
+      for (let i = 0; i <= 6; i++) { const t = i / 6, u = (1 - Math.cos(t * Math.PI)) / 2; const w = aMundo(-14 + (e.x - e.ancho / 2 + 14) * t, e.z * u); sacados += veg.despejar(w.x, w.z, 3.2); }
+      // y entre el taller y la vía (la escalerita, el banco de la puerta) y el camino de la gente: del cruce de tablones a la
+      // salida, al lado de la calle de la Estación
+      for (const [lx, lz, r] of [[e.x - 2, e.z + 6, 4.5], [e.x + 6, e.z + 6, 4.5], [e.x - 9, e.z + 12, 3.5], [e.x - 11, e.z + 18, 3.5], [e.x - 6, e.z + 15, 3.5]]) { const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, r); }
+    }
     // y el claro del pueblo: entre las casas no queda bosque (el borde lo hacen los álamos)
     // 3.6 (detalles): en la orilla del claro quedan algunos árboles: el borde no es un corte recto
     for (let lx = -47; lx <= 93; lx += 6) for (let lz = 14; lz <= 85; lz += 6) {
@@ -1486,12 +1534,13 @@ export function crearAldeaMundo(ctx) {
   function revisar() {
     const aldea = ctx.progreso()?.aldea || null;
     for (const b of edificios.values()) {
-      const v = etapaVisual(aldea, b.id);
+      // (3.7.3: el taller ferroviario, según el tren: viejo o arreglado, con el terreno que necesita)
+      const v = b.id === 'taller-tren' ? etapaTaller(ctx.progreso()?.tren) : etapaVisual(aldea, b.id);
       const clave = claveVisual(b.id, v);
       if (b.pedida === clave) continue;
       b.pedida = clave;
       // (3.7.0 (integración): con lo propio de cada uno: el anexo, el ventanal y el desnivel con la calle)
-      const opciones = { ...v.opciones, ...(OPCIONES_MUNDO[b.id] || {}), ...(b.desnivel > 0 ? { desnivel: b.desnivel } : {}) };
+      const opciones = { ...v.opciones, ...(OPCIONES_MUNDO[b.id] || {}), ...(b.desnivel > 0 ? { desnivel: b.desnivel } : {}), ...(b.id === 'taller-tren' ? (tallerOp ??= opcionesTaller(T, parada)) : {}) };
       const p = fabrica.pedir({ tipo: 'edificio', id: b.id, etapa: v.etapa, opciones }).then((datos) => {
         if (b.pedida !== clave) return;   // ya se pidió otra
         cola.push({ tipo: 'edificio', b, clave, datos });
@@ -1567,14 +1616,13 @@ export function crearAldeaMundo(ctx) {
     b.puertas = [];
     // 3.6 (optimizar): la luz vieja también sale de la lista de cada cuadro y del registro de luces.js
     // (antes cada rearmado de un edificio con luz dejaba una entrada muerta que se recorría siempre)
-    if (b.luz) {
-      const q = b.luz;
+    for (const q of [b.luz, b.luz2].filter(Boolean)) {   // (3.7.3: el taller ferroviario tiene dos: el galpón y el cuarto)
       q.luz.intensity = 0; q.luz.visible = false; q.luz.parent?.remove(q.luz);
       const i = luces.indexOf(q);
       if (i >= 0) luces.splice(i, 1);
       olvidarLuz(q.luz);
-      b.luz = null;
     }
+    b.luz = null; b.luz2 = null;
   }
   const capaMat = (capa) => materiales[capa];
   // Lo que no va en la pieza fundida: colisiones, puertas, interior, luz, techo, chimeneas.
@@ -1646,6 +1694,9 @@ export function crearAldeaMundo(ctx) {
     // la luz de adentro (la fragua, si hay; si no, la del local)
     const spec = d.luces.find((l) => l.clase === 'fragua') || d.luces.find((l) => l.clase === 'interior' && l.cuarto === 'local') || d.luces.find((l) => l.clase === 'interior');
     if (spec && b.datos.etapa >= 3) b.luz = nuevaLuz(m, s, spec, spec.clase === 'fragua' ? 'fragua' : 'interior');
+    // 3.7.3: el taller ferroviario, además, la del cuarto de Martín (el tabique la tapa de la del galpón)
+    const spec2 = b.id === 'taller-tren' ? d.luces.find((l) => l.clase === 'interior' && l.cuarto === 'vivienda') : null;
+    if (spec2) b.luz2 = nuevaLuz(m, s, spec2, 'interior');
     // techo, planta y chimeneas en el mundo
     b.techo = d.techo && d.etapa >= 3 ? { ...d.techo } : null;
     cubiertasHechas = null; versionCubiertas++;   // 3.6.2 (visual)

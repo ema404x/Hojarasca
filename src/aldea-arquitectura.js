@@ -847,6 +847,8 @@ export const CARTELES_ALDEA = [
   { texto: 'Observatorio', fondo: '#1f2b45', tinta: '#e8dca8' },
   { texto: 'Costurería', fondo: '#e9d4d0', tinta: '#7a3a4a', mano: true },
   ...LOTES_LOMA.map((id) => ({ texto: 'Lote para ' + PARA_LOTE[id], fondo: '#cdb98e', tinta: '#3a2a1a', mano: true })),
+  // 3.7.3: el del taller ferroviario (sobre el portón, cuando se arregla)
+  { texto: 'Taller Ferroviario', fondo: '#2e3a4c', tinta: '#e8d8a8' },
 ];
 // (3.7.0: 2048 → 2560 de alto, 52 celdas: entran los carteles de la loma y sus lotes)
 export const ATLAS_CARTELES = { ancho: 1024, alto: 2560, celdaAncho: 512, celdaAlto: 96, columnas: 2 };
@@ -4886,6 +4888,8 @@ function cerrar(K, extra = {}) {
 const COSAS_DE_USO = { 'casa-jefe': 1, panaderia: -1, 'puesto-sanitario': 1, estafeta: -1, hilanderia: -1, 'sala-miel': -1, seccional: 1, salon: 1, escuela: -1, biblioteca: 1,
   veterinaria: -1, 'estudio-fotos': -1, 'refugio-andinista': -1, herboristeria: 1, 'taller-arte': 1, ceramica: -1, varadero: -1, observatorio: 1, costureria: 1 };
 export function armarEdificio(id, etapa = 4, opciones = {}) {
+  // 3.7.3: el taller ferroviario (etapa 3: viejo y a medio usar; 4: arreglado con la primera mejora del tren)
+  if (id === 'taller-tren') return armarTallerTren({ ...opciones, arreglado: Number(etapa) >= 4 });
   const def = EDIFICIOS_ALDEA[id];
   if (!def) throw new Error('aldea-arquitectura: no conozco el edificio ' + id);
   let e = Math.max(0, Math.min(4, Math.round(Number(etapa))));
@@ -5182,6 +5186,539 @@ export function armarAgregadoEstacion(opciones = {}) {
   piezas.push({ id: 'banco', lx: 4.9, lz: 6.3, giro: Math.PI, edificio: armarAccesorio('banco', { semilla: 4 }) });
   return { piezas };
 }
+
+// ---------------------------------------------------------------- 3.7.3: el taller ferroviario
+// El galpón de mantenimiento de la trochita, del otro lado de la vía, frente a la estación (el del prototipo de la
+// rama proto-tren, aprobado por el usuario): 17 × 7,2 m, zócalo de piedra, tablas abajo y chapa arriba, ventanas
+// altas, techo de chapa a dos aguas con claraboyas y la linterna de ventilación; el portón grande en el testero oeste
+// (−X), por donde entra el desvío, y la puerta chica en el frente (+Z, mirando a la vía), con su escalerita. Adentro:
+// el foso entre los rieles (con escalones y una pasarela de tablones para cruzarlo), el banco con la morsa y el
+// tablero de herramientas, la fragua chica con el yunque, el juego de ruedas de repuesto, rieles y piezas de hierro, el
+// aparejo colgado de una viga, faroles de taller, el paragolpes y una zorra de vía; y pasando el tabique de tablas
+// (x 5,4), el cuarto de Martín: la cama, la mesa, la salamandra, el ropero y sus cosas de maquinista.
+// Afuera, el desvío con su cambio de vía (las agujas y la palanca con el contrapeso), sobre su terraplén.
+//
+// Marco local: el de todos los edificios (y = 0 el nivel del lote; el piso de cemento a PISO_ALDEA). El terreno no se
+// empareja: el galpón se apoya en el zócalo, que baja hasta el terreno (`opciones.suelo`, una grilla de alturas en
+// este marco que arma aldea-mundo.js: el Worker no ve el terreno). `opciones.desvio`: la polilínea del desvío
+// ([x, y, z] en este marco, y = la base del riel), desde la vía principal hasta el portón. `opciones.arreglado`: con
+// la primera mejora el galpón queda como nuevo; antes está viejo y a medio usar (faltan chapas del techo, una
+// claraboya rota, una hoja del portón caída, yuyos, sin cartel).
+// Puntos: los de PUNTOS_TALLER de aldea.js (la prueba los compara): banco, fragua, ruedas, adentro (la mesa de
+// Martín), cama, trabajo (al lado de la puerta, afuera), puerta, zaguan, cruce, salida.
+export const TALLER_TREN = {
+  ancho: 17, fondo: 7.2, alero: 4.3, cumbre: 6.0, tabique: 5.4, puerta: 3, porton: 1.4, altoPorton: 4.0,
+  cruceX: -7, foso: { x0: -5.6, x1: 2.6, medio: 0.31 }, pasarela: { x0: 0.95, x1: 1.75 }, paso: { z0: 1.35, z1: 2.75 },
+};
+function sueloTaller(op) {
+  const s = op.suelo;
+  if (!s || !Array.isArray(s.h) || !(s.nx > 1) || !(s.nz > 1) || s.h.length < s.nx * s.nz) return () => -0.9;
+  return (x, z) => {
+    const fx = Math.max(0, Math.min(s.nx - 1.001, (x - s.x0) / s.paso)), fz = Math.max(0, Math.min(s.nz - 1.001, (z - s.z0) / s.paso));
+    const i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;
+    const h = (a, b) => { const q = Number(s.h[b * s.nx + a]); return Number.isFinite(q) ? q : -0.9; };
+    return (h(i, j) * (1 - u) + h(i + 1, j) * u) * (1 - v) + (h(i, j + 1) * (1 - u) + h(i + 1, j + 1) * u) * v;
+  };
+}
+// el desvío por defecto (sin terreno: las pruebas de Node): de la vía principal, 26 m al oeste del portón, en S
+export function desvioPorDefecto() {
+  const A = { x: -34.5, y: 0.45, z: 8.5 }, B = { x: -TALLER_TREN.ancho / 2, y: PISO, z: 0 };
+  const lista = [];
+  for (let i = 0; i <= 40; i++) { const t = i / 40, u = (1 - Math.cos(t * Math.PI)) / 2; lista.push([A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t, A.z + (B.z - A.z) * u]); }
+  return lista;
+}
+// Una pared recta a lo largo de X (en z) o de Z (en x), de y0 a y1, con huecos [{ a, b, y0, y1 }] (a lo largo de la
+// pared): cajas alrededor de cada hueco.
+function paredConHuecos(c, eje, fijo, s0, s1, y0, y1, huecos, color, o = {}) {
+  const esp = o.espesor ?? 0.1;
+  const caj = (sa, sb, ya, yb) => {
+    if (sb - sa < 0.01 || yb - ya < 0.01) return;
+    const sm = (sa + sb) / 2, ym = (ya + yb) / 2;
+    const pos = eje === 'x' ? [sm, ym, fijo] : [fijo, ym, sm];
+    const tam = eje === 'x' ? [sb - sa, yb - ya, esp] : [esp, yb - ya, sb - sa];
+    caja(c, pos, tam, color, { sup: o.sup, tipo: o.tipo ?? 0, abollar: 0.004, variar: o.variar ?? 0.07, bajo: o.bajo ?? 0.82 });
+  };
+  const hs = huecos.map((h) => ({ a: Math.max(s0, h.a), b: Math.min(s1, h.b), y0: Math.max(y0, h.y0), y1: Math.min(y1, h.y1) })).filter((h) => h.b > h.a && h.y1 > h.y0).sort((p, q) => p.a - q.a);
+  let s = s0;
+  for (const h of hs) {
+    caj(s, h.a, y0, y1);
+    caj(h.a, h.b, y0, h.y0);
+    caj(h.a, h.b, h.y1, y1);
+    s = h.b;
+  }
+  caj(s, s1, y0, y1);
+}
+// rieles con durmientes (y balasto hasta el terreno si `suelo`) a lo largo de una polilínea [x, y, z] (y: la base)
+function rielesTaller(c, pts, suelo, o = {}) {
+  const izq = [], der = [];
+  const TR = 0.375;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const tx = b[0] - a[0], tz = b[2] - a[2], l = Math.hypot(tx, tz) || 1;
+    const nx = -tz / l, nz = tx / l, ang = Math.atan2(tx, tz);
+    const p = pts[i];
+    izq.push(new THREE.Vector3(p[0] + nx * TR, p[1] + 0.09, p[2] + nz * TR));
+    der.push(new THREE.Vector3(p[0] - nx * TR, p[1] + 0.09, p[2] - nz * TR));
+    caja(c, [p[0], p[1] - 0.02, p[2]], [1.5, 0.1, 0.2], i % 3 ? '#4a3b2c' : '#57452f', { giro: ang + Math.PI / 2, sup: SUP.tosca, tipo: 4, variar: 0.1, abollar: 0.006 });
+    if (suelo) {
+      const fondo = Math.min(-0.2, suelo(p[0], p[2]) - p[1] - 0.12);
+      caja(c, [p[0], p[1] + (fondo - 0.06) / 2, p[2]], [0.62, -fondo - 0.06, 2.3 + Math.min(1.2, -fondo * 0.6)], '#6f6960', { giro: ang + Math.PI / 2, sup: SUP.laja, tipo: 4, variar: 0.12, abollar: 0 });
+    }
+  }
+  for (const lado of [izq, der]) {
+    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lado), Math.max(4, lado.length * 2), 0.045, 5, false);
+    const k = lin('#8a8378');
+    c.agregar(g, { sup: SUP.nada, tipo: 4, variar: 0.04, suave: true, degradado: [escalarColor(k, 0.75), escalarColor(k, 1.1)] });
+    g.dispose();
+  }
+  return { izq, der };
+}
+const escalarColor = (k, f) => new THREE.Color(k.r * f, k.g * f, k.b * f);
+export function armarTallerTren(opciones = {}) {
+  const T = TALLER_TREN;
+  const arreglado = !!opciones.arreglado;
+  const K = crearContexto('taller-tren', arreglado ? 4 : 3, opciones, { ancho: T.ancho, fondo: T.fondo, nombre: 'El taller ferroviario' });
+  const W = T.ancho / 2, D = T.fondo / 2, F0 = PISO, AL = F0 + T.alero, CU = F0 + T.cumbre;
+  const E = K.ext, I = K.int, r = K.r;
+  const suelo = sueloTaller(opciones);
+  const AD = SUP.adentro;
+  const chapaPared = arreglado ? '#9a4a32' : '#8a5a42', chapaTecho = arreglado ? '#8a8e8c' : '#7e7a72', tabla = '#6a4e36', madera = '#5a4430', hierro = '#3a3734', acero = '#7a766e';
+  // ---- el zócalo de piedra: del terreno (lo más bajo de cada lado) al piso
+  let bajo = 0;
+  for (let x = -W; x <= W + 1e-6; x += 1) for (const z of [-D, D]) bajo = Math.min(bajo, suelo(x, z));
+  for (let z = -D; z <= D + 1e-6; z += 1) for (const x of [-W, W]) bajo = Math.min(bajo, suelo(x, z));
+  const yz = bajo - 0.3;
+  for (const s of [-1, 1]) {
+    caja(E, [0, (yz + F0 + 0.04) / 2, s * (D + 0.06)], [2 * W + 0.4, F0 + 0.04 - yz, 0.32], '#857c6e', { sup: SUP.piedra, tipo: 4, abollar: 0.01 });
+    caja(E, [s * (W + 0.06), (yz + F0 + 0.04) / 2, 0], [0.32, F0 + 0.04 - yz, 2 * D + 0.4], '#857c6e', { sup: SUP.piedra, tipo: 4, abollar: 0.01 });
+  }
+  // ---- el piso de cemento, con el foso entre los rieles (tan hondo como deje el terreno de abajo)
+  const { x0: fx0, x1: fx1, medio: fa } = T.foso;
+  let tSuelo = -9;
+  for (let x = fx0; x <= fx1; x += 0.5) tSuelo = Math.max(tSuelo, suelo(x, 0));
+  const hondo = Math.max(0.6, Math.min(1.1, F0 - tSuelo - 0.1));
+  const yf = F0 - hondo;
+  const piso = arreglado ? '#7a756c' : '#6c665c';
+  const losa = (x0, x1, z0, z1) => { caja(E, [(x0 + x1) / 2, F0 - 0.08, (z0 + z1) / 2], [x1 - x0, 0.16, z1 - z0], piso, { sup: SUP.revoque, tipo: 0, variar: 0.12, abollar: 0 }); K.plataforma((x0 + x1) / 2, (z0 + z1) / 2, x1 - x0, z1 - z0, F0, 0.4); };
+  losa(-W, fx0, -D, D);
+  losa(fx1, T.tabique, -D, D);
+  losa(fx0, fx1, fa, D);
+  losa(fx0, fx1, -D, -fa);
+  // las paredes del foso, el fondo y los escalones del lado de la puerta
+  for (const s of [-1, 1]) caja(E, [(fx0 + fx1) / 2, F0 - hondo / 2, s * (fa + 0.04)], [fx1 - fx0, hondo, 0.08], '#77736a', { sup: SUP.piedra, tipo: 0 });
+  for (const x of [fx0 - 0.04, fx1 + 0.04]) caja(E, [x, F0 - hondo / 2, 0], [0.08, hondo, 2 * fa], '#77736a', { sup: SUP.piedra, tipo: 0 });
+  caja(E, [(fx0 + fx1) / 2, yf - 0.03, 0], [fx1 - fx0, 0.06, 2 * fa], '#4a463f', { sup: SUP.revoque, tipo: 0 });
+  K.plataforma((fx0 + fx1) / 2, 0, fx1 - fx0, 2 * fa, yf, 0.3);
+  for (let k = 0; k < 3; k++) {
+    const x = fx1 - 0.18 - k * 0.26, y = yf + (k + 1) * hondo / 4;
+    caja(E, [x, y - 0.05, 0], [0.26, 0.1, 2 * fa - 0.02], '#77736a', { sup: SUP.piedra, tipo: 0 });
+    K.plataforma(x, 0, 0.26, 2 * fa, y, 0.1);
+  }
+  // la pasarela de tablones para cruzar el foso (por ahí pasan Martín y Ernesto)
+  {
+    const { x0, x1 } = T.pasarela;
+    for (let k = 0; k < 3; k++) caja(E, [x0 + (k + 0.5) * (x1 - x0) / 3, F0 + 0.025, 0], [(x1 - x0) / 3 - 0.02, 0.05, 2 * fa + 0.5], k % 2 ? '#7a5a3a' : '#6e5034', { sup: SUP.tosca, tipo: 0 });
+    K.plataforma((x0 + x1) / 2, 0, x1 - x0, 2 * fa + 0.4, F0 + 0.05, 0.1);
+  }
+  // manchas de aceite
+  for (const [x, z, rr] of [[-1.5, 1.1, 0.45], [1.0, -1.0, 0.55], [-6.2, 0.6, 0.4], [3.8, 1.3, 0.35]]) cilindro(E, [x, F0 + 0.004, z], rr, rr, 0.004, '#3a3632', { lados: 10, sup: SUP.revoque, tipo: 0 });
+  // ---- los rieles de adentro (sobre el piso y los bordes del foso) y el paragolpes
+  for (const s of [-1, 1]) caja(E, [(-W - 0.1 + 3.7) / 2, F0 + 0.055, s * 0.375], [3.7 + W + 0.1, 0.11, 0.07], '#77736c', { sup: SUP.nada, tipo: 0, abollar: 0 });
+  for (let x = -W + 0.3; x < fx0 - 0.2; x += 0.65) caja(E, [x, F0 + 0.004, 0], [0.2, 0.01, 1.4], '#3e3428', { sup: SUP.tosca, tipo: 0, abollar: 0 });
+  {
+    const xp = 3.85;
+    for (const s of [-1, 1]) { caja(I, [xp, F0 + 0.45, s * 0.6], [0.2, 0.9, 0.2], '#4a3a2a', { sup: SUP.tosca + AD }); }
+    caja(I, [xp - 0.12, F0 + 0.75, 0], [0.22, 0.28, 1.6], '#8a2e24', { sup: SUP.tosca + AD });
+    for (const s of [-1, 1]) caja(I, [xp - 0.3, F0 + 0.75, s * 0.45], [0.18, 0.08, 0.2], '#222', { sup: SUP.nada + AD });
+    K.mueble(xp - 0.05, 0, 0.4, 1.6, 0.9);
+  }
+  // ---- las paredes: tablas abajo (1,2 m), chapa arriba, ventanas altas; la puerta chica en el frente
+  const yv0 = F0 + 2.4, yv1 = F0 + 3.6, xsVentanas = [-6.2, -3.1, 0, 2.7];
+  const huecoPuerta = { a: T.puerta - 0.5, b: T.puerta + 0.5, y0: F0 - 0.1, y1: F0 + 2.1 };
+  const ventanaCuarto = { a: 6.5, b: 7.5, y0: F0 + 1.05, y1: F0 + 2.0 };
+  const rotas = arreglado ? [] : [-3.1];
+  for (const s of [-1, 1]) {
+    const z = s * D;
+    // (en el frente, la cuarta no: ahí va la puerta chica, y dos huecos encimados no se arman)
+    const xs = s > 0 ? xsVentanas.slice(0, 3) : xsVentanas;
+    const huecos = xs.map((x) => ({ a: x - 0.8, b: x + 0.8, y0: yv0, y1: yv1 }));
+    if (s > 0) { huecos.push(huecoPuerta); huecos.push(ventanaCuarto); }
+    paredConHuecos(E, 'x', z, -W, W, F0 - 0.02, F0 + 1.2, huecos, tabla, { sup: SUP.tablasHorizontales });
+    paredConHuecos(E, 'x', z, -W, W, F0 + 1.2, AL, huecos, chapaPared, { sup: SUP.chapa, espesor: 0.08 });
+    caja(E, [0, F0 + 1.22, z + s * 0.06], [2 * W + 0.1, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+    // los marcos y los vidrios de las ventanas altas (la luz entra de verdad)
+    for (const xv of xs) {
+      for (const yy of [yv0, yv1]) caja(E, [xv, yy, z + s * 0.05], [1.72, 0.08, 0.07], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
+      for (const dx of [-0.82, -0.27, 0.27, 0.82]) caja(E, [xv + dx, (yv0 + yv1) / 2, z + s * 0.05], [0.05, yv1 - yv0, 0.05], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
+      caja(E, [xv, (yv0 + yv1) / 2, z + s * 0.05], [1.62, 0.04, 0.04], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
+      const rota = s > 0 && rotas.includes(xv);
+      const kv0 = { r: 0.5, g: 0.56, b: 0.58 }, kv1 = { r: 0.72, g: 0.78, b: 0.8 };   // (vidrio de galpón, con el cielo: de noche brilla con la luz de adentro)
+      const q = (xa, xb, ya, yb) => quad(K.vid, [xa, ya, z + s * 0.02], [xb, ya, z + s * 0.02], [xb, yb, z + s * 0.02], [xa, yb, z + s * 0.02], kv0, kv0, kv1, kv1, 0);
+      if (!rota) q(xv - 0.8, xv + 0.8, yv0, yv1);
+      else { q(xv - 0.8, xv - 0.27, yv0, yv1); q(xv + 0.27, xv + 0.8, (yv0 + yv1) / 2, yv1); }
+      K.ventanas.push({ lx: xv, ly: (yv0 + yv1) / 2, lz: z, ancho: 1.6, alto: yv1 - yv0, nx: 0, nz: s, cuarto: 'local' });
+    }
+  }
+  // la ventana del cuarto de Martín (en el frente, sobre la mesa), con su marco y una cortinita
+  {
+    const z = D, { a, b, y0, y1 } = ventanaCuarto, xc = (a + b) / 2;
+    for (const l of [-1, 1]) caja(E, [xc + l * (b - a) / 2, (y0 + y1) / 2, z + 0.04], [0.08, y1 - y0 + 0.1, 0.1], '#4b6a51', { sup: SUP.nada, abollar: 0 });
+    for (const yy of [y0, y1]) caja(E, [xc, yy, z + 0.04], [b - a + 0.16, 0.08, 0.12], '#4b6a51', { sup: SUP.nada, abollar: 0 });
+    caja(E, [xc, (y0 + y1) / 2, z + 0.04], [0.04, y1 - y0, 0.04], '#4b6a51', { sup: SUP.nada, abollar: 0 });
+    const kv0 = { r: 0.8, g: 0.76, b: 0.68 }, kv1 = { r: 0.95, g: 0.94, b: 0.9 };
+    quad(K.vid, [a, y0, z + 0.01], [b, y0, z + 0.01], [b, y1, z + 0.01], [a, y1, z + 0.01], kv0, kv0, kv1, kv1, 0);
+    for (const l of [-1, 1]) caja(I, [xc + l * 0.36, (y0 + y1) / 2, z - 0.1], [0.28, y1 - y0, 0.02], '#c9b089', { sup: SUP.nada + AD, abollar: 0 });
+    K.ventanas.push({ lx: xc, ly: (y0 + y1) / 2, lz: z, ancho: b - a, alto: y1 - y0, nx: 0, nz: 1, cuarto: 'vivienda' });
+  }
+  // la puerta chica: el marco (la hoja la pone puertas.js)
+  {
+    const z = D, xp = T.puerta;
+    for (const l of [-1, 1]) caja(E, [xp + l * 0.54, F0 + 1.05, z + 0.05], [0.08, 2.18, 0.14], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+    caja(E, [xp, F0 + 2.16, z + 0.05], [1.16, 0.1, 0.14], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+    K.puertas.push({ lx: xp, lz: D - 0.04, ancho: 1.0, alto: 2.05, lado: -1, adentro: true, piso: F0, nombre: 'la puerta del taller' });
+    // el descanso de tablas y la escalerita hasta el terreno
+    const ys = suelo(xp, D + 1.6);
+    caja(E, [xp, F0 - 0.04, D + 0.45], [1.5, 0.08, 0.9], '#7a5a3a', { sup: SUP.tosca });
+    for (const l of [-1, 1]) caja(E, [xp + l * 0.68, (ys + F0) / 2 - 0.04, D + 0.45], [0.12, F0 - ys, 0.12], madera, { sup: SUP.tosca });
+    K.plataforma(xp, D + 0.45, 1.5, 0.9, F0, 0.2);
+    const n = Math.max(1, Math.ceil((F0 - ys) / 0.2));
+    const alto = (F0 - ys) / (n + 1);
+    for (let k = 1; k <= n; k++) {
+      const y = F0 - k * alto, z = D + 0.9 + (k - 0.5) * 0.28;
+      caja(E, [xp, y - 0.03, z], [1.3, 0.06, 0.3], k % 2 ? '#7a5a3a' : '#6e5034', { sup: SUP.tosca });
+      K.plataforma(xp, z, 1.3, 0.3, y, 0.15);
+    }
+    for (const l of [-1, 1]) viga(E, [xp + l * 0.68, F0 - 0.05, D + 0.9], [xp + l * 0.68, ys, D + 0.9 + n * 0.28], 0.06, 0.16, madera);
+    // la baranda
+    for (const l of [-1, 1]) { palo(E, [xp + l * 0.72, F0, D + 0.85], [xp + l * 0.72, F0 + 0.95, D + 0.85], 0.035, madera); viga(E, [xp + l * 0.72, F0 + 0.95, D + 0.1], [xp + l * 0.72, ys + 0.95, D + 0.9 + n * 0.28], 0.05, 0.05, madera); }
+    K.abarcar(-W - 0.4, W + 0.4, -D - 0.4, D + 1.0 + n * 0.28);
+    // el banco de afuera, junto a la puerta (el mate de Martín a la tardecita)
+    const xb = PUNTOS_TALLER_X.trabajo;
+    caja(E, [xb, F0 - 0.04, D + 0.45], [1.6, 0.08, 0.9], '#7a5a3a', { sup: SUP.tosca });
+    for (const l of [-1, 1]) caja(E, [xb + l * 0.72, (ys + F0) / 2 - 0.04, D + 0.45], [0.12, F0 - ys, 0.12], madera, { sup: SUP.tosca });
+    K.plataforma(xb, D + 0.45, 1.6, 0.9, F0, 0.2);
+    caja(E, [xb + 0.15, F0 + 0.42, D + 0.25], [1.2, 0.05, 0.36], '#7a5a3a', { sup: SUP.tosca });
+    for (const l of [-1, 1]) caja(E, [xb + 0.15 + l * 0.5, F0 + 0.2, D + 0.25], [0.06, 0.4, 0.3], madera, { sup: SUP.tosca });
+  }
+  // ---- los testeros: el del portón (oeste, −X) y el del cuarto (este, +X), con sus frontones y el ojo de buey
+  const huecoPorton = { a: -T.porton, b: T.porton, y0: F0 - 0.1, y1: F0 + T.altoPorton };
+  paredConHuecos(E, 'z', -W, -D, D, F0 - 0.02, F0 + 1.2, [huecoPorton], tabla, { sup: SUP.tablasHorizontales });
+  paredConHuecos(E, 'z', -W, -D, D, F0 + 1.2, AL, [huecoPorton], chapaPared, { sup: SUP.chapa, espesor: 0.08 });
+  const ventanaEste = { a: -2.2, b: -1.2, y0: F0 + 1.05, y1: F0 + 2.0 };
+  paredConHuecos(E, 'z', W, -D, D, F0 - 0.02, F0 + 1.2, [ventanaEste], tabla, { sup: SUP.tablasHorizontales });
+  paredConHuecos(E, 'z', W, -D, D, F0 + 1.2, AL, [ventanaEste], chapaPared, { sup: SUP.chapa, espesor: 0.08 });
+  {
+    const kv0 = { r: 0.8, g: 0.76, b: 0.68 }, kv1 = { r: 0.95, g: 0.94, b: 0.9 };
+    const { a, b, y0, y1 } = ventanaEste;
+    quad(K.vid, [W + 0.01, y0, b], [W + 0.01, y0, a], [W + 0.01, y1, a], [W + 0.01, y1, b], kv0, kv0, kv1, kv1, 0);
+    for (const yy of [y0, y1]) caja(E, [W + 0.04, yy, (a + b) / 2], [0.12, 0.08, b - a + 0.16], '#4b6a51', { sup: SUP.nada, abollar: 0 });
+    for (const zz of [a, b, (a + b) / 2]) caja(E, [W + 0.04, (y0 + y1) / 2, zz], [0.1, y1 - y0, zz === (a + b) / 2 ? 0.04 : 0.08], '#4b6a51', { sup: SUP.nada, abollar: 0 });
+    K.ventanas.push({ lx: W, ly: (y0 + y1) / 2, lz: (a + b) / 2, ancho: b - a, alto: y1 - y0, nx: 1, nz: 0, cuarto: 'vivienda' });
+  }
+  for (const s of [-1, 1]) {
+    const x = s * W;
+    const k = lin(chapaPared), A = [x, AL, -D - 0.05], B = [x, AL, D + 0.05], C = [x, CU, 0];
+    conSup(E, SUP.chapa, () => { tri(E, A, C, B, k, k, k, 0); tri(E, A, B, C, k, k, k, 0); });
+    cilindro(E, [x + s * 0.05, F0 + 4.9, 0], 0.42, 0.42, 0.08, '#d8cfb8', { lados: 18, rz: Math.PI / 2, sup: SUP.nada });
+    const kv = { r: 0.85, g: 0.85, b: 0.82 };
+    const g = new THREE.CircleGeometry(0.36, 16);
+    K.vid.agregar(g, { color: kv, matriz: matriz([x + s * 0.1, F0 + 4.9, 0], [0, s * Math.PI / 2, 0]) });
+    g.dispose();
+  }
+  for (const dz of [-T.porton, T.porton]) caja(E, [-W - 0.06, F0 + T.altoPorton / 2, dz], [0.08, T.altoPorton, 0.14], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+  caja(E, [-W - 0.06, F0 + T.altoPorton, 0], [0.08, 0.14, 2 * T.porton + 0.14], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+  // las hojas del portón, abiertas hacia afuera (tablas verdes con su cruz). Viejo: la de la izquierda colgando de una
+  // bisagra, torcida contra la pared
+  for (const lado of [-1, 1]) {
+    const ancho = T.porton, alto = T.altoPorton - 0.15;
+    const caida = !arreglado && lado > 0;
+    const giro = caida ? 2.6 : 1.95;
+    const bx = -W - 0.08, bz = lado * T.porton;
+    const ang = -lado * giro;   // gira hacia afuera sobre la bisagra
+    const ux = -Math.sin(Math.abs(giro)), uz = -lado * Math.cos(giro);
+    const cx = bx + ux * ancho / 2, cz = bz + uz * ancho / 2;
+    const yb = F0 + alto / 2 + (caida ? -0.12 : -0.03);
+    const rz = caida ? 0.06 : 0;
+    const colorHoja = arreglado ? '#4b6a51' : '#5d6b55';
+    caja(E, [cx, yb, cz], [ancho, alto, 0.07], colorHoja, { sup: SUP.tablasVerticales, giro: Math.atan2(uz, ux) * -1 + 0 + (0), rz });
+    for (const yy of [0.4, alto / 2, alto - 0.4]) caja(E, [cx, F0 + yy + (caida ? -0.12 : 0), cz], [ancho - 0.06, 0.16, 0.1], arreglado ? '#3d5a42' : '#4a5644', { sup: SUP.tablasHorizontales, giro: -Math.atan2(uz, ux), abollar: 0 });
+    void ang;
+  }
+  // ---- el techo a dos aguas de chapa, con claraboyas; viejo: le faltan chapas y una claraboya está rota
+  const incl = Math.atan2(CU - AL, D);
+  const vuelo = 0.5;
+  const yAlero = AL - (vuelo / D) * (CU - AL);
+  const largoF = Math.hypot(D + vuelo, CU - yAlero);
+  const faltan = arreglado ? [] : [[-1, 0.6, 1.6], [1, -6.0, -5.1], [1, 4.6, 5.3]];
+  for (const s of [-1, 1]) {
+    const zc = s * (D + vuelo) / 2, yc = (CU + yAlero) / 2;
+    const panel = (x0, x1, k0, k1, color = chapaTecho) => {
+      // k: de 0 (cumbre) a 1 (alero), a lo largo del faldón
+      const km = (k0 + k1) / 2;
+      const z = s * km * (D + vuelo), y = CU - km * (CU - yAlero);
+      caja(E, [(x0 + x1) / 2, y + 0.03, z], [x1 - x0, 0.05, (k1 - k0) * largoF], color, { sup: SUP.chapa, rx: s * incl, tipo: 4, abollar: 0.005 });
+    };
+    void zc; void yc;
+    const claraboyas = [[-4.4, -3.4], [2.0, 3.0]];
+    let x = -W - 0.4;
+    const cortes = [...claraboyas.flat(), ...faltan.filter((f) => f[0] === s).flatMap((f) => [f[1], f[2]])].sort((a, b) => a - b);
+    const tramos = [];
+    for (const c of cortes) { tramos.push([x, c]); x = c; }
+    tramos.push([x, W + 0.4]);
+    for (const [a, b] of tramos) {
+      if (b - a < 0.01) continue;
+      const esClaraboya = claraboyas.some(([p, q]) => Math.abs(p - a) < 1e-6 && Math.abs(q - b) < 1e-6);
+      const falta = faltan.some((f) => f[0] === s && Math.abs(f[1] - a) < 1e-6 && Math.abs(f[2] - b) < 1e-6);
+      if (falta) { panel(a, b, 0.62, 1.0); continue; }   // (falta la chapa de arriba: se ve el cielo entre los cabios)
+      if (!esClaraboya) { panel(a, b, 0, 1); continue; }
+      panel(a, b, 0, 0.3); panel(a, b, 0.7, 1);
+      const rota = !arreglado && s > 0 && a > 0;
+      const km = 0.5, z = s * km * (D + vuelo), y = CU - km * (CU - yAlero) + 0.05;
+      const kv = { r: 0.8, g: 0.84, b: 0.84 };
+      const g = new THREE.PlaneGeometry(b - a, largoF * (rota ? 0.18 : 0.4));
+      K.vid.agregar(g, { color: kv, matriz: matriz([(a + b) / 2, y + (rota ? 0.05 : 0), z + (rota ? s * 0.4 : 0)], [s * incl - Math.PI / 2, 0, 0]) });
+      g.dispose();
+      for (const k of [0.3, 0.7]) { const zz = s * k * (D + vuelo), yy = CU - k * (CU - yAlero); caja(E, [(a + b) / 2, yy + 0.06, zz], [b - a, 0.06, 0.07], '#3e2e22', { sup: SUP.tosca, rx: s * incl, abollar: 0 }); }
+    }
+    // los cabios a la vista donde faltan chapas
+    for (const f of faltan.filter((q) => q[0] === s)) for (let xx = f[1] + 0.25; xx < f[2]; xx += 0.5) viga(E, [xx, CU - 0.02, 0], [xx, yAlero + 0.02, s * (D + vuelo)], 0.06, 0.1, '#4a3a2a');
+  }
+  caja(E, [0, CU + 0.06, 0], [2 * W + 0.8, 0.08, 0.32], '#6a6e6c', { sup: SUP.chapa, tipo: 4, abollar: 0 });
+  // la linterna de ventilación sobre el foso
+  caja(E, [-1.4, CU + 0.42, 0], [2.4, 0.72, 0.9], '#3e2e22', { sup: SUP.tablasHorizontales });
+  caja(E, [-1.4, CU + 0.84, 0], [2.8, 0.06, 1.5], chapaTecho, { sup: SUP.chapa, tipo: 4 });
+  // la luz del cielo por la chapa que falta y por la claraboya rota, ya en el piso: hojas secas y yuyos (viejo)
+  if (!arreglado) {
+    for (let k = 0; k < 16; k++) bulto(I, [entre(r, -7.5, 4.5), F0 + 0.03, entre(r, -3.1, 3.1) * (k % 2 ? 1 : 0.6) + (Math.abs(entre(r, -1, 1)) < 0.4 ? 0.9 : 0)], 0.07, k % 3 ? '#8a6a3a' : '#6a5a2a', { esc: [1, 0.25, 1], sup: SUP.nada + AD });
+    for (let k = 0; k < 10; k++) { const x = -W - 0.6 + entre(r, -0.4, 0.4), z = entre(r, -3, 3); palo(E, [x, suelo(x, z) - 0.05, z], [x + entre(r, -0.1, 0.1), suelo(x, z) + entre(r, 0.4, 0.9), z + entre(r, -0.1, 0.1)], 0.02, '#7a8a4a', { punta: 0.2 }); }
+    // una chapa caída contra la pared de atrás
+    caja(E, [-4.6, suelo(-4.6, -D - 0.6) + 0.9, -D - 0.55], [1.0, 1.9, 0.04], '#8a6a5a', { sup: SUP.chapa, rx: 0.32, tipo: 4 });
+  } else {
+    cartel(K, 'Taller Ferroviario', [-W - 0.12, F0 + 4.35, 0], 3.0, 0.42, -Math.PI / 2);
+  }
+  // ---- adentro: postes, cabriadas (pendolón y tornapuntas) y la viga del aparejo
+  for (let x = -W + 0.2; x <= W - 0.1; x += 2.83) {
+    for (const s of [-1, 1]) caja(I, [x, (F0 + AL) / 2, s * (D - 0.12)], [0.16, AL - F0, 0.16], madera, { sup: SUP.tosca + AD });
+    viga(I, [x, AL, -D + 0.1], [x, AL, D - 0.1], 0.14, 0.18, madera);
+    for (const s of [-1, 1]) viga(I, [x, AL + 0.05, s * (D - 0.1)], [x, CU - 0.1, 0], 0.14, 0.16, madera);
+    viga(I, [x, AL, 0], [x, CU - 0.1, 0], 0.12, 0.12, madera);
+    for (const s of [-1, 1]) viga(I, [x, AL + 0.1, 0], [x, AL + (CU - AL) * 0.5, s * D * 0.5], 0.09, 0.09, madera);
+    for (const s of [-1, 1]) K.circulo(x, s * (D - 0.12), 0.12, F0, AL);
+  }
+  // la viga del aparejo (de hierro) sobre el foso, el carro, la cadena y el gancho
+  {
+    const xa = -1.8;
+    viga(I, [xa, AL - 0.25, -D + 0.15], [xa, AL - 0.25, D - 0.15], 0.2, 0.28, '#3a3632');
+    caja(I, [xa, AL - 0.48, 0.3], [0.3, 0.2, 0.26], hierro, { sup: SUP.nada + AD });
+    cilindro(I, [xa, AL - 0.78, 0.3], 0.14, 0.14, 0.3, '#5a2a1e', { lados: 12, rx: Math.PI / 2, sup: SUP.nada + AD });
+    for (let k = 0; k < 14; k++) caja(I, [xa, AL - 1.0 - k * 0.11, 0.24], [0.02, 0.1, 0.05], '#4a4640', { sup: SUP.nada + AD, giro: (k % 2) * Math.PI / 2, abollar: 0 });
+    for (let k = 0; k < 9; k++) caja(I, [xa, AL - 1.0 - k * 0.11, 0.36], [0.02, 0.1, 0.05], '#4a4640', { sup: SUP.nada + AD, giro: (k % 2) * Math.PI / 2, abollar: 0 });
+    const g = new THREE.TorusGeometry(0.09, 0.022, 6, 12, Math.PI * 1.4);
+    I.agregar(g, { sup: SUP.nada + AD, tipo: 0, color: lin(hierro), matriz: matriz([xa, AL - 2.66, 0.24], [0, Math.PI / 2, Math.PI * 0.8]) });
+    g.dispose();
+  }
+  // ---- el banco de trabajo con la morsa y el tablero de herramientas (la pared de atrás)
+  {
+    const zb = -D + 0.47, x0 = -2.6, x1 = 1.6, xm = (x0 + x1) / 2;
+    caja(I, [xm, F0 + 0.9, zb], [x1 - x0, 0.08, 0.72], '#7a5a3a', { sup: SUP.tosca + AD });
+    caja(I, [xm, F0 + 0.3, zb + 0.1], [x1 - x0 - 0.2, 0.04, 0.5], '#6a4e32', { sup: SUP.tosca + AD });
+    for (const x of [x0 + 0.1, xm, x1 - 0.1]) for (const dz of [-0.3, 0.3]) caja(I, [x, F0 + 0.45, zb + dz], [0.1, 0.9, 0.1], madera, { sup: SUP.tosca + AD });
+    K.mueble(xm, zb, x1 - x0, 0.72, 0.94);
+    // la morsa, frente al banco, donde lima Martín (PUNTOS_TALLER.banco)
+    const xv = 0;
+    caja(I, [xv, F0 + 1.03, zb + 0.24], [0.2, 0.18, 0.24], '#3a4a5a', { sup: SUP.nada + AD });
+    caja(I, [xv, F0 + 1.03, zb + 0.4], [0.2, 0.18, 0.06], '#3a4a5a', { sup: SUP.nada + AD });
+    palo(I, [xv, F0 + 0.98, zb + 0.44], [xv, F0 + 0.98, zb + 0.64], 0.015, acero);
+    palo(I, [xv - 0.12, F0 + 0.98, zb + 0.64], [xv + 0.12, F0 + 0.98, zb + 0.64], 0.012, acero);
+    caja(I, [xv, F0 + 1.16, zb + 0.32], [0.34, 0.05, 0.05], '#55524c', { sup: SUP.nada + AD });   // la pieza en la morsa
+    // el tablero con las herramientas (las siluetas pintadas detrás, como en todo taller)
+    caja(I, [xm, F0 + 1.75, -D + 0.12], [3.8, 1.2, 0.04], '#c8b890', { sup: SUP.tablasVerticales + AD });
+    const rh = azar(semillaDe('taller-tablero'));
+    for (let k = 0; k < 15; k++) {
+      const x = x0 + 0.3 + k * 0.24, y = F0 + 1.4 + (k % 3) * 0.28, largo = 0.22 + rh() * 0.2;
+      caja(I, [x, y, -D + 0.15], [0.05, largo, 0.01], '#4a4038', { sup: SUP.nada + AD, abollar: 0 });
+      caja(I, [x, y, -D + 0.17], [0.035, largo - 0.02, 0.025], k % 4 === 0 ? '#8a3a28' : acero, { sup: SUP.nada + AD, abollar: 0 });
+      if (k % 3 === 0) caja(I, [x, y + largo / 2, -D + 0.18], [0.1, 0.05, 0.04], acero, { sup: SUP.nada + AD, abollar: 0 });
+    }
+    // sobre el banco: la aceitera, la caja de bulones, el farol de mano, una lima, trapos
+    cilindro(I, [1.2, F0 + 1.0, zb + 0.1], 0.08, 0.02, 0.18, '#b89a4a', { lados: 10, sup: SUP.nada + AD });
+    palo(I, [1.2, F0 + 1.08, zb + 0.1], [1.32, F0 + 1.22, zb + 0.1], 0.008, '#b89a4a');
+    caja(I, [-1.6, F0 + 1.0, zb], [0.4, 0.12, 0.26], '#5a6a4a', { sup: SUP.nada + AD });
+    for (let k = 0; k < 8; k++) cilindro(I, [-1.74 + (k % 4) * 0.09, F0 + 1.07, zb - 0.06 + Math.floor(k / 4) * 0.1], 0.02, 0.02, 0.04, acero, { lados: 6, sup: SUP.nada + AD });
+    caja(I, [-0.8, F0 + 0.97, zb + 0.15], [0.5, 0.03, 0.04], '#55524c', { sup: SUP.nada + AD, giro: 0.3 });
+    caja(I, [-2.3, F0 + 1.06, zb + 0.12], [0.16, 0.24, 0.16], '#2e3133', { sup: SUP.nada + AD });
+    caja(K.bra, [-2.3, F0 + 1.06, zb + 0.12], [0.12, 0.14, 0.17], '#ffd890', { tipo: 0, bajo: 1, alto: 1 });
+    bulto(I, [0.7, F0 + 0.99, zb - 0.05], 0.12, '#d8d0b8', { esc: [1.4, 0.4, 1], sup: SUP.nada + AD });
+  }
+  // ---- la fragua chica con su campana y el caño, el fuelle, y el yunque en su tronco (donde martilla Martín)
+  {
+    const fx = 2.9, fz = -D + 0.55;
+    caja(I, [fx, F0 + 0.4, fz], [1.0, 0.8, 0.9], '#8a5a44', { sup: SUP.piedra + AD });
+    caja(I, [fx, F0 + 0.82, fz], [0.84, 0.06, 0.72], '#3a2a22', { sup: SUP.nada + AD });
+    for (let k = 0; k < 8; k++) bulto(K.bra, [fx - 0.22 + (k % 4) * 0.14, F0 + 0.88, fz - 0.08 + Math.floor(k / 4) * 0.18], 0.07, k % 3 ? '#ff6a1a' : '#ffb04a', { esc: [1, 0.55, 1], tipo: 0 });
+    cono(I, [fx, F0 + 1.75, fz], 0.62, 0.7, '#2a2622', { lados: 4, tipo: 0, abierto: true });
+    palo(I, [fx, F0 + 2.1, fz], [fx, CU + 1.0, fz], 0.14, '#2a2622', { lados: 10 });
+    palo(E, [fx, AL + (CU - AL) * (1 - (D - Math.abs(fz)) / D) - 0.2, fz], [fx, CU + 1.0, fz], 0.14, '#2a2622', { lados: 10 });
+    caja(I, [fx + 0.75, F0 + 0.65, fz + 0.1], [0.5, 0.26, 0.45], '#6a4a30', { sup: SUP.tosca + AD, rz: 0.2 });
+    K.mueble(fx, fz, 1.0, 0.9, 0.9);
+    K.extra.chispas = { lx: fx, ly: F0 + 0.95, lz: fz };
+    K.chimenea = { lx: fx, ly: CU + 1.05, lz: fz };
+    K.luz(fx, F0 + 1.2, fz + 0.6, { color: 0xff8a3a, radio: 5, intensidad: 0.9, clase: 'fuego', cuarto: 'local' });
+    // el yunque, entre la fragua y Martín
+    const yx = 2.9, yzz = -1.92;
+    cilindro(I, [yx, F0 + 0.32, yzz], 0.27, 0.27, 0.64, madera, { lados: 10, sup: SUP.tosca + AD });
+    caja(I, [yx, F0 + 0.72, yzz], [0.48, 0.16, 0.2], '#3a3836', { sup: SUP.nada + AD });
+    cono(I, [yx + 0.34, F0 + 0.77, yzz], 0.07, 0.22, '#3a3836', { rz: -Math.PI / 2, tipo: 0 });
+    caja(I, [yx, F0 + 0.86, yzz], [0.6, 0.12, 0.24], '#3a3836', { sup: SUP.nada + AD });
+    K.circulo(yx, yzz, 0.32, F0, F0 + 0.95);
+    K.trabajo('fragua', yx, -1.35, Math.PI);
+  }
+  // ---- el juego de ruedas de repuesto sobre los tacos (Ernesto lo ajusta), rieles apilados, piezas de hierro
+  {
+    const xr = -6.4, zr = 2.45;
+    for (const s of [-1, 1]) {
+      const x = xr + s * 0.375;
+      cilindro(I, [x, F0 + 0.42, zr], 0.42, 0.42, 0.1, '#2e2b28', { lados: 20, rz: Math.PI / 2, sup: SUP.nada + AD });
+      cilindro(I, [x - s * 0.06, F0 + 0.42, zr], 0.45, 0.45, 0.03, '#4a4640', { lados: 20, rz: Math.PI / 2, sup: SUP.nada + AD });
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; palo(I, [x, F0 + 0.42, zr], [x, F0 + 0.42 + Math.sin(a) * 0.38, zr + Math.cos(a) * 0.38], 0.022, '#2e2b28', { lados: 4 }); }
+    }
+    cilindro(I, [xr, F0 + 0.42, zr], 0.07, 0.07, 0.95, hierro, { lados: 8, rz: Math.PI / 2, sup: SUP.nada + AD });
+    for (const dx of [-0.6, 0.6]) caja(I, [xr + dx, F0 + 0.05, zr], [0.18, 0.1, 0.9], '#4a3a2a', { sup: SUP.tosca + AD });
+    K.mueble(xr, zr, 1.1, 0.95, 0.9);
+    // una llave grande apoyada en el eje
+    caja(I, [xr + 0.15, F0 + 0.62, zr - 0.3], [0.05, 0.5, 0.03], acero, { sup: SUP.nada + AD, rz: 0.5 });
+    // los rieles apilados contra la pared de atrás (oeste)
+    for (let k = 0; k < 5; k++) for (const s of [-1, 1]) caja(I, [-6.0 + k * 0.012, F0 + 0.18 + k * 0.1, -D + 0.55 + s * 0.08 * (k % 2 ? 1 : 0.4)], [3.8, 0.09, 0.07], '#5e5a54', { sup: SUP.nada + AD, abollar: 0 });
+    for (const x of [-7.4, -6.0, -4.6]) caja(I, [x, F0 + 0.07, -D + 0.55], [0.18, 0.14, 0.6], '#4a3a2a', { sup: SUP.tosca + AD });
+    K.mueble(-6.0, -D + 0.55, 3.9, 0.5, 0.75);
+    // zapatas de freno, una tapa de cilindro, resortes, tachos de aceite y el cajón de estopa
+    for (let k = 0; k < 7; k++) caja(I, [-3.6 + (k % 3) * 0.22, F0 + 0.06 + Math.floor(k / 3) * 0.1, -D + 0.6 + (k % 2) * 0.1], [0.2, 0.09, 0.32], '#4a3e34', { sup: SUP.nada + AD, giro: k * 0.4 });
+    cilindro(I, [-3.0, F0 + 0.04, 1.4], 0.24, 0.24, 0.08, '#2e3133', { lados: 16, sup: SUP.nada + AD });
+    cilindro(I, [-3.0, F0 + 0.09, 1.4], 0.18, 0.18, 0.04, '#c0913e', { lados: 16, sup: SUP.nada + AD });
+    for (const [x, z] of [[-5.0, 1.9], [-4.75, 2.05]]) cilindro(I, [x, F0 + 0.2, z], 0.08, 0.08, 0.4, '#5a5650', { lados: 10, sup: SUP.nada + AD });
+    for (const [x, z] of [[4.55, -D + 0.45], [4.95, -D + 0.9]]) { cilindro(I, [x, F0 + 0.42, z], 0.28, 0.28, 0.84, '#3a5a4a', { lados: 14, sup: SUP.nada + AD }); for (const yy of [0.2, 0.62]) cilindro(I, [x, F0 + yy, z], 0.29, 0.29, 0.04, '#2e3a32', { lados: 14, sup: SUP.nada + AD, abierto: true }); K.circulo(x, z, 0.3, F0, F0 + 0.9); }
+    caja(I, [4.6, F0 + 0.25, D - 0.5], [0.6, 0.5, 0.5], '#8a6a46', { sup: SUP.tosca + AD });
+    bulto(I, [4.6, F0 + 0.52, D - 0.5], 0.22, '#d8d0b8', { esc: [1.1, 0.35, 0.9], sup: SUP.nada + AD });
+    K.mueble(4.6, D - 0.5, 0.6, 0.5, 0.55);
+  }
+  // ---- la zorra de vía (la de recorrer la línea) sobre los rieles, junto al portón
+  {
+    const xz = -7.5;
+    caja(I, [xz, F0 + 0.42, 0], [1.4, 0.08, 1.05], '#6a4e32', { sup: SUP.tosca + AD });
+    for (const dx of [-0.5, 0.5]) for (const s of [-1, 1]) cilindro(I, [xz + dx, F0 + 0.22, s * 0.375], 0.2, 0.2, 0.06, '#3a3734', { lados: 12, rx: Math.PI / 2, sup: SUP.nada + AD });
+    for (const s of [-1, 1]) palo(I, [xz, F0 + 0.46, s * 0.12], [xz, F0 + 1.1, s * 0.12], 0.035, '#3a3734');
+    viga(I, [xz - 0.75, F0 + 1.12, 0], [xz + 0.75, F0 + 1.12, 0], 0.06, 0.06, '#5a4430');
+    K.mueble(xz, 0, 1.4, 1.05, 1.15);
+  }
+  // ---- los faroles de taller colgados (pantalla esmaltada verde): la luz de adentro
+  for (const [x, z] of [[-5.6, 1.0], [-1.2, -1.6], [2.4, 1.2]]) {
+    palo(I, [x, F0 + 2.85, z], [x, AL, z], 0.006, hierro);
+    cono(I, [x, F0 + 2.8, z], 0.3, 0.22, '#3e5a46', { lados: 14, tipo: 0, abierto: true });
+    caja(K.bra, [x, F0 + 2.68, z], [0.1, 0.08, 0.1], '#fff0c0', { tipo: 0, bajo: 1, alto: 1 });
+  }
+  K.luz(-3.2, F0 + 2.4, 0.2, { color: 0xffd6a0, radio: 14, intensidad: 1.3, clase: 'interior', cuarto: 'local' });
+  // ---- el tabique de tablas y el cuarto de Martín
+  {
+    const xt = T.tabique, { z0: pz0, z1: pz1 } = T.paso, alto = F0 + 2.7;
+    paredConHuecos(I, 'z', xt, -D + 0.05, D - 0.05, F0, alto, [{ a: pz0, b: pz1, y0: F0 - 0.1, y1: F0 + 2.1 }], '#7a5a3c', { sup: SUP.tablasVerticales + AD, espesor: 0.06 });
+    for (const zz of [pz0, pz1]) caja(I, [xt, F0 + 1.05, zz], [0.12, 2.12, 0.08], '#4e3a28', { sup: SUP.tosca + AD, abollar: 0 });
+    caja(I, [xt, F0 + 2.12, (pz0 + pz1) / 2], [0.12, 0.08, pz1 - pz0 + 0.08], '#4e3a28', { sup: SUP.tosca + AD, abollar: 0 });
+    // la cortina corrida a un lado
+    caja(I, [xt + 0.08, F0 + 1.1, pz1 - 0.2], [0.03, 1.95, 0.32], '#8e3f34', { sup: SUP.nada + AD });
+    K.PA.paredRecta({ desde: F0, hasta: alto, espesor: 0.08, dibujar: false, a: [xt, -D], b: [xt, D], huecos: [{ desde: pz0 + D, hasta: pz1 + D }] });
+    // el cielorraso del cuarto (arriba, un altillo con cajones viejos)
+    caja(I, [(xt + W) / 2, alto + 0.03, 0], [W - xt, 0.06, 2 * D - 0.1], '#8a6a46', { sup: SUP.tablasHorizontales + AD });
+    for (let k = 0; k < 3; k++) caja(I, [xt + 0.6 + k * 0.7, alto + 0.26, -1.5 + k * 0.4], [0.55, 0.4, 0.45], '#7a5a3a', { sup: SUP.tosca + AD, giro: k * 0.2 });
+    // el piso de tablas del cuarto
+    pisoTablas(K, I, { x0: xt + 0.04, x1: W - 0.06, z0: -D + 0.06, z1: D - 0.06, y: F0 + 0.03, color: '#8a6544', ancho: 0.45 });   // (en lo de adentro ya suma `adentro`)
+    K.plataforma((xt + W) / 2, 0, W - xt, 2 * D, F0 + 0.03, 0.3);
+    // la cama (contra el testero), la mesa con la silla bajo la ventana, la salamandra, el ropero
+    cama(K, 7.9, 0, 0, { punto: false, manta: '#3b4a5e' });
+    K.punto('cama', 7.9, 0, 0);
+    mesa(K, 7.0, 3.0, 0, { largo: 0.9, ancho: 0.6, mantel: '#d8cdb4' });
+    silla(K, 6.3, 2.6, Math.PI / 2, { nombre: 'la silla de Martín' });
+    K.punto('adentro', 7.0, 2.35, 0);
+    // el mate, la pava y la radio a pilas sobre la mesa
+    cilindro(I, [7.15, F0 + 0.81, 3.05], 0.05, 0.04, 0.1, '#8a5a34', { lados: 10, sup: SUP.nada + AD });
+    cilindro(I, [6.8, F0 + 0.84, 3.1], 0.09, 0.08, 0.14, '#7d7b74', { lados: 10, sup: SUP.nada + AD });
+    caja(I, [7.35, F0 + 0.85, 3.15], [0.24, 0.15, 0.1], '#5a3c26', { sup: SUP.nada + AD });
+    salamandra(K, 6.1, -2.75, { cuarto: 'vivienda', punto: [6.1, -2.0] });
+    palo(E, [6.1, F0 + LIBRE, -2.75], [6.1, CU + 0.4, -2.75], 0.07, '#2b2825', { lados: 8 });
+    ropero(K, 8.1, -2.85, -Math.PI / 2);
+    // sus cosas de maquinista: la gorra colgada, el farol de mano, el reloj de bolsillo en un clavo y las fotos de
+    // la Trochita en la pared (cuadros con la locomotora, la nieve y la meseta)
+    cilindro(I, [xt + 0.1, F0 + 1.75, -0.6], 0.13, 0.12, 0.08, '#2e3a4c', { lados: 12, rz: Math.PI / 2, sup: SUP.nada + AD });
+    caja(I, [xt + 0.14, F0 + 1.72, -0.48], [0.02, 0.03, 0.16], '#1e2836', { sup: SUP.nada + AD });
+    caja(I, [W - 0.2, F0 + 1.1, 1.6], [0.16, 0.26, 0.16], '#2e3133', { sup: SUP.nada + AD });
+    cuadro(K, xt + 0.06, F0 + 1.7, -2.2, Math.PI / 2, { ancho: 0.6, alto: 0.42, colores: ['#cfd3d0', '#2e3133', '#b8a888'] });
+    cuadro(K, xt + 0.06, F0 + 1.75, -1.45, Math.PI / 2, { ancho: 0.4, alto: 0.3, colores: ['#e8e4dc', '#9aa4a8', '#6a6a5a'] });
+    cuadro(K, W - 0.06, F0 + 1.7, 0.9, -Math.PI / 2, { ancho: 0.5, alto: 0.36, colores: ['#c0b090', '#7a3a2a', '#3a3734'] });
+    lampara(K, 7.0, 1.6, { cuarto: 'vivienda', radio: 5, cuelga: 0.5 });
+    alfombra(K, 7.0, 0.0, 1.4, 0.9, Math.PI / 2, '#8a3a2a', { guarda: '#d8c49a' });
+  }
+  // ---- afuera: el desvío sobre su terraplén, desde la vía principal hasta el portón, con su cambio de vía
+  {
+    const via = Array.isArray(opciones.desvio) && opciones.desvio.length >= 4 ? opciones.desvio.filter((p) => Array.isArray(p) && p.every(Number.isFinite)) : desvioPorDefecto();
+    // los primeros metros van encima de la vía principal (la dibuja trochita.js): se arranca donde se separa
+    const z0 = via[0][2];
+    const desde = Math.max(0, via.findIndex((p) => Math.abs(p[2] - z0) > 0.55));
+    const tramo = via.slice(Math.max(0, desde - 1));
+    rielesTaller(E, tramo, suelo);
+    // el terraplén, caminable (y las agujas del cambio, donde arranca)
+    for (let i = 0; i < tramo.length - 1; i++) {
+      const a = tramo[i], b = tramo[i + 1];
+      const L = Math.hypot(b[0] - a[0], b[2] - a[2]);
+      K.plataforma((a[0] + b[0]) / 2, (a[2] + b[2]) / 2, L + 0.05, 1.9, (a[1] + b[1]) / 2 + 0.03, 0.4, -Math.atan2(b[2] - a[2], b[0] - a[0]));
+    }
+    // las agujas: dos rieles finitos que se afinan desde el talón hasta la punta, sobre la vía principal
+    const p0 = via[0], p1 = via[Math.max(1, desde)];
+    for (const s of [-1, 1]) {
+      const g = new THREE.CylinderGeometry(0.012, 0.03, Math.hypot(p1[0] - p0[0], p1[2] - p0[2]), 5, 1);
+      const ang = Math.atan2(p1[2] - p0[2], p1[0] - p0[0]);
+      E.agregar(g, { sup: SUP.nada, tipo: 4, color: lin('#9a948a'), matriz: matriz([(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2 + 0.1, (p0[2] + p1[2]) / 2 + s * 0.33], [0, -ang, Math.PI / 2]) });
+      g.dispose();
+    }
+    // la palanca del cambio con su contrapeso (el disco blanco y rojo), del lado de afuera
+    {
+      const mx = (p0[0] + p1[0]) / 2 + 1.5, mz = (p0[2] + p1[2]) / 2 - 1.6, my = suelo(mx, mz);
+      caja(E, [mx, my + 0.12, mz], [0.9, 0.24, 0.35], '#4a3b2c', { sup: SUP.tosca });
+      palo(E, [mx - 0.2, my + 0.24, mz], [mx + 0.25, my + 1.05, mz], 0.025, '#2e3133');
+      cilindro(E, [mx + 0.27, my + 1.1, mz], 0.18, 0.18, 0.03, '#c84a3a', { lados: 14, rx: Math.PI / 2, sup: SUP.nada });
+      cilindro(E, [mx + 0.27, my + 1.1, mz + 0.02], 0.1, 0.1, 0.03, '#e8e2d2', { lados: 12, rx: Math.PI / 2, sup: SUP.nada });
+      caja(E, [mx - 0.25, my + 0.32, mz], [0.24, 0.16, 0.2], '#2e3133', { sup: SUP.nada });
+      K.circulo(mx, mz, 0.4, my, my + 1.2);
+    }
+    let xm0 = Infinity, xm1 = -Infinity, zm0 = Infinity, zm1 = -Infinity;
+    for (const p of via) { xm0 = Math.min(xm0, p[0]); xm1 = Math.max(xm1, p[0]); zm0 = Math.min(zm0, p[2]); zm1 = Math.max(zm1, p[2]); }
+    K.extra.desvio = { x0: xm0 - 1.5, x1: xm1 + 1.5, z0: zm0 - 1.5, z1: zm1 + 1.5 };
+  }
+  // ---- el cruce de la vía: un paso de tablones entre los rieles de la principal, frente a la puerta
+  {
+    const cz = Number.isFinite(opciones.cruce?.z) ? opciones.cruce.z : 8.4, cy = Number.isFinite(opciones.cruce?.y) ? opciones.cruce.y : 0.5;
+    // tablones a lo largo de los rieles: entre los dos y por afuera de cada uno (el tren pasa por arriba al ras)
+    for (const [dz, ancho] of [[0, 0.62], [-0.66, 0.44], [0.66, 0.44]]) for (let k = -2; k <= 2; k++) caja(E, [T.cruceX + k * 0.29, cy - 0.025, cz + dz], [0.26, 0.05, ancho], k % 2 ? '#6e5034' : '#7a5a3a', { sup: SUP.tosca, abollar: 0.004 });
+  }
+  // lo que queda bajo techo y lo que ocupa
+  K.techo = { x0: -W, x1: W, z0: -D, z1: D, radio: D, cubiertas: [{ x0: -W - 0.4, x1: W + 0.4, z0: -D - vuelo, z1: D + vuelo, y: AL - 0.06, ax: 0, ab: 0, az: 0 }] };
+  K.pisos.push({ lx: 0, lz: 0, largo: 2 * W, ancho: 2 * D });
+  // las colisiones de las paredes (con la puerta y el portón abiertos; la hoja de la puerta la pone puertas.js)
+  K.PA.paredRecta({ desde: yz, hasta: AL, espesor: 0.14, dibujar: false, a: [-W, D], b: [W, D], huecos: [{ desde: huecoPuerta.a + W, hasta: huecoPuerta.b + W }] });
+  K.PA.paredRecta({ desde: yz, hasta: AL, espesor: 0.14, dibujar: false, a: [-W, -D], b: [W, -D] });
+  K.PA.paredRecta({ desde: yz, hasta: AL, espesor: 0.14, dibujar: false, a: [W, -D], b: [W, D] });
+  K.PA.paredRecta({ desde: yz, hasta: AL, espesor: 0.14, dibujar: false, a: [-W, -D], b: [-W, D], huecos: [{ desde: D - T.porton, hasta: D + T.porton }] });
+  // los lugares de trabajo (los del plano: PUNTOS_TALLER de aldea.js)
+  K.trabajo('banco', 0, -2.4, Math.PI);
+  K.trabajo('ruedas', -6.4, 1.6, 0);
+  const ed = cerrar(K);
+  const copia = (p) => ({ lx: +p.lx.toFixed(3), ly: +p.ly.toFixed(3), lz: +p.lz.toFixed(3), mira: +(p.mira ?? 0).toFixed(3) });
+  for (const tr of K.puntos.trabajo) ed.puntos.nombrados[tr.nombre] = copia(tr);
+  ed.puntos.nombrados.puerta = { lx: T.puerta, ly: F0, lz: D + 0.9, mira: 0 };
+  ed.puntos.nombrados.trabajo = { lx: PUNTOS_TALLER_X.trabajo, ly: F0, lz: D + 0.6, mira: 0 };
+  ed.puntos.nombrados.foso = { lx: (fx0 + fx1) / 2, ly: yf, lz: 0, mira: Math.PI / 2 };
+  ed.extra.taller = { arreglado, hondoFoso: +hondo.toFixed(3), zocalo: +yz.toFixed(3), desvio: K.extra.desvio || null };
+  return ed;
+}
+const PUNTOS_TALLER_X = { trabajo: 4.4 };
 
 
 // ---------------------------------------------------------------- 3.6 (pulido): el material de la aldea

@@ -229,6 +229,7 @@ const ROPA = {
   'aldea-madre': { piel: '#b98a62', pollera: true, trenza: true, abierta: true },
   'aldea-nene': { piel: '#c99a72', botas: 'goma', pantalon: '#3a4250' },
   'aldea-nena': { piel: '#c49470', pollera: true, trenza: true, botas: 'goma' },
+  'aldea-martin': { piel: '#c49470', botas: 'altas', delantal: '#3b4a5e', panuelo: '#a83a2a', pantalon: '#3b4a5e' },   // 3.7.3: el mameluco azul de maquinista
 };
 const ESC_TORSO = [1, 1, 0.74];
 const R_PONCHO = new Set(['ramon']);   // 3.5: los que andan de poncho (ver la ladera en actualizar)
@@ -262,7 +263,8 @@ export function bajaSentado(asiento, talla) {
   return Math.max(0, Math.min(CADERA - 0.12, CADERA + 0.02 - s / esc));   // la cadera, 2 cm abajo del asiento
 }
 // 3.7.0: las poses de trabajo con las dos manos ocupadas (ahí el que toma mate lo deja)
-const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar']);
+// (3.7.3: y las del taller ferroviario: limar en la morsa y la llave en el juego de ruedas)
+const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar', 'limar', 'llave']);
 function posar(g, charlando) {
   const t = g.fase;
   switch (g.pose) {
@@ -372,6 +374,32 @@ function posar(g, charlando) {
     case 'mortero': {
       g.brazos[0].rotation.x = -0.55; g.brazos[1].rotation.x = -0.75 + Math.sin(t * 4.5) * 0.12;
       g.torso.rotation.x = 0.18; g.cabeza.rotation.x += 0.3;
+      break;
+    }
+    // 3.7.3: Martín lima la pieza en la morsa del banco: las dos manos en la lima, juntas a la altura del banco, y el
+    // vaivén de todo el cuerpo (empuja con el torso, no con los hombros); la cabeza mirando la pieza
+    case 'limar': {
+      const k = Math.sin(t * 3.1), em = Math.max(0, k);
+      g.brazos[0].rotation.x = -0.7 - k * 0.12; g.brazos[1].rotation.x = -0.76 - k * 0.12;
+      g.brazos[0].rotation.z = 0.36; g.brazos[1].rotation.z = -0.36;
+      g.torso.rotation.x = 0.2 + em * 0.07; g.cabeza.rotation.x += 0.38;
+      for (const p2 of g.patas) p2.rotation.x = -0.06 - em * 0.05;
+      break;
+    }
+    // 3.7.3: Ernesto en cuclillas frente al juego de ruedas: la mano izquierda en la llanta y la derecha que gira la
+    // llave (un cuarto de vuelta, la suelta, vuelve); la cadera baja hasta casi los talones
+    case 'llave': {
+      const b = 0.42;
+      g.torso.position.y -= b; g.cabeza.position.y -= b;
+      g.brazos[0].position.y -= b; g.brazos[1].position.y -= b;
+      for (const [i, p2] of g.patas.entries()) {
+        p2.position.y -= b; p2.rotation.x = -1.3 - i * 0.12;
+        if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 2.0 + i * 0.1;
+      }
+      const k = Math.sin(t * 2.2), gira = Math.max(0, k);
+      g.torso.rotation.x = 0.36; g.cabeza.rotation.x += 0.28;
+      g.brazos[0].rotation.x = -0.95; g.brazos[0].rotation.z = 0.12;
+      g.brazos[1].rotation.x = -0.82 - gira * 0.35; g.brazos[1].rotation.z = -0.18 + gira * 0.3;
       break;
     }
     // 3.7.1 (mundo): acostada (en la cama del refugio, los chicos en su cuarto): boca arriba, con la cabeza hacia atrás

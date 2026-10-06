@@ -408,6 +408,8 @@ export const CAMBIOS_VECINOS = {
   jefe: [{ da: ['mariscos', 2], pide: { tipo: 'material', k: 'tronco', n: 2 } }],
   herbolaria: [{ da: ['frambuesa', 4], pide: { tipo: 'cosa', k: 'yerba', n: 1 } }, { da: ['grosella', 4], pide: { tipo: 'cosa', k: 'yerba', n: 1 } }],
   ramon: [{ da: ['carne-cordero', 3], pide: { tipo: 'material', k: 'tabla', n: 3 } }],
+  // 3.7.3: Martín: el cordero que le manda un puestero de la línea con el tren, por leña para la fragua y la salamandra
+  martin: [{ da: ['carne-cordero', 2], pide: { tipo: 'material', k: 'tronco', n: 2 } }],
 };
 // Cómo se nombra lo que piden
 export const NOMBRE_PAGO = {

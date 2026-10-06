@@ -113,7 +113,7 @@ app.whenReady().then(async () => {
     e = await js(`(()=>({ anotada: !!${H}.progreso.entradas.aldea, dia: ${H}.progreso.aldea.descubierta, avisos: ${H}.__avisos().slice(-6).join(' | '), estado: ${H}.__aldea.mundo().estado() }))()`);
     ok(e.anotada && e.dia >= 1, `al llegar se anota en el cuaderno (día ${e.dia})`);
     ok(/Aldea de los Duendes/.test(e.avisos), 'con su aviso');
-    ok(e.estado.npcs.length === 9 && e.estado.npcs.some((n) => n.clave === 'ercilia') && e.estado.npcs.every((n) => !n.dormido), `los ocho vecinos y Ercilia están, despiertos (${e.estado.npcs.map((n) => n.clave).join(', ')})`);
+    ok(e.estado.npcs.length === 10 && e.estado.npcs.some((n) => n.clave === 'martin') && e.estado.npcs.some((n) => n.clave === 'ercilia') && e.estado.npcs.every((n) => !n.dormido), `los nueve vecinos (3.7.3: con Martín, el del taller) y Ercilia están, despiertos (${e.estado.npcs.map((n) => n.clave).join(', ')})`);
     e = await js(`${H}.gente.gente.filter((g) => g.clave === 'ercilia').length`);
     ok(e === 1, 'Ercilia es una sola: la de siempre');
 
