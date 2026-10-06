@@ -110,6 +110,22 @@ app.whenReady().then(async () => {
       const c = H.camara; c.position.set(o.x, o.y, o.z); c.rotation.order = 'YXZ'; c.rotation.set(pitch, yaw, 0);
       const fov = t.fov || 60; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
       for (const k of c.children) k.visible = false;
+      // la cámara queda fija en cada cuadro (el jugador se resbala en la pendiente o lo empuja el juego):
+      // antes de cada dibujo se vuelve a poner donde va la toma
+      const pose = { p: [o.x, o.y, o.z], r: [pitch, yaw], fov, pie: [o.x, Math.max(piso, o.y - alto), o.z] };
+      window.__poseD = pose;
+      if (!H.renderer.__fijo) {
+        const R = H.renderer, orig = R.render.bind(R); R.__fijo = true;
+        R.render = (esc, cam) => {
+          const q = window.__poseD;
+          if (q && cam === H.camara) {
+            cam.position.set(...q.p); cam.rotation.order = 'YXZ'; cam.rotation.set(q.r[0], q.r[1], 0);
+            if (cam.fov !== q.fov) { cam.fov = q.fov; cam.updateProjectionMatrix(); }
+            cam.updateMatrixWorld(); H.jugador.estado.pos.set(...q.pie); H.jugador.estado.vel.set(0, 0, 0); H.jugador.estado.vy = 0;
+          }
+          return orig(esc, cam);
+        };
+      }
       return 1 })()`;
     await js(poner); await esperar(3000);
     await js(poner); await esperar(2500);

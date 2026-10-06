@@ -1661,10 +1661,10 @@ export function crearDuendesProto({ escena, T, veg, camara, U }) {
     },
     lechuza: ({ estilo = 'A' }) => {
       despejar(0, 8, 8);
-      const l = poner(armarLechuza(estilo), 0.2, 5.2, 1.2, 1.55);
+      const l = poner(armarLechuza(estilo), 0.2, 5.4, 1.2, 1.9);
       l.rotation.z = -0.12;
       const l2 = poner(armarLechuza(estilo), -5, 16, 1.3, 7.5); l2.scale.setScalar(0.9); l2.rotation.z = 0.2;
-      return { ojo: [-0.5, 1.65, 2.3], a: [0.3, 1.75, 5.6], hora: 19.6, fov: 52 };
+      return { ojo: [-0.5, 1.65, 2.2], a: [0.3, 2.0, 5.6], hora: 19.6, fov: 54 };
     },
     rey: ({ n = 1 }) => {
       despejar(0, 6, 7);
