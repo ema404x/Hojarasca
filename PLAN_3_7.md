@@ -30,6 +30,7 @@ Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suy
 - Hasta 2 hijos.
 - Separación si la descuida mucho: los hijos viven con ella y lo visitan. Se puede reconquistar.
 - Ajuste para apagar todo el romance.
+- Decidido el 06-10 (al hacer el núcleo): candidatas = las 8 pobladoras de la 3.7.0 + Nélida, Ceinwen, Marta y Julia (siempre adultas y solteras; nunca Pocha ni chicos); el romance viene encendido; hijos sólo casados (y si lo hablan); separado sigue contando como casado (no hay romance con otra hasta reconquistarla, no hay divorcio); habilidades "las dos cosas": niveles 1 y 3 rinden algo cada mañana y el nivel 2 es una mejora permanente del jugador según el oficio de ella.
 
 ## 3.7.2 — La cocina
 - Cocinar en pasos con tiempo, en parrilla con cruz, horno de barro o cocina a leña.
