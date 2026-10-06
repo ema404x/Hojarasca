@@ -133,6 +133,15 @@ export const EDIFICIOS_ALDEA = {
   varadero: { nombre: 'El varadero', rol: 'local', poblador: 'botera', ancho: 8, fondo: 6, x: -110, z: 43, rot: 0, y: 27.71, calle: 'calle-loma', lado: -1 },
   observatorio: { nombre: 'El observatorio', rol: 'local', poblador: 'astronoma', ancho: 6, fondo: 6, x: -138, z: 43, rot: 0, y: 30.68, calle: 'calle-loma', lado: -1, cupula: true },
   costureria: { nombre: 'La costurería', rol: 'local', poblador: 'modista', ancho: 6, fondo: 5, x: -46.5, z: 59.5, rot: PI, y: 23.94, calle: 'calle-loma', lado: -1 },
+  // 3.7.3: el taller ferroviario (PLAN_3_7.md, «La trochita»): el galpón de mantenimiento de 17 × 7,2 m del otro lado de
+  // la vía, frente a la estación (el del prototipo de la rama proto-tren), con el desvío que sale de la vía principal y
+  // entra por el portón del testero oeste (su −X). La puerta chica, la de la gente, da a la vía (su +Z). Como la
+  // estación, es `fija`: no va a 22 m de la vía y no se empareja el terreno: el galpón se apoya en un zócalo de piedra,
+  // con el piso de cemento 30 cm arriba de la vía en la estación (`y` es, como en todos, el nivel del lote: el piso
+  // queda PISO_ALDEA más arriba, a `PARADA_ALDEA.y` + 0,3).
+  // Medido con el terreno real (verificar-3-7-3-taller.mjs): el eje de la vía pasa a 4,3 m o más del frente, el
+  // terreno de la planta queda entre 0,5 y 1,9 m abajo del piso y no hay agua. En la punta este, el cuarto de Martín.
+  'taller-tren': { nombre: 'El taller ferroviario', rol: 'taller-tren', fija: true, ancho: 17, fondo: 7.2, x: 20.5, z: -8.5, rot: 0, y: 25.215 },
 };
 export const IDS_EDIFICIOS = Object.keys(EDIFICIOS_ALDEA);
 export const esEdificioAldea = (id) => typeof id === 'string' && Object.hasOwn(EDIFICIOS_ALDEA, id);
@@ -263,6 +272,18 @@ export const PUERTA_X = {
   biblioteca: -1.6, escuela: -1.5, 'casa-jefe': -1, 'casa-ercilia': 0.7, 'casa-nelida': -0.9, 'casa-abuela': 0.6, 'casa-familia': -1.2,
   panaderia: -1.2, carpinteria: -1, pescaderia: -1, 'puesto-sanitario': -0.9, estafeta: 0.8, hilanderia: -1.4, 'sala-miel': -0.9, seccional: -1,
   veterinaria: -0.6, 'estudio-fotos': 1.5, 'refugio-andinista': -0.9, herboristeria: -1, 'taller-arte': -1.4, ceramica: -0.6, observatorio: -1.7, costureria: 1,
+  'taller-tren': 3,   // 3.7.3: la puerta chica del frente (el portón grande es el del desvío, en el testero oeste)
+};
+// 3.7.3: los puntos del taller ferroviario, en su marco ([x, z, rot]; la puerta chica en x 3, el eje de la vía a +8,5 m
+// en z). Adentro: el banco con la morsa (Martín lima), la fragua chica con el yunque (martilla), el juego de ruedas
+// de repuesto junto al portón (Ernesto ajusta con la llave, en cuclillas) y, pasando la puerta del tabique (x 5,4),
+// el cuarto de Martín con la mesa y la cama. Afuera: al lado de la puerta, donde Martín toma mate mirando pasar el
+// tren; el pie de la escalerita, el cruce de la vía (un paso de tablones, pasando la punta del andén) y la salida del
+// lado de la aldea, al lado de la calle de la Estación: la gente entra y sale por ahí (ver `umbral` en aldea-gente.js). Las líneas de la puerta a la mesa y a la cama pasan por
+// la puerta del tabique, y la del banco cruza el foso por la pasarela (aldea-arquitectura.js los arma donde dicen).
+export const PUNTOS_TALLER = {
+  puerta: [3, 4.5, 0], zaguan: [3, 2.85, 0], banco: [0, -2.4, PI], fragua: [2.9, -1.35, PI], ruedas: [-6.4, 1.6, 0],
+  adentro: [7.0, 2.35, 0], cama: [7.9, 0, 0], trabajo: [4.4, 4.2, 0], pie: [3, 6.35, 0], cruce: [-7, 8.25, 0], salida: [-11.5, 17.5, 0],
 };
 function puntosBase(e, id) {
   const { ancho: W, fondo: D } = e;
@@ -313,6 +334,7 @@ function puntosLocales(id) {
       salida: { x: 6, z: 9, rot: 0 },
     };
   }
+  if (e.rol === 'taller-tren') return Object.fromEntries(Object.entries(PUNTOS_TALLER).map(([k, q]) => [k, { x: q[0], z: q[1], rot: q[2] }]));   // 3.7.3
   if (e.rol === 'plaza') {
     // la plaza mira a la estación (su +Z da a la calle de la Vía): el duende tallado recibe al que
     // llega y el músico toca en el medio, de cara a la estación
@@ -559,8 +581,23 @@ export const VECINOS_ALDEA = {
       'El té se toma de tarde, con la pava al fuego y sin apuro. Desde las tres te espero en la galería.',
     ],
   },
+  // 3.7.3: Martín, el maquinista retirado (PLAN_3_7.md, «La trochita»): vive en el cuarto del fondo del taller ferroviario
+  // y lo tiene andando con Ernesto. Mameluco azul de maquinista, gorra y bigote blanco (gente-ropa.js).
+  martin: {
+    nombre: 'Martín Sepúlveda', oficio: 'maquinista retirado', mano: null, casa: 'taller-tren', trabajo: 'taller-tren',
+    colores: { ropa: '#c8c0a8', abrigo: '#3b4a5e', gorro: 'gorro', pelo: '#d8d4cc', barba: '#e0dcd4' },
+    saludo: 'Buenas. Pasá, que el galpón es de todos. Nomás no pises el foso.', despedida: 'Y si oís dos pitadas cortas desde la vía, es que te saludo yo.',
+    charla: [
+      'Cuarenta años en La Trochita. Entré de limpiador en los talleres de El Maitén, con catorce; después fui fogonero y los últimos veinte, maquinista, de Jacobacci a Esquel.',
+      'La trocha es de setenta y cinco centímetros. Parece de juguete, pero ese tren cruzaba la meseta con nieve hasta el estribo y llegaba igual.',
+      'Me jubilé y no supe quedarme quieto. Ernesto me ofreció este galpón viejo: si traés material, entre los dos te dejamos la locomotora como nueva.',
+    ],
+  },
 };
-export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa'];
+// 3.7.3: Martín llegó con la 3.7.3: va al final de la lista de todos (ver ORDEN_PERSONAS_ALDEA), así los de antes
+// siguen con sus índices de siempre (su banco de la plaza, su silla de los cuentos, su lado de la obra)
+export const VECINOS_373 = ['martin'];
+export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373];
 // 3.6: Ercilia, la del almacén, también vive en la aldea (en el Relax), pero su figura, su saludo
 // y sus historias son los de siempre (PERSONAJES.ercilia y HISTORIAS en gente.js): acá sólo
 // están su casa, su trabajo y su rutina.
@@ -802,7 +839,8 @@ export const esPobladorAldea = (clave) => typeof clave === 'string' && Object.ha
 export const esPobladora37 = (clave) => POBLADORAS_37.includes(clave);
 // (3.7.0: los índices de siempre para los de la 3.6, que deciden su banco de la plaza o su lado de la obra, y
 // las nuevas al final: el orden de llegada intercalado no los mueve)
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA, 'ercilia', ...POBLADORES_36, ...POBLADORAS_37];
+// (3.7.3: y Martín al final)
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
 export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
@@ -817,6 +855,7 @@ export const CUMPLES_ALDEA = {
   nelida: 5, guardaparque: 5, pintora: 5, ercilia: 6, pescador: 6, nicanor: 6, padre: 7, telegrafista: 7, ceramista: 7,
   nena: 8, fotografa: 8, ema: 8, panadera: 9, musico: 9, botera: 9, abuela: 10, enfermera: 10, herrero: 11, herbolaria: 11, ramon: 11,
   galesa: 12, tejedora: 12, astronoma: 12,
+  martin: 10,   // 3.7.3
 };
 export const cumpleDe = (clave) => (typeof clave === 'string' && Object.hasOwn(CUMPLES_ALDEA, clave) ? CUMPLES_ALDEA[clave] : null);
 export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe(clave) === diaDelAnio(dia);
@@ -1849,9 +1888,17 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
       // 8:45; a las 18 la cierra, espera en la plaza y arría (a las 19:15 ya está libre). En la estación
       // cambia del andén a adentro cada dos horas (antes cada hora, y entre la estación y la plaza: se pasaba
       // casi la mitad del horario caminando)
+      // 3.7.3: mientras arman una mejora del tren, la tarde en el taller con Martín (el juego de ruedas). Lo avisa
+      // taller-tren-juego.js en `tallerArmando` (no se guarda: lo vuelve a poner al segundo de cargar)
+      if (a.tallerArmando && h >= 14 && h < 17) return ir('trabajo', 'taller-tren', 'ruedas');
       if (h >= 8.75 && h < 18) return ir('trabajo', 'estacion-aldea', Math.floor((h - 1) / 2) % 2 ? 'anden' : 'adentro');
       if (h >= 8.25 && h < 8.75) return plaza();
       if (h >= 18 && h < 18.5) return plaza();
+    } else if (persona === 'martin') {
+      // 3.7.3: en el taller de 8 a 12:30 y de 13:30 a 17, en el banco (lima en la morsa) o en la fragua (martilla en el
+      // yunque), una hora y media en cada uno; de 17 a 18, el mate en la puerta, mirando pasar el tren
+      if ((t >= 8 && t < 12.5) || (t >= 13.5 && t < 17)) return ir('trabajo', 'taller-tren', Math.floor(t / 1.5) % 2 ? 'fragua' : 'banco');
+      if (t >= 17 && t < 18) return enCasa('trabajo');
     } else if (persona === 'ercilia') {
       // horario de almacén de pueblo: de 8:30 a 12 y de 16 a 20, con siesta en el medio
       // (3.6.2: cierra a las 12 y la siesta es hasta las 15:15: su casa queda a 47 m por la calle, y la ida y la
@@ -1966,6 +2013,16 @@ export const CHARLAS_ALDEA = [
   { id: 'valentina-jefe', tema: 'cielo', lineas: [['astronoma', 'Ernesto, ¿podría apagar el farol del andén un rato a las once?'], ['jefe', 'Para usted y sus estrellas, lo que quiera. Mientras no pase el tren.']] },
   { id: 'valentina-delia', tema: 'cielo', lineas: [['maestra', 'Valentina, ¿vendrías una noche con los chicos de la escuela?'], ['astronoma', 'Encantada. Que traigan abrigo y ganas de quedarse callados mirando para arriba.']] },
   { id: 'loma-subida', tema: 'loma', lineas: [['madre', 'Cada vez hay más casas en la loma. Desde la plaza se ven las luces de noche.'], ['abuela', 'Así crece un pueblo, Gladys: para arriba y para los costados, como los álamos.']] },
+  // ---------------------------------------------------------------- 3.7.3: las de Martín, el maquinista retirado
+  { id: 'martin-ernesto-nieve', tema: 'tren', lineas: [['martin', 'Ernesto, ¿te acordás del invierno que quedamos varados en la meseta, con nieve hasta el estribo?'], ['jefe', 'Cómo no me voy a acordar. Vos paleabas y yo cebaba mate con agua de la caldera.'], ['martin', 'Y decías que era el mejor mate de tu vida. Mentiroso: sabía a hollín.']] },
+  { id: 'martin-ernesto-silbato', tema: 'tren', lineas: [['jefe', 'Martín, ¿otra vez le estás lustrando el silbato a La Hojarasca?'], ['martin', 'Un silbato opaco suena opaco, Ernesto. La gente no sabe por qué, pero lo nota.']] },
+  { id: 'martin-ernesto-horario', tema: 'tren', cuando: { hora: [17, 19] }, lineas: [['martin', 'El de la tarde viene dos minutos tarde.'], ['jefe', '¿Y cómo sabés, si todavía no se ve?'], ['martin', 'Por el humo detrás del cerro. Cuarenta años mirando humo, Ernesto.']] },
+  { id: 'martin-anselmo', tema: 'oficio', lineas: [['martin', 'Anselmo, el perno de la cruceta salió perfecto. Como los de El Maitén.'], ['herrero', 'Mejor que los de El Maitén, Martín. Yo los hacía en Jacobacci.'], ['martin', 'Eso dicen todos los de Jacobacci.']] },
+  { id: 'martin-nahuel', tema: 'tren', lineas: [['nene', 'Martín, ¿cuándo me dejás tocar el silbato?'], ['martin', 'Cuando sepas cuántos durmientes hay de la estación al galpón.'], ['nene', '¡Ya los conté! Pero me dio distinto las dos veces.']] },
+  { id: 'martin-lucia', tema: 'tren', lineas: [['nena', 'Martín, ¿es verdad que en tu tren nació un bebé?'], ['martin', 'Entre Ñorquinco y El Maitén. Paré en plena meseta y el fogonero calentó el agua con el vapor.'], ['nena', '¿Y cómo le pusieron?'], ['martin', 'Trochita, de segundo nombre. No se lo digas a nadie, que ya es abuela.']] },
+  { id: 'martin-herminia', tema: 'leyenda', lineas: [['abuela', 'Martín, en tantos años de vía, ¿nunca viste un duende?'], ['martin', 'Ver, no, doña Herminia. Pero en Leleque siempre desaparecía una galleta del furgón.'], ['abuela', 'Ahí está. Son educados: nunca se llevan dos.']] },
+  { id: 'martin-nieve', tema: 'clima', cuando: { clima: ['nieve'] }, lineas: [['martin', 'Con una nevada así, en la meseta mandábamos una pala por cada pasajero.'], ['jefe', 'Acá con dos palas alcanza, Martín. No exageres, que los chicos te creen.']] },
+  { id: 'martin-ceinwen', tema: 'te', lineas: [['galesa', 'Martín, ¿un té? Hoy hay torta negra.'], ['martin', 'Té no, Ceinwen, que soy hombre de mate. Pero la torta, si me la envolvés, la acepto para el galpón.']] },
 ];
 // Azar con semilla (mulberry32): la misma semilla elige la misma charla.
 export function azar(semilla) {

@@ -101,9 +101,10 @@ function distRiel(x, z) {
 {
   // el contrato con aldea-arquitectura.js: ids y tamaños
   const CONTRATO = {
-    'estacion-aldea': null, plaza: [18, 14], biblioteca: [7, 11], almacen: [9.6, 9.8], 'casa-te': [8, 10.6], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-ercilia': [5, 5], 'casa-nelida': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
+    'estacion-aldea': null, 'taller-tren': null, plaza: [18, 14], biblioteca: [7, 11], almacen: [9.6, 9.8], 'casa-te': [8, 10.6], escuela: [10, 7], 'casa-jefe': [6, 6], 'casa-ercilia': [5, 5], 'casa-nelida': [6, 5], 'casa-abuela': [5, 5], 'casa-familia': [7, 6],
     panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5], 'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
-    // 3.7.0: los de la calle de la Loma (los mide verificar-3-7-0-aldea.mjs)
+    // 3.7.0: los de la calle de la Loma (los mide verificar-3-7-0-aldea.mjs); 3.7.3: y el taller ferroviario (fijo, como la
+    // estación: lo mide verificar-3-7-3-taller.mjs)
     veterinaria: [8, 6], 'estudio-fotos': [6, 6], 'refugio-andinista': [7, 6], herboristeria: [6, 6], 'taller-arte': [7, 6], ceramica: [7, 6], varadero: [8, 6], observatorio: [6, 6], costureria: [6, 5],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
@@ -161,7 +162,7 @@ function distRiel(x, z) {
   // las zonas para el mundo
   const zonas = A.zonasAldea();
   const deEdificios = zonas.filter((z) => z.emparejar);
-  eq(deEdificios.length, ids.length - 1, 'una zona por edificio (menos la estación, que arma trochita.js)');
+  eq(deEdificios.length, ids.filter((id) => !E[id].fija).length, 'una zona por edificio (menos la estación, que arma trochita.js; 3.7.3: y el taller ferroviario, apoyado en su zócalo)');
   ok(zonas.every((z) => z.despejar && z.tipo === 'rect' && Number.isFinite(z.x) && Number.isFinite(z.z) && Number.isFinite(z.rot) && z.ancho > 0 && z.fondo > 0), 'zonas bien formadas');
   ok(zonas.filter((z) => !z.emparejar).every((z) => z.altura === null), 'las calles se despejan pero siguen el terreno');
   const conTerreno = A.zonasAldea(A.PARADA_ALDEA, (x, z) => T.altura(x, z));
@@ -177,6 +178,7 @@ function distRiel(x, z) {
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id], pts = A.puntosDe(id);
     const pl = A.plantaDe(id);
+    if (e.rol === 'taller-tren') continue;   // 3.7.3: sus puntos los prueba verificar-3-7-3-taller.mjs
     if (e.rol === 'estacion') {
       for (const k of ['anden', 'espera', 'puerta', 'trabajo']) ok(pts[k].x >= -8 && pts[k].x <= 8 && pts[k].z > 1.15 && pts[k].z < 4.75, `estación: ${k} en el andén`);
       for (const k of ['adentro', 'cama']) ok(Math.abs(pts[k].x) < 2.1 && pts[k].z > 4.5 && pts[k].z < 7.5, `estación: ${k} en el galpón`);
@@ -263,7 +265,7 @@ function distRiel(x, z) {
 
 // ============================================================ 4. la gente
 {
-  eq(A.ORDEN_VECINOS_ALDEA.length, 8, 'jefe, Nélida, abuela, la familia con dos chicos y la galesa');
+  eq(A.ORDEN_VECINOS_ALDEA.length, 9, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa y Martín');   // (3.7.3: y Martín, el maquinista)
   ok(A.esVecinoAldea('ercilia') && A.esPersonaAldea('ercilia') && A.personaAldea('ercilia').casa === 'casa-ercilia' && !Object.hasOwn(A.VECINOS_ALDEA, 'ercilia'), 'Ercilia vive en la aldea, pero se define en gente.js');
   ok(A.ORDEN_PERSONAS_ALDEA.includes('ercilia') && !leer('src/aldea.js').includes('Pasá, pasá. Si traés algo'), 'sin duplicar su saludo ni sus historias');
   ok(A.VECINOS_ALDEA.nelida.oficio === 'ayudante del almacén' && A.VECINOS_ALDEA.nelida.casa === 'casa-nelida', 'Nélida, la ayudante');

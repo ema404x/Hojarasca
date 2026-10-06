@@ -1057,6 +1057,54 @@ export const VOCES = {
     pronostico: 'Me duelen los juanetes: {pronostico}. Nunca fallan, los juanetes.',
     regalo: 'Pocha, la modista, te dejó lana y te cosió un botón',
   },
+  // 3.7.3: Martín Sepúlveda (71), maquinista retirado de La Trochita, vive en el cuarto del fondo del taller
+  // ferroviario. Humor seco, habla poco y cuenta mucho; todo lo mide en durmientes, mates y kilómetros de meseta.
+  martin: {
+    encanta: {
+      yerba: 'Yerba. En la cabina el mate lo cebaba el fogonero, entre palada y palada, y salía con gusto a carbón. Este lo voy a tomar tranquilo, en la puerta del galpón, mirando la vía.',
+      tronco: 'Un tronco, y seco, que es lo que importa. Para la fragua chica y para la salamandra del cuarto. En la meseta, de invierno, un tronco seco era como un amigo que no habla.',
+      'trucha-ahumada': 'Trucha ahumada… En Leleque una señora subía con un canasto y nos alcanzaba una por la ventanilla de la cabina, envuelta en diario. Nunca supe su nombre. Me trajiste ese olor, muchacho.',
+    },
+    gusta: '{cosa}, mirá vos. Te lo agradezco: en un galpón con dos viejos adentro, todo se aprovecha.',
+    noGusta: 'Dulce de frutilla… Te lo agradezco, pero lo dulce se me pega en el bigote y Ernesto se ríe una semana entera. Llevaselo a Nahuel, que te lo cambia por una tarde de preguntas.',
+    ocupado: 'Ahora no, que tengo la pieza en la morsa y si la suelto se me va la medida. A las cinco paro para el mate: vení a esa hora y hablamos.',
+    noToma: { te: '¿Té? Cuarenta años de cabina y nunca vi un fogonero tomando té. Si es mate, vamos ya.' },
+    acepta: 'Dale. Me limpio las manos, que la grasa no sale ni con kerosene, y vamos a {lugar}.',
+    animo: {
+      bien: 'Bien. La máquina respiró pareja toda la mañana. Cuando ella anda bien, yo ando bien: cuarenta años así.',
+      cansado: 'Cansado. Me pasé la tarde abajo, en el foso, con la cabeza entre las ruedas. A los setenta y uno el foso es más hondo que antes.',
+      inquieto: 'Inquieto. Escuché un golpecito en la biela y no lo encuentro. Es como tener una piedra en la bota y no saber en cuál.',
+      charla: 'Con ganas de charlar. Cuarenta años con un fogonero al lado que hablaba por los dos, y ahora el galpón está callado.',
+    },
+    historia: { titulo: 'La última vuelta', partes: [
+      'Me crié en El Maitén, al lado de los talleres, donde se componen las locomotoras de vapor de La Trochita. A los catorce entré de limpiador: le sacaba el hollín a los tubos de las Baldwin. Volvía a casa tan negro que mi madre me lavaba en una batea en el patio y me decía: «Algún día vas a manejar una de esas». Le hice caso. Primero fui fogonero, que es aprender a palear sin pensar; después, maquinista, que es aprender a escuchar.',
+      'A Elena la conocí en mi tren. Subió en Ñorquinco una mañana de nevada, con una valija de cartón y un gorro colorado: iba a Esquel a trabajar de maestra. La salamandra del coche no tiraba y yo dejé la cabina para arreglársela. El fogonero no me lo perdonó nunca. Treinta y ocho años casados. Ella me esperaba en el andén de Esquel con la pava lista, y si el tren venía atrasado, la pava también. Se fue hace seis inviernos, una tarde de marzo, con la ventana abierta para oír pasar el tren.',
+      'La última vuelta la hice en invierno, de Jacobacci a Esquel. En cada paraje había alguien esperando al costado de la vía: en Ñorquinco, en Leleque, en Nahuel Pan. Me daban la mano por la ventanilla, como si fuera un pariente que se iba lejos. En Esquel apagué el fuego yo mismo y me quedé un rato en la cabina, oyendo cómo se enfriaba el hierro. Después no supe qué hacer con las manos. Ernesto, que fue cambista en mi línea cuando éramos jóvenes, me escribió que acá había un galpón viejo y una locomotora que pedía a gritos alguien que la escuchara. No lo pensé dos veces.',
+    ] },
+    sobremesa: [
+      'Una Baldwin no se maneja: se escucha. Cuando el escape suena parejo, chuf, chuf, chuf, vas bien. Cuando tose, frenás antes de que te lo pida.',
+      'La trocha de La Trochita es de setenta y cinco centímetros. Un turista me preguntó una vez si el tren era de verdad. Le dije que sí, que lo de juguete eran los horarios.',
+      'En la meseta el viento te pega de costado y el tren se inclina como un bote. Los pasajeros se agarraban del asiento; el fogonero seguía paleando como si nada.',
+      'Un escritor norteamericano, Paul Theroux, viajó en 1979 y escribió un libro. De ahí lo de «El Viejo Expreso Patagónico». Lo leí de jubilado: habla poco de nosotros, pero el nombre quedó, y a mí me gusta.',
+      'En los coches de pasajeros había una salamandra a leña. Los paisanos ponían la pava arriba y te convidaban mate aunque no te conocieran. Eso era el tren: una cocina que andaba.',
+      'Una vez nació una criatura en el tren, entre Ñorquinco y El Maitén. Una pasajera hizo de partera, yo paré la máquina en plena meseta y el fogonero calentó el agua con el vapor de la caldera. Le pusieron Trochita de segundo nombre. Pobre piba.',
+      'Las Henschel eran alemanas y las Baldwin, norteamericanas. Llegaron todas en 1922. Ernesto dice que las alemanas son más prolijas. Yo digo que las dos se quejan igual cuando hace frío.',
+      'El tren llevaba de todo: lana, leña, las cartas, la gente de los parajes. En algunas estaciones la llegada del tren era la única novedad de la semana. Te esperaban con el pelo peinado.',
+      'La Hojarasca es una Baldwin cansada, pero noble. La primera vez que la prendimos acá tosió como un abuelo resfriado. Ahora silba de nuevo, y Ernesto se hace el que no se emociona.',
+      'Nahuel quiere ser maquinista. Le enseño a escuchar la máquina con la oreja cerca del cilindro, con la máquina parada, eh. Ya distingue un escape sano de uno que se queja. Tiene oído, el pibe.',
+      'Doña Herminia dice que en las raíces de los coihues hay puertitas. Yo en cuarenta años vi de todo al costado de la vía, así que no le discuto nada.',
+      'Anselmo me forja las piezas que antes pedíamos a El Maitén. Me las trae envueltas en arpillera, como si fueran pan. Y no me deja decirle que están bien: me dice que ya sabe.',
+    ],
+    visita: [
+      'Vine caminando por la vía, como hacía de pibe en El Maitén: contando durmientes. Hasta tu casa hay unos cuantos, y no me equivoqué en ninguno.',
+      'Te dejé unos troncos secos al lado de la puerta. Un consejo de maquinista: la leña, siempre bajo techo y con aire. Fuego mojado es humo nomás.',
+    ],
+    saludoAmigo: '¡{nombre}! Pasá, que justo puse la pava sobre la fragua. Sale más rápido que en la cocina.',
+    saludoCompadre: '{nombre}, compañero de cabina. Para vos, dos pitadas cortas, como para los de casa.',
+    fauna: 'Desde la puerta del galpón vi {unbicho} cruzando cerca de la vía. En la meseta eran guanacos y choiques; acá es otro bicho, pero se para igual a mirar el tren.',
+    pronostico: 'El hombro me avisa antes que la radio: {pronostico}. Cuarenta inviernos de meseta no se olvidan.',
+    regalo: 'Martín, el maquinista, te dejó troncos secos para el fuego',
+  },
   ramon: {
     encanta: {
       yerba: 'Yerba. Esto no se rechaza nunca, m\'hijo. Gracias.',
@@ -1386,6 +1434,16 @@ export const AYUDAS = {
       devuelve: { tipo: 'material', k: 'lana', n: 1, texto: 'Llevate este poquito de lana, que me sobró de un pulóver.' },
       consejo: 'A los vecinos hay que regalarles lo que les gusta, no lo que te sobra. Preguntame a mí, que sé de todos.' },
   ],
+  // 3.7.3: Martín, en el taller ferroviario
+  martin: [
+    { id: 'lampara-foso', titulo: 'Sostenerle el farol en el foso mientras engrasa los cojinetes', hace: true,
+      gracias: ['Ahí, un poquito más abajo… Listo. Cojinete engrasado no canta. Gracias, muchacho: tenés pulso de fogonero.'],
+      consejo: 'Una máquina se cuida como un caballo: agua, grasa y que no se enfríe de golpe. La caldera que se enfría apurada se raja.' },
+    { id: 'salamandra-galpon', titulo: 'Alcanzarle dos troncos para la salamandra del galpón', pide: { tipo: 'material', k: 'tronco', n: 2 },
+      gracias: ['Esto es leña. Con esto el galpón aguanta la helada y la grasa no se pone dura como manteca de invierno.'],
+      devuelve: { tipo: 'cosa', k: 'yerba', n: 1, texto: 'Tomá, yerba de la mía. De la que se toma en la cabina.' },
+      consejo: 'En la meseta, cuando nevaba fuerte, el tren llevaba más palas que pasajeros. Si salís con nieve, llevá pala aunque te miren raro.' },
+  ],
   ramon: [
     { id: 'tranquera', titulo: 'Llevarle troncos para los postes de la tranquera', pide: { tipo: 'material', k: 'tronco', n: 2 },
       gracias: ['Buenos troncos, derechos. Con esto la tranquera aguanta otros veinte inviernos.'],
@@ -1426,6 +1484,7 @@ export const COMENTARIOS = {
     guarda: ['En el tren contaban de una trucha de {cm}. Para cuando lleguemos a la última estación, va a medir dos metros.'],
     botera: ['Nicanor me contó lo de la trucha de {cm}. Dijo «grande», que en él es como un aplauso.', 'Nicanor me contó lo de tu trucha. Dijo «grande», que en él es como un aplauso.'],
     modista: ['¡Me contaron de la trucha de {cm}! En la aldea ya dicen que medía como Anselmo.'],
+    martin: ['¿Una trucha de {cm}? En la cabina medíamos las truchas en centímetros y los viajes en mates. La tuya vale como diez mates.', '¿Así que sacaste una grande? En la cabina medíamos los viajes en mates. Esa vale como diez.'],   // 3.7.3
   },
   'pez-nativo': {
     ema: ['Me contaron que sacaste una {especie}. Esa es de acá, de antes que las truchas. Ojalá la hayas devuelto.', 'Me contaron que sacaste un pez nativo. Ojalá lo hayas devuelto.'],
@@ -1454,6 +1513,7 @@ export const COMENTARIOS = {
     abuela: ['Así se hacían los pueblos antes: cada uno traía lo que tenía. Gracias por lo de {lugar}.'],
     carpintero: ['Buena madera la que trajiste para {lugar}. Se nota que la elegiste.'],
     herrero: ['Con lo que trajiste para {lugar}, esta semana clavamos el techo.'],
+    martin: ['Vi pasar lo que trajiste para {lugar}. Un pueblo es como una locomotora: pieza por pieza, sin apuro y sin dejar ninguna floja.'],   // 3.7.3
   },
   capitulo: {
     maestra: ['Me enteré de lo tuyo. Eso hay que anotarlo con letra prolija: «{capitulo}».', 'Me enteré de lo tuyo. Eso hay que anotarlo con letra prolija.'],
@@ -1478,6 +1538,7 @@ export const COMENTARIOS = {
     guardaparque: ['Me dijeron que dormiste afuera. ¿Escuchaste al concón? De noche es el dueño del bosque.'],
     andinista: ['¿Dormiste afuera? ¡Así me gusta! La próxima, conmigo, en el filo, que el amanecer de allá no se compara.'],
     astronoma: ['¿Dormiste afuera? ¿Y miraste para arriba? Decime que miraste para arriba.'],
+    martin: ['¿Dormiste afuera? Una vez quedamos varados por la nieve en la meseta y dormimos en la cabina, al lado del fuego de la caldera. Nunca dormí mejor.'],   // 3.7.3
   },
   cosecha: {
     madre: ['Me dijeron que levantaste la cosecha. ¿Tenés papas? Hago unas tortillas que no te imaginás.'],
@@ -1505,11 +1566,13 @@ export const COMENTARIOS = {
     guarda: ['Gracias por viajar con nosotros. Se te veía contento en la ventanilla.'],
     nene: ['¿Viajaste en la trochita? ¿Te dejaron tocar el silbato?'],
     telegrafista: ['Te anoté en la planilla de pasajeros. Es costumbre, no te asustes.'],
+    martin: ['Te vi en la ventanilla. ¿Oíste cómo respira la máquina en la subida? Esa es la caldera hablando. Yo la oigo desde el galpón y sé si viene contenta.'],   // 3.7.3
   },
   'obra-propia': {
     carpintero: ['Me dijeron que levantaste {obra}. Cuando quieras te paso a mirar las uniones.', 'Me dijeron que levantaste algo nuevo. Cuando quieras te paso a mirar las uniones.'],
     padre: ['Así que {obra} ya está. Una obra propia se disfruta el doble.', 'Obra terminada, ¡bien ahí! Lo propio se disfruta el doble.'],
     herrero: ['Me contaron de {obra}. Si te faltan herrajes, ya sabés dónde estoy.', 'Me contaron que terminaste una obra. Si te faltan herrajes, ya sabés dónde estoy.'],
+    martin: ['Me dijeron que terminaste {obra}. Lo hecho a mano se compone a mano: eso dura más que uno.', 'Me dijeron que terminaste una obra. Lo hecho a mano se compone a mano: eso dura más que uno.'],   // 3.7.3
   },
   'foto-fauna': {
     guardaparque: ['Me llegó tu foto de {especie}. Va derecho al registro de la seccional.', 'Me llegó tu foto. Va derecho al registro de la seccional.'],

@@ -43,6 +43,7 @@
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
 import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
+import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
@@ -180,6 +181,8 @@ export function edificioEn(lx, lz) {
 function umbral(id) {
   const p = puntosDe(id);
   // (3.7.0 (integración): por el zaguán, frente a la puerta de verdad: no se atraviesa la pared)
+  // (3.7.3: el taller ferroviario, del otro lado de la vía: por la puerta chica, el paso de tablones y la salida a la aldea)
+  if (p.cruce) return [p.zaguan, p.puerta, p.pie, p.cruce, p.salida];
   return p.salida ? [p.puerta, p.salida] : p.puerta ? (p.zaguan ? [p.zaguan, p.puerta] : [p.puerta]) : [];
 }
 // El recorrido completo de un punto a otro del plano: de adentro sale por la puerta, va por
@@ -297,14 +300,16 @@ const GESTO_OFICIO = { herreria: 'martillar', panaderia: 'amasar', carpinteria: 
   // Martina con el bote
   observatorio: (d) => (d.punto === 'telescopio' ? 'telescopio' : null), 'taller-arte': (d) => (d.punto === 'adentro' ? 'pintar' : null),
   veterinaria: (d) => (d.punto === 'adentro' || d.punto === 'corral' ? 'curar' : null), herboristeria: (d) => (d.punto === 'adentro' ? 'mortero' : null),
-  varadero: (d) => (d.punto === 'adentro' ? 'calafatear' : null) };
+  varadero: (d) => (d.punto === 'adentro' ? 'calafatear' : null),
+  // 3.7.3: el taller ferroviario: Martín lima en la morsa y martilla en el yunque; Ernesto, con la llave en las ruedas
+  'taller-tren': (d) => (d.punto === 'banco' ? 'limar' : d.punto === 'fragua' ? 'martillar' : d.punto === 'ruedas' ? 'llave' : null) };
 const GESTO_SENTADO = { ceramica: 'tornear', costureria: 'coser' };
 
 // Lo que se ve de la aldea desde un punto del mundo: cuánto falta para el rectángulo que ocupa.
 export function distanciaAldea(x, z, M = marcoAldea(PARADA_ALDEA)) {
   const l = M.aLocal(x, z);
-  // (3.7.0: con la calle de la Loma, hasta x = −150)
-  const dx = Math.max(-150 - l.lx, 0, l.lx - 92), dz = Math.max(-2 - l.lz, 0, l.lz - 72);
+  // (3.7.0: con la calle de la Loma, hasta x = −150; 3.7.3: y del otro lado de la vía, el taller ferroviario)
+  const dx = Math.max(-150 - l.lx, 0, l.lx - 92), dz = Math.max(-13 - l.lz, 0, l.lz - 72);
   return Math.hypot(dx, dz);
 }
 
@@ -1340,15 +1345,24 @@ export function crearAldeaGente(ctx) {
     const hoy = fechaDe(dia());
     ficha.appendChild(el('h2', '', 'Calendario y vida de la aldea'));
     ficha.appendChild(el('p', 'anotado', `Hoy: ${hoy.texto}. El año tiene doce días: cuatro de verano, cuatro de otoño y cuatro de invierno.`));
-    const cal = calendarioDelAnio(dia(), { aldea: a, fiestas: FIESTAS_ALDEA });
+    // (3.7.3: con lo que queda listo en el taller ferroviario)
+    const tren = p.tren && typeof p.tren === 'object' ? p.tren : null;
+    const cal = calendarioDelAnio(dia(), { aldea: a, fiestas: FIESTAS_ALDEA, extras: eventosTaller(tren) });
     const ul = el('ul', 'lista');
     for (const fila of cal.filas) {
-      const ev = fila.eventos.map((e) => (e.tipo === 'cumple' ? `cumple ${nombreCortoDe(e.clave)}` : e.nombre)).join(', ');
+      const ev = fila.eventos.map((e) => (e.tipo === 'cumple' ? `cumple ${nombreCortoDe(e.clave)}` : e.tipo === 'taller' ? `taller: ${e.nombre.toLowerCase()}` : e.nombre)).join(', ');
       const li = el('li', fila.hoy ? 'tiene' : '', `${fila.diaDelAnio}. ${fila.nombreEstacion}${fila.hoy ? ' (hoy)' : fila.manana ? ' (mañana)' : ''}: ${ev || '—'}`);
       if (fila.dia < hoy.dia) li.style.opacity = '0.6';
       ul.appendChild(li);
     }
     ficha.appendChild(ul);
+    // 3.7.3: el taller ferroviario: lo que se está haciendo y lo que ya tiene el tren
+    if (tren?.taller) {
+      const pd = tren.taller.pedido, M = pd ? MEJORAS_TREN[pd.id] : null;
+      const hechas = (tren.taller.hechas || []).filter((id) => Object.hasOwn(MEJORAS_TREN, id)).map((id) => MEJORAS_TREN[id].nombre.toLowerCase());
+      const linea = M ? (pd.listo ? `En el taller ferroviario, Ernesto y Martín arman ${M.nombre.toLowerCase()}: queda lista ${textoListo(pd.listo)}.` : `En el taller ferroviario espera ${M.nombre.toLowerCase()}: falta material o hierro.`) : 'El taller ferroviario está libre: Martín espera que le pidas una mejora.';
+      ficha.appendChild(el('p', 'texto', `${linea}${hechas.length ? ` Lo hecho: ${hechas.join(', ')}.` : ''} La locomotora se llama «${tren.loco?.nombre || 'La Hojarasca'}».`));
+    }
     const av = avisoDiaAntes(dia(), { aldea: a, fiestas: FIESTAS_ALDEA });
     if (av) ficha.appendChild(el('p', 'pista', `${av.titulo}. ${av.texto}`));
     const fiesta = fiestaDeCumple(dia(), a);

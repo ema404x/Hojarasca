@@ -288,9 +288,11 @@ const gestosDe = (F) => [
 // Los rasgos que se mueven, en una malla aparte, hija de la cabeza, con formas de mezcla (sonrisa y
 // risa): los labios (geometría: el borde es nítido), la boca por dentro, los dientes, las cejas, el
 // párpado de abajo que sube al sonreír y, con barba, el bigote. Cada parte es una grilla (u, v).
+// 3.7.3: `soloBigote` (R.bigote: Martín, el maquinista): el bigote sin la barba; los labios quedan sobre la piel
+// (sin el levante de la barba) y el bigote apenas encima.
 const _arriba = new THREE.Vector3(0, 1, 0);
 const PARTES = { labioSup: 0, labioInf: 1, boca: 2, dientes: 3, ceja: 4, parpado: 5, bigote: 6 };
-function formaRostro(F, P, barba, ojos) {
+function formaRostro(F, P, barba, ojos, soloBigote = false) {
   const pos = [], idx = [], partes = [];
   const o = P.o * (barba ? 0.62 : 1);
   const W = F.bocaW * (1 + 0.16 * P.s + 0.06 * o);
@@ -299,7 +301,7 @@ function formaRostro(F, P, barba, ojos) {
   const abajoL = (u) => cen(u) - o * 0.0135 * Math.pow(Math.max(0, 1 - u * u), 0.75);
   const hU = (u) => { const q = Math.max(0, 1 - u * u); return (F.mujer && !F.chico ? 0.0048 : F.chico ? 0.0042 : 0.0039) * F.labios * (1 - 0.22 * P.s) * Math.sqrt(q) * (1 + 0.22 * Math.exp(-(((Math.abs(u) - 0.3) / 0.16) ** 2)) - 0.14 * Math.exp(-((u / 0.09) ** 2))); };
   const hL = (u) => { const q = Math.max(0, 1 - u * u); return (F.mujer && !F.chico ? 0.0064 : F.chico ? 0.0056 : 0.005) * F.labios * (1 - 0.18 * P.s) * Math.pow(q, 0.55); };
-  const lev = 0.0003 + (barba ? 0.0042 : 0);
+  const lev = 0.0003 + (barba && !soloBigote ? 0.0042 : 0);
   const bulto = (w, u) => 1.45 * Math.sin(Math.PI * (0.18 + 0.82 * w)) * Math.sqrt(Math.max(0, 1 - u * u));
   const sobre = (x, y, alza) => { const q = sobreCara(x, y, F); return [x, y + F.cy, q.z + alza]; };
   // una grilla: f(u, v) -> [x, y, z]; con `voltear`, las caras al revés (que miren adelante)
@@ -351,13 +353,13 @@ function formaRostro(F, P, barba, ojos) {
   });
   return { pos, idx, partes };
 }
-function rostro(F, colPiel, colCeja, colBarba, ojos, canasBarba) {
+function rostro(F, colPiel, colCeja, colBarba, ojos, canasBarba, soloBigote = false) {
   const barba = !!colBarba;
   const datos = (() => {
-    const clave = 'rostro' + F.clave + (barba ? 'b' : '');
+    const clave = 'rostro' + F.clave + (barba ? (soloBigote ? 'm' : 'b') : '');
     let d = MOLDES.get(clave);
     if (d) return d;
-    const vs = gestosDe(F).map((P) => formaRostro(F, P, barba, ojos));
+    const vs = gestosDe(F).map((P) => formaRostro(F, P, barba, ojos, soloBigote));
     const normales = vs.map((v) => { const g = geoDe(v.pos, v.idx); g.computeVertexNormals(); return g.attributes.normal.array; });
     d = { vs, normales };
     MOLDES.set(clave, d);
@@ -744,7 +746,7 @@ function* armarCabezaPasos(cabeza, F, colores, R, colPiel, marcas) {
   const colCeja = mezcla(colPelo, '#120c08', 0.25);
   const colBarba = colores.barba ? mezcla(colores.barba, '#5e3f28', 0.35) : null;
   const canas = Math.max(0, Math.min(1, R.canas || 0));
-  const r = rostro(F, colPiel, colCeja, colBarba, centros, Math.max(0.3, canas));
+  const r = rostro(F, colPiel, colCeja, colBarba, centros, Math.max(0.3, canas), !!R.bigote);
   yield;
   r.visible = false;   // (se muestra de cerca: ver alPosar)
   cabeza.add(r); cabeza.userData.rostro = r;
@@ -759,7 +761,7 @@ function* armarCabezaPasos(cabeza, F, colores, R, colPiel, marcas) {
   yield;
   for (const p of peloDe(F, colPelo, R, !!colores.gorro)) cabeza.add(p);
   yield;
-  if (colBarba) cabeza.add(barba(F, colBarba, colPiel, Math.max(0.3, canas)));
+  if (colBarba && !R.bigote) cabeza.add(barba(F, colBarba, colPiel, Math.max(0.3, canas)));   // (3.7.3: con R.bigote, sólo el bigote)
   sombreros(cabeza, F, colores, R);
   cabeza.userData.esCabeza = true;
   cabeza.traverse((o) => { if (o.isMesh && o.userData.tela === undefined && !o.userData.piel) o.userData.tela = 0; });

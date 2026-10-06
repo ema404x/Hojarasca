@@ -83,6 +83,8 @@ import { crearAmorJuego } from './amor-juego.js';
 import { crearAmorMundo } from './amor-mundo.js';
 // 3.7.2: la cocina en pasos (reglas en cocina-pasos.js; el juego en cocina-juego.js; lo que se ve en cocina-mundo.js)
 import { crearCocinaJuego } from './cocina-juego.js';
+// 3.7.3: el taller ferroviario de la aldea y las mejoras del tren (sólo en el Relax)
+import { crearTallerJuego } from './taller-tren-juego.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
 import { PLANOS_COCINA_E } from './cocina-pasos.js';
 import { sumarAmistadDe } from './vecindad.js';
@@ -2641,6 +2643,8 @@ document.addEventListener('keydown', (e) => {
       if (enLasCargas()) { puestoCargas.cerrar(); break; }
       // 3.7.2: y el panel de recetas de la cocina, igual
       if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
+      // 3.7.3: y el del taller ferroviario
+      if (tallerTren?.panelAbierto()) { tallerTren.cerrarPanel(); break; }
       // El aviso visual y la acción usan la misma prioridad: si estás mirando a
       // una persona, E habla con ella antes de accionar puertas/mostradores.
       // Esto hace posible conversar con Ercilia detrás del mostrador sin que el
@@ -2669,6 +2673,8 @@ document.addEventListener('keydown', (e) => {
       // 3.7.2 (granja): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales (el aviso, en el mismo
       // lugar y con la misma función: granjaJuego.accion)
       if (!js.enTren && !js.enKayak && !objetivo && granjaJuego) { const a = granjaJuego.accion(js); if (a) { a.hacer(); cacheGranja = null; break; } }
+      // 3.7.3: en el taller ferroviario, el panel de mejoras (el aviso, en el mismo lugar y con la misma función: tallerTren.accion)
+      if (!js.enTren && !js.enKayak && !objetivo && tallerTren) { const a = tallerTren.accion(js); if (a) { a.hacer(); cacheTaller = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
@@ -2849,6 +2855,7 @@ document.addEventListener('keydown', (e) => {
       if (enLasCargas()) marcarEn('cargas', Number(codigo.slice(5)) - 1);   // 3.6.2: y queda marcada
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
       if (cocinaJuego?.panelAbierto()) { marcarEn('cocina', Number(codigo.slice(5)) - 1); cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.2
+      if (tallerTren?.panelAbierto()) { marcarEn('taller-tren', Number(codigo.slice(5)) - 1); tallerTren.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.3
       if (codigo === 'Digit9') break;
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
@@ -2884,6 +2891,7 @@ document.addEventListener('keydown', (e) => {
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
+      else if (tallerTren?.panelAbierto()) tallerTren.atras();   // 3.7.3: de la pintura o la composición, al panel; del panel, afuera
       else if (charla.npc) atrasCharla();   // 3.6 (vida): del submenú o de un tema, al menú
       else abrir('pausa');
       break;
@@ -2894,6 +2902,7 @@ document.addEventListener('keydown', (e) => {
       if (enLasCargas()) marcarEn('cargas', Number(codigo.slice(5)) - 1);   // 3.6.2: y queda marcada
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
       if (cocinaJuego?.panelAbierto()) { marcarEn('cocina', Number(codigo.slice(5)) - 1); cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.2
+      if (tallerTren?.panelAbierto()) { marcarEn('taller-tren', Number(codigo.slice(5)) - 1); tallerTren.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.3
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
   }
@@ -4260,6 +4269,7 @@ let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
 let amorJuego = null;   // 3.7.1: ver amor-juego.js
 let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
+let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
@@ -4367,6 +4377,16 @@ function armarOficiosYAldea(esDesafio) {
     mundo: () => cocinaMundo, alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     sendero: () => T.sendero || [], centroAldea: () => aldeaMundo?.centro || null, seco: (x, z) => !T.agua(x, z),
     redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); }, alAbrirPanel: () => { marcarEn('cocina', 0); marcarHud(0, true); },
+  });
+  // 3.7.3: el taller ferroviario: E y el aviso, el panel de mejoras, el reloj del taller. Al terminar una mejora (y al
+  // cambiar la pintura, el nombre, el silbato o la composición) le avisa al tren con `aplicarMejoras(progreso.tren)`:
+  // el enganche con el equipo del tren (trochita.js); si el tren todavía no lo tiene, no pasa nada
+  tallerTren = crearTallerJuego({
+    progreso: () => progreso, desafio: () => !!desafio, materiales: () => materialesVisibles(), conMateriales: (fn) => conMateriales(fn),
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
+    alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alAbrirPanel: () => { marcarEn('taller-tren', 0); marcarHud(0, true); },
+    pedirTexto: (texto, inicial, extra) => dialogos.pedirTexto(texto, inicial, extra),
+    aplicarMejoras: (estado) => { if (typeof tren?.aplicarMejoras === 'function') tren.aplicarMejoras(estado); },
   });
   cocinaMundo = crearCocinaMundo({
     T, escena, mat: est?.mat, cocina: () => cocinaJuego, progreso: () => progreso, obras: () => obras, camara: () => camara?.position || null,
@@ -6732,7 +6752,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto();   // (3.7.2: y el de la cocina)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -6745,6 +6765,7 @@ function listaHudAbierta() {
   if (enLaFeria) return { id: 'feria', ul: $('feria-lista'), pie: $('feria')?.querySelector('.seguir'), elegir: (i) => cambiarFeria(i) };
   if (enLasCargas()) return { id: 'cargas', ul: $('cargas-lista'), pie: $('cargas')?.querySelector('.seguir'), elegir: (i) => puestoCargas.elegir(i) };
   if (cocinaJuego?.panelAbierto()) return { id: 'cocina', ...cocinaJuego.lista() };   // 3.7.2
+  if (tallerTren?.panelAbierto()) return { id: 'taller-tren', ...tallerTren.lista() };   // 3.7.3
   return null;
 }
 const marcarEn = (panel, i) => { marcaHud = { panel, i: Math.max(0, i) }; };
@@ -7224,6 +7245,7 @@ const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
+let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
 let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
@@ -7781,6 +7803,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
     try { if (modo === 'jugando' && !desafio) { cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
+    try { if (modo === 'jugando' && !desafio) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
     try { marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro); } catch (e) { fallaSistema('perro', e); }
@@ -7916,6 +7939,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheObraAldea = aldeaGente ? aldeaGente.obraCerca(js.pos) : null;
       cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
+      cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -7957,6 +7981,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheMecanica && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheMecanica.texto };
     // 3.7.2 (granja): después de lo de la aldea y antes que la oveja, como en la tecla E
     if (!aviso && cacheGranja && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheGranja.texto };
+    // 3.7.3: el taller ferroviario, después de la granja, como en la tecla E
+    if (!aviso && cacheTaller && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTaller.texto };
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
@@ -7988,6 +8014,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
     if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
+    if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
     if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
     if (js.enTren) {
@@ -8444,6 +8471,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __amor: () => amorJuego,   // 3.7.1
     __amorMundo: () => amorMundo,   // 3.7.1 (mundo)
     __cocina: () => cocinaJuego, __cocinaMundo: () => cocinaMundo,   // 3.7.2
+    __taller: () => tallerTren,   // 3.7.3
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
     // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)
     __visibilidad: () => { actualizarVisibilidad(camara.position, 1); return true; },

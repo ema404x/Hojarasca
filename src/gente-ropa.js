@@ -186,6 +186,20 @@ export const ASPECTO = {
     poses: ['delantal', 'atras', 'cruzados'],
     abrigo: { colores: { poncho: '#4e5a68', gorro: 'gorroPunto', gorroColor: '#e2d6bd', bufanda: '#9a3c2a' } },
   },
+  // 3.7.3: Martín Sepúlveda (71), maquinista retirado de La Trochita (el diseño del prototipo de la rama proto-tren,
+  // aprobado por el usuario): mameluco azul de maquinista (pechera y pantalón), camisa cruda arremangada, gorra de
+  // maquinista azul oscura, pañuelo colorado al cuello, canas y bigote blanco (sin barba: R.bigote), las manos con
+  // grasa. En invierno, el poncho gris pizarra, la bufanda colorada y la gorra de siempre.
+  'aldea-martin': {
+    edad: 71, mujer: false,
+    cuerpo: { ancho: 1.0, fondo: 1.02, panza: 0.1, alto: 0.98, encorvada: 0.06 },
+    cara: { ancho: 1.04, largo: 1.0, nariz: 1.25, ojos: 0.85, mand: 0.3, sonrisa: 0.45, parpado: 0.14, arrugas: 'mayor', iris: '#3a4a5a' },
+    colores: { piel: '#c49470', pelo: '#d8d4cc', barba: '#e0dcd4', ropa: '#c8c0a8', abrigo: '#3b4a5e', gorro: 'gorro', gorroColor: '#2e3a4c' },
+    R: { pechera: '#3b4a5e', pantalon: '#3b4a5e', panuelo: '#a83a2a', botas: 'altas', botaCol: '#3a2a1e', arremangado: true, canas: 1, brea: true, bigote: true },
+    guardas: { cuello: [1, 0, 'todo'] },
+    poses: ['cintura', 'atras', 'cruzados', 'barba'],
+    abrigo: { colores: { poncho: '#4a5560', bufanda: '#a83a2a', gorro: 'gorro' } },
+  },
 
   // ------------------------------------------------------------ los once pobladores
   // Tito Arrieta, carpintero: boina, barba, chaleco, delantal de lona, pañuelo colorado al cuello
