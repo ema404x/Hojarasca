@@ -27,7 +27,18 @@ interior, sus etapas de obra y su servicio del día.
 Gate 150/150. Partidas reales en verde: aldea (3.6 y 3.7.0), mundo, mecánicas, vida, relax-2, desafío, rendimiento.
 Las pruebas que avanzan la aldea sin cuadros ahora terminan de armar a la gente antes de mirar.
 
+## Retoques (después del cierre, rama `v370-retoques`)
+- Poses terminadas y revisadas en capturas: Malena en el torno y Pocha cosiendo (sentadas), Valentina en el
+  telescopio, Abril pintando, Ayelén curando, Martina calafateando el bote (pose nueva, adentro de 17 a 18) e Inés
+  con el mortero (pose nueva). Quien toma mate lo deja mientras trabaja con las dos manos (también Rosa, la
+  panadera); Pocha ya no martilla cuando le lleva el mate a Anselmo. El jugador no se puede sentar en el banco o la
+  silla de quien está trabajando.
+- Corral con piso de tierra y sin helechos encima del cerco; el cachorro juega afuera, lejos del fogón.
+- La gente de un local recién abierto ya no queda 32 cm hundida en las tablas, y la altura de la silla se vuelve a
+  buscar (Pocha ya no aparece arrodillada).
+
 ## Queda para después
-- Unos retoques de poses (Valentina en el telescopio, Abril pintando, Malena en el torno, Pocha cosiendo) y el piso del
-  corral quedaron a medio hacer.
+- El brazo del mate con el codo fijo (con el mate guardado, la mano queda a la altura del pecho); Valentina no llega
+  con el ojo al ocular; Ayelén cura en el corral sin animal adelante; Malena en el horno y Abril afuera, de tarde,
+  sin gesto.
 - Medir en la PC del usuario.
