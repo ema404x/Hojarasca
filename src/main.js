@@ -72,6 +72,8 @@ import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
 import { crearAnimalesAldea } from './aldea-animales-mundo.js';
 import { gruposDeObras, buscarLugar, materialesDeObra, sumarMateriales, devolucionDeRenoval, textoDesalojo } from './aldea-desalojo.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
+// 3.7.3 (prototipo): la trochita mejorada y el taller ferroviario, sólo con `?debug=1&tren=proto`
+import { armarTrenProto, crearTallerProto } from './tren-proto.js';
 // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
 import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
 import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
@@ -181,6 +183,8 @@ const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 // 3.7.0: la gente de antes (la de la 3.6), sólo para comparar en depuración (`?debug=1&gente=vieja`)
 const GENTE_VIEJA = HOJARASCA_DEBUG && new URLSearchParams(location.search).get('gente') === 'vieja';
+// 3.7.3 (prototipo): el tren nuevo en la vía y el taller junto a la estación de la aldea (`?debug=1&tren=proto`)
+const TREN_PROTO = HOJARASCA_DEBUG && new URLSearchParams(location.search).get('tren') === 'proto';
 const esperar = () => new Promise((r) => setTimeout(r, 30));
 
 // 2.7.3: ¿es la primera vez que se abre el juego? (antes de leer los ajustes)
@@ -576,7 +580,27 @@ async function construir() {
   tren = await paso('Tendiendo las vías de la trochita', 74, () => {
     // 3.6: en el Relax, la parada del sur es la de la Aldea de los Duendes (cartel y anuncios)
     // (3.6: `lugaresAntes`: dónde estaban la casa de té y el almacén, para el nombre de antes de cada parada)
-    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }, lugaresAntes: est.lugaresSorteo || null });
+    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }, lugaresAntes: est.lugaresSorteo || null,
+      armarTren: TREN_PROTO ? (o) => armarTrenProto({ ...o, T }) : null });
+    // 3.7.3 (prototipo): el taller ferroviario, al otro lado de la vía, frente a la estación de la aldea
+    if (TREN_PROTO && !esDesafio) {
+      const paradaAldea = t.paradas.find((p) => p.aldea);
+      if (paradaAldea) {
+        const taller = crearTallerProto({ T, escena, parada: paradaAldea, tren: t.tren });
+        t.tren.taller = taller;
+        const masc = U.uMascara.value.image.data;
+        for (const z of taller.zonas) {
+          veg.despejar(z.x, z.z, z.radio);
+          const i0 = Math.max(0, Math.floor((z.x - z.radio + 512) / 2)), i1 = Math.min(RES, Math.ceil((z.x + z.radio + 512) / 2));
+          const j0 = Math.max(0, Math.floor((z.z - z.radio + 512) / 2)), j1 = Math.min(RES, Math.ceil((z.z + z.radio + 512) / 2));
+          for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+            const d = Math.hypot(i * 2 - 512 - z.x, j * 2 - 512 - z.z);
+            if (d < z.radio) masc[(j * N + i) * 4] *= Math.min(1, (d / z.radio) ** 2);
+          }
+        }
+        U.uMascara.value.needsUpdate = true;
+      }
+    }
     // lo del comercio guardado con el nombre de antes de la parada pasa al de ahora (3.6: la del
     // sur es la de la aldea, y la que se llamaba como la casa de té toma el nombre de lo que le
     // queda cerca). En dos pasos: un nombre nuevo puede ser el viejo de otra.
