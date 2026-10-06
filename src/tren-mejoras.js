@@ -5,9 +5,11 @@
 //
 // El estado, `progreso.tren` (el contrato con el equipo del tren; `taller` es sólo del taller):
 //   loco: { caldera: 0..3, freno: 0..3, farol, silbato: 'comun'|'grave'|'doble'|'pajaro', quitanieves, arenero,
-//           pintura: { cuerpo, franja, ruedas } (ids de PALETA_TREN; `colorTren(id)` da el color), nombre, banderines }
-//   vagones: { pasajeros, comedor, carga, caballo, mirador, dormitorio }   (los que ya están hechos)
-//   composicion: [ids de vagones, en orden detrás del ténder]   (hasta VAGONES_MAX; el de pasajeros, siempre)
+//           pintura: { cuerpo, franja, ruedas } ('#rrggbb' de PALETA_TREN, o null: la de siempre / la de "Personalizar"),
+//           nombre ('' = el de "Personalizar", o ninguno), banderines }
+//   vagones: { pasajeros, comedor, carga, caballo, mirador, dormitorio }   (los que ya están hechos: al principio, ninguno)
+//   composicion: [ids de vagones, en orden detrás del ténder]   (hasta VAGONES_MAX; vacía: los que tengas, o los dos
+//                coches de segunda de siempre: así la lee `composicionDe` de tren-viaje.js, del equipo del tren)
 //   taller: { arreglado, hechas: [ids de mejoras], pedido: null | { id, aportado: { tabla, tronco, piedra }, hierro,
 //             desde, empezo, listo }, ultimo, avisar: [ids] }   (las horas, absolutas: día × 24 + hora)
 //
@@ -34,7 +36,7 @@ export const HORAS_FORJA = [9, 15];    // cuándo termina cada pieza en la herre
 export const HORA_TREN_PIEZAS = 11;    // sin herrería: la pieza que llega de El Maitén con el tren
 export const HORA_LISTA = 7;           // las de varios días quedan listas a primera hora
 export const HORARIO_TALLER = [8, 19]; // las de un rato se hacen en este horario
-export const LARGO_NOMBRE = 20;
+export const LARGO_NOMBRE = 18;   // (el que pinta tren.js)
 const TOPE_DIA = 1e6;
 const TOPE_PASOS = 400;                // momentos que repasa `avanzarTaller` de una vez (más de 100 días)
 
@@ -46,7 +48,7 @@ export const SILBATOS = {
 };
 export const IDS_SILBATOS = Object.keys(SILBATOS);
 export const VAGONES = {
-  pasajeros: { nombre: 'Coche de pasajeros', corto: 'pasajeros', dice: 'el de siempre, con la salamandra: ahí viajan los vecinos' },
+  pasajeros: { nombre: 'Coche de pasajeros', corto: 'pasajeros', dice: 'con la salamandra: ahí viajan los vecinos, calentitos' },
   comedor: { nombre: 'Coche comedor', corto: 'comedor', dice: 'con la cocina a leña: cocinar y matear en viaje' },
   carga: { nombre: 'Furgón de carga', corto: 'carga', dice: 'más fletes para el puesto de cargas' },
   caballo: { nombre: 'Jaula para el caballo', corto: 'caballo', dice: 'el zaino viaja con vos' },
@@ -70,9 +72,19 @@ export const PALETA_TREN = {
 };
 export const IDS_PALETA = Object.keys(PALETA_TREN);
 export const PARTES_PINTURA = { cuerpo: 'La caldera y la cabina', franja: 'La franja y los filetes', ruedas: 'Las ruedas' };
-export const PINTURA_INICIAL = { cuerpo: 'negro', franja: 'rojo', ruedas: 'rojo' };
-export const NOMBRE_INICIAL = 'La Hojarasca';
-export const colorTren = (id) => (typeof id === 'string' && Object.hasOwn(PALETA_TREN, id) ? PALETA_TREN[id].hex : PALETA_TREN.negro.hex);
+// (null: la de siempre, la del tren de tren.js o la de "Personalizar")
+export const PINTURA_INICIAL = { cuerpo: null, franja: null, ruedas: null };
+export const NOMBRE_INICIAL = '';
+export const NOMBRE_DE_SIEMPRE = 'La Hojarasca';
+// un color de la paleta: su id o su '#rrggbb' → el '#rrggbb' (o null, la de siempre)
+const HEX_PALETA = IDS_PALETA.map((k) => PALETA_TREN[k].hex);
+export function colorTren(v) {
+  if (typeof v !== 'string') return null;
+  if (Object.hasOwn(PALETA_TREN, v)) return PALETA_TREN[v].hex;
+  const h = v.toLowerCase();
+  return HEX_PALETA.includes(h) ? h : null;
+}
+export const nombreColor = (v) => { const h = colorTren(v); return h ? PALETA_TREN[IDS_PALETA[HEX_PALETA.indexOf(h)]].nombre : 'La de siempre'; };
 
 // Lo que pide arreglar el galpón (va con la primera mejora): chapas nuevas (tablas para los cabios y el
 // entablonado) y piedra para el zócalo que se descalzó.
@@ -98,7 +110,8 @@ export const MEJORAS_TREN = {
   quitanieves: M('Quitanieves', 'loco', 'La pala de proa: abre la vía en la gran nevada.', { tabla: 4, tronco: 2 }, 6, 3, ['freno-1'], { campo: 'quitanieves', valor: true }),
   arenero: M('Arenero', 'loco', 'El domo de arena con sus caños: echa arena en los rieles y la loco no patina con lluvia ni con hielo.', { piedra: 6 }, 3, 2, ['caldera-1'], { campo: 'arenero', valor: true }),
   banderines: M('Guardas y banderines', 'adorno', 'Banderines en el frente y guardas pintadas en la cabina, para las fiestas.', { tabla: 2 }, 0, 0, [], { campo: 'banderines', valor: true }, { horas: 3 }),
-  comedor: M('Coche comedor', 'vagon', 'Un coche con la cocina a leña, mesas y la pava siempre puesta: cocinar y matear en viaje.', { tabla: 14, tronco: 6, piedra: 4 }, 6, 4, [], { vagon: 'comedor' }),
+  pasajeros: M('Coche de pasajeros', 'vagon', 'Un coche de primera con asientos de madera y la salamandra en el medio: los vecinos viajan y charlan, y vos llegás calentito.', { tabla: 12, tronco: 4, piedra: 2 }, 4, 3, [], { vagon: 'pasajeros' }),
+  comedor: M('Coche comedor', 'vagon', 'Un coche con la cocina a leña, mesas y la pava siempre puesta: cocinar y matear en viaje.', { tabla: 14, tronco: 6, piedra: 4 }, 6, 4, ['pasajeros'], { vagon: 'comedor' }),
   carga: M('Furgón de carga', 'vagon', 'Un furgón cerrado con puertas corredizas: más fletes para el puesto de cargas.', { tabla: 12, tronco: 4 }, 6, 3, [], { vagon: 'carga' }),
   caballo: M('Jaula para el caballo', 'vagon', 'Una jaula de listones con su pesebre: el zaino viaja con vos.', { tabla: 10, tronco: 4 }, 4, 3, [], { vagon: 'caballo' }),
   mirador: M('Coche mirador', 'vagon', 'Un coche abierto a los costados, con baranda y bancos mirando afuera: para las fotos.', { tabla: 10, tronco: 2 }, 5, 3, [], { vagon: 'mirador' }),
@@ -123,9 +136,9 @@ const leer = (o, k) => (objeto(o) && Object.hasOwn(o, k) ? o[k] : undefined);
 export function trenNuevo() {
   return {
     loco: { caldera: 0, freno: 0, farol: false, silbato: 'comun', quitanieves: false, arenero: false, pintura: { ...PINTURA_INICIAL }, nombre: NOMBRE_INICIAL, banderines: false },
-    // el coche de pasajeros es el de siempre (el que ya anda): los demás se hacen en el taller
-    vagones: { pasajeros: true, comedor: false, carga: false, caballo: false, mirador: false, dormitorio: false },
-    composicion: ['pasajeros'],
+    // ningún vagón nuevo: van los dos coches de segunda de siempre (tren-viaje.js)
+    vagones: { pasajeros: false, comedor: false, carga: false, caballo: false, mirador: false, dormitorio: false },
+    composicion: [],
     taller: { arreglado: false, hechas: [], pedido: null, ultimo: 0, avisar: [] },
   };
 }
@@ -170,13 +183,12 @@ export function sanearTren(v, hoy = null) {
   const silbatos = silbatosDe({ taller: { hechas } });
   loco.silbato = typeof L.silbato === 'string' && silbatos.includes(L.silbato) ? L.silbato : 'comun';
   const P = objeto(L.pintura) ? L.pintura : {};
-  for (const k of Object.keys(PARTES_PINTURA)) loco.pintura[k] = typeof P[k] === 'string' && Object.hasOwn(PALETA_TREN, P[k]) ? P[k] : PINTURA_INICIAL[k];
+  for (const k of Object.keys(PARTES_PINTURA)) loco.pintura[k] = colorTren(P[k]);
   loco.nombre = sanearNombreTren(L.nombre);
   const vagones = n.vagones;
   for (const id of hechas) { const e = MEJORAS_TREN[id].efecto; if (e.vagon) vagones[e.vagon] = true; }
   const comp = [];
   for (const k of Array.isArray(v.composicion) ? v.composicion : []) if (typeof k === 'string' && Object.hasOwn(vagones, k) && vagones[k] && !comp.includes(k) && comp.length < VAGONES_MAX) comp.push(k);
-  if (!comp.includes('pasajeros')) { if (comp.length >= VAGONES_MAX) comp.pop(); comp.unshift('pasajeros'); }
   const pedido = sanearPedido(t.pedido, dia);
   const valePedido = pedido && !hechas.includes(pedido.id) && MEJORAS_TREN[pedido.id].requiere.every((r) => hechas.includes(r));
   const ultimo = num(t.ultimo);
@@ -350,7 +362,7 @@ function terminarMejora(tren, id) {
   t.arreglado = true;
   if (!objeto(tren.loco)) tren.loco = trenNuevo().loco;
   if (!objeto(tren.vagones)) tren.vagones = trenNuevo().vagones;
-  if (!Array.isArray(tren.composicion)) tren.composicion = ['pasajeros'];
+  if (!Array.isArray(tren.composicion)) tren.composicion = [];
   const e = m.efecto;
   if (e.vagon) {
     tren.vagones[e.vagon] = true;
@@ -367,20 +379,24 @@ export function tomarAvisos(tren) {
 }
 
 // ---------------------------------------------------------------- pintura, nombre, silbato, composición
+// (`color`: un id o un '#rrggbb' de la paleta; null vuelve a la de siempre)
 export function pintar(tren, parte, color) {
-  if (!Object.hasOwn(PARTES_PINTURA, parte) || typeof color !== 'string' || !Object.hasOwn(PALETA_TREN, color)) return false;
+  if (!Object.hasOwn(PARTES_PINTURA, parte)) return false;
+  const h = colorTren(color);
+  if (!h && color !== null) return false;
   if (!objeto(tren.loco)) tren.loco = trenNuevo().loco;
   if (!objeto(tren.loco.pintura)) tren.loco.pintura = { ...PINTURA_INICIAL };
-  tren.loco.pintura[parte] = color;
+  tren.loco.pintura[parte] = h;
   return true;
 }
-// El color que sigue en la paleta (para elegir con una sola tecla).
+// El que sigue (para elegir con una sola tecla): la de siempre, después los de la paleta en orden, y otra vez.
 export function colorSiguiente(actual, paso = 1) {
-  const i = IDS_PALETA.indexOf(actual);
-  return IDS_PALETA[(((i < 0 ? 0 : i) + paso) % IDS_PALETA.length + IDS_PALETA.length) % IDS_PALETA.length];
+  const lista = [null, ...HEX_PALETA], h = colorTren(actual);
+  const i = Math.max(0, lista.indexOf(h));
+  return lista[(((i + paso) % lista.length) + lista.length) % lista.length];
 }
 export function ponerNombre(tren, texto) {
-  if (typeof texto !== 'string' || !texto.trim()) return false;
+  if (typeof texto !== 'string' || !sanearNombreTren(texto)) return false;
   if (!objeto(tren.loco)) tren.loco = trenNuevo().loco;
   tren.loco.nombre = sanearNombreTren(texto);
   return true;
@@ -391,22 +407,20 @@ export function elegirSilbato(tren, id) {
   tren.loco.silbato = id;
   return true;
 }
-// La composición: los vagones en orden detrás del ténder (hasta VAGONES_MAX, sólo los hechos, sin repetir; el de
-// pasajeros va siempre: si no está, se pone adelante). { ok, composicion, motivo }.
+// La composición: los vagones en orden detrás del ténder (hasta VAGONES_MAX, sólo los hechos, sin repetir). Vacía,
+// van los que tengas (o los dos de segunda de siempre): ver `composicionDe` de tren-viaje.js. { ok, composicion, motivo }.
 export function elegirComposicion(tren, lista) {
-  if (!Array.isArray(lista)) return { ok: false, motivo: 'lista', composicion: tren?.composicion || ['pasajeros'] };
+  if (!Array.isArray(lista)) return { ok: false, motivo: 'lista', composicion: tren?.composicion || [] };
   const hechos = vagonesHechos(tren);
   const comp = [];
   for (const k of lista) if (typeof k === 'string' && hechos.includes(k) && !comp.includes(k)) comp.push(k);
   if (comp.length > VAGONES_MAX) return { ok: false, motivo: 'largo', composicion: tren.composicion };
-  if (!comp.includes('pasajeros')) { if (comp.length >= VAGONES_MAX) return { ok: false, motivo: 'pasajeros', composicion: tren.composicion }; comp.unshift('pasajeros'); }
   tren.composicion = comp;
   return { ok: true, motivo: null, composicion: comp };
 }
 // Enganchar o desenganchar un vagón (al final del tren). { ok, motivo, composicion }.
 export function alternarVagon(tren, id) {
-  const comp = Array.isArray(tren?.composicion) ? [...tren.composicion] : ['pasajeros'];
-  if (id === 'pasajeros') return { ok: false, motivo: 'pasajeros', composicion: comp };
+  const comp = Array.isArray(tren?.composicion) ? [...tren.composicion] : [];
   if (!vagonesHechos(tren).includes(id)) return { ok: false, motivo: 'no-hecho', composicion: comp };
   if (comp.includes(id)) return elegirComposicion(tren, comp.filter((k) => k !== id));
   if (comp.length >= VAGONES_MAX) return { ok: false, motivo: 'largo', composicion: comp };
@@ -414,7 +428,7 @@ export function alternarVagon(tren, id) {
 }
 // Pasar un vagón un lugar más adelante (más cerca de la locomotora).
 export function adelantarVagon(tren, id) {
-  const comp = Array.isArray(tren?.composicion) ? [...tren.composicion] : ['pasajeros'];
+  const comp = Array.isArray(tren?.composicion) ? [...tren.composicion] : [];
   const i = comp.indexOf(id);
   if (i <= 0) return { ok: false, motivo: 'primero', composicion: comp };
   [comp[i - 1], comp[i]] = [comp[i], comp[i - 1]];

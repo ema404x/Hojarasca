@@ -1,6 +1,6 @@
 # Plan 3.7 — La aldea crece, Amor, Cocina, La trochita y Tradiciones
 
-Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suyas). Se ejecuta en 5 versiones, una detrás de otra. Reglas que siguen valiendo: nada religioso, sin economía nueva (trueque y servicios sí), sólo Relax, inglés al final.
+Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suyas). Se ejecuta en 6 versiones, una detrás de otra. Reglas que siguen valiendo: nada religioso, sin economía nueva (trueque y servicios sí), sólo Relax, inglés al final.
 
 ## 3.7.0 — La aldea crece
 - Llegan 8 pobladoras nuevas, intercaladas con los 11 de la 3.6, en una calle nueva que sube hacia la loma:
@@ -47,7 +47,18 @@ Planificado con el usuario en charla el 05-10-2026 (todas las decisiones son suy
 - Sin combustible: la locomotora anda sola, como ahora.
 - **Diseño aprobado por el usuario** ("me encanta"): prototipo en la rama `proto-tren` (`?debug=1&tren=proto`, `src/tren-proto.js`, capturas en `pruebas/salidas/proto-tren/`): Baldwin a vapor "La Hojarasca" con ténder de leña, 13 dibujos (antes 63). Pulir al pasarlo al juego: andenes cortos para 70 m de tren (alargar o limitar vagones), interiores apagados de lejos, el caballo de la jaula es el tuyo, más luz en el dormitorio de noche, poses de Ernesto y Martín, colisiones del taller, el desvío al taller sin cambio de vía, brillo del farol sobre las copas.
 
-## 3.7.4 — Tradiciones
+## 3.7.4 — Vida social tipo Sims (decidido el 06-10)
+- **Rueda de interacciones** alrededor de la persona (clic o E; con mando, el palito), por categorías:
+  - Amistosas y graciosas: saludar con abrazo, chiste, broma, chocar los cinco, felicitar, consolar, hablar del tiempo o de sus gustos.
+  - Picantes, sin violencia: discutir, burlarse, quejarse, ignorar (baja la amistad; se arregla pidiendo perdón).
+  - Románticas ampliadas (sobre la 3.7.1): tomarse de la mano, abrazo largo, susurrar, beso, piropo, bailar lento.
+  - Juntos, ahí mismo: tomar mate, jugar a las cartas, ir a pescar, caminar juntos, sacarse una foto.
+  - Más lo de siempre (charla, regalar, invitar, dar una mano, servicio, encargos, lo del lugar).
+- **Se ve lo que sienten**: burbujas con íconos del tema mientras charlan, emociones arriba de la cabeza (contento, enojado, cansado, enamorado, triste), **barra de relación visible** (amistad y romance; reemplaza el "sin números" de la 3.6) y **voces tipo Sims** (balbuceo con la voz de cada uno). Lo que dicen: burbuja + un renglón corto en castellano; lo largo sigue en el cuadro de charla.
+- **Iniciativa de los vecinos**: te hablan ellos (saludan, invitan, piden ayuda, chismes); interactúan entre ellos de verdad con animaciones (abrazos, discusiones, risas, baile, cartas); cada uno tiene un **deseo** chico que se ve al hablarle; **humor del día** que cambia cómo responden. Respeta el ajuste "ritmo de la aldea".
+- **Pueden salir mal** según humor y relación, con reacciones graciosas (cachetada suave, te mira raro) que bajan un poco la relación.
+
+## 3.7.5 — Tradiciones
 - Fiestas por estación, con baile, juegos, jineteada y mesa larga.
 - Día de la aldea, fechas patrias o de calendario, minga, truco y noche de la leyenda.
 - Nevada solidaria.
@@ -80,7 +91,7 @@ Pulidos pendientes:
 - 3.7.0: escena de llegada de cada pobladora con su objeto; los chicos cambian de verdad por etapa.
 - 3.7.1: lugar favorito de cada una (declararse/proponer); ramos de flores y cartas de amor por el correo; en público se nota la pareja; ñiki ñiki sólo con los hijos dormidos en su cuarto; chisme con humor en la radio y el diario.
 - 3.7.2: recetario en el cuaderno; el humo del asado atrae vecinos y al perro (que roba un chorizo); alacena que se llena; nada se pudre; con lluvia el asado necesita techito.
-- 3.7.4: música de cada fiesta (chamamé, loncomeo, folklore del sur); invitados de otras paradas; recuerdo de cada fiesta para colgar; fotos de la fiesta al álbum y al concurso.
+- 3.7.5: música de cada fiesta (chamamé, loncomeo, folklore del sur); invitados de otras paradas; recuerdo de cada fiesta para colgar; fotos de la fiesta al álbum y al concurso.
 - Más: cumpleaños del jugador (fiesta sorpresa); casa propia en la calle de la loma; el camino refugio–aldea con minga, faroles y un sulky; cartas de la aldea si no vas; chinchón, damas y taba; clases de baile con Pocha (chamamé, chacarera); club de lectura; noche de estrellas abierta con Valentina; campamento con tus hijos; huerta de los chicos en la escuela; los 90 de la abuela; tren especial de fiesta.
 
 ## Personajes: estilo P (elegido por el usuario)

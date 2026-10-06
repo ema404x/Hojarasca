@@ -72,6 +72,9 @@ import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
 import { crearAnimalesAldea } from './aldea-animales-mundo.js';
 import { gruposDeObras, buscarLugar, materialesDeObra, sumarMateriales, devolucionDeRenoval, textoDesalojo } from './aldea-desalojo.js';
 import { crearAldeaMundo } from './aldea-mundo.js';
+// 3.7.3: la trochita mejorada (la Baldwin "La Hojarasca" y los vagones del taller), sólo en el Relax
+import { armarTren, aplicarMejoras } from './tren.js';
+import { TREN, FURGON, manejoDe, agarreDe, silbatoDelTren, sanearViaje, puedeMatear, fraseMate, pasajerosDelDia, charlaDelViaje } from './tren-viaje.js';
 // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea y lo que la hace sentirse viva
 import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
 import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
@@ -86,8 +89,8 @@ import { crearCocinaJuego } from './cocina-juego.js';
 // 3.7.3: el taller ferroviario de la aldea y las mejoras del tren (sólo en el Relax)
 import { crearTallerJuego } from './taller-tren-juego.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
-import { PLANOS_COCINA_E } from './cocina-pasos.js';
-import { sumarAmistadDe } from './vecindad.js';
+import { PLANOS_COCINA_E, RECETA_PASOS } from './cocina-pasos.js';
+import { sumarAmistadDe, nombreCorto } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -578,7 +581,12 @@ async function construir() {
   tren = await paso('Tendiendo las vías de la trochita', 74, () => {
     // 3.6: en el Relax, la parada del sur es la de la Aldea de los Duendes (cartel y anuncios)
     // (3.6: `lugaresAntes`: dónde estaban la casa de té y el almacén, para el nombre de antes de cada parada)
-    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }, lugaresAntes: est.lugaresSorteo || null });
+    // 3.7.3: en el Relax, la trochita mejorada (tren.js): lo que tenga del taller (`progreso.tren`), la pintura y el
+    // nombre de "Personalizar", los dos vecinos que viajan hoy y tu caballo; el silbato del taller. En el Desafío, el
+    // tren de siempre.
+    const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }, lugaresAntes: est.lugaresSorteo || null,
+      armarTren: esDesafio ? null : (o) => armarTren({ ...o, T, estado: progreso?.tren, personal: progreso?.personal?.trochita || null, pasajeros: pasajerosDelDia(progreso?.dia), invierno: inviernoDeAjustes(), caballo: progreso?.personal?.caballo || null }),
+      silbato: esDesafio ? null : () => silbatoDelTren(progreso?.tren, sonido.silbatoElegido) });
     // lo del comercio guardado con el nombre de antes de la parada pasa al de ahora (3.6: la del
     // sur es la de la aldea, y la que se llamaba como la casa de té toma el nombre de lo que le
     // queda cerca). En dos pasos: un nombre nuevo puede ser el viejo de otra.
@@ -1058,8 +1066,11 @@ let durmiendo = false;
 // hora real y cada E sumaba otro día (la huerta crecía sin fin). Una noche de reloj = un día.
 // La clave va de mediodía a mediodía: la noche entera cae en la misma.
 const claveNocheReloj = (d = new Date()) => new Date(d.getTime() - 12 * 3600e3).toDateString();
+// (3.7.3: `dormirEnElTren`: en la cucheta del coche dormitorio, andando o parado, donde estés)
+let dormirEnElTren = false;
 function dormir() {
   if (durmiendo) return;
+  const op = { enTren: dormirEnElTren };
   if (desafio) {
     const r = desafio.puedeDormir();
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
@@ -1078,9 +1089,10 @@ function dormir() {
   const casa = bajoTechoPropio ? obras?.estadoHabitat?.(jp, { fuego: fuegoVivo ? fg.pos : null }) || null : null;
   // 3.6 (vida): dormir afuera (lejos del refugio y sin techo tuyo) también se comenta en la aldea
   const refu = T.lugares.refugio;
-  if (!desafio && deNoche && !bajoTechoPropio && refu && Math.hypot(jp.x - refu.x, jp.z - refu.z) > 15) vecindadJuego?.hecho('durmio-afuera');
+  if (!desafio && deNoche && !bajoTechoPropio && !op?.enTren && refu && Math.hypot(jp.x - refu.x, jp.z - refu.z) > 15) vecindadJuego?.hecho('durmio-afuera');
   const distanciaAlFuego = fuegoVivo ? Math.hypot(fg.pos.x - jp.x, fg.pos.z - jp.z) : Infinity;
-  const comoSinRopa = desafio || !deNoche ? 'normal' : comoDormiste({
+  // 3.7.3: en la cucheta del coche dormitorio: abrigado con la manta; con la salamandra del coche de pasajeros, calentito
+  const comoSinRopa = desafio || !deNoche ? 'normal' : op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal') : comoDormiste({
     invierno: U.uInvierno.value, manta: !!progreso.cosas.manta, distanciaAlFuego, casa, carpa: enLaCarpa(),
   });
   // 2.8: la ropa abriga (ver personal-personaje.js): con poncho, gorro y bufanda, un escalón mejor
@@ -1116,7 +1128,8 @@ function dormir() {
       if (deNoche) jugador.estado.descansado = descanso;
       if (deNoche && amorJuego?.bonos().dormir) jugador.estado.descansado += amorJuego.bonos().dormir;   // 3.7.1: y lo que te enseñó Marta
       if (descanso > 0) { diario.anotar('descanso'); setTimeout(() => nota('Descansaste de verdad', 'La casa ya es casa: vas a andar más liviano un rato'), 3200); }
-      if (como === 'calentito' && calorDeLaCasa) setTimeout(() => nota('Dormiste calentito', 'El calor de la estufa llegó a toda la casa'), 1600);
+      if (op?.enTren) setTimeout(() => nota(deNoche ? 'Dormiste en el tren' : 'Una siesta en la cucheta', como === 'calentito' ? 'La salamandra del coche de pasajeros aguantó toda la noche' : 'Con la manta del dormitorio y el traqueteo de la vía'), 1600);
+      else if (como === 'calentito' && calorDeLaCasa) setTimeout(() => nota('Dormiste calentito', 'El calor de la estufa llegó a toda la casa'), 1600);
       else if (como === 'calentito') setTimeout(() => nota('Dormiste calentito', 'El fuego aguantó toda la noche'), 1600);
       else if (como === 'normal' && inviernoEnCasa) setTimeout(() => nota('La casa y la manta alcanzaron', 'Sin fuego, pero bajo techo y abrigado'), 1600);
       else if (como === 'fresco' && inviernoEnCasa) setTimeout(() => nota('Dormiste bajo techo, sin fuego', 'Se sintió el frío, pero la casa aguantó: un fuego lo arregla'), 1600);
@@ -2655,6 +2668,8 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
       // 3.1: en el poste de una carrera, E larga (también montado, en el kayak o en el velero; el aviso va en el mismo lugar)
       if (!objetivo) { const c = modos?.accion(jugador.estado); if (c) { c.hacer(); break; } }
+      // 3.7.3: montado al lado de la jaula del tren (parado), E sube a tu caballo y vos con él
+      if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }
       if (js.montado) { desmontar(); break; }
       if (!js.enTren && !js.enKayak && !objetivo && cercaDelMostrador()) { abrirAlmacen(); break; }
       if (!objetivo && caballoCerca()) { montar(); break; }
@@ -2686,10 +2701,12 @@ document.addEventListener('keydown', (e) => {
       }
       if (!objetivo && rastro && !desafio && mirandoAlPerro(js, perro.est.pos)) { dejarRastro('Dejaste el rastro', 'El perro vuelve con vos'); break; }
       if (!objetivo && puedoPedirRastro()) { pedirRastro(); break; }
+      // 3.7.3: en el tren mejorado, lo de cada lugar: la cocina del comedor, unos mates, la cucheta (el aviso, igual)
+      if (js.enTren && usarLugarDelTren()) break;
       // 2.9: en la cabina, E baja (parado en un andén)
       if (js.enTren && tren.conduciendo()) { bajarDeLaCabina(); break; }
       if (js.enTren && !tren.parado()) { nota('El tren está andando', 'Bajate cuando pare en una estación'); break; }
-      if (js.enTren) { if (!tren.bajar(jugador)) nota('El tren está andando', 'Bajate cuando pare en la estación'); break; }
+      if (js.enTren) { if (!tren.bajar(jugador)) nota('El tren está andando', 'Bajate cuando pare en la estación'); else bajarCaballoDelTren(); break; }
       // 2.4.1: mirando algo (el banco del andén) E hace eso, como dice el aviso
       // 2.9: al lado de la locomotora, E sube a la cabina (más cerca del coche, de pasajero)
       if (!desafio && !js.enKayak && !js.enTren && !objetivo && tren.puedeConducir(js)) { subirALaCabina(); break; }
@@ -4379,19 +4396,30 @@ function armarOficiosYAldea(esDesafio) {
     redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); }, alAbrirPanel: () => { marcarEn('cocina', 0); marcarHud(0, true); },
   });
   // 3.7.3: el taller ferroviario: E y el aviso, el panel de mejoras, el reloj del taller. Al terminar una mejora (y al
-  // cambiar la pintura, el nombre, el silbato o la composición) le avisa al tren con `aplicarMejoras(progreso.tren)`:
-  // el enganche con el equipo del tren (trochita.js); si el tren todavía no lo tiene, no pasa nada
+  // cambiar la pintura, el nombre, el silbato o la composición) le avisa al tren con `aplicarMejoras(progreso.tren)` de
+  // tren.js (el equipo del tren), que rearma la trochita de la vía con lo nuevo
   tallerTren = crearTallerJuego({
     progreso: () => progreso, desafio: () => !!desafio, materiales: () => materialesVisibles(), conMateriales: (fn) => conMateriales(fn),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alAbrirPanel: () => { marcarEn('taller-tren', 0); marcarHud(0, true); },
     pedirTexto: (texto, inicial, extra) => dialogos.pedirTexto(texto, inicial, extra),
-    aplicarMejoras: (estado) => { if (typeof tren?.aplicarMejoras === 'function') tren.aplicarMejoras(estado); },
+    aplicarMejoras: (estado) => aplicarMejoras(estado),   // (el de tren.js: rearma el tren de la vía sin tirón)
   });
   cocinaMundo = crearCocinaMundo({
     T, escena, mat: est?.mat, cocina: () => cocinaJuego, progreso: () => progreso, obras: () => obras, camara: () => camara?.position || null,
     noche: () => 1 - (luzUltimaFoto?.dia ?? 1), viento: () => clima?.estado?.viento ?? 0.3, perro: () => perro, jugador: () => jugador?.estado || null,
   });
+  // 3.7.3: la cocina del coche comedor del tren (una estación móvil: siempre con techo; la cuenta de lo que se cocina
+  // la lleva cocina-juego.js y tren.js dibuja el fuego y la olla)
+  if (tren?.tren?.cocina) {
+    const enMundo = new THREE.Vector3();
+    cocinaComedor = cocinaJuego.registrarMovil({
+      id: 'tren-comedor', tipo: 'cocina-lena', techo: true, nombre: 'La cocina del coche comedor',
+      pos: () => { const v = tren.tren.vagon('comedor'), k = tren.tren.posCocina; if (!v || !k) return null; v.updateMatrixWorld(); enMundo.set(k.x, k.y, k.z).applyMatrix4(v.matrixWorld); return { x: enMundo.x, y: enMundo.y, z: enMundo.z }; },
+    });
+  }
+  // (una partida guardada con el caballo en la jaula: baja en la parada más cerca)
+  if (progreso.trenViaje?.caballo && !jugador?.estado?.enTren) bajarCaballoDelTren();
   // 3.7.2 (granja): la granja en el juego: E y el aviso, los trueques en la charla y el paso de los días
   granjaJuego = crearGranjaJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, mundo: granjaMundo,
@@ -4742,6 +4770,8 @@ function cargas() {
       progreso: () => progreso, dia: () => progreso.dia,
       temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),
       nota, sonido, guardar, refrescar: () => refrescarBarra(true), T_,
+      // 3.7.3: con el furgón de carga enganchado, más fletes por día y a la vez
+      furgon: () => (conVagon('carga') ? { extra: FURGON.fletesExtra, aLaVez: FURGON.aLaVez } : null),
     });
   }
   return puestoCargas;
@@ -4762,6 +4792,7 @@ function bajarDeLaCabina() {
     nota(tren.est.vel > 0 ? 'El tren está andando' : 'No hay andén acá', 'Frená con S adentro de un andén para bajarte');
     return false;
   }
+  bajarCaballoDelTren();   // 3.7.3: tu caballo baja con vos
   if (enLasCargas()) puestoCargas.cerrar();
   nota('Bajaste de la cabina', 'La trochita sigue sola hasta la próxima');
   guardar();
@@ -4934,7 +4965,7 @@ function dondeEstaElCaballo() {
   return dondeEspera(caballo(), T.lugares.refugio);
 }
 function caballoCerca() {
-  if (!tieneCaballo()) return false;
+  if (!tieneCaballo() || caballoEnElTren()) return false;
   const js = jugador.estado;
   if (js.montado || js.enTren || js.enKayak || js.nadando) return false;
   const d = dondeEstaElCaballo();
@@ -4967,12 +4998,133 @@ function actualizarCaballo(dt) {
   if (!caballoMundo) return;
   const js = jugador.estado;
   if (!tieneCaballo()) { if (js.montado) js.montado = null; caballoMundo.actualizar(dt, CABALLO_AUSENTE, 0, false, false); return; }
+  // 3.7.3: viajando en la jaula del tren, el del valle no está (el de la jaula lo dibuja tren.js)
+  if (caballoEnElTren()) { caballoMundo.actualizar(dt, CABALLO_AUSENTE, 0, false, false); return; }
   const d = dondeEstaElCaballo();
   // montado, el caballo va donde vas: se anota para que al recargar esté donde lo dejaste
   if (js.montado) { const c = caballo(); c.x = d.x; c.z = d.z; c.yaw = d.yaw; }
   const cerca = js.montado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) < 170;
   caballoMundo.actualizar(dt, d, js.velocidadActual, !!js.montado, cerca);
   if (js.montado?.plantado) { js.montado.plantado = 0; nota('El zaino no entra al agua honda', 'Buscá un vado o bajate y seguí nadando'); }
+}
+
+// ---------------------------------------------------------------- 3.7.3: el tren mejorado (sólo en el Relax)
+// Lo que se usa de cada vagón (el lugar donde vas lo dice trochita.js: `tren.asientoActual()`): al lado de la
+// salamandra del coche de pasajeros se te va el frío y los vecinos que viajan charlan; en el comedor se cocina (la
+// cocina móvil de cocina-juego.js, que tren.js dibuja con su fuego y su olla) y se matea; en el dormitorio se duerme;
+// desde el mirador las fotos salen mejor (fotos.js); la jaula lleva a tu caballo; el furgón da más fletes. Lo que
+// tiene el tren lo pone el taller en `progreso.tren` (ver tren-viaje.js); el viaje, en `progreso.trenViaje`.
+let cocinaComedor = null, avisoPatina = false;
+const charlaTren = { t: 10, n: 0, hasta: 0 };
+const cacheManejo = { t: 0, manejo: null, agarre: 1 };
+const trenMejorado = () => !desafio && !!tren?.tren?.lugares;
+const conVagon = (id) => trenMejorado() && tren.tren.composicion.includes(id);
+function viajeTren() { if (!progreso.trenViaje || !progreso.trenViaje.__sano) { progreso.trenViaje = sanearViaje(progreso.trenViaje); Object.defineProperty(progreso.trenViaje, '__sano', { value: true, enumerable: false }); } return progreso.trenViaje; }
+const caballoEnElTren = () => !desafio && !!progreso?.trenViaje?.caballo;
+const ahoraJuego = () => progreso.dia * 24 + progreso.horas;
+function lugarDelTren() { return trenMejorado() && jugador?.estado.enTren && !tren.conduciendo() ? tren.asientoActual() : null; }
+const alCalorDelTren = () => !!lugarDelTren()?.calor;
+function avisoLugarDelTren() {
+  const a = lugarDelTren();
+  if (!a) return null;
+  if (a.cocina && cocinaComedor) { const t = cocinaComedor.aviso(); return t ? { tecla: 'E', texto: t } : null; }
+  if (a.mesa && puedeMatear(viajeTren(), ahoraJuego())) return { tecla: 'E', texto: 'Tomar unos mates' };
+  if (a.cama) return { tecla: 'E', texto: progreso.horas >= 19.5 || progreso.horas < 6 ? 'Dormir en la cucheta' : 'Dormir una siesta en la cucheta' };
+  if (a.calor && !tren.parado()) return { tecla: '·', texto: 'Al calor de la salamandra' };
+  return null;
+}
+function usarLugarDelTren() {
+  const a = lugarDelTren();
+  if (!a) return false;
+  if (a.cocina && cocinaComedor) return cocinaComedor.usar();
+  if (a.mesa && puedeMatear(viajeTren(), ahoraJuego())) { matearEnElTren(); return true; }
+  if (a.cama) { dormirEnElTren = true; dormir(); dormirEnElTren = false; return true; }
+  return false;
+}
+function matearEnElTren() {
+  const v = viajeTren();
+  v.mate = ahoraJuego();
+  const js = jugador.estado;
+  js.entumecido = 0;
+  js.descansado = Math.max(js.descansado || 0, 1);
+  charlaTren.n++;
+  sonido.juntar();
+  nota('Unos mates en el comedor', fraseMate(progreso.dia + charlaTren.n));
+  guardar();
+}
+// tu caballo y la jaula: montado al lado de la jaula, con el tren parado
+function jaulaCerca() {
+  if (!conVagon('caballo') || !tieneCaballo() || caballoEnElTren() || !tren.parado() || tren.conduciendo()) return false;
+  const js = jugador.estado, v = tren.tren.vagon('caballo');
+  if (!js.montado || !v) return false;
+  return Math.hypot(v.position.x - js.pos.x, v.position.z - js.pos.z) < 6.5 && Math.abs(v.position.y - js.pos.y) < 3;
+}
+function subirCaballoAlTren() {
+  const js = jugador.estado;
+  js.montado = null;
+  viajeTren().caballo = true;
+  tren.tren.ponerCaballo(caballoMundo?.apariencia?.() || null);
+  tren.tren.subirCaballo(true);
+  tren.subir(jugador);
+  diario.anotar('tren'); registrar('viaje');
+  sonido.casco?.('madera', 1);
+  nota(`Subiste ${caballoMundo?.nombre?.() || 'al zaino'} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos');
+  guardar();
+}
+// al bajarte en una parada: tu caballo baja con vos, al costado del andén (pasando la escalera)
+function bajarCaballoDelTren(parada = null) {
+  if (!caballoEnElTren()) return;
+  const js = jugador.estado;
+  const p = parada || tren.paradaCerca(js) || tren.paradas.reduce((a, b) => (Math.hypot(b.anden.x - js.pos.x, b.anden.z - js.pos.z) < Math.hypot(a.anden.x - js.pos.x, a.anden.z - js.pos.z) ? b : a), tren.paradas[0]);
+  const lx = (p.chica ? 4.5 : 9) + 4.2, lz = 1.15 + 1.8 + 1.4;
+  const c = caballo();
+  c.x = p.x + lx * Math.cos(p.ang) + lz * Math.sin(p.ang);
+  c.z = p.z - lx * Math.sin(p.ang) + lz * Math.cos(p.ang);
+  c.yaw = p.ang + Math.PI;
+  viajeTren().caballo = false;
+  tren.tren?.subirCaballo?.(false);
+  nota(`${caballoMundo?.nombre?.() || 'El zaino'} bajó con vos`, 'Te espera al costado del andén');
+  guardar();
+}
+// antes de mover el tren: lo que rinde la locomotora (la caldera, el freno y el agarre, cada medio segundo)
+function prepararTren(dt) {
+  if (!trenMejorado()) return;
+  cacheManejo.t -= dt;
+  if (cacheManejo.t <= 0 || cacheManejo.ref !== progreso.tren) {
+    cacheManejo.t = 0.5; cacheManejo.ref = progreso.tren;
+    cacheManejo.manejo = manejoDe(progreso.tren);
+    cacheManejo.agarre = agarreDe(progreso.tren, { lluvia: clima?.estado?.lluvia || 0, helada: U.uInvierno.value * (0.4 + 0.6 * (ctxTren.noche || 0)) });
+  }
+  ctxTren.manejo = cacheManejo.manejo;
+  ctxTren.agarre = cacheManejo.agarre;
+}
+// después de moverlo: la cocina del comedor (su fuego y su olla), los avisos de la nieve y de las ruedas que
+// patinan, y la charla de los vecinos que viajan
+function despuesDelTren(dt) {
+  if (!trenMejorado() || !estadoTren) return;
+  const js = jugador.estado;
+  if (cocinaComedor) { const c = cocinaComedor.coccion(); tren.tren.cocina(c, c ? RECETA_PASOS[c.receta] : null); }
+  // el taller sacó la jaula con tu caballo adentro: lo bajan en la estación de la aldea
+  if (caballoEnElTren() && !conVagon('caballo') && !js.enTren) bajarCaballoDelTren(tren.paradas.find((p) => p.aldea) || null);
+  if (estadoTren.cabina?.patina && !avisoPatina) { avisoPatina = true; nota('Las ruedas patinan en la vía', 'Con la vía mojada o helada, abrí el regulador de a poco. Con un arenero no pasa'); }
+  const n = estadoTren.avisoNieve;
+  if (n && (js.enTren || Math.hypot(estadoTren.pos.x - js.pos.x, estadoTren.pos.z - js.pos.z) < 150)) {
+    if (n === 'plantado') nota('La vía está tapada de nieve', 'Sin quitanieves el tren no pasa: hay que esperar a la cuadrilla con las palas');
+    else if (n === 'cuadrilla') nota('Pasó la cuadrilla con las palas', 'La vía quedó abierta');
+    else if (n === 'abierta') nota('El quitanieves abrió la vía', 'La nieve quedó a los costados');
+  }
+  // los vecinos del coche de pasajeros charlan (con vos viajando ahí)
+  if (charlaTren.hasta > 0 && (charlaTren.hasta -= dt) <= 0) decirCharlaAldea(null);
+  const a = lugarDelTren();
+  const viajeros = tren.tren.viajeros?.() || [];
+  if (a?.vagon === 'pasajeros' && viajeros.length && modo === 'jugando' && !charla.npc) {
+    charlaTren.t -= dt;
+    if (charlaTren.t <= 0) {
+      charlaTren.t = TREN.charlaCada;
+      decirCharlaAldea(charlaDelViaje(charlaTren.n++, nombreCorto(viajeros[0]), nombreCorto(viajeros[1] || viajeros[0])));
+      charlaTren.hasta = 7;
+    }
+  } else charlaTren.t = Math.min(charlaTren.t, 6);
 }
 
 // ---------------------------------------------------------------- el bosque vuelve
@@ -5749,7 +5901,7 @@ function actualizarTendales() {
   const js = jugador.estado;
   progreso.humedadLena = humedecer(sanearHumedad(progreso.humedadLena), horas, { lluvia: clima.estado.lluvia, bajoTecho: !!(obras?.dentro?.(js.pos) || obras?.bajoCubierta?.(js.pos)) });
   if (js.entumecido > 0) {
-    js.entumecido = desentumecer(js.entumecido, horas, cercaDelFuego() || !!mecanicasAldea?.juntoAEstufa(js.pos));   // 3.6 (mecánicas): y las estufas de la aldea
+    js.entumecido = desentumecer(js.entumecido, horas, cercaDelFuego() || !!mecanicasAldea?.juntoAEstufa(js.pos) || alCalorDelTren());   // 3.6 (mecánicas): y las estufas de la aldea (3.7.3: y la salamandra del tren)
     if (js.entumecido === 0) nota('Ya entraste en calor', 'El cuerpo arrancó');
   }
   if (js.descansado > 0) js.descansado = gastarDescanso(js.descansado, horas);
@@ -6853,6 +7005,7 @@ async function sacarFoto() {
     const js = jugador.estado;
     const vistos = fotos.evaluar({
       sujetos: [...fauna.sujetos(), ...vida.sujetos(), ...bichos.sujetos()], horas: progreso.horas, zoom: js.zoom, tren: estadoTren, lente: !!progreso.cosas?.lente || !!amorJuego?.bonos().lente,   // (3.7.0: el lente de Sofía)
+      mirador: !!lugarDelTren()?.mirador,   // (3.7.3: desde el coche mirador del tren)
       pezEnMano: pesca.mostrandoPez(), noche: 1 - (luzUltimaFoto?.dia ?? 1), lunaDir: luzUltimaFoto?.lunaDir,
       fogata: clima.fogata.activa && clima.fogata.vida > 0 ? clima.fogata.pos : null,
       otono: U.uOtono.value, invierno: U.uInvierno.value, arboles: veg.arboles, enKayak: js.enKayak,
@@ -7820,8 +7973,10 @@ function cuadroDelJuego(tRaf, manual) {
   ctxTren.frena = modo === 'jugando' && js.enTren && (jugador.teclas.has('KeyS') || jugador.teclas.has('ArrowDown'));
   // 2.9: con la pausa, un menú o un panel abierto, el tren que manejás se queda congelado
   ctxTren.pausado = js.enTren && tren.conduciendo() && (modo !== 'jugando' || personalAbierto() || enLasCargas() || enElAlmacen || enLaFeria || mochilaAbierta || !!charla.npc || foto.activo);
+  prepararTren(dt);   // 3.7.3: la caldera, el freno y el agarre del taller
   estadoTren = tren.actualizar(dt, jugador, camara, ctxTren);
   actualizarCabina(ctxTren.pausado ? 0 : dt);
+  try { despuesDelTren(dt); } catch (e) { fallaSistema('tren', e); }   // 3.7.3: lo de los vagones
 
   try { if (!kayak.est.activo) kayak.actualizar(dt, () => false, jugador, U.uTiempo.value); } catch (e) { fallaSistema('kayak', e); }
   kayak.remo.visible = kayak.est.activo && !pesca.est.equipada;
@@ -8019,7 +8174,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
     if (js.enTren) {
       if (vecino) aviso = { tecla: 'E', texto: `Hablar con ${vecino.nombre}` };
-      else aviso = tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : null;
+      // (3.7.3: en el tren mejorado, lo de cada lugar primero, como en la tecla E)
+      else aviso = avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : null);
       // 2.9: en la cabina se baja parado en un andén
       if (!vecino && tren.conduciendo()) aviso = tren.parado() && !enLasCargas() ? { tecla: 'E', texto: 'Bajar de la cabina' } : null;
     }
@@ -8060,7 +8216,7 @@ function cuadroDelJuego(tRaf, manual) {
     // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
-    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : { tecla: 'E', texto: 'Bajarte del zaino' };
+    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: 'Bajarte del zaino' };
     // 2.6.1: charlando, E sólo sigue la charla: el caballo, la puerta o el kayak no se ofrecen
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco
@@ -8437,6 +8593,9 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     huerta, canteroCerca, usarCantero, revisarHuerta, refrescarHuerta, majada, esquilarOveja,
     otraVuelta, exportarAlbum, revisarLogrosRelax, __logrosRelax: () => logrosRelax,
     montar, desmontar, caballoCerca, dondeEstaElCaballo, __caballo: () => caballoMundo,
+    // 3.7.3: el tren mejorado (pruebas/humo-3-7-3-tren.cjs)
+    lugarDelTren, usarLugarDelTren, avisoLugarDelTren, matearEnElTren, jaulaCerca, subirCaballoAlTren, bajarCaballoDelTren, viajeTren, conVagon, __cocinaComedor: () => cocinaComedor, dormir,
+    __aplicarMejorasTren: aplicarMejoras, __charlaTren: charlaTren,
     __majada: () => majadaMundo, __matasHuerta: () => matasHuerta, correo, revisarCorreo, tormenta, revisarTormenta, caerRayo, usarHacha, __agua: () => agua,
     // el banco de sonidos del Desafío armado contra el motor que se le pase: así el
     // renderizador de sonidos puede sacar a un archivo lo mismo que suena jugando

@@ -35,6 +35,7 @@ const VE = await import('../src/vecindad.js');
 const VZ = await import('../src/vecindad-voces.js');
 const AV = await import('../src/aldea-vida.js');
 const RO = await import('../src/gente-ropa.js');
+const TV = await import('../src/tren-viaje.js');   // el equipo del tren: cómo lee `progreso.tren`
 
 // ============================================================ 0. los módulos
 {
@@ -61,12 +62,14 @@ const nuevo = TM.trenNuevo();
   eq(Object.keys(nuevo.loco.pintura).sort(), ['cuerpo', 'franja', 'ruedas'], 'la pintura: cuerpo, franja y ruedas');
   eq(Object.keys(nuevo.vagones).sort(), ['caballo', 'carga', 'comedor', 'dormitorio', 'mirador', 'pasajeros'], 'los seis vagones');
   ok(nuevo.loco.caldera === 0 && nuevo.loco.freno === 0 && nuevo.loco.farol === false && nuevo.loco.silbato === 'comun' && !nuevo.loco.quitanieves && !nuevo.loco.arenero && !nuevo.loco.banderines, 'la loco de siempre');
-  ok(nuevo.loco.nombre === 'La Hojarasca' && nuevo.loco.pintura.cuerpo === 'negro' && nuevo.loco.pintura.franja === 'rojo', 'La Hojarasca, negra con la franja roja (el prototipo aprobado)');
-  ok(nuevo.vagones.pasajeros === true && Object.entries(nuevo.vagones).every(([k, v]) => v === (k === 'pasajeros')), 'el coche de pasajeros es el de siempre; los demás, por hacer');
-  eq(nuevo.composicion, ['pasajeros'], 'la composición de siempre');
+  ok(nuevo.loco.nombre === '' && Object.values(nuevo.loco.pintura).every((v) => v === null), 'sin nombre ni pintura del taller: los de siempre (o los de «Personalizar»)');
+  ok(Object.values(nuevo.vagones).every((v) => v === false) && nuevo.composicion.length === 0, 'ningún vagón nuevo: van los dos coches de segunda de siempre');
+  // como lo lee el equipo del tren (tren-viaje.js): lo mismo que el suyo de fábrica, y la composición de siempre
+  eq(TV.sanearEstadoTren(nuevo).loco, TV.estadoTrenNuevo().loco, 'tren-viaje.js lo lee igual que su tren nuevo');
+  ok(TV.composicionDe(nuevo).join() === 'segunda,segunda2', 'y salen los dos de segunda');
   ok(TM.VAGONES_MAX === 4, 'ténder + 4 vagones (los andenes no dan para más)');
   eq([...TM.IDS_SILBATOS].sort(), ['comun', 'doble', 'grave', 'pajaro'], 'los silbatos del contrato');
-  ok(TM.IDS_PALETA.length >= 8 && TM.IDS_PALETA.every((k) => /^#[0-9a-f]{6}$/.test(TM.PALETA_TREN[k].hex)) && TM.colorTren('rojo') === '#9a3324' && TM.colorTren('nada') === TM.PALETA_TREN.negro.hex, 'la paleta y su color');
+  ok(TM.IDS_PALETA.length >= 8 && TM.IDS_PALETA.every((k) => /^#[0-9a-f]{6}$/.test(TM.PALETA_TREN[k].hex)) && TM.colorTren('rojo') === '#9a3324' && TM.colorTren('#9A3324') === '#9a3324' && TM.colorTren('nada') === null && TM.colorTren('#123456') === null, 'la paleta: el color de cada uno; lo que no es de la paleta, la de siempre');
 }
 
 // ============================================================ 2. las mejoras
@@ -85,7 +88,7 @@ const nuevo = TM.trenNuevo();
   ok(M['caldera-3'].requiere.includes('caldera-2') && M['freno-2'].requiere.includes('freno-1'), 'cada nivel pide el anterior');
   for (const k of ['farol', 'quitanieves', 'arenero', 'banderines']) ok(TM.IDS_MEJORAS.some((id) => M[id].efecto.campo === k && M[id].efecto.valor === true), `la mejora: ${k}`);
   for (const k of ['grave', 'doble', 'pajaro']) ok(TM.IDS_MEJORAS.some((id) => M[id].efecto.campo === 'silbato' && M[id].efecto.valor === k), `el silbato ${k}`);
-  for (const v of ['comedor', 'carga', 'caballo', 'mirador', 'dormitorio']) ok(TM.IDS_MEJORAS.some((id) => M[id].efecto.vagon === v), `el vagón ${v}`);
+  for (const v of ['pasajeros', 'comedor', 'carga', 'caballo', 'mirador', 'dormitorio']) ok(TM.IDS_MEJORAS.some((id) => M[id].efecto.vagon === v), `el vagón ${v}`);
   ok(TM.textoPide('caldera-1') === '2 tablas y 6 piedras, más 4 piezas de hierro · 2 días' && TM.textoPide('banderines') === '2 tablas · 3 horas de taller', 'lo que pide, dicho');
   ok(TM.textoPide('caldera-1', true) === '10 tablas y 12 piedras, más 4 piezas de hierro · 2 días', 'la primera, con el arreglo del galpón');
 }
@@ -159,25 +162,30 @@ const nuevo = TM.trenNuevo();
 // ============================================================ 4. pintura, nombre, silbato, composición
 {
   const t = TM.trenNuevo();
-  ok(TM.pintar(t, 'cuerpo', 'verde') && t.loco.pintura.cuerpo === 'verde' && !TM.pintar(t, 'techo', 'rojo') && !TM.pintar(t, 'franja', '#fff'), 'la pintura, de la paleta');
-  ok(TM.colorSiguiente('blanco') === 'negro' && TM.colorSiguiente('negro') === 'rojo' && TM.colorSiguiente('???') === 'rojo', 'el color que sigue');
+  ok(TM.pintar(t, 'cuerpo', 'verde') && t.loco.pintura.cuerpo === '#3d5a42' && !TM.pintar(t, 'techo', 'rojo') && !TM.pintar(t, 'franja', '#fff') && TM.pintar(t, 'ruedas', null) && t.loco.pintura.ruedas === null, 'la pintura, de la paleta (en #rrggbb, como la lee el tren); null, la de siempre');
+  ok(TM.colorSiguiente(null) === '#2e3133' && TM.colorSiguiente('#2e3133') === '#9a3324' && TM.colorSiguiente('#dcd5c4') === null && TM.colorSiguiente('???') === '#2e3133', 'el color que sigue (y vuelve a la de siempre)');
+  eq(TV.sanearEstadoTren(t).loco.pintura, { cuerpo: '#3d5a42', franja: null, ruedas: null }, 'tren-viaje.js lee la pintura del taller');
   ok(TM.ponerNombre(t, '  La   Patagónica  ') && t.loco.nombre === 'La Patagónica', 'el nombre, sin espacios de más');
   ok(TM.ponerNombre(t, '<script>alert(1)</script>Ñandú Express de la Meseta Grande') && t.loco.nombre.length <= TM.LARGO_NOMBRE && !/[<>()]/.test(t.loco.nombre), `el nombre, saneado: ${t.loco.nombre}`);
-  ok(!TM.ponerNombre(t, '   ') && !TM.ponerNombre(t, 42), 'un nombre vacío no cambia nada');
+  ok(!TM.ponerNombre(t, '   ') && !TM.ponerNombre(t, 42) && !TM.ponerNombre(t, '<<>>'), 'un nombre vacío no cambia nada');
+  ok(TV.sanearEstadoTren(t).loco.nombre === t.loco.nombre && TM.LARGO_NOMBRE === 18, 'el nombre, como lo pinta el tren (hasta 18 letras)');
   ok(!TM.elegirSilbato(t, 'grave') && TM.elegirSilbato(t, 'comun'), 'sólo los silbatos hechos');
   t.taller.hechas.push('silbato-grave');
   ok(TM.elegirSilbato(t, 'grave') && t.loco.silbato === 'grave', 'el silbato hecho, elegido');
   // la composición
   for (const v of ['comedor', 'carga', 'caballo', 'mirador', 'dormitorio']) t.vagones[v] = true;
-  ok(!TM.alternarVagon(t, 'pasajeros').ok, 'el de pasajeros va siempre');
-  for (const v of ['carga', 'mirador', 'comedor']) ok(TM.alternarVagon(t, v).ok, `enganchar ${v}`);
+  t.vagones.pasajeros = true;
+  for (const v of ['pasajeros', 'carga', 'mirador', 'comedor']) ok(TM.alternarVagon(t, v).ok, `enganchar ${v}`);
   ok(TM.alternarVagon(t, 'caballo').motivo === 'largo' && t.composicion.length === 4, 'no entra un quinto');
   ok(TM.alternarVagon(t, 'mirador').ok && TM.alternarVagon(t, 'caballo').ok, 'se deja uno en el desvío y entra otro');
   eq(t.composicion, ['pasajeros', 'carga', 'comedor', 'caballo'], 'el orden de enganche');
   ok(TM.adelantarVagon(t, 'caballo').ok && t.composicion[2] === 'caballo' && !TM.adelantarVagon(t, 'pasajeros').ok, 'pasar uno adelante');
-  ok(TM.elegirComposicion(t, ['mirador', 'carga']).ok && t.composicion.join() === 'pasajeros,mirador,carga', 'sin el de pasajeros, se pone adelante');
-  ok(!TM.elegirComposicion(t, ['carga', 'mirador', 'comedor', 'caballo', 'dormitorio']).ok && !TM.elegirComposicion(t, ['carga', 'mirador', 'comedor', 'caballo']).ok, 'más de cuatro, o cuatro sin el de pasajeros, no');
+  ok(TM.elegirComposicion(t, ['mirador', 'carga']).ok && t.composicion.join() === 'mirador,carga', 'la que se elige, en su orden');
+  ok(TV.composicionDe(t).join() === 'mirador,carga', 'y el tren la saca así a la vía');
+  ok(!TM.elegirComposicion(t, ['carga', 'mirador', 'comedor', 'caballo', 'dormitorio']).ok && TM.elegirComposicion(t, ['carga', 'mirador', 'comedor', 'caballo']).ok, 'hasta cuatro detrás del ténder');
+  ok(TV.composicionDe(t).join() === 'carga,mirador,comedor,caballo', 'cuatro, como la lee el tren');
   ok(TM.elegirComposicion(t, ['pasajeros', 'pasajeros', 'nada', 'carga']).composicion.join() === 'pasajeros,carga', 'sin repetidos ni inventados');
+  ok(TM.elegirComposicion(t, []).ok && TV.composicionDe(t).length === 4, 'vacía: van los que tengas (cuatro)');
   const v = TM.trenNuevo();
   ok(!TM.alternarVagon(v, 'carga').ok, 'un vagón que no está hecho no se engancha');
 }
@@ -190,8 +198,8 @@ const nuevo = TM.trenNuevo();
   const r = TM.sanearTren({ loco: { caldera: 3, freno: 2, farol: true, silbato: 'pajaro', nombre: 42, pintura: { cuerpo: 'violeta', ruedas: 'verde' } }, vagones: { carga: true, comedor: true }, composicion: ['carga', 'comedor', 'x'],
     taller: { hechas: ['caldera-3', 'caldera-1', 'carga', 'carga', 'nada'], pedido: { id: 'farol', aportado: { tabla: 99 }, hierro: 99, empezo: 50, listo: 1e12, desde: -5 }, arreglado: 'si', ultimo: 1e15, avisar: ['carga', 'x'] } }, 9);
   ok(r.loco.caldera === 1 && r.loco.freno === 0 && !r.loco.farol && r.loco.silbato === 'comun', 'sólo vale lo hecho de verdad');
-  ok(r.vagones.carga && !r.vagones.comedor && r.composicion.join() === 'pasajeros,carga', 'los vagones y la composición: los hechos');
-  ok(r.loco.nombre === 'La Hojarasca' && r.loco.pintura.cuerpo === 'negro' && r.loco.pintura.ruedas === 'verde', 'el nombre y la pintura, saneados');
+  ok(r.vagones.carga && !r.vagones.comedor && r.composicion.join() === 'carga', 'los vagones y la composición: los hechos');
+  ok(r.loco.nombre === '' && r.loco.pintura.cuerpo === null && r.loco.pintura.ruedas === '#3d5a42', 'el nombre y la pintura, saneados');
   ok(r.taller.hechas.join() === 'caldera-1,carga' && r.taller.arreglado, 'lo hecho, sin repetir ni inventar');
   ok(r.taller.pedido && r.taller.pedido.aportado.tabla === 1 && r.taller.pedido.hierro === 2 && r.taller.pedido.listo === r.taller.pedido.empezo + 0 || r.taller.pedido.listo <= 10 * 24 + 24 * 31, 'el pedido acotado');
   ok(r.taller.ultimo <= 9 * 24 + 24 && r.taller.avisar.join() === 'carga', 'el reloj y los avisos, posibles');
@@ -212,7 +220,8 @@ const nuevo = TM.trenNuevo();
     const x = { loco: basura(), vagones: basura(), composicion: basura(), taller: { hechas: basura(), pedido: { id: TM.IDS_MEJORAS[i % TM.IDS_MEJORAS.length], ...(basura() || {}) }, ...(basura() || {}) } };
     let s;
     try { s = TM.sanearTren(x, 1 + (i % 40)); } catch (err) { assert.fail(`sanearTren tiró con ${JSON.stringify(x)}: ${err}`); }
-    assert.ok(s.composicion.includes('pasajeros') && s.composicion.length <= 4 && s.composicion.every((k) => s.vagones[k]) && [0, 1, 2, 3].includes(s.loco.caldera) && TM.IDS_SILBATOS.includes(s.loco.silbato) && typeof s.loco.nombre === 'string' && s.loco.nombre.length <= 20, 'fuzz: el contrato');
+    assert.ok(s.composicion.length <= 4 && s.composicion.every((k) => s.vagones[k]) && [0, 1, 2, 3].includes(s.loco.caldera) && TM.IDS_SILBATOS.includes(s.loco.silbato) && typeof s.loco.nombre === 'string' && s.loco.nombre.length <= 18 && Object.values(s.loco.pintura).every((c) => c === null || /^#[0-9a-f]{6}$/.test(c)), 'fuzz: el contrato');
+    assert.deepEqual(TV.sanearEstadoTren(s).composicion, s.composicion, 'fuzz: el tren lee la misma composición');
     assert.deepEqual(TM.sanearTren(JSON.parse(JSON.stringify(s)), 1 + (i % 40)), s, 'fuzz: sanear dos veces, lo mismo');
     // y el reloj no tira con lo saneado
     TM.avanzarTaller(s, 1 + (i % 40) + 3, 12, { herreria: i % 2 === 0 });
@@ -475,13 +484,13 @@ function cargarVM(mods) {
   J.elegirPanel(ip);
   ok(J.estado().vista === 'pintura' && J.estado().opciones.length === 4, 'la pintura: tres partes y volver');
   J.elegirPanel(0);
-  ok(J.tren().loco.pintura.cuerpo === 'rojo', 'el cuerpo, al color que sigue');
+  ok(J.tren().loco.pintura.cuerpo === '#2e3133', 'el cuerpo, al color que sigue (de la de siempre al negro humo)');
   ok(J.atras() && J.estado().vista === 'principal', 'Escape vuelve al panel');
   await J.estado().opciones.find((o) => o.texto === 'El nombre') && J.elegirPanel(J.estado().opciones.findIndex((o) => o.texto === 'El nombre'));
   await new Promise((ok2) => setTimeout(ok2, 10));
   ok(J.tren().loco.nombre === 'La Andina', 'el nombre, con el cuadro de texto');
   J.elegirPanel(J.estado().opciones.findIndex((o) => o.texto === 'La composición'));
-  ok(J.estado().vista === 'composicion' && J.estado().opciones[0].marca === 'va siempre', 'la composición: el de pasajeros va siempre');
+  ok(J.estado().vista === 'composicion' && J.estado().opciones.length === 1 && J.estado().opciones[0].texto === 'Volver', 'la composición: sin vagones nuevos, nada que enganchar');
   ok(J.atras() && J.atras() && !J.panelAbierto(), 'Escape: al panel y afuera');
   // el calendario
   TM.pedirMejora(P.tren, 'farol', 9, 9); TM.aportarMejora(P.tren, { tabla: 5 }, 9, 9);
@@ -503,7 +512,7 @@ function cargarVM(mods) {
   ok(m.includes("cacheTaller = tallerTren ? tallerTren.accion(js) : null;") && m.includes("if (tallerTren?.panelAbierto()) return { id: 'taller-tren', ...tallerTren.lista() };"), 'la misma función y la lista del HUD (teclado, mouse y mando)');
   ok(m.includes('alClic: (el, fn) => alClicHud(el, fn)') && m.includes("alAbrirPanel: () => { marcarEn('taller-tren', 0); marcarHud(0, true); }"), 'el clic y la marca, como en las listas del HUD');
   ok((m.match(/tallerTren\.elegirPanel\(Number\(codigo\.slice\(5\)\) - 1\)/g) || []).length === 2 && m.includes('else if (tallerTren?.panelAbierto()) tallerTren.atras();'), 'los números y Escape');
-  ok(m.includes("tren.aplicarMejoras(estado)") && m.includes('dialogos.pedirTexto(texto, inicial, extra)'), 'el enganche con el tren y el cuadro de texto');
+  ok(m.includes("aplicarMejoras: (estado) => aplicarMejoras(estado),") && m.includes("import { armarTren, aplicarMejoras } from './tren.js';") && m.includes('dialogos.pedirTexto(texto, inicial, extra)'), 'el enganche con el tren y el cuadro de texto');
   ok(m.includes("tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }"), 'el reloj del taller, aislado');
   ok(leer('src/plantilla.html').includes('<div class="trueque oculto" id="taller-tren-panel">'), 'el panel en la plantilla');
 }

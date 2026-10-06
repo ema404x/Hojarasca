@@ -1,5 +1,8 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 07-10-2026, 3.7.0 cerrada)
 
+> **ATENCIÓN (06-10, 18:40):** la 3.7.3 La trochita se rehace en la PC de escritorio (ramas v373-tren-b y v373-taller-b). En la notebook: **parar** lo que estaba en curso de la 3.7.3 (v373-loco, v373-vagones), **no unirlo ni subirlo a main**, y hacer `git pull` para traer la versión de la otra PC. Si se quiere guardar por las dudas, subir esas ramas sin unir: `git push origin v373-loco v373-vagones`.
+
+
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
 decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
 

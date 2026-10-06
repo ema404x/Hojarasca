@@ -9,7 +9,7 @@
 //     ruedita, Enter y el mando (LB/RB, A y B: main.js, con `lista()` como las demás listas del HUD);
 //   · el reloj: `avanzarTaller` cada segundo (también lejos o durmiendo: repasa todo lo que pasó); al terminar una
 //     mejora, el aviso y `aplicarMejoras(progreso.tren)` del equipo del tren (que lo dibuja: ver main.js, el enganche).
-import { trenNuevo, sanearTren, MEJORAS_TREN, IDS_MEJORAS, mejoraDe, puedePedir, pedirMejora, aportarMejora, cancelarPedido, avanzarTaller, tomarAvisos, faltaDelPedido, estadoTaller, pideMejora, textoPide, textoMateriales, textoPiezas, textoListo, textoDias, PALETA_TREN, PARTES_PINTURA, pintar, colorSiguiente, ponerNombre, elegirSilbato, silbatosDe, SILBATOS, VAGONES, vagonesHechos, alternarVagon, adelantarVagon, VAGONES_MAX, HIERRO_POR_DIA, LARGO_NOMBRE } from './tren-mejoras.js';
+import { trenNuevo, sanearTren, MEJORAS_TREN, IDS_MEJORAS, mejoraDe, puedePedir, pedirMejora, aportarMejora, cancelarPedido, avanzarTaller, tomarAvisos, faltaDelPedido, estadoTaller, pideMejora, textoPide, textoMateriales, textoPiezas, textoListo, textoDias, PARTES_PINTURA, nombreColor, colorTren, NOMBRE_DE_SIEMPRE, pintar, colorSiguiente, ponerNombre, elegirSilbato, silbatosDe, SILBATOS, VAGONES, vagonesHechos, alternarVagon, adelantarVagon, VAGONES_MAX, HIERRO_POR_DIA, LARGO_NOMBRE } from './tren-mejoras.js';
 import { EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea, localAbierto } from './aldea.js';
 
 const PISO = 0.32;   // el piso del galpón sobre el nivel del lote (PISO_ALDEA)
@@ -125,7 +125,7 @@ export function crearTallerJuego(ctx) {
     const t = tren(), p = t.taller.pedido;
     if (panel.vista === 'pintura') return 'Elegí el color de cada parte (cada vez que elegís, pasa al siguiente de la paleta). Martín la pinta esta noche.';
     if (panel.vista === 'silbato') return 'El silbato que suena cuando silbás desde la cabina.';
-    if (panel.vista === 'composicion') return `Detrás del ténder entran ${VAGONES_MAX} vagones (los andenes no dan para más). El de pasajeros va siempre. Elegí uno para engancharlo o dejarlo en el desvío.`;
+    if (panel.vista === 'composicion') return `Detrás del ténder entran ${VAGONES_MAX} vagones (los andenes no dan para más). Elegí uno para engancharlo o dejarlo en el desvío. Sin ninguno elegido, van los que tengas; si no hay dónde viajar, Ernesto engancha un coche de segunda de los de siempre.`;
     if (!p) {
       const viejo = !t.taller.arreglado;
       return viejo ? 'Martín: «El galpón está como está, pero el foso anda. Pedime una mejora y, de paso, le ponemos chapas nuevas y le calzamos el zócalo.»'
@@ -145,7 +145,7 @@ export function crearTallerJuego(ctx) {
     if (panel.vista === 'pintura') {
       for (const [parte, nombre] of Object.entries(PARTES_PINTURA)) {
         const actual = t.loco.pintura[parte];
-        lista.push({ texto: nombre, detalle: `— ${PALETA_TREN[actual].nombre}`, marca: 'cambiar', color: PALETA_TREN[actual].hex, puede: true, hacer: () => { pintar(t, parte, colorSiguiente(actual)); aplicar(); ctx.guardar?.(); } });
+        lista.push({ texto: nombre, detalle: `— ${nombreColor(actual)}`, marca: 'cambiar', color: colorTren(actual), puede: true, hacer: () => { pintar(t, parte, colorSiguiente(actual)); aplicar(); ctx.guardar?.(); } });
       }
       lista.push(volver);
       return lista;
@@ -158,8 +158,8 @@ export function crearTallerJuego(ctx) {
     if (panel.vista === 'composicion') {
       for (const id of vagonesHechos(t)) {
         const i = t.composicion.indexOf(id);
-        lista.push({ texto: VAGONES[id].nombre, detalle: i >= 0 ? `— enganchado, ${i + 1}° detrás del ténder` : '— en el desvío', marca: id === 'pasajeros' ? 'va siempre' : i >= 0 ? 'dejar en el desvío' : t.composicion.length >= VAGONES_MAX ? 'no entra' : 'enganchar',
-          puede: id !== 'pasajeros' && (i >= 0 || t.composicion.length < VAGONES_MAX), hecho: i >= 0,
+        lista.push({ texto: VAGONES[id].nombre, detalle: i >= 0 ? `— enganchado, ${i + 1}° detrás del ténder` : '— en el desvío', marca: i >= 0 ? 'dejar en el desvío' : t.composicion.length >= VAGONES_MAX ? 'no entra' : 'enganchar',
+          puede: i >= 0 || t.composicion.length < VAGONES_MAX, hecho: i >= 0,
           hacer: () => { const r = alternarVagon(t, id); if (!r.ok && r.motivo === 'largo') ctx.nota('No entra otro vagón', `Detrás del ténder van ${VAGONES_MAX}: dejá uno en el desvío primero`); aplicar(); ctx.guardar?.(); } });
       }
       for (const id of t.composicion.slice(1)) lista.push({ texto: `Pasar adelante: ${VAGONES[id].corto}`, detalle: '— más cerca de la locomotora', marca: '', puede: true, hacer: () => { adelantarVagon(t, id); aplicar(); ctx.guardar?.(); } });
@@ -193,10 +193,10 @@ export function crearTallerJuego(ctx) {
           ctx.guardar?.();
         } });
     }
-    lista.push({ texto: 'La pintura', detalle: `— ${Object.keys(PARTES_PINTURA).map((k) => PALETA_TREN[t.loco.pintura[k]].nombre.toLowerCase()).join(', ')}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'pintura'; } });
-    lista.push({ texto: 'El nombre', detalle: `— «${t.loco.nombre}»`, marca: 'escribir', puede: true, hacer: escribirNombre });
+    lista.push({ texto: 'La pintura', detalle: `— ${Object.keys(PARTES_PINTURA).map((k) => nombreColor(t.loco.pintura[k]).toLowerCase()).join(', ')}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'pintura'; } });
+    lista.push({ texto: 'El nombre', detalle: t.loco.nombre ? `— «${t.loco.nombre}»` : '— el de siempre (el de «Personalizar», si tiene)', marca: 'escribir', puede: true, hacer: escribirNombre });
     if (silbatosDe(t).length > 1) lista.push({ texto: 'El silbato', detalle: `— ${SILBATOS[t.loco.silbato].nombre.toLowerCase()}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'silbato'; } });
-    lista.push({ texto: 'La composición', detalle: `— ténder + ${t.composicion.map((k) => VAGONES[k].corto).join(', ')}`, marca: vagonesHechos(t).length > 1 ? 'elegir' : 'sólo pasajeros', puede: true, hacer: () => { panel.vista = 'composicion'; } });
+    lista.push({ texto: 'La composición', detalle: `— ténder + ${t.composicion.length ? t.composicion.map((k) => VAGONES[k].corto).join(', ') : vagonesHechos(t).length ? 'los que tenés' : 'los dos coches de segunda de siempre'}`, marca: vagonesHechos(t).length ? 'elegir' : 'sin vagones nuevos', puede: true, hacer: () => { panel.vista = 'composicion'; } });
     return lista;
   }
   function aportar() {
@@ -216,7 +216,7 @@ export function crearTallerJuego(ctx) {
   async function escribirNombre() {
     const t = tren();
     if (!ctx.pedirTexto) return;
-    const texto = await ctx.pedirTexto('¿Cómo se llama la locomotora? (Martín le pinta las letras en la cabina)', t.loco.nombre, { max: LARGO_NOMBRE });
+    const texto = await ctx.pedirTexto('¿Cómo se llama la locomotora? (Martín le pinta las letras en la cabina)', t.loco.nombre || NOMBRE_DE_SIEMPRE, { max: LARGO_NOMBRE });
     if (typeof texto === 'string' && ponerNombre(t, texto)) {
       ctx.nota(`La locomotora se llama «${t.loco.nombre}»`, 'Martín pinta las letras esta noche, a pulso');
       aplicar(); ctx.guardar?.();
