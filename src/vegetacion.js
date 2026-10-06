@@ -333,7 +333,7 @@ export function texturaCartas() {
 // cada vértice se rehace en la vista como la de una bola (hacia la cámara en el centro,
 // abierta hacia el borde): de lejos cada racimo es una masa redonda con luz suave.
 // 3.5: `ojo` (sólo el árbol cercano): el follaje pegado al ojo se abre (ver abajo)
-function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
+export function conCartas(m, textura, { recorte = true, ojo = false } = {}) {
   const previo = m.onBeforeCompile;
   // (el cercano y el lejano comparten el texto de esta función: la clave del programa tiene
   // que distinguirlos, si no three les daría el mismo shader)
@@ -477,7 +477,8 @@ const FALDA_CARTA = [0, 0, 0, -1];
 // 3.4: constructor de árboles: el de siempre, más el atributo de las cartas. Lo que entra
 // por `agregar` (troncos, raíces, bultos viejos) lleva la carta en cero; `vertice` escribe un
 // vértice a mano (racimos, tubos y cartas, con sus normales de follaje).
-class ConstructorArbol extends Constructor {
+// (3.7.2 (granja): exportados, para que los frutales salgan con las mismas cartas y el mismo material; sin cambios)
+export class ConstructorArbol extends Constructor {
   constructor() { super(); this.carta = []; }
   // (3.5.2: `o.carta` opcional: la carta de todos sus vértices; la falda cercana del ciprés va
   // marcada con aCarta.w = -1, ver conCartas)
@@ -524,7 +525,7 @@ class ConstructorArbol extends Constructor {
 
 // 3.4: una carta suelta: cuatro esquinas en el mismo punto, abiertas en la vista por aCarta.
 // `tinte(dy)` da el color de la esquina según su altura en la carta (abajo más oscuro).
-function carta(c, x, y, z, n, ancho, alto, giro, cuelga, celda, tipo, tinte) {
+export function carta(c, x, y, z, n, ancho, alto, giro, cuelga, celda, tipo, tinte) {
   const cu = (celda % 4) * 0.25, cv = Math.floor(celda / 4) / FILAS_CARTA, cg = Math.cos(giro), sg = Math.sin(giro);
   const esq = [];
   for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
@@ -575,7 +576,7 @@ function geometriaSombra(armar) {
 // sin facetas ni costuras entre piezas. El degradado también es del racimo: abajo y adentro
 // oscuro y frío, arriba y afuera claro y tibio. Tiene su propio azar (`semilla`): el LOD
 // cercano y el lejano salen con el mismo núcleo en el mismo lugar.
-function racimo(c, semilla, cen, rad, o) {
+export function racimo(c, semilla, cen, rad, o) {
   const r = rng(semilla);
   const tipo = o.tipo ?? 1, detalle = !!o.detalle, luz = o.luz ?? 1, cielo = o.cielo ?? 0.25;
   const [bajo, alto] = gradHoja(o.color, o.oscuro ?? 1);
@@ -692,7 +693,7 @@ function tubo(c, camino, radios, lados, o) {
 
 // 3.4: una rama de madera que sale del tronco y termina adentro de su racimo (no lo
 // atraviesa). Marrón rojizo, más oscura al pie; un poco arqueada hacia arriba.
-function rama(c, desde, hasta, r0, r1, color, lados = 5) {
+export function rama(c, desde, hasta, r0, r1, color, lados = 5) {
   const [bajo, alto] = gradTronco(color), col = new THREE.Color();
   const medio = [(desde[0] + hasta[0]) / 2, (desde[1] + hasta[1]) / 2 + Math.hypot(hasta[0] - desde[0], hasta[2] - desde[2]) * 0.08, (desde[2] + hasta[2]) / 2];
   tubo(c, [desde, medio, hasta], [r0, (r0 + r1) / 2, r1], lados, {
@@ -705,7 +706,7 @@ function rama(c, desde, hasta, r0, r1, color, lados = 5) {
 // `o.manchas` (arrayán): manchones claros sobre la corteza canela; `o.placas` (pehuén):
 // la corteza en placas. `o.degradado` reemplaza el degradado de la corteza.
 const ejeCurvo = (largo, curva) => (y) => { const t = clamp(y / largo, 0, 1); return [curva[0] * t * t, curva[1] * t * t]; };
-function fuste(c, alto, r0, r1, curva, lados, filas, color, semilla, o = {}) {
+export function fuste(c, alto, r0, r1, curva, lados, filas, color, semilla, o = {}) {
   const eje = ejeCurvo(alto, curva), base = o.base || [0, 0, 0];
   const tono = (x, y, z) => {
     const [ex, ez] = eje(y);

@@ -12,6 +12,7 @@ import { ESTILO, marcarConstructor, zonaCasa, zonaFortin, pinturaDeObra, rangosP
 import { pintarHoja } from './personal-casa-mundo.js';
 import { PLANOS_MAQUINAS } from './planos-maquinas.js';
 import { PLANOS_VEHICULOS } from './planos-vehiculos.js';
+import { PLANOS_GRANJA } from './planos-granja.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
 const MADERA = '#6b5238';
@@ -153,6 +154,7 @@ export const PLANOS = [
 ];
 PLANOS.push(...PLANOS_MAQUINAS);
 PLANOS.push(...PLANOS_VEHICULOS);   // 2.9: varadero y velero, tirolesa y puente colgante
+PLANOS.push(...PLANOS_GRANJA);   // 3.7.2 (granja): el tambo, el chiquero, la paridera y el hoyo para frutal
 
 // ---------------------------------------------------------------- galpón abierto
 PLANOS.push({
