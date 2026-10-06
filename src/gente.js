@@ -380,8 +380,8 @@ function posar(g, charlando) {
     // vaivén de todo el cuerpo (empuja con el torso, no con los hombros); la cabeza mirando la pieza
     case 'limar': {
       const k = Math.sin(t * 3.1), em = Math.max(0, k);
-      g.brazos[0].rotation.x = -1.02 - k * 0.14; g.brazos[1].rotation.x = -1.1 - k * 0.14;
-      g.brazos[0].rotation.z = 0.2; g.brazos[1].rotation.z = -0.2;
+      g.brazos[0].rotation.x = -0.7 - k * 0.12; g.brazos[1].rotation.x = -0.76 - k * 0.12;
+      g.brazos[0].rotation.z = 0.36; g.brazos[1].rotation.z = -0.36;
       g.torso.rotation.x = 0.2 + em * 0.07; g.cabeza.rotation.x += 0.38;
       for (const p2 of g.patas) p2.rotation.x = -0.06 - em * 0.05;
       break;

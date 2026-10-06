@@ -1165,6 +1165,9 @@ export function crearAldeaMundo(ctx) {
       const e = EDIFICIOS_ALDEA['taller-tren'];
       for (const dx of [-5, 0, 5]) { const w = aMundo(e.x + dx, e.z); sacados += veg.despejar(w.x, w.z, 6.2); }
       for (let i = 0; i <= 6; i++) { const t = i / 6, u = (1 - Math.cos(t * Math.PI)) / 2; const w = aMundo(-14 + (e.x - e.ancho / 2 + 14) * t, e.z * u); sacados += veg.despejar(w.x, w.z, 3.2); }
+      // y entre el taller y la vía (la escalerita, el banco de la puerta) y el camino de la gente: del cruce de tablones a la
+      // salida, al lado de la calle de la Estación
+      for (const [lx, lz, r] of [[e.x - 2, e.z + 6, 4.5], [e.x + 6, e.z + 6, 4.5], [e.x - 9, e.z + 12, 3.5], [e.x - 11, e.z + 18, 3.5], [e.x - 6, e.z + 15, 3.5]]) { const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, r); }
     }
     // y el claro del pueblo: entre las casas no queda bosque (el borde lo hacen los álamos)
     // 3.6 (detalles): en la orilla del claro quedan algunos árboles: el borde no es un corte recto
@@ -1613,14 +1616,13 @@ export function crearAldeaMundo(ctx) {
     b.puertas = [];
     // 3.6 (optimizar): la luz vieja también sale de la lista de cada cuadro y del registro de luces.js
     // (antes cada rearmado de un edificio con luz dejaba una entrada muerta que se recorría siempre)
-    if (b.luz) {
-      const q = b.luz;
+    for (const q of [b.luz, b.luz2].filter(Boolean)) {   // (3.7.3: el taller ferroviario tiene dos: el galpón y el cuarto)
       q.luz.intensity = 0; q.luz.visible = false; q.luz.parent?.remove(q.luz);
       const i = luces.indexOf(q);
       if (i >= 0) luces.splice(i, 1);
       olvidarLuz(q.luz);
-      b.luz = null;
     }
+    b.luz = null; b.luz2 = null;
   }
   const capaMat = (capa) => materiales[capa];
   // Lo que no va en la pieza fundida: colisiones, puertas, interior, luz, techo, chimeneas.
@@ -1692,6 +1694,9 @@ export function crearAldeaMundo(ctx) {
     // la luz de adentro (la fragua, si hay; si no, la del local)
     const spec = d.luces.find((l) => l.clase === 'fragua') || d.luces.find((l) => l.clase === 'interior' && l.cuarto === 'local') || d.luces.find((l) => l.clase === 'interior');
     if (spec && b.datos.etapa >= 3) b.luz = nuevaLuz(m, s, spec, spec.clase === 'fragua' ? 'fragua' : 'interior');
+    // 3.7.3: el taller ferroviario, además, la del cuarto de Martín (el tabique la tapa de la del galpón)
+    const spec2 = b.id === 'taller-tren' ? d.luces.find((l) => l.clase === 'interior' && l.cuarto === 'vivienda') : null;
+    if (spec2) b.luz2 = nuevaLuz(m, s, spec2, 'interior');
     // techo, planta y chimeneas en el mundo
     b.techo = d.techo && d.etapa >= 3 ? { ...d.techo } : null;
     cubiertasHechas = null; versionCubiertas++;   // 3.6.2 (visual)

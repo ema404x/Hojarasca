@@ -5339,18 +5339,20 @@ export function armarTallerTren(opciones = {}) {
   const rotas = arreglado ? [] : [-3.1];
   for (const s of [-1, 1]) {
     const z = s * D;
-    const huecos = xsVentanas.map((x) => ({ a: x - 0.8, b: x + 0.8, y0: yv0, y1: yv1 }));
+    // (en el frente, la cuarta no: ahí va la puerta chica, y dos huecos encimados no se arman)
+    const xs = s > 0 ? xsVentanas.slice(0, 3) : xsVentanas;
+    const huecos = xs.map((x) => ({ a: x - 0.8, b: x + 0.8, y0: yv0, y1: yv1 }));
     if (s > 0) { huecos.push(huecoPuerta); huecos.push(ventanaCuarto); }
     paredConHuecos(E, 'x', z, -W, W, F0 - 0.02, F0 + 1.2, huecos, tabla, { sup: SUP.tablasHorizontales });
     paredConHuecos(E, 'x', z, -W, W, F0 + 1.2, AL, huecos, chapaPared, { sup: SUP.chapa, espesor: 0.08 });
     caja(E, [0, F0 + 1.22, z + s * 0.06], [2 * W + 0.1, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
     // los marcos y los vidrios de las ventanas altas (la luz entra de verdad)
-    for (const xv of xsVentanas) {
+    for (const xv of xs) {
       for (const yy of [yv0, yv1]) caja(E, [xv, yy, z + s * 0.05], [1.72, 0.08, 0.07], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
       for (const dx of [-0.82, -0.27, 0.27, 0.82]) caja(E, [xv + dx, (yv0 + yv1) / 2, z + s * 0.05], [0.05, yv1 - yv0, 0.05], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
       caja(E, [xv, (yv0 + yv1) / 2, z + s * 0.05], [1.62, 0.04, 0.04], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
       const rota = s > 0 && rotas.includes(xv);
-      const kv0 = { r: 0.72, g: 0.72, b: 0.68 }, kv1 = { r: 0.9, g: 0.92, b: 0.9 };
+      const kv0 = { r: 0.5, g: 0.56, b: 0.58 }, kv1 = { r: 0.72, g: 0.78, b: 0.8 };   // (vidrio de galpón, con el cielo: de noche brilla con la luz de adentro)
       const q = (xa, xb, ya, yb) => quad(K.vid, [xa, ya, z + s * 0.02], [xb, ya, z + s * 0.02], [xb, yb, z + s * 0.02], [xa, yb, z + s * 0.02], kv0, kv0, kv1, kv1, 0);
       if (!rota) q(xv - 0.8, xv + 0.8, yv0, yv1);
       else { q(xv - 0.8, xv - 0.27, yv0, yv1); q(xv + 0.27, xv + 0.8, (yv0 + yv1) / 2, yv1); }

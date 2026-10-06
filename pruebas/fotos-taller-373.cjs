@@ -1,7 +1,7 @@
 // 3.7.3: capturas del taller ferroviario en el juego real: por fuera (viejo y arreglado, desde el andén y desde el
 // desvío), por dentro con Ernesto y Martín trabajando, el cuarto de Martín y el panel de mejoras. Quedan en
 // pruebas/salidas/taller-373/ (no van al repositorio). Perfil propio (no toca el de las pruebas ni el del juego).
-// Uso (después de `node armar.mjs`): npx electron --no-sandbox -r herramientas/al-monitor.cjs pruebas/fotos-taller-373.cjs [toma,toma] [calidad=alta]
+// Uso (después de `node armar.mjs`): npx electron --no-sandbox pruebas/fotos-taller-373.cjs [toma,toma] [calidad=alta]
 const { app, BrowserWindow, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -20,14 +20,16 @@ setTimeout(() => { console.error('[fotos-taller] tardó más de 12 minutos'); sa
 
 // en el marco del taller (x a lo largo de la vía, z hacia la vía; y sobre el piso del galpón): ojo y mira
 const TOMAS = {
-  'afuera-viejo': { ojo: [-2, 2.2, 22], a: [0, 2.6, 0], hora: 10.5 },
+  'afuera-viejo': { ojo: [-6, 1.7, 12.5], a: [0.5, 2.4, 0], hora: 10.5 },
   'afuera-desvio': { ojo: [-24, 1.6, 9], a: [-4, 2.2, 0], hora: 16.5, arreglado: true },
-  'afuera-arreglado': { ojo: [-2, 2.2, 22], a: [0, 2.6, 0], hora: 10.5, arreglado: true },
-  'adentro-trabajo': { ojo: [-7.6, 1.75, -2.6], a: [0.5, 0.9, 0.4], hora: 15, arreglado: true, armando: true, gente: true },
+  'afuera-arreglado': { ojo: [-6, 1.7, 12.5], a: [0.5, 2.4, 0], hora: 10.5, arreglado: true },
+  'adentro-trabajo': { ojo: [2.6, 1.75, 2.7], a: [-3.4, 0.9, -0.4], hora: 15, arreglado: true, armando: true, gente: true },
+  'martin-cara': { ojo: [1.75, 1.55, -1.75], a: [0, 1.45, -2.45], hora: 15, arreglado: true, armando: true, gente: true },
+  'ernesto-ruedas': { ojo: [-4.4, 1.5, 0.4], a: [-6.4, 0.8, 2.0], hora: 15, arreglado: true, armando: true, gente: true },
   'adentro-martin': { ojo: [2.2, 1.7, 1.6], a: [-0.6, 1.0, -3.2], hora: 10.4, arreglado: true, gente: true },
   'adentro-foso': { ojo: [4.6, 1.8, 2.8], a: [-6, 0.2, -0.3], hora: 12, arreglado: true },
-  cuarto: { ojo: [5.7, 1.6, -3.0], a: [8.2, 0.8, 2.6], hora: 21, arreglado: true },
-  noche: { ojo: [-6, 1.7, 16], a: [0, 2.4, 0], hora: 22, arreglado: true },
+  cuarto: { ojo: [5.7, 1.6, -3.0], a: [8.2, 0.8, 2.6], hora: 20.5, arreglado: true, gente: true },
+  noche: { ojo: [-6, 1.7, 13], a: [0, 2.4, 0], hora: 22, arreglado: true },
   panel: { ojo: [-2, 1.7, 0.9], a: [-2, 1.2, -3], hora: 11, arreglado: true, panel: true },
 };
 

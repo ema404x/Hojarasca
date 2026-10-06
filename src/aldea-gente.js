@@ -498,10 +498,13 @@ export function crearAldeaGente(ctx) {
     return q.rel ?? Math.max(0, q.abs - npc.pos.y);
   }
   // 3.7.0 (integración): lo de arriba de una escalera se busca desde el piso de arriba (si no, quedaba abajo)
-  const yDesde = (npc, d) => (d.arriba ? EDIFICIOS_ALDEA[d.edificio].y + ESCALERAS_ALDEA[d.edificio].alto + 0.1 : npc.pos.y);
+  // (3.7.3: adentro del taller ferroviario, desde su piso: está 1 a 2 m arriba del terreno, sobre el zócalo, y el que se
+  // ubica de una, de lejos, quedaba abajo del piso)
+  const yDesde = (npc, d, p = npc.pos) => (d.arriba ? EDIFICIOS_ALDEA[d.edificio].y + ESCALERAS_ALDEA[d.edificio].alto + 0.1 : d.edificio === 'taller-tren' && enTaller(p) ? Math.max(npc.pos.y, EDIFICIOS_ALDEA[d.edificio].y + 0.32) : npc.pos.y);
+  const enTaller = (p) => { const l = M.aLocal(p.x, p.z); return dentroDePlanta('taller-tren', l.lx, l.lz, -0.1); };
   function ubicar(npc, d) {
     // (3.7.1 (mundo): `d.y`: la altura justa, la de la cama del refugio donde se acuesta)
-    npc.pos.set(d.x, Number.isFinite(d.y) ? d.y : ctx.alturaDePie(d.x, d.z, yDesde(npc, d)), d.z);
+    npc.pos.set(d.x, Number.isFinite(d.y) ? d.y : ctx.alturaDePie(d.x, d.z, yDesde(npc, d, d)), d.z);
     npc.camino = [];
     npc.espera = 0;
     npc.miraFinal = d.mira;

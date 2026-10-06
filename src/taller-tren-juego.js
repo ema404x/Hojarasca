@@ -200,7 +200,7 @@ export function crearTallerJuego(ctx) {
   // lo de la locomotora que se cambia sin materiales (arriba de las mejoras: así entra en los números del 1 al 9)
   function delTren(t) {
     const lista = [];
-    lista.push({ texto: 'La pintura', detalle: `— ${Object.keys(PARTES_PINTURA).map((k) => nombreColor(t.loco.pintura[k]).toLowerCase()).join(', ')}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'pintura'; } });
+    lista.push({ texto: 'La pintura', detalle: `— ${Object.values(t.loco.pintura).every((c) => !c) ? 'la de siempre' : Object.keys(PARTES_PINTURA).map((k) => nombreColor(t.loco.pintura[k]).toLowerCase()).join(', ')}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'pintura'; } });
     lista.push({ texto: 'El nombre', detalle: t.loco.nombre ? `— «${t.loco.nombre}»` : '— el de siempre (el de «Personalizar», si tiene)', marca: 'escribir', puede: true, hacer: escribirNombre });
     if (silbatosDe(t).length > 1) lista.push({ texto: 'El silbato', detalle: `— ${SILBATOS[t.loco.silbato].nombre.toLowerCase()}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'silbato'; } });
     lista.push({ texto: 'La composición', detalle: `— ténder + ${t.composicion.length ? t.composicion.map((k) => VAGONES[k].corto).join(', ') : vagonesHechos(t).length ? 'los que tenés' : 'los dos coches de segunda de siempre'}`, marca: vagonesHechos(t).length ? 'elegir' : 'sin vagones nuevos', puede: true, hacer: () => { panel.vista = 'composicion'; } });
