@@ -12,12 +12,15 @@ const TITULO = { comprar: 'Comprar', vender: 'Vender', fletes: 'Fletes' };
 const NOMBRE_TEMPORADA = { verano: 'verano', otono: 'otoño', invierno: 'invierno' };
 
 // `ctx`: { panel, tablero, tren, progreso(), dia(), temporada(), nota(t, sub, importante),
-//          sonido, guardar(), refrescar(), T_(texto) }
+//          sonido, guardar(), refrescar(), T_(texto), furgon() }
+// (3.7.3: `furgon()`: con el furgón de carga enganchado al tren, { extra, aLaVez }: más fletes por día y a la vez)
 export function crearPuestoDeCargas(ctx) {
   const T_ = ctx.T_ || ((t) => t);
   const estado = { abierto: false, parada: null, modo: 'comprar' };
   const P = () => ctx.progreso();
   const estaciones = () => ctx.tren.paradas.map((p) => p.nombre);
+  const extraFletes = () => ctx.furgon?.()?.extra || 0;
+  const aLaVez = () => ctx.furgon?.()?.aLaVez || COMERCIO.fletesALaVez;
   function comercio() {
     const p = P();
     p.comercio = comercioDeHoy(p.comercio, ctx.dia());
@@ -54,10 +57,10 @@ export function crearPuestoDeCargas(ctx) {
     if (!nombre) return [];
     const c = comercio(), dia = ctx.dia(), t = ctx.temporada();
     if (estado.modo === 'fletes') {
-      const ofrecidos = fletesDelDia(dia, estaciones(), nombre).map((f) => {
+      const ofrecidos = fletesDelDia(dia, estaciones(), nombre, extraFletes()).map((f) => {
         const tx = textoFlete(f);
         const tomado = c.hoy.tomados.includes(f.id);
-        return { flete: f, titulo: `${f.tipo === 'pasajeros' ? 'Pasajeros' : 'Carga'}: ${tx.quien}`, detalle: `hasta ${tx.hasta} · pagan ${tx.paga}`, marca: tomado ? 'tomado' : c.fletes.length >= COMERCIO.fletesALaVez ? 'llevás muchos' : 'tomar', clase: tomado ? 'hecho' : c.fletes.length >= COMERCIO.fletesALaVez ? 'falta' : '' };
+        return { flete: f, titulo: `${f.tipo === 'pasajeros' ? 'Pasajeros' : 'Carga'}: ${tx.quien}`, detalle: `hasta ${tx.hasta} · pagan ${tx.paga}`, marca: tomado ? 'tomado' : c.fletes.length >= aLaVez() ? 'llevás muchos' : 'tomar', clase: tomado ? 'hecho' : c.fletes.length >= aLaVez() ? 'falta' : '' };
       });
       const llevas = c.fletes.map((f) => {
         const tx = textoFlete(f);
@@ -88,7 +91,7 @@ export function crearPuestoDeCargas(ctx) {
     $$('.quien').textContent = T_(`Cargas · ${nombre} · ${TITULO[estado.modo]}`);
     const c = comercio();
     const intro = estado.modo === 'fletes'
-      ? `Pasajeros y carga hasta otra parada. Se cobran al llegar manejando la trochita · llevás ${c.fletes.length} de ${COMERCIO.fletesALaVez}`
+      ? `Pasajeros y carga hasta otra parada. Se cobran al llegar manejando la trochita · llevás ${c.fletes.length} de ${aLaVez()}`
       : `${perfilDe(nombre).quien} · tenés ${yerba()} de yerba · precios de ${NOMBRE_TEMPORADA[ctx.temporada()] || 'verano'}`;
     $$('.dicho').textContent = T_(intro);
     const ul = $$('ul');
@@ -146,7 +149,7 @@ export function crearPuestoDeCargas(ctx) {
       ctx.guardar(); dibujar();
       return true;
     }
-    const r = tomarFlete(comercio(), f.flete);
+    const r = tomarFlete(comercio(), f.flete, aLaVez());
     if (!r.ok) {
       ctx.nota(r.motivo === 'tomado' ? 'Ese flete ya lo tomaste' : 'Ya llevás muchos fletes', r.motivo === 'tomado' ? 'Mañana hay otros' : 'Entregá alguno antes de tomar otro');
       return false;

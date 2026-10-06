@@ -53,6 +53,7 @@ export const COMERCIO = {
   caro: 1.5,             // lo que el pueblo necesita
   fletesPorDia: 2,
   fletesALaVez: 3,
+  fletesConFurgon: 5,    // 3.7.3: con el furgón de carga del tren se llevan más a la vez (ver tren-viaje.js)
 };
 
 // Lo que hace y lo que pide cada pueblo, por el nombre de su parada (ver `trochita.js`:
@@ -169,7 +170,7 @@ export function sanearComercio(v) {
       vendidos: sanearCuentas(h.vendidos), comprados: sanearCuentas(h.comprados),
       tomados: (Array.isArray(h.tomados) ? h.tomados : []).filter((x) => typeof x === 'string' && x.length <= 80).slice(0, 40),
     },
-    fletes: fletes.filter((f) => !vistos.has(f.id) && vistos.add(f.id)).slice(0, COMERCIO.fletesALaVez),
+    fletes: fletes.filter((f) => !vistos.has(f.id) && vistos.add(f.id)).slice(0, COMERCIO.fletesConFurgon),
     ganado: entero(v.ganado, 1e7), entregas: entero(v.entregas, 1e6), km: Math.max(0, Math.min(1e6, Number(v.km) || 0)),
   };
 }
@@ -264,15 +265,17 @@ const CARGAS = [
 ];
 // Los fletes que ofrece `desde` el día `dia`: uno con pasajeros y uno con carga, a otras
 // paradas. `estaciones`: los nombres, en el orden en que las recorre el tren.
-export function fletesDelDia(dia, estaciones, desde) {
+// 3.7.3 (tren): `extra`: fletes de carga de más por día (con el furgón de carga enganchado: ver tren-viaje.js)
+export function fletesDelDia(dia, estaciones, desde, extra = 0) {
   const lista = Array.isArray(estaciones) ? estaciones.filter((x) => typeof x === 'string') : [];
   if (lista.length < 2 || !lista.includes(desde)) return [];
   const d = dia1(dia);
   const r = azarDe(hashTexto(`fletes|${desde}|${d}`));
   const otras = lista.filter((x) => x !== desde);
   const salida = [];
-  for (let k = 0; k < COMERCIO.fletesPorDia; k++) {
-    const tipo = k % 2 === 0 ? 'pasajeros' : 'carga';
+  const cuantosHoy = COMERCIO.fletesPorDia + Math.max(0, Math.min(4, Math.floor(Number(extra) || 0)));
+  for (let k = 0; k < cuantosHoy; k++) {
+    const tipo = k < COMERCIO.fletesPorDia ? (k % 2 === 0 ? 'pasajeros' : 'carga') : 'carga';
     const hasta = otras[Math.floor(r() * otras.length)];
     const t = Math.max(1, tramos(lista, desde, hasta));
     let f;
@@ -289,11 +292,12 @@ export function fletesDelDia(dia, estaciones, desde) {
   }
   return salida;
 }
-export function tomarFlete(c, flete) {
+// (3.7.3: `aLaVez`, cuántos se llevan juntos: con el furgón de carga, más)
+export function tomarFlete(c, flete, aLaVez = COMERCIO.fletesALaVez) {
   const f = sanearFlete(flete);
   if (!f) return { ok: false, motivo: 'no hay' };
   if (c.hoy.tomados.includes(f.id) || c.fletes.some((x) => x.id === f.id)) return { ok: false, motivo: 'tomado' };
-  if (c.fletes.length >= COMERCIO.fletesALaVez) return { ok: false, motivo: 'lleno' };
+  if (c.fletes.length >= Math.max(1, Math.floor(Number(aLaVez) || COMERCIO.fletesALaVez))) return { ok: false, motivo: 'lleno' };
   c.fletes.push(f);
   c.hoy.tomados.push(f.id);
   return { ok: true, flete: f };

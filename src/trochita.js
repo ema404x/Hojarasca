@@ -9,6 +9,7 @@ import { sanearTrochita } from './personal-trochita.js';
 import { repintarVertices, cartelNombre, desechar } from './personal-mallas.js';
 import { cabinaNueva, pasoCabina, enElAnden, CABINA } from './maquinista.js';
 import { cubierta } from './techo-lluvia.js';
+import { TREN, sanearNevada, tramoNevado, distanciaANieve } from './tren-viaje.js';
 
 const MADERA = '#6e5238', MADERA_OSCURA = '#4e3a28', TABLA = '#8a6b4a';
 const TROCHA = 0.75;          // metros entre rieles, como la de verdad
@@ -653,11 +654,19 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
 
   const cruces = construirPasosANivel(T, escena, mat, paradas);
 
-  // 3.7.3 (prototipo): `opciones.armarTren` arma otro tren (ver tren-proto.js) con la misma forma
-  // (g, loco, tender, coches, faro, luzFaro, luzCoche) y, si quiere, `colocar` (dónde va cada vagón),
-  // `offCoches` (cuánto atrás de la locomotora va cada coche), `boca` (la chimenea) y `alActualizar`
+  // 3.7.3: `opciones.armarTren` arma el tren mejorado del Relax (ver tren.js) con la misma forma
+  // (g, loco, tender, coches, faro, luzFaro, luzCoche) y además `colocar` (dónde va cada vagón),
+  // `offCoches` (cuánto atrás de la locomotora va cada coche), `boca` (la chimenea), `alActualizar`,
+  // `lugares()` (dónde se viaja en cada vagón), `puertas()` (por dónde se sube), `adelanto` (cuánto pasa la
+  // locomotora del poste al parar: el primer coche de pasajeros queda frente al andén) y `version` (cambia
+  // cuando el taller cambia la composición). En el Desafío, el tren de siempre (`construirTren`).
   const tren = opciones.armarTren ? opciones.armarTren({ mat, trocha: TROCHA, escena }) : construirTren(mat);
   const offCoche = (i) => (tren.offCoches ? tren.offCoches[i] : -5.2 - i * 6.6);
+  // dónde para la locomotora en cada parada (con el tren de siempre, en el poste)
+  const poste = (p) => p.s + (tren.adelanto || 0);
+  // dónde va el maquinista en la cabina: metros adelante (negativo: atrás) del centro de la locomotora, al costado
+  // y sobre el riel (3.7.3: la cabina de la Baldwin es más larga y más alta)
+  const CAB = tren.cabina || { z: -1.0, x: 0.42, y: 0.72 };
   escena.add(tren.g);
   // 2.8: lo personal (ver `personalizar`): la pintura de siempre y sin nombre
   let personal = sanearTrochita(null), placas = [];
@@ -680,13 +689,29 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     conduce: false, cabina: cabinaNueva(), paradaCabina: null, llegada: null, silbar: 0, angCabina: 0,
   };
   const tmp = new THREE.Vector3();
+  // 3.7.3: la vía nevada (ver `taparVia`, más abajo)
+  const SIN_NIEVE = Object.freeze({ tope: Infinity, frena: 0, plantado: false, adentro: false });
+  est.nevada = []; est.esperaNieve = 0; est.avisoNieve = null;
+  let nieveAhora = SIN_NIEVE;   // (la del cuadro: la usa `manejar`)
+  const conQuitanieves = () => !!(opciones.quitanieves ? opciones.quitanieves() : tren.estado?.loco?.quitanieves);
 
   // asientos posibles: dos coches × cinco filas × dos ventanillas, más la plataforma abierta
+  // (3.7.3: con el tren mejorado, los lugares de cada vagón de la composición: `tren.lugares()`; se rehacen
+  // cuando el taller cambia la composición)
   const ASIENTOS = [];
-  for (let c = 0; c < 2; c++) {
-    for (let fila = -2; fila <= 2; fila++) for (const lado of [-1, 1]) ASIENTOS.push({ coche: c, z: fila * 1.0, x: lado * 0.45, lado });
+  let versionAsientos = -1;
+  function armarAsientos() {
+    ASIENTOS.length = 0;
+    versionAsientos = tren.version ?? 0;
+    if (tren.lugares) { for (const l of tren.lugares()) ASIENTOS.push(l); return; }
+    for (let c = 0; c < 2; c++) {
+      for (let fila = -2; fila <= 2; fila++) for (const lado of [-1, 1]) ASIENTOS.push({ coche: c, z: fila * 1.0, x: lado * 0.45, lado });
+    }
+    ASIENTOS.push({ coche: 1, z: -3.2, x: 0, lado: 0, plataforma: true });
   }
-  ASIENTOS.push({ coche: 1, z: -3.2, x: 0, lado: 0, plataforma: true });
+  armarAsientos();
+  // a lo largo del tren, dónde queda un asiento (metros detrás de la locomotora)
+  const largoDe = (a) => offCoche(a.coche) + a.z;
 
   const delta = (a, b) => { let d = b - a; while (d < 0) d += total; while (d > total) d -= total; return d; };
 
@@ -712,7 +737,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   function siguienteParada(desde) {
     let mejor = paradas[0], mejorD = Infinity;
     for (const p of paradas) {
-      const d = delta(desde, p.s);
+      const d = delta(desde, poste(p));
       if (d > 3 && d < mejorD) { mejorD = d; mejor = p; }
     }
     return mejor;
@@ -723,13 +748,23 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     // en main.js): sin tiempo no rueda, no humea ni suena, y sigue igual al volver
     if (est.conduce && mundo?.pausado) dt = 0;
     const js = jugador.estado;
+    if ((tren.version ?? 0) !== versionAsientos) {
+      // 3.7.3: el taller cambió la composición: los lugares nuevos (el que viajaba, al más cercano)
+      const antes = est.subido && !est.conduce ? ASIENTOS[est.asiento] : null;
+      armarAsientos();
+      if (antes) est.asiento = asientoMasCerca(largoDe(antes), antes.x);
+      else est.asiento = Math.min(est.asiento, Math.max(0, ASIENTOS.length - 1));
+    }
     const cabeza = enVia(est.s);
     const lejos = Math.hypot(cabeza.x - js.pos.x, cabeza.z - js.pos.z);
     const visible = lejos < 340 || est.subido;
     tren.g.visible = visible;
     humo.puntos.visible = visible && lejos < 280;
 
-    const falta = delta(est.s, est.proxima.s);
+    const falta = delta(est.s, poste(est.proxima));
+    // 3.7.3: la vía nevada adelante (ver `taparVia`)
+    const nieve = nieveAhora = nieveAdelante(dt);
+    est.enNieve = nieve.adentro;
     // 2.9: con el jugador en la cabina, el tren es suyo (ver `manejar`)
     if (est.conduce) manejar(dt, mundo, cabeza, visible);
     // 2.3: varado en el Desafío (ver `desafio-varada.js`): el que mueve el tren es la
@@ -743,22 +778,24 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
       if (est.parado <= 0) {
         est.proxima = siguienteParada(est.s);
         est.avisoSilbato = false;
-        sonido.silbato(cabeza);
+        pitar(cabeza);
       }
     } else {
       const frenando = falta < 60;
       const objetivo = frenando ? Math.max(1.1, falta * 0.13) : est.objetivo;
-      est.vel = lerp(est.vel, objetivo, 1 - Math.exp(-dt * 0.55));
+      // 3.7.3: con nieve adelante, sin quitanieves se para antes; con, pasa despacio
+      est.vel = lerp(est.vel, Math.min(objetivo, nieve.tope), 1 - Math.exp(-dt * (nieve.tope < objetivo ? 1.4 : 0.55)));
+      if (nieve.plantado) est.vel = 0;
       est.s = (est.s + est.vel * dt) % total;
       if (est.subido) est.recorrido += est.vel * dt;
-      if (falta < 140 && falta > 120 && !est.avisoSilbato) { est.avisoSilbato = true; if (visible) sonido.silbato(cabeza); }
+      if (falta < 140 && falta > 120 && !est.avisoSilbato) { est.avisoSilbato = true; if (visible) pitar(cabeza); }
       if (frenando && est.vel > 1.2) {
         est.frenos -= dt;
         if (est.frenos <= 0 && visible) { sonido.frenos(cabeza, Math.min(1, est.vel / 6)); est.frenos = 0.8; }
       }
       if (falta < 1.4 && est.vel < 2) {
-        est.vel = 0; est.s = est.proxima.s; est.parado = 45 + r() * 25;
-        sonido.silbato(cabeza);
+        est.vel = 0; est.s = poste(est.proxima) % total; est.parado = 45 + r() * 25;
+        pitar(cabeza);
         if (visible) sonido.campana(cabeza);
       }
     }
@@ -801,7 +838,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     }
     est.silbato -= dt;
     if (est.silbato <= 0) {
-      if (visible && lejos < 200 && est.vel > 3 && !est.conduce) sonido.silbato(cabeza);
+      if (visible && lejos < 200 && est.vel > 3 && !est.conduce) pitar(cabeza);
       est.silbato = 45 + r() * 60;
     }
 
@@ -815,7 +852,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
           const l = dist || 0.001;
           js.pos.x = p.x + (dx / l) * 1.9;
           js.pos.z = p.z + (dz / l) * 1.9;
-          if (est.empujando <= 0) { sonido.silbato(p); est.empujando = 1.5; }
+          if (est.empujando <= 0) { pitar(p); est.empujando = 1.5; }
           break;
         }
       }
@@ -824,9 +861,9 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
 
     if (est.subido && est.conduce) {
       // 2.9: en la cabina, del lado del maquinista; la vista gira con la locomotora
-      const p = enVia(est.s - 1.0);
+      const p = enVia(est.s + CAB.z);
       const nx = Math.cos(p.ang), nz = -Math.sin(p.ang);
-      js.pos.set(p.x + nx * 0.42, p.y + 0.72, p.z + nz * 0.42);
+      js.pos.set(p.x + nx * CAB.x, p.y + CAB.y, p.z + nz * CAB.x);
       let giro = p.ang - est.angCabina;
       while (giro > Math.PI) giro -= Math.PI * 2;
       while (giro < -Math.PI) giro += Math.PI * 2;
@@ -839,7 +876,8 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
       const base = offCoche(a.coche);
       const p = enVia(est.s + base + a.z);
       const nx = Math.cos(p.ang), nz = -Math.sin(p.ang);
-      js.pos.set(p.x + nx * a.x, p.y + 0.72 + (a.plataforma ? 0 : 0.42), p.z + nz * a.x);
+      // (3.7.3: cada lugar del tren mejorado trae su altura sobre el riel)
+      js.pos.set(p.x + nx * a.x, p.y + (a.y ?? (0.72 + (a.plataforma ? 0 : 0.42))), p.z + nz * a.x);
       js.velocidadActual = est.vel;
     }
     // de noche se encienden el faro de la locomotora y los faroles de los coches
@@ -852,17 +890,20 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     tren.luzFaro.intensity = noche * 3.2 * (lejos < 90 ? 1 : 0);
     tren.luzCoche.intensity = est.subido ? 0.9 + noche * 2.8 : 0;
     if (est.subido) tren.luzCoche.position.set(js.pos.x, js.pos.y + 1.1, js.pos.z);
-    tren.alActualizar?.({ dt, s: est.s, vel: est.vel, noche, lejos, subido: est.subido, camara, enVia });
-    // la guarda viaja parada en el pasillo del primer coche
-    const pg = enVia(est.s + offCoche(0) + 1.6);
-    const guarda = { x: pg.x, z: pg.z, y: pg.y + 0.72, rumbo: pg.ang + Math.PI / 2 };
+    tren.alActualizar?.({ dt, s: est.s, vel: est.vel, noche, lejos, subido: est.subido, camara, enVia, enNieve: nieve.adentro });
+    // la guarda viaja parada en el pasillo del primer coche (3.7.3: el primero donde se viaja)
+    const pg = enVia(est.s + offCoche(tren.primerCoche ?? 0) + 1.6);
+    const guarda = { x: pg.x, z: pg.z, y: pg.y + (tren.piso ?? 0.72), rumbo: pg.ang + Math.PI / 2 };
     // 2.9: la llegada a un andén manejando se avisa una sola vez
     const llegada = est.llegada;
     est.llegada = null;
+    // 3.7.3: lo que pasó con la nieve en este cuadro (main.js lo avisa una vez)
+    const avisoNieve = est.avisoNieve;
+    est.avisoNieve = null;
     return {
       parado: est.parado > 0 || paradoEnCabina(), vel: est.vel, pos: cabeza, proxima: est.proxima, falta,
       asiento: ASIENTOS[est.asiento], guarda, recorrido: est.recorrido, vuelta: total,
-      conduce: est.conduce, cabina: est.conduce ? est.cabina : null, paradaCabina: est.paradaCabina, llegada,
+      conduce: est.conduce, cabina: est.conduce ? est.cabina : null, paradaCabina: est.paradaCabina, llegada, avisoNieve,
     };
   }
 
@@ -871,16 +912,22 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   // del poste), o null.
   function paradaEnVentana() {
     for (const p of paradas) {
-      const d = delta(est.s, p.s);
-      if (enElAnden(d > total / 2 ? d - total : d)) return p;
+      // (3.7.3: con el tren largo vale tanto la locomotora en el andén como el primer coche: del poste al poste corrido)
+      for (const s of tren.adelanto ? [p.s, poste(p)] : [p.s]) {
+        const d = delta(est.s, s);
+        if (enElAnden(d > total / 2 ? d - total : d)) return p;
+      }
     }
     return null;
   }
   const paradoEnCabina = () => est.conduce && est.vel === 0 && !!est.paradaCabina;
   // `mundo.acelera` y `mundo.frena`: lo que sostiene el jugador (W y S, o el stick)
-  function manejar(dt, mundo, cabeza, visible) {
+  // 3.7.3: `mundo.manejo` (la caldera y el freno del taller), `mundo.agarre` (sin arenero, con lluvia o helada)
+  // y la nieve de la vía (`nieve`: sin quitanieves se planta; con, no pasa del tope)
+  function manejar(dt, mundo, cabeza, visible, nieve = nieveAhora) {
     const c = est.cabina;
-    pasoCabina(c, dt, { acelera: !!mundo.acelera, frena: !!mundo.frena, pendiente: cabeza.pend });
+    pasoCabina(c, dt, { acelera: !!mundo.acelera, frena: !!mundo.frena, pendiente: cabeza.pend, manejo: mundo.manejo || null, agarre: mundo.agarre ?? 1, nieve: nieve.frena, tope: nieve.tope });
+    if (nieve.plantado) c.vel = 0;
     est.vel = c.vel;
     est.parado = 0;
     est.s = (est.s + est.vel * dt) % total;
@@ -904,7 +951,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   // (y más cerca de ella que de la puerta del coche: ahí E sube como pasajero).
   function puedeConducir(js) {
     if (est.subido || est.parado <= 0 || est.varado) return false;
-    const cab = enVia(est.s - 1.3), puerta = enVia(est.s - 5.2);
+    const cab = enVia(est.s + CAB.z - 0.3), puerta = enVia(est.s + (tren.puertas ? offCoche(tren.primerCoche ?? 0) + 4.8 : -5.2));
     const dCab = Math.hypot(cab.x - js.pos.x, cab.z - js.pos.z);
     return dCab < 3.2 && dCab + 1 < Math.hypot(puerta.x - js.pos.x, puerta.z - js.pos.z) && Math.abs(js.pos.y - cab.y) < 2.6;
   }
@@ -913,7 +960,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     est.recorrido = 0; est.parado = 0; est.vel = 0;
     est.cabina = cabinaNueva();
     est.paradaCabina = paradaEnVentana(); est.llegada = null;
-    const p = enVia(est.s - 1.0);
+    const p = enVia(est.s + CAB.z);
     est.angCabina = p.ang;
     vaporDeCabina(true);
     const js = jugador.estado;
@@ -929,7 +976,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     est.cabina.regulador = 0; est.cabina.freno = 0;
     vaporDeCabina(false);
     jugador.estado.enTren = false;
-    const d = delta(est.s, parada.s);
+    const d = delta(est.s, poste(parada));
     if (d > 0 && d <= CABINA.ventana + 0.5) { est.proxima = parada; est.parado = 0; }
     else { est.proxima = siguienteParada(est.s); est.parado = 30; }
     est.paradaCabina = null;
@@ -957,8 +1004,13 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   function silbar() {
     if (!est.conduce || est.silbar > 0) return false;
     est.silbar = 1.2;
-    sonido.silbato(enVia(est.s));
+    pitar(enVia(est.s));
     return true;
+  }
+  // 3.7.3: el silbato del taller (o el de "Personalizar"): `opciones.silbato()` dice cuál
+  function pitar(pos) {
+    const tipo = opciones.silbato?.();
+    if (tipo) sonido.silbato(pos, tipo); else sonido.silbato(pos);
   }
   // El puesto de cargas más cercano a `pos`, si está a menos de `radio` metros.
   function puestoCerca(pos, radio = 2.2) {
@@ -970,23 +1022,49 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     for (const p of paradas) if (Math.hypot(p.anden.x - js.pos.x, p.anden.z - js.pos.z) < 14) return p;
     return null;
   }
+  // 3.7.3: con el tren mejorado se sube por la puerta de cualquier coche de pasajeros (las plataformas de las
+  // puntas), esté o no junto al andén. El tren completo (ténder + 4 vagones, unos 55 m) es más largo que los andenes
+  // (9 y 18 m): en vez de alargarlos (cambiaba el terreno, el despeje y el sorteo de las paradas, y en las curvas no
+  // entran), el tren para con su primer coche de pasajeros frente al andén (`adelanto`), se sube por cualquier coche
+  // y al bajar se baja en el andén.
+  function puertaCerca(js, radio = 2.8) {
+    if (!tren.puertas) return null;
+    let mejor = null, d0 = radio;
+    for (const pu of tren.puertas()) {
+      const p = enVia(est.s + offCoche(pu.coche) + pu.z);
+      const d = Math.hypot(p.x - js.pos.x, p.z - js.pos.z) - 1.05;
+      if (d < d0 && Math.abs(js.pos.y - p.y) < 2.6) { d0 = d; mejor = pu; }
+    }
+    return mejor;
+  }
   function puedeSubir(js) {
     if (est.subido || est.parado <= 0) return false;
+    if (tren.puertas) return !!puertaCerca(js);
     const p = enVia(est.s - 5.2);
     return Math.hypot(p.x - js.pos.x, p.z - js.pos.z) < 7;
+  }
+  // el asiento (no la plataforma) más cerca de un punto del tren (metros detrás de la locomotora y al costado)
+  function asientoMasCerca(largo, x = 0, filtro = null) {
+    let mejor = 0, d0 = Infinity;
+    ASIENTOS.forEach((a, i) => {
+      if (a.plataforma || (filtro && !filtro(a))) return;
+      const d = Math.abs(largoDe(a) - largo) + Math.abs(a.x - x) * 0.5;
+      if (d < d0) { d0 = d; mejor = i; }
+    });
+    return mejor;
   }
   function moverse(dx, dz) {
     if (!est.subido) return;
     const actual = ASIENTOS[est.asiento];
     if (actual.plataforma) {
       // desde la plataforma solo se vuelve adentro
-      if (dz > 0) est.asiento = ASIENTOS.findIndex((a) => a.coche === 1 && a.z === -2 && a.lado === 1);
+      if (dz > 0) est.asiento = tren.lugares ? asientoMasCerca(largoDe(actual), 0, (a) => a.coche === actual.coche) : ASIENTOS.findIndex((a) => a.coche === 1 && a.z === -2 && a.lado === 1);
       return;
     }
     let mejor = est.asiento, mejorD = Infinity;
     ASIENTOS.forEach((a, i) => {
       if (i === est.asiento) return;
-      const dxx = (a.coche - actual.coche) * -6.6 + (a.z - actual.z);
+      const dxx = tren.lugares ? largoDe(a) - largoDe(actual) : (a.coche - actual.coche) * -6.6 + (a.z - actual.z);
       const dlado = a.lado - actual.lado;
       if (dz !== 0 && Math.sign(dxx) !== Math.sign(dz)) return;
       if (dx !== 0 && Math.sign(dlado) !== Math.sign(dx)) return;
@@ -998,18 +1076,29 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
 
   function reiniciarVuelta() { est.recorrido = 0; }
   function subir(jugador) {
+    // 3.7.3: al coche de la puerta por la que subiste, en el asiento más cerca
+    const pu = puertaCerca(jugador.estado, 4);
     est.subido = true;
     est.recorrido = 0;
-    est.asiento = ASIENTOS.findIndex((a) => a.coche === 0 && a.z === 0 && a.lado === 1);
+    est.asiento = pu ? asientoMasCerca(offCoche(pu.coche) + pu.z * 0.8, 0, (a) => a.coche === pu.coche) : ASIENTOS.findIndex((a) => a.coche === 0 && a.z === 0 && a.lado === 1);
+    if (est.asiento < 0) est.asiento = asientoMasCerca(offCoche(0));
     jugador.estado.enTren = true;
     jugador.estado.agachado = false;
-    sonido.silbato(enVia(est.s));
+    pitar(enVia(est.s));
+  }
+  // 3.7.3: a un lugar del tren (el de la cocina, una cama…): el primero que cumpla `filtro`
+  function irA(filtro) {
+    if (!est.subido || est.conduce) return false;
+    const i = ASIENTOS.findIndex(filtro);
+    if (i < 0) return false;
+    est.asiento = i;
+    return true;
   }
   function bajar(jugador) {
     if (est.parado <= 0) return false;
     est.subido = false;
     jugador.estado.enTren = false;
-    const p = enVia(est.s - 5.2);
+    const p = enVia(est.s + (tren.adelanto ? -tren.adelanto : -5.2));
     const parada = paradas.reduce((a, b) => (Math.hypot(b.anden.x - p.x, b.anden.z - p.z) < Math.hypot(a.anden.x - p.x, a.anden.z - p.z) ? b : a), paradas[0]);
     jugador.ubicar(parada.anden.x, parada.anden.z, jugador.estado.yaw);
     return true;
@@ -1017,7 +1106,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
 
   function proximoTrenA(parada) {
     if (!parada) return null;
-    const d = delta(est.s, parada.s);
+    const d = delta(est.s, poste(parada));
     return { metros: d, segundos: Math.round(d / Math.max(2.5, est.objetivo) + (est.parado > 0 ? est.parado : 0)) };
   }
 
@@ -1027,6 +1116,13 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   // chapa de bronce a cada lado de la cabina) y el silbato.
   function personalizar(datos) {
     const d = sanearTrochita(datos);
+    // 3.7.3: el tren mejorado se pinta y se nombra a su manera (ver tren.js `personalizar`)
+    if (tren.personalizar) {
+      tren.personalizar(d);
+      if (sonido && typeof sonido === 'object') sonido.silbatoElegido = d.silbato;
+      personal = d;
+      return true;
+    }
     if (d.coches !== personal.coches || d.franja !== personal.franja || d.cabina !== personal.cabina) {
       for (const c of tren.coches) repintarVertices(c, { '#6b4a2e': d.coches, '#7c2f22': d.franja });
       repintarVertices(tren.loco, { '#6b4a2e': d.cabina, '#7c2f22': d.franja });
@@ -1050,11 +1146,64 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     return true;
   }
 
-  if (tren.proto) vaporDeCabina(true);   // 3.7.3 (prototipo): bocanadas redondas siempre
+  if (tren.lugares) vaporDeCabina(true);   // 3.7.3: con el tren mejorado, bocanadas redondas siempre
+
+  // ---------------------------------------------------------------- 3.7.3: la vía nevada
+  // La gran nevada (3.7.4) tapa tramos de vía con `taparVia([{ desde, hasta }])` (metros de vía; null destapa).
+  // Sin quitanieves el tren se planta antes de la nieve (manejando, adentro) hasta que pasa la cuadrilla con las
+  // palas (TREN.nieve.espera segundos) o se destapa; con quitanieves pasa despacio y la deja abierta detrás.
+  function taparVia(tramos) {
+    est.nevada = sanearNevada(tramos || [], total);
+    est.esperaNieve = 0;
+    tren.nieve?.(est.nevada, enVia, total);
+    return est.nevada.slice();
+  }
+  function nieveAdelante(dt) {
+    if (!est.nevada.length || est.varado) return SIN_NIEVE;
+    const frente = 5.2;   // la punta de la cuña (o del quitapiedras), adelante del centro de la locomotora
+    const sf = est.s + frente;
+    const tramo = tramoNevado(sf % total, est.nevada, total);
+    const dn = tramo ? 0 : distanciaANieve(sf % total, est.nevada, total);
+    if (conQuitanieves()) {
+      if (!tramo) {
+        // (lo que la cuña dejó atrás sin terminar de abrir, un pedacito, se da por abierto)
+        const atras = est.nevada.find((t) => ((sf - t.hasta) % total + total) % total < 6);
+        if (atras) { est.nevada = est.nevada.filter((t) => t !== atras); est.avisoNieve = 'abierta'; tren.nieve?.(est.nevada, enVia, total); }
+        return dn < 25 ? { ...SIN_NIEVE, tope: Math.max(TREN.nieve.vmax, dn * 0.5) } : SIN_NIEVE;
+      }
+      // la cuña abre la vía: lo que quedó atrás de la punta ya no está tapado
+      const hecho = ((sf - tramo.desde) % total + total) % total;
+      if (hecho > 1) {
+        const largo = tramo.hasta - tramo.desde;
+        tramo.desde = (tramo.desde + hecho) % total;
+        tramo.hasta = tramo.desde + Math.max(0, largo - hecho);
+        if (tramo.hasta - tramo.desde < 2) { est.nevada = est.nevada.filter((t) => t !== tramo); est.avisoNieve = 'abierta'; }
+        tren.nieve?.(est.nevada, enVia, total);
+      }
+      return { tope: TREN.nieve.vmax, frena: 0, plantado: false, adentro: true };
+    }
+    // sin quitanieves: se planta en el borde (y espera la cuadrilla)
+    if (tramo || dn < 1.5) {
+      if (est.esperaNieve === 0) est.avisoNieve = 'plantado';
+      est.esperaNieve += dt;
+      if (est.esperaNieve > TREN.nieve.espera) {
+        const t = tramo || est.nevada.find((x) => ((x.desde - sf) % total + total) % total < 2);
+        est.nevada = est.nevada.filter((x) => x !== t);
+        est.esperaNieve = 0; est.avisoNieve = 'cuadrilla';
+        tren.nieve?.(est.nevada, enVia, total);
+        return SIN_NIEVE;
+      }
+      return { tope: 0, frena: TREN.nieve.frena, plantado: true, adentro: !!tramo };
+    }
+    est.esperaNieve = 0;
+    return dn < 40 ? { ...SIN_NIEVE, tope: Math.max(0, (dn - 1.2) * 0.6) } : SIN_NIEVE;
+  }
   function varar(s) { est.varado = true; est.s = ((s % total) + total) % total; est.vel = 0; est.velVarado = 0; }
   function soltar(esperar = 0) { est.varado = false; est.velVarado = 0; est.proxima = siguienteParada(est.s); est.parado = esperar; }
   return {
     est, actualizar, puedeSubir, subir, bajar, moverse, proximoTrenA, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
+    // 3.7.3: el lugar donde vas, ir a uno (la cocina, una cama), la vía nevada y dónde para la locomotora
+    asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,
     viajando: () => est.subido, parado: () => est.parado > 0 || paradoEnCabina(),
     // 2.9: de maquinista y el puesto de cargas de cada parada
     puedeConducir, subirACabina, bajarDeCabina, silbar, puestoCerca, paradaEnVentana,

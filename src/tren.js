@@ -1,29 +1,45 @@
-// 3.7.3 (PROTOTIPO, sólo imágenes): "La trochita" mejorada y el taller ferroviario de la aldea, para ver
-// cómo quedarían con los gráficos del juego antes de hacerlos de verdad. Se prende con
-// `?debug=1&tren=proto` (ver main.js): reemplaza al tren de trochita.js en la vía y pone el taller al otro
-// lado de la vía, frente a la estación de la Aldea de los Duendes. Sin el ajuste, nada de esto se arma.
+// 3.7.3 (tren): "La trochita" mejorada en el juego (sólo en el Relax; el Desafío sigue con el tren de siempre de
+// trochita.js). Nació como el prototipo de imágenes aprobado por el usuario (`?tren=proto`, rama proto-tren).
+// La Baldwin 2-8-2 "La Hojarasca" con su ténder de leña y los vagones que se ven según lo que hiciste en el taller
+// ferroviario (src/tren-mejoras.js; las reglas de acá, en tren-viaje.js):
+//   · la locomotora: sin mejoras es la vieja (un farolito de kerosén, el quitapiedras, sin arenero, sin banderines,
+//     sin nombre pintado); con el taller aparecen el farol con su haz, el quitanieves, el arenero, los banderines,
+//     la pintura (cuerpo, franja y ruedas) y el nombre;
+//   · los vagones: ténder + hasta 4 de la composición (pasajeros con salamandra, comedor, dormitorio, mirador,
+//     furgón de carga, jaula del caballo) o, sin ninguno, los dos coches de segunda de siempre;
+//   · `aplicarMejoras(estado)` lo rearma sin tirón: no se arma geometría nueva, sólo cambia qué partes se dibujan
+//     (los índices de cada parte, ver abajo), la pintura de los vértices y el nombre del lienzo.
 //
 // Cómo está hecho (pensado para que cueste poco en la Radeon integrada):
-//   · Todo el tren (locomotora, ténder y seis coches, por dentro y por fuera) es UNA malla por material,
-//     con "piel por huesos" (como la gente de gente-cuerpo.js: el three del juego no trae SkinnedMesh):
-//     cada vagón es un hueso (trochita.js lo pone en la vía con `colocar`), cada eje es un hueso hijo que
-//     gira, y las bielas, las crucetas y los vástagos son huesos que se mueven con las ruedas. Cinco
-//     dibujos para todo el tren (estructura, vidrios, fuego, faroles, letras pintadas) más el haz del
-//     farol de noche; el tren de antes eran unos 80.
-//   · El material es el de la aldea (prepararMaterialAldea: tablas, chapa, piedra con juntas, vetas,
-//     musgo y óxido en el shader) con tipos propios del tren (aSuperficie 20 a 27): hierro pintado con
-//     hollín que chorrea y óxido abajo, hierro crudo, bronce con brillo de sol, machimbre de 9 cm afuera
-//     (gastado) y adentro (barnizado), tela, lona embreada del techo y hollín de la caja de humo.
-//   · Escala real: trocha de 75 cm, ruedas motrices de 84 cm, caldera de 1,10 m, coches de 2,10 m de
-//     ancho y 8,8 m de caja (10,9 m con las plataformas). El tren entero mide unos 70 m.
+//   · Todo el tren (locomotora, ténder y los diez vagones posibles, por dentro y por fuera) es UNA malla por
+//     material, con "piel por huesos" (como la gente de gente-cuerpo.js: el three del juego no trae SkinnedMesh):
+//     cada vagón es un hueso (trochita.js lo pone en la vía con `colocar`), cada eje es un hueso hijo que gira, y
+//     las bielas, las crucetas y los vástagos son huesos que se mueven con las ruedas. Seis dibujos para todo el
+//     tren (estructura, vidrios, fuego, faroles, letras pintadas y el haz del farol de noche).
+//   · Las partes: cada triángulo sabe de qué parte es (el vagón, su interior, el farol, el quitanieves, la olla del
+//     comedor…) y los índices quedan ordenados por parte. Lo que se dibuja es un tramo del arreglo de índices que se
+//     rehace sólo cuando cambia qué partes van (una mejora, la cocina del comedor, el interior que se apaga de lejos).
+//     Lo que no va no se dibuja ni pasa por el procesador de vértices.
+//   · Los interiores (bancos, mesas, camas, la cocina, la paja de la jaula) se apagan a más de 45 m de la cámara,
+//     como el LOD de la aldea; el caballo de la jaula y los vecinos que viajan, igual.
+//   · El material es el de la aldea (prepararMaterialAldea: tablas, chapa, piedra con juntas, vetas, musgo y óxido
+//     en el shader) con tipos propios del tren (aSuperficie 20 a 27): hierro pintado con hollín que chorrea y óxido
+//     abajo, hierro crudo, bronce con brillo de sol, machimbre de 9 cm afuera (gastado) y adentro (barnizado), tela,
+//     lona embreada del techo y hollín de la caja de humo. Todo se arma y se compila en la carga.
+//   · El haz del farol sigue la vía (cinco huesos puestos sobre la vía, adelante): en las curvas no se va derecho
+//     contra el bosque. El foco apunta a la vía 14 m adelante, bajo y angosto: no ilumina las copas.
+//   · Escala real: trocha de 75 cm, ruedas motrices de 84 cm, caldera de 1,10 m, coches de 2,10 m de ancho y 8,8 m
+//     de caja (10,9 m con las plataformas). Con ténder y 4 vagones mide unos 57 m.
 import * as THREE from 'three';
 import { Constructor, matriz, abollar } from './geometria.js';
-import { materialVegetal, U } from './materiales.js';
+import { materialVegetal } from './materiales.js';
 import { prepararMaterialAldea, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
 import { registrarLuz } from './luces.js';
 import { crearPersona } from './gente-cuerpo.js';
 import { mallaCaballo } from './caballo-mundo.js';
-import { marcoAldea } from './aldea.js';
+import { marcoAldea, VECINOS_ALDEA } from './aldea.js';
+import { bajaSentado, __mallaPersona } from './gente.js';
+import { sanearEstadoTren, composicionDe, viajaEn } from './tren-viaje.js';
 
 const PI = Math.PI;
 const RT = 0.135;   // la cara de arriba del riel, sobre el punto de la vía (trochita.js)
@@ -40,21 +56,25 @@ const K = {
 };
 const color = (hex, f = 1) => new THREE.Color(hex).multiplyScalar(f);
 
-// ---------------------------------------------------------------- el constructor (con superficie y hueso)
+// ---------------------------------------------------------------- el constructor (con superficie, hueso, parte y tinta)
+// `pieza`: la parte (un número; ver `contexto`) de cada vértice: los índices salen ordenados por parte, y cada
+// parte guarda su tramo (`geometry.userData.tramos`). `tinta`: qué pintura del taller lo tiñe (TINTAS).
+const TINTAS = { cuerpo: 1, franja: 2, ruedas: 3, coches: 4, franjaCoches: 5 };
 class CT extends Constructor {
-  constructor() { super(); this.sup = []; this.hueso = []; this.supActual = 0; this.huesoActual = 0; }
+  constructor() { super(); this.sup = []; this.hueso = []; this.pieza = []; this.tinta = []; this.supActual = 0; this.huesoActual = 0; this.piezaActual = 0; }
   agregar(geo, o = {}) {
     const n0 = this.tipo.length;
     super.agregar(geo, o);
-    const s = o.sup ?? this.supActual, h = o.hueso ?? this.huesoActual;
-    for (let i = n0; i < this.tipo.length; i++) { this.sup.push(s); this.hueso.push(h); }
+    const s = o.sup ?? this.supActual, h = o.hueso ?? this.huesoActual, t = o.tinta ?? 0;
+    for (let i = n0; i < this.tipo.length; i++) { this.sup.push(s); this.hueso.push(h); this.pieza.push(this.piezaActual); this.tinta.push(t); }
     return this;
   }
   // un triángulo suelto, con su normal por vértice y un color
   tri(p0, p1, p2, n0, n1, n2, k, tipo = 0, sup = this.supActual) {
+    const t = tintaDe(k);
     for (const [p, n] of [[p0, n0], [p1, n1], [p2, n2]]) {
       this.pos.push(p[0], p[1], p[2]); this.nor.push(n[0], n[1], n[2]); this.col.push(k.r, k.g, k.b);
-      this.tipo.push(tipo); this.sup.push(sup); this.hueso.push(this.huesoActual);
+      this.tipo.push(tipo); this.sup.push(sup); this.hueso.push(this.huesoActual); this.pieza.push(this.piezaActual); this.tinta.push(t);
     }
   }
   // lo de `otro`, pasado por la matriz `m` (el loco quieto del taller)
@@ -65,25 +85,29 @@ class CT extends Constructor {
       n.set(otro.nor[i * 3], otro.nor[i * 3 + 1], otro.nor[i * 3 + 2]).applyMatrix3(nm).normalize();
       this.pos.push(v.x, v.y, v.z); this.nor.push(n.x, n.y, n.z);
       this.col.push(otro.col[i * 3], otro.col[i * 3 + 1], otro.col[i * 3 + 2]);
-      this.tipo.push(otro.tipo[i]); this.sup.push(otro.sup[i]); this.hueso.push(this.huesoActual);
+      this.tipo.push(otro.tipo[i]); this.sup.push(otro.sup[i]); this.hueso.push(this.huesoActual); this.pieza.push(this.piezaActual); this.tinta.push(otro.tinta?.[i] || 0);
     }
   }
   // geometría soldada (cada vértice repetido una sola vez), con aSuperficie, aLocal y, si `piel`, los
-  // índices de hueso (uno por vértice, peso 1)
+  // índices de hueso (uno por vértice, peso 1). Los triángulos, ordenados por parte.
   armar({ piel = false } = {}) {
-    const mapa = new Map(), ind = [], P = [], N = [], C = [], T = [], S = [], H = [];
+    const mapa = new Map(), P = [], N = [], C = [], T = [], S = [], H = [], TI = [];
+    const porPieza = new Map();
     const q = (x, k) => Math.round(x * k);
     for (let i = 0, n = this.tipo.length; i < n; i++) {
       const i3 = i * 3;
       const clave = q(this.pos[i3], 1e4) + ',' + q(this.pos[i3 + 1], 1e4) + ',' + q(this.pos[i3 + 2], 1e4) + '|' + q(this.nor[i3], 500) + ',' + q(this.nor[i3 + 1], 500) + ',' + q(this.nor[i3 + 2], 500)
-        + '|' + q(this.col[i3], 1e3) + ',' + q(this.col[i3 + 1], 1e3) + ',' + q(this.col[i3 + 2], 1e3) + '|' + this.tipo[i] + '|' + this.sup[i] + '|' + this.hueso[i];
+        + '|' + q(this.col[i3], 1e3) + ',' + q(this.col[i3 + 1], 1e3) + ',' + q(this.col[i3 + 2], 1e3) + '|' + this.tipo[i] + '|' + this.sup[i] + '|' + this.hueso[i] + '|' + this.tinta[i];
       let j = mapa.get(clave);
       if (j === undefined) {
         j = T.length; mapa.set(clave, j);
         P.push(this.pos[i3], this.pos[i3 + 1], this.pos[i3 + 2]); N.push(this.nor[i3], this.nor[i3 + 1], this.nor[i3 + 2]);
-        C.push(this.col[i3], this.col[i3 + 1], this.col[i3 + 2]); T.push(this.tipo[i]); S.push(this.sup[i]); H.push(this.hueso[i]);
+        C.push(this.col[i3], this.col[i3 + 1], this.col[i3 + 2]); T.push(this.tipo[i]); S.push(this.sup[i]); H.push(this.hueso[i]); TI.push(this.tinta[i]);
       }
-      ind.push(j);
+      const pz = this.pieza[i - (i % 3)];
+      let lista = porPieza.get(pz);
+      if (!lista) { lista = []; porPieza.set(pz, lista); }
+      lista.push(j);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
@@ -98,10 +122,60 @@ class CT extends Constructor {
       g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4));
       g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
     }
-    g.setIndex(new THREE.BufferAttribute(T.length > 65535 ? new Uint32Array(ind) : new Uint16Array(ind), 1));   // (el three del juego no trae Uint16/32BufferAttribute)
+    indicesPorPieza(g, porPieza, T.length);
+    g.userData.tinta = Uint8Array.from(TI);
+    g.userData.colorBase = Float32Array.from(C);
     g.computeBoundingSphere();
     return g;
   }
+}
+// El arreglo de índices ordenado por parte (cada parte, su tramo), y una copia (`base`) de la que se arma lo
+// que se dibuja (ver `mostrarPiezas`)
+function indicesPorPieza(g, porPieza, nVertices) {
+  const piezas = [...porPieza.keys()].sort((a, b) => a - b);
+  let total = 0;
+  for (const pz of piezas) total += porPieza.get(pz).length;
+  const Tipo = nVertices > 65535 ? Uint32Array : Uint16Array;   // (el three del juego no trae Uint16/32BufferAttribute)
+  const base = new Tipo(total), tramos = new Map();
+  let k = 0;
+  for (const pz of piezas) { const l = porPieza.get(pz); tramos.set(pz, [k, l.length]); base.set(l, k); k += l.length; }
+  const vivo = new THREE.BufferAttribute(base.slice(), 1);
+  vivo.setUsage(35048);   // (DynamicDrawUsage: el three del juego no trae la constante)
+  g.setIndex(vivo);
+  g.userData.base = base;
+  g.userData.tramos = tramos;
+}
+// Deja en los índices sólo las partes de `visibles` (un Set de números).
+function mostrarPiezas(g, visibles) {
+  const { base, tramos } = g.userData;
+  if (!base) return;
+  const arr = g.index.array;
+  let k = 0;
+  for (const [pz, [desde, n]] of tramos) {
+    if (!n || !visibles.has(pz)) continue;
+    arr.set(base.subarray(desde, desde + n), k);
+    k += n;
+  }
+  g.setDrawRange(0, k);
+  g.index.needsUpdate = true;
+}
+// Lo pintable en el taller (la locomotora y el ténder: 'loco'; los coches: 'coche'). Las tintas salen del color
+// de cada primitiva; los triángulos sueltos (`tri`), del color ya convertido.
+let modoTinta = null;
+function tintaHex(hex) {
+  if (typeof hex !== 'string') return 0;
+  if (hex === K.aroBlanco) return TINTAS.ruedas;
+  if (modoTinta === 'loco') return hex === K.rojo || hex === K.rojoOscuro || hex === '#b0452c' ? TINTAS.cuerpo : hex === K.crema ? TINTAS.franja : 0;
+  if (modoTinta === 'coche') return hex === K.madera || hex === K.maderaClara ? TINTAS.coches : hex === K.crema ? TINTAS.franjaCoches : 0;
+  return 0;
+}
+const _kT = new THREE.Color();
+const parecido = (k, hex) => { _kT.set(hex); return Math.abs(k.r - _kT.r) + Math.abs(k.g - _kT.g) + Math.abs(k.b - _kT.b) < 0.03; };
+function tintaDe(k) {
+  if (!modoTinta || !k) return 0;
+  if (modoTinta === 'loco' && (parecido(k, K.rojo) || parecido(k, '#b0452c'))) return TINTAS.cuerpo;
+  if (modoTinta === 'coche' && parecido(k, K.madera)) return TINTAS.coches;
+  return 0;
 }
 
 // ---------------------------------------------------------------- primitivas
@@ -109,7 +183,7 @@ class CT extends Constructor {
 function agregarCon(c, g, hex, p, o = {}) {
   const k = new THREE.Color(hex);
   c.agregar(g, {
-    tipo: o.tipo ?? 0, variar: o.variar ?? 0.05, sup: o.sup, hueso: o.hueso, suave: o.suave,
+    tipo: o.tipo ?? 0, variar: o.variar ?? 0.05, sup: o.sup, hueso: o.hueso, suave: o.suave, tinta: o.tinta ?? tintaHex(hex),
     degradado: [k.clone().multiplyScalar(o.bajo ?? 0.82), k.clone().multiplyScalar(o.alto ?? 1.05)],
     matriz: o.m || matriz(p, [o.rx ?? 0, o.ry ?? 0, o.rz ?? 0], o.esc ?? [1, 1, 1]),
   });
@@ -325,7 +399,7 @@ function materiales() {
       .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n' + GLSL_TREN_BRILLO);
     sh.vertexShader = sh.vertexShader.replace('uInvierno * arriba * 0.9 * (1.0 - step(9.5, aSuperficie)));',
       'uInvierno * arriba * 0.9 * clamp(1.0 - step(9.5, aSuperficie) * (1.0 - step(19.5, aSuperficie)) - step(23.5, aSuperficie) * (1.0 - step(25.5, aSuperficie)), 0.0, 1.0));');
-    if (sh.fragmentShader === f0 || sh.vertexShader === v0) console.warn('[tren-proto] el shader de la aldea cambió: revisar los reemplazos');
+    if (sh.fragmentShader === f0 || sh.vertexShader === v0) console.warn('[tren] el shader de la aldea cambió: revisar los reemplazos');
   };
   estructura.needsUpdate = true;
   // los vidrios: casi transparentes de día (se ve el valle de adentro) y tibios de noche
@@ -354,7 +428,9 @@ function atlasTren() {
     nombre: R(0, 0, 1024, 192), guarda: R(0, 192, 1024, 64),
     furgon: R(0, 256, 512, 96), jaula: R(512, 256, 512, 96), primera: R(0, 352, 512, 96), comedor: R(512, 352, 512, 96),
     dormitorio: R(0, 448, 512, 96), mirador: R(512, 448, 512, 96), taller: R(0, 544, 1024, 96), numero: R(0, 640, 256, 64),
+    segunda: R(512, 640, 512, 64),
   };
+  let nombreLoco = 'La Hojarasca';
   const pintar = () => {
     ctx.clearRect(0, 0, W, H);
     // el nombre: filete doble con esquinas y letras de pincel doradas
@@ -364,9 +440,11 @@ function atlasTren() {
     ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(24, 24, W - 48, 144, 24); ctx.stroke();
     for (const x of [44, W - 44]) { ctx.beginPath(); ctx.arc(x, 96, 10, 0, PI * 2); ctx.fillStyle = '#e2c27a'; ctx.fill(); }
     ctx.font = '700 132px "Caveat", "Spectral", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineWidth = 10; ctx.strokeStyle = '#3a1810'; ctx.strokeText('La Hojarasca', W / 2, 100);
+    // (los nombres largos, con letra más chica)
+    ctx.font = `700 ${Math.round(Math.min(132, 132 * 12 / Math.max(12, nombreLoco.length)))}px "Caveat", "Spectral", serif`;
+    ctx.lineWidth = 10; ctx.strokeStyle = '#3a1810'; ctx.strokeText(nombreLoco, W / 2, 100);
     const grad = ctx.createLinearGradient(0, 40, 0, 150); grad.addColorStop(0, '#f6e2a4'); grad.addColorStop(1, '#c99a48');
-    ctx.fillStyle = grad; ctx.fillText('La Hojarasca', W / 2, 100);
+    ctx.fillStyle = grad; ctx.fillText(nombreLoco, W / 2, 100);
     ctx.restore();
     // la guarda: greca escalonada (como las del telar) en crema y ocre
     ctx.save();
@@ -390,6 +468,7 @@ function atlasTren() {
     letrero(espaciar('FURGÓN'), 0, 256, 512); letrero(espaciar('JAULA'), 512, 256, 512);
     letrero(espaciar('PRIMERA'), 0, 352, 512); letrero(espaciar('COMEDOR'), 512, 352, 512);
     letrero(espaciar('DORMITORIO'), 0, 448, 512); letrero(espaciar('MIRADOR'), 512, 448, 512);
+    letrero(espaciar('SEGUNDA'), 512, 622, 512);
     // el cartel del taller: letras oscuras sobre la tabla pintada
     ctx.font = '700 64px "Spectral", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#3a2416'; ctx.fillText(espaciar('TALLER FERROVIARIO'), 512, 594);
@@ -402,17 +481,19 @@ function atlasTren() {
   tex.anisotropy = 4;
   // con las letras del juego cargadas, se vuelve a pintar
   try { Promise.all(['700 132px "Caveat"', '600 58px "Spectral"'].map((f) => document.fonts.load(f))).then(() => { pintar(); tex.needsUpdate = true; }).catch(() => {}); } catch { /* sin fuentes */ }
-  return { tex, rect };
+  // el nombre de la locomotora (del taller o de "Personalizar"): se vuelve a pintar el lienzo
+  const ponerNombre = (n) => { const nuevo = typeof n === 'string' && n.trim() ? n.trim().slice(0, 18) : 'La Hojarasca'; if (nuevo === nombreLoco) return false; nombreLoco = nuevo; pintar(); tex.needsUpdate = true; return true; };
+  return { tex, rect, ponerNombre, nombre: () => nombreLoco };
 }
-// las calcomanías: cuadriláteros con su rectángulo del atlas, con hueso
+// las calcomanías: cuadriláteros con su rectángulo del atlas, con hueso y parte
 class Calcos {
-  constructor() { this.pos = []; this.nor = []; this.uv = []; this.hueso = []; this.huesoActual = 0; }
+  constructor() { this.pos = []; this.nor = []; this.uv = []; this.hueso = []; this.pieza = []; this.huesoActual = 0; this.piezaActual = 0; }
   // centro c, ejes u (a lo ancho) y v (a lo alto), unitarios; normal = u × v
   poner(c, u, v, ancho, alto, r) {
     const n = new THREE.Vector3(...u).cross(new THREE.Vector3(...v)).normalize();
     const P = (su, sv) => [c[0] + u[0] * su * ancho / 2 + v[0] * sv * alto / 2, c[1] + u[1] * su * ancho / 2 + v[1] * sv * alto / 2, c[2] + u[2] * su * ancho / 2 + v[2] * sv * alto / 2];
     const esq = [[P(-1, -1), r[0], r[1]], [P(1, -1), r[2], r[1]], [P(1, 1), r[2], r[3]], [P(-1, -1), r[0], r[1]], [P(1, 1), r[2], r[3]], [P(-1, 1), r[0], r[3]]];
-    for (const [p, a, b] of esq) { this.pos.push(...p); this.nor.push(n.x, n.y, n.z); this.uv.push(a, b); this.hueso.push(this.huesoActual); }
+    for (const [p, a, b] of esq) { this.pos.push(...p); this.nor.push(n.x, n.y, n.z); this.uv.push(a, b); this.hueso.push(this.huesoActual); this.pieza.push(this.piezaActual); }
   }
   // en un costado (x = ±xc) de algo a lo largo de Z, leyéndose desde afuera
   costado(s, xc, y, z, ancho, alto, r) {
@@ -423,7 +504,7 @@ class Calcos {
     for (let i = 0; i < otro.hueso.length; i++) {
       v.set(otro.pos[i * 3], otro.pos[i * 3 + 1], otro.pos[i * 3 + 2]).applyMatrix4(m);
       n.set(otro.nor[i * 3], otro.nor[i * 3 + 1], otro.nor[i * 3 + 2]).applyMatrix3(nm).normalize();
-      this.pos.push(v.x, v.y, v.z); this.nor.push(n.x, n.y, n.z); this.uv.push(otro.uv[i * 2], otro.uv[i * 2 + 1]); this.hueso.push(this.huesoActual);
+      this.pos.push(v.x, v.y, v.z); this.nor.push(n.x, n.y, n.z); this.uv.push(otro.uv[i * 2], otro.uv[i * 2 + 1]); this.hueso.push(this.huesoActual); this.pieza.push(this.piezaActual);
     }
   }
   armar({ piel = false } = {}) {
@@ -431,12 +512,16 @@ class Calcos {
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    const n = this.hueso.length;
     if (piel) {
-      const n = this.hueso.length, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+      const si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
       for (let i = 0; i < n; i++) { si[i * 4] = this.hueso[i]; sw[i * 4] = 1; }
       g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4));
       g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
     }
+    const porPieza = new Map();
+    for (let i = 0; i < n; i++) { const pz = this.pieza[i - (i % 3)]; let l = porPieza.get(pz); if (!l) { l = []; porPieza.set(pz, l); } l.push(i); }
+    indicesPorPieza(g, porPieza, n);
     g.computeBoundingSphere();
     return g;
   }
@@ -457,6 +542,7 @@ class EsqueletoTren {
     this._inv = new THREE.Matrix4(); this._m = new THREE.Matrix4();
   }
   computeBoneTexture() { return this; }
+  // (las seis mallas lo comparten: three lo actualiza una vez por cuadro, con skeleton.frame)
   update() {
     this._inv.copy(this.malla.matrixWorld).invert();
     for (let i = 0; i < this.huesos.length; i++) {
@@ -483,10 +569,20 @@ class MallaTren extends THREE.Mesh {
 // ---------------------------------------------------------------- el contexto de armado
 // K.E estructura, K.V vidrios, K.F fuego, K.L faroles, K.H haz, K.D letras. `hueso(padre, [x,y,z])` da un
 // hueso nuevo (hijo del vagón `padre`, en esa posición en la pose de armado). Para lo quieto (el loco
-// del taller), `hueso` devuelve 0 y nada se mueve.
+// del taller), `hueso` devuelve 0 y nada se mueve. `pieza(nombre)`: lo que sigue es de esa parte (el número de
+// cada nombre, en `piezas`); `conPieza(nombre, fn)` arma `fn` en esa parte y vuelve a la de antes.
 function contexto(conHuesos) {
-  const ctx = { E: new CT(), V: new CT(), F: new CT(), L: new CT(), H: new CT(), D: new Calcos(), huesos: [], moviles: [] };
-  ctx.poner = (h) => { for (const c of [ctx.E, ctx.V, ctx.F, ctx.L, ctx.H, ctx.D]) c.huesoActual = h; };
+  const ctx = { E: new CT(), V: new CT(), F: new CT(), L: new CT(), H: new CT(), D: new Calcos(), huesos: [], moviles: [], piezas: new Map([['', 0]]), piezaActual: '' };
+  const todos = () => [ctx.E, ctx.V, ctx.F, ctx.L, ctx.H, ctx.D];
+  ctx.poner = (h) => { for (const c of todos()) c.huesoActual = h; };
+  ctx.pieza = (nombre) => {
+    if (!ctx.piezas.has(nombre)) ctx.piezas.set(nombre, ctx.piezas.size);
+    const id = ctx.piezas.get(nombre);
+    ctx.piezaActual = nombre;
+    for (const c of todos()) c.piezaActual = id;
+    return id;
+  };
+  ctx.conPieza = (nombre, fn) => { const antes = ctx.piezaActual; ctx.pieza(nombre); try { return fn(); } finally { ctx.pieza(antes); } };
   ctx.hueso = (padre, pos, datos = {}) => {
     if (!conHuesos) return 0;
     const o = new THREE.Object3D();
@@ -496,7 +592,17 @@ function contexto(conHuesos) {
     ctx.moviles.push({ i, o, ...datos });
     return i;
   };
+  // un hueso suelto (hijo del grupo del tren, no de un vagón): los del haz del farol
+  ctx.huesoLibre = (pos) => {
+    if (!conHuesos) return 0;
+    const o = new THREE.Object3D();
+    o.position.set(...pos);
+    const i = ctx.huesos.length;
+    ctx.huesos.push({ o, padre: -1, ref: pos.slice(), inversa: new THREE.Matrix4().makeTranslation(-pos[0], -pos[1], -pos[2]) });
+    return i;
+  };
   ctx.vagon = (nombre) => {
+    ctx.pieza(nombre);
     if (!conHuesos) return 0;
     const o = new THREE.Group(); o.name = nombre;
     const i = ctx.huesos.length;
@@ -570,10 +676,13 @@ function bogie(ctx, vag, zb, r, paso = 1.0) {
 // arenero, domo de vapor de bronce, campana y silbato, farol de caja, quitanieves en punta, banderines,
 // freno de vacío con su cilindro grande bajo la cabina y el nombre pintado en la cabina.
 export const LOCO = { largo: 8.6, bogies: 2.2, boca: [0, 3.18, 3.25], farol: [0, 2.5, 3.9] };
+// el haz del farol: arranca en el farol (z0), mide `largo` y se abre hasta `radio`; `huesos` tramos de `paso` m
+const HAZ = { y: 2.6, z0: 3.9, largo: 14, radio: 1.5, huesos: 4, paso: 3.5 };
 function armarLoco(ctx) {
   const c = ctx.E;
   const vag = ctx.vagon('loco');
   ctx.poner(vag);
+  modoTinta = 'loco';
   const R = 0.42, cy = RT + R, rc = 0.2;
   const ejes = [1.45, 0.5, -0.45, -1.4];
   // ---- bastidor, viga de choque, estribos y faldón rojo
@@ -603,12 +712,14 @@ function armarLoco(ctx) {
   cil(c, [0, 3.16, 3.25], 0.2, 0.08, K.humo, { r1: 0.25, lados: 16, sup: ST.hollin });
   cil(c, [0, 3.2, 3.25], 0.25, 0.03, '#2a2622', { lados: 16, sup: ST.hollin });
   disco(c, [0, 3.18, 3.25], 0.17, '#0c0a09', { rx: -PI / 2, lados: 14 });
-  // ---- arenero (domo arriba de la caldera) y sus caños hasta delante de las ruedas
-  cil(c, [0, 2.32, 1.9], 0.26, 0.32, K.negro, { lados: 18, sup: ST.pintado });
-  torno(c, [0, 2.47, 1.9], [[0.27, 0], [0.26, 0.05], [0.2, 0.12], [0.08, 0.16], [0, 0.17]], K.negro, { lados: 18, sup: ST.pintado });
-  cil(c, [0, 2.46, 1.9], 0.272, 0.04, K.bronce, { lados: 18, sup: ST.bronce });
-  cil(c, [0, 2.65, 1.9], 0.05, 0.04, K.bronce, { lados: 10, sup: ST.bronce });
-  for (const s of [-1, 1]) tubo(c, [[s * 0.2, 2.3, 1.9], [s * 0.58, 1.95, 1.94], [s * 0.64, 1.25, 1.96], [s * 0.44, 0.5, 1.98], [s * 0.38, 0.27, 1.99]], 0.022, '#3a3632', { sup: ST.hierro, tramos: 18 });
+  // ---- arenero (domo arriba de la caldera) y sus caños hasta delante de las ruedas (del taller)
+  ctx.conPieza('loco.arenero', () => {
+    cil(c, [0, 2.32, 1.9], 0.26, 0.32, K.negro, { lados: 18, sup: ST.pintado });
+    torno(c, [0, 2.47, 1.9], [[0.27, 0], [0.26, 0.05], [0.2, 0.12], [0.08, 0.16], [0, 0.17]], K.negro, { lados: 18, sup: ST.pintado });
+    cil(c, [0, 2.46, 1.9], 0.272, 0.04, K.bronce, { lados: 18, sup: ST.bronce });
+    cil(c, [0, 2.65, 1.9], 0.05, 0.04, K.bronce, { lados: 10, sup: ST.bronce });
+    for (const s of [-1, 1]) tubo(c, [[s * 0.2, 2.3, 1.9], [s * 0.58, 1.95, 1.94], [s * 0.64, 1.25, 1.96], [s * 0.44, 0.5, 1.98], [s * 0.38, 0.27, 1.99]], 0.022, '#3a3632', { sup: ST.hierro, tramos: 18 });
+  });
   // ---- campana
   barra(c, [-0.14, 2.27, 1.2], [-0.14, 2.62, 1.2], 0.025, K.negro, { sup: ST.pintado });
   barra(c, [0.14, 2.27, 1.2], [0.14, 2.62, 1.2], 0.025, K.negro, { sup: ST.pintado });
@@ -630,27 +741,40 @@ function armarLoco(ctx) {
     for (const z of [-1.0, 0.4, 1.8, 3.2]) barra(c, [s * 0.5, 1.98, z], [s * 0.64, 1.98, z], 0.012, K.hierro, { sup: ST.hierro });
   }
   barra(c, [0.48, 2.12, -1.55], [0.48, 2.12, 2.75], 0.028, K.bronce, { sup: ST.bronce, lados: 6 });
-  // ---- farol de caja sobre la caja de humo
-  caja(c, [0, 2.35, 3.62], [0.2, 0.08, 0.3], K.negro, { sup: ST.pintado });
-  caja(c, [0, 2.6, 3.68], [0.36, 0.38, 0.36], K.negro, { sup: ST.pintado });
-  cil(c, [0, 2.79, 3.68], 0.18, 0.36, K.negro, { lados: 12, rx: PI / 2, desde: PI / 2, arco: PI, sup: ST.pintado });
-  cil(c, [0, 2.92, 3.62], 0.04, 0.12, K.negro, { lados: 8, sup: ST.pintado });
-  cil(c, [0, 2.6, 3.87], 0.155, 0.04, K.bronce, { lados: 18, rx: PI / 2, sup: ST.bronce });
-  disco(ctx.L, [0, 2.6, 3.892], 0.13, '#fff1c8', { lados: 18 });
-  for (const s of [-1, 1]) caja(c, [s * 0.185, 2.6, 3.68], [0.01, 0.18, 0.2], K.bronce, { sup: ST.bronce });
-  // el haz (de noche): un cono que se abre hacia adelante y se apaga en la punta
-  {
-    const g = new THREE.CylinderGeometry(0.13, 2.0, 16, 18, 4, true);
-    g.rotateX(-PI / 2); g.translate(0, 2.6, 3.9 + 8);
+  // ---- farol de caja sobre la caja de humo (del taller)
+  ctx.conPieza('loco.farol', () => {
+    caja(c, [0, 2.35, 3.62], [0.2, 0.08, 0.3], K.negro, { sup: ST.pintado });
+    caja(c, [0, 2.6, 3.68], [0.36, 0.38, 0.36], K.negro, { sup: ST.pintado });
+    cil(c, [0, 2.79, 3.68], 0.18, 0.36, K.negro, { lados: 12, rx: PI / 2, desde: PI / 2, arco: PI, sup: ST.pintado });
+    cil(c, [0, 2.92, 3.62], 0.04, 0.12, K.negro, { lados: 8, sup: ST.pintado });
+    cil(c, [0, 2.6, 3.87], 0.155, 0.04, K.bronce, { lados: 18, rx: PI / 2, sup: ST.bronce });
+    disco(ctx.L, [0, 2.6, 3.892], 0.13, '#fff1c8', { lados: 18 });
+    for (const s of [-1, 1]) caja(c, [s * 0.185, 2.6, 3.68], [0.01, 0.18, 0.2], K.bronce, { sup: ST.bronce });
+  });
+  // ---- sin el farol: el farolito de kerosén de siempre, chico, sobre la caja de humo
+  ctx.conPieza('loco.farolViejo', () => {
+    caja(c, [0, 2.33, 3.6], [0.12, 0.04, 0.2], K.negro, { sup: ST.pintado });
+    caja(c, [0, 2.47, 3.62], [0.2, 0.22, 0.2], '#2a2826', { sup: ST.pintado });
+    cil(c, [0, 2.62, 3.62], 0.07, 0.08, '#2a2826', { r1: 0.02, lados: 8, sup: ST.pintado });
+    torno(c, [0, 2.66, 3.62], [[0.02, 0], [0.025, 0.02], [0, 0.05]], K.bronce, { lados: 8, sup: ST.bronce });
+    disco(ctx.L, [0, 2.47, 3.722], 0.06, '#ffd890', { lados: 12 });
+  });
+  // el haz (de noche): un cono que se abre hacia adelante y se apaga en la punta. Va con sus huesos a lo largo
+  // de la vía (`ctx.haz`, cada HAZ.paso metros): en las curvas se dobla con la vía (ver `curvarHaz`)
+  ctx.conPieza('loco.haz', () => {
+    const g = new THREE.CylinderGeometry(0.13, HAZ.radio, HAZ.largo, 18, 8, true);
+    g.rotateX(-PI / 2); g.translate(0, HAZ.y, HAZ.z0 + HAZ.largo / 2);
     const n0 = ctx.H.tipo.length;
     ctx.H.agregar(g, { color: '#ffffff', variar: 0 });
     // (Constructor pinta todo de un color: el degradado, de tibio junto al farol a nada en la punta)
     for (let i = n0; i < ctx.H.tipo.length; i++) {
-      const t = Math.min(1, Math.max(0, 1 - (ctx.H.pos[i * 3 + 2] - 3.9) / 16)), k = Math.pow(t, 3.0) * 0.035;
+      const t = Math.min(1, Math.max(0, 1 - (ctx.H.pos[i * 3 + 2] - HAZ.z0) / HAZ.largo)), k = Math.pow(t, 3.0) * 0.035;
       ctx.H.col[i * 3] = k; ctx.H.col[i * 3 + 1] = k * 0.86; ctx.H.col[i * 3 + 2] = k * 0.6;
     }
     g.dispose();
-  }
+    ctx.haz = [];
+    for (let k = 0; k <= HAZ.huesos; k++) ctx.haz.push(ctx.huesoLibre([0, HAZ.y, HAZ.z0 + k * HAZ.paso]));
+  });
   // ---- cilindros, cajas de vapor, caños y guías de cruceta
   for (const s of [-1, 1]) {
     const x = s * 0.66;
@@ -693,8 +817,8 @@ function armarLoco(ctx) {
     for (const z of [-1.84, -2.5, -2.6, -3.21]) caja(c, [s * 1.05, 2.42, z], [0.02, 0.64, 0.03], K.marco, { sup: ST.pintado });
     for (const y of [2.12, 2.72]) caja(c, [s * 1.05, y, -2.52], [0.02, 0.03, 1.4], K.marco, { sup: ST.pintado });
     for (const [z0, z1] of [[-1.84, -2.5], [-2.6, -3.21]]) ctx.V.agregar(new THREE.PlaneGeometry(Math.abs(z1 - z0), 0.6), { color: '#ffffff', matriz: matriz([x, 2.42, (z0 + z1) / 2], [0, PI / 2, 0]) });
-    // el nombre pintado
-    ctx.D.costado(s, 1.051, 1.66, -2.52, 1.72, 0.32, materiales().atlas.rect.nombre);
+    // el nombre pintado (del taller, o el de "Personalizar")
+    ctx.conPieza('loco.nombre', () => ctx.D.costado(s, 1.051, 1.66, -2.52, 1.72, 0.32, materiales().atlas.rect.nombre));
     // agarraderas de bronce en las puntas
     barra(c, [s * 1.07, 1.35, -3.42], [s * 1.07, 2.6, -3.42], 0.016, K.bronce, { sup: ST.bronce });
     barra(c, [s * 1.07, 1.35, -1.66], [s * 1.07, 2.4, -1.66], 0.016, K.bronce, { sup: ST.bronce });
@@ -729,8 +853,8 @@ function armarLoco(ctx) {
   barra(c, [0.62, 1.22, -2.1], [0.6, 1.95, -2.2], 0.025, K.acero, { sup: ST.hierro });
   barra(c, [-0.75, 1.22, -3.3], [-0.75, 1.95, -3.3], 0.03, K.negro, { sup: ST.pintado });
   cil(c, [-0.75, 1.97, -3.3], 0.16, 0.025, K.hierro, { lados: 14, sup: ST.hierro });
-  // ---- quitanieves en punta (la cuña abre la nieve hacia los dos lados)
-  {
+  // ---- quitanieves en punta (la cuña abre la nieve hacia los dos lados; del taller)
+  ctx.conPieza('loco.quitanieves', () => {
     const zt = 5.25, zb = 4.08, yb = RT + 0.04, yt = 1.15, yf = yb + 0.16;
     const tipB = [0, yb, zt], tipF = [0, yf, zt - 0.06], tipT = [0, yt, zt - 0.42];
     for (const s of [-1, 1]) {
@@ -745,8 +869,19 @@ function armarLoco(ctx) {
     }
     viga(c, tipB, tipT, 0.06, 0.06, '#4a4742', { sup: ST.hierro });
     caja(c, [0, yt + 0.02, zb + 0.05], [2.12, 0.05, 0.3], '#2c2a28', { sup: ST.pintado, tipo: 4 });
-  }
-  // ---- banderines: dos banderas celeste y blanca al frente, y una guirnalda de banderitas de fiesta
+  });
+  // ---- sin quitanieves: el quitapiedras de barrotes de siempre
+  ctx.conPieza('loco.quitapiedras', () => {
+    const zp = 4.05, punta = 4.75, yb = RT + 0.06, yt = 0.92;
+    caja(c, [0, yt, zp + 0.02], [1.7, 0.08, 0.1], K.negro, { sup: ST.pintado });
+    for (let k = -4; k <= 4; k++) {
+      const x = k * 0.2, z = punta - Math.abs(k) * 0.16;
+      barra(c, [x * 0.92, yt, zp + 0.04], [x, yb, z], 0.022, '#3a3632', { sup: ST.hierro });
+    }
+    for (const s of [-1, 1]) barra(c, [0, yb + 0.02, punta], [s * 0.82, yb + 0.02, zp + 0.1], 0.025, '#3a3632', { sup: ST.hierro });
+  });
+  // ---- banderines: dos banderas celeste y blanca al frente, y una guirnalda de banderitas de fiesta (del taller)
+  ctx.pieza('loco.banderines');
   for (const s of [-1, 1]) {
     barra(c, [s * 0.92, 1.12, 3.98], [s * 0.92, 2.05, 3.98], 0.016, K.bronce, { sup: ST.bronce });
     bola(c, [s * 0.92, 2.07, 3.98], [0.03, 0.03, 0.03], K.bronce, { sup: ST.bronce });
@@ -768,6 +903,7 @@ function armarLoco(ctx) {
       }
     }
   }
+  ctx.pieza('loco');
   // ---- ejes: 4 motrices (con muñón), uno guía y uno portador
   const ejesH = [];
   for (const z of ejes) {
@@ -812,6 +948,7 @@ function armarLoco(ctx) {
     barra(c, [xM, 0.62, zc0 + 0.08], [xM, 0.62, zc0 + 0.95], 0.03, '#b8b4aa', { sup: ST.hierro, lados: 8 });
     ctx.poner(vag);
   }
+  modoTinta = null;
   return { vag, ejes: ejesH };
 }
 
@@ -820,6 +957,7 @@ function armarTender(ctx) {
   const c = ctx.E;
   const vag = ctx.vagon('tender');
   ctx.poner(vag);
+  modoTinta = 'loco';
   caja(c, [0, 0.74, 0], [1.9, 0.18, 4.9], K.negro, { sup: ST.pintado });
   for (const z of [2.45, -2.45]) caja(c, [0, 0.7, z], [1.9, 0.3, 0.12], K.rojo, { sup: ST.pintado });
   // tanque en U: atrás entero, a los lados largo; adelante, el lugar de la leña
@@ -856,6 +994,7 @@ function armarTender(ctx) {
       for (const s of [-1, 1]) disco(c, [x + s * largo / 2, y + r * 0.6, z], r, K.lenaCorte, { ry: s * PI / 2, lados: 7, variar: 0.1 });
     }
   }
+  modoTinta = null;
   bogie(ctx, vag, 1.55, 0.27);
   bogie(ctx, vag, -1.55, 0.27);
   return { vag };
@@ -866,10 +1005,11 @@ function armarTender(ctx) {
 // escalones, techo en arco de lona, bogies a ±3 m con tensores. `tipo`: primera (salamandra),
 // comedor, dormitorio, mirador; furgón y jaula se arman aparte (sin plataformas).
 const COCHE = { L: 8.8, a: 1.05, piso: 1.0, ventana: [1.88, 2.58], cornisa: 2.98 };
-function armarCoche(ctx, tipo) {
+function armarCoche(ctx, tipo, id = tipo) {
   const c = ctx.E, at = materiales().atlas.rect;
-  const vag = ctx.vagon(tipo);
+  const vag = ctx.vagon(id);
   ctx.poner(vag);
+  modoTinta = 'coche';
   const { L, a, piso } = COCHE;
   const z1 = L / 2, abierto = tipo === 'mirador';
   // ---- bastidor, tensores con sus pendolones y piso
@@ -916,7 +1056,7 @@ function armarCoche(ctx, tipo) {
       caja(c, [s * (a + 0.01), COCHE.cornisa - 0.02, 0], [0.05, 0.06, L + 0.1], K.marco, { sup: ST.pintado });
       caja(c, [s * (a + 0.004), v1 + 0.02, 0], [0.03, 0.04, L + 0.04], K.crema, { sup: ST.pintado });
       ctx.D.costado(s, a + 0.022, (piso + v0) / 2 + 0.12, 0, L - 0.4, 0.2, at.guarda);
-      ctx.D.costado(s, a + 0.002, (v1 + COCHE.cornisa) / 2 + 0.01, 0, 1.9, 0.34, at[tipo === 'primera' ? 'primera' : tipo]);
+      ctx.D.costado(s, a + 0.002, (v1 + COCHE.cornisa) / 2 + 0.01, 0, 1.9, 0.34, at[tipo]);
       // adentro: el forro barnizado
       caja(c, [s * (a - 0.075), (piso + v0) / 2, 0], [0.03, v0 - piso, L - 0.1], K.adentro, { sup: ST.tablasAdentro });
       caja(c, [s * (a - 0.075), (v1 + COCHE.cornisa) / 2, 0], [0.03, COCHE.cornisa - v1, L - 0.1], K.adentro, { sup: ST.tablasAdentro });
@@ -962,18 +1102,23 @@ function armarCoche(ctx, tipo) {
       caja(c, [0.62, 2.55, z + e * 0.1], [0.12, 0.18, 0.12], K.negro, { sup: ST.pintado });
       caja(ctx.L, [0.62, 2.54, z + e * 0.1], [0.09, 0.11, 0.13], '#ffd890');
     }
-    // ---- adentro, según el coche
-    if (tipo === 'primera') interiorPrimera(ctx, vag);
-    else if (tipo === 'comedor') interiorComedor(ctx, vag);
-    else if (tipo === 'dormitorio') interiorDormitorio(ctx, vag);
-    // faroles del techo (dos), de bronce con tubo de vidrio
-    for (const z of [-2.2, 2.2]) {
-      barra(c, [0, 3.2, z], [0, 2.88, z], 0.01, K.bronce, { sup: ST.bronce });
-      torno(c, [0, 2.68, z], [[0, 0], [0.07, 0.02], [0.08, 0.06], [0.05, 0.08]], K.bronce, { lados: 10, sup: ST.bronce });
-      torno(ctx.L, [0, 2.76, z], [[0.05, 0], [0.075, 0.05], [0.07, 0.13], [0.04, 0.16]], '#ffe2a6', { lados: 10 });
-      torno(c, [0, 2.92, z], [[0.09, 0], [0.05, 0.04], [0.02, 0.06]], K.bronce, { lados: 10, sup: ST.bronce });
-    }
+    // ---- adentro, según el coche (se apaga de lejos: la parte `<id>.adentro`)
+    modoTinta = null;
+    ctx.conPieza(`${id}.adentro`, () => {
+      if (tipo === 'primera') interiorPrimera(ctx, vag);
+      else if (tipo === 'segunda') interiorSegunda(ctx, vag);
+      else if (tipo === 'comedor') interiorComedor(ctx, vag);
+      else if (tipo === 'dormitorio') interiorDormitorio(ctx, vag);
+      // faroles del techo (dos), de bronce con tubo de vidrio
+      for (const z of [-2.2, 2.2]) {
+        barra(c, [0, 3.2, z], [0, 2.88, z], 0.01, K.bronce, { sup: ST.bronce });
+        torno(c, [0, 2.68, z], [[0, 0], [0.07, 0.02], [0.08, 0.06], [0.05, 0.08]], K.bronce, { lados: 10, sup: ST.bronce });
+        torno(ctx.L, [0, 2.76, z], [[0.05, 0], [0.075, 0.05], [0.07, 0.13], [0.04, 0.16]], '#ffe2a6', { lados: 10 });
+        torno(c, [0, 2.92, z], [[0.09, 0], [0.05, 0.04], [0.02, 0.06]], K.bronce, { lados: 10, sup: ST.bronce });
+      }
+    });
   }
+  modoTinta = null;
   bogie(ctx, vag, 3.0, 0.26);
   bogie(ctx, vag, -3.0, 0.26);
   return { vag };
@@ -1019,6 +1164,18 @@ function salamandra(ctx, x, z) {
   for (let k = 0; k < 6; k++) cil(c, [x + 0.05 + (k % 3 - 1) * 0.11, y + 0.32 + Math.floor(k / 3) * 0.08, z + 0.6], 0.04, 0.38, K.lena, { lados: 6, rx: PI / 2, sup: SA.tosca + SA.adentro });
   return { x, y: y + 0.36, z };
 }
+// El coche de segunda de siempre: bancos de listones en las ocho filas, a los dos lados del pasillo, y el
+// portaequipajes; sin estufa
+function interiorSegunda(ctx) {
+  const c = ctx.E;
+  const filas = [-3.55, -2.65, -1.6, -0.7, 0.5, 1.4, 2.4, 3.3];
+  filas.forEach((z, i) => { for (const s of [-1, 1]) bancoListones(c, s * 0.6, z, i % 2 ? -1 : 1, 0.7); });
+  for (const s of [-1, 1]) {
+    for (const dx of [0, 0.22]) barra(c, [s * (0.97 - dx), 2.62, -4.2], [s * (0.97 - dx), 2.62, 4.2], 0.01, K.bronce, { sup: ST.bronce, lados: 4 });
+    caja(c, [s * 0.86, 2.6, 0], [0.2, 0.01, 8.3], '#8a7a5a', { sup: ST.tela });
+    caja(c, [s * 0.86, 2.7, s * 1.5], [0.2, 0.18, 0.46], '#5a4a3a', { sup: SA.tosca + SA.adentro });
+  }
+}
 function interiorPrimera(ctx) {
   const c = ctx.E;
   // ocho filas de bancos de listones de a dos, enfrentados de a pares, y un pasillo al medio
@@ -1058,14 +1215,34 @@ function interiorComedor(ctx) {
   caja(c, [0.62, y + 0.81, -3.5], [0.64, 0.03, 0.94], '#3a3632', { sup: ST.hierro });
   for (const z of [-3.75, -3.3]) cil(c, [0.62, y + 0.835, z], 0.12, 0.015, '#4a4540', { lados: 14, sup: ST.hierro });
   caja(c, [0.315, y + 0.42, -3.5], [0.02, 0.32, 0.4], '#1e1c1a', { sup: ST.hierro });
-  ctx.F.agregar(new THREE.PlaneGeometry(0.28, 0.12), { color: '#ff8a2a', matriz: matriz([0.3, y + 0.62, -3.6], [0, -PI / 2, 0]) });
+  // el fuego de la puerta: sólo con algo cocinándose (la cocina del comedor, ver cocina-juego.js `registrarMovil`)
+  ctx.conPieza('comedor.fuego', () => ctx.F.agregar(new THREE.PlaneGeometry(0.28, 0.12), { color: '#ff8a2a', matriz: matriz([0.3, y + 0.62, -3.6], [0, -PI / 2, 0]) }));
   for (let k = -2; k <= 2; k++) caja(c, [0.296, y + 0.62, -3.6 + k * 0.05], [0.006, 0.13, 0.012], '#1c1a18', { sup: ST.hierro });
   barra(c, [0.62, y + 0.85, -3.95], [0.62, 3.2, -3.95], 0.06, '#2a2725', { sup: ST.hierro, lados: 10 });
   barra(c, [0.62, 3.15, -3.95], [0.62, 3.7, -3.95], 0.065, '#1f1d1b', { sup: ST.hollin, lados: 10 });
   cil(c, [0.62, 3.77, -3.95], 0.18, 0.1, '#1f1d1b', { r1: 0.06, lados: 10, sup: ST.hollin, tipo: 4 });
-  // la pava y una olla sobre la cocina
+  // la pava y una olla sobre la cocina; cocinando, la olla de lo que se hace (como en cocina-mundo.js: la de cobre
+  // para los dulces, el jarro para el chocolate, la grande negra para el locro y el curanto)
   torno(c, [0.62, y + 0.85, -3.3], [[0, 0], [0.09, 0], [0.1, 0.05], [0.08, 0.12], [0.04, 0.14], [0, 0.15]], '#4a4640', { lados: 12, sup: ST.hierro });
-  cil(c, [0.62, y + 0.92, -3.75], 0.11, 0.14, '#5a5650', { lados: 12, sup: ST.hierro });
+  ctx.conPieza('comedor.ollaFija', () => cil(c, [0.62, y + 0.92, -3.75], 0.11, 0.14, '#5a5650', { lados: 12, sup: ST.hierro }));
+  const yp = y + 0.845, zo = -3.75;
+  ctx.conPieza('comedor.olla-grande', () => {
+    cil(c, [0.62, yp + 0.12, zo], 0.18, 0.24, '#2e2c2a', { r1: 0.2, lados: 14, sup: ST.hierro });
+    cil(c, [0.62, yp + 0.25, zo], 0.205, 0.02, '#3a3834', { lados: 14, sup: ST.hierro });
+    cil(c, [0.62, yp + 0.28, zo], 0.03, 0.04, '#4a4642', { lados: 6, sup: ST.hierro });
+    for (const sz of [-1, 1]) caja(c, [0.62, yp + 0.2, zo + sz * 0.22], [0.08, 0.03, 0.04], '#2e2c2a', { sup: ST.hierro });
+  });
+  ctx.conPieza('comedor.olla-dulce', () => {
+    cil(c, [0.62, yp + 0.08, zo], 0.13, 0.16, '#b86a3a', { r1: 0.15, lados: 14, sup: ST.bronce });
+    cil(c, [0.62, yp + 0.165, zo], 0.152, 0.012, '#c88a5a', { lados: 14, sup: ST.bronce });
+    caja(c, [0.62, yp + 0.13, zo + 0.24], [0.03, 0.02, 0.18], '#4a3a2a', { sup: SA.tosca + SA.adentro });
+    barra(c, [0.6, yp + 0.12, zo - 0.02], [0.66, yp + 0.32, zo + 0.06], 0.012, '#7a5a3a', { sup: SA.tosca + SA.adentro });
+  });
+  ctx.conPieza('comedor.olla-jarro', () => {
+    cil(c, [0.62, yp + 0.08, zo], 0.09, 0.16, '#d8d4c8', { lados: 12, sup: SA.adentro });
+    cil(c, [0.62, yp + 0.155, zo], 0.085, 0.01, '#5a3424', { lados: 12, sup: SA.adentro });
+    agregarCon(c, new THREE.TorusGeometry(0.045, 0.012, 5, 10, PI), '#d8d4c8', [0.62, yp + 0.09, zo + 0.1], { sup: SA.adentro, rx: PI / 2, rz: -PI / 2 });
+  });
   // mesada y estantes del otro lado
   caja(c, [-0.68, y + 0.85, -3.5], [0.6, 0.05, 1.8], '#8a6a46', { sup: SA.tosca + SA.adentro });
   caja(c, [-0.68, y + 0.42, -3.5], [0.56, 0.8, 1.76], '#7a5232', { sup: ST.tablasAdentro });
@@ -1194,7 +1371,7 @@ function armarMirador(ctx) {
 // abierta, se ven los cajones); sin plataformas
 function armarFurgon(ctx) {
   const c = ctx.E;
-  const vag = ctx.vagon('furgon');
+  const vag = ctx.vagon('carga');
   ctx.poner(vag);
   const L = 8.0, a = 1.05, y = COCHE.piso, tope = 2.85;
   for (const s of [-1, 1]) caja(c, [s * 0.97, 0.84, 0], [0.1, 0.18, L + 0.2], K.negro, { sup: ST.pintado });
@@ -1232,6 +1409,7 @@ function armarFurgon(ctx) {
   }
   techoArco(c, { z0: -L / 2 - 0.12, z1: L / 2 + 0.12, a: a + 0.1, y0: tope, f: 0.25, e: 0.04, fuera: K.chapa, dentro: '#4a3a2a', supFuera: SA.chapa, supDentro: ST.tablasAdentro, segs: 12 });
   // adentro: cajones de fruta y de herramientas, bolsas de harina, un tambor y un tarro de leche
+  ctx.pieza('carga.adentro');
   let sem = 31;
   const az = () => { sem = (sem * 16807) % 2147483647; return sem / 2147483647; };
   const cajon = (x, yy, z, w, h, d, g) => {
@@ -1249,6 +1427,7 @@ function armarFurgon(ctx) {
   for (const yy of [0.1, 0.38, 0.66]) cil(c, [0.55, y + yy, 2.6], 0.25, 0.04, K.hierro, { lados: 14, sup: ST.hierro });
   cil(c, [0.2, y + 0.28, 2.9], 0.15, 0.5, '#b0b0aa', { lados: 12, sup: ST.hierro });
   cil(c, [0.2, y + 0.58, 2.9], 0.08, 0.1, '#b0b0aa', { lados: 12, sup: ST.hierro });
+  ctx.pieza('carga');
   bogie(ctx, vag, 2.7, 0.26);
   bogie(ctx, vag, -2.7, 0.26);
   return { vag, L };
@@ -1257,7 +1436,7 @@ function armarFurgon(ctx) {
 // pesebre con pasto y el balde; adentro, tu caballo (si se pide)
 function armarJaula(ctx) {
   const c = ctx.E;
-  const vag = ctx.vagon('jaula');
+  const vag = ctx.vagon('caballo');
   ctx.poner(vag);
   const L = 8.0, a = 1.05, y = COCHE.piso, tope = 2.8;
   for (const s of [-1, 1]) caja(c, [s * 0.97, 0.84, 0], [0.1, 0.18, L + 0.2], K.negro, { sup: ST.pintado });
@@ -1279,6 +1458,7 @@ function armarJaula(ctx) {
   for (const e of [-1, 1]) timpano(c, e * L / 2, a + 0.05, tope, 0.24, 0.0, K.listones, e, SA.tosca);
   techoArco(c, { z0: -L / 2 - 0.12, z1: L / 2 + 0.12, a: a + 0.1, y0: tope, f: 0.25, e: 0.04, fuera: K.chapa, dentro: '#4a3a2a', supFuera: SA.chapa, supDentro: ST.tablasAdentro, segs: 12 });
   // paja, pesebre con pasto, balde
+  ctx.pieza('caballo.adentro');
   let sem = 5;
   const az = () => { sem = (sem * 16807) % 2147483647; return sem / 2147483647; };
   for (let k = 0; k < 18; k++) bola(c, [(az() - 0.5) * 1.6, y + 0.02, (az() - 0.5) * 7.4], [0.35 + az() * 0.3, 0.05, 0.3 + az() * 0.3], '#c8a85a', { sup: SA.adentro, variar: 0.15, lados: 7, filas: 4 });
@@ -1286,47 +1466,91 @@ function armarJaula(ctx) {
   for (const s of [-1, 1]) caja(c, [s * 0.75, y + 0.5, -3.6], [0.08, 1.0, 0.5], '#7a5a3a', { sup: SA.tosca });
   for (let k = 0; k < 7; k++) bola(c, [-0.6 + k * 0.2, y + 1.14, -3.6], [0.16, 0.1, 0.22], '#9a9a52', { sup: SA.adentro, variar: 0.2, lados: 7, filas: 4 });
   torno(c, [0.6, y, -2.9], [[0, 0], [0.13, 0], [0.16, 0.28], [0.15, 0.29]], '#8a8a84', { lados: 12, sup: ST.hierro });
+  ctx.pieza('caballo');
   bogie(ctx, vag, 2.7, 0.26);
   bogie(ctx, vag, -2.7, 0.26);
   return { vag, L };
 }
 
 // ---------------------------------------------------------------- el tren entero
-// `o`: { mat, trocha, escena, T } (lo que pasa trochita.js). Devuelve la forma que espera trochita.js.
-export function armarTrenProto(o = {}) {
+// Los lugares de cada vagón (en su marco: x al costado, z hacia adelante, y sobre el riel) donde va el jugador:
+// los bancos, la mesa del comedor, la cocina, las camas, el mirador y la plataforma de atrás. `calor`: al lado de
+// la salamandra; `mesa`: se matea; `cocina`: se cocina; `cama`: se duerme; `mirador`: mejor vista para las fotos.
+const SALAMANDRA = { x: 0.6, z: 0.3 };
+const FILAS = {
+  segunda: [-3.55, -2.65, -1.6, -0.7, 0.5, 1.4, 2.4, 3.3],
+  primera: [-3.55, -2.65, -1.6, -0.7, 1.3, 2.2, 3.25, 4.1],
+};
+function lugaresDe(tipo) {
+  const y = COCHE.piso, sentado = y + 0.44, lugares = [];
+  const atras = { x: 0, z: -(COCHE.L / 2 + 0.45), y, plataforma: true };
+  if (tipo === 'segunda' || tipo === 'primera') {
+    FILAS[tipo].forEach((z) => {
+      for (const s of [-1, 1]) {
+        if (tipo === 'primera' && s > 0 && Math.abs(z) < 1.1) continue;
+        if (tipo === 'primera' && s < 0 && (z === -1.6 || z === -0.7)) continue;   // (ahí van los vecinos que viajan)
+        const x = s * 0.6;
+        lugares.push({ x, z, y: sentado, lado: s, calor: tipo === 'primera' && Math.hypot(x - SALAMANDRA.x, z - SALAMANDRA.z) < 1.75 });
+      }
+    });
+  } else if (tipo === 'comedor') {
+    for (const zm of [-1.4, 0.6, 2.6]) for (const s of [-1, 1]) for (const m of [-1, 1]) lugares.push({ x: s * 0.6, z: zm + m * 0.78, y: y + 0.48, lado: s, mesa: true });
+    lugares.push({ x: 0.0, z: -3.45, y: y + 0.55, lado: 1, cocina: true });
+  } else if (tipo === 'dormitorio') {
+    for (const zm of [-2.9, 0, 2.9]) {
+      lugares.push({ x: -0.8, z: zm, y: y + 0.5, lado: -1 });
+      lugares.push({ x: 0.55, z: zm, y: y + 0.62, lado: 1, cama: true });
+    }
+  } else if (tipo === 'mirador') {
+    for (const z of [-3.0, -1.0, 1.0, 3.0]) for (const s of [-1, 1]) lugares.push({ x: s * 0.42, z, y: y + 0.45, lado: s, mirador: true });
+    atras.z = -(COCHE.L / 2 + 0.5);
+  }
+  if (lugares.length) lugares.push(atras);
+  return lugares;
+}
+// el tipo de coche de cada vagón y su largo (de enganche a enganche) y medio paso entre bogies
+const TIPO_VAGON = { pasajeros: 'primera', comedor: 'comedor', dormitorio: 'dormitorio', mirador: 'mirador', segunda: 'segunda', segunda2: 'segunda', carga: 'furgon', caballo: 'jaula' };
+const MEDIDAS = { loco: { largo: [4.15, 3.72], b: LOCO.bogies }, tender: { largo: [2.6, 2.6], b: 1.55 }, furgon: { largo: [4.3, 4.3], b: 2.7 }, jaula: { largo: [4.3, 4.3], b: 2.7 }, coche: { largo: [5.5, 5.5], b: 3.0 } };
+const medidasDe = (id) => MEDIDAS[id] || MEDIDAS[TIPO_VAGON[id]] || MEDIDAS.coche;
+const LEJOS_ADENTRO = 45;   // a más de esto, los interiores no se dibujan (con 7 m de margen para volver)
+
+let trenActual = null;
+// Para el taller (src/tren-mejoras.js / el equipo del taller): al terminar una mejora, el tren de la vía se
+// rearma con el estado nuevo, sin tirón (ver `aplicarMejoras` del tren). Devuelve si había tren.
+export function aplicarMejoras(estado) {
+  if (!trenActual) return false;
+  trenActual.aplicarMejoras(estado);
+  return true;
+}
+
+// `o`: { mat, trocha, escena, T } (lo que pasa trochita.js) y { estado (progreso.tren), personal (2.8),
+// pasajeros (las claves de los vecinos que viajan hoy), caballo (la apariencia de tu caballo) }. Devuelve la
+// forma que espera trochita.js.
+export function armarTren(o = {}) {
   const M = materiales();
   const ctx = contexto(true);
   const loco = armarLoco(ctx);
   const tender = armarTender(ctx);
-  const furgon = armarFurgon(ctx);
-  const jaula = armarJaula(ctx);
-  const primera = armarCoche(ctx, 'primera');
+  const armados = { carga: armarFurgon(ctx), caballo: armarJaula(ctx), pasajeros: armarCoche(ctx, 'primera', 'pasajeros') };
   const salamandraPos = ctx.salamandra;
-  const comedor = armarCoche(ctx, 'comedor');
+  armados.comedor = armarCoche(ctx, 'comedor');
   const cocinaPos = ctx.cocina;
-  const dormitorio = armarCoche(ctx, 'dormitorio');
-  const mirador = armarCoche(ctx, 'mirador');
+  armados.dormitorio = armarCoche(ctx, 'dormitorio');
+  armados.mirador = armarCoche(ctx, 'mirador');
+  armados.segunda = armarCoche(ctx, 'segunda');
+  armados.segunda2 = armarCoche(ctx, 'segunda', 'segunda2');
   const g = new THREE.Group();
-  g.name = 'tren-proto';
-  // los huesos: los vagones cuelgan de g; los ejes y las bielas, de su vagón
+  g.name = 'tren';
+  // los huesos: los vagones (y los del haz) cuelgan de g; los ejes y las bielas, de su vagón
   for (const h of ctx.huesos) {
     if (h.padre < 0) g.add(h.o);
     else ctx.huesos[h.padre].o.add(h.o);
   }
-  // largo de cada vagón (de enganche a enganche) y medio paso entre bogies; adelante la locomotora
-  const lista = [
-    { nombre: 'loco', i: loco.vag, largo: [4.15, 3.72], b: LOCO.bogies },
-    { nombre: 'tender', i: tender.vag, largo: [2.6, 2.6], b: 1.55 },
-    { nombre: 'furgon', i: furgon.vag, largo: [4.3, 4.3], b: 2.7 },
-    { nombre: 'jaula', i: jaula.vag, largo: [4.3, 4.3], b: 2.7 },
-    { nombre: 'primera', i: primera.vag, largo: [5.5, 5.5], b: 3.0 },
-    { nombre: 'comedor', i: comedor.vag, largo: [5.5, 5.5], b: 3.0 },
-    { nombre: 'dormitorio', i: dormitorio.vag, largo: [5.5, 5.5], b: 3.0 },
-    { nombre: 'mirador', i: mirador.vag, largo: [5.5, 5.5], b: 3.0 },
-  ];
-  let z = 0;
-  lista.forEach((v, k) => { if (k > 0) z -= lista[k - 1].largo[1] + v.largo[0]; v.off = z; v.o = ctx.huesos[v.i].o; });
-  const largoTotal = -z + lista[0].largo[0] + lista[lista.length - 1].largo[1];
+  // cada vagón: su hueso, sus medidas, sus lugares y dónde va (`off`: metros detrás de la locomotora)
+  const vagones = {};
+  const nuevoVagon = (id, i) => { const m = medidasDe(id); vagones[id] = { nombre: id, id, i, o: ctx.huesos[i].o, largo: m.largo, b: m.b, off: 0, tipo: TIPO_VAGON[id] || id, lugares: lugaresDe(TIPO_VAGON[id] || id) }; };
+  nuevoVagon('loco', loco.vag); nuevoVagon('tender', tender.vag);
+  for (const [id, a] of Object.entries(armados)) nuevoVagon(id, a.vag);
   // las mallas, con la piel
   const huesos = ctx.huesos.map((h) => h.o), inversas = ctx.huesos.map((h) => h.inversa);
   const mallas = {};
@@ -1336,7 +1560,7 @@ export function armarTrenProto(o = {}) {
     if (!esqueleto) esqueleto = new EsqueletoTren(huesos, inversas, m);
     m.skeleton = esqueleto;
     m.castShadow = sombra; m.receiveShadow = true;
-    m.name = 'tren-proto-' + nombre;
+    m.name = 'tren-' + nombre;
     g.add(m);
     mallas[nombre] = m;
     return m;
@@ -1346,41 +1570,184 @@ export function armarTrenProto(o = {}) {
   hacer('fuego', ctx.F.armar({ piel: true }), M.fuego);
   hacer('faroles', ctx.L.armar({ piel: true }), M.faroles);
   hacer('letras', ctx.D.armar({ piel: true }), M.letras).renderOrder = 1;
-  hacer('haz', ctx.H.armar({ piel: true }), M.haz).renderOrder = 3;
-  // el caballo, en la jaula (mirando para adelante)
-  try {
-    const cab = mallaCaballo();
-    cab.g.position.set(0.05, COCHE.piso, 0.4);
-    cab.g.scale.setScalar(0.95);
-    ctx.huesos[jaula.vag].o.add(cab.g);
-  } catch (e) { console.warn('[tren-proto] sin caballo', e); }
-  // luces: el farol (foco que alumbra la vía), la de adentro del coche y la de la salamandra
-  const luzFaro = new THREE.SpotLight(0xffe2ab, 0, 45, 0.42, 0.85, 1.5);
+  const geoHaz = ctx.H.armar({ piel: true });
+  curvarHaz(geoHaz, ctx.haz);
+  hacer('haz', geoHaz, M.haz).renderOrder = 3;
+  const huesosHaz = ctx.haz.map((i) => ctx.huesos[i].o);
+  const pz = (nombre) => (ctx.piezas.has(nombre) ? ctx.piezas.get(nombre) : -1);
+
+  // ---- tu caballo, en la jaula (mirando para adelante): el de "Personalizar", sólo si lo subiste
+  let caballoJaula = null, firmaCaballo = '', caballoABordo = false;
+  function ponerCaballo(apariencia) {
+    const firma = JSON.stringify(apariencia || null);
+    if (caballoJaula && firma === firmaCaballo) return;
+    firmaCaballo = firma;
+    const v = vagones.caballo.o;
+    if (caballoJaula) { v.remove(caballoJaula.g); caballoJaula.g.traverse((m) => { if (m.isMesh) m.geometry.dispose(); }); caballoJaula = null; }
+    try {
+      caballoJaula = apariencia ? mallaCaballo(apariencia) : mallaCaballo();
+      caballoJaula.g.position.set(0.05, COCHE.piso, 0.4);
+      caballoJaula.g.scale.setScalar(0.95);
+      caballoJaula.g.visible = false;
+      caballoJaula.cuello.rotation.x = 0.35;
+      v.add(caballoJaula.g);
+    } catch (e) { console.warn('[tren] sin caballo en la jaula', e); caballoJaula = null; }
+  }
+  ponerCaballo(o.caballo || null);
+
+  // ---- los vecinos que viajan en el coche de pasajeros, sentados enfrentados junto a la salamandra
+  const viajeros = [];
+  for (const [k, clave] of (o.pasajeros || []).slice(0, 2).entries()) {
+    try {
+      const def = VECINOS_ALDEA[clave];
+      if (!def) continue;
+      const r = __mallaPersona(def.colores || {}, `aldea-${clave}`, false, { invierno: !!o.invierno });
+      const z = k === 0 ? -1.6 : -0.7, mira = k === 0 ? 1 : -1;
+      r.g.position.set(-0.6, COCHE.piso, z - mira * 0.04);
+      r.g.rotation.y = mira > 0 ? 0 : PI;
+      sentar(r);
+      r.g.visible = false;
+      vagones.pasajeros.o.add(r.g);
+      viajeros.push({ clave, r });
+    } catch (e) { console.warn('[tren] sin vecinos en el coche', e); }
+  }
+
+  // ---- luces: el farol (foco que alumbra la vía), la de adentro del coche y la de la salamandra o la cocina
+  const luzFaro = new THREE.SpotLight(0xffe2ab, 0, 32, 0.26, 0.75, 1.5);
   luzFaro.position.set(...LOCO.farol);
-  const blancoFaro = new THREE.Object3D(); blancoFaro.position.set(0, -1.2, 18);
-  lista[0].o.add(luzFaro, blancoFaro);
+  vagones.loco.o.add(luzFaro);
+  const blancoFaro = new THREE.Object3D();   // (en el grupo, sobre la vía 14 m adelante: ver alActualizar)
+  g.add(blancoFaro);
   luzFaro.target = blancoFaro;
   const luzCabina = new THREE.PointLight(0xff9a4a, 0, 6, 1.6);
   luzCabina.position.set(0, 1.7, -2.2);
-  lista[0].o.add(luzCabina);
+  vagones.loco.o.add(luzCabina);
   registrarLuz(luzCabina);
-  const luzCoche = new THREE.PointLight(0xffc98a, 0, 7, 1.5);
-  const luzFuego = new THREE.PointLight(0xff8a3a, 0, 5, 1.6);
+  const luzCoche = new THREE.PointLight(0xffc98a, 0, 8, 1.4);
+  const luzFuego = new THREE.PointLight(0xff8a3a, 0, 6, 1.5);
   g.add(luzCoche, luzFuego);
   registrarLuz(luzFaro); registrarLuz(luzCoche); registrarLuz(luzFuego);
   // lo que trochita.js toca de los coches de antes (los faroles, la pintura): de mentira
   const falso = () => ({ material: { color: new THREE.Color() } });
-  const coches = lista.slice(2).map((v) => { v.o.userData.farol = falso(); return v.o; });
-  const porNombre = Object.fromEntries(lista.map((v) => [v.nombre, v]));
-  // la nieve sobre la vía delante del quitanieves (sólo en invierno; la arma alActualizar)
-  const nieve = { malla: null, s: null, spray: null };
+  for (const v of Object.values(vagones)) v.o.userData.farol = falso();
+
+  // ---- la nieve de la vía (la gran nevada): la malla de los tramos tapados y la nieve que salta del quitanieves
+  const nieve = { malla: null, firma: '', spray: crearSpray(), mat: o.mat || null };
+  nieve.spray.visible = false;
+  g.add(nieve.spray);
+
+  // ---- lo que dice el taller
+  let estado = sanearEstadoTren(o.estado), personal = o.personal || null;
+  let composicion = composicionDe(estado), lista = [];
+  const adentro = new Map();   // id → si se dibuja su interior (de cerca)
+  let cocinaVista = null;      // lo que se cocina en el comedor: { receta, olla, fuego } (ver `cocina`)
+  let firmaPiezas = '', firmaPintura = '';
+  const visibles = new Set();
+  function rearmarLista() {
+    composicion = composicionDe(estado);
+    lista = [vagones.loco, vagones.tender, ...composicion.map((id) => vagones[id])];
+    let z = 0;
+    lista.forEach((v, k) => { if (k > 0) z -= lista[k - 1].largo[1] + v.largo[0]; v.off = z; });
+    for (const v of Object.values(vagones)) if (!lista.includes(v)) { v.off = null; v.o.position.set(0, -2000, 0); }
+    tren.version++;
+  }
+  function piezas() {
+    const l = estado.loco;
+    const nombres = ['', 'loco', 'tender', l.farol ? 'loco.farol' : 'loco.farolViejo', l.farol ? 'loco.haz' : '', l.quitanieves ? 'loco.quitanieves' : 'loco.quitapiedras'];
+    if (l.arenero) nombres.push('loco.arenero');
+    if (l.banderines) nombres.push('loco.banderines');
+    if (nombreLoco()) nombres.push('loco.nombre');
+    for (const id of composicion) {
+      nombres.push(id);
+      if (adentro.get(id)) {
+        nombres.push(`${id}.adentro`);
+        if (id === 'comedor') {
+          if (cocinaVista?.fuego) nombres.push('comedor.fuego');
+          nombres.push(cocinaVista?.olla ? `comedor.olla-${cocinaVista.olla}` : 'comedor.ollaFija');
+        }
+      }
+    }
+    const firma = nombres.join(',');
+    if (firma === firmaPiezas) return false;
+    firmaPiezas = firma;
+    visibles.clear();
+    for (const n of nombres) { const id = pz(n); if (id >= 0) visibles.add(id); }
+    for (const m of Object.values(mallas)) mostrarPiezas(m.geometry, visibles);
+    return true;
+  }
+  const nombreLoco = () => estado.loco.nombre || (personal?.nombre ? String(personal.nombre).trim().slice(0, 18) : '');
+  // la pintura: la del taller (cuerpo, franja y ruedas de la locomotora y el ténder) y la de "Personalizar" (2.8: los
+  // coches y su franja, y la cabina si el taller no la pintó). Lo que no se eligió, como salió de fábrica.
+  function pinturaDe() {
+    const p = estado.loco.pintura, d = personal || {};
+    const elegido = (v, deFabrica) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) && v.toLowerCase() !== deFabrica ? v : null);
+    return {
+      [TINTAS.cuerpo]: p.cuerpo || elegido(d.cabina, '#6b4a2e'), [TINTAS.franja]: p.franja, [TINTAS.ruedas]: p.ruedas,
+      [TINTAS.coches]: elegido(d.coches, '#6b4a2e'), [TINTAS.franjaCoches]: elegido(d.franja, '#7c2f22'),
+    };
+  }
+  const ORIGINAL = { [TINTAS.cuerpo]: K.rojo, [TINTAS.franja]: K.crema, [TINTAS.ruedas]: K.aroBlanco, [TINTAS.coches]: K.madera, [TINTAS.franjaCoches]: K.crema };
+  function pintar() {
+    const colores = pinturaDe();
+    const firma = JSON.stringify(colores);
+    if (firma === firmaPintura) return false;
+    firmaPintura = firma;
+    const lum = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    const factor = {}, nuevo = {};
+    for (const [t, hex] of Object.entries(colores)) {
+      if (!hex) continue;
+      nuevo[t] = new THREE.Color(hex);
+      factor[t] = 1 / Math.max(0.02, lum(new THREE.Color(ORIGINAL[t])));
+    }
+    const geo = mallas.estructura.geometry, { tinta, colorBase } = geo.userData, col = geo.attributes.color.array;
+    for (let i = 0; i < tinta.length; i++) {
+      const t = tinta[i];
+      if (!t) continue;
+      const i3 = i * 3;
+      if (!nuevo[t]) { col[i3] = colorBase[i3]; col[i3 + 1] = colorBase[i3 + 1]; col[i3 + 2] = colorBase[i3 + 2]; continue; }
+      const f = lum({ r: colorBase[i3], g: colorBase[i3 + 1], b: colorBase[i3 + 2] }) * factor[t];
+      col[i3] = nuevo[t].r * f; col[i3 + 1] = nuevo[t].g * f; col[i3 + 2] = nuevo[t].b * f;
+    }
+    geo.attributes.color.needsUpdate = true;
+    return true;
+  }
+
   const tmp = new THREE.Vector3(), inv = new THREE.Matrix4();
   let t = 0;
   const tren = {
-    proto: true, g, loco: lista[0].o, tender: lista[1].o, coches, ruedas: [], faro: falso(), luzFaro, luzCoche, luzFuego, mallas, lista,
-    offCoches: lista.slice(2).map((v) => v.off), boca: LOCO.boca, largoTotal, materiales: M,
-    vagon: (n) => (typeof n === 'number' ? lista[n + 2]?.o : porNombre[n]?.o) || null,
-    datos: (n) => porNombre[n] || null,
+    g, loco: vagones.loco.o, tender: vagones.tender.o, ruedas: [], faro: falso(), luzFaro, luzCoche, luzFuego, mallas, materiales: M,
+    boca: LOCO.boca, piso: COCHE.piso, version: 0, salamandra: salamandraPos, posCocina: cocinaPos,
+    // dónde va el maquinista en la cabina (ver trochita.js: CAB)
+    cabina: { z: -2.55, x: 0.68, y: 1.26 },
+    viajeros: () => viajeros.map((v) => v.clave),
+    get coches() { return composicion.map((id) => vagones[id].o); },
+    get offCoches() { return composicion.map((id) => vagones[id].off); },
+    get composicion() { return composicion.slice(); },
+    get estado() { return estado; },
+    get largoTotal() { const u = lista[lista.length - 1]; return lista[0].largo[0] - u.off + u.largo[1]; },
+    // dónde para el tren automático: con el primer coche de pasajeros frente al andén (metros que la locomotora
+    // queda adelante del poste)
+    get adelanto() { const v = composicion.find((id) => viajaEn(id)); return v ? -vagones[v].off : 0; },
+    // el índice (en la composición) del primer coche donde se viaja (ahí va la guarda)
+    get primerCoche() { return Math.max(0, composicion.findIndex((id) => viajaEn(id))); },
+    vagon: (n) => (typeof n === 'number' ? vagones[composicion[n]]?.o : vagones[n]?.o) || null,
+    datos: (n) => vagones[n] || null,
+    // los lugares de cada vagón de la composición donde se viaja (ver trochita.js: ASIENTOS)
+    lugares() {
+      const salida = [];
+      composicion.forEach((id, coche) => { for (const l of vagones[id].lugares) salida.push({ ...l, coche, vagon: id }); });
+      return salida;
+    },
+    // las puertas (plataformas y estribos) de los coches de la composición: [{ coche, z }] en el marco del vagón
+    puertas() {
+      const salida = [];
+      composicion.forEach((id, coche) => {
+        if (!viajaEn(id)) return;
+        const e = COCHE.L / 2 + 0.42;
+        salida.push({ coche, z: e }, { coche, z: -e });
+      });
+      return salida;
+    },
     colocar(enVia, s) {
       for (const v of lista) {
         const pA = enVia(s + v.off + v.b), pB = enVia(s + v.off - v.b);
@@ -1388,9 +1755,50 @@ export function armarTrenProto(o = {}) {
         const d = Math.hypot(pA.x - pB.x, pA.z - pB.z) || 1;
         v.o.rotation.set(-Math.atan2(pA.y - pB.y, d), Math.atan2(pA.x - pB.x, pA.z - pB.z), 0, 'YXZ');
       }
+      // el haz: sus huesos, sobre la vía de adelante (se dobla con las curvas)
+      if (estado.loco.farol) {
+        for (let k = 0; k < huesosHaz.length; k++) {
+          const z = HAZ.z0 + k * HAZ.paso, pA = enVia(s + z + 0.5), pB = enVia(s + z - 0.5);
+          huesosHaz[k].position.set((pA.x + pB.x) / 2, (pA.y + pB.y) / 2 + HAZ.y, (pA.z + pB.z) / 2);
+          huesosHaz[k].rotation.set(-Math.atan2(pA.y - pB.y, 1), Math.atan2(pA.x - pB.x, pA.z - pB.z), 0, 'YXZ');
+        }
+      }
+      const pf = enVia(s + 14);
+      blancoFaro.position.set(pf.x, pf.y + 0.3, pf.z);
     },
+    // ---- lo del taller: el estado nuevo (y lo de "Personalizar"), sin armar nada
+    aplicarMejoras(nuevo) {
+      estado = sanearEstadoTren(nuevo);
+      const antes = composicion.join(',');
+      composicion = composicionDe(estado);
+      if (composicion.join(',') !== antes || !lista.length) rearmarLista();
+      M.atlas.ponerNombre(nombreLoco());
+      pintar();
+      piezas();
+      return true;
+    },
+    personalizar(d) {
+      personal = d || null;
+      M.atlas.ponerNombre(nombreLoco());
+      pintar();
+      piezas();
+      return true;
+    },
+    nombre: nombreLoco,
+    // ---- la cocina del comedor: lo que se está cocinando (de cocina-juego.js) → el fuego y la olla
+    cocina(coccion, receta) {
+      const olla = coccion && coccion.paso >= 2 && receta ? (receta.id === 'chocolate-caliente' ? 'jarro' : receta.olor === 'dulce' ? 'dulce' : 'grande') : null;
+      cocinaVista = coccion ? { fuego: !coccion.pausa, olla } : null;
+      piezas();
+    },
+    // ---- tu caballo
+    ponerCaballo,
+    subirCaballo(si) { caballoABordo = !!si; },
+    caballoABordo: () => caballoABordo,
+    // ---- la vía nevada (tramos en metros de vía; `enVia` de trochita.js)
+    nieve(tramos, enVia, largo) { armarNieveVia(nieve, tramos, enVia, largo, g); },
     // cada cuadro: las ruedas giran según lo andado, las bielas siguen a los muñones, las luces
-    alActualizar({ dt, s, noche, lejos, camara, enVia }) {
+    alActualizar({ dt, s, vel, noche, lejos, camara, enVia, enNieve }) {
       t += dt;
       for (const m of ctx.moviles) {
         if (m.tipo === 'eje') m.o.rotation.x = s / m.r;
@@ -1399,124 +1807,204 @@ export function armarTrenProto(o = {}) {
       for (const m of ctx.moviles) {
         if (m.tipo === 'acople') m.o.position.set(m.o.position.x, m.cy + m.rc * Math.sin(m.a0 - phi), m.zMid + m.rc * Math.cos(m.a0 - phi));
         else if (m.tipo === 'motriz' || m.tipo === 'cruceta') {
-          const py = m.cy + m.rc * Math.sin(m.a0 - phi), pz = m.zMotriz + m.rc * Math.cos(m.a0 - phi);
-          const dy = m.cy - py, zc = pz + Math.sqrt(Math.max(0, m.L * m.L - dy * dy));
-          if (m.tipo === 'motriz') { m.o.position.set(m.o.position.x, py, pz); m.o.rotation.x = Math.asin((py - m.cy) / m.L); }
+          const py = m.cy + m.rc * Math.sin(m.a0 - phi), pz2 = m.zMotriz + m.rc * Math.cos(m.a0 - phi);
+          const dy = m.cy - py, zc = pz2 + Math.sqrt(Math.max(0, m.L * m.L - dy * dy));
+          if (m.tipo === 'motriz') { m.o.position.set(m.o.position.x, py, pz2); m.o.rotation.x = Math.asin((py - m.cy) / m.L); }
           else m.o.position.set(m.o.position.x, 0.62, zc);
         }
       }
-      // el fuego titila; los faroles se prenden con la noche; el haz sólo de noche
+      // ¿qué interiores se dibujan? (de cerca; con margen para no prender y apagar en el borde)
+      const cam = camara?.position;
+      if (cam) {
+        for (const id of composicion) {
+          const v = vagones[id];
+          const d = Math.hypot(v.o.position.x - cam.x, v.o.position.z - cam.z);
+          const antes = !!adentro.get(id);
+          adentro.set(id, antes ? d < LEJOS_ADENTRO + 7 : d < LEJOS_ADENTRO);
+        }
+      }
+      piezas();
+      // el caballo y los vecinos: de cerca, como los interiores
+      if (caballoJaula) caballoJaula.g.visible = caballoABordo && composicion.includes('caballo') && !!adentro.get('caballo');
+      for (const p of viajeros) p.r.g.visible = composicion.includes('pasajeros') && !!adentro.get('pasajeros');
+      // el fuego titila; los faroles se prenden con la noche; el haz sólo de noche y con el farol
       const tit = 1.7 + Math.sin(t * 13.1) * 0.18 + Math.sin(t * 7.3 + 1.2) * 0.22 + Math.sin(t * 23.7) * 0.1;
       M.fuego.color.setScalar(tit);
       M.faroles.color.setScalar(0.45 + noche * 2.6);
-      mallas.haz.visible = noche > 0.35 && lejos < 220;
+      mallas.haz.visible = estado.loco.farol && noche > 0.35 && lejos < 220;
       luzCabina.intensity = noche * (2.2 + (tit - 1.7) * 2) * (lejos < 90 ? 1 : 0);
       M.haz.opacity = 1;
       M.haz.color.setScalar(Math.min(1, (noche - 0.35) * 2.5));
-      if (luzFaro.intensity > 0) luzFaro.intensity *= 10;
+      // (trochita.js prende el foco de noche; sin el farol del taller, la locomotora no alumbra la vía)
+      luzFaro.intensity = estado.loco.farol ? luzFaro.intensity * 8 : 0;
       // ¿la cámara está adentro de un coche? (prende su luz; la salamandra o la cocina, la suya)
-      let adentro = null;
+      let dentro = null;
       if (camara) {
-        for (const v of lista.slice(2)) {
+        for (const id of composicion) {
+          const v = vagones[id];
+          if (!viajaEn(id)) continue;
           inv.copy(v.o.matrixWorld).invert();
           tmp.copy(camara.position).applyMatrix4(inv);
-          if (Math.abs(tmp.x) < 1.05 && tmp.y > 0.9 && tmp.y < 3.2 && Math.abs(tmp.z) < (v.nombre === 'mirador' ? 5.3 : 4.4)) { adentro = v; break; }
+          if (Math.abs(tmp.x) < 1.05 && tmp.y > 0.9 && tmp.y < 3.2 && Math.abs(tmp.z) < (v.tipo === 'mirador' ? 5.3 : 4.4)) { dentro = v; break; }
         }
       }
-      if (adentro) M.vidrio.color.setRGB(0.62 * (1 - noche) + 0.04 * noche, 0.69 * (1 - noche) + 0.05 * noche, 0.74 * (1 - noche) + 0.07 * noche);
+      if (dentro) M.vidrio.color.setRGB(0.62 * (1 - noche) + 0.04 * noche, 0.69 * (1 - noche) + 0.05 * noche, 0.74 * (1 - noche) + 0.07 * noche);
       else M.vidrio.color.setRGB(0.62 + (1.0 - 0.62) * noche, 0.69 + (0.74 - 0.69) * noche, 0.74 + (0.45 - 0.74) * noche);
-      M.vidrio.opacity = adentro ? 0.12 + noche * 0.5 : 0.22 + noche * 0.6;
-      if (adentro) {
-        const yL = adentro.nombre === 'mirador' ? 2.6 : 2.55;
-        luzCoche.position.set(0, yL, 0).applyMatrix4(adentro.o.matrixWorld);
+      M.vidrio.opacity = dentro ? 0.12 + noche * 0.5 : 0.22 + noche * 0.6;
+      if (dentro) {
+        const yL = dentro.tipo === 'mirador' ? 2.6 : 2.55;
+        luzCoche.position.set(0, yL, 0).applyMatrix4(dentro.o.matrixWorld);
         luzCoche.intensity = 1.2 + noche * 3.2;
-        const f = adentro.nombre === 'primera' ? salamandraPos : adentro.nombre === 'comedor' ? cocinaPos : null;
-        if (f) { luzFuego.position.set(f.x + (f.x > 0 ? -0.35 : 0.35), f.y + 0.1, f.z).applyMatrix4(adentro.o.matrixWorld); luzFuego.intensity = (1.4 + noche * 1.6) * (tit / 1.7); }
-        else if (adentro.nombre === 'dormitorio') { luzFuego.position.set(0.5, 2.35, 0).applyMatrix4(adentro.o.matrixWorld); luzFuego.intensity = 1.2 + noche * 2.2; }
+        const cocinando = dentro.tipo === 'comedor' && cocinaVista?.fuego;
+        const f = dentro.tipo === 'primera' ? salamandraPos : cocinando ? cocinaPos : null;
+        if (f) { luzFuego.position.set(f.x + (f.x > 0 ? -0.35 : 0.35), f.y + 0.1, f.z).applyMatrix4(dentro.o.matrixWorld); luzFuego.intensity = (1.4 + noche * 1.6) * (tit / 1.7); }
+        // (3.7.3: el dormitorio de noche, con más luz: los farolitos de los compartimientos alumbran de verdad)
+        else if (dentro.tipo === 'dormitorio') { luzFuego.position.set(0.3, 2.4, 0).applyMatrix4(dentro.o.matrixWorld); luzFuego.intensity = 2.2 + noche * 4.2; luzCoche.intensity = 1.8 + noche * 4.4; }
         else luzFuego.intensity = 0;
       } else {
         luzCoche.intensity = 0; luzFuego.intensity = 0;
       }
-      // invierno: nieve sobre la vía adelante del quitanieves y bordos de nieve abierta atrás
-      const invierno = U.uInvierno.value > 0.5;
-      if (invierno && enVia && (nieve.s === null || Math.abs(nieve.s - s) > 2)) armarNieveVia(nieve, enVia, s, g);
-      if (nieve.malla) nieve.malla.visible = invierno;
-      if (nieve.spray) nieve.spray.visible = invierno;
+      // la nieve que salta del quitanieves, andando en un tramo nevado
+      actualizarSpray(nieve.spray, dt, enNieve && estado.loco.quitanieves && vel > 0.3 && lejos < 160, vel, vagones.loco.o);
       tren.taller?.actualizar?.(dt, noche, camara);
     },
+    // para las pruebas: los nombres de las partes que se dibujan
+    piezasVisibles: () => [...ctx.piezas].filter(([, id]) => visibles.has(id)).map(([n]) => n).filter(Boolean),
     // para medir
     medir() {
       let tri = 0, dibujos = 0;
-      g.traverse((m) => { if (m.isMesh && m.visible) { dibujos++; tri += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; } });
-      return { dibujos, triangulos: Math.round(tri), huesos: huesos.length, largo: +largoTotal.toFixed(1) };
+      g.traverse((m) => {
+        if (!m.isMesh || !m.visible) return;
+        let vis = true;
+        for (let p = m.parent; p; p = p.parent) if (!p.visible) { vis = false; break; }
+        if (!vis) return;
+        dibujos++;
+        const n = m.geometry.index ? Math.min(m.geometry.index.count, m.geometry.drawRange.count) : m.geometry.attributes.position.count;
+        tri += n / 3;
+      });
+      return { dibujos, triangulos: Math.round(tri), huesos: huesos.length, largo: +tren.largoTotal.toFixed(1), composicion: composicion.slice() };
     },
   };
+  rearmarLista();
+  M.atlas.ponerNombre(nombreLoco());
+  pintar();
+  piezas();
+  trenActual = tren;
   return tren;
 }
+// Los vértices del haz, repartidos entre los huesos a lo largo de la vía (dos por vértice, con su peso)
+function curvarHaz(geo, haz) {
+  if (!haz?.length) return;
+  const pos = geo.attributes.position, si = geo.attributes.skinIndex.array, sw = geo.attributes.skinWeight.array;
+  for (let i = 0; i < pos.count; i++) {
+    const t = Math.max(0, Math.min(haz.length - 1 - 1e-6, (pos.getZ(i) - HAZ.z0) / HAZ.paso));
+    const k = Math.floor(t), w = t - k;
+    si[i * 4] = haz[k]; si[i * 4 + 1] = haz[Math.min(haz.length - 1, k + 1)];
+    sw[i * 4] = 1 - w; sw[i * 4 + 1] = w;
+  }
+}
+// La figura sentada (como la pose 'sentado' de gente.js), una sola vez: la cadera a la altura del banco
+function sentar(r) {
+  const b = bajaSentado(0.44, r.g?.scale?.y);
+  const cadera = 0.82 - b, recoge = cadera < 0.44 ? Math.acos(Math.max(0, cadera - 0.02) / 0.44) : 0;
+  r.torso.position.y -= b; r.cabeza.position.y -= b;
+  r.brazos[0].position.y -= b; r.brazos[1].position.y -= b;
+  for (const p of r.patas) { p.position.y -= b; p.rotation.x = -1.45; if (p.userData.rodilla) p.userData.rodilla.rotation.x = 1.45 - recoge; }
+  r.torso.rotation.x = -0.04;
+  r.brazos[0].rotation.x = -0.45; r.brazos[1].rotation.x = -0.45;
+}
 
-// La nieve de la gran nevada sobre la vía: adelante del quitanieves la vía va tapada (30 m), y lo que el
-// quitanieves abrió queda a los costados en dos bordos; en la punta, la nieve que salta.
-function armarNieveVia(nieve, enVia, s, g) {
-  const M = materiales();
-  if (nieve.malla) { g.remove(nieve.malla); nieve.malla.geometry.dispose(); }
-  if (nieve.spray) { g.remove(nieve.spray); nieve.spray.geometry.dispose(); }
-  const c = new CT();
-  const k1 = color('#f2f4f8'), k2 = color('#d8e0ea');
-  const banda = (desde, hasta, perfil) => {
-    const pasos = Math.ceil((hasta - desde) / 0.5);
+// La nieve de la gran nevada sobre la vía: cada tramo tapado es una franja de nieve con su lomo sobre los rieles
+// (con el material de la vía: nada que compilar). Se rearma sólo cuando cambian los tramos.
+function armarNieveVia(nieve, tramos, enVia, largo, g) {
+  const firma = (tramos || []).map((t) => `${Math.round(t.desde)}:${Math.round(t.hasta)}`).join(',');
+  if (firma === nieve.firma) return;
+  nieve.firma = firma;
+  if (nieve.malla) { g.parent?.remove(nieve.malla); nieve.malla.geometry.dispose(); nieve.malla = null; }
+  if (!tramos?.length || !nieve.mat) return;
+  const c = new Constructor();
+  const ruido = (x) => 0.04 * Math.sin(x * 2.3) + 0.03 * Math.sin(x * 5.1 + 1.3);
+  for (const tr of tramos) {
+    const L = tr.hasta - tr.desde, pasos = Math.max(2, Math.ceil(L / 0.6));
     const filas = [];
     for (let i = 0; i <= pasos; i++) {
-      const ss = desde + (hasta - desde) * (i / pasos);
-      const p = enVia(s + ss);
+      const ss = tr.desde + (L * i) / pasos;
+      const p = enVia(ss % largo);
       const nx = Math.cos(p.ang), nz = -Math.sin(p.ang);
-      filas.push(perfil(ss).map(([d, h]) => [p.x + nx * d, p.y + h, p.z + nz * d]));
+      // el lomo entra de a poco en las puntas
+      const borde = Math.min(1, Math.min(ss - tr.desde, tr.hasta - ss) / 2.5);
+      const h = (0.34 + ruido(ss)) * (0.25 + 0.75 * borde);
+      const perfil = [[-2.6, -0.06], [-1.8, 0.1 + ruido(ss + 3) * borde], [-1.0, h * 0.9], [0, h + 0.02], [1.0, h * 0.92], [1.8, 0.12 + ruido(ss + 7) * borde], [2.6, -0.06]];
+      filas.push(perfil.map(([d, y]) => [p.x + nx * d, p.y + y, p.z + nz * d]));
     }
+    const pos = [];
     for (let i = 0; i < filas.length - 1; i++) for (let j = 0; j < filas[i].length - 1; j++) {
       const A = filas[i][j], B = filas[i][j + 1], C2 = filas[i + 1][j + 1], D = filas[i + 1][j];
-      const n = new THREE.Vector3(B[0] - A[0], B[1] - A[1], B[2] - A[2]).cross(new THREE.Vector3(D[0] - A[0], D[1] - A[1], D[2] - A[2])).normalize();
-      if (n.y < 0) n.negate();
-      const nn = n.toArray();
-      const k = (i + j) % 3 ? k1 : k2;
-      c.tri(A, C2, B, nn, nn, nn, k, 0, 0); c.tri(A, D, C2, nn, nn, nn, k, 0, 0);
-      c.tri(A, B, C2, nn, nn, nn, k, 0, 0); c.tri(A, C2, D, nn, nn, nn, k, 0, 0);
+      pos.push(...A, ...C2, ...B, ...A, ...D, ...C2);
     }
-  };
-  const ruido = (x) => 0.04 * Math.sin(x * 2.3) + 0.03 * Math.sin(x * 5.1 + 1.3);
-  // adelante: la vía tapada (de la punta del quitanieves en adelante), con una ola donde empuja
-  banda(4.9, 34, (ss) => {
-    const ola = Math.exp(-((ss - 5.6) ** 2) / 0.5) * 0.35;
-    const h = 0.3 + ola + ruido(ss);
-    return [[-2.6, -0.05], [-1.8, 0.12 + ruido(ss + 3)], [-1.0, h * 0.9], [0, h + 0.02], [1.0, h * 0.92], [1.8, 0.14 + ruido(ss + 7)], [2.6, -0.05]];
-  });
-  // atrás y a los costados de la locomotora: los bordos que dejó el quitanieves
-  for (const lado of [-1, 1]) banda(-60, 5.0, (ss) => {
-    const sube = Math.min(1, Math.max(0, (5.0 - ss) / 1.0));
-    const h = (0.45 + ruido(ss * 1.3 + lado)) * sube;
-    return [[lado * 1.3, -0.05], [lado * 1.55, h * 0.8], [lado * 1.95, h], [lado * 2.5, h * 0.6], [lado * 3.1, -0.06]];
-  });
-  const m = new THREE.Mesh(c.armar(), M.estructura);
-  m.receiveShadow = true; m.castShadow = false; m.frustumCulled = false;
-  m.name = 'tren-proto-nieve';
-  g.add(m);
-  nieve.malla = m;
-  // la nieve que salta del quitanieves (puntos)
-  const N = 260, pos = new Float32Array(N * 3);
-  let sem = 3;
-  const az = () => { sem = (sem * 16807) % 2147483647; return sem / 2147483647; };
-  const p0 = enVia(s + 5.2);
-  const nx = Math.cos(p0.ang), nz = -Math.sin(p0.ang), fx = Math.sin(p0.ang), fz = Math.cos(p0.ang);
-  for (let i = 0; i < N; i++) {
-    const lado = i % 2 ? 1 : -1, t = az();
-    const lat = lado * (0.6 + t * 2.4), alto = 0.2 + Math.sin(t * PI) * (1.2 + az() * 0.6), adel = -0.5 + az() * 1.4 - t * 1.2;
-    pos[i * 3] = p0.x + nx * lat + fx * adel; pos[i * 3 + 1] = p0.y + alto; pos[i * 3 + 2] = p0.z + nz * lat + fz * adel;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    // (las normales, para arriba: el orden de los triángulos depende del sentido de la vía)
+    c.agregar(geo, { color: '#eef2f7', tipo: 4, variar: 0.05, suave: true });
+    geo.dispose();
   }
+  const gm = c.geometria();
+  const n = gm.attributes.normal;
+  for (let i = 0; i < n.count; i++) if (n.getY(i) < 0) n.setXYZ(i, -n.getX(i), -n.getY(i), -n.getZ(i));
+  const m = new THREE.Mesh(gm, nieve.mat);
+  m.receiveShadow = true; m.castShadow = false;
+  m.name = 'tren-nieve-via';
+  (g.parent || g).add(m);
+  nieve.malla = m;
+}
+// la nieve que salta a los costados del quitanieves (puntos que viven un segundo)
+const SPRAY = 180;
+function crearSpray() {
+  const pos = new Float32Array(SPRAY * 3), vel = new Float32Array(SPRAY * 3), vida = new Float32Array(SPRAY);
+  for (let i = 0; i < SPRAY; i++) { vida[i] = -0.001 - i / SPRAY; pos[i * 3 + 1] = -1e4; }   // (escalonadas, guardadas lejos)
   const gp = new THREE.BufferGeometry();
   gp.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const sp = new THREE.Points(gp, new THREE.PointsMaterial({ color: 0xf4f7fb, size: 0.07, sizeAttenuation: true, transparent: true, opacity: 0.9, depthWrite: false, map: texturaCopo() }));
+  const sp = new THREE.Points(gp, new THREE.PointsMaterial({ color: 0xf4f7fb, size: 0.09, sizeAttenuation: true, transparent: true, opacity: 0.9, depthWrite: false, map: texturaCopo() }));
   sp.frustumCulled = false;
-  g.add(sp);
-  nieve.spray = sp;
-  nieve.s = s;
+  sp.userData = { vel, vida, sem: 3 };
+  sp.name = 'tren-nieve-spray';
+  return sp;
+}
+const _pS = new THREE.Vector3(), _vS = new THREE.Vector3();
+function actualizarSpray(sp, dt, activo, vel, loco) {
+  const u = sp.userData;
+  if (!activo && !sp.visible) return;
+  const pos = sp.geometry.attributes.position.array;
+  let vivas = 0;
+  const az = () => { u.sem = (u.sem * 16807) % 2147483647; return u.sem / 2147483647; };
+  // nace en la punta de la cuña y sale para el costado y para arriba
+  const nacer = (i) => {
+    const lado = i % 2 ? 1 : -1;
+    _pS.set(lado * (0.3 + az() * 0.7), 0.3 + az() * 0.4, 5.0 - az() * 0.8).applyMatrix4(loco.matrixWorld);
+    pos[i * 3] = _pS.x; pos[i * 3 + 1] = _pS.y; pos[i * 3 + 2] = _pS.z;
+    _vS.set(lado * (1.6 + az() * 2.2), 1.6 + az() * 2.4, 0.4 + az() * 1.2).transformDirection(loco.matrixWorld).multiplyScalar(2 + Math.min(3, vel));
+    u.vel[i * 3] = _vS.x; u.vel[i * 3 + 1] = Math.abs(_vS.y) + 1.2; u.vel[i * 3 + 2] = _vS.z;
+    u.vida[i] = 0;
+  };
+  for (let i = 0; i < SPRAY; i++) {
+    if (u.vida[i] < 0) {
+      if (!activo) continue;
+      u.vida[i] += dt * 1.4;
+      if (u.vida[i] < 0) continue;
+      nacer(i);
+    } else {
+      u.vida[i] += dt * 1.4;
+      if (u.vida[i] >= 1) {
+        if (activo) nacer(i);
+        else { u.vida[i] = -0.001 - i / SPRAY; pos[i * 3 + 1] = -1e4; continue; }
+      }
+    }
+    vivas++;
+    u.vel[i * 3 + 1] -= 6 * dt;
+    pos[i * 3] += u.vel[i * 3] * dt; pos[i * 3 + 1] += u.vel[i * 3 + 1] * dt; pos[i * 3 + 2] += u.vel[i * 3 + 2] * dt;
+  }
+  sp.visible = activo || vivas > 0;
+  sp.geometry.attributes.position.needsUpdate = true;
 }
 
 let copo = null;
@@ -1537,7 +2025,9 @@ function texturaCopo() {
 // la vía principal y entra por el portón, y adentro: la locomotora sobre el foso, banco de trabajo con
 // morsa y herramientas en el tablero, fragua con su campana, yunque, un juego de ruedas de repuesto,
 // rieles y piezas de hierro, aparejo colgado de una viga, faroles de taller; Ernesto y Martín trabajando.
-export function crearTallerProto({ T, escena, parada, tren }) {
+// (3.7.3: el del prototipo aprobado. El taller del juego, con Martín y las mejoras, lo arma el equipo del taller;
+// main.js ya no lo pone: queda acá para que lo usen. `zonas`: lo que hay que despejar de árboles y pasto.)
+export function crearTaller({ T, escena, parada, tren }) {
   const M = materiales();
   const marco = marcoAldea(parada);
   const centro = { lx: 20.5, lz: -8.5 };
@@ -1789,7 +2279,7 @@ export function crearTallerProto({ T, escena, parada, tren }) {
   rieles(c, via, true, suelo);
   const geoE = c.armar(), geoV = ctx.V.armar(), geoF = ctx.F.armar(), geoL = ctx.L.armar(), geoD = ctx.D.armar();
   const grupo = new THREE.Group();
-  grupo.name = 'taller-proto';
+  grupo.name = 'taller-tren';
   grupo.position.set(w0.x, Y0, w0.z);
   grupo.rotation.y = rot;
   const mE = new THREE.Mesh(geoE, M.estructura); mE.castShadow = true; mE.receiveShadow = true;
@@ -1825,7 +2315,7 @@ export function crearTallerProto({ T, escena, parada, tren }) {
     });
     poner(martin, -3.95, 0, PI / 2, { nombre: 'Martín', brazo: true });
     martin.g.position.y = -hondo;
-  } catch (e) { console.warn('[tren-proto] sin gente en el taller', e); }
+  } catch (e) { console.warn('[tren] sin gente en el taller', e); }
   escena.add(grupo);
   let t = 0;
   const taller = {

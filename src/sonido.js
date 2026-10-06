@@ -1098,7 +1098,8 @@ export class Sonido {
     const d = pos ? this.fuente(pos, 3.2, 1) : this.bus.efectos;
     // 2.7: tres caños de vapor: casi senos, con su poco de armónicos y el soplo encima.
     // 2.8: cuáles caños y cuántas pitadas los elige el jugador (el clásico es el de antes)
-    const S = silbatoDe(tipo);
+    // 3.7.3 (tren): o el del taller, que viene con sus caños y toques (ver tren-viaje.js: el de pájaro)
+    const S = tipo && typeof tipo === 'object' && Array.isArray(tipo.canos) ? tipo : silbatoDe(tipo);
     for (const [cuando, largo] of S.toques) {
       for (const [f, v] of S.canos) {
         this.tono({ frec: f * 0.97, fin: f, dur: largo, tipo: 'quena', vol: v, destino: d, ataque: Math.min(0.16, largo * 0.25), vibrato: S.vibrato, cuando });
