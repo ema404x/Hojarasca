@@ -33,3 +33,19 @@ Todo el Desafío se rehace con esto: enemigos, jefe, arena, textos, sonidos, log
 - Nada religioso.
 - Sin tomar figuras sagradas o delicadas del folclore real: los duendes son los de la leyenda local de la aldea.
 - Sin "invasores que roban" a la base. Esa idea se rechazó antes: el robo de los traviesos es travesura de noche, sin perder lo construido. Confirmarlo con el usuario.
+
+## Prototipo de imágenes (06-10)
+Está en la rama `proto-duendes` (`?debug=1&duendes=proto`; las capturas y láminas para votar quedan en `pruebas/salidas/proto-duendes/`).
+- **Opciones:**
+  - estilos de duende A tallado, B cuento, C bosque y musgo, D oscuro;
+  - Rey 1–3;
+  - Coihue 1–3;
+  - semillas o piedras de luz.
+- **Elección:** pendiente, la decide el usuario con su equipo.
+- **Al pasarlo al juego:**
+  - LOD e instanciado: hoy 30 duendes suman unos 76 dibujos y unos 2,5 ms;
+  - lechuza con aleteo;
+  - copa del Coihue con el follaje del juego;
+  - interior y trono más grandes;
+  - poses y animación con el esqueleto de `gente-cuerpo`;
+  - que el estilo A se distinga más del C.
