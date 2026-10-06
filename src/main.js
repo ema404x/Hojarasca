@@ -8374,6 +8374,9 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.6 (vida): la vecindad en el juego y el menú de la charla
     __amor: () => amorJuego,   // 3.7.1
     __amorMundo: () => amorMundo,   // 3.7.1 (mundo)
+    // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
+    // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)
+    __visibilidad: () => { actualizarVisibilidad(camara.position, 1); return true; },
     __vecindad: () => vecindadJuego, __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas

@@ -114,10 +114,16 @@ app.whenReady().then(async () => {
     // (unos cuantos cuadros: lo que el LOD apaga lejos, como el refugio o la biblioteca, se vuelve a ver después de
     // moverse de golpe; y los edificios de la aldea que falten, armados)
     for (let i = 0; i < 6; i++) await cuadros(10);
+    // (y el LOD de los complejos, al instante: con cuadros seguidos el refugio quedaba apagado después de venir de la aldea,
+    // y ella se veía sentada en el pasto)
+    await js(`${H}.__visibilidad(); ${H}.__bucle(); 1`);
     await esperar(1800);
     await js(`(()=>{ const H = ${H}; H.veg.actualizar(H.camara.position); H.objetos?.actualizar?.(H.camara.position); return 1 })()`);
+    await js(`${H}.__visibilidad(); 1`);
     await cuadros(2);
     await esperar(1500);
+    // (lo que tiene que verse, adentro de la cámara: si el complejo del refugio está apagado, la captura no sirve)
+    if (!(await js(`(()=>{ const r = ${H}.est?.conjuntos?.find((k) => k.clave === 'refugio'); const c = ${H}.camara.position; return !r || r.obj.visible || Math.hypot(c.x - r.x, c.z - r.z) > 300 })()`))) ok(false, `${nombre}: el refugio está apagado por el LOD`);
     if (CAPTURAS) { const img = await w.webContents.capturePage(); fs.writeFileSync(path.join(CAPTURAS, `v371-amor-${nombre}.png`), img.toPNG()); console.log(`  (captura: v371-amor-${nombre}.png)`); }
     await js(`document.body.style.visibility = ''; 1`);
   };
