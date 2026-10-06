@@ -187,7 +187,9 @@ app.whenReady().then(async () => {
     ok(await js(`${H}.tren.irA((a) => a.calor)`) && await js(`!!${H}.lugarDelTren()?.calor`), 'te sentás al lado de la salamandra');
     await js(`(()=>{ ${H}.tren.est.parado = 0.001; ${H}.jugador.estado.entumecido = 3; return 1 })()`);
     await cuadros(4);
-    ok(/salamandra/.test(await aviso()), `andando, el aviso lo dice: «${await aviso()}»`);
+    // (si mirás a la guarda, el aviso ofrece hablarle: se mira lo del lugar)
+    const avS = await js(`${H}.avisoLugarDelTren()?.texto || ''`);
+    ok(/salamandra/.test(avS), `andando, el aviso lo dice: «${avS}»`);
     // (el reloj: dos horas de viaje junto a la estufa)
     await js(`(()=>{ ${P}.horas += 0.5; return 1 })()`); await cuadros(3);
     const ent = await js(`${H}.jugador.estado.entumecido`);

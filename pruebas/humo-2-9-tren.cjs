@@ -224,7 +224,8 @@ app.whenReady().then(async () => {
     seccion('de pasajero, como siempre');
     const pas = await js(`(()=>{ const H = ${H}, t = H.tren, p0 = t.paradas[0];
       t.est.s = p0.s; t.est.vel = 0; t.est.parado = 60; t.est.proxima = p0;
-      const pu = t.enVia(t.est.s - 5.2), nx = Math.cos(pu.ang), nz = -Math.sin(pu.ang);
+      // (3.7.3: en el Relax, el tren mejorado: la puerta de adelante del primer coche, que ya no está a 5,2 m)
+      const pu = t.enVia(t.est.s + (t.tren.puertas ? t.tren.offCoches[t.tren.primerCoche] + 4.8 : -5.2)), nx = Math.cos(pu.ang), nz = -Math.sin(pu.ang);
       const lado = Math.sign((p0.anden.x - pu.x) * nx + (p0.anden.z - pu.z) * nz) || 1;
       H.jugador.ubicar(pu.x + nx * lado * 2.1, pu.z + nz * lado * 2.1, 0); H.jugador.estado.pitch = 1.35;
       return { subir: t.puedeSubir(H.jugador.estado), cabina: t.puedeConducir(H.jugador.estado) } })()`);
