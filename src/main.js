@@ -79,6 +79,8 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.1: el amor en la aldea (las reglas en amor.js; en el juego, amor-juego.js)
 import { crearAmorJuego } from './amor-juego.js';
+// 3.7.1 (mundo): el amor en el mundo (la cita caminando, de la mano, el casamiento, el cuarto de los chicos, el anillo)
+import { crearAmorMundo } from './amor-mundo.js';
 import { sumarAmistadDe } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
@@ -4231,6 +4233,7 @@ function actualizarVisitas(dt) {
 let oficios = null, aldeaGente = null;
 let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
 let amorJuego = null;   // 3.7.1: ver amor-juego.js
+let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
 const pronosticoDeManana = () => {
@@ -4303,6 +4306,7 @@ function armarOficiosYAldea(esDesafio) {
     nombrePerro: () => perro?.nombre?.() || '',
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
+    amorDestino: (k) => amorMundo?.destino(k) || null,   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos
   });
   // 3.7.1: el amor en la aldea (sólo en el Relax y con el ajuste «Romance» encendido)
   amorJuego = crearAmorJuego({
@@ -4315,6 +4319,15 @@ function armarOficiosYAldea(esDesafio) {
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
     // lo que te enseñó tu esposa y vale siempre: el paso y los animales más mansos (jugador.js y fauna.js lo leen)
     alBonos: (b) => { const js = jugador?.estado; if (js) { js.pasoAmor = b.paso; js.huidaAmor = b.huida; } },
+    mundo: () => amorMundo,   // 3.7.1 (mundo): ella va caminando a la cita y al casamiento (amor-mundo.js)
+  });
+  // 3.7.1 (mundo): lo del amor que se ve: ver amor-mundo.js
+  amorMundo = crearAmorMundo({
+    T, escena, col, mat: est?.mat, sentaderos: () => est?.sentaderos || [], progreso: () => progreso, jugador: () => jugador?.estado || null, gente: () => gente, aldeaGente: () => aldeaGente, aldeaMundo: () => aldeaMundo,
+    amor: () => amorJuego, activo: () => !desafio && !!amorJuego?.activo(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido: () => sonido,
+    alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), raizRefugio: () => est?.conjuntos?.find((k) => k.clave === 'refugio')?.obj || null,
+    msFigura: () => (planificadorAntitirones.permitir('amor-mundo') ? 3 : 0),
+    tomarMano: (lado) => cuerpoJugador?.tomarMano?.(lado),
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
@@ -4405,6 +4418,7 @@ function actualizarAldea(dt) {
   if (!desafio) aldeaGente?.actualizar(dt);
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
   if (!desafio) amorJuego?.actualizar(dt);   // 3.7.1: el día del amor, las citas y el casamiento
+  if (!desafio) amorMundo?.actualizar(dt);   // 3.7.1 (mundo): lo que se ve del amor
   if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
@@ -8359,6 +8373,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __actualizarLomo: actualizarLomo, __hablar: hablar, __datosDe: datosDe,
     // 3.6 (vida): la vecindad en el juego y el menú de la charla
     __amor: () => amorJuego,   // 3.7.1
+    __amorMundo: () => amorMundo,   // 3.7.1 (mundo)
     __vecindad: () => vecindadJuego, __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas

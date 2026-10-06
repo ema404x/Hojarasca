@@ -374,8 +374,42 @@ function posar(g, charlando) {
       g.torso.rotation.x = 0.18; g.cabeza.rotation.x += 0.3;
       break;
     }
+    // 3.7.1 (mundo): acostada (en la cama del refugio, los chicos en su cuarto): boca arriba, con la cabeza hacia atrás
+    // de donde mira (la figura gira entera sobre los pies; actualizar la endereza al cambiar de pose)
+    case 'dormir': {
+      g.g.rotation.order = 'YXZ';
+      g.g.rotation.x = -Math.PI / 2;
+      const k = Math.sin(t * 0.9) * 0.012;   // respira
+      g.torso.position.y = 0.82 + k; g.cabeza.position.y = 1.46 + k;
+      g.brazos[0].rotation.x = 0.05; g.brazos[1].rotation.x = 0.05; g.brazos[0].rotation.z = -0.08; g.brazos[1].rotation.z = 0.08;
+      for (const p2 of g.patas) { p2.rotation.x = 0; if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 0.06; }
+      g.torso.rotation.set(0, 0, 0); g.cabeza.rotation.set(0.12, 0.25, 0);
+      break;
+    }
+    // 3.7.1 (mundo): el brindis de la fiesta del casamiento (el vaso en alto)
+    case 'brindar': {
+      g.brazos[1].rotation.x = -1.55 + Math.sin(t * 2.2) * 0.06; g.brazos[1].rotation.z = 0.1;
+      g.brazos[0].rotation.x = -0.2; g.cabeza.rotation.x -= 0.18;
+      break;
+    }
     default: break;
   }
+}
+// 3.7.1 (mundo): los gestos del amor (los pide amor-mundo.js en `g.gestoAmor`): de la mano o del brazo con vos (el brazo de
+// tu lado: `lado` es el índice en `brazos`; el 1 es el izquierdo de ella) y el bebé en brazos (`acunar`). Van al final, también caminando.
+function gestoAmor(g) {
+  const q = g.gestoAmor;
+  const brazo = (b, l, x, z, codo) => {
+    if (!b) return;
+    b.rotation.order = 'XZY'; b.rotation.x = x; b.rotation.y = 0; b.rotation.z = l * z;
+    const cd = b.userData.codo; if (cd) cd.rotation.x = codo;
+  };
+  const lado = q.lado ? 1 : 0, l = lado ? 1 : -1;
+  // (el mate lo guarda mientras: con las manos ocupadas no se toma; lo vuelve a sacar solo, ver `__mateDejado`)
+  if (g.mate) { g.mate.visible = false; g.__mateDejado = true; }
+  if (q.tipo === 'acunar') { brazo(g.brazos[0], -1, -0.72, -0.2, -1.6); brazo(g.brazos[1], 1, -0.72, -0.2, -1.6); return; }
+  if (q.tipo === 'mano') brazo(g.brazos[lado], l, -0.38, 0.11, -0.12);
+  else if (q.tipo === 'brazo') brazo(g.brazos[lado], l, -0.45, 0.24, -1.35);
 }
 // Suma la geometría de `fuente` (ya fundida, con su posición respecto de `destino`) a la de
 // `destino`: devuelve la geometría junta (las dos son indexadas, con posición, normal y color).
@@ -987,7 +1021,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       // 3.6: los vecinos de la aldea que charlan entre ellos se miran a ellos, no a vos
       // 3.6.1: el que invitaste a tomar algo va con vos: no se frena porque estés al lado (si lo
       // acompañabas a la casa de té, se quedaba parado en la calle esperando que te alejaras)
-      const cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos && !g.enCita;
+      // 3.7.1 (mundo): ni la que vuelve al refugio ni la que camina con vos (`enLejano`, `conVos`)
+      let cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos && !g.enCita;
+      if (g.enLejano || g.conVos || g.alAmor) cerquita = false;
       let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
       if (g.camino && !charlando && !cerquita) {
         // 3.6: con horario (la gente de la aldea): `camino` son los puntos que faltan (por las
@@ -1099,6 +1135,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           if (deja && g.mate.visible !== false) { g.mate.visible = false; g.__mateDejado = true; }
           else if (!deja && g.__mateDejado) { g.mate.visible = true; g.__mateDejado = false; }
         }
+        if (g.g.rotation.x !== 0 && (g.pose !== 'dormir' || andando)) g.g.rotation.x = 0;   // 3.7.1 (mundo): se levantó
         if (g.pose && !andando) posar(g, charlando);   // 3.6 (vida)
         // (3.7.0: el brazo del mate tiene el codo doblado fijo: con el gesto de los demás la mano le quedaba en la
         // cara o atrás de la espalda; el hombro queda casi quieto y el antebrazo adelante, trabajando cortito)
@@ -1112,6 +1149,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
           g.muneca.quaternion.copy(_qMate.multiply(_qInclina.setFromEuler(_eMate.set(inclinaMate, 0, 0))));
         }
         if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // 3.7.0 (gente-cuerpo.js): codos, pies, la mirada, los gestos y la quietud
+        if (g.gestoAmor) gestoAmor(g);   // 3.7.1 (mundo): de la mano, del brazo, el bebé en brazos
+        if (g.pose === 'dormir' && !andando) for (const pp of g.cabeza.userData?.parpados || []) pp.rotation.x = 0.95;   // (y dormida, con los ojos cerrados)
       }
     }
   }

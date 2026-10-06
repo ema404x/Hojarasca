@@ -217,7 +217,8 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
     if (!r.lugar || !r.edificio) continue;
     // 3.6 (optimizar): los puntos sin copiar y si el punto está adentro, una vez por punto (no cambian)
     const pts = puntosFijosDe(r.edificio);
-    const q = pts[r.punto] || pts.adentro || pts.puerta;
+    // (3.7.1 (mundo): o un punto suelto del plano: el casamiento, la fiesta en la plaza; ver amor-escenas.js)
+    const q = r.plano ? { x: r.plano.x, z: r.plano.z, rot: r.rotPlano ?? 0 } : pts[r.punto] || pts.adentro || pts.puerta;
     if (!q) continue;
     const clave = `${r.edificio}|${r.punto}`;
     if (!juntos.has(clave)) juntos.set(clave, []);
@@ -226,7 +227,8 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
     if (adentro === undefined) { adentro = !!edificioEn(q.x, q.z); PUNTO_ADENTRO.set(clave, adentro); }
     // (3.7.0 (integración): Malena en el banco del torno y Pocha en la silla de la máquina, sentadas; lo de arriba
     // de una escalera, `arriba`)
-    const sentado = SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio));
+    // (3.7.1 (mundo): o lo que diga el amor: en el casamiento, la novia está parada al lado de la silla)
+    const sentado = typeof r.sentado === 'boolean' ? r.sentado : SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio));
     salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro, sentado, lejano: esPuntoLejano(r.punto), arriba: esArriba(r.edificio, r.punto) });   // (3.7.0: lejano: el muelle del lago)
   }
   for (const lista of juntos.values()) {
@@ -266,6 +268,7 @@ export const ALTURA_ALMOHADON = 0.2;
 // La pose de gente.js para lo que está haciendo, ya llegado (null: parado, como siempre).
 export function poseDe(d) {
   if (!d) return null;
+  if (typeof d.pose === 'string') return d.pose;   // 3.7.1 (mundo): la que pide el amor (la cita, la fiesta, la cama)
   const act = d.actividad;
   // (3.7.0 (integración): sentadas en lo suyo, el gesto de su oficio)
   if (d.sentado && d.punto === 'adentro' && (d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_SENTADO, d.edificio || '')) return GESTO_SENTADO[d.edificio];
@@ -411,6 +414,7 @@ export function crearAldeaGente(ctx) {
     ubicar(st.npc, st.destino);
     if (usaRutaPropia(k, st, st.destino)) aRutaPropia(st.npc, st, true);
     st.npc.dormido = lejos > RADIO_ALDEA;
+    st.npc.__primera = true;   // 3.7.1 (mundo): recién armada: lo de afuera, de una (no llega caminando)
     if (st.destino.lejano) { st.npc.enLejano = true; st.npc.dormido = !cercaDe(st.npc); }   // 3.7.0
   }
   // Avanza el armado (`ms`: cuánto puede tardar); empieza el de la próxima que falte. Devuelve cuántas faltan.
@@ -491,7 +495,8 @@ export function crearAldeaGente(ctx) {
   // 3.7.0 (integración): lo de arriba de una escalera se busca desde el piso de arriba (si no, quedaba abajo)
   const yDesde = (npc, d) => (d.arriba ? EDIFICIOS_ALDEA[d.edificio].y + ESCALERAS_ALDEA[d.edificio].alto + 0.1 : npc.pos.y);
   function ubicar(npc, d) {
-    npc.pos.set(d.x, ctx.alturaDePie(d.x, d.z, yDesde(npc, d)), d.z);
+    // (3.7.1 (mundo): `d.y`: la altura justa, la de la cama del refugio donde se acuesta)
+    npc.pos.set(d.x, Number.isFinite(d.y) ? d.y : ctx.alturaDePie(d.x, d.z, yDesde(npc, d)), d.z);
     npc.camino = [];
     npc.espera = 0;
     npc.miraFinal = d.mira;
@@ -500,6 +505,7 @@ export function crearAldeaGente(ctx) {
     npc.soloCerca = d.adentro ? VER_ADENTRO : 0;
     npc.pose = poseDe(d);   // 3.6 (vida)
     npc.asiento = alturaAsiento(d, npc);   // 3.6.1
+    if (Number.isFinite(d.asiento)) npc.asiento = d.asiento;   // 3.7.1 (mundo): o la que diga el amor
   }
   function encaminar(npc, d) {
     const l = M.aLocal(npc.pos.x, npc.pos.z);
@@ -664,6 +670,7 @@ export function crearAldeaGente(ctx) {
     ubicar(st.npc, d);
     if (usaRutaPropia(k, st, d)) aRutaPropia(st.npc, st, true);
     st.npc.dormido = lejos > RADIO_ALDEA;
+    st.npc.__primera = true;   // 3.7.1 (mundo): recién armada: lo de afuera, de una (no llega caminando)
     if (d.lejano) { st.npc.enLejano = true; st.npc.dormido = !cercaDe(st.npc); }   // 3.7.0
     return st.npc;
   }
@@ -680,22 +687,62 @@ export function crearAldeaGente(ctx) {
   function moverLejano(st, n, d, despierta) {
     if (d.lejano) {
       if (n.enLejano || !despierta) {
-        if (!n.enLejano || st.clave !== d.clave) { n.enLejano = true; st.clave = d.clave; ubicar(n, d); }
+        // 3.7.1 (mundo): lo de afuera del amor (el refugio, la cita en el valle) se llega caminando si lo ves, y
+        // adentro del refugio se camina de la silla a la cama
+        if (d.fuera && n.enLejano && st.clave !== d.clave && cercaDe(n) && Math.hypot(n.pos.x - d.x, n.pos.z - d.z) < 40) {
+          st.clave = d.clave; n.camino = [pasoFinal(d)]; n.espera = 0; n.miraFinal = d.mira; n.pose = null; n.asiento = undefined; n.soloCerca = 0;
+          n.__llego = null; n.__camina = performance.now();
+        } else if (!n.enLejano || st.clave !== d.clave) {
+          const venia = n.enLejano;
+          n.enLejano = true; st.clave = d.clave;
+          if (d.fuera && !venia && !n.__primera) llegarCaminando(n, d); else { ubicar(n, d); n.__llego = d.clave; }
+          n.__primera = false;
+        } else if (d.fuera && n.__llego !== d.clave && (!n.camino?.length || performance.now() - (n.__camina || 0) > 45000)) { ubicar(n, d); n.__llego = d.clave; }   // (llegó, o se trabó: su lugar, su pose y su altura)
+        else if (d.fuera && !n.camino?.length && n.pose !== poseDe(d)) { n.pose = poseDe(d); if (Number.isFinite(d.asiento)) n.asiento = d.asiento; }   // (ya ahí: lo que hace cambia, la cita empezó)
         n.dormido = !cercaDe(n);
         return true;
       }
       n.dormido = false;
       const a = destinoAnden();
       if (st.clave !== a.clave) { st.clave = a.clave; encaminar(n, a); return true; }
-      if (!n.camino?.length) { n.enLejano = true; st.clave = d.clave; ubicar(n, d); n.dormido = !cercaDe(n); }
+      if (!n.camino?.length) { n.enLejano = true; st.clave = d.clave; if (d.fuera) llegarCaminando(n, d); else ubicar(n, d); n.dormido = !cercaDe(n); }
       return true;
     }
     if (n.enLejano) {
+      // 3.7.1 (mundo): si la ves irse (del refugio a su local), sale por la puerta y se va por el camino
+      if (n.salida && !st.saliendo && cercaDe(n) && Math.hypot(n.pos.x - n.salida.x, n.pos.z - n.salida.z) < 90) {
+        st.saliendo = true; st.clave = 'saliendo';
+        n.camino = [...(n.salidaPor || []).map((q) => ({ x: q.x, z: q.z, sinChoque: !!q.sinChoque, cerca: 0.5 })), { x: n.salida.x, z: n.salida.z, cerca: 1 }];
+        n.pose = null; n.asiento = undefined; n.soloCerca = 0; n.espera = 0;
+        return true;
+      }
+      if (st.saliendo && n.camino?.length && cercaDe(n)) return true;
+      st.saliendo = false; n.salida = null; n.salidaPor = null;
       n.enLejano = false;
       const a = destinoAnden();
       ubicar(n, a); st.clave = a.clave;
     }
     return false;
+  }
+  // 3.7.1 (mundo): un destino del amor con su lugar en el mundo (x, z): lo de afuera de la aldea (el refugio, la cita en
+  // el valle) va como el muelle de Martina (`lejano`: sale por el andén); un punto suelto de la aldea, como uno más
+  function destinoDeAfuera(r) {
+    const l = M.aLocal(r.x, r.z), fuera = !!r.fuera, mira = Number.isFinite(r.mira) ? r.mira : 0;
+    return { ...r, clave: `${fuera ? 'fuera' : r.edificio || 'aldea'}|${r.punto}|${r.x.toFixed(1)}|${r.z.toFixed(1)}`, lx: l.lx, lz: l.lz,
+      rot: mira - M.ang, mira, adentro: !!r.adentro, sentado: !!r.sentado, lejano: fuera, fuera, arriba: false, amor: true };
+  }
+  // 3.7.1 (mundo): el último paso hasta un punto de afuera (adentro del refugio, sin chocar con la mesa ni la cama)
+  const pasoFinal = (d) => ({ x: d.x, z: d.z, sinChoque: !!d.adentro, cerca: 0.12, ...(Number.isFinite(d.y) ? { y: d.y } : {}) });
+  // 3.7.1 (mundo): llega caminando a lo de afuera (el refugio, la cita en el valle): aparece en `llegada` (en el camino,
+  // bajando de la trochita) y entra por `entrada` (la puerta), si estás cerca para verla; si no, ya está ahí.
+  function llegarCaminando(n, d) {
+    n.salida = d.llegada || null; n.salidaPor = d.entrada ? [...d.entrada].reverse() : null;
+    const js = ctx.jugador?.()?.estado;
+    if (!d.llegada || !js || Math.hypot(js.pos.x - d.x, js.pos.z - d.z) > 90) { ubicar(n, d); n.__llego = d.clave; return; }
+    n.pos.set(d.llegada.x, ctx.alturaDePie(d.llegada.x, d.llegada.z, n.pos.y), d.llegada.z);
+    n.camino = [...(d.entrada || []).map((q) => ({ x: q.x, z: q.z, sinChoque: !!q.sinChoque, cerca: 0.5 })), pasoFinal(d)];
+    n.espera = 0; n.miraFinal = d.mira; n.soloCerca = 0; n.pose = null; n.asiento = undefined;
+    n.__llego = null; n.__camina = performance.now();
   }
 
   // ---------------------------------------------------------------- la llegada
@@ -1013,7 +1060,18 @@ export function crearAldeaGente(ctx) {
     }
     const lista = presentes();
     for (const k of lista) if (!personas.has(k)) personas.set(k, { npc: null, destino: null, clave: '', trabado: { d: Infinity, t: 0 } });
+    // 3.7.1 (mundo): lo que pide el amor manda sobre el horario y el tiempo libre (la cita, el casamiento y la fiesta, la
+    // que vive con vos en el refugio): un punto de la aldea, o uno de afuera (`fuera`), ver amor-escenas.js
     const destinos = destinosAldea(a, horas(), dia(), lista, M, elegirLibres(lista));   // 3.6 (vida): con su tiempo libre
+    if (ctx.amorDestino) {
+      const delAmor = new Map();
+      for (const k of lista) {
+        const r = ctx.amorDestino(k);
+        if (!r) continue;
+        if (r.fuera || (Number.isFinite(r.x) && !r.plano)) destinos.set(k, destinoDeAfuera(r)); else delAmor.set(k, { ...r, amor: true });
+      }
+      if (delAmor.size) for (const [k, d] of destinosAldea(a, horas(), dia(), [...delAmor.keys()], M, delAmor)) destinos.set(k, d);
+    }
     // 3.6.1: en la silla donde estás sentado vos no se sienta nadie: se queda parado al lado
     if (js.sentado) for (const d of destinos.values()) {
       if (!d.sentado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) > 0.45) continue;
@@ -1028,11 +1086,15 @@ export function crearAldeaGente(ctx) {
       // (alguien que ya no está en esta partida, si la partida cambió sin recargar: no se ve)
       if (n && !d && !n.deVisita) { n.dormido = true; continue; }
       if (!n || !d) continue;
+      if (n.__primera === true) n.__primera = 1; else if (n.__primera === 1) n.__primera = false;   // (3.7.1 (mundo): recién armada, sólo esta vuelta)
+      n.alAmor = !!d.amor;   // 3.7.1 (mundo): yendo a lo del amor (la cita, el casamiento) no se frena al pasar al lado tuyo
       // el que llegó y aceptaste ya no saluda como recién bajado
       if (n.llegando && a.llegando?.clave !== k) { const def = defDe(k); n.llegando = false; n.saludo = def.saludo; n.despedida = def.despedida; }
       // 3.6: de visita en tu mesa (visitas.js la trae y la devuelve), no se la toca; al volver,
       // sigue con su horario
       if (n.deVisita) { n.camino = null; n.dormido = false; st.clave = ''; continue; }
+      // 3.7.1 (mundo): caminando con vos (amor-mundo.js la lleva a tu lado): tampoco se la toca
+      if (n.conVos) { st.clave = ''; continue; }
       if ((d.lejano || n.enLejano) && moverLejano(st, n, d, despierta)) continue;   // 3.7.0: Martina y el muelle
       n.dormido = !despierta;
       if (!despierta) {
@@ -1370,6 +1432,7 @@ export function crearAldeaGente(ctx) {
 
   return {
     actualizar, charla, revisarLlegada, revisarObras, obraCerca, avisoObra, aportarObra, dibujarCuaderno, llamar,
+    apurar: () => { acum = Math.max(acum, 0.5); },   // 3.7.1 (mundo): que lo del amor (la cita, el casamiento) se note en el próximo cuadro
     citar, figura, dibujarVecinos: (ficha, el) => fichaVecinos(progreso(), ficha, el),   // 3.6 (vida)
     prearmar, faltanFiguras: faltan, armando: () => (armando ? { k: armando.k, pasos: armando.tarea.tarea?.pasos || 0, msMax: armando.tarea.tarea?.msMax || 0 } : null),   // 3.7.0 (integración)
     dibujarCalendario, vida, adoptarCachorro, revisarDia: () => { diaRevisado = 0; revisarDia(); },   // 3.7.0

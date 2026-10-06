@@ -259,9 +259,9 @@ app.whenReady().then(async () => {
     const vet = await js(`${H}.__aldea.edificio('veterinaria')`);
     let fundido = false, descanso = 0;
     for (let d = boda.dia + 1; d < boda.dia + 16 && !(await js(`${P}.amor.embarazo`)); d++) {
-      await nuevoDia(d, 21.1);
+      await nuevoDia(d, 22.2);   // (3.7.1 (mundo): ella va caminando de verdad: a las 22 ya está en su casa, y se la ubica con vos lejos)
       await js(`${P}.amor.personas.veterinaria.contacto = ${d}; ${H}.jugador.estado.descansado = 0; 1`);
-      await ubicar(vet.x, vet.z, vet.x + 1, vet.z); await aldea(20);
+      await irLejos(); await aldea(3); await ubicar(vet.x, vet.z, vet.x + 1, vet.z); await aldea(20);
       h = await hablarCon('veterinaria');
       if (!h.menu) { await cerrarCharla(); continue; }
       c = await elegir('Lo nuestro…');

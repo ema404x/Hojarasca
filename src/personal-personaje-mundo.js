@@ -53,6 +53,7 @@ export function crearCuerpoJugador(escena) {
   silueta.frustumCulled = false;
   raiz.add(silueta);
   let cuerpo = null, piernas = [], brazos = [], verEnCamara = false, paso = 0, quieto = 0, conSilueta = null;
+  let manoAmor = null;   // 3.7.1 (mundo): el brazo que le das a tu pareja (0 el derecho, 1 el izquierdo) o null
 
   let persona = null;
   function tirar() {
@@ -115,10 +116,12 @@ export function crearCuerpoJugador(escena) {
     piernas[1].rotation.x = js.sentado ? -1.45 : -bal;
     brazos[0].rotation.x = -bal * 0.8;
     brazos[1].rotation.x = bal * 0.8;
+    // 3.7.1 (mundo): de la mano con tu pareja (amor-mundo.js): ese brazo, hacia ella (se ve en el modo foto y en la sombra)
+    if (manoAmor !== null && brazos[manoAmor]) { const b = brazos[manoAmor]; b.rotation.x = -0.38; b.rotation.z = (manoAmor ? 1 : -1) * 0.11; }
     return cambio && conSombras;
   }
 
-  return { aplicar: (d) => { armar(d); conSilueta = null; }, actualizar, mostrarEnCamara, raiz, silueta, cuerpo: () => cuerpo };
+  return { aplicar: (d) => { armar(d); conSilueta = null; }, actualizar, mostrarEnCamara, raiz, silueta, cuerpo: () => cuerpo, tomarMano: (lado) => { manoAmor = lado === 0 || lado === 1 ? lado : null; } };
 }
 
 // La mano y la manga en primera persona, debajo de lo que llevás. `enMano` es el de
