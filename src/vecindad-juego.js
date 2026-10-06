@@ -216,6 +216,8 @@ export function lugaresDeLaCasaTe() {
 // nueva), guardar(), refrescarBarra(), mesa() (la mesa puesta: { mesa, asientos } o null),
 // hayVisita() (alguien de visita en tu mesa), jugador() (su posición), alturaDePie(x, z, y),
 // aldea() (aldea-gente: `citar`, `figura`), npcDe(clave).
+// 3.7.1: amor (amor-juego.js, opcional): lo del romance en el menú (`opciones`, `submenu`, `elegir`) y lo que dice
+// ella o el chisme de un vecino al saludarte (`alAbrir`). Sin `amor` (o con el ajuste apagado), el menú es el de siempre.
 export function crearVecindadJuego(ctx) {
   const progreso = () => ctx.progreso();
   const dia = () => Math.max(1, Math.floor(Number(progreso().dia) || 1));
@@ -239,8 +241,9 @@ export function crearVecindadJuego(ctx) {
     const a = abrirCharla(clave, progreso(), contexto());
     if (!a) return null;
     avisarAmistad(clave, a.amistad);
+    const amor = ctx.amor?.alAbrir?.(clave) || null;   // 3.7.1: lo que dice ella primero, o el chisme de un vecino
     return {
-      clave, saludo: a.saludo || null, comentario: a.comentario || null, nivel: a.nivel,
+      clave, saludo: a.saludo || null, comentario: amor?.primero || a.comentario || amor?.despues || null, nivel: a.nivel,
       historia: extra.historia || null, servicio: extra.servicio || null, linea: extra.linea || null,
       regalo: !a.puede.regalar, invito: !a.puede.invitar, vueltas: 0, sub: null, i: 0,
     };
@@ -254,6 +257,7 @@ export function crearVecindadJuego(ctx) {
     if (!s.regalo && regalablesQueTenes(p).length) lista.push({ id: 'regalar', titulo: TITULOS.regalar });
     if (!s.invito) lista.push({ id: 'invitar', titulo: TITULOS.invitar });
     if (ayudas(s.clave, p, dia()).length) lista.push({ id: 'ayudar', titulo: TITULOS.ayudar });
+    for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.1: el romance, el anillo y el correo
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -310,6 +314,14 @@ export function crearVecindadJuego(ctx) {
       return { tipo: 'renglones', renglones: r.renglones.length ? r.renglones : [FRASES_JUEGO.sigue] };
     }
     if (id === 'regalar' || id === 'invitar' || id === 'ayudar') { submenu(s, id); return { tipo: 'menu' }; }
+    // 3.7.1: lo del amor (amor-juego.js): un submenú propio o lo que contesta ella
+    if (/^amor(?:-|:|$)/.test(String(id)) && ctx.amor) {
+      const r = ctx.amor.elegir(s, id, npc);
+      if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
     const [tipo, k] = String(id).split(':');
     s.sub = null;
     s.vueltas++;
