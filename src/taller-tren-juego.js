@@ -51,10 +51,24 @@ export function crearTallerJuego(ctx) {
   const activo = () => !ctx.desafio?.() && !!progreso();
   const dia = () => Math.max(1, Math.floor(Number(progreso().dia) || 1));
   const horas = () => Number(progreso().horas) || 0;
+  // El estado del tren. Al cargar lo sanea guardado.js; acá, si alguien lo cambió (o no estaba), sólo se completa lo
+  // que falta, sin pisar lo que hay (el equipo del tren y sus pruebas también lo escriben)
+  const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
   function tren() {
     const p = progreso();
-    if (!p.tren || !p.tren.__sano) { p.tren = sanearTren(p.tren ?? trenNuevo(), p.dia); Object.defineProperty(p.tren, '__sano', { value: true, enumerable: false }); }
-    return p.tren;
+    if (!objeto(p.tren)) p.tren = trenNuevo();
+    const t = p.tren;
+    if (!t.__completo) {
+      const n = trenNuevo();
+      if (!objeto(t.loco)) t.loco = n.loco;
+      else { for (const [k, v] of Object.entries(n.loco)) if (!Object.hasOwn(t.loco, k)) t.loco[k] = v; if (!objeto(t.loco.pintura)) t.loco.pintura = n.loco.pintura; }
+      if (!objeto(t.vagones)) t.vagones = n.vagones;
+      else for (const k of Object.keys(n.vagones)) if (!Object.hasOwn(t.vagones, k)) t.vagones[k] = false;
+      if (!Array.isArray(t.composicion)) t.composicion = [];
+      if (!objeto(t.taller)) t.taller = sanearTren(t, p.dia).taller;
+      Object.defineProperty(t, '__completo', { value: true, enumerable: false, configurable: true });
+    }
+    return t;
   }
   const herreria = () => { try { return localAbierto(progreso().aldea, 'herreria'); } catch { return false; } };
   const aplicar = () => { try { ctx.aplicarMejoras?.(tren()); } catch (err) { console.warn('[taller] aplicarMejoras', err); } };
