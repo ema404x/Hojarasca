@@ -339,7 +339,7 @@ const main = leer('src/main.js');
 {
   const A = await import('../src/aldea.js');
   const G = await import('../src/aldea-gente.js');
-  ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && main.includes("est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo')"), 'la silla con un vecino no se ofrece');
+  ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && main.includes("est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo'"), 'la silla con un vecino no se ofrece');
   const M = A.marcoAldea(A.PARADA_ALDEA);
   const P = { dia: 2, horas: 16.5, aldea: A.aldeaNueva(), entradas: {}, materiales: {}, cosas: {} };
   const vec = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });

@@ -1889,7 +1889,8 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
       // 3.7.0: Pocha le lleva unos mates a Anselmo a la herrería, a la tardecita (la pareja de la aldea)
       return ir('trabajo', 'herreria', 'cliente');
     } else if (persona === 'botera') {
-      if (t >= 17 && t < 18) return ir('trabajo', lote, 'trabajo');
+      // (3.7.0: a la tardecita, adentro, con el bote a medio hacer: ahí calafatea; afuera no tenía nada que hacer)
+      if (t >= 17 && t < 18) return ir('trabajo', lote, 'adentro');
     } else if (!noctambula && t >= 8 && t < 18 && !(t >= 12.5 && t < 13.5)) {
       if (p.afuera && t >= 13.5) return ir('trabajo', lote, Object.hasOwn(PUNTO_AFUERA, persona) ? PUNTO_AFUERA[persona] : 'trabajo');
       return ir('local', lote, 'adentro');

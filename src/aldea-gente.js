@@ -267,6 +267,8 @@ export const ALTURA_ALMOHADON = 0.2;
 export function poseDe(d) {
   if (!d) return null;
   const act = d.actividad;
+  // (3.7.0 (integración): sentadas en lo suyo, el gesto de su oficio)
+  if (d.sentado && d.punto === 'adentro' && (d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_SENTADO, d.edificio || '')) return GESTO_SENTADO[d.edificio];
   if (d.sentado) return act === 'leer' ? 'leyendo' : 'sentado';
   if (act === 'palear') return 'palear';
   if (act === 'lena') return 'hachar';
@@ -279,11 +281,21 @@ export function poseDe(d) {
   if (d.punto === 'soga') return 'izar';
   if (/^baile-/.test(d.punto || '')) return 'bailar';
   if (d.lugar === 'salon' && d.punto === 'escenario') return 'tocar';
-  if ((d.lugar === 'local' || d.lugar === 'trabajo') && Object.hasOwn(GESTO_OFICIO, d.edificio || '')) return GESTO_OFICIO[d.edificio];
+  // (3.7.0: el que está del lado del cliente no trabaja: Pocha, con el mate para Anselmo, martillaba en la herrería)
+  if ((d.lugar === 'local' || d.lugar === 'trabajo') && d.punto !== 'cliente' && Object.hasOwn(GESTO_OFICIO, d.edificio || '')) {
+    const g = GESTO_OFICIO[d.edificio];
+    return typeof g === 'function' ? g(d) : g;
+  }
   return null;
 }
 // 3.6 (mecánicas): el gesto de cada oficio (el panadero amasa, el herrero martilla, el carpintero sierra)
-const GESTO_OFICIO = { herreria: 'martillar', panaderia: 'amasar', carpinteria: 'serruchar' };
+const GESTO_OFICIO = { herreria: 'martillar', panaderia: 'amasar', carpinteria: 'serruchar',
+  // 3.7.0 (integración): Valentina en el telescopio, Abril en el atril, Ayelén en la camilla, Inés con el mortero,
+  // Martina con el bote
+  observatorio: (d) => (d.punto === 'telescopio' ? 'telescopio' : null), 'taller-arte': (d) => (d.punto === 'adentro' ? 'pintar' : null),
+  veterinaria: (d) => (d.punto === 'adentro' || d.punto === 'corral' ? 'curar' : null), herboristeria: (d) => (d.punto === 'adentro' ? 'mortero' : null),
+  varadero: (d) => (d.punto === 'adentro' ? 'calafatear' : null) };
+const GESTO_SENTADO = { ceramica: 'tornear', costureria: 'coser' };
 
 // Lo que se ve de la aldea desde un punto del mundo: cuánto falta para el rectángulo que ocupa.
 export function distanciaAldea(x, z, M = marcoAldea(PARADA_ALDEA)) {
@@ -460,11 +472,21 @@ export function crearAldeaGente(ctx) {
   function alturaAsiento(d, npc) {
     if (!d?.sentado) return undefined;
     const clave = `${d.clave}|${d.lx.toFixed(2)}|${d.lz.toFixed(2)}`;
-    if (!asientos.has(clave)) {
-      let a = ALMOHADONES.has(d.punto) && d.edificio === 'biblioteca' ? ALTURA_ALMOHADON : ctx.asientoEn?.(d.x, d.z, npc.pos.y);
-      asientos.set(clave, Number.isFinite(a) ? a : undefined);
+    // (3.7.0: la silla se guarda con su altura en el mundo (`abs`) y el asiento se mide desde donde está parado ahora:
+    // si se lo ubicó antes de que su local tuviera piso, después sube al piso y la silla sigue donde está. Y si la
+    // silla todavía no está (el local se arma de a poco), no se guarda: se vuelve a buscar en la próxima vuelta;
+    // antes quedaba para siempre la altura de una silla cualquiera)
+    let q = asientos.get(clave);
+    if (!q) {
+      if (ALMOHADONES.has(d.punto) && d.edificio === 'biblioteca') q = { rel: ALTURA_ALMOHADON };
+      else {
+        const a = ctx.asientoEn?.(d.x, d.z, npc.pos.y);
+        if (!Number.isFinite(a)) return undefined;
+        q = { abs: npc.pos.y + a };
+      }
+      asientos.set(clave, q);
     }
-    return asientos.get(clave);
+    return q.rel ?? Math.max(0, q.abs - npc.pos.y);
   }
   // 3.7.0 (integración): lo de arriba de una escalera se busca desde el piso de arriba (si no, quedaba abajo)
   const yDesde = (npc, d) => (d.arriba ? EDIFICIOS_ALDEA[d.edificio].y + ESCALERAS_ALDEA[d.edificio].alto + 0.1 : npc.pos.y);
@@ -1046,7 +1068,14 @@ export function crearAldeaGente(ctx) {
         tr.d = Math.min(tr.d, falta);
         if (tr.t > 12) { ubicar(n, d); tr.t = 0; saltos++; st.saltos = (st.saltos || 0) + 1; }
       } else if (usaRutaPropia(k, st, d)) aRutaPropia(n, st);
-      else { n.soloCerca = d.adentro ? VER_ADENTRO : 0; n.pose = poseDe(d); n.asiento = alturaAsiento(d, n); }   // 3.6 (vida): ya llegó: su pose (3.6.1: y su asiento)
+      else {
+        // 3.7.0: parado en su lugar, sobre el piso de verdad: el que se ubicó de lejos antes de que su local tuviera
+        // piso (recién abierto, o armándose todavía) quedaba en el terreno, 30 cm hundido en las tablas, hasta que
+        // le tocaba ir a otro lado
+        const y = ctx.alturaDePie(n.pos.x, n.pos.z, yDesde(n, d));
+        if (Number.isFinite(y) && Math.abs(y - n.pos.y) > 0.05) n.pos.y = y;
+        n.soloCerca = d.adentro ? VER_ADENTRO : 0; n.pose = poseDe(d); n.asiento = alturaAsiento(d, n);   // 3.6 (vida): ya llegó: su pose (3.6.1: y su asiento)
+      }
     }
     if (despierta && js) buscarCharla(js);
     // 3.7.0: la figura de Martina en el muelle, aunque no hayas pasado por la aldea

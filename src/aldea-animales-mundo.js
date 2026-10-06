@@ -19,6 +19,7 @@ import { PARADA_ALDEA, marcoAldea, puntosFijosDe } from './aldea.js';
 const VER = 120;            // a cuántos metros se los ve
 const ARMAR = 220;          // a cuántos metros se arman las mallas
 const RADIO_PATIO = 3;      // cuánto se alejan de su lugar los que andan sueltos
+const LEJOS_FOGON = 4.4;    // 3.7.0: el cachorro juega a esto del fogón del refugio (o más), y a menos de 3 m de su lugar
 
 // `ctx`: { T, escena, progreso(), jugador() → estado, refugio() → { x, z } | null, distanciaAldea(x, z), col(), alturaDePie(x, z, y) }
 // 3.7.0 (integración): los perros, el cachorro y las gallinas chocan con las paredes, los cercos y los muebles (antes
@@ -180,7 +181,13 @@ export function crearAnimalesAldea(ctx) {
     const m = p.vidaAldea?.mascota;
     const casa = ctx.refugio?.();
     if (!m || m.estado !== 'adoptado' || !casa) { if (cachorro) cachorro.m.g.visible = false; return; }
-    const centro = { x: casa.x + 2.2, z: casa.z + 2.2 };
+    // (3.7.0 (integración): frente a la puerta, del lado de afuera: con el centro del refugio a 2 m, jugaba adentro de
+    // la casa, atravesando las paredes)
+    const pu = casa.puerta, ox = pu ? pu.x - casa.x : 1, oz = pu ? pu.z - casa.z : 1, ol = Math.hypot(ox, oz) || 1;
+    const centro = pu ? { x: pu.x + (ox / ol) * 2.6, z: pu.z + (oz / ol) * 2.6 } : { x: casa.x + 2.2, z: casa.z + 2.2 };
+    // (3.7.0: y lejos del fogón, que queda ahí al lado: jugando, se metía entre las piedras y las brasas)
+    const fo = casa.fogon;
+    if (fo) { const fx = centro.x - fo.x, fz = centro.z - fo.z, fd = Math.hypot(fx, fz); if (fd < LEJOS_FOGON) { const k = LEJOS_FOGON / (fd || 1); centro.x = fo.x + (fd ? fx : 1) * k; centro.z = fo.z + (fd ? fz : 0) * k; } }
     const dj = Math.hypot(centro.x - js.pos.x, centro.z - js.pos.z);
     if (!cachorro) {
       if (dj > ARMAR) return;
@@ -204,7 +211,7 @@ export function crearAnimalesAldea(ctx) {
       const ax = js.pos.x + Math.sin(js.yaw || 0) * 1.2, az = js.pos.z + Math.cos(js.yaw || 0) * 1.2;
       caminar(a, ax, az, cerca > 5 ? 3.6 : 1.8, dt);
     } else {
-      if (a.t <= 0) { a.t = 1.5 + Math.random() * 3; const r = Math.random() * Math.PI * 2, d = Math.random() * 4; a.objetivo = { x: centro.x + Math.cos(r) * d, z: centro.z + Math.sin(r) * d }; }
+      if (a.t <= 0) { a.t = 1.5 + Math.random() * 3; const r = Math.random() * Math.PI * 2, d = Math.random() * 3; a.objetivo = { x: centro.x + Math.cos(r) * d, z: centro.z + Math.sin(r) * d }; }
       caminar(a, a.objetivo.x, a.objetivo.z, deDia ? 1.4 : 0.4, dt);
     }
     dibujarPerro(a, tallaMascota(m, p.dia));

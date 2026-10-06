@@ -1190,8 +1190,12 @@ export function crearAldeaMundo(ctx) {
         // (3.7.0 (integración): el corral de la veterinaria es tierra pisada, sin pasto ni helechos, como la planta)
         const an = e.anexo, enAnexo = !!an && Math.abs(bx - an.x) < an.ancho / 2 + 0.2 && Math.abs(bz - an.z) < an.fondo / 2 + 0.2;
         const planta = (Math.abs(bx) < e.ancho / 2 + 0.6 && Math.abs(bz) < e.fondo / 2 + 0.6) || enAnexo;
+        // (3.7.0: y alrededor del cerco, una celda más, sin helechos: la máscara va de a 2 m y los helechos grandes del
+        // borde quedaban encima del cerco y metidos en el corral; el pasto de ahí no se toca)
+        const bordeAnexo = !!an && !enAnexo && Math.abs(bx - an.x) < an.ancho / 2 + 2 && Math.abs(bz - an.z) < an.fondo / 2 + 2;
+        if (bordeAnexo && esLote(z.id) && !patio && !planta) { celdas.push({ k, soloHelechos: true, a0: d[k + 3] }); return; }
         if (!patio && !planta) return;
-        if (esLote(z.id)) { celdas.push({ k, original: d[k], planta, lote: Math.abs(bx) < e.ancho / 2 + 1.2 && Math.abs(bz) < e.fondo / 2 + 1.2 }); return; }
+        if (esLote(z.id)) { celdas.push({ k, original: d[k], planta, lote: Math.abs(bx) < e.ancho / 2 + 1.2 && Math.abs(bz) < e.fondo / 2 + 1.2, ...(enAnexo ? { anexo: true, g0: d[k + 1], a0: d[k + 3] } : bordeAnexo ? { bordeAnexo: true, a0: d[k + 3] } : {}) }); return; }
         d[k] = planta ? 0 : Math.round(d[k] * 0.82);   // bajo la planta, nada
       });
       if (celdas.length) lotesSuelo.set(z.id, { celdas, vacio: null });
@@ -1207,7 +1211,13 @@ export function crearAldeaMundo(ctx) {
     const L = lotesSuelo?.get(id), tex = U.uMascara.value, d = tex?.image?.data;
     if (!L || !d || L.vacio === vacio) return;
     L.vacio = vacio;
-    for (const q of L.celdas) d[q.k] = vacio ? (q.lote ? Math.max(q.original, 240) : Math.max(q.original, 200)) : q.planta ? 0 : Math.round(q.original * 0.82);
+    for (const q of L.celdas) {
+      if (q.soloHelechos || q.bordeAnexo) d[q.k + 3] = vacio ? q.a0 : 0;   // (3.7.0: el borde del corral, sin helechos)
+      if (q.soloHelechos) continue;
+      d[q.k] = vacio ? (q.lote ? Math.max(q.original, 240) : Math.max(q.original, 200)) : q.planta ? 0 : Math.round(q.original * 0.82);
+      // 3.7.0 (integración): el corral (y el piso alrededor del horno), de tierra pisada: sin pasto ni helechos
+      if (q.anexo) { d[q.k + 1] = vacio ? q.g0 : Math.max(q.g0, 225); d[q.k + 3] = vacio ? q.a0 : 0; }
+    }
     if (subir) tex.needsUpdate = true;
   }
   // Para objetos.js: ahí no se dejan frutos, plumas ni piedras.
