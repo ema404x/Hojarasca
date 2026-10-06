@@ -9,9 +9,9 @@
 //     Ercilia, el correo (cartas de amor y ramos por el tren);
 //   · lo que te dice ella al verte (la carta que le llegó, el bebé que viene) y el chisme con humor de los
 //     vecinos cuando se enteran;
-//   · las citas y el casamiento: cuando llega la hora, ella te espera en el lugar (mientras el mundo no la haga
-//     caminar con vos, se la lleva como al invitado de la mesa de la 3.6) y al hablarle empieza la cita (o el
-//     casamiento civil, en la biblioteca, con el juez de paz);
+//   · las citas y el casamiento: cuando llega la hora, ella te espera en el lugar (3.7.1 (mundo): va caminando, la lleva
+//     amor-mundo.js con `ctx.mundo().llevar`; sin mundo, se la lleva como al invitado de la mesa de la 3.6) y al hablarle
+//     empieza la cita (o el casamiento civil, en la biblioteca, con el juez de paz);
 //   · el día: entrega el correo, el anillo listo, el bebé, la habilidad de la estación (y lo que rinde cada
 //     mañana), el descuido, el chisme: todo con notas, de a una.
 // El ñiki ñiki lo funde main.js (`ctx.fundido`), sin mostrar nada.
@@ -119,6 +119,9 @@ export function crearAmorJuego(ctx) {
       if (puedeBuscarHijo(p, clave)) opc.push({ id: 'amor:buscar', titulo: FR.opcion.buscar });
       if (pareja && conv?.con === clave && (h >= AMOR.niki.desde || h < AMOR.niki.hasta)) opc.push({ id: 'amor:niki', titulo: FR.opcion.niki });
       if (et === 'separados') opc.push({ id: 'amor:reconquistar', titulo: FR.opcion.reconquistar });
+      // 3.7.1 (mundo): salir a caminar juntos (en público se nota la pareja), o terminar el paseo
+      const caminar = ctx.mundo?.()?.opcionCaminar?.(clave);
+      if (caminar) opc.push(caminar);
     } else if (tipo === 'amor-cita') {
       for (const id of lugaresDeCita(clave, p.aldea)) if (posLugar(id)) opc.push({ id: `amor:cita:${id}`, titulo: `${LUGARES_CITA[id].cita.charAt(0).toUpperCase()}${LUGARES_CITA[id].cita.slice(1)}` });
       opc.splice(8);
@@ -182,7 +185,9 @@ export function crearAmorJuego(ctx) {
     } else if (que === 'retirar') {
       r = retirarAnillo(p, c);
       if (r.ok) avisar('Tenés el anillo', 'Ahora falta animarse');
-    } else if (que === 'carta' || que === 'ramo') {
+    } else if (que === 'caminar') r = ctx.mundo?.()?.caminar?.(clave) || null;   // 3.7.1 (mundo): ver amor-mundo.js
+    else if (que === 'soltar') r = ctx.mundo?.()?.soltarJuntos?.(clave) || null;
+    else if (que === 'carta' || que === 'ramo') {
       r = mandarCorreo(p, que, k, c);
       if (r.ok) avisar(que === 'carta' ? `Carta para ${nombre(k)}` : `Ramo para ${nombre(k)}`, 'Sale con el tren de mañana');
     }
