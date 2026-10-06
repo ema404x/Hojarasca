@@ -35,6 +35,17 @@ export const PALETA_TIERRA = {
 const ABRIGO_BASE = { poncho: '#7a6a58', gorro: '#a8562e', bufanda: '#c8a464' };
 
 export const ASPECTO = {
+  // PROTOTIPO (cuerpo): una mujer cualquiera (no es nadie del valle) con malla de baño de dos piezas, para
+  // ver la piel pintada sin ropa encima (rama proto-cuerpo, no va al juego)
+  'proto-malla': {
+    edad: 31, mujer: true,
+    cuerpo: { ancho: 0.96, fondo: 0.95, brazos: 0.97, piernas: 0.98, alto: 1.0 },
+    cara: { ancho: 0.98, largo: 1.01, nariz: 0.98, ojos: 1.02, boca: 1.0, pomulos: 1.15, sonrisa: 0.35, iris: '#5c3b22' },
+    colores: { piel: '#c99a72', pelo: '#3a2a1e', ropa: '#9a4a34', abrigo: '#9a4a34', gorro: null, bufanda: null },
+    R: { mujer: true, coleta: true, malla: '#9a4a34' },
+    guardas: {},
+    poses: ['cadera'],
+  },
   // ------------------------------------------------------------ los del valle
   // Don Ramón, el puestero: cuarenta inviernos arriba. Poncho gris de oveja con la guarda de telar,
   // boina, bombacha con faja, botas de potro y el mate siempre en la mano.
