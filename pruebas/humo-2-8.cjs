@@ -90,10 +90,10 @@ app.whenReady().then(async () => {
       let mallas = 0; c.cuerpo().traverse((o) => { if (o.isMesh) mallas++; });
       const s = c.silueta;
       return { d, mallas, oculto: !c.cuerpo().visible, sombra: s.castShadow && s.material.colorWrite === false && s.material.depthWrite === false && s.geometry.attributes.position.count > 300,
-        mano: m.grupo ? '#' + m.grupo.children[0].material.color.getHexString() : null } })()`);
+        mano: m.grupo ? (m.grupo.children[0].userData.guante || '#' + m.grupo.children[0].material.color.getHexString()) : null } })()`);
     ok(e.d.piel === 'oscura' && e.d.peinado === 'trenza' && e.d.gorro === false && e.d.guantes === true, `se guardó en progreso.personal (${JSON.stringify(e.d).slice(0, 90)})`);
-    // 3.4: el cuerpo se funde por grupo que se mueve (de 18 mallas a 6): menos dibujos
-    ok(e.mallas >= 5 && e.oculto, `el cuerpo existe (${e.mallas} piezas) y fuera del modo foto no se ve`);
+    // 3.4: el cuerpo se funde por grupo que se mueve (de 18 mallas a 6); 3.7.0: estilo P con huesos (2 mallas)
+    ok(e.mallas >= 1 && e.oculto, `el cuerpo existe (${e.mallas} piezas) y fuera del modo foto no se ve`);
     ok(e.sombra, 'su silueta de sombra: una malla que no pinta pero hace sombra');
     ok(e.mano === '#8d8a82', `la mano en primera persona lleva el guante gris (${e.mano})`);
     // la sombra entra de verdad en el mapa de sombras (quieto, con sombras encendidas)
@@ -174,7 +174,7 @@ app.whenReady().then(async () => {
     e = await js(`(()=>{ const d = ${H}.progreso.personal, h = document.getElementById('hud');
       const px = ${H}.__personal.texturaBandera().image.getContext('2d').getImageData(10, 10, 1, 1).data;
       return { piel: d.personaje.piel, poncho: d.personaje.poncho, clases: h.className, acento: getComputedStyle(document.documentElement).getPropertyValue('--acento').trim(),
-        icono: d.bandera.icono, rojo: px[0] > 150 && px[1] < 90, recetas: d.partida.recetas.length, mano: '#' + ${H}.__personal.mano().grupo.children[0].material.color.getHexString() } })()`);
+        icono: d.bandera.icono, rojo: px[0] > 150 && px[1] < 90, recetas: d.partida.recetas.length, mano: (${H}.__personal.mano().grupo.children[0].userData.guante || '#' + ${H}.__personal.mano().grupo.children[0].material.color.getHexString()) } })()`);
     ok(e.piel === 'oscura' && e.poncho === true, 'tu personaje sigue igual');
     ok(/minimalista/.test(e.clases) && /mira-cruz/.test(e.clases) && e.acento === '#7cc4f0', 'tu interfaz se aplicó al cargar');
     ok(e.icono === 'pez' && e.rojo, 'tu bandera se volvió a pintar');

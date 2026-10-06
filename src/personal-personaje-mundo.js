@@ -142,6 +142,7 @@ export function crearManoPropia(enMano) {
     const a = aspecto(datos);
     if (malla) { grupo.remove(malla); malla.geometry.dispose(); }
     malla = manoPrimeraPersona({ piel: a.piel, guantes: a.guantes, manga: a.poncho || a.campera, guarda: a.poncho ? 2 : 1 });
+    malla.userData.guante = a.guantes || null;   // 3.7.1: el guante va pintado en la malla; queda anotado (humo-2-8)
     grupo.add(malla);
   }
   aplicar(null);
