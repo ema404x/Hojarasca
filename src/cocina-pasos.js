@@ -655,7 +655,7 @@ export const ENTRADAS_COCINA = [
 // ---------------------------------------------------------------- la mochila
 // Las casillas de lo de la cocina que se lleva encima (main.js las suma al final de la mochila, sin repetir lo
 // que ya tenga casilla: la granja puede poner las suyas). `icono`: los de mochila.js.
-const ICONO = { fuente: 'carne', olla: 'olla', jarra: 'taza', frasco: 'frasco', pan: 'pan', empanada: 'empanada', paquete: 'harina' };
+const ICONO = { fuente: 'asado', olla: 'olla', jarra: 'taza', frasco: 'frasco', pan: 'pan', empanada: 'empanada', paquete: 'harina' };
 export function ranurasCocina(p, ya = null) {
   const r = [];
   const tiene = (id) => (ya ? ya.has(id) : false);
@@ -670,10 +670,12 @@ export function ranurasCocina(p, ya = null) {
   return r;
 }
 function iconoIngrediente(k) {
+  // (los de la granja, con los iconos de granja.js)
+  if (INGREDIENTES[k]?.fruta && INGREDIENTES[k]?.granja) return `fruta-${k}`;
   if (INGREDIENTES[k]?.fruta) return 'fruta';
   if (k === 'chorizo') return 'chorizo';
   if (k.startsWith('carne')) return 'carne';
-  if (k === 'leche') return 'taza';
+  if (k === 'leche') return 'leche';
   if (k === 'zapallo') return 'papa';
   if (k === 'mariscos') return 'trucha';
   return 'harina';

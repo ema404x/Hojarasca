@@ -7,6 +7,7 @@ import { tipoFlecha, flechasDe, FLECHAS } from './desafio-arsenal.js';
 import { nombreDeBallesta } from './personal-armas.js';
 // 3.7.2: lo de la cocina (cocina-pasos.js)
 import { ranurasCocina } from './cocina-pasos.js';
+import { ranurasGranja, ICONOS_GRANJA } from './granja.js';
 // ---------------------------------------------------------------- iconos
 // Cada icono se dibuja por código sobre un lienzo chico, y se guarda en caché.
 const cache = new Map();
@@ -378,8 +379,9 @@ function icono(tipo) {
       x.strokeStyle = '#8a5a2c'; x.lineWidth = 2.5;
       x.beginPath(); x.moveTo(22, 34); x.lineTo(28, 42); x.moveTo(30, 32); x.lineTo(36, 42); x.moveTo(38, 32); x.lineTo(44, 40); x.stroke();
     },
-    // 3.7.2: lo de la cocina (cocina-pasos.js): la carne del asado, la olla, la taza, la fruta y el chorizo
-    carne() {
+    // 3.7.2: lo de la cocina (cocina-pasos.js): la fuente del asado, la olla, la taza y la fruta (la leche, las carnes
+    // crudas, los chorizos y cada fruta de la granja los dibuja granja.js)
+    asado() {
       x.fillStyle = '#9a4a32';
       x.beginPath(); x.ellipse(32, 36, 21, 13, -0.25, 0, 6.3); x.fill();
       x.fillStyle = '#e8d2b0'; x.beginPath(); x.ellipse(26, 33, 9, 4, -0.25, 0, 6.3); x.fill();
@@ -403,11 +405,6 @@ function icono(tipo) {
       x.fillStyle = '#c8a03a'; x.beginPath(); x.arc(40, 36, 11, 0, 6.3); x.fill();
       x.strokeStyle = '#5a4a2a'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(26, 27); x.lineTo(30, 18); x.moveTo(40, 25); x.lineTo(38, 16); x.stroke();
       x.fillStyle = '#5a7a3a'; x.beginPath(); x.ellipse(34, 18, 6, 3, 0.4, 0, 6.3); x.fill();
-    },
-    chorizo() {
-      x.strokeStyle = '#8a3424'; x.lineWidth = 11;
-      x.beginPath(); x.moveTo(14, 42); x.quadraticCurveTo(32, 20, 50, 40); x.stroke();
-      x.strokeStyle = '#c86a4a'; x.lineWidth = 3; x.beginPath(); x.moveTo(20, 36); x.quadraticCurveTo(32, 24, 44, 34); x.stroke();
     },
     empanada() {
       x.fillStyle = '#d4a15c';
@@ -440,7 +437,9 @@ function icono(tipo) {
       for (const [cx, cy, a] of [[26, 26, -0.5], [38, 22, 0.5], [27, 16, -0.3], [36, 32, 0.4]]) { x.beginPath(); x.ellipse(cx, cy, 6, 3, a, 0, Math.PI * 2); x.fill(); }
     },
   };
-  (dibujos[tipo] || dibujos.canto)();
+  // 3.7.2 (granja): la leche, las carnes, los chorizos, las frutas y los fardos (los dibuja granja.js)
+  if (!Object.hasOwn(dibujos, tipo) && Object.hasOwn(ICONOS_GRANJA, tipo)) ICONOS_GRANJA[tipo](x);
+  else (dibujos[tipo] || dibujos.canto)();
   const url = c.toDataURL();
   cache.set(tipo, url);
   return url;
@@ -513,6 +512,8 @@ export function armarMochila(progreso, estado) {
   for (const s of PLANTINES_VIVERO) {
     if (cant(s.id)) ranuras.push({ id: s.id, nombre: s.nombre, icono: 'plantin', cuenta: cant(s.id), accion: 'plantar', texto: 'Con B, en un claro: ya vienen crecidos a la mitad.' });
   }
+  // 3.7.2 (granja): lo de tu granja (ver granja.js)
+  for (const r of ranurasGranja(cant)) ranuras.push(r);
 
   // 3.7.2: lo de la cocina (lo cocinado, lo del almacén, lo de los vecinos y lo de la granja), sin repetir casilla
   if (progreso.modo !== 'desafio') { const ya = new Set(ranuras.map((r) => r.id)); for (const r of ranurasCocina(progreso, ya)) ranuras.push(r); }

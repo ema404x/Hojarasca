@@ -324,18 +324,18 @@ app.whenReady().then(async () => {
     await js(`(()=>{ ${H}.volverAlJuego(); return 1 })()`); await esperar(300);
     // un vecino enseña (la abuela, el locro) y otro cambia (Mario: carne por troncos), por el menú de la charla
     const charla = await js(`(()=>{ const V = ${H}.__vecindad(); const C = ${H}.__cocina();
-      const op = C.opciones('abuela').map(o => o.titulo);
+      const op = [...C.opciones('abuela'), ...(C.elegir({ clave: 'abuela' }, 'cocina').sub?.opciones || [])].map(o => o.titulo);
       const ens = C.elegir({ clave: 'abuela' }, 'cocina-ensenar');
       ${P}.materiales.tronco = 5; const antes = ${P}.entradas['carne-vaca']?.cantidad || 0;
       const sub = C.elegir({ clave: 'padre' }, 'cocina-cambiar');
       const r = C.elegir({ clave: 'padre' }, 'cocina:cambio:0');
       const otra = C.elegir({ clave: 'padre' }, 'cocina-cambiar');
       return { op, sabe: !!${P}.cocina.sabe.locro, renglones: ens.renglones?.length, sub: sub.sub?.opciones?.map(o => o.titulo), carne: (${P}.entradas['carne-vaca']?.cantidad || 0) - antes, tronco: ${P}.materiales.tronco, otra: otra.renglones } })()`);
-    ok(charla.op.some((t) => /enseñás a hacer locro/.test(t)) && charla.sabe && charla.renglones >= 2, `la abuela te enseña el locro (${JSON.stringify(charla.op)})`);
+    ok(charla.op[0] === 'Para la cocina…' && charla.op.some((t) => /enseñás a hacer locro/.test(t)) && charla.sabe && charla.renglones >= 2, `la abuela te enseña el locro (${JSON.stringify(charla.op)})`);
     ok(charla.sub?.length >= 2 && charla.carne === 2 && charla.tronco === 2 && /ya cambiamos/.test(String(charla.otra)), `Mario cambia carne por troncos, una vez por día (${JSON.stringify(charla)})`);
     // en el menú de la charla de verdad (si la figura está armada)
     const menu = await js(`(()=>{ const V = ${H}.__vecindad(); const n = V.npcDe('madre'); if (!n) return null; const s = V.abrir(n); return s ? V.menu(s).opciones.map(o => o.titulo) : null })()`);
-    ok(!menu || menu.some((t) => /Cambiar algo para la cocina/.test(t)), `el trueque está en el menú de la charla de Gladys (${JSON.stringify(menu)})`);
+    ok(!menu || (menu.some((t) => /Para la cocina…/.test(t)) && menu.length <= 10), `la cocina (una sola opción) está en el menú de la charla de Gladys (${JSON.stringify(menu)})`);
   } catch (e) {
     errores.push(`excepción: ${e && e.stack ? e.stack : e}`);
     console.log('ERROR', e && e.stack ? e.stack : e);

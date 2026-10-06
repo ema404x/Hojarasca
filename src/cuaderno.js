@@ -1,6 +1,7 @@
 // Cuaderno de campo: qué se puede descubrir y cómo
 import { CARTAS } from './correo.js';
 import { CUENTOS } from './cuentos.js';
+import { ENTRADAS_GRANJA } from './granja.js';
 import { LIBROS_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
 // 3.7.2: lo que sale de la cocina en pasos y lo de la cocina en el almacén (ver cocina-pasos.js)
 import { ENTRADAS_COCINA } from './cocina-pasos.js';
@@ -435,6 +436,8 @@ for (const [esp, nombre] of [['coihue', 'coihue'], ['lenga', 'lenga'], ['nire', 
     pista: 'Sembrá semillas en el vivero (O → Trabajo) y esperá tres días.',
     texto: `Un ${nombre} de dos palmos, con las primeras hojas verdaderas. Plantado en un claro con B, en una semana ya se para solo.` });
 }
+// 3.7.2 (granja): la leche, las carnes y los chorizos, la fruta, los fardos, los plantines de frutal y los animales (ver granja.js)
+ENTRADAS.push(...ENTRADAS_GRANJA);
 // Los cuentos del fogón, y lo que asoma en el lago.
 for (const c of CUENTOS) {
   ENTRADAS.push({ id: c.id, seccion: 'fogon', nombre: c.titulo, cientifico: `contado al fogón`, modo: 'escuchar',

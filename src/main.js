@@ -134,6 +134,8 @@ import { comoDormiste, horasDescansado, gastarDescanso, casaCerrada } from './ab
 import { chimeneaDe, ventanasEncendidas, brilloVentanas, VENTANAS } from './casa-viva.js';
 import { crearVentanas } from './ventanas-mundo.js';
 import { buscarCorral, corralNuevo, mudarCorral, CORRAL as CORRAL_PROPIO } from './corral.js';
+import { crearGranjaMundo } from './granja-mundo.js';
+import { crearGranjaJuego } from './granja-juego.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
 import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo, nocheDeLomo, alturaLomo, dondeAsoma } from './cuentos.js';
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
@@ -692,6 +694,10 @@ async function construir() {
   ventanasMundo = crearVentanas(escena);
   refrescarCorral();
   amarrarKayak();
+  // 3.7.2 (granja): la vaca, los chanchos, los corderos y los frutales (sólo en el Relax). Las mallas se crean ya, al
+  // cargar (vacías), así sus programas se compilan con todo lo demás
+  // (la geometría de cada animal y de cada frutal se arma la primera vez que hace falta, cuando el planificador deja)
+  if (!esDesafio) granjaMundo = crearGranjaMundo({ T, escena, col: () => col, permitir: () => planificadorAntitirones.permitir('granja', { pesada: true }), inviernoVisual: () => U.uInvierno.value > 0.5 });
   // 2.9: el velero (aparece con el primer varadero) y las tirolesas y puentes colgantes
   vela = crearVela(T, escena, col, sonido, { obras: () => obras, clima: () => clima, nota: (t, sub, nueva) => nota(t, sub, nueva), cargado: () => modo === 'jugando' });
   vela.cargar(progreso.vela);
@@ -2660,6 +2666,9 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !objetivo && aldeaGente) { const lote = aldeaGente.obraCerca(js.pos); if (lote) { aldeaGente.aportarObra(lote); break; } }
       // 3.6 (mecánicas): lo de cada lugar de la aldea (el aviso va en el mismo lugar, con la misma función)
       if (!js.enTren && !js.enKayak && !objetivo && mecanicasAldea) { const m = mecanicasAldea.accion(js); if (m) { m.hacer(); cacheMecanica = null; break; } }
+      // 3.7.2 (granja): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales (el aviso, en el mismo
+      // lugar y con la misma función: granjaJuego.accion)
+      if (!js.enTren && !js.enKayak && !objetivo && granjaJuego) { const a = granjaJuego.accion(js); if (a) { a.hacer(); cacheGranja = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
@@ -4251,6 +4260,7 @@ let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
 let amorJuego = null;   // 3.7.1: ver amor-juego.js
 let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
+let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
 const pronosticoDeManana = () => {
@@ -4362,10 +4372,18 @@ function armarOficiosYAldea(esDesafio) {
     T, escena, mat: est?.mat, cocina: () => cocinaJuego, progreso: () => progreso, obras: () => obras, camara: () => camara?.position || null,
     noche: () => 1 - (luzUltimaFoto?.dia ?? 1), viento: () => clima?.estado?.viento ?? 0.3, perro: () => perro, jugador: () => jugador?.estado || null,
   });
+  // 3.7.2 (granja): la granja en el juego: E y el aviso, los trueques en la charla y el paso de los días
+  granjaJuego = crearGranjaJuego({
+    progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, mundo: granjaMundo,
+    obras: () => obras?.obras || [], terminada: (o) => obraTerminada(o), corral: () => progreso.corral || null, ovejas: () => corralMundo?.ovejas?.map((o) => o.pos) || [], ovejaCerca: () => ovejaCercana?.pos || null,
+    jugador: () => jugador?.estado || null, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), registrar: (id) => registrar(id), sonido,
+  });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
+    granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
     apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
@@ -5190,7 +5208,8 @@ async function pedirNombre(obra) {
 // fin; y mover un cantero perdía lo sembrado.
 function mudarDatosDeObra(o, x0, z0) {
   const x1 = o.datos.x, z1 = o.datos.z;
-  const tabla = o.plano.id === 'cantero' ? huerta() : o.plano.id === 'gallinero' ? gallineros() : null;
+  // (3.7.2 (granja): y el frutal plantado en un hoyo, con la misma clave)
+  const tabla = o.plano.id === 'cantero' ? huerta() : o.plano.id === 'gallinero' ? gallineros() : o.plano.id === 'frutal' ? granjaJuego?.frutales() || null : null;
   if (tabla) {
     const a = claveCantero(x0, z0), b = claveCantero(x1, z1);   // la misma clave que claveGallinero
     if (a !== b && Object.hasOwn(tabla, a)) { tabla[b] = tabla[a]; delete tabla[a]; }
@@ -7205,6 +7224,7 @@ const posInteraccion = new THREE.Vector3(1e9, 0, 1e9);
 let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar = false, cacheObraTrabaja = null, cacheSemillaArbol = null;
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
+let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
 const sujetosPerro = [];
@@ -7641,6 +7661,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { veg.actualizarCaidas(dt); } catch (e) { fallaSistema('caidas-arboles', e); }
   try { if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); } } catch (e) { fallaSistema('majada/casa', e); }
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
+  try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
   try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
@@ -7894,6 +7915,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheObraTrabaja = obraQueTrabajaCerca();
       cacheObraAldea = aldeaGente ? aldeaGente.obraCerca(js.pos) : null;
       cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
+      cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -7933,6 +7955,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheObraAldea && !js.enTren && !js.enKayak && !objetivo) { const t = aldeaGente.avisoObra(cacheObraAldea); if (t) aviso = { tecla: 'E', texto: t }; }
     // 3.6 (mecánicas): lo de cada lugar de la aldea, después de la obra, como en la tecla E
     if (!aviso && cacheMecanica && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheMecanica.texto };
+    // 3.7.2 (granja): después de lo de la aldea y antes que la oveja, como en la tecla E
+    if (!aviso && cacheGranja && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheGranja.texto };
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
@@ -8459,6 +8483,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldeaMundo = () => aldeaMundo;
   // 3.6 (mecánicas): lo de cada lugar de la aldea, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
+  // 3.7.2 (granja): la granja, para las pruebas y las capturas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
   requestAnimationFrame(bucle);
 })();

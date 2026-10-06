@@ -16,6 +16,7 @@ import { RECETAS_FUEGO } from '../src/cocina.js';
 import { progresoNuevo, usarModoGuardado } from '../src/guardado.js';
 import { armarMochila } from '../src/mochila.js';
 import { esPersonaVecindad } from '../src/vecindad.js';
+import { PRODUCTOS_GRANJA } from '../src/granja.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8').replace(/\r\n/g, '\n');
@@ -43,6 +44,7 @@ ok(RECETAS_FUEGO.some((r) => r.id === 'guiso-campo') && !RECETAS_FUEGO.some((r) 
 // ---------------------------------------------------------------- ingredientes: dos fuentes, sin economía nueva
 ok(C.DE_LA_GRANJA.slice().sort().join() === ['leche', 'carne-vaca', 'carne-cordero', 'carne-cerdo', 'chorizo', 'manzana', 'pera', 'ciruela', 'cereza', 'frambuesa', 'grosella'].sort().join(), 'los ids que comparte con la granja, tal cual (y la grosella)');
 const porVecinos = new Set(Object.values(C.CAMBIOS_VECINOS).flat().map((c) => c.da[0]));
+ok(C.DE_LA_GRANJA.slice().sort().join() === PRODUCTOS_GRANJA.slice().sort().join(), 'la cocina usa justo lo que produce la granja (granja.js), con sus ids');
 for (const k of C.DE_LA_GRANJA) ok(porVecinos.has(k), `${k}: también por trueque con un vecino (sin la granja se puede cocinar)`);
 for (const k of C.DEL_ALMACEN) {
   const t = TRUEQUE[k];
@@ -162,6 +164,7 @@ ok(C.textoFaltan(0.75) === 'unos 50 minutos' && C.textoFaltan(1.5) === 'una hora
   ok(C.efectoDeComer('pan-casero') === null, 'el pan y las empanadas se comen como siempre (main.js)');
   for (const id of Object.keys(C.COMIDAS)) ok(ENTRADA[id]?.seccion === 'recetas', `${id}: en el cuaderno, en «Al fuego»`);
   const ranuras = C.ranurasCocina(P({ asado: 1, leche: 2 }, { azucar: 1 }), new Set(['leche']));
+  ok(ranuras.find((r) => r.id === 'asado')?.icono === 'asado' && C.ranurasCocina(P({ cereza: 2, 'carne-cerdo': 1 })).every((r) => r.icono === (r.id === 'cereza' ? 'fruta-cereza' : 'carne')), 'los iconos: los de la granja para lo de la granja, y no se pisan con los de la cocina');
   ok(ranuras.some((r) => r.id === 'asado' && r.accion === 'comer') && ranuras.some((r) => r.id === 'azucar') && !ranuras.some((r) => r.id === 'leche'), 'la mochila: lo de la cocina, sin repetir lo que ya tiene casilla (la de la granja)');
   usarModoGuardado('relax', 1);
   const pr = progresoNuevo();
@@ -308,7 +311,7 @@ ok(main.includes("if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); 
 ok(main.includes('amorDestino: (k) => amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,') && main.includes("mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;"), 'main.js: los vecinos por el olor (después del amor) y el perro');
 ok(main.includes("if (cocinaJuego?.comer(r.id)) break;") && main.includes("pestanas.push(['recetario', 'Recetario'])") && main.includes('cocinaMundo?.trasCompilar();'), 'main.js: comer, el recetario y las semillas');
 ok(main.includes("try { if (modo === 'jugando' && !desafio) { cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }"), 'main.js: la cocina corre aislada (fallaSistema), sólo en el Relax');
-ok(leer('src/vecindad-juego.js').includes('for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);'), 'vecindad-juego.js: la receta y el trueque en el menú de la charla');
+{ const vj = leer('src/vecindad-juego.js'); ok(vj.includes('for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('ctx.cocina.elegir(s, id, npc)') && vj.includes('ctx.granja.elegir(s, id)'), 'vecindad-juego.js: la cocina y la granja, las dos en el menú de la charla'); }
 const perro = leer('src/perro.js');
 ok(perro.includes("} else if (mundo?.antojo) {") && /mundo\?\.rastro\) \{[\s\S]*mundo\?\.antojo\) \{/.test(perro), 'perro.js: el antojo del asado, después de rastrear');
 ok(leer('src/plantilla.html').includes('<div class="trueque oculto" id="cocina-panel">'), 'el panel de recetas en la plantilla');

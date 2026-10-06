@@ -275,13 +275,18 @@ export function crearCocinaJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- la charla con los vecinos
-  function opciones(clave) {
-    if (!activo()) return [];
+  // Una sola opción en el menú de la charla («Para la cocina…»), con la receta y el trueque adentro: con la granja y el
+  // amor, el menú de un vecino ya llega a diez renglones y los números sólo eligen del 1 al 9.
+  const opcionesCocina = (clave) => {
     const l = [];
     const r = ENSENAN[clave];
     if (r && !sabe(cocina(), r)) l.push({ id: 'cocina-ensenar', titulo: `¿Me enseñás a hacer ${minus(RECETA_PASOS[r].nombre)}?` });
     if (Object.hasOwn(CAMBIOS_VECINOS, clave)) l.push({ id: 'cocina-cambiar', titulo: 'Cambiar algo para la cocina…' });
     return l;
+  };
+  function opciones(clave) {
+    if (!activo()) return [];
+    return opcionesCocina(clave).length ? [{ id: 'cocina', titulo: 'Para la cocina…' }] : [];
   }
   const cuantoPago = (tipo, k) => {
     const p = progreso();
@@ -299,6 +304,12 @@ export function crearCocinaJuego(ctx) {
       if (nueva) setTimeout(() => ctx.nota?.(`Aprendiste: ${RECETA_PASOS[r].nombre}`, 'Queda en el recetario del cuaderno (J)', true), 300);
       ctx.guardar?.();
       return { tipo: 'renglones', renglones: [...(AL_ENSENAR[clave] || ['Así se hace.'])] };
+    }
+    if (id === 'cocina') {
+      const ops = opcionesCocina(clave);
+      if (ops.length === 1) return elegir(s, ops[0].id);   // (si hay una sola cosa, va directo)
+      ops.push({ id: 'volver', titulo: 'Mejor no' });
+      return { tipo: 'menu', sub: { tipo: 'cocina', texto: '¿Qué precisás para la cocina?', opciones: ops, i: 0 } };
     }
     if (id === 'cocina-cambiar') {
       const lista = cambiosDe(clave, cocina(), dia(), cuantoPago);
