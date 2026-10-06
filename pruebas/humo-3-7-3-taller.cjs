@@ -6,7 +6,7 @@
 //   4. dormir (el reloj, adelantado) hasta que esté lista: el aviso, el tren mejorado y el galpón arreglado;
 //   5. la pintura (con clics), el nombre (con el cuadro de texto del juego), la composición;
 //   6. hablar con Martín (y ver que trabaja en el taller con su pose); guardar y cargar; sin errores.
-// Uso: npx electron --no-sandbox -r herramientas/al-monitor.cjs pruebas/humo-3-7-3-taller.cjs
+// Uso: npx electron --no-sandbox pruebas/humo-3-7-3-taller.cjs (HUMO_LOG=<archivo>: cada renglón también ahí, a medida que sale)
 // Perfil propio (HUMO_PERFIL, o una carpeta temporal): borra su localStorage, nunca el de %APPDATA%\Hojarasca.
 const { app, BrowserWindow, dialog } = require('electron');
 dialog.showErrorBox = () => {};
@@ -19,6 +19,8 @@ app.setPath('userData', path.resolve(process.env.HUMO_PERFIL || path.join(os.tmp
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+// (con HUMO_LOG, cada renglón también a ese archivo, a medida que sale)
+const decir = (s) => { console.log(s); if (process.env.HUMO_LOG) try { require('fs').appendFileSync(process.env.HUMO_LOG, s + String.fromCharCode(10)); } catch { /* nada */ } };
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 15 minutos'); app.exit(2); }, 15 * 60 * 1000).unref?.();
 
 app.whenReady().then(async () => {
@@ -33,8 +35,8 @@ app.whenReady().then(async () => {
     w.webContents.executeJavaScript(c),
     new Promise((_, no) => setTimeout(() => no(new Error(`la página no respondió en 120 s (${donde})`)), 120000)),
   ]);
-  const ok = (cond, texto) => { console.log(`${cond ? '✓' : '✗'} ${texto}`); if (!cond) errores.push(texto); };
-  const seccion = (s) => { donde = s; console.log(`— ${s}`); };
+  const ok = (cond, texto) => { decir(`${cond ? '✓' : '✗'} ${texto}`); if (!cond) errores.push(texto); };
+  const seccion = (s) => { donde = s; decir(`— ${s}`); };
   const url = path.join(raiz, 'index.html');
   const abrir = async () => { try { await w.loadFile(url, { search: '?debug=1' }); } catch (e) { await esperar(1500); await w.loadFile(url, { search: '?debug=1' }); } };
   const listo = async () => {
@@ -59,7 +61,7 @@ app.whenReady().then(async () => {
   // en el marco del taller (x a lo largo, z hacia la vía; y sobre el piso): el jugador, mirando a (mx, mz)
   const enTaller = (x, z, mx, mz) => js(`(()=>{ const e = ${H}.__aldea.edificio('taller-tren'); const c = Math.cos(e.rot), s = Math.sin(e.rot);
     const w = (lx, lz) => ({ x: e.x + lx * c + lz * s, z: e.z - lx * s + lz * c }); const a = w(${x}, ${z}), b = w(${mx}, ${mz});
-    const j = ${H}.jugador; j.ubicar(a.x, a.z, Math.atan2(-(b.x - a.x), -(b.z - a.z))); j.estado.pitch = -0.1; return { x: a.x, z: a.z, y: j.estado.pos.y, piso: e.y + 0.32 } })()`);
+    const j = ${H}.jugador; j.ubicar(a.x, a.z, Math.atan2(-(b.x - a.x), -(b.z - a.z)), e.y + 0.32); j.estado.pitch = -0.1; return { x: a.x, z: a.z, y: j.estado.pos.y, piso: e.y + 0.32 } })()`);
   const npc = (clave) => `${H}.__aldea.mundo().personas.get('${clave}')?.npc`;
   const hablarCon = async (expr, maximo = 10) => {
     const p = await js(`(()=>{ const n = ${expr}; return n ? { x: n.pos.x, z: n.pos.z } : null })()`);
@@ -129,9 +131,10 @@ app.whenReady().then(async () => {
     seccion('aportar');
     await js(`(()=>{ Object.assign(${P}.materiales, { tabla: 4, piedra: 2, tronco: 0 }); return 1 })()`);
     await cuadros(2); await js(`${H}.__taller().redibujar(); 1`);
-    // la marca con LB/RB (marcarHud) y Enter la elige
+    // la marca (la de las listas del HUD: la ruedita, LB/RB o la cruceta la mueven) y Enter la elige
     p = await panel();
-    ok(p.marcada === 0, `la marca, en la primera (${p.marcada})`);
+    for (let k = 0; k < 12 && p.marcada !== 0; k++) { await js(`(()=>{ window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true })); return 1 })()`); p = await panel(); }
+    ok(p.marcada === 0 && /Llevar lo que tengo/.test(p.lis[0]), `la ruedita sube la marca hasta «Llevar lo que tengo» (${p.marcada})`);
     await tecla('Enter');
     p = await panel();
     ok(p.estado.tren.taller.pedido.aportado.tabla === 4 && p.estado.tren.taller.pedido.aportado.piedra === 2 && /Falta: 6 tablas y 10 piedras/.test(p.dicho), `Enter: lleva lo que hay (${p.dicho.slice(-60)})`);
@@ -140,7 +143,7 @@ app.whenReady().then(async () => {
     await clic(0);
     p = await panel();
     e = await js(`(()=>({ t: ${P}.materiales.tabla, p: ${P}.materiales.piedra }))()`);
-    ok(p.estado.tren.taller.pedido.aportado.tabla === 10 && e.t === 24 && e.p === 22 && /Piezas de hierro: 0 de 4/.test(p.dicho), `con un clic: lo que faltaba, y queda esperando el hierro (te quedan ${e.t} tablas y ${e.p} piedras)`);
+    ok(p.estado.tren.taller.pedido.aportado.tabla === 10 && e.t === 24 && e.p === 20 && /Piezas de hierro: 0 de 4/.test(p.dicho), `con un clic: lo que faltaba, y queda esperando el hierro (te quedan ${e.t} tablas y ${e.p} piedras)`);
     await tecla('Escape');
     ok(!(await panel()).abierto, 'Escape cierra el panel');
     ok(await aviso() === 'Taller: caldera: tubos nuevos (esperando el hierro)', 'el aviso dice en qué anda el taller');
@@ -149,7 +152,7 @@ app.whenReady().then(async () => {
     seccion('dormir hasta que esté lista');
     // (el reloj adelantado: cuatro días; sin herrería, las piezas llegan de El Maitén con el tren, una por día)
     await js(`(()=>{ ${P}.dia = 7; ${P}.horas = 9; return 1 })()`);
-    await cuadros(4); await esperar(1200); await cuadros(4);
+    await cuadros(4); await esperar(300); await cuadros(4);
     e = await js(`(()=>{ const t = ${P}.tren; return { caldera: t.loco.caldera, arreglado: t.taller.arreglado, pedido: t.taller.pedido } })()`);
     ok(e.caldera === 1 && e.arreglado && !e.pedido, `lista: la caldera nueva y el galpón arreglado (${JSON.stringify(e)})`);
     ok(/Martín: «Caldera: tubos nuevos, lista»/.test(await notas()), 'Martín avisa');
@@ -193,7 +196,7 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ 6. Martín
     seccion('Martín, el maquinista retirado');
-    await js(`(()=>{ ${P}.horas = 10.2; return 1 })()`);
+    await js(`(()=>{ ${P}.dia = 8; ${P}.horas = 10.2; return 1 })()`);   // (un lunes: el domingo a esa hora están los cuentos)
     await enTaller(-2, 2.6, -2, -3);
     for (let i = 0; i < 30; i++) await js(`(()=>{ ${H}.__aldea.actualizar(0.6); ${H}.__aldea.mundo()?.prearmar?.(1e6); return 1 })()`);
     await cuadros(6);
@@ -201,8 +204,23 @@ app.whenReady().then(async () => {
     ok(e && /Martín/.test(e.nombre) && ['banco', 'fragua'].includes(e.destino), `Martín, en el taller (${JSON.stringify(e)})`);
     for (let i = 0; i < 60 && e && !e.pose; i++) { await js(`(()=>{ ${H}.__aldea.actualizar(0.6); return 1 })()`); await cuadros(1); e = await js(`(()=>{ const n = ${npc('martin')}; return n ? { pose: n.pose || null } : null })()`); }
     ok(e && ['limar', 'martillar'].includes(e.pose), `trabajando: ${e?.pose}`);
-    const h = await hablarCon(npc('martin'), 4);
-    ok(h.textos?.length && /Martín/.test(h.textos[0]), `le hablás (${(h.textos || [h.error]).join(' / ').slice(0, 160)})`);
+    // al lado de Martín, mirándolo: el aviso dice que le hablás y E habla (antes que el panel del taller)
+    const mp = await js(`(()=>{ const n = ${npc('martin')}; return { x: n.pos.x, z: n.pos.z } })()`);
+    await js(`(()=>{ const e = ${H}.__aldea.edificio('taller-tren'); const j = ${H}.jugador, x = ${mp.x}, z = ${mp.z};
+      const c = Math.cos(e.rot), s = Math.sin(e.rot); const px = x + 1.0 * c + 0.6 * s, pz = z - 1.0 * s + 0.6 * c;
+      j.ubicar(px, pz, Math.atan2(-(x - px), -(z - pz)), e.y + 0.32); j.estado.pitch = -0.2; return 1 })()`);
+    await cuadros(6);
+    const av = await aviso();
+    ok(/Hablar con Martín/.test(av), `el aviso: ${av}`);
+    const textos = [];
+    for (let i = 0; i < 4; i++) {
+      await tecla('KeyE');
+      const c = await js(`(()=>({ npc: !!${H}.__charla().npc, quien: document.getElementById('charla-quien').textContent, texto: document.getElementById('charla-texto').textContent, menu: !document.getElementById('charla-opciones')?.classList.contains('oculto') }))()`);
+      if (!c.npc) break;
+      textos.push(`${c.quien}: ${c.texto}`);
+      if (c.menu) break;
+    }
+    ok(textos.length && /Martín/.test(textos[0]), `le hablás (${textos.join(' / ').slice(0, 200)})`);
     await js(`(()=>{ for (let i = 0; i < 6 && ${H}.__charla().npc; i++) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true })); return 1 })()`);
 
     // ------------------------------------------------------------ 7. guardar y cargar
@@ -217,6 +235,6 @@ app.whenReady().then(async () => {
   } catch (err) {
     errores.push(`excepción en «${donde}»: ${err && err.stack ? err.stack : err}`);
   }
-  console.log(errores.length ? `FALLÓ (${errores.length}):\n  ${errores.join('\n  ')}` : 'OK humo 3.7.3 taller');
+  decir(errores.length ? `FALLÓ (${errores.length}):\n  ${errores.join('\n  ')}` : 'OK humo 3.7.3 taller');
   app.exit(errores.length ? 1 : 0);
 });

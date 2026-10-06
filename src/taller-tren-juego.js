@@ -66,9 +66,10 @@ export function crearTallerJuego(ctx) {
     if (!activo()) return;
     if (!aplicadoUnaVez) { aplicadoUnaVez = true; aplicar(); }
     acum += dt;
-    if (acum < 1) return;
-    acum = 0;
     const t = tren();
+    // (cada segundo; o enseguida si el reloj saltó: dormiste)
+    if (acum < 1 && Math.abs(dia() * 24 + horas() - (t.taller.ultimo || 0)) < 0.5) return;
+    acum = 0;
     const r = avanzarTaller(t, dia(), horas(), { herreria: herreria() });
     if (r.piezas || r.empezo) { if (panel) dibujarPanel(true); }
     for (const id of tomarAvisos(t)) anunciar(id);
@@ -180,6 +181,7 @@ export function crearTallerJuego(ctx) {
         ctx.refrescarBarra?.(); ctx.guardar?.();
       } });
     }
+    lista.push(...delTren(t));
     for (const id of IDS_MEJORAS) {
       const r = puedePedir(t, id);
       if (r.motivo === 'hecha' || r.motivo === 'requiere' || r.motivo === 'pedida') continue;
@@ -193,6 +195,11 @@ export function crearTallerJuego(ctx) {
           ctx.guardar?.();
         } });
     }
+    return lista;
+  }
+  // lo de la locomotora que se cambia sin materiales (arriba de las mejoras: así entra en los números del 1 al 9)
+  function delTren(t) {
+    const lista = [];
     lista.push({ texto: 'La pintura', detalle: `— ${Object.keys(PARTES_PINTURA).map((k) => nombreColor(t.loco.pintura[k]).toLowerCase()).join(', ')}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'pintura'; } });
     lista.push({ texto: 'El nombre', detalle: t.loco.nombre ? `— «${t.loco.nombre}»` : '— el de siempre (el de «Personalizar», si tiene)', marca: 'escribir', puede: true, hacer: escribirNombre });
     if (silbatosDe(t).length > 1) lista.push({ texto: 'El silbato', detalle: `— ${SILBATOS[t.loco.silbato].nombre.toLowerCase()}`, marca: 'elegir', puede: true, hacer: () => { panel.vista = 'silbato'; } });
