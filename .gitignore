@@ -8,3 +8,4 @@ salida-*/
 _perfil/
 *.log
 *.log.err
+index.html.tmp
