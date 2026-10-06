@@ -1,6 +1,6 @@
 # Hojarasca — cómo seguir en la otra PC (traspaso del 07-10-2026, 3.7.0 cerrada)
 
-> **ATENCIÓN (06-10, 18:40):** la 3.7.3 La trochita se rehace en la PC de escritorio (ramas v373-tren-b y v373-taller-b). En la notebook: **parar** lo que estaba en curso de la 3.7.3 (v373-loco, v373-vagones), **no unirlo ni subirlo a main**, y hacer `git pull` para traer la versión de la otra PC. Si se quiere guardar por las dudas, subir esas ramas sin unir: `git push origin v373-loco v373-vagones`.
+> **ATENCIÓN:** la 3.7.3 La trochita se hizo y cerró en la PC de escritorio (etiqueta v3.7.3). En la notebook: descartar lo que haya de la 3.7.3 (v373-loco, v373-vagones; si se quiere guardar, subir esas ramas sin unir) y hacer `git pull`. Sigue: 3.7.4 Vida social tipo Sims y 3.7.5 Tradiciones (PLAN_3_7.md); después 3.8.0 (PLAN_3_8.md).
 
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
@@ -49,6 +49,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.7.3 (etiqueta v3.7.3): La trochita**, cerrada en la PC de escritorio. `CAMBIOS_3_7_3.md`.
 - **3.7.2 (etiqueta v3.7.2): La cocina** (cerrada el 06-10 en la notebook). Cocina + granja, `CAMBIOS_3_7_2.md` (tiene preguntas para el usuario). Gate 154/154, 62 partidas reales. En curso: 3.7.3 La trochita (ramas v373-loco y v373-vagones) y un bug de cabezas/cuellos de la gente (rama v372-cabezas).
 - **3.7.1 (etiqueta v3.7.1): Amor en la aldea** (cerrada el 06-10 en la notebook). `CAMBIOS_3_7_1.md`; decisiones del usuario en `PLAN_3_7.md` ("Decidido el 06-10"). Incluye los retoques de la 3.7.0 (`CAMBIOS_3_7_0.md`). Gate 152/152, 60 partidas reales. **Partidas reales en paralelo**: `node herramientas/suite-paralela.cjs <salida> 4` (cada una con su perfil vía `herramientas/perfil-propio.cjs`, ventanas al monitor; ~24 min en vez de ~60; repetir solas las que fallen). Sigue: 3.7.2 La cocina.
 - **3.7.0 (etiqueta v3.7.0): La aldea crece.** Primera de las 5 versiones de `PLAN_3_7.md` (leelo: siguen 3.7.1 Amor, 3.7.2 Cocina, 3.7.3 La trochita, 3.7.4 Tradiciones). `CAMBIOS_3_7_0.md`. Quedaron sin unir unos retoques de poses: rama `v370-retoques-wip` en GitHub (sin probar). Prototipos aprobados por el usuario en las ramas `proto-personajes` (ya pasado al juego en la 3.7.0) y `proto-tren` (diseño de la 3.7.3, `?debug=1&tren=proto`). Sigue: retoques de la 3.7.0 y la 3.7.1 Amor.

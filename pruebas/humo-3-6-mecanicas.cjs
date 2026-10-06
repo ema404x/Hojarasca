@@ -235,7 +235,8 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const A = window.__m36m, c = ${JSON.stringify(c)}; A.apartarGente(c.x, c.z, 6); A.enPunto(c); const t = ${H}.tren, p = t.paradas.find((x) => x.aldea); Object.assign(t.est, { s: (p.s + 400) % t.largo, parado: 0, vel: 7, subido: false, conduce: false, proxima: p }); return 1 })()`);
     await cuadros(6);
     const antes = await js(`${H}.__mecanicas().medir().campanadas`);
-    await js(`(()=>{ const t = ${H}.tren, p = t.paradas.find((x) => x.aldea); Object.assign(t.est, { s: (p.s - 1 + t.largo) % t.largo, parado: 0, vel: 1.5, proxima: p }); return 1 })()`);
+    await js(`(()=>{ const t = ${H}.tren, p = t.paradas.find((x) => x.aldea); // 3.7.3: el tren mejorado para con su primer coche frente al andén (más adelante que p.s): a 1 m de donde frena
+      const falta = t.proximoTrenA(p).metros; Object.assign(t.est, { s: (t.est.s + falta - 1 + t.largo) % t.largo, parado: 0, vel: 1.5, proxima: p }); return 1 })()`);
     let suena = 0, giro = 0;
     for (let i = 0; i < 12; i++) { await cuadros(2); const r = await js(`(()=>{ const m = ${H}.__mecanicas(); return { n: m.medir().campanadas, q: Math.abs(m.animables().campana.objeto.quaternion.x) } })()`); suena = r.n; giro = Math.max(giro, r.q); await esperar(40); }
     const parado = await js(`${H}.tren.parado()`);
