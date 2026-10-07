@@ -24,6 +24,7 @@ import { ENTRADAS } from '../src/cuaderno.js';
 import { esPersonaVecindad } from '../src/vecindad.js';
 import { CULTIVOS } from '../src/huerta.js';
 import { generarTerreno } from '../src/terreno.js';
+import { aspectoGente, ROPA_ESTACION, clavesConAspecto } from '../src/gente-ropa.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -428,6 +429,23 @@ const M = A.marcoAldea();
   const textos = JSON.stringify([RC.DUENDES, RC.ENTRADAS_RINCONES, R.MANUALIDADES, R.OBRAS_TITERES]) + leer('src/rincones-juego.js');
   ok(!RELIGIOSO.test(textos), 'nada religioso');
   for (const e of RC.ENTRADAS_RINCONES) ok(!/(?<!\p{L})(the|and|with|you)(?!\p{L})/iu.test(e.texto + e.pista + e.nombre), `${e.id}: en castellano`);
+}
+
+// ============================================================ 11. la ropa por estación (estilo P)
+{
+  const base = aspectoGente('nicanor'), ver = aspectoGente('nicanor', {}, {}, { estacion: 'verano' }), oto = aspectoGente('nicanor', {}, {}, { estacion: 'otono' }), inv = aspectoGente('nicanor', {}, {}, { invierno: true, estacion: 'verano' });
+  ok(base.R.campera && !base.estacion, 'sin estación, la ropa de siempre');
+  ok(!ver.R.campera && ver.R.chaleco && !ver.colores.bufanda && ver.estacion === 'verano', 'en verano, en mangas de camisa');
+  ok(oto.colores.bufanda && oto.R.campera && oto.estacion === 'otono', 'en otoño, con bufanda');
+  ok(inv.invierno && inv.colores.poncho && !inv.estacion, 'en invierno manda el abrigo');
+  ok(aspectoGente('ramon', {}, {}, { estacion: 'verano' }).colores.poncho && ROPA_ESTACION.ponchoEnVerano.includes('ramon'), 'Don Ramón no se saca el poncho');
+  for (const k of clavesConAspecto()) {
+    const v = aspectoGente(k, {}, {}, { estacion: 'verano' }), o = aspectoGente(k, {}, {}, { estacion: 'otono' });
+    ok(!v.colores.bufanda && v.colores.gorro !== 'gorroPunto' && o.colores.bufanda, `${k}: verano y otoño`);
+  }
+  const g = leer('src/gente.js'), m = leer('src/main.js');
+  ok(g.includes('function ropaDeEstacion(est) {') && g.includes('__ropa: claveRopa(inv, est)'), 'gente.js: viste de a uno con la ropa de la estación');
+  ok(m.includes("gente?.ropaDeEstacion?.(U.uInvierno.value > 0.5 ? null : U.uOtono.value > 0.5 ? 'otono' : 'verano');"), 'main.js: la estación de la ropa, cada cuadro');
 }
 
 console.log(`verificar-3-7-5-rincones: ${n} pruebas OK`);

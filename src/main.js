@@ -642,7 +642,7 @@ async function construir() {
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
   bichos = await paso('Escondiendo un panal en un tronco', 91, () => crearBichos(T, veg, col, escena, sonido, registrar, progreso, objetos));
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
-  gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estiloViejo: GENTE_VIEJA }));
+  gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
   // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo)
   est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo' || g.pose === 'tornear' || g.pose === 'coser') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
@@ -853,6 +853,13 @@ function inviernoDeAjustes() {
   if (ajustes.estacion !== 'auto') return ajustes.estacion === 'invierno';
   const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
   return smoothstep(0.63, 0.73, fase) * (1 - smoothstep(0.96, 1.0, fase)) > 0.5;
+}
+
+// 3.7.5 (rincones): la ropa con que arranca la gente fuera del invierno ('verano' u 'otono'; lo mismo que el cuadro)
+function estacionRopaDeAjustes() {
+  if (ajustes.estacion !== 'auto') return ajustes.estacion === 'otono' ? 'otono' : ajustes.estacion === 'invierno' ? null : 'verano';
+  const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
+  return smoothstep(0.30, 0.40, fase) * (1 - smoothstep(0.63, 0.73, fase)) > 0.5 ? 'otono' : 'verano';
 }
 
 // ------------------------------------------------------------------ cuaderno
@@ -8069,6 +8076,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (Math.abs(U.uOtono.value - oto) < 0.01) U.uOtono.value = oto;
   if (Math.abs(U.uInvierno.value - inv) < 0.01) U.uInvierno.value = inv;
   gente?.abrigar?.(U.uInvierno.value > 0.5);   // 3.7.0: la ropa de abrigo, con el invierno
+  gente?.ropaDeEstacion?.(U.uInvierno.value > 0.5 ? null : U.uOtono.value > 0.5 ? 'otono' : 'verano');   // 3.7.5 (rincones): y la del verano y el otoño
 
   const js = jugador.estado;
   if (modo === 'inicio') {

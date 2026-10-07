@@ -93,7 +93,8 @@ ok(cuerpo.includes("gorro: { uno: true, der: { x: -0.15, yl: 1.5, zl: 2.5, codo:
 ok(cuerpo.includes('LEJOS_FINO') && cuerpo.includes('sin pedirle'), 'lo caro, sólo de cerca; lejos, sin las piezas finas');
 
 // ---------------------------------------------------------------- 4. el juego
-ok(main.includes("crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estiloViejo: GENTE_VIEJA })"), 'main.js: la gente arranca con la ropa de la estación');
+// (3.7.5 (rincones): y con la del verano o el otoño, `estacion`)
+ok(main.includes("crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA })"), 'main.js: la gente arranca con la ropa de la estación');
 ok(main.includes('gente?.abrigar?.(U.uInvierno.value > 0.5);'), 'main.js: la ropa de abrigo, con el invierno');
 ok(main.includes('gente?.precalentar?.(camara,') && main.includes('gente?.trasCompilar?.();'), 'main.js: la sombra de la gente se compila en la carga y el atlas se pinta en la portada');
 ok(atlas.includes('export function pintarAtlasDespues()') && atlas.includes('requestIdleCallback') && gente.includes('if (!atlasListo()) completarAtlas();'), 'el atlas se pinta de a pasos en la portada (y si no llegó, de una al jugar)');

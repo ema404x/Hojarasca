@@ -189,7 +189,7 @@ export function crearRinconesJuego(ctx) {
       // adelante del retablo, mirándolo
       const fx = Math.sin(L.rotMundo), fz = Math.cos(L.rotMundo), sx = Math.cos(L.rotMundo), sz = -Math.sin(L.rotMundo), lado = k === 'nene' ? -0.6 : 0.6;
       const x = L.x + fx * 2.6 + sx * lado, z = L.z + fz * 2.6 + sz * lado;
-      if (Math.hypot(n.pos.x - x, n.pos.z - z) > 40) { n.pos.x = x; n.pos.z = z; }
+      if (Math.hypot(n.pos.x - x, n.pos.z - z) > 40) { n.pos.x = x; n.pos.z = z; n.pos.y = ctx.altura?.(x, z) ?? n.pos.y; }
       n.conVos = true; n.enCita = true; n.pose = null; n.dormido = false; n.charlaVecinos = false;
       n.camino = [{ x, z, cerca: 0.15 }]; n.velocidad = 1.6; n.miraFinal = Math.atan2(L.x - x, L.z - z);
       chicos.push({ k, n });

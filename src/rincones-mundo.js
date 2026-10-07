@@ -553,7 +553,7 @@ export function crearRinconesMundo(ctx) {
     const centro = { x: L.x, y: alturaEn(L.x, L.z), z: L.z };
     const g1 = malla(modeloHuerta(huertas.comunitaria, alturaEn, centro, rot)); g1.position.set(centro.x, centro.y, centro.z);
     raiz.add(g1); piezas.huerta = g1;
-    ctx.veg?.despejar?.(L.x, L.z, 5.6, true); pelarRect(L.x, L.z, rot, L.ancho, L.largo, 0.05, 0.3);
+    ctx.veg?.despejar?.(L.x, L.z, 6.4, true); pelarRect(L.x, L.z, rot, L.ancho, L.largo, 0.05, 0.3);
     const C = lugarEnMundo('huertaChicos');
     for (let i = 0; i < RINCONES.huertaChicos.canteros; i++) {
       const w = puntoDeLugar('huertaChicos', 0, (i ? 1 : -1) * 2.4);
@@ -562,7 +562,7 @@ export function crearRinconesMundo(ctx) {
     const c2 = { x: C.x, y: alturaEn(C.x, C.z), z: C.z };
     const g2 = malla(modeloHuertaChicos(huertas.chicos, alturaEn, c2)); g2.position.set(c2.x, c2.y, c2.z);
     raiz.add(g2); piezas.huertaChicos = g2;
-    ctx.veg?.despejar?.(C.x, C.z, 3.6, true); pelarRect(C.x, C.z, C.rotMundo, 2.6, 7, 0.1, 0.25);
+    ctx.veg?.despejar?.(C.x, C.z, 4.8, true); pelarRect(C.x, C.z, C.rotMundo, 2.6, 7, 0.1, 0.25);
   }
 
   // ------------------------------------------------ la plaza (retablo y talla), la biblioteca (atril), fuerte, campamento

@@ -450,7 +450,8 @@ const copia = (o) => (o && typeof o === 'object' ? { ...o } : {});
 // gente.js): con una clave conocida valen sólo los de acá; con una desconocida quedan los que vienen
 // (y gente-cuerpo.js les corre el color hacia la tierra). `invierno`: la ropa de abrigo (poncho,
 // gorro de lana y bufanda, con lo que cada uno diga en `abrigo`); `fiesta`: la de fiesta, si tiene.
-export function aspectoGente(clave, colores = {}, R = {}, { invierno = false, fiesta = false } = {}) {
+// 3.7.5 (rincones): `estacion` ('verano' u 'otono'), la ropa de las otras dos estaciones (ver ROPA_ESTACION).
+export function aspectoGente(clave, colores = {}, R = {}, { invierno = false, fiesta = false, estacion = null } = {}) {
   const def = typeof clave === 'string' && Object.hasOwn(ASPECTO, clave) ? ASPECTO[clave] : null;
   if (!def) return { conocido: false, colores: copia(colores), R: copia(R), guardas: {}, poses: null, cuerpo: {}, cara: {}, edad: null };
   const out = {
@@ -479,9 +480,25 @@ export function aspectoGente(clave, colores = {}, R = {}, { invierno = false, fi
     // la guarda del poncho: la que ya tenía o una de telar
     if (poncho && !out.guardas.poncho) out.guardas.poncho = [def.mujer ? 11 : 2, 0.07];
     out.invierno = true;
+  } else if (estacion === 'verano') {
+    // 3.7.5 (rincones): en verano, en mangas de camisa: la campera, el poncho, la bufanda y el gorro de lana quedan en
+    // casa (el chaleco, el que lo usa, se queda; la boina y el sombrero también)
+    if (out.R.campera) { delete out.R.campera; delete out.R.abierta; out.R.chaleco = true; }
+    if (out.colores.poncho && !ROPA_ESTACION.ponchoEnVerano.includes(clave)) { delete out.colores.poncho; delete out.guardas.poncho; }
+    delete out.colores.bufanda;
+    if (out.colores.gorro === 'gorroPunto') delete out.colores.gorro;
+    out.estacion = 'verano';
+  } else if (estacion === 'otono') {
+    // 3.7.5 (rincones): en otoño, la ropa de siempre con una bufanda liviana (la del invierno de cada uno)
+    out.colores.bufanda = def.abrigo?.colores?.bufanda || out.colores.bufanda || ABRIGO_BASE.bufanda;
+    out.estacion = 'otono';
   }
   return out;
 }
+// 3.7.5 (rincones): la ropa por estación (PLAN_3_7.md). En invierno, la de abrigo de la 3.7.0; en verano, en mangas de
+// camisa; en otoño, con bufanda. `ponchoEnVerano`: los que no se lo sacan ni en enero (Don Ramón, que dice que el
+// poncho también es para el sol).
+export const ROPA_ESTACION = { estaciones: ['verano', 'otono', 'invierno'], ponchoEnVerano: ['ramon'] };
 
 // Para las pruebas: las claves con ropa propia
 export const clavesConAspecto = () => Object.keys(ASPECTO);
