@@ -2662,6 +2662,7 @@ document.addEventListener('keydown', (e) => {
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
+  if (charla.npc && (codigo === 'Enter' || codigo === 'NumpadEnter')) { seguirCharla(); return; }   // 3.7.4: charlando, Enter es E
   switch (codigo) {
     case 'KeyE': {
       if (charla.npc) { seguirCharla(); break; }
@@ -2905,7 +2906,7 @@ document.addEventListener('keydown', (e) => {
       sonido.carrete();
       break;
     case 'KeyJ': abrir('cuaderno'); break;
-    case 'Enter': case 'NumpadEnter': if (charla.npc) seguirCharla(); else if (listaHudAbierta()) elegirHud(); break;   // 3.6.2: la opción marcada (3.7.4: charlando, como E)
+    case 'Enter': case 'NumpadEnter': if (listaHudAbierta()) elegirHud(); break;   // 3.6.2: la opción marcada
     // 2.9: en la cabina, Espacio (A en el mando) silba y C (B) abre el puesto de cargas del andén
     case 'Space': if (js.enTren && tren.conduciendo()) tren.silbar(); break;
     case 'KeyC':
@@ -7008,13 +7009,14 @@ function vozSocial(npc, texto, { cerca = false } = {}) {
   if (!sonido?.ctx || !npc || !texto || modo !== 'jugando') return;
   const ahora = performance.now();
   vocesSonando = vocesSonando.filter((v) => v.hasta > ahora);
-  if (vocesSonando.length >= 2 || vocesSonando.some((v) => v.npc === npc)) return;
+  if (vocesSonando.length >= 2 && !cerca) return;
+  if (!cerca && vocesSonando.some((v) => v.npc === npc)) return;   // (charlando con vos, lo nuevo no espera: es lo que contesta)
   let voz = vocesSociales.get(npc.clave);
   if (!voz) { voz = vozDe(npc.clave, { edad: Number.isFinite(npc.edad) ? npc.edad : undefined, talla: npc.g?.scale?.y }); vocesSociales.set(npc.clave, voz); }
   const plan = planBalbuceo(texto, voz, Math.floor(ahora));
   const pos = cerca ? null : { x: npc.pos.x, y: npc.pos.y + 1.5, z: npc.pos.z };
   const dur = sonido.balbuceo?.(plan, { pos, vol: cerca ? 0.05 : 0.09 }) || 0;
-  if (dur > 0) { vocesSonando.push({ npc, hasta: ahora + dur * 1000 }); ultimaVoz = { clave: npc.clave, silabas: plan.silabas.length, dur, f0: voz.f0 }; }
+  if (dur > 0) { vocesSonando.push({ npc, hasta: ahora + dur * 1000 }); ultimaVoz = { n: (ultimaVoz?.n || 0) + 1, clave: npc.clave, silabas: plan.silabas.length, dur, f0: voz.f0 }; }
 }
 let ultimaVoz = null;
 // la cachetada (suave): un sacudón chico de la cabeza
@@ -8238,7 +8240,7 @@ function cuadroDelJuego(tRaf, manual) {
   const tNPC = perfilador.iniciar(medirRendimiento);
   if (modo === 'jugando' || modo === 'inicio') {
     try { gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel); } catch (e) { fallaSistema('gente', e); }
-    try { socialMundo?.actualizar(dt, js.pos); manosSociales?.actualizar(dt); if (charla.menu) ubicarRueda(); } catch (e) { fallaSistema('social', e); }   // 3.7.4
+    try { socialMundo?.actualizar(dt, js.pos, charla.menu ? charla.npc : null); manosSociales?.actualizar(dt); if (charla.menu) ubicarRueda(); } catch (e) { fallaSistema('social', e); }   // 3.7.4
     mundoPerro.noche = noche;
     mundoPerro.ataque = desafio && modo === 'jugando' ? desafio.objetivoPerro(js, perro.est.pos) : null;
     // 2.0: en el Desafío se queda duro mirando hacia lo que vos no ves
@@ -8406,9 +8408,11 @@ function cuadroDelJuego(tRaf, manual) {
     let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
     if (charla.npc) aviso = null;
     else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
-    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && socialJuego?.quiereDecir(vecino) ? `${vecino.nombre} te quiere decir algo` : null) || (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
+    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
     // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
+    // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
+    if (vecino && aviso && !desafio && !charla.npc && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };

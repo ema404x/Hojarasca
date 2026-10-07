@@ -85,7 +85,7 @@ function pose(id, s, u, def = {}) {
     case 'abrazar': {
       const cierra = suave(Math.min(1, s / 0.6));
       const mece = def.largo ? sin(s * 1.6) * 0.05 : 0;
-      const d = { x: -1.32, z: mezcla(0.75, 0.22, cierra), codo: mezcla(-0.5, -1.25, cierra), yl: -0.3 };
+      const d = { x: -1.15, z: mezcla(0.7, 0.32, cierra), codo: mezcla(-0.4, -1.05, cierra), yl: -1.35 };
       return { izq: d, der: d, tx: 0.12, tz: mece, cx: 0.1, cz: 0.16 + mece };
     }
     case 'reir': {

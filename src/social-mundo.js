@@ -117,7 +117,9 @@ export function crearSocialMundo({ escena, camara, atlas, capa = null }) {
   const entra = (c, ahora) => Math.min(1, (ahora - c.t) / 0.18);
   const sale = (c, ahora) => Math.min(1, Math.max(0, (c.hasta - ahora) / 0.35));
   // Cada cuadro: `pos`, la tuya (para lo de cerca)
-  function actualizar(dt, pos) {
+  let tapado = null;   // (el de la rueda abierta: su burbuja la taparía la barra de arriba)
+  function actualizar(dt, pos, sinBurbuja = null) {
+    tapado = sinBurbuja;
     reloj += Math.max(0, Math.min(0.25, dt || 0));
     usados = 0;
     cercanos.length = 0;
@@ -126,7 +128,7 @@ export function crearSocialMundo({ escena, camara, atlas, capa = null }) {
       if (c.b && c.b.hasta <= reloj) c.b = null;
       if (c.e && c.e.hasta <= reloj) c.e = null;
       if (!c.b && !c.e) { cosas.delete(npc); continue; }
-      if (!npc.pos || npc.dormido || npc.g?.visible === false) continue;
+      if (!npc.pos || npc.dormido || npc.g?.visible === false || npc === tapado) continue;
       const d = pos ? Math.hypot(npc.pos.x - pos.x, npc.pos.z - pos.z) : 0;
       if (d > BURBUJAS.lejos) continue;
       // detrás de la cámara no se manda nada
@@ -199,7 +201,7 @@ const GESTOS_MANO = {
   mano: { dur: 3.4, der: () => [0.2, -0.44, -0.46, 0.2, 0, -0.3] },
   consolar: { dur: 3.4, der: (s) => [0.12, -0.08 + Math.sin(s * 4) * 0.015, -0.62, -0.5, 0, 0.2] },
   cartas: { dur: 6, izq: () => [-0.13, -0.36, -0.42, -0.4, 0.2, 0.4], der: (s) => [0.13, -0.36 + Math.max(0, Math.sin(s * 1.7)) ** 6 * 0.06, -0.42 - Math.max(0, Math.sin(s * 1.7)) ** 6 * 0.08, -0.4, -0.2, -0.4] },
-  foto: { dur: 3, izq: () => [-0.11, -0.05, -0.36, -0.9, 0.3, 0.9], der: () => [0.11, -0.05, -0.36, -0.9, -0.3, -0.9] },
+  foto: { dur: 3, izq: () => [-0.17, -0.2, -0.52, -0.3, 0.25, 0.5], der: () => [0.17, -0.2, -0.52, -0.3, -0.25, -0.5] },
   'bailar-lento': { dur: 6, izq: (s) => [-0.24 + Math.sin(s * 1.9) * 0.02, -0.14, -0.46, -0.6, 0.4, 0.5], der: (s) => [0.24 + Math.sin(s * 1.9) * 0.02, -0.2, -0.46, -0.4, -0.4, -0.5] },
   beso: { dur: 2.6, izq: () => [-0.3, -0.3, -0.44, -0.3, 0.3, 0.5], der: () => [0.3, -0.3, -0.44, -0.3, -0.3, -0.5] },
   discutir: { dur: 3.4, der: (s) => [0.22, -0.26 + Math.sin(s * 7.5) * 0.08, -0.55, -0.5, 0, 0.3] },
