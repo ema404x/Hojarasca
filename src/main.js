@@ -95,6 +95,10 @@ import { crearAmorJuego } from './amor-juego.js';
 import { crearAmorMundo } from './amor-mundo.js';
 // 3.7.2: la cocina en pasos (reglas en cocina-pasos.js; el juego en cocina-juego.js; lo que se ve en cocina-mundo.js)
 import { crearCocinaJuego } from './cocina-juego.js';
+// 3.7.5 (noticias): la radio por horarios, el diario de la aldea, las cartas de lejos, el calendario, el club de lectura,
+// la noche de estrellas y los concursos de las fiestas (reglas en noticias.js, calendario.js y concursos.js)
+import { crearNoticiasJuego } from './noticias-juego.js';
+import { crearConcursosJuego } from './concursos-juego.js';
 // 3.7.3: el taller ferroviario de la aldea y las mejoras del tren (sólo en el Relax)
 import { crearTallerJuego } from './taller-tren-juego.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
@@ -894,6 +898,8 @@ function dibujarCuaderno() {
   pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y aldea']);
   if (!desafio && cocinaJuego) pestanas.push(['recetario', 'Recetario']);   // 3.7.2
   else if (pestana === 'recetario') pestana = 'especies';
+  if (!desafio && noticiasJuego) pestanas.push(['noticias', 'Noticias']);   // 3.7.5 (noticias): la radio, el diario, las cartas y los concursos
+  else if (pestana === 'noticias') pestana = 'especies';
   // 2.0: en el Desafío, el bestiario de los invasores
   if (desafio) pestanas.push(['bestiario', 'Bestiario']);
   else if (pestana === 'bestiario') pestana = 'especies';
@@ -909,6 +915,7 @@ function dibujarCuaderno() {
   ficha.innerHTML = '';
   if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
   if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
+  if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
 
   if (pestana === 'bestiario' && desafio) {
     const best = desafio.bestiario;
@@ -1059,6 +1066,7 @@ function atrapar(pez) {
   ganarOficio('pescador', XP.pez);   // 3.1
   diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm });
   vecindadJuego?.delPez(pez);   // 3.6 (vida): la trucha grande o el pez nativo, para los vecinos
+  concursosJuego?.delPez(pez);   // 3.7.5 (noticias): la más grande de hoy y ayer va al concurso de la trucha
   modos?.pez?.(pez);   // 3.1: el desafío del día y el torneo de la semana
   const nombre = pez.def.nombre.charAt(0).toUpperCase() + pez.def.nombre.slice(1);
   // 2.3: con un ahumadero terminado, dos truchas por día van a la mochila
@@ -4308,6 +4316,7 @@ let amorJuego = null;   // 3.7.1: ver amor-juego.js
 let socialJuego = null, socialMundo = null, manosSociales = null;   // 3.7.4: ver social-juego.js y social-mundo.js
 let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
+let noticiasJuego = null, concursosJuego = null;   // 3.7.5 (noticias): ver noticias-juego.js y concursos-juego.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
@@ -4385,6 +4394,8 @@ function armarOficiosYAldea(esDesafio) {
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
     amorDestino: (k) => amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado)
+    noticiasDestino: (k) => noticiasJuego?.destino(k) || null,   // 3.7.5 (noticias): y si no, el club de lectura o la noche de estrellas
+    extrasCalendario: (d) => noticiasJuego?.extrasCalendario(d) || [],   // 3.7.5 (noticias): las fechas, el aniversario, los concursos, el club y las estrellas
   });
   // 3.7.1: el amor en la aldea (sólo en el Relax y con el ajuste «Romance» encendido)
   amorJuego = crearAmorJuego({
@@ -4478,6 +4489,17 @@ function armarOficiosYAldea(esDesafio) {
     manos: { empezar: (id) => manosSociales?.empezar(id), cachetada: () => cachetadaSocial() },
     voz: (npc, texto, o) => vozSocial(npc, texto, o), nota: (t, sub) => nota(t, sub),
   });
+  // 3.7.5 (noticias): los concursos de las fiestas y las noticias del valle (la radio, el diario, las cartas, el calendario)
+  concursosJuego = crearConcursosJuego({
+    progreso: () => progreso, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+    cobrar: (e) => cobrarPremio(e), redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
+    nombresFoto: () => Object.fromEntries(DESAFIOS.map((d) => [d.id, d.nombre])),
+  });
+  noticiasJuego = crearNoticiasJuego({
+    progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+    registrar: (id) => registrar(id), pronostico: () => pronosticoActual(), cartaVieja: () => porRetirar(correo(), progreso).length > 0,
+    concursos: () => concursosJuego, redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
+  });
   // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea (ver aldea-mecanicas-mundo.js)
   if (aldeaMundo) mecanicasAldea = crearMecanicasAldea({
     mundo: aldeaMundo, gente: () => aldeaGente, escena, sonido, col, progreso: () => progreso, jugador: () => jugador, tren: () => tren,
@@ -4554,6 +4576,8 @@ function actualizarAldea(dt) {
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
   if (!desafio) socialJuego?.actualizar(dt);   // 3.7.4: entre ellos, por su cuenta, y el que te quiere decir algo
   if (!desafio) amorJuego?.actualizar(dt);   // 3.7.1: el día del amor, las citas y el casamiento
+  if (!desafio) concursosJuego?.actualizar(dt);   // 3.7.5 (noticias): el fallo de los concursos, a su hora
+  if (!desafio) noticiasJuego?.actualizar(dt);   // 3.7.5 (noticias): el diario, las cartas de lejos y el aviso de mañana
   if (!desafio) amorMundo?.actualizar(dt);   // 3.7.1 (mundo): lo que se ve del amor
   if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
 }
@@ -6230,9 +6254,14 @@ function usarRadio(o) {
   else if (p) enElAire += ` En el ${nombreEstacionRadio(p.de)} todavía esperan ${textoPideRadio(p)}.`;
   if (sonido?.ctx) sonido.golpeRuido({ dur: 0.7, frec: 1900, q: 0.7, vol: 0.06, destino: sonido.bus.efectos, buffer: sonido.ruido });
   const pos = { x: o.datos.x, y: o.datos.y, z: o.datos.z };
+  // 3.7.5 (noticias): de día (y conociendo la aldea), la radio comunitaria con el programa de la hora; los refugios
+  // lejanos se cuelan después, entre la estática
+  const programa = noticiasJuego?.radio() || null;
   if (estacion) {
     const texto = textoPronostico(pronosticoActual(), nochesActuales());
-    hablar({ clave: 'estacion-meteo', nombre: 'Estación meteorológica', oficio: 'el pronóstico', saludo: texto, despedida: `En la radio. ${enElAire}`, historias: [], pos });
+    hablar({ clave: 'estacion-meteo', nombre: 'Estación meteorológica', oficio: 'el pronóstico', saludo: texto, despedida: `En la radio. ${programa ? `${programa.nombre}. ${programa.texto}` : enElAire}`, historias: [], pos });
+  } else if (programa) {
+    hablar({ clave: 'radio-refugio', nombre: 'La radio', oficio: `${programa.quien}: ${programa.nombre}`, saludo: programa.texto, despedida: `Entre programa y programa se cuela la radio de los refugios. ${enElAire}`, historias: [], pos });
   } else {
     hablar({ clave: 'radio-refugio', nombre: 'La radio', oficio: 'los refugios del valle', saludo: enElAire, despedida: 'Cambio y fuera. La radio queda crujiendo bajito.', historias: [], pos });
   }
@@ -6485,8 +6514,12 @@ function hablar(npc) {
   // 3.7.1: la que te espera en la cita (o en la biblioteca, el día del casamiento): al hablarle, empieza (el aviso
   // lo dice en el mismo lugar: el del vecino). Después, el menú de siempre.
   const deAmor = !desafio ? amorJuego?.hablar(npc) : null;
-  if (deAmor) {
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: deAmor.id, partes: deAmor.partes, alTerminar: deAmor.alTerminar }, parte: 0, vec: null, menu: null });
+  // 3.7.5 (noticias): y del mismo modo, el concurso de la fiesta (Nélida anota), la carta de lejos (Benigno), el club de
+  // lectura (la abuela) y la noche de estrellas (Valentina)
+  const deNoticias = !desafio && !deAmor ? (concursosJuego?.hablar(npc) || noticiasJuego?.hablar(npc) || null) : null;
+  if (deAmor || deNoticias) {
+    const h = deAmor || deNoticias;
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
     charla.vec = vecindadJuego?.abrir(npc) || null;
     $('charla').classList.remove('oculto');
     mostrarCharla();
@@ -8929,6 +8962,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __amor: () => amorJuego,   // 3.7.1
     __amorMundo: () => amorMundo,   // 3.7.1 (mundo)
     __cocina: () => cocinaJuego, __cocinaMundo: () => cocinaMundo,   // 3.7.2
+    __noticias: () => noticiasJuego, __concursos: () => concursosJuego,   // 3.7.5 (noticias)
     __taller: () => tallerTren,   // 3.7.3
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
     // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)
