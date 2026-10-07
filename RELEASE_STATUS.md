@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.7.3
+# RELEASE STATUS — 3.7.4
 
-- Versión: `3.7.3`
+- Versión: `3.7.4`
+- 3.7.4: Vida social tipo Sims — rueda de interacciones, 30 interacciones, barra de relación visible, humor y deseos, vecinos con iniciativa, burbujas, emociones, voces y animaciones. Gate 159/159
 - 3.7.3: La trochita — la Baldwin «La Hojarasca» con mejoras (caldera, freno, farol, quitanieves, arenero, silbatos, pintura y nombre) y 6 vagones que se usan, taller ferroviario en la aldea con Martín. Gate 157/157
 - 3.7.2: La cocina — parrilla con cruz (con techito), horno de barro y cocina a leña con recetas en pasos (asado, cordero, pan, empanadas, mermeladas, dulce de leche, locro, chocolate, curanto), alacena y recetario; el humo trae vecinos y el perro roba un chorizo; la granja: vaca lechera, corderos, chanchos y frutales. Gate 154/154, 62 partidas reales
 - 3.7.1: Amor en la aldea — 12 candidatas adultas y solteras, citas en su lugar favorito, celos, el anillo de Anselmo, casamiento civil en la biblioteca con fiesta, vivir juntos, de la mano por la aldea, hasta 2 hijos con su cuarto, habilidades por oficio (rinden cada mañana y una mejora permanente), separación y reconquista; se apaga desde Ajustes. Retoques de la 3.7.0. Partidas reales de a 4 (suite-paralela). Gate 152/152, 60 partidas reales
