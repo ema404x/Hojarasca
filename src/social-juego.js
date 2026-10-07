@@ -35,7 +35,7 @@ export function crearSocialJuego(ctx) {
   const S = ctx.social || {};
   const progreso = () => ctx.progreso?.() || {};
   let semilla = 1;
-  const contexto = (extra = {}) => ({ dia: ctx.dia?.() || 1, hora: ctx.hora?.() || 12, clima: ctx.clima?.() || null, ritmo: ctx.ritmo?.() || 'normal', romance: ctx.romance?.() !== false, nombre: ctx.apodo?.() || null, semilla: semilla++, ...extra });
+  const contexto = (extra = {}) => ({ dia: ctx.dia?.() || 1, hora: ctx.hora?.() || 12, clima: ctx.clima?.() || null, ritmo: ctx.ritmo?.() || 'normal', romance: ctx.romance?.() !== false, nombre: ctx.apodo?.() || null, semilla: semilla++, trucoReal: !!ctx.trucoReal?.(), ...extra });   // (3.7.5: el truco de verdad)
   const dia = () => ctx.dia?.() || 1;
   const claveDe = (npc) => (npc ? ctx.claveDe?.(npc) || null : null);
   const ritmo = () => { const r = ctx.ritmo?.(); return r === 'tranquilo' || r === 'animado' ? r : 'normal'; };

@@ -28,12 +28,13 @@ const TOMAS = {
   arriba: { ojo: [6, 60, 10], a: [10, 0, 45], hora: 12, dia: 1 },
   'arriba-este': { ojo: [60, 70, 0], a: [40, 0, 50], hora: 12, dia: 1 },
   'arriba-oeste': { ojo: [-30, 70, 0], a: [-15, 0, 40], hora: 12, dia: 1 },
-  baile: { ojo: [6, 3.2, 26.5], a: [6, 1.2, 39], hora: 18.6, dia: 2, gente: true },
-  mesa: { ojo: [-2.5, 2.6, 29.0], a: [7, 0.9, 30.5], hora: 12.8, dia: 2, gente: true },
-  jineteada: { ojo: [-6, 3.0, 2], a: [-22, 1.0, 14], hora: 15.4, dia: 2, gente: true },
-  leyenda: { ojo: [6, 2.4, 33.6], a: [6, 0.7, 39.2], hora: 21.2, dia: 9, gente: true },
-  minga: { ojo: [14, 3, 27], a: [-4, 1, 32], hora: 10.5, dia: 7, gente: true },
-  truco: { ojo: [6, 1.7, 30], a: [6, 0.6, 31.6], hora: 15.5, dia: 2, gente: true, truco: true },
+  baile: { ojo: [14.6, 5.5, 22.5], a: [14.6, 0.4, 12.5], hora: 18.6, dia: 2, gente: true },
+  predio: { ojo: [2, 14, 2], a: [22, 0, 16], hora: 12.8, dia: 2, gente: true },
+  mesa: { ojo: [9.6, 2.2, 18.2], a: [16.0, 0.6, 20.8], hora: 12.8, dia: 2, gente: true },
+  jineteada: { ojo: [21.5, 2.4, 9.0], a: [29.8, 1.2, 12.8], hora: 15.4, dia: 2, gente: true, jinete: true },
+  leyenda: { ojo: [23.6, 2.0, 15.6], a: [23.6, 0.6, 19.8], hora: 21.2, dia: 9, gente: true },
+  minga: { ojo: [29.0, 2.6, 15.5], a: [33.6, 0.9, 21.0], hora: 10.5, dia: 7, gente: true },
+  truco: { ojo: [19.6, 1.7, 11.0], a: [20.6, 0.7, 11.0], hora: 15.5, dia: 2, gente: true, truco: true },
   recuerdos: { refugio: true, hora: 11, dia: 3 },
 };
 
@@ -84,7 +85,7 @@ app.whenReady().then(async () => {
       return 1 })()`;
     await js(poner);
     for (let k = 0; k < 40; k++) {
-      await js(`(() => { const H = window.__hojarasca; if (${!!t.gente}) { H.__aldea.actualizar(0.25); H.__aldea.mundo()?.prearmar?.(1e6); } H.__fiestas?.()?.actualizar?.(0.25); H.__bucle(); return 1 })()`);
+      await js(`(() => { const H = window.__hojarasca; if (${!!t.gente}) { H.__aldea.actualizar(0.25); H.__aldea.mundo()?.prearmar?.(1e6); } H.__fiestas?.()?.actualizar?.(0.25); H.__fiestasMundo?.()?.armarTodo?.(); H.__bucle(); return 1 })()`);
       if (!t.truco) await js(poner);
       await esperar(40);
     }
@@ -96,7 +97,7 @@ app.whenReady().then(async () => {
     await esperar(500);
     const img = await w.webContents.capturePage();
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
-    const m = await js(`(() => { const H = window.__hojarasca, r = H.renderer?.info?.render; return { dibujos: r?.calls ?? null, tris: r?.triangles ?? null, fiesta: H.__fiestas?.()?.estado?.()?.hoy || null } })()`);
+    const m = await js(`(() => { const H = window.__hojarasca, r = H.renderer?.info?.render; return { dibujos: r?.calls ?? null, tris: r?.triangles ?? null, fiesta: (() => { const a = H.__fiestas?.()?.ahora?.(); return a ? a.fecha.id + '|' + a.fase.fase : null })(), mundo: H.__fiestasMundo?.()?.estado?.() || null } })()`);
     informe.push(`${nombre}: ${JSON.stringify(m)}`);
     if (t.truco) await js(`(() => { window.__hojarasca.__fiestas?.()?.cerrarPanel?.(); return 1 })()`);
   }

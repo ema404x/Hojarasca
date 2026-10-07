@@ -231,6 +231,12 @@ const ROPA = {
   'aldea-nene': { piel: '#c99a72', botas: 'goma', pantalon: '#3a4250' },
   'aldea-nena': { piel: '#c49470', pollera: true, trenza: true, botas: 'goma' },
   'aldea-martin': { piel: '#c49470', botas: 'altas', delantal: '#3b4a5e', panuelo: '#a83a2a', pantalon: '#3b4a5e' },   // 3.7.3: el mameluco azul de maquinista
+  // 3.7.5: los invitados de otras paradas que llegan en el tren de fiesta (ver INVITADOS en fiestas.js)
+  'inv-domador': { piel: '#b58a64', bombacha: true, chaleco: true, panuelo: '#c8b070', botas: 'altas', pantalon: '#4a3a2a' },
+  'inv-cantora': { piel: '#c49470', pollera: true, trenza: true, abierta: true },
+  'inv-pescador': { piel: '#c0916a', botas: 'goma', campera: 'larga', abierta: true, pantalon: '#3a4450' },
+  'inv-tejedora': { piel: '#b88a66', pollera: true, rodete: true, delantal: '#d8c0a0' },
+  'inv-maquinista': { piel: '#c49870', botones: '#c9a64a', campera: 'larga', pantalon: '#22262e' },
 };
 const ESC_TORSO = [1, 1, 0.74];
 const R_PONCHO = new Set(['ramon']);   // 3.5: los que andan de poncho (ver la ladera en actualizar)
@@ -266,11 +272,13 @@ export function bajaSentado(asiento, talla) {
 // 3.7.0: las poses de trabajo con las dos manos ocupadas (ahí el que toma mate lo deja)
 // (3.7.3: y las del taller ferroviario: limar en la morsa y la llave en el juego de ruedas)
 const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar', 'limar', 'llave']);
+// 3.7.5: y las de las fiestas (aplaudir, los bailes, la jineteada, comer en la mesa larga, tirar la taba)
+for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar']) MANOS_OCUPADAS.add(p);
 function posar(g, charlando) {
   const t = g.fase;
   switch (g.pose) {
     // (3.7.0 (integración): y sentadas en lo suyo: Malena en el torno, Pocha en la máquina de coser)
-    case 'sentado': case 'leyendo': case 'tornear': case 'coser': {
+    case 'sentado': case 'leyendo': case 'tornear': case 'coser': case 'comer': {   // (3.7.5: y comer en la mesa larga)
       const b = bajaSentado(g.asiento, g.g?.scale?.y);
       const cadera = CADERA - b;
       const recoge = cadera < CANILLA ? Math.acos(Math.max(0, cadera - 0.02) / CANILLA) : 0;   // la canilla, adelante
@@ -284,6 +292,8 @@ function posar(g, charlando) {
       if (g.pose === 'leyendo') { g.brazos[0].rotation.x = -0.95; g.brazos[1].rotation.x = -0.95; g.cabeza.rotation.x += 0.3; }
       else if (g.pose === 'tornear') { const k = Math.sin(t * 2.2); g.brazos[0].rotation.x = -1.05 + k * 0.05; g.brazos[1].rotation.x = -1.05 - k * 0.05; g.torso.rotation.x = 0.16; g.cabeza.rotation.x += 0.38; }
       else if (g.pose === 'coser') { const k = Math.sin(t * 7); g.brazos[0].rotation.x = -0.95 + k * 0.04; g.brazos[1].rotation.x = -0.85; g.torso.rotation.x = 0.12; g.cabeza.rotation.x += 0.32; }
+      // 3.7.5: comer en la mesa larga: la mano del tenedor va y viene del plato a la boca, la otra apoyada en la mesa
+      else if (g.pose === 'comer') { const k = Math.max(0, Math.sin(t * 1.6)); g.brazos[1].rotation.x = -0.75 - k * 0.75; g.brazos[1].rotation.z = 0.12 * k; g.brazos[0].rotation.x = -0.7; g.torso.rotation.x = 0.1; g.cabeza.rotation.x += 0.18 - k * 0.12; }
       else if (!charlando && !g.mate) { g.brazos[0].rotation.x = -0.45; g.brazos[1].rotation.x = -0.45; }
       break;
     }
@@ -413,6 +423,61 @@ function posar(g, charlando) {
       g.brazos[0].rotation.x = 0.05; g.brazos[1].rotation.x = 0.05; g.brazos[0].rotation.z = -0.08; g.brazos[1].rotation.z = 0.08;
       for (const p2 of g.patas) { p2.rotation.x = 0; if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 0.06; }
       g.torso.rotation.set(0, 0, 0); g.cabeza.rotation.set(0.12, 0.25, 0);
+      break;
+    }
+    // 3.7.5: las fiestas. Aplaudir (al baile, al jinete que aguantó), el chamamé (abrazados de a dos: un brazo por la
+    // espalda del otro y el otro tomado de la mano, el paso al costado con el balanceo), la chacarera (los brazos arriba,
+    // castañeteando, y el zapateo), el que cuenta la leyenda (una mano que dibuja en el aire), el jinete arriba del
+    // redomón (las piernas abiertas, una mano en las riendas y la otra arriba, al viento) y tirar la taba
+    case 'aplaudir': {
+      const k = Math.sin(t * 11);
+      g.brazos[0].rotation.x = -1.05; g.brazos[1].rotation.x = -1.05;
+      g.brazos[0].rotation.z = 0.32 + k * 0.16; g.brazos[1].rotation.z = -0.32 - k * 0.16;
+      g.cabeza.rotation.x -= 0.05;
+      break;
+    }
+    case 'chamame': {
+      const k = Math.sin(t * 2.9), s = Math.abs(Math.sin(t * 2.9));
+      g.torso.rotation.z = k * 0.07; g.torso.position.y += s * 0.025; g.cabeza.position.y += s * 0.025;
+      g.brazos[0].rotation.x = -1.25; g.brazos[0].rotation.z = 0.55;
+      g.brazos[1].rotation.x = -1.35; g.brazos[1].rotation.z = -0.5;
+      for (const [i, p2] of g.patas.entries()) p2.rotation.x = (i ? 1 : -1) * k * 0.22;
+      g.cabeza.rotation.z = -k * 0.06;
+      break;
+    }
+    case 'chacarera': {
+      const k = Math.sin(t * 4.2), s = Math.abs(Math.sin(t * 8.4));
+      g.brazos[0].rotation.x = -2.55 + k * 0.12; g.brazos[1].rotation.x = -2.55 - k * 0.12;
+      g.brazos[0].rotation.z = -0.32; g.brazos[1].rotation.z = 0.32;
+      g.torso.position.y += s * 0.03; g.cabeza.position.y += s * 0.03; g.torso.rotation.z = k * 0.05;
+      for (const [i, p2] of g.patas.entries()) { p2.rotation.x = (i ? 1 : -1) * k * 0.3; if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 0.25 + s * 0.3; }
+      g.cabeza.rotation.x -= 0.12;
+      break;
+    }
+    case 'contar': {
+      const k = Math.sin(t * 1.3), k2 = Math.sin(t * 0.7);
+      g.brazos[1].rotation.x = -0.95 + k * 0.35; g.brazos[1].rotation.z = 0.25 + k2 * 0.2;
+      g.brazos[0].rotation.x = -0.35 + k2 * 0.1;
+      g.cabeza.rotation.y += k2 * 0.25; g.cabeza.rotation.x -= 0.05;
+      break;
+    }
+    case 'jinete': {
+      const k = Math.sin(t * 6), b = 0.5;
+      g.torso.position.y -= b; g.cabeza.position.y -= b;
+      g.brazos[0].position.y -= b; g.brazos[1].position.y -= b;
+      for (const [i, p2] of g.patas.entries()) {
+        p2.position.y -= b; p2.rotation.x = -0.55; p2.rotation.z = (i ? 1 : -1) * 0.42;
+        if (p2.userData.rodilla) p2.userData.rodilla.rotation.x = 0.9;
+      }
+      g.brazos[0].rotation.x = -0.85; g.brazos[0].rotation.z = 0.15;
+      g.brazos[1].rotation.x = -2.7 + k * 0.25; g.brazos[1].rotation.z = -0.35;
+      g.torso.rotation.x = -0.12 + k * 0.1; g.cabeza.rotation.x -= 0.1;
+      break;
+    }
+    case 'tirar': {
+      const k = Math.max(0, Math.sin(t * 1.8));
+      g.brazos[1].rotation.x = 0.6 - k * 1.9; g.brazos[0].rotation.x = -0.2;
+      g.torso.rotation.x = 0.18 - k * 0.12; g.cabeza.rotation.x += 0.2;
       break;
     }
     // 3.7.1 (mundo): el brindis de la fiesta del casamiento (el vaso en alto)

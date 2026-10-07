@@ -676,3 +676,196 @@ export function elegirCumple(estado, dda) {
 }
 // El nombre de la estación de un día (para los textos)
 export const estacionDe = (dia) => estacionDelAnio(diaDelAnio(dia)).id;
+
+// ---------------------------------------------------------------- el predio de la fiesta
+// Del otro lado de la calle de la vía, entre la calle de la estación y el taller (en el plano de la aldea: x hacia el
+// este, z hacia la plaza). Lo arma fiestas-mundo.js y queda siempre (el ruedo, la tarima, la pista de tablas, la mesa
+// larga con sus bancos, el fogón con troncos para sentarse, la mesita de los juegos y la cancha de la taba). Los
+// adornos, la comida y el fuego, sólo en las fiestas.
+export const PREDIO = {
+  centro: { x: 22, z: 15 },
+  mesa: { x: 15.2, z: 20.8, largo: 8, ancho: 0.9, banco: 0.72, sitios: 11 },
+  pista: { x: 14.6, z: 13.6, largo: 6.4, ancho: 5 },
+  tarima: { x: 14.6, z: 9.3, largo: 3.2, ancho: 2 },
+  fogon: { x: 23.6, z: 19.6, radio: 2.25, troncos: 10 },
+  ruedo: { x: 29.8, z: 12.8, radio: 5.4, postes: 28, tranquera: Math.PI * 1.5 },   // (la tranquera, del lado de la pista)
+  juegos: { x: 20.6, z: 11.0 },
+  taba: { x: 20.8, z: 15.4, largo: 3.2 },
+  lenera: { x: 33.6, z: 21.4, largo: 4, ancho: 1.6 },
+  // a cuántos metros del centro se está «en la fiesta» (para la foto, el recuerdo, la música)
+  radio: 22,
+};
+// Los puntos con nombre, en el plano: { x, z, rot } (rot: hacia dónde mira el que está ahí: (sin rot, cos rot))
+let cachePredio = null;
+export function puntosPredio() {
+  if (cachePredio) return cachePredio;
+  const P = {};
+  const { mesa, pista, tarima, fogon, ruedo, juegos, taba, lenera } = PREDIO;
+  const paso = (mesa.largo - 1) / (mesa.sitios - 1);
+  for (let i = 0; i < mesa.sitios; i++) {
+    const x = mesa.x - (mesa.largo - 1) / 2 + i * paso;
+    P[`mesa-n-${i}`] = { x, z: mesa.z + mesa.banco, rot: Math.PI };
+    P[`mesa-s-${i}`] = { x, z: mesa.z - mesa.banco, rot: 0 };
+  }
+  for (let i = 0; i < fogon.troncos; i++) {
+    const a = (i / fogon.troncos) * Math.PI * 2 + 0.31;
+    P[`fogon-${i}`] = { x: fogon.x + Math.sin(a) * fogon.radio, z: fogon.z + Math.cos(a) * fogon.radio, rot: a + Math.PI };
+  }
+  // el que cuenta, parado del lado de la calle, mirando al fuego; el asador (la cruz), del otro lado
+  P.narrador = { x: fogon.x + 0.15, z: fogon.z + 1.5, rot: Math.PI };
+  P.asador = { x: fogon.x - 0.95, z: fogon.z - 0.55, rot: 0.9 };
+  P['asador-gente'] = { x: fogon.x - 1.7, z: fogon.z - 1.25, rot: 0.9 };
+  // la pista: cuatro parejas
+  const parejas = [[-1.6, -1.1], [1.6, -1.1], [-1.6, 1.1], [1.6, 1.1]];
+  parejas.forEach(([dx, dz], k) => {
+    P[`pista-${2 * k}`] = { x: pista.x + dx - 0.3, z: pista.z + dz, rot: Math.PI / 2 };
+    P[`pista-${2 * k + 1}`] = { x: pista.x + dx + 0.3, z: pista.z + dz, rot: -Math.PI / 2 };
+    // (la chacarera se baila suelta, frente a frente: más separados)
+    P[`suelta-${2 * k}`] = { x: pista.x + dx - 0.8, z: pista.z + dz, rot: Math.PI / 2 };
+    P[`suelta-${2 * k + 1}`] = { x: pista.x + dx + 0.8, z: pista.z + dz, rot: -Math.PI / 2 };
+  });
+  // los que miran el baile: la fila de la mesa y los dos costados
+  let m = 0;
+  for (let i = 0; i < 7; i++) P[`mira-baile-${m++}`] = { x: pista.x - 3 + i, z: pista.z + pista.ancho / 2 + 1.0, rot: Math.PI };
+  for (const lado of [-1, 1]) for (let i = 0; i < 4; i++) P[`mira-baile-${m++}`] = { x: pista.x + lado * (pista.largo / 2 + 0.95), z: pista.z - 1.6 + i * 1.05, rot: -lado * Math.PI / 2 };
+  P.tarima = { x: tarima.x, z: tarima.z + 0.1, rot: 0 };
+  P['tarima-2'] = { x: tarima.x - 0.95, z: tarima.z + 0.1, rot: 0 };
+  // el ruedo: los que miran de afuera, del lado de la pista y de la calle (no del lado del bosque)
+  // (al oeste y al norte: del lado del bosque hay una mata grande y los árboles; la tranquera, libre)
+  for (let i = 0; i < 12; i++) {
+    let a = Math.PI * 1.25 + (i / 11) * Math.PI * 1.05;
+    if (Math.abs(a - ruedo.tranquera) < 0.32) a += a < ruedo.tranquera ? -0.3 : 0.3;
+    P[`ruedo-mira-${i}`] = { x: ruedo.x + Math.sin(a) * (ruedo.radio + 0.75), z: ruedo.z + Math.cos(a) * (ruedo.radio + 0.75), rot: a + Math.PI };
+  }
+  P.palenque = { x: ruedo.x, z: ruedo.z, rot: 0 };
+  P.tranquera = { x: ruedo.x + Math.sin(ruedo.tranquera) * (ruedo.radio + 1.0), z: ruedo.z + Math.cos(ruedo.tranquera) * (ruedo.radio + 1.0), rot: ruedo.tranquera + Math.PI };
+  P.mesita = { x: juegos.x, z: juegos.z, rot: 0 };
+  P['juegos-0'] = { x: juegos.x - 0.62, z: juegos.z, rot: Math.PI / 2 };
+  P['juegos-1'] = { x: juegos.x + 0.62, z: juegos.z, rot: -Math.PI / 2 };
+  P['juegos-mira'] = { x: juegos.x, z: juegos.z - 1.1, rot: 0 };
+  P['taba-tira'] = { x: taba.x - taba.largo / 2 - 0.3, z: taba.z, rot: Math.PI / 2 };
+  P['taba-mira'] = { x: taba.x - taba.largo / 2 - 0.2, z: taba.z + 1.0, rot: Math.PI / 2 + 0.5 };
+  P['taba-raya'] = { x: taba.x - 0.2, z: taba.z, rot: 0 };
+  P['taba-queso'] = { x: taba.x + taba.largo / 2 - 0.5, z: taba.z, rot: 0 };
+  P.lenera = { x: lenera.x, z: lenera.z, rot: Math.PI };
+  // los invitados de otras paradas: parados entre la mesa y la pista (comen parados al lado de la mesa, miran el baile)
+  for (let i = 0; i < 6; i++) P[`invitado-${i}`] = { x: mesa.x - 3 + i * 1.2, z: mesa.z - mesa.banco - 1.35, rot: i % 2 ? Math.PI : 0 };
+  const minga = [[-2.6, -1.4], [-1.2, -1.7], [0.2, -1.8], [1.6, -1.7], [2.8, -1.2], [-3.4, 0.2]];
+  minga.forEach(([dx, dz], i) => { P[`minga-${i}`] = { x: lenera.x + dx, z: lenera.z + dz, rot: Math.atan2(-dx, -dz) }; });
+  cachePredio = P;
+  return P;
+}
+// ¿Está en el predio? (el punto del plano, a menos de `radio` del centro)
+export const enElPredio = (x, z, radio = PREDIO.radio) => Math.hypot(x - PREDIO.centro.x, z - PREDIO.centro.z) < radio;
+
+// Quién va a dónde en cada fase. `claves`: los de la aldea que están (en orden: el de siempre). `opciones`: { leyenda
+// (la del año), musica (la de la fiesta), clase (Pocha da una clase: se queda en la pista) }. Devuelve un Map clave →
+// destino (en el plano: { lugar: 'fiesta', edificio: 'predio', punto, plano, rotPlano, pose, sentado }, o un punto de
+// un edificio de la aldea: { lugar, edificio, punto, pose, sentado }). El que no está en el Map, sigue con lo suyo.
+export const CHICOS = ['nene', 'nena'];
+export const PAREJAS_DE_BAILE = [['herrero', 'modista'], ['padre', 'madre'], ['jefe', 'nelida'], ['carpintero', 'panadera'], ['pescador', 'tejedora'], ['apicultor', 'galesa'], ['telegrafista', 'enfermera'], ['martin', 'abuela']];
+const POSE_BAILE = { chamame: 'chamame', chacarera: 'chacarera', loncomeo: 'bailar', sur: 'bailar' };
+export const poseDeBaile = (musica) => POSE_BAILE[musica] || 'bailar';
+export function repartoFiesta(fecha, fase, claves = [], opciones = {}) {
+  const salida = new Map();
+  const f = typeof fecha === 'string' ? fechaPorId(fecha) : fecha;
+  const fs = typeof fase === 'string' ? fase : fase?.fase;
+  if (!f || !fs) return salida;
+  const P = puntosPredio();
+  const hay = claves.filter((k) => typeof k === 'string');
+  const libres = new Set(hay);
+  const en = (k, punto, extra = {}) => {
+    if (!libres.has(k)) return false;
+    const q = P[punto];
+    if (!q) return false;
+    salida.set(k, { lugar: 'fiesta', edificio: 'predio', punto, plano: { x: q.x, z: q.z }, rotPlano: q.rot, pose: null, sentado: false, ...extra });
+    libres.delete(k);
+    return true;
+  };
+  const enAldea = (k, edificio, punto, extra = {}) => { if (!libres.has(k)) return false; salida.set(k, { lugar: 'fiesta', edificio, punto, pose: null, sentado: false, ...extra }); libres.delete(k); return true; };
+  const resto = () => hay.filter((k) => libres.has(k));
+  const sentarALaMesa = (lista, pose = 'comer') => {
+    let i = 0;
+    for (const k of lista) {
+      while (i < PREDIO.mesa.sitios * 2) { const p = i % 2 ? `mesa-s-${i >> 1}` : `mesa-n-${i >> 1}`; i++; if (en(k, p, { pose, sentado: true })) break; }
+    }
+  };
+  const mirarDesde = (lista, prefijo, cuantos, poses = ['aplaudir', 'mirar']) => {
+    let i = 0;
+    for (const k of lista) { if (i >= cuantos) break; while (i < cuantos && salidaUsa(`${prefijo}-${i}`)) i++; if (i < cuantos && en(k, `${prefijo}-${i}`, { pose: CHICOS.includes(k) ? 'jugar' : poses[i % poses.length] })) i++; }
+  };
+  const salidaUsa = (punto) => [...salida.values()].some((d) => d.punto === punto);
+  if (fs === 'llegada') {
+    en('padre', 'asador-gente', { pose: 'hachar' });
+    en('musico', 'tarima', { pose: 'mirar' });
+    en('madre', 'mesa-n-5', { pose: 'amasar' });
+    en('panadera', 'mesa-n-6', { pose: 'amasar' });
+    return salida;
+  }
+  if (fs === 'acto') {
+    enAldea('jefe', 'plaza', 'soga', { pose: 'izar' });
+    let i = 1;
+    for (const k of resto()) { if (i > 20) break; enAldea(k, 'plaza', `estar-${i++}`, { pose: CHICOS.includes(k) ? 'jugar' : 'mirar', sentado: false }); }
+    return salida;
+  }
+  if (fs === 'mesa' || fs === 'sorpresa') {
+    if (fs === 'sorpresa') en('musico', 'tarima', { pose: 'tocar' });
+    sentarALaMesa(resto());
+    mirarDesde(resto(), 'mira-baile', 15, ['mirar']);
+    return salida;
+  }
+  if (fs === 'juegos') {
+    en('jefe', 'juegos-1', { pose: 'sentado', sentado: true });
+    en('herrero', 'juegos-mira', { pose: 'mirar' });
+    en('padre', 'taba-tira', { pose: 'tirar' });
+    en('carpintero', 'taba-mira', { pose: 'aplaudir' });
+    CHICOS.forEach((k, i) => en(k, `mira-baile-${i + 2}`, { pose: 'jugar' }));
+    const espectadores = resto().filter((k) => !['abuela', 'galesa', 'modista'].includes(k));
+    mirarDesde(espectadores, 'ruedo-mira', 12);
+    // los grandes, de sobremesa
+    sentarALaMesa(resto(), 'sentado');
+    return salida;
+  }
+  if (fs === 'baile') {
+    en('musico', 'tarima', { pose: 'tocar' });
+    const pose = poseDeBaile(opciones.musica || f.musica);
+    const prefijo = pose === 'chacarera' ? 'suelta' : 'pista';
+    let i = 0;
+    // (Pocha, si da una clase, baila con vos: queda en la pista y deja lugar)
+    if (opciones.clase) en('modista', `${prefijo}-7`, { pose });
+    for (const [a, b] of PAREJAS_DE_BAILE) {
+      if (i >= (opciones.clase ? 6 : 8)) break;
+      if (!libres.has(a) || !libres.has(b)) continue;
+      en(a, `${prefijo}-${i}`, { pose }); en(b, `${prefijo}-${i + 1}`, { pose }); i += 2;
+    }
+    mirarDesde(resto(), 'mira-baile', 15, ['aplaudir', 'aplaudir', 'mirar']);
+    sentarALaMesa(resto(), 'sentado');
+    return salida;
+  }
+  if (fs === 'fogon') {
+    const ley = opciones.leyenda || leyendaDelAnio(1);
+    const narrador = libres.has(ley.quien) ? ley.quien : libres.has('abuela') ? 'abuela' : null;
+    if (narrador) en(narrador, 'narrador', { pose: 'contar' });
+    let i = 0;
+    for (const k of resto()) { if (i >= PREDIO.fogon.troncos) break; if (en(k, `fogon-${i}`, { pose: 'sentado', sentado: true })) i++; }
+    mirarDesde(resto(), 'mira-baile', 15, ['mirar']);
+    return salida;
+  }
+  if (fs === 'trabajo') {
+    en('abuela', 'mesa-n-4', { pose: 'sentado', sentado: true });
+    en('panadera', 'asador-gente', { pose: 'amasar' });
+    en('galesa', 'mesa-n-6', { pose: 'amasar' });
+    CHICOS.forEach((k, i) => en(k, `mira-baile-${i}`, { pose: 'jugar' }));
+    let i = 0;
+    for (const k of resto()) { if (i >= 6) break; if (en(k, `minga-${i}`, { pose: i % 2 ? 'palear' : 'hachar' })) i++; }
+    return salida;
+  }
+  if (fs === 'palear') {
+    // los dueños de casa, en su puerta; los demás, con la pala en las puertas de los que viven solos
+    for (const c of NEVADA.casas) enAldea(c.clave, c.edificio, 'puerta', { pose: 'mirar' });
+    let i = 0;
+    for (const k of resto()) { if (i >= 8) break; if (CHICOS.includes(k)) continue; const c = NEVADA.casas[i % NEVADA.casas.length]; if (enAldea(k, c.edificio, 'puerta', { pose: 'palear' })) i++; }
+    return salida;
+  }
+  return salida;
+}
