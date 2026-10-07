@@ -16,6 +16,7 @@ export function crearJugador(camara, T, col, opciones) {
     fasePaso: 0, velocidadActual: 0, quieto: 0,
     superficie: 'hojarasca', profAgua: 0,
     enPlataforma: null, enKayak: false, enTren: false,
+    enSulky: false,   // 3.7.5 (rincones): arriba del sulky (lo lleva rincones-juego.js)
     // 1.10: arriba del caballo. null a pie; si no, { trote, galope, alto, aguaMax }.
     montado: null,
     saltoPedido: 0, coyote: 0, golpe: 0, resbalando: 0,
@@ -71,7 +72,7 @@ export function crearJugador(camara, T, col, opciones) {
     const code = traducir(e.code);
     teclas.add(code);
     if (e.repeat) return;
-    if (estado.enKayak || estado.enTren) { if (code === 'KeyZ') estado.zoom = true; return; }
+    if (estado.enKayak || estado.enTren || estado.enSulky) { if (code === 'KeyZ') estado.zoom = true; return; }   // (3.7.5 (rincones): y en el sulky)
     // 2.9: colgado de la tirolesa sólo se mira (y Z para los prismáticos)
     if (estado.enCable) { if (code === 'KeyZ') estado.zoom = true; return; }
     if (estado.montado && (code === 'KeyC' || code === 'ControlLeft' || code === 'Space')) return;
@@ -179,6 +180,26 @@ export function crearJugador(camara, T, col, opciones) {
       if (Math.abs(camara.fov - fovT) > 0.05) { camara.fov = lerp(camara.fov, fovT, 1 - Math.exp(-7 * dt)); camara.updateProjectionMatrix(); }
       estado.superficie = 'madera'; estado.nadando = false; estado.sentado = false; estado.enSuelo = true;
       return;
+    }
+    // 3.7.5 (rincones): arriba del sulky, el sulky lleva al jugador por el camino (ver rincones-juego.js, `alSulky`)
+    if (estado.enSulky) {
+      activoCuadro = activo;
+      opciones.alSulky?.(dt, teclaKayak);
+      if (estado.enSulky) {
+        estado.alturaOjos = 1.2;
+        const t = performance.now() / 1000;
+        const movCam = opciones.movimientoCamara?.() === 'reducido' ? 0.18 : 1;
+        const traqueteo = Math.min(1, (estado.velocidadActual || 0) / 5);
+        camara.position.set(estado.pos.x, estado.pos.y + 1.2 + Math.abs(Math.sin(t * 7.5)) * 0.025 * traqueteo * movCam, estado.pos.z);
+        camara.rotation.order = 'YXZ';
+        camara.rotation.y = estado.yaw; camara.rotation.x = estado.pitch; camara.rotation.z = Math.sin(t * 2.6) * 0.008 * traqueteo * movCam;
+        const fovBase = opciones.fov?.() || 70;
+        const fov = estado.zoom ? 22 : fovBase;
+        if (Math.abs(camara.fov - fov) > 0.05) { camara.fov = lerp(camara.fov, fov, 1 - Math.exp(-7 * dt)); camara.updateProjectionMatrix(); }
+        estado.superficie = 'madera'; estado.nadando = false; estado.sentado = false; estado.enSuelo = true;
+        estado.vel.set(0, 0, 0); estado.vy = 0;
+        return;
+      }
     }
     // 2.9: colgado de la tirolesa: el cable lleva al jugador (ver tirolesa.js, `andar`)
     if (estado.enCable) {

@@ -2255,5 +2255,6 @@ export function crearAldeaMundo(ctx) {
     // 3.6 (mecánicas): gancho mínimo (ver puntosDeEdificio y animableEnSitio)
     puntosEdificio: (id) => puntosDeEdificio(id), animablesEstacion: () => estacionHecha?.animables || [],
     centro, accesorios, emparejado: () => emparejado, aMundo: (lx, lz) => aMundo(lx, lz), fabrica: () => fabrica.stats,
+    materiales: () => materiales,   // 3.7.5 (rincones): tu casa en la calle de la Loma se arma con los mismos materiales
   };
 }

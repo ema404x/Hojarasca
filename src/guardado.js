@@ -44,6 +44,8 @@ import { sanearAmor, amorNuevo, sanearAjusteRomance } from './amor.js';
 import { sanearCocina, cocinaNueva, sanearCoccion } from './cocina-pasos.js';
 // 3.7.2 (granja): la vaca, los chanchos, los corderos y los frutales (sólo en el Relax)
 import { sanearGranja, granjaNueva } from './granja.js';
+// 3.7.5 (rincones): los duendes, las huertas, el potrero, el taller, tu casa, el camino y el sulky (sólo en el Relax)
+import { rinconesNuevos, sanearRincones } from './rincones.js';
 // 3.7.3: el tren mejorado y el taller ferroviario de la aldea (sólo en el Relax)
 import { trenNuevo, sanearTren } from './tren-mejoras.js';
 // 3.7.5 (noticias): el diario de la aldea, las cartas de lejos, el club y las estrellas; los concursos y las cintas
@@ -301,6 +303,8 @@ export function progresoNuevo() {
     mecanicas: mecanicasNuevas(),
     // 3.7.2 (granja): vacía (en el Desafío, ninguna); la semilla decide el pelaje de la vaca, los mellizos y las camadas
     ...(desafio ? {} : { granja: granjaNueva(1 + Math.floor(Math.random() * 1e9)) }),
+    // 3.7.5 (rincones): nada encontrado ni aprendido; el lote de tu casa, libre; sin sulky; el camino, una huella
+    ...(desafio ? {} : { rincones: rinconesNuevos() }),
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -444,6 +448,8 @@ function sanearProgreso(p) {
     // 3.7.2 (granja): una partida vieja no la trae: arranca vacía. Un guardado roto, saneado (fechas posibles, topes, ids únicos);
     // en el Desafío no hay granja
     granja: modoPartida === 'desafio' ? undefined : sanearGranja(p.granja, Math.max(1, Math.floor(finito(p.dia, 1))), 1 + Math.floor(Math.random() * 1e9)),
+    // 3.7.5 (rincones): una partida vieja no los trae: arrancan de cero (en el Desafío, nada)
+    rincones: modoPartida === 'desafio' ? undefined : sanearRincones(p.rincones, Math.max(1, Math.floor(finito(p.dia, 1)))),
     correo: sanearCorreo(p.correo),
     // la cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real
     tormenta: sanearTormenta(p.tormenta),
