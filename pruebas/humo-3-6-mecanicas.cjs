@@ -208,8 +208,10 @@ app.whenReady().then(async () => {
     let porMenu = false;
     if (/^Hablar con /.test(av)) {
       await tecla(); await esperar(150); await cuadros(2);
-      for (let i = 0; i < 4 && !(await js(`[...document.querySelectorAll('#charla-opciones li')].some((li) => /Devolver «/.test(li.textContent))`)); i++) { await tecla(); await esperar(120); await cuadros(2); }
-      porMenu = await js(`(()=>{ const li = [...document.querySelectorAll('#charla-opciones li')].find((x) => /Devolver «/.test(x.textContent)); if (!li) return false; li.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); return true })()`);
+      for (let i = 0; i < 4 && !(await js(`${H}.__ruedaPlana().some((t) => /Devolver «/.test(t))`)); i++) { await tecla(); await esperar(120); await cuadros(2); }
+      // 3.7.4: en la rueda: la categoría y la opción, con el clic (mousedown), como un jugador
+      const clic = (re) => js(`(()=>{ const r = ${H}.__rueda(); const k = r.categorias && r.nivel === 1 ? r.categorias.findIndex((c) => c.opciones.some((t) => ${re}.test(t))) : r.sectores.findIndex((s) => ${re}.test(s.titulo)); const li = document.querySelectorAll('#charla-opciones li')[k]; if (!li) return false; li.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); return true })()`);
+      porMenu = (await clic('/Devolver «/')) && (await clic('/Devolver «/'));
       await cuadros(3);
     } else await tecla();
     e = await js(`${H}.progreso.mecanicas`);

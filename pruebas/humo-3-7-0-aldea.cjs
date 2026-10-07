@@ -126,7 +126,8 @@ app.whenReady().then(async () => {
     await js(`(()=>{ ${H}.progreso.materiales.tabla = 3; return 1 })()`);
     let h = await hablarCon(npc('botera'), 6);
     ok(h.textos?.length >= 1, `le hablás (${(h.textos || []).slice(0, 2).join(' / ').slice(0, 160)})`);
-    // el menú de la vecindad: su servicio es la primera opción
+    // el menú de la vecindad: su servicio es la primera opción (3.7.4: en la rueda, con la marca en su categoría: E y E)
+    await js(`${tecla('KeyE')} 1`);
     await js(`(()=>{ ${H}.__elegirCharla(0); return 1 })()`);
     for (let i = 0; i < 4; i++) { await js(`${tecla('KeyE')} 1`); }
     await cerrarCharla();

@@ -216,16 +216,36 @@ app.whenReady().then(async () => {
     if (HORAS.length) ok(probadas > 400 * HORAS.length && !unicas.length, `${probadas} veces E en ${HORAS.length} horas: el aviso y E hacen lo mismo${unicas.length ? `; no (${unicas.length}):\n    ${unicas.slice(0, 60).map((f) => `${f.hora} h · ${f.que} [${f.x}, ${f.z}] · aviso «${f.aviso}» · ${f.mal}`).join('\n    ')}` : ''}`);
 
     // ------------------------------------------------------------ el menú de la charla, en la partida
+    // 3.7.4: el menú es la rueda: con las categorías a la vista, `opciones` son todas las de adentro (en orden); `elegida`, la
+    // marca en el aro (de `n` sectores)
     const vista = () => js(`(()=>{ const c = document.getElementById('charla'), ul = document.getElementById('charla-opciones');
-      const lis = [...ul.querySelectorAll('li')];
+      const lis = [...ul.querySelectorAll('li')], r = ${H}.__rueda();
       return { abierta: !c.classList.contains('oculto'), quien: document.getElementById('charla-quien').textContent, texto: document.getElementById('charla-texto').textContent,
-        seguir: document.getElementById('charla-seguir').textContent, menu: !ul.classList.contains('oculto'), opciones: lis.map((l) => l.textContent), elegida: lis.findIndex((l) => l.classList.contains('elegida')) } })()`);
+        seguir: document.getElementById('charla-seguir').textContent, menu: !ul.classList.contains('oculto'), opciones: ${H}.__ruedaPlana(), elegida: r.i, n: lis.length } })()`);
     const tecla = async (code) => { await js(`(()=>{ window.__m361v.toque('${code}'); return 1 })()`); await cuadros(1); };
     const npc = (clave) => `(${H}.gente.gente.find((g) => (g.claveAldea || g.clave) === '${clave}'))`;
     const hastaMenu = async (max = 10) => { let v = await vista(); for (let i = 0; i < max && v.abierta && !v.menu; i++) { await tecla('KeyE'); v = await vista(); } return v; };
     const hablarCon = async (clave) => { await js(`(()=>{ ${H}.hablar(${npc(clave)}); return 1 })()`); return hastaMenu(); };
     const opcion = (v, re) => v.opciones.findIndex((t) => re.test(t));
-    const elegir = async (re) => { const v = await vista(); const i = opcion(v, re); if (i < 0) return { error: `no está ${re} en ${v.opciones.join(' / ')}` }; await tecla(`Digit${i + 1}`); return vista(); };
+    // 3.7.4: en la rueda, el número de la categoría y después el de la opción (como un jugador); `como`: 'tecla', 'clic' o 'E'
+    const elegir = async (re, como = 'tecla') => {
+      const paso = async (k) => {
+        if (como === 'clic') await js(`(()=>{ const li = document.querySelectorAll('#charla-opciones li')[${k}]; li.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); return 1 })()`);
+        else if (como === 'E') { const r0 = await js(`${H}.__rueda()`); await js(`(()=>{ ${H}.__moverCharla(${k} - ${r0.i}); return 1 })()`); await tecla('KeyE'); }
+        else await tecla(`Digit${k + 1}`);
+      };
+      let r = await js(`${H}.__rueda()`);
+      if (r.categorias && r.nivel === 1) {
+        const k = r.categorias.findIndex((c) => c.opciones.some((x) => re.test(x)));
+        if (k < 0) return { error: `no está ${re} en ${r.categorias.map((c) => c.opciones.join(' / ')).join(' / ')}` };
+        await paso(k);
+        if (r.categorias[k].id === 'chau') return vista();
+        r = await js(`${H}.__rueda()`);
+      }
+      const i = r.sectores.findIndex((s) => re.test(s.titulo));
+      if (i < 0) return { error: `no está ${re} en ${r.sectores.map((s) => s.titulo).join(' / ')}` };
+      await paso(i); return vista();
+    };
     const cerrar = () => js(`(()=>{ ${H}.__cerrarCharla(); return 1 })()`);
     const reloj = (dia, horas) => js(`(()=>{ const P = ${H}.progreso; P.dia = ${dia}; P.horas = ${horas}; return 1 })()`);
     // los vecinos en su lugar de esa hora (lejos se acomodan de una) y vos donde digas
@@ -278,7 +298,7 @@ app.whenReady().then(async () => {
       await js(`(()=>{ window.__m361v.poner(${lugarAlmacen.x}, ${lugarAlmacen.z}, ${lugarAlmacen.yaw}); return 1 })()`);
       v = await hablarCon('ercilia');
       ok(v.menu && opcion(v, /Ver qué hay en el almacén/) >= 0 && /Nada más, chau/.test(v.opciones[v.opciones.length - 1]), `hablándole a Ercilia, lo del almacén en el menú (${v.opciones.join(' / ')})`);
-      ok(/1 a \d+, o la ruedita y E, para elegir · Escape para despedirte/.test(v.seguir), `el pie: ${v.seguir}`);
+      ok(/1 a \d+, .*y E, para elegir · Escape para despedirte/.test(v.seguir), `el pie: ${v.seguir}`);
       v = await elegir(/Regalar/);
       ok(v.menu && /Mejor no/.test(v.opciones[v.opciones.length - 1]) && opcion(v, /yerba/i) >= 0, `el submenú de regalar (${v.opciones.join(' / ')})`);
       v = await elegir(/Mejor no/);
@@ -288,21 +308,17 @@ app.whenReady().then(async () => {
       // la ruedita mueve, E elige
       const i0 = v.elegida;
       await js(`(()=>{ window.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 })); return 1 })()`); v = await vista();
-      ok(v.elegida === (i0 + 1) % v.opciones.length, `la ruedita mueve la marca (${i0} → ${v.elegida})`);
+      ok(v.elegida === (i0 + 1) % v.n, `la ruedita mueve la marca (${i0} → ${v.elegida})`);
       await js(`(()=>{ window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 })); window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 })); return 1 })()`); v = await vista();
-      ok(v.elegida === (i0 + v.opciones.length - 1) % v.opciones.length, 'y para atrás (da la vuelta)');
+      ok(v.elegida === (i0 + v.n - 1) % v.n, 'y para atrás (da la vuelta)');
       // el clic en una opción (con el mouse suelto)
-      const iCom = opcion(v, /¿Cómo andás\?/);
-      await js(`(()=>{ const li = document.querySelectorAll('#charla-opciones li')[${iCom}]; li.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); return 1 })()`);
-      v = await vista();
+      v = await elegir(/¿Cómo andás\?/, 'clic');
       ok(v.abierta && !v.menu && v.texto.length > 5, `el clic elige: «${v.texto.slice(0, 60)}»`);
       
       v = await hastaMenu();
       ok((await js(`getComputedStyle(document.querySelector('#charla-opciones li')).pointerEvents`)) === 'auto', 'las opciones reciben el mouse (el HUD no)');
       // E elige la marcada: la del almacén
-      const iLug = opcion(v, /Ver qué hay en el almacén/);
-      await js(`(()=>{ ${H}.__moverCharla(${iLug} - ${v.elegida}); return 1 })()`);
-      await tecla('KeyE');
+      await elegir(/Ver qué hay en el almacén/, 'E');
       e = await js(`(()=>({ almacen: ${H}.__abierto().enElAlmacen, charla: !document.getElementById('charla').classList.contains('oculto') }))()`);
       ok(e.almacen && !e.charla, 'elegido lo del lugar: se abre el almacén y se cierra la charla');
       await tecla('Escape');
@@ -321,7 +337,7 @@ app.whenReady().then(async () => {
       e = await js(`(()=>({ prestado: ${P}.mecanicas.prestado, notas: document.getElementById('notas').textContent }))()`);
       ok(!v.abierta && e.prestado && /Te llevás «/.test(e.notas), `se lleva el libro (${e.prestado?.id})`);
       v = await hablarCon('abuela');
-      ok(v.menu && opcion(v, /^\d+\. Devolver «/) >= 0, `después, devolverlo (${v.opciones.join(' / ')})`);
+      ok(v.menu && opcion(v, /Devolver «/) >= 0, `después, devolverlo (${v.opciones.join(' / ')})`);
       v = await elegir(/Devolver «/);
       e = await js(`${P}.mecanicas.prestado`);
       ok(!v.abierta && e === null, 'devuelto');

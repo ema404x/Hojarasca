@@ -90,7 +90,7 @@ app.whenReady().then(async () => {
   const vista = () => js(`(()=>{ const c = document.getElementById('charla'), ul = document.getElementById('charla-opciones');
     const lis = [...ul.querySelectorAll('li')];
     return { abierta: !c.classList.contains('oculto'), quien: document.getElementById('charla-quien').textContent, texto: document.getElementById('charla-texto').textContent,
-      menu: !ul.classList.contains('oculto'), opciones: lis.map((l) => l.textContent) } })()`);
+      menu: !ul.classList.contains('oculto'), opciones: ${H}.__ruedaPlana() } })()`);   // 3.7.4: la rueda, aplanada
   const npc = (clave) => `(${H}.gente.gente.find((g) => (g.claveAldea || g.clave) === '${clave}'))`;
   const frente = async (clave, d = 1.6) => {
     const p = await js(`(()=>{ const n = ${npc(clave)}; return n ? { x: n.pos.x, z: n.pos.z } : null })()`);
@@ -102,7 +102,20 @@ app.whenReady().then(async () => {
     return true;
   };
   const hastaMenu = async (max = 10) => { let v = await vista(); for (let i = 0; i < max && v.abierta && !v.menu; i++) { await tecla('KeyE'); v = await vista(); } return v; };
-  const elegir = async (re) => { const v = await vista(); const i = v.opciones.findIndex((t) => re.test(t)); if (i < 0) return { error: `no está ${re} en ${v.opciones.join(' / ')}` }; await tecla(`Digit${i + 1}`); return vista(); };
+  // 3.7.4: en la rueda, el número de la categoría y después el de la opción (como un jugador)
+  const elegir = async (re) => {
+    let r = await js(`${H}.__rueda()`);
+    if (r.categorias && r.nivel === 1) {
+      const k = r.categorias.findIndex((c) => c.opciones.some((x) => re.test(x)));
+      if (k < 0) return { error: `no está ${re} en ${r.categorias.map((c) => c.opciones.join(' / ')).join(' / ')}` };
+      await tecla(`Digit${k + 1}`);
+      if (r.categorias[k].id === 'chau') return vista();
+      r = await js(`${H}.__rueda()`);
+    }
+    const i = r.sectores.findIndex((s) => re.test(s.titulo));
+    if (i < 0) return { error: `no está ${re} en ${r.sectores.map((s) => s.titulo).join(' / ')}` };
+    await tecla(`Digit${i + 1}`); return vista();
+  };
   const leer = async () => { const t = []; let v = await vista(); for (let i = 0; i < 8 && v.abierta && !v.menu; i++) { t.push(v.texto); await tecla('KeyE'); v = await vista(); } return { renglones: t, v }; };
   const cerrar = () => js(`${H}.__cerrarCharla(); 1`);
   const programas = () => js(`${H}.renderer.info.programs.length`);

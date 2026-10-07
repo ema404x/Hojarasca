@@ -73,7 +73,7 @@ app.whenReady().then(async () => {
   // mira a un punto desde donde está (la altura del blanco, absoluta)
   const mirarA = (x, y, z) => js(`(()=>{ const j = ${H}.jugador.estado; const dx = ${x} - j.pos.x, dz = ${z} - j.pos.z; j.yaw = Math.atan2(-dx, -dz); j.pitch = Math.atan2(${y} - (j.pos.y + 1.6), Math.hypot(dx, dz)); return 1 })()`);
   const dia = (d, h) => js(`(()=>{ ${P}.dia = ${d}; ${P}.horas = ${h}; return 1 })()`);
-  const charla = () => js(`(()=>({ npc: ${H}.__charla().npc, texto: document.getElementById('charla-texto').textContent, opciones: [...document.querySelectorAll('#charla-opciones li')].map((li) => li.textContent), menu: !document.getElementById('charla-opciones')?.classList.contains('oculto') }))()`);
+  const charla = () => js(`(()=>({ npc: ${H}.__charla().npc, texto: document.getElementById('charla-texto').textContent, opciones: ${H}.__ruedaPlana(), menu: !document.getElementById('charla-opciones')?.classList.contains('oculto') }))()`);
   const cerrarCharla = () => js(`(()=>{ for (let i = 0; i < 8 && ${H}.__charla().npc; i++) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true })); return !${H}.__charla().npc })()`);
   const hablarCon = async (clave, maximo = 12) => {
     const p = await posDe(clave);
@@ -104,7 +104,7 @@ app.whenReady().then(async () => {
     const c = await charla();
     const i = c.opciones.findIndex((o) => o.includes(texto));
     if (i < 0) return { error: `no está «${texto}» en ${c.opciones.join(' / ')}`, opciones: c.opciones };
-    await js(`${H}.__elegirCharla(${i}); 1`);
+    await js(`${H}.__elegirEnRueda(${JSON.stringify(texto)}); 1`);   // 3.7.4: en la rueda, la categoría y la opción
     return charla();
   };
   const estado = () => js(`${AM}.estado()`);

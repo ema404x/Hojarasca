@@ -60,7 +60,7 @@ app.whenReady().then(async () => {
   const ubicar = (x, z, mx, mz) => js(`(()=>{ const j = ${H}.jugador; j.ubicar(${x}, ${z}, Math.atan2(-(${mx} - ${x}), -(${mz} - ${z}))); j.estado.pitch = -0.05; return 1 })()`);
   const irLejos = () => js(`(()=>{ const r = ${H}.T.lugares.refugio; ${H}.jugador.ubicar(r.x, r.z, 0); return 1 })()`);
   const npc = (clave) => `${H}.__aldea.mundo().personas.get('${clave}')?.npc`;
-  const charla = () => js(`(()=>({ npc: ${H}.__charla().npc, texto: document.getElementById('charla-texto').textContent, opciones: [...document.querySelectorAll('#charla-opciones li')].map((li) => li.textContent), menu: !document.getElementById('charla-opciones')?.classList.contains('oculto') }))()`);
+  const charla = () => js(`(()=>({ npc: ${H}.__charla().npc, texto: document.getElementById('charla-texto').textContent, opciones: ${H}.__ruedaPlana(), menu: !document.getElementById('charla-opciones')?.classList.contains('oculto') }))()`);
   // se para enfrente de la figura y aprieta E hasta que aparece el menú (o se cierra)
   const hablarCon = async (clave, maximo = 12) => {
     const p = await js(`(()=>{ const n = ${npc(clave)}; return n ? { x: n.pos.x, z: n.pos.z } : null })()`);
@@ -86,7 +86,7 @@ app.whenReady().then(async () => {
     const c = await charla();
     const i = c.opciones.findIndex((o) => o.includes(texto));
     if (i < 0) return { error: `no está «${texto}» en ${c.opciones.join(' / ')}`, opciones: c.opciones };
-    await js(`${H}.__elegirCharla(${i}); 1`);
+    await js(`${H}.__elegirEnRueda(${JSON.stringify(texto)}); 1`);   // 3.7.4: en la rueda, la categoría y la opción
     return charla();
   };
   // E hasta volver al menú (lee los renglones)

@@ -8940,6 +8940,11 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
       categorias: m?.rueda?.tipo === 'categorias' ? m.rueda.categorias.map((c) => ({ id: c.id, nombre: c.nombre, opciones: c.directa ? [c.directa.titulo] : c.opciones.map((o) => o.titulo) })) : null,
       info: m?.info || null, transform: $('rueda').style.transform }; },
     __social: () => socialJuego, __socialMundo: () => socialMundo, __manosSociales: () => manosSociales, __ultimaVoz: () => ultimaVoz,
+    // (las pruebas de antes de la rueda: la lista de siempre, aplanada, y elegir por el texto como un jugador: la categoría y la opción)
+    __ruedaPlana: () => { const m = charla.menu; if (!m?.anillo) return []; return m.rueda?.tipo === 'categorias' && m.nivel === 1 ? m.rueda.categorias.flatMap((c) => (c.directa ? [c.directa.titulo] : c.opciones.map((o) => o.titulo))) : m.anillo.map((s) => s.titulo); },
+    __elegirEnRueda: (texto) => { const m = charla.menu; if (!m?.anillo) return false; const es = (t) => String(t).includes(texto);
+      if (m.rueda?.tipo === 'categorias' && m.nivel === 1) { const k = m.rueda.categorias.findIndex((c) => (c.directa ? es(c.directa.titulo) : c.opciones.some((o) => es(o.titulo)))); if (k < 0) return false; elegirEnMenuCharla(k); if (m.rueda.categorias[k].directa) return true; }
+      const i = (charla.menu?.anillo || []).findIndex((s) => es(s.titulo)); if (i < 0) return false; elegirEnMenuCharla(i); return true; },
     __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas

@@ -163,8 +163,8 @@ app.whenReady().then(async () => {
     ok(av === `Hablar con ${visita}`, `con la visita en tu mesa gana la visita: «${av}»`);
     await tecla('KeyE'); await cuadros(2);
     for (let i = 0; i < 10 && !(await js(`!document.getElementById('charla-opciones').classList.contains('oculto')`)); i++) await tecla('KeyE');
-    const menu = await js(`[...document.querySelectorAll('#charla-opciones li')].map((li) => li.textContent)`);
-    ok(menu.some((t) => /^\d+\. Leer «La trochita», el libro prestado$/.test(t)), `y leer queda en el menú de la charla (${menu.join(' / ')})`);
+    const menu = await js(`${H}.__ruedaPlana()`);   // 3.7.4: la rueda, aplanada (todas las opciones de todas las categorías)
+    ok(menu.some((t) => /^Leer «La trochita», el libro prestado$/.test(t)), `y leer queda en el menú de la charla (${menu.join(' / ')})`);
     await js(`${H}.__cerrarCharla(); ${H}.jugador.sentarse(false); 1`);
 
     seccion('el mapa dibuja la aldea');
