@@ -412,6 +412,22 @@ export function coquetear(estado, clave, ctx = {}) {
   return { ok: true, resultado, renglones: [elegir(VOCES_AMOR[clave].piropo[resultado], `${clave}${d}${resultado}`)], subio, cambio };
 }
 
+// 3.7.4: lo que suma o resta la rueda de la vida social (vecindad-social.js): tomarse de la mano, un abrazo largo,
+// un beso que salió bien (o la cachetada suave de mentira). Sólo con una candidata con la que puede haber romance;
+// como con el piropo, con 15 de afecto empieza el coqueteo. Devuelve { cambio, afecto, etapa, subio } o null.
+export function sumarAfectoDe(estado, clave, n, ctx = {}) {
+  if (!puedeRomance(clave, estado, ctx).ok) return null;
+  const { amor, progreso } = partes(estado, true);
+  const d = diaDe(progreso, ctx);
+  const f = ficha(amor, clave);
+  const cambio = acotar(Number.isFinite(num(n)) ? num(n) : 0, -10, 10);
+  sumarAfecto(f, cambio);
+  contacto(f, d);
+  let subio = null;
+  if (f.etapa === 'conocidos' && f.afecto >= AMOR.piropo.umbral) { cambiarEtapa(f, 'coqueteo', d); subio = 'coqueteo'; }
+  return { cambio, afecto: f.afecto, etapa: f.etapa, subio };
+}
+
 // ---------------------------------------------------------------- las flores (en mano)
 // Un ramo por día; en invierno no hay flores (las del monte se cierran: ver pasto.js). Suma afecto.
 export function regalarFlores(estado, clave, ctx = {}) {
