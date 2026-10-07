@@ -333,17 +333,23 @@ export function crearRinconesJuego(ctx) {
     }
     return null;
   }
+  // Un duende tallado (el más cercano, a menos de 1,8 m). Va al último en la E y en el aviso (main.js): una obra tuya,
+  // una puerta o el perro le ganan
+  function accionDuende(js) {
+    if (!activo() || !js || js.enSulky || js.montado || js.enTren || js.enKayak || !ctx.mundo) return null;
+    const R = r(), pos = js.pos;
+    for (const q of ctx.mundo.duendes()) {
+      if (Math.abs(q.y - pos.y) > 2.2 || dist(q, pos) > radio.duende) continue;
+      if (encontrado(R, q.id)) return { tipo: 'duende', texto: textoDuende(R, q.id), hacer: () => ctx.nota?.(DUENDES.find((x) => x.id === q.id)?.nombre || 'Un duende', `Ya lo anotaste. Llevás ${duendesEncontrados(R)} de 12`) };
+      return { tipo: 'duende', texto: textoDuende(R, q.id), hacer: () => anotarDuende(q.id) };
+    }
+    return null;
+  }
   function accion(js) {
     if (!activo() || !js || js.enSulky || js.montado || js.enTren || js.enKayak) return null;
     const R = r(), d = dia(), h = horas(), pos = js.pos;
     const M = ctx.mundo;
     if (!M) return null;
-    // los duendes (el más cercano, a menos de 1,8 m)
-    for (const q of M.duendes()) {
-      if (Math.abs(q.y - pos.y) > 2.2 || dist(q, pos) > radio.duende) continue;
-      if (encontrado(R, q.id)) return { tipo: 'duende', texto: textoDuende(R, q.id), hacer: () => ctx.nota?.(DUENDES.find((x) => x.id === q.id)?.nombre || 'Un duende', `Ya lo anotaste. Llevás ${duendesEncontrados(R)} de 12`) };
-      return { tipo: 'duende', texto: textoDuende(R, q.id), hacer: () => anotarDuende(q.id) };
-    }
     // el sulky (estacionado, para subir)
     if (tiene() && !partido) {
       const p = poseSulky();
@@ -579,7 +585,7 @@ export function crearRinconesJuego(ctx) {
   }
 
   return {
-    actualizar, accion, urgente, opciones, elegir, destino, canterosParaMatas, refrescarMatas,
+    actualizar, accion, accionDuende, urgente, opciones, elegir, destino, canterosParaMatas, refrescarMatas,
     alSulky, subirSulky, bajarSulky, caballoAtado, enSulky: () => !!viaje, poseSulky, tieneSulky: tiene,
     desatar: () => { if (sk()) sk().atado = false; },
     // la minga del camino (la llama el equipo de las fiestas el día que se hace): { ok, nueva }

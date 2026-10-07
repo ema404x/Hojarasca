@@ -2747,6 +2747,8 @@ document.addEventListener('keydown', (e) => {
       }
       if (!objetivo && rastro && !desafio && mirandoAlPerro(js, perro.est.pos)) { dejarRastro('Dejaste el rastro', 'El perro vuelve con vos'); break; }
       if (!objetivo && puedoPedirRastro()) { pedirRastro(); break; }
+      // 3.7.5 (rincones): un duende tallado al lado, al último (una obra tuya, una puerta o el perro le ganan; el aviso, igual)
+      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accionDuende(js); if (a) { a.hacer(); cacheDuende = null; break; } }
       // 3.7.3: en el tren mejorado, lo de cada lugar: la cocina del comedor, unos mates, la cucheta (el aviso, igual)
       if (js.enTren && usarLugarDelTren()) break;
       // 2.9: en la cabina, E baja (parado en un andén)
@@ -7742,6 +7744,7 @@ let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar 
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
+let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
@@ -8443,6 +8446,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
+      cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -8500,6 +8504,8 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.6 (mecánicas): sentado, E no abre puertas (sentado a la mesa de la casa de té, junto a la puerta, se pide el té)
     if (!aviso && puertaCerca) aviso = js.sentado ? null : { tecla: 'E', texto: `${puertaCerca.objetivo > 0.5 ? 'Cerrar' : 'Abrir'} ${puertaCerca.nombre}` };
     if (!aviso && !objetivo && !desafio && !js.montado && mirandoAlPerro(js, perro.est.pos) && (rastro || puedoPedirRastro())) aviso = { tecla: 'E', texto: rastro ? 'Dejar el rastro' : 'Pedirle al perro que rastree' };
+    // 3.7.5 (rincones): el duende tallado, después del perro, como en la tecla E
+    if (!aviso && cacheDuende && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: 'E', texto: cacheDuende.texto };
     if (!aviso && !desafio && !js.enTren && !js.enKayak && !objetivo && tren.puedeConducir(js)) aviso = { tecla: 'E', texto: 'Subir a la cabina y manejar' };
     if (!aviso && !js.enTren && !js.enKayak && !objetivo && tren.puedeSubir(js)) aviso = { tecla: 'E', texto: 'Subir a la trochita' };
     // 2.6.1: la casa de té va acá, como en la tecla E (antes del kayak, la carpa y el fuego):
