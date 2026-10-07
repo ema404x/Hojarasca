@@ -13,8 +13,12 @@ export const NOMBRES_ICONOS = [
   'casa', 'chau', 'volver', 'oveja', 'arbol', 'luna', 'radio', 'taza',
   'anillo', 'diario', 'golpe', 'exclamacion', 'canasta', 'montana', 'carta', 'hoja',
   'enamorado', 'contento', 'enojado', 'timido', 'vecinos', 'puerta', 'bebe', 'semilla',
+  // 3.7.4 (con las reglas de vecindad-social.js): sus íconos (ICONOS) y sus emociones (EMOCIONES), con estos nombres
+  'saludo', 'aplauso', 'consuelo', 'chiste', 'broma', 'morisqueta', 'nada', 'baile', 'pesca', 'pasos',
+  'pelota', 'musica', 'oficio', 'granja', 'frutilla', 'miel', 'pan', 'lana', 'madera', 'piedra',
+  'pluma', 'baya', 'pinon', 'hongo', 'huevo', 'huerta', 'tranquilo', 'sorpresa', 'verguenza', 'confundido',
 ];
-export const LADO_ATLAS = 8, CELDA = 64;
+export const LADO_ATLAS = 10, CELDA = 64;   // (10 × 10 celdas: 640 px)
 const INDICE = new Map(NOMBRES_ICONOS.map((n, i) => [n, i]));
 // la celda de un ícono (los que no están: la pregunta)
 export function celdaIcono(nombre) {
@@ -22,7 +26,7 @@ export function celdaIcono(nombre) {
   return { i, col: i % LADO_ATLAS, fila: Math.floor(i / LADO_ATLAS) };
 }
 export const hayIcono = (nombre) => INDICE.has(nombre);
-// para el CSS: la posición de fondo con el atlas a background-size 800% 800%
+// para el CSS: la posición de fondo con el atlas a background-size 1000% 1000%
 export function posicionCss(nombre) {
   const { col, fila } = celdaIcono(nombre);
   return `${((col / (LADO_ATLAS - 1)) * 100).toFixed(3)}% ${((fila / (LADO_ATLAS - 1)) * 100).toFixed(3)}%`;
@@ -198,6 +202,31 @@ const DIBUJOS = {
   bebe(c) { circulo(c, 0, -4, 14, C.piel); ojos(c, 0, -6, 5, 1.8); arco(c, 0, -2, 5, 0.2 * Math.PI, 0.8 * Math.PI, 2.4); c.beginPath(); c.ellipse(0, 16, 18, 9, 0, Math.PI, 0, true); c.fillStyle = C.celeste; c.fill(); trazo(c, 3); c.stroke(); },
   semilla(c) { c.beginPath(); c.ellipse(0, 8, 10, 14, 0.3, 0, Math.PI * 2); c.fillStyle = C.marron; c.fill(); trazo(c, 3); c.stroke(); linea(c, [2, -6, 4, -20], 3, C.verde); c.beginPath(); c.ellipse(10, -20, 8, 4, -0.4, 0, Math.PI * 2); c.fillStyle = C.verde; c.fill(); },
 };
+
+// 3.7.4: los de las reglas (vecindad-social.js). Algunos son el mismo dibujo con otro nombre
+Object.assign(DIBUJOS, {
+  saludo: DIBUJOS.chau, consuelo: DIBUJOS.consolar, chiste: DIBUJOS.risa, broma: DIBUJOS.guino, nada: DIBUJOS.ignorar, musica: DIBUJOS.nota,
+  pasos: DIBUJOS.huellas, oficio: DIBUJOS.herramienta, granja: DIBUJOS.vaca, lana: DIBUJOS.oveja, verguenza: DIBUJOS.timido,
+  aplauso(c) { mano(c, -9, 2, 0.85); mano(c, 9, 2, 0.85, '#c8956a', true); for (const [x, y] of [[0, -24], [-12, -20], [12, -20]]) linea(c, [x, y, x * 1.3, y - 6], 2.6, C.ocre); },
+  morisqueta(c) { cara(c, 0, 0, 22); circulo(c, -7, -6, 5, C.crema, TINTA, 2.2); circulo(c, 7, -6, 5, C.crema, TINTA, 2.2); circulo(c, -5, -6, 2, TINTA, null); circulo(c, 5, -6, 2, TINTA, null); c.beginPath(); c.ellipse(0, 11, 5, 7, 0, 0, Math.PI); c.fillStyle = C.rosa; c.fill(); trazo(c, 2.4); c.stroke(); linea(c, [-10, 8, 10, 8], 2.6); },
+  baile(c) { DIBUJOS.nota(c); corazon(c, 14, -18, 6); },
+  pesca(c) { linea(c, [-22, 24, 14, -24], 3.4, C.marron); linea(c, [14, -24, 18, 6], 1.6); arco(c, 15, 9, 4, 0, Math.PI, 2.4); c.save(); c.translate(-6, 14); c.scale(0.5, 0.5); DIBUJOS.pez(c); c.restore(); },
+  pelota(c) { circulo(c, 0, 0, 20, '#f4f0e4'); c.beginPath(); for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5 - Math.PI / 2; c.lineTo(Math.cos(a) * 8, Math.sin(a) * 8); } c.closePath(); c.fillStyle = TINTA; c.fill(); },
+  frutilla(c) { c.beginPath(); c.moveTo(-16, -8); c.quadraticCurveTo(0, -14, 16, -8); c.quadraticCurveTo(12, 16, 0, 22); c.quadraticCurveTo(-12, 16, -16, -8); c.fillStyle = C.rojo; c.fill(); trazo(c, 3); c.stroke(); for (const [x, y] of [[-6, 0], [6, 0], [0, 8], [-4, 14], [4, 14]]) circulo(c, x, y, 1.4, C.ocre, null); c.beginPath(); c.ellipse(0, -12, 12, 4, 0, 0, Math.PI * 2); c.fillStyle = C.verde; c.fill(); },
+  miel(c) { rect(c, -14, -8, 28, 30, C.ocre, 5); rect(c, -16, -16, 32, 9, C.marron, 3); rect(c, -8, 2, 16, 12, C.crema, 2, TINTA, 2); },
+  pan(c) { c.beginPath(); c.ellipse(0, 4, 24, 15, 0, 0, Math.PI * 2); c.fillStyle = '#c99a5a'; c.fill(); trazo(c, 3); c.stroke(); for (const x of [-10, 0, 10]) linea(c, [x - 4, -4, x + 4, 6], 2.6); },
+  madera(c) { for (const [y, l] of [[8, 0], [-8, 4]]) { rect(c, -22 + l, y - 7, 40, 14, C.marron, 6); circulo(c, 18 + l, y, 6.5, '#c99a5a', TINTA, 2.4); circulo(c, 18 + l, y, 2.5, null, TINTA, 1.6); } },
+  piedra(c) { c.beginPath(); c.moveTo(-22, 14); c.lineTo(-16, -8); c.lineTo(0, -16); c.lineTo(18, -8); c.lineTo(22, 14); c.closePath(); c.fillStyle = C.gris; c.fill(); trazo(c, 3); c.stroke(); linea(c, [-6, -4, 2, 4], 2); },
+  pluma(c) { c.beginPath(); c.moveTo(-18, 22); c.quadraticCurveTo(-16, -10, 18, -24); c.quadraticCurveTo(10, 6, -18, 22); c.fillStyle = C.verde; c.fill(); trazo(c, 3); c.stroke(); linea(c, [-22, 26, 12, -16], 2.4); },
+  baya(c) { for (const [x, y] of [[-8, 4], [8, 4], [0, 14], [0, -4]]) circulo(c, x, y, 8, C.azul, TINTA, 2.4); linea(c, [0, -12, 6, -24], 2.6, C.verde); },
+  pinon(c) { for (const [x, r] of [[-9, -0.3], [9, 0.3]]) { c.save(); c.translate(x, 2); c.rotate(r); c.beginPath(); c.ellipse(0, 0, 7, 18, 0, 0, Math.PI * 2); c.fillStyle = C.marron; c.fill(); trazo(c, 2.6); c.stroke(); c.restore(); } },
+  hongo(c) { rect(c, -6, 0, 12, 22, C.crema, 4); c.beginPath(); c.arc(0, 2, 22, Math.PI, 0); c.closePath(); c.fillStyle = C.rojo; c.fill(); trazo(c, 3); c.stroke(); for (const [x, y] of [[-10, -6], [6, -12], [12, -4]]) circulo(c, x, y, 3, C.crema, null); },
+  huevo(c) { c.beginPath(); c.ellipse(0, 3, 16, 21, 0, 0, Math.PI * 2); c.fillStyle = '#f4ead2'; c.fill(); trazo(c, 3); c.stroke(); },
+  huerta(c) { c.beginPath(); c.moveTo(-8, -6); c.lineTo(8, -6); c.lineTo(0, 26); c.closePath(); c.fillStyle = '#d07a2e'; c.fill(); trazo(c, 3); c.stroke(); for (const a of [-0.5, 0, 0.5]) linea(c, [0, -6, Math.sin(a) * 14, -24], 3, C.verde); },
+  tranquilo(c) { cara(c, 0, 0, 22, C.verde); arco(c, -7, -6, 4, 0.1 * Math.PI, 0.9 * Math.PI, 2.6); arco(c, 7, -6, 4, 0.1 * Math.PI, 0.9 * Math.PI, 2.6); arco(c, 0, 4, 7, 0.25 * Math.PI, 0.75 * Math.PI); },
+  sorpresa(c) { cara(c, 0, 0, 22); circulo(c, -7, -6, 3, TINTA, null); circulo(c, 7, -6, 3, TINTA, null); circulo(c, 0, 10, 5.5, '#6a2a22', TINTA, 2.4); linea(c, [-12, -15, -4, -14], 2.4); linea(c, [12, -15, 4, -14], 2.4); },
+  confundido(c) { cara(c, 0, 0, 22, C.celeste); ojos(c, 0, -5); linea(c, [-9, 10, -3, 7, 3, 11, 9, 8], 2.6); texto(c, '?', 18, -18, 20); },
+});
 
 // Dibuja el atlas entero en `lienzo` (un canvas del DOM). Devuelve el mismo lienzo.
 export function dibujarAtlas(lienzo) {

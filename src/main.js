@@ -82,8 +82,8 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos } from './vecindad-social.js';
-import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION } from './social-rueda.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
 import { crearSocialJuego } from './social-juego.js';
@@ -4470,6 +4470,7 @@ function armarOficiosYAldea(esDesafio) {
   socialJuego = crearSocialJuego({
     social: REGLAS_SOCIALES, progreso: () => progreso, dia: () => progreso.dia, hora: () => progreso.horas, clima: climaVecindad,
     ritmo: () => ajustes.ritmoAldea || 'normal', desafio: () => !!desafio, jugador: () => jugador?.estado?.pos || null,
+    romance: () => ajustes.romance !== false, apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,
     gente: () => gente?.gente || [], claveDe: (npc) => claveVecindad(npc), hablandoCon: () => charla.npc,
     mundo: { burbuja: (n, i, o) => socialMundo?.burbuja(n, i, o), emocion: (n, i, o) => socialMundo?.emocion(n, i, o), quitar: (n, q) => socialMundo?.quitar(n, q) },
     anim: { empezar: (g, id, o) => empezarAnim(g, id, o), terminar: (g) => terminarAnim(g) },
@@ -6770,9 +6771,14 @@ function elegirEnMenuCharla(i) {
     if (i < 0 || i >= m.opciones.length) return;
   }
   if (m.opciones[i].id === '__lugar') { const hacer = m.opciones[i].hacer; cerrarCharla(); hacer(); return; }   // 3.6
-  const r = vecindadJuego.elegir(charla.vec, m.opciones[i].id, charla.npc);
+  const elegido = m.opciones[i].id;
+  const r = vecindadJuego.elegir(charla.vec, elegido, charla.npc);
   charla.menu = null;
   charla.parte = 0;
+  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece
+  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.tipo === 'renglones' ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
+  const gracias = hechoDeseo ? socialJuego?.cumplir(charla.npc, hechoDeseo) : null;
+  if (gracias && Array.isArray(r.renglones)) r.renglones = [...r.renglones, gracias];
   if (r.tipo === 'menu') armarMenuCharla();   // 3.6.1: con lo del lugar
   else if (r.tipo === 'renglones') charla.historia = { id: 'vecindad-tema', partes: r.renglones, volver: true };
   else if (r.tipo === 'historia') charla.historia = { ...r.historia, volver: true };
@@ -6806,7 +6812,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {
@@ -6819,7 +6825,7 @@ const ruedaPuntero = { x: 0, y: 0 };
 function prepararRueda(alFinal = false) {
   const m = charla.menu;
   if (!m) return;
-  const social = m.tipo === 'charla' && !desafio ? socialJuego?.opciones(charla.npc) || [] : [];
+  const social = m.tipo === 'charla' && !desafio ? socialJuego?.opciones(charla.npc, m) || [] : [];
   m.rueda = armarRueda(m, social, CATEGORIAS_RUEDA);
   m.nivel = 1; m.cat = null;
   m.i = marcaInicial(m.rueda, { alFinal, volverA: charla.volverA || null, primera: m.i || 0 });
@@ -6873,9 +6879,17 @@ function dibujarInfoRueda() {
     emo.title = info.motivo || '';
   }
   $('rueda-amistad').style.width = `${info.relacion.amistad}%`;
+  $('rueda-marca-amigo').style.left = `${info.relacion.marcas.amigo}%`;
+  $('rueda-marca-compadre').style.left = `${info.relacion.marcas.compadre}%`;
+  $('rueda-nivel').textContent = info.relacion.nivel ? T_(info.relacion.nivel) : '';
   $('rueda-romance-fila').classList.toggle('oculto', !info.relacion.romanceVisible);
   $('rueda-romance').style.width = `${info.relacion.romance}%`;
-  $('rueda-deseo').textContent = info.deseo ? T_(info.deseo) : '';
+  const ds = $('rueda-deseo');
+  ds.textContent = '';
+  if (info.deseo) {
+    const ic = document.createElement('i'); ic.className = 'icono-social'; ic.style.backgroundPosition = posicionCss(info.iconoDeseo);
+    ds.append(ic, document.createTextNode(T_(info.deseo)));
+  }
 }
 // alrededor de la cabeza del vecino, sin salirse de la pantalla ni pisar el cuadro de la charla (cada cuadro)
 const _vRueda = new THREE.Vector3();
@@ -6940,7 +6954,8 @@ function apuntarRueda(dx, dy, absoluto = false) {
 function interactuarSocial(id, cat) {
   const r = socialJuego?.interactuar(charla.npc, id);
   if (!r) { temblarRueda(); return; }
-  if (r.efectos?.some((f) => f?.tipo === 'material' || f?.tipo === 'cosa' || f?.tipo === 'entrada')) { aplicarEfectos(progreso, r.efectos, { sumarMaterial, sumarEntrada }); refrescarBarra(true); }
+  if (r.cosas.length) { aplicarEfectos(progreso, r.cosas, { sumarMaterial, sumarEntrada }); refrescarBarra(true); }
+  for (const o of r.otros) otroSocial(o, charla.npc);
   charla.menu = null; charla.parte = 0; charla.volverA = cat;
   charla.historia = { id: 'social', partes: r.renglones, volver: true, social: true };
   // (se enojó y se va: al terminar lo que dice, la charla se termina)
@@ -6948,12 +6963,36 @@ function interactuarSocial(id, cat) {
   guardar();
   mostrarCharla();
 }
+// lo que engancha una interacción con lo demás (vecindad-social.js, efectos.otros)
+const OTRO_SOCIAL = {
+  mate: ['Tomaron unos mates', 'Así se hacen los amigos'], cartas: ['Jugaron un truco', ''], pesca: ['Quedaron en ir a pescar', 'Vayan a la orilla del lago'],
+  caminar: ['Salieron a caminar', 'Un rato de paseo'], foto: ['Se sacaron una foto', 'Apretá P para sacarla vos'],
+};
+function otroSocial(o, npc) {
+  if (!o || typeof o !== 'object') return;
+  const quien = npc?.nombre || '';
+  if (o.tipo === 'deseo') return;   // (el renglón de las gracias ya viene en lo que dice)
+  if (o.tipo === 'gusto') { nota(`Ya sabés algo que le gusta a ${quien}`, 'Queda en «Tus vecinos», en el cuaderno'); return; }
+  if (o.tipo === 'cartas') { nota(o.gano ? `Le ganaste un truco a ${quien}` : `${quien} te ganó un truco`, 'Otro día la revancha'); return; }
+  if (o.tipo === 'foto') { sonido.obturador?.(); }
+  const t = OTRO_SOCIAL[o.tipo];
+  if (t) nota(t[0], t[1]);
+  else if (o.tipo === 'nivel' || o.tipo === 'etapa') nota(`${quien} te tiene más confianza`, '');
+}
 // el que te vino a buscar: lo que te quería decir, primero (después, la rueda)
 function loQueTeQueriaDecir(npc) {
   const ini = !desafio ? socialJuego?.tomarIniciativa(npc) : null;
-  if (!ini) return;
+  if (!ini) { alSaludarSocial(npc); return; }
   charla.historia = { id: 'social-iniciativa', partes: ini.renglones, alTerminar: () => { charla.historia = null; } };
   charla.parte = 0;
+}
+function alSaludarSocial(npc) {
+  if (desafio || !socialJuego || !npc?.g) return;
+  socialJuego.cumplir(npc, null);   // (un deseo de lo que se hace en el valle: si ya lo hiciste, te lo agradece al verte)
+  const info = socialJuego.info(npc), rec = socialJuego.recuerdo(npc);
+  if (rec || info?.deseo) socialMundo?.burbuja(npc, info?.deseo ? info.iconoDeseo : 'charla', { renglon: rec ? renglonCortoSocial(rec) : '', dur: 5 });
+  if (info?.emocion) socialMundo?.emocion(npc, info.emocion, { dur: 6 });
+  ultimoDicho = '';
 }
 // lo que dice el vecino en el cuadro de la charla: su voz y la burbuja con el ícono del tema (una vez por renglón)
 let ultimoDicho = '';

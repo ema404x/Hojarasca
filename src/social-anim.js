@@ -9,22 +9,25 @@
 // estaba. Mientras dura mira a su compañero (gente.js usa `animSocial.mira`).
 // Sin three (se prueba en Node con figuras de mentira).
 
-// cuánto se acerca cada una (la distancia entre los dos, en metros) y si deja el mate
+// Los ids son EXACTAMENTE los de vecindad-social.js (ANIM_VECINO; los de ANIM_JUGADOR que no tienen figura van a tus
+// manos, social-mundo.js). 'pose': cuál de las poses de abajo usa (varias comparten); 'cerca': cuánto se acerca al otro.
+const A = (pose, dur, extra = {}) => ({ pose, dur, ...extra });
 export const ANIMACIONES = {
-  saludar: { dur: 2 }, abrazar: { dur: 2.6, cerca: 0.5 }, 'abrazo-largo': { dur: 4.4, cerca: 0.46 }, reir: { dur: 2.6, gesto: 'risa' },
-  chiste: { dur: 3.2 }, cinco: { dur: 1.7, cerca: 0.72 }, discutir: { dur: 3.4, gesto: 'neutral' }, enojarse: { dur: 3, gesto: 'neutral' },
-  irse: { dur: 2.6, gesto: 'neutral' }, cachetada: { dur: 1.8, cerca: 0.62, gesto: 'neutral' }, mano: { dur: 3.4, cerca: 0.6 },
-  beso: { dur: 2.6, cerca: 0.42, gesto: 'sonrisa' }, 'bailar-lento': { dur: 6, cerca: 0.46, gesto: 'sonrisa' }, consolar: { dur: 3.4, cerca: 0.62 },
-  consolado: { dur: 3.4, gesto: 'neutral' }, cartas: { dur: 6 }, foto: { dur: 3, gesto: 'sonrisa' }, 'sacar-foto': { dur: 3 },
-  charlar: { dur: 3 }, encoger: { dur: 2 }, timido: { dur: 2.6, gesto: 'sonrisa' },
+  saludar: A('saludar', 2), abrazar: A('abrazar', 2.6, { cerca: 0.5 }), 'chocar-cinco': A('cinco', 1.7, { cerca: 0.72 }), festejar: A('festejar', 2.2, { gesto: 'risa' }),
+  suspirar: A('consolado', 2.4, { gesto: 'neutral' }), asentir: A('asentir', 2), hablar: A('charlar', 3), contar: A('chiste', 3.2), pensar: A('pensar', 2.6, { gesto: 'neutral' }),
+  reir: A('reir', 2.6, { gesto: 'risa' }), 'mirar-raro': A('mirar-raro', 2, { gesto: 'neutral' }), negar: A('negar', 2, { gesto: 'neutral' }), encogerse: A('encoger', 2),
+  'cruzarse-brazos': A('enojarse', 3, { gesto: 'neutral' }), 'irse-ofendido': A('irse', 2.6, { gesto: 'neutral' }), 'cachetada-suave': A('cachetada', 1.8, { cerca: 0.62, gesto: 'neutral' }),
+  sonrojarse: A('timido', 2.6, { gesto: 'sonrisa' }), discutir: A('discutir', 3.4, { gesto: 'neutral' }), burlarse: A('burlarse', 2.6, { gesto: 'risa' }), sorprenderse: A('sorprenderse', 2),
+  susurrar: A('susurrar', 2.6, { cerca: 0.55 }), 'abrazo-largo': A('abrazar', 4.4, { cerca: 0.46, largo: true }), 'tomar-mano': A('mano', 3.4, { cerca: 0.6 }),
+  'bailar-lento': A('bailar-lento', 6, { cerca: 0.46, gesto: 'sonrisa' }), besar: A('beso', 2.6, { cerca: 0.42, gesto: 'sonrisa' }), 'cebar-mate': A('mate', 4), 'tomar-mate': A('mate', 4),
+  'jugar-cartas': A('cartas', 6), pescar: A('pescar', 5), caminar: A('charlar', 2), posar: A('foto', 3, { gesto: 'sonrisa' }), 'patear-pelota': A('pelota', 3), bailar: A('bailar', 5, { gesto: 'sonrisa' }),
+  // las tuyas que también puede hacer alguien (entre vecinos)
+  aplaudir: A('aplaudir', 2.2, { gesto: 'sonrisa' }), 'palmada-hombro': A('consolar', 3, { cerca: 0.62 }), 'hacer-broma': A('chiste', 3), 'hacer-morisqueta': A('burlarse', 2.4, { gesto: 'risa' }),
+  quejarse: A('discutir', 3, { gesto: 'neutral' }), ignorar: A('irse', 2.4, { gesto: 'neutral' }), 'pedir-perdon': A('consolado', 3), piropo: A('timido', 2.6, { gesto: 'sonrisa' }),
 };
-// las que se pueden pedir con otro nombre (lo que mande vecindad-social.js)
-const SINONIMOS = { abrazo: 'abrazar', 'abrazo-largo': 'abrazo-largo', chocar: 'cinco', 'chocar-cinco': 'cinco', 'chocar-los-cinco': 'cinco', reirse: 'reir', risa: 'reir', besar: 'beso', bailar: 'bailar-lento', baile: 'bailar-lento', 'tomarse-de-la-mano': 'mano', 'de-la-mano': 'mano', enojo: 'enojarse', enojado: 'enojarse', discusion: 'discutir', triste: 'consolado', saludo: 'saludar', hola: 'saludar', 'jugar-cartas': 'cartas', truco: 'cartas', fotografia: 'foto', mate: 'charlar', 'tomar-mate': 'charlar', hablar: 'charlar', piropo: 'timido', verguenza: 'timido', cachetazo: 'cachetada' };
 export function animDe(id) {
-  const k = String(id || '').toLowerCase();
-  if (Object.hasOwn(ANIMACIONES, k)) return k;
-  if (Object.hasOwn(SINONIMOS, k)) return SINONIMOS[k];
-  return null;
+  const k = String(id || '');
+  return Object.hasOwn(ANIMACIONES, k) ? k : null;
 }
 // las que se hacen pegados al otro
 export const DE_A_DOS = new Set(Object.keys(ANIMACIONES).filter((k) => ANIMACIONES[k].cerca));
@@ -72,16 +75,16 @@ function brazo(g, s, d, w) {
 }
 // La pose de cada una a los `s` segundos (u: de 0 a 1). Devuelve { izq, der, tx, tz, ty, cx, cy, cz, baja, sube, sentado }.
 // (izq es brazos[0] y der brazos[1], como en posar)
-function pose(id, s, u) {
+function pose(id, s, u, def = {}) {
   const sin = Math.sin;
   switch (id) {
     case 'saludar': {
       const k = sin(s * 10) * 0.28;
       return { der: { x: -0.35, z: 2.35 + k, codo: -0.55 }, cz: -0.08 };
     }
-    case 'abrazar': case 'abrazo-largo': {
+    case 'abrazar': {
       const cierra = suave(Math.min(1, s / 0.6));
-      const mece = id === 'abrazo-largo' ? sin(s * 1.6) * 0.05 : 0;
+      const mece = def.largo ? sin(s * 1.6) * 0.05 : 0;
       const d = { x: -1.32, z: mezcla(0.75, 0.22, cierra), codo: mezcla(-0.5, -1.25, cierra), yl: -0.3 };
       return { izq: d, der: d, tx: 0.12, tz: mece, cx: 0.1, cz: 0.16 + mece };
     }
@@ -155,6 +158,19 @@ function pose(id, s, u) {
       const d = { x: 0.5, yl: -1.45, z: 0.08, codo: -1.3 };
       return { izq: d, der: d, cx: 0.3, cy: -0.2, tz: sin(s * 2.4) * 0.04 };
     }
+    case 'festejar': { const k = sin(s * 9) * 0.2; const d = { x: -0.3, z: 2.6 + k, codo: -0.3 }; return { izq: d, der: { ...d, z: 2.6 - k }, cx: -0.2, sube: Math.abs(sin(s * 6)) * 0.04 }; }
+    case 'asentir': return { cx: sin(s * 6) * 0.14, der: { x: -0.3, z: 0.1, codo: -0.9 } };
+    case 'negar': return { cy: sin(s * 8) * 0.3, izq: { x: 0.08, yl: -1.4, z: 0.5, codo: -1.6 } };
+    case 'pensar': return { der: { x: -1.05, yl: -0.62, z: -0.12, codo: -2.5 }, izq: { x: -0.62, yl: -1.3, z: -0.06, codo: -2.05 }, cx: -0.15, cz: 0.12 };
+    case 'mirar-raro': return { cx: -0.12, cz: 0.28, tx: -0.08, izq: { x: 0.2, z: 0.15, codo: -0.4 }, der: { x: 0.2, z: 0.15, codo: -0.4 } };
+    case 'sorprenderse': { const k = suave(Math.min(1, s / 0.3)); const d = { x: -0.9 * k, z: 0.6 * k, codo: -1.4 * k }; return { izq: d, der: d, tx: -0.1 * k, cx: -0.15 * k }; }
+    case 'susurrar': return { der: { x: -1.25, yl: -0.6, z: 0.1, codo: -2.3 }, tx: 0.14, cz: 0.2, cx: 0.08 };
+    case 'burlarse': { const k = sin(s * 10) * 0.15; const d = { x: -1.6, z: 1.3 + k, codo: -2.3 }; return { izq: d, der: { ...d, z: 1.3 - k }, cz: sin(s * 5) * 0.15 }; }
+    case 'mate': { const k = Math.max(0, sin(s * 1.6)); return { der: { x: -0.4 - 1.1 * k, yl: -0.4 * k, z: 0.1, codo: -0.8 - 1.2 * k }, izq: { x: -0.5, z: 0.1, codo: -1.3 }, cx: -0.1 * k }; }
+    case 'pescar': { const k = sin(s * 0.9) * 0.08; const d = { x: -0.95 + k, z: 0.1, codo: -0.6 }; return { izq: d, der: { ...d, x: -1.05 + k }, cx: 0.1 }; }
+    case 'pelota': { const k = Math.max(0, sin(s * 3)); return { izq: { x: 0.3, z: 0.5, codo: -0.4 }, der: { x: -0.4, z: 0.5, codo: -0.4 }, tx: -0.08 * k, patada: k }; }
+    case 'bailar': { const k = sin(s * 5.5); return { izq: { x: -0.9 + k * 0.4, z: 0.6, codo: -1.4 }, der: { x: -0.9 - k * 0.4, z: 0.6, codo: -1.4 }, tz: k * 0.1, cz: -k * 0.06, sube: Math.abs(k) * 0.04, paso: k * 2 }; }
+    case 'aplaudir': { const k = Math.abs(sin(s * 9)); const d = { x: -1.2, yl: -0.5, z: 0.05 + k * 0.25, codo: -1.0 }; return { izq: d, der: d }; }
     default: return {};
   }
 }
@@ -177,13 +193,14 @@ export function animarSocial(g, dt = 0.016) {
   if (a.hacia && g.pos) {
     const dx = a.hacia.x - g.pos.x, dz = a.hacia.z - g.pos.z, d = Math.hypot(dx, dz);
     a.mira = Math.atan2(dx, dz);
-    if (a.id === 'irse' || a.id === 'enojarse') a.mira += Math.PI * (a.id === 'irse' ? 1 : 0.35);
+    const po = ANIMACIONES[a.id].pose;
+    if (po === 'irse' || po === 'enojarse') a.mira += Math.PI * (po === 'irse' ? 1 : 0.35);
     if (a.cerca && d > a.cerca + 0.02 && s < fin) {
       const paso = Math.min(d - a.cerca, 0.9 * Math.min(0.1, dt));
       g.pos.x += (dx / d) * paso; g.pos.z += (dz / d) * paso;
     }
   }
-  const P = pose(a.id, s, Math.min(1, s / fin));
+  const P = pose(ANIMACIONES[a.id].pose, s, Math.min(1, s / fin), ANIMACIONES[a.id]);
   if (P.izq) brazo(g, 0, P.izq, w);
   if (P.der) brazo(g, 1, P.der, w);
   if (P.tx) g.torso.rotation.x += P.tx * w;
@@ -196,6 +213,7 @@ export function animarSocial(g, dt = 0.016) {
   }
   if (P.sube) { g.torso.position.y += P.sube * w; if (g.cabeza) g.cabeza.position.y += P.sube * w; }
   if (P.paso && g.patas) g.patas.forEach((p, i) => { p.rotation.x += (i ? 1 : -1) * P.paso * 0.08 * w; });
+  if (P.patada && g.patas?.[1]) g.patas[1].rotation.x -= P.patada * 0.9 * w;
   // las cartas, sentados en el piso: la cadera baja y las piernas van estiradas adelante (como el almohadón de la biblioteca)
   if (P.sentado && g.patas) {
     const b = (CADERA - 0.12) * w, cadera = CADERA - b;

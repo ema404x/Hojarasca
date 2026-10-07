@@ -12,7 +12,7 @@
 // `ctx`: { social (el módulo de reglas), progreso(), dia(), hora(), clima(), ritmo(), desafio(), jugador() ({ x, z }),
 //   gente() (las figuras), npcDe(clave), claveDe(npc), hablandoCon(), mundo ({ burbuja, emocion, quitar }), anim
 //   ({ empezar(g, id, op), terminar(g) }), manos ({ empezar(id) }), voz(npc, texto, { cerca }), nota(t, sub) }.
-import { iconoDeTexto, iconoDeEmocion, renglonCorto, relacionVista, burbujasDe } from './social-rueda.js';
+import { iconoDeTexto, iconoDeEmocion, renglonCorto, relacionVista, menuParaRueda } from './social-rueda.js';
 
 export const SOCIAL = {
   cadaParejas: 2.5,       // cada cuánto se busca quién charla entre ellos (s)
@@ -21,7 +21,7 @@ export const SOCIAL = {
   descansoPersona: 24,    // después de una, cada uno espera esto (s)
   parejas: { tranquilo: 1, normal: 3, animado: 5 },
   cadaIniciativa: 9,      // cada cuánto se pregunta si alguien te quiere decir algo (s)
-  esperaIniciativa: { tranquilo: 240, normal: 130, animado: 70 },   // entre una y otra (s)
+  esperaIniciativa: { tranquilo: 60, normal: 40, animado: 25 },   // entre una y otra (s; las reglas además esperan horas del juego)
   lejosIniciativa: 24,    // te ve desde acá
   aburre: 30,             // si no le hacés caso, se vuelve a lo suyo (s)
   cercaVoz: 14,           // la voz de los demás, sólo de cerca (m)
@@ -35,24 +35,26 @@ export function crearSocialJuego(ctx) {
   const S = ctx.social || {};
   const progreso = () => ctx.progreso?.() || {};
   let semilla = 1;
-  const contexto = () => ({ dia: ctx.dia?.() || 1, hora: ctx.hora?.() || 12, clima: ctx.clima?.() || null, ritmo: ctx.ritmo?.() || 'normal', semilla: semilla++ });
+  const contexto = (extra = {}) => ({ dia: ctx.dia?.() || 1, hora: ctx.hora?.() || 12, clima: ctx.clima?.() || null, ritmo: ctx.ritmo?.() || 'normal', romance: ctx.romance?.() !== false, nombre: ctx.apodo?.() || null, semilla: semilla++, ...extra });
+  const dia = () => ctx.dia?.() || 1;
   const claveDe = (npc) => (npc ? ctx.claveDe?.(npc) || null : null);
   const ritmo = () => { const r = ctx.ritmo?.(); return r === 'tranquilo' || r === 'animado' ? r : 'normal'; };
 
   // ---------------------------------------------------------------- la rueda
-  function opciones(npc) {
+  function opciones(npc, menu = null) {
     const k = claveDe(npc);
     if (!k || ctx.desafio?.() || typeof S.opcionesRueda !== 'function') return [];
-    const r = seguro(() => S.opcionesRueda(k, progreso(), contexto()), []);
+    const r = seguro(() => S.opcionesRueda(k, progreso(), contexto({ menu: menuParaRueda(menu) })), []);
     return Array.isArray(r) ? r : [];
   }
   function info(npc) {
     const k = claveDe(npc);
     if (!k || ctx.desafio?.()) return null;
-    const rel = relacionVista(seguro(() => S.relacionDe?.(k, progreso()), null));
-    const humor = seguro(() => S.humorDe?.(k, progreso(), contexto()), null);
-    const deseo = seguro(() => S.deseoDe?.(k, progreso(), contexto()), null);
-    return { clave: k, relacion: rel, emocion: iconoDeEmocion(humor?.emocion), motivo: humor?.motivo ? String(humor.motivo) : '', deseo: deseo?.texto ? String(deseo.texto) : '' };
+    const rel = relacionVista(seguro(() => S.relacionDe?.(k, progreso(), contexto()), null));
+    const humor = seguro(() => S.humorDe?.(k, progreso(), dia(), contexto()), null);
+    const deseo = seguro(() => S.deseoDe?.(k, progreso(), dia()), null);
+    const icDeseo = deseo ? seguro(() => S.iconoDeDeseo?.(deseo), null) : null;
+    return { clave: k, relacion: rel, emocion: iconoDeEmocion(humor?.emocion), motivo: humor?.motivo ? String(humor.motivo) : '', deseo: deseo?.texto ? String(deseo.texto) : '', iconoDeseo: icDeseo || 'estrella' };
   }
 
   // ---------------------------------------------------------------- una interacción con vos
@@ -64,21 +66,41 @@ export function crearSocialJuego(ctx) {
     const r = seguro(() => S.probarInteraccion(k, id, progreso(), contexto()), null);
     if (!r) return null;
     const re = r.reaccion || {};
-    const animEl = re.animEl || def?.anim?.el || 'charlar';
+    if (!re.animEl && !re.renglon) return null;
+    const animEl = re.animEl || 'negar';
     const j = ctx.jugador?.();
     const conVos = j ? { x: j.x, z: j.z } : null;
     ctx.anim?.empezar(npc, animEl, { hacia: conVos, cerca: 0.85, rol: 'el' });
     const yo = def?.anim?.yo;
-    if (yo && r.exito !== false) ctx.manos?.empezar(yo);
-    else if (animEl === 'cachetada') ctx.manos?.cachetada?.();
+    if (yo && r.motivo !== 'no-disponible') ctx.manos?.empezar(yo);
+    if (animEl === 'cachetada-suave') ctx.manos?.cachetada?.();
     const emo = iconoDeEmocion(re.emocion);
     if (emo) ctx.mundo?.emocion(npc, emo, { dur: 6 });
     const renglon = re.renglon ? String(re.renglon) : '';
     const icono = re.burbuja || def?.icono || iconoDeTexto(renglon);
     ctx.mundo?.burbuja(npc, icono, { renglon: renglonCorto(renglon), dur: 4 });
     if (renglon) ctx.voz?.(npc, renglon, { cerca: true });
-    const renglones = Array.isArray(r.renglones) && r.renglones.length ? r.renglones.map(String) : renglon ? [renglon] : ['…'];
-    return { renglones, exito: r.exito !== false, cierra: animEl === 'irse' || re.seVa === true || r.cierra === true, emocion: emo, anim: animEl, efectos: Array.isArray(r.efectos) ? r.efectos : [] };
+    const renglones = renglon ? [renglon] : ['…'];
+    const ef = r.efectos && typeof r.efectos === 'object' ? r.efectos : {};
+    return { renglones, exito: r.exito !== false, cierra: animEl === 'irse-ofendido', emocion: emo, anim: animEl, cosas: Array.isArray(ef.cosas) ? ef.cosas : [], otros: Array.isArray(ef.otros) ? ef.otros : [], relacion: r.relacion || null };
+  }
+  // Su deseo, si lo que hiciste lo cumple (regalar, invitar, dar una mano; las interacciones lo miran solas): el aviso,
+  // la burbuja con la estrella y contento. Devuelve el renglón de las gracias (o null).
+  function cumplir(npc, hecho) {
+    const k = claveDe(npc);
+    if (!k || typeof S.cumplirDeseo !== 'function' || ctx.desafio?.()) return null;
+    const c = seguro(() => S.cumplirDeseo(k, progreso(), hecho, dia(), contexto()), null);
+    if (!c?.ok) return null;
+    ctx.mundo?.emocion(npc, 'contento', { dur: 6 });
+    ctx.mundo?.burbuja(npc, 'estrella', { renglon: renglonCorto(c.renglon || ''), dur: 4 });
+    ctx.nota?.(`Le cumpliste el deseo a ${npc.nombre || k}`, 'Se lo va a acordar');
+    return c.renglon || null;
+  }
+  // Lo último que pasó con vos (para que lo comente al saludarte)
+  function recuerdo(npc) {
+    const k = claveDe(npc);
+    if (!k || typeof S.recuerdoDe !== 'function' || ctx.desafio?.()) return null;
+    return seguro(() => S.recuerdoDe(k, progreso(), dia())?.renglon, null) || null;
   }
 
   // ---------------------------------------------------------------- lo que dicen
@@ -102,19 +124,21 @@ export function crearSocialJuego(ctx) {
   const parejas = [];           // [{ a, b, hasta }]
   let reloj = 0, acumParejas = 0;
   function hacerEntre(a, b, conRenglon = true) {
-    const ka = claveDe(a) || a.claveAldea || a.clave, kb = claveDe(b) || b.claveAldea || b.clave;
-    const r = seguro(() => S.entreVecinos?.(ka, kb, progreso(), contexto()), null);
+    const ka = claveDe(a), kb = claveDe(b);
+    if (!ka || !kb) return null;
+    const r = seguro(() => S.entreVecinos?.(ka, kb, progreso(), contexto({ lugar: ctx.lugar?.(a) || null })), null);
     if (!r) return null;
     ctx.anim?.empezar(a, r.animA || 'charlar', { hacia: b.pos, rol: 'a' });
     ctx.anim?.empezar(b, r.animB || 'charlar', { hacia: a.pos, rol: 'b' });
-    const [ia, ib] = burbujasDe(r.burbujas);
+    const temas = Array.isArray(r.burbujas) ? r.burbujas.filter((x) => typeof x === 'string') : [];
     const renglon = conRenglon && r.renglon ? String(r.renglon) : '';
-    if (ia) ctx.mundo?.burbuja(a, ia, { renglon: renglonCorto(renglon), dur: 4 });
-    if (ib) setTimeoutSeguro(() => ctx.mundo?.burbuja(b, ib, { dur: 3.4 }), 900);
-    const emo = { discutir: 'enojado', pelea: 'enojado', abrazo: 'contento', chiste: 'contento', bailar: 'enamorado', 'bailar-lento': 'enamorado', beso: 'enamorado' }[r.id] || iconoDeEmocion(r.emocion);
-    if (emo) { ctx.mundo?.emocion(a, emo, { dur: 5 }); ctx.mundo?.emocion(b, emo, { dur: 5 }); }
+    const habla = r.quien && r.quien === kb ? b : a, otro = habla === a ? b : a;
+    if (temas[0] || renglon) ctx.mundo?.burbuja(habla, temas[0] || iconoDeTexto(renglon), { renglon: renglonCorto(renglon), dur: 4 });
+    if (temas[1] || temas[0]) setTimeoutSeguro(() => ctx.mundo?.burbuja(otro, temas[1] || temas[0], { dur: 3.4 }), 900);
+    const emo = { discutir: 'enojado', reirse: 'risa', abrazarse: 'contento', bailar: 'contento', chisme: 'sorpresa', saludarse: 'contento' }[r.id] || null;
+    if (emo) { ctx.mundo?.emocion(a, emo, { dur: 5 }); ctx.mundo?.emocion(b, emo === 'sorpresa' ? 'risa' : emo, { dur: 5 }); }
     const j = ctx.jugador?.();
-    if (renglon && j && dist(a.pos, j) < SOCIAL.cercaVoz) ctx.voz?.(a, renglon, {});
+    if (renglon && j && dist(habla.pos, j) < SOCIAL.cercaVoz) ctx.voz?.(habla, renglon, {});
     return r;
   }
   const setTimeoutSeguro = (f, ms) => (typeof setTimeout === 'function' ? setTimeout(() => seguro(f), ms) : f());
@@ -154,7 +178,7 @@ export function crearSocialJuego(ctx) {
 
   // ---------------------------------------------------------------- la iniciativa
   let pendiente = null;   // { npc, clave, r, hasta, origen, llego }
-  let acumIni = 0, proximaIni = 20;
+  let acumIni = 0, proximaIni = 8;
   function buscarIniciativa() {
     if (pendiente || typeof S.iniciativa !== 'function') return;
     const j = ctx.jugador?.();
@@ -169,7 +193,7 @@ export function crearSocialJuego(ctx) {
     if (!mejor) return;
     const k = claveDe(mejor);
     if (!k) return;
-    const r = seguro(() => S.iniciativa(k, progreso(), contexto()), null);
+    const r = seguro(() => S.iniciativa(k, progreso(), contexto({ libre: true })), null);
     if (!r || !Array.isArray(r.renglones) || !r.renglones.length) return;
     // camina hacia vos (hasta un par de metros; cerca tuyo gente.js lo frena y te mira) y te saluda con su burbuja
     const origen = { x: mejor.pos.x, z: mejor.pos.z };
@@ -187,10 +211,10 @@ export function crearSocialJuego(ctx) {
     if (!p.llego && dist(n.pos, j) < 7) {
       p.llego = true;
       const saludo = p.r.renglones[0];
-      ctx.mundo?.burbuja(n, ICONO_TIPO[p.r.tipo] || iconoDeTexto(saludo), { renglon: '¡Eh! ¿Tenés un minuto?', dur: 6 });
+      ctx.mundo?.burbuja(n, p.r.burbuja || ICONO_TIPO[p.r.tipo] || iconoDeTexto(saludo), { renglon: '¡Eh! ¿Tenés un minuto?', dur: 6 });
       ctx.voz?.(n, '¡Eh! ¿Tenés un minuto?', {});
       ctx.anim?.empezar(n, 'saludar', { rol: 'el' });
-    } else if (p.llego && (reloj % 7) < 0.6 && !n.animSocial) ctx.mundo?.burbuja(n, ICONO_TIPO[p.r.tipo] || 'charla', { dur: 2.5 });
+    } else if (p.llego && (reloj % 7) < 0.6 && !n.animSocial) ctx.mundo?.burbuja(n, p.r.burbuja || ICONO_TIPO[p.r.tipo] || 'charla', { dur: 2.5 });
     if (reloj > p.hasta) soltarIniciativa(true);
   }
   function soltarIniciativa(volver) {
@@ -212,7 +236,7 @@ export function crearSocialJuego(ctx) {
     const p = pendiente;
     soltarIniciativa(false);
     const id = typeof p.r.id === 'string' ? p.r.id : null;
-    const animId = id ? S.INTERACCIONES?.[id]?.anim?.el || null : null;
+    const animId = p.r.animEl || null;
     const j = ctx.jugador?.();
     if (animId) ctx.anim?.empezar(npc, animId, { hacia: j ? { x: j.x, z: j.z } : null, cerca: 0.85, rol: 'el' });
     vuelve = { npc, origen: p.origen };
@@ -239,7 +263,7 @@ export function crearSocialJuego(ctx) {
     if (descanso.size > 80) for (const [n, h] of descanso) if (h <= reloj) descanso.delete(n);
   }
   return {
-    opciones, info, interactuar, decir, alEmpezarCharla, actualizar, quiereDecir, tomarIniciativa, alCerrarCharla,
+    opciones, info, interactuar, cumplir, recuerdo, decir, alEmpezarCharla, actualizar, quiereDecir, tomarIniciativa, alCerrarCharla,
     // (para las pruebas: forzar la iniciativa o una pareja)
     forzarIniciativa: () => { proximaIni = 0; acumIni = SOCIAL.cadaIniciativa; seguro(buscarIniciativa); return !!pendiente; },
     pendiente: () => (pendiente ? { clave: pendiente.clave, llego: pendiente.llego, tipo: pendiente.r?.tipo || null } : null),

@@ -10,16 +10,18 @@
 import { hayIcono } from './social-iconos.js';
 
 // ---------------------------------------------------------------- las categorías
+// (las de vecindad-social.js: CATEGORIAS_RUEDA; éstas, por si sus reglas no dan nada: el que no es un vecino)
 export const CATEGORIAS_VISTA = {
   charla: { nombre: 'Charlar', icono: 'charla' },
-  amistosas: { nombre: 'Amistosas', icono: 'sonrisa' },
-  picantes: { nombre: 'Picantes', icono: 'rayo' },
-  romanticas: { nombre: 'Románticas', icono: 'corazon' },
+  amistosa: { nombre: 'Amistosas', icono: 'abrazo' },
+  graciosa: { nombre: 'Graciosas', icono: 'chiste' },
   juntos: { nombre: 'Juntos', icono: 'mate' },
-  suyo: { nombre: 'Lo suyo', icono: 'herramienta' },
+  ayuda: { nombre: 'Regalar y ayudar', icono: 'regalo' },
+  romantica: { nombre: 'Románticas', icono: 'corazon' },
+  picante: { nombre: 'Picantes', icono: 'rayo' },
   chau: { nombre: 'Nada más, chau', icono: 'chau' },
 };
-export const ORDEN_CATEGORIAS = ['charla', 'amistosas', 'picantes', 'romanticas', 'juntos', 'suyo'];
+export const ORDEN_CATEGORIAS = ['charla', 'amistosa', 'graciosa', 'juntos', 'ayuda', 'romantica', 'picante'];
 
 // La categoría de una opción de siempre (por su id en vecindad-juego.js, amor-juego.js, granja-juego.js, cocina-juego.js)
 export function categoriaDeOpcion(id) {
@@ -27,9 +29,11 @@ export function categoriaDeOpcion(id) {
   if (s === 'chau') return 'chau';
   if (s === 'contame' || s === 'como-andas' || s === 'novedades' || s === 'historia') return 'charla';
   if (s === 'invitar') return 'juntos';
-  if (/^amor(?:-|:|$)/.test(s)) return 'romanticas';
-  return 'suyo';   // el servicio, regalar, dar una mano, lo del lugar, la granja, la cocina
+  if (/^amor(?:-|:|$)/.test(s)) return 'romantica';
+  return 'ayuda';   // el servicio, regalar, dar una mano, lo del lugar, la granja, la cocina
 }
+// El menú de siempre, con la categoría de cada opción (lo que opcionesRueda recibe en ctx.menu)
+export const menuParaRueda = (menu) => (Array.isArray(menu?.opciones) ? menu.opciones.map((o) => ({ id: o.id, titulo: o.titulo, categoria: categoriaDeOpcion(o.id) })) : []);
 // El ícono de una opción de siempre
 const ICONO_OPCION = {
   servicio: 'herramienta', contame: 'libro', 'como-andas': 'sonrisa', novedades: 'diario', historia: 'libro', regalar: 'regalo', invitar: 'mate',
@@ -76,38 +80,44 @@ export function normalizarCategorias(cats) {
 // { tipo: 'lista', opciones: [opción] }. Cada opción: { titulo, icono, disponible, motivo, plano (índice) | social (id) }.
 export function armarRueda(menu, social = null, cats = null) {
   const opciones = Array.isArray(menu?.opciones) ? menu.opciones : [];
-  const deSiempre = (o, i) => ({ titulo: String(o.titulo || ''), icono: iconoDeOpcion(o.id, o.titulo), disponible: true, motivo: null, plano: i, social: null, id: o.id });
-  if (menu?.tipo && menu.tipo !== 'charla') return { tipo: 'lista', opciones: opciones.map(deSiempre) };
+  const deSiempre = (o, i, icono = null, disponible = true) => ({ titulo: String(o.titulo || ''), icono: hayIcono(icono) ? icono : iconoDeOpcion(o.id, o.titulo), disponible, motivo: disponible ? null : 'Ahora no', plano: i, social: null, id: o.id });
+  if (menu?.tipo && menu.tipo !== 'charla') return { tipo: 'lista', opciones: opciones.map((o, i) => deSiempre(o, i)) };
   const vista = normalizarCategorias(cats);
-  const porCat = new Map();
+  const porCat = new Map(), nombres = new Map(), puestas = new Set();
   const agregar = (cat, op) => { if (!porCat.has(cat)) porCat.set(cat, []); porCat.get(cat).push(op); };
+  // lo que dicen las reglas (vecindad-social.js): las de siempre (de: 'charla', por su lugar en el menú) y las nuevas
+  for (const grupo of Array.isArray(social) ? social : []) {
+    const cat = typeof grupo?.categoria === 'string' ? grupo.categoria : null;
+    if (!cat) continue;
+    if (grupo.nombre) nombres.set(cat, { nombre: String(grupo.nombre), icono: grupo.icono });
+    for (const o of Array.isArray(grupo.opciones) ? grupo.opciones : []) {
+      if (!o || typeof o.id !== 'string') continue;
+      if (o.de === 'charla') {
+        const i = opciones.findIndex((x, k) => x.id === o.id && !puestas.has(k));
+        if (i < 0) continue;
+        puestas.add(i);
+        agregar(cat, { ...deSiempre(opciones[i], i, o.icono, o.disponible !== false), titulo: String(opciones[i].titulo || o.nombre || '') });
+      } else {
+        agregar(cat, { titulo: String(o.nombre || o.id), icono: hayIcono(o.icono) ? o.icono : 'estrella', disponible: o.disponible !== false, motivo: o.disponible === false ? String(o.motivo || 'Ahora no') : null, plano: null, social: o.id, id: o.id });
+      }
+    }
+  }
+  // lo de siempre que no vino (o todo, si las reglas no dieron nada) y «chau», abajo de todo
   let chau = null;
   opciones.forEach((o, i) => {
+    if (puestas.has(i) || o.id === 'volver') return;
     const cat = categoriaDeOpcion(o.id);
     if (cat === 'chau') { chau = deSiempre(o, i); return; }
     agregar(cat, deSiempre(o, i));
   });
-  // lo social, después de lo de siempre en cada categoría (lo romántico de la 3.7.1 queda primero)
-  for (const grupo of Array.isArray(social) ? social : []) {
-    const cat = typeof grupo?.categoria === 'string' ? grupo.categoria : null;
-    if (!cat) continue;
-    if (!vista.has(cat) && !CATEGORIAS_VISTA[cat]) vista.set(cat, { nombre: cat, icono: 'estrella' });
-    for (const o of Array.isArray(grupo.opciones) ? grupo.opciones : []) {
-      if (!o || typeof o.id !== 'string') continue;
-      agregar(cat, { titulo: String(o.nombre || o.id), icono: hayIcono(o.icono) ? o.icono : 'estrella', disponible: o.disponible !== false, motivo: o.disponible === false ? String(o.motivo || 'Ahora no') : null, plano: null, social: o.id, id: o.id });
-    }
-  }
-  const orden = [...ORDEN_CATEGORIAS, ...[...porCat.keys()].filter((k) => !ORDEN_CATEGORIAS.includes(k))];
+  const orden = [...(Array.isArray(social) ? social.map((g) => g?.categoria).filter((k) => typeof k === 'string') : []), ...ORDEN_CATEGORIAS, ...porCat.keys()];
   const categorias = [];
-  for (const id of orden) {
+  for (const id of new Set(orden)) {
     const ops = porCat.get(id);
     if (!ops || !ops.length) continue;
-    const v = vista.get(id) || CATEGORIAS_VISTA[id] || { nombre: id, icono: 'estrella' };
-    // (la de charlar y lo suyo se llaman siempre igual: son las de siempre)
-    const nombre = CATEGORIAS_VISTA[id] && (id === 'charla' || id === 'suyo') ? CATEGORIAS_VISTA[id].nombre : v.nombre;
-    categorias.push({ id, nombre, icono: id === 'charla' || id === 'suyo' ? CATEGORIAS_VISTA[id].icono : v.icono, opciones: ops, disponible: ops.some((o) => o.disponible) });
+    const v = nombres.get(id) || vista.get(id) || CATEGORIAS_VISTA[id] || { nombre: id, icono: 'estrella' };
+    categorias.push({ id, nombre: v.nombre, icono: hayIcono(v.icono) ? v.icono : CATEGORIAS_VISTA[id]?.icono || 'estrella', opciones: ops, disponible: ops.some((o) => o.disponible) });
   }
-  // «Nada más, chau», abajo de todo: se elige directo
   if (chau) categorias.push({ id: 'chau', nombre: chau.titulo, icono: 'chau', opciones: [], directa: chau, disponible: true });
   return { tipo: 'categorias', categorias };
 }
@@ -235,9 +245,11 @@ export function burbujasDe(b) {
   if (typeof b === 'object') return [ic(b.a), ic(b.b)];
   return [ic(b), null];
 }
-// relacionDe, saneada: números de 0 a 100 y si la barra del romance se muestra
+// relacionDe, saneada: números de 0 a 100, las marcas de los niveles (amigo, compadre) y si la barra del romance se muestra
 export function relacionVista(r) {
   const n = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
   const amistad = n(r?.amistad), romance = n(r?.romance);
-  return { amistad, romance, nivel: r?.nivel ? String(r.nivel) : '', nivelRomance: r?.nivelRomance ? String(r.nivelRomance) : '', romanceVisible: romance > 0 || !!r?.nivelRomance };
+  const marcas = { amigo: n(r?.marcas?.amigo ?? 25), compadre: n(r?.marcas?.compadre ?? 70) };
+  const romanceVisible = typeof r?.romanceVisible === 'boolean' ? r.romanceVisible : romance > 0 || !!r?.nivelRomance;
+  return { amistad, romance, nivel: r?.nivel ? String(r.nivel) : '', nivelRomance: r?.nivelRomance ? String(r.nivelRomance) : '', marcas, romanceVisible };
 }

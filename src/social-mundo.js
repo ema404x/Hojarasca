@@ -206,7 +206,13 @@ const GESTOS_MANO = {
   chiste: { dur: 3.2, izq: (s) => [-0.24, -0.3 + Math.sin(s * 5) * 0.05, -0.55, -0.3, 0, 0.4], der: (s) => [0.24, -0.28 + Math.sin(s * 5 + 2) * 0.06, -0.55, -0.3, 0, -0.4] },
 };
 GESTOS_MANO['abrazo-largo'] = { ...GESTOS_MANO.abrazar, dur: 4.4 };
-export const GESTOS_CON_MANOS = Object.keys(GESTOS_MANO);
+// los ids de vecindad-social.js (ANIM_JUGADOR) que usan tus manos; los demás (hablar, ignorar, pescar...) no las muestran
+export const MANOS_DE = {
+  saludar: 'saludar', abrazar: 'abrazar', 'abrazo-largo': 'abrazo-largo', 'chocar-cinco': 'cinco', 'tomar-mano': 'mano', 'palmada-hombro': 'consolar',
+  'jugar-cartas': 'cartas', posar: 'foto', besar: 'beso', 'bailar-lento': 'bailar-lento', bailar: 'bailar-lento', discutir: 'discutir', quejarse: 'discutir',
+  contar: 'chiste', 'hacer-broma': 'chiste', aplaudir: 'chiste', 'pedir-perdon': 'consolar',
+};
+export const GESTOS_CON_MANOS = Object.keys(MANOS_DE);
 export function crearManosSociales(camara, mallaMano) {
   const grupo = new THREE.Group();
   grupo.name = 'manos-sociales';
@@ -217,7 +223,7 @@ export function crearManosSociales(camara, mallaMano) {
   for (const m of manos) { m.frustumCulled = false; m.renderOrder = 5; grupo.add(m); }
   let gesto = null, t = 0;
   function empezar(id) {
-    const g = GESTOS_MANO[id];
+    const g = GESTOS_MANO[MANOS_DE[id] || id];
     const fuente = mallaMano?.();
     if (!g || !fuente?.geometry) { gesto = null; grupo.visible = false; return false; }
     for (const m of manos) { m.geometry = fuente.geometry; m.material = fuente.material; }
