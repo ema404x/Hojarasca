@@ -352,6 +352,12 @@ export function crearFiestasMundo(ctx) {
         cil(c, [ax, y + 0.42, az], 0.22, 0.2, 0.3, '#2a2826', 4, 12);
       }
     }
+      // la minga: la pila de troncos para cargar y, si es la leñera, los postes ya parados
+      if (info.minga) {
+        const q = PREDIO.lenera, [lx, lz] = L(q.x - 4.6, q.z - 0.4), y = suelo(q.x - 4.6, q.z - 0.4);
+        for (let fila = 0; fila < 3; fila++) for (let i = 0; i < 6 - fila; i++) cil(c, [lx - 0.9 + i * 0.32 + fila * 0.16, y + 0.13 + fila * 0.23, lz], 0.12, 0.12, 1.4, (i + fila) % 2 ? '#8a6a4a' : '#a07a52', 4, 7, [PI / 2, 0, 0]);
+        if (info.minga === 'lenera') for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const px = q.x + sx * q.largo / 2, pz = q.z + sz * q.ancho / 2, [plx, plz] = L(px, pz), sy = suelo(px, pz); cil(c, [plx, sy + 1.05, plz], 0.08, 0.09, 2.1, '#6a4c34', 4, 7); }
+      }
     }
     // la nevada: los montones de nieve en las puertas que todavía no se palearon
     for (const casa of info.nieve || []) {
@@ -643,7 +649,7 @@ export function crearFiestasMundo(ctx) {
     // los adornos de hoy
     if (acum >= 0.5) {
       acum = 0;
-      const fa = info?.adornos ? `${info.fecha.id}|${info.fecha.anio}|${(info.nieve || []).map((c) => c.clave).join(',')}|${info.asado}` : '';
+      const fa = info?.adornos ? `${info.fecha.id}|${info.fecha.anio}|${(info.nieve || []).map((c) => c.clave).join(',')}|${info.asado}|${info.minga || ''}` : '';
       if (fa !== firmaAdorno) { quitarAdorno(); firmaAdorno = fa; if (fa && cerca < VER_PREDIO) armarAdorno(info, fa); else firmaAdorno = fa && cerca >= VER_PREDIO ? '' : fa; }
       actualizarRecuerdos();
     }

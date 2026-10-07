@@ -116,7 +116,7 @@ export function crearFiestasJuego(ctx) {
       asado: !!grande && ['fiesta', 'aldea', 'cumple-jugador'].includes(grande.tipo) && grande.id !== 'fiesta-nieve',
       musica: tocando ? musica : null, musico: tocando && !!musica, suave: fase === 'mesa',
       fuego: !!fase && ['llegada', 'mesa', 'juegos', 'baile', 'fogon', 'trabajo', 'sorpresa'].includes(fase),
-      nieve, invitados: invitadosHoy(), jineteada: fase === 'juegos' && (grande?.actividades || []).includes('jineteada') ? { monta: jineteada.monta } : null,
+      nieve, invitados: invitadosHoy(), minga: fase === 'trabajo' ? mingaDelAnio(grande.anio).id : null, jineteada: fase === 'juegos' && (grande?.actividades || []).includes('jineteada') ? { monta: jineteada.monta } : null,
     };
   }
 

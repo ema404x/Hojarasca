@@ -217,7 +217,7 @@ app.whenReady().then(async () => {
     seccion('el servicio del carpintero');
     // un martes/miércoles a las 10: atiende en su local
     await irLejos();
-    await js(`(()=>{ const P = ${H}.progreso; P.horas = 10; while (((P.dia - 1) % 7) > 4) P.dia++; return 1 })()`);
+    await js(`(()=>{ const P = ${H}.progreso; P.horas = 10; while (((P.dia - 1) % 7) > 4 || ${H}.__fiestas?.()?.fechasDeHoy?.().length) P.dia++; return 1 })()`);   // (3.7.5: y que no sea día de fiesta: ahí van todos a la fiesta)
     await aldea(3);
     await plaza();
     await aldea(3);

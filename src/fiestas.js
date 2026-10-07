@@ -852,10 +852,10 @@ export function repartoFiesta(fecha, fase, claves = [], opciones = {}) {
     return salida;
   }
   if (fs === 'trabajo') {
-    en('abuela', 'mesa-n-4', { pose: 'sentado', sentado: true });
+    // (la minga es de los grandes: la abuela y los chicos siguen con lo suyo, que el domingo son los cuentos)
+    for (const k of ['abuela', ...CHICOS]) libres.delete(k);
     en('panadera', 'asador-gente', { pose: 'amasar' });
     en('galesa', 'mesa-n-6', { pose: 'amasar' });
-    CHICOS.forEach((k, i) => en(k, `mira-baile-${i}`, { pose: 'jugar' }));
     let i = 0;
     for (const k of resto()) { if (i >= 6) break; if (en(k, `minga-${i}`, { pose: i % 2 ? 'palear' : 'hachar' })) i++; }
     return salida;

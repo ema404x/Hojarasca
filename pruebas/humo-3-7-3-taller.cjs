@@ -196,7 +196,7 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ 6. Martín
     seccion('Martín, el maquinista retirado');
-    await js(`(()=>{ ${P}.dia = 8; ${P}.horas = 10.2; return 1 })()`);   // (un lunes: el domingo a esa hora están los cuentos)
+    await js(`(()=>{ ${P}.dia = 15; ${P}.horas = 10.2; return 1 })()`);   // (un lunes: el domingo a esa hora están los cuentos) (3.7.5: el 8 es el 25 de Mayo, con el acto en la plaza)
     await enTaller(-2, 2.6, -2, -3);
     for (let i = 0; i < 30; i++) await js(`(()=>{ ${H}.__aldea.actualizar(0.6); ${H}.__aldea.mundo()?.prearmar?.(1e6); return 1 })()`);
     await cuadros(6);

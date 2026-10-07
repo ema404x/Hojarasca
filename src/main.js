@@ -4398,7 +4398,7 @@ function armarOficiosYAldea(esDesafio) {
     nombrePerro: () => perro?.nombre?.() || '',
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
-    amorDestino: (k) => fiestasJuego?.destino(k) || amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado) (3.7.5: la fiesta, primero)
+    amorDestino: (k) => destinoConFiesta(k),   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado) (3.7.5: con la fiesta en el medio)
   });
   // 3.7.1: el amor en la aldea (sólo en el Relax y con el ajuste «Romance» encendido)
   amorJuego = crearAmorJuego({
@@ -4528,6 +4528,13 @@ function armarOficiosYAldea(esDesafio) {
     duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
     ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),   // (3.7.0 (integración): y lo nublado, para el telescopio)
   });
+}
+// 3.7.5: quién va a dónde por encima del horario: lo del amor que no se mueve (la cita, el casamiento), después la fiesta,
+// después lo demás del amor (la que vive con vos) y el olor del asado
+function destinoConFiesta(k) {
+  const a = amorMundo?.destino(k) || null;
+  if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;
+  return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;
 }
 // 3.6: lo que dan los pobladores (y las mecánicas de la aldea) y no es de la mochila
 function alJugadorAldea(campo, valor) {

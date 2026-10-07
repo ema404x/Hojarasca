@@ -311,7 +311,7 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ el salón
     seccion('el baile del sábado');
-    await reloj(6, 17.4);   // día 6: sábado
+    await reloj(13, 17.4);   // día 13: sábado (3.7.5: el 6 es la Fiesta de la Cosecha, y todos van al predio)
     const sal = await js(`${H}.__mecanicas().lugares().salon`);
     await js(`(()=>{ const A = window.__m36m; A.mirar(${sal.x} + 0.3, ${sal.z} + 0.3, ${sal.x} + 3, ${sal.z}); return 1 })()`);
     await js(`${H}.__aldea.actualizar(0.6); 1`);

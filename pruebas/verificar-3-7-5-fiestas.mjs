@@ -391,7 +391,7 @@ const GU = await import('../src/guardado.js');
   ok(m.includes("  if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5") && m.includes('|| !!fiestasJuego?.panelAbierto();'), 'las listas del HUD (teclado, mouse y mando)');
   ok(m.split("if (fiestasJuego?.panelAbierto()) { marcarEn('fiesta', Number(codigo.slice(5)) - 1); fiestasJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'los números del 1 al 9');
   ok(m.includes('else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();') && m.includes('if (fiestasJuego?.panelAbierto()) { fiestasJuego.alApretarE(); break; }'), 'Escape deja el partido; E no');
-  ok(m.includes('amorDestino: (k) => fiestasJuego?.destino(k) || amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,'), 'quién va a dónde: la fiesta primero');
+  ok(m.includes('amorDestino: (k) => destinoConFiesta(k),') && m.includes("if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;") && m.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;'), 'quién va a dónde: la cita y el casamiento, después la fiesta, después lo demás');
   ok(m.includes('if (fiestasJuego?.montando()) fiestasJuego.camara(camara);') && m.includes("fallaSistema('fiestas', e)"), 'el cuadro (aislado) y la cámara de la jineteada');
   ok(m.includes("p.tipo = (k) => (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);"), 'el tiempo de la gran nevada');
   ok(m.includes('const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);') && m.includes('datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() })'), 'la foto de la fiesta y el álbum');
