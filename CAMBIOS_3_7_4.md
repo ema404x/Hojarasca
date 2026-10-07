@@ -20,7 +20,7 @@ Decidido con el usuario el 06-10 (`PLAN_3_7.md`).
 ## Pruebas
 - Gate 159/159.
 - Partidas reales en verde: `humo-3-7-4-rueda`, `humo-3-6-vida` y `humo-3-6-aldea`.
-- 8 partidas reales viejas que leían la lista de charla anterior se están adaptando a la rueda.
+- Las 8 partidas reales viejas que leían la lista de charla anterior ya usan la rueda (todas en verde; ninguna destapó un bug del juego).
 
 ## Queda para después
 - El abrazo con vos se ve flojo.
