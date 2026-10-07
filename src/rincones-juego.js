@@ -301,23 +301,24 @@ export function crearRinconesJuego(ctx) {
   }
 
   // ================================================================ lo de todos los días
-  let relojDia = 0, diaVisto = 0;
+  let relojDia = 0;
+  // (cada cosa, una vez por día y a su hora: lo que se vio antes de la hora se vuelve a mirar)
+  const vistoHoy = new Map();
+  const unaVez = (k, d) => { if (vistoHoy.get(k) === d) return false; vistoHoy.set(k, d); return true; };
   function alDia() {
-    const d = dia(), R = r();
-    if (diaVisto === d) return;
-    diaVisto = d;
+    const d = dia(), h = horas(), R = r();
     // los vecinos siembran la huerta de todos (un cantero por mañana)
-    if (horas() >= 7 && sembrarVecinos(R, d)) ctx.refrescarHuerta?.();
+    if (h >= 7 && unaVez('siembra', d) && sembrarVecinos(R, d)) ctx.refrescarHuerta?.();
     // la talla, el día que la pone Tito
-    if (R.talla && d >= R.talla && !progreso().entradas?.['talla-propia'] && tallaEnLaPlaza(R, d, horas())) ctx.nota?.('Tito terminó tu talla', 'Está en la plaza, al lado del duende viejo', true);
+    if (R.talla && tallaEnLaPlaza(R, d, h) && !progreso().entradas?.['talla-propia'] && unaVez('talla', d)) ctx.nota?.('Tito terminó tu talla', 'Está en la plaza, al lado del duende viejo', true);
     // la copia del cuaderno: cada día alguno la lee
     if (R.cuaderno) R.lecturas = leyeronCuaderno(R, d);
     // la casa: a la mañana del día en que está
     const c = R.casa;
-    if (c?.estado === 'lista' && casaTerminada(c, d, horas()) && !progreso().entradas?.['casa-propia']) ctx.nota?.('Tu casa está terminada', 'En la calle de la Loma. Los vecinos te dejaron la estufa prendida', true);
+    if (c?.estado === 'lista' && casaTerminada(c, d, h) && !progreso().entradas?.['casa-propia'] && unaVez('casa', d)) ctx.nota?.('Tu casa está terminada', 'En la calle de la Loma. Los vecinos te dejaron la estufa prendida', true);
     // el sulky, la mañana que Tito lo trae
     const s = R.sulky;
-    if (s?.listo === d && horas() >= 7 && !s.avisado) { s.avisado = true; s.atado = false; ctx.nota?.('Tito te trajo el sulky', 'Está al lado del palenque del refugio. Atale el zaino y subí con E', true); }
+    if (s?.listo && tieneSulky(s, d, h) && !s.avisado) { s.avisado = true; s.atado = false; ctx.nota?.('Tito te trajo el sulky', 'Está al lado del palenque del refugio. Atale el zaino y subí con E', true); }
   }
 
   // ================================================================ E y el aviso

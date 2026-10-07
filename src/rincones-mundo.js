@@ -452,7 +452,7 @@ export function crearRinconesMundo(ctx) {
     estado: { minga: false, etapaFuerte: -1, etapaCasa: -1, adornos: '', talla: false, cuaderno: false, campamento: false, titeres: false },
   };
   const piezas = {};   // nombre → objeto (para medir y para compilar)
-  const info = { dibujos: 0, montarMs: 0 };
+  const info = { montarMs: 0, caminoMs: 0 };
 
   // ------------------------------------------------ los duendes (una malla instanciada para todo el valle)
   function montarDuendes() {
@@ -628,6 +628,8 @@ export function crearRinconesMundo(ctx) {
     // de la parada a la salida del camino, derecho (las dos puntas)
     pts = [paradas.refugio.punto, ...pts, paradas.aldea.punto];
     est.camino = recorrido(pts);
+    // (la caja del camino: lejos de ella no se dibujan los faroles)
+    est.cajaCamino = pts.reduce((c, p) => ({ x0: Math.min(c.x0, p.x), x1: Math.max(c.x1, p.x), z0: Math.min(c.z0, p.z), z1: Math.max(c.z1, p.z) }), { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity });
     info.caminoMs = performance.now() - t0;
     est.puentes = puentesDelCamino(est.camino, T);
     // los árboles y las matas de la huella (desde el principio: es una huella vieja de carro)
@@ -848,8 +850,9 @@ export function crearRinconesMundo(ctx) {
     // el camino: faroles con la minga (y la huella se ensancha)
     if (e.minga !== est.estado.minga) { est.estado.minga = !!e.minga; pintarCamino(!!e.minga); }
     if (piezas.faroles) {
-      piezas.faroles.visible = !!e.minga;
-      piezas.vidrios.visible = !!e.minga;
+      const c = est.cajaCamino, fuera = c ? Math.hypot(Math.max(c.x0 - pos.x, 0, pos.x - c.x1), Math.max(c.z0 - pos.z, 0, pos.z - c.z1)) : 0;
+      piezas.faroles.visible = !!e.minga && fuera < VER_FAROLES;
+      piezas.vidrios.visible = piezas.faroles.visible;
       const k = 0.25 + 0.95 * (e.noche || 0);
       vidrioFarol.color.setRGB(k, k * 0.72, k * 0.4);
     }
