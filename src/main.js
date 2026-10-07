@@ -4457,6 +4457,9 @@ function armarOficiosYAldea(esDesafio) {
     diario: (tipo, dato) => diario.anotar(tipo, dato),
     enLaPlaza: (p) => { const e = edificioEnMundo('plaza'); return !!e && !!p && Math.hypot(p.x - e.x, p.z - e.z) < 13; },
     puertaDe: (id) => puntosMundo(id)?.puerta || null,
+    // la obra de la minga quedó hecha ({ id: 'lenera' | 'camino' | 'bancos' | 'arreglos', nombre }): la leñera y los bancos los
+    // dibuja fiestas-mundo.js; el camino refugio–aldea es de «rincones» (al juntar: if (obra.id === 'camino') rinconesJuego?.mingaDelCamino())
+    alHacerMinga: (obra) => { void obra; },
     // la gran nevada tapa la vía en dos tramos (sin quitanieves, el tren espera a la cuadrilla: ver trochita.js)
     taparVia: (si) => { try { if (!tren?.taparVia) return; const L = tren.largo || 0; tren.taparVia(si && L > 400 ? [{ desde: L * 0.31, hasta: L * 0.31 + 140 }, { desde: L * 0.68, hasta: L * 0.68 + 110 }] : null); } catch (e) { console.warn('[fiestas] taparVia', e); } },
   });

@@ -290,6 +290,7 @@ const GU = await import('../src/guardado.js');
   const js = { pos: { x: 0, y: 0, z: 0 }, sentado: false, vel: { set() {} } };
   const teclas = new Set();
   const amistad = {};
+  const mingas = [];
   const mundo = {
     centro: () => ({ x: F.PREDIO.centro.x, z: F.PREDIO.centro.z }),
     punto: (k) => (P[k] ? { x: P[k].x, z: P[k].z, y: 0, mira: P[k].rot } : null),
@@ -304,7 +305,7 @@ const GU = await import('../src/guardado.js');
     progreso: () => progreso, desafio: () => false, jugador: () => ({ estado: js, teclas }), aldeaGente: () => ({ personas }), mundo: () => mundo,
     nota: (t, s) => notas.push(`${t} · ${s || ''}`), guardar: () => {}, sonido: () => null, amigos: () => 0, sumarAmistad: (k, x) => { amistad[k] = (amistad[k] || 0) + x; },
     invierno: (d) => AV.estacionDelAnio(((d - 1) % 12) + 1).id === 'invierno', semilla: () => 77, ritmo: () => 'normal', troncos: () => 10, gastarTroncos: () => {},
-    puertaDe: (id) => { const q = A.puntosFijosDe(id).puerta; return q ? { x: q.x, z: q.z } : null; }, enLaPlaza: () => false,
+    puertaDe: (id) => { const q = A.puntosFijosDe(id).puerta; return q ? { x: q.x, z: q.z } : null; }, enLaPlaza: () => false, alHacerMinga: (o) => mingas.push(o.id),
   });
   ok(AV.FIESTAS_ALDEA.some((f) => f.id === 'fiesta-verano'), 'al crearse, las fiestas quedan en el calendario del cuaderno');
   ok(J.activo() && J.ahora()?.fecha.id === 'fiesta-verano' && J.ahora().fase.fase === 'mesa', 'el día 2 a la una: la mesa larga de la Fruta Fina');
@@ -350,7 +351,7 @@ const GU = await import('../src/guardado.js');
   for (let i = 0; i < 6; i++) a.hacer();
   ok(progreso.fiestas.recuerdos.some((r) => r.id === 'minga'), 'diste una mano: la cuña de la minga');
   progreso.horas = 13.2; J.actualizar(0.6);
-  ok(F.mingaHecha(progreso.fiestas, 'lenera') && notas.some((t) => /^La minga terminó/.test(t)), 'al mediodía, la leñera queda hecha');
+  ok(F.mingaHecha(progreso.fiestas, 'lenera') && notas.some((t) => /^La minga terminó/.test(t)) && mingas.join() === 'lenera', 'al mediodía, la leñera queda hecha (y avisa a los otros equipos: alHacerMinga)');
   // la gran nevada (el año 1, el día de la semilla)
   const dn = F.diaNevada(1, 77);
   progreso.dia = dn; progreso.horas = 9; J.reiniciarDia(); J.actualizar(0.6);

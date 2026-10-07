@@ -141,6 +141,8 @@ export function crearFiestasJuego(ctx) {
     for (const f of fechasDeHoy()) if (f.tipo === 'minga' && h >= programaDe(f)[0].hasta && visto.terminoMinga !== d) {
       visto.terminoMinga = d;
       const obra = terminarMinga(estado(), d);
+      // (el gancho para los otros equipos: la del camino refugio–aldea la dibuja «rincones», `mingaDelCamino`)
+      if (obra) { try { ctx.alHacerMinga?.(obra); } catch (err) { console.warn('[fiestas] alHacerMinga', err); } }
       if (obra) { ctx.nota?.(`La minga terminó: ${minus(obra.nombre)}`, ayudasteEnLaMinga(estado(), d) ? 'Y vos diste una mano: quedó también lo tuyo' : obra.texto, true); ctx.guardar?.(); }
     }
     // la gran nevada: la vía tapada y nieve todo el día
