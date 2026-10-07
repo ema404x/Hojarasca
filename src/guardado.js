@@ -51,6 +51,8 @@ import { trenNuevo, sanearTren } from './tren-mejoras.js';
 // 3.7.5 (noticias): el diario de la aldea, las cartas de lejos, el club y las estrellas; los concursos y las cintas
 import { noticiasNuevas, sanearNoticias } from './noticias.js';
 import { concursosNuevo, sanearConcursos } from './concursos.js';
+// 3.7.5: las fiestas y las fechas (los recuerdos, la minga, la nevada, los juegos, tu cumpleaños; sólo en el Relax)
+import { fiestasNuevas, sanearFiestas } from './fiestas.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -301,6 +303,8 @@ export function progresoNuevo() {
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
     mecanicas: mecanicasNuevas(),
+    // 3.7.5: las fiestas: ninguna vista todavía (en el Desafío, ninguna)
+    ...(desafio ? {} : { fiestas: fiestasNuevas() }),
     // 3.7.2 (granja): vacía (en el Desafío, ninguna); la semilla decide el pelaje de la vaca, los mellizos y las camadas
     ...(desafio ? {} : { granja: granjaNueva(1 + Math.floor(Math.random() * 1e9)) }),
     // 3.7.5 (rincones): nada encontrado ni aprendido; el lote de tu casa, libre; sin sulky; el camino, una huella
@@ -479,6 +483,10 @@ function sanearProgreso(p) {
     vecindad: sanearVecindad(p.vecindad),
     // 3.6 (mecánicas): una partida vieja no lo trae: arranca sin nada
     mecanicas: sanearMecanicas(p.mecanicas),
+    // 3.7.5: las fiestas. Una partida vieja no las trae: arrancan de cero (sin recuerdos, la minga sin hacer, tu
+    // cumpleaños el día de siempre); un guardado roto, saneado (sólo fechas y recuerdos que existen, nada del futuro).
+    // En el Desafío no hay fiestas
+    fiestas: modoPartida === 'desafio' ? undefined : sanearFiestas(p.fiestas, Math.max(1, Math.floor(finito(p.dia, 1)))),
     // 3.7.0: la vida de la aldea. Una partida de la 3.6 no la trae: arranca hoy (sin cartas atrasadas, la
     // familia dentro de unos días, los chicos creciendo desde hoy: ver `sanearAldea`)
     vidaAldea: sanearVidaAldea(p.vidaAldea, Math.max(1, Math.floor(finito(p.dia, 1)))),

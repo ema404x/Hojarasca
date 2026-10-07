@@ -143,7 +143,7 @@ app.whenReady().then(async () => {
     // ------------------------------------------------------------ 3. el humo trae vecinos y al perro
     seccion('3. el humo trae a alguien y al perro');
     // (el domingo a mediodía casi todos tienen el rato libre: el asado se hace a la hora de comer)
-    await js(`(()=>{ const p = ${P}; p.dia = 7; p.horas = 12.1; ${H}.__cocina().actualizar(1); return 1 })()`);
+    await js(`(()=>{ const p = ${P}; p.dia = 13; p.horas = 12.1;   /* (3.7.5: el 7 es la minga y todos trabajan en el predio) */ ${H}.__cocina().actualizar(1); return 1 })()`);
     await avanzar(0.05);
     c = await coccion('parrilla', parrilla);
     const invitados = (c.invitados || []).filter((k) => k !== '__nadie');

@@ -204,7 +204,7 @@ app.whenReady().then(async () => {
     await js(`${tecla('KeyJ')} 1`); await esperar(300);
     await js(`(()=>{ ${H}.__aldea.oficios().elegir('calendario'); ${H}.__aldea.cuaderno('oficios'); return 1 })()`);
     f = await js(`document.getElementById('cuaderno-ficha').textContent`);
-    ok(/Calendario y vida de la aldea/.test(f) && /Concurso de dulces/.test(f) && /Fiesta de la cosecha/.test(f) && /Club de lectura/.test(f), `el calendario muestra fiestas, concursos y el club (${f.slice(0, 260)})`);
+    ok(/Calendario y vida de la aldea/.test(f) && /Concurso de dulces/.test(f) && /Fiesta de la cosecha/i.test(f) && /Club de lectura/.test(f), `el calendario muestra fiestas, concursos y el club (${f.slice(0, 260)})`);
     await capturar('4-calendario');
     await js(`${H}.volverAlJuego?.(); 1`);
     ok(f.includes('cumple Nélida'), `Nélida cumple el día ${ddaNelida} del año (en el calendario)`);
@@ -214,17 +214,18 @@ app.whenReady().then(async () => {
     await aldea(2);
     av = await avisos(10);
     ok(/Mañana cumple años Nélida/.test(av) || /Mañana cumplen años [^|]*Nélida/.test(av), `el aviso del cumpleaños, el día antes (${(av.match(/Mañana cumpl[^|]*/) || [''])[0]})`);
-    // la fiesta de la cosecha (día 7 del año): el aviso del día 6 (en el año 2: el 18)
-    await js(`(()=>{ ${P}.dia = 18; ${P}.horas = 9; ${P}.noticias.avisado = 17; return 1 })()`);
+    // la fiesta de la cosecha (día 6 del año): el aviso del día 5 (en el año 2: el 17)
+    await js(`(()=>{ ${P}.dia = 17; ${P}.horas = 9; ${P}.noticias.avisado = 16; return 1 })()`);
     await aldea(2);
     av = await avisos(10);
-    ok(/Mañana: fiesta de la cosecha y el concurso de dulces/.test(av), `y el de la fiesta con su concurso (${(av.match(/Mañana: fiesta[^|]*/) || [''])[0]})`);
+    // (3.7.5 (integración): la fiesta la avisa el calendario de la aldea, desde FIESTAS_ALDEA; las noticias, sólo el concurso)
+    ok(/Mañana:? [^|]*fiesta de la cosecha/i.test(av) && /Mañana: el concurso de dulces/.test(av), `y el de la fiesta con su concurso (${(av.match(/Mañana[^|]*(fiesta|concurso)[^|]*/gi) || []).join(' · ')})`);
 
     // ------------------------------------------------------------ 5. el concurso de dulces
     seccion('5. el concurso de dulces');
     // (las 16:15 del día de la fiesta de la cosecha: Nélida atiende la mesa en la plaza desde las 9; en la última hora
     // antes del fallo se juntan el jurado y los que compiten)
-    await js(`(()=>{ const P = ${P}; P.dia = 19; P.horas = 16.25; P.entradas['dulce-leche'] = { dia: 18, hora: 10, cantidad: 2 }; P.cocina.hechas = { ...(P.cocina.hechas || {}), 'dulce-leche': 6 }; P.cosas.azucar = 0; return 1 })()`);
+    await js(`(()=>{ const P = ${P}; P.dia = 18; P.horas = 16.25; P.entradas['dulce-leche'] = { dia: 17, hora: 10, cantidad: 2 }; P.cocina.hechas = { ...(P.cocina.hechas || {}), 'dulce-leche': 6 }; P.cosas.azucar = 0; return 1 })()`);
     await irLejos(); await aldea(2); await plaza(); await aldea(80);
     e = await estado();
     const enLaMesa = e.npcs.filter((x) => x.destino?.lugar === 'concurso').map((x) => x.clave);
@@ -244,12 +245,13 @@ app.whenReady().then(async () => {
     ok(h.textos.some((t) => /^Anotado, con un frasco de dulce de leche\./.test(t)), 'anotado');
     await cerrarCharla();
     e = await js(`({ ins: ${P}.concursos.inscripto, frascos: ${P}.entradas['dulce-leche'].cantidad })`);
-    ok(e.ins?.id === 'dulce' && e.ins.dia === 19 && e.frascos === 1, `el frasco queda en la mesa del jurado (${JSON.stringify(e)})`);
+    ok(e.ins?.id === 'dulce' && e.ins.dia === 18 && e.frascos === 1, `el frasco queda en la mesa del jurado (${JSON.stringify(e)})`);
     // (a las 17, el fallo: de nuevo mirando la mesa desde lejos)
     await verMesa();
     await js(`(()=>{ ${P}.horas = 17.02; return 1 })()`);
     await aldea(1);
-    e = await js(`({ cintas: ${P}.concursos.cintas, res: ${P}.concursos.resultados, azucar: ${P}.cosas.azucar || 0 })`);
+    // (3.7.5 (integración): el resultado de hoy; el día 2, la fiesta de la Fruta Fina, ya falló el de la trucha sin vos)
+    e = await js(`({ cintas: ${P}.concursos.cintas, res: ${P}.concursos.resultados.filter((r) => r.id === 'dulce'), azucar: ${P}.cosas.azucar || 0 })`);
     ok(e.cintas.length === 1 && e.cintas[0].id === 'dulce' && e.res.length === 1, `la cinta (${JSON.stringify(e.cintas[0])}; podio ${e.res[0]?.podio?.join(', ')})`);
     av = await avisos(6);
     ok(/¡Cinta (azul|roja|blanca) en el concurso de dulces!|Cinta verde de mención en el concurso de dulces/.test(av), `el fallo del jurado (${(av.match(/[^|]*[Cc]inta [^|]*/) || [''])[0]})`);
@@ -258,7 +260,7 @@ app.whenReady().then(async () => {
     e = await js(`({ azucar: ${P}.cosas.azucar || 0, puesto: ${P}.concursos.cintas[0].puesto })`);
     ok(e.puesto >= 1 && e.puesto <= 3 ? e.azucar > 0 : e.azucar === 0, `el regalo útil (puesto ${e.puesto || 'mención'}: ${e.azucar} de azúcar)`);
     f = await cuaderno('noticias');
-    ok(/Concursos y cintas/.test(f) && /Día 19: cinta/.test(f), 'la cinta, en el cuaderno');
+    ok(/Concursos y cintas/.test(f) && /Día 18: cinta/.test(f), 'la cinta, en el cuaderno');
     e = await js(`(()=>{ const c = document.querySelector('#cuaderno-ficha .cintas-ganadas'); if (!c) return 0; c.previousElementSibling?.previousElementSibling?.scrollIntoView({ block: 'start' }); return c.children.length })()`);
     ok(e === 1, 'la escarapela de la cinta, dibujada en el cuaderno');
     await capturar('5-cinta');
@@ -266,8 +268,11 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ 6. el club y las estrellas
     seccion('6. el club de lectura y la noche de estrellas');
-    // (un miércoles sin fiesta, a las 18:30: el día 24 es miércoles — (24-1) % 7 = 2)
-    await js(`(()=>{ ${P}.dia = 24; ${P}.horas = 18.5; return 1 })()`);
+    // (un miércoles con club, a las 18:30, sin fiesta ni cumpleaños festejado: el primero que diga el calendario del juego
+    // después del concurso; 3.7.5 (integración): con las fechas de fiestas.js ya no es el 24)
+    const sinFiesta = (d, id) => js(`(()=>{ const H = ${H}; H.progreso.dia = ${d}; const ex = H.__noticias().extrasCalendario(${d}) || []; return ex.some((x) => x.dia === ${d} && x.id === '${id}') && !(H.__fiestas?.()?.fechasDeHoy?.() || []).length })()`);
+    let diaClub = 19; while (diaClub < 200 && !(await sinFiesta(diaClub, 'club-lectura'))) diaClub++;
+    await js(`(()=>{ ${P}.dia = ${diaClub}; ${P}.horas = 18.5; return 1 })()`);
     await irLejos(); await aldea(2); await plaza(); await aldea(80);
     e = await estado();
     const club = e.npcs.filter((x) => x.destino?.lugar === 'club').map((x) => x.clave);
@@ -282,8 +287,9 @@ app.whenReady().then(async () => {
       let dx = n.pos.x - cx, dz = n.pos.z - cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
       const px = cx - dx * 1.6, pz = cz - dz * 1.6; H.jugador.ubicar(px, pz, Math.atan2(-(n.pos.x - px), -(n.pos.z - pz))); H.jugador.estado.pitch = -0.18; return 1 })()`);
     await capturar('6-club-lectura');
-    // (un sábado sin fiesta ni cumpleaños festejado, a las 21:30: el día 48 — (48-1) % 7 = 5, día 12 del año)
-    await js(`(()=>{ ${P}.dia = 48; ${P}.horas = 21.5; return 1 })()`);
+    // (un sábado sin fiesta ni cumpleaños festejado, a las 21:30: el primero después del club)
+    let diaCielo = diaClub + 1; while (diaCielo < 300 && !(await sinFiesta(diaCielo, 'noche-estrellas'))) diaCielo++;
+    await js(`(()=>{ ${P}.dia = ${diaCielo}; ${P}.horas = 21.5; return 1 })()`);
     await irLejos(); await aldea(2); await plaza(); await aldea(80);
     e = await estado();
     const cielo = e.npcs.filter((x) => x.destino?.lugar === 'estrellas').map((x) => x.clave);
@@ -299,7 +305,7 @@ app.whenReady().then(async () => {
       const px = n.pos.x + dx * 3.5, pz = n.pos.z + dz * 3.5; H.jugador.ubicar(px, pz, Math.atan2(-(cx - px), -(cz - pz))); H.jugador.estado.pitch = 0.08; return 1 })()`);
     await capturar('6-noche-estrellas');
     e = await js(`({ club: ${P}.noticias.club, estrellas: ${P}.noticias.estrellas })`);
-    ok(e.club.includes(24) && e.estrellas.includes(48), `quedan anotados (${JSON.stringify(e)})`);
+    ok(e.club.includes(diaClub) && e.estrellas.includes(diaCielo), `quedan anotados (${JSON.stringify(e)})`);
 
     // ------------------------------------------------------------ 7. guardar y cargar
     seccion('7. guardar y cargar');

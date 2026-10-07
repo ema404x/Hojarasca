@@ -71,28 +71,28 @@ const delAnio = K.extrasDelAnio(1, op);
 ok(delAnio.some((e) => e.tipo === 'fiesta') && delAnio.some((e) => e.tipo === 'aldea') && delAnio.some((e) => e.tipo === 'concurso') && delAnio.some((e) => e.tipo === 'club'), 'el año: fiestas, día de la aldea, concursos y club');
 ok(K.extrasDelDia(13, op).some((e) => e.tipo === 'aniversario' && e.nombre === 'Aniversario de tu llegada (un año)') && !K.extrasDelDia(1, op).some((e) => e.id === 'aniversario'), 'el aniversario de tu llegada, desde el segundo año');
 ok(K.extrasDelDia(14, op).some((e) => e.id === 'aniversario-aldea'), 'y el de cuando conociste la aldea');
-ok(K.extrasDelDia(3, { ...op, ya: ['fiesta-verano'] }).every((e) => e.id !== 'fiesta-verano'), 'lo que ya está en FIESTAS_ALDEA no se repite');
-const est6 = K.extrasDelDia(6, op);
-ok(est6.some((e) => e.id === 'concurso-foto' && /En el día de la aldea:/.test(e.texto)), 'el concurso de fotos va el día de la aldea («en el día…»)');
+ok(K.extrasDelDia(2, { ...op, ya: ['fiesta-verano'] }).every((e) => e.id !== 'fiesta-verano'), 'lo que ya está en FIESTAS_ALDEA no se repite');
+const est6 = K.extrasDelDia(4, op);
+ok(est6.some((e) => e.id === 'concurso-foto' && /En el día de la aldea:/i.test(e.texto)), 'el concurso de fotos va el día de la aldea («en el día…»)');
 // las estrellas: los sábados (día de la semana 5) con el observatorio abierto, sin fiesta
 const sabado = [6, 13, 20, 27].find((d) => !F.fechaDe(d));
 ok(K.hayEstrellas(sabado, aldea, F.FECHAS) && !K.hayEstrellas(sabado, { ...aldea, locales: {} }, F.FECHAS), 'noche de estrellas sólo con el observatorio abierto');
 ok(K.estrellasAhora(sabado, 21.5, aldea, F.FECHAS) && !K.estrellasAhora(sabado, 20, aldea, F.FECHAS), 'de 21 a 23');
-ok(K.clubAhora(3, 18.5, aldea, []) && !K.clubAhora(3, 18.5, aldea, F.FECHAS) && !K.clubAhora(10, 17, aldea, F.FECHAS) && K.clubAhora(10, 18, aldea, F.FECHAS), 'el club, los miércoles de 18 a 19:30 (no en día de fiesta)');
+ok(K.clubAhora(24, 18.5, aldea, []) && !K.clubAhora(24, 18.5, aldea, F.FECHAS) && !K.clubAhora(10, 17, aldea, F.FECHAS) && K.clubAhora(10, 18, aldea, F.FECHAS), 'el club, los miércoles de 18 a 19:30 (no en día de fiesta)');
 ok(K.asistentes('club', 10, aldea).length === K.CLUB_LECTURA.asisten && !K.asistentes('club', 10, aldea).includes('abuela'), 'van unos cuantos vecinos (la abuela lo lleva)');
 ok(K.libroDeLaSemana(1).id !== K.libroDeLaSemana(8).id && K.LIBROS_CLUB.length >= 4, 'un libro por semana');
-const av = K.avisoMananaExtra(6, op);
-ok(av && av.titulo === 'Mañana: fiesta de la cosecha y el concurso de dulces' && /Anota Nélida/.test(av.texto), `el aviso del día antes (${av?.titulo})`);
+const av = K.avisoMananaExtra(5, op);
+ok(av && av.titulo === 'Mañana: fiesta de la Cosecha y el concurso de dulces' && /Anota Nélida/.test(av.texto), `el aviso del día antes (${av?.titulo})`);
 ok(K.avisoMananaExtra(12, op)?.titulo.startsWith('Mañana: aniversario de tu llegada (un año)'), 'el aniversario también se avisa el día antes');
-ok(K.avisoMananaExtra(1, { ...op, aldea: { ...aldea, locales: {} } }) === null, 'sin nada mañana, sin aviso');
+ok(K.avisoMananaExtra(4, { ...op, aldea: { ...aldea, locales: {} } }) === null, 'sin nada mañana, sin aviso');
 
-ok(K.extrasDelDia(7, { aldea, fechas: F.fechaDe }).map((e) => e.id).join() === 'fiesta-otono,concurso-dulce' && K.hayClub(3, aldea, F.fechaDe) === false, 'también con el fechaDe de fiestas.js (no depende de cómo guarde las fechas)');
+ok(K.extrasDelDia(6, { aldea, fechas: F.fechaDe }).map((e) => e.id).join() === 'fiesta-cosecha,concurso-dulce' && K.hayClub(24, aldea, F.fechaDe) === false, 'también con el fechaDe de fiestas.js (no depende de cómo guarde las fechas)');
 
 // ---------------------------------------------------------------- lo que junta el juego
 const p = { dia: 5, aldea: { descubierta: 1, pobladores: [], locales: {} }, entradas: {} };
 ok(J.chismesDelValle(p, 5).length > 3 && J.chismesDelValle(p, 5).every((t) => !/Benigno|Valentina/.test(t)), 'los chismes de los vecinos, sin nombrar a los que no llegaron');
-ok(J.avisosDelValle(p, 5).some((t) => /^Mañana: día de la aldea/.test(t)) && J.avisosDelValle(p, 5).some((t) => /^Club de lectura/.test(t)), 'los avisos: lo que viene y el club');
-ok(J.novedadesDelValle(p, 7).some((t) => /^Hoy es fiesta de la cosecha/.test(t)), 'las novedades: la fiesta de hoy');
+ok(J.avisosDelValle(p, 3).some((t) => /^Mañana: día de la aldea/i.test(t)) && J.avisosDelValle(p, 3).some((t) => /^Club de lectura/.test(t)), 'los avisos: lo que viene y el club');
+ok(J.novedadesDelValle(p, 6).some((t) => /^Hoy es fiesta de la cosecha/i.test(t)), 'las novedades: la fiesta de hoy');
 ok(J.tiempoDelValle([{ cuando: 'Hoy', texto: 'Lluvia fuerte' }, { cuando: 'Mañana', texto: 'Sol' }]).join(' ') === 'Para hoy, lluvia fuerte. Para mañana, sol.', 'el tiempo del pronóstico');
 ok(Object.keys(RITMOS).every((r) => Object.hasOwn(N.DIARIO_ALDEA.cada, r) && Object.hasOwn(N.CARTAS_CADA, r) && Object.hasOwn(N.CHISMES_POR_RITMO, r)), 'el ritmo de la aldea manda en el diario, las cartas y los chismes');
 

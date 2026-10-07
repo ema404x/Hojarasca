@@ -28,9 +28,9 @@ ok(Object.keys(C.DULCES).every((k) => Object.hasOwn(COMIDAS, k) || Object.hasOwn
 ok(C.CINTAS.map((c) => c.id).join() === 'azul,roja,blanca' && C.cintaDe(7).id === 'verde', 'cintas: azul, roja y blanca; los demás, mención');
 
 // ---------------------------------------------------------------- en qué fiesta
-ok(C.concursoDeFecha(F.fechaDe(3), 3) === 'trucha' && C.concursoDeFecha(F.fechaDe(7), 7) === 'dulce' && C.concursoDeFecha(F.fechaDe(11), 11) === 'poncho' && C.concursoDeFecha(F.fechaDe(6), 6) === 'foto', 'cada fiesta, su concurso');
+ok(C.concursoDeFecha(F.fechaDe(2), 2) === 'trucha' && C.concursoDeFecha(F.fechaDe(6), 6) === 'dulce' && C.concursoDeFecha(F.fechaDe(12), 12) === 'poncho' && C.concursoDeFecha(F.fechaDe(4), 4) === 'foto', 'cada fiesta, su concurso');
 ok(C.concursoDeFecha({ id: 'otra-fiesta', tipo: 'fiesta' }, 2) === 'trucha' && C.concursoDeFecha({ id: 'otra-fiesta', tipo: 'fiesta' }, 6) === 'dulce' && C.concursoDeFecha({ id: 'minga', tipo: 'minga' }, 2) === null && C.concursoDeFecha(null, 3) === null, 'una fiesta de otro id va por su estación; lo que no es fiesta, sin concurso');
-const act = F.actividadesDeFiesta(F.fechaDe(7), 7);
+const act = F.actividadesDeFiesta(F.fechaDe(6), 6).filter((a) => a.tipo === 'concurso');
 ok(act.length === 1 && act[0].tipo === 'concurso' && act[0].concurso === 'dulce' && act[0].organiza === 'nelida' && act[0].hasta === C.HORAS_CONCURSO.fallo, 'actividadesDeFiesta suma el concurso (el gancho de fiestas.js)');
 
 // ---------------------------------------------------------------- lo que llevás
@@ -87,7 +87,7 @@ ok(C.sanearConcursos({ inscripto: { id: 'dulce', dia: 5, k: 'dulce-leche', que: 
 
 // ---------------------------------------------------------------- el juego (sin mundo)
 const notas = [], cobros = [];
-const prog = { dia: 7, horas: 12, aldea: { descubierta: 1, pobladores: [] }, entradas: { 'dulce-leche': { cantidad: 2 } }, cosas: {}, cocina: { hechas: {} }, desafios: {} };
+const prog = { dia: 6, horas: 12, aldea: { descubierta: 1, pobladores: [] }, entradas: { 'dulce-leche': { cantidad: 2 } }, cosas: {}, cocina: { hechas: {} }, desafios: {} };
 const J = crearConcursosJuego({ progreso: () => prog, desafio: () => false, nota: (a, b) => notas.push([a, b]), guardar: () => {}, cobrar: (x) => cobros.push(x) });
 ok(J.deHoy() === 'dulce' && J.hablar({ clave: 'jefe' }) === null, 'sólo anota Nélida');
 let h = J.hablar({ claveAldea: 'nelida' });
@@ -101,12 +101,12 @@ prog.horas = 17.2; J.actualizar(1);
 ok(prog.concursos.resultados.length === 1 && prog.concursos.cintas.length === 1 && notas.length >= 2, 'a las 17, el fallo y la cinta');
 const pu = prog.concursos.cintas[0].puesto;
 ok(pu <= 3 ? cobros.length === 1 && cobros[0].premio === C.regaloDe('dulce', pu) : cobros.length === 0, 'el regalo útil, si quedaste entre los tres');
-ok(/^En el concurso de dulces se llevó la cinta azul/.test(J.noticiaReciente(7)) && J.noticiaReciente(9) === null, 'la noticia, hoy y mañana');
+ok(/^En el concurso de dulces se llevó la cinta azul/.test(J.noticiaReciente(6)) && J.noticiaReciente(8) === null, 'la noticia, hoy y mañana');
 prog.dia = 8; prog.horas = 12;
 ok(J.hablar({ claveAldea: 'nelida' }) === null, 'sin concurso, Nélida es Nélida');
 J.delPez({ id: 'marron', cm: 55 });
 ok(prog.concursos.truchas.length === 1, 'las truchas se anotan para el concurso');
-prog.dia = 19; prog.horas = 12;
+prog.dia = 18; prog.horas = 12;
 let dm = J.destinos();
 ok(dm.size === 1 && dm.get('nelida')?.edificio === 'plaza', 'el día del concurso, Nélida atiende la mesa en la plaza');
 prog.horas = 16.5; dm = J.destinos();

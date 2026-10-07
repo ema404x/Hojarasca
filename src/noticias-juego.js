@@ -10,12 +10,15 @@
 // meteo.js), cartaVieja() (si Ercilia tiene una carta del correo de siempre: va primero), concursos() (concursos-juego.js) }.
 import { armarPrograma, RADIO_ALDEA, PROGRAMAS_RADIO, DIARIO_ALDEA, tocaDiario, sacarDiario, repartirCarta, cartasPorLeer, cartasLeidas, leerCartaLejana, partesDeCartaLejana, sanearNoticias, CARTAS_LEJANAS, remitente } from './noticias.js';
 import { extrasDelDia, extrasDelAnio, avisoMananaExtra, clubAhora, estrellasAhora, libroDeLaSemana, asistentes, CLUB_LECTURA, NOCHE_ESTRELLAS, hayClub, hayEstrellas, nombreDiaSemana } from './calendario.js';
-import { fechaDe as fechaDeFiesta } from './fiestas.js';
+import { fechaDe as fechaDelCalendario } from './fiestas.js';
 import { eventosDelDia, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { obraEnCurso, etapaDe, EDIFICIOS_ALDEA, esVecinoAldea, ORDEN_PERSONAS_ALDEA, POBLADORES_ALDEA } from './aldea.js';
 import { noticiasDeAmor } from './amor.js';
 import { VOCES_SOCIAL } from './vecindad-social-voces.js';
 import { hashTexto, generador } from './semilla.js';
+// (la fecha de fiestas.js, sin tu cumpleaños: sin el estado, fechaDe lo pone siempre el día 3, y la fiesta es sorpresa;
+// las noticias no lo anuncian ni suspenden el club por eso)
+const fechaDeFiesta = (dia) => { const f = fechaDelCalendario(dia); return f && f.tipo !== 'cumple-jugador' ? f : null; };
 
 const minus = (s) => (typeof s === 'string' && s ? s.charAt(0).toLowerCase() + s.slice(1) : '');
 const unir = (l) => (l.length < 2 ? l[0] || '' : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);

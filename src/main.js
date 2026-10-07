@@ -101,9 +101,11 @@ import { crearNoticiasJuego } from './noticias-juego.js';
 import { crearConcursosJuego } from './concursos-juego.js';
 // 3.7.3: el taller ferroviario de la aldea y las mejoras del tren (sólo en el Relax)
 import { crearTallerJuego } from './taller-tren-juego.js';
+import { crearFiestasJuego } from './fiestas-juego.js';
+import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
 import { PLANOS_COCINA_E, RECETA_PASOS } from './cocina-pasos.js';
-import { sumarAmistadDe, nombreCorto } from './vecindad.js';
+import { sumarAmistadDe, nombreCorto, amistades } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -145,7 +147,7 @@ import { LENA, sanearLenera, sanearHumedad, humedecer, guardarEnLenera, avisoLen
 import { MOLINO, sanearAserradero, sanearMuela, fuerzaDelAgua, horasDesde, avanzarAserradero, aserrando, avanzarMuela, moliendo, molinoQueMueve, usarAserradero, avisoAserradero, usarMolino, avisoMolino } from './molino.js';
 import { crearMolinoMundo } from './molino-mundo.js';
 import { crearMeteoMundo } from './meteo-mundo.js';
-import { sanearMeteo, crearPrograma, pronostico as pronosticoMeteo, nochesQueVienen, textoPronostico, horaAbsoluta } from './meteo.js';
+import { sanearMeteo, crearPrograma, pronostico as pronosticoMeteo, nochesQueVienen, textoPronostico, horaAbsoluta, inviernoDelDia } from './meteo.js';
 import { sanearRadio, escucharRadio, cumplirPedido, pedidoRadio, alcanzaPedido, textoPide as textoPideRadio, nombreEstacionRadio } from './radio.js';
 import { MAQUINAS_QUE_TRABAJAN } from './planos-maquinas.js';
 import { comoDormiste, horasDescansado, gastarDescanso, casaCerrada } from './abrigo.js';
@@ -2118,6 +2120,8 @@ function textoParaExportar(ranura) {
 // anotado, que se abre en cualquier navegador. Se baja como las fotos: sin diálogos.
 function exportarAlbum() {
   const datos = datosAlbum({ progreso, desafios: DESAFIOS, secciones: SECCIONES, entradas: ENTRADAS });
+  // 3.7.5: y las fotos de las fiestas (en `progreso.desafios`, con su id: ver fiestas.js, `fotoDeFiesta`)
+  if (fiestasJuego) { datos.fotos.push(...datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() }).fotos); datos.fotos.sort((a, b) => (a.dia - b.dia) || (a.hora - b.hora)); }
   if (!datos.fotos.length && !datos.diario.length && !datos.anotaciones) { nota('Todavía no hay nada para llevarse', 'Anotá algo, sacá fotos o dormí una noche para que se escriba el diario'); return null; }
   const version = document.getElementById('version-completa')?.textContent?.replace(/^Versión /, '') || '';
   const texto = htmlAlbum(datos, { titulo: modoJuego === 'desafio' ? 'Cuaderno del Desafío' : 'Cuaderno de campo', version, t: T_ });
@@ -2706,6 +2710,8 @@ document.addEventListener('keydown', (e) => {
       if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
       // 3.7.3: y el del taller ferroviario
       if (tallerTren?.panelAbierto()) { tallerTren.cerrarPanel(); break; }
+      // 3.7.5: y el de las fiestas (en un partido, E no lo deja: Escape)
+      if (fiestasJuego?.panelAbierto()) { fiestasJuego.alApretarE(); break; }
       // 3.7.5 (rincones): arriba del sulky E baja; en un picado, al lado de la pelota, E patea (antes que hablar con alguien;
       // el aviso, en el mismo lugar y con la misma función: rinconesJuego.urgente)
       if (rinconesJuego) { const u = rinconesJuego.urgente(js); if (u) { u.hacer(); cacheRincones = null; break; } }
@@ -2744,6 +2750,8 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !objetivo && granjaJuego) { const a = granjaJuego.accion(js); if (a) { a.hacer(); cacheGranja = null; break; } }
       // 3.7.3: en el taller ferroviario, el panel de mejoras (el aviso, en el mismo lugar y con la misma función: tallerTren.accion)
       if (!js.enTren && !js.enKayak && !objetivo && tallerTren) { const a = tallerTren.accion(js); if (a) { a.hacer(); cacheTaller = null; break; } }
+      // 3.7.5: lo de las fiestas, después del taller (el aviso, en el mismo lugar y con la misma función: fiestasJuego.accion)
+      if (!js.enTren && !js.enKayak && !objetivo && fiestasJuego) { const a = fiestasJuego.accion(js); if (a) { a.hacer(); cacheFiesta = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
@@ -2929,6 +2937,7 @@ document.addEventListener('keydown', (e) => {
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
       if (cocinaJuego?.panelAbierto()) { marcarEn('cocina', Number(codigo.slice(5)) - 1); cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.2
       if (tallerTren?.panelAbierto()) { marcarEn('taller-tren', Number(codigo.slice(5)) - 1); tallerTren.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.3
+      if (fiestasJuego?.panelAbierto()) { marcarEn('fiesta', Number(codigo.slice(5)) - 1); fiestasJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.5
       if (codigo === 'Digit9') break;
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
@@ -2965,6 +2974,7 @@ document.addEventListener('keydown', (e) => {
       else if (enLasCargas()) puestoCargas.cerrar();
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
       else if (tallerTren?.panelAbierto()) tallerTren.atras();   // 3.7.3: de la pintura o la composición, al panel; del panel, afuera
+      else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();   // 3.7.5: deja el partido (o se suelta del redomón)
       else if (charla.npc) atrasCharla();   // 3.6 (vida): del submenú o de un tema, al menú
       else abrir('pausa');
       break;
@@ -2976,6 +2986,7 @@ document.addEventListener('keydown', (e) => {
       if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }
       if (cocinaJuego?.panelAbierto()) { marcarEn('cocina', Number(codigo.slice(5)) - 1); cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.2
       if (tallerTren?.panelAbierto()) { marcarEn('taller-tren', Number(codigo.slice(5)) - 1); tallerTren.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.3
+      if (fiestasJuego?.panelAbierto()) { marcarEn('fiesta', Number(codigo.slice(5)) - 1); fiestasJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }   // 3.7.5
       elegirRanura(Number(codigo.slice(5)) - 1);
       break;
   }
@@ -3443,6 +3454,7 @@ function marcarPisos() {
   if (!texturaEstepa || !col?.plataformas) return;
   const lista = col.plataformas.concat(canterosParaPisos());
   if (aldeaMundo) lista.push(...aldeaMundo.pisos());   // 3.6: y las calles y los pisos de la aldea
+  if (fiestasMundo) lista.push(...fiestasMundo.pisos());   // 3.7.5: y el predio de la fiesta
   let suma = 0;
   for (const p of lista) suma += (p.x || 0) * 0.37 + (p.z || 0) + (p.alto || 0) + (p.ang || 0) * 0.71;
   const firma = lista.length + '|' + suma.toFixed(2);
@@ -4348,6 +4360,8 @@ let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
 let noticiasJuego = null, concursosJuego = null;   // 3.7.5 (noticias): ver noticias-juego.js y concursos-juego.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
+let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
+let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
@@ -4424,7 +4438,7 @@ function armarOficiosYAldea(esDesafio) {
     nombrePerro: () => perro?.nombre?.() || '',
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
-    amorDestino: (k) => amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado)
+    amorDestino: (k) => destinoConFiesta(k),   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado) (3.7.5: con la fiesta en el medio)
     noticiasDestino: (k) => noticiasJuego?.destino(k) || null,   // 3.7.5 (noticias): y si no, el club de lectura o la noche de estrellas
     extrasCalendario: (d) => noticiasJuego?.extrasCalendario(d) || [],   // 3.7.5 (noticias): las fechas, el aniversario, los concursos, el club y las estrellas
   });
@@ -4471,6 +4485,35 @@ function armarOficiosYAldea(esDesafio) {
     pedirTexto: (texto, inicial, extra) => dialogos.pedirTexto(texto, inicial, extra),
     aplicarMejoras: (estado) => aplicarMejoras(estado),   // (el de tren.js: rearma el tren de la vía sin tirón)
   });
+  // 3.7.5: las fiestas y las fechas: el día, quién va a dónde, E y el aviso, los juegos (truco, chinchón, damas, taba),
+  // la jineteada, la minga, la nevada solidaria, los recuerdos; y lo que se ve y se oye (el predio, la música)
+  fiestasJuego = crearFiestasJuego({
+    progreso: () => progreso, desafio: () => !!desafio, jugador: () => jugador, aldeaGente: () => aldeaGente, mundo: () => fiestasMundo,
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
+    alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alAbrirPanel: () => { marcarEn('fiesta', 0); marcarHud(0, true); },
+    amigos: () => Object.values(amistades(progreso) || {}).filter((n) => n === 'amigo' || n === 'compadre').length,
+    sumarAmistad: (k, n) => { if (k) sumarAmistadDe(progreso, k, n, progreso.dia); },
+    invierno: (d) => inviernoDelDia(d, ajustes.estacion), semilla: () => meteoPartida().semilla, ritmo: () => ajustes.ritmoAldea || 'normal',
+    troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
+    leer: (l) => leerEnLaAldea(l), decir: (texto) => decirCharlaAldea(texto), decirNpc: (npc, texto, o = {}) => socialJuego?.decir(npc, texto, { cerca: true, ...o }),
+    diario: (tipo, dato) => diario.anotar(tipo, dato),
+    enLaPlaza: (p) => { const e = edificioEnMundo('plaza'); return !!e && !!p && Math.hypot(p.x - e.x, p.z - e.z) < 13; },
+    puertaDe: (id) => puntosMundo(id)?.puerta || null,
+    // la obra de la minga quedó hecha ({ id: 'lenera' | 'camino' | 'bancos' | 'arreglos', nombre }): la leñera y los bancos los
+    // dibuja fiestas-mundo.js; el camino refugio–aldea es de «rincones» (al juntar: if (obra.id === 'camino') rinconesJuego?.mingaDelCamino())
+    alHacerMinga: (obra) => { if (obra?.id === 'camino') rinconesJuego?.mingaDelCamino(); },
+    // la gran nevada tapa la vía en dos tramos (sin quitanieves, el tren espera a la cuadrilla: ver trochita.js)
+    taparVia: (si) => { try { if (!tren?.taparVia) return; const L = tren.largo || 0; tren.taparVia(si && L > 400 ? [{ desde: L * 0.31, hasta: L * 0.31 + 140 }, { desde: L * 0.68, hasta: L * 0.68 + 110 }] : null); } catch (e) { console.warn('[fiestas] taparVia', e); } },
+  });
+  fiestasMundo = crearFiestasMundo({
+    T, escena, col, mat: est?.mat, sentaderos: () => est?.sentaderos || [], jugador: () => jugador?.estado || null, gente: () => gente, aldeaGente: () => aldeaGente,
+    sonido: () => sonido, juego: () => fiestasJuego, progreso: () => progreso, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
+    msFigura: () => (planificadorAntitirones.permitir('fiestas-mundo') ? 3 : 0), noche: () => 1 - (luzUltimaFoto?.dia ?? 1),
+    refugio: () => { const r = T.lugares?.refugio; return r && Number.isFinite(r.x) ? { x: r.x, z: r.z, y: r.y ?? T.altura(r.x, r.z), rot: r.rot || 0 } : null; },
+    alArmar: () => marcarPisos(),   // (el predio, sin pasto alto)
+  });
+  // (el tren de fiesta: la trochita con los banderines del taller los días con invitados; al terminar, como estaba)
+  fiestasJuego.trenDeFiesta = (si) => { try { const t = progreso.tren; if (t?.loco) aplicarMejoras(si ? { ...t, loco: { ...t.loco, banderines: true } } : t); } catch (e) { console.warn('[fiestas] tren de fiesta', e); } };
   cocinaMundo = crearCocinaMundo({
     T, escena, mat: est?.mat, cocina: () => cocinaJuego, progreso: () => progreso, obras: () => obras, camara: () => camara?.position || null,
     noche: () => 1 - (luzUltimaFoto?.dia ?? 1), viento: () => clima?.estado?.viento ?? 0.3, perro: () => perro, jugador: () => jugador?.estado || null,
@@ -4533,6 +4576,7 @@ function armarOficiosYAldea(esDesafio) {
     anim: { empezar: (g, id, o) => empezarAnim(g, id, o), terminar: (g) => terminarAnim(g) },
     manos: { empezar: (id) => manosSociales?.empezar(id), cachetada: () => cachetadaSocial() },
     voz: (npc, texto, o) => vozSocial(npc, texto, o), nota: (t, sub) => nota(t, sub),
+    trucoReal: () => !!fiestasJuego?.activo(),   // 3.7.5: el truco se juega de verdad (fiestas-juego.js)
   });
   // 3.7.5 (noticias): los concursos de las fiestas y las noticias del valle (la radio, el diario, las cartas, el calendario)
   concursosJuego = crearConcursosJuego({
@@ -4554,6 +4598,17 @@ function armarOficiosYAldea(esDesafio) {
     duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
     ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),   // (3.7.0 (integración): y lo nublado, para el telescopio)
   });
+}
+// 3.7.5: quién va a dónde por encima del horario: lo del amor que no se mueve (la cita, el casamiento), después la fiesta,
+// después lo demás del amor (la que vive con vos) y el olor del asado
+function destinoConFiesta(k) {
+  const a = amorMundo?.destino(k) || null;
+  if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;
+  // (3.7.5 (integración): el concurso de la fiesta, en la plaza: Nélida en la mesa y, la última hora, el jurado y los que
+  // compiten; después del fallo vuelven a la fiesta)
+  const c = noticiasJuego?.destino(k) || null;
+  if (c && c.lugar === 'concurso') return c;
+  return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;
 }
 // 3.6: lo que dan los pobladores (y las mecánicas de la aldea) y no es de la mochila
 function alJugadorAldea(campo, valor) {
@@ -6144,12 +6199,16 @@ function radioPartida() {
   return progreso.radio;
 }
 function programaDelTiempo() {
-  return crearPrograma({
+  const p = crearPrograma({
     ahora: horaDeJuego,
     segundosPorHora: () => ((ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion) * 60) / 24,
     semilla: () => meteoPartida().semilla,
     modo: () => ajustes.clima,
   });
+  // 3.7.5: el día de la gran nevada nieva (si el clima no está fijo en despejado: ver clima.js)
+  const tipo = p.tipo;
+  p.tipo = (k) => (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);
+  return p;
 }
 const fuerzaMolino = () => fuerzaDelAgua({ invierno: U.uInvierno.value, crecida: progreso.tormenta?.crecida || 0 });
 const molinosTerminados = () => obrasTerminadas('molino-agua').map((o) => o.datos);
@@ -6752,6 +6811,7 @@ function cerrarCharla() {
   if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
   amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
   socialJuego?.alCerrarCharla(charla.npc);   // 3.7.4: el que vino a hablarte vuelve a lo suyo
+  if (trucoPendiente) { const n = trucoPendiente; trucoPendiente = null; setTimeout(() => fiestasJuego?.jugarTruco(n, claveVecindad(n)), 60); }   // 3.7.5: el truco de la rueda
   charla.npc = null;
   charla.volverA = null; ultimoDicho = '';   // 3.7.4
   $('rueda')?.classList.add('oculto');
@@ -7056,6 +7116,7 @@ function otroSocial(o, npc) {
   const quien = npc?.nombre || '';
   if (o.tipo === 'deseo') return;   // (el renglón de las gracias ya viene en lo que dice)
   if (o.tipo === 'gusto') { nota(`Ya sabés algo que le gusta a ${quien}`, 'Queda en «Tus vecinos», en el cuaderno'); return; }
+  if (o.tipo === 'cartas' && o.real && fiestasJuego?.activo()) { trucoPendiente = npc; nota(`${quien} saca el mazo`, 'Cuando terminen de hablar, se reparten las cartas'); return; }   // 3.7.5: el truco de verdad
   if (o.tipo === 'cartas') { nota(o.gano ? `Le ganaste un truco a ${quien}` : `${quien} te ganó un truco`, 'Otro día la revancha'); return; }
   if (o.tipo === 'foto') { sonido.obturador?.(); }
   const t = OTRO_SOCIAL[o.tipo];
@@ -7282,7 +7343,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -7296,6 +7357,7 @@ function listaHudAbierta() {
   if (enLasCargas()) return { id: 'cargas', ul: $('cargas-lista'), pie: $('cargas')?.querySelector('.seguir'), elegir: (i) => puestoCargas.elegir(i) };
   if (cocinaJuego?.panelAbierto()) return { id: 'cocina', ...cocinaJuego.lista() };   // 3.7.2
   if (tallerTren?.panelAbierto()) return { id: 'taller-tren', ...tallerTren.lista() };   // 3.7.3
+  if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5
   return null;
 }
 const marcarEn = (panel, i) => { marcaHud = { panel, i: Math.max(0, i) }; };
@@ -7407,6 +7469,11 @@ async function sacarFoto() {
       const nombres = nuevos.map((id) => DESAFIOS.find((d) => d.id === id).nombre);
       setTimeout(() => { sonido.anotar(); nota(nombres.join(', '), nuevos.length > 1 ? 'Desafíos cumplidos, ya están en el álbum' : 'Desafío cumplido, ya está en el álbum', true); }, 600);
     }
+  }
+  // 3.7.5: la foto de la fiesta (en el predio, o en la plaza en el acto y los 90 de la abuela): al álbum, una por fiesta
+  if (!desafio && !foto.activo) {
+    const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);
+    if (ff) { progreso.desafios[ff.id] = { dia: progreso.dia, hora: progreso.horas, img: fotos.hacerMiniatura(lienzo) }; guardarFotos(progreso.desafios); setTimeout(() => nota(ff.nombre, 'Foto de la fiesta: ya está en el álbum', true), 900); }
   }
   $('hud').classList.remove('oculto');
   sonido.obturador();
@@ -7779,6 +7846,7 @@ let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en l
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
+let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
 let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
@@ -8340,6 +8408,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
     try { if (modo === 'jugando' && !desafio) { cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
     try { if (modo === 'jugando' && !desafio) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
+    try { if (modo === 'jugando' && !desafio) { fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt); if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
     try { marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro); } catch (e) { fallaSistema('perro', e); }
@@ -8460,7 +8529,8 @@ function cuadroDelJuego(tRaf, manual) {
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
-      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
+      if (vecino && !desafio && fiestasJuego?.sinVecino(js)) vecino = null;   // 3.7.5: sentado a la mesita de los juegos, E juega; al lado del que cuenta la leyenda, E escucha
     }
     acumuladoBuscar += dt;
     acumuladoInteraccion += dt;
@@ -8480,6 +8550,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
+      cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -8529,6 +8600,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheGranja && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheGranja.texto };
     // 3.7.3: el taller ferroviario, después de la granja, como en la tecla E
     if (!aviso && cacheTaller && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTaller.texto };
+    // 3.7.5: lo de las fiestas, después del taller, como en la tecla E
+    if (!aviso && cacheFiesta && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheFiesta.texto };
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
@@ -8563,6 +8636,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (enLasCargas()) aviso = null;
     if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
     if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
+    if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
     if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
     if (js.enTren) {
@@ -9025,6 +9099,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __cocina: () => cocinaJuego, __cocinaMundo: () => cocinaMundo,   // 3.7.2
     __noticias: () => noticiasJuego, __concursos: () => concursosJuego,   // 3.7.5 (noticias)
     __taller: () => tallerTren,   // 3.7.3
+    __fiestas: () => fiestasJuego, __fiestasMundo: () => fiestasMundo,   // 3.7.5
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
     // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)
     __visibilidad: () => { actualizarVisibilidad(camara.position, 1); return true; },

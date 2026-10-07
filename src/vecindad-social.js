@@ -561,9 +561,11 @@ export function probarInteraccion(persona, id, estado, ctx = {}) {
     // lo que engancha con otros sistemas
     if (exito && def.otro) {
       const o = { tipo: def.otro, con: persona };
-      if (id === 'cartas') o.gano = sorteo(`${semilla}:truco`) < 0.5;
+      // 3.7.5: con el truco de verdad (`ctx.trucoReal`: fiestas-juego.js lo juega en un panel) no se sortea quién ganó
+      if (id === 'cartas' && ctx?.trucoReal) o.real = true;
+      else if (id === 'cartas') o.gano = sorteo(`${semilla}:truco`) < 0.5;
       efectos.otros.push(o);
-      if (id === 'cartas') renglon = `${renglon} ${renglonDe(o.gano ? FRASES_SOCIAL.truco.ganaste : FRASES_SOCIAL.truco.perdiste, datos, semilla)}`;
+      if (id === 'cartas' && !o.real) renglon = `${renglon} ${renglonDe(o.gano ? FRASES_SOCIAL.truco.ganaste : FRASES_SOCIAL.truco.perdiste, datos, semilla)}`;
     }
     if (exito && id === 'mate') efectos.cosas.push({ tipo: 'cosa', k: 'yerba', n: -1 });
     if (exito && id === 'gustos') {

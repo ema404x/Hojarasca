@@ -397,7 +397,8 @@ app.whenReady().then(async () => {
 
     seccion('invitar a la casa de té, y recargar a la mitad');
     // un martes a las 16:30: la madre está libre y la galesa atiende la galería
-    await acomodar(2, 16.5);
+    // (3.7.5: el 37, también martes y en verano: el 2 es la fiesta de la Fruta Fina y a esa hora todos están en el predio)
+    await acomodar(37, 16.5);
     await js(`(()=>{ ${P}.cosas.yerba = 4; ${P}.vecindad.personas.madre && (${P}.vecindad.personas.madre.invito = 0); return 1 })()`);
     const m2 = await js(`(()=>{ const n = ${npc('madre')}; return { x: n.pos.x, z: n.pos.z } })()`);
     await js(`(()=>{ window.__m361v.poner(${m2.x} + 1.2, ${m2.z}, Math.PI / 2); return 1 })()`);
