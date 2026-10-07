@@ -12,7 +12,7 @@
 //   · la foto, del álbum (el modo foto): la mejor que tengas; si la sacaste en la fiesta, suma.
 //
 // Todo lo que el plan no dice (las horas, los regalos, cómo se juzga, qué fiesta tiene qué concurso) está en
-// constantes de acá arriba, para cambiarlo fácil (decisiones del usuario: ver CAMBIOS_3_7_5.md).
+// constantes de acá arriba, para cambiarlo fácil (son decisiones del usuario: quedan para que él elija).
 // Módulo puro: sin three ni DOM.
 import { hashTexto, generador } from './semilla.js';
 import { diaDelAnio, esVecinoAldea, esPobladorAldea } from './aldea.js';

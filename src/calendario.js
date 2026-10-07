@@ -40,14 +40,16 @@ export const LIBROS_CLUB = [
 ];
 
 // ---------------------------------------------------------------- las fechas de fiestas.js
-// `fechas`: FECHAS de fiestas.js ({ id, nombre, tipo, diaDelAnio, texto }); `ya`: ids que ya están en FIESTAS_ALDEA (no
-// se repiten).
+// `fechas`: FECHAS de fiestas.js ({ id, nombre, tipo, diaDelAnio, texto }) o, mejor, su `fechaDe(dia)` → { id, nombre,
+// tipo } | null (así no depende de cómo guarde las fechas); `ya`: ids que ya están en FIESTAS_ALDEA (no se repiten).
 function fechasDelDia(dia, fechas, ya) {
+  if (typeof fechas === 'function') { const f = fechas(diaValido(dia, 1)); return objeto(f) && typeof f.id === 'string' && !(ya || []).includes(f.id) ? [f] : []; }
   const dda = diaDelAnio(dia);
   return (Array.isArray(fechas) ? fechas : []).filter((f) => objeto(f) && typeof f.id === 'string' && Math.floor(num(f.diaDelAnio)) === dda && !(ya || []).includes(f.id));
 }
 // La fecha especial del día (la primera de `fechas` ese día, sin filtrar), para los concursos.
 export function fechaDelDia(dia, fechas) {
+  if (typeof fechas === 'function') { const f = fechas(diaValido(dia, 1)); return objeto(f) && typeof f.id === 'string' ? { id: f.id, nombre: f.nombre, tipo: f.tipo } : null; }
   const dda = diaDelAnio(dia);
   const f = (Array.isArray(fechas) ? fechas : []).find((x) => objeto(x) && Math.floor(num(x.diaDelAnio)) === dda);
   return f ? { id: f.id, nombre: f.nombre, tipo: f.tipo } : null;

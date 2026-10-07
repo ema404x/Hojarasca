@@ -8,9 +8,9 @@
 //   · la página «Noticias» del cuaderno.
 // `ctx`: { progreso(), ajustes(), desafio(), nota(t, sub, nueva), guardar(), registrar(id), pronostico() (los días de
 // meteo.js), cartaVieja() (si Ercilia tiene una carta del correo de siempre: va primero), concursos() (concursos-juego.js) }.
-import { armarPrograma, RADIO_ALDEA, PROGRAMAS_RADIO, DIARIO_ALDEA, tocaDiario, sacarDiario, repartirCarta, cartasPorLeer, cartasLeidas, leerCartaLejana, partesDeCartaLejana, sanearNoticias, CARTAS_LEJANAS } from './noticias.js';
+import { armarPrograma, RADIO_ALDEA, PROGRAMAS_RADIO, DIARIO_ALDEA, tocaDiario, sacarDiario, repartirCarta, cartasPorLeer, cartasLeidas, leerCartaLejana, partesDeCartaLejana, sanearNoticias, CARTAS_LEJANAS, remitente } from './noticias.js';
 import { extrasDelDia, extrasDelAnio, avisoMananaExtra, clubAhora, estrellasAhora, libroDeLaSemana, asistentes, CLUB_LECTURA, NOCHE_ESTRELLAS, hayClub, hayEstrellas, nombreDiaSemana } from './calendario.js';
-import { FECHAS, fechaDe as fechaDeFiesta } from './fiestas.js';
+import { fechaDe as fechaDeFiesta } from './fiestas.js';
 import { eventosDelDia, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { obraEnCurso, etapaDe, EDIFICIOS_ALDEA, esVecinoAldea, ORDEN_PERSONAS_ALDEA, POBLADORES_ALDEA } from './aldea.js';
 import { noticiasDeAmor } from './amor.js';
@@ -25,7 +25,7 @@ const NOMBRE_CIELO = { 'cruz-del-sur': 'la Cruz del Sur', 'tres-marias': 'las Tr
 // ---------------------------------------------------------------- lo que pasa, en renglones (sin DOM: se prueba en Node)
 export const presenteEn = (aldea) => (k) => esVecinoAldea(k) || (Array.isArray(aldea?.pobladores) && aldea.pobladores.some((p) => p?.clave === k));
 // Las fechas de fiestas.js que no estén ya en FIESTAS_ALDEA (para el calendario de aldea-vida.js)
-export const opcionesCalendario = (aldea) => ({ aldea, fechas: FECHAS, ya: FIESTAS_ALDEA.map((f) => f?.id).filter(Boolean) });
+export const opcionesCalendario = (aldea) => ({ aldea, fechas: fechaDeFiesta, ya: FIESTAS_ALDEA.map((f) => f?.id).filter(Boolean) });
 // Las novedades del valle (para la radio de la mañana y la tapa del diario)
 export function novedadesDelValle(p, dia, extra = {}) {
   const a = p?.aldea || {};
@@ -33,11 +33,13 @@ export function novedadesDelValle(p, dia, extra = {}) {
   if (a.llegando?.clave) lista.push(`Bajó del tren ${POBLADORES_ALDEA[a.llegando.clave]?.nombre || 'alguien nuevo'} y espera en el andén a que alguien le diga que se quede.`);
   const obra = obraEnCurso(a);
   if (obra) { const et = etapaDe(a, obra); lista.push(`La obra de ${minus(EDIFICIOS_ALDEA[obra].nombre)} va por la etapa ${et.hechas + 1} de ${et.total}${et.lista ? ': los vecinos ya están trabajando' : ': falta material, por si alguien tiene'}.`); }
-  for (const [lote, desde] of Object.entries(a.locales && typeof a.locales === 'object' ? a.locales : {})) if (dia - Math.floor(Number(desde) || 0) <= 3 && EDIFICIOS_ALDEA[lote]) lista.push(`Abrió ${minus(EDIFICIOS_ALDEA[lote].nombre)}. Ya hay cola en la puerta.`);
+  // (el local que abrió hace menos: uno solo, que la radio no es una guía comercial)
+  const abiertos = Object.entries(a.locales && typeof a.locales === 'object' ? a.locales : {}).filter(([lote, desde]) => EDIFICIOS_ALDEA[lote] && dia - Math.floor(Number(desde) || 0) <= 3);
+  if (abiertos.length) { const [lote] = abiertos.reduce((m, x) => (Number(x[1]) > Number(m[1]) ? x : m)); lista.push(`Abrió ${minus(EDIFICIOS_ALDEA[lote].nombre)}. Ya hay cola en la puerta.`); }
   const cumples = eventosDelDia(dia, { aldea: a }).filter((e) => e.tipo === 'cumple');
   if (cumples.length) lista.push(`Hoy ${cumples.length === 1 ? 'cumple' : 'cumplen'} años ${unir(cumples.map((e) => nombreCortoDe(e.clave)))}. Desde esta radio, el saludo de todo el valle.`);
   const f = fechaDeFiesta(dia);
-  if (f && a.descubierta) lista.push(`Hoy es ${minus(f.nombre)}: todos a la plaza.`);
+  if (f && a.descubierta) lista.unshift(`Hoy es ${minus(f.nombre)}: todos a la plaza.`);   // (la fiesta, primero: es la tapa)
   const v = p?.vidaAldea;
   if (v?.visitante?.dia === dia) lista.push('Bajó del tren un visitante que pregunta por los lugares del valle. Si lo ven perdido, denle una mano.');
   if (v?.mascota?.estado === 'cachorros') lista.push('La Chola tuvo cachorros en la boletería: Ernesto anda buscándoles casa.');
@@ -83,10 +85,10 @@ export function avisosDelValle(p, dia) {
   const man = eventosDelDia(dia + 1, { aldea: a }).filter((e) => e.tipo === 'cumple');
   if (man.length) l.push(`Mañana ${man.length === 1 ? 'cumple' : 'cumplen'} años ${unir(man.map((e) => nombreCortoDe(e.clave)))}: si ${man.length === 1 ? 'lo cruzan' : 'los cruzan'}, un saludo.`);
   for (let k = 0; k <= 6; k++) {
-    if (hayClub(dia + k, a, FECHAS)) { const lb = libroDeLaSemana(dia + k); l.push(`Club de lectura el ${k === 0 ? 'día de hoy' : nombreDiaSemana(dia + k)} a las ${CLUB_LECTURA.desde} en la biblioteca: «${lb.titulo}», de ${lb.autor}. Lo lleva la abuela Herminia.`); break; }
+    if (hayClub(dia + k, a, fechaDeFiesta)) { const lb = libroDeLaSemana(dia + k); l.push(`Club de lectura el ${k === 0 ? 'día de hoy' : nombreDiaSemana(dia + k)} a las ${CLUB_LECTURA.desde} en la biblioteca: «${lb.titulo}», de ${lb.autor}. Lo lleva la abuela Herminia.`); break; }
   }
   for (let k = 0; k <= 6; k++) {
-    if (hayEstrellas(dia + k, a, FECHAS)) { l.push(`Noche de estrellas abierta el ${k === 0 ? 'día de hoy' : nombreDiaSemana(dia + k)} a las ${NOCHE_ESTRELLAS.desde}, en la plaza: Valentina baja el telescopio. Abríguense.`); break; }
+    if (hayEstrellas(dia + k, a, fechaDeFiesta)) { l.push(`Noche de estrellas abierta el ${k === 0 ? 'día de hoy' : nombreDiaSemana(dia + k)} a las ${NOCHE_ESTRELLAS.desde}, en la plaza: Valentina baja el telescopio. Abríguense.`); break; }
   }
   return l;
 }
@@ -145,13 +147,13 @@ export function crearNoticiasJuego(ctx) {
       // una carta de lejos (con el tren de la mañana)
       if (h >= 10) {
         const c = repartirCarta(n, p, d, ritmo());
-        if (c) { cambio = true; ctx.nota(`Llegó carta de ${minus(c.de)}`, benignoEsta() ? 'Te la guarda Benigno en la estafeta' : 'Te la guarda Ercilia en el almacén', true); }
+        if (c) { cambio = true; ctx.nota(`Llegó carta de ${remitente(c)}`, benignoEsta() ? 'Te la guarda Benigno en la estafeta' : 'Te la guarda Ercilia en el almacén', true); }
       }
     }
     if (cambio) ctx.guardar();
   }
   function clubDelDiario(d) {
-    for (let k = 0; k <= 6; k++) if (hayClub(d + k, aldea(), FECHAS)) { const l = libroDeLaSemana(d + k); return `Este ${nombreDiaSemana(d + k)} el club de lectura sigue con «${l.titulo}». ${l.dicen[0]}`; }
+    for (let k = 0; k <= 6; k++) if (hayClub(d + k, aldea(), fechaDeFiesta)) { const l = libroDeLaSemana(d + k); return `Este ${nombreDiaSemana(d + k)} el club de lectura sigue con «${l.titulo}». ${l.dicen[0]}`; }
     return '';
   }
 
@@ -166,7 +168,7 @@ export function crearNoticiasJuego(ctx) {
       return { id: `carta-${pendiente.id}`, partes: partesDeCartaLejana(pendiente, k), alTerminar: () => { leerCartaLejana(n, pendiente.id, d); ctx.guardar(); ctx.redibujar?.(); } };
     }
     // el club de lectura (una vez por día)
-    if (k === CLUB_LECTURA.quien && clubAhora(d, h, aldea(), FECHAS) && !n.club.includes(d)) {
+    if (k === CLUB_LECTURA.quien && clubAhora(d, h, aldea(), fechaDeFiesta) && !n.club.includes(d)) {
       const l = libroDeLaSemana(d);
       const van = asistentes('club', d, aldea()).map((x) => nombreCortoDe(x)).filter(Boolean);
       return { id: 'club-lectura', partes: [
@@ -176,7 +178,7 @@ export function crearNoticiasJuego(ctx) {
       ], alTerminar: () => { if (!n.club.includes(d)) n.club.push(d); ctx.guardar(); ctx.redibujar?.(); } };
     }
     // la noche de estrellas (una vez por día)
-    if (k === NOCHE_ESTRELLAS.quien && estrellasAhora(d, h, aldea(), FECHAS) && !n.estrellas.includes(d)) {
+    if (k === NOCHE_ESTRELLAS.quien && estrellasAhora(d, h, aldea(), fechaDeFiesta) && !n.estrellas.includes(d)) {
       const ya = progreso().entradas || {};
       const pend = CIELO.find((id) => !Object.hasOwn(ya, id));
       const r = generador(hashTexto(`estrellas-${d}`));
@@ -200,10 +202,10 @@ export function crearNoticiasJuego(ctx) {
   }
   function destinos() {
     const m = new Map(), d = dia(), h = hora(), a = aldea();
-    if (clubAhora(d, h, a, FECHAS)) {
+    if (clubAhora(d, h, a, fechaDeFiesta)) {
       m.set(CLUB_LECTURA.quien, { lugar: 'club', edificio: 'biblioteca', punto: 'cuentos' });
       asistentes('club', d, a).forEach((k, i) => m.set(k, { lugar: 'club', edificio: 'biblioteca', punto: `lectura-${i + 1}` }));
-    } else if (estrellasAhora(d, h, a, FECHAS)) {
+    } else if (estrellasAhora(d, h, a, fechaDeFiesta)) {
       m.set(NOCHE_ESTRELLAS.quien, { lugar: 'estrellas', edificio: 'plaza', punto: 'estar-1' });
       asistentes('estrellas', d, a).forEach((k, i) => m.set(k, { lugar: 'estrellas', edificio: 'plaza', punto: `estar-${i + 2}` }));
     }
@@ -241,7 +243,7 @@ export function crearNoticiasJuego(ctx) {
     if (por.length) ficha.appendChild(el('p', 'pista', `Te ${por.length === 1 ? 'espera una carta' : `esperan ${por.length} cartas`} ${benignoEsta() ? 'en la estafeta: Benigno las guarda' : 'en el almacén: Ercilia las guarda'}.`));
     const leidas = cartasLeidas(n).sort((x, y) => n.cartas[y.id].dia - n.cartas[x.id].dia);
     for (const c of leidas) {
-      ficha.appendChild(el('p', 'anotado', `Día ${n.cartas[c.id].dia}, de ${minus(c.de)}:`));
+      ficha.appendChild(el('p', 'anotado', `Día ${n.cartas[c.id].dia}, de ${remitente(c)}:`));
       ficha.appendChild(el('p', 'texto', c.texto.join(' ')));
     }
     if (!por.length && !leidas.length) ficha.appendChild(el('p', 'texto', `Las cartas de tu familia y de los que vivieron antes en el valle llegan con el tren${conoce() ? '' : ', a la estafeta de la aldea'}.`));

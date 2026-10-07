@@ -86,6 +86,8 @@ ok(av && av.titulo === 'Mañana: fiesta de la cosecha y el concurso de dulces' &
 ok(K.avisoMananaExtra(12, op)?.titulo.startsWith('Mañana: aniversario de tu llegada (un año)'), 'el aniversario también se avisa el día antes');
 ok(K.avisoMananaExtra(1, { ...op, aldea: { ...aldea, locales: {} } }) === null, 'sin nada mañana, sin aviso');
 
+ok(K.extrasDelDia(7, { aldea, fechas: F.fechaDe }).map((e) => e.id).join() === 'fiesta-otono,concurso-dulce' && K.hayClub(3, aldea, F.fechaDe) === false, 'también con el fechaDe de fiestas.js (no depende de cómo guarde las fechas)');
+
 // ---------------------------------------------------------------- lo que junta el juego
 const p = { dia: 5, aldea: { descubierta: 1, pobladores: [], locales: {} }, entradas: {} };
 ok(J.chismesDelValle(p, 5).length > 3 && J.chismesDelValle(p, 5).every((t) => !/Benigno|Valentina/.test(t)), 'los chismes de los vecinos, sin nombrar a los que no llegaron');

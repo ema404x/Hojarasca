@@ -138,28 +138,28 @@ export const CARTAS_LEJANAS = [
     ],
   },
   {
-    id: 'a-puestero', de: 'Don Aurelio Painemil, que vivió en tu refugio', tipo: 'antiguo', desde: 5, llega: (p) => conoceAldea(p),
+    id: 'a-puestero', de: 'Don Feliciano Painemil, que vivió en tu refugio', tipo: 'antiguo', desde: 5, llega: (p) => conoceAldea(p),
     texto: [
       'Estimado: me contaron en Jacobacci que alguien vive otra vez en el refugio del arroyo. Yo fui puestero ahí veinte inviernos, cuando el valle era de ovejas y de nadie más.',
       'Si la puerta todavía se traba con la helada, levántela un poquito antes de empujar: no hay que pelearla, hay que convencerla. Y a la tardecita, siéntese afuera a mirar cómo baja la niebla por el arroyo. Que el valle lo trate bien, como me trató a mí.',
     ],
   },
   {
-    id: 'l-tia', de: 'Tu tía Chela, desde Rosario', tipo: 'familia', desde: 8, llega: (p) => conoceAldea(p),
+    id: 'l-tia', de: 'Tu tía Nora, desde Rosario', tipo: 'familia', desde: 8, llega: (p) => conoceAldea(p),
     texto: [
       'Querido sobrino: tu mamá anda contando a todo el barrio que vivís en un bosque con duendes. Yo le dije que seguro es una forma de decir. ¿Es una forma de decir?',
       'Te mando la receta de los pastelitos de la abuela, por si allá hay harina: masa fina, dulce de membrillo y mucha paciencia con el aceite. Escribime, que las cartas largas son lo único que me gusta del correo.',
     ],
   },
   {
-    id: 'a-maestra', de: 'Elvira Cárdenas, la primera maestra de la aldea, desde Trelew', tipo: 'antiguo', desde: 10, llega: (p) => conoceAldea(p) && (p?.aldea?.pobladores || []).length >= 1,
+    id: 'a-maestra', de: 'Clotilde Cárdenas, la primera maestra de la aldea, desde Trelew', tipo: 'antiguo', desde: 10, llega: (p) => conoceAldea(p) && (p?.aldea?.pobladores || []).length >= 1,
     texto: [
       'Señor: me dicen que la aldea vuelve a tener gente nueva y que la escuela tiene otra vez chicos con guardapolvo. Yo di clase ahí cuando la escuela era una pieza con una salamandra y un pizarrón traído en el tren.',
       'Las composiciones de mis alumnos de aquel año las tengo todavía, atadas con un piolín. Hablan del viento, del tren y del duende de la plaza, y dicen más de la aldea que cualquier libro. Cuide a esos chicos nuevos, que ellos también la van a escribir.',
     ],
   },
   {
-    id: 'l-abuelo', de: 'Tu abuelo Tito, desde Bahía Blanca', tipo: 'familia', desde: 12, llega: (p) => conoceAldea(p),
+    id: 'l-abuelo', de: 'Tu abuelo Aníbal, desde Bahía Blanca', tipo: 'familia', desde: 12, llega: (p) => conoceAldea(p),
     texto: [
       'Querido nieto: con noventa y un años uno ya no viaja, pero lee. Tu madre me leyó tus cartas y me acordé de cuando trabajé en el ferrocarril, de joven, en la línea del sur.',
       'Si alguna vez ves pasar La Trochita echando humo, sacate el sombrero de mi parte. Ese tren llevó gente que nunca tuvo otro modo de ir a ninguna parte. Te abraza, tu abuelo.',
@@ -187,6 +187,8 @@ export const CARTAS_LEJANAS = [
     ],
   },
 ];
+// Quién la manda, para decirlo a mitad de frase: «de tu mamá», «de don Feliciano», pero «de Clotilde» y «de Osvaldo»
+export const remitente = (c) => (typeof c?.de === 'string' ? (/^(Tu|La|El|Un|Una|Don|Doña)\s/.test(c.de) ? `${c.de.charAt(0).toLowerCase()}${c.de.slice(1)}` : c.de) : '');
 export const CARTA_LEJANA = Object.fromEntries(CARTAS_LEJANAS.map((c) => [c.id, c]));
 // ¿Llega una hoy? (con el tren, a la estafeta). Devuelve la carta (y la anota) o null. Una cada tantos días.
 export function repartirCarta(estado, p, dia, ritmo = 'normal') {
@@ -212,7 +214,7 @@ export function leerCartaLejana(estado, id, dia) {
 }
 // Cómo te la da el que la tiene (Benigno en la estafeta, Ercilia en el almacén): primero él, después la carta.
 export function partesDeCartaLejana(c, quien = 'telegrafista') {
-  const de = `${c.de.charAt(0).toLowerCase()}${c.de.slice(1)}`;
+  const de = remitente(c);
   const intro = quien === 'telegrafista' ? `Llegó carta para vos en la saca del tren. Es de ${de}. Sellada y todo: tomá.` : `Me la dejaron para vos en el almacén. Es de ${de}. Leela tranquilo.`;
   return [intro, ...c.texto];
 }
