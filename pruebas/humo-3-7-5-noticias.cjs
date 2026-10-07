@@ -146,8 +146,10 @@ app.whenReady().then(async () => {
       await js(`(()=>{ ${P}.horas = ${hora}; const T = ${H}.T, j = ${H}.jugador.estado; const x = ${radio.x} + 1, z = ${radio.z}; j.pos.set(x, T.altura(x, z) + 0.05, z); j.yaw = Math.atan2(1, 0); j.pitch = -0.1; j.sentado = false; return 1 })()`);
       let a = '';
       for (let i = 0; i < 20; i++) { await cuadros(3); a = await js(`${H}.__aviso()`); if (/radio/.test(a)) break; await esperar(120); }
-      await js(`${tecla('KeyE')} 1`); await esperar(300);
-      return { aviso: a, ...(await charla()) };
+      // (si E llega en el mismo cuadro en que se armó el aviso, a veces no abre: se prueba de nuevo)
+      let c = { abierta: false, texto: '' };
+      for (let i = 0; i < 3 && !(c.abierta && c.texto); i++) { await js(`${tecla('KeyE')} 1`); await esperar(300); c = await charla(); if (!c.texto) await cuadros(3); }
+      return { aviso: a, ...c };
     };
     let c = await oirRadio(10.5);
     ok(/Prender la radio/.test(c.aviso) && c.abierta && /La radio/.test(c.quien) && /Chiche: «Son las 10:30 en la Radio Comunitaria del Valle, FM 89\.5\. Las noticias del valle\./.test(c.texto), `a las 10:30, las noticias del valle («${c.texto.slice(0, 160)}»)`);
