@@ -308,7 +308,7 @@ export function crearRinconesJuego(ctx) {
   function alDia() {
     const d = dia(), h = horas(), R = r();
     // los vecinos siembran la huerta de todos (un cantero por mañana)
-    if (h >= 7 && unaVez('siembra', d) && sembrarVecinos(R, d)) ctx.refrescarHuerta?.();
+    if (h >= 7 && unaVez('siembra', d) && sembrarVecinos(R, d)) refrescarMatas();
     // la talla, el día que la pone Tito
     if (R.talla && tallaEnLaPlaza(R, d, h) && !progreso().entradas?.['talla-propia'] && unaVez('talla', d)) ctx.nota?.('Tito terminó tu talla', 'Está en la plaza, al lado del duende viejo', true);
     // la copia del cuaderno: cada día alguno la lee
@@ -424,7 +424,7 @@ export function crearRinconesJuego(ctx) {
     ctx.registrar?.(tipo === 'chicos' ? 'huerta-chicos' : 'huerta-comunitaria');
     if (tipo === 'chicos') { amistad('nene', 2); amistad('nena', 2); } else amistad('madre', 2);
     ctx.nota?.(res.texto, res.da.length ? `${res.da.map((x) => `+${x.n}`).join(', ')} en la mochila` : '', res.que === 'cosechar');
-    ctx.refrescarHuerta?.();
+    refrescarMatas();
     ctx.guardar?.();
   }
   function usarAtril() {
@@ -547,6 +547,7 @@ export function crearRinconesJuego(ctx) {
     actualizarFuncion();
     const js = ctx.jugador?.()?.estado, R = r(), d = dia(), h = horas();
     if (!js || !ctx.mundo) return;
+    if (matasDia !== d) refrescarMatas();   // (al cargar y cuando cambia el día: crecen)
     // descubrir lugares (llegar): el potrero y la huerta de todos
     if (enLaCancha(js.pos, 0) && !progreso().entradas?.potrero) ctx.registrar?.('potrero');
     const H = ctx.mundo.huertas();
@@ -564,7 +565,9 @@ export function crearRinconesJuego(ctx) {
     });
   }
 
-  // ================================================================ las matas de las huertas (para huerta-malla.js)
+  // ================================================================ las matas de las huertas (huerta-malla.js, las del mundo de los rincones)
+  let matasDia = 0;
+  function refrescarMatas() { if (ctx.mundo?.sincronizarMatas) { matasDia = dia(); ctx.mundo.sincronizarMatas(canterosParaMatas(), dia()); } }
   function canterosParaMatas() {
     if (!activo() || !ctx.mundo) return [];
     const R = r(), H = ctx.mundo.huertas(), salida = [];
@@ -576,7 +579,7 @@ export function crearRinconesJuego(ctx) {
   }
 
   return {
-    actualizar, accion, urgente, opciones, elegir, destino, canterosParaMatas,
+    actualizar, accion, urgente, opciones, elegir, destino, canterosParaMatas, refrescarMatas,
     alSulky, subirSulky, bajarSulky, caballoAtado, enSulky: () => !!viaje, poseSulky, tieneSulky: tiene,
     desatar: () => { if (sk()) sk().atado = false; },
     // la minga del camino (la llama el equipo de las fiestas el día que se hace): { ok, nueva }

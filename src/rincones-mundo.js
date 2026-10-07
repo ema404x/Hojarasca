@@ -19,6 +19,7 @@ import { MAT_FAUNA } from './vida.js';
 import { armarEdificio, registrarEnMundo } from './aldea-arquitectura.js';
 import { U } from './materiales.js';
 import { registrarLuz } from './luces.js';
+import { crearMatasHuerta } from './huerta-malla.js';
 import { RES, N } from './config.js';
 import { LUGARES_RINCONES, lugarEnMundo, puntoDeLugar, ubicarDuendes, PISO_ALDEA_RINCONES, adornosDelEstante, RINCONES, CULTIVOS_COMUNITARIA, CULTIVOS_CHICOS } from './rincones.js';
 import { CANCHA, PELOTA } from './futbol.js';
@@ -543,7 +544,10 @@ export function crearRinconesMundo(ctx) {
 
   // ------------------------------------------------ las huertas
   const huertas = { comunitaria: [], chicos: [] };
+  let matas = null;   // (las matas de las dos huertas: las mallas de huerta-malla.js, propias: la de tus canteros sigue aparte)
   function montarHuertas() {
+    matas = crearMatasHuerta(raiz);
+    for (const m of [matas.hojas, matas.frutos]) m.name = 'rincones-matas';
     const L = lugarEnMundo('huerta'), rot = L.rotMundo;
     // los cuatro canteros, en 2 × 2 adentro del cerco (a lo largo de la v del lugar)
     for (let i = 0; i < RINCONES.huerta.canteros; i++) {
@@ -828,6 +832,7 @@ export function crearRinconesMundo(ctx) {
     if (piezas.potrero) piezas.potrero.visible = enAldea && !lejos(potrero.centro, VER_ALDEA);
     if (piezas.huerta) piezas.huerta.visible = enAldea && !lejos(piezas.huerta.position, VER_ALDEA);
     if (piezas.huertaChicos) piezas.huertaChicos.visible = enAldea && !lejos(piezas.huertaChicos.position, VER_CERCA + 30);
+    if (matas) { matas.hojas.visible = enAldea; matas.frutos.visible = enAldea; }
     if (objetos.retablo) {
       objetos.retablo.g.visible = enAldea && !lejos(objetos.retablo.L, VER_ALDEA);
       objetos.retablo.titeres.visible = !!e.titeres && objetos.retablo.g.visible;
@@ -905,5 +910,6 @@ export function crearRinconesMundo(ctx) {
     potrero: () => potrero, huertas: () => huertas, taller: () => est.tallerSitio, casa: () => casa,
     lugar: (id) => (objetos[id] ? objetos[id].L : null), sulkyMalla: () => sulky.g,
     armarCasa: (etapa) => montarCasa(etapa),
+    sincronizarMatas: (canteros, dia) => (matas ? matas.sincronizar(canteros, dia) : null), matas: () => matas,
   };
 }

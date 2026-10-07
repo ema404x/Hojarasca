@@ -417,7 +417,7 @@ const M = A.marcoAldea();
   ok(main.includes('rinconesMundo?.paraCompilar();') && main.includes('rinconesMundo?.trasCompilar();'), 'se compila en la carga');
   ok(main.includes('alSulky: (dt, tecla) => rinconesJuego?.alSulky(dt, tecla),'), 'el jugador en el sulky');
   ok(main.includes('const atado = !js.montado ? rinconesJuego?.caballoAtado?.() : null;') && main.includes('rinconesJuego?.desatar?.();'), 'el zaino atado al sulky, y desatado para montarlo');
-  ok(main.includes('.concat(rinconesJuego?.canterosParaMatas?.() || [])'), 'las matas de las huertas de la aldea, en la malla de siempre');
+  ok(leer('src/rincones-mundo.js').includes('matas = crearMatasHuerta(raiz);') && !main.includes('canterosParaMatas'), 'las matas de las huertas de la aldea, en sus propias mallas de huerta-malla.js (las de tus canteros, aparte)');
   ok(main.includes('    rincones: rinconesJuego,'), 'en la charla de los vecinos');
   ok(jug.includes('if (estado.enSulky) {') && jug.includes('opciones.alSulky?.(dt, teclaKayak);') && jug.includes('enSulky: false,'), 'jugador.js: arriba del sulky lo lleva el sulky');
   ok(vec.includes("for (const o of ctx.rincones?.opciones?.(s.clave) || []) lista.push(o);") && vec.includes("if (/^rincones:/.test(String(id)) && ctx.rincones) {"), 'vecindad-juego.js: lo que te enseñan y el sulky');

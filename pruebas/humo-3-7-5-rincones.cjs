@@ -146,8 +146,9 @@ app.whenReady().then(async () => {
     ok(await anotada('huerta-comunitaria'), 'la huerta de todos, en el cuaderno');
     a = await aviso();
     ok(/hoy ya la trabajaste/.test(a), `y por hoy, listo: «${a}»`);
-    e = await js(`${H}.__granja ? ${H}.escena.getObjectByName('huerta')?.count ?? -1 : -1`);
-    ok(e > 0, `las matas se ven (en la malla de la huerta de siempre: ${e})`);
+    e = await js(`${M}.matas()?.hojas?.count ?? -1`);
+    ok(e > 0, `las matas se ven (${e})`);
+    ok(await js(`${H}.escena.getObjectByName('huerta')?.count ?? 0`) === 0, 'y no se mezclan con las de tus canteros');
 
     // ------------------------------------------------------------ 5. el sulky
     seccion('5. el sulky');

@@ -4090,7 +4090,7 @@ function refrescarHuerta() {
     x: o.datos.x, z: o.datos.z, rot: o.datos.rot || 0,
     y: Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z),
     parcela: h[claveCantero(o.datos.x, o.datos.z)] || null,
-  })).concat(rinconesJuego?.canterosParaMatas?.() || []), progreso.dia);   // 3.7.5 (rincones): y las de la huerta de todos y la de los chicos
+  })), progreso.dia);
 }
 function textoAvisoCantero(c) {
   const p = huerta()[c.clave];
