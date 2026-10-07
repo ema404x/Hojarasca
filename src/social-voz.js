@@ -22,7 +22,9 @@ const LETRAS_CONS = Object.keys(CONSONANTES);
 // La voz de alguien: por su clave (la de la figura: 'ramon', 'aldea-jefe'…; o la de la vecindad) y lo que se sepa de él.
 // { f0 (Hz), velocidad (sílabas por segundo), timbre (corre los formantes), aspereza, temblor (Hz), vocales, consonantes }
 export function vozDe(clave, extra = {}) {
-  const a = aspectoGente(clave) || {};
+  // (la clave de la figura, o la de la vecindad: 'carpintero' es 'poblador-carpintero'; 'jefe', 'aldea-jefe')
+  const base = String(clave || '').replace(/^(aldea|poblador)-/, '');
+  const a = [clave, `aldea-${base}`, `poblador-${base}`].map((k) => aspectoGente(k)).find((x) => x?.conocido) || {};
   const edad = Number.isFinite(extra.edad) ? extra.edad : Number.isFinite(a.edad) ? a.edad : 38;
   const mujer = extra.mujer !== undefined ? !!extra.mujer : !!a.R?.mujer;
   const chico = extra.chico !== undefined ? !!extra.chico : !!a.R?.chico || edad < 13 || (Number(extra.talla) > 0.3 && Number(extra.talla) < 0.8);

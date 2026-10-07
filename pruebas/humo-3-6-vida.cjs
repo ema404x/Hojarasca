@@ -57,10 +57,15 @@ app.whenReady().then(async () => {
   const notas = () => js(`document.getElementById('notas').textContent`);
   const avisos = (n = 8) => js(`${H}.__avisos().slice(-${n}).join(' | ')`);
   // lo que se ve de la charla
+  // 3.7.4: el menú es la rueda: primero las categorías y después sus opciones. `opciones`: con las categorías a la vista,
+  // todas las de adentro (en orden); `marcada`: las de la categoría marcada; `i`: la marca en el aro
   const vista = () => js(`(()=>{ const c = document.getElementById('charla'), ul = document.getElementById('charla-opciones');
-    const lis = [...ul.querySelectorAll('li')];
+    const lis = [...ul.querySelectorAll('li')], r = ${H}.__rueda();
+    const cats = r.categorias && r.nivel === 1 ? r.categorias : null;
+    const opciones = cats ? cats.flatMap((k) => k.opciones) : lis.map((l) => l.textContent);
     return { abierta: !c.classList.contains('oculto'), quien: document.getElementById('charla-quien').textContent, texto: document.getElementById('charla-texto').textContent,
-      seguir: document.getElementById('charla-seguir').textContent, menu: !ul.classList.contains('oculto'), opciones: lis.map((l) => l.textContent), elegida: lis.findIndex((l) => l.classList.contains('elegida')) } })()`);
+      seguir: document.getElementById('charla-seguir').textContent, menu: !ul.classList.contains('oculto'), opciones, i: r.i, nivel: r.nivel,
+      marcada: cats ? (cats[r.i]?.opciones || []) : [], elegida: cats ? -1 : lis.findIndex((l) => l.classList.contains('elegida')) } })()`);
   const npc = (clave) => `(${H}.gente.gente.find((g) => (g.claveAldea || g.clave) === '${clave}'))`;
   // enfrente de alguien, mirándolo
   const frente = async (clave, d = 1.6) => {
@@ -75,7 +80,20 @@ app.whenReady().then(async () => {
   // E hasta que aparece el menú (o se cierra la charla)
   const hastaMenu = async (max = 10) => { let v = await vista(); for (let i = 0; i < max && v.abierta && !v.menu; i++) { await tecla('KeyE'); v = await vista(); } return v; };
   const hablar = async (clave) => { await frente(clave); const av = await js(`${H}.__aviso()`); await tecla('KeyE'); const v = await vista(); return { aviso: av, v }; };
-  const elegir = async (re) => { const v = await vista(); const i = v.opciones.findIndex((t) => re.test(t)); if (i < 0) return { error: `no está ${re} en ${v.opciones.join(' / ')}` }; await tecla(`Digit${i + 1}`); return vista(); };
+  // 3.7.4: en la rueda, el número de la categoría y después el de la opción (como un jugador)
+  const elegir = async (re) => {
+    let r = await js(`${H}.__rueda()`);
+    if (r.categorias && r.nivel === 1) {
+      const k = r.categorias.findIndex((c) => c.opciones.some((t) => re.test(t)));
+      if (k < 0) return { error: `no está ${re} en ${r.categorias.map((c) => c.opciones.join(' / ')).join(' / ')}` };
+      await tecla(`Digit${k + 1}`);
+      if (r.categorias[k].id === 'chau') return vista();
+      r = await js(`${H}.__rueda()`);
+    }
+    const i = r.sectores.findIndex((s) => re.test(s.titulo));
+    if (i < 0) return { error: `no está ${re} en ${r.sectores.map((s) => s.titulo).join(' / ')}` };
+    await tecla(`Digit${i + 1}`); return vista();
+  };
   // lee un tema entero (E hasta volver al menú) y devuelve los renglones
   const leer = async () => { const t = []; let v = await vista(); for (let i = 0; i < 8 && v.abierta && !v.menu; i++) { t.push(v.texto); await tecla('KeyE'); v = await vista(); } return { renglones: t, v }; };
   const cerrar = async () => { await js(`${H}.__cerrarCharla(); 1`); };
@@ -198,11 +216,12 @@ app.whenReady().then(async () => {
     let v = await hastaMenu();
     const titulos = ['¿Cómo andás?', 'Novedades', 'Tu historia', 'Regalar…', 'Invitar a tomar algo…', 'Dar una mano…'];
     ok(v.menu && titulos.every((x) => v.opciones.some((o) => o.includes(x))), `el menú: ${v.opciones.join(' / ')}`);
-    ok(/^1\. Contame algo · /.test(v.opciones[0]) && v.elegida === 0, 'la historia de siempre, primera y marcada (E de seguido la cuenta, como antes)');
-    ok(/1 a \d+, o la ruedita y E, para elegir/.test(v.seguir), `cómo se elige (${v.seguir})`);
+    ok(/^Contame algo · /.test(v.marcada[0]) && /^Contame algo · /.test(v.opciones[0]), 'la historia de siempre, primera y marcada (E de seguido la cuenta, como antes)');
+    ok(/1 a \d+, .*la ruedita, y E, para elegir/.test(v.seguir), `cómo se elige (${v.seguir})`);
+    const i0 = v.i;
     await js(`${H}.__moverCharla(2); 1`);
     v = await vista();
-    ok(v.elegida === 2, 'la ruedita (o LB/RB) mueve la marca');
+    ok(v.i === i0 + 2, 'la ruedita (o LB/RB) mueve la marca');
 
     // ============================================================ 2. los tres temas
     seccion('2. los temas');
@@ -365,9 +384,9 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const s = ${H}.__aldea.mundo().personas.get('carpintero'); const n = s.npc, d = s.destino; n.pos.x = d.x; n.pos.z = d.z; n.camino = []; return 1 })()`);
     h = await hablar('carpintero');
     v = await hastaMenu();
-    ok(v.menu && /¿Qué tenés para hoy\?/.test(v.opciones[0]) && v.elegida === 0, `lo de su oficio, primera opción: ${v.opciones.join(' / ')}`);
+    ok(v.menu && /¿Qué tenés para hoy\?/.test(v.marcada[0]), `lo de su oficio, primera opción y marcada: ${v.opciones.join(' / ')}`);
     const textos = [];
-    for (let i = 0; i < 8 && (await vista()).abierta; i++) { const x = await vista(); textos.push(`${x.texto} [${x.seguir}]`); if (x.menu && i > 0) break; await tecla('KeyE'); }
+    for (let i = 0; i < 9 && (await vista()).abierta; i++) { const x = await vista(); textos.push(`${x.texto} [${x.seguir}]`); if (x.menu && i > 1) break; await tecla('KeyE'); }   // (3.7.4: E abre la categoría y E elige el servicio)
     e = await js(`(()=>({ tronco: ${P}.materiales.tronco || 0, tabla: ${P}.materiales.tabla || 0 }))()`);
     ok(textos.some((x) => /E: dale/.test(x)) && e.tronco === 0 && e.tabla === 25, `con E en el último renglón, el trato: tres troncos, quince tablas (${JSON.stringify(e)})`);
     await cerrar();
