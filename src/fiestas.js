@@ -40,13 +40,13 @@ export const VERSION_FIESTAS = 1;
 // predio de la fiesta (al lado de la estación, del otro lado de la calle de la vía) o la plaza. `invitados`: llegan en
 // el tren de fiesta. `actividades`: lo que se hace (ACTIVIDADES). `concursos`: «noticias» puede sumar los suyos.
 export const FECHAS = [
-  { id: 'fruta-fina', nombre: 'Fiesta de la Fruta Fina', tipo: 'estacion', estacion: 'verano', diaDelAnio: 2, programa: 'estacion', musica: 'chamame', lugar: 'predio', invitados: true, concursos: true,
+  { id: 'fiesta-verano', nombre: 'Fiesta de la Fruta Fina', tipo: 'fiesta', estacion: 'verano', diaDelAnio: 2, programa: 'estacion', musica: 'chamame', lugar: 'predio', invitados: true, concursos: true,
     actividades: ['mesa-larga', 'juegos', 'jineteada', 'baile', 'truco', 'taba'],
     texto: 'La fiesta del verano: frambuesas, cerezas y grosellas, cordero al asador, jineteada y baile con chamamé hasta la noche.' },
   { id: 'dia-aldea', nombre: 'Día de la Aldea', tipo: 'aldea', diaDelAnio: 4, programa: 'aldea', musica: 'sur', lugar: 'predio', invitados: true,
     actividades: ['acto', 'mesa-larga', 'juegos', 'baile', 'truco', 'taba'],
     texto: 'El día que paró el primer tren en la aldea: Ernesto iza la bandera, hay torta para todos y baile a la noche.' },
-  { id: 'cosecha', nombre: 'Fiesta de la Cosecha', tipo: 'estacion', estacion: 'otono', diaDelAnio: 6, programa: 'estacion', musica: 'loncomeo', lugar: 'predio', invitados: true, concursos: true,
+  { id: 'fiesta-cosecha', nombre: 'Fiesta de la Cosecha', tipo: 'fiesta', estacion: 'otono', diaDelAnio: 6, programa: 'estacion', musica: 'loncomeo', lugar: 'predio', invitados: true, concursos: true,
     actividades: ['mesa-larga', 'juegos', 'jineteada', 'baile', 'truco', 'taba'],
     texto: 'La fiesta del otoño: lo juntado en el año sobre la mesa larga, curanto, jineteada y loncomeo al caer la tarde.' },
   { id: 'minga', nombre: 'La minga', tipo: 'minga', diaDelAnio: 7, programa: 'minga', musica: 'chamame', lugar: 'predio',
@@ -61,7 +61,7 @@ export const FECHAS = [
   { id: '9-julio', nombre: '9 de Julio', tipo: 'patria', diaDelAnio: 11, programa: 'patria', musica: 'chacarera', lugar: 'predio',
     actividades: ['acto', 'mesa-larga', 'baile', 'truco'],
     texto: 'El Día de la Independencia: el acto en la plaza, locro y chocolate caliente, y peña a la tarde.' },
-  { id: 'nieve', nombre: 'Fiesta de la Nieve', tipo: 'estacion', estacion: 'invierno', diaDelAnio: 12, programa: 'estacion', musica: 'sur', lugar: 'predio', invitados: true, concursos: true,
+  { id: 'fiesta-nieve', nombre: 'Fiesta de la Nieve', tipo: 'fiesta', estacion: 'invierno', diaDelAnio: 12, programa: 'estacion', musica: 'sur', lugar: 'predio', invitados: true, concursos: true,
     actividades: ['mesa-larga', 'juegos', 'baile', 'truco', 'taba'],
     texto: 'La fiesta del invierno: chocolate y locro en la mesa larga, juegos en la nieve y folklore del sur al lado del fogón.' },
 ];
@@ -130,7 +130,7 @@ export const textoHora = (h) => { const x = horaNorm(h); const m = Math.round((x
 // semilla (la de la partida, para la nevada), invierno (¿es invierno de verdad ese día?), amigos (cuántos amigos
 // tenés en la aldea), noventa (bool) }. Devuelve las fechas del día con su año: [{ ...fecha, anio, dia }], la grande
 // primero.
-const PRIORIDAD = { estacion: 0, aldea: 1, patria: 2, noventa: 3, 'cumple-jugador': 4, minga: 5, leyenda: 6, nevada: 7 };
+const PRIORIDAD = { fiesta: 0, aldea: 1, patria: 2, noventa: 3, 'cumple-jugador': 4, minga: 5, leyenda: 6, nevada: 7 };
 export function fechasDelDia(dia, opciones = {}) {
   const d = diaValido(dia), dda = diaDelAnio(d), anio = anioDe(d);
   const lista = [];
@@ -196,7 +196,7 @@ export const ACTIVIDADES = {
 };
 // Las registradas por otros módulos (los concursos de «noticias»): { fiesta: id | tipo | '*', actividad }
 const REGISTRADAS = [];
-// Suma una actividad a una fiesta (por id: 'fruta-fina'; por tipo: 'estacion'; o '*' a todas). `actividad`: { id,
+// Suma una actividad a una fiesta (por id: 'fiesta-verano'; por tipo: 'fiesta'; o '*' a todas). `actividad`: { id,
 // nombre, texto?, fase? ('mesa' | 'juegos' | 'baile' | …), lugar?, hora? [desde, hasta], quien? }. Si ya había una con
 // el mismo id para la misma fiesta, la reemplaza. Devuelve true si quedó.
 export function registrarActividad(fiesta, actividad) {
@@ -326,14 +326,14 @@ export function invitadosDe(fecha, ritmo = 'normal', anio = 1) {
 // Uno por fiesta (el primer año que vas) y algunos por lo que hiciste (aguantar la jineteada). Se cuelgan en la
 // pared del refugio (fiestas-mundo.js). `forma`: cómo se dibuja.
 export const RECUERDOS = {
-  'fruta-fina': { nombre: 'La cinta de la Fruta Fina', forma: 'cinta', color: '#b83a52', texto: 'Una cinta bordó con un ramito de frambuesas bordado.' },
+  'fiesta-verano': { nombre: 'La cinta de la Fruta Fina', forma: 'cinta', color: '#b83a52', texto: 'Una cinta bordó con un ramito de frambuesas bordado.' },
   'dia-aldea': { nombre: 'El banderín del Día de la Aldea', forma: 'banderin', color: '#3a6a8a', texto: 'Un banderín con el duende de la plaza pintado a mano.' },
-  cosecha: { nombre: 'La trenza de la Cosecha', forma: 'trenza', color: '#c8a050', texto: 'Una trenza de pasto seco con tres manzanas chiquitas.' },
+  'fiesta-cosecha': { nombre: 'La trenza de la Cosecha', forma: 'trenza', color: '#c8a050', texto: 'Una trenza de pasto seco con tres manzanas chiquitas.' },
   minga: { nombre: 'La cuña de la minga', forma: 'cuna', color: '#7a5a3a', texto: 'Una cuña de lenga con las iniciales de todos los que trabajaron.' },
   '25-mayo': { nombre: 'La escarapela del 25 de Mayo', forma: 'escarapela', color: '#78b0d8', texto: 'Una escarapela celeste y blanca que te prendió Delia.' },
   leyenda: { nombre: 'El farolito de la Noche de la Leyenda', forma: 'farolito', color: '#e0a040', texto: 'Un farolito de lata con una vela adentro.' },
   '9-julio': { nombre: 'El pañuelo del 9 de Julio', forma: 'panuelo', color: '#9ac8e8', texto: 'Un pañuelo celeste para la chacarera.' },
-  nieve: { nombre: 'El copo tallado de la Fiesta de la Nieve', forma: 'copo', color: '#e8eef4', texto: 'Un copo de nieve tallado en ciprés por Tito.' },
+  'fiesta-nieve': { nombre: 'El copo tallado de la Fiesta de la Nieve', forma: 'copo', color: '#e8eef4', texto: 'Un copo de nieve tallado en ciprés por Tito.' },
   nevada: { nombre: 'La pala chica de la nevada', forma: 'pala', color: '#8a8a8a', texto: 'Una pala de juguete: «Al que paleó por todos», dice.' },
   'cumple-jugador': { nombre: 'La tarjeta de tu cumpleaños', forma: 'tarjeta', color: '#e8d8b0', texto: 'Una tarjeta firmada por toda la aldea (Lucía dibujó un perro).' },
   noventa: { nombre: 'La foto de los 90 de la abuela', forma: 'cuadro', color: '#6a4a30', texto: 'Toda la aldea alrededor de la abuela Herminia y su torta.' },
@@ -390,13 +390,13 @@ export const leyendaDelAnio = (anio) => LEYENDAS[((entero(anio, 1) - 1) % LEYEND
 // Lo que hay en la mesa según la fiesta (para el aviso, la nota y lo que se dibuja) y lo que da comer: descanso y
 // sacar el frío (como la comida de la cocina de la 3.7.2: no se compra nada).
 export const MENUS = {
-  'fruta-fina': { platos: ['cordero al asador', 'ensalada de la huerta', 'frambuesas con crema'], buenPaso: 3 },
+  'fiesta-verano': { platos: ['cordero al asador', 'ensalada de la huerta', 'frambuesas con crema'], buenPaso: 3 },
   'dia-aldea': { platos: ['empanadas', 'torta de la aldea', 'mate cocido'], buenPaso: 2 },
-  cosecha: { platos: ['curanto', 'pan casero', 'manzanas asadas'], buenPaso: 3 },
+  'fiesta-cosecha': { platos: ['curanto', 'pan casero', 'manzanas asadas'], buenPaso: 3 },
   minga: { platos: ['guiso de la minga', 'pan casero'], buenPaso: 2 },
   '25-mayo': { platos: ['locro', 'pastelitos', 'chocolate caliente'], buenPaso: 3 },
   '9-julio': { platos: ['locro', 'pastelitos', 'chocolate caliente'], buenPaso: 3 },
-  nieve: { platos: ['locro', 'chocolate caliente', 'torta negra'], buenPaso: 3 },
+  'fiesta-nieve': { platos: ['locro', 'chocolate caliente', 'torta negra'], buenPaso: 3 },
   'cumple-jugador': { platos: ['torta de cumpleaños', 'empanadas', 'sanguchitos'], buenPaso: 2 },
   noventa: { platos: ['torta con noventa velitas', 'scones', 'té'], buenPaso: 1 },
 };
@@ -600,7 +600,7 @@ export function fotoDeFiesta(estado, fecha, anio) {
   e.fotos.push(k); if (e.fotos.length > TOPE_LISTA) e.fotos.shift();
   return idFotoAlbum(f.id, anio);
 }
-export const idFotoAlbum = (id, anio) => `fiesta-${id}-${entero(anio, 1)}`;
+export const idFotoAlbum = (id, anio) => `foto-${id}-${entero(anio, 1)}`;
 // Lo que el álbum (album.js) necesita para mostrar las fotos de las fiestas: [{ id, nombre, texto }]
 export function fotosParaAlbum(estado) {
   return (Array.isArray(estado?.fotos) ? estado.fotos : []).map((k) => {

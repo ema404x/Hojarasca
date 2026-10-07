@@ -70,7 +70,7 @@ export function crearFiestasJuego(ctx) {
     if (!activo()) return null;
     const a = ahora();
     if (!a || a.fecha.tipo === 'noventa') return null;
-    if (a.fase.fase === 'llegada' && a.fecha.tipo !== 'estacion' && a.fecha.tipo !== 'aldea') return null;
+    if (a.fase.fase === 'llegada' && a.fecha.tipo !== 'fiesta' && a.fecha.tipo !== 'aldea') return null;
     const lista = presentes();
     const clave = `${a.fecha.id}|${a.fase.fase}|${lista.join(',')}|${!!clase}`;
     if (clave !== reparto.clave) reparto = { clave, mapa: repartoFiesta(a.fecha, a.fase, lista, { leyenda: leyendaDelAnio(a.fecha.anio), musica: musicaDe(a.fecha), clase: !!clase }) };
@@ -113,7 +113,7 @@ export function crearFiestasJuego(ctx) {
     const nieve = nevada && h >= 6 ? NEVADA.casas.filter((c) => !nevadaHecha(st, anio(), c.clave, 'pala')) : [];
     return {
       fecha: grande || nevada, fase, adornos: !!dentro || nieve.length > 0, soloNieve: !dentro, menu: grande ? menuDe(grande) : null,
-      asado: !!grande && ['estacion', 'aldea', 'cumple-jugador'].includes(grande.tipo) && grande.id !== 'nieve',
+      asado: !!grande && ['fiesta', 'aldea', 'cumple-jugador'].includes(grande.tipo) && grande.id !== 'fiesta-nieve',
       musica: tocando ? musica : null, musico: tocando && !!musica, suave: fase === 'mesa',
       fuego: !!fase && ['llegada', 'mesa', 'juegos', 'baile', 'fogon', 'trabajo', 'sorpresa'].includes(fase),
       nieve, invitados: invitadosHoy(), jineteada: fase === 'juegos' && (grande?.actividades || []).includes('jineteada') ? { monta: jineteada.monta } : null,
@@ -849,7 +849,7 @@ export function crearFiestasJuego(ctx) {
       cache.t = -1; cache.dia = 0; reparto.clave = '';
       mundo()?.deUna?.(true);
       if (t.jinete || /jineteada/.test(t.nombre || '')) jineteada.monta = { quien: 'inv-domador', t: 0, eq: 0, dura: 99, fin: false };
-      if (t.refugio) { const st = estado(); for (const id of ['fruta-fina', 'dia-aldea', 'cosecha', 'minga', '25-mayo', 'leyenda', '9-julio', 'nieve', 'jineteada']) darRecuerdo(st, id, dia()); colgarRecuerdos(st); }
+      if (t.refugio) { const st = estado(); for (const id of ['fiesta-verano', 'dia-aldea', 'fiesta-cosecha', 'minga', '25-mayo', 'leyenda', '9-julio', 'fiesta-nieve', 'jineteada']) darRecuerdo(st, id, dia()); colgarRecuerdos(st); }
     },
     probarTruco: (clave = 'jefe') => { const n = ctx.aldeaGente?.()?.personas?.get(clave)?.npc || null; empezarTruco({ clave, nombre: nombreCortoDe(clave) || clave, npc: null }); return !!n; },
   };

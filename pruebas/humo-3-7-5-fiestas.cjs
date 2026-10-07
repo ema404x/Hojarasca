@@ -93,7 +93,7 @@ app.whenReady().then(async () => {
     await enPredio('mesa-n-3', 0.8, 1.2, 'mesa-s-3');
     await aldeaLista(); await acomodar();
     e = await js(`(()=>{ const a = ${F}.ahora(); const m = ${FM}.estado(); return { fecha: a?.fecha.id, fase: a?.fase.fase, predio: m.predio, asientos: m.asientos, adorno: m.adorno, fuego: m.fuego, invitados: m.invitados.filter((i) => i.lista).length } })()`);
-    ok(e.fecha === 'fruta-fina' && e.fase === 'mesa', `el día 2 al mediodía: ${e.fecha}, ${e.fase}`);
+    ok(e.fecha === 'fiesta-verano' && e.fase === 'mesa', `el día 2 al mediodía: ${e.fecha}, ${e.fase}`);
     ok(e.predio && e.asientos >= 30 && e.adorno && e.fuego, `el predio con sus asientos (${e.asientos}), los adornos y el fuego`);
     ok(e.invitados >= 2, `los invitados del tren de fiesta (${e.invitados})`);
     e = await js(`(()=>{ const l = ${H}.__aldea.mundo().estado().npcs; const m = l.filter((x) => x.destino?.edificio === 'predio'); return { en: m.length, comen: l.filter((x) => x.pose === 'comer').length } })()`);
@@ -111,9 +111,9 @@ app.whenReady().then(async () => {
     ok(await js(`${H}.jugador.estado.sentado`), 'sentado a la mesa larga');
     for (let i = 0; i < 10; i++) { await js(`${F}.actualizar(0.6); 1`); await cuadros(1); }
     let nt = await notas();
-    ok(/Te sirven cordero al asador/.test(nt) && await js(`${P}.fiestas.comio.includes('fruta-fina|1')`), 'te sirven (cordero al asador)');
+    ok(/Te sirven cordero al asador/.test(nt) && await js(`${P}.fiestas.comio.includes('fiesta-verano|1')`), 'te sirven (cordero al asador)');
     for (let i = 0; i < 20; i++) await js(`${F}.actualizar(0.6); 1`);
-    ok(await js(`${P}.fiestas.recuerdos.some((r) => r.id === 'fruta-fina')`), 'el recuerdo de la Fruta Fina');
+    ok(await js(`${P}.fiestas.recuerdos.some((r) => r.id === 'fiesta-verano')`), 'el recuerdo de la Fruta Fina');
     // (levantarse: W sostenida un ratito)
     await js(`(()=>{ ${H}.jugador.teclas.add('KeyW'); return 1 })()`); await cuadros(3); await js(`(()=>{ ${H}.jugador.teclas.delete('KeyW'); return 1 })()`); await cuadros(1);
     ok(!(await js(`${H}.jugador.estado.sentado`)), 'te levantás');
