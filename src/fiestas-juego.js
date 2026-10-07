@@ -412,6 +412,7 @@ export function crearFiestasJuego(ctx) {
     if (!mo) return;
     if (mo.quien === 'jugador') {
       const j = jineteada.jugador;
+      if (!j || mo.fin) return;   // (ya terminó: espera que lo bajen)
       const t = ctx.jugador?.()?.teclas;
       let e = 0;
       if (t) { if (t.has('KeyA') || t.has('ArrowLeft')) e -= 1; if (t.has('KeyD') || t.has('ArrowRight')) e += 1; }
