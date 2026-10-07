@@ -1082,6 +1082,12 @@ export function crearAldeaGente(ctx) {
       }
       if (delAmor.size) for (const [k, d] of destinosAldea(a, horas(), dia(), [...delAmor.keys()], M, delAmor)) destinos.set(k, d);
     }
+    // 3.7.5 (noticias): el club de lectura y la noche de estrellas (los que no tienen nada del amor ni del asado)
+    if (ctx.noticiasDestino) {
+      const deNoticias = new Map();
+      for (const k of lista) { if (ctx.amorDestino?.(k)) continue; const r = ctx.noticiasDestino(k); if (r) deNoticias.set(k, { ...r, amor: true }); }
+      if (deNoticias.size) for (const [k, d] of destinosAldea(a, horas(), dia(), [...deNoticias.keys()], M, deNoticias)) destinos.set(k, d);
+    }
     // 3.6.1: en la silla donde estás sentado vos no se sienta nadie: se queda parado al lado
     if (js.sentado) for (const d of destinos.values()) {
       if (!d.sentado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) > 0.45) continue;
@@ -1352,7 +1358,9 @@ export function crearAldeaGente(ctx) {
     ficha.appendChild(el('p', 'anotado', `Hoy: ${hoy.texto}. El año tiene doce días: cuatro de verano, cuatro de otoño y cuatro de invierno.`));
     // (3.7.3: con lo que queda listo en el taller ferroviario)
     const tren = p.tren && typeof p.tren === 'object' ? p.tren : null;
-    const cal = calendarioDelAnio(dia(), { aldea: a, fiestas: FIESTAS_ALDEA, extras: eventosTaller(tren) });
+    // (3.7.5 (noticias): y lo que suma el calendario de las noticias: las fechas, el aniversario, los concursos, el club y
+    // las estrellas)
+    const cal = calendarioDelAnio(dia(), { aldea: a, fiestas: FIESTAS_ALDEA, extras: eventosTaller(tren).concat(ctx.extrasCalendario?.(dia()) || []) });
     const ul = el('ul', 'lista');
     for (const fila of cal.filas) {
       const ev = fila.eventos.map((e) => (e.tipo === 'cumple' ? `cumple ${nombreCortoDe(e.clave)}` : e.tipo === 'taller' ? `taller: ${e.nombre.toLowerCase()}` : e.nombre)).join(', ');

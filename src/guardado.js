@@ -46,6 +46,9 @@ import { sanearCocina, cocinaNueva, sanearCoccion } from './cocina-pasos.js';
 import { sanearGranja, granjaNueva } from './granja.js';
 // 3.7.3: el tren mejorado y el taller ferroviario de la aldea (sólo en el Relax)
 import { trenNuevo, sanearTren } from './tren-mejoras.js';
+// 3.7.5 (noticias): el diario de la aldea, las cartas de lejos, el club y las estrellas; los concursos y las cintas
+import { noticiasNuevas, sanearNoticias } from './noticias.js';
+import { concursosNuevo, sanearConcursos } from './concursos.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -291,6 +294,7 @@ export function progresoNuevo() {
     oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1), amor: amorNuevo() }),   // (3.7.0: y la vida de la aldea; 3.7.1: y el amor)
     ...(desafio ? {} : { cocina: cocinaNueva() }),   // 3.7.2: la cocina (el recetario de siempre, nada al fuego)
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
+    ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
     // 3.6 (mecánicas): sin agua sacada ni libro prestado
@@ -481,6 +485,10 @@ function sanearProgreso(p) {
     // 3.7.3: el tren. Una partida de la 3.7.2 no lo trae: la trochita de siempre (con su coche de pasajeros) y el galpón
     // viejo esperando la primera mejora. Un guardado roto, saneado (sólo lo hecho de verdad vale, ver `sanearTren`)
     tren: sanearTren(p.tren, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    // 3.7.5 (noticias): una partida de la 3.7.4 no los trae: sin diarios, cartas, cintas ni truchas anotadas (el primer diario
+    // sale a los días que diga el ritmo). Un guardado roto, saneado: nada del futuro, ids que existen, listas cortas
+    noticias: sanearNoticias(p.noticias, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    concursos: sanearConcursos(p.concursos, Math.max(1, Math.floor(finito(p.dia, 1)))),
     // 2.3: las truchas del día, las semillas juntadas hoy, la humedad de la leña y la
     // última noche en que asomó algo en el lago
     truchasHoy: p.truchasHoy && typeof p.truchasHoy === 'object' ? { dia: Math.max(0, Math.floor(finito(p.truchasHoy.dia, 0))), n: Math.max(0, Math.min(9, Math.floor(finito(p.truchasHoy.n, 0)))) } : null,
@@ -495,7 +503,7 @@ function sanearProgreso(p) {
     explorado: Array.isArray(p.explorado) && p.explorado.length === base.explorado.length ? p.explorado : base.explorado,
     modo: modoPartida,
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
-    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined } : { desafio: undefined }),
+    ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined, noticias: undefined, concursos: undefined } : { desafio: undefined }),
   };
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
