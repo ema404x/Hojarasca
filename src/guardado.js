@@ -33,6 +33,7 @@ import { sanearOficios, oficiosNuevos } from './oficios.js';
 import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';
 // 3.6: la vecindad (amistad, ganas y memoria de los vecinos; ver vecindad.js)
 import { sanearVecindad, vecindadNueva } from './vecindad.js';
+import { conSocial } from './vecindad-social.js';
 // 3.6 (mecánicas): lo de cada lugar de la aldea (el aljibe del día, el libro prestado)
 import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
 // 3.7.0: la vida de la aldea (calendario, visitantes, mascota, apodo, familia, cartas) y su ritmo
@@ -399,7 +400,7 @@ function sanearProgreso(p) {
   const base = progresoNuevo();
   // 3.6: el pueblo de la 3.1 no pasa: se convierte en la aldea (ver `aldea` más abajo)
   const { pueblo: _pueblo31, ...resto } = p;
-  return {
+  const limpio = {
     ...base,
     ...resto,
     versionGuardado: VERSION_GUARDADO,
@@ -496,6 +497,9 @@ function sanearProgreso(p) {
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
     ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined } : { desafio: undefined }),
   };
+  // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
+  conSocial(limpio.vecindad, p.vecindad, limpio.dia);
+  return limpio;
 }
 
 export function cargarProgreso() {
