@@ -5,6 +5,8 @@ import { ENTRADAS_GRANJA } from './granja.js';
 import { LIBROS_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
 // 3.7.2: lo que sale de la cocina en pasos y lo de la cocina en el almacén (ver cocina-pasos.js)
 import { ENTRADAS_COCINA } from './cocina-pasos.js';
+// 3.7.5 (rincones): los doce duendes tallados y los rincones de la aldea (ver rincones-cuaderno.js)
+import { ENTRADAS_RINCONES } from './rincones-cuaderno.js';
 export const SECCIONES = [
   { id: 'flora', nombre: 'Árboles y plantas' },
   { id: 'frutos', nombre: 'Flores, frutos y hongos' },
@@ -458,4 +460,7 @@ for (const l of LIBROS_ALDEA) {
 }
 ENTRADAS.push({ id: CUENTOS_DOMINGO.id, seccion: 'pueblo', nombre: CUENTOS_DOMINGO.titulo, cientifico: 'con la abuela Herminia', modo: 'escuchar',
   pista: 'El domingo a las diez, en la biblioteca de la aldea: sentate y escuchá a la abuela hasta el final.', texto: CUENTOS_DOMINGO.texto });
+// 3.7.5 (rincones): los duendes escondidos, la talla, el cuaderno en la biblioteca, el potrero, las huertas, los títeres,
+// el fuerte, el campamento, tu casa, el camino, el sulky y el taller
+ENTRADAS.push(...ENTRADAS_RINCONES);
 export const ENTRADA = Object.fromEntries(ENTRADAS.map((e) => [e.id, e]));

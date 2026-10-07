@@ -150,6 +150,9 @@ import { crearVentanas } from './ventanas-mundo.js';
 import { buscarCorral, corralNuevo, mudarCorral, CORRAL as CORRAL_PROPIO } from './corral.js';
 import { crearGranjaMundo } from './granja-mundo.js';
 import { crearGranjaJuego } from './granja-juego.js';
+// 3.7.5 (rincones): los duendes, el potrero, las huertas, los títeres, el fuerte, el camino con el sulky, tu casa y el taller
+import { crearRinconesMundo } from './rincones-mundo.js';
+import { crearRinconesJuego } from './rincones-juego.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
 import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo, nocheDeLomo, alturaLomo, dondeAsoma } from './cuentos.js';
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
@@ -621,6 +624,15 @@ async function construir() {
     // Las estaciones también reservan su huella antes de poblar el mundo.
     // Evita objetos coleccionables dentro del andén, galpón o sala de espera.
     for (const p of t.paradas) edificios.push({ x: p.x, z: p.z, radio: p.chica ? 10 : 14, nombre: p.nombre || 'Estación' });
+    // 3.7.5 (rincones): los duendes, el potrero, las huertas, el retablo, el fuerte, el camino al refugio (rodea las
+    // construcciones y las estaciones de recién), el sulky, el taller y tu casa (sólo en el Relax, donde está la aldea)
+    if (aldeaMundo) {
+      rinconesMundo = crearRinconesMundo({ T, escena, col, puertas, veg, aldeaMundo, refugio: () => T.lugares.refugio,
+        evitar: () => edificios.filter((z) => z && Number.isFinite(z.x) && Number.isFinite(z.z)).map((z) => ({ x: z.x, z: z.z, radio: (z.radio || 4) + 1.5 })),
+        permitir: () => planificadorAntitirones.permitir('rincones', { pesada: true }) });
+      rinconesMundo.montar();
+      U.uMascara.value.needsUpdate = true;
+    }
     return t;
   });
   pasto = await paso('Dejando crecer el pasto', 78, async () => { await esperarTexturas('manchas'); const p = crearPasto(calidad); escena.add(p.malla); return p; });
@@ -657,6 +669,7 @@ async function construir() {
     // 2.9: arriba del velero se navega con él; colgado de la tirolesa, el cable lleva
     alVela: (dt, tecla) => vela?.actualizar(dt, tecla, jugador, U.uTiempo.value),
     alCable: (dt) => tirolesas?.andar(dt, jugador),
+    alSulky: (dt, tecla) => rinconesJuego?.alSulky(dt, tecla),   // 3.7.5 (rincones): el sulky lleva al jugador por el camino
     traducirTecla: codigoCanonico,
   });
   escena.add(camara);
@@ -800,10 +813,12 @@ async function construir() {
       const p = jugador.estado.pos;
       if (Math.hypot(p.x - aldeaMundo.centro.x, p.z - aldeaMundo.centro.z) < calidad.lejos + 220) { await aldeaMundo.listo(); aldeaMundo.montarCola(); }
     }
-    socialMundo?.paraCompilar();   // 3.7.4: el programa de las burbujas, con lo demás (nunca a mitad del juego)
+    socialMundo?.paraCompilar();
+    rinconesMundo?.paraCompilar();   // 3.7.5 (rincones): todo a la vista un momento, así se compila en la carga   // 3.7.4: el programa de las burbujas, con lo demás (nunca a mitad del juego)
     await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3: con el presupuesto fijo, todo y en paralelo; 2.7.4: antes renderer.compile(escena, camara); ver luces.js
     aldeaMundo?.trasCompilar();   // 3.6: las mallas que sólo estaban para compilar sus programas
-    cocinaMundo?.trasCompilar();   // 3.7.2: lo mismo con el fuego, las brasas y el humo de la cocina
+    cocinaMundo?.trasCompilar();
+    rinconesMundo?.trasCompilar();   // 3.7.5 (rincones)   // 3.7.2: lo mismo con el fuego, las brasas y el humo de la cocina
     socialMundo?.listo();   // 3.7.4
     // 3.7.0: la sombra de la gente (piel por huesos) también se compila en la carga; el atlas de la
     // gente se pinta en la portada
@@ -2676,6 +2691,9 @@ document.addEventListener('keydown', (e) => {
       if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
       // 3.7.3: y el del taller ferroviario
       if (tallerTren?.panelAbierto()) { tallerTren.cerrarPanel(); break; }
+      // 3.7.5 (rincones): arriba del sulky E baja; en un picado, al lado de la pelota, E patea (antes que hablar con alguien;
+      // el aviso, en el mismo lugar y con la misma función: rinconesJuego.urgente)
+      if (rinconesJuego) { const u = rinconesJuego.urgente(js); if (u) { u.hacer(); cacheRincones = null; break; } }
       // El aviso visual y la acción usan la misma prioridad: si estás mirando a
       // una persona, E habla con ella antes de accionar puertas/mostradores.
       // Esto hace posible conversar con Ercilia detrás del mostrador sin que el
@@ -2686,6 +2704,9 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
       // 3.1: en el poste de una carrera, E larga (también montado, en el kayak o en el velero; el aviso va en el mismo lugar)
       if (!objetivo) { const c = modos?.accion(jugador.estado); if (c) { c.hacer(); break; } }
+      // 3.7.5 (rincones): los duendes, el sulky, el potrero, las huertas, el retablo, el atril, el fuerte, el campamento, tu casa y
+      // el taller (el aviso, en el mismo lugar y con la misma función: rinconesJuego.accion)
+      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accion(js); if (a) { a.hacer(); cacheRincones = null; break; } }
       // 3.7.3: montado al lado de la jaula del tren (parado), E sube a tu caballo y vos con él
       if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }
       if (js.montado) { desmontar(); break; }
@@ -4062,7 +4083,7 @@ function refrescarHuerta() {
     x: o.datos.x, z: o.datos.z, rot: o.datos.rot || 0,
     y: Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z),
     parcela: h[claveCantero(o.datos.x, o.datos.z)] || null,
-  })), progreso.dia);
+  })).concat(rinconesJuego?.canterosParaMatas?.() || []), progreso.dia);   // 3.7.5 (rincones): y las de la huerta de todos y la de los chicos
 }
 function textoAvisoCantero(c) {
   const p = huerta()[c.clave];
@@ -4310,6 +4331,7 @@ let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
+let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
 const pronosticoDeManana = () => {
@@ -4451,11 +4473,25 @@ function armarOficiosYAldea(esDesafio) {
     jugador: () => jugador?.estado || null, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), registrar: (id) => registrar(id), sonido,
   });
+  // 3.7.5 (rincones): los rincones en el juego: E y el aviso, lo que te enseñan los amigos y el sulky en la charla, el
+  // picado en el potrero, los títeres y el sulky por el camino
+  rinconesJuego = crearRinconesJuego({
+    progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, mundo: rinconesMundo,
+    jugador: () => jugador, aldeaGente: () => aldeaGente, altura: (x, z) => T.altura(x, z), sonido,
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), registrar: (id) => registrar(id),
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n),
+    sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
+    cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
+    dormir: () => dormir(), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
+    noche: () => { const h = progreso.horas; return h >= 20 || h < 5.5 ? 1 : h >= 18.5 ? (h - 18.5) / 1.5 : h < 7 ? (7 - h) / 1.5 : 0; },
+    tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
+  });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
+    rincones: rinconesJuego,   // 3.7.5 (rincones): lo que te enseñan los amigos, el sulky de Tito y la pista de los duendes
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
     apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
@@ -4997,13 +5033,16 @@ function caballo() {
 function tieneCaballo() { return !desafio && !!caballoMundo && !!progreso.cosas?.caballo; }
 function dondeEstaElCaballo() {
   const js = jugador.estado;
+  // 3.7.5 (rincones): atado a las varas del sulky, está donde está el sulky (andando o estacionado)
+  const atado = !js.montado ? rinconesJuego?.caballoAtado?.() : null;
+  if (atado) return atado;
   if (js.montado) return { x: js.pos.x, z: js.pos.z, yaw: yawCaballo(js.yaw) };
   return dondeEspera(caballo(), T.lugares.refugio);
 }
 function caballoCerca() {
   if (!tieneCaballo() || caballoEnElTren()) return false;
   const js = jugador.estado;
-  if (js.montado || js.enTren || js.enKayak || js.nadando) return false;
+  if (js.montado || js.enTren || js.enKayak || js.nadando || js.enSulky) return false;   // (3.7.5 (rincones): ni desde el sulky)
   const d = dondeEstaElCaballo();
   return Math.hypot(d.x - js.pos.x, d.z - js.pos.z) < RADIO_MONTAR;
 }
@@ -5012,6 +5051,7 @@ function montar() {
   js.pos.x = d.x; js.pos.z = d.z;
   js.yaw = d.yaw - Math.PI;
   js.agachado = false; js.sentado = false;
+  rinconesJuego?.desatar?.();   // 3.7.5 (rincones): si estaba atado al sulky, lo desatás para montarlo
   js.montado = { ...MARCHA_CABALLO, alto: ALTURA_MONTADO, aguaMax: AGUA_QUE_NO_PISA };
   // 3.7.0: con las herraduras que le revisó Ayelén hoy, el zaino anda un 10 % más liviano
   if (progreso.aldea?.herrado === progreso.dia) { js.montado.trote *= 1.1; js.montado.galope *= 1.1; }
@@ -5040,7 +5080,7 @@ function actualizarCaballo(dt) {
   // montado, el caballo va donde vas: se anota para que al recargar esté donde lo dejaste
   if (js.montado) { const c = caballo(); c.x = d.x; c.z = d.z; c.yaw = d.yaw; }
   const cerca = js.montado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) < 170;
-  caballoMundo.actualizar(dt, d, js.velocidadActual, !!js.montado, cerca);
+  caballoMundo.actualizar(dt, d, js.velocidadActual, !!js.montado || !!js.enSulky, cerca || !!js.enSulky);   // (3.7.5 (rincones): tirando del sulky, trota)
   if (js.montado?.plantado) { js.montado.plantado = 0; nota('El zaino no entra al agua honda', 'Buscá un vado o bajate y seguí nadando'); }
 }
 
@@ -7695,6 +7735,7 @@ let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar 
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
+let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
@@ -8133,6 +8174,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando') { actualizarMajada(dt); actualizarCasaViva(dt); } } catch (e) { fallaSistema('majada/casa', e); }
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
   try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
+  try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
   try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
@@ -8368,7 +8410,7 @@ function cuadroDelJuego(tRaf, manual) {
 
     // Qué hay adelante: NPCs y scans de recursos no necesitan 60/120 consultas por segundo.
     acumuladoVecino += dt;
-    if (js.enKayak) vecino = null;
+    if (js.enKayak || js.enSulky) vecino = null;   // (3.7.5 (rincones): ni arriba del sulky)
     else if (acumuladoVecino >= 1 / 15 && acumuladoVecino >= presupuestoAdaptativo.intervalo(1 / 15, 1.35)) {
       acumuladoVecino = 0; vecino = gente.cerca(js, camara);
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
@@ -8392,6 +8434,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
+      cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -8400,7 +8443,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheAserrar = !puedeAserrar() ? false : enBancoAserrar() ? 'banco' : material('tabla') < 2 ? 'mano' : false;
       cacheSemilla = semillaDisponible();
     }
-    if (js.sentado || js.enKayak || js.enTren || js.montado || vecino) objetivo = null;
+    if (js.sentado || js.enKayak || js.enTren || js.montado || js.enSulky || vecino) objetivo = null;   // (3.7.5 (rincones): ni en el sulky)
     else if (acumuladoBuscar > presupuestoAdaptativo.intervalo(1 / 15, 1.45)) { acumuladoBuscar = 0; objetivo = objetos.buscar(camara, jugador); }
     // 3.1: parado en el andén al lado de la locomotora, subir a la cabina le gana al banco
     // de la parada (desde la 3.0.1 el andén se pisa de verdad y el banco quedaba a mano)
@@ -8416,6 +8459,10 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };
+    // 3.7.5 (rincones): bajar del sulky y patear en el picado, antes que hablar (como en la tecla E); lo demás de los rincones,
+    // después de la carrera
+    { const u = !charla.npc && rinconesJuego ? rinconesJuego.urgente(js) : null; if (u) aviso = { tecla: 'E', texto: u.texto }; }
+    if (!aviso && cacheRincones && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheRincones.texto };
     if (charla.npc && Math.hypot(charla.npc.pos.x - js.pos.x, charla.npc.pos.z - js.pos.z) > 6) cerrarCharla();
     // 2.4.1: el aviso sigue el orden de la tecla E paso a paso. El mostrador va acá (E lo
     // atiende antes que la puerta del almacén); el kayak, el tren y la bitácora, más abajo.
@@ -8983,6 +9030,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
+  // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
   requestAnimationFrame(bucle);
 })();

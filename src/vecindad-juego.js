@@ -260,6 +260,7 @@ export function crearVecindadJuego(ctx) {
     for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.1: el romance, el anillo y el correo
     for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
     for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2: una receta y el trueque para la cocina (una sola opción, «Para la cocina…»)
+    for (const o of ctx.rincones?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.5 (rincones): lo que te enseña, el sulky de Tito, la pista de los duendes
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -336,6 +337,13 @@ export function crearVecindadJuego(ctx) {
     if (/^granja(?::|$)/.test(String(id)) && ctx.granja) {
       const r = ctx.granja.elegir(s, id);
       if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
+    // 3.7.5 (rincones): lo que te enseña un amigo, el sulky, la pista de los duendes (rincones-juego.js)
+    if (/^rincones:/.test(String(id)) && ctx.rincones) {
+      const r = ctx.rincones.elegir(s, String(id));
       s.sub = null;
       if (r.tipo !== 'menu') s.vueltas++;
       return r;
