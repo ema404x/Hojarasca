@@ -66,12 +66,14 @@ app.whenReady().then(async () => {
   const estado = () => js(`${H}.__aldea.mundo().estado()`);
   const capturar = async (nombre) => {
     if (!CAPTURAS) return;
-    // (cuadros de verdad, con la ventana a la vista: lo que se compuso, no un cuadro viejo)
+    // (cuadros de verdad, con la ventana a la vista: lo que se compuso, no un cuadro viejo; sin el cartel del mouse)
+    await js(`(()=>{ const p = document.getElementById('pista-clic'); if (p) p.style.visibility = 'hidden'; return 1 })()`);
     await cuadros(4);
     for (let i = 0; i < 4; i++) { await js('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(1))))'); await esperar(250); }
     w.webContents.invalidate();
     await esperar(300);
     const img = await w.webContents.capturePage();
+    await js(`(()=>{ const p = document.getElementById('pista-clic'); if (p) p.style.visibility = ''; return 1 })()`);
     fs.mkdirSync(CAPTURAS, { recursive: true });
     fs.writeFileSync(path.join(CAPTURAS, `v375-noticias-${nombre}.png`), img.toPNG());
     console.log(`  (captura ${nombre})`);
@@ -218,28 +220,46 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ 5. el concurso de dulces
     seccion('5. el concurso de dulces');
-    await js(`(()=>{ const P = ${P}; P.dia = 19; P.horas = 12; P.entradas['dulce-leche'] = { dia: 18, hora: 10, cantidad: 2 }; P.cocina.hechas = { ...(P.cocina.hechas || {}), 'dulce-leche': 6 }; P.cosas.azucar = 0; return 1 })()`);
-    await irLejos(); await aldea(2); await plaza(); await aldea(50);
+    // (las 16:15 del día de la fiesta de la cosecha: Nélida atiende la mesa en la plaza desde las 9; en la última hora
+    // antes del fallo se juntan el jurado y los que compiten)
+    await js(`(()=>{ const P = ${P}; P.dia = 19; P.horas = 16.25; P.entradas['dulce-leche'] = { dia: 18, hora: 10, cantidad: 2 }; P.cocina.hechas = { ...(P.cocina.hechas || {}), 'dulce-leche': 6 }; P.cosas.azucar = 0; return 1 })()`);
+    await irLejos(); await aldea(2); await plaza(); await aldea(80);
+    e = await estado();
+    const enLaMesa = e.npcs.filter((x) => x.destino?.lugar === 'concurso').map((x) => x.clave);
+    ok(enLaMesa.includes('nelida') && enLaMesa.length >= 6, `en la plaza: Nélida, el jurado y los que compiten (${enLaMesa.join(', ')})`);
+    // de lejos, mirando la mesa (a unos 9 m)
+    const mesa = await js(`(()=>{ const n = ${npc('nelida')}; return n ? { x: n.pos.x, z: n.pos.z } : null })()`);
+    // (desde afuera de la ronda: del lado de Nélida que da la espalda al centro de la plaza, mirando hacia el centro)
+    const centro = await js(`${H}.__aldea.edificio('plaza')`);
+    const verMesa = async () => { if (mesa) await js(`(()=>{ const j = ${H}.jugador; const x = ${mesa.x}, z = ${mesa.z}, cx = ${centro.x}, cz = ${centro.z};
+      let dx = x - cx, dz = z - cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+      const px = x + dx * 6, pz = z + dz * 6; j.ubicar(px, pz, Math.atan2(-(cx - px), -(cz - pz))); j.estado.pitch = -0.1; return 1 })()`); };
+    await verMesa();
+    await capturar('5-concurso-plaza');
     let leida = '';
-    h = await hablarCon(npc('nelida'), 6, async (i, t) => { if (/Veo que traés/.test(t)) { leida = t; await capturar('5-concurso-nelida'); } });
+    h = await hablarCon(npc('nelida'), 6, async (i, t) => { if (/Veo que traés/.test(t)) { leida = t; await js(`(()=>{ ${H}.jugador.estado.pitch = -0.32; return 1 })()`); await capturar('5-concurso-nelida'); } });
     ok(/¡Hoy es el concurso de dulces! Veo que traés un frasco de dulce de leche\./.test(leida), `Nélida te ofrece anotarte («${leida.slice(0, 120)}»)`);
     ok(h.textos.some((t) => /^Anotado, con un frasco de dulce de leche\./.test(t)), 'anotado');
     await cerrarCharla();
     e = await js(`({ ins: ${P}.concursos.inscripto, frascos: ${P}.entradas['dulce-leche'].cantidad })`);
     ok(e.ins?.id === 'dulce' && e.ins.dia === 19 && e.frascos === 1, `el frasco queda en la mesa del jurado (${JSON.stringify(e)})`);
-    // (a las 17, el fallo)
-    await js(`(()=>{ ${P}.horas = 17.1; return 1 })()`);
-    await aldea(2);
+    // (a las 17, el fallo: de nuevo mirando la mesa desde lejos)
+    await verMesa();
+    await js(`(()=>{ ${P}.horas = 17.02; return 1 })()`);
+    await aldea(1);
     e = await js(`({ cintas: ${P}.concursos.cintas, res: ${P}.concursos.resultados, azucar: ${P}.cosas.azucar || 0 })`);
     ok(e.cintas.length === 1 && e.cintas[0].id === 'dulce' && e.res.length === 1, `la cinta (${JSON.stringify(e.cintas[0])}; podio ${e.res[0]?.podio?.join(', ')})`);
     av = await avisos(6);
     ok(/¡Cinta (azul|roja|blanca) en el concurso de dulces!|Cinta verde de mención en el concurso de dulces/.test(av), `el fallo del jurado (${(av.match(/[^|]*[Cc]inta [^|]*/) || [''])[0]})`);
+    await capturar('5-fallo-plaza');
     await esperar(1500);
     e = await js(`({ azucar: ${P}.cosas.azucar || 0, puesto: ${P}.concursos.cintas[0].puesto })`);
     ok(e.puesto >= 1 && e.puesto <= 3 ? e.azucar > 0 : e.azucar === 0, `el regalo útil (puesto ${e.puesto || 'mención'}: ${e.azucar} de azúcar)`);
-    await capturar('5-cinta');
     f = await cuaderno('noticias');
     ok(/Concursos y cintas/.test(f) && /Día 19: cinta/.test(f), 'la cinta, en el cuaderno');
+    e = await js(`(()=>{ const c = document.querySelector('#cuaderno-ficha .cintas-ganadas'); if (!c) return 0; c.previousElementSibling?.previousElementSibling?.scrollIntoView({ block: 'start' }); return c.children.length })()`);
+    ok(e === 1, 'la escarapela de la cinta, dibujada en el cuaderno');
+    await capturar('5-cinta');
     await js(`${H}.volverAlJuego?.(); 1`);
 
     // ------------------------------------------------------------ 6. el club y las estrellas
@@ -250,18 +270,32 @@ app.whenReady().then(async () => {
     e = await estado();
     const club = e.npcs.filter((x) => x.destino?.lugar === 'club').map((x) => x.clave);
     ok(club.includes('abuela') && club.length >= 4, `van al club de lectura (${club.join(', ')})`);
-    h = await hablarCon(npc('abuela'), 5, async (i) => { if (i === 0) await capturar('6-club-lectura'); });
+    h = await hablarCon(npc('abuela'), 5, async (i) => { if (i === 0) await capturar('6-club-charla'); });
     ok(h.textos.some((t) => /^Llegaste justo, que recién empezamos\. Esta semana leemos «/.test(t)), `la abuela lleva el club (${(h.textos[0] || '').slice(0, 140)})`);
     await cerrarCharla();
+    // (la ronda vista desde atrás de los que escuchan, mirando a la abuela, sin la charla)
+    await js(`(()=>{ const H = ${H}, n = ${npc('abuela')}; if (!n) return 0; const g = H.__aldea.mundo().estado().npcs.filter((x) => x.destino?.lugar === 'club' && x.clave !== 'abuela');
+      const ps = g.map((x) => H.__aldea.mundo().personas.get(x.clave)?.npc).filter(Boolean); if (!ps.length) return 0;
+      const cx = ps.reduce((s, p) => s + p.pos.x, 0) / ps.length, cz = ps.reduce((s, p) => s + p.pos.z, 0) / ps.length;
+      let dx = n.pos.x - cx, dz = n.pos.z - cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+      const px = cx - dx * 1.6, pz = cz - dz * 1.6; H.jugador.ubicar(px, pz, Math.atan2(-(n.pos.x - px), -(n.pos.z - pz))); H.jugador.estado.pitch = -0.18; return 1 })()`);
+    await capturar('6-club-lectura');
     // (un sábado sin fiesta ni cumpleaños festejado, a las 21:30: el día 48 — (48-1) % 7 = 5, día 12 del año)
     await js(`(()=>{ ${P}.dia = 48; ${P}.horas = 21.5; return 1 })()`);
     await irLejos(); await aldea(2); await plaza(); await aldea(80);
     e = await estado();
     const cielo = e.npcs.filter((x) => x.destino?.lugar === 'estrellas').map((x) => x.clave);
     ok(cielo.includes('astronoma') && cielo.length >= 5, `a la plaza, a mirar las estrellas (${cielo.join(', ')})`);
-    h = await hablarCon(npc('astronoma'), 5, async (i) => { if (i === 1) await capturar('6-noche-estrellas'); });
+    h = await hablarCon(npc('astronoma'), 5, async (i) => { if (i === 1) await capturar('6-estrellas-charla'); });
     ok(h.textos.some((t) => /^¡Viniste! Bajé el telescopio a la plaza/.test(t)), `Valentina con el telescopio en la plaza (${(h.textos[0] || '').slice(0, 120)})`);
     await cerrarCharla();
+    // (la ronda vista de lejos, sin la charla)
+    await js(`(()=>{ const H = ${H}, n = ${npc('astronoma')}; if (!n) return 0; const g = H.__aldea.mundo().estado().npcs.filter((x) => x.destino?.lugar === 'estrellas' && x.clave !== 'astronoma');
+      const ps = g.map((x) => H.__aldea.mundo().personas.get(x.clave)?.npc).filter(Boolean); if (!ps.length) return 0;
+      const cx = ps.reduce((s, p) => s + p.pos.x, 0) / ps.length, cz = ps.reduce((s, p) => s + p.pos.z, 0) / ps.length;
+      let dx = n.pos.x - cx, dz = n.pos.z - cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+      const px = n.pos.x + dx * 3.5, pz = n.pos.z + dz * 3.5; H.jugador.ubicar(px, pz, Math.atan2(-(cx - px), -(cz - pz))); H.jugador.estado.pitch = 0.08; return 1 })()`);
+    await capturar('6-noche-estrellas');
     e = await js(`({ club: ${P}.noticias.club, estrellas: ${P}.noticias.estrellas })`);
     ok(e.club.includes(24) && e.estrellas.includes(48), `quedan anotados (${JSON.stringify(e)})`);
 

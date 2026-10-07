@@ -33,11 +33,11 @@ export const DIAS_TRUCHA = 2;
 export const JURADO = 3, GUSTO_JURADO = 12, VARIACION_VECINO = 18;
 // Las cintas. Los que no quedan entre los tres primeros se llevan la de mención.
 export const CINTAS = [
-  { puesto: 1, id: 'azul', nombre: 'cinta azul', texto: 'primer premio' },
-  { puesto: 2, id: 'roja', nombre: 'cinta roja', texto: 'segundo premio' },
-  { puesto: 3, id: 'blanca', nombre: 'cinta blanca', texto: 'tercer premio' },
+  { puesto: 1, id: 'azul', nombre: 'cinta azul', texto: 'primer premio', color: '#2f5fa8' },
+  { puesto: 2, id: 'roja', nombre: 'cinta roja', texto: 'segundo premio', color: '#b0322a' },
+  { puesto: 3, id: 'blanca', nombre: 'cinta blanca', texto: 'tercer premio', color: '#f2ede2' },
 ];
-export const MENCION = { puesto: 0, id: 'verde', nombre: 'cinta verde', texto: 'mención' };
+export const MENCION = { puesto: 0, id: 'verde', nombre: 'cinta verde', texto: 'mención', color: '#3f7a3a' };
 export const cintaDe = (puesto) => CINTAS.find((c) => c.puesto === puesto) || MENCION;
 // En qué fiesta va cada concurso: por el id de la fecha (`fechas`) o, si no, por la estación de la fiesta (los
 // de `TIPOS_CON_CONCURSO`). La foto va el día de la aldea.

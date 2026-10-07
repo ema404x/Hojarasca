@@ -201,7 +201,9 @@ export function crearNoticiasJuego(ctx) {
     return cache.mapa.get(k) || null;
   }
   function destinos() {
-    const m = new Map(), d = dia(), h = hora(), a = aldea();
+    // (el concurso de la fiesta, en la plaza: lo dice concursos-juego.js)
+    const m = new Map(ctx.concursos?.()?.destinos?.() || []), d = dia(), h = hora(), a = aldea();
+    if (m.size) return m;
     if (clubAhora(d, h, a, fechaDeFiesta)) {
       m.set(CLUB_LECTURA.quien, { lugar: 'club', edificio: 'biblioteca', punto: 'cuentos' });
       asistentes('club', d, a).forEach((k, i) => m.set(k, { lugar: 'club', edificio: 'biblioteca', punto: `lectura-${i + 1}` }));

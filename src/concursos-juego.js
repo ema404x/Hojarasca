@@ -101,6 +101,11 @@ export function crearConcursosJuego(ctx) {
     const id = deHoy();
     if (id && !yaFallo(id, dia())) ficha.appendChild(el('p', 'pista', e.inscripto?.dia === dia() ? `Hoy: ${minus(CONCURSOS[id].nombre)}. Estás anotado con ${e.inscripto.que}.` : `Hoy: ${minus(CONCURSOS[id].nombre)}. Traé ${CONCURSOS[id].trae} y hablale a Nélida.`));
     if (e.cintas.length) {
+      // las cintas, dibujadas: la escarapela con su color y las dos colas
+      const fila = el('div', 'cintas-ganadas');
+      fila.style.cssText = 'display:flex;flex-wrap:wrap;gap:18px;margin:10px 0 14px';
+      for (const c of [...e.cintas].reverse().slice(0, 8)) fila.appendChild(roseta(el, cintaDe(c.puesto), `${CONCURSOS[c.id].corto.replace(/^(el|la) /, '')}, día ${c.dia}`));
+      ficha.appendChild(fila);
       const ul = el('ul', 'lista');
       for (const c of [...e.cintas].reverse()) ul.appendChild(el('li', c.puesto ? 'tiene' : '', `Día ${c.dia}: ${cintaDe(c.puesto).nombre} (${cintaDe(c.puesto).texto}) en el ${minus(CONCURSOS[c.id].nombre)}, con ${c.que}`));
       ficha.appendChild(ul);
@@ -109,5 +114,36 @@ export function crearConcursosJuego(ctx) {
     for (const r of ult) { const t = noticiaDeResultado(r, nombre); if (t) ficha.appendChild(el('p', 'texto', `Día ${r.dia}: ${t}`)); }
   }
 
-  return { activo, hablar, actualizar, delPez, noticiaReciente, dibujarCuaderno, deHoy, estado: () => estado() };
+  // ---------------------------------------------------------------- dónde van (para aldea-gente.js, por noticias-juego.js)
+  // El día del concurso, Nélida atiende la mesa en la plaza mientras se anota; la última hora antes del fallo se suman el
+  // jurado y los que compiten.
+  function destinos() {
+    const m = new Map();
+    if (!activo() || !conoce()) return m;
+    const d = dia(), h = hora(), id = deHoy(d);
+    if (!id || yaFallo(id, d) || h < HORAS_CONCURSO.desde || h >= HORAS_CONCURSO.fallo) return m;
+    m.set(ORGANIZA, { lugar: 'concurso', edificio: 'plaza', punto: 'estar-1' });
+    if (h >= HORAS_CONCURSO.fallo - 1) {
+      const quienes = [...juradoDe(id, d, presentes), ...Object.keys(CONCURSOS[id].compiten).filter((k) => presentes(k))];
+      quienes.forEach((k, i) => { if (!m.has(k)) m.set(k, { lugar: 'concurso', edificio: 'plaza', punto: `estar-${i + 2}` }); });
+    }
+    return m;
+  }
+
+  return { activo, hablar, actualizar, delPez, noticiaReciente, dibujarCuaderno, deHoy, destinos, estado: () => estado() };
+}
+// La escarapela de una cinta, para el cuaderno (sin imágenes: un círculo con borde doble y dos colas)
+function roseta(el, cinta, pie) {
+  const caja = el('div', 'cinta');
+  caja.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:84px;text-align:center;font-size:0.8em';
+  const dibujo = el('div', '');
+  dibujo.style.cssText = 'position:relative;width:44px;height:62px';
+  const cola = (lado) => { const c = el('div', ''); c.style.cssText = `position:absolute;top:26px;${lado}:9px;width:11px;height:34px;background:${cinta.color};transform:rotate(${lado === 'left' ? 12 : -12}deg);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:0 1px 2px rgba(0,0,0,.25)`; return c; };
+  const disco = el('div', '');
+  disco.style.cssText = `position:absolute;top:0;left:2px;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle,${cinta.color} 0 34%,rgba(255,255,255,.55) 35% 40%,${cinta.color} 41%);border:2px dashed rgba(60,40,20,.45);box-shadow:0 2px 3px rgba(0,0,0,.3)`;
+  dibujo.appendChild(cola('left')); dibujo.appendChild(cola('right')); dibujo.appendChild(disco);
+  caja.appendChild(dibujo);
+  caja.appendChild(el('span', '', `${cinta.texto.charAt(0).toUpperCase()}${cinta.texto.slice(1)}`));
+  caja.appendChild(el('span', 'pista', pie));
+  return caja;
 }

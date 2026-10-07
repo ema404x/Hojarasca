@@ -106,6 +106,13 @@ prog.dia = 8; prog.horas = 12;
 ok(J.hablar({ claveAldea: 'nelida' }) === null, 'sin concurso, Nélida es Nélida');
 J.delPez({ id: 'marron', cm: 55 });
 ok(prog.concursos.truchas.length === 1, 'las truchas se anotan para el concurso');
+prog.dia = 19; prog.horas = 12;
+let dm = J.destinos();
+ok(dm.size === 1 && dm.get('nelida')?.edificio === 'plaza', 'el día del concurso, Nélida atiende la mesa en la plaza');
+prog.horas = 16.5; dm = J.destinos();
+ok(dm.size >= 6 && [...dm.keys()].includes('madre') && [...dm.values()].every((d) => d.lugar === 'concurso'), 'la hora antes del fallo, el jurado y los que compiten');
+prog.horas = 17.5; J.actualizar(1);
+ok(J.destinos().size === 0, 'después del fallo, cada uno a lo suyo');
 
 // ---------------------------------------------------------------- enganchado
 const main = leer('src/main.js');
