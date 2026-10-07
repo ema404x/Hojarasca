@@ -34,6 +34,8 @@ export function crearJugador(camara, T, col, opciones) {
   }
 
   document.addEventListener('mousemove', (e) => {
+    // 3.7.4: con la rueda de la charla abierta, el mouse bloqueado apunta en la rueda (main.js) y no gira la cámara
+    if (bloqueado && opciones.capturarMirada?.(e.movementX, e.movementY)) return;
     if (bloqueado) mirar(e.movementX, e.movementY);
     else if (modoArrastre && arrastrando) mirar(e.movementX, e.movementY);
   });
@@ -216,10 +218,12 @@ export function crearJugador(camara, T, col, opciones) {
     }
     let mx = 0, mz = 0;
     if (activo) {
-      if (teclas.has('KeyW') || teclas.has('ArrowUp')) mz += 1;
-      if (teclas.has('KeyS') || teclas.has('ArrowDown')) mz -= 1;
-      if (teclas.has('KeyA') || teclas.has('ArrowLeft')) mx -= 1;
-      if (teclas.has('KeyD') || teclas.has('ArrowRight')) mx += 1;
+      // 3.7.4: con la rueda de la charla abierta, las flechas eligen en la rueda (no caminan)
+      const flechas = !opciones.flechasOcupadas?.();
+      if (teclas.has('KeyW') || (flechas && teclas.has('ArrowUp'))) mz += 1;
+      if (teclas.has('KeyS') || (flechas && teclas.has('ArrowDown'))) mz -= 1;
+      if (teclas.has('KeyA') || (flechas && teclas.has('ArrowLeft'))) mx -= 1;
+      if (teclas.has('KeyD') || (flechas && teclas.has('ArrowRight'))) mx += 1;
     }
     if (estado.sentado && (mx || mz)) sentarse(false);
     estado.corriendo = teclas.has('ShiftLeft') || teclas.has('ShiftRight');

@@ -80,6 +80,15 @@ import { crearMecanicasAldea } from './aldea-mecanicas-mundo.js';
 import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 // 3.6 (vida): los vecinos con más vida (charla con temas, regalar, invitar, dar una mano, amistad, memoria)
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
+// 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
+import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos } from './vecindad-social.js';
+import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION } from './social-rueda.js';
+import { dibujarAtlas, posicionCss } from './social-iconos.js';
+import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
+import { crearSocialJuego } from './social-juego.js';
+import { vozDe, planBalbuceo } from './social-voz.js';
+import { empezarAnim, terminarAnim } from './social-anim.js';
 // 3.7.1: el amor en la aldea (las reglas en amor.js; en el juego, amor-juego.js)
 import { crearAmorJuego } from './amor-juego.js';
 // 3.7.1 (mundo): el amor en el mundo (la cita caminando, de la mano, el casamiento, el cuarto de los chicos, el anillo)
@@ -642,6 +651,8 @@ async function construir() {
     otono: () => U.uOtono.value,
     alSoltar: () => { if (modo === 'jugando') abrir('pausa'); },
     alBloquear: () => {},
+    capturarMirada: (dx, dy) => (!!charla.menu && !foto.activo ? apuntarRueda(dx, dy) : false),   // 3.7.4: la rueda
+    flechasOcupadas: () => !!charla.menu,   // 3.7.4
     alKayak: (dt, tecla) => kayak.actualizar(dt, tecla, jugador, U.uTiempo.value),
     // 2.9: arriba del velero se navega con él; colgado de la tirolesa, el cable lleva
     alVela: (dt, tecla) => vela?.actualizar(dt, tecla, jugador, U.uTiempo.value),
@@ -687,6 +698,9 @@ async function construir() {
   if (raizRefugio && refugioVivo.grupo) raizRefugio.attach(refugioVivo.grupo);
   prepararVisibilidad();
   enMano = crearEnMano(camara);
+  // 3.7.4: las burbujas, los íconos y las emociones de arriba de las cabezas (un solo dibujo) y tus manos en los gestos
+  socialMundo = crearSocialMundo({ escena, camara, atlas: atlasSocial(), capa: $('hud') });
+  manosSociales = crearManosSociales(camara, () => manoPropia?.grupo?.children?.[0] || null);
   obras = crearConstruccion(T, escena, col, veg, puertas);
   // 2.4.1: las obras de un plano que esta versión no conoce (una partida de la otra PC,
   // con una versión más nueva) no se arman, pero tampoco se pierden: vuelven al guardar.
@@ -786,9 +800,11 @@ async function construir() {
       const p = jugador.estado.pos;
       if (Math.hypot(p.x - aldeaMundo.centro.x, p.z - aldeaMundo.centro.z) < calidad.lejos + 220) { await aldeaMundo.listo(); aldeaMundo.montarCola(); }
     }
+    socialMundo?.paraCompilar();   // 3.7.4: el programa de las burbujas, con lo demás (nunca a mitad del juego)
     await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3: con el presupuesto fijo, todo y en paralelo; 2.7.4: antes renderer.compile(escena, camara); ver luces.js
     aldeaMundo?.trasCompilar();   // 3.6: las mallas que sólo estaban para compilar sus programas
     cocinaMundo?.trasCompilar();   // 3.7.2: lo mismo con el fuego, las brasas y el humo de la cocina
+    socialMundo?.listo();   // 3.7.4
     // 3.7.0: la sombra de la gente (piel por huesos) también se compila en la carga; el atlas de la
     // gente se pinta en la portada
     gente?.precalentar?.(camara, () => { renderer.shadowMap.needsUpdate = true; dibujar(null, 0); });
@@ -2645,6 +2661,7 @@ document.addEventListener('keydown', (e) => {
   if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del zaino con E'); return; }
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
+  if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
   switch (codigo) {
     case 'KeyE': {
       if (charla.npc) { seguirCharla(); break; }
@@ -2888,7 +2905,7 @@ document.addEventListener('keydown', (e) => {
       sonido.carrete();
       break;
     case 'KeyJ': abrir('cuaderno'); break;
-    case 'Enter': case 'NumpadEnter': if (listaHudAbierta()) elegirHud(); break;   // 3.6.2: la opción marcada
+    case 'Enter': case 'NumpadEnter': if (charla.npc) seguirCharla(); else if (listaHudAbierta()) elegirHud(); break;   // 3.6.2: la opción marcada (3.7.4: charlando, como E)
     // 2.9: en la cabina, Espacio (A en el mando) silba y C (B) abre el puesto de cargas del andén
     case 'Space': if (js.enTren && tren.conduciendo()) tren.silbar(); break;
     case 'KeyC':
@@ -3815,7 +3832,10 @@ function leerMando(dt) {
     if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
   }
   if (!m.conectado || modo !== 'jugando' || !jugador) return;
-  girarMirada(jugador.estado, m.mirada, dt);
+  // 3.7.4: con la rueda abierta, el palito derecho apunta (no mira) y A elige
+  const enRueda = !!charla.menu && !foto.activo;
+  if (enRueda) { if (Math.hypot(m.mirada.x, m.mirada.y) > 0.5) apuntarRueda(m.mirada.x, m.mirada.y, true); if (m.recien.saltar) { seguirCharla(); m.recien.saltar = false; } }
+  else girarMirada(jugador.estado, m.mirada, dt);
   sostenerTecla('KeyW', m.mov.z > 0.2); sostenerTecla('KeyS', m.mov.z < -0.2);
   sostenerTecla('KeyD', m.mov.x > 0.2); sostenerTecla('KeyA', m.mov.x < -0.2);
   sostenerTecla('ShiftLeft', !!m.activos.correr);
@@ -4284,6 +4304,7 @@ function actualizarVisitas(dt) {
 let oficios = null, aldeaGente = null;
 let vecindadJuego = null;   // 3.6 (vida): ver vecindad-juego.js
 let amorJuego = null;   // 3.7.1: ver amor-juego.js
+let socialJuego = null, socialMundo = null, manosSociales = null;   // 3.7.4: ver social-juego.js y social-mundo.js
 let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
@@ -4327,6 +4348,8 @@ function armarOficiosYAldea(esDesafio) {
       };
     },
     decir: (texto) => decirCharlaAldea(texto),
+    alDecir: (npc, texto, tema) => socialJuego?.decir(npc, texto, { tema }),   // 3.7.4: la burbuja con el ícono del tema y la voz
+    alEmpezarCharla: (npcs, tema) => socialJuego?.alEmpezarCharla(npcs, tema),   // 3.7.4: se abrazan, se ríen, discuten...
     alTerminarCharla: (c) => mecanicasAldea?.alTerminarCharla(c),   // 3.6 (mecánicas): los cuentos del domingo
     // 3.6 (vida): el tiempo libre según el clima, y lo que los vecinos recuerdan de vos
     climaVecindad, alAporteObra: (lote) => vecindadJuego?.hecho('aporte-obra', { lote }),
@@ -4443,6 +4466,16 @@ function armarOficiosYAldea(esDesafio) {
     // 3.6.1: el compadre que puede venir a tu mesa (no en el tren, ni de visita, ni charlando con vos)
     puedeVenir: (k) => { const n = gente?.gente?.find((g) => (g.claveAldea || g.clave) === k) || aldeaGente?.figura?.(k); return !!n && !n.enBase && !n.aBordo && !n.deVisita && charla.npc !== n; },
   });
+  // 3.7.4: la vida social: las reglas (vecindad-social.js) con lo que se ve y se oye (social-juego.js)
+  socialJuego = crearSocialJuego({
+    social: REGLAS_SOCIALES, progreso: () => progreso, dia: () => progreso.dia, hora: () => progreso.horas, clima: climaVecindad,
+    ritmo: () => ajustes.ritmoAldea || 'normal', desafio: () => !!desafio, jugador: () => jugador?.estado?.pos || null,
+    gente: () => gente?.gente || [], claveDe: (npc) => claveVecindad(npc), hablandoCon: () => charla.npc,
+    mundo: { burbuja: (n, i, o) => socialMundo?.burbuja(n, i, o), emocion: (n, i, o) => socialMundo?.emocion(n, i, o), quitar: (n, q) => socialMundo?.quitar(n, q) },
+    anim: { empezar: (g, id, o) => empezarAnim(g, id, o), terminar: (g) => terminarAnim(g) },
+    manos: { empezar: (id) => manosSociales?.empezar(id), cachetada: () => cachetadaSocial() },
+    voz: (npc, texto, o) => vozSocial(npc, texto, o), nota: (t, sub) => nota(t, sub),
+  });
   // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea (ver aldea-mecanicas-mundo.js)
   if (aldeaMundo) mecanicasAldea = crearMecanicasAldea({
     mundo: aldeaMundo, gente: () => aldeaGente, escena, sonido, col, progreso: () => progreso, jugador: () => jugador, tren: () => tren,
@@ -4517,6 +4550,7 @@ function actualizarAldea(dt) {
   if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1) * (amorJuego?.bonos().remo || 1);   // (3.7.1: y la remada de Martina)
   if (!desafio) aldeaGente?.actualizar(dt);
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
+  if (!desafio) socialJuego?.actualizar(dt);   // 3.7.4: entre ellos, por su cuenta, y el que te quiere decir algo
   if (!desafio) amorJuego?.actualizar(dt);   // 3.7.1: el día del amor, las citas y el casamiento
   if (!desafio) amorMundo?.actualizar(dt);   // 3.7.1 (mundo): lo que se ve del amor
   if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
@@ -6473,6 +6507,7 @@ function hablar(npc) {
     if (deLaAldea.tipo !== 'llegada' && vecindadJuego) {
       charla.vec = vecindadJuego.abrir(npc, { servicio: deLaAldea.tipo === 'servicio' ? deLaAldea : null, linea: deLaAldea.tipo === 'vecino' ? deLaAldea.partes[0] : null });
       if (charla.vec) charla.historia = null;
+      if (charla.vec) loQueTeQueriaDecir(npc);   // 3.7.4
     }
     $('charla').classList.remove('oculto');
     mostrarCharla();
@@ -6520,6 +6555,7 @@ function hablar(npc) {
     const nueva = !charla.encargo && charla.historia && nuevas.includes(charla.historia) ? charla.historia : null;
     charla.vec = vecindadJuego.abrir(npc, { historia: nueva });
     if (charla.vec && nueva) charla.historia = null;
+    if (charla.vec && !charla.encargo && !deVisita) loQueTeQueriaDecir(npc);   // 3.7.4
   }
   $('charla').classList.remove('oculto');
   mostrarCharla();
@@ -6533,6 +6569,7 @@ function mostrarCharla() {
   // 3.6 (vida): el menú de temas
   if (charla.menu) { dibujarMenuCharla(); return; }
   $('charla-opciones')?.classList.add('oculto');
+  $('rueda')?.classList.add('oculto');   // 3.7.4
   let texto;
   if (charla.enojado) {
     texto = SALUDO_ENOJADO[npc.clave] || 'Hoy no tengo ganas de hablar.';
@@ -6555,6 +6592,7 @@ function mostrarCharla() {
   else if (charla.vec && !charla.vec.chau) { abrirMenuCharla(!!(charla.historia || charla.encargo)); return; }
   else { texto = npc.despedida; charla.fin = true; }
   $('charla-texto').textContent = texto;
+  if (!charla.historia?.social) hablaConVoz(npc, texto);   // 3.7.4: el balbuceo con su voz y la burbuja con el ícono del tema
   $('charla-seguir').textContent = charla.fin ? 'E o Escape para despedirte' : 'E para seguir escuchando';
   // 3.1: el trato con un poblador se acepta con E en el último renglón
   if (!charla.fin && charla.historia?.seguir && charla.parte === charla.historia.partes.length - 1) $('charla-seguir').textContent = charla.historia.seguir;
@@ -6629,7 +6667,10 @@ function cobrarPremio(e) {
 function cerrarCharla() {
   if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
   amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
+  socialJuego?.alCerrarCharla(charla.npc);   // 3.7.4: el que vino a hablarte vuelve a lo suyo
   charla.npc = null;
+  charla.volverA = null; ultimoDicho = '';   // 3.7.4
+  $('rueda')?.classList.add('oculto');
   charla.menu = null; charla.vec = null;   // 3.6 (vida)
   $('charla').classList.add('oculto');
   $('charla-opciones')?.classList.add('oculto');
@@ -6660,6 +6701,7 @@ function armarMenuCharla(alFinal = false) {
     charla.menu.opciones.splice(k, 0, { id: '__lugar', titulo: lugar.texto, hacer: lugar.hacer });
     if (charla.menu.i >= k) charla.menu.i++;
   }
+  prepararRueda(alFinal);   // 3.7.4: las categorías (o, en un submenú, las opciones) en ronda
 }
 function abrirMenuCharla(alFinal = false) {
   if (!vecindadJuego || !charla.vec) return;
@@ -6668,35 +6710,65 @@ function abrirMenuCharla(alFinal = false) {
   charla.historia = null; charla.encargo = null; charla.parte = 0;
   dibujarMenuCharla();
 }
+// 3.7.4: la rueda. Los li de #charla-opciones son los sectores del aro (las categorías, o las opciones de una), alrededor
+// de la cabeza del vecino; arriba, cómo se llevan, su emoción y su deseo; en el centro, lo marcado (y su motivo, si no se
+// puede). Se elige con los números (el del sector), las flechas, la ruedita, el mouse (con el mouse bloqueado, moverlo
+// apunta y el clic elige; suelto, el clic en el sector) o el palito del mando, y E, Enter o A.
 function dibujarMenuCharla() {
   const m = charla.menu;
+  if (!m.anillo) prepararRueda();
   $('charla-texto').textContent = m.texto;
   const ul = $('charla-opciones');
   ul.innerHTML = '';
-  m.opciones.forEach((o, i) => {
+  const n = m.anillo.length;
+  m.radio = Math.max(122, Math.round((n * 118) / (2 * Math.PI)));
+  const pos = posicionesRueda(n, m.radio);
+  m.anillo.forEach((o, i) => {
     const li = document.createElement('li');
-    li.textContent = `${i + 1}. ${o.titulo}`;
-    if (i === m.i) li.className = 'elegida';
+    armarSectorRueda(li, o, i, pos[i]);
+    if (i === m.i) li.classList.add('elegida');
     // 3.6.1: con el mouse suelto, clic en la opción (mousedown, como la barra: que no tire la línea)
     li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegirEnMenuCharla(i); });
+    li.addEventListener('mouseenter', () => { if (!document.pointerLockElement && charla.menu === m && m.i !== i) { m.i = i; marcarRueda(); } });
     ul.appendChild(li);
   });
   ul.classList.remove('oculto');
+  dibujarInfoRueda();
+  marcarRueda();
+  $('rueda').classList.remove('oculto');
+  ubicarRueda();
   // 3.6.1: con el mando, el pie dice los botones (antes decía la ruedita y E)
-  const pie = habiaMando ? (m.tipo === 'charla' ? PIE_MENU_MANDO : PIE_SUBMENU_MANDO) : (m.tipo === 'charla' ? PIE_MENU : PIE_SUBMENU);
-  $('charla-seguir').textContent = pie.replace('{n}', m.opciones.length);
+  const enCategorias = m.rueda?.tipo === 'categorias';
+  const pie = enCategorias ? (habiaMando ? (m.nivel === 2 ? PIE_RUEDA2_MANDO : PIE_RUEDA_MANDO) : (m.nivel === 2 ? PIE_RUEDA2 : PIE_RUEDA))
+    : habiaMando ? (m.tipo === 'charla' ? PIE_MENU_MANDO : PIE_SUBMENU_MANDO) : (m.tipo === 'charla' ? PIE_MENU : PIE_SUBMENU);
+  $('charla-seguir').textContent = pie.replace('{n}', Math.min(9, n));
 }
+const PIE_RUEDA = '1 a {n}, las flechas, el mouse o la ruedita, y E, para elegir · Escape para despedirte';
+const PIE_RUEDA2 = '1 a {n}, las flechas, el mouse o la ruedita, y E, para elegir · Escape para volver';
+const PIE_RUEDA_MANDO = 'El palito derecho (o LB y RB) apunta y A elige · B para despedirte';
+const PIE_RUEDA2_MANDO = 'El palito derecho (o LB y RB) apunta y A elige · B para volver';
 const PIE_MENU_MANDO = 'LB y RB, o la cruceta, y X para elegir · B para despedirte';
 const PIE_SUBMENU_MANDO = 'LB y RB, o la cruceta, y X para elegir · B para volver';
 function moverMenuCharla(paso) {
   const m = charla.menu;
   if (!m || foto.activo) return;   // 3.6.1: en el modo foto el menú no se ve (LB y RB lo movían a ciegas)
-  m.i = (m.i + paso + m.opciones.length) % m.opciones.length;
-  dibujarMenuCharla();
+  const n = m.anillo?.length || m.opciones.length;   // 3.7.4: en el aro
+  m.i = (m.i + paso + n) % n;
+  marcarRueda();
 }
 function elegirEnMenuCharla(i) {
   const m = charla.menu;
-  if (!m || !vecindadJuego || !charla.vec || i < 0 || i >= m.opciones.length) return;
+  if (!m || !vecindadJuego || !charla.vec || i < 0 || i >= (m.anillo?.length ?? m.opciones.length)) return;
+  // 3.7.4: en la rueda, una categoría abre la segunda rueda; una que no se puede tiembla y dice por qué; lo nuevo va a
+  // la vida social; lo de siempre sigue por su lugar en la lista (`plano`), como antes
+  if (m.anillo) {
+    const s = m.anillo[i];
+    if (s.categoria) { abrirCategoriaRueda(s.categoria); return; }
+    if (!s.disponible) { m.i = i; marcarRueda(); temblarRueda(); return; }
+    if (s.opcion?.social) { interactuarSocial(s.opcion.social, m.cat); return; }
+    i = s.opcion?.plano ?? -1;
+    if (i < 0 || i >= m.opciones.length) return;
+  }
   if (m.opciones[i].id === '__lugar') { const hacer = m.opciones[i].hacer; cerrarCharla(); hacer(); return; }   // 3.6
   const r = vecindadJuego.elegir(charla.vec, m.opciones[i].id, charla.npc);
   charla.menu = null;
@@ -6712,6 +6784,7 @@ function elegirEnMenuCharla(i) {
 }
 // Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
 function atrasCharla() {
+  if (charla.menu?.nivel === 2) { volverRueda(); return; }   // 3.7.4: de la segunda rueda, a las categorías
   if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }   // 3.6.1: con lo del lugar
   if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
   cerrarCharla();
@@ -6728,6 +6801,188 @@ function sentarseALaCita() {
   $('charla').classList.remove('oculto');
   mostrarCharla();
   return true;
+}
+
+// ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
+// Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
+// ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos };
+// el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
+let lienzoSocial = null;
+function atlasSocial() {
+  if (lienzoSocial) return lienzoSocial;
+  lienzoSocial = dibujarAtlas(document.createElement('canvas'));
+  try { document.documentElement.style.setProperty('--atlas-social', `url(${lienzoSocial.toDataURL('image/png')})`); } catch {}
+  return lienzoSocial;
+}
+const ruedaPuntero = { x: 0, y: 0 };
+function prepararRueda(alFinal = false) {
+  const m = charla.menu;
+  if (!m) return;
+  const social = m.tipo === 'charla' && !desafio ? socialJuego?.opciones(charla.npc) || [] : [];
+  m.rueda = armarRueda(m, social, CATEGORIAS_RUEDA);
+  m.nivel = 1; m.cat = null;
+  m.i = marcaInicial(m.rueda, { alFinal, volverA: charla.volverA || null, primera: m.i || 0 });
+  charla.volverA = null;
+  m.anillo = anilloRueda(m.rueda, 1);
+  m.info = socialJuego?.info(charla.npc) || null;
+  ruedaPuntero.x = 0; ruedaPuntero.y = 0;
+}
+// un sector: el número (con el punto escondido: el texto queda «1. Charlar», como la lista de antes), el ícono y el nombre
+function armarSectorRueda(li, o, i, p) {
+  const n = document.createElement('span'); n.className = 'n';
+  n.textContent = i < 9 ? String(i + 1) : '';
+  if (i < 9) { const e = document.createElement('em'); e.textContent = '. '; n.appendChild(e); }
+  const ic = document.createElement('i'); ic.className = 'icono-social'; ic.style.backgroundPosition = posicionCss(o.icono);
+  const b = document.createElement('b'); b.textContent = T_(o.titulo);
+  li.append(n, ic, b);
+  if (o.categoria) li.classList.add('categoria');
+  if (!o.disponible) { li.classList.add('gris'); if (o.motivo) li.dataset.motivo = T_(o.motivo); }
+  li.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -50%)`;
+  li.dataset.x = Math.round(p.x); li.dataset.y = Math.round(p.y);
+}
+// la marca (sin rearmar el aro) y el centro: lo marcado y, si no se puede, por qué
+function marcarRueda() {
+  const m = charla.menu;
+  if (!m?.anillo) return;
+  const lis = $('charla-opciones').children;
+  for (let k = 0; k < lis.length; k++) {
+    const si = k === m.i;
+    if (lis[k].classList.contains('elegida') !== si) lis[k].classList.toggle('elegida', si);
+    const x = lis[k].dataset.x, y = lis[k].dataset.y;
+    lis[k].style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)${si ? ' scale(1.12)' : ''}`;
+  }
+  const s = m.anillo[m.i];
+  const c = $('rueda-centro');
+  c.querySelector('b').textContent = s ? T_(s.titulo) : '';
+  c.querySelector('small').textContent = s && !s.disponible ? T_(s.motivo || 'Ahora no') : m.nivel === 2 ? T_('Escape para volver') : s?.categoria ? '' : '';
+}
+// arriba: el nombre, la emoción, la amistad (y el romance, si hay), el deseo
+function dibujarInfoRueda() {
+  const m = charla.menu, info = m?.info;
+  const caja = $('rueda-info');
+  caja.classList.toggle('oculto', !info);
+  if (!info) return;
+  caja.style.top = `${-(m.radio || 122) - 62}px`;
+  $('rueda-nombre').textContent = charla.npc?.nombre || '';
+  const emo = $('rueda-emocion');
+  emo.classList.toggle('oculto', !info.emocion);
+  if (info.emocion) {
+    emo.querySelector('i').style.backgroundPosition = posicionCss(info.emocion);
+    emo.querySelector('span').textContent = T_(PALABRA_EMOCION[info.emocion] || info.emocion);
+    emo.title = info.motivo || '';
+  }
+  $('rueda-amistad').style.width = `${info.relacion.amistad}%`;
+  $('rueda-romance-fila').classList.toggle('oculto', !info.relacion.romanceVisible);
+  $('rueda-romance').style.width = `${info.relacion.romance}%`;
+  $('rueda-deseo').textContent = info.deseo ? T_(info.deseo) : '';
+}
+// alrededor de la cabeza del vecino, sin salirse de la pantalla ni pisar el cuadro de la charla (cada cuadro)
+const _vRueda = new THREE.Vector3();
+function ubicarRueda() {
+  const m = charla.menu, npc = charla.npc, el = $('rueda');
+  if (!m || !npc || !el || el.classList.contains('oculto')) return;
+  const W = window.innerWidth, H = window.innerHeight, esc = Math.max(0.7, Math.min(1, H / 820));
+  const R = (m.radio || 122) * esc, arriba = (m.info ? 132 : 20) * esc;
+  let x = W / 2, y = H * 0.4;
+  if (npc.pos && npc.g) {
+    _vRueda.set(npc.pos.x, npc.pos.y + 1.5 * (npc.g.scale?.y || 1), npc.pos.z).project(camara);
+    if (_vRueda.z < 1) { x = (_vRueda.x * 0.5 + 0.5) * W; y = (-_vRueda.y * 0.5 + 0.5) * H; }
+  }
+  const tope = $('charla').getBoundingClientRect?.().top || H * 0.7;
+  x = Math.max(R + 70 * esc, Math.min(W - R - 70 * esc, x));
+  y = Math.min(tope - R - 44 * esc, Math.max(R + arriba + 12, y));
+  el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) scale(${esc.toFixed(3)})`;
+}
+function abrirCategoriaRueda(cat) {
+  const m = charla.menu;
+  if (!m?.rueda) return;
+  m.nivel = 2; m.cat = cat;
+  m.anillo = anilloRueda(m.rueda, 2, cat);
+  m.i = Math.max(0, m.anillo.findIndex((o) => o.disponible));
+  ruedaPuntero.x = 0; ruedaPuntero.y = 0;
+  sonido.juntar?.();
+  dibujarMenuCharla();
+}
+function volverRueda() {
+  const m = charla.menu;
+  if (!m?.rueda || m.nivel !== 2) return;
+  const cat = m.cat;
+  m.nivel = 1; m.cat = null;
+  m.anillo = anilloRueda(m.rueda, 1);
+  m.i = Math.max(0, m.anillo.findIndex((o) => o.categoria === cat));
+  ruedaPuntero.x = 0; ruedaPuntero.y = 0;
+  dibujarMenuCharla();
+}
+function temblarRueda() {
+  const el = $('rueda');
+  el.classList.remove('tiembla'); void el.offsetWidth; el.classList.add('tiembla');
+}
+// las flechas: al sector de ese lado; el mouse bloqueado y el palito: apuntan desde el centro
+function flechaRueda(codigo) {
+  const m = charla.menu;
+  if (!m?.anillo?.length) return;
+  const dir = { ArrowUp: 'arriba', ArrowDown: 'abajo', ArrowLeft: 'izquierda', ArrowRight: 'derecha' }[codigo];
+  m.i = sectorConFlecha(m.i, m.anillo.length, dir);
+  marcarRueda();
+}
+function apuntarRueda(dx, dy, absoluto = false) {
+  const m = charla.menu;
+  if (!m?.anillo?.length || $('rueda').classList.contains('oculto')) return false;
+  const p = absoluto ? { x: dx * 100, y: dy * 100 } : moverPuntero(ruedaPuntero, dx, dy, 110);
+  ruedaPuntero.x = p.x; ruedaPuntero.y = p.y;
+  const k = sectorDeDireccion(p.x, p.y, m.anillo.length, absoluto ? 50 : 36);
+  if (k >= 0 && k !== m.i) { m.i = k; marcarRueda(); }
+  return true;
+}
+// una interacción nueva elegida en la rueda: la prueba, las animaciones, la burbuja, la emoción y la voz (social-juego.js);
+// lo que contesta, en el cuadro de la charla; después, la rueda otra vez, en la misma categoría
+function interactuarSocial(id, cat) {
+  const r = socialJuego?.interactuar(charla.npc, id);
+  if (!r) { temblarRueda(); return; }
+  if (r.efectos?.some((f) => f?.tipo === 'material' || f?.tipo === 'cosa' || f?.tipo === 'entrada')) { aplicarEfectos(progreso, r.efectos, { sumarMaterial, sumarEntrada }); refrescarBarra(true); }
+  charla.menu = null; charla.parte = 0; charla.volverA = cat;
+  charla.historia = { id: 'social', partes: r.renglones, volver: true, social: true };
+  // (se enojó y se va: al terminar lo que dice, la charla se termina)
+  if (r.cierra) charla.historia.alTerminar = () => { if (charla.vec) charla.vec.chau = true; };
+  guardar();
+  mostrarCharla();
+}
+// el que te vino a buscar: lo que te quería decir, primero (después, la rueda)
+function loQueTeQueriaDecir(npc) {
+  const ini = !desafio ? socialJuego?.tomarIniciativa(npc) : null;
+  if (!ini) return;
+  charla.historia = { id: 'social-iniciativa', partes: ini.renglones, alTerminar: () => { charla.historia = null; } };
+  charla.parte = 0;
+}
+// lo que dice el vecino en el cuadro de la charla: su voz y la burbuja con el ícono del tema (una vez por renglón)
+let ultimoDicho = '';
+function hablaConVoz(npc, texto) {
+  if (!npc?.g || !texto || texto === ultimoDicho) return;
+  ultimoDicho = texto;
+  socialJuego?.decir(npc, texto, { renglon: false, cerca: true });
+}
+// las voces: cada uno la suya (social-voz.js), en el bus de los efectos; a lo sumo dos a la vez y sin pisarse
+const vocesSociales = new Map();
+let vocesSonando = [];
+function vozSocial(npc, texto, { cerca = false } = {}) {
+  if (!sonido?.ctx || !npc || !texto || modo !== 'jugando') return;
+  const ahora = performance.now();
+  vocesSonando = vocesSonando.filter((v) => v.hasta > ahora);
+  if (vocesSonando.length >= 2 || vocesSonando.some((v) => v.npc === npc)) return;
+  let voz = vocesSociales.get(npc.clave);
+  if (!voz) { voz = vozDe(npc.clave, { edad: Number.isFinite(npc.edad) ? npc.edad : undefined, talla: npc.g?.scale?.y }); vocesSociales.set(npc.clave, voz); }
+  const plan = planBalbuceo(texto, voz, Math.floor(ahora));
+  const pos = cerca ? null : { x: npc.pos.x, y: npc.pos.y + 1.5, z: npc.pos.z };
+  const dur = sonido.balbuceo?.(plan, { pos, vol: cerca ? 0.05 : 0.09 }) || 0;
+  if (dur > 0) { vocesSonando.push({ npc, hasta: ahora + dur * 1000 }); ultimaVoz = { clave: npc.clave, silabas: plan.silabas.length, dur, f0: voz.f0 }; }
+}
+let ultimaVoz = null;
+// la cachetada (suave): un sacudón chico de la cabeza
+function cachetadaSocial() {
+  const js = jugador?.estado;
+  if (!js) return;
+  setTimeout(() => { js.yaw += 0.09; sonido.chasquido?.({ x: js.pos.x, y: js.pos.y + 1.6, z: js.pos.z }); }, 420);
 }
 
 // ---------------------------------------------------------------- el almacén
@@ -7944,6 +8199,7 @@ function cuadroDelJuego(tRaf, manual) {
   const tNPC = perfilador.iniciar(medirRendimiento);
   if (modo === 'jugando' || modo === 'inicio') {
     try { gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel); } catch (e) { fallaSistema('gente', e); }
+    try { socialMundo?.actualizar(dt, js.pos); manosSociales?.actualizar(dt); if (charla.menu) ubicarRueda(); } catch (e) { fallaSistema('social', e); }   // 3.7.4
     mundoPerro.noche = noche;
     mundoPerro.ataque = desafio && modo === 'jugando' ? desafio.objetivoPerro(js, perro.est.pos) : null;
     // 2.0: en el Desafío se queda duro mirando hacia lo que vos no ves
@@ -8111,7 +8367,7 @@ function cuadroDelJuego(tRaf, manual) {
     let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
     if (charla.npc) aviso = null;
     else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
-    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
+    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && socialJuego?.quiereDecir(vecino) ? `${vecino.nombre} te quiere decir algo` : null) || (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
     // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
@@ -8634,7 +8890,14 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
     // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)
     __visibilidad: () => { actualizarVisibilidad(camara.position, 1); return true; },
-    __vecindad: () => vecindadJuego, __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
+    __vecindad: () => vecindadJuego,
+    // 3.7.4: la rueda, la vida social, las burbujas, tus manos y la última voz
+    __rueda: () => { const m = charla.menu; return { abierta: !!m && !$('rueda').classList.contains('oculto'), nivel: m?.nivel || 0, cat: m?.cat || null, i: m?.i ?? -1, tipo: m?.rueda?.tipo || null,
+      sectores: (m?.anillo || []).map((s) => ({ titulo: s.titulo, icono: s.icono, categoria: s.categoria || null, disponible: s.disponible, motivo: s.motivo || null, social: s.opcion?.social || null, plano: s.opcion?.plano ?? null })),
+      categorias: m?.rueda?.tipo === 'categorias' ? m.rueda.categorias.map((c) => ({ id: c.id, nombre: c.nombre, opciones: c.directa ? [c.directa.titulo] : c.opciones.map((o) => o.titulo) })) : null,
+      info: m?.info || null, transform: $('rueda').style.transform }; },
+    __social: () => socialJuego, __socialMundo: () => socialMundo, __manosSociales: () => manosSociales, __ultimaVoz: () => ultimaVoz,
+    __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
     __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },
