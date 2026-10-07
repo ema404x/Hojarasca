@@ -1041,7 +1041,19 @@ export function sumarAmistadDe(estado, persona, n, dia) {
   const { v } = partes(estado, true);
   return sumarAmistad(v, persona, acotar(entero(n), 0, AMISTAD.encanta), diaValido(dia, 1));
 }
-// Lo que Pocha sabe de un vecino y vos todavía no: { persona, quien, k, cosa, gusto } (o null). De los que
+// 3.7.4: lo que suma o resta la rueda de la vida social (vecindad-social.js): un chiste que salió bien, una
+// discusión. A diferencia de `sumarAmistadDe`, también resta, pero el que llegó a amigo no vuelve a conocido.
+export function cambiarAmistad(estado, persona, n, dia) {
+  if (!esPersonaVecindad(persona)) return null;
+  const { v } = partes(estado, true);
+  return sumarAmistad(v, persona, acotar(entero(n), -2 * AMISTAD.encanta, 2 * AMISTAD.encanta), diaValido(dia, 1));   // (como mucho 20 de una vez)
+}
+// 3.7.4: los puntos de amistad (0 a AMISTAD.tope), para la barra de relación que ahora sí se ve.
+export function puntosAmistad(persona, estado) {
+  const f = fichaSi(partes(estado).v, persona);
+  return f ? acotar(Number.isFinite(num(f.p)) ? num(f.p) : 0, 0, AMISTAD.tope) : 0;
+}
+// Lo que Pocha sabe de un vecino y vos todavía no:{ persona, quien, k, cosa, gusto } (o null). De los que
 // viven en la aldea (y los del valle), lo primero que le encanta, le gusta o no le gusta y que no conocés.
 export function proximoChisme(estado, dia = 1) {
   const { v, aldea } = partes(estado);
