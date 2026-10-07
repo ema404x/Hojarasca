@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.7.4
+# RELEASE STATUS — 3.7.5
 
-- Versión: `3.7.4`
+- Versión: `3.7.5`
+- 3.7.5: Tradiciones — fiestas por estación en el predio (mesa larga, jineteada, baile con música), Día de la Aldea, fechas patrias, minga, leyenda, nevada solidaria, cumpleaños sorpresa; truco, chinchón, damas y taba; radio por horarios, diario, cartas, calendario, concursos con cinta, club de lectura y estrellas; 12 duendes y tu talla, taller, potrero, huertas, títeres, fuerte, campamento, casa en la Loma, camino con faroles y sulky. Gate 165/165; partidas reales 62/68 (6 sin repetir: ver CAMBIOS_3_7_5.md)
 - 3.7.4: Vida social tipo Sims — rueda de interacciones, 30 interacciones, barra de relación visible, humor y deseos, vecinos con iniciativa, burbujas, emociones, voces y animaciones. Gate 159/159
 - 3.7.3: La trochita — la Baldwin «La Hojarasca» con mejoras (caldera, freno, farol, quitanieves, arenero, silbatos, pintura y nombre) y 6 vagones que se usan, taller ferroviario en la aldea con Martín. Gate 157/157
 - 3.7.2: La cocina — parrilla con cruz (con techito), horno de barro y cocina a leña con recetas en pasos (asado, cordero, pan, empanadas, mermeladas, dulce de leche, locro, chocolate, curanto), alacena y recetario; el humo trae vecinos y el perro roba un chorizo; la granja: vaca lechera, corderos, chanchos y frutales. Gate 154/154, 62 partidas reales

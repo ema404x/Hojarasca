@@ -1,6 +1,6 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 07-10-2026, 3.7.0 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 07-10-2026, 3.7.5 cerrada)
 
-> **ATENCIÓN:** la 3.7.3 La trochita se hizo y cerró en la PC de escritorio (etiqueta v3.7.3). En la notebook: descartar lo que haya de la 3.7.3 (v373-loco, v373-vagones; si se quiere guardar, subir esas ramas sin unir) y hacer `git pull`. Sigue: 3.7.5 Tradiciones (PLAN_3_7.md); después 3.8.0 (PLAN_3_8.md).
+> **ATENCIÓN (07-10, notebook):** la 3.7.5 Tradiciones quedó cerrada en la notebook (etiqueta v3.7.5). **Lo primero:** repetir solas las 6 partidas reales que fallaron en la tanda de a 4 y no se repitieron (humo-2-8-compas, humo-3-0-asedio, humo-3-5-4-caos, humo-3-7-2-granja, humo-3-7-4-rueda, humo-relax-2) con `node herramientas/suite-paralela.cjs <salida> 1 <lista,separada,por,comas>` (con el monitor externo apagado, poner antes la variable HOJ_PANTALLA=no). granja y caos pueden ser fallas reales de la integración. Después: 3.8.0 (PLAN_3_8.md).
 
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
@@ -49,6 +49,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.7.5 (etiqueta v3.7.5): Tradiciones**, cerrada en la notebook el 07-10 (3 equipos + integración). `CAMBIOS_3_7_5.md`. El usuario aprobó todas las decisiones de detalle como las recomendaron los equipos. Gate 165/165; partidas reales 62/68 (6 sin repetir). Sigue: 3.8.0 (PLAN_3_8.md).
 - **3.7.4 (etiqueta v3.7.4): Vida social tipo Sims**, cerrada en la PC de escritorio. `CAMBIOS_3_7_4.md`. Sigue: 3.7.5 Tradiciones; después 3.8.0 (PLAN_3_8.md).
 - **3.7.3 (etiqueta v3.7.3): La trochita**, cerrada en la PC de escritorio. `CAMBIOS_3_7_3.md`.
 - **3.7.2 (etiqueta v3.7.2): La cocina** (cerrada el 06-10 en la notebook). Cocina + granja, `CAMBIOS_3_7_2.md` (tiene preguntas para el usuario). Gate 154/154, 62 partidas reales. En curso: 3.7.3 La trochita (ramas v373-loco y v373-vagones) y un bug de cabezas/cuellos de la gente (rama v372-cabezas).
