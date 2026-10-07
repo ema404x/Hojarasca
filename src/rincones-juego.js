@@ -322,7 +322,7 @@ export function crearRinconesJuego(ctx) {
   }
 
   // ================================================================ E y el aviso
-  const radio = { duende: RINCONES.radioDuende, cantero: 1.7, retablo: 2.6, atril: 1.4, fuerte: 3.2, campamento: 2.6, casa: 5.8, taller: 1.6, sulky: SULKY.radioSubir };
+  const radio = { duende: RINCONES.radioDuende, cantero: 1.7, retablo: 1.9, atril: 1.4, fuerte: 3.2, campamento: 2.6, casa: 5.8, taller: 1.6, sulky: SULKY.radioSubir };   // (3.7.5 (rincones): el retablo, 1,9 m: los bancos de la plaza quedan afuera)
   // Lo urgente (antes que hablar con alguien): bajar del sulky, patear en el partido
   function urgente(js) {
     if (!activo() || !js) return null;
@@ -361,18 +361,15 @@ export function crearRinconesJuego(ctx) {
     const H = M.huertas();
     for (const [tipo, lista] of [['huerta', H.comunitaria], ['chicos', H.chicos]]) for (const k of lista) {
       if (dist(k, pos) > radio.cantero) continue;
-      if (!horaDeHuerta(tipo === 'chicos' ? 'chicos' : 'huerta', h)) return { tipo: 'cantero', texto: tipo === 'chicos' ? 'La huerta de los chicos (la trabajan a la tarde, después de la escuela)' : 'La huerta de todos (se trabaja de día)', hacer: () => {} };
+      // (3.7.5 (rincones): el aviso dice sólo lo que E hace: fuera de hora o ya trabajado hoy, nada; le gana lo de al lado)
+      if (!horaDeHuerta(tipo === 'chicos' ? 'chicos' : 'huerta', h)) continue;
       const e = estadoCantero(R, tipo, k.i, d);
-      return { tipo: 'cantero', texto: textoCanteroRincon(R, tipo, k.i, d), hacer: () => (e.estado !== 'vacio' && e.estado !== 'listo' && e.trabajadoHoy ? null : trabajarHuerta(tipo, k.i)) };
+      if (e.estado === 'creciendo' && e.trabajadoHoy) continue;
+      return { tipo: 'cantero', texto: textoCanteroRincon(R, tipo, k.i, d), hacer: () => trabajarHuerta(tipo, k.i) };
     }
     // el retablo
     const ret = M.lugar('retablo');
-    if (ret && dist(ret, pos) < radio.retablo) {
-      if (funcion) return { tipo: 'titeres', texto: 'La función está en curso', hacer: () => {} };
-      if (funcionHoy(R, d)) return { tipo: 'titeres', texto: 'El retablo (hoy ya diste la función)', hacer: () => {} };
-      if (horaDeTiteres(h)) return { tipo: 'titeres', texto: 'Dar una función de títeres', hacer: () => empezarFuncion() };
-      return { tipo: 'titeres', texto: 'El retablo de títeres (las funciones, a la tardecita)', hacer: () => {} };
-    }
+    if (ret && dist(ret, pos) < radio.retablo && !funcion && !funcionHoy(R, d) && horaDeTiteres(h)) return { tipo: 'titeres', texto: 'Dar una función de títeres', hacer: () => empezarFuncion() };
     // el atril de la biblioteca
     const atril = M.lugar('atril');
     if (atril && dist(atril, pos) < radio.atril && Math.abs(atril.y - pos.y) < 1.5) {
@@ -382,7 +379,7 @@ export function crearRinconesJuego(ctx) {
     // el fuerte y el campamento
     const fu = M.lugar('fuerte');
     if (fu && dist(fu, pos) < radio.fuerte) {
-      const t = textoFuerte(R, d, h, tengo);
+      const t = R.fuerte?.dia === d ? null : textoFuerte(R, d, h, tengo);   // (hoy ya: nada)
       if (t) return { tipo: 'fuerte', texto: t, hacer: () => trabajarElFuerte() };
     }
     const ca = M.lugar('campamento');
@@ -395,7 +392,7 @@ export function crearRinconesJuego(ctx) {
       const c = R.casa;
       if (casaTerminada(c, d, h)) {
         if (adentroDeCasa(pos.x, pos.z) && (h >= 20 || h < 6)) return { tipo: 'casa', texto: 'Dormir en tu casa', hacer: () => ctx.dormir?.() };
-      } else {
+      } else if (c.estado !== 'lista') {   // (completo, esperando a mañana: nada que hacer)
         const t = textoCasa(c, d, h, amigosEnLaAldea());
         if (t) return { tipo: 'casa', texto: t, hacer: () => usarLote() };
       }
@@ -406,7 +403,8 @@ export function crearRinconesJuego(ctx) {
       const lista = manualidadesDeHoy(R, tengo, d), sig = lista.find((m) => m.puede);
       if (sig) return { tipo: 'taller', texto: `${sig.titulo} en tu taller`, hacer: () => trabajarEnTaller(sig.id) };
       const falta = lista.find((m) => !m.hecha && m.falta);
-      return { tipo: 'taller', texto: falta ? `${falta.titulo}: falta${falta.falta.n > 1 ? 'n' : ''} ${falta.falta.n} ${MATERIAL[falta.falta.k] || falta.falta.k.replace('-', ' ')}` : 'El taller: por hoy hiciste todo', hacer: () => {} };
+      // (sin nada que hacer hoy, nada; si falta algo, E lo dice)
+      if (falta) { const t = `${falta.titulo}: falta${falta.falta.n > 1 ? 'n' : ''} ${falta.falta.n} ${MATERIAL[falta.falta.k] || falta.falta.k.replace('-', ' ')}`; return { tipo: 'taller', texto: t, hacer: () => ctx.nota?.(t, 'Lo hacés cuando lo tengas') }; }
     }
     return null;
   }

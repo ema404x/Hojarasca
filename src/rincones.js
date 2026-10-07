@@ -41,7 +41,7 @@ export const LUGARES_RINCONES = {
   // la huerta de los chicos: dos canteros detrás de la escuela
   huertaChicos: { lx: 6.9, lz: 71, rot: 0 },
   // el retablo de los títeres, en la plaza (de frente a los bancos del medio)
-  retablo: { lx: 0.4, lz: 38.4, rot: PI / 2 },
+  retablo: { lx: 2.4, lz: 47.6, rot: PI },
   // tu talla, al lado del duende viejo de la plaza (el de aldea.js, en (9, 37))
   talla: { lx: 11.3, lz: 37.2, rot: PI },
   // el atril con tu cuaderno, adentro de la biblioteca, al lado de la puerta

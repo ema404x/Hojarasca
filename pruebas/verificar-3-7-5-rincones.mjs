@@ -59,7 +59,8 @@ const M = A.marcoAldea();
   for (const [id, l] of Object.entries(L)) {
     const dentro = en(l.lx, l.lz);
     if (id === 'atril') eq(dentro, ['biblioteca'], 'el atril, adentro de la biblioteca');
-    else if (id === 'retablo' || id === 'talla') eq(dentro, ['plaza'], `${id}: en la plaza`);
+    else if (id === 'talla') eq(dentro, ['plaza'], 'la talla: en la plaza');
+    else if (id === 'retablo') ok(dentro.length === 0 && Object.values(A.puntosDe('plaza')).every((q) => Math.hypot(q.x - l.lx, q.z - l.lz) > 2.4), 'el retablo: al borde de la plaza, lejos de los bancos');
     else eq(dentro, [], `${id}: fuera de los edificios`);
     eq(enCalle(l.lx, l.lz), [], `${id}: fuera de las calles`);
     const w = R.lugarEnMundo(id);

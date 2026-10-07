@@ -145,7 +145,7 @@ app.whenReady().then(async () => {
     ok(e.c && e.c.trabajado === e.dia && JSON.stringify(e.c) !== antes, 'E: trabajada hoy');
     ok(await anotada('huerta-comunitaria'), 'la huerta de todos, en el cuaderno');
     a = await aviso();
-    ok(/hoy ya la trabajaste/.test(a), `y por hoy, listo: «${a}»`);
+    ok(!/huerta de todos/.test(a), `y por hoy, listo: el aviso ya no lo ofrece («${a}»)`);
     e = await js(`${M}.matas()?.hojas?.count ?? -1`);
     ok(e > 0, `las matas se ven (${e})`);
     ok(await js(`${H}.escena.getObjectByName('huerta')?.count ?? 0`) === 0, 'y no se mezclan con las de tus canteros');
