@@ -321,7 +321,7 @@ export function crearRinconesJuego(ctx) {
   }
 
   // ================================================================ E y el aviso
-  const radio = { duende: RINCONES.radioDuende, cantero: 1.7, retablo: 2.6, atril: 1.4, fuerte: 3.2, campamento: 2.6, casa: 4.6, taller: 1.6, sulky: SULKY.radioSubir };
+  const radio = { duende: RINCONES.radioDuende, cantero: 1.7, retablo: 2.6, atril: 1.4, fuerte: 3.2, campamento: 2.6, casa: 5.8, taller: 1.6, sulky: SULKY.radioSubir };
   // Lo urgente (antes que hablar con alguien): bajar del sulky, patear en el partido
   function urgente(js) {
     if (!activo() || !js) return null;

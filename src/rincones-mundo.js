@@ -781,6 +781,8 @@ export function crearRinconesMundo(ctx) {
       for (let i = 0; i < n; i++) pasos.push({ x: 0, z: fondo / 2 + 0.25 + 0.3 * (i + 0.5), y: -i * (des / Math.max(1, n)), alto: des / Math.max(1, n) + 0.1, ancho: 1.4, fondo: 0.32 });
       casa.zocalo ??= malla(modeloZocalo(ancho, fondo, s.bajo, pasos));
       g.add(casa.zocalo);
+      // (la puerta es la de tu casa, no la de Nélida)
+      for (const p of d.puertas || []) p.nombre = 'la puerta de tu casa';
       const r = registrarEnMundo({ col: ctx.col, puertas: etapa >= 4 ? ctx.puertas : null }, d, s, { duenio: 'rincones:casa' });
       casa.puertas = r.puertas || [];
       // las plataformas del zócalo y de los escalones
