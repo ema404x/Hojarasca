@@ -2089,7 +2089,9 @@ function textoParaExportar(ranura) {
 // 1.10: el cuaderno para compartir. Una página HTML con el álbum, el diario y lo
 // anotado, que se abre en cualquier navegador. Se baja como las fotos: sin diálogos.
 function exportarAlbum() {
-  const datos = datosAlbum({ progreso, desafios: [...DESAFIOS, ...(fiestasJuego?.fotosAlbum() || [])], secciones: SECCIONES, entradas: ENTRADAS });   // (3.7.5: y las fotos de las fiestas)
+  const datos = datosAlbum({ progreso, desafios: DESAFIOS, secciones: SECCIONES, entradas: ENTRADAS });
+  // 3.7.5: y las fotos de las fiestas (en `progreso.desafios`, con su id: ver fiestas.js, `fotoDeFiesta`)
+  if (fiestasJuego) { datos.fotos.push(...datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() }).fotos); datos.fotos.sort((a, b) => (a.dia - b.dia) || (a.hora - b.hora)); }
   if (!datos.fotos.length && !datos.diario.length && !datos.anotaciones) { nota('Todavía no hay nada para llevarse', 'Anotá algo, sacá fotos o dormí una noche para que se escriba el diario'); return null; }
   const version = document.getElementById('version-completa')?.textContent?.replace(/^Versión /, '') || '';
   const texto = htmlAlbum(datos, { titulo: modoJuego === 'desafio' ? 'Cuaderno del Desafío' : 'Cuaderno de campo', version, t: T_ });
@@ -8427,7 +8429,8 @@ function cuadroDelJuego(tRaf, manual) {
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
-      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
+      if (vecino && !desafio && fiestasJuego?.sinVecino(js)) vecino = null;   // 3.7.5: sentado a la mesita de los juegos, E juega; al lado del que cuenta la leyenda, E escucha
     }
     acumuladoBuscar += dt;
     acumuladoInteraccion += dt;

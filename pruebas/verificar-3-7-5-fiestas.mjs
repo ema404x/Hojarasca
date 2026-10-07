@@ -394,7 +394,7 @@ const GU = await import('../src/guardado.js');
   ok(m.includes('amorDestino: (k) => fiestasJuego?.destino(k) || amorMundo?.destino(k) || cocinaJuego?.destino(k) || null,'), 'quién va a dónde: la fiesta primero');
   ok(m.includes('if (fiestasJuego?.montando()) fiestasJuego.camara(camara);') && m.includes("fallaSistema('fiestas', e)"), 'el cuadro (aislado) y la cámara de la jineteada');
   ok(m.includes("p.tipo = (k) => (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);"), 'el tiempo de la gran nevada');
-  ok(m.includes('const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);') && m.includes('...(fiestasJuego?.fotosAlbum() || [])'), 'la foto de la fiesta y el álbum');
+  ok(m.includes('const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);') && m.includes('datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() })'), 'la foto de la fiesta y el álbum');
   ok(m.includes('trucoReal: () => !!fiestasJuego?.activo(),') && m.includes("if (o.tipo === 'cartas' && o.real && fiestasJuego?.activo())"), 'el truco de la rueda, de verdad');
   ok(m.includes('if (fiestasMundo) lista.push(...fiestasMundo.pisos());'), 'el predio, sin pasto alto');
   ok(m.includes("__fiestas: () => fiestasJuego, __fiestasMundo: () => fiestasMundo,"), 'para las pruebas');

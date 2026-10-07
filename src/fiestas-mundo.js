@@ -603,7 +603,8 @@ export function crearFiestasMundo(ctx) {
     recuerdos.firma = firma;
     if (!r) return;
     const c = new Constructor();
-    const P0 = TABLERO;
+    // (armado en su lugar del marco del refugio y girado para que mire hacia adentro: ver `TABLERO.giro`)
+    const P0 = { ...TABLERO, x: 0, y: 0, z: 0 };
     // el tablero de madera (siempre: ahí se cuelgan)
     cj(c, [P0.x, P0.y, P0.z], [P0.ancho, P0.alto, 0.03], '#8a6b4a', [0, 0, 0], 4);
     cj(c, [P0.x, P0.y + P0.alto / 2 + 0.02, P0.z + 0.01], [P0.ancho + 0.06, 0.04, 0.05], '#6a4c34');
@@ -617,7 +618,8 @@ export function crearFiestasMundo(ctx) {
       dibujarRecuerdo(c, d.forma, d.color, x, y, P0.z + 0.04);
     });
     const m = new THREE.Mesh(c.geometria(), mat);
-    m.position.set(r.x, r.y, r.z); m.rotation.y = r.rot || 0; m.castShadow = false; m.receiveShadow = true;
+    const cR = Math.cos(r.rot || 0), sR = Math.sin(r.rot || 0);
+    m.position.set(r.x + TABLERO.x * cR + TABLERO.z * sR, r.y + TABLERO.y, r.z - TABLERO.x * sR + TABLERO.z * cR); m.rotation.y = (r.rot || 0) + TABLERO.giro; m.castShadow = false; m.receiveShadow = true;
     escena.add(m); m.updateMatrixWorld(true);
     recuerdos.malla = m;
   }
@@ -745,6 +747,7 @@ export function crearFiestasMundo(ctx) {
     }),
   };
 }
-// El tablero de los recuerdos, en el marco del refugio (W 7 × D 5,5, la puerta en +Z): en la pared del fondo, a la
-// derecha, arriba de la cama (y: sobre la base del refugio; a la izquierda están la salamandra y los estantes)
-export const TABLERO = { x: 1.75, y: 1.8, z: -2.6, ancho: 1.5, alto: 0.78 };
+// El tablero de los recuerdos, en el marco del refugio (W 7 × D 5,5, la puerta en +Z): en la pared de la puerta, al costado,
+// mirando hacia adentro (y: sobre la base del refugio). En la del fondo están la salamandra, los estantes y la cama (ahí E
+// te acostaba)
+export const TABLERO = { x: -1.95, y: 1.72, z: 2.6, ancho: 1.5, alto: 0.78, giro: Math.PI };

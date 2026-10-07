@@ -276,7 +276,15 @@ export function crearFiestasJuego(ctx) {
       const n = porColgar(estado()).length;
       return { tipo: 'fiesta-colgar', texto: n === 1 ? 'Colgar el recuerdo de la fiesta' : `Colgar los ${n} recuerdos de las fiestas`, hacer: colgar };
     }
-    if (js.sentado) return null;
+    // sentado en una silla de la mesita de los juegos: E juega (parado al lado, E te sienta: el asiento gana)
+    if (js.sentado) {
+      const s0 = m.punto('juegos-0'), s1 = m.punto('juegos-1');
+      if ([s0, s1].some((q) => q && Math.hypot(q.x - p.x, q.z - p.z) < 0.8)) {
+        const rival = rivalEnLaMesita();
+        return { tipo: 'fiesta-juegos', texto: rival ? `Jugar con ${rival.nombre} (truco, chinchón o damas)` : 'No hay nadie para jugar', hacer: () => abrirMenuJuegos(rival) };
+      }
+      return null;
+    }
     const a = ahora();
     // la nevada solidaria: las puertas de los que viven solos
     const nevada = fechasDeHoy().find((f) => f.tipo === 'nevada');
@@ -315,6 +323,33 @@ export function crearFiestasJuego(ctx) {
       return { tipo: 'fiesta-minga', texto: `Dar una mano en la minga (${minus(mi.nombre)})`, hacer: ayudarMinga };
     }
     return null;
+  }
+  // Al lado de un asiento libre del predio (la mesa larga, los troncos del fogón, la mesita), en una fiesta: ahí gana
+  // sentarse; para hablarle al de al lado hay que mirarlo de frente (main.js, como en el mostrador del almacén)
+  function tapaVecino(js) {
+    if (!activo() || !js?.pos || js.sentado || !ahora()) return false;
+    const m = mundo();
+    if (!m || !enElPredioMundo(js.pos)) return false;
+    // (en la pista, con el baile: ahí gana bailar)
+    const fs = ahora().fase.fase;
+    if ((fs === 'baile' || fs === 'sorpresa') && enLaPista(js.pos)) return true;
+    const P = puntosPredio();
+    for (const k of Object.keys(P)) {
+      if (!/^(mesa-[ns]-|fogon-|juegos-[01]$)/.test(k)) continue;
+      const q = m.punto(k);
+      if (q && Math.hypot(q.x - js.pos.x, q.z - js.pos.z) < 1.0) return true;
+    }
+    return false;
+  }
+  // Donde E no le habla al vecino de enfrente: sentado en una silla de la mesita de los juegos (E juega) y al lado del
+  // que cuenta la leyenda en el fogón (E escucha: el que cuenta está ocupado)
+  function sinVecino(js) {
+    if (!activo() || !js?.pos) return false;
+    const m = mundo();
+    if (!m) return false;
+    if (js.sentado) return ['juegos-0', 'juegos-1'].some((k) => { const q = m.punto(k); return q && Math.hypot(q.x - js.pos.x, q.z - js.pos.z) < 0.8; });
+    const q = ahora()?.fase.fase === 'fogon' ? m.punto('narrador') : null;
+    return !!q && Math.hypot(q.x - js.pos.x, q.z - js.pos.z) < 3.2;
   }
   function enElPredioMundo(p) { const m = mundo(); if (!m) return false; const l = m.aLocal(p.x, p.z); return enElPredio(l.x, l.z, PREDIO.radio); }
   function enLaPista(p) { const m = mundo(); if (!m) return false; const l = m.aLocal(p.x, p.z), q = PREDIO.pista; return Math.abs(l.x - q.x) < q.largo / 2 + 0.2 && Math.abs(l.z - q.z) < q.ancho / 2 + 0.2; }
@@ -799,7 +834,7 @@ export function crearFiestasJuego(ctx) {
 
   const api = {
     activo, actualizar, destino, accion, paraElMundo, estado, ahora, fechasDeHoy,
-    panelAbierto, cerrarPanel, elegirPanel, atras, alApretarE, lista, redibujar: () => dibujarPanel(false),
+    panelAbierto, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, sinVecino, redibujar: () => dibujarPanel(false),
     jugarTruco, camara, montando: () => jineteada.monta?.quien === 'jugador', fotoDeLaFiesta, climaForzado,
     fotosAlbum: () => fotosParaAlbum(estado()),
     cumple: () => cumpleDelJugador(estado()),
@@ -807,6 +842,7 @@ export function crearFiestasJuego(ctx) {
     estadoPanel: () => (panel ? { vista: panel.vista, opciones: panel.opciones.map((o) => ({ texto: o.texto, puede: o.puede })), juego: panel.juego ? JSON.parse(JSON.stringify({ puntos: panel.juego.puntos, terminado: panel.juego.terminado, turno: panel.juego.turno })) : null, log: (panel.log || []).slice(-6), clase: clase ? { ...clase } : null } : null),
     jineteada: () => ({ monta: jineteada.monta ? { ...jineteada.monta } : null, jugador: jineteada.jugador ? { ...jineteada.jugador } : null }),
     forzarMonta: (quien, dura = JINETEADA.tiempo) => { jineteada.monta = { quien, t: 0, eq: 0, dura, fin: false }; },
+    sinMonta: () => { jineteada.monta = null; jineteada.jugador = null; jineteada.espera = 999; },
     reiniciarDia: () => { visto.dia = 0; cache.t = -1; cache.dia = 0; reparto.clave = ''; },
     // (las capturas: la jineteada con el domador arriba, el truco con Ernesto, los recuerdos colgados)
     probar: (t = {}) => {

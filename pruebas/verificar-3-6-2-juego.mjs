@@ -91,7 +91,7 @@ const tramo = (texto, desde, hasta) => { const i = texto.indexOf(desde); assert.
   ok(main.includes("d.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); elegirRanura(i); });") && desafio.includes("li.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); fabricar(i); });"), 'la barra y el taller ya usaban mousedown');
   ok(!/addEventListener\('click', \(\) => (cambiar|cambiarFeria|elegir)\(i\)\)/.test(main + comercio), 'ya no queda ninguna lista con click');
   // con el mouse bloqueado (sin flecha), el clic con un panel abierto no tira la línea ni ataca
-  ok(main.includes('const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto();'), 'qué paneles cuentan');   // (3.7.2: y el panel de recetas de la cocina; 3.7.3: y el del taller)
+  ok(main.includes('const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();'), 'qué paneles cuentan');   // (3.7.2: y el panel de recetas de la cocina; 3.7.3: y el del taller; 3.7.5: y el de las fiestas)
   const pesca = tramo(main, "document.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || modo !== 'jugando' || !jugador", 'pesca.clic(true, mundoPesca());');
   ok(pesca.includes('if (panelDelHudAbierto()) return;   // 3.6.2'), 'la línea de pesca');
   const arma = tramo(main, "window.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || !desafio", 'desafio.atacar(id);');

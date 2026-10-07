@@ -35,7 +35,10 @@ const TOMAS = {
   leyenda: { ojo: [23.6, 2.0, 15.6], a: [23.6, 0.6, 19.8], hora: 21.2, dia: 9, gente: true },
   minga: { ojo: [29.0, 2.6, 15.5], a: [33.6, 0.9, 21.0], hora: 10.5, dia: 7, gente: true },
   truco: { ojo: [19.6, 1.7, 11.0], a: [20.6, 0.7, 11.0], hora: 15.5, dia: 2, gente: true, truco: true },
-  recuerdos: { refugio: true, hora: 11, dia: 3 },
+  recuerdos: { refugio: [-1.7, 0.7, -1.95, 2.7], hora: 11, dia: 3 },
+  'refugio-frente': { refugio: [0.2, -1.6, 0.2, 2.7], hora: 11, dia: 3 },
+  'refugio-izq': { refugio: [1.5, 0, -3.4, 0], hora: 11, dia: 3 },
+  'refugio-der': { refugio: [-1.5, 0, 3.4, 0], hora: 11, dia: 3 },
 };
 
 app.whenReady().then(async () => {
@@ -71,7 +74,7 @@ app.whenReady().then(async () => {
       H.clima.estado.nublado = 0.15; H.progreso.horas = t.hora;
       let o, a;
       if (t.refugio) { const r = T.lugares.refugio, c = Math.cos(r.rot || 0), s = Math.sin(r.rot || 0), w = (lx, lz) => ({ x: r.x + lx * c + lz * s, z: r.z - lx * s + lz * c });
-        const y0 = (r.y ?? T.altura(r.x, r.z)) + 0.37; const wo = w(0.2, 1.6), wa = w(0.2, -2.7); o = { x: wo.x, z: wo.z, y: y0 + 1.6 }; a = { x: wa.x, z: wa.z, y: y0 + 1.7 }; }
+        const y0 = (r.y ?? T.altura(r.x, r.z)) + 0.37; const R = Array.isArray(t.refugio) ? t.refugio : [0.2, 1.6, 0.2, -2.7]; const wo = w(R[0], R[1]), wa = w(R[2], R[3]); o = { x: wo.x, z: wo.z, y: y0 + 1.6 }; a = { x: wa.x, z: wa.z, y: y0 + 1.7 }; }
       else { const P = { x: 40.33335217430335, z: -339.13893663781784, ang: 2.992763908303246 }, c = Math.cos(P.ang), s = Math.sin(P.ang);
         const w = (lx, lz) => ({ x: P.x + lx * c + lz * s, z: P.z - lx * s + lz * c });
         const wo = w(t.ojo[0], t.ojo[2]), wa = w(t.a[0], t.a[2]);
