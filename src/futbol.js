@@ -20,6 +20,7 @@ export const PELOTA = {
   aire: 0.06,            // frenado en el aire
   pendiente: 3.2,        // lo que tira la pendiente del terreno (m/s² por unidad de pendiente)
   quieta: 0.08,          // por debajo de esto, se para
+  arranque: 1.0,         // quieta, la pendiente tiene que tirar más que esto (m/s²) para que arranque sola
 };
 export const PATADA = { suave: 6.5, fuerte: 11, alto: 0.32, alcance: 0.95, toque: 0.6 };
 export const CORRER = { chico: 3.6, grande: 4.2, arquero: 2.6 };
@@ -56,6 +57,11 @@ export function pasoPelota(p, dt, altura = () => 0) {
   if (!p.enJuego) return salida;
   dt = clamp(finito(dt), 0, 0.1);
   if (dt <= 0) return salida;
+  // quieta en el piso: el pasto la frena, salvo que la cuesta sea fuerte
+  if (p.quieta && p.y <= 0.002 && Math.abs(p.vy) < 0.01 && Math.hypot(p.vu, p.vv) < PELOTA.quieta) {
+    const e = 0.4, gu = (finito(altura(p.u + e, p.v)) - finito(altura(p.u - e, p.v))) / (2 * e), gv = (finito(altura(p.u, p.v + e)) - finito(altura(p.u, p.v - e))) / (2 * e);
+    if (Math.hypot(gu, gv) * PELOTA.pendiente < PELOTA.arranque) { p.vu = 0; p.vv = 0; return salida; }
+  }
   // de a pasos chicos: una patada fuerte no atraviesa un palo
   const n = Math.max(1, Math.ceil((Math.hypot(p.vu, p.vv, p.vy) * dt) / 0.12));
   const h = dt / n;
@@ -73,7 +79,7 @@ export function pasoPelota(p, dt, altura = () => 0) {
       const f = Math.max(0, 1 - PELOTA.rozamiento * h);
       p.vu *= f; p.vv *= f;
     }
-    const u0 = p.u, v0 = p.v;
+    const v0 = p.v;
     p.u += p.vu * h; p.v += p.vv * h; p.y += p.vy * h;
     if (p.y <= 0) {
       if (p.vy < -1.2) { salida.pique = Math.max(salida.pique, -p.vy); p.vy = -p.vy * PELOTA.rebote; }
@@ -115,7 +121,6 @@ export function pasoPelota(p, dt, altura = () => 0) {
     // afuera (lateral o por el fondo, sin gol)
     if (Math.abs(p.u) > W2 + 1.2) { salida.afuera = 'lateral'; p.enJuego = false; return salida; }
     if (Math.abs(p.v) > L2 + 1.2) { salida.afuera = 'fondo'; p.enJuego = false; return salida; }
-    void u0;
   }
   const vel = Math.hypot(p.vu, p.vv);
   p.quieta = p.y <= 0.002 && Math.abs(p.vy) < 0.01 && vel < PELOTA.quieta;

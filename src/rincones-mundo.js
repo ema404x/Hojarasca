@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { MAT_FAUNA } from './vida.js';
 import { armarEdificio, registrarEnMundo } from './aldea-arquitectura.js';
 import { U } from './materiales.js';
+import { registrarLuz } from './luces.js';
 import { RES, N } from './config.js';
 import { LUGARES_RINCONES, lugarEnMundo, puntoDeLugar, ubicarDuendes, PISO_ALDEA_RINCONES, adornosDelEstante, RINCONES, CULTIVOS_COMUNITARIA, CULTIVOS_CHICOS } from './rincones.js';
 import { CANCHA, PELOTA } from './futbol.js';
@@ -204,7 +205,7 @@ function modeloHuertaChicos(canteros, sueloMundo, centro) {
 // El retablo de los títeres: un teatrito de tablas pintado de verde con la guarda, la boca con cortinas coloradas
 function modeloRetablo() {
   const P = new Pieza();
-  P.caja('#3e6a5a', 1.7, 1.15, 0.5, [0, 0.575, 0], [0, 0, 0], { pincel: 0.1 });                 // el cuerpo de abajo
+  P.caja('#3e6a5a', 1.7, 1.55, 0.5, [0, 0.375, 0], [0, 0, 0], { pincel: 0.1 });                 // el cuerpo de abajo (entra 40 cm en el piso)
   for (let i = 0; i < 7; i++) P.caja(i % 2 ? '#d8b040' : '#a03a28', 0.22, 0.08, 0.02, [-0.66 + i * 0.22, 1.02, 0.26], [0, 0, 0], { pincel: 0 });   // la guarda
   for (const sx of [-1, 1]) P.caja('#3e6a5a', 0.22, 0.75, 0.5, [sx * 0.74, 1.52, 0], [0, 0, 0]);   // los costados de la boca
   P.caja('#3e6a5a', 1.7, 0.32, 0.5, [0, 2.05, 0], [0, 0, 0]);                                       // el dintel
@@ -286,8 +287,12 @@ function modeloFuerte(etapa, suelo) {
       const h = 0.3 + f * 0.35 + ruido(i, f, 5) * 0.08;
       P.palo('#5e4a34', [Math.cos(a0) * (R + 0.06), suelo(Math.cos(a0) * R, Math.sin(a0) * R) + h, Math.sin(a0) * (R + 0.06)], [Math.cos(a1) * (R + 0.06), suelo(Math.cos(a1) * R, Math.sin(a1) * R) + h + 0.05, Math.sin(a1) * (R + 0.06)], 0.022, 4, { pincel: 0.3 });
     }
-    // unos manojos de hojas de coihue entre las ramas
-    for (let i = 0; i < 9; i++) { const a = i * 0.72 - 1.2, x = Math.cos(a) * (R + 0.1), z = Math.sin(a) * (R + 0.1); P.bola('#3e5a2c', 0.22, [x, suelo(x, z) + 0.55 + ruido(i, 3, 1) * 0.4, z], [1, 0.7, 0.5], [6, 4], { pincel: 0.25 }); }
+    // ramas con hojas de coihue apoyadas contra las paredes (de afuera, inclinadas)
+    for (let i = 0; i < 16; i++) {
+      const a = -PI / 2 - 0.3 + (i / 16) * (PI * 2 - 1.6), x0 = Math.cos(a) * (R + 0.55), z0 = Math.sin(a) * (R + 0.55), x1 = Math.cos(a + 0.12) * (R + 0.05), z1 = Math.sin(a + 0.12) * (R + 0.05);
+      P.palo('#5a4632', [x0, suelo(x0, z0) - 0.05, z0], [x1, suelo(x1, z1) + 1.15 + ruido(i, 4, 2) * 0.3, z1], 0.025, 4, { pincel: 0.3 });
+      P.cono(i % 2 ? '#3e5a2c' : '#4a6632', 0.2, 0.55, [(x0 + x1) / 2, suelo(x1, z1) + 0.75, (z0 + z1) / 2], [0.3, a, 0.5], 5, { pincel: 0.3 });
+    }
   }
   if (etapa >= 3) {
     // el techo de colihue: cañas del borde al palo del medio
@@ -312,7 +317,7 @@ function modeloFogon(suelo) {
 }
 function modeloCarpa(suelo) {
   const P = new Pieza(), y0 = suelo(0, -2.2), largo = 2.2, ancho = 1.8, alto = 1.25;
-  for (const sx of [-1, 1]) P.caja('#b8823e', Math.hypot(ancho / 2, alto), 0.02, largo, [sx * ancho / 4, y0 + alto / 2, -2.2], [0, 0, sx * -(PI / 2 - Math.atan2(alto, ancho / 2))], { pincel: 0.12 });
+  for (const sx of [-1, 1]) P.caja('#b8823e', Math.hypot(ancho / 2, alto), 0.02, largo, [sx * ancho / 4, y0 + alto / 2, -2.2], [0, 0, -sx * Math.atan2(alto, ancho / 2)], { pincel: 0.12 });
   P.palo('#6a4e36', [0, y0 - 0.05, -2.2 - largo / 2], [0, y0 + alto + 0.06, -2.2 - largo / 2], 0.025, 5);
   P.palo('#6a4e36', [0, y0 - 0.05, -2.2 + largo / 2], [0, y0 + alto + 0.06, -2.2 + largo / 2], 0.025, 5);
   P.palo('#6a4e36', [0, y0 + alto + 0.03, -2.2 - largo / 2], [0, y0 + alto + 0.03, -2.2 + largo / 2], 0.02, 4);
@@ -466,7 +471,7 @@ export function crearRinconesMundo(ctx) {
     m.instanceMatrix.needsUpdate = true;
     raiz.add(m); piezas.duendes = m;
     // que no los tape el pasto alto ni una mata: se pela un poquito alrededor
-    for (const d of est.duendes) if (!d.adentro) { ctx.veg?.despejar?.(d.x, d.z, 0.5, true); pelar(d.x, d.z, 1.1, 0.25); }
+    for (const d of est.duendes) if (!d.adentro) { ctx.veg?.despejar?.(d.x, d.z, 0.6, true); pelar(d.x, d.z, 1.5, 0.3); }
   }
 
   // ------------------------------------------------ el suelo (la máscara del terreno: pasto y sendero, como main.js)
@@ -483,6 +488,24 @@ export function crearRinconesMundo(ctx) {
       const k = (j * N + i) * 4, t = Math.min(1, (d / radio) ** 2);
       masc[k] *= t;
       if (sendero > 0) masc[k + 1] = Math.max(masc[k + 1], Math.round(255 * sendero * (1 - t)));
+    }
+    mascaraSucia = true;
+  }
+  // un rectángulo (en el marco de `rot`): adentro, el pasto queda en `pasto` (0..1) y el sendero sube a `sendero`; el
+  // borde, un metro de transición
+  function pelarRect(cx, cz, rot, ancho, largo, pasto = 0.15, sendero = 0) {
+    const tex = U.uMascara.value;
+    if (!tex?.image?.data) return;
+    const masc = tex.image.data, c = Math.cos(rot), s = Math.sin(rot), R = Math.hypot(ancho, largo) / 2 + 1;
+    const i0 = Math.max(0, Math.floor((cx - R + 512) / 2)), i1 = Math.min(RES, Math.ceil((cx + R + 512) / 2));
+    const j0 = Math.max(0, Math.floor((cz - R + 512) / 2)), j1 = Math.min(RES, Math.ceil((cz + R + 512) / 2));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const dx = i * 2 - 512 - cx, dz = j * 2 - 512 - cz, u = dx * c - dz * s, v = dx * s + dz * c;
+      const fuera = Math.max(Math.abs(u) - ancho / 2, Math.abs(v) - largo / 2);
+      if (fuera > 1) continue;
+      const k = (j * N + i) * 4, w = fuera <= 0 ? 1 : 1 - fuera;
+      masc[k] = Math.round(masc[k] * (1 - w * (1 - pasto)));
+      if (sendero > 0) masc[k + 1] = Math.max(masc[k + 1], Math.round(255 * sendero * w));
     }
     mascaraSucia = true;
   }
@@ -505,8 +528,8 @@ export function crearRinconesMundo(ctx) {
     const pel = malla(modeloPelota(), MAT_FAUNA, true); pel.name = 'rincones-pelota';
     raiz.add(pel); piezas.pelota = pel; potrero.pelota = pel;
     // el pasto pelado de las áreas y del medio (un potrero de verdad)
-    for (const [u, v, r] of [[0, -CANCHA.largo / 2 + 1.5, 3.2], [0, CANCHA.largo / 2 - 1.5, 3.2], [0, 0, 2.6], [-2, -5, 2], [2.5, 4, 2.2]]) { const w = potrero.aMundo(u, v); pelar(w.x, w.z, r, 0.35); }
-    for (let u = -CANCHA.ancho / 2; u <= CANCHA.ancho / 2; u += 3) for (let v = -CANCHA.largo / 2; v <= CANCHA.largo / 2; v += 3) { const w = potrero.aMundo(u, v); pelar(w.x, w.z, 2.4, 0); }
+    for (const [u, v, r] of [[0, -CANCHA.largo / 2 + 1.5, 3.4], [0, CANCHA.largo / 2 - 1.5, 3.4], [0, 0, 3], [-2, -5, 2.4], [2.5, 4, 2.6]]) { const w = potrero.aMundo(u, v); pelar(w.x, w.z, r, 0.8); }
+    pelarRect(L.x, L.z, L.rotMundo, CANCHA.ancho + 1, CANCHA.largo + 1.5, 0.06, 0.45);
     for (const [u, v] of [[-CANCHA.ancho / 2 - 0.5, 0], [CANCHA.ancho / 2 + 1.6, -2], [CANCHA.ancho / 2 + 1.6, 2]]) { const w = potrero.aMundo(u, v); ctx.veg?.despejar?.(w.x, w.z, 2.5, true); }
     { const w = potrero.aMundo(0, 0); ctx.veg?.despejar?.(w.x, w.z, Math.hypot(CANCHA.largo, CANCHA.ancho) / 2 + 1.5, true); }
   }
@@ -530,7 +553,7 @@ export function crearRinconesMundo(ctx) {
     const centro = { x: L.x, y: alturaEn(L.x, L.z), z: L.z };
     const g1 = malla(modeloHuerta(huertas.comunitaria, alturaEn, centro, rot)); g1.position.set(centro.x, centro.y, centro.z);
     raiz.add(g1); piezas.huerta = g1;
-    ctx.veg?.despejar?.(L.x, L.z, 5.6, true); pelar(L.x, L.z, 5.2, 0.12);
+    ctx.veg?.despejar?.(L.x, L.z, 5.6, true); pelarRect(L.x, L.z, rot, L.ancho, L.largo, 0.05, 0.3);
     const C = lugarEnMundo('huertaChicos');
     for (let i = 0; i < RINCONES.huertaChicos.canteros; i++) {
       const w = puntoDeLugar('huertaChicos', 0, (i ? 1 : -1) * 2.4);
@@ -539,7 +562,7 @@ export function crearRinconesMundo(ctx) {
     const c2 = { x: C.x, y: alturaEn(C.x, C.z), z: C.z };
     const g2 = malla(modeloHuertaChicos(huertas.chicos, alturaEn, c2)); g2.position.set(c2.x, c2.y, c2.z);
     raiz.add(g2); piezas.huertaChicos = g2;
-    ctx.veg?.despejar?.(C.x, C.z, 3.6, true); pelar(C.x, C.z, 3.4, 0.1);
+    ctx.veg?.despejar?.(C.x, C.z, 3.6, true); pelarRect(C.x, C.z, C.rotMundo, 2.6, 7, 0.1, 0.25);
   }
 
   // ------------------------------------------------ la plaza (retablo y talla), la biblioteca (atril), fuerte, campamento
@@ -580,9 +603,11 @@ export function crearRinconesMundo(ctx) {
     const carpa = malla(modeloCarpa(sueloK)); carpa.visible = false; gk.add(carpa);
     const geoFuego = new THREE.ConeGeometry(0.22, 0.6, 7, 1, true);
     geoFuego.setAttribute('color', new THREE.BufferAttribute(new Float32Array(geoFuego.attributes.position.count * 3).fill(1), 3));
-    const fuego = new THREE.Mesh(geoFuego, vidrioFarol);
+    const fuego = new THREE.Mesh(geoFuego, fuegoMat);
     fuego.position.set(0, sueloK(0, 0) + 0.32, 0); fuego.visible = false; gk.add(fuego);
-    objetos.campamento = { g: gk, fogon, carpa, fuego, L: { ...K, y: yk } };
+    const luz = new THREE.PointLight(0xff9a48, 0, 9, 1.6);
+    luz.position.set(0, sueloK(0, 0) + 0.8, 0); gk.add(luz); registrarLuz(luz);
+    objetos.campamento = { g: gk, fogon, carpa, fuego, luz, L: { ...K, y: yk } };
     raiz.add(gk); piezas.campamento = gk;
     ctx.veg?.despejar?.(K.x, K.z, 3.6, true); pelar(K.x, K.z, 3.4, 0.12);
   }
@@ -590,6 +615,8 @@ export function crearRinconesMundo(ctx) {
   // ------------------------------------------------ el camino, el puentecito y los faroles
   const vidrioFarol = new THREE.MeshBasicMaterial({ color: 0xffc070, vertexColors: true });
   vidrioFarol.name = 'rincones-vidrio';
+  const fuegoMat = new THREE.MeshBasicMaterial({ color: 0xff8a30, vertexColors: true });
+  fuegoMat.name = 'rincones-fuego';
   function montarCamino() {
     const ref = ctx.refugio?.() || T.lugares.refugio;
     const paradas = paradasSulky(ref);
@@ -689,7 +716,7 @@ export function crearRinconesMundo(ctx) {
     const p = ref?.puerta || ref, yaw = Number(ref?.mira) || 0;
     const ax = -Math.sin(yaw), az = -Math.cos(yaw), dx = Math.cos(yaw), dz = -Math.sin(yaw);
     // del otro lado de la puerta que el palenque, contra la pared del frente, bajo el alero
-    const x = p.x - dx * 4.2 + ax * 1.15, z = p.z - dz * 4.2 + az * 1.15;
+    const x = p.x - dx * 2.75 - ax * 2.15, z = p.z - dz * 2.75 - az * 2.15;
     const g = new THREE.Group(); g.position.set(x, alturaEn(x, z), z); g.rotation.y = yaw + PI;
     g.add(malla(modeloTaller()));
     g.visible = false;
@@ -778,7 +805,7 @@ export function crearRinconesMundo(ctx) {
     montarTaller();
     casa.sitio = sitioCasa();
     ctx.veg?.despejar?.(casa.sitio.x, casa.sitio.z, 4.6, true);
-    pelar(casa.sitio.x, casa.sitio.z, 4.2, 0.1);
+    pelarRect(casa.sitio.x, casa.sitio.z, casa.sitio.rot, CASA_PROPIA.ancho + 2, CASA_PROPIA.fondo + 5, 0.25, 0.12);
     subirMascara();
     info.montarMs = performance.now() - t0;
   }
@@ -813,6 +840,8 @@ export function crearRinconesMundo(ctx) {
       k.carpa.visible = cerca && !!e.campamento;
       k.fuego.visible = cerca && !!e.campamento && (e.noche || 0) > 0.2;
       if (k.fuego.visible) { const t = e.tiempo || 0; k.fuego.scale.set(1 + Math.sin(t * 13) * 0.08, 1 + Math.sin(t * 9.3) * 0.15, 1 + Math.cos(t * 11) * 0.08); }
+      k.luz.intensity = k.fuego.visible ? 2.2 * (0.85 + Math.sin((e.tiempo || 0) * 11) * 0.1) : 0;
+      k.luz.visible = k.fuego.visible;
     }
     // el camino: faroles con la minga (y la huella se ensancha)
     if (e.minga !== est.estado.minga) { est.estado.minga = !!e.minga; pintarCamino(!!e.minga); }
@@ -870,5 +899,6 @@ export function crearRinconesMundo(ctx) {
     duendes: () => est.duendes, camino: () => est.camino, paradas: () => est.sulkyParadas, puentes: () => est.puentes, faroles: () => est.faroles,
     potrero: () => potrero, huertas: () => huertas, taller: () => est.tallerSitio, casa: () => casa,
     lugar: (id) => (objetos[id] ? objetos[id].L : null), sulkyMalla: () => sulky.g,
+    armarCasa: (etapa) => montarCasa(etapa),
   };
 }

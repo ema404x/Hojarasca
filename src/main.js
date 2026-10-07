@@ -813,12 +813,12 @@ async function construir() {
       const p = jugador.estado.pos;
       if (Math.hypot(p.x - aldeaMundo.centro.x, p.z - aldeaMundo.centro.z) < calidad.lejos + 220) { await aldeaMundo.listo(); aldeaMundo.montarCola(); }
     }
-    socialMundo?.paraCompilar();
-    rinconesMundo?.paraCompilar();   // 3.7.5 (rincones): todo a la vista un momento, así se compila en la carga   // 3.7.4: el programa de las burbujas, con lo demás (nunca a mitad del juego)
+    socialMundo?.paraCompilar();   // 3.7.4: el programa de las burbujas, con lo demás (nunca a mitad del juego)
+    rinconesMundo?.paraCompilar();   // 3.7.5 (rincones): todo a la vista un momento, así se compila en la carga
     await variantesLuces.compilarCarga(jugador.estado.pos);   // 3.3: con el presupuesto fijo, todo y en paralelo; 2.7.4: antes renderer.compile(escena, camara); ver luces.js
     aldeaMundo?.trasCompilar();   // 3.6: las mallas que sólo estaban para compilar sus programas
-    cocinaMundo?.trasCompilar();
-    rinconesMundo?.trasCompilar();   // 3.7.5 (rincones)   // 3.7.2: lo mismo con el fuego, las brasas y el humo de la cocina
+    cocinaMundo?.trasCompilar();   // 3.7.2: lo mismo con el fuego, las brasas y el humo de la cocina
+    rinconesMundo?.trasCompilar();   // 3.7.5 (rincones)
     socialMundo?.listo();   // 3.7.4
     // 3.7.0: la sombra de la gente (piel por huesos) también se compila en la carga; el atlas de la
     // gente se pinta en la portada
@@ -8443,7 +8443,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheAserrar = !puedeAserrar() ? false : enBancoAserrar() ? 'banco' : material('tabla') < 2 ? 'mano' : false;
       cacheSemilla = semillaDisponible();
     }
-    if (js.sentado || js.enKayak || js.enTren || js.montado || js.enSulky || vecino) objetivo = null;   // (3.7.5 (rincones): ni en el sulky)
+    if (js.sentado || js.enKayak || js.enTren || js.enSulky || js.montado || vecino) objetivo = null;   // (3.7.5 (rincones): ni en el sulky)
     else if (acumuladoBuscar > presupuestoAdaptativo.intervalo(1 / 15, 1.45)) { acumuladoBuscar = 0; objetivo = objetos.buscar(camara, jugador); }
     // 3.1: parado en el andén al lado de la locomotora, subir a la cabina le gana al banco
     // de la parada (desde la 3.0.1 el andén se pisa de verdad y el banco quedaba a mano)
@@ -9031,7 +9031,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
-  if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo };
+  if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta() };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
   requestAnimationFrame(bucle);
 })();
