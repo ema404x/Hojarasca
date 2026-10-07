@@ -9,6 +9,7 @@ import { LAGO } from './config.js';
 import { crearPersona, soltarPersona } from './gente-cuerpo.js';
 import { armarPersonaDeAPoco } from './gente-cuerpo.js';
 import { pintarAtlasDespues, completarAtlas, atlasListo } from './gente-atlas.js';
+import { animarSocial, volverDeAnim } from './social-anim.js';
 
 // ---------------------------------------------------------------- historias
 export const HISTORIAS = [
@@ -1084,6 +1085,10 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         // (3.6: sentado o en lo suyo, con vos cerca no se da vuelta: sólo si le hablás)
         if (charlando || (cerquita && !g.pose)) g.rumboObjetivo = Math.atan2(js.pos.x - g.pos.x, js.pos.z - g.pos.z);
       }
+      // 3.7.4: en una interacción (social-anim.js) mira a su compañero (o se da vuelta, si se va enojado); al terminar
+      // una de a dos, vuelve a donde estaba
+      if (g.animSocial && Number.isFinite(g.animSocial.mira)) g.rumboObjetivo = g.animSocial.mira;
+      else if (g.__volverA) volverDeAnim(g, dt);
       // giro suave hacia donde mira
       const actual = g.g.rotation.y;
       g.rumbo = actual + Math.atan2(Math.sin(g.rumboObjetivo - actual), Math.cos(g.rumboObjetivo - actual)) * Math.min(1, dt * 2.6);
@@ -1188,6 +1193,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         }
         if (g.alPosar) g.alPosar(g, dt, camara, charlando, andando);   // 3.7.0 (gente-cuerpo.js): codos, pies, la mirada, los gestos y la quietud
         if (g.gestoAmor) gestoAmor(g);   // 3.7.1 (mundo): de la mano, del brazo, el bebé en brazos
+        if (g.animSocial) animarSocial(g, dt);   // 3.7.4: el abrazo, la risa, chocar los cinco, la discusión, el baile lento...
         if (g.pose === 'dormir' && !andando) for (const pp of g.cabeza.userData?.parpados || []) pp.rotation.x = 0.95;   // (y dormida, con los ojos cerrados)
         limitarCabeza(g);   // 3.7.2
       }

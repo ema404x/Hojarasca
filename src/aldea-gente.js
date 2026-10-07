@@ -953,7 +953,7 @@ export function crearAldeaGente(ctx) {
   // (3.6.2: `cuento`: los cuentos de la abuela del domingo; ésos sí frenan el reloj de estar sentado)
   function empezarCharla(c, personasCharla, monologo = null, cuento = false) {
     const lineas = monologo || c.lineas;
-    oida.activa = { id: c?.id || 'cuentos', lineas, personas: personasCharla, linea: -1, t: 0.4, cuento, radio: radioDe(c) };
+    oida.activa = { id: c?.id || 'cuentos', lineas, personas: personasCharla, linea: -1, t: 0.4, cuento, radio: radioDe(c), tema: c?.tema || null };
     const centro = dondeEs(oida.activa);
     oida.activa.centro = centro;
     for (const k of personasCharla) {
@@ -961,6 +961,7 @@ export function crearAldeaGente(ctx) {
       n.charlaVecinos = true;
       if (personasCharla.length > 1) n.miraFinal = Math.atan2(centro.x - n.pos.x, centro.z - n.pos.z);
     }
+    ctx.alEmpezarCharla?.(personasCharla.map((k) => personas.get(k)?.npc).filter(Boolean), oida.activa.tema);   // 3.7.4: lo que hacen (se abrazan, se ríen...)
   }
   function terminarCharla() {
     const c = oida.activa;
@@ -991,6 +992,7 @@ export function crearAldeaGente(ctx) {
     const [quien, texto] = c.lineas[c.linea];
     // (3.7.0: por la radio: «Josefina, por la radio: …»)
     ctx.decir?.(c.radio?.has(quien) ? `${NOMBRES_RADIO[quien] || mayus(quien)}, por la radio: ${texto}` : `${pila(nombreDe(quien))}: ${texto}`);
+    if (!c.radio?.has(quien)) ctx.alDecir?.(personas.get(quien)?.npc || null, texto, c.tema);   // 3.7.4: la burbuja con el ícono del tema y la voz
     c.t = 2.4 + texto.length * 0.05;
   }
   // Busca dos o tres vecinos quietos y juntos cerca tuyo, y una charla de lo que corresponde.

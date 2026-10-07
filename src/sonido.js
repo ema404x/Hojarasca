@@ -1053,6 +1053,66 @@ export class Sonido {
     return o;
   }
 
+  // 3.7.4: el balbuceo tipo Los Sims (el plan de las sílabas sale de social-voz.js: la voz de cada uno). Barato: un solo
+  // pulso glotal para todo el renglón, con el tono, los dos formantes de la vocal y la envolvente movidos sílaba por
+  // sílaba, y un ruido para las consonantes; todo por un pasabajos (nada estridente) al bus de los efectos (su volumen).
+  // `pos`: de dónde sale (con la distancia y el lado); sin `pos`, enfrente tuyo. Devuelve cuánto dura (o 0).
+  balbuceo(plan, { pos = null, vol = 0.06, cuando = 0 } = {}) {
+    if (!this.ctx || !plan?.silabas?.length || !this.puedeSonar(4, cuando)) return 0;
+    const ctx = this.ctx, t0 = ctx.currentTime + 0.02 + cuando, v = plan.voz || {};
+    const destino = pos ? this.fuente(pos, 1, 0.25) : this.bus.efectos;
+    if (!destino) return 0;
+    const fin = t0 + plan.dur + 0.15;
+    const o = ctx.createOscillator();
+    if (this.ondas?.glotal) o.setPeriodicWave(this.ondas.glotal); else o.type = 'triangle';
+    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 4.5;
+    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 6;
+    const g1 = ctx.createGain(); g1.gain.value = 2.2;
+    const g2 = ctx.createGain(); g2.gain.value = 1.3;
+    const directo = ctx.createGain(); directo.gain.value = 0.12;
+    const env = ctx.createGain(); env.gain.setValueAtTime(0.0001, t0);
+    const suave = ctx.createBiquadFilter(); suave.type = 'lowpass'; suave.frequency.value = 3400; suave.Q.value = 0.5;
+    o.connect(f1); o.connect(f2); o.connect(directo);
+    f1.connect(g1); f2.connect(g2); g1.connect(env); g2.connect(env); directo.connect(env);
+    env.connect(suave); suave.connect(destino);
+    // las consonantes: un solo ruido, con su banda y su golpe en cada sílaba
+    const ns = ctx.createBufferSource(); ns.buffer = this.blanco;
+    const nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.Q.value = 1.2; nf.frequency.setValueAtTime(3000, t0);
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0);
+    ns.connect(nf); nf.connect(ng); ng.connect(suave);
+    const pico = Math.max(0.005, Math.min(0.12, vol));
+    for (const s of plan.silabas) {
+      const t = t0 + s.t, a = Math.max(0.012, Math.min(0.04, s.dur * 0.18));
+      const c = s.cons ? { p: [900, 0.018, 1], t: [3200, 0.02, 1], k: [2100, 0.024, 1], s: [5200, 0.07, 0], f: [3800, 0.05, 0], ch: [3600, 0.06, 1], b: [600, 0.012, 1] }[s.cons] : null;
+      const nasal = s.cons === 'm' || s.cons === 'n';
+      const arranca = c ? t + c[1] * (c[2] ? 1 : 0.6) : t;
+      o.frequency.setTargetAtTime(Math.max(60, s.f0), t, 0.03);
+      f1.frequency.setTargetAtTime(nasal ? 280 : s.f1, t, 0.02);
+      f2.frequency.setTargetAtTime(s.f2, t, 0.025);
+      if (nasal) f1.frequency.setTargetAtTime(s.f1, t + 0.05, 0.03);
+      // la vocal: sube, se sostiene y baja un poco antes de la siguiente
+      env.gain.setTargetAtTime(pico * s.vol * (nasal ? 0.55 : 1), arranca, a / 2.5);
+      env.gain.setTargetAtTime(pico * s.vol * 0.12, t + s.dur * 0.78, s.dur * 0.08);
+      if (c) {
+        nf.frequency.setValueAtTime(c[0], t);
+        ng.gain.setTargetAtTime(pico * (c[2] ? 0.9 : 0.55), t, 0.004);
+        ng.gain.setTargetAtTime(0.0001, t + c[1], 0.01);
+      }
+    }
+    env.gain.setTargetAtTime(0.0001, t0 + plan.dur, 0.04);
+    if (v.temblor) {
+      const l = ctx.createOscillator(); l.frequency.value = v.temblor;
+      const lg = ctx.createGain(); lg.gain.value = (v.f0 || 120) * 0.025;
+      l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(fin);
+      this.soltarAlTerminar(l, lg);
+    }
+    o.start(t0); o.stop(fin);
+    ns.start(t0, Math.random() * 2, plan.dur + 0.2);
+    this.soltarAlTerminar(o, f1, f2, g1, g2, directo, env, suave);
+    this.soltarAlTerminar(ns, nf, ng);
+    return plan.dur;
+  }
+
   bramido(pos) {
     if (!this.ctx) return;
     const d = this.fuente(pos, 2.2, 1);
