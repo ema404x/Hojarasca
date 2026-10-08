@@ -229,6 +229,8 @@ export function crearEventos(T, escena, sonido, efectos, api) {
   // Dónde se para: cerca de tu base (50-80 m), en un llano sin agua ni obras alrededor y lejos de la vía (adentro
   // se camina sobre el terreno de abajo: tiene que ser parejo), y en un claro: entre árboles, al pie del
   // Coihue la E anotaba un coihue del bosque en vez de entrar. Si no hay, como antes: a 52 m.
+  // 3.8.1: como el asedio (cercaDeLugar): los lugares del valle no son obras y obraEnPunto no los ve
+  const lugarCerca = (x, z, d) => Object.values(T.lugares || {}).some((l) => l && Number.isFinite(l.x) && Number.isFinite(l.z) && Math.hypot(l.x - x, l.z - z) < d);
   function sitioCoihue(c) {
     let mejor = null, nota = Infinity;
     const a0 = Math.random() * Math.PI * 2;
@@ -237,6 +239,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
       if (Math.abs(x) > LIMITE - 60 || Math.abs(z) > LIMITE - 60 || T.agua(x, z)) continue;
       if ((T.distRiel?.[T.indice(x, z)] ?? 999) < 14) continue;
       if ((T.bosque?.[T.indice(x, z)] ?? 0) > 0.35) continue;
+      if (lugarCerca(x, z, 22)) continue;   // 3.8.1: ni encima de un lugar del valle (la estación, un puesto, una casa)
       let peor = 0, malo = false, bosque = 0;
       for (const rr of [0, 9, 18, 26]) {
         const n = rr ? 8 : 1;
@@ -256,7 +259,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     // 3.8.1: sin claro, a 52 m como antes, pero no sobre el agua, la vía ni una obra (antes, cualquier ángulo)
     for (let i = 0; i < 24; i++) {
       const a = a0 + (i / 24) * Math.PI * 2, x = c.x + Math.cos(a) * COIHUE_NOCHE.hasta, z = c.z + Math.sin(a) * COIHUE_NOCHE.hasta;
-      if (Math.abs(x) > LIMITE - 60 || Math.abs(z) > LIMITE - 60 || T.agua(x, z) || (T.distRiel?.[T.indice(x, z)] ?? 999) < 14 || api.obraEnPunto?.(x, T.altura(x, z) + 0.5, z)) continue;
+      if (Math.abs(x) > LIMITE - 60 || Math.abs(z) > LIMITE - 60 || T.agua(x, z) || (T.distRiel?.[T.indice(x, z)] ?? 999) < 14 || lugarCerca(x, z, 14) || api.obraEnPunto?.(x, T.altura(x, z) + 0.5, z)) continue;
       return { x, z, a };
     }
     const a = Math.random() * Math.PI * 2;

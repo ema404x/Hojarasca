@@ -187,6 +187,8 @@ const enmano = leer('src/enmano.js');
   const sc = eventos.slice(eventos.indexOf('function sitioCoihue('), eventos.indexOf('const hudNodriza'));
   const resto = sc.slice(sc.indexOf('if (mejor) return mejor;'));
   ok(/T\.agua\(x, z\)/.test(resto) && /distRiel/.test(resto) && /obraEnPunto/.test(resto), 'sin claro: ni agua, ni vía, ni obras');
+  // ni encima de un lugar del valle (obraEnPunto sólo ve tus obras), en el claro ni sin él
+  ok(/if \(lugarCerca\(x, z, 22\)\) continue;/.test(sc) && /lugarCerca\(x, z, 14\)/.test(resto), 'el Coihue no se planta sobre un lugar del valle');
   // adentro, en una VM: entrar y salir varias veces sin sumar física ni escena; morir en la subida o en el corazón
   // te deja en el valle; guardada adentro (cota acotada a 320 m) vuelve al valle; y la púa que venía al bajar
   // por la escalera no te pincha al volver por la misma puerta
