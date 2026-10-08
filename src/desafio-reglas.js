@@ -401,5 +401,8 @@ export function sanearDesafio(d) {
     // 3.0: los invasores que evolucionan y los puestos (una partida vieja carga sin nada aprendido)
     evolucion: sanearEvolucion(x.evolucion),
     puestos: sanearPuestos(x.puestos),
+    // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
+    robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
+      .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
   };
 }

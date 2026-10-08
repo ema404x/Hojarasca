@@ -15,7 +15,10 @@ import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
 import { crearEfectos } from './desafio-efectos.js';
-import { crearAlien } from './desafio-alien.js';
+// 3.8.0: los invasores son duendes (desafio-duendes.js: el modelo, la animación y el dibujo instanciado)
+import { crearDuende, instalarDuendes, precalentarDuendes, registrarHalos, mallaAtadito, estadoDuendes } from './desafio-duendes.js';
+import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva } from './desafio-duendes-reglas.js';
+import { mallaNido } from './duendes-modelo.js';
 import { crearMusicaTension } from './desafio-musica.js';
 import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logros.js';
 import { crearAliados } from './desafio-aliados.js';
@@ -53,7 +56,7 @@ const MAX_ALIENS = 24;
 const GRAVEDAD_ACIDO = 9;   // el escupitajo del escupidor va con arco, no en línea recta
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _dir = new THREE.Vector3();
 
-// Los invasores se modelan en desafio-alien.js (una malla con esqueleto por invasor).
+// 3.8.0: los invasores son duendes: se modelan en duendes-modelo.js y se animan y dibujan en desafio-duendes.js.
 
 function mallaNave() {
   const g = new THREE.Group();
@@ -97,6 +100,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const progreso = () => ctx.progreso();
   // 3.0: lo que ya estaba en la escena (el valle): adentro de la nave se esconde
   const delValle = new Set(escena.children);
+  // 3.8.0: los duendes se dibujan instanciados (después de anotar lo del valle: adentro del Coihue se
+  // ven); todos sus modelos se arman ahora, en la carga, y no en plena noche
+  instalarDuendes(escena);
+  precalentarDuendes();
   // 2.7.3: lo fabricado o encontrado queda en `cosas`; una partida sin `cosas` ya no rompe
   // (antes el taller gastaba los materiales y fallaba al anotar)
   function darCosa(clave) {
@@ -117,7 +124,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function tomarAlien(tipo) {
     let a = libres[tipo].pop();
     if (!a) {
-      const m = crearAlien(tipo);
+      const m = crearDuende(tipo);
       escena.add(m.g);
       a = { m, tipo, def: TIPOS_ALIEN[tipo] };
     }
@@ -776,6 +783,14 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     // 3.0: ¿viene preparado contra cómo te defendés? ¿Anoche le rompiste el puesto?
     evolucion.alBajar(a);
+    // 3.8.0: de travieso o de viejo (las noches grandes y los mutados), y de qué tamaño (crecen con las
+    // noches y con lo que aprendieron); y sin nada robado de la vida anterior
+    {
+      const d3 = D(), grande = esNocheGrande({ noche: d3.oleadas, especial: d3.especial, sinFin: !!d3.sinFin });
+      const viejo = vieneDeViejo(a.tipo, { grande, mutado: a.mutado, azar: Math.random() });
+      a.m.vestir?.(viejo, etapaDe({ noche: d3.oleadas, viejo, nivelAdaptado: a.nivelResiste }));
+    }
+    a.robo = null;
     if (!a.def.jefe) a.vida = a.vidaMax = Math.max(1, Math.round(a.vidaMax * puestos.factorVida()));
     // 2.1: el excavador, el jefe de cada vez y la forja (ver `desafio-valle.js`)
     a.bajoTierra = false; a.tCavar = 0.5 + Math.random(); a.tTierra = 0; a.congeladoT = 0; a.derribadoT = 0;
@@ -789,8 +804,87 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     return a;
   }
+  // ---------------- 3.8.0: el robo de los traviesos (una travesura: nunca se pierde nada)
+  // Al pegarte, a veces un pillo se lleva algo chico y sale corriendo riéndose. Si le pegás (o cae), lo
+  // suelta y vuelve a tus cosas; si se escapa, lo deja tirado (brilla, se levanta pasando cerca); lo que
+  // quede al amanecer te lo devuelven. Mientras tanto queda anotado en `robados` (si se guarda la
+  // partida, al abrirla vuelve). Las reglas en desafio-duendes-reglas.js.
+  const NOMBRE_ROBADO = { cristal: 'una semilla dorada', ramita: 'una ramita', tabla: 'una tabla', piedra: 'una piedra' };
+  const robos = { noche: -1, n: 0 };
+  const tirados = [];
+  function anotarRobado(cosa, n) {
+    const d = D();
+    if (!d.robados || typeof d.robados !== 'object') d.robados = {};
+    d.robados[cosa] = Math.max(0, (d.robados[cosa] || 0) + n);
+    if (!d.robados[cosa]) delete d.robados[cosa];
+  }
+  function devolver(cosa, n) {
+    if (!(n > 0)) return;
+    if (cosa === 'ramita') { const p = progreso(); p.ramitas = (p.ramitas || 0) + n; }
+    else ctx.sumarMaterial(cosa, n);
+    anotarRobado(cosa, -n);
+  }
+  function intentarRobo(a) {
+    const d = D();
+    if (robos.noche !== d.oleadas) { robos.noche = d.oleadas; robos.n = 0; }
+    if (caido || !puedeRobar(a.tipo, { viejo: !!a.m.viejo, roboEnCurso: !!a.robo, robosNoche: robos.n })) return;
+    if (Math.random() >= ROBO.prob) return;
+    const q = queSeLleva((k) => ctx.cuanto(k));
+    if (!q) return;
+    ctx.gastar(q.cosa, q.n);
+    anotarRobado(q.cosa, q.n);
+    a.robo = { cosa: q.cosa, n: q.n, t: ROBO.huida };
+    robos.n++;
+    a.m.robar?.(true);
+    if (S.risa) S.risa(a.m.g.position); else S.chillido(a.m.g.position, a.tipo);
+    ctx.nota('¡Un duende te robó!', `Se llevó ${NOMBRE_ROBADO[q.cosa] || 'algo'} y sale corriendo. Pegale y lo suelta`);
+  }
+  // lo suelta: alcanzado (vuelve a tus cosas) o porque se cansó de correr (queda tirado)
+  function soltarRobo(a, alcanzado) {
+    const r = a.robo;
+    a.robo = null;
+    a.m.robar?.(false);
+    if (!r) return;
+    if (alcanzado) {
+      devolver(r.cosa, r.n);
+      ctx.nota('Lo recuperaste', `${(NOMBRE_ROBADO[r.cosa] || 'Lo robado').replace(/^una /, 'La ')} vuelve a tus cosas`);
+      return;
+    }
+    const p = a.m.g.position;
+    let t = tirados.find((x) => !x.activo);
+    if (!t) {
+      t = { malla: mallaAtadito(), activo: false };
+      escena.add(t.malla);
+      registrarHalos(t.malla);
+      tirados.push(t);
+    }
+    t.activo = true; t.cosa = r.cosa; t.n = r.n; t.x = p.x; t.z = p.z;
+    t.malla.position.set(p.x, T.altura(p.x, p.z), p.z);
+    t.malla.visible = true;
+  }
+  function levantarTirados(js) {
+    for (const t of tirados) {
+      if (!t.activo) continue;
+      t.malla.rotation.y += 0.02;
+      if (Math.hypot(t.x - js.pos.x, t.z - js.pos.z) > ROBO.levantar) continue;
+      t.activo = false; t.malla.visible = false;
+      devolver(t.cosa, t.n);
+      ctx.nota('Lo encontraste', `${(NOMBRE_ROBADO[t.cosa] || 'Lo robado').replace(/^una /, 'La ')} que se llevó un duende`);
+    }
+  }
+  // al amanecer (o al abrir la partida): todo lo que falta vuelve
+  function devolverTodo(avisar) {
+    let hubo = false;
+    for (const a of aliens) if (a.robo) { a.robo.t = 0; const r = a.robo; a.robo = null; a.m.robar?.(false); devolver(r.cosa, r.n); hubo = true; }
+    for (const t of tirados) if (t.activo) { t.activo = false; t.malla.visible = false; devolver(t.cosa, t.n); hubo = true; }
+    const d = D();
+    for (const [k, n] of Object.entries(d.robados || {})) { devolver(k, n); hubo = true; }
+    d.robados = {};
+    if (hubo && avisar) setTimeout(() => ctx.nota('Te devolvieron lo robado', 'Con la primera luz, los duendes dejaron todo en la puerta'), 9000);
+  }
   function terminarOleada(sobrevivida) {
     const d = D();
+    devolverTodo(true);   // 3.8.0: lo que se llevaron los duendes y no levantaste, te lo devuelven
     for (const a of aliens) if (a.estado !== 'morir') { a.estado = 'irse'; a.t = 0; }
     estadoNave.porBajar.length = 0;
     if (nave.g.visible && estadoNave.fase !== 'yendo') { estadoNave.fase = 'yendo'; estadoNave.t = 0; }
@@ -1326,6 +1420,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.vida -= dano;
     a.sinGolpe = 0;            // 2.0: un mutado no se cura mientras le sigan pegando
     const delJugador = fuente === 'jugador' || fuente === 'lanza';
+    if (a.robo && (delJugador || fuente === 'perro' || a.vida <= 0)) soltarRobo(a, true);   // 3.8.0: lo alcanzaste
     if (delJugador && dano >= 4) ctx.vibrar?.('golpe', Math.min(1, dano / 40));
     if (delJugador) marcarImpacto(a.vida <= 0);
     if (fuente === 'perro') a.mordido = 6;
@@ -1724,6 +1819,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   let geoAla = null, matAla = null;
   function ponerAlas(a) {
     if (a.m.alas) return a.m.alas;
+    if (a.m.alasPropias) return (a.m.alas = []);   // 3.8.0: la lechuza aletea con sus alas (huesos)
     if (!geoAla) {
       // la membrana: un abanico de triángulos desde el hombro (el Three local no trae
       // ShapeGeometry, así que se arma a mano)
@@ -1748,6 +1844,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   function aletear(a, dt, rapido) {
     a.faseAla = (a.faseAla || 0) + dt * (rapido ? 16 : 9);
+    a.m.aletear?.(a.faseAla);
     for (const { m, s } of a.m.alas || []) m.rotation.z = s * (0.25 + Math.sin(a.faseAla) * 0.55);
   }
   function llamaDe(o) {
@@ -2114,7 +2211,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         if (dist < alcanceCuerpo) a.estado = 'avanzar';
       }
     }
-    if (a.estado === 'avanzar' && !sinAtaque) {
+    if (a.estado === 'avanzar' && !sinAtaque && !a.robo) {
       // con lluvia o niebla los tiradores ven menos lejos
       if (def.aDistancia && dist < def.alcance * clima.vista && dist > 4) {
         _v.set(p.x, p.y + def.altura * 0.8, p.z);
@@ -2156,7 +2253,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
           const tapado = hayObraEntre(_v, _w, 0.3);
           if (tapado && intentarSaltar(a, tapado)) return;
           if (tapado) { a.estado = 'romper'; a.obra = tapado; }
-          else herirJugador(def.dano * a.danoMult, p);
+          else { herirJugador(def.dano * a.danoMult, p); intentarRobo(a); }   // 3.8.0: la travesura
         }
       }
     }
@@ -2174,6 +2271,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
           if (a.cd <= 0) { a.cd = def.cadencia; a.golpeT = 0.35; golpearLugar(L); }
         }
       }
+    }
+    // 3.8.0: el que robó sale corriendo para el otro lado, riéndose; al rato lo suelta y vuelve
+    if (a.robo) {
+      a.robo.t -= dt;
+      if (a.robo.t <= 0) soltarRobo(a, false);
+      else if (a.estado === 'avanzar') { rumboObj = Math.atan2(-dx, -dz); velObj = def.vel * ROBO.velHuida; ataca = false; }
     }
     // 2.5: perdido en el humo, camina para cualquier lado
     if (rumboConfuso !== null) rumboObj = rumboConfuso;
@@ -2701,21 +2804,16 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
 
   // ---------------- la infestación: capullos en el bosque (ver `desafio-infestacion.js`)
   const mallasCapullo = [];
-  let matCapullo = null, tCapullos = 0;
+  let tCapullos = 0;
   const quemandoCapullo = new WeakMap();
+  // 3.8.0: el capullo es un nido de hongos y musgo (duendes-modelo.js): las geometrías se comparten
   function mallaCapullo(i) {
     if (mallasCapullo[i]) return mallasCapullo[i];
-    if (!matCapullo) matCapullo = new THREE.MeshLambertMaterial({ color: '#2f3a28', emissive: '#6dff5a', emissiveIntensity: 0.25 });
     const g = new THREE.Group();
-    const cuerpo = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55, 1), matCapullo);
-    cuerpo.scale.set(1, 1.45, 1); cuerpo.position.y = 0.65; cuerpo.castShadow = true;
-    g.add(cuerpo);
-    // las raíces que lo pegan al suelo
-    for (let k = 0; k < 4; k++) {
-      const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), matCapullo);
-      b.position.set(Math.cos(k * 1.6) * 0.45, 0.12, Math.sin(k * 1.6) * 0.45); b.scale.set(1.4, 0.5, 1);
-      g.add(b);
-    }
+    const nido = mallaNido();
+    nido.rotation.y = i * 2.3;
+    g.add(nido);
+    registrarHalos(nido);
     g.visible = false; g.name = 'capullo';
     escena.add(g);
     return (mallasCapullo[i] = g);
@@ -2820,7 +2918,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const lista = D().capullos || [];
     if (!lista.length) return;
     tCapullos += dt;
-    if (matCapullo) matCapullo.emissiveIntensity = 0.2 + Math.sin(tCapullos * 2.4) * 0.12;
+    // 3.8.0: los hongos de luz del nido laten despacio (el brillo de sus halos)
+    for (const m of mallasCapullo) if (m?.visible) m.children[0].userData.brilloHalos = 0.75 + Math.sin(tCapullos * 2.4) * 0.25;
     for (let i = lista.length - 1; i >= 0; i--) {
       const c = lista[i], t = quemandoCapullo.get(c);
       if (t === undefined) continue;
@@ -3085,6 +3184,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       aliados.restaurar();
       cimientos.sincronizar(obras.obras);
       sincronizarCapullos();   // 2.3: los capullos que quedaron de la partida guardada
+      devolverTodo(false);   // 3.8.0: si se guardó con algo robado, vuelve a tus cosas
       // 3.5.1: si se cerró el juego mientras la nave caía (derribar ya guardó el asedio
       // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
       // sin noche final ni nido, la campaña no terminaba nunca. Se da al abrir.
@@ -3120,6 +3220,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       }
     } else tApagon = 8;
     avisarBestiario(dtReal);
+    levantarTirados(js);   // 3.8.0: lo que soltó un duende al escaparse
     coroDelValle(dt, js);
     const c = api.clima();
     // 2.6.1: el efecto del clima se recalcula sólo cuando el clima cambia
@@ -3242,6 +3343,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // la cámara lenta del último invasor: el bucle principal escala su dt con esto
     get escalaTiempo() { return camaraLenta > 0 ? 0.3 + (1 - Math.min(1, camaraLenta / 1.4)) * 0.2 : 1; },
     capsula, aliens, obraEnPunto, danarObra, herirJugador, invocar, nave: nave.g,
+    estadoDuendes,   // 3.8.0: los modelos de los duendes y cuántos se dibujan (pruebas y diagnóstico)
+    get robosEnCurso() { return { tirados: tirados.filter((t) => t.activo).length, llevando: aliens.filter((x) => x.robo).length, robados: { ...(D().robados || {}) } }; },
+    intentarRobo: (a) => intentarRobo(a), soltarRobo: (a, alcanzado) => soltarRobo(a, alcanzado), herirDuende: (a, dano, fuente) => herirAlien(a, dano, null, fuente),
     // los relojes del coro del valle, para poder mirarlos desde las pruebas
     coro,
     posicionesAliens: () => aliens.filter((a) => a.estado !== 'morir' && a.estado !== 'irse').map((a) => a.m.g.position),
@@ -3285,7 +3389,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     antorchaApagadaCerca: (pos) => !!defensas.apagadaCerca?.(pos),
     // 2.3: capullos, trochita varada, zanjas de fuego y código de partida
     get capullos() { return D().capullos || []; },
-    sembrarCapullos, abrirCapullos, usarCapulloCerca, avisoCapulloCerca, capulloCerca,
+    sembrarCapullos, abrirCapullos, usarCapulloCerca, sincronizarCapullos, avisoCapulloCerca, capulloCerca,
     get varada() { return D().varada; },
     forzarVarada: () => { varadaForzada = true; },
     usarZanjaCerca, avisoZanjaCerca, zanjaCerca,

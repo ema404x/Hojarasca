@@ -209,7 +209,8 @@ const ENTRADA = Object.fromEntries(ENTRADAS.map((e) => [e.id, e]));
   const conLosa = V.puntoDeSalida({ x: 20, z: 0 }, { x: 0, z: 0 }, (x) => x < 6);
   assert.ok(conLosa.x >= 6 && conLosa.bloqueado, 'donde hay losa no asoma: sale más atrás');
   assert.match(leer('src/construccion.js'), /id: 'losa-piedra'/);
-  assert.match(leer('src/desafio-alien.js'), /excavador: \{\n    piel:/, 'tiene cuerpo propio');
+  // 3.8.0: el excavador es el duende topo (con su pala)
+  assert.match(leer('src/duendes-modelo.js'), /excavador: \(\) => \(\{/, 'tiene cuerpo propio');
   assert.match(des, /if \(a\.estado === 'bajoTierra'\) return;/, 'bajo tierra no le llega nada');
   assert.match(leer('src/desafio-noche2.js'), /excavador: \{/, 'y ficha en el bestiario');
 }

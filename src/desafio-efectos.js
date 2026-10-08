@@ -235,7 +235,7 @@ export function crearEfectos(escena, opciones = {}) {
   }
 
   // ---------------------------------------------------------------- API pública
-  const verde = new THREE.Color('#a6ff6e'), turquesa = new THREE.Color('#7dfff0'), tinte = new THREE.Color();
+  const tinte = new THREE.Color();
 
   function astillas(pos, n = 10, color = '#8a6b4a') { lanzarAstillas(pos, cant(n), color, 1); }
 
@@ -257,7 +257,9 @@ export function crearEfectos(escena, opciones = {}) {
     }
   }
 
-  function sangre(pos, n = 8) { lanzarGotas(pos, cant(n), verde, turquesa, false); }
+  // 3.8.0: a un duende no le sale sangre: le saltan pedacitos de musgo y savia de corteza
+  const musgo = new THREE.Color('#8aa84a'), savia = new THREE.Color('#d8a440');
+  function sangre(pos, n = 8) { lanzarGotas(pos, cant(n), musgo, savia, false); }
 
   function destello(pos, escala = 1, color = '#a6ff6e') {
     tinte.set(color);

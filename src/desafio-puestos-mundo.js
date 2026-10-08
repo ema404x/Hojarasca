@@ -2,13 +2,15 @@
 // (entran como blancos por el mismo camino que las cámaras del nido), la E y lo que pasa
 // al amanecer y al caer la noche. Las reglas están en desafio-puestos.js.
 import * as THREE from 'three';
-import { lam } from './vida.js';
 import { PUESTOS, ESTRUCTURAS, puestosNuevos, enPie, activos, tocaPuesto, lugarDelPuesto, puestoNuevo, crecerPuestos, queMandan, sitioDelPuesto, guardiasDe, danarEstructura, premioPuesto, golpeDelPuesto, golpesDeLaNoche, recortarOleada, usarEstructura, avisoEstructura } from './desafio-puestos.js';
 import { esHoraDeAtaque } from './desafio-reglas.js';
 import { siguenLasNoches } from './desafio-nido.js';
 import { azarDe } from './semilla.js';
 import { LIMITE } from './config.js';
 import { mapaDePartida } from './desafio-mapa.js';
+// 3.8.0: los puestos son madrigueras de duendes entre las raíces (duendes-modelo.js)
+import { mallaMadriguera } from './duendes-modelo.js';
+import { registrarHalos } from './desafio-duendes.js';
 
 const NOMBRES = { cristal: 'cristales', piedra: 'piedras', tabla: 'tablas' };
 
@@ -21,49 +23,22 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
   const lado = (p) => api.rumboTexto(api.centroBase(), p).replace(/^al /, 'del ');
 
   // ---------------- mallas (una por puesto, se arman la primera vez que hacen falta)
-  const matQuitina = lam('#2a2233');
-  const matResina = lam('#231d2b');
-  const matVaina = new THREE.MeshLambertMaterial({ color: '#2f3a28', emissive: '#6dff5a', emissiveIntensity: 0.3 });
-  const matCristal = new THREE.MeshBasicMaterial({ color: '#7dfff0' });
-  const matOrbe = new THREE.MeshBasicMaterial({ color: '#a6ff6e' });
-  const matHaz = new THREE.MeshBasicMaterial({ color: '#a6ff6e', transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
-  const geoSuelo = new THREE.CylinderGeometry(6.5, 7.2, 0.14, 18);
-  const geoAguja = new THREE.ConeGeometry(0.8, ESTRUCTURAS.aguja.alto, 7);
-  const geoEspina = new THREE.ConeGeometry(0.22, 1.6, 5);
-  const geoOrbe = new THREE.IcosahedronGeometry(0.3, 1);
+  // 3.8.0: las piezas son las de la madriguera (duendes-modelo.js); acá queda la luz que sube de la aguja
+  const matHaz = new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
   const geoHaz = new THREE.CylinderGeometry(0.3, 0.6, 70, 8, 1, true);
-  const geoVaina = new THREE.SphereGeometry(0.72, 10, 8);
-  const geoTallo = new THREE.CylinderGeometry(0.12, 0.22, 0.6, 6);
-  const geoCristal = new THREE.IcosahedronGeometry(0.42, 0);
-  const geoRoca = new THREE.IcosahedronGeometry(0.6, 0);
   const mallas = new Map();   // id → { g, partes: [Object3D por estructura], haz }
 
+  // 3.8.0: la aguja es el tocón hueco de la madriguera (con el farol de hongo en la punta y la luz que
+  // sube, para verlo de lejos), la vaina un nido de hongos y el generador el cesto de semillas doradas
   function mallaEstructura(tipo) {
     const g = new THREE.Group();
+    const m = mallaMadriguera(tipo);
+    m.rotation.y = tipo === 'aguja' ? 0 : (mallas.size * 1.7) % 6.28;
+    g.add(m);
+    registrarHalos(m);
     if (tipo === 'aguja') {
-      const c = new THREE.Mesh(geoAguja, matQuitina); c.position.y = ESTRUCTURAS.aguja.alto / 2; c.castShadow = true; g.add(c);
-      for (let k = 0; k < 4; k++) {
-        const e = new THREE.Mesh(geoEspina, matQuitina);
-        const a = k * Math.PI / 2 + 0.4;
-        e.position.set(Math.cos(a) * 0.7, 1.1 + k * 0.5, Math.sin(a) * 0.7);
-        e.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9);
-        g.add(e);
-      }
-      const o = new THREE.Mesh(geoOrbe, matOrbe); o.position.y = ESTRUCTURAS.aguja.alto + 0.15; g.add(o);
       const h = new THREE.Mesh(geoHaz, matHaz); h.position.y = ESTRUCTURAS.aguja.alto + 35; h.frustumCulled = false; g.add(h);
       g.userData.haz = h;
-    } else if (tipo === 'vaina') {
-      const t = new THREE.Mesh(geoTallo, matQuitina); t.position.y = 0.3; g.add(t);
-      const v = new THREE.Mesh(geoVaina, matVaina); v.scale.set(1, 1.35, 1); v.position.y = 1.05; v.castShadow = true; g.add(v);
-    } else {
-      const r = new THREE.Mesh(geoRoca, matResina); r.scale.set(1.4, 0.5, 1.4); r.position.y = 0.2; g.add(r);
-      for (let k = 0; k < 3; k++) {
-        const c = new THREE.Mesh(geoCristal, matCristal);
-        c.scale.set(0.55, 2.1, 0.55);
-        c.position.set(Math.cos(k * 2.1) * 0.35, 1.1, Math.sin(k * 2.1) * 0.35);
-        c.rotation.set(Math.cos(k * 2.1) * 0.25, 0, Math.sin(k * 2.1) * 0.25);
-        g.add(c);
-      }
     }
     return g;
   }
@@ -72,7 +47,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     if (!m) {
       const g = new THREE.Group();
       g.name = 'puesto-invasor';
-      const suelo = new THREE.Mesh(geoSuelo, matResina); suelo.position.y = 0.02; suelo.receiveShadow = true; g.add(suelo);
+      const suelo = mallaMadriguera('suelo'); suelo.position.y = 0.02; g.add(suelo);   // 3.8.0: tierra removida y raíces
       m = { g, partes: [] };
       escena.add(g);
       mallas.set(p.id, m);
@@ -359,7 +334,6 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     if (primero) { primero = false; sincronizar(); }
     const d = api.D(), est = D();
     tVaina += dt;
-    matVaina.emissiveIntensity = 0.22 + Math.sin(tVaina * 2.1) * 0.1;
     matHaz.opacity = 0.08 + Math.sin(tVaina * 1.3) * 0.03;
     for (const [parte, f] of flash) {
       const r = f - dt * 4;

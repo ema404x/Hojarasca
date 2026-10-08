@@ -8,7 +8,8 @@ import { nocheEspecial, ESPECIALES, sanearDesafio, desafioNuevo } from '../src/d
 import { siguenLasNoches } from '../src/desafio-nido.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
-const des = leer('src/desafio.js'), alien = leer('src/desafio-alien.js'), main = leer('src/main.js');
+// 3.8.0: los invasores son duendes (desafio-duendes.js)
+const des = leer('src/desafio.js'), alien = leer('src/desafio-duendes.js'), main = leer('src/main.js');
 
 // ======================================================== 1. los ojos reflejan la linterna
 {
@@ -21,11 +22,11 @@ const des = leer('src/desafio.js'), alien = leer('src/desafio-alien.js'), main =
   assert.ok(S.reflejoOjos({ ...base, distancia: 60 }) > 0, 'se ve más lejos de lo que alumbra el haz');
   assert.equal(S.reflejoOjos({ ...base, distancia: 42 * S.ALCANCE_REFLEJO }), 0);
   assert.ok(S.reflejoOjos({ ...base, distancia: 3 }) < S.reflejoOjos(base), 'encima se pierde en la luz que le da en la cara');
-  // en el shader: la almendra (emisión 0.015) y el punto húmedo, con su propio uniforme
-  assert.match(alien, /uniform float uReflejo/);
-  assert.match(alien, /abs\(vEmision - 0\.015\)/);
-  assert.match(alien, /emision: 0\.015/, 'la almendra del ojo sigue marcada con 0.015');
-  assert.match(alien, /invasor-esqueleto-v4/, 'la clave del programa cambió con el shader');
+  // en el shader: el ojo (parte 2) devuelve la luz con el reflejo de cada duende
+  // 3.8.0: los duendes son instanciados: el reflejo va por instancia (vIB.z)
+  assert.match(alien, /uReflejo: \{ value: 0 \}/);
+  assert.match(alien, /vIB\.z \* ojoD/);
+  assert.match(alien, /duendes-esqueleto-38/, 'la clave del programa cambió con el shader');
   assert.ok(!/`desafio-sentidos\.js`/.test(alien.slice(alien.indexOf('opaque_fragment'), alien.indexOf('customProgramCacheKey'))), 'sin comillas invertidas dentro del GLSL');
   assert.match(des, /reflejoOjos\(\{ encendida: true/);
   assert.match(main, /linterna: \(\) => \(\{ encendida:/);
