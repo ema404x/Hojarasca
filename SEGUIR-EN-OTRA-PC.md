@@ -1,6 +1,6 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 07-10-2026, 3.7.5 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 08-10-2026, 3.8.0 cerrada)
 
-> **ATENCIÓN (07-10, notebook):** la 3.7.5 Tradiciones quedó cerrada en la notebook (etiqueta v3.7.5). **Lo primero:** repetir solas las 6 partidas reales que fallaron en la tanda de a 4 y no se repitieron (humo-2-8-compas, humo-3-0-asedio, humo-3-5-4-caos, humo-3-7-2-granja, humo-3-7-4-rueda, humo-relax-2) con `node herramientas/suite-paralela.cjs <salida> 1 <lista,separada,por,comas>` (con el monitor externo apagado, poner antes la variable HOJ_PANTALLA=no). granja y caos pueden ser fallas reales de la integración. Después: 3.8.0 (PLAN_3_8.md).
+> **ATENCIÓN (08-10, notebook):** la 3.8.0 La noche de los duendes quedó cerrada en la notebook (etiqueta v3.8.0). Las 6 partidas pendientes de la 3.7.5 ya se repitieron: 4 eran de carga y las 2 reales (caos y la trochita) están arregladas. Decisiones del usuario en `PLAN_3_8.md`; lo que quedó para después, al final de `CAMBIOS_3_8_0.md`. **Para el usuario:** jugar una noche grande, la subida y el Rey en su PC (4600G) y escuchar los sonidos nuevos. Sigue el resto de `PLAN_3_8.md` (preguntarle antes de arrancar).
 
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
@@ -49,6 +49,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.8.0 (etiqueta v3.8.0): La noche de los duendes**, cerrada en la notebook el 08-10 (4 equipos: arreglos, duendes, coihue, textos + integración). `CAMBIOS_3_8_0.md`. El Desafío pasa a llamarse «La noche de los duendes» (interno sigue `desafio`). Gate 169/169; partidas reales 68/68 (3 repetidas solas).
 - **3.7.5 (etiqueta v3.7.5): Tradiciones**, cerrada en la notebook el 07-10 (3 equipos + integración). `CAMBIOS_3_7_5.md`. El usuario aprobó todas las decisiones de detalle como las recomendaron los equipos. Gate 165/165; partidas reales 62/68 (6 sin repetir). Sigue: 3.8.0 (PLAN_3_8.md).
 - **3.7.4 (etiqueta v3.7.4): Vida social tipo Sims**, cerrada en la PC de escritorio. `CAMBIOS_3_7_4.md`. Sigue: 3.7.5 Tradiciones; después 3.8.0 (PLAN_3_8.md).
 - **3.7.3 (etiqueta v3.7.3): La trochita**, cerrada en la PC de escritorio. `CAMBIOS_3_7_3.md`.

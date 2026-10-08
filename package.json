@@ -1,6 +1,6 @@
 {
   "name": "hojarasca",
-  "version": "3.7.5",
+  "version": "3.8.0",
   "description": "Exploración contemplativa en un bosque andino patagónico generado por código · modos Relax y Desafío",
   "main": "main.cjs",
   "type": "module",
