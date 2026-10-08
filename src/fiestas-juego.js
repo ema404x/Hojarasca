@@ -12,7 +12,7 @@
 //   · los recuerdos, las fotos de la fiesta para el álbum, la gran nevada (la vía tapada y el tiempo de nieve) y tu
 //     cumpleaños con fiesta sorpresa.
 // Sin three (lo visual lo pide a fiestas-mundo.js por `ctx.mundo()`); el DOM, sólo en el panel.
-import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDelAnio, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
+import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
 import { partidoNuevo, accionesDe, actuar, turnoDe, decidirIA, nombreCarta, NOMBRES_CANTO, perfilTruco, envidoDe } from './truco.js';
 import { chinchonNuevo, accionesChinchon, actuarChinchon, decidirChinchon, turnoChinchon, nombreCartaChinchon, mejorLigado, esComodin, damasNuevas, jugadasDamas, moverDamas, decidirDamas, textoJugada, tirarTaba, TEXTO_TABA } from './juegos-mesa.js';
 import { FIESTAS_ALDEA, nombreCortoDe } from './aldea-vida.js';
@@ -73,7 +73,7 @@ export function crearFiestasJuego(ctx) {
     if (a.fase.fase === 'llegada' && a.fecha.tipo !== 'fiesta' && a.fecha.tipo !== 'aldea') return null;
     const lista = presentes();
     const clave = `${a.fecha.id}|${a.fase.fase}|${lista.join(',')}|${!!clase}`;
-    if (clave !== reparto.clave) reparto = { clave, mapa: repartoFiesta(a.fecha, a.fase, lista, { leyenda: leyendaDelAnio(a.fecha.anio), musica: musicaDe(a.fecha), clase: !!clase }) };
+    if (clave !== reparto.clave) reparto = { clave, mapa: repartoFiesta(a.fecha, a.fase, lista, { leyenda: leyendaDe(estado(), a.fecha.anio), musica: musicaDe(a.fecha), clase: !!clase }) };
     return reparto.mapa.get(k) || null;
   }
 
@@ -204,7 +204,7 @@ export function crearFiestasJuego(ctx) {
     } else visto.mesa = 0;
     // la leyenda: el que cuenta, de a una parte, si estás cerca del fogón
     if (fase === 'fogon' && js && m) {
-      const ley = leyendaDelAnio(f.anio);
+      const ley = leyendaDe(estado(), f.anio);   // 3.8.1: la fijada del año (ver fiestas.js)
       const fogon = m.punto('narrador');
       if (fogon && dist(js.pos, fogon) < 11) {
         visto.leyenda.t -= paso;
@@ -319,7 +319,7 @@ export function crearFiestasJuego(ctx) {
       if (pocha && !pocha.dormido && puedeTomarClase(st, d) && st.baile[baile] < NIVEL_BAILE_MAX) return { tipo: 'fiesta-baile', texto: `Tomar una clase de ${BAILES[baile].nombre} con Pocha`, hacer: () => abrirClase(baile) };
       return { tipo: 'fiesta-baile', texto: `Bailar ${baile === 'chacarera' ? 'una chacarera' : 'un chamamé'}`, hacer: () => bailar(baile) };
     }
-    if (fase === 'fogon' && cerca('narrador', 3.2)) return { tipo: 'fiesta-leyenda', texto: `Escuchar ${minus(leyendaDelAnio(f.anio).titulo)}`, hacer: () => leerLeyenda(f) };
+    if (fase === 'fogon' && cerca('narrador', 3.2)) return { tipo: 'fiesta-leyenda', texto: `Escuchar ${minus(leyendaDe(estado(), f.anio).titulo)}`, hacer: () => leerLeyenda(f) };
     if (fase === 'trabajo' && cerca('lenera', 3.4)) {
       const mi = mingaDelAnio(f.anio);
       return { tipo: 'fiesta-minga', texto: `Dar una mano en la minga (${minus(mi.nombre)})`, hacer: ayudarMinga };
@@ -421,7 +421,7 @@ export function crearFiestasJuego(ctx) {
     ctx.guardar?.();
   }
   function leerLeyenda(f) {
-    const ley = leyendaDelAnio(f.anio);
+    const ley = leyendaDe(estado(), f.anio);   // 3.8.1: la fijada del año (ver fiestas.js)
     ctx.leer?.({ id: `leyenda-${ley.id}`, quien: nombreCortoDe(ley.quien) || 'La abuela', que: ley.titulo, partes: ley.partes, despedida: 'Y colorín colorado, el fuego se apagó.' });
     visto.leyenda.i = ley.partes.length + 1;
     escuchoLeyenda(ley, dia());
