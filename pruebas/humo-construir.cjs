@@ -95,7 +95,7 @@ app.whenReady().then(async () => {
       datos:document.getElementById('victoria-datos').textContent,
       bloques:document.querySelectorAll('#victoria-datos .parte-bloque').length,
       copiar:!document.getElementById('victoria-copiar').classList.contains('oculto')}))()`);
-    ok(pantalla.visible && /nido/i.test(pantalla.titulo), 'aparece la pantalla de fin: ' + pantalla.titulo);
+    ok(pantalla.visible && /cueva/i.test(pantalla.titulo), 'aparece la pantalla de fin: ' + pantalla.titulo);
     ok(pantalla.bloques >= 4, `el parte trae varios bloques (${pantalla.bloques})`);
     ok(/Noches resistidas/.test(pantalla.datos) && /220/.test(pantalla.datos), 'y los numeros de la partida');
     ok(/Piezas en pie/.test(pantalla.datos), 'incluye lo que construiste');

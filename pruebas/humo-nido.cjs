@@ -171,7 +171,7 @@ app.whenReady().then(async () => {
     const noche = await js(`(()=>{const H=window.__hojarasca, D=H.progreso.desafio;
       return {aliens: H.desafio.aliens.length, terminada: D.oleadaTerminada, hud: document.getElementById('desafio-estado').textContent}})()`);
     ok(noche.aliens === 0 && noche.terminada, 'pasadas las nueve de la noche ya no baja nadie');
-    ok(/el nido cayó/i.test(noche.hud), `el HUD lo dice: "${noche.hud}"`);
+    ok(/la cueva se derrumbó/i.test(noche.hud), `el HUD lo dice: "${noche.hud}"`);
     await foto('03-noche-sin-nadie');
 
     // ---- y sobrevive a una recarga
