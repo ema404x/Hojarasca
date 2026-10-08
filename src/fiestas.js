@@ -386,6 +386,17 @@ export const LEYENDAS = [
     'Yo le pregunté qué cara tenía. «Cara de que me ganaba», me dijo. Y nunca más lo volvió a ver.',
     'Así que si esta noche ven un lomo en el lago, no le saquen foto con flash. Es tímido. Y es de acá.',
   ] },
+  // 3.8.0: la de la aldea, que es lo que se juega en el Desafío. En el Relax los duendes no
+  // aparecen nunca: la abuela Herminia los cuenta y nada más.
+  { id: 'duendes', titulo: 'La noche en que salieron los duendes', quien: 'abuela', partes: [
+    'Esta es la que más me piden los chicos, y la que menos me gusta contar de noche. Arrímense al fuego, que así se oye mejor.',
+    'Cuando la cuadrilla abría el monte para la vía, los peones talaron coihues de los grandes, de esos que tienen puertitas en las raíces. Mi abuela decía que esa misma noche, la más larga del invierno, los duendes salieron del bosque.',
+    'Al anochecer salieron los chicos, los traviesos. Se reían bajito y se llevaban lo que encontraban: una cuchara, un ovillo, la caja de fósforos. Si los corrías, lo largaban y se perdían entre los helechos.',
+    'Ya entrada la noche salieron los viejos, con barba de musgo y los ojos como brasas. Algunos venían montados en lechuzas y apagaban los faroles de un aletazo.',
+    'Y a la medianoche se despertó el Coihue Viejo, el más grande del monte, hueco por dentro y con las ventanitas encendidas. Caminó con las raíces, despacito, hasta el borde del claro. Adentro, en el corazón, dicen que estaba el Rey Duende: de corteza, y con los cuernos de ámbar.',
+    'Un solo hombre del campamento no se escondió. Prendió fuego, juntó piedras y aguantó hasta que clareó. A la mañana el suelo estaba lleno de semillas doradas, y del Coihue Viejo, ni rastro.',
+    'Desde entonces nadie tala un coihue viejo, y en la aldea se golpea antes de abrir una puerta chica. Yo nunca vi un duende, tesoro. Pero cuando cruje la madera de noche, no salgo a mirar.',
+  ] },
 ];
 export const leyendaDelAnio = (anio) => LEYENDAS[((entero(anio, 1) - 1) % LEYENDAS.length + LEYENDAS.length) % LEYENDAS.length];
 
