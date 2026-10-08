@@ -73,20 +73,20 @@ export function marcasAutomaticas({ desafio, lugares } = {}) {
   };
   if (desafio) {
     sumar(desafio.caja, 'caja del alba', 'caja');
-    sumar(desafio.capsula, 'cápsula', 'capsula');
-    sumar(desafio.restos, 'restos de nave', 'restos');
+    sumar(desafio.capsula, 'cofre de los duendes', 'capsula');
+    sumar(desafio.restos, 'tronco hueco', 'restos');
     // 3.0: el asedio: las agujas, las balizas y la nave asentada
     for (const m of desafio.asedio?.marcas?.() || []) sumar(m, m.nombre, 'asedio');
     // El nido, una vez ubicado. Mientras se lo busca va el cerco, que lleva radio.
     const n = desafio.nido;
     if (n && !n.caido) {
-      if (n.revelado) sumar(n, 'el nido', 'nido');
+      if (n.revelado) sumar(n, 'la cueva', 'nido');
       else if (Number.isFinite(Number(n.radio)) && Number(n.radio) > 0) {
-        marcas.push({ x: Number(n.x), z: Number(n.z), nombre: 'el nido anda por acá', clase: 'cerco', radio: Number(n.radio) });
+        marcas.push({ x: Number(n.x), z: Number(n.z), nombre: 'la cueva anda por acá', clase: 'cerco', radio: Number(n.radio) });
       }
     }
     // 3.0: los puestos de avanzada que ya viste y siguen en pie
-    if (Array.isArray(desafio.puestos)) for (const p of desafio.puestos) sumar(p, 'puesto invasor', 'puesto');
+    if (Array.isArray(desafio.puestos)) for (const p of desafio.puestos) sumar(p, 'madriguera de duendes', 'puesto');
     // 3.0: el mapa de la semilla: tu base, la cantera, los cristales, la leña y los alijos
     if (Array.isArray(desafio.sitiosMapa)) for (const s of desafio.sitiosMapa) sumar(s, s.nombre, s.clase);
   }

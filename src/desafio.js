@@ -471,7 +471,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const p = (n0 && sitio(n0.x, n0.z) ? n0 : null) || lugarDelNido(centroBase(), sitio);
     if (!p) return;
     d.nido = nidoNuevo(p);
-    setTimeout(() => ctx.nota('Siguen bajando', 'La nodriza cayó, pero el nido sigue entero. Los restos de nave te van a decir dónde está: se rompe de día, cuando el caparazón se abre', true), 4200);
+    setTimeout(() => ctx.nota('Siguen saliendo', 'El Coihue Viejo cayó, pero la cueva sigue entera. Los troncos huecos te van a decir dónde está: se rompe de día, cuando se le abre la boca', true), 4200);
   }
   function caerNido() {
     const d = D();
@@ -480,7 +480,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     musica.golpeFinal();
     const cristales = NIDO.cristales[0] + Math.floor(Math.random() * (NIDO.cristales[1] - NIDO.cristales[0] + 1));
     ctx.sumarMaterial?.('cristal', cristales);
-    ctx.nota('EL NIDO CAYÓ', `Se terminó: de acá no sale nadie más. +${cristales} cristales`, true);
+    ctx.nota('SE DERRUMBÓ LA CUEVA', `Se terminó: de acá no sale nadie más. +${cristales} semillas doradas`, true);
     registrarRecords(true);
     ctx.alTerminar?.({ noches: d.noches, abatidos: d.abatidos, derrotas: d.derrotas, dificultad: ctx.dificultad?.() || 'normal', cristales });
     ctx.guardar();
@@ -639,7 +639,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         const js = ctx.jugador().estado;
         efectos.destello({ x: js.pos.x, y: js.pos.y + 1.2, z: js.pos.z }, 0.9, '#7dfff0');
         sonido.golpeRuido?.({ dur: 0.3, frec: 3000, q: 3, vol: 0.3, destino: sonido.bus?.efectos });
-        ctx.nota('Las placas aguantaron el golpe', 'Hasta la noche que viene no vuelven a salvarte');
+        ctx.nota('Las placas doradas aguantaron el golpe', 'Hasta la noche que viene no vuelven a salvarte');
         indicarDano(desde);
         return;
       }
@@ -726,10 +726,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     S.sirena();
     const lado = rumboTexto(js.pos, p).replace(/^al /, 'el ');
     const esp = d.especial ? ` · ${ESPECIALES[d.especial].nombre}` : '';
-    const conJefe = tipos.includes('jefe') ? ' · ¡viene el jefe del nido!' : '';
-    if (nuevaNoche) ctx.nota(`¡Una nave baja desde ${lado}!`, `Noche ${d.oleadas}${esp} · ${tipos.length} invasores${conJefe}`, true);
-    else if (retomada) ctx.nota('Los invasores siguen acá', `${tipos.length} vuelven a bajar desde ${lado}`, true);
-    else ctx.nota('Llegan refuerzos', `${tipos.length} invasores más desde ${lado}`, true);
+    const conJefe = tipos.includes('jefe') ? ' · ¡viene el capataz!' : '';
+    if (nuevaNoche) ctx.nota(`¡Salen duendes desde ${lado}!`, `Noche ${d.oleadas}${esp} · ${tipos.length} duendes${conJefe}`, true);
+    else if (retomada) ctx.nota('Los duendes siguen acá', `${tipos.length} vuelven a salir desde ${lado}`, true);
+    else ctx.nota('Llegan refuerzos', `${tipos.length} duendes más desde ${lado}`, true);
   }
   // 2.6.1: un for en vez de find: se llama en cada cuadro (la barra del jefe)
   const jefeVivo = () => { for (const a of aliens) if (a.def.jefe && a.estado !== 'morir' && a.estado !== 'irse') return a; return null; };
@@ -785,7 +785,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       a.variante = varianteJefe(D().oleadas);
       S.jefe(a.m.g.position);
       const nombre = NOMBRE_JEFE[a.variante];
-      ctx.nota(`Baja ${nombre}`, AVISO_JEFE[a.variante], true);
+      ctx.nota(`Sale ${nombre}`, AVISO_JEFE[a.variante], true);
     }
     return a;
   }
@@ -805,7 +805,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // 2.0: las noches después del nido se cuentan aparte, y son cinco
       if (siguenDespues(d.despues)) {
         const fin = sumarNocheDespues(d.despues);
-        if (fin) setTimeout(() => ctx.nota('Se terminaron las noches después', 'Sobreviviste a lo que quedó del nido. Ahora sí, el valle es tuyo', true), 3000);
+        if (fin) setTimeout(() => ctx.nota('Se terminaron las noches después', 'Sobreviviste a lo que quedó de la cueva. Ahora sí, el valle es tuyo', true), 3000);
         else ctx.nota(`Noche después ${d.despues.noches} de ${NOCHES_DESPUES}`, 'Cada vez vienen más cambiados');
       }
     }
@@ -841,10 +841,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // 3.0: en la corrida sin fin, las especiales siguen después de la veinte (desafio-supervivencia.js)
       d.especial = esNocheFinal() ? null : d.sinFin ? especialSinFin(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior)
         : nocheEspecial(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior);
-      if (esNocheFinal()) ctx.nota('Una sombra enorme tapa las estrellas', 'Esta noche baja la nave nodriza. Preparate para todo', true);
-      else if (esNocheDeJefe(d.oleadas + 1)) ctx.nota('El zumbido de la nave viene más grave', 'Esta noche baja un jefe de nido. Apuntale a los sacos de la espalda', true);
-      else if (d.especial) ctx.nota(ESPECIALES[d.especial].aviso, `${ESPECIALES[d.especial].nombre} · en una hora baja la nave`, true);
-      else ctx.nota('Se ven luces raras en el cielo', 'En una hora baja la nave. Cerrá el portón y prepará las armas', true);
+      if (esNocheFinal()) ctx.nota('El bosque cruje entero', 'Esta noche despierta el Coihue Viejo. Preparate para todo', true);
+      else if (esNocheDeJefe(d.oleadas + 1)) ctx.nota('Se oye un silbido grave en el monte', 'Esta noche sale un capataz. Apuntale a los hongos de la espalda', true);
+      else if (d.especial) ctx.nota(ESPECIALES[d.especial].aviso, `${ESPECIALES[d.especial].nombre} · en una hora salen los duendes`, true);
+      else ctx.nota('Se ven lucecitas entre los árboles', 'En una hora salen los duendes. Cerrá el portón y prepará las armas', true);
       S.sirena();
       evolucion.alAtardecer();   // 3.0: "Vienen resistentes al fuego"
     }
@@ -921,8 +921,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (R.vecino === 'ramon' && !d.companeros.includes('ramon') && aliados.sumar('ramon')) extra = ' Y se viene a tu base a darte una mano.';
     else if (R.vecino === 'nicanor') { d.flechas = (d.flechas || 0) + 8; extra = ' Te dejó ocho flechas.'; }
     else if (R.vecino === 'ercilia') { d.emplastos = (d.emplastos || 0) + 2; extra = ' Te dio dos emplastos.'; }
-    else if (R.vecino === 'guarda') { ctx.sumarMaterial?.('cristal', 2); extra = ' Encontró dos cristales en la vía.'; }
-    ctx.nota(`${R.nombre} te agradece`, `Defendiste ${R.lugar}: +${premio.tronco} troncos, +${premio.tabla} tablas, +${premio.cristal} cristales.${extra}`, true);
+    else if (R.vecino === 'guarda') { ctx.sumarMaterial?.('cristal', 2); extra = ' Encontró dos semillas doradas en la vía.'; }
+    ctx.nota(`${R.nombre} te agradece`, `Defendiste ${R.lugar}: +${premio.tronco} troncos, +${premio.tabla} tablas, +${premio.cristal} semillas doradas.${extra}`, true);
   }
   // Al amanecer: resumen, logros, récords, caja, restos de naves y vecinos que se suman.
   function amanecer() {
@@ -930,7 +930,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const especial = d.especial;
     terminarOleada(true);
     musica.alba();
-    const partes = [`${nocheActual.abatidos} ${nocheActual.abatidos === 1 ? 'invasor abatido' : 'invasores abatidos'}`];
+    const partes = [`${nocheActual.abatidos} ${nocheActual.abatidos === 1 ? 'duende abatido' : 'duendes abatidos'}`];
     if (nocheActual.perdidas) partes.push(`${nocheActual.perdidas} ${nocheActual.perdidas === 1 ? 'obra perdida' : 'obras perdidas'}`);
     if (!nocheActual.dano) partes.push('sin un rasguño');
     ctx.nota(`Resististe la noche ${d.oleadas}`, partes.join(' · '), true);
@@ -1029,16 +1029,16 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   const SIN_MUNICION = {
     arco: ['No te quedan flechas', 'Fabricá más con K, junto a un banco de trabajo'],
-    pistola: ['La pistola está descargada', 'Un cristal de invasor da seis cargas (K)'],
+    pistola: ['La pistola está descargada', 'Una semilla dorada da seis cargas (K)'],
     honda: ['No tenés piedras', 'Juntá piedra con el hacha en un pedrero (H)'],
     boleadoras: ['No te quedan boleadoras', 'Se hacen con piedra y tabla (K → Munición)'],
     // 2.5
     ballesta: ['No te quedan virotes', 'Se hacen con tabla y piedra, junto a un banco (K → Munición)'],
     hachuela: ['No te quedan hachas', 'Levantá las que tiraste, o hacé más (K → Arrojadizas)'],
     jabalina: ['No te quedan jabalinas', 'Levantá las que tiraste, o hacé más (K → Arrojadizas)'],
-    granada: ['No te quedan granadas', 'Se hacen con un cristal y una piedra (K → Arrojadizas)'],
+    granada: ['No te quedan granadas', 'Se hacen con una semilla dorada y una piedra (K → Arrojadizas)'],
     humo: ['No te quedan bombas de humo', 'Se hacen con ramitas y tabla (K → Arrojadizas)'],
-    bengala: ['No te quedan bengalas', 'Se hacen con ramitas y un cristal (K → Arrojadizas)'],
+    bengala: ['No te quedan bengalas', 'Se hacen con ramitas y una semilla dorada (K → Arrojadizas)'],
   };
   // `opciones.tension`: el arco tensado (ver `tensar`), { dano, vel } multiplicadores.
   function atacar(id, opciones = {}) {
@@ -1192,7 +1192,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const d = D();
     if (!progreso().cosas?.carcaj || !tieneArma('arco')) return false;
     const antes = tipoFlecha(d), otra = siguienteFlecha(d);
-    if (otra === antes) { ctx.nota('No tenés otras flechas', 'En el taller se hacen incendiarias y de cristal (K → Munición)'); return true; }
+    if (otra === antes) { ctx.nota('No tenés otras flechas', 'En el taller se hacen incendiarias y doradas (K → Munición)'); return true; }
     d.flechaTipo = otra;
     sonido.juntar?.();
     ctx.nota(`Flechas ${FLECHAS[otra].nombre}`, `Te quedan ${flechasDe(d)}`);
@@ -1366,7 +1366,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         camaraLenta = Math.max(camaraLenta, 1.6);
         musica.golpeFinal();
         efectos.sangre(_v, 14); efectos.chispas(_v, 16);
-        ctx.nota('Cayó el jefe del nido', `Dejó ${sueltos} cristales desparramados`, true);
+        ctx.nota('Cayó el capataz', `Dejó ${sueltos} semillas doradas desparramadas`, true);
       }
       d.abatidos++;
       nocheActual.abatidos++;
@@ -1382,7 +1382,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         // el último de la noche: un instante de cámara lenta y un golpe de música
         camaraLenta = 1.4;
         musica.golpeFinal();
-        ctx.nota('La noche quedó en silencio', 'No queda ningún invasor. Ya podés descansar', true);
+        ctx.nota('La noche quedó en silencio', 'No queda ningún duende. Ya podés descansar', true);
         estadoNave.fase = 'yendo'; estadoNave.t = 0;
       }
     }
@@ -1461,7 +1461,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     return mejor;
   }
-  const NOMBRE = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'cristales', ramita: 'ramitas', fruta: 'frutas del bosque' };
+  const NOMBRE = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas', ramita: 'ramitas', fruta: 'frutas del bosque' };
   const textoPide = (pide) => Object.entries(pide).map(([k, n]) => `${n} ${NOMBRE[k] || k} (tenés ${ctx.cuanto(k)})`).join(' · ');
   function dibujarTaller() {
     if (!tallerEl) return;
@@ -1495,9 +1495,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     });
     const d = D();
     // 2.5: la munición del arsenal, sólo la que tengas
-    const extra = [['virotes', 'virotes'], ['flechasFuego', 'incendiarias'], ['flechasCristal', 'de cristal'], ['hachuelas', 'hachas'], ['jabalinas', 'jabalinas'], ['granadas', 'granadas'], ['humos', 'humos'], ['bengalas', 'bengalas']]
+    const extra = [['virotes', 'virotes'], ['flechasFuego', 'incendiarias'], ['flechasCristal', 'doradas'], ['hachuelas', 'hachas'], ['jabalinas', 'jabalinas'], ['granadas', 'granadas'], ['humos', 'humos'], ['bengalas', 'bengalas']]
       .filter(([k]) => d[k] > 0).map(([k, n]) => ` · ${n} ${d[k]}`).join('');
-    document.getElementById('taller-intro').textContent = `Flechas ${d.flechas} · boleadoras ${d.boleadoras} · cargas ${d.cargas} · emplastos ${d.emplastos}${extra} · cristales ${ctx.cuanto('cristal')} · piedras ${ctx.cuanto('piedra')}`;
+    document.getElementById('taller-intro').textContent = `Flechas ${d.flechas} · boleadoras ${d.boleadoras} · cargas ${d.cargas} · emplastos ${d.emplastos}${extra} · semillas doradas ${ctx.cuanto('cristal')} · piedras ${ctx.cuanto('piedra')}`;
   }
   function abrirTaller(abrir) {
     tallerAbierto = abrir;
@@ -1566,15 +1566,15 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const esp = d.especial ? ` · ${ESPECIALES[d.especial].nombre}` : '';
     if (!siguenLasNoches(d)) {
       // Con el nido abajo no hay noche que contar: va primero que todo lo demás.
-      texto = `Día ${p.dia} · el nido cayó · no baja nadie más`;
+      texto = `Día ${p.dia} · la cueva se derrumbó · no sale nadie más`;
     } else if (esHoraDeAtaque(p.horas) && !d.oleadaTerminada && d.oleadaNoche === claveNoche(p.dia, p.horas)) {
-      const conJefe = jefeVivo() ? ' · ¡el jefe del nido!' : '';
-      texto = eventos.nodrizaActiva ? `Noche ${d.oleadas} · ¡La nave nodriza! · ${n} ${n === 1 ? 'invasor' : 'invasores'}${conJefe}`
-        : n ? `Noche ${d.oleadas}${esp} · ¡Invasión! ${n} ${n === 1 ? 'invasor' : 'invasores'}${conJefe}` : `Noche ${d.oleadas}${esp} · resistiendo`;
+      const conJefe = jefeVivo() ? ' · ¡el capataz!' : '';
+      texto = eventos.nodrizaActiva ? `Noche ${d.oleadas} · ¡El Coihue Viejo! · ${n} ${n === 1 ? 'duende' : 'duendes'}${conJefe}`
+        : n ? `Noche ${d.oleadas}${esp} · ¡Salieron! ${n} ${n === 1 ? 'duende' : 'duendes'}${conJefe}` : `Noche ${d.oleadas}${esp} · resistiendo`;
     } else if (esHoraDeAtaque(p.horas)) {
       texto = `Noche ${d.oleadas} · calma · amanece en ${relojCorto(segundosHasta(p.horas, HORA_AMANECER, ctx.duracion()))}`;
     } else {
-      texto = `Día ${p.dia} · próxima invasión en ${relojCorto(segundosHasta(p.horas, HORA_ATAQUE, ctx.duracion()))}`;
+      texto = `Día ${p.dia} · los duendes salen en ${relojCorto(segundosHasta(p.horas, HORA_ATAQUE, ctx.duracion()))}`;
     }
     // Con el segundo acto abierto, el día deja de ser sólo la pausa entre noches.
     // 3.0: el asedio (y adentro de la nave, sólo eso)
@@ -2491,7 +2491,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (juntados) {
       ctx.sumarMaterial('cristal', juntados);
       sonido.juntar();
-      ctx.nota(`+${juntados} ${juntados === 1 ? 'cristal' : 'cristales'}`, `Llevás ${ctx.cuanto('cristal')} · sirven para cargar la pistola de plasma`);
+      ctx.nota(`+${juntados} ${juntados === 1 ? 'semilla dorada' : 'semillas doradas'}`, `Llevás ${ctx.cuanto('cristal')} · sirven para cargar la pistola de luz`);
     }
   }
 
@@ -2504,7 +2504,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       d.pistolaEncontrada = true;
       darCosa('pistola');
       d.cargas += 12;
-      ctx.nota('Encontraste una pistola de plasma', 'Estaba en la cápsula. Trae doce cargas; los cristales dan más', true);
+      ctx.nota('Encontraste una pistola de luz', 'Estaba en el cofre de los duendes. Trae doce cargas; las semillas doradas dan más', true);
       sonido.juntar();
       ctx.alFabricar?.({ da: { cosa: 'pistola' } });
       ctx.guardar();
@@ -2570,7 +2570,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     for (const k of caja.userData.cuerdas) k.visible = !enSuelo;
     if (!enSuelo || Math.hypot(js.pos.x - c.x, js.pos.z - c.z) > 1.8) return;
     const d = D(), partes = [];
-    const NOMBRES = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'cristales' };
+    const NOMBRES = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas' };
     for (const [k, n] of Object.entries(c.contenido || {})) {
       if (NOMBRES[k]) { ctx.sumarMaterial(k, n); partes.push(`${n} ${NOMBRES[k]}`); }
       else if (k === 'flechas' || k === 'emplastos') { d[k] = (d[k] || 0) + n; partes.push(`${n} ${k === 'flechas' ? 'flechas' : n === 1 ? 'emplasto' : 'emplastos'}`); }
@@ -2748,7 +2748,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     clearTimeout(notaCapullos);
     notaCapullos = setTimeout(() => {
       if (D().capullos !== lista || !lista.length) return;
-      ctx.nota(n1 ? 'Quedó un capullo en el bosque' : `Quedaron ${cuantos} capullos en el bosque`,
+      ctx.nota(n1 ? 'Quedó un nido de hongos en el bosque' : `Quedaron ${cuantos} nidos de hongos en el bosque`,
         n1 ? `Está ${rumboTexto(js.pos, mas)}. Quemalo (E, con una ramita) antes de que caiga la noche` : `El más cercano, ${rumboTexto(js.pos, mas)}. Quemalos (E, con una ramita) antes de que caiga la noche`, true);
     }, 4500);
   }
@@ -2770,7 +2770,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     d.vivos = (d.vivos || 0) + n;
     d.capullos = [];
     sincronizarCapullos();
-    if (n) setTimeout(() => ctx.nota(lista.length === 1 ? 'Se abrió un capullo' : `Se abrieron ${lista.length} capullos`, n === 1 ? 'Un invasor más, desde el bosque' : `${n} invasores más, desde el bosque`, true), 1500);
+    if (n) setTimeout(() => ctx.nota(lista.length === 1 ? 'Se abrió un nido de hongos' : `Se abrieron ${lista.length} nidos de hongos`, n === 1 ? 'Un duende más, desde el bosque' : `${n} duendes más, desde el bosque`, true), 1500);
   }
   function capulloCerca(pos, radio = CAPULLOS.radioUsar) {
     let mejor = null, d0 = radio;
@@ -2809,7 +2809,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         if (a) { a.vida = a.vidaMax = Math.max(1, Math.round(a.vidaMax * 0.5)); a.enredadoT = 1.2; }
         S.capullo(_v);
         sincronizarCapullos();
-        ctx.nota('Rompiste el capullo', 'El que estaba adentro salió flojo: terminalo');
+        ctx.nota('Rompiste el nido de hongos', 'El que estaba adentro salió flojo: terminalo');
         ctx.guardar();
       }
       return true;
@@ -2832,7 +2832,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       lista.splice(i, 1);
       sincronizarCapullos();
       ctx.sumarMaterial('cristal', 1);
-      ctx.nota('Quemaste un capullo', lista.length ? `Quedan ${lista.length} en el bosque · +1 cristal` : 'No queda ninguno · +1 cristal');
+      ctx.nota('Quemaste un nido de hongos', lista.length ? `Quedan ${lista.length} en el bosque · +1 semilla dorada` : 'No queda ninguno · +1 semilla dorada');
       ctx.guardar();
     }
   }
@@ -2882,7 +2882,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const premio = premioVarada(d.oleadas);
     for (const [k, n] of Object.entries(premio)) ctx.sumarMaterial(k, n);
     sonido.silbato?.(p);
-    ctx.nota('La trochita llegó a la estación', `Elsa te agradece: +${premio.cristal} cristales, +${premio.tabla} tablas, +${premio.piedra} piedras`, true);
+    ctx.nota('La trochita llegó a la estación', `Elsa te agradece: +${premio.cristal} semillas doradas, +${premio.tabla} tablas, +${premio.piedra} piedras`, true);
     ctx.guardar();
   }
   // al amanecer (o si caíste): el tren sigue, llegue o no
@@ -3205,9 +3205,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const deNoche = () => nocheNivel > 0.5 || vivos() > 0;
   function puedeDormir() {
     const p = progreso(), d = D();
-    if (hayAtaque()) return { ok: false, motivo: eventos.nodrizaActiva ? 'La nave nodriza sigue ahí arriba' : 'Hay invasores cerca: no es momento de dormir' };
-    if (p.horas >= HORA_ATAQUE - 1 && p.horas < HORA_ATAQUE) return { ok: false, motivo: 'Está por bajar la nave. Preparate' };
-    if (esHoraDeAtaque(p.horas) && d.oleadaNoche !== claveNoche(p.dia, p.horas)) return { ok: false, motivo: 'La nave todavía no bajó esta noche' };
+    if (hayAtaque()) return { ok: false, motivo: eventos.nodrizaActiva ? 'El Coihue Viejo sigue en pie' : 'Hay duendes cerca: no es momento de dormir' };
+    if (p.horas >= HORA_ATAQUE - 1 && p.horas < HORA_ATAQUE) return { ok: false, motivo: 'Están por salir los duendes. Preparate' };
+    if (esHoraDeAtaque(p.horas) && d.oleadaNoche !== claveNoche(p.dia, p.horas)) return { ok: false, motivo: 'Los duendes todavía no salieron esta noche' };
     return { ok: true };
   }
   function limpiar() {
@@ -3266,7 +3266,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (!d.nido?.caido || d.despues) return false;
       d.despues = { activo: true, noches: 0, terminado: false };
       d.oleadaTerminada = true;
-      ctx.nota('Las noches después', `Algo sobrevivió al nido. ${NOCHES_DESPUES} noches más: vienen cambiados`, true);
+      ctx.nota('Las noches después', `Algo sobrevivió a la cueva. ${NOCHES_DESPUES} noches más: vienen cambiados`, true);
       ctx.guardar();
       return true;
     },

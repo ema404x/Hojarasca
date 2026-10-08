@@ -109,7 +109,7 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   assert.equal(P.usarEstructura('vaina', { ramitas: 3, lluvia: 0.9 }).accion, 'mojado');
   assert.equal(P.usarEstructura('generador').accion, 'arrancar');
   assert.equal(P.usarEstructura('aguja').accion, 'nada');
-  assert.match(P.avisoEstructura('vaina', { ramitas: 1 }), /Quemar la vaina/);
+  assert.match(P.avisoEstructura('vaina', { ramitas: 1 }), /Quemar la bolsa de esporas/);   // 3.8.0
   assert.equal(P.avisoEstructura('aguja'), null, 'la aguja no tiene E: se rompe a golpes');
 
   // el guardado: basura afuera, lo bueno se queda
@@ -207,7 +207,7 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
 // ---------------------------------------------------------------- 4. el mapa
 {
   const m = marcasAutomaticas({ desafio: { puestos: [{ x: 5, z: 6 }] } });
-  assert.deepEqual(m.map((q) => [q.nombre, q.clase]), [['puesto invasor', 'puesto']]);
+  assert.deepEqual(m.map((q) => [q.nombre, q.clase]), [['madriguera de duendes', 'puesto']]);
   assert.deepEqual(marcasAutomaticas({ desafio: { puestos: null } }), []);
   assert.match(leer('src/mapa.js'), /a\.clase === 'puesto'/, 'el mapa dibuja el puesto');
 }

@@ -57,7 +57,7 @@ export const OFICIOS = {
     ],
   },
   cazador: {
-    nombre: 'Cazador', de: 'Abatir invasores en el Desafío y leer rastros',
+    nombre: 'Cazador', de: 'Abatir duendes en el Desafío y leer rastros',
     titulos: ['Aprendiz de rastreador', 'Rastreador', 'Cazador', 'Cazador baqueano', 'Maestro cazador'],
     habilidades: [
       'Pulso firme: el arco se tensa un poco más rápido',

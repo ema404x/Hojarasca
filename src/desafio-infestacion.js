@@ -63,6 +63,6 @@ export function golpearCapullo(c) {
 }
 
 export function avisoCapullo({ ramitas = 0, lluvia = 0 } = {}) {
-  if (lluvia > 0.55) return 'Capullo: mojado no prende, rompelo a golpes';
-  return ramitas > 0 ? 'Quemar el capullo (1 ramita)' : 'Capullo: juntá una ramita para quemarlo, o rompelo a golpes';
+  if (lluvia > 0.55) return 'Nido de hongos: mojado no prende, rompelo a golpes';
+  return ramitas > 0 ? 'Quemar el nido de hongos (1 ramita)' : 'Nido de hongos: juntá una ramita para quemarlo, o rompelo a golpes';
 }

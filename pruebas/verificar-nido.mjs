@@ -69,7 +69,7 @@ for (const azar of [0, 0.17, 0.33, 0.5, 0.71, 0.99]) {
   }
 }
 assert.match(textoPista(nidoNuevo({ x: 0, z: 0 })), /cerco/);
-assert.match(textoPista(n), /marcado en el mapa/);
+assert.match(textoPista(n), /marcada en el mapa/);
 
 // ---------------------------------------------------------------- de día se abre, de noche no
 assert.equal(estaAbierto(12), true, 'al mediodía está abierto');
@@ -124,8 +124,8 @@ assert.equal(resumenNido(buscando, 12).buscando, true);
 assert.match(resumenNido(buscando, 12).texto, /sin ubicar/);
 const ubicado = nidoNuevo({ x: 0, z: 0 });
 for (let i = 0; i < NIDO.pistas; i++) sumarPista(ubicado, 0.5);
-assert.match(resumenNido(ubicado, 12).texto, /abierto/);
-assert.match(resumenNido(ubicado, 3).texto, /cerrado/);
+assert.match(resumenNido(ubicado, 12).texto, /abierta/);   // 3.8.0: el nido es la cueva
+assert.match(resumenNido(ubicado, 3).texto, /cerrada/);
 assert.equal(resumenNido(ubicado, 12).fraccion, 1);
 assert.equal(resumenNido(roto, 12).caido, true);
 
@@ -186,7 +186,7 @@ console.log('nido: ok ·', NIDO.camaras, 'cámaras ·', VIDA_NIDO, 'de vida ·',
 const mainJs = leer('src/main.js'), plantilla = leer('src/plantilla.html');
 assert.match(mainJs, /alTerminar: \(s\) => mostrarVictoria\(s, true\)/, 'el nido tiene su propio final');
 assert.match(mainJs, /function mostrarVictoria\(s, final = false\)/, 'la pantalla sirve para los dos');
-assert.match(mainJs, /final \? 'El nido cayó'/);
+assert.match(mainJs, /final \? 'Se derrumbó la cueva'/);   // 3.8.0: el nido es la cueva
 for (const id of ['victoria-titulo', 'victoria-sub', 'victoria-texto']) {
   assert.ok(plantilla.includes(`id="${id}"`), `falta ${id} en la plantilla`);
 }

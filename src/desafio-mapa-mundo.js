@@ -121,7 +121,7 @@ export function crearMapaMundo(T, escena, ctx) {
     if (!d.mapa) d.mapa = mapaGuardadoNuevo(null, true);
     const r = usarSitio(d.mapa.usos, s, ctx.dia());
     if (!r.ok) { ctx.nota(RECURSOS[s.tipo].nombre, avisoSitio(d.mapa.usos, s, ctx.dia())); return true; }
-    const NOMBRES = { piedra: 'piedras', cristal: 'cristales', tronco: 'troncos', tabla: 'tablas' };
+    const NOMBRES = { piedra: 'piedras', cristal: 'semillas doradas', tronco: 'troncos', tabla: 'tablas' };
     const partes = [];
     for (const [k, n] of Object.entries(r.da)) {
       if (Object.hasOwn(NOMBRES, k)) { ctx.sumarMaterial(k, n); partes.push(`+${n} ${NOMBRES[k]}`); }

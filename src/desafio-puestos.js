@@ -35,9 +35,9 @@ export const PUESTOS = {
 
 // Las tres estructuras. `alto` es para la malla y para dónde pegan las flechas.
 export const ESTRUCTURAS = {
-  aguja: { nombre: 'aguja', vida: 150, radio: 1.6, alto: 5.2 },
-  vaina: { nombre: 'vaina', vida: 80, radio: 1.0, alto: 1.7 },
-  generador: { nombre: 'generador de cristal', vida: 110, radio: 1.2, alto: 2.3 },
+  aguja: { nombre: 'hongo alto', vida: 150, radio: 1.6, alto: 5.2 },
+  vaina: { nombre: 'bolsa de esporas', vida: 80, radio: 1.0, alto: 1.7 },
+  generador: { nombre: 'semilla dorada', vida: 110, radio: 1.2, alto: 2.3 },
 };
 // Lo que se agrega en cada nivel (el 1 arranca con la aguja y una vaina).
 const POR_NIVEL = { 1: ['aguja', 'vaina'], 2: ['generador'], 3: ['vaina', 'vaina'] };
@@ -213,10 +213,10 @@ export function usarEstructura(tipo, { ramitas = 0, lluvia = 0 } = {}) {
   return { accion: 'quemar' };
 }
 export function avisoEstructura(tipo, { ramitas = 0, lluvia = 0 } = {}) {
-  if (tipo === 'generador') return 'Arrancar el cristal del generador';
+  if (tipo === 'generador') return 'Arrancar la semilla dorada';
   if (tipo !== 'vaina') return null;
-  if (lluvia > 0.55) return 'Vaina: mojada no prende, rompela a golpes';
-  return ramitas > 0 ? 'Quemar la vaina (1 ramita)' : 'Vaina: juntá una ramita para quemarla, o rompela a golpes';
+  if (lluvia > 0.55) return 'Bolsa de esporas: mojada no prende, rompela a golpes';
+  return ramitas > 0 ? 'Quemar la bolsa de esporas (1 ramita)' : 'Bolsa de esporas: juntá una ramita para quemarla, o rompela a golpes';
 }
 
 export function sanearPuestos(v) {

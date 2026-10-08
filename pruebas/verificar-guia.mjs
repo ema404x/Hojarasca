@@ -12,7 +12,7 @@ assert.ok(relax.some((s) => s.id === 'vida') && !relax.some((s) => s.id === 'def
 assert.ok(desafio.some((s) => s.id === 'defensa') && !desafio.some((s) => s.id === 'vida'), 'el Desafío muestra armas y defensas');
 const recursos = (secs) => secs.find((s) => s.id === 'recursos').items.map((i) => i[0]);
 for (const r of ['Troncos', 'Tablas', 'Piedra', 'Ramitas', 'Frutas']) assert.ok(recursos(relax).includes(r) && recursos(desafio).includes(r), `la guía explica ${r}`);
-assert.ok(recursos(desafio).includes('Cristales') && !recursos(relax).includes('Cristales'));
+assert.ok(recursos(desafio).includes('Semillas doradas') && !recursos(relax).includes('Semillas doradas'));
 const tablas = desafio.find((s) => s.id === 'recursos').items.find((i) => i[0] === 'Tablas')[1];
 assert.match(tablas, /Y/); assert.match(tablas, /2 tablas/); assert.match(tablas, /4/);
 for (const s of SECCIONES_GUIA) for (const it of s.items) assert.ok(it[0] && it[1] && it[1].length < 260, `ítem de guía mal formado en ${s.id}`);

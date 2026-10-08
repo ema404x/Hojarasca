@@ -110,7 +110,7 @@ const des = leer('src/desafio.js'), alien = leer('src/desafio-alien.js'), main =
   const j = { x: 0, z: 0 }, mira = { x: 0, z: -1 };
   assert.equal(S.subtituloSonido({ clave: 'acecho', pos: { x: -40, z: -40 }, jugador: j, mira }), '[gruñido lejos · noroeste]');
   assert.equal(S.subtituloSonido({ clave: 'respiro', pos: { x: 0, z: 4 }, jugador: j, mira }), '[respiración encima · detrás tuyo]');
-  assert.equal(S.subtituloSonido({ clave: 'chillido', pos: { x: 10, z: 0 }, jugador: j, mira }), '[chillido cerca · este]');
+  assert.equal(S.subtituloSonido({ clave: 'chillido', pos: { x: 10, z: 0 }, jugador: j, mira }), '[risita cerca · este]');   // 3.8.0: los duendes se ríen
   assert.equal(S.subtituloSonido({ clave: 'nada', pos: { x: 10, z: 0 }, jugador: j }), null);
   let l = [];
   l = S.apilarSubtitulo(l, '[a]', 0); l = S.apilarSubtitulo(l, '[a]', 0.5); l = S.apilarSubtitulo(l, '[b]', 1);

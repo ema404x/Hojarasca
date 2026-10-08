@@ -10,7 +10,7 @@ export const PASOS_TUTORIAL = [
   { id: 'empalizada', texto: 'Levantá dos tramos de empalizada: O → Defensa', tecla: 'O', hecho: (s) => (s.cuenta.empalizada || 0) >= 2 },
   { id: 'porton', texto: 'Sumá un portón para entrar y salir de tu fuerte', tecla: 'O', hecho: (s) => (s.cuenta['porton-empalizada'] || 0) >= 1 },
   { id: 'antorcha', texto: 'Poné una antorcha de guardia: de noche vas a necesitar luz', tecla: 'O', hecho: (s) => (s.cuenta.antorcha || 0) >= 1 },
-  { id: 'noche', texto: 'Esperá la nave con la lanza en la mano (clic izquierdo ataca)', tecla: '1', hecho: (s) => s.oleadas >= 1 },
+  { id: 'noche', texto: 'Esperá a los duendes con la lanza en la mano (clic izquierdo ataca)', tecla: '1', hecho: (s) => s.oleadas >= 1 },
 ];
 export const PREMIO_TUTORIAL = { emplastos: 1, tabla: 4, piedra: 4 };
 

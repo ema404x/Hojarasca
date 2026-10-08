@@ -781,7 +781,7 @@ async function construir() {
     alDerribar: (caidas) => {
       progreso.obras = obras.obras.map((o) => o.datos);
       const nombre = caidas[0]?.plano?.nombre || 'Una pieza';
-      nota(`Cayó: ${nombre.toLowerCase()}`, caidas.length > 1 ? `Arrastró ${caidas.length - 1} ${caidas.length === 2 ? 'pieza' : 'piezas'} más` : 'Los invasores la derribaron', true);
+      nota(`Cayó: ${nombre.toLowerCase()}`, caidas.length > 1 ? `Arrastró ${caidas.length - 1} ${caidas.length === 2 ? 'pieza' : 'piezas'} más` : 'Los duendes la derribaron', true);
       guardar();
     },
     alFabricar: (r) => { refrescarBarra(true); if (r?.da?.cosa) destellarRanura(r.da.cosa); },
@@ -966,7 +966,7 @@ function dibujarCuaderno() {
       if (f.falta) ficha.appendChild(el('p', 'pista', f.falta));
     } else {
       ficha.appendChild(el('h2', '', 'Bestiario'));
-      ficha.appendChild(el('p', 'texto', 'Cada invasor que veas de cerca queda anotado acá. Peleando se aprende cómo se mueve, y al tercero que abatís, dónde es débil.'));
+      ficha.appendChild(el('p', 'texto', 'Cada duende que veas de cerca queda anotado acá. Peleando se aprende cómo se mueve, y al tercero que abatís, dónde es débil.'));
     }
     return;
   }
@@ -1372,7 +1372,7 @@ function abrir(cual) {
     $('btn-vuelta').classList.toggle('oculto', !(desafio && puedeOtraVuelta(progreso.desafio)));
     if (desafio && progreso.desafio) {
       const d = progreso.desafio;
-      $('resumen-pausa').textContent = `Desafío · ${d.noches} ${d.noches === 1 ? 'noche resistida' : 'noches resistidas'} · ${d.abatidos} invasores abatidos · mejor racha ${d.mejorRacha}`;
+      $('resumen-pausa').textContent = `Desafío · ${d.noches} ${d.noches === 1 ? 'noche resistida' : 'noches resistidas'} · ${d.abatidos} duendes abatidos · mejor racha ${d.mejorRacha}`;
     }
     guardar();
     sincronizarAjustes();
@@ -1392,7 +1392,7 @@ function dibujarMapa() {
     if (o.datos.nombre) marcas.push({ x: o.datos.x, z: o.datos.z, tipo: 'parada', nombre: o.datos.nombre });
   }
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
-  if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cápsula estrellada' });
+  if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
   for (const m of modos?.marcasMapa?.() || []) marcas.push(m);   // 3.1: los postes de largada
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
@@ -1785,15 +1785,15 @@ function sincronizarAjustes() {
   $('aviso-calidad').classList.toggle('oculto', ajustes.calidad === calidadInicial);
   textoAjustesDistancia();   // 3.5
   if ($('modo-texto')) $('modo-texto').textContent = ajustes.modo === 'desafio'
-    ? 'Cada noche baja una nave. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
+    ? 'Cada noche salen los duendes del bosque. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
     : 'El bosque de siempre: caminar, anotar, pescar y construir sin apuro. Nada te ataca.';
   // la dificultad sólo tiene sentido en el Desafío (y se puede cambiar en cualquier momento)
   $('opcion-dificultad')?.classList.toggle('oculto', ajustes.modo !== 'desafio');
   $('fila-dificultad')?.classList.toggle('oculto', !esDesafio);
   if ($('desafio-tipo-texto')) $('desafio-tipo-texto').textContent = ajustes.desafioTipo === 'sinfin'   // 3.0
     ? 'Una sola vida y ninguna noche final: cada noche vienen más duros. Caer termina la corrida y queda el récord. Tu campaña no se toca.'
-    : 'Veinte noches hasta la nave nodriza, y después el nido.';
-  if ($('dificultad-texto')) $('dificultad-texto').textContent = { tranquila: 'Pocos invasores y golpes suaves.', normal: 'Peligrosa, pero con defensas se resiste.', implacable: 'Más invasores y más duros.' }[ajustes.dificultad] || '';
+    : 'Veinte noches hasta el Coihue Viejo, y después la cueva.';
+  if ($('dificultad-texto')) $('dificultad-texto').textContent = { tranquila: 'Pocos duendes y golpes suaves.', normal: 'Peligrosa, pero con defensas se resiste.', implacable: 'Más duendes y más duros.' }[ajustes.dificultad] || '';
   textoCodigo();
   valle?.portada(ajustes);   // 3.1: Libre o Historia, en el Relax
 }
@@ -1936,7 +1936,7 @@ $('btn-entrar').addEventListener('click', () => {
   $('inicio').classList.add('oculto');
   if (origenGuardado === 'backup') setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
   else if (esDesafio && (!habiaGuardado || !progreso.pos)) {
-    setTimeout(() => nota('Esta noche bajan los invasores', 'Juntá troncos y piedra con el hacha (H) y armá defensas (O → Defensa)', true), 1500);
+    setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos y piedra con el hacha (H) y armá defensas (O → Defensa)', true), 1500);
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
   }
   else if (!habiaGuardado || !progreso.pos) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
@@ -2485,12 +2485,12 @@ let parteUltimo = null;
 function mostrarVictoria(s, final = false) {
   setTimeout(() => {
     // 3.0: si se ganó desde adentro de la nave (el asedio), la pantalla lo cuenta
-    $('victoria-titulo').textContent = final ? 'El nido cayó' : s?.nave ? 'La nave cayó desde adentro' : '¡La nave nodriza cayó!';
+    $('victoria-titulo').textContent = final ? 'Se derrumbó la cueva' : s?.nave ? 'El Coihue cayó desde adentro' : '¡Cayó el Coihue Viejo!';
     $('victoria-sub').textContent = final ? 'Se terminó el Desafío' : 'Ganaste el Desafío';
     $('victoria-texto').textContent = final
       ? 'De acá no sale nadie más. Las noches vuelven a ser noches y el valle queda para vos: lo que levantaste sigue en pie y el bosque se va a encargar del resto.'
-      : s?.nave ? 'Subiste por el haz, le reventaste el corazón a la Madre y saliste antes de que la nave tocara el suelo. El valle respira, pero siguen bajando: salen de un nido enterrado en algún lado. Los restos de nave te van a decir dónde.'
-      : 'El valle respira, pero siguen bajando. Salen de un nido que está enterrado en algún lado: los restos de nave te van a decir dónde, y se rompe de día, cuando el caparazón se abre.';
+      : s?.nave ? 'Entraste por la puertita, subiste hasta el corazón, le reventaste el de ámbar al Rey Duende y saliste antes de que el Coihue tocara el suelo. El valle respira, pero siguen saliendo: vienen de una cueva escondida en algún lado. Los troncos huecos te van a decir dónde.'
+      : 'El valle respira, pero siguen saliendo. Vienen de una cueva escondida en algún lado: los troncos huecos te van a decir dónde, y se rompe de día, cuando se le abre la boca.';
     $('victoria-seguir').textContent = final ? 'Quedarme en el valle' : 'Seguir';
     // 2.0: con el nido caído se puede elegir seguir: cinco noches de invasores cambiados
     $('victoria-despues').classList.toggle('oculto', !(final && desafio && !desafio.despues));
@@ -2526,7 +2526,7 @@ async function otraVuelta() {
   if (!desafio || !puedeOtraVuelta(progreso.desafio)) return;
   const siguiente = (progreso.desafio.vuelta || 0) + 1;
   const m = multiplicadorVuelta(siguiente);
-  const acepta = await dialogos.confirmar(`Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras y los planos. Los invasores vienen ${Math.round((m.cantidad - 1) * 100)}% más, aguantan ${Math.round((m.vida - 1) * 100)}% más y pegan ${Math.round((m.dano - 1) * 100)}% más fuerte. ¿Vamos?`);
+  const acepta = await dialogos.confirmar(`Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras y los planos. Los duendes vienen ${Math.round((m.cantidad - 1) * 100)}% más, aguantan ${Math.round((m.vida - 1) * 100)}% más y pegan ${Math.round((m.dano - 1) * 100)}% más fuerte. ¿Vamos?`);
   if (!acepta || reiniciandoPartida || !puedeOtraVuelta(progreso.desafio)) return;
   const nueva = nuevaVuelta(progreso, progresoNuevo());
   reiniciandoPartida = true;
@@ -3505,12 +3505,12 @@ const PISTAS = [
   // 3.6: el primer viaje. En el Relax el almacén (y el hacha) está en la Aldea de los Duendes
   { id: 'p-aldea', cuando: (js, p) => !desafio && !p.cosas?.hacha && !p.aldea?.descubierta && (!!p.entradas.refugio || Object.keys(p.entradas).length >= 2), titulo: 'El hacha está en la aldea', texto: PISTA_PRIMER_VIAJE },
   // Desafío, segundo acto: el nido aparece cuando cae la nodriza
-  { id: 'p-nido', cuando: (js, p) => !!p.desafio?.nido && !p.desafio.nido.caido, titulo: 'Siguen bajando', texto: 'Salen de un nido enterrado en el valle. Los restos de nave traen señales que te lo van a ubicar' },
-  { id: 'p-cerco', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= 1 && !p.desafio.nido.caido, titulo: 'El cerco se achica', texto: 'Abrí el mapa (M): el redondel a lápiz marca dónde puede estar. Cada resto de nave lo achica' },
+  { id: 'p-nido', cuando: (js, p) => !!p.desafio?.nido && !p.desafio.nido.caido, titulo: 'Siguen saliendo', texto: 'Vienen de una cueva escondida en el valle. Los troncos huecos traen pistas que te la van a ubicar' },
+  { id: 'p-cerco', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= 1 && !p.desafio.nido.caido, titulo: 'El cerco se achica', texto: 'Abrí el mapa (M): el redondel a lápiz marca dónde puede estar. Cada tronco hueco lo achica' },
   // 3.0: el asedio final y la nave por dentro
-  { id: 'p-asedio', cuando: (js, p) => !!p.desafio?.asedio?.activo, titulo: 'El asedio', texto: 'La nodriza se asentó y clavó agujas en el valle (el mapa las marca). Rompelas de día; de noche defendé la baliza de la última zona que recuperaste' },
-  { id: 'p-haz', cuando: (js, p) => !!p.desafio?.asedio?.activo && (p.desafio.asedio.zonas || []).filter((z) => z.estado !== 'tomada').length >= 3, titulo: 'El haz está abierto', texto: 'Con tres zonas libres se puede subir a la nave: de día, parate abajo de ella, en el haz de luz, y apretá E' },
-  { id: 'p-nido-dia', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= NIDO.pistas && !p.desafio.nido.caido, titulo: 'El nido está marcado', texto: 'Andá de día: con el sol arriba se abre el caparazón y quedan a tiro las tres cámaras. De noche está cerrado' },
+  { id: 'p-asedio', cuando: (js, p) => !!p.desafio?.asedio?.activo, titulo: 'El asedio', texto: 'El Coihue Viejo se plantó y hundió raíces en el valle (el mapa las marca). Cortalas de día; de noche defendé el fogón de la última zona que recuperaste' },
+  { id: 'p-haz', cuando: (js, p) => !!p.desafio?.asedio?.activo && (p.desafio.asedio.zonas || []).filter((z) => z.estado !== 'tomada').length >= 3, titulo: 'La puertita está abierta', texto: 'Con tres zonas libres se puede entrar al Coihue: de día, andá a su pie, a la puertita de las raíces, y apretá E' },
+  { id: 'p-nido-dia', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= NIDO.pistas && !p.desafio.nido.caido, titulo: 'La cueva está marcada', texto: 'Andá de día: con el sol arriba se le abre la boca y quedan a tiro las tres cunas. De noche está tapada' },
 ];
 let acumuladoPistas = 0;
 function revisarPistas(dt) {
@@ -3747,7 +3747,7 @@ function caerEnDesafio() {
   if (modoObra) abrirObra(false);
   if (mochilaAbierta) abrirMochila(false);
   desafio?.abrirTaller(false);
-  nota('Los invasores te dejaron fuera de combate', 'Perdiste los cristales y parte de los materiales', true);
+  nota('Los duendes te dejaron fuera de combate', 'Perdiste las semillas doradas y parte de los materiales', true);
   setTimeout(() => {
     desafio.limpiar();
     const M = progreso.materiales || {};

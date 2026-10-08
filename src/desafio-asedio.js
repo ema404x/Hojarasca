@@ -183,9 +183,9 @@ export function textoAsedio(a) {
   const n = (a.zonas || []).length, libres = zonasLibres(a);
   const contra = a.contra !== null && a.contra !== undefined ? a.zonas[a.contra] : null;
   const def = contra ? defZona(contra.id) : null;
-  if (contra && def) return `Asedio · defendé la baliza de ${def.corto} (${Math.ceil(contra.baliza / ASEDIO.vidaBaliza * 100)}%)`;
-  if (puedeAbordar(a)) return `Asedio · ${libres}/${n} zonas libres · el haz de la nave está abierto`;
-  return `Asedio · ${libres}/${n} zonas libres · escudo ${capasEscudo(a)}`;
+  if (contra && def) return `Asedio · defendé el fogón de ${def.corto} (${Math.ceil(contra.baliza / ASEDIO.vidaBaliza * 100)}%)`;
+  if (puedeAbordar(a)) return `Asedio · ${libres}/${n} zonas libres · la puertita del Coihue está abierta`;
+  return `Asedio · ${libres}/${n} zonas libres · corteza ${capasEscudo(a)}`;
 }
 // Para el mapa: las agujas en pie, las balizas y la nave.
 export function marcasAsedio(a) {
@@ -193,10 +193,10 @@ export function marcasAsedio(a) {
   const m = [];
   for (const z of a.zonas || []) {
     const def = defZona(z.id);
-    const nombre = z.estado === 'tomada' ? `aguja · ${def?.corto || z.id}` : z.estado === 'recuperada' ? `baliza · ${def?.corto || z.id}` : `${def?.corto || z.id} (libre)`;
+    const nombre = z.estado === 'tomada' ? `raíz · ${def?.corto || z.id}` : z.estado === 'recuperada' ? `fogón · ${def?.corto || z.id}` : `${def?.corto || z.id} (libre)`;
     m.push({ x: z.x, z: z.z, nombre, estado: z.estado });
   }
-  m.push({ x: a.nave.x, z: a.nave.z, nombre: puedeAbordar(a) ? 'la nave (haz abierto)' : 'la nave nodriza', estado: 'nave' });
+  m.push({ x: a.nave.x, z: a.nave.z, nombre: puedeAbordar(a) ? 'el Coihue (puertita abierta)' : 'el Coihue Viejo', estado: 'nave' });
   return m;
 }
 

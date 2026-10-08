@@ -61,17 +61,17 @@ export function brilloTitileo(t) {
 // ---------------------------------------------------------------- 8. el bestiario
 export const BESTIARIO = {
   rastreador: {
-    nombre: 'Rastreador', visto: 'Flaco, encorvado, corre en cuatro patas cuando te tiene en la mira.',
+    nombre: 'Rastreador', visto: 'Flaco, encorvado, con gorro de corteza; corre en cuatro patas cuando te tiene en la mira.',
     aprendido: 'Caza como los perros cimarrones: si lo mirás, se frena o se esconde; si le das la espalda, carga. No le des la espalda.',
     debil: 'Poca vida y ningún blindaje: la lanza lo baja de dos golpes. El perro lo frena mordiéndole las patas.',
   },
   tirador: {
-    nombre: 'Tirador', visto: 'Alto, con un orbe en la mano que se enciende antes de disparar.',
-    aprendido: 'Se planta a media distancia y dispara plasma. No tira si hay una pared entre él y vos.',
+    nombre: 'Tirador', visto: 'Alto para ser duende, con un farolito de ámbar en la mano que se enciende antes de tirar.',
+    aprendido: 'Se planta a media distancia y te tira chispas de ámbar. No tira si hay una pared entre él y vos.',
     debil: 'Pegate a una pared o a un tronco y hacelo acercarse. De cerca es lento para apuntar.',
   },
   bruto: {
-    nombre: 'Bruto', visto: 'Enorme, lento, con los ojos color brasa.',
+    nombre: 'Bruto', visto: 'Un viejo enorme y lento, con barba de musgo y los ojos color brasa.',
     aprendido: 'No le tienen miedo a la luz: van derecho a las antorchas y las apagan. Rompen una empalizada en pocos golpes.',
     debil: 'Lento para girar: rodealo. Las estacas y los pozos lo frenan más que a nadie.',
   },
@@ -82,13 +82,13 @@ export const BESTIARIO = {
   },
   escupidor: {
     nombre: 'Escupidor', visto: 'Pesado, con una bolsa en el cuello que burbujea.',
-    aprendido: 'Escupe ácido en arco por encima de las defensas. El ácido quema las obras donde cae.',
+    aprendido: 'Escupe savia hirviendo en arco por encima de las defensas. La savia quema las obras donde cae.',
     debil: 'De cerca no puede escupir: tiene que alejarse para apuntar. Encima, es presa fácil.',
   },
   jefe: {
-    nombre: 'Jefe de nido', visto: 'Cuatro metros, sacos verdes en la espalda.',
+    nombre: 'Capataz', visto: 'Cuatro metros de duende viejo, con hongos verdes en la espalda.',
     aprendido: 'Se da vuelta despacio y aplasta lo que tenga adelante.',
-    debil: 'Los sacos de la espalda: el golpe ahí duele el doble.',
+    debil: 'Los hongos de la espalda: el golpe ahí duele el doble.',
   },
   // 2.1
   excavador: {
@@ -98,13 +98,13 @@ export const BESTIARIO = {
   },
   // 2.3
   volador: {
-    nombre: 'Volador', visto: 'Flaco, morado casi negro, con dos membranas que se abren como alas.',
-    aprendido: 'Pasa por arriba de todo y va derecho a las antorchas prendidas: baja en picada y las apaga. Si no queda ninguna, viene rasante por vos.',
+    nombre: 'Jinete de lechuza', visto: 'Un duende flaco montado en una lechuza grande, de alas que no hacen ruido.',
+    aprendido: 'Pasa por arriba de todo y va derecho a las antorchas prendidas: la lechuza baja en picada y las apaga. Si no queda ninguna, viene rasante por vos.',
     debil: 'Arriba sólo lo alcanzan las flechas, la pistola y la ballesta que apunta al cielo. Cuando baja a apagar una llama, también la lanza.',
   },
   mutado: {
-    nombre: 'Mutado', visto: 'Uno de los de siempre, pero con las venas encendidas de otro color.',
-    aprendido: 'Salen después del nido. Aguantan más, pegan más fuerte y se curan solos si los dejás respirar.',
+    nombre: 'Viejo', visto: 'Uno de los de siempre, pero viejo: barba de musgo y las venas encendidas de ámbar.',
+    aprendido: 'Salen después de la cueva. Aguantan más, pegan más fuerte y se curan solos si los dejás respirar.',
     debil: 'No les des tregua: si seguís pegando no llegan a cerrarse las heridas.',
   },
 };

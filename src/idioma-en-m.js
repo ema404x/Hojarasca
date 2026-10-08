@@ -183,7 +183,6 @@ const K = {
   'Otra vuelta, más difícil': 'Another round, harder',
   'Otra vuelta al Desafío': 'Another round of the Challenge',
   'Vuelta {0}': 'Round {0}',
-  'Otra vuelta: vuelve a empezar desde la primera noche, sin base ni materiales, pero con tus armas, las mejoras y los planos. Los invasores vienen {0}% más, aguantan {1}% más y pegan {2}% más fuerte. ¿Vamos?': 'Another round: start over from the first night, with no base and no materials, but with your weapons, upgrades and blueprints. The invaders come {0}% more, last {1}% longer and hit {2}% harder. Ready?',
 
   // ---------------------------------------------------------------- el cuaderno para compartir
   'Llevarte el cuaderno': 'Take your notebook',

@@ -71,7 +71,7 @@ export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opc
     // 2.3: el volador baja en picada y la apaga (se avisa una vez cada tanto)
     if (motivo === 'volador' && (performance.now() - (apagar.ultimoVolador || -1e9)) > 20000) {
       apagar.ultimoVolador = performance.now();
-      api.nota('Un volador apagó una antorcha', 'Vienen por el aire a buscar las llamas. F la vuelve a prender; la ballesta al cielo los baja');
+      api.nota('Una lechuza apagó una antorcha', 'Vienen montados en lechuzas a buscar las llamas. F la vuelve a prender; la ballesta al cielo los baja');
     }
     if (motivo === 'apagon') {
       // 2.0: la noche sin luces. Nadie a la vista: la llama se ahoga con un soplido.
@@ -181,7 +181,7 @@ export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opc
         if (Math.hypot(p.x - o.datos.x, p.z - o.datos.z) > o.plano.defensa.radio) continue;
         silencioCampana.set(o, 25);
         for (let i = 0; i < 3; i++) setTimeout(() => sonido.campana?.({ x: o.datos.x, y: o.datos.y + 2, z: o.datos.z }), i * 450);
-        api.nota('¡Suena la campana!', `Invasores ${api.rumboTexto(o.datos, p)} de la base`, true);
+        api.nota('¡Suena la campana!', `Duendes ${api.rumboTexto(o.datos, p)} de la base`, true);
         break;
       }
     }
@@ -286,7 +286,7 @@ export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opc
       if (api.cuanto('cristal') >= 1) { api.gastar('cristal', 1); o.datos.escudoActivo = true; }
       else { o.datos.escudoActivo = false; sinCristal++; }
     }
-    if (sinCristal) api.nota('Un escudo quedó apagado', 'Cada generador necesita un cristal por noche');
+    if (sinCristal) api.nota('Una campana de musgo se apagó', 'Cada campana necesita una semilla dorada por noche');
   }
   function alAmanecer() { for (const o of escudos) o.datos.escudoActivo = false; }
   // Cuánto del daño llega a la obra: los escudos activos absorben la mitad.

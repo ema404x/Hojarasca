@@ -32,9 +32,9 @@ export const RUMORES = [
 ];
 // Lo que se oye en el Desafío: los otros también resisten.
 export const RUMORES_DESAFIO = [
-  { id: 'd-resisten', de: 'cerroNegro', texto: 'Acá seguimos. Anoche bajaron tres sobre el techo y los sacamos con agua hirviendo. Tapen las ventanas, cambio.' },
-  { id: 'd-nave', de: 'paso', texto: 'La nave grande pasó sobre el paso a la madrugada, sin luces, para el lado de ustedes. Prepárense.' },
-  { id: 'd-sal', de: 'lagunaAzul', texto: 'No les gusta el fuego ni el ruido. Si tienen cencerros, cuélguenlos en el cerco. Cambio.' },
+  { id: 'd-resisten', de: 'cerroNegro', texto: 'Acá seguimos. Anoche se nos subieron tres duendes al techo y los sacamos con agua hirviendo. Tapen las ventanas, cambio.' },
+  { id: 'd-nave', de: 'paso', texto: 'A la madrugada se oyó crujir el monte entero del lado del paso. Dicen que el coihue grande se movió, para el lado de ustedes. Prepárense.' },
+  { id: 'd-sal', de: 'lagunaAzul', texto: 'No les gusta el fuego ni el ruido. Si tienen cencerros, cuélguenlos en el cerco. Y no dejen nada chico afuera, que se lo llevan. Cambio.' },
 ];
 
 // Los pedidos: se juntan con lo que hay en el valle y se mandan con la trochita.

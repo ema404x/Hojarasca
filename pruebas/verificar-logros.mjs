@@ -117,7 +117,7 @@ assert.ok(cont.textContent.includes('Mejor racha 4 noches · Más noches 7 · Ab
 assert.ok(cont.textContent.includes(`1 de ${LOGROS.length} logros`));
 assert.equal(todo.filter((n) => n.className === 'logro-item hecho').length, 1);
 assert.equal(todo.filter((n) => n.className.startsWith('logro-item')).length, LOGROS.length);
-assert.ok(cont.textContent.includes('Cielo limpio'), 'oculto desbloqueado se muestra');
+assert.ok(cont.textContent.includes('Monte quieto'), 'oculto desbloqueado se muestra');
 assert.ok(cont.textContent.includes('???'), 'ocultos bloqueados como ???');
 assert.ok(!cont.textContent.includes('Luna de sangre'));
 assert.ok(!todo.some((n) => n.tagName === 'p'), 'limpia el contenedor');

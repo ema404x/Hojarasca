@@ -396,7 +396,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     hud.style.display = 'block';
     _v.set(arena.x, arena.y + 5, arena.z);
     S().jefe?.(_v);
-    api.nota(AVISO_FASE.ojos[0], AVISO_FASE.ojos[1] + (debilidadNave(asedio) ? '. Con las cuatro zonas libres, llegó más débil: le falta un ojo' : ''), true);
+    api.nota(AVISO_FASE.ojos[0], AVISO_FASE.ojos[1] + (debilidadNave(asedio) ? '. Con las cuatro zonas libres, llegó más débil: le falta una piedra de ámbar' : ''), true);
     api.guardar();
   }
   function salir() {
@@ -437,8 +437,8 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     if (motivo === 'derrota') {
       d.salud = Math.round(SALUD_MAX * 0.6);
       if (d.asedio) d.asedio.derrotasNave = (d.asedio.derrotasNave || 0) + 1;
-      api.nota('La nave te escupió', 'Caíste adentro y el haz te bajó al valle. Sigue abierto: cuando estés listo, volvé a subir (la Madre se recompone)', true);
-    } else api.nota('Volviste al valle', 'El haz sigue abierto. Adentro, la Madre se recompone');
+      api.nota('El Coihue te escupió', 'Caíste adentro y las raíces te sacaron al valle. La puertita sigue abierta: cuando estés listo, volvé a entrar (el Rey Duende se recompone)', true);
+    } else api.nota('Volviste al valle', 'La puertita sigue abierta. Adentro, el Rey Duende se recompone');
     api.guardar();
   }
 
@@ -470,14 +470,14 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       if (r.fase === 'corazon') efectos?.explosion(_v, 9);
     } else {
       const quedan = puntosActivos(pelea).length;
-      api.nota(n.tipo === 'ojo' ? 'Le reventaste un ojo' : 'Cayó un pilar', `Quedan ${quedan}`);
+      api.nota(n.tipo === 'ojo' ? 'Le reventaste una piedra de ámbar' : 'Cortaste una raíz', `Quedan ${quedan}`);
     }
   }
   function empezarFinal() {
     seq = { tipo: 'final', t: 0, hecho: false, boom: 0 };
     api.camaraLenta?.(2.4);
     for (const a of crias) if (a.estado !== 'morir') { a.estado = 'irse'; a.t = 0; }
-    api.nota('¡La Madre cayó!', 'La nave se viene abajo. ¡Afuera, rápido!', true);
+    api.nota('¡Cayó el Rey Duende!', 'El Coihue se viene abajo. ¡Afuera, rápido!', true);
     api.guardar();
   }
 
@@ -730,7 +730,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     tHud -= dt;
     if (tHud <= 0 && pelea) {
       tHud = 0.12;
-      const texto = `La Madre · ${textoNave(pelea)}`;
+      const texto = `El Rey Duende · ${textoNave(pelea)}`;
       if (hudTitulo.textContent !== texto) hudTitulo.textContent = texto;
       hudRelleno.style.width = `${Math.round(fraccionNave(pelea) * 100)}%`;
     }
@@ -785,7 +785,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     return Math.hypot(pos.x - s.x, pos.z - s.z) < 2.4 && Math.abs(pos.y - arena.y) < 2;
   }
   const usarCerca = (pos) => (enLaSalida(pos) ? salir() : false);
-  const avisoCerca = (pos) => (enLaSalida(pos) ? 'Bajar por el haz al valle' : null);
+  const avisoCerca = (pos) => (enLaSalida(pos) ? 'Salir por la puertita al valle' : null);
 
   function limpiar() {
     if (adentro) {
@@ -810,6 +810,6 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     // el piso de adentro, para lo que cae (proyectiles, cristales, partículas)
     alturaPiso: (x, z) => (arena && Math.hypot(x - arena.x, z - arena.z) < R + 1 ? arena.y : -1e9),
     pisoT,
-    textoHud: () => (adentro && pelea ? `Adentro de la nave · ${textoNave(pelea)}` : ''),
+    textoHud: () => (adentro && pelea ? `Adentro del Coihue · ${textoNave(pelea)}` : ''),
   };
 }

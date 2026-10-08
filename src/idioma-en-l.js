@@ -13,8 +13,6 @@ export const EN_L = {
   'al sur': 'to the south', 'al suroeste': 'to the southwest', 'al oeste': 'to the west', 'al noroeste': 'to the northwest',
   'el puesto de Don Ramón': "Don Ramón's puesto", 'la cabaña de Nicanor': "Nicanor's cabin",
   'el almacén de Ercilia': "Ercilia's store", 'la estación de Elsa': "Elsa's station",
-  'el jefe del nido': 'the nest boss', 'el jefe que llama': 'the boss that calls',
-  'el jefe sombra': 'the shadow boss', 'el jefe que tira piedras': 'the boss that throws rocks',
   'frasco de dulce de frutilla': 'jar of strawberry jam', 'frascos de dulce de frutilla': 'jars of strawberry jam',
   'un frasco de dulce de frutilla': 'a jar of strawberry jam',
   'bolsita de calafates secos': 'little bag of dried calafate berries', 'bolsitas de calafate seco': 'little bags of dried calafate',
@@ -158,10 +156,8 @@ export const EN_L = {
   '¡Atacan {0}!': "They're attacking {0}!",
   'Está {0}. Si vas a defenderlo, {1} no se lo va a olvidar': "It's {0}. If you go defend it, {1} won't forget it",
   '{0} te agradece': '{0} thanks you',
-  'Defendiste {0}: +{1} troncos, +{2} tablas, +{3} cristales.{4}': 'You defended {0}: +{1} logs, +{2} planks, +{3} crystals.{4}',
   'Y se viene a tu base a darte una mano.': "And they're coming to your base to lend a hand.",
   'Te dejó ocho flechas.': 'Left you eight arrows.', 'Te dio dos emplastos.': 'Gave you two poultices.',
-  'Encontró dos cristales en la vía.': 'Found two crystals on the tracks.',
   'Destrozaron {0}': '{0} was wrecked',
   '{0} no va a querer hablarte por unos días': "{0} won't want to talk to you for a few days",
   'Anoche me destrozaron el puesto y vos no viniste. Dejame tranquilo un par de días.': "Last night they wrecked my puesto and you didn't come. Leave me alone for a couple of days.",
@@ -186,12 +182,7 @@ export const EN_L = {
   'algo cava bajo la tierra': 'something digging underground', 'la tierra se abre': 'the ground splits open',
 
   // ---- 8. los jefes
-  'Los jefes': 'The bosses',
-  'Cada jefe es otro: el de siempre, el que llama refuerzos, la sombra que sólo se ve con la linterna y el que tira piedras a las defensas desde lejos.':
-    'Each boss is different: the usual one, the one that calls reinforcements, the shadow you only see with the flashlight, and the one that throws rocks at the defenses from afar.',
-  'Baja {0}': 'Coming down: {0}',
   'No se lo ve. Con la linterna encendida (L), el haz lo descubre': "You can't see it. With the flashlight on (L), the beam gives it away",
-  'Si no lo bajás rápido, llama a otros. Los sacos de la espalda siguen siendo su punto débil': "If you don't take it down fast, it calls others. The sacs on its back are still its weak spot",
   'Se queda lejos y tira piedras a las defensas. Salí a buscarlo': 'It stays far off and throws rocks at the defenses. Go out after it',
   'una piedra que cae': 'a falling rock',
 
@@ -203,10 +194,9 @@ export const EN_L = {
     'It may tell you where the nest is, at the back of the hull: watch the floor plates and whatever sleeps inside',
 
   // ---- 10. la forja
-  'La forja': 'The forge', 'Forja de cristal': 'Crystal forge',
+  'La forja': 'The forge', 
   'Lanza de hielo': 'Ice spear', 'Flechas de rayo': 'Lightning arrows', 'Honda de empuje': 'Force sling',
   'El golpe congela: frena en seco a rastreadores y saltadores. Contra los grandes casi no sirve.': 'The blow freezes: it stops trackers and leapers dead. Against the big ones it barely works.',
-  'Cada flecha que entra suelta un rayo que salta a los dos invasores más cercanos. Para los grupos.': 'Each arrow that hits sets off a bolt that jumps to the two nearest invaders. For groups.',
   'La piedra empuja y derriba: el tirador y el escupidor quedan en el suelo sin poder apuntar.': "The stone shoves and knocks down: the shooter and the spitter end up on the ground, unable to aim.",
   'rastreadores y saltadores: los frena en seco': 'trackers and leapers: stops them dead',
   'los grupos: el rayo salta a los que están cerca': 'groups: the bolt jumps to those nearby',
@@ -222,8 +212,6 @@ export const EN_L = {
     "Some nights they attack a neighbor's place: the puesto, the cabin, the store or the station. If you go and it holds, they thank you; if it falls, that neighbor won't talk to you for a few days.",
   'Desde la noche 7. No rompe la empalizada: cava por abajo y sale cerca tuyo. Se oye cavar y se ve el polvo. Donde hay losa de piedra (O → Defensa) no puede asomar.':
     "From night 7. It doesn't break the palisade: it digs underneath and comes up near you. You hear it dig and see the dust. It can't surface where there's a stone slab (O → Defense).",
-  'Las naves caídas se recorren: un pasillo con placas en el piso que dan descargas (pasalas cuando están apagadas), invasores dormidos (agachado no se despiertan) y el premio al fondo.':
-    "Crashed ships can be explored: a corridor with floor plates that shock you (cross them when they're off), sleeping invaders (crouched, they don't wake up) and the prize at the back.",
   'En el taller (K), pestaña Forja: lanza de hielo (frena a los rápidos), flechas de rayo (para los grupos) y honda de empuje (derriba a los que tiran de lejos).':
     'At the workshop (K), Forge tab: ice spear (stops the fast ones), lightning arrows (for groups) and force sling (knocks down the ones shooting from afar).',
   'Grabás cantos de aves anotadas; al hacerlos sonar, la más cercana contesta.': 'You record the songs of birds you have written down; when you play them, the nearest one answers.',

@@ -89,7 +89,7 @@ export function crearEvolucionMundo(efectos, sonido, api) {
     const d = api.D();
     if (avisoNoche !== d.oleadas && (fuente === 'jugador' || fuente === 'lanza')) {
       avisoNoche = d.oleadas;
-      api.nota('Ese viene preparado', `Tiene placas: ${RESISTENTES[clase]}. Probá con otra cosa`);
+      api.nota('Ese viene preparado', `Tiene costra de corteza: ${RESISTENTES[clase]}. Probá con otra cosa`);
     }
     return dano * k;
   }
