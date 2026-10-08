@@ -1,4 +1,5 @@
 // Partida real 3.0 (Electron + WebGL): el contraataque de día y los invasores que evolucionan.
+// 3.8.0: los textos que mira esta partida dicen lo de los duendes (duendes, Coihue Viejo, madrigueras).
 //   1. al amanecer aparece un puesto; al acercarte queda en el mapa y aparecen sus guardias
 //      dormidos; la vaina se quema con E (la tecla de verdad), la aguja se rompe a flechazos
 //      y a hachazos; roto, deja cristales y la noche siguiente vienen menos y más flojos;
@@ -114,7 +115,7 @@ app.whenReady().then(async () => {
     await cuadros(3);
     const avisoE = await js(`window.__hojarasca.desafio.avisoCercaDe(window.__hojarasca.jugador.estado.pos, 99)`);
     const avisoPantalla = await js(`window.__hojarasca.__aviso()`);
-    ok(/Quemar la vaina/.test(avisoE), `el aviso de E: "${avisoE}" (en pantalla: "${avisoPantalla}")`);
+    ok(/Quemar la bolsa de esporas/.test(avisoE)   /* 3.8.0: la vaina es una bolsa de esporas */, `el aviso de E: "${avisoE}" (en pantalla: "${avisoPantalla}")`);
     const ramitas0 = await js(`window.__hojarasca.progreso.ramitas ?? window.__hojarasca.progreso.materiales.ramita`);
     await tecla('KeyE');
     await simular(3.2, 0);
@@ -147,7 +148,7 @@ app.whenReady().then(async () => {
     ok(roto.golpes.length === 1 && roto.golpes[0].noche === 3 && roto.golpes[0].menos === 3, `la noche 3 vienen menos (${JSON.stringify(roto.golpes)})`);
     ok((await js(`window.__hojarasca.desafio.puestos.length`)) === 0, 'roto, sale del mapa');
     const avisos = await js(`window.__hojarasca.__avisos().join(' | ')`);
-    ok(/Rompiste el puesto/.test(avisos), 'y se avisa');
+    ok(/Rompiste la madriguera/.test(avisos), 'y se avisa');
 
     seccion('2. la noche siguiente: menos y más flojos');
     await limpiarAliens();

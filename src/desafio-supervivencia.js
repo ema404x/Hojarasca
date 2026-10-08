@@ -168,7 +168,7 @@ export function lineaRecord(r, i) {
 // Lo que dice la pantalla de la corrida terminada.
 export function resumenCorrida({ noches = 0, abatidos = 0, codigo = null, puesto = 0, puestoCodigo = 0 } = {}) {
   const titulo = noches === 0 ? 'No llegaste al amanecer' : `Resististe ${textoNoches(noches)}`;
-  const partes = [`${abatidos} ${abatidos === 1 ? 'invasor abatido' : 'invasores abatidos'}`];
+  const partes = [`${abatidos} ${abatidos === 1 ? 'duende abatido' : 'duendes abatidos'}`];
   if (codigo) partes.push(`código ${codigo}`);
   let lugar = '';
   if (puesto === 1) lugar = '¡Tu mejor corrida!';

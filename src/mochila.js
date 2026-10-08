@@ -520,18 +520,18 @@ export function armarMochila(progreso, estado) {
   // Modo Desafío: armas y curas van adelante, para tenerlas en 1–4 al empezar la noche
   const D = progreso.modo === 'desafio' ? progreso.desafio : null;
   if (D) {
-    if (M.cristal) ranuras.push({ id: 'cristal', nombre: 'Cristales alienígenas', icono: 'cristal', cuenta: M.cristal, texto: 'Con la pistola de plasma, cada uno da seis cargas (K).' });
+    if (M.cristal) ranuras.push({ id: 'cristal', nombre: 'Semillas doradas', icono: 'cristal', cuenta: M.cristal, texto: 'Con la pistola de luz, cada una da seis cargas (K).' });
     const armas = [];
-    if (progreso.cosas?.pistola) armas.push({ id: 'pistola', nombre: 'Pistola de plasma', icono: 'pistola', cuenta: D.cargas || '0', accion: 'arma', texto: 'Clic izquierdo dispara. Gasta una carga por tiro.' });
+    if (progreso.cosas?.pistola) armas.push({ id: 'pistola', nombre: 'Pistola de luz', icono: 'pistola', cuenta: D.cargas || '0', accion: 'arma', texto: 'Clic izquierdo dispara. Gasta una carga por tiro.' });
     if (progreso.cosas?.arco) {
       // 2.5: con el carcaj, la cuenta es la de la flecha elegida
       const tipo = tipoFlecha(D);
       armas.push({ id: 'arco', nombre: progreso.cosas.carcaj && tipo !== 'comun' ? `Arco · flechas ${FLECHAS[tipo].nombre}` : 'Arco de lenga', icono: 'arco', cuenta: flechasDe(D) || '0', accion: 'arma',
         texto: progreso.cosas.carcaj ? 'Clic sostenido tensa (más fuerte); clic derecho cambia de flecha.' : 'Clic sostenido tensa: cuanto más, más fuerte y más lejos.' });
     }
-    if (progreso.cosas?.lanza) armas.push({ id: 'lanza', nombre: progreso.cosas.lanzaCristal ? 'Lanza con punta de cristal' : 'Lanza de coihue', icono: progreso.cosas.lanzaCristal ? 'lanzaCristal' : 'lanza', accion: 'arma', texto: 'Clic izquierdo golpea; clic derecho sostenido bloquea.' });
+    if (progreso.cosas?.lanza) armas.push({ id: 'lanza', nombre: progreso.cosas.lanzaCristal ? 'Lanza con punta dorada' : 'Lanza de coihue', icono: progreso.cosas.lanzaCristal ? 'lanzaCristal' : 'lanza', accion: 'arma', texto: 'Clic izquierdo golpea; clic derecho sostenido bloquea.' });
     if (progreso.cosas?.honda) armas.push({ id: 'honda', nombre: 'Honda de cuero', icono: 'honda', cuenta: M.piedra || '0', accion: 'arma', texto: 'Tira las piedras que juntaste. Rápida y barata.' });
-    if (progreso.cosas?.boleadoras) armas.push({ id: 'boleadoras', nombre: 'Boleadoras', icono: 'boleadoras', cuenta: D.boleadoras || '0', accion: 'arma', texto: 'Enredan al invasor y lo dejan quieto unos segundos.' });
+    if (progreso.cosas?.boleadoras) armas.push({ id: 'boleadoras', nombre: 'Boleadoras', icono: 'boleadoras', cuenta: D.boleadoras || '0', accion: 'arma', texto: 'Enredan al duende y lo dejan quieto unos segundos.' });
     if (D.emplastos) armas.push({ id: 'emplasto', nombre: 'Emplasto de hierbas', icono: 'emplasto', cuenta: D.emplastos, accion: 'curar', texto: 'Clic derecho para curarte 45 puntos.' });
     if (progreso.cosas?.martillo) armas.push({ id: 'martillo', nombre: 'Martillo de carpintero', icono: 'martillo', accion: 'arma', texto: 'Tocá una defensa dañada para repararla.' });
     const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'hacha'];
@@ -542,10 +542,10 @@ export function armarMochila(progreso, estado) {
     if (C.ballesta) nuevas.push({ id: 'ballesta', nombre: nombreDeBallesta(progreso, C.ballestaRepeticion ? 'Ballesta de repetición' : 'Ballesta de mano'), icono: 'ballesta', cuenta: D.virotes || '0', accion: 'arma', texto: C.ballestaRepeticion ? 'Tres virotes seguidos; atraviesan al primero.' : 'El virote atraviesa al primero y sigue. Recarga lenta.' });
     if (C.facon) nuevas.push({ id: 'facon', nombre: 'Facón', icono: 'facon', accion: 'arma', texto: C.rodela ? 'Rápido; por la espalda, el doble. Clic derecho: escudo.' : 'Rápido; por la espalda, el doble.' });
     if (C.maza) nuevas.push({ id: 'maza', nombre: 'Maza con clavos', icono: 'maza', accion: 'arma', texto: 'Lenta: aturde, y contra los grandes pega más.' });
-    if (C.arpon) nuevas.push({ id: 'arpon', nombre: 'Arpón de cristal', icono: 'arpon', accion: 'arma', texto: 'Engancha y arrastra al invasor hacia vos.' });
+    if (C.arpon) nuevas.push({ id: 'arpon', nombre: 'Arpón dorado', icono: 'arpon', accion: 'arma', texto: 'Engancha y arrastra al duende hacia vos.' });
     if (C.hachuela) nuevas.push({ id: 'hachuela', nombre: 'Hachas arrojadizas', icono: 'hachuela', cuenta: D.hachuelas || '0', accion: 'arma', texto: 'Derriban al que corre. Se levantan del suelo.' });
     if (C.jabalina) nuevas.push({ id: 'jabalina', nombre: 'Jabalinas', icono: 'jabalina', cuenta: D.jabalinas || '0', accion: 'arma', texto: 'Llegan lejos. Se levantan del suelo.' });
-    if (C.granada) nuevas.push({ id: 'granada', nombre: 'Granadas de cristal', icono: 'granada', cuenta: D.granadas || '0', accion: 'arma', texto: 'Estallan al tocar algo. No la tires cerca tuyo.' });
+    if (C.granada) nuevas.push({ id: 'granada', nombre: 'Granadas doradas', icono: 'granada', cuenta: D.granadas || '0', accion: 'arma', texto: 'Estallan al tocar algo. No la tires cerca tuyo.' });
     if (C.humo) nuevas.push({ id: 'humo', nombre: 'Bombas de humo', icono: 'humo', cuenta: D.humos || '0', accion: 'arma', texto: 'Adentro del humo te pierden el rastro.' });
     if (C.bengala) nuevas.push({ id: 'bengala', nombre: 'Bengalas', icono: 'bengala', cuenta: D.bengalas || '0', accion: 'arma', texto: 'Iluminan medio minuto y dejan a la vista a los que haya cerca.' });
     if (C.cuerno) nuevas.push({ id: 'cuerno', nombre: 'Cuerno de guardia', icono: 'cuerno', accion: 'arma', texto: 'Llama a los compañeros; los de cerca dudan.' });

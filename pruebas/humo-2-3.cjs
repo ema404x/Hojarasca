@@ -267,7 +267,7 @@ app.whenReady().then(async () => {
       H.desafio.usarCercaDe(js.pos);
       for (let i = 0; i < 70; i++) H.desafio.actualizar(0.05, { noche: 0, dtReal: 0.05 });
       return { aviso, quedan: D.capullos.length, ramitas: P.ramitas, cristal: (P.materiales.cristal || 0) - cristal0 } })()`);
-    ok(/Quemar el capullo/.test(quema.aviso) && quema.quedan === 1 && quema.ramitas === 1 && quema.cristal === 1, `E con una ramita quema el capullo (${JSON.stringify(quema)})`);
+    ok(/Quemar el nido de hongos/.test(quema.aviso)   /* 3.8.0: el capullo es un nido de hongos */ && quema.quedan === 1 && quema.ramitas === 1 && quema.cristal === 1, `E con una ramita quema el capullo (${JSON.stringify(quema)})`);
     const rotura = await js(`(()=>{ const H = window.__hojarasca, D = H.progreso.desafio, P = H.progreso, js = H.jugador.estado;
       P.cosas.lanza = 1;
       const c = D.capullos[0]; const x = c.x + 1.2, z = c.z;

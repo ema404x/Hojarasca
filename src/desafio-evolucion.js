@@ -38,11 +38,11 @@ export const RESISTENTES = {
   trampas: 'mirando dónde pisan: las trampas les hacen menos',
   torretas: 'blindados contra las torretas',
   explosivos: 'resistentes a las explosiones',
-  cristal: 'resistentes al cristal y al rayo',
+  cristal: 'resistentes a lo dorado y al rayo',
 };
 export const NOMBRE_CLASE = {
   fuego: 'el fuego', flechas: 'las flechas', cuerpo: 'los golpes', trampas: 'las trampas',
-  torretas: 'las torretas', explosivos: 'las explosiones', cristal: 'el cristal',
+  torretas: 'las torretas', explosivos: 'las explosiones', cristal: 'lo dorado',
 };
 // Placas y brillo del borde, por clase: se leen de lejos y de noche.
 export const ASPECTO_CLASE = {
@@ -58,7 +58,7 @@ export const ASPECTO_CLASE = {
 // La ficha del bestiario de los adaptados (se anota como las demás: visto y abatido).
 Object.assign(BESTIARIO, {
   adaptado: {
-    nombre: 'Adaptado', visto: 'Uno de los de siempre, con placas de costra encima, del color de lo que aprendió a aguantar.',
+    nombre: 'Baqueano', visto: 'Uno de los de siempre, con costra de corteza encima, del color de lo que aprendió a aguantar.',
     aprendido: 'Aprenden de cómo te defendés: si todas las noches usás lo mismo, cada vez vienen más preparados contra eso.',
     debil: 'Cambiá de táctica. Contra lo demás no tienen nada, y lo que dejás de usar lo olvidan en pocas noches.',
   },
@@ -208,14 +208,14 @@ export function avisoAtardecer(evo) {
   const cuantos = Math.round((EVOLUCION.porcion[activas[0].nivel] || 0) * 10);
   return {
     titulo: titulo.charAt(0).toUpperCase() + titulo.slice(1),
-    texto: `Aprendieron de cómo te defendés: ${cuantos} de cada 10 traen placas. Cambiá de táctica: lo que no usás, lo olvidan`,
+    texto: `Aprendieron de cómo te defendés: ${cuantos} de cada 10 traen costra de corteza. Cambiá de táctica: lo que no usás, lo olvidan`,
   };
 }
 
 // Lo que se anota al amanecer, si algo cambió.
 export function avisoAprendizaje(cambio) {
   if (!cambio) return null;
-  if (cambio.subio) return { titulo: 'Aprendieron algo esta noche', texto: `La nave vio cómo peleaste: la próxima vez van a venir ${RESISTENTES[cambio.subio]}` };
+  if (cambio.subio) return { titulo: 'Aprendieron algo esta noche', texto: `Los viejos vieron cómo peleaste: la próxima vez van a venir ${RESISTENTES[cambio.subio]}` };
   if (cambio.bajaron?.length) return { titulo: 'Se van olvidando', texto: `Como no usaste ${cambio.bajaron.map((c) => NOMBRE_CLASE[c]).join(' ni ')}, ya no vienen tan preparados` };
   return null;
 }

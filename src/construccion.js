@@ -1402,7 +1402,7 @@ const PIEZAS = [
     id: 'empalizada', nombre: 'Empalizada de troncos', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.9, ancho: 3.1, fondo: 0.5, alto: 2.6, separacion: 0.4, vida: 320,
     snap: { tipo: 'linea', familia: 'empalizada', largo: 3.1, umbral: 1.0 },
-    texto: 'Troncos afilados clavados en fila. Frena a los invasores hasta que la derriban. Los tramos se encadenan.',
+    texto: 'Troncos afilados clavados en fila. Frena a los duendes hasta que la derriban. Los tramos se encadenan.',
     pide: { tronco: 4 }, pendienteMax: 0.6, distSendero: 0.4,
     arma(c) {
       for (let i = 0; i < 8; i++) {
@@ -1419,7 +1419,7 @@ const PIEZAS = [
     id: 'porton-empalizada', nombre: 'Portón de empalizada', pieza: true, soloDesafio: true, categoria: 'defensa', porton: true,
     radio: 1.9, ancho: 3.1, fondo: 0.5, alto: 2.9, separacion: 0.4, vida: 380,
     snap: { tipo: 'linea', familia: 'empalizada', largo: 3.1, umbral: 1.0 },
-    texto: 'Un tramo de empalizada con portón de tablas: se abre y se cierra con E. Cerrado, los invasores tienen que romperlo para pasar.',
+    texto: 'Un tramo de empalizada con portón de tablas: se abre y se cierra con E. Cerrado, los duendes tienen que romperlo para pasar.',
     pide: { tronco: 5, tabla: 3 }, pendienteMax: 0.5, distSendero: 0,
     arma(c) {
       for (const x of [-1.42, -1.08, 1.08, 1.42]) {
@@ -1457,7 +1457,7 @@ const PIEZAS = [
   {
     id: 'estacas', nombre: 'Estacas trampa', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.3, ancho: 2.4, fondo: 1.6, alto: 0.9, separacion: 0.2, vida: 150,
-    texto: 'Palos afilados en ángulo. No cierran el paso: lastiman y frenan a cada invasor que las cruza.',
+    texto: 'Palos afilados en ángulo. No cierran el paso: lastiman y frenan a cada duende que las cruza.',
     pide: { tronco: 2, piedra: 1 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'estacas', radio: 1.35, dps: 16, freno: 0.45, desgaste: 3 },
     arma(c) {
@@ -1472,7 +1472,7 @@ const PIEZAS = [
   {
     id: 'ballesta-fija', nombre: 'Ballesta de guardia', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.0, ancho: 1.5, fondo: 1.5, alto: 1.9, separacion: 1.5, vida: 220,
-    texto: 'Un arco grande sobre un trípode. Dispara sola contra el invasor más cercano a 26 metros.',
+    texto: 'Un arco grande sobre un trípode. Dispara sola contra el duende más cercano a 26 metros.',
     pide: { tabla: 6, tronco: 2, piedra: 2 }, pendienteMax: 0.45, distSendero: 0.4,
     defensa: { tipo: 'torreta', alcance: 26, dano: 30, cadencia: 1.9, altura: 1.45 },
     arma(c, P, datos, suelo) {
@@ -1493,7 +1493,7 @@ const PIEZAS = [
   {
     id: 'antorcha', nombre: 'Antorcha de guardia', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 0.5, ancho: 0.6, fondo: 0.6, alto: 2.3, separacion: 1.2, vida: 90,
-    texto: 'Un poste con fuego que alumbra el perímetro. A los invasores no les gusta la luz. La lluvia y los brutos la apagan; F la vuelve a prender.',
+    texto: 'Un poste con fuego que alumbra el perímetro. A los duendes no les gusta la luz. La lluvia y los brutos la apagan; F la vuelve a prender.',
     pide: { tronco: 1, tabla: 1 }, pendienteMax: 0.7, distSendero: 0,
     defensa: { tipo: 'antorcha', radio: 9, llamaY: 2.12 },
     arma(c) {
@@ -1507,7 +1507,7 @@ const PIEZAS = [
   {
     id: 'campana', nombre: 'Campana de alarma', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 0.9, ancho: 1.2, fondo: 0.7, alto: 2.4, separacion: 6, vida: 160,
-    texto: 'Suena sola cuando un invasor se acerca a 30 metros de ella: te avisa aunque estés del otro lado de la base.',
+    texto: 'Suena sola cuando un duende se acerca a 30 metros de ella: te avisa aunque estés del otro lado de la base.',
     pide: { tabla: 2, tronco: 2, piedra: 1 }, pendienteMax: 0.5, distSendero: 0.3,
     defensa: { tipo: 'campana', radio: 30 },
     arma(c) {
@@ -1521,7 +1521,7 @@ const PIEZAS = [
   {
     id: 'torre-vigia', nombre: 'Torre de vigía', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 2.1, ancho: 3.4, fondo: 3.4, alto: 3.6, separacion: 3, vida: 520,
-    texto: 'Plataforma a 2,4 m con escalera. Desde arriba tus disparos llegan más lejos y pegan 25% más, y los invasores no te alcanzan con las manos.',
+    texto: 'Plataforma a 2,4 m con escalera. Desde arriba tus disparos llegan más lejos y pegan 25% más, y los duendes no te alcanzan con las manos.',
     pide: { tronco: 8, tabla: 8, piedra: 2 }, pendienteMax: 0.35, distSendero: 0.4,
     defensa: { tipo: 'torre', altura: 2.4 },
     // 3.0.1: en una ladera el primer peldaño quedaba hasta un metro arriba del suelo
@@ -1590,7 +1590,7 @@ const PIEZAS = [
     // 2.3: contra el volador (ver `desafio-cielo.js`)
     id: 'ballesta-cielo', nombre: 'Ballesta al cielo', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.1, ancho: 1.6, fondo: 1.6, alto: 3.6, separacion: 1.8, vida: 240,
-    texto: 'Una ballesta montada en lo alto de un poste, que gira y apunta para arriba. Prefiere a los voladores: los alcanza a 34 metros aunque vayan alto. Si no hay ninguno, tira a los de tierra.',
+    texto: 'Una ballesta montada en lo alto de un poste, que gira y apunta para arriba. Prefiere a las lechuzas: las alcanza a 34 metros aunque vayan alto. Si no hay ninguno, tira a los de tierra.',
     pide: { tabla: 6, tronco: 4, cristal: 2 }, pendienteMax: 0.45, distSendero: 0.4,
     defensa: { tipo: 'torreta', cielo: true, alcance: 34, dano: 26, cadencia: 1.4, altura: 3.4 },
     arma(c, P, datos, suelo) {
@@ -1629,7 +1629,7 @@ const PIEZAS = [
   {
     id: 'pozo', nombre: 'Pozo con estacas', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.2, ancho: 2.0, fondo: 2.0, alto: 0.4, separacion: 0.6, vida: 200,
-    texto: 'Un pozo tapado con ramas: el invasor que lo pisa queda atrapado unos segundos y se lastima. Tarda en rearmarse.',
+    texto: 'Un pozo tapado con ramas: el duende que lo pisa queda atrapado unos segundos y se lastima. Tarda en rearmarse.',
     pide: { tronco: 2, piedra: 2 }, pendienteMax: 0.45, distSendero: 0,
     defensa: { tipo: 'pozo', radio: 1.0, atrapa: 4, dps: 14, rearme: 9 },
     arma(c) {
@@ -1644,9 +1644,9 @@ const PIEZAS = [
     },
   },
   {
-    id: 'red-cristal', nombre: 'Red de cristal', pieza: true, soloDesafio: true, categoria: 'defensa',
+    id: 'red-cristal', nombre: 'Red dorada', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.6, ancho: 3.0, fondo: 1.2, alto: 1.2, separacion: 0.4, vida: 140,
-    texto: 'Hilos tensados con polvo de cristal: los invasores que la cruzan avanzan a un tercio de su velocidad.',
+    texto: 'Hilos tensados con polvo de semilla dorada: los duendes que la cruzan avanzan a un tercio de su velocidad.',
     pide: { cristal: 2, tabla: 2 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'red', radio: 1.6, freno: 0.3, desgaste: 2 },
     arma(c) {
@@ -1660,7 +1660,7 @@ const PIEZAS = [
   {
     id: 'barril-resina', nombre: 'Barril de resina', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 0.6, ancho: 0.8, fondo: 0.8, alto: 1.1, separacion: 2.5, vida: 60,
-    texto: 'Resina de pehuén y leña apretada. Estalla cuando un invasor se acerca a dos metros: mucho daño alrededor, y se consume.',
+    texto: 'Resina de pehuén y leña apretada. Estalla cuando un duende se acerca a dos metros: mucho daño alrededor, y se consume.',
     pide: { tronco: 2, tabla: 2 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'barril', radio: 2.0, estallido: 4.2, dano: 95 },
     arma(c, P, datos, suelo) {
@@ -1701,7 +1701,7 @@ const PIEZAS = [
   {
     id: 'catapulta', nombre: 'Catapulta de piedras', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.8, ancho: 2.2, fondo: 3.0, alto: 2.4, separacion: 1.5, vida: 300,
-    texto: 'Un brazo de lenga con contrapeso. Tira sola una piedra cada seis segundos al grupo de invasores más apretado, entre 10 y 46 metros. Se carga con piedras (E).',
+    texto: 'Un brazo de lenga con contrapeso. Tira sola una piedra cada seis segundos al grupo de duendes más apretado, entre 10 y 46 metros. Se carga con piedras (E).',
     pide: { tronco: 6, tabla: 4, piedra: 4 }, pendienteMax: 0.4, distSendero: 0.4,
     defensa: { tipo: 'catapulta' },
     arma(c, P, datos, suelo) {
@@ -1722,7 +1722,7 @@ const PIEZAS = [
   {
     id: 'troncos-colgantes', nombre: 'Troncos colgantes', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.8, ancho: 3.0, fondo: 1.0, alto: 3.4, separacion: 1.2, vida: 260,
-    texto: 'Un travesaño alto con un tronco atado. Cuando un invasor pasa por abajo, se suelta: golpea fuerte a todos los de alrededor y los tira. Se vuelve a armar con E.',
+    texto: 'Un travesaño alto con un tronco atado. Cuando un duende pasa por abajo, se suelta: golpea fuerte a todos los de alrededor y los tira. Se vuelve a armar con E.',
     pide: { tronco: 5, tabla: 1 }, pendienteMax: 0.45, distSendero: 0,
     defensa: { tipo: 'troncos', sinCuerpo: true },
     arma(c, P, datos, suelo) {
@@ -1735,10 +1735,10 @@ const PIEZAS = [
     fisica(h) { for (const x of [-1.35, 1.35]) h.circulo(x, 0, 0.16, -0.05, 3.4); },
   },
   {
-    id: 'cerco-cristal', nombre: 'Cerco de cristal', pieza: true, soloDesafio: true, categoria: 'defensa',
+    id: 'cerco-cristal', nombre: 'Cerco dorado', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 1.7, ancho: 3.0, fondo: 0.4, alto: 1.3, separacion: 0.3, vida: 200,
     snap: { tipo: 'linea', familia: 'cerco-cristal', largo: 3.0, umbral: 1.0 },
-    texto: 'Alambre con polvo de cristal entre postes. Da una descarga a cada invasor que lo toca y lo frena. Cada noche gasta un cristal para cargarse.',
+    texto: 'Alambre con polvo de semilla dorada entre postes. Da un chispazo a cada duende que lo toca y lo frena. Cada noche gasta una semilla dorada para cargarse.',
     pide: { cristal: 2, tronco: 2 }, pendienteMax: 0.6, distSendero: 0.4,
     defensa: { tipo: 'cerco-cristal' },
     arma(c) {
@@ -1766,7 +1766,7 @@ const PIEZAS = [
   {
     id: 'espejo-faro', nombre: 'Espejo del faro', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 0.8, ancho: 1.0, fondo: 1.0, alto: 2.2, separacion: 1.5, vida: 140,
-    texto: 'Una plancha de cristal pulido sobre un poste. Con una antorcha prendida a menos de 4,5 m, barre un haz de luz hacia adelante: encandila (no apuntan, van más lento) y deja a la vista a los oscuros.',
+    texto: 'Una plancha de ámbar pulido sobre un poste. Con una antorcha prendida a menos de 4,5 m, barre un haz de luz hacia adelante: encandila (no apuntan, van más lento) y deja a la vista a los oscuros.',
     pide: { cristal: 2, tabla: 2, tronco: 1 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'espejo' },
     arma(c) {
@@ -1779,7 +1779,7 @@ const PIEZAS = [
   {
     id: 'senuelo', nombre: 'Señuelo', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 0.7, ancho: 1.2, fondo: 0.6, alto: 1.9, separacion: 3, vida: 160,
-    texto: 'Un espantapájaros con trapos y tu olor. Los invasores que pasan a menos de 25 m, si vos estás lejos, van por él: ponelo delante de tus trampas.',
+    texto: 'Un espantapájaros con trapos y tu olor. Los duendes que pasan a menos de 25 m, si vos estás lejos, van por él: ponelo delante de tus trampas.',
     pide: { tronco: 1, tabla: 1 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'senuelo' },
     arma(c) {
@@ -1793,7 +1793,7 @@ const PIEZAS = [
   {
     id: 'trampa-lazo', nombre: 'Trampa de lazo', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 0.9, ancho: 1.2, fondo: 1.2, alto: 2.4, separacion: 1.5, vida: 80,
-    texto: 'Un lazo escondido y un palo doblado. El primer invasor que lo pisa queda colgado cinco segundos, sin poder hacer nada (y recibe más daño). Se vuelve a armar con E. Los grandes lo rompen.',
+    texto: 'Un lazo escondido y un palo doblado. El primer duende que lo pisa queda colgado cinco segundos, sin poder hacer nada (y recibe más daño). Se vuelve a armar con E. Los grandes lo rompen.',
     pide: { tronco: 1, tabla: 1 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'lazo', sinCuerpo: true },
     arma(c) {
@@ -1802,9 +1802,9 @@ const PIEZAS = [
     },
   },
   {
-    id: 'abrojos', nombre: 'Abrojos de cristal', pieza: true, soloDesafio: true, categoria: 'defensa',
+    id: 'abrojos', nombre: 'Abrojos dorados', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 2.5, ancho: 4.5, fondo: 4.5, alto: 0.2, separacion: 1.0, vida: 120,
-    texto: 'Puntas de cristal regadas en el piso: los que pasan van a la mitad y se lastiman. Se gastan de a poco. De día, con E, se juntan y te devuelven lo que costaron.',
+    texto: 'Puntas doradas regadas en el piso: los que pasan van a la mitad y se lastiman. Se gastan de a poco. De día, con E, se juntan y te devuelven lo que costaron.',
     pide: { cristal: 1, piedra: 2 }, pendienteMax: 0.6, distSendero: 0,
     defensa: { tipo: 'abrojos' },
     arma(c, P, datos, suelo) {
@@ -1819,7 +1819,7 @@ const PIEZAS = [
   {
     id: 'embudo', nombre: 'Embudo de empalizada', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 3.4, ancho: 6.6, fondo: 3.2, alto: 2.6, separacion: 0.5, vida: 520,
-    texto: 'Dos alas de empalizada en V, abiertas hacia afuera. Los invasores que llegan por delante se encauzan hacia la garganta: poné ahí una trampa, un portón o tus ballestas.',
+    texto: 'Dos alas de empalizada en V, abiertas hacia afuera. Los duendes que llegan por delante se encauzan hacia la garganta: poné ahí una trampa, un portón o tus ballestas.',
     pide: { tronco: 8 }, pendienteMax: 0.5, distSendero: 0.4,
     defensa: { tipo: 'embudo', segmentos: [[-0.7, -1.2, -3.2, 1.6], [0.7, -1.2, 3.2, 1.6]] },
     arma(c, P, datos, suelo) {
@@ -1839,7 +1839,7 @@ const PIEZAS = [
   {
     id: 'tejado-lajas', nombre: 'Tejado de lajas', pieza: true, soloDesafio: true, categoria: 'defensa',
     radio: 2.2, ancho: 3.0, fondo: 3.0, alto: 2.9, separacion: 0.3, vida: 700, cubreOtras: true,
-    texto: 'Lajas de piedra sobre cuatro postes, arriba de tus antorchas o de tu puesto: los voladores no pueden bajar a apagarlas ni a picarte mientras estés abajo.',
+    texto: 'Lajas de piedra sobre cuatro postes, arriba de tus antorchas o de tu puesto: las lechuzas no pueden bajar a apagarlas ni a picarte mientras estés abajo.',
     pide: { piedra: 8, tronco: 4 }, pendienteMax: 0.45, distSendero: 0.4,
     defensa: { tipo: 'tejado', soloArriba: 2.4 },
     arma(c, P, datos, suelo) {
@@ -1942,7 +1942,7 @@ const PIEZAS = [
     radio: 1.9, ancho: 3.0, fondo: 1.6, alto: 0.5, separacion: 0.3, vida: 220,
     defensa: { tipo: 'foso', largo: 3.0, ancho: 1.5, dano: 34, usos: 12, freno: 0.45 },
     snap: { tipo: 'linea', familia: 'foso', largo: 3.0, umbral: 1.0 },
-    texto: 'Una zanja larga con estacas paradas en el fondo, tapada con ramas. Se pone a lo largo del paso: el que la cruza se clava, se frena y sigue lastimado. Aguanta doce invasores; después hay que volver a cavarla.',
+    texto: 'Una zanja larga con estacas paradas en el fondo, tapada con ramas. Se pone a lo largo del paso: el que la cruza se clava, se frena y sigue lastimado. Aguanta doce duendes; después hay que volver a cavarla.',
     pide: { tronco: 3, tabla: 2 }, pendienteMax: 0.4, distSendero: 0.5,
     arma(c) {
       // el borde de tierra removida
@@ -2027,9 +2027,9 @@ const PIEZAS = [
   },
   // ---- tecnología recuperada de los restos de naves (se desbloquea con cada plano)
   {
-    id: 'escudo-energia', nombre: 'Generador de escudo', pieza: true, soloDesafio: true, requierePlano: 'escudo', categoria: 'defensa',
+    id: 'escudo-energia', nombre: 'Campana de musgo', pieza: true, soloDesafio: true, requierePlano: 'escudo', categoria: 'defensa',
     radio: 0.9, ancho: 1.2, fondo: 1.2, alto: 1.6, separacion: 10, vida: 260,
-    texto: 'Tecnología de los invasores: una cúpula de 9 m que absorbe la mitad del daño que reciben las obras de adentro. Consume un cristal por noche.',
+    texto: 'Cosa de duendes: una campana de musgo de 9 m que absorbe la mitad del daño que reciben las obras de adentro. Consume una semilla dorada por noche.',
     pide: { cristal: 6, tabla: 4, piedra: 4 }, pendienteMax: 0.4, distSendero: 0.3,
     defensa: { tipo: 'escudo', radio: 9, absorbe: 0.5 },
     arma(c, P, datos, suelo) {
@@ -2042,9 +2042,9 @@ const PIEZAS = [
     fisica(h) { h.circulo(0, 0, 0.6, -0.05, 1.6); },
   },
   {
-    id: 'faro-plasma', nombre: 'Faro de plasma', pieza: true, soloDesafio: true, requierePlano: 'faro', categoria: 'defensa',
+    id: 'faro-plasma', nombre: 'Faro de ámbar', pieza: true, soloDesafio: true, requierePlano: 'faro', categoria: 'defensa',
     radio: 0.9, ancho: 1.2, fondo: 1.2, alto: 2.6, separacion: 4, vida: 300,
-    texto: 'Tecnología de los invasores: dispara plasma al invasor más cercano a 30 m. Más daño que la ballesta.',
+    texto: 'Cosa de duendes: tira luz dorada al duende más cercano a 30 m. Más daño que la ballesta.',
     pide: { cristal: 5, piedra: 4, tabla: 2 }, pendienteMax: 0.4, distSendero: 0.3,
     defensa: { tipo: 'torreta', alcance: 30, dano: 45, cadencia: 1.6, altura: 2.3, plasma: true },
     arma(c, P, datos, suelo) {
@@ -2057,9 +2057,9 @@ const PIEZAS = [
     fisica(h) { h.circulo(0, 0, 0.55, -0.05, 2.5); },
   },
   {
-    id: 'baliza-sanacion', nombre: 'Baliza de sanación', pieza: true, soloDesafio: true, requierePlano: 'baliza', categoria: 'defensa',
+    id: 'baliza-sanacion', nombre: 'Farol de sanación', pieza: true, soloDesafio: true, requierePlano: 'baliza', categoria: 'defensa',
     radio: 0.7, ancho: 1.0, fondo: 1.0, alto: 1.8, separacion: 6, vida: 180,
-    texto: 'Tecnología de los invasores: mientras estés a menos de 7 m te cura 4 puntos por segundo.',
+    texto: 'Cosa de duendes: mientras estés a menos de 7 m te cura 4 puntos por segundo.',
     pide: { cristal: 4, tabla: 3 }, pendienteMax: 0.5, distSendero: 0.3,
     defensa: { tipo: 'baliza', radio: 7, cura: 4 },
     arma(c, P, datos, suelo) {
@@ -2229,7 +2229,7 @@ export const CATEGORIAS_CONSTRUCCION = [
   { clave: 'trabajo', nombre: 'Trabajo', texto: 'Talleres, almacenamiento y herramientas de campo.' },
   { clave: 'exterior', nombre: 'Exterior', texto: 'Miradores, fuego, pasos y delimitación del terreno.' },
   { clave: 'mobiliario', nombre: 'Mobiliario', texto: 'Piezas para terminar y habitar tus propios espacios.' },
-  { clave: 'defensa', nombre: 'Defensa', texto: 'Empalizadas, pircas, trampas y ballestas contra los invasores.', soloDesafio: true },
+  { clave: 'defensa', nombre: 'Defensa', texto: 'Empalizadas, pircas, trampas y ballestas contra los duendes.', soloDesafio: true },
 ];
 for (const p of PLANOS) {
   p.categoria = p.categoria || CATEGORIA_POR_PLANO[p.id] || 'exterior';
@@ -2245,7 +2245,7 @@ export const MATERIALES = {
   tronco: { nombre: 'troncos', de: 'talar un árbol con el hacha (H, tres hachazos)' },
   tabla: { nombre: 'tablas', de: 'aserrar un tronco con Y (a mano 2, en el banco 4)' },
   piedra: { nombre: 'piedras', de: 'picar un pedrero con el hacha (H)' },
-  cristal: { nombre: 'cristales', de: 'los invasores abatidos' },
+  cristal: { nombre: 'semillas doradas', de: 'los duendes abatidos' },
   lana: { nombre: 'vellones de lana', de: 'esquilar una oveja en el corral del galpón (E, con la tijera)' },
 };
 

@@ -98,9 +98,9 @@ export function sumarPista(nido, azar = Math.random()) {
 // Lo que se le dice al jugador cuando suma una pista.
 export function textoPista(nido) {
   if (!nido) return '';
-  if (estaRevelado(nido)) return 'El nido quedó marcado en el mapa. Buscalo de día: de noche no le entra nada.';
+  if (estaRevelado(nido)) return 'La cueva quedó marcada en el mapa. Buscala de día: de noche no le entra nada.';
   const faltan = NIDO.pistas - nido.pistas;
-  return `El cerco se achica a ${Math.round(radioCerco(nido))} metros. ${faltan === 1 ? 'Falta una señal más' : `Faltan ${faltan} señales`}.`;
+  return `El cerco se achica a ${Math.round(radioCerco(nido))} metros. ${faltan === 1 ? 'Falta una pista más' : `Faltan ${faltan} pistas`}.`;
 }
 
 // ---------------------------------------------------------------- romperlo
@@ -136,18 +136,18 @@ export function danarNido(nido, dano, horas) {
 // ---------------------------------------------------------------- lo que se muestra
 export function resumenNido(nido, horas) {
   if (!nido) return null;
-  if (nido.caido) return { texto: 'El nido cayó', caido: true, fraccion: 0 };
+  if (nido.caido) return { texto: 'Se derrumbó la cueva', caido: true, fraccion: 0 };
   const fraccion = vidaNido(nido) / VIDA_NIDO;
   if (!estaRevelado(nido)) {
-    return { texto: `Nido sin ubicar · cerco de ${Math.round(radioCerco(nido))} m`, fraccion, buscando: true };
+    return { texto: `Cueva sin ubicar · cerco de ${Math.round(radioCerco(nido))} m`, fraccion, buscando: true };
   }
   const enteras = camarasEnteras(nido);
   const abierto = estaAbierto(horas);
   return {
     fraccion, abierto, enteras,
     texto: abierto
-      ? `Nido abierto · ${enteras} ${enteras === 1 ? 'cámara' : 'cámaras'} en pie`
-      : 'Nido cerrado · esperá a que salga el sol',
+      ? `Cueva abierta · ${enteras} ${enteras === 1 ? 'cuna' : 'cunas'} en pie`
+      : 'Cueva cerrada · esperá a que salga el sol',
   };
 }
 

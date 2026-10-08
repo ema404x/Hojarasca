@@ -117,7 +117,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     const p = lugarDeRestos();
     if (!p) return false;
     d.restos = p;
-    api.nota('Algo se estrelló en el bosque', `Restos de una nave ${api.rumboTexto(api.centroBase(), p)}. ${faltanPlanos ? 'Puede haber tecnología útil' : 'Puede decirte dónde está el nido'}, al fondo del casco: cuidado con las placas del piso y con lo que duerme adentro (está en el mapa)`, true);
+    api.nota('Algo se vino abajo en el bosque', `Un tronco hueco de los duendes ${api.rumboTexto(api.centroBase(), p)}. ${faltanPlanos ? 'Puede haber cosas de duende que sirvan' : 'Puede decirte dónde está la cueva'}, al fondo del tronco: cuidado con los hongos del piso y con lo que duerme adentro (está en el mapa)`, true);
     return true;
   }
   function actualizarRestos(dt, js) {
@@ -150,8 +150,9 @@ export function crearEventos(T, escena, sonido, efectos, api) {
         R.tocado = 1.2;
         api.herirJugador?.(PLACA.dano, { x: w.x, y: R.y, z: w.z });
         efectos?.chispas({ x: js.pos.x, y: R.y + 0.3, z: js.pos.z }, 12);
-        sonido.golpeRuido?.({ dur: 0.35, frec: 5200, q: 0.8, vol: 0.3, destino: sonido.bus?.efectos });
-        sonido.tono?.({ frec: 120, fin: 60, dur: 0.3, tipo: 'sawtooth', vol: 0.08, destino: sonido.bus?.efectos });
+        // 3.8.0: el hongo del piso que larga las esporas (antes, la descarga de la placa)
+        sonido.golpeRuido?.({ dur: 0.6, frec: 1100, q: 0.6, vol: 0.3, destino: sonido.bus?.efectos });
+        sonido.tono?.({ frec: 120, fin: 60, dur: 0.3, tipo: 'sine', vol: 0.08, destino: sonido.bus?.efectos });
         api.oir?.('descarga', { x: w.x, y: R.y, z: w.z });
       }
     });
@@ -176,7 +177,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     api.sumarMaterial('cristal', 3);
     efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#7dfff0');
     sonido.juntar?.();
-    api.nota(`Plano recuperado: ${plano.nombre}`, `${plano.texto} Ya se puede construir (O → Defensa). +3 cristales`, true);
+    api.nota(`Plano recuperado: ${plano.nombre}`, `${plano.texto} Ya se puede construir (O → Defensa). +3 semillas doradas`, true);
     api.guardar();
   }
 
@@ -215,7 +216,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     nodriza.g.rotation.set(0, 0, 0);
     nodriza.g.visible = true;
     hudNodriza?.classList.remove('oculto');
-    api.nota('LA NAVE NODRIZA', 'Destruí sus tres núcleos rojos: arco, honda, pistola o ballestas', true);
+    api.nota('EL COIHUE VIEJO', 'Reventá sus tres nudos de ámbar: arco, honda, pistola o ballestas', true);
   }
   function retirarNodriza() {
     if (!nodriza || nodriza.fase === 'fuera' || nodriza.fase === 'cayendo') return;
@@ -241,7 +242,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     efectos?.explosion(n.pos, 6);
     sonido.golpeRuido?.({ dur: 1.5, frec: 120, tipo: 'lowpass', vol: 0.9, destino: sonido.fuente?.(n.pos, 1.5) });
     const quedan = nodriza.nucleos.filter((q) => q.vida > 0).length;
-    if (quedan) { api.nota(`Núcleo destruido`, `Quedan ${quedan}`, true); return; }
+    if (quedan) { api.nota(`Nudo reventado`, `Quedan ${quedan}`, true); return; }
     nodriza.fase = 'cayendo'; nodriza.t = 0;
     hudNodriza?.classList.add('oculto');
     api.alDerrotarNodriza();
@@ -352,7 +353,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     sonido.golpeRuido?.({ dur: 1.6, frec: 110, tipo: 'lowpass', vol: 0.9, destino: sonido.fuente?.(c.pos, 1.6) });
     if (!r.caido) {
       const quedan = camarasEnteras(d.nido);
-      api.nota('Cámara de cría reventada', `Quedan ${quedan}`, true);
+      api.nota('Cuna reventada', `Quedan ${quedan}`, true);
       api.guardar?.();
       return;
     }
@@ -391,7 +392,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     const d = api.D();
     if (!d.nido || d.nido.caido || estaRevelado(d.nido)) return false;
     sumarPista(d.nido);
-    api.nota('Señal del nido', textoPista(d.nido), true);
+    api.nota('Pista de la cueva', textoPista(d.nido), true);
     return true;
   }
 

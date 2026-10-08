@@ -22,8 +22,6 @@ export const EN_P = {
   'Un techito de tablas sobre cuatro postes, abierto al frente, para la leña. Lo que guardás acá (E) queda seco: en invierno cada fuego pide un tronco seco, y la leña que llevás encima se moja con la lluvia.':
     'A plank roof on four posts, open at the front, for firewood. What you store here (E) stays dry: in winter every fire needs a dry log, and the wood you carry gets wet in the rain.',
   'Ballesta al cielo': 'Sky crossbow',
-  'Una ballesta montada en lo alto de un poste, que gira y apunta para arriba. Prefiere a los voladores: los alcanza a 34 metros aunque vayan alto. Si no hay ninguno, tira a los de tierra.':
-    'A crossbow mounted high on a post that turns and aims upward. It prefers flyers: it reaches them at 34 metres even when they fly high. If there are none, it shoots at the ones on the ground.',
   'Zanja de fuego': 'Fire trench',
   'Una zanja poco profunda delante del paso. Se carga con dos troncos (E) y se prende (E otra vez) cuando llegan: arde un minuto y quema al que la cruza. Con viento, el fuego puede escaparse al pasto; con lluvia, no prende.':
     'A shallow trench across the way in. Load it with two logs (E) and light it (E again) when they come: it burns for a minute and scorches whoever crosses. With wind the fire can escape into the grass; in rain it will not light.',
@@ -208,17 +206,11 @@ export const EN_P = {
 
   // ================================================================= Desafío
   // ---------------------------------------------------------------- capullos
-  'Quedó un capullo en el bosque': 'A pod was left in the forest', 'Quedaron {0} capullos en el bosque': '{0} pods were left in the forest',
   'Está {0}. Quemalo (E, con una ramita) antes de que caiga la noche': 'It is {0}. Burn it (E, with a twig) before night falls',
   'El más cercano, {0}. Quemalos (E, con una ramita) antes de que caiga la noche': 'The nearest one is {0}. Burn them (E, with a twig) before night falls',
-  'Se abrió un capullo': 'A pod burst open', 'Se abrieron {0} capullos': '{0} pods burst open',
-  'Un invasor más, desde el bosque': 'One more invader, from the forest', '{0} invasores más, desde el bosque': '{0} more invaders, from the forest',
   'Mojado no prende': 'Wet, it will not burn', 'Rompelo a golpes: son tres, y el que sale, sale flojo': 'Break it open: three blows, and whatever comes out comes out weak',
   'Te falta una ramita': 'You need a twig', 'Juntá ramitas bajo los árboles, o rompelo a golpes': 'Gather twigs under the trees, or break it open',
-  'Rompiste el capullo': 'You broke the pod', 'El que estaba adentro salió flojo: terminalo': 'The one inside came out weak: finish it',
-  'Quemaste un capullo': 'You burned a pod', 'Quedan {0} en el bosque · +1 cristal': '{0} left in the forest · +1 crystal', 'No queda ninguno · +1 cristal': 'None left · +1 crystal',
-  'Capullo: mojado no prende, rompelo a golpes': 'Pod: wet, it will not burn; break it open', 'Quemar el capullo (1 ramita)': 'Burn the pod (1 twig)',
-  'Capullo: juntá una ramita para quemarlo, o rompelo a golpes': 'Pod: gather a twig to burn it, or break it open',
+  'El que estaba adentro salió flojo: terminalo': 'The one inside came out weak: finish it',
 
   // ---------------------------------------------------------------- la trochita varada
   '¡La trochita se quedó varada!': 'La trochita is stranded!',
@@ -226,19 +218,13 @@ export const EN_P = {
   'Rompieron la trochita': 'They wrecked la trochita',
   'Elsa no va a querer hablarte por unos días, y el tren queda parado hasta que amanezca': 'Elsa will not want to talk to you for a few days, and the train stays stopped until dawn',
   'La trochita llegó a la estación': 'La trochita reached the station',
-  'Elsa te agradece: +{0} cristales, +{1} tablas, +{2} piedras': 'Elsa thanks you: +{0} crystals, +{1} planks, +{2} stones',
   'La trochita siguió sola con la luz': 'La trochita went on alone at first light',
   'Elsa esperó a que amaneciera. Esta vez no llegó con vos': 'Elsa waited for dawn. This time it did not arrive with you',
 
   // ---------------------------------------------------------------- el volador
-  'Volador': 'Flyer', 'volador': 'flyer',
-  'Flaco, morado casi negro, con dos membranas que se abren como alas.': 'Thin, purple almost black, with two membranes that open like wings.',
-  'Pasa por arriba de todo y va derecho a las antorchas prendidas: baja en picada y las apaga. Si no queda ninguna, viene rasante por vos.':
-    'It passes over everything and goes straight for lit torches: it dives and puts them out. If none are left, it comes skimming low for you.',
+  'volador': 'flyer',
   'Arriba sólo lo alcanzan las flechas, la pistola y la ballesta que apunta al cielo. Cuando baja a apagar una llama, también la lanza.':
     'Up high only arrows, the pistol and the crossbow that aims at the sky can reach it. When it comes down to snuff a flame, so can the spear.',
-  'Un volador apagó una antorcha': 'A flyer put out a torch',
-  'Vienen por el aire a buscar las llamas. F la vuelve a prender; la ballesta al cielo los baja': 'They come through the air for the flames. F relights it; the sky crossbow brings them down',
   'un aleteo': 'wingbeats', 'algo baja en picada': 'something diving', 'una llama se apaga': 'a flame goes out',
   'algo que revienta': 'something bursting', 'algo se quema': 'something burning', 'la zanja prende': 'the trench catches',
 
@@ -258,7 +244,6 @@ export const EN_P = {
   // ---------------------------------------------------------------- el código de partida
   'Código de partida': 'Game code', 'El de esta semana': 'This week\'s', 'Sin código: noches al azar': 'No code: random nights',
   'Esta partida usa {0}: las mismas noches para cualquiera que lo use.': 'This game uses {0}: the same nights for anyone who uses it.',
-  'Esta partida no tiene código. Se elige al empezar un Desafío nuevo.': 'This game has no code. You choose one when starting a new Challenge.',
   'Con un código, las noches salen siempre iguales: sirve para comparar con la otra computadora o con amigos.': 'With a code, the nights always come out the same: good for comparing with your other computer or with friends.',
   'Un código es una palabra y un número, como COIHUE-4821.': 'A code is a word and a number, like COIHUE-4821.',
   'Tu mejor con {0}: 1 noche.': 'Your best with {0}: 1 night.', 'Tu mejor con {0}: {1} noches.': 'Your best with {0}: {1} nights.',
@@ -268,20 +253,10 @@ export const EN_P = {
   '{0} noches resistidas con este código': '{0} nights survived with this code',
 
   // ---------------------------------------------------------------- la guía (Desafío)
-  'Los capullos': 'The pods',
-  'Desde la noche 4, al amanecer quedan capullos en el bosque. De día se queman con E y una ramita, o se rompen a golpes (sale uno flojo). Los que queden se abren a la noche y suman invasores.':
-    'From night 4, pods are left in the forest at dawn. By day you burn them with E and a twig, or break them open (a weak one comes out). The ones left burst at night and add invaders.',
   'La trochita varada': 'La trochita stranded',
-  'Algunas noches el tren se queda sin presión lejos de la estación, con Elsa adentro. Avanza sólo si estás cerca: escoltalo hasta la Estación del Valle mientras los invasores van por él.':
-    'Some nights the train loses steam far from the station, with Elsa aboard. It only moves if you are close: escort it to Valley Station while the invaders go for it.',
-  'El volador': 'The flyer',
-  'Desde la noche 8. Vuela alto y baja en picada a apagar las antorchas; sin antorchas, viene por vos. Arriba lo alcanzan flechas, pistola y la ballesta al cielo (O → Defensa); cuando baja, también la lanza.':
-    'From night 8. It flies high and dives to put out the torches; with no torches, it comes for you. Up high, arrows, the pistol and the sky crossbow (O → Defense) reach it; when it comes down, so does the spear.',
   'La zanja de fuego': 'The fire trench',
   'Defensa nueva (O → Defensa). Se carga con dos troncos (E) y se prende (E) cuando llegan: arde un minuto. Con viento el fuego puede escaparse al pasto y quemar madera; con lluvia no prende.':
     'New defense (O → Defense). Load it with two logs (E) and light it (E) when they come: it burns for a minute. With wind the fire can escape into the grass and burn wood; in rain it will not light.',
-  'En la portada del Desafío. Con un código (o el de esta semana), las noches salen siempre iguales: sirve para comparar récords con la otra computadora o con amigos.':
-    'On the Challenge title screen. With a code (or this week\'s), the nights always come out the same: good for comparing records with your other computer or with friends.',
 };
 // La ficha del cuaderno de cada cuento es el cuento entero: se arma con las partes ya
 // traducidas, así no se escribe dos veces.

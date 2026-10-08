@@ -6,7 +6,6 @@ export const EN_H = {
   'Llevás {0}': 'You have {0}',
   'Llevás {0} tablas': 'You have {0} planks',
   'Llevás {0} troncos · {1} tablas · {2} piedras': '{0} logs · {1} planks · {2} stones',
-  'Llevás {0} · sirven para cargar la pistola de plasma': 'You have {0} · they charge the plasma pistol',
   'Hachazo {0} de {1}': 'Axe blow {0} of {1}',
   'Pusiste {0}': 'You placed {0}',
   'Sacaste {0}': 'You took out {0}',
@@ -56,21 +55,13 @@ export const EN_H = {
   'Salud {0}/{1}': 'Health {0}/{1}',
   'Noche {0} · calma · amanece en {1}': 'Night {0} · quiet · sunrise in {1}',
   'Noche {0}{1} · resistiendo': 'Night {0}{1} · holding out',
-  'Noche {0}{1} · {2} invasores{3}': 'Night {0}{1} · {2} invaders{3}',
-  'Día {0} · próxima invasión en {1}': 'Day {0} · next invasion in {1}',
-  'Día {0} · el nido cayó · no baja nadie más': 'Day {0} · the nest is down · nobody else is coming',
   'Resististe la noche {0}': 'You held out through night {0}',
-  'Invasores {0} de la base': 'Invaders {0} of the base',
-  'Dejó {0} cristales desparramados': 'It left {0} crystals scattered around',
   'El disparo cargado usa {0} cargas': 'The charged shot uses {0} charges',
   'Flechas {0} · boleadoras {1} · cargas {2} · emplastos {3} · cristales {4} · piedras {5}':
     'Arrows {0} · bolas {1} · charges {2} · poultices {3} · crystals {4} · stones {5}',
-  'Desafío · {0} {1} · {2} invasores abatidos · mejor racha {3}':
-    'Challenge · {0} {1} · {2} invaders killed · best streak {3}',
   'Mejor racha {0} {1} · Más noches {2} · Abatidos {3} · Victorias {4}':
     'Best streak {0} {1} · Most nights {2} · Killed {3} · Wins {4}',
   'Récords · {0}{1}': 'Records · {0}{1}',
-  'Nido sin ubicar · cerco de {0} m': 'Nest not located · {0} m circle',
   'Nido abierto · {0} {1} en pie': 'Nest open · {0} {1} still standing',
 
   // ---- partidas y archivos

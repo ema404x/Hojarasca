@@ -506,14 +506,14 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       </div>
       <div class="modo-juego"><span>Modo de juego</span>
       <div class="segmentos" data-ajuste="modo">
-        <button data-valor="relax">Relax</button><button data-valor="desafio">Desafío</button>
+        <button data-valor="relax">Relax</button><button data-valor="desafio">La noche de los duendes</button>
       </div>
       <p class="modo-texto" id="modo-texto"></p>
       <div class="opcion oculto" id="opcion-relax"><span>Relax</span>
         <div class="segmentos" data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button></div>
         <p class="modo-texto" id="relax-tipo-texto"></p>
       </div>
-      <div class="opcion oculto" id="opcion-dificultad"><span>Desafío</span>
+      <div class="opcion oculto" id="opcion-dificultad"><span>La noche de los duendes</span>
         <div class="segmentos" data-ajuste="desafioTipo"><button data-valor="campana">Campaña</button><button data-valor="sinfin">Sin fin</button></div>
         <p class="modo-texto" id="desafio-tipo-texto"></p>
         <span>Dificultad</span>
@@ -583,11 +583,11 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <dt><kbd>P</kbd></dt><dd>sacar una foto</dd>
     <dt><kbd>F2</kbd></dt><dd>modo foto: cámara libre, hora, encuadre y luz</dd>
     <dt><kbd>F3</kbd></dt><dd>ver el rendimiento</dd>
-    <dt>clic izquierdo</dt><dd>atacar con el arma en la mano (Desafío)</dd>
+    <dt>clic izquierdo</dt><dd>atacar con el arma en la mano (La noche de los duendes)</dd>
     <dt>clic derecho sostenido</dt><dd>bloquear con la lanza · disparo cargado con la pistola mejorada</dd>
     <dt><kbd>A</kbd><kbd>A</kbd> / <kbd>D</kbd><kbd>D</kbd></dt><dd>esquivar hacia un costado (doble toque)</dd>
     <dt><kbd>K</kbd></dt><dd>fabricar, mejorar armas, reparar y reforzar (Tab cambia de pestaña)</dd>
-    <dt><kbd>N</kbd></dt><dd>estado de la base: qué defensa está dañada (Desafío)</dd>
+    <dt><kbd>N</kbd></dt><dd>estado de la base: qué defensa está dañada (La noche de los duendes)</dd>
     <dt><kbd>F</kbd></dt><dd>prender una antorcha apagada</dd>
   </dl>
   <div class="build-info" id="build-info">Hojarasca · Mega RC</div>
@@ -615,7 +615,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div class="subtitulos oculto" id="subtitulos"></div>
   <div class="sonidos-escritos oculto" id="sonidos-escritos" aria-live="polite"></div>
   <div class="tutorial oculto" id="tutorial"></div>
-  <div class="nodriza-hud oculto" id="nodriza-hud"><span>Nave nodriza</span><em><i></i></em><em><i></i></em><em><i></i></em></div>
+  <div class="nodriza-hud oculto" id="nodriza-hud"><span>Coihue Viejo</span><em><i></i></em><em><i></i></em><em><i></i></em></div>
   <div class="desafio-hud oculto" id="desafio-hud">
     <div class="salud"><i id="salud-barra"></i><b id="salud-texto">100</b></div>
     <p id="desafio-estado"></p>
@@ -750,7 +750,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <button id="btn-album">Llevarte el cuaderno</button>
         <button id="btn-banco">Banco de pruebas</button>
         <button id="btn-base" class="oculto">Estado de la base<kbd>N</kbd></button>
-        <button id="btn-vuelta" class="oculto">Otra vuelta al Desafío</button>
+        <button id="btn-vuelta" class="oculto">Otra vuelta a La noche de los duendes</button>
         <button id="btn-teclas">Teclas y mando</button>
         <button id="btn-partidas">Partidas guardadas</button>
         <button id="btn-guia">Guía del juego<kbd>F1</kbd></button>
@@ -766,7 +766,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       <div class="fila-ajuste"><span>Estación</span>
         <div class="segmentos" data-ajuste="estacion"><button data-valor="verano">Verano</button><button data-valor="otono">Otoño</button><button data-valor="invierno">Invierno</button><button data-valor="auto">Que pasen solas</button></div>
       </div>
-      <div class="fila-ajuste" id="fila-dificultad"><span>Dificultad del Desafío</span>
+      <div class="fila-ajuste" id="fila-dificultad"><span>Dificultad de La noche de los duendes</span>
         <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
       </div>
       <div class="fila-ajuste"><span>Clima</span>
@@ -812,7 +812,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       </div>
       <div class="fila-ajuste"><span>Sonidos escritos</span>
         <div class="segmentos" data-ajuste="sonidosEscritos"><button data-valor="true">Con dirección</button><button data-valor="false">No</button></div>
-        <small>En el Desafío, lo que se oye de noche y de dónde viene: «[gruñido lejos · noroeste]».</small>
+        <small>En La noche de los duendes, lo que se oye de noche y de dónde viene: «[gruñido lejos · noroeste]».</small>
       </div>
       <div class="fila-ajuste"><span>Vibración del mando</span>
         <div class="segmentos" data-ajuste="vibracion"><button data-valor="true">Sí</button><button data-valor="false">No</button></div>
@@ -965,10 +965,10 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 <section id="victoria" class="velo oculto">
   <div class="panel-modal victoria">
     <canvas id="victoria-bandera" class="victoria-bandera" width="180" height="120" role="img" aria-label="Tu bandera"></canvas>
-    <h2 id="victoria-titulo">¡La nave nodriza cayó!</h2>
-    <p class="sub" id="victoria-sub">Ganaste el Desafío</p>
+    <h2 id="victoria-titulo">¡Cayó el Coihue Viejo!</h2>
+    <p class="sub" id="victoria-sub">Ganaste La noche de los duendes</p>
     <p class="datos" id="victoria-datos"></p>
-    <p id="victoria-texto">El valle respira, pero siguen bajando. Salen de un nido que está enterrado en algún lado: los restos de nave te van a decir dónde, y se rompe de día, cuando el caparazón se abre.</p>
+    <p id="victoria-texto">El valle respira, pero siguen saliendo. Vienen de una cueva escondida en algún lado: los troncos huecos te van a decir dónde, y se rompe de día, cuando se le abre la boca.</p>
     <div class="acciones-modal"><button id="victoria-copiar" class="oculto">Copiar el parte</button><button id="victoria-despues" class="oculto">Seguir peleando: las noches después</button><button id="victoria-vuelta" class="oculto">Otra vuelta, más difícil</button><button id="victoria-seguir">Seguir</button></div>
   </div>
 </section>

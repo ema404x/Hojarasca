@@ -66,7 +66,7 @@ export function leerPaquete(texto) {
 
 // Qué le vamos a decir al jugador antes de pisar una partida.
 export function avisoImportar(paquete, destino) {
-  const nombreModo = paquete.modo === 'desafio' ? 'Desafío' : 'Relax';
+  const nombreModo = paquete.modo === 'desafio' ? 'La noche de los duendes' : 'Relax';
   const partes = [`Partida de ${nombreModo}, día ${paquete.dia}`];
   if (paquete.version) partes.push(`hecha con la versión ${paquete.version}`);
   const cabeza = partes.join(', ') + '.';

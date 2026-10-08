@@ -64,7 +64,7 @@ function construir(cont, api) {
   fila(cont, 'Tamaño de letra', segmentos(LETRAS.map((l) => ({ valor: l.valor, texto: l.nombre })), d.letra, (v) => cambiar({ letra: v })));
   fila(cont, 'Mira', segmentos(MIRAS.map((m) => ({ valor: m.id, texto: m.nombre })), d.mira, (v) => cambiar({ mira: v })));
   fila(cont, 'Brújula', siNo(d.brujula, (v) => cambiar({ brujula: v }), ['Mostrarla', 'Esconderla']),
-    'Sin brújula tampoco se ven el rumbo de tus chinches ni los invasores en el borde.');
+    'Sin brújula tampoco se ven el rumbo de tus chinches ni los duendes en el borde.');
   fila(cont, 'Modo mínimo', siNo(d.minimalista, (v) => cambiar({ minimalista: v }), ['Lo mínimo', 'Todo']),
     'Esconde ramitas, encargos, equipo y la barra (aparece un momento al cambiar de mano). Quedan los avisos, la salud y los subtítulos.');
 }

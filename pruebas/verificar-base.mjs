@@ -50,7 +50,7 @@ assert.match(consejoBase(r), /Portón está en 32%/);
 const sano = resumirBase([{ id: 'empalizada', nombre: 'Empalizada', vida: 320, max: 320, dist: 3 }]);
 assert.match(consejoBase(sano), /trampas/, 'si no hay trampas, lo sugiere');
 const conTrampa = resumirBase([...piezas.slice(0, 1), { id: 'foso-estacas', nombre: 'Foso', vida: 220, max: 220, dist: 9 }]);
-assert.match(consejoBase(conTrampa, { noche: 6, cristales: 5 }), /cristales/);
+assert.match(consejoBase(conTrampa, { noche: 6, cristales: 5 }), /semillas doradas/);
 // el HTML no se rompe ni deja pasar etiquetas
 const html = htmlBase(r, { noche: 2, cristales: 0 });
 assert.match(html, /salud media/);

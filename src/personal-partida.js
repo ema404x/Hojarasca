@@ -120,10 +120,10 @@ function construir(cont, api) {
     + `hoy tiene ${d.actual.animales === 'normal' ? 'los animales de siempre' : `${nombreDe('animales', d.actual.animales).toLowerCase()} animales`} y ${d.actual.vecinos ? 'visitas de los vecinos' : 'sin visitas'}.`));
   fila(cont, 'Estación', segmentos(OPCIONES_PARTIDA.estacion, d.proxima.estacion, (v) => cambiarProxima({ estacion: v })));
   fila(cont, 'Clima', segmentos(OPCIONES_PARTIDA.clima, d.proxima.clima, (v) => cambiarProxima({ clima: v })));
-  fila(cont, 'Dificultad del Desafío', segmentos(OPCIONES_PARTIDA.dificultad, d.proxima.dificultad, (v) => cambiarProxima({ dificultad: v })));
+  fila(cont, 'Dificultad de La noche de los duendes', segmentos(OPCIONES_PARTIDA.dificultad, d.proxima.dificultad, (v) => cambiarProxima({ dificultad: v })));
   fila(cont, 'Animales', segmentos(OPCIONES_PARTIDA.animales, d.proxima.animales, (v) => cambiarProxima({ animales: v })), 'Pudúes y carpinteros en el bosque.');
   fila(cont, 'Vecinos', siNo(d.proxima.vecinos, (v) => cambiarProxima({ vecinos: v }), ['Que vengan', 'Solo']),
-    'En el Relax te visitan en tu mesa; en el Desafío se suman a tu base.');
+    'En el Relax te visitan en tu mesa; en La noche de los duendes se suman a tu base.');
 
   const nombre = campoTexto('', 28, (v) => guardar(v), 'Nombre de la receta');
   const aviso = parrafo('', 'personal-nota personal-aviso');

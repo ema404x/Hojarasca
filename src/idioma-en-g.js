@@ -31,7 +31,6 @@ export const EN_G = {
   'La trochita': 'La trochita',   // es el nombre del tren, no una descripción
   'La nodriza': 'The mothership',
   'El nido': 'The nest',
-  'el nido': 'the nest',
   'El jefe': 'The warden',
   'El salto': 'The leap',
   'El panal': 'The nest comb',
@@ -47,7 +46,6 @@ export const EN_G = {
   '6 tablas': '6 planks',
   'los turcos': 'the peddlers',
   'la parada': 'the stop',
-  'LA NAVE NODRIZA': 'THE MOTHERSHIP',
   'TODO EL RECORRIDO': 'WHOLE RUN',
   'Cueva de las Manos': 'Cueva de las Manos',
   'Las Tres Marías': 'Las Tres Marías',

@@ -36,11 +36,11 @@ export const NAVE = {
   pua: { aviso: 1.1, radio: 1.7 },
 };
 export const FASES_NAVE = ['ojos', 'pilares', 'corazon'];
-export const NOMBRE_FASE = { ojos: 'los ojos', pilares: 'los pilares', corazon: 'el corazón' };
+export const NOMBRE_FASE = { ojos: 'las piedras de ámbar', pilares: 'las raíces', corazon: 'el corazón' };
 export const AVISO_FASE = {
-  ojos: ['La Madre', 'Tres ojos alrededor del cuerpo: rodeala y reventalos. Se da vuelta despacio'],
-  pilares: ['Se encerró en un escudo', 'Lo alimentan los cuatro pilares del borde. Saltá las ondas del piso y salí de donde brilla'],
-  corazon: ['¡Se abrió el caparazón!', 'El corazón quedó al aire. Ahora viene todo más rápido'],
+  ojos: ['El Rey Duende', 'Tres piedras de ámbar le brillan en el cuerpo: rodealo y reventáselas. Se da vuelta despacio'],
+  pilares: ['Se encerró en su corteza', 'La alimentan las cuatro raíces del borde. Saltá las ondas del piso y salí de donde brilla'],
+  corazon: ['¡Se le abrió la corteza!', 'El corazón de ámbar quedó al aire. Ahora viene todo más rápido'],
 };
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -120,7 +120,7 @@ export function fraccionNave(n) {
 }
 export function textoNave(n) {
   if (!n) return '';
-  if (n.ganada) return 'La Madre cayó';
+  if (n.ganada) return 'Cayó el Rey Duende';
   const vivos = puntosActivos(n).length;
   if (n.fase === 'corazon') return 'Fase 3 · el corazón';
   return `Fase ${indiceFase(n) + 1} · ${NOMBRE_FASE[n.fase]} (${vivos})`;

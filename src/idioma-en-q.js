@@ -132,8 +132,6 @@ export const EN_Q = {
   'El arranque en la orilla y la punta sobre el agua honda del lago. El kayak queda amarrado ahí (E lo trae) y desde la punta se pesca.':
     'It starts on the shore and ends over the deep water of the lake. The kayak stays moored there (E brings it) and you can fish from the end.',
   'El adarve': 'The wall walk',
-  'En el Desafío: una pasarela a dos metros, con escalera, para ponerla detrás de la empalizada y tirar por encima.':
-    'In Challenge: a walkway two metres up, with a ladder, to put behind the palisade and shoot over it.',
   'La casa abriga': 'The house keeps you warm',
   'Una casa cerrada con techo no es la intemperie: sin fuego amanecés fresco, y con la estufa o el hogar prendidos el calor llega a los otros cuartos. Con buen confort (catre, alfombra, farol) te levantás descansado y caminás más liviano un rato.':
     'A closed house with a roof is not the open air: without a fire you wake up chilly, and with the stove or the fireplace lit the heat reaches the other rooms. With good comfort (cot, rug, lamp) you wake up rested and walk lighter for a while.',

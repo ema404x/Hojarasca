@@ -40,8 +40,8 @@ export function consejoBase(resumen, { noche = 1, cristales = 0 } = {}) {
   if (resumen.dañadas) return `Hay ${resumen.dañadas} ${resumen.dañadas === 1 ? 'pieza golpeada' : 'piezas golpeadas'}. Con el martillo en la mano se reparan tocándolas.`;
   const trampas = resumen.filas.filter((f) => f.cat === 'trampa').length;
   if (!trampas) return 'Todo entero. Te faltan trampas: un foso con estacas delante del portón hace mucho daño sin que tengas que estar ahí.';
-  if (noche >= 5 && cristales >= 4) return 'Todo entero. Con los cristales que tenés podés reforzar un muro o sumar una defensa de energía.';
-  return 'La base está entera. Buen momento para juntar material o cazar cristales.';
+  if (noche >= 5 && cristales >= 4) return 'Todo entero. Con las semillas doradas que tenés podés reforzar un muro o sumar una defensa dorada.';
+  return 'La base está entera. Buen momento para juntar material o salir a buscar semillas doradas.';
 }
 
 export function htmlBase(resumen, extra = {}) {

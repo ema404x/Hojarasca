@@ -30,10 +30,10 @@ const progreso = {
   materiales: { tronco: 9, cristal: 4 }, acopio: { tronco: 5 }, obras: [{ plano: 'empalizada', etapas: 1 }, { plano: 'puesto', etapas: 4 }],
 };
 const r = resumenPartida({ desafio, progreso, planos: PLANOS, logros: { hechos: 9, total: 18 }, dificultad: 'implacable', final: true });
-assert.equal(r.titulo, 'El nido cayó');
+assert.equal(r.titulo, 'Se derrumbó la cueva');   // 3.8.0
 const filas = Object.fromEntries(r.bloques.flatMap((b) => b.filas));
 assert.equal(filas['Noches resistidas'], '12');
-assert.equal(filas['Invasores abatidos'], '143');
+assert.equal(filas['Duendes abatidos'], '143');
 assert.equal(filas['Abatidos por el perro'], '4');
 assert.equal(filas['Mejor racha sin caer'], '7 noches');
 assert.equal(filas['Dificultad'], 'Implacable');
@@ -44,12 +44,12 @@ assert.equal(filas['Recetas fabricadas'], '2');
 assert.equal(filas['Vecinos en la base'], '2');
 assert.equal(filas['Renovales plantados'], '2');
 assert.equal(filas['Troncos'], '14', 'lo de la mochila y lo del acopio se suman');
-assert.equal(filas['Cristales'], '4');
+assert.equal(filas['Semillas doradas'], '4');
 assert.equal(filas['Conseguidos'], '9 de 18');
 assert.equal(NOMBRE_DIFICULTAD.tranquila, 'Tranquila');
 // sin nada hecho, el parte sigue siendo legible y no inventa filas
 const vacio = resumenPartida({ desafio: {}, progreso: {}, planos: {} });
-assert.equal(vacio.titulo, 'La nave nodriza cayó');
+assert.equal(vacio.titulo, 'Cayó el Coihue Viejo');
 const filasVacio = Object.fromEntries(vacio.bloques.flatMap((b) => b.filas));
 assert.equal(filasVacio['Noches resistidas'], '0');
 assert.equal(filasVacio['Abatidos por el perro'], undefined, 'lo que no pasó no se muestra');
@@ -61,14 +61,14 @@ assert.match(html, /La resistencia/);
 assert.match(html, /<b>143<\/b>/);
 assert.ok(!/<script/i.test(htmlParte(resumenPartida({ desafio: {}, progreso: { obras: [] }, planos: {}, dificultad: '<script>x</script>' }))));
 const texto = textoParte(r);
-assert.match(texto, /EL NIDO CAYÓ/);
+assert.match(texto, /SE DERRUMBÓ LA CUEVA/);   // 3.8.0
 assert.match(texto, /Noches resistidas\.+ 12/);
 
 // ---------------- la guía cuenta el segundo acto
 const desafioGuia = seccionesGuia('desafio').find((s) => s.id === 'defensa');
 const titulos = desafioGuia.items.map((i) => i[0]);
-for (const t of ['La nodriza', 'El nido', 'Romper el nido']) assert.ok(titulos.includes(t), `la guía no explica: ${t}`);
-const nido = desafioGuia.items.find((i) => i[0] === 'El nido')[1];
+for (const t of ['El Coihue Viejo', 'La cueva', 'Romper la cueva']) assert.ok(titulos.includes(t), `la guía no explica: ${t}`);
+const nido = desafioGuia.items.find((i) => i[0] === 'La cueva')[1];   // 3.8.0
 assert.match(nido, /DE DÍA/, 'lo más importante del nido es que se rompe de día');
 assert.ok(!seccionesGuia('relax').some((s) => s.id === 'defensa'), 'nada de esto aparece en Relax');
 const construir = seccionesGuia('relax').find((s) => s.id === 'construir').items.map((i) => i[0]);

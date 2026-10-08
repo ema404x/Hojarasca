@@ -128,11 +128,11 @@ const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { 
 // ---------------------------------------------------------------- textos, mapa, final
 {
   const a = asedioNuevo(ZONAS, { x: 7, z: 8 }, 100);
-  assert.match(textoAsedio(a), /0\/4 zonas libres · escudo 4/);
+  assert.match(textoAsedio(a), /0\/4 zonas libres · corteza 4/);   // 3.8.0: el Coihue Viejo
   danarAncla(a, 0, 999, true); danarAncla(a, 1, 999, true); danarAncla(a, 2, 999, true);
-  assert.match(textoAsedio(a), /haz de la nave está abierto/);
+  assert.match(textoAsedio(a), /puertita del Coihue está abierta/);
   elegirContraataque(a);
-  assert.match(textoAsedio(a), /defendé la baliza de el lago \(100%\)/);
+  assert.match(textoAsedio(a), /defendé el fogón de el lago \(100%\)/);
   const m = marcasAsedio(a);
   assert.equal(m.length, 5, 'cuatro zonas y la nave');
   assert.ok(m.some((q) => q.estado === 'nave' && q.x === 7));
@@ -261,8 +261,8 @@ const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { 
   assert.match(asedioM, /d\.nodriza = null;/, 'los núcleos se repliegan: la nodriza vieja no vuelve');
   assert.match(desafio, /api\.alGanarNave = \(\) => asedioMundo\.derribar\(\(\) => vencer\(\{ nave: true \}\)\)/, 'ganar adentro es la victoria de siempre (y abre el nido)');
   assert.match(desafio, /abrirSegundoActo\(\);/);
-  assert.match(main, /s\?\.nave \? 'La nave cayó desde adentro'/, 'la pantalla de victoria lo cuenta');
-  assert.match(main, /final \? 'El nido cayó'/);
+  assert.match(main, /s\?\.nave \? 'El Coihue cayó desde adentro'/, 'la pantalla de victoria lo cuenta');
+  assert.match(main, /final \? 'Se derrumbó la cueva'/);
   assert.match(meteo, /!d\.asedio && n >= NOCHE_FINAL/, 'la estación no anuncia la nodriza en el asedio');
   // los invasores del pool: el campo nuevo se limpia al reciclar
   assert.match(desafio, /a\.enNave = false; a\.guardiaAsedio = false;/);
@@ -286,7 +286,7 @@ const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { 
   assert.equal(usar.length, aviso.length, 'la tecla E y el aviso ofrecen lo mismo');
   // al pie del haz, si no se puede subir, el aviso y E dicen por qué (lo mismo, del mismo lugar)
   assert.match(asedioM, /function motivoHaz\(pos = null\)/);
-  for (const t of ['Hay invasores cerca: despejá la zona para subir', 'De noche el haz está apagado', 'el haz se apagó hasta mañana', 'El escudo no deja subir']) assert.ok(asedioM.includes(t), `falta el motivo: ${t}`);
+  for (const t of ['Hay duendes cerca: despejá la zona para entrar', 'De noche la puertita está cerrada', 'la puertita se cerró hasta mañana', 'La corteza no deja entrar']) assert.ok(asedioM.includes(t), `falta el motivo: ${t}`);
   assert.match(asedioM, /function usarCerca\(pos\) \{\n    if \(!enElHaz\(pos\)\) return false;\n    const m = motivoHaz\(pos\);/);
   assert.match(asedioM, /function avisoCerca\(pos\) \{\n    if \(!enElHaz\(pos\)\) return null;\n    const m = motivoHaz\(pos\);/);
   assert.match(asedioM, /function hazAbierto\(\) \{ return !motivoHaz\(\); \}/, 'el haz visible y la tecla usan la misma regla');
@@ -296,7 +296,7 @@ const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { 
   assert.match(naveM, /js\.pos\.y > T\.altura\(js\.pos\.x, js\.pos\.z\) \+ 250/, 'una partida guardada adentro vuelve al valle');
   // guía y pistas
   const titulos = seccionesGuia('desafio').flatMap((s) => s.items.map((i) => i[0]));
-  for (const t of ['El asedio', 'Recuperar zonas', 'Adentro de la nave']) assert.ok(titulos.includes(t), `la guía no explica: ${t}`);
+  for (const t of ['El asedio', 'Recuperar zonas', 'Adentro del Coihue']) assert.ok(titulos.includes(t), `la guía no explica: ${t}`);
   for (const p of ['p-asedio', 'p-haz']) assert.ok(main.includes(`id: '${p}'`), `falta la pista ${p}`);
   assert.equal(NOCHE_FINAL, 20);
   ok('cableado: guardado, noche final, pool, blancos, contraataque, piso de adentro, E y aviso, guía');

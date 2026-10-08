@@ -42,7 +42,7 @@ export const SITIOS = {
 // Qué da cada lugar y cada cuántos días vuelve a dar. El alijo se abre una sola vez.
 export const RECURSOS = {
   cantera: { nombre: 'cantera', da: { piedra: 5 }, rebrota: 2, aviso: 'Juntar piedra de la cantera', vacio: 'La cantera está pelada: vuelve a haber piedra suelta en' },
-  cristal: { nombre: 'cristales', da: { cristal: 2 }, rebrota: 3, aviso: 'Arrancar los cristales', vacio: 'Ya sacaste los cristales: vuelven a asomar en' },
+  cristal: { nombre: 'semillas doradas', da: { cristal: 2 }, rebrota: 3, aviso: 'Juntar las semillas doradas', vacio: 'Ya juntaste las semillas doradas: vuelven a asomar en' },
   madera: { nombre: 'leña caída', da: { tronco: 4 }, rebrota: 2, aviso: 'Juntar troncos caídos', vacio: 'Ya juntaste los troncos: el viento voltea más en' },
   alijo: { nombre: 'alijo', da: { tabla: 4, piedra: 2, emplastos: 1 }, rebrota: 0, aviso: 'Abrir el alijo', vacio: 'El alijo está vacío' },
 };

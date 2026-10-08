@@ -238,7 +238,7 @@ app.whenReady().then(async () => {
     ok(e.cuenta === 'abuela' && e.sentados >= 6, `la abuela cuenta; ${e.sentados} alrededor del fogón`);
     ok(await js(`${FM}.estado().fuego`), 'el fogón prendido');
     av = await aviso();
-    ok(/^Escuchar la leyenda del calafate$/.test(av), `al lado del fogón: ${av}`);
+    ok(/^Escuchar la noche en que salieron los duendes$/.test(av)   /* 3.8.0: la del primer año es la de los duendes */, `al lado del fogón: ${av}`);
     await tecla('KeyE');
     const partes = [];
     for (let i = 0; i < 12; i++) {
@@ -247,8 +247,8 @@ app.whenReady().then(async () => {
       partes.push(c.texto);
       await tecla('KeyE');
     }
-    ok(partes.length >= 6 && /calafate/i.test(partes.join(' ')), `la leyenda entera (${partes.length} partes)`);
-    ok(await js(`${P}.fiestas.leyendas.includes('calafate') && ${P}.fiestas.recuerdos.some((r) => r.id === 'leyenda')`), 'la leyenda escuchada y el farolito');
+    ok(partes.length >= 6 && /duendes/i.test(partes.join(' ')), `la leyenda entera (${partes.length} partes)`);
+    ok(await js(`${P}.fiestas.leyendas.includes('duendes') && ${P}.fiestas.recuerdos.some((r) => r.id === 'leyenda')`), 'la leyenda escuchada y el farolito');
 
     // ------------------------------------------------------------ 7. tu cumpleaños con amigos: la sorpresa
     seccion('la fiesta sorpresa');
@@ -280,7 +280,7 @@ app.whenReady().then(async () => {
     ok(await listo(), 'cargó de nuevo');
     await entrar();
     e = await js(`(()=>{ const f = ${P}.fiestas; return { colgados: f.colgados.length, minga: f.minga.map((m) => m.obra).join(), baile: f.baile.chamame, montas: f.jineteada.montas, leyendas: f.leyendas.join() } })()`);
-    ok(e.colgados >= 5 && e.minga === 'lenera' && e.baile === 1 && e.montas === 1 && e.leyendas === 'calafate', `todo guardado (${JSON.stringify(e)})`);
+    ok(e.colgados >= 5 && e.minga === 'lenera' && e.baile === 1 && e.montas === 1 && e.leyendas === 'duendes', `todo guardado (${JSON.stringify(e)})`);
   } catch (err) {
     errores.push(`excepción en «${donde}»: ${err && err.stack ? err.stack : err}`);
   }

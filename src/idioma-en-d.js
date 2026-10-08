@@ -1,8 +1,6 @@
 // Tanda D: construcción, mochila y trueque.
 export const EN_D = {
   // ------------------------------------------------ planos y piezas: descripciones
-  'Una zanja larga con estacas paradas en el fondo, tapada con ramas. Se pone a lo largo del paso: el que la cruza se clava, se frena y sigue lastimado. Aguanta doce invasores; después hay que volver a cavarla.':
-    "A long trench with stakes standing in the bottom, covered over with branches. You lay it along the way through: whoever crosses gets spiked, slows down and keeps going hurt. It holds twelve invaders; after that you have to dig it out again.",
   'Un cajón de tablas con la leña y la piedra apiladas al lado. Guardás ahí lo que juntás (E) y, mientras estés cerca, lo que levantes se paga solo del acopio: se termina el ir y venir con todo encima.':
     "A plank crate with the firewood and the stone stacked beside it. You store what you gather there (E), and while you are close by, whatever you put up pays itself straight out of the supply pile: no more walking back and forth loaded down.",
   'Un banco pesado con mordaza y tablero trasero. No lleva tablas, sólo troncos y piedra. Terminado, cada tronco que aserrás acá rinde cuatro tablas en vez de dos.':
@@ -23,14 +21,8 @@ export const EN_D = {
     "A light shelter of timber frame and planks, with a door, a window, a stove and a gable roof. Quicker to put up than a log outpost.",
   'Catre bajo con bastidor de madera, lona gruesa y manta. Dentro de una habitación cerrada permite dormir sin depender de una fogata exterior.':
     "A low cot with a wooden frame, heavy canvas and a blanket. Inside an enclosed room it lets you sleep without depending on an outdoor fire.",
-  'Tecnología de los invasores: una cúpula de 9 m que absorbe la mitad del daño que reciben las obras de adentro. Consume un cristal por noche.':
-    "Invader technology: a 9 m dome that soaks up half the damage taken by the builds inside it. It burns one crystal a night.",
   'Módulo con vano y hoja de puerta funcional. Se abre con E, gira sobre su bisagra y su colisión acompaña la hoja durante toda la animación.':
     "A module with an opening and a working door leaf. It opens with E, swings on its hinge, and its collision follows the leaf through the whole animation.",
-  'Un poste con fuego que alumbra el perímetro. A los invasores no les gusta la luz. La lluvia y los brutos la apagan; F la vuelve a prender.':
-    "A post with fire on it that lights the perimeter. Invaders do not like the light. Rain and brutes put it out; F lights it again.",
-  'Plataforma a 2,4 m con escalera. Desde arriba tus disparos llegan más lejos y pegan 25% más, y los invasores no te alcanzan con las manos.':
-    "A platform 2.4 m up with a ladder. From up there your shots carry further and hit 25% harder, and invaders cannot reach you by hand.",
   'Poste estructural para las esquinas de un módulo. Encaja en los vértices del piso y puede sostener un entrepiso junto con otros pilares.':
     "A structural post for the corners of a module. It seats in the corners of the floor and can carry an upper floor together with other posts.",
   'Entrepiso con un hueco real para escalera interior. La abertura coincide en visual y física: no hay una losa invisible tapando el paso.':
@@ -51,8 +43,6 @@ export const EN_D = {
     "Four low steps for getting onto a modular floor without jumping. The snap finds the edge on its own and orients the climb.",
   'Baranda de tres metros para bordes de piso. Se endereza al encastrar y su física protege el borde sin crear zócalos invisibles.':
     "A three-meter railing for floor edges. It straightens as it snaps and its physics guards the edge without creating invisible curbs.",
-  'Un tramo de empalizada con portón de tablas: se abre y se cierra con E. Cerrado, los invasores tienen que romperlo para pasar.':
-    "A stretch of palisade with a plank gate: it opens and closes with E. Shut, invaders have to break it to get through.",
   'Un cobertizo largo, abierto al frente, con piso alto, pared de reparo y banco de trabajo. Sirve como pequeño taller propio.':
     "A long lean-to, open at the front, with a raised floor, a windbreak wall and a workbench. It works as a small shop of your own.",
   'Paño con ventana central, antepecho y dintel. Al terminarlo aparecen postigos funcionales que podés abrir y cerrar con E.':
@@ -61,8 +51,6 @@ export const EN_D = {
     "A standing lamp with a guarded shade. At night it throws a real warm light and makes built interiors readable.",
   'Techo de dos aguas para un módulo de piso. Se centra y orienta con la base, con alero suficiente para proteger la pared.':
     "A gable roof for a floor module. It centers and orients itself on the base, with eaves deep enough to protect the wall.",
-  'Resina de pehuén y leña apretada. Estalla cuando un invasor se acerca a dos metros: mucho daño alrededor, y se consume.':
-    "Pehuén resin and packed firewood. It goes off when an invader comes within two meters: heavy damage all around, and it is spent.",
   'Alfombra gruesa de lana para cortar el frío del entablonado y dar identidad a una habitación sin ocupar circulación.':
     "A thick wool rug to take the chill off the planking and give a room some character without eating into the walkway.",
   'Cuatro horcones, techo de dos aguas y los costados abiertos. Para guardar la leña seca y lo que no quiera mojarse.':
@@ -73,24 +61,14 @@ export const EN_D = {
     "Two uprights and three shelves. It sits well against a wall and makes your own shelters feel lived in.",
   'Paño estructural de tres metros. Se alinea con los bordes del piso modular y con los extremos de otras paredes.':
     "A three-meter structural bay. It lines up with the edges of the modular floor and with the ends of other walls.",
-  'Un pozo tapado con ramas: el invasor que lo pisa queda atrapado unos segundos y se lastima. Tarda en rearmarse.':
-    "A pit covered over with branches: the invader who steps in is stuck for a few seconds and gets hurt. It takes a while to set again.",
   'Un tramo bajo de tablas sobre dos largueros. Sirve para ordenar accesos y cruzar barro o desniveles chicos.':
     "A low run of planks over two stringers. Good for tidying up approaches and crossing mud or small drops.",
-  'Suena sola cuando un invasor se acerca a 30 metros de ella: te avisa aunque estés del otro lado de la base.':
-    "It rings by itself when an invader comes within 30 meters: it warns you even from the far side of the base.",
-  'Troncos afilados clavados en fila. Frena a los invasores hasta que la derriban. Los tramos se encadenan.':
-    "Sharpened logs driven in a row. It holds invaders up until they bring it down. Sections chain together.",
   'Tronco sobre tronco, encastrados a media madera en las esquinas. El hueco de la puerta mira al sendero.':
     "Log on log, half-lap jointed at the corners. The door opening faces the trail.",
   'Una plataforma sobre cuatro patas, con escalera y baranda. Para mirar el valle por encima del pastizal.':
     "A platform on four legs, with a ladder and a railing. For looking out over the grassland at the valley.",
   'Tres postes y dos varas horizontales. Los tramos se pueden encadenar para delimitar un patio o corral.':
     "Three posts and two horizontal rails. Sections can be chained to mark off a yard or a corral.",
-  'Hilos tensados con polvo de cristal: los invasores que la cruzan avanzan a un tercio de su velocidad.':
-    "Strands strung tight and dusted with crystal: invaders crossing it move at a third of their speed.",
-  'Tecnología de los invasores: dispara plasma al invasor más cercano a 30 m. Más daño que la ballesta.':
-    "Invader technology: it fires plasma at the nearest invader within 30 m. More damage than the crossbow.",
   'Piedras encastradas sin mortero, como las pircas de la estepa. Aguanta el doble que la empalizada.':
     "Stones fitted without mortar, like the dry-stone pircas of the steppe. It holds twice as long as the palisade.",
   'Se nivela el suelo y se apoyan las esquinas sobre piedra, para que la madera no toque la tierra.':
@@ -99,8 +77,6 @@ export const EN_D = {
     "The dry-stone wall raised up and topped with battlements. The toughest thing you can build out of stone and plank.",
   'Silla sencilla de tablas con respaldo alto. Aporta habitabilidad sin ocupar media habitación.':
     "A plain plank chair with a high back. It adds comfort without taking up half the room.",
-  'Palos afilados en ángulo. No cierran el paso: lastiman y frenan a cada invasor que las cruza.':
-    "Sharpened poles set at an angle. They do not close the way: they wound and slow every invader that crosses them.",
   'Dos aguas de tabla, la cumbrera y el alero sobre la puerta. Adentro, el catre y una repisa.':
     "A plank gable roof, the ridge beam and the eaves over the door. Inside, the cot and a shelf.",
   'Cubierta, cumbrera, aleros y una estufa chica con el caño continuo hasta arriba del techo.':
@@ -109,10 +85,6 @@ export const EN_D = {
     "Raised planking, a back wall and diagonal braces so it does not sway in the wind.",
   'Postes, tablas y marcos. El frente deja una entrada franca y la ventana mira al costado.':
     "Posts, planks and frames. The front leaves a clear way in and the window looks out the side.",
-  'Un arco grande sobre un trípode. Dispara sola contra el invasor más cercano a 26 metros.':
-    "A big bow on a tripod. It shoots by itself at the nearest invader within 26 meters.",
-  'Tecnología de los invasores: mientras estés a menos de 7 m te cura 4 puntos por segundo.':
-    "Invader technology: while you stay within 7 m it heals you 4 points a second.",
   'Techo de dos aguas, alero generoso y un banco robusto donde ya se puede aserrar madera.':
     "A gable roof, generous eaves and a solid bench where you can already saw timber.",
   'Mesa robusta de tablas, útil dentro de una casilla, bajo un cobertizo o junto al fogón.':
@@ -159,8 +131,6 @@ export const EN_D = {
     "Left click looses an arrow. Aim a little high at distance.",
   'Tirantes y piso de tablas, con un peldaño ancho en la entrada.':
     "Joists and a plank floor, with a wide step at the entrance.",
-  'Empalizadas, pircas, trampas y ballestas contra los invasores.':
-    "Palisades, dry-stone walls, traps and crossbows against the invaders.",
   'Se arma en un lugar llano y seco. De noche se duerme adentro.':
     "It goes up on flat, dry ground. At night you sleep inside.",
   'Cuatro horcones enterrados sobre piedra, uno en cada esquina.':
@@ -173,8 +143,6 @@ export const EN_D = {
     "Enough to brew a good few mates on any fire.",
   'Para hacer dulce, o para plantar un renoval de coihue.':
     "For making preserves, or for planting a coihue sapling.",
-  'Con la pistola de plasma, cada uno da seis cargas (K).':
-    "With the plasma pistol, each one gives six charges (K).",
   'Clic izquierdo golpea; clic derecho sostenido bloquea.':
     "Left click strikes; hold right click to block.",
   'Construcciones cerradas para hacer base en el bosque.':
@@ -185,8 +153,6 @@ export const EN_D = {
     "Pieces for finishing and living in spaces of your own.",
   'Atada a mano. Con ella los peces pican mucho antes.':
     "Hand-tied. With it the fish bite far sooner.",
-  'Enredan al invasor y lo dejan quieto unos segundos.':
-    "They tangle the invader and hold him still for a few seconds.",
   'Miradores, fuego, pasos y delimitación del terreno.':
     "Lookouts, fire, crossings and marking out the ground.",
   'Clic izquierdo dispara. Gasta una carga por tiro.':
@@ -277,8 +243,6 @@ export const EN_D = {
     "You are already moving a piece",
   'No hay una pieza en edición':
     "No piece is being edited",
-  'Lanza con punta de cristal':
-    "Crystal-tipped spear",
   'Escalera interior de nivel':
     "Interior stairs",
   'Cubierta plana transitable':
@@ -321,8 +285,6 @@ export const EN_D = {
     "Pick a blueprint first",
   'Justo sobre el sendero':
     "Right on top of the trail",
-  'Cristales alienígenas':
-    "Alien crystals",
   'Entrepiso modular 3×3':
     "Modular upper floor 3×3",
   'Empalizada de troncos':
@@ -343,8 +305,6 @@ export const EN_D = {
     "For the foundations.",
   'Emplasto de hierbas':
     "Herb poultice",
-  'Generador de escudo':
-    "Shield generator",
   'Banco de carpintero':
     "Workbench",
   'Entrepiso con hueco':
@@ -357,8 +317,6 @@ export const EN_D = {
     "Sentry torch",
   'Muy cerca de la vía':
     "Too close to the tracks",
-  'Baliza de sanación':
-    "Healing beacon",
   'Patas y travesaños':
     "Legs and rails",
   'Pasarela de tablas':
@@ -373,8 +331,6 @@ export const EN_D = {
     "the interior door",
   'habitación cerrada':
     "enclosed room",
-  'Pistola de plasma':
-    "Plasma pistol",
   'Paredes de tronco':
     "Log walls",
   'Mirador de tablas':
@@ -427,8 +383,6 @@ export const EN_D = {
     "Fishing rod",
   'Honda de cuero':
     "Leather sling",
-  'Faro de plasma':
-    "Plasma turret",
   'Piso de tablas':
     "Plank floor",
   'Cerco de campo':

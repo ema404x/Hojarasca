@@ -107,7 +107,7 @@ const paso = (t) => { pasos++; console.log(`✓ ${t}`); };
   const fin = { ...desafioNuevo(), oleadas: 25, victoria: true, nido: { caido: true } };
   assert.equal(M.nochesQueVienen(fin, { semilla: 5 }, 30, 10)[0].tipo, 'calma');
   assert.equal(M.nochesQueVienen({ ...desafioNuevo(), oleadas: 4 }, { semilla: 5 }, 4, 10)[0].tipo, 'jefe');
-  assert.match(M.textoPronostico(M.pronostico(5, 4, 10), M.nochesQueVienen({ ...desafioNuevo(), oleadas: 4 }, { semilla: 5 }, 4, 10)), /Esta noche: Baja un jefe de nido\./);
+  assert.match(M.textoPronostico(M.pronostico(5, 4, 10), M.nochesQueVienen({ ...desafioNuevo(), oleadas: 4 }, { semilla: 5 }, 4, 10)), /Esta noche: Sale un mandamás\./);   // 3.8.0: el jefe de nido es el mandamás
   const des = leer('src/desafio.js');
   assert.match(des, /nocheEspecial\(d\.oleadas \+ 1, azarEspecial\(d, p\.meteo, d\.oleadas \+ 1\), d\.especialAnterior\)/, 'desafio.js decide la noche con el mismo azar');
   assert.match(des, /^import \{ azarEspecial \} from '\.\/meteo\.js';$/m);

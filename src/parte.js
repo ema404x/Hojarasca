@@ -30,7 +30,7 @@ export function resumenPartida({ desafio = {}, progreso = {}, planos = {}, logro
     filas: [
       ['Noches resistidas', String(desafio.noches || 0)],
       ['Mejor racha sin caer', plural(desafio.mejorRacha || 0, 'noche', 'noches')],
-      ['Invasores abatidos', String(desafio.abatidos || 0)],
+      ['Duendes abatidos', String(desafio.abatidos || 0)],
       ...((desafio.abatidosPerro || 0) > 0 ? [['Abatidos por el perro', String(desafio.abatidosPerro)]] : []),
       ['Veces que caíste', String(desafio.derrotas || 0)],
       ['Dificultad', NOMBRE_DIFICULTAD[dificultad] || dificultad],
@@ -44,7 +44,7 @@ export function resumenPartida({ desafio = {}, progreso = {}, planos = {}, logro
       ['Defensas', String(obras.defensas)],
       ...(obras.refugios ? [['Refugios terminados', String(obras.refugios)]] : []),
       ['Recetas fabricadas', String((desafio.recetasHechas || []).length)],
-      ...((desafio.planos || []).length ? [['Planos alienígenas', String(desafio.planos.length)]] : []),
+      ...((desafio.planos || []).length ? [['Planos de los duendes', String(desafio.planos.length)]] : []),
       ...((desafio.companeros || []).length ? [['Vecinos en la base', String(desafio.companeros.length)]] : []),
     ],
   });
@@ -65,7 +65,7 @@ export function resumenPartida({ desafio = {}, progreso = {}, planos = {}, logro
     .map((k) => [k, (materiales[k] || 0) + ((progreso.acopio || {})[k] || 0)])
     .filter(([, n]) => n > 0);
   if (guardado.length) {
-    const NOMBRES = { tronco: 'Troncos', tabla: 'Tablas', piedra: 'Piedras', cristal: 'Cristales', lana: 'Vellones de lana' };
+    const NOMBRES = { tronco: 'Troncos', tabla: 'Tablas', piedra: 'Piedras', cristal: 'Semillas doradas', lana: 'Vellones de lana' };
     bloques.push({ titulo: 'Lo que te queda', filas: guardado.map(([k, n]) => [NOMBRES[k], String(n)]) });
   }
 
@@ -74,9 +74,9 @@ export function resumenPartida({ desafio = {}, progreso = {}, planos = {}, logro
   }
 
   return {
-    titulo: final ? 'El nido cayó' : 'La nave nodriza cayó',
+    titulo: final ? 'Se derrumbó la cueva' : 'Cayó el Coihue Viejo',
     bloques,
-    linea: `${plural(desafio.noches || 0, 'noche resistida', 'noches resistidas')} · ${desafio.abatidos || 0} invasores abatidos · dificultad ${NOMBRE_DIFICULTAD[dificultad] || dificultad}`,
+    linea: `${plural(desafio.noches || 0, 'noche resistida', 'noches resistidas')} · ${desafio.abatidos || 0} duendes abatidos · dificultad ${NOMBRE_DIFICULTAD[dificultad] || dificultad}`,
   };
 }
 

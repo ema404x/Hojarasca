@@ -146,7 +146,7 @@ function construir(cont, api) {
   const ctx = vista.getContext('2d');
   if (ctx) dibujarBandera(ctx, d, vista.width, vista.height);
   cont.appendChild(vista);
-  cont.appendChild(parrafo('Flamea en el mástil de tu refugio, arriba de cada torre de vigía del Desafío y en la pantalla de la victoria.'));
+  cont.appendChild(parrafo('Flamea en el mástil de tu refugio, arriba de cada torre de vigía de La noche de los duendes y en la pantalla de la victoria.'));
   const opciones = COLORES_BANDERA.map((c) => ({ valor: c.id, color: c.id, texto: c.nombre }));
   fila(cont, 'Colores', segmentos([{ valor: 2, texto: 'Dos' }, { valor: 3, texto: 'Tres' }], d.cuantos, (v) => cambiar({ cuantos: v })));
   for (let i = 0; i < d.cuantos; i++) {

@@ -97,11 +97,11 @@ export function puntoDeSalida(bicho, jugador, losa = () => false) {
 // ---------------------------------------------------------------- 8. los jefes
 export const VARIANTES_JEFE = ['clasico', 'llamador', 'sombra', 'artillero'];
 export const NOMBRE_JEFE = {
-  clasico: 'el jefe del nido', llamador: 'el jefe que llama', sombra: 'el jefe sombra', artillero: 'el jefe que tira piedras',
+  clasico: 'el mandamás', llamador: 'el mandamás que llama', sombra: 'el mandamás sombra', artillero: 'el mandamás que tira piedras',
 };
 export const AVISO_JEFE = {
-  clasico: 'Los sacos de la espalda son lo único blando que tiene: pegale ahí y duele el doble',
-  llamador: 'Si no lo bajás rápido, llama a otros. Los sacos de la espalda siguen siendo su punto débil',
+  clasico: 'Los hongos de la espalda son lo único blando que tiene: pegale ahí y duele el doble',
+  llamador: 'Si no lo bajás rápido, llama a otros. Los hongos de la espalda siguen siendo su punto débil',
   sombra: 'No se lo ve. Con la linterna encendida (L), el haz lo descubre',
   artillero: 'Se queda lejos y tira piedras a las defensas. Salí a buscarlo',
 };

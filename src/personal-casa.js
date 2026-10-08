@@ -211,7 +211,7 @@ function construirRefugio(cont, api) {
 function construirFortin(cont, api) {
   const d = sanearFortin(api.datos);
   const { cambiar } = armadorDe(cont, api, construirFortin);
-  cont.appendChild(parrafo('Cómo se ven tus defensas del Desafío. Es sólo el aspecto: aguantan y lastiman lo mismo.'));
+  cont.appendChild(parrafo('Cómo se ven tus defensas de La noche de los duendes. Es sólo el aspecto: aguantan y lastiman lo mismo.'));
   fila(cont, 'La madera', segmentos(MADERAS_FORTIN.map(([valor, texto]) => ({ valor, texto })), d.madera, (v) => cambiar({ madera: v }), 'La madera del fortín'),
     d.madera === 'pirca' ? 'Piedras apiladas al pie de empalizadas, portones, embudos, campanas y torres.' : '');
   if (d.madera === 'pintada') fila(cont, 'Pintura', muestras(opcionesColor(PINTURAS_FORTIN), d.pintura, (v) => cambiar({ pintura: v }), 'Pintura del fortín'));

@@ -1,4 +1,4 @@
-// La voz de los invasores.
+// La voz de los invasores; desde la 3.8.0, de los duendes.
 //
 // Un gruñido no es un oscilador bajando de tono. Lo que da miedo de verdad son cuatro
 // cosas que hace cualquier garganta grande y ninguna hacía el juego hasta ahora:
@@ -18,65 +18,75 @@
 
 // formantes: [Hz, Q, nivel] · los dos primeros deciden el tamaño que uno imagina
 export const VOCES = {
-  // El rastreador: flaco, rápido, agudo. Chasquea más de lo que gruñe.
+  // 3.8.0: los invasores son duendes. Gargantas chicas de bosque: formantes altos, poco
+  // gruñido y una risita (`risa`: sílabas por segundo, el «ji-ji-ji» que corta la voz).
+  // Los chicos se ríen agudo y rápido; los viejos, grave y despacio, «jo… jo».
+  // El rastreador: flaco, pillo, de gorro de corteza. Se ríe antes de cargar.
   rastreador: {
-    base: 152, sub: 0.4, aspereza: 38, temblor: 7.5, aliento: 0.4, distorsion: 0.3, cuerpo: 1,
-    formantes: [[440, 7, 1], [1240, 10, 0.5], [2700, 12, 0.22]],
+    base: 196, sub: 0.25, aspereza: 30, temblor: 8, aliento: 0.45, distorsion: 0.22, cuerpo: 0.9, risa: 9,
+    formantes: [[640, 6, 1], [1650, 9, 0.6], [2850, 11, 0.26]],
   },
-  // El tirador: más alto y más seco, con un filo metálico del orbe que carga.
+  // El tirador: más alto para ser duende, voz seca de viejo flaco.
   tirador: {
-    base: 138, sub: 0.3, aspereza: 46, temblor: 5.5, aliento: 0.3, distorsion: 0.42, cuerpo: 1,
-    formantes: [[380, 9, 1], [1480, 12, 0.6], [3300, 14, 0.3]],
+    base: 172, sub: 0.2, aspereza: 26, temblor: 6, aliento: 0.35, distorsion: 0.25, cuerpo: 1, risa: 7,
+    formantes: [[560, 7, 1], [1450, 9, 0.55], [2600, 11, 0.24]],
   },
-  // El saltador: chico, histérico, casi un chillido de insecto.
+  // El saltador: el más chico. Chillido y risita aguda, histérica.
   saltador: {
-    base: 268, sub: 0.18, aspereza: 72, temblor: 11, aliento: 0.22, distorsion: 0.25, cuerpo: 0.62,
-    formantes: [[720, 8, 1], [2100, 11, 0.7], [4400, 13, 0.34]],
+    base: 330, sub: 0.12, aspereza: 34, temblor: 12, aliento: 0.3, distorsion: 0.18, cuerpo: 0.6, risa: 11.5,
+    formantes: [[860, 7, 1], [2350, 10, 0.62], [3900, 12, 0.3]],
   },
-  // El escupidor: la glándula le hace burbujear la garganta.
+  // El escupidor: la savia le burbujea en la garganta; se ríe gárgaras.
   escupidor: {
-    base: 104, sub: 0.55, aspereza: 27, temblor: 4.2, aliento: 0.75, distorsion: 0.35, cuerpo: 1.25,
-    formantes: [[300, 6, 1], [860, 8, 0.66], [1900, 10, 0.3]],
+    base: 118, sub: 0.5, aspereza: 24, temblor: 4.5, aliento: 0.8, distorsion: 0.3, cuerpo: 1.2, risa: 5,
+    formantes: [[340, 6, 1], [920, 8, 0.62], [2000, 10, 0.28]],
   },
-  // El bruto: pura caja torácica. Formantes bien abajo.
+  // El bruto: un viejo grandote, pura caja de corteza. Formantes bien abajo.
   bruto: {
-    base: 72, sub: 0.7, aspereza: 22, temblor: 3.4, aliento: 0.5, distorsion: 0.5, cuerpo: 1.8,
-    formantes: [[190, 6, 1], [560, 7, 0.6], [1250, 9, 0.24]],
+    base: 74, sub: 0.75, aspereza: 20, temblor: 3.4, aliento: 0.55, distorsion: 0.45, cuerpo: 1.8, risa: 3.2,
+    formantes: [[200, 6, 1], [580, 7, 0.6], [1300, 9, 0.24]],
   },
-  // El jefe del nido: el bruto llevado al extremo. Tanto subarmónico que el tono real
-  // casi no se escucha, y una cola larguísima: el valle entero se entera.
+  // El mandamás: el bruto llevado al extremo. Tanto subarmónico que el tono real casi no se
+  // escucha, una cola larguísima y una risa lenta que el valle entero se entera.
   jefe: {
-    base: 54, sub: 1, aspereza: 17, temblor: 2.6, aliento: 0.6, distorsion: 0.62, cuerpo: 2.6,
+    base: 54, sub: 1, aspereza: 17, temblor: 2.6, aliento: 0.6, distorsion: 0.55, cuerpo: 2.6, risa: 2.4,
     formantes: [[124, 5, 1], [380, 6, 0.72], [880, 8, 0.3]],
   },
-  // El nido no tiene garganta: es un latido enterrado. Casi todo por debajo de los
-  // 60 Hz, que es lo que se siente en el pecho antes de escucharse.
+  // La cueva no tiene garganta: es un latido enterrado entre raíces. Casi todo por debajo
+  // de los 60 Hz, que es lo que se siente en el pecho antes de escucharse.
   nido: {
-    base: 33, sub: 0.85, aspereza: 9, temblor: 1.1, aliento: 0.9, distorsion: 0.2, cuerpo: 3.4,
+    base: 33, sub: 0.85, aspereza: 9, temblor: 1.1, aliento: 0.9, distorsion: 0.2, cuerpo: 3.4, risa: 0,
     formantes: [[78, 4, 1], [214, 5, 0.5], [520, 7, 0.16]],
+  },
+  // 3.8.0: el Rey Duende, el gigante de corteza del corazón del Coihue Viejo: más grave que
+  // el mandamás, con la madera crujiendo adentro de la voz y una risa de tres golpes.
+  rey: {
+    base: 46, sub: 1.1, aspereza: 14, temblor: 2.2, aliento: 0.7, distorsion: 0.5, cuerpo: 3, risa: 1.8,
+    formantes: [[110, 5, 1], [330, 6, 0.7], [760, 8, 0.3]],
   },
 };
 
-// Qué le pasa a la voz según lo que el bicho está haciendo.
+// Qué le pasa a la voz según lo que el bicho está haciendo. (3.8.0: `risa`, cuánto se le
+// corta la voz en sílabas: al verte se ríe, al cargar casi no, al doler nada.)
 // tono: [multiplicador al empezar, al terminar] · la caída al final es lo que suena a
 // animal; la subida, a alarma.
 export const ESTADOS = {
   // Acecho: lo peor que puede escucharse. Bajo, largo, casi sin abrir la boca, y lejos.
-  acecho: { dur: 2.2, tono: [0.88, 0.8], vol: 0.36, ataque: 0.5, aspereza: 0.55, aliento: 1.7, distorsion: 0.5, cola: 1.5, boca: 0.15 },
+  acecho: { risa: 0.35, dur: 2.2, tono: [0.88, 0.8], vol: 0.36, ataque: 0.5, aspereza: 0.55, aliento: 1.7, distorsion: 0.5, cola: 1.5, boca: 0.15 },
   // Alerta: te vio. Sube.
-  alerta: { dur: 0.85, tono: [1, 1.42], vol: 0.8, ataque: 0.04, aspereza: 1.2, aliento: 0.8, distorsion: 1, cola: 1.1, boca: 0.75 },
+  alerta: { risa: 1, dur: 0.85, tono: [1, 1.42], vol: 0.8, ataque: 0.04, aspereza: 1.2, aliento: 0.8, distorsion: 1, cola: 1.1, boca: 0.75 },
   // Ataque: el grito de la embestida. Arranca arriba y se quiebra.
-  ataque: { dur: 1.15, tono: [1.55, 0.92], vol: 1, ataque: 0.012, aspereza: 1.6, aliento: 0.7, distorsion: 1.5, cola: 0.9, boca: 1 },
+  ataque: { risa: 0.45, dur: 1.15, tono: [1.55, 0.92], vol: 1, ataque: 0.012, aspereza: 1.6, aliento: 0.7, distorsion: 1.5, cola: 0.9, boca: 1 },
   // Dolor: corto, agudo, cortado de golpe.
-  dolor: { dur: 0.42, tono: [1.7, 1.1], vol: 0.9, ataque: 0.008, aspereza: 1.9, aliento: 0.5, distorsion: 1.7, cola: 0.5, boca: 0.9 },
+  dolor: { risa: 0, dur: 0.42, tono: [1.7, 1.1], vol: 0.9, ataque: 0.008, aspereza: 1.9, aliento: 0.5, distorsion: 1.7, cola: 0.5, boca: 0.9 },
   // Muerte: la caída larga. El subarmónico se desarma y queda el aliento.
-  muerte: { dur: 1.9, tono: [1.15, 0.28], vol: 0.95, ataque: 0.02, aspereza: 1.3, aliento: 2.2, distorsion: 1.2, cola: 1.6, boca: 0.8, desarma: true },
+  muerte: { risa: 0, dur: 1.9, tono: [1.15, 0.28], vol: 0.95, ataque: 0.02, aspereza: 1.3, aliento: 2.2, distorsion: 1.2, cola: 1.6, boca: 0.8, desarma: true },
   // Llamado: le avisa al resto. Dos tonos, el segundo más alto.
-  llamado: { dur: 1.5, tono: [0.95, 1.25], vol: 0.85, ataque: 0.18, aspereza: 0.8, aliento: 1, distorsion: 0.8, cola: 1.8, boca: 0.6 },
+  llamado: { risa: 0.8, dur: 1.5, tono: [0.95, 1.25], vol: 0.85, ataque: 0.18, aspereza: 0.8, aliento: 1, distorsion: 0.8, cola: 1.8, boca: 0.6 },
   // Respiración: el bucle de cuando lo tenés al lado y no lo ves.
-  respiro: { dur: 1.3, tono: [0.92, 0.86], vol: 0.3, ataque: 0.35, aspereza: 0.35, aliento: 2.6, distorsion: 0.2, cola: 0.6, boca: 0.1 },
+  respiro: { risa: 0, dur: 1.3, tono: [0.92, 0.86], vol: 0.3, ataque: 0.35, aspereza: 0.35, aliento: 2.6, distorsion: 0.2, cola: 0.6, boca: 0.1 },
   // Latido del nido.
-  latido: { dur: 1.1, tono: [1, 0.9], vol: 0.55, ataque: 0.12, aspereza: 0.5, aliento: 1.2, distorsion: 0.4, cola: 2.2, boca: 0 },
+  latido: { risa: 0, dur: 1.1, tono: [1, 0.9], vol: 0.55, ataque: 0.12, aspereza: 0.5, aliento: 1.2, distorsion: 0.4, cola: 2.2, boca: 0 },
 };
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -113,6 +123,9 @@ export function voz(tipo, estado, { intensidad = 0.7, azar = 0, escala = 1 } = {
     cola: E.cola,
     boca: E.boca,
     desarma: !!E.desarma,
+    // 3.8.0: la risita. `risa` son sílabas por segundo; `risaHondura`, cuánto corta (0 a 1)
+    risa: (V.risa || 0) * (0.9 + azarEn(azar, 6) * 0.2),
+    risaHondura: clamp((E.risa || 0) * (V.risa > 0 ? 1 : 0) * (0.75 + i * 0.35), 0, 1),
   };
 }
 
@@ -130,7 +143,7 @@ export function lejania(distancia) {
   };
 }
 
-// Cada cuánto abre la boca un invasor que no está peleando. Nunca en un ritmo parejo:
+// Cada cuánto abre la boca un duende que no está peleando. Nunca en un ritmo parejo:
 // la espera es la mitad del miedo.
 export function esperaVoz(estado, cerca) {
   const base = estado === 'acecho' ? 7.5 : estado === 'respiro' ? 3.2 : 11;

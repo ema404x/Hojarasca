@@ -10,7 +10,7 @@ import { azarDe } from './semilla.js';
 import { LIMITE } from './config.js';
 import { mapaDePartida } from './desafio-mapa.js';
 
-const NOMBRES = { cristal: 'cristales', piedra: 'piedras', tabla: 'tablas' };
+const NOMBRES = { cristal: 'semillas doradas', piedra: 'piedras', tabla: 'tablas' };
 
 export function crearPuestosMundo(T, escena, efectos, sonido, api) {
   const D = () => {
@@ -165,7 +165,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     efectos.polvo?.(pos, 10, '#3a2f44');
     sonido.golpeRuido?.({ dur: 0.9, frec: 140, tipo: 'lowpass', vol: 0.7, destino: sonido.fuente?.(pos, 1.3) || sonido.bus?.efectos });
     sucio = true;
-    if (e.tipo === 'generador' && p.estructuras.some((q) => q.vida > 0)) api.nota('Cayó el generador de cristal', 'Lo que queda del puesto ya no tiene blindaje');
+    if (e.tipo === 'generador' && p.estructuras.some((q) => q.vida > 0)) api.nota('Le sacaste la semilla dorada', 'Lo que queda de la madriguera ya no tiene corteza');
   }
   function destruirPuesto(p) {
     const d = api.D(), est = D();
@@ -178,7 +178,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     // los guardias dormidos se despiertan con el ruido
     for (const a of guardiasDe_(p.id)) if (a.estado === 'dormido') a.estado = 'avanzar';
     const partes = Object.entries(premio).map(([k, n]) => `+${n} ${NOMBRES[k] || k}`).join(', ');
-    api.nota(`Rompiste el puesto ${lado(p)}`, `${partes} · la noche que viene llegan ${g.menos} menos y más flojos`, true);
+    api.nota(`Rompiste la madriguera ${lado(p)}`, `${partes} · la noche que viene llegan ${g.menos} menos y más flojos`, true);
     // 3.0: el puesto era del nido; con el nido en el valle, cada uno que cae lo delata un poco
     if (d.nido && !d.nido.caido) setTimeout(() => api.pistaDeNido?.(), 2500);
     const m = mallas.get(p.id);
@@ -235,7 +235,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     } else if (r.accion === 'arrancar') {
       api.sumarMaterial?.('cristal', 1);
       sonido.juntar?.();
-      api.nota('Le arrancaste el cristal', '+1 cristal · el generador se apaga');
+      api.nota('Le arrancaste la semilla dorada', '+1 semilla dorada · la madriguera se apaga');
       herirIndice(c.p, c.i, 1e6);
     } else if (r.accion === 'mojado') api.nota('Mojada no prende', 'Rompela a golpes o con flechas');
     else if (r.accion === 'sinRamitas') api.nota('Te falta una ramita', 'Juntá ramitas bajo los árboles, o rompela a golpes');
@@ -293,7 +293,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     const azar = azarDe(d.semilla, noche, 'puesto');
     const crecieron = crecerPuestos(est, noche, azar);
     const vistos = crecieron.filter((p) => p.visto);
-    if (vistos.length) setTimeout(() => api.nota(vistos.length === 1 ? `El puesto ${lado(vistos[0])} creció` : 'Los puestos crecieron', 'Nadie los tocó: ahora mandan más, y tienen más guardia'), 9000);
+    if (vistos.length) setTimeout(() => api.nota(vistos.length === 1 ? `La madriguera ${lado(vistos[0])} creció` : 'Las madrigueras crecieron', 'Nadie las tocó: ahora mandan más, y tienen más guardia'), 9000);
     est.golpes = est.golpes.filter((g) => g.noche > noche);
     if (tocaPuesto(noche, activos(est).length)) {
       const nido = d.nido && !d.nido.caido ? d.nido : null;
@@ -311,7 +311,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
       if (pos) {
         const p = puestoNuevo(est.proximoId++, pos, noche, azar);
         est.lista.push(p);
-        setTimeout(() => api.nota('Se ve humo verde en el bosque', `Levantaron un puesto ${api.rumboTexto(api.centroBase(), p)}. Si lo rompés de día, de ese lado vienen menos (queda en el mapa cuando lo veas)`, true), 6000);
+        setTimeout(() => api.nota('Se ve humo verde en el bosque', `Cavaron una madriguera entre las raíces, ${api.rumboTexto(api.centroBase(), p)}. Si la rompés de día, de ese lado vienen menos (queda en el mapa cuando la veas)`, true), 6000);
       }
     }
     sincronizar();
@@ -326,7 +326,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     const menos = golpesDeLaNoche(est, d.oleadas);
     if (menos.length) {
       const total = menos.reduce((s, g) => s + g.menos, 0);
-      setTimeout(() => api.nota('Vienen menos', `Los puestos que rompiste ya no mandan a nadie: ${total} menos, y más flojos`), 4000);
+      setTimeout(() => api.nota('Vienen menos', `Las madrigueras que rompiste ya no mandan a nadie: ${total} menos, y más flojos`), 4000);
     }
     const azar = azarDe(d.semilla, d.oleadas, 'puesto-manda');
     let n = 0;
@@ -342,7 +342,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     }
     if (n) {
       api.sumarInvasores?.(n);
-      setTimeout(() => api.nota(n === 1 ? 'Uno más, desde un puesto' : `${n} más, desde los puestos`, `Salen del puesto ${lados.join(' y del puesto ')}. Rompelos de día y no vienen`, true), 2000);
+      setTimeout(() => api.nota(n === 1 ? 'Uno más, desde una madriguera' : `${n} más, desde las madrigueras`, `Salen de la madriguera ${lados.join(' y de la madriguera ')}. Rompelas de día y no vienen`, true), 2000);
     }
   }
   // Con el nido reventado no hay más noches: los puestos se secan.
@@ -350,7 +350,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     const est = D();
     let n = 0;
     for (const p of activos(est)) { p.roto = true; n++; }
-    if (n) { sincronizar(); api.nota('Los puestos se secaron', 'Sin el nido, lo que quedaba en el bosque se deshizo'); api.guardar(); }
+    if (n) { sincronizar(); api.nota('Las madrigueras se secaron', 'Sin la cueva, lo que quedaba en el bosque se deshizo'); api.guardar(); }
   }
 
   // ---------------- cada cuadro
@@ -390,7 +390,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
       const dist = Math.hypot(p.x - js.pos.x, p.z - js.pos.z);
       if (enPie(p) && !p.visto && dist < PUESTOS.radioVisto) {
         p.visto = true;
-        api.nota('Encontraste un puesto invasor', 'Rompé la aguja, las vainas y el generador (que blinda lo demás). Quedó en el mapa', true);
+        api.nota('Encontraste una madriguera de duendes', 'Rompé el hongo alto, las bolsas de esporas y la semilla dorada (que abriga lo demás). Quedó en el mapa', true);
         api.guardar();
       }
       revisarGuardias(p, noche, dist);

@@ -81,7 +81,7 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   const ids = b.map((r) => r.id);
   assert.ok(ids.indexOf('linterna') < ids.indexOf('ballesta') && ids.indexOf('hacha') < ids.indexOf('ballesta'), 'el arsenal va después de la linterna y el hacha');
   const arco = b.find((r) => r.id === 'arco');
-  assert.equal(arco.cuenta, 5, 'el arco cuenta las flechas elegidas'); assert.match(arco.nombre, /de cristal/);
+  assert.equal(arco.cuenta, 5, 'el arco cuenta las flechas elegidas'); assert.match(arco.nombre, /doradas/);   // 3.8.0: las de cristal son doradas
   assert.equal(b.find((r) => r.id === 'ballesta').cuenta, 4);
   assert.equal(new Set(ids).size, ids.length, 'nada repetido en la barra');
 }

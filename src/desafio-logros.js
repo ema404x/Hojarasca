@@ -19,23 +19,23 @@ export const UMBRALES_LOGROS = {
 };
 
 export const LOGROS = [
-  { id: 'primera-noche', nombre: 'Primer alba', texto: 'Resistí tu primera noche de invasión y viste clarear sobre los coihues.' },
+  { id: 'primera-noche', nombre: 'Primer alba', texto: 'Resistí tu primera noche de duendes y viste clarear sobre los coihues.' },
   { id: 'sin-rasguno', nombre: 'Piel de lenga', texto: 'Resistí una noche entera sin recibir un solo golpe.' },
-  { id: 'solo-lanza', nombre: 'Punta de piedra', texto: 'Resistí una noche abatiendo al menos 3 invasores, todos con la lanza de coihue.' },
-  { id: 'inexpugnable', nombre: 'Pirca que no cede', texto: 'Resistí una noche de 5 invasores o más sin perder ninguna obra.' },
-  { id: 'cazador', nombre: 'Baqueano de la noche', texto: 'Abatí 100 invasores en total.' },
+  { id: 'solo-lanza', nombre: 'Punta de piedra', texto: 'Resistí una noche abatiendo al menos 3 duendes, todos con la lanza de coihue.' },
+  { id: 'inexpugnable', nombre: 'Pirca que no cede', texto: 'Resistí una noche de 5 duendes o más sin perder ninguna obra.' },
+  { id: 'cazador', nombre: 'Baqueano de la noche', texto: 'Abatí 100 duendes en total.' },
   { id: 'artesano', nombre: 'Manos de artesano', texto: 'Fabricá cada una de las recetas al menos una vez.' },
-  { id: 'pistolero', nombre: 'Fuego ajeno', texto: 'Encontrá la pistola de plasma entre los restos de los invasores.', oculto: true },
-  { id: 'superviviente', nombre: 'Diez inviernos', texto: 'Resistí 10 noches de invasión.' },
+  { id: 'pistolero', nombre: 'Fuego ajeno', texto: 'Encontrá la pistola de luz en el cofre de los duendes.', oculto: true },
+  { id: 'superviviente', nombre: 'Diez inviernos', texto: 'Resistí 10 noches de duendes.' },
   { id: 'implacable', nombre: 'Viento blanco', texto: 'Llegá al alba de la quinta noche en dificultad implacable.' },
-  { id: 'vencedor', nombre: 'Cielo limpio', texto: 'Derribá la nave nodriza y devolvele el silencio al valle.', oculto: true },
+  { id: 'vencedor', nombre: 'Monte quieto', texto: 'Volteá al Coihue Viejo y devolvele el silencio al valle.', oculto: true },
   { id: 'buena-compania', nombre: 'Fogón compartido', texto: 'Tené dos compañeros viviendo en la base.' },
-  { id: 'fiel', nombre: 'Compañero de cuatro patas', texto: 'Tu perro abatió o ayudó a abatir 10 invasores.' },
+  { id: 'fiel', nombre: 'Compañero de cuatro patas', texto: 'Tu perro abatió o ayudó a abatir 10 duendes.' },
   { id: 'arquitecto', nombre: 'Pueblo de troncos', texto: 'Tené 20 defensas en pie al mismo tiempo.' },
   { id: 'noche-roja', nombre: 'Luna de sangre', texto: 'Resistí una noche roja.', oculto: true },
   { id: 'eclipse', nombre: 'Sombra sobre el lago', texto: 'Resistí una noche de eclipse.', oculto: true },
   { id: 'noche-callada', nombre: 'Ni un chucao', texto: 'Resistí una noche silenciosa, cuando ni los pájaros avisan.', oculto: true },
-  { id: 'explorador', nombre: 'Rastro de chatarra', texto: 'Recuperá 3 planos de los restos de naves caídas.' },
+  { id: 'explorador', nombre: 'Rastro de aserrín', texto: 'Recuperá 3 planos de los troncos huecos de los duendes.' },
   { id: 'inmortal', nombre: 'Raíz de ciprés', texto: 'Resistí 5 noches seguidas sin caer.' },
 ];
 

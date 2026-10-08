@@ -1225,7 +1225,7 @@ export function obraEnCurso(aldea) {
 // ¿Puede llegar alguien hoy? Devuelve { ok, motivo, quien }.
 export function puedeLlegar(progreso) {
   if (!progreso || typeof progreso !== 'object') return { ok: false, motivo: 'Sin partida', quien: null };
-  if (progreso.modo === 'desafio') return { ok: false, motivo: 'En el Desafío la aldea no existe', quien: null };
+  if (progreso.modo === 'desafio') return { ok: false, motivo: 'En La noche de los duendes la aldea no existe', quien: null };
   if (!vecinosActivos(progreso)) return { ok: false, motivo: 'En esta partida no hay vecinos', quien: null };
   const aldea = progreso.aldea || aldeaNueva();
   const quien = quienLlega(aldea);

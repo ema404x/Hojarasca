@@ -1,8 +1,9 @@
 // Música de tensión del modo Desafío: nada de melodías, solo clima.
 // Un dron grave en re, dos "cuerdas frotadas" (sierras desafinadas bajo un pasabajos)
 // que respiran y se corren de nota muy despacio, un latido grave que se acelera con
-// la cercanía de los alienígenas y, de vez en cuando, un tono vítreo agudo que delata
-// su presencia. Al alba, las cuerdas resuelven a re mayor y entra un acorde cálido.
+// la cercanía de los duendes y, de vez en cuando, un silbido lejano que delata su
+// presencia (3.8.0: antes era un tono vítreo de otro mundo; ahora los duendes se llaman
+// silbando entre los árboles). Al alba, las cuerdas resuelven a re mayor y entra un acorde cálido.
 // Todo entra por sonido.bus.musica, así el interruptor y el volumen de la música aplican.
 // 2.7: las sierras son ahora la forma de onda de cuerda frotada del motor, con el roce
 // del arco encima; el latido tiene golpe de parche y al alba entra una guitarra.
@@ -24,13 +25,14 @@ const ACORDES = {
   // eclipse: cuartas y quintas vacías, suena hueco
   eclipse: [[45, 50], [43, 50], [45, 52], [38, 45]],
 };
-// tonos vítreos: notas extrañas contra re (tritono, novena menor, séptima mayor)
-const CRISTALES = [80, 81, 85, 86, 87, 92, 93];
+// 3.8.0: los silbidos de los duendes. Motivos cortos en re menor pentatónico (re, fa, sol,
+// la, do), de pillo; algunos terminan en el tritono (sol#) y quedan colgados.
+const SILBIDOS = [[81, 77], [84, 81, 79], [79, 81, 77], [86, 84, 81], [74, 77, 74], [81, 80], [77, 79, 80]];
 
 export function crearMusicaTension(sonido) {
   let n = null;             // nodos de larga vida, se crean al hacer falta y se reciclan
   let nivel = 0;            // intensidad suavizada 0..1
-  let proxLatido = 0, proxCristal = 6, proxAcorde = 0, acorde = null;
+  let proxLatido = 0, proxSilbido = 6, proxAcorde = 0, acorde = null;
   let albaHecha = false, albaHasta = 0, agacheHasta = 0, ultimoGolpe = -9;
   let quieto = 0, acumulado = 1;
 
@@ -119,15 +121,17 @@ export function crearMusicaTension(sonido) {
     o.onended = () => { try { o.disconnect(); g.disconnect(); if (f) f.disconnect(); } catch {} };
   }
 
-  // la presencia alienígena: dos senos agudos casi iguales que baten, entran y se van lentos
-  function cristal(tension, eclipse) {
-    const m = CRISTALES[Math.floor(Math.random() * CRISTALES.length)] - (eclipse ? 12 : 0);
-    const f = hz(m), vol = 0.007 + tension * 0.006;
-    const ataque = azar(1.2, 2.6), sosten = azar(0.8, 2.4), caida = azar(2.5, 4.5) * (eclipse ? 1.5 : 1);
-    const cae = Math.random() < 0.35 ? f * azar(0.975, 0.99) : 0;
-    pad({ frec: f, fin: cae, ataque, sosten, caida, vol });
-    pad({ frec: f * azar(1.003, 1.006), fin: cae ? cae * 1.004 : 0, ataque: ataque * 1.2, sosten, caida, vol: vol * 0.7 });
-    if (eclipse && Math.random() < 0.5) pad({ frec: f * 1.5, ataque: ataque * 1.5, sosten, caida, vol: vol * 0.35 });
+  // 3.8.0: la presencia de los duendes: un silbido lejano, dos o tres notas que se arrastran
+  // un poco (como silba la gente, no un instrumento) y una que a veces se cae al final.
+  // Con eclipse, una octava abajo y más lento: los viejos.
+  function silbido(tension, eclipse) {
+    const motivo = SILBIDOS[Math.floor(Math.random() * SILBIDOS.length)];
+    const vol = 0.008 + tension * 0.007, paso = (eclipse ? 0.55 : 0.32) * azar(0.9, 1.15);
+    motivo.forEach((m, i) => {
+      const f = hz(m - (eclipse ? 12 : 0)), ultima = i === motivo.length - 1;
+      const cae = ultima && Math.random() < 0.4 ? f * azar(0.93, 0.97) : f * azar(0.995, 1.005);
+      pad({ frec: f * azar(0.985, 0.995), fin: cae, cuando: i * paso, ataque: 0.05, sosten: paso * (ultima ? 1.6 : 0.7), caida: ultima ? azar(1.2, 2.2) : 0.25, vol });
+    });
   }
 
   function alba() {
@@ -173,7 +177,7 @@ export function crearMusicaTension(sonido) {
       sonido.tono({ frec: 190, fin: 60, dur: 0.5, tipo: 'triangle', vol: 0.06, ataque: 0.003, destino: d });
     }
     if (typeof sonido.golpeRuido === 'function' && sonido.ruido) sonido.golpeRuido({ dur: 1.6, frec: 220, q: 0.7, tipo: 'lowpass', vol: 0.18, destino: d, buffer: sonido.ruido });
-    // brillo vítreo suspendido (re6 contra mi bemol6) que queda flotando en la cámara lenta
+    // brillo dorado suspendido (re6 contra mi bemol6) que queda flotando en la cámara lenta
     pad({ frec: hz(86), fin: hz(85.7), ataque: 0.02, sosten: 0.3, caida: 3.8, vol: 0.01 });
     pad({ frec: hz(87), fin: hz(86.6), ataque: 0.03, sosten: 0.3, caida: 3.2, vol: 0.007 });
   }
@@ -294,15 +298,15 @@ export function crearMusicaTension(sonido) {
       }
     } else proxLatido = 0;
 
-    // tonos vítreos esporádicos: más seguidos cuanto más cerca están
+    // silbidos esporádicos (3.8.0; antes, tonos vítreos): más seguidos cuanto más cerca están
     if (conCuerdas && !enAlba) {
-      proxCristal -= dt;
-      if (proxCristal <= 0) {
-        cristal(tension, eclipse);
+      proxSilbido -= dt;
+      if (proxSilbido <= 0) {
+        silbido(tension, eclipse);
         let espera = fase === 'previa' ? azar(14, 30) : azar(8, 20) / (0.6 + tension);
         if (eclipse) espera *= 0.5;
         if (silenciosa) espera *= 0.7;
-        proxCristal = espera;
+        proxSilbido = espera;
       }
     }
   }

@@ -230,7 +230,7 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
       if (api.cuanto('cristal') >= 1) { api.gastar('cristal', 1); o.datos.cargado = true; }
       else { o.datos.cargado = false; sinCristal++; }
     }
-    if (sinCristal) api.nota('Un cerco de cristal quedó sin carga', 'Cada tramo gasta un cristal por noche');
+    if (sinCristal) api.nota('Un cerco dorado quedó sin carga', 'Cada tramo gasta una semilla dorada por noche');
     for (const o of L.lazo) o.datos.armada = o.datos.armada !== false;
   }
   function alAmanecer() { for (const o of L['cerco-cristal']) o.datos.cargado = false; }
@@ -611,7 +611,7 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
       a.fuegoT = QUEMA.dura;
       n++;
     }
-    api.nota('¡Resina hirviendo!', n ? `Le cayó a ${n} ${n === 1 ? 'invasor' : 'invasores'} · quedan ${quedan}` : `No había nadie abajo · quedan ${quedan}`);
+    api.nota('¡Resina hirviendo!', n ? `Le cayó a ${n} ${n === 1 ? 'duende' : 'duendes'} · quedan ${quedan}` : `No había nadie abajo · quedan ${quedan}`);
   }
 
   // ---------------------------------------------------------------- por cuadro

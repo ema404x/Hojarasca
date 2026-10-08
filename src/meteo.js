@@ -185,15 +185,15 @@ export function nochesQueVienen(d, meteo, dia, horas, cuantas = 2) {
   const cuandoEs = (c) => (c < dia || c === dia ? 'Esta noche' : c === dia + 1 ? 'Mañana a la noche' : 'Pasado mañana a la noche');
   for (let i = 0; i < cuantas; i++, n++, clave++) {
     const cuando = cuandoEs(clave);
-    if (!siguenLasNoches(d)) { salida.push({ clave, n, cuando, tipo: 'calma', texto: 'Noche tranquila: ya no baja nadie' }); continue; }
+    if (!siguenLasNoches(d)) { salida.push({ clave, n, cuando, tipo: 'calma', texto: 'Noche tranquila: ya no sale nadie' }); continue; }
     const final = !d.victoria && !d.sinFin && !d.asedio && n >= NOCHE_FINAL;   // 3.0: la corrida sin fin no tiene noche final (ni el asedio: la nodriza ya bajó)
     const jefe = esNocheDeJefe(n);
     // la de esta noche puede estar ya decidida (una hora antes del ataque)
     const yaDecidida = i === 0 && !yaBajo && d.especial && d.oleadaNoche !== clave;
     const especial = final ? null : yaDecidida ? d.especial : (d.sinFin ? especialSinFin : nocheEspecial)(n, azarEspecial(d, meteo, n), anterior);
     const tipo = final ? 'final' : jefe ? 'jefe' : especial || 'comun';
-    const texto = final ? 'Baja la nave nodriza'
-      : jefe ? 'Baja un jefe de nido'
+    const texto = final ? 'Despierta el Coihue Viejo'
+      : jefe ? 'Sale un mandamás'
       : especial ? `${ESPECIALES[especial].nombre}: ${ESPECIALES[especial].aviso.toLowerCase()}`
       : 'Ataque de siempre';
     salida.push({ clave, n, cuando, tipo, especial, texto });

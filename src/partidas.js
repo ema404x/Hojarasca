@@ -27,7 +27,7 @@ export function fechaCorta(ms, ahora = Date.now()) {
 }
 
 export function htmlPartidas(lista, modo, actual, ahora = Date.now()) {
-  const nombreModo = modo === 'desafio' ? 'Desafío' : 'Relax';
+  const nombreModo = modo === 'desafio' ? 'La noche de los duendes' : 'Relax';
   const filas = lista.map((p) => {
     const esActual = p.ranura === actual;
     const vista = p.hay && p.vista

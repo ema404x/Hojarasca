@@ -1,4 +1,5 @@
 // Partida real 2.0: las diez mejoras del Desafío.
+// 3.8.0: los textos que mira esta partida dicen lo de los duendes (duendes, Coihue Viejo, madrigueras).
 //
 // Como en `humo-desafio.cjs`, el Desafío se hace avanzar a mano (`simular`): la ventana
 // oculta dibuja un cuadro cada varios segundos, pero la lógica de la noche corre a
@@ -135,7 +136,7 @@ app.whenReady().then(async () => {
     await simular(0.1);
     const mezcla = await js(`(()=>{ const H = window.__hojarasca, S = H.sonido; return { agachadas: S.agachadas || 0, escritos: H.__sonidosEscritos().join(' | '), pulsos: H.__pulsos().dados } })()`);
     ok(mezcla.agachadas > grito.antes, `un chillido al lado agacha el bosque y la música (${grito.antes} → ${mezcla.agachadas})`);
-    ok(/chillido (encima|cerca)/.test(mezcla.escritos), `y se escribe de dónde vino: «${mezcla.escritos}»`);
+    ok(/risita (encima|cerca)/.test(mezcla.escritos), `y se escribe de dónde vino: «${mezcla.escritos}»`);
 
     // ---- 10. la vibración (sin mando no vibra, pero decide el pulso)
     seccion('10. la vibración');

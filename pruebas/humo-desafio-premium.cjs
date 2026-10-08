@@ -1,4 +1,5 @@
 // Partida real del Desafío premium (Electron + WebGL): tutorial, taller por categorías,
+// 3.8.0: los textos que mira esta partida dicen lo de los duendes (duendes, Coihue Viejo, madrigueras).
 // armas nuevas y mejoras, bloqueo y esquiva, defensas activas (antorchas, campana, pozo,
 // red, barril, torre), martillo y refuerzos, perro, compañeros, restos de naves y planos,
 // noches especiales, logros, cámara lenta y la nave nodriza hasta la victoria.
@@ -60,7 +61,7 @@ app.whenReady().then(async () => {
         barra:[...document.querySelectorAll('#barra .ranura img')].map(i=>i.alt)}})()`);
     ok(t.cats === 7, 'el taller tiene 7 categorías (la forja de la 2.1; arrojadizas y equipo de la 2.5, al final)');
     ok(t.lanza && t.honda && t.martillo && t.bol === 3 && t.cristal && t.hechas === 5, `fabricación por categorías (${t.hechas} recetas)`);
-    ok(t.barra.includes('Honda de cuero') && t.barra.includes('Boleadoras') && t.barra.includes('Lanza con punta de cristal'), 'las armas nuevas aparecen en la barra');
+    ok(t.barra.includes('Honda de cuero') && t.barra.includes('Boleadoras') && t.barra.includes('Lanza con punta dorada'), 'las armas nuevas aparecen en la barra');
 
     // ---- construir defensas nuevas delante del jugador
     donde = 'construir';

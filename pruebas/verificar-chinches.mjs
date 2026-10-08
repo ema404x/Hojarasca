@@ -42,7 +42,7 @@ assert.equal(textoDistancia(1500), '1.5 km');
 
 // marcas que pone el juego solo
 const marcas = marcasAutomaticas({ desafio: { caja: { x: 5, z: 6 }, capsula: { x: 7, z: 8 }, restos: null }, lugares: { galpon: { x: 1, z: 2 } } });
-assert.deepEqual(marcas.map((m) => m.nombre), ['caja del alba', 'cápsula', 'galpón de esquila']);
+assert.deepEqual(marcas.map((m) => m.nombre), ['cofre del alba', 'cofre de los duendes', 'galpón de esquila']);   // 3.8.0: la cápsula es el cofre de los duendes
 assert.deepEqual(marcasAutomaticas({}), []);
 
 // cableado

@@ -98,22 +98,22 @@ for (const s of [
   'Me dormí sin fuego y la helada se metió por todos lados. Mañana, leña.', 'La manta ayudó, pero sin fuego el invierno se siente igual.',
   'En el lago asomó algo. Un lomo oscuro, un rato, y se hundió. No sé qué vi.', 'Junté los huevos del gallinero, todavía tibios.',
   'Esquilé una oveja. Se sacudió y se fue a pastar como si nada.', 'Esquilé 3 ovejas. Me duelen las manos.',
-  // el Desafío
-  'Quedó un capullo en el bosque', 'Quedaron 3 capullos en el bosque', 'Está al norte. Quemalo (E, con una ramita) antes de que caiga la noche',
-  'El más cercano, al sureste. Quemalos (E, con una ramita) antes de que caiga la noche', 'Se abrió un capullo', 'Se abrieron 3 capullos',
-  'Un invasor más, desde el bosque', '4 invasores más, desde el bosque', 'Mojado no prende', 'Rompelo a golpes: son tres, y el que sale, sale flojo',
-  'Te falta una ramita', 'Juntá ramitas bajo los árboles, o rompelo a golpes', 'Rompiste el capullo', 'El que estaba adentro salió flojo: terminalo',
-  'Quemaste un capullo', 'Quedan 2 en el bosque · +1 cristal', 'No queda ninguno · +1 cristal',
+  // el Desafío (3.8.0: con duendes, nidos de hongos, lechuzas y semillas doradas)
+  'Quedó un nido de hongos en el bosque', 'Quedaron 3 nidos de hongos en el bosque', 'Está al norte. Quemalo (E, con una ramita) antes de que caiga la noche',
+  'El más cercano, al sureste. Quemalos (E, con una ramita) antes de que caiga la noche', 'Se abrió un nido de hongos', 'Se abrieron 3 nidos de hongos',
+  'Un duende más, desde el bosque', '4 duendes más, desde el bosque', 'Mojado no prende', 'Rompelo a golpes: son tres, y el que sale, sale flojo',
+  'Te falta una ramita', 'Juntá ramitas bajo los árboles, o rompelo a golpes', 'Rompiste el nido de hongos', 'El que estaba adentro salió flojo: terminalo',
+  'Quemaste un nido de hongos', 'Quedan 2 en el bosque · +1 semilla dorada', 'No queda ninguno · +1 semilla dorada',
   '¡La trochita se quedó varada!', 'Elsa está adentro, al oeste, a 300 m de la estación. Si la escoltás, llega', 'Rompieron la trochita',
   'Elsa no va a querer hablarte por unos días, y el tren queda parado hasta que amanezca', 'La trochita llegó a la estación',
-  'Elsa te agradece: +4 cristales, +6 tablas, +4 piedras', 'La trochita siguió sola con la luz', 'Elsa esperó a que amaneciera. Esta vez no llegó con vos',
-  'Un volador apagó una antorcha', 'Vienen por el aire a buscar las llamas. F la vuelve a prender; la ballesta al cielo los baja',
+  'Elsa te agradece: +4 semillas doradas, +6 tablas, +4 piedras', 'La trochita siguió sola con la luz', 'Elsa esperó a que amaneciera. Esta vez no llegó con vos',
+  'Una lechuza apagó una antorcha', 'Vienen montados en lechuzas a buscar las llamas. F la vuelve a prender; la ballesta al cielo los baja',
   'La zanja está cargada', 'Echaste leña en la zanja', 'Prendela con E cuando lleguen: arde un minuto', 'Falta 1 tronco', '¡La zanja arde!',
   'Un minuto de fuego. Con viento, cuidado con el pasto', 'La leña queda en la zanja: prendela cuando afloje', 'Faltan troncos', 'La zanja se carga con 2 troncos',
   'La zanja ya arde', 'Quedan 40 segundos', 'La zanja se apagó', 'Cargala de nuevo con dos troncos', '¡El fuego se escapó al pasto!',
   'Con viento se corre: alejate y cuidá la madera de las defensas',
   'Código de partida', 'El de esta semana', 'Sin código: noches al azar', 'Esta partida usa COIHUE-4821: las mismas noches para cualquiera que lo use.',
-  'Esta partida no tiene código. Se elige al empezar un Desafío nuevo.', 'Con un código, las noches salen siempre iguales: sirve para comparar con la otra computadora o con amigos.',
+  'Esta partida no tiene código. Se elige al empezar de nuevo La noche de los duendes.', 'Con un código, las noches salen siempre iguales: sirve para comparar con la otra computadora o con amigos.',
   'Un código es una palabra y un número, como COIHUE-4821.', 'Tu mejor con LENGA-12: 1 noche.', 'Tu mejor con LENGA-12: 7 noches.',
   'Con LENGA-12, las mismas noches para cualquiera que lo use.', 'Código LENGA-12', 'Las mismas noches para cualquiera que lo use. Tu récord con este código se guarda aparte',
   'Tu mejor noche con LENGA-12', '1 noche resistida con este código', '5 noches resistidas con este código',
@@ -123,7 +123,7 @@ for (const s of [
 for (const campo of ['nombre', 'visto', 'aprendido', 'debil']) traducido(BESTIARIO.volador[campo], `bestiario volador.${campo}`);
 for (const k of ['aleteo', 'picada', 'apagar', 'capullo', 'quemar', 'zanja']) traducido(SONIDOS_ESCRITOS[k], `subtítulo ${k}`);
 const guia = leer('src/guia.js');
-const TITULOS_23 = ['La colmena', 'El ahumadero', 'El vivero', 'La leña del invierno', 'El fogón', 'Los capullos', 'La trochita varada', 'El volador', 'La zanja de fuego', 'Código de partida'];
+const TITULOS_23 = ['La colmena', 'El ahumadero', 'El vivero', 'La leña del invierno', 'El fogón', 'Los nidos de hongos', 'La trochita varada', 'Las lechuzas', 'La zanja de fuego', 'Código de partida'];
 for (const titulo of TITULOS_23) {
   const m = new RegExp(`\\['${titulo}', '([^']+)'\\]`).exec(guia);
   assert.ok(m, `falta en la guía: ${titulo}`);

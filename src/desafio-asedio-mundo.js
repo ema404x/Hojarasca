@@ -68,8 +68,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     llegada = 1;
     armar();
     const js = api.jugador().estado;
-    setTimeout(() => api.nota('La nodriza no se fue', `Se asentó sobre el valle, ${api.rumboTexto(js.pos, a.nave)}. Clavó ${a.zonas.length} agujas que le dan escudo`, true), 4200);
-    setTimeout(() => api.nota('El asedio', 'Rompé las agujas de día (están en el mapa). De noche van a querer recuperar lo que les saques. Con tres zonas libres se abre el haz de la nave', true), 9500);
+    setTimeout(() => api.nota('El Coihue Viejo no se cayó', `Se plantó en el valle, ${api.rumboTexto(js.pos, a.nave)}. Hundió ${a.zonas.length} raíces que le dan corteza`, true), 4200);
+    setTimeout(() => api.nota('El asedio', 'Cortá las raíces de día (están en el mapa). De noche van a querer recuperar lo que les saques. Con tres zonas libres se abre la puertita del Coihue', true), 9500);
     api.guardar();
     return true;
   }
@@ -218,9 +218,9 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     api.sumarMaterial?.('cristal', ASEDIO.cristalesAncla);
     const capas = capasEscudo(a);
     api.nota(`Recuperaste ${def?.corto || r.zona}`, capas
-      ? `La aguja cayó y el escudo de la nave perdió una capa (le quedan ${capas}). Plantaste una baliza: esta noche van a venir por ella · +${ASEDIO.cristalesAncla} cristales`
-      : `Cayó la última aguja: la nave se quedó sin escudo · +${ASEDIO.cristalesAncla} cristales`, true);
-    if (r.abrePaso) setTimeout(() => api.nota('¡Se abrió el haz de la nave!', 'Con tres zonas libres el escudo no alcanza a cerrar. Andá abajo de la nave de día y subí por el haz (E)', true), 3500);
+      ? `Cortaste la raíz y el Coihue perdió una capa de corteza (le quedan ${capas}). Prendiste un fogón: esta noche van a venir por él · +${ASEDIO.cristalesAncla} semillas doradas`
+      : `Cortaste la última raíz: el Coihue se quedó sin corteza · +${ASEDIO.cristalesAncla} semillas doradas`, true);
+    if (r.abrePaso) setTimeout(() => api.nota('¡Se abrió la puertita del Coihue!', 'Con tres zonas libres la corteza no alcanza a cerrar. Andá al pie del Coihue de día y entrá por la puertita (E)', true), 3500);
     api.guardar();
   }
 
@@ -232,7 +232,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     if (i === null) return null;
     const def = defZona(a.zonas[i].id);
     const js = api.jugador().estado;
-    setTimeout(() => api.nota(`¡Contraatacan ${def?.corto || 'la zona'}!`, `Vienen por tu baliza, ${api.rumboTexto(js.pos, a.zonas[i])}. Si aguanta hasta el alba, la zona queda tuya`, true), 2600);
+    setTimeout(() => api.nota(`¡Contraatacan ${def?.corto || 'la zona'}!`, `Vienen por tu fogón, ${api.rumboTexto(js.pos, a.zonas[i])}. Si aguanta hasta el alba, la zona queda tuya`, true), 2600);
     return i;
   }
   const blancoCache = { x: 0, z: 0, radio: 2.2 };
@@ -254,7 +254,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       _v.set(z.x + 2.4, T.altura(z.x + 2.4, z.z) + 1.4, z.z);
       efectos?.polvo(_v, 18);
       api.S?.derrumbe?.(_v);
-      api.nota(`Rompieron la baliza de ${def?.corto || 'la zona'}`, 'La aguja volvió a crecer. De día se puede volver a romper', true);
+      api.nota(`Apagaron el fogón de ${def?.corto || 'la zona'}`, 'La raíz volvió a crecer. De día se puede volver a cortar', true);
       api.guardar();
     }
     return true;
@@ -272,7 +272,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const r = cerrarNocheAsedio(a, sobrevivida);
     if (r.asegurada) {
       const def = defZona(r.asegurada);
-      setTimeout(() => api.nota(`${def?.nombre || 'La zona'}: asegurada`, 'La baliza aguantó toda la noche. Esa zona ya no la recuperan', true), 5200);
+      setTimeout(() => api.nota(`${def?.nombre || 'La zona'}: asegurada`, 'El fogón aguantó toda la noche. Esa zona ya no la recuperan', true), 5200);
     }
     return false;
   }
@@ -286,13 +286,13 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     if (!asedioActivo(a) || armado?.nave?.cayendo > 0) return { cerrado: true, aviso: null };
     if (!puedeAbordar(a)) {
       const faltan = ASEDIO.zonasParaAbordar - zonasLibres(a);
-      return { aviso: `El escudo no deja subir: ${faltan === 1 ? 'falta liberar una zona' : `faltan liberar ${faltan} zonas`}`,
-        titulo: 'El escudo de la nave está cerrado', texto: `Rompé ${faltan === 1 ? 'una aguja más' : `${faltan} agujas más`} de día (el mapa las marca) y se abre el haz` };
+      return { aviso: `La corteza no deja entrar: ${faltan === 1 ? 'falta liberar una zona' : `faltan liberar ${faltan} zonas`}`,
+        titulo: 'La puertita del Coihue está cerrada', texto: `Cortá ${faltan === 1 ? 'una raíz más' : `${faltan} raíces más`} de día (el mapa las marca) y se abre la puertita` };
     }
-    if (!deDia()) return { aviso: 'De noche el haz está apagado', titulo: 'El haz está apagado', texto: 'Se prende de nuevo con la luz del día' };
+    if (!deDia()) return { aviso: 'De noche la puertita está cerrada', titulo: 'La puertita está cerrada', texto: 'Se abre de nuevo con la luz del día' };
     // adentro el reloj queda quieto: en la hora antes del ataque el haz ya se apaga, así la
     // noche nunca arranca con vos arriba
-    if ((api.horas?.() ?? 12) >= HORA_ATAQUE - 1) return { aviso: 'Está por caer la noche: el haz se apagó hasta mañana', titulo: 'El haz se apagó', texto: 'En la hora antes del ataque no se puede subir. Preparate para la noche' };
+    if ((api.horas?.() ?? 12) >= HORA_ATAQUE - 1) return { aviso: 'Está por caer la noche: la puertita se cerró hasta mañana', titulo: 'La puertita se cerró', texto: 'En la hora antes del ataque no se puede entrar. Preparate para la noche' };
     if (api.hayAtaque?.()) {
       const js = pos || api.jugador().estado.pos;
       let n = 0, cerca = null, d0 = Infinity;
@@ -303,8 +303,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
         if (d < d0) { d0 = d; cerca = al.m.g.position; }
       }
       const donde = cerca ? `, el más cerca ${api.rumboTexto(js, cerca)}` : '';
-      return { aviso: `Hay invasores cerca: despejá la zona para subir (${n || 'alguno'}${donde})`,
-        titulo: 'Hay invasores cerca', texto: `El haz no sube con ${n > 1 ? `${n} invasores` : n === 1 ? 'un invasor' : 'invasores'} dando vueltas${donde}. Despejá la zona` };
+      return { aviso: `Hay duendes cerca: despejá la zona para entrar (${n || 'alguno'}${donde})`,
+        titulo: 'Hay duendes cerca', texto: `La puertita no se abre con ${n > 1 ? `${n} duendes` : n === 1 ? 'un duende' : 'duendes'} dando vueltas${donde}. Despejá la zona` };
     }
     return null;
   }
@@ -326,7 +326,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function avisoCerca(pos) {
     if (!enElHaz(pos)) return null;
     const m = motivoHaz(pos);
-    return m ? m.aviso : 'Subir a la nave por el haz';
+    return m ? m.aviso : 'Entrar al Coihue por la puertita';
   }
 
   // ---------------------------------------------------------------- el final: la nave cae
@@ -455,7 +455,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
         }
         if (n2) {
           api.S?.chillido?.({ x: z.x, y: r.y + 2, z: z.z }, 'bruto');
-          api.nota('Te salen al cruce', `${n2} ${n2 === 1 ? 'invasor cuida' : 'invasores cuidan'} la aguja de ${defZona(z.id)?.corto || 'la zona'}`);
+          api.nota('Te salen al cruce', `${n2} ${n2 === 1 ? 'duende cuida' : 'duendes cuidan'} la raíz de ${defZona(z.id)?.corto || 'la zona'}`);
         }
       }
     });

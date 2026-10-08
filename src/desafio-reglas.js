@@ -56,7 +56,7 @@ export const TIPOS_ALIEN = {
   // bioluminiscentes de la espalda al descubierto: ahí recibe el doble de daño.
   // `giro` es lo rápido que se da vuelta: el jefe es tan pesado que se lo puede
   // rodear corriendo, y por eso el punto débil de la espalda se puede aprovechar.
-  jefe: { nombre: 'jefe de nido', vida: 900, vel: 2.0, dano: 34, cadencia: 1.9, alcance: 3.4, danoObra: 130, radio: 1.45, altura: 4.2, cristales: [14, 20], retroceso: 0,
+  jefe: { nombre: 'mandamás', vida: 900, vel: 2.0, dano: 34, cadencia: 1.9, alcance: 3.4, danoObra: 130, radio: 1.45, altura: 4.2, cristales: [14, 20], retroceso: 0,
     giro: 1.1, pesado: true, jefe: true, puntoDebil: true },
   // 2.1: no salta ni rompe: cava por abajo y sale adentro (ver `desafio-valle.js`)
   excavador: { ...EXCAVADOR },
@@ -95,9 +95,9 @@ export function puedeSaltar(plano) {
 
 // Dificultad elegida en la portada: cuántos vienen, cuánto pegan y cuánto aguantan.
 export const DIFICULTADES = {
-  tranquila: { nombre: 'Tranquila', cantidad: 0.6, dano: 0.55, vida: 0.8, texto: 'Pocos invasores y golpes suaves. Para aprender a defenderse.' },
+  tranquila: { nombre: 'Tranquila', cantidad: 0.6, dano: 0.55, vida: 0.8, texto: 'Pocos duendes y golpes suaves. Para aprender a defenderse.' },
   normal: { nombre: 'Normal', cantidad: 1, dano: 1, vida: 1, texto: 'La noche es peligrosa, pero con defensas se resiste.' },
-  implacable: { nombre: 'Implacable', cantidad: 1.4, dano: 1.35, vida: 1.25, texto: 'Más invasores, más duros. Cada error se paga.' },
+  implacable: { nombre: 'Implacable', cantidad: 1.4, dano: 1.35, vida: 1.25, texto: 'Más duendes, más duros. Cada error se paga.' },
 };
 export function dificultad(clave) { return DIFICULTADES[clave] || DIFICULTADES.normal; }
 
@@ -147,12 +147,12 @@ export const ARMAS = {
   arco: { nombre: 'Arco de lenga', tipo: 'flecha', dano: 42, vel: 48, cadencia: 0.75, municion: 'flechas' },
   honda: { nombre: 'Honda de cuero', tipo: 'piedra', dano: 18, vel: 36, cadencia: 0.42, municion: 'piedra', deMaterial: true },
   boleadoras: { nombre: 'Boleadoras', tipo: 'boleadora', dano: 8, vel: 24, cadencia: 1.1, municion: 'boleadoras', enreda: 3.4 },
-  pistola: { nombre: 'Pistola de plasma', tipo: 'rayo', dano: 58, alcance: 75, cadencia: 0.32, municion: 'cargas' },
+  pistola: { nombre: 'Pistola de luz', tipo: 'rayo', dano: 58, alcance: 75, cadencia: 0.32, municion: 'cargas' },
   martillo: { nombre: 'Martillo de carpintero', tipo: 'martillo', alcance: 3.2, cadencia: 0.5, reparacion: 0.1 },
 };
 // Mejoras con cristales: cambian el arma sin reemplazarla.
 export const MEJORAS = {
-  lanzaCristal: { arma: 'lanza', nombre: 'Lanza con punta de cristal', dano: 52, alcance: 3.1 },
+  lanzaCristal: { arma: 'lanza', nombre: 'Lanza con punta dorada', dano: 52, alcance: 3.1 },
   arcoReforzado: { arma: 'arco', nombre: 'Arco reforzado', dano: 56, vel: 64 },
   pistolaCargada: { arma: 'pistola', nombre: 'Pistola con disparo cargado', cargado: { dano: 150, cargas: 3, atraviesa: true } },
 };
@@ -175,8 +175,8 @@ export function armaEfectiva(id, cosas = {}) {
 export const CATEGORIAS_TALLER = [
   { clave: 'armas', nombre: 'Armas' },
   { clave: 'municion', nombre: 'Munición y curas' },
-  { clave: 'mejoras', nombre: 'Mejoras con cristales' },
-  { clave: 'forja', nombre: 'Forja de cristal' },
+  { clave: 'mejoras', nombre: 'Mejoras doradas' },
+  { clave: 'forja', nombre: 'Forja dorada' },
   { clave: 'base', nombre: 'Base' },
 ];
 export const RECETAS = [
@@ -191,22 +191,22 @@ export const RECETAS = [
   { id: 'flechas', cat: 'municion', nombre: 'Ocho flechas', pide: { tabla: 1, piedra: 1 }, da: { flechas: 8 }, banco: true, requiere: 'arco',
     texto: 'Astiles de tabla con punta de piedra.' },
   { id: 'boleadoras', cat: 'municion', nombre: 'Tres boleadoras', pide: { piedra: 3, tabla: 1 }, da: { boleadoras: 3, cosa: 'boleadoras' },
-    texto: 'Tres piedras atadas: enredan las piernas del invasor y lo dejan quieto un rato.' },
+    texto: 'Tres piedras atadas: enredan las piernas del duende y lo dejan quieto un rato.' },
   { id: 'emplasto', cat: 'municion', nombre: 'Emplasto de hierbas', pide: { fruta: 2, ramita: 1 }, da: { emplastos: 1 },
     texto: 'Cura 45 puntos de salud. Se usa desde la barra.' },
-  { id: 'cargas', cat: 'municion', nombre: 'Seis cargas de plasma', pide: { cristal: 1 }, da: { cargas: 6 }, requiere: 'pistola',
-    texto: 'Un cristal de los invasores alimenta la pistola.' },
-  { id: 'lanza-cristal', cat: 'mejoras', nombre: 'Punta de cristal para la lanza', pide: { cristal: 3, piedra: 2 }, da: { cosa: 'lanzaCristal' }, unica: true, requiere: 'lanza',
+  { id: 'cargas', cat: 'municion', nombre: 'Seis cargas de luz', pide: { cristal: 1 }, da: { cargas: 6 }, requiere: 'pistola',
+    texto: 'Una semilla dorada de los duendes alimenta la pistola.' },
+  { id: 'lanza-cristal', cat: 'mejoras', nombre: 'Punta dorada para la lanza', pide: { cristal: 3, piedra: 2 }, da: { cosa: 'lanzaCristal' }, unica: true, requiere: 'lanza',
     texto: 'La lanza pega 52 en lugar de 34 y llega un poco más lejos.' },
-  { id: 'arco-reforzado', cat: 'mejoras', nombre: 'Arco reforzado con cristal', pide: { cristal: 3, tabla: 2 }, da: { cosa: 'arcoReforzado' }, unica: true, requiere: 'arco', banco: true,
+  { id: 'arco-reforzado', cat: 'mejoras', nombre: 'Arco reforzado con semilla dorada', pide: { cristal: 3, tabla: 2 }, da: { cosa: 'arcoReforzado' }, unica: true, requiere: 'arco', banco: true,
     texto: 'Flechas más rápidas y con más daño (56).' },
-  { id: 'pistola-cargada', cat: 'mejoras', nombre: 'Condensador para la pistola', pide: { cristal: 5 }, da: { cosa: 'pistolaCargada' }, unica: true, requiere: 'pistola',
+  { id: 'pistola-cargada', cat: 'mejoras', nombre: 'Lente de ámbar para la pistola', pide: { cristal: 5 }, da: { cosa: 'pistolaCargada' }, unica: true, requiere: 'pistola',
     texto: 'Clic derecho: disparo cargado que atraviesa a todos los de la línea (150, gasta 3 cargas).' },
   // 2.1: la forja de cristal (ver `desafio-valle.js`): cada arma con su efecto
   { id: 'lanza-hielo', cat: 'forja', nombre: 'Lanza de hielo', pide: { cristal: 4, piedra: 2 }, da: { cosa: 'lanzaHielo' }, unica: true, requiere: 'lanza',
     texto: 'El golpe congela: frena en seco a rastreadores y saltadores. Contra los grandes casi no sirve.' },
   { id: 'arco-rayo', cat: 'forja', nombre: 'Flechas de rayo', pide: { cristal: 5, tabla: 1 }, da: { cosa: 'arcoRayo' }, unica: true, requiere: 'arco', banco: true,
-    texto: 'Cada flecha que entra suelta un rayo que salta a los dos invasores más cercanos. Para los grupos.' },
+    texto: 'Cada flecha que entra suelta un rayo que salta a los dos duendes más cercanos. Para los grupos.' },
   { id: 'honda-empuje', cat: 'forja', nombre: 'Honda de empuje', pide: { cristal: 3, tronco: 1 }, da: { cosa: 'hondaEmpuje' }, unica: true, requiere: 'honda',
     texto: 'La piedra empuja y derriba: el tirador y el escupidor quedan en el suelo sin poder apuntar.' },
   { id: 'reparar', cat: 'base', nombre: 'Reparar la defensa más dañada cerca', pide: {}, reparar: true,
@@ -265,9 +265,9 @@ export function aplicarEspecial(lista, especial) {
 }
 // Tecnología de los restos de naves: se recupera un plano por nave explorada.
 export const PLANOS_ALIEN = [
-  { id: 'escudo', nombre: 'Generador de escudo', texto: 'Una cúpula que absorbe la mitad del daño de las obras cercanas.' },
-  { id: 'faro', nombre: 'Faro de plasma', texto: 'Una torre que dispara plasma a los invasores a 30 metros.' },
-  { id: 'baliza', nombre: 'Baliza de sanación', texto: 'Te cura mientras estés cerca de ella.' },
+  { id: 'escudo', nombre: 'Campana de musgo', texto: 'Una campana de musgo que absorbe la mitad del daño de las obras cercanas.' },
+  { id: 'faro', nombre: 'Faro de ámbar', texto: 'Una torre que tira luz dorada a los duendes a 30 metros.' },
+  { id: 'baliza', nombre: 'Farol de sanación', texto: 'Te cura mientras estés cerca de él.' },
 ];
 export function nocheConRestos(n) { return n >= 3 && n % 3 === 0; }
 // El clima cambia el combate: lluvia y niebla acortan la vista; la nieve frena.

@@ -90,19 +90,21 @@ export function avisoDelPerro({ distancia, visto }) {
 // ---------------------------------------------------------------- 6. subtítulos
 // Cómo se escribe cada sonido. `null`: no se subtitula (lo hace el jugador mismo).
 export const SONIDOS_ESCRITOS = {
-  chillido: 'chillido', acecho: 'gruñido', embestida: 'rugido', llamado: 'llamado',
+  chillido: 'risita', acecho: 'gruñido', embestida: 'rugido', llamado: 'llamado',
   respiro: 'respiración', latido: 'latido bajo la tierra', muerte: 'algo que cae',
-  jefe: 'bramido enorme', escupir: 'escupitajo', acido: 'ácido que chisporrotea',
+  jefe: 'bramido enorme', escupir: 'escupitajo', acido: 'savia que chisporrotea',
   salto: 'algo que salta', madera: 'golpes en la madera', derrumbe: 'derrumbe',
-  zumbido: 'zumbido de la nave', aranazo: 'arañazos en la pared', puerta: 'alguien prueba la puerta',
+  zumbido: 'crujido del Coihue Viejo', aranazo: 'arañazos en la pared', puerta: 'alguien prueba la puerta',
   grunirPerro: 'el perro gruñe', ladrarPerro: 'el perro ladra', pasos: 'pasos rápidos',
-  apagon: 'una antorcha se apaga', plasma: 'disparo de plasma',
+  apagon: 'una antorcha se apaga', plasma: 'chispazo de ámbar',
   // 2.1
   excavar: 'algo cava bajo la tierra', emerger: 'la tierra se abre', roca: 'una piedra que cae',
-  descarga: 'descarga eléctrica', hielo: 'algo se congela', rayoCadena: 'un rayo que salta',
+  descarga: 'chispazo dorado', hielo: 'algo se congela', rayoCadena: 'un rayo que salta',
   // 2.3
-  aleteo: 'un aleteo', picada: 'algo baja en picada', apagar: 'una llama se apaga',
-  capullo: 'algo que revienta', quemar: 'algo se quema', zanja: 'la zanja prende',
+  aleteo: 'un aleteo de lechuza', picada: 'algo baja en picada', apagar: 'una llama se apaga',
+  capullo: 'un nido de hongos que revienta', quemar: 'algo se quema', zanja: 'la zanja prende',
+  // 3.8.0: el travieso que se lleva algo
+  risa: 'una risita',
 };
 export function lejaniaTexto(d) {
   if (d < 6) return 'encima';
