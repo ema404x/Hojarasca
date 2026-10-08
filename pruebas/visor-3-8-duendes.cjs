@@ -44,6 +44,11 @@ const TOMAS = {
   madriguera: { hora: 19.6, madriguera: 1, ojo: [0, 1.65, 0], a: [0, 2.2, 13], fov: 50, duendes: [
     ['rastreador', -2.5, 9.5, 0.4, { agazapado: 1 }],
   ] },
+  // el Viejo del Nido de tres cuartos de espalda: los hongos de luz de la joroba (el punto débil)
+  jefe: { hora: 21.4, ojo: [0, 1.7, 0], a: [0, 2.2, 8], fov: 55, duendes: [
+    ['jefe', 0.6, 8.5, 2.5, { vel: 0.6 }],
+    ['bruto', -2.6, 6.5, 0.3, { golpe: 0.6, ataca: 1 }],
+  ] },
   ataque: { hora: 22.0, ojo: [0, 1.65, 0], a: [0, 1.0, 14], fov: 62, luna: 1, ataque: 30, medir: 1, duendes: [] },
 };
 

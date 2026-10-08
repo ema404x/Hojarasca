@@ -91,7 +91,8 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   const des = leer('src/desafio.js'), main = leer('src/main.js'), mundo = leer('src/desafio-arsenal-mundo.js');
   assert.match(des, /arsenal = crearArsenalMundo\(T, escena, efectos, sonido, api\);/);
   assert.match(des, /const ea = arsenal\.estadoAlien\(a, dt, js\);/, 'los estados del arsenal en cada invasor');
-  assert.match(des, /if \(a\.estado === 'avanzar' && !sinAtaque\) \{/, 'confundido no ataca');
+  // 3.8.0: el duende que huye con lo robado tampoco ataca
+  assert.match(des, /if \(a\.estado === 'avanzar' && !sinAtaque(?: && !a\.robo)?\) \{/, 'confundido no ataca');
   assert.match(des, /if \(arsenal\.alPegar\(q, a\) === 'sigue'\) \{ \(q\.golpeados \|\|= new Set\(\)\)\.add\(a\); continue; \}/, 'lo que atraviesa sigue');
   assert.match(des, /if \(q\.deJugador\) \{ q\.terminado = true; arsenal\.alTerminar\(q, fin\); \}/);
   assert.match(des, /n \*= bloqueando === 'rodela' \? RODELA\.pasa : 0\.25;/, 'el escudo frena menos que la lanza');
