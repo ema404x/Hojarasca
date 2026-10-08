@@ -41,7 +41,7 @@ Está en la rama `proto-duendes` (`?debug=1&duendes=proto`; las capturas y lámi
   - Rey 1–3;
   - Coihue 1–3;
   - semillas o piedras de luz.
-- **Elección:** pendiente, la decide el usuario con su equipo.
+- **Elección (08-10, el usuario):** duendes **estilo C, bosque y musgo**; **Rey 2, gigante de corteza con cuernos de ámbar**; **Coihue 3, musgo, puertitas y ventanas encendidas**; **semillas doradas**. El robo de los traviesos: **travesura sin perder nada** (se llevan algo chico y salen corriendo; si los alcanzás lo recuperás; nunca rompen ni se llevan lo construido).
 - **Al pasarlo al juego:**
   - LOD e instanciado: hoy 30 duendes suman unos 76 dibujos y unos 2,5 ms;
   - lechuza con aleteo;
