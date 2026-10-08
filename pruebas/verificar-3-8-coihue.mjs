@@ -123,6 +123,12 @@ const enmano = leer('src/enmano.js');
   tiene(nave, 'if (enSubida) { activos.length = 0; actualizarSubida(dt, js); return; }', 'en la escalera no hay pelea');
   tiene(nave, 'entrarCorazon, bajarEscalera, atajoCorazon,', 'el atajo de las pruebas a la puerta del corazón');
   for (const f of ['pruebas/humo-3-0-asedio.cjs', 'pruebas/humo-3-5-1-desafio.cjs']) ok(leer(f).includes('naveAdentro.atajoCorazon()'), `${f}: usa el atajo a la puerta del corazón`);
+  // los duendes que asoman en la subida (tercera tanda): los de siempre, sin pelea ni choques
+  tiene(nave, "import { crearDuende } from './desafio-duendes.js';", 'los duendes de la subida son los del Desafío (instanciados: no compilan nada)');
+  tiene(nave, 'if (subida.vecinos) animarVecinos(dt, js);', 'asoman, se ríen y se esconden');
+  tiene(nave, 'if (d < 3.5) { v.quiere = 0;', 'cerca se meten en su casita');
+  tiene(nave, 'S().risa?.(', 'se ríen al asomarse');
+  { const cuerpoV = nave.slice(nave.indexOf('function animarVecinos('), nave.indexOf('function animarVecinos(') + 2500); ok(!/col.agregar|herirJugador|lanzarProyectil|api.aliens/.test(cuerpoV), 'no chocan, no pelean y no son de la oleada'); }
   // los nombres de siempre (pruebas y guardado): ojos, pilares, corazón, gajos, escudo, matRajas, aro, charco
   tiene(nave, 'grupo, x: sitio.x, y, z: sitio.z, sitio, madre, cuerpo, gajos, ojos, corazon, blancoCorazon, tentaculos, escudo,', 'la arena devuelve lo de siempre');
   tiene(nave, 'ojos.push({ g, globo, pupila, herida, flash: 0, blanco:', 'cada piedra del trono es un «ojo» (globo, pupila, herida)');

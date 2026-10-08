@@ -20,6 +20,7 @@ import { NAVE, AVISO_FASE, naveNueva, puntosActivos, herirPunto, avanzarNave, cr
 import { debilidadNave } from './desafio-asedio.js';
 import { armarSubida, armarRey, geoSemilla, geoAmbar, herramientasCoihue, testigosCoihue } from './desafio-coihue-formas.js';
 import { registrarLuz } from './luces.js';
+import { crearDuende } from './desafio-duendes.js';
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _d = new THREE.Vector3(), _c = new THREE.Color();
 const ARRIBA = new THREE.Vector3(0, 1, 0);
@@ -471,9 +472,44 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     s.g.name = 'coihue-subida';
     // las luces (en el presupuesto fijo: no cambian los programas)
     s.lucesP = s.luces.map((p, i) => { const l = new THREE.PointLight(i === s.luces.length - 1 ? 0xffa040 : 0xffb070, i === s.luces.length - 1 ? 5 : 3.6, 12, 1.4); l.position.copy(p); s.g.add(l); registrarLuz(l); return l; });
+    // 3.8.0: tres duendes chicos que asoman de sus casitas, se ríen, te miran y se esconden si te acercás.
+    // Son los duendes de siempre (instanciados: no compilan nada); no chocan ni pelean.
+    s.vecinos = [];
+    const elegidas = [1, Math.floor(s.casitas.length / 2), s.casitas.length - 2].filter((i, k, l) => i >= 0 && i < s.casitas.length && l.indexOf(i) === k);
+    for (const [k, i] of elegidas.entries()) {
+      const c = s.casitas[i], m = crearDuende(k === 1 ? 'rastreador' : 'saltador');
+      m.reiniciar();
+      m.g.rotation.y = c.a + Math.PI;   // mirando a la escalera
+      s.g.add(m.g);
+      s.vecinos.push({ m, a: c.a, y: c.y, afuera: 0, quiere: 0, espera: 1 + k * 1.3, risa: 0 });
+    }
     escena.add(s.g);
     s.ms = performance.now() - t0;
     return s;
+  }
+  // los duendes de la subida: adentro de la casita (detrás de la pared) o asomados en la puerta
+  const poseVecino = { dt: 0, jugador: null, velocidad: 0, golpe: 0, ataca: false, carrera: false, apuntando: false, agazapado: false, enredado: false, saltando: 0, noche: 1, reflejo: 0 };
+  const _pl = new THREE.Vector3();
+  function animarVecinos(dt, js) {
+    const o = subida.origen;
+    _pl.set(js.pos.x - o.x, js.pos.y - o.y, js.pos.z - o.z);
+    for (const v of subida.vecinos) {
+      const px = Math.sin(v.a), pz = Math.cos(v.a);
+      const d = Math.hypot(_pl.x - px * (subida.radio - 0.5), _pl.z - pz * (subida.radio - 0.5), (_pl.y - v.y) * 1.3);
+      v.espera -= dt; v.risa -= dt;
+      // cerca (menos de 3,5 m) se mete; a la vista (hasta 16 m) se asoma un rato, y vuelve a asomarse
+      if (d < 3.5) { v.quiere = 0; v.espera = 2.5 + Math.random() * 2; }
+      else if (d < 16 && v.espera <= 0) { v.quiere = v.quiere ? 0 : 1; v.espera = v.quiere ? 3 + Math.random() * 3 : 1.5 + Math.random() * 2.5; }
+      const antes = v.afuera;
+      v.afuera += ((v.quiere ? 1 : 0) - v.afuera) * Math.min(1, dt * (v.quiere ? 2.2 : 6));
+      if (antes < 0.5 && v.afuera >= 0.5 && v.risa <= 0) { v.risa = 4; v.m.chillar(); S().risa?.(_v.set(o.x + px * subida.radio, o.y + v.y + 0.5, o.z + pz * subida.radio)); }
+      // de detrás de la pared (escondido) a la puerta de su casita
+      const r = subida.radio + 0.45 - v.afuera * 0.95;
+      v.m.g.position.set(px * r, v.y, pz * r);
+      v.m.g.visible = v.afuera > 0.05;
+      poseVecino.dt = dt; poseVecino.jugador = _pl; poseVecino.agazapado = v.afuera < 0.6;   // (en el marco de la subida, como su posición)
+      v.m.animar(poseVecino);
+    }
   }
   const enMundo = (p) => ({ x: subida.origen.x + p.x, y: subida.origen.y + (p.y || 0), z: subida.origen.z + p.z });
   // mirando hacia donde sube la escalera (la tangente del camino)
@@ -639,6 +675,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   // por cuadro, en la escalera: el último descanso al que llegaste y, si te caíste, de vuelta ahí
   function actualizarSubida(dt, js) {
     if (!subida || seq) return;
+    if (subida.vecinos) animarVecinos(dt, js);
     const o = subida.origen;
     for (let i = subida.descansos.length - 1; i > ultimoDescanso; i--) {
       if (js.pos.y >= o.y + subida.descansos[i].y - 0.3) { ultimoDescanso = i; break; }

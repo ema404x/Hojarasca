@@ -1130,9 +1130,11 @@ export function armarSubida() {
     halos.push({ p: V3(Math.sin(an) * (RC + 0.4), q.y + 1.1, Math.cos(an) * (RC + 0.4)), col, tam: 2.2 });
   }
   for (const d of descansos) farol(d.a, d.y + 1.5, '#ffb040', 1.5);
-  // las casitas de los duendes en la pared: una puertita con su ventana encendida
+  // las casitas de los duendes en la pared: una puertita con su ventana encendida (de algunas asoman)
+  const casitas = [];
   for (let i = 5; i < tramos.length - 8; i += 17) {
     const q = tramos[i], an = q.a + 0.12, p = V3(Math.sin(an) * (RA - 0.08), q.y + 0.75, Math.cos(an) * (RA - 0.08));
+    casitas.push({ a: an, y: q.y });
     piezas.push(pieza(new THREE.BoxGeometry(0.62, 0.95, 0.12), M4(p, [0, an + Math.PI, 0]), '#5a3a22', { veta: (l) => [l.x * 3, l.y * 3, 0.4] }));
     brillos.push(pieza(new THREE.PlaneGeometry(0.42, 0.3), M4(p.clone().addScaledVector(V3(Math.sin(an), 0, Math.cos(an)), -0.08).add(V3(0, 0.15, 0)), [0, an + Math.PI, 0]), '#ffb860', { fuerza: 1.3 }));
   }
@@ -1167,6 +1169,7 @@ export function armarSubida() {
     // (una cada 12 tramos, a lo largo de toda la escalera: el presupuesto fijo prende las 4 más cerca)
     luces: [V3(abajo.x, 1.8, abajo.z), ...tramos.filter((_, i) => i % 12 === 6).map((q) => V3(Math.sin(q.a + 0.2) * rMed, q.y + 2.4, Math.cos(q.a + 0.2) * rMed)), V3(corazon.x, alto + 2.2, corazon.z)],
     largo: tramos.length,
+    casitas,
   };
 }
 

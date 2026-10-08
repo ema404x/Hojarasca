@@ -64,7 +64,7 @@ app.whenReady().then(async () => {
   // una toma: la cámara (o, a en el mundo), la hora, y qué se mide solo (`solo`: una expresión que da los objetos)
   async function toma(nombre, cam, { hora = null, solo = null } = {}) {
     if (!quiero(nombre)) return;
-    const modo = await js(`(()=>{ const H=${H}; const m = H.__caidas ? H.__caidas.modo() : '?'; if (m !== 'jugando') H.volverAlJuego?.(); ${hora != null ? `H.progreso.horas = ${hora};` : ''} H.clima.estado.nublado = 0.1; H.clima.estado.lluvia = 0; window.__cam = ${JSON.stringify(cam)}; window.__congelar = true; return m })()`);
+    const modo = await js(`(()=>{ const H=${H}; const m = H.__caidas ? H.__caidas.modo() : '?'; if (m !== 'jugando') H.volverAlJuego?.(); ${hora != null ? `H.progreso.horas = ${hora};` : ''} H.clima.estado.nublado = 0.1; H.clima.estado.lluvia = 0; window.__cam = ${JSON.stringify(cam)}; window.__congelar = true; for (const h of H.camara.children) h.visible = false; return m })()`);
     if (modo !== 'jugando') console.log(`  (${nombre}: el juego estaba en «${modo}»)`);
     await esperar(4500);
     await js(`(()=>{ const H=${H}; for (let i = 0; i < 3; i++) H.__bucle(); return 1 })()`);
@@ -190,6 +190,24 @@ app.whenReady().then(async () => {
     // y mirando para abajo, por el hueco entre la escalera y el tronco del medio
     await js(`(()=>{const js=${H}.jugador.estado; js.pitch = -0.55; js.yaw += 1.2; return 1})()`);
     await toma('v38-coihue-subida-mitad-abajo', null);
+  }
+  // un duende asomado en la puerta de su casita (el del medio de la escalera): la cámara unos peldaños antes
+  {
+    const v = JSON.parse(await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, S=N.subida, o=S.origen, vs=S.vecinos || [];
+      if (!vs.length) return 'null';
+      const v = vs[Math.floor(vs.length / 2)], cx = Math.sin(v.a) * 2.9, cz = Math.cos(v.a) * 2.9;
+      let j = 0, mejor = 1e9; S.tramos.forEach((q, i) => { const d = Math.hypot(q.x - cx, q.z - cz) + Math.abs(q.alto - v.y) * 2; if (d < mejor) { mejor = d; j = i; } });
+      const q = S.tramos[Math.max(0, j - 5)];
+      H.jugador.ubicar(o.x + q.x, o.z + q.z, 0, o.y + q.alto);
+      const js = H.jugador.estado, px = o.x + Math.sin(v.a) * (S.radio - 0.6), pz = o.z + Math.cos(v.a) * (S.radio - 0.6);
+      js.yaw = Math.atan2(-(px - js.pos.x), -(pz - js.pos.z)); js.pitch = -0.05;
+      v.quiere = 1; v.espera = 30;
+      for (let i = 0; i < 40; i++) H.desafio.actualizar(0.05, {noche:0, dtReal:0.05});
+      const ojo = [js.pos.x, js.pos.y + 1.6, js.pos.z], mira = [o.x + Math.sin(v.a) * (S.radio - 0.5), o.y + v.y + 0.45, o.z + Math.cos(v.a) * (S.radio - 0.5)];
+      return JSON.stringify({ afuera: +v.afuera.toFixed(2), visible: v.m.g.visible, cuantos: vs.length, ojo, mira })})()`));
+    console.log('duende de la subida:', JSON.stringify(v));
+    informe.push(`duende de la subida: ${JSON.stringify(v)}`);
+    if (v) await toma('v38-coihue-subida-duende', { o: v.ojo, a: v.mira, fov: 48 });
   }
   // llegando a la puerta del corazón
   await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, S=N.subida, o=S.origen, pa=S.puertaArriba, q=S.tramos[S.tramos.length-8];
