@@ -53,6 +53,15 @@ const enmano = leer('src/enmano.js');
 {
   // la noche final: camina desde el bosque, tres nudos de ámbar en el tronco, se cae para atrás
   tiene(eventos, 'const co = armarCoihueViejo();', 'la nodriza de la noche final es el Coihue Viejo');
+  // un solo Coihue (decisión del usuario): armado al cargar, al alba se queda plantado y es el del asedio
+  tiene(eventos, '  nodriza = crearNodriza();\n  api.coihueComun = nodriza;', 'se arma al cargar el Desafío y se comparte con el asedio');
+  ok(!/if \(!nodriza\) nodriza = crearNodriza\(\);/.test(eventos), 'no se arma a mitad de la partida');
+  tiene(eventos, "nodriza.fase = 'plantado';", 'al alba se queda plantado (ya no se va al bosque)');
+  tiene(asedio, 'const co = api.coihueComun || armarCoihueViejo();', 'el asedio usa el mismo Coihue');
+  tiene(asedio, "const co = api.coihueComun, plantado = co && co.fase === 'plantado' && co.g.visible;", 'el asedio es donde quedó plantado');
+  tiene(asedio, 'if (armado.nave) armado.nave.g.visible = false;', 'al desarmar se esconde (no se saca: es compartido)');
+  tiene(eventos, "nodriza.fase !== 'fuera' && nodriza.fase !== 'plantado'", 'plantado ya no es la nodriza activa');
+  tiene(formas, 'smoothstep(40.0, 150.0, length(vViewPosition))', 'de lejos la corteza se levanta un poco (la silueta de noche)');
   ok(!/api\.crearMallaNave\(\)/.test(eventos) && !/api\.crearMallaNave\(\)/.test(asedio), 'ni la noche final ni el asedio usan la malla de la nave');
   tiene(eventos, 'n.position.copy(co.brasas[i]);', 'los tres núcleos van en el tronco (nudos de ámbar)');
   tiene(eventos, 'animarCoihue(n, n.reloj, paso);', 'camina con sus raíces');
@@ -61,7 +70,7 @@ const enmano = leer('src/enmano.js');
   tiene(eventos, 'api.D().nodriza = null;', 'al caer se borra la nodriza (como siempre)');
   tiene(eventos, 'get coihue() { return nodriza; },', 'las pruebas ven el Coihue de la noche final');
   // el asedio: plantado, mira a tu base, la puerta grande es el «haz», raíces en las zonas
-  tiene(asedio, 'const co = armarCoihueViejo();', 'el asedio planta el Coihue');
+  tiene(asedio, 'co.g.position.set(a.nave.x, T.altura(a.nave.x, a.nave.z), a.nave.z);', 'el asedio planta el Coihue');
   tiene(asedio, 'return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null', 'el haz es la puerta grande (y las pruebas siguen viendo armado.nave.haz)');
   tiene(asedio, 'n.haz.visible = abierto;', 'la puerta se enciende cuando se puede subir');
   ok(/const PIE_COIHUE = (\d+);/.test(asedio) && Number(asedio.match(/const PIE_COIHUE = (\d+);/)[1]) >= 12, 'E entra desde el pie del Coihue (debajo del tronco o la escalera de la puerta)');
@@ -89,15 +98,31 @@ const enmano = leer('src/enmano.js');
 // ============================================================ 2. adentro
 {
   tiene(nave, 'const rey = armarRey(ESC_REY);', 'el Rey Duende en el lugar de la Madre');
-  tiene(nave, 'const subida = armarSubida();', 'la escalera de raíces del tronco hueco');
+  tiene(nave, 'const s = armarSubida();', 'la escalera de raíces del tronco hueco');
   tiene(formas, "for (const h of ['torso', 'cabeza', 'brazo0', 'brazo1'])", 'el Rey tiene huesos (torso, cabeza, brazos)');
   for (const p of ['lanzar', 'llamar', 'golpe', 'senalar', 'herido']) ok(nave.includes(`poseRey.nombre === '${p}'`), `pose del Rey: ${p}`);
   tiene(nave, "if (h === 'disparo') { disparar(js); posar('lanzar', 0.7); }", 'las poses acompañan lo que hace');
-  // la subida entra en los 2,5 s que las pruebas esperan después de E
-  const s = nave.match(/const SUBIDA = \{ fundido: ([\d.]+), dura: ([\d.]+) \};/);
-  ok(s && Number(s[1]) + Number(s[2]) <= 2.3, `la subida dura menos de 2,3 s (${s && (Number(s[1]) + Number(s[2]))} s)`);
-  tiene(nave, 'if (u < 1) camaraSubida(u, js);', 'la cámara sube por la escalera');
-  tiene(nave, 'js.pos.x = sal.x; js.pos.z = sal.z; js.pos.y = arena.y;', 'mientras sube, quedás quieto en la puerta de arriba');
+  // la subida se camina (decisión del usuario): unos 30-60 s caminando, con descansos, sin caídas al vacío
+  const sb = formas.match(/export const SUBIDA = \{ radio: ([\d.]+), columna: ([\d.]+), vueltas: (\d+), altoVuelta: ([\d.]+), paso: ([\d.]+), descansos: \[([\d, ]+)\], llano: (\d+) \};/);
+  ok(!!sb, 'las medidas de la subida');
+  {
+    const radio = Number(sb[1]), columna = Number(sb[2]), vueltas = Number(sb[3]), altoVuelta = Number(sb[4]);
+    const rMed = (columna + 0.1 + radio - 0.25) / 2, largo = vueltas * 2 * Math.PI * rMed;
+    const caminando = Math.hypot(largo, vueltas * altoVuelta) / 3.2;   // VELOCIDAD.caminar
+    ok(caminando > 30 && caminando < 60, `se tarda entre 30 y 60 s caminando (${caminando.toFixed(0)} s)`);
+    ok(altoVuelta - 0.25 > 1.65 + 1, 'entre una vuelta y la de arriba se pasa de pie (y saltando)');
+    ok(altoVuelta / (2 * Math.PI) * Number(sb[5]) < 0.62, 'cada tramo sube menos que un escalón (se sube caminando)');
+    ok(sb[6].split(',').length >= 3, 'hay descansos en el camino');
+  }
+  tiene(nave, 'function ponerFisicaSubida() {', 'la escalera tiene su física: tramos, la pared y la columna del medio');
+  tiene(nave, 'col.agregar({ x: o.x, z: o.z, r: s.columna + 0.12,', 'el tronco del medio es el borde (no hay vacío)');
+  tiene(nave, 'ponerEnDescanso(ultimoDescanso);', 'si te caés, volvés al último descanso (nada de morir por caída)');
+  tiene(nave, "return p === 'corazon' ? 'Entrar al corazón del Coihue' : p === 'valle' ? 'Salir al valle por la puertita' : null;", 'arriba la puerta del corazón, abajo la puertita al valle');
+  tiene(nave, "if (enLaSalida(pos)) return 'Bajar por la escalera de raíces';", 'desde la sala se baja por la escalera');
+  tiene(nave, 'subida = construirSubida(s);   // (detrás del fundido: la pantalla está a oscuras)', 'la subida se arma detrás del fundido de entrada');
+  tiene(nave, 'if (enSubida) { activos.length = 0; actualizarSubida(dt, js); return; }', 'en la escalera no hay pelea');
+  tiene(nave, 'entrarCorazon, bajarEscalera, atajoCorazon,', 'el atajo de las pruebas a la puerta del corazón');
+  for (const f of ['pruebas/humo-3-0-asedio.cjs', 'pruebas/humo-3-5-1-desafio.cjs']) ok(leer(f).includes('naveAdentro.atajoCorazon()'), `${f}: usa el atajo a la puerta del corazón`);
   // los nombres de siempre (pruebas y guardado): ojos, pilares, corazón, gajos, escudo, matRajas, aro, charco
   tiene(nave, 'grupo, x: sitio.x, y, z: sitio.z, sitio, madre, cuerpo, gajos, ojos, corazon, blancoCorazon, tentaculos, escudo,', 'la arena devuelve lo de siempre');
   tiene(nave, 'ojos.push({ g, globo, pupila, herida, flash: 0, blanco:', 'cada piedra del trono es un «ojo» (globo, pupila, herida)');

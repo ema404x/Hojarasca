@@ -82,7 +82,7 @@ const cuerpo = (txt, firma) => { const i = txt.indexOf(firma); assert.ok(i >= 0,
 
 // ---------------------------------------------------------------- adentro de la nave
 {
-  const entrada = cuerpo(nave, 'function hacerEntrada()');
+  const entrada = cuerpo(nave, 'function hacerCorazon()');   // 3.8.0: al entrar a la sala del Rey (antes, al subir a la nave)
   tiene(entrada, 'o.globo.visible = o.pupila.visible = true; o.herida.visible = false;', 'al volver a subir, los ojos están enteros');
   tiene(entrada, 'p.nucleo.visible = true;', 'y los pilares');
   tiene(entrada, 'p.columna.scale.y = 1; p.columna.position.y = 4;');

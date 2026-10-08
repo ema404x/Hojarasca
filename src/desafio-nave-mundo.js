@@ -1,7 +1,7 @@
 // 3.0: adentro de la nave nodriza (ver `desafio-nave.js` para las reglas de la pelea).
 // 3.8.0: la nave pasó a ser el Coihue Viejo: adentro está su corazón, una sala redonda de madera roja con
 // el Rey Duende en su trono (en el lugar de la Madre), y se llega subiendo por la escalera de raíces del
-// tronco hueco (una subida de cámara, ver `actualizarSecuencia`). Las reglas y los nombres de adentro son
+// tronco hueco: una escalera de raíces que se camina (ver `hacerEntrada` y armarSubida). Las reglas y los nombres de adentro son
 // los de siempre (ojos = las tres piedras de ámbar del trono, pilares = las raíces con su semilla dorada,
 // corazón = el del Coihue, en el pecho del Rey); las mallas son las de desafio-coihue-formas.js.
 //
@@ -254,17 +254,12 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     charco.position.set(salida.x, 0.03, 0);
     grupo.add(charco);
 
-    // la escalera de raíces por la que se sube: un pozo afuera de la pared, detrás de la puerta. Su último
-    // peldaño queda en el umbral (girada para que llegue a la puerta)
-    const subida = armarSubida();
+    // la puerta de la escalera, cerrada (detrás está la subida: E la abre y baja), con la luz que se filtra
     {
-      const top = subida.arriba;
-      subida.g.rotation.y = -Math.PI / 2 - top.a;   // el último peldaño, hacia la puerta (hacia el centro)
-      subida.g.position.set(R + 0.9 + subida.radio - 0.6, -top.y - 0.12, 0);
-      grupo.add(subida.g);
-      const l = new THREE.PointLight(0xffb070, 4, 20, 1.6);
-      l.position.copy(subida.luz);
-      subida.g.add(l); registrarLuz(l);
+      const rp = R + 0.75, hw = Math.sin(PUERTA_SALA.medio) * rp;
+      corteza.push(pieza(new THREE.BoxGeometry(0.16, PUERTA_SALA.alto - 0.1, hw * 2 + 0.1), M4([rp, (PUERTA_SALA.alto - 0.1) / 2, 0]), '#7a4a2a', { veta: (l) => [l.z * 6, l.y, 0.6], pintar: (c, p, n, l) => { if (Math.abs(Math.sin(l.z * 9)) < 0.15) c.multiplyScalar(0.6); } }));
+      brillos.push(pieza(new THREE.BoxGeometry(0.05, PUERTA_SALA.alto - 0.3, 0.07), M4([rp - 0.1, PUERTA_SALA.alto / 2, hw * 0.3]), '#ffb860', { fuerza: 1.4 }));
+      brillos.push(pieza(new THREE.BoxGeometry(0.05, 0.06, hw * 2), M4([rp - 0.1, 0.05, 0]), '#ffb860', { fuerza: 1.4 }));
     }
 
     // ---------------- el Rey Duende (en el lugar de la Madre)
@@ -393,7 +388,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     escena.add(grupo);
     return {
       grupo, x: sitio.x, y, z: sitio.z, sitio, madre, cuerpo, gajos, ojos, corazon, blancoCorazon, tentaculos, escudo,
-      pilares, ondas, puas, lugaresVaina, salida, aro, charco, matRajas, apertura: 0, rey, subida, luces, ms: performance.now() - t0,
+      pilares, ondas, puas, lugaresVaina, salida, aro, charco, matRajas, apertura: 0, rey, luces, ms: performance.now() - t0,
     };
   }
 
@@ -412,7 +407,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   function ocultarValle() {
     ocultos.length = 0;
     for (const o of escena.children) {
-      if (!o.visible || o === arena.grupo || o.isLight || !delValle(o) || tieneLuz(o)) continue;
+      if (!o.visible || (arena && o === arena.grupo) || (subida && o === subida.g) || o.isLight || !delValle(o) || tieneLuz(o)) continue;
       o.visible = false;
       ocultos.push(o);
     }
@@ -446,7 +441,47 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     // los pilares
     for (const p of arena.pilares) col.agregar({ x: arena.x + p.g.position.x, z: arena.z + p.g.position.z, r: 1.05, alturaMin: arena.y - 1, alturaMax: arena.y + 8, duenio: DUENIO });
   }
-  const sacarFisica = () => col.eliminarPorDuenio(DUENIO);
+  // 3.8.0: la subida: el piso de abajo, un tramo por cada pedazo de escalera, la pared del tronco en segmentos
+  // y la columna de raíces del medio (el borde: entre las dos no hay por dónde caerse)
+  function ponerFisicaSubida() {
+    const s = subida, o = s.origen;
+    col.agregarPlataforma({ x: o.x, z: o.z, radio: s.radio, alto: o.y, espesor: 0.4, duenio: DUENIO, sinTecho: true, sinLaterales: true });
+    for (const q of s.tramos) col.agregarPlataforma({ x: o.x + q.x, z: o.z + q.z, largo: q.largo, ancho: q.ancho, ang: q.ang, alto: o.y + q.alto, espesor: 0.25, duenio: DUENIO, sinLaterales: true });
+    const n = 48, rr = s.radio - 0.12;
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * Math.PI * 2, a1 = ((i + 1) / n) * Math.PI * 2;
+      col.agregar({ seg: true, ax: o.x + Math.cos(a0) * rr, az: o.z + Math.sin(a0) * rr, bx: o.x + Math.cos(a1) * rr, bz: o.z + Math.sin(a1) * rr,
+        r: 0.25, alturaMin: o.y - 3, alturaMax: o.y + s.techo + 2, duenio: DUENIO });
+    }
+    col.agregar({ x: o.x, z: o.z, r: s.columna + 0.12, alturaMin: o.y - 3, alturaMax: o.y + s.techo + 2, duenio: DUENIO });
+  }
+  const sacarFisica = () => { col.eliminarPorDuenio(DUENIO); fisicaArena = false; };
+
+  // ---------------------------------------------------------------- 3.8.0: la subida (se arma al entrar, detrás del fundido)
+  // Queda debajo del corazón (60 m más abajo, sobre el mismo sitio: el terreno de abajo es el llano del Coihue)
+  let subida = null, enSubida = false, ultimoDescanso = 0, fisicaArena = false, pendienteCorazon = false, avisoCaida = 0;
+  const BAJO_SUBIDA = 60;
+  function construirSubida(sitio) {
+    const t0 = performance.now();
+    const s = armarSubida();
+    s.origen = { x: sitio.x, y: sitio.y + NAVE.alturaInterior - BAJO_SUBIDA, z: sitio.z };
+    s.sitio = sitio;
+    s.g.position.set(s.origen.x, s.origen.y, s.origen.z);
+    s.g.visible = false;
+    s.g.name = 'coihue-subida';
+    // las luces (en el presupuesto fijo: no cambian los programas)
+    s.lucesP = s.luces.map((p, i) => { const l = new THREE.PointLight(i === s.luces.length - 1 ? 0xffa040 : 0xffb070, i === s.luces.length - 1 ? 5 : 3.6, 12, 1.4); l.position.copy(p); s.g.add(l); registrarLuz(l); return l; });
+    escena.add(s.g);
+    s.ms = performance.now() - t0;
+    return s;
+  }
+  const enMundo = (p) => ({ x: subida.origen.x + p.x, y: subida.origen.y + (p.y || 0), z: subida.origen.z + p.z });
+  // mirando hacia donde sube la escalera (la tangente del camino)
+  const rumboSubida = (p) => { const a = Math.atan2(p.x, p.z); return Math.atan2(-Math.cos(a), Math.sin(a)); };
+  function ponerEnDescanso(i) {
+    const d = subida.descansos[Math.max(0, Math.min(subida.descansos.length - 1, i))], w = enMundo(d);
+    api.jugador().ubicar(w.x, w.z, rumboSubida(d), w.y + 0.05);
+  }
 
   // ---------------------------------------------------------------- entrar y salir
   const salidaMundo = () => ({ x: arena.x + arena.salida.x, z: arena.z + arena.salida.z });
@@ -454,45 +489,107 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     if (adentro || seq) return false;
     const s = api.sitioHaz?.();
     if (!s) return false;
-    if (!arena || Math.hypot(arena.sitio.x - s.x, arena.sitio.z - s.z) > 1) {
-      if (arena) escena.remove(arena.grupo);
-      arena = construir(s);
-    }
-    seq = { tipo: 'entrar', t: 0, hecho: false };
+    seq = { tipo: 'entrar', t: 0, hecho: false, sitio: s };
     sonido.tono?.({ frec: 90, fin: 420, dur: 1.2, tipo: 'sawtooth', vol: 0.12, destino: sonido.bus?.efectos });
     return true;
   }
-  function hacerEntrada() {
+  // 3.8.0: E en la puerta del pie: adentro del tronco hueco, al pie de la escalera de raíces. La pelea del
+  // corazón arranca de cero cada vez que entrás al Coihue (como siempre).
+  function hacerEntrada(s) {
     const d = api.D();
     // lo que quedaba afuera se va: adentro no se ve y no tiene que seguir persiguiéndote
     for (const a of api.aliens) if (!a.enNave && a.estado !== 'morir' && a.estado !== 'irse') { a.estado = 'irse'; a.t = 0; }
     hora = api.horaActual?.() || null;
     const asedio = d.asedio;
     if (asedio) asedio.abordajes = (asedio.abordajes || 0) + 1;
-    pelea = naveNueva({ vida: dificultad(api.claveDificultad?.()).vida, debilidad: debilidadNave(asedio) });
-    pelea.bruto = false;
+    if (!subida || Math.hypot(subida.sitio.x - s.x, subida.sitio.z - s.z) > 1) {
+      if (subida) escena.remove(subida.g);
+      subida = construirSubida(s);   // (detrás del fundido: la pantalla está a oscuras)
+    }
+    // y la sala del Rey, también ahora (a oscuras); arriba, al abrir la puerta, ya está
+    if (!arena || Math.hypot(arena.sitio.x - s.x, arena.sitio.z - s.z) > 1) {
+      if (arena) escena.remove(arena.grupo);
+      arena = construir(s);
+    }
+    pelea = null;
     crias.clear();
-    for (const o of arena.ondas) { o.activa = false; o.m.visible = false; }
-    for (const p of arena.puas) { p.activa = false; p.aviso.visible = p.espinas.visible = false; }
-    arena.apertura = 0;
-    // 3.5.1: la arena se reusa al volver a subir: los ojos y pilares rotos la vez anterior
-    // seguían reventados (sin globo ni núcleo) aunque la Madre se recompone y les entran los
-    // golpes; no se veía a qué tirarle, y el plasma no salía de esos ojos
-    for (const o of arena.ojos) { o.globo.visible = o.pupila.visible = true; o.herida.visible = false; o.flash = 0; }
-    for (const p of arena.pilares) { p.nucleo.visible = true; p.hilo.visible = false; p.columna.scale.y = 1; p.columna.position.y = 4; p.flash = 0; }
-    arena.corazonFlash = 0;
-    ponerFisica();
-    arena.grupo.visible = true;
+    activos.length = 0;
+    ponerFisicaSubida();
+    subida.g.visible = true;
+    if (arena) arena.grupo.visible = false;
     ocultarValle();
-    adentro = true;
+    adentro = true; enSubida = true; ultimoDescanso = 0;
+    ponerEnDescanso(0);
+    lucesDeAdentro();
+    hud.style.display = 'none';
+    api.nota('El tronco hueco', 'Subí por la escalera de raíces hasta la puerta del corazón. Si te caés, volvés al último descanso', true);
+    api.guardar();
+  }
+  function entrarCorazon() {
+    if (!adentro || !enSubida || seq) return false;
+    seq = { tipo: 'corazon', t: 0, hecho: false };
+    return true;
+  }
+  // la puerta del corazón: adentro, la sala del Rey (se arma la primera vez, detrás del fundido)
+  function hacerCorazon() {
+    const s = subida.sitio;
+    if (!arena || Math.hypot(arena.sitio.x - s.x, arena.sitio.z - s.z) > 1) {
+      if (arena) escena.remove(arena.grupo);
+      arena = construir(s);
+    }
+    if (!fisicaArena) { ponerFisica(); fisicaArena = true; }
+    const nueva = !pelea;
+    if (nueva) {
+      pelea = naveNueva({ vida: dificultad(api.claveDificultad?.()).vida, debilidad: debilidadNave(api.D().asedio) });
+      pelea.bruto = false;
+      for (const o of arena.ondas) { o.activa = false; o.m.visible = false; }
+      for (const p of arena.puas) { p.activa = false; p.aviso.visible = p.espinas.visible = false; }
+      arena.apertura = 0;
+      // 3.5.1: la arena se reusa al volver a subir: los ojos y pilares rotos la vez anterior
+      // seguían reventados (sin globo ni núcleo) aunque la Madre se recompone y les entran los
+      // golpes; no se veía a qué tirarle, y el plasma no salía de esos ojos
+      for (const o of arena.ojos) { o.globo.visible = o.pupila.visible = true; o.herida.visible = false; o.flash = 0; }
+      for (const p of arena.pilares) { p.nucleo.visible = true; p.hilo.visible = false; p.columna.scale.y = 1; p.columna.position.y = 4; p.flash = 0; }
+      arena.corazonFlash = 0;
+    }
+    enSubida = false;
+    subida.g.visible = false;
+    arena.grupo.visible = true;
     const sal = salidaMundo();
     api.jugador().ubicar(sal.x, sal.z, Math.PI / 2, arena.y);
-    lucesDeAdentro();
     hud.style.display = 'block';
     _v.set(arena.x, arena.y + 5, arena.z);
     S().jefe?.(_v);
-    api.nota(AVISO_FASE.ojos[0], AVISO_FASE.ojos[1] + (debilidadNave(asedio) ? '. Con las cuatro zonas libres, llegó más débil: le falta un ojo' : ''), true);
+    if (nueva) api.nota(AVISO_FASE.ojos[0], AVISO_FASE.ojos[1] + (debilidadNave(api.D().asedio) ? '. Con las cuatro zonas libres, llegó más débil: le falta un ojo' : ''), true);
     api.guardar();
+  }
+  // E en la puerta de la sala: de vuelta a la escalera (arriba), para bajar caminando
+  function bajarEscalera() {
+    if (!adentro || enSubida || seq) return false;
+    seq = { tipo: 'bajar', t: 0, hecho: false };
+    return true;
+  }
+  function hacerBajada() {
+    for (const a of crias) if (a.estado !== 'morir') { a.estado = 'irse'; a.t = 10; }
+    crias.clear();
+    activos.length = 0;
+    enSubida = true;
+    if (arena) arena.grupo.visible = false;
+    subida.g.visible = true;
+    hud.style.display = 'none';
+    const p = enMundo(subida.puertaArriba);
+    api.jugador().ubicar(p.x, p.z, rumboSubida(subida.puertaArriba) + Math.PI, p.y + 0.05);
+    ultimoDescanso = subida.descansos.length - 1;
+  }
+  // (para las pruebas: te deja en la puerta del corazón y la abre; si todavía estás entrando, al terminar)
+  function atajoCorazon() {
+    if (adentro && enSubida && !seq) {
+      const p = enMundo(subida.puertaArriba);
+      api.jugador().ubicar(p.x, p.z, 0, p.y + 0.05);
+      return entrarCorazon();
+    }
+    pendienteCorazon = true;
+    return true;
   }
   function salir() {
     if (!adentro || seq) return false;
@@ -509,13 +606,15 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   function hacerSalida(motivo) {
     for (const a of crias) if (a.estado !== 'morir') { a.estado = 'irse'; a.t = 10; }
     crias.clear();
+    activos.length = 0;
     sacarFisica();
-    arena.grupo.visible = false;
+    if (arena) arena.grupo.visible = false;
+    if (subida) subida.g.visible = false;
     mostrarValle();
-    adentro = false;
+    adentro = false; enSubida = false; pendienteCorazon = false;
     hud.style.display = 'none';
     try { sonido.agaches?.ambiente?.gain?.setTargetAtTime(1, sonido.ctx.currentTime, 0.4); } catch { /* sin audio */ }
-    const s = api.sitioHaz?.() || { x: arena.x, z: arena.z, y: T.altura(arena.x, arena.z) };
+    const s = api.sitioHaz?.() || subida?.sitio || { x: arena.x, z: arena.z, y: T.altura(arena.x, arena.z) };
     const d = api.D();
     if (motivo === 'final') {
       // se sale lejos de donde va a caer la nave, mirándola
@@ -535,6 +634,20 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       api.nota('La nave te escupió', 'Caíste adentro y el haz te bajó al valle. Sigue abierto: cuando estés listo, volvé a subir (la Madre se recompone)', true);
     } else api.nota('Volviste al valle', 'El haz sigue abierto. Adentro, la Madre se recompone');
     api.guardar();
+  }
+  // por cuadro, en la escalera: el último descanso al que llegaste y, si te caíste, de vuelta ahí
+  function actualizarSubida(dt, js) {
+    if (!subida || seq) return;
+    const o = subida.origen;
+    for (let i = subida.descansos.length - 1; i > ultimoDescanso; i--) {
+      if (js.pos.y >= o.y + subida.descansos[i].y - 0.3) { ultimoDescanso = i; break; }
+    }
+    const fuera = Math.hypot(js.pos.x - o.x, js.pos.z - o.z) > subida.radio + 1.5;
+    if (js.pos.y < o.y - 3 || js.pos.y > o.y + subida.techo + 3 || fuera) {
+      ponerEnDescanso(ultimoDescanso);
+      avisoCaida -= 1;
+      if (avisoCaida <= 0) { avisoCaida = 3; api.nota('Volviste al último descanso', 'La escalera de raíces sigue para arriba'); }
+    }
   }
 
   // ---------------------------------------------------------------- blancos y golpes
@@ -766,7 +879,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
 
   // ---------------------------------------------------------------- por cuadro
   let tHud = 0, tAgache = 0;
-  const pisoT = { altura: () => (arena ? arena.y : 0) };
+  const pisoT = { altura: () => (enSubida && subida ? subida.origen.y : arena ? arena.y : 0) };
   function actualizar(dt, js) {
     // una partida guardada adentro de la nave (o cualquier caída al vacío): de vuelta al valle
     // 3.5.1: el guardado acota la altura a 320 m: con el sitio del haz alto, la partida guardada
@@ -780,12 +893,15 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       return;
     }
     if (seq) actualizarSecuencia(dt, js);
-    if (!adentro || !arena) return;
+    if (!adentro) return;
     if (hora) api.fijarHora?.(hora.h, hora.dia);
     lucesDeAdentro();
     for (const o of ocultos) o.visible = false;   // lo que el valle vuelve a prender, se apaga
     tAgache -= dt;
     if (tAgache <= 0) { tAgache = 0.5; try { sonido.agaches?.ambiente?.gain?.setTargetAtTime(0.18, sonido.ctx.currentTime, 0.3); } catch { /* sin audio */ } }
+    // 3.8.0: en la escalera no hay pelea (el Rey espera en su sala)
+    if (enSubida) { activos.length = 0; actualizarSubida(dt, js); return; }
+    if (!arena) return;
     // se cayó del piso (no debería): vuelve a la salida
     if (js.pos.y < arena.y - 4) { const s = salidaMundo(); api.jugador().ubicar(s.x, s.z, Math.PI / 2, arena.y); }
     for (const a of crias) if (!api.aliens.includes(a) || !a.enNave) crias.delete(a);
@@ -864,44 +980,22 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       hudRelleno.style.width = `${Math.round(fraccionNave(pelea) * 100)}%`;
     }
   }
-  // 3.8.0: la subida. Lo que dura (con el fundido entra en los 2,5 s de siempre: al terminar estás en el piso
-  // del corazón) y la cámara: sube por los peldaños y en el último tramo pasa la puerta y mira al Rey.
-  const SUBIDA = { fundido: 0.35, dura: 1.75 };
-  const _o = new THREE.Vector3(), _m = new THREE.Vector3();
-  const suave = (x) => x * x * (3 - 2 * x);
-  function camaraSubida(u, js) {
-    const sub = arena.subida, sal = salidaMundo();
-    // quieto en la puerta de arriba mientras sube la cámara
-    js.pos.x = sal.x; js.pos.z = sal.z; js.pos.y = arena.y;
-    arena.grupo.updateMatrixWorld(true);
-    const corte = 0.8;
-    const c = sub.camino(suave(Math.min(1, u / corte)));
-    _o.copy(c.ojo).applyMatrix4(sub.g.matrixWorld);
-    _m.copy(c.mira).applyMatrix4(sub.g.matrixWorld);
-    if (u > corte) {
-      const k = suave((u - corte) / (1 - corte));
-      _o.lerp(_v.set(sal.x, arena.y + 1.62, sal.z), k);
-      _m.lerp(_w.set(arena.x, arena.y + 5, arena.z), k);
-    }
-    camara.position.copy(_o);
-    camara.lookAt(_m);
-    camara.updateMatrixWorld(true);
-  }
+  // 3.8.0: los fundidos de las puertas: al tronco hueco (entrar), al corazón, de vuelta a la escalera (bajar)
+  const FUNDIDO = { entrar: 0.35, puerta: 0.3, aclarar: 0.45 };
   function actualizarSecuencia(dt, js) {
     const s = seq;
     s.t += dt;
-    if (s.tipo === 'entrar') {
-      // 3.8.0: se entra por la puerta del pie y se sube por adentro: un fundido corto a oscuro, la cámara sube
-      // por la escalera de raíces del tronco hueco y sale por la puerta del corazón, donde quedás parado
-      const { fundido, dura } = SUBIDA;
-      ponerVelo(s.t / fundido, '#140b05');
-      if (!s.hecho && s.t >= fundido) { s.hecho = true; hacerEntrada(); }
-      if (s.hecho && arena) {
-        ponerVelo(1 - (s.t - fundido) / 0.25);
-        const u = Math.min(1, (s.t - fundido) / dura);
-        if (u < 1) camaraSubida(u, js);
+    if (s.tipo === 'entrar' || s.tipo === 'corazon' || s.tipo === 'bajar') {
+      const f = s.tipo === 'entrar' ? FUNDIDO.entrar : FUNDIDO.puerta;
+      ponerVelo(s.hecho ? 1 - (s.t - f) / FUNDIDO.aclarar : s.t / f, '#140b05');
+      if (!s.hecho && s.t >= f) {
+        s.hecho = true;
+        if (s.tipo === 'entrar') hacerEntrada(s.sitio); else if (s.tipo === 'corazon') hacerCorazon(); else hacerBajada();
       }
-      if (s.t > fundido + dura) { ponerVelo(0); seq = null; }
+      if (s.t > f + FUNDIDO.aclarar) {
+        ponerVelo(0); seq = null;
+        if (pendienteCorazon && adentro && enSubida) { pendienteCorazon = false; atajoCorazon(); }
+      }
     } else if (s.tipo === 'salir' || s.tipo === 'derrota') {
       ponerVelo(s.t / 0.6, s.tipo === 'derrota' ? '#200808' : '#140b05');
       if (!s.hecho && s.t >= 0.6) { s.hecho = true; hacerSalida(s.tipo === 'derrota' ? 'derrota' : 'voluntario'); }
@@ -937,29 +1031,48 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     }
   }
 
-  // ---------------------------------------------------------------- E: la salida
+  // ---------------------------------------------------------------- E: las puertas
+  // En la sala, la puerta de la escalera (baja a la subida). En la subida, arriba la puerta del corazón y
+  // abajo la puertita al valle.
   function enLaSalida(pos) {
-    if (!adentro || !arena || seq) return false;
+    if (!adentro || enSubida || !arena || seq) return false;
     const s = salidaMundo();
     return Math.hypot(pos.x - s.x, pos.z - s.z) < 2.4 && Math.abs(pos.y - arena.y) < 2;
   }
-  const usarCerca = (pos) => (enLaSalida(pos) ? salir() : false);
-  const avisoCerca = (pos) => (enLaSalida(pos) ? 'Bajar por el haz al valle' : null);
+  function cercaDe(pos, p, r) { const w = enMundo(p); return Math.hypot(pos.x - w.x, pos.z - w.z) < r && Math.abs(pos.y - w.y) < 2.2; }
+  const puertaSubida = (pos) => (!adentro || !enSubida || !subida || seq ? null : cercaDe(pos, subida.puertaArriba, 2.6) ? 'corazon' : cercaDe(pos, subida.puertaAbajo, 2.4) ? 'valle' : null);
+  function usarCerca(pos) {
+    if (enLaSalida(pos)) return bajarEscalera();
+    const p = puertaSubida(pos);
+    if (p === 'corazon') return entrarCorazon();
+    if (p === 'valle') return salir();
+    return false;
+  }
+  function avisoCerca(pos) {
+    if (enLaSalida(pos)) return 'Bajar por la escalera de raíces';
+    const p = puertaSubida(pos);
+    return p === 'corazon' ? 'Entrar al corazón del Coihue' : p === 'valle' ? 'Salir al valle por la puertita' : null;
+  }
 
   function limpiar() {
     if (adentro) {
-      sacarFisica(); if (arena) arena.grupo.visible = false; mostrarValle(); adentro = false;
+      sacarFisica(); if (arena) arena.grupo.visible = false; if (subida) subida.g.visible = false; mostrarValle(); adentro = false; enSubida = false;
       // 3.5.1: como al salir por el haz: el ambiente del valle quedaba apagado (al caer o volver a la portada adentro)
       try { sonido.agaches?.ambiente?.gain?.setTargetAtTime(1, sonido.ctx.currentTime, 0.4); } catch { /* sin audio */ }
     }
     crias.clear();
-    seq = null; pelea = null;
+    seq = null; pelea = null; pendienteCorazon = false;
     hud.style.display = 'none';
     ponerVelo(0);
   }
 
   return {
     entrar, salir, alCaerAdentro, actualizar, actualizarAlien, blancos, herir, usarCerca, avisoCerca, limpiar,
+    // 3.8.0: la subida caminable (y el atajo de las pruebas a la puerta del corazón)
+    entrarCorazon, bajarEscalera, atajoCorazon,
+    get enSubida() { return adentro && enSubida; },
+    get subida() { return subida; },
+    get ultimoDescanso() { return ultimoDescanso; },
     get adentro() { return adentro; },
     get enTransicion() { return !!seq; },
     get pelea() { return pelea; },
@@ -967,7 +1080,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     get crias() { return crias.size; },
     get ocultos() { return ocultos.length; },
     // el piso de adentro, para lo que cae (proyectiles, cristales, partículas)
-    alturaPiso: (x, z) => (arena && Math.hypot(x - arena.x, z - arena.z) < R + 1 ? arena.y : -1e9),
+    alturaPiso: (x, z) => (enSubida && subida ? subida.origen.y : arena && Math.hypot(x - arena.x, z - arena.z) < R + 1 ? arena.y : -1e9),
     pisoT,
     textoHud: () => (adentro && pelea ? `Adentro de la nave · ${textoNave(pelea)}` : ''),
   };

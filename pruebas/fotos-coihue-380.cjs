@@ -149,19 +149,54 @@ app.whenReady().then(async () => {
     { const z0 = as.zonas[0], fx0 = z0.x + 2.4; await toma('v38-coihue-fogon', { o: [fx0 + 3.2, (await piso(fx0 + 3.2, z0.z + 2.2)) + 1.5, z0.z + 2.2], a: [fx0, z0.y + 0.6, z0.z], fov: 55 }, { hora: 18.4 }); }
   }
 
-  // ================================================================ adentro: la subida y el corazón
+  // ================================================================ adentro: la subida (se camina) y el corazón
   await js(`(()=>{const H=${H}; H.progreso.horas = 11; const s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0, s.y); return H.desafio.usarCercaDe(H.jugador.estado.pos)})()`);
-  // hasta la mitad de la subida (la cámara la pone el juego)
-  await js(`(()=>{const H=${H}; for (let i=0;i<24;i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return 1})()`);
-  if (quiero('v38-coihue-subida')) {
-    await js(`window.__congelar = true; 1`);
-    await esperar(4000);
-    const img = await w.webContents.capturePage();
-    fs.writeFileSync(path.join(salida, 'v38-coihue-subida.png'), img.toPNG());
-    const info = await js(`(() => { const H = ${H}, R = H.renderer; R.info.autoReset = false; R.info.reset(); R.render(H.escena, H.camara); const d = { dibujos: R.info.render.calls, tri: R.info.render.triangles }; R.info.autoReset = true; return JSON.stringify(d) })()`);
-    informe.push(`v38-coihue-subida: ${info}`); console.log('foto subida', info);
-    await js(`window.__congelar = false; 1`);
+  await correr(1.2);
+  const sub = JSON.parse(await js(`(()=>{const N=${H}.desafio.naveAdentro; return JSON.stringify({en:N.enSubida, ms:Math.round(N.subida.ms), tramos:N.subida.tramos.length})})()`));
+  console.log('subida:', JSON.stringify(sub));
+  informe.push(`armar la subida (al entrar, detrás del fundido): ${sub.ms} ms; ${sub.tramos} tramos`);
+  // la cámara del jugador: mirando por donde sube la escalera (un poco hacia arriba)
+  const mirarAdelante = (k) => js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, js=H.jugador.estado, S=N.subida, o=S.origen;
+    let i=0, mejor=1e9; S.tramos.forEach((q, j) => { const d = Math.hypot(o.x+q.x-js.pos.x, o.z+q.z-js.pos.z) + Math.abs(o.y+q.alto-js.pos.y)*3; if (d < mejor) { mejor = d; i = j; } });
+    const q = S.tramos[Math.min(S.tramos.length-1, i + ${k})];
+    js.yaw = Math.atan2(-(o.x+q.x-js.pos.x), -(o.z+q.z-js.pos.z)); js.pitch = Math.atan2(o.y+q.alto-js.pos.y, Math.hypot(o.x+q.x-js.pos.x, o.z+q.z-js.pos.z)) * 0.6 + 0.05;
+    return i})()`);
+  await mirarAdelante(5);
+  await toma('v38-coihue-subida-abajo', null);
+  // caminar de verdad (W apretada, el rumbo hacia unos peldaños más adelante) hasta la puerta del corazón:
+  // cuánto tarda caminando, si alguna vez se cayó y por dónde va a la mitad
+  const camino = JSON.parse(await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, js=H.jugador.estado, S=N.subida, o=S.origen;
+    document.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',bubbles:true}));
+    let t = 0, caidas = 0, yAntes = js.pos.y, maxI = 0, mitad = null; const pa = S.puertaArriba;
+    const cerca = () => Math.hypot(o.x+pa.x-js.pos.x, o.z+pa.z-js.pos.z) < 2.4 && Math.abs(o.y+pa.y-js.pos.y) < 1.5;
+    for (let n = 0; n < 4000 && !cerca(); n++) {
+      let i=0, mejor=1e9; S.tramos.forEach((q, j) => { const d = Math.hypot(o.x+q.x-js.pos.x, o.z+q.z-js.pos.z) + Math.abs(o.y+q.alto-js.pos.y)*3; if (d < mejor) { mejor = d; i = j; } });
+      maxI = Math.max(maxI, i);
+      const q = i >= S.tramos.length - 3 ? { x: pa.x, z: pa.z } : S.tramos[i + 3];
+      js.yaw = Math.atan2(-(o.x+q.x-js.pos.x), -(o.z+q.z-js.pos.z));
+      H.jugador.actualizar(0.05); H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); t += 0.05;
+      if (js.pos.y < yAntes - 1.5) caidas++;
+      yAntes = js.pos.y;
+      if (!mitad && i >= S.tramos.length / 2) { mitad = { x: js.pos.x, y: js.pos.y, z: js.pos.z, yaw: js.yaw }; }
+    }
+    document.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',bubbles:true}));
+    return JSON.stringify({ segundos: +t.toFixed(1), llego: cerca(), caidas, maxI, de: S.tramos.length, descanso: N.ultimoDescanso, mitad, aviso: H.desafio.avisoCercaDe(js.pos) })})()`));
+  console.log('caminando:', JSON.stringify(camino));
+  informe.push(`la subida caminando: ${JSON.stringify(camino)}`);
+  if (camino.mitad) {
+    await js(`(()=>{const H=${H}, m=${JSON.stringify(camino.mitad)}, o=H.desafio.naveAdentro.subida.origen, dx=m.x-o.x, dz=m.z-o.z, l=Math.hypot(dx,dz)||1; H.jugador.ubicar(m.x+dx/l*0.8, m.z+dz/l*0.8, m.yaw, m.y); return 1})()`);   // (pegado a la pared: se ve la escalera que sigue)
+    await mirarAdelante(6);
+    await toma('v38-coihue-subida-mitad', null);
+    // y mirando para abajo, por el hueco entre la escalera y el tronco del medio
+    await js(`(()=>{const js=${H}.jugador.estado; js.pitch = -0.55; js.yaw += 1.2; return 1})()`);
+    await toma('v38-coihue-subida-mitad-abajo', null);
   }
+  // llegando a la puerta del corazón
+  await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, S=N.subida, o=S.origen, pa=S.puertaArriba, q=S.tramos[S.tramos.length-8];
+    H.jugador.ubicar(o.x+q.x, o.z+q.z, 0, o.y+q.alto); const js=H.jugador.estado; js.yaw = Math.atan2(-(o.x+pa.x-js.pos.x), -(o.z+pa.z-js.pos.z)); js.pitch = 0.08; return 1})()`);
+  await toma('v38-coihue-subida-puerta', null);
+  // E en la puerta del corazón
+  await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, S=N.subida, o=S.origen, pa=S.puertaArriba; H.jugador.ubicar(o.x+pa.x, o.z+pa.z, 0, o.y+pa.y); return H.desafio.usarCercaDe(H.jugador.estado.pos)})()`);
   await correr(2);
   await js(`${H}.progreso.desafio.salud = 100; 1`);
   const ar = JSON.parse(await js(`(()=>{const N=${H}.desafio.naveAdentro, A=N.arena; return JSON.stringify({x:A.x, y:A.y, z:A.z, adentro:N.adentro})})()`));

@@ -183,6 +183,8 @@ function matCorteza() {
           diffuseColor.rgb *= 0.92 + 0.16 * nC(u * 9.0);
           // 3.8.0: la luz propia sigue el color y las vetas (no aplana la corteza de noche)
           totalEmissiveRadiance *= diffuseColor.rgb * 3.0;
+          // y de lejos un poco más (de noche se lee la silueta del Coihue contra el bosque; de día no se nota)
+          totalEmissiveRadiance += diffuseColor.rgb * 0.09 * smoothstep(40.0, 150.0, length(vViewPosition));
         }`);
   };
   // 3.8.0: un poco de luz propia, tibia: de noche la corteza no queda negra (el musgo y las vetas se leen)
@@ -1038,95 +1040,134 @@ export function animarCoihue(co, t, paso = 0) {
   co.cuerpo.rotation.x = 0.03 * paso + Math.sin(t * 0.29) * 0.006;
 }
 
-// ---------------------------------------------------------------- 3.8.0: la subida por adentro
-// El fuste hueco por dentro: las paredes de madera roja, la escalera de raíces que sube en espiral, los
-// faroles de hongos en repisas y las puertitas de las casas de los duendes. Arriba no tiene techo: da al
-// corazón. En metros, el pie en y = 0. `camino(t)` (t de 0 a 1) da dónde va el ojo y adónde mira al subir.
+// ---------------------------------------------------------------- 3.8.0: la subida por adentro (se camina)
+// El fuste hueco por dentro: una escalera de raíces que sube en espiral entre la pared de madera roja y el
+// tronco de raíces trenzadas del medio (el borde: no hay vacío por donde caerse). Cada tanto un descanso
+// llano con su farol (si te caés, volvés al último), faroles de hongos y casitas de duendes en la pared.
+// Abajo la puertita al valle; arriba, la puerta del corazón. En metros, el piso en y = 0, el centro en 0.
+// Devuelve la malla y lo que hace falta para la física: los tramos (plataformas rectangulares), la pared,
+// la columna, los descansos y las dos puertas.
+export const SUBIDA = { radio: 4.4, columna: 1.45, vueltas: 8, altoVuelta: 4.3, paso: 0.3, descansos: [2, 4, 6], llano: 3 };
 export function armarSubida() {
   const g = new THREE.Group(), piezas = [], brillos = [], halos = [];
-  const r = azar(902);
-  const RA = 4.2, HA = 17;
-  const radioPared = (y) => RA * (1 + 0.06 * sv(1.5, 0, y));
-  // la escalera (sus medidas: la pared deja el hueco de la puerta donde llega el último peldaño)
-  const pasos = 46, desde = 2.0, alto = (HA - 0.6) / pasos, giro = 0.24;
-  const aArriba = desde + (pasos - 1) * giro, TECHO = HA + 4.2, HUECO = 0.45;
-  const pintaPared = (c, p, n, l) => {
-    const a = Math.atan2(l.x, l.z);
-    c.multiplyScalar(0.8 + 0.3 * Math.sin(a * 23 + 4 * ruido(a * 2, l.y * 0.5, 2)) * 0.5 + 0.15);
-    tinta(c, '#5a6a2a', 0.35 * sv(0.4, 0.9, ruido(a * 4, l.y * 0.6, 7)) * sv(2, 0, l.y));
-    tinta(c, '#3a2014', 0.5 * sv(HA - 2, TECHO, l.y));
-  };
-  const pared = (y0, y1, desdeA, arco) => {
-    const perf = []; for (let j = 0; j <= 30; j++) perf.push([1, y0 + (j / 30) * (y1 - y0)]);
-    const gw = lathe(perf, Math.max(6, Math.round(56 * arco / TAU)), desdeA, arco);
-    // dar vuelta los triángulos: se ve desde adentro
-    const I = gw.index.array; for (let t = 0; t < I.length; t += 3) { const k = I[t + 1]; I[t + 1] = I[t + 2]; I[t + 2] = k; }
-    deform(gw, (v) => {
-      const a = Math.atan2(v.x, v.z), y = v.y;
-      const rr = radioPared(y) * (1 + 0.07 * ruido(a * 3, y * 0.35, 0) + 0.035 * Math.sin(a * 17 + y * 0.6));
-      v.set(Math.sin(a) * rr, y, Math.cos(a) * rr);
-    });
-    piezas.push(pieza(gw, null, '#7a4430', { veta: (l) => [Math.atan2(l.x, l.z) * RA, l.y, 0.75], pintar: pintaPared }));
-  };
-  // (las dos se pisan medio metro: los bordes no coinciden vértice a vértice y si no, queda una rendija)
-  pared(-0.3, HA - 0.5, 0, TAU);
-  pared(HA - 1.0, TECHO, aArriba + HUECO, TAU - 2 * HUECO);
-  // el techo: madera oscura (arriba de la puerta del corazón)
+  const r = azar(903);
+  const RA = SUBIDA.radio, RC = SUBIDA.columna, rIn = RC + 0.1, rOut = RA - 0.25, rMed = (rIn + rOut) / 2, ancho = rOut - rIn;
+  const paso = SUBIDA.paso, k = SUBIDA.altoVuelta / TAU;
+  // el camino: un tramo cada `paso` radianes; sube parejo, menos en los descansos (llanos)
+  const tramos = [], descansos = [];
+  let a = 0, y = 0.2, subido = 0, sigue = 0;
+  const total = SUBIDA.vueltas * TAU;
+  while (subido < total) {
+    tramos.push({ a, y });
+    if (sigue < SUBIDA.descansos.length && subido / TAU >= SUBIDA.descansos[sigue]) {
+      descansos.push({ a: a + paso * (SUBIDA.llano / 2), y });
+      for (let j = 0; j < SUBIDA.llano; j++) { a += paso; tramos.push({ a, y, llano: true }); }
+      sigue++;
+    }
+    a += paso; y += k * paso; subido += paso;
+  }
+  // el descanso de arriba, más largo: ahí está la puerta del corazón
+  const arriba = { a, y };
+  for (let j = 0; j < SUBIDA.llano + 3; j++) { tramos.push({ a, y, llano: true }); a += paso; }
+  const aPuerta = arriba.a + paso * 2.5, alto = arriba.y;
+  const TECHO = alto + 4.6;
+  // la pared: un torno mirando hacia adentro
   {
-    const gt = lathe([[RA * 1.12, TECHO - 0.05], [RA * 0.7, TECHO + 0.6], [0.001, TECHO + 0.85]], 32);
-    const I = gt.index.array; for (let t = 0; t < I.length; t += 3) { const k = I[t + 1]; I[t + 1] = I[t + 2]; I[t + 2] = k; }
+    const perf = []; for (let j = 0; j <= 90; j++) perf.push([1, -0.3 + (j / 90) * (TECHO + 0.3)]);
+    const gw = lathe(perf, 56);
+    const I = gw.index.array; for (let t = 0; t < I.length; t += 3) { const q = I[t + 1]; I[t + 1] = I[t + 2]; I[t + 2] = q; }
+    deform(gw, (v) => { const an = Math.atan2(v.x, v.z), rr = RA * (1 + 0.05 * ruido(an * 3, v.y * 0.3, 0) + 0.025 * Math.sin(an * 17 + v.y * 0.6)); v.set(Math.sin(an) * rr, v.y, Math.cos(an) * rr); });
+    piezas.push(pieza(gw, null, '#6e4632', {
+      veta: (l) => [Math.atan2(l.x, l.z) * RA, l.y, 0.75],
+      pintar: (c, p, n, l) => {
+        const an = Math.atan2(l.x, l.z);
+        c.multiplyScalar(0.8 + 0.3 * Math.sin(an * 23 + 4 * ruido(an * 2, l.y * 0.5, 2)) * 0.5 + 0.15);
+        tinta(c, '#5a6a2a', 0.35 * sv(0.4, 0.9, ruido(an * 4, l.y * 0.6, 7)));
+        tinta(c, '#3a2014', 0.5 * sv(alto - 2, TECHO, l.y));
+      },
+    }));
+    // el techo, arriba de la puerta del corazón
+    const gt = lathe([[RA * 1.08, TECHO - 0.05], [RA * 0.7, TECHO + 0.6], [0.001, TECHO + 0.85]], 32);
+    const J = gt.index.array; for (let t = 0; t < J.length; t += 3) { const q = J[t + 1]; J[t + 1] = J[t + 2]; J[t + 2] = q; }
     gt.computeVertexNormals();
     piezas.push(pieza(gt, null, '#3a2418', { veta: (l) => [Math.atan2(l.x, l.z) * 2, l.y, 0.6] }));
   }
-  piezas.push(pieza(new THREE.CircleGeometry(RA * 1.05, 40).rotateX(-Math.PI / 2), null, '#3a2a1e', { veta: (l) => [l.x, l.z, 0.4] }));
-  // la escalera: peldaños que salen de la pared en espiral, con su baranda de raíz
-  const peldano = (k) => { const a = desde + k * giro, y = 0.35 + k * alto, rr = radioPared(y) - 0.9; return { a, y, rr }; };
-  const bar = [];
-  for (let k = 0; k < pasos; k++) {
-    const { a, y, rr } = peldano(k);
-    const p = V3(Math.sin(a) * rr, y, Math.cos(a) * rr);
-    const gp = deform(esfera(12, 8), (v) => { v.multiplyScalar(1 + 0.12 * ruido(v.x * 4 + k, v.y * 4, v.z * 4)); if (v.y > 0) v.y *= 0.3; });
-    piezas.push(pieza(gp, M4(p, [0, a + Math.PI / 2, 0], [0.95, 0.24, 0.45]), '#6a4630', { veta: (l) => [l.x * 2, l.z * 2, 0.8], pintar: (c, pp, n) => { if (n.y > 0.6) c.multiplyScalar(1.25); musgoEn(c, pp, n, 0.25); } }));
-    piezas.push(raiz([[Math.sin(a) * (rr + 1.0), y + 0.3, Math.cos(a) * (rr + 1.0)], [Math.sin(a) * (rr + 0.5), y - 0.25, Math.cos(a) * (rr + 0.5)], [Math.sin(a) * (rr - 0.1), y - 0.08, Math.cos(a) * (rr - 0.1)]], [0.18, 0.13, 0.08], '#5a3a26', { nudos: 0.03 }));
-    bar.push([Math.sin(a) * (rr - 0.78), y + 0.95, Math.cos(a) * (rr - 0.78)]);
-    if (k % 3 === 0) piezas.push(raiz([[Math.sin(a) * (rr - 0.75), y, Math.cos(a) * (rr - 0.75)], [Math.sin(a + 0.05) * (rr - 0.8), y + 0.5, Math.cos(a + 0.05) * (rr - 0.8)], bar[bar.length - 1]], [0.05, 0.045, 0.04], '#4a3020', { nudos: 0.02 }));
+  // el piso de abajo
+  piezas.push(pieza(new THREE.CircleGeometry(RA * 1.04, 40).rotateX(-Math.PI / 2), null, '#3a2a1e', { veta: (l) => [l.x, l.z, 0.4] }));
+  // el tronco del medio: cuatro raíces trenzadas que suben hasta el techo (el borde de la escalera)
+  for (let s = 0; s < 4; s++) {
+    const pts = [], n = 60;
+    for (let j = 0; j <= n; j++) { const t = j / n, an = s * (TAU / 4) + t * 9; pts.push([Math.sin(an) * RC * 0.62, -0.3 + t * (TECHO + 0.6), Math.cos(an) * RC * 0.62]); }
+    piezas.push(raiz(pts, pts.map((_, j) => 0.62 + 0.08 * Math.sin(j * 1.7 + s)), s % 2 ? '#7a5238' : '#6a4630', { nudos: 0.06, tramos: 140, lados: 9, pintar: (c, p, nn) => musgoEn(c, p, nn, 0.5) }));
   }
-  for (let k = 0; k < bar.length - 6; k += 5) piezas.push(raiz(bar.slice(k, k + 7), Array(Math.min(7, bar.length - k)).fill(0.05), '#4a3020', { tramos: 24 }));
-  // los faroles de hongos en la pared
-  const farol = (a, y, col, tam = 1) => {
-    const rr = radioPared(y) - 0.15;
-    const p = V3(Math.sin(a) * rr, y, Math.cos(a) * rr);
-    const gr = deform(esfera(14, 6), (v) => { if (v.y > 0) v.y *= 0.4; else v.y *= 0.25; });
-    piezas.push(pieza(gr, M4(p.clone().add(V3(0, -0.12 * tam, 0)), [0, a, 0], [0.45 * tam, 0.2 * tam, 0.35 * tam]), '#c8a070', { veta: () => [0, 0, 0.1], pintar: (c, pp, n) => { if (n.y < 0) c.multiplyScalar(0.55); } }));
+  // los peldaños: losas de raíz de la pared al tronco, con la raíz que las sostiene
+  tramos.forEach((q, i) => {
+    const p = V3(Math.sin(q.a) * rMed, q.y - 0.14, Math.cos(q.a) * rMed);
+    const gp = deform(esfera(10, 6), (v) => { v.multiplyScalar(1 + 0.1 * ruido(v.x * 4 + i, v.y * 4, v.z * 4)); if (v.y > 0) v.y *= 0.45; });
+    piezas.push(pieza(gp, M4(p, [0, q.a - Math.PI / 2, 0], [ancho / 2 + 0.12, 0.2, 0.56]), q.llano ? '#7a5238' : '#6a4630', { veta: (l) => [l.x * 2, l.z * 2, 0.8], pintar: (c, pp, n) => { if (n.y > 0.6) c.multiplyScalar(1.2); musgoEn(c, pp, n, q.llano ? 0.45 : 0.2); } }));
+    if (i % 2 === 0) piezas.push(raiz([[Math.sin(q.a) * (RA + 0.1), q.y + 0.3, Math.cos(q.a) * (RA + 0.1)], [Math.sin(q.a) * (rOut - 0.1), q.y - 0.4, Math.cos(q.a) * (rOut - 0.1)], [Math.sin(q.a) * (rMed + 0.3), q.y - 0.3, Math.cos(q.a) * (rMed + 0.3)]], [0.2, 0.15, 0.07], '#5a3a26', { nudos: 0.03 }));
+  });
+  // los faroles de hongos en la pared (cada media vuelta) y en cada descanso uno grande
+  const farol = (an, fy, col, tam = 1) => {
+    const p = V3(Math.sin(an) * (RA - 0.18), fy, Math.cos(an) * (RA - 0.18));
+    piezas.push(pieza(deform(esfera(14, 6), (v) => { if (v.y > 0) v.y *= 0.4; else v.y *= 0.25; }), M4(p.clone().add(V3(0, -0.12 * tam, 0)), [0, an, 0], [0.45 * tam, 0.2 * tam, 0.35 * tam]), '#c8a070', { veta: () => [0, 0, 0.1], pintar: (c, pp, n) => { if (n.y < 0) c.multiplyScalar(0.55); } }));
     for (let i = 0; i < 4; i++) {
-      const q = p.clone().add(V3((r() - 0.5) * 0.35 * tam, 0.05 + r() * 0.15 * tam, (r() - 0.5) * 0.35 * tam)).addScaledVector(V3(Math.sin(a), 0, Math.cos(a)), -0.12);
+      const q = p.clone().add(V3((r() - 0.5) * 0.35 * tam, 0.05 + r() * 0.15 * tam, (r() - 0.5) * 0.35 * tam)).addScaledVector(V3(Math.sin(an), 0, Math.cos(an)), -0.12);
       const s = (0.09 + r() * 0.06) * tam;
-      brillos.push(pieza(deform(esfera(10, 8), (v) => { v.multiplyScalar(1 + 0.1 * Math.sin(v.x * 25) * Math.sin(v.y * 25)); }), M4(q, [0, 0, 0], [s, s, s]), col, { fuerza: 1.7 }));
+      brillos.push(pieza(deform(esfera(10, 8), () => {}), M4(q, [0, 0, 0], [s, s, s]), col, { fuerza: 1.7 }));
     }
-    halos.push({ p: p.clone().addScaledVector(V3(Math.sin(a), 0, Math.cos(a)), -0.2).add(V3(0, 0.1, 0)), col, tam: 1.6 * tam });
+    halos.push({ p: p.clone().addScaledVector(V3(Math.sin(an), 0, Math.cos(an)), -0.2).add(V3(0, 0.1, 0)), col, tam: 1.6 * tam });
   };
-  for (let i = 0; i < 12; i++) farol(i * 1.9 + 0.4, 1.4 + i * 1.3, i % 2 ? '#c8ff6a' : '#ffb040', 1.1 - i * 0.03);
-  // puertitas en la pared (las casas de los duendes, adentro del tronco)
-  for (let i = 0; i < 7; i++) {
-    const a = i * 2.6 + 1.1, y = 2.2 + i * 2.1, rr = radioPared(y) - 0.05;
-    const p = V3(Math.sin(a) * rr, y, Math.cos(a) * rr);
-    piezas.push(pieza(new THREE.BoxGeometry(0.7, 1.0, 0.12), M4(p, [0, a + Math.PI, 0]), '#5a3a22', { veta: (l) => [l.x * 3, l.y * 3, 0.4] }));
-    brillos.push(pieza(new THREE.PlaneGeometry(0.5, 0.36), M4(p.clone().addScaledVector(V3(Math.sin(a), 0, Math.cos(a)), -0.08).add(V3(0, 0.15, 0)), [0, a + Math.PI, 0]), '#ffb860', { fuerza: 1.3 }));
+  for (let i = 0; i < tramos.length; i += 7) farol(tramos[i].a + 0.15, tramos[i].y + 1.6, i % 2 ? '#c8ff6a' : '#ffb040', 1);
+  // hongos de luz en el tronco del medio, mirando a la escalera (se ve por dónde se pisa)
+  for (let i = 3; i < tramos.length; i += 9) {
+    const q = tramos[i], an = q.a + 0.1, col = i % 2 ? '#ffb040' : '#c8ff6a';
+    for (let j = 0; j < 4; j++) {
+      const p = V3(Math.sin(an + (j - 1.5) * 0.25) * (RC + 0.05), q.y + 0.9 + (j % 2) * 0.35, Math.cos(an + (j - 1.5) * 0.25) * (RC + 0.05));
+      const s = 0.07 + (j % 3) * 0.025;
+      brillos.push(pieza(deform(lathe([[0.001, -0.2], [0.8, -0.1], [1, 0.05], [0.6, 0.3], [0.001, 0.4]], 10), () => {}), M4(p, [0, an, 0], [s * 1.3, s, s * 1.3]), col, { fuerza: 1.15 }));
+    }
+    halos.push({ p: V3(Math.sin(an) * (RC + 0.4), q.y + 1.1, Math.cos(an) * (RC + 0.4)), col, tam: 2.2 });
   }
+  for (const d of descansos) farol(d.a, d.y + 1.5, '#ffb040', 1.5);
+  // las casitas de los duendes en la pared: una puertita con su ventana encendida
+  for (let i = 5; i < tramos.length - 8; i += 17) {
+    const q = tramos[i], an = q.a + 0.12, p = V3(Math.sin(an) * (RA - 0.08), q.y + 0.75, Math.cos(an) * (RA - 0.08));
+    piezas.push(pieza(new THREE.BoxGeometry(0.62, 0.95, 0.12), M4(p, [0, an + Math.PI, 0]), '#5a3a22', { veta: (l) => [l.x * 3, l.y * 3, 0.4] }));
+    brillos.push(pieza(new THREE.PlaneGeometry(0.42, 0.3), M4(p.clone().addScaledVector(V3(Math.sin(an), 0, Math.cos(an)), -0.08).add(V3(0, 0.15, 0)), [0, an + Math.PI, 0]), '#ffb860', { fuerza: 1.3 }));
+  }
+  // las dos puertas: abajo, la puertita al valle; arriba, la del corazón (grande, con el ámbar que se filtra)
+  const aAbajo = -1.1;
+  const puerta = (an, py, w, h, brilloCol, fuerza) => {
+    const p = V3(Math.sin(an) * (RA - 0.1), py + h / 2, Math.cos(an) * (RA - 0.1)), ad = V3(Math.sin(an), 0, Math.cos(an));
+    piezas.push(pieza(new THREE.BoxGeometry(w, h, 0.12), M4(p, [0, an + Math.PI, 0]), '#7a4a2a', { veta: (l) => [l.x * 6, l.y, 0.6], pintar: (c, pp, n, l) => { if (Math.abs(Math.sin(l.x * 12)) < 0.15) c.multiplyScalar(0.6); } }));
+    for (const lado of [-1, 1]) {
+      const b = V3(Math.cos(an) * lado * (w / 2 + 0.15), 0, -Math.sin(an) * lado * (w / 2 + 0.15));
+      piezas.push(raiz([[p.x + b.x, py - 0.1, p.z + b.z], [p.x + b.x * 1.05, py + h * 0.7, p.z + b.z * 1.05], [p.x + b.x * 0.4, py + h + 0.3, p.z + b.z * 0.4]], [0.22, 0.19, 0.15], '#5a3a26', { nudos: 0.04 }));
+    }
+    // la luz que se filtra por las rendijas
+    brillos.push(pieza(new THREE.BoxGeometry(0.08, h, 0.05), M4(p.clone().addScaledVector(ad, -0.08).add(V3(Math.cos(an) * w * 0.25, 0, -Math.sin(an) * w * 0.25)), [0, an + Math.PI, 0]), brilloCol, { fuerza }));
+    brillos.push(pieza(new THREE.BoxGeometry(w, 0.06, 0.05), M4(p.clone().addScaledVector(ad, -0.08).add(V3(0, -h / 2 + 0.03, 0)), [0, an + Math.PI, 0]), brilloCol, { fuerza }));
+    halos.push({ p: p.clone().addScaledVector(ad, -0.5), col: brilloCol, tam: 3 * h / 2 });
+    return p.clone().addScaledVector(ad, -1.1);
+  };
+  const abajo = puerta(aAbajo, 0, 1.1, 1.8, '#ffe0a0', 1.4);
+  const corazon = puerta(aPuerta, alto, 1.8, 2.9, '#ffa020', 2.2);
   g.add(fundirCorteza(piezas));
   { const b = fundirBrillo(brillos); if (b) g.add(b); }
   g.add(halosDe(halos));
-  // el ojo sube por la escalera, un poco adentro de los peldaños, mirando hacia adelante y arriba
-  const ojo = V3(), mira = V3();
-  function camino(t) {
-    const k = Math.max(0, Math.min(pasos - 1, t * (pasos - 1)));
-    const { a, y, rr } = peldano(k);
-    ojo.set(Math.sin(a) * (rr - 0.25), y + 1.55, Math.cos(a) * (rr - 0.25));
-    const { a: a2, y: y2, rr: r2 } = peldano(Math.min(pasos + 2, k + 6));
-    mira.set(Math.sin(a2) * (r2 - 1.0), y2 + 1.2 + t * 1.2, Math.cos(a2) * (r2 - 1.0));
-    return { ojo, mira };
-  }
-  return { g, alto: HA, radio: RA, camino, arriba: peldano(pasos - 1), luz: V3(0, HA * 0.55, 0) };
+  return {
+    g, radio: RA, columna: RC, techo: TECHO, alto,
+    // los tramos de la física: rectángulos a lo largo del camino (se pisan un poco: no quedan rendijas)
+    tramos: tramos.map((q) => ({ x: Math.sin(q.a) * rMed, z: Math.cos(q.a) * rMed, alto: q.y, largo: 1.5, ancho: ancho + 0.3, ang: -q.a })),
+    descansos: [{ x: Math.sin(0.3) * rMed, z: Math.cos(0.3) * rMed, y: 0.2 }, ...descansos.map((d) => ({ x: Math.sin(d.a) * rMed, z: Math.cos(d.a) * rMed, y: d.y }))],
+    puertaAbajo: { x: abajo.x, z: abajo.z, y: 0 },
+    puertaArriba: { x: corazon.x, z: corazon.z, y: alto, a: aPuerta },
+    // dónde van las luces (abajo, los descansos y arriba)
+    // (una cada 12 tramos, a lo largo de toda la escalera: el presupuesto fijo prende las 4 más cerca)
+    luces: [V3(abajo.x, 1.8, abajo.z), ...tramos.filter((_, i) => i % 12 === 6).map((q) => V3(Math.sin(q.a + 0.2) * rMed, q.y + 2.4, Math.cos(q.a + 0.2) * rMed)), V3(corazon.x, alto + 2.2, corazon.z)],
+    largo: tramos.length,
+  };
 }
 
 // ---------------------------------------------------------------- 3.8.0: las semillas doradas

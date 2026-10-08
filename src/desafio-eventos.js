@@ -185,9 +185,11 @@ export function crearEventos(T, escena, sonido, efectos, api) {
   // ---------------- la nave nodriza
   // 3.8.0: la nodriza es el Coihue Viejo: despierta en el bosque y camina con sus raíces hasta tu base. Los
   // tres núcleos son nudos de ámbar en el tronco (con su aro de luz); los duendes saltan de sus ramas. Si
-  // se los rompés se viene abajo; si amanece, se planta en el valle (el asedio, ver desafio-asedio-mundo.js).
+  // se los rompés se viene abajo; si amanece, se queda plantado donde está y es el mismo del asedio (ver
+  // desafio-asedio-mundo.js: `api.coihueComun`). Se arma una sola vez, escondido, al cargar el Desafío.
   let nodriza = null;
   const luzNodriza = registrarLuz(new THREE.PointLight(0xffb060, 0, 26, 1.6));   // la de su puerta (al cargar: ver luces.js)
+  // de dónde sale, dónde se para (m de tu base) y cuánto tarda
   const COIHUE_NOCHE = { desde: 130, hasta: 52, llegar: 7, irse: 6 };
   // las raíces chocan mientras está parado (cuando camina o se cae, no)
   const DUENIO_COIHUE = { coihueNoche: true };
@@ -197,7 +199,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     raicesPuestas = poner;
     if (!poner) { api.col.eliminarPorDuenio(DUENIO_COIHUE); return; }
     for (const p of piesCoihue(nodriza, nodriza.x, nodriza.z, nodriza.giro)) api.col.agregar({ x: p.x, z: p.z, r: p.r, alturaMin: nodriza.y - 3, alturaMax: nodriza.y + 5, duenio: DUENIO_COIHUE });
-  }   // de dónde sale, dónde se para (m de tu base) y cuánto tarda
+  }
   function crearNodriza() {
     const t0 = performance.now();
     const co = armarCoihueViejo();
@@ -220,19 +222,49 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     escena.add(co.g);
     return { ...co, nucleos, fase: 'fuera', t: 0, x: 0, z: 0, y: 0, largar: 0, caida: 0, giro: 0, ax: 0, az: 0, ms: performance.now() - t0 };
   }
+  // 3.8.0: armado al cargar (no a mitad de la partida), y compartido con el asedio
+  nodriza = crearNodriza();
+  api.coihueComun = nodriza;
+  // Dónde se para: cerca de tu base (50-80 m), en un llano sin agua ni obras alrededor y lejos de la vía (adentro
+  // se camina sobre el terreno de abajo: tiene que ser parejo). Si no hay, como antes: a 52 m.
+  function sitioCoihue(c) {
+    let mejor = null, nota = Infinity;
+    const a0 = Math.random() * Math.PI * 2;
+    for (const r of [56, 64, 50, 72, 80]) for (let i = 0; i < 24; i++) {
+      const a = a0 + (i / 24) * Math.PI * 2, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
+      if (Math.abs(x) > LIMITE - 60 || Math.abs(z) > LIMITE - 60 || T.agua(x, z)) continue;
+      if ((T.distRiel?.[T.indice(x, z)] ?? 999) < 14) continue;
+      let peor = 0, malo = false;
+      for (const rr of [0, 9, 18, 26]) {
+        const n = rr ? 8 : 1;
+        for (let k = 0; k < n && !malo; k++) {
+          const b = (k / n) * Math.PI * 2, px = x + Math.cos(b) * rr, pz = z + Math.sin(b) * rr;
+          if (T.agua(px, pz) || (rr <= 18 && api.obraEnPunto?.(px, T.altura(px, pz) + 0.5, pz))) malo = true;
+          const gx = (T.altura(px + 1.5, pz) - T.altura(px - 1.5, pz)) / 3, gz = (T.altura(px, pz + 1.5) - T.altura(px, pz - 1.5)) / 3;
+          peor = Math.max(peor, Math.hypot(gx, gz));
+        }
+      }
+      if (malo) continue;
+      const q = peor + Math.abs(r - 60) * 0.002;
+      if (q < nota) { nota = q; mejor = { x, z, a }; }
+    }
+    if (mejor) return mejor;
+    const a = Math.random() * Math.PI * 2;
+    return { x: c.x + Math.cos(a) * COIHUE_NOCHE.hasta, z: c.z + Math.sin(a) * COIHUE_NOCHE.hasta, a };
+  }
   const hudNodriza = api.hudNodriza;   // contenedor DOM (puede faltar en pruebas)
   let barrasNodriza = null;
   function iniciarNodriza() {
     const d = api.D();
-    if (!nodriza) nodriza = crearNodriza();
     if (!d.nodriza) d.nodriza = { nucleos: [NUCLEO_VIDA, NUCLEO_VIDA, NUCLEO_VIDA] };
     nodriza.nucleos.forEach((n, i) => { n.vida = d.nodriza.nucleos[i]; n.mesh.visible = n.aro.visible = n.vida > 0; });
     const c = api.centroBase();
-    const a = Math.random() * Math.PI * 2;
-    nodriza.x = c.x + Math.cos(a) * COIHUE_NOCHE.hasta; nodriza.z = c.z + Math.sin(a) * COIHUE_NOCHE.hasta;
+    const s = sitioCoihue(c);
+    nodriza.x = s.x; nodriza.z = s.z;
     nodriza.y = T.altura(nodriza.x, nodriza.z);
     // de dónde viene (del bosque, de más afuera) y adónde mira (a tu base)
-    nodriza.ax = Math.cos(a); nodriza.az = Math.sin(a);
+    const l = Math.hypot(s.x - c.x, s.z - c.z) || 1;
+    nodriza.ax = (s.x - c.x) / l; nodriza.az = (s.z - c.z) / l;
     nodriza.giro = Math.atan2(-nodriza.ax, -nodriza.az);
     nodriza.fase = 'llegando'; nodriza.t = 0; nodriza.largar = 6; nodriza.caida = 0;
     nodriza.g.rotation.set(0, nodriza.giro, 0);
@@ -242,19 +274,21 @@ export function crearEventos(T, escena, sonido, efectos, api) {
   }
   function retirarNodriza() {
     raices(false);   // 3.8.0: (también si el Desafío se cierra con el Coihue parado)
-    if (!nodriza || nodriza.fase === 'fuera' || nodriza.fase === 'cayendo') return;
-    nodriza.fase = 'yendo'; nodriza.t = 0;
+    if (!nodriza || nodriza.fase === 'fuera' || nodriza.fase === 'cayendo' || nodriza.fase === 'plantado') return;
+    // 3.8.0: al alba ya no se va al bosque: se queda plantado donde está (el asedio lo toma desde ahí)
+    nodriza.fase = 'plantado'; nodriza.t = 0; luzNodriza.intensity = 0;
+    for (const q of nodriza.nucleos) q.mesh.visible = q.aro.visible = false;
     hudNodriza?.classList.add('oculto');
   }
   function blancos() {
     // La nodriza y el nido nunca están los dos: el nido aparece cuando ella cae.
-    if (!nodriza || !nodriza.g.visible || nodriza.fase === 'cayendo') return blancosNido();
+    if (!nodriza || !nodriza.g.visible || nodriza.fase === 'cayendo' || nodriza.fase === 'plantado' || nodriza.fase === 'fuera') return blancosNido();
     return nodriza.nucleos.filter((n) => n.vida > 0);
   }
   function herirNucleo(n, dano) {
     if (n?.nido) { herirCamara(n, dano); return; }
     // 2.7.3: sin núcleo no hay a quién herir (antes rompía al leer `n.vida`)
-    if (!n || !nodriza || n.vida <= 0 || nodriza.fase === 'cayendo') return;
+    if (!n || !nodriza || n.vida <= 0 || nodriza.fase === 'cayendo' || nodriza.fase === 'plantado') return;
     n.vida = Math.max(0, n.vida - dano);
     n.flash = 1;
     const d = api.D();
@@ -271,7 +305,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     api.alDerrotarNodriza();
   }
   function actualizarNodriza(dt) {
-    if (!nodriza || !nodriza.g.visible) return;
+    if (!nodriza || !nodriza.g.visible || nodriza.fase === 'plantado') return;   // (plantado: lo maneja el asedio)
     const n = nodriza;
     n.t += dt;
     n.reloj = (n.reloj || 0) + dt;
@@ -442,7 +476,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
 
   return {
     actualizar, soltarRestos, iniciarNodriza, retirarNodriza, blancos, herirNucleo, pistaDeNido,
-    get nodrizaActiva() { return !!nodriza && nodriza.g.visible && nodriza.fase !== 'fuera'; },
+    get nodrizaActiva() { return !!nodriza && nodriza.g.visible && nodriza.fase !== 'fuera' && nodriza.fase !== 'plantado'; },
     get coihue() { return nodriza; },   // 3.8.0: el Coihue de la noche final (para las pruebas y las capturas)
     get restos() { return api.D().restos; },
   };

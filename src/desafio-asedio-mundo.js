@@ -61,7 +61,9 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const c = api.centroBase();
     const azar = azarDe(d.semilla, 'asedio');
     const zonas = ubicarZonas(T.lugares, c, esBueno, azar);
-    const nave = ubicarNave(c, llano, azar) || { x: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.x * 0.4)), z: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.z * 0.4)) };
+    // 3.8.0: el Coihue de la noche final se quedó plantado: el asedio es ahí (un solo Coihue)
+    const co = api.coihueComun, plantado = co && co.fase === 'plantado' && co.g.visible;
+    const nave = (plantado ? { x: Math.round(co.x * 10) / 10, z: Math.round(co.z * 10) / 10 } : null) || ubicarNave(c, llano, azar) || { x: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.x * 0.4)), z: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.z * 0.4)) };
     const vida = ASEDIO.vidaAncla * dificultad(api.claveDificultad?.()).vida;
     const a = asedioNuevo(zonas, nave, vida);
     if (!a) return false;
@@ -69,7 +71,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     // los núcleos se replegaron adentro: ya no hay nodriza que derribar a flechazos
     d.nodriza = null;
     gracia = ASEDIO.graciaGuardia;
-    llegada = 1;
+    llegada = plantado ? 0 : 1;
     armar();
     const js = api.jugador().estado;
     setTimeout(() => api.nota('La nodriza no se fue', `Se asentó sobre el valle, ${api.rumboTexto(js.pos, a.nave)}. Clavó ${a.zonas.length} agujas que le dan escudo`, true), 4200);
@@ -218,26 +220,34 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       blanco: { asedio: true, ancla: true, i: 0, pos: new THREE.Vector3(z.x, y + 3.2, z.z), radio: 1.7 } };
   }
   // el Coihue plantado: mira a tu base. Su puerta grande (el «haz») se enciende cuando se puede entrar.
+  // 3.8.0: es el mismo de la noche final (armado al cargar, ver desafio-eventos.js): nunca hay dos.
   function armarNave(a) {
     const t0 = performance.now();
-    const co = armarCoihueViejo();
+    const co = api.coihueComun || armarCoihueViejo();
     const c = api.centroBase?.() || { x: 0, z: 0 };
-    const giro = Math.atan2(c.x - a.nave.x, c.z - a.nave.z);
+    const giro = co.fase === 'plantado' && Math.hypot(co.x - a.nave.x, co.z - a.nave.z) < 3 ? co.giro : Math.atan2(c.x - a.nave.x, c.z - a.nave.z);
+    co.fase = 'plantado';
+    for (const q of co.nucleos || []) q.mesh.visible = q.aro.visible = false;
     co.g.scale.setScalar(COIHUE.escala);
     co.g.rotation.order = 'YXZ';
-    co.g.rotation.y = giro;
+    co.g.rotation.set(0, giro, 0);
+    co.g.visible = true;
+    co.g.position.set(a.nave.x, T.altura(a.nave.x, a.nave.z), a.nave.z);
+    if (co.escudoAsedio) return { ...co, haz: co.puerta, luces: [], escudo: co.escudoAsedio, luz: co.luzAsedio, giro, t: 0, caida: 0, cayendo: 0, alCaer: null, ms: performance.now() - t0 };
     // el escudo es «la corteza»: una corteza dura que lo envuelve (una capa por raíz que brotó), con grietas
     // de ámbar; se va aclarando a medida que caen las raíces
     const escudo = new THREE.Mesh(geoCorteza(co.radio), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false }));
     escudo.renderOrder = 2;
     co.cuerpo.add(escudo);
     co.g.position.set(a.nave.x, T.altura(a.nave.x, a.nave.z), a.nave.z);
-    escena.add(co.g);
+    if (!co.g.parent) escena.add(co.g);
+    co.escudoAsedio = escudo;
     // la luz de la puerta (el presupuesto fijo de luces la reparte: no cambia ningún programa)
     const luz = new THREE.PointLight(0xffb060, 0, 22, 1.6);
     luz.position.copy(co.farol);
     co.cuerpo.add(luz);
     registrarLuz(luz);
+    co.luzAsedio = luz;
     return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null, ms: performance.now() - t0 };
   }
   function armar() {
@@ -248,7 +258,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function desarmar() {
     if (!armado) return;
     sacarRaices();
-    if (armado.nave) escena.remove(armado.nave.g);
+    if (armado.nave) armado.nave.g.visible = false;   // 3.8.0: el Coihue es compartido: se esconde, no se saca
     for (const r of armado.zonas) { escena.remove(r.g); escena.remove(r.hilo); }
     armado = null;
   }

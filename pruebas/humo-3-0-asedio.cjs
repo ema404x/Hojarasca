@@ -184,6 +184,8 @@ app.whenReady().then(async () => {
     const aviso = await js(`(()=>{const H=${H}, s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0); H.__bucle(); return {aviso:H.__aviso(), directo:H.desafio.avisoCercaDe(H.jugador.estado.pos)}})()`);
     ok(/Subir a la nave/.test(aviso.directo) && /Subir a la nave/.test(aviso.aviso), `el aviso ofrece subir (${aviso.aviso})`);
     await teclaE();
+    // 3.8.0: E entra al tronco hueco (la escalera se camina): la prueba va derecho a la puerta del corazón
+    await js(`${H}.desafio.naveAdentro.atajoCorazon(); 1`);
     await correr(2.5);
     const adentro = await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, js=H.jugador.estado, A=N.arena;
       const terreno = H.escena.children.filter(o=>o.isMesh && o.geometry && o.geometry.attributes.position.count > 20000);
@@ -250,7 +252,7 @@ app.whenReady().then(async () => {
 
     // ---- la Madre cae: el final
     donde = 'final';
-    await js(`(()=>{const H=${H}; const s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0); H.desafio.usarCercaDe(H.jugador.estado.pos); return 1})()`);
+    await js(`(()=>{const H=${H}; const s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0); H.desafio.usarCercaDe(H.jugador.estado.pos); H.desafio.naveAdentro.atajoCorazon(); return 1})()`);   // 3.8.0: atajo a la puerta del corazón
     await correr(2.5);
     const fases = await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, E=H.desafio.eventos, vistas=[];
       for (let v=0; v<20 && N.pelea && !N.pelea.ganada; v++) {
