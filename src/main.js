@@ -216,6 +216,8 @@ if (primeraVez) { ajustes.calidad = calidadParaEquipo(nombrePlaca()); guardarAju
 // Cada modo carga su propia partida; cambiar de modo en el menú recarga el mundo.
 const modoJuego = usarModoGuardado(ajustes.modo, ajustes.ranura);
 const esDesafio = modoJuego === 'desafio';
+// 3.8.1: el cristal del Relax (el que venden las paradas) sigue siendo «cristales»: las semillas doradas son sólo del modo de combate
+if (!esDesafio) MATERIALES.cristal = { ...MATERIALES.cristal, nombre: 'cristales' };
 // 3.0: la supervivencia sin fin juega en su propia ranura: una corrida nunca pisa una campaña
 const esSinFin = esDesafio && ajustes.desafioTipo === 'sinfin';
 if (esSinFin) usarModoGuardado('desafio', RANURA_SIN_FIN);

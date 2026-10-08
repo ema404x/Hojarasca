@@ -21,7 +21,7 @@ import { SONIDOS_ESCRITOS } from '../src/desafio-sentidos.js';
 import { RECURSOS } from '../src/desafio-mapa.js';
 import { RUMORES_DESAFIO } from '../src/radio.js';
 import { VOCES, ESTADOS, voz } from '../src/voz-alien.js';
-import { LEYENDAS } from '../src/fiestas.js';
+import { LEYENDAS, leyendaDe, sanearFiestas, fiestasNuevas, ORDEN_LEYENDAS_VIEJO } from '../src/fiestas.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -158,5 +158,35 @@ const historia = ley.partes.join(' ');
 for (const p of ['traviesos', 'lechuzas', 'Coihue Viejo', 'Rey Duende', 'semillas doradas']) ok(historia.includes(p), `la leyenda cuenta: ${p}`);
 ok(!/capilla|\bmisa\b|\bcura\b|\brez[aoá]|\bdios|\bsant[oa]s?\b|bendi|iglesia|altar|milagro|virgen|sagrad|ángel|amén|pecado|diablo|demonio|alma\b/i.test(historia), 'nada religioso');
 ok(LEYENDAS.length >= 4 && LEYENDAS.indexOf(ley) === 0 && LEYENDAS.map((l) => l.id).slice(1, 4).join() === 'calafate,cuero,nahuelito', 'es la del primer año; las otras se corren uno');
+
+// ---------------------------------------------------------------- 5. 3.8.1: lo que la 3.8.0 dejó
+// el Relax tiene su propio cristal (lo venden las paradas): ahí sigue diciendo «cristales»
+const principal = leer('src/main.js');
+ok(/const esDesafio = modoJuego === 'desafio';\n[^\n]*\nif \(!esDesafio\) MATERIALES\.cristal = \{ \.\.\.MATERIALES\.cristal, nombre: 'cristales' \};/.test(principal), '3.8.1: en el Relax el material cristal se sigue llamando «cristales»');
+ok(/cristal: \{ nombre: 'Cristales'/.test(leer('src/comercio.js')), '3.8.1: y en el almacén y las paradas, «Cristales»');
+// la leyenda corrida: una partida de antes de la 3.8 no pierde ninguna ni escucha una dos veces
+const escuchar = (st, desde, hasta) => { const r = []; for (let a = desde; a <= hasta; a++) { const l = leyendaDe(st, a); r.push(l.id); if (!st.leyendas.includes(l.id)) st.leyendas.push(l.id); } return r; };
+const ciclo = LEYENDAS.length;
+const sinRepetir = (r) => r.length === new Set(r).size;
+ok(ORDEN_LEYENDAS_VIEJO.join() === 'calafate,cuero,nahuelito', '3.8.1: el orden de antes de la 3.8');
+const vieja1 = sanearFiestas({ version: 1, vistas: { leyenda: [1] }, leyendas: ['calafate'] }, 12 + 5);
+const r1 = escuchar(vieja1, 2, 2 + ciclo - 2);
+ok(!r1.includes('calafate') && r1.includes('duendes') && sinRepetir(r1), `3.8.1: la que ya escuchó la del calafate (año 1) no la repite y escucha la de los duendes: ${r1.join(', ')}`);
+const vieja3 = sanearFiestas({ version: 1, vistas: { leyenda: [1, 2, 3] }, leyendas: ['calafate', 'cuero', 'nahuelito'] }, 12 * 3 + 5);
+const r3 = escuchar(vieja3, 4, 4 + ciclo * 2 - 1);
+ok(r3[0] === 'duendes' && sinRepetir(r3.slice(0, ciclo)) && sinRepetir(r3.slice(ciclo)), `3.8.1: la que ya escuchó las tres de antes sigue con la de los duendes y no repite en cada vuelta: ${r3.join(', ')}`);
+const mismaNoche = sanearFiestas({ version: 1, vistas: { leyenda: [2] }, leyendas: ['calafate', 'cuero'] }, 12 + 9);
+ok(leyendaDe(mismaNoche, 2).id === 'cuero', '3.8.1: si ya escuchó la de este año (orden viejo), esa queda fijada: no se cuenta otra esa noche');
+const nueva38 = sanearFiestas({ version: 1, vistas: { leyenda: [1] }, leyendas: ['duendes'] }, 9);
+ok(leyendaDe(nueva38, 1).id === 'duendes' && escuchar(nueva38, 2, 4).join() === 'calafate,cuero,nahuelito', '3.8.1: una partida de la 3.8.0 sigue el orden nuevo');
+ok(escuchar(fiestasNuevas(), 1, ciclo + 1).join() === [...LEYENDAS.map((l) => l.id), LEYENDAS[0].id].join(), '3.8.1: una partida nueva escucha en el orden de la 3.8');
+const fijada = fiestasNuevas(); const antes = leyendaDe(fijada, 1).id; fijada.leyendas.push(antes);
+ok(leyendaDe(fijada, 1).id === antes && sanearFiestas(JSON.parse(JSON.stringify(fijada)), 9).leyendaAnios[1] === antes, '3.8.1: la del año no cambia apenas la terminás de escuchar, y se guarda');
+ok(!/leyendaDelAnio\(/.test(leer('src/fiestas-juego.js')), '3.8.1: el fogón usa la leyenda fijada de la partida');
+// inglés: lo que quedó sin traducir
+for (const [es, en] of [['Red dorada', 'Golden net'], ['Cerco dorado', 'Golden fence'], ['Abrojos dorados', 'Golden caltrops'], ['2 semillas doradas', '2 golden seeds'], ['+4 semillas doradas', '+4 golden seeds'], ['El asedio', 'The siege']])
+  ok(t(es) === en, `3.8.1: «${es}» → «${t(es)}»`);
+// el nombre largo del modo, en un solo renglón en el botón de la portada
+ok(/\.modo-juego \.segmentos button \{[^}]*white-space: nowrap;/.test(leer('src/plantilla.html')), '3.8.1: el botón del modo no parte «La noche de los duendes» en dos renglones');
 
 console.log(`3.8.0 (textos): ${n} comprobaciones · La noche de los duendes, en castellano y en inglés, con sus sonidos y su leyenda`);

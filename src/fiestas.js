@@ -400,6 +400,37 @@ export const LEYENDAS = [
   ] },
 ];
 export const leyendaDelAnio = (anio) => LEYENDAS[((entero(anio, 1) - 1) % LEYENDAS.length + LEYENDAS.length) % LEYENDAS.length];
+// 3.8.1: el orden de antes de la 3.8 (sin la de los duendes), para las partidas que ya escucharon alguna.
+export const ORDEN_LEYENDAS_VIEJO = ['calafate', 'cuero', 'nahuelito'];
+// 3.8.1: la leyenda del año de una partida. Con la de los duendes primera, una partida de antes de la 3.8 que ya
+// escuchó la del calafate la volvía a escuchar el año siguiente y se salteaba la de los duendes. Ahora: la del
+// orden, salvo que ya la hayas escuchado y te falte alguna (entonces la próxima que no escuchaste). Queda fijada
+// para ese año (`leyendaAnios`), así no cambia apenas la terminás de escuchar.
+export function leyendaDe(estado, anio) {
+  const a = entero(anio, 1);
+  if (!objeto(estado)) return leyendaDelAnio(a);
+  if (!objeto(estado.leyendaAnios)) estado.leyendaAnios = {};
+  const fija = LEYENDAS.find((l) => l.id === estado.leyendaAnios[a]);
+  if (fija) return fija;
+  const oidas = Array.isArray(estado.leyendas) ? estado.leyendas : [];
+  const base = LEYENDAS.indexOf(leyendaDelAnio(a));
+  let ley = LEYENDAS[base];
+  if (oidas.includes(ley.id)) {
+    const falta = LEYENDAS.map((_, i) => LEYENDAS[(base + i) % LEYENDAS.length]).find((l) => !oidas.includes(l.id));
+    if (falta) ley = falta;
+    else {
+      // ya las escuchaste todas: la que sigue a la del último año fijado (así no se repite la del año pasado)
+      const antes = Object.keys(estado.leyendaAnios).map(Number).filter((k) => k < a).sort((x, y) => y - x)[0];
+      const i = antes ? LEYENDAS.findIndex((l) => l.id === estado.leyendaAnios[antes]) : -1;
+      if (i >= 0) ley = LEYENDAS[(i + 1) % LEYENDAS.length];
+    }
+  }
+  estado.leyendaAnios[a] = ley.id;
+  // no se guarda de más: sólo los últimos años
+  const anios = Object.keys(estado.leyendaAnios).map(Number).sort((x, y) => x - y);
+  for (const k of anios.slice(0, Math.max(0, anios.length - TOPE_LISTA))) delete estado.leyendaAnios[k];
+  return ley;
+}
 
 // ---------------------------------------------------------------- la mesa larga
 // Lo que hay en la mesa según la fiesta (para el aviso, la nota y lo que se dibuja) y lo que da comer: descanso y
@@ -516,6 +547,7 @@ export function fiestasNuevas() {
     cumple: CUMPLE_JUGADOR, cumples: [], baile: { chamame: 0, chacarera: 0 }, clase: 0,
     juegos: { truco: { g: 0, p: 0 }, chinchon: { g: 0, p: 0 }, damas: { g: 0, p: 0 }, taba: { g: 0, p: 0 } },
     jineteada: { montas: 0, aguantadas: 0, mejor: 0, dia: 0 }, comio: [], fotos: [], leyendas: [], mingaHoy: { dia: 0, cargas: 0 },
+    leyendaAnios: {},   // 3.8.1: { año: id } la leyenda fijada de cada año (ver leyendaDe)
   };
 }
 const listaDe = (v, ok, tope = TOPE_LISTA) => (Array.isArray(v) ? [...new Set(v.filter(ok))].slice(-tope) : []);
@@ -562,6 +594,15 @@ export function sanearFiestas(v, dia = 1) {
   b.comio = listaDe(v.comio, idAnio);
   b.fotos = listaDe(v.fotos, idAnio);
   b.leyendas = listaDe(v.leyendas, (x) => LEYENDAS.some((l) => l.id === x));
+  // 3.8.1: la leyenda fijada de cada año. Una partida de antes (sin `leyendaAnios`) que ya escuchó la de este año
+  // la deja fijada: la del orden viejo (antes de la 3.8) o la del nuevo (3.8.0), la que haya escuchado último.
+  if (objeto(v.leyendaAnios)) {
+    for (const [k, id] of Object.entries(v.leyendaAnios)) { const a = entero(k, 0); if (a >= 1 && a <= anioHoy && LEYENDAS.some((l) => l.id === id)) b.leyendaAnios[a] = id; }
+  } else if ((b.vistas.leyenda || []).includes(anioHoy)) {
+    const nueva = leyendaDelAnio(anioHoy).id, vieja = ORDEN_LEYENDAS_VIEJO[(anioHoy - 1) % ORDEN_LEYENDAS_VIEJO.length];
+    const oida = [nueva, vieja].filter((id) => b.leyendas.includes(id)).sort((x, y) => b.leyendas.indexOf(y) - b.leyendas.indexOf(x))[0];
+    if (oida) b.leyendaAnios[anioHoy] = oida;
+  }
   if (objeto(v.mingaHoy)) { const d = Math.min(hoy, Math.max(0, entero(v.mingaHoy.dia))); b.mingaHoy = { dia: d, cargas: d ? Math.max(0, Math.min(20, entero(v.mingaHoy.cargas))) : 0 }; }
   return b;
 }
