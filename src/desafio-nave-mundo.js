@@ -610,6 +610,12 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     for (const a of crias) if (a.estado !== 'morir') { a.estado = 'irse'; a.t = 10; }
     crias.clear();
     activos.length = 0;
+    // 3.8.1: las ondas y las púas en curso se apagan: en la escalera no avanzan, y al volver por la misma
+    // puerta la púa que venía a tus pies seguía donde la dejaste y te pinchaba apenas entrabas
+    if (arena) {
+      for (const o of arena.ondas) { o.activa = false; o.m.visible = false; }
+      for (const p of arena.puas) { p.activa = false; p.aviso.visible = p.espinas.visible = false; }
+    }
     enSubida = true;
     if (arena) arena.grupo.visible = false;
     subida.g.visible = true;
