@@ -2,6 +2,10 @@
 
 > **ATENCIÓN (08-10, notebook):** la 3.8.0 La noche de los duendes y su revisión de bugs 3.8.1 (`CAMBIOS_3_8_1.md`, etiqueta v3.8.1) quedaron cerradas en la notebook. Las 6 partidas pendientes de la 3.7.5 ya se repitieron: 4 eran de carga y las 2 reales (caos y la trochita) están arregladas. Decisiones del usuario en `PLAN_3_8.md`; lo que quedó para después, al final de `CAMBIOS_3_8_0.md`. **Para el usuario:** jugar una noche grande, la subida y el Rey en su PC (4600G) y escuchar los sonidos nuevos. Sigue el resto de `PLAN_3_8.md` (preguntarle antes de arrancar).
 
+> **Lo que sigue (08-10, charlado con el usuario):**
+> 1. **3.8.2 (propuesta, sin arrancar; el usuario dijo "después lo seguimos"):** el ícono del cristal en el Relax vuelve a ser cristal (la semilla sólo en La noche de los duendes; `mochila.js` ~281, `enmano.js` ~573); el «por detrás» del Mandamás sólo cuenta de verdad por la espalda (`impactoEn` en `desafio.js`); el cofre del alba mira también la altura para abrirse; el cofre sin abrir al alba suma su contenido al cofre nuevo (esto último es decisión del usuario: confirmárselo). Estimado ~45 min.
+> 2. **Rumbo:** el usuario quiere **algunas versiones más, pocas y acotadas** (él elige cuáles), después **congelar contenido** y preparar el **lanzamiento en Steam** (~3–5 semanas de trabajo: inglés completo, pase de bugs de punta a punta, primera hora de juego, fluidez en su 4600G, pantallas, integración Steam, demo, página), y más adelante un **DLC**. En Steamworks: el usuario crea la cuenta, se loguea, carga identidad/impuestos/banco, acepta el acuerdo y paga los 100 USD; Claude carga la página, sube builds con la sesión del usuario y configura logros/demo/precios pidiendo OK antes de enviar o publicar. Nunca manejar credenciales.
+
 
 Sirve para vos y para Claude. En la otra PC, abrí Claude Code en la carpeta del proyecto y
 decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
