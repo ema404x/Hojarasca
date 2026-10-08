@@ -364,7 +364,8 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       arena = construir(s);
     }
     seq = { tipo: 'entrar', t: 0, hecho: false };
-    sonido.tono?.({ frec: 90, fin: 420, dur: 1.2, tipo: 'sawtooth', vol: 0.12, destino: sonido.bus?.efectos });
+    // 3.8.0: la puertita del Coihue que se abre: madera vieja que cruje (antes, el zumbido del haz)
+    sonido.garganta?.({ destino: sonido.bus?.efectos, frec: 34, fin: 58, dur: 1.2, vol: 0.12, ataque: 0.1, formantes: [[210, 6, 1], [600, 8, 0.6], [1500, 10, 0.25]], aspereza: 0.9, aliento: 0.15, temblor: 3 });
     return true;
   }
   function hacerEntrada() {
@@ -599,7 +600,8 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     p.x = js.pos.x - arena.x; p.z = js.pos.z - arena.z;
     p.aviso.position.set(p.x, 0.06, p.z); p.espinas.position.set(p.x, -2, p.z);
     p.aviso.visible = true; p.espinas.visible = false;
-    sonido.tono?.({ frec: 900, fin: 1400, dur: 0.5, tipo: 'triangle', vol: 0.06, destino: sonido.bus?.efectos });
+    // 3.8.0: las raíces que se mueven abajo antes de asomar (antes, un bip)
+    sonido.golpeRuido?.({ dur: 0.5, frec: 700, q: 3, vol: 0.16, destino: sonido.bus?.efectos });
   }
   function actualizarPeligros(dt, js) {
     const alto = js.pos.y - arena.y;

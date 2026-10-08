@@ -13,6 +13,11 @@
 // pulsadas de verdad (Karplus-Strong), los líquidos burbujean, el ácido chisporrotea y
 // el perro gruñe con garganta. Lo de los invasores puede seguir siendo de otro mundo,
 // pero sin ondas cuadradas: barridos de ruido, formantes y anillo con mesura.
+//
+// 3.8.0: los invasores son duendes. Nada de otro mundo: gargantas chicas que se ríen
+// (la risita vive en `voz-alien.js`), cuerpos de corteza y musgo que suenan a madera
+// hueca, lechuzas que chistan, el Coihue Viejo que cruje al caminar sobre sus raíces y
+// la pistola de luz que tintinea como semilla dorada en vez de chisporrotear plasma.
 export function crearBanco(sonido) {
   const sonar = (pos, f) => { if (sonido.ctx) f(pos ? sonido.fuente(pos, 1, 0.5) : sonido.bus.efectos); };
   const az = (a, b) => a + Math.random() * (b - a);
@@ -26,9 +31,10 @@ export function crearBanco(sonido) {
     // el nido enterrado: casi todo por debajo de los 60 Hz, que es lo que se siente
     // en el pecho antes de escucharse
     latido: (pos) => sonido.vozAlien?.('nido', 'latido', { pos, intensidad: 0.8, vol: 1.2 }),
-    // el golpe entra: primero el caparazón, después la carne, y si dolió, la voz
+    // el golpe entra: primero la corteza, después la carne, y si dolió, la voz
+    // (3.8.0: corteza hueca de duende en vez del caparazón de bicho)
     golpe: (pos, tipo = 'rastreador', fuerte = false) => {
-      sonido.impacto?.('quitina', { pos, tamaño: fuerte ? 1.5 : 1, fuerza: fuerte ? 1.4 : 0.9, vol: 0.9 });
+      sonido.impacto?.('hueco', { pos, tamaño: fuerte ? 1.3 : 0.85, dureza: 0.8, fuerza: fuerte ? 1.4 : 0.9, vol: 0.9 });
       sonido.impacto?.('carne', { pos, tamaño: 1.6, dureza: 0.4, fuerza: fuerte ? 1.3 : 0.85, vol: 1.1, cuando: 0.012 });
       if (fuerte || Math.random() < 0.55) sonido.vozAlien?.(tipo, 'dolor', { pos, intensidad: fuerte ? 1 : az(0.5, 0.8), cuando: 0.03 });
     },
@@ -77,26 +83,25 @@ export function crearBanco(sonido) {
       sonido.impacto('tierra', { tamaño: 0.8, dureza: 0.8, fuerza: 0.6, vol: 0.5, destino: d, cuando: 0.3 });
       sonido.silbido({ dur: 0.45, frec: 1700, vol: 0.1, destino: d, cuando: 0.32 });
     }),
-    // la pistola de plasma: la bobina que carga, la descarga y el chisporroteo
-    // (2.7: la descarga es un barrido de ruido resonante que cae, no una cuadrada, y el
-    // golpe de abajo es un seno que se hunde)
+    // 3.8.0: la pistola de luz. Un soplo de aire que se va (no una bobina), el tintineo de
+    // la semilla dorada que se gasta y un golpe sordo abajo. Nada de chisporroteo eléctrico.
     pistola: () => sonar(null, (d) => {
-      sonido.golpeRuido({ dur: 0.16, frec: 6500, fin: 420, q: 6, vol: 0.28, destino: d });
-      sonido.tono({ frec: 118, fin: 42, dur: 0.24, tipo: 'sine', vol: 0.2, destino: d, ataque: 0.001 });
-      sonido.impacto('cristal', { tamaño: 1.4, dureza: 1, fuerza: 1, vol: 0.5, destino: d });
-      if (sonido.chisporrotear) sonido.chisporrotear(d, 5, 0.12, 0.22, 1.8);
-      else for (let i = 0; i < 5; i++) sonido.golpeRuido({ dur: az(0.01, 0.03), frec: az(4000, 9000), q: 3, vol: 0.05, destino: d, cuando: az(0.02, 0.22) });
+      sonido.golpeRuido({ dur: 0.22, frec: 2600, fin: 700, q: 1.4, vol: 0.24, destino: d });
+      sonido.tono({ frec: 110, fin: 52, dur: 0.22, tipo: 'sine', vol: 0.16, destino: d, ataque: 0.002 });
+      sonido.impacto('cristal', { tamaño: 1.6, dureza: 0.8, fuerza: 0.8, vol: 0.45, destino: d });
+      sonido.tono({ frec: az(1480, 1560), fin: 1480, dur: 0.5, tipo: 'sine', vol: 0.03, destino: d, ataque: 0.004, cuando: 0.02 });
     }),
+    // el disparo cargado: tres campanitas que suben (re, la, re) y el soplo grande
     cargado: () => sonar(null, (d) => {
-      sonido.tono({ frec: 90, fin: 2600, dur: 0.5, tipo: 'sawtooth', vol: 0.06, destino: d, ataque: 0.2 });
-      sonido.tono({ frec: 180, fin: 5200, dur: 0.5, tipo: 'sine', vol: 0.03, destino: d, ataque: 0.25 });
+      [587, 880, 1175].forEach((f, i) => sonido.tono({ frec: f, dur: 0.5 - i * 0.08, tipo: 'sine', vol: 0.035, destino: d, ataque: 0.01, cuando: i * 0.13 }));
       sonido.golpeRuido({ dur: 0.55, frec: 400, q: 0.6, tipo: 'lowpass', vol: 0.32, destino: d, buffer: sonido.ruido });
       sonido.impacto('cristal', { tamaño: 0.9, fuerza: 1.1, vol: 0.55, destino: d, cuando: 0.5 });
     }),
+    // la chispa de ámbar (la del tirador y la del faro): tintineo y un chasquido de resina
     plasma: (pos) => sonar(pos, (d) => {
-      sonido.impacto('cristal', { tamaño: 1.1, dureza: 1, fuerza: 1.2, vol: 0.8, destino: d });
-      sonido.golpeRuido({ dur: 0.3, frec: 5200, q: 0.6, vol: 0.14, destino: d, cuando: 0.01 });
-      sonido.tono({ frec: 1400, fin: 2600, dur: 0.18, tipo: 'sine', vol: 0.05, destino: d, vibrato: 60 });
+      sonido.impacto('cristal', { tamaño: 1.3, dureza: 0.9, fuerza: 1, vol: 0.7, destino: d });
+      sonido.golpeRuido({ dur: 0.22, frec: 3000, q: 0.8, vol: 0.12, destino: d, cuando: 0.01 });
+      sonido.impacto('tabla', { tamaño: 0.6, dureza: 1, fuerza: 0.5, vol: 0.3, destino: d, cuando: 0.02, capasMax: 2 });
     }),
     martillo: () => sonar(null, (d) => {
       sonido.impacto('metal', { tamaño: 2.6, dureza: 1, fuerza: 1, vol: 0.45, destino: d });
@@ -124,12 +129,14 @@ export function crearBanco(sonido) {
     }),
     salto: (pos, tipo = 'saltador') => {
       sonar(pos, (d) => {
-        sonido.impacto('quitina', { tamaño: 0.8, dureza: 1, fuerza: 1.1, vol: 0.7, destino: d });
+        // 3.8.0: un duende chico que pega el salto desde la hojarasca
+        sonido.impacto('tierra', { tamaño: 0.7, dureza: 0.5, fuerza: 1.1, vol: 0.7, destino: d });
+        if (sonido.pisadaEn) sonido.pisadaEn(d, 'hojarasca', 0.3, 0.005, true);
         sonido.silbido({ dur: 0.3, frec: 1100, vol: 0.12, destino: d, cuando: 0.02 });
       });
       sonido.vozAlien?.(tipo, 'ataque', { pos, intensidad: 0.8, vol: 0.7 });
     },
-    // ---- las defensas y la nave
+    // ---- las defensas y el Coihue Viejo
     madera: (pos) => sonar(pos, (d) => {
       sonido.impacto('hueco', { tamaño: 2.2, dureza: 0.8, fuerza: 1.2, vol: 1.2, destino: d });
       sonido.impacto('tabla', { tamaño: 1.6, dureza: 1, fuerza: 0.9, vol: 0.6, destino: d, cuando: 0.008 });
@@ -146,14 +153,29 @@ export function crearBanco(sonido) {
       sonido.golpeRuido({ dur: 0.3, frec: 1400, q: 1.1, vol: 0.28, destino: d });
       sonido.impacto('tabla', { tamaño: 3, dureza: 0.5, fuerza: 0.6, vol: 0.5, destino: d, cuando: 0.05 });
     }),
-    // la nave: dos sierras desafinadas que baten entre ellas, abajo de todo
+    // 3.8.0: el Coihue Viejo caminando. La madera que cruje (una garganta de muy pocas
+    // vueltas por segundo con las resonancias de un tronco hueco: así cruje una rama al
+    // doblarse) y, cada tanto, una raíz que se clava en la tierra. Antes: la nave, dos
+    // sierras desafinadas.
     zumbido: (pos) => sonar(pos, (d) => {
-      sonido.tono({ frec: 57, fin: 55, dur: 1.6, tipo: 'sawtooth', vol: 0.07, ataque: 0.35, destino: d });
-      sonido.tono({ frec: 57.9, fin: 55.8, dur: 1.6, tipo: 'sawtooth', vol: 0.055, ataque: 0.4, destino: d });
-      sonido.tono({ frec: 171, fin: 165, dur: 1.5, tipo: 'sine', vol: 0.025, ataque: 0.5, destino: d, vibrato: 2.5 });
-      sonido.golpeRuido({ dur: 1.5, frec: 320, q: 0.5, tipo: 'lowpass', vol: 0.12, destino: d, buffer: sonido.ruido, cuando: 0.1 });
+      const f = az(26, 40);
+      if (sonido.garganta) sonido.garganta({ destino: d, frec: f, fin: f * az(1.3, 1.8), dur: az(1.1, 1.5), vol: 0.11, ataque: 0.25, formantes: [[190, 6, 1], [520, 8, 0.6], [1350, 10, 0.25]], aspereza: 0.9, aliento: 0.12, temblor: 4 });
+      sonido.golpeRuido({ dur: 1.4, frec: 260, q: 0.5, tipo: 'lowpass', vol: 0.1, destino: d, buffer: sonido.ruido, cuando: 0.1 });
+      if (Math.random() < 0.5) {
+        sonido.impacto('tronco', { tamaño: 5, dureza: 0.5, fuerza: 1.2, vol: 0.9, destino: d, cuando: az(0.2, 0.8) });
+        sonido.impacto('tierra', { tamaño: 4.5, dureza: 0.3, fuerza: 1.2, vol: 0.8, destino: d, cuando: az(0.25, 0.85) });
+      }
     }),
-    sirena: () => sonar(null, (d) => { for (let i = 0; i < 3; i++) sonido.tono({ frec: 320, fin: 640, dur: 0.6, tipo: 'sine', vol: 0.1, vibrato: 6, destino: d, cuando: i * 0.7 }); }),
+    // 3.8.0: el aviso de que salen: los duendes se llaman entre ellos con silbidos desde
+    // el monte, tres que suben y se quiebran (antes, una sirena)
+    sirena: () => sonar(null, (d) => {
+      for (let i = 0; i < 3; i++) {
+        const f = az(1150, 1350) * (1 + i * 0.12);
+        sonido.tono({ frec: f, fin: f * 1.35, dur: 0.32, tipo: 'sine', vol: 0.05, vibrato: 7, destino: d, ataque: 0.04, cuando: i * 0.55 });
+        sonido.tono({ frec: f * 1.35, fin: f * 0.9, dur: 0.4, tipo: 'sine', vol: 0.04, vibrato: 7, destino: d, ataque: 0.02, cuando: i * 0.55 + 0.3 });
+      }
+      sonido.golpeRuido({ dur: 1.6, frec: 1500, q: 0.6, vol: 0.03, destino: d, cuando: 0.1 });
+    }),
     // ---- 2.0: el asedio, el perro y el acecho
     // uñas contra la tabla: pasadas agudas que suben y bajan, y el golpecito de la garra
     aranazo: (pos) => sonar(pos, (d) => {
@@ -209,24 +231,32 @@ export function crearBanco(sonido) {
       sonido.tono({ frec: 90, fin: 45, dur: 0.3, tipo: 'sawtooth', vol: 0.09, destino: d, ataque: 0.002 });
     }),
     // ---- 2.3: el volador, los capullos y la zanja de fuego
-    // el aleteo: membranas que baten el aire, grave y seco, de a tres
+    // (3.8.0: la lechuza con su jinete, los nidos de hongos y la zanja de fuego)
+    // el aleteo de la lechuza: plumas, casi sin ruido, y a veces el «hu-huu» desde arriba
     aleteo: (pos) => sonar(pos, (d) => {
-      for (let i = 0; i < 3; i++) sonido.golpeRuido({ dur: 0.12, frec: az(260, 360), q: 0.9, tipo: 'bandpass', vol: 0.22, destino: d, buffer: sonido.ruido, cuando: i * az(0.16, 0.2) });
+      for (let i = 0; i < 2; i++) sonido.golpeRuido({ dur: 0.18, frec: az(700, 1000), q: 0.5, tipo: 'bandpass', vol: 0.1, destino: d, buffer: sonido.ruido, cuando: i * az(0.3, 0.36) });
+      if (Math.random() < 0.4) {
+        const f = az(330, 380);
+        sonido.tono({ frec: f, fin: f * 0.96, dur: 0.22, tipo: 'sine', vol: 0.06, destino: d, ataque: 0.05, cuando: 0.2 });
+        sonido.tono({ frec: f * 0.98, fin: f * 0.88, dur: 0.5, tipo: 'sine', vol: 0.07, destino: d, ataque: 0.06, cuando: 0.55, vibrato: 4 });
+      }
     }),
-    // la picada: un chillido que baja de tono mientras cae
+    // la picada: el chistido de la lechuza (un soplido ronco que baja) y la risita del jinete
     picada: (pos) => {
-      sonido.vozAlien?.('saltador', 'alerta', { pos, intensidad: 0.8, escala: 1.25 });
-      sonido.silbido?.({ pos, dur: 0.6, frec: 1400, vol: 0.12 });
+      sonar(pos, (d) => sonido.golpeRuido({ dur: 0.9, frec: 4200, fin: 2200, q: 2.2, vol: 0.2, destino: d }));
+      sonido.vozAlien?.('saltador', 'alerta', { pos, intensidad: 0.7, escala: 1.1, cuando: 0.25 });
     },
     // la llama que se apaga de golpe
     apagar: (pos) => sonar(pos, (d) => {
       sonido.golpeRuido({ dur: 0.35, frec: 900, q: 0.6, vol: 0.2, destino: d });
       sonido.golpeRuido({ dur: 0.8, frec: 300, q: 0.5, tipo: 'lowpass', vol: 0.1, destino: d, buffer: sonido.ruido, cuando: 0.08 });
     }),
-    // el capullo: se abre como una fruta húmeda, o chisporrotea al quemarse
+    // el nido de hongos (3.8.0; antes, el capullo): revienta blando, como un hongo pisado,
+    // y larga la nube de esporas
     capullo: (pos) => sonar(pos, (d) => {
-      sonido.impacto('carne', { tamaño: 2.2, dureza: 0.2, fuerza: 1.1, vol: 1, destino: d });
-      sonido.golpeRuido({ dur: 0.5, frec: 700, q: 0.8, vol: 0.12, destino: d, cuando: 0.05 });
+      sonido.impacto('hueco', { tamaño: 2.4, dureza: 0.3, fuerza: 1, vol: 0.8, destino: d });
+      sonido.impacto('carne', { tamaño: 1.6, dureza: 0.15, fuerza: 0.8, vol: 0.5, destino: d, cuando: 0.02 });
+      sonido.golpeRuido({ dur: 0.9, frec: 1200, q: 0.5, vol: 0.12, destino: d, cuando: 0.05 });
     }),
     quemar: (pos) => sonar(pos, (d) => {
       for (let i = 0; i < 8; i++) sonido.golpeRuido({ dur: az(0.015, 0.05), frec: az(1200, 3200), q: az(2, 5), vol: az(0.06, 0.14), destino: d, cuando: az(0, 1.4) });

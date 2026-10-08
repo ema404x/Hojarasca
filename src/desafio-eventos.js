@@ -150,8 +150,9 @@ export function crearEventos(T, escena, sonido, efectos, api) {
         R.tocado = 1.2;
         api.herirJugador?.(PLACA.dano, { x: w.x, y: R.y, z: w.z });
         efectos?.chispas({ x: js.pos.x, y: R.y + 0.3, z: js.pos.z }, 12);
-        sonido.golpeRuido?.({ dur: 0.35, frec: 5200, q: 0.8, vol: 0.3, destino: sonido.bus?.efectos });
-        sonido.tono?.({ frec: 120, fin: 60, dur: 0.3, tipo: 'sawtooth', vol: 0.08, destino: sonido.bus?.efectos });
+        // 3.8.0: el hongo del piso que larga las esporas (antes, la descarga de la placa)
+        sonido.golpeRuido?.({ dur: 0.6, frec: 1100, q: 0.6, vol: 0.3, destino: sonido.bus?.efectos });
+        sonido.tono?.({ frec: 120, fin: 60, dur: 0.3, tipo: 'sine', vol: 0.08, destino: sonido.bus?.efectos });
         api.oir?.('descarga', { x: w.x, y: R.y, z: w.z });
       }
     });

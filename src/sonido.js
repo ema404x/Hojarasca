@@ -887,6 +887,20 @@ export class Sonido {
       n.start(t, Math.random() * 3, dur * 1.2 + 0.05);
     }
 
+    // 3.8.0: la risita de los duendes. Un vaivén lento corta la voz en sílabas («ji-ji-ji»)
+    // y a cada sílaba el tono se quiebra un poco para arriba. Los viejos, «jo… jo».
+    let cuerpoSalida = cuerpo;
+    if (v.risa > 0 && v.risaHondura > 0.05) {
+      const silabas = ctx.createGain(); silabas.gain.value = 1 - v.risaHondura * 0.5;
+      const rl = ctx.createOscillator(); rl.type = 'triangle'; rl.frequency.value = v.risa;
+      const rg = ctx.createGain(); rg.gain.value = v.risaHondura * 0.5;
+      const rt = ctx.createGain(); rt.gain.value = v.base * 0.1 * v.risaHondura;
+      rl.connect(rg); rg.connect(silabas.gain); rl.connect(rt); rt.connect(principal.frequency);
+      rl.start(t); rl.stop(t + dur + 0.1);
+      this.soltarAlTerminar(rl, rg, rt);
+      cuerpo.connect(silabas);
+      cuerpoSalida = silabas;
+    }
     // la envolvente de la frase
     const env = ctx.createGain();
     const pico = Math.max(0.0002, 0.3 * v.vol * vol * L.volumen);
@@ -894,8 +908,10 @@ export class Sonido {
     env.gain.exponentialRampToValueAtTime(pico, t + Math.max(0.005, v.ataque));
     // al morir la voz se desarma antes de apagarse
     if (v.desarma) env.gain.exponentialRampToValueAtTime(pico * 0.35, t + dur * 0.55);
+    // 3.8.0: la risita se sostiene un rato antes de apagarse, si no son dos sílabas y nada
+    else if (cuerpoSalida !== cuerpo && v.risaHondura > 0.3) env.gain.setValueAtTime(pico, t + Math.max(0.006, v.ataque) + dur * 0.5);
     env.gain.exponentialRampToValueAtTime(0.0001, t + dur * 1.1);
-    cuerpo.connect(env);
+    cuerpoSalida.connect(env);
 
     // de lejos el aire se come los agudos y queda el retumbe
     const aire = ctx.createBiquadFilter(); aire.type = 'lowpass'; aire.frequency.value = L.corte; aire.Q.value = 0.5;
