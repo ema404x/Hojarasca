@@ -1082,7 +1082,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     m.g.visible = false;
     escena.add(m.g);
     const p = PERSONAJES.guarda;
-    guarda = { ...m, clave: 'guarda', ...p, pos: m.g.position, rumbo: 0, fase: 0, historias: HISTORIAS.filter((h) => h.quien === 'guarda'), aBordo: true, __coloresBase: colores, __invierno: invierno, __ropa: claveRopa() };
+    // 3.8.0: con `rumboObjetivo`, `vel` y `paso` como los demás (sin `rumboObjetivo`, el giro suave de `actualizar`
+    // daba NaN y Elsa quedaba con el giro en NaN para siempre: con vos en la cabina, lejos de ella)
+    guarda = { ...m, clave: 'guarda', ...p, pos: m.g.position, rumbo: 0, rumboObjetivo: 0, vel: 0, paso: 0, fase: 0, historias: HISTORIAS.filter((h) => h.quien === 'guarda'), aBordo: true, __coloresBase: colores, __invierno: invierno, __ropa: claveRopa() };
     gente.push(guarda);
   }
 
@@ -1159,6 +1161,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       if (g.animSocial && Number.isFinite(g.animSocial.mira)) g.rumboObjetivo = g.animSocial.mira;
       else if (g.__volverA) volverDeAnim(g, dt);
       // giro suave hacia donde mira
+      // 3.8.0: nunca un giro en NaN (uno que no se sabe hacia dónde mira, queda como está)
+      if (!Number.isFinite(g.rumboObjetivo)) g.rumboObjetivo = Number.isFinite(g.g.rotation.y) ? g.g.rotation.y : 0;
+      if (!Number.isFinite(g.g.rotation.y)) g.g.rotation.y = g.rumboObjetivo;
       const actual = g.g.rotation.y;
       g.rumbo = actual + Math.atan2(Math.sin(g.rumboObjetivo - actual), Math.cos(g.rumboObjetivo - actual)) * Math.min(1, dt * 2.6);
       g.g.rotation.y = g.rumbo;
@@ -1274,7 +1279,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     guarda.enViaje = enViaje;
     if (!enViaje) return;
     guarda.pos.set(p.x, p.y, p.z);
-    guarda.rumbo = rumbo;
+    // 3.8.0: el rumbo del tren es hacia donde mira (si no la tenés cerca o le hablás: ver `actualizar`)
+    if (Number.isFinite(rumbo)) guarda.rumbo = guarda.rumboObjetivo = rumbo;
   }
 
   // 3.1: los pobladores (3.6: y los vecinos de la Aldea de los Duendes, ver aldea-gente.js).

@@ -69,6 +69,17 @@ app.whenReady().then(async () => {
     const colores = (raiz) => { const s = new Set(); raiz.traverse((o) => { const c = o.isMesh && o.geometry?.attributes?.color; if (!c) return; for (let i = 0; i < c.count; i += 7) s.add(Math.round(c.getX(i) * 255) + ',' + Math.round(c.getY(i) * 255) + ',' + Math.round(c.getZ(i) * 255)); }); return s; };
     const tiene = (raiz, hex) => { const c = new H.THREE_Color(hex); const k = Math.round(c.r * 255) + ',' + Math.round(c.g * 255) + ',' + Math.round(c.b * 255); return colores(raiz).has(k); };
     const nombres = (raiz) => { let n = 0; raiz.traverse((o) => { if (o.name === 'nombre-personal') n++; }); return n; };
+    // 3.8.0: el tren de la 3.7.3 (tren.js) es una sola malla con huesos: los vagones son huesos sin mallas. La pintura se
+    // mira en los vértices pintables (con tinta) del hueso de cada vagón (el color elegido, con la luz de cada cara: se
+    // compara el tono) y el nombre, en las letras que se dibujan (los costados con el rectángulo del nombre del atlas)
+    const tr = H.tren.tren, nuevo = !!tr.mallas?.estructura;
+    const tieneNuevo = (vagon, hex) => { const m = tr.mallas.estructura, geo = m.geometry, c = new H.THREE_Color(hex), mx = Math.max(c.r, c.g, c.b) || 1;
+      const hueso = m.skeleton.huesos.indexOf(vagon), si = geo.attributes.skinIndex, col = geo.attributes.color, tinta = geo.userData.tinta;
+      for (let i = 0; i < col.count; i++) { if (!tinta[i] || si.getX(i) !== hueso) continue; const r = col.getX(i), g = col.getY(i), b = col.getZ(i), k = Math.max(r, g, b) || 1;
+        if (Math.abs(r / k - c.r / mx) < 0.03 && Math.abs(g / k - c.g / mx) < 0.03 && Math.abs(b / k - c.b / mx) < 0.03) return true; } return false; };
+    // (el nombre es la franja de arriba del atlas: cada costado tiene dos esquinas en su borde de arriba)
+    const placasNuevo = () => { const geo = tr.mallas.letras.geometry, uv = geo.attributes.uv, p = geo.attributes.position, idx = geo.index.array, arriba = tr.materiales.atlas.rect.nombre[3] - 1e-3, s = new Set();
+      for (let i = 0; i < geo.drawRange.count && i < idx.length; i++) if (uv.getY(idx[i]) > arriba) s.add([p.getX(idx[i]), p.getY(idx[i]), p.getZ(idx[i])].map((x) => x.toFixed(2)).join()); return Math.round(s.size / 2); };
     const cab = H.__caballo();
     const en = H.camara.children.find((c) => c.userData?.enMano)?.userData.enMano;
     const vert = (g) => { let n = 0; g?.traverse((o) => { if (o.isMesh) n += o.geometry.attributes.position.count; }); return n; };
@@ -79,7 +90,8 @@ app.whenReady().then(async () => {
       perro: { ap: H.perro.apariencia(), pelo: tiene(H.perro.malla.g, '${ELEGIDO.perro.pelo}'), panuelo: tiene(H.perro.malla.g, '${ELEGIDO.perro.bandana}'), palito: !!H.perro.malla.palito },
       caballo: cab ? { ap: cab.apariencia(), pelo: tiene(cab.malla, '#a3a29c'), riendas: tiene(cab.malla, '${ELEGIDO.caballo.riendas}'), alforjas: tiene(cab.malla, '${ELEGIDO.caballo.alforjas}') } : null,
       kayak: { casco: '#' + k.barco.userData.casco.material.color.getHexString(), pala: '#' + k.remo.userData.pala.color.getHexString(), nombres: nombres(k.barco), banderin: k.barco.children.some((c) => c.userData?.pano) },
-      tren: { nombre: H.tren.personal().nombre, placas: nombres(H.tren.tren.loco), coches: tiene(H.tren.tren.coches[0], '${ELEGIDO.trochita.coches}'), franja: tiene(H.tren.tren.coches[0], '${ELEGIDO.trochita.franja}'), cabina: tiene(H.tren.tren.loco, '${ELEGIDO.trochita.cabina}'), silbato: H.sonido.silbatoElegido },
+      tren: nuevo ? { nombre: H.tren.personal().nombre, placas: placasNuevo(), coches: tieneNuevo(tr.coches[0], '${ELEGIDO.trochita.coches}'), franja: tieneNuevo(tr.coches[0], '${ELEGIDO.trochita.franja}'), cabina: tieneNuevo(tr.loco, '${ELEGIDO.trochita.cabina}'), silbato: H.sonido.silbatoElegido }
+        : { nombre: H.tren.personal().nombre, placas: nombres(H.tren.tren.loco), coches: tiene(H.tren.tren.coches[0], '${ELEGIDO.trochita.coches}'), franja: tiene(H.tren.tren.coches[0], '${ELEGIDO.trochita.franja}'), cabina: tiene(H.tren.tren.loco, '${ELEGIDO.trochita.cabina}'), silbato: H.sonido.silbatoElegido },
       armas: en ? { ap: en.personal(), hacha: vert(en.modelo('hacha')), chapa: nombres(en.modelo('ballesta') || H.escena) } : null,
       cuaderno: capa ? { hijos: capa.children.length, sombra: document.querySelector('#cuaderno .cuaderno').style.boxShadow } : null,
       musica: H.progreso.personal?.musica || null,
