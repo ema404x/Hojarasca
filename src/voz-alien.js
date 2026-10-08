@@ -46,7 +46,7 @@ export const VOCES = {
     base: 74, sub: 0.75, aspereza: 20, temblor: 3.4, aliento: 0.55, distorsion: 0.45, cuerpo: 1.8, risa: 3.2,
     formantes: [[200, 6, 1], [580, 7, 0.6], [1300, 9, 0.24]],
   },
-  // El capataz: el bruto llevado al extremo. Tanto subarmónico que el tono real casi no se
+  // El mandamás: el bruto llevado al extremo. Tanto subarmónico que el tono real casi no se
   // escucha, una cola larguísima y una risa lenta que el valle entero se entera.
   jefe: {
     base: 54, sub: 1, aspereza: 17, temblor: 2.6, aliento: 0.6, distorsion: 0.55, cuerpo: 2.6, risa: 2.4,
@@ -59,7 +59,7 @@ export const VOCES = {
     formantes: [[78, 4, 1], [214, 5, 0.5], [520, 7, 0.16]],
   },
   // 3.8.0: el Rey Duende, el gigante de corteza del corazón del Coihue Viejo: más grave que
-  // el capataz, con la madera crujiendo adentro de la voz y una risa de tres golpes.
+  // el mandamás, con la madera crujiendo adentro de la voz y una risa de tres golpes.
   rey: {
     base: 46, sub: 1.1, aspereza: 14, temblor: 2.2, aliento: 0.7, distorsion: 0.5, cuerpo: 3, risa: 1.8,
     formantes: [[110, 5, 1], [330, 6, 0.7], [760, 8, 0.3]],

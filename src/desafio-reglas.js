@@ -56,7 +56,7 @@ export const TIPOS_ALIEN = {
   // bioluminiscentes de la espalda al descubierto: ahí recibe el doble de daño.
   // `giro` es lo rápido que se da vuelta: el jefe es tan pesado que se lo puede
   // rodear corriendo, y por eso el punto débil de la espalda se puede aprovechar.
-  jefe: { nombre: 'capataz', vida: 900, vel: 2.0, dano: 34, cadencia: 1.9, alcance: 3.4, danoObra: 130, radio: 1.45, altura: 4.2, cristales: [14, 20], retroceso: 0,
+  jefe: { nombre: 'mandamás', vida: 900, vel: 2.0, dano: 34, cadencia: 1.9, alcance: 3.4, danoObra: 130, radio: 1.45, altura: 4.2, cristales: [14, 20], retroceso: 0,
     giro: 1.1, pesado: true, jefe: true, puntoDebil: true },
   // 2.1: no salta ni rompe: cava por abajo y sale adentro (ver `desafio-valle.js`)
   excavador: { ...EXCAVADOR },

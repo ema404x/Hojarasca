@@ -143,7 +143,6 @@ export const EN_K = {
   // ---- Desafío 1 a 10
   'Sonidos escritos': 'Written sounds',
   'Con dirección': 'With direction',
-  'En el Desafío, lo que se oye de noche y de dónde viene: «[gruñido lejos · noroeste]».': 'In Challenge mode, what you hear at night and where it comes from: «[growl far off · northwest]».',
   'Vibración del mando': 'Gamepad vibration',
   'chillido': 'shriek', 'gruñido': 'growl', 'rugido': 'roar', 'llamado': 'call', 'respiración': 'breathing',
   'latido bajo la tierra': 'heartbeat under the ground', 'algo que cae': 'something falling', 'bramido enorme': 'huge bellow',

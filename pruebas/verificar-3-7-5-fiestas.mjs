@@ -271,7 +271,7 @@ const GU = await import('../src/guardado.js');
   ok(baile.get('herrero')?.punto.startsWith('pista-') && baile.get('modista')?.punto.startsWith('pista-'), 'Anselmo y Pocha, juntos en la pista');
   const chaca = F.repartoFiesta('25-mayo', 'baile', claves, { musica: 'chacarera' });
   ok([...chaca.values()].some((x) => x.pose === 'chacarera' && x.punto.startsWith('suelta-')), 'la chacarera, suelta');
-  const fogon2 = F.repartoFiesta('leyenda', 'fogon', claves, { leyenda: F.LEYENDAS[1] });
+  const fogon2 = F.repartoFiesta('leyenda', 'fogon', claves, { leyenda: F.LEYENDAS.find((l) => l.id === 'cuero') });   // 3.8.0: la de los duendes va primera
   ok(fogon2.get('pescador')?.pose === 'contar' && [...fogon2.values()].filter((x) => x.sentado).length === F.PREDIO.fogon.troncos, 'la leyenda: el que la cuenta, parado; los demás, en los troncos');
   const jue = F.repartoFiesta('fiesta-verano', 'juegos', claves);
   ok(!F.CHICOS.some((k) => jue.get(k)?.punto?.startsWith('ruedo')), 'los chicos no van al ruedo');

@@ -103,6 +103,8 @@ export const SONIDOS_ESCRITOS = {
   // 2.3
   aleteo: 'un aleteo de lechuza', picada: 'algo baja en picada', apagar: 'una llama se apaga',
   capullo: 'un nido de hongos que revienta', quemar: 'algo se quema', zanja: 'la zanja prende',
+  // 3.8.0: el travieso que se lleva algo
+  risa: 'una risita',
 };
 export function lejaniaTexto(d) {
   if (d < 6) return 'encima';

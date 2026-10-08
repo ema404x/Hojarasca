@@ -244,7 +244,6 @@ export const EN_P = {
   // ---------------------------------------------------------------- el código de partida
   'Código de partida': 'Game code', 'El de esta semana': 'This week\'s', 'Sin código: noches al azar': 'No code: random nights',
   'Esta partida usa {0}: las mismas noches para cualquiera que lo use.': 'This game uses {0}: the same nights for anyone who uses it.',
-  'Esta partida no tiene código. Se elige al empezar un Desafío nuevo.': 'This game has no code. You choose one when starting a new Challenge.',
   'Con un código, las noches salen siempre iguales: sirve para comparar con la otra computadora o con amigos.': 'With a code, the nights always come out the same: good for comparing with your other computer or with friends.',
   'Un código es una palabra y un número, como COIHUE-4821.': 'A code is a word and a number, like COIHUE-4821.',
   'Tu mejor con {0}: 1 noche.': 'Your best with {0}: 1 night.', 'Tu mejor con {0}: {1} noches.': 'Your best with {0}: {1} nights.',
@@ -258,8 +257,6 @@ export const EN_P = {
   'La zanja de fuego': 'The fire trench',
   'Defensa nueva (O → Defensa). Se carga con dos troncos (E) y se prende (E) cuando llegan: arde un minuto. Con viento el fuego puede escaparse al pasto y quemar madera; con lluvia no prende.':
     'New defense (O → Defense). Load it with two logs (E) and light it (E) when they come: it burns for a minute. With wind the fire can escape into the grass and burn wood; in rain it will not light.',
-  'En la portada del Desafío. Con un código (o el de esta semana), las noches salen siempre iguales: sirve para comparar récords con la otra computadora o con amigos.':
-    'On the Challenge title screen. With a code (or this week\'s), the nights always come out the same: good for comparing records with your other computer or with friends.',
 };
 // La ficha del cuaderno de cada cuento es el cuento entero: se arma con las partes ya
 // traducidas, así no se escribe dos veces.

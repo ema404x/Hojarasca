@@ -72,7 +72,7 @@ export function marcasAutomaticas({ desafio, lugares } = {}) {
     marcas.push({ x: Number(p.x), z: Number(p.z), nombre, clase });
   };
   if (desafio) {
-    sumar(desafio.caja, 'caja del alba', 'caja');
+    sumar(desafio.caja, 'cofre del alba', 'caja');
     sumar(desafio.capsula, 'cofre de los duendes', 'capsula');
     sumar(desafio.restos, 'tronco hueco', 'restos');
     // 3.0: el asedio: las agujas, las balizas y la nave asentada

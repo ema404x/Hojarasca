@@ -117,7 +117,6 @@ export const EN_A = {
 
   "La partida viene de una versión más nueva del juego. Actualizá Hojarasca y probá de nuevo.": "This save comes from a newer version of the game. Update Hojarasca and try again.",
 
-  "Cada amanecer cae una caja con paracaídas rojo cerca tuyo: pasá por encima para abrirla.": "Every dawn a crate with a red parachute lands near you: walk over it to open it.",
 
   "}; } if (TECLAS_RESERVADAS.includes(c)) return { ok: false, mapa: { ...base }, motivo:": "}; } if (TECLAS_RESERVADAS.includes(c)) return { ok: false, mapa: { ...base }, motivo:",
 
@@ -211,7 +210,6 @@ export const EN_A = {
 
   "El archivo llegó cortado o modificado: la firma no da.": "The file arrived cut short or altered: the signature does not match.",
 
-  "estado de la base: qué defensa está dañada (Desafío)": "state of the base: which defense is damaged (Challenge)",
 
   ").join(''); const cuerpo = sel.items.map(([t, d]) =>": ").join(''); const cuerpo = sel.items.map(([t, d]) =>",
 
@@ -277,7 +275,6 @@ export const EN_A = {
 
   "mochila · elegir lo que llevás en la mano": "pack · choose what you hold",
 
-  "atacar con el arma en la mano (Desafío)": "attack with the weapon in hand (Challenge)",
 
   "esquivar hacia un costado (doble toque)": "dodge to one side (double tap)",
 
@@ -417,7 +414,6 @@ export const EN_A = {
 
   "clic derecho sostenido": "right click held",
 
-  "Dificultad del Desafío": "Challenge difficulty",
 
   "Sensibilidad del mouse": "Mouse sensitivity",
 
@@ -484,7 +480,6 @@ export const EN_A = {
 
   "Calidad automática": "Automatic quality",
 
-  "Ganaste el Desafío": "You won the Challenge",
 
   "Levantá por etapas": "Build in stages",
 
@@ -597,7 +592,6 @@ export const EN_A = {
 
   "Caminá y mirá": "Walk and look",
 
-  "Caja del alba": "Dawn crate",
 
   "El taller (K)": "The workshop (K)",
 
@@ -609,7 +603,6 @@ export const EN_A = {
 
   "Caminar atrás": "Walk backward",
 
-  "caja del alba": "dawn crate",
 
   "está apretado": "held down",
 
@@ -674,7 +667,6 @@ export const EN_A = {
 
   "· en uso": "· in use",
 
-  "Desafío": "Challenge",
 
   "Si caés": "If you fall",
 

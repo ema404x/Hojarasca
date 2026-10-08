@@ -1372,7 +1372,7 @@ function abrir(cual) {
     $('btn-vuelta').classList.toggle('oculto', !(desafio && puedeOtraVuelta(progreso.desafio)));
     if (desafio && progreso.desafio) {
       const d = progreso.desafio;
-      $('resumen-pausa').textContent = `Desafío · ${d.noches} ${d.noches === 1 ? 'noche resistida' : 'noches resistidas'} · ${d.abatidos} duendes abatidos · mejor racha ${d.mejorRacha}`;
+      $('resumen-pausa').textContent = `La noche de los duendes · ${d.noches} ${d.noches === 1 ? 'noche resistida' : 'noches resistidas'} · ${d.abatidos} duendes abatidos · mejor racha ${d.mejorRacha}`;
     }
     guardar();
     sincronizarAjustes();
@@ -1565,7 +1565,7 @@ function terminarBanco() {
   const informe = informeBanco(banco.corrida, {
     version: (document.getElementById('version-completa')?.textContent || '').replace('Versión ', '').trim(),
     calidad: ajustes.calidad,
-    modo: modoJuego === 'desafio' ? 'Desafío' : 'Relax',
+    modo: modoJuego === 'desafio' ? 'La noche de los duendes' : 'Relax',
     resolucion: `${Math.round(lienzo.width)}×${Math.round(lienzo.height)}`,
     pixelRatio: (renderer.getPixelRatio?.() || 1).toFixed(2),
     limiteFps: String(ajustes.limiteFps),
@@ -1823,7 +1823,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
       if (habiaGuardado || modo !== 'inicio') guardar();
       $('carga').classList.remove('oculto');
       $('inicio').classList.add('oculto');
-      $('carga-texto').textContent = v === 'desafio' ? 'Preparando el modo Desafío' : 'Volviendo al bosque tranquilo';
+      $('carga-texto').textContent = v === 'desafio' ? 'Preparando La noche de los duendes' : 'Volviendo al bosque tranquilo';
       setTimeout(() => location.reload(), 60);
       return;
     }
@@ -1886,7 +1886,7 @@ function textoCodigo() {
   if (fija) {
     const c = progreso.desafio?.semilla;
     inp.value = c || '';
-    el.textContent = c ? `Esta partida usa ${c}: las mismas noches para cualquiera que lo use.` : 'Esta partida no tiene código. Se elige al empezar un Desafío nuevo.';
+    el.textContent = c ? `Esta partida usa ${c}: las mismas noches para cualquiera que lo use.` : 'Esta partida no tiene código. Se elige al empezar de nuevo La noche de los duendes.';
     return;
   }
   const c = normalizarCodigo(inp.value);
@@ -1954,7 +1954,7 @@ $('btn-nuevo').addEventListener('click', async () => {
   const acepta = !hayQuePreguntar || await (esSinFin
     ? dialogos.confirmar('Esto abandona la corrida sin fin de ahora (no queda récord) y empieza otra. Tu campaña no se toca. ¿Querés continuar?')
     : esDesafio
-    ? dialogos.confirmar('Esto borra la partida de Desafío y empieza desde la primera noche. Tu recorrido Relax no se toca. ¿Querés continuar?')
+    ? dialogos.confirmar('Esto borra la partida de La noche de los duendes y empieza desde la primera noche. Tu recorrido Relax no se toca. ¿Querés continuar?')
     : dialogos.confirmar('Esto borra el recorrido guardado y empieza desde cero. ¿Querés continuar?'));
   if (!acepta || reiniciandoPartida) return;
   // No usar guardar() acá: toma la posición del jugador actual y reinyectaría
@@ -2124,7 +2124,7 @@ function exportarAlbum() {
   if (fiestasJuego) { datos.fotos.push(...datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() }).fotos); datos.fotos.sort((a, b) => (a.dia - b.dia) || (a.hora - b.hora)); }
   if (!datos.fotos.length && !datos.diario.length && !datos.anotaciones) { nota('Todavía no hay nada para llevarse', 'Anotá algo, sacá fotos o dormí una noche para que se escriba el diario'); return null; }
   const version = document.getElementById('version-completa')?.textContent?.replace(/^Versión /, '') || '';
-  const texto = htmlAlbum(datos, { titulo: modoJuego === 'desafio' ? 'Cuaderno del Desafío' : 'Cuaderno de campo', version, t: T_ });
+  const texto = htmlAlbum(datos, { titulo: modoJuego === 'desafio' ? 'Cuaderno de La noche de los duendes' : 'Cuaderno de campo', version, t: T_ });
   const blob = new Blob([texto], { type: 'text/html;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2153,7 +2153,7 @@ function importarTexto(ranura, texto, preguntar = true) {
   const r = leerPaquete(texto);
   if (!r.ok) { nota('No se pudo importar', r.motivo); return { ok: false, motivo: r.motivo }; }
   if (r.paquete.modo !== modoJuego) {
-    const motivo = `Es del modo ${r.paquete.modo === 'desafio' ? 'Desafío' : 'Relax'}: cambiá de modo en la portada y volvé a importarla`;
+    const motivo = `Es del modo ${r.paquete.modo === 'desafio' ? 'La noche de los duendes' : 'Relax'}: cambiá de modo en la portada y volvé a importarla`;
     nota('Esa partida es del otro modo', motivo);
     return { ok: false, motivo };
   }
@@ -2192,7 +2192,7 @@ $('partidas-lista').addEventListener('click', async (e) => {
   const borrar = e.target.closest('[data-partida-borrar]');
   if (!borrar) return;
   const r = Number(borrar.dataset.partidaBorrar);
-  if (!await dialogos.confirmar(`Esto borra la partida ${r} del modo ${modoJuego === 'desafio' ? 'Desafío' : 'Relax'}. No se puede deshacer. ¿Seguro?`)) return;
+  if (!await dialogos.confirmar(`Esto borra la partida ${r} del modo ${modoJuego === 'desafio' ? 'La noche de los duendes' : 'Relax'}. No se puede deshacer. ¿Seguro?`)) return;
   borrarPartida(modoJuego, r);
   if (r === ranuraActual()) { reiniciandoPartida = true; cancelarGuardadoSuave(); location.reload(); return; }
   dibujarPartidas();
@@ -2486,7 +2486,7 @@ function mostrarVictoria(s, final = false) {
   setTimeout(() => {
     // 3.0: si se ganó desde adentro de la nave (el asedio), la pantalla lo cuenta
     $('victoria-titulo').textContent = final ? 'Se derrumbó la cueva' : s?.nave ? 'El Coihue cayó desde adentro' : '¡Cayó el Coihue Viejo!';
-    $('victoria-sub').textContent = final ? 'Se terminó el Desafío' : 'Ganaste el Desafío';
+    $('victoria-sub').textContent = final ? 'Se terminó La noche de los duendes' : 'Ganaste La noche de los duendes';
     $('victoria-texto').textContent = final
       ? 'De acá no sale nadie más. Las noches vuelven a ser noches y el valle queda para vos: lo que levantaste sigue en pie y el bosque se va a encargar del resto.'
       : s?.nave ? 'Entraste por la puertita, subiste hasta el corazón, le reventaste el de ámbar al Rey Duende y saliste antes de que el Coihue tocara el suelo. El valle respira, pero siguen saliendo: vienen de una cueva escondida en algún lado. Los troncos huecos te van a decir dónde.'
@@ -8997,8 +8997,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   $('inicio').classList.remove('oculto');
   avisarRecuperado();   // 3.5.1
   if (esDesafio) {
-    $('btn-entrar').textContent = 'Empezar el Desafío';
-    $('btn-nuevo').textContent = 'Empezar un Desafío nuevo';
+    $('btn-entrar').textContent = 'Empezar La noche de los duendes';
+    $('btn-nuevo').textContent = 'Empezar de nuevo La noche de los duendes';
   }
   if (habiaGuardado && progreso.pos) {
     $('btn-entrar').textContent = esDesafio ? 'Seguir resistiendo' : 'Seguir recorriendo';

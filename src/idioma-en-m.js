@@ -181,7 +181,6 @@ const K = {
 
   // ---------------------------------------------------------------- la vuelta
   'Otra vuelta, más difícil': 'Another round, harder',
-  'Otra vuelta al Desafío': 'Another round of the Challenge',
   'Vuelta {0}': 'Round {0}',
 
   // ---------------------------------------------------------------- el cuaderno para compartir
@@ -191,7 +190,6 @@ const K = {
   'Cuaderno guardado': 'Notebook saved',
   '{0} · {1} fotos y {2} páginas del diario': '{0} · {1} photos and {2} diary pages',
   'Cuaderno de campo': 'Field notebook',
-  'Cuaderno del Desafío': 'Challenge notebook',
   'El álbum': 'The album',
   'El diario': 'The diary',
   'Lo anotado': 'Noted down',

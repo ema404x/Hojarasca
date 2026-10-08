@@ -86,7 +86,7 @@ export const BESTIARIO = {
     debil: 'De cerca no puede escupir: tiene que alejarse para apuntar. Encima, es presa fácil.',
   },
   jefe: {
-    nombre: 'Capataz', visto: 'Cuatro metros de duende viejo, con hongos verdes en la espalda.',
+    nombre: 'Mandamás', visto: 'Cuatro metros de duende viejo, con hongos verdes en la espalda.',
     aprendido: 'Se da vuelta despacio y aplasta lo que tenga adelante.',
     debil: 'Los hongos de la espalda: el golpe ahí duele el doble.',
   },
@@ -98,7 +98,7 @@ export const BESTIARIO = {
   },
   // 2.3
   volador: {
-    nombre: 'Jinete de lechuza', visto: 'Un duende flaco montado en una lechuza grande, de alas que no hacen ruido.',
+    nombre: 'Lechucero', visto: 'Un duende flaco montado en una lechuza grande, de alas que no hacen ruido.',
     aprendido: 'Pasa por arriba de todo y va derecho a las antorchas prendidas: la lechuza baja en picada y las apaga. Si no queda ninguna, viene rasante por vos.',
     debil: 'Arriba sólo lo alcanzan las flechas, la pistola y la ballesta que apunta al cielo. Cuando baja a apagar una llama, también la lanza.',
   },

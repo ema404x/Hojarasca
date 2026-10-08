@@ -166,7 +166,7 @@ export const PLANOS_MAQUINAS = [
     id: 'estacion-meteo', nombre: 'Estación meteorológica', pieza: true, categoria: 'exterior',
     radio: 1.5, ancho: 2.2, fondo: 1.8, alto: 4.3, separacion: 8, distancia: 4,
     funciones: ['meteo', 'radio'],
-    texto: 'La casilla blanca del termómetro, un mástil con veleta y anemómetro, y una radio a batería. Con E se lee el pronóstico de hoy, mañana y pasado —tormentas, nevadas, viento— y se escucha a los otros refugios. En el Desafío avisa también cómo viene la noche.',
+    texto: 'La casilla blanca del termómetro, un mástil con veleta y anemómetro, y una radio a batería. Con E se lee el pronóstico de hoy, mañana y pasado —tormentas, nevadas, viento— y se escucha a los otros refugios. En La noche de los duendes avisa también cómo viene la noche.',
     etapas: [
       {
         nombre: 'El abrigo del termómetro',

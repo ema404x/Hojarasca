@@ -31,7 +31,7 @@ export const SECCIONES_GUIA = [
       ['Ramitas', 'Están tiradas en todo el bosque: E para juntarlas. Sirven para el fuego.'],
       ['Frutas', 'Piñones, calafates y frutillas se juntan con E. Se comen o se cocinan.'],
       ['Semillas doradas', 'Las sueltan los duendes al caer y aparecen en los troncos huecos. Sirven para las mejoras y las defensas doradas.', 'desafio'],
-      ['Caja del alba', 'Cada amanecer cae una caja con paracaídas rojo cerca tuyo: pasá por encima para abrirla.', 'desafio'],
+      ['Cofre del alba', 'Cada amanecer brota un cofre entre las raíces, cerca tuyo, con un brillo dorado: pasá por encima para abrirlo.', 'desafio'],
     ],
   },
   {
@@ -48,7 +48,7 @@ export const SECCIONES_GUIA = [
       ['La galería y el invernadero', 'Van encima de lo que ya armaste. Abajo de la galería no llueve: el tendal seca y la leña no se moja. Bajo el invernadero, la huerta no se hiela en invierno.'],
       ['El hogar de piedra', 'Una pared con hogar (O → Refugios) que encaja como las otras. Se prende con F, calienta la casa como la estufa y echa humo por la chimenea.'],
       ['El embarcadero', 'El arranque en la orilla y la punta sobre el agua honda del lago. El kayak queda amarrado ahí (E lo trae) y desde la punta se pesca.'],
-      ['El adarve', 'En el Desafío: una pasarela a dos metros, con escalera, para ponerla detrás de la empalizada y tirar por encima.'],
+      ['El adarve', 'En La noche de los duendes: una pasarela a dos metros, con escalera, para ponerla detrás de la empalizada y tirar por encima.'],
     ],
   },
   {
@@ -58,7 +58,7 @@ export const SECCIONES_GUIA = [
       ['Armas', 'Lanza (tronco + 2 piedras) para empezar; honda, arco, boleadoras y martillo después. La pistola de luz está en un cofre de los duendes, en el valle.'],
       ['Combate', 'Clic izquierdo ataca, clic derecho sostenido bloquea con la lanza. Doble toque de A o D esquiva.'],
       ['Quiénes salen', 'Duendes rastreadores, tiradores y brutos. Desde la noche 3 aparecen saltadores, que pasan la empalizada de un salto (la reforzada y el portón no). Desde la 6, escupidores de savia hirviendo que dañan las defensas de lejos.'],
-      ['El capataz', 'Cada cinco noches sale uno solo, viejo, enorme y durísimo. Se da vuelta despacio: rodealo y pegale en los hongos de la espalda, que reciben el doble de daño. Al caer suelta muchas semillas doradas.'],
+      ['El mandamás', 'Cada cinco noches sale uno solo, viejo, enorme y durísimo. Se da vuelta despacio: rodealo y pegale en los hongos de la espalda, que reciben el doble de daño. Al caer suelta muchas semillas doradas.'],
       ['Defensas', 'En los planos, la categoría Defensa: empalizada, portón (E abre y cierra), pirca, estacas, ballesta fija, antorchas (F las prende), torre vigía.'],
       ['Trampas', 'El foso con estacas se pone delante del paso: no frena a nadie, pero el que lo cruza se clava. Se gasta con el uso, así que cada tanto hay que rehacerlo.'],
       ['Reparar y reforzar', 'Con el martillo en la mano reparás tocando la pieza. En el taller, la pestaña Base repara y refuerza la defensa más cercana: empalizada, pirca y portón tienen su versión reforzada.'],
@@ -80,7 +80,7 @@ export const SECCIONES_GUIA = [
       // 2.1
       ['Rescates', 'Algunas noches atacan el lugar de un vecino: el puesto, la cabaña, el almacén o la estación. Si vas y aguanta, te lo agradece; si cae, el vecino no te habla por unos días.'],
       ['El excavador', 'Desde la noche 7. No rompe la empalizada: cava por abajo y sale cerca tuyo. Se oye cavar y se ve el polvo. Donde hay losa de piedra (O → Defensa) no puede asomar, y debajo de la madera con cimiento de piedra (taller K → Base) no se mete.'],
-      ['Los capataces', 'Cada capataz es otro: el de siempre, el que llama refuerzos, la sombra que sólo se ve con la linterna y el que tira piedras a las defensas desde lejos.'],
+      ['Los mandamases', 'Cada mandamás es otro: el de siempre, el que llama refuerzos, la sombra que sólo se ve con la linterna y el que tira piedras a las defensas desde lejos.'],
       ['Los troncos huecos', 'Los troncos huecos de los duendes se recorren: un pasillo con hongos en el piso que largan esporas (pasalos cuando están cerrados), duendes dormidos (agachado no se despiertan) y el premio al fondo.'],
       ['La forja', 'En el taller (K), pestaña Forja: lanza de hielo (frena a los rápidos), flechas de rayo (para los grupos) y honda de empuje (derriba a los que tiran de lejos).'],
       // 2.3
@@ -88,7 +88,7 @@ export const SECCIONES_GUIA = [
       ['La trochita varada', 'Algunas noches el tren se queda sin presión lejos de la estación, con Elsa adentro. Avanza sólo si estás cerca: escoltalo hasta la Estación del Valle mientras los duendes van por él.'],
       ['Las lechuzas', 'Desde la noche 8, duendes montados en lechuzas. Vuelan alto y bajan en picada a apagar las antorchas; sin antorchas, vienen por vos. Arriba los alcanzan flechas, pistola y la ballesta al cielo (O → Defensa); cuando bajan, también la lanza.'],
       ['La zanja de fuego', 'Defensa nueva (O → Defensa). Se carga con dos troncos (E) y se prende (E) cuando llegan: arde un minuto. Con viento el fuego puede escaparse al pasto y quemar madera; con lluvia no prende.'],
-      ['Código de partida', 'En la portada del Desafío. Con un código (o el de esta semana), las noches salen siempre iguales: sirve para comparar récords con la otra computadora o con amigos.'],
+      ['Código de partida', 'En la portada de La noche de los duendes. Con un código (o el de esta semana), las noches salen siempre iguales: sirve para comparar récords con la otra computadora o con amigos.'],
     ],
   },
   {

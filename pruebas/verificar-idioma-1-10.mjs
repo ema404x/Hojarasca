@@ -62,7 +62,7 @@ for (const especie of ['coihue', 'lenga', 'ciprés', 'arrayán', 'ñire', 'árbo
 }
 for (const c of CARTAS) traducido(`De ${c.de.charAt(0).toLowerCase()}${c.de.slice(1)}. La tiene Ercilia en el almacén`, `aviso de la carta ${c.id}`);
 for (const texto of ['Subir al zaino', 'Bajarte del zaino', 'Tapar el pozo (2 piedras)', 'Cantero vacío: faltan semillas', 'Esquilar la oveja',
-  'Otra vuelta, más difícil', 'Otra vuelta al Desafío', 'Llevarte el cuaderno', 'Vuelta 2', 'La huerta está para cosechar', '3 canteros listos',
+  'Otra vuelta, más difícil', 'Otra vuelta a La noche de los duendes', 'Llevarte el cuaderno', 'Vuelta 2', 'La huerta está para cosechar', '3 canteros listos',
   'El arroyo viene crecido', '¡Un excavador pasó por debajo!', 'Pozo tapado', 'Llegó carta con el tren', 'Cuaderno guardado']) traducido(texto, 'pantalla');
 
 assert.deepEqual(falta, [], `quedó en castellano:\n  ${falta.join('\n  ')}`);

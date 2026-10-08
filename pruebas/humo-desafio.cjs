@@ -57,7 +57,7 @@ app.whenReady().then(async () => {
     donde = 'desafio-inicio';
     const inicio = await js(`(()=>{const H=window.__hojarasca; return {modo:H.modoJuego, texto:document.getElementById('btn-entrar').textContent,
       hacha:!!H.progreso.cosas.hacha, tronco:H.progreso.materiales.tronco, salud:H.progreso.desafio?.salud, capsula:H.desafio.capsula}})()`);
-    ok(inicio.modo === 'desafio' && inicio.texto === 'Empezar el Desafío', 'menú muestra el Desafío');
+    ok(inicio.modo === 'desafio' && inicio.texto === 'Empezar La noche de los duendes', 'menú muestra La noche de los duendes');   // 3.8.0: el modo se llama así
     ok(inicio.hacha && inicio.tronco === 6 && inicio.salud === 100, 'kit inicial: hacha, 6 troncos, salud 100');
     await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2000);
     ok(await js(`!document.getElementById('desafio-hud').classList.contains('oculto') && /los duendes salen en/.test(document.getElementById('desafio-estado').textContent)`), 'HUD con cuenta regresiva');   // 3.8.0: «los duendes salen en»

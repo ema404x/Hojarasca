@@ -726,7 +726,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     S.sirena();
     const lado = rumboTexto(js.pos, p).replace(/^al /, 'el ');
     const esp = d.especial ? ` · ${ESPECIALES[d.especial].nombre}` : '';
-    const conJefe = tipos.includes('jefe') ? ' · ¡viene el capataz!' : '';
+    const conJefe = tipos.includes('jefe') ? ' · ¡viene el mandamás!' : '';
     if (nuevaNoche) ctx.nota(`¡Salen duendes desde ${lado}!`, `Noche ${d.oleadas}${esp} · ${tipos.length} duendes${conJefe}`, true);
     else if (retomada) ctx.nota('Los duendes siguen acá', `${tipos.length} vuelven a salir desde ${lado}`, true);
     else ctx.nota('Llegan refuerzos', `${tipos.length} duendes más desde ${lado}`, true);
@@ -842,7 +842,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       d.especial = esNocheFinal() ? null : d.sinFin ? especialSinFin(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior)
         : nocheEspecial(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior);
       if (esNocheFinal()) ctx.nota('El bosque cruje entero', 'Esta noche despierta el Coihue Viejo. Preparate para todo', true);
-      else if (esNocheDeJefe(d.oleadas + 1)) ctx.nota('Se oye un silbido grave en el monte', 'Esta noche sale un capataz. Apuntale a los hongos de la espalda', true);
+      else if (esNocheDeJefe(d.oleadas + 1)) ctx.nota('Se oye un silbido grave en el monte', 'Esta noche sale un mandamás. Apuntale a los hongos de la espalda', true);
       else if (d.especial) ctx.nota(ESPECIALES[d.especial].aviso, `${ESPECIALES[d.especial].nombre} · en una hora salen los duendes`, true);
       else ctx.nota('Se ven lucecitas entre los árboles', 'En una hora salen los duendes. Cerrá el portón y prepará las armas', true);
       S.sirena();
@@ -1366,7 +1366,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         camaraLenta = Math.max(camaraLenta, 1.6);
         musica.golpeFinal();
         efectos.sangre(_v, 14); efectos.chispas(_v, 16);
-        ctx.nota('Cayó el capataz', `Dejó ${sueltos} semillas doradas desparramadas`, true);
+        ctx.nota('Cayó el mandamás', `Dejó ${sueltos} semillas doradas desparramadas`, true);
       }
       d.abatidos++;
       nocheActual.abatidos++;
@@ -1568,7 +1568,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // Con el nido abajo no hay noche que contar: va primero que todo lo demás.
       texto = `Día ${p.dia} · la cueva se derrumbó · no sale nadie más`;
     } else if (esHoraDeAtaque(p.horas) && !d.oleadaTerminada && d.oleadaNoche === claveNoche(p.dia, p.horas)) {
-      const conJefe = jefeVivo() ? ' · ¡el capataz!' : '';
+      const conJefe = jefeVivo() ? ' · ¡el mandamás!' : '';
       texto = eventos.nodrizaActiva ? `Noche ${d.oleadas} · ¡El Coihue Viejo! · ${n} ${n === 1 ? 'duende' : 'duendes'}${conJefe}`
         : n ? `Noche ${d.oleadas}${esp} · ¡Salieron! ${n} ${n === 1 ? 'duende' : 'duendes'}${conJefe}` : `Noche ${d.oleadas}${esp} · resistiendo`;
     } else if (esHoraDeAtaque(p.horas)) {
@@ -2551,7 +2551,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const x = js.pos.x + Math.cos(a) * r, z = js.pos.z + Math.sin(a) * r;
       if (T.agua(x, z) || obraEnPunto(x, T.altura(x, z) + 0.5, z, 0.4)) continue;
       D().caja = { x, z, contenido: suministrosDelAlba(noche, !!progreso().cosas?.arco), cayendo: true };
-      ctx.nota('Cae una caja de suministros', 'Está cerca, con un paracaídas rojo. Pasá por encima para abrirla');
+      ctx.nota('Brotó un cofre entre las raíces', 'Está cerca, con un brillo dorado. Pasá por encima para abrirlo');
       return;
     }
   }
@@ -2578,7 +2578,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     d.caja = null;
     caja.visible = false;
     sonido.juntar();
-    ctx.nota('Caja de suministros', partes.join(' · '), true);
+    ctx.nota('Cofre del alba', partes.join(' · '), true);
     ctx.alFabricar?.({});
     ctx.guardar();
   }

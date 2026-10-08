@@ -58,7 +58,7 @@ export const ASPECTO_CLASE = {
 // La ficha del bestiario de los adaptados (se anota como las demás: visto y abatido).
 Object.assign(BESTIARIO, {
   adaptado: {
-    nombre: 'Curtido', visto: 'Uno de los de siempre, con costra de corteza encima, del color de lo que aprendió a aguantar.',
+    nombre: 'Baqueano', visto: 'Uno de los de siempre, con costra de corteza encima, del color de lo que aprendió a aguantar.',
     aprendido: 'Aprenden de cómo te defendés: si todas las noches usás lo mismo, cada vez vienen más preparados contra eso.',
     debil: 'Cambiá de táctica. Contra lo demás no tienen nada, y lo que dejás de usar lo olvidan en pocas noches.',
   },

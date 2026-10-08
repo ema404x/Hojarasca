@@ -67,6 +67,7 @@ const LISTA = [
   ['lechuza-aleteo', 2.0, `H.desafioS.aleteo({x:0,y:6,z:-6})`],
   ['lechuza-picada', 2.0, `H.desafioS.picada({x:0,y:4,z:-5})`],
   ['nido-de-hongos', 2.0, `H.desafioS.capullo({x:0,y:0.5,z:-3})`],
+  ['travieso-risa', 2.0, `H.desafioS.risa({x:2,y:0.5,z:-3})`],
   ['chispa-ambar', 1.5, `H.desafioS.plasma({x:0,y:1,z:-3})`],
   // 2.0: el asedio, el perro que avisa y el acecho
   ['asedio-aranazos', 1.5, `H.desafioS.aranazo({x:0,y:1,z:-2})`],

@@ -97,7 +97,7 @@ export function puntoDeSalida(bicho, jugador, losa = () => false) {
 // ---------------------------------------------------------------- 8. los jefes
 export const VARIANTES_JEFE = ['clasico', 'llamador', 'sombra', 'artillero'];
 export const NOMBRE_JEFE = {
-  clasico: 'el capataz', llamador: 'el capataz que llama', sombra: 'el capataz sombra', artillero: 'el capataz que tira piedras',
+  clasico: 'el mandamás', llamador: 'el mandamás que llama', sombra: 'el mandamás sombra', artillero: 'el mandamás que tira piedras',
 };
 export const AVISO_JEFE = {
   clasico: 'Los hongos de la espalda son lo único blando que tiene: pegale ahí y duele el doble',

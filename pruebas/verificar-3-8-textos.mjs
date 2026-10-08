@@ -78,9 +78,9 @@ ok(/cristal: \{ nombre: 'semillas doradas', de: 'los duendes abatidos' \}/.test(
 
 // la historia nueva está contada
 const todo = DESAFIO.join(' ');
-for (const palabra of ['duende', 'lechuza', 'Coihue Viejo', 'Rey Duende', 'semillas doradas', 'nidos de hongos', 'cueva', 'capataz'])
+for (const palabra of ['duende', 'lechuza', 'Coihue Viejo', 'Rey Duende', 'semillas doradas', 'nidos de hongos', 'cueva', 'mandamás'])
   ok(new RegExp(palabra, 'i').test(todo + leer('src/desafio.js') + leer('src/main.js')), `falta contar: ${palabra}`);
-ok(BESTIARIO.volador.nombre === 'Jinete de lechuza' && BESTIARIO.jefe.nombre === 'Capataz' && BESTIARIO.mutado.nombre === 'Viejo', 'el bestiario de los duendes');
+ok(BESTIARIO.volador.nombre === 'Lechucero' && BESTIARIO.jefe.nombre === 'Mandamás' && BESTIARIO.mutado.nombre === 'Viejo', 'el bestiario de los duendes');
 
 // ---------------------------------------------------------------- 2. el inglés
 const main = leer('src/main.js'), idiomaEn = leer('src/idioma-en.js');
@@ -114,6 +114,27 @@ for (const [es, en] of Object.entries(EN_R)) {
   ok(JSON.stringify((es.match(/\{\d+\}/g) || []).sort()) === JSON.stringify((en.match(/\{\d+\}/g) || []).sort()), `los huecos de «${es}»`);
 }
 
+// ---------------------------------------------------------------- 2b. el nombre del modo y el cofre del alba
+// El modo se llama «La noche de los duendes» en todo lo que se ve (adentro sigue siendo 'desafio').
+// «Desafío del día» (las carreras del Relax) y «Desafíos cumplidos» (las fotos) son otra cosa.
+const nombreViejo = [];
+for (const f of fs.readdirSync(new URL('../src/', import.meta.url)).filter((x) => (x.endsWith('.js') && !x.startsWith('idioma')) || x === 'plantilla.html')) {
+  const src = leer('src/' + f);
+  const textos = f.endsWith('.html') ? [...src.matchAll(/>([^<>]+)</g)].map((m) => m[1]) : literales(src);
+  for (const l of textos) if (/\bDesafío\b(?! del día| cumplido)/.test(l)) nombreViejo.push(`${f}: «${l.trim().slice(0, 80)}»`);
+}
+ok(nombreViejo.length === 0, `el modo todavía se llama Desafío:\n  ${nombreViejo.join('\n  ')}`);
+ok(/data-valor="desafio">La noche de los duendes</.test(leer('src/plantilla.html')), 'la portada ofrece La noche de los duendes');
+ok(t('La noche de los duendes') === 'The Night of the Goblins' && t('Ganaste La noche de los duendes') === 'You won The Night of the Goblins', 'y en inglés');
+ok(!/paracaídas|suministros/.test(DESAFIO.join(' ') + leer('src/desafio.js').replace(/^\s*\/\/.*$/gm, '').replace(/suministrosDelAlba/g, '')), 'el cofre del alba brota entre raíces: nada de paracaídas');
+ok(t('Brotó un cofre entre las raíces') === 'A chest came up among the roots' && t('Cofre del alba') === 'Dawn chest', 'el cofre del alba, en inglés');
+// lo que dice el travieso (los textos son del equipo duendes; el inglés va acá)
+for (const [es, en] of [['¡Un duende te robó!', 'A goblin robbed you!'], ['Se llevó una semilla dorada y sale corriendo. Pegale y lo suelta', 'It took a golden seed and ran off. Hit it and it lets go'],
+  ['Lo recuperaste', 'You got it back'], ['La tabla vuelve a tus cosas', 'The plank is back with your things'], ['Una piedra que se llevó un duende', 'A stone a goblin had taken'],
+  ['Te devolvieron lo robado', 'They gave back what they took'], ['Con la primera luz, los duendes dejaron todo en la puerta', 'With the first light, the goblins left everything at the door']])
+  ok(t(es) === en, `«${es}» → «${t(es)}»`);
+ok(/nombre: 'Baqueano'/.test(leer('src/desafio-evolucion.js')), 'el adaptado es el Baqueano');
+
 // ---------------------------------------------------------------- 3. los sonidos
 for (const tipo of ['rastreador', 'tirador', 'saltador', 'escupidor', 'bruto', 'jefe']) ok(VOCES[tipo].risa > 0, `${tipo}: se ríe`);
 ok(VOCES.saltador.risa > VOCES.rastreador.risa && VOCES.rastreador.risa > VOCES.bruto.risa && VOCES.bruto.risa > VOCES.jefe.risa, 'los chicos se ríen rápido, los viejos despacio');
@@ -127,6 +148,7 @@ const tramo = (clave) => { const i = banco.indexOf(`    ${clave}: `); return ban
 ok(!/sawtooth/.test(tramo('zumbido')) && /garganta/.test(tramo('zumbido')) && /'tronco'/.test(tramo('zumbido')), 'el Coihue Viejo cruje y pisa con las raíces');
 ok(!/sawtooth/.test(tramo('cargado')) && !/chisporrotear/.test(tramo('pistola')), 'la pistola de luz no chisporrotea plasma');
 ok(/hu-huu/.test(banco) && /chistido/.test(banco), 'la lechuza: el ulular y el chistido');
+ok(/    risa: \(pos, tipo = 'saltador'\) => \{/.test(banco) && SONIDOS_ESCRITOS.risa === 'una risita' && t('una risita') === 'a giggle', 'S.risa: la risita del travieso, escrita y en inglés');
 ok(/const SILBIDOS = /.test(musica) && !/CRISTALES/.test(musica) && /function silbido\(/.test(musica), 'en la música, los duendes silban');
 
 // ---------------------------------------------------------------- 4. la leyenda
@@ -135,6 +157,6 @@ ok(ley && ley.titulo === 'La noche en que salieron los duendes' && ley.quien ===
 const historia = ley.partes.join(' ');
 for (const p of ['traviesos', 'lechuzas', 'Coihue Viejo', 'Rey Duende', 'semillas doradas']) ok(historia.includes(p), `la leyenda cuenta: ${p}`);
 ok(!/capilla|\bmisa\b|\bcura\b|\brez[aoá]|\bdios|\bsant[oa]s?\b|bendi|iglesia|altar|milagro|virgen|sagrad|ángel|amén|pecado|diablo|demonio|alma\b/i.test(historia), 'nada religioso');
-ok(LEYENDAS.length >= 4 && LEYENDAS.indexOf(ley) === LEYENDAS.length - 1, 'se suma como cuarta leyenda (las de antes siguen en su año)');
+ok(LEYENDAS.length >= 4 && LEYENDAS.indexOf(ley) === 0 && LEYENDAS.map((l) => l.id).slice(1, 4).join() === 'calafate,cuero,nahuelito', 'es la del primer año; las otras se corren uno');
 
-console.log(`3.8.0 (textos): ${n} comprobaciones · el Desafío con duendes, en castellano y en inglés, con sus sonidos y su leyenda`);
+console.log(`3.8.0 (textos): ${n} comprobaciones · La noche de los duendes, en castellano y en inglés, con sus sonidos y su leyenda`);

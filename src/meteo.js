@@ -193,7 +193,7 @@ export function nochesQueVienen(d, meteo, dia, horas, cuantas = 2) {
     const especial = final ? null : yaDecidida ? d.especial : (d.sinFin ? especialSinFin : nocheEspecial)(n, azarEspecial(d, meteo, n), anterior);
     const tipo = final ? 'final' : jefe ? 'jefe' : especial || 'comun';
     const texto = final ? 'Despierta el Coihue Viejo'
-      : jefe ? 'Sale un capataz'
+      : jefe ? 'Sale un mandamás'
       : especial ? `${ESPECIALES[especial].nombre}: ${ESPECIALES[especial].aviso.toLowerCase()}`
       : 'Ataque de siempre';
     salida.push({ clave, n, cuando, tipo, especial, texto });

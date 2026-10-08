@@ -324,7 +324,7 @@ export function crearModos(ctx) {
     const t = torneoActual();
     const local = torneoSync.local;
     cont.appendChild(el('h3', '', `Torneo de la semana · ${t.semana} · ${t.codigo}`));
-    cont.appendChild(el('p', 'dato', `Pesca: la ${t.pezNombre} más grande · Carrera: ${t.circuitoNombre}, vuelta normal · Defensa: noches resistidas en el Desafío con el código ${t.codigo}`));
+    cont.appendChild(el('p', 'dato', `Pesca: la ${t.pezNombre} más grande · Carrera: ${t.circuitoNombre}, vuelta normal · Defensa: noches resistidas en La noche de los duendes con el código ${t.codigo}`));
     const filas = tablaSemana(todasLasEntradas(local), t);
     const tabla = el('table');
     const cab = el('tr');

@@ -246,6 +246,13 @@ export function crearBanco(sonido) {
       sonar(pos, (d) => sonido.golpeRuido({ dur: 0.9, frec: 4200, fin: 2200, q: 2.2, vol: 0.2, destino: d }));
       sonido.vozAlien?.('saltador', 'alerta', { pos, intensidad: 0.7, escala: 1.1, cuando: 0.25 });
     },
+    // 3.8.0: la risita del travieso que te robó algo y sale corriendo: dos risitas agudas,
+    // la segunda más arriba y más corta, y los pasitos en la hojarasca
+    risa: (pos, tipo = 'saltador') => {
+      sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: 0.85, escala: 0.85 });
+      sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: 0.6, escala: 0.75, vol: 0.7, cuando: az(0.45, 0.6) });
+      sonar(pos, (d) => { for (let i = 0; i < 4; i++) { if (sonido.pisadaEn) sonido.pisadaEn(d, 'hojarasca', 0.12, 0.1 + i * 0.12, true); } });
+    },
     // la llama que se apaga de golpe
     apagar: (pos) => sonar(pos, (d) => {
       sonido.golpeRuido({ dur: 0.35, frec: 900, q: 0.6, vol: 0.2, destino: d });

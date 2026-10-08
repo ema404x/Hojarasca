@@ -113,7 +113,7 @@ for (const s of [
   'La zanja ya arde', 'Quedan 40 segundos', 'La zanja se apagó', 'Cargala de nuevo con dos troncos', '¡El fuego se escapó al pasto!',
   'Con viento se corre: alejate y cuidá la madera de las defensas',
   'Código de partida', 'El de esta semana', 'Sin código: noches al azar', 'Esta partida usa COIHUE-4821: las mismas noches para cualquiera que lo use.',
-  'Esta partida no tiene código. Se elige al empezar un Desafío nuevo.', 'Con un código, las noches salen siempre iguales: sirve para comparar con la otra computadora o con amigos.',
+  'Esta partida no tiene código. Se elige al empezar de nuevo La noche de los duendes.', 'Con un código, las noches salen siempre iguales: sirve para comparar con la otra computadora o con amigos.',
   'Un código es una palabra y un número, como COIHUE-4821.', 'Tu mejor con LENGA-12: 1 noche.', 'Tu mejor con LENGA-12: 7 noches.',
   'Con LENGA-12, las mismas noches para cualquiera que lo use.', 'Código LENGA-12', 'Las mismas noches para cualquiera que lo use. Tu récord con este código se guarda aparte',
   'Tu mejor noche con LENGA-12', '1 noche resistida con este código', '5 noches resistidas con este código',
