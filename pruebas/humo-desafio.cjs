@@ -60,7 +60,7 @@ app.whenReady().then(async () => {
     ok(inicio.modo === 'desafio' && inicio.texto === 'Empezar el Desafío', 'menú muestra el Desafío');
     ok(inicio.hacha && inicio.tronco === 6 && inicio.salud === 100, 'kit inicial: hacha, 6 troncos, salud 100');
     await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2000);
-    ok(await js(`!document.getElementById('desafio-hud').classList.contains('oculto') && /próxima invasión/.test(document.getElementById('desafio-estado').textContent)`), 'HUD con cuenta regresiva');
+    ok(await js(`!document.getElementById('desafio-hud').classList.contains('oculto') && /los duendes salen en/.test(document.getElementById('desafio-estado').textContent)`), 'HUD con cuenta regresiva');   // 3.8.0: «los duendes salen en»
 
     // ---- 1.5: talar un árbol en pie, aserrar a mano, banco sin tablas, pehuén protegido, guía F1
     donde = 'recursos';
@@ -150,7 +150,7 @@ app.whenReady().then(async () => {
     await simular(10);
     const ol = await js(`(()=>{const H=window.__hojarasca, D=H.progreso.desafio; return {oleadas:D.oleadas, vivos:H.desafio.aliens.length, estado:document.getElementById('desafio-estado').textContent}})()`);
     ok(ol.oleadas === 1 && ol.vivos >= 1, `la primera oleada baja (${ol.vivos} invasores)`);
-    ok(/Invasión/.test(ol.estado), 'el HUD anuncia la invasión');
+    ok(/¡Salieron!/.test(ol.estado), 'el HUD anuncia que salieron los duendes');   // 3.8.0
     const d0 = await js(`(()=>{const H=window.__hojarasca, p=H.jugador.estado.pos; return Math.min(...H.desafio.aliens.map(a=>Math.hypot(a.m.g.position.x-p.x,a.m.g.position.z-p.z)))})()`);
     await simular(6);
     const d1 = await js(`(()=>{const H=window.__hojarasca, p=H.jugador.estado.pos; return Math.min(...H.desafio.aliens.map(a=>Math.hypot(a.m.g.position.x-p.x,a.m.g.position.z-p.z)))})()`);

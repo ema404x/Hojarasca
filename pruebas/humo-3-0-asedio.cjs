@@ -1,4 +1,5 @@
 // 3.0 — partida real del asedio final y de la pelea adentro de la nave (Electron + WebGL).
+// 3.8.0: los textos que mira esta partida dicen lo de los duendes (duendes, Coihue Viejo, madrigueras).
 // Lo que las pruebas de Node no ven: que al alba de la noche final la nodriza se asiente,
 // que las agujas se armen y se rompan con las armas de siempre, que el contraataque vaya
 // por la baliza, que el haz se abra y E suba a la nave, que adentro se esconda el valle y
@@ -139,7 +140,7 @@ app.whenReady().then(async () => {
         vanPorLaBaliza: H.desafio.asedio.blancoNoche() !== null}})()`);
     ok(contra.contra === 1 && contra.vanPorLaBaliza, 'esa noche contraatacan la zona recuperada');
     ok(!contra.nodriza && contra.oleadas === 21 && !contra.rescate, 'la noche 21 no vuelve la nodriza ni hay rescates');
-    ok(/defendé la baliza/.test(contra.hud), `el HUD pide defender la baliza: "${contra.hud}"`);
+    ok(/defendé el fogón/.test(contra.hud), `el HUD pide defender la baliza: "${contra.hud}"`);
     // se deja que los invasores lleguen a la baliza
     await js(`(()=>{const H=${H}, z=H.progreso.desafio.asedio.zonas[1]; H.jugador.ubicar(z.x+60, z.z+60, 0); return 1})()`);
     await simularSano(25);
@@ -176,13 +177,13 @@ app.whenReady().then(async () => {
       H.progreso.horas = 19.8; r.tardeAviso = D.avisoCercaDe(pos); r.tardeE = D.usarCercaDe(pos); r.tardeAdentro = N.enTransicion || N.adentro;
       H.progreso.horas = 11; r.libre = D.avisoCercaDe(pos);
       return r})()`);
-    ok(/Hay invasores cerca: despejá la zona para subir \(1, el más cerca/.test(bloq.invasorAviso) && /Hay invasores cerca/.test(bloq.invasorPantalla), `con un invasor cerca, el aviso dice por qué no sube: "${bloq.invasorAviso}"`);
+    ok(/Hay duendes cerca: despejá la zona para entrar \(1, el más cerca/.test(bloq.invasorAviso) && /Hay duendes cerca/.test(bloq.invasorPantalla), `con un invasor cerca, el aviso dice por qué no sube: "${bloq.invasorAviso}"`);
     ok(bloq.invasorE === true && !bloq.invasorAdentro, 'y E no sube (avisa lo mismo)');
-    ok(/el haz se apagó hasta mañana/.test(bloq.tardeAviso) && bloq.tardeE === true && !bloq.tardeAdentro, `en la hora antes del ataque, tampoco: "${bloq.tardeAviso}"`);
-    ok(bloq.libre === 'Subir a la nave por el haz', 'despejado y de día, vuelve a ofrecer subir');
+    ok(/la puertita se cerró hasta mañana/.test(bloq.tardeAviso) && bloq.tardeE === true && !bloq.tardeAdentro, `en la hora antes del ataque, tampoco: "${bloq.tardeAviso}"`);
+    ok(bloq.libre === 'Entrar al Coihue por la puertita', 'despejado y de día, vuelve a ofrecer subir');
     donde = 'abordar';
     const aviso = await js(`(()=>{const H=${H}, s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0); H.__bucle(); return {aviso:H.__aviso(), directo:H.desafio.avisoCercaDe(H.jugador.estado.pos)}})()`);
-    ok(/Subir a la nave/.test(aviso.directo) && /Subir a la nave/.test(aviso.aviso), `el aviso ofrece subir (${aviso.aviso})`);
+    ok(/Entrar al Coihue/.test(aviso.directo) && /Entrar al Coihue/.test(aviso.aviso), `el aviso ofrece subir (${aviso.aviso})`);
     await teclaE();
     await correr(2.5);
     const adentro = await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, js=H.jugador.estado, A=N.arena;
