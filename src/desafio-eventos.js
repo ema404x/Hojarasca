@@ -227,7 +227,8 @@ export function crearEventos(T, escena, sonido, efectos, api) {
   nodriza = crearNodriza();
   api.coihueComun = nodriza;
   // Dónde se para: cerca de tu base (50-80 m), en un llano sin agua ni obras alrededor y lejos de la vía (adentro
-  // se camina sobre el terreno de abajo: tiene que ser parejo). Si no hay, como antes: a 52 m.
+  // se camina sobre el terreno de abajo: tiene que ser parejo), y en un claro: entre árboles, al pie del
+  // Coihue la E anotaba un coihue del bosque en vez de entrar. Si no hay, como antes: a 52 m.
   function sitioCoihue(c) {
     let mejor = null, nota = Infinity;
     const a0 = Math.random() * Math.PI * 2;
@@ -235,7 +236,8 @@ export function crearEventos(T, escena, sonido, efectos, api) {
       const a = a0 + (i / 24) * Math.PI * 2, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
       if (Math.abs(x) > LIMITE - 60 || Math.abs(z) > LIMITE - 60 || T.agua(x, z)) continue;
       if ((T.distRiel?.[T.indice(x, z)] ?? 999) < 14) continue;
-      let peor = 0, malo = false;
+      if ((T.bosque?.[T.indice(x, z)] ?? 0) > 0.35) continue;
+      let peor = 0, malo = false, bosque = 0;
       for (const rr of [0, 9, 18, 26]) {
         const n = rr ? 8 : 1;
         for (let k = 0; k < n && !malo; k++) {
@@ -243,10 +245,11 @@ export function crearEventos(T, escena, sonido, efectos, api) {
           if (T.agua(px, pz) || (rr <= 18 && api.obraEnPunto?.(px, T.altura(px, pz) + 0.5, pz))) malo = true;
           const gx = (T.altura(px + 1.5, pz) - T.altura(px - 1.5, pz)) / 3, gz = (T.altura(px, pz + 1.5) - T.altura(px, pz - 1.5)) / 3;
           peor = Math.max(peor, Math.hypot(gx, gz));
+          if (rr <= 18) bosque += (T.bosque?.[T.indice(px, pz)] ?? 0) / 17;
         }
       }
       if (malo) continue;
-      const q = peor + Math.abs(r - 60) * 0.002;
+      const q = peor + bosque * 1.5 + Math.abs(r - 60) * 0.002;
       if (q < nota) { nota = q; mejor = { x, z, a }; }
     }
     if (mejor) return mejor;

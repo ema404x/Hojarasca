@@ -206,8 +206,9 @@ app.whenReady().then(async () => {
     ok(camina.anduvo > 2 && Math.abs(camina.y - camina.piso) < 0.3, `se camina sobre el piso sin caerse (${camina.anduvo.toFixed(1)} m)`);
     // el reloj quieto y las crías
     const h0 = await js(`${H}.progreso.horas`);
-    await js(`${H}.progreso.desafio.salud = 100; 1`);
-    await correr(9);
+    // 3.8.0: la prueba no pelea: se la mantiene sana (una cría de la puertita más cercana llega en 6 s y
+    // pega 21 por segundo; con la luz de ámbar del Rey, a veces caía antes de mirar las crías y el ojo)
+    await js(`(()=>{const H=${H}; for(let i=0;i<180;i++){ H.progreso.desafio.salud = 100; H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); } return 1})()`);
     const pelea = await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro;
       const crias = H.desafio.aliens.filter(a=>a.enNave && a.estado!=='irse');
       return {horas:H.progreso.horas, crias:crias.length, pisan:crias.every(a=>Math.abs(a.m.g.position.y - N.arena.y) < 0.05)}})()`);
