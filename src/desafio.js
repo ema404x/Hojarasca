@@ -27,6 +27,7 @@ import { crearDefensasActivas } from './desafio-defensas.js';
 import { crearEventos } from './desafio-eventos.js';
 import { crearAsedioMundo } from './desafio-asedio-mundo.js';
 import { crearNaveMundo } from './desafio-nave-mundo.js';
+import { geoSemilla } from './desafio-coihue-formas.js';
 import { avanzarTutorial, dibujarTutorial, PASOS_TUTORIAL, PREMIO_TUTORIAL } from './desafio-tutorial.js';
 import { reflejoOjos, modoAcecho, VELOCIDAD_ACECHO, rumboRodeo, escondite, estaMirando, SONIDOS_ESCRITOS, subtituloSonido, agacheDeMezcla } from './desafio-sentidos.js';
 import { ACECHAN } from './desafio-sentidos.js';
@@ -213,8 +214,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   escena.add(rayo);
 
   // ---------------- cristales que dejan los invasores
-  const geoCristal = new THREE.SphereGeometry(0.16, 4, 2);
-  const matCristal = new THREE.MeshBasicMaterial({ color: '#7dfff0' });
+  // 3.8.0: son semillas doradas (ver desafio-coihue-formas.js)
+  const geoCristal = geoSemilla(0.3);
+  const matCristal = new THREE.MeshBasicMaterial({ vertexColors: true });
   const cristales = [];
   function soltarCristales(pos, n) {
     for (let i = 0; i < n; i++) {

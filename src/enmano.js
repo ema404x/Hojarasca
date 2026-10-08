@@ -570,8 +570,9 @@ const MODELOS = {
   },
   cristal() {
     const g = new THREE.Group();
-    const c = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 2), new THREE.MeshBasicMaterial({ color: 0x7dfff0 }));
-    c.scale.set(0.8, 1.4, 0.8);
+    // 3.8.0: una semilla dorada
+    const c = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffb030 }));
+    c.scale.set(0.8, 1.25, 0.8);
     g.add(c);
     return g;
   },

@@ -1,4 +1,6 @@
 // 3.0: el asedio final en el mundo (ver `desafio-asedio.js` para las reglas).
+// 3.8.0: la nodriza asentada es el Coihue Viejo plantado sobre el valle; las agujas, raíces suyas que brotaron
+// en cada zona; el haz, la puerta grande de su pie (ver desafio-coihue-formas.js). Las reglas no cambian.
 // La nodriza asentada sobre el valle con su escudo, las agujas que la alimentan con
 // la mancha de cada zona tomada, las balizas de las zonas que recuperaste, la guardia de
 // cada aguja y el haz por el que se sube a la nave.
@@ -7,11 +9,13 @@ import { lam } from './vida.js';
 import { LIMITE } from './config.js';
 import { NOCHE_FINAL, HORA_ATAQUE, esHoraDeAtaque, dificultad } from './desafio-reglas.js';
 import { azarDe } from './semilla.js';
+import { armarCoihueViejo, animarCoihue, piesCoihue, herramientasCoihue, COIHUE } from './desafio-coihue-formas.js';
+import { registrarLuz } from './luces.js';
 import { ASEDIO, ZONAS_ASEDIO, defZona, asedioNuevo, asedioActivo, zonasLibres, capasEscudo, puedeAbordar, danarAncla, elegirContraataque, desgastarBaliza, cerrarNocheAsedio, tocaGuardia, guardianesDe, ganarAsedio, textoAsedio, marcasAsedio, ubicarZonas, ubicarNave } from './desafio-asedio.js';
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _c = new THREE.Color();
 const ARRIBA = new THREE.Vector3(0, 1, 0);
-const VERDE = '#a6ff6e', CIAN = '#7dfff0';
+const AMBAR = '#ffb030';   // 3.8.0: el ámbar del Coihue (antes el verde y el cian de la nave)
 
 export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   const D = () => api.D();
@@ -75,11 +79,15 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   }
 
   // ---------------------------------------------------------------- mallas
-  let armado = null;   // { nave, escudo, haz, zonas: [...] }
-  const matChitina = lam('#2a2230'), matChitinaClara = lam('#4a3c52');
-  const matCristal = new THREE.MeshBasicMaterial({ color: VERDE });
+  // 3.8.0: la nodriza asentada pasó a ser el Coihue Viejo plantado sobre el valle (camina hasta su lugar y
+  // hunde las raíces), y las agujas son raíces suyas que brotan en cada zona con un nudo de ámbar que late.
+  // La mancha es musgo oscuro con vetas de ámbar; el hilo, una hebra de savia que va de cada raíz al tronco.
+  let armado = null;   // { nave, zonas: [...] }
+  const matCorteza = lam('#4a3426'), matCortezaClara = lam('#6a4c34');
+  const matCristal = new THREE.MeshBasicMaterial({ color: AMBAR });
   const matMadera = lam('#6b5238'), matTela = lam('#c9523a', { side: THREE.DoubleSide });
   const geoHaz = new THREE.CylinderGeometry(0.18, 0.18, 1, 6, 1, true).translate(0, 0.5, 0);
+  const { raiz, fundirCorteza, musgoEn } = herramientasCoihue;
   function mancha(radio) {
     // un disco que sigue el terreno, con el borde que se desvanece (alfa por vértice)
     const g = new THREE.RingGeometry(0.2, radio, 36, 6);
@@ -89,36 +97,50 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       const x = pos.getX(i), z = pos.getZ(i), r = Math.hypot(x, z) / radio;
       const vena = Math.abs(Math.sin(x * 0.9 + Math.sin(z * 0.5) * 2) * Math.sin(z * 0.8 + Math.sin(x * 0.4) * 1.7));
       const brillo = vena < 0.09 ? 0.7 : 0;
-      _c.setRGB(0.12 + brillo * 0.3, 0.06 + brillo * 0.9, 0.16 + brillo * 0.35, THREE.SRGBColorSpace);   // pensado en sRGB, guardado lineal
+      const musgo = Math.max(0, Math.sin(x * 0.37 + z * 0.21) * Math.sin(z * 0.43 - x * 0.17));
+      _c.setRGB(0.12 + brillo * 0.85 - musgo * 0.03, 0.1 + brillo * 0.5 + musgo * 0.08, 0.05 + brillo * 0.08, THREE.SRGBColorSpace);   // pensado en sRGB, guardado lineal
       col[i * 4] = _c.r; col[i * 4 + 1] = _c.g; col[i * 4 + 2] = _c.b;
       col[i * 4 + 3] = Math.max(0, 1 - r * r) * 0.85;
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 4));
     return g;
   }
+  // la raíz que brota (en metros, el pie en 0): una raíz gruesa que sube torcida hasta 10 m, con otras más
+  // chicas que la abrazan. La misma malla para las cuatro zonas.
+  let geoRaizAguja = null;
+  function mallaRaizAguja() {
+    if (!geoRaizAguja) {
+      const pz = [raiz([[0.4, -0.6, 0.2], [0.2, 2.5, 0.1], [-0.3, 5.5, 0.2], [0.1, 8.2, -0.2], [0.35, 10.2, 0]], [1.45, 1.1, 0.75, 0.42, 0.06], '#4a3426', { nudos: 0.16, tramos: 26, lados: 10, pintar: (c, p, n) => musgoEn(c, p, n, 0.8) })];
+      for (let i = 0; i < 4; i++) {
+        const a = i * 1.57 + 0.4;
+        pz.push(raiz([[Math.cos(a) * 2.6, -0.4, Math.sin(a) * 2.6], [Math.cos(a) * 1.5, 1.6, Math.sin(a) * 1.5], [Math.cos(a + 0.6) * 0.9, 3.4 + i * 0.4, Math.sin(a + 0.6) * 0.9], [Math.cos(a + 1.2) * 0.6, 4.6 + i * 0.5, Math.sin(a + 1.2) * 0.6]], [0.42, 0.34, 0.24, 0.08], '#5a3c28', { nudos: 0.08, tramos: 16, pintar: (c, p, n) => musgoEn(c, p, n, 0.9) }));
+      }
+      geoRaizAguja = fundirCorteza(pz).geometry;
+    }
+    const m = new THREE.Mesh(geoRaizAguja, herramientasCoihue.matCorteza());
+    m.castShadow = true; m.receiveShadow = true;
+    return m;
+  }
   function armarZona(z) {
     const g = new THREE.Group();
     const y = T.altura(z.x, z.z);
     g.position.set(z.x, y, z.z);
-    // la aguja: un espolón de quitina con cristales y un corazón que late
+    // la aguja: la raíz que brotó, con gotas de resina y el nudo de ámbar que late
     const aguja = new THREE.Group();
-    const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 1.5, 10, 7), matChitina);
-    cuerpo.position.y = 5; cuerpo.castShadow = true;
-    aguja.add(cuerpo);
+    aguja.add(mallaRaizAguja());
     for (let i = 0; i < 5; i++) {
       const a = i * 1.26;
-      const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.45, 0), matCristal);
-      c.scale.set(0.5, 2.6, 0.5);
-      c.position.set(Math.cos(a) * 1.2, 1.4 + (i % 2) * 0.8, Math.sin(a) * 1.2);
-      c.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
+      const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 1), matCristal);
+      c.scale.set(0.8, 1.2, 0.8);
+      c.position.set(Math.cos(a) * 1.05, 1.6 + (i % 3) * 1.4, Math.sin(a) * 1.05);
       aguja.add(c);
     }
-    const nucleo = new THREE.Mesh(new THREE.IcosahedronGeometry(0.75, 1), new THREE.MeshBasicMaterial({ color: VERDE }));
-    nucleo.position.y = 3.2;
+    const nucleo = new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 1).scale(0.95, 1.25, 0.95), new THREE.MeshBasicMaterial({ color: AMBAR }));
+    nucleo.position.set(0.5, 3.2, 0.45);   // asoma de la raíz (no queda tapado)
     aguja.add(nucleo);
-    // el caparazón que la cierra de noche
-    const capa = new THREE.Mesh(new THREE.SphereGeometry(1.35, 12, 8), matChitinaClara);
-    capa.position.y = 3.2; capa.scale.setScalar(0.01);
+    // la corteza que lo cierra de noche
+    const capa = new THREE.Mesh(new THREE.SphereGeometry(1.35, 12, 8), matCortezaClara);
+    capa.position.copy(nucleo.position); capa.scale.setScalar(0.01);
     aguja.add(capa);
     g.add(aguja);
     // la mancha (sigue el terreno: se arma con la altura de cada vértice)
@@ -129,15 +151,15 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const suelo = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     suelo.renderOrder = 1;
     g.add(suelo);
-    // esquirlas alrededor
+    // raicitas que asoman alrededor (y alguna gota de resina)
     const esquirlas = new THREE.Group();
     for (let i = 0; i < 9; i++) {
       const a = i * 2.1 + 0.4, r = 4 + (i * 1.7) % 9;
       const x = Math.cos(a) * r, zz = Math.sin(a) * r;
-      const e = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28, 0), i % 3 ? matChitina : matCristal);
-      e.scale.set(0.6, 2 + (i % 3), 0.6);
+      const e = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1, 5), i % 3 ? matCorteza : matCristal);
+      e.scale.set(1, 1.4 + (i % 3) * 0.6, 1);
       e.position.set(x, T.altura(z.x + x, z.z + zz) - y + 0.4, zz);
-      e.rotation.set((i % 2 ? 1 : -1) * 0.3, a, 0.2);
+      e.rotation.set((i % 2 ? 1 : -1) * 0.5, a, 0.35);
       esquirlas.add(e);
     }
     g.add(esquirlas);
@@ -155,31 +177,36 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     baliza.visible = false;
     baliza.position.set(2.4, T.altura(z.x + 2.4, z.z) - y, 0);
     g.add(baliza);
-    // el hilo de luz que sube de la aguja a la nave
-    const hilo = new THREE.Mesh(geoHaz, new THREE.MeshBasicMaterial({ color: VERDE, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    // la hebra de savia que sube de la raíz al tronco del Coihue
+    const hilo = new THREE.Mesh(geoHaz, new THREE.MeshBasicMaterial({ color: AMBAR, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
     hilo.frustumCulled = false;
     escena.add(hilo);
     escena.add(g);
     return { g, aguja, nucleo, capa, suelo, esquirlas, baliza, tela, farol, hilo, y, flash: 0, rota: 0,
       blanco: { asedio: true, ancla: true, i: 0, pos: new THREE.Vector3(z.x, y + 3.2, z.z), radio: 1.7 } };
   }
+  // el Coihue plantado: mira a tu base. Su puerta grande (el «haz») se enciende cuando se puede entrar.
   function armarNave(a) {
-    const m = api.crearMallaNave();
-    m.g.scale.setScalar(4.2);
-    // los tres núcleos quedaron adentro: se ven apagados detrás del escudo
-    for (let i = 0; i < 3; i++) {
-      const an = (i / 3) * Math.PI * 2;
-      const n = new THREE.Mesh(new THREE.IcosahedronGeometry(0.62, 1), new THREE.MeshBasicMaterial({ color: '#7a2a18' }));
-      n.position.set(Math.cos(an) * 4.2, -1.55, Math.sin(an) * 4.2);
-      m.g.add(n);
-    }
-    const escudo = new THREE.Mesh(new THREE.SphereGeometry(10.5, 32, 16),
-      new THREE.MeshBasicMaterial({ color: CIAN, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-    escudo.scale.set(1, 0.42, 1);
-    m.g.add(escudo);
-    m.g.position.set(a.nave.x, T.altura(a.nave.x, a.nave.z) + ASEDIO.alturaNave, a.nave.z);
-    escena.add(m.g);
-    return { ...m, escudo, t: 0, caida: 0, cayendo: 0, alCaer: null };
+    const co = armarCoihueViejo();
+    const c = api.centroBase?.() || { x: 0, z: 0 };
+    const giro = Math.atan2(c.x - a.nave.x, c.z - a.nave.z);
+    co.g.scale.setScalar(COIHUE.escala);
+    co.g.rotation.order = 'YXZ';
+    co.g.rotation.y = giro;
+    // el escudo: un velo de esporas y resina alrededor del árbol (una capa por raíz que brotó)
+    const escudo = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16),
+      new THREE.MeshBasicMaterial({ color: '#ffc860', transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    escudo.scale.set(13, 24, 13);
+    escudo.position.y = 14;
+    co.g.add(escudo);
+    co.g.position.set(a.nave.x, T.altura(a.nave.x, a.nave.z), a.nave.z);
+    escena.add(co.g);
+    // la luz de la puerta (el presupuesto fijo de luces la reparte: no cambia ningún programa)
+    const luz = new THREE.PointLight(0xffb060, 0, 22, 1.6);
+    luz.position.copy(co.farol);
+    co.cuerpo.add(luz);
+    registrarLuz(luz);
+    return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null };
   }
   function armar() {
     const a = A();
@@ -188,6 +215,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   }
   function desarmar() {
     if (!armado) return;
+    sacarRaices();
     if (armado.nave) escena.remove(armado.nave.g);
     for (const r of armado.zonas) { escena.remove(r.g); escena.remove(r.hilo); }
     armado = null;
@@ -309,10 +337,22 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     return null;
   }
   function hazAbierto() { return !motivoHaz(); }
+  // 3.8.0: al pie del Coihue (debajo del tronco o en la escalera de su puerta grande): ahí E entra
+  const PIE_COIHUE = 15;
   function enElHaz(pos) {
     const s = sitioHaz();
-    return !!s && Math.hypot(pos.x - s.x, pos.z - s.z) < 5 && Math.abs(pos.y - s.y) < 3;
+    return !!s && Math.hypot(pos.x - s.x, pos.z - s.z) < PIE_COIHUE && Math.abs(pos.y - s.y) < 4;
   }
+  // las raíces del Coihue plantado chocan (el tronco va alto: por debajo se pasa)
+  const DUENIO_COIHUE = { coihueAsedio: true };
+  let raicesPuestas = false;
+  function ponerRaices(n, a) {
+    if (raicesPuestas || !api.col) return;
+    raicesPuestas = true;
+    const y = T.altura(a.nave.x, a.nave.z);
+    for (const p of piesCoihue(n, a.nave.x, a.nave.z, n.giro)) api.col.agregar({ x: p.x, z: p.z, r: p.r, alturaMin: y - 3, alturaMax: y + 5, duenio: DUENIO_COIHUE });
+  }
+  function sacarRaices() { if (raicesPuestas) api.col?.eliminarPorDuenio(DUENIO_COIHUE); raicesPuestas = false; }
   // E al pie del haz: sube, o dice por qué no (lo mismo que el aviso)
   let avisoDicho = 0;
   function usarCerca(pos) {
@@ -338,6 +378,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     for (const al of api.aliens) if (al.guardiaAsedio && al.estado !== 'morir') { al.estado = 'irse'; al.t = 0; }
     if (!armado?.nave) { alCaer?.(); return; }
     armado.nave.cayendo = 0.001; armado.nave.caida = 0; armado.nave.alCaer = alCaer;
+    sacarRaices();
     armado.nave.escudo.visible = false;
     for (const r of armado.zonas) {
       if (r.aguja.visible) { _v.set(r.g.position.x, r.y + 3, r.g.position.z); efectos?.explosion(_v, 5); }
@@ -345,19 +386,31 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     }
     api.guardar();
   }
+  // 3.8.0: el Coihue se viene abajo: cruje, se inclina cada vez más rápido para el lado contrario a tu base
+  // (saliste por ahí) y golpea el suelo con la copa. Tarda lo mismo que tardaba en caer la nave (unos 4 s).
+  const CAIDA = { lento: 0.02, rapido: 0.09, tope: Math.PI / 2 * 0.96 };
   function actualizarCaida(n, dt) {
     n.cayendo += dt;
     const t = n.cayendo, a = A();
-    const y0 = T.altura(a.nave.x, a.nave.z) + ASEDIO.alturaNave;
-    const y = y0 - t * t * 2.4;
-    n.g.position.y = y;
-    n.g.rotation.z = Math.min(0.9, t * 0.2);
-    n.g.rotation.x = Math.min(0.4, t * 0.09);
+    const ang = Math.min(CAIDA.tope, CAIDA.lento * t + CAIDA.rapido * t * t);
+    const suelo = T.altura(a.nave.x, a.nave.z);
+    n.g.position.set(a.nave.x, suelo, a.nave.z);
+    n.g.rotation.y = n.giro; n.g.rotation.x = -ang; n.g.rotation.z = Math.sin(t * 2.3) * 0.02;
+    animarCoihue(n, t * 3, 0.6);
+    // por dónde va la copa (de la base para afuera)
+    const largo = (n.alto - 6) * COIHUE.escala, ax = -Math.sin(n.giro), az = -Math.cos(n.giro);
     n.caida -= dt;
-    if (n.caida <= 0) { n.caida = 0.3; _v.set(a.nave.x + (Math.random() - 0.5) * 30, y, a.nave.z + (Math.random() - 0.5) * 30); efectos?.explosion(_v, 5); }
-    if (y > T.altura(a.nave.x, a.nave.z) + 2) return;
-    _v.set(a.nave.x, T.altura(a.nave.x, a.nave.z) + 2, a.nave.z);
+    if (n.caida <= 0) {
+      n.caida = 0.3;
+      const k = 0.3 + Math.random() * 0.7;
+      _v.set(a.nave.x + ax * Math.sin(ang) * largo * k + (Math.random() - 0.5) * 6, suelo + Math.cos(ang) * largo * k, a.nave.z + az * Math.sin(ang) * largo * k + (Math.random() - 0.5) * 6);
+      efectos?.polvo?.(_v, 10);
+      if (Math.random() < 0.4) sonido.golpeRuido?.({ dur: 0.6, frec: 160 + Math.random() * 120, tipo: 'lowpass', vol: 0.45, destino: sonido.bus?.efectos });
+    }
+    if (ang < CAIDA.tope) return;
+    _v.set(a.nave.x + ax * largo * 0.8, suelo + 2, a.nave.z + az * largo * 0.8);
     efectos?.explosion(_v, 16);
+    efectos?.polvo?.(_v, 30);
     sonido.golpeRuido?.({ dur: 3.2, frec: 70, tipo: 'lowpass', vol: 1, destino: sonido.bus?.efectos });
     api.vibrar?.('derrumbe', 1);
     n.g.visible = false;
@@ -379,27 +432,24 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const n = armado.nave;
     if (n) {
       if (n.cayendo > 0) actualizarCaida(n, dt);
-      else if (!vivo) n.g.visible = false;
+      else if (!vivo) { n.g.visible = false; sacarRaices(); }
       else {
         n.t += dt;
         llegada = Math.max(0, llegada - dt / 12);
-        const suelo = T.altura(a.nave.x, a.nave.z);
         n.g.visible = true;
-        n.g.position.set(a.nave.x, suelo + ASEDIO.alturaNave + llegada * llegada * 300 + Math.sin(n.t * 0.5) * 0.9, a.nave.z);
-        n.g.rotation.y += dt * 0.05;
+        // 3.8.0: llega caminando desde el bosque (de atrás, mirando a tu base) y hunde las raíces
+        const atras = llegada * llegada * 160, px = a.nave.x - Math.sin(n.giro) * atras, pz = a.nave.z - Math.cos(n.giro) * atras;
+        n.g.position.set(px, T.altura(px, pz), pz);
+        animarCoihue(n, n.t, Math.min(1, llegada * 5));
+        if (llegada <= 0) ponerRaices(n, a);
         const capas = capasEscudo(a);
         n.escudo.visible = capas > 0;
-        n.escudo.material.opacity = (0.06 + capas * 0.05) * (0.85 + Math.sin(t * 1.7) * 0.15) * (capas === 1 ? (Math.sin(t * 13) > 0 ? 1 : 0.4) : 1);
-        // el haz para subir
+        n.escudo.material.opacity = (0.025 + capas * 0.025) * (0.85 + Math.sin(t * 1.7) * 0.15) * (capas === 1 ? (Math.sin(t * 13) > 0 ? 1 : 0.4) : 1);
+        // la puerta grande para entrar (el «haz»): se enciende cuando se puede subir
         const abierto = hazAbierto();
         n.haz.visible = abierto;
-        if (abierto) {
-          const largo = Math.max(1, n.g.position.y - suelo) / n.g.scale.y;
-          n.haz.scale.set(0.55, largo, 0.55);
-          n.haz.position.y = -largo / 2;
-          n.haz.material.opacity = 0.14 + Math.sin(t * 5) * 0.04;
-        }
-        for (let i = 0; i < n.luces.length; i++) n.luces[i].material.color.setHex(((i + Math.floor(t * 3)) % 4) ? 0x3f7a2c : 0xa6ff6e);
+        if (abierto) n.haz.material.opacity = 0.6 + Math.sin(t * 4) * 0.2;
+        n.luz.intensity = abierto ? 3.2 + Math.sin(t * 6) * 0.3 : 1.2;
       }
     }
     // las zonas
@@ -429,12 +479,12 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       r.flash = Math.max(0, r.flash - dt * 4);
       const pulso = 0.85 + Math.sin(t * 2.4 + i) * 0.15 + r.flash;
       r.nucleo.scale.setScalar(pulso);
-      r.nucleo.material.color.setRGB(0.55 + r.flash * 0.45, 1, 0.43 + r.flash * 0.5);
+      r.nucleo.material.color.setRGB(1, 0.42 + r.flash * 0.5, 0.05 + r.flash * 0.6);   // 3.8.0: ámbar
       // el hilo hasta la nave
       r.hilo.visible = tomada && !!n && n.g.visible && cerca;
       if (r.hilo.visible) {
         _v.set(z.x, r.y + 9.5 - r.rota * 11, z.z);
-        _w.set(n.g.position.x, n.g.position.y - 6, n.g.position.z).sub(_v);
+        _w.set(n.g.position.x, n.g.position.y + 14 * COIHUE.escala, n.g.position.z).sub(_v);   // 3.8.0: al tronco del Coihue
         const largo = _w.length();
         r.hilo.position.copy(_v);
         _q.setFromUnitVectors(ARRIBA, _w.normalize());
@@ -462,7 +512,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     tHud += dt;
   }
 
-  function limpiar() { /* las mallas quedan: la partida sigue */ }
+  function limpiar() { sacarRaices(); /* las mallas quedan: la partida sigue (3.8.0: las raíces vuelven a chocar al seguir) */ }
 
   return {
     empezar, alTerminarNoche, alEmpezarNoche, blancoNoche, desgastar, blancos, herir, actualizar, derribar,

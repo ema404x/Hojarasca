@@ -278,10 +278,12 @@ function icono(tipo) {
       x.fillRect(28, 22, 8, 20); x.fillRect(22, 28, 20, 8);
     },
     cristal() {
-      x.fillStyle = '#7dfff0';
-      x.beginPath(); x.moveTo(32, 6); x.lineTo(46, 30); x.lineTo(32, 58); x.lineTo(18, 30); x.fill();
-      x.fillStyle = '#c8fff8';
-      x.beginPath(); x.moveTo(32, 6); x.lineTo(38, 30); x.lineTo(32, 58); x.fill();
+      // 3.8.0: una semilla dorada (gota con estrías, la punta más clara)
+      const gota = () => { x.beginPath(); x.moveTo(32, 6); x.bezierCurveTo(44, 20, 50, 38, 42, 50); x.bezierCurveTo(37, 58, 27, 58, 22, 50); x.bezierCurveTo(14, 38, 20, 20, 32, 6); };
+      x.fillStyle = '#e8a22a'; gota(); x.fill();
+      x.fillStyle = '#ffd77a'; x.beginPath(); x.ellipse(29, 26, 5, 11, -0.25, 0, 6.3); x.fill();
+      x.strokeStyle = '#8a5212'; x.lineWidth = 2;
+      for (const dx of [-7, 0, 7]) { x.beginPath(); x.moveTo(32 + dx * 0.3, 10); x.quadraticCurveTo(32 + dx * 1.5, 34, 32 + dx, 55); x.stroke(); }
     },
     hongo() {
       // llao llao: bolitas anaranjadas llenas de hoyitos
