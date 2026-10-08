@@ -181,4 +181,92 @@ const enmano = leer('src/enmano.js');
   ok(!RELIGIOSO.test(formas), 'el módulo del Coihue: nada religioso');
 }
 
+// ============================================================ 6. 3.8.1: arreglos del Coihue
+{
+  // sin claro, el lugar de siempre (52 m) tampoco cae sobre el agua, la vía ni una obra
+  const sc = eventos.slice(eventos.indexOf('function sitioCoihue('), eventos.indexOf('const hudNodriza'));
+  const resto = sc.slice(sc.indexOf('if (mejor) return mejor;'));
+  ok(/T\.agua\(x, z\)/.test(resto) && /distRiel/.test(resto) && /obraEnPunto/.test(resto), 'sin claro: ni agua, ni vía, ni obras');
+  // adentro, en una VM: entrar y salir varias veces sin sumar física ni escena; morir en la subida o en el corazón
+  // te deja en el valle; guardada adentro (cota acotada a 320 m) vuelve al valle; y la púa que venía al bajar
+  // por la escalera no te pincha al volver por la misma puerta
+  const path = await import('node:path'), vm = await import('node:vm');
+  const raiz = path.resolve(new URL('../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+  const idModulo = (f) => '__mod_' + path.basename(f, '.js').replace(/[^A-Za-z0-9_$]/g, '_');
+  const STUB = { 'gente-cuerpo.js': 'export const materialGente = () => new THREE.MeshLambertMaterial({ vertexColors: true });' };
+  const info = new Map(), orden = [], visto = new Set();
+  const visitar = (f) => {
+    f = path.resolve(f);
+    if (visto.has(f)) return;
+    visto.add(f);
+    const texto = STUB[path.basename(f)] ?? fs.readFileSync(f, 'utf8');
+    info.set(f, texto);
+    for (const m of texto.matchAll(/^import\s+(.+?)\s+from\s+['"](.+?)['"]\s*;\s*$/gm)) if (m[2] !== 'three') visitar(path.resolve(path.dirname(f), m[2]));
+    orden.push(f);
+  };
+  visitar(path.join(raiz, 'src', 'desafio-nave-mundo.js'));
+  const transformar = (f, t) => {
+    const ex = [...t.matchAll(/^export\s+(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+    t = t.replace(/^import\s+\*\s+as\s+THREE\s+from\s+['"]three['"]\s*;\s*$/gm, '');
+    t = t.replace(/^import\s+\{([^}]+)\}\s+from\s+['"](.+?)['"]\s*;\s*$/gm, (_x, n, spec) => `const { ${n.split(',').map((x) => x.trim()).filter(Boolean).map((x) => x.replace(/\s+as\s+/, ': ')).join(', ')} } = ${idModulo(path.resolve(path.dirname(f), spec))};`);
+    t = t.replace(/^export\s+(?=(?:const|let|var|function|class)\b)/gm, '');
+    return `const ${idModulo(f)}=(()=>{\n${t}\nreturn {${[...new Set(ex)].join(',')}};\n})();\n`;
+  };
+  let code = fs.readFileSync(path.join(raiz, 'three-r186-inline.js'), 'utf8') + '\n';
+  for (const f of orden) code += transformar(f, info.get(f)) + '\n';
+  code += ';globalThis.__N = __mod_desafio_nave_mundo; globalThis.__THREE = THREE;';
+  const lienzo = () => new Proxy({}, { get: (_o, k) => (k === 'createImageData' || k === 'getImageData' ? (w, h) => ({ data: new Uint8ClampedArray(Math.max(4, (w?.width ?? w ?? 1) * (h ?? 1) * 4)) }) : k === 'createLinearGradient' || k === 'createRadialGradient' ? () => ({ addColorStop() {} }) : k === 'measureText' ? () => ({ width: 1 }) : () => {}), set: () => true });
+  const elem = () => ({ style: {}, classList: { add() {}, remove() {} }, append() {}, appendChild(c) { return c; }, getContext: lienzo, width: 1, height: 1, textContent: '' });
+  const ctx = { console, Math, performance, document: { createElement: elem, getElementById: () => null, body: elem() }, window: {}, setTimeout, clearTimeout, localStorage: { getItem: () => null, setItem() {} } };
+  ctx.globalThis = ctx; ctx.self = ctx;
+  vm.runInNewContext(code, ctx);
+  const THREE = ctx.__THREE, escena = new THREE.Scene(), cuerpos = [];
+  const col = { agregar: (o) => cuerpos.push(o), agregarPlataforma: (o) => cuerpos.push(o), eliminarPorDuenio: (d) => { for (let i = cuerpos.length - 1; i >= 0; i--) if (cuerpos[i].duenio === d) cuerpos.splice(i, 1); } };
+  const js = { pos: new THREE.Vector3(100, 10, 100), yaw: 0 }, D = { salud: 100, asedio: { nave: { x: 100, z: 100 } } };
+  let heridas = 0;
+  const api = { S: {}, D: () => D, aliens: [], jugador: () => ({ ubicar: (x, z, yaw, y) => { js.pos.set(x, y ?? 10, z); js.yaw = yaw; } }), guardar() {}, nota() {},
+    sitioHaz: () => ({ x: 100, z: 100, y: 10 }), horaActual: () => null, claveDificultad: () => 'normal', invocar: () => null, herirJugador: () => heridas++, lanzarProyectil() {} };
+  const nm = ctx.__N.crearNaveMundo({ altura: () => 10 }, escena, col, new THREE.PerspectiveCamera(), null, { ctx: { currentTime: 0 } }, api, {});
+  const paso = (k) => { for (let i = 0; i < k; i++) nm.actualizar(1 / 30, { pos: js.pos, yaw: js.yaw }); };
+  const luces = () => { let k = 0; escena.traverse((o) => { if (o.isLight) k++; }); return k; };
+  const enValle = () => !nm.adentro && cuerpos.length === 0 && Math.abs(js.pos.y - 10) < 0.01 && Math.hypot(js.pos.x - 100, js.pos.z - 100) < 15;
+  let antes = null;
+  for (let v = 0; v < 3; v++) {
+    nm.entrar(); paso(40);
+    ok(nm.adentro && nm.enSubida && js.pos.y > 500, 'E en el pie: adentro, al pie de la escalera');
+    nm.atajoCorazon(); paso(40);
+    ok(nm.adentro && !nm.enSubida && nm.pelea, 'en el corazón, con la pelea');
+    const ahora = `${cuerpos.length}|${escena.children.length}|${luces()}`;
+    if (antes) ok(ahora === antes, `entrar varias veces no suma física, mallas ni luces (${antes} → ${ahora})`);
+    antes = ahora;
+    nm.bajarEscalera(); paso(30);
+    const pa = nm.subida.puertaAbajo, o = nm.subida.origen;
+    js.pos.set(o.x + pa.x, o.y + 0.1, o.z + pa.z);
+    ok(nm.avisoCerca(js.pos) === 'Salir al valle por la puertita', 'abajo, la puertita al valle (el aviso)');
+    ok(nm.usarCerca(js.pos), 'abajo, la puertita al valle (la E)');
+    paso(80);
+    ok(enValle(), 'de vuelta en el valle, sin la física de adentro');
+  }
+  nm.entrar(); paso(40); nm.alCaerAdentro(); paso(80);
+  ok(enValle() && D.salud > 0, 'caído en la subida: al valle, con salud');
+  nm.entrar(); paso(40); nm.atajoCorazon(); paso(40); nm.alCaerAdentro(); paso(80);
+  ok(enValle(), 'caído en el corazón: al valle');
+  nm.entrar(); paso(40); nm.atajoCorazon(); paso(40);
+  const y = Math.min(320, js.pos.y);   // (guardado.js acota la cota)
+  nm.limpiar(); js.pos.y = y; paso(1);
+  ok(enValle(), 'guardada adentro: al cargar, en el valle al pie del Coihue (ni en el aire ni bajo tierra)');
+  // la púa
+  nm.entrar(); paso(40); nm.atajoCorazon(); paso(40);
+  const a = nm.arena, p = a.puas[0];
+  p.activa = true; p.t = 0.2; p.golpeo = false; p.x = js.pos.x - a.x; p.z = js.pos.z - a.z;
+  nm.bajarEscalera(); paso(30);
+  const pa = nm.subida.puertaArriba, o = nm.subida.origen;
+  js.pos.set(o.x + pa.x, o.y + pa.y, o.z + pa.z);
+  nm.entrarCorazon(); paso(90);
+  ok(heridas === 0, 'la púa que venía al bajar no te pincha al volver al corazón');
+  let nan = 0;
+  escena.traverse((q) => { for (const k of [...q.position.toArray(), ...q.rotation.toArray().slice(0, 3), ...q.scale.toArray()]) if (!Number.isFinite(k)) nan++; });
+  ok(nan === 0, 'sin NaN en el corazón, el Rey ni la subida');
+}
+
 console.log(`verificar-3-8-coihue: ${n} comprobaciones ✓`);

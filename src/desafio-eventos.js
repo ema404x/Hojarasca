@@ -253,6 +253,12 @@ export function crearEventos(T, escena, sonido, efectos, api) {
       if (q < nota) { nota = q; mejor = { x, z, a }; }
     }
     if (mejor) return mejor;
+    // 3.8.1: sin claro, a 52 m como antes, pero no sobre el agua, la vía ni una obra (antes, cualquier ángulo)
+    for (let i = 0; i < 24; i++) {
+      const a = a0 + (i / 24) * Math.PI * 2, x = c.x + Math.cos(a) * COIHUE_NOCHE.hasta, z = c.z + Math.sin(a) * COIHUE_NOCHE.hasta;
+      if (Math.abs(x) > LIMITE - 60 || Math.abs(z) > LIMITE - 60 || T.agua(x, z) || (T.distRiel?.[T.indice(x, z)] ?? 999) < 14 || api.obraEnPunto?.(x, T.altura(x, z) + 0.5, z)) continue;
+      return { x, z, a };
+    }
     const a = Math.random() * Math.PI * 2;
     return { x: c.x + Math.cos(a) * COIHUE_NOCHE.hasta, z: c.z + Math.sin(a) * COIHUE_NOCHE.hasta, a };
   }
