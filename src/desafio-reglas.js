@@ -82,7 +82,7 @@ export const TALLA_DUENDE = {
 for (const [tipo, t] of Object.entries(TALLA_DUENDE)) Object.assign(TIPOS_ALIEN[tipo], t);
 // A esto más arriba de la cabeza del duende, una flecha o una piedra todavía lo tocan (la punta del
 // gorro, la capa): con 75 cm, rozarlo por arriba tiene que contar.
-export const MARGEN_GOLPE = { arriba: 0.35, abajo: 0.2 };
+export const MARGEN_GOLPE = { arriba: 0.35, abajo: 0.2, boleadora: 0.65 };   // (las boleadoras abarcan más: las bolas giran)
 
 // El jefe baja la noche 5 y cada cinco noches (5, 10, 15 y 20).
 export const NOCHE_JEFE = 5;

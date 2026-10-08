@@ -2476,7 +2476,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
             if (a.estado === 'morir' || a.estado === 'irse') continue;
             if (q.golpeados?.has(a)) continue;   // 2.5: lo que atraviesa no pega dos veces
             const ap = a.m.g.position, r = a.def.radio * a.m.esc + (q.tipo === 'boleadora' ? 0.45 : 0.2);
-            if (Math.hypot(ap.x - x, ap.z - z) < r && y > ap.y - MARGEN_GOLPE.abajo && y < ap.y + a.def.altura * a.m.esc + MARGEN_GOLPE.arriba) {   // 3.8.0: duendes chiquitos
+            if (Math.hypot(ap.x - x, ap.z - z) < r && y > ap.y - MARGEN_GOLPE.abajo && y < ap.y + a.def.altura * a.m.esc + (q.tipo === 'boleadora' ? MARGEN_GOLPE.boleadora : MARGEN_GOLPE.arriba)) {   // 3.8.0: duendes chiquitos
               if (q.tipo === 'boleadora' && !a.def.pesado) { a.enredadoT = q.enreda || 3; S.enredo(ap); }
               else if (q.tipo === 'boleadora') { a.frenoT = 1.5; S.enredo(ap); }
               if (q.dano > 0) herirAlien(a, arsenal.danoProyectil(q, a), _desde.copy(_p0), q.fuente, impactoEn(a, x, y, z), claseDeProyectil(q));
