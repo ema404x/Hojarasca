@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.8.0
+# RELEASE STATUS — 3.8.1
 
-- Versión: `3.8.0`
+- Versión: `3.8.1`
+- 3.8.1: revisión de bugs de La noche de los duendes — 13 arreglos (lo robado que se reciclaba o quedaba colgado, golpes a través de paredes, cofre dentro de paredes o enterrado, púas del corazón al volver, Coihue sobre agua o sobre un lugar, el Relax diciendo «semillas doradas», leyenda repetida en partidas viejas, inglés perdido, botón del modo en dos renglones). Gate 169/169
 - 3.8.0: La noche de los duendes — el modo de combate pasa a llamarse «La noche de los duendes»: duendes del bosque (estilo C, chiquitos, traviesos al anochecer y viejos oscuros de noche, lechuceros, Mandamás, travesura sin perder nada), nidos de hongos y madrigueras, cofre del alba entre raíces; el Coihue Viejo que camina (jefe en lugar de la nave), la subida caminable por el tronco hueco y el Rey Duende en el corazón; semillas doradas en lugar del cristal; textos, logros, sonidos e inglés; la leyenda de la abuela. Arreglos: Elsa con el giro en NaN, la humo de la trochita. Gate 169/169; partidas reales 68/68 (3 repetidas solas)
 - 3.7.5: Tradiciones — fiestas por estación en el predio (mesa larga, jineteada, baile con música), Día de la Aldea, fechas patrias, minga, leyenda, nevada solidaria, cumpleaños sorpresa; truco, chinchón, damas y taba; radio por horarios, diario, cartas, calendario, concursos con cinta, club de lectura y estrellas; 12 duendes y tu talla, taller, potrero, huertas, títeres, fuerte, campamento, casa en la Loma, camino con faroles y sulky. Gate 165/165; partidas reales 62/68 (6 sin repetir: ver CAMBIOS_3_7_5.md)
 - 3.7.4: Vida social tipo Sims — rueda de interacciones, 30 interacciones, barra de relación visible, humor y deseos, vecinos con iniciativa, burbujas, emociones, voces y animaciones. Gate 159/159
