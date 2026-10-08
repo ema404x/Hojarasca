@@ -369,6 +369,14 @@ export function desafioNuevo() {
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
+// 3.8.1: lo de adentro del cofre del alba guardado: sólo lo que da `suministrosDelAlba`, en números (un
+// "3" de texto se pegaba como texto a los materiales al abrirlo: "03")
+const COSAS_CAJA = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos'];
+export function sanearContenidoCaja(c) {
+  const r = {};
+  for (const k of COSAS_CAJA) { const n = Math.floor(Number(c?.[k])); if (Number.isFinite(n) && n > 0) r[k] = Math.min(99, n); }
+  return r;
+}
 export function sanearDesafio(d) {
   const x = d && typeof d === 'object' && !Array.isArray(d) ? d : {};
   const base = desafioNuevo();
@@ -383,7 +391,7 @@ export function sanearDesafio(d) {
     flechas: ent(x.flechas, 0, 999), cargas: ent(x.cargas, 0, 999), emplastos: ent(x.emplastos, base.emplastos, 99),
     pistolaEncontrada: !!x.pistolaEncontrada, mejorRacha: ent(x.mejorRacha, 0), racha: ent(x.racha, 0),
     caja: x.caja && Number.isFinite(Number(x.caja.x)) && Number.isFinite(Number(x.caja.z)) && x.caja.contenido && typeof x.caja.contenido === 'object'
-      ? { x: Number(x.caja.x), z: Number(x.caja.z), contenido: x.caja.contenido, cayendo: false } : null,
+      ? { x: Number(x.caja.x), z: Number(x.caja.z), contenido: sanearContenidoCaja(x.caja.contenido), cayendo: false } : null,
     boleadoras: ent(x.boleadoras, 0, 99),
     recetasHechas: lista(x.recetasHechas, RECETAS.map((r) => r.id)),
     planos: lista(x.planos, PLANOS_ALIEN.map((p) => p.id)),

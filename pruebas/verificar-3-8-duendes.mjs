@@ -7,7 +7,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { esNocheGrande, vieneDeViejo, etapaDe, ETAPAS, ROBO, puedeRobar, queSeLleva, SIEMPRE_VIEJOS, DUENDE_DE, NOCHES_GRANDES } from '../src/desafio-duendes-reglas.js';
-import { TIPOS_ALIEN, sanearDesafio, PUNTO_DEBIL } from '../src/desafio-reglas.js';
+import { TIPOS_ALIEN, sanearDesafio, PUNTO_DEBIL, suministrosDelAlba } from '../src/desafio-reglas.js';
 
 const raiz = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const src = path.join(raiz, 'src');
@@ -72,6 +72,71 @@ assert.match(duendes, /new THREE\.InstancedMesh\(g, materialDuendes\(\), cap\)/)
 assert.match(duendes, /texelFetch\(uHuesos/);
 assert.match(duendes, /escena\.onBeforeRender = function/);
 assert.ok(!/\bfragmentShader[\s\S]*?\baHuesoParte\b[\s\S]*?customProgramCacheKey/.test(duendes), 'el atributo no se lee en el fragment shader');
+
+// ---------------------------------------------------------------- 3.8.1: arreglos de los duendes
+// el que se va con algo robado (la guardia del asedio, el reciclado) lo deja tirado; al caer, vuelve todo
+assert.match(des, /function soltarAlien\(a\) \{[\s\S]{0,300}?if \(a\.robo\) soltarRobo\(a, false\);[\s\S]{0,80}?a\.m\.g\.visible = false;/, 'soltarAlien suelta lo robado antes de reciclar');
+assert.match(des, /function limpiar\(\) \{[\s\S]{0,300}?devolverTodo\(false\);\s*for \(const a of aliens\) soltarAlien\(a\);/, 'limpiar devuelve lo robado y lo tirado');
+// el margen de golpe no pega a través de paredes (flecha, boleadora, rayo) y el rayo y el hachazo no se saltean una empalizada
+assert.match(des, /MARGEN_GOLPE\.arriba\)   \/\/ 3\.8\.0: duendes chiquitos\n\s*&& !margenTapado\(x, y, z, a, q\.ignorar\)\)/, 'el tiro mira que no haya pared entre el punto y el duende');
+assert.match(des, /r \* r && !margenTapado\(origen\.x \+ dir\.x \* t, origen\.y \+ dir\.y \* t, origen\.z \+ dir\.z \* t, a, adentro\)\)/, 'el rayo también');
+assert.match(des, /for \(let t = 0\.8; t < alcance; t \+= 0\.25\)/, 'el rayo de a 25 cm');
+assert.match(des, /hayObraEntre\(_v, _w, 0\.2, obraEnPunto\(_v\.x, _v\.y, _v\.z\), true\)/, 'el hachazo de a 20 cm');
+assert.match(des, /return !!hayObraEntre\(_mtA, _mtB, 0\.12, ignorar, true\);/);
+// el cofre: ni en una pared, ni en un árbol, y si puede, parejo
+assert.match(des, /obraEnPunto\(x, T\.altura\(x, z\) \+ 0\.5, z, 0\.6\)\) continue;\n\s*if \(cofreTrabado\(x, z\)\) \{ trabado \|\|= \{ x, z \}; continue; \}/, 'el cofre no brota en una pared ni en un árbol');
+assert.match(des, /const p = parejo \|\| enPendiente \|\| trabado;/, 'el cofre prefiere lo parejo (y nunca se queda sin cofre por un árbol)');
+// el cofre guardado: lo de adentro en números (un "3" de texto se pegaba a los materiales), y el de verdad pasa entero
+assert.deepEqual(sanearDesafio({ caja: { x: 1, z: 2, contenido: { tronco: '3', tabla: -1, casa: 5, cristal: 1.7, flechas: 'x' } } }).caja.contenido, { tronco: 3, cristal: 1 });
+for (const n of [1, 3, 9, 30]) { const c = suministrosDelAlba(n, true); assert.deepEqual(sanearDesafio({ caja: { x: 0, z: 0, contenido: c } }).caja.contenido, c, `el cofre de la noche ${n} pasa entero`); }
+// el robo de verdad (el código del juego en una función, con el inventario de mentira): nunca se pierde
+// ni se duplica nada, nunca se lleva lo que no tenés, y una partida de antes de la 3.8 no rompe
+{
+  const cuerpo = des.slice(des.indexOf('  function soltarAlien(a)'), des.indexOf('  // Precalentar')) +
+    des.slice(des.indexOf('  const NOMBRE_ROBADO'), des.indexOf('  function terminarOleada'));
+  const fab = new Function('D', 'ctx', 'ROBO', 'puedeRobar', 'queSeLleva', 'aliens', 'escena', 'T', 'mallaAtadito', 'registrarHalos', 'S', 'libres', 'progreso', 'Math', 'setTimeout',
+    `let caido = false;\n${cuerpo}\nreturn { soltarAlien, intentarRobo, soltarRobo, devolverTodo, levantarTirados, tirados };`);
+  const p = { materiales: { cristal: 0, tabla: 2, piedra: 0 }, ramitas: 1, desafio: { oleadas: 3 } };   // sin `robados`: de antes de la 3.8
+  const ctxR = {
+    cuanto: (k) => (k === 'ramita' ? p.ramitas : p.materiales[k] || 0),
+    gastar: (k, n) => { if (k === 'ramita') p.ramitas = Math.max(0, p.ramitas - n); else p.materiales[k] = Math.max(0, (p.materiales[k] || 0) - n); },
+    sumarMaterial: (k, n) => { p.materiales[k] = (p.materiales[k] || 0) + n; },
+    nota() {},
+  };
+  const aliensR = [], libresR = { rastreador: [] };
+  const pos = () => ({ x: 4, y: 0, z: 5, set(x, y, z) { this.x = x; this.y = y; this.z = z; } });
+  const malla = () => ({ position: pos(), rotation: { y: 0 }, visible: false });
+  const R = fab(() => p.desafio, ctxR, ROBO, puedeRobar, queSeLleva, aliensR, { add() {} }, { altura: () => 0 }, malla, () => {}, { risa() {} }, libresR, () => p, Object.assign(Object.create(Math), { random: () => 0 }), () => {});
+  const total = () => p.ramitas + p.materiales.tabla + p.materiales.cristal + Object.values(p.desafio.robados || {}).reduce((s, n) => s + n, 0);
+  const T0 = total();
+  const pillo = () => ({ tipo: 'rastreador', robo: null, m: { viejo: false, robar() {}, g: { position: pos(), visible: true } } });
+  // se lleva la ramita (lo primero que tenés), se va con ella (reciclado) y queda tirada; al amanecer vuelve una sola vez
+  const a = pillo(); aliensR.push(a);
+  R.intentarRobo(a);
+  assert.deepEqual([a.robo?.cosa, p.ramitas, p.desafio.robados], ['ramita', 0, { ramita: 1 }], 'se llevó la ramita');
+  assert.equal(total(), T0);
+  aliensR.length = 0; R.soltarAlien(a);
+  assert.equal(a.robo, null, 'reciclado sin lo robado');
+  assert.equal(R.tirados.filter((t) => t.activo).length, 1, 'el que se fue lo dejó tirado');
+  assert.equal(total(), T0);
+  R.devolverTodo(false);
+  assert.deepEqual([p.ramitas, p.desafio.robados, R.tirados.filter((t) => t.activo).length], [1, {}, 0], 'vuelve una sola vez');
+  // el que huye y el que está tirado a la vez, más lo anotado: nada se duplica
+  const b = pillo(), c = pillo(); aliensR.push(b, c);
+  R.intentarRobo(b); R.intentarRobo(c);   // ramita, después tabla
+  assert.deepEqual([b.robo?.cosa, c.robo?.cosa], ['ramita', 'tabla']);
+  R.soltarRobo(c, false);
+  R.devolverTodo(false);
+  assert.equal(total(), T0); assert.deepEqual([p.ramitas, p.materiales.tabla, p.desafio.robados], [1, 2, {}], 'nada duplicado');
+  // si no tenés nada, no se lleva nada
+  p.ramitas = 0; p.materiales.tabla = 0;
+  const d2 = pillo(); R.intentarRobo(d2);
+  assert.equal(d2.robo, null, 'no se lleva lo que no tenés');
+  // `robados` raro en la partida (lo que arregla sanearDesafio) no rompe
+  p.desafio.robados = [3]; R.devolverTodo(false); assert.deepEqual(p.desafio.robados, {}); assert.ok(!('0' in p.materiales), 'un robados raro no suma un material "0"');
+  p.desafio = { oleadas: 4, ...sanearDesafio({ robados: { piedra: 2, casa: 1 } }) }; R.devolverTodo(false);
+  assert.deepEqual([p.materiales.piedra, p.desafio.robados], [2, {}], 'lo guardado vuelve al abrir');
+}
 // las reglas del código
 for (const f of ['src/desafio-duendes.js', 'src/duendes-modelo.js', 'src/desafio-duendes-reglas.js']) {
   const t = leer(f);

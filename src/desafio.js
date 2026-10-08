@@ -134,6 +134,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     return a;
   }
   function soltarAlien(a) {
+    // 3.8.1: el que se va (o desaparece) con algo robado lo deja tirado donde estaba: no se lo lleva al
+    // pozo de reciclado (antes quedaba en `a.robo`, sin atadito, hasta el amanecer)
+    if (a.robo) soltarRobo(a, false);
     a.m.g.visible = false;
     a.m.g.position.set(0, -500, 0);
     libres[a.tipo].push(a);
@@ -571,6 +574,17 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     return mejor;
   }
+  // 3.8.1: ¿hay una obra entre el punto del tiro (x, y, z) y el cuerpo del duende? Con el margen de golpe
+  // (los duendes son chiquitos: radio + 0,2, la boleadora + 0,45; el rayo + 0,25) un tiro que pasaba
+  // pegado a una pared delgada, o la rozaba en diagonal, le pegaba al que estaba del otro lado. Se mira
+  // a la altura del tiro (dentro del cuerpo) y en pasos cortos; sólo cuando ya hubo golpe (barato).
+  const _mtA = { x: 0, y: 0, z: 0 }, _mtB = { x: 0, y: 0, z: 0 };
+  function margenTapado(x, y, z, a, ignorar = null) {
+    const p = a.m.g.position, alto = a.def.altura * a.m.esc;
+    _mtA.x = x; _mtA.y = y; _mtA.z = z;
+    _mtB.x = p.x; _mtB.y = Math.max(p.y + 0.15, Math.min(p.y + alto, y)); _mtB.z = p.z;
+    return !!hayObraEntre(_mtA, _mtB, 0.12, ignorar, true);
+  }
   function hayObraEntre(a, b, paso = 0.45, ignorar = null, tiroPropio = false) {
     const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
     const L = Math.hypot(dx, dy, dz);
@@ -893,7 +907,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     for (const a of aliens) if (a.robo) { a.robo.t = 0; const r = a.robo; a.robo = null; a.m.robar?.(false); devolver(r.cosa, r.n); hubo = true; }
     for (const t of tirados) if (t.activo) { t.activo = false; t.malla.visible = false; devolver(t.cosa, t.n); hubo = true; }
     const d = D();
-    for (const [k, n] of Object.entries(d.robados || {})) { devolver(k, n); hubo = true; }
+    // 3.8.1: sólo lo que un duende se puede llevar (un `robados` raro en memoria sumaba un material "0")
+    for (const [k, n] of Object.entries(d.robados || {})) if (Object.hasOwn(NOMBRE_ROBADO, k)) { devolver(k, Number(n) || 0); hubo = true; }
     d.robados = {};
     if (hubo && avisar) setTimeout(() => ctx.nota('Te devolvieron lo robado', 'Con la primera luz, los duendes dejaron todo en la puerta'), 9000);
   }
@@ -1176,7 +1191,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         if (a) {
           _v.set(js.pos.x, js.pos.y + 1.4, js.pos.z);
           _w.set(a.m.g.position.x, a.m.g.position.y + a.def.altura * 0.6, a.m.g.position.z);
-          if (!hayObraEntre(_v, _w, 0.45, obraEnPunto(_v.x, _v.y, _v.z), true)) {
+          // 3.8.1: de a 20 cm (de a 45, el hachazo cruzaba una empalizada delgada hasta el duende de atrás)
+          if (!hayObraEntre(_v, _w, 0.2, obraEnPunto(_v.x, _v.y, _v.z), true)) {
             // el golpe entra donde estás mirando: a esa altura se mide el punto débil
             const dist = Math.hypot(a.m.g.position.x - js.pos.x, a.m.g.position.z - js.pos.z);
             _w.copy(camara.position).addScaledVector(_dir, Math.max(0.4, dist));
@@ -1329,7 +1345,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function disparoRayo(origen, dir, alcance, dano, atraviesa) {
     let fin = alcance;
     const adentro = obraEnPunto(origen.x, origen.y, origen.z);
-    for (let t = 0.8; t < alcance; t += 0.5) {
+    // 3.8.1: de a 25 cm (de a 50 se salteaba una empalizada delgada, de 36 cm, y el rayo la cruzaba)
+    for (let t = 0.8; t < alcance; t += 0.25) {
       const x = origen.x + dir.x * t, y = origen.y + dir.y * t, z = origen.z + dir.z * t;
       if (y < alturaSuelo(x, z) || obraEnPunto(x, y, z, -0.02, adentro, true)) { fin = t; break; }
     }
@@ -1341,7 +1358,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         _v.set(a.m.g.position.x, a.m.g.position.y + a.def.altura * a.m.esc * h, a.m.g.position.z).sub(origen);
         const t = _v.dot(dir);
         if (t < 0 || t > fin) continue;
-        if (_v.lengthSq() - t * t < r * r) { impactosRayo.push({ a, t }); break; }
+        // 3.8.1: con el margen, un rayo que rozaba en diagonal una pared le pegaba al de atrás
+        if (_v.lengthSq() - t * t < r * r && !margenTapado(origen.x + dir.x * t, origen.y + dir.y * t, origen.z + dir.z * t, a, adentro)) { impactosRayo.push({ a, t }); break; }
       }
     }
     for (const n of eventos.blancos()) {
@@ -2478,7 +2496,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
             if (a.estado === 'morir' || a.estado === 'irse') continue;
             if (q.golpeados?.has(a)) continue;   // 2.5: lo que atraviesa no pega dos veces
             const ap = a.m.g.position, r = a.def.radio * a.m.esc + (q.tipo === 'boleadora' ? 0.45 : 0.2);
-            if (Math.hypot(ap.x - x, ap.z - z) < r && y > ap.y - MARGEN_GOLPE.abajo && y < ap.y + a.def.altura * a.m.esc + (q.tipo === 'boleadora' ? MARGEN_GOLPE.boleadora : MARGEN_GOLPE.arriba)) {   // 3.8.0: duendes chiquitos
+            if (Math.hypot(ap.x - x, ap.z - z) < r && y > ap.y - MARGEN_GOLPE.abajo && y < ap.y + a.def.altura * a.m.esc + (q.tipo === 'boleadora' ? MARGEN_GOLPE.boleadora : MARGEN_GOLPE.arriba)   // 3.8.0: duendes chiquitos
+              && !margenTapado(x, y, z, a, q.ignorar)) {   // 3.8.1: el margen no pega a través de una pared
               if (q.tipo === 'boleadora' && !a.def.pesado) { a.enredadoT = q.enreda || 3; S.enredo(ap); }
               else if (q.tipo === 'boleadora') { a.frenoT = 1.5; S.enredo(ap); }
               if (q.dano > 0) herirAlien(a, arsenal.danoProyectil(q, a), _desde.copy(_p0), q.fuente, impactoEn(a, x, y, z), claseDeProyectil(q));
@@ -2640,14 +2659,36 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function soltarCaja(noche) {
     const js = ctx.jugador().estado;
     const azarCaja = azarNoche('caja', noche);
-    for (let i = 0; i < 12; i++) {
+    let parejo = null, enPendiente = null, trabado = null;
+    for (let i = 0; i < 12 && !parejo; i++) {
       const a = azarCaja() * Math.PI * 2, r = 5 + azarCaja() * 4;   // 3.0: con código, la caja cae siempre igual
       const x = js.pos.x + Math.cos(a) * r, z = js.pos.z + Math.sin(a) * r;
-      if (T.agua(x, z) || obraEnPunto(x, T.altura(x, z) + 0.5, z, 0.4)) continue;
-      D().caja = { x, z, contenido: suministrosDelAlba(noche, !!progreso().cosas?.arco), cayendo: true };
-      ctx.nota('Brotó un cofre entre las raíces', 'Está cerca, con un brillo dorado. Pasá por encima para abrirlo');
-      return;
+      // 3.8.1: el cofre (90 × 60 cm) ya no brota adentro de una pared (el margen era menor que su media
+      // diagonal), de un árbol o de una piedra; y si puede, en un lugar parejo (en la pendiente quedaba
+      // medio enterrado: se apoya en la altura del centro)
+      // (si todo el claro está trabado, como antes: brota igual antes que quedarse sin cofre)
+      if (T.agua(x, z) || obraEnPunto(x, T.altura(x, z) + 0.5, z, 0.6)) continue;
+      if (cofreTrabado(x, z)) { trabado ||= { x, z }; continue; }
+      if (cofreParejo(x, z)) parejo = { x, z };
+      else enPendiente ||= { x, z };
     }
+    const p = parejo || enPendiente || trabado;
+    if (!p) return;
+    D().caja = { x: p.x, z: p.z, contenido: suministrosDelAlba(noche, !!progreso().cosas?.arco), cayendo: true };
+    ctx.nota('Brotó un cofre entre las raíces', 'Está cerca, con un brillo dorado. Pasá por encima para abrirlo');
+  }
+  // 3.8.1: ¿hay un árbol, una piedra o un cuerpo de obra donde iría el cofre? ¿El suelo es parejo?
+  function cofreTrabado(x, z) {
+    const p = { x, z };
+    for (const dx of [-4, 0, 4]) for (const dz of [-4, 0, 4]) for (const c of col.cercanos(x + dx, z + dz)) {
+      if (!c.despejado && distColision(c, p) < (c.r || 0) + 0.55) return true;
+    }
+    return false;
+  }
+  function cofreParejo(x, z) {
+    const h = T.altura(x, z);
+    for (const [dx, dz] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) if (Math.abs(T.altura(x + dx, z + dz) - h) > 0.18) return false;
+    return true;
   }
   const BROTA = { hondo: 0.9, vel: 0.32 };   // 3.8.0: de cuán abajo sale y a qué velocidad (m/s)
   let alturaCaja = 0, tBrillo = 0, tTierra = 0;
@@ -3309,6 +3350,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     return { ok: true };
   }
   function limpiar() {
+    // 3.8.1: al caer (o al terminar la corrida) lo robado y lo tirado vuelve antes de soltar a los
+    // duendes: antes el atadito seguía brillando en el suelo de día y lo robado esperaba otra noche
+    devolverTodo(false);
     for (const a of aliens) soltarAlien(a);
     aliens.length = 0;
     estadoNave.porBajar.length = 0;
