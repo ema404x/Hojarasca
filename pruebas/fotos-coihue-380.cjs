@@ -98,7 +98,8 @@ app.whenReady().then(async () => {
   await js(`(()=>{const H=${H}; H.progreso.dia++; H.progreso.horas=19.4; for(let i=0;i<30;i++){ H.progreso.horas+=0.01; H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); } H.progreso.horas=20.49; return 1})()`);
   for (let i = 0; i < 30; i++) { await simular(1); if (await js(`${H}.desafio.nodrizaActiva`)) break; }
   const hay = await js(`!!${H}.desafio.eventos.coihue`);
-  console.log('Coihue de la noche final:', hay);
+  console.log('Coihue de la noche final:', hay, 'armado en', await js(`Math.round(${H}.desafio.eventos.coihue.ms)`), 'ms');
+  informe.push(`armar el Coihue (noche final): ${await js(`Math.round(${H}.desafio.eventos.coihue.ms)`)} ms`);
   // (la base: dónde está el fortín; el Coihue mira hacia ahí)
   const geo = JSON.parse(await js(`(()=>{const H=${H}, co=H.desafio.eventos.coihue; const p=co.g.position; return JSON.stringify({x:co.x, z:co.z, y:co.y, ax:co.ax, az:co.az})})()`));
   const piso = (x, z) => js(`${H}.T.altura(${x}, ${z})`);
@@ -144,6 +145,8 @@ app.whenReady().then(async () => {
     await limpiarInvasores();
     const px = as.x + fx * 27 + fz * 5, pz = as.z + fz * 27 - fx * 5;
     await toma('v38-coihue-puerta', { o: [px, (await piso(px, pz)) + 1.7, pz], a: [as.x, as.y + 9, as.z], fov: 64 }, { hora: 19.0, solo: soloNave });
+    // el fogón de una zona recuperada (lo que defendés de noche)
+    { const z0 = as.zonas[0], fx0 = z0.x + 2.4; await toma('v38-coihue-fogon', { o: [fx0 + 3.2, (await piso(fx0 + 3.2, z0.z + 2.2)) + 1.5, z0.z + 2.2], a: [fx0, z0.y + 0.6, z0.z], fov: 55 }, { hora: 18.4 }); }
   }
 
   // ================================================================ adentro: la subida y el corazón
@@ -163,6 +166,7 @@ app.whenReady().then(async () => {
   await js(`${H}.progreso.desafio.salud = 100; 1`);
   const ar = JSON.parse(await js(`(()=>{const N=${H}.desafio.naveAdentro, A=N.arena; return JSON.stringify({x:A.x, y:A.y, z:A.z, adentro:N.adentro})})()`));
   console.log('adentro:', ar.adentro);
+  informe.push(`armar el corazón (al subir): ${await js(`Math.round(${H}.desafio.naveAdentro.arena.ms)`)} ms; el Coihue del asedio: ${await js(`Math.round(${H}.desafio.asedio.armado.nave.ms)`)} ms`);
   const R = 27;
   const soloSala = `[H.desafio.naveAdentro.arena.grupo]`;
   // lo que se ve al llegar: desde la puerta de la escalera, el Rey en el medio
@@ -190,6 +194,7 @@ app.whenReady().then(async () => {
         if (s < mejor) { mejor = s; x = px; z = pz; } }
       H.jugador.ubicar(x - 6, z, 0);
       const a = H.desafio.invocar('bruto', x, z); if (!a) return 'null';
+      a.m.g.position.set(x, H.T.altura(x, z), z); a.px = x; a.pz = z;
       a.vida = 1; a.dudaT = 999;
       H.camara.position.set(js.pos.x, js.pos.y + 1.6, js.pos.z); H.camara.lookAt(x, H.T.altura(x, z) + 1.2, z); H.camara.updateMatrixWorld(true);
       js.yaw = Math.atan2(-(x - js.pos.x), -(z - js.pos.z)); js.pitch = 0;
@@ -202,7 +207,7 @@ app.whenReady().then(async () => {
       const todas = H.escena.children.filter((o) => o.isMesh && o.geometry && o.geometry.boundingSphere && o.geometry.boundingSphere.radius < 0.25 && o.material && o.material.vertexColors).map((o) => [Math.round(o.position.x), Math.round(o.position.z), o.visible]);
       return JSON.stringify({x: sx, z: sz, y:H.T.altura(sx, sz), muerto:a.vida <= 0, estado: a.estado, ax: Math.round(a.m.g.position.x), az: Math.round(a.m.g.position.z), sueltas: sueltas.length, todas: todas.slice(0, 8)})})()`));
     console.log('semillas:', JSON.stringify(sem));
-    if (sem) await toma('v38-coihue-semillas', { o: [sem.x - 1.2, sem.y + 1.5, sem.z + 0.7], a: [sem.x, sem.y + 0.2, sem.z], fov: 46 });
+    if (sem && sem.sueltas) await toma('v38-coihue-semillas', { o: [sem.x - 1.2, sem.y + 1.5, sem.z + 0.7], a: [sem.x, sem.y + 0.2, sem.z], fov: 46 });
     // el lugar de las semillas del mapa (las que asoman entre el musgo)
     const sitio = JSON.parse(await js(`JSON.stringify((${H}.desafio.sitiosMapa || []).find((m) => m.clase === 'cristal') || null)`));
     if (sitio) {
@@ -213,6 +218,7 @@ app.whenReady().then(async () => {
     }
   }
   await js(`(() => { for (const k of ${H}.camara.children) k.visible = true; return 1; })()`);
+  console.log(informe.filter((l) => /^armar/.test(l)).join(String.fromCharCode(10)));
   fs.writeFileSync(path.join(salida, 'informe.txt'), informe.join('\n') + (errores.length ? `\nerrores:\n${errores.join('\n')}` : ''));
   if (errores.length) console.log('errores de la página:\n' + errores.join('\n'));
   console.log('listo:', salida);

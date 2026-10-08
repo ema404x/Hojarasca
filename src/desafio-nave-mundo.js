@@ -111,6 +111,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   const ALTO_SALA = 31;       // hasta el hueco de arriba
   const PUERTA_SALA = { medio: 0.065, alto: 3.6 };   // la puerta de la escalera, en la pared (ángulo 0, +x)
   function construir(sitio) {
+    const t0 = performance.now();   // 3.8.0: lo que tarda en armarse (se arma al subir, detrás del fundido)
     const y = sitio.y + NAVE.alturaInterior;
     const grupo = new THREE.Group();
     grupo.position.set(sitio.x, y, sitio.z);
@@ -219,15 +220,16 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
       const x = Math.cos(a) * (R - 0.4), z = Math.sin(a) * (R - 0.4), giro = Math.atan2(-x, -z);
-      const p = V3(x, 1.25, z);
+      // 3.8.0: a la medida de los duendes (de 60-80 cm; el grandote, 1 m; el Mandamás, 1,3 m)
+      const p = V3(x, 0.8, z);
       // el marco de raíz y la puerta, entreabierta
-      for (const lado of [-1, 1]) corteza.push(raiz([[x, -0.1, z], [x, 1.7, z], [x, 2.55, z]].map((q, k) => [q[0] + lado * Math.cos(giro) * 0.85 * (k < 2 ? 1 : 0.5), q[1], q[2] - lado * Math.sin(giro) * 0.85 * (k < 2 ? 1 : 0.5)]), [0.22, 0.2, 0.16], '#5a3a26', { nudos: 0.04 }));
-      corteza.push(pieza(new THREE.BoxGeometry(1.5, 2.4, 0.14), M4(p, [0, giro, 0]), '#7a4a2a', { veta: (l) => [l.x * 6, l.y, 0.6], pintar: (c, pp, n, l) => { if (Math.abs(Math.sin(l.x * 12)) < 0.15) c.multiplyScalar(0.6); } }));
+      for (const lado of [-1, 1]) corteza.push(raiz([[x, -0.1, z], [x, 1.15, z], [x, 1.75, z]].map((q, k) => [q[0] + lado * Math.cos(giro) * 0.62 * (k < 2 ? 1 : 0.5), q[1], q[2] - lado * Math.sin(giro) * 0.62 * (k < 2 ? 1 : 0.5)]), [0.2, 0.17, 0.13], '#5a3a26', { nudos: 0.04 }));
+      corteza.push(pieza(new THREE.BoxGeometry(1.05, 1.55, 0.14), M4(p, [0, giro, 0]), '#7a4a2a', { veta: (l) => [l.x * 6, l.y, 0.6], pintar: (c, pp, n, l) => { if (Math.abs(Math.sin(l.x * 12)) < 0.15) c.multiplyScalar(0.6); } }));
       // la ventanita redonda y la luz que se escapa por las rendijas
-      brillos.push(pieza(new THREE.CircleGeometry(0.28, 14), M4(p.clone().add(V3(Math.sin(giro) * 0.09, 0.55, Math.cos(giro) * 0.09)), [0, giro, 0]), '#ffb860', { fuerza: 1.5 }));
-      rajas.push({ geo: new THREE.BoxGeometry(0.1, 2.4, 0.1).rotateY(giro).translate(x + Math.sin(giro) * 0.1 + Math.cos(giro) * 0.78, 1.25, z + Math.cos(giro) * 0.1 - Math.sin(giro) * 0.78), color: new THREE.Color(1, 0.62, 0.25) });
-      rajas.push({ geo: new THREE.BoxGeometry(1.5, 0.08, 0.1).rotateY(giro).translate(x + Math.sin(giro) * 0.1, 0.06, z + Math.cos(giro) * 0.1), color: new THREE.Color(1, 0.62, 0.25) });
-      halos.push({ p: p.clone().add(V3(Math.sin(giro) * 0.4, 0.55, Math.cos(giro) * 0.4)), col: '#ffb860', tam: 2.4 });
+      brillos.push(pieza(new THREE.CircleGeometry(0.2, 14), M4(p.clone().add(V3(Math.sin(giro) * 0.09, 0.38, Math.cos(giro) * 0.09)), [0, giro, 0]), '#ffb860', { fuerza: 1.5 }));
+      rajas.push({ geo: new THREE.BoxGeometry(0.09, 1.55, 0.1).rotateY(giro).translate(x + Math.sin(giro) * 0.1 + Math.cos(giro) * 0.55, 0.8, z + Math.cos(giro) * 0.1 - Math.sin(giro) * 0.55), color: new THREE.Color(1, 0.62, 0.25) });
+      rajas.push({ geo: new THREE.BoxGeometry(1.05, 0.07, 0.1).rotateY(giro).translate(x + Math.sin(giro) * 0.1, 0.05, z + Math.cos(giro) * 0.1), color: new THREE.Color(1, 0.62, 0.25) });
+      halos.push({ p: p.clone().add(V3(Math.sin(giro) * 0.4, 0.38, Math.cos(giro) * 0.4)), col: '#ffb860', tam: 1.8 });
       lugaresVaina.push({ x: Math.cos(a) * (R - 3.4), z: Math.sin(a) * (R - 3.4) });
     }
     const matRajas = basico();
@@ -391,7 +393,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     escena.add(grupo);
     return {
       grupo, x: sitio.x, y, z: sitio.z, sitio, madre, cuerpo, gajos, ojos, corazon, blancoCorazon, tentaculos, escudo,
-      pilares, ondas, puas, lugaresVaina, salida, aro, charco, matRajas, apertura: 0, rey, subida, luces,
+      pilares, ondas, puas, lugaresVaina, salida, aro, charco, matRajas, apertura: 0, rey, subida, luces, ms: performance.now() - t0,
     };
   }
 
@@ -426,7 +428,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     // 3.8.0: la luz tibia de adentro del Coihue (los faroles de hongos y el ámbar)
     if (hemi) { hemi.color.set('#f4d4b4'); hemi.groundColor.set('#4a3424'); hemi.intensity = 1.9; }
     if (sol) { sol.color.set('#ffe0b0'); sol.intensity = 0.6; }
-    if (escena.fog) { escena.fog.color.set('#3a2416'); if ('density' in escena.fog) escena.fog.density = 0.011; }
+    if (escena.fog) { escena.fog.color.set('#3a2416'); if ('density' in escena.fog) escena.fog.density = 0.012; }
   }
 
   // ---------------------------------------------------------------- física de adentro

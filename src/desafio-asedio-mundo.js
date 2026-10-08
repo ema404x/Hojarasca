@@ -9,7 +9,7 @@ import { lam } from './vida.js';
 import { LIMITE } from './config.js';
 import { NOCHE_FINAL, HORA_ATAQUE, esHoraDeAtaque, dificultad } from './desafio-reglas.js';
 import { azarDe } from './semilla.js';
-import { armarCoihueViejo, animarCoihue, piesCoihue, herramientasCoihue, COIHUE } from './desafio-coihue-formas.js';
+import { armarCoihueViejo, animarCoihue, piesCoihue, geoAmbar, herramientasCoihue, COIHUE } from './desafio-coihue-formas.js';
 import { registrarLuz } from './luces.js';
 import { ASEDIO, ZONAS_ASEDIO, defZona, asedioNuevo, asedioActivo, zonasLibres, capasEscudo, puedeAbordar, danarAncla, elegirContraataque, desgastarBaliza, cerrarNocheAsedio, tocaGuardia, guardianesDe, ganarAsedio, textoAsedio, marcasAsedio, ubicarZonas, ubicarNave } from './desafio-asedio.js';
 
@@ -85,7 +85,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   let armado = null;   // { nave, zonas: [...] }
   const matCorteza = lam('#4a3426'), matCortezaClara = lam('#6a4c34');
   const matCristal = new THREE.MeshBasicMaterial({ color: AMBAR });
-  const matMadera = lam('#6b5238'), matTela = lam('#c9523a', { side: THREE.DoubleSide });
+  const matMadera = lam('#6b5238'), matPiedra = lam('#7d766c');
   const geoHaz = new THREE.CylinderGeometry(0.18, 0.18, 1, 6, 1, true).translate(0, 0.5, 0);
   const { raiz, fundirCorteza, musgoEn } = herramientasCoihue;
   function mancha(radio) {
@@ -98,7 +98,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       const vena = Math.abs(Math.sin(x * 0.9 + Math.sin(z * 0.5) * 2) * Math.sin(z * 0.8 + Math.sin(x * 0.4) * 1.7));
       const brillo = vena < 0.09 ? 0.7 : 0;
       const musgo = Math.max(0, Math.sin(x * 0.37 + z * 0.21) * Math.sin(z * 0.43 - x * 0.17));
-      _c.setRGB(0.12 + brillo * 0.85 - musgo * 0.03, 0.1 + brillo * 0.5 + musgo * 0.08, 0.05 + brillo * 0.08, THREE.SRGBColorSpace);   // pensado en sRGB, guardado lineal
+      _c.setRGB(0.12 + brillo * 0.5 - musgo * 0.03, 0.1 + brillo * 0.28 + musgo * 0.08, 0.05 + brillo * 0.04, THREE.SRGBColorSpace);   // pensado en sRGB, guardado lineal
       col[i * 4] = _c.r; col[i * 4 + 1] = _c.g; col[i * 4 + 2] = _c.b;
       col[i * 4 + 3] = Math.max(0, 1 - r * r) * 0.85;
     }
@@ -121,6 +121,23 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     m.castShadow = true; m.receiveShadow = true;
     return m;
   }
+  // la corteza del escudo: un tubo apenas más ancho que el tronco, de las raíces a la copa, en placas con
+  // grietas que brillan (color por vértice; la transparencia la da la cantidad de capas)
+  function geoCorteza(radio) {
+    const perfil = [];
+    for (let j = 0; j <= 24; j++) { const y = 0.2 + (j / 24) * (COIHUE.alto * 0.8); perfil.push(new THREE.Vector2(radio(y) * 1.16 + 0.15, y + COIHUE.alza)); }
+    const g = new THREE.LatheGeometry(perfil, 40);
+    const P = g.attributes.position, col = new Float32Array(P.count * 3);
+    for (let i = 0; i < P.count; i++) {
+      const a = Math.atan2(P.getX(i), P.getZ(i)), y = P.getY(i);
+      const placa = Math.abs(Math.sin(a * 9 + Math.sin(y * 0.7) * 0.8)) * Math.abs(Math.sin(y * 1.3 + a * 2));
+      const grieta = placa < 0.12 ? 1 : 0;
+      _c.setRGB(0.32 + grieta * 0.5, 0.22 + grieta * 0.34, 0.14 + grieta * 0.03, THREE.SRGBColorSpace);
+      col[i * 3] = _c.r; col[i * 3 + 1] = _c.g; col[i * 3 + 2] = _c.b;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return g;
+  }
   function armarZona(z) {
     const g = new THREE.Group();
     const y = T.altura(z.x, z.z);
@@ -135,7 +152,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       c.position.set(Math.cos(a) * 1.05, 1.6 + (i % 3) * 1.4, Math.sin(a) * 1.05);
       aguja.add(c);
     }
-    const nucleo = new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 1).scale(0.95, 1.25, 0.95), new THREE.MeshBasicMaterial({ color: AMBAR }));
+    const nucleo = new THREE.Mesh(geoAmbar([1.0, 1.25, 1.0], 21), new THREE.MeshBasicMaterial({ vertexColors: true }));
     nucleo.position.set(0.5, 3.2, 0.45);   // asoma de la raíz (no queda tapado)
     aguja.add(nucleo);
     // la corteza que lo cierra de noche
@@ -163,16 +180,31 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       esquirlas.add(e);
     }
     g.add(esquirlas);
-    // la baliza: un palo con bandera y un farol
+    // 3.8.0: la baliza es un fogón (un ruedo de piedras, leños cruzados y el fuego): `tela` son las llamas
+    // (se mecen) y `farol` las brasas (se ponen rojas cuando lo atacan)
     const baliza = new THREE.Group();
-    const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.4, 6), matMadera);
-    palo.position.y = 1.7; palo.castShadow = true;
-    baliza.add(palo);
-    const tela = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), matTela);
-    tela.position.set(0.58, 2.95, 0);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const piedra = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0).scale(1, 0.7, 1), matPiedra);
+      piedra.position.set(Math.cos(a) * 0.75, 0.1, Math.sin(a) * 0.75);
+      baliza.add(piedra);
+    }
+    for (let k = 0; k < 4; k++) {
+      const leno = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.2, 6), matMadera);
+      leno.rotation.set(0.9, k * Math.PI / 2 + 0.4, 0);
+      leno.position.set(Math.cos(k * Math.PI / 2 + 0.4) * 0.22, 0.32, Math.sin(k * Math.PI / 2 + 0.4) * 0.22);
+      leno.castShadow = true;
+      baliza.add(leno);
+    }
+    const tela = new THREE.Group();
+    for (const [s, h, c] of [[0.36, 0.95, '#ff8a2a'], [0.2, 0.75, '#ffd060'], [0.14, 0.55, '#fff0a0']]) {
+      const llama = new THREE.Mesh(new THREE.ConeGeometry(s, h, 7, 1, true), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      llama.position.y = 0.45 + h / 2;
+      tela.add(llama);
+    }
     baliza.add(tela);
-    const farol = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffd27a' }));
-    farol.position.set(0, 2.3, 0.18);
+    const farol = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.45, 1), new THREE.MeshBasicMaterial({ color: '#ffd27a' }));
+    farol.position.y = 0.22;
     baliza.add(farol);
     baliza.visible = false;
     baliza.position.set(2.4, T.altura(z.x + 2.4, z.z) - y, 0);
@@ -187,18 +219,18 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   }
   // el Coihue plantado: mira a tu base. Su puerta grande (el «haz») se enciende cuando se puede entrar.
   function armarNave(a) {
+    const t0 = performance.now();
     const co = armarCoihueViejo();
     const c = api.centroBase?.() || { x: 0, z: 0 };
     const giro = Math.atan2(c.x - a.nave.x, c.z - a.nave.z);
     co.g.scale.setScalar(COIHUE.escala);
     co.g.rotation.order = 'YXZ';
     co.g.rotation.y = giro;
-    // el escudo: un velo de esporas y resina alrededor del árbol (una capa por raíz que brotó)
-    const escudo = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16),
-      new THREE.MeshBasicMaterial({ color: '#ffc860', transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-    escudo.scale.set(13, 24, 13);
-    escudo.position.y = 14;
-    co.g.add(escudo);
+    // el escudo es «la corteza»: una corteza dura que lo envuelve (una capa por raíz que brotó), con grietas
+    // de ámbar; se va aclarando a medida que caen las raíces
+    const escudo = new THREE.Mesh(geoCorteza(co.radio), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false }));
+    escudo.renderOrder = 2;
+    co.cuerpo.add(escudo);
     co.g.position.set(a.nave.x, T.altura(a.nave.x, a.nave.z), a.nave.z);
     escena.add(co.g);
     // la luz de la puerta (el presupuesto fijo de luces la reparte: no cambia ningún programa)
@@ -206,7 +238,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     luz.position.copy(co.farol);
     co.cuerpo.add(luz);
     registrarLuz(luz);
-    return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null };
+    return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null, ms: performance.now() - t0 };
   }
   function armar() {
     const a = A();
@@ -444,7 +476,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
         if (llegada <= 0) ponerRaices(n, a);
         const capas = capasEscudo(a);
         n.escudo.visible = capas > 0;
-        n.escudo.material.opacity = (0.025 + capas * 0.025) * (0.85 + Math.sin(t * 1.7) * 0.15) * (capas === 1 ? (Math.sin(t * 13) > 0 ? 1 : 0.4) : 1);
+        n.escudo.material.opacity = (0.12 + capas * 0.14) * (0.9 + Math.sin(t * 1.7) * 0.1) * (capas === 1 ? (Math.sin(t * 13) > 0 ? 1 : 0.5) : 1);
         // la puerta grande para entrar (el «haz»): se enciende cuando se puede subir
         const abierto = hazAbierto();
         n.haz.visible = abierto;
@@ -468,7 +500,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       r.esquirlas.visible = r.aguja.visible && dz < 160;
       r.baliza.visible = z.estado !== 'tomada';
       if (r.baliza.visible) {
-        r.tela.rotation.y = Math.sin(t * 2.2 + i) * 0.35;
+        r.tela.rotation.y = t * 1.7 + i; r.tela.scale.set(1, 0.85 + Math.sin(t * 9 + i) * 0.12 + Math.sin(t * 5.3) * 0.08, 1);
         const enPeligro = a.contra === i && z.estado === 'recuperada';
         r.farol.material.color.set(enPeligro && Math.sin(t * 8) > 0 ? '#ff5a3a' : '#ffd27a');
       }
@@ -479,7 +511,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       r.flash = Math.max(0, r.flash - dt * 4);
       const pulso = 0.85 + Math.sin(t * 2.4 + i) * 0.15 + r.flash;
       r.nucleo.scale.setScalar(pulso);
-      r.nucleo.material.color.setRGB(1, 0.42 + r.flash * 0.5, 0.05 + r.flash * 0.6);   // 3.8.0: ámbar
+      r.nucleo.material.color.setRGB(1 + r.flash * 0.5, 1 + r.flash * 0.7, 1 + r.flash * 0.9);   // 3.8.0: el ámbar (el color va en la gema)
       // el hilo hasta la nave
       r.hilo.visible = tomada && !!n && n.g.visible && cerca;
       if (r.hilo.visible) {

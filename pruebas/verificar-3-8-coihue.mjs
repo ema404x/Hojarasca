@@ -62,9 +62,16 @@ const enmano = leer('src/enmano.js');
   tiene(eventos, 'get coihue() { return nodriza; },', 'las pruebas ven el Coihue de la noche final');
   // el asedio: plantado, mira a tu base, la puerta grande es el «haz», raíces en las zonas
   tiene(asedio, 'const co = armarCoihueViejo();', 'el asedio planta el Coihue');
-  tiene(asedio, 'return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null };', 'el haz es la puerta grande (y las pruebas siguen viendo armado.nave.haz)');
+  tiene(asedio, 'return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null', 'el haz es la puerta grande (y las pruebas siguen viendo armado.nave.haz)');
   tiene(asedio, 'n.haz.visible = abierto;', 'la puerta se enciende cuando se puede subir');
+  ok(/const PIE_COIHUE = (\d+);/.test(asedio) && Number(asedio.match(/const PIE_COIHUE = (\d+);/)[1]) >= 12, 'E entra desde el pie del Coihue (debajo del tronco o la escalera de la puerta)');
+  tiene(asedio, 'for (const p of piesCoihue(n, a.nave.x, a.nave.z, n.giro)) api.col.agregar(', 'sus raíces chocan');
+  tiene(eventos, 'for (const p of piesCoihue(nodriza, nodriza.x, nodriza.z, nodriza.giro)) api.col.agregar(', 'las del de la noche final también');
   tiene(asedio, 'aguja.add(mallaRaizAguja());', 'las agujas son raíces que brotaron');
+  // los nombres que eligió el usuario (los pone el equipo de textos): baliza → fogón, escudo → corteza
+  tiene(asedio, "// 3.8.0: la baliza es un fogón", 'la baliza se ve como un fogón');
+  tiene(asedio, 'const escudo = new THREE.Mesh(geoCorteza(co.radio),', 'el escudo es una corteza dura alrededor del tronco');
+  tiene(nave, 'new THREE.BoxGeometry(1.05, 1.55, 0.14)', 'las puertitas de adentro, a la medida de los duendes chicos');
   ok(/const CAIDA = \{ lento: [\d.]+, rapido: [\d.]+, tope: Math\.PI \/ 2 \* 0\.96 \};/.test(asedio), 'se cae de costado, para el lado contrario a la base');
   // el tiempo de la caída: con lo de las pruebas (unos 4 s, como la nave)
   const m = asedio.match(/const CAIDA = \{ lento: ([\d.]+), rapido: ([\d.]+)/);

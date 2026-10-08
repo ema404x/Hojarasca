@@ -199,6 +199,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     for (const p of piesCoihue(nodriza, nodriza.x, nodriza.z, nodriza.giro)) api.col.agregar({ x: p.x, z: p.z, r: p.r, alturaMin: nodriza.y - 3, alturaMax: nodriza.y + 5, duenio: DUENIO_COIHUE });
   }   // de dónde sale, dónde se para (m de tu base) y cuánto tarda
   function crearNodriza() {
+    const t0 = performance.now();
     const co = armarCoihueViejo();
     co.g.scale.setScalar(COIHUE.escala);
     co.g.rotation.order = 'YXZ';
@@ -217,7 +218,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     }
     co.g.visible = false;
     escena.add(co.g);
-    return { ...co, nucleos, fase: 'fuera', t: 0, x: 0, z: 0, y: 0, largar: 0, caida: 0, giro: 0, ax: 0, az: 0 };
+    return { ...co, nucleos, fase: 'fuera', t: 0, x: 0, z: 0, y: 0, largar: 0, caida: 0, giro: 0, ax: 0, az: 0, ms: performance.now() - t0 };
   }
   const hudNodriza = api.hudNodriza;   // contenedor DOM (puede faltar en pruebas)
   let barrasNodriza = null;
