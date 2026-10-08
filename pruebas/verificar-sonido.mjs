@@ -149,7 +149,8 @@ assert.ok(lejania(0).corte <= 15000 && lejania(400).corte >= 320, 'el corte se m
 }
 
 // ---------------- cableado
-const sonido = leer('src/sonido.js'), banco = leer('src/desafio-sonidos.js'), alien = leer('src/desafio-alien.js');
+// 3.8.0: los invasores son duendes (desafio-duendes.js)
+const sonido = leer('src/sonido.js'), banco = leer('src/desafio-sonidos.js'), alien = leer('src/desafio-duendes.js');
 assert.match(sonido, /import \{ modos, capas, ronda \} from '\.\/impactos\.js';/);
 assert.match(sonido, /import \{ voz, lejania \} from '\.\/voz-alien\.js';/);
 assert.match(sonido, /impacto\(material, \{/, 'falta el motor de golpes');
@@ -163,13 +164,14 @@ for (const clave of ['acecho', 'embestida', 'llamado', 'respiro', 'golpe', 'muer
 assert.ok((banco.match(/sonido\.impacto/g) || []).length >= 12, 'los golpes del Desafío tienen que pasar por el motor de capas');
 assert.ok((banco.match(/vozAlien/g) || []).length >= 7, 'las gargantas tienen que usarse en todo el banco');
 // los ojos que te miran
-assert.match(alien, /uniform float uMirada; uniform float uSilueta; uniform vec3 uOjoColor;/);
+assert.match(alien, /uMirada: \{ value: 0 \}, uSilueta: \{ value: 0 \}/);
 assert.match(alien, /import \{ mirada, silueta, acercar \} from '\.\/mirada\.js';/);
-assert.match(alien, /u\.uMirada\.value = acercar\(u\.uMirada\.value, quiere, dt\);/, 'la mirada sube rápido y baja despacio');
-assert.match(alien, /outgoingLight \*= 1\.0 - uSilueta \* 0\.72;/, 'de lejos el cuerpo se apaga');
+assert.match(alien, /u\.uMirada\.value = acercar\(u\.uMirada\.value, mirada\(_mirada\), dt\);/, 'la mirada sube rápido y baja despacio');
+assert.match(alien, /outgoingLight \*= 1\.0 - vIB\.y \* 0\.72;/, 'de lejos el cuerpo se apaga');
 // Cazado en la revisión de la 1.9: el color de los ojos se le sumaba también a los
 // sacos del jefe, que son el punto débil y tienen que leerse verdes. Sus ojos son rojos.
-assert.match(alien, /uOjoColor \* vEmision \* \(1\.0 - vDebilA\)/, 'el color de los ojos no puede pintar el punto débil');
+// 3.8.0: en los duendes, el ojo (parte 2) y el punto débil (parte 4) se separan por la parte
+assert.match(alien, /float ojoD = step\(1\.5, vParteD\) \* step\(vParteD, 2\.5\);/, 'el color de los ojos no puede pintar el punto débil');
 // Y los invasores se reciclan entre oleadas: hay que apagarles lo de la vida anterior.
 assert.match(alien, /reiniciar\(\) \{[\s\S]*?uMirada\.value = 0; u\.uSilueta\.value = 0;/, 'reiniciar tiene que apagar los ojos del invasor reciclado');
 

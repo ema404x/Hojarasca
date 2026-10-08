@@ -4,25 +4,21 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
-const alien = leer('src/desafio-alien.js'), cielo = leer('src/cielo.js'), main = leer('src/main.js'), desafio = leer('src/desafio.js');
+// 3.8.0: los invasores son duendes (desafio-duendes.js y duendes-modelo.js): el de lejos es el mismo
+// modelo armado con menos gajos y sin lo fino; como se dibujan instanciados, cambiar de detalle es
+// cambiar de lote (no de geometría ni de programa)
+const alien = leer('src/desafio-duendes.js'), modelo = leer('src/duendes-modelo.js'), cielo = leer('src/cielo.js'), main = leer('src/main.js'), desafio = leer('src/desafio.js');
 
 // ---------------- la malla simplificada
-assert.match(alien, /function menosGajos\(f\)/, 'falta el armador de la malla de lejos');
-assert.match(alien, /const DETALLE_LEJOS = 0\.5;/);
-assert.match(alien, /export const DISTANCIA_LOD = 42;/);
-assert.match(alien, /function construirGeometria\(tipo, detalle = 1\)/);
-assert.match(alien, /const clave = `\$\{tipo\}\|\$\{detalle\}`/, 'las dos geometrías se cachean por separado');
-// las primitivas de la criatura salen del armador con detalle, no de THREE directo
-const cuerpo = alien.slice(alien.indexOf('function construirGeometria(tipo, detalle = 1)'), alien.indexOf('// ---------------------------------------------------------------- esqueleto'));
-const conDetalle = (cuerpo.match(/new TH\./g) || []).length;
-const directas = (cuerpo.match(/new THREE\.(Sphere|Cylinder|Cone|Torus|Lathe|Icosahedron|Circle)Geometry/g) || []).length;
-assert.ok(conDetalle > 30, `pocas primitivas con detalle variable (${conDetalle})`);
-assert.equal(directas, 0, 'quedaron primitivas que no respetan el detalle');
-// el proxy no baja nunca de un mínimo razonable de gajos
-assert.match(alien, /const n = \(v, min\) => Math\.max\(min, Math\.round\(v \* f\)\);/);
-// y el cambio es de geometría, no de malla: el esqueleto y el shader siguen igual
-assert.match(alien, /malla\.geometry = quiere \? geoLejos : geoCerca/);
-assert.match(alien, /animar, detalle,/, 'el invasor expone el cambio de detalle');
+assert.match(alien, /export const DETALLE_CERCA = [\d.]+, DETALLE_LEJOS = [\d.]+;/, 'faltan los detalles de cerca y de lejos');
+assert.match(alien, /export const DISTANCIA_LOD = \d+;/);
+assert.ok(alien.includes('const clave = `${tipo}|${viejo ? 1 : 0}|${look}|${lejos ? 1 : 0}`;'), 'cada detalle se cachea por separado');
+// las primitivas del duende salen con el detalle, no de THREE directo
+assert.ok(modelo.includes('const nn = (v, min = 3) => Math.max(min, Math.round(v * DET));'), 'el detalle no baja nunca de un mínimo razonable de gajos');
+const cuerpo = modelo.slice(modelo.indexOf('function armar(P, semilla) {'), modelo.indexOf('// ---------------------------------------------------------------- la lechuza'));
+assert.equal((cuerpo.match(/new THREE\.(Sphere|Cylinder|Torus|Lathe|Icosahedron|Circle)Geometry\((?!1, nn)/g) || []).length, 0, 'quedaron primitivas que no respetan el detalle');
+assert.ok((cuerpo.match(/fino\(\)/g) || []).length >= 8, 'de lejos, sin lo fino');
+assert.match(alien, /animar, detalle, caer,/, 'el duende expone el cambio de detalle');
 assert.equal((alien.match(/customProgramCacheKey/g) || []).length, 1, 'sigue habiendo un solo programa compartido');
 
 // ---------------- se revisa de a ratos, no en cada cuadro
@@ -40,4 +36,4 @@ assert.match(main, /renderer\.shadowMap\.enabled = nueva\.sombras > 0/);
 const medir = leer('pruebas/medir-rendimiento.cjs');
 assert.match(medir, /autoCalidad:false/, 'si la calidad cambia sola, dos mediciones no se pueden comparar');
 assert.match(medir, /r\.dibujoLejos = await js/, 'hay que medir también a los invasores lejos');
-console.log('LOD de invasores: ok · malla de lejos al 50% de gajos desde 42 m · sombras en caliente');
+console.log('LOD de invasores: ok · duendes: el de lejos con menos gajos (otro lote) · sombras en caliente');

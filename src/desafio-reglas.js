@@ -64,6 +64,26 @@ export const TIPOS_ALIEN = {
   volador: { ...VOLADOR },
 };
 
+// 3.8.0: los invasores son duendes, y los duendes son chiquitos (lo decidió el usuario): de 60 a 80 cm
+// con el gorro; el grandote anda por el metro y el Mandamás (el jefe de nido) por 1,3 m. La caja de
+// golpe y de choque es la del duende (altura y radio); la vida, el daño, la velocidad y el alcance de
+// cada uno siguen como siempre. El radio queda algo más ancho que el cuerpo (con el gorro y la capa): a
+// un blanco tan chico hay que poder acertarle con la flecha y con la herramienta.
+export const TALLA_DUENDE = {
+  rastreador: { altura: 0.75, radio: 0.38 },
+  tirador: { altura: 0.8, radio: 0.38 },
+  saltador: { altura: 0.62, radio: 0.32 },
+  escupidor: { altura: 0.8, radio: 0.45 },
+  excavador: { altura: 0.7, radio: 0.42 },
+  volador: { altura: 0.7, radio: 0.45 },
+  bruto: { altura: 1.0, radio: 0.6 },
+  jefe: { altura: 1.3, radio: 0.85 },
+};
+for (const [tipo, t] of Object.entries(TALLA_DUENDE)) Object.assign(TIPOS_ALIEN[tipo], t);
+// A esto más arriba de la cabeza del duende, una flecha o una piedra todavía lo tocan (la punta del
+// gorro, la capa): con 75 cm, rozarlo por arriba tiene que contar.
+export const MARGEN_GOLPE = { arriba: 0.35, abajo: 0.2, boleadora: 0.65 };   // (las boleadoras abarcan más: las bolas giran)
+
 // El jefe baja la noche 5 y cada cinco noches (5, 10, 15 y 20).
 export const NOCHE_JEFE = 5;
 export function esNocheDeJefe(n) {
@@ -401,5 +421,8 @@ export function sanearDesafio(d) {
     // 3.0: los invasores que evolucionan y los puestos (una partida vieja carga sin nada aprendido)
     evolucion: sanearEvolucion(x.evolucion),
     puestos: sanearPuestos(x.puestos),
+    // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
+    robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
+      .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
   };
 }

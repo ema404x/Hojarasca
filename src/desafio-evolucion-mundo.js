@@ -12,7 +12,14 @@ export function crearEvolucionMundo(efectos, sonido, api) {
 
   // ---------------- las placas: una costra de cinco placas alrededor del torso, del
   // color de lo que aguantan. Cuelgan del grupo del invasor, como las alas del volador.
-  const geoPlaca = new THREE.BoxGeometry(0.34, 0.42, 0.07);
+  // 3.8.0: en los duendes la costra es de corteza: lajas curvas y desparejas sobre los hombros y la
+  // espalda (y el que aprendió viene más grande: ver etapaDe en desafio-duendes-reglas.js)
+  const geoPlaca = (() => {
+    const g = new THREE.BoxGeometry(0.34, 0.42, 0.07, 4, 3, 1), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); p.setZ(i, p.getZ(i) - x * x * 1.4); p.setY(i, y + 0.025 * Math.sin(x * 23)); p.setX(i, x * (1 - 0.15 * (y + 0.21))); }
+    g.computeVertexNormals();
+    return g;
+  })();
   const mats = {};
   const matDe = (clase) => {
     if (mats[clase]) return mats[clase];
@@ -29,14 +36,15 @@ export function crearEvolucionMundo(efectos, sonido, api) {
         const m = new THREE.Mesh(geoPlaca, matDe(clase));
         const ang = (i / 5) * Math.PI * 2 + 0.3;
         m.userData.ang = ang;
-        m.userData.alto = i % 2 ? 0.52 : 0.68;
+        m.userData.alto = i % 2 ? 0.36 : 0.47;   // 3.8.0: el torso del duende queda más abajo (arriba es todo gorro)
         g.add(m);
       }
       a.m.g.add(g);
       a.m.placas = g;
     }
-    const r = a.def.radio * 0.85, h = a.def.altura;
-    const esc = Math.max(0.7, Math.min(2.4, a.def.radio / 0.45));
+    // 3.8.0: los duendes son chiquitos: la costra va pegada al cuerpo y en proporción
+    const r = a.def.radio * 0.6, h = a.def.altura;
+    const esc = Math.max(0.3, Math.min(1.2, a.def.altura / 1.6));
     for (const m of g.children) {
       m.material = matDe(clase);
       const ang = m.userData.ang;

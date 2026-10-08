@@ -46,7 +46,8 @@ assert.ok(escupidor.danoObra > tirador.danoObra, 'el ácido come las defensas mu
 // jefe: enorme, durísimo, suelta muchos cristales y tiene punto débil
 assert.equal(jefe.jefe, true);
 assert.ok(jefe.vida >= bruto.vida * 4, 'el jefe tiene que aguantar muchísimo más que el bruto');
-assert.ok(jefe.altura > bruto.altura * 1.5 && jefe.radio > bruto.radio, 'el jefe es mucho más grande');
+// 3.8.0: duendes chiquitos: el grandote ~1 m y el Mandamás ~1,3 m (TALLA_DUENDE)
+assert.ok(jefe.altura > bruto.altura * 1.2 && jefe.radio > bruto.radio, 'el jefe es mucho más grande');
 assert.ok(jefe.dano > bruto.dano && jefe.danoObra > bruto.danoObra, 'el jefe pega más fuerte que el bruto');
 assert.ok(jefe.vel <= bruto.vel, 'el jefe no es rápido');
 assert.ok(jefe.cristales[0] >= 10, 'al caer el jefe suelta muchos cristales');
@@ -119,7 +120,7 @@ assert.equal(danoEnPuntoDebil(jefe, 50, null), 50, 'sin punto de impacto no hay 
 assert.equal(danoEnPuntoDebil(jefe, 50, { alturaRel: 'x', porDetras: true }), 50);
 for (const d of [rastreador, bruto, tirador, saltador, escupidor]) assert.equal(danoEnPuntoDebil(d, 50, atras), 50, 'sólo el jefe tiene punto débil');
 assert.ok(PUNTO_DEBIL.desde >= 0.4 && PUNTO_DEBIL.hasta <= 1, 'la franja del punto débil tiene que caer sobre el cuerpo');
-assert.ok(PUNTO_DEBIL.desde < 0.75 && PUNTO_DEBIL.hasta > 0.9, 'la franja tiene que cubrir los sacos modelados en desafio-alien.js');
+assert.ok(PUNTO_DEBIL.desde < 0.75 && PUNTO_DEBIL.hasta > 0.9, 'la franja tiene que cubrir los hongos de luz de la joroba (duendes-modelo.js; ver verificar-3-8-duendes.mjs)');
 
 // ---------------------------------------------------------------- qué salta el saltador
 // Las alturas salen del plano real de cada defensa en construccion.js.
@@ -151,15 +152,16 @@ assert.ok(empalizada.alto <= ALTURA_SALTO && reforzada.alto > empalizada.alto, '
 
 // ---------------------------------------------------------------- cableado con el juego
 {
-  const alien = leer('src/desafio-alien.js'), desafio = leer('src/desafio.js');
-  for (const t of ['saltador', 'escupidor', 'jefe']) assert.ok(new RegExp(`^  ${t}: \\{`, 'm').test(alien), `falta el modelo del ${t}`);
-  assert.ok(alien.includes('attribute float aDebil') && alien.includes('vDebilA'), 'los sacos del jefe se marcan con aDebil y viajan por un varying');
+  // 3.8.0: los invasores son duendes: los modelos en duendes-modelo.js, el dibujo en desafio-duendes.js
+  const alien = leer('src/desafio-duendes.js'), modelo = leer('src/duendes-modelo.js'), desafio = leer('src/desafio.js');
+  for (const t of ['saltador', 'escupidor', 'jefe']) assert.ok(new RegExp(`^  ${t}: \\(`, 'm').test(modelo), `falta el modelo del ${t}`);
+  assert.ok(modelo.includes('parte: PARTE.debil') && alien.includes('vParteD'), 'los hongos del jefe se marcan como punto débil y viajan por un varying');
   // La clave es fija —todos los tipos comparten el programa compilado—, pero sube de
   // versión cada vez que el shader cambia, así que se mira la forma, no el número.
-  assert.match(alien, /customProgramCacheKey = \(\) => 'invasor-esqueleto-v\d+'/, 'los tipos nuevos comparten el programa del esqueleto');
+  assert.match(alien, /customProgramCacheKey = \(\) => 'duendes-esqueleto-\d+'/, 'los tipos nuevos comparten el programa del esqueleto');
   assert.equal((alien.match(/customProgramCacheKey/g) || []).length, 1, 'hay más de una clave de programa: los invasores dejarían de compartirlo');
-  assert.ok(!/\bfragmentShader[\s\S]*?\baDebil\b[\s\S]*?customProgramCacheKey/.test(alien), 'el atributo aDebil no puede leerse en el fragment shader');
-  assert.ok(alien.includes('sacosDebiles: true') && alien.includes('espolones: true') && alien.includes('buche: true'), 'faltan los rasgos propios de los tipos nuevos');
+  assert.ok(!/\bfragmentShader[\s\S]*?\baHuesoParte\b[\s\S]*?customProgramCacheKey/.test(alien), 'el atributo aHuesoParte no puede leerse en el fragment shader');
+  assert.ok(modelo.includes('joroba: 1') && modelo.includes("objeto: 'calabaza'") && modelo.includes("objeto: 'pala'"), 'faltan los rasgos propios de los tipos nuevos');
   assert.ok(desafio.includes("a.estado === 'saltar'") && desafio.includes('function intentarSaltar'), 'el salto no está en el bucle del invasor');
   assert.ok(desafio.includes("lanzarProyectil('acido'") && desafio.includes('function salpicarAcido'), 'falta el escupitajo de ácido');
   assert.ok(desafio.includes('danoEnPuntoDebil(a.def, dano, impacto)'), 'herirAlien no aplica el punto débil');

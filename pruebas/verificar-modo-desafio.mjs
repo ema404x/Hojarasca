@@ -117,12 +117,12 @@ assert.ok(cons.includes('function destruir(obra)'), 'la construcción no sabe de
 
 // 1.4: invasores de una sola malla con esqueleto en el shader, y optimizaciones del mundo
 {
-  const alien = leer('src/desafio-alien.js'), veg = leer('src/vegetacion.js'), obj = leer('src/objetos.js'), col = leer('src/colisiones.js');
-  assert.ok(alien.includes('uniform mat4 uHuesos[') && /customProgramCacheKey = \(\) => 'invasor-esqueleto-v\d+'/.test(alien), 'el invasor debe resolver su esqueleto en el shader y compartir programa');
-  assert.ok(!/new THREE\.Mesh\(/.test(alien.replace(/const malla = new THREE\.Mesh\(geoCerca, mat\);/, '').replace(/const sombra = new THREE\.Mesh\(geoSombra[^;]+;/, '')), 'cada invasor es una malla (más su sombra), no un muñeco de piezas');
-  // 1.8: la misma malla cambia a una geometría de menos gajos cuando está lejos
-  assert.match(alien, /const geoLejos = construirGeometria\(tipo, DETALLE_LEJOS\)/, 'falta la malla simplificada de lejos');
-  assert.match(alien, /malla\.geometry = quiere \? geoLejos : geoCerca/, 'el LOD tiene que cambiar la geometría, no la malla');
+  // 3.8.0: los invasores son duendes, instanciados: el esqueleto en el shader (una textura de huesos),
+  // un programa para todos y el modelo de lejos con menos gajos (ver verificar-3-8-duendes.mjs)
+  const alien = leer('src/desafio-duendes.js'), veg = leer('src/vegetacion.js'), obj = leer('src/objetos.js'), col = leer('src/colisiones.js');
+  assert.ok(alien.includes('uniform sampler2D uHuesos;') && /customProgramCacheKey = \(\) => 'duendes-esqueleto-\d+'/.test(alien), 'el duende debe resolver su esqueleto en el shader y compartir programa');
+  assert.ok(!/new THREE\.Mesh\(/.test(alien.slice(alien.indexOf('export function crearDuende('), alien.indexOf('export function precalentarDuendes('))), 'los duendes se dibujan instanciados, no un muñeco de piezas');
+  assert.match(alien, /const det = lejos \? DETALLE_LEJOS : DETALLE_CERCA;/, 'falta el modelo simplificado de lejos');
   assert.ok(veg.includes('function compactarCercanos(cam)') && veg.includes('m.alta.visible = false;'), 'el LOD cercano de los árboles debe dibujarse compactado');
   assert.ok(obj.includes('function compactar(tipo)') && obj.includes('RADIO_VISTA') && !obj.includes('IcosahedronGeometry(0.03, 1)'), 'los objetos del mapa deben dibujarse sólo cerca y con geometría liviana');
   assert.ok(!col.includes('new Set()') && col.includes('++marcaPasada'), 'resolver() no debe crear un Set por pasada');
