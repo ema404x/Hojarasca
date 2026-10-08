@@ -42,6 +42,7 @@ Está en la rama `proto-duendes` (`?debug=1&duendes=proto`; las capturas y lámi
   - Coihue 1–3;
   - semillas o piedras de luz.
 - **Elección (08-10, el usuario):** duendes **estilo C, bosque y musgo**; **Rey 2, gigante de corteza con cuernos de ámbar**; **Coihue 3, musgo, puertitas y ventanas encendidas**; **semillas doradas**. El robo de los traviesos: **travesura sin perder nada** (se llevan algo chico y salen corriendo; si los alcanzás lo recuperás; nunca rompen ni se llevan lo construido).
+- **Decisiones de detalle (08-10, el usuario):** el modo se llama **«La noche de los duendes»** (nombre visible; interno sigue `desafio`); inglés **goblin / Goblin King / Old Coihue**; tipos **Mandamás** (jefe de nido), **Lechucero** (volador), **Viejo** (mutado), **Baqueano** (adaptado), los demás igual; defensas **Campana de musgo, Faro de ámbar, Farol de sanación** («Cosa de duendes»); la caja del alba es **un cofre que brota entre raíces** (sin paracaídas); duendes **chiquitos, 60–80 cm**; robo como lo propuso el equipo (pillos y saltarines, 30 %, tope 4 por noche, nunca herramientas ni lo construido, al alba devuelven todo); **sólo lechuzas** vuelan; viejos en la noche del jefe, las especiales y desde la noche 12 (60 %); la leyenda de los duendes se cuenta **el primer año**; el rumor del «pillán» del Relax **queda como está**.
 - **Al pasarlo al juego:**
   - LOD e instanciado: hoy 30 duendes suman unos 76 dibujos y unos 2,5 ms;
   - lechuza con aleteo;
