@@ -437,4 +437,11 @@ export const EN_R = {
   "Volviste al valle": "Back in the valley",
   "y de la madriguera": "and from the burrow",
   "Ya juntaste las semillas doradas: vuelven a asomar en": "You already gathered the golden seeds: they come up again in",
+  "Bajar por la escalera de raíces": "Go down the root stairs",
+  "Entrar al corazón del Coihue": "Go into the heart of the Coihue",
+  "Salir al valle por la puertita": "Go out to the valley through the little door",
+  "El tronco hueco": "The hollow trunk",
+  "Subí por la escalera de raíces hasta la puerta del corazón. Si te caés, volvés al último descanso": "Climb the root stairs up to the heart's door. If you fall, you go back to the last landing",
+  "Volviste al último descanso": "Back at the last landing",
+  "La escalera de raíces sigue para arriba": "The root stairs keep going up",
 };

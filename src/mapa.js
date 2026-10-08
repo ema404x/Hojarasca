@@ -17,8 +17,9 @@ const DIBUJOS_SEMILLA = {
     for (const [dx, dy, r] of [[-0.5, 0.2, 0.55], [0.45, 0.25, 0.5], [0, -0.35, 0.5]]) { c.beginPath(); c.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2); c.fill(); c.stroke(); }
   },
   cristal(c, x, y, s) {
-    c.fillStyle = '#5fd6c8'; c.strokeStyle = '#1d4a44'; c.lineWidth = 1.3;
-    c.beginPath(); c.moveTo(x, y - s * 1.2); c.lineTo(x + s * 0.6, y); c.lineTo(x, y + s * 1.2); c.lineTo(x - s * 0.6, y); c.closePath(); c.fill(); c.stroke();
+    // 3.8.0: las semillas doradas (una gota)
+    c.fillStyle = '#e8a22a'; c.strokeStyle = '#5a3410'; c.lineWidth = 1.3;
+    c.beginPath(); c.moveTo(x, y - s * 1.2); c.bezierCurveTo(x + s * 0.8, y - s * 0.4, x + s * 0.85, y + s * 0.9, x, y + s * 1.05); c.bezierCurveTo(x - s * 0.85, y + s * 0.9, x - s * 0.8, y - s * 0.4, x, y - s * 1.2); c.closePath(); c.fill(); c.stroke();
   },
   madera(c, x, y, s) {
     c.strokeStyle = '#5c3a1c'; c.lineWidth = s * 0.45; c.lineCap = 'round';

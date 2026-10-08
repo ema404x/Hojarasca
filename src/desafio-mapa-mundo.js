@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { lam } from './vida.js';
 import { mapaDePartida, mapaGuardadoNuevo, avisoSitio, usarSitio, faltaPara, marcasDelMapa, RADIO_USAR, RECURSOS } from './desafio-mapa.js';
 import { generador, hashTexto } from './semilla.js';
+import { geoSemilla } from './desafio-coihue-formas.js';
 
 const LEJOS = 170;
 
@@ -21,6 +22,27 @@ function juntar(partes) {
   g.computeVertexNormals();
   return g;
 }
+// 3.8.0: como `juntar`, con el color de cada vértice (las semillas y el musgo, en una malla)
+function juntarColor(partes) {
+  const pos = [], col = [], nor = [];
+  for (const p of partes) {
+    const g = p.index ? p.toNonIndexed() : p;
+    pos.push(...g.attributes.position.array);
+    col.push(...g.attributes.color.array);
+    nor.push(...g.attributes.normal.array);   // (las normales suaves de cada pieza: las semillas no quedan facetadas)
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return g;
+}
+function colorPlano(g, hex) {
+  const c = new THREE.Color(hex), n = g.attributes.position.count, col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const k = 0.85 + 0.3 * ((i * 7919) % 13) / 13; col[i * 3] = c.r * k; col[i * 3 + 1] = c.g * k; col[i * 3 + 2] = c.b * k; }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
 function geometrias() {
   const r = generador(hashTexto('mapa-mundo'));
   // piedras sueltas al pie de la ladera
@@ -28,13 +50,16 @@ function geometrias() {
     const e = 0.35 + r() * 0.55, a = i * 0.9 + r(), d = i ? 0.8 + r() * 1.6 : 0;
     return new THREE.IcosahedronGeometry(e, 0).scale(1, 0.7, 1).translate(Math.cos(a) * d, e * 0.35, Math.sin(a) * d);
   }));
-  // cristales que asoman de la tierra (conos de cinco caras, de a pares)
-  const cristales = juntar(Array.from({ length: 6 }, (_, i) => {
-    const h = 0.5 + r() * 0.9, a = i * 1.05, d = i ? 0.35 + r() * 0.7 : 0;
-    const g = new THREE.ConeGeometry(0.16 + r() * 0.1, h, 5).translate(0, h / 2 - 0.05, 0);
-    g.rotateZ((r() - 0.5) * 0.6); g.rotateX((r() - 0.5) * 0.6);
-    return g.translate(Math.cos(a) * d, 0, Math.sin(a) * d);
-  }));
+  // 3.8.0: semillas doradas que asoman de un colchón de musgo (las mismas gotas con estrías que se juntan)
+  const cristales = juntarColor([
+    ...Array.from({ length: 3 }, (_, i) => colorPlano(new THREE.SphereGeometry(0.75 + i * 0.12, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.32, 1).translate((i - 1) * 0.6, -0.05, (i % 2) * 0.4), ['#3e5a26', '#4a6a2c', '#36501f'][i])),
+    ...Array.from({ length: 11 }, (_, i) => {
+      const s = 0.26 + r() * 0.16, a = i * 0.9 + r() * 0.5, d = i ? 0.2 + r() * 0.85 : 0;
+      const g = geoSemilla(s);
+      g.rotateZ((r() - 0.5) * 1.4); g.rotateX((r() - 0.5) * 1.4);
+      return g.translate(Math.cos(a) * d, 0.18 + s * 0.3, Math.sin(a) * d);
+    }),
+  ]);
   // troncos caídos, cruzados
   const troncos = juntar(Array.from({ length: 4 }, (_, i) => {
     const l = 2.4 + r() * 1.4, rr = 0.18 + r() * 0.1;
@@ -62,7 +87,7 @@ export function crearMapaMundo(T, escena, ctx) {
       geos = geometrias();
       mats = {
         cantera: lam('#8a837a'),
-        cristal: new THREE.MeshLambertMaterial({ color: '#5fd6c8', emissive: '#2fb8a8', emissiveIntensity: 0.55 }),
+        cristal: new THREE.MeshLambertMaterial({ vertexColors: true, emissive: '#3a2008' }),   // 3.8.0: semillas doradas en su musgo
         madera: lam('#6b5238'),
         alijo: lam('#8a6a44'),
       };

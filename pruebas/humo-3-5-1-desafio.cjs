@@ -120,7 +120,7 @@ app.whenReady().then(async () => {
 
     // ================================================================ volver a subir
     donde = 'reabordaje';
-    const subir = `(()=>{const H=${H}; H.progreso.horas = 11; const s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0, s.y); return H.desafio.usarCercaDe(H.jugador.estado.pos)})()`;
+    const subir = `(()=>{const H=${H}; H.progreso.horas = 11; const s=H.desafio.asedio.sitioHaz(); H.jugador.ubicar(s.x+1, s.z+1, 0, s.y); const r = H.desafio.usarCercaDe(H.jugador.estado.pos); H.desafio.naveAdentro.atajoCorazon(); return r})()`;   // 3.8.0: atajo a la puerta del corazón (la escalera se camina)
     ok(await js(subir), 'E sube por el haz');
     await correr(2.5);
     await js(`(()=>{const H=${H}, E=H.desafio.eventos; const o = E.blancos().filter(b=>b.nave && b.tipo==='ojo'); E.herirNucleo(o[0], 99999); E.herirNucleo(o[1], 99999); return 1})()`);
