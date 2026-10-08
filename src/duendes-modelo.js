@@ -276,7 +276,7 @@ export const DUENDES = {
     travieso: mezclar(BASE, { gorro: { alto: 2.6, caida: 1.0 }, capa: { tipo: 'hojas', col: '#8a5a22', corta: 1 }, hojas: 0 }),
     viejo: mezclar(mezclar(BASE, VIEJO), { capa: { tipo: 'musgo', col: '#3e5a2a', corta: 1, musgo: 1 } }),
   }),
-  // el Viejo del Nido: gigante, con la joroba de musgo y los hongos de luz en la espalda (el punto débil)
+  // el Mandamás: el jefe de nido, con la joroba de musgo y los hongos de luz en la espalda (el punto débil)
   jefe: () => {
     const v = mezclar(mezclar(BASE, VIEJO), {
       cab: 0.2, ojos: { brillo: '#ffb030', fuerza: 3.4, halo: 1.3 },
@@ -637,7 +637,7 @@ function armar(P, semilla) {
     const pp = g.attributes.position;
     for (let i = 0; i < pp.count; i++) topeGorro = Math.max(topeGorro, pp.getY(i));
   }
-  // ---- la joroba del Viejo del Nido: musgo con hongos de luz (el punto débil)
+  // ---- la joroba del Mandamás: musgo con hongos de luz (el punto débil)
   if (P.joroba) {
     const cen = enT(0, L * 0.62, -0.26);
     const gj = deform(esfera(20, 14), (v) => { v.multiplyScalar(1 + 0.18 * ruido(v.x * 4, v.y * 4, v.z * 4)); v.x *= 0.3 * anchoT; v.y *= 0.3; v.z *= 0.22; });
@@ -735,7 +735,8 @@ export function armarLechuza(P, semilla = 5, detalle = 1) {
         const cuerda = (0.24 + 0.46 * Math.sqrt(Math.max(0, 1 - u * u * 0.8))) + (u > 0.7 ? 0.12 * Math.max(0, Math.sin(v * 7 * Math.PI)) * (u - 0.7) * 3 * v : 0);
         const borde = 0.2 - 0.12 * u * u;
         const z = borde - v * cuerda - sv(0.55, 1, v) * (0.03 + 0.12 * sv(0.55, 1, u)) * (1 - Math.abs(Math.cos(u * Math.PI * 9.5)));
-        const y = 0.05 * Math.sin(v * Math.PI) + 0.12 * u * u - (cara ? 0.02 * (1 - u) : 0);
+        // 3.8.0: el borde de atrás cae (el ala combada) y la punta sube: de frente se ve el ala, no una tabla
+        const y = 0.06 * Math.sin(v * Math.PI) + 0.16 * u * u - 0.22 * v * (1 - 0.4 * u) - (cara ? 0.025 * (1 - u) : 0);
         p.set(hom.x + sx * sp, hom.y + y - 0.04, hom.z - 0.12 + z);
       }, 40, 12, 1);
       const NU = nn(40, 3) + 1, NV = nn(12, 2) + 1;
@@ -766,9 +767,9 @@ export function armarLechuza(P, semilla = 5, detalle = 1) {
     }
     piezas.push(pieza(grilla((u, v, p, cara) => { const a = (u - 0.5) * 2.2; p.set(Math.sin(a) * 0.4, Y0 + 0.2 + Math.cos(a) * 0.17 - (cara ? 0.015 : 0), 0.05 - v * 0.4); }, 14, 6, 1), null, '#8a3c2a', { tela: 1, hueso: H.montura, guarda: (l) => [3, Math.min(Math.abs(Math.abs(l.x) - 0.32), 0.2), l.z * 2, 0.07] }));
     // el jinete: un duende sentado, más chico, en la montura
-    const kj = 0.62;
+    const kj = 0.68;   // 3.8.0: el jinete más grande y más alto, que asome por encima de la cabeza de la lechuza
     const jin = armar(mezclar(P, { montado: 1 }), semilla);
-    const dy = Y0 + 0.24 - 0.5 * kj, dz = 0.0;
+    const dy = Y0 + 0.3 - 0.5 * kj, dz = -0.08;
     // las piezas del jinete: se pasan a la lechuza (escala kj, corridas a la montura)
     const pj = jin.geo.attributes.position;
     for (let i = 0; i < pj.count; i++) pj.setXYZ(i, pj.getX(i) * kj, pj.getY(i) * kj + dy, pj.getZ(i) * kj + dz);
@@ -1048,4 +1049,62 @@ function armarSuelo() {
     cort.push(raiz([[Math.sin(a) * d0, 0.25, Math.cos(a) * d0], [Math.sin(a + 0.15) * (d0 + d1) / 2, 0.32, Math.cos(a + 0.15) * (d0 + d1) / 2], [Math.sin(a + 0.25) * d1, -0.05, Math.cos(a + 0.25) * d1]], [0.16, 0.12, 0.04], '#4a3828', { nudos: 0.05, pintar: (c, p, n) => musgoEn(c, p, n, 0.8) }));
   }
   return { tela: fundirTela(tela), corteza: fundirCorteza(cort) };
+}
+
+// ---------------------------------------------------------------- 3.8.0: el cofre del alba
+// En vez de la caja que caía en paracaídas: un cofre viejo que brota del suelo entre raíces, con la tapa
+// entreabierta y la luz dorada de adentro, y un hilo de luz que sube para encontrarlo de lejos. Nada vuela.
+// `userData.cofre` sube desde abajo de la tierra; `userData.raices` lo abrazan y crecen con él.
+let MAT_HAZ_COFRE = null;
+export function mallaCofre() {
+  const g = new THREE.Group();
+  const raices = grupoFijo('cofre-raices', armarRaicesCofre);
+  const cofre = grupoFijo('cofre-caja', armarCajaCofre);
+  if (!MAT_HAZ_COFRE) MAT_HAZ_COFRE = new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const haz = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.16, 7, 8, 1, true).translate(0, 4.4, 0), MAT_HAZ_COFRE);
+  haz.frustumCulled = false;
+  g.add(raices, cofre, haz);
+  g.userData.raices = raices; g.userData.cofre = cofre; g.userData.haz = haz;
+  g.userData.halos = cofre.userData.halos;
+  cofre.userData.halos = [];
+  g.name = 'cofre-alba';
+  return g;
+}
+function armarCajaCofre() {
+  const cort = [], brillos = [], tela = [], halos = [];
+  const madera = (c, p, n, l) => { musgoEn(c, p, n, 0.55, 3); };
+  // el cajón (con las tablas marcadas) y la tapa redonda entreabierta
+  cort.push(pieza(new THREE.BoxGeometry(0.9, 0.48, 0.6, 3, 2, 2), M4([0, 0.24, 0]), '#9a6e44', { veta: (l) => [l.x * 1.4, l.y * 8 + (l.z > 0 ? 0.5 : 0), 0.7], pintar: madera }));
+  // la tapa combada, abierta un poco desde la bisagra de atrás
+  const tapa = deform(new THREE.BoxGeometry(0.94, 0.1, 0.64, 4, 1, 6), (v) => { v.y += 0.13 * (1 - (v.z / 0.32) ** 2) * (v.y > 0 ? 1 : 0.6); });
+  tapa.translate(0, 0.05, 0.32);
+  cort.push(pieza(tapa, M4([0, 0.48, -0.31], [-0.38, 0, 0]), '#8a6040', { veta: (l) => [l.x * 1.4, l.z * 6, 0.7], pintar: madera }));
+  // los herrajes oscuros y la cerradura
+  for (const x of [-0.32, 0.32]) cort.push(pieza(new THREE.BoxGeometry(0.07, 0.5, 0.62), M4([x, 0.24, 0]), '#3a3430', { veta: () => [0, 0, 0] }));
+  cort.push(pieza(new THREE.BoxGeometry(0.1, 0.12, 0.04), M4([0, 0.4, 0.31]), '#b0903e', { veta: () => [0, 0, 0] }));
+  // la luz dorada que sale por la rendija, y unas semillas asomadas
+  brillos.push(pieza(new THREE.BoxGeometry(0.84, 0.03, 0.54), M4([0, 0.47, 0.0]), '#ffc850', { fuerza: 1.7 }));
+  const r = azar(91);
+  for (let i = 0; i < 5; i++) {
+    const p = V3((r() - 0.5) * 0.6, 0.53 + r() * 0.03, (r() - 0.5) * 0.3);
+    brillos.push(pieza(deform(esfera(8, 6), (v) => { v.y *= 1.3; }), M4(p, [r(), r() * 6, 0], [0.04, 0.04, 0.04]), '#ffd860', { fuerza: 1.5 }));
+  }
+  halos.push({ p: V3(0, 0.62, 0), col: '#ffc840', tam: 3 });
+  // un poco de musgo y tierra encima (vino de abajo)
+  tela.push(pieza(deform(esfera(10, 6), (v) => { v.multiplyScalar(1 + 0.2 * ruido(v.x * 5, v.y * 5, v.z * 5)); if (v.y < 0) v.y *= 0.3; }), M4([-0.2, 0.66, -0.12], [0, 0, 0], [0.22, 0.07, 0.16]), '#5e7e34', { tela: 5 }));
+  return { corteza: fundirCorteza(cort), brillo: fundirBrillo(brillos), tela: fundirTela(tela), halos };
+}
+function armarRaicesCofre() {
+  const cort = [], tela = [];
+  const r = azar(92);
+  // la tierra removida
+  const g = deform(lathe(afinar([[0.001, 0.12], [0.6, 0.1], [1.0, 0.05], [1.35, -0.04]], 3), 24), (v) => { v.y += 0.04 * ruido(v.x * 3, 0, v.z * 3); });
+  tela.push(pieza(g, null, '#7a6248', { tela: 5, pintar: (c, p, n, l) => { c.multiplyScalar(0.75 + 0.3 * (ruido(l.x * 6, 0, l.z * 6) * 0.5 + 0.5)); } }));
+  // las raíces que salen de la tierra y lo abrazan
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TAU + r() * 0.3, d0 = 0.75 + r() * 0.25;
+    // finitas, pegadas al cajón: lo agarran de abajo (no son patas)
+    cort.push(raiz([[Math.sin(a) * d0, -0.04, Math.cos(a) * d0 * 0.8], [Math.sin(a) * 0.6, 0.04 + r() * 0.04, Math.cos(a) * 0.48], [Math.sin(a + 0.25) * 0.5, 0.26 + r() * 0.1, Math.cos(a + 0.25) * 0.37], [Math.sin(a + 0.5) * 0.46, 0.36, Math.cos(a + 0.5) * 0.33]], [0.05, 0.04, 0.026, 0.008], '#7a5a40', { nudos: 0.015, pintar: (c, p, n) => musgoEn(c, p, n, 0.7, 2) }));
+  }
+  return { corteza: fundirCorteza(cort), tela: fundirTela(tela) };
 }

@@ -10,7 +10,7 @@ import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
 import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
-import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe } from './desafio-reglas.js';
+import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
@@ -18,7 +18,7 @@ import { crearEfectos } from './desafio-efectos.js';
 // 3.8.0: los invasores son duendes (desafio-duendes.js: el modelo, la animación y el dibujo instanciado)
 import { crearDuende, instalarDuendes, precalentarDuendes, registrarHalos, mallaAtadito, estadoDuendes } from './desafio-duendes.js';
 import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva } from './desafio-duendes-reglas.js';
-import { mallaNido } from './duendes-modelo.js';
+import { mallaNido, mallaCofre } from './duendes-modelo.js';
 import { crearMusicaTension } from './desafio-musica.js';
 import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logros.js';
 import { crearAliados } from './desafio-aliados.js';
@@ -156,8 +156,21 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const matFlecha = new THREE.MeshLambertMaterial({ color: '#6b5238' });
   const matPlasma = new THREE.MeshBasicMaterial({ color: '#7dfff0' });
   const matPlasmaAlien = new THREE.MeshBasicMaterial({ color: VERDE_OJO });
-  const matAcido = new THREE.MeshBasicMaterial({ color: '#c8ff3d' });
-  const geoAcido = new THREE.IcosahedronGeometry(0.21, 1);
+  // 3.8.0: el panzón escupe un pegote de savia y esporas (unas bolitas juntas, del color de la savia)
+  const matAcido = new THREE.MeshBasicMaterial({ color: '#cdd060' });
+  const geoAcido = (() => {
+    const g = new THREE.BufferGeometry(), pos = [];
+    for (const [x, y, z, r] of [[0, 0, 0, 0.15], [0.1, 0.05, 0.02, 0.09], [-0.09, 0.03, -0.04, 0.08], [0.02, -0.08, 0.07, 0.08], [-0.03, 0.09, 0.06, 0.07]]) {
+      const b = new THREE.IcosahedronGeometry(r, 1).translate(x, y, z);
+      pos.push(...b.attributes.position.array);
+    }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    return g;
+  })();
+  // 3.8.0: el hondero tira bellotas (con su capuchón); se ven de noche
+  const matBellota = new THREE.MeshBasicMaterial({ color: '#c99a52' });
+  const geoBellota = new THREE.LatheGeometry([[0.001, -0.075], [0.03, -0.065], [0.045, -0.035], [0.047, 0.0], [0.04, 0.02], [0.056, 0.024], [0.058, 0.04], [0.035, 0.058], [0.008, 0.066], [0.006, 0.085], [0.001, 0.086]].map(([r, y]) => new THREE.Vector2(r, y)), 10).rotateX(Math.PI / 2).scale(1.4, 1.4, 1.4);
   const geoFlecha = new THREE.CylinderGeometry(0.018, 0.018, 0.85, 5).rotateX(Math.PI / 2);
   const geoPerno = new THREE.CylinderGeometry(0.035, 0.035, 1.1, 5).rotateX(Math.PI / 2);
   const geoBola = new THREE.IcosahedronGeometry(0.16, 1);
@@ -185,8 +198,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     else {
       // 2.5: las del arsenal traen su malla (ver desafio-arsenal-mundo.js)
       const propia = arsenal?.malla(tipo);
-      const geo = propia ? propia.geo : tipo === 'flecha' ? geoFlecha : tipo === 'perno' ? geoPerno : tipo === 'piedra' ? geoPiedra : tipo === 'boleadora' ? geoBoleadora : tipo === 'acido' ? geoAcido : tipo === 'roca' ? geoRoca : geoBola;
-      const mat = propia ? propia.mat : tipo === 'plasma' ? matPlasmaAlien : tipo === 'acido' ? matAcido : tipo === 'plasmaAliado' || tipo === 'rayo' ? matPlasma : tipo === 'piedra' || tipo === 'boleadora' || tipo === 'roca' ? matPiedra : matFlecha;
+      const geo = propia ? propia.geo : tipo === 'flecha' ? geoFlecha : tipo === 'perno' ? geoPerno : tipo === 'piedra' ? geoPiedra : tipo === 'boleadora' ? geoBoleadora : tipo === 'acido' ? geoAcido : tipo === 'roca' ? geoRoca : tipo === 'bellota' ? geoBellota : geoBola;
+      const mat = propia ? propia.mat : tipo === 'bellota' ? matBellota : tipo === 'plasma' ? matPlasmaAlien : tipo === 'acido' ? matAcido : tipo === 'plasmaAliado' || tipo === 'rayo' ? matPlasma : tipo === 'piedra' || tipo === 'boleadora' || tipo === 'roca' ? matPiedra : matFlecha;
       p = { tipo, mesh: new THREE.Mesh(geo, mat), pos: new THREE.Vector3(), vel: new THREE.Vector3() };
       p.mesh.frustumCulled = false;
       escena.add(p.mesh);
@@ -2236,7 +2249,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
             } else {
               _dir.copy(_w).sub(_v).normalize();
               _dir.x += (Math.random() - 0.5) * 0.06; _dir.y += (Math.random() - 0.5) * 0.04;
-              lanzarProyectil('plasma', _v, _dir.multiplyScalar(19), def.dano * a.danoMult, false);
+              lanzarProyectil('bellota', _v, _dir.multiplyScalar(19), def.dano * a.danoMult, false);   // 3.8.0: la honda del duende
               S.plasma(p);
             }
             a.golpeT = 0.3;
@@ -2403,7 +2416,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const scratchSalpicadura = [];
   function salpicarAcido(q, obraTocada = null, directo = false) {
     S.acido(q.pos);
-    efectos.polvo(q.pos, 7, '#b6ff3d');
+    efectos.polvo(q.pos, 7, '#c8c860');   // 3.8.0: savia y esporas
     efectos.chispas(q.pos, 6);
     const r = q.salpicadura || 0;
     if (r <= 0) return;
@@ -2447,6 +2460,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
           else if (q.tipo === 'roca') golpeRoca(q);      // 2.1: la piedra del artillero
           else if (q.tipo === 'acido') salpicarAcido(q);
           else if (q.tipo === 'plasmaAliado' || q.tipo === 'plasma') efectos.chispas(q.pos, 5);
+          else if (q.tipo === 'bellota') efectos.astillas?.(q.pos, 4, '#8a6a3a');   // 3.8.0
           break;
         }
         const o = obraEnPunto(x, y, z, -0.02, q.ignorar, q.deJugador);
@@ -2462,7 +2476,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
             if (a.estado === 'morir' || a.estado === 'irse') continue;
             if (q.golpeados?.has(a)) continue;   // 2.5: lo que atraviesa no pega dos veces
             const ap = a.m.g.position, r = a.def.radio * a.m.esc + (q.tipo === 'boleadora' ? 0.45 : 0.2);
-            if (Math.hypot(ap.x - x, ap.z - z) < r && y > ap.y - 0.2 && y < ap.y + a.def.altura * a.m.esc + 0.2) {
+            if (Math.hypot(ap.x - x, ap.z - z) < r && y > ap.y - MARGEN_GOLPE.abajo && y < ap.y + a.def.altura * a.m.esc + MARGEN_GOLPE.arriba) {   // 3.8.0: duendes chiquitos
               if (q.tipo === 'boleadora' && !a.def.pesado) { a.enredadoT = q.enreda || 3; S.enredo(ap); }
               else if (q.tipo === 'boleadora') { a.frenoT = 1.5; S.enredo(ap); }
               if (q.dano > 0) herirAlien(a, arsenal.danoProyectil(q, a), _desde.copy(_p0), q.fuente, impactoEn(a, x, y, z), claseDeProyectil(q));
@@ -2614,38 +2628,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
   }
 
-  // ---------------- caja de suministros del amanecer (cae en paracaídas cerca del jugador)
-  const caja = new THREE.Group();
-  {
-    const madera = lam('#8a6b4a'), oscura = lam('#4a3b2c');
-    const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.6), madera);
-    cuerpo.position.y = 0.3;
-    caja.add(cuerpo);
-    for (const x of [-0.46, 0.46]) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.64, 0.64), oscura); f.position.set(x, 0.3, 0); caja.add(f); }
-    const tela = new THREE.Mesh(new THREE.SphereGeometry(1.6, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), lam('#c9523a', { side: THREE.DoubleSide }));
-    tela.scale.y = 0.55;
-    tela.position.y = 3.3;
-    caja.add(tela);
-    for (let i = 0; i < 4; i++) {
-      const a = i * Math.PI / 2 + Math.PI / 4;
-      const cuerda = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 2.9, 3), oscura);
-      cuerda.position.set(Math.cos(a) * 0.7, 2.0, Math.sin(a) * 0.7);
-      cuerda.rotation.set(Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4);
-      cuerda.userData.cuerda = true;
-      caja.add(cuerda);
-    }
-    // banderín rojo: en el suelo, entre el pasto, la caja se encuentra de lejos
-    const asta = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.6, 4), oscura);
-    asta.position.set(0.35, 1.1, 0.2);
-    caja.add(asta);
-    const banderin = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.02), lam('#d8452e'));
-    banderin.position.set(0.56, 1.75, 0.2);
-    caja.add(banderin);
-    caja.userData.tela = tela;
-    caja.userData.cuerdas = caja.children.filter((c) => c.userData.cuerda);
-    caja.visible = false;
-    escena.add(caja);
-  }
+  // ---------------- caja de suministros del amanecer
+  // 3.8.0: ya no cae en paracaídas: es un cofre que brota del suelo entre raíces, con un brillo dorado
+  // (duendes-modelo.js). Nada vuela. `alturaCaja` es cuánto le falta para asomar entero (va de -0,9 a 0).
+  const caja = mallaCofre();
+  caja.visible = false;
+  escena.add(caja);
+  registrarHalos(caja);
   function soltarCaja(noche) {
     const js = ctx.jugador().estado;
     const azarCaja = azarNoche('caja', noche);
@@ -2658,19 +2647,25 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       return;
     }
   }
-  let alturaCaja = 60;
+  const BROTA = { hondo: 0.9, vel: 0.32 };   // 3.8.0: de cuán abajo sale y a qué velocidad (m/s)
+  let alturaCaja = 0, tBrillo = 0, tTierra = 0;
   function actualizarCaja(dt, js) {
     const c = D().caja;
     if (!c) { caja.visible = false; return; }
     const suelo = T.altura(c.x, c.z);
-    if (!caja.visible) { caja.visible = true; alturaCaja = c.cayendo ? 60 : 0; }
-    alturaCaja = Math.max(0, alturaCaja - dt * 5);
+    if (!caja.visible) { caja.visible = true; alturaCaja = c.cayendo ? -BROTA.hondo : 0; caja.rotation.y = (c.x * 7.1 + c.z * 3.3) % 6.28; }
+    const subiendo = alturaCaja < 0;
+    alturaCaja = Math.min(0, alturaCaja + dt * BROTA.vel);
     if (alturaCaja === 0) c.cayendo = false;
-    caja.position.set(c.x, suelo + alturaCaja, c.z);
-    caja.rotation.y += dt * (alturaCaja > 0 ? 0.6 : 0);
+    caja.position.set(c.x, suelo, c.z);
+    // el cofre sube, las raíces crecen con él y la tierra salta mientras brota
+    caja.userData.cofre.position.y = alturaCaja;
+    caja.userData.raices.scale.set(1, 0.35 + 0.65 * (1 + alturaCaja / BROTA.hondo), 1);
+    if (subiendo) { tTierra -= dt; if (tTierra <= 0) { tTierra = 0.35; _v.set(c.x, suelo + 0.15, c.z); efectos.polvo(_v, 5, '#6b5a44'); } }
+    tBrillo += dt;
+    caja.userData.brilloHalos = 0.8 + 0.25 * Math.sin(tBrillo * 2.2);
+    caja.userData.haz.scale.set(1, 1, 1);
     const enSuelo = alturaCaja === 0;
-    caja.userData.tela.visible = !enSuelo;
-    for (const k of caja.userData.cuerdas) k.visible = !enSuelo;
     if (!enSuelo || Math.hypot(js.pos.x - c.x, js.pos.z - c.z) > 1.8) return;
     const d = D(), partes = [];
     const NOMBRES = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'cristales' };

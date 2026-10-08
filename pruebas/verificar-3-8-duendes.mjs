@@ -141,7 +141,7 @@ for (const tipo of Object.keys(TIPOS_ALIEN)) {
         // el punto débil (los hongos de la joroba): atrás y del 60% de la altura para arriba (PUNTO_DEBIL)
         let ymin = 1e9, zmax = -1e9;
         for (let i = 0; i < hp.length; i++) if (Math.floor(hp[i] / 32 + 0.001) === M.PARTE.debil) { ymin = Math.min(ymin, pos[i * 3 + 1]); zmax = Math.max(zmax, pos[i * 3 + 2]); }
-        assert.ok(ymin < 1e9, 'el Viejo del Nido sin punto débil');
+        assert.ok(ymin < 1e9, 'el Mandamás sin punto débil');
         assert.ok(ymin / r.alto >= PUNTO_DEBIL.desde - 0.12 && zmax < 0, `los hongos de luz en la espalda, arriba (${(ymin / r.alto).toFixed(2)} del alto, z ${zmax.toFixed(2)})`);
       }
       for (let i = 0; i < pos.length; i++) assert.ok(Number.isFinite(pos[i]), `${tipo}: posición inválida`);

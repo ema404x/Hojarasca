@@ -18,18 +18,20 @@ import * as THREE from 'three';
 import { mirada, silueta, acercar } from './mirada.js';
 import { VENA_MUTADO } from './desafio-noche2.js';
 import { TIPOS_ALIEN } from './desafio-reglas.js';
-import { armarDuende, armarLechuza, DUENDES, HUESO, N_HUESOS, mallaNido, mallaMadriguera } from './duendes-modelo.js';
+import { armarDuende, armarLechuza, DUENDES, HUESO, N_HUESOS, mallaNido, mallaMadriguera, mallaCofre } from './duendes-modelo.js';
 import { materialGente } from './gente-cuerpo.js';
 import { ETAPAS } from './desafio-duendes-reglas.js';
 
 const H = HUESO;
 // El detalle de cerca y de lejos, y desde dónde se usa el de lejos (con un margen para no titilar).
 export const DETALLE_CERCA = 0.56, DETALLE_LEJOS = 0.26;
-export const DISTANCIA_LOD = 12;
+export const DISTANCIA_LOD = 9;   // 3.8.0: son chiquitos: a 9 m ya no se ven los dedos
 const MARGEN_LOD = 3;
 // cuánto del alto del invasor llena el duende (con el gorro): un poco menos, la punta cae
 const LLENA = 0.98;
 const LOOKS = { rastreador: 2 };
+// 3.8.0: la lechuza (con el jinete chiquito): ~1,8 m de punta a punta de las alas
+export const ESC_LECHUZA = 0.62;
 
 // ---------------------------------------------------------------- el material (uno para todos)
 const GLSL_RUIDO = `
@@ -64,7 +66,7 @@ function materialDuendes() {
         objectNormal = normalize(mat3(mHuesoD) * objectNormal);`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vObjD = position; vParteD = parteD; vIA = iA; vIB = iB; vIC = iC;
-        // el botín sólo se ve mientras lo lleva (iC.w: 1 = robando, 2 = mutado)
+        // el botín sólo se ve mientras lo lleva (iC.w: 1 = robando, 2 = mutado, 4 = viejo)
         if (parteD > 2.5 && parteD < 3.5 && mod(iC.w, 2.0) < 0.5) transformed = vec3(0.0);
         transformed = (mHuesoD * vec4(transformed, 1.0)).xyz;`);
     sh.fragmentShader = sh.fragmentShader
@@ -79,15 +81,18 @@ function materialDuendes() {
         float bordeDisD = vIA.z > 0.001 ? 1.0 - smoothstep(vIA.z, vIA.z + 0.07, nDisD) : 0.0;`)
       .replace('#include <opaque_fragment>', `
         vec3 VdD = normalize(vViewPosition);
-        // el borde de los que aprendieron (vIC.rgb: el color de la costra; negro = nada)
-        outgoingLight += vIC.rgb * pow(1.0 - saturate(dot(normal, VdD)), 3.0) * (0.25 + vIA.w * 0.35);
+        // el borde de luna (o el de la costra de los que aprendieron); los viejos, de noche, con más filo y
+        // un relleno apenas frío: tienen que dar miedo pero leerse (la silueta, los ojos)
+        float viejoD = step(3.5, vIC.w);
+        outgoingLight += vIC.rgb * pow(1.0 - saturate(dot(normal, VdD)), 3.0) * (0.25 + vIA.w * 0.35) * (1.0 + viejoD * vIA.w * 1.8);
+        outgoingLight += diffuseColor.rgb * vec3(0.05, 0.06, 0.08) * viejoD * vIA.w;
         // de lejos y de noche el cuerpo se apaga: lo primero que se ve de un duende son los ojos
         outgoingLight *= 1.0 - vIB.y * 0.72;
         // los brillos (ojos, hongos de luz, el punto débil): luz propia, del color del vértice
         if (vParteD > 0.5 && (vParteD < 2.5 || vParteD > 3.5)) {
           float ojoD = step(1.5, vParteD) * step(vParteD, 2.5);
           float debilD = step(3.5, vParteD);
-          float mutD = step(1.5, vIC.w);
+          float mutD = mod(floor(vIC.w * 0.5 + 0.01), 2.0);
           float kD = 0.3 + 0.7 * vIA.w;
           kD += ojoD * vIB.x * 1.6;
           kD += debilD * vIB.w * (0.6 + 0.5 * sin(uTiempoD * 3.1));
@@ -139,7 +144,7 @@ function modelo(tipo, viejo, look, lejos) {
   const def = TIPOS_ALIEN[tipo] || TIPOS_ALIEN.rastreador;
   // la escala: el de cerca manda (el de lejos usa la misma, así no salta al cambiar)
   const cerca = lejos ? modelo(tipo, viejo, look, false) : null;
-  const k = cerca ? cerca.k : tipo === 'volador' ? 1.05 : (def.altura * LLENA) / r.alto;
+  const k = cerca ? cerca.k : tipo === 'volador' ? ESC_LECHUZA : (def.altura * LLENA) / r.alto;
   const colorOjos = new THREE.Color(tipo === 'volador' ? '#ffa020' : P.ojos.brillo);
   m = { clave, tipo, geo: r.geo, reposo: r.reposo, padres: r.padres, ojos: r.ojos, k, lejos, malla: null, n: 0, colorOjos };
   MODELOS.set(clave, m);
@@ -179,7 +184,7 @@ export function instalarDuendes(escena) {
   haloPos = new Float32Array(MAX_HALOS * 3); haloCol = new Float32Array(MAX_HALOS * 3);
   gh.setAttribute('position', new THREE.BufferAttribute(haloPos, 3));
   gh.setAttribute('color', new THREE.BufferAttribute(haloCol, 3));
-  halos = new THREE.Points(gh, new THREE.PointsMaterial({ size: 0.42, map: texHalo(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false }));
+  halos = new THREE.Points(gh, new THREE.PointsMaterial({ size: 0.24, map: texHalo(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false }));
   halos.frustumCulled = false; halos.renderOrder = 5;
   raiz.add(halos);
   const antes = escena.onBeforeRender;
@@ -243,7 +248,7 @@ function volcar(cam) {
     A[i * 4] = d.fila; A[i * 4 + 1] = u.uFlash.value; A[i * 4 + 2] = u.uDisolver.value; A[i * 4 + 3] = u.uOjos.value;
     B[i * 4] = u.uMirada.value; B[i * 4 + 1] = u.uSilueta.value; B[i * 4 + 2] = u.uReflejo.value; B[i * 4 + 3] = u.uDebil.value;
     const b = u.uBorde.value;
-    C[i * 4] = b.r; C[i * 4 + 1] = b.g; C[i * 4 + 2] = b.b; C[i * 4 + 3] = (d.robando ? 1 : 0) + (d.mutado ? 2 : 0);
+    C[i * 4] = b.r; C[i * 4 + 1] = b.g; C[i * 4 + 2] = b.b; C[i * 4 + 3] = (d.robando ? 1 : 0) + (d.mutado ? 2 : 0) + (d.viejo() ? 4 : 0);
     // los halos de los ojos (de noche)
     const ojos = u.uOjos.value;
     if (ojos > 0.45 && u.uDisolver.value < 0.3 && nh < MAX_HALOS - 2) {
@@ -357,7 +362,8 @@ export function crearDuende(tipo) {
   const d = {
     g, malla, u, fila, tipo, robando: false,
     get mutado() { return mutado; },
-    halo: 1, escSombra: ESC_SOMBRA[tipo] || 1,
+    halo: 1, escSombra: (ESC_SOMBRA[tipo] || 1) * Math.max(0.5, P.altura / 1.6),
+    viejo: () => st.viejo,
     modeloActual,
     conSombra: () => tipo !== 'volador' && u.uDisolver.value < 0.5,
     volcarHuesos(m) {
@@ -570,7 +576,7 @@ export function precalentarDuendes() {
   if (raiz && !precompilar) {
     precompilar = new THREE.Group();
     precompilar.position.set(0, -600, 0);
-    const piezas = [mallaNido(), mallaMadriguera('aguja'), mallaMadriguera('generador'), mallaMadriguera('suelo'), mallaAtadito()];
+    const piezas = [mallaNido(), mallaMadriguera('aguja'), mallaMadriguera('generador'), mallaMadriguera('suelo'), mallaAtadito(), mallaCofre()];
     for (const p of piezas) { p.traverse((o) => { o.frustumCulled = false; }); precompilar.add(p); }
     raiz.add(precompilar);
   }

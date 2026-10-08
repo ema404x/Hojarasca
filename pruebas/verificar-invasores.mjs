@@ -46,7 +46,8 @@ assert.ok(escupidor.danoObra > tirador.danoObra, 'el ácido come las defensas mu
 // jefe: enorme, durísimo, suelta muchos cristales y tiene punto débil
 assert.equal(jefe.jefe, true);
 assert.ok(jefe.vida >= bruto.vida * 4, 'el jefe tiene que aguantar muchísimo más que el bruto');
-assert.ok(jefe.altura > bruto.altura * 1.5 && jefe.radio > bruto.radio, 'el jefe es mucho más grande');
+// 3.8.0: duendes chiquitos: el grandote ~1 m y el Mandamás ~1,3 m (TALLA_DUENDE)
+assert.ok(jefe.altura > bruto.altura * 1.2 && jefe.radio > bruto.radio, 'el jefe es mucho más grande');
 assert.ok(jefe.dano > bruto.dano && jefe.danoObra > bruto.danoObra, 'el jefe pega más fuerte que el bruto');
 assert.ok(jefe.vel <= bruto.vel, 'el jefe no es rápido');
 assert.ok(jefe.cristales[0] >= 10, 'al caer el jefe suelta muchos cristales');

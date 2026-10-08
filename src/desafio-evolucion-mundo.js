@@ -42,8 +42,9 @@ export function crearEvolucionMundo(efectos, sonido, api) {
       a.m.g.add(g);
       a.m.placas = g;
     }
-    const r = a.def.radio * 0.85, h = a.def.altura;
-    const esc = Math.max(0.7, Math.min(2.4, a.def.radio / 0.45));
+    // 3.8.0: los duendes son chiquitos: la costra va pegada al cuerpo y en proporción
+    const r = a.def.radio * 0.6, h = a.def.altura;
+    const esc = Math.max(0.3, Math.min(1.2, a.def.altura / 1.6));
     for (const m of g.children) {
       m.material = matDe(clase);
       const ang = m.userData.ang;

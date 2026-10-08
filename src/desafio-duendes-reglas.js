@@ -12,7 +12,9 @@ import { esNocheDeJefe } from './desafio-reglas.js';
 // pone el equipo de textos).
 export const DUENDE_DE = {
   rastreador: 'pillo', saltador: 'saltarín', tirador: 'hondero', escupidor: 'panzón',
-  bruto: 'grandote', excavador: 'topo', volador: 'jinete de lechuza', jefe: 'Viejo del Nido',
+  bruto: 'grandote', excavador: 'topo', volador: 'Lechucero', jefe: 'Mandamás',
+  // (y los que no son un tipo: el mutado es «el Viejo», el adaptado «el Baqueano»)
+  mutado: 'Viejo', adaptado: 'Baqueano',
 };
 // Los que siempre son viejos (no tienen pinta de travieso).
 export const SIEMPRE_VIEJOS = new Set(['bruto', 'jefe']);

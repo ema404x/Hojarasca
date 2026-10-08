@@ -44,11 +44,13 @@ const TOMAS = {
   madriguera: { hora: 19.6, madriguera: 1, ojo: [0, 1.65, 0], a: [0, 2.2, 13], fov: 50, duendes: [
     ['rastreador', -2.5, 9.5, 0.4, { agazapado: 1 }],
   ] },
-  // el Viejo del Nido de tres cuartos de espalda: los hongos de luz de la joroba (el punto débil)
+  // el Mandamás de tres cuartos de espalda: los hongos de luz de la joroba (el punto débil)
   jefe: { hora: 21.4, ojo: [0, 1.7, 0], a: [0, 2.2, 8], fov: 55, duendes: [
     ['jefe', 0.6, 8.5, 2.5, { vel: 0.6 }],
     ['bruto', -2.6, 6.5, 0.3, { golpe: 0.6, ataca: 1 }],
   ] },
+  // el cofre del alba, que brota entre raíces
+  cofre: { hora: 6.4, cofre: 1, ojo: [0, 1.5, 0], a: [0, 0.5, 3.6], fov: 50, duendes: [] },
   ataque: { hora: 22.0, ojo: [0, 1.65, 0], a: [0, 1.0, 14], fov: 62, luna: 1, ataque: 30, medir: 1, duendes: [] },
 };
 
@@ -127,6 +129,7 @@ app.whenReady().then(async () => {
         H.progreso.desafio.capullos = [{ x: w.x, z: w.z, golpes: 0 }, { x: w2.x, z: w2.z, golpes: 0 }];
         D.sincronizarCapullos();
       }
+      const wc = aMundo(0, 3.6);
       if (t.madriguera) {
         const d = H.progreso.desafio, w = aMundo(0, 13);
         d.puestos = d.puestos && Array.isArray(d.puestos.lista) ? d.puestos : { lista: [], proximoId: 1, golpes: [], rotos: 0 };
@@ -156,13 +159,15 @@ app.whenReady().then(async () => {
         requestAnimationFrame(paso);
       }
       const ojo = aMundo(t.ojo[0], t.ojo[2]), mira = aMundo(t.a[0], t.a[2]);
-      return JSON.stringify({ o: { x: ojo.x, z: ojo.z, y: T.altura(ojo.x, ojo.z) + t.ojo[1] }, a: { x: mira.x, z: mira.z, y: T.altura(mira.x, mira.z) + t.a[1] }, hora: t.hora, fov: t.fov, n: window.__escena.length });
+      return JSON.stringify({ o: { x: ojo.x, z: ojo.z, y: T.altura(ojo.x, ojo.z) + t.ojo[1] }, a: { x: mira.x, z: mira.z, y: T.altura(mira.x, mira.z) + t.a[1] }, hora: t.hora, fov: t.fov, n: window.__escena.length, cofre: t.cofre ? [wc.x, wc.z] : null });
     })()`).catch((e) => { console.log('falló', nombre, String(e).slice(0, 300)); return null; });
     if (!r) continue;
     const toma = JSON.parse(r);
     const poner = `(() => { const H = window.__hojarasca, js = H.jugador.estado, t = ${JSON.stringify(toma)};
       H.progreso.horas = t.hora; H.clima.estado.nublado = 0.05; H.ajustes.estacion = 'verano';
-      if (H.pasto?.malla) H.pasto.malla.visible = false;   // (el pasto alto tapa las patitas en las fotos)
+      if (H.pasto?.malla) H.pasto.malla.visible = false;
+      // (el cofre: después de poner la hora, que el amanecer suelta el suyo donde quiere)
+      if (t.cofre) { const c = H.progreso.desafio.caja; if (!c || Math.hypot(c.x - t.cofre[0], c.z - t.cofre[1]) > 0.5) H.progreso.desafio.caja = { x: t.cofre[0], z: t.cofre[1], contenido: { tronco: 1 }, cayendo: true }; }   // (el pasto alto tapa las patitas en las fotos)
       { const pm = H.perro && H.perro.malla; const pg = pm && (pm.isObject3D ? pm : pm.g); if (pg) pg.traverse((o) => o.layers.set(7)); }
       const o = t.o, a = t.a;
       const yaw = Math.atan2(-(a.x - o.x), -(a.z - o.z)), pitch = Math.atan2(a.y - o.y, Math.hypot(a.x - o.x, a.z - o.z));
