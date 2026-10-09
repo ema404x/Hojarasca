@@ -14,6 +14,7 @@
 // 11. El nombre que le ponés a una obra (T.lugares, propia) no cuenta como edificio del mundo al construir: trababa
 //     mover esa obra cerca de donde estaba y volver a fundar donde la desarmaste (hasta recargar la partida).
 // 12. Los fletes tomados hoy se recuerdan todos al cargar (con 40, uno ya entregado se podía volver a tomar y cobrar).
+// 13. El tobillo de Nicanor no vuelve encadenado al puente que cedió si ya pasó (recompensa doble).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -27,6 +28,7 @@ import * as Gallinero from '../src/gallinero.js';
 import * as Huerta from '../src/huerta.js';
 import * as Visitas from '../src/visitas.js';
 import * as Comercio from '../src/comercio.js';
+import * as EV from '../src/eventos-valle.js';
 import { crearTraductor } from '../src/idioma.js';
 import { EN } from '../src/idioma-en.js';
 
@@ -234,6 +236,17 @@ const trozo = (desde, hasta) => {
   const tomados = Array.from({ length: 66 }, (_, i) => `7|Parada ${i % 11}|${Math.floor(i / 11)}`);
   const c = Comercio.sanearComercio(JSON.parse(JSON.stringify({ hoy: { dia: 7, vendidos: {}, comprados: {}, tomados }, fletes: [] })));
   ok(c.hoy.tomados.length === 66 && c.hoy.tomados.includes(tomados[65]), `los 66 fletes de un día (6 por parada) se recuerdan al cargar (${c.hoy.tomados.length})`);
+}
+
+// ---------------------------------------------------------------- 13. el tobillo de Nicanor, una sola vez
+{
+  const ev = EV.eventosValleNuevos(() => 0.5);
+  ev.hechos.tobillo = { dia: 6, opcion: 'llevar' };
+  ev.pendientes.push({ id: 's-puente-caida', dia: 20 });
+  const r = EV.cerrarSeguimiento(ev, 's-puente-caida', 20);
+  ok(r && !r.cadena && !ev.activo, 'con el tobillo ya curado, el puente que cedió no lo vuelve a traer');
+  const ev2 = EV.eventosValleNuevos(() => 0.5); ev2.pendientes.push({ id: 's-puente-caida', dia: 20 });
+  ok(EV.cerrarSeguimiento(ev2, 's-puente-caida', 20).cadena?.id === 'tobillo', 'sin tobillo antes, sigue encadenado como siempre');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);
