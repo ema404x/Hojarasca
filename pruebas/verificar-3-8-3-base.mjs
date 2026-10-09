@@ -42,7 +42,7 @@ const main = leer('src/main.js');
 // 4. F2 prende el modo foto sólo desde el juego (jugando, la pausa, el cuaderno o el mapa): en la portada, la
 //    victoria o la tarjeta del valle dejaba ese panel encima y el juego corriendo detrás.
 {
-  ok(main.includes("const fotoPosible = foto.activo || modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa';"), 'F2: en qué pantallas');
+  ok(main.includes("const fotoPosible = foto.activo || ((modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') && $('logros').classList.contains('oculto') && !modos?.panelAbierto());"), 'F2: en qué pantallas (y sin los logros ni las carreras encima)');
   ok(main.includes("if (e.code === 'F2' && jugador && fotoPosible && "), 'F2 mira la pantalla');
 }
 
