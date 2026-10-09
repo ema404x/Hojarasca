@@ -1482,7 +1482,7 @@ const FILAS = {
 };
 function lugaresDe(tipo) {
   const y = COCHE.piso, sentado = y + 0.44, lugares = [];
-  const atras = { x: 0, z: -(COCHE.L / 2 + 0.45), y, plataforma: true };
+  const atras = { x: 0, z: -(COCHE.L / 2 + 0.45), y, lado: 0, plataforma: true };   // 3.8.3: sin `lado`, moverse daba NaN y nunca se llegaba
   if (tipo === 'segunda' || tipo === 'primera') {
     FILAS[tipo].forEach((z) => {
       for (const s of [-1, 1]) {

@@ -50,6 +50,9 @@ export function crearPuestoDeCargas(ctx) {
     p.cosas.yerba = Math.max(0, (p.cosas.yerba || 0) + n);
   }
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();
+  // 3.8.3: lo que va de a uno, en singular (decía «Compraste 1 ponchos», «1 frascos de miel»)
+  const UNO = { cristal: 'un cristal', miel: 'un frasco de miel', 'trucha-ahumada': 'una trucha ahumada', 'frasco-frutilla': 'un frasco de dulce', 'calafate-seco': 'un puñado de calafates secos', 'hongos-secos': 'un llao llao seco', poncho: 'un poncho' };
+  const cuantos = (bien, n) => (n === 1 && Object.hasOwn(UNO, bien) ? UNO[bien] : `${n} ${minuscula(bien)}`);
 
   // ------------------------------------------------ las filas de cada modo
   function filas() {
@@ -172,7 +175,7 @@ export function crearPuestoDeCargas(ctx) {
     cobrar(-r.precio);
     sumar(bien, r.cantidad);
     ctx.sonido?.juntar?.();
-    ctx.nota(`Compraste ${r.cantidad} ${minuscula(bien)}`, `Pagaste ${r.precio} de yerba · te quedan ${yerba()}`);
+    ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`, `Pagaste ${r.precio} de yerba · te quedan ${yerba()}`);
     ctx.refrescar(); ctx.guardar(); dibujar();
     return true;
   }
@@ -188,7 +191,7 @@ export function crearPuestoDeCargas(ctx) {
     sumar(bien, -r.cantidad);
     cobrar(r.precio);
     ctx.sonido?.juntar?.();
-    ctx.nota(`Vendiste ${r.cantidad} ${minuscula(bien)}`, `Te dieron ${r.precio} de yerba · tenés ${yerba()}`);
+    ctx.nota(`Vendiste ${cuantos(bien, r.cantidad)}`, `Te dieron ${r.precio} de yerba · tenés ${yerba()}`);
     ctx.refrescar(); ctx.guardar(); dibujar();
     return true;
   }

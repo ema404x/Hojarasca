@@ -104,7 +104,7 @@ import { crearTallerJuego } from './taller-tren-juego.js';
 import { crearFiestasJuego } from './fiestas-juego.js';
 import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
-import { PLANOS_COCINA_E, RECETA_PASOS } from './cocina-pasos.js';
+import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN } from './cocina-pasos.js';
 import { sumarAmistadDe, nombreCorto, amistades } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
@@ -807,6 +807,10 @@ async function construir() {
   else jugador.ubicar(ref.puerta.x, ref.puerta.z, ref.mira);
   // 2.8: lo personal: tu cuerpo, tu mano y tu bandera, y cada sección aplica lo guardado
   armarMundoPersonal();
+  // (una partida guardada con el caballo en la jaula: baja en la parada más cerca)
+  // 3.8.3: después de ubicar al jugador (y de ponerle su nombre al caballo). Antes corría con el jugador recién creado en (0, 0): bajarCaballoDelTren()
+  // guardaba esa posición y aparecías en el medio del mapa, con el caballo en la parada más cerca de ahí
+  if (!desafio && progreso.trenViaje?.caballo && !jugador.estado.enTren) bajarCaballoDelTren();
 
   U.uOtono.value = ajustes.estacion === 'otono' ? 1 : 0;
   U.uInvierno.value = ajustes.estacion === 'invierno' ? 1 : 0;
@@ -4531,8 +4535,6 @@ function armarOficiosYAldea(esDesafio) {
       pos: () => { const v = tren.tren.vagon('comedor'), k = tren.tren.posCocina; if (!v || !k) return null; v.updateMatrixWorld(); enMundo.set(k.x, k.y, k.z).applyMatrix4(v.matrixWorld); return { x: enMundo.x, y: enMundo.y, z: enMundo.z }; },
     });
   }
-  // (una partida guardada con el caballo en la jaula: baja en la parada más cerca)
-  if (progreso.trenViaje?.caballo && !jugador?.estado?.enTren) bajarCaballoDelTren();
   // 3.7.2 (granja): la granja en el juego: E y el aviso, los trueques en la charla y el paso de los días
   granjaJuego = crearGranjaJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, mundo: granjaMundo,
@@ -5157,7 +5159,10 @@ function desmontar() {
   c.x = js.pos.x; c.z = js.pos.z; c.yaw = yawCaballo(js.yaw);
   js.montado = null;
   // se baja por la izquierda, como se baja de un caballo
-  js.pos.x -= Math.cos(js.yaw) * 1.1; js.pos.z += Math.sin(js.yaw) * 1.1;
+  // 3.8.3: si del lado izquierdo hay una pared o una cerca, por la derecha; si hay de los dos lados, al lado
+  // del zaino (antes el salto de 1,1 m te pasaba a través de la pared: adentro de una casa o de un corral)
+  const lado = [1, -1].find((s) => !col?.paredEntre?.(js.pos.x, js.pos.z, js.pos.x - s * Math.cos(js.yaw) * 1.1, js.pos.z + s * Math.sin(js.yaw) * 1.1, js.pos.y + 0.2, js.pos.y + 1.6, true)) || 0;
+  js.pos.x -= lado * Math.cos(js.yaw) * 1.1; js.pos.z += lado * Math.sin(js.yaw) * 1.1;
   nota('Bajaste del zaino', 'Queda acá. Volvé a subir con E');
   guardar();
 }
@@ -5236,7 +5241,8 @@ function subirCaballoAlTren() {
   tren.subir(jugador);
   diario.anotar('tren'); registrar('viaje');
   sonido.casco?.('madera', 1);
-  nota(`Subiste ${caballoMundo?.nombre?.() || 'al zaino'} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos');
+  // 3.8.3: con nombre propio decía «Subiste Tormenta a la jaula» (faltaba la «a»)
+  { const n = caballoMundo?.nombre?.(); nota(`Subiste ${n ? `a ${n}` : 'al zaino'} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos'); }
   guardar();
 }
 // al bajarte en una parada: tu caballo baja con vos, al costado del andén (pasando la escalera)
@@ -5653,6 +5659,17 @@ function devolverContenido(d) {
   if (d.muela) { const m = sanearMuela(d.muela); if (m.habas) sumarEntrada('haba', m.habas); if (m.harina) progreso.cosas.harina = (Number(progreso.cosas.harina) || 0) + m.harina; }
   if (d.colmena) { const c = sanearColmena(d.colmena); if (c.miel) sumarEntrada('miel', c.miel); }
   if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
+  // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
+  // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
+  if (d.coccion) {
+    const c = sanearCoccion(d.coccion);
+    if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
+      const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
+      if (n <= 0) continue;
+      if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
+      else sumarEntrada(x.k, n);
+    }
+  }
   refrescarBarra(true);
 }
 // 3.5.1: la pieza de varias etapas de este plano que quedó a medio hacer más cerca (o null)
@@ -6251,7 +6268,7 @@ function actualizarMaquinas(dt) {
   if (relojMaquinas <= 0) {
     relojMaquinas = 0.5;
     if (!molinoMundo) { molinoMundo = crearMolinoMundo(T, escena); meteoMundo = crearMeteoMundo(T, escena); }
-    revisarMaquinas();
+    if (!foto.activo) revisarMaquinas();   // 3.8.3: tampoco la muela ni el aserradero (con el deslizador ida y vuelta, aserraban de arriba)
   }
   if (!molinoMundo) return;
   molinoMundo.animar(dt);
@@ -7370,6 +7387,12 @@ function marcarHud(mover = 0, mostrar = false) {
   if (!l?.ul) { marcaHud.panel = null; return null; }
   if (marcaHud.panel !== l.id) { marcarEn(l.id, 0); mostrar = true; }
   let lis = l.ul.children;
+  // 3.8.3: en el puesto de cargas, pasando el final (o el principio) de la lista se cambia de modo: comprar, vender, fletes.
+  // Con el mando no hay Tab: abría en «Comprar» y no había cómo llegar a vender ni a los fletes (con la lista vacía, tampoco)
+  if (l.id === 'cargas' && mover) {
+    const j = Math.min(marcaHud.i, lis.length - 1) + mover;
+    if (!lis.length || j < 0 || j >= lis.length) { puestoCargas.pasarModo(mover < 0 ? -1 : 1); lis = l.ul.children; marcaHud.i = mover < 0 ? Math.max(0, lis.length - 1) : 0; mover = 0; mostrar = true; }
+  }
   if (!lis.length) return l;
   let i = Math.min(marcaHud.i, lis.length - 1) + mover;
   // (en el almacén, más allá de la página se pasa a la de al lado: con el mando no hay Tab)
@@ -7386,7 +7409,8 @@ function marcarHud(mover = 0, mostrar = false) {
     if (lis[k].classList.contains('elegida') !== si) { lis[k].classList.toggle('elegida', si); if (si) mostrar = true; }
   }
   if (mostrar) lis[i].scrollIntoView?.({ block: 'nearest' });
-  if (habiaMando && l.pie && l.pie.textContent !== PIE_PANEL_MANDO) l.pie.textContent = PIE_PANEL_MANDO;
+  const pie = l.id === 'cargas' ? `${PIE_PANEL_MANDO} · pasando el final de la lista, otro modo` : PIE_PANEL_MANDO;   // 3.8.3
+  if (habiaMando && l.pie && l.pie.textContent !== pie) l.pie.textContent = pie;
   return l;
 }
 function elegirHud(i = null) {
@@ -8410,8 +8434,10 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
-    try { if (modo === 'jugando' && !desafio) { cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
-    try { if (modo === 'jugando' && !desafio) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
+    // 3.8.3: en el modo foto la hora es la del deslizador (`aplicarFoto`): la cocina y el taller no corren con esa hora (pasar
+    // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
+    try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
+    try { if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
     try { if (modo === 'jugando' && !desafio) { fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt); if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
@@ -8692,6 +8718,9 @@ function cuadroDelJuego(tRaf, manual) {
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco
     if (js.enCable) aviso = null;
+    // 3.8.3: con un panel abierto E lo cierra (ver la tecla E): lo de más arriba (el tren, el fuego, el tendal, el caballo)
+    // volvía a escribir el aviso después de borrarlo
+    if (enElAlmacen || enLaFeria || enLasCargas() || cocinaJuego?.panelAbierto() || tallerTren?.panelAbierto()) aviso = null;
     mostrarAviso(aviso);
     const estado = $('estado');
     if (js.enTren && estadoTren && estadoTren.conduce) {
@@ -8710,7 +8739,8 @@ function cuadroDelJuego(tRaf, manual) {
       const donde = estadoTren.asiento && estadoTren.asiento.plataforma ? 'En la plataforma abierta' : 'En tu asiento';
       const paradaActual = estadoTren.parado ? tren.paradaCerca(js) : null;
       textoTren = estadoTren.parado
-        ? `Parado en ${paradaActual ? paradaActual.nombre : 'la parada'} · E para bajar · W A S D para cambiar de lugar`
+        // 3.8.3: en la cocina del comedor, la cucheta o la mesa del mate, E hace eso (como el aviso): para bajar, primero cambiás de lugar
+        ? `Parado en ${paradaActual ? paradaActual.nombre : 'la parada'} ${avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar de lugar y bajar' : '· E para bajar · W A S D para cambiar de lugar'}`
         : `Próxima parada: ${p.nombre} · ${Math.round(estadoTren.falta)} m · ${donde}`;
     } else {
       const anden = tren.paradaCerca(js);

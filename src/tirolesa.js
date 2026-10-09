@@ -239,7 +239,9 @@ export function crearTirolesas(T, escena, col, veg, sonido, ctx = {}) {
     viaje = null;
     roldana.visible = false;
     js.enCable = false;
-    jugador.ubicar(p.x, p.z, js.yaw);
+    // 3.8.3: a la altura del pie del poste de llegada: sin cota, con el poste arriba de un piso o una torre, aparecías en
+    // la plataforma más baja de ese punto (abajo del deck, o adentro de lo que hubiera debajo)
+    jugador.ubicar(p.x, p.z, js.yaw, pieDeLlegada(v));
     sonido?.golpeKayak?.();
     ctx.alLlegar?.(v.linea, v.maxV);
     ctx.nota?.('Llegaste al otro poste', `${Math.round(v.linea.largo)} m de tirolesa · ${Math.round(v.maxV * 3.6)} km/h de punta`);
@@ -327,10 +329,15 @@ export function crearTirolesas(T, escena, col, veg, sonido, ctx = {}) {
   }
 
   // guardando colgado del cable: se aparece en el poste de llegada
+  // el pie del poste al que se llega (null si no se sabe)
+  function pieDeLlegada(v) {
+    const fin = v.dir > 0 ? v.linea.ob : v.linea.oa, y = Number(fin?.datos?.y);
+    return Number.isFinite(y) ? y : null;
+  }
   function posParaGuardar() {
     if (!viaje) return null;
-    const p = enCable(viaje, viaje.linea.largo - 1.6);
-    return { x: p.x, z: p.z };
+    const p = enCable(viaje, viaje.linea.largo - 1.6), y = pieDeLlegada(viaje);
+    return y === null ? { x: p.x, z: p.z } : { x: p.x, y, z: p.z };   // 3.8.3: con la altura de la llegada, como en `llegar`
   }
 
   // ¿se tendería entre dos pies (x, y, z del suelo)? Lo usa la guía y sirve para probar
