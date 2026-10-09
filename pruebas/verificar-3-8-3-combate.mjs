@@ -123,4 +123,32 @@ const des = leer('src/desafio.js');
   assert.match(des, /if \(RECUPERABLES\[proyectiles\[i\]\.tipo\] && !proyectiles\[i\]\.terminado\) arsenal\.alTerminar\(proyectiles\[i\], 'vida'\);/, 'y las que iban en el aire');
 }
 
+// ---------------------------------------------------------------- 5. el fortín: lo ya roto, la zanja guardada, el pasto, la rampa
+{
+  const fm = leer('src/desafio-fortin-mundo.js');
+  // las listas del fortín se rehacen una vez por segundo: E juntaba dos veces los mismos abrojos (devolvían lo que
+  // cuestan dos veces) o cargaba piedras en una catapulta ya rota. Sólo cuenta lo que sigue en pie.
+  const inter = extraer(fm, 'interaccionCerca');
+  assert.match(inter, /&& obras\.obras\.includes\(o\)\) \{ d0 = d; mejor = \{ o, tipo \}; \}/, 'E y el aviso sólo con obras en pie');
+  {
+    const o = { datos: { x: 0, z: 0, vida: 10 }, plano: { radio: 1, vida: 10 } };
+    const ctx = {
+      L: { catapulta: [], troncos: [], puente: [], lazo: [], abrojos: [o], rampa: [], armero: [] }, conResina: [], paredes: [], obras: { obras: [] },
+      base: () => 0, Math, HELABLES: [], invierno: () => 0, avisoResina: () => null, recargaArmero: () => ({}), api: {}, FORTIN: { catapulta: { piedras: 4 } },
+    };
+    vm.createContext(ctx);
+    vm.runInContext(`${inter}; this.f = interaccionCerca;`, ctx);
+    assert.equal(ctx.f({ x: 0, y: 0, z: 0 }, false), null, 'los abrojos ya juntados (todavía en la lista vieja) no se juntan otra vez');
+    ctx.obras.obras.push(o);
+    assert.equal(ctx.f({ x: 0, y: 0, z: 0 }, false)?.tipo, 'abrojos', 'los que siguen en pie, sí');
+  }
+  // la zanja guardada ardiendo vuelve apagada (sanearZanja), pero el fuego seguía hasta que te acercabas
+  const zanjas = extraer(des, 'actualizarZanjas');
+  assert.match(zanjas, /const ardiendo = zanjas\.filter\(\(o\) => \(datosZanja\(o\)\.ardiendo \|\| 0\) > 0\);/, 'el fuego de la zanja pasa por datosZanja');
+  // el fuego del pasto quema la madera sana (no sólo la ya golpeada, que era la única con `vida` anotada)
+  assert.match(zanjas, /if \(completa\(o\) && !esPiedra\(o\)\) danarObra\(o, ESCAPE\.danoObra \* 0\.5\);/, 'el pasto quema la madera');
+  // los troncos de la rampa pasan por encima de lo que está a ras del suelo
+  assert.match(extraer(fm, 'chocaTronco'), /if \(o && \(o\.plano\.alto \|\| 1\) > 0\.5\) return true;/, 'la rampa pasa por encima de abrojos y pozos');
+}
+
 console.log('verificar-3-8-3-combate: ok');

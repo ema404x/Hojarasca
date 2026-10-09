@@ -3101,7 +3101,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 2.6.1: sin zanjas ni fuego suelto no hay nada que hacer (y el filter pedía memoria en cada cuadro)
     if (!zanjas.length && !focos.length) { if (lucesZanja) for (const l of lucesZanja) l.intensity = 0; return; }
     const clima = api.clima();
-    const ardiendo = zanjas.filter((o) => (o.datos.zanja?.ardiendo || 0) > 0);
+    // 3.8.3: por datosZanja, como el aviso y la E: una zanja guardada ardiendo seguía con el fuego hasta que te
+    // acercabas y se apagaba de golpe, sin aviso (guardada, la zanja vuelve apagada: ver sanearZanja)
+    const ardiendo = zanjas.filter((o) => (datosZanja(o).ardiendo || 0) > 0);
     if (!ardiendo.length && !focos.length) { if (lucesZanja) for (const l of lucesZanja) l.intensity = 0; return; }
     const luces = lucesDeZanja();
     for (const l of luces) l.intensity = 0;
@@ -3156,7 +3158,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       }
       if (Math.hypot(js.pos.x - f.x, js.pos.z - f.z) < r + 0.3 && Math.abs(suelo - y) < 1.2) herirJugador(ESCAPE.dano * 0.5, { x: f.x, y, z: f.z });
       _v.set(f.x, y, f.z);
-      for (const o of obras.obrasCerca(_v, r + 1.5, [])) if (completa(o) && !esPiedra(o) && Number.isFinite(o.datos.vida)) danarObra(o, ESCAPE.danoObra * 0.5);
+      // 3.8.3: también la madera sana (antes sólo la ya golpeada: la vida se anota recién con el primer golpe)
+      for (const o of obras.obrasCerca(_v, r + 1.5, [])) if (completa(o) && !esPiedra(o)) danarObra(o, ESCAPE.danoObra * 0.5);
     }
   }
 
