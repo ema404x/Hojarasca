@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { calidadParaEquipo } from '../src/calidad-equipo.js';
+import { cambiarTecla, sanearMapaTeclas, mapaPorDefecto, TECLAS_POR_DEFECTO } from '../src/accesibilidad.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -44,6 +45,15 @@ const main = leer('src/main.js');
 {
   ok(main.includes("const fotoPosible = foto.activo || ((modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') && $('logros').classList.contains('oculto') && !modos?.panelAbierto());"), 'F2: en qué pantallas (y sin los logros ni las carreras encima)');
   ok(main.includes("if (e.code === 'F2' && jugador && fotoPosible && "), 'F2 mira la pantalla');
+}
+
+// 5. F11 es la pantalla completa (main.cjs la toma antes que la página): no se le puede dar a una acción, y una
+//    guardada en F11 vuelve a la de fábrica.
+{
+  ok(/tecla.key === 'F11'/.test(leer('main.cjs')), 'main.cjs se queda con F11');
+  ok(!cambiarTecla(mapaPorDefecto(), 'linterna', 'F11').ok, 'F11 no se puede asignar');
+  ok(sanearMapaTeclas({ ...mapaPorDefecto(), linterna: 'F11' }).linterna === TECLAS_POR_DEFECTO.linterna, 'una F11 guardada vuelve a la de fábrica');
+  ok(cambiarTecla(mapaPorDefecto(), 'linterna', 'F10').ok, 'las otras F siguen sirviendo');
 }
 
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);
