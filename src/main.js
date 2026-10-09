@@ -2489,6 +2489,9 @@ let parteUltimo = null;
 { const estilo = document.createElement('style'); estilo.textContent = CSS_PARTE; document.head.appendChild(estilo); }
 function mostrarVictoria(s, final = false) {
   setTimeout(() => {
+    // 3.8.3: en esos segundos se pudo pausar (espera a que vuelvas) o salir a la portada (ahí no se abre: quedaba la
+    // pantalla de victoria sobre la portada y «Seguir» volvía al juego detrás de ella)
+    if (modo !== 'jugando') { if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle') mostrarVictoria(s, final); return; }
     // 3.0: si se ganó desde adentro de la nave (el asedio), la pantalla lo cuenta
     $('victoria-titulo').textContent = final ? 'Se derrumbó la cueva' : s?.nave ? 'El Coihue cayó desde adentro' : '¡Cayó el Coihue Viejo!';
     $('victoria-sub').textContent = final ? 'Se terminó La noche de los duendes' : 'Ganaste La noche de los duendes';
