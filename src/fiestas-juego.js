@@ -616,7 +616,11 @@ export function crearFiestasJuego(ctx) {
     if (v === 'chinchon') {
       const p = panel.juego, ro = p.ronda;
       const mano = ro.cartas[0];
-      const lig = mejorLigado(mano.length > 7 ? mano.slice(0, 7) : mano);
+      // 3.8.3: con 8 cartas (recién levantada), lo que quedaría suelto tirando la mejor (antes dejaba afuera la levantada)
+      // (se guarda por mano: el panel se rehace seguido y esto son ~0,4 ms)
+      const claveMano = JSON.stringify(mano);
+      if (panel.ligMano !== claveMano) { panel.ligMano = claveMano; panel.lig = mano.length > 7 ? { resto: Math.min(...mano.map((_c, i) => mejorLigado(mano.filter((_x, k) => k !== i)).resto)) } : mejorLigado(mano); }
+      const lig = panel.lig;
       const arriba = ro.pozo[ro.pozo.length - 1];
       const html = `<div class="mesa-juego"><div class="fila-cartas"><span class="rotulo">${esc(quien)}</span>${ro.cartas[1].map(() => dorso(true)).join('')}</div>
         <div class="fila-cartas"><span class="rotulo">Mazo</span>${dorso(true)}<span class="rotulo">Pozo</span>${arriba ? signo(arriba) : ''}</div>
