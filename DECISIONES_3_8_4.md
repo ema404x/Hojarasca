@@ -174,6 +174,17 @@ arriba; vecina con su historia y opción de romance como las otras candidatas.
 **La bailarina:** los sábados a la noche hay peña: guitarra y bombo en el rincón, y una bailarina de chamamé o
 tango con vestido de fiesta, sensual pero sin desnudos; la podés invitar a bailar (con lo aprendido con Pocha).
 
+**Personalidad y ropa sensual (pedido del usuario):**
+- **La moza:** coqueta y segura de sí misma, picante, con humor de doble sentido liviano y mirada cómplice; te carga,
+  te guiña, se ríe fuerte, pone en su lugar a los borrachos de un solo comentario. Se mueve con soltura entre las
+  mesas (caminar con cadencia, la bandeja en alto, se apoya en la barra). Ropa: vestido ceñido de la época (años
+  20–40, de campo), con escote, falda con tajo, medias, pañuelo rojo al cuello, labios rojos, pelo suelto o recogido
+  con una flor; un delantal corto atado a la cintura cuando atiende.
+- **La bailarina de los sábados:** vestido de fiesta ajustado (de tango con tajo, o de chamamé con vuelo), tacos,
+  flor en el pelo; baile sensual y seguro, mirada al público, te elige para sacarte a bailar.
+- Límite: sensual sin desnudos ni escenas explícitas (mantiene la calificación del juego en Steam). Las dos son
+  adultas y personajes con su historia, no adorno.
+
 **Para después, si gusta:** que la casa de té pase a funcionar igual (la galesa viene a la mesa, carta de tés y
 tortas galesas, trae la bandeja).
 
