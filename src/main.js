@@ -4031,9 +4031,13 @@ function sinParedEnMedio(o) {
   return col?.paredEntre?.(js.pos.x, js.pos.z, o.datos.x, o.datos.z, js.pos.y + 0.9, js.pos.y + 0.9, true, o) ? null : o;
 }
 function funcionAlAlcance(funcion, radio) { return sinParedEnMedio(obras?.tieneFuncionCerca?.(funcion, jugador.estado.pos, radio)); }
+// 3.8.3: el de una obra, también a través de los pisos: sin la altura (tieneFuncionCerca descarta lo que está a más de
+// 1,55 m de alto, pensado para catres apilados): parado en el entrepiso o en el mirador, el acopio del suelo no contaba
+const planoAcopio = { x: 0, z: 0 };
 function hayAcopioCerca(radio) {
   // el acopio de una obra (18 m) cuenta a través de las paredes; el de la mano, no
-  return !!(radio > RADIO_ACOPIO_MANO ? obras?.tieneFuncionCerca?.('acopio', jugador.estado.pos, radio) : funcionAlAlcance('acopio', radio));
+  if (radio > RADIO_ACOPIO_MANO) { planoAcopio.x = jugador.estado.pos.x; planoAcopio.z = jugador.estado.pos.z; }
+  return !!(radio > RADIO_ACOPIO_MANO ? obras?.tieneFuncionCerca?.('acopio', planoAcopio, radio) : funcionAlAlcance('acopio', radio));
 }
 function totalAcopio() { return CLAVES_MATERIAL.reduce((s, k) => s + (acopio()[k] || 0), 0); }
 function totalEnMano() { return CLAVES_MATERIAL.reduce((s, k) => s + material(k), 0); }

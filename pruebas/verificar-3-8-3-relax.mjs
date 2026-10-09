@@ -8,6 +8,7 @@
 //    nidal y la cosecha lista del cantero (antes se perdían; también en el desalojo de la aldea).
 // 6. Con los planos, Y sigue la obra a medio hacer más cercana: una terminada al lado ya no traba fundar otra igual.
 // 7. «Recibí una visita» (capítulo 8) se tilda con una visita de verdad, no con el turno del que no pudo venir.
+// 8. El acopio de la obra cuenta parado en un piso de arriba (el entrepiso, el mirador).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -183,6 +184,19 @@ const trozo = (desde, hasta) => {
   r = H.revisarHistoria(h, H.estadoHistoria(prog));
   ok(r.nuevos.some((o) => o.id === 'visita'), 'y una visita de verdad, sí');
   ok(main.includes('if (!traerVisita(quienViene(v.cuenta), puesta, true)) { saltearTurno(v); return; }'), 'main.js saltea el turno con saltearTurno');
+}
+
+// ---------------------------------------------------------------- 8. el acopio, desde un piso de arriba
+{
+  const codigo = trozo('const planoAcopio = { x: 0, z: 0 };', "funcionAlAlcance('acopio', radio));\n}");
+  const cons = leer('src/construccion.js');
+  ok(cons.includes('const py = Number.isFinite(pos?.y) ? pos.y : null;') && cons.includes('if (dy > 1.55) continue;'), 'construccion.js: tieneFuncionCerca descarta lo que está a otra altura (si se le pasa la altura)');
+  let visto = null;
+  const ctx = { RADIO_ACOPIO_MANO: 3, jugador: { estado: { pos: { x: 4, y: 7.3, z: -2 } } }, obras: { tieneFuncionCerca: (f, pos, r) => { visto = { ...pos }; return f === 'acopio' && r === 18; } }, funcionAlAlcance: () => 'mano' };
+  vm.createContext(ctx);
+  vm.runInContext(`${codigo}\nthis.hayAcopioCerca = hayAcopioCerca;`, ctx);
+  ok(ctx.hayAcopioCerca(18) === true && visto && visto.x === 4 && visto.z === -2 && !('y' in visto), 'el acopio de la obra se busca sin la altura (cuenta desde el entrepiso)');
+  ok(ctx.hayAcopioCerca(2) === true, 'el de la mano sigue igual (funcionAlAlcance)');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);
