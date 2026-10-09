@@ -354,7 +354,10 @@ app.whenReady().then(async () => {
     const enRefugio = await bajoLluvia(`[window.__hojarasca.T.lugares.refugio.x, window.__hojarasca.T.lugares.refugio.z]`);
     ok(enRefugio.espacio === 'adentro', `en el refugio se oye como adentro (${enRefugio.espacio})`);
     ok(enRefugio.gotas > 3 && enRefugio.material === 'chapa', `y la lluvia repiquetea en la chapa (${enRefugio.gotas} gotas, ${enRefugio.material})`);
-    const filtro = await js(`Math.round(window.__hojarasca.sonido.filtroAmbiente.frequency.value)`);
+    // 3.8.3: el filtro baja de a poco (setTargetAtTime, 0,4 s) desde que se entra: se espera hasta 3 s (leído enseguida
+    // de las gotas, a veces iba por la mitad: 4261 Hz, 6915 Hz)
+    let filtro = Infinity;
+    for (let i = 0; i < 10 && filtro >= 4000; i++) { if (i) await esperar(300); filtro = await js(`Math.round(window.__hojarasca.sonido.filtroAmbiente.frequency.value)`); }
     ok(filtro < 4000, `las paredes se comen los agudos de afuera (filtro en ${filtro} Hz)`);
     // la carpa: se arma lejos de todo techo
     const enCarpa = await bajoLluvia(`(()=>{ const T = window.__hojarasca.T, r = T.lugares.refugio; return [r.x + 60, r.z + 40] })()`,
