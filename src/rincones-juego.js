@@ -24,6 +24,7 @@ import { SERVICIO, esVecinoAldea, esPobladorAldea } from './aldea.js';
 import { sumarAmistadDe, amistades, nivelDe } from './vecindad.js';
 import { hijosDe } from './amor.js';
 import { cumplirDeseo } from './vecindad-social.js';
+import { elCaballo } from './personal-caballo.js';
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const NOMBRE_DE = { nene: 'Nahuel', nena: 'Lucía', andinista: 'Rocío', padre: 'Mario', carpintero: 'Tito', pescador: 'Aurelio', fotografa: 'Sofía', botera: 'Martina', maestra: 'Delia', madre: 'Gladys', abuela: 'Herminia' };
@@ -32,6 +33,8 @@ const MATERIAL = { tabla: 'tablas', tronco: 'troncos', piedra: 'piedras', lana: 
 const MATERIAL_UNO = { tabla: 'tabla', tronco: 'tronco', piedra: 'piedra', lana: 'vellón', frutilla: 'frutilla', calafate: 'calafate', harina: 'medida de harina' };
 
 export function crearRinconesJuego(ctx) {
+  // 3.8.4: el caballo con su nombre, o «el zaino» / «tu caballo» según el pelaje (personal-caballo.js)
+  const cab = (prep = '', mayus = false) => elCaballo(ctx.progreso?.()?.personal?.caballo, prep, mayus);
   const progreso = () => ctx.progreso();
   const activo = () => !ctx.desafio?.();
   const dia = () => Math.max(1, Math.floor(Number(progreso().dia) || 1));
@@ -254,7 +257,7 @@ export function crearRinconesJuego(ctx) {
     if (!sk().atado) {
       // el zaino tiene que estar cerca para atarlo
       const c = ctx.caballo?.();
-      if (!ctx.tieneCaballo?.() || !c || Math.hypot(c.x - p.x, c.z - p.z) > 30) { ctx.nota?.('Falta el zaino', 'Traelo hasta el sulky (o dejalo cerca) para atarlo a las varas'); return false; }
+      if (!ctx.tieneCaballo?.() || !c || Math.hypot(c.x - p.x, c.z - p.z) > 30) { ctx.nota?.(`Falta ${cab()}`, 'Traelo hasta el sulky (o dejalo cerca) para atarlo a las varas'); return false; }
       sk().atado = true;
     }
     viaje = { s: p.s, v: 0, sentido: p.sentido };
@@ -263,7 +266,7 @@ export function crearRinconesJuego(ctx) {
     js.pos.x = a.x; js.pos.z = a.z;
     js.yaw = p.rumbo + Math.PI;   // (el jugador mira hacia −Z: mirando para adelante)
     ctx.registrar?.('sulky'); ctx.registrar?.('camino-aldea');
-    ctx.nota?.('Arriba del sulky', `El zaino conoce el camino${p.sentido > 0 ? ' a la aldea' : ' al refugio'}. W al trote, Shift al galope, S despacio. E para bajarte`, true);
+    ctx.nota?.('Arriba del sulky', `${cab('', true)} conoce el camino${p.sentido > 0 ? ' a la aldea' : ' al refugio'}. W al trote, Shift al galope, S despacio. E para bajarte`, true);
     return true;
   }
   function bajarSulky(llegada = false) {
@@ -285,8 +288,8 @@ export function crearRinconesJuego(ctx) {
     const c = caballoAtado();
     if (c) ctx.dejarCaballo?.(c.x, c.z, c.yaw);
     viaje = null;
-    if (llegada) ctx.nota?.(s.donde === 'aldea' ? 'Llegaste a la aldea' : 'Llegaste al refugio', 'El zaino queda atado al sulky', true);
-    else ctx.nota?.('Bajaste del sulky', 'Queda acá, con el zaino atado', false);
+    if (llegada) ctx.nota?.(s.donde === 'aldea' ? 'Llegaste a la aldea' : 'Llegaste al refugio', `${cab('', true)} queda atado al sulky`, true);
+    else ctx.nota?.('Bajaste del sulky', `Queda acá, con ${cab()} atado`, false);
     ctx.guardar?.();
     return true;
   }
@@ -324,7 +327,7 @@ export function crearRinconesJuego(ctx) {
     if (c?.estado === 'lista' && casaTerminada(c, d, h) && !progreso().entradas?.['casa-propia'] && unaVez('casa', d)) ctx.nota?.('Tu casa está terminada', 'En la calle de la Loma. Los vecinos te dejaron la estufa prendida', true);
     // el sulky, la mañana que Tito lo trae
     const s = R.sulky;
-    if (s?.listo && tieneSulky(s, d, h) && !s.avisado) { s.avisado = true; s.atado = false; ctx.nota?.('Tito te trajo el sulky', 'Está al lado del palenque del refugio. Atale el zaino y subí con E', true); }
+    if (s?.listo && tieneSulky(s, d, h) && !s.avisado) { s.avisado = true; s.atado = false; ctx.nota?.('Tito te trajo el sulky', `Está al lado del palenque del refugio. Atale ${cab()} y subí con E`, true); }
   }
 
   // ================================================================ E y el aviso
@@ -359,7 +362,7 @@ export function crearRinconesJuego(ctx) {
     // el sulky (estacionado, para subir)
     if (tiene() && !partido) {
       const p = poseSulky();
-      if (p && dist(asiento(p), pos) < radio.sulky) return { tipo: 'sulky', texto: sk().atado || ctx.tieneCaballo?.() ? (p.sentido > 0 ? 'Subir al sulky (a la aldea)' : 'Subir al sulky (al refugio)') : 'El sulky (falta el zaino)', hacer: () => subirSulky() };
+      if (p && dist(asiento(p), pos) < radio.sulky) return { tipo: 'sulky', texto: sk().atado || ctx.tieneCaballo?.() ? (p.sentido > 0 ? 'Subir al sulky (a la aldea)' : 'Subir al sulky (al refugio)') : `El sulky (falta ${cab()})`, hacer: () => subirSulky() };
     }
     // el potrero: armar un picado
     if (!partido && enLaCancha(pos, 1.5) && horaDePartido(h)) return { tipo: 'potrero', texto: 'Armar un picado con los chicos', hacer: () => empezar() };
@@ -533,7 +536,7 @@ export function crearRinconesJuego(ctx) {
       }
       aplicar(res.efectos);
       ctx.guardar?.();
-      return { tipo: 'renglones', renglones: ['Un sulky de dos ruedas, con el asiento de lenga y las varas de coihue. Mañana a la mañana te lo llevo al refugio.', 'El zaino lo va a tirar sin problema: ese caballo conoce el camino mejor que vos.'] };
+      return { tipo: 'renglones', renglones: ['Un sulky de dos ruedas, con el asiento de lenga y las varas de coihue. Mañana a la mañana te lo llevo al refugio.', `${cab('', true)} lo va a tirar sin problema: ese caballo conoce el camino mejor que vos.`] };
     }
     if (id === 'rincones:pista') {
       const p = pistaDuende(R), n = duendesEncontrados(R);

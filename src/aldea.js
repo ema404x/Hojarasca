@@ -34,6 +34,7 @@ import { ENTRADAS_RINCONES } from './rincones-cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';
 import { porRetirar, porEnviar, enviarFoto } from './correo.js';
 import { MELODIAS, anotarPartitura } from './personal-musica.js';
+import { elCaballo } from './personal-caballo.js';
 
 export const NOMBRE_ALDEA = 'Aldea de los Duendes';
 const PI = Math.PI;
@@ -1589,8 +1590,9 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
       if (yaHoy(aldea, clave, dia)) return { partes: ['Por hoy ya revisé a tus animales. Están bien: los animales sanos se aburren de que los revisen.'] };
       const hoy = diaValido(dia, 1);
       const op = [];
-      if (cant(progreso, 'cosa', 'caballo') && entero(aldea.herrado) !== hoy) op.push({ partes: ['Traeme al zaino, que le miro los vasos. Tenía una herradura floja: ya está.', 'Vas a ver que hasta la noche anda más liviano, como si tuviera ganas.'],
-        efectos: [{ tipo: 'aldea', campo: 'herrado', valor: hoy }, uso], titulo: 'La veterinaria le revisó las herraduras al zaino' });
+      if (cant(progreso, 'cosa', 'caballo') && entero(aldea.herrado) !== hoy) op.push({ partes: [`Traeme ${elCaballo(progreso.personal?.caballo, 'a')}, que le miro los vasos. Tenía una herradura floja: ya está.`,   // 3.8.4: con su nombre o su pelaje
+ 'Vas a ver que hasta la noche anda más liviano, como si tuviera ganas.'],
+        efectos: [{ tipo: 'aldea', campo: 'herrado', valor: hoy }, uso], titulo: `La veterinaria le revisó las herraduras ${elCaballo(progreso.personal?.caballo, 'a')}` });
       if (Object.keys(objeto(progreso?.gallineros) ? progreso.gallineros : {}).length) op.push({ partes: ['Pasé por tus gallinas: les di conchilla molida y un poco de ortiga. Pusieron de más.', `Tomá, te traje ${S.huevosVet} huevos que encontré escondidos debajo del nidal.`],
         efectos: [{ tipo: 'entrada', k: 'huevo', n: S.huevosVet }, uso], titulo: `${S.huevosVet} huevos de tus gallinas` });
       if (cant(progreso, 'cosa', 'tijera')) op.push({ partes: ['Le revisé las pezuñas a la majada de Don Ramón. En el corral quedaban mechones de lana enganchados en el alambre.', 'Los cardé y salió un vellón. Es tuyo, que vos las esquilás.'],

@@ -6,6 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { elCaballo } from '../src/personal-caballo.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const main = leer('src/main.js');
@@ -36,7 +37,7 @@ function cuerpo(nombre) {
     const js = { pos: { x: 0, y: 0, z: 0 }, yaw: 0, montado: {} };
     const c = {};
     const col = { paredEntre: (ax, az, bx, bz) => pared(bx, bz) };
-    new Function('jugador', 'caballo', 'yawCaballo', 'nota', 'guardar', 'col', src)({ estado: js }, () => c, (y) => y + Math.PI, () => {}, () => {}, col);
+    new Function('jugador', 'caballo', 'yawCaballo', 'nota', 'guardar', 'col', 'caballoDicho', src)({ estado: js }, () => c, (y) => y + Math.PI, () => {}, () => {}, col, () => 'del zaino');   // 3.8.4: caballoDicho
     return { js, c };
   };
   // sin paredes: a la izquierda (yaw 0 mira a -z: la izquierda es -x), como siempre
@@ -55,17 +56,19 @@ function cuerpo(nombre) {
 {
   const src = cuerpo('subirCaballoAlTren');
   const notas = [];
-  const correr = (nombre) => {
+  // 3.8.4: el nombre sale de elCaballo (personal-caballo.js): con nombre, el nombre; sin nombre, «al zaino» o «a tu caballo»
+  const correr = (nombre, pelaje = 'zaino') => {
     notas.length = 0;
     const js = { montado: {} };
     const sin = () => {};
-    new Function('jugador', 'viajeTren', 'tren', 'caballoMundo', 'diario', 'registrar', 'sonido', 'nota', 'guardar', src)(
-      { estado: js }, () => ({}), { tren: { ponerCaballo: sin, subirCaballo: sin }, subir: sin }, { apariencia: () => null, nombre: () => nombre },
-      { anotar: sin }, sin, { casco: sin }, (t) => notas.push(t), sin);
+    new Function('jugador', 'viajeTren', 'tren', 'caballoMundo', 'diario', 'registrar', 'sonido', 'nota', 'guardar', 'elCaballo', src)(
+      { estado: js }, () => ({}), { tren: { ponerCaballo: sin, subirCaballo: sin }, subir: sin }, { apariencia: () => ({ nombre, pelaje }), nombre: () => nombre },
+      { anotar: sin }, sin, { casco: sin }, (t) => notas.push(t), sin, elCaballo);
     return notas[0];
   };
   ok(correr('Tormenta') === 'Subiste a Tormenta a la jaula', `con nombre: «${correr('Tormenta')}»`);
   ok(correr('') === 'Subiste al zaino a la jaula', `sin nombre: «${correr('')}»`);
+  ok(correr('', 'bayo') === 'Subiste a tu caballo a la jaula', `sin nombre y bayo: «${correr('', 'bayo')}»`);
 }
 
 // ---------------------------------------------------------------- 3. la granja

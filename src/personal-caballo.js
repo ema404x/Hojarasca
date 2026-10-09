@@ -67,3 +67,20 @@ export const SECCION_CABALLO = registrarSeccion({
     if (caballo && typeof caballo.personalizar === 'function') caballo.personalizar(sanearCaballoPersonal(datos));
   },
 });
+
+// 3.8.4: cómo se lo nombra en los textos. Con nombre, el nombre («Tormenta»); sin nombre, «el zaino» si
+// es zaino y «tu caballo» si es de otro pelaje. `prep` es la preposición de adelante ('a' o 'de': «al
+// zaino», «del zaino», «a Tormenta», «de tu caballo»); `mayus`, al principio de oración. Una sola función
+// para todos los textos del caballo: no se escribe a mano en cada uno.
+export function elCaballo(datos, prep = '', mayus = false) {
+  const d = sanearCaballoPersonal(datos);
+  const nombre = d.nombre.trim();
+  let s;
+  if (nombre) s = prep ? `${prep} ${nombre}` : nombre;
+  else {
+    const base = d.pelaje === 'zaino' ? 'zaino' : null;
+    if (base) s = prep === 'a' ? 'al zaino' : prep === 'de' ? 'del zaino' : prep ? `${prep} el zaino` : 'el zaino';
+    else s = prep ? `${prep} tu caballo` : 'tu caballo';
+  }
+  return mayus ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}

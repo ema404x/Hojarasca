@@ -99,7 +99,8 @@ export function crearDiario() {
   }
 
   // arma la página y empieza la del día siguiente
-  function cerrar(dia, estacion, r) {
+  // 3.8.4: `caballo`: cómo se lo nombra al principio de oración («El zaino», «Tormenta», «Tu caballo»)
+  function cerrar(dia, estacion, r, caballo = 'El zaino') {
     const d = hoy;
     hoy = nuevo();
     const lineas = [];
@@ -179,7 +180,7 @@ export function crearDiario() {
         ? `Planté un ${d.renovales[0]} en un claro. A ver si prende.`
         : `Planté ${d.renovales.length} renovales. Alguno va a quedar.`);
     }
-    if (d.caballo) lineas.push('Anduve a caballo. El zaino conoce el valle mejor que yo: cuando dudo, lo dejo elegir.');
+    if (d.caballo) lineas.push(`Anduve a caballo. ${caballo} conoce el valle mejor que yo: cuando dudo, lo dejo elegir.`);
     if (d.rayo) lineas.push(`Cayó un rayo cerca. Partió un ${d.rayo} de arriba abajo; todavía se sentía el olor a quemado.`);
     if (d.crecida) lineas.push('El arroyo creció con la lluvia y bajaba marrón, arrastrando ramas.');
     if (d.cartas && d.cartas.length) lineas.push(d.cartas.length === 1 ? `En el almacén me esperaba carta de ${d.cartas[0]}.` : `Me llegaron ${d.cartas.length} cartas. Las leí en el almacén, parado.`);

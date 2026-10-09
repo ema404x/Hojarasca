@@ -113,6 +113,7 @@ import { sanearMajada, esquilar, textoOveja, resumenMajada } from './majada.js';
 import { sanearCorreo, repartir, porRetirar, partesDeCarta, CARTA, dePara, fotoParaPedidos, porEnviar, enviarFoto, partesDeEnvio, cartasLeidas } from './correo.js';
 import { MARCHA_CABALLO, ALTURA_MONTADO, RADIO_MONTAR, AGUA_QUE_NO_PISA, sanearCaballo, dondeEspera, yawCaballo } from './caballo.js';
 import { crearCaballo } from './caballo-mundo.js';
+import { elCaballo } from './personal-caballo.js';
 import { puedeOtraVuelta, nuevaVuelta, multiplicadorVuelta } from './desafio-vuelta.js';
 import { RAYO, sanearTormenta, avanzarCrecida, nivelArroyo, aguaTurbia, horasEntre, puedeCaerRayo, elegirArbolRayo, rumboTexto as rumboDesde } from './tormenta.js';
 import { crearMajada } from './majada-mundo.js';
@@ -1173,7 +1174,7 @@ function dormir(opRincon = null) {
   setTimeout(() => {
     if (deNoche) {
       if (como !== 'normal') diario.anotar('noche', como === 'fresco' && inviernoEnCasa ? 'casa' : como);
-      const pagina = diario.cerrar(progreso.dia, nombreEstacion(), Math.random);
+      const pagina = diario.cerrar(progreso.dia, nombreEstacion(), Math.random, caballoDicho('', true));
       progreso.diario = [...(progreso.diario || []), pagina].slice(-40);
       if (progreso.horas > 7) progreso.dia++;
       if (nocheReloj) progreso.relojNoche = nocheReloj;   // 3.5.1
@@ -2720,7 +2721,7 @@ document.addEventListener('keydown', (e) => {
     const paso = { KeyW: [0, 1], ArrowUp: [0, 1], KeyS: [0, -1], ArrowDown: [0, -1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0] }[codigo];
     if (paso) { tren.moverse(paso[0], paso[1]); sonido.paso('madera', 0.5); return; }
   }
-  if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del zaino con E'); return; }
+  if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
@@ -5178,6 +5179,8 @@ function caerRayo(i = null) {
 // El zaino de Don Ramón: te lo presta con su encargo. E para subir y para bajar;
 // arriba, W al trote y Shift al galope. Queda donde lo dejás. Sólo en el Relax.
 let caballoMundo = null;
+// 3.8.4: cómo se nombra al caballo en los textos: su nombre, «el zaino» o «tu caballo» (personal-caballo.js)
+const caballoDicho = (prep = '', mayus = false) => elCaballo(caballoMundo?.apariencia?.() || progreso?.personal?.caballo, prep, mayus);
 function caballo() {
   if (!progreso.caballo || typeof progreso.caballo !== 'object') progreso.caballo = sanearCaballo(progreso.caballo);
   return progreso.caballo;
@@ -5210,7 +5213,7 @@ function montar() {
   registrar('caballo');
   diario.anotar('caballo');
   sonido.casco?.('tierra', 1);
-  nota('Subiste al zaino', 'W al trote, con Shift al galope. E para bajarte');
+  nota(`Subiste ${caballoDicho('a')}`, 'W al trote, con Shift al galope. E para bajarte');
 }
 function desmontar() {
   const js = jugador.estado, c = caballo();
@@ -5221,7 +5224,7 @@ function desmontar() {
   // del zaino (antes el salto de 1,1 m te pasaba a través de la pared: adentro de una casa o de un corral)
   const lado = [1, -1].find((s) => !col?.paredEntre?.(js.pos.x, js.pos.z, js.pos.x - s * Math.cos(js.yaw) * 1.1, js.pos.z + s * Math.sin(js.yaw) * 1.1, js.pos.y + 0.2, js.pos.y + 1.6, true)) || 0;
   js.pos.x -= lado * Math.cos(js.yaw) * 1.1; js.pos.z += lado * Math.sin(js.yaw) * 1.1;
-  nota('Bajaste del zaino', 'Queda acá. Volvé a subir con E');
+  nota(`Bajaste ${caballoDicho('de')}`, 'Queda acá. Volvé a subir con E');
   guardar();
 }
 const CABALLO_AUSENTE = Object.freeze({ x: 0, z: 0, yaw: 0 });   // 2.6.1: sin objeto nuevo por cuadro
@@ -5236,7 +5239,7 @@ function actualizarCaballo(dt) {
   if (js.montado) { const c = caballo(); c.x = d.x; c.z = d.z; c.yaw = d.yaw; }
   const cerca = js.montado || Math.hypot(d.x - js.pos.x, d.z - js.pos.z) < 170;
   caballoMundo.actualizar(dt, d, js.velocidadActual, !!js.montado || !!js.enSulky, cerca || !!js.enSulky);   // (3.7.5 (rincones): tirando del sulky, trota)
-  if (js.montado?.plantado) { js.montado.plantado = 0; nota('El zaino no entra al agua honda', 'Buscá un vado o bajate y seguí nadando'); }
+  if (js.montado?.plantado) { js.montado.plantado = 0; nota(`${caballoDicho('', true)} no entra al agua honda`, 'Buscá un vado o bajate y seguí nadando'); }
 }
 
 // ---------------------------------------------------------------- 3.7.3: el tren mejorado (sólo en el Relax)
@@ -5300,7 +5303,7 @@ function subirCaballoAlTren() {
   diario.anotar('tren'); registrar('viaje');
   sonido.casco?.('madera', 1);
   // 3.8.3: con nombre propio decía «Subiste Tormenta a la jaula» (faltaba la «a»)
-  { const n = caballoMundo?.nombre?.(); nota(`Subiste ${n ? `a ${n}` : 'al zaino'} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos'); }
+  nota(`Subiste ${elCaballo(caballoMundo?.apariencia?.(), 'a')} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos');   // 3.8.4: con su nombre o su pelaje
   guardar();
 }
 // al bajarte en una parada: tu caballo baja con vos, al costado del andén (pasando la escalera)
@@ -5315,7 +5318,7 @@ function bajarCaballoDelTren(parada = null) {
   c.yaw = p.ang + Math.PI;
   viajeTren().caballo = false;
   tren.tren?.subirCaballo?.(false);
-  nota(`${caballoMundo?.nombre?.() || 'El zaino'} bajó con vos`, 'Te espera al costado del andén');
+  nota(`${caballoDicho('', true)} bajó con vos`, 'Te espera al costado del andén');
   guardar();
 }
 // antes de mover el tren: lo que rinde la locomotora (la caldera, el freno y el agarre, cada medio segundo)
@@ -8720,7 +8723,7 @@ function cuadroDelJuego(tRaf, manual) {
     // 2.4.1: el aviso sigue el orden de la tecla E paso a paso. El mostrador va acá (E lo
     // atiende antes que la puerta del almacén); el kayak, el tren y la bitácora, más abajo.
     if (!aviso && !js.enTren && !js.enKayak && !js.montado && !objetivo && cercaDelMostrador() && !enElAlmacen && !charla.npc) aviso = { tecla: 'E', texto: 'Ver qué hay en el almacén' };
-    if (!aviso && !objetivo && caballoCerca()) aviso = { tecla: 'E', texto: 'Subir al zaino' };
+    if (!aviso && !objetivo && caballoCerca()) aviso = { tecla: 'E', texto: `Subir ${caballoDicho('a')}` };
     if (!aviso && !objetivo && feriaCerca() && !enLaFeria) aviso = { tecla: 'E', texto: 'Ver la feria' };
     if (!aviso && !js.enTren && !js.enKayak && !objetivo && !enLasCargas() && puestoDeCargasCerca()) aviso = { tecla: 'E', texto: 'Comerciar en el puesto de cargas' };
     // Mismo orden que la tecla E: cantero, oveja y acopio van antes que las puertas.
@@ -8821,7 +8824,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
     // (3.8.3: con ella esperándote para la cita o el casamiento, eso: la E, por hablar(), lo empieza también a caballo)
-    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: 'Bajarte del zaino' };
+    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };
     // 2.6.1: charlando, E sólo sigue la charla: el caballo, la puerta o el kayak no se ofrecen
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco

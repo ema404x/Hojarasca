@@ -85,7 +85,7 @@ const leer = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
   const en = (t) => { const i = cadena.indexOf(t); assert.ok(i >= 0, `falta en el aviso: ${t}`); return i; };
   // el mismo orden que la tecla E
   assert.ok(en("texto: 'Ver qué hay en el almacén'") < en("${puertaCerca.objetivo > 0.5 ? 'Cerrar' : 'Abrir'}"), 'el mostrador antes que la puerta del almacén');
-  assert.ok(en("texto: 'Subir al zaino'") < en("texto: 'Subir a la trochita'"), 'el caballo antes que el tren');
+  assert.ok(en("texto: `Subir ${caballoDicho('a')}`") < en("texto: 'Subir a la trochita'"), 'el caballo antes que el tren');   // 3.8.4: el caballo con su nombre
   assert.ok(en('cacheCantero &&') < en("texto: 'Subir al kayak'") && en('cacheAcopio &&') < en("texto: 'Subir al kayak'"), 'el kayak después del cantero y el acopio');
   // las otras teclas, después de todo lo de E
   const primeraOtra = Math.min(en("tecla: 'F', texto: fuegoPropio"), en("tecla: 'H'"), en("tecla: 'Y'"), en("tecla: 'B'"), en("texto: 'Armar la carpa'"), en("texto: 'Levantar la carpa'"));
