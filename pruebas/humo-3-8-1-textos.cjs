@@ -119,13 +119,19 @@ app.whenReady().then(async () => {
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(4000);
     await js(`(()=>{ const H = window.__hojarasca; H.conMateriales((m) => { m.cristal = (m.cristal || 0) + 5; }); H.volverAlJuego(); return 1 })()`);
-    await esperar(300);
-    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI', bubbles: true })); 1`);
+    await esperar(600);
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI', key: 'KeyI', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyI', key: 'KeyI', bubbles: true })); 1`);
     await esperar(800);
-    const color = await js(`(async ()=>{ const img = [...document.querySelectorAll('#mochila-rejilla img')].find((i) => i.parentElement.textContent.includes('(5)') && /semilla|cristal/i.test(i.alt));
-      if (!img) return null; await img.decode().catch(() => {}); const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.drawImage(img, 0, 0, 64, 64);
-      const d = x.getImageData(30, 30, 1, 1).data; img.scrollIntoView({ block: 'center' }); return { r: d[0], g: d[1], b: d[2], modo: window.__hojarasca.modoJuego } })()`);
-    ok(!!color, 'Relax: el cristal está en la mochila');
+    // (en el Relax el cristal no tiene casilla en la mochila —desde la 3.7.5 va sólo en el modo de combate—: se mide el
+    // ícono tal como lo dibuja `icono('cristal')` en este modo, y para la foto se lo muestra rotulado arriba de la mochila)
+    const color = await js(`(async ()=>{ const H = window.__hojarasca; const img = new Image(); img.src = H.__icono('cristal'); await img.decode().catch(() => {});
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.drawImage(img, 0, 0, 64, 64);
+      const d = x.getImageData(30, 30, 1, 1).data;
+      const caja = document.createElement('div'); caja.style.cssText = 'position:fixed;left:16px;top:16px;z-index:99999;background:#1d1a16e0;color:#f3ead8;padding:10px 14px;border-radius:8px;font:14px sans-serif;display:flex;gap:10px;align-items:center';
+      img.style.cssText = 'width:64px;height:64px'; caja.append(img, document.createTextNode('QA 3.8.2 · icono(\\'cristal\\') en el Relax'));
+      document.body.appendChild(caja);
+      return { r: d[0], g: d[1], b: d[2], modo: H.modoJuego, mochila: !document.getElementById('mochila').classList.contains('oculto') } })()`);
+    ok(!!color, 'Relax: se dibuja el ícono del cristal');
     ok(color && color.modo === 'relax' && color.b > 180 && color.g > 180 && color.r < 200, `Relax: el ícono del cristal es celeste, no dorado (${JSON.stringify(color)})`);
     await esperar(300);
     fs.writeFileSync(path.join(salida, 'cristal-relax.png'), (await w.webContents.capturePage()).toPNG());

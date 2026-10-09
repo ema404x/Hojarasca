@@ -9038,7 +9038,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     THREE: { Raycaster: THREE.Raycaster, Vector3: THREE.Vector3, Group: THREE.Group, Mesh: THREE.Mesh, BoxGeometry: THREE.BoxGeometry, MeshLambertMaterial: THREE.MeshLambertMaterial },
     __ranuraActual: () => (ranuras[elegida]?.nombre || ''),
     revisarRebrote, talados, acopio, conMateriales, materialesVisibles, autoCalidad, mando, revisarGuiaRelax, abrirBase,
-    traductor, T_, traducirPanel,
+    traductor, T_, traducirPanel, __icono: icono,   // 3.8.2: el ícono tal como se dibuja en este modo (QA)
     abrirModoFoto, __foto: () => foto, guardarFotoArchivo,
     __post: () => post?.uniforms, __peligros: () => ctxMundoVivo.peligros,
     __riesgoPeligros: (pos) => riesgoDePeligros(pos, ctxMundoVivo.peligros),
