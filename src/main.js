@@ -8978,7 +8978,11 @@ lienzo.addEventListener('webglcontextrestored', async () => {
 
 // main.cjs recargó la ventana después de una caída (o el juego, sin la placa): se avisa en la
 // portada y al entrar. La partida es la última guardada (el autoguardado va cada 20 s).
-const recuperadoDe = new URLSearchParams(location.search).get('recuperado');
+// 3.8.3: location.reload() conserva el ?recuperado=…: después de una caída, cambiar el idioma, la calidad, el modo o la
+// partida volvía a avisar en la portada (y al entrar) que el juego se había caído. El aviso es de la apertura que hizo la
+// recuperación (main.cjs y recargarPorGraficos navegan; las recargas del juego son 'reload')
+const recargaDelJuego = (() => { try { return performance.getEntriesByType('navigation')[0]?.type === 'reload'; } catch { return false; } })();
+const recuperadoDe = recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado');
 function avisarRecuperado() {
   if (!recuperadoDe) return;
   const texto = recuperadoDe === 'graficos'

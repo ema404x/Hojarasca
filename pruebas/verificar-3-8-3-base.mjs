@@ -18,4 +18,12 @@ const main = leer('src/main.js');
   ok(i > 0 && i < g.indexOf('guardarProgreso('), 'guardar no anota la posición antes de entrar');
 }
 
+// 2. El aviso de «el juego se recuperó» es de la apertura que hizo la recuperación: una recarga del juego (idioma,
+//    calidad, modo, partida) conserva el ?recuperado= y no vuelve a avisar.
+{
+  ok(main.includes("const recargaDelJuego = (() => { try { return performance.getEntriesByType('navigation')[0]?.type === 'reload';"), 'se distingue la recarga del juego');
+  ok(main.includes("const recuperadoDe = recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado');"), 'y entonces no hay aviso de recuperación');
+  ok(!/new URLSearchParams\(location\.search\)\.get\('recuperado'\)/.test(main.replace("recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado')", '')), 'no se lee el ?recuperado= por otro lado');
+}
+
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);
