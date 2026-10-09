@@ -135,6 +135,16 @@ Todo marcado por el usuario:
   chicos tiran piedras con hondas desde la empalizada (sin correr peligro).
 - **La primera noche tiene que dar miedo desde el principio:** mucho clima y tensión aunque sean pocos.
 
+## Mejorar los gráficos (pedido del usuario, 09-10) — primero prototipo con capturas antes/después
+Todo marcado por el usuario: **el agua** (reflejos del bosque y montañas, espuma en la orilla, ondas con lluvia y
+kayak); **la luz y el cielo** (amaneceres y atardeceres, rayos entre árboles, nubes con volumen, niebla de valle a la
+mañana); **la gente y los animales** (caras, ropa, movimientos y andar); **vegetación y suelo** (pasto que se mueve y
+se aplasta, flores, hojarasca, piedras con musgo); **el clima** (lluvia que moja y deja charcos, nieve que se acumula
+en techos y ramas, viento visible); **edificios y aldea** (detalle, ventanas encendidas, humo); **efectos de la noche
+de los duendes** (luciérnagas, esporas, ámbar, el Coihue y los duendes con más magia y miedo). **Condición: fluido en
+la Ryzen 5 4600G** del usuario; lo que pese, sólo en calidad alta. Estilo «tal cual HushWood». Antes de meterlo al
+juego: prototipo con capturas del mismo lugar hoy y mejorado, y el usuario elige qué entra.
+
 ## Versión de pulido visual «pronto» (el usuario: «en una versión pronta»)
 - La lechuza (tosca), las raíces del cofre del alba (parecen patas), el Rey Duende con piel por huesos (hoy rígido),
   la corteza del Coihue de noche de lejos.
