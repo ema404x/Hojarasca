@@ -230,4 +230,31 @@ ok(main.includes("avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar 
   ok(tir.includes('return y === null ? { x: p.x, z: p.z } : { x: p.x, y, z: p.z };'), 'y guardando colgado, también');
 }
 
+// ---------------------------------------------------------------- 11. el puesto de cargas con el mando: comprar, vender y fletes
+// Sin Tab no había cómo salir de «Comprar».
+{
+  const src = cuerpo('marcarHud');
+  const MODOS = { comprar: 3, vender: 2, fletes: 0 }, orden = Object.keys(MODOS);
+  const est = { modo: 'comprar' };
+  const fila = () => ({ classList: { _s: false, contains() { return this._s; }, toggle(_c, v) { this._s = v; } }, scrollIntoView() {} });
+  const ul = { get children() { return Array.from({ length: MODOS[est.modo] }, fila); } };
+  const l = { id: 'cargas', ul, pie: { textContent: '' } };
+  const puestoCargas = { pasarModo: (d) => { est.modo = orden[(orden.indexOf(est.modo) + d + orden.length) % orden.length]; } };
+  const marcaHud = { panel: 'cargas', i: 0 };
+  const f = new Function('mover', 'mostrar', 'listaHudAbierta', 'marcarEn', 'marcaHud', 'puestoCargas', 'paginasAlmacen', 'pasarPaginaAlmacen', 'habiaMando', 'PIE_PANEL_MANDO', src);
+  const mover = (m) => f(m, false, () => l, () => {}, marcaHud, puestoCargas, () => 1, () => {}, true, 'pie');
+  mover(1); mover(1);
+  ok(est.modo === 'comprar' && marcaHud.i === 2, 'la cruceta recorre la lista de comprar');
+  mover(1);
+  ok(est.modo === 'vender' && marcaHud.i === 0, `pasando el final, a vender (${est.modo})`);
+  mover(1); mover(1);
+  ok(est.modo === 'fletes', `y a los fletes, aunque vender tenga dos (${est.modo})`);
+  mover(1);
+  ok(est.modo === 'comprar', `con los fletes vacíos, de vuelta a comprar (${est.modo})`);
+  mover(-1);
+  ok(est.modo === 'fletes', 'y para atrás también');
+  mover(1);
+  ok(est.modo === 'comprar' && /otro modo/.test(l.pie.textContent), `el pie lo dice (${l.pie.textContent})`);
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);

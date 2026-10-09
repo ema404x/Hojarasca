@@ -7385,6 +7385,12 @@ function marcarHud(mover = 0, mostrar = false) {
   if (!l?.ul) { marcaHud.panel = null; return null; }
   if (marcaHud.panel !== l.id) { marcarEn(l.id, 0); mostrar = true; }
   let lis = l.ul.children;
+  // 3.8.3: en el puesto de cargas, pasando el final (o el principio) de la lista se cambia de modo: comprar, vender, fletes.
+  // Con el mando no hay Tab: abría en «Comprar» y no había cómo llegar a vender ni a los fletes (con la lista vacía, tampoco)
+  if (l.id === 'cargas' && mover) {
+    const j = Math.min(marcaHud.i, lis.length - 1) + mover;
+    if (!lis.length || j < 0 || j >= lis.length) { puestoCargas.pasarModo(mover < 0 ? -1 : 1); lis = l.ul.children; marcaHud.i = mover < 0 ? Math.max(0, lis.length - 1) : 0; mover = 0; mostrar = true; }
+  }
   if (!lis.length) return l;
   let i = Math.min(marcaHud.i, lis.length - 1) + mover;
   // (en el almacén, más allá de la página se pasa a la de al lado: con el mando no hay Tab)
@@ -7401,7 +7407,8 @@ function marcarHud(mover = 0, mostrar = false) {
     if (lis[k].classList.contains('elegida') !== si) { lis[k].classList.toggle('elegida', si); if (si) mostrar = true; }
   }
   if (mostrar) lis[i].scrollIntoView?.({ block: 'nearest' });
-  if (habiaMando && l.pie && l.pie.textContent !== PIE_PANEL_MANDO) l.pie.textContent = PIE_PANEL_MANDO;
+  const pie = l.id === 'cargas' ? `${PIE_PANEL_MANDO} · pasando el final de la lista, otro modo` : PIE_PANEL_MANDO;   // 3.8.3
+  if (habiaMando && l.pie && l.pie.textContent !== pie) l.pie.textContent = pie;
   return l;
 }
 function elegirHud(i = null) {
