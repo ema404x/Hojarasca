@@ -40,4 +40,18 @@ const des = leer('src/desafio.js');
   assert.equal(sumadas, 5, 'pasando por encima se juntan las cinco');
 }
 
+// ---------------------------------------------------------------- 2. otra vuelta: la forja también se lleva
+// «con tus armas, las mejoras y los planos»: la lanza de hielo, las flechas de rayo y la honda de empuje
+// (la forja de la 2.1, que se paga con semillas doradas) quedaban afuera de SE_LLEVA y se perdían.
+{
+  const { SE_LLEVA, nuevaVuelta } = await import('../src/desafio-vuelta.js');
+  const { FORJA } = await import('../src/desafio-valle.js');
+  const { RECETAS } = await import('../src/desafio-reglas.js');
+  for (const k of Object.keys(FORJA)) assert.ok(SE_LLEVA.includes(k), `la forja ${k} se lleva a la otra vuelta`);
+  for (const r of RECETAS.filter((x) => x.unica && x.da?.cosa)) assert.ok(SE_LLEVA.includes(r.da.cosa), `la mejora única ${r.da.cosa} se lleva`);
+  const nueva = nuevaVuelta({ cosas: { lanza: 1, lanzaHielo: 1, arco: 1, arcoRayo: 1 }, desafio: { victoria: true, nido: { caido: true } } }, { cosas: {}, desafio: {} });
+  assert.equal(nueva.cosas.lanzaHielo, 1);
+  assert.equal(nueva.cosas.arcoRayo, 1);
+}
+
 console.log('verificar-3-8-3-combate: ok');

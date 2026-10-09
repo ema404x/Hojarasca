@@ -11,7 +11,9 @@
 export const SE_LLEVA = ['hacha', 'lanza', 'arco', 'honda', 'boleadoras', 'martillo', 'pistola', 'lanzaCristal', 'arcoReforzado', 'pistolaCargada',
   // 2.5: el arsenal (lo que se fabrica una vez y sus mejoras; la munición no)
   'ballesta', 'facon', 'maza', 'arpon', 'rodela', 'chaleco', 'carcaj', 'cuerno', 'hachuela', 'jabalina', 'granada', 'humo', 'bengala',
-  'ballestaRepeticion', 'boleadorasCristal', 'placasCristal'];
+  'ballestaRepeticion', 'boleadorasCristal', 'placasCristal',
+  // 3.8.3: y la forja (desafio-valle.js): la lanza de hielo, las flechas de rayo y la honda de empuje se perdían
+  'lanzaHielo', 'arcoRayo', 'hondaEmpuje'];
 export const VUELTA_MAXIMA = 9;
 
 // Cuánto más difícil es cada vuelta. La primera (0) es la de siempre.
