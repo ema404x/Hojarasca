@@ -222,4 +222,12 @@ ok(/function aplicarFoto[\s\S]{0,800}if \(foto\.activo\) progreso\.horas = foto\
 // ---------------------------------------------------------------- 9. la línea de estado del tren parado no dice «E para bajar» cuando E hace otra cosa
 ok(main.includes("avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar de lugar y bajar' : '· E para bajar · W A S D para cambiar de lugar'"), 'en la cocina, la cucheta o el mate, la línea de estado no promete bajar con E');
 
+// ---------------------------------------------------------------- 10. la tirolesa llega a la altura del poste de llegada
+// Sin cota, con el poste arriba de un piso o una torre, se aparecía en la plataforma más baja (abajo del deck).
+{
+  const tir = leer("src/tirolesa.js");
+  ok(tir.includes('jugador.ubicar(p.x, p.z, js.yaw, pieDeLlegada(v));') && tir.includes('const fin = v.dir > 0 ? v.linea.ob : v.linea.oa, y = Number(fin?.datos?.y);'), 'al llegar, a la altura del pie del poste de destino');
+  ok(tir.includes('return y === null ? { x: p.x, z: p.z } : { x: p.x, y, z: p.z };'), 'y guardando colgado, también');
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);
