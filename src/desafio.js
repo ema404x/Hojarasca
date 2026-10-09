@@ -1017,7 +1017,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       } else if (!d.oleadaTerminada && d.vivos > 0 && !aliens.length && !estadoNave.porBajar.length && nave.g.visible === false) {
         // se cargó una partida guardada en medio del ataque: vuelven los que quedaban
         const n = Math.max(1, d.vivos || 1);
-        const tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
+        let tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
+        // 3.8.3: con la noche especial, como al empezarla (una silenciosa volvía con rastreadores y brutos, y la roja con menos)
+        if (d.especial) tipos = aplicarEspecial(tipos, d.especial);
         // 3.8.3: el mandamás va último en la lista: cortarla dejaba afuera al que seguía vivo (guardar y abrir
         // salteaba al jefe) y, con los llamados del jefe contados, volvía uno ya abatido
         const conJefe = tipos.includes('jefe') && d.jefeCaido !== d.oleadas;

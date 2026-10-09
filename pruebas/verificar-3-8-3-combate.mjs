@@ -66,13 +66,14 @@ const des = leer('src/desafio.js');
   const i = des.indexOf('// se cargó una partida guardada en medio del ataque');
   const bloque = des.slice(i, des.indexOf('if (d.nodriza && !d.victoria) eventos.iniciarNodriza();', i));
   const linea = bloque.slice(bloque.indexOf('const conJefe'));
-  const retomar = (d, n) => {
+  const retomar = (d, n) => retomarCon(composicionOleada(d.oleadas), d, n);
+  function retomarCon(tipos, d, n) {
     let lista = null;
-    const ctx = { d, n, tipos: composicionOleada(d.oleadas), sinJefe, empezarOleada: (l) => { lista = l; } };
+    const ctx = { d, n, tipos, sinJefe, empezarOleada: (l) => { lista = l; } };
     vm.createContext(ctx);
     vm.runInContext(linea, ctx);
     return lista;
-  };
+  }
   const vivo = retomar({ oleadas: 5, jefeCaido: -1 }, 3);
   assert.equal(vivo.length, 3, 'vuelven los que quedaban');
   assert.equal(vivo.filter((t) => t === 'jefe').length, 1, 'con el mandamás que seguía vivo');
@@ -83,6 +84,11 @@ const des = leer('src/desafio.js');
   assert.equal(desafioNuevo().jefeCaido, -1);
   assert.equal(sanearDesafio({ jefeCaido: 10 }).jefeCaido, 10, 'se guarda');
   assert.equal(sanearDesafio({}).jefeCaido, -1, 'una partida vieja arranca sin jefe anotado');
+  // y con la noche especial (una silenciosa volvía con rastreadores y brutos)
+  assert.ok(bloque.includes('if (d.especial) tipos = aplicarEspecial(tipos, d.especial);'), 'al abrir, la noche especial sigue siéndolo');
+  const { aplicarEspecial } = await import('../src/desafio-reglas.js');
+  const silenciosa = retomarCon(aplicarEspecial(composicionOleada(7), 'silenciosa'), { oleadas: 7, jefeCaido: -1 }, 4);
+  assert.ok(silenciosa.length === 4 && silenciosa.every((t) => t === 'tirador'), `la silenciosa vuelve con tiradores (${silenciosa})`);
 }
 
 // ---------------------------------------------------------------- 4. las hachuelas y jabalinas tiradas no se pierden
