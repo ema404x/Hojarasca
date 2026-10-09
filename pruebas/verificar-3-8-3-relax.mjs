@@ -10,6 +10,7 @@
 // 7. «Recibí una visita» (capítulo 8) se tilda con una visita de verdad, no con el turno del que no pudo venir.
 // 8. El acopio de la obra cuenta parado en un piso de arriba (el entrepiso, el mirador).
 // 9. «Tu casilla de tablas está terminada» (decía «terminado»), y los textos nuevos en inglés.
+// 10. Mover un cantero o un gallinero mueve también sus matas y sus gallinas (quedaban en el lugar viejo).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -208,6 +209,13 @@ const trozo = (desde, hasta) => {
   const traductor = crearTraductor(EN, 'en'), tr = (x) => traductor.t(x);
   ok(tr('Tu casilla de tablas está terminada') === 'Your casilla de tablas is finished' || /^Your .* is finished$/.test(tr('Tu casilla de tablas está terminada')), `en inglés, la casilla también (${tr('Tu casilla de tablas está terminada')})`);
   ok(tr('No te entran más ramitas') === 'No room for more twigs' && /^You already carry 12/.test(tr('Ya llevás 12: la dejaste en el suelo')), 'la nota de las ramitas llenas, en inglés');
+}
+
+// ---------------------------------------------------------------- 10. mover el cantero o el gallinero
+{
+  const a = trozo('function accionObra() {', '    dibujarPanelObra();\n    return;\n  }');
+  const i = a.indexOf('if (movida) mudarDatosDeObra(movida, x0, z0);'), j = a.indexOf("if (movida?.plano.id === 'cantero') refrescarHuerta();"), k = a.indexOf("else if (movida?.plano.id === 'gallinero') refrescarGallineros();");
+  ok(i > 0 && j > i && k > j, 'al confirmar el movimiento, la huerta y las gallinas se rehacen después de mudar sus datos');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

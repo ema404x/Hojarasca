@@ -5717,6 +5717,10 @@ function accionObra() {
     const r = obras.confirmarEdicion(fx, fz, js.yaw, js.pos.y);
     if (!r.ok) { nota('Acá no', r.motivo); return; }
     if (movida) mudarDatosDeObra(movida, x0, z0);   // 3.5.1
+    // 3.8.3: las matas y las gallinas se mudan con el cantero y el gallinero (se quedaban dibujadas en el lugar viejo hasta
+    // otro día: sólo se rehacían cuando cambiaba cuántos hay)
+    if (movida?.plano.id === 'cantero') refrescarHuerta();
+    else if (movida?.plano.id === 'gallinero') refrescarGallineros();
     progreso.obras = obras.obras.map((o) => o.datos);
     guardar(); sonido.juntar(); ultimoSitioObra = '';
     nota(`${r.obra.plano.nombre} recolocado`, r.snap ? `Quedó alineado: ${r.snap.descripcion}` : 'Nueva posición guardada', true);
