@@ -6,7 +6,9 @@
 // Sin placa ni driver de video (Windows dibuja por software): lo más liviano.
 const SIN_ACELERACION = /swiftshader|basic render|llvmpipe|softpipe|software|microsoft basic/i;
 // Placas integradas en el procesador: la mayoría de las notebooks y PC de oficina.
-const INTEGRADA = /intel|uhd|iris|hd graphics|mali|adreno|powervr|radeon\(tm\) graphics|radeon graphics|vega \d+ graphics|apple m\d/i;
+// 3.8.3: y las Radeon integradas que no dicen «Radeon Graphics»: las APU A4…A12 («Radeon R5 Graphics»), las de antes
+// («Radeon HD 8610G», «HD 7660D») y las de los Ryzen nuevos («Radeon 680M», «780M»). Arrancaban en media.
+const INTEGRADA = /intel|uhd|iris|hd graphics|mali|adreno|powervr|radeon\(tm\) graphics|radeon graphics|vega \d+ graphics|radeon(\(tm\))? r[2-8] graphics|radeon(\(tm\))? hd \d{4}[dg]\b|radeon(\(tm\))? \d{3}m\b|apple m\d/i;
 
 export function calidadParaEquipo(nombrePlaca) {
   const n = String(nombrePlaca || '');

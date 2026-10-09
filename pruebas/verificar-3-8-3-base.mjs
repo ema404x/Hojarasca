@@ -2,6 +2,7 @@
 // rendimiento y arranque), sin Electron. Una comprobación por arreglo.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import { calidadParaEquipo } from '../src/calidad-equipo.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -24,6 +25,18 @@ const main = leer('src/main.js');
   ok(main.includes("const recargaDelJuego = (() => { try { return performance.getEntriesByType('navigation')[0]?.type === 'reload';"), 'se distingue la recarga del juego');
   ok(main.includes("const recuperadoDe = recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado');"), 'y entonces no hay aviso de recuperación');
   ok(!/new URLSearchParams\(location\.search\)\.get\('recuperado'\)/.test(main.replace("recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado')", '')), 'no se lee el ?recuperado= por otro lado');
+}
+
+// 3. La primera vez, las Radeon integradas que no se llaman «Radeon Graphics» también arrancan en baja (las placas
+//    aparte, en media, como siempre).
+{
+  const baja = ['ANGLE (AMD, AMD Radeon R5 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)', 'ANGLE (AMD, AMD Radeon(TM) R4 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)',
+    'ANGLE (AMD, AMD Radeon HD 8610G Direct3D11 vs_5_0 ps_5_0, D3D11)', 'ANGLE (AMD, AMD Radeon HD 7660D Direct3D11 vs_5_0 ps_5_0)',
+    'ANGLE (AMD, AMD Radeon 780M Graphics (0x000015BF) Direct3D11 vs_5_0 ps_5_0, D3D11)', 'ANGLE (AMD, AMD Radeon(TM) 680M Direct3D11 vs_5_0 ps_5_0, D3D11)'];
+  const media = ['ANGLE (AMD, AMD Radeon RX 7600M XT Direct3D11 vs_5_0 ps_5_0, D3D11)', 'ANGLE (AMD, AMD Radeon R7 200 Series Direct3D11 vs_5_0 ps_5_0, D3D11)',
+    'ANGLE (AMD, AMD Radeon HD 8670M Direct3D11)', 'ANGLE (AMD, AMD Radeon R7 M265 Direct3D11)', 'ANGLE (AMD, Radeon RX 580 Series Direct3D11)'];
+  for (const p of baja) ok(calidadParaEquipo(p) === 'baja', `integrada: ${p}`);
+  for (const p of media) ok(calidadParaEquipo(p) === 'media', `aparte: ${p}`);
 }
 
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);
