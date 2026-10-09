@@ -237,6 +237,10 @@ if (!progreso) progreso = progresoNuevo();
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
 if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso.personal; progreso = progresoNuevo(); progreso.personal = personal; }
 if (esSinFin && progreso.desafio && !progreso.desafio.sinFin) progreso.desafio.sinFin = corridaNueva();
+// 3.8.3: ¿la partida que se abrió ya se había jugado? (sin posición guardada: nueva, o recién empezada de nuevo).
+// Hasta entrar al juego, guardar no anota dónde estás (ver `guardar`)
+const empezadaAlAbrir = !!(habiaGuardado && progreso.pos);
+let entroAlJuego = false;
 // 1.6: teclas propias, mando y accesibilidad
 let teclasPropias = sanearMapaTeclas(ajustes.teclas);
 // Una tecla del jugador llega traducida a la de fábrica: el resto del juego no se entera.
@@ -1784,6 +1788,7 @@ function volverAlJuego() {
   reiniciarMedicion(autoCalidad);
   for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
   modo = 'jugando';
+  entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');
   sonido.iniciar();
   jugador.pedirBloqueo();
@@ -1874,6 +1879,7 @@ document.querySelectorAll('[data-ajuste-rango]').forEach((i) => {
     ajustes[i.dataset.ajusteRango] = Number(i.value);
     guardarAjustes(ajustes);
     if (i.dataset.ajusteRango === 'volumen') sonido.setVolumen(ajustes.volumen);
+    if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.sensibilidad = ajustes.sensibilidad;   // 3.8.3: el mando también, sin reiniciar (como invertirY)
   });
 });
 // 3.5: la distancia de dibujo en bloques (la barra); «Según la calidad» es un botón aparte
@@ -1948,7 +1954,8 @@ $('btn-entrar').addEventListener('click', () => {
     if (esSinFin) setTimeout(() => nota('Supervivencia sin fin', 'Una sola vida: si caés, se termina la corrida. No hay noche final', true), 2600);
   }
   $('inicio').classList.add('oculto');
-  if (origenGuardado === 'backup') setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
+  // (3.8.3: sólo la primera vez: volviendo de la portada se repetía cada vez que se entraba)
+  if (origenGuardado === 'backup' && !entroAlJuego) setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
   else if (esDesafio && (!habiaGuardado || !progreso.pos)) {
     setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos y piedra con el hacha (H) y armá defensas (O → Defensa)', true), 1500);
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
@@ -2661,7 +2668,11 @@ document.addEventListener('keydown', (e) => {
   if (personalAbierto()) { if (codigo === 'Escape' || e.code === 'F5') { e.preventDefault(); cerrarPersonal(); } return; }
   if (e.code === 'F5' && !accionDeTecla(teclasPropias, 'F5') && !foto.activo) { e.preventDefault(); personalizarDesdeElJuego(); return; }
   // 3.5.1: como F3 y F5: si el jugador le dio F2 a una acción, F2 es de esa acción (antes no llegaba nunca)
-  if (e.code === 'F2' && jugador && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
+  // 3.8.3: sólo desde el juego (jugando, la pausa, el cuaderno o el mapa). En la portada, la pantalla de victoria o la
+  // tarjeta del valle, F2 prendía el modo foto con ese panel encima y, al salir, el juego corría detrás de la portada (lo
+  // mismo con los logros o las carreras abiertos desde la pausa: el modo foto no los cierra)
+  const fotoPosible = foto.activo || ((modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') && $('logros').classList.contains('oculto') && !modos?.panelAbierto());
+  if (e.code === 'F2' && jugador && fotoPosible && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
   if (codigo === 'F1') {
     e.preventDefault();
@@ -3964,6 +3975,16 @@ function leerMando(dt) {
     if (m.soltados.bloquear && desafio.bloqueando) desafio.bloquear(false);
     if (m.recien.esquivar) desafio.esquivar(m.mov.x >= 0 ? 1 : -1);
   } else if (m.recien.atacar) usarRanura();
+}
+
+// 3.8.3: en la pausa, el cuaderno y el mapa el mando sólo se leía jugando: Start abría la pausa (y la cruceta el mapa)
+// y con el mando no se podía volver. Ahora Start o B hacen de Esc (cierra lo que esté abierto encima, como el teclado) y
+// la cruceta derecha cierra el mapa.
+function leerMandoEnMenu() {
+  const m = mando.actualizar();
+  if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
+  if (!m.conectado) return;
+  if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
 }
 
 // Letra más grande, paleta para daltonismo y subtítulos de los avisos.
@@ -7627,6 +7648,10 @@ function guardar() {
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
   if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();   // 3.8.3: el sulky, donde ibas
+  // 3.8.3: en la portada de una partida sin jugar (la primera vez, o después de «Empezar de nuevo») cerrar el juego
+  // guardaba la posición de arranque y la partida pasaba por empezada: la portada decía «Seguir…», no salían las
+  // notas del primer día y el Desafío arrancaba sin código ni mapa. Se guarda igual (lo de Personalizar), sin posición.
+  if (!empezadaAlAbrir && !entroAlJuego) progreso.pos = null;
   // 3.5.1: en el modo foto la hora es la del deslizador: se guarda la del juego
   const horasFoto = foto.activo && guardadoFoto ? progreso.horas : null;
   if (horasFoto !== null) progreso.horas = guardadoFoto.horas;
@@ -8304,6 +8329,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (libre.activa) moverCamaraLibre(foto.activo ? dtReal : dt);
     else { leerMando(dt); jugador.actualizar(dt); }
   }
+  if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)
@@ -9083,7 +9109,11 @@ lienzo.addEventListener('webglcontextrestored', async () => {
 
 // main.cjs recargó la ventana después de una caída (o el juego, sin la placa): se avisa en la
 // portada y al entrar. La partida es la última guardada (el autoguardado va cada 20 s).
-const recuperadoDe = new URLSearchParams(location.search).get('recuperado');
+// 3.8.3: location.reload() conserva el ?recuperado=…: después de una caída, cambiar el idioma, la calidad, el modo o la
+// partida volvía a avisar en la portada (y al entrar) que el juego se había caído. El aviso es de la apertura que hizo la
+// recuperación (main.cjs y recargarPorGraficos navegan; las recargas del juego son 'reload')
+const recargaDelJuego = (() => { try { return performance.getEntriesByType('navigation')[0]?.type === 'reload'; } catch { return false; } })();
+const recuperadoDe = recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado');
 function avisarRecuperado() {
   if (!recuperadoDe) return;
   const texto = recuperadoDe === 'graficos'

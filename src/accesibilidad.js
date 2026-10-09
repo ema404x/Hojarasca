@@ -28,7 +28,9 @@ export const NOMBRES_ACCIONES = {
 export const ACCIONES_TECLA = Object.keys(TECLAS_POR_DEFECTO);
 
 // Estas no se mueven ni se las roba nadie: sin ellas no se sale de un menú.
-export const TECLAS_RESERVADAS = ['Escape', 'F1'];
+// 3.8.3: y F11, que es la pantalla completa (main.cjs se la queda antes que la página): una acción puesta en F11 no
+// andaba nunca, y en una partida guardada así vuelve a su tecla de fábrica
+export const TECLAS_RESERVADAS = ['Escape', 'F1', 'F11'];
 export const esFija = (accion) => TECLAS_RESERVADAS.includes(TECLAS_POR_DEFECTO[accion]);
 
 export function mapaPorDefecto() {
