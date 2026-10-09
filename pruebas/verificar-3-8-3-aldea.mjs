@@ -5,6 +5,8 @@ import * as M from '../src/amor.js';
 import * as A from '../src/aldea.js';
 import * as V from '../src/vecindad.js';
 import { FRASES_AMOR } from '../src/amor-voces.js';
+import { ENTRADAS } from '../src/cuaderno.js';
+import { ENTRADAS_RINCONES } from '../src/rincones-cuaderno.js';
 import * as R from '../src/rincones.js';
 import { IDS_DUENDES } from '../src/rincones-cuaderno.js';
 import { PALABRA_EMOCION } from '../src/social-rueda.js';
@@ -130,6 +132,30 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   ok(FRASES_AMOR.separacion.includes('con {chicos}.') && a.includes('chicos: chicosDe(amor, c)'), 'amor: con un hijo solo se va «con Malén», no «con los chicos»');
   ok(!/lo dejemos ir solo|A veces lo miro|el vecino más chico/.test(v), 'amor: lo de {hijo} sirve para una hija');
   sinCR('src/amor-voces.js');
+}
+
+// ---------------------------------------------------------------- 12. la maestra no te manda a anotar lo de los rincones
+{
+  const rinc = new Set(ENTRADAS_RINCONES.map((e) => e.id));
+  ok(!A.pendientesDelCuaderno({}).some((e) => rinc.has(e.id)), 'aldea: los pendientes del cuaderno no traen lo de los rincones (el campamento, tu casa, el sulky…)');
+  // todo anotado menos el campamento: no hay mandado trabado
+  const entradas = Object.fromEntries(ENTRADAS.filter((e) => e.id !== 'campamento').map((e) => [e.id, { dia: 1, hora: 9, cantidad: 1 }]));
+  const p = partida({ entradas });
+  let s = A.servicioDe('maestra', p, 20);
+  ok(!JSON.stringify(s.efectos || []).includes('campamento') && /No te falta nada/.test(s.partes[0] || ''), 'aldea: con todo anotado menos el campamento, la maestra no te lo pide');
+  // una partida guardada con un mandado de los rincones: se cambia
+  p.aldea.mandado = { id: 'campamento', dia: 10 };
+  delete p.entradas['cruz-del-sur'];
+  s = A.servicioDe('maestra', p, 20);
+  ok(JSON.stringify(s.efectos || []).includes('cruz-del-sur'), 'aldea: un mandado guardado de los rincones se cambia por uno que se puede hacer');
+}
+
+// ---------------------------------------------------------------- 13. el concurso: Nélida dijo «Anotado»
+{
+  const m = leer('src/main.js'), c = leer('src/concursos-juego.js');
+  ok(m.includes("if (charla.historia?.id === 'concurso-anotar' && charla.parte === charla.historia.partes.length - 1) { const anotar = charla.historia.alTerminar; charla.historia = null; anotar?.(); }"), 'main: con «Anotado» en pantalla, cortar la charla igual te anota');
+  const bloque = c.slice(c.indexOf("id: 'concurso-anotar'"), c.indexOf('alTerminar', c.indexOf("id: 'concurso-anotar'")));
+  ok(bloque.includes('¿Te anoto?') && bloque.indexOf('`Anotado, con') > bloque.indexOf('¿Te anoto?'),'concursos: el último renglón es el de «Anotado»');
 }
 
 console.log(`verificar-3-8-3-aldea: ${n} comprobaciones en verde`);

@@ -6821,6 +6821,8 @@ function cerrarCharla() {
   // 3.8.3: aceptó la invitación (ya contó como tomada hoy): cortada con Escape o alejándose, igual va para la mesa (antes no
   // iba nunca y al volver a invitarlo decía «Ya tomamos hoy»)
   if (charla.historia?.cita && charla.parte < charla.historia.partes.length) { const c = charla.historia.cita; vecindadJuego?.empezarCita(charla.vec?.clave, c.npc || charla.npc, c.que, c.charla, c.lugares); charla.historia = null; }
+  // 3.8.3: Nélida ya dijo «Anotado» (el último renglón, en pantalla): cortada ahí con Escape o alejándote, igual quedás anotado
+  if (charla.historia?.id === 'concurso-anotar' && charla.parte === charla.historia.partes.length - 1) { const anotar = charla.historia.alTerminar; charla.historia = null; anotar?.(); }
   amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
   socialJuego?.alCerrarCharla(charla.npc);   // 3.7.4: el que vino a hablarte vuelve a lo suyo
   if (trucoPendiente) { const n = trucoPendiente; trucoPendiente = null; setTimeout(() => fiestasJuego?.jugarTruco(n, claveVecindad(n)), 60); }   // 3.7.5: el truco de la rueda
