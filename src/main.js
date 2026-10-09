@@ -376,7 +376,7 @@ window.addEventListener('mousedown', (e) => {
   e.preventDefault();
   // Desafío: con la lanza, el clic derecho sostenido bloquea; la pistola mejorada dispara cargado
   const id = ranuras[elegida]?.id;
-  if (desafio && !desafio.caido && !modoObra) {
+  if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) {   // 3.8.3: ni con el taller abierto ni charlando
     // 2.5: con el carcaj, el arco cambia de flecha; con la lanza o el escudo de tablas, bloquea
     if (id === 'arco' && desafio.cambiarFlecha()) { refrescarBarra(true); return; }
     if (desafio.atacarAlterno(id)) { refrescarBarra(true); return; }
@@ -397,6 +397,7 @@ window.addEventListener('blur', () => { if (desafio?.bloqueando) desafio.bloquea
 window.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo) return;
   if (panelDelHudAbierto()) return;   // 3.6.2: con el taller (o el almacén del valle) abierto, el clic no ataca
+  if (charla.npc) return;   // 3.8.3: charlando, el clic sigue la charla (también tensaba el arco o pegaba, y gastaba munición)
   if (!jugador?.bloqueado() || pesca?.est.equipada) return;
   const js = jugador.estado;
   if (js.enKayak || js.enTren || js.sentado) return;
@@ -3245,7 +3246,8 @@ function usarRanura() {
     case 'fuego': encenderFuego(); break;
     case 'plantar-pehuen': case 'plantar-coihue': case 'plantar': plantarRenoval(); break;
     case 'cocinar': cocinar(); break;
-    case 'arma': if (desafio && !desafio.caido) desafio.atacar(r.id); refrescarBarra(true); return;
+    // 3.8.3: como el clic izquierdo: en modo obra, con un panel abierto (el taller) o charlando no se tira (gastaba munición)
+    case 'arma': if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) desafio.atacar(r.id); refrescarBarra(true); return;
     case 'curar': if (desafio) desafio.usarEmplasto(); break;
     case 'grabador': usarGrabador(); break;
     default: nota(r.nombre, r.texto || 'Se guarda en la mochila'); break;

@@ -214,4 +214,12 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
   assert.equal(oleadas, 2, 'dos noches, dos oleadas');
 }
 
+// ---------------------------------------------------------------- 10. el clic no tira charlando, en obra ni con el taller abierto
+{
+  const main = leer('src/main.js');
+  assert.ok(main.includes("  if (panelDelHudAbierto()) return;   // 3.6.2: con el taller (o el almacén del valle) abierto, el clic no ataca\n  if (charla.npc) return;"), 'charlando, el clic izquierdo no ataca');
+  assert.ok(main.includes("case 'arma': if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) desafio.atacar(r.id);"), 'el clic derecho y la U con un arma, igual que el izquierdo');
+  assert.ok(main.includes('  if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) {'), 'ni bloqueo ni tiro cargado con el taller abierto');
+}
+
 console.log('verificar-3-8-3-combate: ok');
