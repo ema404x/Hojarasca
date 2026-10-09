@@ -157,7 +157,7 @@ app.whenReady().then(async () => {
     ok(/^Leer «La trochita», el libro prestado$/.test(av), `sin visita, leer: «${av}»`);
     // la visita: sentada al lado, a 40° de donde mirás (no de frente)
     const visita = await js(`(()=>{ const H = ${H}, e = H.jugador.estado, n = H.__aldea.mundo().figura('nelida'); if (!n) return null;
-      const a = e.yaw + 0.7; n.pos.set(e.pos.x - Math.sin(a) * 1.5, n.pos.y, e.pos.z - Math.cos(a) * 1.5); n.camino = []; return n.nombre })()`);
+      const a = e.yaw + 0.7; n.pos.set(e.pos.x - Math.sin(a) * 1.5, n.pos.y, e.pos.z - Math.cos(a) * 1.5); n.camino = []; n.deVisita = true; n.dormido = false; return n.nombre })()`);   // (3.8.3: de visita de verdad, como traerVisita: con la aldea lejos estaba dormida, invisible, y ya no se le habla)
     ok(!!visita, `la visita: ${visita}`);
     av = await js(`${H}.__avisoYa()?.texto || ''`);
     ok(av === `Hablar con ${visita}`, `con la visita en tu mesa gana la visita: «${av}»`);
@@ -165,7 +165,7 @@ app.whenReady().then(async () => {
     for (let i = 0; i < 10 && !(await js(`!document.getElementById('charla-opciones').classList.contains('oculto')`)); i++) await tecla('KeyE');
     const menu = await js(`${H}.__ruedaPlana()`);   // 3.7.4: la rueda, aplanada (todas las opciones de todas las categorías)
     ok(menu.some((t) => /^Leer «La trochita», el libro prestado$/.test(t)), `y leer queda en el menú de la charla (${menu.join(' / ')})`);
-    await js(`${H}.__cerrarCharla(); ${H}.jugador.sentarse(false); 1`);
+    await js(`${H}.__cerrarCharla(); ${H}.jugador.sentarse(false); { const n = ${H}.__aldea.mundo().figura('nelida'); if (n) n.deVisita = false; } 1`);
 
     seccion('el mapa dibuja la aldea');
     const mapa = await js(`(()=>{ const H = ${H}; H.abrir('mapa'); const c = document.getElementById('lienzo-mapa'), x = c.getContext('2d');

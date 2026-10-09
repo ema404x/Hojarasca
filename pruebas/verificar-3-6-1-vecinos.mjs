@@ -81,7 +81,7 @@ const main = leer('src/main.js');
   // el código de la 3.6.0 (sin salida) dejaba al jugador adentro
   ok(/estado\.salida = hayDePie \? dePie\.clone\(\) : estado\.pos\.clone\(\)/.test(leer('src/jugador.js')), 'jugador.js: la salida al sentarse');
   // R, sentado, siempre te levanta; y sentado se guarda la salida (al cargar no aparecés adentro del sillón)
-  ok(main.includes('if (js.sentado) jugador.sentarse(false);\n      else if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(true);'), 'R: sentado, te levanta siempre');
+  ok(main.includes('if (js.sentado) jugador.sentarse(false);\n      else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);'), 'R: sentado, te levanta siempre');   // (3.8.3: y no te sienta a caballo ni en el sulky)
   ok(main.includes(': jugador.estado.sentado && jugador.estado.salida ? { x: jugador.estado.salida.x, y: jugador.estado.salida.y, z: jugador.estado.salida.z }'), 'guardar: sentado, la salida');
   ok(fs.existsSync(new URL('./humo-3-6-1-asientos.cjs', import.meta.url)), 'la partida real de todos los asientos');
 }

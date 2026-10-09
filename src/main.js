@@ -1124,9 +1124,11 @@ let durmiendo = false;
 const claveNocheReloj = (d = new Date()) => new Date(d.getTime() - 12 * 3600e3).toDateString();
 // (3.7.3: `dormirEnElTren`: en la cucheta del coche dormitorio, andando o parado, donde estés)
 let dormirEnElTren = false;
-function dormir() {
+// 3.8.3: `opRincon`: lo que manda rincones-juego.js ({ casaAldea: true }: en tu casa de la calle de la Loma)
+function dormir(opRincon = null) {
   if (durmiendo) return;
   const op = { enTren: dormirEnElTren };
+  const enCasaAldea = !desafio && !!opRincon?.casaAldea;
   if (desafio) {
     const r = desafio.puedeDormir();
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
@@ -1141,14 +1143,15 @@ function dormir() {
   const fg = clima.fogata, jp = jugador.estado.pos;
   const fuegoVivo = fg.activa && fg.vida > 0;
   // 2.4.1: estadoHabitat también encuentra la casa de al lado; sólo cuenta si estás adentro
-  const bajoTechoPropio = obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
+  // 3.8.3: tu casa de la aldea también es techo propio (antes contaba como dormir a la intemperie: frío en invierno y «durmió afuera»)
+  const bajoTechoPropio = enCasaAldea || obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
   const casa = bajoTechoPropio ? obras?.estadoHabitat?.(jp, { fuego: fuegoVivo ? fg.pos : null }) || null : null;
   // 3.6 (vida): dormir afuera (lejos del refugio y sin techo tuyo) también se comenta en la aldea
   const refu = T.lugares.refugio;
   if (!desafio && deNoche && !bajoTechoPropio && !op?.enTren && refu && Math.hypot(jp.x - refu.x, jp.z - refu.z) > 15) vecindadJuego?.hecho('durmio-afuera');
   const distanciaAlFuego = fuegoVivo ? Math.hypot(fg.pos.x - jp.x, fg.pos.z - jp.z) : Infinity;
   // 3.7.3: en la cucheta del coche dormitorio: abrigado con la manta; con la salamandra del coche de pasajeros, calentito
-  const comoSinRopa = desafio || !deNoche ? 'normal' : op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal') : comoDormiste({
+  const comoSinRopa = desafio || !deNoche ? 'normal' : op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal') : enCasaAldea ? 'calentito' : comoDormiste({   // (3.8.3: los vecinos te dejan la estufa prendida)
     invierno: U.uInvierno.value, manta: !!progreso.cosas.manta, distanciaAlFuego, casa, carpa: enLaCarpa(),
   });
   // 2.8: la ropa abriga (ver personal-personaje.js): con poncho, gorro y bufanda, un escalón mejor
@@ -2839,7 +2842,7 @@ document.addEventListener('keydown', (e) => {
       if (modoObra && obras) { obras.girar(e.shiftKey ? -1 : 1); dibujarPanelObra(); break; }
       // 3.6.1: sentado, R siempre te levanta (en la punta del muelle no lo hacía)
       if (js.sentado) jugador.sentarse(false);
-      else if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(true);
+      else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);   // 3.8.3: ni a caballo ni en el sulky (R te sentaba arriba del zaino)
       break;
     case 'KeyN':
       if (modoObra && obras) {
@@ -4571,7 +4574,7 @@ function armarOficiosYAldea(esDesafio) {
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
     cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
-    dormir: () => dormir(), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
+    dormir: (o) => dormir(o), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
     noche: () => { const h = progreso.horas; return h >= 20 || h < 5.5 ? 1 : h >= 18.5 ? (h - 18.5) / 1.5 : h < 7 ? (7 - h) / 1.5 : 0; },
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
   });
@@ -6877,7 +6880,16 @@ function cobrarPremio(e) {
   guardar();
 }
 function cerrarCharla() {
+  // 3.8.3: el ñiki ñiki ya pasó (amor.js lo anotó y se guardó): cortado con Escape o alejándose, igual va el fundido y el
+  // descanso (antes se gastaba la noche sin descansar)
+  const fundir = charla.historia?.id === 'amor-fundido' && charla.parte < charla.historia.partes.length ? charla.historia.alTerminar : null;
+  if (fundir) charla.historia = null;   // (una sola vez: el fundido vuelve a cerrar la charla)
   if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
+  // 3.8.3: aceptó la invitación (ya contó como tomada hoy): cortada con Escape o alejándose, igual va para la mesa (antes no
+  // iba nunca y al volver a invitarlo decía «Ya tomamos hoy»)
+  if (charla.historia?.cita && charla.parte < charla.historia.partes.length) { const c = charla.historia.cita; vecindadJuego?.empezarCita(charla.vec?.clave, c.npc || charla.npc, c.que, c.charla, c.lugares); charla.historia = null; }
+  // 3.8.3: Nélida ya dijo «Anotado» (el último renglón, en pantalla): cortada ahí con Escape o alejándote, igual quedás anotado
+  if (charla.historia?.id === 'concurso-anotar' && charla.parte === charla.historia.partes.length - 1) { const anotar = charla.historia.alTerminar; charla.historia = null; anotar?.(); }
   amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
   socialJuego?.alCerrarCharla(charla.npc);   // 3.7.4: el que vino a hablarte vuelve a lo suyo
   if (trucoPendiente) { const n = trucoPendiente; trucoPendiente = null; setTimeout(() => fiestasJuego?.jugarTruco(n, claveVecindad(n)), 60); }   // 3.7.5: el truco de la rueda
@@ -6887,6 +6899,7 @@ function cerrarCharla() {
   charla.menu = null; charla.vec = null;   // 3.6 (vida)
   $('charla').classList.add('oculto');
   $('charla-opciones')?.classList.add('oculto');
+  fundir?.();
 }
 // ---------------------------------------------------------------- 3.6 (vida): el menú de la charla
 // Al hablarle a un vecino del Relax: «¿Cómo andás?», «Novedades», «Tu historia», «Regalar…»,
@@ -7009,6 +7022,7 @@ function atrasCharla() {
 }
 // La mesa de la invitación: te sentás en tu lugar, mirando al invitado, y charlan.
 function sentarseALaCita() {
+  if (jugador.estado.montado || jugador.estado.enTren) return false;   // 3.8.3: a caballo te sentaba montado en la silla (como el asiento libre: bajate primero)
   const r = vecindadJuego?.sentarse();
   if (!r) return false;
   const js = jugador.estado;
@@ -7172,6 +7186,7 @@ function interactuarSocial(id, cat) {
   charla.historia = { id: 'social', partes: r.renglones, volver: true, social: true };
   // (se enojó y se va: al terminar lo que dice, la charla se termina)
   if (r.cierra) charla.historia.alTerminar = () => { if (charla.vec) charla.vec.chau = true; };
+  if (r.cierra) charla.historia.volver = false;   // 3.8.3: se fue ofendido: Escape despide (antes le volvía a abrir la rueda)
   guardar();
   mostrarCharla();
 }
@@ -7597,6 +7612,7 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
+  if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();   // 3.8.3: el sulky, donde ibas
   // 3.5.1: en el modo foto la hora es la del deslizador: se guarda la del juego
   const horasFoto = foto.activo && guardadoFoto ? progreso.horas : null;
   if (horasFoto !== null) progreso.horas = guardadoFoto.horas;
@@ -8649,7 +8665,8 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
-    if (vecino && aviso && !desafio && !charla.npc && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
+    // 3.8.3: salvo que ella te espere para la cita o el casamiento: la E empieza eso primero (hablar → amorJuego.hablar)
+    if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };
@@ -8761,7 +8778,8 @@ function cuadroDelJuego(tRaf, manual) {
     // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
-    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: 'Bajarte del zaino' };
+    // (3.8.3: con ella esperándote para la cita o el casamiento, eso: la E, por hablar(), lo empieza también a caballo)
+    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: 'Bajarte del zaino' };
     // 2.6.1: charlando, E sólo sigue la charla: el caballo, la puerta o el kayak no se ofrecen
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco

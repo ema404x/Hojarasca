@@ -671,6 +671,8 @@ export function cargarMinga(estado, dia) {
   const d = diaValido(dia), anio = anioDe(d), m = mingaDelAnio(anio);
   if (e.mingaHoy.dia !== d) e.mingaHoy = { dia: d, cargas: 0 };
   if (e.minga.some((x) => x.anio === anio)) return { cargas: e.mingaHoy.cargas, faltan: 0, hecha: true, obra: m };
+  // 3.8.3: tu parte ya está: no se carga más (cada E repetía «tu parte, hecha» y sumaba amistad sin fin)
+  if (e.mingaHoy.cargas >= m.cargas) return { cargas: e.mingaHoy.cargas, faltan: 0, hecha: false, tuParte: true, obra: m };
   e.mingaHoy.cargas++;
   return { cargas: e.mingaHoy.cargas, faltan: Math.max(0, m.cargas - e.mingaHoy.cargas), hecha: false, obra: m };
 }

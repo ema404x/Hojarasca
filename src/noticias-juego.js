@@ -42,7 +42,8 @@ export function novedadesDelValle(p, dia, extra = {}) {
   const cumples = eventosDelDia(dia, { aldea: a }).filter((e) => e.tipo === 'cumple');
   if (cumples.length) lista.push(`Hoy ${cumples.length === 1 ? 'cumple' : 'cumplen'} años ${unir(cumples.map((e) => nombreCortoDe(e.clave)))}. Desde esta radio, el saludo de todo el valle.`);
   const f = fechaDeFiesta(dia);
-  if (f && a.descubierta) lista.unshift(`Hoy es ${minus(f.nombre)}: todos a la plaza.`);   // (la fiesta, primero: es la tapa)
+  // 3.8.3: casi todas las fiestas son en el predio, al lado de la estación (decía «todos a la plaza» siempre)
+  if (f && a.descubierta) lista.unshift(`Hoy es ${minus(f.nombre)}: todos ${f.lugar === 'predio' ? 'al predio de la fiesta' : 'a la plaza'}.`);   // (la fiesta, primero: es la tapa)
   const v = p?.vidaAldea;
   if (v?.visitante?.dia === dia) lista.push('Bajó del tren un visitante que pregunta por los lugares del valle. Si lo ven perdido, denle una mano.');
   if (v?.mascota?.estado === 'cachorros') lista.push('La Chola tuvo cachorros en la boletería: Ernesto anda buscándoles casa.');

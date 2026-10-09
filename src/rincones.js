@@ -75,7 +75,7 @@ export const RINCONES = {
   manualidadesPorDia: 1,     // cada manualidad, una vez por día
   titeres: { desde: 16, hasta: 19.5 },
   fuerte: { etapas: 3, pide: { tronco: 3 }, desde: 9, hasta: 19 },
-  campamento: { desde: 18, hasta: 23 },
+  campamento: { desde: 19.5, hasta: 23 },   // 3.8.3: desde que es de noche para dormir (de 18 a 19,5 «Acampar» era una siesta y gastaba la noche)
   huerta: { canteros: 4, mitad: 0.5, desde: 7, hasta: 20 },
   huertaChicos: { canteros: 2, desde: 13, hasta: 19 },
 };
@@ -115,7 +115,8 @@ export function sanearRincones(v, hoy = null) {
   const d = hoy === null ? Infinity : diaValido(hoy, 1);
   const fecha = (x) => Math.min(d, noNeg(x));
   for (const id of IDS_DUENDES) if (tieneDe(v.duendes, id) && fecha(v.duendes[id]) > 0) base.duendes[id] = fecha(v.duendes[id]);
-  base.talla = fecha(v.talla);
+  // 3.8.3: la talla es una fecha que viene (Tito tarda RINCONES.tallaDias): el tope es hoy + eso, no hoy (al recargar salía antes)
+  base.talla = Math.min(d + RINCONES.tallaDias, noNeg(v.talla));
   // (la talla sólo con los doce)
   if (Object.keys(base.duendes).length < IDS_DUENDES.length) base.talla = 0;
   base.cuaderno = fecha(v.cuaderno);

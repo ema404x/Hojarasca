@@ -819,6 +819,8 @@ export function crearAldeaGente(ctx) {
     const l = M.aLocal(pos.x, pos.z);
     return dentroDePlanta(lote, l.lx, l.lz, -2.5) ? lote : null;
   }
+  // 3.8.3: completada de madrugada (antes de las 7), la etapa queda lista esa misma mañana (aldea.js, `aportar`): el texto lo dice
+  const cuandoLista = (l) => (l && l.dia <= dia() ? 'a las 7 está lista' : 'mañana a la mañana está lista');
   function avisoObra(lote) {
     const et = etapaDe(aldea(), lote);
     if (!et || et.estado !== 'obra') return null;
@@ -830,7 +832,7 @@ export function crearAldeaGente(ctx) {
     const et = etapaDe(a, lote);
     if (!et || et.estado !== 'obra') return null;
     if (et.lista) {
-      ctx.nota(`Los vecinos trabajan en ${nombreLocal(lote)}`, `${et.etapa.nombre}: mañana a la mañana está lista la etapa`);
+      ctx.nota(`Los vecinos trabajan en ${nombreLocal(lote)}`, `${et.etapa.nombre}: ${cuandoLista(et.lista)} la etapa`);
       return { usados: {}, faltan: {}, completa: true };
     }
     let r = null;
@@ -850,7 +852,7 @@ export function crearAldeaGente(ctx) {
     ctx.refrescarBarra?.();
     ctx.alAportar?.(r.usados, r.completa, antes);   // 3.6: lo que pusiste en la obra del pueblo cuenta para el oficio de constructor
     ctx.alAporteObra?.(lote, r.usados);   // 3.6 (vida): y los vecinos se acuerdan
-    if (r.completa) ctx.nota(`Aportaste ${listaMateriales(r.usados)}`, 'Los vecinos van a trabajar en la obra: mañana a la mañana está lista la etapa', true);
+    if (r.completa) ctx.nota(`Aportaste ${listaMateriales(r.usados)}`, `Los vecinos van a trabajar en la obra: ${cuandoLista(etapaDe(a, lote).lista)} la etapa`, true);
     else ctx.nota(`Aportaste ${listaMateriales(r.usados)} a la obra de ${nombreLocal(lote)}`, `${mayus(verboFalta(r.faltan))} ${listaMateriales(r.faltan)}`);
     ctx.guardar();
     ctx.redibujar?.();
@@ -1438,7 +1440,7 @@ export function crearAldeaGente(ctx) {
     if (obra) {
       const et = etapaDe(a, obra);
       ficha.appendChild(el('p', 'pista', `La obra de ${nombreLocal(obra)}: etapa ${et.hechas + 1} de ${et.total} (${minus(et.etapa.nombre)}). ${et.lista
-        ? 'Los vecinos están trabajando: mañana a la mañana está lista.'
+        ? `Los vecinos están trabajando: ${cuandoLista(et.lista)}.`
         : `${mayus(verboFalta(et.faltan))} ${listaMateriales(et.faltan)}: ${verboFalta(et.faltan) === 'falta' ? 'se aporta' : 'se aportan'} con E, parado en el lote.`}`));
     }
     if (a.llegando) {

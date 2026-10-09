@@ -28,7 +28,7 @@ assert.deepEqual(dondeEspera(sanearCaballo(JSON.parse(JSON.stringify(caballoNuev
 
 // ---- dormir: el fundido no deja dormir de nuevo encima
 assert.match(main, /let durmiendo = false;\nconst claveNocheReloj|let durmiendo = false;/, 'hay una marca de "durmiendo"');
-assert.match(main, /function dormir\(\) \{\n  if \(durmiendo\) return;/, 'dormir no se vuelve a armar durante el fundido');
+assert.match(main, /function dormir\([^)]*\) \{\n  if \(durmiendo\) return;/, 'dormir no se vuelve a armar durante el fundido');   // (3.8.3: dormir(opRincon), para tu casa de la aldea)
 assert.match(main, /durmiendo = true;\n  setTimeout\(/, 'se marca al empezar el fundido');
 assert.match(main, /jugador\.sentarse\(false\);\n      durmiendo = false;/, 'y se suelta al despertar');
 

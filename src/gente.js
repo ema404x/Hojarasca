@@ -1098,7 +1098,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     const minimo = deFrente ? 0.9 : 0.45;
     let mejor = null, mejorD = deFrente ? 2.4 : 3.6;
     for (const g of gente) {
-      if (g.aBordo && !g.enViaje) continue;
+      // 3.8.3: ni el que no se ve (dormido: lejos, o escondido a propósito: el visitante que se fue, la familia después de
+      // la visita, el chico que se fue a estudiar). Antes quedaban «fantasmas» invisibles con «Hablar con…» donde se fueron
+      if (g.dormido || (g.aBordo && !g.enViaje)) continue;
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
       if (d > mejorD) continue;
       tmp.set(g.pos.x - camara.position.x, 0, g.pos.z - camara.position.z).normalize();
@@ -1351,7 +1353,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     // (3.7.0 (integración): la figura nueva se arma de a poco, unos ms por cuadro; antes, de una: un tirón cada medio
     // segundo hasta vestir a todos)
     if (vistiendo) {
-      if (!gente.includes(vistiendo.npc)) { vistiendo = null; return; }
+      // 3.8.3: se fue (una visita del tren) con la ropa nueva ya armada: sus geometrías y huesos se sueltan (quedaban ocupados)
+      if (!gente.includes(vistiendo.npc)) { if (vistiendo.tarea.hecho && vistiendo.tarea.resultado) soltarPersona(vistiendo.tarea.resultado); vistiendo = null; return; }
       if (!vistiendo.tarea.hecho && !vistiendo.tarea.avanzar(3)) return;
       // (lista: se cambia cuando no se la ve; si en el medio te diste vuelta y la mirás de cerca, espera)
       const n = vistiendo.npc, dn = js ? Math.hypot(n.pos.x - js.pos.x, n.pos.z - js.pos.z) : Infinity;

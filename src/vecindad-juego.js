@@ -121,6 +121,7 @@ const FRASES_JUEGO = {
   ayudar: '¿En qué le das una mano?',
   sinMesa: 'Me encantaría, pero ¿en qué mesa? Armate una mesa de campo con dos sillas o bancos y ahí sí.',
   conVisita: 'Ya tenés visita en tu mesa. Otro día, así charlamos tranquilos.',
+  deVisita: 'Si ya estoy de visita en tu casa. Otro día vamos a tomar algo, ¿dale?',   // 3.8.3
   yaQuedaste: 'Ya quedaste con {quien} para tomar algo. Otro día, ¿dale?',
   yaQuedamos: '¡Si ya quedamos! Andá yendo, que te alcanzo.',
   sinCasaTe: 'La casa de té está en la aldea, y hoy no la encuentro abierta. Otro día.',
@@ -378,6 +379,9 @@ export function crearVecindadJuego(ctx) {
     if (tipo === 'invitar') {
       const que = k === 'te' ? 'te' : 'mate';
       const no = (texto) => ({ tipo: 'renglones', renglones: [texto] });
+      // 3.8.3: el que está de visita en tu casa no sale a tomar algo (invitado al té, al terminar la cita volvía a tu mesa,
+      // con la visita ya terminada, y quedaba ahí parado para siempre)
+      if (npc?.deVisita) return no(FRASES_JUEGO.deVisita);
       if (cita) return no(cita.clave === s.clave ? FRASES_JUEGO.yaQuedamos : FRASES_JUEGO.yaQuedaste.replace('{quien}', nombreCorto(cita.clave)));
       let lugares = null;
       if (que === 'mate') {

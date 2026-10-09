@@ -30,6 +30,7 @@
 //
 // Módulo puro (se prueba en Node): sin three ni DOM.
 import { ENTRADAS } from './cuaderno.js';
+import { ENTRADAS_RINCONES } from './rincones-cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';
 import { porRetirar, porEnviar, enviarFoto } from './correo.js';
 import { MELODIAS, anotarPartitura } from './personal-musica.js';
@@ -1379,8 +1380,12 @@ const yaHoy = (aldea, clave, dia) => !!aldea?.usos && Object.hasOwn(aldea.usos, 
 const DALE = 'E: dale · Escape: otro día';
 // Las anotaciones que la maestra puede mandarte a buscar: lo que se ve y se encuentra.
 const SECCIONES_MANDADO = ['flora', 'frutos', 'fauna', 'peces', 'lugares', 'cielo'];
+// 3.8.3: sin las de los rincones (el campamento, tu casa, el sulky…): no se «ven» en el valle, salen de hacer cosas que
+// pueden no llegar nunca (sin hijos, con el amor apagado). La maestra te mandaba a anotar una y el mandado quedaba trabado
+const DE_LOS_RINCONES = new Set(ENTRADAS_RINCONES.map((e) => e.id));
+export const esDeLosRincones = (id) => DE_LOS_RINCONES.has(id);
 export function pendientesDelCuaderno(entradas = {}, secciones = SECCIONES_MANDADO) {
-  return ENTRADAS.filter((e) => secciones.includes(e.seccion) && !Object.hasOwn(entradas || {}, e.id));
+  return ENTRADAS.filter((e) => secciones.includes(e.seccion) && !DE_LOS_RINCONES.has(e.id) && !Object.hasOwn(entradas || {}, e.id));
 }
 // Lo que lleva el registro de la seccional: la fauna y los rastros.
 const SECCIONES_REGISTRO = ['fauna', 'rastros'];
@@ -1469,7 +1474,7 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
     }
     case 'maestra': {
       const entradas = progreso?.entradas || {};
-      const m = aldea.mandado;
+      const m = aldea.mandado && !DE_LOS_RINCONES.has(aldea.mandado.id) ? aldea.mandado : null;   // 3.8.3: uno trabado de los rincones, se cambia
       const E = m ? ENTRADAS.find((e) => e.id === m.id) : null;
       if (m && E && Object.hasOwn(entradas, m.id)) {
         return {
