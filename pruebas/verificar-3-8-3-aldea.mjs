@@ -56,7 +56,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   const j = leer('src/amor-juego.js'), m = leer('src/main.js');
   ok(j.includes("if (!puesta && p.amor?.cita?.estado === 'en-curso') alCerrar();"), 'amor-juego: la cita en curso de una partida recargada se da por hecha');
   ok(j.includes("return puesta.por === 'cita' && c && c.clave === puesta.clave && c.estado === 'acordada' ?"), 'amor-juego: el aviso «Empezar la cita» sólo con ella puesta para la cita');
-  ok(m.includes("&& !amorJuego?.textoAviso(vecino) && socialJuego?.quiereDecir(vecino)) aviso"), 'main: «te quiere decir algo» no tapa el aviso de la cita (la E la empieza primero)');
+  ok(m.includes("&& !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso"), 'main: «te quiere decir algo» no tapa el aviso de la cita (la E la empieza primero)');
   ok(/const fundir = charla\.historia\?\.id === 'amor-fundido' && charla\.parte < charla\.historia\.partes\.length \? charla\.historia\.alTerminar : null;\n  if \(fundir\) charla\.historia = null;/.test(m) && /\n  fundir\?\.\(\);\n\}/.test(m), 'main: el ñiki ñiki cortado con Escape igual hace el fundido y el descanso');
   sinCR('src/amor-juego.js'); sinCR('src/main.js');
 }
@@ -163,6 +163,17 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   const j = leer('src/fiestas-juego.js');
   ok(j.includes('mano.length > 7 ? { resto: Math.min(...mano.map((_c, i) => mejorLigado(mano.filter((_x, k) => k !== i)).resto)) } : mejorLigado(mano)') && !j.includes('mano.slice(0, 7)'), 'chinchón: con 8 cartas, las sueltas cuentan la recién levantada');
   ok(j.includes('if (panel.ligMano !== claveMano)'), 'chinchón: se calcula una vez por mano, no en cada redibujo');
+}
+
+// ---------------------------------------------------------------- 15. la visita, la mesa a caballo, R a caballo y el sulky
+{
+  const vj = leer('src/vecindad-juego.js'), m = leer('src/main.js'), j = leer('src/rincones-juego.js');
+  ok(vj.includes('if (npc?.deVisita) return no(FRASES_JUEGO.deVisita);') && vj.indexOf('if (npc?.deVisita) return no(FRASES_JUEGO.deVisita);') < vj.indexOf('const r = invitar(s.clave, que, p, horas()'), 'vecindad: el que está de visita en tu casa no sale a tomar el té (quedaba parado en tu mesa para siempre)');
+  ok(m.includes('function sentarseALaCita() {\n  if (jugador.estado.montado || jugador.estado.enTren) return false;'), 'main: a caballo no te sienta a la mesa de la invitación');
+  ok(m.includes('else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);'), 'main: R no te sienta arriba del zaino');
+  ok(j.includes('const lado = puente ? 0.55 : 1.25;') && j.includes('if (puente) js.pos.y = Math.max(js.pos.y, puente.alto + 0.04);'), 'sulky: en el puentecito te bajás sobre el tablero, no al arroyo');
+  ok(j.includes("paraGuardar: () => {") && m.includes('if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();'), 'sulky: guardando arriba, el sulky queda donde ibas');
+  sinCR('src/vecindad-juego.js');
 }
 
 console.log(`verificar-3-8-3-aldea: ${n} comprobaciones en verde`);

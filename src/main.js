@@ -2834,7 +2834,7 @@ document.addEventListener('keydown', (e) => {
       if (modoObra && obras) { obras.girar(e.shiftKey ? -1 : 1); dibujarPanelObra(); break; }
       // 3.6.1: sentado, R siempre te levanta (en la punta del muelle no lo hacía)
       if (js.sentado) jugador.sentarse(false);
-      else if (!js.nadando && !js.enKayak && !js.enTren) jugador.sentarse(true);
+      else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);   // 3.8.3: ni a caballo ni en el sulky (R te sentaba arriba del zaino)
       break;
     case 'KeyN':
       if (modoObra && obras) {
@@ -6955,6 +6955,7 @@ function atrasCharla() {
 }
 // La mesa de la invitación: te sentás en tu lugar, mirando al invitado, y charlan.
 function sentarseALaCita() {
+  if (jugador.estado.montado || jugador.estado.enTren) return false;   // 3.8.3: a caballo te sentaba montado en la silla (como el asiento libre: bajate primero)
   const r = vecindadJuego?.sentarse();
   if (!r) return false;
   const js = jugador.estado;
@@ -7537,6 +7538,7 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
+  if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();   // 3.8.3: el sulky, donde ibas
   // 3.5.1: en el modo foto la hora es la del deslizador: se guarda la del juego
   const horasFoto = foto.activo && guardadoFoto ? progreso.horas : null;
   if (horasFoto !== null) progreso.horas = guardadoFoto.horas;
@@ -8588,7 +8590,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
     // 3.8.3: salvo que ella te espere para la cita o el casamiento: la E empieza eso primero (hablar → amorJuego.hablar)
-    if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
+    if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };

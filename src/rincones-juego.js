@@ -273,7 +273,11 @@ export function crearRinconesJuego(ctx) {
     js.enSulky = false;
     // se baja por el costado izquierdo
     const sx = Math.cos(p.rumbo), sz = -Math.sin(p.rumbo);
-    js.pos.x = p.x - sx * 1.25; js.pos.z = p.z - sz * 1.25;
+    // 3.8.3: en el puentecito, sobre el tablero (a 1,25 m quedabas del lado de afuera de la baranda y caías al arroyo)
+    const puente = (ctx.mundo?.puentes?.() || []).find((b) => Math.hypot(p.x - b.x, p.z - b.z) < b.largo / 2 + 0.3);
+    const lado = puente ? 0.55 : 1.25;
+    js.pos.x = p.x - sx * lado; js.pos.z = p.z - sz * lado;
+    if (puente) js.pos.y = Math.max(js.pos.y, puente.alto + 0.04);
     js.velocidadActual = 0;
     const s = sk();
     if (llegada || p.s <= 0.5 || p.s >= C.largo - 0.5) { s.donde = p.s > C.largo / 2 ? 'aldea' : 'refugio'; delete s.s; }
@@ -588,6 +592,8 @@ export function crearRinconesJuego(ctx) {
     actualizar, accion, accionDuende, urgente, opciones, elegir, destino, canterosParaMatas, refrescarMatas,
     alSulky, subirSulky, bajarSulky, caballoAtado, enSulky: () => !!viaje, poseSulky, tieneSulky: tiene,
     desatar: () => { if (sk()) sk().atado = false; },
+    // 3.8.3: guardando arriba del sulky, queda donde ibas (al cargar volvía a la punta del camino y vos a mitad de camino)
+    paraGuardar: () => { const s = sk(), C = camino(); if (!viaje || !s || !C) return; if (viaje.s <= 0.5 || viaje.s >= C.largo - 0.5) { s.donde = viaje.s > C.largo / 2 ? 'aldea' : 'refugio'; delete s.s; } else { s.s = viaje.s; s.donde = 'camino'; } },
     // la minga del camino (la llama el equipo de las fiestas el día que se hace): { ok, nueva }
     mingaDelCamino: () => { const res = hacerMinga(r().camino, dia()); if (res.nueva) { ctx.nota?.('La minga del camino', 'Entre todos emparejaron la huella, le echaron ripio y plantaron faroles', true); ctx.guardar?.(); } return res; },
     // para las pruebas
