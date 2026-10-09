@@ -1,10 +1,14 @@
 // 3.8.3 (relax): el pase de bugs del Relax base antes de Steam. Una comprobación por arreglo.
 // 1. La barra de la mochila: lo que elegís para la casilla N va en la casilla N (antes se corría al principio).
+// 2. La historia, capítulo 8 («La noche del temporal»): con los cuatro cuentos ya oídos no se trababa para siempre, y un
+//    temporal al azar de antes no tilda el final (ni se saltea la noche del temporal).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import * as H from '../src/historia.js';
+import { CUENTOS } from '../src/cuentos.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -45,6 +49,30 @@ const trozo = (desde, hasta) => {
   ctx.progreso.barra = ['x'];
   const r = ctx.ordenarBarra(repetidas);
   ok(r.length === 2 && r[0].n === 2 && r[1].id === 'y', 'con ids repetidos, de cada id elegido va el último (como en la 2.7.3)');
+}
+
+// ---------------------------------------------------------------- 2. la historia: el capítulo 8
+{
+  // una partida que ya escuchó los cuatro cuentos y pasó un temporal al azar el día 5
+  const p = (dia, visitas, temporal = 5) => ({ dia, entradas: Object.fromEntries(CUENTOS.map((c) => [c.id, { dia: 3, hora: 21, cantidad: 0 }])), visitas: { cuenta: visitas }, eventosValle: { hechos: { temporal: { dia: temporal, opcion: 'lena' } } } });
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 7; h.fase = 'intro';
+  ok(H.capituloActual(h).id === 'temporal', 'el capítulo 8 es el del temporal');
+  H.arrancarCapitulo(h, H.estadoHistoria(p(20, 9)));
+  let r = H.revisarHistoria(h, H.estadoHistoria(p(20, 9)));
+  ok(!r.nuevos.some((o) => o.id === 'temporal'), 'el temporal al azar del día 5 no tilda el del capítulo');
+  ok(H.momentoPendiente(h, H.estadoHistoria(p(20, 9))) === null, 'el temporal espera a la visita');
+  r = H.revisarHistoria(h, H.estadoHistoria(p(21, 10)));
+  ok(r.nuevos.some((o) => o.id === 'visita') && r.nuevos.some((o) => o.id === 'cuento'), `con los cuatro cuentos ya oídos, la visita alcanza (${r.nuevos.map((o) => o.id)})`);
+  ok(H.momentoPendiente(h, H.estadoHistoria(p(21, 10))) === 'temporal', 'y llega la noche del temporal (antes no llegaba: ya había pasado uno)');
+  H.momentoLanzado(h);
+  r = H.revisarHistoria(h, H.estadoHistoria(p(21, 10, 21)));
+  ok(r.completo, 'pasar el temporal del capítulo termina la historia');
+  // con un cuento por contar todavía, hace falta el cuento (como siempre)
+  const g = H.historiaNueva(); H.empezarHistoria(g, 1); g.capitulo = 7; g.fase = 'intro';
+  const q = (dia, visitas) => { const x = p(dia, visitas); delete x.entradas[CUENTOS[0].id]; return x; };
+  H.arrancarCapitulo(g, H.estadoHistoria(q(20, 9)));
+  r = H.revisarHistoria(g, H.estadoHistoria(q(21, 10)));
+  ok(r.nuevos.some((o) => o.id === 'visita') && !r.nuevos.some((o) => o.id === 'cuento'), 'con un cuento por contar, la visita sola no alcanza');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

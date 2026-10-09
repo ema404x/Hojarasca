@@ -61,6 +61,8 @@ export function estadoHistoria(p, extra = {}) {
     visitas: Math.max(0, Math.floor(Number(p?.visitas?.cuenta) || 0)),
     cuentos: CUENTOS.filter((x) => e[x.id]).length,
     eventos: new Set(Object.keys(ev)),
+    // 3.8.3: el día en que pasó cada uno (lo último), para lo que tiene que pasar en el capítulo (el temporal)
+    eventosDia: Object.fromEntries(Object.entries(ev).map(([k, x]) => [k, Math.max(0, Math.floor(Number(x?.dia) || 0))])),
   };
 }
 
@@ -211,8 +213,8 @@ export const CAPITULOS = [
     ],
     objetivos: [
       { id: 'visita', tecla: '·', texto: 'Recibí una visita en tu mesa (vienen a la tarde)', vecinos: true, hecho: (s, b) => desde(s, b, 'visitas') >= 1 },
-      { id: 'cuento', tecla: 'E', texto: 'Con un fuego prendido cerca de la mesa, que la visita se quede y cuente un cuento', vecinos: true, hecho: (s, b) => desde(s, b, 'cuentos') >= 1 },
-      { id: 'temporal', tecla: '·', delMomento: true, texto: 'Pasá la noche del temporal', hecho: (s) => s.eventos.has('temporal') },
+      { id: 'cuento', tecla: 'E', texto: 'Con un fuego prendido cerca de la mesa, que la visita se quede y cuente un cuento', vecinos: true, hecho: (s, b) => desde(s, b, 'cuentos') >= 1 || (s.cuentos >= CUENTOS.length && desde(s, b, 'visitas') >= 1) },   // 3.8.3: con los cuatro cuentos ya oídos no queda ninguno por contar: alcanza con la visita (si no, el capítulo no terminaba nunca)
+      { id: 'temporal', tecla: '·', delMomento: true, texto: 'Pasá la noche del temporal', hecho: (s, b) => s.eventos.has('temporal') && (s.eventosDia?.temporal ?? Infinity) >= (b?.dia || 1) },   // 3.8.3: el de este capítulo (un temporal al azar de antes tildaba el final sin jugarlo)
     ],
     // el temporal llega cuando lo demás está hecho: es el final
     momento: { evento: 'temporal', cuando: 'resto' },
@@ -313,7 +315,8 @@ export function momentoPendiente(h, s) {
   if (!h?.activa || h.fase !== 'jugando') return null;
   const c = capituloActual(h);
   const m = c.momento;
-  if (!m || h.momentos[c.id] === 'lanzado' || s.eventos.has(m.evento)) return null;
+  // 3.8.3: «ya pasó» lo dice el objetivo del momento (el temporal tiene que ser el de este capítulo), no cualquier vez
+  if (!m || h.momentos[c.id] === 'lanzado' || c.objetivos.some((o) => o.delMomento && (h.hechos[`${c.id}:${o.id}`] !== undefined || objetivoCumplido(o, s, h.base)))) return null;
   // sin vecinos en la partida (2.8), el momento de un vecino no llega: su objetivo ya se dio por hecho
   if (s.vecinos === false && c.objetivos.some((o) => o.delMomento && o.vecinos)) return null;
   if (m.cuando === 'resto' && !c.objetivos.every((o) => o.delMomento || h.hechos[`${c.id}:${o.id}`] !== undefined)) return null;
