@@ -373,6 +373,14 @@ export function desafioNuevo() {
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
+// 3.8.3: el armado del tronco hueco guardado (disposicionRuina, desafio-valle.js): tres hongos, dos dormidos y el premio
+const puntoOk = (p) => !!p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.z));
+function dispRuina(v) {
+  if (!v || !Array.isArray(v.placas) || v.placas.length !== 3 || !v.placas.every(puntoOk) || !Array.isArray(v.dormidos) || !puntoOk(v.premio)) return null;
+  const dormidos = v.dormidos.filter((q) => puntoOk(q) && Object.hasOwn(TIPOS_ALIEN, q.tipo)).slice(0, 4);
+  const xz = (p) => ({ x: Number(p.x), z: Number(p.z) });
+  return { placas: v.placas.map(xz), dormidos: dormidos.map((q) => ({ tipo: q.tipo, ...xz(q) })), premio: xz(v.premio) };
+}
 // 3.8.1: lo de adentro del cofre del alba guardado: sólo lo que da `suministrosDelAlba`, en números (un
 // "3" de texto se pegaba como texto a los materiales al abrirlo: "03")
 const COSAS_CAJA = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos'];
@@ -400,7 +408,10 @@ export function sanearDesafio(d) {
     recetasHechas: lista(x.recetasHechas, RECETAS.map((r) => r.id)),
     planos: lista(x.planos, PLANOS_ALIEN.map((p) => p.id)),
     restos: x.restos && Number.isFinite(Number(x.restos.x)) && Number.isFinite(Number(x.restos.z))
-      ? { x: Number(x.restos.x), z: Number(x.restos.z), ...(Number.isFinite(Number(x.restos.rot)) ? { rot: Number(x.restos.rot) } : {}) } : null,
+      ? { x: Number(x.restos.x), z: Number(x.restos.z), ...(Number.isFinite(Number(x.restos.rot)) ? { rot: Number(x.restos.rot) } : {}),
+        // 3.8.3: los dormidos ya puestos y el armado del tronco hueco (antes, al abrir, los dos dormidos volvían y los
+        // hongos del piso cambiaban de lugar)
+        ...(x.restos.dormidos ? { dormidos: true } : {}), ...(dispRuina(x.restos.disp) ? { disp: dispRuina(x.restos.disp) } : {}) } : null,
     companeros: lista(x.companeros, ['ramon', 'ema']),
     ordenes: sanearOrdenes(x.ordenes),
     abatidosPerro: ent(x.abatidosPerro, 0),

@@ -12,7 +12,7 @@ const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
 function extraer(texto, nombre) {
   const i = texto.indexOf(`function ${nombre}(`);
   assert.ok(i >= 0, `no encontré ${nombre}`);
-  let n = 0, j = texto.indexOf('{', i);
+  let n = 0, j = texto.indexOf(') {', i) + 2;   // (la llave del cuerpo, no la de un parámetro con `= {}`)
   for (; j < texto.length; j++) { if (texto[j] === '{') n++; else if (texto[j] === '}' && --n === 0) break; }
   return texto.slice(i, j + 1);
 }
@@ -150,5 +150,34 @@ const des = leer('src/desafio.js');
   // los troncos de la rampa pasan por encima de lo que está a ras del suelo
   assert.match(extraer(fm, 'chocaTronco'), /if \(o && \(o\.plano\.alto \|\| 1\) > 0\.5\) return true;/, 'la rampa pasa por encima de abrojos y pozos');
 }
+
+// ---------------------------------------------------------------- 6. el segundo acto y los récords
+{
+  const { nidoNuevo, cercoDeBusqueda, NIDO } = await import('../src/desafio-nido.js');
+  const { sanearDesafio } = await import('../src/desafio-reglas.js');
+  const { disposicionRuina } = await import('../src/desafio-valle.js');
+  // una campaña suma UNA victoria (vencer); la cueva ya no suma otra
+  assert.equal((extraer(des, 'caerNido').match(/registrarRecords\(true\)/g) || []).length, 0, 'derrumbar la cueva no suma otra victoria');
+  assert.equal((extraer(des, 'vencer').match(/registrarRecords\(true\)/g) || []).length, 1, 'la victoria se suma al tumbar al Coihue');
+  // ganada sin cueva: al abrir se busca de nuevo (antes las noches no terminaban nunca)
+  assert.match(des, /else if \(D\(\)\.victoria && !D\(\)\.nido && !D\(\)\.sinFin\) abrirSegundoActo\(\);/, 'sin cueva, se arma al abrir');
+  // el primer cerco no está centrado en la cueva, pero la contiene
+  for (const azar of [0, 0.3, 0.77]) {
+    const n = nidoNuevo({ x: 100, z: -50 }, azar), c = cercoDeBusqueda(n);
+    const dist = Math.hypot(c.x - n.x, c.z - n.z);
+    assert.ok(dist > 50 && dist <= c.radio, `el primer cerco no regala la cueva y la contiene (${dist.toFixed(0)} de ${NIDO.radios[0]})`);
+  }
+  // las cunas de la cueva no son blanco mientras no se armaron (de lejos quedaban en el origen del mapa)
+  assert.match(extraer(leer('src/desafio-eventos.js'), 'blancosNido'), /if \(!nido\.g\.visible\) return SIN_BLANCOS;/, 'de lejos, sin blancos');
+  // el tronco hueco guardado conserva sus dormidos ya puestos y el lugar de los hongos
+  const disp = disposicionRuina();
+  const r = sanearDesafio(JSON.parse(JSON.stringify({ restos: { x: 5, z: 6, rot: 1, dormidos: true, disp } }))).restos;
+  assert.equal(r.dormidos, true, 'los dormidos no vuelven a aparecer al abrir');
+  assert.deepEqual(r.disp.placas, disp.placas, 'los hongos del piso no cambian de lugar');
+  assert.equal(sanearDesafio({ restos: { x: 5, z: 6, disp: { placas: 'x' } } }).restos.disp, undefined, 'un armado roto se rehace');
+}
+
+// ---------------------------------------------------------------- 7. el emplasto no se gasta caído
+assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*const d = D\(\);\n\s*if \(caido\) return;/, 'caído, el emplasto no se usa');
 
 console.log('verificar-3-8-3-combate: ok');

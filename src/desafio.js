@@ -509,7 +509,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const cristales = NIDO.cristales[0] + Math.floor(Math.random() * (NIDO.cristales[1] - NIDO.cristales[0] + 1));
     ctx.sumarMaterial?.('cristal', cristales);
     ctx.nota('SE DERRUMBÓ LA CUEVA', `Se terminó: de acá no sale nadie más. +${cristales} semillas doradas`, true);
-    registrarRecords(true);
+    registrarRecords();   // 3.8.3: sin sumar otra victoria: la del Coihue ya se sumó en vencer() (eran dos por campaña)
     ctx.alTerminar?.({ noches: d.noches, abatidos: d.abatidos, derrotas: d.derrotas, dificultad: ctx.dificultad?.() || 'normal', cristales });
     ctx.guardar();
   }
@@ -1524,6 +1524,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   function usarEmplasto() {
     const d = D();
+    if (caido) return;   // 3.8.3: caído (el fundido antes de despertar en la base) se gastaba para nada: levantarse ya cura todo
     if (d.emplastos <= 0) { ctx.nota('No tenés emplastos', 'Se hacen con fruta y una ramita (K)'); return; }
     if (!curar(45)) { ctx.nota('Estás entero', 'Guardalo para cuando haga falta'); return; }
     d.emplastos--;
@@ -3238,6 +3239,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
       // sin noche final ni nido, la campaña no terminaba nunca. Se da al abrir.
       if (D().asedio?.ganado && !D().victoria) vencer({ nave: true });
+      // 3.8.3: ganada sin cueva (no se encontró lugar, o una partida de antes de la cueva): las noches seguían para
+      // siempre (siguenLasNoches) sin cueva que romper. Se busca otra vez al abrir.
+      else if (D().victoria && !D().nido && !D().sinFin) abrirSegundoActo();
     }
     // las piedras siguen a las obras: si se cae una empalizada, se va su cimiento
     relojCimientos -= dt;

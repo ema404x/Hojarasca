@@ -30,7 +30,7 @@ export const NIDO = {
 export const VIDA_NIDO = NIDO.camaras * NIDO.vidaCamara;
 
 // ---------------------------------------------------------------- estado
-export function nidoNuevo(pos) {
+export function nidoNuevo(pos, azar = Math.random()) {
   const x = Number(pos?.x), z = Number(pos?.z);
   if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
   return {
@@ -38,7 +38,10 @@ export function nidoNuevo(pos) {
     pistas: 0,
     // Centro del cerco que se dibuja en el mapa: arranca corrido del nido y se
     // va acomodando con cada pista, así el primer círculo no lo regala.
-    cercoX: x, cercoZ: z,
+    // 3.8.3: arrancaba justo en el nido (el primer círculo lo regalaba: su centro era la cueva). Se corre como
+    // en sumarPista, sin dejarlo afuera.
+    cercoX: acotar(x + Math.cos(azar * Math.PI * 2) * NIDO.radios[0] * 0.35, -LIMITE, LIMITE),
+    cercoZ: acotar(z + Math.sin(azar * Math.PI * 2) * NIDO.radios[0] * 0.35, -LIMITE, LIMITE),
     camaras: new Array(NIDO.camaras).fill(NIDO.vidaCamara),
     caido: false,
   };
