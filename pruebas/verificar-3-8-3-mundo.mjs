@@ -257,4 +257,16 @@ ok(main.includes("avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar 
   ok(est.modo === 'comprar' && /otro modo/.test(l.pie.textContent), `el pie lo dice (${l.pie.textContent})`);
 }
 
+// ---------------------------------------------------------------- 12. «Compraste 1 ponchos»
+{
+  const { BIENES } = await import('../src/comercio.js');
+  const cm = leer('src/comercio-mundo.js');
+  const m = /const UNO = (\{[^\n]*\});/.exec(cm);
+  ok(m, 'comercio-mundo.js tiene los nombres de a uno');
+  const UNO = Function(`return ${m[1]}`)();
+  const deAUno = Object.keys(BIENES).filter((k) => BIENES[k].lote === 1);
+  ok(deAUno.every((k) => UNO[k] && /^(un|una) /.test(UNO[k])), `cada bien que va de a uno tiene su singular (${deAUno.filter((k) => !UNO[k]).join(', ') || 'todos'})`);
+  ok(cm.includes('ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`') && cm.includes('ctx.nota(`Vendiste ${cuantos(bien, r.cantidad)}`'), 'las notas de comprar y vender lo usan');
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);
