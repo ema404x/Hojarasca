@@ -145,6 +145,38 @@ de los duendes** (luciérnagas, esporas, ámbar, el Coihue y los duendes con má
 la Ryzen 5 4600G** del usuario; lo que pese, sólo en calidad alta. Estilo «tal cual HushWood». Antes de meterlo al
 juego: prototipo con capturas del mismo lugar hoy y mejorado, y el usuario elige qué entra.
 
+## La cantina (pedido del usuario, 09-10) — lugar nuevo, con detalle de verdad
+**Idea:** un boliche de campaña (junto al almacén o al camino viejo) que abre al atardecer y cierra de madrugada: mesas
+de madera, mostrador con estantes de botellas, guitarra en la pared, mesa de truco, fogón o salamandra. Arrieros y
+peones de paso traen chismes y rumores del valle; los vecinos van solos de noche (con «La aldea viva»).
+
+**Sentarse y pedir de verdad** (el usuario NO quiere que sea como la casa de té de hoy, donde te sentás y el té
+«aparece» con ):
+1. Entrás, elegís una mesa libre y te sentás (E). La cámara baja un poco y queda la mesa a la vista.
+2. **La moza te ve y viene caminando** a tu mesa (no aparece): te saluda por tu nombre si ya te conoce, con una
+   frase según la hora, el tiempo o lo que pasó en el valle.
+3. **La carta:** un panel con lo que hay ese día (ginebra, vino patero, mate cocido, cerveza artesanal de la zona,
+   chocolate caliente en invierno; para comer, empanadas, picada de fiambre y queso, guiso de lentejas, tortas
+   fritas si llueve). Lo que hay cambia con la estación y con lo que la aldea produce (la granja, la cocina).
+4. **Pagás con trueque o con un favor** (regla: sin economía nueva): con algo que llevás (truchas, yerba, leña,
+   frascos) o «anotalo en la cuenta» y la cuenta se paga con un mandado.
+5. **Ella vuelve a la barra, sirve, y trae el pedido en bandeja** hasta tu mesa; lo deja y se va a atender a otro.
+   Tarda lo que tarda de verdad (unos segundos de juego, más si está llena).
+6. **Vos tomás o comés:** el vaso o el plato está en la mesa, ves al personaje llevárselo a la boca de a sorbos o
+   bocados; un trago fuerte calienta en invierno, la comida llena, y se gasta. Podés pedir otra.
+7. **Mientras estás sentado:** escuchás las charlas de las otras mesas, alguien te invita a un truco, te sientan
+   compañía (un vecino se arrima a tu mesa), y si tomás de más la imagen se mueve un poquito y el personaje camina
+   torcido al salir (gracioso, nada grave).
+8. Te levantás (E o moverte); la moza levanta lo de la mesa después.
+
+**La cantinera / moza:** una mujer adulta, linda, con carácter y calle, que sabe de todos y no se deja pasar por
+arriba; vecina con su historia y opción de romance como las otras candidatas.
+**La bailarina:** los sábados a la noche hay peña: guitarra y bombo en el rincón, y una bailarina de chamamé o
+tango con vestido de fiesta, sensual pero sin desnudos; la podés invitar a bailar (con lo aprendido con Pocha).
+
+**Para después, si gusta:** que la casa de té pase a funcionar igual (la galesa viene a la mesa, carta de tés y
+tortas galesas, trae la bandeja).
+
 ## Versión de pulido visual «pronto» (el usuario: «en una versión pronta»)
 - La lechuza (tosca), las raíces del cofre del alba (parecen patas), el Rey Duende con piel por huesos (hoy rígido),
   la corteza del Coihue de noche de lejos.
