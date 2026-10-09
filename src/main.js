@@ -3077,18 +3077,29 @@ const barraEl = $('barra');
 // 2.7.3: sin armar un Map en cada cuadro (`tomadas` se reusa). Da lo mismo que antes, aun
 // con ids repetidos: de cada id elegido va el último de la lista, como hacía el Map.
 const tomadas = new Set();
+// 3.8.3: cada cosa elegida va en SU casilla. `asignarRanura` deja huecos (null) antes de la casilla marcada,
+// pero acá se salteaban y lo elegido se corría al principio: «Lo pusiste en la casilla 5» y aparecía en la 1.
+// Los huecos (y lo elegido que ya no tenés) se llenan con el resto, en su orden.
+const fijasBarra = [];
 function ordenarBarra(lista) {
   const orden = progreso.barra || [];
   if (!orden.length) return lista;
   tomadas.clear();
-  const salida = [];
+  fijasBarra.length = 0;
   for (const id of orden) {
-    if (!id || tomadas.has(id)) continue;
-    for (let j = lista.length - 1; j >= 0; j--) {
-      if (lista[j].id === id) { salida.push(lista[j]); tomadas.add(id); break; }
+    let r = null;
+    if (id && !tomadas.has(id)) {
+      for (let j = lista.length - 1; j >= 0; j--) {
+        if (lista[j].id === id) { r = lista[j]; tomadas.add(id); break; }
+      }
     }
+    fijasBarra.push(r);
   }
-  for (const r of lista) if (!tomadas.has(r.id)) salida.push(r);
+  const salida = [];
+  let k = 0;
+  const libre = () => { while (k < lista.length && tomadas.has(lista[k].id)) k++; return k < lista.length ? lista[k++] : null; };
+  for (const f of fijasBarra) { const r = f || libre(); if (r) salida.push(r); }
+  for (let r = libre(); r; r = libre()) salida.push(r);
   return salida;
 }
 
@@ -3344,9 +3355,12 @@ function abrirMochila(abrir) {
 function asignarRanura(id) {
   const orden = [...(progreso.barra || [])];
   const actual = orden.indexOf(id);
-  if (actual >= 0) orden.splice(actual, 1);
+  // 3.8.3: lo que ya estaba en otra casilla deja un hueco ahí (lo de después no se corre) y en una casilla libre
+  // se pone sin empujar a nadie (ver ordenarBarra)
+  if (actual >= 0) orden[actual] = null;
   while (orden.length < elegida) orden.push(null);
-  orden.splice(elegida, 0, id);
+  if (orden[elegida] == null) orden[elegida] = id;
+  else orden.splice(elegida, 0, id);
   progreso.barra = orden.slice(0, 16);
   guardar();
   refrescarBarra(true);
