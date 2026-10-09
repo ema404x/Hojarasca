@@ -207,4 +207,16 @@ ok(/aviso = null;\n {4}\/\/ 3\.8\.3: con un panel abierto E lo cierra[\s\S]{0,20
 ok(main.includes("if (!foto.activo) cocinaJuego?.actualizar(dt);") && main.includes("if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt);") && main.includes('if (!foto.activo) revisarMaquinas();'), 'en el modo foto no corren la cocina, el taller ni las máquinas');
 ok(/function aplicarFoto[\s\S]{0,800}if \(foto\.activo\) progreso\.horas = foto\.hora;/.test(main), '(porque el modo foto pisa la hora del juego)');
 
+// ---------------------------------------------------------------- 8. el taller del tren: «13:60», «a la tarde» a las 11 y la plataforma de atrás
+{
+  const TM = await import('../src/tren-mejoras.js');
+  ok(TM.textoListo(85.995) === 'el día 3 a las 14' && TM.textoListo(82.5) === 'el día 3 a las 10:30' && TM.textoListo(79) === 'el día 3 a las 7', `las horas sin «:60» (${TM.textoListo(85.995)})`);
+  let malas = 0;
+  for (let t = 0; t < 200; t += 0.001) if (/:60|:6\d\b/.test(TM.textoListo(t))) malas++;
+  ok(malas === 0, `ninguna hora con «:60» (${malas})`);
+  const evento = (listo) => TM.eventosTaller({ ...TM.trenNuevo(), taller: { ...TM.trenNuevo().taller, pedido: { id: Object.keys(TM.MEJORAS_TREN)[0], listo } } })[0]?.texto || '';
+  ok(/a primera hora$/.test(evento(3 * 24 + 7)) && /a la mañana$/.test(evento(3 * 24 + 11)) && /a la tarde$/.test(evento(3 * 24 + 16)), `el calendario: ${evento(3 * 24 + 7)} / ${evento(3 * 24 + 11)} / ${evento(3 * 24 + 16)}`);
+  ok(/const atras = \{ x: 0, z: -\(COCHE\.L \/ 2 \+ 0\.45\), y, lado: 0, plataforma: true \};/.test(leer('src/tren.js')), 'la plataforma de atrás tiene lado (WASD llega)');
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);

@@ -461,13 +461,14 @@ export function textoPide(id, conArreglo = false) {
 // "Lista el día 5 a las 7" (para el panel y el calendario).
 export function textoListo(t) {
   if (!Number.isFinite(t)) return '';
-  const d = Math.floor(t / 24), h = t - d * 24;
-  const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+  // 3.8.3: los minutos se redondean junto con la hora (a las 13,995 decía «a las 13:60»)
+  const min = Math.round(t * 60), d = Math.floor(min / 1440), r = min - d * 1440;
+  const hh = Math.floor(r / 60), mm = r % 60;
   return `el día ${d} a las ${hh}${mm ? `:${String(mm).padStart(2, '0')}` : ''}`;
 }
 // Para el calendario del cuaderno (aldea-vida.js): lo que queda listo cada día.
 export function eventosTaller(tren) {
   const p = tallerDe(tren).pedido;
   if (!p || p.listo === null || p.listo === undefined) return [];
-  return [{ tipo: 'taller', id: p.id, dia: Math.floor(p.listo / 24), nombre: MEJORAS_TREN[p.id].nombre, texto: `En el taller: ${MEJORAS_TREN[p.id].nombre.toLowerCase()}, ${p.listo % 24 >= HORARIO_TALLER[0] ? 'a la tarde' : 'a primera hora'}` }];
+  return [{ tipo: 'taller', id: p.id, dia: Math.floor(p.listo / 24), nombre: MEJORAS_TREN[p.id].nombre, texto: `En el taller: ${MEJORAS_TREN[p.id].nombre.toLowerCase()}, ${p.listo % 24 <= HORA_LISTA ? 'a primera hora' : p.listo % 24 < 13 ? 'a la mañana' : 'a la tarde'}` }];
 }
