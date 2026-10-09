@@ -169,6 +169,8 @@ function medidas(mujer, chico, cara = {}) {
     // 3.7.0: más de qué distinguir: el arco de las cejas, los ojos rasgados y los labios más llenos
     arco: k('arco', 1), rasgado: k('rasgado', 0), labios: k('labios', 1),
   };
+  // proto-cantina: los labios pintados (opcional; sin `cara.rouge` queda el color de siempre)
+  if (typeof cara.rouge === 'string') F.rouge = cara.rouge;
   F.ceja = F.ey + (chico ? 0.025 : 0.024) * largo;
   F.punta = F.ey - (chico ? 0.027 : 0.032) * largo;
   F.base = F.punta - (chico ? 0.008 : 0.009) * largo;
@@ -367,7 +369,7 @@ function rostro(F, colPiel, colCeja, colBarba, ojos, canasBarba, soloBigote = fa
   })();
   const { vs, normales } = datos, partes = vs[0].partes, n = partes.length / 3;
   // los colores de cada uno
-  const labio = mezcla(colPiel, '#d0566a', F.chico ? 0.46 : F.mujer ? 0.58 : 0.3), labioSup = mezcla(matiz(labio, 0.8), '#8a3040', 0.12);
+  const labio = F.rouge ? mezcla(colPiel, F.rouge, 0.85) : mezcla(colPiel, '#d0566a', F.chico ? 0.46 : F.mujer ? 0.58 : 0.3), labioSup = mezcla(matiz(labio, 0.8), '#8a3040', 0.12);
   const linea = mezcla(labio, '#2a0c0e', 0.72), col = new Float32Array(n * 3), zona = new Float32Array(n * 2), at = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
     const parte = partes[i * 3], u = partes[i * 3 + 1], v = partes[i * 3 + 2];
