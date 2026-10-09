@@ -100,6 +100,21 @@ seguir (puede convenir empezar de nuevo desde main).
   en las fiestas lo adornan.
 - No mover árboles ni cambiar la huella del terreno sin avisar.
 
+## «La aldea viva» — una versión entera (elegida por el usuario, 09-10)
+Todo marcado por el usuario:
+- **Diálogos:** que hablen de lo que pasa (tiempo, estación, fiestas, lo que construiste, lo de ayer, la noche de los
+  duendes); la historia propia de cada vecino en varias partes que se abre con la amistad (pasado, secreto, sueño);
+  charlas entre ellos que escuchás al pasar (chismes, discusiones, chistes), a veces te meten; que recuerden lo que
+  hiciste (regalos, favores, peleas, faltar a la fiesta) y lo mencionen días después.
+- **Interacciones:** hacer cosas juntos (pescar, leña, cocinar, ayudar en su trabajo, caminar); pedir y dar consejos
+  con decisiones que cambian cómo sigue; enseñar y aprender (oficios, recetas); bromas, abrazos y gestos (consolar,
+  festejar).
+- **Libre albedrío:** necesidades como en Los Sims (hambre, sueño, charla, diversión) que deciden qué hacen en vez de
+  un horario rígido; amistades y roces entre ellos que se visitan; iniciativa con vos (te buscan, te visitan en el
+  refugio); que usen el mundo (lago, mirador, termas, cascada, huerta comunitaria).
+- Ojo: ya existen la rueda social de la 3.7.4 (30 interacciones, humor y deseos, iniciativa) y los horarios de la
+  3.6: construir sobre eso, no de cero. Cuidar el rendimiento con 20+ vecinos y que la E y el aviso sigan alineados.
+
 ## Versión de pulido visual «pronto» (el usuario: «en una versión pronta»)
 - La lechuza (tosca), las raíces del cofre del alba (parecen patas), el Rey Duende con piel por huesos (hoy rígido),
   la corteza del Coihue de noche de lejos.
