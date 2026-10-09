@@ -59,4 +59,13 @@ const main = leer('src/main.js');
 // 6. La sensibilidad cambia también la del mando en el momento (antes sólo el mouse; el mando, al reiniciar).
 ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.sensibilidad = ajustes.sensibilidad;"), 'la barra de sensibilidad llega al mando');
 
+// 7. En pantallas chicas (una notebook de 1366×768, la ventana mínima) y con la letra grande, la portada y la pausa se
+//    desplazan, y la columna de la portada no queda aplastada por los controles («Entrar al bosque» quedaba fuera de la
+//    pantalla). En Electron: humo-3-8-3-base.cjs.
+{
+  const html = leer('src/plantilla.html');
+  ok(html.includes('grid-template-columns: minmax(min(380px, 100%), 1fr) minmax(0, auto); align-items: end; overflow-y: auto;'), 'la portada: columna mínima y desplazable');
+  ok(html.includes('\n#pausa { overflow-y: auto; }\n'), 'la pausa, desplazable');
+}
+
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);

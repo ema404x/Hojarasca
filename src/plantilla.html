@@ -56,8 +56,11 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
     #teclas-mando { font-size: 13px; opacity: .78; margin: 0; }
 
 /* ---------- inicio y carga ---------- */
+/* 3.8.3: la columna de la izquierda no baja de 380 px (los controles, a la derecha, se acomodan en lo que queda): en
+   1366 o menos de ancho los controles se llevaban casi todo y «Entrar al bosque» quedaba debajo de la pantalla; y si
+   igual no entra de alto (pantallas bajas, letra grande), la portada se desplaza con la rueda */
 .portada {
-  position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end;
+  position: fixed; inset: 0; display: grid; grid-template-columns: minmax(min(380px, 100%), 1fr) minmax(0, auto); align-items: end; overflow-y: auto;
   padding: 6vh 6vw; gap: 40px;
   background: linear-gradient(90deg, rgba(10,16,12,.72) 0%, rgba(10,16,12,.35) 45%, rgba(10,16,12,0) 70%), linear-gradient(0deg, rgba(10,16,12,.55) 0%, rgba(10,16,12,0) 40%);
 }
@@ -357,6 +360,8 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 
 /* ---------- menús oscuros ---------- */
 .velo { position: fixed; inset: 0; background: rgba(12,18,14,.66); backdrop-filter: blur(3px); display: grid; place-items: center; }
+/* 3.8.3: la pausa (menú y ajustes) no entra de alto en una notebook (1366×768) ni con la letra grande: se desplaza */
+#pausa { overflow-y: auto; }
 .pausa { display: grid; grid-template-columns: auto minmax(0, 420px); gap: 70px; align-items: start; }
 .pausa h2 { font-style: italic; font-weight: 400; font-size: 60px; margin: 0 0 4px; line-height: 1; }
 .pausa .cuando { font-family: 'Caveat', cursive; font-size: 26px; color: #dcd3b6; margin: 0 0 30px; }
