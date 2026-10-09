@@ -5,7 +5,8 @@
 //   4. partidas con la forma de versiones viejas (1.x, 2.x con canteros, 3.1 con pueblo, Desafío sin mapa, un día enorme)
 //      arrancan, se juegan y se guardan sin errores;
 //   5. en pantallas chicas (la ventana mínima, una notebook de 1366×768 al 125%) y con la letra grande o enorme, todos
-//      los botones de la portada y de la pausa se pueden alcanzar (están en la pantalla o en un panel que se desplaza).
+//      los botones de la portada y de la pausa se pueden alcanzar (están en la pantalla o en un panel que se desplaza);
+//   6. con el mando sólo: Start abre la pausa y Start (o B) vuelve al juego; la cruceta abre y cierra el mapa.
 // Uso: npx electron pruebas/humo-3-8-3-base.cjs
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
@@ -124,6 +125,24 @@ app.whenReady().then(async () => {
       }
     }
     w.setContentSize(1024, 640);
+    // 6. el mando, de mentira (H.mando.opciones.leerCrudo)
+    donde = 'mando';
+    await w.loadFile(url, { search: '?debug=1' }); await esperar(300);
+    await js(`localStorage.clear(); ${ajustes('relax')} 1`);
+    await abrir();
+    await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(1200);
+    const m = await js(`(async()=>{ const H = window.__hojarasca; const pad = { id: 'Mando de prueba', connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+      H.mando.opciones.leerCrudo = () => pad;
+      const cuadros = async (n) => { for (let i = 0; i < n; i++) { H.__bucle(); await new Promise(r => setTimeout(r, 30)); } };
+      const tocar = async (b) => { pad.buttons[b].pressed = true; pad.buttons[b].value = 1; await cuadros(3); pad.buttons[b].pressed = false; pad.buttons[b].value = 0; await cuadros(3); };
+      const modo = () => H.__caidas.modo();
+      await cuadros(3); const r = {};
+      await tocar(9); r.pausa = modo(); await new Promise(r => setTimeout(r, 450));
+      await tocar(9); r.start = modo();
+      await tocar(9); await new Promise(r => setTimeout(r, 450)); await tocar(1); r.b = modo();
+      await tocar(15); r.mapa = modo(); await tocar(15); r.sinMapa = modo();
+      delete H.mando.opciones.leerCrudo; return r; })()`);
+    ok(m.pausa === 'pausa' && m.start === 'jugando' && m.b === 'jugando' && m.mapa === 'mapa' && m.sinMapa === 'jugando', `con el mando se entra y se sale de la pausa y del mapa (${JSON.stringify(m)})`);
   } catch (e) { errores.push('excepción: ' + (e && e.message ? e.message : e)); }
   if (errores.length) { console.log('ERRORES:\n' + errores.join('\n')); app.exit(1); return; }
   app.exit(0);

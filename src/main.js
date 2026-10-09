@@ -3937,6 +3937,16 @@ function leerMando(dt) {
   } else if (m.recien.atacar) usarRanura();
 }
 
+// 3.8.3: en la pausa, el cuaderno y el mapa el mando sólo se leía jugando: Start abría la pausa (y la cruceta el mapa)
+// y con el mando no se podía volver. Ahora Start o B hacen de Esc (cierra lo que esté abierto encima, como el teclado) y
+// la cruceta derecha cierra el mapa.
+function leerMandoEnMenu() {
+  const m = mando.actualizar();
+  if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
+  if (!m.conectado) return;
+  if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
+}
+
 // Letra más grande, paleta para daltonismo y subtítulos de los avisos.
 let avisosDichos = [];
 function aplicarAccesibilidad() {
@@ -8212,6 +8222,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (libre.activa) moverCamaraLibre(foto.activo ? dtReal : dt);
     else { leerMando(dt); jugador.actualizar(dt); }
   }
+  if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)

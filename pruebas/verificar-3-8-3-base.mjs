@@ -69,4 +69,10 @@ ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.s
   ok(html.includes('\n.velo { overflow-y: auto; }\n'), 'los velos (Personalizar con la letra grande), desplazables');
 }
 
+// 8. Con el mando solo se puede salir de la pausa, el cuaderno y el mapa (antes el mando se leía sólo jugando).
+{
+  ok(main.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();"), 'el bucle lee el mando en los menús');
+  ok(main.includes("if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');"), 'Start, B (y la cruceta en el mapa) hacen de Esc');
+}
+
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);
