@@ -135,6 +135,8 @@ export function crearCocinaJuego(ctx) {
   }
   function elegirPanel(i) {
     if (!panel) return;
+    // 3.8.3: si la obra del panel se desmontó con el panel abierto, se cierra (antes gastaba los ingredientes en una obra que ya no estaba)
+    if (panel.de?.o && !(ctx.obras?.()?.obras || []).includes(panel.de.o)) { cerrarPanel(); return; }
     const op = (panel.opciones || opcionesPanel())[i];
     if (!op) return;
     const est = panel.est, de = panel.de;
@@ -197,7 +199,7 @@ export function crearCocinaJuego(ctx) {
   function seguirPaso(est, c, de, pos) {
     const r = hacerPaso(c);
     const nombre = nombreCon(RECETA_PASOS[c.receta], c.variante);
-    if (r.accion === 'espera') { ctx.nota?.(`${nombre}: todavía no`, `${r.mientras}. Faltan ${textoFaltan(c.falta)}`); return; }
+    if (r.accion === 'espera') { ctx.nota?.(`${nombre}: todavía no`, `${r.mientras}. ${textoFaltan(c.falta).startsWith('una hora') ? 'Falta' : 'Faltan'} ${textoFaltan(c.falta)}`); return; }
     if (r.accion === 'lluvia') { ctx.nota?.('La lluvia ahogó las brasas', 'Hasta que pare, o con un techito encima, no se hace'); return; }
     if (r.accion === 'paso') {
       ctx.sonido?.()?.juntar?.();
@@ -218,7 +220,7 @@ export function crearCocinaJuego(ctx) {
     n -= comen;
     const total = ctx.sumarEntrada?.(r.da.id, n) ?? 0;
     coc.hechas[rc.id] = (coc.hechas[rc.id] || 0) + 1;
-    const nueva = aprender(coc, rc.id, 'hecha', dia());
+    const nueva = !sabe(coc, rc.id) && aprender(coc, rc.id, 'hecha', dia());   // 3.8.3: las de entrada (asado, pan, empanadas) ya se sabían
     guardarCoccion(de, null);
     ctx.sonido?.()?.juntar?.();
     ctx.diario?.(est.tipo === 'horno' ? 'horno' : 'cocina', minus(r.nombre));

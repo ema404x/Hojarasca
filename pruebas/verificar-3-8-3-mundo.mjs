@@ -135,4 +135,71 @@ function cuerpo(nombre) {
   ok(!/progreso\.trenViaje\?\.caballo && !jugador\?\.estado\?\.enTren/.test(main), 'y no queda la llamada de antes');
 }
 
+// ---------------------------------------------------------------- 5. desmontar la parrilla con el asado al fuego
+// Los ingredientes se gastan al prender: desmontando, se perdían todos.
+{
+  const CP = await import('../src/cocina-pasos.js');
+  const src = cuerpo('devolverContenido');
+  const correr = (coccion) => {
+    const progreso = { cosas: {}, entradas: {} };
+    const sumarEntrada = (k, n) => { const e = progreso.entradas[k] || (progreso.entradas[k] = { cantidad: 0 }); e.cantidad += n; };
+    const nada = () => {};
+    new Function('d', 'progreso', 'sumarEntrada', 'sumarMaterial', 'refrescarBarra', 'sanearLenera', 'sanearAserradero', 'sanearMuela', 'sanearColmena', 'sanearAhumadero', 'sanearCoccion', 'pideCon', 'RECETA_PASOS', 'DEL_ALMACEN', src)(
+      { coccion }, progreso, sumarEntrada, nada, nada, nada, nada, nada, nada, nada, CP.sanearCoccion, CP.pideCon, CP.RECETA_PASOS, CP.DEL_ALMACEN);
+    return progreso;
+  };
+  const asado = Object.keys(CP.RECETA_PASOS).find((id) => CP.RECETA_PASOS[id].pide.some((x) => x.k === 'chorizo'));
+  ok(asado, 'hay una receta con chorizos');
+  const rc = CP.RECETA_PASOS[asado];
+  const p = correr({ receta: asado, paso: 1, falta: 0 });
+  const vuelve = (k) => (p.entradas[k]?.cantidad || 0) + (p.cosas[k] || 0);
+  ok(rc.pide.every((x) => vuelve(x.k) === x.n), `vuelve lo que se puso al fuego (${JSON.stringify(p)})`);
+  ok(rc.pide.filter((x) => CP.DEL_ALMACEN.includes(x.k)).every((x) => p.cosas[x.k] === x.n), 'lo del almacén, a las cosas');
+  const robado = correr({ receta: asado, paso: 1, falta: 0, robado: true });
+  ok(((robado.entradas.chorizo?.cantidad || 0) + (robado.cosas.chorizo || 0)) === rc.pide.find((x) => x.k === 'chorizo').n - 1, 'el chorizo que se robó el perro no vuelve');
+  ok(Object.keys(correr(undefined).entradas).length === 0, 'sin nada al fuego, nada');
+}
+
+// ---------------------------------------------------------------- 6. la cocina: el panel sobre una obra desmontada, «Aprendiste» y «Faltan una hora»
+{
+  const { crearCocinaJuego } = await import('../src/cocina-juego.js');
+  const { progresoNuevo } = await import('../src/guardado.js');
+  const armar = () => {
+    const p = progresoNuevo();
+    p.dia = 3; p.horas = 12; p.materiales = { tronco: 5 }; p.cosas.harina = 4;
+    const obra = { plano: { id: 'horno', etapas: [1] }, datos: { x: 0, z: 0, y: 0, etapas: 1 } };
+    const obras = { obras: [obra], cubiertaDePieza: () => false, dentro: () => false };
+    const notas = [];
+    const sumarEntrada = (k, n) => { const e = p.entradas[k] || (p.entradas[k] = { cantidad: 0 }); e.cantidad = Math.max(0, (e.cantidad || 0) + n); return e.cantidad; };
+    const cj = crearCocinaJuego({ progreso: () => p, desafio: () => false, obras: () => obras, jugador: () => ({ pos: { x: 1, z: 1 } }), lluvia: () => 0, invierno: () => false,
+      nota: (t, s) => notas.push(`${t} | ${s}`), guardar: () => {}, troncos: () => p.materiales.tronco, gastarTroncos: (n) => { p.materiales.tronco -= n; }, sumarEntrada, sumarMaterial: () => {} });
+    return { p, obra, obras, notas, cj };
+  };
+  // 6a. el panel abierto y la obra desmontada: no se gasta nada
+  {
+    const { p, obra, obras, cj } = armar();
+    cj.usar(obra);
+    ok(cj.panelAbierto(), 'E en el horno abre las recetas');
+    obras.obras.length = 0;
+    const antes = JSON.stringify([p.cosas, p.entradas, p.materiales]);
+    cj.elegirPanel(0);
+    ok(JSON.stringify([p.cosas, p.entradas, p.materiales]) === antes && !obra.datos.coccion && !cj.panelAbierto(), 'con la obra desmontada, elegir no gasta nada y cierra el panel');
+  }
+  // 6b. el pan de entrada, de punta a punta: sin «Aprendiste» y con «Falta una hora…» en singular
+  {
+    const { obra, notas, cj } = armar();
+    cj.usar(obra); cj.elegirPanel(0);
+    ok(obra.datos.coccion, `el pan, al horno (${notas.join(' / ')})`);
+    obra.datos.coccion.falta = 1.5;
+    cj.usar(obra);
+    ok(notas.some((t) => /Falta una hora y 30 minutos/.test(t)) && !notas.some((t) => /Faltan una hora/.test(t)), `«Falta una hora y 30 minutos» (${notas.at(-1)})`);
+    for (let i = 0; i < 8 && obra.datos.coccion; i++) { cj.__adelantar(3); cj.usar(obra); }
+    ok(!obra.datos.coccion, 'el pan sale');
+    await new Promise((r) => setTimeout(r, 1700));
+    ok(!notas.some((t) => /^Aprendiste/.test(t)), `una receta de entrada no se «aprende» (${notas.filter((t) => /Aprendiste/.test(t)).join(' / ')})`);
+  }
+}
+// 6c. con un panel abierto el aviso queda vacío (E lo cierra), aunque lo de más arriba lo vuelva a escribir
+ok(/aviso = null;\n {4}\/\/ 3\.8\.3: con un panel abierto E lo cierra[\s\S]{0,200}if \(enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| cocinaJuego\?\.panelAbierto\(\) \|\| tallerTren\?\.panelAbierto\(\)\) aviso = null;\n {4}mostrarAviso\(aviso\);/.test(main), 'con un panel abierto, el aviso es el de la tecla E (nada), justo antes de mostrarlo');
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);

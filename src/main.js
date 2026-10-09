@@ -104,7 +104,7 @@ import { crearTallerJuego } from './taller-tren-juego.js';
 import { crearFiestasJuego } from './fiestas-juego.js';
 import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
-import { PLANOS_COCINA_E, RECETA_PASOS } from './cocina-pasos.js';
+import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN } from './cocina-pasos.js';
 import { sumarAmistadDe, nombreCorto, amistades } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
@@ -5657,6 +5657,17 @@ function devolverContenido(d) {
   if (d.muela) { const m = sanearMuela(d.muela); if (m.habas) sumarEntrada('haba', m.habas); if (m.harina) progreso.cosas.harina = (Number(progreso.cosas.harina) || 0) + m.harina; }
   if (d.colmena) { const c = sanearColmena(d.colmena); if (c.miel) sumarEntrada('miel', c.miel); }
   if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
+  // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
+  // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
+  if (d.coccion) {
+    const c = sanearCoccion(d.coccion);
+    if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
+      const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
+      if (n <= 0) continue;
+      if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
+      else sumarEntrada(x.k, n);
+    }
+  }
   refrescarBarra(true);
 }
 // 3.5.1: la pieza de varias etapas de este plano que quedó a medio hacer más cerca (o null)
@@ -8696,6 +8707,9 @@ function cuadroDelJuego(tRaf, manual) {
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco
     if (js.enCable) aviso = null;
+    // 3.8.3: con un panel abierto E lo cierra (ver la tecla E): lo de más arriba (el tren, el fuego, el tendal, el caballo)
+    // volvía a escribir el aviso después de borrarlo
+    if (enElAlmacen || enLaFeria || enLasCargas() || cocinaJuego?.panelAbierto() || tallerTren?.panelAbierto()) aviso = null;
     mostrarAviso(aviso);
     const estado = $('estado');
     if (js.enTren && estadoTren && estadoTren.conduce) {
