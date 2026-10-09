@@ -194,4 +194,24 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
   assert.equal(s.boleadoras, 120, 'ni las boleadoras');
 }
 
+// ---------------------------------------------------------------- 9. «Hora de tu reloj»: una oleada por noche
+// En el modo de combate el día no pasaba a la medianoche: `claveNoche` volvía a la noche anterior y salía otra
+// oleada entera. Dormir o caer de noche sumaban el día sin mover la hora (vuelve la del reloj): otra oleada al despertar.
+{
+  const { claveNoche, esHoraDeAtaque } = await import('../src/desafio-reglas.js');
+  const main = leer('src/main.js');
+  assert.ok(main.includes("    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++;"), 'la medianoche suma el día también en el modo de combate');
+  assert.ok(main.includes("if (desafio && deNoche && ajustes.duracion === 'reloj') { nota('No podés dormir ahora'"), 'con el reloj, de noche no se duerme en el modo de combate');
+  assert.match(extraer(main, 'caerEnDesafio'), /if \(ajustes\.duracion !== 'reloj'\) \{\n\s*if \(progreso\.horas >= 12\) progreso\.dia\+\+;\n\s*progreso\.horas = 7\.2;/, 'caer con el reloj no salta el día');
+  // un día y medio de reloj, de a 10 minutos, con el día que pasa a la medianoche: una oleada por noche
+  let dia = 1, horas = 12, oleadaNoche = null, oleadas = 0;
+  for (let i = 0; i < 36 * 6; i++) {
+    const antes = horas;
+    horas = (horas + 1 / 6) % 24;
+    if (antes - horas > 12) dia++;
+    if (esHoraDeAtaque(horas) && oleadaNoche !== claveNoche(dia, horas)) { oleadaNoche = claveNoche(dia, horas); oleadas++; }
+  }
+  assert.equal(oleadas, 2, 'dos noches, dos oleadas');
+}
+
 console.log('verificar-3-8-3-combate: ok');

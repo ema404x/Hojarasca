@@ -1126,6 +1126,8 @@ function dormir() {
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
   }
   const deNoche = progreso.horas >= 19.5 || progreso.horas < 6;
+  // 3.8.3: con la hora de tu reloj la hora no salta al dormir: el día sumado hacía salir otra oleada al despertar
+  if (desafio && deNoche && ajustes.duracion === 'reloj') { nota('No podés dormir ahora', 'Con la hora de tu reloj la noche pasa de verdad'); return; }
   const nocheReloj = !desafio && deNoche && ajustes.duracion === 'reloj' ? claveNocheReloj() : '';
   if (nocheReloj && progreso.relojNoche === nocheReloj) { nota('Ya dormiste esta noche', 'Con la hora de tu reloj, la noche pasa de verdad'); return; }
   if (desafio) desafio.curar(deNoche ? 100 : 35);
@@ -3755,8 +3757,12 @@ function caerEnDesafio() {
     const M = progreso.materiales || {};
     M.cristal = 0;
     for (const k of ['tronco', 'tabla', 'piedra']) if (M[k]) M[k] = Math.floor(M[k] * 0.7);
-    if (progreso.horas >= 12) progreso.dia++;
-    progreso.horas = 7.2;
+    // 3.8.3: con la hora de tu reloj no se salta a la mañana (la hora vuelve a la del reloj): el día sumado hacía
+    // salir otra oleada apenas despertabas
+    if (ajustes.duracion !== 'reloj') {
+      if (progreso.horas >= 12) progreso.dia++;
+      progreso.horas = 7.2;
+    }
     const b = puntoBase();
     jugador.ubicar(b.x, b.z, b.yaw, b.y);
     desafio.levantarse();
@@ -8050,7 +8056,9 @@ function actualizarTiempo(dt) {
     progreso.horas = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
     // 3.5.1: con la hora de tu reloj el día no cambiaba nunca a la medianoche (sólo durmiendo):
     // la huerta, el correo y los encargos quedaban quietos. Si esa noche ya se durmió, el día ya pasó.
-    if (!desafio && antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
+    // 3.8.3: también en La noche de los duendes: sin el día nuevo, a la medianoche `claveNoche` volvía a la noche
+    // anterior y salía otra oleada entera (dos por noche: el jefe y la noche final llegaban al doble de rápido)
+    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
