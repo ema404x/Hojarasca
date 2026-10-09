@@ -77,8 +77,11 @@ seguir (puede convenir empezar de nuevo desde main).
 35. **La calidad gráfica nunca cambia sola durante el juego:** si va lento, cartelito «El juego va lento: ¿bajar
     la calidad?» con «Bajar» / «No, gracias» (no vuelve a preguntar en la sesión). La primera vez elige según la placa
     y avisa cuál. Si se pierde el contexto 3D, baja sola y avisa (el usuario lo aprobó).
-36. **Menús más prolijos** (portada, pausa, Ajustes/Personalizar, paneles): hoy se ven desprolijos (tamaños,
-    márgenes, alineaciones desparejos). Hay maquetas de 3 estilos en la rama `proto-menu` para que el usuario elija.
+36. **Menús más prolijos: el usuario eligió el estilo A · Cuaderno de campo** para todos los menús (portada, pausa,
+    Ajustes/Personalizar y paneles): papel crema, letra de pluma, trazos de pincel, sobre el sistema común de la rama
+    `proto-menu` (src/proto-menu/base.css + menu-A.css: escala de letra y espacios, un solo botón, un panel en 3
+    anchos, todo entra a 1366×768). En la portada, sólo las 6 teclas básicas; las 33 en «Controles». Falta: la versión
+    abajo a la derecha, capturas del almacén, la cocina, el taller y la rueda.
 
 ## Lugares nuevos en el valle (elegidos por el usuario, 09-10) — para sus versiones nuevas
 - **Termas en el bosque:** pozones de agua caliente entre coihues, con vapor; en invierno, con nieve, te metés,
