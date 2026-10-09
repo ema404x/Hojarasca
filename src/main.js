@@ -235,6 +235,10 @@ if (!progreso) progreso = progresoNuevo();
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
 if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso.personal; progreso = progresoNuevo(); progreso.personal = personal; }
 if (esSinFin && progreso.desafio && !progreso.desafio.sinFin) progreso.desafio.sinFin = corridaNueva();
+// 3.8.3: ¿la partida que se abrió ya se había jugado? (sin posición guardada: nueva, o recién empezada de nuevo).
+// Hasta entrar al juego, guardar no anota dónde estás (ver `guardar`)
+const empezadaAlAbrir = !!(habiaGuardado && progreso.pos);
+let entroAlJuego = false;
 // 1.6: teclas propias, mando y accesibilidad
 let teclasPropias = sanearMapaTeclas(ajustes.teclas);
 // Una tecla del jugador llega traducida a la de fábrica: el resto del juego no se entera.
@@ -1772,6 +1776,7 @@ function volverAlJuego() {
   reiniciarMedicion(autoCalidad);
   for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
   modo = 'jugando';
+  entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');
   sonido.iniciar();
   jugador.pedirBloqueo();
@@ -7523,6 +7528,10 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
+  // 3.8.3: en la portada de una partida sin jugar (la primera vez, o después de «Empezar de nuevo») cerrar el juego
+  // guardaba la posición de arranque y la partida pasaba por empezada: la portada decía «Seguir…», no salían las
+  // notas del primer día y el Desafío arrancaba sin código ni mapa. Se guarda igual (lo de Personalizar), sin posición.
+  if (!empezadaAlAbrir && !entroAlJuego) progreso.pos = null;
   // 3.5.1: en el modo foto la hora es la del deslizador: se guarda la del juego
   const horasFoto = foto.activo && guardadoFoto ? progreso.horas : null;
   if (horasFoto !== null) progreso.horas = guardadoFoto.horas;

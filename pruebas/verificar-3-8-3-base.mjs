@@ -1,0 +1,21 @@
+// 3.8.3 (base): el pase de bugs de lo transversal (guardado y carga, portada y menús, pantallas y entrada,
+// rendimiento y arranque), sin Electron. Una comprobación por arreglo.
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+let n = 0;
+const ok = (c, m) => { assert.ok(c, m); n++; };
+const main = leer('src/main.js');
+
+// 1. Cerrar el juego en la portada de una partida sin jugar no la da por empezada: `guardar` no anota la
+//    posición hasta entrar (si no, la portada decía «Seguir…» y el Desafío arrancaba sin código ni mapa).
+{
+  const g = main.slice(main.indexOf('function guardar() {'), main.indexOf('function guardar() {') + 4000);
+  ok(/const empezadaAlAbrir = !!\(habiaGuardado && progreso\.pos\);/.test(main), 'se anota si la partida abierta ya estaba empezada');
+  ok(/modo = 'jugando';\s*entroAlJuego = true;/.test(main), 'volver al juego marca que se entró');
+  const i = g.indexOf('if (!empezadaAlAbrir && !entroAlJuego) progreso.pos = null;');
+  ok(i > 0 && i < g.indexOf('guardarProgreso('), 'guardar no anota la posición antes de entrar');
+}
+
+console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);
