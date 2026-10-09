@@ -269,4 +269,11 @@ ok(main.includes("avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar 
   ok(cm.includes('ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`') && cm.includes('ctx.nota(`Vendiste ${cuantos(bien, r.cantidad)}`'), 'las notas de comprar y vender lo usan');
 }
 
+// ---------------------------------------------------------------- 13. el velero: fantasma al desarmar el varadero con vos arriba, y en (0, 0) sin dónde amarrar
+{
+  const v = leer('src/vela.js');
+  ok(v.includes('if (!est.hay) barco.visible = false;   // 3.8.3'), 'al bajarte, sin varadero, el velero no queda dibujado');
+  ok(v.includes('else { est.hay = false; barco.visible = false; firma = null; return; }'), 'sin dónde amarrarlo, no aparece en el origen y se vuelve a probar');
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);
