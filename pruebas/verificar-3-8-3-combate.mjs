@@ -222,4 +222,14 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
   assert.ok(main.includes('  if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) {'), 'ni bloqueo ni tiro cargado con el taller abierto');
 }
 
+// ---------------------------------------------------------------- 11. la tecla E y el aviso: dormir no le gana a lo que mirás
+{
+  const main = leer('src/main.js');
+  assert.ok(main.includes("      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }"), 'E en la carpa mirando algo: eso, no dormir');
+  assert.ok(main.includes('      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }'), 'E en tu obra mirando algo: eso, no dormir');
+  // el aviso: lo que mirás va primero, y dormir sólo sin aviso
+  assert.ok(main.includes('let aviso = objetivo ? { tecla: \'E\', texto: objetivo.texto } : null;'));
+  assert.ok(main.includes("if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };"));
+}
+
 console.log('verificar-3-8-3-combate: ok');

@@ -2795,8 +2795,10 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
       if (enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }
-      if (enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
-      if (obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
+      // 3.8.3: mirando algo (juntar, sentarse) E hace eso, como dice el aviso: antes dormía (o en plena noche de duendes
+      // decía «No podés dormir ahora» y no juntaba nada)
+      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
+      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
       if (cercaDelFuego() && (!objetivo || objetivo.tipo === 'sentarse')) {
         if (puedeDormirJuntoAlFuego()) { dormir(); break; }
         if (hayQueCocinar()) { cocinar(); break; }
