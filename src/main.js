@@ -6266,7 +6266,7 @@ function actualizarMaquinas(dt) {
   if (relojMaquinas <= 0) {
     relojMaquinas = 0.5;
     if (!molinoMundo) { molinoMundo = crearMolinoMundo(T, escena); meteoMundo = crearMeteoMundo(T, escena); }
-    revisarMaquinas();
+    if (!foto.activo) revisarMaquinas();   // 3.8.3: tampoco la muela ni el aserradero (con el deslizador ida y vuelta, aserraban de arriba)
   }
   if (!molinoMundo) return;
   molinoMundo.animar(dt);
@@ -8425,8 +8425,10 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
-    try { if (modo === 'jugando' && !desafio) { cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
-    try { if (modo === 'jugando' && !desafio) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
+    // 3.8.3: en el modo foto la hora es la del deslizador (`aplicarFoto`): la cocina y el taller no corren con esa hora (pasar
+    // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
+    try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
+    try { if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
     try { if (modo === 'jugando' && !desafio) { fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt); if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }

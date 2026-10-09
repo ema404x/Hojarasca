@@ -202,4 +202,9 @@ function cuerpo(nombre) {
 // 6c. con un panel abierto el aviso queda vacío (E lo cierra), aunque lo de más arriba lo vuelva a escribir
 ok(/aviso = null;\n {4}\/\/ 3\.8\.3: con un panel abierto E lo cierra[\s\S]{0,200}if \(enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| cocinaJuego\?\.panelAbierto\(\) \|\| tallerTren\?\.panelAbierto\(\)\) aviso = null;\n {4}mostrarAviso\(aviso\);/.test(main), 'con un panel abierto, el aviso es el de la tecla E (nada), justo antes de mostrarlo');
 
+// ---------------------------------------------------------------- 7. el deslizador de la hora del modo foto no hace correr el reloj
+// aplicarFoto escribe progreso.horas: la cocina, el taller y las máquinas avanzaban con esa hora (y de vuelta, otra vez)
+ok(main.includes("if (!foto.activo) cocinaJuego?.actualizar(dt);") && main.includes("if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt);") && main.includes('if (!foto.activo) revisarMaquinas();'), 'en el modo foto no corren la cocina, el taller ni las máquinas');
+ok(/function aplicarFoto[\s\S]{0,800}if \(foto\.activo\) progreso\.horas = foto\.hora;/.test(main), '(porque el modo foto pisa la hora del juego)');
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);
