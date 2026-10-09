@@ -64,6 +64,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
 // ---------------------------------------------------------------- 5. la gente: nada de fantasmas
 {
   const g = leer('src/gente.js');
+  ok(g.includes('if (!gente.includes(vistiendo.npc)) { if (vistiendo.tarea.hecho && vistiendo.tarea.resultado) soltarPersona(vistiendo.tarea.resultado); vistiendo = null; return; }'), 'gente: la ropa nueva de una visita que se fue se suelta');
   ok(g.includes('      if (g.dormido || (g.aBordo && !g.enViaje)) continue;'), 'gente: no se le habla al que no se ve (el visitante que se fue, la familia, el chico que se fue a estudiar)');
   sinCR('src/gente.js');
 }

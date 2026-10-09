@@ -1353,7 +1353,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     // (3.7.0 (integración): la figura nueva se arma de a poco, unos ms por cuadro; antes, de una: un tirón cada medio
     // segundo hasta vestir a todos)
     if (vistiendo) {
-      if (!gente.includes(vistiendo.npc)) { vistiendo = null; return; }
+      // 3.8.3: se fue (una visita del tren) con la ropa nueva ya armada: sus geometrías y huesos se sueltan (quedaban ocupados)
+      if (!gente.includes(vistiendo.npc)) { if (vistiendo.tarea.hecho && vistiendo.tarea.resultado) soltarPersona(vistiendo.tarea.resultado); vistiendo = null; return; }
       if (!vistiendo.tarea.hecho && !vistiendo.tarea.avanzar(3)) return;
       // (lista: se cambia cuando no se la ve; si en el medio te diste vuelta y la mirás de cerca, espera)
       const n = vistiendo.npc, dn = js ? Math.hypot(n.pos.x - js.pos.x, n.pos.z - js.pos.z) : Infinity;
