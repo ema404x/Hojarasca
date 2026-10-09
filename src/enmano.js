@@ -202,6 +202,10 @@ function puntaFlecha(rayo, r = 0.011, h = 0.04) {
   return p;
 }
 
+// 3.8.2: el cristal en la mano es semilla dorada sólo en el modo de combate (lo fija main.js al cargar)
+let cristalSemilla = false;
+export function cristalComoSemillaEnMano(si) { cristalSemilla = !!si; }
+
 // Un modelo simple por cada cosa que se puede llevar
 const MODELOS = {
   camara() {
@@ -570,6 +574,13 @@ const MODELOS = {
   },
   cristal() {
     const g = new THREE.Group();
+    // 3.8.2: en el Relax, el cristal de antes (el de la 3.7.5); la semilla es sólo del modo de combate
+    if (!cristalSemilla) {
+      const k = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 2), new THREE.MeshBasicMaterial({ color: 0x7dfff0 }));
+      k.scale.set(0.8, 1.4, 0.8);
+      g.add(k);
+      return g;
+    }
     // 3.8.0: una semilla dorada
     const c = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffb030 }));
     c.scale.set(0.8, 1.25, 0.8);

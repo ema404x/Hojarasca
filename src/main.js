@@ -19,8 +19,8 @@ import { crearFlotantes } from './flotantes.js';
 import { crearAves } from './aves.js';
 import { crearRenovales } from './renovales.js';
 import { crearRefugioVivo } from './refugiovivo.js';
-import { armarMochila, armarGuardado, icono } from './mochila.js';
-import { crearEnMano } from './enmano.js';
+import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
+import { crearEnMano, cristalComoSemillaEnMano } from './enmano.js';
 import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan } from './construccion.js';
 import { crearPuertas } from './puertas.js';
 import { generarVegetacion } from './vegetacion.js';
@@ -218,6 +218,8 @@ const modoJuego = usarModoGuardado(ajustes.modo, ajustes.ranura);
 const esDesafio = modoJuego === 'desafio';
 // 3.8.1: el cristal del Relax (el que venden las paradas) sigue siendo «cristales»: las semillas doradas son sólo del modo de combate
 if (!esDesafio) MATERIALES.cristal = { ...MATERIALES.cristal, nombre: 'cristales' };
+// 3.8.2: y lo mismo el dibujo: semilla en la mochila y en la mano sólo en el modo de combate
+cristalComoSemillaEnMochila(esDesafio); cristalComoSemillaEnMano(esDesafio);
 // 3.0: la supervivencia sin fin juega en su propia ranura: una corrida nunca pisa una campaña
 const esSinFin = esDesafio && ajustes.desafioTipo === 'sinfin';
 if (esSinFin) usarModoGuardado('desafio', RANURA_SIN_FIN);

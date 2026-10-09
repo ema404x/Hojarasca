@@ -110,6 +110,25 @@ app.whenReady().then(async () => {
       const de38 = falta.filter((t) => /duende|semilla|Coihue|Rey Duende|cofre|lechuz|madriguera|noche de los duendes|robó|puertita|ámbar/i.test(t));
       ok(de38.length === 0, `en inglés no quedan textos de la 3.8 sin traducir (${falta.length} faltantes en total, ver faltantes-en.txt)${de38.length ? ':\n  ' + de38.slice(0, 20).join('\n  ') : ''}`);
     }
+    // 3.8.2: en el Relax, el ícono del cristal en la mochila vuelve a ser el cristal (celeste), no la semilla dorada
+    w.setContentSize(1024, 640);
+    await w.loadFile(url, { search: '?debug=1' });
+    await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'muybaja', clima:'despejado', musica:false, modo:'relax', autoCalidad:false, idioma:'es'})); 1`);
+    ok(await cargar(), 'carga el Relax');
+    await esperar(800);
+    await js(`document.getElementById('btn-entrar').click(); 1`);
+    await esperar(4000);
+    await js(`(()=>{ const H = window.__hojarasca; H.conMateriales((m) => { m.cristal = (m.cristal || 0) + 5; }); H.volverAlJuego(); return 1 })()`);
+    await esperar(300);
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI', bubbles: true })); 1`);
+    await esperar(800);
+    const color = await js(`(async ()=>{ const img = [...document.querySelectorAll('#mochila-rejilla img')].find((i) => i.parentElement.textContent.includes('(5)') && /semilla|cristal/i.test(i.alt));
+      if (!img) return null; await img.decode().catch(() => {}); const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.drawImage(img, 0, 0, 64, 64);
+      const d = x.getImageData(30, 30, 1, 1).data; img.scrollIntoView({ block: 'center' }); return { r: d[0], g: d[1], b: d[2], modo: window.__hojarasca.modoJuego } })()`);
+    ok(!!color, 'Relax: el cristal está en la mochila');
+    ok(color && color.modo === 'relax' && color.b > 180 && color.g > 180 && color.r < 200, `Relax: el ícono del cristal es celeste, no dorado (${JSON.stringify(color)})`);
+    await esperar(300);
+    fs.writeFileSync(path.join(salida, 'cristal-relax.png'), (await w.webContents.capturePage()).toPNG());
   } catch (e) {
     errores.push('excepcion: ' + (e && e.message ? e.message : e));
   }

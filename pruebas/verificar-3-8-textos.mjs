@@ -189,4 +189,12 @@ for (const [es, en] of [['Red dorada', 'Golden net'], ['Cerco dorado', 'Golden f
 // el nombre largo del modo, en un solo renglón en el botón de la portada
 ok(/\.modo-juego \.segmentos button \{[^}]*white-space: nowrap;/.test(leer('src/plantilla.html')), '3.8.1: el botón del modo no parte «La noche de los duendes» en dos renglones');
 
+// 3.8.2: el ícono del cristal en el Relax vuelve a ser el cristal (en la mochila y en la mano); la semilla, sólo en el modo de combate
+{
+  const moch = leer('src/mochila.js'), mano = leer('src/enmano.js'), main = leer('src/main.js');
+  ok(/cristal\(\) \{[^]*?if \(!cristalSemilla\) \{[^]*?#7dfff0[^]*?return;[^]*?semilla dorada/.test(moch), '3.8.2: en la mochila del Relax, el cristal de antes');
+  ok(/cristal\(\) \{[^]*?if \(!cristalSemilla\) \{[^]*?0x7dfff0[^]*?return g;[^]*?semilla dorada/.test(mano), '3.8.2: en la mano del Relax, el cristal de antes');
+  ok(/cristalComoSemillaEnMochila\(esDesafio\); cristalComoSemillaEnMano\(esDesafio\);/.test(main), '3.8.2: main.js elige el dibujo según el modo, antes de armar nada');
+  ok(main.indexOf('cristalComoSemillaEnMano(esDesafio)') < main.indexOf('crearEnMano(camara)'), '3.8.2: el dibujo se elige antes de crear la mano');
+}
 console.log(`3.8.0 (textos): ${n} comprobaciones · La noche de los duendes, en castellano y en inglés, con sus sonidos y su leyenda`);

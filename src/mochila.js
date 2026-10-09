@@ -11,6 +11,9 @@ import { ranurasGranja, ICONOS_GRANJA } from './granja.js';
 // ---------------------------------------------------------------- iconos
 // Cada icono se dibuja por código sobre un lienzo chico, y se guarda en caché.
 const cache = new Map();
+// 3.8.2: el cristal se dibuja como semilla dorada sólo en el modo de combate; en el Relax, el cristal de antes
+let cristalSemilla = false;
+export function cristalComoSemillaEnMochila(si) { cristalSemilla = !!si; cache.delete('cristal'); }
 
 function icono(tipo) {
   if (cache.has(tipo)) return cache.get(tipo);
@@ -278,6 +281,14 @@ function icono(tipo) {
       x.fillRect(28, 22, 8, 20); x.fillRect(22, 28, 20, 8);
     },
     cristal() {
+      // 3.8.2: en el Relax, el cristal de antes (el de la 3.7.5)
+      if (!cristalSemilla) {
+        x.fillStyle = '#7dfff0';
+        x.beginPath(); x.moveTo(32, 6); x.lineTo(46, 30); x.lineTo(32, 58); x.lineTo(18, 30); x.fill();
+        x.fillStyle = '#c8fff8';
+        x.beginPath(); x.moveTo(32, 6); x.lineTo(38, 30); x.lineTo(32, 58); x.fill();
+        return;
+      }
       // 3.8.0: una semilla dorada (gota con estrías, la punta más clara)
       const gota = () => { x.beginPath(); x.moveTo(32, 6); x.bezierCurveTo(44, 20, 50, 38, 42, 50); x.bezierCurveTo(37, 58, 27, 58, 22, 50); x.bezierCurveTo(14, 38, 20, 20, 32, 6); };
       x.fillStyle = '#e8a22a'; gota(); x.fill();

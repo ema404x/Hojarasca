@@ -7,7 +7,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { esNocheGrande, vieneDeViejo, etapaDe, ETAPAS, ROBO, puedeRobar, queSeLleva, SIEMPRE_VIEJOS, DUENDE_DE, NOCHES_GRANDES } from '../src/desafio-duendes-reglas.js';
-import { TIPOS_ALIEN, sanearDesafio, PUNTO_DEBIL, suministrosDelAlba } from '../src/desafio-reglas.js';
+import { TIPOS_ALIEN, sanearDesafio, PUNTO_DEBIL, suministrosDelAlba, golpePorDetras, sumarContenidoCaja } from '../src/desafio-reglas.js';
 
 const raiz = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const src = path.join(raiz, 'src');
@@ -223,4 +223,44 @@ const msArmar = performance.now() - tiempo0;
 // el nido y la madriguera se arman
 const n = M.mallaNido(); assert.ok(n.children.length >= 2 && n.userData.halos.length > 0, 'el nido con sus hongos de luz');
 for (const t of ['aguja', 'vaina', 'generador', 'suelo']) assert.ok(M.mallaMadriguera(t).children.length >= 1, `la madriguera: ${t}`);
+// 3.8.2: el punto débil del Mandamás cuenta «por detrás» sólo si el golpe viene de atrás (rumbo contra
+// dirección del golpe), no según dónde cae el punto de impacto
+{
+  // el jefe mira hacia +z (rumbo 0): de frente, el golpe viaja hacia -z
+  assert.equal(golpePorDetras(0, 0, 5, 0.05, 0.3), false, 'de frente y alto: el punto cae casi en el centro, pero no es espalda');
+  assert.equal(golpePorDetras(0, 0, 5, -0.05, -0.3), false, 'de frente, aunque el punto quede apenas detrás del centro');
+  assert.equal(golpePorDetras(0, 0, -5, 0, -0.3), true, 'desde atrás, sí');
+  assert.equal(golpePorDetras(0, 0.5, -5, 0.1, -0.2), true, 'desde atrás y un poco de costado, también');
+  assert.equal(golpePorDetras(0, 5, 0, 0, 0), false, 'de costado no cuenta');
+  assert.equal(golpePorDetras(Math.PI / 2, -5, 0, 0, 0), true, 'con otro rumbo: mira a +x, desde -x es la espalda');
+  assert.equal(golpePorDetras(Math.PI / 2, 5, 0, 0, 0), false, 'con otro rumbo, de frente');
+  assert.equal(golpePorDetras(0, 0, 0, 0, 0), false, 'un golpe que baja derecho no cuenta');
+  // al azar, pegándole de frente y alto, nunca cuenta (antes ~la mitad de las veces)
+  let espalda = 0;
+  for (let i = 0; i < 500; i++) { const r = Math.random() * 6.28, ox = Math.sin(r) * 6, oz = Math.cos(r) * 6, jx = (Math.random() - 0.5) * 0.3, jz = (Math.random() - 0.5) * 0.3; if (golpePorDetras(r, ox, oz, jx, jz)) espalda++; }
+  assert.equal(espalda, 0, `de frente contó como espalda ${espalda} de 500 veces`);
+  const fuente = fs.readFileSync(path.join(src, 'desafio.js'), 'utf8');
+  assert.ok(/_imp\.porDetras = golpePorDetras\(rumbo, desde\.x, desde\.z, x, z\)/.test(fuente), 'impactoEn usa de dónde viene el golpe');
+  assert.equal((fuente.match(/impactoEn\([^)]*\)/g) || []).filter((s) => s.split(',').length < 5).length, 0, 'todas las llamadas a impactoEn pasan de dónde viene el golpe');
+}
+// 3.8.2: el cofre del alba se abre a su nivel (no desde arriba de una torre), con el margen de las semillas que se juntan
+{
+  const fuente = fs.readFileSync(path.join(src, 'desafio.js'), 'utf8');
+  const margenSemillas = Number(fuente.match(/Math\.hypot\(js\.pos\.x - c\.x, js\.pos\.z - c\.z\) < 1\.7 && Math\.abs\(js\.pos\.y - c\.y\) < ([\d.]+)/)?.[1]);
+  const margenCofre = Number(fuente.match(/Math\.hypot\(js\.pos\.x - c\.x, js\.pos\.z - c\.z\) > 1\.8 \|\| Math\.abs\(js\.pos\.y - suelo\) >= ([\d.]+)\) return;/)?.[1]);
+  assert.ok(margenSemillas > 0 && margenCofre === margenSemillas, `el cofre mira la altura con el mismo margen (${margenCofre} contra ${margenSemillas})`);
+}
+// 3.8.2: el cofre sin abrir no se pierde al alba siguiente: lo suyo se suma al nuevo, saneado y con tope de 99
+{
+  const viejo = suministrosDelAlba(4, true), nuevo = suministrosDelAlba(5, true);
+  const suma = sumarContenidoCaja(viejo, nuevo);
+  for (const k of new Set([...Object.keys(viejo), ...Object.keys(nuevo)])) assert.equal(suma[k], (viejo[k] || 0) + (nuevo[k] || 0), `el cofre suma ${k}`);
+  assert.deepEqual(sumarContenidoCaja({ tronco: 95, cristal: 2 }, { tronco: 9, tabla: 3 }), { tronco: 99, tabla: 3, cristal: 2 }, 'si se pasa de 99, queda en 99');
+  assert.deepEqual(sumarContenidoCaja({ tronco: '3', casa: 5, piedra: -2 }, { tronco: 1 }), { tronco: 4 }, 'lo viejo pasa por el saneado');
+  assert.deepEqual(sumarContenidoCaja(null, { piedra: 2 }), { piedra: 2 });
+  // y se guarda bien: la partida lo vuelve a leer igual
+  assert.deepEqual(sanearDesafio({ caja: { x: 1, z: 2, contenido: suma } }).caja.contenido, suma, 'el cofre sumado se guarda entero');
+  const fuente = fs.readFileSync(path.join(src, 'desafio.js'), 'utf8');
+  assert.ok(/const viejo = D\(\)\.caja\?\.contenido;\s*D\(\)\.caja = \{ x: p\.x, z: p\.z, contenido: viejo \? sumarContenidoCaja\(viejo, contenido\) : contenido, cayendo: true \};/.test(fuente), 'soltarCaja suma lo del cofre sin abrir (un solo cofre)');
+}
 console.log(`OK duendes 3.8 · reglas, robo sin perder nada, cableado · modelos (tri cerca/lejos): ${reporte.join(', ')} · armar todo ${Math.round(msArmar)} ms`);

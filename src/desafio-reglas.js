@@ -103,6 +103,16 @@ export function danoEnPuntoDebil(def, dano, impacto = null) {
   if (alturaRel < PUNTO_DEBIL.desde || alturaRel > PUNTO_DEBIL.hasta) return dano;
   return dano * PUNTO_DEBIL.multiplicador;
 }
+// 3.8.2: «por detrás» según de dónde viene el golpe, no según dónde pega: el golpe (de `ox,oz` a `x,z`)
+// tiene que ir en el mismo sentido en que mira el invasor (`rumbo`), dentro de un cono de ~70° a cada lado.
+// Antes se miraba el punto de impacto contra el centro, y pegándole de frente y alto ese punto cae casi en
+// el centro: la mitad de las veces contaba como espalda. Un golpe que baja derecho (sin rumbo) no cuenta.
+export const COSENO_ESPALDA = 0.35;
+export function golpePorDetras(rumbo, ox, oz, x, z) {
+  const dx = x - ox, dz = z - oz, largo = Math.hypot(dx, dz);
+  if (!(largo > 1e-6) || !Number.isFinite(rumbo)) return false;
+  return (Math.sin(rumbo) * dx + Math.cos(rumbo) * dz) / largo > COSENO_ESPALDA;
+}
 
 // El saltador pasa por arriba de lo bajo. Las obras reforzadas rematan en puntas,
 // zunchos y almenas: por esas no pasa ninguno, aunque midan parecido.
@@ -376,6 +386,13 @@ export function sanearContenidoCaja(c) {
   const r = {};
   for (const k of COSAS_CAJA) { const n = Math.floor(Number(c?.[k])); if (Number.isFinite(n) && n > 0) r[k] = Math.min(99, n); }
   return r;
+}
+// 3.8.2: el cofre que quedó sin abrir no se pierde al alba siguiente: lo suyo se suma al nuevo (un solo
+// cofre). Pasa por el saneado: si una cosa se pasa de 99, queda en 99.
+export function sumarContenidoCaja(viejo, nuevo) {
+  const a = sanearContenidoCaja(viejo), b = sanearContenidoCaja(nuevo), r = {};
+  for (const k of COSAS_CAJA) if (a[k] || b[k]) r[k] = (a[k] || 0) + (b[k] || 0);
+  return sanearContenidoCaja(r);
 }
 export function sanearDesafio(d) {
   const x = d && typeof d === 'object' && !Array.isArray(d) ? d : {};

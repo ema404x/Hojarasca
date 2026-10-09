@@ -8,9 +8,9 @@ import { crearBanco } from './desafio-sonidos.js';
 import { esperaVoz } from './voz-alien.js';
 import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
-import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
-import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE } from './desafio-reglas.js';
+import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
@@ -1196,7 +1196,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
             // el golpe entra donde estás mirando: a esa altura se mide el punto débil
             const dist = Math.hypot(a.m.g.position.x - js.pos.x, a.m.g.position.z - js.pos.z);
             _w.copy(camara.position).addScaledVector(_dir, Math.max(0.4, dist));
-            const imp = impactoEn(a, _w.x, _w.y, _w.z);
+            const imp = impactoEn(a, _w.x, _w.y, _w.z, js.pos);
             // 2.5: el facón por la espalda y la maza contra los grandes
             const dano = danoContra(arma, a.def, danoPorEspalda(arma, arma.dano * bono, imp));
             herirAlien(a, dano, js.pos, id === 'lanza' ? 'lanza' : 'jugador', imp);
@@ -1378,7 +1378,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     for (const g of golpeados) {
       if (g.a) {
         _w.copy(origen).addScaledVector(dir, g.t);
-        herirAlien(g.a, dano, origen, 'jugador', impactoEn(g.a, _w.x, _w.y, _w.z), 'cristal');
+        herirAlien(g.a, dano, origen, 'jugador', impactoEn(g.a, _w.x, _w.y, _w.z, origen), 'cristal');
       } else { eventos.herirNucleo(g.n, dano); marcarImpacto(false); }
     }
   }
@@ -1404,11 +1404,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // Dónde entró el golpe, en términos del invasor: a qué altura relativa y si vino
   // por la espalda. Con eso se resuelve el punto débil del jefe.
   const _imp = { alturaRel: 0, porDetras: false };
-  function impactoEn(a, x, y, z) {
+  // 3.8.2: `desde` = de dónde salió el golpe (el jugador, el rayo, la flecha un cuadro antes)
+  function impactoEn(a, x, y, z, desde) {
     const p = a.m.g.position, alto = a.def.altura * a.m.esc;
     const rumbo = a.rumbo || 0;
     _imp.alturaRel = alto > 0 ? (y - p.y) / alto : 0;
-    _imp.porDetras = Math.sin(rumbo) * (x - p.x) + Math.cos(rumbo) * (z - p.z) < 0;
+    _imp.porDetras = golpePorDetras(rumbo, desde.x, desde.z, x, z);
     return _imp;
   }
   // 2.0: el bestiario (ver `desafio-noche2.js`). Avisa lo nuevo, lo aprendido y el
@@ -2500,7 +2501,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
               && !margenTapado(x, y, z, a, q.ignorar)) {   // 3.8.1: el margen no pega a través de una pared
               if (q.tipo === 'boleadora' && !a.def.pesado) { a.enredadoT = q.enreda || 3; S.enredo(ap); }
               else if (q.tipo === 'boleadora') { a.frenoT = 1.5; S.enredo(ap); }
-              if (q.dano > 0) herirAlien(a, arsenal.danoProyectil(q, a), _desde.copy(_p0), q.fuente, impactoEn(a, x, y, z), claseDeProyectil(q));
+              if (q.dano > 0) herirAlien(a, arsenal.danoProyectil(q, a), _desde.copy(_p0), q.fuente, impactoEn(a, x, y, z, _p0), claseDeProyectil(q));
               if (q.efecto) aplicarForja(q.efecto, a, _desde.copy(_p0), q.dano);   // 2.1: la forja
               // 2.5: fuego, descarga, derribo y arpón; el que atraviesa sigue de largo
               if (arsenal.alPegar(q, a) === 'sigue') { (q.golpeados ||= new Set()).add(a); continue; }
@@ -2674,7 +2675,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     const p = parejo || enPendiente || trabado;
     if (!p) return;
-    D().caja = { x: p.x, z: p.z, contenido: suministrosDelAlba(noche, !!progreso().cosas?.arco), cayendo: true };
+    // 3.8.2: si quedó uno sin abrir, lo suyo se suma al nuevo (antes se reemplazaba y se perdía); y el nuevo
+    // brota de nuevo donde le toca (con el viejo a la vista, se mudaba sin brotar)
+    const contenido = suministrosDelAlba(noche, !!progreso().cosas?.arco);
+    const viejo = D().caja?.contenido;
+    D().caja = { x: p.x, z: p.z, contenido: viejo ? sumarContenidoCaja(viejo, contenido) : contenido, cayendo: true };
+    caja.visible = false;
     ctx.nota('Brotó un cofre entre las raíces', 'Está cerca, con un brillo dorado. Pasá por encima para abrirlo');
   }
   // 3.8.1: ¿hay un árbol, una piedra o un cuerpo de obra donde iría el cofre? ¿El suelo es parejo?
@@ -2709,7 +2715,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     caja.userData.brilloHalos = 0.8 + 0.25 * Math.sin(tBrillo * 2.2);
     caja.userData.haz.scale.set(1, 1, 1);
     const enSuelo = alturaCaja === 0;
-    if (!enSuelo || Math.hypot(js.pos.x - c.x, js.pos.z - c.z) > 1.8) return;
+    // 3.8.2: también a su altura (se abría desde arriba de una torre): el margen de las semillas que se juntan
+    if (!enSuelo || Math.hypot(js.pos.x - c.x, js.pos.z - c.z) > 1.8 || Math.abs(js.pos.y - suelo) >= 2) return;
     const d = D(), partes = [];
     const NOMBRES = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas' };
     for (const [k, n] of Object.entries(c.contenido || {})) {
