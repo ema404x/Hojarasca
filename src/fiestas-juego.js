@@ -409,6 +409,7 @@ export function crearFiestasJuego(ctx) {
   function ayudarMinga() {
     const r = cargarMinga(estado(), dia());
     if (r.hecha) { ctx.nota?.('La obra ya está hecha', 'Lo de este año ya quedó'); return; }
+    if (r.tuParte) { ctx.nota?.('Tu parte ya está hecha', 'A la una se come en la mesa larga'); return; }   // 3.8.3
     ctx.sonido?.()?.juntar?.();
     if (r.faltan > 0) ctx.nota?.(`Llevaste una carga (${r.cargas} de ${r.obra.cargas})`, r.cargas === 1 ? 'Los vecinos te hacen lugar. «¡Así me gusta!»' : 'Una más y otra más', false);
     else {
@@ -426,12 +427,16 @@ export function crearFiestasJuego(ctx) {
     visto.leyenda.i = ley.partes.length + 1;
     escuchoLeyenda(ley, dia());
   }
+  let diaAmistadBaile = 0;
   function bailar(baile) {
     const st = estado();
     const nivel = st.baile[baile] || 0;
     const js = ctx.jugador?.()?.estado;
     if (js) js.descansado = Math.max(js.descansado || 0, 1 + nivel * 0.5);
     ctx.nota?.(nivel ? `Bailaste ${baile === 'chacarera' ? 'una chacarera' : 'un chamamé'} (nivel ${nivel})` : `Bailaste ${baile === 'chacarera' ? 'una chacarera' : 'un chamamé'}, a tu manera`, nivel >= 2 ? 'La pista te aplaude' : nivel ? 'Ya no pisás a nadie' : 'Pocha da clases en la pista: pedile una', false);
+    // 3.8.3: la amistad del baile, una vez por día (cada E en la pista sumaba de nuevo: con 30 E, +30 a cada bailarín)
+    if (diaAmistadBaile === dia()) return;
+    diaAmistadBaile = dia();
     for (const k of presentes()) { const n = ctx.aldeaGente?.()?.personas?.get(k)?.npc; if (n && js && dist(n.pos, js.pos) < 4) ctx.sumarAmistad?.(k, 1 + nivel); }
   }
 
@@ -647,7 +652,7 @@ export function crearFiestasJuego(ctx) {
     }
     if (v === 'taba') {
       const pct = Math.round(panel.barra * 100);
-      const html = `<p>${esc(panel.fin ? (panel.fin === 'gano' ? '¡Suerte! Ganaste la tirada.' : `Culo. Ganó ${quien}.`) : panel.turno === 0 ? 'Apretá «Tirar» cuando la marca esté en lo verde: con fuerza justa, pasa la raya y no se va lejos.' : `Tira ${quien}…`)}</p>
+      const html = `<p>${esc(panel.fin ? (panel.finQuien === 1 ? (panel.fin === 'gano' ? `Culo de ${quien}: ganaste la tirada.` : `Suerte de ${quien}: ganó la tirada.`) : panel.fin === 'gano' ? '¡Suerte! Ganaste la tirada.' : `Culo. Ganó ${quien}.`) : panel.turno === 0 ? 'Apretá «Tirar» cuando la marca esté en lo verde: con fuerza justa, pasa la raya y no se va lejos.' : `Tira ${quien}…`)}</p>
         <div class="barra"><b style="left:calc(${pct}% - 3px)"></b></div><p class="log">${panel.log.slice(-3).map(esc).join('<br>')}</p>`;
       const opciones = panel.fin ? [{ texto: 'Otra vez', detalle: '', marca: '', puede: true, hacer: () => { Object.assign(panel, { fin: null, turno: 0, log: [] }); } }, { texto: 'Listo', detalle: '', marca: '', puede: true, hacer: cerrarPanel }]
         : panel.turno === 0 ? [{ texto: 'Tirar', detalle: '', marca: '', puede: true, hacer: tirar }] : [{ texto: `Tira ${quien}…`, detalle: '', marca: '', puede: false, hacer: () => {} }];
@@ -769,7 +774,7 @@ export function crearFiestasJuego(ctx) {
     const r = moverDamas(e, jugada);
     if (!r.ok) return;
     panel.log.push(`${j === 0 ? 'Vos' : quien}: ${textoJugada(r.jugada)}`);
-    if (e.terminado !== null) terminarPartido('damas', e.terminado === 0, e.terminado === 'tablas' ? 'tablas' : '', e.terminado === 'tablas');
+    if (e.terminado !== null) terminarPartido('damas', e.terminado === 0, e.terminado === 'tablas' ? 'Tablas' : '', e.terminado === 'tablas');
     if (j === 0) panel.espera = 0.9;
   }
   function tirar(j = 0) {
@@ -781,6 +786,7 @@ export function crearFiestasJuego(ctx) {
     if (r.gana === true) { panel.fin = j === 0 ? 'gano' : 'perdio'; }
     else if (r.gana === false) { panel.fin = j === 0 ? 'perdio' : 'gano'; }
     else panel.turno = 1 - j;
+    panel.finQuien = j;   // 3.8.3: quién la definió (si el rival sacó culo, ganaste vos: antes decía «¡Suerte!» igual)
     if (panel.fin) { anotarPartido(estado(), 'taba', panel.fin === 'gano'); if (panel.fin === 'gano') ctx.sumarAmistad?.(panel.rival?.clave, 1); ctx.guardar?.(); }
     if (r.gana === null) panel.turno = 1 - j;
   }
@@ -803,7 +809,8 @@ export function crearFiestasJuego(ctx) {
     const nombre = { truco: 'un truco', chinchon: 'un chinchón', damas: 'unas damas' }[juego];
     ctx.nota?.(tablas ? `Tablas con ${quien}` : gano ? `Le ganaste ${nombre} a ${quien}` : `${cap(quien)} te ganó ${nombre}`, texto ? `${texto}. Otro día la revancha` : 'Otro día la revancha', true);
     if (panel?.rival?.clave) ctx.sumarAmistad?.(panel.rival.clave, gano ? 2 : 3);
-    decirRival(gano ? 'Me ganaste bien. La revancha es mía.' : 'Te gané, pero jugaste lindo.');
+    // 3.8.3: en tablas no dice «Te gané» (y el texto de abajo, «Tablas», con mayúscula)
+    decirRival(tablas ? 'Tablas. La próxima no te la dejo.' : gano ? 'Me ganaste bien. La revancha es mía.' : 'Te gané, pero jugaste lindo.');
     ctx.guardar?.();
   }
   // para marcarHud de main.js (las listas del HUD: teclado, mouse y mando)

@@ -7,6 +7,8 @@ import * as V from '../src/vecindad.js';
 import * as R from '../src/rincones.js';
 import { IDS_DUENDES } from '../src/rincones-cuaderno.js';
 import { PALABRA_EMOCION } from '../src/social-rueda.js';
+import * as F from '../src/fiestas.js';
+import { novedadesDelValle } from '../src/noticias-juego.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -99,6 +101,24 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   ok(g.includes("const cuandoLista = (l) => (l && l.dia <= dia() ? 'a las 7 está lista' : 'mañana a la mañana está lista');"), 'aldea-gente: completada de madrugada dice «a las 7», no «mañana a la mañana»');
   ok(g.split('cuandoLista(').length - 1 === 3 && !/: mañana a la mañana está lista/.test(g), 'aldea-gente: los tres textos de la obra lo usan');
   sinCR('src/aldea-gente.js');
+}
+
+// ---------------------------------------------------------------- 10. las fiestas: la minga, el baile, las damas, la taba y el diario
+{
+  const st = F.fiestasNuevas(), m1 = F.mingaDelAnio(1);
+  let r = null;
+  for (let i = 0; i < m1.cargas; i++) r = F.cargarMinga(st, 7);
+  ok(r.faltan === 0 && !r.tuParte, 'minga: la última carga completa tu parte');
+  const r2 = F.cargarMinga(st, 7), r3 = F.cargarMinga(st, 7);
+  ok(r2.tuParte && r3.tuParte && r3.cargas === m1.cargas, 'minga: con tu parte hecha no se carga más (cada E sumaba amistad sin fin)');
+  const j = leer('src/fiestas-juego.js');
+  ok(j.includes("if (r.tuParte) { ctx.nota?.('Tu parte ya está hecha', 'A la una se come en la mesa larga'); return; }"), 'minga: E dice que tu parte ya está, sin sumar');
+  ok(j.includes('    if (diaAmistadBaile === dia()) return;\n    diaAmistadBaile = dia();\n    for (const k of presentes())'),'baile: la amistad del baile, una vez por día');
+  ok(j.includes("decirRival(tablas ? 'Tablas. La próxima no te la dejo.' :") && j.includes("e.terminado === 'tablas' ? 'Tablas' : ''"), 'damas: en tablas el rival no dice «Te gané»');
+  ok(j.includes('panel.finQuien = j;') && j.includes('panel.finQuien === 1 ?'), 'taba: el texto final según quién la definió');
+  const a = A.aldeaNueva(); a.descubierta = 1;
+  ok(novedadesDelValle({ aldea: a, dia: 2 }, 2)[0] === 'Hoy es fiesta de la Fruta Fina: todos al predio de la fiesta.', 'diario: la fiesta es en el predio, no en la plaza');
+  sinCR('src/fiestas.js'); sinCR('src/fiestas-juego.js'); sinCR('src/noticias-juego.js');
 }
 
 console.log(`verificar-3-8-3-aldea: ${n} comprobaciones en verde`);
