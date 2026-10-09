@@ -171,6 +171,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   const vj = leer('src/vecindad-juego.js'), m = leer('src/main.js'), j = leer('src/rincones-juego.js');
   ok(vj.includes('if (npc?.deVisita) return no(FRASES_JUEGO.deVisita);') && vj.indexOf('if (npc?.deVisita) return no(FRASES_JUEGO.deVisita);') < vj.indexOf('const r = invitar(s.clave, que, p, horas()'), 'vecindad: el que está de visita en tu casa no sale a tomar el té (quedaba parado en tu mesa para siempre)');
   ok(m.includes('function sentarseALaCita() {\n  if (jugador.estado.montado || jugador.estado.enTren) return false;'), 'main: a caballo no te sienta a la mesa de la invitación');
+  ok(m.includes("if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } :"), 'main: a caballo, el aviso de la cita es el mismo que hace la E');
   ok(m.includes('else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);'), 'main: R no te sienta arriba del zaino');
   ok(j.includes('const lado = puente ? 0.55 : 1.25;') && j.includes('if (puente) js.pos.y = Math.max(js.pos.y, puente.alto + 0.04);'), 'sulky: en el puentecito te bajás sobre el tablero, no al arroyo');
   ok(j.includes("paraGuardar: () => {") && m.includes('if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();'), 'sulky: guardando arriba, el sulky queda donde ibas');

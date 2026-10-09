@@ -8702,7 +8702,8 @@ function cuadroDelJuego(tRaf, manual) {
     // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
-    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: 'Bajarte del zaino' };
+    // (3.8.3: con ella esperándote para la cita o el casamiento, eso: la E, por hablar(), lo empieza también a caballo)
+    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : { tecla: 'E', texto: 'Bajarte del zaino' };
     // 2.6.1: charlando, E sólo sigue la charla: el caballo, la puerta o el kayak no se ofrecen
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco
