@@ -6,6 +6,7 @@
 // 4. Con doce ramitas, la que mirás se queda en el suelo (antes se borraba del valle sin sumar).
 // 5. Desarmar una obra devuelve lo que tenía adentro: lo colgado en el tendal, las macetas del vivero, los huevos del
 //    nidal y la cosecha lista del cantero (antes se perdían; también en el desalojo de la aldea).
+// 6. Con los planos, Y sigue la obra a medio hacer más cercana: una terminada al lado ya no traba fundar otra igual.
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -136,6 +137,25 @@ const trozo = (desde, hasta) => {
   ctx.devolver({ plano: 'cantero', x: 6, z: 6 });
   ok(cuanto('haba') === Huerta.CULTIVOS.habas.cosecha, 'lo sembrado que no está listo se lo lleva el cantero, como siempre');
   ok(main.includes('devolverContenido(r.datos);') && main.includes('devolverContenido(d); }'), 'se llama al desmontar y en el desalojo');
+}
+
+// ---------------------------------------------------------------- 6. Y sigue la obra a medio hacer, no la terminada
+{
+  const codigo = trozo('function obraAMedias(plano, pos, radio) {', '\n  return mejor;\n}');
+  const mirador = { id: 'mirador', etapas: [{}, {}, {}] }, casilla = { id: 'casilla', etapas: [{}, {}] };
+  const lista = [
+    { plano: mirador, datos: { x: 2, z: 0, etapas: 3 } },   // terminada, la más cerca
+    { plano: mirador, datos: { x: 6, z: 0, etapas: 1 } },   // a medias, más lejos
+    { plano: casilla, datos: { x: 1, z: 0, etapas: 0 } },   // otro plano
+  ];
+  const ctx = { obras: { obrasCerca: (pos, r) => lista.filter((o) => Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z) < r) } };
+  vm.createContext(ctx);
+  vm.runInContext(`${codigo}\nthis.obraAMedias = obraAMedias;`, ctx);
+  ok(ctx.obraAMedias(mirador, { x: 0, z: 0 }, 10) === lista[1], 'Y sigue el mirador a medias aunque haya uno terminado más cerca');
+  ok(ctx.obraAMedias(mirador, { x: 0, z: 0 }, 4) === null, 'con sólo uno terminado al lado, Y funda otro (no «Ya está terminada»)');
+  ok(ctx.obraAMedias(null, { x: 0, z: 0 }, 10) === null, 'sin plano elegido, nada');
+  ok(main.includes('const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obraAMedias(obras.plano, js.pos, 10);'), 'accionObra (Y) usa la obra a medias');
+  ok(main.includes('const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obraAMedias(p, jugador.estado.pos, 12);'), 'y el panel muestra las etapas de esa misma');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

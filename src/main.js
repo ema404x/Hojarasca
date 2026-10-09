@@ -5513,7 +5513,7 @@ function dibujarPanelObra() {
 
   const ul = $('obra-etapas');
   ul.innerHTML = '';
-  const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obras.obraCerca(jugador.estado.pos, 12, p.id);
+  const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obraAMedias(p, jugador.estado.pos, 12);   // (3.8.3: la que se sigue con Y)
   const hechas = obra ? obra.datos.etapas : 0;
   p.etapas.forEach((e, i) => {
     const li = document.createElement('li');
@@ -5690,6 +5690,19 @@ function piezaAMedias(plano, pos, radio) {
   }
   return mejor;
 }
+// 3.8.3: la obra grande de este plano que quedó a medio hacer más cerca (o null). Antes Y seguía la más cercana aunque
+// estuviera terminada: con un mirador hecho a menos de 10 m, el fantasma decía «Lugar válido» y Y respondía «Todavía no ·
+// Ya está terminada» (y una a medias más lejos que una terminada no se podía seguir)
+function obraAMedias(plano, pos, radio) {
+  if (!plano) return null;
+  let mejor = null, d0 = radio;
+  for (const o of obras.obrasCerca(pos, radio)) {
+    if (o.plano.id !== plano.id || o.datos.etapas >= o.plano.etapas.length) continue;
+    const d = Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z);
+    if (d < d0) { d0 = d; mejor = o; }
+  }
+  return mejor;
+}
 function accionObra() {
   const js = jugador.estado;
   if (obras.editando) {
@@ -5709,7 +5722,7 @@ function accionObra() {
   // las cosas chicas se ponen siempre nuevas; las grandes, se siguen levantando
   // 3.5.1: y las piezas de varias etapas (molino de agua, aserradero, estación meteorológica)
   // también: antes cada Y fundaba otra y ninguna pasaba de la primera etapa (el capítulo 6 se trababa)
-  const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obras.obraCerca(js.pos, 10, obras.plano?.id);
+  const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obraAMedias(obras.plano, js.pos, 10);
   if (obra?.plano.pieza) {
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
