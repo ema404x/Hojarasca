@@ -13,6 +13,7 @@
 // 10. Mover un cantero o un gallinero mueve también sus matas y sus gallinas (quedaban en el lugar viejo).
 // 11. El nombre que le ponés a una obra (T.lugares, propia) no cuenta como edificio del mundo al construir: trababa
 //     mover esa obra cerca de donde estaba y volver a fundar donde la desarmaste (hasta recargar la partida).
+// 12. Los fletes tomados hoy se recuerdan todos al cargar (con 40, uno ya entregado se podía volver a tomar y cobrar).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -25,6 +26,7 @@ import * as Vivero from '../src/vivero.js';
 import * as Gallinero from '../src/gallinero.js';
 import * as Huerta from '../src/huerta.js';
 import * as Visitas from '../src/visitas.js';
+import * as Comercio from '../src/comercio.js';
 import { crearTraductor } from '../src/idioma.js';
 import { EN } from '../src/idioma-en.js';
 
@@ -225,6 +227,13 @@ const trozo = (desde, hasta) => {
   const cons = leer('src/construccion.js');
   ok(!cons.includes("if (!l || typeof l.x !== 'number') continue;") && cons.split("if (!l || typeof l.x !== 'number' || l.propia) continue;").length === 3, 'construccion.js: los dos recorridos de T.lugares saltean el nombre de una obra tuya');
   ok(main.includes('nombre: obra.datos.nombre, propia: true,'), 'main.js: el nombre de la obra va marcado como propio');
+}
+
+// ---------------------------------------------------------------- 12. los fletes tomados hoy sobreviven a guardar y cargar
+{
+  const tomados = Array.from({ length: 66 }, (_, i) => `7|Parada ${i % 11}|${Math.floor(i / 11)}`);
+  const c = Comercio.sanearComercio(JSON.parse(JSON.stringify({ hoy: { dia: 7, vendidos: {}, comprados: {}, tomados }, fletes: [] })));
+  ok(c.hoy.tomados.length === 66 && c.hoy.tomados.includes(tomados[65]), `los 66 fletes de un día (6 por parada) se recuerdan al cargar (${c.hoy.tomados.length})`);
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

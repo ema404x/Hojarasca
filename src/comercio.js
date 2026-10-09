@@ -168,7 +168,9 @@ export function sanearComercio(v) {
     hoy: {
       dia: entero(h.dia, 1e6),
       vendidos: sanearCuentas(h.vendidos), comprados: sanearCuentas(h.comprados),
-      tomados: (Array.isArray(h.tomados) ? h.tomados : []).filter((x) => typeof x === 'string' && x.length <= 80).slice(0, 40),
+      // 3.8.3: hasta 6 fletes por parada (2 + 4 con las mejoras) en 11 paradas: con 40, al cargar se olvidaban los últimos
+      // tomados y un flete ya entregado se podía volver a tomar y cobrar
+      tomados: (Array.isArray(h.tomados) ? h.tomados : []).filter((x) => typeof x === 'string' && x.length <= 80).slice(0, 99),
     },
     fletes: fletes.filter((f) => !vistos.has(f.id) && vistos.add(f.id)).slice(0, COMERCIO.fletesConFurgon),
     ganado: entero(v.ganado, 1e7), entregas: entero(v.entregas, 1e6), km: Math.max(0, Math.min(1e6, Number(v.km) || 0)),
