@@ -1,0 +1,66 @@
+/* proto-menu · C · Limpio sobre el paisaje. Paneles translúcidos con desenfoque sobre el juego, UNA tipografía
+   (Bahnschrift, del sistema) con TRES tamaños fijos (14, 18 y 32), mucho aire y un solo acento: el ámbar del atardecer. */
+@import url("base.css");
+
+:root[data-menu="C"] {
+  --f-texto: 'Bahnschrift', 'Segoe UI', system-ui, sans-serif;
+  --f-titulo: var(--f-texto); --f-mano: var(--f-texto); --f-logo: var(--f-texto); --f-boton: var(--f-texto);
+  /* tres tamaños y nada más: chico 14 · base 18 · grande 32 (el medio es el base; el logo es el grande) */
+  --t-chico: 14px; --t-base: 18px; --t-medio: 18px; --t-grande: 32px; --t-logo: 32px;
+  --peso-titulo: 300; --espaciado-titulo: .01em;
+  --peso-logo: 300; --espaciado-logo: .5em;
+  --peso-boton: 400;
+  --espaciado-rotulo: .1em;
+
+  --acento: #f2a85a;
+  --p-color: #f4f0e8;
+  --p-titulo: #fbf7ef;
+  --p-tenue: rgba(244,240,232,.62);
+  --p-linea-fuerte: rgba(255,255,255,.3);
+  --linea: 1px solid rgba(255,255,255,.12);
+
+  --p-fondo: rgba(16,22,19,.5);
+  --p-borde: 1px solid rgba(255,255,255,.13); --p-borde-lado: 1px solid rgba(255,255,255,.13);
+  --p-radio: 18px;
+  --p-sombra: 0 24px 60px rgba(0,0,0,.32);
+  --p-desenfoque: blur(22px) saturate(1.25);
+  --p-pad: var(--e-6);
+  --velo: rgba(8,12,10,.22);
+  --velo-desenfoque: blur(6px);
+
+  /* el botón: vidrio apenas más claro; encima, más claro; elegido, ámbar lleno */
+  --b-radio: 10px;
+  --b-color: #f4f0e8;
+  --b-fondo: rgba(255,255,255,.07);
+  --b-fondo-encima: rgba(255,255,255,.15);
+  --b-fondo-elegido: #f2a85a;
+  --b-color-elegido: #20150a;
+  --b-borde: 1px solid rgba(255,255,255,.10);
+  --b-borde-elegido: 1px solid #f2a85a;
+  --b-sombra: none;
+  --fila-fondo: rgba(255,255,255,.05);
+  --cosa-borde: 1px solid rgba(255,255,255,.08);
+  --campo-fondo: rgba(0,0,0,.22); --campo-borde: 1px solid rgba(255,255,255,.16);
+  --kbd-borde: rgba(255,255,255,.35); --kbd-fondo: rgba(255,255,255,.06); --kbd-radio: 6px;
+  --muestra-radio: 50%;
+  --logo-color: #fbf7ef;
+  --bajada-color: rgba(244,240,232,.85);
+  --portada-tenue: rgba(244,240,232,.8); --portada-sombra: 0 1px 8px rgba(0,0,0,.6);
+  --margen-pantalla: var(--e-7);
+}
+:root[data-menu="C"] :is(.panel-modal h2, .pausa h2, .mochila h2) { margin-bottom: var(--e-3); }
+:root[data-menu="C"] .ajustes h3 { font-weight: 600; font-size: var(--t-chico); letter-spacing: .1em; text-transform: uppercase; color: var(--acento); }
+:root[data-menu="C"] .pausa .cuando { color: var(--acento); }
+/* los paneles que se abren jugando (mochila, almacén, charla, obra) no tienen el velo atrás: van más cubiertos para leerse
+   sobre el cielo y el pasto (el desenfoque no alcanza sobre el lienzo del juego) */
+:root[data-menu="C"] #hud :is(.mochila, .trueque, .charla, .obra, .rueda-info) { background: rgba(14,19,16,.86); }
+:root[data-menu="C"] .mochila .cosa.enbarra { box-shadow: inset 0 0 0 1px var(--acento); }
+:root[data-menu="C"] .personal-muestra { box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.25); }
+:root[data-menu="C"] :is(.accion-principal, #btn-seguir) { font-weight: 600; }
+/* portada: el nombre como marca, espaciado y liviano; los botones de vidrio con el paisaje atrás */
+:root[data-menu="C"] #inicio .titulo { text-transform: uppercase; margin: var(--e-6) 0 var(--e-3); text-shadow: 0 1px 12px rgba(0,0,0,.45); }
+:root[data-menu="C"] #inicio .bajada { margin-bottom: var(--e-7); text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+:root[data-menu="C"] #inicio .acciones button:not(.accion-principal) { background: rgba(16,22,19,.42); backdrop-filter: blur(14px); }
+:root[data-menu="C"] #inicio .acciones button:not(.accion-principal):hover { background: rgba(255,255,255,.16); }
+:root[data-menu="C"] .portada { background: linear-gradient(90deg, rgba(8,12,10,.38) 0%, rgba(8,12,10,.12) 40%, rgba(8,12,10,0) 60%); }
+:root[data-menu="C"] #inicio .controles dt kbd { color: var(--p-color); }
