@@ -72,7 +72,7 @@ export function crearGranjaJuego(ctx) {
   const NACIO = {
     ternero: () => ['Nació un ternero', 'La overa parió en el tambo, con la primavera'],
     corderos: (n) => [n === 1 ? 'Nació un cordero' : `Nacieron ${n} corderos`, 'En la paridera de tu corral'],
-    lechones: (n) => [`La chancha tuvo ${n} lechones`, 'En la casilla del chiquero'],
+    lechones: (n) => [n === 1 ? 'La chancha tuvo un lechón' : `La chancha tuvo ${n} lechones`, 'En la casilla del chiquero'],   // 3.8.3: «tuvo 1 lechones»
   };
   function avanzar() {
     if (!activo()) return;
@@ -148,8 +148,11 @@ export function crearGranjaJuego(ctx) {
     const g = granja(), r = echarSobras(g, cuanto);
     if (!r.ok) { ctx.nota?.(r.motivo === 'llena' ? 'La batea está llena' : r.motivo === 'sinChancha' ? 'Todavía no tenés chancha' : 'No tenés sobras', r.motivo === 'sinSobras' ? 'Papas, habas, fruta, calafates o frutillas' : ''); return r; }
     ctx.sumarEntrada?.(r.k, -1);
-    avanzarGranja(g, dia(), { ovejas: ctx.corral?.() ? 2 : 0 });   // si hoy no comieron, comen ya
-    ctx.nota?.('Echaste sobras a la batea', `${g.batea} ${g.batea === 1 ? 'ración' : 'raciones'}: comen una por día`, true);
+    // 3.8.3: lo que pasa al comer ya (la camada que nace) se avisa: antes se tiraba y los lechones nacían sin nota
+    const eventos = avanzarGranja(g, dia(), { ovejas: ctx.corral?.() ? 2 : 0 });   // si hoy no comieron, comen ya
+    ctx.nota?.('Echaste sobras a la batea', g.batea ? `${g.batea} ${g.batea === 1 ? 'ración' : 'raciones'}: comen una por día` : 'La chancha se las comió en el momento', true);
+    for (const e of eventos) { const [t, sub] = NACIO[e.tipo](e.n); ctx.nota?.(t, sub, true); if (e.tipo === 'corderos') ctx.registrar?.('cordero-propio'); }
+    if (eventos.length) refrescar();
     ctx.refrescarBarra?.(); ctx.guardar?.();
     return r;
   }

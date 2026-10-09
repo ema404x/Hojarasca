@@ -1,10 +1,24 @@
 // 3.8.3 (mundo) — pase de bugs de vehículos, cocina y mundo antes de Steam. Una comprobación por arreglo.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+import vm from 'node:vm';
+import { register } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const main = leer('src/main.js');
 let n = 0;
+// los módulos que importan three, con el three local del juego (como en verificar-3-6-mecanicas.mjs)
+{
+  const codigo = leer('three-r186-inline.js');
+  const caja = { console, Math, Date, JSON, Array, Object, Number, String, Map, Set, WeakMap, Float32Array, Float64Array, Uint8Array, Uint16Array, Uint32Array, Int8Array, Int16Array, Int32Array, Uint8ClampedArray, ArrayBuffer, DataView, Error, TypeError, Symbol, Promise, Reflect, Proxy };
+  vm.runInNewContext(codigo + '\n;this.__claves = Object.keys(THREE);', caja);
+  const archivo = path.join(os.tmpdir(), 'hojarasca-three-383-mundo.mjs');
+  fs.writeFileSync(archivo, codigo + '\nexport const { ' + caja.__claves.join(', ') + ' } = THREE;\n');
+  register('data:text/javascript,' + encodeURIComponent(`export async function resolve(s, c, n) { if (s === 'three') return { url: ${JSON.stringify(pathToFileURL(archivo).href)}, shortCircuit: true }; return n(s, c); }`));
+}
 const ok = (c, m) => { assert.ok(c, m); n++; };
 // el cuerpo de una función de main.js (hasta la llave que la cierra en la columna 0)
 function cuerpo(nombre) {
@@ -52,6 +66,64 @@ function cuerpo(nombre) {
   };
   ok(correr('Tormenta') === 'Subiste a Tormenta a la jaula', `con nombre: «${correr('Tormenta')}»`);
   ok(correr('') === 'Subiste al zaino a la jaula', `sin nombre: «${correr('')}»`);
+}
+
+// ---------------------------------------------------------------- 3. la granja
+{
+  const G = await import('../src/granja.js');
+  const { crearGranjaJuego } = await import('../src/granja-juego.js');
+  const armar = (g, entradas) => {
+    const notas = [];
+    const P = { dia: 10, horas: 10, entradas, granja: g };
+    const J = crearGranjaJuego({ progreso: () => P, ajustes: () => ({ estacion: 'verano' }), desafio: () => false, mundo: null, obras: () => [], terminada: () => true,
+      corral: () => null, ovejas: () => [], ovejaCerca: () => null, nota: (t, s) => notas.push(`${t} · ${s}`), sumarEntrada: (k, n) => { entradas[k].cantidad += n; }, registrar: () => {}, refrescarBarra: () => {}, guardar: () => {} });
+    return { J, notas, P };
+  };
+  // 3a. la camada que nace al echar las sobras se avisa (antes nacía en silencio, con «0 raciones»)
+  {
+    const g = G.granjaNueva(7);
+    g.chancha = { id: 1, desde: 1, cuenta: 9, comio: 9, comidos: G.GRANJA.diasCamada - 1, lugar: null };
+    g.sig = 2;
+    const { J, notas, P } = armar(g, { papa: { cantidad: 3 } });
+    J.echarALaBatea();
+    const nacieron = P.granja.lechones.length;
+    ok(nacieron > 0, `la chancha come ya y nace la camada (${nacieron})`);
+    ok(notas.some((t) => /La chancha tuvo (un lechón|\d lechones)/.test(t)), `y se avisa (${notas.join(' / ')})`);
+    ok(!notas.some((t) => /\b0 raciones/.test(t)), 'sin «0 raciones»');
+  }
+  // 3b. «tuvo 1 lechones» y «con 0 días»
+  {
+    const g = G.granjaNueva(7);
+    g.chancha = { id: 1, desde: 1, cuenta: 9, comio: 9, comidos: G.GRANJA.diasCamada - 1, lugar: null };
+    g.lechones = Array.from({ length: G.GRANJA.lechones - 1 }, (_, i) => ({ id: 2 + i, nacio: 1, engorde: 0 }));
+    g.sig = 20;
+    const { J, notas } = armar(g, { papa: { cantidad: 3 } });
+    J.echarALaBatea();
+    ok(notas.some((t) => /La chancha tuvo un lechón/.test(t)) && !notas.some((t) => /tuvo 1 lechones/.test(t)), `un lechón, en singular (${notas.join(' / ')})`);
+    const h = G.granjaNueva(7);
+    h.chancha = { id: 1, desde: 1, cuenta: 9, comio: 9, comidos: G.GRANJA.diasCamada, lugar: null }; h.batea = 1;
+    ok(!/\b0 días/.test(G.textoChancha(h)), `la chancha no dice «0 días» (${G.textoChancha(h)})`);
+  }
+  // 3c. un frutal grande plantado fuera de la primavera no promete fruta este año
+  {
+    for (const especie of Object.keys(G.FRUTALES)) for (let plantado = 1; plantado <= 24; plantado++) {
+      const f = { especie, plantado, cosecha: -1 };
+      const p = G.primeraFruta(f);
+      for (let dia = plantado; p && dia < p; dia++) {
+        const t = G.textoFrutal(f, dia, 12);
+        if (G.anioDe(p) > G.anioDe(dia) && !/en flor/.test(t) && / en (verano|otoño)$/.test(t)) ok(false, `${especie} plantado el día ${plantado}: el día ${dia} dice «${t}» y la fruta llega el ${p}`);
+      }
+    }
+    ok(/da fruta el día 16/.test(G.textoFrutal({ especie: 'frambuesa', plantado: 3, cosecha: -1 }, 7, 12)), `el frambueso del día 3, el día 7: «${G.textoFrutal({ especie: 'frambuesa', plantado: 3, cosecha: -1 }, 7, 12)}»`);
+  }
+  // 3d. un id enorme en un guardado roto no deja a todos los nuevos con el mismo id
+  {
+    const g = G.sanearGranja({ vaca: { id: 1e20, desde: 1 }, terneros: [{ id: 0, nacio: 1 }, { id: 0, nacio: 1 }], sig: 1e30 }, 10, 3);
+    const ids = [g.vaca.id, ...g.terneros.map((t) => t.id)];
+    ok(new Set(ids).size === ids.length && ids.every((k) => Number.isSafeInteger(k)), `ids distintos (${ids.join(', ')})`);
+    const a = g.sig++, b = g.sig;
+    ok(b === a + 1, 'y el que sigue suma');
+  }
 }
 
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);

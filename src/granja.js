@@ -113,7 +113,8 @@ export function sanearGranja(v, dia = 1, semilla = 1) {
   const g = granjaNueva(ent(v.semilla, semilla));
   const fecha = (x, def = hoy) => tope(ent(x, def), 1, hoy);
   const ids = new Set();
-  const id = (x) => { let k = ent(x, 0); if (k < 1 || ids.has(k)) k = 0; if (k) ids.add(k); return k; };
+  // 3.8.3: un id enorme (guardado roto) hacía que `sig++` no sumara más: todos los nuevos con el mismo id
+  const id = (x) => { let k = ent(x, 0); if (k < 1 || k > 1e9 || ids.has(k)) k = 0; if (k) ids.add(k); return k; };
   if (objeto(v.vaca)) {
     g.vaca = { id: id(v.vaca.id), pelaje: PELAJES.includes(v.vaca.pelaje) ? v.vaca.pelaje : 'negra', desde: fecha(v.vaca.desde), ordenada: tope(ent(v.vaca.ordenada, 0), 0, hoy), lugar: sanoLugar(v.vaca.lugar) };
   }
@@ -141,7 +142,7 @@ export function sanearGranja(v, dia = 1, semilla = 1) {
   g.encargos = (Array.isArray(v.encargos) ? v.encargos : []).filter((e) => objeto(e) && QUE_CARNEA.includes(e.que)).slice(0, 12)
     .map((e) => { const d = fecha(e.dia); return { que: e.que, dia: d, vuelve: tope(ent(e.vuelve, d + 1), d, hoy + 1) }; });
   // los que quedaron sin id (o repetido) reciben uno nuevo
-  let sig = Math.max(1, ent(v.sig, 1), ...[...ids].map((k) => k + 1));
+  let sig = Math.max(1, Math.min(1e9, ent(v.sig, 1)), ...[...ids].map((k) => k + 1));
   const conId = (a) => { if (a && !a.id) a.id = sig++; };
   conId(g.vaca); conId(g.chancha); g.terneros.forEach(conId); g.lechones.forEach(conId); g.corderos.forEach(conId);
   g.sig = sig;
@@ -460,7 +461,7 @@ export function textoLechon(l) {
 export function textoChancha(g) {
   if (!g?.chancha) return null;
   if (g.lechones.length >= GRANJA.lechones) return 'Tu chancha · el chiquero está lleno de lechones';
-  const f = GRANJA.diasCamada - g.chancha.comidos;
+  const f = Math.max(1, GRANJA.diasCamada - g.chancha.comidos);   // 3.8.3: con el chiquero que se vació, decía «con 0 días»
   return g.batea > 0 ? `Tu chancha · con ${dias(f)} más bien comida, tiene lechones` : 'Tu chancha · con la batea vacía no cría: echale sobras';
 }
 export function textoTambo(g, fardos) {
@@ -491,6 +492,8 @@ export function textoFrutal(f, dia, horas, plantin = null, invierno = false) {
   if (s.etapa !== 'adulto') return `${nombre} ${s.etapa === 'plantin' ? 'recién plantado' : 'joven'} · da fruta el día ${primeraFruta(f) ?? '…'}`;
   if (invierno || faseGranja(dia, horas) >= FASE.invierno) return `${nombre} · descansa en invierno; en primavera, flor`;
   if (f.cosecha >= anioDe(dia)) return `${nombre} · ya juntaste las ${E.frutas} de este año`;
+  // 3.8.3: plantado fuera de la primavera, ya grande, este año no da: antes prometía fruta que no venía
+  { const p = primeraFruta(f); if (p && p > dia && anioDe(p) > anioDe(dia)) return `${nombre} · da fruta el día ${p}`; }
   return `${nombre} · ${E.frutas} en ${cuando}`;
 }
 
