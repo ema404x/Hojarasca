@@ -54,7 +54,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
 // ---------------------------------------------------------------- 4. amor: la cita en curso al recargar, el aviso y el ñiki ñiki
 {
   const j = leer('src/amor-juego.js'), m = leer('src/main.js');
-  ok(j.includes("if (!puesta && p.amor?.cita?.estado === 'en-curso') alCerrar();"), 'amor-juego: la cita en curso de una partida recargada se da por hecha');
+  ok(j.includes("if (!revisoCarga) { revisoCarga = true; if (!puesta && p.amor?.cita?.estado === 'en-curso') alCerrar(); }"), 'amor-juego: la cita en curso de una partida recargada se da por hecha');
   ok(j.includes("return puesta.por === 'cita' && c && c.clave === puesta.clave && c.estado === 'acordada' ?"), 'amor-juego: el aviso «Empezar la cita» sólo con ella puesta para la cita');
   ok(m.includes("&& !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso"), 'main: «te quiere decir algo» no tapa el aviso de la cita (la E la empieza primero)');
   ok(/const fundir = charla\.historia\?\.id === 'amor-fundido' && charla\.parte < charla\.historia\.partes\.length \? charla\.historia\.alTerminar : null;\n  if \(fundir\) charla\.historia = null;/.test(m) && /\n  fundir\?\.\(\);\n\}/.test(m), 'main: el ñiki ñiki cortado con Escape igual hace el fundido y el descanso');

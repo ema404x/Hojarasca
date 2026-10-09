@@ -68,6 +68,9 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const j = ${H}.jugador, T = ${H}.T; const x = ${p.x}, z = ${p.z};
       for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, px = x + Math.cos(a) * 1.4, pz = z + Math.sin(a) * 1.4; if (!T.agua(px, pz)) { j.ubicar(px, pz, Math.atan2(-(x - px), -(z - pz))); break; } }
       j.estado.pitch = -0.05; return 1 })()`);
+    // (3.8.3: la aldea se entera de que llegaste, como en el juego cada medio segundo: venías de lejos y ella seguía dormida,
+    // invisible, y a una figura invisible ya no se le habla)
+    await js(`${H}.__aldea.actualizar(0.6); 1`);
     await cuadros(6);
     for (let i = 0; i < 3; i++) { await esperar(70); await cuadros(2); }
     const aviso = await js(`${H}.__aviso()`);
