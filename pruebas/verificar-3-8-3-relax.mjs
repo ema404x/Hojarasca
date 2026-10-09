@@ -73,6 +73,9 @@ const trozo = (desde, hasta) => {
   H.arrancarCapitulo(g, H.estadoHistoria(q(20, 9)));
   r = H.revisarHistoria(g, H.estadoHistoria(q(21, 10)));
   ok(r.nuevos.some((o) => o.id === 'visita') && !r.nuevos.some((o) => o.id === 'cuento'), 'con un cuento por contar, la visita sola no alcanza');
+  // el momento lanzado y perdido se vuelve a pedir mirando su objetivo (no si pasó alguna vez)
+  const ui = leer('src/historia-ui.js');
+  ok(!ui.includes('!s.eventos.has(def.evento)') && ui.includes("o.delMomento && h.hechos[`${capituloActual(h).id}:${o.id}`] !== undefined"), 'historia-ui.js: el momento perdido se repide según su objetivo');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);
