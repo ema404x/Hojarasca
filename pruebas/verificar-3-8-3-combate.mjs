@@ -81,4 +81,46 @@ const des = leer('src/desafio.js');
   assert.equal(sanearDesafio({}).jefeCaido, -1, 'una partida vieja arranca sin jefe anotado');
 }
 
+// ---------------------------------------------------------------- 4. las hachuelas y jabalinas tiradas no se pierden
+// Lo que quedaba en el suelo vivía sólo en memoria: guardar y abrir, o caer, lo borraba para siempre; un tiro
+// errado adentro del Coihue quedaba bajo el mundo; con el tope lleno, levantarla la hacía desaparecer.
+{
+  const mundo = leer('src/desafio-arsenal-mundo.js');
+  const { RECUPERABLES } = await import('../src/desafio-arsenal.js');
+  const { sanearDesafio } = await import('../src/desafio-reglas.js');
+  const D = sanearDesafio(null);
+  let piso = 0;
+  const Malla = function () { this.visible = false; this.position = { set() {} }; this.rotation = { set() {} }; };
+  const ctx = {
+    enElSuelo: [], MALLAS: { hachuela: {}, jabalina: {} }, RECUPERABLES, THREE: { Mesh: Malla }, escena: { add() {} },
+    T: { altura: () => 0 }, api: { D: () => D, alturaSuelo: () => piso }, sonido: {}, Math, Number, Object,
+  };
+  vm.createContext(ctx);
+  const tope = mundo.match(/const TOPE_SUELTAS = \d+;/)[0];
+  vm.runInContext(`${tope}\n${['anotarTirada', 'volverATusCosas', 'devolverTiradas', 'dejarEnElSuelo', 'levantar'].map((n) => extraer(mundo, n)).join('\n')}
+    this.f = { dejarEnElSuelo, levantar, devolverTiradas };`, ctx);
+  D.hachuelas = 0;
+  ctx.f.dejarEnElSuelo('hachuela', { x: 10, z: 0 });
+  ctx.f.dejarEnElSuelo('hachuela', { x: 20, z: 0 });
+  assert.equal(D.armasTiradas.hachuelas, 2, 'las dos tiradas quedan anotadas en la partida');
+  const guardada = sanearDesafio(JSON.parse(JSON.stringify(D)));
+  assert.equal(guardada.armasTiradas.hachuelas, 2, 'y sobreviven al guardado');
+  ctx.f.levantar({ pos: { x: 10, z: 0 } });
+  assert.equal(D.hachuelas, 1, 'levantar una suma una');
+  assert.equal(D.armasTiradas.hachuelas, 1, 'y la saca de las tiradas');
+  ctx.f.devolverTiradas();   // al abrir la partida (o al caer)
+  assert.equal(D.hachuelas, 2, 'la que quedó en el suelo vuelve a tus cosas');
+  assert.equal(Object.keys(D.armasTiradas).length, 0, 'y no queda nada anotado');
+  piso = -1e9;   // adentro del Coihue, fuera de la arena
+  ctx.f.dejarEnElSuelo('jabalina', { x: 90, z: 0 });
+  assert.equal(D.jabalinas, 1, 'un tiro fuera del piso vuelve directo');
+  piso = 0; D.hachuelas = 99;
+  ctx.f.dejarEnElSuelo('hachuela', { x: 0, z: 0 });
+  ctx.f.levantar({ pos: { x: 0, z: 0 } });
+  assert.equal(ctx.enElSuelo.filter((r) => r.activo && r.x === 0).length, 1, 'con el tope lleno queda en el suelo');
+  assert.match(des, /arsenal\.devolverTiradas\(\);/, 'al abrir la partida vuelven');
+  assert.match(mundo, /function limpiar\(\) \{\n[^\n]*\n\s*devolverTiradas\(\);/, 'al caer vuelven');
+  assert.match(des, /if \(RECUPERABLES\[proyectiles\[i\]\.tipo\] && !proyectiles\[i\]\.terminado\) arsenal\.alTerminar\(proyectiles\[i\], 'vida'\);/, 'y las que iban en el aire');
+}
+
 console.log('verificar-3-8-3-combate: ok');

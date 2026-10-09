@@ -351,6 +351,8 @@ export function desafioNuevo() {
     victoria: false, nodriza: null, tutorial: 0,
     // 3.8.3: la noche en que cayó el último mandamás (al abrir a mitad de noche, vuelve sólo si seguía vivo)
     jefeCaido: -1,
+    // 3.8.3: las hachuelas y jabalinas tiradas que todavía están en el suelo (al abrir o al caer vuelven)
+    armasTiradas: {},
     // Segundo acto: aparece recién cuando cae la nodriza (ver desafio-nido.js).
     nido: null,
     // 3.0: el asedio final: aparece si al alba de la noche final la nodriza sigue arriba (desafio-asedio.js)
@@ -435,5 +437,6 @@ export function sanearDesafio(d) {
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
+    armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
   };
 }

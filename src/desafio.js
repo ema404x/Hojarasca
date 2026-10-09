@@ -24,7 +24,7 @@ import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logr
 import { crearAliados } from './desafio-aliados.js';
 import { crearArsenalMundo } from './desafio-arsenal-mundo.js';
 import { crearFortinMundo } from './desafio-fortin-mundo.js';
-import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION } from './desafio-arsenal.js';
+import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION, RECUPERABLES } from './desafio-arsenal.js';
 import { crearCimientos } from './desafio-cimiento.js';
 import { crearDefensasActivas } from './desafio-defensas.js';
 import { crearEventos } from './desafio-eventos.js';
@@ -3230,6 +3230,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       cimientos.sincronizar(obras.obras);
       sincronizarCapullos();   // 2.3: los capullos que quedaron de la partida guardada
       devolverTodo(false);   // 3.8.0: si se guardó con algo robado, vuelve a tus cosas
+      arsenal.devolverTiradas();   // 3.8.3: y las hachuelas y jabalinas que quedaron tiradas
       // 3.5.1: si se cerró el juego mientras la nave caía (derribar ya guardó el asedio
       // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
       // sin noche final ni nido, la campaña no terminaba nunca. Se da al abrir.
@@ -3364,7 +3365,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     aliens.length = 0;
     estadoNave.porBajar.length = 0;
     nave.g.visible = false; estadoNave.fase = 'fuera'; luzNave.intensity = 0;
-    for (let i = proyectiles.length - 1; i >= 0; i--) retirarProyectil(i);
+    // 3.8.3: la hachuela o la jabalina que iba en el aire cae al suelo (y arsenal.limpiar la devuelve a tus cosas)
+    for (let i = proyectiles.length - 1; i >= 0; i--) { if (RECUPERABLES[proyectiles[i].tipo] && !proyectiles[i].terminado) arsenal.alTerminar(proyectiles[i], 'vida'); retirarProyectil(i); }
     arsenal.limpiar();
     fortin.limpiar();
     puestos.limpiar();   // 3.0
