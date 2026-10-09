@@ -1,9 +1,9 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 08-10-2026, 3.8.1 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 09-10-2026, 3.8.2 cerrada)
 
 > **ATENCIÓN (08-10, notebook):** la 3.8.0 La noche de los duendes y su revisión de bugs 3.8.1 (`CAMBIOS_3_8_1.md`, etiqueta v3.8.1) quedaron cerradas en la notebook. Las 6 partidas pendientes de la 3.7.5 ya se repitieron: 4 eran de carga y las 2 reales (caos y la trochita) están arregladas. Decisiones del usuario en `PLAN_3_8.md`; lo que quedó para después, al final de `CAMBIOS_3_8_0.md`. **Para el usuario:** jugar una noche grande, la subida y el Rey en su PC (4600G) y escuchar los sonidos nuevos. Sigue el resto de `PLAN_3_8.md` (preguntarle antes de arrancar).
 
 > **Lo que sigue (08-10, charlado con el usuario):**
-> 1. **3.8.2 (propuesta, sin arrancar; el usuario dijo "después lo seguimos"):** el ícono del cristal en el Relax vuelve a ser cristal (la semilla sólo en La noche de los duendes; `mochila.js` ~281, `enmano.js` ~573); el «por detrás» del Mandamás sólo cuenta de verdad por la espalda (`impactoEn` en `desafio.js`); el cofre del alba mira también la altura para abrirse; el cofre sin abrir al alba suma su contenido al cofre nuevo (esto último es decisión del usuario: confirmárselo). Estimado ~45 min.
+> 1. **3.8.2 cerrada (09-10, etiqueta v3.8.2):** `CAMBIOS_3_8_2.md`. En curso el 09-10: **pase de bugs completo** de todo el juego en 5 equipos (ramas v383-p1..p5: relax, aldea, mundo, duendes, base) → 3.8.3.
 > 2. **Rumbo:** el usuario quiere **algunas versiones más, pocas y acotadas** (él elige cuáles), después **congelar contenido** y preparar el **lanzamiento en Steam** (~3–5 semanas de trabajo: inglés completo, pase de bugs de punta a punta, primera hora de juego, fluidez en su 4600G, pantallas, integración Steam, demo, página), y más adelante un **DLC**. En Steamworks: el usuario crea la cuenta, se loguea, carga identidad/impuestos/banco, acepta el acuerdo y paga los 100 USD; Claude carga la página, sube builds con la sesión del usuario y configura logros/demo/precios pidiendo OK antes de enviar o publicar. Nunca manejar credenciales.
 
 
@@ -53,6 +53,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.8.2 (etiqueta v3.8.2):** cuatro arreglos de La noche de los duendes (espalda del Mandamás, cofre del alba, cristal del Relax). `CAMBIOS_3_8_2.md`. Gate 169/169.
 - **3.8.1 (etiqueta v3.8.1): revisión de bugs** de la 3.8.0 en menos de una hora (3 equipos + integración), 13 arreglos. `CAMBIOS_3_8_1.md` (al final, lo visto y no arreglado). Gate 169/169.
 - **3.8.0 (etiqueta v3.8.0): La noche de los duendes**, cerrada en la notebook el 08-10 (4 equipos: arreglos, duendes, coihue, textos + integración). `CAMBIOS_3_8_0.md`. El Desafío pasa a llamarse «La noche de los duendes» (interno sigue `desafio`). Gate 169/169; partidas reales 68/68 (3 repetidas solas).
 - **3.7.5 (etiqueta v3.7.5): Tradiciones**, cerrada en la notebook el 07-10 (3 equipos + integración). `CAMBIOS_3_7_5.md`. El usuario aprobó todas las decisiones de detalle como las recomendaron los equipos. Gate 165/165; partidas reales 62/68 (6 sin repetir). Sigue: 3.8.0 (PLAN_3_8.md).
