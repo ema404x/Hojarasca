@@ -5155,7 +5155,10 @@ function desmontar() {
   c.x = js.pos.x; c.z = js.pos.z; c.yaw = yawCaballo(js.yaw);
   js.montado = null;
   // se baja por la izquierda, como se baja de un caballo
-  js.pos.x -= Math.cos(js.yaw) * 1.1; js.pos.z += Math.sin(js.yaw) * 1.1;
+  // 3.8.3: si del lado izquierdo hay una pared o una cerca, por la derecha; si hay de los dos lados, al lado
+  // del zaino (antes el salto de 1,1 m te pasaba a través de la pared: adentro de una casa o de un corral)
+  const lado = [1, -1].find((s) => !col?.paredEntre?.(js.pos.x, js.pos.z, js.pos.x - s * Math.cos(js.yaw) * 1.1, js.pos.z + s * Math.sin(js.yaw) * 1.1, js.pos.y + 0.2, js.pos.y + 1.6, true)) || 0;
+  js.pos.x -= lado * Math.cos(js.yaw) * 1.1; js.pos.z += lado * Math.sin(js.yaw) * 1.1;
   nota('Bajaste del zaino', 'Queda acá. Volvé a subir con E');
   guardar();
 }
