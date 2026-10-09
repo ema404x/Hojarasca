@@ -180,4 +180,13 @@ const des = leer('src/desafio.js');
 // ---------------------------------------------------------------- 7. el emplasto no se gasta caído
 assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*const d = D\(\);\n\s*if \(caido\) return;/, 'caído, el emplasto no se usa');
 
+// ---------------------------------------------------------------- 8. emplastos y boleadoras: el tope del taller sobrevive al guardado
+{
+  const { sanearDesafio } = await import('../src/desafio-reglas.js');
+  assert.ok(des.includes('Math.min(MUNICIONES.includes(k) ? TOPE_MUNICION : 999,'), 'el taller deja juntar hasta 999');
+  const s = sanearDesafio({ emplastos: 150, boleadoras: 120 });
+  assert.equal(s.emplastos, 150, 'los emplastos no se cortan en 99 al abrir');
+  assert.equal(s.boleadoras, 120, 'ni las boleadoras');
+}
+
 console.log('verificar-3-8-3-combate: ok');

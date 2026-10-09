@@ -400,11 +400,11 @@ export function sanearDesafio(d) {
     oleadaNoche: Number.isFinite(Number(x.oleadaNoche)) && x.oleadaNoche !== null ? Math.floor(Number(x.oleadaNoche)) : null,
     oleadaTerminada: x.oleadaTerminada === undefined ? true : !!x.oleadaTerminada,
     vivos: ent(x.vivos, 0, 40), abatidos: ent(x.abatidos, 0),
-    flechas: ent(x.flechas, 0, 999), cargas: ent(x.cargas, 0, 999), emplastos: ent(x.emplastos, base.emplastos, 99),
+    flechas: ent(x.flechas, 0, 999), cargas: ent(x.cargas, 0, 999), emplastos: ent(x.emplastos, base.emplastos, 999),
     pistolaEncontrada: !!x.pistolaEncontrada, mejorRacha: ent(x.mejorRacha, 0), racha: ent(x.racha, 0),
     caja: x.caja && Number.isFinite(Number(x.caja.x)) && Number.isFinite(Number(x.caja.z)) && x.caja.contenido && typeof x.caja.contenido === 'object'
       ? { x: Number(x.caja.x), z: Number(x.caja.z), contenido: sanearContenidoCaja(x.caja.contenido), cayendo: false } : null,
-    boleadoras: ent(x.boleadoras, 0, 99),
+    boleadoras: ent(x.boleadoras, 0, 999),   // 3.8.3: emplastos y boleadoras con el tope del taller (999): al abrir se cortaban en 99
     recetasHechas: lista(x.recetasHechas, RECETAS.map((r) => r.id)),
     planos: lista(x.planos, PLANOS_ALIEN.map((p) => p.id)),
     restos: x.restos && Number.isFinite(Number(x.restos.x)) && Number.isFinite(Number(x.restos.z))
