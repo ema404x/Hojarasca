@@ -74,6 +74,25 @@ seguir (puede convenir empezar de nuevo desde main).
     calidad o la distancia de dibujo sola (modo Auto, `calidad*.js`, la recuperación del contexto 3D) y dejarlo como
     aviso. Ojo: si se pierde el contexto 3D y hace falta bajar para que el juego no se caiga, avisar igual.
 
+35. **La calidad gráfica nunca cambia sola durante el juego:** si va lento, cartelito «El juego va lento: ¿bajar
+    la calidad?» con «Bajar» / «No, gracias» (no vuelve a preguntar en la sesión). La primera vez elige según la placa
+    y avisa cuál. Si se pierde el contexto 3D, baja sola y avisa (el usuario lo aprobó).
+36. **Menús más prolijos** (portada, pausa, Ajustes/Personalizar, paneles): hoy se ven desprolijos (tamaños,
+    márgenes, alineaciones desparejos). Hay maquetas de 3 estilos en la rama `proto-menu` para que el usuario elija.
+
+## Lugares nuevos en el valle (elegidos por el usuario, 09-10) — para sus versiones nuevas
+- **Termas en el bosque:** pozones de agua caliente entre coihues, con vapor; en invierno, con nieve, te metés,
+  descansás y se te va el frío.
+- **Cascada escondida con poza:** detrás de un cañadón, poza turquesa; arcoíris en la bruma a la mañana; en verano
+  te bañás.
+- **Islote del arrayanal:** en el lago, bosquecito de arrayanes canela con pasarela de madera; se llega en kayak o
+  velero.
+- **El puesto abandonado:** casa y corral de un colono que se fue, con cosas que cuentan su historia; se puede
+  arreglar y usar de refugio.
+- **Ventisquero y laguna de deshielo:** hacerlo **visible** arriba del cordón (glaciar colgante, laguna turquesa),
+  pero **sin poder subir por ahora**: queda para un **futuro DLC**.
+- No mover árboles ni cambiar la huella del terreno sin avisar.
+
 ## Versión de pulido visual «pronto» (el usuario: «en una versión pronta»)
 - La lechuza (tosca), las raíces del cofre del alba (parecen patas), el Rey Duende con piel por huesos (hoy rígido),
   la corteza del Coihue de noche de lejos.
