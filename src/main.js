@@ -737,6 +737,7 @@ async function construir() {
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
   desalojarCarpa();   // 3.6.2
+  if (desalojo.acopio) vaciarUltimoAcopio(desalojo.materiales);   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
@@ -2921,10 +2922,12 @@ document.addEventListener('keydown', (e) => {
           else {
             for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
             devolverContenido(r.datos);   // 3.5.1
+            const delAcopio = r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null;   // 3.8.4: el último acopio
             progreso.obras = obras.obras.map((o) => o.datos);
             guardar(); sonido.juntar();
             const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => `${n} ${MATERIALES[k]?.nombre || k}`).join(' · ');
-            nota(`${r.plano.nombre} desmontado`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
+            if (delAcopio) nota(`${r.plano.nombre} desmontado`, `Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
+            else nota(`${r.plano.nombre} desmontado`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
             dibujarPanelObra();
           }
           break;
@@ -4085,6 +4088,21 @@ function hayAcopioCerca(radio) {
   return !!(radio > RADIO_ACOPIO_MANO ? obras?.tieneFuncionCerca?.('acopio', planoAcopio, radio) : funcionAlAlcance('acopio', radio));
 }
 function totalAcopio() { return CLAVES_MATERIAL.reduce((s, k) => s + (acopio()[k] || 0), 0); }
+// 3.8.4: el acopio guarda en un solo lugar (progreso.acopio) para todos los acopios. Al desarmar el ÚLTIMO, lo que
+// tenía vuelve a tus cosas (`a`: adónde se suma; si no, a la mochila) y devuelve el texto para la nota; si quedan otros
+// acopios, sigue todo ahí como siempre. null si no había nada o si queda otro acopio.
+function vaciarUltimoAcopio(a = null) {
+  if ((obras?.obras || []).some((o) => o.plano?.funciones?.includes('acopio'))) return null;
+  const g = acopio(), partes = [];
+  for (const k of CLAVES_MATERIAL) {
+    const n = Math.max(0, Math.floor(Number(g[k]) || 0));
+    if (!n) continue;
+    if (a) a[k] = (a[k] || 0) + n; else sumarMaterial(k, n);
+    partes.push(`${n} ${MATERIALES[k]?.nombre || k}`);
+  }
+  progreso.acopio = {};
+  return partes.length ? partes.join(' · ') : null;
+}
 function totalEnMano() { return CLAVES_MATERIAL.reduce((s, k) => s + material(k), 0); }
 // Lo que se puede gastar sin moverse: la mochila más el acopio si está cerca.
 function materialesVisibles() {
@@ -5696,7 +5714,7 @@ function desalojarObras(lista) {
       for (const o of obras.obras) { const a = antes.get(o.datos); if (a) mudarDatosDeObra(o, a.x, a.z); }
       desalojo.obras.mudadas += ds.length;
     } else {
-      for (const d of ds) { sumarMateriales(desalojo.materiales, materialesDeObra(d, PLANO[d.plano])); devolverContenido(d); }
+      for (const d of ds) { sumarMateriales(desalojo.materiales, materialesDeObra(d, PLANO[d.plano])); devolverContenido(d); if (PLANO[d.plano].funciones?.includes('acopio')) desalojo.acopio = true; }   // 3.8.4
       desalojo.obras.desarmadas += ds.length;
     }
   }
