@@ -230,7 +230,9 @@ export function iconoDeEmocion(e) {
   const k = String(e || '').toLowerCase();
   return Object.hasOwn(ICONO_EMOCION, k) ? ICONO_EMOCION[k] : hayIcono(k) ? k : null;
 }
-export const PALABRA_EMOCION = { contento: 'Contento', enojado: 'Enojado', cansado: 'Cansado', enamorado: 'Enamorado', triste: 'Triste', timido: 'Con vergüenza', exclamacion: 'Sorprendido' };
+export const PALABRA_EMOCION = { contento: 'Contento', enojado: 'Enojado', cansado: 'Cansado', enamorado: 'Enamorado', triste: 'Triste', timido: 'Con vergüenza', exclamacion: 'Sorprendido',
+  // 3.8.3: las que faltaban (el humor de casi todos los días, «tranquilo», salía con minúscula, tal cual el id)
+  tranquilo: 'Tranquilo', risa: 'Divertido', sorpresa: 'Sorprendido', verguenza: 'Con vergüenza', confundido: 'Confundido' };
 // Las burbujas de entreVecinos: un ícono para cada uno ([a, b], { a, b } o [{ quien, icono }])
 export function burbujasDe(b) {
   if (!b) return [null, null];

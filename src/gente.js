@@ -1098,7 +1098,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     const minimo = deFrente ? 0.9 : 0.45;
     let mejor = null, mejorD = deFrente ? 2.4 : 3.6;
     for (const g of gente) {
-      if (g.aBordo && !g.enViaje) continue;
+      // 3.8.3: ni el que no se ve (dormido: lejos, o escondido a propósito: el visitante que se fue, la familia después de
+      // la visita, el chico que se fue a estudiar). Antes quedaban «fantasmas» invisibles con «Hablar con…» donde se fueron
+      if (g.dormido || (g.aBordo && !g.enViaje)) continue;
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
       if (d > mejorD) continue;
       tmp.set(g.pos.x - camara.position.x, 0, g.pos.z - camara.position.z).normalize();

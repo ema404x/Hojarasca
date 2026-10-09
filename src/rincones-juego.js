@@ -27,7 +27,9 @@ import { cumplirDeseo } from './vecindad-social.js';
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const NOMBRE_DE = { nene: 'Nahuel', nena: 'Lucía', andinista: 'Rocío', padre: 'Mario', carpintero: 'Tito', pescador: 'Aurelio', fotografa: 'Sofía', botera: 'Martina', maestra: 'Delia', madre: 'Gladys', abuela: 'Herminia' };
-const MATERIAL = { tabla: 'tablas', tronco: 'troncos', piedra: 'piedras', lana: 'vellones' };
+const MATERIAL = { tabla: 'tablas', tronco: 'troncos', piedra: 'piedras', lana: 'vellones', frutilla: 'frutillas', calafate: 'calafates', harina: 'medidas de harina' };
+// 3.8.3: con uno, en singular («falta 1 piedra», no «falta 1 piedras»)
+const MATERIAL_UNO = { tabla: 'tabla', tronco: 'tronco', piedra: 'piedra', lana: 'vellón', frutilla: 'frutilla', calafate: 'calafate', harina: 'medida de harina' };
 
 export function crearRinconesJuego(ctx) {
   const progreso = () => ctx.progreso();
@@ -391,7 +393,7 @@ export function crearRinconesJuego(ctx) {
     if (dist(L, pos) < radio.casa) {
       const c = R.casa;
       if (casaTerminada(c, d, h)) {
-        if (adentroDeCasa(pos.x, pos.z) && (h >= 20 || h < 6)) return { tipo: 'casa', texto: 'Dormir en tu casa', hacer: () => ctx.dormir?.() };
+        if (adentroDeCasa(pos.x, pos.z) && (h >= 20 || h < 6)) return { tipo: 'casa', texto: 'Dormir en tu casa', hacer: () => ctx.dormir?.({ casaAldea: true }) };   // 3.8.3: bajo techo, no a la intemperie
       } else if (c.estado !== 'lista') {   // (completo, esperando a mañana: nada que hacer)
         const t = textoCasa(c, d, h, amigosEnLaAldea());
         if (t) return { tipo: 'casa', texto: t, hacer: () => usarLote() };
@@ -404,7 +406,7 @@ export function crearRinconesJuego(ctx) {
       if (sig) return { tipo: 'taller', texto: `${sig.titulo} en tu taller`, hacer: () => trabajarEnTaller(sig.id) };
       const falta = lista.find((m) => !m.hecha && m.falta);
       // (sin nada que hacer hoy, nada; si falta algo, E lo dice)
-      if (falta) { const t = `${falta.titulo}: falta${falta.falta.n > 1 ? 'n' : ''} ${falta.falta.n} ${MATERIAL[falta.falta.k] || falta.falta.k.replace('-', ' ')}`; return { tipo: 'taller', texto: t, hacer: () => ctx.nota?.(t, 'Lo hacés cuando lo tengas') }; }
+      if (falta) { const t = `${falta.titulo}: falta${falta.falta.n > 1 ? 'n' : ''} ${falta.falta.n} ${(falta.falta.n === 1 ? MATERIAL_UNO : MATERIAL)[falta.falta.k] || falta.falta.k.replace('-', ' ')}`; return { tipo: 'taller', texto: t, hacer: () => ctx.nota?.(t, 'Lo hacés cuando lo tengas') }; }
     }
     return null;
   }
@@ -478,7 +480,7 @@ export function crearRinconesJuego(ctx) {
       const res = aportarCasa(c, (k) => tengo('material', k), dia());
       if (!res.ok) { ctx.nota?.('No tenés material', 'Hacen falta tablas, troncos y piedras'); return; }
       aplicar(res.efectos);
-      const puso = Object.entries(res.puso).map(([k, n]) => `${n} ${MATERIAL[k] || k}`).join(', ');
+      const puso = Object.entries(res.puso).map(([k, n]) => `${n} ${(n === 1 ? MATERIAL_UNO : MATERIAL)[k] || k}`).join(', ');
       ctx.nota?.(res.completa ? 'Está todo el material' : 'Dejaste material en el lote', res.completa ? 'Los vecinos la levantan: mañana a la mañana está tu casa' : `Pusiste ${puso}`, true);
       ctx.guardar?.();
     }

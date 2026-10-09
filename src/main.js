@@ -1118,9 +1118,11 @@ let durmiendo = false;
 const claveNocheReloj = (d = new Date()) => new Date(d.getTime() - 12 * 3600e3).toDateString();
 // (3.7.3: `dormirEnElTren`: en la cucheta del coche dormitorio, andando o parado, donde estés)
 let dormirEnElTren = false;
-function dormir() {
+// 3.8.3: `opRincon`: lo que manda rincones-juego.js ({ casaAldea: true }: en tu casa de la calle de la Loma)
+function dormir(opRincon = null) {
   if (durmiendo) return;
   const op = { enTren: dormirEnElTren };
+  const enCasaAldea = !desafio && !!opRincon?.casaAldea;
   if (desafio) {
     const r = desafio.puedeDormir();
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
@@ -1135,14 +1137,15 @@ function dormir() {
   const fg = clima.fogata, jp = jugador.estado.pos;
   const fuegoVivo = fg.activa && fg.vida > 0;
   // 2.4.1: estadoHabitat también encuentra la casa de al lado; sólo cuenta si estás adentro
-  const bajoTechoPropio = obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
+  // 3.8.3: tu casa de la aldea también es techo propio (antes contaba como dormir a la intemperie: frío en invierno y «durmió afuera»)
+  const bajoTechoPropio = enCasaAldea || obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
   const casa = bajoTechoPropio ? obras?.estadoHabitat?.(jp, { fuego: fuegoVivo ? fg.pos : null }) || null : null;
   // 3.6 (vida): dormir afuera (lejos del refugio y sin techo tuyo) también se comenta en la aldea
   const refu = T.lugares.refugio;
   if (!desafio && deNoche && !bajoTechoPropio && !op?.enTren && refu && Math.hypot(jp.x - refu.x, jp.z - refu.z) > 15) vecindadJuego?.hecho('durmio-afuera');
   const distanciaAlFuego = fuegoVivo ? Math.hypot(fg.pos.x - jp.x, fg.pos.z - jp.z) : Infinity;
   // 3.7.3: en la cucheta del coche dormitorio: abrigado con la manta; con la salamandra del coche de pasajeros, calentito
-  const comoSinRopa = desafio || !deNoche ? 'normal' : op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal') : comoDormiste({
+  const comoSinRopa = desafio || !deNoche ? 'normal' : op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal') : enCasaAldea ? 'calentito' : comoDormiste({   // (3.8.3: los vecinos te dejan la estufa prendida)
     invierno: U.uInvierno.value, manta: !!progreso.cosas.manta, distanciaAlFuego, casa, carpa: enLaCarpa(),
   });
   // 2.8: la ropa abriga (ver personal-personaje.js): con poncho, gorro y bufanda, un escalón mejor
@@ -4547,7 +4550,7 @@ function armarOficiosYAldea(esDesafio) {
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
     cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
-    dormir: () => dormir(), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
+    dormir: (o) => dormir(o), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
     noche: () => { const h = progreso.horas; return h >= 20 || h < 5.5 ? 1 : h >= 18.5 ? (h - 18.5) / 1.5 : h < 7 ? (7 - h) / 1.5 : 0; },
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
   });
@@ -6815,6 +6818,9 @@ function cerrarCharla() {
   const fundir = charla.historia?.id === 'amor-fundido' && charla.parte < charla.historia.partes.length ? charla.historia.alTerminar : null;
   if (fundir) charla.historia = null;   // (una sola vez: el fundido vuelve a cerrar la charla)
   if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
+  // 3.8.3: aceptó la invitación (ya contó como tomada hoy): cortada con Escape o alejándose, igual va para la mesa (antes no
+  // iba nunca y al volver a invitarlo decía «Ya tomamos hoy»)
+  if (charla.historia?.cita && charla.parte < charla.historia.partes.length) { const c = charla.historia.cita; vecindadJuego?.empezarCita(charla.vec?.clave, c.npc || charla.npc, c.que, c.charla, c.lugares); charla.historia = null; }
   amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
   socialJuego?.alCerrarCharla(charla.npc);   // 3.7.4: el que vino a hablarte vuelve a lo suyo
   if (trucoPendiente) { const n = trucoPendiente; trucoPendiente = null; setTimeout(() => fiestasJuego?.jugarTruco(n, claveVecindad(n)), 60); }   // 3.7.5: el truco de la rueda
@@ -7110,6 +7116,7 @@ function interactuarSocial(id, cat) {
   charla.historia = { id: 'social', partes: r.renglones, volver: true, social: true };
   // (se enojó y se va: al terminar lo que dice, la charla se termina)
   if (r.cierra) charla.historia.alTerminar = () => { if (charla.vec) charla.vec.chau = true; };
+  if (r.cierra) charla.historia.volver = false;   // 3.8.3: se fue ofendido: Escape despide (antes le volvía a abrir la rueda)
   guardar();
   mostrarCharla();
 }
