@@ -11,6 +11,8 @@
 // 8. El acopio de la obra cuenta parado en un piso de arriba (el entrepiso, el mirador).
 // 9. «Tu casilla de tablas está terminada» (decía «terminado»), y los textos nuevos en inglés.
 // 10. Mover un cantero o un gallinero mueve también sus matas y sus gallinas (quedaban en el lugar viejo).
+// 11. El nombre que le ponés a una obra (T.lugares, propia) no cuenta como edificio del mundo al construir: trababa
+//     mover esa obra cerca de donde estaba y volver a fundar donde la desarmaste (hasta recargar la partida).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -216,6 +218,13 @@ const trozo = (desde, hasta) => {
   const a = trozo('function accionObra() {', '    dibujarPanelObra();\n    return;\n  }');
   const i = a.indexOf('if (movida) mudarDatosDeObra(movida, x0, z0);'), j = a.indexOf("if (movida?.plano.id === 'cantero') refrescarHuerta();"), k = a.indexOf("else if (movida?.plano.id === 'gallinero') refrescarGallineros();");
   ok(i > 0 && j > i && k > j, 'al confirmar el movimiento, la huerta y las gallinas se rehacen después de mudar sus datos');
+}
+
+// ---------------------------------------------------------------- 11. el nombre de una obra no traba construir
+{
+  const cons = leer('src/construccion.js');
+  ok(!cons.includes("if (!l || typeof l.x !== 'number') continue;") && cons.split("if (!l || typeof l.x !== 'number' || l.propia) continue;").length === 3, 'construccion.js: los dos recorridos de T.lugares saltean el nombre de una obra tuya');
+  ok(main.includes('nombre: obra.datos.nombre, propia: true,'), 'main.js: el nombre de la obra va marcado como propio');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);
