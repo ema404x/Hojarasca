@@ -252,4 +252,11 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
   assert.equal(a.zonas[1].baliza, A.ASEDIO.vidaBaliza, 'y el fogón está entero otra vez');
 }
 
+// ---------------------------------------------------------------- 13. el mando: el gatillo usa el emplasto
+{
+  const main = leer('src/main.js');
+  assert.ok(main.includes("if (m.recien.atacar) { if (ranuras[elegida]?.accion === 'curar') usarRanura(); else if (!panelDelHudAbierto() && !charla.npc) desafio.atacar(id); refrescarBarra(true); }"), 'con el mando, el emplasto se usa con el gatillo');
+  assert.ok(leer('src/mochila.js').includes("accion: 'curar'"), 'el emplasto de la barra es «curar»');
+}
+
 console.log('verificar-3-8-3-combate: ok');

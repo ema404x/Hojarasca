@@ -3929,7 +3929,9 @@ function leerMando(dt) {
   }
   if (desafio && !desafio.caido && !modoObra) {
     const id = ranuras[elegida]?.id;
-    if (m.recien.atacar) { desafio.atacar(id); refrescarBarra(true); }
+    // 3.8.3: con el emplasto en la mano, el gatillo lo usa (con el mando no había forma de curarse); con el taller o la
+    // mochila abiertos, o charlando, no se tira (como el clic)
+    if (m.recien.atacar) { if (ranuras[elegida]?.accion === 'curar') usarRanura(); else if (!panelDelHudAbierto() && !charla.npc) desafio.atacar(id); refrescarBarra(true); }
     if (m.recien.bloquear && id === 'arco' && desafio.cambiarFlecha()) refrescarBarra(true);
     else if (m.recien.bloquear && desafio.puedeBloquear(id)) desafio.bloquear(true, id);
     if (m.soltados.bloquear && desafio.bloqueando) desafio.bloquear(false);
