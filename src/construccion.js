@@ -2688,7 +2688,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       // ni el muelle del valle ni los edificios del mundo
       for (const clave of Object.keys(T.lugares)) {
         const l = T.lugares[clave];
-        if (!l || typeof l.x !== 'number') continue;
+        if (!l || typeof l.x !== 'number' || l.propia) continue;   // 3.8.3: el nombre de una obra tuya (pedirNombre) no es un edificio del mundo: la obra cuenta como obra
         if (Math.hypot(l.x - x, l.z - z) < plano.radio + Math.max(4, l.radio || 8)) return { ok: false, motivo: 'Muy pegado a otra construcción' };
       }
       return { ok: true, base: Math.max(0.12, T.altura(tierra.x, tierra.z)), sobrePlataforma: false };
@@ -2764,7 +2764,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // Edificios grandes: distancia por huella, no un número fijo.
     for (const clave of Object.keys(T.lugares)) {
       const l = T.lugares[clave];
-      if (!l || typeof l.x !== 'number') continue;
+      if (!l || typeof l.x !== 'number' || l.propia) continue;   // 3.8.3: el nombre de una obra tuya (pedirNombre) no es un edificio del mundo: la obra cuenta como obra
       const radioLugar = Math.max(4, l.radio || 8);
       if (Math.hypot(l.x - x, l.z - z) < plano.radio + radioLugar + 2.5) return { ok: false, motivo: 'Muy pegado a otra construcción' };
     }

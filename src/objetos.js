@@ -385,6 +385,8 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     if (obj.tipo === 'item') {
       const def = tipos[obj.it.tipo];
       if (def.accion === 'juntar' || (def.juntableTrasAnotar && progreso.entradas[def.entrada])) {
+        // 3.8.3: con doce ramitas no entra otra: se queda en el suelo (antes se borraba del valle para siempre sin sumar)
+        if (obj.it.tipo === 'ramita' && progreso.ramitas >= 12) return { ramita: true, llena: true };
         if (!quitar(obj.it)) return null;
         sonido.juntar();
         if (obj.it.tipo === 'ramita') { progreso.ramitas = Math.min(12, progreso.ramitas + 1); return { ramita: true }; }

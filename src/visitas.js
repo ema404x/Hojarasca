@@ -57,7 +57,8 @@ export function sanearVisitas(v) {
   const deAmistad = !!a && a.amistad === true && typeof a.clave === 'string' && /^[a-z]{2,16}$/.test(a.clave);
   const activa = a && (Object.hasOwn(VISITANTES, String(a.clave)) || deAmistad)
     ? { clave: a.clave, dia: n(a.dia), charlo: !!a.charlo, ...(deAmistad ? { amistad: true } : {}) } : null;
-  return { ultima: n(v.ultima), cuenta: n(v.cuenta), activa };
+  // 3.8.3: `recibidas`: las visitas que vinieron de verdad (para la historia); una partida vieja no la trae
+  return { ultima: n(v.ultima), cuenta: n(v.cuenta), activa, ...(v.recibidas !== undefined ? { recibidas: n(v.recibidas) } : {}) };
 }
 
 // La mesa con sus asientos alrededor, o null. `muebles`: [{ id, x, z }] terminados.
@@ -79,11 +80,21 @@ export function tocaVisita(v, dia, horas, hayMesa) {
   return horas >= VISITA.llega && horas < VISITA.llega + VISITA.ventana;
 }
 export function empezarVisita(v, dia) {
+  v.recibidas = recibidas(v) + 1;   // 3.8.3
   v.activa = { clave: quienViene(v.cuenta), dia, charlo: false };
   return v.activa;
 }
 // ¿Ya es hora de irse? Se va a la noche, o si cambió el día (dormiste).
 export const seVa = (v, dia, horas) => !!v.activa && (v.activa.dia !== dia || horas >= VISITA.seVa);
+// 3.8.3: las visitas que vinieron de verdad. `cuenta` es el turno (también sube cuando al que le tocaba no pudo venir:
+// arriba del tren, charlando con vos), y la historia la usaba: «Recibí una visita» se tildaba sin que viniera nadie.
+// Una partida que todavía no la anotó arranca de la cuenta (así lo contado desde un capítulo no salta).
+export const recibidas = (v) => Math.max(0, Math.floor(Number(v?.recibidas ?? v?.cuenta) || 0));
+// Al que le tocaba no pudo venir: pasa el turno, sin contarse como visita
+export function saltearTurno(v) {
+  v.recibidas = recibidas(v);
+  v.cuenta = Math.max(0, Math.floor(Number(v.cuenta) || 0)) + 1;
+}
 export function terminarVisita(v, dia) {
   v.ultima = v.activa?.dia || dia;
   // 3.6.1: la visita de un compadre no le quita el turno al de siempre (antes, cada compadre que

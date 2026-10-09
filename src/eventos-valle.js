@@ -403,7 +403,10 @@ export function cerrarSeguimiento(ev, id, dia, opciones = {}) {
   const seg = SEGUIMIENTOS[id];
   let cadena = null;
   const sinVecino = opciones.vecinos === false && EVENTO_VALLE[seg.evento]?.vecinos;
-  if (seg.evento && !ev.activo && !sinVecino) cadena = forzarEvento(ev, seg.evento, dia, 'cadena');
+  // 3.8.3: un evento que ya pasó y no se repite no vuelve encadenado (el tobillo de Nicanor, ya curado en el capítulo 3,
+  // volvía con el puente que cedió en el 6: otra vez la gratitud, la mosca y la visita)
+  const yaPaso = !!seg.evento && Object.hasOwn(ev.hechos || {}, seg.evento) && !EVENTO_VALLE[seg.evento]?.repite;
+  if (seg.evento && !ev.activo && !sinVecino && !yaPaso) cadena = forzarEvento(ev, seg.evento, dia, 'cadena');
   return { seguimiento: seg, efectos: seg.efectos || [], cadena };
 }
 

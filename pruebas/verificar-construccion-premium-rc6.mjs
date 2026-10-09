@@ -85,7 +85,9 @@ assert.match(main,/case 'Tab':[\s\S]*cambiarCategoriaObra/,'Tab no cambia de cat
 assert.match(main,/case 'KeyR':[\s\S]*obras\.girar/,'R no gira la construcción');
 assert.match(main,/case 'Delete':[\s\S]*cancelarMarcada/,'Supr no permite cancelar una marca sin empezar');
 assert.match(fs.readFileSync(path.join(src,'construccion.js'),'utf8'),/function cancelarMarcada/,'falta cancelación segura de obra marcada');
-assert.match(main,/obraCerca\(js\.pos, 10, obras\.plano\?\.id\)/,'se puede avanzar accidentalmente una obra de otro plano');
+// 3.8.3: Y sigue la obra a medio hacer de ESE plano (obraAMedias, que también filtra por plano), no una terminada
+assert.match(main,/obraAMedias\(obras\.plano, js\.pos, 10\)/,'se puede avanzar accidentalmente una obra de otro plano');
+assert.match(main,/function obraAMedias\(plano, pos, radio\) \{[\s\S]{0,160}if \(o\.plano\.id !== plano\.id/,'se puede avanzar accidentalmente una obra de otro plano');
 assert.match(main,/tieneFuncionCerca\('aserrar'/,'el banco/cobertizo propio no habilita aserrado');
 assert.match(html,/Supr cancela marca/,'la ayuda no explica cómo cancelar una marca');
 for(const id of ['obra-categorias','obra-costo','obra-progreso','obra-sitio']) assert.ok(html.includes(`id="${id}"`),`falta UI ${id}`);

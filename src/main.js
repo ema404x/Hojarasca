@@ -61,7 +61,7 @@ import { RECETAS_FUEGO, posibles, elegirReceta, textoPide, RECETAS_HORNO, elegir
 import { TEJIDOS, queTejer, textoTelar } from './telar.js';
 import { FERIA, esDiaDeFeria, abierta as feriaAbierta, ofertasDelDia, sanearFeria, feriaDeHoy, alcanza as alcanzaFeria, cambiarEnFeria, textoOferta } from './feria.js';
 import { crearPuestoFeria } from './feria-mundo.js';
-import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, seVa, terminarVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
+import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, saltearTurno, seVa, terminarVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
@@ -139,7 +139,7 @@ import { crearRastrosMalla } from './rastros-malla.js';
 import { horasHasta, frente, frasePronostico } from './pronostico.js';
 import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
-import { CONSERVAS, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
+import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
 import { AHUMADERO, sanearAhumadero, teLaQuedas, avanzarAhumado, usarAhumadero, avisoAhumadero } from './ahumadero.js';
 import { VIVERO, ARBOLES_VIVERO, sanearVivero, sanearJuntadas, puedeJuntarSemilla, usarVivero, avisoVivero, plantinDisponible } from './vivero.js';
@@ -2798,8 +2798,9 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
       if (enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }
-      if (enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
-      if (obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
+      // 3.8.3: mirando algo (una ramita, una silla), E hace eso, como dice el aviso: antes dormía
+      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
+      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
       if (cercaDelFuego() && (!objetivo || objetivo.tipo === 'sentarse')) {
         if (puedeDormirJuntoAlFuego()) { dormir(); break; }
         if (hayQueCocinar()) { cocinar(); break; }
@@ -2812,9 +2813,10 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && !js.enTren && !js.enKayak) { const s = arbolParaSemilla(); if (s) { juntarSemilla(s); break; } }
       const r = objetos.usar(objetivo, registrar, sonido);
       if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
-      if (r) destellarRanura(objetivo?.tipo);
+      if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
       if (r?.sentarse?.cama) { dormir(); break; }
-      if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
+      if (r?.llena) nota('No te entran más ramitas', `Ya llevás ${progreso.ramitas}: la dejaste en el suelo`);   // 3.8.3
+      else if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
       if (r?.sentarse) {
         js.pos.set(r.sentarse.x, Math.max(r.sentarse.y - 0.45, T.altura(r.sentarse.x, r.sentarse.z)), r.sentarse.z);
         if (r.sentarse.mira !== undefined) { js.yaw = r.sentarse.mira; js.pitch = -0.05; }
@@ -3083,18 +3085,29 @@ const barraEl = $('barra');
 // 2.7.3: sin armar un Map en cada cuadro (`tomadas` se reusa). Da lo mismo que antes, aun
 // con ids repetidos: de cada id elegido va el último de la lista, como hacía el Map.
 const tomadas = new Set();
+// 3.8.3: cada cosa elegida va en SU casilla. `asignarRanura` deja huecos (null) antes de la casilla marcada,
+// pero acá se salteaban y lo elegido se corría al principio: «Lo pusiste en la casilla 5» y aparecía en la 1.
+// Los huecos (y lo elegido que ya no tenés) se llenan con el resto, en su orden.
+const fijasBarra = [];
 function ordenarBarra(lista) {
   const orden = progreso.barra || [];
   if (!orden.length) return lista;
   tomadas.clear();
-  const salida = [];
+  fijasBarra.length = 0;
   for (const id of orden) {
-    if (!id || tomadas.has(id)) continue;
-    for (let j = lista.length - 1; j >= 0; j--) {
-      if (lista[j].id === id) { salida.push(lista[j]); tomadas.add(id); break; }
+    let r = null;
+    if (id && !tomadas.has(id)) {
+      for (let j = lista.length - 1; j >= 0; j--) {
+        if (lista[j].id === id) { r = lista[j]; tomadas.add(id); break; }
+      }
     }
+    fijasBarra.push(r);
   }
-  for (const r of lista) if (!tomadas.has(r.id)) salida.push(r);
+  const salida = [];
+  let k = 0;
+  const libre = () => { while (k < lista.length && tomadas.has(lista[k].id)) k++; return k < lista.length ? lista[k++] : null; };
+  for (const f of fijasBarra) { const r = f || libre(); if (r) salida.push(r); }
+  for (let r = libre(); r; r = libre()) salida.push(r);
   return salida;
 }
 
@@ -3350,9 +3363,12 @@ function abrirMochila(abrir) {
 function asignarRanura(id) {
   const orden = [...(progreso.barra || [])];
   const actual = orden.indexOf(id);
-  if (actual >= 0) orden.splice(actual, 1);
+  // 3.8.3: lo que ya estaba en otra casilla deja un hueco ahí (lo de después no se corre) y en una casilla libre
+  // se pone sin empujar a nadie (ver ordenarBarra)
+  if (actual >= 0) orden[actual] = null;
   while (orden.length < elegida) orden.push(null);
-  orden.splice(elegida, 0, id);
+  if (orden[elegida] == null) orden[elegida] = id;
+  else orden.splice(elegida, 0, id);
   progreso.barra = orden.slice(0, 16);
   guardar();
   refrescarBarra(true);
@@ -4021,9 +4037,13 @@ function sinParedEnMedio(o) {
   return col?.paredEntre?.(js.pos.x, js.pos.z, o.datos.x, o.datos.z, js.pos.y + 0.9, js.pos.y + 0.9, true, o) ? null : o;
 }
 function funcionAlAlcance(funcion, radio) { return sinParedEnMedio(obras?.tieneFuncionCerca?.(funcion, jugador.estado.pos, radio)); }
+// 3.8.3: el de una obra, también a través de los pisos: sin la altura (tieneFuncionCerca descarta lo que está a más de
+// 1,55 m de alto, pensado para catres apilados): parado en el entrepiso o en el mirador, el acopio del suelo no contaba
+const planoAcopio = { x: 0, z: 0 };
 function hayAcopioCerca(radio) {
   // el acopio de una obra (18 m) cuenta a través de las paredes; el de la mano, no
-  return !!(radio > RADIO_ACOPIO_MANO ? obras?.tieneFuncionCerca?.('acopio', jugador.estado.pos, radio) : funcionAlAlcance('acopio', radio));
+  if (radio > RADIO_ACOPIO_MANO) { planoAcopio.x = jugador.estado.pos.x; planoAcopio.z = jugador.estado.pos.z; }
+  return !!(radio > RADIO_ACOPIO_MANO ? obras?.tieneFuncionCerca?.('acopio', planoAcopio, radio) : funcionAlAlcance('acopio', radio));
 }
 function totalAcopio() { return CLAVES_MATERIAL.reduce((s, k) => s + (acopio()[k] || 0), 0); }
 function totalEnMano() { return CLAVES_MATERIAL.reduce((s, k) => s + material(k), 0); }
@@ -4348,7 +4368,7 @@ function actualizarVisitas(dt) {
     empezarVisita(v, progreso.dia);
     v.activa.clave = compadre.clave; v.activa.amistad = true;
   } else {
-    if (!traerVisita(quienViene(v.cuenta), puesta, true)) { v.cuenta += 1; return; }
+    if (!traerVisita(quienViene(v.cuenta), puesta, true)) { saltearTurno(v); return; }   // (3.8.3: sin contarse como visita)
     empezarVisita(v, progreso.dia);
   }
   const lejos = Math.hypot(puesta.mesa.x - js.pos.x, puesta.mesa.z - js.pos.z) > 40;
@@ -5505,7 +5525,7 @@ function dibujarPanelObra() {
 
   const ul = $('obra-etapas');
   ul.innerHTML = '';
-  const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obras.obraCerca(jugador.estado.pos, 12, p.id);
+  const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obraAMedias(p, jugador.estado.pos, 12);   // (3.8.3: la que se sigue con Y)
   const hechas = obra ? obra.datos.etapas : 0;
   p.etapas.forEach((e, i) => {
     const li = document.createElement('li');
@@ -5670,11 +5690,34 @@ function devolverContenido(d) {
       else sumarEntrada(x.k, n);
     }
   }
+  // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
+  // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
+  // todavía no está se lo lleva el cantero, como siempre)
+  if (d.tendal) { const tc = sanearTendal(d.tendal); if (tc.colgado) { const C = CONSERVAS[tc.colgado]; if (tc.horas >= HORAS_SECADO) sumarEntrada(tc.colgado, 1); else sumarEntrada(C.ingrediente, C.cantidad); } }
+  if (d.vivero) for (const m of sanearVivero(d.vivero, 4).macetas) sumarEntrada(progreso.dia - m.dia >= VIVERO.diasPlantin ? ARBOLES_VIVERO[m.especie].plantin : ARBOLES_VIVERO[m.especie].semilla, 1);
+  if (d.plano === 'gallinero') { const g = gallineros()[claveGallinero(d.x, d.z)]; const r = g ? juntarHuevos(g, progreso.dia) : null; if (r?.ok) sumarEntrada('huevo', r.huevos); }
+  if (d.plano === 'cantero') {
+    const r = cosechar(huerta(), claveCantero(d.x, d.z), progreso.dia);
+    if (r.ok) { sumarEntrada(r.ingrediente, r.cantidad); if (progreso.cosechasTotal != null && Number.isFinite(Number(progreso.cosechasTotal))) progreso.cosechasTotal = Math.floor(Number(progreso.cosechasTotal)) + r.cantidad; }
+  }
   refrescarBarra(true);
 }
 // 3.5.1: la pieza de varias etapas de este plano que quedó a medio hacer más cerca (o null)
 function piezaAMedias(plano, pos, radio) {
   if (!plano?.pieza || !(plano.etapas?.length > 1)) return null;
+  let mejor = null, d0 = radio;
+  for (const o of obras.obrasCerca(pos, radio)) {
+    if (o.plano.id !== plano.id || o.datos.etapas >= o.plano.etapas.length) continue;
+    const d = Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z);
+    if (d < d0) { d0 = d; mejor = o; }
+  }
+  return mejor;
+}
+// 3.8.3: la obra grande de este plano que quedó a medio hacer más cerca (o null). Antes Y seguía la más cercana aunque
+// estuviera terminada: con un mirador hecho a menos de 10 m, el fantasma decía «Lugar válido» y Y respondía «Todavía no ·
+// Ya está terminada» (y una a medias más lejos que una terminada no se podía seguir)
+function obraAMedias(plano, pos, radio) {
+  if (!plano) return null;
   let mejor = null, d0 = radio;
   for (const o of obras.obrasCerca(pos, radio)) {
     if (o.plano.id !== plano.id || o.datos.etapas >= o.plano.etapas.length) continue;
@@ -5693,6 +5736,10 @@ function accionObra() {
     const r = obras.confirmarEdicion(fx, fz, js.yaw, js.pos.y);
     if (!r.ok) { nota('Acá no', r.motivo); return; }
     if (movida) mudarDatosDeObra(movida, x0, z0);   // 3.5.1
+    // 3.8.3: las matas y las gallinas se mudan con el cantero y el gallinero (se quedaban dibujadas en el lugar viejo hasta
+    // otro día: sólo se rehacían cuando cambiaba cuántos hay)
+    if (movida?.plano.id === 'cantero') refrescarHuerta();
+    else if (movida?.plano.id === 'gallinero') refrescarGallineros();
     progreso.obras = obras.obras.map((o) => o.datos);
     guardar(); sonido.juntar(); ultimoSitioObra = '';
     nota(`${r.obra.plano.nombre} recolocado`, r.snap ? `Quedó alineado: ${r.snap.descripcion}` : 'Nueva posición guardada', true);
@@ -5702,7 +5749,7 @@ function accionObra() {
   // las cosas chicas se ponen siempre nuevas; las grandes, se siguen levantando
   // 3.5.1: y las piezas de varias etapas (molino de agua, aserradero, estación meteorológica)
   // también: antes cada Y fundaba otra y ninguna pasaba de la primera etapa (el capítulo 6 se trababa)
-  const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obras.obraCerca(js.pos, 10, obras.plano?.id);
+  const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obraAMedias(obras.plano, js.pos, 10);
   if (obra?.plano.pieza) {
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
@@ -5724,7 +5771,8 @@ function accionObra() {
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
     sonido.encender();
-    nota(r.etapa.nombre, r.terminada ? `Tu ${obra.plano.nombre.toLowerCase()} está terminado` : r.etapa.dice, r.terminada);
+    // 3.8.3: «Tu casilla de tablas está terminada» (decía «terminado» para todas)
+    nota(r.etapa.nombre, r.terminada ? `Tu ${obra.plano.nombre.toLowerCase()} está ${/a$/i.test(obra.plano.nombre.split(' ')[0]) ? 'terminada' : 'terminado'}` : r.etapa.dice, r.terminada);
     if (r.terminada) {
       registrar('puesto-propio');
       modos?.obraTerminada?.(obra.plano.id, progreso.horas);   // 3.1: el desafío del día

@@ -226,7 +226,8 @@ export function crearValleUi(ctx) {
       const def = capituloActual(h).momento;
       if (m && (def?.cuando !== 'pronto' || tiempoCapitulo >= MOMENTO_PRONTO)) { if (eventos.forzar(m)) momentoLanzado(h); }   // con otro abierto, se reintenta después
       // lanzado pero perdido (una partida retocada): se vuelve a pedir, para que el capítulo nunca se trabe
-      else if (!m && def && h.momentos[capituloActual(h).id] === 'lanzado' && !s.eventos.has(def.evento) && !eventos.ev().activo && !(s.vecinos === false)) eventos.forzar(def.evento);
+      // (3.8.3: «pasó» es su objetivo tildado: un temporal al azar de antes del capítulo no cuenta)
+      else if (!m && def && h.momentos[capituloActual(h).id] === 'lanzado' && !capituloActual(h).objetivos.some((o) => o.delMomento && h.hechos[`${capituloActual(h).id}:${o.id}`] !== undefined) && !eventos.ev().activo && !(s.vecinos === false)) eventos.forzar(def.evento);
     }
     return eventos.revisar({ puedeAzar: azarEnPruebas || !ctx.sinAzar?.() });
   }
