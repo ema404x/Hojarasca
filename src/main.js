@@ -6810,6 +6810,10 @@ function cobrarPremio(e) {
   guardar();
 }
 function cerrarCharla() {
+  // 3.8.3: el ñiki ñiki ya pasó (amor.js lo anotó y se guardó): cortado con Escape o alejándose, igual va el fundido y el
+  // descanso (antes se gastaba la noche sin descansar)
+  const fundir = charla.historia?.id === 'amor-fundido' && charla.parte < charla.historia.partes.length ? charla.historia.alTerminar : null;
+  if (fundir) charla.historia = null;   // (una sola vez: el fundido vuelve a cerrar la charla)
   if (charla.historia?.citaCharla) vecindadJuego?.citaCharlada();   // 3.6 (vida): cortada a la mitad, igual cuenta
   amorJuego?.alCerrar();   // 3.7.1: la cita cortada a la mitad, igual cuenta
   socialJuego?.alCerrarCharla(charla.npc);   // 3.7.4: el que vino a hablarte vuelve a lo suyo
@@ -6820,6 +6824,7 @@ function cerrarCharla() {
   charla.menu = null; charla.vec = null;   // 3.6 (vida)
   $('charla').classList.add('oculto');
   $('charla-opciones')?.classList.add('oculto');
+  fundir?.();
 }
 // ---------------------------------------------------------------- 3.6 (vida): el menú de la charla
 // Al hablarle a un vecino del Relax: «¿Cómo andás?», «Novedades», «Tu historia», «Regalar…»,
@@ -8573,7 +8578,8 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
-    if (vecino && aviso && !desafio && !charla.npc && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
+    // 3.8.3: salvo que ella te espere para la cita o el casamiento: la E empieza eso primero (hablar → amorJuego.hablar)
+    if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };

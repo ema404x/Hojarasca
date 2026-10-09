@@ -282,11 +282,15 @@ export function crearAmorJuego(ctx) {
     if (!activo() || !npc || !puesta || puesta.npc !== npc) return null;
     if (puesta.por === 'boda' && !puesta.hasta) return `Casarte con ${nombre(puesta.clave)}`;
     const c = progreso().amor?.cita;
-    return c && c.clave === puesta.clave && c.estado === 'acordada' ? `Empezar la cita con ${nombre(puesta.clave)}` : null;
+    // 3.8.3: sólo si está puesta para la cita (puesta para la boda, la E va a casarse, no a la cita)
+    return puesta.por === 'cita' && c && c.clave === puesta.clave && c.estado === 'acordada' ? `Empezar la cita con ${nombre(puesta.clave)}` : null;
   }
   function actualizarLugar() {
     const p = progreso(), c = contexto();
     const ahora = dia() * 24 + horas();
+    // 3.8.3: una cita en curso guardada y vuelta a cargar (ya no está puesta en su lugar) cuenta como hecha, como si la
+    // cortaras a la mitad (antes quedaba colgada: ella esperando en el lugar toda la noche y el bono del favorito en todos lados)
+    if (!puesta && p.amor?.cita?.estado === 'en-curso') alCerrar();
     const v = vencerCita(p, c);
     if (v) { avisar(v.texto, v.sub); ctx.guardar?.(); }
     const cita = citaAhora(p, c), boda = bodaHoy(p, c);
