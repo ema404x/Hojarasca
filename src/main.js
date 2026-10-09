@@ -1942,7 +1942,8 @@ $('btn-entrar').addEventListener('click', () => {
     if (esSinFin) setTimeout(() => nota('Supervivencia sin fin', 'Una sola vida: si caés, se termina la corrida. No hay noche final', true), 2600);
   }
   $('inicio').classList.add('oculto');
-  if (origenGuardado === 'backup') setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
+  // (3.8.3: sólo la primera vez: volviendo de la portada se repetía cada vez que se entraba)
+  if (origenGuardado === 'backup' && !entroAlJuego) setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
   else if (esDesafio && (!habiaGuardado || !progreso.pos)) {
     setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos y piedra con el hacha (H) y armá defensas (O → Defensa)', true), 1500);
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
