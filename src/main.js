@@ -803,12 +803,12 @@ async function construir() {
   if (progreso.pos) jugador.ubicar(progreso.pos.x, progreso.pos.z, progreso.yaw, progreso.pos.y);
   else if (desafio?.baseMapa) { const b = desafio.baseMapa; jugador.ubicar(b.x, b.z, b.yaw); }   // 3.0: la base del mapa de la semilla
   else jugador.ubicar(ref.puerta.x, ref.puerta.z, ref.mira);
-  // (una partida guardada con el caballo en la jaula: baja en la parada más cerca)
-  // 3.8.3: después de ubicar al jugador. Antes corría con el jugador recién creado en (0, 0): bajarCaballoDelTren()
-  // guardaba esa posición y aparecías en el medio del mapa, con el caballo en la parada más cerca de ahí
-  if (!desafio && progreso.trenViaje?.caballo && !jugador.estado.enTren) bajarCaballoDelTren();
   // 2.8: lo personal: tu cuerpo, tu mano y tu bandera, y cada sección aplica lo guardado
   armarMundoPersonal();
+  // (una partida guardada con el caballo en la jaula: baja en la parada más cerca)
+  // 3.8.3: después de ubicar al jugador (y de ponerle su nombre al caballo). Antes corría con el jugador recién creado en (0, 0): bajarCaballoDelTren()
+  // guardaba esa posición y aparecías en el medio del mapa, con el caballo en la parada más cerca de ahí
+  if (!desafio && progreso.trenViaje?.caballo && !jugador.estado.enTren) bajarCaballoDelTren();
 
   U.uOtono.value = ajustes.estacion === 'otono' ? 1 : 0;
   U.uInvierno.value = ajustes.estacion === 'invierno' ? 1 : 0;
