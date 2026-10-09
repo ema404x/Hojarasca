@@ -2792,8 +2792,9 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
       if (enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }
-      if (enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
-      if (obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
+      // 3.8.3: mirando algo (una ramita, una silla), E hace eso, como dice el aviso: antes dormía
+      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
+      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
       if (cercaDelFuego() && (!objetivo || objetivo.tipo === 'sentarse')) {
         if (puedeDormirJuntoAlFuego()) { dormir(); break; }
         if (hayQueCocinar()) { cocinar(); break; }
@@ -2806,9 +2807,10 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && !js.enTren && !js.enKayak) { const s = arbolParaSemilla(); if (s) { juntarSemilla(s); break; } }
       const r = objetos.usar(objetivo, registrar, sonido);
       if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
-      if (r) destellarRanura(objetivo?.tipo);
+      if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
       if (r?.sentarse?.cama) { dormir(); break; }
-      if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
+      if (r?.llena) nota('No te entran más ramitas', `Ya llevás ${progreso.ramitas}: la dejaste en el suelo`);   // 3.8.3
+      else if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
       if (r?.sentarse) {
         js.pos.set(r.sentarse.x, Math.max(r.sentarse.y - 0.45, T.altura(r.sentarse.x, r.sentarse.z)), r.sentarse.z);
         if (r.sentarse.mira !== undefined) { js.yaw = r.sentarse.mira; js.pitch = -0.05; }

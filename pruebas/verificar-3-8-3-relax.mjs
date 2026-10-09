@@ -2,6 +2,8 @@
 // 1. La barra de la mochila: lo que elegís para la casilla N va en la casilla N (antes se corría al principio).
 // 2. La historia, capítulo 8 («La noche del temporal»): con los cuatro cuentos ya oídos no se trababa para siempre, y un
 //    temporal al azar de antes no tilda el final (ni se saltea la noche del temporal).
+// 3. La tecla E y el aviso: en la carpa o en tu casa, de noche, mirando algo (una ramita), E hace eso y no te duerme.
+// 4. Con doce ramitas, la que mirás se queda en el suelo (antes se borraba del valle sin sumar).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -76,6 +78,25 @@ const trozo = (desde, hasta) => {
   // el momento lanzado y perdido se vuelve a pedir mirando su objetivo (no si pasó alguna vez)
   const ui = leer('src/historia-ui.js');
   ok(!ui.includes('!s.eventos.has(def.evento)') && ui.includes("o.delMomento && h.hechos[`${capituloActual(h).id}:${o.id}`] !== undefined"), 'historia-ui.js: el momento perdido se repide según su objetivo');
+}
+
+// ---------------------------------------------------------------- 3. E y el aviso: dormir en la carpa o en la casa
+{
+  const e = trozo("case 'KeyE': {", "    case 'Tab':");
+  ok(e.includes("if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }"), 'tecla E: la carpa duerme sólo sin nada mirado');
+  ok(e.includes('if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }'), 'tecla E: tu casa duerme sólo sin nada mirado');
+  // el aviso: lo mirado (objetivo) gana y la carpa y la casa van con !aviso
+  ok(main.includes("let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;") && main.includes("if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };") && main.includes('if (!aviso && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) {'), 'el aviso: lo mirado antes que dormir (como la tecla E)');
+}
+
+// ---------------------------------------------------------------- 4. las ramitas llenas
+{
+  const obj = leer('src/objetos.js');
+  const i = obj.indexOf("if (obj.it.tipo === 'ramita' && progreso.ramitas >= 12) return { ramita: true, llena: true };"), j = obj.indexOf('if (!quitar(obj.it)) return null;', i);
+  ok(i > 0 && j > i && j - i < 120, 'objetos.js: con doce ramitas no se quita la del suelo (se mira antes de quitar)');
+  ok(obj.includes('progreso.ramitas = Math.min(12, progreso.ramitas + 1)'), 'y el tope sigue en doce');
+  const e = trozo("case 'KeyE': {", "    case 'Tab':");
+  ok(e.includes("if (r?.llena) nota('No te entran más ramitas'") && e.includes('if (r && !r.llena) destellarRanura('), 'tecla E: con las ramitas llenas lo dice y no destella la casilla');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);
