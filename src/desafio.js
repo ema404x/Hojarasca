@@ -1015,7 +1015,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         // se cargó una partida guardada en medio del ataque: vuelven los que quedaban
         const n = Math.max(1, d.vivos || 1);
         const tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
-        empezarOleada(tipos.slice(0, n), false, true);
+        // 3.8.3: el mandamás va último en la lista: cortarla dejaba afuera al que seguía vivo (guardar y abrir
+        // salteaba al jefe) y, con los llamados del jefe contados, volvía uno ya abatido
+        const conJefe = tipos.includes('jefe') && d.jefeCaido !== d.oleadas;
+        empezarOleada(conJefe ? [...sinJefe(tipos).slice(0, n - 1), 'jefe'] : sinJefe(tipos).slice(0, n), false, true);
         if (d.nodriza && !d.victoria) eventos.iniciarNodriza();
       } else if (!d.oleadaTerminada && d.nodriza && !d.victoria && !d.asedio && !eventos.nodrizaActiva) {
         // 3.5.1: guardada en la noche final entre dos tandas de la nodriza (sin invasores
@@ -1498,6 +1501,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         musica.golpeFinal();
         efectos.sangre(_v, 14); efectos.chispas(_v, 16);
         ctx.nota('Cayó el mandamás', `Dejó ${sueltos} semillas doradas desparramadas`, true);
+        d.jefeCaido = d.oleadas;   // 3.8.3: para que al abrir la partida a mitad de noche no vuelva
       }
       d.abatidos++;
       nocheActual.abatidos++;

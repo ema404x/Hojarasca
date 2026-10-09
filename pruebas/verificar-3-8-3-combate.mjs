@@ -54,4 +54,31 @@ const des = leer('src/desafio.js');
   assert.equal(nueva.cosas.arcoRayo, 1);
 }
 
+// ---------------------------------------------------------------- 3. guardar y abrir en una noche de mandamás
+// Al abrir a mitad de noche vuelven `d.vivos` duendes cortando la lista de la noche; el mandamás va último, así
+// que el que seguía vivo no volvía (y, con los que llama contados, volvía uno ya abatido).
+{
+  const { composicionOleada, sinJefe, sanearDesafio, desafioNuevo } = await import('../src/desafio-reglas.js');
+  const i = des.indexOf('// se cargó una partida guardada en medio del ataque');
+  const bloque = des.slice(i, des.indexOf('if (d.nodriza && !d.victoria) eventos.iniciarNodriza();', i));
+  const linea = bloque.slice(bloque.indexOf('const conJefe'));
+  const retomar = (d, n) => {
+    let lista = null;
+    const ctx = { d, n, tipos: composicionOleada(d.oleadas), sinJefe, empezarOleada: (l) => { lista = l; } };
+    vm.createContext(ctx);
+    vm.runInContext(linea, ctx);
+    return lista;
+  };
+  const vivo = retomar({ oleadas: 5, jefeCaido: -1 }, 3);
+  assert.equal(vivo.length, 3, 'vuelven los que quedaban');
+  assert.equal(vivo.filter((t) => t === 'jefe').length, 1, 'con el mandamás que seguía vivo');
+  const caido = retomar({ oleadas: 10, jefeCaido: 10 }, 30);
+  assert.ok(!caido.includes('jefe'), 'el mandamás ya abatido no vuelve');
+  assert.ok(!retomar({ oleadas: 4, jefeCaido: -1 }, 30).includes('jefe'), 'una noche sin mandamás, sin mandamás');
+  assert.match(des, /ctx\.nota\('Cayó el mandamás', [^\n]*\n\s*d\.jefeCaido = d\.oleadas;/, 'al caer el mandamás queda anotada la noche');
+  assert.equal(desafioNuevo().jefeCaido, -1);
+  assert.equal(sanearDesafio({ jefeCaido: 10 }).jefeCaido, 10, 'se guarda');
+  assert.equal(sanearDesafio({}).jefeCaido, -1, 'una partida vieja arranca sin jefe anotado');
+}
+
 console.log('verificar-3-8-3-combate: ok');

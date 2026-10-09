@@ -349,6 +349,8 @@ export function desafioNuevo() {
     flechas: 0, cargas: 0, emplastos: 1, boleadoras: 0, pistolaEncontrada: false, mejorRacha: 0, racha: 0, caja: null,
     recetasHechas: [], planos: [], restos: null, companeros: [], ordenes: {}, abatidosPerro: 0, especial: null, especialAnterior: null,
     victoria: false, nodriza: null, tutorial: 0,
+    // 3.8.3: la noche en que cayó el último mandamás (al abrir a mitad de noche, vuelve sólo si seguía vivo)
+    jefeCaido: -1,
     // Segundo acto: aparece recién cuando cae la nodriza (ver desafio-nido.js).
     nido: null,
     // 3.0: el asedio final: aparece si al alba de la noche final la nodriza sigue arriba (desafio-asedio.js)
@@ -406,6 +408,7 @@ export function sanearDesafio(d) {
     nodriza: x.nodriza && typeof x.nodriza === 'object' && Array.isArray(x.nodriza.nucleos)
       ? { nucleos: x.nodriza.nucleos.slice(0, 3).map((v) => Math.max(0, Math.min(NUCLEO_VIDA, Number(v) || 0))) } : null,
     tutorial: ent(x.tutorial, 0, 99),
+    jefeCaido: Number.isFinite(Number(x.jefeCaido)) && x.jefeCaido !== null ? Math.floor(Number(x.jefeCaido)) : -1,   // 3.8.3
     nido: sanearNido(x.nido),
     asedio: sanearAsedio(x.asedio),   // 3.0
     // 2.0: el bestiario y las noches después del nido
