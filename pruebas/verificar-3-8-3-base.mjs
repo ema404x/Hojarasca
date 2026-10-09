@@ -66,6 +66,7 @@ ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.s
   const html = leer('src/plantilla.html');
   ok(html.includes('grid-template-columns: minmax(min(380px, 100%), 1fr) minmax(0, auto); align-items: end; overflow-y: auto;'), 'la portada: columna mínima y desplazable');
   ok(html.includes('\n#pausa { overflow-y: auto; }\n'), 'la pausa, desplazable');
+  ok(html.includes('\n.velo { overflow-y: auto; }\n'), 'los velos (Personalizar con la letra grande), desplazables');
 }
 
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);

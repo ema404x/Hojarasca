@@ -32,7 +32,7 @@ app.whenReady().then(async () => {
   const abrir = async (q = '?debug=1') => { await w.loadFile(url, { search: q }); await listo(); };
   const ajustes = (modo) => `localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'muybaja', clima:'despejado', musica:false, modo:'${modo}', autoCalidad:false, guiaPrimerDia:false}));`;
   try {
-    for (const [modo, clave] of [['relax', 'hojarasca-v1'], ['desafio', 'hojarasca-desafio-v1']]) {
+    for (const [modo, clave] of process.env.HOJ_SOLO_PANTALLAS ? [] : [['relax', 'hojarasca-v1'], ['desafio', 'hojarasca-desafio-v1']]) {
       donde = `${modo}: portada`;
       await w.loadFile(url, { search: '?debug=1' }); await esperar(300);
       await js(`localStorage.clear(); ${ajustes(modo)} 1`);
@@ -74,7 +74,7 @@ app.whenReady().then(async () => {
       ['desafio', 'hojarasca-desafio-v1', 'Desafío de antes del mapa', `({ dia: 4, horas: 21, pos: { x: R.x + 3, z: R.z + 3 }, desafio: { noches: 2, oleadas: 2, salud: 50 } })`],
       ['desafio', 'hojarasca-desafio-v1', 'Desafío con día enorme', `({ dia: 9e15, horas: 21.5, pos: { x: R.x + 3, z: R.z + 3 }, desafio: { noches: 1e9, oleadas: 1e9 } })`],
     ];
-    for (const [modo, clave, nombre, armar] of VIEJAS) {
+    for (const [modo, clave, nombre, armar] of process.env.HOJ_SOLO_PANTALLAS ? [] : VIEJAS) {
       donde = `vieja: ${nombre}`;
       const antes = errores.length;
       await w.loadFile(url, { search: '?debug=1' }); await esperar(300);
@@ -98,11 +98,12 @@ app.whenReady().then(async () => {
     }
     // 5. pantallas chicas: cada botón visible de la portada y de la pausa, alcanzable
     donde = 'pantallas chicas';
+    // alcanzable: después de llevarlo a la vista (scrollIntoView mueve todo lo que se desplaza) queda dentro de la pantalla
     const alcanzables = (id) => `(()=>{ const caja = document.getElementById('${id}'); const fuera = [];
       for (const b of caja.querySelectorAll('button')) { if (b.closest('.oculto') || !b.offsetParent) continue;
-        const r = b.getBoundingClientRect(); if (r.width === 0) continue;
-        let p = b.parentElement, desplaza = false; while (p && p !== document.body) { const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 2) { desplaza = true; break; } p = p.parentElement; }
-        if (!desplaza && (r.bottom > innerHeight + 1 || r.top < -1 || r.right > innerWidth + 1)) fuera.push((b.id || b.textContent.trim()).slice(0, 30) + '@' + Math.round(r.bottom)); }
+        if (b.getBoundingClientRect().width === 0) continue;
+        b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = b.getBoundingClientRect();
+        if (r.bottom > innerHeight + 1 || r.top < -1 || r.right > innerWidth + 1 || r.left < -1) fuera.push((b.id || b.textContent.trim()).slice(0, 30) + '@' + Math.round(r.bottom)); }
       return { alto: innerHeight, ancho: innerWidth, fuera }; })()`;
     for (const [ancho, alto] of [[1024, 640], [1093, 550]]) {
       for (const letra of ['normal', 'grande', 'enorme']) {
@@ -114,7 +115,12 @@ app.whenReady().then(async () => {
         await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(1200);
         await js(`window.__hojarasca.abrir('pausa'); 1`); await esperar(300);
         const pau = await js(alcanzables('pausa'));
-        ok(!ini.fuera.length && !pau.fuera.length, `${ancho}×${alto}, letra ${letra}: portada y pausa alcanzables (${JSON.stringify({ ini, pau })})`);
+        await js(`document.getElementById('btn-personalizar').click(); 1`); await esperar(300);
+        const per = await js(alcanzables('personalizar'));
+        await js(`document.getElementById('cerrar-personalizar').click(); document.getElementById('btn-guia').click(); 1`); await esperar(300);
+        const gui = await js(alcanzables('guia'));
+        await js(`document.getElementById('cerrar-guia').click(); 1`);
+        ok(!ini.fuera.length && !pau.fuera.length && !per.fuera.length && !gui.fuera.length, `${ancho}×${alto}, letra ${letra}: portada, pausa, Personalizar y guía alcanzables (${JSON.stringify({ ini: ini.fuera, pau: pau.fuera, per: per.fuera, gui: gui.fuera })})`);
       }
     }
     w.setContentSize(1024, 640);
