@@ -93,4 +93,12 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   sinCR('src/social-rueda.js');
 }
 
+// ---------------------------------------------------------------- 9. la obra del pueblo completada de madrugada
+{
+  const g = leer('src/aldea-gente.js');
+  ok(g.includes("const cuandoLista = (l) => (l && l.dia <= dia() ? 'a las 7 está lista' : 'mañana a la mañana está lista');"), 'aldea-gente: completada de madrugada dice «a las 7», no «mañana a la mañana»');
+  ok(g.split('cuandoLista(').length - 1 === 3 && !/: mañana a la mañana está lista/.test(g), 'aldea-gente: los tres textos de la obra lo usan');
+  sinCR('src/aldea-gente.js');
+}
+
 console.log(`verificar-3-8-3-aldea: ${n} comprobaciones en verde`);
