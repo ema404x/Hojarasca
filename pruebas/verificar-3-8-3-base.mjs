@@ -56,4 +56,7 @@ const main = leer('src/main.js');
   ok(cambiarTecla(mapaPorDefecto(), 'linterna', 'F10').ok, 'las otras F siguen sirviendo');
 }
 
+// 6. La sensibilidad cambia también la del mando en el momento (antes sólo el mouse; el mando, al reiniciar).
+ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.sensibilidad = ajustes.sensibilidad;"), 'la barra de sensibilidad llega al mando');
+
 console.log(`✓ verificar-3-8-3-base: ${n} comprobaciones`);

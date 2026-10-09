@@ -1867,6 +1867,7 @@ document.querySelectorAll('[data-ajuste-rango]').forEach((i) => {
     ajustes[i.dataset.ajusteRango] = Number(i.value);
     guardarAjustes(ajustes);
     if (i.dataset.ajusteRango === 'volumen') sonido.setVolumen(ajustes.volumen);
+    if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.sensibilidad = ajustes.sensibilidad;   // 3.8.3: el mando también, sin reiniciar (como invertirY)
   });
 });
 // 3.5: la distancia de dibujo en bloques (la barra); «Según la calidad» es un botón aparte
