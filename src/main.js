@@ -5237,7 +5237,8 @@ function subirCaballoAlTren() {
   tren.subir(jugador);
   diario.anotar('tren'); registrar('viaje');
   sonido.casco?.('madera', 1);
-  nota(`Subiste ${caballoMundo?.nombre?.() || 'al zaino'} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos');
+  // 3.8.3: con nombre propio decía «Subiste Tormenta a la jaula» (faltaba la «a»)
+  { const n = caballoMundo?.nombre?.(); nota(`Subiste ${n ? `a ${n}` : 'al zaino'} a la jaula`, 'Viaja con vos: cuando te bajes en una parada, baja con vos'); }
   guardar();
 }
 // al bajarte en una parada: tu caballo baja con vos, al costado del andén (pasando la escalera)

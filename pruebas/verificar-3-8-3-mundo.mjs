@@ -36,4 +36,22 @@ function cuerpo(nombre) {
   ok(r.js.pos.x === 0 && r.js.pos.z === 0, 'con paredes de los dos lados, no se cruza ninguna');
 }
 
+// ---------------------------------------------------------------- 2. el caballo con nombre, a la jaula
+// Con nombre propio el aviso decía «Subiste Tormenta a la jaula».
+{
+  const src = cuerpo('subirCaballoAlTren');
+  const notas = [];
+  const correr = (nombre) => {
+    notas.length = 0;
+    const js = { montado: {} };
+    const sin = () => {};
+    new Function('jugador', 'viajeTren', 'tren', 'caballoMundo', 'diario', 'registrar', 'sonido', 'nota', 'guardar', src)(
+      { estado: js }, () => ({}), { tren: { ponerCaballo: sin, subirCaballo: sin }, subir: sin }, { apariencia: () => null, nombre: () => nombre },
+      { anotar: sin }, sin, { casco: sin }, (t) => notas.push(t), sin);
+    return notas[0];
+  };
+  ok(correr('Tormenta') === 'Subiste a Tormenta a la jaula', `con nombre: «${correr('Tormenta')}»`);
+  ok(correr('') === 'Subiste al zaino a la jaula', `sin nombre: «${correr('')}»`);
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);
