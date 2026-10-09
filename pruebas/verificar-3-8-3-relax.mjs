@@ -9,6 +9,7 @@
 // 6. Con los planos, Y sigue la obra a medio hacer más cercana: una terminada al lado ya no traba fundar otra igual.
 // 7. «Recibí una visita» (capítulo 8) se tilda con una visita de verdad, no con el turno del que no pudo venir.
 // 8. El acopio de la obra cuenta parado en un piso de arriba (el entrepiso, el mirador).
+// 9. «Tu casilla de tablas está terminada» (decía «terminado»), y los textos nuevos en inglés.
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -21,6 +22,8 @@ import * as Vivero from '../src/vivero.js';
 import * as Gallinero from '../src/gallinero.js';
 import * as Huerta from '../src/huerta.js';
 import * as Visitas from '../src/visitas.js';
+import { crearTraductor } from '../src/idioma.js';
+import { EN } from '../src/idioma-en.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -197,6 +200,14 @@ const trozo = (desde, hasta) => {
   vm.runInContext(`${codigo}\nthis.hayAcopioCerca = hayAcopioCerca;`, ctx);
   ok(ctx.hayAcopioCerca(18) === true && visto && visto.x === 4 && visto.z === -2 && !('y' in visto), 'el acopio de la obra se busca sin la altura (cuenta desde el entrepiso)');
   ok(ctx.hayAcopioCerca(2) === true, 'el de la mano sigue igual (funcionAlAlcance)');
+}
+
+// ---------------------------------------------------------------- 9. los textos nuevos, bien dichos y en inglés
+{
+  ok(main.includes("está ${/a$/i.test(obra.plano.nombre.split(' ')[0]) ? 'terminada' : 'terminado'}"), 'la obra terminada concuerda: «Tu casilla de tablas está terminada»');
+  const traductor = crearTraductor(EN, 'en'), tr = (x) => traductor.t(x);
+  ok(tr('Tu casilla de tablas está terminada') === 'Your casilla de tablas is finished' || /^Your .* is finished$/.test(tr('Tu casilla de tablas está terminada')), `en inglés, la casilla también (${tr('Tu casilla de tablas está terminada')})`);
+  ok(tr('No te entran más ramitas') === 'No room for more twigs' && /^You already carry 12/.test(tr('Ya llevás 12: la dejaste en el suelo')), 'la nota de las ramitas llenas, en inglés');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

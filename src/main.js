@@ -5748,7 +5748,8 @@ function accionObra() {
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
     sonido.encender();
-    nota(r.etapa.nombre, r.terminada ? `Tu ${obra.plano.nombre.toLowerCase()} está terminado` : r.etapa.dice, r.terminada);
+    // 3.8.3: «Tu casilla de tablas está terminada» (decía «terminado» para todas)
+    nota(r.etapa.nombre, r.terminada ? `Tu ${obra.plano.nombre.toLowerCase()} está ${/a$/i.test(obra.plano.nombre.split(' ')[0]) ? 'terminada' : 'terminado'}` : r.etapa.dice, r.terminada);
     if (r.terminada) {
       registrar('puesto-propio');
       modos?.obraTerminada?.(obra.plano.id, progreso.horas);   // 3.1: el desafío del día
