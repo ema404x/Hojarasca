@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import * as M from '../src/amor.js';
 import * as A from '../src/aldea.js';
 import * as V from '../src/vecindad.js';
+import { FRASES_AMOR } from '../src/amor-voces.js';
 import * as R from '../src/rincones.js';
 import { IDS_DUENDES } from '../src/rincones-cuaderno.js';
 import { PALABRA_EMOCION } from '../src/social-rueda.js';
@@ -119,6 +120,16 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   const a = A.aldeaNueva(); a.descubierta = 1;
   ok(novedadesDelValle({ aldea: a, dia: 2 }, 2)[0] === 'Hoy es fiesta de la Fruta Fina: todos al predio de la fiesta.', 'diario: la fiesta es en el predio, no en la plaza');
   sinCR('src/fiestas.js'); sinCR('src/fiestas-juego.js'); sinCR('src/noticias-juego.js');
+}
+
+// ---------------------------------------------------------------- 11. amor: los días del embarazo, un hijo solo y una hija
+{
+  const v = leer('src/amor-voces.js'), a = leer('src/amor.js');
+  ok(M.llenarAmor(FRASES_AMOR.embarazo, { ella: 'Sofía', dias: 'un día' }) === 'Sofía te dice al oído que va a tener un bebé. Llega en un día.', 'amor: «Llega en un día» (decía «Faltan unos 1 días»)');
+  ok(a.includes("return { dias: k === 1 ? 'un día' : `unos ${k} días` };") && !/unos {dias} días/.test(v), 'amor: los días, con su número');
+  ok(FRASES_AMOR.separacion.includes('con {chicos}.') && a.includes('chicos: chicosDe(amor, c)'), 'amor: con un hijo solo se va «con Malén», no «con los chicos»');
+  ok(!/lo dejemos ir solo|A veces lo miro|el vecino más chico/.test(v), 'amor: lo de {hijo} sirve para una hija');
+  sinCR('src/amor-voces.js');
 }
 
 console.log(`verificar-3-8-3-aldea: ${n} comprobaciones en verde`);

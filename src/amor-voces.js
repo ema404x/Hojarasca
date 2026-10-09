@@ -259,8 +259,9 @@ export const FRASES_AMOR = {
   buscarNo: 'Todavía no. Primero casémonos, y después vemos.',
   buscarYa: 'Ya lo estamos buscando. Las cosas llegan cuando llegan.',
   maximoHijos: 'Con dos ya tenemos la casa llena. ¡Y el corazón también!',
-  embarazo: '{ella} te dice al oído que va a tener un bebé. Faltan unos {dias} días.',
-  esperando: 'Ya falta poco: unos {dias} días. A la noche se mueve como un pez.',
+  // 3.8.3: {dias} es «unos 5 días» o «un día» (decía «Faltan unos 1 días»)
+  embarazo: '{ella} te dice al oído que va a tener un bebé. Llega en {dias}.',
+  esperando: 'Ya falta poco: {dias}. A la noche se mueve como un pez.',
   nikiAntes: ['Los chicos ya duermen… ¿Apagamos la luz?', '¿Nos vamos a dormir? Bueno, a dormir dormir no…'],
   nikiSinChicos: ['¿Apagamos la luz?', '¿Nos vamos a dormir? Bueno, a dormir dormir no…'],
   nikiNo: { dia: 'Shh, ¿de día? Esperá que sea de noche.', chicos: 'Los chicos todavía andan despiertos. Más tarde.', casa: 'Acá no. En casa.', hoy: 'Hoy ya, ¿eh? Ahora a dormir de verdad.', enojada: 'Hoy no. Todavía estoy enojada con vos.' },
@@ -268,7 +269,8 @@ export const FRASES_AMOR = {
   reconquistaSi: 'Bueno… sí. Volvamos a intentarlo. Pero esta vez no me descuides.',
   reconquistaNo: 'Todavía no. Me lastimaste. Seguí viniendo, que a lo mejor…',
   reconquistaTodavia: 'Primero salgamos de nuevo, como al principio. Después vemos.',
-  separacion: '{ella} se cansó de esperarte y se volvió a su casa con los chicos. «Si querés arreglarlo, vas a tener que venir a buscarme.»',
+  // 3.8.3: {chicos}: el nombre del hijo, si es uno solo, o «los chicos»
+  separacion: '{ella} se cansó de esperarte y se volvió a su casa con {chicos}. «Si querés arreglarlo, vas a tener que venir a buscarme.»',
   separacionSinChicos: '{ella} se cansó de esperarte y se volvió a su casa. «Si querés arreglarlo, vas a tener que venir a buscarme.»',
   corto: '{ella} te dejó: «Si no venís nunca, esto no es un noviazgo».',
   seEnfrio: 'Con {ella} la cosa se enfrió: hace días que no la ves.',
@@ -313,8 +315,8 @@ export const FRASES_AMOR = {
     charla: {
       bebe: ['{hijo} anoche se despertó tres veces. Pero cuando se ríe, se me pasa todo.', '¿Viste cómo te agarra el dedo {hijo}? No te suelta más.'],
       chico: ['{hijo} preguntó por qué el cielo es celeste. Le dije que te pregunte a vos.', '{hijo} juntó doce piedras en el arroyo y dice que una es un huevo de dinosaurio.'],
-      adolescente: ['{hijo} anda con cara de que todo le da vergüenza. Sobre todo nosotros.', '{hijo} quiere que lo dejemos ir solo al lago. Yo digo que sí, pero con vos.'],
-      joven: ['{hijo} ya trabaja de lo suyo. A veces lo miro y no lo puedo creer.', '¿Te acordás cuando {hijo} no llegaba a la mesa? Ahora hay que agacharse para darle un beso.'],
+      adolescente: ['{hijo} anda con cara de que todo le da vergüenza. Sobre todo nosotros.', '{hijo} quiere ir al lago sin nosotros. Yo digo que sí, pero que vaya con vos.'],
+      joven: ['{hijo} ya trabaja de lo suyo. A veces me quedo mirando y no lo puedo creer.', '¿Te acordás cuando {hijo} no llegaba a la mesa? Ahora hay que agacharse para darle un beso.'],
     },
     nombres: { nene: ['Lautaro', 'Tomás', 'Ramiro', 'Lihuel', 'Joaquín', 'Facundo', 'Benjamín', 'Ignacio'], nena: ['Malén', 'Catalina', 'Pilar', 'Rayén', 'Julieta', 'Lucila', 'Amancay', 'Clara'] },
   },
@@ -342,7 +344,7 @@ export const FRASES_AMOR = {
     novios: 'Novedades del corazón: {ella} y nuestro vecino del refugio andan de novios. Los vieron tomados de la mano frente al almacén.',
     comprometidos: 'Atención, aldea: hay anillo. Anselmo lo hizo con un canto rodado y Pocha jura que no lloró. Lloró.',
     casados: 'Se casaron {ella} y el vecino del refugio. El juez de paz se llevó torta para el viaje de vuelta.',
-    nacio: 'Llegó {hijo}, el vecino más chico de la aldea. Pesó lo que pesa un buen zapallo.',
+    nacio: 'Llegó {hijo} y la aldea tiene una sonrisa más. Pesó lo que pesa un buen zapallo.',   // 3.8.3: sin «el vecino» (puede ser una nena)
     separados: 'Se separaron {ella} y el vecino del refugio. Desde esta radio, ánimo a los dos.',
     volvieron: 'Volvieron {ella} y el vecino del refugio. La aldea respira aliviada y Pocha también.',
     'dos-a-la-vez': 'Un vecino del refugio sale con {ella} y con {otra} a la vez. Se le recomienda abrigarse: va a hacer frío.',

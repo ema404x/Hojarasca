@@ -77,6 +77,10 @@ function hashTexto(s) {
 }
 const sorteo = (s) => azar(hashTexto(s));
 const elegir = (lista, s) => (Array.isArray(lista) ? lista[hashTexto(s) % lista.length] : lista);
+// 3.8.3: con quién se vuelve a su casa: el nombre del hijo, si es uno solo, o «los chicos»
+const chicosDe = (amor, c) => { const l = amor.hijos.filter((h) => h.madre === c); return l.length === 1 && l[0].nombre ? l[0].nombre : 'los chicos'; };
+// 3.8.3: «un día» o «unos 5 días» (decía «unos 1 días»)
+const faltanDias = (x) => { const k = Math.max(1, Math.round(Number(x)) || 1); return { dias: k === 1 ? 'un día' : `unos ${k} días` }; };
 // Reemplaza {x} con `datos` (lo que falta queda vacío).
 export function llenarAmor(texto, datos = {}) {
   if (typeof texto !== 'string') return '';
@@ -373,7 +377,7 @@ export function verla(estado, clave, ctx = {}) {
   let dice = null;
   if (amor.embarazo?.madre === clave && !amor.embarazo.contado) {
     amor.embarazo.contado = true;
-    dice = llenarAmor(FRASES_AMOR.embarazo, { ella: nombreDe(clave), dias: Math.max(1, amor.embarazo.nace - d) });
+    dice = llenarAmor(FRASES_AMOR.embarazo, { ella: nombreDe(clave), ...faltanDias(amor.embarazo.nace - d) });   // 3.8.3
   } else if (enojada(f, d)) dice = elegir(FRASES_AMOR.enojada, `${clave}${d}`);
   else if (f.leyo) { dice = f.leyo === 'ramo' ? voz.flores : voz.carta; f.leyo = null; }
   if (idx(f.etapa) >= idx('coqueteo')) {
@@ -836,7 +840,7 @@ export function hablarDeLosChicos(estado, clave, ctx = {}) {
   if (f.chicos === d) return { ok: false, motivo: 'ya-hoy', renglones: [FRASES_AMOR.chicosHoy] };
   f.chicos = d;
   contacto(f, d);
-  if (amor.embarazo?.madre === clave) return { ok: true, renglones: [llenarAmor(FRASES_AMOR.esperando, { dias: Math.max(1, amor.embarazo.nace - d) })] };
+  if (amor.embarazo?.madre === clave) return { ok: true, renglones: [llenarAmor(FRASES_AMOR.esperando, faltanDias(amor.embarazo.nace - d))] };   // 3.8.3
   const suyos = amor.hijos.filter((h) => h.madre === clave);
   if (suyos.length) {
     const h = suyos[hashTexto(`${clave}${d}`) % suyos.length];
@@ -1046,7 +1050,7 @@ export function pasarDiaAmor(estado, dia, ctx = {}) {
         amor.buscan = false;
         if (amor.cita?.clave === c) amor.cita = null;
         noticia(amor, 'separados', x, { con: c });
-        eventos.push({ tipo: 'separacion', clave: c, texto: `${nombreDe(c)} y vos se separaron`, sub: llenarAmor(amor.hijos.some((h) => h.madre === c) ? FRASES_AMOR.separacion : FRASES_AMOR.separacionSinChicos, conElla(c)) });
+        eventos.push({ tipo: 'separacion', clave: c, texto: `${nombreDe(c)} y vos se separaron`, sub: llenarAmor(amor.hijos.some((h) => h.madre === c) ? FRASES_AMOR.separacion : FRASES_AMOR.separacionSinChicos, { ...conElla(c), chicos: chicosDe(amor, c) }) });
       } else if (f.etapa === 'saliendo') {
         cambiarEtapa(f, 'coqueteo', x);
         eventos.push({ tipo: 'enfrio', clave: c, texto: llenarAmor(FRASES_AMOR.seEnfrio, conElla(c)), sub: '' });
