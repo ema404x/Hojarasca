@@ -151,7 +151,7 @@ de madera, mostrador con estantes de botellas, guitarra en la pared, mesa de tru
 peones de paso traen chismes y rumores del valle; los vecinos van solos de noche (con «La aldea viva»).
 
 **Sentarse y pedir de verdad** (el usuario NO quiere que sea como la casa de té de hoy, donde te sentás y el té
-«aparece» con ):
+«aparece» con la función servir):
 1. Entrás, elegís una mesa libre y te sentás (E). La cámara baja un poco y queda la mesa a la vista.
 2. **La moza te ve y viene caminando** a tu mesa (no aparece): te saluda por tu nombre si ya te conoce, con una
    frase según la hora, el tiempo o lo que pasó en el valle.
