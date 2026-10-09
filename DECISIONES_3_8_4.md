@@ -115,6 +115,23 @@ Todo marcado por el usuario:
 - Ojo: ya existen la rueda social de la 3.7.4 (30 interacciones, humor y deseos, iniciativa) y los horarios de la
   3.6: construir sobre eso, no de cero. Cuidar el rendimiento con 20+ vecinos y que la E y el aviso sigan alineados.
 
+## La primera hora de juego (elegida por el usuario, 09-10)
+- **Llegada con escena:** llegás en la trochita y en la estación **te recibe la abuela Herminia**, que te acompaña al
+  refugio (queda armado el lazo con la leyenda de los duendes).
+- **Primeros días guiados:** 3–4 días en los que un vecino te pide cosas simples (leña, fuego, huerta, ir a la aldea)
+  que enseñan el juego sin carteles de tutorial.
+- **Menos carteles juntos:** teclas y avisos de a uno, cuando hacen falta.
+- **Regalo temprano: el perro** (cachorro que te sigue desde el primer día).
+
+## La noche de los duendes, más (elegida por el usuario, 09-10)
+- **Más tipos de noche:** niebla, luna llena con los viejos, la de los ladrones (sólo traviesos que roban), tormenta.
+- **Duendes nuevos:** p. ej. uno que se esconde en los árboles, uno que apaga las antorchas, uno que cura a los demás.
+- **Defensas nuevas del bosque:** trampas de miel, espantajos con campanitas, faroles que encandilan.
+- **Aliados de la aldea en las noches grandes:** Anselmo arregla defensas rotas; la abuela Herminia prende faroles y
+  fogones que espantan a los viejos; Martín pasa con la trochita tocando el silbato y dispersa a los traviesos; los
+  chicos tiran piedras con hondas desde la empalizada (sin correr peligro).
+- **La primera noche tiene que dar miedo desde el principio:** mucho clima y tensión aunque sean pocos.
+
 ## Versión de pulido visual «pronto» (el usuario: «en una versión pronta»)
 - La lechuza (tosca), las raíces del cofre del alba (parecen patas), el Rey Duende con piel por huesos (hoy rígido),
   la corteza del Coihue de noche de lejos.
