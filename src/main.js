@@ -2651,7 +2651,10 @@ document.addEventListener('keydown', (e) => {
   if (personalAbierto()) { if (codigo === 'Escape' || e.code === 'F5') { e.preventDefault(); cerrarPersonal(); } return; }
   if (e.code === 'F5' && !accionDeTecla(teclasPropias, 'F5') && !foto.activo) { e.preventDefault(); personalizarDesdeElJuego(); return; }
   // 3.5.1: como F3 y F5: si el jugador le dio F2 a una acción, F2 es de esa acción (antes no llegaba nunca)
-  if (e.code === 'F2' && jugador && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
+  // 3.8.3: sólo desde el juego (jugando, la pausa, el cuaderno o el mapa). En la portada, la pantalla de victoria o la
+  // tarjeta del valle, F2 prendía el modo foto con ese panel encima y, al salir, el juego corría detrás de la portada
+  const fotoPosible = foto.activo || modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa';
+  if (e.code === 'F2' && jugador && fotoPosible && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
   if (codigo === 'F1') {
     e.preventDefault();
