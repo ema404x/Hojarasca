@@ -24,7 +24,7 @@ import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logr
 import { crearAliados } from './desafio-aliados.js';
 import { crearArsenalMundo } from './desafio-arsenal-mundo.js';
 import { crearFortinMundo } from './desafio-fortin-mundo.js';
-import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION } from './desafio-arsenal.js';
+import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION, RECUPERABLES } from './desafio-arsenal.js';
 import { crearCimientos } from './desafio-cimiento.js';
 import { crearDefensasActivas } from './desafio-defensas.js';
 import { crearEventos } from './desafio-eventos.js';
@@ -252,7 +252,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       }
       const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6;
       c.x = pos.x + Math.cos(a) * r; c.z = pos.z + Math.sin(a) * r;
-      c.y = alturaSuelo(c.x, c.z) + 0.35;   // 3.0 c.t = Math.random() * 6; c.activo = true;
+      c.y = alturaSuelo(c.x, c.z) + 0.35;   // 3.0
+      // 3.8.3: estas dos líneas estaban metidas en el comentario de arriba: la semilla que suelta un duende
+      // se veía pero nunca se activaba (no se juntaba, y las del mandamás eran todas la misma)
+      c.t = Math.random() * 6; c.activo = true;
+      // 3.8.3: en el agua flota (en el fondo del lago no se alcanzaba nunca, y las que quedaban ahí llenaban el pozo)
+      const w = naveMundo?.adentro ? null : T.agua?.(c.x, c.z);
+      if (w) c.y = Math.max(c.y, w.nivel + 0.35);
       c.mesh.visible = true;
     }
   }
@@ -506,7 +512,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const cristales = NIDO.cristales[0] + Math.floor(Math.random() * (NIDO.cristales[1] - NIDO.cristales[0] + 1));
     ctx.sumarMaterial?.('cristal', cristales);
     ctx.nota('SE DERRUMBÓ LA CUEVA', `Se terminó: de acá no sale nadie más. +${cristales} semillas doradas`, true);
-    registrarRecords(true);
+    registrarRecords();   // 3.8.3: sin sumar otra victoria: la del Coihue ya se sumó en vencer() (eran dos por campaña)
     ctx.alTerminar?.({ noches: d.noches, abatidos: d.abatidos, derrotas: d.derrotas, dificultad: ctx.dificultad?.() || 'normal', cristales });
     ctx.guardar();
   }
@@ -729,7 +735,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function puntoDeAterrizaje(js, azar = Math.random) {
     // 2.1: una noche de rescate, la nave baja cerca del lugar del vecino
     // 2.3: y la de la trochita varada, cerca del tren
-    const resc = D().rescate, L = (resc && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche();   // 3.0: y la del contraataque del asedio
+    // 3.8.3: un lugar que ya cayó no es blanco (como en actualizarAlien): los refuerzos bajaban al lado de las ruinas, lejos de vos
+    const resc = D().rescate, L = (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche();   // 3.0: y la del contraataque del asedio
     if (L) {
       for (let i = 0; i < 30; i++) {
         const a = azar() * Math.PI * 2, r = 40 + azar() * 18;
@@ -991,7 +998,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         rescateForzado = null;
         d.rescate = lug ? { lugar: lug, vida: VIDA_LUGAR, caido: false } : null;
         // 2.3: ¿esta noche se vara la trochita? (nunca la misma noche que un rescate)
-        const varar = !d.rescate && (varadaForzada || nocheDeVarada(d.oleadas + 1, { azar: azarNoche('varada'), esJefe: esNocheDeJefe(d.oleadas + 1), especial: d.especial, final: final || asedioMundo.activo }));
+        // 3.8.3: con vos arriba de la trochita no se vara (el tren saltaba cientos de metros para atrás con vos adentro)
+        const varar = !d.rescate && !ctx.jugador().estado.enTren && (varadaForzada || nocheDeVarada(d.oleadas + 1, { azar: azarNoche('varada'), esJefe: esNocheDeJefe(d.oleadas + 1), especial: d.especial, final: final || asedioMundo.activo }));
         varadaForzada = false;
         const hayVarada = varar && empezarVarada();
         asedioMundo.alEmpezarNoche();   // 3.0: el contraataque va por la última zona recuperada
@@ -1011,8 +1019,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       } else if (!d.oleadaTerminada && d.vivos > 0 && !aliens.length && !estadoNave.porBajar.length && nave.g.visible === false) {
         // se cargó una partida guardada en medio del ataque: vuelven los que quedaban
         const n = Math.max(1, d.vivos || 1);
-        const tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
-        empezarOleada(tipos.slice(0, n), false, true);
+        let tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
+        // 3.8.3: con la noche especial, como al empezarla (una silenciosa volvía con rastreadores y brutos, y la roja con menos)
+        if (d.especial) tipos = aplicarEspecial(tipos, d.especial);
+        // 3.8.3: el mandamás va último en la lista: cortarla dejaba afuera al que seguía vivo (guardar y abrir
+        // salteaba al jefe) y, con los llamados del jefe contados, volvía uno ya abatido
+        const conJefe = tipos.includes('jefe') && d.jefeCaido !== d.oleadas;
+        empezarOleada(conJefe ? [...sinJefe(tipos).slice(0, n - 1), 'jefe'] : sinJefe(tipos).slice(0, n), false, true);
         if (d.nodriza && !d.victoria) eventos.iniciarNodriza();
       } else if (!d.oleadaTerminada && d.nodriza && !d.victoria && !d.asedio && !eventos.nodrizaActiva) {
         // 3.5.1: guardada en la noche final entre dos tandas de la nodriza (sin invasores
@@ -1496,6 +1509,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         musica.golpeFinal();
         efectos.sangre(_v, 14); efectos.chispas(_v, 16);
         ctx.nota('Cayó el mandamás', `Dejó ${sueltos} semillas doradas desparramadas`, true);
+        d.jefeCaido = d.oleadas;   // 3.8.3: para que al abrir la partida a mitad de noche no vuelva
       }
       d.abatidos++;
       nocheActual.abatidos++;
@@ -1518,6 +1532,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   function usarEmplasto() {
     const d = D();
+    if (caido) return;   // 3.8.3: caído (el fundido antes de despertar en la base) se gastaba para nada: levantarse ya cura todo
     if (d.emplastos <= 0) { ctx.nota('No tenés emplastos', 'Se hacen con fruta y una ramita (K)'); return; }
     if (!curar(45)) { ctx.nota('Estás entero', 'Guardalo para cuando haga falta'); return; }
     d.emplastos--;
@@ -3101,7 +3116,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 2.6.1: sin zanjas ni fuego suelto no hay nada que hacer (y el filter pedía memoria en cada cuadro)
     if (!zanjas.length && !focos.length) { if (lucesZanja) for (const l of lucesZanja) l.intensity = 0; return; }
     const clima = api.clima();
-    const ardiendo = zanjas.filter((o) => (o.datos.zanja?.ardiendo || 0) > 0);
+    // 3.8.3: por datosZanja, como el aviso y la E: una zanja guardada ardiendo seguía con el fuego hasta que te
+    // acercabas y se apagaba de golpe, sin aviso (guardada, la zanja vuelve apagada: ver sanearZanja)
+    const ardiendo = zanjas.filter((o) => (datosZanja(o).ardiendo || 0) > 0);
     if (!ardiendo.length && !focos.length) { if (lucesZanja) for (const l of lucesZanja) l.intensity = 0; return; }
     const luces = lucesDeZanja();
     for (const l of luces) l.intensity = 0;
@@ -3156,7 +3173,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       }
       if (Math.hypot(js.pos.x - f.x, js.pos.z - f.z) < r + 0.3 && Math.abs(suelo - y) < 1.2) herirJugador(ESCAPE.dano * 0.5, { x: f.x, y, z: f.z });
       _v.set(f.x, y, f.z);
-      for (const o of obras.obrasCerca(_v, r + 1.5, [])) if (completa(o) && !esPiedra(o) && Number.isFinite(o.datos.vida)) danarObra(o, ESCAPE.danoObra * 0.5);
+      // 3.8.3: también la madera sana (antes sólo la ya golpeada: la vida se anota recién con el primer golpe)
+      for (const o of obras.obrasCerca(_v, r + 1.5, [])) if (completa(o) && !esPiedra(o)) danarObra(o, ESCAPE.danoObra * 0.5);
     }
   }
 
@@ -3230,10 +3248,14 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       cimientos.sincronizar(obras.obras);
       sincronizarCapullos();   // 2.3: los capullos que quedaron de la partida guardada
       devolverTodo(false);   // 3.8.0: si se guardó con algo robado, vuelve a tus cosas
+      arsenal.devolverTiradas();   // 3.8.3: y las hachuelas y jabalinas que quedaron tiradas
       // 3.5.1: si se cerró el juego mientras la nave caía (derribar ya guardó el asedio
       // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
       // sin noche final ni nido, la campaña no terminaba nunca. Se da al abrir.
       if (D().asedio?.ganado && !D().victoria) vencer({ nave: true });
+      // 3.8.3: ganada sin cueva (no se encontró lugar, o una partida de antes de la cueva): las noches seguían para
+      // siempre (siguenLasNoches) sin cueva que romper. Se busca otra vez al abrir.
+      else if (D().victoria && !D().nido && !D().sinFin) abrirSegundoActo();
     }
     // las piedras siguen a las obras: si se cae una empalizada, se va su cimiento
     relojCimientos -= dt;
@@ -3364,7 +3386,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     aliens.length = 0;
     estadoNave.porBajar.length = 0;
     nave.g.visible = false; estadoNave.fase = 'fuera'; luzNave.intensity = 0;
-    for (let i = proyectiles.length - 1; i >= 0; i--) retirarProyectil(i);
+    // 3.8.3: la hachuela o la jabalina que iba en el aire cae al suelo (y arsenal.limpiar la devuelve a tus cosas)
+    for (let i = proyectiles.length - 1; i >= 0; i--) { if (RECUPERABLES[proyectiles[i].tipo] && !proyectiles[i].terminado) arsenal.alTerminar(proyectiles[i], 'vida'); retirarProyectil(i); }
     arsenal.limpiar();
     fortin.limpiar();
     puestos.limpiar();   // 3.0

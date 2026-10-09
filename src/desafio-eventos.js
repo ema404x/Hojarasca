@@ -424,6 +424,9 @@ export function crearEventos(T, escena, sonido, efectos, api) {
   function blancosNido() {
     const d = api.D();
     if (!nido || !d.nido || d.nido.caido) return SIN_BLANCOS;
+    // 3.8.3: de lejos (más de 220 m) las cunas no tienen posición todavía: quedaban en el origen del mapa y
+    // una flecha que pasaba por ahí le pegaba a la cueva desde la otra punta del valle
+    if (!nido.g.visible) return SIN_BLANCOS;
     if (!estaAbierto(api.horas?.() ?? 12)) return [];       // de noche está cerrado
     return nido.camaras.filter((c) => d.nido.camaras[c.i] > 0);
   }

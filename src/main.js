@@ -378,7 +378,7 @@ window.addEventListener('mousedown', (e) => {
   e.preventDefault();
   // Desafío: con la lanza, el clic derecho sostenido bloquea; la pistola mejorada dispara cargado
   const id = ranuras[elegida]?.id;
-  if (desafio && !desafio.caido && !modoObra) {
+  if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) {   // 3.8.3: ni con el taller abierto ni charlando
     // 2.5: con el carcaj, el arco cambia de flecha; con la lanza o el escudo de tablas, bloquea
     if (id === 'arco' && desafio.cambiarFlecha()) { refrescarBarra(true); return; }
     if (desafio.atacarAlterno(id)) { refrescarBarra(true); return; }
@@ -399,6 +399,7 @@ window.addEventListener('blur', () => { if (desafio?.bloqueando) desafio.bloquea
 window.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo) return;
   if (panelDelHudAbierto()) return;   // 3.6.2: con el taller (o el almacén del valle) abierto, el clic no ataca
+  if (charla.npc) return;   // 3.8.3: charlando, el clic sigue la charla (también tensaba el arco o pegaba, y gastaba munición)
   if (!jugador?.bloqueado() || pesca?.est.equipada) return;
   const js = jugador.estado;
   if (js.enKayak || js.enTren || js.sentado) return;
@@ -1134,6 +1135,8 @@ function dormir(opRincon = null) {
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
   }
   const deNoche = progreso.horas >= 19.5 || progreso.horas < 6;
+  // 3.8.3: con la hora de tu reloj la hora no salta al dormir: el día sumado hacía salir otra oleada al despertar
+  if (desafio && deNoche && ajustes.duracion === 'reloj') { nota('No podés dormir ahora', 'Con la hora de tu reloj la noche pasa de verdad'); return; }
   const nocheReloj = !desafio && deNoche && ajustes.duracion === 'reloj' ? claveNocheReloj() : '';
   if (nocheReloj && progreso.relojNoche === nocheReloj) { nota('Ya dormiste esta noche', 'Con la hora de tu reloj, la noche pasa de verdad'); return; }
   if (desafio) desafio.curar(deNoche ? 100 : 35);
@@ -2495,6 +2498,9 @@ let parteUltimo = null;
 { const estilo = document.createElement('style'); estilo.textContent = CSS_PARTE; document.head.appendChild(estilo); }
 function mostrarVictoria(s, final = false) {
   setTimeout(() => {
+    // 3.8.3: en esos segundos se pudo pausar (espera a que vuelvas) o salir a la portada (ahí no se abre: quedaba la
+    // pantalla de victoria sobre la portada y «Seguir» volvía al juego detrás de ella)
+    if (modo !== 'jugando') { if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle') mostrarVictoria(s, final); return; }
     // 3.0: si se ganó desde adentro de la nave (el asedio), la pantalla lo cuenta
     $('victoria-titulo').textContent = final ? 'Se derrumbó la cueva' : s?.nave ? 'El Coihue cayó desde adentro' : '¡Cayó el Coihue Viejo!';
     $('victoria-sub').textContent = final ? 'Se terminó La noche de los duendes' : 'Ganaste La noche de los duendes';
@@ -2801,7 +2807,8 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
       if (enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }
-      // 3.8.3: mirando algo (una ramita, una silla), E hace eso, como dice el aviso: antes dormía
+      // 3.8.3: mirando algo (juntar, sentarse) E hace eso, como dice el aviso: antes dormía (o en plena noche de duendes
+      // decía «No podés dormir ahora» y no juntaba nada)
       if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
       if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
       if (cercaDelFuego() && (!objetivo || objetivo.tipo === 'sentarse')) {
@@ -3265,7 +3272,8 @@ function usarRanura() {
     case 'fuego': encenderFuego(); break;
     case 'plantar-pehuen': case 'plantar-coihue': case 'plantar': plantarRenoval(); break;
     case 'cocinar': cocinar(); break;
-    case 'arma': if (desafio && !desafio.caido) desafio.atacar(r.id); refrescarBarra(true); return;
+    // 3.8.3: como el clic izquierdo: en modo obra, con un panel abierto (el taller) o charlando no se tira (gastaba munición)
+    case 'arma': if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) desafio.atacar(r.id); refrescarBarra(true); return;
     case 'curar': if (desafio) desafio.usarEmplasto(); break;
     case 'grabador': usarGrabador(); break;
     default: nota(r.nombre, r.texto || 'Se guarda en la mochila'); break;
@@ -3780,8 +3788,12 @@ function caerEnDesafio() {
     const M = progreso.materiales || {};
     M.cristal = 0;
     for (const k of ['tronco', 'tabla', 'piedra']) if (M[k]) M[k] = Math.floor(M[k] * 0.7);
-    if (progreso.horas >= 12) progreso.dia++;
-    progreso.horas = 7.2;
+    // 3.8.3: con la hora de tu reloj no se salta a la mañana (la hora vuelve a la del reloj): el día sumado hacía
+    // salir otra oleada apenas despertabas
+    if (ajustes.duracion !== 'reloj') {
+      if (progreso.horas >= 12) progreso.dia++;
+      progreso.horas = 7.2;
+    }
     const b = puntoBase();
     jugador.ubicar(b.x, b.z, b.yaw, b.y);
     desafio.levantarse();
@@ -3944,7 +3956,9 @@ function leerMando(dt) {
   }
   if (desafio && !desafio.caido && !modoObra) {
     const id = ranuras[elegida]?.id;
-    if (m.recien.atacar) { desafio.atacar(id); refrescarBarra(true); }
+    // 3.8.3: con el emplasto en la mano, el gatillo lo usa (con el mando no había forma de curarse); con el taller o la
+    // mochila abiertos, o charlando, no se tira (como el clic)
+    if (m.recien.atacar) { if (ranuras[elegida]?.accion === 'curar') usarRanura(); else if (!panelDelHudAbierto() && !charla.npc) desafio.atacar(id); refrescarBarra(true); }
     if (m.recien.bloquear && id === 'arco' && desafio.cambiarFlecha()) refrescarBarra(true);
     else if (m.recien.bloquear && desafio.puedeBloquear(id)) desafio.bloquear(true, id);
     if (m.soltados.bloquear && desafio.bloqueando) desafio.bloquear(false);
@@ -8140,7 +8154,9 @@ function actualizarTiempo(dt) {
     progreso.horas = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
     // 3.5.1: con la hora de tu reloj el día no cambiaba nunca a la medianoche (sólo durmiendo):
     // la huerta, el correo y los encargos quedaban quietos. Si esa noche ya se durmió, el día ya pasó.
-    if (!desafio && antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
+    // 3.8.3: también en La noche de los duendes: sin el día nuevo, a la medianoche `claveNoche` volvía a la noche
+    // anterior y salía otra oleada entera (dos por noche: el jefe y la noche final llegaban al doble de rápido)
+    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)

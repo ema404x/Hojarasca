@@ -152,7 +152,7 @@ export function cerrarNocheAsedio(a, sobrevivida) {
   if (sobrevivida) {
     a.noches = (a.noches || 0) + 1;
     if (z && z.estado === 'recuperada' && z.baliza > 0) { z.estado = 'asegurada'; asegurada = z.id; }
-  }
+  } else if (z && z.estado === 'recuperada') z.baliza = ASEDIO.vidaBaliza;   // 3.8.3: se defiende de nuevo con el fogón entero (quedaba como lo dejaron y se apagaba enseguida)
   a.contra = null;
   return { asegurada };
 }

@@ -3,7 +3,7 @@
 import { sanearNido } from './desafio-nido.js';
 import { sanearAsedio } from './desafio-asedio.js';
 import { APAGON, sanearBestiario, sanearDespues } from './desafio-noche2.js';
-import { EXCAVADOR, sanearRescates } from './desafio-valle.js';
+import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR } from './desafio-valle.js';
 import { multiplicadorVuelta } from './desafio-vuelta.js';
 import { sanearOrdenes } from './desafio-ordenes.js';
 import { VOLADOR, voladoresEnLaNoche } from './desafio-cielo.js';
@@ -359,6 +359,10 @@ export function desafioNuevo() {
     flechas: 0, cargas: 0, emplastos: 1, boleadoras: 0, pistolaEncontrada: false, mejorRacha: 0, racha: 0, caja: null,
     recetasHechas: [], planos: [], restos: null, companeros: [], ordenes: {}, abatidosPerro: 0, especial: null, especialAnterior: null,
     victoria: false, nodriza: null, tutorial: 0,
+    // 3.8.3: la noche en que cayó el último mandamás (al abrir a mitad de noche, vuelve sólo si seguía vivo)
+    jefeCaido: -1,
+    // 3.8.3: las hachuelas y jabalinas tiradas que todavía están en el suelo (al abrir o al caer vuelven)
+    armasTiradas: {},
     // Segundo acto: aparece recién cuando cae la nodriza (ver desafio-nido.js).
     nido: null,
     // 3.0: el asedio final: aparece si al alba de la noche final la nodriza sigue arriba (desafio-asedio.js)
@@ -379,6 +383,14 @@ export function desafioNuevo() {
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
+// 3.8.3: el armado del tronco hueco guardado (disposicionRuina, desafio-valle.js): tres hongos, dos dormidos y el premio
+const puntoOk = (p) => !!p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.z));
+function dispRuina(v) {
+  if (!v || !Array.isArray(v.placas) || v.placas.length !== 3 || !v.placas.every(puntoOk) || !Array.isArray(v.dormidos) || !puntoOk(v.premio)) return null;
+  const dormidos = v.dormidos.filter((q) => puntoOk(q) && Object.hasOwn(TIPOS_ALIEN, q.tipo)).slice(0, 4);
+  const xz = (p) => ({ x: Number(p.x), z: Number(p.z) });
+  return { placas: v.placas.map(xz), dormidos: dormidos.map((q) => ({ tipo: q.tipo, ...xz(q) })), premio: xz(v.premio) };
+}
 // 3.8.1: lo de adentro del cofre del alba guardado: sólo lo que da `suministrosDelAlba`, en números (un
 // "3" de texto se pegaba como texto a los materiales al abrirlo: "03")
 const COSAS_CAJA = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos'];
@@ -405,15 +417,18 @@ export function sanearDesafio(d) {
     oleadaNoche: Number.isFinite(Number(x.oleadaNoche)) && x.oleadaNoche !== null ? Math.floor(Number(x.oleadaNoche)) : null,
     oleadaTerminada: x.oleadaTerminada === undefined ? true : !!x.oleadaTerminada,
     vivos: ent(x.vivos, 0, 40), abatidos: ent(x.abatidos, 0),
-    flechas: ent(x.flechas, 0, 999), cargas: ent(x.cargas, 0, 999), emplastos: ent(x.emplastos, base.emplastos, 99),
+    flechas: ent(x.flechas, 0, 999), cargas: ent(x.cargas, 0, 999), emplastos: ent(x.emplastos, base.emplastos, 999),
     pistolaEncontrada: !!x.pistolaEncontrada, mejorRacha: ent(x.mejorRacha, 0), racha: ent(x.racha, 0),
     caja: x.caja && Number.isFinite(Number(x.caja.x)) && Number.isFinite(Number(x.caja.z)) && x.caja.contenido && typeof x.caja.contenido === 'object'
       ? { x: Number(x.caja.x), z: Number(x.caja.z), contenido: sanearContenidoCaja(x.caja.contenido), cayendo: false } : null,
-    boleadoras: ent(x.boleadoras, 0, 99),
+    boleadoras: ent(x.boleadoras, 0, 999),   // 3.8.3: emplastos y boleadoras con el tope del taller (999): al abrir se cortaban en 99
     recetasHechas: lista(x.recetasHechas, RECETAS.map((r) => r.id)),
     planos: lista(x.planos, PLANOS_ALIEN.map((p) => p.id)),
     restos: x.restos && Number.isFinite(Number(x.restos.x)) && Number.isFinite(Number(x.restos.z))
-      ? { x: Number(x.restos.x), z: Number(x.restos.z), ...(Number.isFinite(Number(x.restos.rot)) ? { rot: Number(x.restos.rot) } : {}) } : null,
+      ? { x: Number(x.restos.x), z: Number(x.restos.z), ...(Number.isFinite(Number(x.restos.rot)) ? { rot: Number(x.restos.rot) } : {}),
+        // 3.8.3: los dormidos ya puestos y el armado del tronco hueco (antes, al abrir, los dos dormidos volvían y los
+        // hongos del piso cambiaban de lugar)
+        ...(x.restos.dormidos ? { dormidos: true } : {}), ...(dispRuina(x.restos.disp) ? { disp: dispRuina(x.restos.disp) } : {}) } : null,
     companeros: lista(x.companeros, ['ramon', 'ema']),
     ordenes: sanearOrdenes(x.ordenes),
     abatidosPerro: ent(x.abatidosPerro, 0),
@@ -423,6 +438,7 @@ export function sanearDesafio(d) {
     nodriza: x.nodriza && typeof x.nodriza === 'object' && Array.isArray(x.nodriza.nucleos)
       ? { nucleos: x.nodriza.nucleos.slice(0, 3).map((v) => Math.max(0, Math.min(NUCLEO_VIDA, Number(v) || 0))) } : null,
     tutorial: ent(x.tutorial, 0, 99),
+    jefeCaido: Number.isFinite(Number(x.jefeCaido)) && x.jefeCaido !== null ? Math.floor(Number(x.jefeCaido)) : -1,   // 3.8.3
     nido: sanearNido(x.nido),
     asedio: sanearAsedio(x.asedio),   // 3.0
     // 2.0: el bestiario y las noches después del nido
@@ -430,8 +446,9 @@ export function sanearDesafio(d) {
     despues: sanearDespues(x.despues),
     rescates: sanearRescates(x.rescates),
     rescateAnterior: typeof x.rescateAnterior === 'string' ? x.rescateAnterior : null,
-    rescate: x.rescate && typeof x.rescate === 'object' && typeof x.rescate.lugar === 'string'
-      ? { lugar: x.rescate.lugar, vida: Math.max(0, Number(x.rescate.vida) || 0), caido: !!x.rescate.caido } : null,
+    // 3.8.3: sólo un lugar que existe (uno raro rompía el amanecer en cerrarRescate) y sin vida anotada, entero (caía al primer golpe)
+    rescate: x.rescate && typeof x.rescate === 'object' && typeof x.rescate.lugar === 'string' && Object.hasOwn(RESCATES, x.rescate.lugar)
+      ? { lugar: x.rescate.lugar, vida: Math.max(0, Number.isFinite(Number(x.rescate.vida)) ? Number(x.rescate.vida) : VIDA_LUGAR), caido: !!x.rescate.caido } : null,
     vuelta: ent(x.vuelta, 0, 9),
     capullos: sanearCapullos(x.capullos),
     varada: sanearVarada(x.varada),
@@ -449,5 +466,6 @@ export function sanearDesafio(d) {
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
+    armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
   };
 }

@@ -159,16 +159,36 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
   }
   // ---------------------------------------------------------------- lo que se levanta del suelo
   const enElSuelo = [];
+  // 3.8.3: lo tirado que quedó en el suelo se anota en la partida (`armasTiradas`): si se guarda y se abre,
+  // o si caés, vuelve a tus cosas (antes se perdía para siempre). Fuera del piso (un tiro errado adentro
+  // del Coihue quedaba bajo el mundo) o sin lugar en el suelo, vuelve directo.
+  const TOPE_SUELTAS = 99;
+  function anotarTirada(k, n) {
+    const d = api.D();
+    if (!d.armasTiradas || typeof d.armasTiradas !== 'object') d.armasTiradas = {};
+    d.armasTiradas[k] = Math.max(0, (d.armasTiradas[k] || 0) + n);
+  }
+  function volverATusCosas(k, n = 1) {
+    const d = api.D();
+    d[k] = Math.min(TOPE_SUELTAS, (d[k] || 0) + n);
+  }
+  function devolverTiradas() {
+    const d = api.D();
+    for (const k of Object.values(RECUPERABLES)) { const n = Math.floor(Number(d.armasTiradas?.[k])) || 0; if (n > 0) volverATusCosas(k, n); }
+    d.armasTiradas = {};
+  }
   function dejarEnElSuelo(tipo, pos) {
     const m = MALLAS[tipo];
     let r = enElSuelo.find((x) => !x.activo && x.tipo === tipo);
+    const y = api.alturaSuelo?.(pos.x, pos.z) ?? T.altura(pos.x, pos.z);   // 3.5.1: adentro de la nave, su piso (no el valle de abajo)
+    if ((!r && enElSuelo.length > 40) || !(y > -1e6)) { volverATusCosas(RECUPERABLES[tipo]); return; }   // 3.8.3
+    anotarTirada(RECUPERABLES[tipo], 1);
     if (!r) {
       if (enElSuelo.length > 40) return;   // tope: una lluvia de hachas no llena la escena
       r = { tipo, malla: new THREE.Mesh(m.geo, m.mat), activo: false };
       escena.add(r.malla);
       enElSuelo.push(r);
     }
-    const y = api.alturaSuelo?.(pos.x, pos.z) ?? T.altura(pos.x, pos.z);   // 3.5.1: adentro de la nave, su piso (no el valle de abajo)
     r.activo = true; r.x = pos.x; r.z = pos.z; r.t = 0;
     r.malla.visible = true;
     r.malla.position.set(pos.x, y + (tipo === 'jabalina' ? 0.55 : 0.06), pos.z);
@@ -180,9 +200,11 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
     for (const r of enElSuelo) {
       if (!r.activo) continue;
       if (Math.hypot(js.pos.x - r.x, js.pos.z - r.z) > 1.5) continue;
-      r.activo = false; r.malla.visible = false;
       const d = api.D();
       const k = RECUPERABLES[r.tipo];
+      if ((d[k] || 0) >= TOPE_SUELTAS) continue;   // 3.8.3: con el tope lleno queda en el suelo (antes se levantaba y se perdía)
+      r.activo = false; r.malla.visible = false;
+      anotarTirada(k, -1);
       d[k] = Math.min(99, (d[k] || 0) + 1);
       sonido.juntar?.();
       api.alJuntar?.(r.tipo);
@@ -381,6 +403,7 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
   }
   function limpiar() {
     for (const r of enElSuelo) { r.activo = false; r.malla.visible = false; }
+    devolverTiradas();   // 3.8.3: al caer, lo que habías tirado vuelve a tus cosas (antes desaparecía)
     for (const n of nubes) { n.activa = false; n.g.visible = false; }
     for (const b of bengalas) { b.activa = false; b.g.visible = false; b.charco.visible = false; }
     rafaga = null; arponFuera = null;
@@ -388,7 +411,7 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
 
   return {
     malla, lanzar, danoProyectil, alPegar, arder, alTerminar, terminaEnAire, estadoAlien, revelado, enHumo,
-    soplarCuerno, programarRafaga, actualizar, limpiar,
+    soplarCuerno, programarRafaga, actualizar, limpiar, devolverTiradas,
     get arponFuera() { return !!arponFuera; },
     get enElSuelo() { return enElSuelo.filter((r) => r.activo).length; },
     get nubes() { return nubes.filter((n) => n.activa).length; },

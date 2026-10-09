@@ -321,7 +321,8 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
     for (let i = 0; i < n; i++) {
       let t = rodando.find((x) => !x.activo);
       if (!t) {
-        if (rodando.length >= 9) break;
+        // 3.8.3: sin lugar para otro tronco rodando (varias rampas a la vez), los que faltan vuelven a la rampa
+        if (rodando.length >= 9) { o.datos.troncos = (o.datos.troncos || 0) + (n - i); break; }
         t = { malla: new THREE.Mesh(geoRueda, matTronco), activo: false };
         t.malla.castShadow = true;
         escena.add(t.malla);
@@ -339,7 +340,9 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
   function chocaTronco(t, x, z, y) {
     for (const s of [0, -1.1, 1.1]) {
       const px = x + t.dz * s, pz = z - t.dx * s;
-      if (api.obraEnPunto?.(px, T.altura(px, pz) + 0.3, pz)) return true;
+      // 3.8.3: lo que está a ras del suelo (abrojos, pozo, foso de estacas) no lo para: pasa rodando por encima
+      const o = api.obraEnPunto?.(px, T.altura(px, pz) + 0.3, pz);
+      if (o && (o.plano.alto || 1) > 0.5) return true;
       for (const c of col.cercanos(px, pz)) {
         if (c.duenio || c.despejado || c.alturaMin > y + 0.6 || (c.alturaMax !== undefined && c.alturaMax < y + 0.1)) continue;   // (3.6.2: lo despejado no está)
         const d = c.seg ? distSeg(px, pz, c) : Math.hypot(px - c.x, pz - c.z);
@@ -502,7 +505,9 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
     let mejor = null, d0 = Math.min(2.8, dPuerta);
     const probar = (o, tipo, radio = 2.8) => {
       const d = Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z) - (o.plano.radio || 1) * 0.35;
-      if (d < d0 && d < radio && Math.abs((pos.y ?? 0) - base(o)) < 3.2) { d0 = d; mejor = { o, tipo }; }
+      // 3.8.3: sólo lo que sigue en pie: las listas se rehacen una vez por segundo, y en ese rato E juntaba otra vez
+      // los abrojos ya juntados (devolvían lo que cuestan dos veces) o cargaba piedras en una catapulta ya rota
+      if (d < d0 && d < radio && Math.abs((pos.y ?? 0) - base(o)) < 3.2 && obras.obras.includes(o)) { d0 = d; mejor = { o, tipo }; }
     };
     for (const o of conResina) if (avisoResina(o.datos, { noche })) probar(o, 'resina');
     for (const o of L.catapulta) if ((o.datos.piedras || 0) < FORTIN.catapulta.piedras) probar(o, 'catapulta');

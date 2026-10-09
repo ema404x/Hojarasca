@@ -34,7 +34,8 @@ assert.match(main, /jugador\.sentarse\(false\);\n      durmiendo = false;/, 'y s
 
 // ---- la hora de tu reloj: una noche, un día; la medianoche cambia el día
 assert.match(main, /if \(nocheReloj && progreso\.relojNoche === nocheReloj\) \{ nota\('Ya dormiste esta noche'/, 'con el reloj, la misma noche no se duerme dos veces');
-assert.match(main, /if \(!desafio && antes - progreso\.horas > 12 && progreso\.relojNoche !== claveNocheReloj\(d\)\) \{ progreso\.dia\+\+;/, 'la medianoche del reloj cambia el día');
+// 3.8.3: también en el modo de combate (sin el día nuevo, a la medianoche salía otra oleada): ya sin `!desafio`
+assert.match(main, /if \(antes - progreso\.horas > 12 && progreso\.relojNoche !== claveNocheReloj\(d\)\) \{ progreso\.dia\+\+;/, 'la medianoche del reloj cambia el día');
 
 // ---- la carpeta sincronizada: si las dos siguieron, se pregunta igual
 const local = { hay: true, dia: 12, guardadoEn: Date.UTC(2026, 9, 1, 14) }, remota = { progreso: { dia: 10, guardadoEn: Date.UTC(2026, 9, 1, 13) } };
