@@ -25,7 +25,7 @@ const des = leer('src/desafio.js');
 {
   const ctx = {
     cristales: [], escena: { add() {} }, THREE: { Mesh: function () { this.visible = false; this.position = { set() {} }; this.rotation = {}; } },
-    geoCristal: null, matCristal: null, alturaSuelo: () => 10, Math,
+    geoCristal: null, matCristal: null, alturaSuelo: () => 10, Math, naveMundo: { adentro: false }, T: { agua: () => null },
   };
   vm.createContext(ctx);
   vm.runInContext(`${extraer(des, 'soltarCristales')}; this.soltarCristales = soltarCristales;`, ctx);
@@ -38,6 +38,10 @@ const des = leer('src/desafio.js');
   vm.runInContext(`${extraer(des, 'actualizarCristales')}; this.actualizarCristales = actualizarCristales;`, ctx2);
   ctx2.actualizarCristales(0.05, { pos: { x: 0, y: 10, z: 0 } });
   assert.equal(sumadas, 5, 'pasando por encima se juntan las cinco');
+  // en el lago flotan (en el fondo no se alcanzaban, y llenaban el pozo de 80)
+  ctx.alturaSuelo = () => -4; ctx.T.agua = () => ({ nivel: 0 });
+  ctx.soltarCristales({ x: 0, z: 0 }, 1);
+  assert.ok(ctx.cristales.some((c) => c.activo && Math.abs(c.y - 0.35) < 1e-9), 'la semilla que cae al agua flota');
 }
 
 // ---------------------------------------------------------------- 2. otra vuelta: la forja también se lleva

@@ -256,6 +256,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // 3.8.3: estas dos líneas estaban metidas en el comentario de arriba: la semilla que suelta un duende
       // se veía pero nunca se activaba (no se juntaba, y las del mandamás eran todas la misma)
       c.t = Math.random() * 6; c.activo = true;
+      // 3.8.3: en el agua flota (en el fondo del lago no se alcanzaba nunca, y las que quedaban ahí llenaban el pozo)
+      const w = naveMundo?.adentro ? null : T.agua?.(c.x, c.z);
+      if (w) c.y = Math.max(c.y, w.nivel + 0.35);
       c.mesh.visible = true;
     }
   }
