@@ -4,6 +4,8 @@
 //    temporal al azar de antes no tilda el final (ni se saltea la noche del temporal).
 // 3. La tecla E y el aviso: en la carpa o en tu casa, de noche, mirando algo (una ramita), E hace eso y no te duerme.
 // 4. Con doce ramitas, la que mirás se queda en el suelo (antes se borraba del valle sin sumar).
+// 5. Desarmar una obra devuelve lo que tenía adentro: lo colgado en el tendal, las macetas del vivero, los huevos del
+//    nidal y la cosecha lista del cantero (antes se perdían; también en el desalojo de la aldea).
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -11,6 +13,10 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import * as H from '../src/historia.js';
 import { CUENTOS } from '../src/cuentos.js';
+import * as Conservas from '../src/conservas.js';
+import * as Vivero from '../src/vivero.js';
+import * as Gallinero from '../src/gallinero.js';
+import * as Huerta from '../src/huerta.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -97,6 +103,39 @@ const trozo = (desde, hasta) => {
   ok(obj.includes('progreso.ramitas = Math.min(12, progreso.ramitas + 1)'), 'y el tope sigue en doce');
   const e = trozo("case 'KeyE': {", "    case 'Tab':");
   ok(e.includes("if (r?.llena) nota('No te entran más ramitas'") && e.includes('if (r && !r.llena) destellarRanura('), 'tecla E: con las ramitas llenas lo dice y no destella la casilla');
+}
+
+// ---------------------------------------------------------------- 5. desarmar devuelve lo de adentro
+{
+  const codigo = trozo('function devolverContenido(d) {', '\n  refrescarBarra(true);\n}');
+  const entradas = {};
+  const progreso = { dia: 20, entradas, cosas: {}, huerta: {}, gallineros: {}, cosechasTotal: 3 };
+  const ctx = {
+    progreso, ...Conservas, ...Vivero, ...Gallinero, ...Huerta,
+    sumarEntrada: (id, n) => { entradas[id] = { cantidad: (entradas[id]?.cantidad || 0) + n }; },
+    sumarMaterial() {}, refrescarBarra() {}, huerta: () => progreso.huerta, gallineros: () => progreso.gallineros,
+    sanearLenera: (x) => x, sanearAserradero: (x) => x, sanearMuela: (x) => x, sanearColmena: (x) => x, sanearAhumadero: (x) => x,
+  };
+  vm.createContext(ctx);
+  vm.runInContext(`${codigo}\nthis.devolver = devolverContenido;`, ctx);
+  const cuanto = (id) => entradas[id]?.cantidad || 0;
+  ctx.devolver({ plano: 'tendal', x: 0, z: 0, tendal: { colgado: 'calafate-seco', horas: 3 } });
+  ok(cuanto('calafate') === 5, `el tendal a medio secar devuelve los cinco calafates (${cuanto('calafate')})`);
+  ctx.devolver({ plano: 'tendal', x: 0, z: 0, tendal: { colgado: 'hongos-secos', horas: Conservas.HORAS_SECADO } });
+  ok(cuanto('hongos-secos') === 1, 'el tendal con lo seco devuelve el atado seco');
+  ctx.devolver({ plano: 'vivero', x: 0, z: 0, vivero: { macetas: [{ especie: 'coihue', dia: 19 }, { especie: 'lenga', dia: 20 - Vivero.VIVERO.diasPlantin }] } });
+  ok(cuanto('semilla-coihue') === 1 && cuanto('plantin-lenga') === 1, 'el vivero devuelve la semilla (o el plantín, si ya estaba)');
+  progreso.gallineros['10:10'] = Gallinero.gallineroNuevo(18);
+  const huevos = Gallinero.huevosEnNidal(progreso.gallineros['10:10'], 20);
+  ctx.devolver({ plano: 'gallinero', x: 10, z: 10 });
+  ok(huevos > 0 && cuanto('huevo') === huevos, `el gallinero devuelve los huevos del nidal (${cuanto('huevo')} de ${huevos})`);
+  Huerta.sembrar(progreso.huerta, '5:5', 'habas', 1);
+  ctx.devolver({ plano: 'cantero', x: 5, z: 5 });
+  ok(cuanto('haba') === Huerta.CULTIVOS.habas.cosecha && !progreso.huerta['5:5'] && progreso.cosechasTotal === 3 + Huerta.CULTIVOS.habas.cosecha, 'el cantero con la cosecha lista la devuelve (y cuenta como cosechada)');
+  Huerta.sembrar(progreso.huerta, '6:6', 'habas', 20);
+  ctx.devolver({ plano: 'cantero', x: 6, z: 6 });
+  ok(cuanto('haba') === Huerta.CULTIVOS.habas.cosecha, 'lo sembrado que no está listo se lo lleva el cantero, como siempre');
+  ok(main.includes('devolverContenido(r.datos);') && main.includes('devolverContenido(d); }'), 'se llama al desmontar y en el desalojo');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

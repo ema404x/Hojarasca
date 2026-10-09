@@ -139,7 +139,7 @@ import { crearRastrosMalla } from './rastros-malla.js';
 import { horasHasta, frente, frasePronostico } from './pronostico.js';
 import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
-import { CONSERVAS, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
+import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
 import { AHUMADERO, sanearAhumadero, teLaQuedas, avanzarAhumado, usarAhumadero, avisoAhumadero } from './ahumadero.js';
 import { VIVERO, ARBOLES_VIVERO, sanearVivero, sanearJuntadas, puedeJuntarSemilla, usarVivero, avisoVivero, plantinDisponible } from './vivero.js';
@@ -5667,6 +5667,16 @@ function devolverContenido(d) {
   if (d.muela) { const m = sanearMuela(d.muela); if (m.habas) sumarEntrada('haba', m.habas); if (m.harina) progreso.cosas.harina = (Number(progreso.cosas.harina) || 0) + m.harina; }
   if (d.colmena) { const c = sanearColmena(d.colmena); if (c.miel) sumarEntrada('miel', c.miel); }
   if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
+  // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
+  // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
+  // todavía no está se lo lleva el cantero, como siempre)
+  if (d.tendal) { const tc = sanearTendal(d.tendal); if (tc.colgado) { const C = CONSERVAS[tc.colgado]; if (tc.horas >= HORAS_SECADO) sumarEntrada(tc.colgado, 1); else sumarEntrada(C.ingrediente, C.cantidad); } }
+  if (d.vivero) for (const m of sanearVivero(d.vivero, 4).macetas) sumarEntrada(progreso.dia - m.dia >= VIVERO.diasPlantin ? ARBOLES_VIVERO[m.especie].plantin : ARBOLES_VIVERO[m.especie].semilla, 1);
+  if (d.plano === 'gallinero') { const g = gallineros()[claveGallinero(d.x, d.z)]; const r = g ? juntarHuevos(g, progreso.dia) : null; if (r?.ok) sumarEntrada('huevo', r.huevos); }
+  if (d.plano === 'cantero') {
+    const r = cosechar(huerta(), claveCantero(d.x, d.z), progreso.dia);
+    if (r.ok) { sumarEntrada(r.ingrediente, r.cantidad); if (progreso.cosechasTotal != null && Number.isFinite(Number(progreso.cosechasTotal))) progreso.cosechasTotal = Math.floor(Number(progreso.cosechasTotal)) + r.cantidad; }
+  }
   refrescarBarra(true);
 }
 // 3.5.1: la pieza de varias etapas de este plano que quedó a medio hacer más cerca (o null)
