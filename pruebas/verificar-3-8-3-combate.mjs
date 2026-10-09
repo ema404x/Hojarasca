@@ -238,4 +238,18 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
   assert.ok(main.includes("if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };"));
 }
 
+// ---------------------------------------------------------------- 12. el asedio: caer en un contraataque no deja el fogón gastado
+{
+  const A = await import('../src/desafio-asedio.js');
+  const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id: 'lago', x: -150, z: 90 }];
+  const a = A.asedioNuevo(ZONAS, { x: 0, z: 0 }, 100);
+  A.danarAncla(a, 1, 1e6, true);
+  assert.equal(A.elegirContraataque(a), 1);
+  A.desgastarBaliza(a, 6, 30);
+  assert.ok(a.zonas[1].baliza > 0 && a.zonas[1].baliza < A.ASEDIO.vidaBaliza, 'el fogón quedó golpeado');
+  A.cerrarNocheAsedio(a, false);   // caíste
+  assert.equal(A.elegirContraataque(a), 1, 'la noche siguiente vuelven por la misma');
+  assert.equal(a.zonas[1].baliza, A.ASEDIO.vidaBaliza, 'y el fogón está entero otra vez');
+}
+
 console.log('verificar-3-8-3-combate: ok');
