@@ -91,6 +91,13 @@ seguir (puede convenir empezar de nuevo desde main).
   arreglar y usar de refugio.
 - **Ventisquero y laguna de deshielo:** hacerlo **visible** arriba del cordón (glaciar colgante, laguna turquesa),
   pero **sin poder subir por ahora**: queda para un **futuro DLC**.
+- **El mirador del cóndor:** una piedra alta sobre el cañadón donde planean cóndores a media mañana; si te sentás a
+  esperar, pasan cerca. Lugar de fotos.
+- **La pasarela del humedal:** sendero de tablones sobre un turbal con musgos rojos y drosera (la plantita que come
+  insectos); cambia con cada estación.
+- **El bosque de pehuenes:** ladera de pehuenes centenarios; en otoño se juntan piñones (para cocinar o regalar).
+- **El árbol viejo del valle:** un alerce o coihue de mil años con una placa de la aldea; los vecinos van de picnic y
+  en las fiestas lo adornan.
 - No mover árboles ni cambiar la huella del terreno sin avisar.
 
 ## Versión de pulido visual «pronto» (el usuario: «en una versión pronta»)
