@@ -219,4 +219,7 @@ ok(/function aplicarFoto[\s\S]{0,800}if \(foto\.activo\) progreso\.horas = foto\
   ok(/const atras = \{ x: 0, z: -\(COCHE\.L \/ 2 \+ 0\.45\), y, lado: 0, plataforma: true \};/.test(leer('src/tren.js')), 'la plataforma de atrás tiene lado (WASD llega)');
 }
 
+// ---------------------------------------------------------------- 9. la línea de estado del tren parado no dice «E para bajar» cuando E hace otra cosa
+ok(main.includes("avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar de lugar y bajar' : '· E para bajar · W A S D para cambiar de lugar'"), 'en la cocina, la cucheta o el mate, la línea de estado no promete bajar con E');
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);

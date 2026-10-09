@@ -8730,7 +8730,8 @@ function cuadroDelJuego(tRaf, manual) {
       const donde = estadoTren.asiento && estadoTren.asiento.plataforma ? 'En la plataforma abierta' : 'En tu asiento';
       const paradaActual = estadoTren.parado ? tren.paradaCerca(js) : null;
       textoTren = estadoTren.parado
-        ? `Parado en ${paradaActual ? paradaActual.nombre : 'la parada'} · E para bajar · W A S D para cambiar de lugar`
+        // 3.8.3: en la cocina del comedor, la cucheta o la mesa del mate, E hace eso (como el aviso): para bajar, primero cambiás de lugar
+        ? `Parado en ${paradaActual ? paradaActual.nombre : 'la parada'} ${avisoLugarDelTren()?.tecla === 'E' ? '· W A S D para cambiar de lugar y bajar' : '· E para bajar · W A S D para cambiar de lugar'}`
         : `Próxima parada: ${p.nombre} · ${Math.round(estadoTren.falta)} m · ${donde}`;
     } else {
       const anden = tren.paradaCerca(js);
