@@ -262,4 +262,14 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
 // ---------------------------------------------------------------- 14. la pantalla de victoria no se abre sobre la portada
 assert.match(extraer(leer('src/main.js'), 'mostrarVictoria'), /setTimeout\(\(\) => \{\n(\s*\/\/[^\n]*\n)*\s*if \(modo !== 'jugando'\) \{ if \(modo === 'pausa' \|\| modo === 'dialogo' \|\| modo === 'valle'\) mostrarVictoria\(s, final\); return; \}/, 'en pausa espera; en la portada no se abre');
 
+// ---------------------------------------------------------------- 15. rescates y trochita varada
+{
+  const { sanearDesafio } = await import('../src/desafio-reglas.js');
+  const { VIDA_LUGAR } = await import('../src/desafio-valle.js');
+  assert.equal(sanearDesafio({ rescate: { lugar: 'casa-rara', vida: 50 } }).rescate, null, 'un lugar que no existe no rompe el amanecer');
+  assert.equal(sanearDesafio({ rescate: { lugar: 'puesto' } }).rescate.vida, VIDA_LUGAR, 'sin vida anotada, el lugar está entero');
+  assert.ok(des.includes('const resc = D().rescate, L = (resc && !resc.caido && T.lugares[resc.lugar])'), 'los refuerzos no bajan al lado de un lugar caído');
+  assert.ok(des.includes('const varar = !d.rescate && !ctx.jugador().estado.enTren && (varadaForzada'), 'con vos arriba, la trochita no se vara');
+}
+
 console.log('verificar-3-8-3-combate: ok');

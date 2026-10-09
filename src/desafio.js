@@ -735,7 +735,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function puntoDeAterrizaje(js, azar = Math.random) {
     // 2.1: una noche de rescate, la nave baja cerca del lugar del vecino
     // 2.3: y la de la trochita varada, cerca del tren
-    const resc = D().rescate, L = (resc && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche();   // 3.0: y la del contraataque del asedio
+    // 3.8.3: un lugar que ya cayó no es blanco (como en actualizarAlien): los refuerzos bajaban al lado de las ruinas, lejos de vos
+    const resc = D().rescate, L = (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche();   // 3.0: y la del contraataque del asedio
     if (L) {
       for (let i = 0; i < 30; i++) {
         const a = azar() * Math.PI * 2, r = 40 + azar() * 18;
@@ -997,7 +998,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         rescateForzado = null;
         d.rescate = lug ? { lugar: lug, vida: VIDA_LUGAR, caido: false } : null;
         // 2.3: ¿esta noche se vara la trochita? (nunca la misma noche que un rescate)
-        const varar = !d.rescate && (varadaForzada || nocheDeVarada(d.oleadas + 1, { azar: azarNoche('varada'), esJefe: esNocheDeJefe(d.oleadas + 1), especial: d.especial, final: final || asedioMundo.activo }));
+        // 3.8.3: con vos arriba de la trochita no se vara (el tren saltaba cientos de metros para atrás con vos adentro)
+        const varar = !d.rescate && !ctx.jugador().estado.enTren && (varadaForzada || nocheDeVarada(d.oleadas + 1, { azar: azarNoche('varada'), esJefe: esNocheDeJefe(d.oleadas + 1), especial: d.especial, final: final || asedioMundo.activo }));
         varadaForzada = false;
         const hayVarada = varar && empezarVarada();
         asedioMundo.alEmpezarNoche();   // 3.0: el contraataque va por la última zona recuperada

@@ -3,7 +3,7 @@
 import { sanearNido } from './desafio-nido.js';
 import { sanearAsedio } from './desafio-asedio.js';
 import { APAGON, sanearBestiario, sanearDespues } from './desafio-noche2.js';
-import { EXCAVADOR, sanearRescates } from './desafio-valle.js';
+import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR } from './desafio-valle.js';
 import { multiplicadorVuelta } from './desafio-vuelta.js';
 import { sanearOrdenes } from './desafio-ordenes.js';
 import { VOLADOR, voladoresEnLaNoche } from './desafio-cielo.js';
@@ -429,8 +429,9 @@ export function sanearDesafio(d) {
     despues: sanearDespues(x.despues),
     rescates: sanearRescates(x.rescates),
     rescateAnterior: typeof x.rescateAnterior === 'string' ? x.rescateAnterior : null,
-    rescate: x.rescate && typeof x.rescate === 'object' && typeof x.rescate.lugar === 'string'
-      ? { lugar: x.rescate.lugar, vida: Math.max(0, Number(x.rescate.vida) || 0), caido: !!x.rescate.caido } : null,
+    // 3.8.3: sólo un lugar que existe (uno raro rompía el amanecer en cerrarRescate) y sin vida anotada, entero (caía al primer golpe)
+    rescate: x.rescate && typeof x.rescate === 'object' && typeof x.rescate.lugar === 'string' && Object.hasOwn(RESCATES, x.rescate.lugar)
+      ? { lugar: x.rescate.lugar, vida: Math.max(0, Number.isFinite(Number(x.rescate.vida)) ? Number(x.rescate.vida) : VIDA_LUGAR), caido: !!x.rescate.caido } : null,
     vuelta: ent(x.vuelta, 0, 9),
     capullos: sanearCapullos(x.capullos),
     varada: sanearVarada(x.varada),
