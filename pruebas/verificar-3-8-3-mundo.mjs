@@ -126,4 +126,13 @@ function cuerpo(nombre) {
   }
 }
 
+// ---------------------------------------------------------------- 4. cargar con el caballo en la jaula
+// La bajada del caballo guarda: corría antes de ubicar al jugador (en 0, 0) y la partida quedaba en el medio del mapa.
+{
+  const ubicar = main.indexOf('if (progreso.pos) jugador.ubicar(progreso.pos.x, progreso.pos.z, progreso.yaw, progreso.pos.y);');
+  const baja = main.indexOf('progreso.trenViaje?.caballo && !jugador.estado.enTren) bajarCaballoDelTren();');
+  ok(ubicar > 0 && baja > ubicar && baja - ubicar < 800, 'el caballo de la jaula baja después de ubicar al jugador');
+  ok(!/progreso\.trenViaje\?\.caballo && !jugador\?\.estado\?\.enTren/.test(main), 'y no queda la llamada de antes');
+}
+
 console.log(`verificar-3-8-3-mundo: ${n} comprobaciones OK`);
