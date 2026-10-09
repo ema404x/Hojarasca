@@ -252,7 +252,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       }
       const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6;
       c.x = pos.x + Math.cos(a) * r; c.z = pos.z + Math.sin(a) * r;
-      c.y = alturaSuelo(c.x, c.z) + 0.35;   // 3.0 c.t = Math.random() * 6; c.activo = true;
+      c.y = alturaSuelo(c.x, c.z) + 0.35;   // 3.0
+      // 3.8.3: estas dos líneas estaban metidas en el comentario de arriba: la semilla que suelta un duende
+      // se veía pero nunca se activaba (no se juntaba, y las del mandamás eran todas la misma)
+      c.t = Math.random() * 6; c.activo = true;
       c.mesh.visible = true;
     }
   }
