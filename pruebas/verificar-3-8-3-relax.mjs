@@ -7,6 +7,7 @@
 // 5. Desarmar una obra devuelve lo que tenía adentro: lo colgado en el tendal, las macetas del vivero, los huevos del
 //    nidal y la cosecha lista del cantero (antes se perdían; también en el desalojo de la aldea).
 // 6. Con los planos, Y sigue la obra a medio hacer más cercana: una terminada al lado ya no traba fundar otra igual.
+// 7. «Recibí una visita» (capítulo 8) se tilda con una visita de verdad, no con el turno del que no pudo venir.
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -18,6 +19,7 @@ import * as Conservas from '../src/conservas.js';
 import * as Vivero from '../src/vivero.js';
 import * as Gallinero from '../src/gallinero.js';
 import * as Huerta from '../src/huerta.js';
+import * as Visitas from '../src/visitas.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -156,6 +158,31 @@ const trozo = (desde, hasta) => {
   ok(ctx.obraAMedias(null, { x: 0, z: 0 }, 10) === null, 'sin plano elegido, nada');
   ok(main.includes('const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obraAMedias(obras.plano, js.pos, 10);'), 'accionObra (Y) usa la obra a medias');
   ok(main.includes('const obra = p.pieza ? piezaAMedias(p, jugador.estado.pos, 12) : obraAMedias(p, jugador.estado.pos, 12);'), 'y el panel muestra las etapas de esa misma');
+}
+
+// ---------------------------------------------------------------- 7. «Recibí una visita»: sólo con una visita de verdad
+{
+  const v = Visitas.visitasNuevas();
+  Visitas.empezarVisita(v, 3); Visitas.terminarVisita(v, 3);
+  ok(v.cuenta === 1 && Visitas.recibidas(v) === 1, 'una visita: pasa el turno y cuenta');
+  Visitas.saltearTurno(v);
+  ok(v.cuenta === 2 && Visitas.recibidas(v) === 1, 'al que le tocaba no pudo venir: pasa el turno, sin contarse');
+  ok(Visitas.sanearVisitas(JSON.parse(JSON.stringify(v))).recibidas === 1, 'se guarda y se carga');
+  const vieja = Visitas.sanearVisitas({ ultima: 4, cuenta: 5, activa: null });
+  ok(!('recibidas' in vieja) && Visitas.recibidas(vieja) === 5, 'una partida vieja arranca de la cuenta (lo contado desde un capítulo no salta)');
+  Visitas.saltearTurno(vieja);
+  ok(vieja.cuenta === 6 && Visitas.recibidas(vieja) === 5, 'y desde ahí, el turno salteado no cuenta');
+  // en la historia: capítulo 8, al que le tocaba no pudo venir
+  const prog = { dia: 20, entradas: {}, visitas: Visitas.sanearVisitas({ ultima: 17, cuenta: 9 }) };
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 7; h.fase = 'intro';
+  H.arrancarCapitulo(h, H.estadoHistoria(prog));
+  Visitas.saltearTurno(prog.visitas);
+  let r = H.revisarHistoria(h, H.estadoHistoria(prog));
+  ok(!r.nuevos.some((o) => o.id === 'visita'), 'capítulo 8: un turno salteado no tilda «Recibí una visita»');
+  Visitas.empezarVisita(prog.visitas, 20);
+  r = H.revisarHistoria(h, H.estadoHistoria(prog));
+  ok(r.nuevos.some((o) => o.id === 'visita'), 'y una visita de verdad, sí');
+  ok(main.includes('if (!traerVisita(quienViene(v.cuenta), puesta, true)) { saltearTurno(v); return; }'), 'main.js saltea el turno con saltearTurno');
 }
 
 console.log(`verificar-3-8-3-relax: ${pasos} comprobaciones OK`);

@@ -14,7 +14,7 @@
 // `estadoHistoria`) y la parte guardada (`progreso.historia`).
 
 import { contadores } from './encargos-temporada.js';
-import { mesaPuesta } from './visitas.js';
+import { mesaPuesta, recibidas } from './visitas.js';
 import { CUENTOS } from './cuentos.js';
 
 export const VECINOS_HISTORIA = ['ramon', 'nicanor', 'ema', 'ercilia'];
@@ -58,7 +58,7 @@ export function estadoHistoria(p, extra = {}) {
     cosechas: Number.isFinite(Number(p?.cosechasTotal)) && p?.cosechasTotal != null ? Math.max(0, Math.floor(Number(p.cosechasTotal))) : cantidad('haba') + cantidad('papa') + cantidad('frutilla-huerta'),
     lena,
     abrigo: !!(p?.cosas?.manta || p?.cosas?.poncho),
-    visitas: Math.max(0, Math.floor(Number(p?.visitas?.cuenta) || 0)),
+    visitas: recibidas(p?.visitas),   // 3.8.3: las que vinieron de verdad (no el turno, que también pasa si no pudo venir)
     cuentos: CUENTOS.filter((x) => e[x.id]).length,
     eventos: new Set(Object.keys(ev)),
     // 3.8.3: el día en que pasó cada uno (lo último), para lo que tiene que pasar en el capítulo (el temporal)
