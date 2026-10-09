@@ -148,6 +148,7 @@ const des = leer('src/desafio.js');
   // el fuego del pasto quema la madera sana (no sólo la ya golpeada, que era la única con `vida` anotada)
   assert.match(zanjas, /if \(completa\(o\) && !esPiedra\(o\)\) danarObra\(o, ESCAPE\.danoObra \* 0\.5\);/, 'el pasto quema la madera');
   // los troncos de la rampa pasan por encima de lo que está a ras del suelo
+  assert.ok(extraer(fm, 'soltarRampa').includes('if (rodando.length >= 9) { o.datos.troncos = (o.datos.troncos || 0) + (n - i); break; }'), 'los troncos que no entran a rodar vuelven a la rampa');
   assert.match(extraer(fm, 'chocaTronco'), /if \(o && \(o\.plano\.alto \|\| 1\) > 0\.5\) return true;/, 'la rampa pasa por encima de abrojos y pozos');
 }
 

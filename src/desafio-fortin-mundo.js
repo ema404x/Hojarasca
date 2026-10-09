@@ -321,7 +321,8 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
     for (let i = 0; i < n; i++) {
       let t = rodando.find((x) => !x.activo);
       if (!t) {
-        if (rodando.length >= 9) break;
+        // 3.8.3: sin lugar para otro tronco rodando (varias rampas a la vez), los que faltan vuelven a la rampa
+        if (rodando.length >= 9) { o.datos.troncos = (o.datos.troncos || 0) + (n - i); break; }
         t = { malla: new THREE.Mesh(geoRueda, matTronco), activo: false };
         t.malla.castShadow = true;
         escena.add(t.malla);
