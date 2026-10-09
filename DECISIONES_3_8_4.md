@@ -185,6 +185,8 @@ tango con vestido de fiesta, sensual pero sin desnudos; la podés invitar a bail
 - Límite: sensual sin desnudos ni escenas explícitas (mantiene la calificación del juego en Steam). Las dos son
   adultas y personajes con su historia, no adorno.
 
+**Prototipo (09-10):** rama `proto-cantina` (commit 8f1cd9a, hoja `herramientas-34/proto-cantina/comparar-cantina.png` sólo en la notebook). Primer borrador NO alcanza: ropa recta y larga, tajo/escote que no se leen, delantal largo, botas en vez de tacos, brazos en cruz. Falta agregar al cuerpo de los personajes: vestido ceñido, tajo con pierna y media, escote, vuelo, tacos, delantal corto, y poses copiadas de `quietud()` de gente-cuerpo (cintura, atrás). La moza A (bordó, bandeja en alto) es la que más se acerca. Unos 60–90 min.
+
 **Para después, si gusta:** que la casa de té pase a funcionar igual (la galesa viene a la mesa, carta de tés y
 tortas galesas, trae la bandeja).
 
