@@ -159,11 +159,13 @@ const enmano = leer('src/enmano.js');
   tiene(mapaMundo, 'const g = geoSemilla(s);', 'el lugar de las semillas del mapa');
   ok(!/'#5fd6c8'|'#7dfff0'/.test(mapaMundo), 'sin el celeste del cristal en el lugar del mapa');
   const icono = mochila.slice(mochila.indexOf('    cristal() {'), mochila.indexOf('    hongo() {'));
-  ok(/semilla dorada/.test(icono) && !/#7dfff0/.test(icono), 'el ícono de la mochila es una semilla dorada');
+  // 3.8.2: la semilla, sólo en el modo de combate; en el Relax vuelve el cristal de antes (ver verificar-3-8-textos)
+  const semillaDe = (t) => t.slice(t.indexOf('return', t.indexOf('if (!cristalSemilla)')));
+  ok(icono.includes('if (!cristalSemilla)') && /semilla dorada/.test(semillaDe(icono)) && !/#7dfff0/.test(semillaDe(icono)), 'el ícono de la mochila es una semilla dorada (en el modo de combate)');
   const icMapa = mapa.slice(mapa.indexOf('  cristal(c, x, y, s) {'), mapa.indexOf('  madera(c, x, y, s) {'));
   ok(/semillas doradas/.test(icMapa) && !/#5fd6c8/.test(icMapa), 'el mapa marca semillas');
   const enM = enmano.slice(enmano.indexOf('  cristal() {'), enmano.indexOf('export function crearEnMano'));
-  ok(/semilla dorada/.test(enM) && !/0x7dfff0/.test(enM), 'en la mano, una semilla');
+  ok(enM.includes('if (!cristalSemilla)') && /semilla dorada/.test(semillaDe(enM)) && !/0x7dfff0/.test(semillaDe(enM)), 'en la mano, una semilla (en el modo de combate)');
   // el material interno se sigue llamando 'cristal' (el guardado y las recetas no cambian)
   ok(/sumarMaterial\?\.\('cristal', ASEDIO\.cristalesAncla\)/.test(asedio) && ASEDIO.cristalesAncla === 4, 'el recurso se guarda como siempre (cristal)');
 }

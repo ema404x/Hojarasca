@@ -222,7 +222,7 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   tiene('evolucion.alBajar(a);', 'al bajar se decide si viene adaptado');
   tiene('dano = evolucion.golpe(a, dano, fuente, clase);', 'herirAlien anota con qué y aplica la resistencia');
   tiene('claseDeProyectil(q));', 'lo que tiraste dice su clase');
-  tiene("impactoEn(g.a, _w.x, _w.y, _w.z), 'cristal');", 'la pistola es cristal');
+  tiene("impactoEn(g.a, _w.x, _w.y, _w.z, origen), 'cristal');", 'la pistola es cristal');   // 3.8.2: con de dónde viene el golpe
   tiene('evolucion.alAtardecer();', 'el aviso del atardecer');
   tiene('evolucion.alAmanecer();', 'aprenden al amanecer');
   tiene('puestos.alAmanecer();', 'los puestos crecen y aparecen al amanecer');
