@@ -687,6 +687,14 @@ export function proponer(estado, clave, ctx = {}) {
   sumarAfecto(f, 10);
   amor.anillo.para = clave;
   amor.boda = { con: clave, dia: d + AMOR.boda.enDias, hora: AMOR.boda.hora };
+  const cortaron = cortanLasOtras(amor, clave, d);
+  noticia(amor, 'comprometidos', d, { con: clave });
+  return { ok: true, si: true, cortaron, boda: { ...amor.boda }, renglones: [...voz.propuesta.si, llenarAmor(FRASES_AMOR.boda.fecha, { dia: amor.boda.dia })] };
+}
+
+// Con ella en serio (comprometidos, o de vuelta casados): las otras con las que salías se enteran y cortan. Devuelve
+// a quiénes. (3.8.6: sale de `proponer` para que `reconquistar` haga lo mismo)
+function cortanLasOtras(amor, clave, d) {
   const cortaron = [];
   for (const [k, g] of Object.entries(amor.personas)) {
     if (k === clave || !['coqueteo', 'saliendo', 'novios'].includes(g.etapa)) continue;
@@ -697,8 +705,7 @@ export function proponer(estado, clave, ctx = {}) {
     cortaron.push(k);
   }
   if (amor.cita && amor.cita.clave !== clave) amor.cita = null;
-  noticia(amor, 'comprometidos', d, { con: clave });
-  return { ok: true, si: true, cortaron, boda: { ...amor.boda }, renglones: [...voz.propuesta.si, llenarAmor(FRASES_AMOR.boda.fecha, { dia: amor.boda.dia })] };
+  return cortaron;
 }
 
 // ---------------------------------------------------------------- el casamiento civil
@@ -927,8 +934,14 @@ export function nikiNiki(estado, clave, ctx = {}) {
 export const deBuenAnimo = (estado, dia) => partes(estado).amor?.animo === diaValido(dia, 1);
 
 // ---------------------------------------------------------------- reconquistar
+// 3.8.6: con la vida rehecha (`rehizoLaVida`) podías estar de novio con otra y reconquistar a la ex: quedabas casado y de
+// novio a la vez (y al cargar, la novia pasaba callada a «conocidos»); o, separado de una segunda esposa, volvías con la
+// primera y la cónyuge seguía siendo la otra (sin habilidades ni hijos con la que volvió). Ahora mira lo mismo que todo lo
+// demás (`puedeRomance`: con otra comprometida, casada o recién separada, no), las que salían con vos cortan como al
+// proponer, y la que vuelve es la cónyuge.
 export function reconquistar(estado, clave, ctx = {}) {
-  if (!romanceActivo(ctx) || !esCandidata(clave)) return { ok: false, renglones: [] };
+  const r0 = puedeRomance(clave, estado, ctx);
+  if (!r0.ok) return { ok: false, motivo: r0.motivo, renglones: [] };
   const { amor, progreso } = partes(estado, true);
   const d = diaDe(progreso, ctx);
   const f = fichaSi(amor, clave);
@@ -941,8 +954,11 @@ export function reconquistar(estado, clave, ctx = {}) {
   if (sorteo(`${clave}:vuelve:${d}:${Math.round(f.afecto)}:${entero(ctx.semilla)}`) >= p) { f.rechazo = d; return { ok: true, si: false, renglones: [FRASES_AMOR.reconquistaNo] }; }
   cambiarEtapa(f, 'casados', d);
   f.reconquista = 0;
+  amor.conyuge = clave;
+  if (!tieneDe(amor.habilidades, clave)) amor.habilidades[clave] = { nivel: 0, estacion: -1 };
+  const cortaron = cortanLasOtras(amor, clave, d);
   noticia(amor, 'volvieron', d, { con: clave });
-  return { ok: true, si: true, renglones: [FRASES_AMOR.reconquistaSi] };
+  return { ok: true, si: true, cortaron, renglones: [FRASES_AMOR.reconquistaSi] };
 }
 
 // ---------------------------------------------------------------- las habilidades

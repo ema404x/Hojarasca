@@ -174,6 +174,7 @@ export function crearAmorJuego(ctx) {
     else if (que === 'reconquistar') {
       r = reconquistar(p, clave, c);
       if (r.si) avisar(llenarAmor(FR.vuelven, { ella: nombre(clave) }), 'Ahora decidan dónde viven');
+      for (const o of r.cortaron || []) avisar(`${nombre(o)} se enteró`, 'Ya no salen más');   // 3.8.6: como al proponer
     } else if (que === 'niki') {
       const casa = p.amor?.convivencia;
       const enCasa = ctx.enCasa ? !!ctx.enCasa(ctx.jugador?.(), casa?.donde === 'refugio' ? 'refugio' : casaDeElla(clave)) : true;
