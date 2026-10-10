@@ -283,7 +283,9 @@ app.whenReady().then(async () => {
       await js(`(()=>{ const M = ${H}.__aldeaMundo(); const o = M.aMundo(6, 29); window.__m361v.poner(o.x, o.z, 0); M.actualizar(4, ${H}.camara.position); return 1 })()`);
       await aldeaMontada(); await asentar(4); await js(`${H}.__mecanicas().revisar(); 1`);
       // (las figuras de la aldea se arman de a una por cuadro con vos cerca: que estén las veinte antes de irse)
-      const figuras = await js(`(()=>{ const H = ${H}, n = () => H.gente.gente.filter((g) => g.claveAldea).length; for (let i = 0; i < 300 && n() < 20; i++) H.__bucle(); return n() })()`);
+      // 3.8.3: hasta 1200 cuadros (antes 300): se arman unos 3 ms por cuadro, unos diez cuadros cada una, y con la máquina
+      // cargada (otras partidas a la vez) 300 no alcanzaban para las veinte (quedaban 18). Sale apenas están
+      const figuras = await js(`(()=>{ const H = ${H}, n = () => H.gente.gente.filter((g) => g.claveAldea).length; for (let i = 0; i < 1200 && n() < 20; i++) H.__bucle(); return n() })()`);
       ok(figuras >= 20, `la gente de la aldea, armada (${figuras})`);
       config = 'completa';
     }

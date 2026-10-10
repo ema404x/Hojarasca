@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.8.2
+# RELEASE STATUS — 3.8.3
 
-- Versión: `3.8.2`
+- Versión: `3.8.3`
+- 3.8.3: pase de bugs completo de todo el juego en 5 equipos, ~80 arreglos (capítulo 8 imposible, semillas que no se juntaban, dos oleadas por noche, portada que no entraba en una notebook, cosas que se perdían al desarmar, gente invisible a la que se le hablaba…). Gate 174/174
 - 3.8.2: cuatro arreglos de La noche de los duendes — la espalda del Mandamás (y del facón) sólo cuenta de verdad por detrás, el cofre del alba no se abre desde una torre y el que no abriste se suma al nuevo, el cristal se dibuja como antes en el Relax. Gate 169/169
 - 3.8.1: revisión de bugs de La noche de los duendes — 13 arreglos (lo robado que se reciclaba o quedaba colgado, golpes a través de paredes, cofre dentro de paredes o enterrado, púas del corazón al volver, Coihue sobre agua o sobre un lugar, el Relax diciendo «semillas doradas», leyenda repetida en partidas viejas, inglés perdido, botón del modo en dos renglones). Gate 169/169
 - 3.8.0: La noche de los duendes — el modo de combate pasa a llamarse «La noche de los duendes»: duendes del bosque (estilo C, chiquitos, traviesos al anochecer y viejos oscuros de noche, lechuceros, Mandamás, travesura sin perder nada), nidos de hongos y madrigueras, cofre del alba entre raíces; el Coihue Viejo que camina (jefe en lugar de la nave), la subida caminable por el tronco hueco y el Rey Duende en el corazón; semillas doradas en lugar del cristal; textos, logros, sonidos e inglés; la leyenda de la abuela. Arreglos: Elsa con el giro en NaN, la humo de la trochita. Gate 169/169; partidas reales 68/68 (3 repetidas solas)

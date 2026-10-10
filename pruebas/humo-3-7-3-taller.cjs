@@ -155,7 +155,9 @@ app.whenReady().then(async () => {
     await cuadros(4); await esperar(300); await cuadros(4);
     e = await js(`(()=>{ const t = ${P}.tren; return { caldera: t.loco.caldera, arreglado: t.taller.arreglado, pedido: t.taller.pedido } })()`);
     ok(e.caldera === 1 && e.arreglado && !e.pedido, `lista: la caldera nueva y el galpón arreglado (${JSON.stringify(e)})`);
-    ok(/Martín: «Caldera: tubos nuevos, lista»/.test(await notas()), 'Martín avisa');
+    // 3.8.3: en lo dicho (`__avisos`), no en las notas en pantalla: con el día 7 llegan también las del día (la minga, cumpleaños,
+    // la carta, La Hoja…) y, según en qué cuadro le toque a cada sistema, la de Martín quedaba fuera de las cuatro que se ven
+    ok((await js(`${H}.__avisos()`)).some((t) => /Martín: «Caldera: tubos nuevos, lista»/.test(t)), 'Martín avisa');
     // el galpón se rearma arreglado (con su cartel)
     for (let i = 0; i < 6; i++) { await js(`(()=>{ ${H}.__aldeaMundo().actualizar(4, ${H}.camara.position); return 1 })()`); await aldeaLista(); await cuadros(2); }
     e = await js(`${H}.__aldeaMundo().estadoEdificio('taller-tren')`);

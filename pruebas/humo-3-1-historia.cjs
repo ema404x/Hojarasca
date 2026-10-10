@@ -202,7 +202,7 @@ app.whenReady().then(async () => {
     const visita = await js(`(async ()=>{ const H = window.__hojarasca; H.__actualizarVisitas(1); await new Promise(r => setTimeout(r, 50)); H.__actualizarVisitas(1); return { activa: H.progreso.visitas.activa, visitante: H.__visitante()?.npc?.clave || null, mesa: ${mesa} } })()`);
     ok(visita.mesa >= 3 && visita.activa?.clave === 'ercilia' && visita.visitante === 'ercilia', `Ercilia viene de visita a tu mesa (${JSON.stringify(visita)})`);
     // la cadena: dejar un puente flojo termina con Nicanor en el agua
-    await js(`(()=>{ const P = window.__hojarasca.progreso; delete P.eventosValle.hechos.puente; P.eventosValle.pendientes = []; P.horas = 10; return 1 })()`);
+    await js(`(()=>{ const P = window.__hojarasca.progreso; delete P.eventosValle.hechos.puente; delete P.eventosValle.hechos.tobillo; /* 3.8.3: un evento ya pasado no vuelve encadenado */ P.eventosValle.pendientes = []; P.horas = 10; return 1 })()`);
     await js(`window.__hojarasca.__valle.eventos.forzar('puente')`);
     await revisar();
     await js(`document.querySelector('#valle-tarjeta button[data-valle-opcion="nada"]').click(); 1`);
