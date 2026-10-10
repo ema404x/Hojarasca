@@ -215,7 +215,8 @@ const DR = await import('../src/desafio-duendes-reglas.js');
     $: () => ({ classList: { add() {}, remove() {} } }), nota() {}, refrescarBarra() {}, abrirObra() {}, abrirMochila() {},
     puntoBase: () => ({ x: 10, z: 20, yaw: 1, y: null }),
     jugador: { ubicar() {} }, setTimeout: (f) => timers.push(f),
-    desafio: { abrirTaller() {}, limpiar() {}, levantarse() {}, perderNocheSalteada: () => 0 },
+    // (devolverRobado: las semillas que se llevó un duende vuelven antes de la pérdida y se pierden con las demás)
+    desafio: { abrirTaller() {}, limpiar() {}, levantarse() {}, perderNocheSalteada: () => 0, devolverRobado() { ctx.progreso.materiales.cristal += 2; } },
   };
   vm.createContext(ctx);
   vm.runInContext(`var caidaEnCurso = null;

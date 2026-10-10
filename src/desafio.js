@@ -3436,6 +3436,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get tensando() { return tensandoDesde !== null; },
     get arsenal() { return arsenal; }, usarEmplasto, fabricar, abrirTaller, cambiarCategoriaTaller,
     levantarse, limpiar, puedeDormir, hayAtaque, curar, perderNocheSalteada,
+    devolverRobado: () => devolverTodo(false),   // 3.8.4: al caer, lo robado vuelve antes de la pérdida (main.js, caerEnDesafio)
     get tallerAbierto() { return tallerAbierto; },
     get recarga() { return recarga; },
     get caido() { return caido; },

@@ -3834,6 +3834,9 @@ function caerEnDesafio() {
   nota('Los duendes te dejaron fuera de combate', 'Perdiste las semillas doradas y parte de los materiales', true);
   // 3.8.4: la caída se anota en el momento y se guarda: antes todo pasaba al final del fundido y cerrar el juego en
   // ese segundo y medio la evitaba (ni materiales perdidos ni noche perdida, y al abrir seguías donde caíste)
+  // (lo que se llevaron los duendes vuelve primero y se pierde con lo demás, como hasta ahora: si no, las semillas
+  // robadas volvían después de la pérdida, al limpiar)
+  desafio.devolverRobado?.();
   const M = progreso.materiales || {};
   M.cristal = 0;
   for (const k of ['tronco', 'tabla', 'piedra']) if (M[k]) M[k] = Math.floor(M[k] * 0.7);
