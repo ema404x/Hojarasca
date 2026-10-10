@@ -319,7 +319,10 @@ export function crearAmorJuego(ctx) {
     const punto = quiere.por === 'boda' ? (() => { const q = puntosMundo('biblioteca').cuentos; return q ? { x: q.x, z: q.z, mira: q.rot } : null; })() : null;
     // 3.8.4: a la hora de la cita, ¿estaba ocupada con otra invitación? (si nunca pudo esperarte, la cita se cae sin «plantada»)
     // (3.8.6: con vos, haciendo algo juntos, no está ocupada: está con vos)
-    if (quiere.por === 'cita' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.conVos) cita.juntos = true; else if (n?.enCita) cita.ocupada = true; }
+    // (3.8.6: tomando algo con vos, invitada a tu mesa, también: `ctx.tomandoAlgo`, la invitación de vecindad-juego.js)
+    if (quiere.por === 'cita' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.conVos || (n && ctx.tomandoAlgo?.(n))) cita.juntos = true; else if (n?.enCita) cita.ocupada = true; }
+    // (3.8.6: el rato de la cita ya lo pasaron juntos: no se va a esperarte al lugar; cuenta como hecha al terminar la hora)
+    if (quiere.por === 'cita' && cita?.juntos && !cita.espero) return;
     if (poner(quiere.clave, quiere.por, quiere.lugar, punto)) {
       if (quiere.por === 'cita' && cita) cita.espero = true;   // 3.8.4
       const L = LUGARES_CITA[quiere.lugar];

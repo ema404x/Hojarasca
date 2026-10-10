@@ -284,4 +284,39 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(leer('src/fiestas-juego.js').includes('    empezarMonta(estado(), dia());   // 3.8.6: una por fiesta, aunque cierres a la mitad\n    ctx.guardar?.();'), 'fiestas-juego: la anota al salir y guarda');
 }
 
+// ================================================================ las decisiones del usuario sobre este pase
+// ---------------------------------------------------------------- 17. el visitante que guiás: «Hasta acá»
+{
+  const VI = await import('../src/aldea-vida.js');
+  const vida = { visitante: { id: 'lena', lugar: 'mirador', dia: 7, estado: 'anden' } };
+  ok(!VI.despedirVisitante(vida), 'visitante: en el andén no hay «Hasta acá»');
+  VI.empezarGuia(vida);
+  const tx = VI.textosVisitante(vida.visitante);
+  ok(tx.seguirGuia === 'E: seguimos · Escape: hasta acá' && /Me vuelvo a la estación/.test(tx.chau) && !/\{|undefined/.test(tx.chau), 'visitante: dice lo que hace Escape y se despide lindo');
+  ok(VI.despedirVisitante(vida) && vida.visitante.estado === 'vuelve' && VI.visitanteSigue(vida.visitante, 7, 15), 'visitante: «Hasta acá»: vuelve a la estación (sigue en el valle mientras camina)');
+  ok(!(vida.guiados || []).length, 'visitante: despedido, no cuenta como guiado');
+  ok(VI.sanearVidaAldea({ visitante: { ...vida.visitante } }, 7).visitante === null, 'visitante: el que volvía a la estación, al cargar, ya se fue');
+  const g = leer('src/aldea-gente.js'), m = leer('src/main.js');
+  ok(g.includes("if (v.estado === 'guiando') return { id: 'visitante', partes: [tx.yendo], seguir: tx.seguirGuia, tipo: 'llegada', alEscape: () => despedir(npc) };") && g.includes("if (vis.estado === 'vuelve') {"), 'aldea-gente: la charla del que te sigue ofrece «Hasta acá» y después camina a la estación');
+  ok(m.includes('if (!charla.menu && charla.historia?.alEscape && charla.parte >= charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }'), 'main: Escape en el último renglón elige «Hasta acá» (alejarse no lo despide)');
+}
+// ---------------------------------------------------------------- 18. la cita: tomando algo con vos, cuenta como «con vos»
+{
+  const { crearAmorJuego } = await import('../src/amor-juego.js');
+  const q = { dia: 30, horas: 15, entradas: {}, materiales: {}, cosas: {}, aldea: aldeaCompleta(), vecindad: {}, amor: AM.amorNuevo() };
+  q.amor.personas.fotografa = { etapa: 'saliendo', afecto: 40, desde: 20, contacto: 29, charla: 0, piropo: 0, flores: 0, carta: 0, leyo: null, citas: 1, ultimaCita: 0, enojo: 0, motivo: null, rechazo: 0, reconquista: 0, chicos: 0 };
+  q.amor.cita = { clave: 'fotografa', lugar: 'plaza', dia: 30, desde: 15, hasta: 16.5, estado: 'acordada' };
+  q.amor.dia = 30;
+  const npc = { clave: 'fotografa', claveAldea: 'fotografa', enCita: true, pos: { x: 0, z: 0, y: 0, set() {} } };
+  const aj = crearAmorJuego({ progreso: () => q, ajustes: () => ({ romance: true }), npcDe: () => npc, tomandoAlgo: (n) => n === npc, jugador: () => ({ x: 0, z: 0 }), nota: () => {}, guardar: () => {} });
+  aj.actualizar(1);
+  ok(q.amor.cita?.juntos === true && !q.amor.cita.ocupada && !aj.puesta(), 'cita: invitada a tomar algo con vos, está con vos (no «ocupada») y no se va a esperarte a la plaza');
+  npc.enCita = false;   // (terminó el mate)
+  aj.actualizar(1);
+  ok(!aj.puesta() && !q.amor.cita.espero, 'cita: ya pasaron el rato juntos: no sale después a esperarte');
+  q.horas = 17;
+  aj.actualizar(1);
+  ok(q.amor.cita === null && q.amor.personas.fotografa.citas === 2 && !q.amor.personas.fotografa.motivo, 'cita: al terminar la hora cuenta como hecha (antes «no pudo ir»)');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

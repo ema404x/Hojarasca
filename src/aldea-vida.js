@@ -155,6 +155,8 @@ export function vidaNueva(dia = 1) {
 const NOMBRE_LUGAR = /^[a-z0-9-]{1,24}$/;
 function sanearVisitante(v, tope) {
   if (!objeto(v) || !VISITANTES.some((x) => x.id === v.id) || typeof v.lugar !== 'string' || !Object.hasOwn(LUGARES_VISITA, v.lugar)) return null;
+  // (3.8.6: el que despediste y volvía a la estación ya se fue)
+  if (v.estado === 'vuelve') return null;
   const estado = ['anden', 'guiando', 'llego'].includes(v.estado) ? v.estado : 'anden';
   return { id: v.id, lugar: v.lugar, dia: Math.min(tope, diaValido(v.dia, 1)), estado };
 }
@@ -280,6 +282,9 @@ export function textosVisitante(v) {
     seguir: 'E: vamos · Escape: ahora no',
     acepta: `¡Genial! Voy detrás tuyo. Avisame si camino muy despacio.`,
     yendo: `Te sigo. ${mayus(l.nombre)}, ¿falta mucho?`,
+    // 3.8.6: «Hasta acá» (Escape mientras te sigue): se despide y se vuelve a la estación
+    seguirGuia: 'E: seguimos · Escape: hasta acá',
+    chau: `Bueno, hasta acá llego. Me vuelvo a la estación despacito, mirando todo: ya vi más de lo que esperaba. Gracias por la compañía. ${def.despedida}`,
     gracias: [`¡Llegamos! ${mayus(l.nombre)}… es más lindo que en la postal.`, `Muchas gracias. Lo anoto en mi libreta: «Me trajo un vecino del valle». ${def.despedida}`],
   };
 }
@@ -298,13 +303,19 @@ export function guiado(vida, dia) {
   return g;
 }
 export function visitanteSeVa(vida) { if (objeto(vida)) vida.visitante = null; }
+// 3.8.6: «Hasta acá»: el que guiás se despide y vuelve solo a la estación (sin anotarse como guiado). Devuelve si se despidió.
+export function despedirVisitante(vida) {
+  if (!objeto(vida?.visitante) || vida.visitante.estado !== 'guiando') return false;
+  vida.visitante.estado = 'vuelve';
+  return true;
+}
 // 3.8.4: ¿sigue en el valle? El de otro día ya se fue y el que nadie llevó se vuelve en el último tren (a las 20); el que
 // estás guiando se queda hasta terminar el recorrido aunque pase la medianoche (antes se iba en el medio del camino).
 export function visitanteSigue(v, dia, hora) {
   if (!objeto(v)) return false;
   // (hasta el día siguiente; 3.8.6: también el que llegó con vos pasada la medianoche, que todavía te está dando las gracias:
   // se desvanecía en tu cara medio segundo después)
-  if (v.estado === 'guiando' || v.estado === 'llego') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;
+  if (v.estado === 'guiando' || v.estado === 'llego' || v.estado === 'vuelve') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;
   return v.dia === diaValido(dia, 1) && !(v.estado === 'anden' && num(hora) >= 20);
 }
 // Para el cuaderno: «Lena, una mochilera de Hamburgo: el Mirador del Pehuén (día 12)».
