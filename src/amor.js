@@ -146,7 +146,8 @@ export const LUGARES_CITA = {
   mallin: { nombre: 'el mallín', cita: 'ver bajar los caballos al mallín', valle: 'mallin', horas: [9, 20.5] },
   faro: { nombre: 'el faro', cita: 'subir al faro', valle: 'faro', horas: [10, 21] },
   torre: { nombre: 'la torre', cita: 'subir a la torre', valle: 'torre', horas: [9, 20] },
-  cueva: { nombre: 'el alero de las pinturas', cita: 'ver las pinturas del alero', valle: 'cueva', horas: [10, 18.5] },
+  // 3.8.4: la cueva de las pinturas pasó a ser el alero del arriero (el mismo lugar)
+  cueva: { nombre: 'el alero del arriero', cita: 'leer los nombres tallados del alero', valle: 'cueva', horas: [10, 18.5] },
 };
 export const esLugarCita = (id) => typeof id === 'string' && Object.hasOwn(LUGARES_CITA, id);
 // Las ventanas propias de cada una (la galesa atiende la casa de té hasta las 20: su cita ahí es al cerrar).

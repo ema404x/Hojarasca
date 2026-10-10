@@ -111,7 +111,7 @@ const BIBLIOTECA = String.raw`(() => {
     add('casa-te', E.casaTe, E.casaTe?.rot, 9.5, { entrada: [0, 8.4], encerrado: true, objetivos: [
       ['la galería', 0, 4.1, 0.24], ['adentro', 0, 0, 0.38], ['el rincón del fondo', 2.5, -1.8, 0.38]] });
     add('torre', E.torre, E.torre?.rot, 10, { entrada: [-1.5, -0.3], objetivos: [['el descanso', 0, -7.1, 3.50], ['la cabina', 0, 0.6, 6.96]] });
-    add('cueva', E.cueva, E.cueva?.rot, 8, { entrada: [2, 5.5], objetivos: [['la cornisa', -1.5, 0.8, 0.1], ['las pinturas', -1.5, -3.0, 0.34]] });
+    add('cueva', E.cueva, E.cueva?.rot, 8, { entrada: [2, 5.5], objetivos: [['la cornisa', -1.5, 0.8, 0.1], ['la pared tallada', -1.5, -3.0, 0.34]] });
     add('almacen', E.almacen, E.almacen?.rot, 9.5, { entrada: [0, -8.4], encerrado: true, objetivos: [
       ['la vereda', -3.6, -4.3, 0.50], ['el mostrador', 0, -0.4, 0.45], ['el rincón de las bolsas', 1.6, -2.0, 0.45]] });
     add('galpon', E.galpon, E.galpon?.rot, 22, { entrada: [0, -8.5 / 2 - 1.2], objetivos: [

@@ -43,7 +43,8 @@ assert.ok(paso>=0 && malla>paso,'Casa de Té vuelve a tener un escalón físico 
 
 // Radios de uso/limpieza deben coincidir con la huella real que ve el jugador.
 assert.match(estructuras,/Molino de Viento[\s\S]{0,260}radio: 7\.5/);
-assert.match(estructuras,/Cueva de las Manos[\s\S]{0,220}radio: 9/);
+// 3.8.4: la Cueva de las Manos pasó a ser el alero del arriero (el mismo lugar, el mismo radio)
+assert.match(estructuras,/El alero del arriero[\s\S]{0,220}radio: 9/);
 assert.match(main,/limpiar\(e\.molino, \(e\.molino\?\.radio \|\| 7\.5\) \+ 0\.5, 6\.2\)/);
 assert.match(main,/zona\(e\.molino, e\.molino\?\.radio \|\| 7\.5\)/);
 

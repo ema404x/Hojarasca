@@ -159,6 +159,8 @@ import { crearGranjaJuego } from './granja-juego.js';
 // 3.7.5 (rincones): los duendes, el potrero, las huertas, los títeres, el fuerte, el camino con el sulky, tu casa y el taller
 import { crearRinconesMundo } from './rincones-mundo.js';
 import { crearRinconesJuego } from './rincones-juego.js';
+// 3.8.4: el alero del arriero: Martín te pide buscar el nombre de su abuelo tallado en la pared
+import { crearAleroJuego } from './alero-arriero.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
 import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo, nocheDeLomo, alturaLomo, dondeAsoma } from './cuentos.js';
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
@@ -4429,6 +4431,7 @@ let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
+let aleroJuego = null;   // 3.8.4: ver alero-arriero.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
@@ -4614,7 +4617,15 @@ function armarOficiosYAldea(esDesafio) {
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
+  // 3.8.4: el alero del arriero: Martín te pide buscar el nombre de su abuelo (alero-arriero.js); el rumbo, desde la plaza
+  aleroJuego = crearAleroJuego({
+    progreso: () => progreso, desafio: () => !!desafio, lugar: () => T.lugares.cueva || null, jugador: () => jugador?.estado?.pos || null,
+    rumbo: () => { const c = edificioEnMundo('plaza'), l = T.lugares.cueva; return c && l ? rumboDesde(c, l) : null; },
+    sumarAmistad: (k, n) => { const am = sumarAmistadDe(progreso, k, n, progreso.dia); if (am?.subio) nota(`${nombreCorto(k)} te tiene confianza`, am.nivel === 'compadre' ? 'Ya son compadres' : 'Ya son amigos', true); },
+    diario: (dato) => diario.anotar('historia', dato), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+  });
   vecindadJuego = crearVecindadJuego({
+    alero: aleroJuego,   // 3.8.4: Martín y el nombre de su abuelo
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
@@ -8421,6 +8432,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
   try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
   try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
+  try { if (modo === 'jugando' && !desafio) aleroJuego?.actualizar(dt); } catch (e) { fallaSistema('alero', e); }   // 3.8.4: ¿estás delante del nombre del abuelo de Martín?
   try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }

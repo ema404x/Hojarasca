@@ -30,7 +30,8 @@ export const DESAFIOS = [
   { id: 'f-torre', nombre: 'Desde la torre', texto: 'La vista del bosque desde arriba de la torre de guardaparques.', pista: 'Subí la escalera y sacá la foto desde el piso de arriba.' },
   { id: 'f-tren', nombre: 'La trochita echando humo', texto: 'El tren a vapor en marcha, con la locomotora en cuadro.', pista: 'Esperalo cerca de la vía: pasa cada tanto y silba antes de llegar.' },
   { id: 'f-galpon', nombre: 'Lana y viento', texto: 'El galpón de esquila con el molino australiano girando.', pista: 'Alejate para que entren los dos en el cuadro.' },
-  { id: 'f-manos', nombre: 'Las manos', texto: 'La pared pintada de la cueva, con las manos en negativo.', pista: 'Metete adentro del alero y encuadrá la pared del fondo.' },
+  // 3.8.4: la cueva de las manos pasó a ser el alero del arriero (el id queda: así una foto ya sacada sigue valiendo)
+  { id: 'f-manos', nombre: 'Los nombres tallados', texto: 'La pared del alero del arriero, con los nombres y las fechas que tallaron los que pasaban.', pista: 'Metete adentro del alero y encuadrá la pared del fondo.' },
   { id: 'f-cascada', nombre: 'El salto', texto: 'La cascada del arroyo, con la poza abajo.', pista: 'Bajá hasta la poza y mirá para arriba.' },
   { id: 'f-kayak', nombre: 'En medio del lago', texto: 'Una foto desde el kayak, lejos de la orilla.', pista: 'Subí al kayak en el muelle.' },
   // 2.3: lo que asoma en el lago (ver `cuentos.js`)

@@ -227,7 +227,9 @@ export const LUGARES_VISITA = {
   mirador: { nombre: 'el Mirador del Pehuén', pide: 'Me dijeron que desde el mirador se ve todo el lago y la cordillera entera.' },
   arrayanes: { nombre: 'el bosque de arrayanes', pide: 'Quiero ver los arrayanes: dicen que la corteza parece de canela.' },
   cascada: { nombre: 'el salto del arroyo', pide: 'En el tren me hablaron de un salto de agua que se escucha antes de verse.' },
-  cueva: { nombre: 'la Cueva de las Manos', pide: 'Me contaron de una cueva con manos pintadas hace miles de años. ¿Es verdad?' },
+  // 3.8.4: la cueva de las manos pasó a ser el alero del arriero (el mismo lugar; el pedido de un vecino de la aldea,
+  // el de Martín y el nombre de su abuelo, está en alero-arriero.js)
+  cueva: { nombre: 'el alero del arriero', pide: 'Me contaron de un alero de piedra donde hacían noche los arrieros que cruzaban a Chile, y que en la pared tallaban su nombre. Dicen que hay nombres de hace cien años. ¿Es verdad?' },
   molino: { nombre: 'el molino de viento', pide: 'Desde el tren vi un molino con aspas. ¿Se puede llegar caminando?' },
   faro: { nombre: 'el faro del lago', pide: 'Un faro en un lago de montaña. Eso lo tengo que ver.' },
   puente: { nombre: 'el puente de troncos', pide: 'Busco el puente de troncos del sendero, el de la foto de la postal.' },
