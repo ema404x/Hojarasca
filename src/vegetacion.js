@@ -2211,7 +2211,10 @@ export function generarVegetacion(T, calidad, escena) {
   }
   function ponerTocon(a) {
     if (tocones.some((t) => t.arbol === a)) return;
-    if (tocones.length >= MAX_TOCONES) tocones.shift();
+    // 3.8.6: pasados los MAX_TOCONES, el más viejo deja de verse… y de frenar (`sinTocon`, colisiones.js): antes quedaba su
+    // choque, un tronco invisible donde ya no había nada, en el bosque que más talaste
+    if (tocones.length >= MAX_TOCONES) { const viejo = tocones.shift(); if (viejo?.arbol?.choque && viejo.arbol.sacado) viejo.arbol.choque.sinTocon = true; }
+    if (a.choque) a.choque.sinTocon = false;
     const esc = Math.min(1.5, Math.max(0.55, (a.r || 0.4) * 1.7));
     tocones.push({ arbol: a, x: a.x, z: a.z, y: a.y ?? T.altura(a.x, a.z), esc, giro: (a.x * 0.7 + a.z) % 3.14 });
     refrescarTocones();
@@ -2357,7 +2360,7 @@ export function generarVegetacion(T, calidad, escena) {
       ponerMatriz(a.ref, M);
       if (a.contactoRef && a.matrizContacto) ponerMatriz(a.contactoRef, a.matrizContacto);
       a.sacado = false;
-      if (a.choque) a.choque.apagado = false;
+      if (a.choque) { a.choque.apagado = false; a.choque.sinTocon = false; }   // (3.8.6: el árbol entero frena otra vez)
       sacarTocon(a);
     } else if (escala <= 0) {
       a.sacado = true;

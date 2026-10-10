@@ -61,8 +61,11 @@ export function tocaPuesto(noche, cuantosEnPie) {
 
 // Dónde: en el bosque alrededor de la base, lejos de los otros puestos y del nido.
 // `hacia` (radianes, opcional): con el nido ya en el valle, los puestos salen de su lado.
-export function lugarDelPuesto(centro, { esBueno = () => true, azar = Math.random, otros = [], nido = null, hacia = null } = {}) {
+// 3.8.6: `preferido(x, z)`: si hay, primero un lugar donde el hongo alto cabe entero (sin un árbol atravesado); si no
+// hay ninguno, el primero bueno de los otros (como antes).
+export function lugarDelPuesto(centro, { esBueno = () => true, preferido = null, azar = Math.random, otros = [], nido = null, hacia = null } = {}) {
   const cx = num(centro?.x, 0), cz = num(centro?.z, 0);
+  let reserva = null;
   for (let i = 0; i < 120; i++) {
     const a = hacia === null || !Number.isFinite(hacia) ? azar() * Math.PI * 2 : hacia + (azar() - 0.5) * (Math.PI * 2 / 3);
     const d = PUESTOS.distancia[0] + azar() * (PUESTOS.distancia[1] - PUESTOS.distancia[0]);
@@ -71,16 +74,19 @@ export function lugarDelPuesto(centro, { esBueno = () => true, azar = Math.rando
     if (otros.some((o) => Math.hypot(o.x - x, o.z - z) < PUESTOS.separacion)) continue;
     if (nido && Math.hypot(nido.x - x, nido.z - z) < 50) continue;
     if (!esBueno(x, z)) continue;
-    return { x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10 };
+    const pos = { x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10 };
+    if (preferido && !preferido(x, z)) { reserva ||= pos; continue; }
+    return pos;
   }
-  return null;
+  return reserva;
 }
 
 // Con el mapa de la semilla (desafio-mapa.js), los puestos salen de sus lugares: mismo
 // código, mismos puestos. El primero de la lista que esté libre (ni usado por otro puesto,
 // aunque esté roto, ni pegado a uno en pie ni al nido). Con el nido en el valle, primero
 // los de su lado. Sin lugar libre, null (y se usa lugarDelPuesto).
-export function sitioDelPuesto(sitios, { esBueno = () => true, otros = [], usados = [], nido = null, hacia = null, centro = null } = {}) {
+export function sitioDelPuesto(sitios, { esBueno = () => true, preferido = null, otros = [], usados = [], nido = null, hacia = null, centro = null } = {}) {
+  let reserva = null;   // 3.8.6: el primero bueno con un árbol atravesado, si no hay otro (ver lugarDelPuesto)
   let lista = (Array.isArray(sitios) ? sitios : []).filter((s) => s && Number.isFinite(Number(s.x)) && Number.isFinite(Number(s.z)));
   if (hacia !== null && Number.isFinite(hacia) && centro) {
     const dif = (s) => { const a = Math.atan2(s.z - centro.z, s.x - centro.x) - hacia; return Math.abs(Math.atan2(Math.sin(a), Math.cos(a))); };
@@ -93,43 +99,51 @@ export function sitioDelPuesto(sitios, { esBueno = () => true, otros = [], usado
     if (otros.some((o) => Math.hypot(o.x - x, o.z - z) < PUESTOS.separacion)) continue;
     if (nido && Math.hypot(nido.x - x, nido.z - z) < 50) continue;
     if (!esBueno(x, z)) continue;
+    if (preferido && !preferido(x, z)) { reserva ||= { x, z }; continue; }
     return { x, z };
   }
-  return null;
+  return reserva;
 }
 
-function sumarEstructuras(p, nivel, azar) {
+function sumarEstructuras(p, nivel, azar, libre = null) {
   for (const tipo of POR_NIVEL[nivel] || []) {
     const E = ESTRUCTURAS[tipo];
     // la aguja en el medio; lo demás alrededor, a unos metros
-    let dx = 0, dz = 0;
+    // 3.8.6: con `libre`, primero donde no hay un árbol atravesado (si no hay, el primero sin encimarse, como antes)
+    let dx = 0, dz = 0, reserva = null;
     if (tipo !== 'aguja') {
+      let hecho = false;
       for (let k = 0; k < 12; k++) {
         const a = azar() * Math.PI * 2, r = 3.2 + azar() * 2.6;
         dx = Math.round(Math.cos(a) * r * 10) / 10; dz = Math.round(Math.sin(a) * r * 10) / 10;
-        if (!p.estructuras.some((e) => Math.hypot(e.dx - dx, e.dz - dz) < 2.4)) break;
+        if (p.estructuras.some((e) => Math.hypot(e.dx - dx, e.dz - dz) < 2.4)) continue;
+        if (libre && !libre(p.x + dx, p.z + dz, E.radio)) { reserva ||= { dx, dz }; continue; }
+        hecho = true;
+        break;
       }
+      if (!hecho && reserva) ({ dx, dz } = reserva);
     }
     p.estructuras.push({ tipo, dx, dz, vida: E.vida, max: E.vida });
   }
 }
 
-export function puestoNuevo(id, pos, noche, azar = Math.random) {
+// 3.8.6: `libre(x, z, radio)` (opcional): dónde cabe una estructura sin un árbol, una piedra o una obra atravesada
+export function puestoNuevo(id, pos, noche, azar = Math.random, libre = null) {
   const nacio = Math.floor(num(noche, 0));
   const p = { id, x: num(pos?.x), z: num(pos?.z), nivel: 1, nacio, crecio: nacio, estructuras: [], guardias: 2, visto: false, roto: false };
-  sumarEstructuras(p, 1, azar);
+  sumarEstructuras(p, 1, azar, libre);
   return p;
 }
 
 // Al amanecer: los que nadie tocó crecen. Devuelve los que crecieron.
-export function crecerPuestos(estado, noche, azar = Math.random) {
+export function crecerPuestos(estado, noche, azar = Math.random, libre = null) {
   const crecieron = [];
   for (const p of activos(estado)) {
     if (p.nivel >= PUESTOS.nivelMax) continue;
     if (Math.floor(num(noche)) - p.crecio < PUESTOS.creceCada) continue;
     p.nivel++;
     p.crecio = Math.floor(num(noche));
-    sumarEstructuras(p, p.nivel, azar);
+    sumarEstructuras(p, p.nivel, azar, libre);
     p.guardias = Math.min(5, p.guardias + 1);
     crecieron.push(p);
   }

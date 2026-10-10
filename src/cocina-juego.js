@@ -276,7 +276,7 @@ export function crearCocinaJuego(ctx) {
     }
     ctx.sonido?.()?.juntar?.();
     const quedan = cuantoHay(p, id);
-    ctx.nota?.(`Comiste ${ef.porcion}`, quedan ? `${ef.sub}. Quedan ${quedan} en la alacena` : `${ef.sub}. Era lo último`);
+    ctx.nota?.(`Comiste ${ef.porcion}`, quedan ? `${ef.sub}. ${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} en la alacena` : `${ef.sub}. Era lo último`);
     ctx.mundo?.()?.refrescar?.();
     ctx.refrescarBarra?.();
     ctx.guardar?.();
@@ -365,7 +365,9 @@ export function crearCocinaJuego(ctx) {
     for (const o of estaciones()) {
       if (o.plano.id !== 'parrilla' || !deDia) continue;
       const c = coccionDe(o);
-      const claves = c?.invitados || [];
+      // 3.8.6: esperan el día en que vinieron; antes, un asado sin sacar los tenía parados alrededor de la parrilla todos
+      // los días, de 10 a 21:30, sin ir a trabajar
+      const claves = c && c.invitoDia === dia() ? c.invitados || [] : [];
       if (!claves.length) continue;
       lugar(o.datos.x, o.datos.z, o.datos.rot || 0, claves);
     }
@@ -388,6 +390,7 @@ export function crearCocinaJuego(ctx) {
     const claves = elegirInvitados(cand);
     if (!claves.length) { pas(c).busco = ahora(); return; }   // nadie libre: se vuelve a mirar en media hora
     c.invitados = claves;
+    c.invitoDia = dia();   // 3.8.6
     destinosCache.t = -1;
     ctx.nota?.('El humo del asado se ve desde lejos', `${unir(claves.map((k) => nombreCorto(k) || k))} ${claves.length === 1 ? 'viene' : 'vienen'} a ver qué se cocina`, true);
     decirPendiente = { texto: FRASES_ASADO.llegan[dia() % FRASES_ASADO.llegan.length], en: performance.now() + 9000 };
@@ -408,7 +411,10 @@ export function crearCocinaJuego(ctx) {
       if (perroFase.fase === 'va') {
         perroFase.cerca = d < 1.3 ? (perroFase.cerca || 0) + dt : 0;
         const c = coccionDe(perroFase.o);
-        if (!c || c.robado) { perroFase = null; return; }
+        // 3.8.6: la parrilla que desarmaste mientras iba (ya devolvió los chorizos): no roba nada (antes avisaba un robo de mentira
+        // y gastaba el del día)
+        const lista = ctx.obras?.()?.obras;
+        if (!c || c.robado || (lista && !lista.includes(perroFase.o))) { perroFase = null; return; }
         if (perroFase.cerca > 2.2 || perroFase.t > 40) {
           c.robado = true;
           cocina().perro = dia();
@@ -446,7 +452,11 @@ export function crearCocinaJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- el tiempo
-  let visto = null, acumulado = 0;
+  // 3.8.6: con la hora de tu reloj (`ctx.reloj()`: las horas del reloj de verdad, o null) la cocción sigue el tiempo de
+  // verdad: dormir no saltea la noche (el día sumado y las 7:20 de la mañana, y enseguida otra vez la hora del reloj,
+  // adelantaban 24 horas lo que estaba al fuego). `base` dice de qué reloj es `visto` (al cambiar de modo, se vuelve a mirar)
+  let visto = null, acumulado = 0, base = null;
+  const relojCoccion = () => { const r = ctx.reloj?.(); return Number.isFinite(r) ? { t: r, base: 'reloj' } : { t: ahora(), base: 'juego' }; };
   function actualizar(dt) {
     if (!activo()) return;
     const js = ctx.jugador?.();
@@ -457,10 +467,10 @@ export function crearCocinaJuego(ctx) {
     acumulado += dt;
     if (acumulado < 0.5) return;
     acumulado = 0;
-    const t = ahora();
-    if (visto === null || t < visto - 0.01) { visto = t; return; }
-    const h = Math.min(48, t - visto);
-    visto = t;
+    const rc = relojCoccion(), t = ahora();   // (`t`, la hora del juego: los invitados y la sobremesa)
+    if (visto === null || rc.base !== base || rc.t < visto - 0.01) { visto = rc.t; base = rc.base; return; }
+    const h = Math.min(48, rc.t - visto);
+    visto = rc.t;
     const lluvia = ctx.lluvia?.() || 0;
     for (const o of estaciones()) {
       const c = coccionDe(o);
@@ -542,7 +552,7 @@ export function crearCocinaJuego(ctx) {
     actualizar, comer, opciones, elegir, destino, antojoPerro, dibujarRecetario, estadoMundo, estaciones, coccionDe,
     // para las pruebas (?debug=1)
     __perro: () => (perroFase ? { fase: perroFase.fase, destino: perroFase.destino } : null),
-    __adelantar: (h) => { visto = (visto ?? ahora()) - h; acumulado = 1; actualizar(0); },
+    __adelantar: (h) => { const rc = relojCoccion(); if (visto === null || base !== rc.base) { visto = rc.t; base = rc.base; } visto -= h; acumulado = 1; actualizar(0); },
     __invitar: (o) => { const c = coccionDe(o); if (c) invitar(o, c); return c?.invitados; },
     __candidatos: () => { const p = progreso(), am = amistades(p), h = horas(), ds = diaSemanaDe(dia()); return presentes(p).map((k) => ({ clave: k, libre: estaLibre(k, h, ds, p), amistad: NIVEL[am[k]] || 0 })); },
   };

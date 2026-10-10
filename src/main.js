@@ -32,7 +32,7 @@ import { crearFauna } from './fauna.js';
 import { crearVida } from './vida.js';
 import { crearBichos } from './bichos.js';
 import { crearPerro } from './perro.js';
-import { crearGente, saludoDe, alturaDePie } from './gente.js';
+import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
@@ -84,7 +84,7 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
 import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
@@ -674,8 +674,9 @@ async function construir() {
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
-  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo)
-  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo' || g.pose === 'tornear' || g.pose === 'coser') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
+  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo; 3.8.6: todas las poses
+  // sentadas de gente.js, comer incluida)
+  est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
@@ -751,7 +752,9 @@ async function construir() {
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
   desalojarCarpa();   // 3.6.2
-  if (desalojo.acopio) vaciarUltimoAcopio(desalojo.materiales);   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás
+  // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
+  // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
+  if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
@@ -2823,6 +2826,9 @@ document.addEventListener('keydown', (e) => {
     if (paso) { tren.moverse(paso[0], paso[1]); sonido.paso('madera', 0.5); return; }
   }
   if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
+  // 3.8.6: en el sulky, lo mismo (armaba la carpa en el medio del camino, plantaba o talaba desde el asiento; el aviso sólo
+  // dice «Bajar del sulky»)
+  if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
@@ -2918,7 +2924,8 @@ document.addEventListener('keydown', (e) => {
         if (!kayak.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa o al muelle');
         break;
       }
-      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
+      // (3.8.6: el amarre se anota sólo en el Relax, como en amarrarKayak: en el Desafío, soltarlo dejaba el kayak siempre en el muelle)
+      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
       // 2.9: subir al velero o traerlo, largarse por la tirolesa (el aviso, en el mismo orden)
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
@@ -3371,7 +3378,7 @@ function usarRanura() {
       js.entumecido = 0;
       js.descansado = Math.max(js.descansado || 0, 1);
       sonido.juntar();
-      nota(r.id === 'pan-casero' ? 'Comiste un pedazo de pan casero' : 'Comiste una empanada', e.cantidad ? `Te quedan ${e.cantidad}. Se te fue el frío` : 'Era la última. Se te fue el frío');
+      nota(r.id === 'pan-casero' ? 'Comiste un pedazo de pan casero' : 'Comiste una empanada', e.cantidad ? `${e.cantidad === 1 ? 'Te queda' : 'Te quedan'} ${e.cantidad}. Se te fue el frío` : 'Era la última. Se te fue el frío');
       refrescarBarra(true);
       guardar();
       break;
@@ -4127,7 +4134,11 @@ function leerMando(dt) {
     if (m.recien.saltar) elegirHud();
     if (m.recien.agacharse) golpeDeTecla('Escape');
   }
-  if (!enLista) { if (m.recien.saltar) golpeDeTecla('Space'); }
+  // 3.8.6: en el velero, A sostenido es la vara corta (Espacio sostenido, como en el teclado: vela.js mira la tecla
+  // apretada). Antes A sólo daba un golpe de tecla y con el mando la vara no se podía usar
+  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla;
+  sostenerTecla('Space', enVelero && !!m.activos.saltar);
+  if (!enLista && !enVelero) { if (m.recien.saltar) golpeDeTecla('Space'); }
   // 3.8.6: con la mochila, el taller de los duendes o los planos abiertos, B también sale (como en el almacén y la cocina;
   // antes agachaba y había que volver a apretar la cruceta). En los planos, moviendo una pieza, B cancela el movimiento
   if (!enLista) {
@@ -4715,6 +4726,7 @@ function armarOficiosYAldea(esDesafio) {
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
+    tomandoAlgo: (npc) => !!vecindadJuego?.invitado(npc),   // 3.8.6: invitada a tomar algo con vos, la cita cuenta como «con vos»
     lugarValle: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null), invierno: () => U.uInvierno.value > 0.5,
     enCasa: (p, edificio) => { if (!p) return false; if (edificio === 'refugio') { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); } return !!aldeaMundo && !!edificio && Object.values(puntosMundo(edificio)).some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 6); },
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
@@ -4734,6 +4746,7 @@ function armarOficiosYAldea(esDesafio) {
   cocinaJuego = crearCocinaJuego({
     progreso: () => progreso, desafio: () => !!desafio, obras: () => obras, jugador: () => jugador?.estado || null,
     lluvia: () => clima?.estado?.lluvia || 0, invierno: () => U.uInvierno.value > 0.5,
+    reloj: () => (ajustes.duracion === 'reloj' ? Date.now() / 3600e3 : null),   // 3.8.6: con la hora de tu reloj, la cocción va con el reloj
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato),
@@ -4856,6 +4869,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     cobrar: (e) => cobrarPremio(e), redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
     nombresFoto: () => Object.fromEntries(DESAFIOS.map((d) => [d.id, d.nombre])),
+    fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),   // 3.8.6: el concurso no se lleva a la gente de la fiesta
   });
   noticiasJuego = crearNoticiasJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
@@ -5224,11 +5238,14 @@ function subirALaCabina() {
 // 3.8.4: varado en la nieve sin quitanieves, te bajás y seguís a pie: el tren espera a la cuadrilla y después sigue solo.
 // Tu caballo, si iba en la jaula, baja con vos
 function bajarEnLaNieve() {
-  if (!tren.bajarEnLaNieve?.(jugador)) return false;
+  const lado = tren.bajarEnLaNieve?.(jugador);
+  if (!lado) return false;
   if (enLasCargas()) puestoCargas.cerrar();
   if (caballoEnElTren()) {
+    // 3.8.6: más afuera de la vía que vos, mirando para afuera (antes iba a tu izquierda según para dónde miraras: podía
+    // quedar parado sobre los rieles, adentro de la locomotora)
     const js = jugador.estado, c = caballo();
-    c.x = js.pos.x - Math.cos(js.yaw) * 1.8; c.z = js.pos.z + Math.sin(js.yaw) * 1.8; c.yaw = yawCaballo(js.yaw);
+    c.x = js.pos.x + lado.nx * 1.8 - lado.tx * 1.2; c.z = js.pos.z + lado.nz * 1.8 - lado.tz * 1.2; c.yaw = Math.atan2(lado.tx, lado.tz);
     viajeTren().caballo = false;
     tren.tren?.subirCaballo?.(false);
   }
@@ -5465,8 +5482,9 @@ async function caballoEnElPuente() {
   if (preguntandoPuente) return;
   preguntandoPuente = true;
   try {
-    const mandar = await dialogos.confirmar(`${caballoDicho('', true)} no cruza el puente colgante: el tablero se mueve y no lo pisa. ¿Lo mandás solo al refugio o lo amarrás acá?`, { si: 'Mandarlo al refugio', no: 'Amarrarlo acá' });
-    if (!jugador.estado.montado) return;
+    const mandar = await dialogos.confirmar(`${caballoDicho('', true)} no cruza el puente colgante: el tablero se mueve y no lo pisa. ¿Lo mandás solo al refugio o lo amarrás acá?`, { si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null });
+    // 3.8.6: Escape (o B) no elige nada: seguís montado. Antes contaba como «Amarrarlo acá» y te bajaba
+    if (mandar === null || !jugador.estado.montado) return;
     desmontar();
     if (mandar) {
       const c = caballo();
@@ -5603,6 +5621,13 @@ function prepararTren(dt) {
 function despuesDelTren(dt) {
   if (!trenMejorado() || !estadoTren) return;
   const js = jugador.estado;
+  // 3.8.6: el taller desenganchó el comedor con algo al fuego: vuelve crudo a tus cosas (antes quedaba ahí, sin poder
+  // alcanzarlo, hasta volver a engancharlo)
+  if (cocinaComedor && !conVagon('comedor') && progreso.cocina?.moviles?.['tren-comedor']) {
+    if (devolverCoccion(progreso.cocina.moviles['tren-comedor'])) nota('Desengancharon el coche comedor', 'Lo que estaba al fuego volvió crudo a tus cosas', true);
+    delete progreso.cocina.moviles['tren-comedor'];
+    refrescarBarra(true); guardar();
+  }
   if (cocinaComedor) { const c = cocinaComedor.coccion(); tren.tren.cocina(c, c ? RECETA_PASOS[c.receta] : null); }
   // el taller sacó la jaula con tu caballo adentro: lo bajan en la estación de la aldea
   if (caballoEnElTren() && !conVagon('caballo') && !js.enTren) bajarCaballoDelTren(tren.paradas.find((p) => p.aldea) || null);
@@ -5678,7 +5703,7 @@ function aserrar() {
   progreso.materiales.tronco -= 1;
   sumarMaterial('tabla', cuanto);
   sonido.paso('madera', 0.9);
-  nota(banco ? 'Un tronco, cuatro tablas' : `Aserrado a mano: un tronco, ${cuanto === 3 ? 'tres' : 'dos'} tablas`, banco ? `Llevás ${material('tabla')} tablas` : `Llevás ${material('tabla')} tablas. En un banco de carpintero rinde el doble`);
+  nota(banco ? 'Un tronco, cuatro tablas' : `Aserrado a mano: un tronco, ${cuanto === 3 ? 'tres' : 'dos'} tablas`, banco ? `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}` : `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}. En un banco de carpintero rinde el doble`);
   registrar('tabla-mat');
   ganarOficio('hachero', XP.aserrar);
   guardar();
@@ -5854,7 +5879,7 @@ function dibujarPanelObra() {
   $('obra-costo').textContent = `Costo total · ${costoPlano(p)}`;
   const m = progreso.materiales || {};
   const enAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA) ? acopio() : null;
-  $('obra-materiales').textContent = `Llevás ${m.tronco || 0} troncos · ${m.tabla || 0} tablas · ${m.piedra || 0} piedras`
+  $('obra-materiales').textContent = `Llevás ${cuantas(m.tronco || 0, 'tronco', 'troncos')} · ${cuantas(m.tabla || 0, 'tabla', 'tablas')} · ${cuantas(m.piedra || 0, 'piedra', 'piedras')}`
     + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '');
   actualizarEstadoModuloObra(true);
   actualizarEstadoSitioObra(obras.estadoSitio);
@@ -5978,6 +6003,20 @@ function desalojarCarpa() {
 }
 // 3.5.1: desmontar una obra que trabaja devuelve lo que tenía adentro: antes se perdían los
 // troncos secos de la leñera, la miel, las truchas del ahumadero, las tablas del aserradero y la harina
+// 3.8.3: lo que estaba al fuego vuelve crudo (3.8.6: aparte, para la cocina del coche comedor desenganchado)
+// 3.8.6: «Faltan unas 1 horas», «Llevás 1 tablas»: el número con su palabra en singular o plural
+const cuantas = (n, una, varias) => `${n} ${n === 1 ? una : varias}`;
+const faltanHoras = (n) => (n === 1 ? 'Falta más o menos una hora' : `Faltan unas ${n} horas`);
+function devolverCoccion(coccion) {
+  const c = sanearCoccion(coccion);
+  if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
+    const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
+    if (n <= 0) continue;
+    if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
+    else sumarEntrada(x.k, n);
+  }
+  return !!c;
+}
 function devolverContenido(d) {
   if (!d || typeof d !== 'object') return;
   if (d.lenera) sumarMaterial('tronco', sanearLenera(d.lenera).secos);
@@ -5987,21 +6026,14 @@ function devolverContenido(d) {
   if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
   // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
   // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
-  if (d.coccion) {
-    const c = sanearCoccion(d.coccion);
-    if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
-      const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
-      if (n <= 0) continue;
-      if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
-      else sumarEntrada(x.k, n);
-    }
-  }
+  if (d.coccion) devolverCoccion(d.coccion);
   // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
   // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
   // todavía no está se lo lleva el cantero, como siempre)
   if (d.tendal) { const tc = sanearTendal(d.tendal); if (tc.colgado) { const C = CONSERVAS[tc.colgado]; if (tc.horas >= HORAS_SECADO) sumarEntrada(tc.colgado, 1); else sumarEntrada(C.ingrediente, C.cantidad); } }
   if (d.vivero) for (const m of sanearVivero(d.vivero, 4).macetas) sumarEntrada(progreso.dia - m.dia >= VIVERO.diasPlantin ? ARBOLES_VIVERO[m.especie].plantin : ARBOLES_VIVERO[m.especie].semilla, 1);
   if (d.plano === 'gallinero') { const g = gallineros()[claveGallinero(d.x, d.z)]; const r = g ? juntarHuevos(g, progreso.dia) : null; if (r?.ok) sumarEntrada('huevo', r.huevos); }
+  if (d.plano === 'frutal') granjaJuego?.alDesarmarHoyo?.(d.x, d.z);   // 3.8.6: la fruta madura del frutal
   if (d.plano === 'cantero') {
     const r = cosechar(huerta(), claveCantero(d.x, d.z), progreso.dia);
     if (r.ok) { sumarEntrada(r.ingrediente, r.cantidad); if (progreso.cosechasTotal != null && Number.isFinite(Number(progreso.cosechasTotal))) progreso.cosechasTotal = Math.floor(Number(progreso.cosechasTotal)) + r.cantidad; }
@@ -6413,7 +6445,7 @@ function usarElTendal() {
   const C = CONSERVAS[q.conserva];
   if (q.accion === 'colgar') { sonido.juntar(); nota('Colgaste a secar', `${C.cantidad} ${C.ingrediente === 'llaollao' ? 'llao llao' : 'calafates'}: medio día de sol, y la lluvia lo frena`, true); }
   else if (q.accion === 'descolgar') { sonido.juntar(); registrar(q.conserva, true); nota(`Descolgaste: ${C.nombre}`, 'Se guarda para el invierno, o se cambia en el almacén', true); }
-  else if (q.accion === 'secando') nota('Todavía se está secando', `Faltan unas ${q.faltan} horas`);
+  else if (q.accion === 'secando') nota('Todavía se está secando', faltanHoras(q.faltan));   // 3.8.6
   else nota('No tenés qué colgar', 'Cinco calafates, o tres llao llao ya anotados');
   refrescarBarra(true);
   guardar();
@@ -6459,7 +6491,8 @@ function obraQueTrabajaCerca(radio = 2.6) {
     if (!OBRAS_QUE_TRABAJAN.includes(o.plano.id) || !obraTerminada(o)) continue;
     // 2.4: con el kayak al alcance, E sube (el aviso lo dice antes); en el embarcadero
     // se mide desde las tablas, que son largas
-    if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos))) continue;
+    // (3.8.6: con el kayak ya amarrado en éste, no hay nada que traer: antes ofrecía «Traer el kayak» y lo volvía a amarrar ahí)
+    if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos) || kayakAmarradoEn(o))) continue;
     if (o.plano.id === 'bebedero' && ovejaCercana?.propia) continue;
     // 2.9: lo que se usa sólo de muy cerca (la radio del refugio no le gana a la cama)
     if (o.plano.alcanceE && Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z) > o.plano.alcanceE) continue;
@@ -6522,7 +6555,7 @@ function usarObraQueTrabaja(o) {
       conMateriales((m) => { m.tronco -= r.lena; });
       sonido.encender();
       nota(`Colgaste ${r.truchas} ${r.truchas === 1 ? 'trucha' : 'truchas'} al humo`, 'En medio día están. El fuego se cuida solo', true);
-    } else if (r.accion === 'ahumando') nota('Se están ahumando', `Faltan unas ${r.faltan} horas`);
+    } else if (r.accion === 'ahumando') nota('Se están ahumando', faltanHoras(r.faltan));   // 3.8.6
     else if (r.accion === 'sinLena') nota('Falta leña', 'Un tronco por tanda, para el fuego de abajo');
     else nota('No tenés truchas', `Con el ahumadero, de lo que pescás te quedás con ${AHUMADERO.porDia} truchas por día`);
   } else if (o.plano.id === 'vivero') {
@@ -6688,7 +6721,7 @@ function usarMaquina(o) {
       sumarEntrada('haba', -r.habas);
       sonido.juntar();
       nota(`Echaste ${r.habas} habas a la muela`, `Dos habas, una medida de harina: hora y media cada una`, true);
-    } else if (r.accion === 'moliendo') nota('La muela está moliendo', r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);
+    } else if (r.accion === 'moliendo') nota('La muela está moliendo', faltanHoras(r.faltan));
     else {
       const n = obrasTerminadas('aserradero').filter((a) => molinoQueMueve(a.datos, [o.datos])).length;
       nota('La rueda gira con el arroyo', `${n ? `Mueve ${n === 1 ? 'un aserradero' : `${n} aserraderos`}` : `Un aserradero a menos de ${MOLINO.enlace} m aprovecha la fuerza`}. Con habas de la huerta, la muela hace harina`);
@@ -6703,12 +6736,12 @@ function usarMaquina(o) {
       sumarMaterial('tabla', r.tablas);
       sonido.juntar();
       registrar('tabla-mat');
-      nota(`Sacaste ${r.tablas} tablas del aserradero`, `Llevás ${material('tabla')} tablas`, true);
+      nota(`Sacaste ${cuantas(r.tablas, 'tabla', 'tablas')} del aserradero`, `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}`, true);   // 3.8.6
     } else if (r.accion === 'cargar') {
       progreso.materiales.tronco -= r.troncos;
       sonido.juntar();
       nota(`Cargaste ${r.troncos} ${r.troncos === 1 ? 'tronco' : 'troncos'} en el aserradero`, r.sinMolino ? `Sin un molino de agua a menos de ${MOLINO.enlace} m, la sierra no arranca` : `Cinco tablas por tronco. Se aserran solos, aunque te vayas`, true);
-    } else if (r.accion === 'aserrando') nota('La sierra está trabajando', `Quedan ${r.troncos} ${r.troncos === 1 ? 'tronco' : 'troncos'}: unas ${r.faltan} horas`);
+    } else if (r.accion === 'aserrando') nota('La sierra está trabajando', `${r.troncos === 1 ? 'Queda un tronco' : `Quedan ${r.troncos} troncos`}: ${r.faltan === 1 ? 'más o menos una hora' : `unas ${r.faltan} horas`}`);   // 3.8.6
     else if (r.accion === 'sinMolino') nota('La sierra está parada', `Necesita un molino de agua a menos de ${MOLINO.enlace} m, en la orilla del arroyo`);
     else nota('El aserradero está vacío', 'Traé troncos: cinco tablas por cada uno');
     return true;
@@ -6755,6 +6788,12 @@ function usarRadio(o) {
 // El horno, el buzón, el embarcadero y el bebedero van por el mismo camino que la
 // colmena (aviso y tecla E con la misma prioridad). Ver CAMBIOS_2_4_0.md.
 const guardadoHorno = (id) => progreso.entradas[id]?.cantidad || 0;
+// 3.8.6: el kayak está amarrado (sin nadie) al costado de la punta de este embarcadero
+function kayakAmarradoEn(o) {
+  if (!kayak || kayak.est.activo) return false;
+  const p = puntoAmarre(o);
+  return !!p && Math.hypot(kayak.est.x - p.x, kayak.est.z - p.z) < 0.6;
+}
 function sobreEmbarcadero(o, pos) {
   const rot = o.datos.rot || 0, dx = pos.x - o.datos.x, dz = pos.z - o.datos.z;
   const lx = dx * Math.cos(rot) - dz * Math.sin(rot), lz = dx * Math.sin(rot) + dz * Math.cos(rot);
@@ -6781,7 +6820,7 @@ function usarObra24(o) {
       if (!progreso.corral) {
         const cercos = (obras?.obras || []).filter((c) => c.plano.id === 'cerco' && obraTerminada(c) && Math.hypot(c.datos.x - o.datos.x, c.datos.z - o.datos.z) <= 7).length;
         if (desafio) nota('El bebedero', 'Las ovejas se quedan en el galpón');
-        else nota('Todavía no es un corral', `Faltan ${Math.max(0, CORRAL_PROPIO.cercos - cercos)} tramos de cerco alrededor, a menos de 7 m`);
+        else nota('Todavía no es un corral', (Math.max(0, CORRAL_PROPIO.cercos - cercos) === 1 ? 'Falta un tramo de cerco alrededor, a menos de 7 m' : `Faltan ${Math.max(0, CORRAL_PROPIO.cercos - cercos)} tramos de cerco alrededor, a menos de 7 m`));   // 3.8.6
         return true;
       }
       const { conLana, total } = resumenMajada(progreso.corral, progreso.dia);
@@ -7005,7 +7044,10 @@ function hablar(npc) {
   const deNoticias = !desafio && !deAmor ? (concursosJuego?.hablar(npc) || noticiasJuego?.hablar(npc) || null) : null;
   if (deAmor || deNoticias) {
     const h = deAmor || deNoticias;
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
+    // 3.8.6: si además te había venido a buscar («te quiere decir algo», el aviso), primero eso y después lo de la noticia
+    // (antes la E abría el concurso o la carta, lo que te quería decir no se decía y el aviso seguía igual)
+    const ini = deNoticias && !desafio ? socialJuego?.tomarIniciativa(npc) : null;
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: ini ? [...ini.renglones, ...h.partes] : h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
     charla.vec = vecindadJuego?.abrir(npc) || null;
     $('charla').classList.remove('oculto');
     mostrarCharla();
@@ -7306,8 +7348,9 @@ function elegirEnMenuCharla(i) {
   const r = vecindadJuego.elegir(charla.vec, elegido, charla.npc);
   charla.menu = null;
   charla.parte = 0;
-  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece
-  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.tipo === 'renglones' ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
+  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece (3.8.6: la mano, sólo
+  // si se la diste: sin lo que pide, o por segunda vez en el día, el deseo se cumplía igual y daba la amistad del premio)
+  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.ayudo ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
   const gracias = hechoDeseo ? socialJuego?.cumplir(charla.npc, hechoDeseo) : null;
   if (gracias && Array.isArray(r.renglones)) r.renglones = [...r.renglones, gracias];
   if (r.tipo === 'menu') armarMenuCharla();   // 3.6.1: con lo del lugar
@@ -7321,6 +7364,8 @@ function elegirEnMenuCharla(i) {
 }
 // Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
 function atrasCharla() {
+  // 3.8.6: en el último renglón, Escape elige lo que dice abajo (el visitante que guiás: «Hasta acá»)
+  if (!charla.menu && charla.historia?.alEscape && charla.parte >= charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }
   if (charla.menu?.nivel === 2) { volverRueda(); return; }   // 3.7.4: de la segunda rueda, a las categorías
   if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }   // 3.6.1: con lo del lugar
   if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
@@ -7344,7 +7389,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {
@@ -7517,7 +7562,9 @@ function otroSocial(o, npc) {
 function loQueTeQueriaDecir(npc) {
   const ini = !desafio ? socialJuego?.tomarIniciativa(npc) : null;
   if (!ini) { alSaludarSocial(npc); return; }
-  charla.historia = { id: 'social-iniciativa', partes: ini.renglones, alTerminar: () => { charla.historia = null; } };
+  // 3.8.6: y si ya le cumpliste un deseo de lo que se hace en el valle, te lo agradece igual (si te venía a buscar, no)
+  const gracias = socialJuego?.cumplir(npc, null);
+  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones, alTerminar: () => { charla.historia = null; } };
   charla.parte = 0;
 }
 function alSaludarSocial(npc) {
@@ -8497,7 +8544,8 @@ function actualizarTiempo(dt) {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
-    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
+    // (3.8.6: ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
+    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }
@@ -8686,7 +8734,12 @@ function cuadroDelJuego(tRaf, manual) {
     // en el tren o en el kayak la cámara sigue al vehículo aunque estés mirando el cuaderno
     if (banco.activa) actualizarBanco(dtReal);
     else if (libre.activa) moverCamaraLibre(foto.activo ? dtReal : dt);
-    else { leerMando(dt); jugador.actualizar(dt); }
+    // 3.8.6: fuera del juego (la pausa, el cuaderno, el mapa) el mando lo lee `leerMandoEnMenu`: leerlo dos veces en el
+    // cuadro gastaba el «recién apretado» y con el mando solo no se salía de la pausa en el kayak, el velero o el tren. Y el
+    // kayak y el velero quedan quietos (el velero seguía navegando con el viento hasta encallar); el tren de pasajero sigue
+    // su vía, como siempre
+    else if (modo === 'jugando') { leerMando(dt); jugador.actualizar(dt); }
+    else jugador.actualizar(jugador.estado.enKayak ? 0 : dt);
   }
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   if (!mandoUsado) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
@@ -8876,9 +8929,11 @@ function cuadroDelJuego(tRaf, manual) {
     indiceSujetosPerro.reconstruir(sujetosPerro, (s) => s.pos);
   }
   perfilador.terminar('fauna', tFauna, medirRendimiento);
-  if (estadoTren && estadoTren.guarda) {
-    gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda.rumbo, js.enTren);
-    // la vuelta completa al anillo, para el encargo de Elsa
+  // (3.8.6: sin coches no hay guarda en viaje: Elsa se queda en la estación)
+  if (estadoTren) gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda?.rumbo, js.enTren && !!estadoTren.guarda);
+  // la vuelta completa al anillo, para el encargo de Elsa
+  // 3.8.6: también con la locomotora sola (sin coches no hay guarda, y la vuelta manejando nunca se contaba)
+  if (estadoTren) {
     if (js.enTren && estadoTren.recorrido >= estadoTren.vuelta * 0.98) {
       tren.reiniciarVuelta();
       progreso.vueltas = (progreso.vueltas || 0) + 1;
@@ -9218,7 +9273,8 @@ function cuadroDelJuego(tRaf, manual) {
       const anden = tren.paradaCerca(js);
       if (anden) {
         const q = tren.proximoTrenA(anden);
-        if (tren.parado() && q && q.metros < 12) textoTren = `${anden.nombre} · el tren está en el andén · E para subir`;
+        // 3.8.6: con la locomotora sola no hay coche de pasajeros: se sube a la cabina (E al lado de la locomotora)
+        if (tren.parado() && q && q.metros < 12) textoTren = tren.soloLocomotora?.() ? `${anden.nombre} · la locomotora está en el andén, sin coches · E al lado de la cabina para manejar` : `${anden.nombre} · el tren está en el andén · E para subir`;
         else if (q) textoTren = `${anden.nombre} · el próximo tren llega en unos ${Math.max(5, Math.round(q.segundos))} segundos`;
         else textoTren = '';
       } else textoTren = '';

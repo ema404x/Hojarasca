@@ -266,7 +266,9 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     if (!siguenLasNoches(d)) return;
     const noche = d.oleadas;
     const azar = azarDe(d.semilla, noche, 'puesto');
-    const crecieron = crecerPuestos(est, noche, azar);
+    // 3.8.6: las estructuras nuevas, sin un árbol, una piedra o una obra atravesada (si se puede)
+    const libre = (x, z, r) => !api.trabadoEn?.(x, z, r);
+    const crecieron = crecerPuestos(est, noche, azar, libre);
     const vistos = crecieron.filter((p) => p.visto);
     if (vistos.length) setTimeout(() => api.nota(vistos.length === 1 ? `La madriguera ${lado(vistos[0])} creció` : 'Las madrigueras crecieron', 'Nadie las tocó: ahora mandan más, y tienen más guardia'), 9000);
     est.golpes = est.golpes.filter((g) => g.noche > noche);
@@ -281,10 +283,12 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
       // partida sin mapa (de antes) sigue como siempre
       let sitios = null;
       try { if (d.mapa && !d.mapa.deAntes) sitios = mapaDePartida(d).puestos; } catch { sitios = null; }
-      const pos = (sitios && sitioDelPuesto(sitios, { esBueno, otros: activos(est), usados: est.lista, nido, hacia, centro: c }))
-        || lugarDelPuesto(c, { esBueno, azar, otros: activos(est), nido, hacia });
+      // 3.8.6: el hongo alto del medio, sin un árbol atravesado (si no hay lugar así, como antes)
+      const preferido = (x, z) => libre(x, z, ESTRUCTURAS.aguja.radio);
+      const pos = (sitios && sitioDelPuesto(sitios, { esBueno, preferido, otros: activos(est), usados: est.lista, nido, hacia, centro: c }))
+        || lugarDelPuesto(c, { esBueno, preferido, azar, otros: activos(est), nido, hacia });
       if (pos) {
-        const p = puestoNuevo(est.proximoId++, pos, noche, azar);
+        const p = puestoNuevo(est.proximoId++, pos, noche, azar, libre);
         est.lista.push(p);
         setTimeout(() => api.nota('Se ve humo verde en el bosque', `Cavaron una madriguera entre las raíces, ${api.rumboTexto(api.centroBase(), p)}. Si la rompés de día, de ese lado vienen menos (queda en el mapa cuando la veas)`, true), 6000);
       }

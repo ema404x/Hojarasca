@@ -90,6 +90,8 @@ export function sanearAsedio(x) {
   return {
     activo: x.activo === undefined ? true : !!x.activo, ganado: !!x.ganado, nave, zonas, contra,
     noches: ent(x.noches, 0), recuperadas: ent(x.recuperadas, 0), abordajes: ent(x.abordajes, 0), derrotasNave: ent(x.derrotasNave, 0),
+    // 3.8.6: el Rey Duende ya cayó (se anota al caer, antes de los segundos en que se viene abajo el Coihue)
+    ...(x.reyCaido && !x.ganado ? { reyCaido: true } : {}),
   };
 }
 

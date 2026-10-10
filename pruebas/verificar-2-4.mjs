@@ -280,7 +280,7 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   assert.match(main, /default: return avisoObra24\(o\);/, 'el aviso de las obras nuevas');
   assert.match(main, /if \(usarObra24\(o\)\) \{ refrescarBarra\(true\); guardar\(\); return; \}/, 'y la tecla E, por el mismo camino');
   // el embarcadero no le gana a «Subir al kayak»: con el kayak al alcance, la obra no cuenta y E sube
-  assert.match(main, /if \(o\.plano\.id === 'embarcadero' && \(js\.enKayak \|\| kayak\?\.cerca\(js\) \|\| !sobreEmbarcadero\(o, js\.pos\)\)\) continue;/);
+  assert.match(main, /if \(o\.plano\.id === 'embarcadero' && \(js\.enKayak \|\| kayak\?\.cerca\(js\) \|\| !sobreEmbarcadero\(o, js\.pos\)( \|\| kayakAmarradoEn\(o\))?\)\) continue;/);   // (3.8.6: y con el kayak ya amarrado ahí)
   assert.match(main, /ovejaCercana = js\.enTren \|\| js\.enKayak \? null : corralMundo\?\.ovejaCerca\(js\.pos\) \|\| majadaMundo\.ovejaCerca\(js\.pos\);/, 'tus ovejas se esquilan');
   assert.match(main, /textoOveja\(majadaDe\(ovejaCercana\), ovejaCercana\.i/, 'y el aviso dice de cuál');
   assert.match(main, /const correoAca = npc\.clave === 'ercilia' \|\| npc\.clave === 'buzon';/, 'el buzón da las cartas');

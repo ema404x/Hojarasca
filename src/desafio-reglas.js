@@ -379,6 +379,10 @@ export function desafioNuevo() {
     // 3.8.4: los robos de esta noche (el tope de 4 se guarda: recargar no lo reiniciaba) y el asedio que espera al
     // alba (caer en la noche final con el Coihue en pie ya no lo planta en el momento)
     robosNoche: { noche: -1, n: 0 }, asedioAlAlba: null,
+    // 3.8.6: la noche en que ya llegaron los refuerzos de madrugada (recargar los mandaba otra vez)
+    refuerzoNoche: -1,
+    // 3.8.6: las semillas doradas tiradas en el suelo, sin juntar ({ x, y, z } cada una)
+    sueltas: [],
     // 2.5: el arsenal (munición nueva, la flecha elegida y la noche en que se usaron las placas)
     ...Object.fromEntries(MUNICIONES.map((k) => [k, 0])), flechaTipo: 'comun', placasNoche: -1,
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
@@ -408,6 +412,15 @@ export function sumarContenidoCaja(viejo, nuevo) {
   const a = sanearContenidoCaja(viejo), b = sanearContenidoCaja(nuevo), r = {};
   for (const k of COSAS_CAJA) if (a[k] || b[k]) r[k] = (a[k] || 0) + (b[k] || 0);
   return sanearContenidoCaja(r);
+}
+// 3.8.6: las semillas doradas tiradas en el suelo (se guardan en la partida). Como mucho SUELTAS_MAX (el pozo de
+// mallas); cada una con su lugar en números finitos y dentro del valle.
+export const SUELTAS_MAX = 80;
+export function sanearSueltas(v) {
+  if (!Array.isArray(v)) return [];
+  const fin = (n) => n !== null && n !== '' && typeof n !== 'boolean' && Number.isFinite(Number(n));
+  return v.filter((s) => s && typeof s === 'object' && fin(s.x) && fin(s.y) && fin(s.z) && Math.abs(Number(s.x)) < 1e5 && Math.abs(Number(s.z)) < 1e5 && Math.abs(Number(s.y)) < 1e4)
+    .slice(0, SUELTAS_MAX).map((s) => ({ x: Number(s.x), y: Number(s.y), z: Number(s.z) }));
 }
 export function sanearDesafio(d) {
   const x = d && typeof d === 'object' && !Array.isArray(d) ? d : {};
@@ -477,6 +490,8 @@ export function sanearDesafio(d) {
     asedioAlAlba: x.asedioAlAlba && typeof x.asedioAlAlba === 'object' && !Array.isArray(x.asedioAlAlba)
       ? (Number.isFinite(Number(x.asedioAlAlba.x)) && Number.isFinite(Number(x.asedioAlAlba.z)) && x.asedioAlAlba.x !== null && x.asedioAlAlba.z !== null
         ? { x: Number(x.asedioAlAlba.x), z: Number(x.asedioAlAlba.z) } : {}) : null,
+    refuerzoNoche: Number.isFinite(Number(x.refuerzoNoche)) && x.refuerzoNoche !== null ? Math.floor(Number(x.refuerzoNoche)) : -1,   // 3.8.6
+    sueltas: sanearSueltas(x.sueltas),   // 3.8.6
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
   };
 }

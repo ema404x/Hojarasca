@@ -274,11 +274,15 @@ export function bajaSentado(asiento, talla) {
 const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar', 'limar', 'llave']);
 // 3.7.5: y las de las fiestas (aplaudir, los bailes, la jineteada, comer en la mesa larga, tirar la taba)
 for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar']) MANOS_OCUPADAS.add(p);
+// 3.8.6: las poses sentadas, en una sola lista (la usa también main.js para no ofrecerte la silla de alguien sentado:
+// faltaba «comer», la de la mesa larga)
+export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);
+export const estaSentado = (g) => !!g && POSES_SENTADAS.has(g.pose);
 function posar(g, charlando) {
   const t = g.fase;
-  switch (g.pose) {
+  switch (estaSentado(g) ? 'sentado' : g.pose) {
     // (3.7.0 (integración): y sentadas en lo suyo: Malena en el torno, Pocha en la máquina de coser)
-    case 'sentado': case 'leyendo': case 'tornear': case 'coser': case 'comer': {   // (3.7.5: y comer en la mesa larga)
+    case 'sentado': {   // (todas las de POSES_SENTADAS: leyendo, tornear, coser y, 3.7.5, comer en la mesa larga)
       const b = bajaSentado(g.asiento, g.g?.scale?.y);
       const cadera = CADERA - b;
       const recoge = cadera < CANILLA ? Math.acos(Math.max(0, cadera - 0.02) / CANILLA) : 0;   // la canilla, adelante

@@ -90,6 +90,7 @@ export function crearPuestoDeCargas(ctx) {
   const $$ = (sel) => ctx.panel?.querySelector(sel);
   function dibujar() {
     if (!estado.abierto || !ctx.panel) return;
+    estado.dia = ctx.dia(); estado.temporada = ctx.temporada();   // 3.8.6: de qué día es lo que se ve
     const nombre = estado.parada.nombre;
     $$('.quien').textContent = T_(`Cargas · ${nombre} · ${TITULO[estado.modo]}`);
     const c = comercio();
@@ -139,11 +140,15 @@ export function crearPuestoDeCargas(ctx) {
   function vigilar(pos) {
     if (!estado.abierto) return;
     const aca = ctx.tren.conduciendo() ? ctx.tren.paradaCabina() === estado.parada : ctx.tren.puestoCerca(pos, 3.4) === estado.parada;
-    if (!aca) cerrar();
+    if (!aca) { cerrar(); return; }
+    // 3.8.6: abierto mientras pasa la medianoche (o cambia la temporada), se rehace: antes se veía la lista de ayer y el
+    // número elegía de la de hoy (otro flete, otro precio)
+    if (estado.dia !== ctx.dia() || estado.temporada !== ctx.temporada()) dibujar();
   }
 
   // ------------------------------------------------ comprar, vender y los fletes
   function elegir(i) {
+    if (ctx.panel && (estado.dia !== ctx.dia() || estado.temporada !== ctx.temporada())) { dibujar(); return false; }   // 3.8.6: (lo de ayer, ya no)
     const f = filas()[i];
     if (!f) return false;
     if (estado.modo === 'comprar') return comprarBien(f.bien);

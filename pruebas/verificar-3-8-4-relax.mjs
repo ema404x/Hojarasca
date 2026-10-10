@@ -112,7 +112,7 @@ const c = (n, palo) => ({ n, palo });
   eq(KA.dondeAmanece({ x: 40, z: 12 }, [emb(1, 1)]), { donde: 'muelle' }, 'si su embarcadero ya no está, al muelle');
   eq([KA.sanearAmarre({ x: '3', z: 4 }), KA.sanearAmarre('x'), KA.sanearAmarre(undefined)], [{ x: 3, z: 4 }, null, undefined], 'el guardado, saneado');
   eq(KA.amarreDe(e2), { x: 40, z: 12 }, 'lo que se anota al amarrarlo');
-  en(main, "kayak.subir(jugador); progreso.kayakAmarre = null;");
+  en(main, "kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;");   // (3.8.6: sólo en el Relax)
   en(main, "if (!desafio) progreso.kayakAmarre = amarreDe(o);");
   en(main, "{ const a = dondeAmanece(progreso.kayakAmarre, obrasTerminadas('embarcadero')); if (a.donde === 'embarcadero') amarrarKayak(a.obra); else if (a.donde === 'cercano') amarrarKayak(); }");
 }
@@ -141,7 +141,7 @@ const c = (n, palo) => ({ n, palo });
   ok(e1 < e2 && e2 < e3, 'la E: la jaula, el puente, bajarte');
   en(main, "jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : puenteDelCaballo() ? { tecla: 'E', texto: `${caballoDicho('', true)} no cruza el puente: bajarte` } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };");
   const pr = trozo('async function caballoEnElPuente() {', '\n}');
-  ok(pr.includes("{ si: 'Mandarlo al refugio', no: 'Amarrarlo acá' }") && pr.includes('mandarAlRefugio(c);') && pr.includes('guardar();'), 'pregunta, te baja y se guarda');
+  ok(pr.includes("{ si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null }") && pr.includes('mandarAlRefugio(c);') && pr.includes('guardar();'), 'pregunta, te baja y se guarda');
   ok(pr.includes("nota(`${caballoDicho('', true)} vuelve solo al refugio`, 'Te espera atado al palenque');") && pr.includes("nota(`Amarraste ${caballoDicho('a')} al estribo`, 'Te espera acá: volvé a subir con E');"), 'las notas');
 }
 
@@ -297,7 +297,7 @@ const c = (n, palo) => ({ n, palo });
   // el día 11 es invierno en el calendario
   ok(GR.estadoFrutal(f, 11, 10, 'auto').fruta === 'no' && GR.textoFrutal(f, 11, 10, null, 'auto') === 'Cerezo · descansa en invierno; en primavera, flor', 'auto: en el invierno del calendario, descansa');
   ok(GR.estadoFrutal(f, 11, 10, 'verano').fruta === 'madura' && GR.textoFrutal(f, 11, 10, null, 'verano') === 'Juntar las cerezas (14)', 'con el verano fijado, cerezas maduras');
-  ok(GR.textoFrutal(f, 8, 10, null, 'invierno') === 'Cerezo · descansa en invierno; en primavera, flor' && GR.textoFrutal(f, 8, 10, null, 'auto') !== GR.textoFrutal(f, 8, 10, null, 'invierno'), 'con el invierno fijado, descansa (aunque el calendario diga otoño)');
+  ok(GR.textoFrutal(f, 8, 10, null, 'invierno') === 'Cerezo · con la estación fija, descansa' && GR.textoFrutal(f, 8, 10, null, 'auto') !== GR.textoFrutal(f, 8, 10, null, 'invierno'), 'con el invierno fijado, descansa (aunque el calendario diga otoño)');
   ok(GR.estadoFrutal(f, 1, 0.5, 'auto').flor && !GR.estadoFrutal(f, 1, 0.5, 'invierno').flor && !GR.estadoFrutal(f, 1, 0.5, 'verano').flor, 'la flor de la primavera, sólo con las estaciones de verdad');
   ok(GR.estadoFrutal({ especie: 'manzano', plantado: 1, cosecha: -1 }, 11, 10, 'otono').fruta === 'madura', 'con el otoño fijado, las manzanas');
   ok(GR.estadoFrutal(f, 11, 10, true).fruta === 'no' && GR.estadoFrutal(f, 7, 10, false).fruta === 'madura', 'los booleanos de antes siguen valiendo');
@@ -435,7 +435,7 @@ const c = (n, palo) => ({ n, palo });
   ok(v?.tipo === 'no-pudo' && v.texto === 'Sofía no pudo ir a la cita' && pc.amor.personas[cand].afecto === af && !pc.amor.personas[cand].motivo, 'ella ocupada: se cae sin «plantada»');
   const pc2 = { dia: 8, horas: 21, amor: AM.sanearAmor({ personas: { [cand]: { etapa: 'saliendo', afecto: 40, contacto: 8 } }, cita: { clave: cand, lugar: 'mirador', dia: 8, desde: 18, hasta: 19.5, ocupada: true, espero: true } }, 8) };
   ok(AM.vencerCita(pc2)?.tipo === 'plantada', 'si llegó a esperarte, sí te plantaste vos');
-  ok(leer('src/amor-juego.js').includes('if (quiere.por === \'cita\' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.enCita) cita.ocupada = true; }'), 'el juego anota que estaba ocupada');
+  ok(leer('src/amor-juego.js').includes('if (quiere.por === \'cita\' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.conVos || (n && ctx.tomandoAlgo?.(n))) cita.juntos = true; else if (n?.enCita) cita.ocupada = true; }'), 'el juego anota que estaba ocupada');   // (3.8.6: salvo que esté con vos)
   // el nido de hongos a medio quemar
   eq(IN.sanearCapullos([{ x: 1, z: 2, golpes: 1, quema: 1.2 }, { x: 3, z: 4, quema: 99 }, { x: 5, z: 6 }]), [{ x: 1, z: 2, golpes: 1, quema: 1.2 }, { x: 3, z: 4, golpes: 0, quema: IN.CAPULLOS.quemar }, { x: 5, z: 6, golpes: 0 }], 'el que se quemaba sigue quemándose al cargar');
   ok(leer('src/desafio.js').includes('const quemandoCapullo = { has: (c) => c?.quema > 0,'), 'la quema va en el nido mismo');

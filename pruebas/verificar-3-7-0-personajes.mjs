@@ -100,7 +100,7 @@ ok(main.includes('gente?.precalentar?.(camara,') && main.includes('gente?.trasCo
 ok(atlas.includes('export function pintarAtlasDespues()') && atlas.includes('requestIdleCallback') && gente.includes('if (!atlasListo()) completarAtlas();'), 'el atlas se pinta de a pasos en la portada (y si no llegó, de una al jugar)');
 // (3.7.0 (integración): también a tu espalda, y armada de a poco)
 ok(gente.includes('function cambiarRopa(dt, js, camara = null)') && gente.includes("g.dormido || !g.g.visible || d > 40"), 'la ropa se cambia sin que nadie lo vea');
-for (const p of ['sentado', 'leyendo', 'palear', 'hachar', 'regar', 'mirar', 'jugar', 'bailar', 'tocar', 'izar', 'martillar', 'amasar', 'serruchar']) ok(gente.includes(`case '${p}':`), `gente.js: la pose ${p}, igual que antes`);
+for (const p of ['sentado', 'leyendo', 'palear', 'hachar', 'regar', 'mirar', 'jugar', 'bailar', 'tocar', 'izar', 'martillar', 'amasar', 'serruchar']) ok(gente.includes(`case '${p}':`) || (p === 'leyendo' && gente.includes("POSES_SENTADAS = new Set(['sentado', 'leyendo'")), `gente.js: la pose ${p}, igual que antes`);   // (3.8.6: leyendo, en POSES_SENTADAS)
 
 // ---------------------------------------------------------------- 5. armar a todos (en una VM, sin DOM)
 const idModulo = (f) => '__mod_' + path.basename(f, '.js').replace(/[^A-Za-z0-9_$]/g, '_');

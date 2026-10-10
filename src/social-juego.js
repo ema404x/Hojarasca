@@ -184,15 +184,19 @@ export function crearSocialJuego(ctx) {
     const j = ctx.jugador?.();
     const hablando = ctx.hablandoCon?.();
     if (!j || hablando) return;
-    let mejor = null, dm = SOCIAL.lejosIniciativa;
+    // 3.8.6: el más cercano de los que pueden venir (de la vecindad, que no vino hoy ni está enojado): antes, si el más
+    // cercano no podía (la familia de visita, una visita del tren, el que ya vino), no venía nadie
+    let mejor = null, k = null, dm = SOCIAL.lejosIniciativa;
+    const ctxIni = contexto({ libre: true });
     for (const n of ctx.gente?.() || []) {
       if (!n.claveAldea || !libre(n, hablando)) continue;
       const d = dist(n.pos, j);
-      if (d < dm && d > 2.5) { dm = d; mejor = n; }
+      if (!(d < dm && d > 2.5)) continue;
+      const c = claveDe(n);
+      if (!c || (typeof S.podriaVenir === 'function' && !seguro(() => S.podriaVenir(c, progreso(), ctxIni), false))) continue;
+      dm = d; mejor = n; k = c;
     }
-    if (!mejor) return;
-    const k = claveDe(mejor);
-    if (!k) return;
+    if (!mejor || !k) return;
     const r = seguro(() => S.iniciativa(k, progreso(), contexto({ libre: true })), null);
     if (!r || !Array.isArray(r.renglones) || !r.renglones.length) return;
     // camina hacia vos (hasta un par de metros; cerca tuyo gente.js lo frena y te mira) y te saluda con su burbuja
