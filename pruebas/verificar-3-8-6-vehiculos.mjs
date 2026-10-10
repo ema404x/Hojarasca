@@ -89,7 +89,7 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
 // 4. kayak, velero, sulky
 {
   const m = leer('src/main.js');
-  ok(m.includes("else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(modo !== 'jugando' && jugador.estado.enKayak ? 0 : dt); }"), 'en la pausa: el mando una vez y el kayak/velero quieto');
+  ok(m.includes("else if (modo === 'jugando') { leerMando(dt); jugador.actualizar(dt); }\n    else jugador.actualizar(jugador.estado.enKayak ? 0 : dt);"), 'en la pausa: el mando una vez y el kayak/velero quieto');
   ok(m.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();"), 'el menú sigue leyendo el mando');
   ok(m.includes('kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;') && m.includes('if (!desafio) progreso.kayakAmarre = amarreDe(o);'), 'el amarre del kayak, sólo en el Relax (al anotar y al soltar)');
   ok(m.includes("if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }"), 'en el sulky, las otras teclas no');

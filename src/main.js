@@ -8556,7 +8556,8 @@ function cuadroDelJuego(tRaf, manual) {
     // cuadro gastaba el «recién apretado» y con el mando solo no se salía de la pausa en el kayak, el velero o el tren. Y el
     // kayak y el velero quedan quietos (el velero seguía navegando con el viento hasta encallar); el tren de pasajero sigue
     // su vía, como siempre
-    else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(modo !== 'jugando' && jugador.estado.enKayak ? 0 : dt); }
+    else if (modo === 'jugando') { leerMando(dt); jugador.actualizar(dt); }
+    else jugador.actualizar(jugador.estado.enKayak ? 0 : dt);
   }
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
