@@ -5892,6 +5892,7 @@ function devolverContenido(d) {
   if (d.tendal) { const tc = sanearTendal(d.tendal); if (tc.colgado) { const C = CONSERVAS[tc.colgado]; if (tc.horas >= HORAS_SECADO) sumarEntrada(tc.colgado, 1); else sumarEntrada(C.ingrediente, C.cantidad); } }
   if (d.vivero) for (const m of sanearVivero(d.vivero, 4).macetas) sumarEntrada(progreso.dia - m.dia >= VIVERO.diasPlantin ? ARBOLES_VIVERO[m.especie].plantin : ARBOLES_VIVERO[m.especie].semilla, 1);
   if (d.plano === 'gallinero') { const g = gallineros()[claveGallinero(d.x, d.z)]; const r = g ? juntarHuevos(g, progreso.dia) : null; if (r?.ok) sumarEntrada('huevo', r.huevos); }
+  if (d.plano === 'frutal') granjaJuego?.alDesarmarHoyo?.(d.x, d.z);   // 3.8.6: la fruta madura del frutal
   if (d.plano === 'cantero') {
     const r = cosechar(huerta(), claveCantero(d.x, d.z), progreso.dia);
     if (r.ok) { sumarEntrada(r.ingrediente, r.cantidad); if (progreso.cosechasTotal != null && Number.isFinite(Number(progreso.cosechasTotal))) progreso.cosechasTotal = Math.floor(Number(progreso.cosechasTotal)) + r.cantidad; }

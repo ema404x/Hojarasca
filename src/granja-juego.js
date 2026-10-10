@@ -269,8 +269,20 @@ export function crearGranjaJuego(ctx) {
     return { tipo: 'renglones', renglones: r.renglones };
   }
 
+  // 3.8.6: al desarmar un hoyo con su frutal, la fruta madura que estaba para juntar vuelve (como la cosecha lista del
+  // cantero; antes se perdía). El árbol no: lo que no estaba listo se lo lleva el hoyo, como lo sembrado del cantero
+  function alDesarmarHoyo(x, z) {
+    if (!activo()) return null;
+    const f = granja().frutales[claveFrutal(x, z)];
+    if (!f?.especie) return null;
+    const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());
+    if (!r.ok) return null;
+    ctx.sumarEntrada?.(r.k, r.n);
+    return r;
+  }
+
   return {
-    actualizar, accion, opciones, elegir, refrescar, avanzar, granja,
+    actualizar, accion, opciones, elegir, refrescar, avanzar, granja, alDesarmarHoyo,
     // para las pruebas
     ordenarVaca, echarFardoAlComedero, echarALaBatea, usarFrutal, carnearYa, pedirCarnear, lugares: () => cache || refrescar(),
     frutales: () => granja().frutales, pendiente: () => pendiente,

@@ -14,6 +14,7 @@
 //  7. El bosque: pasados los 96 tocones, el más viejo deja de verse y también de frenar (quedaba un tronco invisible).
 //  8. Varado en la nieve: tu caballo baja del lado de afuera de la vía (podía quedar sobre los rieles, en la locomotora).
 //  9. Bajar del kayak o del velero en la orilla: nunca del otro lado de una pared (una obra tuya en la costa).
+// 10. Desarmar un hoyo con su frutal devuelve la fruta madura que estaba para juntar (se perdía).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -151,6 +152,13 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
 {
   const linea = '&& !col.paredEntre?.(est.x, est.z, x, z, T.altura(x, z) + 0.2, T.altura(x, z) + 1.6, true)) return { x, z };';
   ok(leer('src/kayak.js').includes(linea) && leer('src/vela.js').includes(linea), 'el kayak y el velero no te bajan atrás de una pared');
+}
+
+// 10. la fruta madura del hoyo que desarmás
+{
+  const gj = leer('src/granja-juego.js'), m = leer('src/main.js');
+  ok(gj.includes('function alDesarmarHoyo(x, z) {') && gj.includes('const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());\n    if (!r.ok) return null;\n    ctx.sumarEntrada?.(r.k, r.n);'), 'la granja la junta');
+  ok(m.includes("if (d.plano === 'frutal') granjaJuego?.alDesarmarHoyo?.(d.x, d.z);"), 'al desarmar (a mano o en el desalojo)');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);
