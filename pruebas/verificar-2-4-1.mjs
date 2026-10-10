@@ -73,7 +73,8 @@ const leer = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
   assert.match(cons, /d\.etapas = Math\.max\(0, Math\.min\(p\.etapas\.length, Math\.floor\(Number\(d\.etapas\) \|\| 0\)\)\);/);
   const main = leer('src/main.js');
   assert.match(main, /obrasAjenas = \(progreso\.obras \|\| \[\]\)\.filter\(\(d\) => d && !PLANO\[d\.plano\]\);/, 'las obras de otra versión se apartan');
-  assert.match(main, /guardarProgreso\(obrasAjenas\.length \? \{ \.\.\.progreso, obras: \[\.\.\.\(progreso\.obras \|\| \[\]\), \.\.\.obrasAjenas\] \} : progreso\)/, 'y vuelven al guardar');
+  // 3.8.4: se guarda aGuardar (la partida, o la ya despierta si se cae en el fundido: ver verificar-3-8-4-desafio)
+  assert.match(main, /guardarProgreso\(obrasAjenas\.length \? \{ \.\.\.aGuardar, obras: \[\.\.\.\(aGuardar\.obras \|\| \[\]\), \.\.\.obrasAjenas\] \} : aGuardar\)/, 'y vuelven al guardar');
 }
 
 // ---------------------------------------------------------------- 4. el aviso dice lo que hace la tecla

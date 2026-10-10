@@ -40,6 +40,17 @@ const TOMAS = {
     ['volador', -3.5, 10, 1.6, { alto: 5.5, vuela: 1, fase: 2 }],
     ['volador', 4.5, 13, -1.2, { alto: 7, vuela: 1, fase: 4, viejo: 1 }],
   ] },
+  // 3.8.4: el pulido visual: la lechuza de cerca (de costado, con las alas abiertas) y el cofre de cerca
+  'lechuza-cerca': { hora: 19.9, ojo: [0, 1.6, 0], a: [0, 2.0, 3.6], fov: 46, duendes: [
+    ['volador', 0, 3.6, 1.2, { alto: 1.4, vuela: 1, fase: 1 }],
+  ] },
+  'lechuza-frente': { hora: 17.2, ojo: [-1.2, 1.9, 0.6], a: [0, 1.6, 3.4], fov: 42, duendes: [
+    ['volador', 0, 3.4, 0.7, { alto: 1.0, vuela: 1, fase: 1 }],
+  ] },
+  'lechuza-arriba': { hora: 17.2, ojo: [0.9, 3.0, 1.9], a: [0, 1.3, 3.4], fov: 40, duendes: [
+    ['volador', 0, 3.4, 2.4, { alto: 1.0, vuela: 1, fase: 2 }],
+  ] },
+  'cofre-cerca': { hora: 6.6, cofre: 1, ojo: [0.6, 1.0, 1.6], a: [0, 0.25, 3.6], fov: 42, duendes: [] },
   nido: { hora: 19.4, nido: 1, ojo: [0, 1.4, 0], a: [0, 0.5, 4.4], fov: 52, duendes: [] },
   madriguera: { hora: 19.6, madriguera: 1, ojo: [0, 1.65, 0], a: [0, 2.2, 13], fov: 50, duendes: [
     ['rastreador', -2.5, 9.5, 0.4, { agazapado: 1 }],

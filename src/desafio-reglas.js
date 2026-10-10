@@ -376,6 +376,9 @@ export function desafioNuevo() {
     capullos: [], varada: null, semilla: null,
     // 3.0: la corrida sin fin (null en la campaña) y el mapa de la semilla (null: el de siempre)
     sinFin: null, mapa: null,
+    // 3.8.4: los robos de esta noche (el tope de 4 se guarda: recargar no lo reiniciaba) y el asedio que espera al
+    // alba (caer en la noche final con el Coihue en pie ya no lo planta en el momento)
+    robosNoche: { noche: -1, n: 0 }, asedioAlAlba: null,
     // 2.5: el arsenal (munición nueva, la flecha elegida y la noche en que se usaron las placas)
     ...Object.fromEntries(MUNICIONES.map((k) => [k, 0])), flechaTipo: 'comun', placasNoche: -1,
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
@@ -454,7 +457,9 @@ export function sanearDesafio(d) {
     varada: sanearVarada(x.varada),
     semilla: normalizarCodigo(x.semilla),
     // 3.0: la corrida sin fin (ver desafio-supervivencia.js) y el mapa de la semilla (desafio-mapa.js)
-    sinFin: x.sinFin && typeof x.sinFin === 'object' && !Array.isArray(x.sinFin) ? { terminada: !!x.sinFin.terminada } : null,
+    // 3.8.4: la corrida guarda su dificultad (se fija al entrar y no cambia a mitad de corrida)
+    sinFin: x.sinFin && typeof x.sinFin === 'object' && !Array.isArray(x.sinFin)
+      ? { terminada: !!x.sinFin.terminada, dificultad: Object.hasOwn(DIFICULTADES, x.sinFin.dificultad ?? '') ? x.sinFin.dificultad : null } : null,
     mapa: sanearMapaGuardado(x.mapa),
     // 2.5: el arsenal
     ...Object.fromEntries(MUNICIONES.map((k) => [k, ent(x[k], 0, TOPE_MUNICION)])),
@@ -466,6 +471,12 @@ export function sanearDesafio(d) {
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
+    // 3.8.4: los robos de la noche (tope por noche) y el asedio que arranca al alba
+    robosNoche: x.robosNoche && typeof x.robosNoche === 'object' && Number.isFinite(Number(x.robosNoche.noche))
+      ? { noche: Math.floor(Number(x.robosNoche.noche)), n: ent(x.robosNoche.n, 0, 99) } : { noche: -1, n: 0 },
+    asedioAlAlba: x.asedioAlAlba && typeof x.asedioAlAlba === 'object' && !Array.isArray(x.asedioAlAlba)
+      ? (Number.isFinite(Number(x.asedioAlAlba.x)) && Number.isFinite(Number(x.asedioAlAlba.z)) && x.asedioAlAlba.x !== null && x.asedioAlAlba.z !== null
+        ? { x: Number(x.asedioAlAlba.x), z: Number(x.asedioAlAlba.z) } : {}) : null,
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
   };
 }

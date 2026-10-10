@@ -285,7 +285,7 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   assert.ok(almacen.has('hojarasca-desafio-sinfin-v1'), 'la corrida tiene su clave');
   assert.equal(almacen.get('hojarasca-desafio-v1'), textoCampana, 'la campaña no se tocó');
   const cargada = G.cargarProgreso();
-  assert.deepEqual(cargada.desafio.sinFin, { terminada: false }, 'la corrida sabe que es corrida');
+  assert.deepEqual(cargada.desafio.sinFin, { terminada: false, dificultad: null }, 'la corrida sabe que es corrida');   // 3.8.4: y su dificultad (se fija al entrar)
   assert.equal(cargada.desafio.mapa.base.x, M.mapaDesafio('LENGA-12').base.x, 'y dónde arrancó');
   G.borrarProgreso();
   assert.ok(!almacen.has('hojarasca-desafio-sinfin-v1') && almacen.get('hojarasca-desafio-v1') === textoCampana, 'borrar la corrida no borra la campaña');

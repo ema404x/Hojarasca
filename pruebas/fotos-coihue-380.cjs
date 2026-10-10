@@ -40,12 +40,14 @@ app.whenReady().then(async () => {
   const js = (c) => w.webContents.executeJavaScript(c);
   const errores = [];
   w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|Autofill|favicon|AudioContext/.test(m)) { errores.push(m.slice(0, 400)); console.log('[página]', m.slice(0, 600)); } });
-  const url = path.join(raiz, 'index.html');
+  // 3.8.4: FOTOS_INDEX mide otro armado (el de antes); FOTOS_SEMILLA fija el azar (el Coihue en el mismo lugar)
+  const url = process.env.FOTOS_INDEX ? path.resolve(process.env.FOTOS_INDEX) : path.join(raiz, 'index.html');
   await w.loadFile(url, { search: '?debug=1' });
   await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'alta', clima:'despejado', musica:false, modo:'desafio', autoCalidad:false, guiaPrimerDia:false, estacion:'verano'})); 1`);
   await w.loadFile(url, { search: '?debug=1' });
   for (let i = 0; i < 300; i++) { await esperar(1000); if (await js('!!window.__hojarasca').catch(() => false)) break; }
   if (!(await js('!!window.__hojarasca').catch(() => false))) { console.log('la página no arrancó'); app.exit(1); return; }
+  if (process.env.FOTOS_SEMILLA) await js(`(() => { const c = document.getElementById('codigo-partida'); if (c) c.value = 'COIHUE-4821'; return 1 })()`);   // (el mismo valle)
   await js(`document.getElementById('btn-entrar').click(); 1`);
   await esperar(3000);
   await js(`(() => { const s = document.createElement('style'); s.id = 'sin-hud'; s.textContent = 'body > *:not(canvas):not(script) { visibility: hidden !important; } canvas { visibility: visible !important; }'; document.head.appendChild(s); return 1; })()`);
@@ -94,6 +96,7 @@ app.whenReady().then(async () => {
   }
 
   // ================================================================ la noche final: el Coihue llega caminando
+  if (process.env.FOTOS_SEMILLA) await js(`(() => { let s = ${Number(process.env.FOTOS_SEMILLA) || 1}; Math.random = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; return 1 })()`);
   await js(`(()=>{const H=${H}, D=H.progreso.desafio; D.oleadas=19; D.especial=null; D.especialAnterior='roja'; D.tutorial=99; H.progreso.cosas.pistola = 1; D.cargas = 99; Object.assign(H.progreso.materiales,{tronco:40,tabla:40,piedra:40,cristal:40}); return 1})()`);
   await js(`(()=>{const H=${H}; H.progreso.dia++; H.progreso.horas=19.4; for(let i=0;i<30;i++){ H.progreso.horas+=0.01; H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); } H.progreso.horas=20.49; return 1})()`);
   for (let i = 0; i < 30; i++) { await simular(1); if (await js(`${H}.desafio.nodrizaActiva`)) break; }
@@ -118,6 +121,9 @@ app.whenReady().then(async () => {
     const p = JSON.parse(await js(`JSON.stringify(${H}.desafio.eventos.coihue.g.position)`));
     const ox = geo.x - geo.ax * 46 + geo.az * 6, oz = geo.z - geo.az * 46 - geo.ax * 6;
     await toma('v38-coihue-noche-fortin', { o: [ox, (await piso(ox, oz)) + 2.4, oz], a: [p.x, p.y + 16, p.z], fov: 64 }, { hora: 22.6, solo: soloCoihue });
+    // 3.8.4: de lejos, de noche (la corteza: el pulido visual), a unos 120 m
+    const lx = geo.x - geo.ax * 120 + geo.az * 20, lz = geo.z - geo.az * 120 - geo.ax * 20;
+    await toma('v38-coihue-noche-lejos', { o: [lx, (await piso(lx, lz)) + 16, lz], a: [p.x, p.y + 22, p.z], fov: 50 }, { hora: 22.6, solo: soloCoihue });
     // y de cerca, abajo, entre las raíces (los núcleos de ámbar)
     const cx = geo.x - geo.ax * 27 - geo.az * 10, cz = geo.z - geo.az * 27 + geo.ax * 10;
     if (process.env.RAICES) await toma('v38-coihue-raices', { o: [cx, (await piso(cx, cz)) + 1.7, cz], a: [p.x, p.y + 14, p.z], fov: 70 }, { hora: 22.6, solo: soloCoihue });
@@ -227,6 +233,14 @@ app.whenReady().then(async () => {
   // el Rey de cerca (te mira: el jugador va donde está la cámara)
   await js(`(()=>{const H=${H}, js=H.jugador.estado; js.pos.set(${ar.x + 9}, ${ar.y}, ${ar.z + 8}); for (let i=0;i<60;i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); H.progreso.desafio.salud = 100; return 1})()`);
   await toma('v38-coihue-rey', { o: [ar.x + 9, ar.y + 2.2, ar.z + 8], a: [ar.x, ar.y + 6.5, ar.z], fov: 62 });
+  // 3.8.4: el Rey en dos poses (la piel por huesos: los codos se doblan y la ropa del hombro acompaña). Los huesos se
+  // ponen a mano con el Desafío quieto; en el armado de antes no hay codos ni manos (sólo el brazo entero)
+  const poseRey = (p) => js(`(()=>{window.__congelar = true; const h=${H}.desafio.naveAdentro.arena.rey.userData.huesos, p=${JSON.stringify(p)};
+    for (const [k, r] of Object.entries(p)) if (h[k]) h[k].rotation.set(r[0], r[1], r[2]); h.torso.updateMatrixWorld(true); return 1})()`);
+  if (quiero('v38-coihue-rey-llamar')) { await poseRey({ brazo0: [-0.6, 0, 1.3], brazo1: [-0.6, 0, -1.3], codo0: [-0.75, 0, 0], codo1: [-0.75, 0, 0], mano0: [-0.45, 0, 0], mano1: [-0.45, 0, 0], cabeza: [-0.3, 0, 0] });
+    await toma('v38-coihue-rey-llamar', { o: [ar.x + 9, ar.y + 2.2, ar.z + 8], a: [ar.x, ar.y + 6.5, ar.z], fov: 62 }); }
+  if (quiero('v38-coihue-rey-golpe')) { await poseRey({ brazo0: [-2.3, 0, 0.15], brazo1: [-2.3, 0, -0.15], codo0: [-0.9, 0, 0], codo1: [-0.9, 0, 0], mano0: [0.35, 0, 0], mano1: [0.35, 0, 0], cabeza: [0, 0, 0], torso: [-0.1, 0, 0] });
+    await toma('v38-coihue-rey-golpe', { o: [ar.x + 9, ar.y + 2.2, ar.z + 8], a: [ar.x, ar.y + 6.5, ar.z], fov: 62 }); }
   // la segunda fase (el escudo de resina y las raíces con su semilla) y la tercera (el corazón al aire)
   await js(`(()=>{const H=${H}, E=H.desafio.eventos; for (const b of E.blancos().filter(b=>b.nave)) E.herirNucleo(b, 99999); for (let i=0;i<30;i++){ H.progreso.desafio.salud=100; H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); } return 1})()`);
   await toma('v38-coihue-pilares', { o: [ar.x - 6, ar.y + 3.5, ar.z + 22], a: [ar.x + 6, ar.y + 3, ar.z + 6], fov: 70 });

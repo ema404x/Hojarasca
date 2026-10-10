@@ -710,59 +710,145 @@ export function armarLechuza(P, semilla = 5, detalle = 1) {
       if (n.y < -0.3 || (n.z > 0.5 && l.y < 0.05)) { tinta(c, claro, 0.5); if (Math.sin(l.y * 70) > 0.6) c.multiplyScalar(0.7); }
     };
     const T = (x, y, z) => [x, y + Y0, z];
-    const cuerpo = deform(esfera(30, 22), (v) => { v.x *= 0.28; v.y *= 0.27; v.z *= 0.56; if (v.y < 0) v.y *= 1.1; if (v.z < 0) { v.x *= 1 + v.z * 0.6; v.y *= 1 + v.z * 0.4; } });
-    piezas.push(pieza(cuerpo, M4(T(0, 0, 0), [0.25, 0, 0]), pardo, { pintar: barras, hueso: H.montura }));
+    // 3.8.4: la lechuza rehecha (estaba tosca: un poroto liso con una tabla de cada lado). Un concón de verdad:
+    // la cabeza grande y redonda pegada al cuerpo (sin cuello), el pecho claro con rayas y el lomo rufo, el disco
+    // de la cara claro con su borde oscuro y las cejas blancas, alas anchas y redondeadas (el borde de ataque
+    // grueso, la de arriba barrada y la de abajo clara) con las primarias sueltas en dedos, la cola en abanico.
+    // Los dibujos son anchos: con el color por vértice, una raya fina no se ve.
+    const rufo = '#9c6640', ante = '#e6cc9c', oscuro = '#2e1c12';
+    const plumaje = (c, p, n, l) => {
+      // el pecho y la panza claros con rayas a lo largo; el lomo y la cabeza rufos con pintas claras
+      const abajo = sv(0.15, -0.45, n.y) * sv(-0.5, 0.1, n.z + 0.3);
+      if (abajo > 0.01) {
+        tinta(c, ante, abajo * 0.85);
+        const raya = Math.abs(Math.sin(l.x * 26 + Math.sin(l.z * 9) * 0.8));
+        c.multiplyScalar(1 - abajo * 0.38 * sv(0.82, 0.97, raya) * sv(-0.25, 0.1, l.z));
+      }
+      const arriba = 1 - abajo;
+      if (arriba > 0.4 && Math.sin(l.x * 31 + l.z * 17) * Math.sin(l.z * 23 - l.x * 9) > 0.62) tinta(c, ante, 0.45 * arriba);
+      c.multiplyScalar(0.94 + 0.1 * ruido(l.x * 14, l.y * 14, l.z * 14));
+    };
+    // el cuerpo: un huevo con el pecho adelante, lleno abajo, que se afina hacia la cola
+    const cuerpo = deform(esfera(30, 22), (v) => {
+      const z = v.z;
+      v.x *= 0.31; v.y *= 0.27; v.z *= 0.54;
+      if (z < 0) { const k = 1 + z * 0.55; v.x *= k; v.y *= k; v.y += z * 0.04; }
+      else if (v.y < 0) v.y *= 1.18;
+    });
+    piezas.push(pieza(cuerpo, M4(T(0, 0, 0), [0.16, 0, 0]), rufo, { tela: 6, hebra: (l) => [l.x * 2, l.z], pintar: plumaje, hueso: H.montura }));
+    // la cabeza: ancha y un poco aplastada, hundida en el cuerpo
     const hc = V3(...T(0, 0.3, 0.42));
-    piezas.push(pieza(deform(esfera(24, 18), (v) => { v.multiplyScalar(0.27); v.x *= 1.1; }), M4(hc), pardo, { pintar: barras, hueso: H.montura }));
-    piezas.push(pieza(deform(esfera(16, 12), (v) => { v.x *= 0.25; v.y *= 0.22; v.z *= 0.07; if (v.z > 0) v.z -= 0.05 * Math.max(0, 1 - (v.x / 0.25) ** 2 - (v.y / 0.22) ** 2); }), M4(hc.clone().add(V3(0, -0.01, 0.19))), claro, { tela: 6, hueso: H.montura, hebra: (l) => [Math.atan2(l.y, l.x) * 0.2, Math.hypot(l.x, l.y)], pintar: (c, p, n, l) => { const d = Math.hypot(l.x / 0.25, l.y / 0.22); if (d > 0.85) c.copy(colorDe('#3a2418')); c.multiplyScalar(0.85 + 0.2 * Math.sin(Math.atan2(l.y, l.x) * 30)); } }));
-    piezas.push(pieza(husoG([T(0, 0.31, 0.62), T(0, 0.26, 0.69), T(0, 0.2, 0.68)], [0.035, 0.025, 0.004], 8, 8), null, '#c8b070', { tela: 12, hueso: H.montura }));
+    piezas.push(pieza(deform(esfera(26, 20), (v) => { v.x *= 0.31; v.y *= 0.26; v.z *= v.z > 0 ? 0.25 * 0.55 : 0.25; }), M4(hc.clone().add(V3(0, -0.02, -0.04))), rufo, { tela: 6, hebra: (l) => [l.x * 2, l.y], pintar: (c, p, n, l) => { if (Math.sin(l.x * 40) * Math.sin(l.z * 36 + l.y * 20) > 0.6 && n.y > 0) tinta(c, ante, 0.4); c.multiplyScalar(0.94 + 0.1 * ruido(l.x * 14, l.y * 14, l.z * 14)); }, hueso: H.montura }));
+    // el disco de la cara: hundido en el medio, en dos lóbulos (el corazón de la lechuza), claro con rayitas
+    const caraC = hc.clone().add(V3(0, -0.02, 0.17));
+    // la cabeza va achatada adelante y el disco es la cara: el borde adelante y el medio hundido (un plato), siempre
+    // por delante del cráneo; de perfil no asoma
+    const zCab = (x, y) => hc.z - 0.04 + 0.25 * 0.55 * Math.sqrt(Math.max(0, 1 - (x / 0.31) ** 2 - ((y + 0.02) / 0.26) ** 2));
+    piezas.push(pieza(grilla((u, v, p) => {
+      const a = -u * TAU, r = Math.sqrt(v);   // (la vuelta así: la cara mira hacia afuera)
+      const lob = 1 + 0.12 * Math.cos(a * 2) - 0.08 * Math.max(0, Math.sin(a)) * Math.cos(a * 2);
+      const x = Math.cos(a) * r * 0.25 * lob, y = Math.sin(a) * r * 0.22 * lob;
+      p.set(caraC.x + x, caraC.y + y, zCab(x, caraC.y + y - hc.y) + 0.01 + 0.035 * (1 - (1 - r) ** 2));
+    }, 36, 8), null, '#dcae74', { tela: 6, hueso: H.montura, hebra: (l, p) => [Math.atan2(p.y - caraC.y, p.x - caraC.x) * 0.2, Math.hypot(p.x - caraC.x, p.y - caraC.y)],
+      pintar: (c, p) => {
+        const dx = p.x - caraC.x, dy = p.y - caraC.y, a = Math.atan2(dy, dx), d = Math.hypot(dx / 0.25, dy / 0.22);
+        c.multiplyScalar(0.88 + 0.16 * Math.sin(a * 22)); tinta(c, '#f2dcb0', 0.4 * (1 - d));
+        if (d > 0.82) tinta(c, '#7a4a28', sv(0.82, 1, d));   // hacia el borde, oscurece
+      } }));
+    // el borde oscuro del disco (la gola): un aro fino
+    { const aro = []; for (let k = 0; k <= 26; k++) { const a = (k / 26) * TAU, lob = 1 + 0.12 * Math.cos(a * 2) - 0.08 * Math.max(0, Math.sin(a)) * Math.cos(a * 2), x = Math.cos(a) * 0.25 * lob, y = Math.sin(a) * 0.22 * lob; aro.push([caraC.x + x, caraC.y + y, zCab(x, caraC.y + y - hc.y) + 0.048]); }
+      piezas.push(pieza(husoG(aro, aro.map(() => 0.016), 52, 6), null, '#4a2a18', { tela: 6, hueso: H.montura, hebra: (l) => [l.x * 3, l.y * 3] })); }
+    // las cejas blancas en V, sobre los ojos, y el pico ganchudo entre ellas
+    for (const sx of [-1, 1]) piezas.push(pieza(husoG([T(sx * 0.012, 0.3, 0.56), T(sx * 0.07, 0.35, 0.555), T(sx * 0.15, 0.365, 0.53)], [0.018, 0.022, 0.006], 8, 7), null, '#f4ead4', { tela: 6, hueso: H.montura, hebra: (l) => [l.x * 4, l.y] }));
+    piezas.push(pieza(husoG([T(0, 0.3, 0.535), T(0, 0.27, 0.58), T(0, 0.22, 0.57)], [0.03, 0.022, 0.004], 8, 8), null, '#d8c890', { tela: 12, hueso: H.montura }));
     const ojos = [];
     for (const sx of [-1, 1]) {
-      const o = hc.clone().add(V3(sx * 0.085, 0.03, 0.235));
-      piezas.push(pieza(deform(esfera(12, 10), () => {}), M4(o, [0, 0, 0], [0.048, 0.048, 0.03]), '#1a0e06', { hueso: H.montura }));
-      piezas.push(pieza(deform(esfera(12, 10), () => {}), M4(o.clone().add(V3(0, 0, 0.014)), [0, 0, 0], [0.04, 0.04, 0.022]), '#ffa020', { fuerza: 2.4, parte: PARTE.ojo, hueso: H.montura }));
-      piezas.push(pieza(deform(esfera(8, 6), () => {}), M4(o.clone().add(V3(0, 0, 0.034)), [0, 0, 0], [0.017, 0.017, 0.008]), '#100600', { hueso: H.montura }));
+      const o = hc.clone().add(V3(sx * 0.09, 0.03, 0.125));   // (en el disco, no asomados)
+      piezas.push(pieza(deform(esfera(12, 10), () => {}), M4(o, [0, 0, 0], [0.056, 0.056, 0.03]), '#1a0e06', { hueso: H.montura }));
+      piezas.push(pieza(deform(esfera(12, 10), () => {}), M4(o.clone().add(V3(0, 0, 0.014)), [0, 0, 0], [0.046, 0.046, 0.022]), '#ffa020', { fuerza: 2.4, parte: PARTE.ojo, hueso: H.montura }));
+      piezas.push(pieza(deform(esfera(8, 6), () => {}), M4(o.clone().add(V3(0, 0, 0.034)), [0, 0, 0], [0.019, 0.019, 0.008]), '#100600', { hueso: H.montura }));
       ojos.push(o.clone().add(V3(0, 0, 0.05)));
     }
-    // las alas: extendidas a los costados (el reposo es la mitad del aleteo), con las primarias en dedos
+    // las alas: anchas y redondeadas. El borde de ataque grueso (el hueso del ala) y las cobijas en una sola tela;
+    // las secundarias y las primarias son plumas sueltas, encimadas (el borde de atrás festoneado, las primarias
+    // abiertas en dedos), cada una con sus barras (en la pluma hay vértices para dibujarlas: en la tela, no).
+    // Arriba rufo oscuro; abajo ante claro con la punta oscura. Se arma la de +x y la otra es su espejo (dando
+    // vuelta los triángulos: en las dos, la cara de arriba mira arriba).
     const hombros = [];
+    const espejo = (geo) => {
+      const P = geo.attributes.position; for (let i = 0; i < P.count; i++) P.setX(i, -P.getX(i));
+      const I = geo.index.array; for (let i = 0; i < I.length; i += 3) { const a = I[i + 1]; I[i + 1] = I[i + 2]; I[i + 2] = a; }
+      geo.computeVertexNormals();
+      return geo;
+    };
+    const lomoAla = '#7a4a2a';
+    // una pluma: de `base` hacia `dir`, `ancho` a lo ancho (en `lat`), con la punta redonda y barras oscuras
+    const NL = nn(7, 4), NA = nn(2, 1);
+    const pluma = (base, dir, lat, largo, ancho, alza, barras, tono) => {
+      const g = grilla((u, v, p, cara) => {
+        const a = ancho * (u > 0.7 ? Math.sqrt(Math.max(0, 1 - ((u - 0.7) / 0.3) ** 2)) * 0.9 + 0.1 : 1);
+        p.copy(base).addScaledVector(dir, u * largo).addScaledVector(lat, (0.5 - v) * a);   // (así la cara de arriba mira arriba)
+        p.y += alza * u * u - 0.01 * Math.abs(v - 0.5) * ancho * 4 - (cara ? 0.011 : 0);
+      }, NL, NA, 1);
+      const nT = (NL + 1) * (NA + 1);
+      return [g, (c, p, n, l, i) => {
+        const u = ((i % nT) % (NL + 1)) / NL, abajo = i >= nT;
+        if (abajo) { tinta(c, ante, 0.72); if (u > 0.72) tinta(c, '#4a2e1c', 0.55); return; }
+        tinta(c, lomoAla, 0.6); c.multiplyScalar(tono);
+        for (const b of barras) if (Math.abs(u - b) < 0.09) tinta(c, '#2a180e', 0.6);
+        if (u > 0.9) tinta(c, '#d8b080', 0.35);   // la puntita clara
+      }];
+    };
     for (const sx of [-1, 1]) {
       const hueso = sx > 0 ? H.alaI : H.alaD;
-      const hom = V3(sx * 0.14, Y0 + 0.12, 0.12);
+      const hom = V3(sx * 0.17, Y0 + 0.13, 0.12);
       hombros.push(hom);
+      const SP = 1.3, NU = nn(24, 3), NV = nn(6, 2), HASTA = 0.78;
+      // el borde de ataque, la cuerda y la altura en cada punto de la envergadura (u) y de la cuerda (v)
+      const borde = (u) => 0.14 - 0.1 * u * u;
+      const cuerda = (u) => 0.64 * Math.sqrt(Math.max(0.12, 1 - (u * 0.9) ** 2)) * (u < 0.12 ? 0.8 + u * 1.6 : 1);
+      // el ala sube hasta la muñeca y la mano baja un poco (la M del vuelo), combada
+      const altura = (u, v) => 0.06 * Math.sin(v * Math.PI) * (1 - 0.5 * u) + 0.1 * Math.sin(Math.min(1, u / 0.6) * Math.PI / 2) - 0.05 * sv(0.6, 1, u) - 0.1 * v * (1 - 0.5 * u);
+      const X = (u) => 0.03 + u * SP;
+      // las cobijas: la tela de adelante (hasta un poco más de la mitad de la cuerda), con pintas claras
       const ala = grilla((u, v, p, cara) => {
-        const sp = 0.05 + u * 1.25;
-        const cuerda = (0.24 + 0.46 * Math.sqrt(Math.max(0, 1 - u * u * 0.8))) + (u > 0.7 ? 0.12 * Math.max(0, Math.sin(v * 7 * Math.PI)) * (u - 0.7) * 3 * v : 0);
-        const borde = 0.2 - 0.12 * u * u;
-        const z = borde - v * cuerda - sv(0.55, 1, v) * (0.03 + 0.12 * sv(0.55, 1, u)) * (1 - Math.abs(Math.cos(u * Math.PI * 9.5)));
-        // 3.8.0: el borde de atrás cae (el ala combada) y la punta sube: de frente se ve el ala, no una tabla
-        const y = 0.06 * Math.sin(v * Math.PI) + 0.16 * u * u - 0.22 * v * (1 - 0.4 * u) - (cara ? 0.025 * (1 - u) : 0);
-        p.set(hom.x + sx * sp, hom.y + y - 0.04, hom.z - 0.12 + z);
-      }, 40, 12, 1);
-      const NU = nn(40, 3) + 1, NV = nn(12, 2) + 1;
-      piezas.push(pieza(ala, null, pardo, {
-        hueso,
-        pintar: (c, p, n, l, i) => {
-          const cara = Math.floor(i / (NU * NV)), j = i % (NU * NV);
-          const u = (j % NU) / (NU - 1), v = Math.floor(j / NU) / (NV - 1);
-          if (v < 0.36) {
-            const fila = Math.floor(v * 14), k = (u * 22 + (fila % 2) * 0.5) % 1, t = (v * 14) % 1;
-            c.multiplyScalar(0.72 + 0.4 * sv(0, 0.7, t) * (1 - 0.45 * sv(0.32, 0.5, Math.abs(k - 0.5))));
-            tinta(c, '#9a7048', 0.3);
-            if (Math.abs(k - 0.5) < 0.12 && t > 0.4 && t < 0.7) tinta(c, '#e8d4a8', 0.5);
-          } else {
-            const k = (u * 9.5) % 1;
-            c.multiplyScalar(0.85 + 0.25 * (1 - sv(0.3, 0.5, Math.abs(k - 0.5))));
-            if (Math.sin((v - u * 0.15) * 30) > 0.25) c.multiplyScalar(0.5);
-            if (u > 0.7) c.multiplyScalar(0.85);
-          }
-          if (cara) tinta(c, '#d8b888', 0.45);
-        },
-      }));
+        const uu = u * HASTA, vv = v * 0.62;
+        p.set(X(uu), altura(uu, vv) - 0.04 - (cara ? 0.024 * (1 - uu) + 0.006 : 0), borde(uu) - vv * cuerda(uu));
+      }, NU, NV, 1);
+      const nTop = (NU + 1) * (NV + 1);
+      const pintaAla = (c, p, n, l, i) => {
+        const abajo = i >= nTop, j = i % nTop, u = ((j % (NU + 1)) / NU) * HASTA, v = Math.floor(j / (NU + 1)) / NV;
+        if (abajo) { tinta(c, ante, 0.8); return; }
+        tinta(c, '#9a6238', 0.5);
+        if (v > 0.25 && Math.sin(u * 52) * Math.sin(v * 21) > 0.5) tinta(c, ante, 0.6);
+        c.multiplyScalar(0.95 + 0.08 * ruido(u * 9, v * 9, 1));
+      };
+      // el hueso del ala (el borde de ataque, grueso y redondeado)
+      const bordeAla = husoG([[0.0, altura(0, 0) - 0.03, borde(0) - 0.03], [0.36, altura(0.28, 0) - 0.035, borde(0.28) - 0.025], [0.72, altura(0.55, 0) - 0.04, borde(0.55) - 0.025], [1.0, altura(HASTA, 0) - 0.045, borde(HASTA) - 0.03]], [0.075, 0.06, 0.042, 0.02], 12, 8);
+      const geos = [[ala, pintaAla], [bordeAla, (c, p, n, l) => { if (n.y < -0.2) tinta(c, ante, 0.6); else tinta(c, '#9a6238', 0.5); }]];
+      // las secundarias: del medio de la cuerda para atrás, encimadas, apenas abiertas hacia afuera
+      const NS = fino() ? 9 : 5;
+      for (let q = 0; q < NS; q++) {
+        const u = 0.04 + (q / (NS - 1)) * (HASTA - 0.08), w = (SP * HASTA) / NS * 1.45;
+        const base = V3(X(u), altura(u, 0.45) - 0.045 - 0.004 * (q % 2), borde(u) - 0.45 * cuerda(u));
+        const dir = V3(0.12 + 0.35 * (u / HASTA), -0.06, -1).normalize(), lat = V3(1, 0, 0.12 + 0.35 * (u / HASTA)).normalize();
+        geos.push(pluma(base, dir, lat, cuerda(u) * 0.62, w, 0.02, [0.38, 0.66], q % 2 ? 0.92 : 1.04));
+      }
+      // las primarias: en la punta, abiertas en abanico (los dedos), anchas y barradas
+      const NP = fino() ? 5 : 3;
+      for (let q = 0; q < NP; q++) {
+        const k = q / (NP - 1), ang = -0.12 - k * 0.7, largo = 0.4 - k * 0.1;
+        const base = V3(X(HASTA - 0.1 + k * 0.04), altura(HASTA, 0.35) - 0.045, borde(HASTA) - 0.03 - k * cuerda(HASTA) * 0.95);
+        const dir = V3(Math.cos(ang), -0.05 + 0.05 * k, Math.sin(ang)).normalize(), lat = V3(-dir.z, 0, dir.x).normalize();
+        geos.push(pluma(base, dir, lat, largo, 0.12 - k * 0.015, 0.03 * (1 - k), [0.3, 0.52, 0.74], q % 2 ? 0.9 : 1.05));
+      }
+      for (const [g, pin] of geos) piezas.push(pieza(sx > 0 ? g.translate(hom.x, hom.y, hom.z) : espejo(g).translate(hom.x, hom.y, hom.z), null, rufo, { hueso, pintar: pin }));
     }
-    piezas.push(pieza(grilla((u, v, p, cara) => { const a = (u - 0.5) * 0.9; p.set(Math.sin(a) * (0.1 + v * 0.35), Y0 - 0.08 + v * 0.05 - (cara ? 0.015 : 0), -0.5 - Math.cos(a) * v * 0.35); }, 10, 6, 1), null, pardo, { tela: 6, hueso: H.montura, hebra: (l) => [l.x, l.z], pintar: (c, p, n, l) => { if (Math.sin(l.z * 50) > 0.5) c.multiplyScalar(0.6); } }));
+    // la cola: corta, en abanico redondeado, barrada
+    piezas.push(pieza(grilla((u, v, p, cara) => { const a = (u - 0.5) * 1.2; p.set(Math.sin(a) * (0.09 + v * 0.28), Y0 - 0.05 + v * 0.03 - (cara ? 0.014 : 0), -0.44 - Math.cos(a) * v * 0.28); }, 12, 6, 1), null, rufo, { tela: 6, hueso: H.montura, hebra: (l) => [l.x, l.z], pintar: (c, p, n, l) => { if ((((-l.z - 0.44) * 11) % 1) < 0.4) c.multiplyScalar(0.55); if (n.y < 0) tinta(c, ante, 0.55); } }));
     for (const sx of [-1, 1]) {
-      piezas.push(pieza(husoG([T(sx * 0.1, -0.25, 0.1), T(sx * 0.11, -0.35, 0.05), T(sx * 0.11, -0.4, 0.0)], [0.05, 0.045, 0.03], 8, 8), null, '#c8a878', { tela: 6, hueso: H.montura, hebra: (l) => [l.x * 3, l.y] }));
+      // las patas emplumadas (los pantalones) y las garras
+      piezas.push(pieza(husoG([T(sx * 0.1, -0.2, 0.1), T(sx * 0.11, -0.33, 0.05), T(sx * 0.11, -0.4, 0.0)], [0.065, 0.05, 0.03], 8, 8), null, '#e0bc8c', { tela: 6, hueso: H.montura, hebra: (l) => [l.x * 3, l.y] }));
       if (fino()) for (let f = 0; f < 3; f++) piezas.push(pieza(husoG([T(sx * 0.11 + (f - 1) * 0.025, -0.4, 0.0), T(sx * 0.11 + (f - 1) * 0.04, -0.43, 0.04), T(sx * 0.11 + (f - 1) * 0.045, -0.46, 0.03)], [0.012, 0.01, 0.002], 6, 6), null, '#2a2420', { hueso: H.montura }));
     }
     piezas.push(pieza(grilla((u, v, p, cara) => { const a = (u - 0.5) * 2.2; p.set(Math.sin(a) * 0.4, Y0 + 0.2 + Math.cos(a) * 0.17 - (cara ? 0.015 : 0), 0.05 - v * 0.4); }, 14, 6, 1), null, '#8a3c2a', { tela: 1, hueso: H.montura, guarda: (l) => [3, Math.min(Math.abs(Math.abs(l.x) - 0.32), 0.2), l.z * 2, 0.07] }));
@@ -1095,16 +1181,56 @@ function armarCajaCofre() {
   return { corteza: fundirCorteza(cort), brillo: fundirBrillo(brillos), tela: fundirTela(tela), halos };
 }
 function armarRaicesCofre() {
+  // 3.8.4: las raíces parecían patas (doce arcos finitos que iban del suelo, lejos, hasta el costado del cajón: una
+  // araña). Ahora el cofre brota de la tierra: un montículo removido con terrones; las raíces gruesas salen de
+  // abajo del cajón y se van por el suelo, finitas en la punta, entrando y saliendo de la tierra, con raicillas;
+  // y unas pocas lo agarran: suben pegadas a las caras del cajón (no se separan de la madera).
   const cort = [], tela = [];
   const r = azar(92);
-  // la tierra removida
-  const g = deform(lathe(afinar([[0.001, 0.12], [0.6, 0.1], [1.0, 0.05], [1.35, -0.04]], 3), 24), (v) => { v.y += 0.04 * ruido(v.x * 3, 0, v.z * 3); });
-  tela.push(pieza(g, null, '#7a6248', { tela: 5, pintar: (c, p, n, l) => { c.multiplyScalar(0.75 + 0.3 * (ruido(l.x * 6, 0, l.z * 6) * 0.5 + 0.5)); } }));
-  // las raíces que salen de la tierra y lo abrazan
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * TAU + r() * 0.3, d0 = 0.75 + r() * 0.25;
-    // finitas, pegadas al cajón: lo agarran de abajo (no son patas)
-    cort.push(raiz([[Math.sin(a) * d0, -0.04, Math.cos(a) * d0 * 0.8], [Math.sin(a) * 0.6, 0.04 + r() * 0.04, Math.cos(a) * 0.48], [Math.sin(a + 0.25) * 0.5, 0.26 + r() * 0.1, Math.cos(a + 0.25) * 0.37], [Math.sin(a + 0.5) * 0.46, 0.36, Math.cos(a + 0.5) * 0.33]], [0.05, 0.04, 0.026, 0.008], '#7a5a40', { nudos: 0.015, pintar: (c, p, n) => musgoEn(c, p, n, 0.7, 2) }));
+  const tierra = (c, p, n, l) => { c.multiplyScalar(0.72 + 0.34 * (ruido(l.x * 7, 0, l.z * 7) * 0.5 + 0.5)); if (ruido(l.x * 4 + 3, 0, l.z * 4) > 0.45) tinta(c, '#4e6a2a', 0.45); };
+  // el montículo de tierra removida (más alto pegado al cajón) y unos terrones. (El perfil va de afuera hacia el
+  // centro: al revés, el torno mira para abajo y no se veía: la tierra de antes nunca se vio.)
+  const g = deform(lathe(afinar([[1.0, -0.03], [0.8, 0.0], [0.6, 0.035], [0.4, 0.062], [0.001, 0.08]], 3), 28), (v) => { v.y += 0.035 * ruido(v.x * 4, 0, v.z * 4); });
+  tela.push(pieza(g, null, '#8a6a4a', { tela: 5, pintar: tierra }));
+  const alturaMonte = (d) => (d < 0.95 ? 0.08 * (1 - (d / 0.95) ** 2) : -0.03);
+  for (let i = 0; i < 7; i++) {
+    const a = r() * TAU, d = 0.6 + r() * 0.5;
+    tela.push(pieza(deform(esfera(8, 6), (v) => { v.multiplyScalar(1 + 0.3 * ruido(v.x * 4 + i, v.y * 4, v.z * 4)); if (v.y < 0) v.y *= 0.4; }), M4([Math.sin(a) * d, 0.02, Math.cos(a) * d * 0.85], [0, r() * 6, 0], [0.07 + r() * 0.05, 0.05, 0.06 + r() * 0.05]), '#5e4632', { tela: 5, pintar: tierra }));
+  }
+  const pinta = (k) => (c, p, n) => { musgoEn(c, p, n, k, 2); if (p.y < 0.03) c.multiplyScalar(0.7); };   // (donde entra en la tierra, más oscura)
+  // las raíces del suelo: de abajo del cajón para afuera, ondulando y hundiéndose de a ratos
+  const NR = 9;
+  for (let i = 0; i < NR; i++) {
+    const a = (i / NR) * TAU + (r() - 0.5) * 0.4, largo = 0.7 + r() * 0.45, curva = (r() - 0.5) * 0.9;
+    const pts = [];
+    for (let k = 0; k <= 5; k++) {
+      const t = k / 5, aa = a + curva * t * t, d = 0.26 + t * largo;
+      // sale por debajo del cajón (de adentro del montículo) y va por el suelo, bajita, entrando y saliendo
+      const y = alturaMonte(d) + 0.016 + 0.014 * Math.sin(t * 7 + i) - 0.06 * sv(0.6, 1, t);   // (sobre la tierra; la punta, hundida)
+      pts.push([Math.sin(aa) * d, y, Math.cos(aa) * d * 0.8]);
+    }
+    cort.push(raiz(pts, [0.05, 0.043, 0.033, 0.025, 0.017, 0.008], '#7a5a3e', { nudos: 0.012, pintar: pinta(0.6), tramos: 22, lados: 8 }));
+    // una raicilla de costado
+    if (i % 2 === 0) {
+      const p0 = pts[2], p1 = pts[3], b = a + (r() < 0.5 ? -1 : 1) * 0.9;
+      cort.push(raiz([p0, [p0[0] * 0.7 + p1[0] * 0.3 + Math.sin(b) * 0.12, 0.01, p0[2] * 0.7 + p1[2] * 0.3 + Math.cos(b) * 0.1], [p0[0] + Math.sin(b) * 0.3, -0.02, p0[2] + Math.cos(b) * 0.24]], [0.02, 0.012, 0.003], '#6e5038', { pintar: pinta(0.5), tramos: 10, lados: 6 }));
+    }
+  }
+  // las que lo agarran: suben pegadas a las caras del cajón (a 2 cm de la madera), en diagonal
+  const AX = 0.45 + 0.022, AZ = 0.3 + 0.022;
+  // (finitas y cruzadas, como una enredadera: si suben derechas y gruesas se leen como patas)
+  const agarres = [
+    { cara: 'z', s: 1, x0: -0.3, dx: 0.3 }, { cara: 'z', s: -1, x0: 0.25, dx: -0.3 },
+    { cara: 'x', s: 1, z0: -0.18, dz: 0.26 }, { cara: 'x', s: -1, z0: 0.16, dz: -0.24 },
+  ];
+  for (const q of agarres) {
+    const alto = 0.24 + r() * 0.1, pts = [];
+    for (let k = 0; k <= 5; k++) {
+      const t = k / 5, y = 0.06 + t * alto;
+      if (q.cara === 'z') pts.push([q.x0 + q.dx * t + 0.025 * Math.sin(t * 6), y, q.s * (AZ - 0.006)]);
+      else pts.push([q.s * (AX - 0.006), y, q.z0 + q.dz * t + 0.025 * Math.sin(t * 6)]);
+    }
+    cort.push(raiz(pts, [0.02, 0.017, 0.013, 0.009, 0.006, 0.002], '#8a6a46', { nudos: 0.004, pintar: pinta(0.8), tramos: 16, lados: 6 }));
   }
   return { corteza: fundirCorteza(cort), tela: fundirTela(tela) };
 }

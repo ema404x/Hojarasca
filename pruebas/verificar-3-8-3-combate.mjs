@@ -208,7 +208,8 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
   const main = leer('src/main.js');
   assert.ok(main.includes("    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++;"), 'la medianoche suma el día también en el modo de combate');
   assert.ok(main.includes("if (desafio && deNoche && ajustes.duracion === 'reloj') { nota('No podés dormir ahora'"), 'con el reloj, de noche no se duerme en el modo de combate');
-  assert.match(extraer(main, 'caerEnDesafio'), /if \(ajustes\.duracion !== 'reloj'\) \{\n\s*if \(progreso\.horas >= 12\) progreso\.dia\+\+;\n\s*progreso\.horas = 7\.2;/, 'caer con el reloj no salta el día');
+  // 3.8.4: la cuenta pasó a despertarDeCaida (la caída se anota en el momento: ver verificar-3-8-4-desafio)
+  assert.match(extraer(main, 'despertarDeCaida'), /if \(ajustes\.duracion !== 'reloj'\) \{\n\s*if \(horas >= 12\) dia\+\+;\n\s*horas = 7\.2;/, 'caer con el reloj no salta el día');
   // un día y medio de reloj, de a 10 minutos, con el día que pasa a la medianoche: una oleada por noche
   let dia = 1, horas = 12, oleadaNoche = null, oleadas = 0;
   for (let i = 0; i < 36 * 6; i++) {
