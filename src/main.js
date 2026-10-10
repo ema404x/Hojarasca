@@ -3990,8 +3990,47 @@ function sostenerTecla(code, apretada) {
   else if (pisadasMando.delete(code)) jugador.teclas.delete(code);
 }
 let habiaMando = false;
+// 3.8.6: el mando se lee una vez por cuadro en cualquier pantalla (`leerMandoQuieto` en las que no lo usan). Antes sólo se
+// leía jugando y en la pausa, el cuaderno y el mapa: en un cuadro de pregunta, la tarjeta del valle o la victoria quedaba
+// el estado de antes, y el botón con el que se cerraban (A o B, todavía apretado) contaba como recién apretado al volver:
+// cerrar un cuadro con A hacía saltar, con B agacharse, y la B de un cuadro abierto desde la pausa cerraba también la pausa.
+// Y una sola vez: en el tren o en el kayak con la pausa, el cuaderno o el mapa abiertos se leía dos veces en el mismo cuadro
+// (leerMando y leerMandoEnMenu) y la segunda lectura ya no veía nada recién apretado: Start y B no sacaban de la pausa.
+let mandoLeido = false;
+function leerMandoActual() {
+  if (mandoLeido) return mando.estado();
+  mandoLeido = true;
+  return mando.actualizar();
+}
+// 3.8.6: en las pantallas que no son del juego ni de la pausa: la tarjeta del valle y la de la victoria se manejan con el
+// mando (la cruceta o LB y RB pasan de botón, A lo aprieta, B cierra las tarjetas de un solo botón); antes, con el mando
+// solo, quedaba trabado ahí. En el resto (la portada, la carga, un cuadro de pregunta) sólo se lee, para que no quede nada
+// «recién apretado» de otra pantalla.
+function leerMandoQuieto() {
+  const m = leerMandoActual();
+  if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
+  if (!m.conectado || dialogos.abierto()) return;
+  const caja = modo === 'valle' ? $('valle-tarjeta') : modo === 'victoria' ? $('victoria') : null;
+  if (!caja || caja.classList.contains('oculto')) return;
+  const mover = (m.recien.mochila || m.recien.planos || m.recien.objetoAnterior) ? -1 : (m.recien.taller || m.recien.mapa || m.recien.objetoSiguiente) ? 1 : 0;
+  if (mover) moverFocoEn(caja, mover);
+  if (m.recien.saltar) {
+    const b = document.activeElement?.closest?.('button');
+    if (b && caja.contains(b) && !b.disabled) b.click();
+    else moverFocoEn(caja, 0);
+  }
+  if (m.recien.agacharse && modo === 'valle') golpeDeTecla('Escape');
+}
+// Pasa el foco al botón siguiente (o anterior) que se ve y se puede apretar; con 0, al primero si no hay ninguno marcado.
+function moverFocoEn(caja, paso) {
+  const botones = [...caja.querySelectorAll('button')].filter((b) => !b.disabled && b.getClientRects().length && !b.closest('.oculto'));
+  if (!botones.length) return;
+  const i = botones.indexOf(document.activeElement);
+  const j = i < 0 ? 0 : (i + paso + botones.length) % botones.length;
+  try { botones[j].focus({ preventScroll: false }); } catch {}
+}
 function leerMando(dt) {
-  const m = mando.actualizar();
+  const m = leerMandoActual();
   if (m.conectado !== habiaMando) {
     habiaMando = m.conectado;
     document.body.classList.toggle('con-mando', m.conectado);
@@ -4048,9 +4087,10 @@ function leerMando(dt) {
 // y con el mando no se podía volver. Ahora Start o B hacen de Esc (cierra lo que esté abierto encima, como el teclado) y
 // la cruceta derecha cierra el mapa.
 function leerMandoEnMenu() {
-  const m = mando.actualizar();
+  const m = leerMandoActual();
   if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
   if (!m.conectado) return;
+  if (dialogos.abierto()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
   if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
 }
 
@@ -8546,6 +8586,8 @@ function cuadroDelJuego(tRaf, manual) {
     else { leerMando(dt); jugador.actualizar(dt); }
   }
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
+  if (!mandoLeido) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
+  mandoLeido = false;
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)
