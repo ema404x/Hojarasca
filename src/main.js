@@ -32,7 +32,7 @@ import { crearFauna } from './fauna.js';
 import { crearVida } from './vida.js';
 import { crearBichos } from './bichos.js';
 import { crearPerro } from './perro.js';
-import { crearGente, saludoDe, alturaDePie } from './gente.js';
+import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
@@ -674,8 +674,9 @@ async function construir() {
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
-  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo)
-  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo' || g.pose === 'tornear' || g.pose === 'coser') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
+  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo; 3.8.6: todas las poses
+  // sentadas de gente.js, comer incluida)
+  est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
