@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-menu="cuaderno">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -491,6 +491,8 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 
 @media (prefers-reduced-motion: reduce) { .nota { animation-duration: 5.5s; } .flash.dispara { animation: none; } }
 @media (max-width: 900px) { .portada { grid-template-columns: 1fr; } .controles { display: none; } .pausa { grid-template-columns: 1fr; gap: 30px; } }
+/* 3.8.4 (decisión 36): los menús en estilo «Cuaderno de campo» (src/menus/sistema.css y cuaderno.css, los mete armar.mjs) */
+/*MENUS*/
 </style>
 </head>
 <body>
@@ -506,36 +508,15 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 </section>
 
 <section id="inicio" class="portada oculto">
-  <div>
+  <!-- 3.8.4 (decisiones 8 y 36): dos columnas, «Cuaderno de campo». A la izquierda, el nombre y qué hacer; a la derecha,
+       en una hoja, cómo jugar (idioma y modo) y sólo las seis teclas básicas (todas están en Controles); la estación y la
+       calidad, en una tira de papel debajo de los botones.
+       En pantallas bajas (≤ 820 px) el título se achica y las teclas quedan detrás del botón «Teclas» -->
+  <div class="portada-principal">
     <h1 class="titulo">Hojarasca</h1>
     <p class="bajada">un bosque andino patagónico para recorrer despacio</p>
     <p class="modo-texto aviso-recuperado oculto" id="aviso-recuperado"></p>
-    <div class="opcion"><span>Idioma · Language</span>
-        <div class="segmentos" data-ajuste="idioma"><button data-valor="es">Español</button><button data-valor="en">English</button></div>
-      </div>
-      <div class="modo-juego"><span>Modo de juego</span>
-      <div class="segmentos" data-ajuste="modo">
-        <button data-valor="relax">Relax</button><button data-valor="desafio">La noche de los duendes</button>
-      </div>
-      <p class="modo-texto" id="modo-texto"></p>
-      <div class="opcion oculto" id="opcion-relax"><span>Relax</span>
-        <div class="segmentos" data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button></div>
-        <p class="modo-texto" id="relax-tipo-texto"></p>
-      </div>
-      <div class="opcion oculto" id="opcion-dificultad"><span>La noche de los duendes</span>
-        <div class="segmentos" data-ajuste="desafioTipo"><button data-valor="campana">Campaña</button><button data-valor="sinfin">Sin fin</button></div>
-        <p class="modo-texto" id="desafio-tipo-texto"></p>
-        <span>Dificultad</span>
-        <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
-        <p class="modo-texto" id="dificultad-texto"></p>
-        <span>Código de partida</span>
-        <div class="fila-codigo">
-          <input id="codigo-partida" maxlength="18" placeholder="Sin código: noches al azar" autocomplete="off" spellcheck="false" aria-label="Código de partida">
-          <button class="accion-secundaria" id="btn-codigo-semana">El de esta semana</button>
-        </div>
-        <p class="modo-texto" id="codigo-texto"></p>
-      </div>
-    </div>
+    <p class="modo-texto aviso-recuperado oculto" id="aviso-calidad-inicial"></p>
     <p class="modo-texto" id="diario-portada"></p>
     <div class="acciones">
       <button class="accion-principal" id="btn-entrar">Entrar al bosque</button>
@@ -564,41 +545,46 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       </div>
     </div>
   </div>
-  <dl class="controles">
-    <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>caminar</dd>
-    <dt><kbd>Shift</kbd></dt><dd>correr</dd>
-    <dt><kbd>C</kbd></dt><dd>agacharte y moverte en silencio</dd>
-    <dt><kbd>E</kbd></dt><dd>anotar, juntar, sentarte, subir al kayak, dormir</dd>
-    <dt><kbd>Q</kbd></dt><dd>caña de mosca (clic para lanzar)</dd>
-    <dt><kbd>L</kbd></dt><dd>linterna</dd>
-    <dt><kbd>Z</kbd></dt><dd>prismáticos</dd>
-    <dt><kbd>R</kbd></dt><dd>descansar y dejar pasar el tiempo</dd>
-    <dt><kbd>F</kbd></dt><dd>hacer una fogata</dd>
-    <dt><kbd>G</kbd></dt><dd>cocinar en el fuego</dd>
-    <dt><kbd>T</kbd></dt><dd>armar o levantar la carpa</dd>
-    <dt><kbd>B</kbd></dt><dd>plantar un renoval</dd>
-    <dt><kbd>V</kbd></dt><dd>dejar en el suelo lo que tenés en la mano</dd>
-    <dt><kbd>H</kbd></dt><dd>talar un árbol (tres hachazos) o picar piedra</dd>
-    <dt><kbd>O</kbd></dt><dd>abrir los planos de construcción</dd>
-    <dt><kbd>Retroceso</kbd> · <kbd>X</kbd></dt><dd>con los planos abiertos: deshacer la última etapa (devuelve la mitad) · repetir lo que tenés enfrente</dd>
-    <dt><kbd>T</kbd></dt><dd>con los planos abiertos: teñir la pared, el piso o el techo que tenés al lado (calafate, ocre, cal o natural)</dd>
-    <dt><kbd>Y</kbd></dt><dd>levantar la etapa / aserrar tablas (a mano 2, en el banco 4)</dd>
-    <dt><kbd>F1</kbd></dt><dd>guía del juego</dd>
-    <dt><kbd>I</kbd></dt><dd>abrir la mochila</dd>
-    <dt><kbd>1</kbd>–<kbd>8</kbd> / rueda</dt><dd>elegir qué llevás en la mano</dd>
-    <dt>clic derecho / <kbd>U</kbd></dt><dd>usar lo que tenés en la mano</dd>
-    <dt><kbd>E</kbd></dt><dd>hablar con la gente del bosque</dd>
-    <dt><kbd>J</kbd> <kbd>M</kbd></dt><dd>cuaderno y mapa</dd>
-    <dt><kbd>P</kbd></dt><dd>sacar una foto</dd>
-    <dt><kbd>F2</kbd></dt><dd>modo foto: cámara libre, hora, encuadre y luz</dd>
-    <dt><kbd>F3</kbd></dt><dd>ver el rendimiento</dd>
-    <dt>clic izquierdo</dt><dd>atacar con el arma en la mano (La noche de los duendes)</dd>
-    <dt>clic derecho sostenido</dt><dd>bloquear con la lanza · disparo cargado con la pistola mejorada</dd>
-    <dt><kbd>A</kbd><kbd>A</kbd> / <kbd>D</kbd><kbd>D</kbd></dt><dd>esquivar hacia un costado (doble toque)</dd>
-    <dt><kbd>K</kbd></dt><dd>fabricar, mejorar armas, reparar y reforzar (Tab cambia de pestaña)</dd>
-    <dt><kbd>N</kbd></dt><dd>estado de la base: qué defensa está dañada (La noche de los duendes)</dd>
-    <dt><kbd>F</kbd></dt><dd>prender una antorcha apagada</dd>
-  </dl>
+  <div class="portada-opciones">
+    <div class="opcion"><span>Idioma · Language</span>
+      <div class="segmentos" data-ajuste="idioma"><button data-valor="es">Español</button><button data-valor="en">English</button></div>
+    </div>
+    <div class="modo-juego"><span>Modo de juego</span>
+      <div class="segmentos" data-ajuste="modo">
+        <button data-valor="relax">Relax</button><button data-valor="desafio">La noche de los duendes</button>
+      </div>
+      <p class="modo-texto" id="modo-texto"></p>
+      <div class="opcion oculto" id="opcion-relax"><span>Relax</span>
+        <div class="segmentos" data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button></div>
+        <p class="modo-texto" id="relax-tipo-texto"></p>
+      </div>
+      <div class="opcion oculto" id="opcion-dificultad"><span>La noche de los duendes</span>
+        <div class="segmentos" data-ajuste="desafioTipo"><button data-valor="campana">Campaña</button><button data-valor="sinfin">Sin fin</button></div>
+        <p class="modo-texto" id="desafio-tipo-texto"></p>
+        <span>Dificultad</span>
+        <div class="segmentos" data-ajuste="dificultad"><button data-valor="tranquila">Tranquila</button><button data-valor="normal">Normal</button><button data-valor="implacable">Implacable</button></div>
+        <p class="modo-texto" id="dificultad-texto"></p>
+        <span>Código de partida</span>
+        <div class="fila-codigo">
+          <input id="codigo-partida" maxlength="18" placeholder="Sin código: noches al azar" autocomplete="off" spellcheck="false" aria-label="Código de partida">
+          <button class="accion-secundaria" id="btn-codigo-semana">El de esta semana</button>
+        </div>
+        <p class="modo-texto" id="codigo-texto"></p>
+      </div>
+    </div>
+    <button class="boton-teclas" id="btn-teclas-portada" aria-expanded="false" aria-controls="teclas-basicas">Teclas</button>
+    <div class="teclas-basicas" id="teclas-basicas">
+      <p class="teclas-titulo">Lo básico · todas en Controles</p>
+      <dl class="controles">
+        <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>caminar</dd>
+        <dt><kbd>Shift</kbd></dt><dd>correr</dd>
+        <dt><kbd>E</kbd></dt><dd>anotar, juntar, sentarte, subir al kayak, dormir</dd>
+        <dt><kbd>I</kbd></dt><dd>abrir la mochila</dd>
+        <dt><kbd>J</kbd> <kbd>M</kbd></dt><dd>cuaderno y mapa</dd>
+        <dt><kbd>F1</kbd></dt><dd>guía del juego</dd>
+      </dl>
+    </div>
+  </div>
   <div class="build-info" id="build-info">Hojarasca · Mega RC</div>
 </section>
 
@@ -826,9 +812,9 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       <div class="fila-ajuste"><span>Vibración del mando</span>
         <div class="segmentos" data-ajuste="vibracion"><button data-valor="true">Sí</button><button data-valor="false">No</button></div>
       </div>
-      <div class="fila-ajuste"><span>Calidad automática</span>
-        <div class="segmentos" data-ajuste="autoCalidad"><button data-valor="true">Que se acomode sola</button><button data-valor="false">La dejo fija</button></div>
-        <small>Mide los cuadros por segundo y sube o baja un escalón, avisando.</small>
+      <div class="fila-ajuste"><span>Si el juego va lento</span>
+        <div class="segmentos" data-ajuste="autoCalidad"><button data-valor="true">Preguntarme si bajo la calidad</button><button data-valor="false">No preguntar</button></div>
+        <small>La calidad nunca cambia sola: si el juego va lento, te pregunta si querés bajarla (y si decís que no, no insiste).</small>
       </div>
       <label class="fila-ajuste"><span>Volumen general</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumen"></label>
       <label class="fila-ajuste"><span>El bosque</span><input type="range" min="0" max="1" step="0.05" data-ajuste-rango="volumenAmbiente"><small>Viento, agua, pájaros y lluvia.</small></label>
@@ -883,30 +869,43 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <h2>Controles</h2>
     <p class="sub">Todo lo necesario para recorrer Hojarasca sin volver al README.</p>
     <dl class="controles-completos">
-      <div><dt><kbd>W A S D</kbd></dt><dd>caminar / remar / moverte dentro del tren</dd></div>
-      <div><dt><kbd>Shift</kbd></dt><dd>correr</dd></div>
-      <div><dt><kbd>C</kbd></dt><dd>agacharte</dd></div>
+      <!-- 3.8.4 (decisión 36): las 33 teclas que antes estaban en la portada (más saltar, la pausa y la pantalla completa); en la portada quedan seis -->
+      <div><dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>caminar</dd></div>
       <div><dt><kbd>Espacio</kbd></dt><dd>saltar</dd></div>
-      <div><dt><kbd>E</kbd></dt><dd>interactuar, juntar, sentarte, abrir puertas</dd></div>
-      <div><dt><kbd>Q</kbd></dt><dd>caña de mosca</dd></div>
+      <div><dt><kbd>Shift</kbd></dt><dd>correr</dd></div>
+      <div><dt><kbd>C</kbd></dt><dd>agacharte y moverte en silencio</dd></div>
+      <div><dt><kbd>E</kbd></dt><dd>anotar, juntar, sentarte, subir al kayak, dormir</dd></div>
+      <div><dt><kbd>Q</kbd></dt><dd>caña de mosca (clic para lanzar)</dd></div>
       <div><dt><kbd>L</kbd></dt><dd>linterna</dd></div>
       <div><dt><kbd>Z</kbd></dt><dd>prismáticos</dd></div>
-      <div><dt><kbd>U</kbd> / clic derecho</dt><dd>usar el objeto en la mano</dd></div>
-      <div><dt><kbd>O</kbd></dt><dd>planos de construcción</dd></div>
-      <div><dt><kbd>F</kbd></dt><dd>fogata / fogón</dd></div>
-      <div><dt><kbd>G</kbd></dt><dd>cocinar</dd></div>
-      <div><dt><kbd>T</kbd></dt><dd>armar o levantar carpa</dd></div>
-      <div><dt><kbd>B</kbd></dt><dd>plantar renoval</dd></div>
-      <div><dt><kbd>V</kbd></dt><dd>dejar objeto en el suelo</dd></div>
-      <div><dt><kbd>H</kbd></dt><dd>talar árboles o picar piedra con el hacha</dd></div>
-      <div><dt><kbd>Y</kbd></dt><dd>aserrar tablas / levantar etapa</dd></div>
+      <div><dt><kbd>R</kbd></dt><dd>descansar y dejar pasar el tiempo</dd></div>
+      <div><dt><kbd>F</kbd></dt><dd>hacer una fogata</dd></div>
+      <div><dt><kbd>G</kbd></dt><dd>cocinar en el fuego</dd></div>
+      <div><dt><kbd>T</kbd></dt><dd>armar o levantar la carpa</dd></div>
+      <div><dt><kbd>B</kbd></dt><dd>plantar un renoval</dd></div>
+      <div><dt><kbd>V</kbd></dt><dd>dejar en el suelo lo que tenés en la mano</dd></div>
+      <div><dt><kbd>H</kbd></dt><dd>talar un árbol (tres hachazos) o picar piedra</dd></div>
+      <div><dt><kbd>O</kbd></dt><dd>abrir los planos de construcción</dd></div>
+      <div><dt><kbd>Retroceso</kbd> · <kbd>X</kbd></dt><dd>con los planos abiertos: deshacer la última etapa (devuelve la mitad) · repetir lo que tenés enfrente</dd></div>
+      <div><dt><kbd>T</kbd></dt><dd>con los planos abiertos: teñir la pared, el piso o el techo que tenés al lado (calafate, ocre, cal o natural)</dd></div>
+      <div><dt><kbd>Y</kbd></dt><dd>levantar la etapa / aserrar tablas (a mano 2, en el banco 4)</dd></div>
       <div><dt><kbd>F1</kbd></dt><dd>guía del juego</dd></div>
-      <div><dt><kbd>J</kbd></dt><dd>cuaderno</dd></div>
-      <div><dt><kbd>M</kbd></dt><dd>mapa</dd></div>
-      <div><dt><kbd>P</kbd></dt><dd>fotografía</dd></div>
-      <div><dt><kbd>F3</kbd></dt><dd>rendimiento</dd></div>
-      <div><dt><kbd>F11</kbd></dt><dd>pantalla completa</dd></div>
+      <div><dt><kbd>I</kbd></dt><dd>abrir la mochila</dd></div>
+      <div><dt><kbd>1</kbd>–<kbd>8</kbd> / rueda</dt><dd>elegir qué llevás en la mano</dd></div>
+      <div><dt><kbd>U</kbd> / clic derecho</dt><dd>usar el objeto en la mano</dd></div>
+      <div><dt><kbd>E</kbd></dt><dd>hablar con la gente del bosque</dd></div>
+      <div><dt><kbd>J</kbd> <kbd>M</kbd></dt><dd>cuaderno y mapa</dd></div>
+      <div><dt><kbd>P</kbd></dt><dd>sacar una foto</dd></div>
+      <div><dt><kbd>F2</kbd></dt><dd>modo foto: cámara libre, hora, encuadre y luz</dd></div>
+      <div><dt><kbd>F3</kbd></dt><dd>ver el rendimiento</dd></div>
+      <div><dt>clic izquierdo</dt><dd>atacar con el arma en la mano (La noche de los duendes)</dd></div>
+      <div><dt>clic derecho sostenido</dt><dd>bloquear con la lanza · disparo cargado con la pistola mejorada</dd></div>
+      <div><dt><kbd>A</kbd><kbd>A</kbd> / <kbd>D</kbd><kbd>D</kbd></dt><dd>esquivar hacia un costado (doble toque)</dd></div>
+      <div><dt><kbd>K</kbd></dt><dd>fabricar, mejorar armas, reparar y reforzar (Tab cambia de pestaña)</dd></div>
+      <div><dt><kbd>N</kbd></dt><dd>estado de la base: qué defensa está dañada (La noche de los duendes)</dd></div>
+      <div><dt><kbd>F</kbd></dt><dd>prender una antorcha apagada</dd></div>
       <div><dt><kbd>Esc</kbd></dt><dd>pausa</dd></div>
+      <div><dt><kbd>F11</kbd></dt><dd>pantalla completa</dd></div>
     </dl>
     <div class="acciones-modal"><button id="cerrar-controles-completos">Volver a pausa</button></div>
   </div>
@@ -1065,6 +1064,9 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   $('btn-creditos')?.addEventListener('click', () => abrirModal('creditos', 'pausa'));
   $('btn-creditos-inicio')?.addEventListener('click', () => abrirModal('creditos', 'inicio'));
   $('cerrar-creditos')?.addEventListener('click', cerrarModal);
+  // 3.8.4 (decisión 8): en pantallas bajas las seis teclas de la portada quedan detrás del botón «Teclas» (Esc las cierra)
+  const verTeclas = (si) => { $('inicio')?.classList.toggle('ver-teclas', si); $('btn-teclas-portada')?.setAttribute('aria-expanded', String(si)); };
+  $('btn-teclas-portada')?.addEventListener('click', () => verTeclas(!$('inicio')?.classList.contains('ver-teclas')));
   $('btn-guardar')?.addEventListener('click', () => window.__hojarasca?.guardar?.());
   let ocultarGuardado = 0;
   window.addEventListener('hojarasca:guardado', (ev) => {
@@ -1089,6 +1091,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   $('error-release-salir')?.addEventListener('click', () => { if (window.hojarasca?.salir) window.hojarasca.salir(); else window.close(); });
   document.addEventListener('keydown', (e) => {
     if (e.code !== 'Escape') return;
+    if ($('inicio')?.classList.contains('ver-teclas') && !$('inicio').classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); verTeclas(false); return; }
     if (!$('controles-completos')?.classList.contains('oculto') || !$('creditos')?.classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); cerrarModal(); }
   }, true);
   const aplicarVersion = (v) => {
