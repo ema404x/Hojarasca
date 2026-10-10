@@ -1,6 +1,7 @@
-# RELEASE STATUS — 3.8.3
+# RELEASE STATUS — 3.8.4
 
-- Versión: `3.8.3`
+- Versión: `3.8.4`
+- 3.8.4: las 36 decisiones de la 3.8.3 en 4 equipos — menús «Cuaderno de campo» en todo el juego (todo entra a 1366×768), la calidad nunca cambia sola (pregunta si va lento), voces de los vecinos cálidas y silbato de vapor, el alero del arriero con la historia del abuelo de Martín, 21 arreglos del Relax (kayak, sulky, caballo en los puentes, tren varado, chinchón, truco, fotos en archivos…), récords por dificultad y caídas de la noche 20 en La noche de los duendes, lechuza, cofre, Rey Duende y Coihue pulidos. Gate 178/178
 - 3.8.3: pase de bugs completo de todo el juego en 5 equipos, ~80 arreglos (capítulo 8 imposible, semillas que no se juntaban, dos oleadas por noche, portada que no entraba en una notebook, cosas que se perdían al desarmar, gente invisible a la que se le hablaba…). Gate 174/174
 - 3.8.2: cuatro arreglos de La noche de los duendes — la espalda del Mandamás (y del facón) sólo cuenta de verdad por detrás, el cofre del alba no se abre desde una torre y el que no abriste se suma al nuevo, el cristal se dibuja como antes en el Relax. Gate 169/169
 - 3.8.1: revisión de bugs de La noche de los duendes — 13 arreglos (lo robado que se reciclaba o quedaba colgado, golpes a través de paredes, cofre dentro de paredes o enterrado, púas del corazón al volver, Coihue sobre agua o sobre un lugar, el Relax diciendo «semillas doradas», leyenda repetida en partidas viejas, inglés perdido, botón del modo en dos renglones). Gate 169/169
