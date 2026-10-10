@@ -41,6 +41,9 @@ export function crearColaDialogos(vista, opciones = {}) {
         tipo, texto: String(texto ?? ''), inicial: String(extra.inicial ?? ''),
         si: extra.si || (tipo === 'texto' ? 'Listo' : 'Sí'), no: extra.no || (tipo === 'texto' ? 'Cancelar' : 'No'),
         max: Math.max(1, extra.max || 60), resolver,
+        // 3.8.6: lo que vale Escape (o B del mando) en un «confirmar» de dos opciones donde «No» también hace algo (p. ej.
+        // el caballo en el puente: «Amarrarlo acá»). Sin `cancelado`, Escape es «No», como siempre.
+        cancelado: Object.hasOwn(extra, 'cancelado') ? extra.cancelado : undefined,
       });
       siguiente();
     });
@@ -53,7 +56,10 @@ export function crearColaDialogos(vista, opciones = {}) {
     try { v = String(vista.valor() ?? ''); } catch { v = actual.inicial; }
     return cerrar(v.trim().slice(0, actual.max).trim());
   }
-  const cancelar = () => cerrar(actual?.tipo === 'texto' ? null : false);
+  // el botón «No» (o «Cancelar» en los de texto)
+  const rechazar = () => cerrar(actual?.tipo === 'texto' ? null : false);
+  // Escape o B: como «No», salvo que la pregunta diga otra cosa (`cancelado`, 3.8.6)
+  const cancelar = () => (actual && actual.tipo !== 'texto' && actual.cancelado !== undefined ? cerrar(actual.cancelado) : rechazar());
   // una tecla del teclado: devuelve si la usó el cuadro
   function tecla(code) {
     if (!actual) return false;
@@ -64,7 +70,7 @@ export function crearColaDialogos(vista, opciones = {}) {
   return {
     confirmar: (texto, extra) => pedir('confirmar', texto, extra),
     pedirTexto: (texto, inicial = '', extra = {}) => pedir('texto', texto, { ...extra, inicial }),
-    aceptar, cancelar, tecla,
+    aceptar, cancelar, rechazar, tecla,
     abierto: () => !!actual,
     actual: () => (actual ? { tipo: actual.tipo, texto: actual.texto, inicial: actual.inicial, si: actual.si, no: actual.no } : null),
     pendientes: () => cola.length + (actual ? 1 : 0),
@@ -124,7 +130,7 @@ export function crearDialogos({ documento = document, ventana = window, alAbrir,
   };
   const cola = crearColaDialogos(vista, { auto });
   $('dialogo-si')?.addEventListener('click', () => cola.aceptar());
-  $('dialogo-no')?.addEventListener('click', () => cola.cancelar());
+  $('dialogo-no')?.addEventListener('click', () => cola.rechazar());   // (3.8.6: el botón es «No», no Escape)
   // en la captura de la ventana: antes que todos los atajos del juego. Con el cuadro abierto,
   // ninguna tecla llega al juego (escribir en el campo de texto sigue andando).
   ventana.addEventListener('keydown', (e) => {

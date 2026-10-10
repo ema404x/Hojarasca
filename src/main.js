@@ -5347,8 +5347,9 @@ async function caballoEnElPuente() {
   if (preguntandoPuente) return;
   preguntandoPuente = true;
   try {
-    const mandar = await dialogos.confirmar(`${caballoDicho('', true)} no cruza el puente colgante: el tablero se mueve y no lo pisa. ¿Lo mandás solo al refugio o lo amarrás acá?`, { si: 'Mandarlo al refugio', no: 'Amarrarlo acá' });
-    if (!jugador.estado.montado) return;
+    const mandar = await dialogos.confirmar(`${caballoDicho('', true)} no cruza el puente colgante: el tablero se mueve y no lo pisa. ¿Lo mandás solo al refugio o lo amarrás acá?`, { si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null });
+    // 3.8.6: Escape (o B) no elige nada: seguís montado. Antes contaba como «Amarrarlo acá» y te bajaba
+    if (mandar === null || !jugador.estado.montado) return;
     desmontar();
     if (mandar) {
       const c = caballo();
