@@ -653,7 +653,7 @@ export function crearFiestasJuego(ctx) {
       const html = `<div class="mesa-juego"><div class="fila-cartas"><span class="rotulo">${esc(quien)}</span>${ro.cartas[1].map(() => dorso(true)).join('')}</div>
         <div class="fila-cartas"><span class="rotulo">Mazo</span>${dorso(true)}<span class="rotulo">Pozo</span>${arriba ? signo(arriba) : ''}</div>
         <div class="fila-cartas"><span class="rotulo">Vos</span>${mano.map(signo).join('')}</div></div>
-        <p class="log">${esc(`Vos ${p.puntos[0]} · ${quien} ${p.puntos[1]} (pierde el que pasa de ${p.aPuntos}) · sueltas: ${lig.resto}`)}</p>${ro.terminada && ro.resultado ? `<p class="log">${esc(`Cortó ${ro.corto === 0 ? 'vos' : quien}: vos sumás ${ro.resultado.pts[0]}, ${quien} ${ro.resultado.pts[1]}`)}</p>` : ''}<p class="log">${panel.log.slice(-2).map(esc).join('<br>')}</p>`;
+        <p class="log">${esc(`Vos ${p.puntos[0]} · ${quien} ${p.puntos[1]} (pierde el que pasa de ${p.aPuntos}) · sueltas: ${lig.resto}`)}</p>${ro.terminada && ro.resultado ? `<p class="log">${esc(`${ro.corto === 0 ? 'Cortaste' : `Cortó ${quien}`}: vos sumás ${ro.resultado.pts[0]}, ${quien} ${ro.resultado.pts[1]}`)}</p>` : ''}<p class="log">${panel.log.slice(-2).map(esc).join('<br>')}</p>`;
       const acc = accionesChinchon(p, 0);
       const opciones = acc.map((a) => {
         if (a === 'mazo') return { texto: 'Levantar del mazo', detalle: '', marca: '', puede: true, hacer: () => chinchon(a) };

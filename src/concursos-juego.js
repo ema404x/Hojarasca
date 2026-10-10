@@ -56,7 +56,9 @@ export function crearConcursosJuego(ctx) {
       `¡Hoy es el ${minus(c.nombre)}! Veo que traés ${entrada.que}. ¿Te anoto? Si preferís guardarlo, no pasa nada: seguí de largo.`,
       `Anotado, con ${entrada.que}.${c.gasta ? ' Dejalo en la mesa, que el jurado lo prueba.' : ' Lo mira el jurado y te lo devuelven.'} A las ${HORAS_CONCURSO.fallo} el jurado (${jurado}) da las cintas.`,
     ], alTerminar: () => {
-      if (!inscribir(estado(), id, entrada, dia(), hora())) return;
+      // 3.8.6: con la hora en que le hablaste (a las 16:59, si la charla cruzaba las 17, decía «Anotado» y no te anotaba);
+      // si el jurado ya falló mientras charlaban, te lo dice (antes, nada)
+      if (!inscribir(estado(), id, entrada, d, h)) { ctx.nota(`No llegaste al ${minus(c.nombre)}`, 'Mientras charlaban, el jurado ya dio las cintas', true); return; }
       if (c.gasta) gastar(progreso(), entrada.k, 1);
       dicho = `${dia()}-anotado`;
       ctx.nota(`Te anotaste en el ${minus(c.nombre)}`, `Con ${entrada.que}. El fallo, a las ${HORAS_CONCURSO.fallo}`, true);

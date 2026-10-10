@@ -208,4 +208,16 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   sinCR('src/fiestas-juego.js'); sinCR('src/fiestas.js');
 }
 
+// ---------------------------------------------------------------- 13. el diario de hoy sin cortar, «Cortaste» y Nélida a las 16:59
+{
+  const D = await import('../src/diario.js');
+  const largo = 'Nicanor se torció el tobillo en el puente y Josefina te pidió que le hicieras compañía un rato, charlando de truchas para que no pensara en el dolor.';
+  const v = D.sanearDiarioHoy({ dia: 5, pagina: { ...D.paginaNueva?.(), eventos: [largo] } }, 5);
+  ok(largo.length > 120 && v?.pagina?.eventos?.[0] === largo, 'diario: la página de hoy guardada no corta los textos largos a 120 letras');
+  const j = leer('src/fiestas-juego.js');
+  ok(j.includes("`${ro.corto === 0 ? 'Cortaste' : `Cortó ${quien}`}: vos sumás") && !j.includes("Cortó ${ro.corto === 0 ? 'vos'"), 'chinchón: «Cortaste» (decía «Cortó vos»)');
+  const c = leer('src/concursos-juego.js');
+  ok(c.includes('if (!inscribir(estado(), id, entrada, d, h)) { ctx.nota(`No llegaste al ${minus(c.nombre)}`'), 'concursos: te anota con la hora en que le hablaste, y si no se pudo te lo dice');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
