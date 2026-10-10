@@ -1,0 +1,283 @@
+/* 3.8.4 (decisión 36) · el sistema común de los menús. Viene de la maqueta proto-menu (src/proto-menu/base.css, ?menu=A):
+   desde la 3.8.4 es el estilo de siempre. armar.mjs lo mete en index.html (después del CSS de la plantilla, que queda de
+   base) junto con cuaderno.css, que pone los valores del estilo elegido por el usuario: «Cuaderno de campo».
+   - letra: una escala de cuatro tamaños (chico, base, medio, grande) y el logo
+   - espacio: una escala de siete pasos (4, 8, 12, 16, 24, 32, 48)
+   - botón: UNA forma (alto, relleno, radio) con sus cuatro estados (normal, encima, elegido, deshabilitado)
+   - panel: fondo, borde, sombra, radio y relleno; tres anchos (angosto, medio, ancho)
+   Todo entra a 1366×768 (y a 1280×720) sin desplazar la pantalla: lo largo se desplaza adentro de su panel.
+   Los paneles que se agrandan con la letra (zoom: --escala-letra) dividen su alto y ancho máximos por esa escala. */
+
+:root[data-menu] {
+  --e-1: 4px; --e-2: 8px; --e-3: 12px; --e-4: 16px; --e-5: 24px; --e-6: 32px; --e-7: 48px;
+  --ancho-angosto: 560px; --ancho-medio: 780px; --ancho-ancho: 1000px;
+  --b-alto: 40px; --b-alto-chico: 34px; --b-pad: 0 var(--e-4); --b-pad-chico: 0 var(--e-3);
+  --margen-pantalla: var(--e-6);
+  --zoom: var(--escala-letra, 1);
+}
+
+/* ---------- la letra ---------- */
+:root[data-menu] body { font-family: var(--f-texto); }
+:root[data-menu] :is(.panel-modal, .pausa, .mochila, .trueque, .charla, .obra, .rueda-info, #inicio, .cuaderno) { font-family: var(--f-texto); font-size: var(--t-base); line-height: 1.4; }
+/* títulos de panel: una sola medida */
+:root[data-menu] :is(.panel-modal h2, .pausa h2, .mochila h2, .trueque .quien, .charla .quien, .obra .quien) {
+  font-family: var(--f-titulo); font-size: var(--t-grande); font-weight: var(--peso-titulo, 400); font-style: var(--estilo-titulo, normal);
+  line-height: 1.1; margin: 0 0 var(--e-2); color: var(--p-titulo, inherit); letter-spacing: var(--espaciado-titulo, normal); text-transform: var(--mayus-titulo, none);
+}
+/* en los paneles del juego (abajo, sobre el paisaje) el título es un escalón más chico */
+:root[data-menu] :is(.trueque .quien, .charla .quien, .obra .quien) { font-size: calc(var(--t-grande) * .78); margin: 0 0 var(--e-1); }
+/* subtítulos de sección */
+:root[data-menu] :is(.ajustes h3, .panel-modal h3) { font-family: var(--f-titulo); font-size: var(--t-medio); font-weight: var(--peso-titulo, 400); margin: 0 0 var(--e-3); color: var(--p-titulo, inherit); letter-spacing: var(--espaciado-titulo, normal); text-transform: var(--mayus-titulo, none); }
+/* rótulos de cada opción: chicos, iguales en todos lados */
+:root[data-menu] :is(.opcion > span, .modo-juego > span, .fila-ajuste > span, .personal-fila > span, #opcion-dificultad > span, .teclas-titulo) {
+  font-size: var(--t-chico); color: var(--p-tenue); letter-spacing: var(--espaciado-rotulo, .06em); text-transform: var(--mayus-rotulo, uppercase); font-weight: 600; margin: 0;
+}
+/* textos de ayuda: chicos y apagados */
+:root[data-menu] :is(.modo-texto, .fila-ajuste small, .personal-nota, .personal-bloqueado, .seguir, .panel-modal .sub, .mochila .sub, .resumen-pausa, .estado-guardado, .pausa .cuando, .dialogo-ayuda) {
+  font-family: var(--f-texto); font-size: var(--t-chico); line-height: 1.45; color: var(--p-tenue); font-style: normal; min-height: auto;
+}
+:root[data-menu] .pausa .cuando { font-size: var(--t-base); color: var(--p-color); margin: 0 0 var(--e-1); font-family: var(--f-mano, var(--f-texto)); }
+:root[data-menu] .resumen-pausa { margin: 0 0 var(--e-5); }
+:root[data-menu] .panel-modal p { color: var(--p-color); }
+:root[data-menu] :is(#inicio, .velo, .mochila, .trueque, .charla, .obra) kbd { font-family: var(--f-texto); font-size: var(--t-chico); font-weight: 600; min-width: 24px; height: 22px; line-height: 20px; padding: 0 6px; margin: 0;
+  border: 1px solid var(--kbd-borde, currentColor); border-bottom-width: 1px; border-radius: var(--kbd-radio, 4px); background: var(--kbd-fondo, transparent); opacity: .85; }
+
+/* ---------- el botón: una sola forma ---------- */
+:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button,
+  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button, .boton-teclas, .fila-codigo button) {
+  display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--e-2);
+  min-height: var(--b-alto); padding: var(--b-pad); margin: 0;
+  font-family: var(--f-boton, var(--f-texto)); font-size: var(--t-base); font-weight: var(--peso-boton, 500); font-style: normal; line-height: 1.15; text-align: left; text-decoration: none;
+  color: var(--b-color); background: var(--b-fondo); border: var(--b-borde); border-radius: var(--b-radio); box-shadow: var(--b-sombra);
+  transition: background-color .12s, color .12s, box-shadow .12s, transform .08s;
+  white-space: normal; text-wrap: balance;
+}
+:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button,
+  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button, .boton-teclas, .fila-codigo button):is(:hover, :focus-visible) {
+  color: var(--b-color-encima, var(--b-color)); background: var(--b-fondo-encima); box-shadow: var(--b-sombra-encima, var(--b-sombra)); text-decoration: none;
+}
+/* con el teclado o el mando, además, un contorno (que se vea dónde está la marca) */
+:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button, .boton-teclas, .mochila .personalizar):focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+:root[data-menu] :where(.segmentos button, .personal-pestanas button, .taller-categorias button, .obra .categorias button, .obra .planos button, .personal-boton):is([aria-pressed="true"], [aria-selected="true"], .elegido, .principal),
+:root[data-menu] :is(.accion-principal, #btn-seguir, #dialogo-si, .boton-teclas[aria-expanded="true"]) {
+  color: var(--b-color-elegido); background: var(--b-fondo-elegido); box-shadow: var(--b-sombra-elegido, var(--b-sombra)); border: var(--b-borde-elegido, var(--b-borde));
+}
+:root[data-menu] :where(.segmentos button, .personal-boton, .fila-tecla button, .menu button, .acciones-modal button):disabled,
+:root[data-menu] .personal-segmentos button:disabled { opacity: .4; cursor: default; filter: grayscale(.6); background: var(--b-fondo); box-shadow: var(--b-sombra); }
+/* la tecla va al final del botón, siempre en el mismo lugar */
+:root[data-menu] :is(.menu button, .mochila .personalizar) kbd { margin-left: auto; }
+/* el grupo de opciones: botones iguales en fila, sin cápsula alrededor */
+:root[data-menu] .segmentos { display: flex; flex-wrap: wrap; gap: var(--e-1); padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-menu] .segmentos button { min-height: var(--b-alto-chico); padding: var(--b-pad-chico); justify-content: center; white-space: nowrap; }
+:root[data-menu] .modo-juego .segmentos button { font-size: var(--t-base); padding: 0 var(--e-4); }
+:root[data-menu] .modo-juego .segmentos button[data-valor="desafio"][aria-pressed="true"] { color: var(--b-color-elegido); background: var(--b-fondo-elegido); }
+:root[data-menu] input[type=range] { accent-color: var(--acento); height: var(--b-alto-chico); margin: 0; }
+:root[data-menu] :is(#codigo-partida, .personal-texto, #dialogo input) { min-height: var(--b-alto-chico); padding: 0 var(--e-3); font-family: var(--f-texto); font-size: var(--t-base);
+  color: var(--p-color); background: var(--campo-fondo); border: var(--campo-borde); border-radius: var(--b-radio); }
+:root[data-menu] #codigo-partida::placeholder { color: var(--p-tenue); }
+
+/* ---------- el panel: una sola caja, en tres anchos ---------- */
+:root[data-menu] :is(.panel-modal, .mochila, .trueque, .charla, .obra, .pausa > div:first-child, .pausa > .ajustes, #inicio > .portada-opciones) {
+  color: var(--p-color); background: var(--p-fondo); border: var(--p-borde); border-radius: var(--p-radio); box-shadow: var(--p-sombra);
+  padding: var(--p-pad, var(--e-6)); backdrop-filter: var(--p-desenfoque, none);
+}
+:root[data-menu] .velo { background: var(--velo, rgba(10,14,11,.55)); backdrop-filter: var(--velo-desenfoque, blur(2px)); }
+
+/* los modales: título, bajada, contenido que se desplaza adentro y los botones siempre a la vista. Medio por defecto;
+   ancho para las listas largas (guía, logros, carreras, controles, teclas); angosto para lo corto */
+:root[data-menu] .panel-modal { width: min(var(--ancho-medio), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); max-width: none;
+  max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); display: flex; flex-direction: column; overflow: hidden; }
+:root[data-menu] :is(#guia, #logros, #modos31, #controles-completos, #teclas) .panel-modal { width: min(var(--ancho-ancho), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); }
+:root[data-menu] :is(#creditos, #dialogo, #victoria, #corrida) .panel-modal { width: min(var(--ancho-angosto), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); }
+:root[data-menu] .panel-modal > * { flex: none; }
+:root[data-menu] .panel-modal > :is(#personal-contenido, #guia-contenido, #logros-contenido, #partidas-lista, #teclas-lista, #modos31-contenido, #base-contenido, .controles-completos, #banco-informe, #corrida-records) {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: var(--e-2); scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
+:root[data-menu] .panel-modal .sub { margin: 0 0 var(--e-5); }
+:root[data-menu] .panel-modal .acciones-modal { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--e-2); margin: 0; padding-top: var(--e-4); border-top: var(--linea); margin-top: var(--e-4); }
+:root[data-menu] .panel-modal .acciones-modal button { border-bottom: var(--b-borde); }
+:root[data-menu] .panel-modal h3 { margin: var(--e-5) 0 var(--e-2); }
+:root[data-menu] .victoria h2 { font-size: calc(var(--t-grande) * 1.4); }
+:root[data-menu] .victoria .datos { font-size: var(--t-medio); font-family: var(--f-mano, var(--f-texto)); color: var(--p-titulo); }
+:root[data-menu] #dialogo .dialogo-texto { color: var(--p-color); font-size: var(--t-medio); line-height: 1.45; }
+:root[data-menu] #dialogo .panel-modal { padding: var(--e-5) var(--e-6); }
+/* las listas de los modales: renglones con un trazo entre uno y otro */
+:root[data-menu] .controles-completos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--e-6); margin: 0; }
+:root[data-menu] .controles-completos div { grid-template-columns: minmax(120px, auto) 1fr; gap: var(--e-3); padding: var(--e-1) 0; border-bottom: 1px solid var(--p-linea-suave, rgba(0,0,0,.12)); }
+:root[data-menu] .controles-completos dt { color: var(--p-tenue); }
+:root[data-menu] .fila-tecla { padding: var(--e-1) var(--e-2); border-radius: var(--b-radio); }
+:root[data-menu] .fila-tecla:nth-child(odd) { background: var(--fila-fondo); }
+:root[data-menu] .fila-tecla button { min-height: var(--b-alto-chico); min-width: 116px; justify-content: center; font-size: var(--t-chico); }
+:root[data-menu] #teclas-mando { color: var(--p-tenue); font-size: var(--t-chico); opacity: 1; }
+:root[data-menu] #banco-informe { background: var(--fila-fondo); color: var(--p-color); }
+:root[data-menu] #partidas-sync { border-top: var(--linea); }
+@media (max-width: 760px) { :root[data-menu] .controles-completos { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Personalizar ---------- */
+:root[data-menu] .personal-pestanas { gap: var(--e-1); margin: 0 0 var(--e-4); padding: 0 0 var(--e-4); border-bottom: var(--linea); }
+:root[data-menu] .personal-pestanas button { min-height: var(--b-alto-chico); padding: var(--b-pad-chico); font-size: var(--t-chico); }
+:root[data-menu] .personal-contenido { gap: var(--e-5); align-content: start; }
+:root[data-menu] .fila-ajuste { gap: var(--e-2); }
+:root[data-menu] .personal-muestras { gap: var(--e-2); }
+:root[data-menu] .personal-muestra { width: var(--b-alto-chico); height: var(--b-alto-chico); border-radius: var(--muestra-radio, 50%); }
+:root[data-menu] .personal-muestra[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 0 3px var(--acento); }
+:root[data-menu] .personal-receta { padding: var(--e-2) var(--e-3); border-radius: var(--b-radio); background: var(--fila-fondo); }
+:root[data-menu] .peligro { color: var(--acento); }
+
+/* ---------- la portada ---------- */
+/* dos columnas: a la izquierda el nombre y qué hacer; a la derecha, en una hoja, cómo jugar (idioma, modo, estación,
+   calidad) y las seis teclas básicas. La versión, abajo a la derecha. A 1366×768 y 1280×720 entra todo sin desplazar */
+:root[data-menu] #inicio.portada { display: grid; grid-template-columns: minmax(0, 600px) minmax(var(--e-6), 1fr) minmax(320px, 440px);
+  grid-template-areas: 'principal . opciones'; align-items: start; align-content: start;
+  padding: var(--e-6) var(--e-7) var(--e-7); gap: 0; overflow-x: hidden; overflow-y: auto; }
+:root[data-menu] #inicio > .portada-principal { grid-area: principal; display: flex; flex-direction: column; min-width: 0; }
+:root[data-menu] #inicio > .portada-principal > * { flex: none; }
+:root[data-menu] #inicio > .portada-opciones { grid-area: opciones; position: relative; display: grid; gap: var(--e-4); min-width: 0; padding: var(--e-5); }
+:root[data-menu] .portada .titulo { font-family: var(--f-logo, var(--f-titulo)); font-size: var(--t-logo); font-style: var(--estilo-logo, normal); font-weight: var(--peso-logo, 400);
+  line-height: 1; margin: 0 0 var(--e-2); letter-spacing: var(--espaciado-logo, -.01em); color: var(--logo-color, var(--luz)); }
+:root[data-menu] .portada .bajada { font-family: var(--f-mano, var(--f-texto)); font-size: var(--t-medio); margin: 0 0 var(--e-6); color: var(--bajada-color, rgba(239,230,210,.85)); font-weight: 400; }
+:root[data-menu] #inicio .aviso-recuperado { margin: 0 0 var(--e-3); color: var(--portada-aviso, #f1dfa6); font-size: var(--t-chico); text-shadow: var(--portada-sombra, none); }
+:root[data-menu] #inicio #diario-portada { margin: 0 0 var(--e-4); font-size: var(--t-chico); color: var(--portada-tenue, rgba(239,230,210,.8)); text-shadow: var(--portada-sombra, none); }
+:root[data-menu] #inicio #diario-portada:empty { display: none; }
+:root[data-menu] #inicio .acciones { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-2); align-items: stretch; }
+:root[data-menu] #inicio .acciones button { width: 100%; min-height: var(--b-alto-chico); font-size: var(--t-chico); }
+:root[data-menu] #inicio .acciones .accion-principal { grid-column: 1 / -1; min-height: 52px; font-size: var(--t-medio); justify-content: center; margin-bottom: var(--e-2); }
+/* la estación y la calidad: una tira de papel debajo de los botones, las dos opciones lado a lado */
+:root[data-menu] #inicio .opciones-rapidas { display: flex; flex-wrap: wrap; gap: var(--e-3) var(--e-5); margin: var(--e-4) 0 0; padding: var(--e-3) var(--e-5) var(--e-4);
+  color: var(--p-color); background: var(--p-fondo); border-radius: var(--p-radio); box-shadow: var(--p-sombra); }
+:root[data-menu] #inicio .opciones-rapidas .opcion { display: grid; gap: var(--e-2); }
+/* la hoja de la derecha */
+:root[data-menu] #inicio .portada-opciones :is(.opcion, .modo-juego) { display: grid; gap: var(--e-2); margin: 0; max-width: none; }
+:root[data-menu] #inicio :is(#opcion-relax, #opcion-dificultad) { margin-top: var(--e-2); }
+:root[data-menu] #inicio :is(#opcion-relax, #opcion-dificultad).oculto { display: none; }
+:root[data-menu] #inicio .portada-opciones .modo-texto { color: var(--p-tenue); }
+:root[data-menu] #inicio .portada-opciones .modo-texto:empty { display: none; }
+:root[data-menu] #inicio .fila-codigo { gap: var(--e-2); }
+:root[data-menu] #inicio .fila-codigo button { min-height: var(--b-alto-chico); font-size: var(--t-chico); }
+/* las seis teclas de siempre (todas, en Controles) */
+:root[data-menu] #inicio .teclas-basicas { display: grid; gap: var(--e-2); padding-top: var(--e-3); border-top: var(--linea); }
+:root[data-menu] #inicio .controles { display: grid; grid-template-columns: auto 1fr; gap: var(--e-2) var(--e-3); align-items: center; align-self: auto; margin: 0;
+  font-size: var(--t-chico); line-height: 1.3; color: var(--p-color); text-shadow: none; }
+:root[data-menu] #inicio .controles dt { text-align: right; white-space: nowrap; }
+:root[data-menu] #inicio .controles dt kbd { margin: 0 0 0 2px; color: var(--p-color); }
+:root[data-menu] #inicio .controles dd { margin: 0; }
+:root[data-menu] #inicio .boton-teclas { display: none; justify-self: start; min-height: var(--b-alto-chico); font-size: var(--t-chico); }
+:root[data-menu] #inicio .build-info { position: fixed; right: var(--e-4); bottom: var(--e-3); left: auto; top: auto; z-index: 30;
+  font: 13px/1.2 var(--f-mano, var(--f-texto)); letter-spacing: .02em; color: var(--portada-tenue, rgba(239,230,210,.6)); opacity: .85; text-shadow: var(--portada-sombra, none); }
+
+/* 3.8.4 (decisión 8): pantallas bajas (notebooks de 768 y 720 de alto): el título más chico y las teclas detrás del botón
+   «Teclas» (se abren encima de la hoja, sin empujar nada) */
+@media (max-height: 820px) {
+  :root[data-menu] #inicio.portada { padding-top: var(--e-5); padding-bottom: var(--e-6); }
+  :root[data-menu] .portada .titulo { font-size: calc(var(--t-logo) * .62); }
+  :root[data-menu] .portada .bajada { font-size: var(--t-base); margin-bottom: var(--e-4); }
+  :root[data-menu] #inicio .acciones .accion-principal { min-height: 46px; }
+  :root[data-menu] #inicio .opciones-rapidas .segmentos button { padding: 0 var(--e-2); font-size: var(--t-chico); }
+  :root[data-menu] #inicio > .portada-opciones { gap: var(--e-3); padding: var(--e-4) var(--e-5); }
+  :root[data-menu] #inicio .boton-teclas { display: inline-flex; }
+  :root[data-menu] #inicio .teclas-basicas { display: none; }
+  :root[data-menu] #inicio.ver-teclas .teclas-basicas { display: grid; position: absolute; z-index: 2; left: var(--e-3); right: var(--e-3);
+    bottom: calc(var(--e-4) + var(--b-alto-chico) + var(--e-2)); padding: var(--e-4) var(--e-5); border-top: 0;
+    color: var(--p-color); background: var(--p-fondo); border-radius: var(--p-radio); box-shadow: var(--p-sombra); }
+}
+
+/* pantallas grandes (1920×1080): la columna de la izquierda, un poco más ancha y con la letra de los botones de siempre */
+@media (min-width: 1600px) and (min-height: 900px) {
+  :root[data-menu] #inicio.portada { grid-template-columns: minmax(0, 680px) minmax(var(--e-6), 1fr) minmax(320px, 480px); }
+  :root[data-menu] #inicio .acciones button:not(.accion-principal) { min-height: var(--b-alto); font-size: var(--t-base); }
+}
+/* ventanas angostas: la hoja se angosta; más angostas todavía, una sola columna que se desplaza */
+@media (max-width: 1180px) {
+  :root[data-menu] #inicio.portada { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); grid-template-areas: 'principal opciones'; gap: 0 var(--e-6); padding-left: var(--e-6); padding-right: var(--e-6); }
+}
+@media (max-width: 860px) {
+  :root[data-menu] #inicio.portada { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'principal' 'opciones'; gap: var(--e-5) 0; padding: var(--e-5); }
+  :root[data-menu] #inicio .build-info { position: static; justify-self: end; margin-top: var(--e-2); }
+}
+
+/* ---------- la pausa ---------- */
+:root[data-menu] #pausa { overflow: hidden; }
+:root[data-menu] .pausa { grid-template-columns: minmax(0, 540px) minmax(0, 540px); gap: var(--e-5); align-items: stretch; justify-content: center;
+  width: min(1104px, calc((100vw - 2 * var(--e-5)) / var(--zoom))); height: calc((100vh - 2 * var(--e-5)) / var(--zoom)); }
+:root[data-menu] .pausa > div:first-child { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: var(--e-5) var(--e-6); scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
+:root[data-menu] .pausa > div:first-child > * { flex: none; }
+:root[data-menu] .pausa h2 { margin: 0 0 var(--e-1); }
+:root[data-menu] .pausa .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; justify-items: stretch; }
+:root[data-menu] .pausa .menu button { min-height: var(--b-alto-chico); font-size: var(--t-chico); padding: var(--b-pad-chico); }
+:root[data-menu] .pausa .menu #btn-seguir { grid-column: 1 / -1; min-height: 48px; font-size: var(--t-medio); justify-content: center; margin-bottom: var(--e-2); }
+:root[data-menu] .pausa .menu :is(.separador, .estado-guardado) { grid-column: 1 / -1; }
+:root[data-menu] .pausa .menu .separador { height: 0; border-top: var(--linea); background: none; margin: var(--e-1) 0; }
+:root[data-menu] .pausa .menu kbd { opacity: .7; }
+:root[data-menu] .pausa .estado-guardado { margin: var(--e-2) 0 0; }
+:root[data-menu] .pausa > .ajustes { min-width: 0; overflow-y: auto; gap: var(--e-5); align-content: start; scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
+:root[data-menu] .pausa > .ajustes h3 { margin: 0; }
+:root[data-menu] #aviso-calidad { color: var(--acento); }
+@media (max-width: 900px) {
+  :root[data-menu] #pausa { overflow-y: auto; place-items: start center; padding: var(--e-4) 0; }
+  :root[data-menu] .pausa { grid-template-columns: minmax(0, 1fr); width: calc((100vw - 2 * var(--e-4)) / var(--zoom)); height: auto; }
+  :root[data-menu] .pausa > :is(div:first-child, .ajustes) { overflow: visible; }
+}
+
+/* ---------- los paneles del juego (mochila, almacén, feria, cargas, cocina, taller, fiesta, charla, obra, rueda) ---------- */
+:root[data-menu] .mochila { width: min(var(--ancho-medio), 92vw); max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); display: flex; flex-direction: column; }
+:root[data-menu] .mochila .sub { margin: 0 0 var(--e-4); }
+:root[data-menu] .mochila .rejilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-2); overflow-y: auto; min-height: 0; }
+:root[data-menu] .mochila .cosa { gap: var(--e-3); padding: var(--e-2) var(--e-3); min-height: 56px; color: var(--p-color); background: var(--fila-fondo); border: var(--cosa-borde); border-radius: var(--b-radio); }
+:root[data-menu] .mochila .cosa:hover { background: var(--b-fondo-encima); transform: none; }
+:root[data-menu] .mochila .cosa.enbarra { box-shadow: inset 0 0 0 2px var(--acento); }
+:root[data-menu] .mochila .cosa img { width: 36px; height: 36px; flex: none; }
+:root[data-menu] .mochila .cosa span { font-size: var(--t-chico); font-weight: 600; line-height: 1.25; }
+:root[data-menu] .mochila .cosa small { font-size: var(--t-chico); font-weight: 400; color: var(--p-tenue); }
+:root[data-menu] .mochila .seguir { margin: var(--e-4) 0 0; padding-top: var(--e-3); border-top: var(--linea); }
+:root[data-menu] .mochila .personalizar { margin: var(--e-3) 0 0; align-self: flex-start; }
+:root[data-menu] .mochila .personalizar kbd { border-color: currentColor; }
+/* el almacén, la feria, las cargas, la cocina, el taller ferroviario, la fiesta y «Fabricar»: el mismo panel, abajo */
+:root[data-menu] :is(.trueque, .charla) { width: min(var(--ancho-medio), 86vw); padding: var(--e-5) var(--e-6) var(--e-4); }
+:root[data-menu] .trueque { max-height: calc((91vh - 12px) / var(--zoom)); }
+:root[data-menu] :is(.trueque, .obra) li { padding: var(--e-2); border-top: 1px solid var(--p-linea-suave, rgba(0,0,0,.12)); font-size: var(--t-base); gap: var(--e-3); }
+:root[data-menu] .trueque > ul { scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; margin-top: var(--e-1); }
+:root[data-menu] .trueque li:hover { background: var(--b-fondo-encima); }
+:root[data-menu] .trueque li i, :root[data-menu] .obra li i { color: var(--p-tenue); font-size: var(--t-chico); }
+:root[data-menu] .trueque li i { flex: none; max-width: 38%; }
+:root[data-menu] .trueque li.hecho i, :root[data-menu] .obra li.hecha i { color: var(--p-bien, #4b6a2e); }
+:root[data-menu] .trueque li.elegida, :root[data-menu] .charla-opciones li.elegida { background: var(--b-fondo-encima); box-shadow: inset 3px 0 0 var(--acento); }
+:root[data-menu] :is(.trueque, .charla, .obra) .dicho { font-size: var(--t-base); color: var(--p-color); }
+:root[data-menu] .charla .dicho { font-size: var(--t-medio); line-height: 1.5; }
+:root[data-menu] :is(.trueque, .charla, .obra) .seguir { margin: var(--e-3) 0 0; padding-top: var(--e-2); }
+:root[data-menu] .taller-categorias { gap: var(--e-1); margin: 0 0 var(--e-2); }
+:root[data-menu] :is(.taller-categorias, .obra .categorias, .obra .planos) button { min-height: 30px; padding: 0 var(--e-3); font-size: var(--t-chico); text-transform: none; letter-spacing: 0; }
+:root[data-menu] .charla-opciones li { font-size: var(--t-base); padding: var(--e-1) var(--e-3); border-radius: var(--b-radio); }
+@media (max-height: 760px) {
+  :root[data-menu] :is(.trueque, .charla) { padding: var(--e-4) var(--e-5) var(--e-3); }
+  :root[data-menu] :is(.trueque, .obra) li { padding: 6px var(--e-2); }
+}
+/* la obra: a la izquierda, angosta */
+:root[data-menu] .obra { width: min(var(--ancho-angosto), 46vw); max-height: 76vh; padding: var(--e-5) var(--e-5) var(--e-4); scrollbar-width: thin; }
+:root[data-menu] .obra .categorias { padding-bottom: var(--e-2); }
+:root[data-menu] .obra :is(.costo, .mat, .modulo, .progreso, .sitio) { font-size: var(--t-chico); }
+/* la rueda de la charla: la ficha de arriba es una hoja chica, las opciones papelitos con trazo de pincel */
+:root[data-menu] .rueda-info { color: var(--p-color); background: var(--p-fondo); border: var(--p-borde); border-radius: var(--p-radio); box-shadow: var(--p-sombra); backdrop-filter: var(--p-desenfoque, none); font-family: var(--f-texto); padding: var(--e-3) var(--e-4) var(--e-2); }
+:root[data-menu] .rueda-quien b { font-family: var(--f-titulo); font-size: var(--t-medio); font-weight: 400; color: var(--p-titulo, inherit); }
+:root[data-menu] :is(.rueda-emocion, .rueda-deseo, .rueda-barra small) { color: var(--p-tenue); }
+:root[data-menu] .rueda-barra { color: var(--p-color); }
+:root[data-menu] .rueda .charla-opciones li { font-family: var(--f-texto); font-size: var(--t-chico); color: var(--b-color); background: var(--b-fondo-rueda, var(--p-fondo)); border-radius: var(--b-radio); box-shadow: var(--p-sombra); }
+:root[data-menu] .rueda .charla-opciones li.elegida { color: var(--b-color-elegido); background: var(--b-fondo-elegido); box-shadow: 0 0 0 2px var(--acento), var(--p-sombra); }
+:root[data-menu] .rueda .charla-opciones li.elegida .n { color: inherit; opacity: .75; }
+:root[data-menu] .rueda .charla-opciones li.gris { color: var(--p-tenue); }
+:root[data-menu] .rueda-centro b { font-family: var(--f-titulo); font-weight: 400; }
+/* el cuaderno y el mapa: la misma hoja */
+:root[data-menu] .cuaderno { color: var(--p-color); background: var(--p-fondo); border-radius: var(--p-radio); box-shadow: var(--p-sombra); }
+:root[data-menu] :is(.pagina h2, .seccion h3, .pestanas button, .lista .marca, .ficha .anotado, .boton-lamina, .hoja-mapa .leyenda) { font-family: var(--f-titulo); font-weight: 400; }
+:root[data-menu] :is(.seccion h3, .pagina h2, .ficha h2) { color: var(--p-titulo); }
+:root[data-menu] .lista button { color: var(--p-color); border-radius: var(--b-radio); }
+:root[data-menu] .lista button:hover, :root[data-menu] .lista button[aria-current="true"] { background: var(--b-fondo-encima); }
+:root[data-menu] .cerrar-papel { position: absolute; min-height: var(--b-alto-chico); font-size: var(--t-chico); }
+:root[data-menu] .boton-lamina { display: flex; min-height: var(--b-alto-chico); margin: 0 0 var(--e-4); font-size: var(--t-chico); }
+/* las pestañas del cuaderno: con la letra de pluma (más ancha que Caveat) van más chicas y se acomodan en dos renglones */
+:root[data-menu] .pestanas { flex-wrap: wrap; gap: var(--e-1) var(--e-4); margin: 0 0 var(--e-2); }
+:root[data-menu] .pestanas button { font-size: 21px; white-space: nowrap; padding: 0 2px; }
+:root[data-menu] .pagina { scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
+:root[data-menu] .hoja-mapa { background: var(--p-fondo); border-radius: var(--p-radio); box-shadow: var(--p-sombra); padding: var(--e-5); }
+:root[data-menu] .hoja-mapa .leyenda { color: var(--p-color); font-size: 17px; line-height: 1.2; right: 40px; }
+/* las notas del costado: papelitos de la misma libreta */
+:root[data-menu] .nota { font-family: var(--f-mano, 'Caveat', cursive); font-size: 22px; color: var(--p-color); background: var(--nota-fondo, var(--papel)); }
+:root[data-menu] .nota small { font-family: var(--f-texto); color: var(--p-tenue); }

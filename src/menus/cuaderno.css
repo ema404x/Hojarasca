@@ -1,0 +1,110 @@
+/* 3.8.4 (decisión 36) · «Cuaderno de campo», el estilo de los menús que eligió el usuario (antes, la maqueta A de proto-menu).
+   Papel crema con textura y manchas de acuarela (todo SVG por código), títulos con letra de pluma (Ink Free, del sistema;
+   si no está, Caveat, que ya viene con el juego), bordes con trazo de pincel, separadores de tinta y los íconos con un
+   círculo de aguada atrás. Pone los valores de las variables de sistema.css (armar.mjs mete los dos en index.html; la
+   plantilla lleva <html data-menu="cuaderno">). */
+
+:root[data-menu="cuaderno"] {
+  /* letra: chico 14 · base 17 · medio 22 · grande 36 · logo */
+  --f-texto: 'Spectral', Georgia, serif;
+  --f-titulo: 'Ink Free', 'Segoe Print', 'Caveat', cursive;
+  --f-mano: 'Ink Free', 'Caveat', cursive;
+  --f-logo: 'Ink Free', 'Caveat', cursive;
+  --t-chico: 14px; --t-base: 17px; --t-medio: 22px; --t-grande: 36px; --t-logo: 92px;
+  --peso-titulo: 400; --estilo-logo: normal; --espaciado-logo: -.02em;
+  --espaciado-rotulo: .02em; --mayus-rotulo: none;
+
+  --tinta-a: #3a2a16;
+  --acento: #a2452f;              /* el rojo del notro, como tinta de marcar */
+  --p-color: #2e2416;
+  --p-titulo: #4a3418;
+  --p-tenue: #6f5c3c;
+  --p-linea-fuerte: rgba(74,52,24,.45);
+  --p-linea-suave: rgba(58,42,22,.16);
+  --p-bien: #4b6a2e;
+  --portada-aviso: #f6e3a8;
+  --linea: 1.5px solid rgba(58,42,22,.32);
+
+  /* el papel: color, manchas grandes de aguada y grano fino; el borde, un trazo de pincel */
+  --papel-grano: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .25  0 0 0 0 .12  0 0 0 .13 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  --papel-manchas: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='700'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 .62  0 0 0 0 .46  0 0 0 0 .22  0 0 0 1.1 -.42'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+  --pincel: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><path d='M1.4 2.4C25 1.2 60 3 98.5 1.5C98 28 99.2 66 98.3 98.4C70 97.6 33 99.3 1.8 98.2C2.6 70 0.9 33 1.4 2.4Z' fill='none' stroke='%233a2a16' stroke-opacity='.82' stroke-width='2.6' stroke-linejoin='round' vector-effect='non-scaling-stroke'/><path d='M3 1.2C40 2.8 70 0.8 97.2 2.9C99 40 97.4 75 99 97C60 99.2 30 97.2 2.4 99C0.8 60 2.9 30 3 1.2Z' fill='none' stroke='%233a2a16' stroke-opacity='.35' stroke-width='1.2' vector-effect='non-scaling-stroke'/></svg>");
+  --pincel-fino: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><path d='M2 4C30 2 65 5 98 2.5C97 35 99 70 97.5 96C65 98 30 95.5 2.5 97.5C3.5 65 1 35 2 4Z' fill='none' stroke='%233a2a16' stroke-opacity='.7' stroke-width='1.6' stroke-linejoin='round' vector-effect='non-scaling-stroke'/></svg>");
+  --pincel-claro: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><path d='M2 4C30 2 65 5 98 2.5C97 35 99 70 97.5 96C65 98 30 95.5 2.5 97.5C3.5 65 1 35 2 4Z' fill='none' stroke='%23f3e6c6' stroke-opacity='.75' stroke-width='1.6' stroke-linejoin='round' vector-effect='non-scaling-stroke'/></svg>");
+  --papel: #efe3c3;
+
+  --p-fondo: var(--pincel) 0 0 / 100% 100% no-repeat, var(--papel-grano), var(--papel-manchas) center / cover, var(--papel);
+  --p-fondo-columna: var(--papel-grano) fixed, var(--papel-manchas) fixed center / cover, var(--papel);
+  --p-borde: 0; --p-borde-lado: 0;
+  --p-radio: 3px;
+  --p-sombra: 0 2px 0 rgba(58,42,22,.25), 0 22px 50px rgba(10,6,2,.55);
+  --p-sombra-columna: 0 22px 50px rgba(10,6,2,.45);
+  --p-pad: var(--e-6);
+  --velo: radial-gradient(ellipse at center, rgba(28,18,8,.42), rgba(18,11,4,.72));
+  --velo-desenfoque: blur(3px) sepia(.25);
+
+  /* el botón: papel apenas más oscuro, contorno a pincel. Encima: aguada ocre. Elegido: lleno de tinta */
+  --b-radio: 3px;
+  --b-color: #2e2416;
+  --b-fondo: var(--pincel-fino) 0 0 / 100% 100% no-repeat, rgba(122,92,48,.07);
+  --b-fondo-encima: var(--pincel-fino) 0 0 / 100% 100% no-repeat, rgba(196,140,60,.26);
+  --b-fondo-elegido: var(--pincel-claro) 0 0 / 100% 100% no-repeat, #3f2e19;
+  --b-color-elegido: #f6ead0;
+  --b-borde: 0; --b-sombra: none; --b-sombra-elegido: 0 1px 0 rgba(255,255,255,.4);
+  --fila-fondo: rgba(122,92,48,.07);
+  --cosa-borde: 0;
+  --campo-fondo: rgba(255,250,235,.55); --campo-borde: 1.5px solid rgba(58,42,22,.4);
+  --kbd-borde: rgba(58,42,22,.55); --kbd-fondo: rgba(255,250,235,.4); --kbd-radio: 3px;
+  --muestra-radio: 50%;
+  --logo-color: #f4ead2;
+  --bajada-color: #eadfc2;
+  --portada-tenue: #efe5cc; --portada-sombra: 0 1px 6px rgba(0,0,0,.75);
+}
+/* el separador: un trazo de tinta que no es una regla */
+:root[data-menu="cuaderno"] :where(.personal-pestanas, .mochila .seguir, .panel-modal .acciones-modal, .pausa .menu .separador, #inicio .teclas-basicas, .trueque .seguir, .charla .seguir, .obra .seguir, .obra .categorias) {
+  border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='8' viewBox='0 0 400 8' preserveAspectRatio='none'><path d='M2 4.6C60 2.8 120 5.6 200 3.8S340 5.4 398 3.2' fill='none' stroke='%233a2a16' stroke-opacity='.55' stroke-width='2.2' stroke-linecap='round'/></svg>") 8 0 0 0 / 6px 0 0 0 stretch;
+  border-top-style: solid; border-top-width: 6px;
+}
+:root[data-menu="cuaderno"] .personal-pestanas { border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='8' viewBox='0 0 400 8' preserveAspectRatio='none'><path d='M2 4.6C60 2.8 120 5.6 200 3.8S340 5.4 398 3.2' fill='none' stroke='%233a2a16' stroke-opacity='.55' stroke-width='2.2' stroke-linecap='round'/></svg>") 0 0 8 0 / 0 0 6px 0 stretch; border-top: 0; border-bottom: 6px solid; }
+/* los títulos de panel, subrayados con una pincelada */
+:root[data-menu="cuaderno"] :is(.panel-modal h2, .pausa h2, .mochila h2, .pagina h2) { padding-bottom: 6px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='12' viewBox='0 0 220 12'><path d='M3 8C50 4 110 9 170 5.5C190 4.6 205 5 216 6.5' fill='none' stroke='%23a2452f' stroke-opacity='.7' stroke-width='3' stroke-linecap='round'/></svg>") 0 100% / 170px 10px no-repeat; }
+:root[data-menu="cuaderno"] .ajustes h3 { color: var(--p-titulo); }
+:root[data-menu="cuaderno"] .pausa .cuando { color: #8a3a26; font-size: var(--t-medio); }
+/* los íconos: un círculo de aguada atrás, apenas sepia, como dibujados en la libreta */
+:root[data-menu="cuaderno"] .mochila .cosa img { padding: 3px; border-radius: 50%; filter: sepia(.25) saturate(.9) contrast(1.05);
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 3C30 2.6 37.6 10 37 20.5C36.4 31 29 37.4 19.2 36.8C9.4 36.2 2.8 29.6 3.2 19.6C3.6 9.6 10.6 3.4 20 3Z' fill='%23c9a35f' fill-opacity='.28' stroke='%233a2a16' stroke-opacity='.5' stroke-width='1.1'/></svg>") center / 100% 100% no-repeat; }
+:root[data-menu="cuaderno"] .mochila .cosa.enbarra { box-shadow: none; background: var(--pincel-fino) 0 0 / 100% 100% no-repeat, rgba(162,69,47,.10); }
+:root[data-menu="cuaderno"] .mochila .cosa.enbarra span::after { content: ' ✓'; color: var(--acento); font-family: var(--f-mano); }
+/* las teclas, cajitas a mano */
+:root[data-menu="cuaderno"] :is(#inicio, .velo, .mochila, .trueque, .charla, .obra) kbd { border: 0; background: var(--pincel-fino) 0 0 / 100% 100% no-repeat, rgba(255,250,235,.35); }
+:root[data-menu="cuaderno"] .accion-principal, :root[data-menu="cuaderno"] #btn-seguir { font-family: var(--f-mano); font-weight: 400; }
+/* portada: el nombre escrito con pluma sobre el paisaje */
+:root[data-menu="cuaderno"] .portada .titulo { text-shadow: 0 2px 18px rgba(0,0,0,.55); }
+:root[data-menu="cuaderno"] .portada .bajada { text-shadow: 0 1px 8px rgba(0,0,0,.7); }
+/* sobre el paisaje, los botones son papelitos (la misma forma, con papel atrás para que se lean) */
+:root[data-menu="cuaderno"] #inicio .acciones button:not(.accion-principal) { background: var(--pincel-fino) 0 0 / 100% 100% no-repeat, var(--papel-grano), rgba(239,227,195,.92); }
+:root[data-menu="cuaderno"] #inicio .acciones button:not(.accion-principal):hover { background: var(--pincel-fino) 0 0 / 100% 100% no-repeat, var(--papel-grano), #f0d7a4; }
+:root[data-menu="cuaderno"] #inicio .accion-principal { box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+:root[data-menu="cuaderno"] .portada { background: linear-gradient(90deg, rgba(14,10,5,.62) 0%, rgba(14,10,5,.25) 42%, rgba(14,10,5,0) 62%); }
+:root[data-menu="cuaderno"] .personal-muestra { box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 0 0 1.5px rgba(58,42,22,.4); }
+:root[data-menu="cuaderno"] .rueda .charla-opciones li { --b-fondo-rueda: var(--pincel-fino) 0 0 / 100% 100% no-repeat, var(--papel); }
+/* 3.8.4: lo que se sumó al llevarlo a todos los menús */
+/* la obra lleva sus categorías arriba: el trazo va abajo */
+:root[data-menu="cuaderno"] .obra .categorias { border-image-slice: 0 0 8 0; border-image-width: 0 0 6px 0; border-top: 0; border-bottom: 6px solid; }
+/* los paneles de abajo: el nombre con una pincelada más corta */
+:root[data-menu="cuaderno"] :is(.trueque .quien, .charla .quien, .obra .quien) { padding-bottom: 4px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='12' viewBox='0 0 220 12'><path d='M3 8C50 4 110 9 170 5.5C190 4.6 205 5 216 6.5' fill='none' stroke='%23a2452f' stroke-opacity='.6' stroke-width='3' stroke-linecap='round'/></svg>") 0 100% / 120px 8px no-repeat; }
+/* la rueda: la ficha y el centro, con la misma tinta */
+:root[data-menu="cuaderno"] .rueda-barra i { background: rgba(58,42,22,.14); }
+:root[data-menu="cuaderno"] .rueda-centro { color: #f6ead0; background: radial-gradient(circle at 50% 40%, rgba(74,52,24,.78), rgba(46,32,16,.72)); box-shadow: 0 0 0 2px rgba(239,227,195,.7), 0 8px 24px rgba(0,0,0,.4); }
+/* el cuaderno: la hoja de siempre, con su lomo, en papel crema */
+:root[data-menu="cuaderno"] .cuaderno { background: var(--pincel) 0 0 / 100% 100% no-repeat, var(--papel-grano), var(--papel-manchas) center / cover, var(--papel); }
+:root[data-menu="cuaderno"] .pestanas button[aria-selected="true"] { color: var(--p-titulo); border-color: var(--acento); }
+:root[data-menu="cuaderno"] .ficha .anotado, :root[data-menu="cuaderno"] .lista .marca { color: #8a3a26; }
+:root[data-menu="cuaderno"] .polaroid { border-color: #fbf4e2; }
+/* las notas del costado */
+:root[data-menu="cuaderno"] { --nota-fondo: var(--pincel-fino) 0 0 / 100% 100% no-repeat, var(--papel-grano), #efe3c3; }
+:root[data-menu="cuaderno"] .nota.nueva { border-left: 4px solid var(--acento); }
+/* el mapa: el papel debajo del dibujo */
+:root[data-menu="cuaderno"] .hoja-mapa .leyenda { text-shadow: 0 0 6px rgba(239,227,195,.9); }
+/* la hoja de la portada, con la textura fija para que no «nade» al desplazar */
+:root[data-menu="cuaderno"] #inicio > .portada-opciones { background: var(--pincel) 0 0 / 100% 100% no-repeat, var(--papel-grano), var(--papel-manchas) center / cover, var(--papel); }

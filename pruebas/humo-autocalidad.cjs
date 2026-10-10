@@ -1,4 +1,4 @@
-// Partida real: la calidad automática y el acopio de materiales (1.6).
+// Partida real: la calidad automática y el acopio de materiales (1.6). 3.8.4: la calidad ya no cambia sola: pregunta.
 // La ventana oculta no tiene GPU y va a ~1 cuadro/s, así que es el banco de pruebas
 // perfecto para ver si el juego se da cuenta solo de que no llega.
 // Uso: npx electron pruebas/humo-autocalidad.cjs
@@ -31,21 +31,36 @@ app.whenReady().then(async () => {
     ok(await cargar(), 'carga en calidad Media');
     await js(`document.getElementById('btn-entrar').click(); 1`);
 
-    // ---- calidad automática: sin GPU el equipo no llega y tiene que bajar sola
+    // ---- 3.8.4 (decisión 35): la calidad nunca cambia sola. Sin GPU el equipo no llega: el juego PREGUNTA
+    // «El juego va lento: ¿bajar la calidad?» (con ?debug=1 sólo si la prueba lo pide), y baja sólo si se acepta
+    await js(`window.__hojarasca.__preguntaLento.activa = true; 1`);
     const antes = await js(`window.__hojarasca.ajustes.calidad`);
-    let bajo = null;
-    for (let i = 0; i < 110; i++) {
-      await esperar(1000);
-      bajo = await js(`window.__hojarasca.ajustes.calidad`);
-      if (bajo !== antes) break;
-    }
-    ok(antes === 'media' && bajo === 'baja', `la calidad baja un escalón sola (${antes} → ${bajo})`);
-    ok(await js(`[...document.querySelectorAll('#notas')].length === 1 && /calidad/i.test(document.getElementById('notas').textContent)`), 'avisa por pantalla que la bajó');
+    const esperarPregunta = async () => {
+      for (let i = 0; i < 140; i++) {
+        await esperar(1000);
+        const d = await js(`(()=>{const d=document.getElementById('dialogo'); return d.classList.contains('oculto') ? null : { texto: document.getElementById('dialogo-texto').textContent, si: document.getElementById('dialogo-si').textContent, no: document.getElementById('dialogo-no').textContent }})()`);
+        if (d) return d;
+      }
+      return null;
+    };
+    let d = await esperarPregunta();
+    ok(!!d && d.texto.startsWith('El juego va lento: ¿bajar la calidad?') && d.si === 'Bajar' && d.no === 'No, gracias', `si va lento, pregunta (${JSON.stringify(d)})`);
+    ok(await js(`window.__hojarasca.ajustes.calidad`) === antes && antes === 'media', `mientras pregunta, la calidad no cambió sola (${antes})`);
+    await js(`document.getElementById('dialogo-si').click(); 1`);
+    await esperar(800);
+    const bajo = await js(`window.__hojarasca.ajustes.calidad`);
+    ok(antes === 'media' && bajo === 'baja', `con «Bajar» baja un escalón (${antes} → ${bajo})`);
+    ok(await js(`/calidad/i.test(document.getElementById('notas').textContent)`), 'avisa por pantalla que la bajó');
     ok(await js(`JSON.parse(localStorage.getItem('hojarasca-ajustes-v1')).calidad === 'baja'`), 'queda guardada para la próxima');
     ok(await js(`window.__hojarasca.ajustes.autoCalidad !== false && !!document.querySelector('[data-ajuste="autoCalidad"]')`), 'se puede apagar desde los ajustes');
-    // no cae en picada: un escalón por vez, con su tiempo de gracia
-    await esperar(4000);
-    ok(await js(`window.__hojarasca.ajustes.calidad === 'baja'`), 'no baja dos escalones seguidos');
+    // si sigue lento, vuelve a preguntar; con «No, gracias» no insiste más en la sesión
+    d = await esperarPregunta();
+    ok(!!d, 'sigue lento: vuelve a preguntar (después de su tiempo de gracia)');
+    await js(`document.getElementById('dialogo-no').click(); 1`);
+    await esperar(800);
+    ok(await js(`window.__hojarasca.ajustes.calidad === 'baja' && window.__hojarasca.__preguntaLento.noMolestar === true`), 'con «No, gracias» la calidad queda como estaba');
+    await esperar(20000);
+    ok(await js(`document.getElementById('dialogo').classList.contains('oculto') && window.__hojarasca.ajustes.calidad === 'baja'`), 'y no vuelve a preguntar ni la cambia sola');
 
     // ---- acopio: guardar, sacar y construir con lo guardado
     const ac = await js(`(()=>{const H=window.__hojarasca, P=H.progreso, js=H.jugador.estado;

@@ -102,14 +102,17 @@ const fuentes = [
   fuente('Caveat', 700, 'normal', 'caveat-latin-700-normal.woff2'),
 ].join('\n');
 
+// 3.8.4: los menús en estilo «Cuaderno de campo»: el sistema común y los valores del estilo, en ese orden (sin @import)
+const menus = ['sistema.css', 'cuaderno.css'].map((f) => fs.readFileSync(path.join(src, 'menus', f), 'utf8').replace(/^@import[^\n]*\n/gm, '')).join('\n');
 let html = fs.readFileSync(path.join(src, 'plantilla.html'), 'utf8').split('__HOJARASCA_VERSION__').join(pkg.version);
 const js = `${three}\n\n${juego}`.replace(/<\/script/gi, '<\\/script');
 html = html
   .replace('/*FUENTES*/', () => fuentes)
+  .replace('/*MENUS*/', () => menus)
   .replace('/*JUEGO*/', () => js)
   .replace('<!--HOJARASCA_BUILD-->', `<!-- HOJARASCA BUILD ${pkg.version} -->`);
 
-if (html.includes('/*JUEGO*/') || html.includes('/*FUENTES*/')) throw new Error('La plantilla quedó sin completar');
+if (html.includes('/*JUEGO*/') || html.includes('/*FUENTES*/') || html.includes('/*MENUS*/')) throw new Error('La plantilla quedó sin completar');
 if (/https?:\/\/unpkg\.com|https?:\/\/cdn\./i.test(html)) throw new Error('El build final todavía depende de un CDN');
 if (html.length < 700_000) throw new Error(`index.html sospechosamente pequeño (${html.length} bytes)`);
 
