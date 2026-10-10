@@ -504,6 +504,8 @@ function sanearProgreso(p) {
     // 3.8.4: la página del diario de hoy (de otro día, ya se escribió), dónde quedó amarrado el kayak y lo soltado con V
     diarioHoy: sanearDiarioHoy(p.diarioHoy, Math.max(1, Math.floor(finito(p.dia, 1)))),
     kayakAmarre: sanearAmarre(p.kayakAmarre),
+    // 3.8.6: el entumecido y el descansado, en horas de juego (una partida vieja no lo trae)
+    cuerpo: objeto(p.cuerpo) ? { entumecido: Math.max(0, Math.min(12, finito(p.cuerpo.entumecido, 0))), descansado: Math.max(0, Math.min(12, finito(p.cuerpo.descansado, 0))) } : undefined,
     soltados: arr(p.soltados).filter((s) => objeto(s) && ['ramita', 'pinon', 'calafate', 'frutilla', 'pluma', 'canto'].includes(s.tipo) && Number.isFinite(s.x) && Number.isFinite(s.z) && Math.abs(s.x) <= LIMITE && Math.abs(s.z) <= LIMITE).slice(-64).map((s) => ({ tipo: s.tipo, x: s.x, z: s.z })),
     // 2.8: una partida vieja no lo tiene: sale con lo de fábrica de cada sección
     personal: sanearPersonal(p.personal),

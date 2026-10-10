@@ -116,6 +116,9 @@ app.whenReady().then(async () => {
     ok(!!op, `la opción del abuelo está en la rueda (${JSON.stringify(op)})`);
     ok(op?.cat === 'charla', `y está en «Charlar» (${op?.cat})`);
     await captura('1-rueda-martin.png');
+    // (3.8.6: el nombre de arriba, con «Martín Sepúlveda» en dos renglones, entero en la pantalla)
+    const cajaInfo = await js(`(()=>{ const r = document.getElementById('rueda-info').getBoundingClientRect(); return { arriba: Math.round(r.top), alto: Math.round(r.height) } })()`);
+    ok(cajaInfo.arriba >= 0, `lo de arriba de la rueda entra en la pantalla (${JSON.stringify(cajaInfo)})`);
     if (op) await js(`${H}.__elegirCharla(${op.i}); 1`);
     let l = await leer();
     ok(l.renglones.length === 3 && /Fermín/.test(l.renglones[0]) && /Sepúlveda/.test(l.renglones[2]), `los tres renglones del pedido (${l.renglones.map((t) => t.slice(0, 30)).join(' | ')})`);

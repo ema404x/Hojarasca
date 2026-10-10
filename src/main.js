@@ -684,7 +684,7 @@ async function construir() {
   mapa = crearMapa(T, aldeaMundo ? { aldea: { ...planoAldeaMapa(), dentro: (x, z) => distanciaAldea(x, z) < 7 } } : null);
   jugador = crearJugador(camara, T, col, {
     lienzo,
-    activo: () => modo === 'jugando',
+    activo: () => modo === 'jugando' && !durmiendo,   // 3.8.6: ni durante el fundido de dormir
     sensibilidad: () => ajustes.sensibilidad,
     invertirY: () => ajustes.invertirY,
     fov: () => ajustes.fov,
@@ -827,6 +827,8 @@ async function construir() {
   if (progreso.pos) jugador.ubicar(progreso.pos.x, progreso.pos.z, progreso.yaw, progreso.pos.y);
   else if (desafio?.baseMapa) { const b = desafio.baseMapa; jugador.ubicar(b.x, b.z, b.yaw); }   // 3.0: la base del mapa de la semilla
   else jugador.ubicar(ref.puerta.x, ref.puerta.z, ref.mira);
+  // 3.8.6: el cuerpo (el frío de una noche sin fuego, el descanso de la casa o de la enfermera) sigue después de recargar
+  if (progreso.cuerpo) { jugador.estado.entumecido = progreso.cuerpo.entumecido || 0; jugador.estado.descansado = progreso.cuerpo.descansado || 0; }
   // 2.8: lo personal: tu cuerpo, tu mano y tu bandera, y cada sección aplica lo guardado
   armarMundoPersonal();
   // (una partida guardada con el caballo en la jaula: baja en la parada más cerca)
@@ -1149,6 +1151,7 @@ let dormirEnElTren = false;
 // 3.8.3: `opRincon`: lo que manda rincones-juego.js ({ casaAldea: true }: en tu casa de la calle de la Loma)
 function dormir(opRincon = null) {
   if (durmiendo) return;
+  const enCarpa = !!opRincon?.carpa;   // 3.8.6: la carpa se anota después de las guardas (antes, «Dormí en la carpa» aunque no se durmiera)
   const op = { enTren: dormirEnElTren };
   const enCasaAldea = !desafio && !!opRincon?.casaAldea;
   if (desafio) {
@@ -1160,6 +1163,10 @@ function dormir(opRincon = null) {
   if (desafio && deNoche && ajustes.duracion === 'reloj') { nota('No podés dormir ahora', 'Con la hora de tu reloj la noche pasa de verdad'); return; }
   const nocheReloj = !desafio && deNoche && ajustes.duracion === 'reloj' ? claveNocheReloj() : '';
   if (nocheReloj && progreso.relojNoche === nocheReloj) { nota('Ya dormiste esta noche', 'Con la hora de tu reloj, la noche pasa de verdad'); return; }
+  // 3.8.6: con la hora de tu reloj tampoco hay siesta: las dos horas se pisaban con la hora de verdad al cuadro siguiente,
+  // pero igual se apagaba el fuego, se gastaba la siesta del tren y en La noche de los duendes curaba sin fin
+  if (!deNoche && ajustes.duracion === 'reloj') { nota('Con la hora de tu reloj no hay siesta', 'El tiempo pasa de verdad'); return; }
+  if (enCarpa) diario.anotar('carpa');
   if (desafio) desafio.curar(deNoche ? 100 : 35);
   // 2.3: una noche de invierno sin fuego cerca se paga a la mañana.
   // 2.4: la casa abriga (ver abrigo.js): el calor de la estufa llega por los ambientes,
@@ -1190,7 +1197,9 @@ function dormir(opRincon = null) {
   setTimeout(() => {
     if (deNoche) {
       if (como !== 'normal') diario.anotar('noche', como === 'fresco' && inviernoEnCasa ? 'casa' : como);
-      const pagina = diario.cerrar(progreso.dia, nombreEstacion(), Math.random, caballoDicho('', true));
+      // 3.8.6: pasada la medianoche el día ya cambió: lo vivido es del día de antes (la página salía con el día nuevo y la
+      // noche siguiente se cerraba otra con el mismo número)
+      const pagina = diario.cerrar(progreso.horas < 12 ? Math.max(1, progreso.dia - 1) : progreso.dia, nombreEstacion(), Math.random, caballoDicho('', true));
       progreso.diario = [...(progreso.diario || []), pagina].slice(-40);
       if (progreso.horas > 7) progreso.dia++;
       if (nocheReloj) progreso.relojNoche = nocheReloj;   // 3.5.1
@@ -2731,6 +2740,8 @@ document.addEventListener('keydown', (e) => {
   // F, O... seguían andando con la hora del control (se dormía a las 22 del deslizador y se sumaba un día)
   if (foto.activo && codigo !== 'KeyP') return;
   if (desafio?.caido) return;
+  // 3.8.6: durante el fundido de dormir no se hace nada (se caminaba, se apretaba E y la noche caía donde quedaras)
+  if (durmiendo && codigo !== 'Escape') return;
   // Desafío: doble toque de A o D esquiva hacia ese lado
   if (desafio && (codigo === 'KeyA' || codigo === 'KeyD')) {
     const ahora = performance.now();
@@ -2860,10 +2871,10 @@ document.addEventListener('keydown', (e) => {
       // 2.9: subir al velero o traerlo, largarse por la tirolesa (el aviso, en el mismo orden)
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
-      if (enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }
+      if (!objetivo && enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }   // 3.8.6: mirando algo, eso (como el aviso)
       // 3.8.3: mirando algo (juntar, sentarse) E hace eso, como dice el aviso: antes dormía (o en plena noche de duendes
       // decía «No podés dormir ahora» y no juntaba nada)
-      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }
+      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { dormir({ carpa: true }); break; }
       if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
       if (cercaDelFuego() && (!objetivo || objetivo.tipo === 'sentarse')) {
         if (puedeDormirJuntoAlFuego()) { dormir(); break; }
@@ -5770,6 +5781,11 @@ function mudarDatosDeObra(o, x0, z0) {
     const a = claveCantero(x0, z0), b = claveCantero(x1, z1);   // la misma clave que claveGallinero
     if (a !== b && Object.hasOwn(tabla, a)) { tabla[b] = tabla[a]; delete tabla[a]; }
   }
+  // 3.8.6: el kayak amarrado en el embarcadero que se mueve se va con él (se quedaba flotando en el lugar viejo y, al
+  // cargar, `kayakAmarre` apuntaba a donde ya no había embarcadero: amanecía en el muelle)
+  if (o.plano.id === 'embarcadero' && dondeAmanece(progreso.kayakAmarre, [{ datos: { x: x0, z: z0 } }]).donde === 'embarcadero') {
+    if (!amarrarKayak(o) && !desafio) progreso.kayakAmarre = null;
+  }
   // (3.6: ya no hay pobladores que vivan en tus casas: viven en la Aldea de los Duendes)
 }
 // ---------------------------------------------------------------- 3.6.2: lo tuyo que quedó en la aldea
@@ -6053,19 +6069,20 @@ let carpaMalla = null;
 function armarCarpa() {
   const js = jugador.estado;
   if (!progreso.cosas.manta) { nota('Te falta la manta', 'En el almacén se cambia por piñones y frutillas'); return; }
-  if (js.enTren || js.enKayak || js.nadando) return;
+  if (js.enTren || js.enKayak || js.nadando || js.enSulky || js.enCable || js.montado) return;
   if (progreso.carpa) {
     if (Math.hypot(js.pos.x - progreso.carpa.x, js.pos.z - progreso.carpa.z) > 4) {
       nota('Ya tenés la carpa armada', 'Levantala antes de armarla en otro lado');
       return;
     }
     progreso.carpa = null;
-    if (carpaMalla) { escena.remove(carpaMalla); carpaMalla = null; }
+    quitarCarpa();
     sonido.juntar();
     nota('Levantaste la carpa', 'Se puede armar en otro lado');
     guardar();
     return;
   }
+  if (!puedeArmarCarpaAca(js)) return;
   const n = T.normal(js.pos.x, js.pos.z);
   if (Math.acos(clamp(n.y, -1, 1)) > 0.45 || T.agua(js.pos.x, js.pos.z)) {
     nota('Acá no', 'Hace falta un lugar llano y seco');
@@ -6077,6 +6094,21 @@ function armarCarpa() {
   registrar('carpa');
   nota('Carpa armada', 'De noche podés dormir adentro');
   guardar();
+}
+// 3.8.6: dónde se arma la carpa (el aviso «T Armar la carpa» y la T, con la misma cuenta): el tren, el kayak y el velero
+// cuentan como «en el suelo» y el aviso salía remando o viajando (y la T no hacía nada); en el sulky la armaba debajo
+function puedeArmarCarpaAca(js) {
+  return !!js.enSuelo && !js.nadando && !js.enTren && !js.enKayak && !js.enVela && !js.enSulky && !js.enCable && !js.montado;
+}
+// 3.8.6: levantarla libera lo suyo (cada carpa armada sumaba dos materiales y cuatro geometrías que no se soltaban)
+function quitarCarpa() {
+  if (!carpaMalla) return;
+  escena.remove(carpaMalla);
+  const geos = new Set(), mats = new Set();
+  carpaMalla.traverse((o) => { if (o.geometry) geos.add(o.geometry); if (o.material) mats.add(o.material); });
+  for (const g of geos) g.dispose();
+  for (const m of mats) m.dispose();
+  carpaMalla = null;
 }
 function ponerCarpa() {
   if (!progreso.carpa || carpaMalla) return;
@@ -7313,7 +7345,10 @@ function ubicarRueda() {
   const m = charla.menu, npc = charla.npc, el = $('rueda');
   if (!m || !npc || !el || el.classList.contains('oculto')) return;
   const W = window.innerWidth, H = window.innerHeight, esc = Math.max(0.7, Math.min(1, H / 820));
-  const R = (m.radio || 122) * esc, arriba = (m.info ? 132 : 20) * esc;
+  // 3.8.6: lo de arriba (el nombre, la amistad, el deseo) con su alto de verdad: con un nombre largo en dos renglones
+  // («Martín Sepúlveda») o el romance y el deseo, medía más que los 132 px fijos y el nombre quedaba cortado arriba
+  const info = m.info ? $('rueda-info') : null;
+  const R = (m.radio || 122) * esc, arriba = (info ? 62 + Math.max(70, info.offsetHeight || 0) : 20) * esc;
   let x = W / 2, y = H * 0.4;
   if (npc.pos && npc.g) {
     _vRueda.set(npc.pos.x, npc.pos.y + 1.5 * (npc.g.scale?.y || 1), npc.pos.z).project(camara);
@@ -7811,6 +7846,8 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
+  // 3.8.6: el entumecido y el descansado (antes se perdían al recargar: el castigo de la noche fría desaparecía)
+  { const jc = jugador.estado; progreso.cuerpo = jc.entumecido > 0 || jc.descansado > 0 ? { entumecido: Math.max(0, Number(jc.entumecido) || 0), descansado: Math.max(0, Number(jc.descansado) || 0) } : undefined; }
   progreso.diarioHoy = diario.paraGuardar(progreso.dia);   // 3.8.4: la página del día que se va llenando
   if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();   // 3.8.3: el sulky, donde ibas
   // 3.8.3: en la portada de una partida sin jugar (la primera vez, o después de «Empezar de nuevo») cerrar el juego
@@ -8381,7 +8418,8 @@ function actualizarTiempo(dt) {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
-    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
+    // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras)
+    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }
@@ -9003,11 +9041,11 @@ function cuadroDelJuego(tRaf, manual) {
       if (!vecino && tren.conduciendo()) aviso = tren.parado() && !enLasCargas() ? { tecla: 'E', texto: 'Bajar de la cabina' } : tren.varadoEnNieve?.() ? { tecla: 'E', texto: 'Bajarte y seguir a pie' } : null;
     }
     const juntoAlFuego = cercaDelFuego();
-    if (juntoAlFuego && !casaDeTe && (!aviso || objetivo?.tipo === 'sentarse')) {
+    // (3.8.6: también con el «·» del perro, que sólo informa: la E dormía o cocinaba y el aviso decía «El perro marca algo»)
+    if (juntoAlFuego && !casaDeTe && (!aviso || aviso.tecla === '·' || objetivo?.tipo === 'sentarse')) {
       if (puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir junto al fuego' };
       else if (hayQueCocinar()) aviso = { tecla: 'E', texto: 'Cocinar algo en el fuego' };
     }
-    if (!aviso && juntoAlFuego) aviso = { tecla: 'G', texto: 'Cocinar algo en el fuego' };
     // 2.1: el tendal y las huellas. Le ganan al aviso del perro (el del «·», que sólo
     // informa). La huerta ahora es el cantero de la 1.10, que tiene su aviso más arriba.
     if ((!aviso || aviso.tecla === '·') && !objetivo && !charla.npc && !js.enTren && !js.enKayak) {
@@ -9022,6 +9060,9 @@ function cuadroDelJuego(tRaf, manual) {
         else if (cacheSemillaArbol && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: `Juntar semilla de ${ARBOLES_VIVERO[cacheSemillaArbol.arbol.especie].nombre}` };
       }
     }
+    // 3.8.6: la G de cocinar, acá: estaba antes del tendal, las huellas y la semilla, y junto al fuego (de día, sin nada
+    // para cocinar) decía «G Cocinar» mientras la E colgaba en el tendal
+    if (!aviso && juntoAlFuego) aviso = { tecla: 'G', texto: 'Cocinar algo en el fuego' };
     // 2.4.1: las otras teclas (F, H, Y, B, T) van después de todo lo que hace E. Antes iban
     // en el medio y tapaban el aviso de E: junto al tendal decía «B Plantar» y E colgaba.
     if (!aviso && desafio && desafio.antorchaApagadaCerca?.(js.pos)) aviso = { tecla: 'F', texto: 'Encender la antorcha' };
@@ -9034,7 +9075,7 @@ function cuadroDelJuego(tRaf, manual) {
       aviso = { tecla: 'B', texto: `Plantar ${cacheSemilla.nombre}` };
     }
     if (!aviso && enLaCarpa()) aviso = { tecla: 'T', texto: 'Levantar la carpa' };
-    else if (!aviso && progreso.cosas.manta && !progreso.carpa && js.enSuelo && !js.nadando) aviso = { tecla: 'T', texto: 'Armar la carpa' };
+    else if (!aviso && progreso.cosas.manta && !progreso.carpa && puedeArmarCarpaAca(js)) aviso = { tecla: 'T', texto: 'Armar la carpa' };
     if (!aviso && !js.enTren && !js.enKayak && Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 && !clima.fogata.activa) aviso = { tecla: 'F', texto: 'Encender el fogón' };
     // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;

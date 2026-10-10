@@ -103,7 +103,8 @@ const trozo = (desde, hasta) => {
 // ---------------------------------------------------------------- 3. E y el aviso: dormir en la carpa o en la casa
 {
   const e = trozo("case 'KeyE': {", "    case 'Tab':");
-  ok(e.includes("if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }"), 'tecla E: la carpa duerme sólo sin nada mirado');
+  // (3.8.6: la carpa se anota adentro de dormir(), después de las guardas)
+  ok(e.includes("if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { dormir({ carpa: true }); break; }"), 'tecla E: la carpa duerme sólo sin nada mirado');
   ok(e.includes('if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }'), 'tecla E: tu casa duerme sólo sin nada mirado');
   // el aviso: lo mirado (objetivo) gana y la carpa y la casa van con !aviso
   ok(main.includes("let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;") && main.includes("if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };") && main.includes('if (!aviso && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) {'), 'el aviso: lo mirado antes que dormir (como la tecla E)');
