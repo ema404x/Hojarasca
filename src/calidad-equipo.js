@@ -1,7 +1,7 @@
 // 2.7.3: con qué calidad arranca el juego la primera vez, según la placa que haya.
 // Módulo puro (se prueba en Node): recibe el nombre que da WebGL y devuelve la calidad.
 // Sólo se usa la primera vez que se abre el juego: después manda lo que elija el
-// jugador, y la calidad automática sigue acomodando mientras se juega.
+// jugador (3.8.4: la calidad nunca cambia sola mientras se juega; si va lento, el juego pregunta).
 
 // Sin placa ni driver de video (Windows dibuja por software): lo más liviano.
 const SIN_ACELERACION = /swiftshader|basic render|llvmpipe|softpipe|software|microsoft basic/i;

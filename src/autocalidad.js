@@ -2,6 +2,8 @@
 // de verdad y, si sufre, baja un escalón solo; si le sobra máquina, sube uno.
 // Módulo puro (se prueba en Node, sin three ni DOM): acá sólo se mide y se decide.
 // Quien aplica la calidad, la guarda y avisa al jugador es main.js.
+// 3.8.4 (decisión 35): main.js ya no aplica nada solo: si decidirCalidad dice «bajar», le pregunta al jugador («El juego
+// va lento: ¿bajar la calidad?») y sólo baja si acepta; «subir» no se usa (la sube el jugador en Ajustes).
 
 // Los escalones, del más liviano al más pesado (mismos nombres que config.js).
 export const NIVELES_CALIDAD = ['muybaja', 'baja', 'media', 'alta'];

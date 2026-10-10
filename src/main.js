@@ -121,7 +121,7 @@ import { cargarAjustes, guardarAjustes, cargarProgreso, guardarProgreso, guardar
 import { htmlPartidas, CSS_PARTIDAS } from './partidas.js';
 import { empaquetar, leerPaquete, avisoImportar, nombreArchivoPartida } from './transferir.js';
 import { nombreSync, tocaCopiar, compararCopia, textoOferta as textoOfertaSync, textoDosCambiaron } from './sincronia.js';
-import { crearEstadoAutocalidad, revisarCalidad, reiniciarMedicion, sincronizarCalidad } from './autocalidad.js';
+import { crearEstadoAutocalidad, anotarCuadro as anotarCuadroCalidad, decidirCalidad, aplicarCambio, calidadVecina, nombreCalidad, reiniciarMedicion, sincronizarCalidad } from './autocalidad.js';
 import { crearMando, girarMirada } from './mando.js';
 import { RECORRIDO, crearCorrida, anotarCuadro, informeBanco, nombreArchivoBanco, duracionBanco } from './banco.js';
 import { resumenPartida, htmlParte, textoParte, CSS_PARTE } from './parte.js';
@@ -223,6 +223,8 @@ const ajustes = cargarAjustes();
 // 2.7.3: la primera vez, la calidad según la placa: integrada (la mayoría de las
 // notebooks) arranca en baja; sin driver de video, en muy baja. Después manda el jugador.
 if (primeraVez) { ajustes.calidad = calidadParaEquipo(nombrePlaca()); guardarAjustes(ajustes); }
+// 3.8.4 (decisión 35): y avisa cuál eligió (en la portada y al entrar: ver avisarCalidadInicial)
+const calidadElegidaAlAbrir = primeraVez ? ajustes.calidad : null;
 // Relax (el recorrido tranquilo de siempre) o Desafío (invasores cada noche).
 // Cada modo carga su propia partida; cambiar de modo en el menú recarga el mundo.
 const modoJuego = usarModoGuardado(ajustes.modo, ajustes.ranura);
@@ -425,6 +427,7 @@ window.addEventListener('mousedown', (e) => {
 });
 
 window.addEventListener('resize', () => {
+  acomodarEscalaPantalla(false);   // 3.8.4: la ventana pudo pasar a otra pantalla, con otra escala
   renderer.setSize(window.innerWidth, window.innerHeight);
   camara.aspect = window.innerWidth / window.innerHeight;
   camara.updateProjectionMatrix();
@@ -7961,8 +7964,31 @@ function cerrarCuadro(tCosto, cadencia, plan) {
 // y vuelve a subir cuando sobra (ver rendimiento.js). Cambia el tamaño del lienzo y de las
 // salidas del postproceso a lo sumo cada 2 s, de a 10%: nada de realocar en cada cuadro.
 const escalaFluidaCtl = crearEscalaFluida();
-const relacionPixelBase = renderer.getPixelRatio();
+let relacionPixelBase = renderer.getPixelRatio();
 let escalaFluida = 1;
+// 3.8.4 (decisión 17): dos pantallas de escala distinta (100% y 150%, por ejemplo). Al pasar la ventana de una a la otra
+// cambia devicePixelRatio y el lienzo seguía con la resolución de la primera (borroso en la de más escala, de más en la
+// otra). Ahora la relación de píxeles se acomoda sola (con el tope de la calidad, como al arrancar) y el postproceso con
+// ella. Se escucha el cambio de escala (matchMedia de la resolución actual) y, por las dudas, también en cada 'resize'.
+const relacionPixelPara = (dpr, tope) => Math.min(Number(dpr) > 0 ? Number(dpr) : 1, tope || 1);
+function acomodarEscalaPantalla(redimensionar = true) {
+  const base = relacionPixelPara(window.devicePixelRatio, calidad.pixelRatio);
+  if (Math.abs(base - relacionPixelBase) < 1e-3) return false;
+  relacionPixelBase = base;
+  renderer.setPixelRatio(relacionPixelBase * escalaFluida);
+  if (redimensionar) {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (post) post.redimensionar(window.innerWidth, window.innerHeight);
+  }
+  return true;
+}
+function vigilarEscalaPantalla() {
+  try {
+    const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+    mq.addEventListener('change', () => { acomodarEscalaPantalla(); vigilarEscalaPantalla(); }, { once: true });
+  } catch { /* sin matchMedia: queda el 'resize' */ }
+}
+vigilarEscalaPantalla();
 function aplicarEscalaFluida(e) {
   if (e === escalaFluida) return;
   escalaFluida = e;
@@ -8082,7 +8108,8 @@ let acumuladoInterior = 99, espacioAudioActual = 'bosque', bajoCubiertaActual = 
 const posInterior = new THREE.Vector3(1e9, 0, 1e9);
 let acumuladoHabitat = 99, habitatActual = null;
 const posHabitat = new THREE.Vector3(1e9, 0, 1e9);
-const presupuestoAdaptativo = crearPresupuestoAdaptativo({ objetivoMs: 16.7, niveles: 3 });
+// 3.8.4 (decisión 35): sólo las cadencias; el detalle que se ve no baja solo (ver rendimiento.js)
+const presupuestoAdaptativo = crearPresupuestoAdaptativo({ objetivoMs: 16.7, niveles: 3, soloCadencias: true });
 const perfilador = crearPerfiladorSubsistemas();
 const planificadorAntitirones = crearPlanificadorAntitirones({ objetivoMs: 16.7, maxPesadas: 1, maxSecundarias: 3 });
 let dtVisualPost = 1 / 60;
@@ -8229,7 +8256,33 @@ function textoAjustesDistancia() {
 // Lo que se puede acomodar sin rehacer el mundo se aplica ya (distancias de
 // dibujo y detalle); la densidad de bosque y las sombras, al próximo arranque.
 const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'radioPasto', 'niebla', 'flotantes', 'aves'];
-function aplicarCalidadAutomatica(cambio) {
+// 3.8.4 (decisión 35): la calidad gráfica nunca cambia sola durante el juego. La autocalidad sigue midiendo (autocalidad.js)
+// y, si el equipo no da, pregunta «El juego va lento: ¿bajar la calidad?» con «Bajar» y «No, gracias» (el cuadro de las
+// preguntas del juego: Enter/Esc, clic o A/B del mando). Si dice que no, no vuelve a preguntar en la sesión. Subir, nunca
+// sola: eso lo hace el jugador en Ajustes. Lo único que la baja sin preguntar es perder el contexto 3D (ver
+// bajarCalidadPorGraficos). Con ?debug=1 no pregunta salvo que la prueba lo pida (`__preguntaLento.activa = true`): la
+// ventana oculta de las pruebas va siempre «lenta» y el cuadro las pausaría.
+const preguntaLento = { activa: !HOJARASCA_DEBUG, pendiente: false, noMolestar: false, veces: 0 };
+function revisarSiVaLento(dtReal) {
+  if (!preguntaLento.activa || preguntaLento.pendiente || preguntaLento.noMolestar) return;
+  anotarCuadroCalidad(autoCalidad, dtReal);
+  const cambio = decidirCalidad(autoCalidad);
+  if (!cambio) return;
+  if (cambio.motivo !== 'bajar') { autoCalidad.verde = 0; return; }   // sobra máquina: no se sube sola
+  preguntarSiBajar(cambio);
+}
+async function preguntarSiBajar(cambio) {
+  preguntaLento.pendiente = true; preguntaLento.veces++;
+  let si = false;
+  try {
+    si = await dialogos.confirmar(`El juego va lento: ¿bajar la calidad?\nDe ${nombreCalidad(cambio.desde)} a ${nombreCalidad(cambio.hasta)}. Se puede volver a subir en Ajustes.`, { si: 'Bajar', no: 'No, gracias' });
+  } catch { si = false; } finally { preguntaLento.pendiente = false; }
+  if (si) { aplicarCambio(autoCalidad, cambio); aplicarCalidadAutomatica(cambio); } else preguntaLento.noMolestar = true;
+  reiniciarMedicion(autoCalidad);
+}
+// La calidad que el jugador aceptó bajar (o la que bajó el contexto 3D perdido), en vivo: lo que se puede acomodar sin
+// rehacer el mundo, ya; la densidad del bosque y el resto, al próximo arranque
+function aplicarCalidadAutomatica(cambio, avisar = true) {
   const nueva = CALIDADES[cambio.hasta];
   if (!nueva) return;
   for (const k of CLAVES_CALIDAD_EN_VIVO) if (nueva[k] !== undefined) calidad[k] = nueva[k];
@@ -8249,7 +8302,7 @@ function aplicarCalidadAutomatica(cambio) {
   guardarAjustes(ajustes);
   sincronizarAjustes();
   $('aviso-calidad')?.classList.toggle('oculto', ajustes.calidad === calidadInicial);
-  nota(cambio.aviso.texto, cambio.aviso.titulo, true);
+  if (avisar) nota(cambio.aviso.texto, 'Calidad gráfica', true);
 }
 
 // 2.7.3: las ayudas de `bucle`, afuera, para no rearmar tres funciones en cada cuadro.
@@ -8300,13 +8353,10 @@ function cuadroDelJuego(tRaf, manual) {
   const objetivoMs = cadencia.pasoMs > 0 ? cadencia.pasoMs : 1000 / 60;
   presupuestoAdaptativo.actualizar(dtReal, objetivoMs);
   planificadorAntitirones.comenzarCuadro(dtReal, presupuestoAdaptativo.nivel, objetivoMs);
-  const factorEfectos = factorEfectosPorPresupuesto(presupuestoAdaptativo.nivel);
+  const factorEfectos = presupuestoAdaptativo.soloCadencias ? 1 : factorEfectosPorPresupuesto(presupuestoAdaptativo.nivel);   // 3.8.4: las partículas no bajan solas
   if (modo === 'carga') return;
-  // La calidad se acomoda sola: si el equipo no da, baja un escalón; si sobra, sube.
-  if (modo === 'jugando' && ajustes.autoCalidad !== false) {
-    const cambio = revisarCalidad(autoCalidad, dtReal);
-    if (cambio) aplicarCalidadAutomatica(cambio);
-  }
+  // 3.8.4 (decisión 35): la calidad ya no se acomoda sola: si el equipo no da, se pregunta (ver revisarSiVaLento)
+  if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(dtReal);
   const medirRendimiento = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   const tInicio = medirRendimiento ? performance.now() : 0;
   U.uTiempo.value += dt;
@@ -9069,7 +9119,7 @@ function fallaSistema(nombre, err) {
 // usarse). Lo que no puede rehacer es lo dibujado una sola vez en un render target: las fotos
 // de los árboles lejanos (impostores) se hornean de nuevo. Si la placa no vuelve a tiempo o
 // rehacer falla, se guarda y se recarga: la partida sigue donde estaba.
-const estadoGraficos = { perdidos: false, veces: 0, recuperados: 0, rehaciendo: false, espera: 0, ultimo: '', esperaMs: 15000 };
+const estadoGraficos = { perdidos: false, veces: 0, recuperados: 0, rehaciendo: false, espera: 0, ultimo: '', esperaMs: 15000, bajada: null };
 const esperarMs = (ms) => new Promise((r) => setTimeout(r, ms));
 function recargarPorGraficos(motivo) {
   clearTimeout(estadoGraficos.espera);
@@ -9077,9 +9127,25 @@ function recargarPorGraficos(motivo) {
   try { window.hojarasca?.reportarError?.(`webgl: recarga (${motivo})`); } catch { /* sin Electron */ }
   if (!reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); }
   const url = new URL(location.href);
+  // 3.8.4: la calidad que se bajó al perder el contexto, para avisarlo en la portada (ver avisarRecuperado)
+  if (estadoGraficos.bajada) url.searchParams.set('bajo', estadoGraficos.bajada.hasta); else url.searchParams.delete('bajo');
   url.searchParams.set('recuperado', 'graficos');
   location.replace(url.toString());
 }
+// 3.8.4 (decisión 35, aprobado por el usuario): perder el contexto 3D es lo único que baja la calidad sin preguntar, un
+// escalón (hasta Mínima), para que la placa no se vuelva a caer. Se guarda enseguida (por si hay que recargar) y se
+// aplica en vivo cuando la placa vuelve (ver 'webglcontextrestored'); se avisa al volver o en la portada.
+function bajarCalidadPorGraficos() {
+  const hasta = calidadVecina(ajustes.calidad, -1);
+  if (!hasta || !CALIDADES[hasta]) return null;
+  const cambio = { motivo: 'bajar', desde: ajustes.calidad, hasta };
+  ajustes.calidad = hasta;
+  guardarAjustes(ajustes);
+  sincronizarCalidad(autoCalidad, hasta);
+  estadoGraficos.bajada = cambio;
+  return cambio;
+}
+const textoBajadaPorGraficos = (hasta) => `Bajé la calidad a ${nombreCalidad(hasta)} para que la placa no se vuelva a caer; la podés cambiar en Ajustes.`;
 async function rehacerGraficos() {
   const gl = renderer.getContext();
   if (gl.isContextLost?.()) throw new Error('el contexto sigue perdido');
@@ -9095,6 +9161,7 @@ lienzo.addEventListener('webglcontextlost', (e) => {
   estadoGraficos.perdidos = true; estadoGraficos.veces++;
   try { window.hojarasca?.reportarError?.('webgl: se perdió el contexto 3D'); } catch { /* sin Electron */ }
   try { estadoGraficos.soltados = soltarContextoViejo(); } catch (err) { fallaSistema('soltar contexto', err); }   // 3.5.4
+  try { bajarCalidadPorGraficos(); } catch (err) { fallaSistema('bajar la calidad', err); }   // 3.8.4
   $('graficos-recuperando')?.classList.remove('oculto');
   if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); }
   clearTimeout(estadoGraficos.espera);
@@ -9112,7 +9179,10 @@ lienzo.addEventListener('webglcontextrestored', async () => {
     clearTimeout(estadoGraficos.espera);
     estadoGraficos.perdidos = false; estadoGraficos.recuperados++;
     $('graficos-recuperando')?.classList.add('oculto');
-    nota('Gráficos recuperados', 'La placa de video se reinició; seguís donde estabas', true);
+    // 3.8.4: la calidad que se bajó al perderse, en vivo y avisada
+    const bajada = estadoGraficos.bajada; estadoGraficos.bajada = null;
+    if (bajada) aplicarCalidadAutomatica(bajada, false);
+    nota('Gráficos recuperados', bajada ? `La placa de video se reinició; seguís donde estabas. ${textoBajadaPorGraficos(bajada.hasta)}` : 'La placa de video se reinició; seguís donde estabas', true);
   } catch (err) {
     recargarPorGraficos('no se pudo rehacer: ' + (err?.message || err));
   } finally { estadoGraficos.rehaciendo = false; }
@@ -9127,12 +9197,22 @@ const recargaDelJuego = (() => { try { return performance.getEntriesByType('navi
 const recuperadoDe = recargaDelJuego ? null : new URLSearchParams(location.search).get('recuperado');
 function avisarRecuperado() {
   if (!recuperadoDe) return;
+  const bajo = recuperadoDe === 'graficos' ? new URLSearchParams(location.search).get('bajo') : null;   // 3.8.4
   const texto = recuperadoDe === 'graficos'
-    ? 'La placa de video dejó de responder y el juego volvió a abrir tu partida guardada.'
+    ? 'La placa de video dejó de responder y el juego volvió a abrir tu partida guardada.' + (bajo && CALIDADES[bajo] ? ' ' + textoBajadaPorGraficos(bajo) : '')
     : 'El juego se cerró de golpe y se volvió a abrir solo, con tu partida guardada.';
   const p = $('aviso-recuperado');
   if (p) { p.textContent = texto; p.classList.remove('oculto'); }
   $('btn-entrar')?.addEventListener('click', () => setTimeout(() => nota('El juego se recuperó', 'Seguís desde el último guardado', true), 1200), { once: true });
+}
+// 3.8.4 (decisión 35): la primera vez que se abre el juego, la calidad la elige la placa (calidadParaEquipo) y se avisa
+// cuál: en la portada (al lado de lo que se puede cambiar) y en una nota al entrar
+function avisarCalidadInicial() {
+  if (!calidadElegidaAlAbrir) return;
+  const texto = `Elegí la calidad ${nombreCalidad(calidadElegidaAlAbrir)} según tu placa de video. La podés cambiar acá o en Ajustes.`;
+  const p = $('aviso-calidad-inicial');
+  if (p) { p.textContent = T_(texto); p.classList.remove('oculto'); }
+  $('btn-entrar')?.addEventListener('click', () => setTimeout(() => nota(`Calidad ${nombreCalidad(calidadElegidaAlAbrir)}, según tu placa de video`, 'La podés cambiar en Ajustes (Esc)', true), 1800), { once: true });
 }
 // main.cjs pide guardar ya (antes de reiniciar con otras opciones de gráficos)
 window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); } });
@@ -9153,6 +9233,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   $('carga').classList.add('oculto');
   $('inicio').classList.remove('oculto');
   avisarRecuperado();   // 3.5.1
+  avisarCalidadInicial();   // 3.8.4
   if (esDesafio) {
     $('btn-entrar').textContent = 'Empezar La noche de los duendes';
     $('btn-nuevo').textContent = 'Empezar de nuevo La noche de los duendes';
@@ -9292,6 +9373,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.1: la historia y los eventos del valle, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__valle = valle;
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__preguntaLento = preguntaLento;   // 3.8.4
   if (HOJARASCA_DEBUG) window.__hojarasca.__caidas = { dialogos, graficos: estadoGraficos, fallas: () => [...fallasBucle.values()], fallaSistema, rehacerGraficos, pedirNombre, recuperadoDe, modo: () => modo };
   // 3.1: las carreras, el desafío del día y el torneo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;

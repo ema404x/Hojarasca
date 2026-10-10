@@ -146,7 +146,9 @@ export function consumirPresupuestoIA(actor, dt, distancia, urgente = false) {
 // RC22: presupuesto adaptativo de trabajo secundario. No altera la simulación
 // principal ni el render; sólo ensancha cadencias/culling de detalle cuando
 // hay presión sostenida de frametime, con histéresis para evitar oscilaciones.
-export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3 } = {}) {
+// 3.8.4 (decisión 35): con `soloCadencias` sólo ensancha las cadencias (cada cuánto se revisa algo); el detalle que se ve
+// (el alcance del sotobosque y del pasto, las partículas y los pájaros) no se toca: la calidad nunca cambia sola.
+export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, soloCadencias = false } = {}) {
   let nivel = 0;
   let emaMs = objetivoMs;
   let lento = 0;
@@ -186,6 +188,7 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3 } = 
   }
 
   function factorDetalle(minimo = 0.72) {
+    if (soloCadencias) return 1;
     return Math.max(minimo, 1 - nivel * 0.09);
   }
 
@@ -195,6 +198,7 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3 } = 
     factorDetalle,
     get nivel() { return nivel; },
     get emaMs() { return emaMs; },
+    soloCadencias,
   };
 }
 
