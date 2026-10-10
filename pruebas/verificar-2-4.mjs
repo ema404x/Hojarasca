@@ -268,7 +268,8 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   const main = leer('src/main.js');
   const jug = leer('src/jugador.js');
   assert.match(jug, /else if \(estado\.descansado > 0 && !estado\.montado\) vmax \*= 1\.08;/, 'descansado se camina más liviano');
-  assert.match(main, /const casa = bajoTechoPropio \? obras\?\.estadoHabitat\?\.\(jp, \{ fuego: fuegoVivo \? fg\.pos : null \}\) \|\| null : null;/, 'dormir mira la casa, si estás adentro');
+  // (3.8.6: y en el refugio, una casa cerrada sin fuego)
+  assert.match(main, /const casa = bajoTechoPropio \? obras\?\.estadoHabitat\?\.\(jp, \{ fuego: fuegoVivo \? fg\.pos : null \}\) \|\| \(enRefugio \? CASA_REFUGIO : null\) : null;/, 'dormir mira la casa, si estás adentro');
   assert.match(main, /jugador\.estado\.descansado = descanso;/);
   assert.match(main, /if \(js\.descansado > 0\) js\.descansado = gastarDescanso\(js\.descansado, horas\);/, 'el descanso se gasta con las horas');
   assert.match(main, /ctxClima\.chimeneas = chimeneasTodas \|\| chimeneas;/, 'tu chimenea echa humo');

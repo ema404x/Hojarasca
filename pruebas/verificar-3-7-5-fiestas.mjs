@@ -394,7 +394,7 @@ const GU = await import('../src/guardado.js');
   ok(m.includes('else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();') && m.includes('if (fiestasJuego?.panelAbierto()) { fiestasJuego.alApretarE(); break; }'), 'Escape deja el partido; E no');
   ok(m.includes('amorDestino: (k) => destinoConFiesta(k),') && m.includes("if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;") && m.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;'), 'quién va a dónde: la cita y el casamiento, después la fiesta, después lo demás');
   ok(m.includes('if (fiestasJuego?.montando()) fiestasJuego.camara(camara);') && m.includes("fallaSistema('fiestas', e)"), 'el cuadro (aislado) y la cámara de la jineteada');
-  ok(m.includes("p.tipo = (k) => (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);"), 'el tiempo de la gran nevada');
+  ok(m.includes("|| (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);"), 'el tiempo de la gran nevada');   // (3.8.6: después de la noche del temporal del capítulo 8)
   ok(m.includes('const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);') && m.includes('datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() })'), 'la foto de la fiesta y el álbum');
   ok(m.includes('trucoReal: () => !!fiestasJuego?.activo(),') && m.includes("if (o.tipo === 'cartas' && o.real && fiestasJuego?.activo())"), 'el truco de la rueda, de verdad');
   ok(m.includes('if (fiestasMundo) lista.push(...fiestasMundo.pisos());'), 'el predio, sin pasto alto');

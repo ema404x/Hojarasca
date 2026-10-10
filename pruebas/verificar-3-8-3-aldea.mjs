@@ -87,7 +87,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   ok(!R.puedeAcampar(R.rinconesNuevos(), hijos, 5, 18.5) && R.puedeAcampar(R.rinconesNuevos(), hijos, 5, 19.5), 'rincones: se acampa desde que es de noche para dormir (antes, a las 18, era una siesta)');
   const m = leer('src/main.js'), j = leer('src/rincones-juego.js');
   ok(j.includes("hacer: () => ctx.dormir?.({ casaAldea: true }) };") && m.includes('dormir: (o) => dormir(o), refrescarHuerta:'), 'rincones: «Dormir en tu casa» le avisa a dormir() que es tu casa de la aldea');
-  ok(m.includes('const bajoTechoPropio = enCasaAldea || obras?.dentro?.(jp) ||') && m.includes(": enCasaAldea ? 'calentito' : comoDormiste({"), 'main: en tu casa de la aldea, bajo techo y calentito (no la intemperie)');
+  ok(m.includes('const bajoTechoPropio = enCasaAldea || enRefugio || obras?.dentro?.(jp) ||') && m.includes(": enCasaAldea ? 'calentito' : comoDormiste({"), 'main: en tu casa de la aldea, bajo techo y calentito (no la intemperie)');
   ok(j.includes("(falta.falta.n === 1 ? MATERIAL_UNO : MATERIAL)[falta.falta.k]") && j.includes("(n === 1 ? MATERIAL_UNO : MATERIAL)[k]") && j.includes("frutilla: 'frutillas', calafate: 'calafates'"), 'rincones: «falta 1 piedra», «faltan 3 frutillas»');
   sinCR('src/rincones.js'); sinCR('src/rincones-juego.js');
 }
