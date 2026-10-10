@@ -262,4 +262,42 @@ this.f = lluviaPorTramos;`, ctx);
   ok(t.includes('const tramos = horas > 0.5 ? lluviaPorTramos(ahora - horas, ahora)') && t.includes('for (const s of tramos) h = humedecer(h, s.horas,') && t.includes('for (const s of tramos) avanzarSecado(datosTendal(o), s.horas,'), 'el tendal y la leña, tramo por tramo');
 }
 
+// ---------------------------------------------------------------- 18. lo que decidió el usuario y lo del perro, el clima y el kayak
+{
+  // 1a: la noche del temporal del capítulo 8 llueve con viento fuerte
+  const f = trozoFn('function temporalDeLaHistoria(');
+  const ctx = { TRAMO: 3, desafio: null, CAPITULOS: [{ id: 'llegada' }, { id: 'temporal' }], horaAbsoluta: (d, h) => d * 24 + h, progreso: null };
+  vm.createContext(ctx);
+  vm.runInContext(`${f}\nthis.f = temporalDeLaHistoria;`, ctx);
+  ctx.progreso = { historia: { activa: true, capitulo: 1, momentos: { temporal: 'lanzado' }, base: { dia: 9 } }, eventosValle: { hechos: { temporal: { dia: 10 } } } };
+  const k = (dia, h) => Math.floor((dia * 24 + h) / 3);
+  ok(!ctx.f(k(10, 15)) && ctx.f(k(10, 19)) && ctx.f(k(11, 2)) && ctx.f(k(11, 6)) && !ctx.f(k(11, 9.5)), 'el temporal del capítulo 8: de las 18 a las 7');
+  ctx.progreso.historia.momentos = {};
+  ok(!ctx.f(k(10, 19)), 'sin el momento lanzado, nada');
+  ok(main.includes("p.tipo = (k) => (temporalDeLaHistoria(k) ? 'lluvia' : null) ||") && main.includes('p.viento = (k) => (temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));'), 'el programa del tiempo lo usa (lluvia y viento)');
+  // 2a: lo elegido en la barra se sigue por lo que es; si se terminó, su casilla queda vacía
+  const rb = trozoFn('function refrescarBarra(');
+  ok(rb.includes('if (idElegido && ranuras[elegida]?.id !== idElegido) {') && rb.includes('else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);') && trozoFn('function elegirRanura(').includes('idElegido = null;'), 'la casilla de lo que se terminó queda vacía');
+  // 3a: la cama del refugio, casa cerrada
+  const r = trozoFn('function dentroDelRefugio(');
+  const c2 = { T: { lugares: { refugio: { x: 100, z: 50, y: 10, rot: 0.6, dimensiones: { W: 7, D: 5, H: 3 } } } } };
+  vm.createContext(c2);
+  vm.runInContext(`${r}\nthis.f = dentroDelRefugio;`, c2);
+  const R = c2.T.lugares.refugio, cama = { x: R.x + 2.2 * Math.cos(R.rot) + (-2.5 + 0.75) * Math.sin(R.rot), z: R.z - 2.2 * Math.sin(R.rot) + (-2.5 + 0.75) * Math.cos(R.rot), y: 10.5 };
+  ok(c2.f(cama) && !c2.f({ x: R.x + 6, z: R.z, y: 10 }) && !c2.f({ ...cama, y: 30 }), 'la cama del refugio está adentro (y afuera o arriba, no)');
+  const AB = await import('../src/abrigo.js');
+  ok(main.includes('const CASA_REFUGIO = { cubierta: true, habitable: true, calorFactor: 0, confortCasa: 0, cama: true };'), 'el refugio, casa cerrada sin fuego');
+  eq([AB.comoDormiste({ invierno: 1, casa: { cubierta: true, habitable: true, calorFactor: 0 } }), AB.comoDormiste({ invierno: 1, manta: true, casa: { cubierta: true, habitable: true, calorFactor: 0 } })], ['fresco', 'normal'], 'sin fuego: fresco, con la manta bien (no a la intemperie)');
+  // 4a: adentro de un edificio fijo no se arman piezas en el suelo
+  ok(leer('src/construccion.js').includes("if (typeof T.interiorFijo === 'function' && muestras.some((q) => T.interiorFijo(q.x, q.z)) && !pisoPropioEn(x, z, soporteReal, ignorarObra))") && main.includes('T.interiorFijo = (x, z) => interiores.some('), 'adentro del refugio, el almacén o la estación no se construye en el suelo');
+  // el perro: su nombre, y alcanzarte corriendo
+  ok(!/'El perro (olfatea|tomó|lo encontró|encontró|marca)/.test(main) && main.includes('function elPerro(mayuscula = false)'), 'el perro con su nombre en las notas');
+  const pe = leer('src/perro.js');
+  ok(pe.includes('if (d > 110 || (d > 45 && fueraDeVista(camara)) || js.enKayak || js.enTren) {') && pe.includes('dd > 12 ? Math.min(13, 4.2 + (dd - 12) * 0.35)'), 'el perro te alcanza corriendo y sólo aparece de golpe lejísimos o fuera de la vista');
+  // el clima no corre en la pausa
+  ok(leer('src/clima.js').includes('const dtTiempo = mundo?.quieto ? 0 : dt;') && main.includes("ctxClima.quieto = modo !== 'jugando';") && main.includes("if (modo === 'jugando') diario.clima(dt, clima.estado, U.uInvierno.value);"), 'el tiempo no corre en la pausa ni va al diario');
+  // bajarte del kayak en tu embarcadero lo amarra
+  ok(main.includes('else amarrarAlBajar();') && trozoFn('function amarrarAlBajar(').includes('amarrarKayak(o)'), 'bajarte del kayak en tu embarcadero lo amarra');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);

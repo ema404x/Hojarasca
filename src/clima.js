@@ -164,14 +164,17 @@ export function crearClima(escena, T, ajustes) {
       estado.tramo = k; estado.firmaPrograma = programa.firma();
       estado.objetivo = programa.tipo(k); estado.proximo = programa.tipo(k + 1); estado.t = programa.segundosHasta(k + 1);
     }
-    estado.t -= dt;
+    // 3.8.6: con el juego quieto (la pausa, la portada, el cuaderno: `mundo.quieto`) el reloj del tiempo no corre: en una
+    // pausa larga entraba el tiempo del tramo siguiente antes de hora (las gotas y el humo siguen moviéndose igual)
+    const dtTiempo = mundo?.quieto ? 0 : dt;
+    estado.t -= dtTiempo;
     // 2.1: el tiempo que viene se decide con un cambio de anticipación, así se lo puede
     // ver venir sobre la cordillera y los vecinos lo pueden anunciar (ver `pronostico.js`)
     if (!estado.proximo) estado.proximo = elegirClima();
     if (estado.t <= 0) { estado.objetivo = estado.proximo; estado.proximo = elegirClima(); estado.t = programa ? programa.segundosHasta((estado.tramo ?? programa.tramo()) + 1) : 180 + Math.random() * 300; }
     if (ajustes.clima === 'despejado') { estado.objetivo = 'despejado'; estado.proximo = 'despejado'; }
     const obj = OBJETIVOS[estado.objetivo];
-    const k = 1 - Math.exp(-dt / 25);
+    const k = 1 - Math.exp(-dtTiempo / 25);
     estado.nublado = lerp(estado.nublado, obj[0], k);
     estado.lluvia = lerp(estado.lluvia, obj[1], k * (obj[1] > estado.lluvia ? 0.6 : 1.2));
     // 2.9: los días ventosos y los temporales soplan más (ver `meteo.js`)

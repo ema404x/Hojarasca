@@ -162,6 +162,24 @@ app.whenReady().then(async () => {
     ok(c.armada && c.sigue && c.g2 <= c.g1 + 1, `armar y levantar la carpa cuatro veces no suma geometrías (${c.g1} → ${c.g2})`);
 
     // ============================================================ 5. el entumecido se guarda
+    // ============================================================ 4b. adentro del refugio no se construye; la barra
+    seccion('4b. adentro del refugio y la casilla vacía');
+    const adentro = await js(`(()=>{ const O = ${H}.obras, R = ${H}.T.lugares.refugio, cantero = ${H}.PLANOS.find((q) => q.id === 'cantero');
+      const a = O.revisarSitio(R.x, R.z, cantero, 0); return { adentro: a.ok || a.motivo, interior: ${H}.T.interiorFijo(R.x, R.z), pegado: ${H}.T.interiorFijo(R.x + 6, R.z) } })()`);
+    ok(/Adentro de un edificio/.test(String(adentro.adentro)) && adentro.interior && !adentro.pegado, `un cantero adentro del refugio, no (${JSON.stringify(adentro)})`);
+    const barra = await js(`(async ()=>{ const P = ${H}.progreso; P.ramitas = 1; ${H}.refrescarBarra?.(true);
+      const vista = () => [...document.querySelectorAll('#barra .ranura, .barra .ranura')].map((d) => d.classList.contains('vacia') ? '-' : (d.querySelector('img')?.alt || '?'));
+      for (let i = 0; i < 4; i++) ${H}.__bucle();
+      const ramita = vista().findIndex((n) => /ramita/i.test(n));
+      if (ramita < 0) return { error: 'no está la ramita', v: vista() };
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + (ramita + 1), bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'Digit' + (ramita + 1), bubbles: true }));
+      for (let i = 0; i < 3; i++) ${H}.__bucle();
+      const antes = vista();
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyV', bubbles: true }));
+      for (let i = 0; i < 3; i++) ${H}.__bucle();
+      return { ramita, antes, despues: vista(), elegida: ${H}.__ranuraActual(), ramitas: P.ramitas } })()`);
+    ok(barra.ramitas === 0 && barra.despues?.[barra.ramita] === '-' && barra.elegida === '', `soltada la última ramita, su casilla queda vacía (${JSON.stringify(barra)})`);
+
     seccion('5. el entumecido se guarda');
     await js(`(()=>{ ${H}.jugador.estado.entumecido = 1.5; ${H}.guardar(); return 1 })()`);
     ok(await abrir(), 'recargó');

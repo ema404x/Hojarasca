@@ -2741,6 +2741,11 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     }
 
     if (pieza) {
+      // 3.8.6: adentro de un edificio fijo del valle (el refugio, el almacén, la estación…) no se arma nada en el suelo
+      // (decisión del usuario); pegado por afuera, sí (el fortín del Desafío se arma contra el refugio). Sobre un piso
+      // tuyo, como siempre.
+      if (typeof T.interiorFijo === 'function' && muestras.some((q) => T.interiorFijo(q.x, q.z)) && !pisoPropioEn(x, z, soporteReal, ignorarObra))
+        return { ok: false, motivo: 'Adentro de un edificio del valle no se construye' };
       for (const o of obras) {
         if (o === ignorarObra || o.datos.etapas <= 0) continue;
         const d = Math.hypot(o.datos.x - x, o.datos.z - z);

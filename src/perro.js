@@ -169,13 +169,23 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
     return { x: js.pos.x, z: js.pos.z };
   }
 
+  const _vistaPerro = new THREE.Vector3();
+  function fueraDeVista(camara) {
+    if (!camara?.getWorldDirection) return true;
+    camara.getWorldDirection(_vistaPerro);
+    const dx = est.pos.x - camara.position.x, dz = est.pos.z - camara.position.z;
+    const l = Math.hypot(dx, dz) * (Math.hypot(_vistaPerro.x, _vistaPerro.z) || 1);
+    return !l || (dx * _vistaPerro.x + dz * _vistaPerro.z) / l < 0.5;
+  }
   function actualizar(dt, jugador, camara, mundo, sujetos) {
     const js = jugador.estado;
     const d = Math.hypot(est.pos.x - js.pos.x, est.pos.z - js.pos.z);
     m.g.visible = true;
 
     // si te fuiste muy lejos (o te subiste a algo), te alcanza
-    if (d > 45 || js.enKayak || js.enTren) {
+    // 3.8.6: corriendo (ver la velocidad, más abajo); aparece detrás tuyo sólo si quedó lejísimos o fuera de la vista
+    // (antes, pasados los 45 m reaparecía de golpe a 4 m, a la vista)
+    if (d > 110 || (d > 45 && fueraDeVista(camara)) || js.enKayak || js.enTren) {
       const p = puntoCerca(js, 4, 0);
       est.pos.set(p.x, T.altura(p.x, p.z), p.z);
       est.vel = 0;
@@ -332,7 +342,8 @@ export function crearPerro(T, escena, col, sonido, registrar, progreso) {
       destinoTmp.x = hacia.x; destinoTmp.z = hacia.z; destino = destinoTmp;
       const dd = Math.hypot(destino.x - est.pos.x, destino.z - est.pos.z);
       // trota si estás lejos, camina si estás cerca, se queda si ya llegó
-      velocidad = dd < 2.2 ? 0 : dd > 12 || js.corriendo ? 4.2 : 1.9;
+      // 3.8.6: lejos, corre más cuanto más lejos (te alcanza aunque vayas al galope)
+      velocidad = dd < 2.2 ? 0 : dd > 12 ? Math.min(13, 4.2 + (dd - 12) * 0.35) : js.corriendo ? 4.2 : 1.9;
       if (est.estado === 'seguir' && dd < 3.2) velocidad = 0;
     }
 

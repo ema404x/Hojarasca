@@ -181,6 +181,8 @@ import { sanearChinches, ponerChinche, chincheCerca, sacarChinche, rumboHacia, t
 import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-tutorial.js';
 // 3.1: la historia guiada y los eventos del valle con decisiones (ver historia-ui.js)
 import { crearValleUi } from './historia-ui.js';
+// 3.8.6: la noche del temporal del capítulo 8
+import { CAPITULOS } from './historia.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos } from './accesibilidad.js';
@@ -744,6 +746,8 @@ async function construir() {
   // 3.7.4: las burbujas, los íconos y las emociones de arriba de las cabezas (un solo dibujo) y tus manos en los gestos
   socialMundo = crearSocialMundo({ escena, camara, atlas: atlasSocial(), capa: $('hud') });
   manosSociales = crearManosSociales(camara, () => manoPropia?.grupo?.children?.[0] || null);
+  // 3.8.6: adentro de un edificio fijo del valle no se arman piezas en el suelo (ver construccion.js)
+  { const interiores = techosFijos(); T.interiorFijo = (x, z) => interiores.some((c) => Math.hypot(x - c.x, z - c.z) < c.r); }
   obras = crearConstruccion(T, escena, col, veg, puertas);
   // 2.4.1: las obras de un plano que esta versión no conoce (una partida de la otra PC,
   // con una versión más nueva) no se arman, pero tampoco se pierden: vuelven al guardar.
@@ -1155,6 +1159,16 @@ const claveNocheReloj = (d = new Date()) => new Date(d.getTime() - 12 * 3600e3).
 // (3.7.3: `dormirEnElTren`: en la cucheta del coche dormitorio, andando o parado, donde estés)
 let dormirEnElTren = false;
 // 3.8.3: `opRincon`: lo que manda rincones-juego.js ({ casaAldea: true }: en tu casa de la calle de la Loma)
+// 3.8.6: ¿estás adentro del refugio (entre sus cuatro paredes, a su altura)? Para dormir en su cama como en una casa
+// cerrada, sin fuego (el fogón está afuera): fresco, o bien con la manta; sin el descanso de una casa con confort.
+const CASA_REFUGIO = { cubierta: true, habitable: true, calorFactor: 0, confortCasa: 0, cama: true };
+function dentroDelRefugio(p) {
+  const r = T.lugares.refugio, d = r?.dimensiones;
+  if (!r || !d || !p) return false;
+  const dx = p.x - r.x, dz = p.z - r.z, c = Math.cos(r.rot || 0), s = Math.sin(r.rot || 0);
+  const lx = dx * c - dz * s, lz = dx * s + dz * c;
+  return Math.abs(lx) < d.W / 2 && Math.abs(lz) < d.D / 2 && (!Number.isFinite(p.y) || Math.abs(p.y - (r.y ?? p.y)) < (d.H || 3));
+}
 function dormir(opRincon = null) {
   if (durmiendo) return;
   const enCarpa = !!opRincon?.carpa;   // 3.8.6: la carpa se anota después de las guardas (antes, «Dormí en la carpa» aunque no se durmiera)
@@ -1181,8 +1195,10 @@ function dormir(opRincon = null) {
   const fuegoVivo = fg.activa && fg.vida > 0;
   // 2.4.1: estadoHabitat también encuentra la casa de al lado; sólo cuenta si estás adentro
   // 3.8.3: tu casa de la aldea también es techo propio (antes contaba como dormir a la intemperie: frío en invierno y «durmió afuera»)
-  const bajoTechoPropio = enCasaAldea || obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
-  const casa = bajoTechoPropio ? obras?.estadoHabitat?.(jp, { fuego: fuegoVivo ? fg.pos : null }) || null : null;
+  // 3.8.6: y el refugio es una casa cerrada (decisión del usuario): su cama sin fuego contaba como dormir a la intemperie
+  const enRefugio = !desafio && dentroDelRefugio(jp);
+  const bajoTechoPropio = enCasaAldea || enRefugio || obras?.dentro?.(jp) || (() => { const b = obras?.bajoCubierta?.(jp); return !!b && !b.pieza; })();
+  const casa = bajoTechoPropio ? obras?.estadoHabitat?.(jp, { fuego: fuegoVivo ? fg.pos : null }) || (enRefugio ? CASA_REFUGIO : null) : null;
   // 3.6 (vida): dormir afuera (lejos del refugio y sin techo tuyo) también se comenta en la aldea
   const refu = T.lugares.refugio;
   if (!desafio && deNoche && !bajoTechoPropio && !op?.enTren && refu && Math.hypot(jp.x - refu.x, jp.z - refu.z) > 15) vecindadJuego?.hecho('durmio-afuera');
@@ -2852,7 +2868,7 @@ document.addEventListener('keydown', (e) => {
         const p = puertas && puertas.cerca(js.pos);
         if (p) { puertas.accionar(p); break; }
       }
-      if (!objetivo && rastro && !desafio && mirandoAlPerro(js, perro.est.pos)) { dejarRastro('Dejaste el rastro', 'El perro vuelve con vos'); break; }
+      if (!objetivo && rastro && !desafio && mirandoAlPerro(js, perro.est.pos)) { dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`); break; }
       if (!objetivo && puedoPedirRastro()) { pedirRastro(); break; }
       // 3.7.5 (rincones): un duende tallado al lado, al último (una obra tuya, una puerta o el perro le ganan; el aviso, igual)
       if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accionDuende(js); if (a) { a.hacer(); cacheDuende = null; break; } }
@@ -2876,6 +2892,7 @@ document.addEventListener('keydown', (e) => {
       }
       if (js.enKayak) {
         if (!kayak.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa o al muelle');
+        else amarrarAlBajar();   // 3.8.6: bajándote en tu embarcadero, queda amarrado ahí
         break;
       }
       if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
@@ -3174,6 +3191,7 @@ function servir() {
 
 // ---------------------------------------------------------------- la mochila
 let ranuras = [], elegida = 0, mochilaAbierta = false, barraVigente = false, mostrarNombre = 2.5;
+let idElegido = null;   // 3.8.6: lo que está elegido en la barra (ver refrescarBarra)
 const barraEl = $('barra');
 
 // Pone primero lo que vos elegiste, y detrás el resto.
@@ -3218,7 +3236,7 @@ const DESTELLO = { ramita: 'ramita', pinon: 'pinon', calafate: 'calafate', fruti
 function destellarRanura(tipo) {
   refrescarBarra(true);
   const id = DESTELLO[tipo] || tipo;
-  const i = ranuras.findIndex((r) => r.id === id);
+  const i = ranuras.findIndex((r) => r?.id === id);
   if (i < 0 || i > 7) return;
   const casilla = barraEl.children[i];
   if (!casilla) return;
@@ -3240,7 +3258,7 @@ function barraSinCambios() {
   if (b.n !== ranuras.length || b.elegida !== (ranuras.length ? elegida : -1)) return false;
   for (let i = 0; i < ranuras.length; i++) {
     const r = ranuras[i];
-    if (b.ids[i] !== r.id || b.activos[i] !== !!r.activo || !mismaCuenta(b.cuentas[i], r.cuenta)) return false;
+    if (b.ids[i] !== r?.id || b.activos[i] !== !!r?.activo || !mismaCuenta(b.cuentas[i], r?.cuenta)) return false;
   }
   return true;
 }
@@ -3250,7 +3268,7 @@ function anotarBarraDibujada() {
   b.elegida = ranuras.length ? elegida : -1;
   for (let i = 0; i < ranuras.length; i++) {
     const r = ranuras[i];
-    b.ids[i] = r.id; b.cuentas[i] = r.cuenta; b.activos[i] = !!r.activo;
+    b.ids[i] = r?.id; b.cuentas[i] = r?.cuenta; b.activos[i] = !!r?.activo;
   }
 }
 
@@ -3258,7 +3276,16 @@ function refrescarBarra(forzar = false) {
   if (!jugador) return;
   // `ranuras` se rearma siempre: usarRanura y elegirRanura leen lo de este mismo cuadro
   ranuras = ordenarBarra(armarMochila(progreso, estadoMochila()));
+  // 3.8.6: lo elegido se sigue por lo que es, no por el número de casilla (decisión del usuario): si se movió, la marca va
+  // con ello; si se terminó (soltaste la última ramita), su casilla queda vacía hasta que elijas otra o vuelva a haber
+  // (antes la casilla pasaba a lo siguiente y la próxima V soltaba un piñón sin avisar)
+  if (idElegido && ranuras[elegida]?.id !== idElegido) {
+    const j = ranuras.findIndex((r) => r?.id === idElegido);
+    if (j >= 0) elegida = j;
+    else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);
+  }
   if (elegida >= ranuras.length) elegida = Math.max(0, ranuras.length - 1);
+  if (!idElegido) idElegido = ranuras[elegida]?.id || null;
   if (barraVigente && !forzar && barraSinCambios()) return;
   barraVigente = true;
   anotarBarraDibujada();
@@ -3297,6 +3324,7 @@ function elegirRanura(i) {
   if (desafio && ((i % 8) + 8) % 8 !== antes) desafio.cambioDeArma?.();   // 2.5: se suelta el arco y se corta la ráfaga
   mostrarNombre = 1.8;
   elegida = ((i % 8) + 8) % 8;
+  idElegido = null;   // 3.8.6: lo nuevo que elegiste (refrescarBarra lo anota)
   refrescarBarra(true);
   if (antes !== elegida) {
     sonido.paso('madera', 0.22);       // el chasquido de cambiar de cosa
@@ -3500,14 +3528,14 @@ function revisarMapaLluvia(cam, dt) {
 // Pinta en la textura del terreno lo que queda bajo techo, para que la nieve
 // no cubra el piso de adentro de las construcciones.
 let texturaEstepa = null;
-function marcarTechos() {
-  if (!texturaEstepa) return;
-  const { datos, n, tex } = texturaEstepa;
+// Lo de adentro de los edificios fijos del valle (círculos bajo techo, de pared a pared): para la nieve del piso y,
+// 3.8.6, para que tus piezas no se armen en el suelo adentro de ellos (decisión del usuario; pegadas por afuera, sí)
+function techosFijos() {
   const techos = [];
   const agregar = (l, r) => { if (l && typeof l.x === 'number') techos.push({ x: l.x, z: l.z, r }); };
   const L = T.lugares;
   agregar(L.refugio, 3.1);
-  for (const c of est.cabañas || []) agregar(c, 2.6);
+  for (const c of est?.cabañas || []) agregar(c, 2.6);
   agregar(L.almacen, 4.2);
   agregar(L.galpon, 5.5);
   agregar(L.molino, 2.2);
@@ -3515,6 +3543,12 @@ function marcarTechos() {
   agregar(L['casa-te'], 3.0);
   agregar(L.estacion, 3.2);
   agregar(L.cueva, 3.4);
+  return techos;
+}
+function marcarTechos() {
+  if (!texturaEstepa) return;
+  const { datos, n, tex } = texturaEstepa;
+  const techos = techosFijos();
   // 3.6: los techos de la aldea (rectángulos girados: el de cada edificio con su galería)
   const rects = aldeaMundo ? aldeaMundo.techos() : [];
   if (!techos.length && !rects.length) return;
@@ -4990,6 +5024,8 @@ function juntarCandidatosRastro() {
   for (const s of rastrosFauna) if (RASTREABLES.includes(s.tipo)) candidatosRastro.push(s);
   return candidatosRastro;
 }
+// 3.8.6: el perro con su nombre en las notas (como el caballo en la 3.8.4); sin nombre, «el perro»
+function elPerro(mayuscula = false) { const n = perro?.nombre?.(); return n || (mayuscula ? 'El perro' : 'el perro'); }
 function puedoPedirRastro() {
   const js = jugador.estado;
   return !desafio && !rastro && !js.enTren && !js.enKayak && !js.montado && !js.nadando && mirandoAlPerro(js, perro.est.pos);
@@ -4997,12 +5033,12 @@ function puedoPedirRastro() {
 function pedirRastro() {
   const js = jugador.estado;
   const presa = elegirPresa(juntarCandidatosRastro(), js.pos, (t) => !!progreso.entradas[t]);
-  if (!presa) { nota('El perro olfatea y vuelve', 'No hay rastros frescos por acá. Probá más adentro del bosque o en la estepa'); return; }
+  if (!presa) { nota(`${elPerro(true)} olfatea y vuelve`, 'No hay rastros frescos por acá. Probá más adentro del bosque o en la estepa'); return; }
   rastro = presa;
   olfateoRastro = 0;
   sonido.ladrido(perro.est.pos);
   registrar('rastreo');
-  nota('El perro tomó un rastro', 'Seguilo: te espera si te quedás atrás. E de nuevo mirándolo para dejarlo');
+  nota(`${elPerro(true)} tomó un rastro`, 'Seguilo: te espera si te quedás atrás. E de nuevo mirándolo para dejarlo');
 }
 function dejarRastro(texto, sub, nueva = false) {
   rastro = null;
@@ -5022,11 +5058,11 @@ function actualizarRastro(dt) {
     diario.anotar('rastroPerro', nombreRastro(rastro.tipo));
     progreso.rastreos = (progreso.rastreos || 0) + 1;
     ganarOficio('cazador', XP.rastreo);   // 3.1
-    dejarRastro('El perro lo encontró', `Es ${nombreRastro(rastro.tipo)}. Acercate despacio`, true);
+    dejarRastro(`${elPerro(true)} lo encontró`, `Es ${nombreRastro(rastro.tipo)}. Acercate despacio`, true);
     return;
   }
-  if (e === 'perdido') { dejarRastro('Se perdió el rastro', 'El animal se fue lejos. El perro vuelve con vos'); return; }
-  if (e === 'frio') { dejarRastro('El rastro se enfrió', 'Ya no huele a nada. El perro vuelve con vos'); return; }
+  if (e === 'perdido') { dejarRastro('Se perdió el rastro', `El animal se fue lejos. ${elPerro(true)} vuelve con vos`); return; }
+  if (e === 'frio') { dejarRastro('El rastro se enfrió', `Ya no huele a nada. ${elPerro(true)} vuelve con vos`); return; }
   mundoPerro.rastro = destinoRastro(perro.est.pos, js.pos, rastro);
   // en la nieve se ven las pisadas que sigue, un poco adelante del perro
   if (!mundoPerro.rastro.esperar) pisadaRastro.pos.set(mundoPerro.rastro.x, 0, mundoPerro.rastro.z);
@@ -6554,9 +6590,23 @@ function programaDelTiempo() {
     modo: () => ajustes.clima,
   });
   // 3.7.5: el día de la gran nevada nieva (si el clima no está fijo en despejado: ver clima.js)
-  const tipo = p.tipo;
-  p.tipo = (k) => (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);
+  // 3.8.6: y la noche del temporal del capítulo 8 llueve con viento fuerte (decisión del usuario: antes la tarjeta decía
+  // «esta noche sopla fuerte» y el tiempo seguía como venía)
+  const tipo = p.tipo, viento = p.viento;
+  p.tipo = (k) => (temporalDeLaHistoria(k) ? 'lluvia' : null) || (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);
+  p.viento = (k) => (temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));
   return p;
+}
+// 3.8.6: ¿el tramo `k` es de la noche del temporal de la historia? Del día en que llegó la tarjeta (el momento del
+// capítulo 8, ya lanzado): desde las 18 hasta las 7 del otro día. Se deduce de lo guardado (la historia y el evento).
+const VIENTO_TEMPORAL = 0.42;
+function temporalDeLaHistoria(k) {
+  const h = progreso?.historia;
+  if (desafio || !h?.activa || CAPITULOS[h.capitulo]?.id !== 'temporal' || h.momentos?.temporal !== 'lanzado') return false;
+  const d = Math.floor(Number(progreso.eventosValle?.hechos?.temporal?.dia) || 0);
+  if (!d || d < (h.base?.dia || 1)) return false;
+  const desde = horaAbsoluta(d, 18), hasta = horaAbsoluta(d + 1, 7);
+  return (k + 1) * TRAMO > desde && k * TRAMO < hasta;
 }
 const fuerzaMolino = () => fuerzaDelAgua({ invierno: U.uInvierno.value, crecida: progreso.tormenta?.crecida || 0 });
 const molinosTerminados = () => obrasTerminadas('molino-agua').map((o) => o.datos);
@@ -6797,6 +6847,14 @@ function puntoAmarre(o) {
     if (T.agua(x, z) && T.altura(x, z) < -0.35 && Math.hypot(x - LAGO.x, z - LAGO.z) < 220) return { x, z, rumbo: rot };
   }
   return null;
+}
+// 3.8.6: bajarte del kayak al lado de tu embarcadero lo amarra ahí (antes quedaba suelto y al cargar volvía al muelle)
+function amarrarAlBajar() {
+  if (desafio || !kayak) return false;
+  const o = obrasTerminadas('embarcadero').find((e) => { const p = puntoAmarre(e); return p && Math.hypot(p.x - kayak.est.x, p.z - kayak.est.z) < 6; });
+  if (!o || !amarrarKayak(o)) return false;
+  sonido.golpeKayak?.(); nota('Amarraste el kayak', 'Queda en tu embarcadero'); guardar();
+  return true;
 }
 // 3.8.4: `en`: un embarcadero puntual (el que tocaste, o el de la partida guardada); sin él, el más cercano. Amarrado, queda
 // anotado en la partida (`progreso.kayakAmarre`): al cargar amanece ahí. Al subirte se suelta.
@@ -8764,7 +8822,7 @@ function cuadroDelJuego(tRaf, manual) {
   U.uDetalleSuelo.value = calidad.detalleSuelo ?? 1;
   U.uBosqueLejos.value = veg.alcanceArboles();   // 3.5: el borde del bosque de ahora (se corre de a poco)
   const tClima = perfilador.iniciar(medirRendimiento);
-  diario.clima(dt, clima.estado, U.uInvierno.value);
+  if (modo === 'jugando') diario.clima(dt, clima.estado, U.uInvierno.value);   // 3.8.6: la lluvia y el viento de la pausa no van al diario
   // tormenta: el relámpago enciende el valle un instante y el trueno llega después
   const fogonazo = clima.actualizarTormenta(dt, cam, sonido);
   if (fogonazo > 0.004) {
@@ -8779,6 +8837,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (aldeaMundo) ctxClima.chimeneas = aldeaMundo.chimeneasCerca(cam, ctxClima.chimeneas);   // 3.6: en la aldea, el humo sale de las chimeneas más cercanas
   // 3.6.2 (visual): con lluvia, los techos de alrededor (las gotas que llegan a uno se cortan ahí)
   if (clima.estado.lluvia > 0.05 && U.uInvierno.value <= 0.5 && !bajoTecho) { try { revisarMapaLluvia(cam, dt); ctxClima.techos = mapaLluvia; } catch (e) { ctxClima.techos = null; fallaSistema('techos-lluvia', e); } }
+  ctxClima.quieto = modo !== 'jugando';   // 3.8.6: el tiempo no avanza en la pausa ni en la portada (ver clima.js)
   try { clima.actualizar(dt, cam, ctxClima); } catch (e) { fallaSistema('clima', e); }
   // 2.1: el frente que viene se ve sobre la cordillera (ver `pronostico.js`)
   if (cielo?.uniforms) {
@@ -8869,7 +8928,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (perro.est.empezoAGuiar) {
       perro.est.empezoAGuiar = null;
       // se avisa las primeras veces, hasta que el jugador entiende el gesto
-      if (avisosDeGuia < 3) { avisosDeGuia++; nota('El perro encontró un rastro', 'Seguilo: te lleva hasta algo que no anotaste'); }
+      if (avisosDeGuia < 3) { avisosDeGuia++; nota(`${elPerro(true)} encontró un rastro`, 'Seguilo: te lleva hasta algo que no anotaste'); }
     }
   }
   perfilador.terminar('npc/perro', tNPC, medirRendimiento);
@@ -9085,7 +9144,7 @@ function cuadroDelJuego(tRaf, manual) {
       const catre = obras.tieneFuncionCerca?.('dormir', js.pos, 3.2);
       aviso = { tecla: 'E', texto: catre ? 'Dormir en tu catre' : 'Dormir en tu puesto' };
     }
-    if (!aviso && marcaPerro && !charla.npc) { aviso = { tecla: '·', texto: 'El perro marca algo cerca' }; if (!avisoMarca) { avisoMarca = true; diario.anotar('marca'); } }
+    if (!aviso && marcaPerro && !charla.npc) { aviso = { tecla: '·', texto: `${elPerro(true)} marca algo cerca` }; if (!avisoMarca) { avisoMarca = true; diario.anotar('marca'); } }
     else if (!marcaPerro) avisoMarca = false;
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
