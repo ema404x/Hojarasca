@@ -5110,11 +5110,14 @@ function subirALaCabina() {
 // 3.8.4: varado en la nieve sin quitanieves, te bajás y seguís a pie: el tren espera a la cuadrilla y después sigue solo.
 // Tu caballo, si iba en la jaula, baja con vos
 function bajarEnLaNieve() {
-  if (!tren.bajarEnLaNieve?.(jugador)) return false;
+  const lado = tren.bajarEnLaNieve?.(jugador);
+  if (!lado) return false;
   if (enLasCargas()) puestoCargas.cerrar();
   if (caballoEnElTren()) {
+    // 3.8.6: más afuera de la vía que vos, mirando para afuera (antes iba a tu izquierda según para dónde miraras: podía
+    // quedar parado sobre los rieles, adentro de la locomotora)
     const js = jugador.estado, c = caballo();
-    c.x = js.pos.x - Math.cos(js.yaw) * 1.8; c.z = js.pos.z + Math.sin(js.yaw) * 1.8; c.yaw = yawCaballo(js.yaw);
+    c.x = js.pos.x + lado.nx * 1.8 - lado.tx * 1.2; c.z = js.pos.z + lado.nz * 1.8 - lado.tz * 1.2; c.yaw = Math.atan2(lado.tx, lado.tz);
     viajeTren().caballo = false;
     tren.tren?.subirCaballo?.(false);
   }

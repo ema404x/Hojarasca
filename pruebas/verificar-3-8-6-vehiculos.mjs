@@ -12,6 +12,7 @@
 //     de la parrilla); «Queda 1»; el perro no roba de una parrilla desarmada.
 //  6. El puesto de cargas abierto a la medianoche se rehace (se veía la lista de ayer y el número elegía de la de hoy).
 //  7. El bosque: pasados los 96 tocones, el más viejo deja de verse y también de frenar (quedaba un tronco invisible).
+//  8. Varado en la nieve: tu caballo baja del lado de afuera de la vía (podía quedar sobre los rieles, en la locomotora).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -136,6 +137,13 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
     col.resolver(q, 0.35, 1.7);
     ok(q.x === 0.2 && q.z === 0, 'sin tocón, no');
   }
+}
+
+// 8. el caballo, al bajarte en la nieve
+{
+  const t = leer('src/trochita.js'), m = leer('src/main.js');
+  ok(t.includes('return { nx: -dz / l, nz: dx / l, tx: dx / l, tz: dz / l };'), 'la trochita dice para dónde es afuera');
+  ok(m.includes('c.x = js.pos.x + lado.nx * 1.8 - lado.tx * 1.2; c.z = js.pos.z + lado.nz * 1.8 - lado.tz * 1.2;'), 'el caballo, más afuera que vos');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);
