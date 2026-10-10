@@ -74,7 +74,7 @@ const DESAFIO = [
 for (const t of DESAFIO) ok(!VIEJO.test(t), `en el Desafío todavía dice «${t}»`);
 const construccion = leer('src/construccion.js');
 for (const m of construccion.matchAll(/soloDesafio: true[^\n]*\n(?:[^\n]*\n){0,3}?\s*texto: '([^']+)'/g)) ok(!VIEJO.test(m[1]), `la defensa dice «${m[1]}»`);
-ok(/cristal: \{ nombre: 'semillas doradas', de: 'los duendes abatidos' \}/.test(construccion), 'el material se llama semillas doradas');
+ok(/cristal: \{ nombre: 'semillas doradas', (?:uno: 'semilla dorada', )?de: 'los duendes abatidos' \}/.test(construccion), 'el material se llama semillas doradas');   // (3.8.6: y en singular)
 
 // la historia nueva está contada
 const todo = DESAFIO.join(' ');

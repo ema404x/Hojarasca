@@ -232,7 +232,7 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
 // ---------------------------------------------------------------- 11. la tecla E y el aviso: dormir no le gana a lo que mirás
 {
   const main = leer('src/main.js');
-  assert.ok(main.includes("      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { diario.anotar('carpa'); dormir(); break; }"), 'E en la carpa mirando algo: eso, no dormir');
+  assert.ok(main.includes("      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { dormir({ carpa: true }); break; }"), 'E en la carpa mirando algo: eso, no dormir');   // (3.8.6: la carpa se anota en dormir())
   assert.ok(main.includes('      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }'), 'E en tu obra mirando algo: eso, no dormir');
   // el aviso: lo que mirás va primero, y dormir sólo sin aviso
   assert.ok(main.includes('let aviso = objetivo ? { tecla: \'E\', texto: objetivo.texto } : null;'));

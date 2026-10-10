@@ -71,7 +71,7 @@ ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.s
 
 // 8. Con el mando solo se puede salir de la pausa, el cuaderno y el mapa (antes el mando se leía sólo jugando).
 {
-  ok(main.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();"), 'el bucle lee el mando en los menús');
+  ok(main.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa' || modo === 'valle') leerMandoEnMenu();"), 'el bucle lee el mando en los menús');   // (3.8.6: y las tarjetas del valle)
   ok(main.includes("if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');"), 'Start, B (y la cruceta en el mapa) hacen de Esc');
 }
 
