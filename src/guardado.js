@@ -92,6 +92,8 @@ export function usarModoGuardado(modo, ranura = ranuraPartida) {
   CLAVE_FOTOS = k.fotos;
   CLAVE_VISTA = k.vista;
   ultimoPrincipalValidoTexto = null;
+  ultimoSello = 0;   // 3.8.6
+  principalRoto = false;
   return modoPartida;
 }
 export function ranuraActual() { return ranuraPartida; }
@@ -162,7 +164,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
 }
 export function borrarPartida(modo, ranura) {
   const k = clavesDe(modo, ranura);
-  if (k.principal === CLAVE) ultimoPrincipalValidoTexto = null;
+  if (k.principal === CLAVE) { ultimoPrincipalValidoTexto = null; ultimoSello = 0; }
   borrarFotosDe(k.fotos);   // 3.8.4: (también los archivos)
   try { for (const clave of Object.values(k)) localStorage.removeItem(clave); return true; } catch { return false; }
 }
@@ -176,6 +178,12 @@ let ultimoOrigenCarga = 'ninguno';
 // RC24: cache de la última copia principal ya validada. Evita releer y
 // parsear localStorage en cada guardado manteniendo el backup transaccional.
 let ultimoPrincipalValidoTexto = null;
+// 3.8.6: el sello (guardadoEn) del último guardado de esta partida, para que el próximo no sea menor (ver guardarProgreso)
+let ultimoSello = 0;
+// 3.8.6: el principal no se pudo sanear y se cargó la copia: el próximo guardado no lo pasa a copia de seguridad
+let principalRoto = false;
+// (uno de más de un mes en el futuro es de un reloj roto o un archivo retocado: no cuenta)
+const selloDe = (p) => { const s = typeof p?.guardadoEn === 'number' ? p.guardadoEn : 0; return Number.isFinite(s) && s > 0 && s < Date.now() + 30 * 864e5 ? s : 0; };
 export function origenUltimaCarga() { return ultimoOrigenCarga; }
 
 export const AJUSTES_BASE = {
@@ -199,7 +207,9 @@ export const AJUSTES_BASE = {
 };
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-const finito = (v, defecto) => Number.isFinite(Number(v)) ? Number(v) : defecto;
+// 3.8.6: `Number` tira con un objeto cuyo toString no es función (`{ "toString": 1 }` en una partida retocada): no es número
+const numero = (v) => { try { return Number(v); } catch { return NaN; } };
+const finito = (v, defecto) => { const n = numero(v); return Number.isFinite(n) ? n : defecto; };
 const acotar = (v, min, max, defecto) => Math.min(max, Math.max(min, finito(v, defecto)));
 const opcion = (v, permitidas, defecto) => permitidas.includes(v) ? v : defecto;
 
@@ -603,7 +613,7 @@ export function cargarProgreso() {
   try {
     const principalTexto = localStorage.getItem(CLAVE);
     p = parsear(principalTexto);
-    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; }
+    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; ultimoSello = Math.max(ultimoSello, selloDe(p)); }
     else {
       ultimoPrincipalValidoTexto = null;
       p = parsear(localStorage.getItem(CLAVE_BACKUP));
@@ -612,8 +622,18 @@ export function cargarProgreso() {
     }
   } catch { p = null; ultimoPrincipalValidoTexto = null; }
   if (!p) return null;
-  p = sanearProgreso(p);
-  if (!p) return null;
+  // 3.8.6: una partida que tira al sanearla (un número guardado como objeto raro: `{ "toString": 1 }`) dejaba el juego sin
+  // arrancar, y la copia de seguridad buena nunca se probaba. Ahora se prueba la copia, y el principal roto no la pisa.
+  let limpio = null;
+  try { limpio = sanearProgreso(p); } catch { limpio = null; }
+  if (!limpio && ultimoOrigenCarga === 'principal') {
+    let b = null;
+    try { b = parsear(localStorage.getItem(CLAVE_BACKUP)); } catch { b = null; }
+    if (progresoPlausible(b)) { try { limpio = sanearProgreso(b); } catch { limpio = null; } }
+    if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true; }
+  }
+  if (!limpio) return null;
+  p = limpio;
   // las miniaturas viven aparte y se vuelven a pegar al cargar
   const fotos = leerFotosDe(CLAVE_FOTOS);   // 3.8.4: (de los archivos de la partida)
   // 2.6.1: sólo las propias y que sean imagen (un `fotos.constructor` heredado se colaba)
@@ -638,23 +658,28 @@ export function guardarProgreso(p) {
   // La partida va sin imágenes: son lo que hace pesada la escritura.
   const desafios = {};
   for (const [k, v] of Object.entries(limpio.desafios || {})) desafios[k] = { dia: finito(v?.dia, limpio.dia), hora: finito(v?.hora, limpio.horas) };
-  const aGuardar = { ...limpio, desafios, guardadoEn: Date.now() };
-  let nuevo;
-  try { nuevo = JSON.stringify(aGuardar); } catch { return false; }
-
   try {
     // El backup SOLO se reemplaza por un principal que ya era JSON válido.
     // RC24 reutiliza la última copia principal validada; si venimos de un
     // backup/corrupción, valida una sola vez antes de empezar la nueva cadena.
     let anteriorTexto = ultimoPrincipalValidoTexto;
-    if (!anteriorTexto) {
+    if (!anteriorTexto && !principalRoto) {
       const candidato = localStorage.getItem(CLAVE);
-      if (progresoPlausible(parsear(candidato))) anteriorTexto = candidato;
+      const anterior = parsear(candidato);
+      if (progresoPlausible(anterior)) { anteriorTexto = candidato; ultimoSello = Math.max(ultimoSello, selloDe(anterior)); }
     }
+    // 3.8.6: el sello de cuándo se guardó nunca va para atrás en una partida, aunque el reloj de esta computadora atrase:
+    // la carpeta sincronizada compara sellos de dos computadoras, y con el de una atrasada lo jugado acá quedaba «más viejo»
+    // que lo que la otra ya había visto y se pisaba sin preguntar. Tampoco por debajo del de una partida importada.
+    const guardadoEn = Math.max(Date.now(), ultimoSello + 1, selloDe(limpio));
+    let nuevo;
+    try { nuevo = JSON.stringify({ ...limpio, desafios, guardadoEn }); } catch { return false; }
     if (anteriorTexto) localStorage.setItem(CLAVE_BACKUP, anteriorTexto);
     if (!escribirTexto(CLAVE, nuevo)) return false;
     ultimoPrincipalValidoTexto = nuevo;
+    ultimoSello = guardadoEn;
+    principalRoto = false;
     return true;
   } catch { return false; }
 }
-export function borrarProgreso() { ultimoPrincipalValidoTexto = null; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }
+export function borrarProgreso() { ultimoPrincipalValidoTexto = null; ultimoSello = 0; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }

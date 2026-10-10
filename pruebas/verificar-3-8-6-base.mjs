@@ -100,4 +100,56 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
   ok(leer('preload.cjs').includes("{ reemplazar: opciones?.reemplazar !== false }") && leer('fotos-main.cjs').includes("escribirFotos(base(), String(clave || ''), fotos, { reemplazar: opciones?.reemplazar !== false })"), 'el puente pasa si se reemplaza');
 }
 
+// 3. El sello de cuándo se guardó (guardadoEn) nunca va para atrás en una partida. La carpeta sincronizada compara sellos de
+//    dos computadoras: con la de acá atrasada, lo jugado acá quedaba «más viejo» que lo que la otra ya había visto y la otra lo
+//    pisaba sin preguntar. Ahora: no menos que el guardado anterior + 1 ni que el de la partida importada.
+{
+  const otra = Date.now() + 3 * 3600e3;   // la otra computadora va 3 horas adelantada
+  const p = { ...G.progresoNuevo(), dia: 7, guardadoEn: otra };
+  ok(G.escribirPartida('relax', 3, p), 'llega la partida de la otra computadora');
+  const sello = (r) => JSON.parse(almacen.get(r === 1 ? 'hojarasca-v1' : `hojarasca-p${r}-v1`)).guardadoEn;
+  ok(sello(3) >= otra, 'al importarla, conserva su sello');
+  G.usarModoGuardado('relax', 3);
+  const c = G.cargarProgreso();
+  c.dia = 8; ok(G.guardarProgreso(c), 'acá se sigue jugando');
+  const s1 = sello(3);
+  c.dia = 9; ok(G.guardarProgreso(c), 'y se guarda otra vez');
+  const s2 = sello(3);
+  ok(s1 > otra && s2 > s1, `con el reloj de acá atrasado, cada guardado queda después del anterior (${otra} < ${s1} < ${s2})`);
+  G.usarModoGuardado('relax', 3);   // (otra vez, como al recargar: el sello sale de lo guardado)
+  ok(G.guardarProgreso(G.cargarProgreso()) && sello(3) > s2, 'también después de recargar');
+  const roto = { ...G.progresoNuevo(), dia: 2, guardadoEn: 8e15 };
+  ok(G.escribirPartida('relax', 2, roto) && sello(2) < Date.now() + 864e5, 'un sello de un reloj roto (año 255.000) no cuenta');
+  G.borrarPartida('relax', 2); G.borrarPartida('relax', 3); G.usarModoGuardado('relax', 1);
+}
+
+// 4. Una partida rota que tira al sanearla (un número guardado como `{ "toString": 1 }`: `Number` tira) dejaba el juego sin
+//    arrancar y la copia de seguridad nunca se probaba; leerPaquete («nunca tira») también tiraba.
+{
+  const TR = await import('../src/transferir.js');
+  G.usarModoGuardado('relax', 1);
+  const buena = { ...G.progresoNuevo(), dia: 20, pos: { x: 0, z: 0 } };
+  ok(G.guardarProgreso(buena) && G.guardarProgreso({ ...buena, dia: 21 }), 'dos guardados (la copia, del día 20)');
+  const malo = { toString: 1 };
+  let rotas = 0;
+  for (const k of Object.keys(buena)) for (const v of [malo, { a: malo }, [malo], { a: { b: malo } }]) {
+    almacen.set('hojarasca-v1', JSON.stringify({ ...buena, dia: 21, [k]: v }));
+    let c = null;
+    try { c = G.cargarProgreso(); } catch { c = null; }
+    if (!c || !Number.isFinite(c.dia) || !Number.isFinite(c.horas)) rotas++;
+  }
+  ok(rotas === 0, `ningún campo con un número roto deja la partida sin cargar (${rotas})`);
+  const g = leer('src/guardado.js');
+  ok(g.includes('try { limpio = sanearProgreso(p); } catch { limpio = null; }') && g.includes("if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true; }"), 'si sanear tira igual, se prueba la copia de seguridad');
+  ok(g.includes('if (!anteriorTexto && !principalRoto) {'), 'y el principal roto no pisa la copia en el próximo guardado');
+  const paquete = JSON.stringify(TR.empaquetar({ progreso: { dia: 3, entradas: {} } })).replace('"dia":3', '"dia":{"toString":1}');
+  let r = null;
+  try { r = TR.leerPaquete(paquete); } catch { r = 'tiró'; }
+  ok(r !== 'tiró', 'leerPaquete contesta siempre');
+  let e = null;
+  try { e = TR.empaquetar({ progreso: { dia: malo } }); } catch { e = 'tiró'; }
+  ok(e !== 'tiró' && TR.nombreArchivoPartida('relax', { dia: malo }).length > 0, 'empaquetar y el nombre del archivo, tampoco tiran');
+  G.borrarProgreso();
+}
+
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);
