@@ -379,6 +379,8 @@ export function desafioNuevo() {
     // 3.8.4: los robos de esta noche (el tope de 4 se guarda: recargar no lo reiniciaba) y el asedio que espera al
     // alba (caer en la noche final con el Coihue en pie ya no lo planta en el momento)
     robosNoche: { noche: -1, n: 0 }, asedioAlAlba: null,
+    // 3.8.6: la noche en que ya llegaron los refuerzos de madrugada (recargar los mandaba otra vez)
+    refuerzoNoche: -1,
     // 2.5: el arsenal (munición nueva, la flecha elegida y la noche en que se usaron las placas)
     ...Object.fromEntries(MUNICIONES.map((k) => [k, 0])), flechaTipo: 'comun', placasNoche: -1,
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
@@ -477,6 +479,7 @@ export function sanearDesafio(d) {
     asedioAlAlba: x.asedioAlAlba && typeof x.asedioAlAlba === 'object' && !Array.isArray(x.asedioAlAlba)
       ? (Number.isFinite(Number(x.asedioAlAlba.x)) && Number.isFinite(Number(x.asedioAlAlba.z)) && x.asedioAlAlba.x !== null && x.asedioAlAlba.z !== null
         ? { x: Number(x.asedioAlAlba.x), z: Number(x.asedioAlAlba.z) } : {}) : null,
+    refuerzoNoche: Number.isFinite(Number(x.refuerzoNoche)) && x.refuerzoNoche !== null ? Math.floor(Number(x.refuerzoNoche)) : -1,   // 3.8.6
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
   };
 }
