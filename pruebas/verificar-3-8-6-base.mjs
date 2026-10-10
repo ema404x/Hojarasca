@@ -221,4 +221,21 @@ ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ve
   ok(main.includes("else if (mochilaAbierta || desafio?.tallerAbierto) golpeDeTecla('Escape');") && main.includes("else if (modoObra) golpeDeTecla(obras?.editando ? 'Escape' : 'KeyO');"), 'B cierra la mochila, el taller y los planos');
 }
 
+// 9. La pregunta de la calidad (o cualquier cuadro) en medio de un trueque: al cerrarse atrapaba el mouse con el almacén todavía
+//    abierto. Ahora la de la calidad espera a que se cierre el panel (o la charla, los planos, el modo foto), y al cerrar un
+//    cuadro con un panel del HUD abierto el mouse queda suelto.
+{
+  ok(main.includes('if (panelDelHudAbierto() || charla.npc || modoObra || foto.activo) return;\n  preguntarSiBajar(cambio);'), 'la pregunta espera a que se cierre el panel');
+  ok(main.includes("if (modo === 'jugando') volverAlJuego(panelDelHudAbierto());") && main.includes('if (sinMouse !== true) jugador.pedirBloqueo();'), 'con un panel abierto, el mouse queda suelto');
+}
+
+// 10. Las teclas escritas en la portada, la pausa, la mochila y Controles son las que eligió el jugador (seguían las de fábrica).
+{
+  const AC = await import('../src/accesibilidad.js');
+  const mapa = AC.cambiarTecla(AC.mapaPorDefecto(), 'correr', 'ShiftRight').mapa;
+  ok(AC.teclaVisible('Shift', mapa) === 'Shift der.' && AC.teclaVisible('Shift', AC.mapaPorDefecto()) === 'Shift', '«Shift» también se traduce a la del jugador');
+  const pinta = tramo('function pintarTeclasPropias() {', 900);
+  ok(pinta.includes("#teclas-basicas kbd, #controles-completos kbd, #pausa kbd, #mochila kbd") && main.includes('  pintarTeclasPropias();   // 3.8.6\n'), 'se pintan al abrir y con cada cambio de tecla');
+}
+
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);

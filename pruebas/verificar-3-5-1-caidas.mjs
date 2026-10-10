@@ -86,7 +86,7 @@ ok(main.includes("dialogos.confirmar('Esto borra el recorrido guardado"), 'nuevo
 ok(/await dialogos\.confirmar\(`Esto borra la partida/.test(main) && /await dialogos\.confirmar\((masNueva \? )?textoOfertaSync/.test(main) && /await dialogos\.confirmar\(`Otra vuelta/.test(main), 'borrar partida, la carpeta sincronizada y otra vuelta, también');
 ok(/if \(preguntar\) return dialogos\.confirmar\(avisoImportar/.test(main), 'importar pregunta con el cuadro (y sin preguntar sigue igual)');
 ok(/alAbrir: \(\) => \{ if \(modo === 'jugando'\) \{ modoAntesDialogo = 'jugando'; modo = 'dialogo'; jugador\?\.soltar\(\); \} \}/.test(main), 'con un cuadro abierto el juego queda quieto');
-ok(/if \(modo === 'jugando'\) volverAlJuego\(\);/.test(main), 'y al cerrarlo vuelve al juego');
+ok(/if \(modo === 'jugando'\) volverAlJuego\(panelDelHudAbierto\(\)\);/.test(main), 'y al cerrarlo vuelve al juego');   // (3.8.6: sin atrapar el mouse si queda un panel del HUD abierto)
 ok(/auto: HOJARASCA_DEBUG \?/.test(main), 'el enganche de las pruebas sólo con ?debug=1');
 const html = leer('src/plantilla.html');
 for (const id of ['dialogo', 'dialogo-texto', 'dialogo-entrada', 'dialogo-si', 'dialogo-no', 'graficos-recuperando', 'aviso-recuperado']) ok(html.includes(`id="${id}"`), `la plantilla tiene #${id}`);

@@ -107,7 +107,8 @@ export function sanearMapaTeclas(guardado) {
 // Lo que no es de ninguna acción (la Q de la caña, la T de teñir, el '·') queda como está.
 export function teclaVisible(tecla, mapa) {
   const t = String(tecla ?? '');
-  const codigo = /^[A-Z]$/.test(t) ? `Key${t}` : /^[0-9]$/.test(t) ? `Digit${t}` : t === 'Espacio' ? 'Space' : t === 'Esc' ? 'Escape' : t;
+  // (3.8.6: y «Shift», como se escribe correr en la portada y en Controles)
+  const codigo = /^[A-Z]$/.test(t) ? `Key${t}` : /^[0-9]$/.test(t) ? `Digit${t}` : t === 'Espacio' ? 'Space' : t === 'Esc' ? 'Escape' : t === 'Shift' ? 'ShiftLeft' : t;
   const accion = ACCIONES_TECLA.find((a) => TECLAS_POR_DEFECTO[a] === codigo);
   if (!accion || !mapa || typeof mapa !== 'object' || !mapa[accion] || mapa[accion] === codigo) return t;
   return textoTecla(mapa[accion]);

@@ -120,6 +120,17 @@ app.whenReady().then(async () => {
       ok(x.sigue && !x.guia && !x.personalizar && !x.foto && !x.trasEsc.panel && x.trasEsc.pausa && x.trasEsc.modo === 'pausa' && x.boton === 'Volver a pausa', `${panel}: F1, F5 y F2 no abren nada encima y Esc vuelve a la pausa (${JSON.stringify(x)})`);
     }
 
+    // las teclas que se ven, las del jugador: E cambiada a R
+    const tk = await js(`(async()=>{ const $ = (id) => document.getElementById(id); window.__hojarasca.abrir('pausa'); await new Promise(r => setTimeout(r, 300));
+      $('btn-teclas').click(); await new Promise(r => setTimeout(r, 100));
+      const fila = [...document.querySelectorAll('#teclas-lista button')].find((b) => b.textContent.trim() === 'E');
+      fila.click(); document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', bubbles: true })); await new Promise(r => setTimeout(r, 100));
+      $('cerrar-teclas').click();
+      const textos = (sel) => [...document.querySelectorAll(sel + ' kbd')].map((k) => k.textContent.trim());
+      const r = { basicas: textos('#teclas-basicas'), controles: textos('#controles-completos') };
+      $('teclas-defecto').click(); r.vuelta = textos('#teclas-basicas'); return r; })()`);
+    ok(tk.basicas.includes('R') && !tk.basicas.includes('E') && !tk.controles.includes('E') && tk.vuelta.includes('E'), `las teclas escritas son las del jugador (${JSON.stringify(tk)})`);
+
     // ---------------------------------------------------------------- 3. la letra enorme en 1366×768
     donde = 'letra enorme';
     await empezar(", tamanoLetra:'enorme'");

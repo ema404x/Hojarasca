@@ -1802,14 +1802,15 @@ function dibujarMapaSiAbierto() { if (modo === 'mapa') dibujarMapa(); }
 $('lienzo-mapa').addEventListener('click', tocarMapa);
 $('lienzo-mapa').addEventListener('contextmenu', sacarDelMapa);
 
-function volverAlJuego() {
+// `sinMouse` (3.8.6): sin atrapar el mouse, porque sigue abierto un panel del HUD que se usa con él (el almacén, la cocina…)
+function volverAlJuego(sinMouse = false) {
   reiniciarMedicion(autoCalidad);
   for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
   modo = 'jugando';
   entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');
   sonido.iniciar();
-  jugador.pedirBloqueo();
+  if (sinMouse !== true) jugador.pedirBloqueo();
 }
 
 function sincronizarAjustes() {
@@ -2346,7 +2347,20 @@ $('cerrar-partidas').addEventListener('click', cerrarPartidas);
 
 // ---------------------------------------------------------------- teclas y mando
 let origenTeclas = null, capturandoTecla = null;
+// 3.8.6: las teclas escritas en la portada, la pausa, la mochila y Controles son las del jugador (la 3.8.4 lo hizo en el
+// panel de la historia y el aviso; acá seguían las de fábrica aunque las hubiera cambiado). Lo que no es de una acción (Q,
+// R, T, G…) queda como está. Se guarda la de fábrica en el elemento, para volver a pintarla con cada cambio.
+function pintarTeclasPropias() {
+  for (const k of document.querySelectorAll('#teclas-basicas kbd, #controles-completos kbd, #pausa kbd, #mochila kbd')) {
+    if (!k.dataset.fabrica) k.dataset.fabrica = k.textContent;
+    const fabrica = k.dataset.fabrica, visible = teclaVisible(fabrica, teclasPropias);
+    // (sólo se toca la que cambió: las otras quedan como las dejó el traductor)
+    if (visible !== fabrica) { if (k.textContent !== visible) k.textContent = visible; k.dataset.puesta = '1'; }
+    else if (k.dataset.puesta) { k.textContent = T_(fabrica); delete k.dataset.puesta; }
+  }
+}
 function dibujarTeclas() {
+  pintarTeclasPropias();   // 3.8.6
   const cont = $('teclas-lista');
   traducirPanel($('teclas'));
   cont.innerHTML = '';
@@ -2425,6 +2439,7 @@ $('teclas-defecto').addEventListener('click', () => {
   dibujarTeclas();
   nota('Teclas de fábrica', 'Volvió todo como venía');
 });
+pintarTeclasPropias();   // 3.8.6: las del jugador, desde que abre el juego
 $('btn-teclas').addEventListener('click', () => abrirTeclas('pausa'));
 $('btn-teclas-inicio').addEventListener('click', () => abrirTeclas('inicio'));
 $('cerrar-teclas').addEventListener('click', cerrarTeclas);
@@ -8506,6 +8521,8 @@ function revisarSiVaLento(dtReal) {
   const cambio = decidirCalidad(autoCalidad);
   if (!cambio) return;
   if (cambio.motivo !== 'bajar') { autoCalidad.verde = 0; return; }   // sobra máquina: no se sube sola
+  // 3.8.6: no en medio de un trueque, una charla, los planos o el modo foto: se pregunta al cerrarlos (si sigue lento)
+  if (panelDelHudAbierto() || charla.npc || modoObra || foto.activo) return;
   preguntarSiBajar(cambio);
 }
 async function preguntarSiBajar(cambio) {
@@ -9357,7 +9374,8 @@ const dialogos = crearDialogos({
     try { mando.actualizar(); } catch { /* sin mando */ }
     if (modo !== 'dialogo') return;
     modo = modoAntesDialogo || 'jugando'; modoAntesDialogo = null;
-    if (modo === 'jugando') volverAlJuego();
+    // 3.8.6: con un panel del HUD abierto debajo (el almacén, la cocina, el taller…), el mouse queda suelto para seguir usándolo
+    if (modo === 'jugando') volverAlJuego(panelDelHudAbierto());
   },
   // con ?debug=1, las pruebas viejas contestan reemplazando window.confirm / window.prompt
   auto: HOJARASCA_DEBUG ? (tipo, texto, inicial) => {
