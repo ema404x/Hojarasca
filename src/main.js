@@ -752,7 +752,9 @@ async function construir() {
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
   desalojarCarpa();   // 3.6.2
-  if (desalojo.acopio) vaciarUltimoAcopio(desalojo.materiales);   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás
+  // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
+  // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
+  if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);

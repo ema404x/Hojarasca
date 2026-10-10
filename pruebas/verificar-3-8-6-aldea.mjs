@@ -249,4 +249,30 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(leer('src/aldea-gente.js').includes("Un regalo que ${varios ? 'les' : 'le'} guste vale el doble."), 'aldea: el cuaderno de hoy, «les guste» con varios y «A, B y C»');
 }
 
+// ---------------------------------------------------------------- 15. aldea: el visitante, el club, el músico, el cachorro y el desalojo
+{
+  const VI = await import('../src/aldea-vida.js');
+  const C = await import('../src/calendario.js');
+  // el que llegó con vos pasada la medianoche sigue (dando las gracias) y se guarda
+  const vis = { id: 'lena', lugar: Object.keys(VI.LUGARES_VISITA)[0], dia: 7, estado: 'llego' };
+  ok(VI.visitanteSigue(vis, 8, 0.5) && !VI.visitanteSigue(vis, 9, 10), 'aldea: el visitante que llegó con vos pasada la medianoche no se desvanece (hasta el día siguiente)');
+  const s = VI.sanearVidaAldea({ visitante: { ...vis } }, 8);
+  ok(s.visitante?.estado === 'llego', 'aldea: y al cargar, tampoco');
+  ok(leer('src/aldea-vida.js').includes("((visitante.estado === 'guiando' || visitante.estado === 'llego') && visitante.dia === tope - 1)"), 'aldea: el saneo deja al que llegó ayer');
+  ok(leer('src/aldea-gente.js').includes('if (js.enKayak || js.enVela || js.enTren) { n.camino = []; return; }'), 'aldea: en el kayak, el velero o el tren, el que guiás te espera (caminaba por el fondo del lago)');
+  // el chico que estudia afuera no va al club ni a la noche de estrellas
+  const a = aldeaCompleta();
+  const chico = AL.CHICOS_ALDEA.find((k) => k !== 'nene' && k !== 'nena') || AL.CHICOS_ALDEA[0];
+  a.chicos = { ...(a.chicos || {}), [chico]: { ...(a.chicos?.[chico] || {}), afuera: true } };
+  let vino = 0;
+  for (let d = 1; d <= 200; d += 7) for (const cual of ['club', 'estrellas']) if (C.asistentes(cual, d, a).includes(chico)) vino++;
+  ok(AL.chicoAfuera(a, chico) && vino === 0, `aldea: el chico que estudia afuera no aparece en el club ni en la noche de estrellas (${chico}: ${vino})`);
+  // el músico, en el salón
+  const mu = AL.POBLADORES_ALDEA.musico;
+  ok(!/en la plaza/.test(mu.despedida + mu.resumen) && /salón/.test(mu.despedida), 'aldea: el músico manda al salón (decía «en la plaza»)');
+  ok(leer('src/aldea-gente.js').includes("if (k === 'jefe' && !npc.deVisita) {"), 'aldea: Ernesto de visita en tu mesa no gasta la oferta del cachorro');
+  ok(leer('src/main.js').includes('if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));'), 'desalojo: «con lo que guardabas en el acopio» sólo si volvió algo');
+  sinCR('src/aldea.js'); sinCR('src/aldea-vida.js'); sinCR('src/aldea-gente.js'); sinCR('src/calendario.js');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

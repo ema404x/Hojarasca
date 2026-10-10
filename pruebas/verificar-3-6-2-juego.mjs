@@ -195,7 +195,7 @@ globalThis.__R = (() => {
 {
   const mm = leer('src/aldea-mecanicas-mundo.js');
   ok(mm.includes('const sinApuro = () => musica.activa || (!!ctx.gente?.()?.oyendoCuento?.() && cerca);'), 'lo frenan la música del baile y los cuentos del domingo');
-  ok(main.includes("const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;"), 'y tu propia charla');
+  ok(main.includes("const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;"), 'y tu propia charla');   // (3.8.6: y la mesita y el fogón de la fiesta)
   // una semana en la aldea, con vos al lado de alguien a cada rato: se oyen charlas de vecinos todos los días
   // (no frenan) y los cuentos de la abuela sólo el domingo a la mañana, en la biblioteca (frenan)
   const A = await import('../src/aldea.js');

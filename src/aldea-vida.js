@@ -184,7 +184,7 @@ export function sanearVidaAldea(v0, hoy = null) {
   return {
     avisado: diaOCero(x.avisado, tope),
     // (el de otro día ya se fue; 3.8.4: salvo el que estás guiando, que sigue con vos aunque pase la medianoche)
-    visitante: visitante && (visitante.dia === tope || (visitante.estado === 'guiando' && visitante.dia === tope - 1)) ? visitante : (Number.isFinite(num(hoy)) ? null : visitante),
+    visitante: visitante && (visitante.dia === tope || ((visitante.estado === 'guiando' || visitante.estado === 'llego') && visitante.dia === tope - 1)) ? visitante : (Number.isFinite(num(hoy)) ? null : visitante),
     visitantesDia: diaOCero(x.visitantesDia, tope),
     guiados: guiados.slice(-TOPE_GUIADOS),
     mascota: {
@@ -302,7 +302,9 @@ export function visitanteSeVa(vida) { if (objeto(vida)) vida.visitante = null; }
 // estás guiando se queda hasta terminar el recorrido aunque pase la medianoche (antes se iba en el medio del camino).
 export function visitanteSigue(v, dia, hora) {
   if (!objeto(v)) return false;
-  if (v.estado === 'guiando') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;   // (hasta el día siguiente)
+  // (hasta el día siguiente; 3.8.6: también el que llegó con vos pasada la medianoche, que todavía te está dando las gracias:
+  // se desvanecía en tu cara medio segundo después)
+  if (v.estado === 'guiando' || v.estado === 'llego') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;
   return v.dia === diaValido(dia, 1) && !(v.estado === 'anden' && num(hora) >= 20);
 }
 // Para el cuaderno: «Lena, una mochilera de Hamburgo: el Mirador del Pehuén (día 12)».

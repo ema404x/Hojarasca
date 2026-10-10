@@ -718,8 +718,8 @@ export const POBLADORES_ALDEA = {
       'Me dicen Cholo, Cholo Barrientos. Toco la verdulera y la guitarra; el pasaje del tren lo pagué con dos chamamés.',
       'Un pueblo sin baile se duerme temprano. Denme un salón y los sábados a la tarde nadie se queda en la casa.',
     ],
-    saludo: 'Pasá, que estoy afinando.', despedida: 'El sábado a la tarde, en la plaza. No faltes.',
-    resumen: 'Una vez por semana te enseña una melodía del valle que te falte, para el tocadiscos del refugio. Los sábados a la tarde toca en la plaza.',
+    saludo: 'Pasá, que estoy afinando.', despedida: 'El sábado a la tarde, en el salón. No faltes.',   // (3.8.6: el baile es en el salón desde la 3.6; decía «en la plaza»)
+    resumen: 'Una vez por semana te enseña una melodía del valle que te falte, para el tocadiscos del refugio. Los sábados a la tarde toca en el salón.',
   },
   // ---------------------------------------------------------------- 3.7.0: las pobladoras nuevas
   // Ocho que llegan intercaladas con los once de la 3.6 (ver ORDEN_POBLADORES_ALDEA), cada una con su local
@@ -1574,10 +1574,10 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
     }
     case 'musico': {
       const ultima = entero(aldea.partitura);
-      if (ultima && diaValido(dia, 1) - ultima < S.diasPartitura) return { partes: ['Esta semana ya te enseñé una. Practicala, y el sábado a la tarde vení a la plaza.'] };
+      if (ultima && diaValido(dia, 1) - ultima < S.diasPartitura) return { partes: ['Esta semana ya te enseñé una. Practicala, y el sábado a la tarde vení al salón.'] };
       const halladas = new Set(Array.isArray(progreso?.personal?.musica?.halladas) ? progreso.personal.musica.halladas : []);
       const m = MELODIAS.find((x) => !x.inicial && !halladas.has(x.id));
-      if (!m) return { partes: ['Ya sabés todas las del valle. Ahora te falta bailarlas: el sábado, en la plaza.'] };
+      if (!m) return { partes: ['Ya sabés todas las del valle. Ahora te falta bailarlas: el sábado, en el salón.'] };
       return {
         partes: [`Escuchá esta: «${m.nombre}». Te la anoto en un papel, para el tocadiscos del refugio.`],
         seguir: DALE,

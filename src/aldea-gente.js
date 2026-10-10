@@ -868,8 +868,9 @@ export function crearAldeaGente(ctx) {
     if (k === 'visitante') return charlaVisitante(npc);   // 3.7.0
     if (k === 'familia') return charlaFamilia(npc);         // 3.7.0
     if (esVecinoAldea(k)) {
-      // 3.7.0: Ernesto te ofrece el cachorro de la Chola (una vez por día, hasta que digas que sí)
-      if (k === 'jefe') {
+      // 3.7.0: Ernesto te ofrece el cachorro de la Chola (una vez por día, hasta que digas que sí). 3.8.6: no si está de visita
+      // en tu mesa (main.js muestra la charla de la visita y descarta ésta: la oferta del día se gastaba sin que la vieras)
+      if (k === 'jefe' && !npc.deVisita) {
         const of = ofertaCachorro(vida(), dia());
         if (of) {
           ofrecido(vida(), dia());
@@ -1271,6 +1272,9 @@ export function crearAldeaGente(ctx) {
     if (decirHasta && performance.now() > decirHasta) { decirHasta = 0; ctx.decir?.(null); }
     if (vis.estado === 'guiando') {
       n.dormido = false; n.ruta = null; n.enCita = true;
+      // 3.8.6: en el kayak, el velero o el tren no te sigue (caminaba por el fondo del lago y saltaba al costado de la vía):
+      // te espera donde quedó
+      if (js.enKayak || js.enVela || js.enTren) { n.camino = []; return; }
       // te sigue (y si te le adelantaste mucho, te alcanza: «¡Esperame!»)
       const atras = { x: js.pos.x + Math.sin(js.yaw || 0) * 2.6, z: js.pos.z + Math.cos(js.yaw || 0) * 2.6 };
       if (dj > 45) { n.pos.set(atras.x, ctx.alturaDePie(atras.x, atras.z, n.pos.y), atras.z); }
