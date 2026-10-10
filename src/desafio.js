@@ -1002,6 +1002,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       else if (d.especial) ctx.nota(ESPECIALES[d.especial].aviso, `${ESPECIALES[d.especial].nombre} · en una hora salen los duendes`, true);
       else ctx.nota('Se ven lucecitas entre los árboles', 'En una hora salen los duendes. Cerrá el portón y prepará las armas', true);
       S.sirena();
+      S.prepararPiano?.(d.oleadas + 1);   // 3.8.5: el piano de esta noche se sintetiza ahora, en la cola (sin trabar)
       evolucion.alAtardecer();   // 3.0: "Vienen resistentes al fuego"
     }
     if (esHoraDeAtaque(p.horas)) {
@@ -1029,6 +1030,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         const hayVarada = varar && empezarVarada();
         asedioMundo.alEmpezarNoche();   // 3.0: el contraataque va por la última zona recuperada
         empezarOleada(tipos, true);
+        // 3.8.5: cuando empiezan a salir, el piano de misterio (una sola vez por noche; entra después de los silbidos)
+        S.piano?.(d.oleadas);
         // 2.3: los capullos que quedaron en el bosque se abren ahora
         abrirCapullos();
         puestos.alEmpezarNoche();   // 3.0: y los puestos en pie mandan lo suyo
@@ -1482,7 +1485,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (a.estado === 'morir' || a.estado === 'irse') return;
     // 2.1: bajo tierra no le llega nada; al dormido el golpe lo despierta
     if (a.estado === 'bajoTierra') return;
-    if (a.estado === 'dormido') { a.estado = 'avanzar'; S.chillido(a.m.g.position, a.tipo); a.m.chillar(); }
+    if (a.estado === 'dormido') { a.estado = 'avanzar'; S.chillido(a.m.g.position, a.tipo, !!a.m.viejo); a.m.chillar(); }
     if (fuente === true) fuente = 'jugador';
     const conDebil = danoEnPuntoDebil(a.def, dano, impacto);
     const enDebil = conDebil > dano;
@@ -2005,7 +2008,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (a.estado === 'dormido') {
       _despierta.distancia = U_distancia(p, js.pos); _despierta.agachado = js.agachado; _despierta.corriendo = js.corriendo;
       if (despierta(_despierta)) {
-        a.estado = 'avanzar'; S.chillido(p, a.tipo); a.m.chillar();
+        a.estado = 'avanzar'; S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar();
       }
       p.y = T.altura(p.x, p.z);
       poseAlien.dt = dt; poseAlien.jugador = js.pos; poseAlien.velocidad = 0; poseAlien.golpe = 0; poseAlien.ataca = false; poseAlien.carrera = false;
@@ -2063,7 +2066,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       poseAlien.dt = dt; poseAlien.jugador = js.pos; poseAlien.velocidad = 0; poseAlien.golpe = 0; poseAlien.ataca = false; poseAlien.carrera = false;
       poseAlien.apuntando = false; poseAlien.enredado = true; poseAlien.agazapado = false; poseAlien.noche = nocheNivel;
       a.m.animar(poseAlien);
-      if (p.y <= suelo + 0.01) { a.estado = 'avanzar'; S.chillido(p, a.tipo); a.m.chillar(); }
+      if (p.y <= suelo + 0.01) { a.estado = 'avanzar'; S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar(); }
       return;
     }
     if (a.estado === 'morir') {
@@ -2114,7 +2117,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (dv < 70 && performance.now() - ultimoChillido > 900) {
         ultimoChillido = performance.now();
         if (dv > 34) S.acecho(p, a.tipo);
-        else { S.chillido(p, a.tipo); a.m.chillar(); }
+        else { S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar(); }   // 3.8.5: el viejo oscuro se ríe ronco
       }
     }
     const dx = js.pos.x - p.x, dz = js.pos.z - p.z;

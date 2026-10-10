@@ -5,6 +5,8 @@
 import { modos, capas, ronda } from './impactos.js';
 import { espacioDe, lluviaQueSuena, camaDeTecho, gotasEnCuadro, gota, crujidosPorSegundo } from './techo-lluvia.js';
 import { voz, lejania } from './voz-alien.js';
+import { CLASES_RISA, VARIANTES_RISA, TASA_RISA, planRisa, sintetizarRisa, semillaRisa, elegirVariante, cabeOtraRisa } from './risa-duende.js';
+import { TASA_PIANO, planPiano, sintetizarPiano } from './piano-misterio.js';
 import { silbatoDe } from './personal-trochita.js';
 import { actualizarTocadiscos, tocadiscosSuena } from './personal-musica.js';
 import { TASA_PREVIA, completar, susurroHojas, burbujeo, borboteo, lluviaEstereo, coroGrillos, enjambre, crepitar, estallido, retumbo, pisada, SUELOS, chapoteo, chirrido, cuerdaPulsada, canto } from './sonido-sintesis.js';
@@ -15,6 +17,9 @@ const nada = () => {};
 
 // 2.7: las cuerdas de la música se sintetizan cada cuatro semitonos y el resto se
 // afina con la velocidad de reproducción (dos semitonos para cada lado no se notan).
+// 3.8.5: qué tan fuerte la risa de los duendes (medido contra la risita de antes a la misma distancia),
+// el piano de misterio y cuánto baja la música de fondo mientras suena el piano
+const NIVEL_RISA = 0.3, NIVEL_PIANO = 0.55, BAJA_MUSICA = 0.55;
 const CUERDA_DESDE = 38, CUERDA_HASTA = 86, CUERDA_PASO = 4;
 // Qué tan fuerte suena cada ave con su frase normalizada (pico 0.9). Medido contra las
 // notas sueltas de antes: la misma energía (RMS), apenas un diez por ciento más. Los
@@ -33,6 +38,8 @@ export class Sonido {
     this.paleta = null;
     this.proxMusica = 40;
     this.silbatoElegido = 'clasico';   // 2.8: el silbato de la trochita (ver `personal-trochita.js`)
+    // 3.8.5: en el Relax los duendes son leyenda: ni risas ni piano (lo pone main.js antes de iniciar)
+    this.relax = false;
   }
 
   // `ctxExterno` es para el banco de sonidos: se le pasa un OfflineAudioContext y el
@@ -114,6 +121,12 @@ export class Sonido {
     this.agaches.techo.connect(this.master);
     for (const n of ['ambiente', 'efectos', 'musica']) { this.bus[n] = ctx.createGain(); this.bus[n].connect(n === 'efectos' ? this.master : this.agaches[n]); }
     this.bus.musica.gain.value = this.musicaActiva ? 0.5 : 0;
+    // 3.8.5: el piano de los duendes va aparte de la música (con su mismo volumen y su mismo interruptor),
+    // y la música de fondo pasa por `bajaMusica`, que la baja un poco mientras el piano suena
+    this.bajaMusica = ctx.createGain();
+    this.bus.musica.disconnect(); this.bus.musica.connect(this.bajaMusica); this.bajaMusica.connect(this.agaches.musica);
+    this.bus.piano = ctx.createGain(); this.bus.piano.gain.value = this.bus.musica.gain.value;
+    this.bus.piano.connect(this.agaches.musica);
 
     const N = ctx.sampleRate * 4;
     this.ruido = ctx.createBuffer(1, N, ctx.sampleRate);
@@ -268,6 +281,8 @@ export class Sonido {
     for (let m = CUERDA_DESDE; m <= CUERDA_HASTA; m += CUERDA_PASO) this.preparar(`cuerda-${m}`, () => this.recetaCuerda(m));
     this.variantes('estallido', 4, () => estallido(TASA_PREVIA));
     this.variantes('borboteo', 4, () => borboteo(TASA_PREVIA));
+    // 3.8.5: las risas de los duendes, a la cola (en el Relax no: ahí los duendes son leyenda)
+    if (!this.relax && !this.offline) this.prepararDuendes();
     this.preparar('retumbo', () => retumbo(24000, 3.2), null, 24000);
 
     this.rafaga = 0.5; this.rafagaObj = 0.5; this.proxRafaga = 0;
@@ -407,7 +422,11 @@ export class Sonido {
   }
 
   setVolumen(v) { this.volumen = v; if (this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1); }
-  setMusica(on) { this.musicaActiva = on; if (this.ctx) this.bus.musica.gain.setTargetAtTime(on ? 0.5 * this.mezcla.musica : 0, this.ctx.currentTime, 0.5); }
+  setMusica(on) {
+    this.musicaActiva = on;
+    if (this.ctx) this.bus.musica.gain.setTargetAtTime(on ? 0.5 * this.mezcla.musica : 0, this.ctx.currentTime, 0.5);
+    if (this.ctx) this.bus.piano?.gain.setTargetAtTime(on ? 0.5 * this.mezcla.musica : 0, this.ctx.currentTime, 0.5);   // 3.8.5
+  }
   // 1.8: cada bus tiene su volumen. `mezcla` son las perillas del jugador; `hora`
   // es lo que el juego acomoda solo (de noche el bosque baja, la música sube).
   setMezcla({ ambiente, efectos, musica } = {}, hora = {}) {
@@ -421,6 +440,8 @@ export class Sonido {
     this.bus.techo?.gain.setTargetAtTime(this.mezcla.ambiente * (hora.ambiente ?? 1), t, 0.6);
     this.bus.efectos.gain.setTargetAtTime(this.mezcla.efectos * (hora.efectos ?? 1), t, 0.4);
     this.bus.musica.gain.setTargetAtTime(this.musicaActiva ? 0.5 * this.mezcla.musica * (hora.musica ?? 1) : 0, t, 0.8);
+    // 3.8.5: el piano de los duendes sigue la perilla de la música (no la mezcla por hora: suena de noche igual)
+    this.bus.piano?.gain.setTargetAtTime(this.musicaActiva ? 0.5 * this.mezcla.musica : 0, t, 0.8);
   }
   // 2.0: la mezcla se agacha. Cuando algo chilla al lado, el bosque y la música bajan
   // de golpe y vuelven despacio, para que el grito se escuche entero (ver
@@ -934,6 +955,120 @@ export class Sonido {
     principal.addEventListener('ended', soltarVoz);
     aliento?.addEventListener('ended', soltarVoz);
     return { dur, base: v.base, formantes: v.formantes, aspereza: v.aspereza, lejania: L };
+  }
+
+  // ------------------------------------------------------------------ 3.8.5: la risa de los duendes
+  // Seis risas por garganta (chico, viejo, Mandamás), sintetizadas de antemano en la cola (ver
+  // `risa-duende.js`); acá sólo se eligen (nunca la misma dos veces seguidas), se ubican y se alejan con la
+  // misma lejanía que las voces (`lejania`: el aire se come los agudos, crece la cola y lo grave cruza el
+  // valle). Como mucho tres a la vez. En el Relax no suenan: `relax` lo pone main.js.
+  prepararDuendes() {
+    if (!this.ctx || this.relax) return;
+    for (const clase of Object.keys(CLASES_RISA)) for (let k = 0; k < VARIANTES_RISA; k++) this.prepararRisa(clase, k);
+    // y el piano de la primera noche (el de las siguientes se hace en el aviso de la hora previa)
+    this.prepararPiano(0);
+  }
+  prepararRisa(clase, k) {
+    const nombre = `risa-${clase}-${k}`;
+    // el Mandamás no se ríe de pasada: cada risa suya es un llamado (más larga)
+    this.preparar(nombre, () => sintetizarRisa(planRisa(clase, semillaRisa(clase, k), { llamado: clase === 'mandamas' }), TASA_RISA), null, TASA_RISA);
+    return nombre;
+  }
+  // Devuelve lo que sonó, 0 si no tocaba (el Relax, el tope de risas) o null si las risas todavía no están
+  // hechas (el que llama puede usar la risita de antes).
+  risaDuende(clase = 'chico', { pos, distancia = 0, intensidad = 0.8, vol = 1, cuando = 0, variante = -1 } = {}) {
+    if (!this.ctx || this.relax) return 0;
+    if (!CLASES_RISA[clase]) clase = 'chico';
+    const ctx = this.ctx, ahora = ctx.currentTime;
+    const { vivas, cabe } = cabeOtraRisa(this.risasSonando, ahora + cuando);
+    this.risasSonando = vivas;
+    if (!cabe) { this.risasCalladas = (this.risasCalladas || 0) + 1; return 0; }
+    const listas = [];
+    for (let k = 0; k < VARIANTES_RISA; k++) {
+      if (this.offline) this.prepararRisa(clase, k);   // el banco que renderiza las hace en el momento
+      if (this.previo.has(`risa-${clase}-${k}`)) listas.push(k);
+    }
+    if (!listas.length) { this.prepararDuendes(); return null; }
+    if (!this.puedeSonar(2, cuando)) return 0;
+    if (!this.ultimaRisa) this.ultimaRisa = {};
+    // (`variante`: una en particular, para el banco que las renderiza de a una)
+    const k = listas.includes(variante) ? variante : elegirVariante(listas, this.ultimaRisa[clase] ?? -1);
+    this.ultimaRisa[clase] = k;
+    const buf = this.previo.get(`risa-${clase}-${k}`);
+    if (!distancia && pos && this.oyente) distancia = Math.hypot(pos.x - this.oyente.x, (pos.y || 0) - this.oyente.y, pos.z - this.oyente.z);
+    const L = lejania(distancia);
+    const t = ahora + cuando + (this.offline ? 0 : L.retardo);
+    const d = pos ? this.fuente(pos, L.volumen, Math.min(1.4, 1.1 * L.reverb)) : this.bus.efectos;
+    if (!d) return 0;
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    // ningún duende se ríe dos veces igual: un poquito más arriba o más abajo cada vez
+    const velocidad = 0.96 + Math.random() * 0.08;
+    s.playbackRate.value = velocidad;
+    const g = ctx.createGain(); g.gain.value = NIVEL_RISA * vol * (0.75 + 0.35 * Math.max(0, Math.min(1, intensidad))) * L.volumen;
+    const aire = ctx.createBiquadFilter(); aire.type = 'lowpass'; aire.frequency.value = L.corte; aire.Q.value = 0.5;
+    s.connect(g); g.connect(aire);
+    let grave = null;
+    if (L.sub > 1.05) {
+      grave = ctx.createBiquadFilter(); grave.type = 'lowshelf'; grave.frequency.value = 160;
+      grave.gain.value = Math.min(11, (L.sub - 1) * 9);
+      aire.connect(grave); grave.connect(d);
+    } else aire.connect(d);
+    s.start(t);
+    const dur = buf.duration / velocidad;
+    this.risasSonando.push(t + dur);
+    this.soltarAlTerminar(s, g, aire, grave);
+    return { dur, clase, variante: k, lejania: L };
+  }
+
+  // ------------------------------------------------------------------ 3.8.5: el piano de misterio
+  // Una frase por noche cuando salen los duendes (ver `piano-misterio.js`). Se sintetiza en la cola antes
+  // (al aviso de la hora previa) y acá sólo se reproduce: no cuesta nada a mitad de la noche. Espera a que
+  // termine el aviso que esté sonando (los silbidos) y, si llega otro (el Mandamás), se corre al fondo.
+  prepararPiano(k) {
+    if (!this.ctx || this.relax) return null;
+    const nombre = `piano-${k}`;
+    this.preparar(nombre, () => sintetizarPiano(planPiano(k), TASA_PIANO), null, TASA_PIANO);
+    return nombre;
+  }
+  pianoMisterio(k = 0, { cuando = 0 } = {}) {
+    if (!this.ctx || this.relax) return 0;
+    const ctx = this.ctx, nombre = `piano-${k}`;
+    const sonar = (buf) => {
+      const ahora = ctx.currentTime;
+      // no se pisa con el aviso que esté sonando: entra cuando termina
+      let t = ahora + cuando;
+      if ((this.avisoHasta || 0) > t) t = this.avisoHasta + 0.2;
+      if (t - ahora > 8 || !buf) return 0;
+      const s = ctx.createBufferSource(); s.buffer = buf;
+      const g = this.gPiano = ctx.createGain(); g.gain.value = NIVEL_PIANO;
+      s.connect(g); g.connect(this.bus.piano || this.bus.musica);
+      s.start(t);
+      // la música de fondo se corre un poco mientras suena, y vuelve despacio al final
+      const fin = t + buf.duration;
+      this.bajaMusica?.gain.setTargetAtTime(BAJA_MUSICA, t, 0.4);
+      this.bajaMusica?.gain.setTargetAtTime(1, fin - 1.2, 0.8);
+      this.pianoHasta = fin;
+      this.pianosSonados = (this.pianosSonados || 0) + 1;
+      this.soltarAlTerminar(s, g);
+      return buf.duration;
+    };
+    const hecho = this.previo.get(nombre);
+    if (hecho) return sonar(hecho);
+    // si todavía no está (se abrió la partida a la hora justa), suena apenas sale de la cola
+    const pedido = ctx.currentTime;
+    this.preparar(nombre, () => sintetizarPiano(planPiano(k), TASA_PIANO), (buf) => { if (ctx.currentTime - pedido < 3) sonar(buf); }, TASA_PIANO);
+    return this.previo.has(nombre) ? this.previo.get(nombre).duration : -1;
+  }
+  // Un aviso grande (los silbidos de que salen, la entrada del Mandamás) ocupa `seg` segundos: el piano que
+  // esté sonando se corre al fondo mientras tanto y el que venga espera.
+  marcarAviso(seg = 1.5) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.avisoHasta = Math.max(this.avisoHasta || 0, t + seg);
+    if (this.gPiano && (this.pianoHasta || 0) > t) {
+      this.gPiano.gain.setTargetAtTime(NIVEL_PIANO * 0.35, t, 0.08);
+      this.gPiano.gain.setTargetAtTime(NIVEL_PIANO, t + seg, 0.5);
+    }
   }
 
   // ------------------------------------------------------------------ aves y animales

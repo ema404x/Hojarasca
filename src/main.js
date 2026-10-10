@@ -443,6 +443,8 @@ let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-
 let mecanicasAldea = null;   // 3.6 (mecánicas): ver aldea-mecanicas-mundo.js (sólo en el Relax)
 let animalesAldea = null;   // 3.7.0: los perros, los caballos y las gallinas de la aldea y tu cachorro (sólo en el Relax)
 const sonido = new Sonido();
+// 3.8.5: en el Relax los duendes son leyenda: no se ríen ni suena su piano
+sonido.relax = !esDesafio;
 sonido.volumen = ajustes.volumen;
 sonido.musicaActiva = ajustes.musica;
 // 2.1: el grabador (ver `grabador.js`). Cada vez que canta un ave que se puede grabar,

@@ -88,6 +88,19 @@ const LISTA = [
   ...['clasico', 'grave', 'agudo', 'doble', 'largo', 'acorde'].map((id) => [`silbato-${id}`, id === 'largo' ? 8.5 : 7, `H.sonido.silbato({ x: 0, y: 2, z: -30 }, '${id}')`]),
   ['silbato-taller-pajaro', 6.5, `H.sonido.silbato({ x: 0, y: 2, z: -30 }, H.silbatoTren({ loco: { silbato: 'pajaro' } }))`],
   ['silbato-clasico-lejos-250m', 8, `H.sonido.silbato({ x: 0, y: 2, z: -250 }, 'clasico')`],
+  // 3.8.5: la risa nueva de los duendes (seis por garganta), a 5 m; la risita de antes para comparar; tres
+  // duendes riéndose a 10, 30 y 60 m; las frases del piano de misterio y el piano con risas encima, como al anochecer
+  ...['chico', 'viejo', 'mandamas'].flatMap((c) => [0, 1, 2, 3, 4, 5].map((k) => [`risa385-${c}-${k + 1}`, c === 'mandamas' ? 4.2 : 3, `H.sonido.risaDuende('${c}', { pos: { x: 1.5, y: 1, z: -5 }, intensidad: 0.9, variante: ${k} })`])),
+  ['risa385-antes-384', 2.0, `H.sonido.vozAlien('rastreador','alerta',{distancia:5,intensidad:0.9})`],
+  ...[10, 30, 60].map((m) => [`risa385-tres-a-${m}m`, 4.5, `H.sonido.risaDuende('chico', { pos: { x: -0.4 * ${m}, y: 1, z: -0.9 * ${m} }, variante: 0 }); ` +
+    `H.sonido.risaDuende('chico', { pos: { x: 0.35 * ${m}, y: 1, z: -0.95 * ${m} }, variante: 3, cuando: 0.45 }); ` +
+    `H.sonido.risaDuende('viejo', { pos: { x: 0.1 * ${m}, y: 1, z: -1.05 * ${m} }, variante: 1, cuando: 1.1 })`]),
+  ...[0, 1, 2].map((k) => [`piano385-${['ronda', 'lamento', 'escalera'][k]}`, 9, `H.sonido.pianoMisterio(${k})`]),
+  ...[0, 1, 2].map((k) => [`piano385-anochecer-${['ronda', 'lamento', 'escalera'][k]}`, 12, `H.desafioS.sirena(); H.desafioS.piano(${k + 1}); ` +
+    `H.sonido.risaDuende('chico', { pos: { x: -14, y: 1, z: -22 }, cuando: 4.6 }); ` +
+    `H.sonido.risaDuende('chico', { pos: { x: 18, y: 1, z: -30 }, cuando: 5.5 }); ` +
+    `H.sonido.risaDuende('viejo', { pos: { x: 4, y: 1, z: -12 }, cuando: 7.4 }); ` +
+    `H.sonido.risaDuende('chico', { pos: { x: -6, y: 1, z: -9 }, cuando: 7.6 })`]),
 ];
 
 // WAV de 16 bits, que es lo que abre cualquier cosa sin instalar nada.

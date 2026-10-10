@@ -18,15 +18,29 @@
 // (la risita vive en `voz-alien.js`), cuerpos de corteza y musgo que suenan a madera
 // hueca, lechuzas que chistan, el Coihue Viejo que cruje al caminar sobre sus raíces y
 // la pistola de luz que tintinea como semilla dorada en vez de chisporrotear plasma.
+//
+// 3.8.5: la risa nueva (`risa-duende.js`): carcajadas sintetizadas muestra por muestra, seis por garganta
+// (los traviesos agudos, los viejos oscuros roncos y el Mandamás), en la alerta, el llamado, la travesura
+// y los chicos que asoman. Si todavía no están hechas, suena la risita de antes. Y el piano de misterio,
+// una vez por noche cuando salen (`piano-misterio.js`).
+import { claseDeRisa } from './risa-duende.js';
+import { frasePianoDeNoche, tocaElPiano } from './piano-misterio.js';
+
 export function crearBanco(sonido) {
   const sonar = (pos, f) => { if (sonido.ctx) f(pos ? sonido.fuente(pos, 1, 0.5) : sonido.bus.efectos); };
   const az = (a, b) => a + Math.random() * (b - a);
+  // 3.8.5: la risa del duende; null quiere decir que las risas todavía no salieron de la cola
+  const reir = (pos, tipo, viejo, o, antes) => { const r = sonido.risaDuende?.(claseDeRisa(tipo, viejo), { pos, ...o }); if (r === null || r === undefined) antes(); return r; };
+  // la última noche en que sonó el piano y qué frase tocó
+  const piano = { noche: -1, frase: -1 };
   const S = {
     // ---- las gargantas
-    chillido: (pos, tipo = 'rastreador') => sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: az(0.6, 0.95) }),
+    // 3.8.5: la alerta es una risa (`viejo`: el duende viene de viejo oscuro)
+    chillido: (pos, tipo = 'rastreador', viejo = false) => reir(pos, tipo, viejo, { intensidad: az(0.6, 0.95) }, () => sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: az(0.6, 0.95) })),
     acecho: (pos, tipo = 'rastreador') => sonido.vozAlien?.(tipo, 'acecho', { pos, intensidad: az(0.25, 0.5) }),
     embestida: (pos, tipo = 'rastreador') => sonido.vozAlien?.(tipo, 'ataque', { pos, intensidad: 1 }),
-    llamado: (pos, tipo = 'rastreador') => sonido.vozAlien?.(tipo, 'llamado', { pos, intensidad: az(0.7, 1) }),
+    // 3.8.5: el llamado también es una risa: más fuerte, para que la oigan los otros
+    llamado: (pos, tipo = 'rastreador', viejo = false) => reir(pos, tipo, viejo, { intensidad: az(0.8, 1), vol: 1.2 }, () => sonido.vozAlien?.(tipo, 'llamado', { pos, intensidad: az(0.7, 1) })),
     respiro: (pos, tipo = 'rastreador') => sonido.vozAlien?.(tipo, 'respiro', { pos, intensidad: 0.35 }),
     // el nido enterrado: casi todo por debajo de los 60 Hz, que es lo que se siente
     // en el pecho antes de escucharse
@@ -46,7 +60,9 @@ export function crearBanco(sonido) {
       sonido.golpeRuido?.({ dur: 0.7, frec: 3200, q: 0.5, vol: 0.09, destino: sonido.fuente?.(pos, 1, 0.9), cuando: 0.5 });
     },
     jefe: (pos) => {
-      sonido.vozAlien?.('jefe', 'llamado', { pos, intensidad: 1, vol: 1.5 });
+      // 3.8.5: el Mandamás entra riéndose grave y despacio (es un aviso: el piano se corre al fondo)
+      sonido.marcarAviso?.(3);
+      reir(pos, 'jefe', true, { intensidad: 1, vol: 1.5 }, () => sonido.vozAlien?.('jefe', 'llamado', { pos, intensidad: 1, vol: 1.5 }));
       sonar(pos, (d) => sonido.golpeRuido({ dur: 1.6, frec: 90, q: 0.7, tipo: 'lowpass', vol: 0.5, destino: d, buffer: sonido.ruido }));
       sonido.impacto?.('tierra', { pos, tamaño: 5, dureza: 0.3, fuerza: 1.4, vol: 1.2, cuando: 0.9 });
     },
@@ -169,6 +185,7 @@ export function crearBanco(sonido) {
     // 3.8.0: el aviso de que salen: los duendes se llaman entre ellos con silbidos desde
     // el monte, tres que suben y se quiebran (antes, una sirena)
     sirena: () => sonar(null, (d) => {
+      sonido.marcarAviso?.(1.8);   // 3.8.5: el piano no se le pisa
       for (let i = 0; i < 3; i++) {
         const f = az(1150, 1350) * (1 + i * 0.12);
         sonido.tono({ frec: f, fin: f * 1.35, dur: 0.32, tipo: 'sine', vol: 0.05, vibrato: 7, destino: d, ataque: 0.04, cuando: i * 0.55 });
@@ -212,7 +229,7 @@ export function crearBanco(sonido) {
     emerger: (pos) => sonar(pos, (d) => {
       sonido.impacto('tierra', { tamaño: 3.4, dureza: 0.4, fuerza: 1.3, vol: 1.1, destino: d });
       sonido.golpeRuido({ dur: 0.8, frec: 2400, q: 0.4, vol: 0.14, destino: d, cuando: 0.05 });
-      sonido.vozAlien?.('rastreador', 'alerta', { pos, intensidad: 0.9, escala: 0.9 });
+      reir(pos, 'rastreador', false, { intensidad: 0.9, cuando: 0.1 }, () => sonido.vozAlien?.('rastreador', 'alerta', { pos, intensidad: 0.9, escala: 0.9 }));   // 3.8.5
     }),
     // la piedra del artillero: el silbido al caer y el golpe
     roca: (pos) => sonar(pos, (d) => {
@@ -244,13 +261,16 @@ export function crearBanco(sonido) {
     // la picada: el chistido de la lechuza (un soplido ronco que baja) y la risita del jinete
     picada: (pos) => {
       sonar(pos, (d) => sonido.golpeRuido({ dur: 0.9, frec: 4200, fin: 2200, q: 2.2, vol: 0.2, destino: d }));
-      sonido.vozAlien?.('saltador', 'alerta', { pos, intensidad: 0.7, escala: 1.1, cuando: 0.25 });
+      reir(pos, 'saltador', false, { intensidad: 0.7, vol: 0.8, cuando: 0.25 }, () => sonido.vozAlien?.('saltador', 'alerta', { pos, intensidad: 0.7, escala: 1.1, cuando: 0.25 }));   // 3.8.5
     },
     // 3.8.0: la risita del travieso que te robó algo y sale corriendo: dos risitas agudas,
     // la segunda más arriba y más corta, y los pasitos en la hojarasca
+    // (3.8.5: una carcajada de travieso; si las risas todavía no están, las dos risitas de antes)
     risa: (pos, tipo = 'saltador') => {
-      sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: 0.85, escala: 0.85 });
-      sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: 0.6, escala: 0.75, vol: 0.7, cuando: az(0.45, 0.6) });
+      reir(pos, tipo, false, { intensidad: 0.9 }, () => {
+        sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: 0.85, escala: 0.85 });
+        sonido.vozAlien?.(tipo, 'alerta', { pos, intensidad: 0.6, escala: 0.75, vol: 0.7, cuando: az(0.45, 0.6) });
+      });
       sonar(pos, (d) => { for (let i = 0; i < 4; i++) { if (sonido.pisadaEn) sonido.pisadaEn(d, 'hojarasca', 0.12, 0.1 + i * 0.12, true); } });
     },
     // la llama que se apaga de golpe
@@ -284,6 +304,16 @@ export function crearBanco(sonido) {
         else sonido.golpeRuido({ dur: 0.07, frec: az(2400, 3600), q: 0.8, vol: 0.05 + i * 0.012, destino: d, cuando: c + 0.01 });
       }
     }),
+    // ---- 3.8.5: el piano de misterio. `prepararPiano` en el aviso de la hora previa (se sintetiza en la
+    // cola, sin trabar) y `piano` cuando salen: una sola vez por noche, nunca la misma frase que anoche.
+    prepararPiano: (noche) => sonido.prepararPiano?.(frasePianoDeNoche(noche, piano.frase)),
+    piano: (noche) => {
+      if (!tocaElPiano(piano, noche, { relax: !!sonido.relax })) return 0;
+      const k = frasePianoDeNoche(noche, piano.frase);
+      piano.noche = Math.floor(noche); piano.frase = k;
+      return sonido.pianoMisterio?.(k) ?? 0;
+    },
+    pianoTocado: () => ({ ...piano }),
   };
   return S;
 }
