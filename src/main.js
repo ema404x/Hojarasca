@@ -32,7 +32,7 @@ import { crearFauna } from './fauna.js';
 import { crearVida } from './vida.js';
 import { crearBichos } from './bichos.js';
 import { crearPerro } from './perro.js';
-import { crearGente, saludoDe, alturaDePie } from './gente.js';
+import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
@@ -84,7 +84,7 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
 import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
@@ -674,8 +674,9 @@ async function construir() {
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
-  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo)
-  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo' || g.pose === 'tornear' || g.pose === 'coser') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
+  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo; 3.8.6: todas las poses
+  // sentadas de gente.js, comer incluida)
+  est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
@@ -751,7 +752,9 @@ async function construir() {
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
   desalojarCarpa();   // 3.6.2
-  if (desalojo.acopio) vaciarUltimoAcopio(desalojo.materiales);   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás
+  // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
+  // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
+  if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
@@ -4605,6 +4608,7 @@ function armarOficiosYAldea(esDesafio) {
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
+    tomandoAlgo: (npc) => !!vecindadJuego?.invitado(npc),   // 3.8.6: invitada a tomar algo con vos, la cita cuenta como «con vos»
     lugarValle: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null), invierno: () => U.uInvierno.value > 0.5,
     enCasa: (p, edificio) => { if (!p) return false; if (edificio === 'refugio') { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); } return !!aldeaMundo && !!edificio && Object.values(puntosMundo(edificio)).some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 6); },
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
@@ -4747,6 +4751,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     cobrar: (e) => cobrarPremio(e), redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
     nombresFoto: () => Object.fromEntries(DESAFIOS.map((d) => [d.id, d.nombre])),
+    fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),   // 3.8.6: el concurso no se lleva a la gente de la fiesta
   });
   noticiasJuego = crearNoticiasJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
@@ -6921,7 +6926,10 @@ function hablar(npc) {
   const deNoticias = !desafio && !deAmor ? (concursosJuego?.hablar(npc) || noticiasJuego?.hablar(npc) || null) : null;
   if (deAmor || deNoticias) {
     const h = deAmor || deNoticias;
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
+    // 3.8.6: si además te había venido a buscar («te quiere decir algo», el aviso), primero eso y después lo de la noticia
+    // (antes la E abría el concurso o la carta, lo que te quería decir no se decía y el aviso seguía igual)
+    const ini = deNoticias && !desafio ? socialJuego?.tomarIniciativa(npc) : null;
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: ini ? [...ini.renglones, ...h.partes] : h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
     charla.vec = vecindadJuego?.abrir(npc) || null;
     $('charla').classList.remove('oculto');
     mostrarCharla();
@@ -7222,8 +7230,9 @@ function elegirEnMenuCharla(i) {
   const r = vecindadJuego.elegir(charla.vec, elegido, charla.npc);
   charla.menu = null;
   charla.parte = 0;
-  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece
-  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.tipo === 'renglones' ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
+  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece (3.8.6: la mano, sólo
+  // si se la diste: sin lo que pide, o por segunda vez en el día, el deseo se cumplía igual y daba la amistad del premio)
+  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.ayudo ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
   const gracias = hechoDeseo ? socialJuego?.cumplir(charla.npc, hechoDeseo) : null;
   if (gracias && Array.isArray(r.renglones)) r.renglones = [...r.renglones, gracias];
   if (r.tipo === 'menu') armarMenuCharla();   // 3.6.1: con lo del lugar
@@ -7237,6 +7246,8 @@ function elegirEnMenuCharla(i) {
 }
 // Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
 function atrasCharla() {
+  // 3.8.6: en el último renglón, Escape elige lo que dice abajo (el visitante que guiás: «Hasta acá»)
+  if (!charla.menu && charla.historia?.alEscape && charla.parte >= charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }
   if (charla.menu?.nivel === 2) { volverRueda(); return; }   // 3.7.4: de la segunda rueda, a las categorías
   if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }   // 3.6.1: con lo del lugar
   if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
@@ -7260,7 +7271,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {
@@ -7433,7 +7444,9 @@ function otroSocial(o, npc) {
 function loQueTeQueriaDecir(npc) {
   const ini = !desafio ? socialJuego?.tomarIniciativa(npc) : null;
   if (!ini) { alSaludarSocial(npc); return; }
-  charla.historia = { id: 'social-iniciativa', partes: ini.renglones, alTerminar: () => { charla.historia = null; } };
+  // 3.8.6: y si ya le cumpliste un deseo de lo que se hace en el valle, te lo agradece igual (si te venía a buscar, no)
+  const gracias = socialJuego?.cumplir(npc, null);
+  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones, alTerminar: () => { charla.historia = null; } };
   charla.parte = 0;
 }
 function alSaludarSocial(npc) {
@@ -8413,7 +8426,8 @@ function actualizarTiempo(dt) {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
-    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
+    // (3.8.6: ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
+    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }

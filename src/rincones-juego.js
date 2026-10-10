@@ -15,7 +15,7 @@
 //   sumarMaterial(k, n), sumarCosa(k, n), cantidad(tipo, k), amistades() → { clave: nivel }, nivel(clave), hijos() →
 //   [{ nombre, etapa }], dormir(), refrescarHuerta(), anotaciones() (las del cuaderno), noche() (0..1), tieneCaballo(),
 //   caballo() → { x, z, yaw } (donde espera), dejarCaballo(x, z, yaw), sonido, fundido(fn) }
-import { RINCONES, LUGARES_RINCONES, lugarEnMundo, sanearRincones, encontrarDuende, encontrado, textoDuende, duendesEncontrados, pistaDuende, tallaEnLaPlaza, textoAtril, dejarCuaderno, leyeronCuaderno, MANUALIDADES, MAESTROS, puedeAprender, aprender, tallerArmado, manualidadesDeHoy, hacerManualidad, adornosDelEstante, estadoCantero, textoCanteroRincon, trabajarCantero, sembrarVecinos, horaDeHuerta, horaDeTiteres, funcionHoy, darFuncion, textoFuerte, trabajarFuerte, fuerteTerminado, hijosParaAcampar, puedeAcampar, acampar, anotarGol, empezarPartido, horaDePartido, elegirJugadores, JUGADORES_POTRERO } from './rincones.js';
+import { RINCONES, LUGARES_RINCONES, lugarEnMundo, sanearRincones, encontrarDuende, encontrado, textoDuende, duendesEncontrados, pistaDuende, tallaEnLaPlaza, textoAtril, dejarCuaderno, leyeronCuaderno, MANUALIDADES, MAESTROS, puedeAprender, aprender, tallerArmado, manualidadesDeHoy, hacerManualidad, adornosDelEstante, estadoCantero, textoCanteroRincon, trabajarCantero, sembrarVecinos, horaDeHuerta, horaDeTiteres, funcionHoy, darFuncion, textoFuerte, trabajarFuerte, fuerteTerminado, hijosParaAcampar, puedeAcampar, acampar, anotarGol, empezarPartido, horaDePartido, elegirJugadores, JUGADORES_POTRERO, amistadDelPicado, PICADO } from './rincones.js';
 import { CANCHA, PATADA, pelotaNueva, sacar, patear, pasoPelota, pensarJugador, patadaDe, alAlcance, saqueDespues } from './futbol.js';
 import { SULKY, tieneSulky, pedirSulky, caminoArreglado, hacerMinga, objetivoSulky, andarSulky, enCamino, masCercano } from './sulky.js';
 import { CASA_PROPIA, etapaCasa, casaTerminada, pedirLote, aportarCasa, textoCasa, adentroDeCasa, loteEnMundo } from './casa-propia.js';
@@ -101,10 +101,14 @@ export function crearRinconesJuego(ctx) {
   }
   function terminar(motivo = '') {
     if (!partido) return;
+    // 3.8.6: la amistad y el deseo, sólo si se jugó (a los goles, o un rato), y la amistad una vez por día
+    const cuenta = amistadDelPicado(r(), dia(), !motivo, partido.t);
+    const jugado = !motivo || partido.t >= PICADO.jugado;
     for (const j of partido.jugadores) {
       const n = j.npc;
       n.conVos = false; n.enCita = false; n.camino = []; n.velocidad = 0.85; n.pose = null;
-      amistad(j.clave, 3);
+      if (cuenta) amistad(j.clave, 3);
+      if (!jugado) continue;
       // ¿era su deseo jugar a la pelota?
       try { const c = cumplirDeseo(j.clave, progreso(), { tipo: 'interaccion', id: 'pelota' }, dia()); if (c?.ok) ctx.nota?.(`${NOMBRE_DE[j.clave] || j.clave} quería jugar a la pelota`, c.renglon || '', false); } catch (e) { /* nada */ }
     }

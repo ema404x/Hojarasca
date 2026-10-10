@@ -416,7 +416,7 @@ const GU = await import('../src/guardado.js');
   ok(pl.includes('<div class="trueque oculto" id="fiesta-panel">') && pl.includes('<ul id="fiesta-lista"></ul>'), 'plantilla.html: el panel');
   const ge = leer('src/gente.js');
   for (const p of ['aplaudir', 'chamame', 'chacarera', 'contar', 'jinete', 'tirar']) ok(ge.includes(`case '${p}':`), `gente.js: la pose «${p}»`);
-  ok(ge.includes("case 'sentado': case 'leyendo': case 'tornear': case 'coser': case 'comer': {"), 'comer, sentado a la mesa');
+  ok(ge.includes("export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);"), 'comer, sentado a la mesa');
 }
 
 console.log(`✓ 3.7.5 (fiestas): ${n} comprobaciones`);

@@ -22,6 +22,11 @@ const minus = (s) => (typeof s === 'string' && s ? s.charAt(0).toLowerCase() + s
 const mayus = (s) => (typeof s === 'string' && s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 const textoSano = (s, tope = 60) => (typeof s === 'string' ? s.replace(/[\u0000-\u001f<>]/g, '').slice(0, tope) : null);
 const unir = (l) => (l.length < 2 ? l[0] || '' : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
+// 3.8.6: el lugar de una fiesta con su artículo («en la casa de té»: decía «en casa de Té»)
+export const lugarConArticulo = (edificio) => { const n = EDIFICIOS_ALDEA[edificio]?.nombre; return !n ? 'su casa' : /^(La|El|Los|Las) /.test(n) ? minus(n) : `la ${n.toLowerCase()}`; };
+// 3.8.6: ¿festeja de verdad? (lo mismo que `fiestaDeCumple`: cercano, con su local abierto y sin estar estudiando afuera; antes
+// el aviso del día antes miraba sólo que fuera cercano y anunciaba fiestas que no iban a pasar)
+const festejaDeVerdad = (aldea, clave, dia) => !!fiestaDeCumple(dia, aldea)?.claves.includes(clave);
 
 // ---------------------------------------------------------------- quiénes
 // Los del valle también cumplen años (y te los cuenta el calendario). Ema pasó a llamarse Josefina (el id
@@ -87,7 +92,7 @@ export function eventosDelDia(dia, { aldea = null, fiestas = FIESTAS_ALDEA, extr
 // 90 de la abuela y las fiestas); los demás cumpleaños, el mismo día y sin fiesta (`avisoDelDia`).
 export function avisoDiaAntes(dia, opciones = {}) {
   const manana = diaValido(dia, 1) + 1;
-  const ev = eventosDelDia(manana, opciones).filter((e) => e.tipo !== 'cumple' || festejaCumple(opciones.aldea, e.clave, manana));
+  const ev = eventosDelDia(manana, opciones).filter((e) => e.tipo !== 'cumple' || festejaDeVerdad(opciones.aldea, e.clave, manana));
   if (!ev.length) return null;
   const cumples = ev.filter((e) => e.tipo === 'cumple');
   const fiestas = ev.filter((e) => e.tipo === 'fiesta');
@@ -96,14 +101,14 @@ export function avisoDiaAntes(dia, opciones = {}) {
   const partes = [];
   if (cumples.length) partes.push(`${cumples.length === 1 ? 'cumple años' : 'cumplen años'} ${unir(cumples.map((e) => nombreCortoDe(e.clave)))}`);
   for (const x of fiestas) partes.push(minus(x.nombre));
-  const donde = fiesta ? (fiesta.donde === 'plaza' ? 'A la tardecita festejan juntos en la plaza de la aldea. Un regalo que les guste vale el doble.' : `A la tardecita festeja en ${minus(EDIFICIOS_ALDEA[fiesta.edificio]?.nombre || 'su casa')}. Un regalo que le guste vale el doble.`) : 'Si lo ves, un regalo que le guste vale el doble.';
+  const donde = fiesta ? (fiesta.donde === 'plaza' ? 'A la tardecita festejan juntos en la plaza de la aldea. Un regalo que les guste vale el doble.' : `A la tardecita festeja en ${lugarConArticulo(fiesta.edificio)}. Un regalo que le guste vale el doble.`) : 'Si lo ves, un regalo que le guste vale el doble.';
   return { titulo: `Mañana ${unir(partes)}`, texto: donde };
 }
 // 3.7.0 (integración): los que cumplen hoy sin fiesta (los que no son de los más cercanos): te enterás por una nota
 // (cuando haya radio y diario, en la 3.7.3, por ahí). { titulo, texto } o null.
 export function avisoDelDia(dia, opciones = {}) {
   const hoy = diaValido(dia, 1);
-  const sin = eventosDelDia(hoy, opciones).filter((e) => e.tipo === 'cumple' && !festejaCumple(opciones.aldea, e.clave, hoy));
+  const sin = eventosDelDia(hoy, opciones).filter((e) => e.tipo === 'cumple' && !festejaDeVerdad(opciones.aldea, e.clave, hoy));
   if (!sin.length) return null;
   const uno = sin.length === 1;
   return { titulo: `Hoy ${uno ? 'cumple' : 'cumplen'} años ${unir(sin.map((e) => nombreCortoDe(e.clave)))}`, texto: uno ? 'No hace fiesta. Si lo cruzás, saludalo: un regalo que le guste vale el doble.' : 'No hacen fiesta. Si los cruzás, saludalos: un regalo que les guste vale el doble.' };
@@ -150,6 +155,8 @@ export function vidaNueva(dia = 1) {
 const NOMBRE_LUGAR = /^[a-z0-9-]{1,24}$/;
 function sanearVisitante(v, tope) {
   if (!objeto(v) || !VISITANTES.some((x) => x.id === v.id) || typeof v.lugar !== 'string' || !Object.hasOwn(LUGARES_VISITA, v.lugar)) return null;
+  // (3.8.6: el que despediste y volvía a la estación ya se fue)
+  if (v.estado === 'vuelve') return null;
   const estado = ['anden', 'guiando', 'llego'].includes(v.estado) ? v.estado : 'anden';
   return { id: v.id, lugar: v.lugar, dia: Math.min(tope, diaValido(v.dia, 1)), estado };
 }
@@ -179,13 +186,13 @@ export function sanearVidaAldea(v0, hoy = null) {
   return {
     avisado: diaOCero(x.avisado, tope),
     // (el de otro día ya se fue; 3.8.4: salvo el que estás guiando, que sigue con vos aunque pase la medianoche)
-    visitante: visitante && (visitante.dia === tope || (visitante.estado === 'guiando' && visitante.dia === tope - 1)) ? visitante : (Number.isFinite(num(hoy)) ? null : visitante),
+    visitante: visitante && (visitante.dia === tope || ((visitante.estado === 'guiando' || visitante.estado === 'llego') && visitante.dia === tope - 1)) ? visitante : (Number.isFinite(num(hoy)) ? null : visitante),
     visitantesDia: diaOCero(x.visitantesDia, tope),
     guiados: guiados.slice(-TOPE_GUIADOS),
     mascota: {
       estado: estadoM,
       desde: estadoM === 'adoptado' ? Math.min(tope, diaValido(m.desde, tope)) : 0,
-      nombre: estadoM === 'adoptado' ? (nombreM || MASCOTA.nombres[0]) : null,
+      nombre: estadoM === 'adoptado' ? nombreDeCachorro(nombreM, diaValido(m.desde, 1)) : null,   // (3.8.6: un «Tizón» de antes pasa a otro nombre)
       ofrecido: diaOCero(m.ofrecido, tope), nacieron: estadoM === 'nada' ? 0 : Math.min(tope, diaValido(m.nacieron, tope)),
     },
     apodo: APODOS.some((a) => a.id === x.apodo) ? x.apodo : null,
@@ -275,6 +282,9 @@ export function textosVisitante(v) {
     seguir: 'E: vamos · Escape: ahora no',
     acepta: `¡Genial! Voy detrás tuyo. Avisame si camino muy despacio.`,
     yendo: `Te sigo. ${mayus(l.nombre)}, ¿falta mucho?`,
+    // 3.8.6: «Hasta acá» (Escape mientras te sigue): se despide y se vuelve a la estación
+    seguirGuia: 'E: seguimos · Escape: hasta acá',
+    chau: `Bueno, hasta acá llego. Me vuelvo a la estación despacito, mirando todo: ya vi más de lo que esperaba. Gracias por la compañía. ${def.despedida}`,
     gracias: [`¡Llegamos! ${mayus(l.nombre)}… es más lindo que en la postal.`, `Muchas gracias. Lo anoto en mi libreta: «Me trajo un vecino del valle». ${def.despedida}`],
   };
 }
@@ -293,11 +303,19 @@ export function guiado(vida, dia) {
   return g;
 }
 export function visitanteSeVa(vida) { if (objeto(vida)) vida.visitante = null; }
+// 3.8.6: «Hasta acá»: el que guiás se despide y vuelve solo a la estación (sin anotarse como guiado). Devuelve si se despidió.
+export function despedirVisitante(vida) {
+  if (!objeto(vida?.visitante) || vida.visitante.estado !== 'guiando') return false;
+  vida.visitante.estado = 'vuelve';
+  return true;
+}
 // 3.8.4: ¿sigue en el valle? El de otro día ya se fue y el que nadie llevó se vuelve en el último tren (a las 20); el que
 // estás guiando se queda hasta terminar el recorrido aunque pase la medianoche (antes se iba en el medio del camino).
 export function visitanteSigue(v, dia, hora) {
   if (!objeto(v)) return false;
-  if (v.estado === 'guiando') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;   // (hasta el día siguiente)
+  // (hasta el día siguiente; 3.8.6: también el que llegó con vos pasada la medianoche, que todavía te está dando las gracias:
+  // se desvanecía en tu cara medio segundo después)
+  if (v.estado === 'guiando' || v.estado === 'llego' || v.estado === 'vuelve') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;
   return v.dia === diaValido(dia, 1) && !(v.estado === 'anden' && num(hora) >= 20);
 }
 // Para el cuaderno: «Lena, una mochilera de Hamburgo: el Mirador del Pehuén (día 12)».
@@ -336,7 +354,7 @@ export function perrosPresentes(aldea) {
 // de que Ayelén, la veterinaria, se dio cuenta; si no, igual, al mes). Ernesto te ofrece uno al hablarle
 // (una vez por día, hasta que digas que sí). El cachorro vive en tu refugio y crece: cachorro, joven,
 // adulto.
-export const MASCOTA = { desdeDescubierta: 3, sinVeterinaria: 30, conVeterinaria: 2, diasCachorro: 12, diasJoven: 24, nombres: ['Pichi', 'Lucero', 'Chispa', 'Tizón'], pelo: '#a8804f', dibujo: 'pecho' };
+export const MASCOTA = { desdeDescubierta: 3, sinVeterinaria: 30, conVeterinaria: 2, diasCachorro: 12, diasJoven: 24, nombres: ['Pichi', 'Lucero', 'Chispa', 'Canela'], pelo: '#a8804f', dibujo: 'pecho' };   // (3.8.6: «Canela»: «Tizón» era también el perro del herrero)
 export function cachorrosNacen(vida, aldea, dia) {
   if (!objeto(vida) || vida.mascota?.estado !== 'nada') return false;
   const a = objeto(aldea) ? aldea : {};
@@ -361,11 +379,18 @@ export function ofertaCachorro(vida, dia) {
     seguir: 'E: me lo llevo · Escape: todavía no',
   };
 }
+// 3.8.6: el nombre del cachorro nunca es el de otro perro de la aldea (Chola, Tango, Pampa, Tizón): si choca, uno libre
+export function nombreDeCachorro(nombre, dia) {
+  const usados = new Set(ANIMALES_ALDEA.perros.map((p) => p.nombre.toLowerCase()));
+  if (nombre && !usados.has(nombre.toLowerCase())) return nombre;
+  const libres = MASCOTA.nombres.filter((x) => !usados.has(x.toLowerCase()));
+  return libres[diaValido(dia, 1) % libres.length];
+}
 export function ofrecido(vida, dia) { if (objeto(vida?.mascota)) vida.mascota.ofrecido = diaValido(dia, 1); }
 export function adoptarMascota(vida, dia, nombre = null) {
   if (!objeto(vida) || vida.mascota?.estado !== 'cachorros') return null;
   const d = diaValido(dia, 1);
-  const n = textoSano(nombre, 20) || MASCOTA.nombres[d % MASCOTA.nombres.length];
+  const n = nombreDeCachorro(textoSano(nombre, 20), d);
   vida.mascota = { ...vida.mascota, estado: 'adoptado', desde: d, nombre: n };
   return vida.mascota;
 }
@@ -495,7 +520,7 @@ export function cartaDeLaAldea(vida, progreso, dia, ritmo = 'normal') {
   if (obra) { const et = etapaDe(a, obra); novedades.push(`La obra de ${minus(EDIFICIOS_ALDEA[obra].nombre)} va por la etapa ${et.hechas + 1} de ${et.total}${et.lista ? ': los vecinos están trabajando' : ', y falta material'}.`); }
   for (const [lote, desde] of Object.entries(objeto(a.locales) ? a.locales : {})) if (d - entero(desde) <= r.carta) novedades.push(`Abrió ${minus(EDIFICIOS_ALDEA[lote]?.nombre || lote)}. Ya hay cola en la puerta.`);
   const manana = eventosDelDia(d + 1, { aldea: a }).filter((e) => e.tipo === 'cumple' && e.clave !== de);
-  if (manana.length) novedades.push(`Mañana cumple años ${unir(manana.map((e) => nombreCortoDe(e.clave)))}. Si venís, traé algo rico.`);
+  if (manana.length) novedades.push(`Mañana ${manana.length > 1 ? 'cumplen' : 'cumple'} años ${unir(manana.map((e) => nombreCortoDe(e.clave)))}. Si venís, traé algo rico.`);   // (3.8.6: «cumplen», con varios)
   if (vida.mascota?.estado === 'cachorros') novedades.push('La Chola tuvo cachorros en la boletería. Ernesto anda repartiendo.');
   if (!novedades.length) novedades.push(quienLlega(a) ? 'Acá todo tranquilo. Dicen que pronto baja alguien más del tren.' : 'Acá todo tranquilo: la aldea está completa y el pan sale a horario.');
   const saludo = de === 'nelida' ? 'Querido vecino: le escribo de parte de toda la aldea, que pregunta por usted.' : `Querido amigo: hace días que no te vemos por la ${NOMBRE_ALDEA}.`;

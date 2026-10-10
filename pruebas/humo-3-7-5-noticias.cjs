@@ -229,7 +229,8 @@ app.whenReady().then(async () => {
     await irLejos(); await aldea(2); await plaza(); await aldea(80);
     e = await estado();
     const enLaMesa = e.npcs.filter((x) => x.destino?.lugar === 'concurso').map((x) => x.clave);
-    ok(enLaMesa.includes('nelida') && enLaMesa.length >= 6, `en la plaza: Nélida, el jurado y los que compiten (${enLaMesa.join(', ')})`);
+    // (3.8.6, decisión del usuario: con la fiesta en curso, el concurso no se lleva a nadie de la fiesta: se falla ahí)
+    ok(enLaMesa.length === 0, `con la fiesta de la cosecha en curso, nadie se va de la fiesta a la mesa del concurso (${enLaMesa.join(', ')})`);
     // de lejos, mirando la mesa (a unos 9 m)
     const mesa = await js(`(()=>{ const n = ${npc('nelida')}; return n ? { x: n.pos.x, z: n.pos.z } : null })()`);
     // (desde afuera de la ronda: del lado de Nélida que da la espalda al centro de la plaza, mirando hacia el centro)

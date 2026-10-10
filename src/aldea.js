@@ -718,8 +718,8 @@ export const POBLADORES_ALDEA = {
       'Me dicen Cholo, Cholo Barrientos. Toco la verdulera y la guitarra; el pasaje del tren lo pagué con dos chamamés.',
       'Un pueblo sin baile se duerme temprano. Denme un salón y los sábados a la tarde nadie se queda en la casa.',
     ],
-    saludo: 'Pasá, que estoy afinando.', despedida: 'El sábado a la tarde, en la plaza. No faltes.',
-    resumen: 'Una vez por semana te enseña una melodía del valle que te falte, para el tocadiscos del refugio. Los sábados a la tarde toca en la plaza.',
+    saludo: 'Pasá, que estoy afinando.', despedida: 'El sábado a la tarde, en el salón. No faltes.',   // (3.8.6: el baile es en el salón desde la 3.6; decía «en la plaza»)
+    resumen: 'Una vez por semana te enseña una melodía del valle que te falte, para el tocadiscos del refugio. Los sábados a la tarde toca en el salón.',
   },
   // ---------------------------------------------------------------- 3.7.0: las pobladoras nuevas
   // Ocho que llegan intercaladas con los once de la 3.6 (ver ORDEN_POBLADORES_ALDEA), cada una con su local
@@ -1574,10 +1574,10 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
     }
     case 'musico': {
       const ultima = entero(aldea.partitura);
-      if (ultima && diaValido(dia, 1) - ultima < S.diasPartitura) return { partes: ['Esta semana ya te enseñé una. Practicala, y el sábado a la tarde vení a la plaza.'] };
+      if (ultima && diaValido(dia, 1) - ultima < S.diasPartitura) return { partes: ['Esta semana ya te enseñé una. Practicala, y el sábado a la tarde vení al salón.'] };
       const halladas = new Set(Array.isArray(progreso?.personal?.musica?.halladas) ? progreso.personal.musica.halladas : []);
       const m = MELODIAS.find((x) => !x.inicial && !halladas.has(x.id));
-      if (!m) return { partes: ['Ya sabés todas las del valle. Ahora te falta bailarlas: el sábado, en la plaza.'] };
+      if (!m) return { partes: ['Ya sabés todas las del valle. Ahora te falta bailarlas: el sábado, en el salón.'] };
       return {
         partes: [`Escuchá esta: «${m.nombre}». Te la anoto en un papel, para el tocadiscos del refugio.`],
         seguir: DALE,
@@ -1821,6 +1821,18 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     if (j < 0) return plaza();   // 3.7.0: los que no tienen silla, en la plaza
     return ir('biblioteca', 'biblioteca', `lectura-${j + 1}`);
   }
+  // 3.7.0: el cumpleaños: a la tardecita, el que cumple festeja en la plaza con toda la aldea (los chicos, en
+  // su casa, con la familia). El almacén, la casa de té y los locales cierran un rato. (3.8.6: antes que la bandera y que
+  // el baile del sábado: el sábado con el salón abierto la fiesta anunciada no pasaba nunca, ni los 90 de la abuela, y el
+  // jefe se iba a arriar la bandera en la mitad de la suya)
+  if (dia !== null && t >= HORA_FIESTA[0] && t < HORA_FIESTA[1]) {
+    const fiesta = fiestaDeCumple(dia, a);
+    if (fiesta?.claves.includes(persona)) return fiesta.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', fiesta.edificio, 'adentro');
+    // (3.7.0 (integración): los 90 de la abuela: toda la aldea en la plaza)
+    if (fiesta?.noventa) return ir('fiesta', 'plaza', `estar-${(i % 20) + 1}`);
+    // (el cumpleaños de uno de los chicos: la familia, en casa)
+    if (fiesta?.edificio === 'casa-familia' && ['padre', 'madre', 'nene', 'nena'].includes(persona)) return ir('fiesta', 'casa-familia', 'adentro');
+  }
   if (bandera) return ir('plaza', 'plaza', 'soga');
   // 3.6.2: el sábado, tres cuartos de hora antes del baile se deja lo que se esté haciendo (para llegar
   // caminando sin que la ida se coma el baile: ver conTiempo en aldea-gente.js), y después del baile nadie
@@ -1832,16 +1844,6 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     if (persona === 'musico') return ir('salon', 'salon', 'escenario');
     const j = ORDEN_PERSONAS_ALDEA.filter((k) => k !== 'musico').indexOf(persona);
     return j < 8 ? ir('salon', 'salon', `baile-${j + 1}`) : j < 16 ? ir('salon', 'salon', `lugar-${j - 7}`) : plaza();
-  }
-  // 3.7.0: el cumpleaños: a la tardecita, el que cumple festeja en la plaza con toda la aldea (los chicos, en
-  // su casa, con la familia). El almacén, la casa de té y los locales cierran un rato.
-  if (dia !== null && t >= HORA_FIESTA[0] && t < HORA_FIESTA[1]) {
-    const fiesta = fiestaDeCumple(dia, a);
-    if (fiesta?.claves.includes(persona)) return fiesta.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', fiesta.edificio, 'adentro');
-    // (3.7.0 (integración): los 90 de la abuela: toda la aldea en la plaza)
-    if (fiesta?.noventa) return ir('fiesta', 'plaza', `estar-${(i % 20) + 1}`);
-    // (el cumpleaños de uno de los chicos: la familia, en casa)
-    if (fiesta?.edificio === 'casa-familia' && ['padre', 'madre', 'nene', 'nena'].includes(persona)) return ir('fiesta', 'casa-familia', 'adentro');
   }
   // 3.7.0: los chicos que ya son jóvenes trabajan con el que les enseña el oficio, o en lo que estudiaron
   const etapa = v?.chico ? etapaDeChico(a, persona) : null;

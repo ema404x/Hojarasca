@@ -41,7 +41,7 @@
 //
 // Sin three ni DOM (se prueba en Node): las figuras las arma gente.js y lo demás llega por `ctx`.
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
-import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
+import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, despedirVisitante, lugarConArticulo, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
@@ -868,8 +868,9 @@ export function crearAldeaGente(ctx) {
     if (k === 'visitante') return charlaVisitante(npc);   // 3.7.0
     if (k === 'familia') return charlaFamilia(npc);         // 3.7.0
     if (esVecinoAldea(k)) {
-      // 3.7.0: Ernesto te ofrece el cachorro de la Chola (una vez por día, hasta que digas que sí)
-      if (k === 'jefe') {
+      // 3.7.0: Ernesto te ofrece el cachorro de la Chola (una vez por día, hasta que digas que sí). 3.8.6: no si está de visita
+      // en tu mesa (main.js muestra la charla de la visita y descarta ésta: la oferta del día se gastaba sin que la vieras)
+      if (k === 'jefe' && !npc.deVisita) {
         const of = ofertaCachorro(vida(), dia());
         if (of) {
           ofrecido(vida(), dia());
@@ -1271,6 +1272,9 @@ export function crearAldeaGente(ctx) {
     if (decirHasta && performance.now() > decirHasta) { decirHasta = 0; ctx.decir?.(null); }
     if (vis.estado === 'guiando') {
       n.dormido = false; n.ruta = null; n.enCita = true;
+      // 3.8.6: en el kayak, el velero o el tren no te sigue (caminaba por el fondo del lago y saltaba al costado de la vía):
+      // te espera donde quedó
+      if (js.enKayak || js.enVela || js.enTren) { n.camino = []; return; }
       // te sigue (y si te le adelantaste mucho, te alcanza: «¡Esperame!»)
       const atras = { x: js.pos.x + Math.sin(js.yaw || 0) * 2.6, z: js.pos.z + Math.cos(js.yaw || 0) * 2.6 };
       if (dj > 45) { n.pos.set(atras.x, ctx.alturaDePie(atras.x, atras.z, n.pos.y), atras.z); }
@@ -1293,6 +1297,16 @@ export function crearAldeaGente(ctx) {
       return;
     }
     n.enCita = false;
+    // 3.8.6: el que despediste vuelve caminando a la estación; cuando llega o te alejás, se va
+    if (vis.estado === 'vuelve') {
+      const an = puntosFijosDe('estacion-aldea').espera, w = M.aMundo(an.x, an.z);
+      const da = Math.hypot(n.pos.x - w.x, n.pos.z - w.z);
+      n.dormido = dj > RADIO_ALDEA;
+      n.camino = da > 1.5 ? [{ x: w.x, z: w.z, cerca: 1 }] : [];
+      n.velocidad = 0.9;
+      if (da <= 1.5 || dj > 70) { visitanteSeVa(v); n.dormido = true; ctx.guardar(); }
+      return;
+    }
     if (vis.estado === 'llego') {
       // se queda mirando el lugar; cuando te alejás, se va (vuelve al tren a su ritmo)
       n.dormido = dj > RADIO_ALDEA;
@@ -1302,6 +1316,16 @@ export function crearAldeaGente(ctx) {
     // en el andén, esperando que alguien le hable
     n.dormido = dj > RADIO_ALDEA;
   }
+  // 3.8.6: «Hasta acá» con el que guiás
+  function despedir(npc) {
+    const v = vida(), tx = textosVisitante(v.visitante);
+    if (!tx || !despedirVisitante(v)) return;
+    if (npc) npc.enCita = false;
+    ctx.decir?.(`${tx.nombre}: ${tx.chau}`);
+    decirHasta = performance.now() + 7000;
+    ctx.nota(`${tx.nombre} se vuelve a la estación`, 'Otro día, otro visitante', false);
+    ctx.guardar();
+  }
   function charlaVisitante(npc) {
     const v = vida().visitante;
     const tx = textosVisitante(v);
@@ -1310,7 +1334,9 @@ export function crearAldeaGente(ctx) {
       return { id: 'visitante', partes: tx.pide, seguir: tx.seguir, tipo: 'llegada',
         alTerminar: () => { if (empezarGuia(vida())) { ctx.nota(`${tx.nombre} te sigue`, `Llevalo hasta ${LUGARES_VISITA[v.lugar].nombre}`, true); npc.enCita = true; ctx.guardar(); } } };
     }
-    if (v.estado === 'guiando') return { id: 'visitante', partes: [tx.yendo], tipo: 'llegada' };
+    // (3.8.6: y con Escape, «Hasta acá»: se despide y vuelve a la estación)
+    if (v.estado === 'guiando') return { id: 'visitante', partes: [tx.yendo], seguir: tx.seguirGuia, tipo: 'llegada', alEscape: () => despedir(npc) };
+    if (v.estado === 'vuelve') return { id: 'visitante', partes: ['Me vuelvo a la estación. ¡Gracias otra vez!'], tipo: 'llegada' };
     return { id: 'visitante', partes: tx.gracias, tipo: 'llegada' };
   }
 
@@ -1381,7 +1407,8 @@ export function crearAldeaGente(ctx) {
     const av = avisoDiaAntes(dia(), { aldea: a, fiestas: FIESTAS_ALDEA });
     if (av) ficha.appendChild(el('p', 'pista', `${av.titulo}. ${av.texto}`));
     const fiesta = fiestaDeCumple(dia(), a);
-    if (fiesta) ficha.appendChild(el('p', 'pista', `Hoy ${fiesta.claves.length > 1 ? 'festejan' : 'festeja'} ${fiesta.claves.map((k) => nombreCortoDe(k)).join(' y ')}, de 18 a 20, ${fiesta.donde === 'plaza' ? 'en la plaza' : `en ${(EDIFICIOS_ALDEA[fiesta.edificio]?.nombre || 'su casa').toLowerCase()}`}. Un regalo que le guste vale el doble.`));
+    // (3.8.6: «A, B y C», «les guste» con varios y el lugar con su artículo)
+    if (fiesta) { const varios = fiesta.claves.length > 1, nombres = fiesta.claves.map((k) => nombreCortoDe(k)); ficha.appendChild(el('p', 'pista', `Hoy ${varios ? 'festejan' : 'festeja'} ${nombres.length < 2 ? nombres[0] : `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`}, de 18 a 20, ${fiesta.donde === 'plaza' ? 'en la plaza' : `en ${lugarConArticulo(fiesta.edificio)}`}. Un regalo que ${varios ? 'les' : 'le'} guste vale el doble.`)); }
     // el apodo, la mascota, la familia y los chicos
     const ap = apodoPorId(v.apodo);
     if (ap) ficha.appendChild(el('p', 'texto', `En la aldea te dicen «${ap.texto}».`));
