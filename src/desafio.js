@@ -2759,18 +2759,22 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     ctx.nota('Brotó un cofre entre las raíces', 'Está cerca, con un brillo dorado. Pasá por encima para abrirlo');
   }
   // 3.8.1: ¿hay un árbol, una piedra o un cuerpo de obra donde iría el cofre? ¿El suelo es parejo?
-  function cofreTrabado(x, z) {
+  // 3.8.6: con el radio de lo que va ahí (el cofre, 55 cm; el nido de hongos, ver sembrarCapullos)
+  function trabadoEn(x, z, r) {
     const p = { x, z };
     for (const dx of [-4, 0, 4]) for (const dz of [-4, 0, 4]) for (const c of col.cercanos(x + dx, z + dz)) {
-      if (!c.despejado && distColision(c, p) < (c.r || 0) + 0.55) return true;
+      if (!c.despejado && distColision(c, p) < (c.r || 0) + r) return true;
     }
     return false;
   }
-  function cofreParejo(x, z) {
+  function parejoEn(x, z, r, tope) {
     const h = T.altura(x, z);
-    for (const [dx, dz] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) if (Math.abs(T.altura(x + dx, z + dz) - h) > 0.18) return false;
+    for (const [dx, dz] of [[r, 0], [-r, 0], [0, r], [0, -r]]) if (Math.abs(T.altura(x + dx, z + dz) - h) > tope) return false;
     return true;
   }
+  const cofreTrabado = (x, z) => trabadoEn(x, z, 0.55);
+  const cofreParejo = (x, z) => parejoEn(x, z, 0.5, 0.18);
+  const NIDO_RADIO = 1.5;   // 3.8.6: la loma de musgo del nido (1,26 × 1,25 m) y los hongos de alrededor
   const BROTA = { hondo: 0.9, vel: 0.32 };   // 3.8.0: de cuán abajo sale y a qué velocidad (m/s)
   let alturaCaja = 0, tBrillo = 0, tTierra = 0;
   function actualizarCaja(dt, js) {
@@ -2953,7 +2957,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const d = D();
     const n = cuantosCapullos(d.oleadas + 1);
     const esBueno = (x, z) => Math.abs(x) < LIMITE - 20 && Math.abs(z) < LIMITE - 20 && !T.agua(x, z) && !obraEnPunto(x, T.altura(x, z) + 0.5, z);
-    d.capullos = n ? lugaresCapullos(n, centroBase(), { esBueno, azar: azarNoche('capullos') }) : [];
+    // 3.8.6: el nido (una loma de 1,6 m de radio) no crece atravesado por un árbol, una piedra o una obra, ni medio
+    // enterrado en la pendiente (antes sólo se miraba el centro)
+    const preferido = (x, z) => !trabadoEn(x, z, NIDO_RADIO) && parejoEn(x, z, NIDO_RADIO * 0.8, 0.45);
+    d.capullos = n ? lugaresCapullos(n, centroBase(), { esBueno, preferido, azar: azarNoche('capullos') }) : [];
     sincronizarCapullos();
     if (!d.capullos.length) return;
     const js = ctx.jugador().estado;

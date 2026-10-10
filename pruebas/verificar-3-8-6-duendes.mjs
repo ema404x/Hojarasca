@@ -3,6 +3,7 @@
 //  2. Los refuerzos de madrugada se guardan (`refuerzoNoche`): guardar y abrir los mandaba otra vez.
 //  3. Si el reloj salta la hora del aviso (una siesta, la hora de tu reloj), la noche especial se decide igual.
 //  4. El Rey Duende que cae no revive si se cierra el juego en los segundos en que se viene abajo el Coihue.
+//  5. Los nidos de hongos no crecen atravesados por un árbol, una piedra o una obra, ni medio enterrados.
 // Donde se puede, el código de verdad corre en una VM con lo mínimo alrededor.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -103,6 +104,28 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   const g = A.sanearAsedio({ ...a, reyCaido: true });
   A.ganarAsedio(g);
   ok(g.ganado && !A.asedioActivo(g), 'ganarAsedio lo cierra');
+}
+
+// ---------------------------------------------------------------- 5. los nidos de hongos, enteros
+{
+  const I = await import('../src/desafio-infestacion.js');
+  const S = await import('../src/semilla.js');
+  const azar = () => S.azarDe('COIHUE-4821', 6, 'capullos');
+  // un bosque de mentira: un árbol cada 6 m en una grilla; el nido no puede tener uno a menos de 1,5 m
+  const arbol = (x, z) => { const ax = Math.round(x / 6) * 6, az = Math.round(z / 6) * 6; return Math.hypot(x - ax, z - az) < 1.5 + 0.3; };
+  const l = I.lugaresCapullos(5, { x: 0, z: 0 }, { preferido: (x, z) => !arbol(x, z), azar: azar() });
+  ok(l.length === 5, `los cinco nidos (${l.length})`);
+  ok(l.every((c) => !arbol(c.x, c.z)), 'ninguno atravesado por un árbol');
+  ok(l.every((c, i) => l.every((o, j) => i === j || Math.hypot(c.x - o.x, c.z - o.z) >= I.CAPULLOS.separacion)), 'lejos entre sí');
+  ok(JSON.stringify(I.lugaresCapullos(5, { x: 0, z: 0 }, { preferido: (x, z) => !arbol(x, z), azar: azar() })) === JSON.stringify(l), 'con el mismo código, en el mismo lugar');
+  // si ningún lugar es bueno del todo, igual salen todos (de la reserva): no hay menos nidos que antes
+  const r = I.lugaresCapullos(4, { x: 0, z: 0 }, { preferido: () => false, azar: azar() });
+  ok(r.length === 4, `sin lugar parejo, igual cuatro (${r.length})`);
+  ok(JSON.stringify(I.lugaresCapullos(4, { x: 0, z: 0 }, { azar: azar() })) === JSON.stringify(I.lugaresCapullos(4, { x: 0, z: 0 }, { preferido: null, azar: azar() })), 'sin preferido, como siempre');
+  const sem = extraer(des, 'sembrarCapullos');
+  ok(/const preferido = \(x, z\) => !trabadoEn\(x, z, NIDO_RADIO\) && parejoEn\(x, z, NIDO_RADIO \* 0\.8, 0\.45\);/.test(sem), 'el nido mira árboles, piedras, obras y la pendiente');
+  ok(/lugaresCapullos\(n, centroBase\(\), \{ esBueno, preferido, azar: azarNoche\('capullos'\) \}\)/.test(sem), 'y lo usa');
+  ok(/const cofreTrabado = \(x, z\) => trabadoEn\(x, z, 0\.55\);/.test(des) && /const cofreParejo = \(x, z\) => parejoEn\(x, z, 0\.5, 0\.18\);/.test(des), 'el cofre, como en la 3.8.1');
 }
 
 console.log(`verificar-3-8-6-duendes: ${n} comprobaciones OK`);
