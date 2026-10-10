@@ -6888,7 +6888,10 @@ function hablar(npc) {
   const deNoticias = !desafio && !deAmor ? (concursosJuego?.hablar(npc) || noticiasJuego?.hablar(npc) || null) : null;
   if (deAmor || deNoticias) {
     const h = deAmor || deNoticias;
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
+    // 3.8.6: si además te había venido a buscar («te quiere decir algo», el aviso), primero eso y después lo de la noticia
+    // (antes la E abría el concurso o la carta, lo que te quería decir no se decía y el aviso seguía igual)
+    const ini = deNoticias && !desafio ? socialJuego?.tomarIniciativa(npc) : null;
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: ini ? [...ini.renglones, ...h.partes] : h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
     charla.vec = vecindadJuego?.abrir(npc) || null;
     $('charla').classList.remove('oculto');
     mostrarCharla();
@@ -7401,7 +7404,9 @@ function otroSocial(o, npc) {
 function loQueTeQueriaDecir(npc) {
   const ini = !desafio ? socialJuego?.tomarIniciativa(npc) : null;
   if (!ini) { alSaludarSocial(npc); return; }
-  charla.historia = { id: 'social-iniciativa', partes: ini.renglones, alTerminar: () => { charla.historia = null; } };
+  // 3.8.6: y si ya le cumpliste un deseo de lo que se hace en el valle, te lo agradece igual (si te venía a buscar, no)
+  const gracias = socialJuego?.cumplir(npc, null);
+  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones, alTerminar: () => { charla.historia = null; } };
   charla.parte = 0;
 }
 function alSaludarSocial(npc) {

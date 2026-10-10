@@ -181,4 +181,11 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(S.podriaVenir('panadera', prog(), { dia: 5 }) && !S.podriaVenir('carpintero', prog({ carpintero: 5 }), { dia: 5 }), 'vecinos: podriaVenir');
 }
 
+// ---------------------------------------------------------------- 10. vecinos: «te quiere decir algo» con el concurso o la carta; las gracias
+{
+  const m = leer('src/main.js');
+  ok(m.includes('const ini = deNoticias && !desafio ? socialJuego?.tomarIniciativa(npc) : null;') && m.includes('partes: ini ? [...ini.renglones, ...h.partes] : h.partes'), 'main: el que te vino a buscar y tiene concurso, carta o club: la E dice primero lo que te quería decir (como el aviso)');
+  ok(m.includes("const gracias = socialJuego?.cumplir(npc, null);\n  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones"), 'main: el que te vino a buscar también te agradece el deseo cumplido');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
