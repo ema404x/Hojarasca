@@ -17,7 +17,7 @@
 // El ñiki ñiki lo funde main.js (`ctx.fundido`), sin mostrar nada.
 //
 // Sin three ni DOM (se prueba en Node): las figuras y la pantalla llegan por `ctx`.
-import { bonosDeHabilidades, BONOS, esCandidata, puedeRomance, romanceActivo, etapaAmor, ETAPAS_AMOR, LUGARES_CITA, lugaresDeCita, coquetear, regalarFlores, invitarACita, citaAhora, empezarCita, terminarCita, vencerCita, declararse, encargarAnillo, retirarAnillo, tenesAnillo, anilloListo, proponer, bodaHoy, casarse, convivir, hablarDeLosChicos, buscarHijo, puedeBuscarHijo, puedeNikiNiki, nikiNiki, reconquistar, verla, comentarioDeAmor, pasarDiaAmor, puedeEscribirle, mandarCorreo, mundoAmor, ORDEN_CANDIDATAS, casaDeElla, horaTextoAmor, AMOR, llenarAmor } from './amor.js';
+import { bonosDeHabilidades, BONOS, esCandidata, puedeRomance, romanceActivo, etapaAmor, ETAPAS_AMOR, LUGARES_CITA, lugaresDeCita, coquetear, regalarFlores, invitarACita, citaAhora, empezarCita, terminarCita, vencerCita, declararse, encargarAnillo, retirarAnillo, tenesAnillo, anilloListo, proponer, bodaHoy, casarse, convivir, hablarDeLosChicos, buscarHijo, puedeBuscarHijo, esMadreDeTusHijos, puedeNikiNiki, nikiNiki, reconquistar, verla, comentarioDeAmor, pasarDiaAmor, puedeEscribirle, mandarCorreo, mundoAmor, ORDEN_CANDIDATAS, casaDeElla, horaTextoAmor, AMOR, llenarAmor } from './amor.js';
 import { FRASES_AMOR } from './amor-voces.js';
 import { nombreCorto, sumarAmistadDe } from './vecindad.js';
 import { CHISMOSOS } from './vecindad-voces.js';
@@ -89,6 +89,9 @@ export function crearAmorJuego(ctx) {
     if (esCandidata(clave) && puedeRomance(clave, p, ajustes()).ok) {
       const et = etapaAmor(clave, p);
       lista.push({ id: 'amor', titulo: idx(et) >= idx('novios') ? FR.titulo.nuestro : FR.titulo.coquetear });
+    } else if (esCandidata(clave) && esMadreDeTusHijos(p, clave)) {
+      // 3.8.6: la madre de tus hijos, sin romance (casado con otra): igual se habla de los chicos, aparte de «Lo nuestro…»
+      lista.push({ id: 'amor:chicos', titulo: FR.opcion.chicos });
     }
     if (clave === 'herrero' && localAbierto(p.aldea, LOTE_DE.herrero)) {
       const a = p.amor?.anillo;

@@ -333,4 +333,28 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(leer('src/main.js').includes('fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),'), 'main: el concurso sabe si hay fiesta');
 }
 
+// ---------------------------------------------------------------- 20. amor: hablar de tus hijos con la ex, casado con otra
+{
+  const { crearAmorJuego } = await import('../src/amor-juego.js');
+  const R = await import('../src/social-rueda.js');
+  const S = await import('../src/vecindad-social.js');
+  const V = await import('../src/vecindad.js');
+  const f = (etapa, desde) => ({ etapa, afecto: 60, desde, contacto: 59, charla: 0, piropo: 0, flores: 0, carta: 0, leyo: null, citas: 3, ultimaCita: 0, enojo: 0, motivo: null, rechazo: 0, reconquista: 0, chicos: 0 });
+  const p = { dia: 60, horas: 12, entradas: {}, materiales: {}, cosas: {}, aldea: aldeaCompleta(), vecindad: V.vecindadNueva(), amor: AM.amorNuevo() };
+  p.amor.personas.fotografa = f('separados', 20);
+  p.amor.personas.veterinaria = f('casados', 40);
+  p.amor.conyuge = 'veterinaria';
+  p.amor.hijos = [{ id: 'hijo-1', nombre: 'Clara', sexo: 'nena', nacio: 10, madre: 'fotografa', guia: null }];
+  ok(AM.puedeRomance('fotografa', p).motivo === 'tenes-pareja', 'casado con otra, con la ex no hay romance');
+  const aj = crearAmorJuego({ progreso: () => p, ajustes: () => ({ romance: true }), nota: () => {}, guardar: () => {} });
+  const ops = aj.opciones('fotografa');
+  ok(ops.some((o) => o.id === 'amor:chicos') && !ops.some((o) => o.id === 'amor'), 'amor: con la ex, «Hablar de los chicos» aparte de «Lo nuestro…»');
+  const r = aj.elegir({ clave: 'fotografa' }, 'amor:chicos');
+  ok(r.tipo === 'renglones' && r.renglones.some((x) => x.includes('Clara')), `amor: te cuenta de Clara (${r.renglones[0]})`);
+  ok(!aj.opciones('pintora').some((o) => o.id === 'amor:chicos'), 'amor: con otra que no es la madre, no');
+  ok(R.categoriaDeOpcion('amor:chicos') === 'charla', 'rueda: va en «Charla», no en lo romántico (que se esconde sin romance)');
+  const rueda = S.opcionesRueda('fotografa', p, { dia: 60, hora: 12, menu: [{ id: 'amor:chicos', titulo: 'Hablar de los chicos' }] });
+  ok(rueda.find((c) => c.categoria === 'charla')?.opciones.some((o) => o.id === 'amor:chicos'), 'rueda: y se ve');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

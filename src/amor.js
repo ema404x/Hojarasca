@@ -858,9 +858,11 @@ function nacer(a, d) {
 }
 // «Hablar de los chicos»: con hijos, cómo andan; esperando, cuánto falta; sin hijos, si se puede, ofrece
 // buscar uno (`buscarHijo`). Una vez por día.
+// 3.8.6: con la madre de tus hijos se puede hablar de ellos aunque ya no haya romance (casado con otra, por ejemplo)
+export const esMadreDeTusHijos = (estado, clave) => !!partes(estado).amor?.hijos?.some((h) => h.madre === clave);
 export function hablarDeLosChicos(estado, clave, ctx = {}) {
   const r0 = puedeRomance(clave, estado, ctx);
-  if (!r0.ok) return { ok: false, motivo: r0.motivo, renglones: [] };
+  if (!r0.ok && !(romanceActivo(ctx) && esCandidata(clave) && esMadreDeTusHijos(estado, clave))) return { ok: false, motivo: r0.motivo, renglones: [] };
   const { amor, progreso } = partes(estado, true);
   const d = diaDe(progreso, ctx);
   const f = ficha(amor, clave);

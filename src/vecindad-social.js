@@ -167,6 +167,7 @@ export const CATEGORIAS_RUEDA = [
 const DEL_MENU = [
   [/^como-andas$/, 'charla', 'charla'], [/^novedades$/, 'charla', 'diario'], [/^historia$/, 'charla', 'libro'], [/^contame$/, 'charla', 'libro'],
   [/^servicio$/, 'ayuda', 'oficio'], [/^regalar$/, 'ayuda', 'regalo'], [/^ayudar$/, 'ayuda', 'herramienta'], [/^invitar$/, 'juntos', 'taza'],
+  [/^amor:chicos$/, 'charla', 'charla'],   // 3.8.6: hablar de tus hijos (con la ex también), en la charla
   [/^amor/, 'romantica', 'corazon'], [/^cocina/, 'ayuda', 'olla'], [/^granja/, 'ayuda', 'granja'],
   [/^rincones:/, 'hacer', 'herramienta'],   // 3.8.4: su sección propia («Hacer juntos»), no entre los regalos
 ];
