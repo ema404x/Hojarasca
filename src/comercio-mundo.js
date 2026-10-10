@@ -107,7 +107,9 @@ export function crearPuestoDeCargas(ctx) {
       const marca = document.createElement('i'); marca.textContent = T_(f.marca);
       li.append(b, span, marca);
       // 3.6.2: mousedown, como el menú de la charla (el click no llegaba y el clic seguía de largo al juego)
-      li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegir(i); });
+      // (3.8.4: con el de main.js, que además pone la marca del mando en la opción del clic)
+      if (ctx.alClic) ctx.alClic(li, () => elegir(i));
+      else li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegir(i); });
       ul.appendChild(li);
     });
     if (!ul.children.length) {

@@ -126,7 +126,7 @@ export const PLANOS_GRANJA = [
     id: 'chiquero', nombre: 'Chiquero', pieza: true, categoria: 'trabajo', soloRelax: true,
     radio: 2.5, ancho: CHIQUERO.ancho, fondo: CHIQUERO.fondo, alto: 1.5, separacion: 2.6, distancia: 5, pendienteMax: 0.45,
     funciones: ['chiquero'],
-    texto: 'Un corralito de palo a pique, con una casilla techada para el frío, una batea de tronco y su tacho de agua. Para la chancha que te cambia Ayelén, la veterinaria. Las sobras van a la batea (E): papas, habas o fruta.',
+    texto: 'Un corralito de palo a pique, con una casilla techada para el frío, una batea de tronco y su tacho de agua. Para la chancha que te cambia Ayelén, la veterinaria. Las sobras van a la batea (E): papas, habas, manzanas, peras o ciruelas (la fruta fina, no).',
     etapas: [
       {
         nombre: 'El cerco de palo a pique',

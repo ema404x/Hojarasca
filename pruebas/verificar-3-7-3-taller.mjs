@@ -185,7 +185,7 @@ const nuevo = TM.trenNuevo();
   ok(!TM.elegirComposicion(t, ['carga', 'mirador', 'comedor', 'caballo', 'dormitorio']).ok && TM.elegirComposicion(t, ['carga', 'mirador', 'comedor', 'caballo']).ok, 'hasta cuatro detrás del ténder');
   ok(TV.composicionDe(t).join() === 'carga,mirador,comedor,caballo', 'cuatro, como la lee el tren');
   ok(TM.elegirComposicion(t, ['pasajeros', 'pasajeros', 'nada', 'carga']).composicion.join() === 'pasajeros,carga', 'sin repetidos ni inventados');
-  ok(TM.elegirComposicion(t, []).ok && TV.composicionDe(t).length === 4, 'vacía: van los que tengas (cuatro)');
+  ok(TM.elegirComposicion(t, []).ok && TV.composicionDe(t).length === 0, 'vacía: sale sólo la locomotora (3.8.4)');
   const v = TM.trenNuevo();
   ok(!TM.alternarVagon(v, 'carga').ok, 'un vagón que no está hecho no se engancha');
 }

@@ -198,8 +198,9 @@ export function sanearConcursos(x0, hoy = null) {
   const i = x.inscripto;
   if (objeto(i) && esConcurso(i.id) && claveSana(i.k)) {
     const d = diaValido(i.dia, 1);
-    // (de otro día ya no vale: el fallo pasó)
-    if (d <= tope && (!Number.isFinite(Number(hoy)) || d === tope)) base.inscripto = { id: i.id, dia: d, k: i.k, que: textoSano(i.que), calidad: Math.max(0, Math.min(100, num(i.calidad))) };
+    // (3.8.4: la de otro día se queda hasta que se falla: si el día cambió sin pasar por las 17, el fallo sale después
+    // con su día — ver `sinFallo` — en vez de perderse con lo que dejaste en la mesa)
+    if (d <= tope) base.inscripto = { id: i.id, dia: d, k: i.k, que: textoSano(i.que), calidad: Math.max(0, Math.min(100, num(i.calidad))) };
   }
   for (const t of Array.isArray(x.truchas) ? x.truchas : []) {
     if (!objeto(t) || !TRUCHAS.includes(t.especie)) continue;
@@ -287,6 +288,18 @@ export function juzgar(id, dia, { presentes = () => true, jugador = null } = {})
   return { id, dia: d, jurado, tabla, podio: tabla.slice(0, 3).map((x) => x.quien), puesto, cinta: mio ? cintaDe(puesto) : null, regalo: mio ? regaloDe(id, puesto) : null };
 }
 export const regaloDe = (id, puesto) => (esConcurso(id) && Object.hasOwn(CONCURSOS[id].regalos, puesto) ? CONCURSOS[id].regalos[puesto] : null);
+// 3.8.4: los concursos que quedaron sin fallo porque el día cambió sin pasar por las 17 (la hora de tu reloj, la partida
+// cerrada antes): la inscripción de otro día y el concurso de ayer. `concursoDe(dia)`: el id del concurso de ese día (o
+// null). [{ id, dia }], para fallarlos con su día.
+export function sinFallo(estado, dia, concursoDe = () => null) {
+  if (!objeto(estado)) return [];
+  const d = diaValido(dia, 1), l = [];
+  const i = estado.inscripto;
+  if (objeto(i) && esConcurso(i.id) && diaValido(i.dia, 1) < d) l.push({ id: i.id, dia: diaValido(i.dia, 1) });
+  const ayer = d - 1, id = ayer >= 1 ? concursoDe(ayer) : null;
+  if (esConcurso(id) && !l.some((x) => x.id === id && x.dia === ayer)) l.push({ id, dia: ayer });
+  return l.filter((x) => !(estado.resultados || []).some((r) => r.id === x.id && r.dia === x.dia));
+}
 // Guarda el fallo (y tu cinta, si te anotaste). Devuelve el fallo, o null si ya estaba.
 export function fallar(estado, id, dia, presentes = () => true) {
   if (!objeto(estado) || !esConcurso(id)) return null;

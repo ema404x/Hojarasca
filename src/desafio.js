@@ -2865,7 +2865,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // ---------------- la infestación: capullos en el bosque (ver `desafio-infestacion.js`)
   const mallasCapullo = [];
   let tCapullos = 0;
-  const quemandoCapullo = new WeakMap();
+  // 3.8.4: lo que le falta para consumirse va en el capullo mismo (`c.quema`, segundos): se guarda con la partida
+  const quemandoCapullo = { has: (c) => c?.quema > 0, get: (c) => (c?.quema > 0 ? c.quema : undefined), set: (c, t) => { c.quema = t; }, delete: (c) => { delete c.quema; } };
   // 3.8.0: el capullo es un nido de hongos y musgo (duendes-modelo.js): las geometrías se comparten
   function mallaCapullo(i) {
     if (mallasCapullo[i]) return mallasCapullo[i];

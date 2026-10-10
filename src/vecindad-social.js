@@ -158,6 +158,7 @@ export const CATEGORIAS_RUEDA = [
   { id: 'amistosa', nombre: 'Amistosas', icono: 'abrazo' },
   { id: 'graciosa', nombre: 'Graciosas', icono: 'chiste' },
   { id: 'juntos', nombre: 'Juntos', icono: 'mate' },
+  { id: 'hacer', nombre: 'Hacer juntos', icono: 'herramienta' },   // 3.8.4: lo de los rincones (aprender, el sulky, la pista)
   { id: 'ayuda', nombre: 'Regalar y ayudar', icono: 'regalo' },
   { id: 'romantica', nombre: 'Románticas', icono: 'corazon' },
   { id: 'picante', nombre: 'Picantes', icono: 'rayo' },
@@ -167,6 +168,7 @@ const DEL_MENU = [
   [/^como-andas$/, 'charla', 'charla'], [/^novedades$/, 'charla', 'diario'], [/^historia$/, 'charla', 'libro'], [/^contame$/, 'charla', 'libro'],
   [/^servicio$/, 'ayuda', 'oficio'], [/^regalar$/, 'ayuda', 'regalo'], [/^ayudar$/, 'ayuda', 'herramienta'], [/^invitar$/, 'juntos', 'taza'],
   [/^amor/, 'romantica', 'corazon'], [/^cocina/, 'ayuda', 'olla'], [/^granja/, 'ayuda', 'granja'],
+  [/^rincones:/, 'hacer', 'herramienta'],   // 3.8.4: su sección propia («Hacer juntos»), no entre los regalos
 ];
 const TITULOS_MENU = { 'como-andas': '¿Cómo andás?', novedades: 'Novedades', historia: 'Tu historia', regalar: 'Regalar…', invitar: 'Invitar a tomar algo…', ayudar: 'Dar una mano…', amor: 'Lo nuestro…' };
 

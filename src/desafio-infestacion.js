@@ -46,7 +46,13 @@ export function sanearCapullos(v) {
   if (!Array.isArray(v)) return [];
   return v.filter((c) => c && Number.isFinite(Number(c.x)) && Number.isFinite(Number(c.z)))
     .slice(0, CAPULLOS.max)
-    .map((c) => ({ x: Number(c.x), z: Number(c.z), golpes: Math.max(0, Math.min(CAPULLOS.golpes - 1, Math.floor(Number(c.golpes) || 0))) }));
+    .map((c) => {
+      const s = { x: Number(c.x), z: Number(c.z), golpes: Math.max(0, Math.min(CAPULLOS.golpes - 1, Math.floor(Number(c.golpes) || 0))) };
+      // 3.8.4: el que se estaba quemando sigue quemándose (antes, guardado a mitad, volvía entero y la ramita se perdía)
+      const q = Number(c.quema);
+      if (Number.isFinite(q) && q > 0) s.quema = Math.min(CAPULLOS.quemar, q);
+      return s;
+    });
 }
 
 // E junto a un capullo: si tenés una ramita y no llueve fuerte, se quema. Si no, se

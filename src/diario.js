@@ -13,16 +13,52 @@ function unir(lista, y = 'y') {
 
 const elegir = (r, opciones) => opciones[Math.floor(r() * opciones.length) % opciones.length];
 
+function paginaNueva() {
+  return {
+    lugares: [], especies: [], peces: [], fotos: 0, historias: [], encargos: [],
+    cocinado: [], cambiado: [], tren: 0, vuelta: 0, kayak: false, durmioAfuera: false,
+    lluvia: 0, nieve: 0, viento: 0, tormenta: false, pasos: 0, marcas: 0,
+  };
+}
+// 3.8.4: la página del día que se va llenando se guarda con la partida (`progreso.diarioHoy`: { dia, pagina }): antes
+// vivía sólo en memoria y, al recargar a mitad del día, lo hecho hasta ahí no salía en el diario de esa noche.
+// Saneada: lo de siempre con su tipo (lo que no, como nuevo) y lo demás que anotan las versiones nuevas, si es dato
+// simple (números, sí/no, textos cortos, listas cortas de eso, y objetos chicos de eso). `dia`: el de hoy de la partida.
+const TOPE_LISTA = 40;
+function datoSimple(v, hondo = 0) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') return v.replace(/[\u0000-\u001f<>]/g, '').slice(0, 120);
+  if (Array.isArray(v)) return hondo > 1 ? undefined : v.slice(0, TOPE_LISTA).map((x) => datoSimple(x, hondo + 1)).filter((x) => x !== undefined);
+  if (v && typeof v === 'object' && hondo < 2) {
+    const o = {};
+    for (const [k, x] of Object.entries(v).slice(0, 24)) { if (k === '__proto__') continue; const s = datoSimple(x, hondo + 1); if (s !== undefined) o[k] = s; }
+    return o;
+  }
+  return undefined;
+}
+export function sanearDiarioHoy(v, dia = null) {
+  if (!v || typeof v !== 'object' || Array.isArray(v) || !v.pagina || typeof v.pagina !== 'object') return null;
+  const d = Math.floor(Number(v.dia));
+  if (!Number.isFinite(d) || d < 1 || (dia !== null && d !== Math.floor(Number(dia)))) return null;   // (la de otro día ya se escribió)
+  const base = paginaNueva(), pagina = { ...base };
+  for (const [k, x] of Object.entries(v.pagina).slice(0, 80)) {
+    if (k === '__proto__') continue;
+    const s = datoSimple(x);
+    if (s === undefined) continue;
+    if (Object.hasOwn(base, k) && (Array.isArray(base[k]) !== Array.isArray(s) || typeof base[k] !== typeof s)) continue;
+    pagina[k] = s;
+  }
+  return { dia: d, pagina };
+}
+
 export function crearDiario() {
   let hoy = nuevo();
 
-  function nuevo() {
-    return {
-      lugares: [], especies: [], peces: [], fotos: 0, historias: [], encargos: [],
-      cocinado: [], cambiado: [], tren: 0, vuelta: 0, kayak: false, durmioAfuera: false,
-      lluvia: 0, nieve: 0, viento: 0, tormenta: false, pasos: 0, marcas: 0,
-    };
-  }
+  function nuevo() { return paginaNueva(); }
+  // 3.8.4: la página de hoy, para guardar y para seguirla al cargar (ver `sanearDiarioHoy`)
+  const paraGuardar = (dia) => sanearDiarioHoy({ dia, pagina: hoy }, dia);
+  function cargarHoy(v, dia) { const s = sanearDiarioHoy(v, dia); if (s) hoy = s.pagina; return !!s; }
 
   // lo que va pasando durante el día
   function anotar(tipo, dato) {
@@ -236,5 +272,5 @@ export function crearDiario() {
     return { dia, estacion, texto: lineas.join(' ') };
   }
 
-  return { anotar, clima, escarcha, cerrar, get hoy() { return hoy; } };
+  return { anotar, clima, escarcha, cerrar, paraGuardar, cargarHoy, get hoy() { return hoy; } };
 }

@@ -102,6 +102,17 @@ export function sanearMapaTeclas(guardado) {
   return salida;
 }
 
+// 3.8.4: una tecla tal como la ve el jugador: los textos del juego dicen la de fábrica ('E', 'F', 'O', 'Espacio');
+// si esa acción la movió a otra tecla, se muestra la suya (el panel de la historia y el aviso decían la de fábrica).
+// Lo que no es de ninguna acción (la Q de la caña, la T de teñir, el '·') queda como está.
+export function teclaVisible(tecla, mapa) {
+  const t = String(tecla ?? '');
+  const codigo = /^[A-Z]$/.test(t) ? `Key${t}` : /^[0-9]$/.test(t) ? `Digit${t}` : t === 'Espacio' ? 'Space' : t === 'Esc' ? 'Escape' : t;
+  const accion = ACCIONES_TECLA.find((a) => TECLAS_POR_DEFECTO[a] === codigo);
+  if (!accion || !mapa || typeof mapa !== 'object' || !mapa[accion] || mapa[accion] === codigo) return t;
+  return textoTecla(mapa[accion]);
+}
+
 export function teclasCambiadas(mapa) {
   return ACCIONES_TECLA.filter((a) => (mapa || {})[a] !== TECLAS_POR_DEFECTO[a]);
 }

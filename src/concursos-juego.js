@@ -4,7 +4,7 @@
 // su regalo útil; si no te anotaste, igual te enterás). Las truchas que sacás quedan anotadas para el concurso.
 // `ctx`: { progreso(), desafio(), nota(t, sub, nueva), guardar(), cobrar(premio) (el cobrarPremio de main.js),
 // redibujar(), nombresFoto() ({ id: nombre } del álbum) }.
-import { CONCURSOS, ORGANIZA, HORAS_CONCURSO, concursoDeFecha, entradaDe, inscribir, fallar, juradoDe, textoFallo, noticiaDeResultado, anotarTrucha, sanearConcursos, cintaDe, CINTAS } from './concursos.js';
+import { CONCURSOS, ORGANIZA, HORAS_CONCURSO, concursoDeFecha, entradaDe, inscribir, fallar, sinFallo, juradoDe, textoFallo, noticiaDeResultado, anotarTrucha, sanearConcursos, cintaDe, CINTAS } from './concursos.js';
 import { fechaDe as fechaDeFiesta } from './fiestas.js';
 import { nombreCortoDe } from './aldea-vida.js';
 import { esVecinoAldea } from './aldea.js';
@@ -71,6 +71,15 @@ export function crearConcursosJuego(ctx) {
     if (acum < 0.5) return;
     acum = 0;
     if (!activo() || !conoce()) return;
+    // 3.8.4: lo que quedó sin fallo de otro día (el día cambió sin pasar por las 17): se falla con su día; si estabas
+    // anotado, el aviso y la cinta, como siempre
+    for (const x of sinFallo(estado(), dia(), deHoy)) {
+      const anotado = estado().inscripto?.id === x.id && estado().inscripto?.dia === x.dia;
+      const f = fallar(estado(), x.id, x.dia, presentes);
+      if (!f) continue;
+      if (anotado) { const t = textoFallo(f, nombre); ctx.nota(t.titulo, t.texto, true); if (f.regalo) ctx.cobrar?.({ premio: f.regalo }); }
+      ctx.guardar(); ctx.redibujar?.();
+    }
     const d = dia(), id = deHoy(d);
     if (!id || hora() < HORAS_CONCURSO.fallo || yaFallo(id, d)) return;
     const f = fallar(estado(), id, d, presentes);

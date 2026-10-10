@@ -30,7 +30,7 @@ export const GRANJA = {
   diasCordero: 6,           // de cordero recién nacido a cordero para carnear
   diasCapon: 6,             // días bien comido de lechón a capón
   diasCamada: 6,            // días bien comida la chancha entre camada y camada
-  terneros: 2, corderos: 4, lechones: 6, frutales: 16,
+  terneros: 2, corderos: 4, lechones: 6, frutales: 24,   // 3.8.4: 24 frutales (antes 16)
   radioParidera: 10,        // la paridera, a esto del bebedero del corral
   horaEntrega: 8,           // a qué hora del otro día te traen la carne
 };
@@ -41,7 +41,8 @@ export const RINDE_CARNE = {
   capon: [{ k: 'carne-cerdo', n: 4 }, { k: 'chorizo', n: 8 }],
 };
 // lo que se les echa a los chanchos (una cosa, una ración), en este orden
-export const SOBRAS = ['papa', 'haba', 'manzana', 'pera', 'ciruela', 'calafate', 'frutilla'];
+// 3.8.4: las sobras nunca son fruta fina: ni calafates, ni frutillas, ni lo que vale más (cerezas, frambuesas, grosellas)
+export const SOBRAS = ['papa', 'haba', 'manzana', 'pera', 'ciruela'];
 
 // ---------------------------------------------------------------- los frutales
 // `adulto`: días hasta que da fruta; `madura`: desde qué momento del año (0..1) está madura; `da`: cuántas por año.
@@ -81,6 +82,16 @@ export function faseGranja(dia, horas = 0) {
 }
 export function estacionGranja(fase) {
   return fase < FASE.flor ? 'primavera' : fase < FASE.verano ? 'verano' : fase < FASE.invierno ? 'otono' : 'invierno';
+}
+// 3.8.4: el momento del año para los frutales. Con las estaciones automáticas, el calendario; con una estación fijada en
+// Ajustes, esa: pleno verano, pleno otoño o pleno invierno (antes la flor, la fruta y el «descansa en invierno» seguían
+// el calendario aunque se viera otra estación). `estacion`: 'auto' | 'verano' | 'otono' | 'invierno', o el booleano de
+// antes (true: invierno; false: el calendario).
+export const FASE_FIJA = { verano: 0.3, otono: 0.52, invierno: 0.84 };
+export function faseFrutal(dia, horas = 0, estacion = 'auto') {
+  if (estacion === true) return FASE_FIJA.invierno;
+  if (typeof estacion === 'string' && Object.hasOwn(FASE_FIJA, estacion)) return FASE_FIJA[estacion];
+  return faseGranja(dia, horas);
 }
 // ¿Es invierno para el pasto? Con las estaciones automáticas, el calendario; con una estación fija (Ajustes),
 // la que se ve.
@@ -312,21 +323,22 @@ function daEsteAnio(f, E, anio) {
 // Cuántas cosechas hay para juntar (0 o 1): la de este año, madura, desde que madura hasta que empieza el invierno. En
 // invierno no hay fruta (ni en el árbol ni en el piso); `invierno` (opcional) dice que es invierno aunque el calendario
 // no (la estación fija de Ajustes). Lo que ya juntaste no se echa a perder.
+// (3.8.4: `invierno` es también la estación de Ajustes, ver `faseFrutal`)
 export function cosechasPendientes(f, dia, horas, invierno = false) {
   if (!f?.especie) return 0;
-  const E = FRUTALES[f.especie], d = Math.max(1, ent(dia, 1)), anio = anioDe(d), fase = faseGranja(d, horas);
-  if (invierno || fase >= FASE.invierno || f.cosecha >= anio || !daEsteAnio(f, E, anio)) return 0;
+  const E = FRUTALES[f.especie], d = Math.max(1, ent(dia, 1)), anio = anioDe(d), fase = faseFrutal(d, horas, invierno);
+  if (fase >= FASE.invierno || f.cosecha >= anio || !daEsteAnio(f, E, anio)) return 0;
   return fase >= E.madura && d - f.plantado >= E.adulto ? 1 : 0;
 }
 // Cómo está un frutal: { etapa: 'hoyo' | 'plantin' | 'joven' | 'adulto', crece (0..1), flor, fruta: 'no' | 'madura',
 // cosechas }.
 export function estadoFrutal(f, dia, horas = 0, invierno = false) {
   if (!f?.especie) return { etapa: 'hoyo', crece: 0, flor: false, fruta: 'no', cosechas: 0 };
-  const E = FRUTALES[f.especie], d = Math.max(1, ent(dia, 1)), anio = anioDe(d), fase = faseGranja(d, horas);
+  const E = FRUTALES[f.especie], d = Math.max(1, ent(dia, 1)), anio = anioDe(d), fase = faseFrutal(d, horas, invierno);   // 3.8.4
   const edad = d - f.plantado + tope(num(horas, 0), 0, 24) / 24;
   const crece = tope(edad / E.adulto, 0, 1);
   const etapa = d - f.plantado >= E.adulto ? 'adulto' : crece < 0.34 ? 'plantin' : 'joven';
-  const flor = !invierno && fase < FASE.flor && daEsteAnio(f, E, anio);
+  const flor = fase < FASE.flor && daEsteAnio(f, E, anio);
   const cosechas = cosechasPendientes(f, d, horas, invierno);
   return { etapa, crece, flor, fruta: cosechas ? 'madura' : 'no', cosechas, especie: f.especie };
 }
@@ -474,9 +486,9 @@ export function textoChiquero(g, sobra) {
   if (!g?.chancha) return 'Chiquero · sin chancha todavía (Ayelén, la veterinaria, te cambia una)';
   if (g.batea >= GRANJA.batea) return `Batea llena (${g.batea} raciones)`;
   if (sobra) return `Echar sobras a la batea (${NOMBRE_SOBRA[sobra] || sobra})`;
-  return `Batea: ${g.batea} · hacen falta sobras (papas, habas o fruta)`;
+  return `Batea: ${g.batea} · hacen falta sobras (papas, habas, manzanas, peras o ciruelas)`;   // 3.8.4: sin fruta fina
 }
-const NOMBRE_SOBRA = { papa: 'una papa', haba: 'unas habas', manzana: 'una manzana', pera: 'una pera', ciruela: 'unas ciruelas', calafate: 'unos calafates', frutilla: 'unas frutillas' };
+const NOMBRE_SOBRA = { papa: 'una papa', haba: 'unas habas', manzana: 'una manzana', pera: 'una pera', ciruela: 'unas ciruelas' };
 export function textoParidera(g, ovejas) {
   if (!ovejas) return 'Paridera · hace falta tu corral con las ovejas al lado';
   const n = g?.corderos?.length || 0;
@@ -490,7 +502,7 @@ export function textoFrutal(f, dia, horas, plantin = null, invierno = false) {
   if (s.cosechas > 0) return `Juntar las ${E.frutas} (${s.cosechas * E.da})`;
   if (s.flor) return `${nombre} en flor · ${E.frutas} en ${cuando}`;
   if (s.etapa !== 'adulto') return `${nombre} ${s.etapa === 'plantin' ? 'recién plantado' : 'joven'} · da fruta el día ${primeraFruta(f) ?? '…'}`;
-  if (invierno || faseGranja(dia, horas) >= FASE.invierno) return `${nombre} · descansa en invierno; en primavera, flor`;
+  if (faseFrutal(dia, horas, invierno) >= FASE.invierno) return `${nombre} · descansa en invierno; en primavera, flor`;   // 3.8.4
   if (f.cosecha >= anioDe(dia)) return `${nombre} · ya juntaste las ${E.frutas} de este año`;
   // 3.8.3: plantado fuera de la primavera, ya grande, este año no da: antes prometía fruta que no venía
   { const p = primeraFruta(f); if (p && p > dia && anioDe(p) > anioDe(dia)) return `${nombre} · da fruta el día ${p}`; }

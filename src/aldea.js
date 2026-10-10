@@ -736,7 +736,7 @@ export const POBLADORES_ALDEA = {
       'Me contaron que acá hay majada, un zaino que presta Don Ramón y gallinas en cada patio. Donde hay animales, alguien tiene que mirarles los dientes.',
     ],
     saludo: 'Hola. ¿Algún animal que ande raro?', despedida: 'Y si el perro come pasto, no es nada: se está purgando.',
-    resumen: 'Ayuda con tus animales una vez por día: le revisa las herraduras al zaino (anda más liviano hasta la noche), carda la lana que quedó en la majada o vitamina tus gallinas.',
+    resumen: 'Ayuda con tus animales una vez por día: le revisa las herraduras a tu caballo (anda más liviano hasta la noche), carda la lana que quedó en la majada o vitamina tus gallinas.',
   },
   fotografa: {
     nombre: 'Sofía Haddad', oficio: 'fotógrafa', edad: 31, mano: null, lote: 'estudio-fotos', afuera: true,

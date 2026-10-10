@@ -98,6 +98,11 @@ export function crearCocinaJuego(ctx) {
     $('cocina-panel')?.classList.add('oculto');
   }
   const panelAbierto = () => !!panel;
+  // 3.8.4: el techito de la obra del panel se vuelve a mirar (armaste o desarmaste uno con el panel abierto: antes quedaba
+  // el dato de cuando lo abriste y decía que con la lluvia no prendía, o al revés)
+  function refrescarEstacion() {
+    if (panel?.de?.o && (ctx.obras?.()?.obras || []).includes(panel.de.o)) panel.est = estDe(panel.de.o);
+  }
   function opcionesPanel() {
     if (!panel) return [];
     return opcionesEstacion(panel.est, progreso(), ctx.troncos?.() || 0);
@@ -106,6 +111,7 @@ export function crearCocinaJuego(ctx) {
     if (!panel) return;
     const div = $('cocina-panel');
     if (!div) return;
+    refrescarEstacion();
     const ops = opcionesPanel();
     panel.opciones = ops;
     // (se rehace sólo si cambió algo de lo que muestra)
@@ -137,6 +143,7 @@ export function crearCocinaJuego(ctx) {
     if (!panel) return;
     // 3.8.3: si la obra del panel se desmontó con el panel abierto, se cierra (antes gastaba los ingredientes en una obra que ya no estaba)
     if (panel.de?.o && !(ctx.obras?.()?.obras || []).includes(panel.de.o)) { cerrarPanel(); return; }
+    refrescarEstacion();   // 3.8.4
     const op = (panel.opciones || opcionesPanel())[i];
     if (!op) return;
     const est = panel.est, de = panel.de;

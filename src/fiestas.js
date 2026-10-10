@@ -725,6 +725,13 @@ export function aprobarClase(estado, baile, dia) {
   return e.baile[baile];
 }
 export const puedeTomarClase = (estado, dia) => entero(estado?.clase) !== diaValido(dia);
+// 3.8.4: la clase cuenta desde que empieza: una por día aunque salgas a la mitad con Escape (antes salir y volver a
+// pedirla daba otra secuencia, hasta acertar una)
+export function empezarClase(estado, dia) {
+  const e = asegurar(estado);
+  e.clase = diaValido(dia);
+  return e.clase;
+}
 export function elegirCumple(estado, dda) {
   const e = asegurar(estado);
   const d = entero(dda, 0);

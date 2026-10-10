@@ -51,7 +51,7 @@ export const VAGONES = {
   pasajeros: { nombre: 'Coche de pasajeros', corto: 'pasajeros', dice: 'con la salamandra: ahí viajan los vecinos, calentitos' },
   comedor: { nombre: 'Coche comedor', corto: 'comedor', dice: 'con la cocina a leña: cocinar y matear en viaje' },
   carga: { nombre: 'Furgón de carga', corto: 'carga', dice: 'más fletes para el puesto de cargas' },
-  caballo: { nombre: 'Jaula para el caballo', corto: 'caballo', dice: 'el zaino viaja con vos' },
+  caballo: { nombre: 'Jaula para el caballo', corto: 'caballo', dice: 'tu caballo viaja con vos' },   // 3.8.4: no «el zaino» (puede tener otro nombre)
   mirador: { nombre: 'Coche mirador', corto: 'mirador', dice: 'abierto a los costados, para las fotos' },
   dormitorio: { nombre: 'Coche dormitorio', corto: 'dormitorio', dice: 'dos literas: hacer noche donde quieras' },
 };
@@ -113,7 +113,7 @@ export const MEJORAS_TREN = {
   pasajeros: M('Coche de pasajeros', 'vagon', 'Un coche de primera con asientos de madera y la salamandra en el medio: los vecinos viajan y charlan, y vos llegás calentito.', { tabla: 12, tronco: 4, piedra: 2 }, 4, 3, [], { vagon: 'pasajeros' }),
   comedor: M('Coche comedor', 'vagon', 'Un coche con la cocina a leña, mesas y la pava siempre puesta: cocinar y matear en viaje.', { tabla: 14, tronco: 6, piedra: 4 }, 6, 4, ['pasajeros'], { vagon: 'comedor' }),
   carga: M('Furgón de carga', 'vagon', 'Un furgón cerrado con puertas corredizas: más fletes para el puesto de cargas.', { tabla: 12, tronco: 4 }, 6, 3, [], { vagon: 'carga' }),
-  caballo: M('Jaula para el caballo', 'vagon', 'Una jaula de listones con su pesebre: el zaino viaja con vos.', { tabla: 10, tronco: 4 }, 4, 3, [], { vagon: 'caballo' }),
+  caballo: M('Jaula para el caballo', 'vagon', 'Una jaula de listones con su pesebre: tu caballo viaja con vos.', { tabla: 10, tronco: 4 }, 4, 3, [], { vagon: 'caballo' }),
   mirador: M('Coche mirador', 'vagon', 'Un coche abierto a los costados, con baranda y bancos mirando afuera: para las fotos.', { tabla: 10, tronco: 2 }, 5, 3, [], { vagon: 'mirador' }),
   dormitorio: M('Coche dormitorio', 'vagon', 'Dos literas, una salamandra y cortinas: para hacer noche donde quieras.', { tabla: 16, tronco: 6, piedra: 2 }, 6, 5, ['comedor'], { vagon: 'dormitorio' }),
 };
@@ -400,6 +400,25 @@ export function ponerNombre(tren, texto) {
   if (!objeto(tren.loco)) tren.loco = trenNuevo().loco;
   tren.loco.nombre = sanearNombreTren(texto);
   return true;
+}
+// 3.8.4: un solo nombre de la locomotora. El del taller (`progreso.tren.loco.nombre`) y el de «Personalizar»
+// (`progreso.personal.trochita.nombre`) son el mismo: gana el último que se puso (antes eran dos y mandaba el del
+// taller, aunque en Personalizar dijera otro). Devuelve el nombre que quedó ('' = el de siempre).
+export function nombrarLocomotora(progreso, texto) {
+  if (!objeto(progreso)) return '';
+  const n = sanearNombreTren(typeof texto === 'string' ? texto : '');
+  if (objeto(progreso.tren)) { if (!objeto(progreso.tren.loco)) progreso.tren.loco = trenNuevo().loco; progreso.tren.loco.nombre = n; }
+  if (objeto(progreso.personal)) progreso.personal = { ...progreso.personal, trochita: { ...(objeto(progreso.personal.trochita) ? progreso.personal.trochita : {}), nombre: n } };
+  return n;
+}
+// Una partida de antes con los dos nombres distintos: queda el que se veía en la cabina (el del taller; sin él, el de
+// Personalizar). Sin tren mejorado (el Desafío), nada que juntar.
+export function unificarNombreLoco(progreso) {
+  if (!objeto(progreso?.tren)) return null;
+  const t = sanearNombreTren(progreso.tren.loco?.nombre), p = sanearNombreTren(progreso.personal?.trochita?.nombre);
+  const n = t || p;
+  if (progreso.tren.loco?.nombre !== n || (objeto(progreso.personal) && progreso.personal.trochita?.nombre !== n)) nombrarLocomotora(progreso, n);
+  return n;
 }
 export function elegirSilbato(tren, id) {
   if (!silbatosDe(tren).includes(id)) return false;

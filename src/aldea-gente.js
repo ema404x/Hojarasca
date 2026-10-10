@@ -41,7 +41,7 @@
 //
 // Sin three ni DOM (se prueba en Node): las figuras las arma gente.js y lo demás llega por `ctx`.
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
-import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
+import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
@@ -1263,7 +1263,7 @@ export function crearAldeaGente(ctx) {
     const vis = v.visitante;
     if (!vis) { ocultarVisitantes(); return; }
     // el de otro día ya se fue; el que nadie llevó, se vuelve en el último tren
-    if (vis.dia !== d || (vis.estado === 'anden' && h >= 20)) { visitanteSeVa(v); ocultarVisitantes(); ctx.guardar(); return; }
+    if (!visitanteSigue(vis, d, h)) { visitanteSeVa(v); ocultarVisitantes(); ctx.guardar(); return; }   // 3.8.4: el que guiás, se queda
     ocultarVisitantes(vis.id);
     const n = figuraVisitante(vis, js);
     if (!n) return;

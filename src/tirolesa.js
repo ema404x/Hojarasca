@@ -347,6 +347,17 @@ export function crearTirolesas(T, escena, col, veg, sonido, ctx = {}) {
     return tipo === 'tirolesa' ? revisarTirolesa(a, b) : revisarPuente(a, b);
   }
 
-  return { actualizar, andar, accion, posParaGuardar, probarLinea, reconstruir: (j) => { firma = firmaActual(); reconstruir(j); },
+  // 3.8.4: el puente colgante tendido cuyo estribo (una de las dos puntas del tablero) está a menos de `radio` de `pos`
+  // (para el caballo, que no lo cruza: main.js ofrece amarrarlo ahí o mandarlo solo al refugio)
+  function estriboCerca(pos, radio = 3.5) {
+    if (!pos) return null;
+    for (const l of lineas) {
+      if (l.tipo !== 'puente') continue;
+      for (const p of [l.A, l.B]) if (Math.hypot(p.x - pos.x, p.z - pos.z) < radio && Math.abs((pos.y ?? p.y) - p.y) < 2.2) return l;
+    }
+    return null;
+  }
+
+  return { actualizar, andar, accion, posParaGuardar, probarLinea, estriboCerca, reconstruir: (j) => { firma = firmaActual(); reconstruir(j); },
     get lineas() { return lineas; }, get sueltas() { return sueltas; }, get viaje() { return viaje; }, guia, roldana };
 }

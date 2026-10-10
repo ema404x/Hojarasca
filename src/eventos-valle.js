@@ -219,7 +219,9 @@ export const SEGUIMIENTOS = {
   's-puente-vialidad': { titulo: 'Vino Vialidad', texto: 'La cuadrilla de Vialidad Provincial vino en una camioneta que hacía más ruido que el tren y dejó el puente como nuevo. Ercilia dice que sin tu aviso tardaban un mes.',
     efectos: [{ tipo: 'dar', premio: { cuenta: { yerba: 3 }, texto: 'Ercilia te regaló yerba por el aviso' } }] },
   's-puente-caida': { titulo: 'El puente cedió', texto: 'Ercilia te lo contó en el almacén: el puente del arroyo terminó de ceder y Nicanor, que venía cargado con la caña y el canasto, fue a parar al agua.',
-    efectos: [], evento: 'tobillo' },
+    efectos: [], evento: 'tobillo',
+    // 3.8.4: si el tobillo de Nicanor ya pasó (o no hay vecinos), lo que sigue no es él en el agua: el evento no vuelve
+    sinEvento: { texto: 'Ercilia te lo contó en el almacén: el puente del arroyo terminó de ceder con la última crecida. Por suerte no pasaba nadie; ahora los de la otra orilla cruzan por el vado, con el agua a las rodillas.' } },
   's-temporal-atado': { titulo: 'Pasó el temporal', texto: 'Sopló toda la noche. A la mañana lo tuyo estaba en su lugar, atado y firme, y el suelo cubierto de ramas caídas, de las buenas para prender.',
     efectos: [{ tipo: 'dar', premio: { ramitas: 8, texto: 'Ocho ramitas que tiró el viento' } }] },
   's-temporal-volteo': { titulo: 'Pasó el temporal', texto: 'La leña quedó seca, pero afuera el viento hizo lo suyo: algo de lo tuyo amaneció dado vuelta en el pasto.',
@@ -394,6 +396,19 @@ export function seguimientoListo(ev, s) {
 // Se mostró: sale de la lista y devuelve sus efectos (y el evento que encadena, si hay).
 // 3.5.1: `opciones.vecinos === false`: una partida sin vecinos no recibe el evento encadenado de un
 // vecino (el puente que cedió traía a Nicanor igual)
+// 3.8.4: lo que se cuenta: un seguimiento que encadena un evento que no va a venir (ya pasó y no se repite, o es de un
+// vecino y la partida no tiene vecinos) cuenta otra cosa (`sinEvento`), no el principio de algo que no sigue
+function sinCadena(ev, seg, opciones = {}) {
+  if (!seg?.evento) return false;
+  const sinVecino = opciones.vecinos === false && !!EVENTO_VALLE[seg.evento]?.vecinos;
+  const yaPaso = Object.hasOwn(ev?.hechos || {}, seg.evento) && !EVENTO_VALLE[seg.evento]?.repite;
+  return sinVecino || yaPaso;
+}
+export function seguimientoDe(ev, id, opciones = {}) {
+  const seg = Object.hasOwn(SEGUIMIENTOS, id) ? SEGUIMIENTOS[id] : null;
+  if (!seg) return null;
+  return seg.sinEvento && sinCadena(ev, seg, opciones) ? { ...seg, ...seg.sinEvento, evento: null } : seg;
+}
 export function cerrarSeguimiento(ev, id, dia, opciones = {}) {
   const i = ev.pendientes.findIndex((p) => p.id === id);
   if (i < 0) return null;
@@ -406,8 +421,9 @@ export function cerrarSeguimiento(ev, id, dia, opciones = {}) {
   // 3.8.3: un evento que ya pasó y no se repite no vuelve encadenado (el tobillo de Nicanor, ya curado en el capítulo 3,
   // volvía con el puente que cedió en el 6: otra vez la gratitud, la mosca y la visita)
   const yaPaso = !!seg.evento && Object.hasOwn(ev.hechos || {}, seg.evento) && !EVENTO_VALLE[seg.evento]?.repite;
+  const mostrado = seguimientoDe(ev, id, opciones);   // 3.8.4: (lo que se cuenta, antes de encadenar)
   if (seg.evento && !ev.activo && !sinVecino && !yaPaso) cadena = forzarEvento(ev, seg.evento, dia, 'cadena');
-  return { seguimiento: seg, efectos: seg.efectos || [], cadena };
+  return { seguimiento: mostrado, efectos: seg.efectos || [], cadena };
 }
 
 // La gratitud de un vecino. Al llegar a `EVENTOS.regalo` por primera vez, te deja algo.

@@ -25,6 +25,8 @@ export function crearGranjaJuego(ctx) {
   const activo = () => !ctx.desafio?.();
   const cuanto = (k) => Math.max(0, Math.floor(Number(progreso().entradas?.[k]?.cantidad) || 0));
   const invierno = () => inviernoGranja(dia(), horas(), ctx.ajustes?.()?.estacion || 'auto');
+  // 3.8.4: los frutales siguen la estación fijada en Ajustes (ver faseFrutal de granja.js)
+  const estacionFrutal = () => ctx.ajustes?.()?.estacion || 'auto';
   function granja() {
     const p = progreso();
     if (!p.granja || typeof p.granja !== 'object' || !Array.isArray(p.granja.terneros)) p.granja = sanearGranja(p.granja, p.dia);
@@ -62,7 +64,7 @@ export function crearGranjaJuego(ctx) {
       if (vivos.has(k)) continue;
       vivos.add(k);
       if (!g.frutales[k]) { if (Object.keys(g.frutales).length >= GRANJA.frutales) continue; g.frutales[k] = frutalNuevo(); }
-      frutales.push({ clave: k, x: o.datos.x, z: o.datos.z, rot: o.datos.rot || 0, y: o.datos.y, estado: estadoFrutal(g.frutales[k], d, h, invierno()) });
+      frutales.push({ clave: k, x: o.datos.x, z: o.datos.z, rot: o.datos.rot || 0, y: o.datos.y, estado: estadoFrutal(g.frutales[k], d, h, estacionFrutal()) });
     }
     for (const k of Object.keys(g.frutales)) if (!vivos.has(k)) delete g.frutales[k];
     cache = { ...L, frutales };
@@ -169,8 +171,8 @@ export function crearGranjaJuego(ctx) {
       refrescar(); ctx.refrescarBarra?.(); ctx.guardar?.();
       return { ok: true, plantado: especie };
     }
-    const r = cosecharFrutal(f, dia(), horas(), invierno());
-    if (!r.ok) { ctx.nota?.(textoFrutal(f, dia(), horas(), null, invierno()), ''); return r; }
+    const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());
+    if (!r.ok) { ctx.nota?.(textoFrutal(f, dia(), horas(), null, estacionFrutal()), ''); return r; }
     ctx.sumarEntrada?.(r.k, r.n);
     ctx.sonido?.juntar?.();
     ctx.nota?.(`Juntaste ${r.n} ${FRUTALES[f.especie].frutas}`, `Llevás ${cuanto(r.k)}. No se echan a perder`, true);
@@ -233,7 +235,7 @@ export function crearGranjaJuego(ctx) {
     for (const f of L.frutales) { const dd = Math.hypot(f.x - pos.x, f.z - pos.z); if (dd < dm) { dm = dd; fr = f; } }
     if (fr && g.frutales[fr.clave]) {
       const f = g.frutales[fr.clave];
-      return { tipo: 'frutal', texto: textoFrutal(f, d, h, f.especie ? null : elegirPlantin(cuanto, g.frutales), invierno()), hacer: () => usarFrutal(fr.clave) };
+      return { tipo: 'frutal', texto: textoFrutal(f, d, h, f.especie ? null : elegirPlantin(cuanto, g.frutales), estacionFrutal()), hacer: () => usarFrutal(fr.clave) };
     }
     // 6. lo del animal que era para mirar
     return mirar;

@@ -8,7 +8,7 @@
 // sulky va más rápido.
 //
 // El sulky: dónde está (en el refugio o en la aldea, en las dos puntas del camino), cómo se consigue (Tito te lo hace
-// por material, con caballo propio) y cómo anda (solo por el camino; W al trote, Shift al galope, S al paso o parado).
+// por material, con caballo propio) y cómo anda (solo por el camino; W al trote, Shift al galope; 3.8.4: S sostenida frena hasta parar).
 
 export const SULKY = {
   pide: { tabla: 10, tronco: 4 },   // lo que pide Tito para hacerlo
@@ -239,6 +239,12 @@ export function hacerMinga(cam, dia) {
 export function velocidadSulky(marcha, minga = false) {
   const v = SULKY.marcha[marcha] ?? SULKY.marcha.trote;
   return minga ? v * SULKY.conMinga : v;
+}
+// 3.8.4: la velocidad a la que va con lo que apretás (`frena`: S sostenida; `galope`: Shift). Mantener S frena hasta
+// parar (antes S era «al paso» y sólo paraba ya casi quieto: sostenida, nunca frenaba del todo); sin nada, al trote.
+export function objetivoSulky({ frena = false, galope = false } = {}, minga = false) {
+  if (frena) return 0;
+  return velocidadSulky(galope ? 'galope' : 'trote', minga);
 }
 // Un paso del sulky andando: { s, v, sentido (+1 hacia la aldea, −1 hacia el refugio) } → { s, v, llego }
 export function andarSulky(est, dt, objetivo, largo) {

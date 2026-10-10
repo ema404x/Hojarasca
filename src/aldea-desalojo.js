@@ -92,7 +92,7 @@ export function textoDesalojo(r) {
     const devuelto = Object.entries(r.materiales || {}).filter(([, n]) => n > 0).map(([k, n]) => cuenta(n, ...(NOMBRES[k] || [k, k])));
     if (v.devueltos > 0) devuelto.push(cuenta(v.devueltos, 'plantín', 'plantines'));
     const que = desarmado.map((x) => x[0]);
-    partes.push(`${mayus(enumerar(que))} no ${varios(desarmado) ? 'entraban' : 'entraba'} en ningún lado${r?.carpa === 'levantada' && que.length === 1 ? ': la levantaste' : ''}${devuelto.length ? `: tenés en la mochila ${enumerar(devuelto)}` : ''}`);
+    partes.push(`${mayus(enumerar(que))} no ${varios(desarmado) ? 'entraban' : 'entraba'} en ningún lado${r?.carpa === 'levantada' && que.length === 1 ? ': la levantaste' : ''}${devuelto.length ? `: tenés en la mochila ${enumerar(devuelto)}${r?.acopio ? ' (con lo que guardabas en el acopio)' : ''}` : ''}`);   // 3.8.4: el último acopio vuelve con lo demás
   }
   return { titulo: 'La Aldea de los Duendes ocupó tu lugar', sub: partes.join('. ') };
 }

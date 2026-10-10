@@ -178,7 +178,8 @@ export function sanearVidaAldea(v0, hoy = null) {
   const visitante = sanearVisitante(x.visitante, tope);
   return {
     avisado: diaOCero(x.avisado, tope),
-    visitante: visitante && visitante.dia === tope ? visitante : (Number.isFinite(num(hoy)) ? null : visitante),   // (el de otro día ya se fue)
+    // (el de otro día ya se fue; 3.8.4: salvo el que estás guiando, que sigue con vos aunque pase la medianoche)
+    visitante: visitante && (visitante.dia === tope || (visitante.estado === 'guiando' && visitante.dia === tope - 1)) ? visitante : (Number.isFinite(num(hoy)) ? null : visitante),
     visitantesDia: diaOCero(x.visitantesDia, tope),
     guiados: guiados.slice(-TOPE_GUIADOS),
     mascota: {
@@ -290,6 +291,13 @@ export function guiado(vida, dia) {
   return g;
 }
 export function visitanteSeVa(vida) { if (objeto(vida)) vida.visitante = null; }
+// 3.8.4: ¿sigue en el valle? El de otro día ya se fue y el que nadie llevó se vuelve en el último tren (a las 20); el que
+// estás guiando se queda hasta terminar el recorrido aunque pase la medianoche (antes se iba en el medio del camino).
+export function visitanteSigue(v, dia, hora) {
+  if (!objeto(v)) return false;
+  if (v.estado === 'guiando') return diaValido(dia, 1) - diaValido(v.dia, 1) <= 1;   // (hasta el día siguiente)
+  return v.dia === diaValido(dia, 1) && !(v.estado === 'anden' && num(hora) >= 20);
+}
 // Para el cuaderno: «Lena, una mochilera de Hamburgo: el Mirador del Pehuén (día 12)».
 export const lineaGuiado = (g) => { const d = visitanteDef(g.id), l = LUGARES_VISITA[g.lugar]; return d && l ? `${d.nombre}, ${d.de}: ${l.nombre} (día ${g.dia}).` : ''; };
 

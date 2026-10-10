@@ -145,7 +145,7 @@ export function crearValleUi(ctx) {
     panel.classList.toggle('oculto', !datos);
     if (!datos) return;
     const html = `<b>${escP(datos.titulo)}<small>La historia del valle</small></b>`
-      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(o.tecla)}</kbd>${escP(o.texto)}</p>`).join('');
+      + datos.objetivos.map((o) => `<p class="${o.hecho ? 'hecho' : ''}"><kbd>${o.hecho ? '✓' : escP(ctx.teclaVisible ? ctx.teclaVisible(o.tecla) : o.tecla)}</kbd>${escP(o.texto)}</p>`).join('');
     if (html !== htmlPanel) { htmlPanel = html; panel.innerHTML = html; ctx.traducir?.(panel); }
     // debajo de la guía del primer día, si está a la vista
     const tut = $('tutorial');

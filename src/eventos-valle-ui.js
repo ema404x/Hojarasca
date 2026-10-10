@@ -5,7 +5,7 @@
 //
 // Sin THREE: lo del mundo lo hace el juego por medio de `ctx` (ver `historia-ui.js`).
 
-import { EVENTO_VALLE, SEGUIMIENTOS, sanearEventosValle, revisarEventos, forzarEvento, elegirOpcion, seguimientoListo, cerrarSeguimiento, sumarGratitud, faltaPara, nombreCosa, nombreVecinoEvento } from './eventos-valle.js';
+import { EVENTO_VALLE, SEGUIMIENTOS, sanearEventosValle, revisarEventos, forzarEvento, elegirOpcion, seguimientoListo, cerrarSeguimiento, seguimientoDe, sumarGratitud, faltaPara, nombreCosa, nombreVecinoEvento } from './eventos-valle.js';
 import { mesaPuesta, VISITANTES, VISITA } from './visitas.js';
 import { TRUEQUES } from './trueque.js';
 import { puedeLlegar, llamarProximo, NOMBRE_ALDEA } from './aldea.js';
@@ -190,7 +190,7 @@ export function crearEventosValleUi(ctx, tarjetas) {
       e.activo = null;
     }
     const listo = seguimientoListo(e, s);
-    if (listo) { mostrarSeguimiento({ id: listo.id, seguimiento: SEGUIMIENTOS[listo.id] }); return true; }
+    if (listo) { mostrarSeguimiento({ id: listo.id, seguimiento: seguimientoDe(e, listo.id, { vecinos: ctx.extra().vecinos !== false }) || SEGUIMIENTOS[listo.id] }); return true; }   // 3.8.4
     if (!puedeAzar) return false;
     const nuevo = revisarEventos(e, s);
     if (nuevo) { ctx.guardar(); mostrarEvento(nuevo); return true; }

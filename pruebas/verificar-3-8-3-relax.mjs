@@ -149,7 +149,7 @@ const trozo = (desde, hasta) => {
   Huerta.sembrar(progreso.huerta, '6:6', 'habas', 20);
   ctx.devolver({ plano: 'cantero', x: 6, z: 6 });
   ok(cuanto('haba') === Huerta.CULTIVOS.habas.cosecha, 'lo sembrado que no está listo se lo lleva el cantero, como siempre');
-  ok(main.includes('devolverContenido(r.datos);') && main.includes('devolverContenido(d); }'), 'se llama al desmontar y en el desalojo');
+  ok(main.includes('devolverContenido(r.datos);') && main.includes('devolverContenido(d); '), 'se llama al desmontar y en el desalojo');
 }
 
 // ---------------------------------------------------------------- 6. Y sigue la obra a medio hacer, no la terminada

@@ -162,7 +162,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
 // ---------------------------------------------------------------- 14. el chinchón: las sueltas con 8 cartas
 {
   const j = leer('src/fiestas-juego.js');
-  ok(j.includes('mano.length > 7 ? { resto: Math.min(...mano.map((_c, i) => mejorLigado(mano.filter((_x, k) => k !== i)).resto)) } : mejorLigado(mano)') && !j.includes('mano.slice(0, 7)'), 'chinchón: con 8 cartas, las sueltas cuentan la recién levantada');
+  ok(j.includes('mano.length > 7 ? { resto: Math.min(...mano.map((c, i) => (esLaDelPozo(ro, c) ? Infinity : mejorLigado(mano.filter((_x, k) => k !== i)).resto))) } : mejorLigado(mano)') && !j.includes('mano.slice(0, 7)'), 'chinchón: con 8 cartas, las sueltas cuentan la recién levantada (3.8.4: sin tirar la del pozo)');
   ok(j.includes('if (panel.ligMano !== claveMano)'), 'chinchón: se calcula una vez por mano, no en cada redibujo');
 }
 

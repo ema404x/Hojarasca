@@ -199,13 +199,21 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
   Object.assign(tocadiscos, { sonando: null, proxima: 0, indice: 0, ultimaElegida: null, acum: 0 });
   if (!vitrola) { tocadiscos.pos = null; tocadiscos.disco = null; }
 
+  // 3.8.4: lo que soltaste con V queda en la partida (`progreso.soltados`: [{ tipo, x, z }]) y al cargar vuelve a estar
+  // donde lo dejaste (antes se perdía al recargar). Al levantarlo de nuevo, sale de la lista.
+  const SOLTADOS_TOPE = 64;
+  if (!Array.isArray(progreso.soltados)) progreso.soltados = [];
+  const soltadosGuardados = progreso.soltados.filter((s) => s && Object.hasOwn(tipos, s.tipo) && Number.isFinite(s.x) && Number.isFinite(s.z)).slice(-SOLTADOS_TOPE);
+  progreso.soltados = soltadosGuardados.slice();
+
   // mallas
   const mallas = {}, vistas = {};
   const M = new THREE.Matrix4(), cero = new THREE.Matrix4().makeScale(0, 0, 0);
   for (const [tipo, def] of Object.entries(tipos)) {
     const lista = items.filter((it) => it.tipo === tipo);
     // se reservan huecos de más para lo que el jugador suelte de vuelta
-    const RESERVA = 16;
+    // (3.8.4: y para lo que ya había soltado en la partida guardada, que vuelve a estar donde lo dejó)
+    const RESERVA = 16 + soltadosGuardados.filter((s) => s.tipo === tipo).length;
     const im = new THREE.InstancedMesh(def.geo, mat, Math.max(1, lista.length) + RESERVA);
     lista.forEach((it, i) => {
       it.indice = i;
@@ -283,6 +291,8 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     it.tomado = true;
     mallas[it.tipo].setMatrixAt(it.indice, cero);
     compactar(it.tipo);
+    // 3.8.4: lo que habías soltado sale de la lista (su hueco queda para el próximo que sueltes)
+    if (it.suelto) { const i = progreso.soltados.indexOf(it.suelto); if (i >= 0) progreso.soltados.splice(i, 1); it.suelto = null; return true; }
     progreso.tomados.push(it.id);
     return true;
   }
@@ -402,17 +412,28 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
 
   // Dejar algo de vuelta en el suelo: se reusa un hueco de los ya tomados,
   // así no hace falta agrandar la malla instanciada.
-  function soltar(id, x, z) {
+  function soltar(id, x, z, guardado = null) {
     const tipo = id === 'ramita' ? 'ramita' : id;
     // 2.6.1: Object.hasOwn: un id como "constructor" encontraba una función y tiraba
     const im = Object.hasOwn(mallas, tipo) ? mallas[tipo] : null;
     if (!im) return false;
     const y = T.altura(x, z);
-    let candidato = items.find((it) => it.tipo === tipo && it.tomado);
+    // 3.8.4: va a un hueco propio (uno de lo soltado antes, ya levantado, o uno reservado) y queda anotado en la partida;
+    // sin huecos, como antes: se reusa uno de los que juntaste (ése, al recargar, vuelve a su lugar de siempre)
+    let candidato = items.find((it) => it.tipo === tipo && it.tomado && it.esSuelto);
+    if (!candidato && im.userData.libres?.length) {
+      const libre = im.userData.libres.pop();
+      candidato = { tipo, id: `suelto-${tipo}-${libre}`, indice: libre, esc: 1, esSuelto: true };
+      items.push(candidato);
+    }
     if (candidato) {
+      candidato.suelto = guardado || { tipo, x, z };
+      if (!guardado) { progreso.soltados.push(candidato.suelto); if (progreso.soltados.length > SOLTADOS_TOPE) progreso.soltados.shift(); }
+    } else candidato = items.find((it) => it.tipo === tipo && it.tomado);
+    if (candidato && !candidato.esSuelto) {
       const i = progreso.tomados.indexOf(candidato.id);
       if (i >= 0) progreso.tomados.splice(i, 1);
-    } else {
+    } else if (!candidato) {
       // no había ninguno levantado: se usa un hueco reservado
       const libre = im.userData.libres && im.userData.libres.pop();
       if (libre === undefined) return false;
@@ -431,6 +452,9 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     if (!grilla.get(k).includes(candidato)) grilla.get(k).push(candidato);
     return true;
   }
+
+  // 3.8.4: lo soltado de la partida guardada, otra vez en el suelo
+  for (const s of soltadosGuardados) soltar(s.tipo, s.x, s.z, s);
 
   return { buscar, usar, soltar, items, tipos, ENTRADA, actualizar, tocadiscos: vitrola };
 }

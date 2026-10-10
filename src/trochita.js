@@ -662,6 +662,8 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   // cuando el taller cambia la composición). En el Desafío, el tren de siempre (`construirTren`).
   const tren = opciones.armarTren ? opciones.armarTren({ mat, trocha: TROCHA, escena }) : construirTren(mat);
   const offCoche = (i) => (tren.offCoches ? tren.offCoches[i] : -5.2 - i * 6.6);
+  // 3.8.4: la locomotora sola (el taller tiene vagones y no enganchaste ninguno): sin coches, ni puerta ni guarda
+  const hayCoches = () => !tren.offCoches || tren.offCoches.length > 0;
   // dónde para la locomotora en cada parada (con el tren de siempre, en el poste)
   const poste = (p) => p.s + (tren.adelanto || 0);
   // dónde va el maquinista en la cabina: metros adelante (negativo: atrás) del centro de la locomotora, al costado
@@ -892,8 +894,8 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     if (est.subido) tren.luzCoche.position.set(js.pos.x, js.pos.y + 1.1, js.pos.z);
     tren.alActualizar?.({ dt, s: est.s, vel: est.vel, noche, lejos, subido: est.subido, camara, enVia, enNieve: nieve.adentro });
     // la guarda viaja parada en el pasillo del primer coche (3.7.3: el primero donde se viaja)
-    const pg = enVia(est.s + offCoche(tren.primerCoche ?? 0) + 1.6);
-    const guarda = { x: pg.x, z: pg.z, y: pg.y + (tren.piso ?? 0.72), rumbo: pg.ang + Math.PI / 2 };
+    const pg = hayCoches() ? enVia(est.s + offCoche(tren.primerCoche ?? 0) + 1.6) : null;
+    const guarda = pg ? { x: pg.x, z: pg.z, y: pg.y + (tren.piso ?? 0.72), rumbo: pg.ang + Math.PI / 2 } : null;
     // 2.9: la llegada a un andén manejando se avisa una sola vez
     const llegada = est.llegada;
     est.llegada = null;
@@ -951,9 +953,9 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   // (y más cerca de ella que de la puerta del coche: ahí E sube como pasajero).
   function puedeConducir(js) {
     if (est.subido || est.parado <= 0 || est.varado) return false;
-    const cab = enVia(est.s + CAB.z - 0.3), puerta = enVia(est.s + (tren.puertas ? offCoche(tren.primerCoche ?? 0) + 4.8 : -5.2));
+    const cab = enVia(est.s + CAB.z - 0.3), puerta = hayCoches() ? enVia(est.s + (tren.puertas ? offCoche(tren.primerCoche ?? 0) + 4.8 : -5.2)) : null;
     const dCab = Math.hypot(cab.x - js.pos.x, cab.z - js.pos.z);
-    return dCab < 3.2 && dCab + 1 < Math.hypot(puerta.x - js.pos.x, puerta.z - js.pos.z) && Math.abs(js.pos.y - cab.y) < 2.6;
+    return dCab < 3.2 && (!puerta || dCab + 1 < Math.hypot(puerta.x - js.pos.x, puerta.z - js.pos.z)) && Math.abs(js.pos.y - cab.y) < 2.6;
   }
   function subirACabina(jugador) {
     est.subido = true; est.conduce = true;
@@ -1200,7 +1202,29 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   }
   function varar(s) { est.varado = true; est.s = ((s % total) + total) % total; est.vel = 0; est.velVarado = 0; }
   function soltar(esperar = 0) { est.varado = false; est.velVarado = 0; est.proxima = siguienteParada(est.s); est.parado = esperar; }
+  // 3.8.4: plantado en la nieve sin quitanieves (esperando a la cuadrilla), arriba (de pasajero o en la cabina) te podés
+  // bajar y seguir a pie: quedás al costado de la vía y el tren sigue esperando a la cuadrilla; después sigue solo hasta
+  // la próxima parada (antes había que esperar los cuatro minutos adentro)
+  const varadoEnNieve = () => est.subido && !est.varado && est.esperaNieve > 0 && est.vel < 0.05;
+  function bajarEnLaNieve(jugador) {
+    if (!varadoEnNieve()) return false;
+    if (est.conduce) {
+      est.conduce = false;
+      est.cabina.regulador = 0; est.cabina.freno = 0;
+      vaporDeCabina(false);
+      est.paradaCabina = null;
+      est.proxima = siguienteParada(est.s); est.parado = 0;
+    }
+    est.subido = false;
+    jugador.estado.enTren = false;
+    // al costado de la locomotora, del lado de afuera de la vía
+    const a = enVia(est.s), b = enVia(est.s + 1.5);
+    const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1;
+    jugador.ubicar(a.x - (dz / l) * 2.6, a.z + (dx / l) * 2.6, jugador.estado.yaw);
+    return true;
+  }
   return {
+    varadoEnNieve, bajarEnLaNieve,
     est, actualizar, puedeSubir, subir, bajar, moverse, proximoTrenA, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
     // 3.7.3: el lugar donde vas, ir a uno (la cocina, una cama), la vía nevada y dónde para la locomotora
     asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,

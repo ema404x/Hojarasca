@@ -24,6 +24,8 @@ import { sanearVela } from './vela-reglas.js';
 // 3.1: los récords de las carreras y el desafío del día (ver carreras.js y diarios.js)
 import { sanearCarreras } from './carreras.js';
 import { sanearDiarios } from './diarios.js';
+import { sanearDiarioHoy } from './diario.js';
+import { sanearAmarre } from './kayak-amarre.js';
 // 3.1: la historia guiada y los eventos del valle
 import { sanearHistoria } from './historia.js';
 import { sanearEventosValle } from './eventos-valle.js';
@@ -47,7 +49,7 @@ import { sanearGranja, granjaNueva } from './granja.js';
 // 3.7.5 (rincones): los duendes, las huertas, el potrero, el taller, tu casa, el camino y el sulky (sólo en el Relax)
 import { rinconesNuevos, sanearRincones } from './rincones.js';
 // 3.7.3: el tren mejorado y el taller ferroviario de la aldea (sólo en el Relax)
-import { trenNuevo, sanearTren } from './tren-mejoras.js';
+import { trenNuevo, sanearTren, unificarNombreLoco } from './tren-mejoras.js';
 // 3.7.5 (noticias): el diario de la aldea, las cartas de lejos, el club y las estrellas; los concursos y las cintas
 import { noticiasNuevas, sanearNoticias } from './noticias.js';
 import { concursosNuevo, sanearConcursos } from './concursos.js';
@@ -124,7 +126,7 @@ export function leerPartida(modo, ranura) {
   const k = clavesDe(modo, ranura);
   const p = leerPlausible(k);
   if (!progresoPlausible(p)) return null;
-  const fotos = leer(k.fotos) || {};
+  const fotos = leerFotosDe(k.fotos);   // 3.8.4
   let vista = null;
   try { vista = localStorage.getItem(k.vista); } catch {}
   return { progreso: p, fotos, vista };
@@ -159,6 +161,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
 export function borrarPartida(modo, ranura) {
   const k = clavesDe(modo, ranura);
   if (k.principal === CLAVE) ultimoPrincipalValidoTexto = null;
+  borrarFotosDe(k.fotos);   // 3.8.4: (también los archivos)
   try { for (const clave of Object.values(k)) localStorage.removeItem(clave); return true; } catch { return false; }
 }
 // La miniatura de la partida se guarda aparte: pesa más que todo lo demás.
@@ -219,6 +222,40 @@ function escribirTexto(clave, texto) {
 }
 function escribir(clave, valor) {
   try { return escribirTexto(clave, JSON.stringify(valor)); } catch { return false; }
+}
+// 3.8.4: las fotos del álbum van en archivos aparte, en la carpeta de la partida (en Electron, `hojarasca.fotos` de
+// preload.cjs → fotos-main.cjs), preparando la nube de Steam. Sin eso (las pruebas de Node, un navegador) siguen en el
+// localStorage. Las que estaban en el localStorage pasan a los archivos la primera vez que se leen, y se borran de ahí.
+function archivosFotos() {
+  try { const a = globalThis.hojarasca?.fotos; return a && typeof a.leer === 'function' && typeof a.escribir === 'function' ? a : null; } catch { return null; }
+}
+function leerFotosDe(clave) {
+  const local = leer(clave);
+  const a = archivosFotos();
+  if (!a) return objeto(local) ? local : {};
+  let deArchivos = null;
+  try { deArchivos = a.leer(clave); } catch { deArchivos = null; }
+  if (!objeto(deArchivos)) return objeto(local) ? local : {};   // (el disco no respondió: lo que haya)
+  if (!objeto(local) || !Object.keys(local).length) return deArchivos;
+  const juntas = { ...local, ...deArchivos };
+  let ok = false;
+  try { ok = a.escribir(clave, juntas) === true; } catch { ok = false; }
+  if (ok) { try { localStorage.removeItem(clave); } catch {} }
+  return juntas;
+}
+function escribirFotosDe(clave, fotos) {
+  const a = archivosFotos();
+  if (a) {
+    let ok = false;
+    try { ok = a.escribir(clave, fotos) === true; } catch { ok = false; }
+    if (ok) { try { localStorage.removeItem(clave); } catch {} return true; }
+  }
+  return escribir(clave, fotos);
+}
+function borrarFotosDe(clave) {
+  const a = archivosFotos();
+  if (a) { try { a.borrar?.(clave); } catch {} }
+  try { localStorage.removeItem(clave); } catch {}
 }
 
 // 3.2: los ajustes llevan versión. En la 2 el límite de cuadros de fábrica pasó de 60 a
@@ -458,6 +495,10 @@ function sanearProgreso(p) {
     // la cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real
     tormenta: sanearTormenta(p.tormenta),
     caballo: sanearCaballo(p.caballo, LIMITE),
+    // 3.8.4: la página del diario de hoy (de otro día, ya se escribió), dónde quedó amarrado el kayak y lo soltado con V
+    diarioHoy: sanearDiarioHoy(p.diarioHoy, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    kayakAmarre: sanearAmarre(p.kayakAmarre),
+    soltados: arr(p.soltados).filter((s) => objeto(s) && ['ramita', 'pinon', 'calafate', 'frutilla', 'pluma', 'canto'].includes(s.tipo) && Number.isFinite(s.x) && Number.isFinite(s.z) && Math.abs(s.x) <= LIMITE && Math.abs(s.z) <= LIMITE).slice(-64).map((s) => ({ tipo: s.tipo, x: s.x, z: s.z })),
     // 2.8: una partida vieja no lo tiene: sale con lo de fábrica de cada sección
     personal: sanearPersonal(p.personal),
     // 2.9: una partida vieja no lo tiene: arranca sin fletes ni cuentas
@@ -521,6 +562,8 @@ function sanearProgreso(p) {
   };
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
+  // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)
+  unificarNombreLoco(limpio);
   return limpio;
 }
 
@@ -542,7 +585,7 @@ export function cargarProgreso() {
   p = sanearProgreso(p);
   if (!p) return null;
   // las miniaturas viven aparte y se vuelven a pegar al cargar
-  const fotos = leer(CLAVE_FOTOS) || {};
+  const fotos = leerFotosDe(CLAVE_FOTOS);   // 3.8.4: (de los archivos de la partida)
   // 2.6.1: sólo las propias y que sean imagen (un `fotos.constructor` heredado se colaba)
   for (const [k, v] of Object.entries(p.desafios || {})) if (Object.hasOwn(fotos, k) && typeof fotos[k] === 'string' && objeto(v)) v.img = fotos[k];
   return p;
@@ -553,10 +596,10 @@ export function cargarProgreso() {
 export function guardarFotos(desafios) {
   const soloImagenes = {};
   for (const [k, v] of Object.entries(desafios || {})) if (v && v.img) soloImagenes[k] = v.img;
-  return escribir(CLAVE_FOTOS, soloImagenes);
+  return escribirFotosDe(CLAVE_FOTOS, soloImagenes);   // 3.8.4
 }
-export function cargarFotos() { return leer(CLAVE_FOTOS) || {}; }
-export function borrarFotos() { try { localStorage.removeItem(CLAVE_FOTOS); } catch {} }
+export function cargarFotos() { return leerFotosDe(CLAVE_FOTOS); }
+export function borrarFotos() { borrarFotosDe(CLAVE_FOTOS); }
 
 export function guardarProgreso(p) {
   const limpio = sanearProgreso(p);
@@ -583,4 +626,4 @@ export function guardarProgreso(p) {
     return true;
   } catch { return false; }
 }
-export function borrarProgreso() { ultimoPrincipalValidoTexto = null; try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }
+export function borrarProgreso() { ultimoPrincipalValidoTexto = null; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }

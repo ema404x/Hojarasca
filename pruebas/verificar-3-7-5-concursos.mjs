@@ -79,7 +79,7 @@ if (fJ.puesto === 1) ok(/^¡Cinta azul en el concurso de dulces!$/.test(C.textoF
 // ---------------------------------------------------------------- el saneo
 ok(JSON.stringify(C.sanearConcursos(null)) === JSON.stringify(C.concursosNuevo()), 'sin nada: nuevo');
 const s = C.sanearConcursos({ inscripto: { id: 'dulce', dia: 4, k: 'dulce-leche', que: 'x', calidad: 500 }, truchas: [{ dia: 3, cm: 999, especie: 'marron' }, { dia: 99, cm: 30, especie: 'marron' }, { dia: 2, cm: 30, especie: 'tiburon' }], resultados: [{ id: 'dulce', dia: 3, podio: ['jugador', 'madre', 'falso'], puesto: 1, jurado: ['jefe'] }, { id: 'dulce', dia: 3 }, { id: 'nada', dia: 2 }], cintas: [{ id: 'poncho', dia: 2, puesto: 2, cinta: 'oro', que: '<i>x</i>' }, { id: 'foto', dia: 50 }] }, 5);
-ok(s.inscripto === null, 'la inscripción de otro día ya no vale');
+ok(s.inscripto?.dia === 4 && s.inscripto.calidad === 100, 'la inscripción de otro día queda para el fallo que no salió (3.8.4)');
 ok(s.truchas.length === 1 && s.truchas[0].cm === 120, 'truchas: nada del futuro, sólo truchas, con tope');
 ok(s.resultados.length === 1 && s.resultados[0].podio.join() === 'jugador,madre', 'resultados: uno por día y concurso, gente de verdad');
 ok(s.cintas.length === 1 && s.cintas[0].cinta === 'roja' && s.cintas[0].que === 'ix/i', 'la cinta sale del puesto (no del guardado)');

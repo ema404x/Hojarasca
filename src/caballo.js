@@ -47,6 +47,17 @@ export function dondeEspera(caballo, refugio) {
   return palenque(refugio);
 }
 
+// 3.8.4: el caballo no cruza los puentes colgantes (el tablero se mueve y las sogas no aguantan un caballo): montado,
+// se planta en el estribo (`noPisa`, con la plataforma que tiene abajo; ver jugador.js). Ahí E pregunta: amarrarlo en el
+// estribo (te bajás y queda atado, como al bajarte en cualquier lado) o mandarlo solo al refugio (vuelve al palenque:
+// `mandarAlRefugio`). Lo que elijas queda en la partida (`progreso.caballo`).
+export const noPisa = (plataforma) => plataforma?.duenio?.tendido === 'puente';
+export function mandarAlRefugio(c) {
+  if (!c || typeof c !== 'object') return c;
+  c.x = null; c.z = null; c.yaw = 0;   // (sin lugar: espera en el palenque, ver `dondeEspera`)
+  return c;
+}
+
 // El caballo mira hacia +z; el jugador, hacia -z. Montado, el caballo va para donde miras.
 export const yawCaballo = (yawJugador) => yawJugador + Math.PI;
 

@@ -4,6 +4,8 @@ import { VELOCIDAD, ALTURA_OJOS, ALTURA_AGACHADO, LIMITE } from './config.js';
 
 const LIMITE_PENDIENTE = 50 * Math.PI / 180;   // más empinado que esto, se resbala
 import { clamp, lerp, smoothstep } from './ruido.js';
+// 3.8.4: el caballo no cruza los puentes colgantes
+import { noPisa } from './caballo.js';
 
 export function crearJugador(camara, T, col, opciones) {
   const estado = {
@@ -337,6 +339,12 @@ export function crearJugador(camara, T, col, opciones) {
         estado.pos.x = previoX; estado.pos.z = previoZ;
         estado.vel.x = 0; estado.vel.z = 0;
         estado.montado.plantado = 1;
+      }
+      // 3.8.4: tampoco pisa el tablero de un puente colgante: se planta en el estribo (main.js ofrece amarrarlo ahí o
+      // mandarlo solo al refugio)
+      if (noPisa(col.plataformaEn?.(estado.pos.x, estado.pos.z, estado.pos.y, 0.6))) {
+        estado.pos.x = previoX; estado.pos.z = previoZ;
+        estado.vel.x = 0; estado.vel.z = 0;
       }
     }
     // si un obstáculo frenó el avance, la velocidad también se frena

@@ -91,7 +91,7 @@ export const ENTRADAS_RINCONES = [
     texto: 'Una huella de carro que va del refugio a la Aldea de los Duendes. Con la minga se emparejó, se le echó ripio y se plantaron faroles.' },
   { id: 'sulky', seccion: 'lugares', nombre: 'El sulky', cientifico: 'hecho por Tito Arrieta', modo: 'observar',
     pista: 'Con caballo propio, Tito te puede hacer un sulky para ir por el camino a la aldea.',
-    texto: 'Un sulky de dos ruedas altas, con el asiento de lenga y las varas de coihue. Tirado por tu caballo, va solo por el camino: el zaino ya lo conoce.' },
+    texto: 'Un sulky de dos ruedas altas, con el asiento de lenga y las varas de coihue. Tirado por tu caballo, va solo por el camino: ya lo conoce.' },   // 3.8.4: sin «el zaino» (puede tener otro nombre o pelaje)
   { id: 'taller-refugio', seccion: 'lugares', nombre: 'El taller del refugio', cientifico: 'lo que te enseñaron tus amigos', modo: 'observar',
     pista: 'Cuando un amigo de la aldea te enseñe su oficio, armás un banco de trabajo al lado del refugio.',
     texto: 'Un banco de trabajo bajo el alero del refugio, con sus herramientas colgadas y un estante con lo que fuiste haciendo. Cada cosa tiene detrás a alguien que te enseñó.' },

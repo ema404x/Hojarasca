@@ -42,7 +42,7 @@ const C = { n: 0, palo: 'comodin' };
   const i12 = q.ronda.cartas[0].findIndex((x) => x.n === 12);
   ok(J.accionesChinchon(q, 0).includes(`cortar:${i12}`), 'tirando el 12 queda todo ligado: se puede cortar');
   J.actuarChinchon(q, 0, `cortar:${i12}`);
-  ok(q.ronda.terminada && q.puntos[0] === J.CHINCHON.todoLigado && q.puntos[1] === 45, 'todo ligado: −10; el otro se anota lo suyo (45)');
+  ok(q.ronda.terminada && q.puntos[0] === J.CHINCHON.todoLigado && q.puntos[1] === 40, 'todo ligado: −10; el otro se anota lo suyo (45, menos el 5 de oro que acomoda en la escalera: 3.8.4)');
   // el rival: nunca hace algo que no puede; los partidos terminan
   let ilegales = 0, terminados = 0;
   for (let s = 1; s <= 40; s++) {

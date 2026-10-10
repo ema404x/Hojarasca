@@ -185,7 +185,12 @@ export const AMOR = {
   celos: { dias: 3, baja: 15, entre: 4, chance: { tranquilo: 0.25, normal: 0.45, animado: 0.65 }, publico: 0.25 },
   enojo: { corte: 3, separacion: 4, plantada: 1, rechazo: 2 },
   reconquista: { minimo: 55, citas: 1 },
+  rehacer: { dias: 4 },   // 3.8.4: pasada una estación (4 días) de la separación, te podés enamorar de otra
 };
+// 3.8.4: rehacer la vida. Separado hace una estación o más, la ex ya no te ata: te podés enamorar de otra (la
+// reconquista sigue: ella sigue separada y, mientras no tengas otra pareja, la podés reconquistar) y el anillo que le
+// diste deja de figurar como «dado» (se lo quedó ella). `d`: el día de hoy.
+export const rehizoLaVida = (f, d) => f?.etapa === 'separados' && diaValido(d, 1) - (Number(f.desde) || 0) >= AMOR.rehacer.dias;
 const sumarAfecto = (f, n) => { f.afecto = acotar(Math.round((f.afecto + n) * 10) / 10, 0, AMOR.tope); };
 
 // ---------------------------------------------------------------- las habilidades (lo que te enseña tu esposa)
@@ -208,7 +213,7 @@ export const HABILIDADES = {
   veterinaria: { id: 'animales', nombre: 'Mano con los animales', niveles: [
     N('Gallinas sanas', 'Vitaminás a las gallinas como Ayelén: cada mañana, un par de huevos más.', [{ tipo: 'entrada', k: 'huevo', n: 2 }]),
     N('Paso manso', 'Te movés como Ayelén entre los animales: el monte se espanta mucho menos cuando te acercás.', [], { huida: 0.7 }),
-    N('Herrar al zaino', 'Le revisás las herraduras al zaino vos solo: anda más liviano todo el día.', [{ tipo: 'aldea', campo: 'herrado', valor: 'hoy' }])] },
+    N('Herrar al caballo', 'Le revisás las herraduras a tu caballo vos solo: anda más liviano todo el día.', [{ tipo: 'aldea', campo: 'herrado', valor: 'hoy' }])] },   // 3.8.4: «tu caballo», no «el zaino»
   fotografa: { id: 'luz', nombre: 'Ojo de fotógrafa', niveles: [
     N('Acercarse sin espantar', 'Caminás despacio como Sofía: los pájaros no se espantan y encontrás plumas.', [{ tipo: 'entrada', k: 'pluma', n: 1 }]),
     N('El lente del abuelo Jalil', 'Sofía te deja el lente para siempre: las fotos te salen de más lejos.', [], { lente: true }),
@@ -343,7 +348,9 @@ export function puedeRomance(clave, estado, opciones = {}) {
   if (!esCandidata(clave)) return { ok: false, motivo: 'no-candidata' };
   const { amor, aldea } = partes(estado);
   if (!esVecinoAldea(clave) && !(aldea.pobladores || []).some((p) => p?.clave === clave)) return { ok: false, motivo: 'no-llego' };
-  if (amor && Object.entries(amor.personas).some(([k, f]) => k !== clave && idx(f.etapa) >= idx('comprometidos'))) return { ok: false, motivo: 'tenes-pareja' };
+  // (3.8.4: la separada hace una estación ya no cuenta: ver `rehizoLaVida`)
+  const hoy = diaDe(partes(estado).progreso, opciones);
+  if (amor && Object.entries(amor.personas).some(([k, f]) => k !== clave && idx(f.etapa) >= idx('comprometidos') && !rehizoLaVida(f, hoy))) return { ok: false, motivo: 'tenes-pareja' };
   return { ok: true, motivo: null };
 }
 export function etapaAmor(clave, estado) { return fichaSi(partes(estado).amor, clave)?.etapa || 'conocidos'; }
@@ -351,8 +358,10 @@ export function etapaAmor(clave, estado) { return fichaSi(partes(estado).amor, c
 export function parejaActual(estado) {
   const { amor } = partes(estado);
   if (!amor) return null;
-  const k = Object.keys(amor.personas).find((x) => idx(amor.personas[x].etapa) >= idx('comprometidos'));
-  return k || null;
+  // 3.8.4: primero la de ahora (comprometida o casada); si no, la separada que todavía no pasó su estación
+  const d = diaDe(partes(estado).progreso, {});
+  const ks = Object.keys(amor.personas).filter((x) => idx(amor.personas[x].etapa) >= idx('comprometidos'));
+  return ks.find((x) => amor.personas[x].etapa !== 'separados') || ks.find((x) => !rehizoLaVida(amor.personas[x], d)) || null;
 }
 // Las que están saliendo con vos o son tus novias.
 const activas = (a) => Object.keys(a.personas).filter((k) => ['saliendo', 'novios'].includes(a.personas[k].etapa));
@@ -584,6 +593,9 @@ export function vencerCita(estado, ctx = {}) {
   const d = diaDe(progreso, ctx), h = horaDe(progreso, ctx);
   if (d < c.dia || (d === c.dia && h <= c.hasta)) return null;
   amor.cita = null;
+  // 3.8.4: si a la hora de la cita ella estaba ocupada (con otra invitación de la aldea) y nunca llegó a esperarte, no te
+  // plantó nadie: se cae sin enojo ni afecto de menos (`ocupada` y `espero` los anota amor-juego.js)
+  if (c.ocupada && !c.espero) return { tipo: 'no-pudo', clave: c.clave, texto: `${nombreDe(c.clave)} no pudo ir a la cita`, sub: 'Se le cruzó otro compromiso en la aldea. Invitala otro día' };
   const f = ficha(amor, c.clave);
   sumarAfecto(f, AMOR.cita.plantada);
   f.enojo = Math.max(f.enojo, d + AMOR.enojo.plantada - 1);
@@ -975,8 +987,18 @@ function congelar(a, n) {
   for (const c of a.correo) { c.dia = mas(c.dia); c.entrega = mas(c.entrega); }
   for (const h of a.hijos) h.nacio = mas(h.nacio);
   if (a.cita) a.cita.dia = mas(a.cita.dia);
-  for (const hb of Object.values(a.habilidades)) if (hb.estacion >= 0) hb.estacion += Math.floor(n / 4);
+  // (3.8.4: las habilidades no se corren: siguen subiendo con el amor apagado, ver `subirHabilidad`)
   a.chisme = mas(a.chisme);
+}
+// La habilidad de la estación del día `x` (casados y juntos): un nivel por estación. `eventos`: dónde avisar (null: callado)
+function subirHabilidad(amor, x, eventos) {
+  const k = amor.conyuge;
+  if (!k || amor.personas[k]?.etapa !== 'casados' || !tieneDe(amor.habilidades, k)) return;
+  const hb = amor.habilidades[k];
+  if (hb.nivel >= NIVELES_HABILIDAD || estacionAbs(x) <= hb.estacion) return;
+  hb.nivel++; hb.estacion = estacionAbs(x);
+  const n = HABILIDADES[k].niveles[hb.nivel - 1];
+  eventos?.push({ tipo: 'habilidad', clave: k, nivel: hb.nivel, texto: llenarAmor(FRASES_AMOR.habilidad.aviso, { ella: nombreDe(k), nombre: n.nombre }), sub: n.texto });
 }
 // Llamarla al empezar cada día (amor-juego.js, con la vecindad). Entrega el correo, avisa el anillo listo,
 // posterga la boda que no se hizo, hace nacer al bebé, enseña la habilidad de la estación, cuenta el descuido
@@ -987,7 +1009,13 @@ export function pasarDiaAmor(estado, dia, ctx = {}) {
   const { amor } = partes(estado, true);
   const d = diaValido(dia, 1);
   const eventos = [];
-  if (!romanceActivo(ctx)) { if (amor.dia && d > amor.dia) congelar(amor, d - amor.dia); amor.dia = Math.max(amor.dia, d); return { eventos, efectos: [] }; }   // apagado: quieto
+  if (!romanceActivo(ctx)) {   // apagado: quieto
+    // 3.8.4: salvo lo que te enseña tu esposa, que sigue subiendo una vez por estación, sin avisos (antes las estaciones se
+    // corrían y al prenderlo los niveles saltaban de golpe o se atrasaban)
+    if (amor.dia && d > amor.dia) { congelar(amor, d - amor.dia); for (let x = Math.max(amor.dia + 1, d - 60); x <= d; x++) subirHabilidad(amor, x, null); }
+    amor.dia = Math.max(amor.dia, d);
+    return { eventos, efectos: [] };
+  }
   const desde = Math.max(amor.dia || d - 1, d - 60);
   const ritmo = ['tranquilo', 'normal', 'animado'].includes(ctx.ritmo) ? ctx.ritmo : 'normal';
   for (let x = desde + 1; x <= d; x++) {
@@ -1024,14 +1052,12 @@ export function pasarDiaAmor(estado, dia, ctx = {}) {
       if (e > 0 && e > etapaHijo(h, x - 1)) eventos.push({ tipo: 'crecio', hijo: h.nombre, etapa: ETAPAS_CHICOS[e], texto: llenarAmor(FRASES_AMOR.hijos.crecio[ETAPAS_CHICOS[e]], { hijo: h.nombre }), sub: '' });
     }
     // la habilidad de la estación (casados y juntos)
-    const k = amor.conyuge;
-    if (k && amor.personas[k]?.etapa === 'casados' && tieneDe(amor.habilidades, k)) {
-      const hb = amor.habilidades[k];
-      if (hb.nivel < NIVELES_HABILIDAD && estacionAbs(x) > hb.estacion) {
-        hb.nivel++; hb.estacion = estacionAbs(x);
-        const n = HABILIDADES[k].niveles[hb.nivel - 1];
-        eventos.push({ tipo: 'habilidad', clave: k, nivel: hb.nivel, texto: llenarAmor(FRASES_AMOR.habilidad.aviso, { ella: nombreDe(k), nombre: n.nombre }), sub: n.texto });
-      }
+    subirHabilidad(amor, x, eventos);
+    // 3.8.4: pasó una estación de la separación: el anillo se lo quedó ella y te podés volver a enamorar
+    for (const [c, f] of Object.entries(amor.personas)) {
+      if (!rehizoLaVida(f, x) || rehizoLaVida(f, x - 1)) continue;
+      if (amor.anillo?.para === c) amor.anillo = null;
+      eventos.push({ tipo: 'rehacer', clave: c, texto: `Pasó una estación desde que ${nombreDe(c)} y vos se separaron`, sub: 'Te podés volver a enamorar. Y si querés reconquistarla, todavía estás a tiempo' });
     }
     // el descuido
     for (const [c, f] of Object.entries(amor.personas)) {
@@ -1194,22 +1220,32 @@ export function sanearAmor(x0, hoy = null) {
   }
   const P = base.personas;
   // una sola pareja de verdad: la cónyuge (casada o separada) o, si no hay, la primera comprometida
-  let conyuge = esCandidata(x.conyuge) && ['casados', 'separados'].includes(P[x.conyuge]?.etapa) ? x.conyuge : null;
-  if (!conyuge) conyuge = ORDEN_CANDIDATAS.find((k) => ['casados', 'separados'].includes(P[k]?.etapa)) || null;
-  let comprometida = conyuge ? null : ORDEN_CANDIDATAS.find((k) => P[k]?.etapa === 'comprometidos') || null;
+  // 3.8.4: primero la casada; si no, la separada. Separada hace una estación o más (`rehizoLaVida`, con el día de la
+  // partida), la vida se rehizo: puede haber otra (saliendo, novia o comprometida) y las separadas de antes quedan así
+  const hoyS = Number.isFinite(num(hoy)) ? tope : null;
+  const rehecha = (f) => hoyS !== null && rehizoLaVida(f, hoyS);
+  const elegida = (etapa) => (esCandidata(x.conyuge) && P[x.conyuge]?.etapa === etapa ? x.conyuge : ORDEN_CANDIDATAS.find((k) => P[k]?.etapa === etapa) || null);
+  const casada = elegida('casados');
+  const separada = casada ? null : elegida('separados');
+  let conyuge = casada || separada;
+  const libre = !casada && (!separada || rehecha(P[separada]));
+  let comprometida = libre ? ORDEN_CANDIDATAS.find((k) => P[k]?.etapa === 'comprometidos') || null : null;
+  const ata = !libre || !!comprometida;
   for (const [k, f] of Object.entries(P)) {
     if (k === conyuge || k === comprometida) continue;
-    if (idx(f.etapa) >= idx('comprometidos')) cambiarEtapa(f, (conyuge || comprometida) ? 'conocidos' : 'novios', f.desde);
-    else if (conyuge || comprometida) { if (idx(f.etapa) >= idx('coqueteo')) cambiarEtapa(f, 'conocidos', f.desde); }
+    if (f.etapa === 'separados' && rehecha(f)) continue;
+    if (idx(f.etapa) >= idx('comprometidos')) cambiarEtapa(f, ata ? 'conocidos' : 'novios', f.desde);
+    else if (ata) { if (idx(f.etapa) >= idx('coqueteo')) cambiarEtapa(f, 'conocidos', f.desde); }
   }
   base.conyuge = conyuge;
   // la boda: sólo de la comprometida
   if (comprometida && objeto(x.boda) && x.boda.con === comprometida) base.boda = { con: comprometida, dia: Math.max(1, fecha(x.boda.dia, AMOR.boda.enDias + 1)), hora: AMOR.boda.hora };
   else if (comprometida) base.boda = { con: comprometida, dia: Math.min(TOPE_DIA, tope + 1), hora: AMOR.boda.hora };
   // el anillo
-  if (objeto(x.anillo)) {
+  // (3.8.4: el que le diste a la separada hace una estación se lo quedó ella: ya no figura)
+  if (objeto(x.anillo) && !(separada && libre && x.anillo.para === separada)) {
     const pedido = Math.max(1, fecha(x.anillo.pedido));
-    const para = comprometida || conyuge;
+    const para = comprometida || (libre ? null : conyuge);
     base.anillo = { pedido, listo: Math.max(pedido, Math.min(pedido + AMOR.anillo.dias, fecha(x.anillo.listo, AMOR.anillo.dias))), retirado: x.anillo.retirado === true || (!!para && x.anillo.para === para), para: para && x.anillo.para === para ? para : null };
     if (x.anillo.avisado === true) base.anillo.avisado = true;
   }
@@ -1241,6 +1277,8 @@ export function sanearAmor(x0, hoy = null) {
   if (objeto(c) && esCandidata(c.clave) && esLugarCita(c.lugar) && idx(P[c.clave]?.etapa) >= idx('coqueteo') && Number.isFinite(num(c.desde)) && Number.isFinite(num(c.hasta))) {
     const desde = acotar(num(c.desde), 0, 24), hasta = acotar(num(c.hasta), desde, 26);
     base.cita = { clave: c.clave, lugar: c.lugar, dia: Math.max(1, fecha(c.dia, 1)), desde, hasta, estado: c.estado === 'en-curso' ? 'en-curso' : 'acordada' };
+    if (c.ocupada === true) base.cita.ocupada = true;   // 3.8.4 (ver `vencerCita`)
+    if (c.espero === true) base.cita.espero = true;
   }
   for (const y of Array.isArray(x.correo) ? x.correo : []) {
     if (!objeto(y) || (y.tipo !== 'carta' && y.tipo !== 'ramo') || !esCandidata(y.para)) continue;

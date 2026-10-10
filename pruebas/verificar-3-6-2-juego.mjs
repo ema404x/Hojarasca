@@ -84,7 +84,7 @@ const tramo = (texto, desde, hasta) => { const i = texto.indexOf(desde); assert.
   ok(plantilla.includes('#hud .barra .ranura, #hud .trueque li, #hud .trueque button, #hud .mochila .cosa, #hud .mochila button { pointer-events: auto; }'), 'las listas sí: la barra, el almacén, la feria, las cargas, el taller y la mochila');
   ok(/\.obra \{[^}]*pointer-events: auto;/.test(plantilla) && /\.charla-opciones li \{[^}]*pointer-events: auto;/.test(plantilla), 'el panel de obra y el menú de la charla ya lo tenían');
   // con mousedown (como el menú de la charla en la 3.6.1): el click no llegaba, y el clic seguía al juego
-  ok(main.includes("function alClicHud(el, fn) {\n  el.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); fn(); });"), 'alClicHud: mousedown, sin seguir de largo');
+  ok(main.includes("function alClicHud(el, fn) {\n  el.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); marcarClicHud(el); fn(); });"), 'alClicHud: mousedown, sin seguir de largo (3.8.4: y mueve la marca del mando)');
   ok(main.includes('alClicHud(li, () => cambiar(i));') && main.includes('alClicHud(li, () => cambiarFeria(i));') && main.includes('alClicHud(d, asignar);'), 'el almacén, la feria y la mochila');
   ok(main.includes("function cambiar(i) {\n  marcarEn('almacen', i - paginaAlmacen * POR_PAGINA_ALMACEN);") && main.includes("function cambiarFeria(i) {\n  marcarEn('feria', i);"), 'lo elegido (con el número, el clic o Enter) queda marcado');
   ok(comercio.includes("li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegir(i); });"), 'las cargas');

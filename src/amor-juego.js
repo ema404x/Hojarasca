@@ -305,7 +305,10 @@ export function crearAmorJuego(ctx) {
     }
     if (!quiere) return;
     const punto = quiere.por === 'boda' ? (() => { const q = puntosMundo('biblioteca').cuentos; return q ? { x: q.x, z: q.z, mira: q.rot } : null; })() : null;
+    // 3.8.4: a la hora de la cita, ¿estaba ocupada con otra invitación? (si nunca pudo esperarte, la cita se cae sin «plantada»)
+    if (quiere.por === 'cita' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.enCita) cita.ocupada = true; }
     if (poner(quiere.clave, quiere.por, quiere.lugar, punto)) {
+      if (quiere.por === 'cita' && cita) cita.espero = true;   // 3.8.4
       const L = LUGARES_CITA[quiere.lugar];
       if (quiere.por === 'cita') avisar(`${nombre(quiere.clave)} te espera`, `En ${L.nombre}, hasta las ${horaTextoAmor(cita.hasta)}`);
       else avisar(`${nombre(quiere.clave)} te espera en la biblioteca`, 'El juez de paz ya llegó');

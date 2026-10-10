@@ -79,11 +79,17 @@ export function sanearEstadoTren(v) {
 }
 
 // Los vagones que salen a la vía detrás del ténder, en orden (ids de VAGONES; 'segunda' y 'segunda2' son los
-// de siempre). Sin composición elegida, los que tengas en el orden de siempre. Siempre hay dónde viajar: si no
-// va ningún coche de pasajeros, adelante va uno de segunda; y nunca menos de dos vagones (como el tren de antes).
+// de siempre). Sin vagones nuevos, los dos de segunda (3.8.4: con vagones y ninguno elegido, sólo la locomotora). Con
+// alguno elegido siempre hay dónde viajar: si no va ningún coche de pasajeros, adelante va uno de segunda; y nunca menos
+// de dos vagones (como el tren de antes).
+// 3.8.4: con vagones hechos en el taller y ninguno enganchado, sale sólo la locomotora con su ténder (`[]`: sin carga y
+// sin pasajeros, se viaja en la cabina). Antes salían todos los que tuvieras.
 export function composicionDe(estado) {
   const e = sanearEstadoTren(estado);
-  let lista = e.composicion.length ? e.composicion.slice() : ID_VAGONES.filter((id) => e.vagones[id]);
+  // (`composicion` vacía tal cual: no elegiste ninguno; una elegida con vagones que no tenés, como antes: los que tengas)
+  if (Array.isArray(estado?.composicion) && !estado.composicion.length && ID_VAGONES.some((id) => e.vagones[id])) return [];
+  if (!e.composicion.length) e.composicion = ID_VAGONES.filter((id) => e.vagones[id]);
+  let lista = e.composicion.slice();
   lista = lista.slice(0, TREN.maxVagones);
   if (!lista.some((id) => VAGONES[id].viaja)) lista = ['segunda', ...lista].slice(0, TREN.maxVagones);
   if (lista.length < 2) lista.push(lista.includes('segunda') ? 'segunda2' : 'segunda');
@@ -157,10 +163,17 @@ export function enLaNieve(estado) {
 
 // ---------------------------------------------------------------- el viaje (progreso.trenViaje)
 // `caballo`: tu caballo va en la jaula. `mate`: la hora (día × 24 + horas) del último mate en el comedor.
+// 3.8.4: `subio`: cuándo te subiste (día × 24 + horas; marca el viaje). `siesta`: el `subio` del viaje en que dormiste la
+// siesta en la cucheta (null: ninguna). Una siesta por viaje: antes cada E en la cucheta adelantaba dos horas más.
 export function sanearViaje(v) {
   const o = objeto(v) ? v : {};
-  return { caballo: !!o.caballo, mate: Number.isFinite(Number(o.mate)) ? Number(o.mate) : -1e9 };
+  const n = (x) => (x !== null && x !== undefined && x !== '' && Number.isFinite(Number(x)) ? Number(x) : null);
+  return { caballo: !!o.caballo, mate: Number.isFinite(Number(o.mate)) ? Number(o.mate) : -1e9, subio: n(o.subio) ?? 0, siesta: n(o.siesta) };
 }
+// 3.8.4: lo de cada viaje: al subirte empieza uno nuevo (la siesta vuelve a estar)
+export function empezarViaje(viaje, ahora) { if (objeto(viaje)) viaje.subio = Number.isFinite(Number(ahora)) ? Number(ahora) : 0; return viaje; }
+export const puedeSiesta = (viaje) => { const v = sanearViaje(viaje); return v.siesta === null || v.siesta !== v.subio; };
+export function anotarSiesta(viaje) { if (objeto(viaje)) viaje.siesta = sanearViaje(viaje).subio; return viaje; }
 export function puedeMatear(viaje, ahora) {
   return ahora - sanearViaje(viaje).mate >= TREN.mateCada;
 }

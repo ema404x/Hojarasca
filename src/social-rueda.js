@@ -16,12 +16,13 @@ export const CATEGORIAS_VISTA = {
   amistosa: { nombre: 'Amistosas', icono: 'abrazo' },
   graciosa: { nombre: 'Graciosas', icono: 'chiste' },
   juntos: { nombre: 'Juntos', icono: 'mate' },
+  hacer: { nombre: 'Hacer juntos', icono: 'herramienta' },   // 3.8.4
   ayuda: { nombre: 'Regalar y ayudar', icono: 'regalo' },
   romantica: { nombre: 'Románticas', icono: 'corazon' },
   picante: { nombre: 'Picantes', icono: 'rayo' },
   chau: { nombre: 'Nada más, chau', icono: 'chau' },
 };
-export const ORDEN_CATEGORIAS = ['charla', 'amistosa', 'graciosa', 'juntos', 'ayuda', 'romantica', 'picante'];
+export const ORDEN_CATEGORIAS = ['charla', 'amistosa', 'graciosa', 'juntos', 'hacer', 'ayuda', 'romantica', 'picante'];
 
 // La categoría de una opción de siempre (por su id en vecindad-juego.js, amor-juego.js, granja-juego.js, cocina-juego.js)
 export function categoriaDeOpcion(id) {
@@ -29,6 +30,7 @@ export function categoriaDeOpcion(id) {
   if (s === 'chau') return 'chau';
   if (s === 'contame' || s === 'como-andas' || s === 'novedades' || s === 'historia') return 'charla';
   if (s === 'invitar') return 'juntos';
+  if (/^rincones:/.test(s)) return 'hacer';   // 3.8.4: lo de los rincones (aprender una manualidad, el sulky, la pista de los duendes)
   if (/^amor(?:-|:|$)/.test(s)) return 'romantica';
   return 'ayuda';   // el servicio, regalar, dar una mano, lo del lugar, la granja, la cocina
 }

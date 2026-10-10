@@ -12,9 +12,9 @@
 //   · los recuerdos, las fotos de la fiesta para el álbum, la gran nevada (la vía tapada y el tiempo de nieve) y tu
 //     cumpleaños con fiesta sorpresa.
 // Sin three (lo visual lo pide a fiestas-mundo.js por `ctx.mundo()`); el DOM, sólo en el panel.
-import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
+import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, empezarClase, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
 import { partidoNuevo, accionesDe, actuar, turnoDe, decidirIA, nombreCarta, NOMBRES_CANTO, perfilTruco, envidoDe } from './truco.js';
-import { chinchonNuevo, accionesChinchon, actuarChinchon, decidirChinchon, turnoChinchon, nombreCartaChinchon, mejorLigado, esComodin, damasNuevas, jugadasDamas, moverDamas, decidirDamas, textoJugada, tirarTaba, TEXTO_TABA } from './juegos-mesa.js';
+import { chinchonNuevo, accionesChinchon, actuarChinchon, decidirChinchon, turnoChinchon, nombreCartaChinchon, mejorLigado, esLaDelPozo, esComodin, damasNuevas, jugadasDamas, moverDamas, decidirDamas, textoJugada, tirarTaba, TEXTO_TABA } from './juegos-mesa.js';
 import { FIESTAS_ALDEA, nombreCortoDe } from './aldea-vida.js';
 import { noventaDeLaAbuela } from './aldea.js';
 
@@ -575,6 +575,8 @@ export function crearFiestasJuego(ctx) {
   }
   function abrirClase(baile) {
     clase = claseNueva(baile, estado().baile[baile] || 0, dia() * 29 + Math.floor(horas() * 10));
+    empezarClase(estado(), dia());   // 3.8.4: una por día, aunque salgas a la mitad
+    ctx.guardar?.();
     reparto.clave = '';
     abrirPanel('baile', { baile, muestra: 0, t: 0 });
   }
@@ -619,7 +621,7 @@ export function crearFiestasJuego(ctx) {
       // 3.8.3: con 8 cartas (recién levantada), lo que quedaría suelto tirando la mejor (antes dejaba afuera la levantada)
       // (se guarda por mano: el panel se rehace seguido y esto son ~0,4 ms)
       const claveMano = JSON.stringify(mano);
-      if (panel.ligMano !== claveMano) { panel.ligMano = claveMano; panel.lig = mano.length > 7 ? { resto: Math.min(...mano.map((_c, i) => mejorLigado(mano.filter((_x, k) => k !== i)).resto)) } : mejorLigado(mano); }
+      if (panel.ligMano !== claveMano) { panel.ligMano = claveMano; panel.lig = mano.length > 7 ? { resto: Math.min(...mano.map((c, i) => (esLaDelPozo(ro, c) ? Infinity : mejorLigado(mano.filter((_x, k) => k !== i)).resto))) } : mejorLigado(mano); }   // (3.8.4: sin la del pozo, que no se tira)
       const lig = panel.lig;
       const arriba = ro.pozo[ro.pozo.length - 1];
       const html = `<div class="mesa-juego"><div class="fila-cartas"><span class="rotulo">${esc(quien)}</span>${ro.cartas[1].map(() => dorso(true)).join('')}</div>
@@ -767,6 +769,7 @@ export function crearFiestasJuego(ctx) {
     for (const e of r.eventos) {
       if (e.tipo === 'roba' && e.quien === 1) panel.log.push(`${quien} levanta del ${e.de}`);
       else if (e.tipo === 'tira' && e.quien === 1) panel.log.push(`${quien} tira el ${nombreCartaChinchon(e.carta)}`);
+      else if (e.tipo === 'acomoda') panel.log.push(e.quien === 1 ? `${quien} acomoda ${e.n === 1 ? 'una carta' : `${e.n} cartas`} en tus juegos` : `Acomodás ${e.n === 1 ? 'una carta' : `${e.n} cartas`} en los juegos de ${quien}`);   // 3.8.4
       else if (e.tipo === 'corta') { panel.log.push(`${e.quien === 0 ? 'Cortaste' : `${quien} corta`} con el ${nombreCartaChinchon(e.carta)}`); if (e.quien === 1) decirRival('¡Corto!'); }
       else if (e.tipo === 'chinchon') { panel.log.push(`¡${e.quien === 0 ? 'Chinchón tuyo' : `Chinchón de ${quien}`}!`); if (e.quien === 1) decirRival('¡Chinchón!'); }
       else if (e.tipo === 'partido') terminarPartido('chinchon', e.gana === 0, `${p.puntos[0]} a ${p.puntos[1]}`);

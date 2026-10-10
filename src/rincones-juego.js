@@ -17,7 +17,7 @@
 //   caballo() → { x, z, yaw } (donde espera), dejarCaballo(x, z, yaw), sonido, fundido(fn) }
 import { RINCONES, LUGARES_RINCONES, lugarEnMundo, sanearRincones, encontrarDuende, encontrado, textoDuende, duendesEncontrados, pistaDuende, tallaEnLaPlaza, textoAtril, dejarCuaderno, leyeronCuaderno, MANUALIDADES, MAESTROS, puedeAprender, aprender, tallerArmado, manualidadesDeHoy, hacerManualidad, adornosDelEstante, estadoCantero, textoCanteroRincon, trabajarCantero, sembrarVecinos, horaDeHuerta, horaDeTiteres, funcionHoy, darFuncion, textoFuerte, trabajarFuerte, fuerteTerminado, hijosParaAcampar, puedeAcampar, acampar, anotarGol, empezarPartido, horaDePartido, elegirJugadores, JUGADORES_POTRERO } from './rincones.js';
 import { CANCHA, PATADA, pelotaNueva, sacar, patear, pasoPelota, pensarJugador, patadaDe, alAlcance, saqueDespues } from './futbol.js';
-import { SULKY, tieneSulky, pedirSulky, caminoArreglado, hacerMinga, velocidadSulky, andarSulky, enCamino, masCercano } from './sulky.js';
+import { SULKY, tieneSulky, pedirSulky, caminoArreglado, hacerMinga, objetivoSulky, andarSulky, enCamino, masCercano } from './sulky.js';
 import { CASA_PROPIA, etapaCasa, casaTerminada, pedirLote, aportarCasa, textoCasa, adentroDeCasa, loteEnMundo } from './casa-propia.js';
 import { DUENDES } from './rincones-cuaderno.js';
 import { SERVICIO, esVecinoAldea, esPobladorAldea } from './aldea.js';
@@ -266,7 +266,7 @@ export function crearRinconesJuego(ctx) {
     js.pos.x = a.x; js.pos.z = a.z;
     js.yaw = p.rumbo + Math.PI;   // (el jugador mira hacia −Z: mirando para adelante)
     ctx.registrar?.('sulky'); ctx.registrar?.('camino-aldea');
-    ctx.nota?.('Arriba del sulky', `${cab('', true)} conoce el camino${p.sentido > 0 ? ' a la aldea' : ' al refugio'}. W al trote, Shift al galope, S despacio. E para bajarte`, true);
+    ctx.nota?.('Arriba del sulky', `${cab('', true)} conoce el camino${p.sentido > 0 ? ' a la aldea' : ' al refugio'}. W al trote, Shift al galope, S frena. E para bajarte`, true);   // 3.8.4: S sostenida frena hasta parar
     return true;
   }
   function bajarSulky(llegada = false) {
@@ -297,9 +297,8 @@ export function crearRinconesJuego(ctx) {
   function alSulky(dt, tecla) {
     const js = ctx.jugador?.()?.estado, C = camino();
     if (!js || !C || !viaje) { if (js) js.enSulky = false; viaje = null; return; }
-    const marcha = tecla?.('KeyS') ? 'paso' : tecla?.('ShiftLeft') || tecla?.('ShiftRight') ? 'galope' : 'trote';
-    const parar = tecla?.('KeyS') && viaje.v < 0.6;
-    const objetivo = parar ? 0 : velocidadSulky(marcha, caminoArreglado(r().camino));
+    // 3.8.4: mantener S frena hasta parar (sulky.js, objetivoSulky)
+    const objetivo = objetivoSulky({ frena: !!tecla?.('KeyS'), galope: !!(tecla?.('ShiftLeft') || tecla?.('ShiftRight')) }, caminoArreglado(r().camino));
     const res = andarSulky(viaje, dt, objetivo, C.largo);
     const p = poseSulky(), a = asiento(p);
     const enPuente = (ctx.mundo?.puentes?.() || []).find((b) => Math.hypot(p.x - b.x, p.z - b.z) < b.largo / 2 + 0.3);
@@ -368,14 +367,18 @@ export function crearRinconesJuego(ctx) {
     if (!partido && enLaCancha(pos, 1.5) && horaDePartido(h)) return { tipo: 'potrero', texto: 'Armar un picado con los chicos', hacer: () => empezar() };
     // las huertas
     const H = M.huertas();
+    // 3.8.4: el cantero más cercano de los que se pueden trabajar (antes, el primero de la lista que estuviera al alcance)
+    let cantero = null, dc = radio.cantero;
     for (const [tipo, lista] of [['huerta', H.comunitaria], ['chicos', H.chicos]]) for (const k of lista) {
-      if (dist(k, pos) > radio.cantero) continue;
+      const dk = dist(k, pos);
+      if (dk > dc) continue;
       // (3.7.5 (rincones): el aviso dice sólo lo que E hace: fuera de hora o ya trabajado hoy, nada; le gana lo de al lado)
       if (!horaDeHuerta(tipo === 'chicos' ? 'chicos' : 'huerta', h)) continue;
       const e = estadoCantero(R, tipo, k.i, d);
       if (e.estado === 'creciendo' && e.trabajadoHoy) continue;
-      return { tipo: 'cantero', texto: textoCanteroRincon(R, tipo, k.i, d), hacer: () => trabajarHuerta(tipo, k.i) };
+      cantero = { tipo, i: k.i }; dc = dk;
     }
+    if (cantero) { const { tipo, i } = cantero; return { tipo: 'cantero', texto: textoCanteroRincon(R, tipo, i, d), hacer: () => trabajarHuerta(tipo, i) }; }
     // el retablo
     const ret = M.lugar('retablo');
     if (ret && dist(ret, pos) < radio.retablo && !funcion && !funcionHoy(R, d) && horaDeTiteres(h)) return { tipo: 'titeres', texto: 'Dar una función de títeres', hacer: () => empezarFuncion() };

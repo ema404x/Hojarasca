@@ -26,6 +26,13 @@ contextBridge.exposeInMainWorld('hojarasca', {
     torneoLeer: () => ipcRenderer.invoke('torneo-leer'),
     torneoEscribir: (nombre, texto) => ipcRenderer.invoke('torneo-escribir', String(nombre || ''), String(texto || '')),
   },
+  // 3.8.4: las fotos del álbum, en archivos aparte en la carpeta de la partida (ver fotos-main.cjs). Sincrónico, como
+  // el localStorage donde estaban
+  fotos: {
+    leer: (clave) => ipcRenderer.sendSync('fotos-leer', String(clave || '')),
+    escribir: (clave, fotos) => ipcRenderer.sendSync('fotos-escribir', String(clave || ''), fotos && typeof fotos === 'object' ? fotos : {}),
+    borrar: (clave) => ipcRenderer.sendSync('fotos-borrar', String(clave || '')),
+  },
   // 1.10: logros de Steam (no hace nada si Steam no está)
   steam: {
     activar: (api) => ipcRenderer.invoke('steam-logro', String(api || '').slice(0, 64)),

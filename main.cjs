@@ -224,6 +224,8 @@ const recuperacion = registrarRecuperacion({
 
 // 1.11: la partida en una carpeta sincronizada (ver sincronia-main.cjs y src/sincronia.js)
 require('./sincronia-main.cjs').registrarSincronia({ ipcMain, dialog, app, ventana: () => ventanaPrincipal, alError: (m) => escribirCrash('sync', m) });
+// 3.8.4: las fotos del álbum, en archivos en la carpeta de la partida (ver fotos-main.cjs)
+require('./fotos-main.cjs').registrarFotos({ ipcMain, app, alError: (m) => escribirCrash('fotos', m) });
 
 const { cuidarVentana } = require('./ventana-main.cjs');
 

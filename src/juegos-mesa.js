@@ -6,6 +6,8 @@
 //     (3 o 4 del mismo número); el comodín reemplaza a cualquiera. Se corta cuando lo que queda suelto suma 5 o menos:
 //     cada uno se anota lo suyo suelto (todo ligado, −10; chinchón —siete seguidas del mismo palo, sin comodín— gana el
 //     partido). Pierde el que pasa de CHINCHON.aPuntos (50; el de verdad es a 100).
+//     3.8.4: como se juega en casa: la carta que levantaste del pozo no se tira en esa misma vuelta, y cuando uno corta,
+//     el otro acomoda sus sueltas en los juegos del que cortó (no las cuenta).
 //   · Damas, como se juegan acá: 8×8, las fichas van y comen para adelante, comer es obligatorio (y hay que comer la
 //     mayor cantidad posible), la que llega al fondo es dama y vuela (corre y come a cualquier distancia). Pierde el
 //     que no puede mover. Tablas a los 60 movimientos sin comer.
@@ -94,6 +96,26 @@ function repartirChinchon(p) {
   const cartas = [m.splice(0, CHINCHON.cartas), m.splice(0, CHINCHON.cartas)];
   p.ronda = { cartas, mazo: m, pozo: [m.pop()], turno: p.mano, fase: 'robar', terminada: false, corto: null, resultado: null };
 }
+// 3.8.4: la carta que levantaste del pozo no se tira en esa vuelta (`r.delPozo`: { n, palo }; la de un comodín vale
+// para los dos comodines, que son iguales)
+export const esLaDelPozo = (r, c) => !!r?.delPozo && !!c && c.n === r.delPozo.n && c.palo === r.delPozo.palo;
+// 3.8.4: al cortar, el otro acomoda sus sueltas en los juegos del que cortó (`juegos`: [[cartas]]; `sueltas`: los índices
+// en `mano`). Una carta que entra puede abrirle lugar a otra (la escalera crece). { puestas: [índices], resto }
+export function acomodarSueltas(juegos, mano, sueltas) {
+  const gs = (Array.isArray(juegos) ? juegos : []).map((g) => g.slice());
+  let pendientes = (Array.isArray(sueltas) ? sueltas : []).slice().sort((a, b) => valorChinchon(mano[b]) - valorChinchon(mano[a]));
+  const puestas = [];
+  for (let cambio = true; cambio;) {
+    cambio = false;
+    const siguen = [];
+    for (const i of pendientes) {
+      const g = gs.find((x) => esJuego([...x, mano[i]]));
+      if (g) { g.push(mano[i]); puestas.push(i); cambio = true; } else siguen.push(i);
+    }
+    pendientes = siguen;
+  }
+  return { puestas, resto: pendientes.reduce((s, i) => s + valorChinchon(mano[i]), 0) };
+}
 export const turnoChinchon = (p) => (!p || p.terminado !== null ? null : p.ronda.terminada ? 0 : p.ronda.turno);
 // Lo que puede hacer j: ['mazo', 'pozo'] (robar) · ['tirar:i', 'cortar:i'] (con 8 cartas) · ['seguir']
 export function accionesChinchon(p, j) {
@@ -102,8 +124,9 @@ export function accionesChinchon(p, j) {
   if (r.terminada) return j === 0 ? ['seguir'] : [];
   if (r.turno !== j) return [];
   if (r.fase === 'robar') return [...(r.mazo.length || r.pozo.length > 1 ? ['mazo'] : []), ...(r.pozo.length ? ['pozo'] : [])];
-  const l = r.cartas[j].map((_, i) => `tirar:${i}`);
-  r.cartas[j].forEach((_, i) => { if (puedeCortar(r.cartas[j], i)) l.push(`cortar:${i}`); });
+  const l = [];
+  r.cartas[j].forEach((c, i) => { if (!esLaDelPozo(r, c)) l.push(`tirar:${i}`); });   // 3.8.4: la del pozo, no
+  r.cartas[j].forEach((c, i) => { if (!esLaDelPozo(r, c) && puedeCortar(r.cartas[j], i)) l.push(`cortar:${i}`); });
   return l;
 }
 // ¿Puede cortar tirando la carta i? (lo que queda suelto suma 5 o menos)
@@ -123,12 +146,12 @@ export function actuarChinchon(p, j, a) {
   if (!accionesChinchon(p, j).includes(a)) return { ok: false, motivo: 'no-puede', eventos };
   if (a === 'mazo') {
     if (!r.mazo.length) { const arriba = r.pozo.pop(); r.mazo = barajarCon(r.pozo, p.semilla + p.manos * 7 + r.cartas[0].length); r.pozo = [arriba]; eventos.push({ tipo: 'baraja' }); }
-    r.cartas[j].push(r.mazo.pop()); r.fase = 'tirar';
+    r.cartas[j].push(r.mazo.pop()); r.fase = 'tirar'; r.delPozo = null;
     eventos.push({ tipo: 'roba', quien: j, de: 'mazo' });
     return { ok: true, eventos };
   }
   if (a === 'pozo') {
-    const c = r.pozo.pop(); r.cartas[j].push(c); r.fase = 'tirar';
+    const c = r.pozo.pop(); r.cartas[j].push(c); r.fase = 'tirar'; r.delPozo = { n: c.n, palo: c.palo };   // 3.8.4
     eventos.push({ tipo: 'roba', quien: j, de: 'pozo', carta: c });
     return { ok: true, eventos };
   }
@@ -136,12 +159,17 @@ export function actuarChinchon(p, j, a) {
   if (!m) return { ok: false, eventos };
   const i = Number(m[2]);
   const c = r.cartas[j].splice(i, 1)[0];
-  r.pozo.push(c);
+  r.pozo.push(c); r.delPozo = null;
   eventos.push({ tipo: m[1] === 'cortar' ? 'corta' : 'tira', quien: j, carta: c });
   if (m[1] === 'tirar') { r.turno = 1 - j; r.fase = 'robar'; return { ok: true, eventos }; }
   // cortó: cada uno se anota lo suyo
   r.terminada = true; r.corto = j;
   const res = [0, 1].map((k) => ({ ...mejorLigado(r.cartas[k]), chinchon: esChinchon(r.cartas[k]) }));
+  // 3.8.4: el otro acomoda sus sueltas en los juegos del que cortó
+  if (!res[j].chinchon) {
+    const k = 1 - j, a = acomodarSueltas(res[j].juegos.map((g) => g.map((i) => r.cartas[j][i])), r.cartas[k], res[k].sueltas);
+    if (a.puestas.length) { res[k] = { ...res[k], resto: a.resto, sueltas: res[k].sueltas.filter((i) => !a.puestas.includes(i)), acomodadas: a.puestas }; eventos.push({ tipo: 'acomoda', quien: k, n: a.puestas.length }); }
+  }
   const pts = res.map((x, k) => (k === j && x.resto === 0 ? CHINCHON.todoLigado : x.resto));
   r.resultado = { res, pts };
   if (res[j].chinchon) { p.terminado = j; eventos.push({ tipo: 'chinchon', quien: j }, { tipo: 'partido', gana: j }); return { ok: true, eventos }; }
@@ -162,19 +190,19 @@ export function decidirChinchon(p, j) {
   if (r.fase === 'robar') {
     const arriba = r.pozo[r.pozo.length - 1];
     if (arriba && acc.includes('pozo')) {
-      const con = mejorTiro(mano.concat([arriba])).resto, sin = mejorLigado(mano).resto;
+      const con = mejorTiro(mano.concat([arriba]), arriba).resto, sin = mejorLigado(mano).resto;   // (3.8.4: sin tirar la que levanta)
       if (con < sin - 2 || esComodin(arriba)) return 'pozo';
     }
     return acc.includes('mazo') ? 'mazo' : 'pozo';
   }
-  const t = mejorTiro(mano);
+  const t = mejorTiro(mano, r.delPozo);
   return acc.includes(`cortar:${t.i}`) ? `cortar:${t.i}` : `tirar:${t.i}`;
 }
-// La carta que conviene tirar (la que deja el menor resto; nunca un comodín)
-function mejorTiro(mano) {
+// La carta que conviene tirar (la que deja el menor resto; nunca un comodín; 3.8.4: ni la que se levantó del pozo)
+function mejorTiro(mano, delPozo = null) {
   let mejor = { i: 0, resto: Infinity };
   mano.forEach((c, i) => {
-    if (esComodin(c)) return;
+    if (esComodin(c) || esLaDelPozo({ delPozo }, c)) return;
     const resto = mejorLigado(mano.filter((_, k) => k !== i)).resto - c.n * 0.01;
     if (resto < mejor.resto) mejor = { i, resto };
   });

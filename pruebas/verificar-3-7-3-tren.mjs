@@ -151,7 +151,7 @@ const ok = (c, t) => { n++; assert.ok(c, t); };
   const iE = main.indexOf("case 'KeyE': {"), e = main.slice(iE, main.indexOf("case 'KeyJ':", iE));
   ok(e.indexOf('if (js.enTren && usarLugarDelTren()) break;') >= 0 && e.indexOf('if (js.enTren && usarLugarDelTren()) break;') < e.indexOf('if (js.enTren && tren.conduciendo()) { bajarDeLaCabina(); break; }'), 'E: lo de cada lugar del tren antes que bajar');
   ok(e.indexOf('if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }') >= 0 && e.indexOf('if (js.montado && jaulaCerca())') < e.indexOf('if (js.montado) { desmontar(); break; }'), 'E: montado al lado de la jaula, sube el caballo (antes que bajarte)');
-  ok(main.includes("else aviso = avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : null);") && main.includes("jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' }"), 'el aviso dice lo mismo');
+  ok(main.includes("else aviso = avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : ")   /* 3.8.4: (y varado en la nieve, bajarte) */ && main.includes("jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' }"), 'el aviso dice lo mismo');
   ok(main.includes('|| alCalorDelTren());') && main.includes("op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal')"), 'la salamandra saca el frío; en la cucheta se duerme (con la salamandra, calentito)');
   ok(main.includes('prepararTren(dt);') && main.includes('ctxTren.manejo = cacheManejo.manejo;') && main.includes('ctxTren.agarre = cacheManejo.agarre;'), 'la caldera, el freno y el arenero llegan a la cabina');
   // los pulidos del prototipo

@@ -213,7 +213,8 @@ export function actuar(p, j, a) {
     const q = r.truco.pendiente;
     let pts = q ? Math.max(1, q.nivel) : Math.max(1, r.truco.nivel === 0 ? 1 : r.truco.nivel + 1);
     // (irse al mazo en la primera, sin tirar y sin que se haya cantado el envido: uno más para el otro)
-    if (r.envido.estado === 'libre' && bazaActual(r) === 0 && !jugoEnBaza(r, j, 0)) pts += TRUCO.mazoSinEnvido;
+    // 3.8.4: con el truco querido, lo querido y nada más (2, 3 o 4): antes sumaba el uno del envido encima
+    if (r.truco.nivel === 0 && r.envido.estado === 'libre' && bazaActual(r) === 0 && !jugoEnBaza(r, j, 0)) pts += TRUCO.mazoSinEnvido;
     cerrarRonda(p, otro(j), 0, 'mazo', eventos, pts);
     return { ok: true, eventos };
   }
