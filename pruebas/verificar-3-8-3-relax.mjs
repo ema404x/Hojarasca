@@ -231,7 +231,8 @@ const trozo = (desde, hasta) => {
 {
   const cons = leer('src/construccion.js');
   ok(!cons.includes("if (!l || typeof l.x !== 'number') continue;") && cons.split("if (!l || typeof l.x !== 'number' || l.propia) continue;").length === 3, 'construccion.js: los dos recorridos de T.lugares saltean el nombre de una obra tuya');
-  ok(main.includes('nombre: obra.datos.nombre, propia: true,'), 'main.js: el nombre de la obra va marcado como propio');
+  // (3.8.6: el nombre de la obra ya no se anota en T.lugares: el mapa lo dibuja desde la obra)
+  ok(!main.includes('T.lugares[`obra-'), 'main.js: el nombre de la obra no va a T.lugares');
 }
 
 // ---------------------------------------------------------------- 12. los fletes tomados hoy sobreviven a guardar y cargar

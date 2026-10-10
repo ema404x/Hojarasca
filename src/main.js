@@ -21,7 +21,7 @@ import { crearRenovales } from './renovales.js';
 import { crearRefugioVivo } from './refugiovivo.js';
 import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
 import { crearEnMano, cristalComoSemillaEnMano } from './enmano.js';
-import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan } from './construccion.js';
+import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan, cantidadMaterial, textoFaltan } from './construccion.js';
 import { crearPuertas } from './puertas.js';
 import { generarVegetacion } from './vegetacion.js';
 import { crearPasto } from './pasto.js';
@@ -2951,7 +2951,7 @@ document.addEventListener('keydown', (e) => {
         for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
         progreso.obras = obras.obras.map((o) => o.datos);
         guardar(); sonido.juntar(); refrescarBarra(true);
-        const devuelto = Object.entries(r.recupera || {}).map(([k, n]) => `${n} ${MATERIALES[k]?.nombre || k}`).join(' · ');
+        const devuelto = Object.entries(r.recupera || {}).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
         nota(`Deshecha: ${(r.etapa?.nombre || 'la última etapa').toLowerCase()}`,
           `${devuelto ? `Recuperaste ${devuelto}` : 'Sin materiales para devolver'}${r.quedaMarca ? ' · quedó sólo la marca' : ''}`);
         dibujarPanelObra();
@@ -2984,9 +2984,9 @@ document.addEventListener('keydown', (e) => {
             const delAcopio = r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null;   // 3.8.4: el último acopio
             progreso.obras = obras.obras.map((o) => o.datos);
             guardar(); sonido.juntar();
-            const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => `${n} ${MATERIALES[k]?.nombre || k}`).join(' · ');
-            if (delAcopio) nota(`${r.plano.nombre} desmontado`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
-            else nota(`${r.plano.nombre} desmontado`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
+            const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => cantidadMaterial(n, k)).join(' · ');
+            if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
+            else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
             dibujarPanelObra();
           }
           break;
@@ -4202,7 +4202,7 @@ function vaciarUltimoAcopio(a = null) {
     const n = Math.max(0, Math.floor(Number(g[k]) || 0));
     if (!n) continue;
     if (a) a[k] = (a[k] || 0) + n; else sumarMaterial(k, n);
-    partes.push(`${n} ${MATERIALES[k]?.nombre || k}`);
+    partes.push(cantidadMaterial(n, k));
   }
   progreso.acopio = {};
   return partes.length ? partes.join(' · ') : null;
@@ -4246,7 +4246,7 @@ function usarAcopio() {
       if (!n) continue;
       a[k] = (a[k] || 0) + n;
       m[k] = 0;
-      partes.push(`${n} ${MATERIALES[k].nombre}`);
+      partes.push(cantidadMaterial(n, k));
     }
     sonido.juntar();
     nota('Guardaste en el acopio', `${partes.join(' · ')}. Podés construir cerca sin cargarlo encima`);
@@ -4257,7 +4257,7 @@ function usarAcopio() {
       if (!n) continue;
       m[k] = (m[k] || 0) + n;
       a[k] = 0;
-      partes.push(`${n} ${MATERIALES[k].nombre}`);
+      partes.push(cantidadMaterial(n, k));
     }
     sonido.juntar();
     nota('Sacaste todo del acopio', partes.join(' · '));
@@ -4895,7 +4895,7 @@ function conOficioDeObra(r, m) {
   return r;
 }
 function avisarSobrante(r) {
-  const partes = Object.entries(r?.sobro || {}).map(([k, n]) => `${n} ${MATERIALES[k]?.nombre || k}`);
+  const partes = Object.entries(r?.sobro || {}).map(([k, n]) => cantidadMaterial(n, k));
   if (partes.length) setTimeout(() => nota('Te sobró material', `${partes.join(' · ')}: oficio de constructor`), 700);
 }
 // Para la historia u otro evento: que el próximo poblador de la aldea venga sin esperar
@@ -5664,10 +5664,12 @@ function elegirPlano(i) {
   ultimoSitioObra = '';
   dibujarPanelObra();
 }
+// 3.8.6: «Mesa de campo desmontada», «Galería con alero recolocada» (la regla de «terminada» de la 3.8.3)
+const participioObra = (nombre, raiz) => `${raiz}${/a$/i.test(String(nombre).split(' ')[0]) ? 'a' : 'o'}`;
 function costoPlano(p) {
   const total = {};
   for (const e of p.etapas) for (const [k,n] of Object.entries(e.pide)) total[k] = (total[k] || 0) + n;
-  return Object.entries(total).map(([k,n]) => `${n} ${MATERIALES[k].nombre}`).join(' · ');
+  return Object.entries(total).map(([k,n]) => cantidadMaterial(n, k)).join(' · ');
 }
 let ultimoEstadoModuloObra = -1e9;
 const posEstadoModuloObra = new THREE.Vector3(1e9, 0, 1e9);
@@ -5762,7 +5764,7 @@ function dibujarPanelObra() {
     const li = document.createElement('li');
     const falta = faltan(e.pide, materialesVisibles());
     li.className = i < hechas ? 'hecha' : i === hechas && !falta.length ? 'lista' : '';
-    const pide = Object.entries(e.pide).map(([k, n]) => `${n} ${MATERIALES[k].nombre}`).join(', ');
+    const pide = Object.entries(e.pide).map(([k, n]) => cantidadMaterial(n, k)).join(', ');
     const b = document.createElement('b');
     b.textContent = `${i + 1}. ${e.nombre}`;
     const sp = document.createElement('span');
@@ -5792,9 +5794,8 @@ async function pedirNombre(obra) {
   if (puesto === null || reiniciandoPartida || !obras.obras.includes(obra)) return;
   const nombre = puesto.trim().slice(0, 28);
   obra.datos.nombre = nombre || obra.plano.nombre;
-  T.lugares[`obra-${obra.datos.x | 0}-${obra.datos.z | 0}`] = {
-    x: obra.datos.x, z: obra.datos.z, y: T.altura(obra.datos.x, obra.datos.z), nombre: obra.datos.nombre, propia: true,
-  };
+  // 3.8.6: ya no se anota en T.lugares: el mapa la dibuja desde la obra (salía dos veces, y si la deshacías el nombre
+  // quedaba en el mapa hasta recargar)
   progreso.obras = obras.obras.map((o) => o.datos);
   guardar();
   nota(obra.datos.nombre, 'Quedó marcado en el mapa', true);
@@ -5978,7 +5979,7 @@ function accionObra() {
     else if (movida?.plano.id === 'gallinero') refrescarGallineros();
     progreso.obras = obras.obras.map((o) => o.datos);
     guardar(); sonido.juntar(); ultimoSitioObra = '';
-    nota(`${r.obra.plano.nombre} recolocado`, r.snap ? `Quedó alineado: ${r.snap.descripcion}` : 'Nueva posición guardada', true);
+    nota(`${r.obra.plano.nombre} ${participioObra(r.obra.plano.nombre, 'recolocad')}`, r.snap ? `Quedó alineado: ${r.snap.descripcion}` : 'Nueva posición guardada', true);
     dibujarPanelObra();
     return;
   }
@@ -6025,7 +6026,7 @@ function accionObra() {
   // la siguiente pulsación siempre intentaba crear otra pieza nueva.
   if (obras.plano?.pieza) {
     const faltaPieza = faltan(obras.plano.etapas[0].pide, materialesVisibles());
-    if (faltaPieza.length) { nota('Todavía no', `Faltan ${faltaPieza.join(' y ')}`); return; }
+    if (faltaPieza.length) { nota('Todavía no', textoFaltan(faltaPieza)); return; }
   }
   const adelante = obras.plano?.distancia || (obras.plano?.pieza ? 2.4 : 5.5);
   const fx = js.pos.x - Math.sin(js.yaw) * adelante;

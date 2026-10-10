@@ -2242,18 +2242,25 @@ for (const p of PLANOS) {
 export const PLANO = Object.fromEntries(PLANOS.map((p) => [p.id, p]));
 
 export const MATERIALES = {
-  tronco: { nombre: 'troncos', de: 'talar un árbol con el hacha (H, tres hachazos)' },
-  tabla: { nombre: 'tablas', de: 'aserrar un tronco con Y (a mano 2, en el banco 4)' },
-  piedra: { nombre: 'piedras', de: 'picar un pedrero con el hacha (H)' },
-  cristal: { nombre: 'semillas doradas', de: 'los duendes abatidos' },
-  lana: { nombre: 'vellones de lana', de: 'esquilar una oveja en el corral del galpón (E, con la tijera)' },
+  tronco: { nombre: 'troncos', uno: 'tronco', de: 'talar un árbol con el hacha (H, tres hachazos)' },
+  tabla: { nombre: 'tablas', uno: 'tabla', de: 'aserrar un tronco con Y (a mano 2, en el banco 4)' },
+  piedra: { nombre: 'piedras', uno: 'piedra', de: 'picar un pedrero con el hacha (H)' },
+  cristal: { nombre: 'semillas doradas', uno: 'semilla dorada', de: 'los duendes abatidos' },
+  lana: { nombre: 'vellones de lana', uno: 'vellón de lana', de: 'esquilar una oveja en el corral del galpón (E, con la tijera)' },
 };
+// 3.8.6: «1 tabla», no «1 tablas» (faltan, recuperaste, te sobró, lo del acopio)
+export function cantidadMaterial(n, k) {
+  const m = Object.hasOwn(MATERIALES, k) ? MATERIALES[k] : null;
+  return `${n} ${m ? (n === 1 ? m.uno : m.nombre) : k}`;
+}
+// 3.8.6: «Falta 1 tabla» / «Faltan 2 tablas y 1 tronco» (con la lista de faltan())
+export const textoFaltan = (falta) => `${falta.length === 1 && /^1 /.test(falta[0]) ? 'Falta' : 'Faltan'} ${falta.join(' y ')}`;
 
 export function faltan(pide, materiales) {
   const falta = [];
   for (const [k, n] of Object.entries(pide)) {
     const hay = materiales[k] || 0;
-    if (hay < n) falta.push(`${n - hay} ${MATERIALES[k].nombre}`);
+    if (hay < n) falta.push(cantidadMaterial(n - hay, k));
   }
   return falta;
 }
@@ -3734,7 +3741,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     const etapa = obra.plano.etapas[obra.datos.etapas];
     if (!etapa) return { ok: false, motivo: 'Ya está terminada' };
     const falta = faltan(etapa.pide, materiales);
-    if (falta.length) return { ok: false, motivo: `Faltan ${falta.join(' y ')}`, etapa };
+    if (falta.length) return { ok: false, motivo: textoFaltan(falta), etapa };
     for (const [k, n] of Object.entries(etapa.pide)) materiales[k] -= n;
     const eraMarca = obra.datos.etapas === 0;
     obra.datos.etapas++;

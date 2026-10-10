@@ -320,7 +320,8 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       if (anotado && !def.juntableTrasAnotar) continue;
       const dot = mira(it.x, it.y + 0.15, it.z, 3.2);
       // 2.6.1: el candidato (y su texto) se arma sólo si le gana al mejor
-      if (dot > 0 && dot + 0.02 > puntaje) probar({ tipo: 'item', it, texto: (def.accion === 'anotar' && !anotado ? 'Anotar ' : 'Juntar ') + def.etiqueta }, dot + 0.02);
+      // (3.8.6: con doce ramitas la E no junta otra: el aviso lo dice, en vez de «Juntar ramita»)
+      if (dot > 0 && dot + 0.02 > puntaje) probar({ tipo: 'item', it, texto: it.tipo === 'ramita' && progreso.ramitas >= 12 ? 'Ya llevás doce ramitas' : (def.accion === 'anotar' && !anotado ? 'Anotar ' : 'Juntar ') + def.etiqueta }, dot + 0.02);
     }
     for (const p of vecinos(grillaPlantas, ojo.x, ojo.z, vecinosPlantas)) {
       if (progreso.entradas[p.tipo]) continue;

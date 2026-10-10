@@ -88,6 +88,7 @@ const c = (n, palo) => ({ n, palo });
 {
   const codigo = trozo('function vaciarUltimoAcopio(a = null) {', '\n}');
   const ctx = { obras: { obras: [] }, progreso: { acopio: { tronco: 3, tabla: 2, piedra: 0 } }, CLAVES_MATERIAL: ['tronco', 'tabla', 'piedra'], MATERIALES: { tronco: { nombre: 'troncos' }, tabla: { nombre: 'tablas' } }, sumados: {} };
+  ctx.cantidadMaterial = (n, k) => `${n} ${ctx.MATERIALES[k]?.nombre || k}`;   // (3.8.6: main.js arma el texto con cantidadMaterial de construccion.js)
   vm.createContext(ctx);
   vm.runInContext(`function acopio() { return progreso.acopio; } function sumarMaterial(k, n) { sumados[k] = (sumados[k] || 0) + n; } ${codigo} this.f = vaciarUltimoAcopio;`, ctx);
   ctx.obras.obras = [{ plano: { funciones: ['acopio'] } }];
@@ -99,7 +100,8 @@ const c = (n, palo) => ({ n, palo });
   const a = {}; ctx.f(a);
   ok(a.tronco === 1, 'en el desalojo de la aldea, se suma a lo que vuelve');
   eq(Dsl.textoDesalojo({ obras: { desarmadas: 1 }, materiales: { tronco: 4 }, acopio: true }).sub, '1 obra no entraba en ningún lado: tenés en la mochila 4 troncos (con lo que guardabas en el acopio)', 'el desalojo lo dice');
-  en(main, "if (delAcopio) nota(`${r.plano.nombre} desmontado`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);");
+  // (3.8.6: «desmontado» o «desmontada» según la obra)
+  en(main, "if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);");
 }
 
 // ---------------------------------------------------------------- 3. el kayak
@@ -112,7 +114,7 @@ const c = (n, palo) => ({ n, palo });
   eq(KA.dondeAmanece({ x: 40, z: 12 }, [emb(1, 1)]), { donde: 'muelle' }, 'si su embarcadero ya no está, al muelle');
   eq([KA.sanearAmarre({ x: '3', z: 4 }), KA.sanearAmarre('x'), KA.sanearAmarre(undefined)], [{ x: 3, z: 4 }, null, undefined], 'el guardado, saneado');
   eq(KA.amarreDe(e2), { x: 40, z: 12 }, 'lo que se anota al amarrarlo');
-  en(main, "kayak.subir(jugador); progreso.kayakAmarre = null;");
+  en(main, "kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;");   // (3.8.6: sólo en el Relax, como el amarre)
   en(main, "if (!desafio) progreso.kayakAmarre = amarreDe(o);");
   en(main, "{ const a = dondeAmanece(progreso.kayakAmarre, obrasTerminadas('embarcadero')); if (a.donde === 'embarcadero') amarrarKayak(a.obra); else if (a.donde === 'cercano') amarrarKayak(); }");
 }

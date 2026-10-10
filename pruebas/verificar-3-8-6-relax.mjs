@@ -228,4 +228,15 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(f.length === 1 && f[0].pesca === 52, `torneo: «José» y «Jose» (del código) son el mismo (${JSON.stringify(f.map((e) => e.nombre))})`);
 }
 
+// ---------------------------------------------------------------- 15. construcción: nombres, plurales y géneros; las ramitas llenas
+{
+  ok(!main.includes('T.lugares[`obra-'), 'el nombre de una obra no va a T.lugares (el mapa lo dibuja desde la obra)');
+  eq(limpio({ obras: [{ plano: 'cantero', x: 3, z: 4, etapas: 1, nombre: 5 }, { plano: 'cantero', x: 9, z: 4, etapas: 1, nombre: '  La huerta  ' }] }).obras.map((o) => o.nombre), [undefined, 'La huerta'], 'el nombre de una obra, saneado');
+  const c = leer('src/construccion.js');
+  ok(c.includes("tabla: { nombre: 'tablas', uno: 'tabla',") && c.includes('if (hay < n) falta.push(cantidadMaterial(n - hay, k));') && c.includes('motivo: textoFaltan(falta)'), 'construcción: «1 tabla», «Falta 1 tabla»');
+  ok(!/`\$\{n\} \$\{MATERIALES\[k\]/.test(main), 'main.js arma las cantidades con cantidadMaterial');
+  ok(main.includes("${participioObra(r.plano.nombre, 'desmontad')}") && main.includes("${participioObra(r.obra.plano.nombre, 'recolocad')}"), '«Mesa de campo desmontada»');
+  ok(leer('src/objetos.js').includes("it.tipo === 'ramita' && progreso.ramitas >= 12 ? 'Ya llevás doce ramitas'"), 'con doce ramitas, el aviso lo dice');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);
