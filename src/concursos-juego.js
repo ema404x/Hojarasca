@@ -133,6 +133,9 @@ export function crearConcursosJuego(ctx) {
     if (!activo() || !conoce()) return m;
     const d = dia(), h = hora(), id = deHoy(d);
     if (!id || yaFallo(id, d) || h < HORAS_CONCURSO.desde || h >= HORAS_CONCURSO.fallo) return m;
+    // 3.8.6: con una fiesta en curso, nadie se va de la fiesta: el concurso se falla ahí (Nélida anota donde esté). Antes el
+    // jurado y los que compiten se iban a la plaza de 16 a 17 y el predio quedaba sin gente (el rival de la mesita se levantaba)
+    if (ctx.fiestaEnCurso?.()) return m;
     m.set(ORGANIZA, { lugar: 'concurso', edificio: 'plaza', punto: 'estar-1' });
     if (h >= HORAS_CONCURSO.fallo - 1) {
       const quienes = [...juradoDe(id, d, presentes), ...Object.keys(CONCURSOS[id].compiten).filter((k) => presentes(k))];

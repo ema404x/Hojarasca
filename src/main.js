@@ -4742,6 +4742,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     cobrar: (e) => cobrarPremio(e), redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
     nombresFoto: () => Object.fromEntries(DESAFIOS.map((d) => [d.id, d.nombre])),
+    fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),   // 3.8.6: el concurso no se lleva a la gente de la fiesta
   });
   noticiasJuego = crearNoticiasJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),

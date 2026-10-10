@@ -123,6 +123,7 @@ export function crearFiestasJuego(ctx) {
   // ---------------------------------------------------------------- el reloj
   let acum = 1;
   let oyendoLeyenda = false;   // 3.8.6: oyendo la leyenda en el fogón (ver `sinApuro`)
+  let sentadoEnFiesta = false;   // 3.8.6: sentado en la mesa larga, en un banco del baile o en el fogón, con la fiesta en curso
   const visto = { dia: 0, fases: new Set(), enFiesta: 0, sorpresa: 0, leyenda: { i: -1, t: 0, dicho: 0 }, mesa: 0, nevada: 0, cumpleCarta: 0, terminoMinga: 0 };
   function actualizar(dt) {
     if (!activo()) return;
@@ -138,6 +139,7 @@ export function crearFiestasJuego(ctx) {
     const a = ahora();
     const m = mundo();
     const enPredio = !!(js && m && dist(js.pos, m.centro()) < PREDIO.radio + 6);
+    sentadoEnFiesta = false;
     // la minga: al terminar la fase de trabajo, la obra queda hecha (con tu ayuda o sin)
     for (const f of fechasDeHoy()) if (f.tipo === 'minga' && h >= programaDe(f)[0].hasta && visto.terminoMinga !== d) {
       visto.terminoMinga = d;
@@ -162,6 +164,8 @@ export function crearFiestasJuego(ctx) {
     if (trenFiesta !== visto.trenFiesta) { visto.trenFiesta = trenFiesta; (ctx.trenDeFiesta || api.trenDeFiesta)?.(trenFiesta); }
     if (!a) return;
     const f = a.fecha, fase = a.fase.fase;
+    // 3.8.6: sentado en la fiesta (la mesa larga, los bancos del baile, el fogón), el reloj no se apura: la sobremesa duraba 5 s
+    sentadoEnFiesta = !!js?.sentado && (enPredio || !!ctx.enLaPlaza?.(js.pos));
     // el aviso de cada fase (si andás cerca de la aldea)
     const k = `${f.id}|${fase}`;
     if (!visto.fases.has(k)) {
@@ -549,7 +553,7 @@ export function crearFiestasJuego(ctx) {
   const panelAbierto = () => !!panel;
   // 3.8.6: sentado jugando en la mesita o oyendo la leyenda en el fogón, el reloj no se apura (main.js acelera ×40 al estar
   // sentado: el rival se levantaba a mitad del partido con «Te fuiste de la mesa» y la leyenda no se llegaba a oír)
-  const sinApuro = () => !!panel || oyendoLeyenda;
+  const sinApuro = () => !!panel || oyendoLeyenda || sentadoEnFiesta;
   // E con el panel abierto: cierra lo que no está en juego (el menú, un partido terminado); en un partido, nada (Escape)
   function alApretarE() {
     if (!panel) return false;

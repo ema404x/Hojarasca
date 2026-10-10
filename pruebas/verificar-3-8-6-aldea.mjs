@@ -319,4 +319,18 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(q.amor.cita === null && q.amor.personas.fotografa.citas === 2 && !q.amor.personas.fotografa.motivo, 'cita: al terminar la hora cuenta como hecha (antes «no pudo ir»)');
 }
 
+// ---------------------------------------------------------------- 19. fiestas: sentado en la fiesta no se apura el reloj; el concurso no se lleva a nadie
+{
+  const j = leer('src/fiestas-juego.js');
+  ok(j.includes('const sinApuro = () => !!panel || oyendoLeyenda || sentadoEnFiesta;') && j.includes('sentadoEnFiesta = !!js?.sentado && (enPredio || !!ctx.enLaPlaza?.(js.pos));') && j.includes('    sentadoEnFiesta = false;\n'), 'fiestas: sentado en la mesa larga o en un banco del baile, con la fiesta en curso, el reloj no corre ×40 (la sobremesa duraba 5 s)');
+  const { crearConcursosJuego } = await import('../src/concursos-juego.js');
+  let enFiesta = false;
+  const prog = { dia: 6, horas: 16.5, aldea: { descubierta: 1, pobladores: [] }, entradas: {}, cosas: {}, cocina: { hechas: {} }, desafios: {} };
+  const J = crearConcursosJuego({ progreso: () => prog, desafio: () => false, nota: () => {}, guardar: () => {}, cobrar: () => {}, fiestaEnCurso: () => enFiesta });
+  ok(J.deHoy() && J.destinos().size > 1, 'concurso: sin fiesta, a las 16:30 el jurado y los que compiten van a la plaza (como siempre)');
+  enFiesta = true;
+  ok(J.destinos().size === 0, 'concurso: con la fiesta en curso nadie se va de la fiesta (el predio quedaba vacío y el rival de la mesita se levantaba)');
+  ok(leer('src/main.js').includes('fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),'), 'main: el concurso sabe si hay fiesta');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
