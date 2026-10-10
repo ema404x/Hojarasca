@@ -13,6 +13,7 @@
 //  6. El puesto de cargas abierto a la medianoche se rehace (se veía la lista de ayer y el número elegía de la de hoy).
 //  7. El bosque: pasados los 96 tocones, el más viejo deja de verse y también de frenar (quedaba un tronco invisible).
 //  8. Varado en la nieve: tu caballo baja del lado de afuera de la vía (podía quedar sobre los rieles, en la locomotora).
+//  9. Bajar del kayak o del velero en la orilla: nunca del otro lado de una pared (una obra tuya en la costa).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -144,6 +145,12 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
   const t = leer('src/trochita.js'), m = leer('src/main.js');
   ok(t.includes('return { nx: -dz / l, nz: dx / l, tx: dx / l, tz: dz / l };'), 'la trochita dice para dónde es afuera');
   ok(m.includes('c.x = js.pos.x + lado.nx * 1.8 - lado.tx * 1.2; c.z = js.pos.z + lado.nz * 1.8 - lado.tz * 1.2;'), 'el caballo, más afuera que vos');
+}
+
+// 9. la orilla, sin pared en el medio
+{
+  const linea = '&& !col.paredEntre?.(est.x, est.z, x, z, T.altura(x, z) + 0.2, T.altura(x, z) + 1.6, true)) return { x, z };';
+  ok(leer('src/kayak.js').includes(linea) && leer('src/vela.js').includes(linea), 'el kayak y el velero no te bajan atrás de una pared');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);

@@ -229,7 +229,8 @@ export function crearVela(T, escena, col, sonido, ctx = {}) {
       for (let a = 0; a < 20; a++) {
         const ang = (a / 20) * Math.PI * 2;
         const x = est.x + Math.cos(ang) * r, z = est.z + Math.sin(ang) * r;
-        if (!T.agua(x, z) && T.altura(x, z) > 0.15) return { x, z };
+        // 3.8.6: sin una pared en el medio (como el kayak)
+        if (!T.agua(x, z) && T.altura(x, z) > 0.15 && !col.paredEntre?.(est.x, est.z, x, z, T.altura(x, z) + 0.2, T.altura(x, z) + 1.6, true)) return { x, z };
       }
     }
     return null;
