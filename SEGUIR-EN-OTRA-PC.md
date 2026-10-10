@@ -1,8 +1,9 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 10-10-2026, 3.8.4 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 10-10-2026, 3.8.5 cerrada)
 
 > **ATENCIÓN (08-10, notebook):** la 3.8.0 La noche de los duendes y su revisión de bugs 3.8.1 (`CAMBIOS_3_8_1.md`, etiqueta v3.8.1) quedaron cerradas en la notebook. Las 6 partidas pendientes de la 3.7.5 ya se repitieron: 4 eran de carga y las 2 reales (caos y la trochita) están arregladas. Decisiones del usuario en `PLAN_3_8.md`; lo que quedó para después, al final de `CAMBIOS_3_8_0.md`. **Para el usuario:** jugar una noche grande, la subida y el Rey en su PC (4600G) y escuchar los sonidos nuevos. Sigue el resto de `PLAN_3_8.md` (preguntarle antes de arrancar).
 
 > **Lo que sigue (08-10, charlado con el usuario):**
+> 0. **3.8.5 cerrada (10-10, etiqueta v3.8.5):** risas de duende y piano de misterio sintetizados (`CAMBIOS_3_8_5.md`). **Regla:** no meter audios grabados de terceros (licencias); sólo de referencia. **Lo que sigue: un pase de bugs de todo el juego (pedido del usuario el 10-10).**
 > 1. **3.8.4 cerrada (10-10, etiqueta v3.8.4):** se hicieron las 36 decisiones de `DECISIONES_3_8_4.md` ("A hacer") en 4 equipos, `CAMBIOS_3_8_4.md`. Los menús ya son «Cuaderno de campo» para siempre (`src/menus/`; la rama `proto-menu` ya está adentro). **Para que mire el usuario:** las voces y silbatos nuevos (`pruebas/render-sonidos.cjs`), la estación y calidad en la tira de la portada, la E en vez de la P entre las 6 teclas, y si una noche perdida por caer de día le resulta justa. **Lo que sigue** (el usuario decide cuál, preguntarle): la versión de pulido visual, Steam, sus 3 o 4 versiones nuevas (la primera hora, más La noche de los duendes, «La aldea viva», 8 lugares nuevos), la mejora de gráficos (prototipo antes/después) y la cantina. Las ramas `v384` y `v384-*` ya están unidas en main: borrarlas si quedan.
 > 1b. **3.8.3 cerrada (09-10, etiqueta v3.8.3):** pase de bugs completo, `CAMBIOS_3_8_3.md`.
 > 2. **Rumbo:** el usuario quiere **algunas versiones más, pocas y acotadas** (él elige cuáles), después **congelar contenido** y preparar el **lanzamiento en Steam** (~3–5 semanas de trabajo: inglés completo, pase de bugs de punta a punta, primera hora de juego, fluidez en su 4600G, pantallas, integración Steam, demo, página), y más adelante un **DLC**. En Steamworks: el usuario crea la cuenta, se loguea, carga identidad/impuestos/banco, acepta el acuerdo y paga los 100 USD; Claude carga la página, sube builds con la sesión del usuario y configura logros/demo/precios pidiendo OK antes de enviar o publicar. Nunca manejar credenciales.
@@ -54,6 +55,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.8.5 (etiqueta v3.8.5):** risas de duende y piano de misterio por síntesis. `CAMBIOS_3_8_5.md`. Gate 179/179.
 - **3.8.4 (etiqueta v3.8.4):** las 36 decisiones de la 3.8.3 (4 equipos): menús Cuaderno de campo, calidad que pregunta, voces y silbato, alero del arriero, 21 arreglos del Relax y 6 del Desafío con pulido de duendes. `CAMBIOS_3_8_4.md`. Gate 178/178.
 - **3.8.3 (etiqueta v3.8.3):** pase de bugs completo de todo el juego (5 equipos, ~80 arreglos). `CAMBIOS_3_8_3.md`; decisiones pendientes en `DECISIONES_3_8_4.md`. Gate 174/174.
 - **3.8.2 (etiqueta v3.8.2):** cuatro arreglos de La noche de los duendes (espalda del Mandamás, cofre del alba, cristal del Relax). `CAMBIOS_3_8_2.md`. Gate 169/169.
