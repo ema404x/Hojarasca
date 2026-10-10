@@ -200,4 +200,32 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(main.includes('steamPuente.sincronizar().catch(() => {});'), 'se sincroniza al arrancar');
 }
 
+// ---------------------------------------------------------------- 14. fotos, pesca, textos, carreras, torneo y el kayak en el Desafío
+{
+  const sf = trozoFn('async function sacarFoto(');
+  ok(sf.includes("const hudEscondido = $('hud').classList.contains('oculto');") && sf.includes("if (!hudEscondido) $('hud').classList.remove('oculto');"), 'P en el modo foto no vuelve a mostrar el HUD');
+  ok(sf.includes('const nombre = nombreArchivoFoto();'), 'la foto, con la hora de acá');
+  const mc = leer('main.cjs');
+  ok(mc.includes('for (let n = 2; (fs.existsSync(ruta) || fotosEscribiendo.has(ruta)) && n < 1000; n++)'), 'dos fotos en el mismo segundo no se pisan');
+  ok(/const mallasPez = new Map\(\);\nfunction mallaPez\(def\) \{\n  if \(mallasPez\.has\(def\)\) return mallasPez\.get\(def\);/.test(leer('src/pesca.js')), 'una malla por especie de pez (no una por pez atrapado)');
+  ok(leer('src/pesca.js').includes("Se soltó ${/^pejerrey/.test(est.pez.def.nombre) ? 'el' : 'la'}"), 'se soltó el pejerrey');
+  const DI = await import('../src/diario.js');
+  const t1 = JSON.stringify((() => { const d = DI.crearDiario(); d.anotar('pez', { especie: 'pejerrey patagónico', cm: 30 }); return d.cerrar(4, 'otoño', () => 0.1); })());
+  ok(/Saqué un pejerrey patagónico de 30 centímetros y lo devolví al agua\./.test(t1), `el pejerrey en el diario (${t1.slice(0, 120)})`);
+  const t2 = JSON.stringify((() => { const d = DI.crearDiario(); d.anotar('pez', { especie: 'trucha marrón', cm: 41, quedo: true }); return d.cerrar(4, 'otoño', () => 0.1); })());
+  ok(/Saqué una trucha marrón de 41 centímetros y me la quedé para el ahumadero\./.test(t2), 'la que te quedaste no se devolvió');
+  const CS = await import('../src/conservas.js');
+  ok(/falta más o menos una hora/.test(CS.avisoTendal({ colgado: Object.keys(CS.CONSERVAS)[0], horas: CS.HORAS_SECADO - 0.5 }, {})), 'tendal: «falta más o menos una hora»');
+  ok(main.includes("q.faltan === 1 ? 'Falta más o menos una hora'") && main.includes("r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);   // (3.8.6)") && main.includes("r.lenera.secos === 1 ? 'Queda uno en la leñera'") && main.includes("datos.fotos.length === 1 ? 'foto' : 'fotos'"), 'los plurales con 1');
+  const ou = leer('src/oficios-ui.js');
+  ok(ou.includes('`Falta 1 para el nivel ${e.nivel + 1}.`') && ou.includes('${e.de.charAt(0).toLowerCase()}${e.de.slice(1)}'), 'oficios: «Falta 1» y «La noche de los duendes» con mayúscula');
+  const mj = leer('src/modos-juego.js');
+  ok(mj.includes('ultimoResultado = null;   // 3.8.6') && mj.includes(': con el kayak, en el muelle o en tu embarcadero'), 'carreras: largar limpia la llegada vieja; el kayak no siempre está en el muelle');
+  ok(leer('src/eventos-valle-ui.js').includes("if (ctx.ajustes?.()?.duracion === 'reloj') return;"), 'con la hora de tu reloj, las horas de un evento no saltan');
+  ok(main.includes("kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;"), 'en el Desafío, subirte al kayak no lo manda al muelle para siempre');
+  const TO = await import('../src/torneo.js');
+  const f = TO.fundirEntradas([{ semana: '2026-S40', nombre: 'José', pesca: 40, carreraMs: 0, noches: 0, abatidos: 0, t: 5 }], [{ semana: '2026-S40', nombre: 'Jose', pesca: 52, carreraMs: 0, noches: 0, abatidos: 0, t: 0 }]);
+  ok(f.length === 1 && f[0].pesca === 52, `torneo: «José» y «Jose» (del código) son el mismo (${JSON.stringify(f.map((e) => e.nombre))})`);
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);

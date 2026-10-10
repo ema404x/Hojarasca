@@ -10,8 +10,13 @@ const PECES = {
   pejerrey: { nombre: 'pejerrey patagónico', cm: [20, 38], fuerza: 0.6, color: '#b9c3c6', franja: '#8aa0aa' },
 };
 
+// 3.8.6: una malla por especie, armada la primera vez y reusada (cada pez atrapado creaba cinco geometrías y cinco
+// materiales que nunca se soltaban: una tarde de pesca, memoria de la placa que no volvía)
+const mallasPez = new Map();
 function mallaPez(def) {
+  if (mallasPez.has(def)) return mallasPez.get(def);
   const g = new THREE.Group();
+  mallasPez.set(def, g);
   const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), new THREE.MeshLambertMaterial({ color: def.color }));
   cuerpo.scale.set(0.05, 0.075, 0.24);
   g.add(cuerpo);
@@ -237,7 +242,7 @@ export function crearPesca(T, escena, camara, sonido, avisar, alAtrapar) {
       if (est.tension > 0.7 && est.tensionT <= 0) { sonido.tension(est.tension); est.tensionT = 0.25; }
       est.flojo = est.tension < 0.06 ? est.flojo + dt : 0;
       if (est.tension >= 1) { sonido.corte(); avisar('Se cortó la línea', 'Soltá el clic cuando el pez tira'); recoger(true); estadoTexto = ''; return; }
-      if (est.flojo > 2.6) { avisar(`Se soltó la ${est.pez.def.nombre}`, 'Si la línea queda floja, el anzuelo se suelta'); recoger(true); estadoTexto = ''; return; }
+      if (est.flojo > 2.6) { avisar(`Se soltó ${/^pejerrey/.test(est.pez.def.nombre) ? 'el' : 'la'} ${est.pez.def.nombre}`, 'Si la línea queda floja, el anzuelo se suelta'); recoger(true); estadoTexto = ''; return; }
       // la mosca se acerca y zigzaguea
       dir.set(mosca.position.x - js.pos.x, 0, mosca.position.z - js.pos.z).normalize();
       const lateral = Math.sin(performance.now() * 0.002) * (est.corriendo ? 1.2 : 0.3);

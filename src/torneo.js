@@ -84,7 +84,9 @@ export function mejorDe(a, b) {
     t: Math.max(a.t, b.t),
   };
 }
-const claveJugador = (e) => `${e.semana}|${e.nombre.toLocaleLowerCase('es')}`;
+// 3.8.6: el nombre como va en el código para amigos (sin acentos ni signos): «José» de su compu y «Jose» del código que
+// pegó en otra son el mismo jugador (salía dos veces en la tabla). Se ve el nombre de la primera lista (la de su compu).
+const claveJugador = (e) => `${e.semana}|${nombreCodigo(e.nombre).replace(/_/g, ' ').trim().toLocaleLowerCase('es') || e.nombre.toLocaleLowerCase('es')}`;
 // Junta listas de entradas (de varios archivos y códigos): una por jugador y semana.
 export function fundirEntradas(...listas) {
   const m = new Map();

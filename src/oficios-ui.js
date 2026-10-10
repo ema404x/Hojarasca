@@ -98,14 +98,14 @@ export function crearOficiosUI(ctx) {
     const e = estadoOficio(of, elegido);
     ficha.appendChild(el('h2', '', e.nivel ? e.titulo : e.nombre));
     ficha.appendChild(el('p', 'anotado', `${e.nombre} · nivel ${e.nivel} de 5 · ${e.xp} de experiencia`));
-    ficha.appendChild(el('p', 'texto', `Se aprende: ${e.de.toLowerCase()}.`));
+    ficha.appendChild(el('p', 'texto', `Se aprende: ${e.de.charAt(0).toLowerCase()}${e.de.slice(1)}.`));
     const barra = el('div', 'barra-oficio');
     barra.style.cssText = 'height:8px;border-radius:4px;background:rgba(120,100,70,0.25);margin:6px 0 10px;overflow:hidden';
     const lleno = el('div');
     lleno.style.cssText = `height:100%;width:${Math.round(e.avance * 100)}%;background:#8a6b4a`;
     barra.appendChild(lleno);
     ficha.appendChild(barra);
-    ficha.appendChild(el('p', 'pista', e.hasta === null ? 'Llegaste a lo más alto del oficio.' : `Faltan ${e.falta} para el nivel ${e.nivel + 1}.`));
+    ficha.appendChild(el('p', 'pista', e.hasta === null ? 'Llegaste a lo más alto del oficio.' : (e.falta === 1 ? `Falta 1 para el nivel ${e.nivel + 1}.` : `Faltan ${e.falta} para el nivel ${e.nivel + 1}.`)));
     const hab = el('ul', 'habilidades');
     for (const h of e.habilidades) {
       const li = el('li', h.tiene ? 'tiene' : 'pendiente', `${h.nivel}. ${h.texto}`);

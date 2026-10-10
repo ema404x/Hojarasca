@@ -58,7 +58,7 @@ export function usarTendal(t, entradas) {
 }
 export function avisoTendal(t, entradas) {
   if (listo(t)) return `Descolgar: ${CONSERVAS[t.colgado].nombre}`;
-  if (t.colgado) return `Secándose: faltan unas ${Math.ceil(HORAS_SECADO - t.horas)} horas`;
+  if (t.colgado) { const h = Math.ceil(HORAS_SECADO - t.horas); return h === 1 ? 'Secándose: falta más o menos una hora' : `Secándose: faltan unas ${h} horas`; }   // (3.8.6: «unas 1 horas»)
   const id = queColgar(entradas);
   return id ? `Colgar a secar (${CONSERVAS[id].cantidad} ${CONSERVAS[id].ingrediente === 'llaollao' ? 'llao llao' : 'calafates'})` : null;
 }

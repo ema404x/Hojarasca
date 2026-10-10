@@ -149,6 +149,7 @@ function crearVentana() {
 }
 
 // Las fotos van a Imágenes/Hojarasca
+const fotosEscribiendo = new Set();   // 3.8.6: los nombres que se están escribiendo (dos fotos seguidas)
 ipcMain.handle('guardar-foto', async (_evento, datos, nombre) => {
   const texto = String(datos || '');
   const prefijo = 'data:image/png;base64,';
@@ -159,7 +160,11 @@ ipcMain.handle('guardar-foto', async (_evento, datos, nombre) => {
   const carpeta = path.join(app.getPath('pictures'), 'Hojarasca');
   fs.mkdirSync(carpeta, { recursive: true });
   const base = path.basename(String(nombre || 'captura.png')).replace(/[^\w.-]/g, '_').replace(/\.png$/i, '') || 'captura';
-  const ruta = path.join(carpeta, `${base}.png`);
+  // 3.8.6: dos fotos en el mismo segundo no se pisan (la segunda reemplazaba a la primera: «Foto guardada» dos veces y
+  // quedaba una): si el nombre ya está (o se está escribiendo), «-2», «-3»…
+  let ruta = path.join(carpeta, `${base}.png`);
+  for (let n = 2; (fs.existsSync(ruta) || fotosEscribiendo.has(ruta)) && n < 1000; n++) ruta = path.join(carpeta, `${base}-${n}.png`);
+  fotosEscribiendo.add(ruta);
   // 2.6.1: asincrónico (una captura grande trababa el proceso principal) y por un
   // temporal: si falla a mitad no queda un PNG cortado.
   const tmp = `${ruta}.tmp`;
@@ -167,6 +172,7 @@ ipcMain.handle('guardar-foto', async (_evento, datos, nombre) => {
     await fs.promises.writeFile(tmp, buffer);
     await fs.promises.rename(tmp, ruta);
   } catch (e) { await fs.promises.rm(tmp, { force: true }).catch(() => {}); throw e; }
+  finally { fotosEscribiendo.delete(ruta); }
   return ruta;
 });
 ipcMain.handle('app-version', () => app.getVersion());

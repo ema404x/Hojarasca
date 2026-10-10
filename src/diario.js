@@ -194,9 +194,15 @@ export function crearDiario() {
 
     if (d.peces.length) {
       const mayor = d.peces.reduce((a, b) => (b.cm > a.cm ? b : a));
-      lineas.push(d.peces.length === 1
-        ? `Saqué una ${mayor.especie} de ${Math.round(mayor.cm)} centímetros y la devolví al agua.`
-        : `${d.peces.length} piques buenos. La mejor, una ${mayor.especie} de ${Math.round(mayor.cm)} centímetros.`);
+      // 3.8.6: el pejerrey es «él» (decía «Saqué una pejerrey patagónico… y la devolví»), y la que te quedaste para el
+      // ahumadero no se devolvió al agua
+      const el = /^pejerrey/.test(String(mayor.especie));
+      const cm = Math.round(mayor.cm);
+      let linea;
+      if (d.peces.length > 1) linea = el ? `${d.peces.length} piques buenos. El mejor, un ${mayor.especie} de ${cm} centímetros.` : `${d.peces.length} piques buenos. La mejor, una ${mayor.especie} de ${cm} centímetros.`;
+      else if (mayor.quedo) linea = el ? `Saqué un ${mayor.especie} de ${cm} centímetros y me lo quedé para el ahumadero.` : `Saqué una ${mayor.especie} de ${cm} centímetros y me la quedé para el ahumadero.`;
+      else linea = el ? `Saqué un ${mayor.especie} de ${cm} centímetros y lo devolví al agua.` : `Saqué una ${mayor.especie} de ${Math.round(mayor.cm)} centímetros y la devolví al agua.`;
+      lineas.push(linea);
     }
     if (d.kayak) lineas.push('Saqué el kayak. Desde el agua el bosque se ve de otra manera.');
     if (d.vuelta) lineas.push('Di la vuelta entera al anillo en la trochita, sin bajarme.');

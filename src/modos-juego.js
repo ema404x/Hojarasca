@@ -93,6 +93,7 @@ export function crearModos(ctx) {
     mundo?.mostrarCircuito(carrera.puntos, c.medio, MEDIOS[c.medio].radio, c.salida);
     mundo?.marcarSiguiente(0);
     finMostrado = 0;
+    ultimoResultado = null;   // 3.8.6: abandonada, el cartel mostraba la llegada de una vuelta anterior
     nota(`${c.nombre}${giro ? ` · ${GIROS[giro].nombre}` : ''}`, `En sus marcas: no te alejes del poste. ${Math.round(largoDe(c, giro))} m${recordActual ? ` · récord ${formatoTiempo(recordActual.ms)}` : ''}`);
     pitido(520);
     return true;
@@ -245,7 +246,8 @@ export function crearModos(ctx) {
           if (d > MEDIOS[c.medio].poste + 6) { avisados.delete(c.id); continue; }
           if (c.medio !== medio && medio !== 'otro' && !avisados.has(c.id)) {
             avisados.add(c.id);
-            nota(c.nombre, `Se corre ${MEDIOS[c.medio].nombre}${c.medio === 'vela' ? ': con el velero de tu varadero' : c.medio === 'kayak' ? ': el kayak está en el muelle' : ''}`);
+            // (3.8.6: el kayak no siempre está en el muelle desde la 3.8.4: puede quedar amarrado en tu embarcadero)
+            nota(c.nombre, `Se corre ${MEDIOS[c.medio].nombre}${c.medio === 'vela' ? ': con el velero de tu varadero' : c.medio === 'kayak' ? ': con el kayak, en el muelle o en tu embarcadero' : ''}`);
           }
         }
       }

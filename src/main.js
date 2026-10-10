@@ -1120,7 +1120,9 @@ function atrapar(pez) {
   if (progreso.horas >= 19 && progreso.horas < 22) progreso.pescaTarde = (progreso.pescaTarde || 0) + 1;
   registrar(pez.id);
   ganarOficio('pescador', XP.pez);   // 3.1
-  diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm });
+  // 3.8.6: si te la quedás para el ahumadero (el diario decía «la devolví al agua»)
+  const truchasDeHoy = progreso.truchasHoy?.dia === progreso.dia ? progreso.truchasHoy.n : 0;
+  diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm, quedo: !desafio && teLaQuedas(pez.id, obrasTerminadas('ahumadero').length > 0, truchasDeHoy) });
   vecindadJuego?.delPez(pez);   // 3.6 (vida): la trucha grande o el pez nativo, para los vecinos
   concursosJuego?.delPez(pez);   // 3.7.5 (noticias): la más grande de hoy y ayer va al concurso de la trucha
   modos?.pez?.(pez);   // 3.1: el desafío del día y el torneo de la semana
@@ -1135,7 +1137,7 @@ function atrapar(pez) {
     guardar();
     return;
   }
-  nota(`${nombre}, ${pez.cm} cm`, esRecord ? 'Tu mejor pieza. Vuelve al agua' : 'La devolvés al agua con cuidado');
+  nota(`${nombre}, ${pez.cm} cm`, esRecord ? 'Tu mejor pieza. Vuelve al agua' : /^pejerrey/.test(pez.def.nombre) ? 'Lo devolvés al agua con cuidado' : 'La devolvés al agua con cuidado');   // (3.8.6: el pejerrey)
   guardar();
 }
 
@@ -2198,7 +2200,7 @@ function exportarAlbum() {
   a.download = nombreArchivoAlbum(progreso);
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  nota('Cuaderno guardado', `${a.download} · ${datos.fotos.length} fotos y ${datos.diario.length} páginas del diario`, true);
+  nota('Cuaderno guardado', `${a.download} · ${datos.fotos.length} ${datos.fotos.length === 1 ? 'foto' : 'fotos'} y ${datos.diario.length} ${datos.diario.length === 1 ? 'página' : 'páginas'} del diario`, true);
   return { nombre: a.download, texto, datos };
 }
 $('btn-album').addEventListener('click', () => exportarAlbum());
@@ -2872,7 +2874,7 @@ document.addEventListener('keydown', (e) => {
         if (!kayak.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa o al muelle');
         break;
       }
-      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
+      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
       // 2.9: subir al velero o traerlo, largarse por la tirolesa (el aviso, en el mismo orden)
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
@@ -3101,7 +3103,7 @@ function gastarLenaDelInvierno(r) {
   if (r.de === 'lenera') r.lenera.secos -= 1;
   else if (r.de === 'mochila') conMateriales((m) => { m.tronco -= 1; });
   // un aviso aparte, después del de haber prendido (así cada frase se traduce entera)
-  if (r.de) setTimeout(() => nota('Se fue un tronco de leña', r.de === 'lenera' ? `Quedan ${r.lenera.secos} en la leñera` : 'De los que llevabas encima'), 1400);
+  if (r.de) setTimeout(() => nota('Se fue un tronco de leña', r.de === 'lenera' ? (r.lenera.secos === 1 ? 'Queda uno en la leñera' : r.lenera.secos ? `Quedan ${r.lenera.secos} en la leñera` : 'Era el último de la leñera') : 'De los que llevabas encima'), 1400);
 }
 function encenderFuego() {
   const js = jugador.estado;
@@ -6358,7 +6360,7 @@ function usarElTendal() {
   const C = CONSERVAS[q.conserva];
   if (q.accion === 'colgar') { sonido.juntar(); nota('Colgaste a secar', `${C.cantidad} ${C.ingrediente === 'llaollao' ? 'llao llao' : 'calafates'}: medio día de sol, y la lluvia lo frena`, true); }
   else if (q.accion === 'descolgar') { sonido.juntar(); registrar(q.conserva, true); nota(`Descolgaste: ${C.nombre}`, 'Se guarda para el invierno, o se cambia en el almacén', true); }
-  else if (q.accion === 'secando') nota('Todavía se está secando', `Faltan unas ${q.faltan} horas`);
+  else if (q.accion === 'secando') nota('Todavía se está secando', q.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${q.faltan} horas`);   // (3.8.6: «unas 1 horas»)
   else nota('No tenés qué colgar', 'Cinco calafates, o tres llao llao ya anotados');
   refrescarBarra(true);
   guardar();
@@ -6467,7 +6469,7 @@ function usarObraQueTrabaja(o) {
       conMateriales((m) => { m.tronco -= r.lena; });
       sonido.encender();
       nota(`Colgaste ${r.truchas} ${r.truchas === 1 ? 'trucha' : 'truchas'} al humo`, 'En medio día están. El fuego se cuida solo', true);
-    } else if (r.accion === 'ahumando') nota('Se están ahumando', `Faltan unas ${r.faltan} horas`);
+    } else if (r.accion === 'ahumando') nota('Se están ahumando', r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);   // (3.8.6)
     else if (r.accion === 'sinLena') nota('Falta leña', 'Un tronco por tanda, para el fuego de abajo');
     else nota('No tenés truchas', `Con el ahumadero, de lo que pescás te quedás con ${AHUMADERO.porDia} truchas por día`);
   } else if (o.plano.id === 'vivero') {
@@ -7792,6 +7794,8 @@ async function guardarLamina() {
 let luzUltimaFoto = null;
 async function sacarFoto() {
   diario.anotar('foto');
+  // 3.8.6: si el HUD ya estaba escondido (el modo foto), queda escondido (P lo volvía a mostrar encima del modo foto)
+  const hudEscondido = $('hud').classList.contains('oculto');
   $('hud').classList.add('oculto');
   dibujar(luzUltimaFoto, 1 - (luzUltimaFoto?.dia ?? 1));
   const datos = lienzo.toDataURL('image/png');
@@ -7829,12 +7833,12 @@ async function sacarFoto() {
     const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);
     if (ff) { progreso.desafios[ff.id] = { dia: progreso.dia, hora: progreso.horas, img: fotos.hacerMiniatura(lienzo) }; guardarFotos(progreso.desafios); setTimeout(() => nota(ff.nombre, 'Foto de la fiesta: ya está en el álbum', true), 900); }
   }
-  $('hud').classList.remove('oculto');
+  if (!hudEscondido) $('hud').classList.remove('oculto');
   sonido.obturador();
   const f = $('flash'); f.classList.remove('dispara'); void f.offsetWidth; f.classList.add('dispara');
   progreso.fotos++;
   guardar();
-  const nombre = `hojarasca-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.png`;
+  const nombre = nombreArchivoFoto();   // 3.8.6: con la hora de acá (era la UTC)
   if (window.hojarasca?.guardarFoto) {
     try { const ruta = await window.hojarasca.guardarFoto(datos, nombre); nota('Foto guardada', ruta); return; } catch {}
   }

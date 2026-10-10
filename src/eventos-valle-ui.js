@@ -51,6 +51,9 @@ export function crearEventosValleUi(ctx, tarjetas) {
 
   function pasarHoras(n) {
     const p = ctx.progreso();
+    // 3.8.6: con la hora de tu reloj el tiempo no salta (el cuadro siguiente volvía a la hora de verdad, y pasada la
+    // medianoche el día se sumaba dos veces: acá y a la medianoche de verdad)
+    if (ctx.ajustes?.()?.duracion === 'reloj') return;
     p.horas += n;
     while (p.horas >= 24) { p.horas -= 24; p.dia++; ctx.nota(`Día ${p.dia}`, 'Se te fue el día en eso'); }
   }
