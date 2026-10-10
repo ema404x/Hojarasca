@@ -188,4 +188,24 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(m.includes("const gracias = socialJuego?.cumplir(npc, null);\n  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones"), 'main: el que te vino a buscar también te agradece el deseo cumplido');
 }
 
+// ---------------------------------------------------------------- 11. fiestas: la mesita y el fogón sin el reloj ×40; el rival quieto; la taba
+{
+  const m = leer('src/main.js'), j = leer('src/fiestas-juego.js');
+  ok(m.includes('!mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;') && j.includes('const sinApuro = () => !!panel || oyendoLeyenda;') && j.includes('oyendoLeyenda = visto.leyenda.i < ley.partes.length;'), 'fiestas: sentado jugando o oyendo la leyenda, el reloj no corre ×40 (el partido se cortaba y la leyenda no se oía)');
+  ok(j.includes('if (n !== quieto) { soltarRival(); if (n && !n.conVos) { n.conVos = true; quieto = n; } }') && j.includes('    soltarRival();   // 3.8.6\n    panel = null;'), 'fiestas: el rival de la mesita se queda sentado mientras dure el partido (y se suelta al cerrar)');
+  ok(j.includes("texto: r ? `Tirar la taba con ${r.nombre}` : 'La taba: no hay con quién tirar', hacer: () => abrirTaba(r)") && j.includes("const mario = sirve('padre');"), 'fiestas: la taba, con Mario si está (o con quien esté en la cancha); el aviso y la E, con el mismo');
+}
+// ---------------------------------------------------------------- 12. fiestas: la amistad de la mesita y del baile, una vez por día y guardada
+{
+  const F = await import('../src/fiestas.js');
+  const e = F.fiestasNuevas();
+  ok(F.amistadDeHoy(e, 'mesa:jefe', 9) && !F.amistadDeHoy(e, 'mesa:jefe', 9) && F.amistadDeHoy(e, 'mesa:padre', 9), 'fiestas: la mesita da amistad una vez por día con cada uno (antes, sin tope: +3 por truco perdido)');
+  ok(!F.amistadDeHoy(F.sanearFiestas(JSON.parse(JSON.stringify(e)), 9), 'mesa:jefe', 9), 'fiestas: guardado (recargando no vuelve a dar)');
+  ok(F.amistadDeHoy(F.sanearFiestas(JSON.parse(JSON.stringify(e)), 10), 'mesa:jefe', 10), 'fiestas: al otro día, otra vez');
+  ok(F.amistadDeHoy(e, 'baile', 9) && !F.amistadDeHoy(F.sanearFiestas(JSON.parse(JSON.stringify(e)), 9), 'baile', 9), 'fiestas: la del baile también se guarda (vivía en memoria)');
+  const j = leer('src/fiestas-juego.js');
+  ok(j.includes("if (panel?.rival?.clave && amistadDeHoy(estado(), `mesa:${panel.rival.clave}`, dia())) ctx.sumarAmistad?.(panel.rival.clave, gano ? 2 : 3);"), 'fiestas-juego: la mesita usa amistadDeHoy');
+  sinCR('src/fiestas-juego.js'); sinCR('src/fiestas.js');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

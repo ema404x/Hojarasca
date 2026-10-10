@@ -117,7 +117,7 @@ const sinCR = (f) => ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
   ok(r2.tuParte && r3.tuParte && r3.cargas === m1.cargas, 'minga: con tu parte hecha no se carga más (cada E sumaba amistad sin fin)');
   const j = leer('src/fiestas-juego.js');
   ok(j.includes("if (r.tuParte) { ctx.nota?.('Tu parte ya está hecha', 'A la una se come en la mesa larga'); return; }"), 'minga: E dice que tu parte ya está, sin sumar');
-  ok(j.includes('    if (diaAmistadBaile === dia()) return;\n    diaAmistadBaile = dia();\n    for (const k of presentes())'),'baile: la amistad del baile, una vez por día');
+  ok(j.includes("    if (!amistadDeHoy(estado(), 'baile', dia())) return;\n    for (const k of presentes())"),'baile: la amistad del baile, una vez por día');
   ok(j.includes("decirRival(tablas ? 'Tablas. La próxima no te la dejo.' :") && j.includes("e.terminado === 'tablas' ? 'Tablas' : ''"), 'damas: en tablas el rival no dice «Te gané»');
   ok(j.includes('panel.finQuien = j;') && j.includes('panel.finQuien === 1 ?'), 'taba: el texto final según quién la definió');
   const a = A.aldeaNueva(); a.descubierta = 1;

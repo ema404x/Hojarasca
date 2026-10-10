@@ -8386,7 +8386,8 @@ function actualizarTiempo(dt) {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
-    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
+    // (3.8.6: ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
+    const escala = js.sentado && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }

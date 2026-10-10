@@ -548,6 +548,7 @@ export function fiestasNuevas() {
     juegos: { truco: { g: 0, p: 0 }, chinchon: { g: 0, p: 0 }, damas: { g: 0, p: 0 }, taba: { g: 0, p: 0 } },
     jineteada: { montas: 0, aguantadas: 0, mejor: 0, dia: 0 }, comio: [], fotos: [], leyendas: [], mingaHoy: { dia: 0, cargas: 0 },
     leyendaAnios: {},   // 3.8.1: { año: id } la leyenda fijada de cada año (ver leyendaDe)
+    amistadHoy: { dia: 0, ya: [] },   // 3.8.6: lo que ya dio amistad hoy (ver amistadDeHoy)
   };
 }
 const listaDe = (v, ok, tope = TOPE_LISTA) => (Array.isArray(v) ? [...new Set(v.filter(ok))].slice(-tope) : []);
@@ -591,6 +592,7 @@ export function sanearFiestas(v, dia = 1) {
     const j = v.jineteada, montas = Math.max(0, Math.min(99999, entero(j.montas)));
     b.jineteada = { montas, aguantadas: Math.min(montas, Math.max(0, entero(j.aguantadas))), mejor: Math.max(0, Math.min(JINETEADA.tiempo, Number.isFinite(num(j.mejor)) ? Math.round(num(j.mejor) * 10) / 10 : 0)), dia: Math.min(hoy, Math.max(0, entero(j.dia))) };
   }
+  if (objeto(v.amistadHoy) && entero(v.amistadHoy.dia, 0) === hoy) b.amistadHoy = { dia: hoy, ya: listaDe(v.amistadHoy.ya, (x) => typeof x === 'string' && /^[a-z0-9:-]{1,50}$/.test(x)) };   // 3.8.6
   b.comio = listaDe(v.comio, idAnio);
   b.fotos = listaDe(v.fotos, idAnio);
   b.leyendas = listaDe(v.leyendas, (x) => LEYENDAS.some((l) => l.id === x));
@@ -609,6 +611,18 @@ export function sanearFiestas(v, dia = 1) {
 
 // ---------------------------------------------------------------- lo que pasa en el estado
 const asegurar = (e) => (objeto(e) ? e : fiestasNuevas());
+// 3.8.6: ¿esto (`que`: 'baile', 'mesa:<clave>') todavía no dio amistad hoy? Lo anota y devuelve true la primera vez del día.
+// Se guarda: la amistad del baile de la 3.8.3 vivía en memoria (recargando volvía a dar) y la de la mesita no tenía tope
+// (yéndote al mazo cada mano, un truco perdido en 20 s daba +3; llegar a amigo, unos minutos).
+export function amistadDeHoy(estado, que, dia) {
+  const e = asegurar(estado);
+  const d = diaValido(dia);
+  if (!objeto(e.amistadHoy) || e.amistadHoy.dia !== d || !Array.isArray(e.amistadHoy.ya)) e.amistadHoy = { dia: d, ya: [] };
+  if (typeof que !== 'string' || e.amistadHoy.ya.includes(que)) return false;
+  e.amistadHoy.ya.push(que);
+  e.amistadHoy.ya = e.amistadHoy.ya.slice(-TOPE_LISTA);
+  return true;
+}
 // Estuviste en la fiesta (este año). Devuelve true si es la primera vez este año.
 export function marcarVista(estado, id, anio) {
   const e = asegurar(estado);

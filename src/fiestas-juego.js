@@ -12,7 +12,7 @@
 //   · los recuerdos, las fotos de la fiesta para el álbum, la gran nevada (la vía tapada y el tiempo de nieve) y tu
 //     cumpleaños con fiesta sorpresa.
 // Sin three (lo visual lo pide a fiestas-mundo.js por `ctx.mundo()`); el DOM, sólo en el panel.
-import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, empezarClase, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
+import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, empezarClase, amistadDeHoy, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
 import { partidoNuevo, accionesDe, actuar, turnoDe, decidirIA, nombreCarta, NOMBRES_CANTO, perfilTruco, envidoDe } from './truco.js';
 import { chinchonNuevo, accionesChinchon, actuarChinchon, decidirChinchon, turnoChinchon, nombreCartaChinchon, mejorLigado, esLaDelPozo, esComodin, damasNuevas, jugadasDamas, moverDamas, decidirDamas, textoJugada, tirarTaba, TEXTO_TABA } from './juegos-mesa.js';
 import { FIESTAS_ALDEA, nombreCortoDe } from './aldea-vida.js';
@@ -122,6 +122,7 @@ export function crearFiestasJuego(ctx) {
 
   // ---------------------------------------------------------------- el reloj
   let acum = 1;
+  let oyendoLeyenda = false;   // 3.8.6: oyendo la leyenda en el fogón (ver `sinApuro`)
   const visto = { dia: 0, fases: new Set(), enFiesta: 0, sorpresa: 0, leyenda: { i: -1, t: 0, dicho: 0 }, mesa: 0, nevada: 0, cumpleCarta: 0, terminoMinga: 0 };
   function actualizar(dt) {
     if (!activo()) return;
@@ -203,10 +204,12 @@ export function crearFiestasJuego(ctx) {
       }
     } else visto.mesa = 0;
     // la leyenda: el que cuenta, de a una parte, si estás cerca del fogón
+    oyendoLeyenda = false;
     if (fase === 'fogon' && js && m) {
       const ley = leyendaDe(estado(), f.anio);   // 3.8.1: la fijada del año (ver fiestas.js)
       const fogon = m.punto('narrador');
       if (fogon && dist(js.pos, fogon) < 11) {
+        oyendoLeyenda = visto.leyenda.i < ley.partes.length;   // 3.8.6 (ver `sinApuro`)
         visto.leyenda.t -= paso;
         if (visto.leyenda.t <= 0) {
           visto.leyenda.i++;
@@ -311,7 +314,8 @@ export function crearFiestasJuego(ctx) {
       const rival = rivalEnLaMesita();
       return { tipo: 'fiesta-juegos', texto: rival ? `Jugar con ${rival.nombre} (truco, chinchón o damas)` : 'La mesita de los juegos: no hay nadie para jugar', hacer: () => abrirMenuJuegos(rival) };
     }
-    if (fase === 'juegos' && cerca('taba-tira', 1.4)) return { tipo: 'fiesta-taba', texto: 'Tirar la taba', hacer: () => abrirTaba() };
+    // (3.8.6: con quién: Mario si está, o el más cercano en la cancha de la taba; antes era siempre Mario, aunque estuviera en la plaza)
+    if (fase === 'juegos' && cerca('taba-tira', 1.4)) { const r = rivalDeLaTaba(); return { tipo: 'fiesta-taba', texto: r ? `Tirar la taba con ${r.nombre}` : 'La taba: no hay con quién tirar', hacer: () => abrirTaba(r) }; }
     if ((fase === 'baile' || fase === 'sorpresa') && enLaPista(p)) {
       const st = estado();
       const pocha = ctx.aldeaGente?.()?.personas?.get('modista')?.npc;
@@ -427,7 +431,6 @@ export function crearFiestasJuego(ctx) {
     visto.leyenda.i = ley.partes.length + 1;
     escuchoLeyenda(ley, dia());
   }
-  let diaAmistadBaile = 0;
   function bailar(baile) {
     const st = estado();
     const nivel = st.baile[baile] || 0;
@@ -435,8 +438,8 @@ export function crearFiestasJuego(ctx) {
     if (js) js.descansado = Math.max(js.descansado || 0, 1 + nivel * 0.5);
     ctx.nota?.(nivel ? `Bailaste ${baile === 'chacarera' ? 'una chacarera' : 'un chamamé'} (nivel ${nivel})` : `Bailaste ${baile === 'chacarera' ? 'una chacarera' : 'un chamamé'}, a tu manera`, nivel >= 2 ? 'La pista te aplaude' : nivel ? 'Ya no pisás a nadie' : 'Pocha da clases en la pista: pedile una', false);
     // 3.8.3: la amistad del baile, una vez por día (cada E en la pista sumaba de nuevo: con 30 E, +30 a cada bailarín)
-    if (diaAmistadBaile === dia()) return;
-    diaAmistadBaile = dia();
+    // (3.8.6: anotada en la partida: recargando volvía a dar)
+    if (!amistadDeHoy(estado(), 'baile', dia())) return;
     for (const k of presentes()) { const n = ctx.aldeaGente?.()?.personas?.get(k)?.npc; if (n && js && dist(n.pos, js.pos) < 4) ctx.sumarAmistad?.(k, 1 + nivel); }
   }
 
@@ -521,19 +524,30 @@ export function crearFiestasJuego(ctx) {
 #fiesta-panel .log { font: 13px/1.3 Spectral, Georgia, serif; opacity: .85; }`;
     document.head.appendChild(s);
   }
+  // 3.8.6: el rival de la mesita se queda sentado mientras dure el partido (`conVos`: aldea-gente.js no lo mueve); antes seguía
+  // su horario (el cambio de fase, el jurado del concurso, el truco de la rueda con el vecino que iba caminando) y el partido
+  // se cortaba con «Te fuiste de la mesa» aunque no te movieras
+  let quieto = null;
+  function soltarRival() { if (quieto) quieto.conVos = false; quieto = null; }
   function abrirPanel(vista, extra = {}) {
     estilos();
     panel = { vista, opciones: [], firma: null, ...extra };
+    const n = panel.rival?.npc;
+    if (n !== quieto) { soltarRival(); if (n && !n.conVos) { n.conVos = true; quieto = n; } }
     $('fiesta-panel')?.classList.remove('oculto');
     dibujarPanel(true);
     ctx.alAbrirPanel?.();
   }
   function cerrarPanel() {
     if (!panel) return;
+    soltarRival();   // 3.8.6
     panel = null; clase = null;
     $('fiesta-panel')?.classList.add('oculto');
   }
   const panelAbierto = () => !!panel;
+  // 3.8.6: sentado jugando en la mesita o oyendo la leyenda en el fogón, el reloj no se apura (main.js acelera ×40 al estar
+  // sentado: el rival se levantaba a mitad del partido con «Te fuiste de la mesa» y la leyenda no se llegaba a oír)
+  const sinApuro = () => !!panel || oyendoLeyenda;
   // E con el panel abierto: cierra lo que no está en juego (el menú, un partido terminado); en un partido, nada (Escape)
   function alApretarE() {
     if (!panel) return false;
@@ -569,8 +583,20 @@ export function crearFiestasJuego(ctx) {
   }
   function empezarChinchon(rival) { const semilla = dia() * 37 + Math.floor(horas() * 60); abrirPanel('chinchon', { rival, juego: chinchonNuevo({ semilla, empieza: semilla % 2 }), espera: 0.9, log: [] }); }
   function empezarDamas(rival) { abrirPanel('damas', { rival, juego: damasNuevas({ empieza: 0 }), espera: 0.9, log: [] }); }
-  function abrirTaba() {
-    const rival = (() => { const n = ctx.aldeaGente?.()?.personas?.get('padre')?.npc; return n && !n.dormido ? { clave: 'padre', nombre: 'Mario', npc: n } : { clave: 'padre', nombre: 'Mario', npc: null }; })();
+  // 3.8.6: el que tira la taba con vos: Mario, si está cerca de la cancha; si no, el grande que esté más cerca (o nadie)
+  function rivalDeLaTaba() {
+    const t = mundo()?.punto('taba-tira');
+    if (!t) return null;
+    const ps = ctx.aldeaGente?.()?.personas;
+    const sirve = (k) => { const n = ps?.get(k)?.npc; return n && !n.dormido && !CHICOS.includes(k) && dist(n.pos, t) < 12 ? n : null; };
+    const mario = sirve('padre');
+    if (mario) return { clave: 'padre', nombre: nombreCortoDe('padre') || 'Mario', npc: mario };
+    let mejor = null, dm = 12;
+    for (const [k, st] of ps || []) { const n = sirve(k); if (!n) continue; const dd = dist(n.pos, t); if (dd < dm) { dm = dd; mejor = { clave: k, nombre: nombreCortoDe(k) || n.nombre, npc: n }; } }
+    return mejor;
+  }
+  function abrirTaba(rival = rivalDeLaTaba()) {
+    if (!rival) { ctx.nota?.('No hay con quién tirar la taba', 'Probá cuando haya gente en la cancha'); return; }
     abrirPanel('taba', { rival, barra: 0, dir: 1, turno: 0, log: [], fin: null, semilla: dia() * 17 + Math.floor(horas() * 100), n: 0 });
   }
   function abrirClase(baile) {
@@ -815,7 +841,7 @@ export function crearFiestasJuego(ctx) {
     if (!tablas) anotarPartido(estado(), juego, gano);
     const nombre = { truco: 'un truco', chinchon: 'un chinchón', damas: 'unas damas' }[juego];
     ctx.nota?.(tablas ? `Tablas con ${quien}` : gano ? `Le ganaste ${nombre} a ${quien}` : `${cap(quien)} te ganó ${nombre}`, texto ? `${texto}. Otro día la revancha` : 'Otro día la revancha', true);
-    if (panel?.rival?.clave) ctx.sumarAmistad?.(panel.rival.clave, gano ? 2 : 3);
+    if (panel?.rival?.clave && amistadDeHoy(estado(), `mesa:${panel.rival.clave}`, dia())) ctx.sumarAmistad?.(panel.rival.clave, gano ? 2 : 3);   // 3.8.6: una vez por día con cada uno
     // 3.8.3: en tablas no dice «Te gané» (y el texto de abajo, «Tablas», con mayúscula)
     decirRival(tablas ? 'Tablas. La próxima no te la dejo.' : gano ? 'Me ganaste bien. La revancha es mía.' : 'Te gané, pero jugaste lindo.');
     ctx.guardar?.();
@@ -850,7 +876,7 @@ export function crearFiestasJuego(ctx) {
 
   const api = {
     activo, actualizar, destino, accion, paraElMundo, estado, ahora, fechasDeHoy,
-    panelAbierto, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, sinVecino, redibujar: () => dibujarPanel(false),
+    panelAbierto, sinApuro, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, sinVecino, redibujar: () => dibujarPanel(false),
     jugarTruco, camara, montando: () => jineteada.monta?.quien === 'jugador', fotoDeLaFiesta, climaForzado,
     fotosAlbum: () => fotosParaAlbum(estado()),
     cumple: () => cumpleDelJugador(estado()),
