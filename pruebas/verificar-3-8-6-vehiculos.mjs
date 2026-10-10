@@ -1,5 +1,7 @@
 // 3.8.6 (vehículos): el pase de bugs de los vehículos, la cocina, la granja y el mundo. Una comprobación por arreglo.
 //  1. El caballo en el puente colgante: Escape (o B) no elige «Amarrarlo acá»; seguís montado.
+//  2. La locomotora sola (sin coches): la vuelta completa manejando cuenta, Elsa no queda «en viaje» y el andén no dice
+//     «E para subir» (no hay coche de pasajeros: se sube a la cabina).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -36,6 +38,16 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
   ok(d.includes("$('dialogo-no')?.addEventListener('click', () => cola.rechazar());"), 'el botón «No» rechaza (no cancela)');
   const m = leer('src/main.js');
   ok(m.includes("{ si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null }") && m.includes('if (mandar === null || !jugador.estado.montado) return;'), 'el puente: Escape te deja montado');
+}
+
+// 2. la locomotora sola
+{
+  const m = leer('src/main.js'), t = leer('src/trochita.js');
+  ok(m.includes('if (estadoTren) gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda?.rumbo, js.enTren && !!estadoTren.guarda);'), 'sin guarda, Elsa no queda en viaje');
+  ok(m.includes('y la vuelta manejando nunca se contaba)\n  if (estadoTren) {\n    if (js.enTren && estadoTren.recorrido >= estadoTren.vuelta * 0.98) {'), 'la vuelta se cuenta aunque no haya guarda');
+  ok(t.includes('soloLocomotora: () => !hayCoches(),') && m.includes('la locomotora está en el andén, sin coches · E al lado de la cabina para manejar'), 'el andén con la locomotora sola');
+  const V = await src('tren-viaje.js');
+  eq(V.composicionDe({ vagones: { pasajeros: true }, composicion: [] }), [], 'con vagones y ninguno enganchado, sale sola');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);

@@ -1225,6 +1225,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   }
   return {
     varadoEnNieve, bajarEnLaNieve,
+    soloLocomotora: () => !hayCoches(),   // 3.8.6: sin coches (el taller con vagones y ninguno enganchado)
     est, actualizar, puedeSubir, subir, bajar, moverse, proximoTrenA, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
     // 3.7.3: el lugar donde vas, ir a uno (la cocina, una cama), la vía nevada y dónde para la locomotora
     asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,

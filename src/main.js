@@ -8732,9 +8732,11 @@ function cuadroDelJuego(tRaf, manual) {
     indiceSujetosPerro.reconstruir(sujetosPerro, (s) => s.pos);
   }
   perfilador.terminar('fauna', tFauna, medirRendimiento);
-  if (estadoTren && estadoTren.guarda) {
-    gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda.rumbo, js.enTren);
-    // la vuelta completa al anillo, para el encargo de Elsa
+  // (3.8.6: sin coches no hay guarda en viaje: Elsa se queda en la estación)
+  if (estadoTren) gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda?.rumbo, js.enTren && !!estadoTren.guarda);
+  // la vuelta completa al anillo, para el encargo de Elsa
+  // 3.8.6: también con la locomotora sola (sin coches no hay guarda, y la vuelta manejando nunca se contaba)
+  if (estadoTren) {
     if (js.enTren && estadoTren.recorrido >= estadoTren.vuelta * 0.98) {
       tren.reiniciarVuelta();
       progreso.vueltas = (progreso.vueltas || 0) + 1;
@@ -9074,7 +9076,8 @@ function cuadroDelJuego(tRaf, manual) {
       const anden = tren.paradaCerca(js);
       if (anden) {
         const q = tren.proximoTrenA(anden);
-        if (tren.parado() && q && q.metros < 12) textoTren = `${anden.nombre} · el tren está en el andén · E para subir`;
+        // 3.8.6: con la locomotora sola no hay coche de pasajeros: se sube a la cabina (E al lado de la locomotora)
+        if (tren.parado() && q && q.metros < 12) textoTren = tren.soloLocomotora?.() ? `${anden.nombre} · la locomotora está en el andén, sin coches · E al lado de la cabina para manejar` : `${anden.nombre} · el tren está en el andén · E para subir`;
         else if (q) textoTren = `${anden.nombre} · el próximo tren llega en unos ${Math.max(5, Math.round(q.segundos))} segundos`;
         else textoTren = '';
       } else textoTren = '';
