@@ -4023,7 +4023,11 @@ function leerMando(dt) {
     if (m.recien.saltar) elegirHud();
     if (m.recien.agacharse) golpeDeTecla('Escape');
   }
-  if (!enLista) { if (m.recien.saltar) golpeDeTecla('Space'); }
+  // 3.8.6: en el velero, A sostenido es la vara corta (Espacio sostenido, como en el teclado: vela.js mira la tecla
+  // apretada). Antes A sólo daba un golpe de tecla y con el mando la vara no se podía usar
+  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla;
+  sostenerTecla('Space', enVelero && !!m.activos.saltar);
+  if (!enLista && !enVelero) { if (m.recien.saltar) golpeDeTecla('Space'); }
   if (!enLista) { if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); } }
   for (const a of ACCIONES_TECLA_MANDO) {
     if (!m.recien[a]) continue;
@@ -6364,7 +6368,8 @@ function obraQueTrabajaCerca(radio = 2.6) {
     if (!OBRAS_QUE_TRABAJAN.includes(o.plano.id) || !obraTerminada(o)) continue;
     // 2.4: con el kayak al alcance, E sube (el aviso lo dice antes); en el embarcadero
     // se mide desde las tablas, que son largas
-    if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos))) continue;
+    // (3.8.6: con el kayak ya amarrado en éste, no hay nada que traer: antes ofrecía «Traer el kayak» y lo volvía a amarrar ahí)
+    if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos) || kayakAmarradoEn(o))) continue;
     if (o.plano.id === 'bebedero' && ovejaCercana?.propia) continue;
     // 2.9: lo que se usa sólo de muy cerca (la radio del refugio no le gana a la cama)
     if (o.plano.alcanceE && Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z) > o.plano.alcanceE) continue;
@@ -6660,6 +6665,12 @@ function usarRadio(o) {
 // El horno, el buzón, el embarcadero y el bebedero van por el mismo camino que la
 // colmena (aviso y tecla E con la misma prioridad). Ver CAMBIOS_2_4_0.md.
 const guardadoHorno = (id) => progreso.entradas[id]?.cantidad || 0;
+// 3.8.6: el kayak está amarrado (sin nadie) al costado de la punta de este embarcadero
+function kayakAmarradoEn(o) {
+  if (!kayak || kayak.est.activo) return false;
+  const p = puntoAmarre(o);
+  return !!p && Math.hypot(kayak.est.x - p.x, kayak.est.z - p.z) < 0.6;
+}
 function sobreEmbarcadero(o, pos) {
   const rot = o.datos.rot || 0, dx = pos.x - o.datos.x, dz = pos.z - o.datos.z;
   const lx = dx * Math.cos(rot) - dz * Math.sin(rot), lz = dx * Math.sin(rot) + dz * Math.cos(rot);

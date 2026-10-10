@@ -22,6 +22,8 @@
 //     - desenganchar el coche comedor con algo al fuego lo devuelve crudo;
 //     - «Falta más o menos una hora» y otros plurales de main.js (el tendal, el ahumadero, el aserradero, el corral, las tablas);
 //     - con la hora de tu reloj, dormir no adelanta 24 horas la cocción (va con el reloj de verdad).
+//     - en tu embarcadero, con el kayak ya amarrado ahí, no se ofrece «Traer el kayak» (ni la E lo vuelve a amarrar);
+//     - en el velero, A del mando sostenido es la vara corta.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -205,6 +207,14 @@ ok(leer('src/vela.js').includes('if (est.activo) { /* (queda donde está) */ }\n
   p.horas = 8.2;
   cj.actualizar(1);
   ok(Math.abs(cj.cocina().moviles.prueba.falta - 0.75) < 1e-6, `con la hora del juego, va con el juego (falta ${cj.cocina().moviles.prueba.falta})`);
+}
+
+// 12 (cont.). el embarcadero con el kayak ya ahí y la vara con el mando
+{
+  const m = leer('src/main.js');
+  ok(m.includes("if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos) || kayakAmarradoEn(o))) continue;") && m.includes('function kayakAmarradoEn(o) {'), 'con el kayak ya amarrado ahí, el embarcadero no ofrece traerlo (la E y el aviso usan obraQueTrabajaCerca)');
+  ok(m.includes("const enVelero = !!jugador.estado.enVela && !enLista && !enCharla;\n  sostenerTecla('Space', enVelero && !!m.activos.saltar);\n  if (!enLista && !enVelero) { if (m.recien.saltar) golpeDeTecla('Space'); }"), 'en el velero, A sostenido es Espacio sostenido');
+  ok(leer('src/vela.js').includes("const remo = tecla('Space');"), 'la vara mira la tecla apretada');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);
