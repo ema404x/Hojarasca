@@ -226,8 +226,8 @@ app.whenReady().then(async () => {
     const cre = await js(`(()=>{const H=window.__hojarasca, P=H.progreso;
       H.clima.estado.lluvia = 0.9;
       H.revisarTormenta(0);                 // fija la hora de referencia
-      P.horas = (P.horas + 3) % 24;
-      H.revisarTormenta(0);
+      // (3.8.6: de a ratos: un salto grande del reloj, como dormir, usa la lluvia de cada tramo del programa del tiempo)
+      for (let i = 0; i < 30; i++) { P.horas = (P.horas + 0.1) % 24; H.revisarTormenta(0); }
       const c=H.tormenta().crecida, y=H.__agua()?.arroyo?.position.y;
       H.clima.estado.lluvia = 0;
       return {c, y}})()`);
