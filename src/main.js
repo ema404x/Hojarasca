@@ -7189,8 +7189,9 @@ function elegirEnMenuCharla(i) {
   const r = vecindadJuego.elegir(charla.vec, elegido, charla.npc);
   charla.menu = null;
   charla.parte = 0;
-  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece
-  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.tipo === 'renglones' ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
+  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece (3.8.6: la mano, sólo
+  // si se la diste: sin lo que pide, o por segunda vez en el día, el deseo se cumplía igual y daba la amistad del premio)
+  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.ayudo ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
   const gracias = hechoDeseo ? socialJuego?.cumplir(charla.npc, hechoDeseo) : null;
   if (gracias && Array.isArray(r.renglones)) r.renglones = [...r.renglones, gracias];
   if (r.tipo === 'menu') armarMenuCharla();   // 3.6.1: con lo del lugar

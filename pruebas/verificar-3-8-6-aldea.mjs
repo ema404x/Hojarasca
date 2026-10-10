@@ -95,4 +95,24 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   sinCR('src/amor-juego.js');
 }
 
+// ---------------------------------------------------------------- 5. vecinos: el deseo «una mano» sólo si se la diste
+{
+  const V = await import('../src/vecindad.js');
+  const VJ = await import('../src/vecindad-juego.js');
+  const p = { dia: 4, horas: 12, vecindad: V.vecindadNueva(), cosas: {}, materiales: {}, entradas: {}, aldea: aldeaCompleta() };
+  const vj = VJ.crearVecindadJuego({ progreso: () => p, desafio: () => false, guardar() {}, nota() {} });
+  const anselmo = { clave: 'aldea-herrero', claveAldea: 'herrero', nombre: 'Anselmo', pos: { x: 0, z: 0 } };
+  const pide = V.ayudas('herrero', p, 4).find((a) => a.pide);
+  ok(!!pide, 'hay una ayuda de Anselmo que pide algo');
+  let s = vj.abrir(anselmo);
+  vj.elegir(s, 'ayudar', anselmo);
+  const r = vj.elegir(s, `ayudar:${pide.id}`, anselmo);
+  ok(r.tipo === 'renglones' && r.ayudo === false, 'vecindad-juego: sin lo que pide, no ayudaste (`ayudo`: falso)');
+  p.materiales[pide.pide.k] = pide.pide.n; p.cosas[pide.pide.k] = pide.pide.n; p.entradas[pide.pide.k] = { dia: 1, hora: 9, cantidad: pide.pide.n };
+  s = vj.abrir(anselmo);
+  vj.elegir(s, 'ayudar', anselmo);
+  ok(vj.elegir(s, `ayudar:${pide.id}`, anselmo).ayudo === true, 'vecindad-juego: con lo que pide, sí');
+  ok(leer('src/main.js').includes("/^ayudar:/.test(elegido) && r.ayudo ? { tipo: 'ayudar' }"), 'main: el deseo «una mano» se cumple sólo si de verdad la diste (antes, con «no tenés» también)');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

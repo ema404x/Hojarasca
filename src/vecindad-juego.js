@@ -382,7 +382,8 @@ export function crearVecindadJuego(ctx) {
         ctx.guardar?.();
         avisarAmistad(s.clave, r.amistad);
       }
-      return { tipo: 'renglones', renglones: r.renglones };
+      // 3.8.6: `ayudo`: si de verdad le diste la mano (sin lo que pide, o ya hoy, no: main.js cumplía su deseo igual)
+      return { tipo: 'renglones', renglones: r.renglones, ayudo: !!r.ok };
     }
     if (tipo === 'invitar') {
       const que = k === 'te' ? 'te' : 'mate';
