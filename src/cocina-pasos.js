@@ -359,6 +359,8 @@ export function sanearCoccion(c0, hoy = TOPE_DIA) {
     receta: rc.id, paso, falta, variante,
     desde: Math.min(Math.max(1, Math.min(TOPE_DIA, entero(hoy, TOPE_DIA))), diaValido(c0.desde)),
     pausa: !!c0.pausa, robado: !!c0.robado, invitados, aOjo: !!c0.aOjo,
+    // 3.8.6: el día en que vinieron los invitados (esperan ese día nomás; ver calcularDestinos en cocina-juego.js)
+    ...(invitados.length ? { invitoDia: entero(c0.invitoDia, 0) } : {}),
   };
 }
 

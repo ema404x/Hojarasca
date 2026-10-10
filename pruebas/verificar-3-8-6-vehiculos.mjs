@@ -4,6 +4,13 @@
 //     «E para subir» (no hay coche de pasajeros: se sube a la cabina).
 //  3. Granja: el hoyo 25 no se arma (se armaba, costaba un tronco y quedaba muerto); con el verano fijado las peras maduran
 //     y lo que no madura con la estación fijada no promete un día; la batea pide lo que acepta; «Del novillo».
+//  4. Kayak, velero y sulky: en la pausa (o el cuaderno, el mapa, un cuadro) el mando se lee una vez (con el mando solo no se
+//     salía de la pausa en el kayak, el velero o el tren) y el kayak y el velero quedan quietos (el velero seguía navegando);
+//     en el Desafío subir al kayak no borra el amarre; en el sulky H, B, T, F, Y, O y G no hacen nada (armaba la carpa en
+//     el camino).
+//  5. Cocina: los invitados del asado esperan ese día nomás (un asado sin sacar los dejaba todos los días parados alrededor
+//     de la parrilla); «Queda 1»; el perro no roba de una parrilla desarmada.
+//  6. El puesto de cargas abierto a la medianoche se rehace (se veía la lista de ayer y el número elegía de la de hoy).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -72,6 +79,40 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
   ok(gj.includes("r.motivo === 'sinSobras' ? 'Papas, habas, manzanas, peras o ciruelas' : ''"), 'la batea pide lo que acepta');
   ok(gj.includes("`Del ${NOMBRE_ANIMAL[e.que].replace(/^el /, '')}: ${que}. Está en la mochila`"), '«Del novillo»');
   ok(gj.includes('const p = primeraFruta(f, estacionFrutal());'), 'al plantar, la primera fruta con la estación de Ajustes');
+}
+
+// 4. kayak, velero, sulky
+{
+  const m = leer('src/main.js');
+  ok(m.includes("else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(modo !== 'jugando' && jugador.estado.enKayak ? 0 : dt); }"), 'en la pausa: el mando una vez y el kayak/velero quieto');
+  ok(m.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();"), 'el menú sigue leyendo el mando');
+  ok(m.includes('kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;') && m.includes('if (!desafio) progreso.kayakAmarre = amarreDe(o);'), 'el amarre del kayak, sólo en el Relax (al anotar y al soltar)');
+  ok(m.includes("if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }"), 'en el sulky, las otras teclas no');
+  const VR = await src('vela-reglas.js');
+  const e0 = { x: 1, z: 2, rumbo: 0.3, vel: 2, giro: 0, escota: 0.5 };
+  const e1 = VR.pasoVela({ ...e0 }, {}, 0, 6, 1);
+  ok(Math.abs(e1.x - 1) < 1e-9 && Math.abs(e1.z - 2) < 1e-9, 'con dt 0 el velero no se mueve');
+}
+
+// 5. la cocina
+{
+  const CP = await src('cocina-pasos.js');
+  const c = CP.sanearCoccion({ receta: 'asado', paso: 1, invitados: ['abuela'], invitoDia: 12 }, 14);
+  ok(c && c.invitoDia === 12 && c.invitados.length === 1, 'el día de los invitados se guarda');
+  const c2 = CP.sanearCoccion({ receta: 'asado', paso: 1, invitados: ['abuela'] }, 14);
+  ok(c2 && c2.invitoDia === 0, 'una partida de antes: los invitados ya no esperan');
+  ok(!('invitoDia' in CP.sanearCoccion({ receta: 'asado', paso: 1 }, 14)), 'sin invitados, nada');
+  const cj = leer('src/cocina-juego.js');
+  ok(cj.includes('const claves = c && c.invitoDia === dia() ? c.invitados || [] : [];') && cj.includes('c.invitoDia = dia();   // 3.8.6'), 'esperan el día en que vinieron');
+  ok(cj.includes("${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} en la alacena") && leer('src/main.js').includes("${e.cantidad === 1 ? 'Te queda' : 'Te quedan'} ${e.cantidad}"), '«Queda 1», «Te queda 1»');
+  ok(cj.includes('if (!c || c.robado || (lista && !lista.includes(perroFase.o))) { perroFase = null; return; }'), 'el perro no roba de una parrilla desarmada');
+}
+
+// 6. el puesto de cargas a la medianoche
+{
+  const cm = leer('src/comercio-mundo.js');
+  ok(cm.includes('estado.dia = ctx.dia(); estado.temporada = ctx.temporada();') && cm.includes('if (estado.dia !== ctx.dia() || estado.temporada !== ctx.temporada()) dibujar();'), 'abierto a la medianoche, se rehace');
+  ok(cm.includes("if (ctx.panel && (estado.dia !== ctx.dia() || estado.temporada !== ctx.temporada())) { dibujar(); return false; }"), 'y elegir no toma lo de ayer');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);

@@ -276,7 +276,7 @@ export function crearCocinaJuego(ctx) {
     }
     ctx.sonido?.()?.juntar?.();
     const quedan = cuantoHay(p, id);
-    ctx.nota?.(`Comiste ${ef.porcion}`, quedan ? `${ef.sub}. Quedan ${quedan} en la alacena` : `${ef.sub}. Era lo último`);
+    ctx.nota?.(`Comiste ${ef.porcion}`, quedan ? `${ef.sub}. ${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} en la alacena` : `${ef.sub}. Era lo último`);
     ctx.mundo?.()?.refrescar?.();
     ctx.refrescarBarra?.();
     ctx.guardar?.();
@@ -365,7 +365,9 @@ export function crearCocinaJuego(ctx) {
     for (const o of estaciones()) {
       if (o.plano.id !== 'parrilla' || !deDia) continue;
       const c = coccionDe(o);
-      const claves = c?.invitados || [];
+      // 3.8.6: esperan el día en que vinieron; antes, un asado sin sacar los tenía parados alrededor de la parrilla todos
+      // los días, de 10 a 21:30, sin ir a trabajar
+      const claves = c && c.invitoDia === dia() ? c.invitados || [] : [];
       if (!claves.length) continue;
       lugar(o.datos.x, o.datos.z, o.datos.rot || 0, claves);
     }
@@ -388,6 +390,7 @@ export function crearCocinaJuego(ctx) {
     const claves = elegirInvitados(cand);
     if (!claves.length) { pas(c).busco = ahora(); return; }   // nadie libre: se vuelve a mirar en media hora
     c.invitados = claves;
+    c.invitoDia = dia();   // 3.8.6
     destinosCache.t = -1;
     ctx.nota?.('El humo del asado se ve desde lejos', `${unir(claves.map((k) => nombreCorto(k) || k))} ${claves.length === 1 ? 'viene' : 'vienen'} a ver qué se cocina`, true);
     decirPendiente = { texto: FRASES_ASADO.llegan[dia() % FRASES_ASADO.llegan.length], en: performance.now() + 9000 };
@@ -408,7 +411,10 @@ export function crearCocinaJuego(ctx) {
       if (perroFase.fase === 'va') {
         perroFase.cerca = d < 1.3 ? (perroFase.cerca || 0) + dt : 0;
         const c = coccionDe(perroFase.o);
-        if (!c || c.robado) { perroFase = null; return; }
+        // 3.8.6: la parrilla que desarmaste mientras iba (ya devolvió los chorizos): no roba nada (antes avisaba un robo de mentira
+        // y gastaba el del día)
+        const lista = ctx.obras?.()?.obras;
+        if (!c || c.robado || (lista && !lista.includes(perroFase.o))) { perroFase = null; return; }
         if (perroFase.cerca > 2.2 || perroFase.t > 40) {
           c.robado = true;
           cocina().perro = dia();
