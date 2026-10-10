@@ -1181,16 +1181,56 @@ function armarCajaCofre() {
   return { corteza: fundirCorteza(cort), brillo: fundirBrillo(brillos), tela: fundirTela(tela), halos };
 }
 function armarRaicesCofre() {
+  // 3.8.4: las raíces parecían patas (doce arcos finitos que iban del suelo, lejos, hasta el costado del cajón: una
+  // araña). Ahora el cofre brota de la tierra: un montículo removido con terrones; las raíces gruesas salen de
+  // abajo del cajón y se van por el suelo, finitas en la punta, entrando y saliendo de la tierra, con raicillas;
+  // y unas pocas lo agarran: suben pegadas a las caras del cajón (no se separan de la madera).
   const cort = [], tela = [];
   const r = azar(92);
-  // la tierra removida
-  const g = deform(lathe(afinar([[0.001, 0.12], [0.6, 0.1], [1.0, 0.05], [1.35, -0.04]], 3), 24), (v) => { v.y += 0.04 * ruido(v.x * 3, 0, v.z * 3); });
-  tela.push(pieza(g, null, '#7a6248', { tela: 5, pintar: (c, p, n, l) => { c.multiplyScalar(0.75 + 0.3 * (ruido(l.x * 6, 0, l.z * 6) * 0.5 + 0.5)); } }));
-  // las raíces que salen de la tierra y lo abrazan
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * TAU + r() * 0.3, d0 = 0.75 + r() * 0.25;
-    // finitas, pegadas al cajón: lo agarran de abajo (no son patas)
-    cort.push(raiz([[Math.sin(a) * d0, -0.04, Math.cos(a) * d0 * 0.8], [Math.sin(a) * 0.6, 0.04 + r() * 0.04, Math.cos(a) * 0.48], [Math.sin(a + 0.25) * 0.5, 0.26 + r() * 0.1, Math.cos(a + 0.25) * 0.37], [Math.sin(a + 0.5) * 0.46, 0.36, Math.cos(a + 0.5) * 0.33]], [0.05, 0.04, 0.026, 0.008], '#7a5a40', { nudos: 0.015, pintar: (c, p, n) => musgoEn(c, p, n, 0.7, 2) }));
+  const tierra = (c, p, n, l) => { c.multiplyScalar(0.72 + 0.34 * (ruido(l.x * 7, 0, l.z * 7) * 0.5 + 0.5)); if (ruido(l.x * 4 + 3, 0, l.z * 4) > 0.45) tinta(c, '#4e6a2a', 0.45); };
+  // el montículo de tierra removida (más alto pegado al cajón) y unos terrones. (El perfil va de afuera hacia el
+  // centro: al revés, el torno mira para abajo y no se veía: la tierra de antes nunca se vio.)
+  const g = deform(lathe(afinar([[1.0, -0.03], [0.8, 0.0], [0.6, 0.035], [0.4, 0.062], [0.001, 0.08]], 3), 28), (v) => { v.y += 0.035 * ruido(v.x * 4, 0, v.z * 4); });
+  tela.push(pieza(g, null, '#8a6a4a', { tela: 5, pintar: tierra }));
+  const alturaMonte = (d) => (d < 0.95 ? 0.08 * (1 - (d / 0.95) ** 2) : -0.03);
+  for (let i = 0; i < 7; i++) {
+    const a = r() * TAU, d = 0.6 + r() * 0.5;
+    tela.push(pieza(deform(esfera(8, 6), (v) => { v.multiplyScalar(1 + 0.3 * ruido(v.x * 4 + i, v.y * 4, v.z * 4)); if (v.y < 0) v.y *= 0.4; }), M4([Math.sin(a) * d, 0.02, Math.cos(a) * d * 0.85], [0, r() * 6, 0], [0.07 + r() * 0.05, 0.05, 0.06 + r() * 0.05]), '#5e4632', { tela: 5, pintar: tierra }));
+  }
+  const pinta = (k) => (c, p, n) => { musgoEn(c, p, n, k, 2); if (p.y < 0.03) c.multiplyScalar(0.7); };   // (donde entra en la tierra, más oscura)
+  // las raíces del suelo: de abajo del cajón para afuera, ondulando y hundiéndose de a ratos
+  const NR = 9;
+  for (let i = 0; i < NR; i++) {
+    const a = (i / NR) * TAU + (r() - 0.5) * 0.4, largo = 0.7 + r() * 0.45, curva = (r() - 0.5) * 0.9;
+    const pts = [];
+    for (let k = 0; k <= 5; k++) {
+      const t = k / 5, aa = a + curva * t * t, d = 0.26 + t * largo;
+      // sale por debajo del cajón (de adentro del montículo) y va por el suelo, bajita, entrando y saliendo
+      const y = alturaMonte(d) + 0.016 + 0.014 * Math.sin(t * 7 + i) - 0.06 * sv(0.6, 1, t);   // (sobre la tierra; la punta, hundida)
+      pts.push([Math.sin(aa) * d, y, Math.cos(aa) * d * 0.8]);
+    }
+    cort.push(raiz(pts, [0.05, 0.043, 0.033, 0.025, 0.017, 0.008], '#7a5a3e', { nudos: 0.012, pintar: pinta(0.6), tramos: 22, lados: 8 }));
+    // una raicilla de costado
+    if (i % 2 === 0) {
+      const p0 = pts[2], p1 = pts[3], b = a + (r() < 0.5 ? -1 : 1) * 0.9;
+      cort.push(raiz([p0, [p0[0] * 0.7 + p1[0] * 0.3 + Math.sin(b) * 0.12, 0.01, p0[2] * 0.7 + p1[2] * 0.3 + Math.cos(b) * 0.1], [p0[0] + Math.sin(b) * 0.3, -0.02, p0[2] + Math.cos(b) * 0.24]], [0.02, 0.012, 0.003], '#6e5038', { pintar: pinta(0.5), tramos: 10, lados: 6 }));
+    }
+  }
+  // las que lo agarran: suben pegadas a las caras del cajón (a 2 cm de la madera), en diagonal
+  const AX = 0.45 + 0.022, AZ = 0.3 + 0.022;
+  // (finitas y cruzadas, como una enredadera: si suben derechas y gruesas se leen como patas)
+  const agarres = [
+    { cara: 'z', s: 1, x0: -0.3, dx: 0.3 }, { cara: 'z', s: -1, x0: 0.25, dx: -0.3 },
+    { cara: 'x', s: 1, z0: -0.18, dz: 0.26 }, { cara: 'x', s: -1, z0: 0.16, dz: -0.24 },
+  ];
+  for (const q of agarres) {
+    const alto = 0.24 + r() * 0.1, pts = [];
+    for (let k = 0; k <= 5; k++) {
+      const t = k / 5, y = 0.06 + t * alto;
+      if (q.cara === 'z') pts.push([q.x0 + q.dx * t + 0.025 * Math.sin(t * 6), y, q.s * (AZ - 0.006)]);
+      else pts.push([q.s * (AX - 0.006), y, q.z0 + q.dz * t + 0.025 * Math.sin(t * 6)]);
+    }
+    cort.push(raiz(pts, [0.02, 0.017, 0.013, 0.009, 0.006, 0.002], '#8a6a46', { nudos: 0.004, pintar: pinta(0.8), tramos: 16, lados: 6 }));
   }
   return { corteza: fundirCorteza(cort), tela: fundirTela(tela) };
 }
