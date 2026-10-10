@@ -11,6 +11,7 @@
 //  5. Cocina: los invitados del asado esperan ese día nomás (un asado sin sacar los dejaba todos los días parados alrededor
 //     de la parrilla); «Queda 1»; el perro no roba de una parrilla desarmada.
 //  6. El puesto de cargas abierto a la medianoche se rehace (se veía la lista de ayer y el número elegía de la de hoy).
+//  7. El bosque: pasados los 96 tocones, el más viejo deja de verse y también de frenar (quedaba un tronco invisible).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -113,6 +114,28 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
   const cm = leer('src/comercio-mundo.js');
   ok(cm.includes('estado.dia = ctx.dia(); estado.temporada = ctx.temporada();') && cm.includes('if (estado.dia !== ctx.dia() || estado.temporada !== ctx.temporada()) dibujar();'), 'abierto a la medianoche, se rehace');
   ok(cm.includes("if (ctx.panel && (estado.dia !== ctx.dia() || estado.temporada !== ctx.temporada())) { dibujar(); return false; }"), 'y elegir no toma lo de ayer');
+}
+
+// 7. los tocones que ya no se ven no frenan
+{
+  const v = leer('src/vegetacion.js');
+  ok(v.includes('if (tocones.length >= MAX_TOCONES) { const viejo = tocones.shift(); if (viejo?.arbol?.choque && viejo.arbol.sacado) viejo.arbol.choque.sinTocon = true; }') && v.includes('if (a.choque) a.choque.sinTocon = false;'), 'el tocón que sale del tope apaga su choque (y el que vuelve, lo prende)');
+  ok(v.includes('if (a.choque) { a.choque.apagado = false; a.choque.sinTocon = false; }'), 'el árbol que rebrota entero frena otra vez');
+  const { crearColisiones } = await src('colisiones.js').catch(() => ({}));
+  const cl = leer('src/colisiones.js');
+  ok(cl.includes('if (o.sinTocon) continue;'), 'colisiones.js no empuja con un choque sin tocón');
+  if (typeof crearColisiones === 'function') {
+    const col = crearColisiones();
+    const choque = { x: 0, z: 0, r: 0.6 };
+    col.agregar(choque);
+    const p = { x: 0.2, y: 0, z: 0 };
+    col.resolver(p, 0.35, 1.7);
+    ok(Math.hypot(p.x, p.z) >= 0.94, 'con tocón, empuja');
+    choque.sinTocon = true;
+    const q = { x: 0.2, y: 0, z: 0 };
+    col.resolver(q, 0.35, 1.7);
+    ok(q.x === 0.2 && q.z === 0, 'sin tocón, no');
+  }
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);
