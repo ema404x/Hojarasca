@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 // un localStorage de mentira, para el guardado en Node
 const almacen = new Map();
@@ -237,6 +238,28 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(!/`\$\{n\} \$\{MATERIALES\[k\]/.test(main), 'main.js arma las cantidades con cantidadMaterial');
   ok(main.includes("${participioObra(r.plano.nombre, 'desmontad')}") && main.includes("${participioObra(r.obra.plano.nombre, 'recolocad')}"), '«Mesa de campo desmontada»');
   ok(leer('src/objetos.js').includes("it.tipo === 'ramita' && progreso.ramitas >= 12 ? 'Ya llevás doce ramitas'"), 'con doce ramitas, el aviso lo dice');
+}
+
+// ---------------------------------------------------------------- 16. lo que se mueve no funciona en el lugar viejo; el álbum; lo soltado
+{
+  ok(leer('src/construccion.js').includes('if (o === edicion?.obra) continue;   // 3.8.6') && trozoFn('function tendalCerca(').includes('if (o === obras.editando) continue;') && trozoFn('function obraQueTrabajaCerca(').includes('if (o === obras?.editando) continue;'), 'la obra que estás moviendo no sirve en el lugar viejo (catre, acopio, tendal, colmena)');
+  ok(main.includes('const todas = [...DESAFIOS, ...fotosFiestas];') && main.includes("fiestasJuego.fotosAlbum?.()"), 'el álbum del cuaderno muestra las fotos de las fiestas');
+  ok(main.includes("else ficha.appendChild(el('p', 'pista', 'Sin la foto: no se pudo leer del disco'));"), 'una foto sin imagen no se ve rota');
+  const ob = leer('src/objetos.js');
+  ok(ob.includes('const hayLugar = !!guardado || progreso.soltados.length < SOLTADOS_TOPE;') && ob.includes('let candidato = hayLugar ?'), 'con la lista de lo soltado llena, lo más viejo no se pierde');
+}
+
+// ---------------------------------------------------------------- 17. al dormir, la lluvia de cada tramo
+{
+  const f = trozoFn('function lluviaPorTramos(');
+  const ctx = { TRAMO: 3, programaTramos: null, programaDelTiempo: () => ({ tipo: (k) => (k % 2 ? 'lluvia' : 'despejado') }) };
+  vm.createContext(ctx);
+  vm.runInContext(`let programaTramos = null; ${f}
+this.f = lluviaPorTramos;`, ctx);
+  eq(JSON.parse(JSON.stringify(ctx.f(22, 31))), [{ horas: 2, lluvia: 1 }, { horas: 3, lluvia: 0 }, { horas: 3, lluvia: 1 }, { horas: 1, lluvia: 0 }], 'una noche de 22 a 7: la lluvia de cada tramo');
+  ok(trozoFn('function revisarTormenta(').includes('for (const s of lluviaPorTramos(fin - Math.min(dh, 12), fin)) st.crecida = avanzarCrecida(st.crecida, s.lluvia, s.horas);'), 'la crecida, tramo por tramo');
+  const t = trozoFn('function actualizarTendales(');
+  ok(t.includes('const tramos = horas > 0.5 ? lluviaPorTramos(ahora - horas, ahora)') && t.includes('for (const s of tramos) h = humedecer(h, s.horas,') && t.includes('for (const s of tramos) avanzarSecado(datosTendal(o), s.horas,'), 'el tendal y la leña, tramo por tramo');
 }
 
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);

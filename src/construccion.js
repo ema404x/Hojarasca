@@ -3249,6 +3249,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     const py = Number.isFinite(pos?.y) ? pos.y : null;
     for (const o of obrasCerca(pos, radio)) {
       if (o.datos.etapas < o.plano.etapas.length) continue;
+      if (o === edicion?.obra) continue;   // 3.8.6: la que estás moviendo (Shift+Y) no está: no sirve en el lugar viejo
       if (!(o.plano.funciones || []).includes(funcion)) continue;
       const dy = py === null ? 0 : Math.abs((o.datos.y ?? py) - py);
       // Catres/talleres/estufas apilados pertenecen a plantas distintas.

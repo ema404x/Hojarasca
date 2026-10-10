@@ -274,7 +274,8 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   assert.match(main, /ctxClima\.chimeneas = chimeneasTodas \|\| chimeneas;/, 'tu chimenea echa humo');
   assert.match(main, /if \(modo === 'jugando'\) \{ actualizarMajada\(dt\); actualizarCasaViva\(dt\); \}/);
   assert.match(main, /case 'KeyT': if \(modoObra && obras\) \{ tenirPieza\(\); break; \} armarCarpa\(\); break;/, 'T tiñe con los planos abiertos');
-  assert.match(main, /lluvia: obras\.cubiertaDePieza\?\.\(o\.datos\) \? 0 : clima\.estado\.lluvia/, 'el tendal bajo la galería seca');
+  // (3.8.6: con la lluvia de cada tramo, cuando el reloj salta)
+  assert.match(main, /const techo = !!obras\.cubiertaDePieza\?\.\(o\.datos\);[^\n]*lluvia: techo \? 0 : s\.lluvia/, 'el tendal bajo la galería seca');
   assert.match(main, /if \(paso && !desafio && U\.uInvierno\.value > 0\.5\) helarLaHuerta\(h\);/, 'la helada, sólo cuando el día cambia jugando');
   assert.match(main, /const OBRAS_QUE_TRABAJAN = \['colmena', 'ahumadero', 'vivero', 'lenera', 'horno', 'buzon', 'embarcadero', 'bebedero'\];/);
   assert.match(main, /default: return avisoObra24\(o\);/, 'el aviso de las obras nuevas');

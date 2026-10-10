@@ -150,7 +150,7 @@ import { LENA, sanearLenera, sanearHumedad, humedecer, guardarEnLenera, avisoLen
 import { MOLINO, sanearAserradero, sanearMuela, fuerzaDelAgua, horasDesde, avanzarAserradero, aserrando, avanzarMuela, moliendo, molinoQueMueve, usarAserradero, avisoAserradero, usarMolino, avisoMolino } from './molino.js';
 import { crearMolinoMundo } from './molino-mundo.js';
 import { crearMeteoMundo } from './meteo-mundo.js';
-import { sanearMeteo, crearPrograma, pronostico as pronosticoMeteo, nochesQueVienen, textoPronostico, horaAbsoluta, inviernoDelDia } from './meteo.js';
+import { sanearMeteo, crearPrograma, pronostico as pronosticoMeteo, nochesQueVienen, textoPronostico, horaAbsoluta, inviernoDelDia, TRAMO } from './meteo.js';
 import { sanearRadio, escucharRadio, cumplirPedido, pedidoRadio, alcanzaPedido, textoPide as textoPideRadio, nombreEstacionRadio } from './radio.js';
 import { MAQUINAS_QUE_TRABAJAN } from './planos-maquinas.js';
 import { comoDormiste, horasDescansado, gastarDescanso, casaCerrada } from './abrigo.js';
@@ -1032,7 +1032,10 @@ function dibujarCuaderno() {
 
   if (pestana === 'fotos') {
     const ul = el('ul', 'lista');
-    for (const d of DESAFIOS) {
+    // 3.8.6: también las fotos de las fiestas (la nota decía «ya está en el álbum» y sólo salían en el cuaderno exportado)
+    const fotosFiestas = !desafio && fiestasJuego ? (fiestasJuego.fotosAlbum?.() || []).filter((f) => progreso.desafios[f.id]).map((f) => ({ id: f.id, nombre: f.nombre, texto: f.texto, pista: '' })) : [];
+    const todas = [...DESAFIOS, ...fotosFiestas];
+    for (const d of todas) {
       const b = el('button');
       const hecho = progreso.desafios[d.id];
       b.appendChild(el('span', hecho ? '' : 'pendiente', d.nombre));
@@ -1042,13 +1045,14 @@ function dibujarCuaderno() {
       const li = el('li'); li.appendChild(b); ul.appendChild(li);
     }
     lista.appendChild(ul);
-    const d = DESAFIOS.find((x) => x.id === desafioActual) || DESAFIOS.find((x) => progreso.desafios[x.id]) || DESAFIOS[0];
+    const d = todas.find((x) => x.id === desafioActual) || todas.find((x) => progreso.desafios[x.id]) || todas[0];
     const hecho = progreso.desafios[d.id];
     ficha.appendChild(el('h2', '', d.nombre));
     if (hecho) {
       ficha.appendChild(el('p', 'anotado', `Sacada el día ${hecho.dia} a las ${horaTexto(hecho.hora)}`));
-      const img = el('img', 'polaroid'); img.src = hecho.img; img.alt = d.texto;
-      ficha.appendChild(img);
+      // 3.8.6: sin la imagen (no se pudo leer o guardar), un recuadro y no el ícono de imagen rota
+      if (hecho.img) { const img = el('img', 'polaroid'); img.src = hecho.img; img.alt = d.texto; ficha.appendChild(img); }
+      else ficha.appendChild(el('p', 'pista', 'Sin la foto: no se pudo leer del disco'));
       ficha.appendChild(el('p', 'texto', d.texto));
     } else {
       ficha.appendChild(el('p', 'texto', d.texto));
@@ -5286,7 +5290,9 @@ function revisarTormenta(dt) {
   const dh = horasTormenta === null ? 0 : horasEntre(horasTormenta, progreso.horas);
   horasTormenta = progreso.horas;
   // si el reloj saltó (dormir), la crecida se resuelve de una: dormir no la frena
-  st.crecida = avanzarCrecida(st.crecida, clima.estado.lluvia, Math.min(dh, 12));
+  // 3.8.6: con la lluvia de cada tramo del salto (antes, la del momento de despertar para toda la noche)
+  if (dh > 0.5) { const fin = horaDeJuego(); for (const s of lluviaPorTramos(fin - Math.min(dh, 12), fin)) st.crecida = avanzarCrecida(st.crecida, s.lluvia, s.horas); }
+  else st.crecida = avanzarCrecida(st.crecida, clima.estado.lluvia, dh);
   if (agua?.arroyo) agua.arroyo.position.y = nivelArroyo(st.crecida);
   const turbia = aguaTurbia(st.crecida);
   if (turbia && !turbiaAvisada) {
@@ -6334,6 +6340,7 @@ function tendalCerca() {
   const js = jugador.estado;
   for (const o of obras.obras) {
     if (o.plano.id !== 'tendal' || o.datos.etapas < o.plano.etapas.length) continue;
+    if (o === obras.editando) continue;   // 3.8.6: levantado con Shift+Y, no se cuelga nada en el lugar viejo
     if (Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z) < 2.6) return o;
   }
   return null;
@@ -6373,9 +6380,12 @@ function actualizarTendales() {
   const horas = Math.min(48, ahora - horaTendales);
   if (horas < 0.1) return;
   horaTendales = ahora;
+  // 3.8.6: con un salto del reloj (dormir, un evento), la lluvia de cada tramo del salto: antes la del momento de
+  // despertar valía para toda la noche (una llovizna al amanecer empapaba la leña de una noche seca)
+  const tramos = horas > 0.5 ? lluviaPorTramos(ahora - horas, ahora) : [{ horas, lluvia: clima.estado.lluvia }];
   for (const o of obras?.obras || []) {
     // 2.4: bajo una galería o un invernadero no le llueve
-    if (o.plano.id === 'tendal' && o.datos.tendal?.colgado) avanzarSecado(datosTendal(o), horas, { lluvia: obras.cubiertaDePieza?.(o.datos) ? 0 : clima.estado.lluvia, noche: 1 - (luzUltimaFoto?.dia ?? 1) });
+    if (o.plano.id === 'tendal' && o.datos.tendal?.colgado) { const techo = !!obras.cubiertaDePieza?.(o.datos); for (const s of tramos) avanzarSecado(datosTendal(o), s.horas, { lluvia: techo ? 0 : s.lluvia, noche: 1 - (luzUltimaFoto?.dia ?? 1) }); }
     // 2.3: la colmena y el ahumadero trabajan aunque no estés
     else if (o.plano.id === 'colmena' && obraTerminada(o)) {
       const nuevos = avanzarColmena(datosDe(o, 'colmena', sanearColmena), horas, estadoAbejas(o));
@@ -6386,7 +6396,7 @@ function actualizarTendales() {
   }
   // 2.3: la leña que llevás encima se moja con la lluvia y se seca despacio
   const js = jugador.estado;
-  progreso.humedadLena = humedecer(sanearHumedad(progreso.humedadLena), horas, { lluvia: clima.estado.lluvia, bajoTecho: !!(obras?.dentro?.(js.pos) || obras?.bajoCubierta?.(js.pos)) });
+  { const bajoTecho = !!(obras?.dentro?.(js.pos) || obras?.bajoCubierta?.(js.pos)); let h = sanearHumedad(progreso.humedadLena); for (const s of tramos) h = humedecer(h, s.horas, { lluvia: s.lluvia, bajoTecho }); progreso.humedadLena = h; }
   if (js.entumecido > 0) {
     js.entumecido = desentumecer(js.entumecido, horas, cercaDelFuego() || !!mecanicasAldea?.juntoAEstufa(js.pos) || alCalorDelTren());   // 3.6 (mecánicas): y las estufas de la aldea (3.7.3: y la salamandra del tren)
     if (js.entumecido === 0) nota('Ya entraste en calor', 'El cuerpo arrancó');
@@ -6405,6 +6415,7 @@ function obraQueTrabajaCerca(radio = 2.6) {
   let mejor = null, d0 = radio;
   for (const o of obras?.obras || []) {
     if (!OBRAS_QUE_TRABAJAN.includes(o.plano.id) || !obraTerminada(o)) continue;
+    if (o === obras?.editando) continue;   // 3.8.6: la que estás moviendo (Shift+Y): la colmena o la leñera invisibles no se usan
     // 2.4: con el kayak al alcance, E sube (el aviso lo dice antes); en el embarcadero
     // se mide desde las tablas, que son largas
     if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos))) continue;
@@ -6511,6 +6522,20 @@ OBRAS_QUE_TRABAJAN.push(...PLANOS_COCINA_E);
 let molinoMundo = null, meteoMundo = null;
 let relojMaquinas = 0, relojSierra = 0, relojRueda = 0;
 function horaDeJuego() { return horaAbsoluta(progreso.dia, progreso.horas); }
+// 3.8.6: la lluvia de cada tramo del programa del tiempo entre dos horas absolutas: [{ horas, lluvia (0 o 1) }]. Para lo que
+// se resuelve de una cuando el reloj salta (dormir, un evento del valle): la crecida, el tendal y la leña.
+let programaTramos = null;
+function lluviaPorTramos(desde, hasta) {
+  programaTramos ||= programaDelTiempo();
+  const salida = [];
+  let t = desde;
+  while (t < hasta - 1e-6 && salida.length < 40) {
+    const k = Math.floor(t / TRAMO), fin = Math.min(hasta, (k + 1) * TRAMO);
+    salida.push({ horas: fin - t, lluvia: programaTramos.tipo(k) === 'lluvia' ? 1 : 0 });
+    t = fin;
+  }
+  return salida;
+}
 // La semilla del tiempo de la partida: se crea la primera vez y viaja en el guardado.
 function meteoPartida() {
   if (!(progreso.meteo?.semilla > 0)) progreso.meteo = sanearMeteo(progreso.meteo);

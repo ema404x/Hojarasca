@@ -421,8 +421,11 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     const y = T.altura(x, z);
     // 3.8.4: va a un hueco propio (uno de lo soltado antes, ya levantado, o uno reservado) y queda anotado en la partida;
     // sin huecos, como antes: se reusa uno de los que juntaste (ése, al recargar, vuelve a su lugar de siempre)
-    let candidato = items.find((it) => it.tipo === tipo && it.tomado && it.esSuelto);
-    if (!candidato && im.userData.libres?.length) {
+    // 3.8.6: con la lista de lo soltado llena (64), lo nuevo no entra a la lista (antes salía lo más viejo, que seguía en
+    // el suelo pero al recargar no volvía: se perdía); va como antes de la 3.8.4, a un lugar de lo que juntaste
+    const hayLugar = !!guardado || progreso.soltados.length < SOLTADOS_TOPE;
+    let candidato = hayLugar ? items.find((it) => it.tipo === tipo && it.tomado && it.esSuelto) : null;
+    if (!candidato && hayLugar && im.userData.libres?.length) {
       const libre = im.userData.libres.pop();
       candidato = { tipo, id: `suelto-${tipo}-${libre}`, indice: libre, esc: 1, esSuelto: true };
       items.push(candidato);
