@@ -73,6 +73,8 @@ export function crearEventosValleUi(ctx, tarjetas) {
       for (const [k, n] of Object.entries(c.plano.etapas[i].pide || {})) recupera[k] = (recupera[k] || 0) + Math.max(1, Math.floor(n * 0.5));
     }
     for (const [k, n] of Object.entries(recupera)) ctx.sumarMaterial(k, n);
+    // 3.8.6: y lo que tenía adentro vuelve (lo colgado en el tendal, los troncos secos de la leñera): se perdía
+    ctx.devolverContenido?.(caidas);
     ctx.sincronizarObras();
     return { nombre, recupera };
   }

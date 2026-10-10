@@ -150,4 +150,20 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(H.revisarHistoria(h, H.estadoHistoria({ ...p(21, 20), visitas: { cuenta: 4 } })).completo, 'a la mañana siguiente, sí');
 }
 
+// ---------------------------------------------------------------- 10. el viento voltea el tendal: lo colgado vuelve
+{
+  const { crearEventosValleUi } = await import('../src/eventos-valle-ui.js');
+  const tendal = { plano: { id: 'tendal', nombre: 'Tendal', etapas: [{ pide: { tabla: 2 } }] }, datos: { x: 1, z: 1, y: 0, etapas: 1, tendal: { colgado: 'charqui', horas: 3 } } };
+  const lista = [tendal];
+  const devueltos = [];
+  const ui = crearEventosValleUi({
+    progreso: () => ({ dia: 3, horas: 10, materiales: {}, cosas: {}, eventosValle: null }), extra: () => ({}),
+    obras: () => ({ obras: lista, bajoCubierta: () => null, destruir: (o) => { lista.splice(lista.indexOf(o), 1); return [o]; } }),
+    sumarMaterial: () => {}, sincronizarObras: () => {}, devolverContenido: (caidas) => { devueltos.push(...caidas.map((c) => c.datos)); return null; },
+  }, { mostrar() {}, cerrar() {}, abierta: () => false });
+  const r = ui.voltear();
+  ok(r?.nombre === 'Tendal' && devueltos.length === 1 && devueltos[0].tendal.colgado === 'charqui', 'lo que tenía el tendal volteado vuelve por devolverContenido');
+  ok(/devolverContenido: \(caidas\) => \{ for \(const c of caidas \|\| \[\]\) devolverContenido\(c\.datos\);/.test(main), 'main.js devuelve el contenido (y el último acopio)');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);

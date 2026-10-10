@@ -1757,6 +1757,9 @@ function crearValle() {
     pronostico: () => pronosticoActual(), lluvia: () => clima?.estado?.lluvia || 0, helarHuerta: () => helarLaHuerta(huerta()),
     obras: () => obras, altura: (x, z) => T.altura(x, z), sincronizarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); },
     diario: (tipo, dato) => diario.anotar(tipo, dato), sonido: () => sonido,
+    // 3.8.6: lo que el viento voltea devuelve lo que tenía adentro, como al desmontar (lo colgado en el tendal, los troncos
+    // secos de la leñera, y lo guardado si era el último acopio)
+    devolverContenido: (caidas) => { for (const c of caidas || []) devolverContenido(c.datos); return (caidas || []).some((c) => c.plano?.funciones?.includes('acopio')) ? vaciarUltimoAcopio() : null; },
   });
 }
 
