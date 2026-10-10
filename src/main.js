@@ -2062,6 +2062,8 @@ $('btn-inicio').addEventListener('click', () => {
 // ------- logros (portada y pausa) y la pantalla de victoria
 // 1.10: el Relax también tiene los suyos. Van a Steam si Steam está (steam.js).
 const steamPuente = crearSteam();
+// 3.8.6: lo ganado sin Steam (cerrado, sin red, o de antes) se manda al arrancar
+setTimeout(() => { steamPuente.sincronizar().catch(() => {}); }, 3000);
 const logrosRelax = esDesafio ? null : crearLogrosRelax();
 {
   const estilo = document.createElement('style');

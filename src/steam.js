@@ -9,8 +9,8 @@
 //
 // Módulo puro: recibe el puente que expone preload.cjs (o nada).
 
-import { LOGROS } from './desafio-logros.js';
-import { LOGROS_RELAX } from './logros-relax.js';
+import { LOGROS, sanearLogros } from './desafio-logros.js';
+import { LOGROS_RELAX, sanearLogrosRelax } from './logros-relax.js';
 
 // Nombre de API de Steam de cada logro: el modo adelante, en mayúsculas y con guion bajo.
 export const apiSteam = (modo, id) => `${modo === 'desafio' ? 'DESAFIO' : 'RELAX'}_${String(id).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
@@ -38,6 +38,16 @@ export function crearSteam(puente = (typeof window !== 'undefined' ? window.hoja
         if (ok) enviados.add(api);
         return !!ok;
       } catch { return false; }
+    },
+    // 3.8.6: los logros ya ganados (los dos modos, en el almacén del juego) que todavía no llegaron a Steam: los ganados
+    // con Steam cerrado, sin red o antes de la versión de Steam quedaban sólo en el juego, porque se mandan al ganarlos.
+    // Se llama al arrancar; Steam ignora los que ya tenés. Devuelve cuántos pidió.
+    async sincronizar(almacen = (typeof localStorage !== 'undefined' ? localStorage : null)) {
+      if (!hay || !almacen) return 0;
+      const leer = (clave, sanear) => { try { const c = almacen.getItem(clave); return Object.keys(sanear(c ? JSON.parse(c) : null).logros); } catch { return []; } };
+      const lista = [...leer('hojarasca-logros-relax-v1', sanearLogrosRelax).map((id) => ['relax', id]), ...leer('hojarasca-logros-v1', sanearLogros).map((id) => ['desafio', id])];
+      for (const [modo, id] of lista) await this.desbloquear(modo, id);
+      return lista.length;
     },
   };
 }

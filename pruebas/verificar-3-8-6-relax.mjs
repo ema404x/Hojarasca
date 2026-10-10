@@ -183,4 +183,21 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(trozoFn('function puedeArmarCarpaAca(').includes('!js.enPlataforma') && trozoFn('function enLaCarpa(').includes('Math.abs(js.pos.y - T.altura(progreso.carpa.x, progreso.carpa.z)) < 1.6'), 'la carpa, en la tierra y a su altura');
 }
 
+// ---------------------------------------------------------------- 13. los logros ganados sin Steam llegan a Steam
+{
+  const { crearSteam, apiSteam } = await import('../src/steam.js');
+  const { LOGROS_RELAX } = await import('../src/logros-relax.js');
+  const { LOGROS } = await import('../src/desafio-logros.js');
+  const pedidos = [];
+  const st = crearSteam({ activar: async (api) => { pedidos.push(api); return true; } });
+  const alm = new Map([['hojarasca-logros-relax-v1', JSON.stringify({ logros: { [LOGROS_RELAX[0].id]: '2026-01-01T00:00:00Z', inventado: '2026-01-01T00:00:00Z' } })], ['hojarasca-logros-v1', JSON.stringify({ logros: { [LOGROS[0].id]: '2026-01-02T00:00:00Z' } })]]);
+  const almacenFalso = { getItem: (k) => alm.get(k) ?? null };
+  eq(await st.sincronizar(almacenFalso), 2, 'pide los ganados de los dos modos');
+  eq(pedidos.sort(), [apiSteam('desafio', LOGROS[0].id), apiSteam('relax', LOGROS_RELAX[0].id)].sort(), 'con sus nombres de API');
+  await st.sincronizar(almacenFalso);
+  eq(pedidos.length, 2, 'lo ya mandado no se repite');
+  eq(await crearSteam(null).sincronizar(almacenFalso), 0, 'sin Steam, nada');
+  ok(main.includes('steamPuente.sincronizar().catch(() => {});'), 'se sincroniza al arrancar');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);
