@@ -22,16 +22,22 @@ export function cuantosCapullos(noche) {
 
 // Dónde crecen: en el bosque alrededor de la base, lejos entre sí. `esBueno(x, z)` dice
 // si el lugar sirve (tierra firme, no en el agua, no encima de una obra).
-export function lugaresCapullos(n, base, { esBueno = () => true, azar = Math.random } = {}) {
-  const lista = [];
+// 3.8.6: `preferido(x, z)`: si hay, primero los lugares donde el nido cabe entero (sin un árbol, una piedra o una
+// obra atravesándolo, ni medio enterrado en la pendiente); los otros quedan de reserva, para no tener menos nidos.
+export function lugaresCapullos(n, base, { esBueno = () => true, preferido = null, azar = Math.random } = {}) {
+  const lista = [], reserva = [];
+  const lejos = (x, z) => !lista.some((c) => Math.hypot(c.x - x, c.z - z) < CAPULLOS.separacion);
   for (let i = 0; i < n * 40 && lista.length < n; i++) {
     const ang = azar() * Math.PI * 2;
     const d = CAPULLOS.distancia[0] + azar() * (CAPULLOS.distancia[1] - CAPULLOS.distancia[0]);
     const x = base.x + Math.cos(ang) * d, z = base.z + Math.sin(ang) * d;
     if (!esBueno(x, z)) continue;
-    if (lista.some((c) => Math.hypot(c.x - x, c.z - z) < CAPULLOS.separacion)) continue;
-    lista.push({ x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, golpes: 0 });
+    const c = { x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, golpes: 0 };
+    if (preferido && !preferido(x, z)) { reserva.push(c); continue; }
+    if (!lejos(x, z)) continue;
+    lista.push(c);
   }
+  for (const c of reserva) { if (lista.length >= n) break; if (lejos(c.x, c.z)) lista.push(c); }
   return lista;
 }
 
