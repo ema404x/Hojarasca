@@ -155,4 +155,45 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
 // 5. Mantener F11 apretada prendía y apagaba la pantalla completa sin parar (la repetición de la tecla).
 ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ventana.isFullScreen());"), 'F11: sólo la primera, no la repetición');
 
+// 6. La pregunta «El juego va lento: ¿bajar la calidad?» (3.8.4):
+//    a) un solo tirón (o un congelón de 1 s, que llegaba recortado a 0,2 s) la hacía salir: ahora tirones son muchos cuadros
+//       lentos (el 5% de la ventana) y lo que pasa de medio segundo es un freno que no cuenta;
+//    b) con el límite de cuadros en 30, 30 parejos estaban siempre «en rojo» y preguntaba aunque anduviera perfecto;
+//    c) partía de la calidad elegida para el próximo arranque y no de la que corre (y la bajada por el contexto 3D, igual);
+//    d) bajar de Media a Baja apaga las sombras: todos los materiales recompilaban a tirones; ahora se compilan antes, con
+//       un cartel (y al recuperar el contexto 3D, la bajada va antes de rehacer los gráficos, no después).
+{
+  const AC = await import('../src/autocalidad.js');
+  // corre segundos de juego a fps parejos, con un tirón opcional a mitad; devuelve cuándo preguntaría (o null)
+  const correr = ({ fps = 60, segundos = 30, tiron = 0, objetivo = null }) => {
+    const e = AC.crearEstadoAutocalidad('media');
+    let t = 0, tironHecho = false;
+    while (t < segundos) {
+      const dt = !tironHecho && tiron && t > 10 ? (tironHecho = true, tiron) : 1 / fps;
+      t += dt;
+      AC.anotarCuadro(e, dt, objetivo);
+      const c = AC.decidirCalidad(e);
+      if (c?.motivo === 'bajar') return Math.round(t * 10) / 10;
+    }
+    return null;
+  };
+  ok(correr({ fps: 60 }) === null, 'a 60 parejos no pregunta');
+  ok(correr({ fps: 60, tiron: 0.2 }) === null, 'un tirón de 200 ms suelto no pregunta');
+  ok(correr({ fps: 60, tiron: 1 }) === null, 'un congelón de 1 s (alt+tab, una carga) tampoco');
+  ok(correr({ fps: 25 }) !== null, 'a 25 sostenidos, sí');
+  const e = AC.crearEstadoAutocalidad('media');
+  for (let i = 0; i < 600; i++) AC.anotarCuadro(e, i % 12 === 0 ? 0.08 : 1 / 60);
+  ok(AC.hayTirones(e) && AC.decidirCalidad(e)?.motivo === 'bajar', 'tirones seguidos (uno cada 12 cuadros) sí preguntan, aunque el promedio cierre');
+  ok(correr({ fps: 30, objetivo: 30 }) === null, 'con el límite en 30, 30 parejos no preguntan');
+  ok(correr({ fps: 18, objetivo: 30 }) !== null, 'con el límite en 30, 18 sostenidos sí');
+  ok(main.includes("if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(cadencia.dtReal);"), 'el bucle le pasa el dt sin recortar');
+  ok(main.includes("anotarCuadroCalidad(autoCalidad, dtReal, ajustes.limiteFps === 30 ? 30 : null);"), 'y el límite que eligió el jugador');
+  ok(main.includes("if (clave === 'calidad') sincronizarCalidad(autoCalidad, calidadActiva);"), 'tocar la calidad en Ajustes no cambia la que mide (la nueva vale al arrancar)');
+  ok(main.includes('const hasta = calidadVecina(calidadActiva, -1);') && main.includes("const cambio = { motivo: 'bajar', desde: calidadActiva, hasta };"), 'el contexto 3D perdido baja desde la que corre');
+  const sin = tramo('async function bajarSinTirones(cambio) {', 1200);
+  ok(sin.includes('compilandoCalidad = true;') && sin.includes('variantesLuces.compilarCarga(jugador.estado.pos)') && main.includes('if (compilandoCalidad) return;'), 'al prender o apagar las sombras se compila antes de seguir, con el bucle quieto');
+  const rest = tramo("lienzo.addEventListener('webglcontextrestored'", 1500);
+  ok(rest.indexOf('aplicarCalidadAutomatica(bajada, false);') > 0 && rest.indexOf('aplicarCalidadAutomatica(bajada, false);') < rest.indexOf('await rehacerGraficos();'), 'al recuperar el contexto, la bajada antes de rehacer');
+}
+
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);

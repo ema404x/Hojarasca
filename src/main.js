@@ -1891,7 +1891,10 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
       location.reload();
       return;
     }
-    if (clave === 'calidad') sincronizarCalidad(autoCalidad, v);
+    // 3.8.6: la autocalidad mide la calidad que está corriendo, no la elegida para el próximo arranque (en el juego, la nueva
+    // vale al volver a la portada): con Alta elegida y Media corriendo preguntaba «De Alta a Media», y «Bajar» no cambiaba
+    // nada en pantalla y pisaba la elección
+    if (clave === 'calidad') sincronizarCalidad(autoCalidad, calidadActiva);
     // 3.2: otro límite u otra calidad: el ritmo se vuelve a medir desde cero
     if (clave === 'limiteFps' || clave === 'calidad') ritmoAuto.reiniciar();
     if (clave === 'tamanoLetra' || clave === 'paleta' || clave === 'subtitulos') aplicarAccesibilidad();
@@ -8460,7 +8463,7 @@ const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'r
 const preguntaLento = { activa: !HOJARASCA_DEBUG, pendiente: false, noMolestar: false, veces: 0 };
 function revisarSiVaLento(dtReal) {
   if (!preguntaLento.activa || preguntaLento.pendiente || preguntaLento.noMolestar) return;
-  anotarCuadroCalidad(autoCalidad, dtReal);
+  anotarCuadroCalidad(autoCalidad, dtReal, ajustes.limiteFps === 30 ? 30 : null);   // 3.8.6: con el límite en 30, contra 30
   const cambio = decidirCalidad(autoCalidad);
   if (!cambio) return;
   if (cambio.motivo !== 'bajar') { autoCalidad.verde = 0; return; }   // sobra máquina: no se sube sola
@@ -8472,8 +8475,28 @@ async function preguntarSiBajar(cambio) {
   try {
     si = await dialogos.confirmar(`El juego va lento: ¿bajar la calidad?\nDe ${nombreCalidad(cambio.desde)} a ${nombreCalidad(cambio.hasta)}. Se puede volver a subir en Ajustes.`, { si: 'Bajar', no: 'No, gracias' });
   } catch { si = false; } finally { preguntaLento.pendiente = false; }
-  if (si) { aplicarCambio(autoCalidad, cambio); aplicarCalidadAutomatica(cambio); } else preguntaLento.noMolestar = true;
+  if (si) { aplicarCambio(autoCalidad, cambio); await bajarSinTirones(cambio); } else preguntaLento.noMolestar = true;
   reiniciarMedicion(autoCalidad);
+}
+// 3.8.6: prender o apagar las sombras cambia el programa de todos los materiales con luz: three los recompilaba en el próximo
+// dibujo, de a uno y con el juego trabado varios segundos (justo en la máquina que ya iba lenta). Ahora se compilan antes de
+// seguir, con un cartel y el bucle quieto, como al recuperar el contexto 3D.
+let compilandoCalidad = false;
+async function bajarSinTirones(cambio) {
+  const sombrasAntes = (calidad.sombras || 0) > 0;
+  aplicarCalidadAutomatica(cambio);
+  if (sombrasAntes === ((calidad.sombras || 0) > 0) || !jugador) return;
+  const cartel = $('graficos-recuperando');
+  const textoCartel = cartel?.textContent;
+  compilandoCalidad = true;
+  if (cartel) { cartel.textContent = T_('Acomodando la calidad…'); cartel.classList.remove('oculto'); }
+  try {
+    await esperarMs(60);   // (que el cartel llegue a la pantalla antes de compilar)
+    await Promise.race([Promise.resolve(variantesLuces.compilarCarga(jugador.estado.pos)).catch(() => null), esperarMs(8000)]);
+  } finally {
+    compilandoCalidad = false;
+    if (cartel) { cartel.classList.add('oculto'); cartel.textContent = textoCartel; }
+  }
 }
 // La calidad que el jugador aceptó bajar (o la que bajó el contexto 3D perdido), en vivo: lo que se puede acomodar sin
 // rehacer el mundo, ya; la densidad del bosque y el resto, al próximo arranque
@@ -8526,6 +8549,7 @@ function brilloVentana(v, f, dia) {
 function bucle(tRaf, manual = false) {
   if (!manual) requestAnimationFrame(bucle);
   if (estadoGraficos.perdidos) return;
+  if (compilandoCalidad) return;   // 3.8.6: mientras se compilan los programas de la calidad nueva (ver bajarSinTirones)
   try { cuadroDelJuego(tRaf, manual); } catch (err) {
     fallaSistema('cuadro', err);
     try { if (luzUltimaFoto) dibujar(luzUltimaFoto, 1 - (luzUltimaFoto.dia ?? 1)); } catch (e2) { fallaSistema('dibujo', e2); }
@@ -8551,7 +8575,8 @@ function cuadroDelJuego(tRaf, manual) {
   const factorEfectos = presupuestoAdaptativo.soloCadencias ? 1 : factorEfectosPorPresupuesto(presupuestoAdaptativo.nivel);   // 3.8.4: las partículas no bajan solas
   if (modo === 'carga') return;
   // 3.8.4 (decisión 35): la calidad ya no se acomoda sola: si el equipo no da, se pregunta (ver revisarSiVaLento)
-  if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(dtReal);
+  // 3.8.6: con el dt sin recortar (un congelón de más de medio segundo es un freno y no cuenta; recortado a 0,2 s contaba)
+  if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(cadencia.dtReal);
   const medirRendimiento = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   const tInicio = medirRendimiento ? performance.now() : 0;
   U.uTiempo.value += dt;
@@ -9335,10 +9360,12 @@ function recargarPorGraficos(motivo) {
 // 3.8.4 (decisión 35, aprobado por el usuario): perder el contexto 3D es lo único que baja la calidad sin preguntar, un
 // escalón (hasta Mínima), para que la placa no se vuelva a caer. Se guarda enseguida (por si hay que recargar) y se
 // aplica en vivo cuando la placa vuelve (ver 'webglcontextrestored'); se avisa al volver o en la portada.
+// 3.8.6: desde la que está corriendo (`calidadActiva`), no la elegida para el próximo arranque: con Alta elegida y Media
+// corriendo «bajaba» a Media, sin aliviar en nada a la placa
 function bajarCalidadPorGraficos() {
-  const hasta = calidadVecina(ajustes.calidad, -1);
+  const hasta = calidadVecina(calidadActiva, -1);
   if (!hasta || !CALIDADES[hasta]) return null;
-  const cambio = { motivo: 'bajar', desde: ajustes.calidad, hasta };
+  const cambio = { motivo: 'bajar', desde: calidadActiva, hasta };
   ajustes.calidad = hasta;
   guardarAjustes(ajustes);
   sincronizarCalidad(autoCalidad, hasta);
@@ -9375,13 +9402,15 @@ lienzo.addEventListener('webglcontextrestored', async () => {
   clearTimeout(estadoGraficos.espera);
   estadoGraficos.espera = setTimeout(() => recargarPorGraficos('rehacer los gráficos tardó demasiado'), estadoGraficos.esperaMs);
   try {
+    // 3.8.4: la calidad que se bajó al perderse, en vivo y avisada. 3.8.6: antes de rehacer los gráficos: después, lo que
+    // rehacerGraficos compilaba era con las sombras de antes, y al bajar se compilaba todo otra vez, a tirones
+    const bajada = estadoGraficos.bajada;
+    if (bajada) aplicarCalidadAutomatica(bajada, false);
     await rehacerGraficos();
     clearTimeout(estadoGraficos.espera);
     estadoGraficos.perdidos = false; estadoGraficos.recuperados++;
     $('graficos-recuperando')?.classList.add('oculto');
-    // 3.8.4: la calidad que se bajó al perderse, en vivo y avisada
-    const bajada = estadoGraficos.bajada; estadoGraficos.bajada = null;
-    if (bajada) aplicarCalidadAutomatica(bajada, false);
+    estadoGraficos.bajada = null;
     nota('Gráficos recuperados', bajada ? `La placa de video se reinició; seguís donde estabas. ${textoBajadaPorGraficos(bajada.hasta)}` : 'La placa de video se reinició; seguís donde estabas', true);
   } catch (err) {
     recargarPorGraficos('no se pudo rehacer: ' + (err?.message || err));
