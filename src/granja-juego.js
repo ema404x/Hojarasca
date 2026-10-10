@@ -89,7 +89,7 @@ export function crearGranjaJuego(ctx) {
     for (const e of llegan) {
       for (const x of e.da) ctx.sumarEntrada?.(x.k, x.n);
       const que = e.da.map((x) => `${x.n} ${x.k === 'chorizo' ? 'chorizos' : x.k === 'carne-vaca' ? 'de carne de vaca' : x.k === 'carne-cordero' ? 'de carne de cordero' : 'de carne de cerdo'}`).join(' y ');
-      ctx.nota?.('Don Ramón te trajo la carne', `De ${NOMBRE_ANIMAL[e.que]}: ${que}. Está en la mochila`, true);
+      ctx.nota?.('Don Ramón te trajo la carne', `Del ${NOMBRE_ANIMAL[e.que].replace(/^el /, '')}: ${que}. Está en la mochila`, true);   // (3.8.6: «Del novillo», no «De el novillo»)
     }
     if (eventos.length || llegan.length) { refrescar(); ctx.refrescarBarra?.(); ctx.guardar?.(); }
   }
@@ -148,7 +148,7 @@ export function crearGranjaJuego(ctx) {
   }
   function echarALaBatea() {
     const g = granja(), r = echarSobras(g, cuanto);
-    if (!r.ok) { ctx.nota?.(r.motivo === 'llena' ? 'La batea está llena' : r.motivo === 'sinChancha' ? 'Todavía no tenés chancha' : 'No tenés sobras', r.motivo === 'sinSobras' ? 'Papas, habas, fruta, calafates o frutillas' : ''); return r; }
+    if (!r.ok) { ctx.nota?.(r.motivo === 'llena' ? 'La batea está llena' : r.motivo === 'sinChancha' ? 'Todavía no tenés chancha' : 'No tenés sobras', r.motivo === 'sinSobras' ? 'Papas, habas, manzanas, peras o ciruelas' : ''); return r; }
     ctx.sumarEntrada?.(r.k, -1);
     // 3.8.3: lo que pasa al comer ya (la camada que nace) se avisa: antes se tiraba y los lechones nacían sin nota
     const eventos = avanzarGranja(g, dia(), { ovejas: ctx.corral?.() ? 2 : 0 });   // si hoy no comieron, comen ya
@@ -167,7 +167,8 @@ export function crearGranjaJuego(ctx) {
       plantar(f, especie, dia());
       ctx.sumarEntrada?.(FRUTALES[especie].plantin, -1);
       ctx.sonido?.juntar?.();
-      ctx.nota?.(`Plantaste un ${FRUTALES[especie].nombre}`, `Da ${FRUTALES[especie].frutas} desde el día ${primeraFruta(f)}`, true);
+      // 3.8.6: con la estación fijada en una en que no madura, no se promete un día
+      { const p = primeraFruta(f, estacionFrutal()); ctx.nota?.(`Plantaste un ${FRUTALES[especie].nombre}`, p ? `Da ${FRUTALES[especie].frutas} desde el día ${p}` : `Con la estación fija en Ajustes, no da ${FRUTALES[especie].frutas}`, true); }
       refrescar(); ctx.refrescarBarra?.(); ctx.guardar?.();
       return { ok: true, plantado: especie };
     }

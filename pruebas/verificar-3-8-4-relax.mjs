@@ -141,7 +141,7 @@ const c = (n, palo) => ({ n, palo });
   ok(e1 < e2 && e2 < e3, 'la E: la jaula, el puente, bajarte');
   en(main, "jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : puenteDelCaballo() ? { tecla: 'E', texto: `${caballoDicho('', true)} no cruza el puente: bajarte` } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };");
   const pr = trozo('async function caballoEnElPuente() {', '\n}');
-  ok(pr.includes("{ si: 'Mandarlo al refugio', no: 'Amarrarlo acá' }") && pr.includes('mandarAlRefugio(c);') && pr.includes('guardar();'), 'pregunta, te baja y se guarda');
+  ok(pr.includes("{ si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null }") && pr.includes('mandarAlRefugio(c);') && pr.includes('guardar();'), 'pregunta, te baja y se guarda');
   ok(pr.includes("nota(`${caballoDicho('', true)} vuelve solo al refugio`, 'Te espera atado al palenque');") && pr.includes("nota(`Amarraste ${caballoDicho('a')} al estribo`, 'Te espera acá: volvé a subir con E');"), 'las notas');
 }
 

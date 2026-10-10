@@ -2,6 +2,8 @@
 //  1. El caballo en el puente colgante: Escape (o B) no elige «Amarrarlo acá»; seguís montado.
 //  2. La locomotora sola (sin coches): la vuelta completa manejando cuenta, Elsa no queda «en viaje» y el andén no dice
 //     «E para subir» (no hay coche de pasajeros: se sube a la cabina).
+//  3. Granja: el hoyo 25 no se arma (se armaba, costaba un tronco y quedaba muerto); con el verano fijado las peras maduran
+//     y lo que no madura con la estación fijada no promete un día; la batea pide lo que acepta; «Del novillo».
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -48,6 +50,28 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
   ok(t.includes('soloLocomotora: () => !hayCoches(),') && m.includes('la locomotora está en el andén, sin coches · E al lado de la cabina para manejar'), 'el andén con la locomotora sola');
   const V = await src('tren-viaje.js');
   eq(V.composicionDe({ vagones: { pasajeros: true }, composicion: [] }), [], 'con vagones y ninguno enganchado, sale sola');
+}
+
+// 3. la granja
+{
+  const G = await src('granja.js');
+  const c = leer('src/construccion.js'), pg = leer('src/planos-granja.js');
+  ok(c.includes("if (Number.isFinite(plano.maximo) && obras.filter((o) => o !== ignorarObra && o.plano.id === plano.id).length >= plano.maximo) return { ok: false, motivo: plano.motivoMaximo"), 'construir respeta el tope del plano');
+  ok(pg.includes('maximo: GRANJA.frutales, motivoMaximo: `Ya tenés ${GRANJA.frutales} hoyos para frutales: no entran más`'), 'el hoyo para frutal, con el tope de la granja');
+  eq(G.GRANJA.frutales, 24, 'el tope es 24');
+  const peral = { especie: 'peral', plantado: 1, cosecha: -1 }, manzano = { especie: 'manzano', plantado: 1, cosecha: -1 };
+  ok(G.estadoFrutal(peral, 9, 12, 'verano').fruta === 'madura', 'con el verano fijado, las peras maduran');
+  eq(G.primeraFruta(peral, 'verano'), 7, 'y lo dice: el día que es grande');
+  ok(G.estadoFrutal(manzano, 9, 12, 'verano').fruta === 'no' && G.primeraFruta(manzano, 'verano') === null, 'las manzanas (de otoño) no, con el verano fijado');
+  eq(G.textoFrutal(manzano, 9, 12, null, 'verano'), 'Manzano · manzanas en otoño: con la estación fija en verano, no maduran', 'el aviso del manzano grande');
+  eq(G.textoFrutal(manzano, 3, 12, null, 'verano'), 'Manzano joven · con la estación fija en verano, no da manzanas', 'el aviso del manzano chico');
+  eq(G.textoFrutal(manzano, 3, 12, null, 'invierno'), 'Manzano joven · con la estación fija en invierno, no da manzanas', 'en invierno fijado, tampoco promete');
+  ok(G.primeraFruta(manzano, 'otono') === 7 && G.estadoFrutal(manzano, 7, 12, 'otono').fruta === 'madura', 'con el otoño fijado, madura apenas es grande');
+  eq(G.primeraFruta(manzano), G.primeraFruta(manzano, 'auto'), 'con las estaciones automáticas, como siempre');
+  const gj = leer('src/granja-juego.js');
+  ok(gj.includes("r.motivo === 'sinSobras' ? 'Papas, habas, manzanas, peras o ciruelas' : ''"), 'la batea pide lo que acepta');
+  ok(gj.includes("`Del ${NOMBRE_ANIMAL[e.que].replace(/^el /, '')}: ${que}. Está en la mochila`"), '«Del novillo»');
+  ok(gj.includes('const p = primeraFruta(f, estacionFrutal());'), 'al plantar, la primera fruta con la estación de Ajustes');
 }
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);

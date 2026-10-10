@@ -87,7 +87,11 @@ export function estacionGranja(fase) {
 // Ajustes, esa: pleno verano, pleno otoño o pleno invierno (antes la flor, la fruta y el «descansa en invierno» seguían
 // el calendario aunque se viera otra estación). `estacion`: 'auto' | 'verano' | 'otono' | 'invierno', o el booleano de
 // antes (true: invierno; false: el calendario).
-export const FASE_FIJA = { verano: 0.3, otono: 0.52, invierno: 0.84 };
+// 3.8.6: el verano fijado, al final del verano (antes 0.3: las peras, «de verano», maduran a 0.34 y nunca maduraban)
+export const FASE_FIJA = { verano: 0.345, otono: 0.52, invierno: 0.84 };
+// 3.8.6: con una estación fijada, la fase de siempre (null: las estaciones automáticas)
+const faseFija = (estacion) => (estacion === true ? FASE_FIJA.invierno : typeof estacion === 'string' && Object.hasOwn(FASE_FIJA, estacion) ? FASE_FIJA[estacion] : null);
+const NOMBRE_FIJA = { verano: 'verano', otono: 'otoño', invierno: 'invierno' };
 export function faseFrutal(dia, horas = 0, estacion = 'auto') {
   if (estacion === true) return FASE_FIJA.invierno;
   if (typeof estacion === 'string' && Object.hasOwn(FASE_FIJA, estacion)) return FASE_FIJA[estacion];
@@ -350,16 +354,21 @@ export function cosecharFrutal(f, dia, horas, invierno = false) {
   return { ok: true, k: FRUTALES[f.especie].fruta, n: n * FRUTALES[f.especie].da };
 }
 // Cuándo da fruta por primera vez un frutal recién plantado (el día), para el aviso.
-export function primeraFruta(f) {
+// 3.8.6: con la estación fijada en Ajustes (`estacion`), la fase no cambia: madura apenas es grande (si la estación fijada
+// le da), o nunca (null). Antes prometía el día del calendario aunque con esa estación no madurara nunca.
+export function primeraFruta(f, estacion = 'auto') {
   if (!f?.especie) return null;
-  const E = FRUTALES[f.especie];
+  const E = FRUTALES[f.especie], fija = faseFija(estacion);
+  if (fija !== null && (fija >= FASE.invierno || fija < E.madura)) return null;
   for (let y = anioDe(f.plantado); y < anioDe(f.plantado) + 3; y++) {
     const p = primaveraDe(y);
     if (f.plantado > p + 1 || f.plantado + E.adulto > p + DIAS_ANIO_GRANJA) continue;
-    return Math.max(f.plantado + E.adulto, Math.ceil(p + E.madura * DIAS_ANIO_GRANJA));
+    return Math.max(f.plantado + E.adulto, fija !== null ? p : Math.ceil(p + E.madura * DIAS_ANIO_GRANJA));
   }
   return null;
 }
+// 3.8.6: con la estación fijada, ¿esta especie nunca madura? (el verano fijado y las manzanas, de otoño)
+export const noMaduraFija = (especie, estacion) => { const fija = faseFija(estacion); return !!FRUTALES[especie] && fija !== null && fija < FASE.invierno && fija < FRUTALES[especie].madura; };
 
 // ---------------------------------------------------------------- los trueques con los vecinos
 const m = (k, n) => ({ tipo: 'material', k, n });
@@ -501,11 +510,14 @@ export function textoFrutal(f, dia, horas, plantin = null, invierno = false) {
   const cuando = E.madura < FASE.verano ? 'verano' : 'otoño';
   if (s.cosechas > 0) return `Juntar las ${E.frutas} (${s.cosechas * E.da})`;
   if (s.flor) return `${nombre} en flor · ${E.frutas} en ${cuando}`;
-  if (s.etapa !== 'adulto') return `${nombre} ${s.etapa === 'plantin' ? 'recién plantado' : 'joven'} · da fruta el día ${primeraFruta(f) ?? '…'}`;
+  // 3.8.6: con la estación fijada en una en que no madura, lo dice (antes prometía un día que no llegaba nunca)
+  const fija = invierno !== false && invierno !== 'auto' && faseFija(invierno) !== null ? NOMBRE_FIJA[invierno === true ? 'invierno' : invierno] : null;
+  if (s.etapa !== 'adulto') return `${nombre} ${s.etapa === 'plantin' ? 'recién plantado' : 'joven'} · ${primeraFruta(f, invierno) ? `da fruta el día ${primeraFruta(f, invierno)}` : fija ? `con la estación fija en ${fija}, no da ${E.frutas}` : 'da fruta el día …'}`;
   if (faseFrutal(dia, horas, invierno) >= FASE.invierno) return `${nombre} · descansa en invierno; en primavera, flor`;   // 3.8.4
+  if (fija && noMaduraFija(f.especie, invierno)) return `${nombre} · ${E.frutas} en ${cuando}: con la estación fija en ${fija}, no maduran`;   // 3.8.6
   if (f.cosecha >= anioDe(dia)) return `${nombre} · ya juntaste las ${E.frutas} de este año`;
   // 3.8.3: plantado fuera de la primavera, ya grande, este año no da: antes prometía fruta que no venía
-  { const p = primeraFruta(f); if (p && p > dia && anioDe(p) > anioDe(dia)) return `${nombre} · da fruta el día ${p}`; }
+  { const p = primeraFruta(f, invierno); if (p && p > dia && anioDe(p) > anioDe(dia)) return `${nombre} · da fruta el día ${p}`; }
   return `${nombre} · ${E.frutas} en ${cuando}`;
 }
 
