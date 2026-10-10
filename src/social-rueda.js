@@ -31,6 +31,7 @@ export function categoriaDeOpcion(id) {
   if (s === 'contame' || s === 'como-andas' || s === 'novedades' || s === 'historia') return 'charla';
   if (s === 'invitar') return 'juntos';
   if (/^rincones:/.test(s)) return 'hacer';   // 3.8.4: lo de los rincones (aprender una manualidad, el sulky, la pista de los duendes)
+  if (/^alero:/.test(s)) return 'charla';   // 3.8.6: lo del abuelo de Martín es una charla (caía en «Regalar y ayudar», donde nadie lo buscaba)
   if (/^amor(?:-|:|$)/.test(s)) return 'romantica';
   return 'ayuda';   // el servicio, regalar, dar una mano, lo del lugar, la granja, la cocina
 }
@@ -41,6 +42,7 @@ const ICONO_OPCION = {
   servicio: 'herramienta', contame: 'libro', 'como-andas': 'sonrisa', novedades: 'diario', historia: 'libro', regalar: 'regalo', invitar: 'mate',
   ayudar: 'mano', chau: 'chau', volver: 'volver', __lugar: 'puerta', amor: 'corazon', 'amor-cita': 'flor', 'amor-casa': 'casa', 'amor-correo': 'carta',
   'invitar:mate': 'mate', 'invitar:te': 'taza',
+  'alero:pedir': 'libro', 'alero:recordar': 'libro', 'alero:contar': 'libro',   // 3.8.6: el abuelo de Martín
 };
 const ICONO_COSA = [
   [/yerba|mate/, 'mate'], [/trucha|pez|pejerrey|perca/, 'pez'], [/pan|harina|empanada/, 'canasta'], [/miel|dulce|frasco/, 'olla'], [/lana|vell/, 'oveja'],

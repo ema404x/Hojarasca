@@ -107,7 +107,7 @@ import { crearFiestasJuego } from './fiestas-juego.js';
 import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
 import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN } from './cocina-pasos.js';
-import { sumarAmistadDe, nombreCorto, amistades } from './vecindad.js';
+import { sumarAmistadDe, cambiarAmistad, nombreCorto, amistades } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -4701,7 +4701,9 @@ function armarOficiosYAldea(esDesafio) {
   aleroJuego = crearAleroJuego({
     progreso: () => progreso, desafio: () => !!desafio, lugar: () => T.lugares.cueva || null, jugador: () => jugador?.estado?.pos || null,
     rumbo: () => { const c = edificioEnMundo('plaza'), l = T.lugares.cueva; return c && l ? rumboDesde(c, l) : null; },
-    sumarAmistad: (k, n) => { const am = sumarAmistadDe(progreso, k, n, progreso.dia); if (am?.subio) nota(`${nombreCorto(k)} te tiene confianza`, am.nivel === 'compadre' ? 'Ya son compadres' : 'Ya son amigos', true); },
+    // 3.8.6: con cambiarAmistad (hasta 20 de una vez): sumarAmistadDe topea en 10 (un regalo que le encanta) y de los 12
+    // de AMISTAD_ALERO llegaban 10
+    sumarAmistad: (k, n) => { const am = cambiarAmistad(progreso, k, Math.max(0, n), progreso.dia); if (am?.subio) nota(`${nombreCorto(k)} te tiene confianza`, am.nivel === 'compadre' ? 'Ya son compadres' : 'Ya son amigos', true); },
     diario: (dato) => diario.anotar('historia', dato), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
   });
   vecindadJuego = crearVecindadJuego({
