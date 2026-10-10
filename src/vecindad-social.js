@@ -655,7 +655,9 @@ export function cumplirDeseo(persona, estado, hecho, dia, ctx = {}) {
   if (p.romance && progreso && romanceActivo(ctx)) { const r = sumarAfectoDe(progreso, persona, p.romance, { ...ctx, dia: d }); if (r) romance = r.cambio; }
   sumarPuntos(s, persona, SOCIAL.premioDeseo.humor);
   const voz = VOCES_SOCIAL[persona].deseos.find((x) => x.id === ds.id);
-  return { ok: true, id: ds.id, renglon: voz?.gracias || FRASES_SOCIAL.deseoGracias, premio: p, efectos: { amistad, romance }, memoria: recordarCon(s, persona, `deseo:${ds.id}`, d, true) };
+  // 3.8.6: las gracias, con tu apodo (salía «Gracias, {nombre}.» tal cual); sin apodo, sin la marca
+  const gracias = voz?.gracias ? llenar(voz.gracias, { nombre: textoSano(ctx?.nombre) || null, quien: nombreCorto(persona) }) || voz.gracias.replace(/,? ?\{nombre\}/g, '') : null;
+  return { ok: true, id: ds.id, renglon: gracias || FRASES_SOCIAL.deseoGracias, premio: p, efectos: { amistad, romance }, memoria: recordarCon(s, persona, `deseo:${ds.id}`, d, true) };
 }
 
 // ---------------------------------------------------------------- la iniciativa (lo que te vienen a hacer a vos)

@@ -126,4 +126,17 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(j.includes('const cuenta = amistadDelPicado(r(), dia(), !motivo, partido.t);') && j.includes('if (cuenta) amistad(j.clave, 3);') && j.includes('if (!jugado) continue;'), 'rincones-juego: la amistad y el deseo de la pelota, sólo así');
 }
 
+// ---------------------------------------------------------------- 7. vecinos: las gracias de un deseo, sin «{nombre}» suelto
+{
+  const S = await import('../src/vecindad-social.js');
+  const V = await import('../src/vecindad.js');
+  const nueva = (d) => ({ dia: d, horas: 11, cosas: {}, materiales: {}, entradas: {}, aldea: aldeaCompleta(), vecindad: V.vecindadNueva(), amor: AM.amorNuevo() });
+  let d = 1;
+  while (d < 200 && S.deseoDe('jefe', nueva(d), d)?.id !== 'trucha-ahumada') d++;
+  ok(d < 200, 'Ernesto quiere trucha ahumada algún día');
+  const con = S.cumplirDeseo('jefe', nueva(d), { tipo: 'regalo', k: 'trucha-ahumada' }, d, { nombre: 'Pancho' });
+  const sin = S.cumplirDeseo('jefe', nueva(d), { tipo: 'regalo', k: 'trucha-ahumada' }, d, {});
+  ok(con?.renglon.endsWith('Gracias, Pancho.') && sin?.renglon.endsWith('Gracias.') && !/\{/.test(con.renglon + sin.renglon), `vecinos: «Gracias, Pancho.» o «Gracias.» (salía «Gracias, {nombre}.»): ${sin?.renglon}`);
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
