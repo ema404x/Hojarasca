@@ -2370,7 +2370,12 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     }
   }
 
-  // ---------------------------------------------------------------- cueva con pinturas
+  // ---------------------------------------------------------------- el alero del arriero
+  // 3.8.4: antes era la Cueva de las Manos (las pinturas de Santa Cruz no son de esta cordillera). Ahora es un alero
+  // donde hacían noche los arrieros que cruzaban la hacienda a Chile: la pirca baja que corta el viento, el fogón
+  // renegrido, la pared con los nombres y las fechas que tallaron y una herradura vieja clavada. Es el mismo lugar
+  // (la misma roca, la misma escalera y el mismo sorteo, así no se mueve nada del valle) y por adentro sigue siendo
+  // `T.lugares.cueva` y la entrada 'cueva' del cuaderno (una partida vieja la tiene anotada y pasa sola a la nueva).
   let cueva = null;
   {
     // hace falta una ladera empinada y alta, lejos de todo
@@ -2424,12 +2429,38 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       for (let i = 0; i < 9; i++) {
         c.agregar(new THREE.IcosahedronGeometry(0.2 + r() * 0.3, 0), { color: '#7d766c', tipo: 4, variar: 0.2, matriz: matriz([(r() - 0.5) * ANCHO, 0.36, -r() * FONDO], [r(), r() * 6, r()]) });
       }
-      // un fogón viejo, de los que dejaron
-      c.agregar(new THREE.CylinderGeometry(0.55, 0.6, 0.12, 10), { color: '#4a443c', tipo: 4, matriz: matriz([1.6, 0.36, -2.2]) });
+      // un fogón viejo, de los que dejaron (3.8.4: renegrido de cien años de fuegos: la ceniza, los tizones y las
+      // piedras del círculo quemadas; el hollín sube por la pared y mancha el techo del alero)
+      c.agregar(new THREE.CylinderGeometry(0.55, 0.6, 0.12, 10), { color: '#2a2622', tipo: 4, matriz: matriz([1.6, 0.36, -2.2]) });
       for (let i = 0; i < 7; i++) {
         const a2 = (i / 7) * Math.PI * 2;
-        c.agregar(new THREE.IcosahedronGeometry(0.18, 0), { color: '#6f6862', tipo: 4, variar: 0.2, matriz: matriz([1.6 + Math.cos(a2) * 0.6, 0.4, -2.2 + Math.sin(a2) * 0.6], [r(), r() * 6, 0]) });
+        c.agregar(new THREE.IcosahedronGeometry(0.18, 0), { color: i % 2 ? '#3b3632' : '#4d4741', tipo: 4, variar: 0.2, matriz: matriz([1.6 + Math.cos(a2) * 0.6, 0.4, -2.2 + Math.sin(a2) * 0.6], [r(), r() * 6, 0]) });
       }
+      // (lo de acá en adelante no tira del sorteo `r()`: así el resto del valle queda donde estaba)
+      c.agregar(new THREE.CylinderGeometry(0.4, 0.46, 0.05, 10), { color: '#8e8a84', tipo: 4, variar: 0.12, matriz: matriz([1.6, 0.43, -2.2]) });   // la ceniza
+      for (const [dx, dz, giro, largo] of [[-0.12, 0.05, 0.4, 0.62], [0.1, -0.08, 1.9, 0.55], [0.02, 0.14, 2.9, 0.48]]) {
+        c.agregar(new THREE.CylinderGeometry(0.045, 0.055, largo, 6), { color: '#1c1916', tipo: 4, variar: 0.15, matriz: matriz([1.6 + dx, 0.48, -2.2 + dz], [Math.PI / 2, giro, 0.12]) });   // los tizones
+      }
+      // la pirca: piedras apiladas en seco, a la altura de la rodilla, al frente del alero, con el paso en el medio (por
+      // donde llega la escalera); cortaba el viento del fogón
+      const azarPirca = (k) => { const v = Math.sin(k * 12.9898 + 4.1) * 43758.5453; return v - Math.floor(v); };
+      const pirca = [];
+      for (const [desde, hasta] of [[-ANCHO / 2 + 0.15, -1.05], [0.95, ANCHO / 2 - 0.15]]) {
+        for (let fila = 0; fila < 3; fila++) {
+          let lx = desde + (fila % 2 ? 0.18 : 0);
+          for (let k = 0; lx < hasta - 0.1; k++) {
+            const q = azarPirca(fila * 97 + k * 13 + desde * 7);
+            const largoP = 0.34 + q * 0.18;
+            c.agregar(new THREE.IcosahedronGeometry(0.2, 1), { color: q < 0.33 ? '#6b645c' : q < 0.66 ? '#77706a' : '#5f5953', tipo: 4, variar: 0.18,
+              matriz: matriz([Math.min(hasta - 0.1, lx + largoP / 2), 0.44 + fila * 0.2, 0.02 + (q - 0.5) * 0.08], [q * 0.4, q * 3, 0.1 - q * 0.2], [largoP / 0.4, (0.22 - fila * 0.02) / 0.4, 0.42 / 0.4]) });
+            lx += largoP * 0.92;
+          }
+        }
+        pirca.push([desde, hasta]);
+      }
+      // la herradura vieja, clavada en la pared con dos clavos (las puntas para abajo)
+      c.agregar(new THREE.TorusGeometry(0.09, 0.017, 5, 14, Math.PI * 1.3), { color: '#4a2e20', tipo: 4, variar: 0.15, matriz: matriz([2.35, 1.62, -FONDO + 1.08], [0, 0, -Math.PI * 0.15]) });
+      for (const lado of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.016, 0.016, 0.05), { color: '#2a2420', tipo: 4, matriz: matriz([2.35 + lado * 0.085, 1.6, -FONDO + 1.09]) });
       // 3.0.1: la escalera de piedra que baja de la cornisa, de costado contra la roca
       const pasosCueva = [];
       {
@@ -2452,58 +2483,106 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       malla.castShadow = true; malla.receiveShadow = true;
       grupoCueva.add(malla);
 
-      // la pared pintada: manos en negativo y guanacos, dibujados por código
+      // 3.8.4: la pared tallada: los nombres y las fechas que dejaron los arrieros y los colonos que pasaban, a punta
+      // de cuchillo, unos sobre otros y de todas las épocas; las rayitas de las noches que alguien contó, la marca de
+      // los Sepúlveda y el hollín del fogón que sube por la roca. Todo por código. (El lienzo mide 8,4 × 3,1 m: x = 0
+      // es el borde izquierdo mirando la pared; y = 0, el de arriba.) Se dibuja otra vez cuando llega la letra a mano
+      // (Caveat, la de las notas): hasta entonces, con la del juego.
       const lienzo = document.createElement('canvas');
       lienzo.width = 1024; lienzo.height = 512;
       const x2 = lienzo.getContext('2d');
-      x2.fillStyle = '#8a7f70'; x2.fillRect(0, 0, 1024, 512);
-      for (let i = 0; i < 2600; i++) {
-        x2.fillStyle = `rgba(${90 + Math.random() * 70 | 0},${80 + Math.random() * 60 | 0},${70 + Math.random() * 50 | 0},0.5)`;
-        x2.fillRect(Math.random() * 1024, Math.random() * 512, 5 + Math.random() * 14, 4 + Math.random() * 10);
-      }
-      const mano = (cx, cy, esc, color) => {
-        // la silueta se pinta soplando pigmento alrededor: queda el negativo
-        x2.save(); x2.translate(cx, cy); x2.scale(esc, esc);
-        for (let i = 0; i < 1100; i++) {
-          // el pigmento cubre toda la zona; la mano apoyada deja el hueco
-          const a2 = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * 52;
-          const px = Math.cos(a2) * rr * 0.95, py = Math.sin(a2) * rr * 1.25 - 4;
-          x2.fillStyle = color.replace('ALFA', (0.06 + Math.random() * 0.2).toFixed(2));
-          x2.beginPath(); x2.arc(px, py, 2 + Math.random() * 6, 0, Math.PI * 2); x2.fill();
-        }
-        // la mano queda en el color de la roca: es el negativo
-        x2.fillStyle = '#8a7f70';
-        x2.beginPath(); x2.ellipse(0, 16, 22, 26, 0, 0, Math.PI * 2); x2.fill();
-        x2.fillRect(-9, 16, 18, 26);                                   // muñeca
-        for (let k = 0; k < 5; k++) {
-          const a2 = -Math.PI / 2 + (k - 2) * 0.46;
-          const largo = k === 2 ? 42 : k === 1 || k === 3 ? 38 : 28;
-          x2.save(); x2.translate(0, 8); x2.rotate(a2 + Math.PI / 2);
-          x2.beginPath(); x2.roundRect(-6, -largo, 12, largo, 6); x2.fill();
-          x2.restore();
-        }
+      const LETRA = "'Caveat', 'Spectral', Georgia, serif";
+      // tallar: una canaleta oscura, con el borde de abajo claro (la luz de arriba entra en el corte), y el cuchillo que
+      // no va derecho; los más viejos, gastados
+      const tallar = (texto, x, y, tam, ang = 0, { viejo = 0 } = {}) => {
+        x2.save(); x2.translate(x, y); x2.rotate(ang);
+        x2.font = `700 ${tam}px ${LETRA}`;
+        x2.textAlign = 'center'; x2.textBaseline = 'middle';
+        const a = 1 - viejo * 0.5;
+        x2.fillStyle = `rgba(176,164,144,${0.55 * a})`;
+        x2.fillText(texto, 0.8, 1.8);
+        x2.fillStyle = `rgba(46,39,32,${0.78 * a})`;
+        x2.fillText(texto, 0, 0);
+        x2.strokeStyle = `rgba(46,39,32,${0.35 * a})`; x2.lineWidth = 0.8;
+        x2.strokeText(texto, (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 1.4);
         x2.restore();
       };
-      const guanaco = (cx, cy, esc) => {
-        x2.save(); x2.translate(cx, cy); x2.scale(esc, esc);
-        x2.fillStyle = 'rgba(70,40,34,0.85)';
-        x2.beginPath(); x2.ellipse(0, 0, 34, 17, 0, 0, Math.PI * 2); x2.fill();
-        x2.fillRect(24, -40, 8, 30);                       // cuello
-        x2.beginPath(); x2.ellipse(30, -44, 11, 7, 0.4, 0, Math.PI * 2); x2.fill();   // cabeza
-        x2.fillRect(28, -56, 3, 12); x2.fillRect(34, -55, 3, 11);                      // orejas
-        for (const px of [-22, -12, 14, 24]) x2.fillRect(px, 10, 6, 34);               // patas
-        x2.restore();
+      // una raya a cuchillo (para las rayitas y la marca)
+      const raya = (x0, y0, x1, y1, g = 3) => {
+        x2.lineCap = 'round';
+        x2.strokeStyle = 'rgba(176,164,144,0.5)'; x2.lineWidth = g;
+        x2.beginPath(); x2.moveTo(x0 + 0.8, y0 + 1.8); x2.lineTo(x1 + 0.8, y1 + 1.8); x2.stroke();
+        x2.strokeStyle = 'rgba(46,39,32,0.75)'; x2.lineWidth = g * 0.85;
+        x2.beginPath(); x2.moveTo(x0, y0); x2.lineTo(x1, y1); x2.stroke();
       };
-      const colores = ['rgba(150,58,42,ALFA)', 'rgba(56,44,40,ALFA)', 'rgba(188,142,66,ALFA)'];
-      for (let i = 0; i < 16; i++) {
-        mano(90 + (i % 8) * 118 + (Math.random() - 0.5) * 30, 150 + Math.floor(i / 8) * 190 + (Math.random() - 0.5) * 40,
-          0.75 + Math.random() * 0.5, colores[i % 3]);
-      }
-      for (let i = 0; i < 5; i++) guanaco(180 + i * 190 + (Math.random() - 0.5) * 40, 430 + (Math.random() - 0.5) * 30, 0.7 + Math.random() * 0.3);
+      // las rayitas de las noches (de a cinco, la quinta cruzada)
+      const rayitas = (x, y, n, tam = 22) => {
+        for (let i = 0; i < n; i++) {
+          const g = Math.floor(i / 5), k = i % 5, px = x + g * tam * 1.9 + k * tam * 0.3;
+          if (k < 4) raya(px, y, px + (Math.random() - 0.5) * 3, y + tam);
+          else raya(px - tam * 1.15, y + tam * 0.75, px + tam * 0.1, y + tam * 0.2);
+        }
+      };
+      const dibujarPared = () => {
+        x2.fillStyle = '#8a7f70'; x2.fillRect(0, 0, 1024, 512);
+        // la roca: manchas parejas de color (sin los papelitos de colores de antes) y vetas
+        for (let i = 0; i < 2600; i++) {
+          const l = 92 + Math.random() * 60 | 0;
+          x2.fillStyle = `rgba(${l + 14},${l + 6},${l - 6},0.35)`;
+          x2.fillRect(Math.random() * 1024, Math.random() * 512, 5 + Math.random() * 14, 4 + Math.random() * 10);
+        }
+        for (let i = 0; i < 14; i++) {
+          x2.strokeStyle = `rgba(60,52,44,${0.12 + Math.random() * 0.15})`; x2.lineWidth = 1 + Math.random() * 2.5;
+          const y0 = Math.random() * 512;
+          x2.beginPath(); x2.moveTo(0, y0); x2.bezierCurveTo(300, y0 + (Math.random() - 0.5) * 60, 700, y0 + (Math.random() - 0.5) * 60, 1024, y0 + (Math.random() - 0.5) * 40); x2.stroke();
+        }
+        // los nombres (los más viejos, más gastados); el de los Sepúlveda queda a la altura de los ojos, a 0,85 m a la
+        // izquierda del centro (x ≈ 408), que es donde lo busca la historia de Martín (alero-arriero.js)
+        tallar('J. Miranda 1911', 150, 200, 40, -0.05, { viejo: 0.5 });
+        tallar('Los Vera, tropilla 1938', 250, 118, 30, 0.02, { viejo: 0.2 });
+        tallar('Nevó tres días · 1923', 160, 335, 32, 0.05, { viejo: 0.35 });
+        tallar('Los Sepúlveda pasaron acá', 410, 236, 40, 0.03);
+        tallar('Fermín Sepúlveda 1927', 400, 292, 38, -0.025);
+        // la marca de los Sepúlveda: una S con una raya arriba (la que llevaban sus vacas en el anca)
+        tallar('S', 612, 300, 50, 0.04);
+        raya(592, 270, 634, 268, 4);
+        tallar('H. Quilodrán 1908', 640, 150, 32, 0.06, { viejo: 0.65 });
+        tallar('A Chile con 400 vacunos · 1934', 690, 212, 28, -0.04, { viejo: 0.15 });
+        tallar('P. Huenchul 1919', 590, 372, 32, 0.01, { viejo: 0.45 });
+        tallar('R. Paillalef', 890, 120, 34, 0.02, { viejo: 0.3 });
+        tallar('Elba y Juan 1952', 910, 392, 28, -0.06);
+        tallar('M. G. 1945', 955, 300, 26, 0.1, { viejo: 0.1 });
+        tallar('Aquí no llueve', 310, 420, 28, -0.03, { viejo: 0.25 });
+        rayitas(40, 400, 17);
+        rayitas(470, 100, 9, 18);
+        rayitas(820, 450, 12, 18);
+        // el hollín del fogón (el fogón está a 1,6 m a la derecha del centro: x ≈ 707), por encima de todo
+        const hollin = x2.createRadialGradient(707, 520, 20, 707, 470, 300);
+        hollin.addColorStop(0, 'rgba(22,18,15,0.8)'); hollin.addColorStop(0.55, 'rgba(30,25,21,0.38)'); hollin.addColorStop(1, 'rgba(30,25,21,0)');
+        x2.fillStyle = hollin; x2.fillRect(380, 150, 660, 362);
+      };
+      dibujarPared();
       const tex = new THREE.CanvasTexture(lienzo);
+      // 3.8.4: con su espacio de color (sin esto la roca salía lavada, casi blanca, con la luz del alero)
+      tex.colorSpace = THREE.SRGBColorSpace;
+      try { document.fonts?.load?.("700 40px 'Caveat'")?.then?.(() => { dibujarPared(); tex.needsUpdate = true; }, () => {}); } catch { /* con la letra del juego */ }
       const pared = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO + 1.4, ALTO - 0.1), new THREE.MeshLambertMaterial({ map: tex }));
       pared.position.set(0, (ALTO - 0.1) / 2 + 0.16, -FONDO + 1.05);
       grupoCueva.add(pared);
+      // 3.8.4: el hollín del techo, sobre el fogón: una mancha que se esfuma (una tabla negra o unas piedras chatas
+      // quedaban duras; la roca del alero se abolla con la luz)
+      {
+        const lh = document.createElement('canvas'); lh.width = lh.height = 128;
+        const xh = lh.getContext('2d');
+        const gh = xh.createRadialGradient(64, 64, 4, 64, 64, 62);
+        gh.addColorStop(0, 'rgba(18,15,12,0.85)'); gh.addColorStop(0.5, 'rgba(22,18,15,0.5)'); gh.addColorStop(1, 'rgba(22,18,15,0)');
+        xh.fillStyle = gh; xh.fillRect(0, 0, 128, 128);
+        const th = new THREE.CanvasTexture(lh); th.colorSpace = THREE.SRGBColorSpace;
+        const hollinTecho = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.2), new THREE.MeshLambertMaterial({ map: th, transparent: true, depthWrite: false }));
+        hollinTecho.rotation.x = Math.PI / 2 + 0.06;
+        hollinTecho.position.set(1.6, ALTO - 0.23, -2.3);
+        grupoCueva.add(hollinTecho);
+      }
       const luz = new THREE.PointLight(0xffe0b8, 0, 16, 1.2);
       luz.position.set(0, 2.1, -FONDO * 0.35);
       grupoCueva.add(luz);
@@ -2515,6 +2594,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         alturaMin: sitio.y - 6.0, alturaMax: sitio.y + ALTO + 2.3 }); };
       // 3.0.1: las paredes frenan en la cara de la roca (antes, 20 cm antes) y hasta el
       // frente del muro; el fondo frena en la pared pintada (se caminaba detrás de ella)
+      // (3.8.4: la pared tallada, la misma)
       linea([-ANCHO / 2 - 0.2, 1.0], [-ANCHO / 2 - 0.2, -FONDO + 1.05 - 0.3]);
       linea([ANCHO / 2 + 0.2, 1.0], [ANCHO / 2 + 0.2, -FONDO + 1.05 - 0.3]);
       linea([-ANCHO / 2 - 0.2, -FONDO + 1.05 - 0.3], [ANCHO / 2 + 0.2, -FONDO + 1.05 - 0.3]);
@@ -2529,12 +2609,21 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         const q = w(p.lx, p.lz);
         col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.46, ancho: 0.92, alto: sitio.y + p.tope, espesor: p.alto });
       }
+      // 3.8.4: la pirca frena (es baja, pero no se pasa por arriba: se entra por el paso del medio)
+      for (const [desde, hasta] of pirca) {
+        const A = w(desde, 0.02), B = w(hasta, 0.02);
+        col.agregar({ seg: true, ax: A.x, az: A.z, bx: B.x, bz: B.z, r: 0.24, alturaMin: sitio.y - 1, alturaMax: sitio.y + 0.95 });
+      }
       const frente = w(0, 1.2);
-      cueva = { x: sitio.x, y: sitio.y, z: sitio.z, rot, nombre: 'Cueva de las Manos', luz, pared: w(0, -FONDO + 0.6), puerta: frente, radio: 9 };
+      // 3.8.4: `nombre`: el alero del arriero; `pared`: delante de la pared tallada; `sepulveda`: delante del nombre
+      // del abuelo de Martín (la historia chica de alero.js); `fogon`, `herradura`: para mirarlos
+      const sepulveda = w(-0.85, -FONDO + 1.75), fogon = w(1.6, -2.2), herradura = w(2.35, -FONDO + 1.3);
+      cueva = { x: sitio.x, y: sitio.y, z: sitio.z, rot, nombre: 'El alero del arriero', luz, pared: w(0, -FONDO + 0.6), puerta: frente, radio: 9,
+        sepulveda: { x: sepulveda.x, z: sepulveda.z }, fogon: { x: fogon.x, z: fogon.z }, herradura: { x: herradura.x, z: herradura.z } };
       T.lugares.cueva = cueva;
       registrarHuella('cueva', cueva, 9, 5);
       const cc = w(-3.2, 3.6);
-      cartel('Cueva de las Manos', cc.x, cc.z, rot + Math.PI);
+      cartel('El alero del arriero', cc.x, cc.z, rot + Math.PI);
     }
   }
 

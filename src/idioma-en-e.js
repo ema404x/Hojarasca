@@ -312,7 +312,8 @@ export const EN_E = {
 
   "Subí la escalera y sacá la foto desde el piso de arriba.": "Climb the ladder and take the photo from the upper floor.",
 
-  "La pared pintada de la cueva, con las manos en negativo.": "The painted wall of the cave, with the hands in negative.",
+  // 3.8.4: el alero del arriero
+  "La pared del alero del arriero, con los nombres y las fechas que tallaron los que pasaban.": "The wall of the drover's overhang, with the names and dates carved by those who came through.",
 
   "No es culpa del animal, ojo. Es culpa del que lo trajo.": "It's not the animal's fault, mind. It's the fault of whoever brought it.",
 

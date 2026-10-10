@@ -673,8 +673,9 @@ export const EN_B = {
     "Pehuén Lookout",
   'El ramal del valle':
     "The valley branch line",
-  'Cueva de las Manos':
-    "Cueva de las Manos",
+  // 3.8.4: la Cueva de las Manos pasó a ser el alero del arriero
+  'El alero del arriero':
+    "The Drover's Overhang",
   'Árboles y plantas':
     "Trees and plants",
   'Zorzal patagónico':

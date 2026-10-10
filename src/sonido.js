@@ -150,6 +150,11 @@ export class Sonido {
       cuerda: onda(serie(32, (h) => (1 / h) * (h === 2 || h === 3 ? 1.3 : 1) / (1 + (h / 14) ** 2))),
       // la quena: casi un seno, con un poco de segundo y tercer armónico
       quena: onda([1, 0.2, 0.08, 0.03, 0.012]),
+      // 3.8.4: la voz de los vecinos: una glotis relajada, con la fundamental entera y los armónicos que caen rápido
+      // (la de arriba, la «glotal», tiene un valle que le da color de garganta y con los formantes angostos sonaba hueca)
+      vozSuave: onda(serie(30, (h) => Math.pow(h, -1.9))),
+      // 3.8.4: la campana de un silbato de vapor: un caño cerrado (los armónicos impares) con un poco del segundo
+      campana: onda([1, 0.07, 0.24, 0.035, 0.1, 0.012, 0.04]),
     };
 
     const bucle = (buffer, filtros, destino) => {
@@ -1072,59 +1077,64 @@ export class Sonido {
   // 3.7.4: el balbuceo tipo Los Sims (el plan de las sílabas sale de social-voz.js: la voz de cada uno). Barato: un solo
   // pulso glotal para todo el renglón, con el tono, los dos formantes de la vocal y la envolvente movidos sílaba por
   // sílaba, y un ruido para las consonantes; todo por un pasabajos (nada estridente) al bus de los efectos (su volumen).
+  // 3.8.4: el murmullo cálido (el usuario: «las voces de los vecinos dan miedo»). Lo que daba miedo era cómo sonaba: el
+  // pulso de glotis por dos pasabandas angostos dejaba afuera la fundamental (la voz quedaba hueca, como un susurro de
+  // otro mundo), entre sílaba y sílaba seguía un zumbido al 12 %, las «s» y las «ch» eran soplidos de 3 a 5 kHz y los
+  // mayores temblaban. Ahora la fuente es una glotis relajada (`ondas.vozSuave`), la fundamental pasa entera, los
+  // formantes son realces y no filtros que dejan pasar sólo eso, la boca se cierra en la «m», cada sílaba arranca y se
+  // apaga del todo y el aire de la voz va por abajo de 1,6 kHz. Lo que dice son dos o tres sílabas («mm-hm», «a-há»,
+  // «¿eh?», una risita): ver social-voz.js. Igual de barato: un oscilador, un ruido y seis filtros por renglón.
   // `pos`: de dónde sale (con la distancia y el lado); sin `pos`, enfrente tuyo. Devuelve cuánto dura (o 0).
   balbuceo(plan, { pos = null, vol = 0.06, cuando = 0 } = {}) {
     if (!this.ctx || !plan?.silabas?.length || !this.puedeSonar(4, cuando)) return 0;
     const ctx = this.ctx, t0 = ctx.currentTime + 0.02 + cuando, v = plan.voz || {};
     const destino = pos ? this.fuente(pos, 1, 0.25) : this.bus.efectos;
     if (!destino) return 0;
-    const fin = t0 + plan.dur + 0.15;
+    const fin = t0 + plan.dur + 0.3;
+    const timbre = Math.max(0.8, Math.min(1.4, Number(v.timbre) || 1));
+    const aliento = Math.max(0.05, Math.min(0.45, Number(v.aliento) || 0.16));
     const o = ctx.createOscillator();
-    if (this.ondas?.glotal) o.setPeriodicWave(this.ondas.glotal); else o.type = 'triangle';
-    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 4.5;
-    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 6;
-    const g1 = ctx.createGain(); g1.gain.value = 2.2;
-    const g2 = ctx.createGain(); g2.gain.value = 1.3;
-    const directo = ctx.createGain(); directo.gain.value = 0.12;
+    if (this.ondas?.vozSuave) o.setPeriodicWave(this.ondas.vozSuave); else o.type = 'triangle';
+    // la boca: un pasabajos que se cierra con la «m» y los dos formantes como realces de la vocal
+    const boca = ctx.createBiquadFilter(); boca.type = 'lowpass'; boca.Q.value = 0.5; boca.frequency.setValueAtTime(2300 * timbre, t0);
+    const f1 = ctx.createBiquadFilter(); f1.type = 'peaking'; f1.Q.value = 2.2; f1.gain.value = 7;
+    const f2 = ctx.createBiquadFilter(); f2.type = 'peaking'; f2.Q.value = 2.8; f2.gain.value = 5;
     const env = ctx.createGain(); env.gain.setValueAtTime(0.0001, t0);
     const suave = ctx.createBiquadFilter(); suave.type = 'lowpass'; suave.frequency.value = 3400; suave.Q.value = 0.5;
-    o.connect(f1); o.connect(f2); o.connect(directo);
-    f1.connect(g1); f2.connect(g2); g1.connect(env); g2.connect(env); directo.connect(env);
+    o.connect(boca); boca.connect(f1); f1.connect(f2); f2.connect(env);
     env.connect(suave); suave.connect(destino);
-    // las consonantes: un solo ruido, con su banda y su golpe en cada sílaba
-    const ns = ctx.createBufferSource(); ns.buffer = this.blanco;
-    const nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.Q.value = 1.2; nf.frequency.setValueAtTime(3000, t0);
+    // el aire que sale con la voz (y el de la «h» de «a-há» o de la risita): ruido rosa, ancho y por abajo
+    const ns = ctx.createBufferSource(); ns.buffer = this.ruido || this.blanco;
+    const nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.Q.value = 0.9; nf.frequency.value = 900 * timbre;
     const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0);
     ns.connect(nf); nf.connect(ng); ng.connect(suave);
-    const pico = Math.max(0.005, Math.min(0.12, vol));
+    const pico = Math.max(0.004, Math.min(0.1, vol)) * 0.42;
     for (const s of plan.silabas) {
-      const t = t0 + s.t, a = Math.max(0.012, Math.min(0.04, s.dur * 0.18));
-      const c = s.cons ? { p: [900, 0.018, 1], t: [3200, 0.02, 1], k: [2100, 0.024, 1], s: [5200, 0.07, 0], f: [3800, 0.05, 0], ch: [3600, 0.06, 1], b: [600, 0.012, 1] }[s.cons] : null;
-      const nasal = s.cons === 'm' || s.cons === 'n';
-      const arranca = c ? t + c[1] * (c[2] ? 1 : 0.6) : t;
-      o.frequency.setTargetAtTime(Math.max(60, s.f0), t, 0.03);
-      f1.frequency.setTargetAtTime(nasal ? 280 : s.f1, t, 0.02);
-      f2.frequency.setTargetAtTime(s.f2, t, 0.025);
-      if (nasal) f1.frequency.setTargetAtTime(s.f1, t + 0.05, 0.03);
-      // la vocal: sube, se sostiene y baja un poco antes de la siguiente
-      env.gain.setTargetAtTime(pico * s.vol * (nasal ? 0.55 : 1), arranca, a / 2.5);
-      env.gain.setTargetAtTime(pico * s.vol * 0.12, t + s.dur * 0.78, s.dur * 0.08);
-      if (c) {
-        nf.frequency.setValueAtTime(c[0], t);
-        ng.gain.setTargetAtTime(pico * (c[2] ? 0.9 : 0.55), t, 0.004);
-        ng.gain.setTargetAtTime(0.0001, t + c[1], 0.01);
-      }
+      const t = t0 + s.t, dur = Math.max(0.06, s.dur);
+      const nasal = s.vocal === 'm' || (s.cons === 'm' && !s.vocal);
+      const ataque = Math.max(0.018, Math.min(0.05, dur * 0.3));
+      const arranca = s.cons === 'h' ? t + 0.04 : t;
+      const f0 = Math.max(60, s.f0), f0b = Math.max(60, s.f0b || s.f0);
+      o.frequency.setTargetAtTime(f0, t - 0.012, 0.01);
+      o.frequency.setTargetAtTime(f0b, arranca + dur * 0.2, dur * 0.3);
+      f1.frequency.setTargetAtTime(nasal ? 260 * timbre : s.f1, t - 0.012, 0.015);
+      f2.frequency.setTargetAtTime(s.f2, t - 0.012, 0.02);
+      f2.gain.setTargetAtTime(nasal ? 0 : 5, t - 0.012, 0.02);
+      boca.frequency.setTargetAtTime(nasal ? 650 * timbre : 2300 * timbre, t - 0.012, 0.015);
+      const p = pico * s.vol * (nasal ? 1.5 : 1);
+      // la vocal: entra suave, se sostiene y se apaga del todo antes de la siguiente
+      env.gain.setTargetAtTime(p, arranca, ataque / 3);
+      env.gain.setTargetAtTime(0.0001, t + dur * 0.7, dur * 0.09);
+      // el aire: un soplo antes de la vocal si es «h», y un poco debajo de la voz siempre
+      if (s.cons === 'h') ng.gain.setTargetAtTime(p * 0.4, t, 0.01);
+      ng.gain.setTargetAtTime(p * aliento * (nasal ? 0.15 : 0.35), arranca, ataque / 3);
+      ng.gain.setTargetAtTime(0.0001, t + dur * 0.7, dur * 0.09);
     }
-    env.gain.setTargetAtTime(0.0001, t0 + plan.dur, 0.04);
-    if (v.temblor) {
-      const l = ctx.createOscillator(); l.frequency.value = v.temblor;
-      const lg = ctx.createGain(); lg.gain.value = (v.f0 || 120) * 0.025;
-      l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(fin);
-      this.soltarAlTerminar(l, lg);
-    }
+    env.gain.setTargetAtTime(0.0001, t0 + plan.dur, 0.03);
+    ng.gain.setTargetAtTime(0.0001, t0 + plan.dur, 0.03);
     o.start(t0); o.stop(fin);
-    ns.start(t0, Math.random() * 2, plan.dur + 0.2);
-    this.soltarAlTerminar(o, f1, f2, g1, g2, directo, env, suave);
+    ns.start(t0, Math.random() * 2, plan.dur + 0.3);
+    this.soltarAlTerminar(o, boca, f1, f2, env, suave);
     this.soltarAlTerminar(ns, nf, ng);
     return plan.dur;
   }
@@ -1168,21 +1178,122 @@ export class Sonido {
     this.soltarAlTerminar(o, f, g);
   }
 
+  // 3.8.4: el silbato de vapor de un ferrocarril antiguo (el usuario: «suena a código genérico»). Antes eran tres
+  // tonos de quena afinados en armónicos (520, 780 y 1040 Hz: una sola nota con color, no un acorde) y un ruido encima.
+  // Un silbato de vapor de verdad es otra cosa, y es lo que hace cada pitada (`pitada`):
+  //   · varias campanas (caños cerrados) afinadas en acorde: cada una con los armónicos impares de un caño cerrado
+  //     (`ondas.campana`) y el soplo angosto del filo, que es lo que le da el aire de vapor y no de flauta;
+  //   · el soplido: el vapor que sale apenas se abre la válvula, antes de que las campanas agarren el tono;
+  //   · el arranque: con poca presión las campanas suenan bajas y suben de tono a medida que la caldera empuja (y la
+  //     presión no es pareja: tiembla un poco y todas las campanas tiemblan juntas);
+  //   · el corte: al cerrar la válvula el tono cae y se apaga, y queda el vapor que se escapa, cada vez más oscuro;
+  //   · el eco en el valle: la pitada vuelve de las laderas, del cerro de atrás y de la punta del lago (`ecoDelValle`).
+  // Los silbatos (cuáles campanas y cuántas pitadas) siguen saliendo de `personal-trochita.js` y del taller.
   silbato(pos, tipo = this.silbatoElegido) {
     if (!this.ctx) return;
     // 2.8: sin lugar (la muestra del panel) suena de cerca, sin ubicarlo
-    const d = pos ? this.fuente(pos, 3.2, 1) : this.bus.efectos;
-    // 2.7: tres caños de vapor: casi senos, con su poco de armónicos y el soplo encima.
-    // 2.8: cuáles caños y cuántas pitadas los elige el jugador (el clásico es el de antes)
+    // (3.8.4: con menos reverberación que antes, que lavaba la pitada: el valle lo pone el eco; y el vapor, casi seco,
+    // aparte: por la reverberación y el eco, un siseo de un segundo se volvía un ruido de cuatro)
+    const d = pos ? this.fuente(pos, 3.2, 0.45) : this.bus.efectos;
+    const dVapor = pos ? this.fuente(pos, 3.2, 0.12) : this.bus.efectos;
+    // 2.8: cuáles caños y cuántas pitadas los elige el jugador
     // 3.7.3 (tren): o el del taller, que viene con sus caños y toques (ver tren-viaje.js: el de pájaro)
     const S = tipo && typeof tipo === 'object' && Array.isArray(tipo.canos) ? tipo : silbatoDe(tipo);
-    for (const [cuando, largo] of S.toques) {
-      for (const [f, v] of S.canos) {
-        this.tono({ frec: f * 0.97, fin: f, dur: largo, tipo: 'quena', vol: v, destino: d, ataque: Math.min(0.16, largo * 0.25), vibrato: S.vibrato, cuando });
-      }
-      this.golpeRuido({ dur: largo, frec: S.soplo, q: 0.8, vol: 0.05, destino: d, buffer: this.ruido, cuando: cuando + 0.05 });
-      this.golpeRuido({ dur: largo * 0.8, frec: 2600, q: 1.2, vol: 0.03, destino: d, cuando: cuando + 0.08 });
+    if (!d || !dVapor || !this.puedeSonar(6)) return;
+    const t0 = this.ctx.currentTime + 0.08;
+    const largo = Math.max(...S.toques.map(([c, l]) => c + l));
+    // el eco: de cerca se oye menos que la pitada; de lejos casi igual (las laderas devuelven lo que el aire se comió)
+    const lejos = pos && this.oyente ? Math.hypot(pos.x - this.oyente.x, (pos.y || 0) - this.oyente.y, pos.z - this.oyente.z) : 0;
+    const directo = pos ? 5 / (5 + 1.1 * Math.max(0, lejos - 5)) : 1;
+    const eco = this.ecoDelValle(t0, largo + 4.5, pos ? 0.9 * Math.sqrt(directo) : 0.35);
+    for (const [cuando, l] of S.toques) this.pitada(S, t0 + cuando, l, eco ? [d, eco] : [d], dVapor);
+  }
+  // Una pitada: el soplido, las campanas que levantan presión, el corte y el vapor que se escapa (ver `silbato`).
+  pitada(S, t, largo, destinos, destinoVapor = destinos[0]) {
+    const ctx = this.ctx;
+    const subida = Math.min(0.32, Math.max(0.06, largo * 0.28));   // lo que tarda la caldera en empujar del todo
+    const corte = Math.min(0.14, Math.max(0.04, largo * 0.22));    // lo que tarda en cerrar la válvula
+    const tFin = t + largo;
+    const salida = ctx.createGain(); salida.gain.value = 1;
+    for (const d of destinos) salida.connect(d);
+    // el vapor: un soplido al abrir, un siseo debajo del tono y, al cerrar, el escape que se oscurece y se apaga
+    const vapor = ctx.createBufferSource(); vapor.buffer = this.blanco;
+    const vAlto = ctx.createBiquadFilter(); vAlto.type = 'highpass'; vAlto.frequency.value = Math.max(600, (S.soplo || 900) * 1.2); vAlto.Q.value = 0.5;
+    const vOscuro = ctx.createBiquadFilter(); vOscuro.type = 'lowpass'; vOscuro.Q.value = 0.4;
+    vOscuro.frequency.setValueAtTime(6500, t - 0.06);
+    vOscuro.frequency.setTargetAtTime(1600, tFin + 0.08, 0.35);
+    const vg = ctx.createGain();
+    vg.gain.setValueAtTime(0.0001, t - 0.06);
+    vg.gain.setTargetAtTime(0.02, t - 0.05, 0.015);            // pff: se abre la válvula
+    vg.gain.setTargetAtTime(0.005, t + subida * 0.5, 0.08);     // debajo del tono, el siseo
+    vg.gain.setTargetAtTime(0.022, tFin - 0.01, 0.025);        // se cierra: el vapor que queda se escapa
+    vg.gain.setTargetAtTime(0.0001, tFin + corte + 0.1, 0.32);
+    vapor.connect(vAlto); vAlto.connect(vOscuro); vOscuro.connect(vg); vg.connect(destinoVapor);
+    vapor.start(t - 0.06, Math.random() * 2, largo + 2.2);
+    // la presión que tiembla: un vaivén rápido y uno lento, los mismos para todas las campanas
+    const temblor = ctx.createOscillator(); temblor.frequency.value = S.vibrato || 4.5;
+    const lento = ctx.createOscillator(); lento.frequency.value = 0.7 + Math.random() * 0.5;
+    // el soplo del filo de cada campana: el mismo ruido, por un pasabanda angosto en su nota
+    const filo = ctx.createBufferSource(); filo.buffer = this.blanco;
+    const nodos = [temblor, lento, filo];
+    S.canos.forEach(([frec, vol], i) => {
+      const f = frec * (1 + (Math.random() - 0.5) * 0.004);   // ninguna campana está perfectamente afinada
+      const tc = t + i * 0.014;                                 // las más agudas agarran un poquito después
+      const o = ctx.createOscillator();
+      if (this.ondas?.campana) o.setPeriodicWave(this.ondas.campana); else o.type = 'sine';
+      // (el pasabanda del soplo queda quieto en la nota: uno angosto que se mueve rápido da chasquidos; y son dos, porque
+      // uno solo deja pasar un siseo ancho por las faldas)
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 8; bp.frequency.value = f;
+      const bp2 = ctx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.Q.value = 2; bp2.frequency.value = f;
+      // el arranque: baja y sube de tono con la presión; el corte: cae al cerrar
+      const p = o.frequency;
+      p.setValueAtTime(f * 0.8, tc);
+      p.setTargetAtTime(f * 1.004, tc, subida / 2.6);
+      p.setTargetAtTime(f, tc + subida, 0.3);
+      p.setTargetAtTime(f * 0.87, tFin, corte * 0.7);
+      const tg = ctx.createGain(); tg.gain.value = f * 0.0022; temblor.connect(tg); tg.connect(o.frequency);
+      const lg = ctx.createGain(); lg.gain.value = f * 0.0035; lento.connect(lg); lg.connect(o.frequency);
+      const soplo = ctx.createGain(); soplo.gain.value = 2;
+      filo.connect(bp); bp.connect(bp2); bp2.connect(soplo);
+      // (sostenida: el de antes se apagaba desde que arrancaba, así que con el mismo volumen sonaba la mitad)
+      const g = ctx.createGain(), v = vol * 0.45;
+      g.gain.setValueAtTime(0.0001, tc);
+      g.gain.setTargetAtTime(v, tc + 0.02, subida / 3);
+      g.gain.setTargetAtTime(v * 1.06, tc + subida, largo * 0.4);   // la caldera sigue empujando
+      g.gain.setTargetAtTime(0.0001, tFin, corte / 3);
+      o.connect(g); soplo.connect(g); g.connect(salida);
+      o.start(tc); o.stop(tFin + corte * 3 + 0.1);
+      nodos.push(bp, bp2, tg, lg, soplo, g);
+    });
+    temblor.start(t); lento.start(t); filo.start(t, Math.random() * 2, largo + 0.6);
+    temblor.stop(tFin + 0.6); lento.stop(tFin + 0.6);
+    this.soltarAlTerminar(vapor, vAlto, vOscuro, vg);
+    this.soltarAlTerminar(temblor, ...nodos.slice(1), salida);
+  }
+  // 3.8.4: el eco del valle para el silbato: cuatro paredes a distintas distancias (la ladera de enfrente, el cerro de
+  // atrás, la punta del lago y el cordón), cada una más lejos, más oscura y de otro lado. Sale sin ubicar (viene de
+  // todo el valle) y también entra a la reverberación. Devuelve la entrada (o null) y se suelta sola al terminar.
+  ecoDelValle(t, dur, nivel = 0.5) {
+    const ctx = this.ctx;
+    if (!ctx || !(nivel > 0.001)) return null;
+    const entrada = ctx.createGain(); entrada.gain.value = nivel;
+    const nodos = [entrada];
+    for (const [retardo, g, lado, corte] of [[0.42, 0.42, -0.55, 2200], [0.77, 0.3, 0.6, 1600], [1.31, 0.2, -0.25, 1150], [2.05, 0.12, 0.35, 800]]) {
+      const dl = ctx.createDelay(3); dl.delayTime.value = retardo;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = corte; f.Q.value = 0.5;
+      const gg = ctx.createGain(); gg.gain.value = g;
+      entrada.connect(dl); dl.connect(f); f.connect(gg);
+      const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      if (pan) { pan.pan.value = lado; gg.connect(pan); pan.connect(this.bus.efectos); } else gg.connect(this.bus.efectos);
+      const rv = ctx.createGain(); rv.gain.value = 0.35; gg.connect(rv); rv.connect(this.envioReverb);
+      nodos.push(dl, f, gg, pan, rv);
     }
+    // (un reloj mudo: cuando termina se desarma todo)
+    const reloj = ctx.createOscillator(); const mudo = ctx.createGain(); mudo.gain.value = 0;
+    reloj.connect(mudo); mudo.connect(entrada);
+    reloj.start(t); reloj.stop(t + dur);
+    this.soltarAlTerminar(reloj, mudo, ...nodos);
+    return entrada;
   }
   trueno(lejos = 0.5) {
     if (!this.ctx) return;

@@ -95,7 +95,8 @@ export const VOCES_AMOR = {
     },
     cita: { si: '¡Sí! Llevo la libreta de bocetos, por las dudas. Por las dudas de que estés lindo.', no: 'Hoy no puedo: la pintura está fresca y si la dejo, se me corre todo. Otro día.',
       charla: ['¿Ves que las sombras nunca son negras? Son violetas, azules… Desde que te conozco las veo más claras.', 'Me gustaría pintarte. No ahora, eh. Cuando te olvides de que te estoy mirando.'] },
-    favorito: 'El alero de las pinturas. Alguien pintó esas manos hace miles de años. Ahí siento que pintar es lo más viejo del mundo.',
+    // 3.8.4: el alero del arriero (antes, el de las pinturas)
+    favorito: 'El alero del arriero. Hay nombres tallados de gente que pasó hace cien años, con la fecha y todo, y cada uno es un retrato sin cara. Ahí me dan unas ganas de pintar que no te explico.',
     declaracion: { si: ['Sí. Sí. Este cuadro lo estaba pintando hace tiempo y no me animaba a firmarlo.'], no: 'Todavía no. Me gusta este boceto, pero le falta. Esperá un poco.' },
     propuesta: { si: ['¡Sí! Y voy a pintar el cartel del casamiento yo, con letras que se vean desde la estación.'], no: 'Todavía no. Es que tengo miedo de arruinarlo, como cuando un cuadro está casi listo.' },
     boda: 'Prometo pintarte todos los días, aunque sea en la cabeza, y no pedirte nunca que te quedes quieto.',

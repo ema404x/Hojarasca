@@ -38,7 +38,7 @@ export const EN_G = {
   'La veranada': 'The summer pasture',
   'Una chispa': 'A spark',
   'Una pieza': 'One piece',
-  'Las manos': 'The hands',
+  'Los nombres tallados': 'The carved names',   // 3.8.4
   'Al fuego': 'On the fire',
   'A dormir.': 'Time to sleep.',
   'de cabeza': 'head first',
@@ -47,7 +47,7 @@ export const EN_G = {
   'los turcos': 'the peddlers',
   'la parada': 'the stop',
   'TODO EL RECORRIDO': 'WHOLE RUN',
-  'Cueva de las Manos': 'Cueva de las Manos',
+  'El alero del arriero': "The Drover's Overhang",   // 3.8.4 (antes, la Cueva de las Manos)
   'Las Tres Marías': 'Las Tres Marías',
   'Puesto Alto': 'Puesto Alto',
   'Don Ramón': 'Don Ramón',

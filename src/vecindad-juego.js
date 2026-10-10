@@ -262,6 +262,7 @@ export function crearVecindadJuego(ctx) {
     for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
     for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2: una receta y el trueque para la cocina (una sola opción, «Para la cocina…»)
     for (const o of ctx.rincones?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.5 (rincones): lo que te enseña, el sulky de Tito, la pista de los duendes
+    for (const o of ctx.alero?.opciones?.(s.clave) || []) lista.push(o);   // 3.8.4: Martín y el nombre de su abuelo en el alero del arriero (alero-arriero.js)
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -345,6 +346,13 @@ export function crearVecindadJuego(ctx) {
     // 3.7.5 (rincones): lo que te enseña un amigo, el sulky, la pista de los duendes (rincones-juego.js)
     if (/^rincones:/.test(String(id)) && ctx.rincones) {
       const r = ctx.rincones.elegir(s, String(id));
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
+    // 3.8.4: el alero del arriero (alero-arriero.js): Martín te pide buscar el nombre de su abuelo y te lo cuenta
+    if (/^alero:/.test(String(id)) && ctx.alero) {
+      const r = ctx.alero.elegir(s, String(id));
       s.sub = null;
       if (r.tipo !== 'menu') s.vueltas++;
       return r;
