@@ -2740,6 +2740,10 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
         // Una pared o mueble colocado sobre un piso modular puede solaparse en
         // planta con ese soporte: la altura de base ya demuestra que está encima.
         if (sobrePlataforma && o.plano.soportaPiezas) continue;
+        // 3.8.6: en el suelo, una pieza no entra en la huella de una obra grande (adentro del Puesto o entre las patas del
+        // mirador se armaba un piso o un acopio con las paredes cruzadas). Sobre su piso, sí: los muebles de adentro.
+        if (!o.plano.pieza && !sobrePlataforma && !plano.cubreOtras && solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1))
+          return { ok: false, motivo: 'Queda encima de otra obra tuya' };
         if (o.plano.id === plano.id && d < (plano.separacion || 1.5) &&
             solapeVertical(plano, base, o.plano, o.datos.y ?? T.altura(o.datos.x, o.datos.z)))
           return { ok: false, motivo: 'Ya pusiste uno acá al lado' };
@@ -2769,7 +2773,17 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (Math.hypot(l.x - x, l.z - z) < plano.radio + radioLugar + 2.5) return { ok: false, motivo: 'Muy pegado a otra construcción' };
     }
     for (const o of obras) {
-      if (o === ignorarObra || o.plano.pieza) continue;
+      if (o === ignorarObra) continue;
+      // 3.8.6: y no se levanta encima de tus piezas en el suelo (la casa de piezas, los canteros, el acopio): antes las
+      // salteaba todas y el Puesto quedaba con las paredes cruzadas. Las que están sobre un piso (los muebles de adentro
+      // de otra obra) no cuentan: esa obra ya frena por la distancia.
+      if (o.plano.pieza) {
+        if (o.datos.etapas <= 0 || o.plano.cubreOtras) continue;   // (la galería o el invernadero arrimados: techo, no paredes)
+        const suelo = T.altura(o.datos.x, o.datos.z);
+        if ((Number.isFinite(o.datos.y) ? o.datos.y : suelo) - suelo > 0.15) continue;
+        if (solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Queda encima de otra obra tuya' };
+        continue;
+      }
       const minimo = plano.radio + (o.plano.radio || 4) + 2.0;
       if (Math.hypot(o.datos.x - x, o.datos.z - z) < minimo) return { ok: false, motivo: 'Ya tenés una obra al lado' };
     }

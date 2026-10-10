@@ -166,4 +166,11 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(/devolverContenido: \(caidas\) => \{ for \(const c of caidas \|\| \[\]\) devolverContenido\(c\.datos\);/.test(main), 'main.js devuelve el contenido (y el último acopio)');
 }
 
+// ---------------------------------------------------------------- 11. obras grandes y piezas no se enciman
+{
+  const c = leer('src/construccion.js');
+  ok(c.includes("if (!o.plano.pieza && !sobrePlataforma && !plano.cubreOtras && solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1))"), 'una pieza en el suelo no entra en la huella de una obra grande');
+  ok(/if \(o\.plano\.pieza\) \{\n\s+if \(o\.datos\.etapas <= 0 \|\| o\.plano\.cubreOtras\) continue;[\s\S]{0,300}solapanHuellas\(plano, x, z, rot, o\.plano/.test(c), 'una obra grande no se levanta encima de tus piezas en el suelo');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);
