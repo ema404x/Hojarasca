@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import { materialGente } from './gente-cuerpo.js';
 import { huso, coser } from './formas.js';
 import { ConstructorArbol, racimo, rama, conCartas, texturaCartas, CELDAS_CARTA } from './vegetacion.js';
-import { materialVegetal } from './materiales.js';
+import { materialVegetal, U } from './materiales.js';
 
 const TAU = Math.PI * 2;
 const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -162,12 +162,14 @@ function matCorteza() {
   if (MAT_CORTEZA) return MAT_CORTEZA;
   const m = new THREE.MeshLambertMaterial({ vertexColors: true });
   m.onBeforeCompile = (sh) => {
+    sh.uniforms.uNocheC = U.uNoche;   // 3.8.4: la noche (la luna en el borde, el ámbar en las grietas)
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec3 aVeta; varying vec3 vVeta; varying vec3 vNorC;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvVeta = aVeta; vNorC = normal;');
+      .replace('#include <common>', '#include <common>\nattribute vec3 aVeta; varying vec3 vVeta; varying vec3 vNorC; varying float vAltC;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvVeta = aVeta; vNorC = normal; vAltC = (modelMatrix * vec4(position, 1.0)).y;');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        varying vec3 vVeta; varying vec3 vNorC;
+        varying vec3 vVeta; varying vec3 vNorC; varying float vAltC; uniform float uNocheC;
+        float grietaC = 0.0, finoC = 1.0, placaLejosC = 0.0;
         float hC(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float nC(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           return mix(mix(hC(i), hC(i + vec2(1.0, 0.0)), f.x), mix(hC(i + vec2(0.0, 1.0)), hC(i + vec2(1.0, 1.0)), f.x), f.y); }`)
@@ -179,12 +181,29 @@ function matCorteza() {
           float grieta = smoothstep(0.08, 0.0, abs(fract(u.x * 1.6 + w * 1.4) - 0.5) - 0.38);
           float placa = nC(vec2(u.x * 1.6, u.y * 0.9)) * 0.25;
           float k = vVeta.z;
-          diffuseColor.rgb *= mix(1.0, (0.8 + placa) * (1.0 - 0.62 * grieta), k);
-          diffuseColor.rgb *= 0.92 + 0.16 * nC(u * 9.0);
+          // 3.8.4: de lejos las grietas finas (más finas que un píxel) titilaban y la corteza quedaba como un barro
+          // oscuro y parejo: cuando se achican se funden en su promedio y quedan las placas grandes, que sí se
+          // leen de lejos (un poco más marcadas)
+          finoC = clamp(1.6 - fwidth(u.x * 1.6) * 3.0, 0.0, 1.0);
+          grietaC = grieta * finoC;
+          placaLejosC = nC(vec2(u.x * 0.55, u.y * 0.12));
+          diffuseColor.rgb *= mix(1.0, (0.8 + placa) * mix(0.87, 1.0 - 0.62 * grieta, finoC) * (1.0 + (1.0 - finoC) * (placaLejosC - 0.5) * 0.45), k);
+          diffuseColor.rgb *= 0.92 + 0.16 * mix(0.5, nC(u * 9.0), finoC);
           // 3.8.0: la luz propia sigue el color y las vetas (no aplana la corteza de noche)
           totalEmissiveRadiance *= diffuseColor.rgb * 3.0;
           // y de lejos un poco más (de noche se lee la silueta del Coihue contra el bosque; de día no se nota)
           totalEmissiveRadiance += diffuseColor.rgb * 0.09 * smoothstep(40.0, 150.0, length(vViewPosition));
+        }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        // 3.8.4: de noche, afuera (adentro del Coihue no hay luna: la sala está a más de 400 m de alto), la luna
+        // marca en frío el borde del tronco y de las raíces y las placas de la corteza, y en el fondo de las
+        // grietas late un ámbar apenas (la casa de los duendes está viva): de lejos se lee un árbol con corteza,
+        // no una mancha negra
+        {
+          float afueraC = uNocheC * step(vAltC, 400.0) * vVeta.z;
+          float bordeC = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.2);
+          totalEmissiveRadiance += vec3(0.3, 0.38, 0.52) * (bordeC * 0.03 + 0.004 * placaLejosC * (1.0 - finoC * 0.5)) * afueraC;
+          totalEmissiveRadiance += vec3(1.0, 0.5, 0.14) * grietaC * afueraC * 0.012;
         }`);
   };
   // 3.8.0: un poco de luz propia, tibia: de noche la corteza no queda negra (el musgo y las vetas se leen)
