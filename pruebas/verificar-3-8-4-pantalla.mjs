@@ -18,7 +18,7 @@ const sistema = leer('src/menus/sistema.css'), cuaderno = leer('src/menus/cuader
 
 // ---------------------------------------------------------------- 35. la calidad nunca cambia sola
 ok(!/revisarCalidad\(/.test(main), '35: el bucle ya no aplica la autocalidad sola (revisarCalidad)');
-ok(/if \(modo === 'jugando' && ajustes\.autoCalidad !== false\) revisarSiVaLento\(cadencia\.dtReal\);/.test(main), '35: el bucle sólo mide y pregunta');
+ok(/if \(modo === 'jugando' && ajustes\.autoCalidad !== false\) revisarSiVaLento\(dtReal\);/.test(main), '35: el bucle sólo mide y pregunta');
 ok(main.includes("dialogos.confirmar(`El juego va lento: ¿bajar la calidad?\\nDe ${nombreCalidad(cambio.desde)} a ${nombreCalidad(cambio.hasta)}. Se puede volver a subir en Ajustes.`, { si: 'Bajar', no: 'No, gracias' })"), '35: el cartelito, con «Bajar» y «No, gracias»');
 ok(/if \(si\) \{ aplicarCambio\(autoCalidad, cambio\); await bajarSinTirones\(cambio\); \} else preguntaLento\.noMolestar = true;/.test(main), '35: baja sólo si acepta; con «No, gracias» no vuelve a preguntar');
 ok(/if \(!preguntaLento\.activa \|\| preguntaLento\.pendiente \|\| preguntaLento\.noMolestar\) return;/.test(main), '35: una pregunta por vez y ninguna después del no');

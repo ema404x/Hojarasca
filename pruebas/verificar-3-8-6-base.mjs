@@ -34,8 +34,9 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
   ok((main.match(/mando\.actualizar\(\)/g) || []).length === 2 && /alCerrar: \(\) => \{[\s\S]{0,500}try \{ mando\.actualizar\(\); \} catch/.test(main), 'nadie más lee el mando por su lado (salvo al cerrar un cuadro de pregunta, que lo lee entre dos cuadros)');
   ok(/const m = leerMandoActual\(\);/.test(tramo('function leerMando(dt) {', 120)), 'jugando, por la lectura única');
   const menu = tramo('function leerMandoEnMenu() {', 500);
-  ok(/const m = leerMandoActual\(\);/.test(menu) && menu.includes('if (dialogos.abierto()) return;'), 'en la pausa, por la lectura única y sin pisar al cuadro de pregunta');
-  ok(/leerMandoEnMenu\(\);[^\n]*\n\s*if \(!mandoLeido\) leerMandoQuieto\(\);[^\n]*\n\s*mandoLeido = false;/.test(main), 'el bucle lee el mando en cualquier otra pantalla y se prepara para el cuadro siguiente');
+  ok(/const m = leerMandoActual\(\);/.test(menu) && menu.includes('if (dialogos.abierto() || !usarMando()) return;'), 'en la pausa, por la lectura única y sin pisar al cuadro de pregunta');
+  ok(/leerMandoEnMenu\(\);[^\n]*\n\s*if \(!mandoUsado\) leerMandoQuieto\(\);[^\n]*\n\s*mandoLeido = false; mandoUsado = false;/.test(main), 'el bucle lee el mando en cualquier otra pantalla y se prepara para el cuadro siguiente');
+  ok(main.includes("if (!m.conectado || modo !== 'jugando' || !jugador || !usarMando()) return;"), 'lo recién apretado se usa una vez por cuadro (la cruceta no abre y cierra el mapa en el mismo cuadro)');
   const quieto = tramo('function leerMandoQuieto() {', 1400);
   ok(quieto.includes("modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria')"), 'la tarjeta del valle y la victoria, con el mando');
   ok(quieto.includes('moverFocoEn(caja, mover)') && quieto.includes('b.click()'), 'la cruceta pasa de botón y A lo aprieta');
@@ -156,8 +157,8 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
 ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ventana.isFullScreen());"), 'F11: sólo la primera, no la repetición');
 
 // 6. La pregunta «El juego va lento: ¿bajar la calidad?» (3.8.4):
-//    a) un solo tirón (o un congelón de 1 s, que llegaba recortado a 0,2 s) la hacía salir: ahora tirones son muchos cuadros
-//       lentos (el 5% de la ventana) y lo que pasa de medio segundo es un freno que no cuenta;
+//    a) un solo tirón (o un congelón, que llega recortado a 0,2 s) la hacía salir: ahora tirones son muchos cuadros lentos (el
+//       5% de la ventana), no uno;
 //    b) con el límite de cuadros en 30, 30 parejos estaban siempre «en rojo» y preguntaba aunque anduviera perfecto;
 //    c) partía de la calidad elegida para el próximo arranque y no de la que corre (y la bajada por el contexto 3D, igual);
 //    d) bajar de Media a Baja apaga las sombras: todos los materiales recompilaban a tirones; ahora se compilan antes, con
@@ -186,7 +187,8 @@ ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ve
   ok(AC.hayTirones(e) && AC.decidirCalidad(e)?.motivo === 'bajar', 'tirones seguidos (uno cada 12 cuadros) sí preguntan, aunque el promedio cierre');
   ok(correr({ fps: 30, objetivo: 30 }) === null, 'con el límite en 30, 30 parejos no preguntan');
   ok(correr({ fps: 18, objetivo: 30 }) !== null, 'con el límite en 30, 18 sostenidos sí');
-  ok(main.includes("if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(cadencia.dtReal);"), 'el bucle le pasa el dt sin recortar');
+  // (el bucle le pasa el dt recortado a 0,2 s: un congelón llega como un cuadro de 0,2 s, que es el caso de arriba)
+  ok(correr({ fps: 1 / 0.2 }) !== null, 'un equipo que no pasa de 5 cuadros por segundo (o menos: llegan recortados a 0,2 s), sí');
   ok(main.includes("anotarCuadroCalidad(autoCalidad, dtReal, ajustes.limiteFps === 30 ? 30 : null);"), 'y el límite que eligió el jugador');
   ok(main.includes("if (clave === 'calidad') sincronizarCalidad(autoCalidad, calidadActiva);"), 'tocar la calidad en Ajustes no cambia la que mide (la nueva vale al arrancar)');
   ok(main.includes('const hasta = calidadVecina(calidadActiva, -1);') && main.includes("const cambio = { motivo: 'bajar', desde: calidadActiva, hasta };"), 'el contexto 3D perdido baja desde la que corre');
@@ -237,5 +239,8 @@ ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ve
   const pinta = tramo('function pintarTeclasPropias() {', 900);
   ok(pinta.includes("#teclas-basicas kbd, #controles-completos kbd, #pausa kbd, #mochila kbd") && main.includes('  pintarTeclasPropias();   // 3.8.6\n'), 'se pintan al abrir y con cada cambio de tecla');
 }
+
+// 11. La pantalla de la victoria abre con el foco en «Seguir» (Enter o la A del mando siguen).
+ok(main.includes("try { $('victoria-seguir').focus({ preventScroll: true }); } catch { /* sin foco */ }"), 'la victoria, con el foco en Seguir');
 
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);

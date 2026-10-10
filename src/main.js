@@ -2611,6 +2611,8 @@ function mostrarVictoria(s, final = false) {
     modo = 'victoria';
     if (personalAbierto()) { $('personalizar').classList.add('oculto'); origenPersonal = null; }   // 2.8: no la tapa
     $('victoria').classList.remove('oculto');
+    // 3.8.6: con el foco en «Seguir»: Enter (o la A del mando) sigue; la cruceta pasa a los otros botones (ver leerMandoQuieto)
+    try { $('victoria-seguir').focus({ preventScroll: true }); } catch { /* sin foco */ }
   }, 5200);
 }
 $('victoria-seguir').addEventListener('click', () => { $('victoria').classList.add('oculto'); volverAlJuego(); });
@@ -4044,11 +4046,18 @@ let habiaMando = false;
 // cerrar un cuadro con A hacía saltar, con B agacharse, y la B de un cuadro abierto desde la pausa cerraba también la pausa.
 // Y una sola vez: en el tren o en el kayak con la pausa, el cuaderno o el mapa abiertos se leía dos veces en el mismo cuadro
 // (leerMando y leerMandoEnMenu) y la segunda lectura ya no veía nada recién apretado: Start y B no sacaban de la pausa.
-let mandoLeido = false;
+// Y lo recién apretado se usa una sola vez por cuadro (`usarMando`): si jugando Start abre la pausa (o la cruceta el mapa),
+// la pausa no vuelve a tomar ese mismo Start en ese cuadro para cerrarla.
+let mandoLeido = false, mandoUsado = false;
 function leerMandoActual() {
   if (mandoLeido) return mando.estado();
   mandoLeido = true;
   return mando.actualizar();
+}
+function usarMando() {
+  if (mandoUsado) return false;
+  mandoUsado = true;
+  return true;
 }
 // 3.8.6: en las pantallas que no son del juego ni de la pausa: la tarjeta del valle y la de la victoria se manejan con el
 // mando (la cruceta o LB y RB pasan de botón, A lo aprieta, B cierra las tarjetas de un solo botón); antes, con el mando
@@ -4059,7 +4068,7 @@ function leerMandoQuieto() {
   if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
   if (!m.conectado || dialogos.abierto()) return;
   const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria') : null;
-  if (!caja || caja.classList.contains('oculto')) return;
+  if (!caja || caja.classList.contains('oculto') || !usarMando()) return;
   const mover = (m.recien.mochila || m.recien.planos || m.recien.objetoAnterior) ? -1 : (m.recien.taller || m.recien.mapa || m.recien.objetoSiguiente) ? 1 : 0;
   if (mover) moverFocoEn(caja, mover);
   if (m.recien.saltar) {
@@ -4086,7 +4095,7 @@ function leerMando(dt) {
     // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
     if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
   }
-  if (!m.conectado || modo !== 'jugando' || !jugador) return;
+  if (!m.conectado || modo !== 'jugando' || !jugador || !usarMando()) return;
   // 3.7.4: con la rueda abierta, el palito derecho apunta (no mira) y A elige
   const enRueda = !!charla.menu && !foto.activo;
   if (enRueda) { if (Math.hypot(m.mirada.x, m.mirada.y) > 0.5) apuntarRueda(m.mirada.x, m.mirada.y, true); if (m.recien.saltar) { seguirCharla(); m.recien.saltar = false; } }
@@ -4147,7 +4156,7 @@ function leerMandoEnMenu() {
   const m = leerMandoActual();
   if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
   if (!m.conectado) return;
-  if (dialogos.abierto()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
+  if (dialogos.abierto() || !usarMando()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
   if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
 }
 
@@ -8631,8 +8640,9 @@ function cuadroDelJuego(tRaf, manual) {
   const factorEfectos = presupuestoAdaptativo.soloCadencias ? 1 : factorEfectosPorPresupuesto(presupuestoAdaptativo.nivel);   // 3.8.4: las partículas no bajan solas
   if (modo === 'carga') return;
   // 3.8.4 (decisión 35): la calidad ya no se acomoda sola: si el equipo no da, se pregunta (ver revisarSiVaLento)
-  // 3.8.6: con el dt sin recortar (un congelón de más de medio segundo es un freno y no cuenta; recortado a 0,2 s contaba)
-  if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(cadencia.dtReal);
+  // (3.8.6: el dt recortado a 0,2 s, como siempre: un equipo que no llega ni a 2 cuadros por segundo también es lento; un
+  // congelón suelto ya no alcanza para preguntar porque los tirones tienen que ser muchos, ver hayTirones en autocalidad.js)
+  if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(dtReal);
   const medirRendimiento = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   const tInicio = medirRendimiento ? performance.now() : 0;
   U.uTiempo.value += dt;
@@ -8667,8 +8677,8 @@ function cuadroDelJuego(tRaf, manual) {
     else { leerMando(dt); jugador.actualizar(dt); }
   }
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
-  if (!mandoLeido) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
-  mandoLeido = false;
+  if (!mandoUsado) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
+  mandoLeido = false; mandoUsado = false;
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)

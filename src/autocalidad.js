@@ -90,7 +90,7 @@ export function sincronizarCalidad(estado, calidad) {
   return reiniciarMedicion(estado);
 }
 
-// Un cuadro más. Se llama una vez por frame con el dt real (en segundos), sin recortar (los frenos se descartan acá).
+// Un cuadro más. Se llama una vez por frame con el dt real (en segundos).
 // 3.8.6: `objetivoFps` (opcional): el ritmo que eligió el jugador si es menos de 60 (el límite en 30). Los umbrales son para
 // 60 cuadros: con 30 elegidos, 30 parejos quedaban siempre «en rojo» y la pregunta salía aunque el equipo anduviera perfecto.
 export function anotarCuadro(estado, dt, objetivoFps = null) {
