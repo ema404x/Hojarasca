@@ -106,7 +106,8 @@ export function agarreDe(estado, { lluvia = 0, helada = 0 } = {}) {
 
 // El silbato: el del taller si elegiste uno; si no ('comun'), el de "Personalizar" (2.8). Devuelve un id de
 // SILBATOS (personal-trochita.js) o, el del pájaro, sus caños y toques.
-export const SILBATO_PAJARO = { nombre: 'De pájaro, el del taller', canos: [[1320, 0.05], [1980, 0.03], [2640, 0.012]], toques: [[0, 0.16], [0.22, 0.16], [0.44, 0.16], [0.7, 0.55]], vibrato: 14, soplo: 1800 };
+// 3.8.4: tres campanitas chicas en fa mayor (fa, la, do), con el mismo vapor que los demás (ver `Sonido.silbato`)
+export const SILBATO_PAJARO = { nombre: 'De pájaro, el del taller', canos: [[1397, 0.045], [1760, 0.03], [2093, 0.016]], toques: [[0, 0.16], [0.22, 0.16], [0.44, 0.16], [0.7, 0.55]], vibrato: 9, soplo: 1800 };
 export function silbatoDelTren(estado, personal = 'clasico') {
   const s = sanearEstadoTren(estado).loco.silbato;
   if (s === 'pajaro') return SILBATO_PAJARO;

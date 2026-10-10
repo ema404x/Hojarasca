@@ -91,8 +91,8 @@ const MODULOS = ['personal-perro', 'personal-caballo', 'personal-botes', 'person
   const tr = trochita.sanearTrochita({ silbato: '__proto__', coches: '#123456' });
   assert.equal(tr.silbato, 'clasico');
   assert.equal(tr.coches, '#123456');
-  // el silbato de siempre es el de antes (sonido.js 2.7)
-  assert.deepEqual(trochita.SILBATOS.clasico.canos, [[520, 0.09], [780, 0.06], [1040, 0.035]]);
+  // el silbato de siempre (3.8.4: rehecho como silbato de vapor: tres campanas en acorde, la menor)
+  assert.deepEqual(trochita.SILBATOS.clasico.canos, [[440, 0.085], [523, 0.07], [659, 0.05]]);
   assert.deepEqual(trochita.SILBATOS.clasico.toques, [[0, 1.5]]);
   assert.equal(trochita.silbatoDe('constructor'), trochita.SILBATOS.clasico);
   assert.equal(trochita.silbatoDe('doble').toques.length, 2);

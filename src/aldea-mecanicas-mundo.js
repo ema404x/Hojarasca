@@ -17,12 +17,13 @@ import * as THREE from 'three';
 import { IDS_EDIFICIOS, EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea } from './aldea.js';
 import { empezarMelodia, seguirMelodia, callarMelodia } from './personal-musica.js';
 import { LIBRO_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
+import { vozDe, planBalbuceo } from './social-voz.js';
 import { CERCA_GESTOS, LEJOS_MECANICAS, RADIO_ESTUFA, MECANICAS, AVISOS_MECANICAS, avisoPrestado, elegirMecanica, sanearMecanicas, izadaA, sacarAgua, libroParaLeer, textoPrestamo, pedirPrestado, devolverLibro, cuentoEscuchado, pizarronDelDia, dibujosDeLosChicos, horarioTrenes, descansarEnCamilla, faltanDelValle, hayBaile, melodiaDelBaile, GESTOS_OFICIO, trabajando, asientoValido, nombreAsiento, hayMurmullo, hayPerros, hayAbejas, cieloDelTelescopio, cartasDelCielo, mapaDeLasCumbres, espejoDeLaCosturera } from './aldea-mecanicas.js';
 
 const azar = (a, b) => a + Math.random() * (b - a);
 const IDS = [...IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura), 'estacion'];
-// las vocales del murmullo (formantes: frecuencia, Q, ganancia)
-const VOCALES = [[[800, 5, 1], [1200, 7, 0.5]], [[500, 5, 1], [1900, 7, 0.45]], [[320, 5, 1], [2300, 7, 0.35]], [[500, 5, 1], [900, 7, 0.5]], [[330, 5, 1], [800, 7, 0.4]]];
+// 3.8.4: lo que se dice en el murmullo de la plaza (no se lee: decide si es un «mm-hm», una pregunta o una risita)
+const FRASES_PLAZA = ['Sí, sí, claro.', 'Y bueno, así es.', '¿Ah, sí?', '¿Vos decís?', '¡Jaja, mirá vos!', 'Mm, puede ser.', '¡No me digas!', 'Ajá.'];
 
 // `ctx`: { mundo, gente(), escena, sonido, col, progreso(), jugador(), tren(), sentaderos, registrar(id),
 // nota(t, sub, nueva), guardar(), leer({ quien, que, partes, id, despedida }), sentarEn({ x, y, z, mira }),
@@ -211,14 +212,14 @@ export function crearMecanicasAldea(ctx) {
     s.zumbido({ x: c.x + azar(-1, 1), y: c.y, z: c.z + azar(-1, 1) }, azar(1, 1.8));
     info.zumbidos++;
   }
+  // 3.8.4: el murmullo de la plaza ya no son gargantas ásperas (las de los bichos) que salen de cualquier lado: daban
+  // miedo. Es gente que charla bajito, con la voz de los vecinos (social-voz.js): un «mm-hm», un «¿ah, sí?», una risita.
   function murmullo(p) {
-    const s = S(); if (!s) return;
-    const d = s.fuente({ x: p.x + azar(-4, 4), y: p.y + 1.4, z: p.z + azar(-4, 4) }, 1, 0.5); if (!d) return;
-    const n = 2 + Math.floor(Math.random() * 3), voz = azar(120, 230);
-    for (let i = 0; i < n; i++) {
-      const f = voz * azar(0.9, 1.15);
-      s.garganta({ destino: d, frec: f, fin: f * azar(0.85, 1.05), dur: azar(0.12, 0.26), vol: 0.0045, ataque: 0.03, formantes: VOCALES[Math.floor(Math.random() * VOCALES.length)], aspereza: 0.12, aliento: 0.4, cuando: i * azar(0.18, 0.3) });
-    }
+    const s = S(); if (!s?.balbuceo) return;
+    const pos = { x: p.x + azar(-4, 4), y: p.y + 1.4, z: p.z + azar(-4, 4) };
+    const voz = vozDe(`plaza-${Math.floor(Math.random() * 16)}`, { edad: azar(18, 78), mujer: Math.random() < 0.5, chico: Math.random() < 0.15 });
+    const frase = FRASES_PLAZA[Math.floor(Math.random() * FRASES_PLAZA.length)];
+    s.balbuceo(planBalbuceo(frase, voz, Math.floor(Math.random() * 1e6)), { pos, vol: 0.035 });
     info.murmullos++;
   }
   function ladridoLejos(cam) {

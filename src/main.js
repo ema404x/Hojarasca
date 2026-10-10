@@ -9213,6 +9213,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // el banco de sonidos del Desafío armado contra el motor que se le pase: así el
     // renderizador de sonidos puede sacar a un archivo lo mismo que suena jugando
     __bancoSonidos: (motor) => crearBanco(motor || sonido),
+    // 3.8.4: las voces de los vecinos y el silbato del taller, para el banco de sonidos (pruebas/render-sonidos.cjs)
+    __vozDe: vozDe, __planBalbuceo: planBalbuceo, __silbatoDelTren: silbatoDelTren,
     __fusionar: fusionarPorMaterial,
     __armarLamina: armarLamina, __guardarLamina: guardarLamina,
     // 2.1

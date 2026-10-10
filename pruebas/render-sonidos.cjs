@@ -74,6 +74,20 @@ const LISTA = [
   ['asedio-puerta', 1.5, `H.desafioS.puerta({x:0,y:1,z:-2})`],
   ['perro-grune', 2.0, `H.desafioS.grunirPerro({x:1,y:0.5,z:-1})`],
   ['acecho-pasos-rapidos', 1.5, `H.desafioS.pasos({x:0,y:0,z:6})`],
+  // 3.8.4: las voces de los vecinos (un murmullo cálido: «mm», «ah», una risita) y los silbatos de la trochita.
+  // Cada muestra de voz son tres renglones seguidos: lo que cuenta, una pregunta y algo que le causa gracia.
+  ...[['chico', 'aldea-nene'], ['nena', 'aldea-nena'], ['mujer-joven', 'pintora'], ['mujer', 'aldea-madre'], ['mujer-mayor', 'aldea-abuela'], ['hombre', 'aldea-padre'], ['hombre-mayor', 'martin']].map(([n, k]) => [`vecino-${n}`, 4.6,
+    `const v = H.voz('${k}'); H.sonido.balbuceo(H.plan('Hoy bajé al lago temprano y estaba quieto como un espejo.', v, 1), { vol: 0.05 }); ` +
+    `H.sonido.balbuceo(H.plan('¿Vos viste cómo está el tiempo para mañana?', v, 2), { vol: 0.05, cuando: 1.5 }); ` +
+    `H.sonido.balbuceo(H.plan('¡Jaja, qué ocurrencia la tuya!', v, 3), { vol: 0.05, cuando: 3.0 })`]),
+  ['vecinos-charlando-a-8m', 4.6, `const a = H.voz('aldea-jefe'), b = H.voz('aldea-nelida'); ` +
+    `H.sonido.balbuceo(H.plan('Dicen que mañana llueve.', a, 4), { pos: { x: -3, y: 1.6, z: -8 }, vol: 0.09 }); ` +
+    `H.sonido.balbuceo(H.plan('¿Otra vez? Si recién colgué la ropa.', b, 5), { pos: { x: 3, y: 1.6, z: -8 }, vol: 0.09, cuando: 1.3 }); ` +
+    `H.sonido.balbuceo(H.plan('¡Ja! Así es el valle.', a, 6), { pos: { x: -3, y: 1.6, z: -8 }, vol: 0.09, cuando: 2.7 })`],
+  ['duende-risita', 2.0, `H.sonido.vozAlien('rastreador','alerta',{distancia:5,intensidad:0.9})`],
+  ...['clasico', 'grave', 'agudo', 'doble', 'largo', 'acorde'].map((id) => [`silbato-${id}`, id === 'largo' ? 8.5 : 7, `H.sonido.silbato({ x: 0, y: 2, z: -30 }, '${id}')`]),
+  ['silbato-taller-pajaro', 6.5, `H.sonido.silbato({ x: 0, y: 2, z: -30 }, H.silbatoTren({ loco: { silbato: 'pajaro' } }))`],
+  ['silbato-clasico-lejos-250m', 8, `H.sonido.silbato({ x: 0, y: 2, z: -250 }, 'clasico')`],
 ];
 
 // WAV de 16 bits, que es lo que abre cualquier cosa sin instalar nada.
@@ -105,7 +119,10 @@ app.whenReady().then(async () => {
   for (let i = 0; i < 300; i++) { await esperar(500); if (await js('!!window.__hojarasca').catch(() => false)) break; }
 
   const informe = [];
+  // 3.8.4: SONIDOS=vecino-,silbato- renderiza sólo los que empiezan así (sin la variable, todos)
+  const solo = (process.env.SONIDOS || '').split(',').map((x) => x.trim()).filter(Boolean);
   for (const [nombre, segundos, disparo] of LISTA) {
+    if (solo.length && !solo.some((p) => nombre.startsWith(p))) continue;
     const datos = await js(`(async () => {
       const H = window.__hojarasca;
       const tasa = 48000;
@@ -114,7 +131,7 @@ app.whenReady().then(async () => {
       const S2 = new (H.sonido.constructor)();
       S2.iniciar(off);
       S2.oyente = { x: 0, y: 1.6, z: 0 };
-      const H2 = { sonido: S2, desafioS: H.__bancoSonidos(S2) };
+      const H2 = { sonido: S2, desafioS: H.__bancoSonidos(S2), voz: H.__vozDe, plan: H.__planBalbuceo, silbatoTren: H.__silbatoDelTren };   // (3.8.4: y las voces y el silbato del taller)
       try { ${disparo.replace(/\bH\./g, 'H2.')} } catch (e) { return { error: String(e && e.message || e) }; }
       const buf = await off.startRendering();
       const l = buf.getChannelData(0), r = buf.getChannelData(1);
