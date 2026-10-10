@@ -139,4 +139,27 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(con?.renglon.endsWith('Gracias, Pancho.') && sin?.renglon.endsWith('Gracias.') && !/\{/.test(con.renglon + sin.renglon), `vecinos: «Gracias, Pancho.» o «Gracias.» (salía «Gracias, {nombre}.»): ${sin?.renglon}`);
 }
 
+// ---------------------------------------------------------------- 8. vecinos: los chismes, de los que viven en la aldea y sin género
+{
+  const S = await import('../src/vecindad-social.js');
+  const V = await import('../src/vecindad.js');
+  const SV = await import('../src/vecindad-social-voces.js');
+  const vacia = AL.sanearAldea(AL.aldeaNueva());
+  const presentes = new Set(AL.ORDEN_PERSONAS_ALDEA.filter((k) => AL.esVecinoAldea(k)).map((k) => AL.personaAldea(k)?.nombreCorto || k));
+  let chismes = 0, ajenos = 0;
+  for (let d = 1; d <= 60; d++) for (const quien of ['abuela', 'nelida', 'ercilia', 'madre', 'telegrafista']) {
+    const p = { dia: d, horas: 11, cosas: {}, materiales: {}, entradas: {}, aldea: JSON.parse(JSON.stringify(vacia)), vecindad: V.vecindadNueva(), amor: AM.amorNuevo() };
+    p.vecindad.personas[quien] = { ...(p.vecindad.personas[quien] || {}), p: 80 };
+    for (let s = 0; s < 6; s++) {
+      const r = S.iniciativa(quien, p, { dia: d, hora: 9 + s, ritmo: 'animado', semilla: s, ahora: d * 24 + 9 + s * 30 });
+      if (r?.tipo !== 'chisme') continue;
+      chismes++;
+      for (const k of AL.ORDEN_POBLADORES_ALDEA) { const nom = V.nombreCorto(k); if (nom && !presentes.has(nom) && r.renglones[0]?.includes(nom)) ajenos++; }
+    }
+  }
+  ok(chismes > 0 && ajenos === 0, `vecinos: con la aldea vacía, los chismes no nombran pobladores que no llegaron (${chismes} chismes, ${ajenos} con alguien que no está)`);
+  ok(!SV.FRASES_SOCIAL.chismes.some((t) => /dormido|ranchera solo|Ninguno de los dos/.test(t)), 'vecinos: los chismes sin «dormido», «solo», «ninguno» (salía «Julia se quedó dormido»)');
+  sinCR('src/vecindad-social.js');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

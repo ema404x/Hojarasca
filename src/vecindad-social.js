@@ -41,7 +41,7 @@
 import { PERSONAS_VECINDAD, PERFILES_VECINOS, REGALABLES, HECHOS, NIVELES_AMISTAD, AMISTAD, esPersonaVecindad, esRegalable, nombreCorto, nivelDe, climaDe, cambiarAmistad, puntosAmistad, revelarGusto, gustoDe, ayudas, vecindadNueva } from './vecindad.js';
 import { VOCES } from './vecindad-voces.js';
 import { esCandidata, puedeRomance, romanceActivo, etapaAmor, coquetear, sumarAfectoDe, ETAPAS_AMOR } from './amor.js';
-import { esCumpleanos, esPersonaAldea, CHICOS_ALDEA, num, azar } from './aldea.js';
+import { esCumpleanos, esPersonaAldea, esPobladorAldea, chicoAfuera, ORDEN_POBLADORES_ALDEA, CHICOS_ALDEA, num, azar } from './aldea.js';
 import { ritmoDe } from './aldea-vida.js';
 import { VOCES_SOCIAL, VOCES_SOCIAL_AMOR, FRASES_SOCIAL } from './vecindad-social-voces.js';
 
@@ -696,7 +696,8 @@ export function iniciativa(persona, estado, ctx = {}) {
   const opciones = [['saludar', 1]];
   if (nivel !== 'conocido' && h >= 9 && h < 20) opciones.push(['invitar', 0.8]);
   if (nivel !== 'conocido' && deseo) opciones.push(['pedir', 1]);
-  if (rasgos.includes('charlatan') || ['abuela', 'nelida', 'ercilia', 'madre', 'telegrafista', 'modista'].includes(persona)) opciones.push(['chisme', 0.9]);
+  // (3.8.6: si hay chisme para contar: el suyo, o dos de la aldea para nombrar)
+  if ((rasgos.includes('charlatan') || ['abuela', 'nelida', 'ercilia', 'madre', 'telegrafista', 'modista'].includes(persona)) && (chismePropio(voz, base) || chismeDe(persona, base, sem))) opciones.push(['chisme', 0.9]);
   if (nivel === 'compadre' || rasgos.includes('jugueton')) opciones.push(['interaccion', 0.7]);
   let q = sorteo(`${sem}:tipo`) * opciones.reduce((a, [, w]) => a + w, 0);
   let tipo = opciones[opciones.length - 1][0];
@@ -718,7 +719,8 @@ export function iniciativa(persona, estado, ctx = {}) {
   } else if (tipo === 'chisme') {
     r.burbuja = 'susurro'; r.animEl = 'susurrar';
     const c = chismeDe(persona, base, sem);
-    r.renglones = [renglonDe(sorteo(`${sem}:ch`) < 0.5 && voz.viene?.chisme ? [voz.viene.chisme] : [c || voz.viene?.chisme].filter(Boolean), datos, sem) || c];
+    const propio = chismePropio(voz, base);
+    r.renglones = [renglonDe(sorteo(`${sem}:ch`) < 0.5 && propio ? [propio] : [c || propio].filter(Boolean), datos, sem) || c];
   } else if (tipo === 'interaccion') {
     const id = elegirDe(nivel === 'compadre' ? ['abrazo', 'chocar', 'chiste'] : ['chocar', 'morisqueta', 'chiste'], `${sem}:int`);
     r.id = id; r.burbuja = INTERACCIONES[id].icono; r.animEl = INTERACCIONES[id].anim.el === 'reir' ? 'contar' : INTERACCIONES[id].anim.el;
@@ -746,10 +748,23 @@ const iconoDeseo = (ds) => (ds.cumplir.tipo === 'regalo' ? ICONO_COSA[ds.cumplir
   : ds.cumplir.tipo === 'invitar' ? (ds.cumplir.que === 'te' ? 'taza' : 'mate') : ds.cumplir.tipo === 'ayudar' ? 'herramienta' : 'estrella');
 export const iconoDeDeseo = (ds) => (objeto(ds) && objeto(ds.cumplir) ? iconoDeseo(ds) : null);
 // Un chisme inocente: dos vecinos que se llevan bien (o no tanto) y algo que hicieron.
+// 3.8.6: el chisme propio (`viene.chisme`), si no nombra a un poblador que todavía no llegó a la aldea
+function chismePropio(voz, base) {
+  const t = voz?.viene?.chisme;
+  if (typeof t !== 'string') return null;
+  const aldea = objeto(base?.aldea) ? base.aldea : null;
+  if (!aldea) return t;
+  return ORDEN_POBLADORES_ALDEA.some((k) => !(aldea.pobladores || []).some((p) => p?.clave === k) && !!nombreCorto(k) && t.includes(nombreCorto(k))) ? null : t;
+}
+// 3.8.6: de los que viven en la aldea de verdad (los pobladores que ya llegaron, sin los chicos que estudian afuera):
+// antes nombraba a cualquiera de la lista, aunque todavía no hubiera llegado. Sin dos para nombrar, null.
 function chismeDe(persona, base, sem) {
-  const otros = PERSONAS_VECINDAD.filter((k) => k !== persona && esPersonaAldea(k));
+  const aldea = objeto(base?.aldea) ? base.aldea : null;
+  const vive = (k) => esPersonaAldea(k) && (!aldea || ((!esPobladorAldea(k) || (aldea.pobladores || []).some((p) => p?.clave === k)) && !chicoAfuera(aldea, k)));
+  const otros = PERSONAS_VECINDAD.filter((k) => k !== persona && vive(k));
+  if (otros.length < 2) return null;
   const a = elegirDe(otros, `${sem}:a`);
-  const amigos = PERFILES_VECINOS[a].amigos.filter((k) => k !== persona && esPersonaVecindad(k));
+  const amigos = PERFILES_VECINOS[a].amigos.filter((k) => k !== persona && esPersonaVecindad(k) && (!aldea || vive(k)));
   const b = elegirDe(amigos.length ? amigos : otros.filter((k) => k !== a), `${sem}:b`);
   return renglonDe(FRASES_SOCIAL.chismes, { a: nombreCorto(a), b: nombreCorto(b) }, `${sem}:chisme`);
 }
