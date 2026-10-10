@@ -162,7 +162,10 @@ export function crearVela(T, escena, col, sonido, ctx = {}) {
     barco.visible = true;
     if (!antes) {
       // lo guardado, si todavía flota; si no, a la punta del varadero
-      if (guardado && hondo(guardado.x, guardado.z)) Object.assign(est, { x: guardado.x, z: guardado.z, rumbo: guardado.rumbo });
+      // 3.8.6: si vas arriba (desarmaste el varadero navegando y terminaste otro), sigue donde va: antes no se podía amarrar
+      // con vos a bordo y el velero quedaba invisible hasta que bajaras
+      if (est.activo) { /* (queda donde está) */ }
+      else if (guardado && hondo(guardado.x, guardado.z)) Object.assign(est, { x: guardado.x, z: guardado.z, rumbo: guardado.rumbo });
       else if (amarrar()) { if (guardado === null && ctx.cargado?.()) ctx.nota?.('El velero quedó amarrado en tu varadero', 'E para subir: se navega con el viento', true); }
       // 3.8.3: sin dónde amarrarlo, no aparece en el medio del mapa (0, 0): se vuelve a probar en la próxima revisión
       else { est.hay = false; barco.visible = false; firma = null; return; }

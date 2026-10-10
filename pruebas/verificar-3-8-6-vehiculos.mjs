@@ -15,6 +15,7 @@
 //  8. Varado en la nieve: tu caballo baja del lado de afuera de la vía (podía quedar sobre los rieles, en la locomotora).
 //  9. Bajar del kayak o del velero en la orilla: nunca del otro lado de una pared (una obra tuya en la costa).
 // 10. Desarmar un hoyo con su frutal devuelve la fruta madura que estaba para juntar (se perdía).
+// 11. El velero: desarmar el varadero navegando y terminar otro ya no lo deja invisible con vos arriba.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -160,5 +161,8 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
   ok(gj.includes('function alDesarmarHoyo(x, z) {') && gj.includes('const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());\n    if (!r.ok) return null;\n    ctx.sumarEntrada?.(r.k, r.n);'), 'la granja la junta');
   ok(m.includes("if (d.plano === 'frutal') granjaJuego?.alDesarmarHoyo?.(d.x, d.z);"), 'al desarmar (a mano o en el desalojo)');
 }
+
+// 11. el velero con vos arriba cuando aparece otro varadero
+ok(leer('src/vela.js').includes('if (est.activo) { /* (queda donde está) */ }\n      else if (guardado && hondo(guardado.x, guardado.z))'), 'navegando, el velero sigue visible');
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);
