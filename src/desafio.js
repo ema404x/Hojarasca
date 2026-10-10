@@ -10,7 +10,7 @@ import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
 import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
-import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA } from './desafio-reglas.js';
+import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
@@ -243,15 +243,34 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const geoCristal = geoSemilla(0.3);
   const matCristal = new THREE.MeshBasicMaterial({ vertexColors: true });
   const cristales = [];
+  // 3.8.6: una semilla del pozo, libre (null si ya hay SUELTAS_MAX en el suelo: el jefe suelta muchas de golpe)
+  function semillaLibre() {
+    let c = cristales.find((q) => !q.activo);
+    if (!c) {
+      if (cristales.length >= SUELTAS_MAX) return null;
+      c = { mesh: new THREE.Mesh(geoCristal, matCristal), activo: false, x: 0, z: 0, y: 0, t: 0, dato: null };
+      escena.add(c.mesh);
+      cristales.push(c);
+    }
+    return c;
+  }
+  // 3.8.6: las semillas tiradas en el suelo van en la partida (`d.sueltas`, una por semilla): antes vivían sólo en
+  // memoria y guardar y abrir las perdía. `c.dato` es su anotación.
+  function anotarSuelta(c) {
+    const d = D();
+    if (!Array.isArray(d.sueltas)) d.sueltas = [];
+    c.dato = { x: Math.round(c.x * 100) / 100, y: Math.round(c.y * 100) / 100, z: Math.round(c.z * 100) / 100 };
+    d.sueltas.push(c.dato);
+  }
+  function borrarSuelta(c) {
+    const l = D().sueltas, i = c.dato && Array.isArray(l) ? l.indexOf(c.dato) : -1;
+    if (i >= 0) l.splice(i, 1);
+    c.dato = null;
+  }
   function soltarCristales(pos, n) {
     for (let i = 0; i < n; i++) {
-      let c = cristales.find((q) => !q.activo);
-      if (!c) {
-        if (cristales.length > 80) break;   // el jefe suelta muchos de golpe
-        c = { mesh: new THREE.Mesh(geoCristal, matCristal), activo: false, x: 0, z: 0, y: 0, t: 0 };
-        escena.add(c.mesh);
-        cristales.push(c);
-      }
+      const c = semillaLibre();
+      if (!c) break;
       const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6;
       c.x = pos.x + Math.cos(a) * r; c.z = pos.z + Math.sin(a) * r;
       c.y = alturaSuelo(c.x, c.z) + 0.35;   // 3.0
@@ -262,7 +281,27 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const w = naveMundo?.adentro ? null : T.agua?.(c.x, c.z);
       if (w) c.y = Math.max(c.y, w.nivel + 0.35);
       c.mesh.visible = true;
+      if (!naveMundo?.adentro) anotarSuelta(c);   // 3.8.6 (adentro del Coihue no queda ninguna: se sale al valle)
     }
+  }
+  // 3.8.6: al abrir la partida, las que quedaron tiradas vuelven a su lugar
+  function restaurarSueltas() {
+    const d = D();
+    if (!Array.isArray(d.sueltas)) d.sueltas = [];
+    const lista = d.sueltas.slice(0, SUELTAS_MAX);
+    d.sueltas = [];
+    for (const s of lista) {
+      const c = semillaLibre();
+      if (!c) break;
+      c.x = s.x; c.y = s.y; c.z = s.z; c.t = Math.random() * 6; c.activo = true; c.mesh.visible = true;
+      anotarSuelta(c);
+    }
+  }
+  // 3.8.6: al caer se pierden de verdad las semillas (las de la mochila y las tiradas): antes las del suelo
+  // seguían ahí al despertar, aunque el aviso dice «Perdiste las semillas doradas»
+  function perderSueltas() {
+    for (const c of cristales) { c.activo = false; c.mesh.visible = false; c.dato = null; }
+    D().sueltas = [];
   }
 
   // ---------------- la cápsula estrellada con la pistola de plasma
@@ -418,6 +457,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   arsenal = crearArsenalMundo(T, escena, efectos, sonido, api);
   // 2.6: el fortín (ver desafio-fortin-mundo.js)
   api.obraEnPunto = (x, y, z) => obraEnPunto(x, y, z);
+  api.trabadoEn = (x, z, r) => trabadoEn(x, z, r);   // 3.8.6: las madrigueras, sin árboles atravesados
   api.cosas = () => progreso().cosas || {};
   api.alGuardarObras = () => ctx.alGuardarObras?.();
   api.alFabricar = () => ctx.alFabricar?.({});
@@ -712,6 +752,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // se cerraba otra vez la noche ya cerrada y, en la hora antes del ataque, se borraba la
       // noche especial ya anunciada
       if (!d.oleadaTerminada) terminarOleada(false);
+      perderSueltas();   // 3.8.6: antes de que main.js guarde la caída
       ctx.alCaer?.();
     }
   }
@@ -2700,6 +2741,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       c.mesh.rotation.y = c.t * 1.6;
       if (Math.hypot(js.pos.x - c.x, js.pos.z - c.z) < 1.7 && Math.abs(js.pos.y - c.y) < 2) {
         c.activo = false; c.mesh.visible = false; juntados++;
+        borrarSuelta(c);   // 3.8.6
       }
     }
     if (juntados) {
@@ -3316,6 +3358,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       cimientos.sincronizar(obras.obras);
       sincronizarCapullos();   // 2.3: los capullos que quedaron de la partida guardada
       devolverTodo(false);   // 3.8.0: si se guardó con algo robado, vuelve a tus cosas
+      restaurarSueltas();   // 3.8.6: y las semillas que quedaron tiradas
       arsenal.devolverTiradas();   // 3.8.3: y las hachuelas y jabalinas que quedaron tiradas
       // 3.5.1: si se cerró el juego mientras la nave caía (derribar ya guardó el asedio
       // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
