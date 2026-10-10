@@ -152,4 +152,7 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
   G.borrarProgreso();
 }
 
+// 5. Mantener F11 apretada prendía y apagaba la pantalla completa sin parar (la repetición de la tecla).
+ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ventana.isFullScreen());"), 'F11: sólo la primera, no la repetición');
+
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);

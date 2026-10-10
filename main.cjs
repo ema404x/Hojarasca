@@ -142,7 +142,8 @@ function crearVentana() {
   // F11: pantalla completa
   ventana.webContents.on('before-input-event', (evento, tecla) => {
     if (tecla.type === 'keyDown' && tecla.key === 'F11') {
-      ventana.setFullScreen(!ventana.isFullScreen());
+      // 3.8.6: mantenerla apretada repite la tecla: sólo cuenta la primera (prendía y apagaba la pantalla completa sin parar)
+      if (!tecla.isAutoRepeat) ventana.setFullScreen(!ventana.isFullScreen());
       evento.preventDefault();
     }
   });
