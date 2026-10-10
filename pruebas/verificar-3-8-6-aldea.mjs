@@ -115,4 +115,15 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(leer('src/main.js').includes("/^ayudar:/.test(elegido) && r.ayudo ? { tipo: 'ayudar' }"), 'main: el deseo «una mano» se cumple sólo si de verdad la diste (antes, con «no tenés» también)');
 }
 
+// ---------------------------------------------------------------- 6. el picado: amistad una vez por día y sólo si se jugó
+{
+  const R = await import('../src/rincones.js');
+  const r = R.sanearRincones({}, 10);
+  ok(!R.amistadDelPicado(r, 10, false, 3), 'picado: armarlo y alejarte enseguida no da amistad');
+  ok(R.amistadDelPicado(r, 10, true, 20) && !R.amistadDelPicado(r, 10, true, 90), 'picado: a los goles, sí; el segundo del día, no (antes +3 sin fin)');
+  ok(R.amistadDelPicado(r, 11, false, R.PICADO.jugado) && R.sanearRincones(r, 11).futbol.amistad === 11, 'picado: al otro día, después de jugar un rato, sí; y se guarda');
+  const j = leer('src/rincones-juego.js');
+  ok(j.includes('const cuenta = amistadDelPicado(r(), dia(), !motivo, partido.t);') && j.includes('if (cuenta) amistad(j.clave, 3);') && j.includes('if (!jugado) continue;'), 'rincones-juego: la amistad y el deseo de la pelota, sólo así');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
