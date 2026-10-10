@@ -3105,6 +3105,13 @@ function encenderFuego() {
   const js = jugador.estado;
   const ref = T.lugares.refugio;
   const propio = fogonPropioCerca();
+  // 3.8.6: con el fuego ya prendido ahí, F no lo vuelve a prender (gastaba otras tres ramitas, o otro tronco en invierno,
+  // y corría la fogata casi dos metros; el aviso de F no sale con el fuego prendido)
+  const fg = clima.fogata;
+  if (fg.activa && fg.vida > 0 && fg.pos) {
+    const ahi = propio ? { x: propio.datos.x, z: propio.datos.z, r: 1.5 } : Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 ? { x: ref.fogon.x, z: ref.fogon.z, r: 1.5 } : { x: js.pos.x, z: js.pos.z, r: 4 };
+    if (Math.hypot(fg.pos.x - ahi.x, fg.pos.z - ahi.z) < ahi.r) { nota('El fuego ya está prendido', 'Arde solo un buen rato'); return; }
+  }
   const lena = lenaDelInvierno();
   if (!lena.ok) return;
   if (propio) {
@@ -3312,6 +3319,11 @@ function usarRanura() {
   const r = ranuras[elegida];
   if (!r) return;
   const js = jugador.estado;
+  // 3.8.6: los mismos frenos que las teclas (el clic derecho, la U y el gatillo del mando no los tenían): colgado del
+  // cable o en el fundido de dormir, nada; a caballo, ni el hacha, ni el fuego, ni la carpa, ni plantar, ni cocinar
+  // (se talaba montado y se prendía una fogata bajando por la tirolesa)
+  if (js.enCable || durmiendo) return;
+  if (js.montado && ['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
   switch (r.accion) {
     case 'foto': pedirFoto = true; break;
     // 2.4.1: lo del horno se come en el camino: saca el frío y da una hora liviana
@@ -6112,7 +6124,7 @@ function armarCarpa() {
 // 3.8.6: dónde se arma la carpa (el aviso «T Armar la carpa» y la T, con la misma cuenta): el tren, el kayak y el velero
 // cuentan como «en el suelo» y el aviso salía remando o viajando (y la T no hacía nada); en el sulky la armaba debajo
 function puedeArmarCarpaAca(js) {
-  return !!js.enSuelo && !js.nadando && !js.enTren && !js.enKayak && !js.enVela && !js.enSulky && !js.enCable && !js.montado;
+  return !!js.enSuelo && !js.nadando && !js.enTren && !js.enKayak && !js.enVela && !js.enSulky && !js.enCable && !js.montado && !js.enPlataforma;   // (la carpa va en la tierra: en un piso alto quedaba abajo)
 }
 // 3.8.6: levantarla libera lo suyo (cada carpa armada sumaba dos materiales y cuatro geometrías que no se soltaban)
 function quitarCarpa() {
@@ -6165,7 +6177,8 @@ function ponerCarpa() {
 function enLaCarpa() {
   if (!progreso.carpa) return false;
   const js = jugador.estado;
-  return Math.hypot(js.pos.x - progreso.carpa.x, js.pos.z - progreso.carpa.z) < 2.2;
+  // (3.8.6: y a su altura: desde el piso de arriba de una obra se dormía «en la carpa» de abajo)
+  return Math.hypot(js.pos.x - progreso.carpa.x, js.pos.z - progreso.carpa.z) < 2.2 && Math.abs(js.pos.y - T.altura(progreso.carpa.x, progreso.carpa.z)) < 1.6;
 }
 
 // 1.11: las recetas viven en cocina.js y pueden pedir más de un ingrediente.

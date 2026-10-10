@@ -173,4 +173,14 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(/if \(o\.plano\.pieza\) \{\n\s+if \(o\.datos\.etapas <= 0 \|\| o\.plano\.cubreOtras\) continue;[\s\S]{0,300}solapanHuellas\(plano, x, z, rot, o\.plano/.test(c), 'una obra grande no se levanta encima de tus piezas en el suelo');
 }
 
+// ---------------------------------------------------------------- 12. la mano: los frenos de las teclas y el fuego prendido
+{
+  const u = trozoFn('function usarRanura(');
+  ok(u.indexOf('if (js.enCable || durmiendo) return;') > 0 && u.indexOf('if (js.enCable || durmiendo) return;') < u.indexOf('switch (r.accion)'), 'colgado del cable o durmiendo, el clic derecho no usa nada');
+  ok(/if \(js\.montado && \['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'\]\.includes\(r\.accion\)\)/.test(u), 'a caballo, lo mismo que las teclas');
+  const f = trozoFn('function encenderFuego(');
+  ok(f.indexOf("nota('El fuego ya está prendido'") > 0 && f.indexOf("nota('El fuego ya está prendido'") < f.indexOf('lenaDelInvierno()'), 'F con el fuego ya prendido no gasta otra vez');
+  ok(trozoFn('function puedeArmarCarpaAca(').includes('!js.enPlataforma') && trozoFn('function enLaCarpa(').includes('Math.abs(js.pos.y - T.altura(progreso.carpa.x, progreso.carpa.z)) < 1.6'), 'la carpa, en la tierra y a su altura');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);
