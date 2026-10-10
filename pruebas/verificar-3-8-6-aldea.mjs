@@ -162,4 +162,23 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   sinCR('src/vecindad-social.js');
 }
 
+// ---------------------------------------------------------------- 9. vecinos: la iniciativa no se traba con el más cercano
+{
+  const S = await import('../src/vecindad-social.js');
+  const V = await import('../src/vecindad.js');
+  const { crearSocialJuego } = await import('../src/social-juego.js');
+  const { claveVecindad } = await import('../src/vecindad-juego.js');
+  const npc = (claveAldea, clave, x) => ({ claveAldea, clave, pos: { x, z: 0, y: 0 }, g: { visible: true } });
+  const prog = (vino = null) => {
+    const p = { dia: 5, horas: 12, cosas: {}, materiales: {}, entradas: {}, vecindad: V.vecindadNueva(), amor: AM.amorNuevo() };
+    for (let d = 1; d <= 16; d++) V.regalar('panadera', V.PERFILES_VECINOS.panadera.gustos.encanta[d % 3], p, d, () => 99);
+    if (vino) { p.vecindad.social = S.socialNuevo(); p.vecindad.social.dia = 5; p.vecindad.social.vino = vino; }
+    return p;
+  };
+  const vienen = (gente, p) => { let n = 0; for (let s = 0; s < 30; s++) { const sj = crearSocialJuego({ social: { ...S }, progreso: () => p(), dia: () => 5, hora: () => 12, ritmo: () => 'animado', jugador: () => ({ x: 0, z: 0 }), gente: () => gente.map((g) => ({ ...g, pos: { ...g.pos } })), claveDe: claveVecindad }); if (sj.forzarIniciativa()) n++; } return n; };
+  ok(vienen([npc('panadera', 'poblador-panadera', 6), npc('familia', 'familia-madre', 4)], () => prog()) === 30, 'vecinos: con tu familia de visita más cerca, Rosa igual te viene a buscar (antes, nunca)');
+  ok(vienen([npc('panadera', 'poblador-panadera', 6), npc('carpintero', 'poblador-carpintero', 4)], () => prog({ carpintero: 5 })) === 30, 'vecinos: con el que ya vino hoy más cerca, también');
+  ok(S.podriaVenir('panadera', prog(), { dia: 5 }) && !S.podriaVenir('carpintero', prog({ carpintero: 5 }), { dia: 5 }), 'vecinos: podriaVenir');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

@@ -84,7 +84,7 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
 import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
@@ -7228,7 +7228,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {

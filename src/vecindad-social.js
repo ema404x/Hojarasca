@@ -667,6 +667,16 @@ export function cumplirDeseo(persona, estado, hecho, dia, ctx = {}) {
 // ctx: { dia, hora, ritmo, ahora (horas absolutas; si no, dia × 24 + hora), libre (si está libre), semilla, desafio }.
 const INVITA = { mate: 'mate', cartas: 'cartas', caminar: 'caminar', pescar: 'pescar', ranchera: 'ranchera' };
 const INVITA_TEXTO = { mate: /mate/i, cartas: /truco|cartas|chinch[oó]n|naipe/i, caminar: /camin|vuelta|paseo|pasear/i, pescar: /pesc/i, ranchera: /ranchera|bail/i };
+// 3.8.6: ¿éste, en particular, podría venir a buscarte? (no vino hoy y no está enojado). social-juego.js lo mira para elegir
+// al que viene: antes probaba sólo con el más cercano y, si ése no podía (ya vino hoy, enojado, la familia o una visita),
+// no venía nadie mientras estuviera cerca.
+export function podriaVenir(persona, estado, ctx = {}) {
+  if (!esPersonaVecindad(persona)) return false;
+  const { s, progreso } = partes(estado);
+  const d = diaCtx(progreso, ctx);
+  if (s && tieneDe(s.vino, persona) && s.vino[persona] === d) return false;
+  return humorDe(persona, estado, d, ctx).humor !== 'enojado';
+}
 export function iniciativa(persona, estado, ctx = {}) {
   if (!esPersonaVecindad(persona) || ctx?.desafio || ctx?.libre === false) return null;
   const { s, progreso, base } = partes(estado);
