@@ -204,6 +204,17 @@ const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 // 3.7.0: la gente de antes (la de la 3.6), sólo para comparar en depuración (`?debug=1&gente=vieja`)
 const GENTE_VIEJA = HOJARASCA_DEBUG && new URLSearchParams(location.search).get('gente') === 'vieja';
+// proto-menu: tres estilos de prueba para los menús, sólo en depuración (`?debug=1&menu=A|B|C`). Sin ese parámetro no se
+// carga nada y el juego queda igual. Los CSS están en src/proto-menu/ (se leen al lado de index.html, no van en el build)
+{
+  const estilo = HOJARASCA_DEBUG ? new URLSearchParams(location.search).get('menu') : null;
+  if (estilo && /^[ABC]$/.test(estilo)) {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet'; l.href = `src/proto-menu/menu-${estilo}.css`;
+    document.head.appendChild(l);
+    document.documentElement.dataset.menu = estilo;
+  }
+}
 const esperar = () => new Promise((r) => setTimeout(r, 30));
 
 // 2.7.3: ¿es la primera vez que se abre el juego? (antes de leer los ajustes)

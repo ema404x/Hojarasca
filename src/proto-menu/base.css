@@ -1,0 +1,174 @@
+/* proto-menu · el sistema común de los tres estilos (A, B y C). Sólo se carga con ?debug=1&menu=A|B|C.
+   Cada estilo (menu-A.css, menu-B.css, menu-C.css) importa este archivo y pone sus valores en las variables:
+   - letra: una escala de cuatro tamaños (chico, base, medio, grande) y el logo
+   - espacio: una escala de siete pasos (4, 8, 12, 16, 24, 32, 48)
+   - botón: UNA forma (alto, relleno, radio) con sus cuatro estados (normal, encima, elegido, deshabilitado)
+   - panel: fondo, borde, sombra, radio y relleno; tres anchos (angosto, medio, ancho)
+   Todo pensado para entrar a 1366×768 sin desplazar la pantalla (lo largo se desplaza adentro de su panel). */
+
+:root[data-menu] {
+  --e-1: 4px; --e-2: 8px; --e-3: 12px; --e-4: 16px; --e-5: 24px; --e-6: 32px; --e-7: 48px;
+  --ancho-angosto: 560px; --ancho-medio: 780px; --ancho-ancho: 1000px;
+  --b-alto: 40px; --b-alto-chico: 34px; --b-pad: 0 var(--e-4); --b-pad-chico: 0 var(--e-3);
+  --margen-pantalla: var(--e-6);
+}
+
+/* ---------- la letra ---------- */
+:root[data-menu] body { font-family: var(--f-texto); }
+:root[data-menu] :is(.panel-modal, .pausa, .mochila, .trueque, .charla, .obra, .rueda-info, #inicio) { font-family: var(--f-texto); font-size: var(--t-base); line-height: 1.4; }
+/* títulos de panel: una sola medida */
+:root[data-menu] :is(.panel-modal h2, .pausa h2, .mochila h2, .trueque .quien, .charla .quien, .obra .quien) {
+  font-family: var(--f-titulo); font-size: var(--t-grande); font-weight: var(--peso-titulo, 400); font-style: var(--estilo-titulo, normal);
+  line-height: 1.1; margin: 0 0 var(--e-2); color: var(--p-titulo, inherit); letter-spacing: var(--espaciado-titulo, normal); text-transform: var(--mayus-titulo, none);
+}
+/* subtítulos de sección */
+:root[data-menu] :is(.ajustes h3, .panel-modal h3) { font-family: var(--f-titulo); font-size: var(--t-medio); font-weight: var(--peso-titulo, 400); margin: 0 0 var(--e-3); color: var(--p-titulo, inherit); letter-spacing: var(--espaciado-titulo, normal); text-transform: var(--mayus-titulo, none); }
+/* rótulos de cada opción: chicos, iguales en todos lados */
+:root[data-menu] :is(.opcion > span, .modo-juego > span, .fila-ajuste > span, .personal-fila > span, #opcion-dificultad > span) {
+  font-size: var(--t-chico); color: var(--p-tenue); letter-spacing: var(--espaciado-rotulo, .06em); text-transform: var(--mayus-rotulo, uppercase); font-weight: 600; margin: 0;
+}
+/* textos de ayuda: chicos y apagados */
+:root[data-menu] :is(.modo-texto, .fila-ajuste small, .personal-nota, .personal-bloqueado, .seguir, .panel-modal .sub, .mochila .sub, .resumen-pausa, .estado-guardado, .pausa .cuando, .dialogo-ayuda) {
+  font-family: var(--f-texto); font-size: var(--t-chico); line-height: 1.45; color: var(--p-tenue); font-style: normal; min-height: auto;
+}
+:root[data-menu] .pausa .cuando { font-size: var(--t-base); color: var(--p-color); margin: 0 0 var(--e-1); font-family: var(--f-mano, var(--f-texto)); }
+:root[data-menu] .resumen-pausa { margin: 0 0 var(--e-5); }
+:root[data-menu] .panel-modal p { color: var(--p-color); }
+:root[data-menu] :is(#inicio, .velo, .mochila, .trueque, .charla, .obra) kbd { font-family: var(--f-texto); font-size: var(--t-chico); font-weight: 600; min-width: 24px; height: 22px; line-height: 20px; padding: 0 6px; margin: 0;
+  border: 1px solid var(--kbd-borde, currentColor); border-bottom-width: 1px; border-radius: var(--kbd-radio, 4px); background: var(--kbd-fondo, transparent); opacity: .85; }
+
+/* ---------- el botón: una sola forma ---------- */
+:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button,
+  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button) {
+  display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--e-2);
+  min-height: var(--b-alto); padding: var(--b-pad); margin: 0;
+  font-family: var(--f-boton, var(--f-texto)); font-size: var(--t-base); font-weight: var(--peso-boton, 500); font-style: normal; line-height: 1.15; text-align: left; text-decoration: none;
+  color: var(--b-color); background: var(--b-fondo); border: var(--b-borde); border-radius: var(--b-radio); box-shadow: var(--b-sombra);
+  transition: background-color .12s, color .12s, box-shadow .12s, transform .08s;
+  white-space: normal; text-wrap: balance;
+}
+:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button,
+  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button):is(:hover, :focus-visible) {
+  color: var(--b-color-encima, var(--b-color)); background: var(--b-fondo-encima); box-shadow: var(--b-sombra-encima, var(--b-sombra)); text-decoration: none; outline: none;
+}
+:root[data-menu] :where(.segmentos button, .personal-pestanas button, .taller-categorias button, .obra .categorias button, .obra .planos button, .personal-boton):is([aria-pressed="true"], [aria-selected="true"], .elegido, .principal),
+:root[data-menu] :is(.accion-principal, #btn-seguir, #dialogo-si) {
+  color: var(--b-color-elegido); background: var(--b-fondo-elegido); box-shadow: var(--b-sombra-elegido, var(--b-sombra)); border: var(--b-borde-elegido, var(--b-borde));
+}
+:root[data-menu] :where(.segmentos button, .personal-boton, .fila-tecla button, .menu button, .acciones-modal button):disabled,
+:root[data-menu] .personal-segmentos button:disabled { opacity: .4; cursor: default; filter: grayscale(.6); background: var(--b-fondo); box-shadow: var(--b-sombra); }
+/* la tecla va al final del botón, siempre en el mismo lugar */
+:root[data-menu] :is(.menu button, .mochila .personalizar) kbd { margin-left: auto; }
+/* el grupo de opciones: botones iguales en fila, sin cápsula alrededor */
+:root[data-menu] .segmentos { display: flex; flex-wrap: wrap; gap: var(--e-1); padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-menu] .segmentos button { min-height: var(--b-alto-chico); padding: var(--b-pad-chico); justify-content: center; white-space: nowrap; }
+:root[data-menu] .modo-juego .segmentos button { font-size: var(--t-base); padding: 0 var(--e-4); }
+:root[data-menu] .modo-juego .segmentos button[data-valor="desafio"][aria-pressed="true"] { color: var(--b-color-elegido); background: var(--b-fondo-elegido); }
+:root[data-menu] input[type=range] { accent-color: var(--acento); height: var(--b-alto-chico); margin: 0; }
+:root[data-menu] :is(#codigo-partida, .personal-texto, #dialogo input) { min-height: var(--b-alto-chico); padding: 0 var(--e-3); font-family: var(--f-texto); font-size: var(--t-base);
+  color: var(--p-color); background: var(--campo-fondo); border: var(--campo-borde); border-radius: var(--b-radio); }
+
+/* ---------- el panel: una sola caja ---------- */
+:root[data-menu] :is(.panel-modal, .mochila, .trueque, .charla, .obra, .pausa > div:first-child, .pausa > .ajustes) {
+  color: var(--p-color); background: var(--p-fondo); border: var(--p-borde); border-radius: var(--p-radio); box-shadow: var(--p-sombra);
+  padding: var(--p-pad, var(--e-6)); backdrop-filter: var(--p-desenfoque, none);
+}
+:root[data-menu] .velo { background: var(--velo, rgba(10,14,11,.55)); backdrop-filter: var(--velo-desenfoque, blur(2px)); }
+
+/* los modales: título, bajada, contenido que se desplaza adentro y los botones siempre a la vista */
+:root[data-menu] .panel-modal { width: min(var(--ancho-medio), calc(100vw - 2 * var(--margen-pantalla))); max-width: none; max-height: calc(100vh - 2 * var(--margen-pantalla));
+  display: flex; flex-direction: column; overflow: hidden; }
+:root[data-menu] .panel-modal > * { flex: none; }
+:root[data-menu] .panel-modal > :is(#personal-contenido, #guia-contenido, #logros-contenido, #partidas-lista, #teclas-lista, #modos31-contenido, #base-contenido, .controles-completos, #banco-informe) {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: var(--e-2); scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
+:root[data-menu] .panel-modal .sub { margin: 0 0 var(--e-5); }
+:root[data-menu] .panel-modal .acciones-modal { display: flex; justify-content: flex-end; gap: var(--e-2); margin: 0; padding-top: var(--e-4); border-top: var(--linea); margin-top: var(--e-4); }
+:root[data-menu] .panel-modal .acciones-modal button { border-bottom: var(--b-borde); }
+:root[data-menu] #creditos .panel-modal, :root[data-menu] #dialogo .panel-modal { width: min(var(--ancho-angosto), calc(100vw - 64px)); }
+
+/* ---------- Personalizar ---------- */
+:root[data-menu] .personal-pestanas { gap: var(--e-1); margin: 0 0 var(--e-4); padding: 0 0 var(--e-4); border-bottom: var(--linea); }
+:root[data-menu] .personal-pestanas button { min-height: var(--b-alto-chico); padding: var(--b-pad-chico); font-size: var(--t-chico); }
+:root[data-menu] .personal-contenido { gap: var(--e-5); align-content: start; }
+:root[data-menu] .fila-ajuste { gap: var(--e-2); }
+:root[data-menu] .personal-muestras { gap: var(--e-2); }
+:root[data-menu] .personal-muestra { width: var(--b-alto-chico); height: var(--b-alto-chico); border-radius: var(--muestra-radio, 50%); }
+:root[data-menu] .personal-muestra[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 0 3px var(--acento); }
+:root[data-menu] .personal-receta { padding: var(--e-2) var(--e-3); border-radius: var(--b-radio); background: var(--fila-fondo); }
+
+/* ---------- la portada ---------- */
+/* dos columnas parejas: a la izquierda el nombre y qué hacer; a la derecha, en un panel, cómo jugar (idioma, modo,
+   estación, calidad) y las cinco teclas de siempre. Todo a la vista en 1366×768, sin desplazar */
+:root[data-menu] #inicio.portada { display: flex; flex-direction: column; flex-wrap: wrap; align-content: space-between; justify-content: flex-start;
+  height: 100vh; padding: var(--e-6) 64px; gap: 0; overflow: hidden; }
+:root[data-menu] #inicio > div { display: contents; }
+:root[data-menu] #inicio > div > * { width: 540px; flex: none; }
+:root[data-menu] #inicio::after { content: ''; order: 5; flex: 0 0 100%; width: 0; }
+:root[data-menu] #inicio .titulo { order: 1; font-family: var(--f-logo, var(--f-titulo)); font-size: var(--t-logo); font-style: var(--estilo-logo, normal); font-weight: var(--peso-logo, 400);
+  line-height: 1; margin: 0 0 var(--e-2); letter-spacing: var(--espaciado-logo, -.01em); color: var(--logo-color, var(--luz)); }
+:root[data-menu] #inicio .bajada { order: 2; font-family: var(--f-mano, var(--f-texto)); font-size: var(--t-medio); margin: 0 0 var(--e-6); color: var(--bajada-color, rgba(239,230,210,.85)); font-weight: 400; }
+:root[data-menu] #inicio #aviso-recuperado { order: 3; }
+:root[data-menu] #inicio #diario-portada { order: 3; margin: 0 0 var(--e-4); color: var(--portada-tenue, rgba(239,230,210,.8)); text-shadow: var(--portada-sombra, none); }
+:root[data-menu] #inicio .acciones { order: 4; display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-2); align-items: stretch; }
+:root[data-menu] #inicio .acciones button { width: 100%; min-height: var(--b-alto-chico); font-size: var(--t-chico); }
+:root[data-menu] #inicio .accion-principal { grid-column: 1 / -1; min-height: 52px !important; font-size: var(--t-medio) !important; justify-content: center; margin-bottom: var(--e-2); }
+/* el panel de la derecha: idioma, modo, estación y calidad, y las teclas básicas, unidos */
+:root[data-menu] #inicio :is(.opcion:not(.opciones-rapidas .opcion):not(#opcion-relax):not(#opcion-dificultad), .modo-juego, .opciones-rapidas) { order: 6; width: 440px; margin: 0;
+  color: var(--p-color); background: var(--p-fondo-columna, var(--p-fondo)); border-left: var(--p-borde-lado, 0); border-right: var(--p-borde-lado, 0); padding: var(--e-4) var(--e-5) 0; backdrop-filter: var(--p-desenfoque, none); }
+:root[data-menu] #inicio > div > .opcion:first-of-type { order: 6; border-top: var(--p-borde-lado, 0); border-radius: var(--p-radio) var(--p-radio) 0 0; padding-top: var(--e-5); }
+:root[data-menu] #inicio .modo-juego { order: 7; display: grid; gap: var(--e-2); max-width: none; }
+:root[data-menu] #inicio .opciones-rapidas { order: 8; display: grid; gap: var(--e-4); flex-wrap: nowrap; padding-bottom: var(--e-4); }
+:root[data-menu] #inicio :is(#opcion-relax, #opcion-dificultad) { display: grid; gap: var(--e-2); margin-top: var(--e-2); }
+:root[data-menu] #inicio :is(#opcion-relax, #opcion-dificultad).oculto { display: none; }
+:root[data-menu] #inicio .opcion { gap: var(--e-2); }
+:root[data-menu] #inicio .modo-texto { color: var(--p-tenue); }
+:root[data-menu] #inicio .controles { order: 9; width: 440px; display: grid; grid-template-columns: auto 1fr auto 1fr; gap: var(--e-2) var(--e-3); align-items: center; align-self: auto;
+  margin: 0; padding: var(--e-4) var(--e-5) var(--e-5); font-size: var(--t-chico); line-height: 1.3; color: var(--p-tenue); text-shadow: none;
+  background: var(--p-fondo-columna, var(--p-fondo)); border: var(--p-borde-lado, 0); border-top: var(--linea); border-radius: 0 0 var(--p-radio) var(--p-radio); backdrop-filter: var(--p-desenfoque, none); }
+:root[data-menu] #inicio .controles :is(dt, dd) { display: none; }
+:root[data-menu] #inicio .controles :is(dt, dd):is(:nth-of-type(1), :nth-of-type(2), :nth-of-type(19), :nth-of-type(20), :nth-of-type(24), :nth-of-type(25)) { display: block; }
+:root[data-menu] #inicio .controles dt { text-align: right; white-space: nowrap; }
+:root[data-menu] #inicio .controles dt kbd { margin: 0 0 0 2px; color: var(--p-color); }
+:root[data-menu] #inicio .controles dd { color: var(--p-color); white-space: nowrap; }
+:root[data-menu] #inicio .controles::before { content: 'Lo básico · todas en Controles'; grid-column: 1 / -1; font-size: var(--t-chico); font-weight: 600; letter-spacing: var(--espaciado-rotulo, .06em); text-transform: var(--mayus-rotulo, uppercase); color: var(--p-tenue); }
+:root[data-menu] #inicio .build-info { position: static; order: 4; width: 540px; margin-top: var(--e-4); font-size: 12px; color: var(--portada-tenue); opacity: .6; text-shadow: var(--portada-sombra); }
+
+/* ---------- la pausa ---------- */
+:root[data-menu] #pausa { overflow: hidden; }
+:root[data-menu] .pausa { grid-template-columns: 540px 540px; gap: var(--e-5); align-items: stretch; height: calc(100vh - 2 * var(--e-5)); }
+:root[data-menu] .pausa > div:first-child { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: var(--e-5) var(--e-6); }
+:root[data-menu] .pausa > div:first-child > * { flex: none; }
+:root[data-menu] .pausa h2 { margin: 0 0 var(--e-1); }
+:root[data-menu] .pausa .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; justify-items: stretch; }
+:root[data-menu] .pausa .menu button { min-height: var(--b-alto-chico); font-size: var(--t-chico); padding: var(--b-pad-chico); }
+:root[data-menu] .pausa .menu #btn-seguir { grid-column: 1 / -1; min-height: 48px; font-size: var(--t-medio); justify-content: center; margin-bottom: var(--e-2); }
+:root[data-menu] .pausa .menu :is(.separador, .estado-guardado) { grid-column: 1 / -1; }
+:root[data-menu] .pausa .menu .separador { height: 0; border-top: var(--linea); background: none; margin: var(--e-1) 0; }
+:root[data-menu] .pausa .menu kbd { opacity: .7; }
+:root[data-menu] .pausa .estado-guardado { margin: var(--e-2) 0 0; }
+:root[data-menu] .pausa > .ajustes { min-width: 0; overflow-y: auto; gap: var(--e-5); align-content: start; scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
+:root[data-menu] .pausa > .ajustes h3 { margin: 0; }
+
+/* ---------- los paneles del juego (mochila, almacén, cocina, taller, charla, obra, rueda) ---------- */
+:root[data-menu] .mochila { width: min(var(--ancho-medio), 92vw); max-height: calc(100vh - 2 * var(--margen-pantalla)); display: flex; flex-direction: column; }
+:root[data-menu] .mochila .sub { margin: 0 0 var(--e-4); }
+:root[data-menu] .mochila .rejilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-2); overflow-y: auto; min-height: 0; }
+:root[data-menu] .mochila .cosa { gap: var(--e-3); padding: var(--e-2) var(--e-3); min-height: 56px; color: var(--p-color); background: var(--fila-fondo); border: var(--cosa-borde); border-radius: var(--b-radio); }
+:root[data-menu] .mochila .cosa:hover { background: var(--b-fondo-encima); transform: none; }
+:root[data-menu] .mochila .cosa.enbarra { box-shadow: inset 0 0 0 2px var(--acento); }
+:root[data-menu] .mochila .cosa img { width: 36px; height: 36px; flex: none; }
+:root[data-menu] .mochila .cosa span { font-size: var(--t-chico); font-weight: 600; line-height: 1.25; }
+:root[data-menu] .mochila .cosa small { font-size: var(--t-chico); font-weight: 400; color: var(--p-tenue); }
+:root[data-menu] .mochila .seguir { margin: var(--e-4) 0 0; padding-top: var(--e-3); border-top: var(--linea); }
+:root[data-menu] .mochila .personalizar { margin: var(--e-3) 0 0; align-self: flex-start; }
+:root[data-menu] .mochila .personalizar kbd { border-color: currentColor; }
+:root[data-menu] :is(.trueque, .charla) { width: min(var(--ancho-medio), 86vw); }
+:root[data-menu] :is(.trueque, .obra) li { padding: var(--e-2) var(--e-2); border-top: var(--linea); font-size: var(--t-base); }
+:root[data-menu] .trueque li i, :root[data-menu] .obra li i { color: var(--p-tenue); font-size: var(--t-chico); }
+:root[data-menu] .trueque li.elegida, :root[data-menu] .charla-opciones li.elegida { background: var(--b-fondo-encima); box-shadow: inset 3px 0 0 var(--acento); }
+:root[data-menu] .trueque .dicho, :root[data-menu] .charla .dicho { font-size: var(--t-base); color: var(--p-color); }
+:root[data-menu] .charla-opciones li { font-size: var(--t-base); padding: var(--e-1) var(--e-3); border-radius: var(--b-radio); }
+:root[data-menu] .rueda-info { color: var(--p-color); background: var(--p-fondo); border: var(--p-borde); border-radius: var(--p-radio); box-shadow: var(--p-sombra); backdrop-filter: var(--p-desenfoque, none); font-family: var(--f-texto); }
+:root[data-menu] .rueda-quien b { font-family: var(--f-titulo); font-size: var(--t-medio); color: var(--p-titulo, inherit); }
+:root[data-menu] .rueda .charla-opciones li { font-family: var(--f-texto); font-size: var(--t-chico); color: var(--b-color); background: var(--b-fondo-rueda, var(--p-fondo)); border-radius: var(--b-radio); box-shadow: var(--p-sombra); }
+:root[data-menu] .rueda .charla-opciones li.elegida { color: var(--b-color-elegido); background: var(--b-fondo-elegido); box-shadow: 0 0 0 2px var(--acento), var(--p-sombra); }

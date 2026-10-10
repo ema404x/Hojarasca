@@ -1,0 +1,91 @@
+/* proto-menu · B · Madera y leña. Paneles de tablas con vetas pintadas por código (SVG con ruido estirado, como los
+   carteles de la aldea), marco oscuro y clavos en las esquinas; letras como talladas (sombra clara abajo, oscura arriba);
+   los botones son tablitas con dos clavitos, y la elegida queda hundida y quemada. */
+@import url("base.css");
+
+:root[data-menu="B"] {
+  /* letra: chico 14 · base 17 · medio 22 · grande 34 · logo */
+  --f-texto: 'Spectral', Georgia, serif;
+  --f-titulo: 'Constantia', 'Spectral', Georgia, serif;
+  --f-logo: 'Constantia', 'Spectral', Georgia, serif;
+  --f-boton: 'Spectral', Georgia, serif;
+  --t-chico: 14px; --t-base: 17px; --t-medio: 22px; --t-grande: 34px; --t-logo: 64px;
+  --peso-titulo: 700; --mayus-titulo: uppercase; --espaciado-titulo: .07em;
+  --peso-logo: 700; --espaciado-logo: .12em;
+  --peso-boton: 600;
+  --espaciado-rotulo: .1em;
+
+  --acento: #e6a94e;
+  --p-color: #f6e6c6;
+  --p-titulo: #f3d49c;
+  --p-tenue: #e2c79a;
+  --p-linea-fuerte: rgba(240,200,140,.45);
+  --linea: 2px solid rgba(28,14,5,.55);
+
+  --veta: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='700' height='260'><filter id='v'><feTurbulence type='fractalNoise' baseFrequency='.0035 .12' numOctaves='4' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .16  0 0 0 0 .08  0 0 0 0 .03  1.5 0 0 0 -.55'/></filter><rect width='100%' height='100%' filter='url(%23v)'/></svg>");
+  --veta-fina: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='60'><filter id='v'><feTurbulence type='fractalNoise' baseFrequency='.008 .3' numOctaves='3' seed='9' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .2  0 0 0 0 .1  0 0 0 0 .04  1.4 0 0 0 -.55'/></filter><rect width='100%' height='100%' filter='url(%23v)'/></svg>");
+  --clavo: radial-gradient(circle, #ead7ad 0 1.6px, #7a6043 2.4px 3.2px, rgba(0,0,0,.55) 4px, transparent 5px);
+  --clavito: radial-gradient(circle, #ead7ad 0 1.1px, #5a4128 1.7px 2.4px, rgba(0,0,0,.45) 3px, transparent 3.6px);
+  --tablas: repeating-linear-gradient(180deg, transparent 0 95px, rgba(20,9,2,.32) 95px 96px, rgba(255,214,160,.07) 96px 97px);
+  --madera: linear-gradient(180deg, #8b5c34, #75492a);
+
+  --p-fondo: var(--clavo) 8px 8px / 14px 14px no-repeat, var(--clavo) right 8px top 8px / 14px 14px no-repeat,
+    var(--clavo) 8px calc(100% - 8px) / 14px 14px no-repeat, var(--clavo) right 8px bottom 8px / 14px 14px no-repeat,
+    var(--tablas), var(--veta), var(--madera);
+  --p-fondo-columna: var(--tablas), var(--veta), var(--madera);
+  --p-borde: 5px solid #3a2312; --p-borde-lado: 5px solid #3a2312;
+  --p-radio: 4px;
+  --p-sombra: inset 0 1px 0 rgba(255,214,160,.25), inset 0 0 0 1px rgba(20,9,2,.6), 0 3px 0 #22130a, 0 22px 50px rgba(0,0,0,.6);
+  --p-pad: var(--e-6);
+  --velo: rgba(22,13,6,.58);
+  --velo-desenfoque: blur(2px);
+
+  /* la tablita: madera clara, dos clavitos, letra tallada. Encima: más clara. Elegida: hundida y quemada */
+  --b-pad: 0 22px;
+  --b-radio: 3px;
+  --b-color: #2c180a;
+  --b-fondo: var(--clavito) left 6px center / 8px 8px no-repeat, var(--clavito) right 6px center / 8px 8px no-repeat, var(--veta-fina), linear-gradient(180deg, #c09060, #9c6c40);
+  --b-fondo-encima: var(--clavito) left 6px center / 8px 8px no-repeat, var(--clavito) right 6px center / 8px 8px no-repeat, var(--veta-fina), linear-gradient(180deg, #d7a674, #b07c4c);
+  --b-fondo-elegido: var(--clavito) left 6px center / 8px 8px no-repeat, var(--clavito) right 6px center / 8px 8px no-repeat, var(--veta-fina), linear-gradient(180deg, #4a2d15, #5e3a1d);
+  --b-color-elegido: #ffd690;
+  --b-borde: 1px solid #2e1a0b;
+  --b-sombra: inset 0 1px 0 rgba(255,228,184,.45), 0 2px 0 #26150a, 0 3px 6px rgba(0,0,0,.35);
+  --b-sombra-elegido: inset 0 2px 6px rgba(0,0,0,.7), 0 1px 0 rgba(255,214,160,.2);
+  --fila-fondo: linear-gradient(180deg, #5e3b1f, #563519);
+  --cosa-borde: 1px solid rgba(20,9,2,.45);
+  --campo-fondo: rgba(25,12,4,.45); --campo-borde: 1px solid rgba(255,214,160,.3);
+  --kbd-borde: rgba(255,222,170,.55); --kbd-fondo: rgba(25,12,4,.35); --kbd-radio: 3px;
+  --muestra-radio: 4px;
+  --logo-color: #f3d49c;
+  --bajada-color: #f1e2c3;
+  --portada-tenue: #f1e2c3; --portada-sombra: 0 1px 6px rgba(0,0,0,.85);
+}
+/* letras talladas: oscuras arriba, con luz abajo, como hechas a gubia */
+:root[data-menu="B"] :is(.panel-modal h2, .pausa h2, .mochila h2, .ajustes h3, .panel-modal h3, .trueque .quien, .charla .quien, .rueda-quien b) {
+  color: #f3d49c; text-shadow: 0 -1px 0 rgba(0,0,0,.75), 0 1px 0 rgba(255,214,160,.28), 0 2px 6px rgba(0,0,0,.35); }
+:root[data-menu="B"] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button, .mochila .personalizar, .fila-tecla button) {
+  text-shadow: 0 1px 0 rgba(255,226,180,.45); }
+:root[data-menu="B"] :where(.segmentos button, .personal-pestanas button, .personal-boton):is([aria-pressed="true"], [aria-selected="true"]),
+:root[data-menu="B"] :is(.accion-principal, #btn-seguir) { text-shadow: 0 -1px 0 rgba(0,0,0,.8); transform: translateY(1px); }
+:root[data-menu="B"] :is(.accion-principal, #btn-seguir) { transform: none; --b-color-elegido: #ffe0a6; }
+:root[data-menu="B"] { --b-pad-chico: 0 20px; }
+/* el contenido sobre la madera: letra clara con sombra para que se lea en las vetas */
+:root[data-menu="B"] :is(.panel-modal, .pausa > div, .mochila, .trueque, .charla) { text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+:root[data-menu="B"] .pausa .cuando { color: #ffd690; font-style: italic; }
+:root[data-menu="B"] .mochila .cosa { box-shadow: inset 0 1px 4px rgba(0,0,0,.45), 0 1px 0 rgba(255,214,160,.14); }
+:root[data-menu="B"] .mochila .cosa img { filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+:root[data-menu="B"] .mochila .cosa.enbarra { box-shadow: inset 0 1px 4px rgba(0,0,0,.45), inset 0 0 0 2px var(--acento); }
+:root[data-menu="B"] .personal-muestra { box-shadow: inset 0 0 0 1px rgba(0,0,0,.4), 0 0 0 2px #2e1a0b; }
+:root[data-menu="B"] .personal-muestra[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 0 2px #2e1a0b, 0 0 0 4px var(--acento); }
+/* portada: el nombre en un cartel de tablas, como los de la aldea */
+:root[data-menu="B"] #inicio .titulo { width: fit-content; padding: 10px 34px 6px; text-transform: uppercase; color: #f3d49c;
+  background: var(--clavo) 8px 50% / 14px 14px no-repeat, var(--clavo) right 8px top 50% / 14px 14px no-repeat, var(--veta), var(--madera);
+  border: 5px solid #3a2312; border-radius: 4px; box-shadow: var(--p-sombra); text-shadow: 0 -2px 0 rgba(0,0,0,.7), 0 2px 0 rgba(255,214,160,.25); }
+:root[data-menu="B"] #inicio .bajada { margin-top: var(--e-3); text-shadow: 0 1px 6px rgba(0,0,0,.85); font-style: italic; }
+:root[data-menu="B"] #inicio .accion-principal { box-shadow: var(--b-sombra-elegido), 0 8px 22px rgba(0,0,0,.45); }
+:root[data-menu="B"] .portada { background: linear-gradient(90deg, rgba(14,8,3,.6) 0%, rgba(14,8,3,.22) 42%, rgba(14,8,3,0) 62%); }
+:root[data-menu="B"] #inicio > div > .opcion:first-of-type { background: var(--clavo) 8px 8px / 14px 14px no-repeat, var(--clavo) right 8px top 8px / 14px 14px no-repeat, var(--p-fondo-columna); }
+:root[data-menu="B"] #inicio .controles { border-bottom: 5px solid #3a2312; border-top: var(--linea);
+  background: var(--clavo) 8px calc(100% - 8px) / 14px 14px no-repeat, var(--clavo) right 8px bottom 8px / 14px 14px no-repeat, var(--p-fondo-columna); }
+:root[data-menu="B"] #inicio :is(.opcion, .modo-juego, .opciones-rapidas, .controles) { text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+:root[data-menu="B"] .rueda .charla-opciones li { --b-fondo-rueda: var(--veta-fina), linear-gradient(180deg, #c09060, #9c6c40); }
