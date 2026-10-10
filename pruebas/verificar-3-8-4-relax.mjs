@@ -112,7 +112,7 @@ const c = (n, palo) => ({ n, palo });
   eq(KA.dondeAmanece({ x: 40, z: 12 }, [emb(1, 1)]), { donde: 'muelle' }, 'si su embarcadero ya no está, al muelle');
   eq([KA.sanearAmarre({ x: '3', z: 4 }), KA.sanearAmarre('x'), KA.sanearAmarre(undefined)], [{ x: 3, z: 4 }, null, undefined], 'el guardado, saneado');
   eq(KA.amarreDe(e2), { x: 40, z: 12 }, 'lo que se anota al amarrarlo');
-  en(main, "kayak.subir(jugador); progreso.kayakAmarre = null;");
+  en(main, "kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;");   // (3.8.6: sólo en el Relax)
   en(main, "if (!desafio) progreso.kayakAmarre = amarreDe(o);");
   en(main, "{ const a = dondeAmanece(progreso.kayakAmarre, obrasTerminadas('embarcadero')); if (a.donde === 'embarcadero') amarrarKayak(a.obra); else if (a.donde === 'cercano') amarrarKayak(); }");
 }

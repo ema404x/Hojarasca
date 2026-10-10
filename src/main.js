@@ -2761,6 +2761,9 @@ document.addEventListener('keydown', (e) => {
     if (paso) { tren.moverse(paso[0], paso[1]); sonido.paso('madera', 0.5); return; }
   }
   if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
+  // 3.8.6: en el sulky, lo mismo (armaba la carpa en el medio del camino, plantaba o talaba desde el asiento; el aviso sólo
+  // dice «Bajar del sulky»)
+  if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
@@ -2856,7 +2859,8 @@ document.addEventListener('keydown', (e) => {
         if (!kayak.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa o al muelle');
         break;
       }
-      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
+      // (3.8.6: el amarre se anota sólo en el Relax, como en amarrarKayak: en el Desafío, soltarlo dejaba el kayak siempre en el muelle)
+      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
       // 2.9: subir al velero o traerlo, largarse por la tirolesa (el aviso, en el mismo orden)
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
       // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
@@ -3309,7 +3313,7 @@ function usarRanura() {
       js.entumecido = 0;
       js.descansado = Math.max(js.descansado || 0, 1);
       sonido.juntar();
-      nota(r.id === 'pan-casero' ? 'Comiste un pedazo de pan casero' : 'Comiste una empanada', e.cantidad ? `Te quedan ${e.cantidad}. Se te fue el frío` : 'Era la última. Se te fue el frío');
+      nota(r.id === 'pan-casero' ? 'Comiste un pedazo de pan casero' : 'Comiste una empanada', e.cantidad ? `${e.cantidad === 1 ? 'Te queda' : 'Te quedan'} ${e.cantidad}. Se te fue el frío` : 'Era la última. Se te fue el frío');
       refrescarBarra(true);
       guardar();
       break;
@@ -8544,7 +8548,11 @@ function cuadroDelJuego(tRaf, manual) {
     // en el tren o en el kayak la cámara sigue al vehículo aunque estés mirando el cuaderno
     if (banco.activa) actualizarBanco(dtReal);
     else if (libre.activa) moverCamaraLibre(foto.activo ? dtReal : dt);
-    else { leerMando(dt); jugador.actualizar(dt); }
+    // 3.8.6: fuera del juego (la pausa, el cuaderno, el mapa) el mando lo lee `leerMandoEnMenu`: leerlo dos veces en el
+    // cuadro gastaba el «recién apretado» y con el mando solo no se salía de la pausa en el kayak, el velero o el tren. Y el
+    // kayak y el velero quedan quietos (el velero seguía navegando con el viento hasta encallar); el tren de pasajero sigue
+    // su vía, como siempre
+    else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(modo !== 'jugando' && jugador.estado.enKayak ? 0 : dt); }
   }
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
