@@ -233,6 +233,14 @@ app.whenReady().then(async () => {
   // el Rey de cerca (te mira: el jugador va donde está la cámara)
   await js(`(()=>{const H=${H}, js=H.jugador.estado; js.pos.set(${ar.x + 9}, ${ar.y}, ${ar.z + 8}); for (let i=0;i<60;i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); H.progreso.desafio.salud = 100; return 1})()`);
   await toma('v38-coihue-rey', { o: [ar.x + 9, ar.y + 2.2, ar.z + 8], a: [ar.x, ar.y + 6.5, ar.z], fov: 62 });
+  // 3.8.4: el Rey en dos poses (la piel por huesos: los codos se doblan y la ropa del hombro acompaña). Los huesos se
+  // ponen a mano con el Desafío quieto; en el armado de antes no hay codos ni manos (sólo el brazo entero)
+  const poseRey = (p) => js(`(()=>{window.__congelar = true; const h=${H}.desafio.naveAdentro.arena.rey.userData.huesos, p=${JSON.stringify(p)};
+    for (const [k, r] of Object.entries(p)) if (h[k]) h[k].rotation.set(r[0], r[1], r[2]); h.torso.updateMatrixWorld(true); return 1})()`);
+  if (quiero('v38-coihue-rey-llamar')) { await poseRey({ brazo0: [-0.6, 0, 1.3], brazo1: [-0.6, 0, -1.3], codo0: [-0.75, 0, 0], codo1: [-0.75, 0, 0], mano0: [-0.45, 0, 0], mano1: [-0.45, 0, 0], cabeza: [-0.3, 0, 0] });
+    await toma('v38-coihue-rey-llamar', { o: [ar.x + 9, ar.y + 2.2, ar.z + 8], a: [ar.x, ar.y + 6.5, ar.z], fov: 62 }); }
+  if (quiero('v38-coihue-rey-golpe')) { await poseRey({ brazo0: [-2.3, 0, 0.15], brazo1: [-2.3, 0, -0.15], codo0: [-0.9, 0, 0], codo1: [-0.9, 0, 0], mano0: [0.35, 0, 0], mano1: [0.35, 0, 0], cabeza: [0, 0, 0], torso: [-0.1, 0, 0] });
+    await toma('v38-coihue-rey-golpe', { o: [ar.x + 9, ar.y + 2.2, ar.z + 8], a: [ar.x, ar.y + 6.5, ar.z], fov: 62 }); }
   // la segunda fase (el escudo de resina y las raíces con su semilla) y la tercera (el corazón al aire)
   await js(`(()=>{const H=${H}, E=H.desafio.eventos; for (const b of E.blancos().filter(b=>b.nave)) E.herirNucleo(b, 99999); for (let i=0;i<30;i++){ H.progreso.desafio.salud=100; H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); } return 1})()`);
   await toma('v38-coihue-pilares', { o: [ar.x - 6, ar.y + 3.5, ar.z + 22], a: [ar.x + 6, ar.y + 3, ar.z + 6], fov: 70 });

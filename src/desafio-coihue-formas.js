@@ -473,6 +473,8 @@ function armarDuende(P, poseNombre = 'parado', semilla = 1, conHuesos = false) {
     // la mano no puede quedar más lejos que el brazo: se acerca
     const d = mano.clone().sub(hombro); if (d.length() > (la + lb) * 0.98) mano.copy(hombro).addScaledVector(d.normalize(), (la + lb) * 0.98);
     const codo = ik(hombro, mano, la, lb, V3(sx * 0.6, -0.3, -1));
+    // 3.8.4: el codo y la muñeca, para la piel por huesos del Rey
+    pivotes['codo' + s] = codo.clone(); pivotes['mano' + s] = mano.clone();
     const gb = C.gBrazo;
     piezas.push(pieza(husoG([hombro.clone().add(V3(-sx * 0.03, 0.02, 0)), hombro.clone().lerp(codo, 0.5), codo, codo.clone().lerp(mano, 0.5), mano], [0.085 * gb, 0.075 * gb, 0.066 * gb, 0.064 * gb, 0.07 * gb], 12, 10), null, P.ropa.saco, { tela: P.ropa.tela, faceta: F * 0.6, pintar: (c, p, n, l) => gastar(c, l) }));
     // el puño de la manga, con su guarda
@@ -718,21 +720,41 @@ function armarDuende(P, poseNombre = 'parado', semilla = 1, conHuesos = false) {
   }
   const g = new THREE.Group();
   if (conHuesos) {
-    // 3.8.0: una malla por hueso, colgada de su pivote (el cuello, los hombros): se mueve entera
-    const huesos = {};
+    // 3.8.4: piel por huesos (antes, una malla rígida por hueso: el brazo giraba entero desde el hombro, como
+    // un muñeco articulado). Una sola malla con su esqueleto: el torso, la cabeza y en cada brazo el hombro, el
+    // codo y la mano; cada vértice reparte su peso entre los huesos vecinos (el hombro tira de la ropa del
+    // torso, el codo se dobla de verdad, la muñeca acompaña). Las mismas cuentas de piel que la gente.
     // (la cabeza y los brazos cuelgan del torso: si el torso se inclina, lo siguen)
-    for (const h of ['torso', 'cabeza', 'brazo0', 'brazo1']) {
-      const piv = new THREE.Group();
-      if (h === 'torso') { piv.position.copy(pivotes.torso); g.add(piv); } else { piv.position.copy(pivotes[h]).sub(pivotes.torso); huesos.torso.add(piv); }
-      huesos[h] = piv;
-      const enPiv = (m) => { m.position.copy(pivotes[h]).negate(); piv.add(m); };
-      const ps = piezas.filter((q) => q.hueso === h);
-      if (ps.length) enPiv(fundir(ps, materialGente()));
-      const b = fundirBrillo(brillos.filter((q) => q.hueso === h));
-      if (b) enPiv(b);
+    const huesos = {};
+    const nuevo = (h, padre, pos) => { const b = new THREE.Group(); b.name = 'rey-' + h; b.position.copy(pos); padre.add(b); huesos[h] = b; return b; };
+    nuevo('torso', g, pivotes.torso);
+    nuevo('cabeza', huesos.torso, pivotes.cabeza.clone().sub(pivotes.torso));
+    for (const s of [0, 1]) {
+      nuevo('brazo' + s, huesos.torso, pivotes['brazo' + s].clone().sub(pivotes.torso));
+      nuevo('codo' + s, huesos['brazo' + s], pivotes['codo' + s].clone().sub(pivotes['brazo' + s]));
+      nuevo('mano' + s, huesos['codo' + s], pivotes['mano' + s].clone().sub(pivotes['codo' + s]));
     }
+    // de qué hueso es cada vértice (en el orden en que `fundir` los junta)
+    const tags = [];
+    for (const q of piezas) for (let i = 0, n = q.geo.attributes.position.count; i < n; i++) tags.push(q.hueso);
+    const cuerpo = fundir(piezas, materialGente());
+    const malla = new MallaRey(cuerpo.geometry, cuerpo.material);
+    malla.castShadow = cuerpo.castShadow; malla.receiveShadow = true;
+    pesosRey(malla.geometry, tags, pivotes);
+    g.add(malla);
+    // lo que brilla va rígido en su hueso (los brillos de un brazo, en la mano)
+    for (const h of ['torso', 'cabeza', 'brazo0', 'brazo1']) {
+      const b = fundirBrillo(brillos.filter((q) => q.hueso === h));
+      if (!b) continue;
+      const en = h.startsWith('brazo') ? 'mano' + h.slice(-1) : h;
+      b.position.copy(pivotes[en]).negate();
+      huesos[en].add(b);
+    }
+    g.updateMatrixWorld(true);
+    malla.skeleton = new EsqueletoRey(HUESOS_REY.map((h) => huesos[h]), malla);
     g.userData.huesos = huesos;
     g.userData.pivotes = pivotes;
+    g.userData.piel = malla;
   } else {
     const cuerpo = fundir(piezas, materialGente());
     const brillo = fundirBrillo(brillos);
@@ -818,6 +840,99 @@ export function halosDe(lista, escala = 1) {
     g.add(p);
   }
   return g;
+}
+
+// ---------------------------------------------------------------- 3.8.4: la piel por huesos del Rey
+// Como en gente-cuerpo.js y tren.js (el three del juego no trae SkinnedMesh): una malla con `isSkinnedMesh` y un
+// esqueleto mínimo (update y boneTexture; three lo actualiza una vez por cuadro). Los huesos son los grupos de la
+// figura; `inversas`, la inversa de cada uno en la pose de armado.
+export const HUESOS_REY = ['torso', 'cabeza', 'brazo0', 'codo0', 'mano0', 'brazo1', 'codo1', 'mano1'];
+class EsqueletoRey {
+  constructor(huesos, malla) {
+    this.huesos = huesos; this.malla = malla;
+    const inv = new THREE.Matrix4().copy(malla.matrixWorld).invert();
+    this.inversas = huesos.map((h) => new THREE.Matrix4().multiplyMatrices(inv, h.matrixWorld).invert());
+    this.boneMatrices = new Float32Array(8 * 8 * 4);   // (una textura de 8 × 8: cuatro téxeles por hueso, hasta 16 huesos)
+    this.boneTexture = new THREE.DataTexture(this.boneMatrices, 8, 8, THREE.RGBAFormat, 1015 /* FloatType */);
+    this._inv = new THREE.Matrix4(); this._m = new THREE.Matrix4();
+    this.update();
+  }
+  computeBoneTexture() { return this; }
+  update() {
+    this._inv.copy(this.malla.matrixWorld).invert();
+    for (let i = 0; i < this.huesos.length; i++) {
+      this._m.multiplyMatrices(this._inv, this.huesos[i].matrixWorld).multiply(this.inversas[i]);
+      this._m.toArray(this.boneMatrices, i * 16);
+    }
+    this.boneTexture.needsUpdate = true;
+  }
+  dispose() { this.boneTexture.dispose(); }
+}
+class MallaRey extends THREE.Mesh {
+  constructor(geo, mat) {
+    super(geo, mat);
+    this.isSkinnedMesh = true;
+    this.bindMode = 'attached';
+    this.bindMatrix = new THREE.Matrix4(); this.bindMatrixInverse = new THREE.Matrix4();
+    this.frustumCulled = false;   // (la caja de la pose de armado no sigue a los brazos levantados)
+  }
+  applyBoneTransform(i, v) { return v; }
+  raycast() {}
+}
+// Los pesos de cada vértice (en el espacio de la figura, en la pose de armado). `tags`: el hueso de la pieza de
+// cada vértice ('torso', 'cabeza', 'brazo0', 'brazo1'). El brazo se reparte entre el hombro, el codo y la mano según
+// en qué tramo cae; cerca de cada articulación se mezcla con el vecino. La ropa del torso pegada al hombro sigue un
+// poco al brazo. La cabeza va entera (la barba y el cuello de hojas tapan la unión).
+const _aRey = V3(), _bRey = V3(), _qRey = V3();
+function tramoRey(p, a, b) {
+  _bRey.subVectors(b, a); _qRey.subVectors(p, a);
+  const t = _qRey.dot(_bRey) / Math.max(1e-9, _bRey.lengthSq());
+  _aRey.copy(a).addScaledVector(_bRey, cl(t, 0, 1));
+  return { t, d: _aRey.distanceTo(p) };
+}
+function pesosRey(geo, tags, piv) {
+  const P = geo.attributes.position, n = P.count;
+  const si = new Float32Array(n * 4), sw = new Float32Array(n * 4);
+  const I = Object.fromEntries(HUESOS_REY.map((h, i) => [h, i]));
+  const p = V3();
+  for (let i = 0; i < n; i++) {
+    p.fromBufferAttribute(P, i);
+    const w = new Map();
+    const sumar = (h, x) => { if (x > 1e-3) w.set(h, (w.get(h) || 0) + x); };
+    const tag = tags[i] || 'torso';
+    if (tag === 'cabeza') sumar('cabeza', 1);
+    else if (tag === 'torso') {
+      let resto = 1;
+      for (const s of [0, 1]) {
+        const k = 0.45 * (1 - sv(0.05, 0.16, p.distanceTo(piv['brazo' + s])));
+        if (k > 0) { sumar('brazo' + s, k); resto -= k; }
+      }
+      sumar('torso', Math.max(0, resto));
+    } else {
+      const s = tag.slice(-1), H = piv['brazo' + s], C = piv['codo' + s], M = piv['mano' + s];
+      const u = tramoRey(p, H, C), f = tramoRey(p, C, M);
+      if (f.t > 0.92 && f.d < u.d + 0.05) {
+        // la mano (y el puño): pasando la muñeca, toda de la mano
+        const k = sv(0.92, 1.04, f.t);
+        sumar('mano' + s, k); sumar('codo' + s, 1 - k);
+      } else if (u.d <= f.d) {
+        // el brazo: cerca del hombro tira del torso, cerca del codo acompaña al antebrazo
+        const kt = 0.4 * (1 - sv(0.0, 0.28, u.t)), kc = 0.5 * sv(0.7, 1.0, u.t);
+        sumar('torso', kt); sumar('codo' + s, kc); sumar('brazo' + s, 1 - kt - kc);
+      } else {
+        const kh = 0.5 * (1 - sv(0.0, 0.25, f.t));
+        sumar('brazo' + s, kh); sumar('codo' + s, 1 - kh);
+      }
+    }
+    const lista = [...w.entries()].sort((x, y) => y[1] - x[1]).slice(0, 4);
+    const tot = lista.reduce((a, x) => a + x[1], 0) || 1;
+    for (let r = 0; r < 4; r++) {
+      si[i * 4 + r] = r < lista.length ? I[lista[r][0]] : 0;
+      sw[i * 4 + r] = r < lista.length ? lista[r][1] / tot : 0;
+    }
+  }
+  geo.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4));
+  geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
 }
 
 // ---------------------------------------------------------------- 3.8.0: el Rey Duende (opción 2)
@@ -1246,6 +1361,16 @@ export function testigosCoihue() {
   const q = () => pieza(new THREE.PlaneGeometry(0.01, 0.01), null, '#ffffff', { tela: 1 });
   g.add(fundirCorteza([q()]));
   g.add(fundir([q()], materialGente()));
+  // 3.8.4: la piel del Rey (el material de la gente con huesos): se compila en la carga, no al entrar al corazón
+  {
+    const m = fundir([q()], materialGente()), geo = m.geometry, n = geo.attributes.position.count;
+    const sw = new Float32Array(n * 4); for (let i = 0; i < n; i++) sw[i * 4] = 1;
+    geo.setAttribute('skinIndex', new THREE.BufferAttribute(new Float32Array(n * 4), 4));
+    geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+    const hueso = new THREE.Group(), piel = new MallaRey(geo, m.material);
+    g.add(hueso, piel); g.updateMatrixWorld(true);
+    piel.skeleton = new EsqueletoRey([hueso], piel);
+  }
   g.add(fundirBrillo([q()]));
   g.add(new THREE.Points(tri().setAttribute('color', new THREE.Float32BufferAttribute([1, 1, 1, 1, 1, 1, 1, 1, 1], 3)), matHalo(1)));
   const cc = new ConstructorArbol();

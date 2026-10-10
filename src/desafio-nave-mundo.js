@@ -832,18 +832,35 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     const o = meta;
     o.b0 = [Math.sin(t * 0.8) * 0.03, 0, 0]; o.b1 = [Math.sin(t * 0.8 + 1) * 0.03, 0, 0];
     o.cab = [Math.sin(t * 0.5) * 0.04, Math.sin(t * 0.31) * 0.12, 0]; o.tor = [Math.sin(t * 0.9) * 0.012, 0, 0];
-    if (poseRey.nombre === 'lanzar') { o.b1 = [-1.9 * s, 0, -0.3 * s]; o.cab[0] += 0.15 * s; }
-    else if (poseRey.nombre === 'llamar') { o.b0 = [-0.6 * s, 0, 1.3 * s]; o.b1 = [-0.6 * s, 0, -1.3 * s]; o.cab[0] -= 0.35 * s; }
-    else if (poseRey.nombre === 'golpe') {
-      // los dos puños arriba y abajo de golpe (la onda sale del piso)
+    // 3.8.4: con la piel por huesos se mueven también el codo y la muñeca (antes el brazo era un palo que giraba
+    // desde el hombro): en reposo los codos respiran y los dedos golpetean apenas el apoyabrazos
+    o.c0 = [-0.05 + Math.sin(t * 0.8) * 0.03, 0, 0]; o.c1 = [-0.05 + Math.sin(t * 0.8 + 1) * 0.03, 0, 0];
+    o.m0 = [Math.max(0, Math.sin(t * 2.3)) * 0.08, 0, 0]; o.m1 = [Math.max(0, Math.sin(t * 1.9 + 2)) * 0.08, 0, 0];
+    if (poseRey.nombre === 'lanzar') {
+      // toma impulso con el codo doblado y lo estira al soltar
+      o.b1 = [-1.9 * s, 0, -0.3 * s]; o.cab[0] += 0.15 * s;
+      o.c1 = [u < 0.45 ? -1.1 * Math.sin((u / 0.45) * Math.PI / 2) : -1.1 * Math.max(0, 1 - (u - 0.45) / 0.2), 0, 0]; o.m1 = [0.5 * s, 0, 0];
+    } else if (poseRey.nombre === 'llamar') {
+      // los brazos abiertos, los codos doblados y las manos que llaman
+      o.b0 = [-0.6 * s, 0, 1.3 * s]; o.b1 = [-0.6 * s, 0, -1.3 * s]; o.cab[0] -= 0.35 * s;
+      o.c0 = [-0.7 * s, 0, 0]; o.c1 = [-0.7 * s, 0, 0];
+      o.m0 = [-0.5 * s * (0.6 + 0.4 * Math.sin(t * 9)), 0, 0]; o.m1 = [-0.5 * s * (0.6 + 0.4 * Math.sin(t * 9 + 1)), 0, 0];
+    } else if (poseRey.nombre === 'golpe') {
+      // los dos puños arriba y abajo de golpe (la onda sale del piso): arriba con los codos doblados, al bajar se estiran
       const arriba = u < 0.55 ? Math.sin((u / 0.55) * Math.PI / 2) : Math.max(0, 1 - (u - 0.55) / 0.12);
       const x = u < 0.55 ? -2.4 * arriba : -0.25 - 2.15 * arriba;
       o.b0 = [x, 0, 0.15]; o.b1 = [x, 0, -0.15]; o.tor[0] = u < 0.55 ? -0.1 * arriba : 0.16 * (1 - u);
-    } else if (poseRey.nombre === 'senalar') { o.b0 = [-1.45 * s, 0, 0.1 * s]; o.cab[0] += 0.1 * s; }
-    else if (poseRey.nombre === 'herido') { o.cab[0] -= 0.45 * s; o.tor[0] -= 0.12 * s; o.b0[2] += 0.5 * s; o.b1[2] -= 0.5 * s; }
+      o.c0 = [-0.9 * arriba, 0, 0]; o.c1 = [-0.9 * arriba, 0, 0]; o.m0 = [0.35 * arriba, 0, 0]; o.m1 = [0.35 * arriba, 0, 0];
+    } else if (poseRey.nombre === 'senalar') { o.b0 = [-1.45 * s, 0, 0.1 * s]; o.cab[0] += 0.1 * s; o.c0 = [0.05 * s, 0, 0]; o.m0 = [-0.25 * s, 0, 0]; }
+    else if (poseRey.nombre === 'herido') {
+      // se encoge: los brazos al pecho
+      o.cab[0] -= 0.45 * s; o.tor[0] -= 0.12 * s; o.b0[2] += 0.5 * s; o.b1[2] -= 0.5 * s;
+      o.c0 = [-0.8 * s, 0, 0]; o.c1 = [-0.8 * s, 0, 0]; o.m0 = [0.4 * s, 0, 0]; o.m1 = [0.4 * s, 0, 0];
+    }
     const k = Math.min(1, dt * 10);
-    const ir = (q, [x, y, z]) => { q.rotation.x += (x - q.rotation.x) * k; q.rotation.y += (y - q.rotation.y) * k; q.rotation.z += (z - q.rotation.z) * k; };
+    const ir = (q, [x, y, z]) => { if (!q) return; q.rotation.x += (x - q.rotation.x) * k; q.rotation.y += (y - q.rotation.y) * k; q.rotation.z += (z - q.rotation.z) * k; };
     ir(h.brazo0, o.b0); ir(h.brazo1, o.b1); ir(h.cabeza, o.cab); ir(h.torso, o.tor);
+    ir(h.codo0, o.c0); ir(h.codo1, o.c1); ir(h.mano0, o.m0); ir(h.mano1, o.m1);
   }
 
   // ---------------------------------------------------------------- lo que hace la Madre

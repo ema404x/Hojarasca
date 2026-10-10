@@ -238,4 +238,22 @@ const DR = await import('../src/desafio-duendes-reglas.js');
   assert.match(g, /const ok = guardarProgreso\(obrasAjenas\.length \? \{ \.\.\.aGuardar, obras: \[\.\.\.\(aGuardar\.obras \|\| \[\]\), \.\.\.obrasAjenas\] \} : aGuardar\);/);
 }
 
-console.log('✓ 3.8.4 (desafío): récords por dificultad, asedio al alba, noche salteada, ladrón trabado, tope de robos y caída en el fundido');
+
+// ---------------------------------------------------------------- pulido visual «pronto» (lo que se puede mirar sin pantalla)
+{
+  const formas = leer('src/desafio-coihue-formas.js'), nave = leer('src/desafio-nave-mundo.js'), modelo = leer('src/duendes-modelo.js');
+  // el Rey con piel por huesos: una malla con esqueleto (hombro, codo y mano en cada brazo), compilada en la carga
+  assert.ok(formas.includes("export const HUESOS_REY = ['torso', 'cabeza', 'brazo0', 'codo0', 'mano0', 'brazo1', 'codo1', 'mano1'];"));
+  assert.ok(formas.includes('malla.skeleton = new EsqueletoRey(HUESOS_REY.map((h) => huesos[h]), malla);'), 'el Rey lleva piel por huesos');
+  assert.ok(formas.includes("geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));"));
+  assert.match(extraer(formas, 'testigosCoihue'), /new MallaRey\(geo, m\.material\)/, 'el programa con huesos se compila en la carga');
+  assert.ok(nave.includes('ir(h.codo0, o.c0); ir(h.codo1, o.c1); ir(h.mano0, o.m0); ir(h.mano1, o.m1);'), 'las poses doblan los codos');
+  // la corteza del Coihue de noche y de lejos, sin programa nuevo
+  assert.ok(formas.includes("sh.uniforms.uNocheC = U.uNoche;") && formas.includes("m.customProgramCacheKey = () => 'coihue-corteza-38';"));
+  assert.ok(formas.includes('finoC = clamp(1.6 - fwidth(u.x * 1.6) * 3.0, 0.0, 1.0);'), 'de lejos las grietas finas se funden');
+  // la lechuza (alas con plumas sueltas, la cara de arriba mirando arriba) y el cofre (la tierra se ve, raíces por el suelo)
+  assert.ok(modelo.includes('const espejo = (geo) => {') && modelo.includes('(0.5 - v) * a);   // (así la cara de arriba mira arriba)'));
+  assert.ok(modelo.includes('lathe(afinar([[1.0, -0.03], [0.8, 0.0], [0.6, 0.035], [0.4, 0.062], [0.001, 0.08]], 3), 28)'), 'el montículo del cofre mira para arriba');
+}
+
+console.log('✓ 3.8.4 (desafío): récords por dificultad, asedio al alba, noche salteada, ladrón trabado, tope de robos y caída en el fundido; pulido: Rey con piel por huesos, corteza, lechuza y cofre');
