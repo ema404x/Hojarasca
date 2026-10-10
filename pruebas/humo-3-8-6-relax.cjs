@@ -97,7 +97,8 @@ app.whenReady().then(async () => {
       const L = { x: 150, z: 110 }; const sitios = [];
       for (let a = 0; a < 6.28 && sitios.length < 2; a += 0.05) for (let r = 90; r < 135 && sitios.length < 2; r += 0.7) {
         const x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r;
-        for (let k = 0; k < 8; k++) { const rot = k * Math.PI / 4; if (O.revisarSitio(x, z, plano, rot).ok && (!sitios.length || Math.hypot(sitios[0].x - x, sitios[0].z - z) > 25)) { sitios.push({ x, z, rot }); break; } }
+        // (la segunda, con el mismo rumbo que la primera: al mover, la pieza conserva su giro)
+        for (let k = 0; k < 8; k++) { const rot = sitios.length ? sitios[0].rot : k * Math.PI / 4; if (O.revisarSitio(x, z, plano, rot).ok && (!sitios.length || Math.hypot(sitios[0].x - x, sitios[0].z - z) > 25)) { sitios.push({ x, z, rot }); break; } }
       }
       if (sitios.length < 2) return { error: 'no hay dos orillas' };
       const s = sitios[0];
@@ -118,10 +119,14 @@ app.whenReady().then(async () => {
         js.pos.set(${emb.a.x}, ${H}.T.altura(${emb.a.x}, ${emb.a.z}) + 0.1, ${emb.a.z});
         const r = O.iniciarEdicionCerca(js.pos, 5.0); if (!r.ok) return { error: r.motivo };
         const dist = O.plano?.distancia || 2.4;
-        js.yaw = -b.rot; js.pos.set(b.x + Math.sin(js.yaw) * dist, ${H}.T.altura(b.x, b.z) + 0.1, b.z + Math.cos(js.yaw) * dist);
-        ${H}.__aldea.accionObra();
+        // (el rumbo de la pieza sale de hacia dónde mirás: se prueba mirando para cada lado hasta que entre)
+        for (let k = 0; k < 16 && O.editando; k++) {
+          js.yaw = k * Math.PI / 8; js.pos.set(b.x + Math.sin(js.yaw) * dist, ${H}.T.altura(b.x, b.z) + 0.1, b.z + Math.cos(js.yaw) * dist);
+          ${H}.__aldea.accionObra();
+        }
+        const editando = !!O.editando; if (editando) O.cancelarEdicion();
         const o = O.obras.find((q) => q.plano.id === 'embarcadero');
-        return { x: o.datos.x, z: o.datos.z, editando: !!O.editando } })()`);
+        return { x: o.datos.x, z: o.datos.z, editando, nota: document.getElementById('notas').textContent.slice(-80) } })()`);
       const movido = mov && !mov.error && Math.hypot(mov.x - emb.a.x, mov.z - emb.a.z) > 10;
       ok(movido, `el embarcadero se movió (${JSON.stringify(mov)})`);
       if (movido) {
@@ -139,17 +144,21 @@ app.whenReady().then(async () => {
     seccion('4. la carpa');
     const c = await js(`(async ()=>{ const P = ${H}.progreso, js = ${H}.jugador.estado, R = ${H}.T.lugares.refugio; P.cosas.manta = 1; P.carpa = null;
       const aviso = () => document.getElementById('aviso')?.textContent || '';
-      const x = R.x + 14, z = R.z + 10; js.pos.set(x, ${H}.T.altura(x, z) + 0.05, z);
-      for (let i = 0; i < 6; i++) { ${H}.__bucle(); await new Promise(r => setTimeout(r, 30)); }
-      const aPie = aviso();
+      // un lugar llano y seco, lejos de todo (prueba varios)
+      let aPie = '', flags = null;
+      for (let d = 20; d < 120 && !/Armar la carpa/.test(aPie); d += 7) {
+        const x = R.x + d, z = R.z - d * 0.6; js.pos.set(x, ${H}.T.altura(x, z) + 0.3, z); js.vel?.set?.(0, 0, 0);
+        for (let i = 0; i < 12; i++) { ${H}.__bucle(); await new Promise(r => setTimeout(r, 25)); }
+        aPie = aviso(); flags = { enSuelo: js.enSuelo, plataforma: !!js.enPlataforma, nadando: js.nadando, d };
+      }
       js.enKayak = true; for (let i = 0; i < 3; i++) ${H}.__bucle(); const enKayak = aviso(); js.enKayak = false;
       const info = () => ${H}.renderer.info.memory.geometries;
       document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyT', bubbles: true }));
       for (let i = 0; i < 3; i++) ${H}.__bucle();
       const armada = !!P.carpa, g1 = info();
       for (let v = 0; v < 4; v++) for (const t of ['KeyT', 'KeyT']) { document.dispatchEvent(new KeyboardEvent('keydown', { code: t, bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: t, bubbles: true })); for (let i = 0; i < 3; i++) ${H}.__bucle(); }
-      return { aPie, enKayak, armada, g1, g2: info(), sigue: !!P.carpa } })()`);
-    ok(/Armar la carpa/.test(c.aPie) && !/Armar la carpa/.test(c.enKayak), `«T Armar la carpa» a pie sí, en el kayak no («${c.aPie}» / «${c.enKayak}»)`);
+      return { aPie, enKayak, armada, g1, g2: info(), sigue: !!P.carpa, flags } })()`);
+    ok(/Armar la carpa/.test(c.aPie) && !/Armar la carpa/.test(c.enKayak), `«T Armar la carpa» a pie sí, en el kayak no («${c.aPie}» / «${c.enKayak}» ${JSON.stringify(c.flags)})`);
     ok(c.armada && c.sigue && c.g2 <= c.g1 + 1, `armar y levantar la carpa cuatro veces no suma geometrías (${c.g1} → ${c.g2})`);
 
     // ============================================================ 5. el entumecido se guarda
