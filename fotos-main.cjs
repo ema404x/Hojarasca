@@ -12,7 +12,9 @@ const ID_SIMPLE = /^[a-z0-9-]{1,60}$/i;
 const TIPOS = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const TOPE_FOTO = 8 * 1024 * 1024;   // una miniatura pesa decenas de KB: más que esto no es una foto del álbum
-const TOPE_FOTOS = 400;
+// 3.8.6: antes 400: con las fotos de las fiestas (que se suman todos los años) un álbum largo dejaba de escribir las nuevas.
+// Ahora es sólo un tope de seguridad, muy lejos de lo que junta una partida (miniaturas de ~25 KB)
+const TOPE_FOTOS = 5000;
 
 function carpetaFotos(base, clave) {
   if (typeof base !== 'string' || !base || typeof clave !== 'string' || !CLAVE.test(clave)) return null;

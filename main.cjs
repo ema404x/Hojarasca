@@ -125,6 +125,7 @@ function crearVentana() {
   // 3.5.4: sólo navega al juego mismo (antes pasaba cualquier file://), sin historial para
   // "atrás", y guarda si Windows cierra la sesión o la compu se suspende (ver ventana-main.cjs)
   cuidarVentana({ ventana, index: path.join(__dirname, 'index.html'), escribirCrash, powerMonitor: require('electron').powerMonitor });
+  cuidarPermisos(ventana.webContents.session);   // 3.8.6: sólo los permisos que usa el juego (ver ventana-main.cjs)
   ventana.on('closed', () => { if (ventanaPrincipal === ventana) ventanaPrincipal = null; });
   ventana.once('ready-to-show', () => ventana.show());
   ventana.webContents.on('render-process-gone', (_e, d) => {
@@ -228,7 +229,7 @@ require('./sincronia-main.cjs').registrarSincronia({ ipcMain, dialog, app, venta
 // 3.8.4: las fotos del álbum, en archivos en la carpeta de la partida (ver fotos-main.cjs)
 require('./fotos-main.cjs').registrarFotos({ ipcMain, app, alError: (m) => escribirCrash('fotos', m) });
 
-const { cuidarVentana } = require('./ventana-main.cjs');
+const { cuidarVentana, cuidarPermisos } = require('./ventana-main.cjs');
 
 app.whenReady().then(() => {
   if (!primeraInstancia) return;   // 3.5.4: la segunda copia no abre nada (ver arriba)

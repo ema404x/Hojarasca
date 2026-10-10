@@ -2300,8 +2300,20 @@ function dibujarSync() {
 }
 // Mira la copia de la carpeta. Si es más nueva que la de esta computadora, pregunta con
 // cuál seguir; si no, o si elegís la de acá, queda como base y se puede pisar.
+// 3.8.6: si el programa de sincronización dejó una «copia en conflicto» de esta partida (las dos computadoras la cambiaron
+// a la vez), se avisa una vez por sesión: el juego no la lee ni la pisa, y antes nadie se enteraba de que existía
+let avisoConflictoSync = false;
+async function avisarConflictosSync() {
+  if (avisoConflictoSync || typeof syncApi?.conflictos !== 'function') return;
+  let copias = [];
+  try { copias = await syncApi.conflictos(nombreSync(modoJuego, ranuraActual())); } catch { copias = []; }
+  if (!Array.isArray(copias) || !copias.length) return;
+  avisoConflictoSync = true;
+  nota('Hay una copia en conflicto en la carpeta sincronizada', `«${copias[0]}»${copias.length > 1 ? ` y ${copias.length - 1} más` : ''}: la dejó aparte el programa de sincronización. El juego no la toca; si es la que querés, importala desde Partidas`, true);
+}
 async function mirarCarpetaSync() {
   if (esSinFin) return;   // 3.0
+  avisarConflictosSync();   // 3.8.6
   let texto = null;
   try { texto = await syncApi.leer(nombreSync(modoJuego, ranuraActual())); } catch {}
   const r = texto ? leerPaquete(texto) : null;

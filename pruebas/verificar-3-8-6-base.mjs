@@ -243,4 +243,49 @@ ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ve
 // 11. La pantalla de la victoria abre con el foco en «Seguir» (Enter o la A del mando siguen).
 ok(main.includes("try { $('victoria-seguir').focus({ preventScroll: true }); } catch { /* sin foco */ }"), 'la victoria, con el foco en Seguir');
 
+// 12. La tarjeta del valle, con el estilo «Cuaderno de campo» (el panel, el título y los botones de los otros menús); el
+//     cuaderno: la barra de la página derecha ya no queda debajo de «Cerrar (J)».
+{
+  const css = leer('src/menus/sistema.css');
+  ok(css.includes('#inicio > .portada-opciones, .valle-carta) {') && css.includes('.obra .quien, .valle-carta h2) {') && css.includes('.fila-codigo button, .valle-opciones button)'), 'la carta del valle usa el panel, el título y el botón comunes');
+  ok(css.includes(':root[data-menu] #valle-tarjeta .valle-carta { width: min(var(--ancho-angosto)') && leer('src/menus/cuaderno.css').includes('.pagina h2, .valle-carta h2) {'), 'con el ancho angosto y el trazo del título');
+  ok(css.includes(':root[data-menu] #cuaderno .pagina.ficha { margin-top: var(--e-7); padding-top: 0; }'), 'el cuaderno: la página derecha empieza debajo del botón');
+}
+
+// 13. Las fotos: el tope de 400 dejaba de escribir las nuevas en un álbum largo, y exportar o sincronizar (12 MB) dejaba de
+//     andar a las ~400 fotos.
+{
+  const FM = requerir('../fotos-main.cjs');
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'hoj-fotos-tope-'));
+  try {
+    const K = 'hojarasca-fotos-v1', jpg = `data:image/jpeg;base64,${Buffer.from('x').toString('base64')}`;
+    const muchas = Object.fromEntries(Array.from({ length: 450 }, (_, i) => [`f-${i}`, jpg]));
+    ok(FM.escribirFotos(base, K, muchas) && FM.escribirFotos(base, K, { 'f-nueva': jpg }, { reemplazar: false }), '450 fotos y una más');
+    const leidas = FM.leerFotos(base, K);
+    ok(Object.keys(leidas).length === 451 && leidas['f-nueva'] === jpg, 'están todas, la nueva también');
+  } finally { fs.rmSync(base, { recursive: true, force: true }); }
+  ok(leer('src/transferir.js').includes('export const MAX_BYTES = 64 * 1024 * 1024;') && leer('sincronia-main.cjs').includes('const MAX_SYNC = 64 * 1024 * 1024;'), 'exportar y sincronizar, hasta 64 MB');
+}
+
+// 14. Las «copias en conflicto» que deja el programa de sincronización se detectan y se avisan, sin leerlas ni pisarlas.
+{
+  const SM = requerir('../sincronia-main.cjs');
+  const n = 'hojarasca-relax-p1.hojarasca.json';
+  const hay = SM.copiasEnConflicto([n, 'hojarasca-relax-p1 (1).hojarasca.json', 'hojarasca-relax-p1.hojarasca (Ema conflicted copy 2026-10-10).json',
+    'hojarasca-relax-p1.hojarasca.sync-conflict-20261010-1.json', 'hojarasca-relax-p1.hojarasca-DESKTOP.json', 'hojarasca-relax-p2.hojarasca.json',
+    'hojarasca-relax-p1.hojarasca.json.tmp', 'hojarasca-torneo-abcd.json', 'otra-cosa.json'], n);
+  ok(hay.length === 4 && !hay.includes(n) && !hay.includes('hojarasca-relax-p2.hojarasca.json'), `las cuatro copias, y nada más (${hay.join(' | ')})`);
+  ok(SM.copiasEnConflicto(['x.json'], '../malo').length === 0, 'con un nombre que no es de partida, nada');
+  ok(main.includes('avisarConflictosSync();   // 3.8.6') && leer('preload.cjs').includes("conflictos: (nombre) => ipcRenderer.invoke('sync-conflictos', String(nombre || ''))"), 'se avisa al mirar la carpeta');
+}
+
+// 15. Electron niega los permisos que el juego no usa (sin manejador, los aprobaba todos).
+{
+  const VM = requerir('../ventana-main.cjs');
+  ok(['pointerLock', 'clipboard-sanitized-write', 'fullscreen'].every(VM.permisoPermitido) && !['media', 'geolocation', 'notifications', 'midiSysex', 'openExternal', 'hid', 'serial'].some(VM.permisoPermitido), 'sólo el mouse, el portapapeles y la pantalla completa');
+  let respuesta = null, chequeo = null;
+  VM.cuidarPermisos({ setPermissionRequestHandler: (f) => f(null, 'media', (si) => { respuesta = si; }), setPermissionCheckHandler: (f) => { chequeo = f(null, 'geolocation'); } });
+  ok(respuesta === false && chequeo === false && leer('main.cjs').includes('cuidarPermisos(ventana.webContents.session);'), 'enganchado a la sesión de la ventana');
+}
+
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);

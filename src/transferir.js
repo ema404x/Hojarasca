@@ -4,7 +4,9 @@
 
 export const FORMATO = 'hojarasca-partida';
 export const VERSION_PAQUETE = 1;
-export const MAX_BYTES = 12 * 1024 * 1024;   // con álbum de fotos y todo, de sobra
+// 3.8.6: antes 12 MB, que con miniaturas de ~30 KB (en base64) alcanzaba para unas 400 fotos: un álbum largo ya no se podía
+// exportar ni sincronizar. 64 MB son más de 2000 fotos
+export const MAX_BYTES = 64 * 1024 * 1024;
 
 // Una firma barata para darse cuenta de que el archivo llegó cortado o retocado.
 // 3.8.6: `Number` tira con un objeto cuyo toString no es función (`{ "toString": 1 }` en un archivo retocado): leerPaquete
