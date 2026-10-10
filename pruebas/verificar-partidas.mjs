@@ -35,7 +35,7 @@ const g = leer('src/guardado.js');
 assert.match(g, /export const RANURAS = \[1, 2, 3\]/);
 assert.match(g, /function sufijoDe\(modo, ranura\)/);
 assert.match(g, /ranura: opcion\(Math\.floor\(finito\(x\.ranura, 1\)\), RANURAS, 1\)/, 'la ranura viaja en los ajustes');
-assert.match(g, /guardadoEn: Date\.now\(\)/);
+assert.match(g, /const guardadoEn = Math\.max\(Date\.now\(\), ultimoSello \+ 1, selloDe\(limpio\)\);/);   // (3.8.6: el sello nunca va para atrás)
 for (const f of ['export function listaPartidas', 'export function borrarPartida', 'export function guardarVista', 'export function ranuraActual']) assert.ok(g.includes(f), `falta ${f}`);
 // la partida 1 conserva las claves de siempre
 assert.match(g, /Number\(ranura\) > 1 \? `-p\$\{Math\.floor\(Number\(ranura\)\)\}` : ''/);

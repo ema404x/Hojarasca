@@ -28,7 +28,8 @@ const TOPE_LISTA = 40;
 function datoSimple(v, hondo = 0) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
   if (typeof v === 'boolean') return v;
-  if (typeof v === 'string') return v.replace(/[\u0000-\u001f<>]/g, '').slice(0, 120);
+  // (3.8.6: hasta 400 letras: algunos textos de los eventos del valle pasan de 120 y el diario de la noche salía cortado al recargar)
+  if (typeof v === 'string') return v.replace(/[\u0000-\u001f<>]/g, '').slice(0, 400);
   if (Array.isArray(v)) return hondo > 1 ? undefined : v.slice(0, TOPE_LISTA).map((x) => datoSimple(x, hondo + 1)).filter((x) => x !== undefined);
   if (v && typeof v === 'object' && hondo < 2) {
     const o = {};

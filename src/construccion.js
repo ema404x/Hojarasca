@@ -2653,6 +2653,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // 3.6.1: donde no se construye (en el Relax, la Aldea de los Duendes: ver main.js)
     const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, plano.radio || 1) : null;
     if (reservado) return { ok: false, motivo: reservado };
+    // 3.8.6: un plano con tope (`maximo`: el hoyo para frutal, tantos como frutales lleva la granja): el de más se armaba,
+    // costaba su tronco y quedaba muerto, sin aviso ni E
+    if (Number.isFinite(plano.maximo) && obras.filter((o) => o !== ignorarObra && o.plano.id === plano.id).length >= plano.maximo) return { ok: false, motivo: plano.motivoMaximo || `Ya tenés ${plano.maximo}: no entran más` };
     const pieza = !!plano.pieza;
     const soporte = baseColocacion(x, z, plano, alturaReferencia);
     const base = Number.isFinite(baseObjetivo) ? baseObjetivo : soporte + (plano.elevacion || 0);

@@ -130,6 +130,7 @@ export function sanearRincones(v, hoy = null) {
   for (let i = 0; i < RINCONES.huertaChicos.canteros; i++) { const p = sanearParcela(v.chicos?.[`c${i}`], [CULTIVOS_CHICOS[i]], hd); if (p) base.chicos[`c${i}`] = p; }
   base.cosechas = noNeg(v.cosechas, 99999);
   if (objeto(v.futbol)) base.futbol = { goles: noNeg(v.futbol.goles, 99999), partidos: noNeg(v.futbol.partidos, 99999), ultimo: fecha(v.futbol.ultimo), encontra: noNeg(v.futbol.encontra, 99999) };
+  if (objeto(v.futbol) && fecha(v.futbol.amistad) > 0) base.futbol.amistad = fecha(v.futbol.amistad);   // 3.8.6
   if (objeto(v.titeres)) base.titeres = { funciones: noNeg(v.titeres.funciones, 9999), ultima: fecha(v.titeres.ultima) };
   if (objeto(v.fuerte)) base.fuerte = { etapa: noNeg(v.fuerte.etapa, RINCONES.fuerte.etapas), dia: fecha(v.fuerte.dia) };
   if (objeto(v.campamento)) base.campamento = { veces: noNeg(v.campamento.veces, 9999), ultimo: fecha(v.campamento.ultimo) };
@@ -453,6 +454,18 @@ export function empezarPartido(r, dia) {
   return r.futbol.partidos;
 }
 export const horaDePartido = (hora) => { const h = num(hora); return h >= 9 && h < 20; };
+// 3.8.6: el picado da amistad (y cumple el deseo de jugar a la pelota) si se jugó: terminado a los goles o después de
+// `PICADO.jugado` segundos de juego, y la amistad una vez por día (armar el picado y alejarte enseguida, una y otra vez,
+// daba +3 a cada jugador sin fin, como el baile y la minga de la 3.8.3). Devuelve si esta vez cuenta y lo anota.
+export const PICADO = { jugado: 45 };
+export function amistadDelPicado(r, dia, terminado, segundos) {
+  if (!r || !(terminado || num(segundos) >= PICADO.jugado)) return false;
+  if (!objeto(r.futbol)) r.futbol = { goles: 0, partidos: 0, ultimo: 0, encontra: 0 };
+  const d = diaValido(dia);
+  if (r.futbol.amistad === d) return false;
+  r.futbol.amistad = d;
+  return true;
+}
 // Quiénes juegan (de los que están en la aldea y libres): los chicos primero, después los que tienen ganas
 export const JUGADORES_POTRERO = ['nene', 'nena', 'andinista', 'padre', 'carpintero', 'pescador', 'fotografa', 'botera'];
 export function elegirJugadores(disponibles, cuantos = 3) {

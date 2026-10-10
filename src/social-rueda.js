@@ -32,6 +32,7 @@ export function categoriaDeOpcion(id) {
   if (s === 'invitar') return 'juntos';
   if (/^rincones:/.test(s)) return 'hacer';   // 3.8.4: lo de los rincones (aprender una manualidad, el sulky, la pista de los duendes)
   if (/^alero:/.test(s)) return 'charla';   // 3.8.6: lo del abuelo de Martín es una charla (caía en «Regalar y ayudar», donde nadie lo buscaba)
+  if (s === 'amor:chicos') return 'charla';   // 3.8.6: hablar de tus hijos no es romance (con la ex, casado con otra)
   if (/^amor(?:-|:|$)/.test(s)) return 'romantica';
   return 'ayuda';   // el servicio, regalar, dar una mano, lo del lugar, la granja, la cocina
 }

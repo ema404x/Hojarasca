@@ -10,7 +10,7 @@ import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
 import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
-import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA } from './desafio-reglas.js';
+import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
@@ -29,6 +29,8 @@ import { crearCimientos } from './desafio-cimiento.js';
 import { crearDefensasActivas } from './desafio-defensas.js';
 import { crearEventos } from './desafio-eventos.js';
 import { crearAsedioMundo } from './desafio-asedio-mundo.js';
+// 3.8.6: el Rey que cayó justo antes de cerrar el juego (ver el primer cuadro de actualizar)
+import { ganarAsedio } from './desafio-asedio.js';
 import { crearNaveMundo } from './desafio-nave-mundo.js';
 import { geoSemilla } from './desafio-coihue-formas.js';
 import { avanzarTutorial, dibujarTutorial, PASOS_TUTORIAL, PREMIO_TUTORIAL } from './desafio-tutorial.js';
@@ -241,15 +243,34 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const geoCristal = geoSemilla(0.3);
   const matCristal = new THREE.MeshBasicMaterial({ vertexColors: true });
   const cristales = [];
+  // 3.8.6: una semilla del pozo, libre (null si ya hay SUELTAS_MAX en el suelo: el jefe suelta muchas de golpe)
+  function semillaLibre() {
+    let c = cristales.find((q) => !q.activo);
+    if (!c) {
+      if (cristales.length >= SUELTAS_MAX) return null;
+      c = { mesh: new THREE.Mesh(geoCristal, matCristal), activo: false, x: 0, z: 0, y: 0, t: 0, dato: null };
+      escena.add(c.mesh);
+      cristales.push(c);
+    }
+    return c;
+  }
+  // 3.8.6: las semillas tiradas en el suelo van en la partida (`d.sueltas`, una por semilla): antes vivían sólo en
+  // memoria y guardar y abrir las perdía. `c.dato` es su anotación.
+  function anotarSuelta(c) {
+    const d = D();
+    if (!Array.isArray(d.sueltas)) d.sueltas = [];
+    c.dato = { x: Math.round(c.x * 100) / 100, y: Math.round(c.y * 100) / 100, z: Math.round(c.z * 100) / 100 };
+    d.sueltas.push(c.dato);
+  }
+  function borrarSuelta(c) {
+    const l = D().sueltas, i = c.dato && Array.isArray(l) ? l.indexOf(c.dato) : -1;
+    if (i >= 0) l.splice(i, 1);
+    c.dato = null;
+  }
   function soltarCristales(pos, n) {
     for (let i = 0; i < n; i++) {
-      let c = cristales.find((q) => !q.activo);
-      if (!c) {
-        if (cristales.length > 80) break;   // el jefe suelta muchos de golpe
-        c = { mesh: new THREE.Mesh(geoCristal, matCristal), activo: false, x: 0, z: 0, y: 0, t: 0 };
-        escena.add(c.mesh);
-        cristales.push(c);
-      }
+      const c = semillaLibre();
+      if (!c) break;
       const a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6;
       c.x = pos.x + Math.cos(a) * r; c.z = pos.z + Math.sin(a) * r;
       c.y = alturaSuelo(c.x, c.z) + 0.35;   // 3.0
@@ -260,7 +281,27 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const w = naveMundo?.adentro ? null : T.agua?.(c.x, c.z);
       if (w) c.y = Math.max(c.y, w.nivel + 0.35);
       c.mesh.visible = true;
+      if (!naveMundo?.adentro) anotarSuelta(c);   // 3.8.6 (adentro del Coihue no queda ninguna: se sale al valle)
     }
+  }
+  // 3.8.6: al abrir la partida, las que quedaron tiradas vuelven a su lugar
+  function restaurarSueltas() {
+    const d = D();
+    if (!Array.isArray(d.sueltas)) d.sueltas = [];
+    const lista = d.sueltas.slice(0, SUELTAS_MAX);
+    d.sueltas = [];
+    for (const s of lista) {
+      const c = semillaLibre();
+      if (!c) break;
+      c.x = s.x; c.y = s.y; c.z = s.z; c.t = Math.random() * 6; c.activo = true; c.mesh.visible = true;
+      anotarSuelta(c);
+    }
+  }
+  // 3.8.6: al caer se pierden de verdad las semillas (las de la mochila y las tiradas): antes las del suelo
+  // seguían ahí al despertar, aunque el aviso dice «Perdiste las semillas doradas»
+  function perderSueltas() {
+    for (const c of cristales) { c.activo = false; c.mesh.visible = false; c.dato = null; }
+    D().sueltas = [];
   }
 
   // ---------------- la cápsula estrellada con la pistola de plasma
@@ -416,6 +457,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   arsenal = crearArsenalMundo(T, escena, efectos, sonido, api);
   // 2.6: el fortín (ver desafio-fortin-mundo.js)
   api.obraEnPunto = (x, y, z) => obraEnPunto(x, y, z);
+  api.trabadoEn = (x, z, r) => trabadoEn(x, z, r);   // 3.8.6: las madrigueras, sin árboles atravesados
   api.cosas = () => progreso().cosas || {};
   api.alGuardarObras = () => ctx.alGuardarObras?.();
   api.alFabricar = () => ctx.alFabricar?.({});
@@ -710,6 +752,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       // se cerraba otra vez la noche ya cerrada y, en la hora antes del ataque, se borraba la
       // noche especial ya anunciada
       if (!d.oleadaTerminada) terminarOleada(false);
+      perderSueltas();   // 3.8.6: antes de que main.js guarde la caída
       ctx.alCaer?.();
     }
   }
@@ -723,7 +766,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function levantarse() { caido = false; D().salud = SALUD_MAX; destello = 0; }
 
   // ---------------- oleadas
-  let refuerzoHecho = false, ultimoChillido = 0, avisada = -1;
+  // 3.8.6: los refuerzos de madrugada van en la partida (`refuerzoNoche`): con la marca en memoria, guardar y abrir
+  // después de los refuerzos los mandaba otra vez (y apenas volvían los que quedaban, si eran menos de cuatro)
+  let ultimoChillido = 0, avisada = -1;
   const nocheActual = { abatidos: 0, perdidas: 0, dano: 0, abatidosLanza: 0, abatidosOtros: 0, invasores: 0 };
   function reiniciarNoche() { Object.assign(nocheActual, { abatidos: 0, perdidas: 0, dano: 0, abatidosLanza: 0, abatidosOtros: 0, invasores: 0 }); }
   const RUMBOS_TEXTO = ['al norte', 'al noreste', 'al este', 'al sureste', 'al sur', 'al suroeste', 'al oeste', 'al noroeste'];
@@ -756,7 +801,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function empezarOleada(tipos, nuevaNoche, retomada = false, puntoFijo = null) {
     const js = ctx.jugador().estado;
     const d = D();
-    if (nuevaNoche) { d.oleadas++; refuerzoHecho = false; }
+    if (nuevaNoche) d.oleadas++;
     // 2.3: con código de partida, la nave baja siempre del mismo lado esa noche
     const p = puntoFijo || puntoDeAterrizaje(js, azarDe(d.semilla, d.oleadas, nuevaNoche ? 'aterrizaje' : retomada ? 'retomada' : 'refuerzo'));
     estadoNave.x = p.x; estadoNave.z = p.z; estadoNave.y = T.altura(p.x, p.z) + 36;
@@ -982,6 +1027,16 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // 3.0: en la supervivencia sin fin no hay noche final
   const esNocheFinal = () => { const d = D(); return !d.victoria && !d.sinFin && !d.asedio && d.oleadas + 1 >= NOCHE_FINAL; };
 
+  // Qué noche viene (especial o no): una hora antes, en el aviso; `clave` es la de esa noche (`claveNoche`).
+  function decidirNoche(clave) {
+    const p = progreso(), d = D();
+    avisada = clave;
+    // 2.9: sin código de partida, el azar sale de la semilla del tiempo: así la estación
+    // meteorológica puede anunciar la noche y acierta (ver `meteo.js`)
+    // 3.0: en la corrida sin fin, las especiales siguen después de la veinte (desafio-supervivencia.js)
+    d.especial = esNocheFinal() ? null : d.sinFin ? especialSinFin(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior)
+      : nocheEspecial(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior);
+  }
   function revisarHorario() {
     const p = progreso(), d = D();
     const noche = claveNoche(p.dia, p.horas);
@@ -991,12 +1046,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (!siguenLasNoches(d)) { d.oleadaNoche = noche; d.oleadaTerminada = true; return; }
     // una hora antes: aviso, y se decide si la noche es especial
     if (p.horas >= HORA_ATAQUE - 1 && p.horas < HORA_ATAQUE && avisada !== p.dia && d.oleadaNoche !== p.dia) {
-      avisada = p.dia;
-      // 2.9: sin código de partida, el azar sale de la semilla del tiempo: así la estación
-      // meteorológica puede anunciar la noche y acierta (ver `meteo.js`)
-      // 3.0: en la corrida sin fin, las especiales siguen después de la veinte (desafio-supervivencia.js)
-      d.especial = esNocheFinal() ? null : d.sinFin ? especialSinFin(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior)
-        : nocheEspecial(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior);
+      decidirNoche(p.dia);
       if (esNocheFinal()) ctx.nota('El bosque cruje entero', 'Esta noche despierta el Coihue Viejo. Preparate para todo', true);
       else if (esNocheDeJefe(d.oleadas + 1)) ctx.nota('Se oye un silbido grave en el monte', 'Esta noche sale un mandamás. Apuntale a los hongos de la espalda', true);
       else if (d.especial) ctx.nota(ESPECIALES[d.especial].aviso, `${ESPECIALES[d.especial].nombre} · en una hora salen los duendes`, true);
@@ -1007,6 +1057,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     if (esHoraDeAtaque(p.horas)) {
       if (d.oleadaNoche !== noche) {
+        // 3.8.6: si el reloj saltó por encima de la hora del aviso (una siesta a las 18:40 te despierta a las 20:40, o
+        // con la hora de tu reloj abrís la partida ya de noche), la noche se decide igual: antes quedaba sin
+        // especial (la que anunciaba la estación meteorológica no salía nunca). Si ya hay una decidida (el aviso de
+        // antes de guardar), queda esa.
+        if (avisada !== noche && !d.especial) decidirNoche(noche);
         d.oleadaNoche = noche;
         d.oleadaTerminada = false;
         reiniciarNoche();
@@ -1060,8 +1115,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         // vivos), al abrir la nodriza no volvía: los núcleos quedaban sin blanco y al alba
         // empezaba el asedio sin haber podido pelearla.
         eventos.iniciarNodriza();
-      } else if (!d.oleadaTerminada && !refuerzoHecho && d.oleadas >= 3 && p.horas >= 1.5 && p.horas < HORA_AMANECER && vivos() < 4 && !eventos.nodrizaActiva) {
-        refuerzoHecho = true;
+      } else if (!d.oleadaTerminada && d.refuerzoNoche !== d.oleadas && d.oleadas >= 3 && p.horas >= 1.5 && p.horas < HORA_AMANECER && vivos() < 4 && !eventos.nodrizaActiva) {
+        d.refuerzoNoche = d.oleadas;
         const refuerzo = sinJefe(d.sinFin ? composicionSinFin(d.oleadas, ctx.dificultad?.(), d.vuelta) : composicionOleada(d.oleadas, ctx.dificultad?.(), d.vuelta));
         empezarOleada(refuerzo.slice(0, Math.ceil(refuerzo.length / 2)), false);
       }
@@ -1634,7 +1689,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     return mejor;
   }
   const NOMBRE = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas', ramita: 'ramitas', fruta: 'frutas del bosque' };
-  const textoPide = (pide) => Object.entries(pide).map(([k, n]) => `${n} ${NOMBRE[k] || k} (tenés ${ctx.cuanto(k)})`).join(' · ');
+  // 3.8.6: y de a uno («1 piedras»)
+  const NOMBRE_UNO = { tronco: 'tronco', tabla: 'tabla', piedra: 'piedra', cristal: 'semilla dorada', ramita: 'ramita', fruta: 'fruta del bosque' };
+  const textoPide = (pide) => Object.entries(pide).map(([k, n]) => `${n} ${(n === 1 ? NOMBRE_UNO[k] : NOMBRE[k]) || k} (tenés ${ctx.cuanto(k)})`).join(' · ');
   function dibujarTaller() {
     if (!tallerEl) return;
     const cats = document.getElementById('taller-categorias');
@@ -1814,7 +1871,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     S.roca(q.pos);
     for (const o of obras.obrasCerca(q.pos, q.salpicadura || 2, [])) if (completa(o)) danarObra(o, q.danoObra * 0.5);
     const js = ctx.jugador().estado;
-    if (Math.hypot(js.pos.x - q.pos.x, js.pos.z - q.pos.z) < (q.salpicadura || 2) && Math.abs(js.pos.y - q.pos.y) < 2.4) herirJugador(q.dano * 0.6, q.pos);
+    if (Math.hypot(js.pos.x - q.pos.x, js.pos.z - q.pos.z) < (q.salpicadura || 2) && Math.abs(js.pos.y - q.pos.y) < 2.4 && !salpicaduraTapada(q, js)) herirJugador(q.dano * 0.6, q.pos);   // 3.8.6: no a través de una pared
   }
   // 2.1: la noche de rescate: el lugar del vecino recibe golpes, y si cae, cae. Cada
   // golpe es ruido y astillas; el daño va por tiempo (ver `danoAlLugar`), sumando a
@@ -1977,8 +2034,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         defensas.apagar(a.blanco.o, 'volador');
         _v.set(b.x, b.y, b.z); S.apagar(_v); efectos.polvo(_v, 6, '#5a5a5a');
         a.blanco = null; a.subiendo = VUELO.subir;
-      } else if (a.cd <= 0 && !caido && fortin.bajoTejado(js.pos)) {
+      } else if (a.cd <= 0 && !caido && (fortin.bajoTejado(js.pos) || hayObraEntre(p, b, 0.12))) {
         // 2.6: abajo del tejado de lajas no te alcanza: pega contra la piedra y sube
+        // 3.8.6: y si hay una pared entre la lechuza y tu cabeza, tampoco (pegado a la empalizada, la picada de
+        // afuera te lastimaba a través de los troncos)
         a.cd = def.cadencia; a.subiendo = VUELO.subir;
         _v.set(p.x, p.y, p.z); efectos.polvo(_v, 5);
       } else if (a.cd <= 0 && !caido) {
@@ -2495,7 +2554,19 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     if (directo) return;
     const js = ctx.jugador().estado;
-    if (Math.hypot(js.pos.x - q.pos.x, js.pos.z - q.pos.z) < r && Math.abs(js.pos.y - q.pos.y) < 2.4) herirJugador(q.dano * 0.5, q.pos);
+    if (Math.hypot(js.pos.x - q.pos.x, js.pos.z - q.pos.z) < r && Math.abs(js.pos.y - q.pos.y) < 2.4 && !salpicaduraTapada(q, js)) herirJugador(q.dano * 0.5, q.pos);
+  }
+  // 3.8.6: la salpicadura (el escupitajo, la piedra del artillero) no pasa a través de una pared: el escupitajo que
+  // reventaba contra la pared de tu casa te salpicaba igual del otro lado. Se mira desde un poquito antes de donde
+  // reventó (del lado de donde venía: 45 cm, más que el paso del proyectil, que lo pudo dejar hasta 35 cm adentro de
+  // la pared) hasta tu pecho.
+  const _salA = new THREE.Vector3(), _salB = new THREE.Vector3();
+  function salpicaduraTapada(q, js) {
+    const l = q.vel.length() || 1;
+    _salA.copy(q.pos).addScaledVector(q.vel, -0.45 / l);
+    _salA.y = Math.max(_salA.y, alturaSuelo(_salA.x, _salA.z) + 0.15);
+    _salB.set(js.pos.x, js.pos.y + 1, js.pos.z);
+    return !!hayObraEntre(_salA, _salB, 0.12);
   }
   // El inicio de cada tramo del proyectil y el "desde" que se le pasa a herirAlien van en
   // vectores propios: herirAlien usa _v por dentro, y con un tiro que atraviesa (2.5) el
@@ -2672,6 +2743,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       c.mesh.rotation.y = c.t * 1.6;
       if (Math.hypot(js.pos.x - c.x, js.pos.z - c.z) < 1.7 && Math.abs(js.pos.y - c.y) < 2) {
         c.activo = false; c.mesh.visible = false; juntados++;
+        borrarSuelta(c);   // 3.8.6
       }
     }
     if (juntados) {
@@ -2731,18 +2803,22 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     ctx.nota('Brotó un cofre entre las raíces', 'Está cerca, con un brillo dorado. Pasá por encima para abrirlo');
   }
   // 3.8.1: ¿hay un árbol, una piedra o un cuerpo de obra donde iría el cofre? ¿El suelo es parejo?
-  function cofreTrabado(x, z) {
+  // 3.8.6: con el radio de lo que va ahí (el cofre, 55 cm; el nido de hongos, ver sembrarCapullos)
+  function trabadoEn(x, z, r) {
     const p = { x, z };
     for (const dx of [-4, 0, 4]) for (const dz of [-4, 0, 4]) for (const c of col.cercanos(x + dx, z + dz)) {
-      if (!c.despejado && distColision(c, p) < (c.r || 0) + 0.55) return true;
+      if (!c.despejado && distColision(c, p) < (c.r || 0) + r) return true;
     }
     return false;
   }
-  function cofreParejo(x, z) {
+  function parejoEn(x, z, r, tope) {
     const h = T.altura(x, z);
-    for (const [dx, dz] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) if (Math.abs(T.altura(x + dx, z + dz) - h) > 0.18) return false;
+    for (const [dx, dz] of [[r, 0], [-r, 0], [0, r], [0, -r]]) if (Math.abs(T.altura(x + dx, z + dz) - h) > tope) return false;
     return true;
   }
+  const cofreTrabado = (x, z) => trabadoEn(x, z, 0.55);
+  const cofreParejo = (x, z) => parejoEn(x, z, 0.5, 0.18);
+  const NIDO_RADIO = 1.5;   // 3.8.6: la loma de musgo del nido (1,26 × 1,25 m) y los hongos de alrededor
   const BROTA = { hondo: 0.9, vel: 0.32 };   // 3.8.0: de cuán abajo sale y a qué velocidad (m/s)
   let alturaCaja = 0, tBrillo = 0, tTierra = 0;
   function actualizarCaja(dt, js) {
@@ -2925,7 +3001,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const d = D();
     const n = cuantosCapullos(d.oleadas + 1);
     const esBueno = (x, z) => Math.abs(x) < LIMITE - 20 && Math.abs(z) < LIMITE - 20 && !T.agua(x, z) && !obraEnPunto(x, T.altura(x, z) + 0.5, z);
-    d.capullos = n ? lugaresCapullos(n, centroBase(), { esBueno, azar: azarNoche('capullos') }) : [];
+    // 3.8.6: el nido (una loma de 1,6 m de radio) no crece atravesado por un árbol, una piedra o una obra, ni medio
+    // enterrado en la pendiente (antes sólo se miraba el centro)
+    const preferido = (x, z) => !trabadoEn(x, z, NIDO_RADIO) && parejoEn(x, z, NIDO_RADIO * 0.8, 0.45);
+    d.capullos = n ? lugaresCapullos(n, centroBase(), { esBueno, preferido, azar: azarNoche('capullos') }) : [];
     sincronizarCapullos();
     if (!d.capullos.length) return;
     const js = ctx.jugador().estado;
@@ -3281,10 +3360,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       cimientos.sincronizar(obras.obras);
       sincronizarCapullos();   // 2.3: los capullos que quedaron de la partida guardada
       devolverTodo(false);   // 3.8.0: si se guardó con algo robado, vuelve a tus cosas
+      restaurarSueltas();   // 3.8.6: y las semillas que quedaron tiradas
       arsenal.devolverTiradas();   // 3.8.3: y las hachuelas y jabalinas que quedaron tiradas
       // 3.5.1: si se cerró el juego mientras la nave caía (derribar ya guardó el asedio
       // ganado, la victoria llega al tocar el suelo), la victoria se perdía para siempre:
       // sin noche final ni nido, la campaña no terminaba nunca. Se da al abrir.
+      // 3.8.6: y si se cerró en los segundos en que cae el Rey Duende (antes de salir del Coihue): ya había caído
+      if (D().asedio?.reyCaido && !D().asedio.ganado && !D().victoria) ganarAsedio(D().asedio);
       if (D().asedio?.ganado && !D().victoria) vencer({ nave: true });
       // 3.8.3: ganada sin cueva (no se encontró lugar, o una partida de antes de la cueva): las noches seguían para
       // siempre (siguenLasNoches) sin cueva que romper. Se busca otra vez al abrir.

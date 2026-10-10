@@ -146,7 +146,7 @@ const local = (id, q) => { const e = EA[id], c = Math.cos(e.rot), s = Math.sin(e
     && G.poseDe({ lugar: 'local', edificio: 'ceramica', punto: 'adentro', sentado: true }) === 'tornear' && G.poseDe({ lugar: 'local', edificio: 'costureria', punto: 'adentro', sentado: true }) === 'coser'
     && G.poseDe({ lugar: 'trabajo', edificio: 'varadero', punto: 'adentro' }) === 'calafatear' && G.poseDe({ lugar: 'trabajo', edificio: 'taller-arte', punto: 'trabajo' }) === null, 'los gestos de las nuevas en lo suyo');
   ok(G.poseDe({ lugar: 'trabajo', edificio: 'herreria', punto: 'cliente' }) === null && G.poseDe({ lugar: 'local', edificio: 'herreria', punto: 'adentro' }) === 'martillar', 'Pocha, con el mate en la herrería, no martilla');
-  ok(['tornear', 'coser', 'telescopio', 'pintar', 'curar', 'mortero', 'calafatear'].every((p) => leer('src/gente.js').includes(`'${p}':`)), 'gente.js: sus poses');
+  ok(['tornear', 'coser', 'telescopio', 'pintar', 'curar', 'mortero', 'calafatear'].every((p) => leer('src/gente.js').includes(`'${p}'`)), 'gente.js: sus poses');   // (3.8.6: tornear y coser, en POSES_SENTADAS)
   ok(A.rutinaAldea('botera', 17.5 + A.desfaseDe('botera'), 1, { ...A.aldeaNueva(), pobladores: [{ clave: 'botera', dia: 1 }], locales: { varadero: 1 } }).punto === 'adentro', 'Martina, a la tardecita, con el bote');
   ok(leer('src/gente.js').includes('if (Number.isFinite(destino.y)) g.pos.y += (destino.y - g.pos.y) * Math.min(1, paso / d);'), 'gente.js: en la escalera, por la rampa de los escalones');
   // el corral, por la tranquera

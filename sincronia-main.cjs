@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const NOMBRE_SYNC = /^hojarasca-(relax|desafio)-p[1-3]\.hojarasca\.json$/;
-const MAX_SYNC = 12 * 1024 * 1024;
+const MAX_SYNC = 64 * 1024 * 1024;   // 3.8.6: como MAX_BYTES de transferir.js (antes 12 MB: unas 400 fotos)
 // 3.1: el torneo de la semana (ver src/torneo.js y src/torneo-sync.js). Cada compu escribe
 // sólo su archivo, con nombre fijo; se leen todos los que tengan ese formato de nombre.
 const NOMBRE_TORNEO = /^hojarasca-torneo-[a-z0-9]{4,16}\.json$/;
@@ -24,6 +24,19 @@ function guardadoEnDe(texto) {
 function puedePisar(textoViejo, base) {
   const viejo = guardadoEnDe(textoViejo);
   return !viejo || viejo <= (Number(base) || 0);
+}
+
+// 3.8.6: las «copias en conflicto» que deja el programa de sincronización cuando las dos computadoras cambiaron el archivo a
+// la vez («hojarasca-relax-p1 (1).hojarasca.json», «… (conflicted copy …).json», «….sync-conflict-….json», «…-PC.json»).
+// El juego nunca las lee ni las pisa: sólo avisa que están (ver mirarCarpetaSync en main.js).
+function copiasEnConflicto(nombres, nombre) {
+  const n = String(nombre || '');
+  if (!NOMBRE_SYNC.test(n)) return [];
+  const raiz = n.slice(0, -'.hojarasca.json'.length);
+  return (Array.isArray(nombres) ? nombres : [])
+    .filter((x) => typeof x === 'string' && x !== n && x.startsWith(raiz) && /\.json$/i.test(x) && !NOMBRE_SYNC.test(x) && !/\.tmp$/i.test(x)
+      && !/^[0-9]/.test(x.slice(raiz.length)))   // (la partida 1 no se confunde con otra que empiece igual)
+    .sort().slice(0, 10);
 }
 
 function registrarSincronia({ ipcMain, dialog, app, ventana = () => null, alError = () => {} }) {
@@ -116,6 +129,11 @@ function registrarSincronia({ ipcMain, dialog, app, ventana = () => null, alErro
   }
   ipcMain.handle('torneo-escribir', (_evento, nombre, texto) => escribirTorneo(nombre, texto));
   ipcMain.handle('torneo-leer', () => leerTorneos());
+  ipcMain.handle('sync-conflictos', (_evento, nombre) => {   // 3.8.6
+    const d = destinoSync(nombre);
+    if (!d) return [];
+    try { return copiasEnConflicto(fs.readdirSync(d.dir), nombre); } catch { return []; }
+  });
   ipcMain.handle('sync-leer', (_evento, nombre) => {
     const d = destinoSync(nombre);
     if (!d || !fs.existsSync(d.ruta)) return null;
@@ -124,4 +142,4 @@ function registrarSincronia({ ipcMain, dialog, app, ventana = () => null, alErro
   return { carpetaSync, destinoSync, escribirSync, elegirCarpeta, escribirTorneo, leerTorneos };
 }
 
-module.exports = { registrarSincronia, puedePisar, guardadoEnDe, NOMBRE_SYNC, MAX_SYNC, NOMBRE_TORNEO, MAX_TORNEO };
+module.exports = { registrarSincronia, copiasEnConflicto, puedePisar, guardadoEnDe, NOMBRE_SYNC, MAX_SYNC, NOMBRE_TORNEO, MAX_TORNEO };

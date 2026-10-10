@@ -1052,18 +1052,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 (() => {
   const $ = (id) => document.getElementById(id);
   const VERSION_FALLBACK = '__HOJARASCA_VERSION__';
-  let origenModal = 'pausa';
-  const cerrarModal = () => {
-    $('controles-completos')?.classList.add('oculto'); $('creditos')?.classList.add('oculto');
-    $(origenModal)?.classList.remove('oculto');
-  };
-  const abrirModal = (id, origen) => { origenModal = origen; $(origen)?.classList.add('oculto'); $(id)?.classList.remove('oculto'); };
-  $('btn-controles')?.addEventListener('click', () => abrirModal('controles-completos', 'pausa'));
-  $('btn-controles-inicio')?.addEventListener('click', () => abrirModal('controles-completos', 'inicio'));
-  $('cerrar-controles-completos')?.addEventListener('click', cerrarModal);
-  $('btn-creditos')?.addEventListener('click', () => abrirModal('creditos', 'pausa'));
-  $('btn-creditos-inicio')?.addEventListener('click', () => abrirModal('creditos', 'inicio'));
-  $('cerrar-creditos')?.addEventListener('click', cerrarModal);
+  // (3.8.6: Controles y Créditos los abre y cierra main.js, como los otros paneles: ver abrirInfo)
   // 3.8.4 (decisión 8): en pantallas bajas las seis teclas de la portada quedan detrás del botón «Teclas» (Esc las cierra)
   const verTeclas = (si) => { $('inicio')?.classList.toggle('ver-teclas', si); $('btn-teclas-portada')?.setAttribute('aria-expanded', String(si)); };
   $('btn-teclas-portada')?.addEventListener('click', () => verTeclas(!$('inicio')?.classList.contains('ver-teclas')));
@@ -1092,7 +1081,6 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   document.addEventListener('keydown', (e) => {
     if (e.code !== 'Escape') return;
     if ($('inicio')?.classList.contains('ver-teclas') && !$('inicio').classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); verTeclas(false); return; }
-    if (!$('controles-completos')?.classList.contains('oculto') || !$('creditos')?.classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); cerrarModal(); }
   }, true);
   const aplicarVersion = (v) => {
     const t = `Hojarasca · ${v || VERSION_FALLBACK}`;

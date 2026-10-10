@@ -593,6 +593,13 @@ export function vencerCita(estado, ctx = {}) {
   if (!c || c.estado !== 'acordada') return null;
   const d = diaDe(progreso, ctx), h = horaDe(progreso, ctx);
   if (d < c.dia || (d === c.dia && h <= c.hasta)) return null;
+  // 3.8.6: estuvo con vos el rato de la cita (haciendo algo juntos: «Hacer juntos», el picado) y nunca tuvo que ir a esperarte:
+  // la cita se hizo igual (antes se caía como «no pudo», por «otro compromiso» que eras vos). `juntos` lo anota amor-juego.js
+  if (c.juntos && !c.espero) {
+    c.estado = 'en-curso';
+    const r = terminarCita(estado, ctx);
+    if (r) return { tipo: 'juntos', clave: r.clave, subio: r.subio, texto: r.subio === 'saliendo' ? `Ahora salís con ${nombreDe(r.clave)}` : `Qué linda cita con ${nombreDe(r.clave)}`, sub: 'Pasaron juntos el rato de la cita' };
+  }
   amor.cita = null;
   // 3.8.4: si a la hora de la cita ella estaba ocupada (con otra invitación de la aldea) y nunca llegó a esperarte, no te
   // plantó nadie: se cae sin enojo ni afecto de menos (`ocupada` y `espero` los anota amor-juego.js)
@@ -687,6 +694,14 @@ export function proponer(estado, clave, ctx = {}) {
   sumarAfecto(f, 10);
   amor.anillo.para = clave;
   amor.boda = { con: clave, dia: d + AMOR.boda.enDias, hora: AMOR.boda.hora };
+  const cortaron = cortanLasOtras(amor, clave, d);
+  noticia(amor, 'comprometidos', d, { con: clave });
+  return { ok: true, si: true, cortaron, boda: { ...amor.boda }, renglones: [...voz.propuesta.si, llenarAmor(FRASES_AMOR.boda.fecha, { dia: amor.boda.dia })] };
+}
+
+// Con ella en serio (comprometidos, o de vuelta casados): las otras con las que salías se enteran y cortan. Devuelve
+// a quiénes. (3.8.6: sale de `proponer` para que `reconquistar` haga lo mismo)
+function cortanLasOtras(amor, clave, d) {
   const cortaron = [];
   for (const [k, g] of Object.entries(amor.personas)) {
     if (k === clave || !['coqueteo', 'saliendo', 'novios'].includes(g.etapa)) continue;
@@ -697,8 +712,7 @@ export function proponer(estado, clave, ctx = {}) {
     cortaron.push(k);
   }
   if (amor.cita && amor.cita.clave !== clave) amor.cita = null;
-  noticia(amor, 'comprometidos', d, { con: clave });
-  return { ok: true, si: true, cortaron, boda: { ...amor.boda }, renglones: [...voz.propuesta.si, llenarAmor(FRASES_AMOR.boda.fecha, { dia: amor.boda.dia })] };
+  return cortaron;
 }
 
 // ---------------------------------------------------------------- el casamiento civil
@@ -844,9 +858,11 @@ function nacer(a, d) {
 }
 // «Hablar de los chicos»: con hijos, cómo andan; esperando, cuánto falta; sin hijos, si se puede, ofrece
 // buscar uno (`buscarHijo`). Una vez por día.
+// 3.8.6: con la madre de tus hijos se puede hablar de ellos aunque ya no haya romance (casado con otra, por ejemplo)
+export const esMadreDeTusHijos = (estado, clave) => !!partes(estado).amor?.hijos?.some((h) => h.madre === clave);
 export function hablarDeLosChicos(estado, clave, ctx = {}) {
   const r0 = puedeRomance(clave, estado, ctx);
-  if (!r0.ok) return { ok: false, motivo: r0.motivo, renglones: [] };
+  if (!r0.ok && !(romanceActivo(ctx) && esCandidata(clave) && esMadreDeTusHijos(estado, clave))) return { ok: false, motivo: r0.motivo, renglones: [] };
   const { amor, progreso } = partes(estado, true);
   const d = diaDe(progreso, ctx);
   const f = ficha(amor, clave);
@@ -927,8 +943,14 @@ export function nikiNiki(estado, clave, ctx = {}) {
 export const deBuenAnimo = (estado, dia) => partes(estado).amor?.animo === diaValido(dia, 1);
 
 // ---------------------------------------------------------------- reconquistar
+// 3.8.6: con la vida rehecha (`rehizoLaVida`) podías estar de novio con otra y reconquistar a la ex: quedabas casado y de
+// novio a la vez (y al cargar, la novia pasaba callada a «conocidos»); o, separado de una segunda esposa, volvías con la
+// primera y la cónyuge seguía siendo la otra (sin habilidades ni hijos con la que volvió). Ahora mira lo mismo que todo lo
+// demás (`puedeRomance`: con otra comprometida, casada o recién separada, no), las que salían con vos cortan como al
+// proponer, y la que vuelve es la cónyuge.
 export function reconquistar(estado, clave, ctx = {}) {
-  if (!romanceActivo(ctx) || !esCandidata(clave)) return { ok: false, renglones: [] };
+  const r0 = puedeRomance(clave, estado, ctx);
+  if (!r0.ok) return { ok: false, motivo: r0.motivo, renglones: [] };
   const { amor, progreso } = partes(estado, true);
   const d = diaDe(progreso, ctx);
   const f = fichaSi(amor, clave);
@@ -941,8 +963,11 @@ export function reconquistar(estado, clave, ctx = {}) {
   if (sorteo(`${clave}:vuelve:${d}:${Math.round(f.afecto)}:${entero(ctx.semilla)}`) >= p) { f.rechazo = d; return { ok: true, si: false, renglones: [FRASES_AMOR.reconquistaNo] }; }
   cambiarEtapa(f, 'casados', d);
   f.reconquista = 0;
+  amor.conyuge = clave;
+  if (!tieneDe(amor.habilidades, clave)) amor.habilidades[clave] = { nivel: 0, estacion: -1 };
+  const cortaron = cortanLasOtras(amor, clave, d);
   noticia(amor, 'volvieron', d, { con: clave });
-  return { ok: true, si: true, renglones: [FRASES_AMOR.reconquistaSi] };
+  return { ok: true, si: true, cortaron, renglones: [FRASES_AMOR.reconquistaSi] };
 }
 
 // ---------------------------------------------------------------- las habilidades
@@ -1187,12 +1212,20 @@ export function mundoAmor(estado, ctx = {}) {
   const b = amor.boda;
   const boda = b ? { con: b.con, dia: b.dia, hora: b.hora, lugar: 'biblioteca', ella: 'cuentos', vos: 'cliente', juez: true, hoy: b.dia === d, ...invitadosBoda(estado, ctx) } : null;
   const conv = dondeViven(amor);
-  const hijos = amor.hijos.filter((x) => x.nacio <= d).map((x, i) => ({ id: x.id, nombre: x.nombre, sexo: x.sexo, etapa: ETAPAS_CHICOS[etapaHijo(x, d)], madre: x.madre, nacio: x.nacio, rutina: rutinaHijo(estado, i, h, ds, d, a) }));
-  const casa = hijos.length ? casaDeLosChicos(amor, hijos[0].madre) : null;
-  const cuarto = casa ? { edificio: casa, puntos: hijos.map((x, i) => (x.etapa === 'bebe' ? 'cuna' : `cama-hijo-${i + 1}`)) } : null;
+  // (3.8.6: `i` es el de amor.hijos, el mismo que usan rutinaHijo y las camas)
+  const hijos = amor.hijos.map((x, i) => [x, i]).filter(([x]) => x.nacio <= d).map(([x, i]) => ({ id: x.id, nombre: x.nombre, sexo: x.sexo, etapa: ETAPAS_CHICOS[etapaHijo(x, d)], madre: x.madre, nacio: x.nacio, i, casa: casaDeLosChicos(amor, x.madre), rutina: rutinaHijo(estado, i, h, ds, d, a) }));
+  // 3.8.6: un cuarto por casa: con la vida rehecha puede haber hijos de dos madres, y cada uno duerme en lo de la suya (antes
+  // había un solo cuarto, en la casa de la mamá del primero, y el de la otra dormía en una cama que no estaba)
+  const cuartos = [];
+  for (const x of hijos) {
+    let c = cuartos.find((y) => y.edificio === x.casa);
+    if (!c) { c = { edificio: x.casa, puntos: [] }; cuartos.push(c); }
+    c.puntos.push(x.etapa === 'bebe' ? 'cuna' : `cama-hijo-${x.i + 1}`);
+  }
+  const cuarto = cuartos[0] || null;
   const an = amor.anillo;
   const anillo = an ? { estado: an.para ? 'dado' : an.retirado ? 'tuyo' : d >= an.listo ? 'listo' : 'haciendo', listo: an.listo, para: an.para } : null;
-  return { activo: true, cita, parejas, boda, convivencia: conv, hijos, cuarto, anillo, embarazo: amor.embarazo ? { madre: amor.embarazo.madre, nace: amor.embarazo.nace } : null, animo: amor.animo === d };
+  return { activo: true, cita, parejas, boda, convivencia: conv, hijos, cuarto, cuartos, anillo, embarazo: amor.embarazo ? { madre: amor.embarazo.madre, nace: amor.embarazo.nace } : null, animo: amor.animo === d };
 }
 
 // ---------------------------------------------------------------- el guardado
@@ -1280,6 +1313,7 @@ export function sanearAmor(x0, hoy = null) {
     base.cita = { clave: c.clave, lugar: c.lugar, dia: Math.max(1, fecha(c.dia, 1)), desde, hasta, estado: c.estado === 'en-curso' ? 'en-curso' : 'acordada' };
     if (c.ocupada === true) base.cita.ocupada = true;   // 3.8.4 (ver `vencerCita`)
     if (c.espero === true) base.cita.espero = true;
+    if (c.juntos === true) base.cita.juntos = true;   // 3.8.6
   }
   for (const y of Array.isArray(x.correo) ? x.correo : []) {
     if (!objeto(y) || (y.tipo !== 'carta' && y.tipo !== 'ramo') || !esCandidata(y.para)) continue;

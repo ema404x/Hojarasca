@@ -92,6 +92,8 @@ export function usarModoGuardado(modo, ranura = ranuraPartida) {
   CLAVE_FOTOS = k.fotos;
   CLAVE_VISTA = k.vista;
   ultimoPrincipalValidoTexto = null;
+  ultimoSello = 0;   // 3.8.6
+  principalRoto = false;
   return modoPartida;
 }
 export function ranuraActual() { return ranuraPartida; }
@@ -151,7 +153,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
         const img = typeof v === 'string' ? v : v?.img;
         if (typeof img === 'string' && img.startsWith('data:image')) imagenes[k] = { img };
       }
-      guardarFotos(imagenes, true);   // 3.8.6: la partida se reemplaza entera: las fotos de la que estaba, también
+      guardarFotos(imagenes, true);   // (3.8.6: las de la partida que se reemplazó, se van)
       // 3.5.1: sin miniatura en el archivo, la de la partida que se reemplazó no queda pegada
       if (vista) guardarVista(vista);
       else { try { localStorage.removeItem(CLAVE_VISTA); } catch {} }
@@ -162,7 +164,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
 }
 export function borrarPartida(modo, ranura) {
   const k = clavesDe(modo, ranura);
-  if (k.principal === CLAVE) ultimoPrincipalValidoTexto = null;
+  if (k.principal === CLAVE) { ultimoPrincipalValidoTexto = null; ultimoSello = 0; }
   borrarFotosDe(k.fotos);   // 3.8.4: (también los archivos)
   try { for (const clave of Object.values(k)) localStorage.removeItem(clave); return true; } catch { return false; }
 }
@@ -176,6 +178,12 @@ let ultimoOrigenCarga = 'ninguno';
 // RC24: cache de la última copia principal ya validada. Evita releer y
 // parsear localStorage en cada guardado manteniendo el backup transaccional.
 let ultimoPrincipalValidoTexto = null;
+// 3.8.6: el sello (guardadoEn) del último guardado de esta partida, para que el próximo no sea menor (ver guardarProgreso)
+let ultimoSello = 0;
+// 3.8.6: el principal no se pudo sanear y se cargó la copia: el próximo guardado no lo pasa a copia de seguridad
+let principalRoto = false;
+// (uno de más de un mes en el futuro es de un reloj roto o un archivo retocado: no cuenta)
+const selloDe = (p) => { const s = typeof p?.guardadoEn === 'number' ? p.guardadoEn : 0; return Number.isFinite(s) && s > 0 && s < Date.now() + 30 * 864e5 ? s : 0; };
 export function origenUltimaCarga() { return ultimoOrigenCarga; }
 
 export const AJUSTES_BASE = {
@@ -199,7 +207,9 @@ export const AJUSTES_BASE = {
 };
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-const finito = (v, defecto) => Number.isFinite(Number(v)) ? Number(v) : defecto;
+// 3.8.6: `Number` tira con un objeto cuyo toString no es función (`{ "toString": 1 }` en una partida retocada): no es número
+const numero = (v) => { try { return Number(v); } catch { return NaN; } };
+const finito = (v, defecto) => { const n = numero(v); return Number.isFinite(n) ? n : defecto; };
 const acotar = (v, min, max, defecto) => Math.min(max, Math.max(min, finito(v, defecto)));
 const opcion = (v, permitidas, defecto) => permitidas.includes(v) ? v : defecto;
 
@@ -231,32 +241,54 @@ function escribir(clave, valor) {
 function archivosFotos() {
   try { const a = globalThis.hojarasca?.fotos; return a && typeof a.leer === 'function' && typeof a.escribir === 'function' ? a : null; } catch { return null; }
 }
+// 3.8.6: lo que hay en los archivos de cada partida, en memoria ({ clave: { id: dataURL } }). Sólo este juego escribe esa
+// carpeta, así que lo leído y lo escrito alcanza: empaquetar la partida (la carpeta sincronizada la copia cada 2 minutos)
+// ya no relee el álbum entero del disco, y guardar sólo manda las fotos nuevas (antes, en cada foto, dos veces el álbum
+// entero, cada archivo leído y comparado: cientos de ms con el juego quieto en un álbum grande).
+const fotosEnDisco = new Map();
 function leerFotosDe(clave) {
   const local = leer(clave);
   const a = archivosFotos();
   if (!a) return objeto(local) ? local : {};
-  let deArchivos = null;
+  const hayLocal = objeto(local) && Object.keys(local).length > 0;
+  if (!hayLocal && fotosEnDisco.has(clave)) return { ...fotosEnDisco.get(clave) };
+  let deArchivos = null, entera = false;
   try { deArchivos = a.leer(clave); } catch { deArchivos = null; }
+  // (preload.cjs entrega { fotos, sinLeer }; un puente viejo o de prueba, las fotos solas)
+  if (objeto(deArchivos) && objeto(deArchivos.fotos) && typeof deArchivos.sinLeer === 'number') { entera = deArchivos.sinLeer === 0; deArchivos = deArchivos.fotos; }
+  else entera = true;
   if (!objeto(deArchivos)) return objeto(local) ? local : {};   // (el disco no respondió: lo que haya)
-  if (!objeto(local) || !Object.keys(local).length) return deArchivos;
-  const juntas = { ...local, ...deArchivos };
-  let ok = false;
-  try { ok = a.escribir(clave, juntas, false) === true; } catch { ok = false; }   // (3.8.6: sin podar)
-  if (ok) { try { localStorage.removeItem(clave); } catch {} }
-  return juntas;
+  // (si alguna no se pudo leer, no queda en memoria: la próxima vez se vuelve a leer del disco)
+  if (entera) fotosEnDisco.set(clave, { ...deArchivos }); else fotosEnDisco.delete(clave);
+  if (!hayLocal) return deArchivos;
+  // las que estaban en el localStorage y todavía no en los archivos, pasan (sin tocar las que ya están)
+  const faltan = Object.fromEntries(Object.entries(local).filter(([id]) => !Object.hasOwn(deArchivos, id)));
+  if (escribirFotosDe(clave, faltan)) { try { localStorage.removeItem(clave); } catch {} }
+  return { ...local, ...deArchivos };
 }
-// 3.8.6: `podar`: borrar del disco las que no están en `fotos` (sólo al reemplazar una partida entera: importar,
-// sincronizar). El guardado de todos los días sólo agrega: lo que no se pudo leer al cargar no se pierde.
-function escribirFotosDe(clave, fotos, podar = false) {
+// `reemplazar`: la partida queda con exactamente estas fotos (importar, sincronizar). Sin eso (guardar) sólo se agregan o
+// cambian: nunca se borra una que no vino (3.8.6: una foto que no se pudo leer al abrir la partida, por ejemplo con el
+// archivo ocupado un instante por el antivirus, se borraba del disco en el primer guardado).
+function escribirFotosDe(clave, fotos, reemplazar = false) {
   const a = archivosFotos();
   if (a) {
+    const enDisco = reemplazar ? null : fotosEnDisco.get(clave);
+    const nuevas = enDisco ? Object.fromEntries(Object.entries(fotos).filter(([id, img]) => enDisco[id] !== img)) : fotos;
+    if (enDisco && !Object.keys(nuevas).length) return true;   // (ya estaban todas)
     let ok = false;
-    try { ok = a.escribir(clave, fotos, podar) === true; } catch { ok = false; }
-    if (ok) { try { localStorage.removeItem(clave); } catch {} return true; }
+    try { ok = a.escribir(clave, nuevas, { reemplazar }) === true; } catch { ok = false; }
+    if (ok) {
+      // (sin lo de antes en memoria no se sabe qué más hay en la carpeta: la próxima lectura va al disco)
+      if (reemplazar) fotosEnDisco.set(clave, { ...fotos }); else if (enDisco) fotosEnDisco.set(clave, { ...enDisco, ...nuevas }); else fotosEnDisco.delete(clave);
+      try { localStorage.removeItem(clave); } catch {}
+      return true;
+    }
+    fotosEnDisco.delete(clave);
   }
   return escribir(clave, fotos);
 }
 function borrarFotosDe(clave) {
+  fotosEnDisco.delete(clave);
   const a = archivosFotos();
   if (a) { try { a.borrar?.(clave); } catch {} }
   try { localStorage.removeItem(clave); } catch {}
@@ -585,7 +617,7 @@ export function cargarProgreso() {
   try {
     const principalTexto = localStorage.getItem(CLAVE);
     p = parsear(principalTexto);
-    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; }
+    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; ultimoSello = Math.max(ultimoSello, selloDe(p)); }
     else {
       ultimoPrincipalValidoTexto = null;
       p = parsear(localStorage.getItem(CLAVE_BACKUP));
@@ -594,8 +626,18 @@ export function cargarProgreso() {
     }
   } catch { p = null; ultimoPrincipalValidoTexto = null; }
   if (!p) return null;
-  p = sanearProgreso(p);
-  if (!p) return null;
+  // 3.8.6: una partida que tira al sanearla (un número guardado como objeto raro: `{ "toString": 1 }`) dejaba el juego sin
+  // arrancar, y la copia de seguridad buena nunca se probaba. Ahora se prueba la copia, y el principal roto no la pisa.
+  let limpio = null;
+  try { limpio = sanearProgreso(p); } catch { limpio = null; }
+  if (!limpio && ultimoOrigenCarga === 'principal') {
+    let b = null;
+    try { b = parsear(localStorage.getItem(CLAVE_BACKUP)); } catch { b = null; }
+    if (progresoPlausible(b)) { try { limpio = sanearProgreso(b); } catch { limpio = null; } }
+    if (limpio) { ultimoOrigenCarga = 'backup'; ultimoPrincipalValidoTexto = null; principalRoto = true; }
+  }
+  if (!limpio) return null;
+  p = limpio;
   // las miniaturas viven aparte y se vuelven a pegar al cargar
   const fotos = leerFotosDe(CLAVE_FOTOS);   // 3.8.4: (de los archivos de la partida)
   // 2.6.1: sólo las propias y que sean imagen (un `fotos.constructor` heredado se colaba)
@@ -605,10 +647,11 @@ export function cargarProgreso() {
 
 // Las miniaturas del álbum pesan mucho más que el resto de la partida,
 // así que van en su propia clave y solo se escriben cuando cambian.
-export function guardarFotos(desafios, podar = false) {
+// 3.8.6: `reemplazar` (importar, sincronizar): la partida queda con exactamente éstas; sin eso, sólo se agregan
+export function guardarFotos(desafios, reemplazar = false) {
   const soloImagenes = {};
   for (const [k, v] of Object.entries(desafios || {})) if (v && v.img) soloImagenes[k] = v.img;
-  return escribirFotosDe(CLAVE_FOTOS, soloImagenes, podar);   // 3.8.4 (3.8.6: sin podar, salvo al reemplazar la partida)
+  return escribirFotosDe(CLAVE_FOTOS, soloImagenes, reemplazar);   // 3.8.4
 }
 export function cargarFotos() { return leerFotosDe(CLAVE_FOTOS); }
 export function borrarFotos() { borrarFotosDe(CLAVE_FOTOS); }
@@ -619,23 +662,28 @@ export function guardarProgreso(p) {
   // La partida va sin imágenes: son lo que hace pesada la escritura.
   const desafios = {};
   for (const [k, v] of Object.entries(limpio.desafios || {})) desafios[k] = { dia: finito(v?.dia, limpio.dia), hora: finito(v?.hora, limpio.horas) };
-  const aGuardar = { ...limpio, desafios, guardadoEn: Date.now() };
-  let nuevo;
-  try { nuevo = JSON.stringify(aGuardar); } catch { return false; }
-
   try {
     // El backup SOLO se reemplaza por un principal que ya era JSON válido.
     // RC24 reutiliza la última copia principal validada; si venimos de un
     // backup/corrupción, valida una sola vez antes de empezar la nueva cadena.
     let anteriorTexto = ultimoPrincipalValidoTexto;
-    if (!anteriorTexto) {
+    if (!anteriorTexto && !principalRoto) {
       const candidato = localStorage.getItem(CLAVE);
-      if (progresoPlausible(parsear(candidato))) anteriorTexto = candidato;
+      const anterior = parsear(candidato);
+      if (progresoPlausible(anterior)) { anteriorTexto = candidato; ultimoSello = Math.max(ultimoSello, selloDe(anterior)); }
     }
+    // 3.8.6: el sello de cuándo se guardó nunca va para atrás en una partida, aunque el reloj de esta computadora atrase:
+    // la carpeta sincronizada compara sellos de dos computadoras, y con el de una atrasada lo jugado acá quedaba «más viejo»
+    // que lo que la otra ya había visto y se pisaba sin preguntar. Tampoco por debajo del de una partida importada.
+    const guardadoEn = Math.max(Date.now(), ultimoSello + 1, selloDe(limpio));
+    let nuevo;
+    try { nuevo = JSON.stringify({ ...limpio, desafios, guardadoEn }); } catch { return false; }
     if (anteriorTexto) localStorage.setItem(CLAVE_BACKUP, anteriorTexto);
     if (!escribirTexto(CLAVE, nuevo)) return false;
     ultimoPrincipalValidoTexto = nuevo;
+    ultimoSello = guardadoEn;
+    principalRoto = false;
     return true;
   } catch { return false; }
 }
-export function borrarProgreso() { ultimoPrincipalValidoTexto = null; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }
+export function borrarProgreso() { ultimoPrincipalValidoTexto = null; ultimoSello = 0; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }

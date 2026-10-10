@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { matriz } from './geometria.js';
 import { calce } from './calces.js';
+import { GRANJA } from './granja.js';
 
 const MADERA = '#6b5238';
 const MADERA_OSCURA = '#4a3b2c';
@@ -207,6 +208,7 @@ export const PLANOS_GRANJA = [
     id: 'frutal', nombre: 'Hoyo para frutal', pieza: true, categoria: 'trabajo', soloRelax: true,
     radio: 0.8, separacion: 2.6, distancia: 2.6, pendienteMax: 0.6,
     funciones: ['frutal'],
+    maximo: GRANJA.frutales, motivoMaximo: `Ya tenés ${GRANJA.frutales} hoyos para frutales: no entran más`,   // 3.8.6
     texto: 'Un hoyo con tierra negra removida y un tutor de palo. Se planta (E) un plantín de manzano, peral, ciruelo o cerezo (de Gladys) o una mata de frambuesa o de grosella (de Inés). Florece en primavera y da fruta en verano u otoño.',
     pide: { tronco: 1 },
     arma(c, P, datos, suelo) {

@@ -67,7 +67,7 @@
 }
 :root[data-menu="cuaderno"] .personal-pestanas { border-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='8' viewBox='0 0 400 8' preserveAspectRatio='none'><path d='M2 4.6C60 2.8 120 5.6 200 3.8S340 5.4 398 3.2' fill='none' stroke='%233a2a16' stroke-opacity='.55' stroke-width='2.2' stroke-linecap='round'/></svg>") 0 0 8 0 / 0 0 6px 0 stretch; border-top: 0; border-bottom: 6px solid; }
 /* los títulos de panel, subrayados con una pincelada */
-:root[data-menu="cuaderno"] :is(.panel-modal h2, .pausa h2, .mochila h2, .pagina h2) { padding-bottom: 6px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='12' viewBox='0 0 220 12'><path d='M3 8C50 4 110 9 170 5.5C190 4.6 205 5 216 6.5' fill='none' stroke='%23a2452f' stroke-opacity='.7' stroke-width='3' stroke-linecap='round'/></svg>") 0 100% / 170px 10px no-repeat; }
+:root[data-menu="cuaderno"] :is(.panel-modal h2, .pausa h2, .mochila h2, .pagina h2, .valle-carta h2) { padding-bottom: 6px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='12' viewBox='0 0 220 12'><path d='M3 8C50 4 110 9 170 5.5C190 4.6 205 5 216 6.5' fill='none' stroke='%23a2452f' stroke-opacity='.7' stroke-width='3' stroke-linecap='round'/></svg>") 0 100% / 170px 10px no-repeat; }
 :root[data-menu="cuaderno"] .ajustes h3 { color: var(--p-titulo); }
 :root[data-menu="cuaderno"] .pausa .cuando { color: #8a3a26; font-size: var(--t-medio); }
 /* los íconos: un círculo de aguada atrás, apenas sepia, como dibujados en la libreta */

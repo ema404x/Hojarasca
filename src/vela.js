@@ -162,7 +162,10 @@ export function crearVela(T, escena, col, sonido, ctx = {}) {
     barco.visible = true;
     if (!antes) {
       // lo guardado, si todavía flota; si no, a la punta del varadero
-      if (guardado && hondo(guardado.x, guardado.z)) Object.assign(est, { x: guardado.x, z: guardado.z, rumbo: guardado.rumbo });
+      // 3.8.6: si vas arriba (desarmaste el varadero navegando y terminaste otro), sigue donde va: antes no se podía amarrar
+      // con vos a bordo y el velero quedaba invisible hasta que bajaras
+      if (est.activo) { /* (queda donde está) */ }
+      else if (guardado && hondo(guardado.x, guardado.z)) Object.assign(est, { x: guardado.x, z: guardado.z, rumbo: guardado.rumbo });
       else if (amarrar()) { if (guardado === null && ctx.cargado?.()) ctx.nota?.('El velero quedó amarrado en tu varadero', 'E para subir: se navega con el viento', true); }
       // 3.8.3: sin dónde amarrarlo, no aparece en el medio del mapa (0, 0): se vuelve a probar en la próxima revisión
       else { est.hay = false; barco.visible = false; firma = null; return; }
@@ -229,7 +232,8 @@ export function crearVela(T, escena, col, sonido, ctx = {}) {
       for (let a = 0; a < 20; a++) {
         const ang = (a / 20) * Math.PI * 2;
         const x = est.x + Math.cos(ang) * r, z = est.z + Math.sin(ang) * r;
-        if (!T.agua(x, z) && T.altura(x, z) > 0.15) return { x, z };
+        // 3.8.6: sin una pared en el medio (como el kayak)
+        if (!T.agua(x, z) && T.altura(x, z) > 0.15 && !col.paredEntre?.(est.x, est.z, x, z, T.altura(x, z) + 0.2, T.altura(x, z) + 1.6, true)) return { x, z };
       }
     }
     return null;

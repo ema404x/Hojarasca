@@ -26,14 +26,19 @@ const des = leer('src/desafio.js');
   const ctx = {
     cristales: [], escena: { add() {} }, THREE: { Mesh: function () { this.visible = false; this.position = { set() {} }; this.rotation = {}; } },
     geoCristal: null, matCristal: null, alturaSuelo: () => 10, Math, naveMundo: { adentro: false }, T: { agua: () => null },
+    // 3.8.6: el pozo y la anotación en la partida van en funciones propias (semillaLibre, anotarSuelta)
+    SUELTAS_MAX: 80, D: () => ({ sueltas: [] }),
   };
   vm.createContext(ctx);
-  vm.runInContext(`${extraer(des, 'soltarCristales')}; this.soltarCristales = soltarCristales;`, ctx);
+  vm.runInContext(`${extraer(des, 'semillaLibre')}
+${extraer(des, 'anotarSuelta')}
+${extraer(des, 'borrarSuelta')}
+${extraer(des, 'soltarCristales')}; this.soltarCristales = soltarCristales;`, ctx);
   ctx.soltarCristales({ x: 0, z: 0 }, 5);
   assert.equal(ctx.cristales.length, 5, 'cinco semillas, cinco en el suelo (antes: una sola, reusada)');
   assert.ok(ctx.cristales.every((c) => c.activo && c.mesh.visible && Number.isFinite(c.t)), 'cada semilla queda activa: se puede juntar');
   let sumadas = 0;
-  const ctx2 = { cristales: ctx.cristales, ctx: { sumarMaterial: (k, n) => { if (k === 'cristal') sumadas += n; }, nota() {}, cuanto: () => sumadas }, sonido: { juntar() {} }, Math };
+  const ctx2 = { cristales: ctx.cristales, ctx: { sumarMaterial: (k, n) => { if (k === 'cristal') sumadas += n; }, nota() {}, cuanto: () => sumadas }, sonido: { juntar() {} }, Math, borrarSuelta() {} };   // (3.8.6: juntarla la borra de la partida)
   vm.createContext(ctx2);
   vm.runInContext(`${extraer(des, 'actualizarCristales')}; this.actualizarCristales = actualizarCristales;`, ctx2);
   ctx2.actualizarCristales(0.05, { pos: { x: 0, y: 10, z: 0 } });

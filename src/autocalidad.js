@@ -91,7 +91,9 @@ export function sincronizarCalidad(estado, calidad) {
 }
 
 // Un cuadro más. Se llama una vez por frame con el dt real (en segundos).
-export function anotarCuadro(estado, dt) {
+// 3.8.6: `objetivoFps` (opcional): el ritmo que eligió el jugador si es menos de 60 (el límite en 30). Los umbrales son para
+// 60 cuadros: con 30 elegidos, 30 parejos quedaban siempre «en rojo» y la pregunta salía aunque el equipo anduviera perfecto.
+export function anotarCuadro(estado, dt, objetivoFps = null) {
   const op = estado.op;
   const v = Number(dt);
   if (!Number.isFinite(v) || v <= 0) return estado;
@@ -109,7 +111,11 @@ export function anotarCuadro(estado, dt) {
 
   const medio = fpsMedio(estado);
   const peor = fpsPeor(estado);
-  if (medio < op.fpsBajar || peor < op.fpsTirones) {
+  const escala = Number(objetivoFps) > 0 ? Math.min(1, Number(objetivoFps) / 60) : 1;
+  // 3.8.6: tirones son muchos cuadros lentos, no uno: con el 5% peor promediado, un solo tirón de 200 ms (o un congelón,
+  // que llegaba recortado a 0,2 s) dejaba «en rojo» los 3 s que tardaba en salir de la ventana, justo lo que hace falta
+  // para preguntar. Ahora tiene que haber al menos el 5% de los cuadros de la ventana por encima del umbral.
+  if (medio < op.fpsBajar * escala || hayTirones(estado, op.fpsTirones * escala)) {
     estado.rojo += v;
     estado.verde = 0;
   } else if (medio > op.fpsSubir && peor > op.fpsBajar) {
@@ -121,6 +127,17 @@ export function anotarCuadro(estado, dt) {
     estado.verde = Math.max(0, estado.verde - v);
   }
   return estado;
+}
+
+// 3.8.6: ¿al menos el 5% de los cuadros de la ventana (y nunca menos de 2) duró más que 1/fps?
+export function hayTirones(estado, fps = estado.op.fpsTirones) {
+  const n = estado.llenas;
+  if (!n || !(fps > 0)) return false;
+  const limite = 1 / fps;
+  const hacen = Math.max(2, Math.round(n * estado.op.fraccionPeor));
+  let lentos = 0;
+  for (let i = 0; i < n; i++) if (estado.muestras[i] > limite && ++lentos >= hacen) return true;
+  return false;
 }
 
 // Media móvil de la ventana, en cuadros por segundo.

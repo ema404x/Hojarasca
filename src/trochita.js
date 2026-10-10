@@ -1221,10 +1221,12 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     const a = enVia(est.s), b = enVia(est.s + 1.5);
     const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1;
     jugador.ubicar(a.x - (dz / l) * 2.6, a.z + (dx / l) * 2.6, jugador.estado.yaw);
-    return true;
+    // 3.8.6: hacia afuera de la vía (`nx`, `nz`) y a lo largo (`tx`, `tz`): main.js deja ahí a tu caballo, lejos de los rieles
+    return { nx: -dz / l, nz: dx / l, tx: dx / l, tz: dz / l };
   }
   return {
     varadoEnNieve, bajarEnLaNieve,
+    soloLocomotora: () => !hayCoches(),   // 3.8.6: sin coches (el taller con vagones y ninguno enganchado)
     est, actualizar, puedeSubir, subir, bajar, moverse, proximoTrenA, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
     // 3.7.3: el lugar donde vas, ir a uno (la cocina, una cama), la vía nevada y dónde para la locomotora
     asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,

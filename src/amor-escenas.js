@@ -344,13 +344,21 @@ export function destinoHijo(progreso, i, ctx = {}) {
     adentro: r.lugar !== 'plaza', pose, sentado: pose === 'sentado' };
 }
 // ¿Algún hijo vive (o duerme) en esta casa? El cuarto que se ve: { casa, camas: [i…], cuna } o null.
-export function cuartoVisible(mundo) {
-  if (!mundo?.activo || !mundo.cuarto || !mundo.hijos?.length) return null;
-  const camas = [], casa = mundo.cuarto.edificio;
-  let cuna = false;
-  mundo.hijos.forEach((h, i) => { if (h.etapa === 'bebe') cuna = true; else camas.push(i); });
-  return { casa, camas, cuna };
+// 3.8.6: uno por casa (hijos de dos madres: cada uno en lo de la suya); `cuartoVisible`, el primero
+export function cuartosVisibles(mundo) {
+  if (!mundo?.activo || !mundo.hijos?.length) return [];
+  const lista = Array.isArray(mundo.cuartos) ? mundo.cuartos : mundo.cuarto ? [mundo.cuarto] : [];
+  return lista.map((cu) => {
+    const camas = [];
+    let cuna = false;
+    mundo.hijos.forEach((h, k) => {
+      if ((h.casa ?? mundo.cuarto?.edificio) !== cu.edificio) return;
+      if (h.etapa === 'bebe') cuna = true; else camas.push(Number.isInteger(h.i) ? h.i : k);
+    });
+    return { casa: cu.edificio, camas, cuna };
+  }).filter((v) => v.camas.length || v.cuna);
 }
+export const cuartoVisible = (mundo) => cuartosVisibles(mundo)[0] || null;
 
 // ---------------------------------------------------------------- el casamiento y la fiesta
 // Las horas: la ceremonia mientras ella espera (de 10:30 a 14, ver amor.js); la fiesta, dos horas y media desde que

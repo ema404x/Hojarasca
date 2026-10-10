@@ -32,7 +32,7 @@ import { crearFauna } from './fauna.js';
 import { crearVida } from './vida.js';
 import { crearBichos } from './bichos.js';
 import { crearPerro } from './perro.js';
-import { crearGente, saludoDe, alturaDePie } from './gente.js';
+import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
@@ -54,7 +54,7 @@ import { SECCIONES, ENTRADAS, ENTRADA } from './cuaderno.js';
 import { ENCARGOS, ENCARGO, encargoDe, estadoEncargo, pistaTrabado, resumenEncargos } from './encargos.js';
 import { ENCARGOS_TEMPORADA, ENCARGO_TEMPORADA, encargoDeTemporada, anotarBase, estacionDe } from './encargos-temporada.js';
 import { crearDiario } from './diario.js';
-import { TRUEQUES, NOMBRE_COSA, tieneYa } from './trueque.js';
+import { TRUEQUES, cantidadCosa, tieneYa } from './trueque.js';
 import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta } from './huerta.js';
 import { crearMatasHuerta } from './huerta-malla.js';
 import { claveGallinero, gallineroNuevo, sanearGallineros, juntarHuevos, textoGallinero } from './gallinero.js';
@@ -84,7 +84,7 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
 import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
@@ -676,8 +676,9 @@ async function construir() {
   // 3.7.0: la gente al estilo P (gente-cuerpo.js), con la ropa de la estación en que arranca
   gente = await paso('Avisándole a la gente del puesto', 93, () => crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA }));
   // 3.6.1: un asiento con un vecino sentado no se ofrece (objetos.js): te sentabas encima
-  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo)
-  est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo' || g.pose === 'tornear' || g.pose === 'coser') && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
+  // (3.7.0: y el banco del torno con Malena o la silla de la máquina con Pocha, sentadas en lo suyo; 3.8.6: todas las poses
+  // sentadas de gente.js, comer incluida)
+  est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido && Math.abs(g.pos.y - (s.y - 0.45)) < 1.2 && Math.hypot(g.pos.x - s.x, g.pos.z - s.z) < 0.4);
   perro = crearPerro(T, escena, col, sonido, registrar, progreso);
   clima = crearClima(escena, T, ajustes);
   clima.usarPrograma(programaDelTiempo());   // 2.9: el tiempo sale de la semilla de la partida (ver `meteo.js`)
@@ -755,7 +756,9 @@ async function construir() {
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
   desalojarCarpa();   // 3.6.2
-  if (desalojo.acopio) vaciarUltimoAcopio(desalojo.materiales);   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás
+  // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
+  // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
+  if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
@@ -1836,14 +1839,15 @@ function dibujarMapaSiAbierto() { if (modo === 'mapa') dibujarMapa(); }
 $('lienzo-mapa').addEventListener('click', tocarMapa);
 $('lienzo-mapa').addEventListener('contextmenu', sacarDelMapa);
 
-function volverAlJuego() {
+// `sinMouse` (3.8.6): sin atrapar el mouse, porque sigue abierto un panel del HUD que se usa con él (el almacén, la cocina…)
+function volverAlJuego(sinMouse = false) {
   reiniciarMedicion(autoCalidad);
   for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
   modo = 'jugando';
   entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');
   sonido.iniciar();
-  jugador.pedirBloqueo();
+  if (sinMouse !== true) jugador.pedirBloqueo();
 }
 
 function sincronizarAjustes() {
@@ -1925,7 +1929,10 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
       location.reload();
       return;
     }
-    if (clave === 'calidad') sincronizarCalidad(autoCalidad, v);
+    // 3.8.6: la autocalidad mide la calidad que está corriendo, no la elegida para el próximo arranque (en el juego, la nueva
+    // vale al volver a la portada): con Alta elegida y Media corriendo preguntaba «De Alta a Media», y «Bajar» no cambiaba
+    // nada en pantalla y pisaba la elección
+    if (clave === 'calidad') sincronizarCalidad(autoCalidad, calidadActiva);
     // 3.2: otro límite u otra calidad: el ritmo se vuelve a medir desde cero
     if (clave === 'limiteFps' || clave === 'calidad') ritmoAuto.reiniciar();
     if (clave === 'tamanoLetra' || clave === 'paleta' || clave === 'subtitulos') aplicarAccesibilidad();
@@ -2332,8 +2339,20 @@ function dibujarSync() {
 }
 // Mira la copia de la carpeta. Si es más nueva que la de esta computadora, pregunta con
 // cuál seguir; si no, o si elegís la de acá, queda como base y se puede pisar.
+// 3.8.6: si el programa de sincronización dejó una «copia en conflicto» de esta partida (las dos computadoras la cambiaron
+// a la vez), se avisa una vez por sesión: el juego no la lee ni la pisa, y antes nadie se enteraba de que existía
+let avisoConflictoSync = false;
+async function avisarConflictosSync() {
+  if (avisoConflictoSync || typeof syncApi?.conflictos !== 'function') return;
+  let copias = [];
+  try { copias = await syncApi.conflictos(nombreSync(modoJuego, ranuraActual())); } catch { copias = []; }
+  if (!Array.isArray(copias) || !copias.length) return;
+  avisoConflictoSync = true;
+  nota('Hay una copia en conflicto en la carpeta sincronizada', `«${copias[0]}»${copias.length > 1 ? ` y ${copias.length - 1} más` : ''}: la dejó aparte el programa de sincronización. El juego no la toca; si es la que querés, importala desde Partidas`, true);
+}
 async function mirarCarpetaSync() {
   if (esSinFin) return;   // 3.0
+  avisarConflictosSync();   // 3.8.6
   let texto = null;
   try { texto = await syncApi.leer(nombreSync(modoJuego, ranuraActual())); } catch {}
   const r = texto ? leerPaquete(texto) : null;
@@ -2379,7 +2398,20 @@ $('cerrar-partidas').addEventListener('click', cerrarPartidas);
 
 // ---------------------------------------------------------------- teclas y mando
 let origenTeclas = null, capturandoTecla = null;
+// 3.8.6: las teclas escritas en la portada, la pausa, la mochila y Controles son las del jugador (la 3.8.4 lo hizo en el
+// panel de la historia y el aviso; acá seguían las de fábrica aunque las hubiera cambiado). Lo que no es de una acción (Q,
+// R, T, G…) queda como está. Se guarda la de fábrica en el elemento, para volver a pintarla con cada cambio.
+function pintarTeclasPropias() {
+  for (const k of document.querySelectorAll('#teclas-basicas kbd, #controles-completos kbd, #pausa kbd, #mochila kbd')) {
+    if (!k.dataset.fabrica) k.dataset.fabrica = k.textContent;
+    const fabrica = k.dataset.fabrica, visible = teclaVisible(fabrica, teclasPropias);
+    // (sólo se toca la que cambió: las otras quedan como las dejó el traductor)
+    if (visible !== fabrica) { if (k.textContent !== visible) k.textContent = visible; k.dataset.puesta = '1'; }
+    else if (k.dataset.puesta) { k.textContent = T_(fabrica); delete k.dataset.puesta; }
+  }
+}
 function dibujarTeclas() {
+  pintarTeclasPropias();   // 3.8.6
   const cont = $('teclas-lista');
   traducirPanel($('teclas'));
   cont.innerHTML = '';
@@ -2412,6 +2444,30 @@ function cerrarTeclas() {
   origenTeclas = null;
 }
 const teclasAbiertas = () => !$('teclas').classList.contains('oculto');
+// 3.8.6: Controles y Créditos, desde la pausa o la portada. Estaban en un script aparte de la plantilla que el resto del
+// juego no conocía: F1, F5 o F2 abrían la guía, Personalizar o el modo foto encima (o debajo) y Esc cerraba primero el de
+// abajo (hacían falta tres Esc, o quedaba la pausa a la vista con el juego corriendo). Y desde la portada, el botón decía
+// «Volver a pausa».
+const PANELES_INFO = ['controles-completos', 'creditos'];
+let origenInfo = null;
+const infoAbierta = () => PANELES_INFO.some((id) => $(id) && !$(id).classList.contains('oculto'));
+function abrirInfo(id, origen) {
+  origenInfo = origen;
+  $(origen)?.classList.add('oculto');
+  for (const b of ['cerrar-controles-completos', 'cerrar-creditos']) if ($(b)) $(b).textContent = T_(origen === 'inicio' ? 'Volver' : 'Volver a pausa');
+  $(id)?.classList.remove('oculto');
+}
+function cerrarInfo() {
+  for (const id of PANELES_INFO) $(id)?.classList.add('oculto');
+  if (origenInfo) $(origenInfo)?.classList.remove('oculto');
+  origenInfo = null;
+}
+$('btn-controles')?.addEventListener('click', () => abrirInfo('controles-completos', 'pausa'));
+$('btn-controles-inicio')?.addEventListener('click', () => abrirInfo('controles-completos', 'inicio'));
+$('cerrar-controles-completos')?.addEventListener('click', cerrarInfo);
+$('btn-creditos')?.addEventListener('click', () => abrirInfo('creditos', 'pausa'));
+$('btn-creditos-inicio')?.addEventListener('click', () => abrirInfo('creditos', 'inicio'));
+$('cerrar-creditos')?.addEventListener('click', cerrarInfo);
 // Mientras el panel espera una tecla, esa tecla no hace nada más.
 function tomarTeclaNueva(code) {
   const accion = capturandoTecla;
@@ -2434,6 +2490,7 @@ $('teclas-defecto').addEventListener('click', () => {
   dibujarTeclas();
   nota('Teclas de fábrica', 'Volvió todo como venía');
 });
+pintarTeclasPropias();   // 3.8.6: las del jugador, desde que abre el juego
 $('btn-teclas').addEventListener('click', () => abrirTeclas('pausa'));
 $('btn-teclas-inicio').addEventListener('click', () => abrirTeclas('inicio'));
 $('cerrar-teclas').addEventListener('click', cerrarTeclas);
@@ -2605,6 +2662,8 @@ function mostrarVictoria(s, final = false) {
     modo = 'victoria';
     if (personalAbierto()) { $('personalizar').classList.add('oculto'); origenPersonal = null; }   // 2.8: no la tapa
     $('victoria').classList.remove('oculto');
+    // 3.8.6: con el foco en «Seguir»: Enter (o la A del mando) sigue; la cruceta pasa a los otros botones (ver leerMandoQuieto)
+    try { $('victoria-seguir').focus({ preventScroll: true }); } catch { /* sin foco */ }
   }, 5200);
 }
 $('victoria-seguir').addEventListener('click', () => { $('victoria').classList.add('oculto'); volverAlJuego(); });
@@ -2729,7 +2788,13 @@ let objetivo = null;
 document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (capturandoTecla) { e.preventDefault(); tomarTeclaNueva(e.code); return; }
-  if (teclasAbiertas() && e.code === 'Escape') { cerrarTeclas(); return; }
+  // 3.8.6: con Teclas, Controles o Créditos abiertos sólo Esc hace algo (cierra ése): antes F1, F5 o F2 abrían otro panel o
+  // el modo foto por encima y Esc cerraba el de abajo
+  if (teclasAbiertas() || infoAbierta()) {
+    if (e.code === 'Escape') { e.preventDefault(); if (teclasAbiertas()) cerrarTeclas(); else cerrarInfo(); }
+    else if (/^F([1-9]|10|12)$/.test(e.code)) e.preventDefault();
+    return;
+  }
   // el teclado propio: lo que apretó el jugador se traduce a la tecla de fábrica
   const codigo = codigoCanonico(e.code);
   if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(); return; }
@@ -2799,6 +2864,9 @@ document.addEventListener('keydown', (e) => {
     if (paso) { tren.moverse(paso[0], paso[1]); sonido.paso('madera', 0.5); return; }
   }
   if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
+  // 3.8.6: en el sulky, lo mismo (armaba la carpa en el medio del camino, plantaba o talaba desde el asiento; el aviso sólo
+  // dice «Bajar del sulky»)
+  if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
@@ -2895,6 +2963,7 @@ document.addEventListener('keydown', (e) => {
         else amarrarAlBajar();   // 3.8.6: bajándote en tu embarcadero, queda amarrado ahí
         break;
       }
+      // (3.8.6: el amarre se anota sólo en el Relax, como en amarrarKayak: en el Desafío, soltarlo dejaba el kayak siempre en el muelle)
       if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
       // 2.9: subir al velero o traerlo, largarse por la tirolesa (el aviso, en el mismo orden)
       if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
@@ -3371,7 +3440,7 @@ function usarRanura() {
       js.entumecido = 0;
       js.descansado = Math.max(js.descansado || 0, 1);
       sonido.juntar();
-      nota(r.id === 'pan-casero' ? 'Comiste un pedazo de pan casero' : 'Comiste una empanada', e.cantidad ? `Te quedan ${e.cantidad}. Se te fue el frío` : 'Era la última. Se te fue el frío');
+      nota(r.id === 'pan-casero' ? 'Comiste un pedazo de pan casero' : 'Comiste una empanada', e.cantidad ? `${e.cantidad === 1 ? 'Te queda' : 'Te quedan'} ${e.cantidad}. Se te fue el frío` : 'Era la última. Se te fue el frío');
       refrescarBarra(true);
       guardar();
       break;
@@ -4058,8 +4127,54 @@ function sostenerTecla(code, apretada) {
   else if (pisadasMando.delete(code)) jugador.teclas.delete(code);
 }
 let habiaMando = false;
+// 3.8.6: el mando se lee una vez por cuadro en cualquier pantalla (`leerMandoQuieto` en las que no lo usan). Antes sólo se
+// leía jugando y en la pausa, el cuaderno y el mapa: en un cuadro de pregunta, la tarjeta del valle o la victoria quedaba
+// el estado de antes, y el botón con el que se cerraban (A o B, todavía apretado) contaba como recién apretado al volver:
+// cerrar un cuadro con A hacía saltar, con B agacharse, y la B de un cuadro abierto desde la pausa cerraba también la pausa.
+// Y una sola vez: en el tren o en el kayak con la pausa, el cuaderno o el mapa abiertos se leía dos veces en el mismo cuadro
+// (leerMando y leerMandoEnMenu) y la segunda lectura ya no veía nada recién apretado: Start y B no sacaban de la pausa.
+// Y lo recién apretado se usa una sola vez por cuadro (`usarMando`): si jugando Start abre la pausa (o la cruceta el mapa),
+// la pausa no vuelve a tomar ese mismo Start en ese cuadro para cerrarla.
+let mandoLeido = false, mandoUsado = false;
+function leerMandoActual() {
+  if (mandoLeido) return mando.estado();
+  mandoLeido = true;
+  return mando.actualizar();
+}
+function usarMando() {
+  if (mandoUsado) return false;
+  mandoUsado = true;
+  return true;
+}
+// 3.8.6: en las pantallas que no son del juego ni de la pausa: la tarjeta del valle y la de la victoria se manejan con el
+// mando (la cruceta o LB y RB pasan de botón, A lo aprieta, B cierra las tarjetas de un solo botón); antes, con el mando
+// solo, quedaba trabado ahí. En el resto (la portada, la carga, un cuadro de pregunta) sólo se lee, para que no quede nada
+// «recién apretado» de otra pantalla.
+function leerMandoQuieto() {
+  const m = leerMandoActual();
+  if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
+  if (!m.conectado || dialogos.abierto()) return;
+  const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria') : null;
+  if (!caja || caja.classList.contains('oculto') || !usarMando()) return;
+  const mover = (m.recien.mochila || m.recien.planos || m.recien.objetoAnterior) ? -1 : (m.recien.taller || m.recien.mapa || m.recien.objetoSiguiente) ? 1 : 0;
+  if (mover) moverFocoEn(caja, mover);
+  if (m.recien.saltar) {
+    const b = document.activeElement?.closest?.('button');
+    if (b && caja.contains(b) && !b.disabled) b.click();
+    else moverFocoEn(caja, 0);
+  }
+  if (m.recien.agacharse && modo === 'valle') golpeDeTecla('Escape');
+}
+// Pasa el foco al botón siguiente (o anterior) que se ve y se puede apretar; con 0, al primero si no hay ninguno marcado.
+function moverFocoEn(caja, paso) {
+  const botones = [...caja.querySelectorAll('button')].filter((b) => !b.disabled && b.getClientRects().length && !b.closest('.oculto'));
+  if (!botones.length) return;
+  const i = botones.indexOf(document.activeElement);
+  const j = i < 0 ? 0 : (i + paso + botones.length) % botones.length;
+  try { botones[j].focus({ preventScroll: false }); } catch {}
+}
 function leerMando(dt) {
-  const m = mando.actualizar();
+  const m = leerMandoActual();
   if (m.conectado !== habiaMando) {
     habiaMando = m.conectado;
     document.body.classList.toggle('con-mando', m.conectado);
@@ -4067,7 +4182,7 @@ function leerMando(dt) {
     // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
     if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
   }
-  if (!m.conectado || modo !== 'jugando' || !jugador) return;
+  if (!m.conectado || modo !== 'jugando' || !jugador || !usarMando()) return;
   // 3.7.4: con la rueda abierta, el palito derecho apunta (no mira) y A elige
   const enRueda = !!charla.menu && !foto.activo;
   if (enRueda) { if (Math.hypot(m.mirada.x, m.mirada.y) > 0.5) apuntarRueda(m.mirada.x, m.mirada.y, true); if (m.recien.saltar) { seguirCharla(); m.recien.saltar = false; } }
@@ -4087,8 +4202,21 @@ function leerMando(dt) {
     if (m.recien.saltar) elegirHud();
     if (m.recien.agacharse) golpeDeTecla('Escape');
   }
-  if (!enLista) { if (m.recien.saltar) golpeDeTecla('Space'); }
-  if (!enLista) { if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); } }
+  // 3.8.6: en el velero, A sostenido es la vara corta (Espacio sostenido, como en el teclado: vela.js mira la tecla
+  // apretada). Antes A sólo daba un golpe de tecla y con el mando la vara no se podía usar
+  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla;
+  sostenerTecla('Space', enVelero && !!m.activos.saltar);
+  if (!enLista && !enVelero) { if (m.recien.saltar) golpeDeTecla('Space'); }
+  // 3.8.6: con la mochila, el taller de los duendes o los planos abiertos, B también sale (como en el almacén y la cocina;
+  // antes agachaba y había que volver a apretar la cruceta). En los planos, moviendo una pieza, B cancela el movimiento
+  if (!enLista) {
+    if (m.recien.agacharse) {
+      if (enCharla) atrasCharla();
+      else if (mochilaAbierta || desafio?.tallerAbierto) golpeDeTecla('Escape');
+      else if (modoObra) golpeDeTecla(obras?.editando ? 'Escape' : 'KeyO');
+      else golpeDeTecla('KeyC');
+    }
+  }
   for (const a of ACCIONES_TECLA_MANDO) {
     if (!m.recien[a]) continue;
     if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }
@@ -4116,20 +4244,10 @@ function leerMando(dt) {
 // y con el mando no se podía volver. Ahora Start o B hacen de Esc (cierra lo que esté abierto encima, como el teclado) y
 // la cruceta derecha cierra el mapa.
 function leerMandoEnMenu() {
-  const m = mando.actualizar();
+  const m = leerMandoActual();
   if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
   if (!m.conectado) return;
-  // 3.8.6: una tarjeta de la historia o de un evento del valle: la cruceta (o LB y RB) mueve, A elige y B cierra las de
-  // un solo botón (antes el mando no se leía en el modo 'valle' y la tarjeta dejaba el juego trabado)
-  if (modo === 'valle') {
-    const t = valle?.tarjetas;
-    if (!t?.abierta?.()) return;
-    if (m.recien.mochila || m.recien.objetoAnterior) t.moverFoco(-1);
-    if (m.recien.taller || m.recien.objetoSiguiente) t.moverFoco(1);
-    if (m.recien.saltar) t.elegirEnfocada();
-    else if (m.recien.agacharse) t.atras();
-    return;
-  }
+  if (dialogos.abierto() || !usarMando()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
   if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
 }
 
@@ -4676,6 +4794,7 @@ function armarOficiosYAldea(esDesafio) {
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
+    tomandoAlgo: (npc) => !!vecindadJuego?.invitado(npc),   // 3.8.6: invitada a tomar algo con vos, la cita cuenta como «con vos»
     lugarValle: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null), invierno: () => U.uInvierno.value > 0.5,
     enCasa: (p, edificio) => { if (!p) return false; if (edificio === 'refugio') { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); } return !!aldeaMundo && !!edificio && Object.values(puntosMundo(edificio)).some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 6); },
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
@@ -4695,6 +4814,7 @@ function armarOficiosYAldea(esDesafio) {
   cocinaJuego = crearCocinaJuego({
     progreso: () => progreso, desafio: () => !!desafio, obras: () => obras, jugador: () => jugador?.estado || null,
     lluvia: () => clima?.estado?.lluvia || 0, invierno: () => U.uInvierno.value > 0.5,
+    reloj: () => (ajustes.duracion === 'reloj' ? Date.now() / 3600e3 : null),   // 3.8.6: con la hora de tu reloj, la cocción va con el reloj
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato),
@@ -4819,6 +4939,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     cobrar: (e) => cobrarPremio(e), redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
     nombresFoto: () => Object.fromEntries(DESAFIOS.map((d) => [d.id, d.nombre])),
+    fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),   // 3.8.6: el concurso no se lleva a la gente de la fiesta
   });
   noticiasJuego = crearNoticiasJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
@@ -5189,11 +5310,14 @@ function subirALaCabina() {
 // 3.8.4: varado en la nieve sin quitanieves, te bajás y seguís a pie: el tren espera a la cuadrilla y después sigue solo.
 // Tu caballo, si iba en la jaula, baja con vos
 function bajarEnLaNieve() {
-  if (!tren.bajarEnLaNieve?.(jugador)) return false;
+  const lado = tren.bajarEnLaNieve?.(jugador);
+  if (!lado) return false;
   if (enLasCargas()) puestoCargas.cerrar();
   if (caballoEnElTren()) {
+    // 3.8.6: más afuera de la vía que vos, mirando para afuera (antes iba a tu izquierda según para dónde miraras: podía
+    // quedar parado sobre los rieles, adentro de la locomotora)
     const js = jugador.estado, c = caballo();
-    c.x = js.pos.x - Math.cos(js.yaw) * 1.8; c.z = js.pos.z + Math.sin(js.yaw) * 1.8; c.yaw = yawCaballo(js.yaw);
+    c.x = js.pos.x + lado.nx * 1.8 - lado.tx * 1.2; c.z = js.pos.z + lado.nz * 1.8 - lado.tz * 1.2; c.yaw = Math.atan2(lado.tx, lado.tz);
     viajeTren().caballo = false;
     tren.tren?.subirCaballo?.(false);
   }
@@ -5432,8 +5556,9 @@ async function caballoEnElPuente() {
   if (preguntandoPuente) return;
   preguntandoPuente = true;
   try {
-    const mandar = await dialogos.confirmar(`${caballoDicho('', true)} no cruza el puente colgante: el tablero se mueve y no lo pisa. ¿Lo mandás solo al refugio o lo amarrás acá?`, { si: 'Mandarlo al refugio', no: 'Amarrarlo acá' });
-    if (!jugador.estado.montado) return;
+    const mandar = await dialogos.confirmar(`${caballoDicho('', true)} no cruza el puente colgante: el tablero se mueve y no lo pisa. ¿Lo mandás solo al refugio o lo amarrás acá?`, { si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null });
+    // 3.8.6: Escape (o B) no elige nada: seguís montado. Antes contaba como «Amarrarlo acá» y te bajaba
+    if (mandar === null || !jugador.estado.montado) return;
     desmontar();
     if (mandar) {
       const c = caballo();
@@ -5570,6 +5695,13 @@ function prepararTren(dt) {
 function despuesDelTren(dt) {
   if (!trenMejorado() || !estadoTren) return;
   const js = jugador.estado;
+  // 3.8.6: el taller desenganchó el comedor con algo al fuego: vuelve crudo a tus cosas (antes quedaba ahí, sin poder
+  // alcanzarlo, hasta volver a engancharlo)
+  if (cocinaComedor && !conVagon('comedor') && progreso.cocina?.moviles?.['tren-comedor']) {
+    if (devolverCoccion(progreso.cocina.moviles['tren-comedor'])) nota('Desengancharon el coche comedor', 'Lo que estaba al fuego volvió crudo a tus cosas', true);
+    delete progreso.cocina.moviles['tren-comedor'];
+    refrescarBarra(true); guardar();
+  }
   if (cocinaComedor) { const c = cocinaComedor.coccion(); tren.tren.cocina(c, c ? RECETA_PASOS[c.receta] : null); }
   // el taller sacó la jaula con tu caballo adentro: lo bajan en la estación de la aldea
   if (caballoEnElTren() && !conVagon('caballo') && !js.enTren) bajarCaballoDelTren(tren.paradas.find((p) => p.aldea) || null);
@@ -5645,7 +5777,7 @@ function aserrar() {
   progreso.materiales.tronco -= 1;
   sumarMaterial('tabla', cuanto);
   sonido.paso('madera', 0.9);
-  nota(banco ? 'Un tronco, cuatro tablas' : `Aserrado a mano: un tronco, ${cuanto === 3 ? 'tres' : 'dos'} tablas`, banco ? `Llevás ${material('tabla')} tablas` : `Llevás ${material('tabla')} tablas. En un banco de carpintero rinde el doble`);
+  nota(banco ? 'Un tronco, cuatro tablas' : `Aserrado a mano: un tronco, ${cuanto === 3 ? 'tres' : 'dos'} tablas`, banco ? `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}` : `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}. En un banco de carpintero rinde el doble`);
   registrar('tabla-mat');
   ganarOficio('hachero', XP.aserrar);
   guardar();
@@ -5823,7 +5955,7 @@ function dibujarPanelObra() {
   $('obra-costo').textContent = `Costo total · ${costoPlano(p)}`;
   const m = progreso.materiales || {};
   const enAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA) ? acopio() : null;
-  $('obra-materiales').textContent = `Llevás ${m.tronco || 0} troncos · ${m.tabla || 0} tablas · ${m.piedra || 0} piedras`
+  $('obra-materiales').textContent = `Llevás ${cuantas(m.tronco || 0, 'tronco', 'troncos')} · ${cuantas(m.tabla || 0, 'tabla', 'tablas')} · ${cuantas(m.piedra || 0, 'piedra', 'piedras')}`
     + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '');
   actualizarEstadoModuloObra(true);
   actualizarEstadoSitioObra(obras.estadoSitio);
@@ -5951,6 +6083,20 @@ function desalojarCarpa() {
 }
 // 3.5.1: desmontar una obra que trabaja devuelve lo que tenía adentro: antes se perdían los
 // troncos secos de la leñera, la miel, las truchas del ahumadero, las tablas del aserradero y la harina
+// 3.8.3: lo que estaba al fuego vuelve crudo (3.8.6: aparte, para la cocina del coche comedor desenganchado)
+// 3.8.6: «Faltan unas 1 horas», «Llevás 1 tablas»: el número con su palabra en singular o plural
+const cuantas = (n, una, varias) => `${n} ${n === 1 ? una : varias}`;
+const faltanHoras = (n) => (n === 1 ? 'Falta más o menos una hora' : `Faltan unas ${n} horas`);
+function devolverCoccion(coccion) {
+  const c = sanearCoccion(coccion);
+  if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
+    const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
+    if (n <= 0) continue;
+    if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
+    else sumarEntrada(x.k, n);
+  }
+  return !!c;
+}
 function devolverContenido(d) {
   if (!d || typeof d !== 'object') return;
   if (d.lenera) sumarMaterial('tronco', sanearLenera(d.lenera).secos);
@@ -5960,21 +6106,14 @@ function devolverContenido(d) {
   if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
   // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
   // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
-  if (d.coccion) {
-    const c = sanearCoccion(d.coccion);
-    if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
-      const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
-      if (n <= 0) continue;
-      if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
-      else sumarEntrada(x.k, n);
-    }
-  }
+  if (d.coccion) devolverCoccion(d.coccion);
   // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
   // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
   // todavía no está se lo lleva el cantero, como siempre)
   if (d.tendal) { const tc = sanearTendal(d.tendal); if (tc.colgado) { const C = CONSERVAS[tc.colgado]; if (tc.horas >= HORAS_SECADO) sumarEntrada(tc.colgado, 1); else sumarEntrada(C.ingrediente, C.cantidad); } }
   if (d.vivero) for (const m of sanearVivero(d.vivero, 4).macetas) sumarEntrada(progreso.dia - m.dia >= VIVERO.diasPlantin ? ARBOLES_VIVERO[m.especie].plantin : ARBOLES_VIVERO[m.especie].semilla, 1);
   if (d.plano === 'gallinero') { const g = gallineros()[claveGallinero(d.x, d.z)]; const r = g ? juntarHuevos(g, progreso.dia) : null; if (r?.ok) sumarEntrada('huevo', r.huevos); }
+  if (d.plano === 'frutal') granjaJuego?.alDesarmarHoyo?.(d.x, d.z);   // 3.8.6: la fruta madura del frutal
   if (d.plano === 'cantero') {
     const r = cosechar(huerta(), claveCantero(d.x, d.z), progreso.dia);
     if (r.ok) { sumarEntrada(r.ingrediente, r.cantidad); if (progreso.cosechasTotal != null && Number.isFinite(Number(progreso.cosechasTotal))) progreso.cosechasTotal = Math.floor(Number(progreso.cosechasTotal)) + r.cantidad; }
@@ -6404,7 +6543,7 @@ function usarElTendal() {
   const C = CONSERVAS[q.conserva];
   if (q.accion === 'colgar') { sonido.juntar(); nota('Colgaste a secar', `${C.cantidad} ${C.ingrediente === 'llaollao' ? 'llao llao' : 'calafates'}: medio día de sol, y la lluvia lo frena`, true); }
   else if (q.accion === 'descolgar') { sonido.juntar(); registrar(q.conserva, true); nota(`Descolgaste: ${C.nombre}`, 'Se guarda para el invierno, o se cambia en el almacén', true); }
-  else if (q.accion === 'secando') nota('Todavía se está secando', q.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${q.faltan} horas`);   // (3.8.6: «unas 1 horas»)
+  else if (q.accion === 'secando') nota('Todavía se está secando', faltanHoras(q.faltan));   // 3.8.6
   else nota('No tenés qué colgar', 'Cinco calafates, o tres llao llao ya anotados');
   refrescarBarra(true);
   guardar();
@@ -6454,7 +6593,8 @@ function obraQueTrabajaCerca(radio = 2.6) {
     if (o === obras?.editando) continue;   // 3.8.6: la que estás moviendo (Shift+Y): la colmena o la leñera invisibles no se usan
     // 2.4: con el kayak al alcance, E sube (el aviso lo dice antes); en el embarcadero
     // se mide desde las tablas, que son largas
-    if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos))) continue;
+    // (3.8.6: con el kayak ya amarrado en éste, no hay nada que traer: antes ofrecía «Traer el kayak» y lo volvía a amarrar ahí)
+    if (o.plano.id === 'embarcadero' && (js.enKayak || kayak?.cerca(js) || !sobreEmbarcadero(o, js.pos) || kayakAmarradoEn(o))) continue;
     if (o.plano.id === 'bebedero' && ovejaCercana?.propia) continue;
     // 2.9: lo que se usa sólo de muy cerca (la radio del refugio no le gana a la cama)
     if (o.plano.alcanceE && Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z) > o.plano.alcanceE) continue;
@@ -6517,7 +6657,7 @@ function usarObraQueTrabaja(o) {
       conMateriales((m) => { m.tronco -= r.lena; });
       sonido.encender();
       nota(`Colgaste ${r.truchas} ${r.truchas === 1 ? 'trucha' : 'truchas'} al humo`, 'En medio día están. El fuego se cuida solo', true);
-    } else if (r.accion === 'ahumando') nota('Se están ahumando', r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);   // (3.8.6)
+    } else if (r.accion === 'ahumando') nota('Se están ahumando', faltanHoras(r.faltan));   // 3.8.6
     else if (r.accion === 'sinLena') nota('Falta leña', 'Un tronco por tanda, para el fuego de abajo');
     else nota('No tenés truchas', `Con el ahumadero, de lo que pescás te quedás con ${AHUMADERO.porDia} truchas por día`);
   } else if (o.plano.id === 'vivero') {
@@ -6711,7 +6851,7 @@ function usarMaquina(o) {
       sumarEntrada('haba', -r.habas);
       sonido.juntar();
       nota(`Echaste ${r.habas} habas a la muela`, `Dos habas, una medida de harina: hora y media cada una`, true);
-    } else if (r.accion === 'moliendo') nota('La muela está moliendo', r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);
+    } else if (r.accion === 'moliendo') nota('La muela está moliendo', faltanHoras(r.faltan));
     else {
       const n = obrasTerminadas('aserradero').filter((a) => molinoQueMueve(a.datos, [o.datos])).length;
       nota('La rueda gira con el arroyo', `${n ? `Mueve ${n === 1 ? 'un aserradero' : `${n} aserraderos`}` : `Un aserradero a menos de ${MOLINO.enlace} m aprovecha la fuerza`}. Con habas de la huerta, la muela hace harina`);
@@ -6726,12 +6866,12 @@ function usarMaquina(o) {
       sumarMaterial('tabla', r.tablas);
       sonido.juntar();
       registrar('tabla-mat');
-      nota(`Sacaste ${r.tablas} tablas del aserradero`, `Llevás ${material('tabla')} tablas`, true);
+      nota(`Sacaste ${cuantas(r.tablas, 'tabla', 'tablas')} del aserradero`, `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}`, true);   // 3.8.6
     } else if (r.accion === 'cargar') {
       progreso.materiales.tronco -= r.troncos;
       sonido.juntar();
       nota(`Cargaste ${r.troncos} ${r.troncos === 1 ? 'tronco' : 'troncos'} en el aserradero`, r.sinMolino ? `Sin un molino de agua a menos de ${MOLINO.enlace} m, la sierra no arranca` : `Cinco tablas por tronco. Se aserran solos, aunque te vayas`, true);
-    } else if (r.accion === 'aserrando') nota('La sierra está trabajando', `Quedan ${r.troncos} ${r.troncos === 1 ? 'tronco' : 'troncos'}: unas ${r.faltan} horas`);
+    } else if (r.accion === 'aserrando') nota('La sierra está trabajando', `${r.troncos === 1 ? 'Queda un tronco' : `Quedan ${r.troncos} troncos`}: ${r.faltan === 1 ? 'más o menos una hora' : `unas ${r.faltan} horas`}`);   // 3.8.6
     else if (r.accion === 'sinMolino') nota('La sierra está parada', `Necesita un molino de agua a menos de ${MOLINO.enlace} m, en la orilla del arroyo`);
     else nota('El aserradero está vacío', 'Traé troncos: cinco tablas por cada uno');
     return true;
@@ -6778,6 +6918,12 @@ function usarRadio(o) {
 // El horno, el buzón, el embarcadero y el bebedero van por el mismo camino que la
 // colmena (aviso y tecla E con la misma prioridad). Ver CAMBIOS_2_4_0.md.
 const guardadoHorno = (id) => progreso.entradas[id]?.cantidad || 0;
+// 3.8.6: el kayak está amarrado (sin nadie) al costado de la punta de este embarcadero
+function kayakAmarradoEn(o) {
+  if (!kayak || kayak.est.activo) return false;
+  const p = puntoAmarre(o);
+  return !!p && Math.hypot(kayak.est.x - p.x, kayak.est.z - p.z) < 0.6;
+}
 function sobreEmbarcadero(o, pos) {
   const rot = o.datos.rot || 0, dx = pos.x - o.datos.x, dz = pos.z - o.datos.z;
   const lx = dx * Math.cos(rot) - dz * Math.sin(rot), lz = dx * Math.sin(rot) + dz * Math.cos(rot);
@@ -6804,7 +6950,7 @@ function usarObra24(o) {
       if (!progreso.corral) {
         const cercos = (obras?.obras || []).filter((c) => c.plano.id === 'cerco' && obraTerminada(c) && Math.hypot(c.datos.x - o.datos.x, c.datos.z - o.datos.z) <= 7).length;
         if (desafio) nota('El bebedero', 'Las ovejas se quedan en el galpón');
-        else nota('Todavía no es un corral', `Faltan ${Math.max(0, CORRAL_PROPIO.cercos - cercos)} tramos de cerco alrededor, a menos de 7 m`);
+        else nota('Todavía no es un corral', (Math.max(0, CORRAL_PROPIO.cercos - cercos) === 1 ? 'Falta un tramo de cerco alrededor, a menos de 7 m' : `Faltan ${Math.max(0, CORRAL_PROPIO.cercos - cercos)} tramos de cerco alrededor, a menos de 7 m`));   // 3.8.6
         return true;
       }
       const { conLana, total } = resumenMajada(progreso.corral, progreso.dia);
@@ -7036,7 +7182,10 @@ function hablar(npc) {
   const deNoticias = !desafio && !deAmor ? (concursosJuego?.hablar(npc) || noticiasJuego?.hablar(npc) || null) : null;
   if (deAmor || deNoticias) {
     const h = deAmor || deNoticias;
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
+    // 3.8.6: si además te había venido a buscar («te quiere decir algo», el aviso), primero eso y después lo de la noticia
+    // (antes la E abría el concurso o la carta, lo que te quería decir no se decía y el aviso seguía igual)
+    const ini = deNoticias && !desafio ? socialJuego?.tomarIniciativa(npc) : null;
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: { id: h.id, partes: ini ? [...ini.renglones, ...h.partes] : h.partes, alTerminar: h.alTerminar }, parte: 0, vec: null, menu: null });
     charla.vec = vecindadJuego?.abrir(npc) || null;
     $('charla').classList.remove('oculto');
     mostrarCharla();
@@ -7337,8 +7486,9 @@ function elegirEnMenuCharla(i) {
   const r = vecindadJuego.elegir(charla.vec, elegido, charla.npc);
   charla.menu = null;
   charla.parte = 0;
-  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece
-  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.tipo === 'renglones' ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
+  // 3.7.4: si era su deseo (le regalaste lo que quería, le diste una mano, lo invitaste), te lo agradece (3.8.6: la mano, sólo
+  // si se la diste: sin lo que pide, o por segunda vez en el día, el deseo se cumplía igual y daba la amistad del premio)
+  const hechoDeseo = /^regalar:/.test(elegido) && r.reaccion ? { tipo: 'regalo', k: elegido.slice(8) } : /^ayudar:/.test(elegido) && r.ayudo ? { tipo: 'ayudar' } : r.tipo === 'cita' ? { tipo: 'invitar', que: r.que } : null;
   const gracias = hechoDeseo ? socialJuego?.cumplir(charla.npc, hechoDeseo) : null;
   if (gracias && Array.isArray(r.renglones)) r.renglones = [...r.renglones, gracias];
   if (r.tipo === 'menu') armarMenuCharla();   // 3.6.1: con lo del lugar
@@ -7352,6 +7502,8 @@ function elegirEnMenuCharla(i) {
 }
 // Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
 function atrasCharla() {
+  // 3.8.6: en el último renglón, Escape elige lo que dice abajo (el visitante que guiás: «Hasta acá»)
+  if (!charla.menu && charla.historia?.alEscape && charla.parte >= charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }
   if (charla.menu?.nivel === 2) { volverRueda(); return; }   // 3.7.4: de la segunda rueda, a las categorías
   if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }   // 3.6.1: con lo del lugar
   if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
@@ -7375,7 +7527,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {
@@ -7551,7 +7703,9 @@ function otroSocial(o, npc) {
 function loQueTeQueriaDecir(npc) {
   const ini = !desafio ? socialJuego?.tomarIniciativa(npc) : null;
   if (!ini) { alSaludarSocial(npc); return; }
-  charla.historia = { id: 'social-iniciativa', partes: ini.renglones, alTerminar: () => { charla.historia = null; } };
+  // 3.8.6: y si ya le cumpliste un deseo de lo que se hace en el valle, te lo agradece igual (si te venía a buscar, no)
+  const gracias = socialJuego?.cumplir(npc, null);
+  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones, alTerminar: () => { charla.historia = null; } };
   charla.parte = 0;
 }
 function alSaludarSocial(npc) {
@@ -7646,7 +7800,7 @@ function dibujarAlmacen() {
     const tengo = t.pide.every(([k, n]) => cuanto(k) >= n);
     const hecho = tieneYa(t, progreso.cosas);
     li.className = hecho ? 'hecho' : tengo ? '' : 'falta';
-    const pedido = t.pide.map(([k, n]) => `${n} ${NOMBRE_COSA[k] || k} (tenés ${cuanto(k)})`).join(' y ');
+    const pedido = t.pide.map(([k, n]) => `${cantidadCosa(k, n)} (tenés ${cuanto(k)})`).join(' y ');   // 3.8.6: (en singular si es una)
     const b = document.createElement('b');
     b.textContent = `${j + 1}. ${t.nombre}`;
     const span = document.createElement('span');
@@ -7668,7 +7822,7 @@ function cambiar(i) {
   if (!t) return;
   if (tieneYa(t, progreso.cosas)) { nota('Eso ya lo tenés', 'Pedile otra cosa'); return; }
   if (!t.pide.every(([k, n]) => cuanto(k) >= n)) {
-    nota('Todavía te falta', `Hacen falta ${t.pide.map(([k, n]) => `${n} ${NOMBRE_COSA[k] || k}`).join(' y ')}`);
+    nota('Todavía te falta', `Hacen falta ${t.pide.map(([k, n]) => cantidadCosa(k, n)).join(' y ')}`);
     return;
   }
   for (const [k, n] of t.pide) {
@@ -8535,8 +8689,9 @@ function actualizarTiempo(dt) {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
-    // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras)
-    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() ? 40 : 1;
+    // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras;
+    // ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
+    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
   }
@@ -8577,10 +8732,12 @@ const CLAVES_CALIDAD_EN_VIVO = ['lod', 'lejos', 'sotobosque', 'detalleSuelo', 'r
 const preguntaLento = { activa: !HOJARASCA_DEBUG, pendiente: false, noMolestar: false, veces: 0 };
 function revisarSiVaLento(dtReal) {
   if (!preguntaLento.activa || preguntaLento.pendiente || preguntaLento.noMolestar) return;
-  anotarCuadroCalidad(autoCalidad, dtReal);
+  anotarCuadroCalidad(autoCalidad, dtReal, ajustes.limiteFps === 30 ? 30 : null);   // 3.8.6: con el límite en 30, contra 30
   const cambio = decidirCalidad(autoCalidad);
   if (!cambio) return;
   if (cambio.motivo !== 'bajar') { autoCalidad.verde = 0; return; }   // sobra máquina: no se sube sola
+  // 3.8.6: no en medio de un trueque, una charla, los planos o el modo foto: se pregunta al cerrarlos (si sigue lento)
+  if (panelDelHudAbierto() || charla.npc || modoObra || foto.activo) return;
   preguntarSiBajar(cambio);
 }
 async function preguntarSiBajar(cambio) {
@@ -8589,8 +8746,28 @@ async function preguntarSiBajar(cambio) {
   try {
     si = await dialogos.confirmar(`El juego va lento: ¿bajar la calidad?\nDe ${nombreCalidad(cambio.desde)} a ${nombreCalidad(cambio.hasta)}. Se puede volver a subir en Ajustes.`, { si: 'Bajar', no: 'No, gracias' });
   } catch { si = false; } finally { preguntaLento.pendiente = false; }
-  if (si) { aplicarCambio(autoCalidad, cambio); aplicarCalidadAutomatica(cambio); } else preguntaLento.noMolestar = true;
+  if (si) { aplicarCambio(autoCalidad, cambio); await bajarSinTirones(cambio); } else preguntaLento.noMolestar = true;
   reiniciarMedicion(autoCalidad);
+}
+// 3.8.6: prender o apagar las sombras cambia el programa de todos los materiales con luz: three los recompilaba en el próximo
+// dibujo, de a uno y con el juego trabado varios segundos (justo en la máquina que ya iba lenta). Ahora se compilan antes de
+// seguir, con un cartel y el bucle quieto, como al recuperar el contexto 3D.
+let compilandoCalidad = false;
+async function bajarSinTirones(cambio) {
+  const sombrasAntes = (calidad.sombras || 0) > 0;
+  aplicarCalidadAutomatica(cambio);
+  if (sombrasAntes === ((calidad.sombras || 0) > 0) || !jugador) return;
+  const cartel = $('graficos-recuperando');
+  const textoCartel = cartel?.textContent;
+  compilandoCalidad = true;
+  if (cartel) { cartel.textContent = T_('Acomodando la calidad…'); cartel.classList.remove('oculto'); }
+  try {
+    await esperarMs(60);   // (que el cartel llegue a la pantalla antes de compilar)
+    await Promise.race([Promise.resolve(variantesLuces.compilarCarga(jugador.estado.pos)).catch(() => null), esperarMs(8000)]);
+  } finally {
+    compilandoCalidad = false;
+    if (cartel) { cartel.classList.add('oculto'); cartel.textContent = textoCartel; }
+  }
 }
 // La calidad que el jugador aceptó bajar (o la que bajó el contexto 3D perdido), en vivo: lo que se puede acomodar sin
 // rehacer el mundo, ya; la densidad del bosque y el resto, al próximo arranque
@@ -8643,6 +8820,7 @@ function brilloVentana(v, f, dia) {
 function bucle(tRaf, manual = false) {
   if (!manual) requestAnimationFrame(bucle);
   if (estadoGraficos.perdidos) return;
+  if (compilandoCalidad) return;   // 3.8.6: mientras se compilan los programas de la calidad nueva (ver bajarSinTirones)
   try { cuadroDelJuego(tRaf, manual); } catch (err) {
     fallaSistema('cuadro', err);
     try { if (luzUltimaFoto) dibujar(luzUltimaFoto, 1 - (luzUltimaFoto.dia ?? 1)); } catch (e2) { fallaSistema('dibujo', e2); }
@@ -8668,6 +8846,8 @@ function cuadroDelJuego(tRaf, manual) {
   const factorEfectos = presupuestoAdaptativo.soloCadencias ? 1 : factorEfectosPorPresupuesto(presupuestoAdaptativo.nivel);   // 3.8.4: las partículas no bajan solas
   if (modo === 'carga') return;
   // 3.8.4 (decisión 35): la calidad ya no se acomoda sola: si el equipo no da, se pregunta (ver revisarSiVaLento)
+  // (3.8.6: el dt recortado a 0,2 s, como siempre: un equipo que no llega ni a 2 cuadros por segundo también es lento; un
+  // congelón suelto ya no alcanza para preguntar porque los tirones tienen que ser muchos, ver hayTirones en autocalidad.js)
   if (modo === 'jugando' && ajustes.autoCalidad !== false) revisarSiVaLento(dtReal);
   const medirRendimiento = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   const tInicio = medirRendimiento ? performance.now() : 0;
@@ -8700,11 +8880,16 @@ function cuadroDelJuego(tRaf, manual) {
     // en el tren o en el kayak la cámara sigue al vehículo aunque estés mirando el cuaderno
     if (banco.activa) actualizarBanco(dtReal);
     else if (libre.activa) moverCamaraLibre(foto.activo ? dtReal : dt);
-    // (3.8.6: en el tren o el kayak con la pausa o una tarjeta abierta, el mando lo lee leerMandoEnMenu: leído acá
-    // también, lo «recién apretado» se gastaba antes y Start o A no hacían nada)
-    else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(dt); }
+    // 3.8.6: fuera del juego (la pausa, el cuaderno, el mapa) el mando lo lee `leerMandoEnMenu`: leerlo dos veces en el
+    // cuadro gastaba el «recién apretado» y con el mando solo no se salía de la pausa en el kayak, el velero o el tren. Y el
+    // kayak y el velero quedan quietos (el velero seguía navegando con el viento hasta encallar); el tren de pasajero sigue
+    // su vía, como siempre
+    else if (modo === 'jugando') { leerMando(dt); jugador.actualizar(dt); }
+    else jugador.actualizar(jugador.estado.enKayak ? 0 : dt);
   }
-  if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa' || modo === 'valle') leerMandoEnMenu();   // 3.8.3 (3.8.6: y las tarjetas del valle)
+  if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
+  if (!mandoUsado) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
+  mandoLeido = false; mandoUsado = false;
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)
@@ -8891,9 +9076,11 @@ function cuadroDelJuego(tRaf, manual) {
     indiceSujetosPerro.reconstruir(sujetosPerro, (s) => s.pos);
   }
   perfilador.terminar('fauna', tFauna, medirRendimiento);
-  if (estadoTren && estadoTren.guarda) {
-    gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda.rumbo, js.enTren);
-    // la vuelta completa al anillo, para el encargo de Elsa
+  // (3.8.6: sin coches no hay guarda en viaje: Elsa se queda en la estación)
+  if (estadoTren) gente.ubicarGuarda(estadoTren.guarda, estadoTren.guarda?.rumbo, js.enTren && !!estadoTren.guarda);
+  // la vuelta completa al anillo, para el encargo de Elsa
+  // 3.8.6: también con la locomotora sola (sin coches no hay guarda, y la vuelta manejando nunca se contaba)
+  if (estadoTren) {
     if (js.enTren && estadoTren.recorrido >= estadoTren.vuelta * 0.98) {
       tren.reiniciarVuelta();
       progreso.vueltas = (progreso.vueltas || 0) + 1;
@@ -9236,7 +9423,8 @@ function cuadroDelJuego(tRaf, manual) {
       const anden = tren.paradaCerca(js);
       if (anden) {
         const q = tren.proximoTrenA(anden);
-        if (tren.parado() && q && q.metros < 12) textoTren = `${anden.nombre} · el tren está en el andén · E para subir`;
+        // 3.8.6: con la locomotora sola no hay coche de pasajeros: se sube a la cabina (E al lado de la locomotora)
+        if (tren.parado() && q && q.metros < 12) textoTren = tren.soloLocomotora?.() ? `${anden.nombre} · la locomotora está en el andén, sin coches · E al lado de la cabina para manejar` : `${anden.nombre} · el tren está en el andén · E para subir`;
         else if (q) textoTren = `${anden.nombre} · el próximo tren llega en unos ${Math.max(5, Math.round(q.segundos))} segundos`;
         else textoTren = '';
       } else textoTren = '';
@@ -9408,9 +9596,14 @@ const dialogos = crearDialogos({
   traducir: T_,
   alAbrir: () => { if (modo === 'jugando') { modoAntesDialogo = 'jugando'; modo = 'dialogo'; jugador?.soltar(); } },
   alCerrar: () => {
+    // 3.8.6: el cuadro lee el mando por su lado (cada 50 ms) y se puede cerrar entre dos cuadros del juego: lo que está
+    // apretado ahora (la A o la B con que se contestó) queda visto, para que el juego no lo tome como recién apretado
+    // (saltaba, se agachaba o, desde la pausa, la B cerraba también la pausa)
+    try { mando.actualizar(); } catch { /* sin mando */ }
     if (modo !== 'dialogo') return;
     modo = modoAntesDialogo || 'jugando'; modoAntesDialogo = null;
-    if (modo === 'jugando') volverAlJuego();
+    // 3.8.6: con un panel del HUD abierto debajo (el almacén, la cocina, el taller…), el mouse queda suelto para seguir usándolo
+    if (modo === 'jugando') volverAlJuego(panelDelHudAbierto());
   },
   // con ?debug=1, las pruebas viejas contestan reemplazando window.confirm / window.prompt
   auto: HOJARASCA_DEBUG ? (tipo, texto, inicial) => {
@@ -9456,10 +9649,12 @@ function recargarPorGraficos(motivo) {
 // 3.8.4 (decisión 35, aprobado por el usuario): perder el contexto 3D es lo único que baja la calidad sin preguntar, un
 // escalón (hasta Mínima), para que la placa no se vuelva a caer. Se guarda enseguida (por si hay que recargar) y se
 // aplica en vivo cuando la placa vuelve (ver 'webglcontextrestored'); se avisa al volver o en la portada.
+// 3.8.6: desde la que está corriendo (`calidadActiva`), no la elegida para el próximo arranque: con Alta elegida y Media
+// corriendo «bajaba» a Media, sin aliviar en nada a la placa
 function bajarCalidadPorGraficos() {
-  const hasta = calidadVecina(ajustes.calidad, -1);
+  const hasta = calidadVecina(calidadActiva, -1);
   if (!hasta || !CALIDADES[hasta]) return null;
-  const cambio = { motivo: 'bajar', desde: ajustes.calidad, hasta };
+  const cambio = { motivo: 'bajar', desde: calidadActiva, hasta };
   ajustes.calidad = hasta;
   guardarAjustes(ajustes);
   sincronizarCalidad(autoCalidad, hasta);
@@ -9496,13 +9691,15 @@ lienzo.addEventListener('webglcontextrestored', async () => {
   clearTimeout(estadoGraficos.espera);
   estadoGraficos.espera = setTimeout(() => recargarPorGraficos('rehacer los gráficos tardó demasiado'), estadoGraficos.esperaMs);
   try {
+    // 3.8.4: la calidad que se bajó al perderse, en vivo y avisada. 3.8.6: antes de rehacer los gráficos: después, lo que
+    // rehacerGraficos compilaba era con las sombras de antes, y al bajar se compilaba todo otra vez, a tirones
+    const bajada = estadoGraficos.bajada;
+    if (bajada) aplicarCalidadAutomatica(bajada, false);
     await rehacerGraficos();
     clearTimeout(estadoGraficos.espera);
     estadoGraficos.perdidos = false; estadoGraficos.recuperados++;
     $('graficos-recuperando')?.classList.add('oculto');
-    // 3.8.4: la calidad que se bajó al perderse, en vivo y avisada
-    const bajada = estadoGraficos.bajada; estadoGraficos.bajada = null;
-    if (bajada) aplicarCalidadAutomatica(bajada, false);
+    estadoGraficos.bajada = null;
     nota('Gráficos recuperados', bajada ? `La placa de video se reinició; seguís donde estabas. ${textoBajadaPorGraficos(bajada.hasta)}` : 'La placa de video se reinició; seguís donde estabas', true);
   } catch (err) {
     recargarPorGraficos('no se pudo rehacer: ' + (err?.message || err));

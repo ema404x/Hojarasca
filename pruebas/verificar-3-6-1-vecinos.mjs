@@ -224,7 +224,8 @@ const main = leer('src/main.js');
   ok(main.includes("li.addEventListener('mousedown', (ev) => { if (ev.button !== 0) return; ev.preventDefault(); ev.stopPropagation(); elegirEnMenuCharla(i); });"), 'clic en la opción');
   ok(main.includes('if (charla.npc && document.pointerLockElement) { seguirCharla(); return; }'), 'con el mouse bloqueado, el clic es E');
   ok(main.includes("if (r.tipo === 'menu') armarMenuCharla();") && main.includes('charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }') && !main.includes('charla.menu = vecindadJuego.menu(charla.vec);'), 'el menú siempre con lo del lugar');
-  ok(main.includes("if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); }"), 'B vuelve atrás charlando');
+  // (3.8.6: con la mochila, el taller o los planos abiertos, B sale; si no, agacha como siempre)
+  ok(/if \(m\.recien\.agacharse\) \{\s*if \(enCharla\) atrasCharla\(\);[\s\S]{0,240}else golpeDeTecla\('KeyC'\);/.test(main), 'B vuelve atrás charlando');
   ok(main.includes("if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }"), 'la cruceta mueve el menú');
   ok(main.includes('if (!m || foto.activo) return;   // 3.6.1'), 'en el modo foto el menú no se mueve');
   ok(main.includes("const PIE_MENU_MANDO = 'LB y RB, o la cruceta, y X para elegir · B para despedirte';"), 'el pie, con el mando');
@@ -339,7 +340,7 @@ const main = leer('src/main.js');
 {
   const A = await import('../src/aldea.js');
   const G = await import('../src/aldea-gente.js');
-  ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && main.includes("est.ocupado = (s) => gente.gente.some((g) => (g.pose === 'sentado' || g.pose === 'leyendo'"), 'la silla con un vecino no se ofrece');
+  ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && main.includes("est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido"), 'la silla con un vecino no se ofrece');
   const M = A.marcoAldea(A.PARADA_ALDEA);
   const P = { dia: 2, horas: 16.5, aldea: A.aldeaNueva(), entradas: {}, materiales: {}, cosas: {} };
   const vec = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });

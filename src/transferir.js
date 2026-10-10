@@ -4,9 +4,14 @@
 
 export const FORMATO = 'hojarasca-partida';
 export const VERSION_PAQUETE = 1;
-export const MAX_BYTES = 12 * 1024 * 1024;   // con álbum de fotos y todo, de sobra
+// 3.8.6: antes 12 MB, que con miniaturas de ~30 KB (en base64) alcanzaba para unas 400 fotos: un álbum largo ya no se podía
+// exportar ni sincronizar. 64 MB son más de 2000 fotos
+export const MAX_BYTES = 64 * 1024 * 1024;
 
 // Una firma barata para darse cuenta de que el archivo llegó cortado o retocado.
+// 3.8.6: `Number` tira con un objeto cuyo toString no es función (`{ "toString": 1 }` en un archivo retocado): leerPaquete
+// tiene que contestar siempre (la carpeta sincronizada lo llama sola y la promesa quedaba rechazada sin atender)
+const numeroSeguro = (v) => { try { return Number(v); } catch { return NaN; } };
 export function firmar(texto) {
   let h = 0x811c9dc5;
   for (let i = 0; i < texto.length; i++) {
@@ -26,7 +31,7 @@ export function empaquetar({ progreso, fotos = {}, modo = 'relax', ranura = 1, v
     modo,
     ranura,
     cuando,
-    dia: Math.max(1, Math.floor(Number(progreso?.dia) || 1)),
+    dia: Math.max(1, Math.floor(numeroSeguro(progreso?.dia) || 1)),
     firma: firmar(texto),
     cuerpo,
   }, null, 1);
@@ -40,7 +45,7 @@ export function leerPaquete(texto) {
   let p;
   try { p = JSON.parse(texto); } catch { return { ok: false, motivo: 'Ese archivo no es una partida de Hojarasca.' }; }
   if (!p || typeof p !== 'object' || p.formato !== FORMATO) return { ok: false, motivo: 'Ese archivo no es una partida de Hojarasca.' };
-  if (Number(p.versionPaquete) > VERSION_PAQUETE) return { ok: false, motivo: 'La partida viene de una versión más nueva del juego. Actualizá Hojarasca y probá de nuevo.' };
+  if (numeroSeguro(p.versionPaquete) > VERSION_PAQUETE) return { ok: false, motivo: 'La partida viene de una versión más nueva del juego. Actualizá Hojarasca y probá de nuevo.' };
   const cuerpo = p.cuerpo;
   if (!cuerpo || typeof cuerpo !== 'object' || !cuerpo.progreso || typeof cuerpo.progreso !== 'object') {
     return { ok: false, motivo: 'El archivo no tiene ninguna partida adentro.' };
@@ -57,7 +62,7 @@ export function leerPaquete(texto) {
       cuando: String(p.cuando || ''),
       // El día se lee de la partida misma, no de la cabecera: la firma cubre el
       // cuerpo, así que es lo único en lo que se puede confiar.
-      dia: Math.max(1, Math.floor(Number(cuerpo.progreso.dia) || 1)),
+      dia: Math.max(1, Math.floor(numeroSeguro(cuerpo.progreso.dia) || 1)),
       progreso: cuerpo.progreso,
       fotos: cuerpo.fotos && typeof cuerpo.fotos === 'object' ? cuerpo.fotos : {},
     },
@@ -77,6 +82,6 @@ export function avisoImportar(paquete, destino) {
 export function nombreArchivoPartida(modo, progreso, fecha = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   const sello = `${fecha.getFullYear()}${p(fecha.getMonth() + 1)}${p(fecha.getDate())}`;
-  const dia = Math.max(1, Math.floor(Number(progreso?.dia) || 1));
+  const dia = Math.max(1, Math.floor(numeroSeguro(progreso?.dia) || 1));
   return `hojarasca-${modo === 'desafio' ? 'desafio' : 'relax'}-dia${dia}-${sello}.hojarasca.json`;
 }

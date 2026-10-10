@@ -56,7 +56,9 @@ export function crearConcursosJuego(ctx) {
       `¡Hoy es el ${minus(c.nombre)}! Veo que traés ${entrada.que}. ¿Te anoto? Si preferís guardarlo, no pasa nada: seguí de largo.`,
       `Anotado, con ${entrada.que}.${c.gasta ? ' Dejalo en la mesa, que el jurado lo prueba.' : ' Lo mira el jurado y te lo devuelven.'} A las ${HORAS_CONCURSO.fallo} el jurado (${jurado}) da las cintas.`,
     ], alTerminar: () => {
-      if (!inscribir(estado(), id, entrada, dia(), hora())) return;
+      // 3.8.6: con la hora en que le hablaste (a las 16:59, si la charla cruzaba las 17, decía «Anotado» y no te anotaba);
+      // si el jurado ya falló mientras charlaban, te lo dice (antes, nada)
+      if (!inscribir(estado(), id, entrada, d, h)) { ctx.nota(`No llegaste al ${minus(c.nombre)}`, 'Mientras charlaban, el jurado ya dio las cintas', true); return; }
       if (c.gasta) gastar(progreso(), entrada.k, 1);
       dicho = `${dia()}-anotado`;
       ctx.nota(`Te anotaste en el ${minus(c.nombre)}`, `Con ${entrada.que}. El fallo, a las ${HORAS_CONCURSO.fallo}`, true);
@@ -131,6 +133,9 @@ export function crearConcursosJuego(ctx) {
     if (!activo() || !conoce()) return m;
     const d = dia(), h = hora(), id = deHoy(d);
     if (!id || yaFallo(id, d) || h < HORAS_CONCURSO.desde || h >= HORAS_CONCURSO.fallo) return m;
+    // 3.8.6: con una fiesta en curso, nadie se va de la fiesta: el concurso se falla ahí (Nélida anota donde esté). Antes el
+    // jurado y los que compiten se iban a la plaza de 16 a 17 y el predio quedaba sin gente (el rival de la mesita se levantaba)
+    if (ctx.fiestaEnCurso?.()) return m;
     m.set(ORGANIZA, { lugar: 'concurso', edificio: 'plaza', punto: 'estar-1' });
     if (h >= HORAS_CONCURSO.fallo - 1) {
       const quienes = [...juradoDe(id, d, presentes), ...Object.keys(CONCURSOS[id].compiten).filter((k) => presentes(k))];

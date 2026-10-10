@@ -114,7 +114,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   try {
     const jpg = `data:image/jpeg;base64,${Buffer.from('foto').toString('base64')}`;
     const dir = () => FM.carpetaFotos(base, 'hojarasca-p2-fotos-v1');
-    globalThis.hojarasca = { fotos: { leer: (k) => FM.leerFotos(base, k), escribir: (k, f, podar) => FM.escribirFotos(base, k, f, podar), borrar: (k) => FM.borrarFotos(base, k) } };
+    globalThis.hojarasca = { fotos: { leer: (k) => FM.leerFotos(base, k), escribir: (k, f, opciones) => FM.escribirFotos(base, k, f, opciones), borrar: (k) => FM.borrarFotos(base, k) } };
     ok(G.escribirPartida('relax', 2, { ...G.progresoNuevo(), dia: 4, desafios: { lago: { dia: 2 }, faro: { dia: 3 } } }, { lago: jpg, faro: jpg }), 'una partida con dos fotos');
     G.usarModoGuardado('relax', 2);
     // la carga no pudo leer «faro» (el guardado de todos los días recibe sólo «lago» y una nueva)
@@ -123,19 +123,16 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
     // reemplazar la partida entera (importar) sí deja exactamente las suyas
     ok(G.escribirPartida('relax', 2, { ...G.progresoNuevo(), dia: 6 }, { otra: jpg }), 'importar otra partida en la ranura');
     eq(fs.readdirSync(dir()), ['otra.jpg'], 'importar reemplaza las fotos');
-    ok(FM.escribirFotos(base, 'hojarasca-p2-fotos-v1', { x: jpg }, false) && fs.readdirSync(dir()).length === 2, 'fotos-main: sin podar, sólo agrega');
-    ok(leer('preload.cjs').includes("ipcRenderer.sendSync('fotos-escribir', String(clave || ''), fotos && typeof fotos === 'object' ? fotos : {}, podar !== false)") && leer('fotos-main.cjs').includes('escribirFotos(base(), String(clave || \'\'), fotos, podar !== false)'), 'el puente pasa `podar`');
+    ok(FM.escribirFotos(base, 'hojarasca-p2-fotos-v1', { x: jpg }, { reemplazar: false }) && fs.readdirSync(dir()).length === 2, 'fotos-main: sin reemplazar, sólo agrega (la versión del equipo 5)');
     G.borrarPartida('relax', 2);
   } finally { delete globalThis.hojarasca; G.usarModoGuardado('relax', 1); fs.rmSync(base, { recursive: true, force: true }); }
 }
 
 // ---------------------------------------------------------------- 8. las tarjetas del valle con el mando
+// (lo hizo también el equipo 5 con la lectura única del mando: leerMandoQuieto; queda el suyo. La partida real:
+// humo-3-8-6-relax, sección 1)
 {
-  const ui = leer('src/historia-ui.js');
-  ok(/return \{ mostrar, cerrar, elegir, abierta: \(\) => !!actual, actual: \(\) => actual, velo, moverFoco, elegirEnfocada, atras \};/.test(ui), 'las tarjetas saben moverse y elegir con el mando');
-  const f = trozoFn('function leerMandoEnMenu(');
-  ok(f.includes("if (modo === 'valle') {") && f.includes('t.elegirEnfocada()') && f.includes('t.moverFoco(-1)') && f.includes('t.atras()'), 'en el modo valle, A elige, la cruceta mueve y B cierra');
-  ok(main.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa' || modo === 'valle') leerMandoEnMenu();") && main.includes("else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(dt); }"), 'el mando se lee en el modo valle (y en el tren no se gasta antes)');
+  ok(trozoFn('function leerMandoQuieto(').includes("modo === 'valle' ? valle?.tarjetas?.velo"), 'en el modo valle el mando maneja la tarjeta');
 }
 
 // ---------------------------------------------------------------- 9. el temporal del capítulo 8: pasada la noche
@@ -217,7 +214,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(/Saqué una trucha marrón de 41 centímetros y me la quedé para el ahumadero\./.test(t2), 'la que te quedaste no se devolvió');
   const CS = await import('../src/conservas.js');
   ok(/falta más o menos una hora/.test(CS.avisoTendal({ colgado: Object.keys(CS.CONSERVAS)[0], horas: CS.HORAS_SECADO - 0.5 }, {})), 'tendal: «falta más o menos una hora»');
-  ok(main.includes("q.faltan === 1 ? 'Falta más o menos una hora'") && main.includes("r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);   // (3.8.6)") && main.includes("r.lenera.secos === 1 ? 'Queda uno en la leñera'") && main.includes("datos.fotos.length === 1 ? 'foto' : 'fotos'"), 'los plurales con 1');
+  ok(main.includes("nota('Todavía se está secando', faltanHoras(q.faltan));") && main.includes("nota('Se están ahumando', faltanHoras(r.faltan));") && main.includes("r.lenera.secos === 1 ? 'Queda uno en la leñera'") && main.includes("datos.fotos.length === 1 ? 'foto' : 'fotos'"), 'los plurales con 1');
   const ou = leer('src/oficios-ui.js');
   ok(ou.includes('`Falta 1 para el nivel ${e.nivel + 1}.`') && ou.includes('${e.de.charAt(0).toLowerCase()}${e.de.slice(1)}'), 'oficios: «Falta 1» y «La noche de los duendes» con mayúscula');
   const mj = leer('src/modos-juego.js');

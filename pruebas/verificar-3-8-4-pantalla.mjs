@@ -20,7 +20,7 @@ const sistema = leer('src/menus/sistema.css'), cuaderno = leer('src/menus/cuader
 ok(!/revisarCalidad\(/.test(main), '35: el bucle ya no aplica la autocalidad sola (revisarCalidad)');
 ok(/if \(modo === 'jugando' && ajustes\.autoCalidad !== false\) revisarSiVaLento\(dtReal\);/.test(main), '35: el bucle sólo mide y pregunta');
 ok(main.includes("dialogos.confirmar(`El juego va lento: ¿bajar la calidad?\\nDe ${nombreCalidad(cambio.desde)} a ${nombreCalidad(cambio.hasta)}. Se puede volver a subir en Ajustes.`, { si: 'Bajar', no: 'No, gracias' })"), '35: el cartelito, con «Bajar» y «No, gracias»');
-ok(/if \(si\) \{ aplicarCambio\(autoCalidad, cambio\); aplicarCalidadAutomatica\(cambio\); \} else preguntaLento\.noMolestar = true;/.test(main), '35: baja sólo si acepta; con «No, gracias» no vuelve a preguntar');
+ok(/if \(si\) \{ aplicarCambio\(autoCalidad, cambio\); await bajarSinTirones\(cambio\); \} else preguntaLento\.noMolestar = true;/.test(main), '35: baja sólo si acepta; con «No, gracias» no vuelve a preguntar');
 ok(/if \(!preguntaLento\.activa \|\| preguntaLento\.pendiente \|\| preguntaLento\.noMolestar\) return;/.test(main), '35: una pregunta por vez y ninguna después del no');
 ok(/if \(cambio\.motivo !== 'bajar'\) \{ autoCalidad\.verde = 0; return; \}/.test(main), '35: nunca sube sola');
 ok(/const preguntaLento = \{ activa: !HOJARASCA_DEBUG,/.test(main), '35: en las pruebas (?debug=1) pregunta sólo si la prueba lo pide');
@@ -29,7 +29,7 @@ ok(/Elegí la calidad \$\{nombreCalidad\(calidadElegidaAlAbrir\)\} según tu pla
 ok(/avisarCalidadInicial\(\);   \/\/ 3\.8\.4/.test(main), '35: el aviso se pone al abrir');
 const perdido = main.slice(main.indexOf("lienzo.addEventListener('webglcontextlost'"), main.indexOf("lienzo.addEventListener('webglcontextrestored'"));
 ok(/bajarCalidadPorGraficos\(\)/.test(perdido), '35: perder el contexto 3D baja la calidad');
-ok(/const hasta = calidadVecina\(ajustes\.calidad, -1\);/.test(main) && /guardarAjustes\(ajustes\);\n\s+sincronizarCalidad\(autoCalidad, hasta\);/.test(main), '35: un escalón, guardado enseguida');
+ok(/const hasta = calidadVecina\(calidadActiva, -1\);/.test(main) && /guardarAjustes\(ajustes\);\n\s+sincronizarCalidad\(autoCalidad, hasta\);/.test(main), '35: un escalón, guardado enseguida');
 ok(/textoBajadaPorGraficos\(bajada\.hasta\)/.test(main) && /url\.searchParams\.set\('bajo', estadoGraficos\.bajada\.hasta\)/.test(main) && /textoBajadaPorGraficos\(bajo\)/.test(main), '35: y lo avisa al volver o en la portada');
 ok(/crearPresupuestoAdaptativo\(\{ objetivoMs: 16\.7, niveles: 3, soloCadencias: true \}\)/.test(main), '35: el presupuesto adaptativo, sólo cadencias');
 ok(/const factorEfectos = presupuestoAdaptativo\.soloCadencias \? 1 :/.test(main), '35: las partículas y los pájaros no bajan solos');

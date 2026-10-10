@@ -12,7 +12,9 @@ const ID_SIMPLE = /^[a-z0-9-]{1,60}$/i;
 const TIPOS = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const TOPE_FOTO = 8 * 1024 * 1024;   // una miniatura pesa decenas de KB: más que esto no es una foto del álbum
-const TOPE_FOTOS = 400;
+// 3.8.6: antes 400: con las fotos de las fiestas (que se suman todos los años) un álbum largo dejaba de escribir las nuevas.
+// Ahora es sólo un tope de seguridad, muy lejos de lo que junta una partida (miniaturas de ~25 KB)
+const TOPE_FOTOS = 5000;
 
 function carpetaFotos(base, clave) {
   if (typeof base !== 'string' || !base || typeof clave !== 'string' || !CLAVE.test(clave)) return null;
@@ -32,12 +34,15 @@ function deDataUrl(url) {
 }
 
 // Todas las fotos de una partida: { id: dataURL }. Sin carpeta, {}; con una clave inválida, null.
-function leerFotos(base, clave) {
+function leerFotos(base, clave) { return leerFotosConInforme(base, clave)?.fotos ?? null; }
+// 3.8.6: lo mismo y cuántas no se pudieron leer ({ fotos, sinLeer }): el juego guarda en memoria lo que hay en la carpeta
+// (ver guardado.js) sólo si la leyó entera. Sin carpeta todavía, ninguna sin leer; una carpeta que no se pudo listar, sí.
+function leerFotosConInforme(base, clave) {
   const dir = carpetaFotos(base, clave);
   if (!dir) return null;
   const salida = {};
-  let nombres = [];
-  try { nombres = fs.readdirSync(dir); } catch { return salida; }
+  let nombres = [], sinLeer = 0;
+  try { nombres = fs.readdirSync(dir); } catch (e) { return { fotos: salida, sinLeer: e?.code === 'ENOENT' ? 0 : 1 }; }
   for (const archivo of nombres.slice(0, TOPE_FOTOS * 2)) {
     const m = /^(.+)\.(jpg|png|webp)$/.exec(archivo);
     if (!m) continue;
@@ -46,16 +51,18 @@ function leerFotos(base, clave) {
     try {
       const datos = fs.readFileSync(path.join(dir, archivo));
       if (datos.length && datos.length <= TOPE_FOTO) salida[id] = `data:${TIPOS[m[2]]};base64,${datos.toString('base64')}`;
-    } catch { /* la que no se puede leer, no está */ }
+    } catch { sinLeer++; /* la que no se puede leer, no está */ }
   }
-  return salida;
+  return { fotos: salida, sinLeer };
 }
 // Deja en la carpeta exactamente estas fotos ({ id: dataURL }): escribe las nuevas o cambiadas (por un archivo
 // temporal, así una a medio escribir nunca pisa la buena) y borra las que ya no están. true si quedó todo.
-// 3.8.6: con `podar` (importar o reemplazar una partida entera) borra las que no están; el guardado de cada día no
-// poda: si al cargar una foto no se pudo leer (trabada por el antivirus, un error del disco), la partida arrancaba sin
-// ella y el primer guardado la borraba del disco para siempre.
-function escribirFotos(base, clave, fotos, podar = true) {
+// 3.8.6: con `{ reemplazar: false }` (el guardado de siempre) sólo agrega o cambia: no borra ninguna otra. Antes cada
+// guardado borraba las que no venían en la lista, y una foto que no se pudo leer al abrir la partida (el archivo ocupado un
+// instante por el antivirus, el disco que no respondió) se perdía para siempre en el primer guardado. Borrar queda para lo
+// que reemplaza la partida entera (importar, sincronizar).
+function escribirFotos(base, clave, fotos, opciones = {}) {
+  const reemplazar = opciones?.reemplazar !== false;
   const dir = carpetaFotos(base, clave);
   if (!dir || !fotos || typeof fotos !== 'object' || Array.isArray(fotos)) return false;
   try { fs.mkdirSync(dir, { recursive: true }); } catch { return false; }
@@ -67,6 +74,8 @@ function escribirFotos(base, clave, fotos, podar = true) {
     const archivo = `${nombreDeId(id)}.${EXT[img.mime]}`;
     quedan.add(archivo);
     const destino = path.join(dir, archivo);
+    // (la misma foto con otro formato: la vieja se va, para que no queden dos con el mismo id)
+    if (!reemplazar) for (const ext of Object.keys(TIPOS)) if (ext !== EXT[img.mime]) { try { fs.rmSync(path.join(dir, `${nombreDeId(id)}.${ext}`), { force: true }); } catch { ok = false; } }
     try {
       if (fs.existsSync(destino) && fs.readFileSync(destino).equals(img.datos)) continue;
       const tmp = `${destino}.tmp`;
@@ -74,7 +83,7 @@ function escribirFotos(base, clave, fotos, podar = true) {
       fs.renameSync(tmp, destino);
     } catch { ok = false; }
   }
-  if (podar) { try { for (const archivo of fs.readdirSync(dir)) if (/\.(jpg|png|webp)$/.test(archivo) && !quedan.has(archivo)) fs.rmSync(path.join(dir, archivo), { force: true }); } catch { ok = false; } }
+  if (reemplazar) try { for (const archivo of fs.readdirSync(dir)) if (/\.(jpg|png|webp)$/.test(archivo) && !quedan.has(archivo)) fs.rmSync(path.join(dir, archivo), { force: true }); } catch { ok = false; }
   return ok;
 }
 function borrarFotos(base, clave) {
@@ -86,9 +95,9 @@ function borrarFotos(base, clave) {
 function registrarFotos({ ipcMain, app, alError = () => {} }) {
   const base = () => app.getPath('userData');
   const atender = (fn) => (evento, ...args) => { try { evento.returnValue = fn(...args); } catch (err) { alError(String(err?.stack || err)); evento.returnValue = null; } };
-  ipcMain.on('fotos-leer', atender((clave) => leerFotos(base(), String(clave || ''))));
-  ipcMain.on('fotos-escribir', atender((clave, fotos, podar) => escribirFotos(base(), String(clave || ''), fotos, podar !== false)));
+  ipcMain.on('fotos-leer', atender((clave) => leerFotosConInforme(base(), String(clave || ''))));   // 3.8.6: (con cuántas no se leyeron)
+  ipcMain.on('fotos-escribir', atender((clave, fotos, opciones) => escribirFotos(base(), String(clave || ''), fotos, { reemplazar: opciones?.reemplazar !== false })));
   ipcMain.on('fotos-borrar', atender((clave) => borrarFotos(base(), String(clave || ''))));
 }
 
-module.exports = { registrarFotos, carpetaFotos, leerFotos, escribirFotos, borrarFotos, nombreDeId, idDeNombre };
+module.exports = { registrarFotos, carpetaFotos, leerFotos, leerFotosConInforme, escribirFotos, borrarFotos, nombreDeId, idDeNombre };

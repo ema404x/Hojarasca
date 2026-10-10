@@ -1480,17 +1480,17 @@ export const FRASES_SOCIAL = {
     chiste: ['Escuchá este chiste, que me lo contaron recién.', 'Te tengo uno buenísimo. Escuchá.'],
     morisqueta: ['¡Mirá la cara que hago! ¡Mirá!', '¡Adiviná de quién es esta cara!'],
   },
-  // los chismes inocentes que se cuentan ({a} y {b}: dos vecinos)
+  // los chismes inocentes que se cuentan ({a} y {b}: dos vecinos; 3.8.6: sin género, que pueden ser vecinas)
   chismes: [
     '¿Sabés que {a} y {b} estuvieron toda la tarde charlando en la plaza? Algo se traen.',
     'Me dijeron que {a} le ganó un truco a {b} y {b} todavía no se lo perdona.',
-    'Dicen que {a} se quedó dormido en la galería de {b}. Roncaba como el tren.',
+    'Dicen que {a} se durmió una siesta en la galería de {b}. Roncaba como el tren.',
     '{a} le prestó la pava a {b} y todavía no se la devolvió. Ahí hay lío.',
-    'Vi a {a} bailando una ranchera solo en la vereda. No le digas que te conté.',
+    'Vi a {a} bailando una ranchera sin pareja en la vereda. No le digas que te conté.',
     '{a} dice que vio un duende en el bosque. {b} dice que fue el vino de grosella.',
     'A {a} se le voló el sombrero y {b} lo fue a buscar hasta el arroyo. Qué amistad.',
     'Me contaron que {a} le tejió una bufanda a {b}. Bueno, la empezó.',
-    '{a} y {b} discutieron por quién hace mejor el asado. Ninguno de los dos, digo yo.',
+    '{a} y {b} discutieron por quién hace mejor el asado. Como el mío no hay, digo yo.',
     'Parece que {a} le enseña a {b} a jugar al chinchón. Va perdiendo {a}.',
   ],
   // entre vecinos ({otro}: el otro)

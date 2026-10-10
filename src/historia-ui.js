@@ -62,14 +62,16 @@ function crearTarjetas(doc, ctx) {
     partes.push('</div></div>');
     velo.innerHTML = partes.join('');
     ctx.traducir?.(velo);
-    const primero = velo.querySelector('button:not([disabled])');
-    try { primero?.focus({ preventScroll: true }); } catch {}
   }
   function mostrar(def) {
     const yaAbierta = !!actual;
     actual = def;
     dibujar(def);
     velo.classList.remove('oculto');
+    // 3.8.6: el foco en la primera opción, ya con la tarjeta a la vista (antes se pedía con el velo todavía oculto y no
+    // quedaba en ningún lado: con dos opciones o más, Enter no elegía nada y el mando no tenía de dónde partir)
+    const primero = velo.querySelector('button:not([disabled])');
+    try { primero?.focus({ preventScroll: true }); } catch {}
     if (!yaAbierta) ctx.pausar();
   }
   function cerrar() {
@@ -106,30 +108,7 @@ function crearTarjetas(doc, ctx) {
       else if (actual.opciones.length === 1) elegir(actual.opciones[0].id);
     }
   }, true);
-  // 3.8.6: con el mando (main.js los llama en el modo 'valle'): la cruceta o LB y RB mueven el foco, A elige la enfocada
-  // y B hace de Escape. Antes la tarjeta sólo escuchaba el teclado y el mouse: jugando sólo con el mando, la primera
-  // tarjeta de la historia («La llegada») o cualquier evento del valle dejaba el juego trabado.
-  const botones = () => [...velo.querySelectorAll('button[data-valle-opcion]:not([disabled])')];
-  function moverFoco(d) {
-    if (!actual) return false;
-    const bs = botones();
-    if (!bs.length) return false;
-    const i = bs.indexOf(doc.activeElement);
-    const j = i < 0 ? 0 : (i + (d < 0 ? -1 : 1) + bs.length) % bs.length;
-    try { bs[j].focus({ preventScroll: true }); } catch {}
-    return true;
-  }
-  function elegirEnfocada() {
-    if (!actual) return false;
-    const foco = doc.activeElement?.closest?.('button[data-valle-opcion]');
-    if (foco && velo.contains(foco) && !foco.disabled) return elegir(foco.dataset.valleOpcion);
-    const bs = botones();
-    if (bs.length === 1) return elegir(bs[0].dataset.valleOpcion);
-    if (bs.length) { try { bs[0].focus({ preventScroll: true }); } catch {} }
-    return false;
-  }
-  const atras = () => (actual && actual.opciones.length === 1 ? elegir(actual.opciones[0].id) : false);
-  return { mostrar, cerrar, elegir, abierta: () => !!actual, actual: () => actual, velo, moverFoco, elegirEnfocada, atras };
+  return { mostrar, cerrar, elegir, abierta: () => !!actual, actual: () => actual, velo };
 }
 
 // ---------------------------------------------------------------- todo junto

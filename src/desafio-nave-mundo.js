@@ -731,6 +731,10 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     api.camaraLenta?.(2.4);
     for (const a of crias) if (a.estado !== 'morir') { a.estado = 'irse'; a.t = 0; }
     api.nota('¡Cayó el Rey Duende!', 'El Coihue se viene abajo. ¡Afuera, rápido!', true);
+    // 3.8.6: se anota ya que cayó: la victoria llega a los tres segundos (al salir) y cerrar el juego en ese rato
+    // lo hacía revivir (al abrir, el asedio seguía y había que pelearlo de cero)
+    const asedio = api.D().asedio;
+    if (asedio) asedio.reyCaido = true;
     api.guardar();
   }
 
