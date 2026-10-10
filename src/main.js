@@ -4620,6 +4620,7 @@ function armarOficiosYAldea(esDesafio) {
   cocinaJuego = crearCocinaJuego({
     progreso: () => progreso, desafio: () => !!desafio, obras: () => obras, jugador: () => jugador?.estado || null,
     lluvia: () => clima?.estado?.lluvia || 0, invierno: () => U.uInvierno.value > 0.5,
+    reloj: () => (ajustes.duracion === 'reloj' ? Date.now() / 3600e3 : null),   // 3.8.6: con la hora de tu reloj, la cocción va con el reloj
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato),
@@ -5493,6 +5494,13 @@ function prepararTren(dt) {
 function despuesDelTren(dt) {
   if (!trenMejorado() || !estadoTren) return;
   const js = jugador.estado;
+  // 3.8.6: el taller desenganchó el comedor con algo al fuego: vuelve crudo a tus cosas (antes quedaba ahí, sin poder
+  // alcanzarlo, hasta volver a engancharlo)
+  if (cocinaComedor && !conVagon('comedor') && progreso.cocina?.moviles?.['tren-comedor']) {
+    if (devolverCoccion(progreso.cocina.moviles['tren-comedor'])) nota('Desengancharon el coche comedor', 'Lo que estaba al fuego volvió crudo a tus cosas', true);
+    delete progreso.cocina.moviles['tren-comedor'];
+    refrescarBarra(true); guardar();
+  }
   if (cocinaComedor) { const c = cocinaComedor.coccion(); tren.tren.cocina(c, c ? RECETA_PASOS[c.receta] : null); }
   // el taller sacó la jaula con tu caballo adentro: lo bajan en la estación de la aldea
   if (caballoEnElTren() && !conVagon('caballo') && !js.enTren) bajarCaballoDelTren(tren.paradas.find((p) => p.aldea) || null);
@@ -5568,7 +5576,7 @@ function aserrar() {
   progreso.materiales.tronco -= 1;
   sumarMaterial('tabla', cuanto);
   sonido.paso('madera', 0.9);
-  nota(banco ? 'Un tronco, cuatro tablas' : `Aserrado a mano: un tronco, ${cuanto === 3 ? 'tres' : 'dos'} tablas`, banco ? `Llevás ${material('tabla')} tablas` : `Llevás ${material('tabla')} tablas. En un banco de carpintero rinde el doble`);
+  nota(banco ? 'Un tronco, cuatro tablas' : `Aserrado a mano: un tronco, ${cuanto === 3 ? 'tres' : 'dos'} tablas`, banco ? `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}` : `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}. En un banco de carpintero rinde el doble`);
   registrar('tabla-mat');
   ganarOficio('hachero', XP.aserrar);
   guardar();
@@ -5744,7 +5752,7 @@ function dibujarPanelObra() {
   $('obra-costo').textContent = `Costo total · ${costoPlano(p)}`;
   const m = progreso.materiales || {};
   const enAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA) ? acopio() : null;
-  $('obra-materiales').textContent = `Llevás ${m.tronco || 0} troncos · ${m.tabla || 0} tablas · ${m.piedra || 0} piedras`
+  $('obra-materiales').textContent = `Llevás ${cuantas(m.tronco || 0, 'tronco', 'troncos')} · ${cuantas(m.tabla || 0, 'tabla', 'tablas')} · ${cuantas(m.piedra || 0, 'piedra', 'piedras')}`
     + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '');
   actualizarEstadoModuloObra(true);
   actualizarEstadoSitioObra(obras.estadoSitio);
@@ -5868,6 +5876,20 @@ function desalojarCarpa() {
 }
 // 3.5.1: desmontar una obra que trabaja devuelve lo que tenía adentro: antes se perdían los
 // troncos secos de la leñera, la miel, las truchas del ahumadero, las tablas del aserradero y la harina
+// 3.8.3: lo que estaba al fuego vuelve crudo (3.8.6: aparte, para la cocina del coche comedor desenganchado)
+// 3.8.6: «Faltan unas 1 horas», «Llevás 1 tablas»: el número con su palabra en singular o plural
+const cuantas = (n, una, varias) => `${n} ${n === 1 ? una : varias}`;
+const faltanHoras = (n) => (n === 1 ? 'Falta más o menos una hora' : `Faltan unas ${n} horas`);
+function devolverCoccion(coccion) {
+  const c = sanearCoccion(coccion);
+  if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
+    const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
+    if (n <= 0) continue;
+    if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
+    else sumarEntrada(x.k, n);
+  }
+  return !!c;
+}
 function devolverContenido(d) {
   if (!d || typeof d !== 'object') return;
   if (d.lenera) sumarMaterial('tronco', sanearLenera(d.lenera).secos);
@@ -5877,15 +5899,7 @@ function devolverContenido(d) {
   if (d.ahumadero) { const a = sanearAhumadero(d.ahumadero); if (a.listas) sumarEntrada('trucha-ahumada', a.listas); if (a.truchas) sumarEntrada('trucha-fresca', a.truchas); }
   // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
   // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
-  if (d.coccion) {
-    const c = sanearCoccion(d.coccion);
-    if (c) for (const x of pideCon(RECETA_PASOS[c.receta], c.variante)) {
-      const n = x.n - (c.robado && x.k === 'chorizo' ? 1 : 0);
-      if (n <= 0) continue;
-      if (x.k === 'harina' || DEL_ALMACEN.includes(x.k)) progreso.cosas[x.k] = (Number(progreso.cosas[x.k]) || 0) + n;
-      else sumarEntrada(x.k, n);
-    }
-  }
+  if (d.coccion) devolverCoccion(d.coccion);
   // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
   // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
   // todavía no está se lo lleva el cantero, como siempre)
@@ -6304,7 +6318,7 @@ function usarElTendal() {
   const C = CONSERVAS[q.conserva];
   if (q.accion === 'colgar') { sonido.juntar(); nota('Colgaste a secar', `${C.cantidad} ${C.ingrediente === 'llaollao' ? 'llao llao' : 'calafates'}: medio día de sol, y la lluvia lo frena`, true); }
   else if (q.accion === 'descolgar') { sonido.juntar(); registrar(q.conserva, true); nota(`Descolgaste: ${C.nombre}`, 'Se guarda para el invierno, o se cambia en el almacén', true); }
-  else if (q.accion === 'secando') nota('Todavía se está secando', `Faltan unas ${q.faltan} horas`);
+  else if (q.accion === 'secando') nota('Todavía se está secando', faltanHoras(q.faltan));   // 3.8.6
   else nota('No tenés qué colgar', 'Cinco calafates, o tres llao llao ya anotados');
   refrescarBarra(true);
   guardar();
@@ -6413,7 +6427,7 @@ function usarObraQueTrabaja(o) {
       conMateriales((m) => { m.tronco -= r.lena; });
       sonido.encender();
       nota(`Colgaste ${r.truchas} ${r.truchas === 1 ? 'trucha' : 'truchas'} al humo`, 'En medio día están. El fuego se cuida solo', true);
-    } else if (r.accion === 'ahumando') nota('Se están ahumando', `Faltan unas ${r.faltan} horas`);
+    } else if (r.accion === 'ahumando') nota('Se están ahumando', faltanHoras(r.faltan));   // 3.8.6
     else if (r.accion === 'sinLena') nota('Falta leña', 'Un tronco por tanda, para el fuego de abajo');
     else nota('No tenés truchas', `Con el ahumadero, de lo que pescás te quedás con ${AHUMADERO.porDia} truchas por día`);
   } else if (o.plano.id === 'vivero') {
@@ -6579,7 +6593,7 @@ function usarMaquina(o) {
       sumarEntrada('haba', -r.habas);
       sonido.juntar();
       nota(`Echaste ${r.habas} habas a la muela`, `Dos habas, una medida de harina: hora y media cada una`, true);
-    } else if (r.accion === 'moliendo') nota('La muela está moliendo', r.faltan === 1 ? 'Falta más o menos una hora' : `Faltan unas ${r.faltan} horas`);
+    } else if (r.accion === 'moliendo') nota('La muela está moliendo', faltanHoras(r.faltan));
     else {
       const n = obrasTerminadas('aserradero').filter((a) => molinoQueMueve(a.datos, [o.datos])).length;
       nota('La rueda gira con el arroyo', `${n ? `Mueve ${n === 1 ? 'un aserradero' : `${n} aserraderos`}` : `Un aserradero a menos de ${MOLINO.enlace} m aprovecha la fuerza`}. Con habas de la huerta, la muela hace harina`);
@@ -6594,12 +6608,12 @@ function usarMaquina(o) {
       sumarMaterial('tabla', r.tablas);
       sonido.juntar();
       registrar('tabla-mat');
-      nota(`Sacaste ${r.tablas} tablas del aserradero`, `Llevás ${material('tabla')} tablas`, true);
+      nota(`Sacaste ${cuantas(r.tablas, 'tabla', 'tablas')} del aserradero`, `Llevás ${cuantas(material('tabla'), 'tabla', 'tablas')}`, true);   // 3.8.6
     } else if (r.accion === 'cargar') {
       progreso.materiales.tronco -= r.troncos;
       sonido.juntar();
       nota(`Cargaste ${r.troncos} ${r.troncos === 1 ? 'tronco' : 'troncos'} en el aserradero`, r.sinMolino ? `Sin un molino de agua a menos de ${MOLINO.enlace} m, la sierra no arranca` : `Cinco tablas por tronco. Se aserran solos, aunque te vayas`, true);
-    } else if (r.accion === 'aserrando') nota('La sierra está trabajando', `Quedan ${r.troncos} ${r.troncos === 1 ? 'tronco' : 'troncos'}: unas ${r.faltan} horas`);
+    } else if (r.accion === 'aserrando') nota('La sierra está trabajando', `${r.troncos === 1 ? 'Queda un tronco' : `Quedan ${r.troncos} troncos`}: ${r.faltan === 1 ? 'más o menos una hora' : `unas ${r.faltan} horas`}`);   // 3.8.6
     else if (r.accion === 'sinMolino') nota('La sierra está parada', `Necesita un molino de agua a menos de ${MOLINO.enlace} m, en la orilla del arroyo`);
     else nota('El aserradero está vacío', 'Traé troncos: cinco tablas por cada uno');
     return true;
@@ -6672,7 +6686,7 @@ function usarObra24(o) {
       if (!progreso.corral) {
         const cercos = (obras?.obras || []).filter((c) => c.plano.id === 'cerco' && obraTerminada(c) && Math.hypot(c.datos.x - o.datos.x, c.datos.z - o.datos.z) <= 7).length;
         if (desafio) nota('El bebedero', 'Las ovejas se quedan en el galpón');
-        else nota('Todavía no es un corral', `Faltan ${Math.max(0, CORRAL_PROPIO.cercos - cercos)} tramos de cerco alrededor, a menos de 7 m`);
+        else nota('Todavía no es un corral', (Math.max(0, CORRAL_PROPIO.cercos - cercos) === 1 ? 'Falta un tramo de cerco alrededor, a menos de 7 m' : `Faltan ${Math.max(0, CORRAL_PROPIO.cercos - cercos)} tramos de cerco alrededor, a menos de 7 m`));   // 3.8.6
         return true;
       }
       const { conLana, total } = resumenMajada(progreso.corral, progreso.dia);

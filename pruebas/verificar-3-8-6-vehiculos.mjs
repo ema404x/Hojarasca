@@ -16,6 +16,12 @@
 //  9. Bajar del kayak o del velero en la orilla: nunca del otro lado de una pared (una obra tuya en la costa).
 // 10. Desarmar un hoyo con su frutal devuelve la fruta madura que estaba para juntar (se perdía).
 // 11. El velero: desarmar el varadero navegando y terminar otro ya no lo deja invisible con vos arriba.
+// 12. Lo que pidió el usuario después del informe:
+//     - desarmar un hoyo con un árbol que todavía no dio fruta devuelve el plantín;
+//     - con la estación fija en invierno, «con la estación fija, descansa» (no promete la primavera);
+//     - desenganchar el coche comedor con algo al fuego lo devuelve crudo;
+//     - «Falta más o menos una hora» y otros plurales de main.js (el tendal, el ahumadero, el aserradero, el corral, las tablas);
+//     - con la hora de tu reloj, dormir no adelanta 24 horas la cocción (va con el reloj de verdad).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -158,11 +164,47 @@ const eq = (a, b, t) => { assert.deepEqual(a, b, t); pasos++; };
 // 10. la fruta madura del hoyo que desarmás
 {
   const gj = leer('src/granja-juego.js'), m = leer('src/main.js');
-  ok(gj.includes('function alDesarmarHoyo(x, z) {') && gj.includes('const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());\n    if (!r.ok) return null;\n    ctx.sumarEntrada?.(r.k, r.n);'), 'la granja la junta');
+  ok(gj.includes('function alDesarmarHoyo(x, z) {') && gj.includes('if (r) ctx.sumarEntrada?.(r.k, r.n);'), 'la granja la junta (y desde el punto 12, el plantín)');
   ok(m.includes("if (d.plano === 'frutal') granjaJuego?.alDesarmarHoyo?.(d.x, d.z);"), 'al desarmar (a mano o en el desalojo)');
 }
 
 // 11. el velero con vos arriba cuando aparece otro varadero
 ok(leer('src/vela.js').includes('if (est.activo) { /* (queda donde está) */ }\n      else if (guardado && hondo(guardado.x, guardado.z))'), 'navegando, el velero sigue visible');
+
+// 12. lo que pidió el usuario
+{
+  const G = await src('granja.js');
+  const nuevo = { especie: 'manzano', plantado: 3, cosecha: -1 };
+  eq(G.devolucionHoyo({ ...nuevo }, 5, 12), { k: 'plantin-manzano', n: 1 }, 'un árbol que todavía no dio fruta: el plantín');
+  const maduro = { especie: 'ciruelo', plantado: 1, cosecha: -1 };
+  eq(G.devolucionHoyo(maduro, 9, 12, 'verano'), { k: 'ciruela', n: 10 }, 'con fruta madura: la fruta');
+  eq(G.devolucionHoyo(maduro, 9, 12, 'verano'), null, 'ya juntada (y ya dio): nada');
+  eq(G.devolucionHoyo({ especie: 'manzano', plantado: 1, cosecha: -1 }, 9, 12, 'verano'), { k: 'plantin-manzano', n: 1 }, 'grande pero sin fruta nunca (verano fijo): el plantín');
+  eq(G.devolucionHoyo({ especie: null }, 9, 12), null, 'un hoyo vacío: nada');
+  ok(leer('src/granja-juego.js').includes('const r = devolucionHoyo(f, dia(), horas(), estacionFrutal());'), 'la granja usa la regla');
+  eq(G.textoFrutal({ especie: 'cerezo', plantado: 1, cosecha: -1 }, 9, 12, null, 'invierno'), 'Cerezo · con la estación fija, descansa', 'invierno fijo: sin prometer la primavera');
+  eq(G.textoFrutal({ especie: 'cerezo', plantado: 1, cosecha: -1 }, 11, 10, null, 'auto'), 'Cerezo · descansa en invierno; en primavera, flor', 'con el calendario, como siempre');
+  const m = leer('src/main.js');
+  ok(m.includes("if (cocinaComedor && !conVagon('comedor') && progreso.cocina?.moviles?.['tren-comedor']) {") && m.includes("if (devolverCoccion(progreso.cocina.moviles['tren-comedor'])) nota('Desengancharon el coche comedor'") && m.includes('if (d.coccion) devolverCoccion(d.coccion);'), 'el comedor desenganchado devuelve lo del fuego, como al desarmar');
+  ok(m.includes("const faltanHoras = (n) => (n === 1 ? 'Falta más o menos una hora' : `Faltan unas ${n} horas`);") && m.includes("nota('Todavía se está secando', faltanHoras(q.faltan));") && m.includes("nota('Se están ahumando', faltanHoras(r.faltan));") && !m.includes('`Faltan unas ${q.faltan} horas`') && !m.includes('`Faltan unas ${r.faltan} horas`'), '«Falta más o menos una hora»');
+  ok(m.includes("Falta un tramo de cerco alrededor") && m.includes("`Sacaste ${cuantas(r.tablas, 'tabla', 'tablas')} del aserradero`") && m.includes("cuantas(m.tronco || 0, 'tronco', 'troncos')"), 'los otros plurales');
+  ok(m.includes("reloj: () => (ajustes.duracion === 'reloj' ? Date.now() / 3600e3 : null),"), 'la cocina sabe la hora de tu reloj');
+  // la cocción con el reloj: dormir no la adelanta
+  const { crearCocinaJuego } = await src('cocina-juego.js');
+  let reloj = 1000;
+  const p = { dia: 5, horas: 22, entradas: {}, cosas: {} };
+  const cj = crearCocinaJuego({ progreso: () => p, desafio: () => false, obras: () => ({ obras: [] }), reloj: () => reloj });
+  cj.registrarMovil({ id: 'prueba', tipo: 'cocina-lena' });
+  cj.cocina().moviles.prueba = { receta: 'curanto', paso: 2, falta: 2, variante: null, desde: 5, pausa: false, robado: false, invitados: [] };
+  cj.actualizar(1);
+  p.dia = 6; p.horas = 7.2; reloj += 0.25;   // dormiste: el día y la mañana, pero pasó un cuarto de hora de verdad
+  cj.actualizar(1);
+  ok(Math.abs(cj.cocina().moviles.prueba.falta - 1.75) < 1e-6, `con tu reloj, dormir no adelanta la cocción (falta ${cj.cocina().moviles.prueba.falta})`);
+  reloj = null;   // otra vez la hora del juego: se vuelve a mirar sin saltos
+  cj.actualizar(1);
+  p.horas = 8.2;
+  cj.actualizar(1);
+  ok(Math.abs(cj.cocina().moviles.prueba.falta - 0.75) < 1e-6, `con la hora del juego, va con el juego (falta ${cj.cocina().moviles.prueba.falta})`);
+}
 
 console.log(`verificar-3-8-6-vehiculos: ${pasos} comprobaciones OK`);

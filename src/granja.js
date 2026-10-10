@@ -353,6 +353,17 @@ export function cosecharFrutal(f, dia, horas, invierno = false) {
   f.cosecha = anioDe(dia);
   return { ok: true, k: FRUTALES[f.especie].fruta, n: n * FRUTALES[f.especie].da };
 }
+// 3.8.6: lo que devuelve un hoyo con su frutal al desarmarlo: la fruta madura que estaba para juntar; si el árbol todavía
+// no dio fruta nunca (nunca se juntó y la primera todavía no llegó), el plantín; si ya dio, nada (el árbol no se lleva).
+// { k, n } o null. Juntar la fruta la anota como juntada (`cosecharFrutal`).
+export function devolucionHoyo(f, dia, horas = 0, estacion = 'auto') {
+  if (!f?.especie || !Object.hasOwn(FRUTALES, f.especie)) return null;
+  const r = cosecharFrutal(f, dia, horas, estacion);
+  if (r.ok) return { k: r.k, n: r.n };
+  const E = FRUTALES[f.especie], primera = primeraFruta(f, estacion);
+  if (f.cosecha < 0 && (primera === null || primera > Math.max(1, ent(dia, 1)))) return { k: E.plantin, n: 1 };
+  return null;
+}
 // Cuándo da fruta por primera vez un frutal recién plantado (el día), para el aviso.
 // 3.8.6: con la estación fijada en Ajustes (`estacion`), la fase no cambia: madura apenas es grande (si la estación fijada
 // le da), o nunca (null). Antes prometía el día del calendario aunque con esa estación no madurara nunca.
@@ -513,7 +524,8 @@ export function textoFrutal(f, dia, horas, plantin = null, invierno = false) {
   // 3.8.6: con la estación fijada en una en que no madura, lo dice (antes prometía un día que no llegaba nunca)
   const fija = invierno !== false && invierno !== 'auto' && faseFija(invierno) !== null ? NOMBRE_FIJA[invierno === true ? 'invierno' : invierno] : null;
   if (s.etapa !== 'adulto') return `${nombre} ${s.etapa === 'plantin' ? 'recién plantado' : 'joven'} · ${primeraFruta(f, invierno) ? `da fruta el día ${primeraFruta(f, invierno)}` : fija ? `con la estación fija en ${fija}, no da ${E.frutas}` : 'da fruta el día …'}`;
-  if (faseFrutal(dia, horas, invierno) >= FASE.invierno) return `${nombre} · descansa en invierno; en primavera, flor`;   // 3.8.4
+  // 3.8.4; 3.8.6: con la estación fija no llega la primavera: no se la promete
+  if (faseFrutal(dia, horas, invierno) >= FASE.invierno) return fija ? `${nombre} · con la estación fija, descansa` : `${nombre} · descansa en invierno; en primavera, flor`;
   if (fija && noMaduraFija(f.especie, invierno)) return `${nombre} · ${E.frutas} en ${cuando}: con la estación fija en ${fija}, no maduran`;   // 3.8.6
   if (f.cosecha >= anioDe(dia)) return `${nombre} · ya juntaste las ${E.frutas} de este año`;
   // 3.8.3: plantado fuera de la primavera, ya grande, este año no da: antes prometía fruta que no venía

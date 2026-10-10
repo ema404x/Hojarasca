@@ -452,7 +452,11 @@ export function crearCocinaJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- el tiempo
-  let visto = null, acumulado = 0;
+  // 3.8.6: con la hora de tu reloj (`ctx.reloj()`: las horas del reloj de verdad, o null) la cocción sigue el tiempo de
+  // verdad: dormir no saltea la noche (el día sumado y las 7:20 de la mañana, y enseguida otra vez la hora del reloj,
+  // adelantaban 24 horas lo que estaba al fuego). `base` dice de qué reloj es `visto` (al cambiar de modo, se vuelve a mirar)
+  let visto = null, acumulado = 0, base = null;
+  const relojCoccion = () => { const r = ctx.reloj?.(); return Number.isFinite(r) ? { t: r, base: 'reloj' } : { t: ahora(), base: 'juego' }; };
   function actualizar(dt) {
     if (!activo()) return;
     const js = ctx.jugador?.();
@@ -463,10 +467,10 @@ export function crearCocinaJuego(ctx) {
     acumulado += dt;
     if (acumulado < 0.5) return;
     acumulado = 0;
-    const t = ahora();
-    if (visto === null || t < visto - 0.01) { visto = t; return; }
-    const h = Math.min(48, t - visto);
-    visto = t;
+    const rc = relojCoccion(), t = ahora();   // (`t`, la hora del juego: los invitados y la sobremesa)
+    if (visto === null || rc.base !== base || rc.t < visto - 0.01) { visto = rc.t; base = rc.base; return; }
+    const h = Math.min(48, rc.t - visto);
+    visto = rc.t;
     const lluvia = ctx.lluvia?.() || 0;
     for (const o of estaciones()) {
       const c = coccionDe(o);
@@ -548,7 +552,7 @@ export function crearCocinaJuego(ctx) {
     actualizar, comer, opciones, elegir, destino, antojoPerro, dibujarRecetario, estadoMundo, estaciones, coccionDe,
     // para las pruebas (?debug=1)
     __perro: () => (perroFase ? { fase: perroFase.fase, destino: perroFase.destino } : null),
-    __adelantar: (h) => { visto = (visto ?? ahora()) - h; acumulado = 1; actualizar(0); },
+    __adelantar: (h) => { const rc = relojCoccion(); if (visto === null || base !== rc.base) { visto = rc.t; base = rc.base; } visto -= h; acumulado = 1; actualizar(0); },
     __invitar: (o) => { const c = coccionDe(o); if (c) invitar(o, c); return c?.invitados; },
     __candidatos: () => { const p = progreso(), am = amistades(p), h = horas(), ds = diaSemanaDe(dia()); return presentes(p).map((k) => ({ clave: k, libre: estaLibre(k, h, ds, p), amistad: NIVEL[am[k]] || 0 })); },
   };

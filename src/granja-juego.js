@@ -9,7 +9,7 @@
 // `ctx`: { progreso(), ajustes(), desafio(), mundo (granja-mundo.js), obras() → [obra], terminada(obra), corral() →
 // { x, z, radio } | null, ovejas() → [{ x, z }], jugador() → estado, nota(t, sub, nueva), guardar(), refrescarBarra(),
 // sumarEntrada(k, n), sumarMaterial(k, n), registrar(id), sonido }
-import { GRANJA, FRUTALES, QUIENES_GRANJA, TRUEQUE_GRANJA, sanearGranja, avanzarGranja, entregas, ordenar, echarFardo, echarSobras, sobraParaEchar, carnear, esNovillo, corderoListo, esCapon, claveFrutal, frutalNuevo, plantar, elegirPlantin, estadoFrutal, cosecharFrutal, primeraFruta, inviernoGranja, hacerTrueque, opcionesTrueque, textoVaca, textoTernero, textoCordero, textoLechon, textoChancha, textoTambo, textoChiquero, textoFrutal } from './granja.js';
+import { GRANJA, FRUTALES, QUIENES_GRANJA, TRUEQUE_GRANJA, sanearGranja, avanzarGranja, entregas, ordenar, echarFardo, echarSobras, sobraParaEchar, carnear, esNovillo, corderoListo, esCapon, claveFrutal, frutalNuevo, plantar, elegirPlantin, estadoFrutal, cosecharFrutal, primeraFruta, devolucionHoyo, inviernoGranja, hacerTrueque, opcionesTrueque, textoVaca, textoTernero, textoCordero, textoLechon, textoChancha, textoTambo, textoChiquero, textoFrutal } from './granja.js';
 import { TAMBO, CHIQUERO } from './planos-granja.js';
 
 const TITULO_MENU = { ramon: 'Cambiar algo de campo…', veterinaria: 'Lo de la chancha…', madre: 'Plantines de frutales…', herbolaria: 'Matas de frambuesa y de grosella…' };
@@ -269,15 +269,13 @@ export function crearGranjaJuego(ctx) {
     return { tipo: 'renglones', renglones: r.renglones };
   }
 
-  // 3.8.6: al desarmar un hoyo con su frutal, la fruta madura que estaba para juntar vuelve (como la cosecha lista del
-  // cantero; antes se perdía). El árbol no: lo que no estaba listo se lo lleva el hoyo, como lo sembrado del cantero
+  // 3.8.6: al desarmar un hoyo con su frutal, vuelve la fruta madura que estaba para juntar; si el árbol todavía no dio
+  // fruta, el plantín (antes se perdía todo). Ver devolucionHoyo de granja.js
   function alDesarmarHoyo(x, z) {
     if (!activo()) return null;
     const f = granja().frutales[claveFrutal(x, z)];
-    if (!f?.especie) return null;
-    const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());
-    if (!r.ok) return null;
-    ctx.sumarEntrada?.(r.k, r.n);
+    const r = devolucionHoyo(f, dia(), horas(), estacionFrutal());
+    if (r) ctx.sumarEntrada?.(r.k, r.n);
     return r;
   }
 

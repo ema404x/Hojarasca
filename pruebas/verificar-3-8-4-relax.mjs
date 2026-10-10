@@ -297,7 +297,7 @@ const c = (n, palo) => ({ n, palo });
   // el día 11 es invierno en el calendario
   ok(GR.estadoFrutal(f, 11, 10, 'auto').fruta === 'no' && GR.textoFrutal(f, 11, 10, null, 'auto') === 'Cerezo · descansa en invierno; en primavera, flor', 'auto: en el invierno del calendario, descansa');
   ok(GR.estadoFrutal(f, 11, 10, 'verano').fruta === 'madura' && GR.textoFrutal(f, 11, 10, null, 'verano') === 'Juntar las cerezas (14)', 'con el verano fijado, cerezas maduras');
-  ok(GR.textoFrutal(f, 8, 10, null, 'invierno') === 'Cerezo · descansa en invierno; en primavera, flor' && GR.textoFrutal(f, 8, 10, null, 'auto') !== GR.textoFrutal(f, 8, 10, null, 'invierno'), 'con el invierno fijado, descansa (aunque el calendario diga otoño)');
+  ok(GR.textoFrutal(f, 8, 10, null, 'invierno') === 'Cerezo · con la estación fija, descansa' && GR.textoFrutal(f, 8, 10, null, 'auto') !== GR.textoFrutal(f, 8, 10, null, 'invierno'), 'con el invierno fijado, descansa (aunque el calendario diga otoño)');
   ok(GR.estadoFrutal(f, 1, 0.5, 'auto').flor && !GR.estadoFrutal(f, 1, 0.5, 'invierno').flor && !GR.estadoFrutal(f, 1, 0.5, 'verano').flor, 'la flor de la primavera, sólo con las estaciones de verdad');
   ok(GR.estadoFrutal({ especie: 'manzano', plantado: 1, cosecha: -1 }, 11, 10, 'otono').fruta === 'madura', 'con el otoño fijado, las manzanas');
   ok(GR.estadoFrutal(f, 11, 10, true).fruta === 'no' && GR.estadoFrutal(f, 7, 10, false).fruta === 'madura', 'los booleanos de antes siguen valiendo');
