@@ -151,7 +151,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
         const img = typeof v === 'string' ? v : v?.img;
         if (typeof img === 'string' && img.startsWith('data:image')) imagenes[k] = { img };
       }
-      guardarFotos(imagenes);
+      guardarFotos(imagenes, true);   // (3.8.6: las de la partida que se reemplazó, se van)
       // 3.5.1: sin miniatura en el archivo, la de la partida que se reemplazó no queda pegada
       if (vista) guardarVista(vista);
       else { try { localStorage.removeItem(CLAVE_VISTA); } catch {} }
@@ -231,30 +231,54 @@ function escribir(clave, valor) {
 function archivosFotos() {
   try { const a = globalThis.hojarasca?.fotos; return a && typeof a.leer === 'function' && typeof a.escribir === 'function' ? a : null; } catch { return null; }
 }
+// 3.8.6: lo que hay en los archivos de cada partida, en memoria ({ clave: { id: dataURL } }). Sólo este juego escribe esa
+// carpeta, así que lo leído y lo escrito alcanza: empaquetar la partida (la carpeta sincronizada la copia cada 2 minutos)
+// ya no relee el álbum entero del disco, y guardar sólo manda las fotos nuevas (antes, en cada foto, dos veces el álbum
+// entero, cada archivo leído y comparado: cientos de ms con el juego quieto en un álbum grande).
+const fotosEnDisco = new Map();
 function leerFotosDe(clave) {
   const local = leer(clave);
   const a = archivosFotos();
   if (!a) return objeto(local) ? local : {};
-  let deArchivos = null;
+  const hayLocal = objeto(local) && Object.keys(local).length > 0;
+  if (!hayLocal && fotosEnDisco.has(clave)) return { ...fotosEnDisco.get(clave) };
+  let deArchivos = null, entera = false;
   try { deArchivos = a.leer(clave); } catch { deArchivos = null; }
+  // (preload.cjs entrega { fotos, sinLeer }; un puente viejo o de prueba, las fotos solas)
+  if (objeto(deArchivos) && objeto(deArchivos.fotos) && typeof deArchivos.sinLeer === 'number') { entera = deArchivos.sinLeer === 0; deArchivos = deArchivos.fotos; }
+  else entera = true;
   if (!objeto(deArchivos)) return objeto(local) ? local : {};   // (el disco no respondió: lo que haya)
-  if (!objeto(local) || !Object.keys(local).length) return deArchivos;
-  const juntas = { ...local, ...deArchivos };
-  let ok = false;
-  try { ok = a.escribir(clave, juntas) === true; } catch { ok = false; }
-  if (ok) { try { localStorage.removeItem(clave); } catch {} }
-  return juntas;
+  // (si alguna no se pudo leer, no queda en memoria: la próxima vez se vuelve a leer del disco)
+  if (entera) fotosEnDisco.set(clave, { ...deArchivos }); else fotosEnDisco.delete(clave);
+  if (!hayLocal) return deArchivos;
+  // las que estaban en el localStorage y todavía no en los archivos, pasan (sin tocar las que ya están)
+  const faltan = Object.fromEntries(Object.entries(local).filter(([id]) => !Object.hasOwn(deArchivos, id)));
+  if (escribirFotosDe(clave, faltan)) { try { localStorage.removeItem(clave); } catch {} }
+  return { ...local, ...deArchivos };
 }
-function escribirFotosDe(clave, fotos) {
+// `reemplazar`: la partida queda con exactamente estas fotos (importar, sincronizar). Sin eso (guardar) sólo se agregan o
+// cambian: nunca se borra una que no vino (3.8.6: una foto que no se pudo leer al abrir la partida, por ejemplo con el
+// archivo ocupado un instante por el antivirus, se borraba del disco en el primer guardado).
+function escribirFotosDe(clave, fotos, reemplazar = false) {
   const a = archivosFotos();
   if (a) {
+    const enDisco = reemplazar ? null : fotosEnDisco.get(clave);
+    const nuevas = enDisco ? Object.fromEntries(Object.entries(fotos).filter(([id, img]) => enDisco[id] !== img)) : fotos;
+    if (enDisco && !Object.keys(nuevas).length) return true;   // (ya estaban todas)
     let ok = false;
-    try { ok = a.escribir(clave, fotos) === true; } catch { ok = false; }
-    if (ok) { try { localStorage.removeItem(clave); } catch {} return true; }
+    try { ok = a.escribir(clave, nuevas, { reemplazar }) === true; } catch { ok = false; }
+    if (ok) {
+      // (sin lo de antes en memoria no se sabe qué más hay en la carpeta: la próxima lectura va al disco)
+      if (reemplazar) fotosEnDisco.set(clave, { ...fotos }); else if (enDisco) fotosEnDisco.set(clave, { ...enDisco, ...nuevas }); else fotosEnDisco.delete(clave);
+      try { localStorage.removeItem(clave); } catch {}
+      return true;
+    }
+    fotosEnDisco.delete(clave);
   }
   return escribir(clave, fotos);
 }
 function borrarFotosDe(clave) {
+  fotosEnDisco.delete(clave);
   const a = archivosFotos();
   if (a) { try { a.borrar?.(clave); } catch {} }
   try { localStorage.removeItem(clave); } catch {}
@@ -599,10 +623,11 @@ export function cargarProgreso() {
 
 // Las miniaturas del álbum pesan mucho más que el resto de la partida,
 // así que van en su propia clave y solo se escriben cuando cambian.
-export function guardarFotos(desafios) {
+// 3.8.6: `reemplazar` (importar, sincronizar): la partida queda con exactamente éstas; sin eso, sólo se agregan
+export function guardarFotos(desafios, reemplazar = false) {
   const soloImagenes = {};
   for (const [k, v] of Object.entries(desafios || {})) if (v && v.img) soloImagenes[k] = v.img;
-  return escribirFotosDe(CLAVE_FOTOS, soloImagenes);   // 3.8.4
+  return escribirFotosDe(CLAVE_FOTOS, soloImagenes, reemplazar);   // 3.8.4
 }
 export function cargarFotos() { return leerFotosDe(CLAVE_FOTOS); }
 export function borrarFotos() { borrarFotosDe(CLAVE_FOTOS); }

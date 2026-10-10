@@ -30,7 +30,8 @@ contextBridge.exposeInMainWorld('hojarasca', {
   // el localStorage donde estaban
   fotos: {
     leer: (clave) => ipcRenderer.sendSync('fotos-leer', String(clave || '')),
-    escribir: (clave, fotos) => ipcRenderer.sendSync('fotos-escribir', String(clave || ''), fotos && typeof fotos === 'object' ? fotos : {}),
+    // (3.8.6: con { reemplazar: false } sólo agrega o cambia; sin eso, deja exactamente esas fotos)
+    escribir: (clave, fotos, opciones) => ipcRenderer.sendSync('fotos-escribir', String(clave || ''), fotos && typeof fotos === 'object' ? fotos : {}, { reemplazar: opciones?.reemplazar !== false }),
     borrar: (clave) => ipcRenderer.sendSync('fotos-borrar', String(clave || '')),
   },
   // 1.10: logros de Steam (no hace nada si Steam no está)

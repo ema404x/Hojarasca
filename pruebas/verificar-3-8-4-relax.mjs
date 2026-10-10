@@ -372,7 +372,7 @@ const c = (n, palo) => ({ n, palo });
     FM.escribirFotos(base, 'hojarasca-fotos-v1', { 'f-cisnes': jpg });
     eq(fs.readdirSync(dir), ['f-cisnes.jpg'], 'la que ya no está, se borra');
     // el guardado las usa cuando está Electron (preload.cjs: hojarasca.fotos)
-    globalThis.hojarasca = { fotos: { leer: (k) => FM.leerFotos(base, k), escribir: (k, f) => FM.escribirFotos(base, k, f), borrar: (k) => FM.borrarFotos(base, k) } };
+    globalThis.hojarasca = { fotos: { leer: (k) => FM.leerFotos(base, k), escribir: (k, f, o) => FM.escribirFotos(base, k, f, o), borrar: (k) => FM.borrarFotos(base, k) } };
     almacen.set('hojarasca-p2-fotos-v1', JSON.stringify({ lago: jpg }));
     eq(G.leerPartida('relax', 2), null, '(sin partida en la ranura 2)');
     const p = { ...G.progresoNuevo(), dia: 4, desafios: { lago: { dia: 2, hora: 9 }, faro: { dia: 3, hora: 21 } } };
