@@ -1,5 +1,5 @@
 // 3.8.6 (duendes): el pase de bugs de La noche de los duendes.
-//  1. La salpicadura del escupitajo y de la piedra del artillero no pasa a través de una pared.
+//  1. La salpicadura del escupitajo y de la piedra del artillero, y la picada de la lechuza, no pasan a través de una pared.
 //  2. Los refuerzos de madrugada se guardan (`refuerzoNoche`): guardar y abrir los mandaba otra vez.
 //  3. Si el reloj salta la hora del aviso (una siesta, la hora de tu reloj), la noche especial se decide igual.
 //  4. El Rey Duende que cae no revive si se cierra el juego en los segundos en que se viene abajo el Coihue.
@@ -55,6 +55,12 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   ok(des.includes('Math.abs(js.pos.y - q.pos.y) < 2.4 && !salpicaduraTapada(q, js)) herirJugador(q.dano * 0.5, q.pos);'), 'el escupitajo');
   ok(des.includes('Math.abs(js.pos.y - q.pos.y) < 2.4 && !salpicaduraTapada(q, js)) herirJugador(q.dano * 0.6, q.pos);'), 'la piedra del artillero');
   ok(des.includes('n = Math.max(1, Math.ceil(L / 0.35))'), 'el tiro avanza de a 35 cm (la cuenta de arriba)');
+  // la picada de la lechuza tampoco pega a través de una pared (la empalizada de 2,3 m, con vos pegado del lado de adentro)
+  const vol = extraer(des, 'actualizarVolador');
+  ok(/a\.cd <= 0 && !caido && \(fortin\.bajoTejado\(js\.pos\) \|\| hayObraEntre\(p, b, 0\.12\)\)\) \{/.test(vol), 'la lechuza mira la pared antes de pegar');
+  const hayV = vm.runInNewContext(`(${extraer(des, 'hayObraEntre')})`, { obraEnPunto: pared });
+  ok(hayV({ x: 0, y: 1.9, z: -0.9 }, { x: 0.2, y: 1.2, z: 0.45 }, 0.12), 'la lechuza de afuera, a tu altura: la pared tapa');
+  ok(!hayV({ x: 0, y: 1.9, z: 1.3 }, { x: 0.2, y: 1.2, z: 0.45 }, 0.12), 'del mismo lado, te alcanza');
 }
 
 // ---------------------------------------------------------------- 2. los refuerzos de madrugada

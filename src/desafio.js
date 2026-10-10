@@ -1991,8 +1991,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         defensas.apagar(a.blanco.o, 'volador');
         _v.set(b.x, b.y, b.z); S.apagar(_v); efectos.polvo(_v, 6, '#5a5a5a');
         a.blanco = null; a.subiendo = VUELO.subir;
-      } else if (a.cd <= 0 && !caido && fortin.bajoTejado(js.pos)) {
+      } else if (a.cd <= 0 && !caido && (fortin.bajoTejado(js.pos) || hayObraEntre(p, b, 0.12))) {
         // 2.6: abajo del tejado de lajas no te alcanza: pega contra la piedra y sube
+        // 3.8.6: y si hay una pared entre la lechuza y tu cabeza, tampoco (pegado a la empalizada, la picada de
+        // afuera te lastimaba a través de los troncos)
         a.cd = def.cadencia; a.subiendo = VUELO.subir;
         _v.set(p.x, p.y, p.z); efectos.polvo(_v, 5);
       } else if (a.cd <= 0 && !caido) {
