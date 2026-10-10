@@ -35,6 +35,9 @@ ipcMain.handle('steam-disponible', () => false);
 ipcMain.handle('steam-logro', () => false);
 ipcMain.handle('guardar-foto', () => path.join(salida, 'foto.png'));
 ipcMain.handle('graficos-fallaron', () => false);
+// 3.8.6: las fotos del álbum en archivos (3.8.4): con el preload, la página las pide por un sendSync que, sin quien lo
+// atienda, dejaba la partida colgada en la carga
+require(path.join(raiz, 'fotos-main.cjs')).registrarFotos({ ipcMain, app });
 
 app.whenReady().then(async () => {
   const errores = [], pasos = [];
