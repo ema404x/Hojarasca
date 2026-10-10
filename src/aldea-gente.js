@@ -41,7 +41,7 @@
 //
 // Sin three ni DOM (se prueba en Node): las figuras las arma gente.js y lo demás llega por `ctx`.
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
-import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
+import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, lugarConArticulo, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
@@ -1381,7 +1381,8 @@ export function crearAldeaGente(ctx) {
     const av = avisoDiaAntes(dia(), { aldea: a, fiestas: FIESTAS_ALDEA });
     if (av) ficha.appendChild(el('p', 'pista', `${av.titulo}. ${av.texto}`));
     const fiesta = fiestaDeCumple(dia(), a);
-    if (fiesta) ficha.appendChild(el('p', 'pista', `Hoy ${fiesta.claves.length > 1 ? 'festejan' : 'festeja'} ${fiesta.claves.map((k) => nombreCortoDe(k)).join(' y ')}, de 18 a 20, ${fiesta.donde === 'plaza' ? 'en la plaza' : `en ${(EDIFICIOS_ALDEA[fiesta.edificio]?.nombre || 'su casa').toLowerCase()}`}. Un regalo que le guste vale el doble.`));
+    // (3.8.6: «A, B y C», «les guste» con varios y el lugar con su artículo)
+    if (fiesta) { const varios = fiesta.claves.length > 1, nombres = fiesta.claves.map((k) => nombreCortoDe(k)); ficha.appendChild(el('p', 'pista', `Hoy ${varios ? 'festejan' : 'festeja'} ${nombres.length < 2 ? nombres[0] : `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`}, de 18 a 20, ${fiesta.donde === 'plaza' ? 'en la plaza' : `en ${lugarConArticulo(fiesta.edificio)}`}. Un regalo que ${varios ? 'les' : 'le'} guste vale el doble.`)); }
     // el apodo, la mascota, la familia y los chicos
     const ap = apodoPorId(v.apodo);
     if (ap) ficha.appendChild(el('p', 'texto', `En la aldea te dicen «${ap.texto}».`));

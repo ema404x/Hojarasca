@@ -22,6 +22,11 @@ const minus = (s) => (typeof s === 'string' && s ? s.charAt(0).toLowerCase() + s
 const mayus = (s) => (typeof s === 'string' && s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 const textoSano = (s, tope = 60) => (typeof s === 'string' ? s.replace(/[\u0000-\u001f<>]/g, '').slice(0, tope) : null);
 const unir = (l) => (l.length < 2 ? l[0] || '' : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
+// 3.8.6: el lugar de una fiesta con su artículo («en la casa de té»: decía «en casa de Té»)
+export const lugarConArticulo = (edificio) => { const n = EDIFICIOS_ALDEA[edificio]?.nombre; return !n ? 'su casa' : /^(La|El|Los|Las) /.test(n) ? minus(n) : `la ${n.toLowerCase()}`; };
+// 3.8.6: ¿festeja de verdad? (lo mismo que `fiestaDeCumple`: cercano, con su local abierto y sin estar estudiando afuera; antes
+// el aviso del día antes miraba sólo que fuera cercano y anunciaba fiestas que no iban a pasar)
+const festejaDeVerdad = (aldea, clave, dia) => !!fiestaDeCumple(dia, aldea)?.claves.includes(clave);
 
 // ---------------------------------------------------------------- quiénes
 // Los del valle también cumplen años (y te los cuenta el calendario). Ema pasó a llamarse Josefina (el id
@@ -87,7 +92,7 @@ export function eventosDelDia(dia, { aldea = null, fiestas = FIESTAS_ALDEA, extr
 // 90 de la abuela y las fiestas); los demás cumpleaños, el mismo día y sin fiesta (`avisoDelDia`).
 export function avisoDiaAntes(dia, opciones = {}) {
   const manana = diaValido(dia, 1) + 1;
-  const ev = eventosDelDia(manana, opciones).filter((e) => e.tipo !== 'cumple' || festejaCumple(opciones.aldea, e.clave, manana));
+  const ev = eventosDelDia(manana, opciones).filter((e) => e.tipo !== 'cumple' || festejaDeVerdad(opciones.aldea, e.clave, manana));
   if (!ev.length) return null;
   const cumples = ev.filter((e) => e.tipo === 'cumple');
   const fiestas = ev.filter((e) => e.tipo === 'fiesta');
@@ -96,14 +101,14 @@ export function avisoDiaAntes(dia, opciones = {}) {
   const partes = [];
   if (cumples.length) partes.push(`${cumples.length === 1 ? 'cumple años' : 'cumplen años'} ${unir(cumples.map((e) => nombreCortoDe(e.clave)))}`);
   for (const x of fiestas) partes.push(minus(x.nombre));
-  const donde = fiesta ? (fiesta.donde === 'plaza' ? 'A la tardecita festejan juntos en la plaza de la aldea. Un regalo que les guste vale el doble.' : `A la tardecita festeja en ${minus(EDIFICIOS_ALDEA[fiesta.edificio]?.nombre || 'su casa')}. Un regalo que le guste vale el doble.`) : 'Si lo ves, un regalo que le guste vale el doble.';
+  const donde = fiesta ? (fiesta.donde === 'plaza' ? 'A la tardecita festejan juntos en la plaza de la aldea. Un regalo que les guste vale el doble.' : `A la tardecita festeja en ${lugarConArticulo(fiesta.edificio)}. Un regalo que le guste vale el doble.`) : 'Si lo ves, un regalo que le guste vale el doble.';
   return { titulo: `Mañana ${unir(partes)}`, texto: donde };
 }
 // 3.7.0 (integración): los que cumplen hoy sin fiesta (los que no son de los más cercanos): te enterás por una nota
 // (cuando haya radio y diario, en la 3.7.3, por ahí). { titulo, texto } o null.
 export function avisoDelDia(dia, opciones = {}) {
   const hoy = diaValido(dia, 1);
-  const sin = eventosDelDia(hoy, opciones).filter((e) => e.tipo === 'cumple' && !festejaCumple(opciones.aldea, e.clave, hoy));
+  const sin = eventosDelDia(hoy, opciones).filter((e) => e.tipo === 'cumple' && !festejaDeVerdad(opciones.aldea, e.clave, hoy));
   if (!sin.length) return null;
   const uno = sin.length === 1;
   return { titulo: `Hoy ${uno ? 'cumple' : 'cumplen'} años ${unir(sin.map((e) => nombreCortoDe(e.clave)))}`, texto: uno ? 'No hace fiesta. Si lo cruzás, saludalo: un regalo que le guste vale el doble.' : 'No hacen fiesta. Si los cruzás, saludalos: un regalo que les guste vale el doble.' };
@@ -495,7 +500,7 @@ export function cartaDeLaAldea(vida, progreso, dia, ritmo = 'normal') {
   if (obra) { const et = etapaDe(a, obra); novedades.push(`La obra de ${minus(EDIFICIOS_ALDEA[obra].nombre)} va por la etapa ${et.hechas + 1} de ${et.total}${et.lista ? ': los vecinos están trabajando' : ', y falta material'}.`); }
   for (const [lote, desde] of Object.entries(objeto(a.locales) ? a.locales : {})) if (d - entero(desde) <= r.carta) novedades.push(`Abrió ${minus(EDIFICIOS_ALDEA[lote]?.nombre || lote)}. Ya hay cola en la puerta.`);
   const manana = eventosDelDia(d + 1, { aldea: a }).filter((e) => e.tipo === 'cumple' && e.clave !== de);
-  if (manana.length) novedades.push(`Mañana cumple años ${unir(manana.map((e) => nombreCortoDe(e.clave)))}. Si venís, traé algo rico.`);
+  if (manana.length) novedades.push(`Mañana ${manana.length > 1 ? 'cumplen' : 'cumple'} años ${unir(manana.map((e) => nombreCortoDe(e.clave)))}. Si venís, traé algo rico.`);   // (3.8.6: «cumplen», con varios)
   if (vida.mascota?.estado === 'cachorros') novedades.push('La Chola tuvo cachorros en la boletería. Ernesto anda repartiendo.');
   if (!novedades.length) novedades.push(quienLlega(a) ? 'Acá todo tranquilo. Dicen que pronto baja alguien más del tren.' : 'Acá todo tranquilo: la aldea está completa y el pan sale a horario.');
   const saludo = de === 'nelida' ? 'Querido vecino: le escribo de parte de toda la aldea, que pregunta por usted.' : `Querido amigo: hace días que no te vemos por la ${NOMBRE_ALDEA}.`;

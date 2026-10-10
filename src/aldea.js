@@ -1821,6 +1821,18 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     if (j < 0) return plaza();   // 3.7.0: los que no tienen silla, en la plaza
     return ir('biblioteca', 'biblioteca', `lectura-${j + 1}`);
   }
+  // 3.7.0: el cumpleaños: a la tardecita, el que cumple festeja en la plaza con toda la aldea (los chicos, en
+  // su casa, con la familia). El almacén, la casa de té y los locales cierran un rato. (3.8.6: antes que la bandera y que
+  // el baile del sábado: el sábado con el salón abierto la fiesta anunciada no pasaba nunca, ni los 90 de la abuela, y el
+  // jefe se iba a arriar la bandera en la mitad de la suya)
+  if (dia !== null && t >= HORA_FIESTA[0] && t < HORA_FIESTA[1]) {
+    const fiesta = fiestaDeCumple(dia, a);
+    if (fiesta?.claves.includes(persona)) return fiesta.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', fiesta.edificio, 'adentro');
+    // (3.7.0 (integración): los 90 de la abuela: toda la aldea en la plaza)
+    if (fiesta?.noventa) return ir('fiesta', 'plaza', `estar-${(i % 20) + 1}`);
+    // (el cumpleaños de uno de los chicos: la familia, en casa)
+    if (fiesta?.edificio === 'casa-familia' && ['padre', 'madre', 'nene', 'nena'].includes(persona)) return ir('fiesta', 'casa-familia', 'adentro');
+  }
   if (bandera) return ir('plaza', 'plaza', 'soga');
   // 3.6.2: el sábado, tres cuartos de hora antes del baile se deja lo que se esté haciendo (para llegar
   // caminando sin que la ida se coma el baile: ver conTiempo en aldea-gente.js), y después del baile nadie
@@ -1832,16 +1844,6 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     if (persona === 'musico') return ir('salon', 'salon', 'escenario');
     const j = ORDEN_PERSONAS_ALDEA.filter((k) => k !== 'musico').indexOf(persona);
     return j < 8 ? ir('salon', 'salon', `baile-${j + 1}`) : j < 16 ? ir('salon', 'salon', `lugar-${j - 7}`) : plaza();
-  }
-  // 3.7.0: el cumpleaños: a la tardecita, el que cumple festeja en la plaza con toda la aldea (los chicos, en
-  // su casa, con la familia). El almacén, la casa de té y los locales cierran un rato.
-  if (dia !== null && t >= HORA_FIESTA[0] && t < HORA_FIESTA[1]) {
-    const fiesta = fiestaDeCumple(dia, a);
-    if (fiesta?.claves.includes(persona)) return fiesta.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', fiesta.edificio, 'adentro');
-    // (3.7.0 (integración): los 90 de la abuela: toda la aldea en la plaza)
-    if (fiesta?.noventa) return ir('fiesta', 'plaza', `estar-${(i % 20) + 1}`);
-    // (el cumpleaños de uno de los chicos: la familia, en casa)
-    if (fiesta?.edificio === 'casa-familia' && ['padre', 'madre', 'nene', 'nena'].includes(persona)) return ir('fiesta', 'casa-familia', 'adentro');
   }
   // 3.7.0: los chicos que ya son jóvenes trabajan con el que les enseña el oficio, o en lo que estudiaron
   const etapa = v?.chico ? etapaDeChico(a, persona) : null;

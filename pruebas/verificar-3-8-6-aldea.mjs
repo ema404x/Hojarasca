@@ -220,4 +220,33 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(c.includes('if (!inscribir(estado(), id, entrada, d, h)) { ctx.nota(`No llegaste al ${minus(c.nombre)}`'), 'concursos: te anota con la hora en que le hablaste, y si no se pudo te lo dice');
 }
 
+// ---------------------------------------------------------------- 14. aldea: los cumpleaños (sábado de baile, el jefe, los avisos y los textos)
+{
+  const VI = await import('../src/aldea-vida.js');
+  const a = aldeaCompleta();
+  a.cercanos = AL.ORDEN_PERSONAS_ALDEA.slice();   // (los cercanos festejan)
+  // un sábado con un cumpleaños festejado y el salón abierto
+  let d = 1;
+  while (d < 400 && !(AL.diaSemanaDe(d) === 5 && AL.fiestaDeCumple(d, a)?.claves.includes('jefe'))) d++;
+  ok(d < 400, 'hay un sábado en que festeja Ernesto');
+  const f = AL.fiestaDeCumple(d, a);
+  const r1 = AL.rutinaAldea('jefe', 18.6, 5, a, d), r2 = AL.rutinaAldea(f.claves.find((k) => k !== 'jefe') || 'jefe', 19.5, 5, a, d);
+  ok(r1.lugar === 'fiesta' && r2.lugar === 'fiesta', `aldea: el sábado de baile la fiesta de cumpleaños pasa (antes, el baile y la vuelta a casa; y el jefe arriando la bandera): ${r1.lugar}, ${r2.lugar}`);
+  // el aviso del día antes: sólo los que festejan de verdad
+  const b = AL.aldeaNueva(); b.pobladores = AL.ORDEN_POBLADORES_ALDEA.map((clave) => ({ clave, dia: 1 })); const bs = AL.sanearAldea(b); bs.cercanos = AL.ORDEN_PERSONAS_ALDEA.slice();   // (sin locales abiertos)
+  let malos = 0;
+  for (let x = 1; x <= 48; x++) {
+    const av = VI.avisoDiaAntes(x, { aldea: bs, fiestas: VI.FIESTAS_ALDEA });
+    if (!av || /Mañana la abuela/.test(av.titulo)) continue;
+    const fi = AL.fiestaDeCumple(x + 1, bs);
+    for (const k of AL.ORDEN_PERSONAS_ALDEA) if (AL.esCumpleanos(k, x + 1) && av.titulo.includes(V2nombre(k)) && !fi?.claves.includes(k)) malos++;
+  }
+  function V2nombre(k) { return VI.nombreCortoDe(k) || k; }
+  ok(malos === 0, `aldea: el aviso del día antes no anuncia la fiesta de quien no festeja (sin su local abierto, o estudiando afuera): ${malos}`);
+  eq(VI.lugarConArticulo('casa-te'), 'la casa de té', 'aldea: «la casa de té» (decía «casa de Té»)');
+  ok(VI.lugarConArticulo('casa-familia') === 'la casa de los Jones', 'aldea: y los que ya tienen artículo, igual');
+  ok(leer('src/aldea-vida.js').includes("Mañana ${manana.length > 1 ? 'cumplen' : 'cumple'} años"), 'aldea: la carta, «Mañana cumplen años A, B y C»');
+  ok(leer('src/aldea-gente.js').includes("Un regalo que ${varios ? 'les' : 'le'} guste vale el doble."), 'aldea: el cuaderno de hoy, «les guste» con varios y «A, B y C»');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
