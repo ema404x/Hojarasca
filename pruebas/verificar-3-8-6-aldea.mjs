@@ -357,4 +357,21 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(rueda.find((c) => c.categoria === 'charla')?.opciones.some((o) => o.id === 'amor:chicos'), 'rueda: y se ve');
 }
 
+// ---------------------------------------------------------------- 21. el cachorro nunca se llama como otro perro de la aldea
+{
+  const VI = await import('../src/aldea-vida.js');
+  const perros = new Set(VI.ANIMALES_ALDEA.perros.map((p) => p.nombre.toLowerCase()));
+  let choca = 0;
+  for (let d = 1; d <= 60; d++) {
+    const vida = VI.vidaNueva ? VI.vidaNueva() : { mascota: {} };
+    vida.mascota = { estado: 'cachorros', desde: 0, nombre: null, ofrecido: 0, nacieron: 1 };
+    const m = VI.adoptarMascota(vida, d);
+    if (!m || perros.has(m.nombre.toLowerCase())) choca++;
+  }
+  ok(choca === 0, `cachorro: ningún día sale con el nombre de otro perro de la aldea (salía «Tizón», el del herrero): ${choca}`);
+  ok(VI.nombreDeCachorro('Tizón', 4) !== 'Tizón' && VI.nombreDeCachorro('Pocho', 4) === 'Pocho', 'cachorro: un nombre que choca se cambia; uno libre, queda');
+  const s = VI.sanearVidaAldea({ mascota: { estado: 'adoptado', desde: 3, nombre: 'Tizón' } }, 10);
+  ok(s.mascota.nombre && s.mascota.nombre !== 'Tizón', `cachorro: el «Tizón» de una partida vieja pasa a otro nombre (${s.mascota.nombre})`);
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);

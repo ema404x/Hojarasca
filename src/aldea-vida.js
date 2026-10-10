@@ -192,7 +192,7 @@ export function sanearVidaAldea(v0, hoy = null) {
     mascota: {
       estado: estadoM,
       desde: estadoM === 'adoptado' ? Math.min(tope, diaValido(m.desde, tope)) : 0,
-      nombre: estadoM === 'adoptado' ? (nombreM || MASCOTA.nombres[0]) : null,
+      nombre: estadoM === 'adoptado' ? nombreDeCachorro(nombreM, diaValido(m.desde, 1)) : null,   // (3.8.6: un «Tizón» de antes pasa a otro nombre)
       ofrecido: diaOCero(m.ofrecido, tope), nacieron: estadoM === 'nada' ? 0 : Math.min(tope, diaValido(m.nacieron, tope)),
     },
     apodo: APODOS.some((a) => a.id === x.apodo) ? x.apodo : null,
@@ -354,7 +354,7 @@ export function perrosPresentes(aldea) {
 // de que Ayelén, la veterinaria, se dio cuenta; si no, igual, al mes). Ernesto te ofrece uno al hablarle
 // (una vez por día, hasta que digas que sí). El cachorro vive en tu refugio y crece: cachorro, joven,
 // adulto.
-export const MASCOTA = { desdeDescubierta: 3, sinVeterinaria: 30, conVeterinaria: 2, diasCachorro: 12, diasJoven: 24, nombres: ['Pichi', 'Lucero', 'Chispa', 'Tizón'], pelo: '#a8804f', dibujo: 'pecho' };
+export const MASCOTA = { desdeDescubierta: 3, sinVeterinaria: 30, conVeterinaria: 2, diasCachorro: 12, diasJoven: 24, nombres: ['Pichi', 'Lucero', 'Chispa', 'Canela'], pelo: '#a8804f', dibujo: 'pecho' };   // (3.8.6: «Canela»: «Tizón» era también el perro del herrero)
 export function cachorrosNacen(vida, aldea, dia) {
   if (!objeto(vida) || vida.mascota?.estado !== 'nada') return false;
   const a = objeto(aldea) ? aldea : {};
@@ -379,11 +379,18 @@ export function ofertaCachorro(vida, dia) {
     seguir: 'E: me lo llevo · Escape: todavía no',
   };
 }
+// 3.8.6: el nombre del cachorro nunca es el de otro perro de la aldea (Chola, Tango, Pampa, Tizón): si choca, uno libre
+export function nombreDeCachorro(nombre, dia) {
+  const usados = new Set(ANIMALES_ALDEA.perros.map((p) => p.nombre.toLowerCase()));
+  if (nombre && !usados.has(nombre.toLowerCase())) return nombre;
+  const libres = MASCOTA.nombres.filter((x) => !usados.has(x.toLowerCase()));
+  return libres[diaValido(dia, 1) % libres.length];
+}
 export function ofrecido(vida, dia) { if (objeto(vida?.mascota)) vida.mascota.ofrecido = diaValido(dia, 1); }
 export function adoptarMascota(vida, dia, nombre = null) {
   if (!objeto(vida) || vida.mascota?.estado !== 'cachorros') return null;
   const d = diaValido(dia, 1);
-  const n = textoSano(nombre, 20) || MASCOTA.nombres[d % MASCOTA.nombres.length];
+  const n = nombreDeCachorro(textoSano(nombre, 20), d);
   vida.mascota = { ...vida.mascota, estado: 'adoptado', desde: d, nombre: n };
   return vida.mascota;
 }
