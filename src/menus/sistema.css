@@ -89,6 +89,11 @@
   max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); display: flex; flex-direction: column; overflow: hidden; }
 :root[data-menu] :is(#guia, #logros, #modos31, #controles-completos, #teclas) .panel-modal { width: min(var(--ancho-ancho), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); }
 :root[data-menu] :is(#creditos, #dialogo, #victoria, #corrida) .panel-modal { width: min(var(--ancho-angosto), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); }
+/* 3.8.6: Personalizar, la guía y las teclas traen su alto (y Personalizar su ancho) de antes, con un selector de id que le
+   ganaba a las reglas de arriba: con la letra grande o enorme se salían de la pantalla (el título cortado y «Volver» afuera).
+   Acá, con más peso, el mismo tope dividido por la escala; lo largo se desplaza adentro (#personal-contenido, …). */
+:root[data-menu] :is(#personalizar, #guia, #teclas) .panel-modal { max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); overflow: hidden; }
+:root[data-menu] #personalizar .panel-modal { width: min(var(--ancho-medio), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); max-width: none; }
 :root[data-menu] .panel-modal > * { flex: none; }
 :root[data-menu] .panel-modal > :is(#personal-contenido, #guia-contenido, #logros-contenido, #partidas-lista, #teclas-lista, #modos31-contenido, #base-contenido, .controles-completos, #banco-informe, #corrida-records) {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: var(--e-2); scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; }
@@ -232,7 +237,9 @@
 :root[data-menu] .mochila .personalizar kbd { border-color: currentColor; }
 /* el almacén, la feria, las cargas, la cocina, el taller ferroviario, la fiesta y «Fabricar»: el mismo panel, abajo */
 :root[data-menu] :is(.trueque, .charla) { width: min(var(--ancho-medio), 86vw); padding: var(--e-5) var(--e-6) var(--e-4); }
-:root[data-menu] .trueque { max-height: calc((91vh - 12px) / var(--zoom)); }
+/* 3.8.6: el panel está a 9vh del borde de abajo, y con la letra grande ese 9vh también se agranda (está adentro del #hud con
+   zoom): el tope descuenta esa distancia ya agrandada (antes, con la letra enorme, el almacén salía 19 px por arriba) */
+:root[data-menu] .trueque { max-height: calc((100vh - 12px) / var(--zoom) - 9vh); }
 :root[data-menu] :is(.trueque, .obra) li { padding: var(--e-2); border-top: 1px solid var(--p-linea-suave, rgba(0,0,0,.12)); font-size: var(--t-base); gap: var(--e-3); }
 :root[data-menu] .trueque > ul { scrollbar-width: thin; scrollbar-color: var(--p-linea-fuerte, rgba(128,128,128,.5)) transparent; margin-top: var(--e-1); }
 :root[data-menu] .trueque li:hover { background: var(--b-fondo-encima); }

@@ -62,14 +62,16 @@ function crearTarjetas(doc, ctx) {
     partes.push('</div></div>');
     velo.innerHTML = partes.join('');
     ctx.traducir?.(velo);
-    const primero = velo.querySelector('button:not([disabled])');
-    try { primero?.focus({ preventScroll: true }); } catch {}
   }
   function mostrar(def) {
     const yaAbierta = !!actual;
     actual = def;
     dibujar(def);
     velo.classList.remove('oculto');
+    // 3.8.6: el foco en la primera opción, ya con la tarjeta a la vista (antes se pedía con el velo todavía oculto y no
+    // quedaba en ningún lado: con dos opciones o más, Enter no elegía nada y el mando no tenía de dónde partir)
+    const primero = velo.querySelector('button:not([disabled])');
+    try { primero?.focus({ preventScroll: true }); } catch {}
     if (!yaAbierta) ctx.pausar();
   }
   function cerrar() {

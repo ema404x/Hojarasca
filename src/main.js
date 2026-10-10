@@ -54,7 +54,7 @@ import { SECCIONES, ENTRADAS, ENTRADA } from './cuaderno.js';
 import { ENCARGOS, ENCARGO, encargoDe, estadoEncargo, pistaTrabado, resumenEncargos } from './encargos.js';
 import { ENCARGOS_TEMPORADA, ENCARGO_TEMPORADA, encargoDeTemporada, anotarBase, estacionDe } from './encargos-temporada.js';
 import { crearDiario } from './diario.js';
-import { TRUEQUES, NOMBRE_COSA, tieneYa } from './trueque.js';
+import { TRUEQUES, cantidadCosa, tieneYa } from './trueque.js';
 import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta } from './huerta.js';
 import { crearMatasHuerta } from './huerta-malla.js';
 import { claveGallinero, gallineroNuevo, sanearGallineros, juntarHuevos, textoGallinero } from './gallinero.js';
@@ -2379,6 +2379,30 @@ function cerrarTeclas() {
   origenTeclas = null;
 }
 const teclasAbiertas = () => !$('teclas').classList.contains('oculto');
+// 3.8.6: Controles y Créditos, desde la pausa o la portada. Estaban en un script aparte de la plantilla que el resto del
+// juego no conocía: F1, F5 o F2 abrían la guía, Personalizar o el modo foto encima (o debajo) y Esc cerraba primero el de
+// abajo (hacían falta tres Esc, o quedaba la pausa a la vista con el juego corriendo). Y desde la portada, el botón decía
+// «Volver a pausa».
+const PANELES_INFO = ['controles-completos', 'creditos'];
+let origenInfo = null;
+const infoAbierta = () => PANELES_INFO.some((id) => $(id) && !$(id).classList.contains('oculto'));
+function abrirInfo(id, origen) {
+  origenInfo = origen;
+  $(origen)?.classList.add('oculto');
+  for (const b of ['cerrar-controles-completos', 'cerrar-creditos']) if ($(b)) $(b).textContent = T_(origen === 'inicio' ? 'Volver' : 'Volver a pausa');
+  $(id)?.classList.remove('oculto');
+}
+function cerrarInfo() {
+  for (const id of PANELES_INFO) $(id)?.classList.add('oculto');
+  if (origenInfo) $(origenInfo)?.classList.remove('oculto');
+  origenInfo = null;
+}
+$('btn-controles')?.addEventListener('click', () => abrirInfo('controles-completos', 'pausa'));
+$('btn-controles-inicio')?.addEventListener('click', () => abrirInfo('controles-completos', 'inicio'));
+$('cerrar-controles-completos')?.addEventListener('click', cerrarInfo);
+$('btn-creditos')?.addEventListener('click', () => abrirInfo('creditos', 'pausa'));
+$('btn-creditos-inicio')?.addEventListener('click', () => abrirInfo('creditos', 'inicio'));
+$('cerrar-creditos')?.addEventListener('click', cerrarInfo);
 // Mientras el panel espera una tecla, esa tecla no hace nada más.
 function tomarTeclaNueva(code) {
   const accion = capturandoTecla;
@@ -2696,7 +2720,13 @@ let objetivo = null;
 document.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (capturandoTecla) { e.preventDefault(); tomarTeclaNueva(e.code); return; }
-  if (teclasAbiertas() && e.code === 'Escape') { cerrarTeclas(); return; }
+  // 3.8.6: con Teclas, Controles o Créditos abiertos sólo Esc hace algo (cierra ése): antes F1, F5 o F2 abrían otro panel o
+  // el modo foto por encima y Esc cerraba el de abajo
+  if (teclasAbiertas() || infoAbierta()) {
+    if (e.code === 'Escape') { e.preventDefault(); if (teclasAbiertas()) cerrarTeclas(); else cerrarInfo(); }
+    else if (/^F([1-9]|10|12)$/.test(e.code)) e.preventDefault();
+    return;
+  }
   // el teclado propio: lo que apretó el jugador se traduce a la tecla de fábrica
   const codigo = codigoCanonico(e.code);
   if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(); return; }
@@ -4013,7 +4043,7 @@ function leerMandoQuieto() {
   const m = leerMandoActual();
   if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
   if (!m.conectado || dialogos.abierto()) return;
-  const caja = modo === 'valle' ? $('valle-tarjeta') : modo === 'victoria' ? $('victoria') : null;
+  const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria') : null;
   if (!caja || caja.classList.contains('oculto')) return;
   const mover = (m.recien.mochila || m.recien.planos || m.recien.objetoAnterior) ? -1 : (m.recien.taller || m.recien.mapa || m.recien.objetoSiguiente) ? 1 : 0;
   if (mover) moverFocoEn(caja, mover);
@@ -4062,7 +4092,16 @@ function leerMando(dt) {
     if (m.recien.agacharse) golpeDeTecla('Escape');
   }
   if (!enLista) { if (m.recien.saltar) golpeDeTecla('Space'); }
-  if (!enLista) { if (m.recien.agacharse) { if (enCharla) atrasCharla(); else golpeDeTecla('KeyC'); } }
+  // 3.8.6: con la mochila, el taller de los duendes o los planos abiertos, B también sale (como en el almacén y la cocina;
+  // antes agachaba y había que volver a apretar la cruceta). En los planos, moviendo una pieza, B cancela el movimiento
+  if (!enLista) {
+    if (m.recien.agacharse) {
+      if (enCharla) atrasCharla();
+      else if (mochilaAbierta || desafio?.tallerAbierto) golpeDeTecla('Escape');
+      else if (modoObra) golpeDeTecla(obras?.editando ? 'Escape' : 'KeyO');
+      else golpeDeTecla('KeyC');
+    }
+  }
   for (const a of ACCIONES_TECLA_MANDO) {
     if (!m.recien[a]) continue;
     if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }
@@ -7537,7 +7576,7 @@ function dibujarAlmacen() {
     const tengo = t.pide.every(([k, n]) => cuanto(k) >= n);
     const hecho = tieneYa(t, progreso.cosas);
     li.className = hecho ? 'hecho' : tengo ? '' : 'falta';
-    const pedido = t.pide.map(([k, n]) => `${n} ${NOMBRE_COSA[k] || k} (tenés ${cuanto(k)})`).join(' y ');
+    const pedido = t.pide.map(([k, n]) => `${cantidadCosa(k, n)} (tenés ${cuanto(k)})`).join(' y ');   // 3.8.6: (en singular si es una)
     const b = document.createElement('b');
     b.textContent = `${j + 1}. ${t.nombre}`;
     const span = document.createElement('span');
@@ -7559,7 +7598,7 @@ function cambiar(i) {
   if (!t) return;
   if (tieneYa(t, progreso.cosas)) { nota('Eso ya lo tenés', 'Pedile otra cosa'); return; }
   if (!t.pide.every(([k, n]) => cuanto(k) >= n)) {
-    nota('Todavía te falta', `Hacen falta ${t.pide.map(([k, n]) => `${n} ${NOMBRE_COSA[k] || k}`).join(' y ')}`);
+    nota('Todavía te falta', `Hacen falta ${t.pide.map(([k, n]) => cantidadCosa(k, n)).join(' y ')}`);
     return;
   }
   for (const [k, n] of t.pide) {
@@ -9312,6 +9351,10 @@ const dialogos = crearDialogos({
   traducir: T_,
   alAbrir: () => { if (modo === 'jugando') { modoAntesDialogo = 'jugando'; modo = 'dialogo'; jugador?.soltar(); } },
   alCerrar: () => {
+    // 3.8.6: el cuadro lee el mando por su lado (cada 50 ms) y se puede cerrar entre dos cuadros del juego: lo que está
+    // apretado ahora (la A o la B con que se contestó) queda visto, para que el juego no lo tome como recién apretado
+    // (saltaba, se agachaba o, desde la pausa, la B cerraba también la pausa)
+    try { mando.actualizar(); } catch { /* sin mando */ }
     if (modo !== 'dialogo') return;
     modo = modoAntesDialogo || 'jugando'; modoAntesDialogo = null;
     if (modo === 'jugando') volverAlJuego();

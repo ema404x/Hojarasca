@@ -1634,7 +1634,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     return mejor;
   }
   const NOMBRE = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas', ramita: 'ramitas', fruta: 'frutas del bosque' };
-  const textoPide = (pide) => Object.entries(pide).map(([k, n]) => `${n} ${NOMBRE[k] || k} (tenés ${ctx.cuanto(k)})`).join(' · ');
+  // 3.8.6: y de a uno («1 piedras»)
+  const NOMBRE_UNO = { tronco: 'tronco', tabla: 'tabla', piedra: 'piedra', cristal: 'semilla dorada', ramita: 'ramita', fruta: 'fruta del bosque' };
+  const textoPide = (pide) => Object.entries(pide).map(([k, n]) => `${n} ${(n === 1 ? NOMBRE_UNO[k] : NOMBRE[k]) || k} (tenés ${ctx.cuanto(k)})`).join(' · ');
   function dibujarTaller() {
     if (!tallerEl) return;
     const cats = document.getElementById('taller-categorias');

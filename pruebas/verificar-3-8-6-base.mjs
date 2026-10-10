@@ -31,13 +31,13 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
 {
   const actual = tramo('function leerMandoActual() {', 200);
   ok(/if \(mandoLeido\) return mando\.estado\(\);\s*mandoLeido = true;\s*return mando\.actualizar\(\);/.test(actual), 'una sola lectura por cuadro');
-  ok((main.match(/mando\.actualizar\(\)/g) || []).length === 1, 'nadie más lee el mando por su lado');
+  ok((main.match(/mando\.actualizar\(\)/g) || []).length === 2 && /alCerrar: \(\) => \{[\s\S]{0,500}try \{ mando\.actualizar\(\); \} catch/.test(main), 'nadie más lee el mando por su lado (salvo al cerrar un cuadro de pregunta, que lo lee entre dos cuadros)');
   ok(/const m = leerMandoActual\(\);/.test(tramo('function leerMando(dt) {', 120)), 'jugando, por la lectura única');
   const menu = tramo('function leerMandoEnMenu() {', 500);
   ok(/const m = leerMandoActual\(\);/.test(menu) && menu.includes('if (dialogos.abierto()) return;'), 'en la pausa, por la lectura única y sin pisar al cuadro de pregunta');
   ok(/leerMandoEnMenu\(\);[^\n]*\n\s*if \(!mandoLeido\) leerMandoQuieto\(\);[^\n]*\n\s*mandoLeido = false;/.test(main), 'el bucle lee el mando en cualquier otra pantalla y se prepara para el cuadro siguiente');
   const quieto = tramo('function leerMandoQuieto() {', 1400);
-  ok(quieto.includes("modo === 'valle' ? $('valle-tarjeta') : modo === 'victoria' ? $('victoria')"), 'la tarjeta del valle y la victoria, con el mando');
+  ok(quieto.includes("modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria')"), 'la tarjeta del valle y la victoria, con el mando');
   ok(quieto.includes('moverFocoEn(caja, mover)') && quieto.includes('b.click()'), 'la cruceta pasa de botón y A lo aprieta');
   ok(quieto.includes("if (m.recien.agacharse && modo === 'valle') golpeDeTecla('Escape');"), 'B cierra las tarjetas de un botón (como Esc)');
 }
@@ -194,6 +194,31 @@ ok(leer('main.cjs').includes("if (!tecla.isAutoRepeat) ventana.setFullScreen(!ve
   ok(sin.includes('compilandoCalidad = true;') && sin.includes('variantesLuces.compilarCarga(jugador.estado.pos)') && main.includes('if (compilandoCalidad) return;'), 'al prender o apagar las sombras se compila antes de seguir, con el bucle quieto');
   const rest = tramo("lienzo.addEventListener('webglcontextrestored'", 1500);
   ok(rest.indexOf('aplicarCalidadAutomatica(bajada, false);') > 0 && rest.indexOf('aplicarCalidadAutomatica(bajada, false);') < rest.indexOf('await rehacerGraficos();'), 'al recuperar el contexto, la bajada antes de rehacer');
+}
+
+// 7. La tarjeta del valle pedía el foco para su primera opción con el velo todavía oculto: no quedaba en ningún lado (con dos
+//    opciones o más, Enter no elegía nada).
+{
+  const hu = leer('src/historia-ui.js');
+  const mostrar = hu.slice(hu.indexOf('  function mostrar(def) {'), hu.indexOf('  function cerrar() {'));
+  ok(mostrar.indexOf("velo.classList.remove('oculto');") > 0 && mostrar.indexOf("velo.classList.remove('oculto');") < mostrar.indexOf('primero?.focus('), 'el foco, con la tarjeta ya a la vista');
+}
+
+// 8. Menús: Controles y Créditos los maneja main.js (F1, F5 y F2 no abren nada encima; Esc cierra el de arriba; desde la
+//    portada el botón no dice «Volver a pausa»); con la letra grande, Personalizar, la guía y las teclas entran en la pantalla
+//    (un selector de id les ganaba al tope dividido por la escala); el almacén con la letra enorme no sale por arriba; los
+//    plurales del almacén («1 plumas») y del taller de los duendes; B del mando cierra la mochila, el taller y los planos.
+{
+  const pl = leer('src/plantilla.html'), css = leer('src/menus/sistema.css');
+  ok(!pl.includes('abrirModal(') && main.includes("$('btn-controles')?.addEventListener('click', () => abrirInfo('controles-completos', 'pausa'));"), 'Controles y Créditos, desde main.js');
+  ok(main.includes('if (teclasAbiertas() || infoAbierta()) {') &&main.includes("T_(origen === 'inicio' ? 'Volver' : 'Volver a pausa')"), 'con esos paneles abiertos sólo Esc hace algo; el botón según de dónde vino');
+  ok(css.includes(':root[data-menu] :is(#personalizar, #guia, #teclas) .panel-modal { max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); overflow: hidden; }'), 'Personalizar, la guía y las teclas: el tope dividido por la escala');
+  ok(css.includes(':root[data-menu] .trueque { max-height: calc((100vh - 12px) / var(--zoom) - 9vh); }'), 'el almacén descuenta su distancia al borde, agrandada');
+  const TQ = await import('../src/trueque.js');
+  ok(TQ.cantidadCosa('pluma', 1) === '1 pluma' && TQ.cantidadCosa('pluma', 2) === '2 plumas' && TQ.cantidadCosa('hongos-secos', 1) === '1 atado de llao llao seco' && TQ.cantidadCosa('canto', 1) === '1 canto rodado', 'plurales del almacén');
+  ok(Object.keys(TQ.NOMBRE_COSA).every((k) => Object.hasOwn(TQ.NOMBRE_COSA_UNO, k)), 'cada cosa tiene su singular');
+  ok(leer('src/desafio.js').includes("(n === 1 ? NOMBRE_UNO[k] : NOMBRE[k]) || k"), 'y el taller de los duendes');
+  ok(main.includes("else if (mochilaAbierta || desafio?.tallerAbierto) golpeDeTecla('Escape');") && main.includes("else if (modoObra) golpeDeTecla(obras?.editando ? 'Escape' : 'KeyO');"), 'B cierra la mochila, el taller y los planos');
 }
 
 console.log(`✓ verificar-3-8-6-base: ${n} comprobaciones`);

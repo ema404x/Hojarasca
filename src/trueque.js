@@ -117,3 +117,13 @@ export const NOMBRE_COSA = {
   pinon: 'piñones', frutilla: 'frutillas', llaollao: 'llao llao', amancay: 'amancayes',
   'frasco-frutilla': 'frascos de dulce de frutilla', 'calafate-seco': 'bolsitas de calafate seco', 'hongos-secos': 'atados de llao llao seco',
 };
+// 3.8.6: y de a uno (el almacén decía «y 1 plumas», «1 cantos rodados», «1 atados de llao llao seco»)
+export const NOMBRE_COSA_UNO = {
+  calafate: 'fruto de calafate', pluma: 'pluma', canto: 'canto rodado', ramita: 'ramita',
+  pinon: 'piñón', frutilla: 'frutilla', llaollao: 'llao llao', amancay: 'amancay',
+  'frasco-frutilla': 'frasco de dulce de frutilla', 'calafate-seco': 'bolsita de calafate seco', 'hongos-secos': 'atado de llao llao seco',
+};
+export function cantidadCosa(k, n) {
+  const nombre = (n === 1 && Object.hasOwn(NOMBRE_COSA_UNO, k) ? NOMBRE_COSA_UNO[k] : Object.hasOwn(NOMBRE_COSA, k) ? NOMBRE_COSA[k] : k);
+  return `${n} ${nombre}`;
+}
