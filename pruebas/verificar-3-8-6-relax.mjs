@@ -128,4 +128,26 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   } finally { delete globalThis.hojarasca; G.usarModoGuardado('relax', 1); fs.rmSync(base, { recursive: true, force: true }); }
 }
 
+// ---------------------------------------------------------------- 8. las tarjetas del valle con el mando
+{
+  const ui = leer('src/historia-ui.js');
+  ok(/return \{ mostrar, cerrar, elegir, abierta: \(\) => !!actual, actual: \(\) => actual, velo, moverFoco, elegirEnfocada, atras \};/.test(ui), 'las tarjetas saben moverse y elegir con el mando');
+  const f = trozoFn('function leerMandoEnMenu(');
+  ok(f.includes("if (modo === 'valle') {") && f.includes('t.elegirEnfocada()') && f.includes('t.moverFoco(-1)') && f.includes('t.atras()'), 'en el modo valle, A elige, la cruceta mueve y B cierra');
+  ok(main.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa' || modo === 'valle') leerMandoEnMenu();") && main.includes("else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(dt); }"), 'el mando se lee en el modo valle (y en el tren no se gasta antes)');
+}
+
+// ---------------------------------------------------------------- 9. el temporal del capítulo 8: pasada la noche
+{
+  const H = await import('../src/historia.js');
+  const { CUENTOS } = await import('../src/cuentos.js');
+  const p = (dia, temporal) => ({ dia, entradas: Object.fromEntries(CUENTOS.map((c) => [c.id, { dia: 3, hora: 21, cantidad: 0 }])), visitas: { cuenta: 3 }, eventosValle: { hechos: { temporal: { dia: temporal, opcion: 'lena' } } } });
+  const h = H.historiaNueva(); H.empezarHistoria(h, 1); h.capitulo = 7; h.fase = 'intro';
+  H.arrancarCapitulo(h, H.estadoHistoria({ ...p(20, 0), eventosValle: { hechos: {} } }));
+  H.revisarHistoria(h, H.estadoHistoria({ ...p(20, 0), visitas: { cuenta: 4 }, eventosValle: { hechos: {} } }));
+  H.momentoLanzado(h);
+  ok(!H.revisarHistoria(h, H.estadoHistoria({ ...p(20, 20), visitas: { cuenta: 4 } })).completo, 'elegir en la tarjeta (a la tarde) no termina la historia');
+  ok(H.revisarHistoria(h, H.estadoHistoria({ ...p(21, 20), visitas: { cuenta: 4 } })).completo, 'a la mañana siguiente, sí');
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);

@@ -4062,6 +4062,17 @@ function leerMandoEnMenu() {
   const m = mando.actualizar();
   if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
   if (!m.conectado) return;
+  // 3.8.6: una tarjeta de la historia o de un evento del valle: la cruceta (o LB y RB) mueve, A elige y B cierra las de
+  // un solo botón (antes el mando no se leía en el modo 'valle' y la tarjeta dejaba el juego trabado)
+  if (modo === 'valle') {
+    const t = valle?.tarjetas;
+    if (!t?.abierta?.()) return;
+    if (m.recien.mochila || m.recien.objetoAnterior) t.moverFoco(-1);
+    if (m.recien.taller || m.recien.objetoSiguiente) t.moverFoco(1);
+    if (m.recien.saltar) t.elegirEnfocada();
+    else if (m.recien.agacharse) t.atras();
+    return;
+  }
   if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
 }
 
@@ -8583,9 +8594,11 @@ function cuadroDelJuego(tRaf, manual) {
     // en el tren o en el kayak la cámara sigue al vehículo aunque estés mirando el cuaderno
     if (banco.activa) actualizarBanco(dtReal);
     else if (libre.activa) moverCamaraLibre(foto.activo ? dtReal : dt);
-    else { leerMando(dt); jugador.actualizar(dt); }
+    // (3.8.6: en el tren o el kayak con la pausa o una tarjeta abierta, el mando lo lee leerMandoEnMenu: leído acá
+    // también, lo «recién apretado» se gastaba antes y Start o A no hacían nada)
+    else { if (modo === 'jugando') leerMando(dt); jugador.actualizar(dt); }
   }
-  if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
+  if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa' || modo === 'valle') leerMandoEnMenu();   // 3.8.3 (3.8.6: y las tarjetas del valle)
   // la paciencia se mide en tiempo de reloj: sentarse acelera el día, no a los animales
   if (modo === 'jugando') avanzarCalma(jugador.estado, dtReal);
   jugador.estado.botas = !!progreso.cosas?.botas;   // 2.1: las botas de goma (ver `percepcion.js`)

@@ -167,7 +167,8 @@ const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materia
   assert.equal(H.momentoPendiente(f, s), null, 'el temporal no llega antes de la visita y el cuento');
   f.hechos['temporal:visita'] = 9; f.hechos['temporal:cuento'] = 9;
   assert.equal(H.momentoPendiente(f, s), 'temporal', 'y llega al final');
-  const conTemporal = { ...s, eventos: new Set(['temporal']) };
+  // (3.8.6: el temporal cuenta pasada su noche: al día siguiente)
+  const conTemporal = { ...s, dia: s.dia + 1, eventos: new Set(['temporal']), eventosDia: { ...s.eventosDia, temporal: s.dia } };
   assert.equal(H.momentoPendiente(f, conTemporal), null, 'si ya pasó, no se repite');
   assert.ok(H.revisarHistoria(f, conTemporal).completo, 'pasar el temporal termina el capítulo');
 }

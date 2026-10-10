@@ -214,7 +214,9 @@ export const CAPITULOS = [
     objetivos: [
       { id: 'visita', tecla: '·', texto: 'Recibí una visita en tu mesa (vienen a la tarde)', vecinos: true, hecho: (s, b) => desde(s, b, 'visitas') >= 1 },
       { id: 'cuento', tecla: 'E', texto: 'Con un fuego prendido cerca de la mesa, que la visita se quede y cuente un cuento', vecinos: true, hecho: (s, b) => desde(s, b, 'cuentos') >= 1 || (s.cuentos >= CUENTOS.length && desde(s, b, 'visitas') >= 1) },   // 3.8.3: con los cuatro cuentos ya oídos no queda ninguno por contar: alcanza con la visita (si no, el capítulo no terminaba nunca)
-      { id: 'temporal', tecla: '·', delMomento: true, texto: 'Pasá la noche del temporal', hecho: (s, b) => s.eventos.has('temporal') && (s.eventosDia?.temporal ?? Infinity) >= (b?.dia || 1) },   // 3.8.3: el de este capítulo (un temporal al azar de antes tildaba el final sin jugarlo)
+      { id: 'temporal', tecla: '·', delMomento: true, texto: 'Pasá la noche del temporal', hecho: (s, b) => s.eventos.has('temporal') && (s.eventosDia?.temporal ?? Infinity) >= (b?.dia || 1) && (Number(s.dia) || 0) > s.eventosDia.temporal },   // 3.8.3: el de este capítulo (un temporal al azar de antes tildaba el final sin jugarlo)
+      // 3.8.6: y pasada la noche (al día siguiente): se tildaba al elegir en la tarjeta, a cualquier hora, y el final («El
+      // temporal pasó de largo a la madrugada») salía a la tarde, antes de la noche
     ],
     // el temporal llega cuando lo demás está hecho: es el final
     momento: { evento: 'temporal', cuando: 'resto' },

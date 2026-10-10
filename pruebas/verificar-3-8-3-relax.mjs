@@ -88,7 +88,9 @@ const trozo = (desde, hasta) => {
   ok(H.momentoPendiente(h, H.estadoHistoria(p(21, 10))) === 'temporal', 'y llega la noche del temporal (antes no llegaba: ya había pasado uno)');
   H.momentoLanzado(h);
   r = H.revisarHistoria(h, H.estadoHistoria(p(21, 10, 21)));
-  ok(r.completo, 'pasar el temporal del capítulo termina la historia');
+  ok(!r.completo, 'elegir en la tarjeta del temporal no termina la historia: falta pasar la noche (3.8.6)');
+  r = H.revisarHistoria(h, H.estadoHistoria(p(22, 10, 21)));
+  ok(r.completo, 'pasar el temporal del capítulo (a la mañana siguiente) termina la historia');
   // con un cuento por contar todavía, hace falta el cuento (como siempre)
   const g = H.historiaNueva(); H.empezarHistoria(g, 1); g.capitulo = 7; g.fase = 'intro';
   const q = (dia, visitas) => { const x = p(dia, visitas); delete x.entradas[CUENTOS[0].id]; return x; };
