@@ -142,7 +142,9 @@ function cuerpo(nombre) {
 // Los ingredientes se gastan al prender: desmontando, se perdían todos.
 {
   const CP = await import('../src/cocina-pasos.js');
-  const src = cuerpo('devolverContenido');
+  // (3.8.6: lo del fuego vuelve por devolverCoccion, que también usa el coche comedor desenganchado)
+  const src = `function devolverCoccion(coccion) {${cuerpo('devolverCoccion')}}
+${cuerpo('devolverContenido')}`;
   const correr = (coccion) => {
     const progreso = { cosas: {}, entradas: {} };
     const sumarEntrada = (k, n) => { const e = progreso.entradas[k] || (progreso.entradas[k] = { cantidad: 0 }); e.cantidad += n; };
