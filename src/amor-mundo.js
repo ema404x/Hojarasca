@@ -25,7 +25,7 @@ import { FAMILIA } from './aldea-vida.js';
 import { melodiaDelBaile } from './aldea-mecanicas.js';
 import { empezarMelodia, seguirMelodia, callarMelodia } from './personal-musica.js';
 import { registrarLuz, olvidarLuz } from './luces.js';
-import { destinoPareja, destinoHijo, escenaBoda, cuartoDe, marcoCuarto, puntoCuarto, cuartoVisible, figuraHijo, aMundoMarco, CUARTO, MUEBLES_CUARTO, REFUGIO, SILLA_REFUGIO, MESA_REFUGIO, JUNTOS, puedeCaminar, FRASES_JUNTOS, FRASES_MANANA, FRASES_FIESTA, JUEZ, BODA } from './amor-escenas.js';
+import { destinoPareja, destinoHijo, escenaBoda, cuartoDe, marcoCuarto, puntoCuarto, cuartosVisibles, figuraHijo, aMundoMarco, CUARTO, MUEBLES_CUARTO, REFUGIO, SILLA_REFUGIO, MESA_REFUGIO, JUNTOS, puedeCaminar, FRASES_JUNTOS, FRASES_MANANA, FRASES_FIESTA, JUEZ, BODA } from './amor-escenas.js';
 
 const PI = Math.PI;
 const DUENIO = 'amor-mundo';
@@ -234,7 +234,7 @@ export function crearAmorMundo(ctx) {
   }
 
   // ---------------------------------------------------------------- los hijos
-  let bebeEnCuna = null;   // el bebé que duerme en la cuna (su punto), o null
+  let bebesEnCuna = [];   // los bebés que duermen en su cuna (sus puntos, con la casa) (3.8.6: uno por casa)
   let geoDelBebe = null;
   function bebeEnBrazos(npc, si) {
     if (!npc?.g) return;
@@ -275,40 +275,47 @@ export function crearAmorMundo(ctx) {
     if (madreConBebe && madreConBebe !== madre) bebeEnBrazos(madreConBebe, false);
     if (madre) bebeEnBrazos(madre, !madre.dormido);
     madreConBebe = madre || null;
-    bebeEnCuna = enCuna[0] || null;
+    bebesEnCuna = enCuna;
   }
 
   // ---------------------------------------------------------------- el cuarto de los chicos
-  const cuarto = { firma: '', grupo: null, bebe: null, mc: null, casa: null, luz: null };
-  function quitarCuarto() {
-    if (cuarto.grupo) { cuarto.grupo.parent?.remove(cuarto.grupo); cuarto.grupo.traverse((o) => { if (o.isMesh && o.geometry !== geoDelBebe) o.geometry?.dispose?.(); }); }
-    ctx.col?.eliminarPorDuenio?.(`${DUENIO}-cuarto`);
-    if (cuarto.luz) olvidarLuz(cuarto.luz);
-    Object.assign(cuarto, { firma: '', grupo: null, bebe: null, mc: null, casa: null, luz: null });
+  // 3.8.6: un cuarto por casa (casa → { firma, grupo, bebe, mc, casa, luz }): con hijos de dos madres, uno en lo de cada una
+  const cuartos = new Map();
+  function quitarCuarto(casa = null) {
+    for (const [k, cuarto] of [...cuartos]) {
+      if (casa !== null && k !== casa) continue;
+      if (cuarto.grupo) { cuarto.grupo.parent?.remove(cuarto.grupo); cuarto.grupo.traverse((o) => { if (o.isMesh && o.geometry !== geoDelBebe) o.geometry?.dispose?.(); }); }
+      ctx.col?.eliminarPorDuenio?.(`${DUENIO}-cuarto-${k}`);
+      if (cuarto.luz) olvidarLuz(cuarto.luz);
+      cuartos.delete(k);
+    }
   }
   function actualizarCuarto() {
-    const vis = mundo.activo ? cuartoVisible(mundo) : null;
-    const firma = vis ? `${vis.casa}|${vis.camas.join(',')}|${vis.cuna}` : '';
-    if (firma !== cuarto.firma) {
-      quitarCuarto();
-      if (vis) armarCuarto(vis, firma);
+    const vis = mundo.activo ? cuartosVisibles(mundo) : [];
+    for (const k of [...cuartos.keys()]) if (!vis.some((v) => v.casa === k)) quitarCuarto(k);
+    for (const v of vis) {
+      const firma = `${v.casa}|${v.camas.join(',')}|${v.cuna}`;
+      if (cuartos.get(v.casa)?.firma !== firma) { quitarCuarto(v.casa); armarCuarto(v, firma); }
     }
-    if (cuarto.bebe) cuarto.bebe.visible = !!bebeEnCuna && bebeEnCuna.casa === cuarto.casa;
-    if (cuarto.grupo) { const js = jugadorPos(); cuarto.grupo.visible = !js || dist(js, cuarto.mc) < 160; }
-    // la lámpara: prendida a la tardecita, y de noche un velador bajito (sólo de cerca: entra en el presupuesto fijo de luces.js)
-    if (cuarto.luz) {
-      const h = horas(), js = jugadorPos();
-      const prende = h >= 18 && h < 21.5 ? 1.3 : h >= 21.5 || h < 6.5 ? 0.7 : 0;
-      cuarto.luz.intensity = js && dist(js, cuarto.mc) < 22 ? prende : 0;
+    const js = jugadorPos(), h = horas();
+    for (const cuarto of cuartos.values()) {
+      if (cuarto.bebe) cuarto.bebe.visible = bebesEnCuna.some((b) => b.casa === cuarto.casa);
+      if (cuarto.grupo) cuarto.grupo.visible = !js || dist(js, cuarto.mc) < 160;
+      // la lámpara: prendida a la tardecita, y de noche un velador bajito (sólo de cerca: entra en el presupuesto fijo de luces.js)
+      if (cuarto.luz) {
+        const prende = h >= 18 && h < 21.5 ? 1.3 : h >= 21.5 || h < 6.5 ? 0.7 : 0;
+        cuarto.luz.intensity = js && dist(js, cuarto.mc) < 22 ? prende : 0;
+      }
     }
   }
   function armarCuarto(vis, firma) {
     const cu = cuartoDe(vis.casa), mc = marcoCuarto(cu, marcoEdificio(vis.casa));
     if (!mc) return;
+    const cuarto = { firma: '', grupo: null, bebe: null, mc: null, casa: null, luz: null };
     const c = new Constructor();
     const s = mc.espejo || 1, W = CUARTO.ancho, D = CUARTO.fondo, P = mc.piso, HI = mc.alto, LO = mc.bajo;
     const X = (x) => s * x;
-    const colC = { agregar: (o) => ctx.col?.agregar({ ...o, duenio: `${DUENIO}-cuarto` }), agregarPlataforma: (p) => ctx.col?.agregarPlataforma({ ...p, duenio: `${DUENIO}-cuarto` }) };
+    const colC = { agregar: (o) => ctx.col?.agregar({ ...o, duenio: `${DUENIO}-cuarto-${vis.casa}` }), agregarPlataforma: (p) => ctx.col?.agregarPlataforma({ ...p, duenio: `${DUENIO}-cuarto-${vis.casa}` }) };
     const PR = piezas(c, colC, { x: mc.x, z: mc.z, y: mc.y, rot: mc.rot }, matriz);
     const suelo = (lx, lz) => { const w = aMundoMarco(mc, lx, lz); return T.altura(w.x, w.z) - mc.y; };
     const alto = (ux) => LO + (HI - LO) * (ux + W / 2) / W;   // la chapa a un agua: baja hacia afuera (ux sin espejar)
@@ -431,6 +438,7 @@ export function crearAmorMundo(ctx) {
     (vis.casa === 'refugio' && ctx.raizRefugio?.() ? ctx.raizRefugio() : escena).add(grupo);
     grupo.updateMatrixWorld(true);
     Object.assign(cuarto, { firma, grupo, mc, casa: vis.casa, luz });
+    cuartos.set(vis.casa, cuarto);
   }
 
   // ---------------------------------------------------------------- las cosas de ella en el refugio (y las tuyas en su casa)
@@ -844,14 +852,15 @@ export function crearAmorMundo(ctx) {
       activo: mundo.activo, escena: esc ? { fase: esc.fase, donde: esc.donde, brindis: esc.brindis, personas: [...esc.personas.keys()], ella: esc.ella?.clave || null } : null,
       fiesta, juntos: juntos ? { clave: juntos.clave, gesto: juntos.gesto, yendose: !!juntos.yendose } : null,
       figuras: [...figuras.values()].map((f) => ({ id: f.id, lista: !!f.npc, x: f.npc?.pos.x, z: f.npc?.pos.z, dormido: !!f.npc?.dormido, pose: f.npc?.pose || null, plan: f.plan.map((q) => q.tipo) })),
-      cuarto: cuarto.grupo ? { casa: cuarto.casa, firma: cuarto.firma, x: cuarto.mc.x, z: cuarto.mc.z, bebe: !!cuarto.bebe?.visible } : null,
+      cuarto: ((cu) => (cu ? { casa: cu.casa, firma: cu.firma, x: cu.mc.x, z: cu.mc.z, bebe: !!cu.bebe?.visible } : null))([...cuartos.values()][0]),
+      cuartos: [...cuartos.values()].map((cu) => ({ casa: cu.casa, firma: cu.firma, bebe: !!cu.bebe?.visible })),   // 3.8.6
       cosas: cosas.grupo ? { firma: cosas.firma, desayuno: !!cosas.desayuno?.visible } : null,
       anillo: anillo.malla ? { estado: anillo.estado, x: anillo.malla.position.x, z: anillo.malla.position.z } : null,
       mesa: !!mesaFiesta.malla, musica: !!musica.s, copas: [...copas].filter((n) => n.__copa?.visible).length,
       bebeEnBrazos: !!madreConBebe,
     }),
     figura: (id) => figuras.get(id)?.npc || null,
-    puntoCuarto: (nombre) => (cuarto.mc ? puntoCuarto(cuarto.mc, nombre) : null),
+    puntoCuarto: (nombre, casa = null) => { const cu = casa ? cuartos.get(casa) : [...cuartos.values()][0]; return cu?.mc ? puntoCuarto(cu.mc, nombre) : null; },
     marcos, apagar, congelar: (si) => { congelado = !!si; }, empezarJuntos,
   };
 }

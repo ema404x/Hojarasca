@@ -248,12 +248,20 @@ export function crearAmorJuego(ctx) {
     return true;
   }
   // ¿Hablarle a ella empieza la cita o el casamiento? Devuelve { id, partes, alTerminar } o null.
+  // 3.8.6: ¿está con vos (haciendo algo juntos) a la hora de su cita? Entonces no la pueden llevar al lugar, pero no está
+  // ocupada: la cita se empieza ahí mismo (la E y el aviso, igual) y, si se pasa la hora así, se hizo igual (`vencerCita`)
+  function citaConVos(npc, clave) {
+    if (!npc?.conVos || (puesta && puesta.clave === clave)) return null;
+    const c = citaAhora(progreso(), contexto());
+    return c && c.clave === clave && c.estado === 'acordada' ? c : null;
+  }
   function hablar(npc) {
     if (!activo() || !npc) return null;
     const clave = claveVecindad(npc);
-    if (!clave || !puesta || puesta.clave !== clave || puesta.npc !== npc) return null;
+    const conVos = clave ? citaConVos(npc, clave) : null;
+    if (!clave || (!conVos && (!puesta || puesta.clave !== clave || puesta.npc !== npc))) return null;
     const p = progreso(), c = contexto();
-    if (puesta.por === 'boda') {
+    if (!conVos && puesta.por === 'boda') {
       const r = casarse(p, c);
       if (!r.ok) return null;
       puesta.hasta = dia() * 24 + horas() + 1;
@@ -280,7 +288,10 @@ export function crearAmorJuego(ctx) {
     ctx.guardar?.();
   }
   function textoAviso(npc) {
-    if (!activo() || !npc || !puesta || puesta.npc !== npc) return null;
+    if (!activo() || !npc) return null;
+    const k = claveVecindad(npc);
+    if (k && citaConVos(npc, k)) return `Empezar la cita con ${nombre(k)}`;   // 3.8.6 (como en `hablar`)
+    if (!puesta || puesta.npc !== npc) return null;
     if (puesta.por === 'boda' && !puesta.hasta) return `Casarte con ${nombre(puesta.clave)}`;
     const c = progreso().amor?.cita;
     // 3.8.3: sólo si está puesta para la cita (puesta para la boda, la E va a casarse, no a la cita)
@@ -295,7 +306,7 @@ export function crearAmorJuego(ctx) {
     // Sólo la primera vez, al cargar la partida
     if (!revisoCarga) { revisoCarga = true; if (!puesta && p.amor?.cita?.estado === 'en-curso') alCerrar(); }
     const v = vencerCita(p, c);
-    if (v) { avisar(v.texto, v.sub); ctx.guardar?.(); }
+    if (v) { if (v.tipo === 'juntos') sumarAmistadDe(p, v.clave, 4, dia()); avisar(v.texto, v.sub); ctx.guardar?.(); }   // (3.8.6: como al terminar la cita)
     const cita = citaAhora(p, c), boda = bodaHoy(p, c);
     const quiere = boda ? { clave: boda.con, por: 'boda', lugar: 'biblioteca' } : cita ? { clave: cita.clave, por: 'cita', lugar: cita.lugar } : null;
     if (puesta) {
@@ -307,7 +318,8 @@ export function crearAmorJuego(ctx) {
     if (!quiere) return;
     const punto = quiere.por === 'boda' ? (() => { const q = puntosMundo('biblioteca').cuentos; return q ? { x: q.x, z: q.z, mira: q.rot } : null; })() : null;
     // 3.8.4: a la hora de la cita, ¿estaba ocupada con otra invitación? (si nunca pudo esperarte, la cita se cae sin «plantada»)
-    if (quiere.por === 'cita' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.enCita) cita.ocupada = true; }
+    // (3.8.6: con vos, haciendo algo juntos, no está ocupada: está con vos)
+    if (quiere.por === 'cita' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.conVos) cita.juntos = true; else if (n?.enCita) cita.ocupada = true; }
     if (poner(quiere.clave, quiere.por, quiere.lugar, punto)) {
       if (quiere.por === 'cita' && cita) cita.espero = true;   // 3.8.4
       const L = LUGARES_CITA[quiere.lugar];
@@ -323,7 +335,7 @@ export function crearAmorJuego(ctx) {
     if (ctx.desafio?.()) return null;
     if (p.amor && Number(p.amor.dia) >= dia()) return null;
     const r = pasarDiaAmor(p, dia(), { romance: ajustes().romance, ritmo: ctx.ajustes?.()?.ritmoAldea || 'normal' });
-    for (const e of r.eventos) avisar(e.texto, e.sub);
+    for (const e of r.eventos) { if (e.tipo === 'juntos') sumarAmistadDe(p, e.clave, 4, dia()); avisar(e.texto, e.sub); }   // (3.8.6)
     if (r.efectos.length) {
       const items = r.efectos.filter((e) => e.tipo === 'material' || e.tipo === 'cosa' || e.tipo === 'entrada');
       aplicarEfectos(p, items, ctx);

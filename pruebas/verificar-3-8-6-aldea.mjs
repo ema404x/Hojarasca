@@ -39,4 +39,60 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   sinCR('src/amor.js');
 }
 
+// ---------------------------------------------------------------- 2. gente: una sola lista de poses sentadas (con «comer»)
+{
+  const g = leer('src/gente.js'), m = leer('src/main.js');
+  ok(g.includes("export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);") && g.includes("switch (estaSentado(g) ? 'sentado' : g.pose) {"), 'gente: las poses sentadas en una sola lista, y el cuerpo sentado sale de ahí');
+  ok(m.includes('est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido') && m.includes("import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';"), 'main: la silla de alguien sentado (comiendo también) no se ofrece');
+  ok(!/g\.pose === 'sentado' \|\| g\.pose === 'leyendo'/.test(m), 'main: sin una segunda lista a mano');
+  sinCR('src/gente.js');
+}
+// ---------------------------------------------------------------- 3. amor: hijos de dos madres, cada uno en el cuarto de la suya
+{
+  const E = await import('../src/amor-escenas.js');
+  const p = { dia: 60, horas: 22, entradas: {}, materiales: {}, cosas: {}, aldea: aldeaCompleta(), vecindad: {}, amor: AM.amorNuevo() };
+  const f = (etapa, desde) => ({ etapa, afecto: 70, desde, contacto: 59, charla: 0, piropo: 0, flores: 0, carta: 0, leyo: null, citas: 3, ultimaCita: 0, enojo: 0, motivo: null, rechazo: 0, reconquista: 0, chicos: 0 });
+  p.amor.personas.fotografa = f('separados', 20);
+  p.amor.personas.veterinaria = f('casados', 40);
+  p.amor.conyuge = 'veterinaria';
+  p.amor.convivencia = { con: 'veterinaria', donde: 'refugio', desde: 40 };
+  p.amor.hijos = [{ id: 'hijo-1', nombre: 'Clara', sexo: 'nena', nacio: 10, madre: 'fotografa', guia: null }, { id: 'hijo-2', nombre: 'Mateo', sexo: 'nene', nacio: 55, madre: 'veterinaria', guia: null }];
+  const mu = AM.mundoAmor(p, { dia: 60, hora: 22 });
+  const casaF = AM.casaDeElla('fotografa');
+  eq(mu.cuartos.map((c) => [c.edificio, c.puntos]), [[casaF, ['cama-hijo-1']], ['refugio', ['cuna']]], 'amor: un cuarto en lo de cada madre (antes uno solo, en lo de la primera)');
+  const vis = E.cuartosVisibles(mu);
+  eq(vis.map((v) => [v.casa, v.camas, v.cuna]), [[casaF, [0], false], ['refugio', [], true]], 'escenas: la cama de Clara en lo de Sofía y la cuna de Mateo en el refugio');
+  ok(E.cuartoVisible(mu)?.casa === casaF, 'escenas: cuartoVisible (el de siempre) sigue dando el primero');
+  const mw = leer('src/amor-mundo.js');
+  ok(mw.includes('const cuartos = new Map();') && mw.includes('cuarto.bebe.visible = bebesEnCuna.some((b) => b.casa === cuarto.casa);') && mw.includes('duenio: `${DUENIO}-cuarto-${vis.casa}`'), 'amor-mundo: arma un cuarto por casa, con su bebé y sus choques');
+}
+// ---------------------------------------------------------------- 4. amor: la cita cuando ella está con vos haciendo algo juntos
+{
+  const aldea = aldeaCompleta();
+  const p = { dia: 30, horas: 10, entradas: {}, materiales: {}, cosas: {}, aldea, vecindad: {}, amor: AM.amorNuevo() };
+  p.amor.personas.fotografa = { etapa: 'coqueteo', afecto: 40, desde: 20, contacto: 29, charla: 0, piropo: 0, flores: 0, carta: 0, leyo: null, citas: 0, ultimaCita: 0, enojo: 0, motivo: null, rechazo: 0, reconquista: 0, chicos: 0 };
+  p.amor.cita = { clave: 'fotografa', lugar: 'plaza', dia: 30, desde: 15, hasta: 16.5, estado: 'acordada' };
+  // ella en un picado con vos todo el rato: amor-juego.js anota `juntos` (antes, `ocupada`: «no pudo ir», otro compromiso)
+  p.amor.cita.juntos = true;
+  const v = AM.vencerCita(p, { dia: 30, hora: 17 });
+  ok(v?.tipo === 'juntos' && p.amor.cita === null && p.amor.personas.fotografa.etapa === 'saliendo' && p.amor.personas.fotografa.citas === 1, 'amor: estuvo con vos el rato de la cita: la cita se hizo (y ahora salen)');
+  eq([v.texto, v.sub], ['Ahora salís con Sofía', 'Pasaron juntos el rato de la cita'], 'amor: el aviso');
+  ok(AM.sanearAmor({ personas: { fotografa: { etapa: 'coqueteo' } }, cita: { clave: 'fotografa', lugar: 'plaza', dia: 30, desde: 15, hasta: 16.5, juntos: true } }, 30).cita?.juntos === true, 'amor: se guarda');
+  // con un amor-juego de verdad: ella con vos (conVos) a la hora: el aviso y la E empiezan la cita ahí mismo
+  const { crearAmorJuego } = await import('../src/amor-juego.js');
+  const q = { dia: 30, horas: 15, entradas: {}, materiales: {}, cosas: {}, aldea, vecindad: {}, amor: AM.amorNuevo() };
+  q.amor.personas.fotografa = { ...p.amor.personas.fotografa, etapa: 'coqueteo', citas: 0 };
+  q.amor.cita = { clave: 'fotografa', lugar: 'plaza', dia: 30, desde: 15, hasta: 16.5, estado: 'acordada' };
+  q.amor.dia = 30;
+  const npc = { clave: 'fotografa', claveAldea: 'fotografa', poblador: true, conVos: true, enCita: true, pos: { x: 0, z: 0, y: 0, set() {} } };
+  const aj = crearAmorJuego({ progreso: () => q, ajustes: () => ({ romance: true }), npcDe: () => npc, jugador: () => ({ x: 0, z: 0 }), nota: () => {}, guardar: () => {} });
+  aj.actualizar(1);
+  ok(q.amor.cita?.juntos === true && !q.amor.cita.ocupada, 'amor-juego: con vos no está «ocupada», está con vos');
+  const aviso = aj.textoAviso(npc), h = aj.hablar(npc);
+  ok(aviso === 'Empezar la cita con Sofía' && h?.id === 'amor-cita' && q.amor.cita?.estado === 'en-curso', `amor-juego: el aviso y la E, la misma cosa: empezar la cita ahí mismo (${aviso})`);
+  h.alTerminar();
+  ok(q.amor.cita === null && q.amor.personas.fotografa.etapa === 'saliendo', 'amor-juego: y cuenta');
+  sinCR('src/amor-juego.js');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
