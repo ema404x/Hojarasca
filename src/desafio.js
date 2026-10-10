@@ -10,7 +10,7 @@ import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
 import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
-import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras } from './desafio-reglas.js';
+import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
@@ -846,7 +846,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // quede al amanecer te lo devuelven. Mientras tanto queda anotado en `robados` (si se guarda la
   // partida, al abrirla vuelve). Las reglas en desafio-duendes-reglas.js.
   const NOMBRE_ROBADO = { cristal: 'una semilla dorada', ramita: 'una ramita', tabla: 'una tabla', piedra: 'una piedra' };
-  const robos = { noche: -1, n: 0 };
+  // 3.8.4: los robos de la noche van en la partida (`robosNoche`): con el contador en memoria, guardar y abrir
+  // a mitad de noche lo ponía en cero y el tope de 4 por noche se podía pasar
   const tirados = [];
   function anotarRobado(cosa, n) {
     const d = D();
@@ -862,6 +863,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   function intentarRobo(a) {
     const d = D();
+    if (!d.robosNoche || typeof d.robosNoche !== 'object') d.robosNoche = { noche: -1, n: 0 };
+    const robos = d.robosNoche;
     if (robos.noche !== d.oleadas) { robos.noche = d.oleadas; robos.n = 0; }
     if (caido || !puedeRobar(a.tipo, { viejo: !!a.m.viejo, roboEnCurso: !!a.robo, robosNoche: robos.n })) return;
     if (Math.random() >= ROBO.prob) return;
@@ -953,6 +956,26 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     d.especial = null;
     if (!sobrevivida) registrarRecords();
   }
+  // 3.8.4: caer de día (de las 12 hasta la hora del ataque) te hace despertar a la mañana siguiente: la noche
+  // que se saltea cuenta como perdida. Antes no existía: el número de noche quedaba igual (la de esa tarde se jugaba
+  // al otro día) y la noche especial anunciada esperaba. Ahora pasa como si hubieras caído esa noche: se cuenta la
+  // noche, se corta la racha, la especial queda gastada y, si era la noche final, el Coihue queda en pie y el asedio
+  // arranca al alba. `dia` es el día de esa tarde (la clave de la noche salteada). Devuelve el número de la noche.
+  function perderNocheSalteada(dia) {
+    const d = D();
+    if (d.sinFin || !siguenLasNoches(d) || !d.oleadaTerminada || d.oleadaNoche === dia) return 0;
+    const final = esNocheFinal();
+    d.oleadas++;
+    d.racha = 0;
+    if (final && !d.nodriza) d.nodriza = { nucleos: [NUCLEO_VIDA, NUCLEO_VIDA, NUCLEO_VIDA] };
+    asedioMundo.alTerminarNoche(false);
+    d.oleadaNoche = dia;
+    d.oleadaTerminada = true;
+    d.especialAnterior = d.especial;
+    d.especial = null;
+    registrarRecords();
+    return d.oleadas;
+  }
   // 2.1: los dormidos de los restos no cuentan: no son un ataque (si no, no se podría
   // dormir mientras haya una ruina con bichos adentro)
   function vivos() { let n = 0; for (const a of aliens) if (a.estado !== 'morir' && a.estado !== 'irse' && a.estado !== 'dormido') n++; return n + estadoNave.porBajar.length; }
@@ -962,6 +985,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function revisarHorario() {
     const p = progreso(), d = D();
     const noche = claveNoche(p.dia, p.horas);
+    // 3.8.4: el asedio que esperó al alba (caíste en la noche final con el Coihue en pie)
+    if (d.asedioAlAlba) asedioMundo.revisarAlba(esHoraDeAtaque(p.horas));
     // Con el nido reventado no baja nadie más: el valle vuelve a ser el valle.
     if (!siguenLasNoches(d)) { d.oleadaNoche = noche; d.oleadaTerminada = true; return; }
     // una hora antes: aviso, y se decide si la noche es especial
@@ -1968,6 +1993,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function actualizarAlien(a, dt, js, noche) {
     if (a.enNave) return naveMundo.actualizarAlien(a, dt, js);   // 3.0: las crías de adentro de la nave
     const g = a.m.g, p = g.position, def = a.def;
+    // 3.8.4: el tiempo de huida del que robó corre en cualquier estado: trabado rompiendo una pared, en un pozo,
+    // enredado o quieto por el lazo (antes sólo corría por el camino de siempre y un ladrón trabado lo llevaba
+    // hasta el alba). Cuando se le termina, lo suelta donde está.
+    if (a.robo && a.estado !== 'morir' && a.estado !== 'irse') {
+      a.robo.t -= dt;
+      if (a.robo.t <= 0) soltarRobo(a, false);
+    }
     poseAlien.reflejo = 0;
     // 2.1: dormido en la ruina de los restos: agazapado, hasta que pasás cerca
     if (a.estado === 'dormido') {
@@ -2322,11 +2354,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       }
     }
     // 3.8.0: el que robó sale corriendo para el otro lado, riéndose; al rato lo suelta y vuelve
-    if (a.robo) {
-      a.robo.t -= dt;
-      if (a.robo.t <= 0) soltarRobo(a, false);
-      else if (a.estado === 'avanzar') { rumboObj = Math.atan2(-dx, -dz); velObj = def.vel * ROBO.velHuida; ataca = false; }
-    }
+    // (3.8.4: el tiempo de huida se descuenta al principio de actualizarAlien, en cualquier estado)
+    if (a.robo && a.estado === 'avanzar') { rumboObj = Math.atan2(-dx, -dz); velObj = def.vel * ROBO.velHuida; ataca = false; }
     // 2.5: perdido en el humo, camina para cualquier lado
     if (rumboConfuso !== null) rumboObj = rumboConfuso;
     // desvío temporal para rodear árboles y rocas
@@ -3406,7 +3435,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     puedeBloquear, tensar, soltarTension, cancelarTension, cambiarFlecha, dispararVirote, cambioDeArma,
     get tensando() { return tensandoDesde !== null; },
     get arsenal() { return arsenal; }, usarEmplasto, fabricar, abrirTaller, cambiarCategoriaTaller,
-    levantarse, limpiar, puedeDormir, hayAtaque, curar,
+    levantarse, limpiar, puedeDormir, hayAtaque, curar, perderNocheSalteada,
     get tallerAbierto() { return tallerAbierto; },
     get recarga() { return recarga; },
     get caido() { return caido; },

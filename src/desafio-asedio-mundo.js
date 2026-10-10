@@ -55,7 +55,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
 
   // ---------------------------------------------------------------- empezar
   let gracia = 0, llegada = 0;
-  function empezar() {
+  // 3.8.4: `sitio` es dónde quedó plantado el Coihue cuando el asedio esperó al alba (ver `revisarAlba`)
+  function empezar(sitio = null) {
     const d = D();
     if (d.asedio || d.victoria) return false;
     const c = api.centroBase();
@@ -63,7 +64,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const zonas = ubicarZonas(T.lugares, c, esBueno, azar);
     // 3.8.0: el Coihue de la noche final se quedó plantado: el asedio es ahí (un solo Coihue)
     const co = api.coihueComun, plantado = co && co.fase === 'plantado' && co.g.visible;
-    const nave = (plantado ? { x: Math.round(co.x * 10) / 10, z: Math.round(co.z * 10) / 10 } : null) || ubicarNave(c, llano, azar) || { x: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.x * 0.4)), z: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.z * 0.4)) };
+    const guardado = !plantado && sitio && Number.isFinite(sitio.x) && Number.isFinite(sitio.z) ? { x: Math.round(sitio.x * 10) / 10, z: Math.round(sitio.z * 10) / 10 } : null;
+    const nave = (plantado ? { x: Math.round(co.x * 10) / 10, z: Math.round(co.z * 10) / 10 } : null) || guardado || ubicarNave(c, llano, azar) || { x: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.x * 0.4)), z: Math.max(-LIMITE + 60, Math.min(LIMITE - 60, c.z * 0.4)) };
     const vida = ASEDIO.vidaAncla * dificultad(api.claveDificultad?.()).vida;
     const a = asedioNuevo(zonas, nave, vida);
     if (!a) return false;
@@ -71,7 +73,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     // los núcleos se replegaron adentro: ya no hay nodriza que derribar a flechazos
     d.nodriza = null;
     gracia = ASEDIO.graciaGuardia;
-    llegada = plantado ? 0 : 1;
+    llegada = plantado || guardado ? 0 : 1;
     armar();
     const js = api.jugador().estado;
     setTimeout(() => api.nota('El Coihue Viejo no se cayó', `Se plantó en el valle, ${api.rumboTexto(js.pos, a.nave)}. Hundió ${a.zonas.length} raíces que le dan corteza`, true), 4200);
@@ -334,6 +336,13 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function alTerminarNoche(sobrevivida) {
     const d = D();
     if (!d.asedio) {
+      // 3.8.4: si caíste en la noche final con el Coihue en pie, el asedio no arranca en el momento (con vos en el
+      // suelo y la noche por la mitad): queda anotado y arranca al alba, cuando despertás (`revisarAlba`)
+      if (!sobrevivida && !d.victoria && d.nodriza && d.oleadas >= NOCHE_FINAL) {
+        const co = api.coihueComun, plantado = co && co.fase === 'plantado' && co.g.visible;
+        d.asedioAlAlba = plantado ? { x: co.x, z: co.z } : {};
+        return false;
+      }
       if (!d.victoria && d.nodriza && d.oleadas >= NOCHE_FINAL) return empezar();
       return false;
     }
@@ -345,6 +354,17 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       setTimeout(() => api.nota(`${def?.nombre || 'La zona'}: asegurada`, 'El fogón aguantó toda la noche. Esa zona ya no la recuperan', true), 5200);
     }
     return false;
+  }
+
+  // 3.8.4: el asedio que quedó esperando arranca con la primera luz (`deNoche`: todavía es hora de ataque).
+  // Se mira en revisarHorario, que no corre con vos caído: arranca cuando despertás.
+  function revisarAlba(deNoche) {
+    const d = D();
+    if (!d.asedioAlAlba || deNoche) return false;
+    const sitio = d.asedioAlAlba;
+    d.asedioAlAlba = null;
+    if (d.asedio || d.victoria || !d.nodriza) return false;
+    return empezar(sitio);
   }
 
   // ---------------------------------------------------------------- abordar (E)
@@ -557,7 +577,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function limpiar() { sacarRaices(); /* las mallas quedan: la partida sigue (3.8.0: las raíces vuelven a chocar al seguir) */ }
 
   return {
-    empezar, alTerminarNoche, alEmpezarNoche, blancoNoche, desgastar, blancos, herir, actualizar, derribar,
+    empezar, alTerminarNoche, alEmpezarNoche, revisarAlba, blancoNoche, desgastar, blancos, herir, actualizar, derribar,
     usarCerca, avisoCerca, sitioHaz, hazAbierto, motivoHaz, limpiar,
     get activo() { return asedioActivo(A()); },
     get estado() { return A() || null; },

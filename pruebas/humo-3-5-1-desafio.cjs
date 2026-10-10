@@ -2,7 +2,7 @@
 // arregló y sólo se ve jugando:
 //   · la noche final: las tandas de la nodriza llegan al suelo y la noche puede quedar en
 //     silencio; guardada sin invasores vivos, la nodriza vuelve al abrir;
-//   · caer de día no cierra otra vez la noche (ni borra la noche especial anunciada);
+//   · caer de día no cierra otra vez la noche (3.8.4: la noche que se saltea cuenta como perdida, una vez);
 //   · la granada le pega a una aguja del asedio;
 //   · al volver a subir a la nave los ojos y los pilares están enteros;
 //   · cerrado el juego mientras la nave cae, la victoria llega al abrir.
@@ -57,11 +57,14 @@ app.whenReady().then(async () => {
     // ================================================================ caer de día
     donde = 'caer de día';
     const deDia = await js(`(()=>{const H=${H}, D=H.progreso.desafio; D.tutorial=99; H.progreso.horas = 19.2;
-      D.especial = 'apagon'; const antes = {derrotas:D.derrotas, terminada:D.oleadaTerminada, noche:D.oleadaNoche};
+      D.especial = 'apagon'; const antes = {derrotas:D.derrotas, terminada:D.oleadaTerminada, noche:D.oleadaNoche, oleadas:D.oleadas};
       D.salud = 3; H.desafio.herirJugador(40, {x:H.jugador.estado.pos.x+1, y:0, z:H.jugador.estado.pos.z});
-      return {antes, caido:H.desafio.caido, especial:D.especial, derrotas:D.derrotas, terminada:D.oleadaTerminada, noche:D.oleadaNoche}})()`);
+      return {antes, caido:H.desafio.caido, especial:D.especial, anterior:D.especialAnterior, derrotas:D.derrotas, terminada:D.oleadaTerminada, noche:D.oleadaNoche, oleadas:D.oleadas, dia:H.progreso.dia}})()`);
     ok(deDia.caido && deDia.derrotas === deDia.antes.derrotas + 1, 'de día también se cae (y cuenta)');
-    ok(deDia.especial === 'apagon' && deDia.noche === deDia.antes.noche, `pero no se cierra otra noche: la especial anunciada sigue (${deDia.especial})`);
+    // 3.8.4 (decisión del usuario): caer de día te hace dormir hasta mañana y la noche que se saltea cuenta como
+    // perdida, una sola vez (la especial anunciada se gasta). Antes se probaba que la especial seguía.
+    ok(deDia.terminada && deDia.especial === null && deDia.anterior === 'apagon' && deDia.oleadas === deDia.antes.oleadas + 1 && deDia.noche === deDia.dia,
+      `la noche salteada cuenta como perdida (${JSON.stringify({ o: [deDia.antes.oleadas, deDia.oleadas], n: deDia.noche, d: deDia.dia, e: deDia.especial })})`);
     await esperar(3200);
     ok(await js(`!${H}.desafio.caido && ${H}.progreso.desafio.salud === 100`), 'y se despierta en la base');
 

@@ -11,6 +11,8 @@
 //     (más seguido después de la veinte).
 // Caer termina la corrida. Queda un récord (noches resistidas, abatidos y la fecha): los
 // diez mejores de todas y los diez mejores de cada código.
+// 3.8.4: los diez mejores son POR DIFICULTAD (una corrida implacable no compite con una tranquila), y la
+// corrida fija su dificultad al entrar: no se cambia a mitad de corrida (main.js, `dificultadEnJuego`).
 //
 // Módulo puro (sin THREE ni DOM). Se guarda en su propia ranura (guardado.js): una
 // corrida nunca pisa la campaña.
@@ -99,11 +101,21 @@ export function especialSinFin(n, azar = Math.random(), anterior = null) {
 
 // ---------------------------------------------------------------- la corrida
 // `d.sinFin` en la partida (sanearDesafio lo sanea): null en la campaña.
-export function corridaNueva() { return { terminada: false }; }
+// 3.8.4: `dificultad` es la de la corrida (null hasta entrar: en la portada todavía se puede elegir).
+export function corridaNueva(dificultad = null) { return { terminada: false, dificultad: DIFICULTADES.includes(dificultad) ? dificultad : null }; }
+// La dificultad con la que se juega la corrida: la fijada, o la de los ajustes si todavía no se fijó.
+export function dificultadDeCorrida(sinFin, ajuste = 'normal') {
+  if (sinFin?.dificultad && DIFICULTADES.includes(sinFin.dificultad)) return sinFin.dificultad;
+  return DIFICULTADES.includes(ajuste) ? ajuste : 'normal';
+}
 
 // ---------------------------------------------------------------- los récords
-// { general: [ {noches, abatidos, fecha, codigo, dificultad} × 10 ], porCodigo: { 'COIHUE-4821': [× 10] } }
-const DIFICULTADES = ['tranquila', 'normal', 'implacable'];
+// { general: [ {noches, abatidos, fecha, codigo, dificultad} × 10 por dificultad ], porCodigo: { 'COIHUE-4821': [× 10 por dificultad] } }
+// 3.8.4: cada lista guarda hasta diez de CADA dificultad (antes, diez mezcladas). La forma es la misma, así los
+// récords viejos se migran solos al sanearlos: cada uno queda en la lista de su dificultad (sin dificultad
+// anotada, en la normal) y no se pierde ninguno (eran diez como mucho).
+export const DIFICULTADES_SIN_FIN = ['tranquila', 'normal', 'implacable'];
+const DIFICULTADES = DIFICULTADES_SIN_FIN;
 function sanearEntrada(r) {
   if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
   const ent = (v) => Math.max(0, Math.min(1e6, Math.floor(Number.isFinite(Number(v)) ? Number(v) : 0)));
@@ -114,8 +126,18 @@ function sanearEntrada(r) {
 export function comparar(a, b) {
   return b.noches - a.noches || b.abatidos - a.abatidos || (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0);
 }
+// ordenada de mejor a peor y con diez como mucho de cada dificultad
+function recortarPorDificultad(l) {
+  const cuenta = {};
+  return l.filter((r) => (cuenta[r.dificultad] = (cuenta[r.dificultad] || 0) + 1) <= SIN_FIN.topeRecords);
+}
 function ordenarLista(v) {
-  return (Array.isArray(v) ? v : []).slice(0, 200).map(sanearEntrada).filter(Boolean).sort(comparar).slice(0, SIN_FIN.topeRecords);
+  return recortarPorDificultad((Array.isArray(v) ? v : []).slice(0, 200).map(sanearEntrada).filter(Boolean).sort(comparar));
+}
+// Los de una dificultad (de mejor a peor, diez como mucho).
+export function deDificultad(lista, dificultad) {
+  const d = DIFICULTADES.includes(dificultad) ? dificultad : 'normal';
+  return (Array.isArray(lista) ? lista : []).filter((r) => r?.dificultad === d).slice(0, SIN_FIN.topeRecords);
 }
 export function sanearRecordsSinFin(v) {
   const x = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -130,15 +152,15 @@ export function sanearRecordsSinFin(v) {
   return { general: ordenarLista(x.general), porCodigo };
 }
 // Anota una corrida terminada. Devuelve el puesto (1..10, o 0 si no entró) en la lista
-// general y en la del código. No cambia `records`: devuelve los nuevos.
+// general y en la del código, entre las de SU dificultad (3.8.4). No cambia `records`: devuelve los nuevos.
 export function registrarCorrida(records, entrada) {
   const r = sanearRecordsSinFin(records);
   const e = sanearEntrada(entrada);
   if (!e) return { records: r, puesto: 0, puestoCodigo: 0 };
   const meter = (lista) => {
     const l = [...lista, e].sort(comparar);
-    const i = l.indexOf(e);
-    return { lista: l.slice(0, SIN_FIN.topeRecords), puesto: i < SIN_FIN.topeRecords ? i + 1 : 0 };
+    const i = l.filter((q) => q.dificultad === e.dificultad).indexOf(e);
+    return { lista: recortarPorDificultad(l), puesto: i < SIN_FIN.topeRecords ? i + 1 : 0 };
   };
   const g = meter(r.general);
   r.general = g.lista;
@@ -154,25 +176,31 @@ export function registrarCorrida(records, entrada) {
   }
   return { records: r, puesto: g.puesto, puestoCodigo };
 }
-export function listaDeCodigo(records, codigo) {
+// 3.8.4: con `dificultad`, sólo las de esa dificultad
+export function listaDeCodigo(records, codigo, dificultad = null) {
   const c = normalizarCodigo(codigo);
-  return c && records?.porCodigo && Object.hasOwn(records.porCodigo, c) ? records.porCodigo[c] : [];
+  const l = c && records?.porCodigo && Object.hasOwn(records.porCodigo, c) ? records.porCodigo[c] : [];
+  return dificultad ? deDificultad(l, dificultad) : l;
 }
 
 // ---------------------------------------------------------------- textos
 export function textoNoches(n) { return `${n} ${n === 1 ? 'noche' : 'noches'}`; }
-export function lineaRecord(r, i) {
-  const dif = r.dificultad && r.dificultad !== 'normal' ? ` · ${r.dificultad}` : '';
+// 3.8.4: en una lista de una sola dificultad (`conDificultad` false) no se repite cuál es
+export function lineaRecord(r, i, conDificultad = true) {
+  const dif = conDificultad && r.dificultad && r.dificultad !== 'normal' ? ` · ${r.dificultad}` : '';
   return `${i + 1}. ${textoNoches(r.noches)} · ${r.abatidos} abatidos${r.codigo ? ` · ${r.codigo}` : ''}${dif}${r.fecha ? ` · ${r.fecha}` : ''}`;
 }
 // Lo que dice la pantalla de la corrida terminada.
-export function resumenCorrida({ noches = 0, abatidos = 0, codigo = null, puesto = 0, puestoCodigo = 0 } = {}) {
+// 3.8.4: el puesto es entre las de su dificultad, y lo dice
+export const NOMBRE_DIFICULTAD = { tranquila: 'Tranquila', normal: 'Normal', implacable: 'Implacable' };
+export function resumenCorrida({ noches = 0, abatidos = 0, codigo = null, puesto = 0, puestoCodigo = 0, dificultad = null } = {}) {
+  const en = NOMBRE_DIFICULTAD[dificultad] ? ` en ${NOMBRE_DIFICULTAD[dificultad]}` : '';
   const titulo = noches === 0 ? 'No llegaste al amanecer' : `Resististe ${textoNoches(noches)}`;
   const partes = [`${abatidos} ${abatidos === 1 ? 'duende abatido' : 'duendes abatidos'}`];
   if (codigo) partes.push(`código ${codigo}`);
   let lugar = '';
-  if (puesto === 1) lugar = '¡Tu mejor corrida!';
-  else if (puesto) lugar = `Quedó ${puesto}.ª entre tus diez mejores.`;
+  if (puesto === 1) lugar = `¡Tu mejor corrida${en}!`;
+  else if (puesto) lugar = `Quedó ${puesto}.ª entre tus diez mejores${en}.`;
   if (codigo && puestoCodigo === 1 && puesto !== 1) lugar += `${lugar ? ' ' : ''}Tu mejor corrida con este código.`;
   else if (codigo && puestoCodigo && puesto !== 1) lugar += `${lugar ? ' ' : ''}${puestoCodigo}.ª con este código.`;
   return { titulo, sub: partes.join(' · '), lugar };

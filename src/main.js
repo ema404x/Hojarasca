@@ -165,7 +165,7 @@ import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semi
 // 3.0: la supervivencia sin fin y el mapa del Desafío que cambia con la semilla
 import { codigoAlAzar } from './semilla.js';
 import { RANURA_SIN_FIN } from './guardado.js';
-import { corridaNueva, registrarCorrida, sanearRecordsSinFin, listaDeCodigo, lineaRecord, resumenCorrida } from './desafio-supervivencia.js';
+import { corridaNueva, registrarCorrida, sanearRecordsSinFin, listaDeCodigo, lineaRecord, resumenCorrida, dificultadDeCorrida, deDificultad, DIFICULTADES_SIN_FIN, NOMBRE_DIFICULTAD } from './desafio-supervivencia.js';
 import { mapaDesafio, mapaGuardadoNuevo, codigoAlAzarEnElRefugio } from './desafio-mapa.js';
 import { dibujarLamina, cargarImagen } from './lamina-dibujo.js';
 import { paletaMusical, esperaHastaFrase, mezclaPorHora } from './musica-relax.js';
@@ -177,7 +177,7 @@ import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-t
 // 3.1: la historia guiada y los eventos del valle con decisiones (ver historia-ui.js)
 import { crearValleUi } from './historia-ui.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
-import { vidaMaxObra } from './desafio-reglas.js';
+import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos } from './accesibilidad.js';
 import { crearDesafio } from './desafio.js';
 import { crearBanco } from './desafio-sonidos.js';
@@ -237,6 +237,11 @@ if (!progreso) progreso = progresoNuevo();
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
 if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso.personal; progreso = progresoNuevo(); progreso.personal = personal; }
 if (esSinFin && progreso.desafio && !progreso.desafio.sinFin) progreso.desafio.sinFin = corridaNueva();
+// 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
+// mitad de corrida: antes se podía bajar a Tranquila en la noche 30 y el récord quedaba anotado con la del final)
+function dificultadEnJuego() { return esSinFin ? dificultadDeCorrida(progreso.desafio?.sinFin, ajustes.dificultad) : ajustes.dificultad; }
+const TEXTO_DIFICULTAD_FIJA = 'En la corrida sin fin la dificultad se elige antes de entrar y no cambia hasta que termine.';
+const corridaFijada = () => esSinFin && !!progreso.desafio?.sinFin?.dificultad && !progreso.desafio.sinFin.terminada;
 // 3.8.3: ¿la partida que se abrió ya se había jugado? (sin posición guardada: nueva, o recién empezada de nuevo).
 // Hasta entrar al juego, guardar no anota dónde estás (ver `guardar`)
 const empezadaAlAbrir = !!(habiaGuardado && progreso.pos);
@@ -767,7 +772,7 @@ async function construir() {
     nota: (t, sub, nueva) => nota(t, sub, nueva),
     guardar: () => guardar(),
     duracion: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
-    dificultad: () => ajustes.dificultad,
+    dificultad: () => dificultadEnJuego(),   // 3.8.4: la de la corrida sin fin, fijada al entrar
     calidad: () => calidadInicial,
     clima: () => ({ lluvia: clima?.estado?.lluvia || 0, nublado: clima?.estado?.nublado || 0, invierno: U.uInvierno.value, viento: clima?.estado?.viento || 0 }),
     // 2.3: la trochita varada (ver `desafio-varada.js`)
@@ -1797,7 +1802,9 @@ function volverAlJuego() {
 function sincronizarAjustes() {
   document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     const clave = grupo.dataset.ajuste;
-    grupo.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(ajustes[clave]) === b.dataset.valor)));
+    // 3.8.4: en la corrida sin fin ya empezada, la dificultad marcada es la de la corrida (fija hasta que termine)
+    const valor = clave === 'dificultad' ? dificultadEnJuego() : ajustes[clave];
+    grupo.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(valor) === b.dataset.valor)));
   });
   document.querySelectorAll('[data-ajuste-rango]').forEach((i) => { i.value = ajustes[i.dataset.ajusteRango]; });
   sonido.setMezcla({ ambiente: ajustes.volumenAmbiente, efectos: ajustes.volumenEfectos, musica: ajustes.volumenMusica });
@@ -1812,7 +1819,8 @@ function sincronizarAjustes() {
   if ($('desafio-tipo-texto')) $('desafio-tipo-texto').textContent = ajustes.desafioTipo === 'sinfin'   // 3.0
     ? 'Una sola vida y ninguna noche final: cada noche vienen más duros. Caer termina la corrida y queda el récord. Tu campaña no se toca.'
     : 'Veinte noches hasta el Coihue Viejo, y después la cueva.';
-  if ($('dificultad-texto')) $('dificultad-texto').textContent = { tranquila: 'Pocos duendes y golpes suaves.', normal: 'Peligrosa, pero con defensas se resiste.', implacable: 'Más duendes y más duros.' }[ajustes.dificultad] || '';
+  if ($('dificultad-texto')) $('dificultad-texto').textContent = corridaFijada() ? TEXTO_DIFICULTAD_FIJA   // 3.8.4
+    : { tranquila: 'Pocos duendes y golpes suaves.', normal: 'Peligrosa, pero con defensas se resiste.', implacable: 'Más duendes y más duros.' }[ajustes.dificultad] || '';
   textoCodigo();
   valle?.portada(ajustes);   // 3.1: Libre o Historia, en el Relax
 }
@@ -1826,6 +1834,12 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     if (clave === 'limiteFps' && v !== 'libre' && v !== 'auto') v = Number(v);   // 3.2: 'auto', según el monitor
     if (clave === 'musica' || clave === 'invertirY' || clave === 'autoCalidad' || clave === 'subtitulos' || clave === 'guiaPrimerDia' || clave === 'sonidosEscritos' || clave === 'vibracion') v = v === 'true';
     if (clave === 'modoFluido') v = v === 'true';   // 3.3
+    // 3.8.4: la corrida sin fin ya empezada no cambia de dificultad (vale para la próxima corrida)
+    if (clave === 'dificultad' && corridaFijada() && v !== dificultadEnJuego()) {
+      nota('La dificultad queda fija', TEXTO_DIFICULTAD_FIJA);
+      sincronizarAjustes();
+      return;
+    }
     if (clave === 'romance') v = v === 'true';   // 3.7.1: el romance, encendido o apagado
     if (clave === 'vibracion' && v) { ajustes.vibracion = true; ultimoPulso = null; vibrarMando('golpe', 1); }   // que se sienta que anda
     // 2.6.1: el idioma no se pisa acá: si no, la comparación de abajo nunca veía el cambio y no recargaba
@@ -1945,6 +1959,11 @@ $('btn-codigo-semana')?.addEventListener('click', () => { $('codigo-partida').va
 if (esDesafio && !partidaEmpezada() && progreso.desafio?.semilla && $('codigo-partida')) $('codigo-partida').value = progreso.desafio.semilla;
 
 $('btn-entrar').addEventListener('click', () => {
+  // 3.8.4: la corrida sin fin fija su dificultad al entrar (una corrida de antes sin dificultad, la de ahora)
+  if (esSinFin && progreso.desafio?.sinFin && !progreso.desafio.sinFin.terminada && !progreso.desafio.sinFin.dificultad) {
+    progreso.desafio.sinFin.dificultad = dificultadDeCorrida(null, ajustes.dificultad);
+    sincronizarAjustes();
+  }
   if (esDesafio && !partidaEmpezada()) {
     const escrito = !!normalizarCodigo($('codigo-partida')?.value || '');
     const c = aplicarCodigo(progreso);
@@ -2051,7 +2070,7 @@ function abrirLogros(origen) {
   if (!libreta) return;
   origenLogros = origen;
   $(origen).classList.add('oculto');
-  dibujarLogros($('logros-contenido'), libreta, ajustes.dificultad);
+  dibujarLogros($('logros-contenido'), libreta, dificultadEnJuego());
   if (esDesafio) sumarRecordsSinFin($('logros-contenido'));   // 3.0
   traducirPanel($('logros-contenido'));
   $('logros').classList.remove('oculto');
@@ -2573,8 +2592,8 @@ let corridaUltima = null;
 function terminarCorrida() {
   const d = progreso.desafio;
   if (!esSinFin || !d || d.sinFin?.terminada) return null;
-  d.sinFin = { terminada: true };
-  const entrada = { noches: d.noches || 0, abatidos: d.abatidos || 0, fecha: new Date().toISOString().slice(0, 10), codigo: d.semilla, dificultad: ajustes.dificultad };
+  d.sinFin = { terminada: true, dificultad: dificultadEnJuego() };
+  const entrada = { noches: d.noches || 0, abatidos: d.abatidos || 0, fecha: new Date().toISOString().slice(0, 10), codigo: d.semilla, dificultad: dificultadEnJuego() };   // 3.8.4: la de la corrida
   const r = registrarCorrida(recordsSinFin(), entrada);
   try { localStorage.setItem(CLAVE_SIN_FIN, JSON.stringify(r.records)); } catch {}
   corridaUltima = { ...entrada, puesto: r.puesto, puestoCodigo: r.puestoCodigo };
@@ -2589,7 +2608,7 @@ function terminarCorrida() {
 function listaRecordsHtml(titulo, lista, marcar) {
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   if (!lista.length) return '';
-  return `<div class="logro-records-titulo">${esc(titulo)}</div><ol class="corrida-lista">${lista.map((r, i) => `<li${marcar && r.noches === marcar.noches && r.abatidos === marcar.abatidos && r.fecha === marcar.fecha && (i + 1 === marcar.puesto || i + 1 === marcar.puestoCodigo) ? ' class="nueva"' : ''}>${esc(lineaRecord(r, i).replace(/^\d+\. /, ''))}</li>`).join('')}</ol>`;
+  return `<div class="logro-records-titulo">${esc(titulo)}</div><ol class="corrida-lista">${lista.map((r, i) => `<li${marcar && r.noches === marcar.noches && r.abatidos === marcar.abatidos && r.fecha === marcar.fecha && (i + 1 === marcar.puesto || i + 1 === marcar.puestoCodigo) ? ' class="nueva"' : ''}>${esc(lineaRecord(r, i, false).replace(/^\d+\. /, ''))}</li>`).join('')}</ol>`;
 }
 function mostrarCorrida() {
   const c = corridaUltima;
@@ -2599,8 +2618,10 @@ function mostrarCorrida() {
   $('corrida-sub').textContent = txt.sub;
   $('corrida-lugar').textContent = txt.lugar;
   const rec = recordsSinFin();
-  $('corrida-records').innerHTML = listaRecordsHtml(c.codigo ? `Con ${c.codigo}` : 'Tus mejores', c.codigo ? listaDeCodigo(rec, c.codigo) : rec.general, c)
-    + (c.codigo ? listaRecordsHtml('Tus diez mejores', rec.general, c) : '');
+  // 3.8.4: las listas de la dificultad de la corrida
+  const dif = NOMBRE_DIFICULTAD[c.dificultad] || 'Normal';
+  $('corrida-records').innerHTML = listaRecordsHtml(c.codigo ? `Con ${c.codigo} · ${dif}` : `Tus mejores · ${dif}`, c.codigo ? listaDeCodigo(rec, c.codigo, c.dificultad) : deDificultad(rec.general, c.dificultad), c)
+    + (c.codigo ? listaRecordsHtml(`Tus diez mejores · ${dif}`, deDificultad(rec.general, c.dificultad), c) : '');
   $('corrida-repetir').classList.toggle('oculto', !c.codigo);
   traducirPanel($('corrida'));
   jugador.soltar();
@@ -2632,8 +2653,12 @@ function sumarRecordsSinFin(contenedor) {
   const bloque = document.createElement('div');
   bloque.className = 'logro-records';
   const codigo = progreso.desafio?.semilla;
-  const conCodigo = codigo ? listaDeCodigo(rec, codigo) : [];
-  bloque.innerHTML = listaRecordsHtml('Supervivencia sin fin · tus diez mejores', rec.general, null) + (conCodigo.length ? listaRecordsHtml(`Sin fin con ${codigo}`, conCodigo, null) : '');
+  // 3.8.4: diez por dificultad: primero la que se juega, después las otras que tengan corridas
+  const actual = dificultadEnJuego();
+  const orden = [actual, ...DIFICULTADES_SIN_FIN.filter((k) => k !== actual)];
+  const conCodigo = codigo ? listaDeCodigo(rec, codigo, actual) : [];
+  bloque.innerHTML = orden.map((k) => listaRecordsHtml(`Supervivencia sin fin · ${NOMBRE_DIFICULTAD[k]} · tus diez mejores`, deDificultad(rec.general, k), null)).join('')
+    + (conCodigo.length ? listaRecordsHtml(`Sin fin con ${codigo} · ${NOMBRE_DIFICULTAD[actual]}`, conCodigo, null) : '');
   contenedor.insertBefore(bloque, contenedor.children[1] || null);
 }
 $('btn-vuelta').addEventListener('click', otraVuelta);
@@ -3786,6 +3811,19 @@ function puntoBase() {
   const ref = T.lugares.refugio;
   return { x: ref.puerta.x, z: ref.puerta.z, yaw: ref.mira, y: null };
 }
+// 3.8.4: la caída que está pasando (el fundido): lo que se guarde en ese rato ya es la partida después de caer
+// (en tu base, a la hora de despertar, con la salud entera). Ver `guardar`.
+let caidaEnCurso = null;
+// Cuándo despertás: con la hora de tu reloj, a la misma hora; si no, a la mañana (y si ya era la tarde, la de mañana).
+function despertarDeCaida(dia, horas) {
+  // 3.8.3: con la hora de tu reloj no se salta a la mañana (la hora vuelve a la del reloj): el día sumado hacía
+  // salir otra oleada apenas despertabas
+  if (ajustes.duracion !== 'reloj') {
+    if (horas >= 12) dia++;
+    horas = 7.2;
+  }
+  return { dia, horas };
+}
 function caerEnDesafio() {
   if (esSinFin) { terminarCorrida(); return; }   // 3.0: en la supervivencia sin fin, caer termina la corrida
   const f = $('fundido');
@@ -3794,18 +3832,23 @@ function caerEnDesafio() {
   if (mochilaAbierta) abrirMochila(false);
   desafio?.abrirTaller(false);
   nota('Los duendes te dejaron fuera de combate', 'Perdiste las semillas doradas y parte de los materiales', true);
+  // 3.8.4: la caída se anota en el momento y se guarda: antes todo pasaba al final del fundido y cerrar el juego en
+  // ese segundo y medio la evitaba (ni materiales perdidos ni noche perdida, y al abrir seguías donde caíste)
+  const M = progreso.materiales || {};
+  M.cristal = 0;
+  for (const k of ['tronco', 'tabla', 'piedra']) if (M[k]) M[k] = Math.floor(M[k] * 0.7);
+  const despierta = despertarDeCaida(progreso.dia, progreso.horas);
+  // 3.8.4: caer de día, antes de la noche, te hace dormir hasta mañana: esa noche cuenta como perdida
+  const perdida = despierta.dia > progreso.dia ? desafio.perderNocheSalteada(progreso.dia) : 0;   // (si esa noche ya se jugó, no hace nada)
+  caidaEnCurso = { ...despierta, base: puntoBase() };
+  guardar();
   setTimeout(() => {
     desafio.limpiar();
-    const M = progreso.materiales || {};
-    M.cristal = 0;
-    for (const k of ['tronco', 'tabla', 'piedra']) if (M[k]) M[k] = Math.floor(M[k] * 0.7);
-    // 3.8.3: con la hora de tu reloj no se salta a la mañana (la hora vuelve a la del reloj): el día sumado hacía
-    // salir otra oleada apenas despertabas
-    if (ajustes.duracion !== 'reloj') {
-      if (progreso.horas >= 12) progreso.dia++;
-      progreso.horas = 7.2;
-    }
-    const b = puntoBase();
+    const c = caidaEnCurso || { ...despierta, base: puntoBase() };
+    caidaEnCurso = null;
+    progreso.dia = c.dia;
+    progreso.horas = c.horas;
+    const b = c.base;
     jugador.ubicar(b.x, b.z, b.yaw, b.y);
     desafio.levantarse();
     refrescarBarra(true);
@@ -3813,6 +3856,7 @@ function caerEnDesafio() {
     setTimeout(() => {
       f.classList.remove('activo');
       nota(`Día ${progreso.dia}`, 'Despertás en tu base. Reforzá las defensas antes de la noche');
+      if (perdida) setTimeout(() => nota(`Se te pasó la noche ${perdida}`, 'Caíste de día y dormiste hasta la mañana: esa noche cuenta como perdida', true), 2400);
     }, 900);
   }, 1600);
 }
@@ -7658,7 +7702,12 @@ function guardar() {
   // las miniaturas van aparte: si hay alguna nueva, se escribe su clave
   const conImagen = Object.values(progreso.desafios || {}).filter((d) => d && d.img).length;
   if (conImagen !== fotosGuardadas) { guardarFotos(progreso.desafios); fotosGuardadas = conImagen; }
-  const ok = guardarProgreso(obrasAjenas.length ? { ...progreso, obras: [...(progreso.obras || []), ...obrasAjenas] } : progreso);
+  // 3.8.4: en el fundido de una caída se guarda la partida ya despierta: en tu base, a la hora de despertar y con la
+  // salud entera (cerrar el juego en ese rato no evita la caída)
+  const c = caidaEnCurso;
+  const aGuardar = c ? { ...progreso, dia: c.dia, horas: c.horas, yaw: c.base.yaw, pos: Number.isFinite(c.base.y) ? { x: c.base.x, y: c.base.y, z: c.base.z } : { x: c.base.x, z: c.base.z },
+    desafio: progreso.desafio ? { ...progreso.desafio, salud: SALUD_MAX } : progreso.desafio } : progreso;
+  const ok = guardarProgreso(obrasAjenas.length ? { ...aGuardar, obras: [...(aGuardar.obras || []), ...obrasAjenas] } : aGuardar);
   if (horasFoto !== null) progreso.horas = horasFoto;   // 3.5.1: y sigue la del deslizador
   window.dispatchEvent(new CustomEvent('hojarasca:guardado', { detail: { ok, hora: Date.now() } }));
   if (!ok && !avisoGuardado) {
