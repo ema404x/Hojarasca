@@ -20,7 +20,7 @@
 :root[data-menu] body { font-family: var(--f-texto); }
 :root[data-menu] :is(.panel-modal, .pausa, .mochila, .trueque, .charla, .obra, .rueda-info, #inicio, .cuaderno) { font-family: var(--f-texto); font-size: var(--t-base); line-height: 1.4; }
 /* títulos de panel: una sola medida */
-:root[data-menu] :is(.panel-modal h2, .pausa h2, .mochila h2, .trueque .quien, .charla .quien, .obra .quien) {
+:root[data-menu] :is(.panel-modal h2, .pausa h2, .mochila h2, .trueque .quien, .charla .quien, .obra .quien, .valle-carta h2) {
   font-family: var(--f-titulo); font-size: var(--t-grande); font-weight: var(--peso-titulo, 400); font-style: var(--estilo-titulo, normal);
   line-height: 1.1; margin: 0 0 var(--e-2); color: var(--p-titulo, inherit); letter-spacing: var(--espaciado-titulo, normal); text-transform: var(--mayus-titulo, none);
 }
@@ -44,7 +44,7 @@
 
 /* ---------- el botón: una sola forma ---------- */
 :root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button,
-  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button, .boton-teclas, .fila-codigo button) {
+  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button, .boton-teclas, .fila-codigo button, .valle-opciones button) {
   display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--e-2);
   min-height: var(--b-alto); padding: var(--b-pad); margin: 0;
   font-family: var(--f-boton, var(--f-texto)); font-size: var(--t-base); font-weight: var(--peso-boton, 500); font-style: normal; line-height: 1.15; text-align: left; text-decoration: none;
@@ -53,11 +53,11 @@
   white-space: normal; text-wrap: balance;
 }
 :root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button,
-  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button, .boton-teclas, .fila-codigo button):is(:hover, :focus-visible) {
+  .mochila .personalizar, .taller-categorias button, .obra .categorias button, .obra .planos button, .fila-tecla button, .cerrar-papel, .boton-lamina, #partidas-sync button, .boton-teclas, .fila-codigo button, .valle-opciones button):is(:hover, :focus-visible) {
   color: var(--b-color-encima, var(--b-color)); background: var(--b-fondo-encima); box-shadow: var(--b-sombra-encima, var(--b-sombra)); text-decoration: none;
 }
 /* con el teclado o el mando, además, un contorno (que se vea dónde está la marca) */
-:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button, .boton-teclas, .mochila .personalizar):focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+:root[data-menu] :where(.menu button, .acciones button, .segmentos button, .personal-pestanas button, .personal-boton, .acciones-modal button, .boton-teclas, .mochila .personalizar, .valle-opciones button):focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
 :root[data-menu] :where(.segmentos button, .personal-pestanas button, .taller-categorias button, .obra .categorias button, .obra .planos button, .personal-boton):is([aria-pressed="true"], [aria-selected="true"], .elegido, .principal),
 :root[data-menu] :is(.accion-principal, #btn-seguir, #dialogo-si, .boton-teclas[aria-expanded="true"]) {
   color: var(--b-color-elegido); background: var(--b-fondo-elegido); box-shadow: var(--b-sombra-elegido, var(--b-sombra)); border: var(--b-borde-elegido, var(--b-borde));
@@ -77,7 +77,7 @@
 :root[data-menu] #codigo-partida::placeholder { color: var(--p-tenue); }
 
 /* ---------- el panel: una sola caja, en tres anchos ---------- */
-:root[data-menu] :is(.panel-modal, .mochila, .trueque, .charla, .obra, .pausa > div:first-child, .pausa > .ajustes, #inicio > .portada-opciones) {
+:root[data-menu] :is(.panel-modal, .mochila, .trueque, .charla, .obra, .pausa > div:first-child, .pausa > .ajustes, #inicio > .portada-opciones, .valle-carta) {
   color: var(--p-color); background: var(--p-fondo); border: var(--p-borde); border-radius: var(--p-radio); box-shadow: var(--p-sombra);
   padding: var(--p-pad, var(--e-6)); backdrop-filter: var(--p-desenfoque, none);
 }
@@ -288,3 +288,16 @@
 /* las notas del costado: papelitos de la misma libreta */
 :root[data-menu] .nota { font-family: var(--f-mano, 'Caveat', cursive); font-size: 22px; color: var(--p-color); background: var(--nota-fondo, var(--papel)); }
 :root[data-menu] .nota small { font-family: var(--f-texto); color: var(--p-tenue); }
+
+/* 3.8.6: la tarjeta del valle (la historia y los eventos), con el estilo de los demás: el panel, el título y los botones de
+   arriba, el velo de los modales y el ancho angosto; lo largo se desplaza adentro de la carta */
+:root[data-menu] #valle-tarjeta { background: var(--velo, rgba(10,14,11,.55)); backdrop-filter: var(--velo-desenfoque, blur(2px)); }
+:root[data-menu] #valle-tarjeta .valle-carta { width: min(var(--ancho-angosto), calc(100vw - 2 * var(--margen-pantalla))); max-width: none; max-height: calc(100vh - 2 * var(--margen-pantalla)); overflow-y: auto; font-family: var(--f-texto); }
+:root[data-menu] #valle-tarjeta .valle-carta :is(p, ul, small.arriba) { color: inherit; }
+:root[data-menu] #valle-tarjeta .valle-opciones button { display: grid; width: 100%; padding: var(--e-2) var(--e-3); }
+:root[data-menu] #valle-tarjeta .valle-opciones kbd { border: 0; background: var(--pincel-fino, none) 0 0 / 100% 100% no-repeat, rgba(255,250,235,.35); }
+/* 3.8.6: en el cuaderno, «Cerrar (J)» quedaba debajo del elástico de la tapa (Personalizar → Tu cuaderno) y de la barra de la
+   página de la derecha cuando se desplaza, y el trazo del marco lo cruzaba. La página empieza debajo del botón (la barra
+   también) y el botón se corre adentro del marco, a la izquierda del elástico */
+:root[data-menu] #cuaderno .pagina.ficha { margin-top: var(--e-7); padding-top: 0; }
+:root[data-menu] #cuaderno .cerrar-papel { top: var(--e-3); right: calc(var(--e-6) + var(--e-1)); }
