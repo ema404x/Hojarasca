@@ -104,4 +104,28 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(main.includes('progreso.cuerpo = jc.entumecido > 0 || jc.descansado > 0') && main.includes('jugador.estado.entumecido = progreso.cuerpo.entumecido || 0;'), 'se guarda y se carga');
 }
 
+// ---------------------------------------------------------------- 7. las fotos del álbum: el guardado no borra del disco
+{
+  const os = await import('node:os');
+  const { createRequire } = await import('node:module');
+  const FM = createRequire(import.meta.url)(path.join(raiz, 'fotos-main.cjs'));
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'hoj-fotos-386-'));
+  try {
+    const jpg = `data:image/jpeg;base64,${Buffer.from('foto').toString('base64')}`;
+    const dir = () => FM.carpetaFotos(base, 'hojarasca-p2-fotos-v1');
+    globalThis.hojarasca = { fotos: { leer: (k) => FM.leerFotos(base, k), escribir: (k, f, podar) => FM.escribirFotos(base, k, f, podar), borrar: (k) => FM.borrarFotos(base, k) } };
+    ok(G.escribirPartida('relax', 2, { ...G.progresoNuevo(), dia: 4, desafios: { lago: { dia: 2 }, faro: { dia: 3 } } }, { lago: jpg, faro: jpg }), 'una partida con dos fotos');
+    G.usarModoGuardado('relax', 2);
+    // la carga no pudo leer «faro» (el guardado de todos los días recibe sólo «lago» y una nueva)
+    ok(G.guardarFotos({ lago: { img: jpg }, nueva: { img: jpg } }), 'el guardado de todos los días');
+    eq(fs.readdirSync(dir()).sort(), ['faro.jpg', 'lago.jpg', 'nueva.jpg'], 'agrega la nueva y no borra la que no se leyó');
+    // reemplazar la partida entera (importar) sí deja exactamente las suyas
+    ok(G.escribirPartida('relax', 2, { ...G.progresoNuevo(), dia: 6 }, { otra: jpg }), 'importar otra partida en la ranura');
+    eq(fs.readdirSync(dir()), ['otra.jpg'], 'importar reemplaza las fotos');
+    ok(FM.escribirFotos(base, 'hojarasca-p2-fotos-v1', { x: jpg }, false) && fs.readdirSync(dir()).length === 2, 'fotos-main: sin podar, sólo agrega');
+    ok(leer('preload.cjs').includes("ipcRenderer.sendSync('fotos-escribir', String(clave || ''), fotos && typeof fotos === 'object' ? fotos : {}, podar !== false)") && leer('fotos-main.cjs').includes('escribirFotos(base(), String(clave || \'\'), fotos, podar !== false)'), 'el puente pasa `podar`');
+    G.borrarPartida('relax', 2);
+  } finally { delete globalThis.hojarasca; G.usarModoGuardado('relax', 1); fs.rmSync(base, { recursive: true, force: true }); }
+}
+
 console.log(`verificar-3-8-6-relax: ${pasos} comprobaciones OK`);

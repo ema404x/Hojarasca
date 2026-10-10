@@ -52,7 +52,10 @@ function leerFotos(base, clave) {
 }
 // Deja en la carpeta exactamente estas fotos ({ id: dataURL }): escribe las nuevas o cambiadas (por un archivo
 // temporal, así una a medio escribir nunca pisa la buena) y borra las que ya no están. true si quedó todo.
-function escribirFotos(base, clave, fotos) {
+// 3.8.6: con `podar` (importar o reemplazar una partida entera) borra las que no están; el guardado de cada día no
+// poda: si al cargar una foto no se pudo leer (trabada por el antivirus, un error del disco), la partida arrancaba sin
+// ella y el primer guardado la borraba del disco para siempre.
+function escribirFotos(base, clave, fotos, podar = true) {
   const dir = carpetaFotos(base, clave);
   if (!dir || !fotos || typeof fotos !== 'object' || Array.isArray(fotos)) return false;
   try { fs.mkdirSync(dir, { recursive: true }); } catch { return false; }
@@ -71,7 +74,7 @@ function escribirFotos(base, clave, fotos) {
       fs.renameSync(tmp, destino);
     } catch { ok = false; }
   }
-  try { for (const archivo of fs.readdirSync(dir)) if (/\.(jpg|png|webp)$/.test(archivo) && !quedan.has(archivo)) fs.rmSync(path.join(dir, archivo), { force: true }); } catch { ok = false; }
+  if (podar) { try { for (const archivo of fs.readdirSync(dir)) if (/\.(jpg|png|webp)$/.test(archivo) && !quedan.has(archivo)) fs.rmSync(path.join(dir, archivo), { force: true }); } catch { ok = false; } }
   return ok;
 }
 function borrarFotos(base, clave) {
@@ -84,7 +87,7 @@ function registrarFotos({ ipcMain, app, alError = () => {} }) {
   const base = () => app.getPath('userData');
   const atender = (fn) => (evento, ...args) => { try { evento.returnValue = fn(...args); } catch (err) { alError(String(err?.stack || err)); evento.returnValue = null; } };
   ipcMain.on('fotos-leer', atender((clave) => leerFotos(base(), String(clave || ''))));
-  ipcMain.on('fotos-escribir', atender((clave, fotos) => escribirFotos(base(), String(clave || ''), fotos)));
+  ipcMain.on('fotos-escribir', atender((clave, fotos, podar) => escribirFotos(base(), String(clave || ''), fotos, podar !== false)));
   ipcMain.on('fotos-borrar', atender((clave) => borrarFotos(base(), String(clave || ''))));
 }
 

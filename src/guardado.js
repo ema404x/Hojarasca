@@ -151,7 +151,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
         const img = typeof v === 'string' ? v : v?.img;
         if (typeof img === 'string' && img.startsWith('data:image')) imagenes[k] = { img };
       }
-      guardarFotos(imagenes);
+      guardarFotos(imagenes, true);   // 3.8.6: la partida se reemplaza entera: las fotos de la que estaba, también
       // 3.5.1: sin miniatura en el archivo, la de la partida que se reemplazó no queda pegada
       if (vista) guardarVista(vista);
       else { try { localStorage.removeItem(CLAVE_VISTA); } catch {} }
@@ -241,15 +241,17 @@ function leerFotosDe(clave) {
   if (!objeto(local) || !Object.keys(local).length) return deArchivos;
   const juntas = { ...local, ...deArchivos };
   let ok = false;
-  try { ok = a.escribir(clave, juntas) === true; } catch { ok = false; }
+  try { ok = a.escribir(clave, juntas, false) === true; } catch { ok = false; }   // (3.8.6: sin podar)
   if (ok) { try { localStorage.removeItem(clave); } catch {} }
   return juntas;
 }
-function escribirFotosDe(clave, fotos) {
+// 3.8.6: `podar`: borrar del disco las que no están en `fotos` (sólo al reemplazar una partida entera: importar,
+// sincronizar). El guardado de todos los días sólo agrega: lo que no se pudo leer al cargar no se pierde.
+function escribirFotosDe(clave, fotos, podar = false) {
   const a = archivosFotos();
   if (a) {
     let ok = false;
-    try { ok = a.escribir(clave, fotos) === true; } catch { ok = false; }
+    try { ok = a.escribir(clave, fotos, podar) === true; } catch { ok = false; }
     if (ok) { try { localStorage.removeItem(clave); } catch {} return true; }
   }
   return escribir(clave, fotos);
@@ -601,10 +603,10 @@ export function cargarProgreso() {
 
 // Las miniaturas del álbum pesan mucho más que el resto de la partida,
 // así que van en su propia clave y solo se escriben cuando cambian.
-export function guardarFotos(desafios) {
+export function guardarFotos(desafios, podar = false) {
   const soloImagenes = {};
   for (const [k, v] of Object.entries(desafios || {})) if (v && v.img) soloImagenes[k] = v.img;
-  return escribirFotosDe(CLAVE_FOTOS, soloImagenes);   // 3.8.4
+  return escribirFotosDe(CLAVE_FOTOS, soloImagenes, podar);   // 3.8.4 (3.8.6: sin podar, salvo al reemplazar la partida)
 }
 export function cargarFotos() { return leerFotosDe(CLAVE_FOTOS); }
 export function borrarFotos() { borrarFotosDe(CLAVE_FOTOS); }
