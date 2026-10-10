@@ -12,7 +12,7 @@
 //   · los recuerdos, las fotos de la fiesta para el álbum, la gran nevada (la vía tapada y el tiempo de nieve) y tu
 //     cumpleaños con fiesta sorpresa.
 // Sin three (lo visual lo pide a fiestas-mundo.js por `ctx.mundo()`); el DOM, sólo en el panel.
-import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, aprobarClase, puedeTomarClase, empezarClase, amistadDeHoy, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
+import { fiestaDeAhora, fechasDelDia, faseDe, programaDe, textoHora, FECHAS, anioDe, repartoFiesta, puntosPredio, PREDIO, enElPredio, sanearFiestas, fiestasNuevas, marcarVista, darRecuerdo, porColgar, colgarRecuerdos, comerEnLaMesa, yaComio, fotoDeFiesta, fotosParaAlbum, cargarMinga, terminarMinga, mingaDelAnio, ayudasteEnLaMinga, ayudarEnLaNevada, nevadaHecha, NEVADA, anotarPartido, anotarMonta, puedeMontar, empezarMonta, aprobarClase, puedeTomarClase, empezarClase, amistadDeHoy, claseNueva, responderPaso, BAILES, NIVEL_BAILE_MAX, invitadosDe, leyendaDe, menuDe, RECUERDOS, jineteadaNueva, pasoJineteada, JINETEADA, montaDeJinete, cargarFiestasEnCalendario, diaNevada, musicaDe, poseDeBaile, CHICOS, cumpleDelJugador } from './fiestas.js';
 import { partidoNuevo, accionesDe, actuar, turnoDe, decidirIA, nombreCarta, NOMBRES_CANTO, perfilTruco, envidoDe } from './truco.js';
 import { chinchonNuevo, accionesChinchon, actuarChinchon, decidirChinchon, turnoChinchon, nombreCartaChinchon, mejorLigado, esLaDelPozo, esComodin, damasNuevas, jugadasDamas, moverDamas, decidirDamas, textoJugada, tirarTaba, TEXTO_TABA } from './juegos-mesa.js';
 import { FIESTAS_ALDEA, nombreCortoDe } from './aldea-vida.js';
@@ -449,6 +449,8 @@ export function crearFiestasJuego(ctx) {
     if (jineteada.monta) return;
     jineteada.jugador = jineteadaNueva(dia() * 13 + horas() * 7, 1);
     jineteada.monta = { quien: 'jugador', t: 0, eq: 0, fin: false };
+    empezarMonta(estado(), dia());   // 3.8.6: una por fiesta, aunque cierres a la mitad
+    ctx.guardar?.();
     abrirPanel('jineteada');
     ctx.nota?.('¡Sale el redomón!', 'A y D (o las flechas, o el palito) para no caerte: adelantate a los corcovos', true);
   }

@@ -730,6 +730,9 @@ export function anotarMonta(estado, segundos, dia) {
   return aguanto && j.aguantadas === 1;
 }
 export const puedeMontar = (estado, dia) => !(estado?.jineteada?.dia === diaValido(dia));
+// 3.8.6: la monta de hoy cuenta desde que salís (como la clase de baile de la 3.8.4): cerrando el juego a mitad de la monta,
+// antes de caer, se podía volver a montar ese día y repetir la tirada
+export function empezarMonta(estado, dia) { const e = asegurar(estado); e.jineteada.dia = diaValido(dia); }
 // Una clase de baile aprobada: sube un nivel (una por día)
 export function aprobarClase(estado, baile, dia) {
   const e = asegurar(estado);

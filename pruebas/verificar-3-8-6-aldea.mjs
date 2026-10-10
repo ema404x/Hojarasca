@@ -275,4 +275,13 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   sinCR('src/aldea.js'); sinCR('src/aldea-vida.js'); sinCR('src/aldea-gente.js'); sinCR('src/calendario.js');
 }
 
+// ---------------------------------------------------------------- 16. fiestas: la monta cuenta desde que salís
+{
+  const F = await import('../src/fiestas.js');
+  const e = F.fiestasNuevas();
+  F.empezarMonta(e, 12);
+  ok(!F.puedeMontar(F.sanearFiestas(JSON.parse(JSON.stringify(e)), 12), 12), 'fiestas: cerrando a mitad de la monta, ese día no se vuelve a montar (se repetía la tirada)');
+  ok(leer('src/fiestas-juego.js').includes('    empezarMonta(estado(), dia());   // 3.8.6: una por fiesta, aunque cierres a la mitad\n    ctx.guardar?.();'), 'fiestas-juego: la anota al salir y guarda');
+}
+
 console.log(`verificar-3-8-6-aldea: ${n} comprobaciones OK`);
