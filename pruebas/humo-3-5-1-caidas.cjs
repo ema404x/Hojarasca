@@ -157,7 +157,8 @@ app.whenReady().then(async () => {
     e = await js(`(()=>{ const O = ${H}.obras, o = O.obras[O.obras.length - 1], k = 'obra-' + (o.datos.x | 0) + '-' + (o.datos.z | 0);
       return { nombre: o.datos.nombre, lugar: ${H}.T.lugares[k]?.nombre, guardado: (localStorage.getItem('hojarasca-v1') || '').includes('La Tapera del Ñire') } })()`);
     ok(!d.visible && d.modo === 'jugando', `Enter lo cierra y se vuelve al juego (${d.modo})`);
-    ok(e.nombre === 'La Tapera del Ñire' && e.lugar === 'La Tapera del Ñire', `la obra quedó con su nombre, también en el mapa (${JSON.stringify(e)})`);
+    // 3.8.7: el mapa lee `datos.nombre` de la obra (ya no hay `T.lugares['obra-x-z']`: la prueba miraba eso y fallaba desde antes)
+    ok(e.nombre === 'La Tapera del Ñire' && e.guardado, `la obra quedó con su nombre y guardada (${JSON.stringify(e)})`);
     ok(e.guardado, 'y quedó guardado');
     // Esc: no cambia nada
     await js(`(()=>{ const O = ${H}.obras; ${H}.__caidas.pedirNombre(O.obras[O.obras.length - 1]); return 1 })()`);

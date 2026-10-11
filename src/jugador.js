@@ -432,7 +432,10 @@ export function crearJugador(camara, T, col, opciones) {
 
     // superficie bajo los pies
     const k = T.indice(estado.pos.x, estado.pos.z);
-    if (plat) estado.superficie = 'madera';
+    // 3.8.7: la plataforma dice de qué es (`suelo`: la laja de la plaza, la escalera de piedra, el césped); si no, tablón.
+    // El césped, en invierno, es nieve como el resto del pasto
+    if (plat) estado.superficie = plat.suelo === 'pasto' && opciones.invierno() > 0.5 ? 'nieve' : plat.suelo || 'madera';
+
     else if (agua && agua.prof > 0.08) estado.superficie = 'agua';
     else if (opciones.invierno() > 0.5) estado.superficie = 'nieve';
     // 2.0: con escarcha, el pasto abierto cruje (bajo el bosque la atajan las copas)

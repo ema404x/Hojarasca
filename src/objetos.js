@@ -4,7 +4,7 @@ import { rng, smoothstep } from './ruido.js';
 import { Constructor, matriz, abollar, lamina, troncoCurvo } from './geometria.js';
 import { materialVegetal } from './materiales.js';
 import { ENTRADA } from './cuaderno.js';
-import { LAGO } from './config.js';
+import { LAGO, LIMITE } from './config.js';
 import { MELODIAS, MELODIA, anotarPartitura, tocadiscos, tocadiscosSuena, sanearMusica, disponibles, siguienteDisco, escucharMuestra } from './personal-musica.js';
 import { crearTocadiscos } from './tocadiscos-mundo.js';
 
@@ -94,7 +94,11 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     partitura: { geo: geoPartitura(), entrada: null, accion: 'juntar', etiqueta: 'partitura' },
   };
   const items = [];
+  // 3.8.7: nada más allá de donde se puede caminar (LIMITE) y estirar el brazo: había 118 ramitas, 9 llao llao y 5 cantos
+  // en la ladera del borde, a la vista pero imposibles de juntar (los ids van por lugar: lo demás no se corre)
+  const fueraDeAlcance = (x, z) => Math.abs(x) > LIMITE + 1.5 || Math.abs(z) > LIMITE + 1.5;
   const poner = (tipo, x, z, y, rotY = r() * 6.28, esc = 1) => {
+    if (fueraDeAlcance(x, z)) return;
     if (T.distRiel[T.indice(x, z)] < 2.2) return;   // entre los rieles no queda nada
     if (y === undefined && T.agua(x, z)) return;    // ni bajo el agua
     if (edificios.some((b) => Math.hypot(b.x - x, b.z - z) < (b.radio || 4) + 1)) return;   // ni adentro de las casas
@@ -129,6 +133,7 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     const a = nothofagus[Math.floor(r() * nothofagus.length)];
     if (!a) return;
     const ang = r() * 6.28, rad = a.r - 0.02;
+    if (fueraDeAlcance(a.x, a.z)) { r(); return; }   // (el r() de la altura, para no correr a los demás)
     items.push({ tipo: 'llaollao', x: a.x + Math.cos(ang) * rad, y: a.y + 1.9 + r() * 0.7, z: a.z + Math.sin(ang) * rad, rotY: Math.PI / 2 - ang, esc: 1, alto: true });
   });
   // piñones al pie de los pehuenes
@@ -330,7 +335,11 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     }
     for (const a of vecinos(grillaArboles, ojo.x, ojo.z, vecinosArboles)) {
       if (progreso.entradas[a.especie]) continue;
+      // 3.8.7: el árbol seco no tiene entrada en el cuaderno: ofrecía «Anotar undefined» (142 puntos del valle) y E anotaba una
+      // entrada que no existe
+      if (!Object.hasOwn(NOMBRE_ESPECIE, a.especie)) continue;
       dir.set(a.x - ojo.x, 0, a.z - ojo.z);
+
       const d = dir.length() - a.r;
       if (d > 2.2) continue;
       const dot = dir.normalize().dot(adelantePlano);

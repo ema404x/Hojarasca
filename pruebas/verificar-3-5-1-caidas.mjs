@@ -94,7 +94,7 @@ for (const id of ['dialogo', 'dialogo-texto', 'dialogo-entrada', 'dialogo-si', '
 ok(/#dialogo \{ z-index: 60; \}/.test(html), 'el cuadro va arriba de los paneles');
 ok(html.includes('Recuperando los gráficos…'), 'el aviso de los gráficos');
 const dialogo = leer('src/dialogo.js');
-ok(/ventana\.addEventListener\('keydown', \(e\) => \{\n\s+if \(!cola\.abierto\(\)\) return;\n\s+if \(cola\.tecla\(e\.code\)\) e\.preventDefault\(\);\n\s+e\.stopImmediatePropagation\(\);\n\s+\}, true\);/.test(dialogo), 'abierto, ninguna tecla llega al juego (en la captura de la ventana)');
+ok(/ventana\.addEventListener\('keydown', \(e\) => \{\n\s+if \(!cola\.abierto\(\)\) return;\n\s+if \(cola\.tecla\(e\.code.*\)\) e\.preventDefault\(\);\n\s+e\.stopImmediatePropagation\(\);\n\s+\}, true\);/.test(dialogo), 'abierto, ninguna tecla llega al juego (en la captura de la ventana)');
 ok(/getGamepads/.test(dialogo), 'y lee el mando');
 
 // ---------------------------------------------------------------- 3. el contexto 3D

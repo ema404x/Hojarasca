@@ -382,7 +382,8 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
       tope = Math.max(suelo + 0.08, tope - 0.2);
       const alto = tope - suelo + 0.15;
       ex.agregar(new THREE.BoxGeometry(0.44, alto, 2.4), { color: k % 2 ? '#7f7a70' : '#77726a', tipo: 4, variar: 0.1, matriz: matriz([lx, tope - alto / 2, lz]) });
-      col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.44, ancho: 2.4, alto: y + tope, espesor: alto });
+      col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.44, ancho: 2.4, alto: y + tope, espesor: alto, suelo: 'piedra' });   // 3.8.7: los escalones de piedra (los pasos)
+
       n++;
       if (tope - suelo < 0.1) break;
     }

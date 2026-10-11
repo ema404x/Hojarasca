@@ -151,7 +151,9 @@ export function crearSocialMundo({ escena, camara, atlas, capa = null }) {
           if (r && camara) {
             v.set(npc.pos.x, y - 0.3 * k, npc.pos.z).project(camara);
             if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) {
-              const w = window.innerWidth, h = window.innerHeight;
+              // 3.8.7: en los px del #hud, que tiene el zoom de la letra (con la letra grande el renglón se corría)
+              const z = Number(document.documentElement.dataset.escalaLetra) || 1;
+              const w = window.innerWidth / z, h = window.innerHeight / z;
               const px = Math.round((v.x * 0.5 + 0.5) * w), py = Math.round((-v.y * 0.5 + 0.5) * h);
               if (r.texto !== c.b.renglon) { r.el.textContent = c.b.renglon; r.texto = c.b.renglon; }
               r.el.style.transform = `translate(${px}px, ${py}px) translate(-50%, 0)`;

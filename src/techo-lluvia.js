@@ -61,6 +61,10 @@ export const ESPACIOS = {
   // entre cuatro paredes: el viento es un rumor, la lluvia de afuera casi no llega
   adentro: { lluvia: 0.22, viento: 0.3, hojas: 0.12, filtro: 1900, reverb: 'adentro', cruje: 0.7 },
   cueva: { lluvia: 0.12, viento: 0.2, hojas: 0, filtro: 1400, reverb: 'cueva', cruje: 0 },
+  // 3.8.7: bajo la roca del alero del arriero (3.8.4: ya no es la cueva): abierto al frente, la roca devuelve un eco corto
+  // (antes sonaba a cueva honda: cola de 4 s y casi nada de afuera)
+  roca: { lluvia: 0.5, viento: 0.65, hojas: 0.45, filtro: 7000, reverb: 'adentro', cruje: 0 },
+
 };
 export function espacioDe(nombre) { return ESPACIOS[nombre] || ESPACIOS.bosque; }
 

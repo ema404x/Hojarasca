@@ -28,6 +28,9 @@ export function crearMatasHuerta(escena) {
   const frutos = new THREE.InstancedMesh(frutoGeo, frutoMat, MAX * 4);
   for (const m of [hojas, frutos]) {
     m.count = 0;
+    // 3.8.7: el color por instancia existe desde el principio: con el primer `setColorAt` (al sembrar la primera mata) el programa
+    // cambiaba (instanciado con color) y se compilaba en ese momento, a mitad del juego, en la huerta de la aldea
+    m.setColorAt(0, new THREE.Color(0xffffff));
     m.castShadow = true;
     m.frustumCulled = false;   // se reparten por todo el valle; son pocas
     m.name = 'huerta';

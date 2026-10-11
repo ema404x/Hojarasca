@@ -185,6 +185,26 @@ export function apilarAviso(avisos, aviso, tope = 40) {
   return lista.slice(Math.max(0, lista.length - tope));
 }
 
+// 3.8.7: las notas de la esquina. `visibles` son las que están en pantalla, de la más vieja a la más nueva
+// ({ titulo, texto, importante }). Una igual a otra que todavía se ve no se apila: se refresca ésa (al
+// apretar E varias veces contra «No hay orilla cerca» salían cuatro iguales y tapaban lo demás).
+export function notaRepetida(visibles, titulo, texto) {
+  const lista = Array.isArray(visibles) ? visibles : [];
+  const t = String(titulo || ''), s = String(texto || '');
+  for (let i = lista.length - 1; i >= 0; i--) if (String(lista[i]?.titulo || '') === t && String(lista[i]?.texto || '') === s) return i;
+  return -1;
+}
+// 3.8.7: con más de `tope` notas a la vista, cuál se saca: la más vieja que no sea importante (antes se sacaba
+// siempre la más vieja, y al despertarte la carta del tren o el cambio de estación se iban antes de leerse).
+// Si todas son importantes, la más vieja. -1 si no hace falta sacar ninguna.
+export function notaASacar(visibles, tope = 4) {
+  const lista = Array.isArray(visibles) ? visibles : [];
+  if (lista.length <= tope) return -1;
+  // (nunca la última, que es la que acaba de llegar: con cuatro importantes a la vista, una nota nueva se iba al instante)
+  const i = lista.slice(0, -1).findIndex((n) => !n?.importante);
+  return i >= 0 ? i : 0;
+}
+
 // Los últimos N avisos con su hora, listos para escribirlos en pantalla.
 export function subtitulos(avisos, cuantos = 4) {
   const lista = Array.isArray(avisos) ? avisos : [];

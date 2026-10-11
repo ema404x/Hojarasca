@@ -80,7 +80,7 @@ assert.ok(main.includes("if (Number(yaTenias[c]) > 1) progreso.cosas[c] = Number
 assert.ok(main.includes("if (accion && teclasPropias[accion]) code = teclasPropias[accion];"), 'el mando sigue las teclas propias');
 assert.ok(main.includes("  if (banco?.activa) return false;"), 'el banco de pruebas no guarda');
 assert.ok(main.includes("if (js.enCable && codigo === 'Escape') { abrir('pausa'); return; }"), 'en la tirolesa, Esc pausa');
-assert.ok(leer('src/plantilla.html').includes(".estado { position: absolute; left: 50%; bottom: 94px;"), 'el estado va arriba de la barra de casillas');
+assert.ok(leer('src/plantilla.html').includes(".estado { position: absolute; left: 50%; bottom: calc(94px"), 'el estado va arriba de la barra de casillas');
 
 // ---- el torneo: pegar tu propio código (con acento en el nombre) no te suma dos veces
 {

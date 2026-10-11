@@ -3290,13 +3290,14 @@ function plaza(K) {
   });
   for (let i = 0; i < 4; i++) { const a = i * 1.57 + 0.6; manojo(K.fol, r, Math.cos(a) * 0.78, 0.06, Math.sin(a) * 0.78, 5, 0.18, 0.32); }
   // el lote entero es césped corto (sin pasto alto ni helechos: para marcarPisos); lo pisado, aparte
-  K.plataforma(0, 0, W, D, 0.02, 0.1);
+  // (3.8.7: cada piso dice de qué es, para los pasos: antes toda plataforma sonaba a tablón, también el césped y la laja)
+  K.plataforma(0, 0, W, D, 0.02, 0.1, 0, { suelo: 'pasto' });
   K.pisos.push({ lx: 0, lz: 0, largo: W, ancho: D, cesped: true });
-  K.plataforma(0, 0, 2 * RC, 2 * RC, 0.07, 0.12, 0, { radio: RC + 0.1 });
+  K.plataforma(0, 0, 2 * RC, 2 * RC, 0.07, 0.12, 0, { radio: RC + 0.1, suelo: 'piedra' });
   K.pisos.push({ lx: 0, lz: 0, largo: 2 * RC, ancho: 2 * RC });
   for (const s of sendas) {
     const L = s.hasta - RC + 0.3, m = RC - 0.3 + L / 2, giro = Math.atan2(-s.u[1], s.u[0]);
-    K.plataforma(s.u[0] * m, s.u[1] * m, L, A, 0.07, 0.12, giro);
+    K.plataforma(s.u[0] * m, s.u[1] * m, L, A, 0.07, 0.12, giro, { suelo: 'piedra' });
     K.pisos.push({ lx: s.u[0] * m, lz: s.u[1] * m, largo: L, ancho: A, giro });
   }
   // el duende tallado en el centro, mirando a la estación
@@ -4722,7 +4723,8 @@ function escalinata(K, des) {
       const y1 = -sube * i, zc = z0 + pisada * (i - 0.5);
       caja(c, [xP, (fondo + y1 - 0.06) / 2, zc], [ancho + 0.1, y1 - 0.06 - fondo, pisada + 0.04], elegir(r, ['#5c574e', '#625c52', '#575249']), { tipo: 4, giro: (r() - 0.5) * 0.03 });
       caja(c, [xP + (r() - 0.5) * 0.03, y1 - 0.035, zc], [ancho + (r() - 0.5) * 0.08, 0.07, pisada + 0.07], elegir(r, PALETA_ALDEA.laja), { tipo: 4, giro: (r() - 0.5) * 0.05 });
-      K.plataforma(xP, zc, ancho, pisada + 0.02, y1, 0.3);
+      K.plataforma(xP, zc, ancho, pisada + 0.02, y1, 0.3, 0, { suelo: 'piedra' });   // 3.8.7: la escalinata de laja
+
     }
     // las piedras grandes de remate a los costados de la escalinata
     for (const s of [-1, 1]) for (const t of [0.3, 0.8]) bulto(c, [xP + s * (ancho / 2 + 0.22), -des * t - 0.05, z0 + pisada * n * t], 0.24, elegir(r, PALETA_ALDEA.laja), { esc: [0.9, 0.8, 1.3], rot: [r(), r() * 3, r()], tipo: 4 });
