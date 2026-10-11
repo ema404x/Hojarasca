@@ -82,3 +82,16 @@ export function queSeLleva(cuanto) {
   }
   return null;
 }
+
+// ---------------------------------------------------------------- 3.8.7: el agua
+// Antes el agua los frenaba siempre: con el río entre ellos y su blanco (vos, el lugar del vecino) quedaban toda la
+// noche en la orilla, dando vueltas (el puente más cercano estaba a cientos de metros y bajo el puente también hay
+// agua). Ahora el río se vadea: el que lleva un rato frenado en la orilla se mete, y en el agua va más despacio. El
+// lago no (es hondo): lo rodean, siempre para el mismo lado (`sentido`), sin volver a probar de frente cada vez.
+export const VADO = { espera: 1.2, lento: 0.55 };
+// ¿El agua de adelante lo frena? `w` es lo que dice T.agua del paso siguiente; `orilla`, los segundos que lleva frenado.
+export function aguaFrena(w, orilla = 0) {
+  if (!w) return false;
+  if (w.lago) return true;
+  return !(orilla >= VADO.espera);
+}
