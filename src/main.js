@@ -84,7 +84,7 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, marcarIniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
 import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
@@ -7322,6 +7322,8 @@ function seguirCharla() {
     if (charla.vec) charla.vec.chau = true;
   }
   if (charla.historia?.citaCharla && charla.parte === charla.historia.partes.length) vecindadJuego?.citaCharlada();
+  // 3.8.7: «Dale» a la invitación del vecino (lo que dice al aceptar, y después, como siempre)
+  if (charla.historia?.invita && charla.parte === charla.historia.partes.length) { const h = aceptarInvitacionVecino(charla.npc, charla.historia.invita); if (h) { charla.historia = h; charla.parte = 0; } }
   // una carta que pide una foto: al terminar de leerla, qué foto y cómo
   const pide = charla.historia && charla.parte === charla.historia.partes.length ? CARTA[charla.historia.id]?.foto : null;
   // 2.6.1: una carta que pide una foto que no está en DESAFIOS ya no rompe el temporizador
@@ -7537,7 +7539,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, marcarIniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {
@@ -7718,7 +7720,28 @@ function loQueTeQueriaDecir(npc) {
   // (3.8.7: si te venía a pedir justo eso, que ya hiciste, no te lo pide y te agradece en el mismo renglón: sólo las gracias)
   const partes = gracias ? (ini.tipo === 'pedir' ? [gracias] : [...ini.renglones, gracias]) : ini.renglones;
   charla.historia = { id: 'social-iniciativa', partes, alTerminar: () => { charla.historia = null; } };
+  // 3.8.7 (decisión del usuario): si te invita («¿Un mate?», «¿Damos una vuelta?»), se contesta: E «Dale» (van juntos: ver
+  // `aceptarInvitacionVecino`, en seguirCharla) y Escape «Ahora no» (sin que se ofenda)
+  if (ini.tipo === 'invitar' && ini.id && !gracias) charla.historia = { id: 'social-invita', partes, invita: ini.id, seguir: 'E: dale · Escape: ahora no', alEscape: () => ahoraNoVecino(npc) };
   charla.parte = 0;
+}
+// 3.8.7: «Dale» a la invitación del vecino: a tomar algo (mate o truco: la casa de té o tu mesa, como cuando lo invitás vos);
+// lo demás (caminar, pescar, una ranchera), o si no hay dónde, ahí mismo, como en la rueda (te lo propuso él: sale bien)
+function aceptarInvitacionVecino(npc, id) {
+  const c = vecindadJuego?.aceptarInvitacion(npc, id);
+  if (c) return { id: 'vecindad-cita', partes: c.renglones, cita: c };
+  const r = socialJuego?.interactuar(npc, id, { invito: id });
+  if (!r) return null;
+  if (r.cosas.length) { aplicarEfectos(progreso, r.cosas, { sumarMaterial, sumarEntrada }); refrescarBarra(true); }
+  for (const o of r.otros) otroSocial(o, npc);
+  guardar();
+  return { id: 'social', partes: r.renglones, volver: true, social: true };
+}
+// 3.8.7: «Ahora no»: no pasa nada (no se ofende ni baja la amistad); te saluda y sigue con lo suyo
+function ahoraNoVecino(npc) {
+  if (!npc?.g) return;
+  socialMundo?.burbuja(npc, 'chau', { renglon: 'Bueno, otro día', dur: 3 });
+  socialJuego?.decir?.(npc, 'Bueno, otro día.', { renglon: false, cerca: true });
 }
 function alSaludarSocial(npc) {
   if (desafio || !socialJuego || !npc?.g) return;

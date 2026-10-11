@@ -61,11 +61,12 @@ export function crearSocialJuego(ctx) {
 
   // ---------------------------------------------------------------- una interacción con vos
   // Devuelve { renglones, exito, cierra, emocion, anim } (o null si no se pudo)
-  function interactuar(npc, id) {
+  // (3.8.7: `op.invito`: te lo propuso él, en la iniciativa: sale bien y, si es mate, ceba él)
+  function interactuar(npc, id, op = {}) {
     const k = claveDe(npc);
     if (!k || typeof S.probarInteraccion !== 'function') return null;
     const def = S.INTERACCIONES?.[id] || null;
-    const r = seguro(() => S.probarInteraccion(k, id, progreso(), contexto()), null);
+    const r = seguro(() => S.probarInteraccion(k, id, progreso(), contexto(op.invito ? { invito: op.invito } : {})), null);
     if (!r) return null;
     const re = r.reaccion || {};
     if (!re.animEl && !re.renglon) return null;
@@ -199,7 +200,8 @@ export function crearSocialJuego(ctx) {
       dm = d; mejor = n; k = c;
     }
     if (!mejor || !k) return;
-    const r = seguro(() => S.iniciativa(k, progreso(), contexto({ libre: true })), null);
+    // (3.8.7: sin anotarla todavía: se anota cuando llega a hablarte, ver `anotar`)
+    const r = seguro(() => S.iniciativa(k, progreso(), contexto({ libre: true, marcar: typeof S.marcarIniciativa === 'function' ? false : undefined })), null);
     if (!r || !Array.isArray(r.renglones) || !r.renglones.length) return;
     // camina hacia vos (hasta un par de metros; cerca tuyo gente.js lo frena y te mira) y te saluda con su burbuja
     const origen = { x: mejor.pos.x, z: mejor.pos.z };
@@ -209,7 +211,7 @@ export function crearSocialJuego(ctx) {
     mejor.__iniciativa = true;
     let largo = 0, p0 = origen;
     for (const q of mejor.camino) { largo += dist(p0, q); p0 = q; }
-    pendiente = { npc: mejor, clave: k, r, hasta: reloj + SOCIAL.aburre + Math.max(d, largo) / 0.8, origen, llego: false };
+    pendiente = { npc: mejor, clave: k, r, hasta: reloj + SOCIAL.aburre + Math.max(d, largo) / 0.8, origen, llego: false, anotada: false };
     ctx.mundo?.burbuja(mejor, 'exclamacion', { dur: 3 });
   }
   function revisarIniciativa() {
@@ -219,6 +221,7 @@ export function crearSocialJuego(ctx) {
     if (!n?.pos || n.dormido || !j) { soltarIniciativa(false); return; }
     if (!p.llego && dist(n.pos, j) < 7) {
       p.llego = true;
+      anotar(p);   // 3.8.7: llegó a hablarte: ahora sí cuenta
       const saludo = p.r.renglones[0];
       ctx.mundo?.burbuja(n, p.r.burbuja || ICONO_TIPO[p.r.tipo] || iconoDeTexto(saludo), { renglon: '¡Eh! ¿Tenés un minuto?', dur: 6 });
       ctx.voz?.(n, '¡Eh! ¿Tenés un minuto?', {});
@@ -226,11 +229,18 @@ export function crearSocialJuego(ctx) {
     } else if (p.llego && (reloj % 7) < 0.6 && !n.animSocial) ctx.mundo?.burbuja(n, p.r.burbuja || ICONO_TIPO[p.r.tipo] || 'charla', { dur: 2.5 });
     if (reloj > p.hasta) soltarIniciativa(true);
   }
+  // 3.8.7: la iniciativa cuenta (la espera hasta la próxima, el cupo del día, que hoy ya vino) cuando llega a hablarte
+  function anotar(p) {
+    if (!p || p.anotada) return;
+    p.anotada = true;
+    if (typeof S.marcarIniciativa === 'function') seguro(() => S.marcarIniciativa(p.clave, progreso(), contexto()));
+  }
   function soltarIniciativa(volver) {
     const p = pendiente;
     if (!p) return;
     pendiente = null;
-    proximaIni = reloj + SOCIAL.esperaIniciativa[ritmo()];
+    // (3.8.7: si no llegó a hablarte, no se gastó nada: se vuelve a mirar enseguida)
+    proximaIni = reloj + (p.anotada ? SOCIAL.esperaIniciativa[ritmo()] : SOCIAL.cadaIniciativa);
     if (p.npc) {
       p.npc.__iniciativa = false;
       // vuelve a donde estaba (aldea-gente.js lo deja ahí, mirando para donde miraba)
@@ -243,6 +253,7 @@ export function crearSocialJuego(ctx) {
   function tomarIniciativa(npc) {
     if (!quiereDecir(npc)) return null;
     const p = pendiente;
+    anotar(p);   // 3.8.7 (le hablaste antes de que llegara: también cuenta)
     soltarIniciativa(false);
     const id = typeof p.r.id === 'string' ? p.r.id : null;
     const animId = p.r.animEl || null;
@@ -275,7 +286,8 @@ export function crearSocialJuego(ctx) {
     opciones, info, interactuar, cumplir, recuerdo, decir, alEmpezarCharla, actualizar, quiereDecir, tomarIniciativa, alCerrarCharla,
     // (para las pruebas: forzar la iniciativa o una pareja)
     forzarIniciativa: () => { proximaIni = 0; acumIni = SOCIAL.cadaIniciativa; seguro(buscarIniciativa); return !!pendiente; },
-    pendiente: () => (pendiente ? { clave: pendiente.clave, llego: pendiente.llego, tipo: pendiente.r?.tipo || null } : null),
+    pendiente: () => (pendiente ? { clave: pendiente.clave, llego: pendiente.llego, tipo: pendiente.r?.tipo || null, id: pendiente.r?.id || null, anotada: !!pendiente.anotada, npc: pendiente.npc } : null),   // (3.8.7: qué viene a hacer y si ya contó)
+    soltar: () => soltarIniciativa(false),   // 3.8.7 (las pruebas)
     parejas: () => parejas.map((p) => [claveDe(p.a) || p.a.clave, claveDe(p.b) || p.b.clave]),
     hacerEntre: (a, b) => hacerEntre(a, b, true),
     buscarParejas: () => { acumParejas = SOCIAL.cadaParejas; seguro(buscarParejas); return parejas.length; },

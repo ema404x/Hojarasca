@@ -211,5 +211,61 @@ const cruza = (desde, pasos) => { let p = desde; for (const q of pasos) { if (!q
   ok(leer('src/juegos-mesa.js').includes('      if (esComodin(mano[i])) { siguen.push(i); continue; }'), 'juegos-mesa: el comodín no se acomoda');
 }
 
+// ---------------------------------------------------------------- 13. «¿Un mate?»: la invitación del vecino se contesta (decisión del usuario)
+{
+  const S = await import('../src/vecindad-social.js');
+  const V = await import('../src/vecindad.js');
+  const { crearSocialJuego, SOCIAL } = await import('../src/social-juego.js');
+  const { claveVecindad, crearVecindadJuego } = await import('../src/vecindad-juego.js');
+  const nuevo = () => { const p = { dia: 5, horas: 12, cosas: {}, materiales: {}, entradas: {}, aldea: aldeaCompleta(), vecindad: V.vecindadNueva(), amor: AM.amorNuevo() }; for (let d = 1; d <= 16; d++) V.regalar('panadera', V.PERFILES_VECINOS.panadera.gustos.encanta[d % 3], p, d, () => 99); return p; };
+  // la regla: sin marcar no gasta nada; marcarIniciativa, sí
+  {
+    const p = nuevo();
+    let r = null;
+    for (let sem = 0; sem < 200 && !r; sem++) r = S.iniciativa('panadera', p, { dia: 5, hora: 12, ritmo: 'animado', semilla: sem, marcar: false });
+    const s = p.vecindad.social;
+    ok(r && !(s?.vino?.panadera) && !(s?.iniciativa?.n), 'social: la iniciativa sin marcar no gasta la espera, el cupo ni «ya vino hoy»');
+    ok(S.marcarIniciativa('panadera', p, { dia: 5, hora: 12 }) && p.vecindad.social.vino.panadera === 5 && p.vecindad.social.iniciativa.n === 1, 'social: marcarIniciativa los anota');
+  }
+  // el juego: se anota cuando llega a hablarte; si se aburre antes, no
+  const armar = () => {
+    const p = nuevo(), fig = { claveAldea: 'panadera', clave: 'poblador-panadera', pos: { x: 12, z: 0, y: 0 }, g: { visible: true } };
+    const sj = crearSocialJuego({ social: { ...S }, progreso: () => p, dia: () => 5, hora: () => 12, ritmo: () => 'animado', jugador: () => ({ x: 0, z: 0 }), gente: () => [fig], claveDe: claveVecindad });
+    return { p, fig, sj };
+  };
+  let m = null;
+  for (let k = 0; k < 40 && !m; k++) { const x = armar(); if (x.sj.forzarIniciativa()) m = x; }
+  ok(m && !m.p.vecindad.social?.vino?.panadera, 'social-juego: sale a buscarte sin anotar nada todavía');
+  m.fig.pos.x = 3; m.sj.actualizar(0.1);
+  ok(m.p.vecindad.social.vino.panadera === 5 && m.p.vecindad.social.iniciativa.n === 1, 'social-juego: llegó a hablarte: cuenta');
+  let n2 = null;
+  for (let k = 0; k < 40 && !n2; k++) { const x = armar(); if (x.sj.forzarIniciativa()) n2 = x; }
+  for (let i = 0; i < 600; i++) n2.sj.actualizar(0.25);
+  ok(!n2.sj.quiereDecir(n2.fig) && !n2.p.vecindad.social?.vino?.panadera && !(n2.p.vecindad.social?.iniciativa?.n), 'social-juego: se aburrió sin llegar: no se gastó nada (antes, la espera, el cupo del día y su vuelta de hoy)');
+  // «Dale»: lo que propuso él sale bien y, si es mate, ceba él
+  {
+    const p = nuevo();
+    ok(S.chanceInteraccion('panadera', 'caminar', p, { dia: 5, hora: 12, invito: 'caminar' }).seguro, 'social: lo que te propuso él, sale');
+    const r = S.probarInteraccion('panadera', 'mate', p, { dia: 5, hora: 12, invito: 'mate' });
+    ok(r.exito && !r.efectos.cosas.some((c) => c.k === 'yerba') && r.efectos.amistad > 0, `social: «¿Un mate?» sin yerba tuya: ceba él y suma amistad (${r.efectos.amistad})`);
+  }
+  // «Dale» a tomar algo: a la casa de té, como cuando lo invitás vos (con la amistad de invitar)
+  {
+    const p = nuevo(); p.dia = 9;
+    p.horas = 18;   // (Rosa, con la panadería cerrada y la casa de té abierta)
+    const vj = crearVecindadJuego({ progreso: () => p, nota: () => {}, guardar: () => {} });
+    const npc = { claveAldea: 'panadera', clave: 'poblador-panadera', pos: { x: 0, z: 0, y: 0, set() {} } };
+    const antes = V.puntosAmistad ? V.puntosAmistad('panadera', p) : null;
+    const c = vj.aceptarInvitacion(npc, 'mate');
+    ok(c?.tipo === 'cita' && c.que === 'te' && c.lugares && c.renglones[0].includes('la casa de té'), `vecindad: «Dale» a un mate con Rosa: a la casa de té (${c?.renglones?.[0]})`);
+    ok(antes === null || V.puntosAmistad('panadera', p) > antes, 'vecindad: suma amistad');
+    ok(vj.aceptarInvitacion(npc, 'caminar') === null, 'vecindad: caminar no es tomar algo (se hace ahí, como en la rueda)');
+  }
+  const mm = leer('src/main.js');
+  ok(mm.includes("if (ini.tipo === 'invitar' && ini.id && !gracias) charla.historia = { id: 'social-invita', partes, invita: ini.id, seguir: 'E: dale · Escape: ahora no', alEscape: () => ahoraNoVecino(npc) };"), 'main: la invitación se contesta: E dale, Escape ahora no');
+  ok(mm.includes('if (charla.historia?.invita && charla.parte === charla.historia.partes.length) { const h = aceptarInvitacionVecino(charla.npc, charla.historia.invita);'), 'main: «Dale» con E en el último renglón (lo mismo que dice el aviso de abajo)');
+  ok(!/function ahoraNoVecino[sS]{0,300}(sumarAmistad|ofendido|enojado)/.test(mm), 'main: «Ahora no» no ofende');
+}
+
 for (const f of ['src/juegos-mesa.js', 'src/aldea.js', 'src/aldea-gente.js', 'src/social-juego.js', 'src/amor-juego.js', 'src/amor.js', 'src/fiestas-juego.js', 'src/aldea-vida.js', 'src/taller-tren-juego.js', 'src/aldea-mecanicas-mundo.js', 'src/aldea-mecanicas.js', 'src/rincones-juego.js', 'src/main.js', 'pruebas/verificar-3-8-7-aldea.mjs']) ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
 console.log(`verificar-3-8-7-aldea: ${n} comprobaciones OK`);
