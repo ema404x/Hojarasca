@@ -3,7 +3,7 @@
 # Uso (desde Git Bash): bash herramientas/gate-seguir.sh <carpeta-del-proyecto> <carpeta-de-salida>
 # Deja <salida>/fallas.txt y escribe "pasos: N · fallan: M".
 cd "$1"; mkdir -p "$2"
-node -e "console.log(require('./package.json').scripts.verify.split(' && ').join('\n'))" > "$2/pasos.txt"
+node -e "console.log(require('./package.json').scripts['verify:pasos'].split(' && ').join('\n'))" > "$2/pasos.txt"
 : > "$2/fallas.txt"
 while read -r paso; do
   salida=$(eval "$paso" 2>&1); c=$?
