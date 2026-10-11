@@ -602,6 +602,8 @@ export function crearRinconesJuego(ctx) {
     actualizar, accion, accionDuende, urgente, opciones, elegir, destino, canterosParaMatas, refrescarMatas,
     alSulky, subirSulky, bajarSulky, caballoAtado, enSulky: () => !!viaje, poseSulky, tieneSulky: tiene,
     desatar: () => { if (sk()) sk().atado = false; },
+    // 3.8.7: ¿adentro de tu casa de la calle de la Loma, ya terminada? (para leer el libro prestado de la biblioteca)
+    enTuCasa: (p) => !!p && casaTerminada(r().casa, dia(), horas()) && adentroDeCasa(p.x, p.z),
     // 3.8.3: guardando arriba del sulky, queda donde ibas (al cargar volvía a la punta del camino y vos a mitad de camino)
     paraGuardar: () => { const s = sk(), C = camino(); if (!viaje || !s || !C) return; if (viaje.s <= 0.5 || viaje.s >= C.largo - 0.5) { s.donde = viaje.s > C.largo / 2 ? 'aldea' : 'refugio'; delete s.s; } else { s.s = viaje.s; s.donde = 'camino'; } },
     // la minga del camino (la llama el equipo de las fiestas el día que se hace): { ok, nueva }
