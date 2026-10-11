@@ -323,7 +323,14 @@ export function crearAmorJuego(ctx) {
     // 3.8.4: a la hora de la cita, ¿estaba ocupada con otra invitación? (si nunca pudo esperarte, la cita se cae sin «plantada»)
     // (3.8.6: con vos, haciendo algo juntos, no está ocupada: está con vos)
     // (3.8.6: tomando algo con vos, invitada a tu mesa, también: `ctx.tomandoAlgo`, la invitación de vecindad-juego.js)
-    if (quiere.por === 'cita' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.conVos || (n && ctx.tomandoAlgo?.(n))) cita.juntos = true; else if (n?.enCita) cita.ocupada = true; }
+    // (3.8.7: sólo sentada con vos (charlando o de sobremesa): invitada y todavía yendo a tu mesa, o esperándote, no es «con
+    // vos» todavía: se espera (antes la cita se daba por hecha aunque nunca llegaras a la mesa))
+    if (quiere.por === 'cita' && cita) {
+      const n = ctx.npcDe?.(quiere.clave), fase = n ? ctx.tomandoAlgo?.(n) || null : null;
+      if (n?.conVos || fase === 'charlando' || fase === 'sobremesa') cita.juntos = true;
+      else if (fase) return;
+      else if (n?.enCita) cita.ocupada = true;
+    }
     // (3.8.6: el rato de la cita ya lo pasaron juntos: no se va a esperarte al lugar; cuenta como hecha al terminar la hora)
     if (quiere.por === 'cita' && cita?.juntos && !cita.espero) return;
     if (poner(quiere.clave, quiere.por, quiere.lugar, punto)) {
