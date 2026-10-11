@@ -1289,6 +1289,7 @@ function nota(texto, sub, nueva = false) {
     if (nueva) n.classList.add('nueva');
     n.style.animation = 'none'; void n.offsetWidth; n.style.animation = '';
     clearTimeout(n.__t); n.__t = setTimeout(() => n.remove(), 5600);
+    delete n.dataset.vista;   // (las pruebas marcan las notas ya vistas: la repetida cuenta como nueva)
     return;
   }
   avisosDichos = apilarAviso(avisosDichos, { titulo: texto, texto: sub, hora: progreso?.horas ?? 0, importante: nueva, t: performance.now() });

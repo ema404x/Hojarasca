@@ -200,7 +200,8 @@ export function notaRepetida(visibles, titulo, texto) {
 export function notaASacar(visibles, tope = 4) {
   const lista = Array.isArray(visibles) ? visibles : [];
   if (lista.length <= tope) return -1;
-  const i = lista.findIndex((n) => !n?.importante);
+  // (nunca la última, que es la que acaba de llegar: con cuatro importantes a la vista, una nota nueva se iba al instante)
+  const i = lista.slice(0, -1).findIndex((n) => !n?.importante);
   return i >= 0 ? i : 0;
 }
 

@@ -40,6 +40,7 @@ const funcion = (texto, nombre) => { const i = texto.indexOf(`function ${nombre}
   eq(A.notaASacar(cinco), 1, 'con cinco, se va la más vieja que no es importante (la carta del tren se quedaba sin leer)');
   eq(A.notaASacar([{ importante: true }, { importante: true }, { importante: true }, { importante: true }, { importante: true }]), 0, 'si todas son importantes, la más vieja');
   eq(A.notaASacar([{}, {}, {}, {}]), -1, 'con cuatro no se saca ninguna');
+  eq(A.notaASacar([{ importante: true }, { importante: true }, { importante: true }, { importante: true }, {}]), 0, 'con cuatro importantes, la nota nueva (no importante) no se va al instante: se va la más vieja');
   const nota = funcion(main, 'nota');
   ok(nota.includes('notaRepetida(') && nota.includes('notaASacar(') && nota.includes("querySelectorAll('.nota')"), 'nota() usa las dos y cuenta sólo las notas');
   ok(!/children\.length > 4/.test(nota), 'ya no saca el primer hijo a ciegas (podía ser el «✓ Guardado»)');
