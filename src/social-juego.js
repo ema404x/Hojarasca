@@ -38,6 +38,8 @@ export function crearSocialJuego(ctx) {
   const contexto = (extra = {}) => ({ dia: ctx.dia?.() || 1, hora: ctx.hora?.() || 12, clima: ctx.clima?.() || null, ritmo: ctx.ritmo?.() || 'normal', romance: ctx.romance?.() !== false, nombre: ctx.apodo?.() || null, semilla: semilla++, trucoReal: !!ctx.trucoReal?.(), ...extra });   // (3.7.5: el truco de verdad)
   const dia = () => ctx.dia?.() || 1;
   const claveDe = (npc) => (npc ? ctx.claveDe?.(npc) || null : null);
+  // 3.8.7: el camino de un punto a otro (por las calles de la aldea, si `ctx.camino` lo sabe; si no, derecho)
+  const caminoA = (desde, hasta, cerca) => { const c = seguro(() => ctx.camino?.({ x: desde.x, z: desde.z }, { x: hasta.x, z: hasta.z }, cerca), null); return Array.isArray(c) && c.length ? c : [{ x: hasta.x, z: hasta.z, cerca }]; };
   const ritmo = () => { const r = ctx.ritmo?.(); return r === 'tranquilo' || r === 'animado' ? r : 'normal'; };
 
   // ---------------------------------------------------------------- la rueda
@@ -202,9 +204,12 @@ export function crearSocialJuego(ctx) {
     // camina hacia vos (hasta un par de metros; cerca tuyo gente.js lo frena y te mira) y te saluda con su burbuja
     const origen = { x: mejor.pos.x, z: mejor.pos.z };
     const dx = j.x - origen.x, dz = j.z - origen.z, d = Math.hypot(dx, dz) || 1;
-    mejor.camino = [{ x: j.x - (dx / d) * 1.8, z: j.z - (dz / d) * 1.8, cerca: 0.6 }];
+    // (3.8.7: por las calles y las puertas, no derecho: desde adentro de un local cruzaba la pared)
+    mejor.camino = caminoA(origen, { x: j.x - (dx / d) * 1.8, z: j.z - (dz / d) * 1.8 }, 0.6);
     mejor.__iniciativa = true;
-    pendiente = { npc: mejor, clave: k, r, hasta: reloj + SOCIAL.aburre + d / 0.8, origen, llego: false };
+    let largo = 0, p0 = origen;
+    for (const q of mejor.camino) { largo += dist(p0, q); p0 = q; }
+    pendiente = { npc: mejor, clave: k, r, hasta: reloj + SOCIAL.aburre + Math.max(d, largo) / 0.8, origen, llego: false };
     ctx.mundo?.burbuja(mejor, 'exclamacion', { dur: 3 });
   }
   function revisarIniciativa() {
@@ -229,7 +234,7 @@ export function crearSocialJuego(ctx) {
     if (p.npc) {
       p.npc.__iniciativa = false;
       // vuelve a donde estaba (aldea-gente.js lo deja ahí, mirando para donde miraba)
-      if (volver && p.npc.pos) p.npc.camino = [{ x: p.origen.x, z: p.origen.z }];
+      if (volver && p.npc.pos) p.npc.camino = caminoA(p.npc.pos, p.origen, 0.5);   // (3.8.7: por las calles)
     }
   }
   // ¿Éste te quiere decir algo? (el aviso y la tecla E)
@@ -250,7 +255,7 @@ export function crearSocialJuego(ctx) {
   let vuelve = null;
   function alCerrarCharla(npc) {
     if (!vuelve || vuelve.npc !== npc) return;
-    if (npc?.pos && !(npc.camino && npc.camino.length)) npc.camino = [{ x: vuelve.origen.x, z: vuelve.origen.z }];
+    if (npc?.pos && !(npc.camino && npc.camino.length)) npc.camino = caminoA(npc.pos, vuelve.origen, 0.5);   // (3.8.7: por las calles)
     vuelve = null;
   }
 
