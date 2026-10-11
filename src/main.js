@@ -188,6 +188,7 @@ import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos } from './accesibilidad.js';
 import { crearDesafio } from './desafio.js';
+import { contenidoFortin } from './desafio-fortin.js';
 import { crearBanco } from './desafio-sonidos.js';
 import { fusionarPorMaterial } from './fusion.js';
 import { dibujarLogros, CSS_LOGROS } from './desafio-logros.js';
@@ -761,6 +762,8 @@ async function construir() {
   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
   // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
   if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));
+  // 3.8.7: una partida con algo en el acopio y ningún acopio terminado (de antes de la 3.8.4, o con sólo una marca): vuelve
+  else { const v = vaciarUltimoAcopio(); if (v) setTimeout(() => nota('Lo del acopio volvió a tus cosas', `No quedaba ningún acopio armado: ${v}`), 4000); }
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
@@ -3047,6 +3050,7 @@ document.addEventListener('keydown', (e) => {
       if (modoObra && obras) {
         const r = obras.deshacerEtapa(js.pos, 6);
         if (!r.ok) { nota('Nada que deshacer', r.motivo); break; }
+        dialogos.revisar?.();   // 3.8.7: el cuadro del nombre de esta obra, si estaba abierto o esperando, se cierra
         for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
         progreso.obras = obras.obras.map((o) => o.datos);
         guardar(); sonido.juntar(); refrescarBarra(true);
@@ -4377,7 +4381,9 @@ function totalAcopio() { return CLAVES_MATERIAL.reduce((s, k) => s + (acopio()[k
 // tenía vuelve a tus cosas (`a`: adónde se suma; si no, a la mochila) y devuelve el texto para la nota; si quedan otros
 // acopios, sigue todo ahí como siempre. null si no había nada o si queda otro acopio.
 function vaciarUltimoAcopio(a = null) {
-  if ((obras?.obras || []).some((o) => o.plano?.funciones?.includes('acopio'))) return null;
+  // 3.8.7: sólo cuentan los terminados: una marca de acopio sin hacer (fundada sin material) dejaba lo guardado sin poder
+  // usarse hasta terminar otro
+  if ((obras?.obras || []).some((o) => o.plano?.funciones?.includes('acopio') && o.datos.etapas >= o.plano.etapas.length)) return null;
   const g = acopio(), partes = [];
   for (const k of CLAVES_MATERIAL) {
     const n = Math.max(0, Math.floor(Number(g[k]) || 0));
@@ -5991,8 +5997,11 @@ function dibujarPanelObra() {
 // 3.5.1: antes era window.prompt, que Electron no tiene: tiraba "prompt() is not supported" y la
 // obra se quedaba sin nombre. Ahora es un cuadro del juego (dialogo.js).
 async function pedirNombre(obra) {
-  const puesto = await dialogos.pedirTexto('¿Cómo le vas a poner?', obra.datos.nombre || obra.plano.nombre, { max: 28 });
-  if (puesto === null || reiniciandoPartida || !obras.obras.includes(obra)) return;
+  // 3.8.7: si la obra se deshace (o se pierde) antes de nombrarla, el cuadro se cierra sin guardar: el nombre quedaba en una
+  // obra a medias y salía en el mapa
+  const vigente = () => !reiniciandoPartida && obras.obras.includes(obra) && obra.datos.etapas >= obra.plano.etapas.length;
+  const puesto = await dialogos.pedirTexto('¿Cómo le vas a poner?', obra.datos.nombre || obra.plano.nombre, { max: 28, vigente });
+  if (puesto === null || !vigente()) return;
   const nombre = puesto.trim().slice(0, 28);
   obra.datos.nombre = nombre || obra.plano.nombre;
   // 3.8.6: ya no se anota en T.lugares: el mapa la dibuja desde la obra (salía dos veces, y si la deshacías el nombre
@@ -6134,6 +6143,8 @@ function devolverContenido(d) {
   // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
   // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
   if (d.coccion) devolverCoccion(d.coccion);
+  // 3.8.7: y lo cargado en las piezas del fortín (los troncos de la rampa y la zanja, la resina, las piedras de la catapulta)
+  { const f = contenidoFortin(d); if (f.tronco) sumarMaterial('tronco', f.tronco); if (f.piedra) sumarMaterial('piedra', f.piedra); }
   // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
   // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
   // todavía no está se lo lleva el cantero, como siempre)
@@ -6402,7 +6413,7 @@ function fogonPropioCerca() {
   const js = jugador.estado;
   let mejor = null, d0 = 3.4;
   for (const o of obras.obras) {
-    if (!o.plano.fuego || o.datos.etapas < o.plano.etapas.length) continue;
+    if (!o.plano.fuego || o.datos.etapas < o.plano.etapas.length || o === obras.editando) continue;   // 3.8.7: (la que movés no se prende)
     const dy = Math.abs(js.pos.y - (o.datos.y ?? js.pos.y));
     if (dy > 1.55) continue;
     const d = Math.hypot(js.pos.x - o.datos.x, js.pos.z - o.datos.z, dy * 0.45);
@@ -6610,7 +6621,9 @@ function actualizarTendales() {
 // La colmena, el ahumadero, el vivero y la leñera guardan su estado en la obra, como el
 // tendal (ver `datosDe`). Una sola función encuentra la más cercana de cada tipo.
 const obraTerminada = (o) => o.datos.etapas >= o.plano.etapas.length;
-const obrasTerminadas = (id) => (obras?.obras || []).filter((o) => o.plano.id === id && obraTerminada(o));
+// 3.8.7: sin la que estás moviendo con Shift+Y (invisible y sin física): el molino seguía girando su rueda sola en el
+// arroyo y moliendo, la sierra y el mástil quedaban en el aire (como obraQueTrabajaCerca desde la 3.8.6)
+const obrasTerminadas = (id) => (obras?.obras || []).filter((o) => o.plano.id === id && obraTerminada(o) && o !== obras.editando);
 const OBRAS_QUE_TRABAJAN = ['colmena', 'ahumadero', 'vivero', 'lenera', 'horno', 'buzon', 'embarcadero', 'bebedero'];
 function obraQueTrabajaCerca(radio = 2.6) {
   const js = jugador.estado;
@@ -6881,7 +6894,8 @@ function usarMaquina(o) {
     } else if (r.accion === 'cargar') {
       sumarEntrada('haba', -r.habas);
       sonido.juntar();
-      nota(`Echaste ${r.habas} habas a la muela`, `Dos habas, una medida de harina: hora y media cada una`, true);
+      nota(`Echaste ${r.habas === 1 ? 'una haba' : `${r.habas} habas`} a la muela`,   // 3.8.7: «Echaste 1 habas»
+        `Dos habas, una medida de harina: hora y media cada una`, true);
     } else if (r.accion === 'moliendo') nota('La muela está moliendo', faltanHoras(r.faltan));
     else {
       const n = obrasTerminadas('aserradero').filter((a) => molinoQueMueve(a.datos, [o.datos])).length;
@@ -7118,7 +7132,7 @@ function fuegosDeObra() {
   const salida = [];
   for (const fg of clima.fogatas) {
     if (!fg.activa || !(fg.vida > 0) || !fg.contenida) continue;
-    const o = obras.obras.find((x) => x.plano.fuegoContenido && Math.hypot(x.datos.x - fg.pos.x, x.datos.z - fg.pos.z) < 0.3);
+    const o = obras.obras.find((x) => x.plano.fuegoContenido && x !== obras.editando && Math.hypot(x.datos.x - fg.pos.x, x.datos.z - fg.pos.z) < 0.3);
     if (o && !salida.includes(o)) salida.push(o);
   }
   return salida;
@@ -7139,7 +7153,9 @@ function actualizarCasaViva(dt) {
   }
   ventanasMundo?.actualizar(lista, brillo);
   refrescarCorral();
-  const emb = obrasTerminadas('embarcadero').length;
+  // 3.8.7: contando el que se mueve (si no, al dejarlo con Shift+Y «aparecía» uno nuevo y se llevaba el kayak, que ya se
+  // muda con su embarcadero en mudarDatosDeObra)
+  const emb = (obras?.obras || []).filter((o) => o.plano.id === 'embarcadero' && obraTerminada(o)).length;
   if (embarcaderosVistos >= 0 && emb > embarcaderosVistos && amarrarKayak()) nota('El kayak quedó amarrado en tu embarcadero', 'Desde la punta también se pesca', true);
   embarcaderosVistos = emb;
 }
@@ -8517,7 +8533,7 @@ let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
-let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
+let cacheGranja = null, versionObrasInteraccion = -1;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
 const sujetosPerro = [];
@@ -9274,7 +9290,10 @@ function cuadroDelJuego(tRaf, manual) {
     }
     acumuladoBuscar += dt;
     acumuladoInteraccion += dt;
-    const movioInteraccion = Math.hypot(js.pos.x - posInteraccion.x, js.pos.z - posInteraccion.z) > 0.4 || Math.abs(js.pos.y - posInteraccion.y) > 0.35;
+    // 3.8.7: o si cambió alguna obra (desmontada, movida, deshecha, volteada): el aviso y la E van juntos en el momento
+    const cambioObras = !!obras && obras.version !== versionObrasInteraccion;
+    if (cambioObras) versionObrasInteraccion = obras.version;
+    const movioInteraccion = cambioObras || Math.hypot(js.pos.x - posInteraccion.x, js.pos.z - posInteraccion.z) > 0.4 || Math.abs(js.pos.y - posInteraccion.y) > 0.35;
     if ((acumuladoInteraccion >= 0.10 && acumuladoInteraccion >= presupuestoAdaptativo.intervalo(0.10, 1.45)) || movioInteraccion) {
       acumuladoInteraccion = 0; posInteraccion.copy(js.pos);
       // 3.8.7: el fogón tuyo de acá, si no arde ya (con varios fuegos, otro prendido en otro lado no lo tapa)

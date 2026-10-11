@@ -36,6 +36,15 @@ export function crearGranjaJuego(ctx) {
   const lugarDe = (o) => ({ x: o.datos.x, z: o.datos.z, rot: o.datos.rot || 0, y: o.datos.y });
   const terminadas = (id) => (ctx.obras?.() || []).filter((o) => o.plano?.id === id && ctx.terminada(o));
   let cache = null;
+  // 3.8.7: la firma de las obras de la granja (dónde están y cuánto les falta): si cambió (desmontaste el chiquero, moviste el
+  // tambo) lo de la granja se rehace en el momento; antes esperaba el medio segundo y el aviso seguía ofreciendo la batea
+  const IDS_GRANJA = ['tambo', 'chiquero', 'paridera', 'frutal'];
+  function firmaGranja() {
+    let s = 0;
+    for (const o of ctx.obras?.() || []) if (IDS_GRANJA.includes(o.plano?.id)) s += 1 + (o.datos.etapas || 0) * 0.37 + (o.datos.x || 0) * 0.013 + (o.datos.z || 0) * 0.017;
+    return s;
+  }
+  const vigente = () => (cache && cache.firma === firmaGranja() ? cache : refrescar());
   // Lo que hay construido: el tambo y el chiquero (el más cercano a donde vive el animal, si hay más de uno), la
   // paridera junto al corral y los hoyos de frutal.
   function lugares() {
@@ -67,7 +76,7 @@ export function crearGranjaJuego(ctx) {
       frutales.push({ clave: k, x: o.datos.x, z: o.datos.z, rot: o.datos.rot || 0, y: o.datos.y, estado: estadoFrutal(g.frutales[k], d, h, estacionFrutal()) });
     }
     for (const k of Object.keys(g.frutales)) if (!vivos.has(k)) delete g.frutales[k];
-    cache = { ...L, frutales };
+    cache = { ...L, frutales, firma: firmaGranja() };
     ctx.mundo?.sincronizar({ granja: g, dia: d, tambo: L.tambo, chiquero: L.chiquero, corral: L.corral, paridera: L.paridera, frutales });
     return cache;
   }
@@ -98,7 +107,7 @@ export function crearGranjaJuego(ctx) {
     if (!activo()) return;
     reloj -= dt; relojDia -= dt;
     if (relojDia <= 0) { relojDia = 1; avanzar(); }
-    if (reloj <= 0 || !cache) { reloj = 0.5; refrescar(); }
+    if (reloj <= 0 || !cache || cache.firma !== firmaGranja()) { reloj = 0.5; refrescar(); }
     const js = ctx.jugador?.();
     if (js && ctx.mundo) ctx.mundo.actualizar(dt, horas(), js.pos, ctx.ovejas?.() || []);
   }
@@ -219,7 +228,7 @@ export function crearGranjaJuego(ctx) {
         }
       }
     }
-    const L = cache || refrescar();
+    const L = vigente();
     if (!L) return mirar;
     // 3. el comedero del tambo
     if (L.tambo) {
@@ -244,7 +253,7 @@ export function crearGranjaJuego(ctx) {
 
   // ---------------------------------------------------------------- los trueques en la charla
   function obrasCtx() {
-    const L = cache || refrescar() || {};
+    const L = vigente() || {};
     return { tambo: !!L.tambo, chiquero: !!L.chiquero, lugarTambo: L.tambo, lugarChiquero: L.chiquero };
   }
   function opciones(clave) {
@@ -282,7 +291,7 @@ export function crearGranjaJuego(ctx) {
   return {
     actualizar, accion, opciones, elegir, refrescar, avanzar, granja, alDesarmarHoyo,
     // para las pruebas
-    ordenarVaca, echarFardoAlComedero, echarALaBatea, usarFrutal, carnearYa, pedirCarnear, lugares: () => cache || refrescar(),
+    ordenarVaca, echarFardoAlComedero, echarALaBatea, usarFrutal, carnearYa, pedirCarnear, lugares: () => vigente(),
     frutales: () => granja().frutales, pendiente: () => pendiente,
   };
 }

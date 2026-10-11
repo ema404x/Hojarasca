@@ -156,7 +156,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   const devueltos = [];
   const ui = crearEventosValleUi({
     progreso: () => ({ dia: 3, horas: 10, materiales: {}, cosas: {}, eventosValle: null }), extra: () => ({}),
-    obras: () => ({ obras: lista, bajoCubierta: () => null, destruir: (o) => { lista.splice(lista.indexOf(o), 1); return [o]; } }),
+    obras: () => ({ obras: lista, bajoCubierta: () => null, destruir: (o) => { lista.splice(lista.indexOf(o), 1); return [o]; }, recuperaDeObra: () => ({}) }),   // (3.8.7: lo que vuelve, como al desarmar)
     sumarMaterial: () => {}, sincronizarObras: () => {}, devolverContenido: (caidas) => { devueltos.push(...caidas.map((c) => c.datos)); return null; },
   }, { mostrar() {}, cerrar() {}, abierta: () => false });
   const r = ui.voltear();

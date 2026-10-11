@@ -129,7 +129,9 @@ export function crearPuertas(T, escena, col, sonido) {
 
   // 3.0.1: `adentro`: la hoja se abre hacia adentro (en las cabañas, abierta hacia la
   // galería cortaba el paso: la mitad de la galería y el banco quedaban del otro lado)
-  function agregar({ sitio, rot, lx, lz, ancho = 0.95, alto = 1.95, lado = 1, tipo = 'campo', nombre = 'la puerta', duenio = null, adentro = false }) {
+  // 3.8.7: `abierta` (nace abierta) y `alCambiar(abierta)`: las de tus obras guardan si quedaron abiertas (antes, al cargar o
+  // al reforzar el portón, se cerraban solas)
+  function agregar({ sitio, rot, lx, lz, ancho = 0.95, alto = 1.95, lado = 1, tipo = 'campo', nombre = 'la puerta', duenio = null, adentro = false, abierta = false, alCambiar = null }) {
     const g = new THREE.Group();
     const w = (a, b) => ({
       x: sitio.x + a * Math.cos(rot) + b * Math.sin(rot),
@@ -151,8 +153,9 @@ export function crearPuertas(T, escena, col, sonido) {
     const puerta = {
       g, nombre, ancho, alto, lado, abierta: 0, objetivo: 0,
       x: centro.x, z: centro.z, rot, y: y + (sitio.piso || 0),
-      col: null, ruido: 0, duenio, adentro: !!adentro,
+      col: null, ruido: 0, duenio, adentro: !!adentro, alCambiar: typeof alCambiar === 'function' ? alCambiar : null,
     };
+    if (abierta === true) { puerta.abierta = puerta.objetivo = 1; g.rotation.y = rot - (puerta.adentro ? -1 : 1) * lado * 1.75; }
     // mientras está cerrada, la puerta choca
     // 3.0.1: radio 0,07 (la hoja tiene 6 cm): con 0,14 se comía 14 cm de cada vano del
     // lado de la bisagra, y del otro lado no se veía nada que frenara
@@ -227,6 +230,7 @@ export function crearPuertas(T, escena, col, sonido) {
   function accionar(puerta) {
     if (!puerta) return;
     puerta.objetivo = puerta.objetivo > 0.5 ? 0 : 1;
+    puerta.alCambiar?.(puerta.objetivo > 0.5);   // 3.8.7
     if (puerta.postigo && sonido) {
       sonido.bisagra({ x: puerta.x, y: puerta.y, z: puerta.z });
       return;

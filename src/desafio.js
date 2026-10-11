@@ -561,7 +561,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
 
   // ---------------- obras: resistencia, bloqueo y línea de visión
   const scratchObras = [];
-  function completa(o) { return o.datos.etapas > 0; }
+  function completa(o) { return o.datos.etapas > 0 && o !== obras.editando; }   // 3.8.7: la que estás moviendo con Shift+Y (invisible y sin física) no cuenta: tiraba, frenaba flechas y se disparaba en el lugar viejo
   function vidaDe(o) {
     const max = vidaMaxObra(o.plano, o.datos.etapas);
     if (!Number.isFinite(o.datos.vida)) o.datos.vida = max;
@@ -1658,7 +1658,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (!o) return { ok: false, motivo: 'no hay nada dañado cerca' };
       const { vida, max } = vidaDe(o);
       const c = costoReparacion(o.plano, vida, max);
-      if (ctx.cuanto(c.material) < c.cantidad) return { ok: false, motivo: `faltan ${c.cantidad} ${c.material === 'piedra' ? 'piedras' : 'troncos'}`, costo: c };
+      // 3.8.7: con el nombre de cada material (la red dorada se repara con semillas doradas), y de a uno en singular
+      if (ctx.cuanto(c.material) < c.cantidad) return { ok: false, motivo: `${c.cantidad === 1 ? 'falta' : 'faltan'} ${c.cantidad} ${(c.cantidad === 1 ? NOMBRE_UNO[c.material] : NOMBRE[c.material]) || c.material}`, costo: c };
       return { ok: true, obra: o, costo: c };
     }
     if (r.reforzar) {
@@ -1682,6 +1683,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     let mejor = null, peor = 1;
     for (const o of obras.obrasCerca(js.pos, 8, [])) {
       if (!completa(o) || !Number.isFinite(o.datos.vida)) continue;
+      // 3.8.7: los abrojos se gastan y no se reparan: con piedra quedaban enteros y al juntarlos devolvían la semilla dorada
+      // entera (cada noche, tres piedras se volvían una semilla; lo que la 3.5.1 quiso cortar)
+      if (o.plano.defensa?.tipo === 'abrojos') continue;
       const { vida, max } = vidaDe(o);
       const f = vida / max;
       if (f < peor - 1e-3 && Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z) < 6) { peor = f; mejor = o; }

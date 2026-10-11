@@ -91,7 +91,7 @@ const c = (n, palo) => ({ n, palo });
   ctx.cantidadMaterial = (n, k) => `${n} ${ctx.MATERIALES[k]?.nombre || k}`;   // (3.8.6: main.js arma el texto con cantidadMaterial de construccion.js)
   vm.createContext(ctx);
   vm.runInContext(`function acopio() { return progreso.acopio; } function sumarMaterial(k, n) { sumados[k] = (sumados[k] || 0) + n; } ${codigo} this.f = vaciarUltimoAcopio;`, ctx);
-  ctx.obras.obras = [{ plano: { funciones: ['acopio'] } }];
+  ctx.obras.obras = [{ plano: { funciones: ['acopio'], etapas: [{}] }, datos: { etapas: 1 } }];   // (3.8.7: terminado)
   ok(ctx.f() === null && ctx.progreso.acopio.tronco === 3, 'si queda otro acopio, lo guardado sigue ahí');
   ctx.obras.obras = [];
   eq(ctx.f(), '3 troncos · 2 tablas', 'desarmado el último: la nota dice qué volvió');

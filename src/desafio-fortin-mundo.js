@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import {
   FORTIN, PAREDES, HELABLES, CON_RESINA, pasaPorTronera, factorPared, heladaActiva, usarResina, avisoResina,
-  blancoCatapulta, tiroParabolico, enElHaz, rumboEspejo, destinoEmbudo, recargaArmero, usarRampa, avisoRampa, sanearDatosFortin,
+  blancoCatapulta, tiroParabolico, enElHaz, rumboEspejo, destinoEmbudo, recargaArmero, usarRampa, avisoRampa, sanearDatosFortin, PIEDRAS_DE_REGALO,
 } from './desafio-fortin.js';
 import { QUEMA } from './desafio-arsenal.js';
 import { ESTILO, LLAMAS } from './estilo-casa.js';
@@ -18,7 +18,7 @@ const enTierra = (a, T) => a.estado !== 'bajar' && (!a.def.vuela || a.m.g.positi
 
 export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas) {
   const tipoDe = (o) => o.plano.defensa?.tipo;
-  const completa = (o) => o.datos.etapas >= o.plano.etapas.length;
+  const completa = (o) => o.datos.etapas >= o.plano.etapas.length && o !== obras.editando;   // 3.8.7: la que estás moviendo con Shift+Y (invisible y sin física) no cuenta: tiraba, frenaba flechas y se disparaba en el lugar viejo
   // de local (de la pieza) a mundo, con la convención de construccion.js
   const aMundo = (o, lx, lz) => {
     const r = o.datos.rot || 0, c = Math.cos(r), s = Math.sin(r);
@@ -46,7 +46,7 @@ export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, de
     }
     for (const o of L.troncos) if (o.datos.armada === undefined) o.datos.armada = true;
     for (const o of L.lazo) if (o.datos.armada === undefined) o.datos.armada = true;
-    for (const o of L.catapulta) if (o.datos.piedras === undefined) o.datos.piedras = 4;
+    for (const o of L.catapulta) if (o.datos.piedras === undefined) o.datos.piedras = PIEDRAS_DE_REGALO;
     // lo que se rompió, se desarmó o se está moviendo: fuera la física del puente, el hielo y los mapas
     for (const o of conPuente) if (!L.puente.includes(o)) { col.eliminarPorDuenio?.(o.userPuente.duenio); o.userPuente.estado = null; conPuente.delete(o); }
     for (const o of conHielo) if (!paredes.includes(o)) quitarHielo(o);

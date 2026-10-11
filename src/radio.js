@@ -60,8 +60,10 @@ export function radioNueva() { return { dia: 0, oidos: [], pedido: null, hechos:
 export function sanearRadio(r) {
   const x = r && typeof r === 'object' && !Array.isArray(r) ? r : {};
   const ids = (v) => (Array.isArray(v) ? [...new Set(v.filter((k) => typeof k === 'string' && IDS.has(k)))] : []);
-  const ultimo = x.ultimo && typeof x.ultimo === 'object' && typeof x.ultimo.texto === 'string' && typeof x.ultimo.de === 'string'
-    ? { de: x.ultimo.de.slice(0, 60), texto: x.ultimo.texto.slice(0, 400) } : null;
+  // 3.8.7: `de` puede ser null (la estática); el «Estática» de las partidas viejas también es nadie
+  const deUltimo = typeof x.ultimo?.de === 'string' && x.ultimo.de !== 'Estática' ? x.ultimo.de.slice(0, 60) : null;
+  const ultimo = x.ultimo && typeof x.ultimo === 'object' && typeof x.ultimo.texto === 'string' && (typeof x.ultimo.de === 'string' || x.ultimo.de === null)
+    ? { de: deUltimo, texto: x.ultimo.texto.slice(0, 400) } : null;
   return {
     dia: Math.max(0, Math.floor(Number(x.dia) || 0)),
     oidos: ids(x.oidos),
@@ -136,7 +138,8 @@ export function escucharRadio(r, ctx = {}) {
   if (!m && tiempo) m = tiempo;
   if (!m) m = { de: null, texto: 'Estática. Alguien silba una chacarera muy lejos y se corta.' };
   const quien = m.de ? nombreEstacionRadio(m.de) : null;
-  r.ultimo = { de: quien || 'Estática', texto: m.texto };
+  // 3.8.7: sin nadie, `de` queda null (era «Estática», y al repetirse salía «Estática: «Estática. Alguien silba…»»)
+  r.ultimo = { de: quien, texto: m.texto };
   return { de: quien, texto: m.texto, pedido: m.pedido || null, nuevo: true };
 }
 

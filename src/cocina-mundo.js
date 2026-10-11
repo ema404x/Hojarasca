@@ -444,7 +444,8 @@ export function crearCocinaMundo(ctx) {
       const lista = alacenaDe(ctx.progreso());
       const firma = lista.map((x) => `${x.id}:${Math.min(4, x.n)}`).join(',');
       if (firma !== firmaLista) { firmaLista = firma; listaAlacena = lista; }
-      const obrasAlacena = (ctx.obras?.()?.obras || []).filter((o) => o.plano.id === 'alacena' && o.datos.etapas >= o.plano.etapas.length);
+      // 3.8.7: sin la que estás moviendo con Shift+Y (lo de los estantes quedaba a la vista en el lugar viejo)
+      const O = ctx.obras?.(), obrasAlacena = (O?.obras || []).filter((o) => o.plano.id === 'alacena' && o.datos.etapas >= o.plano.etapas.length && o !== O.editando);
       const vivasA = new Set(obrasAlacena.map((o) => o.datos));
       for (const [d, a] of alacenas) if (!vivasA.has(d)) { if (a.malla) { raiz.remove(a.malla); a.malla.geometry.dispose(); } alacenas.delete(d); }
       for (const o of obrasAlacena) {

@@ -39,7 +39,7 @@ const PAGINA = String.raw`(() => {
   };
   const pend = (x, z) => Math.acos(Math.max(-1, Math.min(1, T.normal(x, z).y)));
   A.buscarSitio = (id, pmin = 0, pmax = 0.05, rot = 0) => {
-    const p = A.PL(id), r0 = T.lugares.refugio;
+    const p = A.PL(id).soloMejora ? A.PL(A.PL(id).mejoraDe) : A.PL(id), r0 = T.lugares.refugio;
     for (let r = 30; r < 260; r += 3.1) {
       const n = Math.max(8, Math.round(2 * Math.PI * r / 3.1));
       for (let k = 0; k < n; k++) {
@@ -76,12 +76,13 @@ const PAGINA = String.raw`(() => {
   };
   A.construir = (id, x, z, rot = 0, ref = null) => {
     A.materiales();
-    const p = A.PL(id);
+    const p0 = A.PL(id), p = p0.soloMejora ? A.PL(p0.mejoraDe) : p0;   // 3.8.7: lo reforzado no se funda: se arma lo de antes y se refuerza
     O.elegir(p);
     const f = O.fundar(x, z, rot, ref);
     if (!f.ok) { O.elegir(null); return { ok: false, error: f.motivo }; }
     const etapas = [];
     for (let g = 0; g < 12 && f.obra.datos.etapas < f.obra.plano.etapas.length; g++) { const q = O.avanzar(f.obra, H.progreso.materiales); etapas.push(q.ok || q.motivo); if (!q.ok) break; }
+    if (p0 !== p && f.obra.datos.etapas >= f.obra.plano.etapas.length) O.reemplazarPlano(f.obra, p0.id);
     O.elegir(null);
     H.progreso.obras = O.obras.map((o) => o.datos);
     (A.ocupados = A.ocupados || []).push({ x: f.obra.datos.x, z: f.obra.datos.z });

@@ -65,7 +65,9 @@ export function crearTirolesas(T, escena, col, veg, sonido, ctx = {}) {
   guia.visible = false;
   escena.add(guia);
 
-  const terminadas = (id) => (ctx.obras?.()?.obras || []).filter((o) => o.plano.id === id && o.datos.etapas >= o.plano.etapas.length);
+  // 3.8.7: sin el poste o el estribo que estás moviendo con Shift+Y: el cable y el puente quedaban tendidos (y caminables)
+  // hacia una punta invisible, y la guía salía de la misma pieza en su lugar viejo. La firma cambia sola al agarrarlo.
+  const terminadas = (id) => { const O = ctx.obras?.(); return (O?.obras || []).filter((o) => o.plano.id === id && o.datos.etapas >= o.plano.etapas.length && o !== O.editando); };
   // el suelo, o el agua si está más alta
   const suelo = (x, z) => { const h = T.altura(x, z), a = T.agua(x, z); return a ? Math.max(h, a.nivel) : h; };
   function arbolEn(ax, az, bx, bz, margen) {

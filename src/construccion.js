@@ -880,6 +880,8 @@ const PIEZAS = [
     pide: { tronco: 4, tabla: 6 }, pendienteMax: 0.45,
     // la escalera arranca en el suelo: en una falda quedaría colgando (ver revisarSitio)
     pieEscalera: { lz: -3.3, tolerancia: 0.28 },
+    // 3.8.7: la escalera queda fuera de la huella (ancho × fondo): sin esto se armaba una pared encima (ver huellasExtra)
+    huellasExtra: [{ lx: 0, lz: -2.05, ancho: 0.9, fondo: 2.9 }],
     // 2.6: los tiros pasan por debajo de la pasarela (ver desafio-fortin-mundo.js)
     soloArriba: 1.85,
     fisica(h) {
@@ -1648,7 +1650,7 @@ const PIEZAS = [
     radio: 1.6, ancho: 3.0, fondo: 1.2, alto: 1.2, separacion: 0.4, vida: 140,
     texto: 'Hilos tensados con polvo de semilla dorada: los duendes que la cruzan avanzan a un tercio de su velocidad.',
     pide: { cristal: 2, tabla: 2 }, pendienteMax: 0.6, distSendero: 0,
-    defensa: { tipo: 'red', radio: 1.6, freno: 0.3, desgaste: 2 },
+    defensa: { tipo: 'red', radio: 1.6, freno: 0.3, desgaste: 2 }, reparaCon: 'cristal',   // 3.8.7: se repara con semillas doradas
     arma(c) {
       for (const x of [-1.4, 0, 1.4]) c.agregar(new THREE.CylinderGeometry(0.04, 0.05, 1.1, 5), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([x, 0.5, 0]) });
       for (let i = 0; i < 4; i++) c.agregar(new THREE.CylinderGeometry(0.01, 0.01, 2.9, 3), { color: '#7dfff0', tipo: 4, variar: 0,
@@ -1754,6 +1756,8 @@ const PIEZAS = [
     texto: 'Un tablero de 3,5 m con bisagra y manivela, para poner sobre el foso. Con E lo subís (es una pared) o lo bajás (se camina por encima).',
     pide: { tronco: 4, tabla: 6, piedra: 2 }, pendienteMax: 0.5, distSendero: 0,
     defensa: { tipo: 'puente' },
+    // 3.8.7: el tablero bajado (3,5 m hacia adelante, ver desafio-fortin-mundo.js) no puede caer sobre una pared tuya
+    huellasExtra: [{ lx: 0, lz: 2.05, ancho: 2.0, fondo: 3.5 }],
     arma(c) {
       for (const x of [-1.05, 1.05]) c.agregar(new THREE.CylinderGeometry(0.13, 0.15, 3.8, 7), { color: MADERA_OSCURA, tipo: 0, variar: 0.1, matriz: matriz([x, 1.9, 0]) });
       c.agregar(new THREE.CylinderGeometry(0.08, 0.08, 2.2, 6), { color: MADERA, tipo: 0, matriz: matriz([0, 3.6, 0], [0, 0, Math.PI / 2]) });
@@ -1963,7 +1967,7 @@ const PIEZAS = [
     // sin física: es un agujero, no una pared. Lo que hace es lastimar al que lo cruza.
   },
   {
-    id: 'porton-reforzado', nombre: 'Portón con tranca', pieza: true, soloDesafio: true, soloMejora: true, categoria: 'defensa', porton: true,
+    id: 'porton-reforzado', nombre: 'Portón con tranca', pieza: true, soloDesafio: true, soloMejora: true, mejoraDe: 'porton-empalizada', categoria: 'defensa', porton: true,
     radio: 1.9, ancho: 3.1, fondo: 0.6, alto: 2.9, separacion: 0.4, vida: 760,
     snap: { tipo: 'linea', familia: 'empalizada', largo: 3.1, umbral: 1.0 },
     texto: 'El portón con marco de piedra, chapa de tablas cruzadas y una tranca gruesa atravesada. Aguanta el doble y se sigue abriendo con E.',
@@ -1989,7 +1993,7 @@ const PIEZAS = [
     },
   },
   {
-    id: 'empalizada-reforzada', nombre: 'Empalizada reforzada', pieza: true, soloDesafio: true, soloMejora: true, categoria: 'defensa',
+    id: 'empalizada-reforzada', nombre: 'Empalizada reforzada', pieza: true, soloDesafio: true, soloMejora: true, mejoraDe: 'empalizada', categoria: 'defensa',
     radio: 1.9, ancho: 3.1, fondo: 0.7, alto: 2.8, separacion: 0.4, vida: 600,
     snap: { tipo: 'linea', familia: 'empalizada', largo: 3.1, umbral: 1.0 },
     texto: 'Empalizada con base de piedra y zunchos: casi el doble de resistente.',
@@ -2007,7 +2011,7 @@ const PIEZAS = [
     fisica(h) { h.segmento(-1.55, 0, 1.55, 0, 0.28, -0.1, 2.8); },
   },
   {
-    id: 'muro-almenado', nombre: 'Muro almenado', pieza: true, soloDesafio: true, soloMejora: true, categoria: 'defensa',
+    id: 'muro-almenado', nombre: 'Muro almenado', pieza: true, soloDesafio: true, soloMejora: true, mejoraDe: 'muro-piedra', categoria: 'defensa',
     radio: 1.9, ancho: 3.0, fondo: 1.0, alto: 2.5, separacion: 0.3, vida: 1150,
     snap: { tipo: 'linea', familia: 'muro-piedra', largo: 3.0, umbral: 1.0 },
     texto: 'La pirca levantada y rematada en almenas. Lo más duro que se puede construir con piedra y tabla.',
@@ -2278,6 +2282,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   const obrasCerca = (pos, radio, salida = consultaObras) => indiceObras.consultar(pos.x, pos.z, radio, salida);
   let fantasma = null, planoElegido = null, giroFantasma = 0, rotacionFantasma = null;
   let ultimoEstado = null, snapActivo = true, edicion = null;
+  // 3.8.7: sube cada vez que cambia alguna obra (se arma, se rehace, se mueve, se retira): main.js rehace con esto lo que
+  // ofrece el aviso en el momento (si no, el aviso de lo desmontado seguía hasta un segundo y medio, y E ya no lo hacía)
+  let version = 0;
 
   function geometriaDe(plano, etapasHechas, datos = null) {
     const c = new Constructor();
@@ -2596,6 +2603,22 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     return vecinoX || vecinoZ;
   }
 
+  // 3.8.7: lo que una pieza ocupa fuera de su huella (la escalera del adarve, el tablero bajado del puente levadizo) no
+  // se cruza con lo alto que está en el suelo (paredes, torres, trampas); lo bajo (el foso, la losa, la zanja) sí: el
+  // puente se tiende sobre el foso.
+  function extrasDe(plano, x, z, rot) {
+    return (plano.huellasExtra || []).map((e) => ({ p: { ancho: e.ancho, fondo: e.fondo }, ...mundoDesdeLocal(x, z, rot, e.lx, e.lz) }));
+  }
+  const cuerpoAlto = (p) => (p.alto ?? 1) > 0.6 && !p.cubreOtras;
+  function chocaHuellaExtra(plano, x, z, rot, base, o) {
+    const or = o.datos.rot || 0, oy = Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z);
+    if (plano.huellasExtra && cuerpoAlto(o.plano) && oy - T.altura(o.datos.x, o.datos.z) < 0.15 &&
+        extrasDe(plano, x, z, rot).some((e) => solapanHuellas(e.p, e.x, e.z, rot, o.plano, o.datos.x, o.datos.z, or, 0.1))) return true;
+    if (o.plano.huellasExtra && cuerpoAlto(plano) && base - T.altura(x, z) < 0.15 &&
+        extrasDe(o.plano, o.datos.x, o.datos.z, or).some((e) => solapanHuellas(plano, x, z, rot, e.p, e.x, e.z, or, 0.1))) return true;
+    return false;
+  }
+
   function muestrasHuella(x, z, plano, rot) {
     const hw = Math.max(0.45, (plano.ancho || plano.radio * 1.5) / 2 * 0.88);
     const hd = Math.max(0.45, (plano.fondo || plano.radio * 1.5) / 2 * 0.88);
@@ -2650,6 +2673,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   // por lo que una pieza chica y un cobertizo grande recibían la misma prueba.
   function revisarSitio(x, z, plano, rot = 0, ignorarObra = null, baseObjetivo = null, alturaReferencia = null) {
     if (!plano) return { ok: false, motivo: 'Elegí un plano primero' };
+    // 3.8.7: lo que sólo sale de mejorar una pieza (el portón con tranca, la empalizada reforzada, el muro almenado) no se
+    // funda de cero: con X o después de moverlo con Shift+Y quedaba elegido y Y armaba otro pagando sólo la mejora
+    if (plano.soloMejora && !ignorarObra) return { ok: false, motivo: 'Se hace reforzando la pieza de antes' };
     // 3.6.1: donde no se construye (en el Relax, la Aldea de los Duendes: ver main.js)
     const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, plano.radio || 1) : null;
     if (reservado) return { ok: false, motivo: reservado };
@@ -2752,6 +2778,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       for (const o of obras) {
         if (o === ignorarObra || o.datos.etapas <= 0) continue;
         const d = Math.hypot(o.datos.x - x, o.datos.z - z);
+        if (!sobrePlataforma && chocaHuellaExtra(plano, x, z, rot, base, o)) return { ok: false, motivo: 'Se superpone con otra pieza' };   // 3.8.7
         // Una pared o mueble colocado sobre un piso modular puede solaparse en
         // planta con ese soporte: la altura de base ya demuestra que está encima.
         if (sobrePlataforma && o.plano.soportaPiezas) continue;
@@ -2797,6 +2824,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
         const suelo = T.altura(o.datos.x, o.datos.z);
         if ((Number.isFinite(o.datos.y) ? o.datos.y : suelo) - suelo > 0.15) continue;
         if (solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Queda encima de otra obra tuya' };
+        if (chocaHuellaExtra(plano, x, z, rot, base, o)) return { ok: false, motivo: 'Queda encima de otra obra tuya' };   // 3.8.7: la escalera, el tablero
         continue;
       }
       const minimo = plano.radio + (o.plano.radio || 4) + 2.0;
@@ -3082,17 +3110,19 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     });
   }
 
+  // 3.8.7: abierta o cerrada se guarda con la obra (datos.abierto) y sobrevive a rehacerla (reforzar el portón, moverla, cargar)
+  const puertaGuardada = (obra) => ({ abierta: obra.datos.abierto === true, alCambiar: (a) => { if (a) obra.datos.abierto = true; else delete obra.datos.abierto; } });
   function registrarInteraccionesPremium(obra) {
     if (!interacciones || obra.datos.etapas < obra.plano.etapas.length) return;
     const sitio = { x: obra.datos.x, y: obra.datos.y, z: obra.datos.z, piso: 0 };
     if ((obra.plano.id === 'pared-puerta' || obra.plano.id === 'tabique-puerta') && interacciones.agregar) {
       const interior = obra.plano.id === 'tabique-puerta';
       interacciones.agregar({ sitio, rot: obra.datos.rot, lx: 0, lz: 0, ancho: interior ? 0.84 : 0.92, alto: interior ? 1.92 : 1.96,
-        lado: 1, tipo: interior ? 'lisa' : 'campo', nombre: interior ? 'la puerta interior' : 'la puerta de tu refugio', duenio: obra });
+        lado: 1, tipo: interior ? 'lisa' : 'campo', nombre: interior ? 'la puerta interior' : 'la puerta de tu refugio', duenio: obra, ...puertaGuardada(obra) });
     }
     if (obra.plano.porton && interacciones.agregar) {
       interacciones.agregar({ sitio, rot: obra.datos.rot, lx: 0, lz: 0, ancho: 1.8, alto: 2.2,
-        lado: 1, tipo: 'campo', nombre: 'el portón de la empalizada', duenio: obra });
+        lado: 1, tipo: 'campo', nombre: 'el portón de la empalizada', duenio: obra, ...puertaGuardada(obra) });
     }
     if (obra.plano.id === 'pared-ventana' && interacciones.agregarPostigos) {
       interacciones.agregarPostigos({ sitio, rot: obra.datos.rot, lx: 0, ly: 1.29, lz: -0.085,
@@ -3124,6 +3154,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   }
 
   function rehacer(obra) {
+    version++;
     // Rebuild físico determinista: se retira todo lo que pertenecía a esta obra
     // antes de registrar su estado actual. Esto hace seguras la edición, carga
     // de partidas y reconstrucción por etapas sin duplicar colisiones.
@@ -3270,6 +3301,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
 
   function retirarObra(obra) {
     if (!obra) return false;
+    version++;
     // 2.6.1: si cae la pieza que se estaba moviendo (p. ej. se derriba el piso de
     // abajo), la edición muere con ella. Si no, confirmarla rehacía su física
     // fuera de `obras`: una pared invisible imposible de desmontar.
@@ -3284,8 +3316,29 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     return i >= 0;
   }
 
-  function dependenciasSobre(obra) {
-    const deps = [];
+  // 3.8.7: las piezas que pisan una plataforma de esta obra (la mesa en el piso de la casilla, la silla en el techo plano o
+  // en la pasarela): antes sólo contaba lo apoyado en un piso modular, y deshacer la casilla, desmontar el techo o moverlo
+  // dejaba el mueble flotando. Se mira de quién es la plataforma que tiene abajo, a su cota.
+  function apoyadasEnPlataformas(obra) {
+    const r = [];
+    if (!obra || !col.plataformaEn) return r;
+    for (const o of obras) {
+      if (o === obra || o === edicion?.obra || !o.plano.pieza || !o.plano.apoyaEnPlataforma || o.datos.etapas <= 0) continue;
+      const apoyo = o.datos.y - (o.plano.elevacion || 0);
+      if (!(apoyo > T.altura(o.datos.x, o.datos.z) + 0.12)) continue;
+      const p = col.plataformaEn(o.datos.x, o.datos.z, apoyo + 0.02, 0.05);
+      if (p?.duenio === obra && Math.abs(p.alto - apoyo) < 0.12) r.push(o);
+    }
+    return r;
+  }
+  function sigueApoyada(o) {
+    const apoyo = o.datos.y - (o.plano.elevacion || 0);
+    const p = col.plataformaEn?.(o.datos.x, o.datos.z, apoyo + 0.02, 0.05);
+    return !!p && p.duenio !== o && Math.abs(p.alto - apoyo) < 0.12;
+  }
+
+  function dependenciasSobre(obra, { plataformas = true } = {}) {
+    const deps = plataformas ? apoyadasEnPlataformas(obra) : [];
     if (obra?.plano?.soportaPiezas) {
       const arriba = obra.datos.y + 0.12;
       for (const o of obras) if (o !== obra && o.plano.pieza && o.datos.etapas > 0 && o.datos.y > arriba &&
@@ -3507,7 +3560,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   // 2.4: ¿estás abajo de una galería o de un invernadero? (rectángulo girado)
   function cubiertaDePieza(pos) {
     for (const o of obrasCerca(pos, 5, [])) {
-      if (!o.plano.cubreArea || o.datos.etapas < o.plano.etapas.length) continue;
+      if (!o.plano.cubreArea || o.datos.etapas < o.plano.etapas.length || o === edicion?.obra) continue;   // 3.8.7: (la que movés no tapa)
       const rot = o.datos.rot || 0, dx = pos.x - o.datos.x, dz = pos.z - o.datos.z;
       const lx = dx * Math.cos(rot) - dz * Math.sin(rot), lz = dx * Math.sin(rot) + dz * Math.cos(rot);
       const base = o.datos.y ?? T.altura(o.datos.x, o.datos.z);
@@ -3524,7 +3577,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (!pos) return lista;
     for (const o of obrasCerca(pos, radio, [])) {
       const P = o.plano, d = o.datos;
-      if (!P || !d || d.etapas < P.etapas.length || !Number.isFinite(d.x) || !Number.isFinite(d.z)) continue;
+      if (!P || !d || d.etapas < P.etapas.length || !Number.isFinite(d.x) || !Number.isFinite(d.z) || o === edicion?.obra) continue;   // 3.8.7: ídem
       const rot = d.rot || 0, base = Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z);
       const rect = (ancho, fondo, y, o2 = {}) => lista.push({ x: d.x, z: d.z, rot, x0: -ancho / 2, x1: ancho / 2, z0: -fondo / 2, z1: fondo / 2, y, ax: 0, ab: 0, az: 0, ...o2 });
       // (el alero: techo a una agua de 2,62 m atrás a 2,22 m adelante)
@@ -3535,9 +3588,11 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     }
     return lista;
   }
+  // 3.8.7: también el giro, la altura y la que estás moviendo (girar una galería en su lugar, pasar un techo al módulo de
+  // arriba o agarrarlo con Shift+Y no rehacía el mapa de la lluvia: llovía con la forma vieja)
   function firmaCubiertas() {
-    let s = obras.length;
-    for (const o of obras) s += (o.datos.etapas || 0) * 0.37 + (o.datos.x || 0) * 0.013 + (o.datos.z || 0) * 0.017;
+    let s = obras.length + (edicion ? 0.5 + obras.indexOf(edicion.obra) * 0.031 : 0);
+    for (const o of obras) s += (o.datos.etapas || 0) * 0.37 + (o.datos.x || 0) * 0.013 + (o.datos.z || 0) * 0.017 + (o.datos.rot || 0) * 0.029 + (o.datos.y || 0) * 0.011;
     return s;
   }
   function bajoCubierta(pos) {
@@ -3620,6 +3675,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     mejor.fisica.clear();
     mejor.grupo.visible = false;
     ultimoEstado = null;
+    version++;
     return { ok: true, obra: mejor, plano: mejor.plano };
   }
 
@@ -3638,6 +3694,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     obra.grupo.visible = true;
     reindexarObras();
     edicion = null;
+    // 3.8.7: en el lugar nuevo se despeja como al armarla (las piezas no buscan claro: un cantero llevado con Shift+Y al
+    // pie de un árbol quedaba con el tronco atravesado, y al recargar el árbol desaparecía igual, en colocar)
+    nivelarSitio(obra.datos, plano);
     rehacer(obra);
     ultimoEstado = null;
     return { ok: true, obra, datos: obra.datos, snap: t.snap };
@@ -3653,20 +3712,23 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     return { ok: true, obra };
   }
 
+  // Lo que vuelve al desarmar una obra (o al voltearla el viento, 3.8.7: decisión del usuario, la misma regla): de cada
+  // etapa hecha, la mitad de lo que pidió.
+  // 3.5.1: lo que costó 1 no vuelve entero: armar y desmontar un seto (1 tronco, 1 piedra) daba experiencia de constructor
+  // gratis y, con el ahorro del oficio, material sin fin
+  function recuperaDeObra(obra, recupera = {}) {
+    for (let i = 0; i < Math.min(obra.datos.etapas, obra.plano.etapas.length); i++) {
+      for (const [k, n] of Object.entries(obra.plano.etapas[i].pide || {})) if (n > 1) recupera[k] = (recupera[k] || 0) + Math.max(1, Math.floor(n * 0.5));
+    }
+    return recupera;
+  }
   function desmontarCerca(pos, radio = 4.5) {
     if (edicion) return { ok: false, motivo: 'Terminá o cancelá la edición antes de desmontar' };
     const mejor = piezaCerca(pos, radio);
     if (!mejor) return { ok: false, motivo: 'No hay una pieza construida cerca' };
     const deps = dependenciasSobre(mejor);
     if (deps.length) return { ok: false, motivo: `Tiene ${deps.length === 1 ? 'una pieza apoyada' : `${deps.length} piezas apoyadas`} encima` };
-    const recupera = {};
-    for (let i = 0; i < Math.min(mejor.datos.etapas, mejor.plano.etapas.length); i++) {
-      for (const [k, n] of Object.entries(mejor.plano.etapas[i].pide || {})) {
-        // 3.5.1: lo que costó 1 no vuelve entero: armar y desmontar un seto (1 tronco, 1 piedra) daba
-        // experiencia de constructor gratis y, con el ahorro del oficio, material sin fin
-        if (n > 1) recupera[k] = (recupera[k] || 0) + Math.max(1, Math.floor(n * 0.5));
-      }
-    }
+    const recupera = recuperaDeObra(mejor);
     retirarObra(mejor);
     return { ok: true, plano: mejor.plano, datos: mejor.datos, recupera };
   }
@@ -3683,13 +3745,21 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (d < d0) { d0 = d; mejor = o; }
     }
     if (!mejor) return { ok: false, motivo: 'No hay ninguna obra empezada cerca' };
-    const deps = dependenciasSobre(mejor);
+    const deps = dependenciasSobre(mejor, { plataformas: false });
     if (deps.length) return { ok: false, motivo: `Tiene ${deps.length === 1 ? 'una pieza apoyada' : `${deps.length} piezas apoyadas`} encima` };
     const etapa = mejor.plano.etapas[mejor.datos.etapas - 1];
     const recupera = {};
     for (const [k, n] of Object.entries(etapa?.pide || {})) if (n > 1) recupera[k] = Math.max(1, Math.floor(n * 0.5));   // 3.5.1: ídem
+    // 3.8.7: si la etapa que se deshace es el piso (o la plataforma) de algo tuyo, no: el mueble quedaba en el aire
+    const apoyadas = apoyadasEnPlataformas(mejor);
     mejor.datos.etapas--;
     rehacer(mejor);
+    const colgadas = apoyadas.filter((o) => !sigueApoyada(o));
+    if (colgadas.length) {
+      mejor.datos.etapas++;
+      rehacer(mejor);
+      return { ok: false, motivo: `Tiene ${colgadas.length === 1 ? 'una pieza apoyada' : `${colgadas.length} piezas apoyadas`} encima` };
+    }
     ultimoEstado = null;
     return { ok: true, plano: mejor.plano, datos: mejor.datos, etapa, recupera, quedaMarca: mejor.datos.etapas === 0 };
   }
@@ -3698,10 +3768,20 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   // sin volver al panel a buscarlo.
   // 2.4: teñir la pieza de pared, techo o piso más cercana. Devuelve la obra y su tinte
   // anterior; el costo lo cobra el juego.
+  // 3.8.7: ¿hay una plataforma de otra obra (un entrepiso, un piso de arriba) entre tus ojos y la pieza?
+  function pisoEntre(pos, o) {
+    if (!col.plataformaEn || !Number.isFinite(pos?.y)) return false;
+    const y0 = Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z);
+    const blanco = y0 + Math.min(1.1, (o.plano.alto ?? 1) / 2), ojos = pos.y + 1.5;
+    const lo = Math.min(blanco, ojos), hi = Math.max(blanco, ojos);
+    const p = col.plataformaEn(o.datos.x, o.datos.z, hi - 0.1, 0);
+    return !!p && p.duenio !== o && p.alto > lo + 0.05;
+  }
   function tenibleCerca(pos, radio = 4) {
     let mejor = null, d0 = radio;
     for (const o of obrasCerca(pos, radio, [])) {
       if (o === edicion?.obra || !tenible(o.plano) || o.datos.etapas < o.plano.etapas.length) continue;
+      if (pisoEntre(pos, o)) continue;   // 3.8.7: no a través de un entrepiso (o un piso) de por medio
       const dy = Math.abs((o.datos.y ?? pos.y) + 1.1 - pos.y);
       const d = Math.hypot(o.datos.x - pos.x, o.datos.z - pos.z) + dy * 0.5;
       if (d < d0) { d0 = d; mejor = o; }
@@ -3724,9 +3804,11 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (d < d0) { d0 = d; mejor = o; }
     }
     if (!mejor) return { ok: false, motivo: 'Poné el cuerpo cerca de lo que querés repetir' };
-    elegir(mejor.plano);
+    // 3.8.7: de una pieza reforzada se repite la de antes (la reforzada no se funda: ver revisarSitio)
+    const plano = mejor.plano.soloMejora && Object.hasOwn(PLANO, mejor.plano.mejoraDe) ? PLANO[mejor.plano.mejoraDe] : mejor.plano;
+    elegir(plano);
     rotacionFantasma = mejor.datos.rot || 0;
-    return { ok: true, plano: mejor.plano, rot: rotacionFantasma };
+    return { ok: true, plano, rot: rotacionFantasma };
   }
 
   // Una marca sin materiales se puede retirar sin dejar física ni basura de
@@ -3884,9 +3966,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   }
 
   return { repintar, pintarCasa, restilizarJardin, casas: (desde = null) => agruparCasas(obras, desde),
-    elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
+    recuperaDeObra, elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
     destruir, portonAbierto, reemplazarPlano, obrasCerca: (pos, radio, salida = []) => obrasCerca(pos, radio, salida),
     cancelarMarcada, obraCerca, tieneFuncionCerca, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
     get plano() { return planoElegido; }, get rotacion() { return rotacionFantasma || 0; }, get estadoSitio() { return ultimoEstado; },
-    get snapActivo() { return snapActivo; }, get editando() { return edicion?.obra || null; } };
+    get snapActivo() { return snapActivo; }, get editando() { return edicion?.obra || null; }, get version() { return version; } };
 }

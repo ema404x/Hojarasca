@@ -19,6 +19,9 @@ export function crearColaDialogos(vista, opciones = {}) {
   function siguiente() {
     if (actual || !cola.length) return;
     actual = cola.shift();
+    // 3.8.7: una pregunta que ya no tiene sentido cuando le toca (`vigente()` da falso: la obra a nombrar se deshizo en el
+    // rato antes de que se abra, o mientras esperaba detrás de otra) se cierra sola, como cancelada, sin mostrarse
+    if (typeof actual.vigente === 'function' && !actual.vigente()) { const d = actual; actual = null; d.resolver(d.tipo === 'texto' ? null : false); siguiente(); return; }
     try { vista.mostrar(actual); } catch (err) { const d = actual; actual = null; d.resolver(d.tipo === 'texto' ? null : false); opciones.alError?.(err); siguiente(); }
   }
   function cerrar(respuesta) {
@@ -44,6 +47,7 @@ export function crearColaDialogos(vista, opciones = {}) {
         // 3.8.6: lo que vale Escape (o B del mando) en un «confirmar» de dos opciones donde «No» también hace algo (p. ej.
         // el caballo en el puente: «Amarrarlo acá»). Sin `cancelado`, Escape es «No», como siempre.
         cancelado: Object.hasOwn(extra, 'cancelado') ? extra.cancelado : undefined,
+        vigente: typeof extra.vigente === 'function' ? extra.vigente : null,
       });
       siguiente();
     });
@@ -60,6 +64,8 @@ export function crearColaDialogos(vista, opciones = {}) {
   const rechazar = () => cerrar(actual?.tipo === 'texto' ? null : false);
   // Escape o B: como «No», salvo que la pregunta diga otra cosa (`cancelado`, 3.8.6)
   const cancelar = () => (actual && actual.tipo !== 'texto' && actual.cancelado !== undefined ? cerrar(actual.cancelado) : rechazar());
+  // 3.8.7: la abierta, si dejó de tener sentido, se cierra como cancelada (main.js la revisa al deshacer o perder una obra)
+  const revisar = () => (actual && typeof actual.vigente === 'function' && !actual.vigente() ? rechazar() : false);
   // una tecla del teclado: devuelve si la usó el cuadro
   function tecla(code) {
     if (!actual) return false;
@@ -70,7 +76,7 @@ export function crearColaDialogos(vista, opciones = {}) {
   return {
     confirmar: (texto, extra) => pedir('confirmar', texto, extra),
     pedirTexto: (texto, inicial = '', extra = {}) => pedir('texto', texto, { ...extra, inicial }),
-    aceptar, cancelar, rechazar, tecla,
+    aceptar, cancelar, rechazar, tecla, revisar,
     abierto: () => !!actual,
     actual: () => (actual ? { tipo: actual.tipo, texto: actual.texto, inicial: actual.inicial, si: actual.si, no: actual.no } : null),
     pendientes: () => cola.length + (actual ? 1 : 0),
