@@ -3659,6 +3659,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     obra.grupo.visible = true;
     reindexarObras();
     edicion = null;
+    // 3.8.7: en el lugar nuevo se despeja como al armarla (las piezas no buscan claro: un cantero llevado con Shift+Y al
+    // pie de un árbol quedaba con el tronco atravesado, y al recargar el árbol desaparecía igual, en colocar)
+    nivelarSitio(obra.datos, plano);
     rehacer(obra);
     ultimoEstado = null;
     return { ok: true, obra, datos: obra.datos, snap: t.snap };

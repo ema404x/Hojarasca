@@ -3,6 +3,7 @@
 // terreno plano de mentira y las colisiones reales; lo que depende del mundo 3D lo prueba humo-3-8-7-obras.cjs.
 // 1. Lo que pisa una plataforma de otra obra (la mesa en el piso de la casilla, la silla en el techo plano) cuenta como
 //    apoyado: deshacer el piso de la casilla, desmontar o mover el techo lo dejaba flotando.
+// 2. Mover una pieza con Shift+Y despeja el lugar nuevo, como al armarla (el árbol le quedaba atravesado).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,10 +51,10 @@ function cargar(raices) {
 }
 const M = cargar(['construccion.js', 'colisiones.js']);
 const { THREE } = M, C = M.construccion;
-function mundo(extraT = {}) {
+function mundo(extraT = {}, veg = { arboles: [], despejar() {} }) {
   const col = M.colisiones.crearColisiones();
   const T = { altura: () => 0, agua: () => false, normal: () => new THREE.Vector3(0, 1, 0), indice: () => 0, distRiel: [999], distSendero: [999], lugares: {}, ...extraT };
-  const s = C.crearConstruccion(T, new THREE.Scene(), col, { arboles: [], despejar() {} }, { agregar() {}, agregarPostigos() {}, eliminarPorDuenio() {} });
+  const s = C.crearConstruccion(T, new THREE.Scene(), col, veg, { agregar() {}, agregarPostigos() {}, eliminarPorDuenio() {} });
   const mats = { tronco: 999, tabla: 999, piedra: 999, lana: 999, cuero: 999, hierro: 999 };
   const terminar = (id, x, z, yaw = 0, y = null) => {
     s.elegir(C.PLANO[id]);
@@ -91,6 +92,19 @@ function mundo(extraT = {}) {
   ok(!mover.ok && /apoyada/.test(mover.motivo), 'ni se mueve');
   const caidas = s.destruir(techo.o);
   ok(caidas.includes(silla.o), 'y si se cae (el viento, los duendes), la silla cae con él');
+}
+
+// ---------------------------------------------------------------- 2. Shift+Y despeja el lugar nuevo
+{
+  const despejados = [];
+  const { s, terminar } = mundo({}, { arboles: [], despejar: (x, z, r) => { despejados.push({ x, z, r }); return 0; } });
+  const cantero = terminar('cantero', 0, 0);
+  ok(cantero.ok && despejados.length === 1, 'armar el cantero despeja su lugar');
+  s.elegir(C.PLANO.cantero);
+  ok(s.iniciarEdicionCerca({ x: 0, y: 0, z: 0 }, 2).ok, 'se agarra con Shift+Y');
+  const r = s.confirmarEdicion(10, 4, 0);
+  ok(r.ok, 'y se deja en otro lado');
+  ok(despejados.some((d) => Math.hypot(d.x - cantero.o.datos.x, d.z - cantero.o.datos.z) < 0.01 && d.x > 5), 'el lugar nuevo queda despejado');
 }
 
 console.log(`verificar-3-8-7-obras: ${pasos} comprobaciones OK`);
