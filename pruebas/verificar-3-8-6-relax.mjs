@@ -254,7 +254,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   vm.runInContext(`let programaTramos = null; ${f}
 this.f = lluviaPorTramos;`, ctx);
   eq(JSON.parse(JSON.stringify(ctx.f(22, 31))), [{ horas: 2, lluvia: 1 }, { horas: 3, lluvia: 0 }, { horas: 3, lluvia: 1 }, { horas: 1, lluvia: 0 }], 'una noche de 22 a 7: la lluvia de cada tramo');
-  ok(trozoFn('function revisarTormenta(').includes('for (const s of lluviaPorTramos(fin - Math.min(dh, 12), fin)) st.crecida = avanzarCrecida(st.crecida, s.lluvia, s.horas);'), 'la crecida, tramo por tramo');
+  ok(trozoFn('function revisarTormenta(').includes('for (const s of lluviaPorTramos(fin - Math.min(dh, 12), fin)) st.crecida = avanzarCrecida(st.crecida, nieva ? 0 : s.lluvia, s.horas);'), 'la crecida, tramo por tramo');
   const t = trozoFn('function actualizarTendales(');
   ok(t.includes('const tramos = horas > 0.5 ? lluviaPorTramos(ahora - horas, ahora)') && t.includes('for (const s of tramos) h = humedecer(h, s.horas,') && t.includes('for (const s of tramos) avanzarSecado(datosTendal(o), s.horas,'), 'el tendal y la leña, tramo por tramo');
 }

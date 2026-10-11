@@ -155,8 +155,10 @@ export function crearClima(escena, T, ajustes) {
   const OBJETIVOS = { despejado: [0.12, 0, 0.4], nublado: [0.7, 0, 0.65], lluvia: [0.95, 1, 0.9] };
   const luz = new THREE.Color(), luzSol = new THREE.Color();
 
+  let inviernoAhora = 0;   // 3.8.7: para la tormenta (en la nevada no hay rayos)
   function actualizar(dt, cam, mundo) {
     const tt = U.uTiempo.value;
+    inviernoAhora = Number(mundo?.invierno) || 0;
     // 2.9: si cambió el tramo de tres horas (pasó el tiempo, dormiste, cargaste la
     // partida) o el ajuste, el clima se pone al día con el programa
     if (programa && (programa.tramo() !== estado.tramo || programa.firma() !== estado.firmaPrograma)) {
@@ -382,7 +384,9 @@ export function crearClima(escena, T, ajustes) {
   // iluminan el valle y truenos que llegan después, según la distancia.
   const relampago = { luz: 0, proximo: 30 + Math.random() * 90, secuencia: 0, lejos: 1 };
   function actualizarTormenta(dt, cam, sonido) {
-    estado.tormenta = estado.lluvia > 0.62 && estado.nublado > 0.7;
+    // 3.8.7: la nevada no es tormenta (la estación anuncia «Nevada», sin tormenta; caían rayos, sonaban truenos y el diario
+    // decía «Tormenta» en vez de «Nevó»)
+    estado.tormenta = estado.lluvia > 0.62 && estado.nublado > 0.7 && inviernoAhora < 0.5;
     if (!estado.tormenta) { relampago.luz = Math.max(0, relampago.luz - dt * 4); return relampago.luz; }
     relampago.proximo -= dt;
     if (relampago.proximo <= 0) {

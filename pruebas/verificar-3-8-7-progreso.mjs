@@ -6,6 +6,8 @@
 //    encargos van en plural.
 // 3. El pronóstico de la estación sigue el programa que sigue el clima (con la noche del temporal y la gran nevada
 //    forzadas encima): antes anunciaba la semilla sola y esos días no se cumplía. Con el clima fijo despejado, nada se fuerza.
+// 4. La nevada no es tormenta ni hace crecer el arroyo: caían rayos y el diario decía «Tormenta» en un día de «Nevada», y
+//    el arroyo venía turbio con cada nevada (no picaba nada en el arroyo en todo el invierno).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -75,6 +77,14 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   eq(ME.pronostico(semilla, dia, 12, { tipo: forzado })[0].lluvia, true, 'y el pronóstico de varios días lo pasa');
   const main = leer('src/main.js');
   ok(main.includes('tipo: programaTramos.tipo, viento: programaTramos.viento });') && main.includes("fijo = () => ajustes.clima === 'despejado';"), 'main.js anuncia con el programa, y en despejado no fuerza');
+}
+
+// ---------------------------------------------------------------- 4. la nevada
+{
+  const cl = leer('src/clima.js');
+  ok(cl.includes('estado.tormenta = estado.lluvia > 0.62 && estado.nublado > 0.7 && inviernoAhora < 0.5;') && cl.includes('inviernoAhora = Number(mundo?.invierno) || 0;'), 'en la nevada no hay tormenta');
+  const main = leer('src/main.js');
+  ok(main.includes('const nieva = U.uInvierno.value > 0.5;') && main.includes('st.crecida = avanzarCrecida(st.crecida, nieva ? 0 : clima.estado.lluvia, dh);'), 'la nieve no hace crecer el arroyo');
 }
 
 console.log(`verificar-3-8-7-progreso: ${pasos} comprobaciones OK`);

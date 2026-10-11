@@ -5451,8 +5451,11 @@ function revisarTormenta(dt) {
   horasTormenta = progreso.horas;
   // si el reloj saltó (dormir), la crecida se resuelve de una: dormir no la frena
   // 3.8.6: con la lluvia de cada tramo del salto (antes, la del momento de despertar para toda la noche)
-  if (dh > 0.5) { const fin = horaDeJuego(); for (const s of lluviaPorTramos(fin - Math.min(dh, 12), fin)) st.crecida = avanzarCrecida(st.crecida, s.lluvia, s.horas); }
-  else st.crecida = avanzarCrecida(st.crecida, clima.estado.lluvia, dh);
+  // 3.8.7: la nieve no hace crecer el arroyo («con horas de lluvia fuerte»): en invierno lo que cae es nieve y el arroyo
+  // venía crecido y turbio con cada nevada (no picaba nada en el arroyo en todo el invierno)
+  const nieva = U.uInvierno.value > 0.5;
+  if (dh > 0.5) { const fin = horaDeJuego(); for (const s of lluviaPorTramos(fin - Math.min(dh, 12), fin)) st.crecida = avanzarCrecida(st.crecida, nieva ? 0 : s.lluvia, s.horas); }
+  else st.crecida = avanzarCrecida(st.crecida, nieva ? 0 : clima.estado.lluvia, dh);
   if (agua?.arroyo) agua.arroyo.position.y = nivelArroyo(st.crecida);
   const turbia = aguaTurbia(st.crecida);
   if (turbia && !turbiaAvisada) {
