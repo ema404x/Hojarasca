@@ -9,6 +9,8 @@
 //    forzadas encima): antes anunciaba la semilla sola y esos días no se cumplía. Con el clima fijo despejado, nada se fuerza.
 // 4. La nevada no es tormenta ni hace crecer el arroyo: caían rayos y el diario decía «Tormenta» en un día de «Nevada», y
 //    el arroyo venía turbio con cada nevada (no picaba nada en el arroyo en todo el invierno).
+// 5. Las tarjetas de la historia y del valle no salen con un panel del HUD abierto (la cocina, el taller del tren, las
+//    fiestas); «Largar de nuevo» esconde el fantasma de la vuelta anterior.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -91,6 +93,14 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   ok(cl.includes('estado.tormenta = estado.lluvia > 0.62 && estado.nublado > 0.7 && inviernoAhora < 0.5;') && cl.includes('inviernoAhora = Number(mundo?.invierno) || 0;'), 'en la nevada no hay tormenta');
   const main = leer('src/main.js');
   ok(main.includes('const nieva = U.uInvierno.value > 0.5;') && main.includes('st.crecida = avanzarCrecida(st.crecida, nieva ? 0 : clima.estado.lluvia, dh);'), 'la nieve no hace crecer el arroyo');
+}
+
+// ---------------------------------------------------------------- 5. las tarjetas y los paneles; el fantasma
+{
+  const main = leer('src/main.js');
+  ok(main.includes('libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra'), 'la tarjeta espera a que se cierre el panel');
+  ok(/const panelDelHudAbierto = \(\) => enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| mochilaAbierta .*cocinaJuego\?\.panelAbierto\(\).*tallerTren\?\.panelAbierto\(\).*fiestasJuego\?\.panelAbierto\(\)/.test(main), 'y el panel abierto incluye la cocina, el taller y las fiestas');
+  ok(leer('src/modos-juego.js').includes('mundo?.marcarSiguiente(0);\n    mundo?.ponerFantasma(null);'), 'largar esconde el fantasma');
 }
 
 console.log(`verificar-3-8-7-progreso: ${pasos} comprobaciones OK`);

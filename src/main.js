@@ -1775,7 +1775,9 @@ function crearValle() {
     progreso: () => progreso, ajustes: () => ajustes, guardarAjustes: () => guardarAjustes(ajustes), modo: () => modo,
     pausar: () => { modo = 'valle'; jugador?.soltar(); },
     reanudar: () => volverAlJuego(),
-    libre: () => !charla.npc && !enElAlmacen && !enLaFeria && !enLasCargas() && !mochilaAbierta && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !modos?.corriendo?.() && !$('fundido')?.classList.contains('activo'),   // 3.1: ni en plena carrera
+    // 3.8.7: ni con un panel del HUD abierto (la cocina, el taller del tren, las fiestas): la tarjeta salía encima y al
+    // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
+    libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !modos?.corriendo?.() && !$('fundido')?.classList.contains('activo'),   // 3.1: ni en plena carrera
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso) }; },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
