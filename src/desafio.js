@@ -2440,7 +2440,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const wSig = T.agua(nx, nz), fuera = Math.abs(nx) > LIMITE || Math.abs(nz) > LIMITE;
       if (fuera || (!T.agua(p.x, p.z) && aguaFrena(wSig, a.orilla))) {
         if (!fuera && wSig && !wSig.lago) a.orilla = (a.orilla || 0) + dt;
-        else if (wSig && !fuera) {
+        else if (wSig && !fuera && paso > 0) {
           // la orilla del lago: va por el primer rumbo seco girando siempre para su lado, y lo sostiene un rato (con
           // el desvío de antes, al azar y fijo, en una orilla cóncava volvía al agua y quedaba quieto toda la noche)
           for (let k = 1; k <= 8; k++) {
