@@ -4198,6 +4198,8 @@ function leerMandoQuieto() {
   const m = leerMandoActual();
   cambioDeMando(m);
   if (!m.conectado || dialogos.abierto()) return;
+  // 3.8.7: en el modo foto el mando no se leía (con el mando solo no había cómo salir): Start o B lo cierran, como Esc
+  if (foto.activo && modo === 'jugando' && usarMando() && (m.recien.pausa || m.recien.agacharse)) { abrirModoFoto(false); return; }
   const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria') : null;
   if (!caja || caja.classList.contains('oculto') || !usarMando()) return;
   const mover = (m.recien.mochila || m.recien.planos || m.recien.objetoAnterior) ? -1 : (m.recien.taller || m.recien.mapa || m.recien.objetoSiguiente) ? 1 : 0;

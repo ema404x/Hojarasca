@@ -138,6 +138,7 @@ const funcion = (texto, nombre) => { const i = texto.indexOf(`function ${nombre}
   ok(main.includes('if (!js.enKayak && !js.enTren) encenderFuego();'), 'la F tampoco desde el tren');
   ok(main.includes("&& !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`)") && main.includes("&& !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E')"), 'subido, la O que cierra los planos pasa');
   ok(funcion(main, 'montar').includes('if (modoObra) abrirObra(false);') && main.includes('if (js.enSulky && modoObra) abrirObra(false);'), 'y subir cierra los planos');
+  ok(funcion(main, 'leerMandoQuieto').includes("if (foto.activo && modo === 'jugando' && usarMando() && (m.recien.pausa || m.recien.agacharse)) { abrirModoFoto(false); return; }"), 'en el modo foto, Start o B con el mando lo cierran');
   const cambio = funcion(main, 'cambioDeMando');
   ok(cambio.includes('pisadasMando.clear()') && cambio.includes("'Se desconectó el mando'"), 'desenchufar suelta el stick y avisa');
   for (const f of ['leerMando', 'leerMandoQuieto', 'leerMandoEnMenu']) ok(funcion(main, f).includes('cambioDeMando(m);'), `en cualquier pantalla (${f})`);
