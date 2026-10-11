@@ -92,6 +92,7 @@ export function crearModos(ctx) {
     recordActual = mejorDe(claveRecord(c.id, giro));
     mundo?.mostrarCircuito(carrera.puntos, c.medio, MEDIOS[c.medio].radio, c.salida);
     mundo?.marcarSiguiente(0);
+    mundo?.ponerFantasma(null);   // 3.8.7: «Largar de nuevo» a mitad de vuelta dejaba el fantasma quieto en la pista durante la cuenta
     finMostrado = 0;
     ultimoResultado = null;   // 3.8.6: abandonada, el cartel mostraba la llegada de una vuelta anterior
     nota(`${c.nombre}${giro ? ` · ${GIROS[giro].nombre}` : ''}`, `En sus marcas: no te alejes del poste. ${Math.round(largoDe(c, giro))} m${recordActual ? ` · récord ${formatoTiempo(recordActual.ms)}` : ''}`);

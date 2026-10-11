@@ -2,6 +2,8 @@
 // cuaderno, la pesca, el clima y Personalizar. Una comprobación por arreglo.
 // 1. El temporal del capítulo 8: contestada la tarjeta, no vuelve (se tilda al otro día y el «lanzado pero perdido» la
 //    volvía a pedir cada medio segundo hasta la medianoche, cobrando cada vez); un temporal del mismo capítulo no trae otro.
+// 2. El diario: «una lenga» (plantada o partida por un rayo, también en la nota), tres historias no son «dos», y varios
+//    encargos van en plural.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -9,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const HI = await import('../src/historia.js');
 const EV = await import('../src/eventos-valle.js');
+const DI = await import('../src/diario.js');
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -38,6 +41,23 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   const h3 = HI.sanearHistoria({ activa: true, capitulo: 7, fase: 'jugando', empezada: 1, hechos: { 'temporal:visita': 20, 'temporal:cuento': 20 }, base: { dia: 19 } });
   eq(HI.momentoPendiente(h3, HI.estadoHistoria({ dia: 20, eventosValle: { hechos: { temporal: { dia: 20, opcion: 'atar' } } } }, {})), null, 'un temporal al azar en el capítulo no trae otro');
   ok(leer('src/historia-ui.js').includes('else if (!m && momentoPerdido(h, s) && !eventos.ev().activo) eventos.forzar(def.evento);'), 'la historia en pantalla usa momentoPerdido');
+}
+
+// ---------------------------------------------------------------- 2. el diario
+{
+  const r = () => 0;
+  const d = DI.crearDiario();
+  d.anotar('renoval', 'lenga'); d.anotar('rayo', 'lenga');
+  for (const x of ['el lago', 'el pehuén', 'la nevada']) d.anotar('historia', x);
+  d.anotar('encargo', 'la leña de Ramón'); d.anotar('encargo', 'las moscas de Nicanor');
+  const t = d.cerrar(3, 'otono', r).texto;
+  ok(t.includes('Planté una lenga en un claro') && t.includes('Partió una lenga de arriba abajo'), `una lenga (${t})`);
+  ok(t.includes('Escuché 3 historias: el lago, el pehuén y la nevada.'), 'tres historias');
+  ok(t.includes('Terminé los encargos: la leña de Ramón y las moscas de Nicanor.'), 'los encargos en plural');
+  d.anotar('renoval', 'coihue'); d.anotar('historia', 'a'); d.anotar('historia', 'b'); d.anotar('encargo', 'x');
+  const t2 = d.cerrar(4, 'otono', r).texto;
+  ok(t2.includes('Planté un coihue') && t2.includes('Escuché dos historias: a y b.') && t2.includes('Terminé el encargo: x.'), 'lo de siempre igual');
+  ok(leer('src/main.js').includes('nota(`Un rayo partió ${unArbol(especie)} ${rumboDesde(js.pos, a)}`'), 'la nota del rayo también');
 }
 
 console.log(`verificar-3-8-7-progreso: ${pasos} comprobaciones OK`);

@@ -12,6 +12,8 @@ function unir(lista, y = 'y') {
 }
 
 const elegir = (r, opciones) => opciones[Math.floor(r() * opciones.length) % opciones.length];
+// 3.8.7: «un» o «una» según el árbol (decía «Planté un lenga», «Partió un lenga»)
+export const unArbol = (nombre) => `${/^lenga$/i.test(String(nombre)) ? 'una' : 'un'} ${nombre}`;
 
 function paginaNueva() {
   return {
@@ -212,19 +214,19 @@ export function crearDiario() {
     if (d.historias.length) {
       lineas.push(d.historias.length === 1
         ? `Me contaron lo de ${d.historias[0]}.`
-        : `Escuché dos historias: ${unir(d.historias)}.`);
+        : `Escuché ${d.historias.length === 2 ? 'dos' : d.historias.length} historias: ${unir(d.historias)}.`);   // 3.8.7: con tres o más decía «dos»
     }
-    if (d.encargos.length) lineas.push(`Terminé el encargo: ${unir(d.encargos)}.`);
+    if (d.encargos.length) lineas.push(d.encargos.length === 1 ? `Terminé el encargo: ${d.encargos[0]}.` : `Terminé los encargos: ${unir(d.encargos)}.`);   // 3.8.7: el plural
     if (d.cambiado.length) lineas.push(`Pasé por el almacén y cambié lo que junté por ${unir(d.cambiado)}.`);
     if (d.cocinado.length) lineas.push(`Al fuego: ${unir(d.cocinado)}.`);
     if (d.obra) lineas.push(`Terminé ${d.obra}. Cuatro paredes propias, levantadas con lo que junté.`);
     if (d.renovales && d.renovales.length) {
       lineas.push(d.renovales.length === 1
-        ? `Planté un ${d.renovales[0]} en un claro. A ver si prende.`
+        ? `Planté ${unArbol(d.renovales[0])} en un claro. A ver si prende.`
         : `Planté ${d.renovales.length} renovales. Alguno va a quedar.`);
     }
     if (d.caballo) lineas.push(`Anduve a caballo. ${caballo} conoce el valle mejor que yo: cuando dudo, lo dejo elegir.`);
-    if (d.rayo) lineas.push(`Cayó un rayo cerca. Partió un ${d.rayo} de arriba abajo; todavía se sentía el olor a quemado.`);
+    if (d.rayo) lineas.push(`Cayó un rayo cerca. Partió ${unArbol(d.rayo)} de arriba abajo; todavía se sentía el olor a quemado.`);
     if (d.crecida) lineas.push('El arroyo creció con la lluvia y bajaba marrón, arrastrando ramas.');
     if (d.cartas && d.cartas.length) lineas.push(d.cartas.length === 1 ? `En el almacén me esperaba carta de ${d.cartas[0]}.` : `Me llegaron ${d.cartas.length} cartas. Las leí en el almacén, parado.`);
     if (d.envio && d.envio.length) lineas.push(`Le di a Ercilia la foto para ${d.envio[0]}. Sale mañana con el tren.`);

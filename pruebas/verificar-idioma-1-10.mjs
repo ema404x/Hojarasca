@@ -58,7 +58,7 @@ const m = majadaNueva(); esquilar(m, 0, 1, true);
 for (let dia = 1; dia <= 7; dia++) traducido(textoOveja(m, 0, dia, true), `oveja día ${dia}`);
 traducido(textoOveja(majadaNueva(), 1, 1, false), 'oveja sin tijera');
 for (const especie of ['coihue', 'lenga', 'ciprés', 'arrayán', 'ñire', 'árbol']) {
-  for (const [dx, dz] of [[0, -80], [60, 60], [-90, 0], [0, 120]]) traducido(`Un rayo partió un ${especie} ${rumboTexto({ x: 0, z: 0 }, { x: dx, z: dz })}`, 'nota del rayo');
+  for (const [dx, dz] of [[0, -80], [60, 60], [-90, 0], [0, 120]]) traducido(`Un rayo partió ${especie === 'lenga' ? 'una' : 'un'} ${especie} ${rumboTexto({ x: 0, z: 0 }, { x: dx, z: dz })}`, 'nota del rayo');
 }
 for (const c of CARTAS) traducido(`De ${c.de.charAt(0).toLowerCase()}${c.de.slice(1)}. La tiene Ercilia en el almacén`, `aviso de la carta ${c.id}`);
 for (const texto of ['Subir al zaino', 'Bajarte del zaino', 'Tapar el pozo (2 piedras)', 'Cantero vacío: faltan semillas', 'Esquilar la oveja',

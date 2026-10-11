@@ -53,7 +53,7 @@ import { crearMapa } from './mapa.js';
 import { SECCIONES, ENTRADAS, ENTRADA } from './cuaderno.js';
 import { ENCARGOS, ENCARGO, encargoDe, estadoEncargo, pistaTrabado, resumenEncargos } from './encargos.js';
 import { ENCARGOS_TEMPORADA, ENCARGO_TEMPORADA, encargoDeTemporada, anotarBase, estacionDe } from './encargos-temporada.js';
-import { crearDiario } from './diario.js';
+import { crearDiario, unArbol } from './diario.js';
 import { TRUEQUES, cantidadCosa, tieneYa } from './trueque.js';
 import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta } from './huerta.js';
 import { crearMatasHuerta } from './huerta-malla.js';
@@ -5485,7 +5485,7 @@ function caerRayo(i = null) {
   const especie = { coihue: 'coihue', lenga: 'lenga', cipres: 'ciprés', arrayan: 'arrayán', nire: 'ñire' }[a.especie] || 'árbol';
   registrar('rayo');
   diario.anotar('rayo', especie);
-  nota(`Un rayo partió un ${especie} ${rumboDesde(js.pos, a)}`, 'Quedó tirado: con el hacha se hace leña (H)', true);
+  nota(`Un rayo partió ${unArbol(especie)} ${rumboDesde(js.pos, a)}`, 'Quedó tirado: con el hacha se hace leña (H)', true);   // 3.8.7: «una lenga»
   guardar();
   return true;
 }

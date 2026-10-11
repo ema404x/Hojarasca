@@ -219,7 +219,7 @@ for (const [es, en] of Object.entries(CULTIVO)) {
 const ESPECIE = { coihue: 'coihue', lenga: 'lenga', 'ciprés': 'cypress', 'arrayán': 'arrayán', 'ñire': 'ñire', 'árbol': 'tree' };
 const RUMBO = { norte: 'north', noreste: 'northeast', este: 'east', sureste: 'southeast', sur: 'south', suroeste: 'southwest', oeste: 'west', noroeste: 'northwest' };
 for (const [es, en] of Object.entries(ESPECIE)) {
-  for (const [re, ri] of Object.entries(RUMBO)) K[`Un rayo partió un ${es} a {0} m al ${re}`] = `Lightning split a ${en} {0} m to the ${ri}`;
+  for (const [re, ri] of Object.entries(RUMBO)) K[`Un rayo partió ${es === 'lenga' ? 'una' : 'un'} ${es} a {0} m al ${re}`] = `Lightning split a ${en} {0} m to the ${ri}`;
 }
 // las cartas: remitente, párrafos, la carta entera en el cuaderno y cómo te la da Ercilia
 const CARTAS_EN = {
