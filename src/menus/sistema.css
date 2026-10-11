@@ -223,7 +223,9 @@
 }
 
 /* ---------- los paneles del juego (mochila, almacén, feria, cargas, cocina, taller, fiesta, charla, obra, rueda) ---------- */
-:root[data-menu] .mochila { width: min(var(--ancho-medio), 92vw); max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); display: flex; flex-direction: column; }
+/* 3.8.7: el ancho también descuenta el zoom de la letra (con «Enorme» en 1024–1366 la mochila, el almacén y la charla se
+   salían por los costados) */
+:root[data-menu] .mochila { width: min(var(--ancho-medio), calc(92vw / var(--zoom))); max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); display: flex; flex-direction: column; }
 :root[data-menu] .mochila .sub { margin: 0 0 var(--e-4); }
 :root[data-menu] .mochila .rejilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-2); overflow-y: auto; min-height: 0; }
 :root[data-menu] .mochila .cosa { gap: var(--e-3); padding: var(--e-2) var(--e-3); min-height: 56px; color: var(--p-color); background: var(--fila-fondo); border: var(--cosa-borde); border-radius: var(--b-radio); }
@@ -236,7 +238,7 @@
 :root[data-menu] .mochila .personalizar { margin: var(--e-3) 0 0; align-self: flex-start; }
 :root[data-menu] .mochila .personalizar kbd { border-color: currentColor; }
 /* el almacén, la feria, las cargas, la cocina, el taller ferroviario, la fiesta y «Fabricar»: el mismo panel, abajo */
-:root[data-menu] :is(.trueque, .charla) { width: min(var(--ancho-medio), 86vw); padding: var(--e-5) var(--e-6) var(--e-4); }
+:root[data-menu] :is(.trueque, .charla) { width: min(var(--ancho-medio), calc(86vw / var(--zoom))); padding: var(--e-5) var(--e-6) var(--e-4); }
 /* 3.8.6: el panel está a 9vh del borde de abajo, y con la letra grande ese 9vh también se agranda (está adentro del #hud con
    zoom): el tope descuenta esa distancia ya agrandada (antes, con la letra enorme, el almacén salía 19 px por arriba) */
 :root[data-menu] .trueque { max-height: calc((100vh - 12px) / var(--zoom) - 9vh); }

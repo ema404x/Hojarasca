@@ -185,7 +185,7 @@ import { crearValleUi } from './historia-ui.js';
 import { CAPITULOS } from './historia.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
-import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos } from './accesibilidad.js';
+import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos, notaRepetida, notaASacar } from './accesibilidad.js';
 import { crearDesafio } from './desafio.js';
 import { crearBanco } from './desafio-sonidos.js';
 import { fusionarPorMaterial } from './fusion.js';
@@ -1279,15 +1279,34 @@ function fundidoAmor(r) {
 // ------------------------------------------------------------------ notas y HUD
 function nota(texto, sub, nueva = false) {
   texto = T_(texto); sub = sub ? T_(sub) : sub;
-  avisosDichos = apilarAviso(avisosDichos, { titulo: texto, texto: sub, hora: progreso?.horas ?? 0, importante: nueva });
+  const caja = $('notas');
+  // 3.8.7: una nota igual a una que todavía se ve no se apila: vuelve a empezar su tiempo (ver notaRepetida)
+  const dato = (el) => ({ titulo: el.__titulo, texto: el.__sub, importante: el.classList.contains('nueva') });
+  const vistas = [...caja.querySelectorAll('.nota')];
+  const igual = notaRepetida(vistas.map(dato), texto, sub || '');
+  if (igual >= 0) {
+    const n = vistas[igual];
+    if (nueva) n.classList.add('nueva');
+    n.style.animation = 'none'; void n.offsetWidth; n.style.animation = '';
+    clearTimeout(n.__t); n.__t = setTimeout(() => n.remove(), 5600);
+    return;
+  }
+  avisosDichos = apilarAviso(avisosDichos, { titulo: texto, texto: sub, hora: progreso?.horas ?? 0, importante: nueva, t: performance.now() });
   if (ajustes.subtitulos) dibujarSubtitulos();
   const n = document.createElement('div');
   n.className = 'nota' + (nueva ? ' nueva' : '');
+  n.__titulo = texto; n.__sub = sub || '';
   if (sub) { const s = document.createElement('small'); s.textContent = sub; n.appendChild(s); }
   n.appendChild(document.createTextNode(texto));
-  $('notas').appendChild(n);
-  setTimeout(() => n.remove(), 5600);
-  while ($('notas').children.length > 4) $('notas').firstChild.remove();
+  caja.appendChild(n);
+  n.__t = setTimeout(() => n.remove(), 5600);
+  // 3.8.7: con más de cuatro, se va la más vieja que no sea importante (ver notaASacar). Sólo cuentan las notas: en la
+  // misma columna, abajo, va el «✓ Guardado» (antes iba aparte y se encimaba con la segunda nota)
+  for (;;) {
+    const notas = [...caja.querySelectorAll('.nota')], i = notaASacar(notas.map(dato));
+    if (i < 0) break;
+    clearTimeout(notas[i].__t); notas[i].remove();
+  }
 }
 
 const RUMBOS = [['N', 0], ['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SO', 225], ['O', 270], ['NO', 315]];
@@ -1365,9 +1384,12 @@ function actualizarBrujula(yaw, pos) {
   const r = chincheActiva ? rumboHacia(pos, chincheActiva, yaw) : null;
   marcaRumbo.style.display = r ? '' : 'none';
   if (r) {
-    const d = Math.max(-1.25, Math.min(1.25, r.ang));
+    // 3.8.7: hasta ±0,6 (en ±1,25 la etiqueta caía en los bordes, que la brújula funde a transparente: atrás no se veía),
+    // y la flecha del lado para el que hay que girar (antes, siempre «←», aunque hubiera que girar a la derecha)
+    const d = Math.max(-0.6, Math.min(0.6, r.ang));
     marcaRumbo.style.left = `${190 - d * 150}px`;
-    marcaRumbo.textContent = `${chincheActiva.nombre} · ${textoDistancia(r.dist)}${r.atras ? ' ←' : ''}`;
+    const girar = Math.abs(r.ang) > 0.6 || r.atras;
+    marcaRumbo.textContent = `${girar && r.ang > 0 ? '← ' : ''}${chincheActiva.nombre} · ${textoDistancia(r.dist)}${girar && r.ang <= 0 ? ' →' : ''}`;
     marcaRumbo.classList.toggle('llegando', r.dist < 25);
   }
 }
@@ -1962,7 +1984,9 @@ $('ajuste-distancia')?.addEventListener('input', (ev) => {
 // ---------------------------------------------------------------- 2.3: el código de partida
 // Con un código, las decisiones de azar de cada noche del Desafío salen siempre iguales
 // (ver `semilla.js`). Se elige al empezar: una partida ya empezada muestra el suyo.
-function partidaEmpezada() { return !!(habiaGuardado && progreso.pos) || (progreso.desafio?.oleadas || 0) > 0; }
+// 3.8.7: o ya se entró en esta sesión: en una ranura nueva, volver a la portada y entrar otra vez rehacía el mapa del Desafío
+// (te llevaba de vuelta a la base y dejaba cambiar el código a mitad de partida)
+function partidaEmpezada() { return !!(habiaGuardado && progreso.pos) || entroAlJuego || (progreso.desafio?.oleadas || 0) > 0; }
 function recordDeCodigo(c) {
   try { return sanearRecordsSemilla(JSON.parse(localStorage.getItem('hojarasca-semillas-v1') || '{}'))[c] || null; } catch { return null; }
 }
@@ -2029,11 +2053,12 @@ $('btn-entrar').addEventListener('click', () => {
   $('inicio').classList.add('oculto');
   // (3.8.3: sólo la primera vez: volviendo de la portada se repetía cada vez que se entraba)
   if (origenGuardado === 'backup' && !entroAlJuego) setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
-  else if (esDesafio && (!habiaGuardado || !progreso.pos)) {
+  // (3.8.7: las del primer día, también sólo la primera vez que se entra)
+  else if (esDesafio && (!habiaGuardado || !progreso.pos) && !entroAlJuego) {
     setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos y piedra con el hacha (H) y armá defensas (O → Defensa)', true), 1500);
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
   }
-  else if (!habiaGuardado || !progreso.pos) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
+  else if ((!habiaGuardado || !progreso.pos) && !entroAlJuego) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
   // 3.6.2: lo tuyo que quedó donde ahora está la aldea (una partida de antes de la 3.6): una sola nota
   if (avisoDesalojo) { const a = avisoDesalojo; avisoDesalojo = null; setTimeout(() => nota(a.titulo, a.sub, true), 2600); }
   valle?.alEntrar();   // 3.1: con Historia elegida, empieza (o sigue) el capítulo
@@ -2863,10 +2888,11 @@ document.addEventListener('keydown', (e) => {
     const paso = { KeyW: [0, 1], ArrowUp: [0, 1], KeyS: [0, -1], ArrowDown: [0, -1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0] }[codigo];
     if (paso) { tren.moverse(paso[0], paso[1]); sonido.paso('madera', 0.5); return; }
   }
-  if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
+  // (3.8.7: la O que cierra los planos sí pasa: subido con los planos abiertos, quedabas trabado en el modo obra)
+  if (js.montado && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo) && !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
   // 3.8.6: en el sulky, lo mismo (armaba la carpa en el medio del camino, plantaba o talaba desde el asiento; el aviso sólo
   // dice «Bajar del sulky»)
-  if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
+  if (js.enSulky && ['KeyH', 'KeyB', 'KeyT', 'KeyF', 'KeyY', 'KeyO', 'KeyG'].includes(codigo) && !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
   // 3.6 (vida): con el menú de la charla abierto, los números eligen (como en el almacén)
   if (charla.menu && /^Digit[1-9]$/.test(codigo)) { elegirEnMenuCharla(Number(codigo.slice(5)) - 1); return; }
   if (charla.menu && /^Arrow(Up|Down|Left|Right)$/.test(codigo)) { flechaRueda(codigo); return; }   // 3.7.4: las flechas, en la rueda
@@ -2901,7 +2927,7 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo) { const c = modos?.accion(jugador.estado); if (c) { c.hacer(); break; } }
       // 3.7.5 (rincones): los duendes, el sulky, el potrero, las huertas, el retablo, el atril, el fuerte, el campamento, tu casa y
       // el taller (el aviso, en el mismo lugar y con la misma función: rinconesJuego.accion)
-      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accion(js); if (a) { a.hacer(); cacheRincones = null; break; } }
+      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accion(js); if (a) { a.hacer(); cacheRincones = null; if (js.enSulky && modoObra) abrirObra(false); break; } }   // (3.8.7: subiendo al sulky se cierran los planos)
       // 3.7.3: montado al lado de la jaula del tren (parado), E sube a tu caballo y vos con él
       if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }
       if (puenteDelCaballo()) { caballoEnElPuente(); break; }   // 3.8.4: el aviso, en el mismo lugar
@@ -3026,8 +3052,9 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'KeyF':
       if (desafio?.encenderAntorchaCerca(js.pos)) break;
-      if (!js.enKayak) encenderFuego();
+      if (!js.enKayak && !js.enTren) encenderFuego();   // 3.8.7: ni desde el tren (prendía una fogata al lado de la vía)
       break;
+
     case 'KeyG': if (!js.enTren && !js.enKayak) cocinar(); break;
     case 'KeyT': if (modoObra && obras) { tenirPieza(); break; } armarCarpa(); break;
     case 'KeyB': plantarRenoval(); break;
@@ -3429,6 +3456,11 @@ function usarRanura() {
   // (se talaba montado y se prendía una fogata bajando por la tirolesa)
   if (js.enCable || durmiendo) return;
   if (js.montado && ['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
+  // 3.8.7: arriba del sulky, lo mismo que las teclas (con el clic derecho se talaba o se plantaba desde el asiento), y en el
+  // kayak o el tren ni el fuego ni cocinar (F y G no lo hacen: con el clic derecho se prendía una fogata al lado de la vía)
+  if (js.enSulky && ['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
+  if ((js.enKayak || js.enTren) && (r.accion === 'fuego' || r.accion === 'cocinar')) return;
+
   switch (r.accion) {
     case 'foto': pedirFoto = true; break;
     // 2.4.1: lo del horno se come en el camino: saca el frío y da una hora liviana
@@ -4150,9 +4182,20 @@ function usarMando() {
 // mando (la cruceta o LB y RB pasan de botón, A lo aprieta, B cierra las tarjetas de un solo botón); antes, con el mando
 // solo, quedaba trabado ahí. En el resto (la portada, la carga, un cuadro de pregunta) sólo se lee, para que no quede nada
 // «recién apretado» de otra pantalla.
+// 3.8.7: enchufar o desenchufar el mando, en cualquier pantalla, con su nota y soltando lo que el stick tenía apretado. Antes
+// sólo leerMando (jugando) soltaba las teclas: desenchufado en la pausa con el stick para adelante, al volver se caminaba
+// (o se remaba) solo, sin la nota
+function cambioDeMando(m) {
+  if (m.conectado === habiaMando) return;
+  habiaMando = m.conectado;
+  document.body.classList.toggle('con-mando', m.conectado);
+  nota(m.conectado ? 'Mando conectado' : 'Se desconectó el mando', m.conectado ? m.nombre : 'Volvés al teclado', true);
+  // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
+  if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
+}
 function leerMandoQuieto() {
   const m = leerMandoActual();
-  if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
+  cambioDeMando(m);
   if (!m.conectado || dialogos.abierto()) return;
   const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria') : null;
   if (!caja || caja.classList.contains('oculto') || !usarMando()) return;
@@ -4175,13 +4218,7 @@ function moverFocoEn(caja, paso) {
 }
 function leerMando(dt) {
   const m = leerMandoActual();
-  if (m.conectado !== habiaMando) {
-    habiaMando = m.conectado;
-    document.body.classList.toggle('con-mando', m.conectado);
-    nota(m.conectado ? 'Mando conectado' : 'Se desconectó el mando', m.conectado ? m.nombre : 'Volvés al teclado', true);
-    // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
-    if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
-  }
+  cambioDeMando(m);
   if (!m.conectado || modo !== 'jugando' || !jugador || !usarMando()) return;
   // 3.7.4: con la rueda abierta, el palito derecho apunta (no mira) y A elige
   const enRueda = !!charla.menu && !foto.activo;
@@ -4245,7 +4282,8 @@ function leerMando(dt) {
 // la cruceta derecha cierra el mapa.
 function leerMandoEnMenu() {
   const m = leerMandoActual();
-  if (m.conectado !== habiaMando) { habiaMando = m.conectado; document.body.classList.toggle('con-mando', m.conectado); }
+  cambioDeMando(m);
+
   if (!m.conectado) return;
   if (dialogos.abierto() || !usarMando()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
   if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
@@ -4257,6 +4295,9 @@ function aplicarAccesibilidad() {
   const raiz = document.documentElement;
   // 2.8: el retoque de "Tu interfaz" se suma al tamaño de letra de accesibilidad (manda éste)
   raiz.style.setProperty('--escala-letra', escalaFinal(escalaLetra(ajustes.tamanoLetra), progreso?.personal?.interfaz));
+  // 3.8.7: la misma escala, a mano para lo que se ubica en px de pantalla adentro del #hud (que tiene ese zoom: las barras de
+  // vida de los duendes, la rueda de la charla, los renglones de los vecinos)
+  raiz.dataset.escalaLetra = String(escalaFinal(escalaLetra(ajustes.tamanoLetra), progreso?.personal?.interfaz));
   const p = ajustes.paleta || 'normal';
   raiz.style.setProperty('--peligro', colorDe('peligro', p));
   raiz.style.setProperty('--salud', colorDe('salud', p));
@@ -4264,17 +4305,28 @@ function aplicarAccesibilidad() {
   document.body.classList.toggle('con-subtitulos', !!ajustes.subtitulos);
   dibujarSubtitulos();
 }
+// 3.8.7: los subtítulos se van solos (SUBTITULO_VIVE): antes quedaban siempre los últimos cuatro avisos, aunque fueran de
+// hace una hora, tapando el aviso de la tecla. Lo que mide la caja sube el aviso, el estado y los sonidos escritos.
+const SUBTITULO_VIVE = 12000;
+let relojSubtitulos = 0;
 function dibujarSubtitulos() {
   const caja = $('subtitulos');
   if (!caja) return;
-  caja.classList.toggle('oculto', !ajustes.subtitulos);
-  if (!ajustes.subtitulos) return;
+  clearTimeout(relojSubtitulos);
+  const ahora = performance.now();
+  const vivos = ajustes.subtitulos ? avisosDichos.filter((a) => ahora - (a.t ?? -Infinity) < SUBTITULO_VIVE).slice(-4) : [];
+  caja.classList.toggle('oculto', !vivos.length);
   caja.innerHTML = '';
-  for (const s of subtitulos(avisosDichos, 4)) {
+  for (const s of subtitulos(vivos, 4)) {
     const fila = document.createElement('p');
     fila.textContent = s.linea;
     caja.appendChild(fila);
   }
+  // (el alto en px sin agrandar: #hud tiene el zoom de la letra y la variable se usa adentro)
+  const escala = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--escala-letra')) || 1;
+  const alto = vivos.length ? caja.getBoundingClientRect().height / escala + 8 : 0;
+  $('hud')?.style.setProperty('--alto-subtitulos', `${Math.round(alto)}px`);
+  if (vivos.length) relojSubtitulos = setTimeout(dibujarSubtitulos, Math.max(50, vivos[0].t + SUBTITULO_VIVE - ahora + 20));
 }
 
 // 2.0: los sonidos escritos con dirección (ver `desafio-sentidos.js`). Tres renglones
@@ -5520,6 +5572,8 @@ function caballoCerca() {
 function montar() {
   const js = jugador.estado, d = dondeEstaElCaballo();
   caballoVuelve = null;   // 3.8.4: (lo alcanzaste antes de que se fuera: vuelve con vos)
+  if (modoObra) abrirObra(false);   // 3.8.7: a caballo no se construye (los planos quedaban abiertos y la O no los cerraba)
+
   js.pos.x = d.x; js.pos.z = d.z;
   js.yaw = d.yaw - Math.PI;
   js.agachado = false; js.sentado = false;
@@ -7622,9 +7676,12 @@ function ubicarRueda() {
     if (_vRueda.z < 1) { x = (_vRueda.x * 0.5 + 0.5) * W; y = (-_vRueda.y * 0.5 + 0.5) * H; }
   }
   const tope = $('charla').getBoundingClientRect?.().top || H * 0.7;
-  x = Math.max(R + 70 * esc, Math.min(W - R - 70 * esc, x));
-  y = Math.min(tope - R - 44 * esc, Math.max(R + arriba + 12, y));
-  el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) scale(${esc.toFixed(3)})`;
+  // 3.8.7: las cuentas, en px de pantalla (lo que la rueda mide de verdad, agrandado por el zoom del #hud); el translate, en
+  // los px del #hud (antes, con la letra grande, la rueda se iba hacia el borde y se salía)
+  const z = Number(document.documentElement.dataset.escalaLetra) || 1;
+  x = Math.max((R + 70 * esc) * z, Math.min(W - (R + 70 * esc) * z, x));
+  y = Math.min(tope - (R + 44 * esc) * z, Math.max((R + arriba + 12) * z, y));
+  el.style.transform = `translate(${Math.round(x / z)}px, ${Math.round(y / z)}px) scale(${esc.toFixed(3)})`;
 }
 function abrirCategoriaRueda(cat) {
   const m = charla.menu;
@@ -7838,10 +7895,19 @@ function cambiar(i) {
 }
 
 // Dónde está parado el jugador, para elegir la reverberación
-function espacioDeAudio() {
-  const js = jugador.estado;
+// 3.8.7: bajo la roca del alero del arriero: entre la pared tallada y el borde de la cornisa, y a su altura. Antes era «a menos
+// de 10 m del lugar», a cualquier altura: parado en el cerro, arriba del alero, también sonaba a cueva (y no llovía)
+function bajoLaRoca(pos) {
   const c = T.lugares.cueva;
-  if (c && Math.hypot(js.pos.x - c.x, js.pos.z - c.z) < 10) return 'cueva';
+  if (!c?.pared) return false;
+  const mx = (c.x + c.pared.x) / 2, mz = (c.z + c.pared.z) / 2;
+  return Math.hypot(pos.x - mx, pos.z - mz) < 4.4 && Math.abs(pos.y - (c.y ?? pos.y)) < 2.5;
+}
+function espacioDeAudio() {
+
+  const js = jugador.estado;
+  if (bajoLaRoca(js.pos)) return 'roca';   // 3.8.7
+
   const techos = [T.lugares.refugio, T.lugares.cabana, T.lugares.puesto, T.lugares['casa-te'], T.lugares.almacen, T.lugares.galpon, T.lugares.molino, T.lugares.estacion];
   for (const l of techos) {
     if (l && Math.hypot(js.pos.x - l.x, js.pos.z - l.z) < (l.radio || 4.5)) return 'adentro';
@@ -7860,8 +7926,8 @@ function techoDeAudio() {
   const js = jugador.estado;
   if (enLaCarpa()) return 'lona';
   if (js.enTren) return 'chapa';
-  const c = T.lugares.cueva;
-  if (c && Math.hypot(js.pos.x - c.x, js.pos.z - c.z) < 10) return null;
+  if (bajoLaRoca(js.pos)) return null;   // (la roca no suena con la lluvia)
+
   for (const [clave, techo] of Object.entries(TECHO_DE_LUGAR)) {
     const l = T.lugares[clave];
     if (l && Math.hypot(js.pos.x - l.x, js.pos.z - l.z) < (l.radio || 4.5)) return techo;
@@ -8917,9 +8983,13 @@ function cuadroDelJuego(tRaf, manual) {
   if ((acumuladoInterior >= 0.12 && acumuladoInterior >= presupuestoAdaptativo.intervalo(0.12, 1.45)) || movioInterior) {
     acumuladoInterior = 0;
     posInterior.copy(js.pos);
-    espacioAudioActual = espacioDeAudio();
-    bajoCubiertaActual = espacioAudioActual !== 'bosque' || !!obras?.bajoCubierta?.(js.pos) || !!aldeaMundo?.bajoCubierta(js.pos);   // 3.6: (y las galerías de la aldea)
-    techoAudioActual = techoDeAudio();
+    // 3.8.7: en la portada la cámara vuela sobre el lago: lo de adentro (que mira dónde quedó el jugador) no va. Antes, con la
+    // partida guardada en la cama del refugio, la portada sonaba apagada, con la sala de madera, y sin niebla ni aves
+    const enPortada = modo === 'inicio';
+    espacioAudioActual = enPortada ? 'bosque' : espacioDeAudio();
+    bajoCubiertaActual = !enPortada && (espacioAudioActual !== 'bosque' || !!obras?.bajoCubierta?.(js.pos) || !!aldeaMundo?.bajoCubierta(js.pos));   // 3.6: (y las galerías de la aldea)
+    techoAudioActual = enPortada ? null : techoDeAudio();
+
   }
   bajoTecho = bajoCubiertaActual;
   acumuladoHabitat += dt;
@@ -9139,8 +9209,11 @@ function cuadroDelJuego(tRaf, manual) {
     if (js.nadando && pesca.est.equipada) pesca.equipar(false);
     try { pesca.actualizar(dt, jugador, mundoPesca()); } catch (e) { fallaSistema('pesca', e); }
   }
+  // 3.8.7: volviendo a la portada en medio de un ataque, el dron y las cuerdas seguían (la música sólo se movía jugando)
+  if (desafio && modo === 'inicio') desafio.musicaQuieta?.(Math.min(0.1, dtReal));
   if (desafio && modo === 'jugando') {
     const tDesafio = perfilador.iniciar(medirRendimiento);
+
     ctxDesafio.noche = noche;
     ctxDesafio.dtReal = Math.min(0.1, dtReal);
     try { desafio.actualizar(dt, ctxDesafio); } catch (e) { fallaSistema('desafio', e); }

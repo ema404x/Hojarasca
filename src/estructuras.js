@@ -2601,13 +2601,15 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       // 3.0.1: la plataforma a la altura de la losa que se ve (0,34 m; estaba en 0,17) y de
       // su mismo largo: terminaba 30 cm antes y entre el piso y la cornisa había un hueco
       const pisoCueva = w(0, -FONDO / 2);
-      col.agregarPlataforma({ x: pisoCueva.x, z: pisoCueva.z, ang: -rot, largo: ANCHO + 1, ancho: FONDO + 0.6, alto: sitio.y + 0.34, espesor: 0.40 });
+      // (3.8.7: el piso de arena y la roca suenan a eso, no a tablón: `suelo`, ver jugador.js)
+      col.agregarPlataforma({ x: pisoCueva.x, z: pisoCueva.z, ang: -rot, largo: ANCHO + 1, ancho: FONDO + 0.6, alto: sitio.y + 0.34, espesor: 0.40, suelo: 'tierra' });
       // la cornisa (el umbral) se pisa y, de frente, es una pared de roca
       const umbralPos = w(0, 0.8);
-      col.agregarPlataforma({ x: umbralPos.x, z: umbralPos.z, ang: -rot, largo: ANCHO + 1.4, ancho: 1.2, alto: sitio.y + 0.1, espesor: bajoUmbral });
+      col.agregarPlataforma({ x: umbralPos.x, z: umbralPos.z, ang: -rot, largo: ANCHO + 1.4, ancho: 1.2, alto: sitio.y + 0.1, espesor: bajoUmbral, suelo: 'piedra' });
       for (const p of pasosCueva) {
         const q = w(p.lx, p.lz);
-        col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.46, ancho: 0.92, alto: sitio.y + p.tope, espesor: p.alto });
+        col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.46, ancho: 0.92, alto: sitio.y + p.tope, espesor: p.alto, suelo: 'piedra' });
+
       }
       // 3.8.4: la pirca frena (es baja, pero no se pasa por arriba: se entra por el paso del medio)
       for (const [desde, hasta] of pirca) {

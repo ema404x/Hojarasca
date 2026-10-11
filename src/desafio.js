@@ -2915,8 +2915,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (_p.z > 1 || Math.abs(_p.x) > 1.1 || Math.abs(_p.y) > 1.1) return false;
     medidaBarra(b, esJefe);
     b.style.display = 'block';
-    b.style.left = `${(_p.x * 0.5 + 0.5) * window.innerWidth}px`;
-    b.style.top = `${(-_p.y * 0.5 + 0.5) * window.innerHeight}px`;
+    // 3.8.7: en los px del #hud, que tiene el zoom de la letra (con la letra grande la barra quedaba corrida del duende)
+    const z = Number(document.documentElement.dataset.escalaLetra) || 1;
+    b.style.left = `${(_p.x * 0.5 + 0.5) * window.innerWidth / z}px`;
+    b.style.top = `${(-_p.y * 0.5 + 0.5) * window.innerHeight / z}px`;
     b.firstChild.style.width = `${Math.max(0, a.vida / a.vidaMax) * 100}%`;
     return true;
   }
@@ -3523,6 +3525,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get arsenal() { return arsenal; }, usarEmplasto, fabricar, abrirTaller, cambiarCategoriaTaller,
     levantarse, limpiar, puedeDormir, hayAtaque, curar, perderNocheSalteada,
     devolverRobado: () => devolverTodo(false),   // 3.8.4: al caer, lo robado vuelve antes de la pérdida (main.js, caerEnDesafio)
+    // 3.8.7: en la portada la música de tensión se apaga sola (main.js): antes quedaba sonando con el último acorde del ataque
+    musicaQuieta: (dtReal) => musica.actualizar(dtReal, { activo: false }),
+
     get tallerAbierto() { return tallerAbierto; },
     get recarga() { return recarga; },
     get caido() { return caido; },

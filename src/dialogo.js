@@ -61,9 +61,11 @@ export function crearColaDialogos(vista, opciones = {}) {
   // Escape o B: como «No», salvo que la pregunta diga otra cosa (`cancelado`, 3.8.6)
   const cancelar = () => (actual && actual.tipo !== 'texto' && actual.cancelado !== undefined ? cerrar(actual.cancelado) : rechazar());
   // una tecla del teclado: devuelve si la usó el cuadro
-  function tecla(code) {
+  // (3.8.7: `enNo`: el foco está en el segundo botón; Enter es ese botón)
+  function tecla(code, enNo = false) {
     if (!actual) return false;
-    if (code === 'Enter' || code === 'NumpadEnter') { aceptar(); return true; }
+    if (code === 'Enter' || code === 'NumpadEnter') { if (enNo && actual.tipo !== 'texto') rechazar(); else aceptar(); return true; }
+
     if (code === 'Escape') { cancelar(); return true; }
     return false;
   }
@@ -80,15 +82,18 @@ export function crearColaDialogos(vista, opciones = {}) {
 }
 
 // El mando: A (0) acepta y B (1) cancela. Sólo cuenta apretar (no lo que ya venía apretado
-// cuando se abrió el cuadro).
+// cuando se abrió el cuadro). 3.8.7: la cruceta (14, 15) o los botones de arriba (4, 5) pasan de un botón al otro, y A
+// aprieta el que tiene el foco: con el mando solo no se podía elegir el segundo botón cuando B no es «No» (el caballo en
+// el puente: «Amarrarlo acá»)
 export function bordesMando(pads, previo) {
-  const ahora = { a: false, b: false };
+  const ahora = { a: false, b: false, cambiar: false };
   for (const p of pads || []) {
     if (!p || p.connected === false || !p.buttons) continue;
     if (p.buttons[0]?.pressed) ahora.a = true;
     if (p.buttons[1]?.pressed) ahora.b = true;
+    if ([4, 5, 14, 15].some((k) => p.buttons[k]?.pressed)) ahora.cambiar = true;
   }
-  return { ahora, aceptar: ahora.a && !previo?.a, cancelar: ahora.b && !previo?.b };
+  return { ahora, aceptar: ahora.a && !previo?.a, cancelar: ahora.b && !previo?.b, cambiar: ahora.cambiar && !previo?.cambiar };
 }
 
 // Contra el DOM de la plantilla. `alAbrir`/`alCerrar`: main.js pausa y reanuda el juego.
@@ -116,7 +121,8 @@ export function crearDialogos({ documento = document, ventana = window, alAbrir,
       relojMando = setInterval(() => {
         const b = bordesMando(leerPads(), previoMando);
         previoMando = b.ahora;
-        if (b.aceptar) cola.aceptar(); else if (b.cancelar) cola.cancelar();
+        if (b.aceptar) apretarElegido(); else if (b.cancelar) cola.cancelar();
+        else if (b.cambiar && d.tipo !== 'texto') ($('dialogo-no') === documento.activeElement ? $('dialogo-si') : $('dialogo-no'))?.focus();
       }, 50);
     },
     ocultar() {
@@ -129,13 +135,15 @@ export function crearDialogos({ documento = document, ventana = window, alAbrir,
     valor: () => $('dialogo-entrada')?.value || '',
   };
   const cola = crearColaDialogos(vista, { auto });
+  // 3.8.7: Enter (o A) con el foco en el segundo botón es ese botón (antes, Tab hasta «Amarrarlo acá» y Enter lo mandaba al refugio)
+  const apretarElegido = () => (documento.activeElement && documento.activeElement === $('dialogo-no') ? cola.rechazar() : cola.aceptar());
   $('dialogo-si')?.addEventListener('click', () => cola.aceptar());
   $('dialogo-no')?.addEventListener('click', () => cola.rechazar());   // (3.8.6: el botón es «No», no Escape)
   // en la captura de la ventana: antes que todos los atajos del juego. Con el cuadro abierto,
   // ninguna tecla llega al juego (escribir en el campo de texto sigue andando).
   ventana.addEventListener('keydown', (e) => {
     if (!cola.abierto()) return;
-    if (cola.tecla(e.code)) e.preventDefault();
+    if (cola.tecla(e.code, documento.activeElement === $('dialogo-no'))) e.preventDefault();
     e.stopImmediatePropagation();
   }, true);
   return cola;

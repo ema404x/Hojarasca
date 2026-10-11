@@ -284,6 +284,11 @@ export class Sonido {
     // 3.8.5: las risas de los duendes, a la cola (en el Relax no: ahí los duendes son leyenda)
     if (!this.relax && !this.offline) this.prepararDuendes();
     this.preparar('retumbo', () => retumbo(24000, 3.2), null, 24000);
+    // 3.8.7: y al final de la cola, los pasos que faltan (los otros suelos, y todos corriendo): el primer paso sobre nieve,
+    // laja o agua, o la primera carrera, se sintetizaba en el momento, en el medio del cuadro
+    for (const sup of ['piedra', 'nieve', 'escarcha', 'hojas', 'agua']) this.variantes(`paso-${sup}-p`, 4, () => pisada(sup, TASA_PREVIA, Math.random, false));
+    for (const sup of ['hojarasca', 'tierra', 'pasto', 'madera', 'piedra', 'nieve', 'escarcha', 'hojas', 'agua']) this.variantes(`paso-${sup}-c`, 3, () => pisada(sup, TASA_PREVIA, Math.random, true));
+
 
     this.rafaga = 0.5; this.rafagaObj = 0.5; this.proxRafaga = 0;
     this.proxAve = 3; this.proxNoche = 10;
@@ -546,7 +551,7 @@ export class Sonido {
         if (tirada < 0.45) this.zorzal(pos);
         else if (tirada < 0.8) this.rayadito(pos);
         else this.fiofio(pos);
-      } else if (e.noche > 0.6 && e.cercaMallin && Math.random() < 0.6) {
+      } else if (e.noche > 0.6 && e.cercaMallin && e.invierno < 0.5 && Math.random() < 0.6) {   // 3.8.7: con el mallín helado no croan
         this.ranita(e.puntoCercano(15, 40));
       }
       this.proxAve = dia > 0.4 ? azar(2.5, 9) * (e.invierno > 0.5 ? 2.5 : 1) : azar(6, 16);
