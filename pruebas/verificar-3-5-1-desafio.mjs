@@ -40,7 +40,7 @@ const cuerpo = (txt, firma) => { const i = txt.indexOf(firma); assert.ok(i >= 0,
   assert.match(inv, /const nx0 = estadoNave\.x, nz0 = estadoNave\.z;[\s\S]*bajarAlien\(tipo\);\s*estadoNave\.x = nx0; estadoNave\.z = nz0;/, 'invocar no corre la nave para siempre');
   const bajar = cuerpo(des, 'function bajarAlien(tipo)');
   for (const campo of ['a.tLod = 0', 'a.faseAla = 0', 'a.tAleteo = 0']) tiene(bajar, campo, `reciclado sin ${campo.split(' ')[0]} viejo`);
-  tiene(des, "if ((T.agua(nx, nz) && !T.agua(p.x, p.z)) || Math.abs(nx) > LIMITE", 'el que está en el agua puede salir');
+  tiene(des, "if (fuera || (!T.agua(p.x, p.z) && aguaFrena(wSig, a.orilla)))", 'el que está en el agua puede salir');   // 3.8.7: con el río que se vadea (verificar-3-8-7-duendes)
   tiene(des, "{ const s = T.altura(p.x, p.z); if (p.y > s + 0.05) p.y = Math.max(s, p.y - dt * 9); }", 'el que muere en el aire cae');
   tiene(des, 'empujados.add(aliens[i]); empujados.add(aliens[j]);', 'se anotan los empujados');
   assert.match(des, /for \(const al of empujados\) \{[\s\S]{0,200}col\.resolver\(al\.m\.g\.position/, 'el empujón entre invasores no los mete en las paredes');

@@ -17,7 +17,7 @@ import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasN
 import { crearEfectos } from './desafio-efectos.js';
 // 3.8.0: los invasores son duendes (desafio-duendes.js: el modelo, la animación y el dibujo instanciado)
 import { crearDuende, instalarDuendes, precalentarDuendes, registrarHalos, mallaAtadito, estadoDuendes } from './desafio-duendes.js';
-import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva } from './desafio-duendes-reglas.js';
+import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva, aguaFrena, VADO } from './desafio-duendes-reglas.js';
 import { mallaNido, mallaCofre } from './duendes-modelo.js';
 import { crearMusicaTension } from './desafio-musica.js';
 import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logros.js';
@@ -839,7 +839,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.estado = 'bajar'; a.t = 0; a.fase = Math.random() * 6; a.rumbo = 0; a.cd = 1 + Math.random();
     a.obra = null; a.desvio = 0; a.desvioT = 0; a.atasco = 0; a.flash = 0; a.frenoT = 0; a.giroMuerte = 0;
     a.enredadoT = 0; a.atrapadoT = 0; a.atrapadoDps = 0; a.hundido = 0;
-    a.saltoT = 0; a.saltoCd = 0; a.salto = null;
+    a.saltoT = 0; a.saltoCd = 0; a.salto = null; a.orilla = 0;   // 3.8.7: los segundos frenado en la orilla del río
     a.px = x; a.pz = z; a.chillido = 2 + Math.random() * 6;
     // 2.0: lo que es nuevo de esta vida (ver `desafio-sentidos.js` y `desafio-noche2.js`)
     a.sinGolpe = 0; a.visto = false; a.tanteo = 0; a.tanteoTotal = 0; a.tRasca = 0;
@@ -2425,6 +2425,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 2.5: perdido en el humo, camina para cualquier lado
     if (rumboConfuso !== null) rumboObj = rumboConfuso;
     // desvío temporal para rodear árboles y rocas
+    const desvioPuesto = a.desvioT > 0 ? a.desvio : 0;   // 3.8.7: (la orilla del lago lo rehace sobre el rumbo de siempre)
     if (a.desvioT > 0) { a.desvioT -= dt; rumboObj += a.desvio; }
     let dif = rumboObj - a.rumbo;
     dif = Math.atan2(Math.sin(dif), Math.cos(dif));
@@ -2433,13 +2434,30 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     g.rotation.y = a.rumbo;
 
     if (velObj !== 0 && a.estado === 'avanzar') {
-      const paso = velObj * dt;
+      const paso = velObj * dt * (T.agua(p.x, p.z) ? VADO.lento : 1);   // 3.8.7: en el río va más despacio
       const nx = p.x + Math.sin(a.rumbo) * paso, nz = p.z + Math.cos(a.rumbo) * paso;
       // 3.5.1: si ya está en el agua (apareció ahí: guardia, puesto, bajada), puede salir; antes
       // todo paso era agua y quedaba quieto para siempre (no se podía dormir ni subir a la nave)
-      if ((T.agua(nx, nz) && !T.agua(p.x, p.z)) || Math.abs(nx) > LIMITE || Math.abs(nz) > LIMITE) {
-        if (a.desvioT <= 0) { a.desvio = (Math.random() < 0.5 ? -1 : 1) * 1.3; a.desvioT = 1.6; }
+      // 3.8.7: el río se vadea (ver aguaFrena): se queda un momento en la orilla y se mete. Antes el agua lo frenaba
+      // siempre y, con el río entre él y su blanco, pasaba la noche entera dando vueltas en la orilla. El lago se
+      // rodea, siempre para el mismo lado (con el desvío al azar volvía a probar de frente cada vez).
+      const wSig = T.agua(nx, nz), fuera = Math.abs(nx) > LIMITE || Math.abs(nz) > LIMITE;
+      if (fuera || (!T.agua(p.x, p.z) && aguaFrena(wSig, a.orilla))) {
+        if (!fuera && wSig && !wSig.lago) a.orilla = (a.orilla || 0) + dt;
+        else if (wSig && !fuera && paso > 0) {
+          // la orilla del lago: va por el primer rumbo seco girando siempre para su lado, y lo sostiene un rato (con
+          // el desvío de antes, al azar y fijo, en una orilla cóncava volvía al agua y quedaba quieto toda la noche)
+          for (let k = 1; k <= 8; k++) {
+            const r = a.rumbo + a.sentido * k * 0.38, qx = p.x + Math.sin(r) * Math.abs(paso), qz = p.z + Math.cos(r) * Math.abs(paso);
+            if (T.agua(qx, qz) || Math.abs(qx) > LIMITE || Math.abs(qz) > LIMITE) continue;
+            a.rumbo = r; g.rotation.y = r; p.x = qx; p.z = qz;
+            col.resolver(p, def.radio * a.m.esc, def.altura * a.m.esc);
+            const base = rumboObj - desvioPuesto; a.desvio = Math.atan2(Math.sin(r - base), Math.cos(r - base)); a.desvioT = 0.9;
+            break;
+          }
+        } else if (a.desvioT <= 0) { a.desvio = (Math.random() < 0.5 ? -1 : 1) * 1.3; a.desvioT = 1.6; }
       } else {
+        if (!wSig) a.orilla = 0;
         p.x = nx; p.z = nz;
         p.y = T.altura(p.x, p.z);
         col.resolver(p, def.radio * a.m.esc, def.altura * a.m.esc);
@@ -3359,6 +3377,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (primerCuadro) {
       primerCuadro = false;
       for (const a of precalentados) soltarAlien(a);
+      efectos.precalentar?.();   // 3.8.7: el programa de las partículas se prepara acá, no en el primer golpe de la noche
       refrescarDefensas();
       defensas.refrescar();
       fortin.refrescar();

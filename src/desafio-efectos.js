@@ -480,8 +480,16 @@ export function crearEfectos(escena, opciones = {}) {
     return n;
   }
 
+  // 3.8.7: la primera partícula de cada nube (sólidos y brillantes) compilaba su programa en el primer golpe de la primera
+  // noche: 250-340 ms de tirón en plena pelea (medido: getProgramInfoLog en el primer herirDuende). Se emite una de cada una, bajo
+  // el suelo y sin fuerza, en el primer cuadro del juego (desafio.js, primerCuadro): ahí nadie lo nota.
+  function precalentar() {
+    const abajo = { x: 0, y: -900, z: 0 };
+    lanzarAstillas(abajo, 1, '#8a6b4a', 0.1);
+    lanzarGotas(abajo, 1, musgo, savia, true);
+  }
   return {
-    astillas, chispas, polvo, sangre, destello, explosion, fuego, actualizar, limpiar,
+    astillas, chispas, polvo, sangre, destello, explosion, fuego, actualizar, limpiar, precalentar,
     get activas() { return solidos.vivas + brillos.vivas + contarItems(destellos) + contarItems(anillos) + contarItems(humos); },
   };
 }
