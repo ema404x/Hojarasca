@@ -199,5 +199,17 @@ const cruza = (desde, pasos) => { let p = desde; for (const q of pasos) { if (!q
   ok(!acto.sentado && Math.hypot(acto.lx - P['estar-3'].frente.x, acto.lz - P['estar-3'].frente.z) < 1e-6, 'plaza: de pie en el acto, delante del banco (no arriba)');
 }
 
-for (const f of ['src/aldea-gente.js', 'src/social-juego.js', 'src/amor-juego.js', 'src/amor.js', 'src/fiestas-juego.js', 'src/aldea-vida.js', 'src/taller-tren-juego.js', 'src/aldea-mecanicas-mundo.js', 'src/aldea-mecanicas.js', 'src/rincones-juego.js', 'src/main.js', 'pruebas/verificar-3-8-7-aldea.mjs']) ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
+// ---------------------------------------------------------------- 12. chinchón: el comodín suelto del que no cortó cuenta 25 (decisión del usuario)
+{
+  const J = await import('../src/juegos-mesa.js');
+  const c = (n, palo) => ({ n, palo }), C = { n: 0, palo: 'comodin' };
+  const juegos = [[c(3, 'oro'), c(4, 'oro'), c(5, 'oro')], [c(9, 'copa'), c(9, 'oro'), c(9, 'basto')]];
+  const mano = [C, c(6, 'oro'), c(2, 'espada')];
+  const r = J.acomodarSueltas(juegos, mano, [0, 1, 2]);
+  ok(!r.puestas.includes(0) && r.puestas.includes(1) && r.resto === 25 + 2, `chinchón: el 6 de oro se acomoda en la escalera, el comodín no: 25 en contra (${JSON.stringify(r)})`);
+  ok(J.acomodarSueltas(juegos, [C], [0]).resto === J.CHINCHON.comodinSuelto, 'chinchón: solo, también (antes entraba en cualquier juego y nunca contaba)');
+  ok(leer('src/juegos-mesa.js').includes('      if (esComodin(mano[i])) { siguen.push(i); continue; }'), 'juegos-mesa: el comodín no se acomoda');
+}
+
+for (const f of ['src/juegos-mesa.js', 'src/aldea.js', 'src/aldea-gente.js', 'src/social-juego.js', 'src/amor-juego.js', 'src/amor.js', 'src/fiestas-juego.js', 'src/aldea-vida.js', 'src/taller-tren-juego.js', 'src/aldea-mecanicas-mundo.js', 'src/aldea-mecanicas.js', 'src/rincones-juego.js', 'src/main.js', 'pruebas/verificar-3-8-7-aldea.mjs']) ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
 console.log(`verificar-3-8-7-aldea: ${n} comprobaciones OK`);
