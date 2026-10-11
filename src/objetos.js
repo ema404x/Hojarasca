@@ -335,7 +335,11 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     }
     for (const a of vecinos(grillaArboles, ojo.x, ojo.z, vecinosArboles)) {
       if (progreso.entradas[a.especie]) continue;
+      // 3.8.7: el árbol seco no tiene entrada en el cuaderno: ofrecía «Anotar undefined» (142 puntos del valle) y E anotaba una
+      // entrada que no existe
+      if (!Object.hasOwn(NOMBRE_ESPECIE, a.especie)) continue;
       dir.set(a.x - ojo.x, 0, a.z - ojo.z);
+
       const d = dir.length() - a.r;
       if (d > 2.2) continue;
       const dot = dir.normalize().dot(adelantePlano);

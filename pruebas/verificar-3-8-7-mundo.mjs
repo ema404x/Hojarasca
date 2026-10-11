@@ -14,7 +14,7 @@
 //  8. Vehículos: el cuadro del caballo en el puente se maneja con el mando y con Tab+Enter; arriba del sulky el clic derecho
 //     no tala ni planta, y desde el tren o el kayak no se prende fuego; los planos no quedan trabados al subir; el mando
 //     desenchufado en un menú suelta el stick.
-//  9. Nada para juntar más allá de donde se puede caminar.
+//  9. Nada para juntar más allá de donde se puede caminar; el árbol seco no ofrece «Anotar undefined».
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -150,5 +150,13 @@ const funcion = (texto, nombre) => { const i = texto.indexOf(`function ${nombre}
   const { LIMITE } = await src('config.js');
   ok(LIMITE + 1.5 + 2.7 < 476, 'lo que queda se alcanza estirando el brazo desde el borde');
 }
+
+// 9b. el árbol seco
+{
+  const o = leer('src/objetos.js');
+  ok(o.includes('if (!Object.hasOwn(NOMBRE_ESPECIE, a.especie)) continue;'), 'el árbol seco no ofrece «Anotar undefined» (ni anota una entrada que no existe)');
+  ok(main.includes("'Pasó la medianoche'") && !main.includes("'Amanece otra vez'"), 'a las 00:00 no «amanece»');
+}
+
 
 console.log(`OK 3.8.7 mundo · ${pasos} verificaciones`);

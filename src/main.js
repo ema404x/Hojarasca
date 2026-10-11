@@ -8750,7 +8750,7 @@ function actualizarTiempo(dt) {
     // la huerta, el correo y los encargos quedaban quietos. Si esa noche ya se durmió, el día ya pasó.
     // 3.8.3: también en La noche de los duendes: sin el día nuevo, a la medianoche `claveNoche` volvía a la noche
     // anterior y salía otra oleada entera (dos por noche: el jefe y la noche final llegaban al doble de rápido)
-    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
+    if (antes - progreso.horas > 12 && progreso.relojNoche !== claveNocheReloj(d)) { progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   } else if (modo === 'jugando') {
     // sentarse acelera el reloj, salvo con invasores cerca (no se saltea el ataque)
     // (3.6 (vida): y charlando: sentado a la mesa con un vecino, la charla no se come la tarde)
@@ -8759,7 +8759,7 @@ function actualizarTiempo(dt) {
     // ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
     const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
-    if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Amanece otra vez'); }
+    if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   }
 }
 
