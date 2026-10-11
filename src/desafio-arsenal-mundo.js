@@ -52,6 +52,9 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
     p.arma = arma;
     if (tipo === 'bengala') p.vida = 1.6;   // estalla a los 1,6 s, esté donde esté
     if (tipo === 'arpon') { arponFuera = p; p.vida = 1.2; }
+    // 3.8.7: la hachuela y la jabalina se anotan como tiradas al salir de la mano, no al caer: guardar con una en el
+    // aire la perdía (la munición ya estaba descontada y la anotación llegaba después, en una partida que no se guardó)
+    if (RECUPERABLES[tipo]) anotarTirada(RECUPERABLES[tipo], 1);
     return p;
   }
 
@@ -181,8 +184,8 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
     const m = MALLAS[tipo];
     let r = enElSuelo.find((x) => !x.activo && x.tipo === tipo);
     const y = api.alturaSuelo?.(pos.x, pos.z) ?? T.altura(pos.x, pos.z);   // 3.5.1: adentro de la nave, su piso (no el valle de abajo)
-    if ((!r && enElSuelo.length > 40) || !(y > -1e6)) { volverATusCosas(RECUPERABLES[tipo]); return; }   // 3.8.3
-    anotarTirada(RECUPERABLES[tipo], 1);
+    // 3.8.3 (3.8.7: ya estaba anotada desde que salió de la mano: si vuelve directo, se desanota)
+    if ((!r && enElSuelo.length > 40) || !(y > -1e6)) { anotarTirada(RECUPERABLES[tipo], -1); volverATusCosas(RECUPERABLES[tipo]); return; }
     if (!r) {
       if (enElSuelo.length > 40) return;   // tope: una lluvia de hachas no llena la escena
       r = { tipo, malla: new THREE.Mesh(m.geo, m.mat), activo: false };

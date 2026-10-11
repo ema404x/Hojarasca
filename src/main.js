@@ -3350,7 +3350,9 @@ function refrescarBarra(forzar = false) {
   // (antes la casilla pasaba a lo siguiente y la próxima V soltaba un piñón sin avisar)
   if (idElegido && ranuras[elegida]?.id !== idElegido) {
     const j = ranuras.findIndex((r) => r?.id === idElegido);
-    if (j >= 0) elegida = j;
+    // 3.8.7: y la casilla guardada también (si no, al gastar el último emplasto las armas de después se corrían, la marca
+    // las seguía, y al guardar y abrir quedaba elegida la de al lado: el facón en vez de la ballesta)
+    if (j >= 0) { elegida = j; progreso.ranura = j; }
     else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);
   }
   if (elegida >= ranuras.length) elegida = Math.max(0, ranuras.length - 1);

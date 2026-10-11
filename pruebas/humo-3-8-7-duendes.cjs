@@ -79,6 +79,45 @@ app.whenReady().then(async () => {
         }
       }
     }
+    // ---------------------------------------------------------------- 2. el arsenal: cada arma gasta lo suyo, y guardar con armas en la mano
+    if (toca('arsenal')) {
+      seccion('arsenal');
+      await nueva({});
+      const MUN = { arco: 'flechas', ballesta: 'virotes', hachuela: 'hachuelas', jabalina: 'jabalinas', granada: 'granadas', humo: 'humos', bengala: 'bengalas', boleadoras: 'boleadoras', pistola: 'cargas' };
+      const dar = `(()=>{ const H=${H}, P=H.progreso, D=P.desafio; P.cosas = P.cosas || {};
+        for (const k of ['arco','lanza','honda','boleadoras','ballesta','facon','maza','arpon','hachuela','jabalina','granada','humo','bengala','cuerno','pistola','martillo']) P.cosas[k]=1;
+        Object.assign(D, { flechas: 10, virotes: 10, hachuelas: 5, jabalinas: 5, granadas: 5, humos: 5, bengalas: 5, boleadoras: 5, cargas: 10, emplastos: 1, tutorial: 99 }); P.materiales.piedra = 10; P.horas = 12; return 1 })()`;
+      await js(dar);
+      const cuadros = (n) => js(`(()=>{ for (let i=0;i<${n};i++) ${H}.__bucle(); return 1 })()`);
+      await cuadros(5);
+      // cada arma: un tiro gasta uno (y nada más)
+      for (const [arma, k] of Object.entries(MUN).concat([['honda', 'piedra']])) {
+        await js(`(()=>{ for (let i=0;i<40;i++) ${H}.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return 1 })()`);   // la recarga del tiro anterior
+        const r = await js(`(()=>{ const H=${H}, P=H.progreso, D=P.desafio; const cuanto = () => '${k}' === 'piedra' ? P.materiales.piedra : D['${k}'];
+          const antes = cuanto(); const tiro = H.desafio.atacar('${arma}'); return { tiro, antes, despues: cuanto(), recarga: +H.desafio.recarga.toFixed(2) } })()`);
+        ok(r.tiro && r.despues === r.antes - 1 && r.recarga > 0, `${arma}: un tiro gasta uno (${JSON.stringify(r)})`);
+      }
+      await cuadros(60);
+      // la barra: el martillo elegido; se gasta el último emplasto (las casillas de después se corren) y se guarda
+      const elegir = async (nombre) => { for (let i = 1; i <= 8; i++) { await js(`document.dispatchEvent(new KeyboardEvent('keydown',{code:'Digit${i}',bubbles:true})); document.dispatchEvent(new KeyboardEvent('keyup',{code:'Digit${i}',bubbles:true})); 1`); await cuadros(2); if (String(await js(`${H}.__ranuraActual()`)).includes(nombre)) return i; } return -1; };
+      console.log('   la barra: ' + JSON.stringify(await (async () => { const v = []; for (let i = 1; i <= 8; i++) { await js(`document.dispatchEvent(new KeyboardEvent('keydown',{code:'Digit${i}',bubbles:true})); document.dispatchEvent(new KeyboardEvent('keyup',{code:'Digit${i}',bubbles:true})); 1`); await cuadros(2); v.push(await js(`${H}.__ranuraActual()`)); } return v; })()));
+      const iBal = await elegir('Martillo');
+      ok(iBal > 0, `el martillo está en la barra, después del emplasto (casilla ${iBal})`);
+      await js(`(()=>{ const H=${H}; H.progreso.desafio.salud = 40; H.desafio.usarEmplasto(); return 1 })()`);
+      await cuadros(20);
+      const antes = await js(`${H}.__ranuraActual()`);
+      await js(`${H}.guardar(); 1`);
+      await abrir(); await entrar(); await cuadros(5);
+      const despues = await js(`${H}.__ranuraActual()`);
+      ok(/Martillo/.test(antes) && antes === despues, `gastado el último emplasto, guardar y abrir: sigue elegido el martillo («${antes}» → «${despues}»)`);
+      // con una hachuela en el aire, el arpón afuera y una granada volando: al abrir, la hachuela vuelve y nada se duplica
+      await js(dar); await cuadros(5);
+      const tiros = await js(`(()=>{ const H=${H}, D=H.progreso.desafio; H.desafio.atacar('hachuela'); for (let i=0;i<3;i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); H.desafio.atacar('arpon'); return { hachuelas: D.hachuelas, tiradas: { ...(D.armasTiradas || {}) } } })()`);
+      await js(`${H}.guardar(); 1`);
+      await abrir(); await entrar(); await cuadros(5);
+      const vuelta = await js(`(()=>{ const D=${H}.progreso.desafio; return { hachuelas: D.hachuelas, tiradas: { ...(D.armasTiradas || {}) } } })()`);
+      ok(vuelta.hachuelas === tiros.hachuelas + 1 && !Object.keys(vuelta.tiradas).length, `la hachuela en el aire vuelve a tus cosas al abrir, una sola vez (${JSON.stringify({ tiros, vuelta })})`);
+    }
   } catch (e) {
     errores.push('excepcion: ' + (e && e.message ? e.message : e));
   }

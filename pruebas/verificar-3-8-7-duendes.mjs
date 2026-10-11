@@ -2,6 +2,9 @@
 //  1. El río se vadea: el agua los frenaba siempre y, con el río entre ellos y su blanco, pasaban la noche en la
 //     orilla (medido en partida real con humo-3-8-7-duendes: LENGA-7 y COIHUE-3, de 1 a 9 trabados por noche). El
 //     lago se rodea siempre para el mismo lado.
+//  2. La hachuela o la jabalina que iba en el aire al guardar se perdía (se anotaba como tirada recién al caer).
+//  3. La casilla elegida de la barra se guarda también cuando la marca sigue a lo elegido (gastar el último emplasto
+//     corría las armas de después y al abrir quedaba elegida otra).
 // Donde se puede, el código de verdad corre en Node.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,6 +33,21 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   ok(des.includes("const paso = velObj * dt * (T.agua(p.x, p.z) ? VADO.lento : 1);"), 'en el agua, el paso es más corto');
   ok(/a\.salto = null; a\.orilla = 0;/.test(des), 'el duende reciclado no trae la orilla de su vida anterior (bajarAlien)');
   ok(des.includes('const r = a.rumbo + a.sentido * k * 0.38'), 'la orilla del lago se sigue para su lado (a.sentido), no al azar');
+}
+
+// ---------------------------------------------------------------- 2. lo tirado en el aire se anota al salir de la mano
+{
+  const ars = leer('src/desafio-arsenal-mundo.js');
+  const i = ars.indexOf('function lanzar('), lanzar = ars.slice(i, ars.indexOf('\n  }\n', i));
+  ok(lanzar.includes('if (RECUPERABLES[tipo]) anotarTirada(RECUPERABLES[tipo], 1);'), 'lanzar anota la hachuela y la jabalina');
+  const j = ars.indexOf('function dejarEnElSuelo('), dejar = ars.slice(j, ars.indexOf('\n  }\n', j));
+  ok(!dejar.includes('anotarTirada(RECUPERABLES[tipo], 1)'), 'al caer no se anota dos veces');
+  ok(dejar.includes('anotarTirada(RECUPERABLES[tipo], -1); volverATusCosas(RECUPERABLES[tipo]); return;'), 'si vuelve directo, se desanota');
+}
+// ---------------------------------------------------------------- 3. la casilla guardada sigue a lo elegido
+{
+  const main = leer('src/main.js');
+  ok(main.includes('if (j >= 0) { elegida = j; progreso.ranura = j; }'), 'refrescarBarra guarda la casilla nueva de lo elegido');
 }
 
 console.log(`verificar-3-8-7-duendes: ${n} comprobaciones OK`);

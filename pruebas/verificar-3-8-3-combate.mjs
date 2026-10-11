@@ -113,10 +113,13 @@ ${extraer(des, 'soltarCristales')}; this.soltarCristales = soltarCristales;`, ct
   vm.createContext(ctx);
   const tope = mundo.match(/const TOPE_SUELTAS = \d+;/)[0];
   vm.runInContext(`${tope}\n${['anotarTirada', 'volverATusCosas', 'devolverTiradas', 'dejarEnElSuelo', 'levantar'].map((n) => extraer(mundo, n)).join('\n')}
-    this.f = { dejarEnElSuelo, levantar, devolverTiradas };`, ctx);
+    // 3.8.7: la tirada se anota al salir de la mano (lanzar); dejarEnElSuelo sólo la pone en el suelo
+    const tirar = (t, p) => { anotarTirada(RECUPERABLES[t], 1); dejarEnElSuelo(t, p); };
+    this.f = { tirar, levantar, devolverTiradas };`, ctx);
+  assert.ok(extraer(mundo, 'lanzar').includes('if (RECUPERABLES[tipo]) anotarTirada(RECUPERABLES[tipo], 1);'), 'lanzar anota la tirada (3.8.7)');
   D.hachuelas = 0;
-  ctx.f.dejarEnElSuelo('hachuela', { x: 10, z: 0 });
-  ctx.f.dejarEnElSuelo('hachuela', { x: 20, z: 0 });
+  ctx.f.tirar('hachuela', { x: 10, z: 0 });
+  ctx.f.tirar('hachuela', { x: 20, z: 0 });
   assert.equal(D.armasTiradas.hachuelas, 2, 'las dos tiradas quedan anotadas en la partida');
   const guardada = sanearDesafio(JSON.parse(JSON.stringify(D)));
   assert.equal(guardada.armasTiradas.hachuelas, 2, 'y sobreviven al guardado');
@@ -127,10 +130,10 @@ ${extraer(des, 'soltarCristales')}; this.soltarCristales = soltarCristales;`, ct
   assert.equal(D.hachuelas, 2, 'la que quedó en el suelo vuelve a tus cosas');
   assert.equal(Object.keys(D.armasTiradas).length, 0, 'y no queda nada anotado');
   piso = -1e9;   // adentro del Coihue, fuera de la arena
-  ctx.f.dejarEnElSuelo('jabalina', { x: 90, z: 0 });
+  ctx.f.tirar('jabalina', { x: 90, z: 0 });
   assert.equal(D.jabalinas, 1, 'un tiro fuera del piso vuelve directo');
   piso = 0; D.hachuelas = 99;
-  ctx.f.dejarEnElSuelo('hachuela', { x: 0, z: 0 });
+  ctx.f.tirar('hachuela', { x: 0, z: 0 });
   ctx.f.levantar({ pos: { x: 0, z: 0 } });
   assert.equal(ctx.enElSuelo.filter((r) => r.activo && r.x === 0).length, 1, 'con el tope lleno queda en el suelo');
   assert.match(des, /arsenal\.devolverTiradas\(\);/, 'al abrir la partida vuelven');
