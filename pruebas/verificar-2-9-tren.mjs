@@ -321,7 +321,7 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
 
   // la suite
   const pkg = JSON.parse(leer('package.json'));
-  assert.ok(pkg.scripts.verify.includes('node pruebas/verificar-2-9-tren.mjs'), 'la prueba está en verify');
+  assert.ok(pkg.scripts['verify:pasos'].includes('node pruebas/verificar-2-9-tren.mjs'), 'la prueba está en verify');
 }
 
 console.log('OK 2.9 tren: la trochita de maquinista, el comercio entre pueblos, los fletes y el guardado');

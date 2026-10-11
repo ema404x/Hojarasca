@@ -159,5 +159,5 @@ assert.match(vegFuente, /if \(impostores && ref\.imp !== undefined\) impostores\
 assert.match(main, /veg\.prepararImpostores\(renderer\);/, 'main hornea los impostores con el renderer');
 // el relevo 3D → cartel se cuelga del material de la vegetación: necesita su raíz por instancia
 assert.ok(leer('src/materiales.js').includes('vRaizVeg = raizVeg.xz;'), 'el material vegetal sigue exponiendo vRaizVeg');
-assert.ok(pkg.scripts.verify.includes('node pruebas/verificar-3-3-bosque.mjs'), 'la prueba corre en verify');
+assert.ok(pkg.scripts['verify:pasos'].includes('node pruebas/verificar-3-3-bosque.mjs'), 'la prueba corre en verify');
 console.log(`verificar-3-3-bosque: ok · ${veg.arboles.length} árboles en ${veg.chunks.size} chunks, ${enEscena.length} en escena desde el centro`);

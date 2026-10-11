@@ -270,7 +270,7 @@ const huella0 = huellaTerreno(T0);
   // el sonido no se guarda: sus recetas usan Math.random (cada arranque suena distinto) y se
   // sintetizan en ratos libres después del primer clic, no durante la carga
   assert.ok(!leer('src/sonido.js').includes('cache-carga'));
-  assert.ok(JSON.parse(leer('package.json')).scripts.verify.includes('node pruebas/verificar-2-7-4-carga.mjs'), 'en npm run verify');
+  assert.ok(JSON.parse(leer('package.json')).scripts['verify:pasos'].includes('node pruebas/verificar-2-7-4-carga.mjs'), 'en npm run verify');
 }
 
 console.log(`2.7.4: carga · ${Object.keys(TEXTURAS).length} texturas idénticas a la 2.7.0 (directo, Worker y caché) · valor, celdas y simplex número por número · el mismo valle calculado, de a pasos y desde la caché · clave ${GENERACION_CACHE}`);

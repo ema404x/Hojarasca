@@ -368,7 +368,7 @@ function cargar(raices, final) {
   }
   for (const f of ['molino.js', 'meteo.js', 'radio.js']) assert.doesNotMatch(leer(`src/${f}`), /from 'three'|document\.|window\./, `${f} es puro`);
   const pkg = JSON.parse(leer('package.json'));
-  assert.match(pkg.scripts.verify, /node pruebas\/verificar-2-9-maquinas\.mjs/);
+  assert.match(pkg.scripts['verify:pasos'], /node pruebas\/verificar-2-9-maquinas\.mjs/);
   paso('el cableado: los planos, la tecla E y el aviso, el clima y el handle de depuración');
 }
 

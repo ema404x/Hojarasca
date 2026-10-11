@@ -60,7 +60,7 @@ exigir(electron.includes('archivosRecursivos(src)'), 'rebuild no invalida por to
 exigir(electron.includes('render-process-gone'), 'falta registro de crash del renderer');
 exigir(preload.includes("ipcRenderer.send('salir-juego')"), 'preload no expone salida limpia');
 exigir(pkg.build?.asar === true, 'asar no está habilitado');
-exigir(pkg.scripts?.verify?.includes('verificar-release.mjs'), 'verify no incluye release check');
+exigir(pkg.scripts?.['verify:pasos']?.includes('verificar-release.mjs'), 'verify no incluye release check');
 
 // Mapa completo: no reintroducir descubrimiento como requisito visual.
 exigir(index.includes('Mapa completo del valle'), 'leyenda del mapa no indica mapa completo');

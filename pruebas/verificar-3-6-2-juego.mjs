@@ -341,5 +341,5 @@ globalThis.__R = (() => {
 }
 
 const pkg = JSON.parse(leer('package.json'));
-ok(pkg.scripts.verify.includes('node pruebas/verificar-3-6-2-juego.mjs'), 'la prueba corre en verify');
+ok(pkg.scripts['verify:pasos'].includes('node pruebas/verificar-3-6-2-juego.mjs'), 'la prueba corre en verify');
 console.log(`verificar-3-6-2-juego: ok (${pasos} pasos)`);

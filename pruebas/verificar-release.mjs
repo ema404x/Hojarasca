@@ -46,7 +46,7 @@ const pruebasRelease = [
   'verificar-habitat-premium-rc11.mjs', 'verificar-habitat-conectado-rc12.mjs',
   'verificar-naturaleza-patagonica-rc13.mjs', 'verificar-naturaleza-viva-rc14.mjs', 'verificar-naturaleza-cinematica-rc15.mjs', 'verificar-naturaleza-reactiva-rc16.mjs', 'verificar-ecosistema-dinamico-rc17.mjs', 'verificar-ecosistema-atmosferico-rc18.mjs', 'verificar-microconductas-rc19.mjs', 'verificar-optimizacion-rc20.mjs', 'verificar-optimizacion-profunda-rc21.mjs', 'verificar-optimizacion-adaptativa-rc22.mjs', 'verificar-optimizacion-autodiagnostica-rc23.mjs', 'verificar-optimizacion-antitirones-rc24.mjs', 'verificar-hotfix-runtime-rc24-1.mjs', 'verificar-bughunt-integral-rc25.mjs', 'verificar-realismo-visual-rc27.mjs', 'verificar-microdetalle-material-rc28.mjs', 'verificar-composicion-paisaje-rc29.mjs', 'verificar-profundidad-escenica-rc30.mjs', 'verificar-hotfix-visual-rc30.mjs', 'verificar-integridad-estructural-rc31.mjs',
 ];
-const faltanPruebas = pruebasRelease.filter((nombre) => !pkg.scripts?.verify?.includes(nombre));
+const faltanPruebas = pruebasRelease.filter((nombre) => !pkg.scripts?.['verify:pasos']?.includes(nombre));
 if (faltanPruebas.length) fallo.push(`verify no cubre toda la cadena RC2-RC31: ${faltanPruebas.join(', ')}`);
 if (pkg.devDependencies?.three || pkg.devDependencies?.esbuild) fallo.push('quedaron dependencias de build innecesarias (three/esbuild)');
 const mainFuente = fs.readFileSync(path.join(raiz,'src/main.js'),'utf8');

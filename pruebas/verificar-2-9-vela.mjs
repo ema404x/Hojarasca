@@ -293,7 +293,7 @@ console.log('✓ planos (tipo 0/4, sólo Relax), varadero al agua honda, puente 
   assert.ok(en("aviso = { tecla: 'E', texto: 'Subir al kayak' }") < en('const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) aviso = { tecla: \'E\', texto: a.texto }; }'), 'aviso: el velero y la tirolesa después del kayak');
   assert.ok(main.includes('if (js.enCable) return;') && main.includes('if (js.enCable) aviso = null;'), 'colgado del cable, ni E ni aviso');
   assert.ok(main.includes('progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();'), 'el velero se guarda');
-  assert.ok(/"verify": "[^"]*node pruebas\/verificar-2-9-vela\.mjs/.test(leer('package.json')), 'la prueba está en npm run verify');
+  assert.ok(/"verify:pasos": "[^"]*node pruebas\/verificar-2-9-vela\.mjs/.test(leer('package.json')), 'la prueba está en npm run verify');
   console.log('✓ enganches: construccion, guardado, jugador, kayak y main (E y aviso en el mismo orden)');
 }
 console.log('OK 2.9 velero, tirolesa y puente colgante');

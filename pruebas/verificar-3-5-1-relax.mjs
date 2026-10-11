@@ -103,5 +103,5 @@ assert.ok(leer('src/plantilla.html').includes(".estado { position: absolute; lef
 }
 
 const pkg = JSON.parse(leer('package.json'));
-assert.ok(pkg.scripts.verify.includes('node pruebas/verificar-3-5-1-relax.mjs'), 'la prueba corre en verify');
+assert.ok(pkg.scripts['verify:pasos'].includes('node pruebas/verificar-3-5-1-relax.mjs'), 'la prueba corre en verify');
 console.log('verificar-3-5-1-relax: ok · zaino en el palenque, dormir y reloj sin saltar días, sync que pregunta, contadores que no bajan, piezas por etapas, modo foto sin trampas');

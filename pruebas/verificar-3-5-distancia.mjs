@@ -314,5 +314,5 @@ assert.ok(pastoFuente.includes('alto *= desvanecer * vivo;'), 'las flores crecen
 assert.ok(pastoFuente.includes('(1.0 - step(0.4, estT.b))'), 'el pasto no atraviesa los pisos');
 assert.ok(main.includes('function marcarPisos()') && main.includes("estep[i * 4 + 2] = 0;"), 'el canal de los pisos');
 assert.ok(mat.includes('if (uSotoFin > 0.5)'), 'el fundido del sotobosque en el material');
-assert.ok(pkg.scripts.verify.includes('node pruebas/verificar-3-5-distancia.mjs'), 'la prueba corre en verify');
+assert.ok(pkg.scripts['verify:pasos'].includes('node pruebas/verificar-3-5-distancia.mjs'), 'la prueba corre en verify');
 console.log(`verificar-3-5-distancia: ok · ${referencia.length} matas a menos de 22 m en las cuatro direcciones, hasta ${total} en bloques`);

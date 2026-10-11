@@ -163,5 +163,5 @@ const ok = (c, t) => { n++; assert.ok(c, t); };
 }
 
 // ---------------------------------------------------------------- 8. la prueba está en verify
-ok(JSON.parse(leer('package.json')).scripts.verify.includes('node pruebas/verificar-3-7-3-tren.mjs'), 'la prueba está en verify');
+ok(JSON.parse(leer('package.json')).scripts['verify:pasos'].includes('node pruebas/verificar-3-7-3-tren.mjs'), 'la prueba está en verify');
 console.log(`OK 3.7.3 tren: la trochita mejorada, sus vagones y su manejo (${n} comprobaciones)`);

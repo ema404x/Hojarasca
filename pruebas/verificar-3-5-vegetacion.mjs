@@ -106,5 +106,5 @@ assert.ok(main.includes('function canterosParaPisos()') && main.includes('col.pl
 // a la placa sube sólo lo usado al compactar
 assert.ok(veg.split('subirUsado(im, n)').length - 1 >= 2 && !veg.includes('destM.set(M.subarray('), 'compactados sin subir el búfer entero');
 
-assert.ok(pkg.scripts.verify.includes('node pruebas/verificar-3-5-vegetacion.mjs'), 'la prueba corre en verify');
+assert.ok(pkg.scripts['verify:pasos'].includes('node pruebas/verificar-3-5-vegetacion.mjs'), 'la prueba corre en verify');
 console.log('verificar-3-5-vegetacion: ok · nieve pareja en los tres dibujos, cartas con tope, helechos de otoño, sin flores en la nieve · 3.5.2: ciprés de cerca, coirón y notro visibles, aire del suelo, amancay y canteros');
