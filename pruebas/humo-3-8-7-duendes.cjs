@@ -118,6 +118,43 @@ app.whenReady().then(async () => {
       const vuelta = await js(`(()=>{ const D=${H}.progreso.desafio; return { hachuelas: D.hachuelas, tiradas: { ...(D.armasTiradas || {}) } } })()`);
       ok(vuelta.hachuelas === tiros.hachuelas + 1 && !Object.keys(vuelta.tiradas).length, `la hachuela en el aire vuelve a tus cosas al abrir, una sola vez (${JSON.stringify({ tiros, vuelta })})`);
     }
+    // ---------------------------------------------------------------- 3. el fuego: la zanja prende y, con viento, se corre al pasto
+    if (toca('fuego')) {
+      seccion('fuego');
+      await nueva({});
+      await js(`(()=>{ const P=${H}.progreso; P.desafio.tutorial = 99; P.horas = 12; return 1 })()`);
+      const poner = (id, dx, dz) => js(`(()=>{ const H = ${H}, O = H.obras, P = H.progreso, j = H.jugador.estado;
+        Object.assign(P.materiales, { tronco: 200, tabla: 200, piedra: 200, cristal: 200 });
+        const p = H.PLANOS.find(q => q.id === '${id}'); if (!p) return { error: 'no hay plano ${id}' };
+        for (const r of [0, 1.5, 3, 4.5]) for (let k = 0; k < 8; k++) {
+          O.elegir(p); const a = k * Math.PI / 4, x = j.pos.x + (${dx}) + Math.cos(a) * r, z = j.pos.z + (${dz}) + Math.sin(a) * r;
+          const f = O.fundar(x, z, 0, j.pos.y); if (!f.ok) continue;
+          for (let g = 0; g < 12 && f.obra.datos.etapas < f.obra.plano.etapas.length; g++) { if (!O.avanzar(f.obra, P.materiales).ok) break; }
+          O.elegir(null); P.obras = O.obras.map(o => o.datos); H.desafio.fortin.refrescar(); H.desafio.defensas.refrescar();
+          return { ok: true, i: O.obras.indexOf(f.obra), x: f.obra.datos.x, z: f.obra.datos.z };
+        } O.elegir(null); return { error: 'sin lugar' } })()`);
+      // un claro llano cerca del refugio
+      await js(`(()=>{ const H=${H}, r=H.T.lugares.refugio, j=H.jugador.estado; for (let k=0;k<40;k++){ const x=r.x+60+(k%6)*20, z=r.z-60-Math.floor(k/6)*20; if (H.T.agua(x,z)) continue; j.pos.set(x, H.T.altura(x,z)+0.05, z); return k; } return -1 })()`);
+      const zj = await poner('zanja-fuego', 0, -4);
+      const em = zj.ok ? await poner('empalizada', 5, -4) : null;
+      ok(zj.ok && em?.ok, `se arman la zanja y una empalizada al este, a favor del viento (${JSON.stringify([zj, em])})`);
+      if (zj.ok && em?.ok) {
+        await js(`(()=>{ const H=${H}; for (let i = 0; i < 25; i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return 1 })()`);   // (las zanjas se repasan una vez por segundo)
+        const prende = await js(`(()=>{ const H=${H}, D=H.desafio, j=H.jugador.estado, E=H.clima.estado; E.lluvia = 0; E.objetivo = 'despejado';
+          j.pos.set(${zj.x} - 1.6, H.T.altura(${zj.x} - 1.6, ${zj.z}) + 0.05, ${zj.z});
+          const a1 = D.avisoCercaDe(j.pos); D.usarCercaDe(j.pos); const a2 = D.avisoCercaDe(j.pos); D.usarCercaDe(j.pos); const a3 = D.avisoCercaDe(j.pos);
+          j.pos.set(${zj.x} - 25, H.T.altura(${zj.x} - 25, ${zj.z}) + 0.05, ${zj.z});
+          const a = D.invocar('rastreador', ${zj.x}, ${zj.z}); a.vida = a.vidaMax = 5000; a.dudaT = 999;
+          const o = H.obras.obras[${em.i}], vida0 = o.datos.vida ?? o.plano.vida;
+          let focos = 0;
+          for (let i = 0; i < 1400; i++) { E.viento = E.vientoBase = 1.1; E.lluvia = 0; H.progreso.desafio.salud = 100; D.actualizar(0.05, { noche: 1, dtReal: 0.05 }); focos = Math.max(focos, D.focos.length); }
+          return { avisos: [a1, a2, a3], focos, duende: Math.round(a.vidaMax - a.vida), empalizada: [vida0, Math.round(o.datos.vida ?? vida0)] } })()`);
+        ok(/Prender|La zanja arde/.test(prende.avisos.join(' ')), `E prende la zanja (${prende.avisos.join(' · ')})`);
+        ok(prende.focos > 0, `con viento, el fuego se corre al pasto (${prende.focos} focos a la vez)`);
+        ok(prende.duende > 0, `el duende en la zanja se quema (${prende.duende})`);
+        ok(prende.empalizada[1] < prende.empalizada[0], `la madera a favor del viento se chamusca (${prende.empalizada.join(' → ')})`);
+      }
+    }
   } catch (e) {
     errores.push('excepcion: ' + (e && e.message ? e.message : e));
   }
