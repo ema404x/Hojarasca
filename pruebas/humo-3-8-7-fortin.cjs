@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
     }
     O.elegir(null); return { error: 'no hubo lugar: ' + motivo } })()`);
   // otro claro si en este no hubo lugar (pendiente, la escalera del adarve colgando)
-  const ponerEnClaro = async (id, dx, dz) => { let o = null; for (let k = 0; k < 10; k++) { await irAlClaro(); o = await poner(id, dx, dz); if (o.ok) return o; } return o; };
+  const ponerEnClaro = async (id, dx, dz) => { let o = null; for (let k = 0; k < 30; k++) { await irAlClaro(); o = await poner(id, dx, dz); if (o.ok) return o; } return o; };
   const limpiar = () => js(`(()=>{ const H = ${H}; for (const a of H.desafio.aliens) { a.estado = 'irse'; a.t = 9; } H.desafio.actualizar(0.05, { noche: 0, dtReal: 0.05 }); H.progreso.desafio.salud = 100; return 1 })()`);
   const desarmar = (i) => js(`(()=>{ const H = ${H}, o = H.obras.obras[${i}]; if (o) H.obras.destruir(o); H.progreso.obras = H.obras.obras.map(o => o.datos); H.desafio.fortin.refrescar(); H.desafio.defensas.refrescar(); return 1 })()`);
   const TIPOS = process.env.TIPOS ? process.env.TIPOS.split(',') : ['rastreador', 'bruto', 'tirador', 'saltador', 'escupidor', 'excavador', 'volador', 'jefe'];
