@@ -3284,8 +3284,29 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     return i >= 0;
   }
 
-  function dependenciasSobre(obra) {
-    const deps = [];
+  // 3.8.7: las piezas que pisan una plataforma de esta obra (la mesa en el piso de la casilla, la silla en el techo plano o
+  // en la pasarela): antes sólo contaba lo apoyado en un piso modular, y deshacer la casilla, desmontar el techo o moverlo
+  // dejaba el mueble flotando. Se mira de quién es la plataforma que tiene abajo, a su cota.
+  function apoyadasEnPlataformas(obra) {
+    const r = [];
+    if (!obra || !col.plataformaEn) return r;
+    for (const o of obras) {
+      if (o === obra || o === edicion?.obra || !o.plano.pieza || !o.plano.apoyaEnPlataforma || o.datos.etapas <= 0) continue;
+      const apoyo = o.datos.y - (o.plano.elevacion || 0);
+      if (!(apoyo > T.altura(o.datos.x, o.datos.z) + 0.12)) continue;
+      const p = col.plataformaEn(o.datos.x, o.datos.z, apoyo + 0.02, 0.05);
+      if (p?.duenio === obra && Math.abs(p.alto - apoyo) < 0.12) r.push(o);
+    }
+    return r;
+  }
+  function sigueApoyada(o) {
+    const apoyo = o.datos.y - (o.plano.elevacion || 0);
+    const p = col.plataformaEn?.(o.datos.x, o.datos.z, apoyo + 0.02, 0.05);
+    return !!p && p.duenio !== o && Math.abs(p.alto - apoyo) < 0.12;
+  }
+
+  function dependenciasSobre(obra, { plataformas = true } = {}) {
+    const deps = plataformas ? apoyadasEnPlataformas(obra) : [];
     if (obra?.plano?.soportaPiezas) {
       const arriba = obra.datos.y + 0.12;
       for (const o of obras) if (o !== obra && o.plano.pieza && o.datos.etapas > 0 && o.datos.y > arriba &&
@@ -3683,13 +3704,21 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (d < d0) { d0 = d; mejor = o; }
     }
     if (!mejor) return { ok: false, motivo: 'No hay ninguna obra empezada cerca' };
-    const deps = dependenciasSobre(mejor);
+    const deps = dependenciasSobre(mejor, { plataformas: false });
     if (deps.length) return { ok: false, motivo: `Tiene ${deps.length === 1 ? 'una pieza apoyada' : `${deps.length} piezas apoyadas`} encima` };
     const etapa = mejor.plano.etapas[mejor.datos.etapas - 1];
     const recupera = {};
     for (const [k, n] of Object.entries(etapa?.pide || {})) if (n > 1) recupera[k] = Math.max(1, Math.floor(n * 0.5));   // 3.5.1: ídem
+    // 3.8.7: si la etapa que se deshace es el piso (o la plataforma) de algo tuyo, no: el mueble quedaba en el aire
+    const apoyadas = apoyadasEnPlataformas(mejor);
     mejor.datos.etapas--;
     rehacer(mejor);
+    const colgadas = apoyadas.filter((o) => !sigueApoyada(o));
+    if (colgadas.length) {
+      mejor.datos.etapas++;
+      rehacer(mejor);
+      return { ok: false, motivo: `Tiene ${colgadas.length === 1 ? 'una pieza apoyada' : `${colgadas.length} piezas apoyadas`} encima` };
+    }
     ultimoEstado = null;
     return { ok: true, plano: mejor.plano, datos: mejor.datos, etapa, recupera, quedaMarca: mejor.datos.etapas === 0 };
   }
