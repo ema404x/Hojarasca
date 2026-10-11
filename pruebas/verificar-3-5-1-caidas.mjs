@@ -80,8 +80,9 @@ for (const f of fs.readdirSync(path.join(raiz, 'src')).filter((x) => /\.(js|html
 pasos++;
 const main = leer('src/main.js');
 ok(/import \{ crearDialogos \} from '\.\/dialogo\.js';/.test(main), 'main.js arma las preguntas con dialogo.js');
-ok(/async function pedirNombre\(obra\) \{\n\s+const puesto = await dialogos\.pedirTexto\('¿Cómo le vas a poner\?'/.test(main), 'el nombre de la obra, con el cuadro del juego');
-ok(/!obras\.obras\.includes\(obra\)\) return;/.test(main), 'si la obra ya no está, no se nombra');
+// (3.8.7: entre la función y el cuadro, `vigente`: la obra deshecha antes de nombrarla)
+ok(/async function pedirNombre\(obra\) \{\n[\s\S]{0,400}const puesto = await dialogos\.pedirTexto\('¿Cómo le vas a poner\?'/.test(main), 'el nombre de la obra, con el cuadro del juego');
+ok(/const vigente = \(\) => !reiniciandoPartida && obras\.obras\.includes\(obra\)[^\n]*\n[^\n]*\n\s+if \(puesto === null \|\| !vigente\(\)\) return;/.test(main), 'si la obra ya no está, no se nombra');
 ok(main.includes("dialogos.confirmar('Esto borra el recorrido guardado"), 'nuevo recorrido pregunta con el cuadro');
 ok(/await dialogos\.confirmar\(`Esto borra la partida/.test(main) && /await dialogos\.confirmar\((masNueva \? )?textoOfertaSync/.test(main) && /await dialogos\.confirmar\(`Otra vuelta/.test(main), 'borrar partida, la carpeta sincronizada y otra vuelta, también');
 ok(/if \(preguntar\) return dialogos\.confirmar\(avisoImportar/.test(main), 'importar pregunta con el cuadro (y sin preguntar sigue igual)');
