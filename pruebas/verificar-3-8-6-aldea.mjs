@@ -185,7 +185,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
 {
   const m = leer('src/main.js');
   ok(m.includes('const ini = deNoticias && !desafio ? socialJuego?.tomarIniciativa(npc) : null;') && m.includes('partes: ini ? [...ini.renglones, ...h.partes] : h.partes'), 'main: el que te vino a buscar y tiene concurso, carta o club: la E dice primero lo que te quería decir (como el aviso)');
-  ok(m.includes("const gracias = socialJuego?.cumplir(npc, null);\n  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones"), 'main: el que te vino a buscar también te agradece el deseo cumplido');
+  ok(m.includes("const gracias = socialJuego?.cumplir(npc, null);\n") && m.includes("const partes = gracias ? (ini.tipo === 'pedir' ? [gracias] : [...ini.renglones, gracias]) : ini.renglones;"),'main: el que te vino a buscar también te agradece el deseo cumplido');
 }
 
 // ---------------------------------------------------------------- 11. fiestas: la mesita y el fogón sin el reloj ×40; el rival quieto; la taba
@@ -257,7 +257,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   const vis = { id: 'lena', lugar: Object.keys(VI.LUGARES_VISITA)[0], dia: 7, estado: 'llego' };
   ok(VI.visitanteSigue(vis, 8, 0.5) && !VI.visitanteSigue(vis, 9, 10), 'aldea: el visitante que llegó con vos pasada la medianoche no se desvanece (hasta el día siguiente)');
   const s = VI.sanearVidaAldea({ visitante: { ...vis } }, 8);
-  ok(s.visitante?.estado === 'llego', 'aldea: y al cargar, tampoco');
+  ok(s.visitante === null, 'aldea: y al cargar, ya se fue (3.8.7: antes volvía al andén dándote las gracias como recién llegado)');
   ok(leer('src/aldea-vida.js').includes("((visitante.estado === 'guiando' || visitante.estado === 'llego') && visitante.dia === tope - 1)"), 'aldea: el saneo deja al que llegó ayer');
   ok(leer('src/aldea-gente.js').includes('if (js.enKayak || js.enVela || js.enTren) { n.camino = []; return; }'), 'aldea: en el kayak, el velero o el tren, el que guiás te espera (caminaba por el fondo del lago)');
   // el chico que estudia afuera no va al club ni a la noche de estrellas
@@ -298,7 +298,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(VI.sanearVidaAldea({ visitante: { ...vida.visitante } }, 7).visitante === null, 'visitante: el que volvía a la estación, al cargar, ya se fue');
   const g = leer('src/aldea-gente.js'), m = leer('src/main.js');
   ok(g.includes("if (v.estado === 'guiando') return { id: 'visitante', partes: [tx.yendo], seguir: tx.seguirGuia, tipo: 'llegada', alEscape: () => despedir(npc) };") && g.includes("if (vis.estado === 'vuelve') {"), 'aldea-gente: la charla del que te sigue ofrece «Hasta acá» y después camina a la estación');
-  ok(m.includes('if (!charla.menu && charla.historia?.alEscape && charla.parte >= charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }'), 'main: Escape en el último renglón elige «Hasta acá» (alejarse no lo despide)');
+  ok(m.includes('if (!charla.menu && charla.historia?.alEscape && !charla.fin && charla.parte === charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }'), 'main: Escape en el último renglón elige «Hasta acá» (alejarse no lo despide)');
 }
 // ---------------------------------------------------------------- 18. la cita: tomando algo con vos, cuenta como «con vos»
 {
@@ -308,7 +308,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   q.amor.cita = { clave: 'fotografa', lugar: 'plaza', dia: 30, desde: 15, hasta: 16.5, estado: 'acordada' };
   q.amor.dia = 30;
   const npc = { clave: 'fotografa', claveAldea: 'fotografa', enCita: true, pos: { x: 0, z: 0, y: 0, set() {} } };
-  const aj = crearAmorJuego({ progreso: () => q, ajustes: () => ({ romance: true }), npcDe: () => npc, tomandoAlgo: (n) => n === npc, jugador: () => ({ x: 0, z: 0 }), nota: () => {}, guardar: () => {} });
+  const aj = crearAmorJuego({ progreso: () => q, ajustes: () => ({ romance: true }), npcDe: () => npc, tomandoAlgo: (n) => (n === npc ? 'charlando' : null), jugador: () => ({ x: 0, z: 0 }), nota: () => {}, guardar: () => {} });
   aj.actualizar(1);
   ok(q.amor.cita?.juntos === true && !q.amor.cita.ocupada && !aj.puesta(), 'cita: invitada a tomar algo con vos, está con vos (no «ocupada») y no se va a esperarte a la plaza');
   npc.enCita = false;   // (terminó el mate)
@@ -322,7 +322,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
 // ---------------------------------------------------------------- 19. fiestas: sentado en la fiesta no se apura el reloj; el concurso no se lleva a nadie
 {
   const j = leer('src/fiestas-juego.js');
-  ok(j.includes('const sinApuro = () => !!panel || oyendoLeyenda || sentadoEnFiesta;') && j.includes('sentadoEnFiesta = !!js?.sentado && (enPredio || !!ctx.enLaPlaza?.(js.pos));') && j.includes('    sentadoEnFiesta = false;\n'), 'fiestas: sentado en la mesa larga o en un banco del baile, con la fiesta en curso, el reloj no corre ×40 (la sobremesa duraba 5 s)');
+  ok(j.includes('const sinApuro = () => !!panel || oyendoLeyenda || sentadoEnFiesta;') && j.includes("sentadoEnFiesta = !!js?.sentado && fase !== 'palear' && (fase === 'acto' || f.lugar === 'plaza' ? enLaPlazaAhora : enPredio);") && j.includes('    sentadoEnFiesta = false;\n'), 'fiestas: sentado en la mesa larga o en un banco del baile, con la fiesta en curso, el reloj no corre ×40 (la sobremesa duraba 5 s)');
   const { crearConcursosJuego } = await import('../src/concursos-juego.js');
   let enFiesta = false;
   const prog = { dia: 6, horas: 16.5, aldea: { descubierta: 1, pobladores: [] }, entradas: {}, cosas: {}, cocina: { hechas: {} }, desafios: {} };
@@ -330,7 +330,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
   ok(J.deHoy() && J.destinos().size > 1, 'concurso: sin fiesta, a las 16:30 el jurado y los que compiten van a la plaza (como siempre)');
   enFiesta = true;
   ok(J.destinos().size === 0, 'concurso: con la fiesta en curso nadie se va de la fiesta (el predio quedaba vacío y el rival de la mesita se levantaba)');
-  ok(leer('src/main.js').includes('fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),'), 'main: el concurso sabe si hay fiesta');
+  ok(leer('src/main.js').includes('fiestaEnCurso: () => !!fiestasJuego?.enCursoHoy?.(),'), 'main: el concurso sabe si hay fiesta');   // (3.8.7: con los ratos entre fases)
 }
 
 // ---------------------------------------------------------------- 20. amor: hablar de tus hijos con la ex, casado con otra

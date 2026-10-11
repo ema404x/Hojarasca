@@ -43,6 +43,7 @@
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
 import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, despedirVisitante, lugarConArticulo, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
+import { PREDIO } from './fiestas.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
 
@@ -201,10 +202,91 @@ export function recorridoAldea(desde, hasta) {
   if (sale) for (const q of umbral(sale)) { pasos.push({ x: q.x, z: q.z, sinChoque: true }); p0 = q; }
   const puertas = entra ? [...umbral(entra)].reverse() : [];
   const meta = puertas[0] || hasta;
-  for (const q of caminoAldea(p0, meta, entra || sale ? 4 : 10)) pasos.push({ x: q.x, z: q.z });
+  // 3.8.7: por la calle, rodeando lo que hay en el predio de la fiesta (ver `rodearPredio`)
+  for (const q of rodearPredio(p0, caminoAldea(p0, meta, entra || sale ? 4 : 10))) pasos.push({ x: q.x, z: q.z });
   for (const q of puertas.slice(1)) pasos.push({ x: q.x, z: q.z, sinChoque: true });
   if (entra) pasos.push({ x: hasta.x, z: hasta.z, sinChoque: true });
   return pasos;
+}
+// 3.8.7: lo que choca en el predio de la fiesta (fiestas-mundo.js): la mesa larga, la mesita de los juegos, la leñera,
+// el fogón y el cerco del ruedo. El camino iba derecho de la calle (al norte) a cada lugar: el que tenía que sentarse
+// del lado de la pista, o mirar el baile, se quedaba contra la mesa larga (o contra el cerco del ruedo) y a los 12 s
+// aparecía de golpe en su lugar; en una fiesta, casi todos (unos 40 saltos por día en la simulación de muchos días).
+// Rectángulos `{ x, z, ax, az }` (medio largo y medio ancho) y círculos `{ x, z, r }`, en el plano.
+const HOLGURA_CHOQUE = 0.4, HOLGURA_RODEO = 0.8;
+export const OBSTACULOS_PREDIO = [
+  { x: PREDIO.mesa.x, z: PREDIO.mesa.z, ax: PREDIO.mesa.largo / 2, az: PREDIO.mesa.ancho / 2 },
+  { x: PREDIO.juegos.x, z: PREDIO.juegos.z, ax: 0.4, az: 0.4 },
+  { x: PREDIO.lenera.x, z: PREDIO.lenera.z, ax: PREDIO.lenera.largo / 2, az: PREDIO.lenera.ancho / 2 },
+  { x: PREDIO.fogon.x, z: PREDIO.fogon.z, r: 0.85 },
+  { x: PREDIO.ruedo.x, z: PREDIO.ruedo.z, r: PREDIO.ruedo.radio },
+];
+// ¿El tramo a→b pasa por el obstáculo (agrandado `h`)? (las puntas que caen adentro no cuentan: el asiento de la mesa
+// está pegado a ella)
+export function cortaObstaculo(a, b, o, h = HOLGURA_CHOQUE) {
+  // (un asiento pegado al obstáculo, adentro de la holgura: se mira con una más chica, la del cuerpo)
+  if (h > 0.15 && (dentroDe(a, o, h) || dentroDe(b, o, h))) return cortaObstaculo(a, b, o, 0.15);
+  if (Number.isFinite(o.r)) {
+    const vx = b.x - a.x, vz = b.z - a.z, l2 = vx * vx + vz * vz;
+    const t = l2 > 1e-9 ? Math.max(0, Math.min(1, ((o.x - a.x) * vx + (o.z - a.z) * vz) / l2)) : 0;
+    const r = o.r + h, dentro = (p) => Math.hypot(p.x - o.x, p.z - o.z) < r;
+    if (dentro(a) || dentro(b)) return false;
+    return Math.hypot(a.x + vx * t - o.x, a.z + vz * t - o.z) < r;
+  }
+  // (Liang-Barsky contra el rectángulo agrandado)
+  const x0 = o.x - o.ax - h, x1 = o.x + o.ax + h, z0 = o.z - o.az - h, z1 = o.z + o.az + h;
+  const dentro = (p) => p.x > x0 && p.x < x1 && p.z > z0 && p.z < z1;
+  if (dentro(a) || dentro(b)) return false;
+  let t0 = 0, t1 = 1;
+  const dx = b.x - a.x, dz = b.z - a.z;
+  for (const [p, q] of [[-dx, a.x - x0], [dx, x1 - a.x], [-dz, a.z - z0], [dz, z1 - a.z]]) {
+    if (Math.abs(p) < 1e-12) { if (q < 0) return false; continue; }
+    const r = q / p;
+    if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
+  }
+  return t1 - t0 > 1e-6;
+}
+const dentroDe = (p, o, h) => (Number.isFinite(o.r) ? Math.hypot(p.x - o.x, p.z - o.z) < o.r + h : Math.abs(p.x - o.x) < o.ax + h && Math.abs(p.z - o.z) < o.az + h);
+// Las vueltas posibles alrededor de un obstáculo: las esquinas del rectángulo agrandado, o puntos del círculo agrandado.
+function vueltasDe(o) {
+  if (Number.isFinite(o.r)) { const r = o.r + HOLGURA_RODEO; return Array.from({ length: 12 }, (_, i) => ({ x: o.x + Math.sin((i * Math.PI) / 6) * r, z: o.z + Math.cos((i * Math.PI) / 6) * r })); }
+  const ax = o.ax + HOLGURA_RODEO, az = o.az + HOLGURA_RODEO;
+  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => ({ x: o.x + sx * ax, z: o.z + sz * az }));
+}
+const libreDe = (a, b) => !OBSTACULOS_PREDIO.some((o) => cortaObstaculo(a, b, o));
+const largoDe = (l) => { let s = 0; for (let i = 1; i < l.length; i++) s += Math.hypot(l[i].x - l[i - 1].x, l[i].z - l[i - 1].z); return s; };
+// El tramo a→b con las vueltas que hagan falta (sin `a`): lo más corto por una, dos o tres vueltas del obstáculo.
+function rodearTramo(a, b, hondo = 0) {
+  const o = OBSTACULOS_PREDIO.find((x) => cortaObstaculo(a, b, x));
+  if (!o || hondo > 3) return [b];
+  const V = vueltasDe(o);
+  let mejor = null;
+  const probar = (medio) => {
+    const l = [a, ...medio, b];
+    for (let i = 1; i < l.length; i++) if (cortaObstaculo(l[i - 1], l[i], o)) return;
+    const s = largoDe(l);
+    if (!mejor || s < mejor.s) mejor = { s, medio };
+  };
+  for (let i = 0; i < V.length; i++) {
+    probar([V[i]]);
+    for (const j of [(i + 1) % V.length, (i + V.length - 1) % V.length]) {
+      probar([V[i], V[j]]);
+      for (const k of [(j + 1) % V.length, (j + V.length - 1) % V.length]) if (k !== i) probar([V[i], V[j], V[k]]);
+    }
+  }
+  if (!mejor) return [b];
+  // (y cada tramo nuevo, por si pasa por otro obstáculo)
+  const salida = [];
+  let p = a;
+  for (const q of [...mejor.medio, b]) { salida.push(...rodearTramo(p, q, hondo + 1)); p = q; }
+  return salida;
+}
+// Los pasos (en el plano, desde `desde`) con las vueltas del predio donde hagan falta.
+export function rodearPredio(desde, pasos) {
+  const salida = [];
+  let p = desde;
+  for (const q of pasos) { if (libreDe(p, q)) salida.push(q); else salida.push(...rodearTramo(p, q)); p = q; }
+  return salida;
 }
 
 // Dónde va cada persona a esta hora: el punto del plano y del mundo. Si dos o más van al mismo
@@ -231,14 +313,18 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
     // (3.7.0 (integración): Malena en el banco del torno y Pocha en la silla de la máquina, sentadas; lo de arriba
     // de una escalera, `arriba`)
     // (3.7.1 (mundo): o lo que diga el amor: en el casamiento, la novia está parada al lado de la silla)
-    const sentado = typeof r.sentado === 'boolean' ? r.sentado : SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio));
-    salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro, sentado, lejano: esPuntoLejano(r.punto), arriba: esArriba(r.edificio, r.punto) });   // (3.7.0: lejano: el muelle del lago)
+    // (3.8.7: los de pie de la plaza (`pie`, alrededor del duende) no se sientan; y el que va a un banco sin sentarse (el acto)
+    // se para delante (`frente`), no arriba del banco)
+    const sentado = typeof r.sentado === 'boolean' ? r.sentado : !q.pie && (SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio)));
+    const q2 = !sentado && q.frente ? q.frente : q;
+    salida.set(k, { ...r, clave, lx: q2.x, lz: q2.z, rot: q.rot, adentro, sentado, lejano: esPuntoLejano(r.punto), arriba: esArriba(r.edificio, r.punto), ...(q.frente ? { frente: q.frente } : {}) });   // (3.7.0: lejano: el muelle del lago)
   }
   for (const lista of juntos.values()) {
     if (lista.length < 2) continue;
     lista.forEach((k, i) => {
       const d = salida.get(k), a = (i / lista.length) * Math.PI * 2;
       d.sentado = false;   // 3.6: en una silla entra uno solo: los que se acomodan alrededor, parados
+      if (d.frente) { d.lx = d.frente.x; d.lz = d.frente.z; }   // (3.8.7: delante del banco, no adentro)
       d.lx += Math.sin(a) * 0.55; d.lz += Math.cos(a) * 0.55;
       // y se miran entre ellos
       d.rot = Math.atan2(-Math.sin(a), -Math.cos(a));
@@ -538,6 +624,14 @@ export function crearAldeaGente(ctx) {
         pasos[pasos.length - 1] = { x: d.lx, z: d.lz, sinChoque: true };
       }
     } else pasos.push(...recorridoAldea(desde, { x: d.lx, z: d.lz }));
+    // 3.8.7: el asiento de afuera (la silla de la mesita de juegos, el banco de la mesa larga) está pegado a lo que choca:
+    // el último medio metro, sin choque (Ernesto se quedaba a 12 cm de la silla del truco y aparecía de golpe)
+    const ult = pasos[pasos.length - 1];
+    if (d.sentado && !d.adentro && ult && !ult.sinChoque) {
+      const prev = pasos[pasos.length - 2] || desde, largo = Math.hypot(ult.x - prev.x, ult.z - prev.z);
+      if (largo > 0.6) pasos.splice(pasos.length - 1, 0, { x: ult.x + ((prev.x - ult.x) * 0.5) / largo, z: ult.z + ((prev.z - ult.z) * 0.5) / largo, precisa: true });
+      pasos[pasos.length - 1] = { ...ult, sinChoque: true };
+    }
     // (3.7.0 (integración): los de la escalera, con su altura y precisos: si no, se cortaba camino y no subía)
     const yEsc = (q) => (Number.isFinite(q.alto) ? { y: EDIFICIOS_ALDEA[d.arriba ? d.edificio : ed]?.y + q.alto } : {});
     npc.camino = pasos.map((q, i) => ({ ...M.aMundo(q.x, q.z), sinChoque: !!q.sinChoque, cerca: i === pasos.length - 1 ? 0.12 : q.precisa ? 0.12 : 0.6, ...yEsc(q) }));
@@ -1144,6 +1238,9 @@ export function crearAldeaGente(ctx) {
         for (let i = 1; i < n.camino.length; i++) falta += Math.hypot(n.camino[i].x - n.camino[i - 1].x, n.camino[i].z - n.camino[i - 1].z);
         // (3.6.1: el invitado que va con vos, aunque estés al lado: si se traba, llega igual)
         const alLado = !n.enCita && Math.hypot(n.pos.x - js.pos.x, n.pos.z - js.pos.z) < 7.5;
+        // 3.8.7: un camino nuevo (de acá o de otro: el que te viene a buscar, social-juego.js) se mide desde cero. Antes quedaba
+        // lo poquito que le faltaba al llegar a su lugar y, al salir a buscarte, a los 12 s volvía de golpe a donde estaba
+        if (st.caminoVisto !== n.camino) { st.caminoVisto = n.camino; st.trabado = { d: Infinity, t: 0 }; }
         const tr = st.trabado;
         if (!alLado && falta > tr.d - 0.2) tr.t += paso; else tr.t = 0;
         tr.d = Math.min(tr.d, falta);
@@ -1490,6 +1587,14 @@ export function crearAldeaGente(ctx) {
     actualizar, charla, revisarLlegada, revisarObras, obraCerca, avisoObra, aportarObra, dibujarCuaderno, llamar,
     apurar: () => { acum = Math.max(acum, 0.5); },   // 3.7.1 (mundo): que lo del amor (la cita, el casamiento) se note en el próximo cuadro
     citar, figura, dibujarVecinos: (ficha, el) => fichaVecinos(progreso(), ficha, el),   // 3.6 (vida)
+    // 3.8.7: el camino por la aldea (las puertas, las calles y las vueltas del predio) de un punto del mundo a otro, para el
+    // que te viene a buscar (social-juego.js): iba derecho y desde adentro de un local cruzaba la pared
+    caminoA: (desde, hasta, cerca = 0.6) => {
+      if (distanciaAldea(desde.x, desde.z, M) > 1 || distanciaAldea(hasta.x, hasta.z, M) > 1) return [{ x: hasta.x, z: hasta.z, cerca }];
+      const a = M.aLocal(desde.x, desde.z), b = M.aLocal(hasta.x, hasta.z);
+      const pasos = recorridoAldea({ x: a.lx, z: a.lz }, { x: b.lx, z: b.lz });
+      return pasos.map((q, i) => ({ ...M.aMundo(q.x, q.z), sinChoque: !!q.sinChoque, cerca: i === pasos.length - 1 ? cerca : 0.6 }));
+    },
     prearmar, faltanFiguras: faltan, armando: () => (armando ? { k: armando.k, pasos: armando.tarea.tarea?.pasos || 0, msMax: armando.tarea.tarea?.msMax || 0 } : null),   // 3.7.0 (integración)
     dibujarCalendario, vida, adoptarCachorro, revisarDia: () => { diaRevisado = 0; revisarDia(); },   // 3.7.0
     oyendo: () => !!oida.activa,   // 3.6 (mecánicas): hay una charla (o un cuento) sonando cerca

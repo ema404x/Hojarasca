@@ -496,7 +496,7 @@ export function crearMecanicasAldea(ctx) {
         break;
       // 3.7.0 (integración): lo de la calle de la Loma
       case 'telescopio': {
-        const h = hora(), noche = h >= 20.5 || h < 4.5;
+        const h = hora(), noche = h >= 20 || h < 5;   // (3.8.7: como su charla y su horario, de 20 a 5: de 20 a 20:30 la cúpula ya abría y decía «De día no»)
         ctx.leer({ quien: 'El telescopio', que: 'el observatorio', partes: cieloDelTelescopio({ noche, abierta: anim.fase?.cupula ?? 0, dia: dia(), nublado: ctx.ambiente?.()?.nublado ?? 0 }), despedida: noche ? 'Le devolvés el ocular a Valentina. Afuera, el cielo sigue ahí, más grande que antes.' : 'Bajás despacio la escalera de la torreta.' });
         break;
       }

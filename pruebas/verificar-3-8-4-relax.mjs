@@ -437,7 +437,7 @@ const c = (n, palo) => ({ n, palo });
   ok(v?.tipo === 'no-pudo' && v.texto === 'Sofía no pudo ir a la cita' && pc.amor.personas[cand].afecto === af && !pc.amor.personas[cand].motivo, 'ella ocupada: se cae sin «plantada»');
   const pc2 = { dia: 8, horas: 21, amor: AM.sanearAmor({ personas: { [cand]: { etapa: 'saliendo', afecto: 40, contacto: 8 } }, cita: { clave: cand, lugar: 'mirador', dia: 8, desde: 18, hasta: 19.5, ocupada: true, espero: true } }, 8) };
   ok(AM.vencerCita(pc2)?.tipo === 'plantada', 'si llegó a esperarte, sí te plantaste vos');
-  ok(leer('src/amor-juego.js').includes('if (quiere.por === \'cita\' && cita) { const n = ctx.npcDe?.(quiere.clave); if (n?.conVos || (n && ctx.tomandoAlgo?.(n))) cita.juntos = true; else if (n?.enCita) cita.ocupada = true; }'), 'el juego anota que estaba ocupada');   // (3.8.6: salvo que esté con vos)
+  ok(leer('src/amor-juego.js').includes('      else if (n?.enCita) cita.ocupada = true;\n'), 'el juego anota que estaba ocupada');   // (3.8.6: salvo que esté con vos; 3.8.7: en varias líneas)
   // el nido de hongos a medio quemar
   eq(IN.sanearCapullos([{ x: 1, z: 2, golpes: 1, quema: 1.2 }, { x: 3, z: 4, quema: 99 }, { x: 5, z: 6 }]), [{ x: 1, z: 2, golpes: 1, quema: 1.2 }, { x: 3, z: 4, golpes: 0, quema: IN.CAPULLOS.quemar }, { x: 5, z: 6, golpes: 0 }], 'el que se quemaba sigue quemándose al cargar');
   ok(leer('src/desafio.js').includes('const quemandoCapullo = { has: (c) => c?.quema > 0,'), 'la quema va en el nido mismo');

@@ -85,7 +85,7 @@ import { lugarTapaVecino, MECANICAS_EN_LA_CHARLA } from './aldea-mecanicas.js';
 import { crearVecindadJuego, PIE_MENU, PIE_SUBMENU } from './vecindad-juego.js';
 // 3.7.4: la vida social tipo Los Sims: la rueda de interacciones, las burbujas y emociones, las voces, las animaciones
 import { claveVecindad, aplicarEfectos } from './vecindad-juego.js';
-import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
+import { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, marcarIniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo } from './vecindad-social.js';
 import { armarRueda, anillo as anilloRueda, marcaInicial, posiciones as posicionesRueda, sectorDeDireccion, sectorConFlecha, moverPuntero, PALABRA_EMOCION, renglonCorto as renglonCortoSocial } from './social-rueda.js';
 import { dibujarAtlas, posicionCss } from './social-iconos.js';
 import { crearSocialMundo, crearManosSociales } from './social-mundo.js';
@@ -4824,7 +4824,7 @@ function armarOficiosYAldea(esDesafio) {
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
-    tomandoAlgo: (npc) => !!vecindadJuego?.invitado(npc),   // 3.8.6: invitada a tomar algo con vos, la cita cuenta como «con vos»
+    tomandoAlgo: (npc) => vecindadJuego?.invitado(npc) || null,   // 3.8.6: invitada a tomar algo con vos, la cita cuenta como «con vos» (3.8.7: la fase)
     lugarValle: (k) => (Number.isFinite(T.lugares[k]?.x) ? T.lugares[k] : null), invierno: () => U.uInvierno.value > 0.5,
     enCasa: (p, edificio) => { if (!p) return false; if (edificio === 'refugio') { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); } return !!aldeaMundo && !!edificio && Object.values(puntosMundo(edificio)).some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 6); },
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
@@ -4958,6 +4958,7 @@ function armarOficiosYAldea(esDesafio) {
     ritmo: () => ajustes.ritmoAldea || 'normal', desafio: () => !!desafio, jugador: () => jugador?.estado?.pos || null,
     romance: () => ajustes.romance !== false, apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,
     gente: () => gente?.gente || [], claveDe: (npc) => claveVecindad(npc), hablandoCon: () => charla.npc,
+    camino: (desde, hasta, cerca) => aldeaGente?.caminoA?.(desde, hasta, cerca) || null,   // 3.8.7: el que te viene a buscar, por las calles
     mundo: { burbuja: (n, i, o) => socialMundo?.burbuja(n, i, o), emocion: (n, i, o) => socialMundo?.emocion(n, i, o), quitar: (n, q) => socialMundo?.quitar(n, q) },
     anim: { empezar: (g, id, o) => empezarAnim(g, id, o), terminar: (g) => terminarAnim(g) },
     manos: { empezar: (id) => manosSociales?.empezar(id), cachetada: () => cachetadaSocial() },
@@ -4969,7 +4970,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     cobrar: (e) => cobrarPremio(e), redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
     nombresFoto: () => Object.fromEntries(DESAFIOS.map((d) => [d.id, d.nombre])),
-    fiestaEnCurso: () => !!fiestasJuego?.ahora?.(),   // 3.8.6: el concurso no se lleva a la gente de la fiesta
+    fiestaEnCurso: () => !!fiestasJuego?.enCursoHoy?.(),   // 3.8.6: el concurso no se lleva a la gente de la fiesta (3.8.7: tampoco entre fase y fase)
   });
   noticiasJuego = crearNoticiasJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
@@ -4981,7 +4982,8 @@ function armarOficiosYAldea(esDesafio) {
     mundo: aldeaMundo, gente: () => aldeaGente, escena, sonido, col, progreso: () => progreso, jugador: () => jugador, tren: () => tren,
     sentaderos: est?.sentaderos, registrar: (id) => registrar(id), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     leer: (l) => leerEnLaAldea(l), sentarEn: (s) => sentarEnLaAldea(s), alJugador: (campo, valor) => alJugadorAldea(campo, valor),
-    abrirCasilla: (p) => abrirCasillaAldea(p), enCasa: (p) => { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p); },
+    // (3.8.7: o en tu casa de la aldea: el libro prestado se lee «en el refugio (o en tu casa)», y en tu casa no se ofrecía)
+    abrirCasilla: (p) => abrirCasillaAldea(p), enCasa: (p) => { const r = T.lugares.refugio; return (!!r && Math.hypot(p.x - r.x, p.z - r.z) < 9) || !!obras?.dentro?.(p) || (!desafio && !!rinconesJuego?.enTuCasa?.(p)); },
     duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
     ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),   // (3.7.0 (integración): y lo nublado, para el telescopio)
   });
@@ -5059,6 +5061,9 @@ function actualizarAldea(dt) {
   oficios?.remar(jugador.estado);
   // (3.7.0: y si Martina, la del varadero, te lo calafateó hoy, un 15 % más)
   if (kayak?.est) kayak.est.brazo = factorRemo(nivelDe('navegante')) * (!desafio && progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1) * (amorJuego?.bonos().remo || 1);   // (3.7.1: y la remada de Martina)
+  // 3.8.7: el caballo herrado hoy (Ayelén, o vos con «Herrar al caballo»), como el kayak: cada cuadro. Sólo al montar, la herradura
+  // que te hacía Ayelén hablándole desde el caballo no se notaba hasta bajarte y volver a subir, y pasada la medianoche seguía
+  { const mo = jugador.estado.montado; if (mo) { const f = !desafio && progreso.aldea?.herrado === progreso.dia ? 1.1 : 1; mo.trote = MARCHA_CABALLO.trote * f; mo.galope = MARCHA_CABALLO.galope * f; } }
   if (!desafio) aldeaGente?.actualizar(dt);
   if (!desafio) vecindadJuego?.actualizar(dt);   // 3.6 (vida): el día de la vecindad y las invitaciones
   if (!desafio) socialJuego?.actualizar(dt);   // 3.7.4: entre ellos, por su cuenta, y el que te quiere decir algo
@@ -7255,7 +7260,10 @@ function hablar(npc) {
   const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;
   // (3.6 (vida): de visita en tu mesa, primero la charla de la visita, como los del valle)
   if (deLaAldea && !(npc.deVisita && visitas().activa)) {
-    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: deLaAldea, parte: -1, vec: null, menu: null });
+    // 3.8.7: lo que no abre el menú (Ernesto con el cachorro), si te había venido a buscar («te quiere decir algo»): primero eso
+    // (como el concurso o la carta: la E ofrecía el cachorro, lo que te quería decir no se decía y el aviso seguía igual)
+    const iniLlegada = deLaAldea.tipo === 'llegada' && !desafio ? socialJuego?.tomarIniciativa(npc) : null;
+    Object.assign(charla, { npc, fin: false, encargo: null, enojado: false, historia: iniLlegada ? { ...deLaAldea, partes: [...iniLlegada.renglones, ...deLaAldea.partes] } : deLaAldea, parte: -1, vec: null, menu: null });
     // 3.6 (vida): con la gente de la aldea, el menú de temas (lo de su oficio, primera opción);
     // el que recién bajó del tren se presenta como antes
     if (deLaAldea.tipo !== 'llegada' && vecindadJuego) {
@@ -7367,6 +7375,8 @@ function seguirCharla() {
     if (charla.vec) charla.vec.chau = true;
   }
   if (charla.historia?.citaCharla && charla.parte === charla.historia.partes.length) vecindadJuego?.citaCharlada();
+  // 3.8.7: «Dale» a la invitación del vecino (lo que dice al aceptar, y después, como siempre)
+  if (charla.historia?.invita && charla.parte === charla.historia.partes.length) { const h = aceptarInvitacionVecino(charla.npc, charla.historia.invita); if (h) { charla.historia = h; charla.parte = 0; } }
   // una carta que pide una foto: al terminar de leerla, qué foto y cómo
   const pide = charla.historia && charla.parte === charla.historia.partes.length ? CARTA[charla.historia.id]?.foto : null;
   // 2.6.1: una carta que pide una foto que no está en DESAFIOS ya no rompe el temporizador
@@ -7556,7 +7566,9 @@ function elegirEnMenuCharla(i) {
 // Escape: del submenú o de un tema elegido, vuelve al menú; si no, se despide.
 function atrasCharla() {
   // 3.8.6: en el último renglón, Escape elige lo que dice abajo (el visitante que guiás: «Hasta acá»)
-  if (!charla.menu && charla.historia?.alEscape && charla.parte >= charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }
+  // (3.8.7: sólo en ese renglón: con E ya elegiste «seguimos» y lo que queda es su despedida; Escape ahí la mandaba igual
+  // a la estación)
+  if (!charla.menu && charla.historia?.alEscape && !charla.fin && charla.parte === charla.historia.partes.length - 1) { const f = charla.historia.alEscape; charla.historia = null; cerrarCharla(); f(); return; }
   if (charla.menu?.nivel === 2) { volverRueda(); return; }   // 3.7.4: de la segunda rueda, a las categorías
   if (charla.menu && charla.menu.tipo !== 'charla' && charla.vec) { charla.vec.sub = null; armarMenuCharla(); mostrarCharla(); return; }   // 3.6.1: con lo del lugar
   if (!charla.menu && charla.historia?.volver && charla.vec) { abrirMenuCharla(true); return; }
@@ -7580,7 +7592,7 @@ function sentarseALaCita() {
 // ---------------------------------------------------------------- 3.7.4: la rueda de interacciones y la vida social
 // Las reglas (vecindad-social.js, del equipo social) y lo que hace el juego con ellas (social-juego.js); acá, lo que se
 // ve de la rueda (el estado vive en `charla.menu`: `rueda`, `anillo`, `nivel`, `cat` e `i`, la marca en el aro).
-const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
+const REGLAS_SOCIALES = { CATEGORIAS_RUEDA, INTERACCIONES, opcionesRueda, probarInteraccion, relacionDe, humorDe, deseoDe, iniciativa, podriaVenir, marcarIniciativa, entreVecinos, cumplirDeseo, recuerdoDe, iconoDeDeseo };
 // el atlas de los íconos, una vez (la rueda lo usa de fondo; las burbujas, de textura)
 let lienzoSocial = null;
 function atlasSocial() {
@@ -7758,8 +7770,31 @@ function loQueTeQueriaDecir(npc) {
   if (!ini) { alSaludarSocial(npc); return; }
   // 3.8.6: y si ya le cumpliste un deseo de lo que se hace en el valle, te lo agradece igual (si te venía a buscar, no)
   const gracias = socialJuego?.cumplir(npc, null);
-  charla.historia = { id: 'social-iniciativa', partes: gracias ? [...ini.renglones, gracias] : ini.renglones, alTerminar: () => { charla.historia = null; } };
+  // (3.8.7: si te venía a pedir justo eso, que ya hiciste, no te lo pide y te agradece en el mismo renglón: sólo las gracias)
+  const partes = gracias ? (ini.tipo === 'pedir' ? [gracias] : [...ini.renglones, gracias]) : ini.renglones;
+  charla.historia = { id: 'social-iniciativa', partes, alTerminar: () => { charla.historia = null; } };
+  // 3.8.7 (decisión del usuario): si te invita («¿Un mate?», «¿Damos una vuelta?»), se contesta: E «Dale» (van juntos: ver
+  // `aceptarInvitacionVecino`, en seguirCharla) y Escape «Ahora no» (sin que se ofenda)
+  if (ini.tipo === 'invitar' && ini.id && !gracias) charla.historia = { id: 'social-invita', partes, invita: ini.id, seguir: 'E: dale · Escape: ahora no', alEscape: () => ahoraNoVecino(npc) };
   charla.parte = 0;
+}
+// 3.8.7: «Dale» a la invitación del vecino: a tomar algo (mate o truco: la casa de té o tu mesa, como cuando lo invitás vos);
+// lo demás (caminar, pescar, una ranchera), o si no hay dónde, ahí mismo, como en la rueda (te lo propuso él: sale bien)
+function aceptarInvitacionVecino(npc, id) {
+  const c = vecindadJuego?.aceptarInvitacion(npc, id);
+  if (c) return { id: 'vecindad-cita', partes: c.renglones, cita: c };
+  const r = socialJuego?.interactuar(npc, id, { invito: id });
+  if (!r) return null;
+  if (r.cosas.length) { aplicarEfectos(progreso, r.cosas, { sumarMaterial, sumarEntrada }); refrescarBarra(true); }
+  for (const o of r.otros) otroSocial(o, npc);
+  guardar();
+  return { id: 'social', partes: r.renglones, volver: true, social: true };
+}
+// 3.8.7: «Ahora no»: no pasa nada (no se ofende ni baja la amistad); te saluda y sigue con lo suyo
+function ahoraNoVecino(npc) {
+  if (!npc?.g) return;
+  socialMundo?.burbuja(npc, 'chau', { renglon: 'Bueno, otro día', dur: 3 });
+  socialJuego?.decir?.(npc, 'Bueno, otro día.', { renglon: false, cerca: true });
 }
 function alSaludarSocial(npc) {
   if (desafio || !socialJuego || !npc?.g) return;

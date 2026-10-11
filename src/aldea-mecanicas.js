@@ -167,7 +167,7 @@ export function pedirPrestado(m, entradas, dia) {
   m.prestado = { id: l.id, dia: entero(dia, 1) };
   m.prestamos = entero(m.prestamos) + 1;
   usarHoy(m, 'prestamo', dia);
-  return { ok: true, libro: l, titulo: `Te llevás «${l.titulo}»`, sub: 'Lo anotás en la libreta del mostrador. Se lee sentado, en el refugio' };
+  return { ok: true, libro: l, titulo: `Te llevás «${l.titulo}»`, sub: 'Lo anotás en la libreta del mostrador. Se lee sentado, en el refugio o en tu casa' };
 }
 export function devolverLibro(m) {
   if (!m.prestado) return { ok: false };

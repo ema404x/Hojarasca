@@ -333,7 +333,8 @@ function revisar(persona, id, estado, ctx, partesYa = null) {
   if (req.hora && !(h >= req.hora[0] && h < req.hora[1])) return { ok: false, motivo: h < req.hora[0] && h >= 4 ? M.temprano : M.tarde };
   if (req.afuera && climaDe(ctx?.clima) === 'lluvia') return { ok: false, motivo: M.llueve };
   if (id === 'mate' && (esChico(persona) || VOCES[persona]?.noToma?.mate)) return { ok: false, motivo: M.noTomaMate, oculta: esChico(persona) };
-  if (req.cosas) {
+  // (3.8.7: si te invitó él («¿Un mate? Yo cebo»), pone lo suyo: no hace falta que vos tengas yerba)
+  if (req.cosas && ctx?.invito !== id) {
     const inv = ctx?.inventario ?? progreso;
     for (const c of req.cosas) if (!inv || cuantoHay(inv, c.tipo, c.k) < c.n) return { ok: false, motivo: c.k === 'yerba' ? M.sinYerba : M.faltaAlgo };
   }
@@ -432,6 +433,8 @@ export function chanceInteraccion(persona, id, estado, ctx = {}) {
   }
   // lo amable nunca sale mal con quien te quiere mucho
   if (def.amable && nivel === 'compadre') seguro = true;
+  // 3.8.7: lo que te propuso él mismo (la invitación de la iniciativa: «¿Un mate?», «¿Damos una vuelta?») sale bien
+  if (ctx?.invito === id && def.categoria !== 'picante' && def.categoria !== 'romantica') seguro = true;
   return { chance: seguro ? 1 : acotar(Math.round(p * 1000) / 1000, 0.05, 0.97), seguro };
 }
 
@@ -571,7 +574,7 @@ export function probarInteraccion(persona, id, estado, ctx = {}) {
       efectos.otros.push(o);
       if (id === 'cartas' && !o.real) renglon = `${renglon} ${renglonDe(o.gano ? FRASES_SOCIAL.truco.ganaste : FRASES_SOCIAL.truco.perdiste, datos, semilla)}`;
     }
-    if (exito && id === 'mate') efectos.cosas.push({ tipo: 'cosa', k: 'yerba', n: -1 });
+    if (exito && id === 'mate' && ctx?.invito !== id) efectos.cosas.push({ tipo: 'cosa', k: 'yerba', n: -1 });   // (3.8.7: si invitó él, ceba él)
     if (exito && id === 'gustos') {
       const g = gustoParaContar(persona, base);
       if (g) { revelarGusto(base, persona, g); efectos.otros.push({ tipo: 'gusto', persona, cosa: g }); renglon = `${renglon} ${llenar(FRASES_SOCIAL.cuentaGusto, { cosa: REGALABLES[g].el })}`; }
@@ -742,13 +745,23 @@ export function iniciativa(persona, estado, ctx = {}) {
   }
   r.renglones = r.renglones.filter((x) => typeof x === 'string' && x);
   if (!r.renglones.length) r.renglones = [FRASES_SOCIAL.saludaAl[0]];
-  // lo marca
-  const { s: s2 } = partes(estado, true);
-  const ini = s2.iniciativa;
+  // lo marca (3.8.7: con `ctx.marcar === false`, no: social-juego.js lo marca con `marcarIniciativa` cuando llega a hablarte; si
+  // se aburre antes o te alejás, no se gasta la espera entre iniciativas, ni el cupo del día, ni su vuelta de hoy)
+  if (ctx?.marcar !== false) marcarIniciativa(persona, estado, { ...ctx, dia: d, hora: h, ahora });
+  return r;
+}
+// 3.8.7: anota que vino a hablarte: la espera hasta la próxima, el cupo del día y que hoy ya vino
+export function marcarIniciativa(persona, estado, ctx = {}) {
+  if (!esPersonaVecindad(persona)) return false;
+  const { s, progreso } = partes(estado, true);
+  if (!s) return false;
+  const d = diaCtx(progreso, ctx), h = horaCtx(progreso, ctx);
+  const ahora = Number.isFinite(num(ctx?.ahora)) ? num(ctx.ahora) : d * 24 + h;
+  const ini = s.iniciativa;
   if (ini.dia !== d) { ini.dia = d; ini.n = 0; }
   ini.n++; ini.ultima = ahora;
-  s2.vino[persona] = d;
-  return r;
+  s.vino[persona] = d;
+  return true;
 }
 const ICONO_COSA = {
   yerba: 'mate', 'trucha-fresca': 'pez', 'trucha-ahumada': 'pez', frutilla: 'frutilla', 'frasco-frutilla': 'frutilla', miel: 'miel',

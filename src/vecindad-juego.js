@@ -595,8 +595,32 @@ export function crearVecindadJuego(ctx) {
     actualizarCita();
   }
 
+  // 3.8.7 (decisión del usuario): el vecino que te vino a buscar te invita («¿Un mate?», «¿Un truquito?») y le decís que sí:
+  // van a tomar algo juntos con lo mismo que cuando lo invitás vos (la mesa, la charla y la amistad de `invitar`): los de la
+  // aldea, a la casa de té (si está abierta; la galesa es la dueña: a tu mesa); si no, a tu mesa puesta. Devuelve lo mismo
+  // que `elegir` con una invitación aceptada ({ tipo: 'cita', … }), o null si no hay dónde (ya tomaron algo hoy, sin mesa
+  // puesta, de visita): main.js entonces lo hacen ahí mismo, como la interacción de la rueda.
+  function aceptarInvitacion(npc, id) {
+    if (ctx.desafio?.() || cita || !npc || npc.deVisita || (id !== 'mate' && id !== 'cartas')) return null;
+    const clave = claveVecindad(npc);
+    if (!clave) return null;
+    const p = progreso();
+    const lugaresPara = (que) => (que === 'te' ? lugaresDeLaCasaTe() : ctx.hayVisita?.() ? null : lugaresDeLaMesa(ctx.mesa?.()));
+    for (const que of [...(esPersonaAldea(clave) && clave !== 'galesa' ? ['te'] : []), 'mate']) {
+      const lugares = lugaresPara(que);
+      if (!lugares) continue;
+      const r = invitar(clave, que, p, horas(), { dia: dia(), diaSemana: diaSemanaDe(dia()) });
+      if (!r.ok) continue;
+      avisarAmistad(clave, r.amistad);
+      ctx.guardar?.();
+      const charlaDeMesa = r.secuencia.find((x) => x.paso === 'charla')?.renglones || r.renglones;
+      return { tipo: 'cita', renglones: [r.acepta], que, charla: charlaDeMesa, lugares, npc };
+    }
+    return null;
+  }
+
   return {
-    abrir, menu, elegir, submenu,
+    abrir, menu, elegir, submenu, aceptarInvitacion,
     empezarCita, terminarCita, actualizarCita, puedeSentarse, sentarse, citaCharlada, textoSentarse,
     invitado: (npc) => (cita && cita.npc === npc ? cita.fase : null),
     cita: () => (cita ? { clave: cita.clave, que: cita.que, fase: cita.fase, lugar: cita.lugar, tuyo: cita.tuyo, porAldea: cita.porAldea } : null),

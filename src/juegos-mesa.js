@@ -7,7 +7,8 @@
 //     cada uno se anota lo suyo suelto (todo ligado, −10; chinchón —siete seguidas del mismo palo, sin comodín— gana el
 //     partido). Pierde el que pasa de CHINCHON.aPuntos (50; el de verdad es a 100).
 //     3.8.4: como se juega en casa: la carta que levantaste del pozo no se tira en esa misma vuelta, y cuando uno corta,
-//     el otro acomoda sus sueltas en los juegos del que cortó (no las cuenta).
+//     el otro acomoda sus sueltas en los juegos del que cortó (no las cuenta). 3.8.7 (decisión del usuario): salvo el
+//     comodín: el que le queda suelto al que no cortó cuenta 25 en contra.
 //   · Damas, como se juegan acá: 8×8, las fichas van y comen para adelante, comer es obligatorio (y hay que comer la
 //     mayor cantidad posible), la que llega al fondo es dama y vuela (corre y come a cualquier distancia). Pierde el
 //     que no puede mover. Tablas a los 60 movimientos sin comer.
@@ -109,6 +110,8 @@ export function acomodarSueltas(juegos, mano, sueltas) {
     cambio = false;
     const siguen = [];
     for (const i of pendientes) {
+      // 3.8.7 (decisión del usuario): el comodín suelto del que no cortó no se acomoda: cuenta 25 en contra
+      if (esComodin(mano[i])) { siguen.push(i); continue; }
       const g = gs.find((x) => esJuego([...x, mano[i]]));
       if (g) { g.push(mano[i]); puestas.push(i); cambio = true; } else siguen.push(i);
     }

@@ -15,6 +15,16 @@ import { EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea, localAbierto } from './aldea
 const PISO = 0.32;   // el piso del galpón sobre el nivel del lote (PISO_ALDEA)
 const W = 8.5, D = 3.6, TABIQUE = 5.4, PUERTA = 3;
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+// 3.8.7: «lista», «listo» o «listos» según lo que es (la caldera, el farol, las guardas y banderines): antes, «lista» a todo lo
+// que no era un coche («Farol de proa, lista») y «listo» a los coches («Jaula para el caballo, listo»)
+export function generoMejora(m) {
+  const n = String(m?.nombre || '').toLowerCase();
+  if (/^guardas/.test(n)) return { o: 'os', lo: 'los' };
+  if (/^(caldera|jaula)/.test(n)) return { o: 'a', lo: 'la' };
+  return { o: 'o', lo: 'lo' };
+}
+// 3.8.7: «1 tabla», «2 tablas» (salía «0 de 1 tablas»)
+const MAT_NOMBRE = { tabla: ['tabla', 'tablas'], tronco: ['tronco', 'troncos'], piedra: ['piedra', 'piedras'] };
 
 // ¿Dónde está el jugador respecto del taller? (en su marco: x a lo largo, z hacia la vía; null si no está adentro)
 export function enElTaller(pos, parada = PARADA_ALDEA) {
@@ -37,7 +47,7 @@ export function textoAvisoTaller(tren) {
   const p = tren?.taller?.pedido;
   if (!p) return 'Ver las mejoras del tren';
   const m = mejoraDe(p.id);
-  if (estadoTaller(tren) === 'armando') return `Taller: ${m.nombre.toLowerCase()}, lista ${textoListo(p.listo)}`;
+  if (estadoTaller(tren) === 'armando') return `Taller: ${m.nombre.toLowerCase()}, list${generoMejora(m).o} ${textoListo(p.listo)}`;
   const f = faltaDelPedido(tren);
   return Object.keys(f.materiales).length ? `Taller: llevar material para ${m.nombre.toLowerCase()}` : `Taller: ${m.nombre.toLowerCase()} (esperando el hierro)`;
 }
@@ -98,7 +108,7 @@ export function crearTallerJuego(ctx) {
     let sub = m.dice;
     if (m.efecto.vagon) sub = t.composicion.includes(m.efecto.vagon) ? `Ya está enganchado al tren. ${VAGONES[m.efecto.vagon].dice}.` : `Quedó en el desvío: el tren ya lleva ${VAGONES_MAX} vagones. Elegí cuáles en el taller.`;
     const primera = t.taller.hechas.length === 1;
-    ctx.nota(`Martín: «${m.nombre}, ${m.efecto.vagon ? 'listo' : 'lista'}»`, primera ? `${sub} Y de paso arreglamos el galpón.` : sub, true);
+    ctx.nota(`Martín: «${m.nombre}, list${generoMejora(m).o}»`, primera ? `${sub} Y de paso arreglamos el galpón.` : sub, true);
     ctx.sonido?.()?.juntar?.();
     ctx.diario?.('taller', id);
     aplicar();
@@ -148,9 +158,9 @@ export function crearTallerJuego(ctx) {
     }
     const m = mejoraDe(p.id), f = faltaDelPedido(t);
     const pide = pideMejora(p.id, p.arreglo);
-    const aport = Object.keys(pide).map((k) => `${p.aportado[k] || 0} de ${pide[k]} ${k === 'tabla' ? 'tablas' : k === 'tronco' ? 'troncos' : 'piedras'}`).join(', ');
+    const aport = Object.keys(pide).map((k) => `${p.aportado[k] || 0} de ${pide[k]} ${(MAT_NOMBRE[k] || [k, k])[pide[k] === 1 ? 0 : 1]}`).join(', ');
     const hierro = m.hierro ? ` Piezas de hierro: ${p.hierro} de ${m.hierro} (${herreria() ? `las forja Anselmo, ${HIERRO_POR_DIA} por día` : 'llegan de El Maitén con el tren, una por día, hasta que abra la herrería'}).` : '';
-    if (estadoTaller(t) === 'armando') return `En el foso: ${m.nombre.toLowerCase()}${p.arreglo ? ' (y el arreglo del galpón)' : ''}. Ernesto y Martín la están armando: queda lista ${textoListo(p.listo)}.`;
+    if (estadoTaller(t) === 'armando') return `En el foso: ${m.nombre.toLowerCase()}${p.arreglo ? ' (y el arreglo del galpón)' : ''}. Ernesto y Martín ${generoMejora(m).lo} están armando: queda list${generoMejora(m).o} ${textoListo(p.listo)}.`;
     return `En el taller: ${m.nombre.toLowerCase()}${p.arreglo ? ' (y el arreglo del galpón)' : ''}. Aportado: ${aport || 'nada todavía'}.${hierro}${Object.keys(f.materiales).length ? ` Falta: ${nombreMat(f.materiales)}.` : ''}`;
   }
   // Las opciones de la vista (cada una: { texto, detalle, marca, puede, hacer })
@@ -228,9 +238,10 @@ export function crearTallerJuego(ctx) {
     if (!r?.ok) { ctx.nota('No tenés nada de lo que falta', `Falta ${nombreMat(r?.faltan || {})}`); return; }
     ctx.sonido?.()?.juntar?.();
     ctx.refrescarBarra?.();
-    const m = mejoraDe(t.taller.pedido?.id || '');
-    if (r.empezo && t.taller.pedido) ctx.nota(`Llevaste ${nombreMat(r.dado)}`, `Está todo: Ernesto y Martín la arman. Queda lista ${textoListo(t.taller.pedido.listo)}`, true);
-    else if (r.completo) ctx.nota(`Llevaste ${nombreMat(r.dado)}`, `El material está. Faltan ${textoPiezas(r.hierroFalta)}: ${herreria() ? 'Anselmo forja dos por día' : 'llegan con el tren, una por día'}`);
+    const m = mejoraDe(t.taller.pedido?.id || ''), gm = generoMejora(m);
+    if (r.empezo && t.taller.pedido) ctx.nota(`Llevaste ${nombreMat(r.dado)}`, `Está todo: Ernesto y Martín ${gm.lo} arman. Queda list${gm.o} ${textoListo(t.taller.pedido.listo)}`, true);
+    // (3.8.7: «Falta una pieza de hierro», no «Faltan una»; y las que forja por día, de HIERRO_POR_DIA)
+    else if (r.completo) ctx.nota(`Llevaste ${nombreMat(r.dado)}`, `El material está. Falta${r.hierroFalta === 1 ? '' : 'n'} ${textoPiezas(r.hierroFalta)}: ${herreria() ? `Anselmo forja ${HIERRO_POR_DIA === 1 ? 'una' : HIERRO_POR_DIA === 2 ? 'dos' : HIERRO_POR_DIA} por día` : 'llegan con el tren, una por día'}`);
     else ctx.nota(`Llevaste ${nombreMat(r.dado)}${m ? ` para ${m.nombre.toLowerCase()}` : ''}`, `Falta ${nombreMat(r.faltan)}`);
     ctx.guardar?.();
   }

@@ -874,7 +874,8 @@ export function hablarDeLosChicos(estado, clave, ctx = {}) {
   if (suyos.length) {
     const h = suyos[hashTexto(`${clave}${d}`) % suyos.length];
     const etapa = ETAPAS_CHICOS[etapaHijo(h, d)];
-    sumarAfecto(f, 1);
+    // (3.8.7: con la madre de tus hijos sin romance posible (estás con otra), se habla de ellos sin que suba el afecto)
+    if (r0.ok) sumarAfecto(f, 1);
     return { ok: true, renglones: [llenarAmor(elegir(FRASES_AMOR.hijos.charla[etapa], `${h.nombre}${d}`), { hijo: h.nombre })] };
   }
   return { ok: true, renglones: [VOCES_AMOR[clave].chicos], ofrece: puedeBuscarHijo(estado, clave) };
