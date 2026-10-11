@@ -63,7 +63,7 @@ import { RECETAS_FUEGO, posibles, elegirReceta, textoPide, RECETAS_HORNO, elegir
 import { TEJIDOS, queTejer, textoTelar } from './telar.js';
 import { FERIA, esDiaDeFeria, abierta as feriaAbierta, ofertasDelDia, sanearFeria, feriaDeHoy, alcanza as alcanzaFeria, cambiarEnFeria, textoOferta } from './feria.js';
 import { crearPuestoFeria } from './feria-mundo.js';
-import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, saltearTurno, seVa, terminarVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
+import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, saltearTurno, seVa, terminarVisita, llegoVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
@@ -4674,6 +4674,7 @@ function actualizarVisitas(dt) {
     // se cargó la partida con una visita en curso: vuelve a la mesa
     const puesta = mesaPuesta(mueblesTerminados());
     if (!puesta || !traerVisita(v.activa.clave, puesta, false)) terminarVisita(v, progreso.dia);
+    else if (llegoVisita(v)) guardar();   // 3.8.7: la que trajo un evento del valle cuenta al llegar
     return;
   }
   // 2.8: sin vecinos (Tu partida) nadie viene a la mesa

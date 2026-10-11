@@ -6,7 +6,7 @@
 // Sin THREE: lo del mundo lo hace el juego por medio de `ctx` (ver `historia-ui.js`).
 
 import { EVENTO_VALLE, SEGUIMIENTOS, sanearEventosValle, revisarEventos, forzarEvento, elegirOpcion, seguimientoListo, cerrarSeguimiento, seguimientoDe, sumarGratitud, faltaPara, nombreCosa, nombreVecinoEvento } from './eventos-valle.js';
-import { mesaPuesta, VISITANTES, VISITA } from './visitas.js';
+import { mesaPuesta, VISITANTES, VISITA, visitaFueraDeTurno } from './visitas.js';
 import { TRUEQUES } from './trueque.js';
 import { puedeLlegar, llamarProximo, NOMBRE_ALDEA } from './aldea.js';
 
@@ -116,7 +116,7 @@ export function crearEventosValleUi(ctx, tarjetas) {
           // capítulo 8 y trababa la visita de verdad por tres días. Tarde, no viene.
           const temprano = (Number(p.horas) || 0) < VISITA.seVa - 1;
           if (v && !v.activa && hayMesa && temprano && ctx.extra().vecinos !== false && Object.hasOwn(VISITANTES, f.quien)) {
-            v.activa = { clave: f.quien, dia: p.dia, charlo: false };
+            visitaFueraDeTurno(v, f.quien, p.dia);   // 3.8.7: cuenta al llegar y no le quita el turno a nadie
             ctx.nota(`${nombreVecinoEvento(f.quien)} viene a tu mesa`, 'Te espera ahí hasta que caiga la noche', true);
           } else if (!hayMesa) dichos.push(`${nombreVecinoEvento(f.quien)} pasó, pero no tenías mesa puesta`);
           else if (!temprano) dichos.push(`${nombreVecinoEvento(f.quien)} quería pasar, pero ya se hizo tarde`);

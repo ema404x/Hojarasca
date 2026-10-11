@@ -11,6 +11,8 @@
 //    el arroyo venía turbio con cada nevada (no picaba nada en el arroyo en todo el invierno).
 // 5. Las tarjetas de la historia y del valle no salen con un panel del HUD abierto (la cocina, el taller del tren, las
 //    fiestas); «Largar de nuevo» esconde el fantasma de la vuelta anterior.
+// 6. La visita que trae un evento del valle (Nicanor ya camina, Ercilia vuelve de Esquel) cuenta como recibida al llegar
+//    (el capítulo 8 no la tomaba) y al irse no le quita el turno al que le tocaba.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -20,6 +22,7 @@ const HI = await import('../src/historia.js');
 const EV = await import('../src/eventos-valle.js');
 const DI = await import('../src/diario.js');
 const ME = await import('../src/meteo.js');
+const VI = await import('../src/visitas.js');
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -101,6 +104,23 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   ok(main.includes('libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra'), 'la tarjeta espera a que se cierre el panel');
   ok(/const panelDelHudAbierto = \(\) => enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| mochilaAbierta .*cocinaJuego\?\.panelAbierto\(\).*tallerTren\?\.panelAbierto\(\).*fiestasJuego\?\.panelAbierto\(\)/.test(main), 'y el panel abierto incluye la cocina, el taller y las fiestas');
   ok(leer('src/modos-juego.js').includes('mundo?.marcarSiguiente(0);\n    mundo?.ponerFantasma(null);'), 'largar esconde el fantasma');
+}
+
+// ---------------------------------------------------------------- 6. la visita de un evento
+{
+  const v = VI.sanearVisitas({ ultima: 1, cuenta: 2, recibidas: 2, activa: null });
+  const p = { dia: 10, visitas: v, entradas: {}, eventosValle: { hechos: {} } };
+  const h = HI.sanearHistoria({ activa: true, capitulo: 7, fase: 'jugando', empezada: 1, base: HI.baseDe(HI.estadoHistoria(p, {})) });
+  VI.visitaFueraDeTurno(v, 'nicanor', 10);
+  eq(VI.recibidas(v), 2, 'todavía no llegó: no cuenta');
+  const g = VI.sanearVisitas(JSON.parse(JSON.stringify(v)));
+  ok(g.activa.fueraDeTurno === true && g.activa.contada === false, 'se guarda fuera de turno');
+  ok(VI.llegoVisita(v) && !VI.llegoVisita(v), 'al llegar cuenta, una sola vez');
+  eq(VI.recibidas(v), 3, 'recibida');
+  ok(HI.revisarHistoria(h, HI.estadoHistoria(p, {})).nuevos.some((o) => o.id === 'visita'), 'y el capítulo 8 la toma');
+  VI.terminarVisita(v, 10);
+  eq([v.cuenta, VI.quienViene(v.cuenta)], [2, 'ema'], 'el turno sigue en el que le tocaba');
+  ok(leer('src/eventos-valle-ui.js').includes('visitaFueraDeTurno(v, f.quien, p.dia);') && leer('src/main.js').includes('else if (llegoVisita(v)) guardar();'), 'el evento y la llegada la usan');
 }
 
 console.log(`verificar-3-8-7-progreso: ${pasos} comprobaciones OK`);

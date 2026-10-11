@@ -56,7 +56,7 @@ export function sanearVisitas(v) {
   // 3.6 (vida): la visita de un compadre (cualquier vecino: ver vecindad-juego.js) se marca `amistad`
   const deAmistad = !!a && a.amistad === true && typeof a.clave === 'string' && /^[a-z]{2,16}$/.test(a.clave);
   const activa = a && (Object.hasOwn(VISITANTES, String(a.clave)) || deAmistad)
-    ? { clave: a.clave, dia: n(a.dia), charlo: !!a.charlo, ...(deAmistad ? { amistad: true } : {}) } : null;
+    ? { clave: a.clave, dia: n(a.dia), charlo: !!a.charlo, ...(deAmistad ? { amistad: true } : {}), ...(a.fueraDeTurno === true ? { fueraDeTurno: true, contada: a.contada === true } : {}) } : null;
   // 3.8.3: `recibidas`: las visitas que vinieron de verdad (para la historia); una partida vieja no la trae
   return { ultima: n(v.ultima), cuenta: n(v.cuenta), activa, ...(v.recibidas !== undefined ? { recibidas: n(v.recibidas) } : {}) };
 }
@@ -95,11 +95,25 @@ export function saltearTurno(v) {
   v.recibidas = recibidas(v);
   v.cuenta = Math.max(0, Math.floor(Number(v.cuenta) || 0)) + 1;
 }
+// 3.8.7: la visita que trae un evento del valle (Nicanor después del tobillo, Ercilia de vuelta de Esquel): viene fuera
+// de turno. Antes no contaba como recibida (el capítulo 8, «Recibí una visita», no se tildaba aunque viniera) y al irse le
+// quitaba el turno al que le tocaba. Se cuenta cuando llega de verdad (`llegoVisita`), no si no pudo venir.
+export function visitaFueraDeTurno(v, clave, dia) {
+  v.activa = { clave, dia, charlo: false, fueraDeTurno: true, contada: false };
+  return v.activa;
+}
+export function llegoVisita(v) {
+  if (!v?.activa?.fueraDeTurno || v.activa.contada) return false;
+  v.recibidas = recibidas(v) + 1;
+  v.activa.contada = true;
+  return true;
+}
 export function terminarVisita(v, dia) {
   v.ultima = v.activa?.dia || dia;
   // 3.6.1: la visita de un compadre no le quita el turno al de siempre (antes, cada compadre que
   // venía salteaba al que le tocaba: Don Ramón, Nicanor, Josefina y Ercilia se turnan)
-  if (!v.activa?.amistad) v.cuenta += 1;
+  // 3.8.7: ni la que trajo un evento
+  if (!v.activa?.amistad && !v.activa?.fueraDeTurno) v.cuenta += 1;
   v.activa = null;
 }
 

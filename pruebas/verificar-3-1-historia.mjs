@@ -366,7 +366,8 @@ function correr(semilla, dias = 240) {
   assert.ok(main.includes('valle?.alEntrar();'), 'la portada empieza la historia');
   assert.ok(main.includes('valle?.portada(ajustes);'));
   assert.ok(/pausar: \(\) => \{ modo = 'valle'; jugador\?\.soltar\(\); \}/.test(main), 'con la tarjeta abierta, el mundo se queda quieto');
-  assert.ok(/libre: \(\) => !charla\.npc && !enElAlmacen && !enLaFeria && !enLasCargas\(\) && !mochilaAbierta && !modoObra && !foto\.activo && !personalAbierto\(\)/.test(main), 'nunca con un menú o un panel abierto');
+  // (3.8.7: los paneles del HUD, todos juntos en panelDelHudAbierto: el almacén, la feria, las cargas, la mochila y los demás)
+  assert.ok(/libre: \(\) => !charla\.npc && !panelDelHudAbierto\(\) && !modoObra && !foto\.activo && !personalAbierto\(\)/.test(main), 'nunca con un menú o un panel abierto');
   const plantilla = leer('src/plantilla.html');
   assert.ok(plantilla.includes('data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button>'));
   const guardado = leer('src/guardado.js');
