@@ -318,13 +318,33 @@ export function momentoPendiente(h, s) {
   const c = capituloActual(h);
   const m = c.momento;
   // 3.8.3: «ya pasó» lo dice el objetivo del momento (el temporal tiene que ser el de este capítulo), no cualquier vez
-  if (!m || h.momentos[c.id] === 'lanzado' || c.objetivos.some((o) => o.delMomento && (h.hechos[`${c.id}:${o.id}`] !== undefined || objetivoCumplido(o, s, h.base)))) return null;
+  if (!m || h.momentos[c.id] === 'lanzado' || momentoPasado(h, s, m) || c.objetivos.some((o) => o.delMomento && (h.hechos[`${c.id}:${o.id}`] !== undefined || objetivoCumplido(o, s, h.base)))) return null;
   // sin vecinos en la partida (2.8), el momento de un vecino no llega: su objetivo ya se dio por hecho
   if (s.vecinos === false && c.objetivos.some((o) => o.delMomento && o.vecinos)) return null;
   if (m.cuando === 'resto' && !c.objetivos.every((o) => o.delMomento || h.hechos[`${c.id}:${o.id}`] !== undefined)) return null;
   return m.evento;
 }
 export function momentoLanzado(h) { h.momentos[capituloActual(h).id] = 'lanzado'; }
+
+// 3.8.7: el evento del momento ya se decidió en este capítulo (su tarjeta se contestó desde que empezó), aunque su
+// objetivo se tilde después: el temporal del capítulo 8 se tilda pasada la noche, y mientras tanto el «lanzado pero
+// perdido» lo volvía a pedir cada medio segundo (la misma tarjeta una y otra vez hasta la medianoche, cobrando cada vez);
+// y un temporal al azar del mismo capítulo traía otro el mismo día
+function momentoPasado(h, s, m) {
+  const d = s?.eventosDia && Object.hasOwn(s.eventosDia, m.evento) ? Number(s.eventosDia[m.evento]) || 0 : 0;
+  return d > 0 && d >= (Number(h?.base?.dia) || 1);
+}
+// Lanzado pero perdido (una partida retocada, o la tarjeta que no llegó a salir): hay que volver a pedirlo para que el
+// capítulo nunca se trabe. No si ya pasó en el capítulo ni si su objetivo está tildado.
+export function momentoPerdido(h, s) {
+  if (!h?.activa || h.fase !== 'jugando') return null;
+  const c = capituloActual(h);
+  const m = c.momento;
+  if (!m || h.momentos[c.id] !== 'lanzado' || momentoPasado(h, s, m)) return null;
+  if (c.objetivos.some((o) => o.delMomento && h.hechos[`${c.id}:${o.id}`] !== undefined)) return null;
+  if (s?.vecinos === false && c.objetivos.some((o) => o.delMomento && o.vecinos)) return null;
+  return m.evento;
+}
 
 // Anotar que hablaste con un vecino (se anota siempre, haya historia o no).
 export function anotarCharla(h, clave) {

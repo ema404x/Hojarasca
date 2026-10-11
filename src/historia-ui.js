@@ -7,7 +7,7 @@
 // Sin THREE: lo que toca el mundo llega por `ctx` desde main.js. Las reglas están en
 // `historia.js` y `eventos-valle.js` (puros, se prueban en Node).
 
-import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
+import { CAPITULOS, sanearHistoria, estadoHistoria, empezarHistoria, pausarHistoria, arrancarCapitulo, revisarHistoria, cerrarCapitulo, momentoPendiente, momentoLanzado, momentoPerdido, anotarCharla, panelHistoria, resumenHistoria, capituloActual, numeroCapitulo } from './historia.js';
 import { resumenEventos } from './eventos-valle.js';
 import { crearEventosValleUi } from './eventos-valle-ui.js';
 
@@ -229,7 +229,8 @@ export function crearValleUi(ctx) {
       if (m && (def?.cuando !== 'pronto' || tiempoCapitulo >= MOMENTO_PRONTO)) { if (eventos.forzar(m)) momentoLanzado(h); }   // con otro abierto, se reintenta después
       // lanzado pero perdido (una partida retocada): se vuelve a pedir, para que el capítulo nunca se trabe
       // (3.8.3: «pasó» es su objetivo tildado: un temporal al azar de antes del capítulo no cuenta)
-      else if (!m && def && h.momentos[capituloActual(h).id] === 'lanzado' && !capituloActual(h).objetivos.some((o) => o.delMomento && h.hechos[`${capituloActual(h).id}:${o.id}`] !== undefined) && !eventos.ev().activo && !(s.vecinos === false)) eventos.forzar(def.evento);
+      // 3.8.7: ni si ya se decidió en este capítulo (el temporal se tilda al otro día y se repetía cada medio segundo)
+      else if (!m && momentoPerdido(h, s) && !eventos.ev().activo) eventos.forzar(def.evento);
     }
     return eventos.revisar({ puedeAzar: azarEnPruebas || !ctx.sinAzar?.() });
   }
