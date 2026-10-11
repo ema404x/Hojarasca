@@ -44,13 +44,33 @@ app.whenReady().then(async () => {
   const cuadros = (n = 4) => js(`(()=>{ for (let i = 0; i < ${n}; i++) ${H}.__bucle(); return 1 })()`);
   const charla = () => js(`(()=>({ npc: ${H}.__charla().npc, texto: document.getElementById('charla-texto').textContent, seguir: document.getElementById('charla-seguir').textContent }))()`);
   // un vecino que te viene a invitar (a tomar algo, si `tomar`); devuelve { clave, id } o null
-  const invitacion = (tomar, cualquiera = false) => js(`(()=>{ const S = ${H}.__social(); for (let i = 0; i < 400; i++) { const v = S.pendiente(); if (v?.npc) v.npc.camino = []; S.soltar(); for (const g of ${H}.gente.gente) g.__iniciativa = false;
+  const invitacion = (tomar, cualquiera = false) => js(`(()=>{ const S = ${H}.__social(); const pl0 = ${H}.__aldea.edificio('plaza'); ${H}.jugador.ubicar(pl0.x, pl0.z + 6, 0); for (let i = 0; i < 6; i++) { ${H}.__aldea.actualizar(0.6); ${H}.__bucle(); } for (let i = 0; i < 400; i++) { const v = S.pendiente(); if (v?.npc) v.npc.camino = []; S.soltar(); for (const g of ${H}.gente.gente) g.__iniciativa = false;
       ${H}.progreso.vecindad.social && (${H}.progreso.vecindad.social.vino = {}, ${H}.progreso.vecindad.social.iniciativa = { dia: 0, n: 0, ultima: -99 });
       if (!S.forzarIniciativa()) continue; const p = S.pendiente(); if (p && (${cualquiera} || p.tipo === 'invitar') && (${cualquiera} || !${tomar} || p.id === 'mate' || p.id === 'cartas')) return { clave: p.clave, id: p.id, anotada: p.anotada }; }
       const v = S.pendiente(); if (v?.npc) v.npc.camino = []; S.soltar(); return null })()`);
-  // vos, a 1,6 m del que viene, de frente
-  const alLado = () => js(`(()=>{ const p = ${H}.__social().pendiente(); if (!p) return false; const n = p.npc, j = ${H}.jugador; const dx = j.estado.pos.x - n.pos.x, dz = j.estado.pos.z - n.pos.z, d = Math.hypot(dx, dz) || 1; const x = n.pos.x + dx / d * 1.6, z = n.pos.z + dz / d * 1.6; n.camino = [];
-      j.ubicar(x, z, Math.atan2(-(n.pos.x - x), -(n.pos.z - z))); j.estado.pitch = -0.05; for (let i = 0; i < 8; i++) ${H}.__bucle(); return ${H}.__social().pendiente()?.anotada ?? null })()`);
+  // el que viene y vos, en un claro (sin nadie a menos de 7 m, en tierra): en la plaza hay mucha gente y E (y el aviso) son del
+  // que tengas enfrente más cerca, como en el juego; así la prueba no depende de quién viene a invitarte ni de quién pasa
+  const alLado = () => js(`(()=>{ const p = ${H}.__social().pendiente(); if (!p) return false; const n = p.npc, j = ${H}.jugador, pl = ${H}.__aldea.edificio('plaza'); n.camino = [];
+      let sitio = null;
+      for (let r = 30; r <= 90 && !sitio; r += 15) for (let k = 0; k < 16 && !sitio; k++) { const a = k * Math.PI / 8, x = pl.x + Math.cos(a) * r, z = pl.z + Math.sin(a) * r;
+        if (${H}.T.agua(x, z) || ${H}.T.agua(x + 2, z) || ${H}.T.agua(x, z + 2)) continue;
+        if (${H}.gente.gente.some((g) => g !== n && !g.dormido && Math.hypot(g.pos.x - x, g.pos.z - z) < 7)) continue;
+        sitio = { x, z }; }
+      if (!sitio) return null;
+      n.pos.set(sitio.x, ${H}.T.altura(sitio.x, sitio.z), sitio.z); n.soloCerca = 0;
+      const x = sitio.x + 1.6, z = sitio.z;
+      j.ubicar(x, z, Math.atan2(-(n.pos.x - x), -(n.pos.z - z))); j.estado.pitch = -0.05; for (let i = 0; i < 8; i++) ${H}.__bucle();
+      return ${H}.__social().pendiente()?.anotada ?? null })()`);
+  // E para abrir la charla y, si antes de la invitación te saluda con otra cosa (su cumpleaños, la confianza), E hasta llegar a la
+  // invitación (que no dependa de quién viene a invitarte)
+  const abrirInvitacion = async () => {
+    // (el juego mira a quién tenés enfrente unos cuadros después de que te movés: sin esperarlos, E no le habla a nadie)
+    for (let i = 0; i < 3; i++) { await esperar(70); await cuadros(2); }
+    await js(`${tecla('KeyE')} 1`);
+    let c = await charla();
+    for (let i = 0; i < 4 && c.npc && c.seguir !== 'E: dale · Escape: ahora no'; i++) { await js(`${tecla('KeyE')} 1`); c = await charla(); }
+    return c;
+  };
   const amistad = (k) => js(`${H}.progreso.vecindad?.personas?.['${k}']?.p ?? 0`);
 
   try {
@@ -82,8 +102,7 @@ app.whenReady().then(async () => {
       const aviso = await js(`${H}.__avisoYa()?.texto || ''`);
       ok(/te quiere decir algo/.test(aviso), `el aviso: «${aviso}»`);
       const antes = await amistad(inv.clave);
-      await js(`${tecla('KeyE')} 1`);
-      let c = await charla();
+      let c = await abrirInvitacion();
       ok(c.npc && c.seguir === 'E: dale · Escape: ahora no', `E abre la invitación: «${c.texto}» [${c.seguir}]`);
       await js(`${tecla('KeyE')} 1`);
       c = await charla();
@@ -102,8 +121,7 @@ app.whenReady().then(async () => {
     if (inv) {
       await alLado();
       const antes = await amistad(inv.clave);
-      await js(`${tecla('KeyE')} 1`);
-      let c = await charla();
+      let c = await abrirInvitacion();
       ok(c.seguir === 'E: dale · Escape: ahora no', `la invitación: «${c.texto}»`);
       await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true })); 1`);
       c = await charla();
