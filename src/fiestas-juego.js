@@ -61,6 +61,9 @@ export function crearFiestasJuego(ctx) {
     return cache.ahora;
   }
   const fechasDeHoy = () => { ahora(); return cache.fechas; };
+  // 3.8.7: ¿la fiesta de hoy ya empezó y todavía no terminó? (con los ratos entre una fase y otra: el concurso no se lleva a
+  // la gente entre el acto y la mesa; antes Nélida y el jurado se iban a la plaza en esos ratos y volvían)
+  const enCursoHoy = () => activo() && fechasDeHoy().some((f) => { if (f.tipo === 'cumple-jugador' && !f.sorpresa) return false; const p = programaDe(f), h = horas(); return p.length > 0 && h >= p[0].desde && h < p[p.length - 1].hasta; });
   const anio = () => anioDe(dia());
 
   // ---------------------------------------------------------------- quién va a dónde (para aldea-gente.js)
@@ -165,7 +168,10 @@ export function crearFiestasJuego(ctx) {
     if (!a) return;
     const f = a.fecha, fase = a.fase.fase;
     // 3.8.6: sentado en la fiesta (la mesa larga, los bancos del baile, el fogón), el reloj no se apura: la sobremesa duraba 5 s
-    sentadoEnFiesta = !!js?.sentado && (enPredio || !!ctx.enLaPlaza?.(js.pos));
+    // (3.8.7: donde está la fiesta ahora: el predio, o la plaza en el acto y en los 90 de la abuela; con la pala en la nevada
+    // no hay nada que mirar sentado. Antes cualquier banco de la plaza frenaba el reloj todo el día de la fiesta, de 8 a 23)
+    const enLaPlazaAhora = !!js && !!ctx.enLaPlaza?.(js.pos);
+    sentadoEnFiesta = !!js?.sentado && fase !== 'palear' && (fase === 'acto' || f.lugar === 'plaza' ? enLaPlazaAhora : enPredio);
     // el aviso de cada fase (si andás cerca de la aldea)
     const k = `${f.id}|${fase}`;
     if (!visto.fases.has(k)) {
@@ -826,7 +832,8 @@ export function crearFiestasJuego(ctx) {
     else if (r.gana === false) { panel.fin = j === 0 ? 'perdio' : 'gano'; }
     else panel.turno = 1 - j;
     panel.finQuien = j;   // 3.8.3: quién la definió (si el rival sacó culo, ganaste vos: antes decía «¡Suerte!» igual)
-    if (panel.fin) { anotarPartido(estado(), 'taba', panel.fin === 'gano'); if (panel.fin === 'gano') ctx.sumarAmistad?.(panel.rival?.clave, 1); ctx.guardar?.(); }
+    // (3.8.7: la amistad, una vez por día con cada rival, como la mesita y el baile: tirando sin parar sumaba sin fin)
+    if (panel.fin) { anotarPartido(estado(), 'taba', panel.fin === 'gano'); if (panel.fin === 'gano' && panel.rival?.clave && amistadDeHoy(estado(), `taba:${panel.rival.clave}`, dia())) ctx.sumarAmistad?.(panel.rival.clave, 1); ctx.guardar?.(); }
     if (r.gana === null) panel.turno = 1 - j;
   }
   function paso(i) {
@@ -881,7 +888,7 @@ export function crearFiestasJuego(ctx) {
   }
 
   const api = {
-    activo, actualizar, destino, accion, paraElMundo, estado, ahora, fechasDeHoy,
+    activo, actualizar, destino, accion, paraElMundo, estado, ahora, fechasDeHoy, enCursoHoy,
     panelAbierto, sinApuro, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, sinVecino, redibujar: () => dibujarPanel(false),
     jugarTruco, camara, montando: () => jineteada.monta?.quien === 'jugador', fotoDeLaFiesta, climaForzado,
     fotosAlbum: () => fotosParaAlbum(estado()),
