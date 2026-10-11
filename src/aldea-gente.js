@@ -313,14 +313,18 @@ export function destinosAldea(aldea, horas, dia, personas, M = marcoAldea(PARADA
     // (3.7.0 (integración): Malena en el banco del torno y Pocha en la silla de la máquina, sentadas; lo de arriba
     // de una escalera, `arriba`)
     // (3.7.1 (mundo): o lo que diga el amor: en el casamiento, la novia está parada al lado de la silla)
-    const sentado = typeof r.sentado === 'boolean' ? r.sentado : SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio));
-    salida.set(k, { ...r, clave, lx: q.x, lz: q.z, rot: q.rot, adentro, sentado, lejano: esPuntoLejano(r.punto), arriba: esArriba(r.edificio, r.punto) });   // (3.7.0: lejano: el muelle del lago)
+    // (3.8.7: los de pie de la plaza (`pie`, alrededor del duende) no se sientan; y el que va a un banco sin sentarse (el acto)
+    // se para delante (`frente`), no arriba del banco)
+    const sentado = typeof r.sentado === 'boolean' ? r.sentado : !q.pie && (SENTADO.test(r.punto || '') || (r.punto === 'adentro' && SENTADO_ADENTRO.includes(r.edificio)));
+    const q2 = !sentado && q.frente ? q.frente : q;
+    salida.set(k, { ...r, clave, lx: q2.x, lz: q2.z, rot: q.rot, adentro, sentado, lejano: esPuntoLejano(r.punto), arriba: esArriba(r.edificio, r.punto), ...(q.frente ? { frente: q.frente } : {}) });   // (3.7.0: lejano: el muelle del lago)
   }
   for (const lista of juntos.values()) {
     if (lista.length < 2) continue;
     lista.forEach((k, i) => {
       const d = salida.get(k), a = (i / lista.length) * Math.PI * 2;
       d.sentado = false;   // 3.6: en una silla entra uno solo: los que se acomodan alrededor, parados
+      if (d.frente) { d.lx = d.frente.x; d.lz = d.frente.z; }   // (3.8.7: delante del banco, no adentro)
       d.lx += Math.sin(a) * 0.55; d.lz += Math.cos(a) * 0.55;
       // y se miran entre ellos
       d.rot = Math.atan2(-Math.sin(a), -Math.cos(a));

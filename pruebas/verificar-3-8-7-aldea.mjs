@@ -177,5 +177,27 @@ const cruza = (desde, pasos) => { let p = desde; for (const q of pasos) { if (!q
   ok(leer('src/aldea-mecanicas.js').includes("Se lee sentado, en el refugio o en tu casa'"), 'biblioteca: el préstamo lo dice');
 }
 
+// ---------------------------------------------------------------- 11. la plaza: sentados en los bancos de verdad (no en el aire)
+{
+  const P = AL.puntosDe('plaza'), e = AL.EDIFICIOS_ALDEA.plaza;
+  // los asientos de los bancos, en el plano, como los arma aldea-arquitectura.js (banco(), marcoLocal)
+  const asientos = [];
+  for (const am of [0, Math.PI, Math.PI / 2 - 0.33, Math.PI / 2 + 0.33, -Math.PI / 2 - 0.33, -Math.PI / 2 + 0.33]) {
+    const x = Math.cos(am) * (3.9 - 0.62), z = Math.sin(am) * (3.9 - 0.62), g = Math.atan2(-x, -z);
+    for (const sx of [-0.4, 0.4]) { const lx = sx * 1.7 / 2, lz = 0.02, bx = x + lx * Math.cos(g) + lz * Math.sin(g), bz = z - lx * Math.sin(g) + lz * Math.cos(g); const c = Math.cos(e.rot), s = Math.sin(e.rot); asientos.push({ x: e.x + bx * c + bz * s, z: e.z - bx * s + bz * c }); }
+  }
+  const lejos = [];
+  for (let k = 1; k <= 12; k++) { const q = P[`estar-${k}`]; const d = Math.min(...asientos.map((a) => Math.hypot(a.x - q.x, a.z - q.z))); if (d > 0.05) lejos.push(`estar-${k}: ${d.toFixed(2)}`); }
+  ok(lejos.length === 0, `plaza: estar-1 a 12 son los asientos de los seis bancos (antes, una grilla sin bancos: se sentaban en el aire) ${lejos.join(', ')}`);
+  ok([13, 14, 15, 16, 17, 18, 19, 20].every((k) => P[`estar-${k}`].pie && !P[`estar-${k}`].frente), 'plaza: estar-13 a 20, de pie alrededor del duende');
+  const a = aldeaCompleta();
+  const sent = G.destinosAldea(a, 16, 3, ['abuela'], undefined, new Map([['abuela', { lugar: 'plaza', edificio: 'plaza', punto: 'estar-3' }]])).get('abuela');
+  ok(sent.sentado && Math.hypot(sent.lx - P['estar-3'].x, sent.lz - P['estar-3'].z) < 1e-6, 'plaza: en un banco, sentada');
+  const pie = G.destinosAldea(a, 16, 3, ['abuela'], undefined, new Map([['abuela', { lugar: 'plaza', edificio: 'plaza', punto: 'estar-15' }]])).get('abuela');
+  ok(!pie.sentado, 'plaza: alrededor del duende, de pie');
+  const acto = G.destinosAldea(a, 10.5, 4, ['abuela'], undefined, new Map([['abuela', { lugar: 'fiesta', edificio: 'plaza', punto: 'estar-3', sentado: false }]])).get('abuela');
+  ok(!acto.sentado && Math.hypot(acto.lx - P['estar-3'].frente.x, acto.lz - P['estar-3'].frente.z) < 1e-6, 'plaza: de pie en el acto, delante del banco (no arriba)');
+}
+
 for (const f of ['src/aldea-gente.js', 'src/social-juego.js', 'src/amor-juego.js', 'src/amor.js', 'src/fiestas-juego.js', 'src/aldea-vida.js', 'src/taller-tren-juego.js', 'src/aldea-mecanicas-mundo.js', 'src/aldea-mecanicas.js', 'src/rincones-juego.js', 'src/main.js', 'pruebas/verificar-3-8-7-aldea.mjs']) ok(!leer(f).includes('\r'), `${f}: fines de línea LF`);
 console.log(`verificar-3-8-7-aldea: ${n} comprobaciones OK`);

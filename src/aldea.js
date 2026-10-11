@@ -320,6 +320,8 @@ const PUNTOS_ESTRUCTURA = {
     puerta: { x: 0, z: 5.7, rot: 0 }, trabajo: { x: 3.7, z: 1.2, rot: -PI / 2 },
   },
 };
+// 3.8.7: los bancos del redondel de la plaza (los mismos de aldea-arquitectura.js: radio 3,9 − 0,62, de 1,7 m, asientos a ±0,34)
+export const BANCOS_PLAZA = { radio: 3.9 - 0.62, angulos: [0, PI, PI / 2 - 0.33, PI / 2 + 0.33, -PI / 2 - 0.33, -PI / 2 + 0.33], asiento: 0.4 * 1.7 / 2 };
 function puntosLocales(id) {
   const e = EDIFICIOS_ALDEA[id];
   const { ancho: W, fondo: D } = e;
@@ -344,10 +346,17 @@ function puntosLocales(id) {
     // 3.6 (mecánicas): al pie de la soga del mástil (el de aldea-arquitectura.js, en z 5,25), donde
     // el jefe de estación iza la bandera a las 8 y la arría a las 19, mirando al mástil
     p.soga = { x: -1.4, z: 5.7, rot: 1.88 };
-    // veinte lugares para estar: bancos de a dos en los lados largos y cuatro en los cortos
+    // veinte lugares para estar. 3.8.7: los de la plaza de verdad (aldea-arquitectura.js): los dos asientos de cada uno de los
+    // seis bancos del redondel (estar-1 a 12, sentados; `frente`: de pie, delante del banco, para el acto) y ocho alrededor del
+    // duende, de pie (estar-13 a 20, `pie`). Antes era una grilla de bancos que la plaza no tiene: el que iba a estar a la
+    // plaza se sentaba en el aire, sobre el pasto
     let k = 1;
-    for (const z of [-5.5, 5.5]) for (const x of [-6.5, -5.5, -2.5, -1.5, 1.5, 2.5, 5.5, 6.5]) p[`estar-${k++}`] = { x, z, rot: z < 0 ? 0 : PI };
-    for (const x of [-7.6, 7.6]) for (const z of [-0.5, 0.5]) p[`estar-${k++}`] = { x, z, rot: x < 0 ? PI / 2 : -PI / 2 };
+    for (const am of BANCOS_PLAZA.angulos) {
+      const bx = Math.cos(am) * BANCOS_PLAZA.radio, bz = Math.sin(am) * BANCOS_PLAZA.radio, giro = Math.atan2(-bx, -bz), cg = Math.cos(giro), sg = Math.sin(giro);
+      const en = (lx, lz) => ({ x: bx + lx * cg + lz * sg, z: bz - lx * sg + lz * cg });
+      for (const sx of [-BANCOS_PLAZA.asiento, BANCOS_PLAZA.asiento]) p[`estar-${k++}`] = { ...en(sx, 0.02), rot: giro, frente: en(sx, 0.72) };
+    }
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2 + 0.2; p[`estar-${k++}`] = { x: Math.cos(a) * 1.75, z: Math.sin(a) * 1.75, rot: Math.atan2(-Math.cos(a), -Math.sin(a)), pie: true }; }
     // donde juegan los chicos
     [[-3, -2], [3, -2], [-2, 3.8], [2.5, 4]].forEach(([x, z], i) => { p[`juego-${i + 1}`] = { x, z, rot: 0 }; });
     return p;
@@ -426,6 +435,8 @@ export function puntosDe(id) {
     for (const [k, q] of Object.entries(puntosLocales(id))) {
       const a = enPlano(e, q.x, q.z);
       salida[k] = { x: a.x, z: a.z, rot: e.rot + q.rot };
+      if (q.pie) salida[k].pie = true;   // 3.8.7: de pie (alrededor del duende)
+      if (q.frente) salida[k].frente = enPlano(e, q.frente.x, q.frente.z);   // 3.8.7: de pie, delante del banco
     }
     cachePuntos.set(id, Object.freeze(salida));
   }
