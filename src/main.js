@@ -7113,7 +7113,9 @@ function actualizarCasaViva(dt) {
   }
   ventanasMundo?.actualizar(lista, brillo);
   refrescarCorral();
-  const emb = obrasTerminadas('embarcadero').length;
+  // 3.8.7: contando el que se mueve (si no, al dejarlo con Shift+Y «aparecía» uno nuevo y se llevaba el kayak, que ya se
+  // muda con su embarcadero en mudarDatosDeObra)
+  const emb = (obras?.obras || []).filter((o) => o.plano.id === 'embarcadero' && obraTerminada(o)).length;
   if (embarcaderosVistos >= 0 && emb > embarcaderosVistos && amarrarKayak()) nota('El kayak quedó amarrado en tu embarcadero', 'Desde la punta también se pesca', true);
   embarcaderosVistos = emb;
 }
