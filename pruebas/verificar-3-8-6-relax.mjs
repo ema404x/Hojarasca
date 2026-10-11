@@ -271,7 +271,7 @@ this.f = lluviaPorTramos;`, ctx);
   ok(!ctx.f(k(10, 15)) && ctx.f(k(10, 19)) && ctx.f(k(11, 2)) && ctx.f(k(11, 6)) && !ctx.f(k(11, 9.5)), 'el temporal del capítulo 8: de las 18 a las 7');
   ctx.progreso.historia.momentos = {};
   ok(!ctx.f(k(10, 19)), 'sin el momento lanzado, nada');
-  ok(main.includes("p.tipo = (k) => (temporalDeLaHistoria(k) ? 'lluvia' : null) ||") && main.includes('p.viento = (k) => (temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));'), 'el programa del tiempo lo usa (lluvia y viento)');
+  ok(main.includes("p.tipo = (k) => (fijo() ? null : (temporalDeLaHistoria(k) ? 'lluvia' : null) ||") && main.includes('p.viento = (k) => (!fijo() && temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));'), 'el programa del tiempo lo usa (lluvia y viento)');
   // 2a: lo elegido en la barra se sigue por lo que es; si se terminó, su casilla queda vacía
   const rb = trozoFn('function refrescarBarra(');
   ok(rb.includes('if (idElegido && ranuras[elegida]?.id !== idElegido) {') && rb.includes('else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);') && trozoFn('function elegirRanura(').includes('idElegido = null;'), 'la casilla de lo que se terminó queda vacía');

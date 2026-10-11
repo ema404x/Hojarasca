@@ -4,6 +4,8 @@
 //    volvía a pedir cada medio segundo hasta la medianoche, cobrando cada vez); un temporal del mismo capítulo no trae otro.
 // 2. El diario: «una lenga» (plantada o partida por un rayo, también en la nota), tres historias no son «dos», y varios
 //    encargos van en plural.
+// 3. El pronóstico de la estación sigue el programa que sigue el clima (con la noche del temporal y la gran nevada
+//    forzadas encima): antes anunciaba la semilla sola y esos días no se cumplía. Con el clima fijo despejado, nada se fuerza.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -12,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 const HI = await import('../src/historia.js');
 const EV = await import('../src/eventos-valle.js');
 const DI = await import('../src/diario.js');
+const ME = await import('../src/meteo.js');
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -58,6 +61,20 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   const t2 = d.cerrar(4, 'otono', r).texto;
   ok(t2.includes('Planté un coihue') && t2.includes('Escuché dos historias: a y b.') && t2.includes('Terminé el encargo: x.'), 'lo de siempre igual');
   ok(leer('src/main.js').includes('nota(`Un rayo partió ${unArbol(especie)} ${rumboDesde(js.pos, a)}`'), 'la nota del rayo también');
+}
+
+// ---------------------------------------------------------------- 3. el pronóstico que se cumple
+{
+  // un día de buen tiempo en la semilla, con la noche forzada a lluvia y viento fuerte
+  let semilla = 1, dia = 5;
+  while (ME.pronosticoDia(semilla, dia, { modo: 'despejado' }) && ME.caracterDelDia(semilla, dia) !== 'bueno') semilla++;
+  const forzado = (k) => (k * 3 >= dia * 24 + 18 ? 'lluvia' : ME.tipoEnTramo(semilla, k));
+  const sin = ME.pronosticoDia(semilla, dia, {});
+  const con = ME.pronosticoDia(semilla, dia, { tipo: forzado, viento: (k) => (forzado(k) === 'lluvia' ? 0.42 : ME.vientoEnTramo(semilla, k)) });
+  ok(!sin.lluvia && con.lluvia && con.tormenta && con.viento === 'fuerte' && /a la noche/.test(con.texto), `con el programa, la noche del temporal se anuncia (${sin.texto} → ${con.texto})`);
+  eq(ME.pronostico(semilla, dia, 12, { tipo: forzado })[0].lluvia, true, 'y el pronóstico de varios días lo pasa');
+  const main = leer('src/main.js');
+  ok(main.includes('tipo: programaTramos.tipo, viento: programaTramos.viento });') && main.includes("fijo = () => ajustes.clima === 'despejado';"), 'main.js anuncia con el programa, y en despejado no fuerza');
 }
 
 console.log(`verificar-3-8-7-progreso: ${pasos} comprobaciones OK`);

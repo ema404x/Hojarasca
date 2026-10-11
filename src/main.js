@@ -6732,9 +6732,11 @@ function programaDelTiempo() {
   // 3.7.5: el día de la gran nevada nieva (si el clima no está fijo en despejado: ver clima.js)
   // 3.8.6: y la noche del temporal del capítulo 8 llueve con viento fuerte (decisión del usuario: antes la tarjeta decía
   // «esta noche sopla fuerte» y el tiempo seguía como venía)
-  const tipo = p.tipo, viento = p.viento;
-  p.tipo = (k) => (temporalDeLaHistoria(k) ? 'lluvia' : null) || (!desafio && fiestasJuego?.climaForzado(k)) || tipo(k);
-  p.viento = (k) => (temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));
+  // 3.8.7: con el clima fijo en «despejado» no se fuerza nada (el clima no lo sigue; el programa decía lluvia igual y la
+  // crecida, el tendal y la estación la contaban)
+  const tipo = p.tipo, viento = p.viento, fijo = () => ajustes.clima === 'despejado';
+  p.tipo = (k) => (fijo() ? null : (temporalDeLaHistoria(k) ? 'lluvia' : null) || (!desafio && fiestasJuego?.climaForzado(k))) || tipo(k);
+  p.viento = (k) => (!fijo() && temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));
   return p;
 }
 // 3.8.6: ¿el tramo `k` es de la noche del temporal de la historia? Del día en que llegó la tarjeta (el momento del
@@ -6752,7 +6754,9 @@ const fuerzaMolino = () => fuerzaDelAgua({ invierno: U.uInvierno.value, crecida:
 const molinosTerminados = () => obrasTerminadas('molino-agua').map((o) => o.datos);
 const cercaDeObra = (o, r = 60) => Math.hypot(o.datos.x - jugador.estado.pos.x, o.datos.z - jugador.estado.pos.z) < r;
 function pronosticoActual() {
-  return pronosticoMeteo(meteoPartida().semilla, progreso.dia, progreso.horas, { modo: ajustes.clima, estacion: ajustes.estacion });
+  // 3.8.7: con el programa que sigue el clima (la noche del temporal y la gran nevada también se anuncian y se cumplen)
+  programaTramos ||= programaDelTiempo();
+  return pronosticoMeteo(meteoPartida().semilla, progreso.dia, progreso.horas, { modo: ajustes.clima, estacion: ajustes.estacion, tipo: programaTramos.tipo, viento: programaTramos.viento });
 }
 function nochesActuales() {
   return desafio && progreso.desafio ? nochesQueVienen(progreso.desafio, meteoPartida(), progreso.dia, progreso.horas) : [];
