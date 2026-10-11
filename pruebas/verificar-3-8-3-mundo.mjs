@@ -149,8 +149,8 @@ ${cuerpo('devolverContenido')}`;
     const progreso = { cosas: {}, entradas: {} };
     const sumarEntrada = (k, n) => { const e = progreso.entradas[k] || (progreso.entradas[k] = { cantidad: 0 }); e.cantidad += n; };
     const nada = () => {};
-    new Function('d', 'progreso', 'sumarEntrada', 'sumarMaterial', 'refrescarBarra', 'sanearLenera', 'sanearAserradero', 'sanearMuela', 'sanearColmena', 'sanearAhumadero', 'sanearCoccion', 'pideCon', 'RECETA_PASOS', 'DEL_ALMACEN', src)(
-      { coccion }, progreso, sumarEntrada, nada, nada, nada, nada, nada, nada, nada, CP.sanearCoccion, CP.pideCon, CP.RECETA_PASOS, CP.DEL_ALMACEN);
+    new Function('d', 'progreso', 'sumarEntrada', 'sumarMaterial', 'refrescarBarra', 'sanearLenera', 'sanearAserradero', 'sanearMuela', 'sanearColmena', 'sanearAhumadero', 'sanearCoccion', 'pideCon', 'RECETA_PASOS', 'DEL_ALMACEN', 'contenidoFortin', src)(
+      { coccion }, progreso, sumarEntrada, nada, nada, nada, nada, nada, nada, nada, CP.sanearCoccion, CP.pideCon, CP.RECETA_PASOS, CP.DEL_ALMACEN, () => ({ tronco: 0, piedra: 0 }));   // (3.8.7: lo del fortín)
     return progreso;
   };
   const asado = Object.keys(CP.RECETA_PASOS).find((id) => CP.RECETA_PASOS[id].pide.some((x) => x.k === 'chorizo'));

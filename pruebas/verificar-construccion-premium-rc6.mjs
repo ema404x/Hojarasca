@@ -48,7 +48,7 @@ code += `\n;globalThis.__BUILD_AUDIT=(()=>{\n
  const veg={arboles:[],despejar(){}}; const scene=new THREE.Scene();
  const sistema=C.crearConstruccion(T,scene,col,veg); const materiales={tronco:999,tabla:999,piedra:999,cristal:999,lana:999}; const hechas=[];
  let x=0;
- for(const p of planos.filter(p=>!p.requierePlataforma && !p.sobreAgua)){
+ for(const p of planos.filter(p=>!p.requierePlataforma && !p.sobreAgua && !p.soloMejora)){   // (3.8.7: lo reforzado no se funda: sale de reforzar)
    sistema.elegir(p); sistema.moverFantasma(x,0,0.13); const rot0=sistema.rotacion; sistema.girar(1); const rot1=sistema.rotacion;
    const f=sistema.fundar(x,0,0.13); if(!f.ok) throw Error('no se pudo fundar '+p.id+': '+f.motivo);
    const o=sistema.obraCerca({x,z:0},4,p.id); if(!o) throw Error('obra no encontrada '+p.id);

@@ -130,7 +130,8 @@ const trozo = (desde, hasta) => {
   const ctx = {
     progreso, ...Conservas, ...Vivero, ...Gallinero, ...Huerta,
     sumarEntrada: (id, n) => { entradas[id] = { cantidad: (entradas[id]?.cantidad || 0) + n }; },
-    sumarMaterial() {}, refrescarBarra() {}, huerta: () => progreso.huerta, gallineros: () => progreso.gallineros,
+    sumarMaterial() {}, refrescarBarra() {}, contenidoFortin: () => ({ tronco: 0, piedra: 0 }), huerta: () => progreso.huerta,   // (3.8.7: lo del fortín)
+    gallineros: () => progreso.gallineros,
     sanearLenera: (x) => x, sanearAserradero: (x) => x, sanearMuela: (x) => x, sanearColmena: (x) => x, sanearAhumadero: (x) => x,
   };
   vm.createContext(ctx);
