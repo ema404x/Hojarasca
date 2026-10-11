@@ -155,8 +155,9 @@ export function vidaNueva(dia = 1) {
 const NOMBRE_LUGAR = /^[a-z0-9-]{1,24}$/;
 function sanearVisitante(v, tope) {
   if (!objeto(v) || !VISITANTES.some((x) => x.id === v.id) || typeof v.lugar !== 'string' || !Object.hasOwn(LUGARES_VISITA, v.lugar)) return null;
-  // (3.8.6: el que despediste y volvía a la estación ya se fue)
-  if (v.estado === 'vuelve') return null;
+  // (3.8.6: el que despediste y volvía a la estación ya se fue; 3.8.7: y el que ya llevaste: al recargar aparecía otra vez en el
+  // andén dándote las gracias por el lugar, como recién llegado)
+  if (v.estado === 'vuelve' || v.estado === 'llego') return null;
   const estado = ['anden', 'guiando', 'llego'].includes(v.estado) ? v.estado : 'anden';
   return { id: v.id, lugar: v.lugar, dia: Math.min(tope, diaValido(v.dia, 1)), estado };
 }
@@ -256,6 +257,8 @@ export const visitanteDef = (id) => VISITANTES.find((v) => v.id === id) || null;
 export function visitanteDelDia(vida, dia, { ritmo = 'normal', lugares = Object.keys(LUGARES_VISITA), semilla = 0 } = {}) {
   if (!objeto(vida)) return null;
   const d = diaValido(dia, 1);
+  // (3.8.7: el que ya llevaste ayer y se quedó mirando el lugar con vos al lado no tapa al de hoy: se va)
+  if (objeto(vida.visitante) && vida.visitante.estado === 'llego' && diaValido(vida.visitante.dia, 1) < d) vida.visitante = null;
   if (vida.visitante || vida.visitantesDia >= d) return null;
   vida.visitantesDia = d;
   const posibles = (Array.isArray(lugares) ? lugares : []).filter((k) => Object.hasOwn(LUGARES_VISITA, k));
@@ -284,7 +287,7 @@ export function textosVisitante(v) {
     yendo: `Te sigo. ${mayus(l.nombre)}, ¿falta mucho?`,
     // 3.8.6: «Hasta acá» (Escape mientras te sigue): se despide y se vuelve a la estación
     seguirGuia: 'E: seguimos · Escape: hasta acá',
-    chau: `Bueno, hasta acá llego. Me vuelvo a la estación despacito, mirando todo: ya vi más de lo que esperaba. Gracias por la compañía. ${def.despedida}`,
+    chau: `Bueno, hasta acá llego. Me vuelvo a la estación despacito, mirando todo: ya vi más de lo que esperaba. ${def.despedida}`,   // (3.8.7: sin «Gracias por la compañía»: cada despedida ya agradece y salía dos veces)
     gracias: [`¡Llegamos! ${mayus(l.nombre)}… es más lindo que en la postal.`, `Muchas gracias. Lo anoto en mi libreta: «Me trajo un vecino del valle». ${def.despedida}`],
   };
 }
