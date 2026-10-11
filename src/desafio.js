@@ -1658,7 +1658,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (!o) return { ok: false, motivo: 'no hay nada dañado cerca' };
       const { vida, max } = vidaDe(o);
       const c = costoReparacion(o.plano, vida, max);
-      if (ctx.cuanto(c.material) < c.cantidad) return { ok: false, motivo: `faltan ${c.cantidad} ${c.material === 'piedra' ? 'piedras' : 'troncos'}`, costo: c };
+      // 3.8.7: con el nombre de cada material (la red dorada se repara con semillas doradas), y de a uno en singular
+      if (ctx.cuanto(c.material) < c.cantidad) return { ok: false, motivo: `${c.cantidad === 1 ? 'falta' : 'faltan'} ${c.cantidad} ${(c.cantidad === 1 ? NOMBRE_UNO[c.material] : NOMBRE[c.material]) || c.material}`, costo: c };
       return { ok: true, obra: o, costo: c };
     }
     if (r.reforzar) {

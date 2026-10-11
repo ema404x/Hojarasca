@@ -11,6 +11,13 @@
 // 5. Desarmar una pieza del fortín devuelve lo cargado; los abrojos no se reparan; el cimiento sigue al giro.
 // 6. Máquinas: «Echaste una haba», la radio sin «Estática: «Estática…»» y el pronóstico con la nevada y el temporal.
 // 7. El acopio: una marca sin hacer no retiene lo guardado, y al cargar sin acopio armado lo guardado vuelve.
+// 8. La escalera del adarve y el tablero bajado del puente levadizo tienen huella (huellasExtra): sin paredes encima.
+// 9. Los portones (y las puertas de tus obras) guardan si están abiertos, también al reforzarlos y al cargar.
+// 10. La red dorada se repara con semillas doradas, nunca por más de lo que costó.
+// 11. El cuadro del nombre de una obra que se deshizo se cierra sin guardar.
+// 12. Teñir no alcanza a través de un entrepiso.
+// 13. La granja y el aviso se rehacen en el momento cuando cambian las obras (el aviso del chiquero desmontado).
+// 14. El viento devuelve con la misma regla que desarmar (recuperaDeObra; decisión del usuario).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -204,6 +211,130 @@ function mundo(extraT = {}, veg = { arboles: [], despejar() {} }) {
   ctx.obras.obras = [{ plano: { funciones: ['acopio'], etapas: [{}] }, datos: { etapas: 0 } }];
   eq(ctx.f(), '3 troncos', 'una marca de acopio sin hacer no retiene lo guardado');
   ok(main.includes("else { const v = vaciarUltimoAcopio(); if (v) setTimeout(() => nota('Lo del acopio volvió a tus cosas'"), 'y al cargar sin acopio armado, vuelve');
+}
+
+// ---------------------------------------------------------------- 8. la escalera del adarve y el tablero del puente
+{
+  const { terminar } = mundo();
+  ok(terminar('adarve', 0, 0).ok, 'un adarve');
+  const encima = terminar('empalizada', 0, -2.2);
+  ok(!encima.ok && /superpone/.test(encima.motivo), 'no se arma una pared sobre su escalera');
+  ok(terminar('empalizada', 0, -5).ok, 'más allá, sí');
+  ok(terminar('puente-levadizo', 30, 0).ok, 'un puente levadizo');
+  ok(terminar('foso-estacas', 30, 2.2).ok, 'el foso, bajo el tablero: el puente se tiende sobre el foso');
+  const pared = terminar('muro-piedra', 30, 3.5);
+  ok(!pared.ok && /superpone/.test(pared.motivo), 'una pirca donde cae el tablero, no');
+  ok(terminar('muro-piedra', 60, 0).ok, 'una pirca');
+  const puente = terminar('puente-levadizo', 60, -3);
+  ok(!puente.ok && /superpone/.test(puente.motivo), 'ni un puente cuyo tablero cae sobre la pirca');
+  ok(terminar('casilla', 90, 0).ok && !terminar('adarve', 90, 4.4).ok && terminar('adarve', 90, 7.2).ok, 'ni un adarve con la escalera metida en tu casilla');
+}
+
+// ---------------------------------------------------------------- 9. los portones guardan si están abiertos
+{
+  const M2 = cargar(['construccion.js', 'colisiones.js', 'puertas.js']);
+  const col = M2.colisiones.crearColisiones(), escena = new M2.THREE.Scene();
+  const T = { altura: () => 0, agua: () => false, normal: () => new M2.THREE.Vector3(0, 1, 0), indice: () => 0, distRiel: [999], distSendero: [999], lugares: {} };
+  const puertas = M2.puertas.crearPuertas(T, escena, col, null);
+  const s = M2.construccion.crearConstruccion(T, escena, col, { arboles: [], despejar() {} }, puertas);
+  s.elegir(M2.construccion.PLANO['porton-empalizada']);
+  const f = s.fundar(0, 0, 0);
+  s.avanzar(f.obra, { tronco: 99, tabla: 99, piedra: 99, cristal: 99 });
+  const p = () => puertas.lista.find((q) => q.duenio === f.obra);
+  ok(p() && p().objetivo === 0, 'el portón nace cerrado');
+  puertas.accionar(p());
+  ok(f.obra.datos.abierto === true, 'abierto, queda anotado en la obra');
+  ok(s.reemplazarPlano(f.obra, 'porton-reforzado') && p().objetivo === 1 && p().abierta === 1, 'reforzarlo no lo cierra');
+  const d = JSON.parse(JSON.stringify(f.obra.datos));
+  s.destruir(f.obra);
+  ok(!p(), 'derribado, se va su hoja');
+  s.sincronizar([d]);
+  const o2 = s.obras.find((o) => o.plano.id === 'porton-reforzado');
+  ok(o2 && puertas.lista.find((q) => q.duenio === o2)?.abierta === 1, 'al cargar, sigue abierto');
+  puertas.accionar(puertas.lista.find((q) => q.duenio === o2));
+  ok(!('abierto' in o2.datos), 'cerrado, no se anota nada');
+  ok(s.portonAbierto(o2) === false || puertas.lista.find((q) => q.duenio === o2).objetivo === 0, 'y cuenta como cerrado');
+}
+
+// ---------------------------------------------------------------- 10. la red dorada se repara con semillas doradas
+{
+  const DR = await import('../src/desafio-reglas.js');
+  const red = C.PLANO['red-cristal'];
+  eq(red.reparaCon, 'cristal');
+  eq(DR.costoReparacion(red, 0, 140), { material: 'cristal', cantidad: 2 }, 'rota del todo: lo que costó, nunca más');
+  eq(DR.costoReparacion(red, 120, 140), { material: 'cristal', cantidad: 1 }, 'gastada un poco: una semilla');
+  eq(DR.costoReparacion(C.PLANO.empalizada, 10, 100).material, 'tronco', 'lo demás, como siempre');
+  ok(leer('src/desafio.js').includes("${(c.cantidad === 1 ? NOMBRE_UNO[c.material] : NOMBRE[c.material]) || c.material}"), 'y el aviso dice «semillas doradas»');
+}
+
+// ---------------------------------------------------------------- 11. el cuadro del nombre de una obra que se deshizo
+{
+  const { crearColaDialogos } = await import('../src/dialogo.js');
+  const vistas = [];
+  const cola = crearColaDialogos({ mostrar: (d) => vistas.push(d.texto), ocultar() {}, valor: () => 'La Querencia' });
+  let terminada = true;
+  const otra = cola.confirmar('¿Algo antes?');
+  const nombre = cola.pedirTexto('¿Cómo le vas a poner?', 'Casilla', { vigente: () => terminada });
+  terminada = false;   // (deshecha mientras esperaba detrás de otra pregunta)
+  cola.aceptar();
+  ok(await otra === true && await nombre === null && vistas.length === 1, 'esperando, se cierra sola sin mostrarse');
+  terminada = true;
+  const n2 = cola.pedirTexto('¿Cómo le vas a poner?', 'Casilla', { vigente: () => terminada });
+  ok(cola.abierto() && cola.revisar() === false, 'abierta y vigente, sigue');
+  terminada = false;
+  ok(cola.revisar() === true && await n2 === null && !cola.abierto(), 'abierta y deshecha, se cierra sin guardar');
+  const main = leer('src/main.js');
+  ok(main.includes("{ max: 28, vigente });\n  if (puesto === null || !vigente()) return;"), 'pedirNombre lo usa');
+  ok(main.includes('dialogos.revisar?.();   // 3.8.7'), 'y deshacer una etapa lo revisa');
+}
+
+// ---------------------------------------------------------------- 12. teñir, no a través de un entrepiso
+{
+  const { s, terminar } = mundo();
+  terminar('piso-modular', 0, 0);
+  const pared = terminar('pared-modular', 0, -1.42, 0, 0.285);
+  for (const [x, z, r] of [[0, 1.42, 0], [1.42, 0, Math.PI / 2], [-1.42, 0, Math.PI / 2]]) terminar('pared-modular', x, z, r, 0.285);
+  const entre = terminar('entrepiso-modular', 0, 0, 0, 0.285);
+  ok(pared.ok && entre.ok, 'una planta baja con entrepiso');
+  const abajo = s.tenibleCerca({ x: 0, y: 0.285, z: -0.6 }, 4);
+  ok(abajo && abajo !== entre.o, 'desde abajo se tiñe la pared de abajo');
+  const arriba = s.tenibleCerca({ x: 0, y: entre.o.datos.y + 0.285, z: -0.6 }, 4);
+  ok(arriba !== pared.o && !(arriba && arriba.datos.y < entre.o.datos.y - 0.5), `desde el entrepiso, no la de abajo (${arriba?.plano.id})`);
+}
+
+// ---------------------------------------------------------------- 13. la granja se rehace al cambiar sus obras
+{
+  const g = leer('src/granja-juego.js');
+  ok(g.includes('const vigente = () => (cache && cache.firma === firmaGranja() ? cache : refrescar());'), 'la granja mira la firma de sus obras');
+  ok(!/cache \|\| refrescar\(\)/.test(g), 'y no usa lo de hace medio segundo');
+  ok(g.includes("if (reloj <= 0 || !cache || cache.firma !== firmaGranja())"), 'también en el cuadro');
+  // y el aviso de main.js (que se recalcula cada tanto) se rehace en cuanto cambia una obra
+  const { s, terminar } = mundo();
+  const v0 = s.version, c = terminar('cantero', 0, 0);
+  ok(s.version > v0, 'armar sube la versión de las obras');
+  const v1 = s.version; s.desmontarCerca({ x: 0, y: 0, z: 0 }, 2);
+  ok(s.version > v1, 'desmontar también');
+  ok(leer('src/main.js').includes('const cambioObras = !!obras && obras.version !== versionObrasInteraccion;'), 'main.js rehace el aviso al cambiar las obras');
+}
+
+// ---------------------------------------------------------------- 14. el viento devuelve como desarmar (decisión del usuario)
+{
+  const { s, terminar } = mundo();
+  const seto = terminar('seto', 0, 0);
+  const plano = (x) => JSON.parse(JSON.stringify(x));   // (lo de la vm tiene otro Object)
+  eq(plano(s.recuperaDeObra(seto.o)), Object.fromEntries(Object.entries(C.PLANO.seto.etapas[0].pide).filter(([, n]) => n > 1).map(([k, n]) => [k, Math.floor(n / 2)])), 'lo que costaba 1 no vuelve');
+  const { crearEventosValleUi } = await import('../src/eventos-valle-ui.js');
+  const tendal = terminar('tendal', 20, 0);
+  const lista = [tendal.o], sumado = {};
+  const ui = crearEventosValleUi({
+    progreso: () => ({ dia: 3, horas: 10, materiales: {}, cosas: {}, eventosValle: null }), extra: () => ({}),
+    obras: () => ({ obras: lista, bajoCubierta: () => null, destruir: (o) => [o], recuperaDeObra: s.recuperaDeObra }),
+    sumarMaterial: (k, n) => { sumado[k] = (sumado[k] || 0) + n; }, sincronizarObras: () => {}, devolverContenido: () => null,
+  }, { mostrar() {}, cerrar() {}, abierta: () => false });
+  ok(ui.voltear()?.nombre, 'el viento voltea el tendal');
+  eq(sumado, plano(s.recuperaDeObra(tendal.o)), 'y devuelve lo mismo que desarmarlo');
+  ok(Object.keys(sumado).length > 0, `(el tendal devuelve algo: ${JSON.stringify(sumado)})`);
+  ok(leer('src/eventos-valle-ui.js').includes('for (const c of caidas) obras.recuperaDeObra(c, recupera);'), 'con la misma función');
 }
 
 console.log(`verificar-3-8-7-obras: ${pasos} comprobaciones OK`);

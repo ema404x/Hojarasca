@@ -326,6 +326,12 @@ export function costoReparacion(plano, vida, vidaMax) {
   const cantidad = Math.max(1, Math.ceil(falta / 0.3));
   let piedra = 0, madera = 0;
   for (const e of plano.etapas || []) { piedra += e.pide?.piedra || 0; madera += (e.pide?.tronco || 0) + (e.pide?.tabla || 0); }
+  // 3.8.7: lo que se paga con un material propio (la red dorada, con semillas doradas) se repara con ése, y nunca por más
+  // de lo que costó (con tronco salía casi gratis una red de semillas)
+  if (plano.reparaCon) {
+    const total = (plano.etapas || []).reduce((s, e) => s + (e.pide?.[plano.reparaCon] || 0), 0);
+    if (total > 0) return { material: plano.reparaCon, cantidad: Math.min(cantidad, total) };
+  }
   return { material: piedra > madera ? 'piedra' : 'tronco', cantidad };
 }
 

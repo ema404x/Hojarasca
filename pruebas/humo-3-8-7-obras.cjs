@@ -6,7 +6,8 @@
 //   4. un cantero llevado al pie de un árbol lo despeja;
 //   5. las obras que se usan con E y no miraba humo-3-0-1-obras se alcanzan caminando;
 //   6. guardar y cargar con la muela a medias;
-//   7. Desafío: lo reforzado no se funda (X repite la de antes), la rampa cargada devuelve sus troncos al desarmarla
+//   6b. el aviso del chiquero se va en el momento al desmontarlo;
+//   7. Desafío: el portón abierto sigue abierto al reforzarlo y al cargar; lo reforzado no se funda (X repite la de antes), la rampa cargada devuelve sus troncos al desarmarla
 //      con Shift+Supr, y la catapulta que se mueve no tira.
 // Uso: HOJ_PERFIL=<carpeta> npx electron --no-sandbox -r ./herramientas/perfil-propio.cjs pruebas/humo-3-8-7-obras.cjs
 const { app, BrowserWindow } = require('electron');
@@ -268,6 +269,15 @@ app.whenReady().then(async () => {
     const noAlcanzan = usos.filter((u) => u.error || u.bien < 1);
     ok(!noAlcanzan.length, `${usos.length} obras más que se usan con E se alcanzan caminando (sin alcance: ${JSON.stringify(noAlcanzan.map((u) => u.id))})`);
 
+    seccion('relax: el aviso del chiquero se va al desmontarlo');
+    const chi = await A(`
+      A.limpiar(); const o = A.poner('chiquero'); A.sinObjetos(true);
+      A.ponerLocal(o, 1.05, 2.1); H.jugador.estado.yaw = 0; const antes = A.avisoAbajo();
+      O.desmontarCerca({ x: o.datos.x, y: o.datos.y, z: o.datos.z }, 4); H.progreso.obras = O.obras.map((x) => x.datos);
+      const despues = A.avisoAbajo(); A.sinObjetos(false);
+      return { antes, despues };`);
+    ok(/Chiquero|Batea|batea/.test(chi.antes) && !/Chiquero|batea/i.test(chi.despues), `el aviso de la batea desaparece en el momento (${JSON.stringify(chi)})`);
+
     seccion('relax: guardar y cargar con la muela moliendo');
     const g1 = await A(`
       A.limpiar(); const m = A.poner('molino-agua'); H.__maquinas.revisar();
@@ -322,6 +332,22 @@ app.whenReady().then(async () => {
       O.cancelarEdicion(); O.elegir(null);
       return r;`);
     ok(cat.agarrada && cat.antes === cat.despues, `mientras se mueve, la catapulta no gasta piedras tirando desde el lugar viejo (${JSON.stringify(cat)})`);
+
+    seccion('desafío: el portón abierto sigue abierto al reforzarlo y al cargar');
+    const por = await A(`
+      A.limpiar(); const o = A.poner('porton-empalizada');
+      A.ponerLocal(o, 0, -1.2); A.pulsarE();
+      const p = () => (H.puertas?.lista || []).find((q) => q.duenio === O.obras.find((x) => x.plano.porton));
+      const abierto = p()?.objetivo === 1 && o.datos.abierto === true;
+      O.reemplazarPlano(o, 'porton-reforzado'); A.correr();
+      const reforzado = p()?.objetivo === 1;
+      H.progreso.obras = O.obras.map((x) => x.datos); H.guardar();
+      return { abierto, reforzado };`);
+    await abrir();
+    for (let i = 0; i < 300; i++) { await esperar(1000); if (await js(`!!(${H} && ${H}.jugador && ${H}.obras)`).catch(() => false)) break; }
+    await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2500); await js(PAGINA);
+    const por2 = await A(`const o = O.obras.find((x) => x.plano.id === 'porton-reforzado'); const q = o && (H.puertas?.lista || []).find((p) => p.duenio === o); return o ? { abierta: q?.abierta, objetivo: q?.objetivo } : null;`);
+    ok(por.abierto && por.reforzado && por2?.abierta === 1 && por2?.objetivo === 1, `abierto con E, reforzado y cargado, sigue abierto (${JSON.stringify([por, por2])})`);
   } catch (e) {
     errores.push(`${donde}: ${e.message}`);
   } finally {

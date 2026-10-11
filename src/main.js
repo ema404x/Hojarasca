@@ -3041,6 +3041,7 @@ document.addEventListener('keydown', (e) => {
       if (modoObra && obras) {
         const r = obras.deshacerEtapa(js.pos, 6);
         if (!r.ok) { nota('Nada que deshacer', r.motivo); break; }
+        dialogos.revisar?.();   // 3.8.7: el cuadro del nombre de esta obra, si estaba abierto o esperando, se cierra
         for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
         progreso.obras = obras.obras.map((o) => o.datos);
         guardar(); sonido.juntar(); refrescarBarra(true);
@@ -5969,8 +5970,11 @@ function dibujarPanelObra() {
 // 3.5.1: antes era window.prompt, que Electron no tiene: tiraba "prompt() is not supported" y la
 // obra se quedaba sin nombre. Ahora es un cuadro del juego (dialogo.js).
 async function pedirNombre(obra) {
-  const puesto = await dialogos.pedirTexto('¿Cómo le vas a poner?', obra.datos.nombre || obra.plano.nombre, { max: 28 });
-  if (puesto === null || reiniciandoPartida || !obras.obras.includes(obra)) return;
+  // 3.8.7: si la obra se deshace (o se pierde) antes de nombrarla, el cuadro se cierra sin guardar: el nombre quedaba en una
+  // obra a medias y salía en el mapa
+  const vigente = () => !reiniciandoPartida && obras.obras.includes(obra) && obra.datos.etapas >= obra.plano.etapas.length;
+  const puesto = await dialogos.pedirTexto('¿Cómo le vas a poner?', obra.datos.nombre || obra.plano.nombre, { max: 28, vigente });
+  if (puesto === null || !vigente()) return;
   const nombre = puesto.trim().slice(0, 28);
   obra.datos.nombre = nombre || obra.plano.nombre;
   // 3.8.6: ya no se anota en T.lugares: el mapa la dibuja desde la obra (salía dos veces, y si la deshacías el nombre
@@ -8492,7 +8496,7 @@ let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
-let cacheGranja = null;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
+let cacheGranja = null, versionObrasInteraccion = -1;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
 const sujetosPerro = [];
@@ -9249,7 +9253,10 @@ function cuadroDelJuego(tRaf, manual) {
     }
     acumuladoBuscar += dt;
     acumuladoInteraccion += dt;
-    const movioInteraccion = Math.hypot(js.pos.x - posInteraccion.x, js.pos.z - posInteraccion.z) > 0.4 || Math.abs(js.pos.y - posInteraccion.y) > 0.35;
+    // 3.8.7: o si cambió alguna obra (desmontada, movida, deshecha, volteada): el aviso y la E van juntos en el momento
+    const cambioObras = !!obras && obras.version !== versionObrasInteraccion;
+    if (cambioObras) versionObrasInteraccion = obras.version;
+    const movioInteraccion = cambioObras || Math.hypot(js.pos.x - posInteraccion.x, js.pos.z - posInteraccion.z) > 0.4 || Math.abs(js.pos.y - posInteraccion.y) > 0.35;
     if ((acumuladoInteraccion >= 0.10 && acumuladoInteraccion >= presupuestoAdaptativo.intervalo(0.10, 1.45)) || movioInteraccion) {
       acumuladoInteraccion = 0; posInteraccion.copy(js.pos);
       cacheFuegoPropio = !clima.fogata.activa ? fogonPropioCerca() : null;
