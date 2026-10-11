@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { U } from './materiales.js';
 import { clamp, lerp, smoothstep } from './ruido.js';
 import { registrarLuz } from './luces.js';
+import { MAX_FOGATAS, lugarParaFogata, masCercano, fuegoEn } from './fogatas.js';
 
 function puntosMaterial({ color, tam, aditivo = false, forma = 'redonda', opacidad = 1 }) {
   return new THREE.ShaderMaterial({
@@ -102,40 +103,78 @@ export function crearClima(escena, T, ajustes) {
   const humoVida = new Float32Array(NH).map(() => Math.random());
 
   // fogata
-  const NF = 70;
-  const fuego = crearNube(NF, puntosMaterial({ color: '#ffaa33', tam: 0.55, aditivo: true, forma: 'fuego', opacidad: 0.55 }), 0, 0);
-  const humoFuego = crearNube(30, puntosMaterial({ color: '#9a9690', tam: 5, forma: 'humo', opacidad: 0.45 }), 0, 0);
-  const vidaFuego = new Float32Array(NF).map(() => Math.random());
-  const vidaHumoF = new Float32Array(30).map(() => Math.random());
-  const luzFuego = new THREE.PointLight(0xff8a3a, 0, 22, 1.5);
-  escena.add(luzFuego);
-  registrarLuz(luzFuego);   // 2.7.4: ver luces.js
-  const lenia = new THREE.Group();
+  // 3.8.7: hasta cuatro fuegos a la vez (ver fogatas.js), cada uno con sus llamas, su humo, su luz y su leña; los materiales
+  // son los mismos para los cuatro (un solo programa de shader) y las luces van al presupuesto fijo (luces.js): un fuego
+  // apagado tiene la luz en 0 y no cuenta, así que prender otro no compila nada a mitad del juego
+  const NF = 70, NHF = 30;
+  const matFuego = puntosMaterial({ color: '#ffaa33', tam: 0.55, aditivo: true, forma: 'fuego', opacidad: 0.55 });
+  const matHumoFuego = puntosMaterial({ color: '#9a9690', tam: 5, forma: 'humo', opacidad: 0.45 });
   const matLenia = new THREE.MeshLambertMaterial({ color: '#4a3524' });
-  const brasas = new THREE.MeshBasicMaterial({ color: '#ff6a1a' });
-  for (let i = 0; i < 4; i++) {
-    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.9, 6), matLenia);
-    t.rotation.set(Math.PI / 2 - 0.5, (i / 4) * Math.PI * 2, 0, 'YXZ');
-    t.position.set(Math.sin((i / 4) * Math.PI * 2) * 0.2, 0.22, Math.cos((i / 4) * Math.PI * 2) * 0.2);
-    lenia.add(t);
+  const matPiedraFogon = new THREE.MeshLambertMaterial({ color: '#6b6761' });
+  const geoTronco = new THREE.CylinderGeometry(0.06, 0.07, 0.9, 6);
+  const geoPiedra = new THREE.IcosahedronGeometry(0.13, 0);
+  const geoBrasa = new THREE.CircleGeometry(0.28, 10);
+  function crearFogataMundo() {
+    const fuego = crearNube(NF, matFuego, 0, 0);
+    const humoFuego = crearNube(NHF, matHumoFuego, 0, 0);
+    const luzFuego = new THREE.PointLight(0xff8a3a, 0, 22, 1.5);
+    escena.add(luzFuego);
+    registrarLuz(luzFuego);   // 2.7.4: ver luces.js
+    const lenia = new THREE.Group();
+    const brasas = new THREE.MeshBasicMaterial({ color: '#ff6a1a' });
+    for (let i = 0; i < 4; i++) {
+      const t = new THREE.Mesh(geoTronco, matLenia);
+      t.rotation.set(Math.PI / 2 - 0.5, (i / 4) * Math.PI * 2, 0, 'YXZ');
+      t.position.set(Math.sin((i / 4) * Math.PI * 2) * 0.2, 0.22, Math.cos((i / 4) * Math.PI * 2) * 0.2);
+      lenia.add(t);
+    }
+    for (let i = 0; i < 8; i++) {
+      const p = new THREE.Mesh(geoPiedra, matPiedraFogon);
+      p.position.set(Math.cos(i * 0.785) * 0.55, 0.06, Math.sin(i * 0.785) * 0.55);
+      lenia.add(p);
+    }
+    const brasa = new THREE.Mesh(geoBrasa, brasas);
+    brasa.rotation.x = -Math.PI / 2; brasa.position.y = 0.04;
+    lenia.add(brasa);
+    lenia.visible = false;
+    escena.add(lenia);
+    return {
+      activa: false, pos: new THREE.Vector3(), vida: 0, contenida: false, duenio: null,
+      // lo que se ve (no se guarda)
+      fuego, humoFuego, luzFuego, lenia, brasas,
+      vidaFuego: new Float32Array(NF).map(() => Math.random()), vidaHumoF: new Float32Array(NHF).map(() => Math.random()),
+    };
   }
-  for (let i = 0; i < 8; i++) {
-    const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 0), new THREE.MeshLambertMaterial({ color: '#6b6761' }));
-    p.position.set(Math.cos(i * 0.785) * 0.55, 0.06, Math.sin(i * 0.785) * 0.55);
-    lenia.add(p);
-  }
-  const brasa = new THREE.Mesh(new THREE.CircleGeometry(0.28, 10), brasas);
-  brasa.rotation.x = -Math.PI / 2; brasa.position.y = 0.04;
-  lenia.add(brasa);
-  lenia.visible = false;
-  escena.add(lenia);
-  const fogata = { activa: false, pos: new THREE.Vector3(), vida: 0, contenida: false };
+  const fogatas = Array.from({ length: MAX_FOGATAS }, crearFogataMundo);
+  const camFogata = new THREE.Vector3();
+  // 3.8.7: `fogata` es el fuego más cercano (el que arde, si hay alguno): el calor, la luz, cocinar, la visita al fogón y
+  // dormir miran ése
+  const fogataCercana = () => { const i = masCercano(fogatas, camFogata.x, camFogata.z); return fogatas[i >= 0 ? i : 0]; };
 
+  function ocultarFogata(f) {
+    f.lenia.visible = false; f.fuego.visible = false; f.humoFuego.visible = false; f.luzFuego.intensity = 0;
+  }
+  // 3.8.7 (obras): sin la obra que lo tenía (desmontada, movida con Shift+Y, volteada, derribada) el fuego se apaga de golpe:
+  // antes seguía ardiendo en el aire donde estaba la estufa, alumbrando, calentando la casa y dejando cocinar. Cada fuego
+  // sabe de qué obra es (`duenio`). Sin argumento, el más cercano.
+  function apagarFogata(f = fogataCercana()) {
+    if (!f) return;
+    f.activa = false; f.vida = -60; f.duenio = null;
+    ocultarFogata(f);
+  }
+
+  // `opciones`: { contenida (estufa u hogar), duenio (la obra tuya donde arde, o null) }. Devuelve el fuego y si para
+  // prenderlo se apagó otro (estaban los cuatro).
   function encenderFogata(x, y, z, duracion = 420, opciones = {}) {
+    const lugar = lugarParaFogata(fogatas, x, z);
+    const fogata = fogatas[lugar.i];
+    if (lugar.reemplaza) ocultarFogata(fogata);
     fogata.activa = true; fogata.vida = duracion; fogata.contenida = !!opciones.contenida;
+    fogata.duenio = opciones.duenio || null;
     fogata.pos.set(x, y, z);
-    lenia.position.set(x, y, z); lenia.visible = !fogata.contenida;
-    fuego.visible = true; humoFuego.visible = !fogata.contenida;
+    fogata.lenia.position.set(x, y, z); fogata.lenia.visible = !fogata.contenida;
+    fogata.fuego.visible = true; fogata.humoFuego.visible = !fogata.contenida;
+    return { fogata, reemplaza: lugar.reemplaza };
   }
 
   // 2.9: el tiempo sale del programa de la partida (ver `meteo.js`) cuando main.js lo
@@ -332,50 +371,54 @@ export function crearClima(escena, T, ajustes) {
       if (humo.visible) { humo.geometry.attributes.position.needsUpdate = true; humo.geometry.attributes.aVida.needsUpdate = true; }
     }
 
-    // fogata
-    if (fogata.activa) {
-      fogata.vida -= dt;
-      const brillo = clamp(fogata.vida / 40, 0, 1);
-      if (fogata.vida <= -60) { fogata.activa = false; lenia.visible = false; fuego.visible = false; humoFuego.visible = false; }
-      luzFuego.position.set(fogata.pos.x, fogata.pos.y + 0.9, fogata.pos.z);
-      const factorContenido = fogata.contenida ? 0.72 : 1;
-      const factorLluvia = fogata.contenida ? 1 : (1 - estado.lluvia * 0.4);
-      luzFuego.intensity = (6 + Math.sin(tt * 13) * 1.2 + Math.sin(tt * 23.7) * 0.8) * brillo * factorContenido * factorLluvia;
-      brasas.color.setRGB(1, 0.35 + Math.sin(tt * 5) * 0.08, 0.1).multiplyScalar(0.3 + 0.7 * clamp((fogata.vida + 60) / 60, 0, 1));
-      const p = fuego.geometry.attributes.position.array, vida = fuego.geometry.attributes.aVida.array;
-      for (let i = 0; i < NF; i++) {
-        vidaFuego[i] += dt * (1.2 + (i % 5) * 0.2);
-        if (vidaFuego[i] > 1) vidaFuego[i] -= 1;
-        const v = vidaFuego[i], a = i * 2.39;
-        // una de cada seis salta: es una chispa, sube más alto y la lleva el viento
-        const chispa = i % 6 === 0;
-        const escalaFuego = fogata.contenida ? 0.34 : 1;
-        const abierto = (1 - v) * (chispa ? 0.5 + v * 0.9 : 0.28) * escalaFuego;
-        const sube = fogata.contenida ? 0.10 + v * 0.52 * brillo : (chispa ? 0.15 + v * 3.4 * brillo : 0.15 + v * 1.1 * brillo);
-        const deriva = fogata.contenida ? 0 : (chispa ? v * v * estado.viento * 2.2 : 0);
-        p[i * 3] = fogata.pos.x + Math.cos(a + tt * (chispa ? 2.2 : 1)) * abierto + deriva;
-        p[i * 3 + 1] = fogata.pos.y + sube;
-        p[i * 3 + 2] = fogata.pos.z + Math.sin(a + tt * (chispa ? 2.2 : 1)) * abierto;
-        // la chispa se apaga antes de llegar arriba
-        vida[i] = brillo > 0.02 ? (chispa ? Math.min(1, v * 1.35) : v) : 1;
+    // fogata (3.8.7: cada una de las cuatro)
+    if (cam) camFogata.set(cam.x, 0, cam.z);
+    for (const fogata of fogatas) {
+      const { fuego, humoFuego, luzFuego, lenia, brasas, vidaFuego, vidaHumoF } = fogata;
+      if (fogata.activa) {
+        fogata.vida -= dtTiempo;   // 3.8.7: en la pausa no se consume (el reloj del tiempo tampoco corre)
+        const brillo = clamp(fogata.vida / 40, 0, 1);
+        if (fogata.vida <= -60) { fogata.activa = false; fogata.duenio = null; lenia.visible = false; fuego.visible = false; humoFuego.visible = false; }
+        luzFuego.position.set(fogata.pos.x, fogata.pos.y + 0.9, fogata.pos.z);
+        const factorContenido = fogata.contenida ? 0.72 : 1;
+        const factorLluvia = fogata.contenida ? 1 : (1 - estado.lluvia * 0.4);
+        luzFuego.intensity = (6 + Math.sin(tt * 13) * 1.2 + Math.sin(tt * 23.7) * 0.8) * brillo * factorContenido * factorLluvia;
+        brasas.color.setRGB(1, 0.35 + Math.sin(tt * 5) * 0.08, 0.1).multiplyScalar(0.3 + 0.7 * clamp((fogata.vida + 60) / 60, 0, 1));
+        const p = fuego.geometry.attributes.position.array, vida = fuego.geometry.attributes.aVida.array;
+        for (let i = 0; i < NF; i++) {
+          vidaFuego[i] += dt * (1.2 + (i % 5) * 0.2);
+          if (vidaFuego[i] > 1) vidaFuego[i] -= 1;
+          const v = vidaFuego[i], a = i * 2.39;
+          // una de cada seis salta: es una chispa, sube más alto y la lleva el viento
+          const chispa = i % 6 === 0;
+          const escalaFuego = fogata.contenida ? 0.34 : 1;
+          const abierto = (1 - v) * (chispa ? 0.5 + v * 0.9 : 0.28) * escalaFuego;
+          const sube = fogata.contenida ? 0.10 + v * 0.52 * brillo : (chispa ? 0.15 + v * 3.4 * brillo : 0.15 + v * 1.1 * brillo);
+          const deriva = fogata.contenida ? 0 : (chispa ? v * v * estado.viento * 2.2 : 0);
+          p[i * 3] = fogata.pos.x + Math.cos(a + tt * (chispa ? 2.2 : 1)) * abierto + deriva;
+          p[i * 3 + 1] = fogata.pos.y + sube;
+          p[i * 3 + 2] = fogata.pos.z + Math.sin(a + tt * (chispa ? 2.2 : 1)) * abierto;
+          // la chispa se apaga antes de llegar arriba
+          vida[i] = brillo > 0.02 ? (chispa ? Math.min(1, v * 1.35) : v) : 1;
+        }
+        fuego.geometry.attributes.position.needsUpdate = true;
+        fuego.geometry.attributes.aVida.needsUpdate = true;
+        const ph = humoFuego.geometry.attributes.position.array, vh = humoFuego.geometry.attributes.aVida.array;
+        humoFuego.material.uniforms.uLuz.value.copy(luz).multiplyScalar(0.7).addScalar(0.1);
+        for (let i = 0; i < NHF; i++) {
+          vidaHumoF[i] += dt * 0.2;
+          if (vidaHumoF[i] > 1) vidaHumoF[i] -= 1;
+          const v = vidaHumoF[i];
+          ph[i * 3] = fogata.pos.x + v * 3 * estado.viento + Math.sin(v * 8 + i) * v;
+          ph[i * 3 + 1] = fogata.pos.y + 1 + v * 7;
+          ph[i * 3 + 2] = fogata.pos.z + Math.cos(v * 6 + i) * v;
+          vh[i] = v;
+        }
+        humoFuego.geometry.attributes.position.needsUpdate = true;
+        humoFuego.geometry.attributes.aVida.needsUpdate = true;
+      } else {
+        luzFuego.intensity = 0;
       }
-      fuego.geometry.attributes.position.needsUpdate = true;
-      fuego.geometry.attributes.aVida.needsUpdate = true;
-      const ph = humoFuego.geometry.attributes.position.array, vh = humoFuego.geometry.attributes.aVida.array;
-      humoFuego.material.uniforms.uLuz.value.copy(luz).multiplyScalar(0.7).addScalar(0.1);
-      for (let i = 0; i < 30; i++) {
-        vidaHumoF[i] += dt * 0.2;
-        if (vidaHumoF[i] > 1) vidaHumoF[i] -= 1;
-        const v = vidaHumoF[i];
-        ph[i * 3] = fogata.pos.x + v * 3 * estado.viento + Math.sin(v * 8 + i) * v;
-        ph[i * 3 + 1] = fogata.pos.y + 1 + v * 7;
-        ph[i * 3 + 2] = fogata.pos.z + Math.cos(v * 6 + i) * v;
-        vh[i] = v;
-      }
-      humoFuego.geometry.attributes.position.needsUpdate = true;
-      humoFuego.geometry.attributes.aVida.needsUpdate = true;
-    } else {
-      luzFuego.intensity = 0;
     }
   }
 
@@ -404,5 +447,10 @@ export function crearClima(escena, T, ajustes) {
     return Math.max(0, relampago.luz) * (1.1 - relampago.lejos * 0.55);
   }
 
-  return { estado, actualizar, actualizarTormenta, encenderFogata, fogata, usarPrograma };
+  return {
+    estado, actualizar, actualizarTormenta, encenderFogata, apagarFogata, usarPrograma,
+    // 3.8.7: los cuatro fuegos, el más cercano (compatible con lo de antes: `clima.fogata`) y el que arde en un lugar
+    fogatas, get fogata() { return fogataCercana(); },
+    fuegoEn: (x, z, r) => { const i = fuegoEn(fogatas, x, z, r); return i >= 0 ? fogatas[i] : null; },
+  };
 }

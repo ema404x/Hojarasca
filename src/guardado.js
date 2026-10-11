@@ -28,6 +28,7 @@ import { sanearDiarioHoy } from './diario.js';
 import { sanearAmarre } from './kayak-amarre.js';
 // 3.1: la historia guiada y los eventos del valle
 import { sanearHistoria } from './historia.js';
+import { sanearFogatas } from './fogatas.js';
 import { sanearEventosValle } from './eventos-valle.js';
 // 3.1: rangos y oficios
 import { sanearOficios, oficiosNuevos } from './oficios.js';
@@ -539,6 +540,7 @@ function sanearProgreso(p) {
     caballo: sanearCaballo(p.caballo, LIMITE),
     // 3.8.4: la página del diario de hoy (de otro día, ya se escribió), dónde quedó amarrado el kayak y lo soltado con V
     diarioHoy: sanearDiarioHoy(p.diarioHoy, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    fogatas: sanearFogatas(p.fogatas),   // 3.8.7: los fuegos prendidos (ver fogatas.js)
     kayakAmarre: sanearAmarre(p.kayakAmarre),
     // 3.8.6: el entumecido y el descansado, en horas de juego (una partida vieja no lo trae)
     cuerpo: objeto(p.cuerpo) ? { entumecido: Math.max(0, Math.min(12, finito(p.cuerpo.entumecido, 0))), descansado: Math.max(0, Math.min(12, finito(p.cuerpo.descansado, 0))) } : undefined,

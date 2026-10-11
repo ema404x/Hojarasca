@@ -13,6 +13,9 @@
 //    fiestas); «Largar de nuevo» esconde el fantasma de la vuelta anterior.
 // 6. La visita que trae un evento del valle (Nicanor ya camina, Ercilia vuelve de Esquel) cuenta como recibida al llegar
 //    (el capítulo 8 no la tomaba) y al irse no le quita el turno al que le tocaba.
+// 7. Los fuegos (decisiones del usuario): hasta cuatro prendidos a la vez, cada uno con su leña (prender otro apagaba el
+//    anterior); la siesta los consume según lo dormido (los apagaba enteros); se guardan; cada uno sabe de qué obra es y
+//    se apaga sin ella; el calor, la luz y cocinar miran el más cercano. La partida real: humo-3-8-7-progreso.cjs.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -23,6 +26,7 @@ const EV = await import('../src/eventos-valle.js');
 const DI = await import('../src/diario.js');
 const ME = await import('../src/meteo.js');
 const VI = await import('../src/visitas.js');
+const FO = await import('../src/fogatas.js');
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -121,6 +125,41 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   VI.terminarVisita(v, 10);
   eq([v.cuenta, VI.quienViene(v.cuenta)], [2, 'ema'], 'el turno sigue en el que le tocaba');
   ok(leer('src/eventos-valle-ui.js').includes('visitaFueraDeTurno(v, f.quien, p.dia);') && leer('src/main.js').includes('else if (llegoVisita(v)) guardar();'), 'el evento y la llegada la usan');
+}
+
+// ---------------------------------------------------------------- 7. los fuegos
+{
+  const f = (x, z, vida, activa = true) => ({ activa, pos: { x, y: 0, z }, vida });
+  const lista = [f(0, 0, 0, false), f(0, 0, 0, false), f(0, 0, 0, false), f(0, 0, 0, false)];
+  eq(FO.lugarParaFogata(lista, 5, 5), { i: 0, reemplaza: false }, 'el primero va al primer lugar libre');
+  lista[0] = f(5, 5, 300); lista[1] = f(20, 0, 100); lista[2] = f(40, 0, 500);
+  eq(FO.lugarParaFogata(lista, 5.5, 5), { i: 0, reemplaza: false }, 'en el mismo lugar se aviva el mismo');
+  eq(FO.lugarParaFogata(lista, 60, 0), { i: 3, reemplaza: false }, 'otro lugar: otro fuego, sin apagar ninguno');
+  lista[3] = f(60, 0, 200);
+  eq(FO.lugarParaFogata(lista, 80, 0), { i: 1, reemplaza: true }, 'con los cuatro prendidos, el nuevo reemplaza al de menos leña');
+  eq(FO.MAX_FOGATAS, 4, 'hasta cuatro');
+  eq(FO.masCercano(lista, 39, 1), 2, 'el más cercano');
+  lista[2].vida = -10;   // en brasas
+  eq(FO.masCercano(lista, 39, 1), 1, 'el más cercano que arde, antes que unas brasas');
+  eq(FO.fuegoEn(lista, 20.5, 0, 1.5), 1, 'el que arde en un lugar');
+  eq(FO.fuegoEn(lista, 40, 0, 1.5), -1, 'unas brasas no cuentan como fuego prendido');
+  // la siesta: dos horas de 75 s (el día de 30 minutos)
+  eq(FO.consumirDormido(900, 2, 75), 750, 'una siesta corta lo deja más bajo');
+  eq(FO.consumirDormido(100, 2, 75), FO.BRASAS, 'si no le alcanza la leña, se apaga');
+  eq(FO.consumirDormido(-20, 2, 75), -20, 'las brasas siguen como estaban');
+  // el guardado
+  const g = FO.fogatasParaGuardar([{ activa: true, pos: { x: 1.234, y: 2, z: 3 }, vida: 99.6, contenida: true }, { activa: true, pos: { x: 0, y: 0, z: 0 }, vida: -5 }, { activa: false, pos: { x: 0, y: 0, z: 0 }, vida: 50 }]);
+  eq(g, [{ x: 1.23, y: 2, z: 3, vida: 100, contenida: true }], 'se guardan los que arden');
+  eq(FO.sanearFogatas([...g, { x: 'a' }, { x: 1, y: 1, z: 1, vida: -3 }, { x: 1, y: 1, z: 1, vida: 99999 }, 7, null, { x: 1, y: 1, z: 1, vida: 5 }, { x: 2, y: 1, z: 1, vida: 5 }, { x: 3, y: 1, z: 1, vida: 5 }]).map((x) => x.vida), [100, 3600, 5, 5], 'saneados: con números, vivos, con tope de leña y hasta cuatro');
+  ok(leer('src/guardado.js').includes('fogatas: sanearFogatas(p.fogatas),'), 'el guardado los sanea');
+  const cl = leer('src/clima.js'), main = leer('src/main.js');
+  ok(cl.includes('const fogatas = Array.from({ length: MAX_FOGATAS }, crearFogataMundo);') && cl.includes('registrarLuz(luzFuego);') && cl.includes('const matFuego = puntosMaterial(') && cl.includes('fogata.vida -= dtTiempo;'), 'clima.js: cuatro fuegos con los materiales compartidos, sus luces en el presupuesto y sin consumirse en la pausa');
+  ok(cl.includes('get fogata() { return fogataCercana(); }') && cl.includes('function apagarFogata(f = fogataCercana())') && cl.includes('fogata.duenio = opciones.duenio || null;'), 'clima.js: el más cercano, apagar uno y el dueño de cada uno');
+  ok(main.includes('f.vida = deNoche ? Math.min(f.vida, BRASAS) : consumirDormido(f.vida, HORAS_SIESTA, segundosPorHoraDeJuego());'), 'dormir: la noche los apaga, la siesta los consume');
+  ok(main.includes('if (obras) for (const f of clima.fogatas) if (f.activa && f.duenio && (f.duenio === obras.editando || !obras.obras.includes(f.duenio))) clima.apagarFogata(f);'), 'sin su obra, cada fuego se apaga');
+  ok(main.includes('progreso.fogatas = fogatasParaGuardar(clima.fogatas);') && main.includes('revivirFogatas();'), 'se guardan y vuelven al cargar');
+  ok(main.includes("clima.encenderFogata(propio.datos.x, y, propio.datos.z, 900, { contenida, duenio: propio })") && main.includes('if (clima.fuegoEn(ahi.x, ahi.z, ahi.r))') && main.includes('!!clima.fuegoEn(puesta.mesa.x, puesta.mesa.z, FOGON.radio + 1e-6)'), 'el fuego de tu obra, el que arde ahí y el fogón de la visita');
+  ok(!/clima\.fogata\.activa\)/.test(main.replace(/\/\/.*$/gm, '')) && main.includes('const propios = fuegosDeObra();'), 'nadie da por apagado un fuego porque arda otro; todas las estufas echan humo');
 }
 
 console.log(`verificar-3-8-7-progreso: ${pasos} comprobaciones OK`);

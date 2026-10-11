@@ -72,8 +72,8 @@ app.whenReady().then(async () => {
     await pasos(30);
     const noche = await js(`({ objetivo: ${H}.clima.estado.objetivo })`);
     ok(noche.objetivo === 'lluvia', `a la noche, el clima va a lluvia (${JSON.stringify(noche)})`);
-    await js(`${H}.progreso.horas = 23.9; 1`);
-    await pasos(300);
+    await js(`${H}.progreso.horas = 23.95; 1`);
+    for (let i = 0; i < 20 && await js(`${H}.progreso.dia`) === t0.dia; i++) await pasos(60);   // hasta que pase la medianoche
     await js(`${H}.__valle.revisarAhora(); 1`);
     const media = await js(`({ dia: ${H}.progreso.dia, h: ${H}.progreso.horas, fase: ${H}.progreso.historia.fase, abierta: ${H}.__valle.abierta() })`);
     ok(media.dia === t0.dia + 1 && media.fase === 'jugando' && !media.abierta, `a la medianoche, en plena tormenta, todavía no termina (${JSON.stringify(media)})`);
@@ -107,6 +107,76 @@ app.whenReady().then(async () => {
       const a = M.accion(js); const texto = a?.texto; a?.hacer(); await paso();
       return { fase: M.__.estado().carrera.fase, antes, texto, despues: fantasma()?.visible }; })()`);
     ok(f.antes === true && f.texto === 'Largar de nuevo' && f.fase === 'cuenta' && f.despues === false, `relargar esconde el fantasma durante la cuenta (${JSON.stringify(f)})`);
+    await pasos(400);   // que termine (o se abandone) la carrera
+
+    // ============================================================ 3. los fuegos (decisión del usuario)
+    seccion('3. hasta cuatro fuegos, la siesta y el guardado');
+    const fu = await js(`(async()=>{ const C = ${H}.clima, P = ${H}.progreso, J = ${H}.jugador.estado, T = ${H}.T, O = ${H}.obras;
+      const paso = async (n = 3) => { for (let i = 0; i < n; i++) { if (${H}.__caidas.modo() === 'pausa') ${H}.volverAlJuego(true); ${H}.__bucle(); await new Promise(r => setTimeout(r, 16)); } };
+      const R = T.lugares.refugio, out = {};
+      // un fogón de piedra tuyo, terminado
+      Object.assign(P.materiales, { tronco: 200, tabla: 200, piedra: 200 });
+      const plano = ${H}.PLANOS.find((q) => q.id === 'fogon');
+      let fogon = null;
+      for (let d = 14; d < 60 && !fogon; d += 3) for (let a = 0; a < 6.28 && !fogon; a += 0.6) {
+        const x = R.x + Math.cos(a) * d, z = R.z + Math.sin(a) * d;
+        J.pos.set(x, T.altura(x, z) + 0.05, z);
+        O.elegir(plano); const r = O.fundar(x, z, 0, J.pos.y); O.elegir(null);
+        if (!r.ok) continue;
+        for (let g = 0; g < 12 && r.obra.datos.etapas < r.obra.plano.etapas.length; g++) { const k = O.avanzar(r.obra, P.materiales); if (!k.ok) break; }
+        P.obras = O.obras.map((o) => o.datos); fogon = r.obra;
+      }
+      out.fogon = !!fogon;
+      // parado al lado, F prende el fogón (con su obra)
+      J.pos.set(fogon.datos.x + 1.2, T.altura(fogon.datos.x + 1.2, fogon.datos.z) + 0.05, fogon.datos.z);
+      J.yaw = Math.PI / 2;
+      await paso(8);
+      out.aviso = ${H}.__aviso();
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF', key: 'f', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyF', key: 'f', bubbles: true }));
+      await paso(3);
+      const delFogon = C.fogatas.find((f) => f.activa && f.duenio === fogon);
+      out.conDuenio = !!delFogon;
+      // tres fogatas más, lejos: con el fogón son cuatro, y todas arden a la vez
+      P.ramitas = 30;
+      for (let k = 0; k < 3; k++) { const x = fogon.datos.x + 12 + k * 6, z = fogon.datos.z + 8; C.encenderFogata(x, T.altura(x, z), z, 100 + k * 100); }
+      await paso(4);
+      out.cuatro = C.fogatas.filter((f) => f.activa && f.vida > 0).length;
+      out.otroNoApaga = delFogon.activa && delFogon.vida > 0;
+      // el más cercano es el del fogón (el calor, cocinar)
+      out.cercano = C.fogata === delFogon;
+      // la siesta los consume según lo dormido
+      const antes = C.fogatas.map((f) => f.vida);
+      P.horas = 13;
+      ${H}.__dormir();
+      await new Promise((r) => setTimeout(r, 2600));
+      await paso(2);
+      const seg = 2 * ((${H}.ajustes.duracion === 'reloj' ? 1440 : ${H}.ajustes.duracion) * 60) / 24;
+      out.siesta = C.fogatas.map((f, i) => ({ antes: Math.round(antes[i]), despues: Math.round(f.vida), arde: f.activa && f.vida > 0 }));
+      out.seg = seg;
+      // guardar: van los que arden
+      ${H}.guardar();
+      out.guardadas = (P.fogatas || []).length;
+      out.vivos = C.fogatas.filter((f) => f.activa && f.vida > 0).length;
+      return out; })()`);
+    ok(fu.fogon && fu.conDuenio, `F prende tu fogón y el fuego sabe de qué obra es (aviso: ${fu.aviso})`);
+    ok(fu.cuatro === 4 && fu.otroNoApaga, `cuatro fuegos prendidos a la vez; prender otro no apaga el anterior (${fu.cuatro})`);
+    ok(fu.cercano, 'el fuego que mira el calor y la cocina es el más cercano');
+    const consumo = fu.siesta.filter((x) => x.antes > 0).every((x) => (x.antes - fu.seg > 0 ? x.arde && Math.abs(x.despues - (x.antes - fu.seg)) < 3 : !x.arde));
+    ok(consumo && fu.siesta.some((x) => x.arde) && fu.siesta.some((x) => x.antes > 0 && !x.arde), `la siesta consume según lo dormido: unos siguen más bajos y otros se apagan (${JSON.stringify(fu.siesta)}, ${fu.seg} s)`);
+    ok(fu.guardadas === fu.vivos && fu.vivos > 0, `se guardan los que arden (${fu.guardadas})`);
+    // al recargar vuelven, el del fogón con su obra
+    await abrir();
+    await js(`document.getElementById('btn-entrar').click(); 1`);
+    await esperar(2000);
+    await pasos(4);
+    const re = await js(`(()=>{ const C = ${H}.clima; return { vivos: C.fogatas.filter((f) => f.activa && f.vida > 0).length, conDuenio: C.fogatas.filter((f) => f.activa && f.duenio).length } })()`);
+    ok(re.vivos === fu.vivos && re.conDuenio === 1, `al recargar vuelven los fuegos, el del fogón con su obra (${JSON.stringify(re)})`);
+    // sin su obra, el fuego se apaga
+    const sin = await js(`(async()=>{ const C = ${H}.clima, O = ${H}.obras; const f = C.fogatas.find((x) => x.activa && x.duenio); const o = f.duenio;
+      O.destruir(o); ${H}.progreso.obras = O.obras.map((x) => x.datos);
+      for (let i = 0; i < 3; i++) { if (${H}.__caidas.modo() === 'pausa') ${H}.volverAlJuego(true); ${H}.__bucle(); await new Promise(r => setTimeout(r, 16)); }
+      return { apagado: !f.activa, otros: C.fogatas.filter((x) => x.activa && x.vida > 0).length } })()`);
+    ok(sin.apagado && sin.otros === re.vivos - 1, `desarmado el fogón, su fuego se apaga y los demás siguen (${JSON.stringify(sin)})`);
   } catch (e) {
     errores.push(`excepción: ${e && e.stack ? e.stack : e}`);
   }

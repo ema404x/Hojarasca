@@ -54,6 +54,7 @@ import { SECCIONES, ENTRADAS, ENTRADA } from './cuaderno.js';
 import { ENCARGOS, ENCARGO, encargoDe, estadoEncargo, pistaTrabado, resumenEncargos } from './encargos.js';
 import { ENCARGOS_TEMPORADA, ENCARGO_TEMPORADA, encargoDeTemporada, anotarBase, estacionDe } from './encargos-temporada.js';
 import { crearDiario, unArbol } from './diario.js';
+import { MAX_FOGATAS, BRASAS, consumirDormido, fogatasParaGuardar, sanearFogatas } from './fogatas.js';
 import { TRUEQUES, cantidadCosa, tieneYa } from './trueque.js';
 import { CULTIVOS, claveCantero, semillaParaSembrar, sembrar, cosechar, regarConLluvia, textoCantero, resumenHuerta, helarHuerta } from './huerta.js';
 import { crearMatasHuerta } from './huerta-malla.js';
@@ -755,6 +756,7 @@ async function construir() {
   obrasAjenas = (progreso.obras || []).filter((d) => d && !PLANO[d.plano]);
   desalojarObras(progreso.obras || []);   // 3.6.2: (antes, obras.sincronizar)
   progreso.obras = obras.obras.map((o) => o.datos);
+  revivirFogatas();   // 3.8.7: los fuegos que ardían al guardar, cada uno con su obra
   desalojarCarpa();   // 3.6.2
   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
   // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
@@ -1231,8 +1233,13 @@ function dormir(opRincon = null) {
       progreso.horas = 7.2;
       if (renovales) renovales.actualizar(progreso.dia);
     }
-    else { progreso.horas += 2; if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; } }
-    if (clima.fogata.activa) clima.fogata.vida = Math.min(clima.fogata.vida, -40);
+    else { progreso.horas += HORAS_SIESTA; if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; } }
+    // 3.8.7: la noche apaga los fuegos; la siesta los consume según lo dormido (decisión del usuario: antes la siesta los
+    // apagaba enteros): una corta los deja más bajos, una larga los puede apagar
+    for (const f of clima.fogatas) {
+      if (!f.activa) continue;
+      f.vida = deNoche ? Math.min(f.vida, BRASAS) : consumirDormido(f.vida, HORAS_SIESTA, segundosPorHoraDeJuego());
+    }
     guardar();
     copiarASync(true);   // 1.11: dormir es un buen momento para dejar la copia
     setTimeout(() => {
@@ -3197,23 +3204,39 @@ function gastarLenaDelInvierno(r) {
   // un aviso aparte, después del de haber prendido (así cada frase se traduce entera)
   if (r.de) setTimeout(() => nota('Se fue un tronco de leña', r.de === 'lenera' ? (r.lenera.secos === 1 ? 'Queda uno en la leñera' : r.lenera.secos ? `Quedan ${r.lenera.secos} en la leñera` : 'Era el último de la leñera') : 'De los que llevabas encima'), 1400);
 }
+// 3.8.7: los fuegos que ardían al guardar vuelven con la leña que les quedaba. El de una estufa, un hogar o un fogón tuyo
+// vuelve con su obra (si ya no está, no vuelve)
+function revivirFogatas() {
+  for (const f of sanearFogatas(progreso.fogatas)) {
+    const duenio = (obras?.obras || []).find((o) => o.plano.fuego && o.datos.etapas >= o.plano.etapas.length && Math.hypot(o.datos.x - f.x, o.datos.z - f.z) < 0.3) || null;
+    if (f.contenida && !duenio) continue;
+    clima.encenderFogata(f.x, f.y, f.z, f.vida, { contenida: !!f.contenida, duenio });
+  }
+}
+// 3.8.7: la siesta (horas de juego) y lo que dura una hora de juego en segundos de reloj (lo que consume el fuego)
+const HORAS_SIESTA = 2;
+const segundosPorHoraDeJuego = () => ((ajustes.duracion === 'reloj' ? 1440 : Number(ajustes.duracion) || 30) * 60) / 24;
+// 3.8.7: hasta cuatro fuegos a la vez (ver fogatas.js); con los cuatro prendidos, el nuevo apaga el que menos leña tenía
+function avisarFuegoReemplazado(r) {
+  if (r?.reemplaza) setTimeout(() => nota(`Tenés ${MAX_FOGATAS} fuegos prendidos`, 'Se apagó el que estaba más gastado'), 1600);
+}
 function encenderFuego() {
   const js = jugador.estado;
   const ref = T.lugares.refugio;
   const propio = fogonPropioCerca();
   // 3.8.6: con el fuego ya prendido ahí, F no lo vuelve a prender (gastaba otras tres ramitas, o otro tronco en invierno,
   // y corría la fogata casi dos metros; el aviso de F no sale con el fuego prendido)
-  const fg = clima.fogata;
-  if (fg.activa && fg.vida > 0 && fg.pos) {
+  // 3.8.7: con varios fuegos, el que arde ahí (no el más cercano)
+  {
     const ahi = propio ? { x: propio.datos.x, z: propio.datos.z, r: 1.5 } : Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 ? { x: ref.fogon.x, z: ref.fogon.z, r: 1.5 } : { x: js.pos.x, z: js.pos.z, r: 4 };
-    if (Math.hypot(fg.pos.x - ahi.x, fg.pos.z - ahi.z) < ahi.r) { nota('El fuego ya está prendido', 'Arde solo un buen rato'); return; }
+    if (clima.fuegoEn(ahi.x, ahi.z, ahi.r)) { nota('El fuego ya está prendido', 'Arde solo un buen rato'); return; }
   }
   const lena = lenaDelInvierno();
   if (!lena.ok) return;
   if (propio) {
     const contenida = !!propio.plano.fuegoContenido;
     const y = contenida ? propio.datos.y + 0.38 : T.altura(propio.datos.x, propio.datos.z);
-    clima.encenderFogata(propio.datos.x, y, propio.datos.z, 900, { contenida });
+    avisarFuegoReemplazado(clima.encenderFogata(propio.datos.x, y, propio.datos.z, 900, { contenida, duenio: propio }));   // 3.8.7: el fuego sabe de qué obra es
     gastarLenaDelInvierno(lena);
     sonido.encender();
     if (propio.plano.id === 'pared-hogar') nota('Encendiste el hogar', 'Calienta la casa, y el humo sale por la chimenea');
@@ -3221,7 +3244,7 @@ function encenderFuego() {
     return;
   }
   if (Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4) {
-    clima.encenderFogata(ref.fogon.x, ref.fogon.y, ref.fogon.z, 900);
+    avisarFuegoReemplazado(clima.encenderFogata(ref.fogon.x, ref.fogon.y, ref.fogon.z, 900));
     gastarLenaDelInvierno(lena);
     sonido.encender();
     nota('El fogón está encendido', 'Sentate en un tronco para descansar');
@@ -3231,7 +3254,7 @@ function encenderFuego() {
   const x = js.pos.x - Math.sin(js.yaw) * 1.9, z = js.pos.z - Math.cos(js.yaw) * 1.9;
   if (T.agua(x, z) || js.nadando || js.enPlataforma) { nota('Acá no se puede', 'Buscá suelo firme y seco'); return; }
   progreso.ramitas -= 3;
-  clima.encenderFogata(x, T.altura(x, z), z);
+  avisarFuegoReemplazado(clima.encenderFogata(x, T.altura(x, z), z));
   gastarLenaDelInvierno(lena);
   sonido.encender();
   nota('Hiciste una fogata', 'En los bosques de verdad, solo en lugares habilitados');
@@ -4639,10 +4662,8 @@ function regaloDeVisita(npc) {
 }
 // 2.3: un fuego prendido cerca de la mesa hace que la visita se quede al fogón
 function fogonDeVisita() {
-  const f = clima.fogata;
-  if (!f.activa || f.vida <= 0) return false;
   const puesta = mesaPuesta(mueblesTerminados());
-  return !!puesta && Math.hypot(f.pos.x - puesta.mesa.x, f.pos.z - puesta.mesa.z) <= FOGON.radio;
+  return !!puesta && !!clima.fuegoEn(puesta.mesa.x, puesta.mesa.z, FOGON.radio + 1e-6);   // 3.8.7: cualquiera de los fuegos, cerca de la mesa
 }
 let avisoFogon = -1;
 function actualizarVisitas(dt) {
@@ -7091,23 +7112,29 @@ function tenirPieza() {
 // Cada dos segundos alcanza: ni el fuego ni la noche cambian más rápido.
 let ventanasMundo = null, chimeneasTodas = null, acumuladoCasa = 99, embarcaderosVistos = -1;
 const lugarObra = (o) => ({ plano: o.plano.id, x: o.datos.x, y: o.datos.y, z: o.datos.z, rot: o.datos.rot || 0 });
-function fuegoDeObra() {
-  const fg = clima.fogata;
-  if (!fg.activa || !(fg.vida > 0) || !fg.contenida || !obras) return null;
-  return obras.obras.find((o) => o.plano.fuegoContenido && Math.hypot(o.datos.x - fg.pos.x, o.datos.z - fg.pos.z) < 0.3) || null;
+// 3.8.7: las estufas y los hogares prendidos (cada uno con su humo y su luz en la ventana)
+function fuegosDeObra() {
+  if (!obras) return [];
+  const salida = [];
+  for (const fg of clima.fogatas) {
+    if (!fg.activa || !(fg.vida > 0) || !fg.contenida) continue;
+    const o = obras.obras.find((x) => x.plano.fuegoContenido && Math.hypot(x.datos.x - fg.pos.x, x.datos.z - fg.pos.z) < 0.3);
+    if (o && !salida.includes(o)) salida.push(o);
+  }
+  return salida;
 }
 function actualizarCasaViva(dt) {
   acumuladoCasa += dt;
   if (acumuladoCasa < 2 || !obras) return;
   acumuladoCasa = 0;
-  const propio = fuegoDeObra();
-  const ch = propio ? chimeneaDe(lugarObra(propio)) : null;
-  chimeneasTodas = ch ? [...chimeneas, ch] : chimeneas;
+  const propios = fuegosDeObra();   // 3.8.7: todas las estufas y los hogares prendidos
+  const chs = propios.map((o) => chimeneaDe(lugarObra(o))).filter(Boolean);
+  chimeneasTodas = chs.length ? [...chimeneas, ...chs] : chimeneas;
   const brillo = brilloVentanas(1 - (luzUltimaFoto?.dia ?? 1));
   let lista = [];
   if (brillo > 0) {
     const luces = obras.obras.filter((o) => o.plano.luzInterior && obraTerminada(o)).map((o) => ({ x: o.datos.x, y: o.datos.y + 1, z: o.datos.z }));
-    if (propio) luces.push({ x: propio.datos.x, y: propio.datos.y + 1, z: propio.datos.z });
+    for (const propio of propios) luces.push({ x: propio.datos.x, y: propio.datos.y + 1, z: propio.datos.z });
     if (luces.length) lista = ventanasEncendidas(obras.obras.filter((o) => VENTANAS[o.plano.id] && obraTerminada(o)).map(lugarObra), luces);
   }
   ventanasMundo?.actualizar(lista, brillo);
@@ -8130,6 +8157,7 @@ function guardar() {
   // 3.8.6: el entumecido y el descansado (antes se perdían al recargar: el castigo de la noche fría desaparecía)
   { const jc = jugador.estado; progreso.cuerpo = jc.entumecido > 0 || jc.descansado > 0 ? { entumecido: Math.max(0, Number(jc.entumecido) || 0), descansado: Math.max(0, Number(jc.descansado) || 0) } : undefined; }
   progreso.diarioHoy = diario.paraGuardar(progreso.dia);   // 3.8.4: la página del día que se va llenando
+  if (clima) progreso.fogatas = fogatasParaGuardar(clima.fogatas);   // 3.8.7: los fuegos prendidos (antes se perdían al recargar)
   if (jugador.estado.enSulky) rinconesJuego?.paraGuardar?.();   // 3.8.3: el sulky, donde ibas
   // 3.8.3: en la portada de una partida sin jugar (la primera vez, o después de «Empezar de nuevo») cerrar el juego
   // guardaba la posición de arranque y la partida pasaba por empezada: la portada decía «Seguir…», no salían las
@@ -9033,6 +9061,8 @@ function cuadroDelJuego(tRaf, manual) {
   // 3.6.2 (visual): con lluvia, los techos de alrededor (las gotas que llegan a uno se cortan ahí)
   if (clima.estado.lluvia > 0.05 && U.uInvierno.value <= 0.5 && !bajoTecho) { try { revisarMapaLluvia(cam, dt); ctxClima.techos = mapaLluvia; } catch (e) { ctxClima.techos = null; fallaSistema('techos-lluvia', e); } }
   ctxClima.quieto = modo !== 'jugando';   // 3.8.6: el tiempo no avanza en la pausa ni en la portada (ver clima.js)
+  // 3.8.7: el fuego de una obra tuya que ya no está (o que estás moviendo) se apaga, cada uno de los fuegos (ver clima.apagarFogata)
+  if (obras) for (const f of clima.fogatas) if (f.activa && f.duenio && (f.duenio === obras.editando || !obras.obras.includes(f.duenio))) clima.apagarFogata(f);
   try { clima.actualizar(dt, cam, ctxClima); } catch (e) { fallaSistema('clima', e); }
   // 2.1: el frente que viene se ve sobre la cordillera (ver `pronostico.js`)
   if (cielo?.uniforms) {
@@ -9247,7 +9277,8 @@ function cuadroDelJuego(tRaf, manual) {
     const movioInteraccion = Math.hypot(js.pos.x - posInteraccion.x, js.pos.z - posInteraccion.z) > 0.4 || Math.abs(js.pos.y - posInteraccion.y) > 0.35;
     if ((acumuladoInteraccion >= 0.10 && acumuladoInteraccion >= presupuestoAdaptativo.intervalo(0.10, 1.45)) || movioInteraccion) {
       acumuladoInteraccion = 0; posInteraccion.copy(js.pos);
-      cacheFuegoPropio = !clima.fogata.activa ? fogonPropioCerca() : null;
+      // 3.8.7: el fogón tuyo de acá, si no arde ya (con varios fuegos, otro prendido en otro lado no lo tapa)
+      { const fp = fogonPropioCerca(); cacheFuegoPropio = fp && !clima.fuegoEn(fp.datos.x, fp.datos.z, 1.5) ? fp : null; }
       cacheHacha = objetivoHacha();
       cacheAcopio = hayAcopioCerca(RADIO_ACOPIO_MANO);
       cacheCantero = canteroCerca();
@@ -9383,7 +9414,7 @@ function cuadroDelJuego(tRaf, manual) {
     // 2.4.1: las otras teclas (F, H, Y, B, T) van después de todo lo que hace E. Antes iban
     // en el medio y tapaban el aviso de E: junto al tendal decía «B Plantar» y E colgaba.
     if (!aviso && desafio && desafio.antorchaApagadaCerca?.(js.pos)) aviso = { tecla: 'F', texto: 'Encender la antorcha' };
-    const fuegoPropio = !aviso && !clima.fogata.activa ? cacheFuegoPropio : null;
+    const fuegoPropio = !aviso ? cacheFuegoPropio : null;
     if (fuegoPropio) aviso = { tecla: 'F', texto: fuegoPropio.plano.id === 'pared-hogar' ? 'Encender el hogar' : fuegoPropio?.plano?.fuegoContenido ? 'Encender la estufa' : 'Encender tu fogón' };
     const hachaCerca = !aviso ? cacheHacha : null;
     if (hachaCerca) aviso = { tecla: 'H', texto: textoHacha(hachaCerca) };
@@ -9393,7 +9424,7 @@ function cuadroDelJuego(tRaf, manual) {
     }
     if (!aviso && enLaCarpa()) aviso = { tecla: 'T', texto: 'Levantar la carpa' };
     else if (!aviso && progreso.cosas.manta && !progreso.carpa && puedeArmarCarpaAca(js)) aviso = { tecla: 'T', texto: 'Armar la carpa' };
-    if (!aviso && !js.enTren && !js.enKayak && Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 && !clima.fogata.activa) aviso = { tecla: 'F', texto: 'Encender el fogón' };
+    if (!aviso && !js.enTren && !js.enKayak && Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 && !clima.fuegoEn(ref.fogon.x, ref.fogon.z, 1.5)) aviso = { tecla: 'F', texto: 'Encender el fogón' };
     // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
