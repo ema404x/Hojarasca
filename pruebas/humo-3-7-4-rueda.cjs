@@ -60,7 +60,13 @@ app.whenReady().then(async () => {
   const captura = async (nombre) => {
     await js(`document.getElementById('pista-clic')?.classList.add('oculto'); 1`);
     await cuadros(3); await esperar(400); await cuadros(2); await esperar(200);
-    const img = await w.webContents.capturePage();
+    // 3.8.7: la captura es sólo para mirar: si la ventana no se puede capturar (UnknownVizError: pasa con la pantalla bloqueada, la
+    // ventana tapada o la sesión de otro usuario, también con la 3.8.6), se reintenta y, si no, se sigue sin ella
+    let img = null;
+    for (let i = 0; i < 3 && !img; i++) {
+      try { img = await w.webContents.capturePage(); } catch (e) { console.log(`  (capturePage falló: ${e.message}; reintento)`); try { w.showInactive(); w.moveTop(); } catch {} await esperar(600); await cuadros(2); }
+    }
+    if (!img) { console.log(`  (sin captura de ${nombre}: la ventana no se puede capturar ahora)`); return; }
     fs.writeFileSync(path.join(salidas, nombre), img.toPNG());
     console.log(`  (captura: pruebas/salidas/rueda-374/${nombre})`);
   };
@@ -270,7 +276,7 @@ app.whenReady().then(async () => {
     const libres = () => js(`(()=>{ for (const n of ${H}.gente.gente) if (n.claveAldea) { n.animSocial = null; n.camino = []; n.pose = null; n.vel = 0; n.__iniciativa = false; } return 1 })()`);
     await js(`(()=>{ ${P}.vecindad.social = null; ${P}.horas = 11; ${H}.ajustes.ritmoAldea = 'animado'; return 1 })()`);
     let ini = null;
-    for (let s = 0; s < 60 && !ini; s++) { await libres(); await js(`${H}.__social().forzarIniciativa(); 1`); ini = await js(`${H}.__social().pendiente()`); }
+    for (let s = 0; s < 60 && !ini; s++) { await libres(); await js(`${H}.__social().forzarIniciativa(); 1`); ini = await js(`(()=>{ const p = ${H}.__social().pendiente(); if (!p) return null; const { npc, ...r } = p; return r })()`); }   // 3.8.7: sin el `npc` (objeto vivo, no se puede pasar de la página a la prueba)
     ok(!!ini, `alguien te quiere decir algo (${JSON.stringify(ini)})`);
     if (ini) {
       await js(`(()=>{ const n = ${npc(ini.clave)} || ${H}.gente.gente.find((g) => g.claveAldea === '${ini.clave}'); const j = ${H}.jugador; j.ubicar(n.pos.x, n.pos.z + 1.7, 0); j.estado.pitch = -0.08; return 1 })()`);
