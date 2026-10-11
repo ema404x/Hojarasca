@@ -118,7 +118,7 @@ const nuevo = TM.trenNuevo();
   s = TM.avanzarTaller(t, 4, 16, { herreria: true });
   ok(s.piezas === 1 && s.empezo && TM.estadoTaller(t) === 'armando', 'abrió la herrería: la pieza de las 15 completa las tres y Ernesto y Martín la arman');
   ok(t.taller.pedido.empezo === 4 * 24 + 15 && t.taller.pedido.listo === 5 * 24 + 7, `lista a la mañana siguiente (un día): ${TM.textoListo(t.taller.pedido.listo)}`);
-  ok(TJ.textoAvisoTaller(t) === 'Taller: freno: zapatas nuevas, lista el día 5 a las 7', 'el aviso, armando');
+  ok(TJ.textoAvisoTaller(t) === 'Taller: freno: zapatas nuevas, listo el día 5 a las 7', 'el aviso, armando');   // (3.8.7: «listo», el freno)
   ok(!TM.aportarMejora(t, { tabla: 3 }, 4, 17).ok, 'armando, no pide más');
   s = TM.avanzarTaller(t, 5, 6.9, { herreria: true });
   ok(!s.lista && TM.estadoTaller(t) === 'armando', 'todavía no');
