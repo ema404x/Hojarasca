@@ -155,6 +155,26 @@ app.whenReady().then(async () => {
         ok(prende.empalizada[1] < prende.empalizada[0], `la madera a favor del viento se chamusca (${prende.empalizada.join(' → ')})`);
       }
     }
+    // ---------------------------------------------------------------- 4. las dificultades: cuántos vienen, cuánto aguantan y cuánto pegan
+    if (toca('dificultades')) {
+      seccion('dificultades');
+      const med = {};
+      for (const dif of ['tranquila', 'normal', 'implacable']) {
+        await nueva({ dificultad: dif });
+        med[dif] = await js(`(()=>{ const H=${H}, D=H.progreso.desafio, De=H.desafio; D.tutorial = 99; D.oleadas = 6;
+          H.progreso.dia++; H.progreso.horas=19.4; for(let i=0;i<30;i++){ H.progreso.horas+=0.01; De.actualizar(0.05,{noche:1,dtReal:0.05}); } H.progreso.horas=20.49;
+          for (let i=0;i<400;i++){ H.progreso.horas += 0.05*24/1800; D.salud = 100; De.actualizar(0.05,{noche:1,dtReal:0.05}); }
+          const vivos = De.aliens.filter((a) => a.estado !== 'morir' && a.estado !== 'irse');
+          const r = vivos.find((a) => a.tipo === 'rastreador');
+          D.salud = 100; const j = H.jugador.estado; De.herirJugador(10, { x: j.pos.x + 1, y: j.pos.y, z: j.pos.z });
+          return { invasores: D.vivos, vidaRastreador: r ? r.vidaMax : null, golpe10: +(100 - D.salud).toFixed(2), oleada: D.oleadas } })()`);
+        console.log(`   ${dif}: ${JSON.stringify(med[dif])}`);
+      }
+      const t = med.tranquila, n = med.normal, i = med.implacable;
+      ok(t.invasores < n.invasores && n.invasores < i.invasores, `vienen más cuanto más difícil (${t.invasores} · ${n.invasores} · ${i.invasores})`);
+      ok(t.golpe10 < n.golpe10 && n.golpe10 < i.golpe10, `pegan más (${t.golpe10} · ${n.golpe10} · ${i.golpe10})`);
+      ok(!t.vidaRastreador || !i.vidaRastreador || (t.vidaRastreador < n.vidaRastreador && n.vidaRastreador < i.vidaRastreador), `aguantan más (${t.vidaRastreador} · ${n.vidaRastreador} · ${i.vidaRastreador})`);
+    }
   } catch (e) {
     errores.push('excepcion: ' + (e && e.message ? e.message : e));
   }
