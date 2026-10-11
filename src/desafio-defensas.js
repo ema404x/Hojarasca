@@ -8,7 +8,7 @@ import { registrarLuz } from './luces.js';
 
 export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opciones = {}) {
   const tipoDe = (o) => o.plano.defensa?.tipo;
-  const completa = (o) => o.datos.etapas > 0;
+  const completa = (o) => o.datos.etapas > 0 && o !== obras.editando;   // 3.8.7: la que estás moviendo con Shift+Y (invisible y sin física) no cuenta: tiraba, frenaba flechas y se disparaba en el lugar viejo
   let antorchas = [], campanas = [], pozos = [], redes = [], barriles = [], escudos = [], balizas = [], torres = [], fosos = [];
   function refrescar() {
     antorchas = []; campanas = []; pozos = []; redes = []; barriles = []; escudos = []; balizas = []; torres = []; fosos = [];

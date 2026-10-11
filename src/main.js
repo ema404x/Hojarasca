@@ -187,6 +187,7 @@ import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos } from './accesibilidad.js';
 import { crearDesafio } from './desafio.js';
+import { contenidoFortin } from './desafio-fortin.js';
 import { crearBanco } from './desafio-sonidos.js';
 import { fusionarPorMaterial } from './fusion.js';
 import { dibujarLogros, CSS_LOGROS } from './desafio-logros.js';
@@ -3211,7 +3212,7 @@ function encenderFuego() {
   if (propio) {
     const contenida = !!propio.plano.fuegoContenido;
     const y = contenida ? propio.datos.y + 0.38 : T.altura(propio.datos.x, propio.datos.z);
-    clima.encenderFogata(propio.datos.x, y, propio.datos.z, 900, { contenida });
+    clima.encenderFogata(propio.datos.x, y, propio.datos.z, 900, { contenida, duenio: propio });
     gastarLenaDelInvierno(lena);
     sonido.encender();
     if (propio.plano.id === 'pared-hogar') nota('Encendiste el hogar', 'Calienta la casa, y el humo sale por la chimenea');
@@ -6107,6 +6108,8 @@ function devolverContenido(d) {
   // 3.8.3: y lo que estaba al fuego en la parrilla, el horno o la cocina a leña vuelve crudo (antes se perdía todo; la leña
   // ya se quemó, y el chorizo que se robó el perro no vuelve). Lo del almacén y la harina van a las cosas, como al comprarlos
   if (d.coccion) devolverCoccion(d.coccion);
+  // 3.8.7: y lo cargado en las piezas del fortín (los troncos de la rampa y la zanja, la resina, las piedras de la catapulta)
+  { const f = contenidoFortin(d); if (f.tronco) sumarMaterial('tronco', f.tronco); if (f.piedra) sumarMaterial('piedra', f.piedra); }
   // 3.8.3: lo que quedaba adentro y se perdía al desarmar: lo colgado en el tendal (seco, o lo que se colgó), las macetas
   // del vivero (el plantín, o la semilla), los huevos del nidal y la cosecha ya lista del cantero (lo sembrado que
   // todavía no está se lo lleva el cantero, como siempre)
@@ -6375,7 +6378,7 @@ function fogonPropioCerca() {
   const js = jugador.estado;
   let mejor = null, d0 = 3.4;
   for (const o of obras.obras) {
-    if (!o.plano.fuego || o.datos.etapas < o.plano.etapas.length) continue;
+    if (!o.plano.fuego || o.datos.etapas < o.plano.etapas.length || o === obras.editando) continue;   // 3.8.7: (la que movés no se prende)
     const dy = Math.abs(js.pos.y - (o.datos.y ?? js.pos.y));
     if (dy > 1.55) continue;
     const d = Math.hypot(js.pos.x - o.datos.x, js.pos.z - o.datos.z, dy * 0.45);
@@ -6583,7 +6586,9 @@ function actualizarTendales() {
 // La colmena, el ahumadero, el vivero y la leñera guardan su estado en la obra, como el
 // tendal (ver `datosDe`). Una sola función encuentra la más cercana de cada tipo.
 const obraTerminada = (o) => o.datos.etapas >= o.plano.etapas.length;
-const obrasTerminadas = (id) => (obras?.obras || []).filter((o) => o.plano.id === id && obraTerminada(o));
+// 3.8.7: sin la que estás moviendo con Shift+Y (invisible y sin física): el molino seguía girando su rueda sola en el
+// arroyo y moliendo, la sierra y el mástil quedaban en el aire (como obraQueTrabajaCerca desde la 3.8.6)
+const obrasTerminadas = (id) => (obras?.obras || []).filter((o) => o.plano.id === id && obraTerminada(o) && o !== obras.editando);
 const OBRAS_QUE_TRABAJAN = ['colmena', 'ahumadero', 'vivero', 'lenera', 'horno', 'buzon', 'embarcadero', 'bebedero'];
 function obraQueTrabajaCerca(radio = 2.6) {
   const js = jugador.estado;
@@ -6752,7 +6757,8 @@ const fuerzaMolino = () => fuerzaDelAgua({ invierno: U.uInvierno.value, crecida:
 const molinosTerminados = () => obrasTerminadas('molino-agua').map((o) => o.datos);
 const cercaDeObra = (o, r = 60) => Math.hypot(o.datos.x - jugador.estado.pos.x, o.datos.z - jugador.estado.pos.z) < r;
 function pronosticoActual() {
-  return pronosticoMeteo(meteoPartida().semilla, progreso.dia, progreso.horas, { modo: ajustes.clima, estacion: ajustes.estacion });
+  programaTramos ||= programaDelTiempo();   // 3.8.7: con la nevada y el temporal (ver pronosticoDia)
+  return pronosticoMeteo(meteoPartida().semilla, progreso.dia, progreso.horas, { modo: ajustes.clima, estacion: ajustes.estacion, tipo: programaTramos.tipo, viento: programaTramos.viento });
 }
 function nochesActuales() {
   return desafio && progreso.desafio ? nochesQueVienen(progreso.desafio, meteoPartida(), progreso.dia, progreso.horas) : [];
@@ -6850,7 +6856,8 @@ function usarMaquina(o) {
     } else if (r.accion === 'cargar') {
       sumarEntrada('haba', -r.habas);
       sonido.juntar();
-      nota(`Echaste ${r.habas} habas a la muela`, `Dos habas, una medida de harina: hora y media cada una`, true);
+      nota(`Echaste ${r.habas === 1 ? 'una haba' : `${r.habas} habas`} a la muela`,   // 3.8.7: «Echaste 1 habas»
+        `Dos habas, una medida de harina: hora y media cada una`, true);
     } else if (r.accion === 'moliendo') nota('La muela está moliendo', faltanHoras(r.faltan));
     else {
       const n = obrasTerminadas('aserradero').filter((a) => molinoQueMueve(a.datos, [o.datos])).length;
@@ -7084,7 +7091,7 @@ const lugarObra = (o) => ({ plano: o.plano.id, x: o.datos.x, y: o.datos.y, z: o.
 function fuegoDeObra() {
   const fg = clima.fogata;
   if (!fg.activa || !(fg.vida > 0) || !fg.contenida || !obras) return null;
-  return obras.obras.find((o) => o.plano.fuegoContenido && Math.hypot(o.datos.x - fg.pos.x, o.datos.z - fg.pos.z) < 0.3) || null;
+  return obras.obras.find((o) => o.plano.fuegoContenido && o !== obras.editando && Math.hypot(o.datos.x - fg.pos.x, o.datos.z - fg.pos.z) < 0.3) || null;
 }
 function actualizarCasaViva(dt) {
   acumuladoCasa += dt;
@@ -9023,6 +9030,8 @@ function cuadroDelJuego(tRaf, manual) {
   // 3.6.2 (visual): con lluvia, los techos de alrededor (las gotas que llegan a uno se cortan ahí)
   if (clima.estado.lluvia > 0.05 && U.uInvierno.value <= 0.5 && !bajoTecho) { try { revisarMapaLluvia(cam, dt); ctxClima.techos = mapaLluvia; } catch (e) { ctxClima.techos = null; fallaSistema('techos-lluvia', e); } }
   ctxClima.quieto = modo !== 'jugando';   // 3.8.6: el tiempo no avanza en la pausa ni en la portada (ver clima.js)
+  // 3.8.7: el fuego de una obra tuya que ya no está (o que estás moviendo) se apaga (ver clima.apagarFogata)
+  if (clima.fogata.duenio && obras && (clima.fogata.duenio === obras.editando || !obras.obras.includes(clima.fogata.duenio))) clima.apagarFogata();
   try { clima.actualizar(dt, cam, ctxClima); } catch (e) { fallaSistema('clima', e); }
   // 2.1: el frente que viene se ve sobre la cordillera (ver `pronostico.js`)
   if (cielo?.uniforms) {

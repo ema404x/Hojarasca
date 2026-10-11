@@ -57,7 +57,8 @@ export function crearCocinaJuego(ctx) {
     const p = posObra(o);
     return !!(O.cubiertaDePieza?.({ x: p.x, y: p.y + 0.3, z: p.z }) || O.dentro?.({ x: p.x, y: p.y + 0.3, z: p.z }));
   }
-  const esEstacionObra = (o) => !!o && Object.hasOwn(PLANOS_ESTACION, o.plano?.id) && obraTerminada(o);
+  // 3.8.7: la que estás moviendo con Shift+Y no cocina (la olla, las llamas y el humo quedaban en el lugar viejo)
+  const esEstacionObra = (o) => !!o && Object.hasOwn(PLANOS_ESTACION, o.plano?.id) && obraTerminada(o) && o !== ctx.obras?.()?.editando;
   const estDe = (o) => estacionDeObra(o.plano.id, techoDe(o));
   // (la lista se rehace cada medio segundo, o si cambian las obras: se mira en cada cuadro por el perro)
   const cacheEst = { t: -1, n: -1, lista: [] };
@@ -65,7 +66,7 @@ export function crearCocinaJuego(ctx) {
     const O = ctx.obras?.();
     const todas = O?.obras || [];
     const ahoraMs = performance.now();
-    if (cacheEst.n !== todas.length || ahoraMs - cacheEst.t > 500) { cacheEst.lista = todas.filter(esEstacionObra); cacheEst.n = todas.length; cacheEst.t = ahoraMs; }
+    if (cacheEst.n !== todas.length || cacheEst.ed !== O?.editando || ahoraMs - cacheEst.t > 500) { cacheEst.ed = O?.editando; cacheEst.lista = todas.filter(esEstacionObra); cacheEst.n = todas.length; cacheEst.t = ahoraMs; }
     return cacheEst.lista;
   }
   // las móviles (3.7.3): id → { est, pos() }

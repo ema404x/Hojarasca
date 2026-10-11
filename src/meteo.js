@@ -111,14 +111,16 @@ function partesTexto(partes) {
 
 // Un día del pronóstico, desde la hora `desde` (0 a 24). Devuelve los tramos, lo que
 // trae y el texto que se lee en la estación.
-export function pronosticoDia(semilla, dia, { modo = 'variable', estacion = 'verano', desde = 0 } = {}) {
+// 3.8.7: `tipo(k)` y `viento(k)` opcionales: los del programa de la partida (main.js, programaDelTiempo), que pisa los de la
+// semilla el día de la gran nevada y la noche del temporal de la historia (la estación anunciaba «Despejado» mientras nevaba)
+export function pronosticoDia(semilla, dia, { modo = 'variable', estacion = 'verano', desde = 0, tipo: tipoDe = null, viento: vientoDe = null } = {}) {
   const tramos = [];
   const lluvia = new Set(), nublado = new Set();
   let viento = 0;
   for (let i = 0; i < TRAMOS_DIA; i++) {
     const k = dia * TRAMOS_DIA + i;
     if ((i + 1) * TRAMO <= desde) continue;
-    const tipo = tipoEnTramo(semilla, k, modo), v = vientoEnTramo(semilla, k, modo);
+    const tipo = tipoDe ? tipoDe(k) : tipoEnTramo(semilla, k, modo), v = vientoDe ? vientoDe(k) : vientoEnTramo(semilla, k, modo);
     tramos.push({ k, desde: i * TRAMO, tipo, viento: v });
     const parte = Math.floor((i * TRAMO) / 6);
     if (tipo === 'lluvia') lluvia.add(parte);

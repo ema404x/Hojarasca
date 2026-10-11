@@ -1963,7 +1963,7 @@ const PIEZAS = [
     // sin física: es un agujero, no una pared. Lo que hace es lastimar al que lo cruza.
   },
   {
-    id: 'porton-reforzado', nombre: 'Portón con tranca', pieza: true, soloDesafio: true, soloMejora: true, categoria: 'defensa', porton: true,
+    id: 'porton-reforzado', nombre: 'Portón con tranca', pieza: true, soloDesafio: true, soloMejora: true, mejoraDe: 'porton-empalizada', categoria: 'defensa', porton: true,
     radio: 1.9, ancho: 3.1, fondo: 0.6, alto: 2.9, separacion: 0.4, vida: 760,
     snap: { tipo: 'linea', familia: 'empalizada', largo: 3.1, umbral: 1.0 },
     texto: 'El portón con marco de piedra, chapa de tablas cruzadas y una tranca gruesa atravesada. Aguanta el doble y se sigue abriendo con E.',
@@ -1989,7 +1989,7 @@ const PIEZAS = [
     },
   },
   {
-    id: 'empalizada-reforzada', nombre: 'Empalizada reforzada', pieza: true, soloDesafio: true, soloMejora: true, categoria: 'defensa',
+    id: 'empalizada-reforzada', nombre: 'Empalizada reforzada', pieza: true, soloDesafio: true, soloMejora: true, mejoraDe: 'empalizada', categoria: 'defensa',
     radio: 1.9, ancho: 3.1, fondo: 0.7, alto: 2.8, separacion: 0.4, vida: 600,
     snap: { tipo: 'linea', familia: 'empalizada', largo: 3.1, umbral: 1.0 },
     texto: 'Empalizada con base de piedra y zunchos: casi el doble de resistente.',
@@ -2007,7 +2007,7 @@ const PIEZAS = [
     fisica(h) { h.segmento(-1.55, 0, 1.55, 0, 0.28, -0.1, 2.8); },
   },
   {
-    id: 'muro-almenado', nombre: 'Muro almenado', pieza: true, soloDesafio: true, soloMejora: true, categoria: 'defensa',
+    id: 'muro-almenado', nombre: 'Muro almenado', pieza: true, soloDesafio: true, soloMejora: true, mejoraDe: 'muro-piedra', categoria: 'defensa',
     radio: 1.9, ancho: 3.0, fondo: 1.0, alto: 2.5, separacion: 0.3, vida: 1150,
     snap: { tipo: 'linea', familia: 'muro-piedra', largo: 3.0, umbral: 1.0 },
     texto: 'La pirca levantada y rematada en almenas. Lo más duro que se puede construir con piedra y tabla.',
@@ -2650,6 +2650,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   // por lo que una pieza chica y un cobertizo grande recibían la misma prueba.
   function revisarSitio(x, z, plano, rot = 0, ignorarObra = null, baseObjetivo = null, alturaReferencia = null) {
     if (!plano) return { ok: false, motivo: 'Elegí un plano primero' };
+    // 3.8.7: lo que sólo sale de mejorar una pieza (el portón con tranca, la empalizada reforzada, el muro almenado) no se
+    // funda de cero: con X o después de moverlo con Shift+Y quedaba elegido y Y armaba otro pagando sólo la mejora
+    if (plano.soloMejora && !ignorarObra) return { ok: false, motivo: 'Se hace reforzando la pieza de antes' };
     // 3.6.1: donde no se construye (en el Relax, la Aldea de los Duendes: ver main.js)
     const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, plano.radio || 1) : null;
     if (reservado) return { ok: false, motivo: reservado };
@@ -3528,7 +3531,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   // 2.4: ¿estás abajo de una galería o de un invernadero? (rectángulo girado)
   function cubiertaDePieza(pos) {
     for (const o of obrasCerca(pos, 5, [])) {
-      if (!o.plano.cubreArea || o.datos.etapas < o.plano.etapas.length) continue;
+      if (!o.plano.cubreArea || o.datos.etapas < o.plano.etapas.length || o === edicion?.obra) continue;   // 3.8.7: (la que movés no tapa)
       const rot = o.datos.rot || 0, dx = pos.x - o.datos.x, dz = pos.z - o.datos.z;
       const lx = dx * Math.cos(rot) - dz * Math.sin(rot), lz = dx * Math.sin(rot) + dz * Math.cos(rot);
       const base = o.datos.y ?? T.altura(o.datos.x, o.datos.z);
@@ -3545,7 +3548,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (!pos) return lista;
     for (const o of obrasCerca(pos, radio, [])) {
       const P = o.plano, d = o.datos;
-      if (!P || !d || d.etapas < P.etapas.length || !Number.isFinite(d.x) || !Number.isFinite(d.z)) continue;
+      if (!P || !d || d.etapas < P.etapas.length || !Number.isFinite(d.x) || !Number.isFinite(d.z) || o === edicion?.obra) continue;   // 3.8.7: ídem
       const rot = d.rot || 0, base = Number.isFinite(d.y) ? d.y : T.altura(d.x, d.z);
       const rect = (ancho, fondo, y, o2 = {}) => lista.push({ x: d.x, z: d.z, rot, x0: -ancho / 2, x1: ancho / 2, z0: -fondo / 2, z1: fondo / 2, y, ax: 0, ab: 0, az: 0, ...o2 });
       // (el alero: techo a una agua de 2,62 m atrás a 2,22 m adelante)
@@ -3556,9 +3559,11 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     }
     return lista;
   }
+  // 3.8.7: también el giro, la altura y la que estás moviendo (girar una galería en su lugar, pasar un techo al módulo de
+  // arriba o agarrarlo con Shift+Y no rehacía el mapa de la lluvia: llovía con la forma vieja)
   function firmaCubiertas() {
-    let s = obras.length;
-    for (const o of obras) s += (o.datos.etapas || 0) * 0.37 + (o.datos.x || 0) * 0.013 + (o.datos.z || 0) * 0.017;
+    let s = obras.length + (edicion ? 0.5 + obras.indexOf(edicion.obra) * 0.031 : 0);
+    for (const o of obras) s += (o.datos.etapas || 0) * 0.37 + (o.datos.x || 0) * 0.013 + (o.datos.z || 0) * 0.017 + (o.datos.rot || 0) * 0.029 + (o.datos.y || 0) * 0.011;
     return s;
   }
   function bajoCubierta(pos) {
@@ -3756,9 +3761,11 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (d < d0) { d0 = d; mejor = o; }
     }
     if (!mejor) return { ok: false, motivo: 'Poné el cuerpo cerca de lo que querés repetir' };
-    elegir(mejor.plano);
+    // 3.8.7: de una pieza reforzada se repite la de antes (la reforzada no se funda: ver revisarSitio)
+    const plano = mejor.plano.soloMejora && Object.hasOwn(PLANO, mejor.plano.mejoraDe) ? PLANO[mejor.plano.mejoraDe] : mejor.plano;
+    elegir(plano);
     rotacionFantasma = mejor.datos.rot || 0;
-    return { ok: true, plano: mejor.plano, rot: rotacionFantasma };
+    return { ok: true, plano, rot: rotacionFantasma };
   }
 
   // Una marca sin materiales se puede retirar sin dejar física ni basura de

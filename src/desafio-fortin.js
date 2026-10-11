@@ -154,3 +154,18 @@ export function sanearDatosFortin(datos) {
   if (datos.helada !== undefined) datos.helada = !!datos.helada;
   return datos;
 }
+
+// 3.8.7: lo que una pieza del fortín tiene cargado y vuelve al desarmarla con Shift+Supr (antes se perdía): los troncos de
+// la rampa y de la zanja, la resina sin usar (el tronco con que se cargó, si está entera) y las piedras de la catapulta que
+// pasan de las 4 con que nace (ésas no se pagan: devolverlas sería sacar piedra de la nada).
+export const PIEDRAS_DE_REGALO = 4;
+export function contenidoFortin(datos) {
+  const n = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
+  const r = { tronco: 0, piedra: 0 };
+  if (!datos || typeof datos !== 'object') return r;
+  r.tronco += n(datos.troncos, FORTIN.rampa.troncos);
+  r.tronco += n(datos.zanja?.lena, 2);
+  if (n(datos.resina, FORTIN.resina.cargas) >= FORTIN.resina.cargas) r.tronco += FORTIN.resina.troncos;
+  r.piedra += Math.max(0, n(datos.piedras, FORTIN.catapulta.piedras) - PIEDRAS_DE_REGALO);
+  return r;
+}

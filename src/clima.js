@@ -129,10 +129,17 @@ export function crearClima(escena, T, ajustes) {
   lenia.add(brasa);
   lenia.visible = false;
   escena.add(lenia);
-  const fogata = { activa: false, pos: new THREE.Vector3(), vida: 0, contenida: false };
+  const fogata = { activa: false, pos: new THREE.Vector3(), vida: 0, contenida: false, duenio: null };
+  // 3.8.7: sin la obra que lo tenía (desmontada, movida con Shift+Y, volteada, derribada) el fuego se apaga de golpe: antes
+  // seguía ardiendo en el aire donde estaba la estufa, alumbrando, calentando la casa y dejando cocinar
+  function apagarFogata() {
+    fogata.activa = false; fogata.vida = -60; fogata.duenio = null;
+    lenia.visible = false; fuego.visible = false; humoFuego.visible = false; luzFuego.intensity = 0;
+  }
 
   function encenderFogata(x, y, z, duracion = 420, opciones = {}) {
     fogata.activa = true; fogata.vida = duracion; fogata.contenida = !!opciones.contenida;
+    fogata.duenio = opciones.duenio || null;   // 3.8.7: la obra tuya donde arde (el fogón, la estufa, el hogar), o null
     fogata.pos.set(x, y, z);
     lenia.position.set(x, y, z); lenia.visible = !fogata.contenida;
     fuego.visible = true; humoFuego.visible = !fogata.contenida;
@@ -334,7 +341,7 @@ export function crearClima(escena, T, ajustes) {
     if (fogata.activa) {
       fogata.vida -= dt;
       const brillo = clamp(fogata.vida / 40, 0, 1);
-      if (fogata.vida <= -60) { fogata.activa = false; lenia.visible = false; fuego.visible = false; humoFuego.visible = false; }
+      if (fogata.vida <= -60) { fogata.activa = false; fogata.duenio = null; lenia.visible = false; fuego.visible = false; humoFuego.visible = false; }
       luzFuego.position.set(fogata.pos.x, fogata.pos.y + 0.9, fogata.pos.z);
       const factorContenido = fogata.contenida ? 0.72 : 1;
       const factorLluvia = fogata.contenida ? 1 : (1 - estado.lluvia * 0.4);
@@ -400,5 +407,5 @@ export function crearClima(escena, T, ajustes) {
     return Math.max(0, relampago.luz) * (1.1 - relampago.lejos * 0.55);
   }
 
-  return { estado, actualizar, actualizarTormenta, encenderFogata, fogata, usarPrograma };
+  return { estado, actualizar, actualizarTormenta, encenderFogata, apagarFogata, fogata, usarPrograma };
 }

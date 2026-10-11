@@ -21,8 +21,10 @@ export function crearCimientos(T, escena) {
 
   // `obras`: las del constructor. Sólo mira las que tienen `datos.cimiento`.
   function sincronizar(obras) {
-    const con = (obras || []).filter((o) => o.datos?.cimiento);
-    const nueva = con.map((o) => `${o.datos.x.toFixed(1)},${o.datos.z.toFixed(1)}`).join(';');
+    // 3.8.7: sin la que se está moviendo (grupo oculto), y la firma con el giro y el plano: recolocada girada en el mismo
+    // centro, o reforzada (más gruesa), las piedras quedaban cruzadas o metidas adentro
+    const con = (obras || []).filter((o) => o.datos?.cimiento && o.grupo?.visible !== false);
+    const nueva = con.map((o) => `${o.datos.x.toFixed(1)},${o.datos.z.toFixed(1)},${(o.datos.rot || 0).toFixed(2)},${o.plano?.id}`).join(';');
     if (nueva === firma) return;
     firma = nueva;
     let n = 0;
