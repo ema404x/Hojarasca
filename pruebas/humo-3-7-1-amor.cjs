@@ -235,6 +235,9 @@ app.whenReady().then(async () => {
     await nuevoDia(boda.dia, 11);
     await js(`${P}.amor.personas.veterinaria.contacto = ${boda.dia}; 1`);
     await irLejos(); await amor(3);
+    // (3.8.7: la aldea la manda a la biblioteca antes de ir a hablarle: con los bancos de verdad en la plaza, el lugar de la cita
+    // y el de la abuela son el mismo asiento y, parándose ahí, E le hablaba a la abuela)
+    await aldea(20);
     puesta = await js(`${H}.__amor().puesta()`);
     ok(puesta && puesta.por === 'boda', 'ella espera en la biblioteca');
     h = await hablarCon('veterinaria', 14);
