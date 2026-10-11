@@ -2712,7 +2712,15 @@ function terminarCorrida() {
   if (mochilaAbierta) abrirMochila(false);
   desafio?.abrirTaller(false);
   $('fundido').classList.add('activo');
-  setTimeout(() => { desafio?.limpiar(); mostrarCorrida(); $('fundido').classList.remove('activo'); }, 1600);
+  // 3.8.7: como la victoria (3.8.3): si en el fundido pausaste, espera a que vuelvas; si saliste a la portada, la
+  // pantalla de la corrida no se abre encima (modo 'victoria' pisaba la pausa o la portada, y «Seguir» volvía al juego detrás)
+  const cerrarCorrida = () => {
+    if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle') { setTimeout(cerrarCorrida, 700); return; }
+    desafio?.limpiar();
+    $('fundido').classList.remove('activo');
+    if (modo === 'jugando') mostrarCorrida();
+  };
+  setTimeout(cerrarCorrida, 1600);
   return corridaUltima;
 }
 function listaRecordsHtml(titulo, lista, marcar) {

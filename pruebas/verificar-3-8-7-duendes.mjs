@@ -50,4 +50,12 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   ok(main.includes('if (j >= 0) { elegida = j; progreso.ranura = j; }'), 'refrescarBarra guarda la casilla nueva de lo elegido');
 }
 
+// ---------------------------------------------------------------- 4. la pantalla de la corrida sin fin respeta la pausa y la portada
+{
+  const main = leer('src/main.js');
+  const i = main.indexOf('const cerrarCorrida = () => {'), c = main.slice(i, main.indexOf('setTimeout(cerrarCorrida, 1600);', i));
+  ok(i > 0 && c.includes("if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle') { setTimeout(cerrarCorrida, 700); return; }"), 'pausado en el fundido, espera a que vuelvas');
+  ok(c.includes("if (modo === 'jugando') mostrarCorrida();"), 'sólo se abre si seguís en el juego (no sobre la portada)');
+}
+
 console.log(`verificar-3-8-7-duendes: ${n} comprobaciones OK`);
