@@ -175,6 +175,44 @@ app.whenReady().then(async () => {
       ok(t.golpe10 < n.golpe10 && n.golpe10 < i.golpe10, `pegan más (${t.golpe10} · ${n.golpe10} · ${i.golpe10})`);
       ok(!t.vidaRastreador || !i.vidaRastreador || (t.vidaRastreador < n.vidaRastreador && n.vidaRastreador < i.vidaRastreador), `aguantan más (${t.vidaRastreador} · ${n.vidaRastreador} · ${i.vidaRastreador})`);
     }
+    // ---------------------------------------------------------------- 5. tirones: cada cosa nueva de la noche, la primera vez, sin compilar nada a mitad del juego
+    if (toca('tirones')) {
+      seccion('tirones');
+      await nueva({});
+      await js(`(()=>{ const P=${H}.progreso, D=P.desafio; P.cosas = P.cosas || {}; for (const k of ['arco','lanza','honda','boleadoras','ballesta','facon','maza','arpon','hachuela','jabalina','granada','humo','bengala','cuerno','pistola','martillo']) P.cosas[k]=1;
+        Object.assign(D, { flechas: 30, flechasFuego: 10, virotes: 10, hachuelas: 5, jabalinas: 5, granadas: 5, humos: 5, bengalas: 5, boleadoras: 5, cargas: 10, tutorial: 99, oleadas: 6 }); P.materiales.piedra = 10; P.horas = 21; return 1 })()`);
+      // 150 cuadros de calma (el primer cuadro del juego prepara lo suyo) y después cada cosa, 45 cuadros
+      const frames = (cod, n = 45) => js(`(async ()=>{ const H=${H}, D=H.desafio, j=H.jugador.estado, gl=H.renderer.getContext(); ${cod}
+        const lento=[]; for (let i=0;i<${n};i++){ H.progreso.desafio.salud=1e5; const t0=performance.now(); H.__bucle(); gl.finish(); const ms=performance.now()-t0; if (ms>200) lento.push(Math.round(ms)); if (i%8===7) await new Promise(r=>setTimeout(r,0)); } return lento })()`);
+      await frames('', 150);
+      const acciones = {
+        'bajar un duende de cada tipo': "for (const t of ['rastreador','tirador','saltador','escupidor','excavador','volador','bruto']) { const a = D.invocar(t, j.pos.x + 25, j.pos.z + 12); a.vida = a.vidaMax = 1e6; a.dudaT = 999; }",
+        'herir un duende': "D.herirDuende(D.aliens.find((a) => a.tipo === 'rastreador'), 5, 'jugador');",
+        'matar un duende (semillas, efectos)': "const a = D.aliens.find((a) => a.tipo === 'saltador'); a.vida = 1; D.herirDuende(a, 999, 'jugador');",
+        'herir al jugador': "D.herirJugador(5, { x: j.pos.x + 1, y: j.pos.y, z: j.pos.z });",
+        'arco': "for (let i = 0; i < 2; i++) { H.desafio.atacar('arco'); }",
+        'ballesta': "H.desafio.atacar('ballesta');",
+        'honda': "H.desafio.atacar('honda');",
+        'hachuela': "H.desafio.atacar('hachuela');",
+        'jabalina': "H.desafio.atacar('jabalina');",
+        'granada': "H.desafio.atacar('granada');",
+        'humo': "H.desafio.atacar('humo');",
+        'bengala': "H.desafio.atacar('bengala');",
+        'pistola': "H.desafio.atacar('pistola');",
+        'boleadoras': "H.desafio.atacar('boleadoras');",
+        'arpón': "H.desafio.atacar('arpon');",
+        'cuerno': "H.desafio.atacar('cuerno');",
+        'hacha': "H.desafio.atacar('hacha');",
+      };
+      const lentos = {};
+      for (const [nombre, cod] of Object.entries(acciones)) {
+        // el recargado entre una y otra: se simula tiempo para que el arma vuelva a estar lista
+        await js(`(()=>{ for (let i=0;i<40;i++) ${H}.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); return 1 })()`);
+        lentos[nombre] = await frames(cod);
+        console.log(`   ${nombre}: ${lentos[nombre].length ? 'tirón de ' + lentos[nombre].join(', ') + ' ms' : 'sin tirones'}`);
+        ok(!lentos[nombre].length || process.env.TOLERAR, `${nombre}: ningún cuadro de más de 200 ms (un programa que compila mid-juego son 250-350 ms)`);
+      }
+    }
   } catch (e) {
     errores.push('excepcion: ' + (e && e.message ? e.message : e));
   }

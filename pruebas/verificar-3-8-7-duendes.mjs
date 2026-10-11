@@ -58,4 +58,15 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   ok(c.includes("if (modo === 'jugando') mostrarCorrida();"), 'sólo se abre si seguís en el juego (no sobre la portada)');
 }
 
+// ---------------------------------------------------------------- 5. las partículas se preparan en el primer cuadro, no en el primer golpe
+{
+  const ef = leer('src/desafio-efectos.js');
+  const i = ef.indexOf('function precalentar() {'), c = ef.slice(i, ef.indexOf('\n  }\n', i));
+  ok(i > 0 && c.includes('lanzarAstillas(') && c.includes('lanzarGotas('), 'emite una partícula sólida y una brillante (cada nube compila su programa)');
+  ok(c.includes('y: -900'), 'bajo el suelo: nadie la ve');
+  ok(/actualizar, limpiar, precalentar,/.test(ef), 'efectos la exporta');
+  ok(des.includes('efectos.precalentar?.();'), 'desafio.js la llama en el primer cuadro (primerCuadro)');
+  ok(des.indexOf('efectos.precalentar?.();') > des.indexOf('for (const a of precalentados) soltarAlien(a);'), 'junto a la preparación de los duendes');
+}
+
 console.log(`verificar-3-8-7-duendes: ${n} comprobaciones OK`);

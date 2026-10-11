@@ -3371,6 +3371,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (primerCuadro) {
       primerCuadro = false;
       for (const a of precalentados) soltarAlien(a);
+      efectos.precalentar?.();   // 3.8.7: el programa de las partículas se prepara acá, no en el primer golpe de la noche
       refrescarDefensas();
       defensas.refrescar();
       fortin.refrescar();
