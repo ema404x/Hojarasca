@@ -35,6 +35,7 @@ export function estadoHistoria(p, extra = {}) {
   const ev = p?.eventosValle?.hechos || {};
   return {
     dia: Math.max(1, Math.floor(Number(p?.dia) || 1)),
+    horas: Number.isFinite(Number(p?.horas)) ? Number(p.horas) : 12,   // 3.8.7: para el fin del temporal (a la mañana)
     anotaciones: Object.keys(e).length,
     refugio: !!e.refugio,
     fuego: !!extra.fuego || !!e.fogata,
@@ -75,6 +76,10 @@ export function baseDe(s) {
 }
 const desde = (s, b, k) => Math.max(0, (Number(s[k]) || 0) - (Number(b?.[k]) || 0));
 const tiene = (id) => (s) => s.terminadas.has(id);
+// 3.8.7: la noche del temporal termina a la mañana (el tiempo del juego lo fuerza de las 18 a las 7, ver main.js): se
+// tildaba a la medianoche y la tarjeta «El temporal pasó de largo a la madrugada… Saliste a mirar» salía en plena tormenta
+export const FIN_TEMPORAL = 7;
+const pasoLaNoche = (s, d) => { const hoy = Number(s.dia) || 0; return hoy > d + 1 || (hoy === d + 1 && (Number(s.horas ?? FIN_TEMPORAL) || 0) >= FIN_TEMPORAL); };
 
 export const CAPITULOS = [
   {
@@ -214,7 +219,7 @@ export const CAPITULOS = [
     objetivos: [
       { id: 'visita', tecla: '·', texto: 'Recibí una visita en tu mesa (vienen a la tarde)', vecinos: true, hecho: (s, b) => desde(s, b, 'visitas') >= 1 },
       { id: 'cuento', tecla: 'E', texto: 'Con un fuego prendido cerca de la mesa, que la visita se quede y cuente un cuento', vecinos: true, hecho: (s, b) => desde(s, b, 'cuentos') >= 1 || (s.cuentos >= CUENTOS.length && desde(s, b, 'visitas') >= 1) },   // 3.8.3: con los cuatro cuentos ya oídos no queda ninguno por contar: alcanza con la visita (si no, el capítulo no terminaba nunca)
-      { id: 'temporal', tecla: '·', delMomento: true, texto: 'Pasá la noche del temporal', hecho: (s, b) => s.eventos.has('temporal') && (s.eventosDia?.temporal ?? Infinity) >= (b?.dia || 1) && (Number(s.dia) || 0) > s.eventosDia.temporal },   // 3.8.3: el de este capítulo (un temporal al azar de antes tildaba el final sin jugarlo)
+      { id: 'temporal', tecla: '·', delMomento: true, texto: 'Pasá la noche del temporal', hecho: (s, b) => s.eventos.has('temporal') && (s.eventosDia?.temporal ?? Infinity) >= (b?.dia || 1) && pasoLaNoche(s, s.eventosDia.temporal) },   // 3.8.3: el de este capítulo (un temporal al azar de antes tildaba el final sin jugarlo)
       // 3.8.6: y pasada la noche (al día siguiente): se tildaba al elegir en la tarjeta, a cualquier hora, y el final («El
       // temporal pasó de largo a la madrugada») salía a la tarde, antes de la noche
     ],

@@ -182,7 +182,7 @@ import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-t
 // 3.1: la historia guiada y los eventos del valle con decisiones (ver historia-ui.js)
 import { crearValleUi } from './historia-ui.js';
 // 3.8.6: la noche del temporal del capítulo 8
-import { CAPITULOS } from './historia.js';
+import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos } from './accesibilidad.js';
@@ -1097,7 +1097,7 @@ function dibujarCuaderno() {
     // 2.1: 'cambiar' no tenía verbo (las fichas del almacén decían «undefined el día…»)
     const verbo = { observar: 'Visto', anotar: 'Anotado', juntar: 'Encontrado', escuchar: e.seccion === 'historias' ? 'Te la contaron' : 'Escuchado', llegar: 'Llegaste', pescar: 'Pescado por primera vez', cocinar: 'Cocinado', encargo: 'Encargo cumplido', cambiar: 'Conseguido', rastrear: 'Rastreado', cosechar: 'Cosechado por primera vez', leer: 'Recibida', libro: 'Leído' }[e.modo] || 'Anotado';   // 3.6 (mecánicas): los libros de la aldea
     const pez = progreso.peces[e.id];
-    ficha.appendChild(el('p', 'anotado', `${verbo} el día ${reg.dia} a las ${horaTexto(reg.hora)}${reg.cantidad && !pez ? `, llevás ${reg.cantidad}` : ''}${pez ? `. Pescaste ${pez.cantidad}, la más grande de ${pez.record} cm` : ''}`));
+    ficha.appendChild(el('p', 'anotado', `${verbo} el día ${reg.dia} a las ${horaTexto(reg.hora)}${reg.cantidad && !pez ? `, llevás ${reg.cantidad}` : ''}${pez ? `. Pescaste ${pez.cantidad}, ${e.id === 'pejerrey' ? 'el' : 'la'} más grande de ${pez.record} cm` : ''}`));   // 3.8.7: el pejerrey es «él»
     ficha.appendChild(el('p', 'texto', e.texto));
     // 2.1: cuándo se ve (ver `almanaque.js`)
     const cuando = cuandoSeVe(e);
@@ -6750,7 +6750,7 @@ function temporalDeLaHistoria(k) {
   if (desafio || !h?.activa || CAPITULOS[h.capitulo]?.id !== 'temporal' || h.momentos?.temporal !== 'lanzado') return false;
   const d = Math.floor(Number(progreso.eventosValle?.hechos?.temporal?.dia) || 0);
   if (!d || d < (h.base?.dia || 1)) return false;
-  const desde = horaAbsoluta(d, 18), hasta = horaAbsoluta(d + 1, 7);
+  const desde = horaAbsoluta(d, 18), hasta = horaAbsoluta(d + 1, FIN_TEMPORAL);   // (3.8.7: la misma hora en que se tilda)
   return (k + 1) * TRAMO > desde && k * TRAMO < hasta;
 }
 const fuerzaMolino = () => fuerzaDelAgua({ invierno: U.uInvierno.value, crecida: progreso.tormenta?.crecida || 0 });

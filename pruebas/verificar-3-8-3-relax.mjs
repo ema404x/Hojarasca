@@ -99,7 +99,8 @@ const trozo = (desde, hasta) => {
   ok(r.nuevos.some((o) => o.id === 'visita') && !r.nuevos.some((o) => o.id === 'cuento'), 'con un cuento por contar, la visita sola no alcanza');
   // el momento lanzado y perdido se vuelve a pedir mirando su objetivo (no si pasó alguna vez)
   const ui = leer('src/historia-ui.js');
-  ok(!ui.includes('!s.eventos.has(def.evento)') && ui.includes("o.delMomento && h.hechos[`${capituloActual(h).id}:${o.id}`] !== undefined"), 'historia-ui.js: el momento perdido se repide según su objetivo');
+  // (3.8.7: la cuenta se mudó a historia.js, `momentoPerdido`, que además mira si ya pasó en el capítulo)
+  ok(!ui.includes('!s.eventos.has(def.evento)') && ui.includes('momentoPerdido(h, s)') && leer('src/historia.js').includes("if (c.objetivos.some((o) => o.delMomento && h.hechos[`${c.id}:${o.id}`] !== undefined)) return null;"), 'historia-ui.js: el momento perdido se repide según su objetivo');
 }
 
 // ---------------------------------------------------------------- 3. E y el aviso: dormir en la carpa o en la casa

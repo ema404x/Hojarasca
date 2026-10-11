@@ -263,7 +263,7 @@ this.f = lluviaPorTramos;`, ctx);
 {
   // 1a: la noche del temporal del capítulo 8 llueve con viento fuerte
   const f = trozoFn('function temporalDeLaHistoria(');
-  const ctx = { TRAMO: 3, desafio: null, CAPITULOS: [{ id: 'llegada' }, { id: 'temporal' }], horaAbsoluta: (d, h) => d * 24 + h, progreso: null };
+  const ctx = { TRAMO: 3, FIN_TEMPORAL: 7, desafio: null, CAPITULOS: [{ id: 'llegada' }, { id: 'temporal' }], horaAbsoluta: (d, h) => d * 24 + h, progreso: null };
   vm.createContext(ctx);
   vm.runInContext(`${f}\nthis.f = temporalDeLaHistoria;`, ctx);
   ctx.progreso = { historia: { activa: true, capitulo: 1, momentos: { temporal: 'lanzado' }, base: { dia: 9 } }, eventosValle: { hechos: { temporal: { dia: 10 } } } };
