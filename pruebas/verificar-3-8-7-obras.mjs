@@ -10,6 +10,7 @@
 // 4. Lo reforzado (portón con tranca, empalizada reforzada, muro almenado) no se funda de cero; X repite la de antes.
 // 5. Desarmar una pieza del fortín devuelve lo cargado; los abrojos no se reparan; el cimiento sigue al giro.
 // 6. Máquinas: «Echaste una haba», la radio sin «Estática: «Estática…»» y el pronóstico con la nevada y el temporal.
+// 7. El acopio: una marca sin hacer no retiene lo guardado, y al cargar sin acopio armado lo guardado vuelve.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -191,6 +192,18 @@ function mundo(extraT = {}, veg = { arboles: [], despejar() {} }) {
   const d = Me.pronosticoDia(4242, 9, { estacion: 'verano', modo: 'despejado', tipo: () => 'lluvia', viento: () => 0.5 });
   ok(d.lluvia && /viento fuerte/.test(d.texto), `el pronóstico usa el programa de la partida («${d.texto}»)`);
   ok(leer('src/main.js').includes('tipo: programaTramos.tipo, viento: programaTramos.viento });'), 'y main.js se lo pasa');
+}
+
+// ---------------------------------------------------------------- 7. el acopio
+{
+  const main = leer('src/main.js');
+  const i = main.indexOf('function vaciarUltimoAcopio(a = null) {'), codigo = main.slice(i, main.indexOf('\n}', i) + 2);
+  const ctx = { obras: { obras: [] }, progreso: { acopio: { tronco: 3 } }, CLAVES_MATERIAL: ['tronco'], sumados: {}, cantidadMaterial: (n) => `${n} troncos` };
+  vm.createContext(ctx);
+  vm.runInContext(`function acopio() { return progreso.acopio; } function sumarMaterial(k, n) { sumados[k] = (sumados[k] || 0) + n; } ${codigo} this.f = vaciarUltimoAcopio;`, ctx);
+  ctx.obras.obras = [{ plano: { funciones: ['acopio'], etapas: [{}] }, datos: { etapas: 0 } }];
+  eq(ctx.f(), '3 troncos', 'una marca de acopio sin hacer no retiene lo guardado');
+  ok(main.includes("else { const v = vaciarUltimoAcopio(); if (v) setTimeout(() => nota('Lo del acopio volvió a tus cosas'"), 'y al cargar sin acopio armado, vuelve');
 }
 
 console.log(`verificar-3-8-7-obras: ${pasos} comprobaciones OK`);

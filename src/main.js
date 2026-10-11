@@ -760,6 +760,8 @@ async function construir() {
   // 3.8.4: desarmado el último acopio, lo guardado vuelve con lo demás (3.8.6: y la nota lo dice sólo si de verdad volvió algo:
   // si quedaba otro acopio, o estaba vacío, decía «con lo que guardabas en el acopio» igual)
   if (desalojo.acopio) desalojo.acopio = !!vaciarUltimoAcopio(desalojo.materiales || (desalojo.materiales = {}));
+  // 3.8.7: una partida con algo en el acopio y ningún acopio terminado (de antes de la 3.8.4, o con sólo una marca): vuelve
+  else { const v = vaciarUltimoAcopio(); if (v) setTimeout(() => nota('Lo del acopio volvió a tus cosas', `No quedaba ningún acopio armado: ${v}`), 4000); }
   avisoDesalojo = textoDesalojo(desalojo);
   if (desalojo.materiales) for (const [k, n] of Object.entries(desalojo.materiales)) if (n > 0) sumarMaterial(k, n);
   matasHuerta = crearMatasHuerta(escena);
@@ -4353,7 +4355,9 @@ function totalAcopio() { return CLAVES_MATERIAL.reduce((s, k) => s + (acopio()[k
 // tenía vuelve a tus cosas (`a`: adónde se suma; si no, a la mochila) y devuelve el texto para la nota; si quedan otros
 // acopios, sigue todo ahí como siempre. null si no había nada o si queda otro acopio.
 function vaciarUltimoAcopio(a = null) {
-  if ((obras?.obras || []).some((o) => o.plano?.funciones?.includes('acopio'))) return null;
+  // 3.8.7: sólo cuentan los terminados: una marca de acopio sin hacer (fundada sin material) dejaba lo guardado sin poder
+  // usarse hasta terminar otro
+  if ((obras?.obras || []).some((o) => o.plano?.funciones?.includes('acopio') && o.datos.etapas >= o.plano.etapas.length)) return null;
   const g = acopio(), partes = [];
   for (const k of CLAVES_MATERIAL) {
     const n = Math.max(0, Math.floor(Number(g[k]) || 0));
