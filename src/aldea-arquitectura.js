@@ -5468,7 +5468,17 @@ export function armarTallerTren(opciones = {}) {
     if (s > 0) { huecos.push(huecoPuerta); huecos.push(ventanaCuarto); }
     paredConHuecos(E, 'x', z, -W, W, F0 - 0.02, F0 + 1.2, huecos, tabla, { sup: SUP.tablasHorizontales });
     paredConHuecos(E, 'x', z, -W, W, F0 + 1.2, AL, huecos, chapaPared, { sup: SUP.chapa, espesor: 0.08 });
-    caja(E, [0, F0 + 1.22, z + s * 0.06], [2 * W + 0.1, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+    // el listón de unión de las tablas y la chapa: corrido de punta a punta, salvo donde hay un hueco (la puerta y la ventana del cuarto
+    // lo cortaban al medio: se veía una madera cruzando la puerta)
+    {
+      const cortes = s > 0 ? [huecoPuerta, ventanaCuarto].sort((p, q) => p.a - q.a) : [];
+      let desde = -W - 0.05;
+      for (const c of [...cortes, { a: W + 0.05, b: W + 0.05 }]) {
+        const hasta = Math.min(c.a - 0.08, W + 0.05);
+        if (hasta - desde > 0.05) caja(E, [(desde + hasta) / 2, F0 + 1.22, z + s * 0.06], [hasta - desde, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+        desde = c.b + 0.08;
+      }
+    }
     // los marcos y los vidrios de las ventanas altas (la luz entra de verdad)
     for (const xv of xs) {
       for (const yy of [yv0, yv1]) caja(E, [xv, yy, z + s * 0.05], [1.72, 0.08, 0.07], '#d8cfb8', { sup: SUP.nada, abollar: 0 });

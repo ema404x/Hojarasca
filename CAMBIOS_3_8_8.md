@@ -163,6 +163,9 @@ Arreglado: **(1)** pedir y devolver un préstamo el mismo día sumaba confianza 
 ## Economía probada en el juego real (`pruebas/humo-economia.cjs`)
 Una partida real del Relax en Chromium sin pantalla (Playwright; el render por software anda a menos de un cuadro por segundo, así que el guion monta el pueblo y arma a los vecinos de una): **27 pasos, todos bien**. El banco aparece en el valle con su cartel, el gerente atiende despierto y a la vista detrás de la reja (se le habla con E), el mostrador abre y se maneja (pedir y pagar un préstamo, abastecimiento, casas, puesto, Escape para salir), un día nuevo cierra las cuentas y corre el interés, el carpintero ofrece y paga un jornal de $1.100 (queda en el libro y le baja la caja; el mismo día no hay otro), la cabaña no se levanta sin plata y con $13.000 cobra el terreno ($12.600) y marca la etapa como pagada, y todo sobrevive a guardar y recargar. Las fotos quedan en `pruebas/salidas/economia/` (no van al repositorio). Para correrla: `node armar.mjs` y después `node pruebas/humo-economia.cjs`.
 
+## El taller del tren: el listón que cruzaba la puerta
+Al recorrer el juego real se vio una madera horizontal que cruzaba la puerta del taller ferroviario (y la ventana del cuarto de Martín): el listón que une las tablas con la chapa corría de punta a punta del frente. Ahora se corta en los huecos (`armarTallerTren`, `aldea-arquitectura.js`) y queda a cada lado de la puerta y de la ventana. Verificado con una foto del juego real (`pruebas/humo-revision.cjs taller-puerta-cerca`).
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

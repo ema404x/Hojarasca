@@ -12,6 +12,8 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 // cada toma: dónde parado (x, z), a dónde mira (mx, mz, my), la hora y, si hace falta, lo que hay que preparar
 const TOMAS = {
   'taller-puerta': { lugar: 'taller-tren', punto: 'pie', mira: 'puerta', hora: 11, nota: 'la puerta del taller ferroviario y su entrada' },
+  'taller-puerta-lejos': { lugar: 'taller-tren', punto: 'pie', mira: 'puerta', atras: 6, dy: 1.3, hora: 11, nota: 'la puerta del taller desde seis metros' },
+  'taller-puerta-cerca': { lugar: 'taller-tren', punto: 'pie', mira: 'puerta', atras: 1.2, dy: 1.6, hora: 11, nota: 'la puerta del taller desde un metro' },
   'taller-adentro': { lugar: 'taller-tren', punto: 'zaguan', mira: 'banco', hora: 11, nota: 'adentro del galpón, mirando hacia el cuarto de Martín' },
   'te-fuera': { rel: 'casa-te', d: 14, ang: 0.6, hora: 15, mira: 'centro', nota: 'la casa de té desde afuera' },
   'te-mastil': { rel: 'casa-te', d: 9, ang: -0.9, hora: 15, mira: 'alto', viento: 1, nota: 'el mástil con las dos banderas' },
@@ -44,7 +46,8 @@ const TOMAS = {
       let x, z, mx, mz, my = null, dy = 1.8;
       if (t2.lugar) {
         const P = H.__aldea.puntos(t2.lugar), a = P[t2.punto], m = P[t2.mira];
-        x = a.x; z = a.z; mx = m.x; mz = m.z; dy = 1.5;
+        x = a.x; z = a.z; mx = m.x; mz = m.z; dy = t2.dy ?? 1.5;
+        if (t2.atras) { const d = Math.hypot(x - mx, z - mz) || 1; x += ((x - mx) / d) * t2.atras; z += ((z - mz) / d) * t2.atras; }
       } else if (t2.rel) {
         const L = T.lugares[t2.rel]; mx = L.x; mz = L.z; x = L.x + Math.sin(t2.ang) * t2.d; z = L.z + Math.cos(t2.ang) * t2.d; if (t2.mira === 'alto') dy = 7;
       } else if (t2.salto) {
