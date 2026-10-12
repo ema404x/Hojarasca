@@ -100,6 +100,8 @@ Todas son piezas sueltas de la categoría Mobiliario, sólo en el Relax, con mat
 ## Arreglo: no se podía entrar al taller del tren
 Un poste interior del frente del galpón (x 3,02) caía a 2 cm del eje de la puerta chica (x 3,0). Con su choque de 12 cm y el cuerpo del jugador (35 cm), el paso útil quedaba en 30 cm y la escalerita terminaba contra un poste invisible: no se podía entrar. Ahora ese poste no se dibuja ni choca (la cabriada sigue sostenida por las vigas). Prueba nueva en `verificar-3-7-3-taller.mjs`: se camina del pie de la escalerita al banco con el mundo de colisiones real (falla sin el arreglo). Las paredes se barrieron con 1.500 recorridos desde adentro y 600 desde afuera: no se pasa por ninguna, salvo la puerta chica y el portón abierto. No se encontró ninguna causa de atravesar piso o paredes: si sigue pasando, hace falta saber dónde.
 
+Segundo arreglo del taller: **la caída en el portón** (el que entra por la vía). El terraplén caminable del desvío medía 1,9 m, pero la boca del portón mide 2,8 y el balasto que se ve, 2,3 o más; y la zorra, parada sobre los rieles, empuja al que viene por el centro hacia el costado. El cuerpo se salía del borde justo en la entrada, caía al terreno (1,2 m más abajo) y quedaba bajo el piso del galpón. Ahora el paso mide 2,3 m y 2,9 en los últimos 4 m, como la boca. Prueba nueva: hay piso en todo el ancho del portón. Con el choque de la zorra no se pasa por el centro de los rieles: se rodea por el costado.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

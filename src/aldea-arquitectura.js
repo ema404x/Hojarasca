@@ -5716,7 +5716,12 @@ export function armarTallerTren(opciones = {}) {
     for (let i = 0; i < tramo.length - 1; i++) {
       const a = tramo[i], b = tramo[i + 1];
       const L = Math.hypot(b[0] - a[0], b[2] - a[2]);
-      K.plataforma((a[0] + b[0]) / 2, (a[2] + b[2]) / 2, L + 0.05, 1.9, (a[1] + b[1]) / 2 + 0.03, 0.4, -Math.atan2(b[2] - a[2], b[0] - a[0]));
+      // (3.8.8: el terraplén caminable medía 1,9 m y el balasto que se ve, 2,3 o más; en la boca del portón, que mide 2,8, el
+      // cuerpo se salía del borde justo en la entrada —y la zorra, sobre los rieles, empuja hacia el costado—: se caía al
+      // terreno, 1,2 m más abajo, y entraba por debajo del piso. Ahora el paso es tan ancho como lo que se ve, y como el portón
+      // en los últimos 4 m)
+      const ancho = Math.max(a[0], b[0]) > -W - 4 ? 2.9 : 2.3;
+      K.plataforma((a[0] + b[0]) / 2, (a[2] + b[2]) / 2, L + 0.05, ancho, (a[1] + b[1]) / 2 + 0.03, 0.4, -Math.atan2(b[2] - a[2], b[0] - a[0]));
     }
     // las agujas: dos rieles finitos que se afinan desde el talón hasta la punta, sobre la vía principal
     const p0 = via[0], p1 = via[Math.max(1, desde)];

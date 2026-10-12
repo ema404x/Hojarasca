@@ -417,6 +417,10 @@ function cargarVM(mods) {
           }
         }
         ok(Math.hypot(pos.x - 0, pos.z + 2.3) < 0.35 && Math.abs(pos.y - 0.32) < 0.03, `${que}: se entra por la puerta chica y se llega al banco (${pos.x.toFixed(2)}, ${pos.z.toFixed(2)})`);
+        // 3.8.8: por la vía hasta el portón no se cae del terraplén (la boca mide 2,8 m): hay piso en todo el ancho, y adentro sigue
+        let hueco = null;
+        for (let x = -10.5; x <= -6 && !hueco; x += 0.25) for (let z = -1.3; z <= 1.31; z += 0.2) if (!col.plataformaEn(x, z, 0.4, 0.62) && Math.abs(z) < 1.4) { hueco = [x, z]; break; }
+        ok(!hueco, `${que}: el terraplén cubre toda la boca del portón (${hueco})`);
         const postes = ed.colisiones.obstaculos.filter((o) => !o.seg && o.z > 3 && o.z < 3.7 && o.x > 1.6 && o.x < 4.4);
         ok(postes.length === 0, `${que}: ningún poste en la puerta`);
       }
