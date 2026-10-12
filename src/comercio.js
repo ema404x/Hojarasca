@@ -85,13 +85,13 @@ export const TEMPORADAS = Object.keys(TEMPORADA);
 const temporadaValida = (t) => (typeof t === 'string' && Object.hasOwn(TEMPORADA, t) ? t : 'verano');
 
 // ---------------------------------------------------------------- el azar con semilla
-function hashTexto(t) {
+export function hashTexto(t) {
   let h = 2166136261 >>> 0;
   const s = String(t);
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
   return h >>> 0;
 }
-function azarDe(semilla) {
+export function azarDe(semilla) {
   let s = ((semilla >>> 0) * 2654435761 + 0x9e3779b9) >>> 0;
   if (!s) s = 0x1234567;
   return () => { s = (s ^ (s << 13)) >>> 0; s = (s ^ (s >>> 17)) >>> 0; s = (s ^ (s << 5)) >>> 0; return s / 4294967296; };
@@ -133,7 +133,8 @@ export function valorDe(nombre, bien, dia, temporada) {
 // `hoy`: lo que se movió hoy en cada puesto ("parada|bien" → lotes) y los fletes que ya
 // se tomaron hoy. `fletes`: los que llevás. `ganado` y `entregas`: para el cuaderno.
 export function comercioNuevo() {
-  return { hoy: { dia: 0, vendidos: {}, comprados: {}, tomados: [] }, fletes: [], ganado: 0, entregas: 0, km: 0 };
+  // 3.8.8: `mercado`: lo que tiene cada puesto de existencias y de caja, y que sigue de un día para el otro (ver mercado.js)
+  return { hoy: { dia: 0, vendidos: {}, comprados: {}, tomados: [] }, fletes: [], ganado: 0, entregas: 0, km: 0, mercado: {} };
 }
 const entero = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 const texto = (v, max = 48) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -158,6 +159,18 @@ function sanearFlete(f) {
   if (mat && typeof mat === 'object' && esBien(mat.k) && BIENES[mat.k].donde === 'material') premio.material = { k: mat.k, n: Math.max(1, entero(mat.n, 20)) };
   return { id, tipo, desde, hasta, cuantos: Math.max(1, entero(f.cuantos, 30)), que: texto(f.que, 60), premio, dia: entero(f.dia, 1e6) };
 }
+// 3.8.8: lo guardado del mercado de cada puesto: { parada: { dia, caja, stock: { bien: lotes } } }, con topes
+function sanearMercadoGuardado(v) {
+  const limpio = {};
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return limpio;
+  for (const [nombre, t] of Object.entries(v)) {
+    if (typeof nombre !== 'string' || !nombre || nombre.length > 48 || !t || typeof t !== 'object' || Array.isArray(t) || Object.keys(limpio).length >= 40) continue;
+    const stock = {};
+    for (const [b, n] of Object.entries(t.stock && typeof t.stock === 'object' && !Array.isArray(t.stock) ? t.stock : {})) if (esBien(b)) stock[b] = entero(n, 30);
+    limpio[nombre] = { dia: entero(t.dia, 1e6), caja: entero(t.caja, 1e7), stock };
+  }
+  return limpio;
+}
 export function sanearComercio(v) {
   const base = comercioNuevo();
   if (!v || typeof v !== 'object' || Array.isArray(v)) return base;
@@ -174,6 +187,7 @@ export function sanearComercio(v) {
     },
     fletes: fletes.filter((f) => !vistos.has(f.id) && vistos.add(f.id)).slice(0, COMERCIO.fletesConFurgon),
     ganado: entero(v.ganado, 1e7), entregas: entero(v.entregas, 1e6), km: Math.max(0, Math.min(1e6, Number(v.km) || 0)),
+    mercado: sanearMercadoGuardado(v.mercado),
   };
 }
 // El de hoy: si lo guardado es de otro día, las cuentas de los puestos arrancan de cero
@@ -197,6 +211,7 @@ export function renombrarParada(c, viejo, nuevo) {
     // (el id lleva la parada de donde sale: 'día|parada|k')
     if (typeof f.id === 'string') { const p = f.id.split('|'); if (p[1] === viejo) { p[1] = nuevo; f.id = p.join('|'); } }
   }
+  if (c.mercado && typeof c.mercado === 'object' && Object.hasOwn(c.mercado, viejo)) { if (!Object.hasOwn(c.mercado, nuevo)) c.mercado[nuevo] = c.mercado[viejo]; delete c.mercado[viejo]; n++; }   // 3.8.8
   for (const cuenta of ['vendidos', 'comprados']) {
     const v = c.hoy?.[cuenta];
     if (!v || typeof v !== 'object') continue;
@@ -214,11 +229,12 @@ export function renombrarParada(c, viejo, nuevo) {
 // ---------------------------------------------------------------- precios
 // `compra`: lo que pagás por un lote; `venta`: lo que te dan. El puesto nunca paga más de
 // lo que cobra, así que comprar y vender en el mismo andén siempre pierde.
-export function precios(c, nombre, bien, dia, temporada) {
+export function precios(c, nombre, bien, dia, temporada, factor = 1) {
   if (!esBien(bien)) return null;
   const clave = `${nombre}|${bien}`;
   const comprados = c?.hoy?.comprados?.[clave] || 0, vendidos = c?.hoy?.vendidos?.[clave] || 0;
-  const v = valorDe(nombre, bien, dia, temporada);
+  // 3.8.8: `factor`: lo que el mercado agrega por lo que tiene o le falta al puesto (mercado.js); 1 = nada
+  const v = valorDe(nombre, bien, dia, temporada) * (Number.isFinite(factor) && factor > 0 ? factor : 1);
   const venta = Math.max(1, Math.floor(v * (1 - COMERCIO.margen) * Math.max(0.3, 1 - COMERCIO.corrimiento * vendidos)));
   const compra = Math.max(venta + 1, Math.ceil(v * (1 + COMERCIO.margen) * (1 + COMERCIO.corrimiento * comprados)));
   return {
@@ -230,9 +246,9 @@ export function precios(c, nombre, bien, dia, temporada) {
 
 // Comprar un lote: `yerba` es lo que tenés. Anota el lote en el puesto y dice cuánto se
 // paga; lo que tenés lo cambia el juego (la yerba baja, la cosa sube).
-export function comprar(c, nombre, bien, dia, temporada, yerba) {
+export function comprar(c, nombre, bien, dia, temporada, yerba, factor = 1) {
   if (!esBien(bien) || !bienesDe(nombre).includes(bien)) return { ok: false, motivo: 'no hay' };
-  const p = precios(c, nombre, bien, dia, temporada);
+  const p = precios(c, nombre, bien, dia, temporada, factor);
   if (p.quedanCompra <= 0) return { ok: false, motivo: 'agotado' };
   if ((Number(yerba) || 0) < p.compra) return { ok: false, motivo: 'yerba', precio: p.compra };
   const clave = `${nombre}|${bien}`;
@@ -240,9 +256,9 @@ export function comprar(c, nombre, bien, dia, temporada, yerba) {
   return { ok: true, precio: p.compra, cantidad: p.lote };
 }
 // Vender un lote: `tengo` es cuánto tenés de eso.
-export function vender(c, nombre, bien, dia, temporada, tengo) {
+export function vender(c, nombre, bien, dia, temporada, tengo, factor = 1) {
   if (!esBien(bien) || !bienesDe(nombre).includes(bien)) return { ok: false, motivo: 'no hay' };
-  const p = precios(c, nombre, bien, dia, temporada);
+  const p = precios(c, nombre, bien, dia, temporada, factor);
   if (p.quedanVenta <= 0) return { ok: false, motivo: 'lleno' };
   if ((Number(tengo) || 0) < p.lote) return { ok: false, motivo: 'falta', lote: p.lote };
   const clave = `${nombre}|${bien}`;

@@ -125,7 +125,8 @@ const partida = (extra = {}) => ({ modo: 'relax', dia: 4, cosas: {}, economia: E
   const ctx = { progreso: () => p, dia: () => 5, temporada: () => 'verano', tren: { paradas: [parada] }, nota: (t, sub) => notas.push([t, sub]), guardar() {}, refrescar() {}, sonido: null };
   const puesto = crearPuestoDeCargas(ctx);
   puesto.abrir(parada, 'vender');
-  const pv = C.precios(p.comercio, parada.nombre, 'tabla', 5, 'verano');
+  const M = await import('../src/mercado.js');
+  const pv = C.precios(p.comercio, parada.nombre, 'tabla', 5, 'verano', M.factorDe(M.tienda(p.comercio, parada.nombre, 5), parada.nombre, 'tabla'));
   ok(puesto.venderBien('tabla'), 'se vende un lote de tablas');
   ok(E.pesosDe(p) === pv.venta * 100 && p.materiales.tabla === 8 - pv.lote, `se cobra en pesos: $${pv.venta * 100} por el lote (hoy ${E.pesosDe(p)})`);
   ok(!('yerba' in p.cosas), 'y ya no aparece yerba');
@@ -133,7 +134,7 @@ const partida = (extra = {}) => ({ modo: 'relax', dia: 4, cosas: {}, economia: E
   ok(mov.monto === pv.venta * 100 && /^Venta: /.test(mov.motivo) && /aurelio/i.test(mov.con), `el libro dice qué y a quién (${mov.motivo} · ${mov.con})`);
   // comprar: alcanza o no alcanza, en pesos
   puesto.abrir(parada, 'comprar');
-  const pc = C.precios(p.comercio, parada.nombre, 'piedra', 5, 'verano');
+  const pc = C.precios(p.comercio, parada.nombre, 'piedra', 5, 'verano', M.factorDe(M.tienda(p.comercio, parada.nombre, 5), parada.nombre, 'piedra'));
   p.economia.pesos = pc.compra * 100 - 1;
   ok(!puesto.comprarBien('piedra') && p.materiales.piedra === 0 && notas.at(-1)[0] === 'No te alcanza la plata', 'con un peso de menos no alcanza: no se mueve nada y lo dice');
   p.economia.pesos = pc.compra * 100;

@@ -7,6 +7,7 @@
 // pasan a pesos, a $100 cada una: ver economia.js). Sólo en el Relax.
 import { BIENES, bienesDe, perfilDe, precios, comprar, vender, comercioDeHoy, fletesDelDia, tomarFlete, soltarFlete, entregarFletes, textoFlete, COMERCIO } from './comercio.js';
 import { kmh, CABINA } from './maquinista.js';
+import { tienda, factorDe, nivelDe, existencias, registrarCompra, registrarVenta, puedeComprarte, puedeVenderte, destacados, nombreDelBien } from './mercado.js';
 import { PESOS_POR_YERBA, formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
 
 export const MODOS_PUESTO = ['comprar', 'vender', 'fletes'];
@@ -49,12 +50,18 @@ export function crearPuestoDeCargas(ctx) {
   const aPesos = (unidades) => Math.round(unidades * PESOS_POR_YERBA);
   const plata = () => pesosDe(P());
   const alcanza = (unidades) => plata() >= aPesos(unidades);
+  // el mercado del puesto (3.8.8, mercado.js): lo que tiene, su caja y cuánto cambia el precio por eso
+  const mercadoDe = (nombre) => tienda(comercio(), nombre, ctx.dia());
+  const factor = (nombre, bien) => factorDe(mercadoDe(nombre), nombre, bien);
   // lo que paga un flete, con la plata en pesos (lo guardado de un flete sigue en yerba: se pasa al cobrar)
   const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ de yerba/, formatoPesos(aPesos(f.premio?.yerba || 0)));
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();
   // 3.8.3: lo que va de a uno, en singular (decía «Compraste 1 ponchos», «1 frascos de miel»)
   const UNO = { cristal: 'un cristal', miel: 'un frasco de miel', 'trucha-ahumada': 'una trucha ahumada', 'frasco-frutilla': 'un frasco de dulce', 'calafate-seco': 'un puñado de calafates secos', 'hongos-secos': 'un llao llao seco', poncho: 'un poncho' };
   const cuantos = (bien, n) => (n === 1 && Object.hasOwn(UNO, bien) ? UNO[bien] : `${n} ${minuscula(bien)}`);
+
+  // el cartel: lo que hoy se paga bien en el puesto (lo que le falta)
+  const hoyPagan = (nombre) => { const d = destacados(mercadoDe(nombre), nombre, 3); return d.length ? ` · hoy pagan bien: ${d.map((b) => nombreDelBien(b).toLowerCase()).join(', ')}` : ''; };
 
   // ------------------------------------------------ las filas de cada modo
   function filas() {
@@ -75,15 +82,17 @@ export function crearPuestoDeCargas(ctx) {
     }
     const lista = bienesDe(nombre).filter((b) => estado.modo === 'vender' || conocido(b));
     return lista.map((bien) => {
-      const p = precios(c, nombre, bien, dia, t);
-      const hay = tengo(bien);
+      const m = mercadoDe(nombre), p = precios(c, nombre, bien, dia, t, factorDe(m, nombre, bien));
+      const hay = tengo(bien), nivel = nivelDe(m, nombre, bien);
       if (estado.modo === 'comprar') {
-        const clase = p.quedanCompra <= 0 ? 'falta' : !alcanza(p.compra) ? 'falta' : '';
-        const marca = p.quedanCompra <= 0 ? 'no queda hoy' : `${!alcanza(p.compra) ? 'no alcanza' : 'se puede'} · tenés ${hay}`;
+        const sinStock = !puedeVenderte(m, bien);
+        const clase = sinStock || p.quedanCompra <= 0 ? 'falta' : !alcanza(p.compra) ? 'falta' : '';
+        const marca = sinStock ? 'se les agotó' : p.quedanCompra <= 0 ? 'no queda hoy' : `${!alcanza(p.compra) ? 'no alcanza' : 'se puede'} · tenés ${hay}${nivel === 'escaso' ? ' · escasea' : nivel === 'abunda' ? ' · sobra' : ''}`;
         return { bien, titulo: `${BIENES[bien].nombre} ×${p.lote}`, detalle: formatoPesos(aPesos(p.compra)), marca, clase };
       }
-      const clase = p.quedanVenta <= 0 || hay < p.lote ? 'falta' : '';
-      const marca = p.quedanVenta <= 0 ? 'hoy ya no compran' : `tenés ${hay}`;
+      const permiso = puedeComprarte(m, bien, aPesos(p.venta));
+      const clase = p.quedanVenta <= 0 || hay < p.lote || !permiso.ok ? 'falta' : '';
+      const marca = p.quedanVenta <= 0 ? 'hoy ya no compran' : permiso.motivo === 'lleno' ? 'ya tienen de sobra' : permiso.motivo === 'caja' ? 'sin plata en la caja' : `tenés ${hay}${nivel === 'escaso' ? ' · lo pagan bien' : nivel === 'abunda' ? ' · lo pagan poco' : ''}`;
       return { bien, titulo: `${BIENES[bien].nombre} ×${p.lote}`, detalle: `te dan ${formatoPesos(aPesos(p.venta))}`, marca, clase };
     });
   }
@@ -98,7 +107,7 @@ export function crearPuestoDeCargas(ctx) {
     const c = comercio();
     const intro = estado.modo === 'fletes'
       ? `Pasajeros y carga hasta otra parada. Se cobran al llegar manejando la trochita · llevás ${c.fletes.length} de ${aLaVez()}`
-      : `${perfilDe(nombre).quien} · tenés ${formatoPesos(plata())} · precios de ${NOMBRE_TEMPORADA[ctx.temporada()] || 'verano'}`;
+      : `${perfilDe(nombre).quien} · tenés ${formatoPesos(plata())} · en la caja del puesto hay ${formatoPesos(mercadoDe(nombre).caja)} · precios de ${NOMBRE_TEMPORADA[ctx.temporada()] || 'verano'}${hoyPagan(nombre)}`;
     $$('.dicho').textContent = T_(intro);
     const ul = $$('ul');
     ul.innerHTML = '';
@@ -175,7 +184,9 @@ export function crearPuestoDeCargas(ctx) {
   function comprarBien(bien) {
     const nombre = estado.parada?.nombre;
     if (!nombre || !BIENES[bien] || !conocido(bien)) return false;
-    const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), plata() / PESOS_POR_YERBA);
+    const m = mercadoDe(nombre);
+    if (!puedeVenderte(m, bien)) { ctx.nota('Se les agotó', 'Mañana vuelven a tener'); return false; }
+    const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), plata() / PESOS_POR_YERBA, factorDe(m, nombre, bien));
     if (!r.ok) {
       if (r.motivo === 'yerba') ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`);
       else if (r.motivo === 'agotado') ctx.nota('Hoy ya no les queda', 'Mañana vuelven a tener');
@@ -183,6 +194,7 @@ export function crearPuestoDeCargas(ctx) {
     }
     const pago = pagarPesos(P(), aPesos(r.precio), `Compra: ${minuscula(bien)}`, perfilDe(nombre).quien);
     if (!pago.ok) { ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`); return false; }
+    registrarCompra(m, nombre, bien, aPesos(r.precio));   // el puesto tiene un lote menos y la plata en la caja
     sumar(bien, r.cantidad);
     ctx.sonido?.juntar?.();
     ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`, `Pagaste ${formatoPesos(aPesos(r.precio))} · te quedan ${formatoPesos(plata())}`);
@@ -192,7 +204,15 @@ export function crearPuestoDeCargas(ctx) {
   function venderBien(bien) {
     const nombre = estado.parada?.nombre;
     if (!nombre || !BIENES[bien]) return false;
-    const r = vender(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), tengo(bien));
+    const m = mercadoDe(nombre);
+    const oferta = precios(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), factorDe(m, nombre, bien));
+    const permiso = puedeComprarte(m, bien, aPesos(oferta.venta));
+    if (!permiso.ok) {
+      if (permiso.motivo === 'caja') ctx.nota('No tienen plata para pagarte', `En la caja hay ${formatoPesos(m.caja)} y tu lote vale ${formatoPesos(aPesos(oferta.venta))}. Probá con otra cosa o en otra parada`);
+      else ctx.nota('Ya tienen de sobra', 'Probá en otra parada o esperá unos días');
+      return false;
+    }
+    const r = vender(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), tengo(bien), factorDe(m, nombre, bien));
     if (!r.ok) {
       if (r.motivo === 'falta') ctx.nota('No llevás suficiente', `Compran de a ${r.lote}; tenés ${tengo(bien)}`);
       else if (r.motivo === 'lleno') ctx.nota('Hoy ya no compran más de eso', 'Probá en otra parada');
@@ -200,6 +220,7 @@ export function crearPuestoDeCargas(ctx) {
     }
     sumar(bien, -r.cantidad);
     cobrarPesos(P(), aPesos(r.precio), `Venta: ${minuscula(bien)}`, perfilDe(nombre).quien);
+    registrarVenta(m, bien, aPesos(r.precio));   // el puesto tiene un lote más y menos plata en la caja
     ctx.sonido?.juntar?.();
     ctx.nota(`Vendiste ${cuantos(bien, r.cantidad)}`, `Te dieron ${formatoPesos(aPesos(r.precio))} · tenés ${formatoPesos(plata())}`);
     ctx.refrescar(); ctx.guardar(); dibujar();

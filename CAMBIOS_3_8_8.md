@@ -137,6 +137,13 @@ En la aldea la onda ya no está pintada en la malla (el paño tiene más cortes,
 - Lo que sigue siendo yerba (regalos de los vecinos, el kilo de Ercilia, el trueque de frutas por yerba de la cocina) no se tocó: ahora es mercadería.
 - Pruebas: `verificar-3-8-8-economia.mjs` (100 verificaciones) y los ajustes de las pruebas de la aldea y los concursos. No se vio en el juego.
 
+## Economía, Fase 2: el mercado (ver `PLAN_ECONOMIA.md`)
+- **`src/mercado.js`** (módulo puro): cada puesto tiene **existencias** de cada cosa (hasta 14 lotes) y una **caja** de pesos ($4.000 a $8.000 de tope, según el pueblo). Produce lo del pueblo, gasta lo que necesita, vuelve de a poco a su nivel de siempre y la caja se repone $700 por día. Sale de la fecha y del nombre de la parada (dos partidas ven lo mismo) más lo que vos hiciste; al volver después de días se simula hasta un año. Vive en `progreso.comercio.mercado` (saneado, y se va con la parada si cambia de nombre).
+- **Oferta y demanda:** el precio se multiplica por un factor de 0,85 a 1,30 según lo que le sobre o le falte al puesto (`factorDe`). Sin existencias no te vende; con el puesto lleno, o sin plata en la caja, no te compra.
+- **En el panel del puesto:** cada cosa dice cómo está (escasea, sobra, se les agotó, ya tienen de sobra, lo pagan bien/poco), arriba se ve la caja del puesto y un cartel «hoy pagan bien: …».
+- **Ajuste con simulador:** un revendedor goloso (una ruta por día, 6 operaciones) saca de media poco menos que un jornal ($1.500); por eso el rango del factor es corto. Con 0,7 a 1,7 sacaba más del doble.
+- Pruebas: `verificar-3-8-8-mercado.mjs` (60 verificaciones). No se vio en el juego.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.
