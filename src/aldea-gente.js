@@ -1304,7 +1304,7 @@ export function crearAldeaGente(ctx) {
     // 3.8.8: la aldea cierra las cuentas del día (las cajas de los locales, el interés del banco, los alquileres y el puesto)
     if (hayEconomia(p)) {
       const claves = (a.pobladores || []).filter((q) => esPobladorAldea(q.clave) && localAbierto(a, LOTE_DE[q.clave])).map((q) => q.clave);
-      const cierre = cerrarCuentas(p, d, claves, ctx.temporada?.() || temporadaDelDia(d));
+      const cierre = cerrarCuentas(p, d, claves, temporadaDelDia(d));
       if (a.descubierta && cierre) {
         if (cierre.evento) ctx.nota(cierre.evento.titulo, cierre.evento.texto, true);
         if (cierre.renta > 0) ctx.nota(`Cobraste ${formatoPesos(cierre.renta)} de alquiler`, 'Está en tu billetera, en el libro de cuentas', true);

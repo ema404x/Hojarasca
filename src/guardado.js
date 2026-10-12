@@ -434,6 +434,7 @@ function sanearObras(v) {
     if (d.y !== undefined && (!Number.isFinite(Number(d.y)) || Math.abs(Number(d.y)) > ALTO_OBRA)) delete d.y;
     else if (d.y !== undefined) d.y = Number(d.y);
     if (d.tinte !== undefined && typeof d.tinte !== 'string') delete d.tinte;
+    if (d.pagadas !== undefined) d.pagadas = Math.max(0, Math.min(8, Math.floor(finito(d.pagadas, 0))));   // 3.8.8: las etapas de la casa ya pagadas (propiedad.js)
     // 3.8.6: el nombre que le pusiste (pedirNombre): un texto; otra cosa (una partida rota) rompía el mapa
     if (d.nombre !== undefined) { if (typeof d.nombre === 'string' && d.nombre.trim()) d.nombre = d.nombre.trim().slice(0, 28); else delete d.nombre; }
     // 3.7.2: lo que se está cocinando en la obra (la parrilla, el horno, la cocina a leña)

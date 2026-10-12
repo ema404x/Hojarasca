@@ -6,7 +6,8 @@ import { demandaDe } from './aldea-viva.js';
 
 export const DIAS_ESTACION = 4;   // sin cielo (las pruebas): un año de 12 días son tres estaciones de cuatro
 export const temporadaDelDia = (dia) => ['verano', 'otono', 'invierno'][Math.floor((Math.max(1, Math.floor(Number(dia) || 1)) - 1) / DIAS_ESTACION) % 3];
-export const temporadaDe = (dia, extra) => (typeof extra?.temporada === 'string' && ['verano', 'otono', 'invierno'].includes(extra.temporada) ? extra.temporada : temporadaDelDia(dia));
+// (la estación de la economía sale de la fecha, no del cielo: el ajuste de estación fija del jugador no cambia sueldos ni alquileres)
+export const temporadaDe = (dia) => temporadaDelDia(dia);
 export const demandaHoy = (dia, extra) => demandaDe(dia, temporadaDe(dia, extra));
 // Aplica un efecto de dinero (jornal o pedido) sobre la partida. Devuelve true si era de los suyos.
 export function aplicarNegocio(p, f, dia, extra = null) {

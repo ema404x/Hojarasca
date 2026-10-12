@@ -135,7 +135,7 @@ function fsLeer(f) { return fs.readFileSync(new URL('../' + f, import.meta.url),
   ok(hay(m, '$2.040'), 'al otro día, con el interés');
   clic(m, 'Pagar $500');
   ok(B.prestamoDe(p).debe === 1540 && E.pesosDe(p) === 1500, 'pagar de a poco');
-  p.economia.pesos = 5000; m.dibujar();
+  p.economia.pesos = 5000; p.dia = 8; B.pasarDiaBanco(p, 7); B.pasarDiaBanco(p, 8); m.dibujar();
   clic(m, 'Saldar todo');
   ok(B.prestamoDe(p) === null && N.negociosDe(p).banco.rep === 1 && notas.at(-1)[0] === 'Saldaste el préstamo', 'saldado a tiempo');
   ok(guardados === 3, 'guarda en cada operación (pedir, pagar, saldar)');

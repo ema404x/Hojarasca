@@ -8,6 +8,7 @@
 import { BIENES, bienesDe, perfilDe, precios, comprar, vender, comercioDeHoy, fletesDelDia, tomarFlete, soltarFlete, entregarFletes, textoFlete, COMERCIO } from './comercio.js';
 import { kmh, CABINA } from './maquinista.js';
 import { factorEvento } from './aldea-viva.js';
+import { temporadaDelDia } from './negocios-fx.js';
 import { tienda, factorDe, nivelDe, existencias, registrarCompra, registrarVenta, puedeComprarte, puedeVenderte, destacados, nombreDelBien } from './mercado.js';
 import { PESOS_POR_YERBA, formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
 
@@ -53,7 +54,7 @@ export function crearPuestoDeCargas(ctx) {
   const alcanza = (unidades) => plata() >= aPesos(unidades);
   // el mercado del puesto (3.8.8, mercado.js): lo que tiene, su caja y cuánto cambia el precio por eso
   const mercadoDe = (nombre) => tienda(comercio(), nombre, ctx.dia());
-  const factor = (nombre, bien) => factorDe(mercadoDe(nombre), nombre, bien) * factorEvento(ctx.dia(), ctx.temporada(), bien);   // 3.8.8: y el evento del día (aldea-viva.js)
+  const factor = (nombre, bien) => factorDe(mercadoDe(nombre), nombre, bien) * factorEvento(ctx.dia(), temporadaDelDia(ctx.dia()), bien);   // 3.8.8: y el evento del día (aldea-viva.js)
   // lo que paga un flete, con la plata en pesos (lo guardado de un flete sigue en yerba: se pasa al cobrar)
   const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ de yerba/, formatoPesos(aPesos(f.premio?.yerba || 0)));
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();

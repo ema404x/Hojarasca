@@ -82,6 +82,8 @@ const TEMPORADA = {
   invierno: { tronco: 1.5, tabla: 1.2, lana: 1.4, poncho: 1.45, frutilla: 1.7, 'frasco-frutilla': 1.35, 'calafate-seco': 1.3, 'hongos-secos': 1.25, 'trucha-ahumada': 1.2, huevo: 1.2, haba: 1.25, papa: 1.15 },
 };
 export const TEMPORADAS = Object.keys(TEMPORADA);
+// 3.8.8: lo más barato que llega a estar una cosa por la estación (el puesto propio no paga más que eso: ver propiedad.js)
+export const factorTemporadaMin = (bien) => Math.min(1, ...TEMPORADAS.map((t) => (Object.hasOwn(TEMPORADA[t], bien) ? TEMPORADA[t][bien] : 1)));
 const temporadaValida = (t) => (typeof t === 'string' && Object.hasOwn(TEMPORADA, t) ? t : 'verano');
 
 // ---------------------------------------------------------------- el azar con semilla

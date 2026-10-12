@@ -4,7 +4,7 @@
 // cosas mejores y sube lo que pagan. El pago sale de la caja del local (aldea-viva.js); hay un tope de entregas por día. Un pedido no
 // cumplido simplemente vence: el Relax no castiga. Los pedidos salen de la fecha y del vecino, sin guardar nada hasta que se entrega
 // (se anota sólo cuál fue el último). Módulo puro, sin imports de la aldea. Sólo en el Relax.
-import { BIENES, hashTexto, azarDe } from './comercio.js';
+import { BIENES, perfilDe, hashTexto, azarDe } from './comercio.js';
 import { negociosDe, caja, nivelRep, TOPE_CAJA } from './negocios.js';
 import { cobrar, formatoPesos, hayEconomia } from './economia.js';
 
@@ -20,6 +20,7 @@ const NECESITA = {
   pintora: ['cristal', 'frutilla', 'calafate-seco'], andinista: ['trucha-ahumada', 'pan-casero', 'empanadas'], fotografa: ['cristal', 'miel', 'papa'],
   ceramista: ['piedra', 'haba', 'papa'], astronoma: ['cristal', 'empanadas', 'miel'],
 };
+const DE_LA_ESTACION = new Set(perfilDe('Aldea de los Duendes').produce);
 export const hayPedidos = (k) => Object.hasOwn(NECESITA, k);
 export const ventanaDe = (dia) => Math.floor((Math.max(1, Math.floor(Number(dia) || 1)) - 1) / PEDIDOS.dias);
 const TIPO_DE = { material: 'material', entrada: 'entrada', cosa: 'cosa' };
@@ -47,7 +48,9 @@ export function pedidoDe(p, k, dia) {
   if (n.pedidos[k]?.id === id) return null;
   const nivel = nivelRep(p, k);
   const r = azarDe(hashTexto(`pedido|${id}`));
-  const pool = NECESITA[k].slice(0, nivel >= 2 ? 3 : 2);
+  // (nada de lo que la estación de la aldea produce barato: se compraría ahí mismo y se cobraría de más)
+  const sinEstacion = NECESITA[k].filter((b) => !DE_LA_ESTACION.has(b));
+  const pool = (sinEstacion.length ? sinEstacion : NECESITA[k]).slice(0, nivel >= 2 ? 3 : 2);
   const bien = pool[Math.floor(r() * pool.length) % pool.length];
   const lotes = 1 + Math.floor(r() * 2) + (nivel >= 1 ? 1 : 0);
   const cuantos = lotes * BIENES[bien].lote;
@@ -96,7 +99,7 @@ export function ofertaDePedido(p, k, dia, nombre = '', seguir = '') {
       titulo: `Pedido cumplido: ${formatoPesos(q.premio)}`,
     };
   }
-  if (v.motivo === 'cupo') return { partes: [`Tengo para pagarte el pedido de ${lo}, pero hoy ya entregaste dos. Volvé mañana (${hasta}).`] };
-  if (v.motivo === 'caja') return { partes: [`Necesito ${lo}, pero hoy no tengo con qué pagarte. Pasá en unos días (${hasta}).`] };
+  if (v.motivo === 'cupo') return { partes: [`Tengo para pagarte el pedido de ${lo}, pero hoy ya entregaste dos. Volvé mañana (${hasta}).`], aviso: true };
+  if (v.motivo === 'caja') return { partes: [`Necesito ${lo}, pero hoy no tengo con qué pagarte. Pasá en unos días (${hasta}).`], aviso: true };
   return { partes: [`Ando necesitando ${lo} (${hasta}). Lo pago ${formatoPesos(q.premio)}${q.rapido ? ' si me lo traés hoy, con un extra por la rapidez' : ''}.`], aviso: true };
 }

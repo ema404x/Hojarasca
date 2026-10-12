@@ -6,7 +6,7 @@
 //   · ABASTECIMIENTO: el banco necesita cosas para sus clientes y las paga por encima del mercado (de +25 % a +40 %, según su
 //     confianza). Hay un pedido por ventana de dos días y sólo uno se puede cumplir por ventana, para que no sea una máquina de plata.
 // Módulo puro, sin imports de la aldea. Sólo en el Relax.
-import { BIENES, hashTexto, azarDe } from './comercio.js';
+import { BIENES, perfilDe, hashTexto, azarDe } from './comercio.js';
 import { negociosDe } from './negocios.js';
 import { cobrar, pagar, pesosDe, formatoPesos, hayEconomia } from './economia.js';
 import { premioDe, tengoDe, efectoDe, nombreCosa } from './pedidos.js';
@@ -66,7 +66,7 @@ export function pagarPrestamo(p, dia, monto) {
   b.cuotas++;
   if (b.prestamo.debe <= 0) {
     // a tiempo: el banco te tiene más confianza; tarde: sólo se salda
-    if (dia <= b.prestamo.hasta) b.rep++;
+    if (dia <= b.prestamo.hasta && dia - b.prestamo.dia >= BANCO.plazoMin) b.rep++;   // (el préstamo tiene que haber durado: pedir y devolver el mismo día no suma confianza)
     b.prestamo = null;
     b.sinConfianza = false;
     return { ok: true, pagado: quiere, resta: 0, saldado: true };
@@ -83,6 +83,15 @@ export function pasarDiaBanco(p, dia) {
   }
   pr.debe = Math.min(1e7, Math.ceil(pr.debe * (1 + pr.tasa)));
 }
+// Con el préstamo vencido, lo que entra solo (el alquiler) paga primero la deuda: devuelve cuánto se aplicó
+export function abonarAlMoroso(p, dia, monto) {
+  const pr = negociosDe(p)?.banco?.prestamo;
+  if (!pr || dia <= pr.hasta) return 0;
+  const q = Math.min(pr.debe, Math.max(0, Math.floor(Number(monto)) || 0));
+  pr.debe -= q;
+  if (pr.debe <= 0) { negociosDe(p).banco.prestamo = null; negociosDe(p).banco.sinConfianza = false; }
+  return q;
+}
 export const diasParaVencer = (p, dia) => { const pr = prestamoDe(p); return pr ? pr.hasta - dia : null; };
 
 // ---------------------------------------------------------------- el abastecimiento
@@ -95,7 +104,7 @@ export function abastoDe(p, dia) {
   const v = ventana(dia);
   if (b.abastoDia === v + 1) return null;
   const r = azarDe(hashTexto(`abasto|${v}`));
-  const ids = Object.keys(BIENES).filter((x) => !SIN_ABASTO.has(x));
+  const ids = Object.keys(BIENES).filter((x) => !SIN_ABASTO.has(x) && !perfilDe('Aldea de los Duendes').produce.includes(x));   // (ni lo que la estación de la aldea hace barato)
   const bien = ids[Math.floor(r() * ids.length) % ids.length];
   const nivel = nivelBanco(p);
   const lotes = 1 + Math.floor(r() * 2) + (nivel >= 2 ? 1 : 0);

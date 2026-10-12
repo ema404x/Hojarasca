@@ -7,10 +7,11 @@
 //   · EL PUESTO EN LA FERIA: una vez comprado, dejás mercadería en consigna y cada día vende hasta dos lotes (al valor de la plaza,
 //     menos el diez por ciento del puesto); la plata se junta en la caja del puesto y la retirás cuando pasás.
 // Módulo puro, sin imports de la aldea. Sólo en el Relax.
-import { BIENES, hashTexto, azarDe } from './comercio.js';
+import { BIENES, COMERCIO, perfilDe, factorTemporadaMin, hashTexto, azarDe } from './comercio.js';
 import { negociosDe } from './negocios.js';
 import { cobrar, pagar, pesosDe, hayEconomia } from './economia.js';
 import { tengoDe } from './pedidos.js';
+import { abonarAlMoroso } from './prestamos.js';
 
 export const PROPIEDAD = {
   casas: {
@@ -64,14 +65,19 @@ export function registrarCasa(p, id) {
   c.poseidas[id] = Math.min(20, (c.poseidas[id] || 0) + 1);
   return c.poseidas[id];
 }
-export const casasDe = (p, id) => negociosDe(p)?.casas?.poseidas?.[id] || 0;
+// Las casas que tenés de ese tipo: las terminadas que de verdad están en el valle (si se desarmó o se deshizo una, deja de contar);
+// sin la lista de obras (las pruebas), lo registrado
+export function casasDe(p, id) {
+  if (Array.isArray(p?.obras) && esCasaDePrecio(id)) return p.obras.filter((o) => o?.plano === id && (Number(o.etapas) || 0) >= PROPIEDAD.casas[id].reparto.length).length;
+  return negociosDe(p)?.casas?.poseidas?.[id] || 0;
+}
 export const enAlquilerDe = (p, id) => negociosDe(p)?.casas?.alquiladas?.[id]?.cuantas || 0;
 const INQUILINOS = ['la familia Cárdenas', 'los Vidal', 'una pareja de maestros', 'dos hermanas tejedoras', 'el matrimonio Soria', 'un guarda de la ruta', 'la familia Millalén', 'unos estudiantes de Esquel'];
 export const rentaDe = (id) => (esCasaDePrecio(id) ? PROPIEDAD.casas[id].renta : 0);
 export function ponerEnAlquiler(p, id, dia) {
   if (!hayEconomia(p) || !esCasaDePrecio(id)) return { ok: false, motivo: 'nada' };
   const c = negociosDe(p).casas;
-  const tengo = c.poseidas[id] || 0, alquiladas = c.alquiladas[id]?.cuantas || 0;
+  const tengo = casasDe(p, id), alquiladas = c.alquiladas[id]?.cuantas || 0;
   if (tengo <= alquiladas) return { ok: false, motivo: tengo ? 'todas' : 'no hay' };
   const inq = INQUILINOS[hashTexto(`${id}|${dia}|${alquiladas}`) % INQUILINOS.length];
   c.alquiladas[id] = { inquilino: alquiladas ? c.alquiladas[id].inquilino : inq, desde: alquiladas ? c.alquiladas[id].desde : dia, renta: rentaDe(id), cuantas: alquiladas + 1 };
@@ -130,7 +136,10 @@ export function retirarCajaPuesto(p) {
   return { ok: true, monto };
 }
 // Lo que vale un lote en el puesto hoy (pesos): el valor de la plaza × la demanda, menos la comisión
-export const precioDeConsigna = (bien, demanda = 1, factorBien = 1) => Math.round((BIENES[bien].valor * 100 * demanda * factorBien * (1 - PROPIEDAD.puesto.comision)) / 10) * 10;
+// (la demanda y el evento suben el precio hasta un 10 % como mucho, y lo que la estación de la aldea hace barato vale lo mismo de barato: así
+// la consigna nunca paga más de lo que cuesta comprar la mercadería en la estación)
+const DE_LA_ESTACION = new Set(perfilDe('Aldea de los Duendes').produce);
+export const precioDeConsigna = (bien, demanda = 1, factorBien = 1) => Math.round((BIENES[bien].valor * 100 * (DE_LA_ESTACION.has(bien) ? COMERCIO.barato : 1) * factorTemporadaMin(bien) * Math.min(1.1, demanda * factorBien) * (1 - PROPIEDAD.puesto.comision)) / 10) * 10;
 export function ventasDelPuesto(p, dia, demanda = 1, factor = () => 1) {
   const pu = negociosDe(p)?.casas?.puesto;
   if (!pu) return 0;
@@ -154,12 +163,14 @@ export function alquilerDelDia(p, dia, demanda = 1, factor = () => 1) {
   let total = 0;
   for (const [id, a] of Object.entries(c.alquiladas)) {
     if (!esCasaDePrecio(id)) continue;
-    for (let i = 0; i < a.cuantas; i++) {
-      if (!rentaDelDia(id, dia, i)) continue;
-      const m = Math.round((a.renta * Math.max(0.9, Math.min(1.25, demanda))) / 10) * 10;
-      cobrar(p, m, `Alquiler: ${PROPIEDAD.casas[id].nombre}`, a.inquilino);
-      c.cobrado += m; total += m;
-    }
+    const cuartos = Math.min(a.cuantas, casasDe(p, id));   // (una casa que ya no está no paga)
+    let m = 0;
+    for (let i = 0; i < cuartos; i++) if (rentaDelDia(id, dia, i)) m += Math.round((a.renta * Math.max(0.9, Math.min(1.25, demanda))) / 10) * 10;
+    if (m <= 0) continue;
+    // una sola entrada en el libro por tipo de casa y día; con el préstamo vencido, la renta va primero a la deuda
+    const cobra = m - abonarAlMoroso(p, dia, m);
+    if (cobra > 0) cobrar(p, cobra, `Alquiler: ${PROPIEDAD.casas[id].nombre}`, a.inquilino);
+    c.cobrado += m; total += cobra;
   }
   ventasDelPuesto(p, dia, demanda, factor);
   return total;

@@ -6371,11 +6371,12 @@ function accionObra() {
   if (obra) {
     // 3.8.8: las casas prefabricadas cuestan, además de los materiales, el terreno y la mano de obra (propiedad.js)
     const etapaCasa = obra.datos.etapas;
-    const pago = desafio ? { ok: true, precio: 0 } : puedePagarEtapa(progreso, obra.plano.id, etapaCasa);
+    // (si deshiciste una etapa y la rehacés, ya la pagaste: `datos.pagadas` es hasta dónde pagaste)
+    const pago = desafio || etapaCasa < (obra.datos.pagadas || 0) ? { ok: true, precio: 0 } : puedePagarEtapa(progreso, obra.plano.id, etapaCasa);
     if (!pago.ok) { nota('Falta plata para esta etapa', `El terreno y la mano de obra cuestan ${formatoPesos(pago.precio)} y te faltan ${formatoPesos(pago.falta)}. El banco te puede prestar`); return; }
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
-    if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); }
+    if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); obra.datos.pagadas = etapaCasa + 1; }
     if (r.terminada && !desafio) registrarCasa(progreso, obra.plano.id);
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);

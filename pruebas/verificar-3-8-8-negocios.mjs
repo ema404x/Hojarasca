@@ -2,6 +2,7 @@
 // banco (préstamos y abastecimiento) y propiedad (precio de casas, alquiler, puesto propio). Además: el saneo del guardado,
 // la conexión con los vecinos (servicioDe), y que nada de esto dé plata gratis (ciclos de ganancia acotados).
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { registrarThree } from './ayuda-three.mjs';
 
 registrarThree();
@@ -14,6 +15,7 @@ const B = await import('../src/prestamos.js');
 const R = await import('../src/propiedad.js');
 const A = await import('../src/aldea.js');
 const C = await import('../src/comercio.js');
+const fsLeer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; };
 const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
@@ -293,6 +295,58 @@ const conPlata = (p, pesos) => { p.economia.pesos = pesos; return p; };
   // el local sin abrir no ofrece nada de esto
   const nuevo = llena(); nuevo.aldea.locales = {};
   ok(!A.servicioDe('carpintero', nuevo, 10).efectos, 'sin local abierto, primero la obra');
+}
+
+
+// ---------------------------------------------------------------- 8. lo que encontró la revisión
+{
+  // pedir y devolver el mismo día no suma confianza
+  const p = partida({ dia: 5 });
+  for (let i = 0; i < 10; i++) { B.pedirPrestamo(p, 5, 500, 6); B.pagarPrestamo(p, 5, 1e6); }
+  ok(N.negociosDe(p).banco.rep === 0, 'pedir y pagar el mismo día no sube la reputación');
+  B.pedirPrestamo(p, 5, 500, 6); for (let d = 6; d <= 8; d++) B.pasarDiaBanco(p, d); conPlata(p, 1000); B.pagarPrestamo(p, 8, 1e6);
+  ok(N.negociosDe(p).banco.rep === 1, 'un préstamo que duró y se pagó a tiempo, sí');
+  // con el préstamo vencido, el alquiler va primero a la deuda
+  const q = partida({ dia: 5 }); q.obras = [{ plano: 'casona', etapas: 4 }]; R.registrarCasa(q, 'casona'); R.ponerEnAlquiler(q, 'casona', 5);
+  B.pedirPrestamo(q, 5, 500, 3); for (let d = 6; d <= 9; d++) B.pasarDiaBanco(q, d);
+  const debe = B.prestamoDe(q).debe, antes = E.pesosDe(q);
+  let cobrado = 0; for (let d = 10; d <= 30; d++) { B.pasarDiaBanco(q, d); cobrado += R.alquilerDelDia(q, d, 1); }
+  ok(B.prestamoDe(q) === null && E.pesosDe(q) > antes && cobrado > 0 && debe > 0, 'la renta paga primero la deuda vencida y después entra a la billetera');
+  // una casa que ya no está en el valle no cobra alquiler
+  const r = partida({ dia: 5 }); r.obras = [{ plano: 'cabana-piedra', etapas: 4 }]; R.registrarCasa(r, 'cabana-piedra'); R.ponerEnAlquiler(r, 'cabana-piedra', 5);
+  ok(R.casasDe(r, 'cabana-piedra') === 1, 'cuenta la casa terminada');
+  r.obras = []; let sin = 0; for (let d = 6; d <= 60; d++) sin += R.alquilerDelDia(r, d, 1);
+  ok(sin === 0 && R.casasDe(r, 'cabana-piedra') === 0, 'sin la casa en el valle no hay renta');
+  r.obras = [{ plano: 'cabana-piedra', etapas: 3 }]; ok(R.casasDe(r, 'cabana-piedra') === 0, 'a medio hacer no cuenta');
+  // un libro con una sola entrada por tipo y día
+  const w = partida({ dia: 5 }); w.obras = [{ plano: 'casona', etapas: 4 }, { plano: 'casona', etapas: 4 }, { plano: 'casona', etapas: 4 }]; for (let i = 0; i < 3; i++) R.registrarCasa(w, 'casona');
+  for (let i = 0; i < 3; i++) R.ponerEnAlquiler(w, 'casona', 5);
+  const movs = E.ultimosMovimientos(w, 120).length; R.alquilerDelDia(w, 6, 1); R.alquilerDelDia(w, 7, 1);
+  ok(E.ultimosMovimientos(w, 120).length - movs <= 2, 'una entrada por día y tipo de casa, no una por cuarto');
+  // la consigna no paga más de lo que cuesta comprar en la estación de la aldea
+  const estacion = C.perfilDe('Aldea de los Duendes');
+  for (const b of Object.keys(C.BIENES)) {
+    const compra = Math.min(...[1, 5, 9, 14, 20].map((d) => C.precios(C.comercioNuevo(), 'Aldea de los Duendes', b, d, 'verano').compra * 100 / C.BIENES[b].lote * C.BIENES[b].lote));
+    ok(R.precioDeConsigna(b, 1.25, 1.2) <= compra * 1.0, `${b}: la consigna ($${R.precioDeConsigna(b, 1.25, 1.2)}) no paga más que comprarlo en la estación ($${compra})`);
+  }
+  void estacion;
+  // pedidos y abastecimiento: nada de lo que la estación de la aldea produce barato
+  const hace = new Set(C.perfilDe('Aldea de los Duendes').produce);
+  for (const k of Object.keys(T.TRABAJOS)) for (let d = 1; d <= 90; d += 3) { const x = P.pedidoDe(partida(), k, d); if (x && hace.has(x.k)) ok(false, `${k} pide ${x.k}, que produce la estación`); }
+  for (let d = 1; d <= 60; d += 2) { const a = B.abastoDe(partida(), d); if (a && hace.has(a.k)) ok(false, `el banco pide ${a.k}, que produce la estación`); }
+  n++;
+  // avisos
+  const z = partida(); const x = P.pedidoDe(z, 'carpintero', 5); const g = C.BIENES[x.k]; if (g.donde === 'material') z.materiales[x.k] = 99; else if (g.donde === 'entrada') z.entradas[x.k] = { dia: 1, hora: 1, cantidad: 99 }; else z.cosas[x.k] = 99;
+  N.negociosDe(z).hoy = { dia: 5, jornales: 0, pedidos: 2 };
+  ok(P.ofertaDePedido(z, 'carpintero', 5, 'Tito', 'E').aviso === true, 'el aviso de «hoy ya entregaste dos» se muestra');
+  N.negociosDe(z).hoy = { dia: 5, jornales: 0, pedidos: 0 }; N.negociosDe(z).cajas.carpintero = 0;
+  ok(P.ofertaDePedido(z, 'carpintero', 5, 'Tito', 'E').aviso === true, 'y el de «no tengo con qué pagarte»');
+  // la estación de la economía sale de la fecha
+  const fx = await import('../src/negocios-fx.js');
+  ok(fx.temporadaDe(1, { temporada: 'invierno' }) === fx.temporadaDelDia(1), 'la estación sale del día, no del cielo');
+  // los pesos pagados de una casa sobreviven al guardado (sanearObras los deja entre 0 y 8)
+  ok(fsLeer('src/guardado.js').includes('d.pagadas = Math.max(0, Math.min(8, Math.floor(finito(d.pagadas, 0))))'), 'guardado.js sanea las etapas pagadas');
+  ok(fsLeer('src/main.js').includes('obra.datos.pagadas = etapaCasa + 1'), 'main.js anota hasta dónde pagaste la casa');
 }
 
 console.log(`verificar-3-8-8-negocios: ${n} verificaciones ok`);
