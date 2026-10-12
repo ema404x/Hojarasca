@@ -120,6 +120,15 @@ Era sólo piso, paredes y una luz, aunque la galesa (Ceinwen) cocina y duerme ad
 
 Prueba nueva: `verificar-3-8-8-casa-te.mjs` (el valle de verdad con el mundo de colisiones real: se entra y se llega al fuego, las mesas, la cocina y el aparador). No se vio en el juego (vista previa con una luz propia); en el juego, la luz de adentro (`luz`/`interior`) sale de noche.
 
+## Las banderas flamean con el viento y el clima
+Todas las banderas de afuera (la de la plaza, la escuela y la seccional de la aldea, y las dos del mástil de la casa de té) usan el mismo material (`src/bandera-viento.js`), que mueve el paño en el vertex shader con lo que ya manda el clima (`uViento`, que incluye las rachas, y `uLluvia`) y el tiempo:
+- **calma:** el paño cuelga del mástil, más corto y con pliegues blandos que casi no se mueven;
+- **brisa:** se levanta y ondula con una onda que viaja del mástil a la punta;
+- **viento fuerte o temporal:** se tiende, aletea rápido y se agita más con cada racha;
+- **lluvia:** el paño se moja: pesa, cuelga un poco más y aletea menos;
+- y se **orienta con el viento** (el mismo rumbo que el pasto), con un vaivén lento que se afloja cuando hay poco viento.
+En la aldea la onda ya no está pintada en la malla (el paño tiene más cortes, 14 en vez de 6) y la bandera se sigue izando y arriando como antes. La bandera galesa de la pared de adentro de la casa de té es un cuadro: no flamea. Prueba nueva: `verificar-3-8-8-banderas.mjs` (rumbo, atributos del paño, material, orientación y conexión de todas); el flameo mismo se miró en una vista previa con calma, brisa, temporal y lluvia, no en el juego.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

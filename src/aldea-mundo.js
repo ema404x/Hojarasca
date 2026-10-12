@@ -39,6 +39,7 @@ import { estadoVisual } from './aldea-gente.js';
 import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea, EDIFICIOS_ALDEA as EDIFICIOS_ARQUITECTURA } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
+import { materialBandera, prepararPano } from './bandera-viento.js';
 import { registrarLuz, olvidarLuz } from './luces.js';
 import { armarTerreno } from './terreno.js';
 
@@ -1326,6 +1327,7 @@ export function crearAldeaMundo(ctx) {
       vidrios: prepararVidrioAldea(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, color: 0x23201b }), { cielo: U.uCieloBajo }),
       brasas: new THREE.MeshBasicMaterial({ vertexColors: true }),
       puerta: new THREE.MeshLambertMaterial({ vertexColors: true }),
+      bandera: materialBandera({ vertexColors: true }),   // 3.8.8: las banderas flamean con el viento y el clima
     };
   }
   // El almacén y la casa de té son los de estructuras.js (sin aSuperficie): en la aldea se les suma
@@ -1665,6 +1667,11 @@ export function crearAldeaMundo(ctx) {
       if (a.capa !== 'interior') { contenedor.position.set(s.x, s.y, s.z); contenedor.rotation.y = s.rot; }
       const objeto = new THREE.Group();
       objeto.position.set(a.pivote.lx, a.pivote.ly, a.pivote.lz);
+      if (a.id === 'bandera' && !a.geometria.attributes.aBand) {
+        // 3.8.8: el paño de la bandera, para el vertex shader del viento (la esquina de arriba, junto al mástil, a 0,07 m del eje)
+        const gb = a.giroBase ?? 0, cg = Math.cos(gb), sg = Math.sin(gb), A = a.altoPano ?? 0.95, L = a.largo ?? 1.5;
+        prepararPano(a.geometria, { along: [cg, 0, -sg], lat: [sg, 0, cg], esquina: [0.07 * cg, A, -0.07 * sg], L, A });
+      }
       const malla = new THREE.Mesh(a.geometria, capaMat(a.material) || materiales.estructura);
       malla.castShadow = a.capa !== 'interior'; malla.receiveShadow = true;
       malla.updateMatrix(); malla.matrixAutoUpdate = false;

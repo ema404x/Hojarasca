@@ -9,6 +9,7 @@ import { fusionarPorMaterial } from './fusion.js';
 import { registrarLuz } from './luces.js';
 import { marcarConstructor } from './estilo-casa.js';
 import { crearDecoRefugio } from './personal-casa-mundo.js';
+import { crearPanoBandera, registrarBandera } from './bandera-viento.js';
 import { cubierta } from './techo-lluvia.js';
 
 const MADERA = '#6e5238', MADERA_OSCURA = '#4e3a28', TABLA = '#8a6b4a';
@@ -75,15 +76,6 @@ function banderaArgentina(x, w, h) {
   x.fillStyle = '#85340a'; x.beginPath(); x.arc(cx - r * 0.3, cy - r * 0.15, r * 0.1, 0, Math.PI * 2); x.arc(cx + r * 0.3, cy - r * 0.15, r * 0.1, 0, Math.PI * 2); x.fill();
   x.strokeStyle = '#85340a'; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, cy + r * 0.1, r * 0.4, 0.2, Math.PI - 0.2); x.stroke();
 }
-// un paño de bandera ondeado, hacia +x desde el mástil (las dos caras)
-function panoBandera(L, A, textura, onda = 0.07) {
-  const g = new THREE.PlaneGeometry(L, A, 14, 1);
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) { const u = (p.getX(i) + L / 2) / L; p.setZ(i, Math.sin(u * 5.5) * onda * u); }
-  g.computeVertexNormals();
-  return new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: textura, side: THREE.DoubleSide }));
-}
-
 // 3.8.8: la parte de afuera de la casa de té: el mástil con la bandera argentina arriba y la galesa más abajo (la nacional va más alta),
 // canteros con flores del sur (lupinos, margaritas, geranios), macetones en la galería, un camino de lajas hasta el escalón, la pizarra
 // con la carta del día, faroles en la galería (se prenden de noche con la luz `luzGaleria`), canastos colgantes y una mecedora. El
@@ -147,10 +139,11 @@ function exteriorCasaTe({ c, col, grupoTe, sitio, rot, W, D, vidrio, w, sueloLoc
     cil(0.45, 0.2, [mx, y + 0.1, mz], '#857c6e');
     cil(0.006, alto - 0.8, [mx + 0.1, y + 0.4 + (alto - 0.8) / 2, mz], '#d8d0bc');   // la driza
     obst(mx, mz, 0.5, y, y + 0.3); obst(mx, mz, 0.1, y, y + alto);
-    const arg = panoBandera(1.5, 0.95, lienzoTextura(450, 285, banderaArgentina));
-    arg.position.set(mx + 0.07 + 0.75, y + alto - 0.15 - 0.475, mz); arg.userData.bandera = 'argentina';
-    const gal = panoBandera(1.3, 0.78, lienzoTextura(390, 234, banderaGalesa), 0.06);
-    gal.position.set(mx + 0.07 + 0.65, y + alto - 0.15 - 0.95 - 0.25 - 0.39, mz); gal.userData.bandera = 'galesa';
+    // los paños flamean con el viento y el clima (bandera-viento.js): cada uno cuelga de un grupo en el mástil que se orienta al viento
+    const arg = registrarBandera(crearPanoBandera(1.5, 0.95, lienzoTextura(450, 285, banderaArgentina)));
+    arg.position.set(mx + 0.07, y + alto - 0.15, mz); arg.userData.bandera = 'argentina';
+    const gal = registrarBandera(crearPanoBandera(1.3, 0.78, lienzoTextura(390, 234, banderaGalesa)));
+    gal.position.set(mx + 0.07, y + alto - 0.15 - 0.95 - 0.25, mz); gal.userData.bandera = 'galesa';
     grupoTe.add(arg, gal);
   }
   // ---- faroles en la galería (el vidrio brilla de noche con las ventanas) y canastos colgantes

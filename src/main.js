@@ -9,6 +9,7 @@ import { U, materialTerreno } from './materiales.js';
 import { configurarTexturas, prepararTexturas, esperarTexturas, origenTexturas } from './texturas.js';
 import { cargarTerreno } from './terreno.js';
 import { crearAgua, crearCascada } from './agua.js';
+import { actualizarBanderas } from './bandera-viento.js';
 import { crearCielo, crearConstelaciones, crearFugaces } from './cielo.js';
 import { faseLunar, nombreFase, iluminada, luzDeLuna, nocheDeEstrellas, fugacesPorMinuto, fugaz, lunaAnotable, FUGACES_PARA_ANOTAR } from './cielo-noche.js';
 import { crearPostproceso } from './postproceso.js';
@@ -9114,6 +9115,7 @@ function cuadroDelJuego(tRaf, manual) {
   obras?.actualizarAmbiente?.(noche);
 
   if (cascada) cascada.actualizar(dt, cam);
+  actualizarBanderas(dt);   // 3.8.8: las banderas se orientan al viento (el flameo es del vertex shader)
   // la bruma, las partículas y las aves solo deciden visibilidad y centro:
   // con cinco veces por segundo alcanza, y el movimiento lo hace el shader
   acumuladoAmbiente += dt;

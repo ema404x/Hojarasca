@@ -1865,9 +1865,9 @@ function mastil(K, x, z, o = {}) {
   const y0 = h - 0.15 - A;
   const franjas = [['#74acdf', 0, 1 / 3], ['#f4f1ea', 1 / 3, 2 / 3], ['#74acdf', 2 / 3, 1]];
   const cg = Math.cos(giro), sg = Math.sin(giro);
-  const onda = (u) => Math.sin(u * 5.5) * 0.06 * u;
+  const onda = () => 0;   // 3.8.8: la onda ya no está pintada en la malla: la hace el viento (bandera-viento.js)
   const P = (u, v) => { const lx = 0.07 + u * L, lz = onda(u); return [x + lx * cg + lz * sg, y0 + v * A, z - lx * sg + lz * cg]; };
-  const seg = 6;
+  const seg = 14;   // (3.8.8: más cortes para que el paño pueda ondear)
   if (o.base !== false) K.circulo(x, z, 0.6, 0, 0.25);
   K.circulo(x, z, 0.1, 0, h);
   K.extra.bandera = { lx: x, ly: h - 0.15 - A / 2, lz: z, alto: h, izada: y0, arriada: 1.1 };
@@ -1891,7 +1891,7 @@ function mastil(K, x, z, o = {}) {
     }
     const ps = P(0.5, 0.5);
     bulto(cb, [ps[0] + sg * 0.012, ps[1], ps[2] + cg * 0.012], 0.075, '#e0a83a', { detalle: 1, esc: [1, 1, 0.25], rot: [0, giro, 0], tipo: 0 });
-  }, { sup: SUP.nada, datos: { movimiento: 'sube', desde: 1.1 - y0, hasta: 0 } });
+  }, { sup: SUP.nada, material: 'bandera', datos: { movimiento: 'sube', desde: 1.1 - y0, hasta: 0, giroBase: giro, largo: L, altoPano: A } });
 }
 function cerco(K, x0, z0, x1, z1, o = {}) {
   const c = K.ext, L = Math.hypot(x1 - x0, z1 - z0);

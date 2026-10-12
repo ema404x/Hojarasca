@@ -21,6 +21,7 @@ import { vozDe, planBalbuceo } from './social-voz.js';
 // 3.8.8: la hora y el día para todos
 import { partesReloj, partesAlmanaque } from './reloj-almanaque.js';
 import { CERCA_GESTOS, LEJOS_MECANICAS, RADIO_ESTUFA, MECANICAS, AVISOS_MECANICAS, avisoPrestado, elegirMecanica, sanearMecanicas, izadaA, sacarAgua, libroParaLeer, textoPrestamo, pedirPrestado, devolverLibro, cuentoEscuchado, pizarronDelDia, dibujosDeLosChicos, horarioTrenes, descansarEnCamilla, faltanDelValle, hayBaile, melodiaDelBaile, GESTOS_OFICIO, trabajando, asientoValido, nombreAsiento, hayMurmullo, hayPerros, hayAbejas, cieloDelTelescopio, cartasDelCielo, mapaDeLasCumbres, espejoDeLaCosturera } from './aldea-mecanicas.js';
+import { orientarBandera } from './bandera-viento.js';
 
 const azar = (a, b) => a + Math.random() * (b - a);
 const IDS = [...IDS_EDIFICIOS.filter((id) => EDIFICIOS_ALDEA[id].rol !== 'estacion' && !EDIFICIOS_ALDEA[id].estructura), 'estacion'];
@@ -271,6 +272,8 @@ export function crearMecanicasAldea(ctx) {
     cerca = true;
     if (!listo) return;
     const h = hora(), a = aldea();
+    // 3.8.8: las banderas se orientan al viento (el flameo mismo es del vertex shader: bandera-viento.js)
+    for (const b of anim.banderas) orientarBandera(b.objeto, b.dato?.giroBase ?? 0, dt);
     // la bandera (las de la plaza, la escuela y la seccional): se mira cuatro veces por segundo
     acumLento += dt;
     if (acumLento > 0.25) {
