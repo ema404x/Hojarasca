@@ -248,7 +248,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const cal = V.calendarioDelAnio(15, { aldea: a, fiestas });
   ok(cal.anio === 2 && cal.filas.length === 12 && cal.filas.filter((x) => x.hoy).length === 1 && cal.filas[2].hoy && cal.filas[3].manana, 'el año en el cuaderno: doce filas, hoy y mañana');
   ok(cal.filas[5].eventos.some((e) => e.tipo === 'fiesta'), 'con las fiestas');
-  ok(V.listaCumples(a).length === 9 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín)
+  ok(V.listaCumples(a).length === 9 + 1 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín; 3.8.8: y el gerente)
 }
 
 // ============================================================ 4. los cumpleaños

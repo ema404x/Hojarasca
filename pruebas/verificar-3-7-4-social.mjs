@@ -412,10 +412,10 @@ const NO_CANDIDATAS = PERSONAS.filter((k) => !M.esCandidata(k));
   };
   juntar(SV.VOCES_SOCIAL, 'VOCES_SOCIAL'); juntar(SV.VOCES_SOCIAL_AMOR, 'VOCES_SOCIAL_AMOR'); juntar(SV.FRASES_SOCIAL, 'FRASES_SOCIAL');
   ok(todos.length > 1200, `mucho texto (${todos.length} renglones)`);
-  const prohibido = /\b(dios|dioses|misa|virgen|bendic\w*|bendit\w*|rez\w+|iglesia|capilla|cura|curas|santo|santa|sagrad\w*|milagro\w*|ángel\w*|amén|pecado|cielo santo|altar|parroq\w*|plata|pesos|precio\w*|cobr\w+|vend\w+|pag\w+|compr\w+|fiado)\b/i;
+  const prohibido = /\b(dios|dioses|misa|virgen|bendic\w*|bendit\w*|rez\w+|iglesia|capilla|cura|curas|santo|santa|sagrad\w*|milagro\w*|ángel\w*|amén|pecado|cielo santo|altar|parroq\w*)\b/i;   // (3.8.8: la economía ya no está rechazada: hay pesos, banco y gerente)
   for (const [t, donde] of todos) {
     const m = t.match(prohibido);
-    if (m) assert.fail(`nada religioso ni de economía: «${m[0]}» en ${donde}`);
+    if (m) assert.fail(`nada religioso: «${m[0]}» en ${donde}`);
     if (/\{(?!nombre\}|quien\}|cosa\}|a\}|b\}|otro\})/.test(t)) assert.fail(`marca desconocida en ${donde}: ${t}`);
     if (t.length > 160) assert.fail(`renglón largo en ${donde}`);
   }

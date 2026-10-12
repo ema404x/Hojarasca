@@ -1058,6 +1058,36 @@ export const VOCES_SOCIAL = {
     ],
   },
 
+  // 3.8.8: Amadeo, el gerente del banco del pueblo
+  gerente: {
+    bien: ['Muy bien. Eso es lo que llamo un buen asiento: claro, justo y sin enmiendas.', 'Bien, estimado. Se lo anoto en el haber.'],
+    mal: ['Mmm. Eso no cuadra. Algo se perdió en el camino, estimado.', 'Lo miro con cuidado, que en el banco las cosas raras se revisan dos veces.'],
+    abrazo: 'Venga, venga. Con cuidado con el chaleco, que es el único que tengo en buen estado.',
+    chiste: { bien: '¡Ja! Ese lo cuento en el mostrador. Los clientes se van a reír, y de paso se olvidan del interés.', mal: 'Ese chiste tiene menos rendimiento que una caja de ahorro sin depósitos.' },
+    broma: { bien: 'Me hizo creer que faltaba plata en la caja. Se me heló el chaleco. Buena, estimado.', mal: 'Con la caja no se bromea. En treinta años nadie me hizo esa broma, y le aseguro que hubo oportunidades.' },
+    tiempo: 'Mi barómetro de la oficina baja desde la mañana: mañana cambia el tiempo. Los números son más fáciles.',
+    consuelo: 'Gracias, estimado. A veces el banco está muy callado y uno se queda contando los centavos. Su compañía vale más que un interés.',
+    felicitar: 'Gracias. La caja cerró sin diferencia de un solo centavo. Y la libreta está más prolija que nunca.',
+    enojo: ['Bueno. Vuelvo al libro mayor, que no me contesta mal.', 'Si me va a ignorar, estimado, yo también sé. Treinta años de mostrador enseñan eso.'],
+    perdon: { bien: 'Está bien. Un malentendido se salda como una cuenta: con una buena explicación y una buena merienda.', mal: 'Todavía no. Déjeme revisar los asientos de la semana y después hablamos.' },
+    mate: 'Mate y bizcochos en la oficina, a las seis, con la persiana baja. Es el mejor momento del día.',
+    cartas: 'Truco. En Esquel jugaba con el escribano y el juez de paz: perder contra ellos era un honor y una costumbre.',
+    caminar: 'Caminemos por la calle del banco. Le muestro dónde puso Tito la vereda nueva: derecha como regla.',
+    foto: '¿Una foto en la puerta del banco? Espere, me acomodo el chaleco y la cadena del reloj.',
+    viene: {
+      saludar: '{nombre}. Pasaba por acá y me acordé de usted. Pase a verme por el banco cuando quiera, sin trámite.',
+      invitar: 'A las seis cierro la caja y pongo la pava. ¿Se anima a pasar por el banco?',
+      pedir: '¿Me alcanza el tintero? Quedó del lado del mostrador. Con esta rodilla, el mostrador queda lejos.',
+      chisme: 'Dicen que la maestra pide prestado para comprar libros. Es el mejor préstamo de la aldea: lo devuelve en conocimiento.',
+    },
+    deseos: [
+      { id: 'miel-banco', cumplir: { tipo: 'regalo', k: 'miel' }, texto: 'Amadeo quiere miel para el té', pide: 'Se me acabó la miel de la oficina. Para el té de las seis, ¿me traería un frasco?', gracias: 'Miel, y de buena. Hoy el interés del banco baja un punto, en mi corazón.' },
+      { id: 'viaje-gerente', cumplir: { tipo: 'hecho', id: 'tren' }, texto: 'Amadeo quiere que viaje en el tren', pide: 'Hace mucho que no veo a nadie bajar del tren con cara contenta. Viaje y cuénteme.', gracias: '¿Y? ¿Se inclina en las curvas como dicen? Mañana lo anoto en la libreta de los buenos recuerdos.' },
+      { id: 'truco-oficina', cumplir: { tipo: 'interaccion', id: 'cartas' }, texto: 'Amadeo quiere un truco', pide: 'Ya cerré la caja. ¿Jugamos un truco, estimado? Pero sin mirar el libro mayor.', gracias: 'Buena partida. Me ganó limpio, y eso no pasa desde la última vez que me dejaron ganar.' },
+      { id: 'mate-gerente', cumplir: { tipo: 'invitar', que: 'mate' }, texto: 'Amadeo quiere tomar mate con usted', pide: 'Me tomaría un mate en su mesa, mirando otra cosa que las cuentas. Para variar.', gracias: 'Buen mate, sin interés ni comisión. El próximo lo cebo yo, en el banco.' },
+    ],
+  },
+
   ramon: {
     bien: ['Bien, m\'hijo. Así se hacen las cosas.', 'Eso me gustó. Hasta los perros movieron la cola.'],
     mal: ['Mmm. Te miro raro, m\'hijo, como a un ternero metido en la huerta.', 'No. Eso no tiene gracia. Ni los perros se rieron.'],
@@ -1313,6 +1343,7 @@ export const FRASES_SOCIAL = {
   // lo que extraña cada uno (los días tristes)
   extrana: {
     martin: 'Extraña a Elena.',
+    gerente: 'Extraña la sucursal de Esquel y el ruido de la calle de la ciudad.',
     abuela: 'Se acordó de los que ya no están.',
     ramon: 'Extraña los inviernos del puesto viejo.',
     galesa: 'Extraña a su abuela de Gaiman.',

@@ -147,6 +147,10 @@ export const EDIFICIOS_ALDEA = {
   // queda PISO_ALDEA más arriba, a `PARADA_ALDEA.y` + 0,3).
   // Medido con el terreno real (verificar-3-7-3-taller.mjs): el eje de la vía pasa a 4,3 m o más del frente, el
   // terreno de la planta queda entre 0,5 y 1,9 m abajo del piso y no hay agua. En la punta este, el cuarto de Martín.
+  // 3.8.8: el banco del pueblo (PLAN_ECONOMIA.md): de piedra, con frontón y columnas, sobre el pasaje de las Chacras, a la altura de
+  // la calle Norte. Inicial (desde el día 1) y con su gerente, Amadeo, que vive en el cuarto de atrás. Sitio medido con el terreno real
+  // (verificar-3-8-8-banco.mjs): desnivel de poco más de un metro, sin agua y a más de 22 m de la vía.
+  'banco-pueblo': { nombre: 'El banco del pueblo', rol: 'local', inicial: true, ancho: 7.8, fondo: 6.4, x: 60.3, z: 44.55, rot: -PI / 2, y: 20.0, calle: 'pasaje-este', lado: -1 },
   'taller-tren': { nombre: 'El taller ferroviario', rol: 'taller-tren', fija: true, ancho: 17, fondo: 7.2, x: 20.5, z: -8.5, rot: 0, y: 25.215 },
 };
 export const IDS_EDIFICIOS = Object.keys(EDIFICIOS_ALDEA);
@@ -278,6 +282,7 @@ export const PUERTA_X = {
   biblioteca: -1.6, escuela: -1.5, 'casa-jefe': -1, 'casa-ercilia': 0.7, 'casa-nelida': -0.9, 'casa-abuela': 0.6, 'casa-familia': -1.2,
   panaderia: -1.2, carpinteria: -1, pescaderia: -1, 'puesto-sanitario': -0.9, estafeta: 0.8, hilanderia: -1.4, 'sala-miel': -0.9, seccional: -1,
   veterinaria: -0.6, 'estudio-fotos': 1.5, 'refugio-andinista': -0.9, herboristeria: -1, 'taller-arte': -1.4, ceramica: -0.6, observatorio: -1.7, costureria: 1,
+  'banco-pueblo': 0,   // 3.8.8: la puerta del banco, en el medio del frente
   'taller-tren': 3,   // 3.7.3: la puerta chica del frente (el portón grande es el del desvío, en el testero oeste)
 };
 // 3.7.3: los puntos del taller ferroviario, en su marco ([x, z, rot]; la puerta chica en x 3, el eje de la vía a +8,5 m
@@ -422,6 +427,8 @@ function puntosLocales(id) {
   if (e.anexo?.id === 'horno') p.horno = { x: e.anexo.x, z: e.anexo.z + 1.7, rot: PI };
   if ((id === 'estudio-fotos' || id === 'taller-arte' || id === 'costureria') && !p['lugar-1']) p['lugar-1'] = { x: -W / 4, z: medioDe(e), rot: PI / 2 };
   if (id === 'varadero') p['trabajo-muelle'] = desdePlano(e, MUELLE_ALDEA.lx, MUELLE_ALDEA.lz, MUELLE_ALDEA.rot);
+  // 3.8.8: el gerente atiende detrás del mostrador (de lado a lado) y el público se para enfrente (aldea-arquitectura.js, `bancoDelPueblo`)
+  if (id === 'banco-pueblo') { p.adentro = { x: 0, z: -0.1, rot: 0 }; p.cliente = { x: 0, z: 1.75, rot: PI }; }
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
     let k = 1;
@@ -610,11 +617,24 @@ export const VECINOS_ALDEA = {
       'Me jubilé y no supe quedarme quieto. Ernesto me ofreció este galpón viejo: si traés material, entre los dos te dejamos la locomotora como nueva.',
     ],
   },
+  // 3.8.8: Amadeo Lezcano, el gerente del banco del pueblo (PLAN_ECONOMIA.md): vive en el cuarto de atrás del banco. Traje oscuro de
+  // gerente de pueblo, chaleco, lentes y una cadena de reloj. Atiende el mostrador (préstamos, abastecimiento, casas y tu puesto).
+  gerente: {
+    nombre: 'Amadeo Lezcano', oficio: 'gerente del banco', mano: null, casa: 'banco-pueblo', trabajo: 'banco-pueblo',
+    colores: { ropa: '#3b3f46', abrigo: '#2c2f36', gorro: null, pelo: '#8f8f8f', bufanda: '#6b2f2a' },
+    saludo: 'Buenas tardes. Pase, pase: el mostrador es de todos, y los números también.', despedida: 'Que le rinda. Y no se olvide: la plata es como la leña, mejor guardada para el invierno.',
+    charla: [
+      'Vine de la sucursal de Esquel con una caja fuerte y una libreta. El banco del pueblo se abrió con lo que juntaron entre todos: ahorro de vecinos, no de forasteros.',
+      'Presto a un dos por ciento por día, que es poco para lo que cuesta no tener plata a tiempo. Un año acá son doce días: hágale la cuenta antes de pedir.',
+      'Las cosas que el banco necesita las pago un poco por encima del mercado. Para eso hay que tener a mano lo que se pide, y para eso hay que haber trabajado antes.',
+    ],
+  },
 };
 // 3.7.3: Martín llegó con la 3.7.3: va al final de la lista de todos (ver ORDEN_PERSONAS_ALDEA), así los de antes
 // siguen con sus índices de siempre (su banco de la plaza, su silla de los cuentos, su lado de la obra)
 export const VECINOS_373 = ['martin'];
-export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373];
+export const VECINOS_388 = ['gerente'];   // 3.8.8
+export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373, ...VECINOS_388];
 // 3.6: Ercilia, la del almacén, también vive en la aldea (en el Relax), pero su figura, su saludo
 // y sus historias son los de siempre (PERSONAJES.ercilia y HISTORIAS en gente.js): acá sólo
 // están su casa, su trabajo y su rutina.
@@ -857,7 +877,7 @@ export const esPobladora37 = (clave) => POBLADORAS_37.includes(clave);
 // (3.7.0: los índices de siempre para los de la 3.6, que deciden su banco de la plaza o su lado de la obra, y
 // las nuevas al final: el orden de llegada intercalado no los mueve)
 // (3.7.3: y Martín al final)
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373];
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k) && !VECINOS_388.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373, ...VECINOS_388];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
 export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
@@ -873,6 +893,7 @@ export const CUMPLES_ALDEA = {
   nena: 8, fotografa: 8, ema: 8, panadera: 9, musico: 9, botera: 9, abuela: 10, enfermera: 10, herrero: 11, herbolaria: 11, ramon: 11,
   galesa: 12, tejedora: 12, astronoma: 12,
   martin: 10,   // 3.7.3
+  gerente: 2,   // 3.8.8
 };
 export const cumpleDe = (clave) => (typeof clave === 'string' && Object.hasOwn(CUMPLES_ALDEA, clave) ? CUMPLES_ALDEA[clave] : null);
 export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe(clave) === diaDelAnio(dia);
@@ -1964,6 +1985,9 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
       // yunque), una hora y media en cada uno; de 17 a 18, el mate en la puerta, mirando pasar el tren
       if ((t >= 8 && t < 12.5) || (t >= 13.5 && t < 17)) return ir('trabajo', 'taller-tren', Math.floor(t / 1.5) % 2 ? 'fragua' : 'banco');
       if (t >= 17 && t < 18) return enCasa('trabajo');
+    } else if (persona === 'gerente') {
+      // 3.8.8: el banco abre de 8:30 a 12:30 y de 14:30 a 18 de lunes a sábado; el gerente atiende detrás del mostrador (el domingo, en su casa)
+      if (ds !== 6 && ((t >= 8.5 && t < 12.5) || (t >= 14.5 && t < 18))) return ir('trabajo', 'banco-pueblo', 'adentro');
     } else if (persona === 'ercilia') {
       // horario de almacén de pueblo: de 8:30 a 12 y de 16 a 20, con siesta en el medio
       // (3.6.2: cierra a las 12 y la siesta es hasta las 15:15: su casa queda a 47 m por la calle, y la ida y la

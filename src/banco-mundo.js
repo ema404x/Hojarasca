@@ -113,9 +113,9 @@ export function crearBancoMundo(ctx) {
     const p = P(), a = abastoDe(p, dia());
     const r = a ? puedeAbastecer(p, dia()) : { ok: false };
     if (!r.ok) { ctx.nota('Todavía no', 'Te falta lo que pide el banco'); return; }
+    const c = cumplirAbasto(p, dia());   // (revisa que lo tengas y cobra); después se saca de la mochila
+    if (!c.ok) { ctx.nota('No se pudo', 'Probá de nuevo'); return; }
     for (const f of efectosDeAbasto(a)) sumar(f.k, f.n);
-    const c = cumplirAbasto(p, dia());
-    if (!c.ok) { for (const f of efectosDeAbasto(a)) sumar(f.k, -f.n); ctx.nota('No se pudo', 'Probá de nuevo'); return; }
     ctx.sonido?.juntar?.();
     ctx.nota(`El banco te pagó ${formatoPesos(c.premio)}`, `Abastecimiento cumplido: ${minuscula(a.k)}`, true);
     ctx.guardar(); ctx.refrescar?.(); dibujar();

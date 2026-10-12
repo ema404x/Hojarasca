@@ -990,6 +990,14 @@ export function crearAldeaGente(ctx) {
           return { id: 'aldea-cachorro', partes: of.partes, seguir: of.seguir, alTerminar: () => adoptarCachorro(), tipo: 'llegada' };
         }
       }
+      // 3.8.8: el gerente te atiende en el mostrador (banco-mundo.js): préstamos, abastecimiento, casas y tu puesto en la feria. Cada tanto, charla
+      if (k === 'gerente' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirBanco && (charlasDichas.get(k) || 0) % 3 !== 2) {
+        charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
+        return {
+          id: 'aldea-gerente', partes: [VECINOS_ALDEA.gerente.saludo, 'Dígame en qué lo ayudo: un préstamo, un pedido del banco, sus casas o su puesto en la feria.'],
+          seguir: 'E: pasar al mostrador · Escape: otro día', alTerminar: () => ctx.abrirBanco(), tipo: 'servicio', ofrece: true,
+        };
+      }
       const lineas = dichosDe(k, a)?.charla || VECINOS_ALDEA[k].charla;   // 3.7.0: según la etapa (los chicos)
       const n = charlasDichas.get(k) || 0;
       charlasDichas.set(k, n + 1);

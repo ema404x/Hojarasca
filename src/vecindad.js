@@ -88,6 +88,8 @@ const TRATO = {
   botera: 'marinero', astronoma: 'vecino', modista: 'mi amor',
   // 3.7.3
   martin: 'muchacho',
+  // 3.8.8
+  gerente: 'estimado',
 };
 
 // ---------------------------------------------------------------- lo que se puede regalar
@@ -166,6 +168,8 @@ export const PERFILES_VECINOS = {
   // ahumada (la de los parajes de la línea); lo dulce no ("se pega en el bigote"). Sus amigos: Ernesto, Anselmo
   // (le forja las piezas) y Nahuel, su aprendiz
   martin: P(['madrugador', 'trabajador', 'curioso'], ['yerba', 'tronco', 'trucha-ahumada'], ['pan-casero', 'empanadas'], 'frasco-frutilla', ['jefe', 'herrero', 'nene'], { tipo: 'material', k: 'tronco', n: 3 }),
+  // 3.8.8: Amadeo, el gerente del banco: metódico, conversador y prolijo; el pan y la miel con el té de la tarde. Sus amigos: Ernesto, Tito y la maestra
+  gerente: P(['trabajador', 'charlatan', 'casero'], ['miel', 'pan-casero', 'yerba'], ['empanadas', 'huevo'], 'tronco', ['jefe', 'carpintero', 'maestra'], { tipo: 'entrada', k: 'miel', n: 1 }),
 };
 // Qué le parece una cosa: 'encanta' | 'gusta' | 'noGusta' | 'neutro'.
 export function gustoDe(persona, cosa) {

@@ -106,11 +106,12 @@ function distRiel(x, z) {
     panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5], 'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
     // 3.7.0: los de la calle de la Loma (los mide verificar-3-7-0-aldea.mjs); 3.7.3: y el taller ferroviario (fijo, como la
     // estación: lo mide verificar-3-7-3-taller.mjs)
+    'banco-pueblo': [7.8, 6.4],   // 3.8.8: el banco del pueblo (lo mide verificar-3-8-8-banco.mjs)
     veterinaria: [8, 6], 'estudio-fotos': [6, 6], 'refugio-andinista': [7, 6], herboristeria: [6, 6], 'taller-arte': [7, 6], ceramica: [7, 6], varadero: [8, 6], observatorio: [6, 6], costureria: [6, 5],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
   for (const [id, t] of Object.entries(CONTRATO)) if (t) eq([E[id].ancho, E[id].fondo], t, `el tamaño de ${id}`);
-  eq(A.INICIALES_ALDEA.length, 11, 'once edificios al empezar (con el almacén y la casa de té del valle)');
+  eq(A.INICIALES_ALDEA.length, 12, 'doce edificios al empezar (con el almacén y la casa de té del valle, y 3.8.8: el banco)');
   eq(A.LOTES_ALDEA.length, A.ORDEN_POBLADORES_ALDEA.length, 'un lote por poblador');   // (3.7.0: veinte)
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id];
@@ -266,7 +267,7 @@ function distRiel(x, z) {
 
 // ============================================================ 4. la gente
 {
-  eq(A.ORDEN_VECINOS_ALDEA.length, 9, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa y Martín');   // (3.7.3: y Martín, el maquinista)
+  eq(A.ORDEN_VECINOS_ALDEA.length, 10, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa, Martín y el gerente');   // (3.7.3: y Martín, el maquinista; 3.8.8: y Amadeo, el gerente del banco)
   ok(A.esVecinoAldea('ercilia') && A.esPersonaAldea('ercilia') && A.personaAldea('ercilia').casa === 'casa-ercilia' && !Object.hasOwn(A.VECINOS_ALDEA, 'ercilia'), 'Ercilia vive en la aldea, pero se define en gente.js');
   ok(A.ORDEN_PERSONAS_ALDEA.includes('ercilia') && !leer('src/aldea.js').includes('Pasá, pasá. Si traés algo'), 'sin duplicar su saludo ni sus historias');
   ok(A.VECINOS_ALDEA.nelida.oficio === 'ayudante del almacén' && A.VECINOS_ALDEA.nelida.casa === 'casa-nelida', 'Nélida, la ayudante');

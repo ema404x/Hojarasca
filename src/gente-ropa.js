@@ -201,6 +201,19 @@ export const ASPECTO = {
     abrigo: { colores: { poncho: '#4a5560', bufanda: '#a83a2a', gorro: 'gorro' } },
   },
 
+  // 3.8.8: Amadeo Lezcano (58), gerente del banco del pueblo: traje oscuro con chaleco, camisa clara, pañuelo bordó al cuello, pelo
+  // canoso peinado para atrás y bigote prolijo. En invierno, un sobretodo gris oscuro con bufanda bordó.
+  'aldea-gerente': {
+    edad: 58, mujer: false,
+    cuerpo: { ancho: 1.0, fondo: 1.03, panza: 0.14, alto: 1.0, encorvada: 0.03 },
+    cara: { ancho: 0.98, largo: 1.04, nariz: 1.1, ojos: 0.95, mand: 0.4, sonrisa: 0.3, parpado: 0.1, arrugas: 'mayor', iris: '#4a3a2a' },
+    colores: { piel: '#c8a080', pelo: '#8f8f8f', barba: '#8f8f8f', ropa: '#3b3f46', abrigo: '#2c2f36', gorro: null },
+    R: { chaleco: true, pantalon: '#2c2f36', panuelo: '#6b2f2a', botas: 'altas', botaCol: '#1e1a18', canas: 0.8, bigote: true },
+    guardas: { cuello: [1, 0, 'todo'] },
+    poses: ['cintura', 'atras', 'cruzados'],
+    abrigo: { colores: { poncho: '#3a3e44', bufanda: '#6b2f2a', gorro: 'gorro' } },
+  },
+
   // ------------------------------------------------------------ los once pobladores
   // Tito Arrieta, carpintero: boina, barba, chaleco, delantal de lona, pañuelo colorado al cuello
   'poblador-carpintero': {

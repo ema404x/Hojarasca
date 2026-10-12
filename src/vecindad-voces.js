@@ -1105,6 +1105,47 @@ export const VOCES = {
     pronostico: 'El hombro me avisa antes que la radio: {pronostico}. Cuarenta inviernos de meseta no se olvidan.',
     regalo: 'Martín, el maquinista, te dejó troncos secos para el fuego',
   },
+  // 3.8.8: Amadeo, el gerente del banco del pueblo
+  gerente: {
+    encanta: {
+      miel: 'Miel. En mi casa de Esquel la miel era para los enfermos y para las visitas; hoy soy las dos cosas, a veces. Esta la voy a guardar para el té de la tarde, con las cuentas del día cerradas.',
+      'pan-casero': 'Pan casero, todavía tibio. Eso sí que es una inversión segura: se amortiza en una merienda y deja ganas de repetir. Gracias, de veras.',
+      yerba: 'Yerba. La tomo despacio, con la libreta abierta, mirando que los números cierren. Un mate bien cebado ayuda a que cierren.',
+    },
+    gusta: '{cosa}, qué atención. En este oficio se aprende a reconocer lo que uno no esperaba recibir: eso vale más que lo que se esperaba.',
+    noGusta: 'Tronco… se lo agradezco, pero no tengo dónde ponerlo: el banco calefacciona con la estufa de la sala y la leña me la trae Tito, que la entiende. Quédese con él, que se lo van a necesitar.',
+    ocupado: 'Ahora no, que estoy cuadrando la caja y si pierdo el hilo empiezo de nuevo. Pase después de las seis, cuando baje la persiana.',
+    noToma: { te: 'Té, no, gracias: del banco me acostumbré a tomar mate. Pero acepto la compañía, si me da un rato.' },
+    acepta: 'Con gusto. Dejo el libro mayor cerrado, que se queda bien solo, y vamos a {lugar}.',
+    animo: {
+      bien: 'Bien. La caja cerró sin diferencia, a los centavos. Es la mejor forma de empezar la tarde.',
+      cansado: 'Cansado. Hoy hubo cola desde temprano y a todos les expliqué el interés dos veces. Mañana pongo un cartel.',
+      inquieto: 'Inquieto. Me falta un peso en la caja y no lo encuentro. Sé que no lo perdí: pero tampoco sé dónde está.',
+      charla: 'Con ganas de charlar. En el mostrador uno escucha todo el día y habla poco: a veces conviene al revés.',
+    },
+    historia: { titulo: 'La libreta de la sucursal', partes: [
+      'Empecé a los dieciséis de cadete en el Banco de la Nación de Esquel: barría, llevaba los sobres y aprendía a distinguir la firma de un hombre honesto de la de uno apurado. Después fui cajero, después contador y, por último, gerente de una sucursal chica.',
+      'Cuando la sucursal cerró, los vecinos de acá juntaron lo suyo en un frasco, en una lata, en una media, y me pidieron que lo ordenara. Así nació este banco: nadie puso mucho, pero todos pusieron. Ese es el capital que más rinde.',
+      'Presto poco y cobro justo. Un banco que se hace rico con la necesidad del vecino se queda sin vecinos. Y un pueblo sin vecinos, por más caja fuerte que tenga, no necesita banco.',
+    ] },
+    sobremesa: [
+      'El interés es el precio del tiempo. Si usted necesita plata hoy y la devuelve mañana, no me debe tanto; si la devuelve en un año, me debe más porque yo también estuve esperando.',
+      'La caja fuerte pesa trescientos kilos y la trajeron en el tren. Ernesto dice que la locomotora dio dos pitadas más fuertes ese día: de respeto.',
+      'Hay una regla vieja: lo que sale tiene que volver. Se aplica a los préstamos, a los libros de la biblioteca y a las visitas.',
+      'Un pueblo es una cuenta corriente: cada vecino deposita lo que sabe hacer y retira lo que le falta. Cuando las cuentas quedan parejas, hay paz.',
+      'El pedido del banco lo pago por encima del precio porque de eso vive el pueblo: si el banco compra caro, el que vende tiene con qué comprarme después. Es la rueda.',
+      'Una libreta bien llevada es como una huerta: si la riega todos los días, no hay que hacer magia a fin de mes.',
+    ],
+    visita: [
+      'Pasé a ver cómo vivía el vecino que pide prestado con tanta prudencia. Me gusta lo que veo: nada sobra, nada falta. Así se cuida una casa.',
+      'Le traje un frasco de miel de parte del banco. No es un regalo del gerente, es un detalle de la casa: los clientes de confianza lo merecen.',
+    ],
+    saludoAmigo: '¡{nombre}! Pase, pase: hoy no hay que firmar nada. Es una visita, no una gestión.',
+    saludoCompadre: '{nombre}, socio del pueblo. Para usted el mostrador siempre está abierto, y la pava también.',
+    fauna: 'Desde la ventanilla del banco vi {unbicho} cruzando la calle. Los clientes lo señalaron todos a la vez, y por un minuto nadie habló de plata. Fue un lindo minuto.',
+    pronostico: 'Mi barómetro de oficina dice {pronostico}. No es infalible, pero es más confiable que algunos balances.',
+    regalo: 'Amadeo, el gerente del banco, te dejó un frasco de miel de parte de la casa',
+  },
   ramon: {
     encanta: {
       yerba: 'Yerba. Esto no se rechaza nunca, m\'hijo. Gracias.',
@@ -1443,6 +1484,16 @@ export const AYUDAS = {
       gracias: ['Esto es leña. Con esto el galpón aguanta la helada y la grasa no se pone dura como manteca de invierno.'],
       devuelve: { tipo: 'cosa', k: 'yerba', n: 1, texto: 'Tomá, yerba de la mía. De la que se toma en la cabina.' },
       consejo: 'En la meseta, cuando nevaba fuerte, el tren llevaba más palas que pasajeros. Si salís con nieve, llevá pala aunque te miren raro.' },
+  ],
+  // 3.8.8: Amadeo, en el banco
+  gerente: [
+    { id: 'libro-mayor', titulo: 'Sostenerle el libro mayor mientras pasa los asientos del día', hace: true,
+      gracias: ['Gracias. Dos manos más y la columna cierra: sin diferencia. Es la mejor sensación del oficio.'],
+      consejo: 'Un gasto chico por día no se nota; un gasto chico por año, tampoco. Los que se notan son los que se repiten sin que uno los mire. Anotá todo.' },
+    { id: 'tablas-banco', titulo: 'Alcanzarle dos tablas para arreglar el cajón del mostrador', pide: { tipo: 'material', k: 'tabla', n: 2 },
+      gracias: ['Tablas parejas, secas, de buena madera. El cajón del mostrador cierra otra vez: eso es seguridad bancaria de verdad.'],
+      devuelve: { tipo: 'cosa', k: 'yerba', n: 1, texto: 'Tomá, yerba de la oficina. No figura en ningún libro: es un obsequio.' },
+      consejo: 'Cuando pidas plata prestada, pedí un poco menos de lo que creés que necesitás. Siempre hay un gasto que no estaba en la cuenta, pero casi nunca son dos.' },
   ],
   ramon: [
     { id: 'tranquera', titulo: 'Llevarle troncos para los postes de la tranquera', pide: { tipo: 'material', k: 'tronco', n: 2 },

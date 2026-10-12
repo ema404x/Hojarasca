@@ -209,7 +209,7 @@ const conPlata = (p, pesos) => { p.economia.pesos = pesos; return p; };
 
 // ---------------------------------------------------------------- 6. propiedad
 {
-  ok(R.precioCasa('cabana-piedra') === 24000 && R.precioCasa('casa-galeria') === 42000 && R.precioCasa('casona') === 70000 && R.precioCasa('casilla') === 0, 'precios de las casas');
+  ok(R.precioCasa('cabana-piedra') === 36000 && R.precioCasa('casa-galeria') === 66000 && R.precioCasa('casona') === 110000 && R.precioCasa('casilla') === 0, 'precios de las casas');
   for (const id of Object.keys(R.PROPIEDAD.casas)) {
     let suma = 0; for (let i = 0; i < 4; i++) suma += R.precioDeEtapa(id, i);
     ok(suma === R.precioCasa(id), `${id}: las cuatro etapas suman el total`);
@@ -218,9 +218,9 @@ const conPlata = (p, pesos) => { p.economia.pesos = pesos; return p; };
   }
   const p = partida();
   eq(R.puedePagarEtapa(p, 'cabana-piedra', 0).ok, false, 'sin plata no se empieza');
-  ok(R.puedePagarEtapa(p, 'cabana-piedra', 0).falta === 8400, 'y dice cuánto falta');
+  ok(R.puedePagarEtapa(p, 'cabana-piedra', 0).falta === 12600, 'y dice cuánto falta');
   ok(R.puedePagarEtapa({ dia: 1 }, 'cabana-piedra', 0).ok && R.puedePagarEtapa({ dia: 1 }, 'cabana-piedra', 0).precio === 0, 'sin economía no se cobra');
-  conPlata(p, 9000);
+  conPlata(p, 13200);
   ok(R.pagarEtapa(p, 'cabana-piedra', 0).ok && E.pesosDe(p) === 600, 'se paga la primera etapa');
   eq(R.pagarEtapa(p, 'cabana-piedra', 1).ok, false, 'y la siguiente espera');
   ok(R.puedePagarEscritura(p).ok === false && R.puedePagarEscritura(conPlata(p, 8000)).ok, 'la escritura del lote');

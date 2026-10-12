@@ -14,9 +14,9 @@ import { tengoDe } from './pedidos.js';
 
 export const PROPIEDAD = {
   casas: {
-    'cabana-piedra': { total: 24000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 300, nombre: 'la cabaña' },
-    'casa-galeria': { total: 42000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 500, nombre: 'la casa con galería' },
-    casona: { total: 70000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 800, nombre: 'la casona' },
+    'cabana-piedra': { total: 36000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 300, nombre: 'la cabaña' },
+    'casa-galeria': { total: 66000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 500, nombre: 'la casa con galería' },
+    casona: { total: 110000, reparto: [0.35, 0.2, 0.25, 0.2], renta: 800, nombre: 'la casona' },
   },
   escritura: 8000,                 // el lote de tu casa de la calle de la Loma
   puesto: { precio: 6000, lotesPorDia: 2, comision: 0.1, stockMax: 12, tiposMax: 8 },

@@ -67,12 +67,12 @@ const aldeaConObra = () => {
   ok(leer('package.json').includes('node pruebas/verificar-3-6-vecindad.mjs'), 'la prueba está en el gate');
   const g = leer('src/guardado.js');
   ok(g.includes("import { sanearVecindad, vecindadNueva } from './vecindad.js';") && g.includes('vecindad: vecindadNueva(),') && g.includes('vecindad: sanearVecindad(p.vecindad),'), 'guardado.js guarda la vecindad');
-  // sin nada religioso (pedido del usuario) ni economía (rechazada)
+  // sin nada religioso (pedido del usuario); (3.8.8: la economía sí, desde que hay pesos y un banco con su gerente)
   // (lo que lee el jugador: los textos, no los comentarios del código)
   const texto = JSON.stringify([VZ.VOCES, VZ.AYUDAS, VZ.COMENTARIOS, VZ.FRASES, V.REGALABLES, V.ACTIVIDADES]) + [...leer('src/vecindad.js').matchAll(/'(?:[^'\\\n]|\\.)*'/g)].map((m) => m[0]).join(' ');
-  const prohibido = /\b(dios|dioses|misa|virgen|bendic\w*|bendit\w*|rez\w+|iglesia|capilla|cura|curas|santo|santa|sagrad\w*|milagro\w*|ángel\w*|amén|pecado|cielo santo|plata|pesos|precio\w*|cobr\w+|vend\w+|pag\w+)\b/i;
+  const prohibido = /\b(dios|dioses|misa|virgen|bendic\w*|bendit\w*|rez\w+|iglesia|capilla|cura|curas|santo|santa|sagrad\w*|milagro\w*|ángel\w*|amén|pecado|cielo santo)\b/i;   // (3.8.8: la economía ya no está rechazada: hay pesos, banco y gerente)
   const m = texto.match(prohibido);
-  ok(!m, `sin religión ni economía (encontré «${m?.[0]}»)`);
+  ok(!m, `sin religión (encontré «${m?.[0]}»)`);
 }
 
 // ============================================================ 1. los perfiles y los gustos
