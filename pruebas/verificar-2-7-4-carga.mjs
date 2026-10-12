@@ -166,7 +166,7 @@ const huella0 = huellaTerreno(T0);
     else if (Array.isArray(v)) h.update(k).update(JSON.stringify(v));
   }
   h.update(JSON.stringify(T0.lugares || {}));
-  assert.equal(h.digest('hex').slice(0, 16), '2414ce1a25286f52', 'el valle cambió');
+  assert.equal(h.digest('hex').slice(0, 16), '2a23627c755c2749', 'el valle cambió');
 }
 // de a pasos (como en la carga): cede varias veces y da lo mismo
 {

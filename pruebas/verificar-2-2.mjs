@@ -97,7 +97,8 @@ for (const clave of ['__rastro', '__rastroPerro', '__bucle']) {
     else if (Array.isArray(v)) h.update(k).update(JSON.stringify(v));
   }
   h.update(JSON.stringify(T.lugares || {}));
-  assert.equal(h.digest('hex').slice(0, 16), '2414ce1a25286f52', 'el terreno cambió: las partidas guardadas quedarían en otro lugar');
+  // (3.8.8: la huella cambió a propósito: el terraplén de la vía ya no rellena el lecho del arroyo, ver CAMBIOS_3_8_8.md)
+  assert.equal(h.digest('hex').slice(0, 16), '2a23627c755c2749', 'el terreno cambió: las partidas guardadas quedarían en otro lugar');
   assert.ok(ms < 5000, `generar el terreno tarda ${Math.round(ms)} ms`);
 }
 const tieneTexto = (texto, trozo) => texto.split(trozo).length > 1;

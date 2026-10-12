@@ -102,6 +102,13 @@ Un poste interior del frente del galpón (x 3,02) caía a 2 cm del eje de la pue
 
 Segundo arreglo del taller: **la caída en el portón** (el que entra por la vía). El terraplén caminable del desvío medía 1,9 m, pero la boca del portón mide 2,8 y el balasto que se ve, 2,3 o más; y la zorra, parada sobre los rieles, empuja al que viene por el centro hacia el costado. El cuerpo se salía del borde justo en la entrada, caía al terreno (1,2 m más abajo) y quedaba bajo el piso del galpón. Ahora el paso mide 2,3 m y 2,9 en los últimos 4 m, como la boca. Prueba nueva: hay piso en todo el ancho del portón. Con el choque de la zorra no se pasa por el centro de los rieles: se rodea por el costado.
 
+## Arreglo: el arroyo y la cascada «bugueados»
+Eran tres defectos distintos (se midieron y se miraron en una vista previa del valle de verdad, antes y después):
+1. **Cinta del agua rota en las vueltas.** El arroyo era una sola tira con dos vértices por punto. En las vueltas cerradas del cauce (16 puntos, radios de 2 a 5 m con una cinta de 5,5 a 7,5 m de semiancho) el lado de adentro se cruzaba y esos triángulos quedaban de espaldas y se descartaban: cortes rectos y dientes de sierra en el agua. Ahora cada tramo es su rectángulo y las vueltas llevan un abanico (`src/cinta-arroyo.js`, sin THREE).
+2. **Tramo seco de 14 m.** El terraplén de la vía rellenaba el lecho del arroyo aguas abajo del puente (a 18 m o más de él, fuera de la zona protegida): el agua quedaba hasta 4,5 m por debajo del suelo y el arroyo desaparecía entre dos pedazos. Ahora el terreno no sube sobre el cauce y su orilla (`src/terreno.js`). **Cambia el relieve en ese cruce:** la caché del valle se invalida sola.
+3. **La cascada.** Se salteaban dos tramos de cinta (el escalón y el primero de la poza), así que el pie de la caída quedaba seco; la cortina era más angosta que el cauce y de bloques; la espuma era un disco liso. Ahora hay poza hasta la base de la cortina, la cortina cubre todo el labio, los hilos de agua son suaves (con espuma arriba y abajo) y la espuma del pie se deshace hacia afuera.
+Prueba nueva: `verificar-3-8-8-arroyo.mjs` (la cinta sana y sin triángulos de espaldas, la poza, y el valle de verdad: ningún punto del eje con el lecho sobre el agua, y la vía sin quedar en el aire; falla sin el arreglo). La naciente (los primeros 12 puntos) sigue seca a propósito. No se vio en el juego; la vista previa fue con un terreno de colores simples.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

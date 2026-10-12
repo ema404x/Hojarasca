@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { U, GLSL_COMUN, cuentaNiebla } from './materiales.js';
 import { LAGO } from './config.js';
+import { construirCintaArroyo } from './cinta-arroyo.js';
 
 function materialAgua() {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]);
@@ -188,32 +189,42 @@ export function crearCascada(T, escena, U) {
   if (!s) return { actualizar: () => null, pos: null };
   const grupo = new THREE.Group();
   const ancho = s.ancho * 1.45;
+  const anchoCortina = s.ancho * 2.3;   // 3.8.8: cubre todo el labio del salto (el cauce mide 2 × ancho más el borde): antes quedaban unos 3 m de agua cortada a cada lado
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
-    uniforms: { uTiempo: U.uTiempo, uAlto: { value: s.alto } },
+    uniforms: { uTiempo: U.uTiempo, uAlto: { value: s.alto + 0.7 } },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
       uniform float uTiempo; uniform float uAlto; varying vec2 vUv;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+      float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
       void main(){
-        // hilos de agua que caen, más rápidos abajo
-        float caida = uTiempo * (1.2 + vUv.y * 0.8);
-        float fila = floor(vUv.x * 26.0);
-        float h = hash(vec2(fila, floor(vUv.y * 3.0 + caida)));
-        float hilo = smoothstep(0.35, 0.95, h);
-        float franja = fract(vUv.y * 5.0 + caida + hash(vec2(fila, 1.0)));
-        float brillo = 0.55 + 0.45 * smoothstep(0.2, 0.9, franja) * hilo;
-        float borde = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x);
-        vec3 col = mix(vec3(0.62, 0.74, 0.78), vec3(0.95, 0.98, 1.0), brillo);
-        gl_FragColor = vec4(col, (0.34 + 0.4 * brillo * hilo) * borde);
+        // 3.8.8: hilos de agua que caen, suaves (antes eran bloques: una grilla de 26 columnas con un hash por celda), más espuma
+        // en el labio de arriba y al pie, y bordes que se deshacen; sin las columnas rectas que se veían a lo lejos
+        float y = vUv.y * uAlto;
+        float caida = uTiempo * 4.2;
+        float hilos = vn(vec2(vUv.x * 52.0, y * 0.55 + caida)) * 0.55 + vn(vec2(vUv.x * 21.0 + 7.0, y * 0.33 + caida * 0.8)) * 0.45;
+        float brillo = smoothstep(0.34, 0.8, hilos);
+        float borde = smoothstep(0.0, 0.1, vUv.x + (vn(vec2(y * 0.8, 3.0)) - 0.5) * 0.05) * smoothstep(1.0, 0.9, vUv.x + (vn(vec2(y * 0.8, 9.0)) - 0.5) * 0.05);
+        float espuma = smoothstep(2.4, 0.0, y) * (0.6 + 0.4 * vn(vec2(vUv.x * 30.0, uTiempo * 2.0))) + smoothstep(uAlto - 1.0, uAlto, y) * 0.5;
+        vec3 col = mix(vec3(0.58, 0.74, 0.78), vec3(0.97, 0.99, 1.0), clamp(brillo * 0.8 + espuma * 0.7, 0.0, 1.0));
+        gl_FragColor = vec4(col, clamp(0.5 + 0.38 * brillo + 0.4 * espuma, 0.0, 0.92) * borde);
       }`,
   });
-  const cortina = new THREE.Mesh(new THREE.PlaneGeometry(ancho, s.alto + 0.7, 1, 1), mat);
+  const cortina = new THREE.Mesh(new THREE.PlaneGeometry(anchoCortina, s.alto + 0.7, 1, 1), mat);
   cortina.position.set(s.x + Math.sin(s.ang) * 0.9, s.arriba - (s.alto + 0.7) / 2 + 0.3, s.z + Math.cos(s.ang) * 0.9);
   cortina.rotation.y = s.ang;   // la cortina cruza el arroyo, mirando aguas abajo
   grupo.add(cortina);
   // la espuma de la poza
-  const espuma = new THREE.Mesh(new THREE.CircleGeometry(ancho * 0.4, 18), new THREE.MeshBasicMaterial({ color: 0xe8f1f2, transparent: true, opacity: 0.3, depthWrite: false }));
+  // (3.8.8: antes un disco liso de borde duro, que se veía como una chapa beige; ahora se deshace hacia afuera y se mueve)
+  const espuma = new THREE.Mesh(new THREE.CircleGeometry(ancho * 0.5, 24), new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, uniforms: { uTiempo: U.uTiempo, uOp: { value: 0.5 } },
+    vertexShader: 'varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float uTiempo; uniform float uOp; varying vec2 vP;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+      float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
+      void main(){ float r = length(vP) / ${(ancho * 0.5).toFixed(3)}; float n = vn(vP * 1.6 + vec2(uTiempo * 0.6, -uTiempo * 0.4)); float a = smoothstep(1.0, 0.25, r) * (0.35 + 0.65 * smoothstep(0.25, 0.8, n)); gl_FragColor = vec4(vec3(0.93, 0.97, 0.98), a * uOp); }`,
+  }));
   espuma.rotation.x = -Math.PI / 2;
   espuma.position.set(s.x + Math.sin(s.ang) * 2.2, s.abajo + 0.06, s.z + Math.cos(s.ang) * 2.2);
   grupo.add(espuma);
@@ -244,7 +255,7 @@ export function crearCascada(T, escena, U) {
       arr[i * 3 + 2] = pz + Math.sin(a) * r * 0.8;
     }
     gotas.geometry.attributes.position.needsUpdate = true;
-    espuma.material.opacity = 0.35 + Math.sin(U.uTiempo.value * 2.2) * 0.1;
+    espuma.material.uniforms.uOp.value = 0.55 + Math.sin(U.uTiempo.value * 2.2) * 0.1;
     return s;
   }
   return { actualizar, pos: { x: s.x, y: s.abajo, z: s.z }, salto: s };
@@ -263,26 +274,9 @@ export function crearAgua(T, escena) {
   lago.renderOrder = 5;
   escena.add(lago);
 
-  // Arroyo: cinta que sigue el cauce y baja con el terreno
-  const pos = [], flujo = [], ind = [], cauce = [];
-  const rio = T.rio;
-  let largo = 0;   // 3.5.2: metros río abajo desde la naciente (para las vetas de la corriente)
-  for (let i = 0; i < rio.length; i++) {
-    const a = rio[Math.max(0, i - 1)], b = rio[Math.min(rio.length - 1, i + 1)];
-    const tx = b.x - a.x, tz = b.z - a.z, l = Math.hypot(tx, tz) || 1;
-    const nx = -tz / l, nz = tx / l;
-    const p = rio[i], w = p.w + 1.2;
-    const y = p.s - 0.08;
-    const pendiente = i > 0 ? Math.max(0, rio[i - 1].s - p.s) : 0;
-    const vel = 0.6 + Math.min(2.5, pendiente * 3);
-    if (i > 0) largo += Math.hypot(p.x - rio[i - 1].x, p.z - rio[i - 1].z);
-    pos.push(p.x + nx * w, y, p.z + nz * w, p.x - nx * w, y, p.z - nz * w);
-    flujo.push(tx / l * vel, tz / l * vel, tx / l * vel, tz / l * vel);
-    cauce.push(largo, w, largo, -w);
-    // en el salto de agua la cinta se corta: la caída la hace la cortina
-    const corta = T.saltoAgua && (i === T.saltoAgua.i || i === T.saltoAgua.i + 1);
-    if (i < rio.length - 1 && !corta) { const k = i * 2; ind.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
-  }
+  // Arroyo: cinta que sigue el cauce y baja con el terreno (cada tramo, su rectángulo; ver cinta-arroyo.js)
+  // en el salto de agua se corta sólo el escalón: la caída la hace la cortina, y la poza de abajo tiene su agua
+  const { pos, flujo, ind, cauce } = construirCintaArroyo(T.rio, T.saltoAgua ? T.saltoAgua.i : -1);
   const gRio = new THREE.BufferGeometry();
   gRio.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   gRio.setAttribute('aFlujo', new THREE.Float32BufferAttribute(flujo, 2));

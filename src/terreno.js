@@ -377,7 +377,13 @@ function* calcularTerreno() {
         if (puentesRiel.some((p) => Math.hypot(p.x - x, p.z - z) < p.luz * 0.5 + 6)) continue;
         const h = lerp(riel[c.i].h, riel[(c.i + 1) % riel.length].h, c.t);
         const dentro = smoothstep(28, 3.4, c.d);
-        alturas[k] = lerp(alturas[k], h, dentro * 0.96);
+        // 3.8.8: el terraplén de la vía no tapa el arroyo. Donde el cauce corre a 8-17 m de la vía (aguas abajo del puente, a 18 m
+        // o más de él) el terraplén, que sube al nivel de los durmientes, rellenaba el lecho y dejaba el arroyo seco 14 m (el agua,
+        // a 4,5 m por debajo del suelo). Sobre el cauce el terreno no sube: el terraplén baja hacia la zanja
+        let peso = dentro * 0.96;
+        // (la franja de la vía misma sí sube: sólo se protege el cauce y su orilla, y a más de 4 m de los durmientes)
+        if (h > alturas[k] && distRio[k] < anchoRio[k] + 5) peso *= 1 - (1 - smoothstep(anchoRio[k] + 1, anchoRio[k] + 5, distRio[k])) * smoothstep(4, 8, c.d);
+        alturas[k] = lerp(alturas[k], h, peso);
         // en la franja de los durmientes el terreno nunca puede quedar por encima
         if (c.d < 4.5) alturas[k] = Math.min(alturas[k], h - 0.2 + (c.d / 4.5) * 0.12);
       }
