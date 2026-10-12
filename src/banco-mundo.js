@@ -50,6 +50,7 @@ export function crearBancoMundo(ctx) {
     b.disabled = !activo;
     const accion = () => { if (!b.disabled) alClic(); };
     if (ctx.alClic) ctx.alClic(b, accion); else b.addEventListener('click', accion);   // en el juego, el clic va por el HUD (mousedown)
+    b.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); ev.stopPropagation(); accion(); } });   // y con el teclado (Tab para pasar de un botón al otro)
     return b;
   }
   const renglon = (a, b) => { const r = el('div', 'banco-renglon'); r.append(el('span', '', a), el('b', '', b)); return r; };
