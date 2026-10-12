@@ -46,6 +46,7 @@ import { fichaVecinos } from './vecindad-juego.js';
 import { PREDIO } from './fiestas.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA , avisoProximoVecino } from './aldea.js';
+import { cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
 // cuántos se arman las figuras
@@ -1033,6 +1034,7 @@ export function crearAldeaGente(ctx) {
     }
     for (const f of s.efectos) {
       if (f.tipo === 'material') ctx.sumarMaterial(f.k, f.n);
+      else if (f.tipo === 'pesos') { if (f.n >= 0) cobrarPesos(p, f.n, f.motivo, f.con); else pagarPesos(p, -f.n, f.motivo, f.con); }   // 3.8.8: la plata
       else if (f.tipo === 'cosa') { p.cosas = p.cosas || {}; p.cosas[f.k] = f.fijar !== undefined ? f.fijar : Math.max(0, (Number(p.cosas[f.k]) || 0) + f.n); }
       else if (f.tipo === 'entrada') ctx.sumarEntrada(f.k, f.n);
       else if (f.tipo === 'jugador') ctx.alJugador?.(f.campo, f.valor);

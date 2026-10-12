@@ -10,6 +10,7 @@ import { configurarTexturas, prepararTexturas, esperarTexturas, origenTexturas }
 import { cargarTerreno } from './terreno.js';
 import { crearAgua, crearCascada } from './agua.js';
 import { actualizarBanderas } from './bandera-viento.js';
+import { cobrar as cobrarPesos, pesosDe, hayEconomia, formatoPesos, resumenBilletera, textoDiferencia } from './economia.js';
 import { crearCielo, crearConstelaciones, crearFugaces } from './cielo.js';
 import { faseLunar, nombreFase, iluminada, luzDeLuna, nocheDeEstrellas, fugacesPorMinuto, fugaz, lunaAnotable, FUGACES_PARA_ANOTAR } from './cielo-noche.js';
 import { crearPostproceso } from './postproceso.js';
@@ -1460,6 +1461,57 @@ function actualizarRelojHud(dt) {
   el.classList.toggle('oculto', !t);
 }
 
+// 3.8.8: la billetera: el saldo en una línea del HUD (y lo que acaba de entrar o salir, unos segundos) y el panel con los movimientos
+let acumuladoBilleteraHud = 99, saldoVisto = null, cambioHasta = 0, cambioTexto = '';
+function actualizarBilleteraHud(dt) {
+  acumuladoBilleteraHud += dt;
+  if (acumuladoBilleteraHud < 0.25) return;
+  acumuladoBilleteraHud = 0;
+  const el = $('billetera-hud');
+  if (!el) return;
+  const hay = !esDesafio && modo === 'jugando' && hayEconomia(progreso);
+  const saldo = hay ? pesosDe(progreso) : 0;
+  if (hay && saldoVisto !== null && saldo !== saldoVisto) { cambioTexto = textoDiferencia(saldoVisto, saldo); cambioHasta = performance.now() + 3500; }
+  saldoVisto = hay ? saldo : null;
+  const mostrar = hay && (saldo > 0 || performance.now() < cambioHasta);
+  el.classList.toggle('oculto', !mostrar);
+  if (!mostrar) return;
+  const cambio = performance.now() < cambioHasta ? cambioTexto : '';
+  const clave = `${saldo}|${cambio}`;
+  if (el.dataset.clave === clave) return;
+  el.dataset.clave = clave;
+  el.textContent = formatoPesos(saldo);
+  if (cambio) { const s = document.createElement('span'); s.className = `cambio ${cambio.startsWith('+') ? 'sube' : 'baja'}`; s.textContent = cambio; el.appendChild(s); }
+}
+function abrirBilletera() {
+  if (esDesafio) return;
+  const cont = $('billetera-contenido');
+  const r = resumenBilletera(progreso, 14);
+  cont.innerHTML = '';
+  const saldo = document.createElement('p'); saldo.className = 'billetera-saldo'; saldo.textContent = formatoPesos(r.saldo);
+  const tot = document.createElement('p'); tot.className = 'billetera-totales'; tot.textContent = T_(`Ganaste ${formatoPesos(r.ganado)} y gastaste ${formatoPesos(r.gastado)} en total`);
+  const ul = document.createElement('ul');
+  for (const m of r.movimientos) {
+    const li = document.createElement('li');
+    const dia = document.createElement('i'); dia.textContent = T_(`Día ${m.dia}`);
+    const que = document.createElement('span'); que.textContent = T_(m.motivo);
+    if (m.con) { const c = document.createElement('small'); c.textContent = T_(m.con); que.appendChild(c); }
+    const monto = document.createElement('b'); monto.className = m.monto > 0 ? 'sube' : 'baja'; monto.textContent = `${m.monto > 0 ? '+' : ''}${formatoPesos(m.monto)}`;
+    li.append(dia, que, monto); ul.appendChild(li);
+  }
+  if (!r.movimientos.length) { const li = document.createElement('li'); li.textContent = T_('Todavía no hubo movimientos'); ul.appendChild(li); }
+  cont.append(saldo, tot, ul);
+  $('pausa').classList.add('oculto');
+  $('billetera').classList.remove('oculto');
+}
+function cerrarBilletera() {
+  $('billetera').classList.add('oculto');
+  $('pausa').classList.remove('oculto');
+}
+if (!esDesafio) $('btn-billetera').classList.remove('oculto');
+$('btn-billetera').addEventListener('click', abrirBilletera);
+$('cerrar-billetera').addEventListener('click', cerrarBilletera);
+
 // ------------------------------------------------------------------ menús
 let abiertoEn = 0;
 function abrir(cual) {
@@ -2860,6 +2912,7 @@ document.addEventListener('keydown', (e) => {
   const codigo = codigoCanonico(e.code);
   if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(); return; }
   if (modo === 'mapa' && (codigo === 'KeyM' || codigo === 'Escape')) { volverAlJuego(); return; }
+  if (codigo === 'Escape' && !$('billetera').classList.contains('oculto')) { cerrarBilletera(); return; }   // 3.8.8
   if (codigo === 'Escape' && !$('logros').classList.contains('oculto')) { cerrarLogros(); return; }
   if (codigo === 'Escape' && modos?.panelAbierto()) { modos.cerrarPanel(); return; }   // 3.1
   if (guiaAbierta() && (codigo === 'Escape' || codigo === 'F1')) { e.preventDefault(); cerrarGuia(); return; }
@@ -5360,6 +5413,7 @@ function cambiarFeria(i) {
   for (const [k, n] of Object.entries(o.pide)) gastarFeria(k, n);
   for (const [k, n] of Object.entries(o.da.materiales || {})) sumarMaterial(k, n);
   for (const [k, n] of Object.entries(o.da.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
+  if (o.da.pesos) cobrarPesos(progreso, o.da.pesos, 'Cambio en la feria', o.texto);   // 3.8.8: la feria paga en pesos
   if (o.da.cosa) progreso.cosas[o.da.cosa] = 1;
   sonido.juntar();
   diario.anotar('feria', o.texto.charAt(0).toLowerCase() + o.texto.slice(1));
@@ -7499,6 +7553,8 @@ function cobrarPremio(e) {
   if (premio.cosa) progreso.cosas[premio.cosa] = Math.max(1, Number(progreso.cosas[premio.cosa]) || 0);
   // Lo que se cuenta (yerba, semillas) se suma a lo que ya tenías.
   for (const [k, n] of Object.entries(premio.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
+  // 3.8.8: y los pesos (los concursos, la revista): por la puerta de la economía, con su renglón en el libro
+  if (premio.pesos) cobrarPesos(progreso, premio.pesos, premio.texto || 'Un premio', e?.quien || e?.titulo || 'Premio');
   // El cierre deja varias cosas de una: las que ya tenías no se duplican.
   const yaTenias = { ...progreso.cosas };
   for (const c of premio.cosas || []) progreso.cosas[c] = 1;
@@ -9109,6 +9165,7 @@ function cuadroDelJuego(tRaf, manual) {
   bajoTecho = bajoCubiertaActual;
   acumuladoHabitat += dt;
   actualizarRelojHud(dt);
+  actualizarBilleteraHud(dt);   // 3.8.8: los pesos que llevás
   const luzCielo = cielo.actualizar(progreso.horas, clima.estado, cam, 0);
   luzUltimaFoto = luzCielo;
   const noche = 1 - luzCielo.dia;

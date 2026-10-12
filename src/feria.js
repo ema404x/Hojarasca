@@ -2,12 +2,14 @@
 // lana, ponchos— más de lo que el juego sabía usar. Cada cinco días, de nueve a seis,
 // hay feria junto al andén de la Estación del Valle: cuatro cambios del día, distintos
 // cada vez, que convierten lo que producís en lo que te sirve (material para construir,
-// semilla, yerba, alguna cosa del almacén).
+// semilla, pesos, alguna cosa del almacén).
 //
 // Cada cambio se hace una vez por feria. Los del día salen de la fecha: dos partidas
 // el mismo día ven la misma feria, y vuelve a ser la misma si recargás.
 //
 // Módulo puro (se prueba en Node). Sólo en el Relax.
+
+import { formatoPesos } from './economia.js';
 
 export const FERIA = { cada: 5, abre: 9, cierra: 18, ofertas: 4 };
 
@@ -18,16 +20,16 @@ export const OFERTAS = [
   { id: 'huevos-piedra', texto: 'El que arregla la vía', pide: { huevo: 6 }, da: { materiales: { piedra: 8 } } },
   { id: 'lana-troncos', texto: 'Un leñero del cerro', pide: { lana: 3 }, da: { materiales: { tronco: 6 } } },
   { id: 'frutillas-semilla', texto: 'Una quintera de El Bolsón', pide: { frutilla: 6 }, da: { cuenta: { 'semillas-papa': 3 } } },
-  { id: 'poncho-yerba', texto: 'El almacenero de Jacobacci', pide: { poncho: 1 }, da: { cuenta: { yerba: 16 } } },
+  { id: 'poncho-yerba', texto: 'El almacenero de Jacobacci', pide: { poncho: 1 }, da: { pesos: 1600 } },
   { id: 'huevos-harina', texto: 'El panadero de la estación', pide: { huevo: 4 }, da: { cuenta: { harina: 6 } } },
   { id: 'poncho-tablas', texto: 'Un aserradero de Trevelin', pide: { poncho: 1 }, da: { materiales: { tabla: 14 } } },
   { id: 'lana-piedra', texto: 'Un pircador', pide: { lana: 4 }, da: { materiales: { piedra: 12 } } },
   { id: 'papas-semilla-habas', texto: 'Un chacarero', pide: { papa: 4 }, da: { cuenta: { 'semillas-habas': 4 } } },
   { id: 'ponchos-mosca', texto: 'Un pescador de mosca', pide: { poncho: 2 }, da: { cosa: 'mosca' } },
   { id: 'ponchos-farol', texto: 'Un farolero retirado', pide: { poncho: 2, lana: 2 }, da: { cosa: 'farol' } },
-  { id: 'huevos-habas-guiso', texto: 'La cocinera del tren', pide: { huevo: 3, haba: 3 }, da: { cuenta: { yerba: 8 }, materiales: { tabla: 4 } } },
+  { id: 'huevos-habas-guiso', texto: 'La cocinera del tren', pide: { huevo: 3, haba: 3 }, da: { pesos: 800, materiales: { tabla: 4 } } },
   // 2.4: lo del horno de barro
-  { id: 'pan-yerba', texto: 'La señora del andén', pide: { 'pan-casero': 3 }, da: { cuenta: { yerba: 10 } } },
+  { id: 'pan-yerba', texto: 'La señora del andén', pide: { 'pan-casero': 3 }, da: { pesos: 1000 } },
   { id: 'empanadas-tablas', texto: 'La cuadrilla de la vía', pide: { empanadas: 4 }, da: { materiales: { tabla: 10, tronco: 2 } } },
   { id: 'pan-lana', texto: 'Una hilandera de Gualjaina', pide: { 'pan-casero': 2, huevo: 2 }, da: { materiales: { lana: 4 } } },
 ];
@@ -99,6 +101,7 @@ export function textoOferta(o) {
   const da = [
     ...Object.entries(o.da.materiales || {}).map(([k, n]) => cuanto(k, n)),
     ...Object.entries(o.da.cuenta || {}).map(([k, n]) => cuanto(k, n)),
+    ...(o.da.pesos ? [`${formatoPesos(o.da.pesos).slice(1)} pesos`] : []),   // 3.8.8: la feria paga en pesos («1.600 pesos»)
     ...(o.da.cosa ? [nombreFeria(o.da.cosa)] : []),
   ].join(' y ');
   return { pide, da };

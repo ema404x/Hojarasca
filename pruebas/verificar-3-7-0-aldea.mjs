@@ -16,6 +16,7 @@ import * as G from '../src/aldea-gente.js';
 import { ENTRADAS } from '../src/cuaderno.js';
 import { generarTerreno } from '../src/terreno.js';
 import { LIMITE } from '../src/config.js';
+import { economiaNueva, pesosDe } from '../src/economia.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -458,7 +459,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 // ============================================================ 11. los servicios de las nueve
 {
   const llena = () => {
-    const p = partida(40, { dia: 10, horas: 22, fotos: 5, materiales: { tabla: 5, piedra: 9, tronco: 3 }, cosas: { yerba: 4, caballo: 1, tijera: 1 }, gallineros: { '1:2': { desde: 1, juntados: 0 } }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
+    const p = partida(40, { dia: 10, horas: 22, fotos: 5, materiales: { tabla: 5, piedra: 9, tronco: 3 }, cosas: { yerba: 4, caballo: 1, tijera: 1 }, economia: { ...economiaNueva(), pesos: 400 }, gallineros: { '1:2': { desde: 1, juntados: 0 } }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
     p.aldea.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 }));
     p.aldea.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
     return p;
@@ -468,7 +469,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   for (const k of NUEVAS) {
     const s = A.servicioDe(k, p, 10, extra);
     ok(s.partes.length && s.partes.every((x) => typeof x === 'string' && x.length > 5 && !/\{|\}|undefined|null/.test(x)), `${k}: dice algo`);
-    ok(!s.efectos || s.efectos.every((f) => ['material', 'cosa', 'entrada', 'aldea', 'jugador', 'registrar', 'chinche', 'amistad', 'gusto'].includes(f.tipo)), `${k}: con lo que ya existe en el valle`);
+    ok(!s.efectos || s.efectos.every((f) => ['material', 'cosa', 'entrada', 'aldea', 'jugador', 'registrar', 'chinche', 'amistad', 'gusto', 'pesos'].includes(f.tipo)), `${k}: con lo que ya existe en el valle`);
   }
   const usar = (k, d, x = extra, q = p) => { const s = A.servicioDe(k, q, d, x); const al = s.efectos ? A.aplicarEfectos(q, s.efectos, d) : []; return { s, al }; };
   // la veterinaria: el zaino, las gallinas o la majada, uno por día
@@ -489,13 +490,13 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   // la guía: un lugar que no conocés, con chinche en el mapa
   u = usar('andinista', 10);
   ok(u.al.some((f) => f.tipo === 'chinche' && extra.lugares.has(f.k)) && /mapa/.test(u.s.partes[1]), 'Rocío te marca en el mapa un lugar que no conocés');
-  // la herbolaria: frutos por yerba, y pistas de flora
-  const y0 = p.cosas.yerba;
+  // la herbolaria: frutos por pesos (3.8.8: antes por yerba), y pistas de flora
+  const y0 = pesosDe(p);
   u = usar('herbolaria', 10);
-  ok(p.cosas.yerba === y0 - 1 && (p.entradas.frutilla?.cantidad >= 3 || p.entradas.calafate?.cantidad >= 3), 'Inés te cambia frutos del monte por yerba');
-  const sinYerba = { ...llena(), cosas: {} };
+  ok(pesosDe(p) === y0 - A.SERVICIO.pesosPorFrutos && (p.entradas.frutilla?.cantidad >= 3 || p.entradas.calafate?.cantidad >= 3), 'Inés te vende frutos del monte por pesos');
+  const sinYerba = { ...llena(), cosas: {}, economia: economiaNueva() };
   const pista = A.servicioDe('herbolaria', sinYerba, 10, extra).partes.join(' ');
-  ok(/anotaste/.test(pista) && /Julia/.test(pista), 'sin yerba, una pista de flora (los bichos, Julia)');
+  ok(/anotaste/.test(pista) && /Julia/.test(pista), 'sin plata, una pista de flora (los bichos, Julia)');
   // la pintora: un dibujo de tu parte
   u = usar('pintora', 10);
   ok(u.al.some((f) => f.tipo === 'amistad' && A.esPersonaAldea(f.k) && f.n === A.SERVICIO.amistadDibujo) && p.materiales.tabla === 4, 'Abril le pinta un dibujo de tu parte al que menos confianza te tiene');
@@ -517,9 +518,9 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(/A Ernesto le encanta la yerba/.test(u.s.partes[1]) && u.al.some((f) => f.tipo === 'gusto' && f.k === 'jefe' && f.cosa === 'yerba'), 'Pocha te cuenta qué le gusta a un vecino');
   const ch = VE.proximoChisme({ dia: 10, aldea: A.aldeaNueva(), vecindad: VE.vecindadNueva() }, 10);
   ok(ch && VE.gustoDe(ch.persona, ch.k) === ch.gusto && VE.revelarGusto({ vecindad: VE.vecindadNueva() }, ch.persona, ch.k), 'el chisme sale de los gustos de verdad');
-  // nada de economía nueva
-  const t = JSON.stringify(NUEVAS.map((k) => A.POBLADORES_ALDEA[k]));
-  ok(!/\b(plata|pesos|precio\w*|cobr\w+|vend\w+|pag\w+)\b/i.test(t), 'sin plata, ni precios, ni ventas');
+  // nada de economía nueva (3.8.8: salvo la herbolaria, que ahora vende sus frutos por pesos, como la panadería: ya hay economía)
+  const t = JSON.stringify(NUEVAS.filter((k) => k !== 'herbolaria').map((k) => A.POBLADORES_ALDEA[k]));
+  ok(!/\b(plata|pesos|precio\w*|cobr\w+|vend\w+|pag\w+)\b/i.test(t), 'sin plata, ni precios, ni ventas (salvo la herbolaria)');
 }
 
 // ============================================================ 12. las voces y las charlas

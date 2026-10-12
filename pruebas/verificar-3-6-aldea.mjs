@@ -15,6 +15,7 @@ import * as A from '../src/aldea.js';
 const P = { ORDEN_POBLADORES: ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra'], puebloNuevo: () => ({ nombre: '', cartel: null, pobladores: [], llegando: null, ultimaLlegada: 0, llamado: false, usos: {}, afilado: 0, mandado: null, mandados: 0 }) };
 import { ENTRADAS } from '../src/cuaderno.js';
 import { CARTAS } from '../src/correo.js';
+import { economiaNueva, pesosDe } from '../src/economia.js';
 import { MELODIAS } from '../src/personal-musica.js';
 import { generarTerreno } from '../src/terreno.js';
 import { LIMITE } from '../src/config.js';
@@ -276,7 +277,7 @@ function distRiel(x, z) {
   // (3.6, gente: pueblo.js ya no está; los cinco viven sólo en aldea.js, con sus diálogos de siempre)
   for (const k of P.ORDEN_POBLADORES) ok(A.POBLADORES_ALDEA[k].llegada.length === 2 && A.POBLADORES_ALDEA[k].resumen, `${k}: el mismo de la 3.1 (movido)`);
   eq(A.POBLADORES_ALDEA.carpintero.llegada[0], 'Buenas. Me llamo Tito Arrieta, soy carpintero. Vengo del valle de abajo, donde ya no queda madera que trabajar.', 'los diálogos, tal cual');
-  eq(A.POBLADORES_ALDEA.maestra.resumen, 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: cuatro de yerba por cada uno cumplido.');
+  eq(A.POBLADORES_ALDEA.maestra.resumen, 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: $400 por cada uno cumplido.');
   const lotes = new Set();
   for (const k of A.ORDEN_POBLADORES_ALDEA) {
     const p = A.POBLADORES_ALDEA[k];
@@ -412,7 +413,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 // ============================================================ 7. los servicios
 {
   const todos = () => {
-    const p = partida(30, { materiales: { tronco: 9, tabla: 5, lana: 5 }, cosas: { yerba: 5, hacha: 1 }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
+    const p = partida(30, { materiales: { tronco: 9, tabla: 5, lana: 5 }, cosas: { hacha: 1 }, economia: { ...economiaNueva(), pesos: 500 }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
     p.aldea.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 }));
     p.aldea.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
     return p;
@@ -435,7 +436,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(!A.servicioDe('carpintero', q, dia).efectos, 'una vez por día');
   ok(A.servicioDe('carpintero', q, dia + 1).efectos, 'y al otro día de nuevo');
   s = A.servicioDe('panadera', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(q.cosas.yerba === 3 && q.entradas['pan-casero'].cantidad === A.SERVICIO.panes, 'la panadera');
+  ok(pesosDe(q) === 500 - A.SERVICIO.pesosPorPan && q.entradas['pan-casero'].cantidad === A.SERVICIO.panes, 'la panadera vende los panes por pesos');
   s = A.servicioDe('herrero', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   eq(q.aldea.afilado, A.SERVICIO.filo, 'el herrero afila');
   ok(A.golpesConFilo(3, q.aldea) === 2 && A.gastarFilo(q.aldea), 'un hachazo menos');
@@ -451,9 +452,9 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(m && !Object.hasOwn(q.entradas, m.id), 'la maestra manda a buscar algo que falta');
   ok(/Todavía no anotaste/.test(A.servicioDe('maestra', q, dia).partes[0]));
   q.entradas[m.id] = { dia, hora: 12, cantidad: 0 };
-  const yerba = q.cosas.yerba;
+  const plata0 = pesosDe(q);
   s = A.servicioDe('maestra', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(q.cosas.yerba === yerba + A.SERVICIO.yerbaMandado && q.aldea.mandado === null && q.aldea.mandados === 1, 'mandado cumplido');
+  ok(pesosDe(q) === plata0 + A.SERVICIO.pesosMandado && q.aldea.mandado === null && q.aldea.mandados === 1, 'mandado cumplido');
   // la enfermera: descansado y sin entumecido (lo aplica el mundo)
   s = A.servicioDe('enfermera', q, dia);
   const alJugador = A.aplicarEfectos(q, s.efectos, dia);
@@ -481,13 +482,13 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const tablas = q.materiales.tabla;
   s = A.servicioDe('apicultor', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   ok(q.materiales.tabla === tablas - 3 && q.entradas.miel.cantidad === 2, 'tres tablas, dos frascos de miel');
-  // la guardaparque: yerba por la fauna anotada, de a cuatro por día
+  // la guardaparque: pesos por la fauna anotada, de a cuatro por día
   const fauna = ENTRADAS.filter((e) => e.seccion === 'fauna').slice(0, 6);
   for (const e of fauna) q.entradas[e.id] = { dia: 1, hora: 9, cantidad: 0 };
-  const y0 = q.cosas.yerba, ya = A.avistajesDe(q.entradas);
+  const y0 = pesosDe(q), ya = A.avistajesDe(q.entradas);
   ok(ya >= 6, 'los avistajes se cuentan del cuaderno');
   s = A.servicioDe('guardaparque', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(q.cosas.yerba === y0 + 4 && q.aldea.fauna === 4, 'cuatro por día');
+  ok(pesosDe(q) === y0 + 4 * A.SERVICIO.pesosPorAvistaje && q.aldea.fauna === 4, 'cuatro por día');
   s = A.servicioDe('guardaparque', q, dia + 1); A.aplicarEfectos(q, s.efectos, dia + 1);
   ok(q.aldea.fauna === Math.min(8, ya), 'al otro día, los que quedaban');
   for (let d = dia + 2; d < dia + 80; d++) { s = A.servicioDe('guardaparque', q, d); if (s.efectos) A.aplicarEfectos(q, s.efectos, d); }

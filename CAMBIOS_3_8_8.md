@@ -129,6 +129,14 @@ Todas las banderas de afuera (la de la plaza, la escuela y la seccional de la al
 - y se **orienta con el viento** (el mismo rumbo que el pasto), con un vaivén lento que se afloja cuando hay poco viento.
 En la aldea la onda ya no está pintada en la malla (el paño tiene más cortes, 14 en vez de 6) y la bandera se sigue izando y arriando como antes. La bandera galesa de la pared de adentro de la casa de té es un cuadro: no flamea. Prueba nueva: `verificar-3-8-8-banderas.mjs` (rumbo, atributos del paño, material, orientación y conexión de todas); el flameo mismo se miró en una vista previa con calma, brisa, temporal y lluvia, no en el juego.
 
+## Economía, Fase 1: el peso y la billetera (ver `PLAN_ECONOMIA.md`)
+- **`src/economia.js`** (módulo puro): saldo en pesos, libro con los últimos 120 movimientos (día, monto, motivo, de quién) y una sola puerta para cobrar y pagar (`cobrar`, `pagar`). Sólo en el Relax; sin saldos negativos ni decimales; con techo.
+- **La yerba dejó de ser la moneda.** Lo que ya tenías se convierte a pesos al cargar la partida, **una sola vez**, a **$100 por yerba** (queda anotado en el libro). La yerba sigue existiendo como mercadería (mate, cocina, regalos, trueque del almacén).
+- **Todo lo que pagaba en yerba paga pesos:** el puesto de cargas (compras, ventas y fletes: los precios de `comercio.js` siguen en unidades y se pasan a $100), la feria (poncho $1.600, pan $1.000, guiso $800), los concursos, la revista ($1.600), y en la aldea la panadera ($200 los tres panes), la maestra ($400 por mandado), la guardaparque ($100 por avistaje) y la herbolaria ($100 los frutos).
+- **La billetera en pantalla:** una línea en el HUD con el saldo (y lo que entra o sale, unos segundos: +$400, −$200) y, en la pausa, «Billetera y movimientos» con los últimos 14 renglones.
+- Lo que sigue siendo yerba (regalos de los vecinos, el kilo de Ercilia, el trueque de frutas por yerba de la cocina) no se tocó: ahora es mercadería.
+- Pruebas: `verificar-3-8-8-economia.mjs` (100 verificaciones) y los ajustes de las pruebas de la aldea y los concursos. No se vio en el juego.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

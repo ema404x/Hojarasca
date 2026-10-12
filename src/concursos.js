@@ -61,9 +61,9 @@ export const CONCURSOS = {
     compiten: { pescador: 74, botera: 70, padre: 62, nene: 56, andinista: 58, guardaparque: 60 },
     jurado: ['jefe', 'nelida', 'abuela', 'maestra', 'telegrafista', 'galesa', 'martin'],
     regalos: {
-      1: { cuenta: { sal: 3, yerba: 4 }, texto: 'Sal gruesa para ahumar y yerba para la espera' },
-      2: { cuenta: { sal: 2, yerba: 2 }, texto: 'Sal gruesa y yerba' },
-      3: { cuenta: { yerba: 2 }, texto: 'Un poco de yerba' },
+      1: { cuenta: { sal: 3 }, pesos: 400, texto: 'Sal gruesa para ahumar y $400 para la espera' },
+      2: { cuenta: { sal: 2 }, pesos: 200, texto: 'Sal gruesa y $200' },
+      3: { pesos: 200, texto: '$200' },
     },
   },
   poncho: {
@@ -83,9 +83,9 @@ export const CONCURSOS = {
     compiten: { fotografa: 78, pintora: 70, nena: 58, telegrafista: 62, guardaparque: 64 },
     jurado: ['jefe', 'nelida', 'abuela', 'padre', 'maestra', 'galesa', 'martin'],
     regalos: {
-      1: { cuenta: { yerba: 4 }, materiales: { tabla: 4 }, texto: 'Yerba y cuatro tablas para el marco (y tu foto sale en el diario)' },
-      2: { cuenta: { yerba: 3 }, texto: 'Yerba (y tu foto sale en el diario)' },
-      3: { cuenta: { yerba: 1 }, texto: 'Un poco de yerba' },
+      1: { pesos: 400, materiales: { tabla: 4 }, texto: '$400 y cuatro tablas para el marco (y tu foto sale en el diario)' },
+      2: { pesos: 300, texto: '$300 (y tu foto sale en el diario)' },
+      3: { pesos: 100, texto: '$100' },
     },
   },
 };

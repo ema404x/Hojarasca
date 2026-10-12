@@ -3,9 +3,11 @@
 // en `comercio.js` y la física de la cabina en `maquinista.js`.
 //
 // Lo que se compra y se vende es lo que llevás encima (materiales, lo del cuaderno y las
-// cosas que se cuentan), y se paga en yerba, como en el almacén. Sólo en el Relax.
+// cosas que se cuentan), y se paga en pesos (3.8.8: antes en yerba; los precios de comercio.js siguen en «unidades» de yerba y acá se
+// pasan a pesos, a $100 cada una: ver economia.js). Sólo en el Relax.
 import { BIENES, bienesDe, perfilDe, precios, comprar, vender, comercioDeHoy, fletesDelDia, tomarFlete, soltarFlete, entregarFletes, textoFlete, COMERCIO } from './comercio.js';
 import { kmh, CABINA } from './maquinista.js';
+import { PESOS_POR_YERBA, formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
 
 export const MODOS_PUESTO = ['comprar', 'vender', 'fletes'];
 const TITULO = { comprar: 'Comprar', vender: 'Vender', fletes: 'Fletes' };
@@ -43,12 +45,12 @@ export function crearPuestoDeCargas(ctx) {
     else if (b.donde === 'cosa') { p.cosas = p.cosas || {}; p.cosas[bien] = Math.max(0, (p.cosas[bien] || 0) + n); }
     else { const e = p.entradas?.[bien]; if (e) e.cantidad = Math.max(0, (e.cantidad || 0) + n); }
   }
-  const yerba = () => P().cosas?.yerba || 0;
-  function cobrar(n) {
-    const p = P();
-    p.cosas = p.cosas || {};
-    p.cosas.yerba = Math.max(0, (p.cosas.yerba || 0) + n);
-  }
+  // la plata (3.8.8): los precios de comercio.js están en unidades de yerba; el saldo, en pesos
+  const aPesos = (unidades) => Math.round(unidades * PESOS_POR_YERBA);
+  const plata = () => pesosDe(P());
+  const alcanza = (unidades) => plata() >= aPesos(unidades);
+  // lo que paga un flete, con la plata en pesos (lo guardado de un flete sigue en yerba: se pasa al cobrar)
+  const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ de yerba/, formatoPesos(aPesos(f.premio?.yerba || 0)));
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();
   // 3.8.3: lo que va de a uno, en singular (decía «Compraste 1 ponchos», «1 frascos de miel»)
   const UNO = { cristal: 'un cristal', miel: 'un frasco de miel', 'trucha-ahumada': 'una trucha ahumada', 'frasco-frutilla': 'un frasco de dulce', 'calafate-seco': 'un puñado de calafates secos', 'hongos-secos': 'un llao llao seco', poncho: 'un poncho' };
@@ -63,11 +65,11 @@ export function crearPuestoDeCargas(ctx) {
       const ofrecidos = fletesDelDia(dia, estaciones(), nombre, extraFletes()).map((f) => {
         const tx = textoFlete(f);
         const tomado = c.hoy.tomados.includes(f.id);
-        return { flete: f, titulo: `${f.tipo === 'pasajeros' ? 'Pasajeros' : 'Carga'}: ${tx.quien}`, detalle: `hasta ${tx.hasta} · pagan ${tx.paga}`, marca: tomado ? 'tomado' : c.fletes.length >= aLaVez() ? 'llevás muchos' : 'tomar', clase: tomado ? 'hecho' : c.fletes.length >= aLaVez() ? 'falta' : '' };
+        return { flete: f, titulo: `${f.tipo === 'pasajeros' ? 'Pasajeros' : 'Carga'}: ${tx.quien}`, detalle: `hasta ${tx.hasta} · pagan ${pagaPesos(f)}`, marca: tomado ? 'tomado' : c.fletes.length >= aLaVez() ? 'llevás muchos' : 'tomar', clase: tomado ? 'hecho' : c.fletes.length >= aLaVez() ? 'falta' : '' };
       });
       const llevas = c.fletes.map((f) => {
         const tx = textoFlete(f);
-        return { soltar: f.id, titulo: `Llevás: ${tx.quien}`, detalle: `hasta ${tx.hasta} · ${tx.paga}`, marca: 'soltar', clase: 'hecho' };
+        return { soltar: f.id, titulo: `Llevás: ${tx.quien}`, detalle: `hasta ${tx.hasta} · ${pagaPesos(f)}`, marca: 'soltar', clase: 'hecho' };
       });
       return [...ofrecidos, ...llevas].slice(0, 9);
     }
@@ -76,13 +78,13 @@ export function crearPuestoDeCargas(ctx) {
       const p = precios(c, nombre, bien, dia, t);
       const hay = tengo(bien);
       if (estado.modo === 'comprar') {
-        const clase = p.quedanCompra <= 0 ? 'falta' : yerba() < p.compra ? 'falta' : '';
-        const marca = p.quedanCompra <= 0 ? 'no queda hoy' : `${yerba() < p.compra ? 'no alcanza' : 'se puede'} · tenés ${hay}`;
-        return { bien, titulo: `${BIENES[bien].nombre} ×${p.lote}`, detalle: `${p.compra} de yerba`, marca, clase };
+        const clase = p.quedanCompra <= 0 ? 'falta' : !alcanza(p.compra) ? 'falta' : '';
+        const marca = p.quedanCompra <= 0 ? 'no queda hoy' : `${!alcanza(p.compra) ? 'no alcanza' : 'se puede'} · tenés ${hay}`;
+        return { bien, titulo: `${BIENES[bien].nombre} ×${p.lote}`, detalle: formatoPesos(aPesos(p.compra)), marca, clase };
       }
       const clase = p.quedanVenta <= 0 || hay < p.lote ? 'falta' : '';
       const marca = p.quedanVenta <= 0 ? 'hoy ya no compran' : `tenés ${hay}`;
-      return { bien, titulo: `${BIENES[bien].nombre} ×${p.lote}`, detalle: `te dan ${p.venta} de yerba`, marca, clase };
+      return { bien, titulo: `${BIENES[bien].nombre} ×${p.lote}`, detalle: `te dan ${formatoPesos(aPesos(p.venta))}`, marca, clase };
     });
   }
 
@@ -96,7 +98,7 @@ export function crearPuestoDeCargas(ctx) {
     const c = comercio();
     const intro = estado.modo === 'fletes'
       ? `Pasajeros y carga hasta otra parada. Se cobran al llegar manejando la trochita · llevás ${c.fletes.length} de ${aLaVez()}`
-      : `${perfilDe(nombre).quien} · tenés ${yerba()} de yerba · precios de ${NOMBRE_TEMPORADA[ctx.temporada()] || 'verano'}`;
+      : `${perfilDe(nombre).quien} · tenés ${formatoPesos(plata())} · precios de ${NOMBRE_TEMPORADA[ctx.temporada()] || 'verano'}`;
     $$('.dicho').textContent = T_(intro);
     const ul = $$('ul');
     ul.innerHTML = '';
@@ -173,16 +175,17 @@ export function crearPuestoDeCargas(ctx) {
   function comprarBien(bien) {
     const nombre = estado.parada?.nombre;
     if (!nombre || !BIENES[bien] || !conocido(bien)) return false;
-    const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), yerba());
+    const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), plata() / PESOS_POR_YERBA);
     if (!r.ok) {
-      if (r.motivo === 'yerba') ctx.nota('No te alcanza la yerba', `Cuesta ${r.precio}; tenés ${yerba()}. Vendé algo primero`);
+      if (r.motivo === 'yerba') ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`);
       else if (r.motivo === 'agotado') ctx.nota('Hoy ya no les queda', 'Mañana vuelven a tener');
       return false;
     }
-    cobrar(-r.precio);
+    const pago = pagarPesos(P(), aPesos(r.precio), `Compra: ${minuscula(bien)}`, perfilDe(nombre).quien);
+    if (!pago.ok) { ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`); return false; }
     sumar(bien, r.cantidad);
     ctx.sonido?.juntar?.();
-    ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`, `Pagaste ${r.precio} de yerba · te quedan ${yerba()}`);
+    ctx.nota(`Compraste ${cuantos(bien, r.cantidad)}`, `Pagaste ${formatoPesos(aPesos(r.precio))} · te quedan ${formatoPesos(plata())}`);
     ctx.refrescar(); ctx.guardar(); dibujar();
     return true;
   }
@@ -196,9 +199,9 @@ export function crearPuestoDeCargas(ctx) {
       return false;
     }
     sumar(bien, -r.cantidad);
-    cobrar(r.precio);
+    cobrarPesos(P(), aPesos(r.precio), `Venta: ${minuscula(bien)}`, perfilDe(nombre).quien);
     ctx.sonido?.juntar?.();
-    ctx.nota(`Vendiste ${cuantos(bien, r.cantidad)}`, `Te dieron ${r.precio} de yerba · tenés ${yerba()}`);
+    ctx.nota(`Vendiste ${cuantos(bien, r.cantidad)}`, `Te dieron ${formatoPesos(aPesos(r.precio))} · tenés ${formatoPesos(plata())}`);
     ctx.refrescar(); ctx.guardar(); dibujar();
     return true;
   }
@@ -207,11 +210,11 @@ export function crearPuestoDeCargas(ctx) {
     const listos = entregarFletes(comercio(), parada.nombre);
     if (!listos.length) return listos;
     for (const f of listos) {
-      cobrar(f.premio?.yerba || 0);
+      cobrarPesos(P(), aPesos(f.premio?.yerba || 0), `Flete entregado: ${f.que}`, parada.nombre);
       if (f.premio?.material) sumar(f.premio.material.k, f.premio.material.n);
     }
     ctx.sonido?.juntar?.();
-    const pagos = listos.map((f) => textoFlete(f).paga).join(' · ');
+    const pagos = listos.map((f) => pagaPesos(f)).join(' · ');
     ctx.nota(listos.length === 1 ? 'Flete entregado' : `${listos.length} fletes entregados`, `En ${parada.nombre}: ${pagos}`, true);
     ctx.refrescar(); ctx.guardar();
     if (estado.abierto) dibujar();
