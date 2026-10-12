@@ -112,6 +112,10 @@ Era un plano vertical liso con un disco y puntitos. Ahora (`crearCascada` en `sr
 
 Prueba nueva: `verificar-3-8-8-arroyo.mjs` (la cinta sana y sin triángulos de espaldas, la poza, y el valle de verdad: ningún punto del eje con el lecho sobre el agua, y la vía sin quedar en el aire; falla sin el arreglo). La naciente (los primeros 12 puntos) sigue seca a propósito. No se vio en el juego; la vista previa fue con un terreno de colores simples.
 
+## La casa de té ya no está vacía por dentro
+Era sólo piso, paredes y una luz, aunque la galesa (Ceinwen) cocina y duerme adentro (los puntos `cocina` y `cama` de `aldea.js`). Ahora (`amueblarCasaTe` en `src/estructuras.js`): un **hogar de piedra** contra la chimenea que ya salía por afuera (con leños, brasas, repisa con candeleros y tetera), un **sillón** junto al fuego con una manta y un cesto de leña, **dos mesas** con servicio de té, torta y cuatro sillas, la **cocina económica** de hierro con su tubo, pava y ollas, una **mesada con pileta** y estantes con tazas y latas de té, la **cama** de la galesa en la esquina con su cuadrito, un **aparador** con platos azules y blancos, una **alfombra**, tres **faroles** colgados (a más de 2,25 m del piso) y **cortinas** con macetas en las ventanas. Las cinco sillas (el sillón y las cuatro del salón) son asientos de verdad. El mobiliario frena con las colisiones de siempre; se llega a todo desde la puerta, y los puntos de la galesa quedan libres.
+Prueba nueva: `verificar-3-8-8-casa-te.mjs` (el valle de verdad con el mundo de colisiones real: se entra y se llega al fuego, las mesas, la cocina y el aparador). No se vio en el juego (vista previa con una luz propia); en el juego, la luz de adentro (`luz`/`interior`) sale de noche.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

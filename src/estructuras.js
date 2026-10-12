@@ -28,6 +28,171 @@ function caja(c, pos, tam, color, rotY = 0, tipo = 0) {
   c.agregar(new THREE.BoxGeometry(...tam), { color, tipo, matriz: matriz(pos, [0, rotY, 0]), variar: 0.08 });
 }
 
+// 3.8.8: el interior de la casa de té. Estaba vacío (el piso, las paredes y una luz), aunque la galesa cocina y duerme adentro (los
+// puntos `cocina` y `cama` de aldea.js): ahora tiene el hogar de piedra contra la chimenea (que ya salía por afuera), un sillón junto al
+// fuego, dos mesas con sillas para tomar el té, la cocina económica con su mesada y sus estantes, la cama de la galesa, un aparador con
+// la loza, una alfombra, faroles colgados y cortinas. Marco local: el centro del cuerpo en el piso (y = 0 el terreno, el piso en 0,38),
+// la puerta al frente (+z) y la chimenea en la pared oeste (x = −3,5, z = −1,2). Las sillas son asientos de verdad (`sentaderos`).
+function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
+  const F = 0.38, PIEDRA_TE = '#7d766c', PIEDRA_OSC = '#6d675e', HIERRO_TE = '#34312e', LOZA = '#d8d2c0', AZUL = '#4a6a8a', ROJO = '#7b3a2e', LANA = '#8a3a2a', MIEL = '#c8a04a', PAPEL = '#e8e0c8';
+  const bola = (r, pos, color, esc = [1, 1, 1]) => c.agregar(new THREE.SphereGeometry(r, 8, 6), { color, tipo: 4, matriz: matriz(pos, [0, 0, 0], esc), variar: 0.06 });
+  const cil = (r, h, pos, color, rotX = 0, rotZ = 0) => c.agregar(new THREE.CylinderGeometry(r, r, h, 10), { color, tipo: 4, matriz: matriz(pos, [rotX, 0, rotZ]), variar: 0.06 });
+  // un obstáculo redondo (mesas) y el sitio de una silla
+  const redondo = (lx, lz, r, alto) => { const q = w(lx, lz); col.agregar({ x: q.x, z: q.z, r, alturaMin: sitio.y + F, alturaMax: sitio.y + F + alto }); };
+  const silla = (lx, lz, mira, nombre) => {
+    // una silla de tablas: asiento, patas y respaldo del lado de afuera de la mesa
+    caja(c, [lx, F + 0.4, lz], [0.42, 0.06, 0.42], TABLA);
+    for (const px of [-0.17, 0.17]) for (const pz of [-0.17, 0.17]) caja(c, [lx + px, F + 0.2, lz + pz], [0.05, 0.4, 0.05], MADERA_OSCURA);
+    const d = mira > 0 ? 1 : -1;   // el respaldo va del lado contrario a donde mira
+    caja(c, [lx - d * 0.2, F + 0.68, lz], [0.05, 0.5, 0.4], TABLA);
+    const q = w(lx, lz);
+    sentaderos.push({ x: q.x, z: q.z, y: sitio.y + F + 0.44, nombre, mira: mira > 0 ? rot + Math.PI / 2 : rot - Math.PI / 2 });
+  };
+  // ---- la alfombra, bajo las mesas y el sillón
+  caja(c, [0, F + 0.012, 0.1], [3.2, 0.024, 2.0], LANA, 0, 4);
+  caja(c, [0, F + 0.016, 0.1], [2.9, 0.02, 1.7], '#d8c49a', 0, 4);
+  caja(c, [0, F + 0.02, 0.1], [2.6, 0.02, 1.4], '#6a2e24', 0, 4);
+  // ---- el hogar de piedra, contra la chimenea de afuera (pared oeste)
+  {
+    const x0 = -3.06, hz = -1.2;
+    const piedras = (xa, xb, ya, yb, za, zb, sem) => {   // un paño de piedra a hiladas, con aparejo trabado
+      for (let f = 0, y = ya; y < yb - 0.01; f++) {
+        const alto = Math.min(0.19 + ((f * 37 + sem) % 5) * 0.012, yb - y);
+        for (let z = za + (f % 2) * 0.1, i = 0; z < zb - 0.02; i++) {
+          const ancho = Math.min(0.24 + ((i * 53 + f * 17 + sem) % 7) * 0.02, zb - z);
+          caja(c, [(xa + xb) / 2, y + alto / 2, z + ancho / 2], [xb - xa, alto - 0.012, ancho - 0.012], ['#7d766c', '#8a8378', '#6d675e', '#948c80'][(i + f * 3 + sem) % 4], 0, 4);
+          z += ancho;
+        }
+        y += alto;
+      }
+    };
+    caja(c, [x0 + 0.45, F + 0.05, hz], [0.9, 0.1, 1.75], PIEDRA_OSC, 0, 4);   // la losa del hogar
+    piedras(x0, x0 + 0.5, F + 0.1, F + 1.45, hz - 0.85, hz - 0.45, 3);
+    piedras(x0, x0 + 0.5, F + 0.1, F + 1.45, hz + 0.45, hz + 0.85, 11);
+    caja(c, [x0 + 0.25, F + 1.52, hz], [0.5, 0.14, 1.78], MADERA_OSCURA);   // el dintel de madera
+    piedras(x0, x0 + 0.42, F + 1.59, H - 0.02, hz - 0.65, hz + 0.65, 21);   // la campana, hasta el techo
+    caja(c, [x0 + 0.04, F + 0.7, hz], [0.06, 1.2, 0.9], '#241f1b');   // el fondo del fuego, negro de hollín
+    cil(0.075, 0.7, [x0 + 0.3, F + 0.2, hz - 0.1], '#5b4430', Math.PI / 2, 0);
+    cil(0.07, 0.62, [x0 + 0.22, F + 0.3, hz + 0.12], '#5b4430', Math.PI / 2, 0.1);
+    for (let i = 0; i < 6; i++) caja(c, [x0 + 0.2 + (i % 2) * 0.1, F + 0.13, hz - 0.3 + i * 0.12], [0.1, 0.05, 0.1], i % 3 ? '#d6641c' : '#f0a030', i, 4);   // las brasas
+    // la repisa, con candeleros, la tetera de la casa y un reloj de bolsillo
+    caja(c, [x0 + 0.3, F + 1.66, hz], [0.46, 0.07, 1.9], '#a98456');
+    for (const dz of [-0.7, 0.7]) { cil(0.04, 0.2, [x0 + 0.3, F + 1.8, hz + dz], '#9a7a3a'); cil(0.018, 0.1, [x0 + 0.3, F + 1.95, hz + dz], PAPEL); }
+    cil(0.09, 0.15, [x0 + 0.3, F + 1.78, hz - 0.1], '#a8573a');
+    bola(0.05, [x0 + 0.3, F + 1.9, hz - 0.1], '#a8573a');
+    caja(c, [x0 + 0.3, F + 1.8, hz + 0.25], [0.04, 0.2, 0.3], '#3a5a6a');
+    PT.mueble({ lx: x0 + 0.3, ly: F + 0.7, lz: hz, largo: 0.62, alto: 1.4, ancho: 1.8, color: PIEDRA_TE, dibujar: false });
+  }
+  // ---- el sillón junto al fuego (se mira al hogar) y un cesto de leña
+  {
+    const sx = -1.95, sz = -1.2;
+    caja(c, [sx, F + 0.2, sz], [0.82, 0.24, 0.84], MADERA);
+    caja(c, [sx, F + 0.38, sz], [0.66, 0.14, 0.7], '#7b4a3a');
+    caja(c, [sx + 0.36, F + 0.62, sz], [0.14, 0.62, 0.84], '#8a5644');   // el respaldo, del lado contrario al fuego
+    caja(c, [sx + 0.0, F + 0.6, sz - 0.4], [0.76, 0.14, 0.1], '#8a5644');
+    caja(c, [sx + 0.0, F + 0.6, sz + 0.4], [0.76, 0.14, 0.1], '#8a5644');
+    caja(c, [sx - 0.1, F + 0.46, sz + 0.1], [0.5, 0.05, 0.34], MIEL, 0.4);   // la manta
+    PT.mueble({ lx: sx, ly: F + 0.3, lz: sz, largo: 0.86, alto: 0.6, ancho: 0.86, color: MADERA, dibujar: false });
+    { const q = w(sx, sz); sentaderos.push({ x: q.x, z: q.z, y: sitio.y + F + 0.46, nombre: 'el sillón junto al fuego', mira: rot - Math.PI / 2 }); }
+    cil(0.2, 0.3, [-2.55, F + 0.15, -2.1], '#a98456');
+    for (let i = 0; i < 4; i++) cil(0.045, 0.34, [-2.6 + (i % 2) * 0.1, F + 0.36, -2.1 + (i > 1 ? 0.08 : -0.06)], '#5b4430', 0.2 * (i - 1.5), 0.15);
+    redondo(-2.55, -2.1, 0.22, 0.5);
+  }
+  // ---- las dos mesas del salón, con sus sillas y el servicio de té
+  for (const [mx, mz, nombre] of [[-1.3, 1.0, 'una silla del salón de té'], [1.3, 1.0, 'una silla del salón de té']]) {
+    cil(0.5, 0.06, [mx, F + 0.74, mz], TABLA);
+    cil(0.07, 0.72, [mx, F + 0.37, mz], MADERA_OSCURA);
+    cil(0.22, 0.05, [mx, F + 0.03, mz], MADERA_OSCURA);
+    caja(c, [mx, F + 0.775, mz], [0.5, 0.01, 0.5], '#e8e0c8', 0.3);   // el mantelito
+    cil(0.075, 0.1, [mx - 0.05, F + 0.84, mz + 0.05], '#a8573a'); bola(0.04, [mx - 0.05, F + 0.92, mz + 0.05], '#a8573a');
+    for (const [dx, dz] of [[0.18, -0.14], [-0.2, -0.12]]) { cil(0.035, 0.05, [mx + dx, F + 0.82, mz + dz], LOZA); cil(0.05, 0.008, [mx + dx, F + 0.79, mz + dz], LOZA); }
+    caja(c, [mx + 0.12, F + 0.8, mz + 0.18], [0.14, 0.03, 0.1], MIEL);   // una torta galesa
+    redondo(mx, mz, 0.52, 0.8);
+    silla(mx - 0.72, mz, 1, nombre); silla(mx + 0.72, mz, -1, nombre);
+  }
+  // ---- la mesada y la cocina económica, contra la pared norte
+  {
+    const zc = -2.18;
+    caja(c, [-0.7, F + 0.43, zc], [2.0, 0.84, 0.56], '#6a5238');
+    for (const x of [-1.3, -0.7, -0.1]) { caja(c, [x, F + 0.43, zc + 0.285], [0.52, 0.66, 0.02], TABLA); caja(c, [x + 0.18, F + 0.45, zc + 0.3], [0.025, 0.1, 0.02], HIERRO_TE); }
+    caja(c, [-0.7, F + 0.87, zc], [2.1, 0.06, 0.64], '#9a8f7e', 0, 4);
+    caja(c, [-1.15, F + 0.9, zc], [0.5, 0.04, 0.38], '#5d574f', 0, 4);   // la pileta
+    caja(c, [-1.15, F + 0.915, zc], [0.42, 0.012, 0.3], '#6a8a9a', 0, 4);
+    cil(0.02, 0.28, [-1.15, F + 1.05, zc - 0.22], HIERRO_TE); caja(c, [-1.15, F + 1.18, zc - 0.13], [0.025, 0.025, 0.2], HIERRO_TE);
+    for (let i = 0; i < 3; i++) cil(0.045, 0.1 + i * 0.03, [-0.35 + i * 0.16, F + 0.96 + i * 0.015, zc + 0.05], ['#a8573a', '#c8a04a', '#6a8a5a'][i]);
+    PT.mueble({ lx: -0.7, ly: F + 0.45, lz: zc, largo: 2.0, alto: 0.9, ancho: 0.58, color: '#6a5238', dibujar: false });
+    // la cocina económica: hierro negro, cuatro hornallas, el horno, el tubo hasta el techo y la pava
+    const sx = 0.95;
+    caja(c, [sx, F + 0.44, zc], [0.8, 0.86, 0.58], HIERRO_TE, 0, 4);
+    caja(c, [sx, F + 0.89, zc], [0.84, 0.05, 0.62], '#2a2825', 0, 4);
+    for (const [dx, dz] of [[-0.2, -0.1], [0.2, -0.1], [-0.2, 0.14], [0.2, 0.14]]) cil(0.09, 0.012, [sx + dx, F + 0.92, zc + dz], '#4a4742');
+    caja(c, [sx, F + 0.5, zc - 0.3], [0.5, 0.32, 0.02], '#5a5650'); caja(c, [sx, F + 0.64, zc - 0.32], [0.3, 0.02, 0.025], '#9a948a');   // la puerta del horno
+    cil(0.055, H - (F + 0.9), [sx + 0.2, (F + 0.9 + H) / 2, zc + 0.16], HIERRO_TE);
+    cil(0.09, 0.14, [sx - 0.2, F + 1.0, zc - 0.1], '#7a8a8e'); cil(0.025, 0.12, [sx - 0.12, F + 1.05, zc - 0.1], '#7a8a8e', 0, 1.1);   // la pava
+    PT.mueble({ lx: sx, ly: F + 0.45, lz: zc, largo: 0.84, alto: 0.9, ancho: 0.62, color: HIERRO_TE, dibujar: false });
+    // los estantes de la pared, con tazas, latas de té y frascos; y las ollas colgadas
+    for (const [y, x0, x1] of [[F + 1.45, -1.7, 0.45], [F + 1.9, -1.7, 0.45]]) {
+      caja(c, [(x0 + x1) / 2, y, -2.34], [x1 - x0, 0.04, 0.24], TABLA);
+      for (const dx of [x0 + 0.05, x1 - 0.05]) caja(c, [dx, y - 0.1, -2.4], [0.04, 0.2, 0.12], MADERA_OSCURA);
+    }
+    for (let i = 0; i < 6; i++) { cil(0.032, 0.05, [-1.55 + i * 0.13, F + 1.5, -2.34], LOZA); cil(0.04, 0.008, [-1.55 + i * 0.13, F + 1.47, -2.34], LOZA); }
+    for (let i = 0; i < 4; i++) cil(0.05, 0.16 + (i % 2) * 0.04, [-0.75 + i * 0.28, F + 2.0 + (i % 2) * 0.02, -2.34], ['#a8573a', '#4a6a8a', '#c8a04a', '#6a8a5a'][i]);
+    for (let i = 0; i < 5; i++) cil(0.05, 0.11, [-1.5 + i * 0.22, F + 1.99, -2.34], ['#9b3a2e', '#c8a04a', '#5a7a5a', '#7a5a8a', '#cfc8b4'][i]);
+    for (const [x, r] of [[0.75, 0.12], [1.05, 0.09], [1.3, 0.1]]) { cil(r, 0.1, [x, F + 1.55, -2.42], '#6a6e70'); caja(c, [x, F + 1.7, -2.45], [0.02, 0.1, 0.02], HIERRO_TE); }
+  }
+  // ---- la cama de la galesa (esquina noreste, la cabecera contra la pared)
+  {
+    const bx = 2.5, bz = -1.45;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(c, [bx + sx * 0.42, F + 0.14, bz + sz * 0.92], [0.09, 0.28, 0.09], MADERA_OSCURA);
+    caja(c, [bx, F + 0.3, bz], [0.95, 0.14, 2.0], TABLA);
+    caja(c, [bx, F + 0.44, bz], [0.88, 0.14, 1.9], '#c9bfa0', 0, 4);
+    caja(c, [bx, F + 0.52, bz + 0.45], [0.9, 0.06, 1.1], '#4a6a8a', 0, 4);   // la frazada
+    caja(c, [bx, F + 0.545, bz + 0.95], [0.92, 0.025, 0.2], MIEL, 0, 4);
+    caja(c, [bx, F + 0.55, bz - 0.78], [0.5, 0.1, 0.3], PAPEL, 0, 4);
+    caja(c, [bx, F + 0.62, bz - 0.98], [1.0, 0.8, 0.07], MADERA_OSCURA);   // la cabecera
+    caja(c, [bx, F + 1.55, -2.43], [0.62, 0.46, 0.04], '#5a4130'); caja(c, [bx, F + 1.55, -2.41], [0.52, 0.36, 0.02], '#a9c2d2', 0, 4);   // un cuadrito
+    PT.mueble({ lx: bx, ly: F + 0.3, lz: bz, largo: 0.97, alto: 0.6, ancho: 2.02, color: TABLA, dibujar: false });
+  }
+  // ---- el aparador de la loza, contra la pared este (delante de la cama)
+  {
+    const ax = 2.83, az = 0.95;
+    caja(c, [ax, F + 0.45, az], [0.44, 0.9, 1.5], '#6a5238');
+    for (const dz of [-0.38, 0.38]) { caja(c, [ax - 0.225, F + 0.46, az + dz], [0.02, 0.7, 0.6], TABLA); caja(c, [ax - 0.24, F + 0.5, az + dz + (dz < 0 ? 0.22 : -0.22)], [0.02, 0.1, 0.025], HIERRO_TE); }
+    caja(c, [ax, F + 0.93, az], [0.48, 0.05, 1.56], MADERA_OSCURA);
+    for (const dz of [-0.72, 0.72]) caja(c, [ax + 0.1, F + 1.45, az + dz], [0.04, 1.05, 0.05], MADERA_OSCURA);
+    caja(c, [ax + 0.17, F + 1.45, az], [0.03, 1.0, 1.5], '#5b4735');
+    for (const y of [F + 1.2, F + 1.6]) caja(c, [ax + 0.04, y, az], [0.3, 0.035, 1.5], TABLA);
+    // platos azules y blancos parados y tazas colgadas
+    for (let i = 0; i < 6; i++) cil(0.1, 0.018, [ax + 0.12, F + 1.34, az - 0.62 + i * 0.25], i % 2 ? '#cfc8b4' : AZUL, 0, Math.PI / 2 - 0.12);
+    for (let i = 0; i < 6; i++) { cil(0.1, 0.018, [ax + 0.12, F + 1.75, az - 0.62 + i * 0.25], i % 2 ? AZUL : '#cfc8b4', 0, Math.PI / 2 - 0.12); }
+    for (let i = 0; i < 5; i++) cil(0.035, 0.06, [ax, F + 1.24, az - 0.5 + i * 0.25], LOZA);
+    cil(0.14, 0.08, [ax, F + 0.99, az], AZUL);   // la sopera
+    PT.mueble({ lx: ax - 0.02, ly: F + 0.95, lz: az, largo: 0.5, alto: 1.9, ancho: 1.6, color: '#6a5238', dibujar: false });
+  }
+  // ---- los faroles colgados y las cortinas de las ventanas del frente
+  for (const [lx, lz] of [[-1.3, 1.0], [1.3, 1.0], [0, -0.4]]) {
+    // (a más de 2,25 m del piso: se pasa por debajo sin pegarse en la cabeza)
+    cil(0.006, 0.3, [lx, H - 0.21, lz], HIERRO_TE);
+    cil(0.14, 0.03, [lx, H - 0.3, lz], HIERRO_TE);
+    cil(0.12, 0.22, [lx, H - 0.42, lz], '#3e5a46');
+    cil(0.07, 0.15, [lx, H - 0.44, lz], '#ffe0a0');
+  }
+  for (const vx of [-1.36, 1.36]) {
+    const s = Math.sign(vx);
+    cil(0.014, 1.0, [vx + s * 0.55, 2.2, D / 2 - 0.15], '#9a7a3a', 0, Math.PI / 2);   // la varilla, sobre el lado de afuera
+    caja(c, [vx + s * 0.78, 1.55, D / 2 - 0.14], [0.3, 1.2, 0.03], '#d8c8a8');
+    caja(c, [vx + s * 0.62, 1.4, D / 2 - 0.14], [0.14, 1.0, 0.03], '#cdb890');
+    caja(c, [vx + s * 0.7, 1.45, D / 2 - 0.12], [0.34, 0.04, 0.03], MIEL);   // la atadura
+    cil(0.1, 0.12, [vx, 1.12, D / 2 - 0.2], '#a8573a');   // una maceta en el alféizar
+    for (let k = 0; k < 5; k++) tallo(c, vx, 1.18, D / 2 - 0.2, k);
+  }
+}
+// una hoja de helecho de maceta
+function tallo(c, x, y, z, k) {
+  const a = k * 1.3 + 0.4;
+  c.agregar(new THREE.BoxGeometry(0.03, 0.26, 0.01), { color: ['#4d6b32', '#5a7a3a', '#3f5a2a'][k % 3], tipo: 4, variar: 0.1, matriz: matriz([x + Math.cos(a) * 0.05, y + 0.12, z + Math.sin(a) * 0.05], [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5]) });
+}
+
 function cartelTextura(texto) {
   const lienzo = document.createElement('canvas');
   lienzo.width = 512; lienzo.height = 128;
@@ -2161,6 +2326,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const altoPasoTe = Math.max(0.08, sueloAccesoTe + 0.055);
       PT.escalon({ lx: 0, lz: lzAccesoTe, largo: 1.8, ancho: 0.64,
         alto: altoPasoTe, espesor: Math.max(0.11, altoPasoTe - sueloAccesoTe + 0.045), color: TABLA });
+      amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H });   // 3.8.8: el interior
       const malla = new THREE.Mesh(c.geometria(), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       grupoTe.add(malla);
