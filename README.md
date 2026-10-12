@@ -6,7 +6,7 @@ Un bosque andino patagónico para recorrer despacio, en primera persona. Todo se
 
 ## 3.8.8 — La escalera de casas
 
-Tres casas prefabricadas más grandes que la casilla y el puesto de troncos, para ir creciendo de a poco: la cabaña de tablas y piedra (6,0 × 4,6 m), la casa con galería (7,8 × 5,6 m) y la casona de dos cuartos (9,6 × 6,4 m). Se levantan por etapas, se duerme adentro y traen su cama, su mesa, su hogar de piedra, ventanas y, las dos grandes, galería con baranda. Detalles: `CAMBIOS_3_8_8.md`.
+Tres casas prefabricadas más grandes que la casilla y el puesto de troncos, para ir creciendo de a poco: la cabaña de tablas y piedra (6,0 × 4,6 m), la casa con galería (7,8 × 5,6 m) y la casona de dos cuartos (9,6 × 6,4 m). Se levantan por etapas, se duerme adentro y traen su cama, su mesa, su hogar de piedra, ventanas y, las dos grandes, galería con baranda. Detalles: `CAMBIOS_3_8_8.md`. También: un aviso en pantalla de lo que falta para el próximo vecino de la aldea, el reloj de la plaza y el almanaque de la biblioteca (con **E** dan la hora y el día) y un reloj de bolsillo y un almanaque de pared propios que se cambian en el almacén.
 
 ## 2.6.0 — El fortín
 
