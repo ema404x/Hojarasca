@@ -64,6 +64,130 @@ function cartaDelTe(x, w, h) {
   x.fillStyle = '#c8a04a'; x.font = `italic 24px Georgia, serif`; x.fillText('¡Croeso!', w / 2, h - 36);
 }
 
+// la bandera argentina: celeste y blanca, con el Sol de Mayo
+function banderaArgentina(x, w, h) {
+  x.fillStyle = '#74acdf'; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#f6f4ee'; x.fillRect(0, h / 3, w, h / 3);
+  const cx = w / 2, cy = h / 2, r = h * 0.1;
+  x.strokeStyle = '#f6b40e'; x.fillStyle = '#f6b40e'; x.lineCap = 'round';
+  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; x.lineWidth = k % 2 ? 2 : 3.5; x.beginPath(); x.moveTo(cx + Math.cos(a) * r * 1.2, cy + Math.sin(a) * r * 1.2); x.lineTo(cx + Math.cos(a) * r * (k % 2 ? 1.7 : 2.0), cy + Math.sin(a) * r * (k % 2 ? 1.7 : 2.0)); x.stroke(); }
+  x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#85340a'; x.beginPath(); x.arc(cx - r * 0.3, cy - r * 0.15, r * 0.1, 0, Math.PI * 2); x.arc(cx + r * 0.3, cy - r * 0.15, r * 0.1, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#85340a'; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, cy + r * 0.1, r * 0.4, 0.2, Math.PI - 0.2); x.stroke();
+}
+// un paño de bandera ondeado, hacia +x desde el mástil (las dos caras)
+function panoBandera(L, A, textura, onda = 0.07) {
+  const g = new THREE.PlaneGeometry(L, A, 14, 1);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const u = (p.getX(i) + L / 2) / L; p.setZ(i, Math.sin(u * 5.5) * onda * u); }
+  g.computeVertexNormals();
+  return new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: textura, side: THREE.DoubleSide }));
+}
+
+// 3.8.8: la parte de afuera de la casa de té: el mástil con la bandera argentina arriba y la galesa más abajo (la nacional va más alta),
+// canteros con flores del sur (lupinos, margaritas, geranios), macetones en la galería, un camino de lajas hasta el escalón, la pizarra
+// con la carta del día, faroles en la galería (se prenden de noche con la luz `luzGaleria`), canastos colgantes y una mecedora. El
+// humo de la chimenea ya salía (casa-viva.js). Mismo marco local que el interior; el suelo se mide con `sueloLocal`.
+function exteriorCasaTe({ c, col, grupoTe, sitio, rot, W, D, vidrio, w, sueloLocal, sentaderos }) {
+  const hs = (k) => { const v = Math.sin(k * 12.9898 + 4.1) * 43758.5453; return v - Math.floor(v); };
+  const suelo = (lx, lz) => sueloLocal(sitio, rot, lx, lz);
+  const obst = (lx, lz, r, y0, y1) => { const q = w(lx, lz); col.agregar({ x: q.x, z: q.z, r, alturaMin: sitio.y + y0, alturaMax: sitio.y + y1 }); };
+  const cil = (r, h, pos, color, rotX = 0, rotZ = 0) => c.agregar(new THREE.CylinderGeometry(r, r, h, 10), { color, tipo: 4, matriz: matriz(pos, [rotX, 0, rotZ]), variar: 0.06 });
+  const bola = (r, pos, color, esc = [1, 1, 1]) => c.agregar(new THREE.SphereGeometry(r, 7, 5), { color, tipo: 4, matriz: matriz(pos, [0, 0, 0], esc), variar: 0.08 });
+  const LOZA = '#d8d2c0', MIEL = '#c8a04a', BLANCO = '#efe9dc';
+  const flor = (lx, lz, y, k) => {
+    // lupino (espiga de florcitas, violeta, rosa o azul), margarita o geranio
+    const t = Math.floor(hs(k * 3.1) * 3), h = 0.28 + hs(k * 1.7) * 0.22;
+    cil(0.008, h, [lx, y + h / 2, lz], '#4d6b32');
+    if (t === 0) { const col2 = ['#7a5ac8', '#d07aa8', '#4a6ac8'][Math.floor(hs(k) * 3)]; for (let i = 0; i < 5; i++) bola(0.034 - i * 0.004, [lx, y + h + i * 0.045 - 0.04, lz], col2); }
+    else if (t === 1) { bola(0.05, [lx, y + h + 0.02, lz], '#f6f4ee', [1, 0.45, 1]); bola(0.02, [lx, y + h + 0.035, lz], '#e8c43a'); }
+    else { bola(0.05, [lx, y + h + 0.02, lz], '#c8243a'); bola(0.035, [lx + 0.03, y + h + 0.005, lz + 0.02], '#d83a4a'); }
+    for (const s of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.1, 0.012, 0.04), { color: '#4d6b32', tipo: 4, matriz: matriz([lx + s * 0.05, y + 0.1, lz], [0, 0, s * 0.5]), variar: 0.1 });
+  };
+  const frenteZ = D / 2 + 3.4;
+  // ---- los canteros a los lados del camino, de tablas, con tierra y flores
+  for (const sx of [-1, 1]) {
+    const cx = sx * 2.5, lz = frenteZ, ancho = 3.0, fondo = 0.7;
+    const yb = Math.min(suelo(cx - ancho / 2, lz), suelo(cx + ancho / 2, lz), suelo(cx, lz - fondo / 2), suelo(cx, lz + fondo / 2));
+    caja(c, [cx, yb + 0.16, lz], [ancho, 0.32, fondo], '#7a5f43');
+    caja(c, [cx, yb + 0.325, lz], [ancho - 0.1, 0.03, fondo - 0.1], '#3a2c20', 0, 4);   // la tierra
+    for (let k = 0; k < 18; k++) flor(cx - ancho / 2 + 0.2 + (k % 9) * 0.32 + hs(k) * 0.08, lz - 0.17 + Math.floor(k / 9) * 0.34 + hs(k + 9) * 0.06, yb + 0.33, k + sx * 40);
+    col.agregar({ seg: true, ax: w(cx - ancho / 2 + 0.2, lz).x, az: w(cx - ancho / 2 + 0.2, lz).z, bx: w(cx + ancho / 2 - 0.2, lz).x, bz: w(cx + ancho / 2 - 0.2, lz).z, r: 0.34, alturaMin: sitio.y + yb, alturaMax: sitio.y + yb + 0.34 });
+  }
+  // ---- macetones de barro en las esquinas de la galería y junto al escalón
+  for (const [mx, mz] of [[-3.15, D / 2 + 0.5], [3.15, D / 2 + 0.5], [-0.95, D / 2 + 2.45], [0.95, D / 2 + 2.45]]) {
+    const y = 0.24;
+    cil(0.22, 0.4, [mx, y + 0.2, mz], '#a8573a'); cil(0.25, 0.06, [mx, y + 0.42, mz], '#b8654a'); cil(0.2, 0.02, [mx, y + 0.45, mz], '#3a2c20');
+    for (let k = 0; k < 7; k++) flor(mx + Math.cos(k * 0.9) * 0.12, mz + Math.sin(k * 0.9) * 0.12, y + 0.45, 90 + k + mx * 7);
+    obst(mx, mz, 0.26, y, y + 0.5);
+  }
+  // ---- el camino de lajas, del escalón hacia el sendero
+  for (let k = 0; k < 9; k++) {
+    const lz = D / 2 + 3.5 + k * 0.5, lx = Math.sin(k * 1.3) * 0.18 + (hs(k) - 0.5) * 0.18;
+    const y = suelo(lx, lz);
+    c.agregar(new THREE.BoxGeometry(0.62 + hs(k + 3) * 0.2, 0.05, 0.4 + hs(k + 7) * 0.12), { color: ['#8a8378', '#7d766c', '#948c80'][k % 3], tipo: 4, matriz: matriz([lx, y + 0.015, lz], [0, hs(k) * 0.6, 0]), variar: 0.1 });
+  }
+  // ---- la pizarra con la carta del día, de caballete, junto al camino
+  {
+    const px = 1.6, pz = D / 2 + 5.1, y = suelo(px, pz);
+    for (const s of [-1, 1]) cilindroEntre(c, [px + s * 0.3, y, pz + 0.22], [px + s * 0.22, y + 0.95, pz + 0.04], 0.025, MADERA_OSCURA);
+    cilindroEntre(c, [px - 0.26, y + 0.95, pz - 0.02], [px + 0.26, y + 0.95, pz - 0.02], 0.025, MADERA_OSCURA);
+    caja(c, [px, y + 0.52, pz + 0.01], [0.7, 0.86, 0.04], '#5b4735');
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.78), new THREE.MeshLambertMaterial({ map: lienzoTextura(290, 365, cartaDelTe) }));
+    m.position.set(px, y + 0.52, pz - 0.015); m.rotation.y = Math.PI;   // mira al que viene por el camino (−z de la casa es hacia ella: el frente es +z)
+    m.rotation.y = 0; m.position.z = pz + 0.035;
+    grupoTe.add(m);
+    obst(px, pz, 0.38, y, y + 1.0);
+  }
+  // ---- el mástil: la bandera argentina arriba y, más abajo, la galesa
+  {
+    const mx = 4.9, mz = D / 2 + 3.4, y = suelo(mx, mz), alto = 6.4;
+    cil(0.09, alto + 0.2, [mx, y + alto / 2 - 0.1, mz], '#e6e0d2'); cil(0.06, 0.4, [mx, y + alto + 0.1, mz], '#e6e0d2');
+    bola(0.1, [mx, y + alto + 0.35, mz], '#c9a64a');
+    cil(0.45, 0.2, [mx, y + 0.1, mz], '#857c6e');
+    cil(0.006, alto - 0.8, [mx + 0.1, y + 0.4 + (alto - 0.8) / 2, mz], '#d8d0bc');   // la driza
+    obst(mx, mz, 0.5, y, y + 0.3); obst(mx, mz, 0.1, y, y + alto);
+    const arg = panoBandera(1.5, 0.95, lienzoTextura(450, 285, banderaArgentina));
+    arg.position.set(mx + 0.07 + 0.75, y + alto - 0.15 - 0.475, mz); arg.userData.bandera = 'argentina';
+    const gal = panoBandera(1.3, 0.78, lienzoTextura(390, 234, banderaGalesa), 0.06);
+    gal.position.set(mx + 0.07 + 0.65, y + alto - 0.15 - 0.95 - 0.25 - 0.39, mz); gal.userData.bandera = 'galesa';
+    grupoTe.add(arg, gal);
+  }
+  // ---- faroles en la galería (el vidrio brilla de noche con las ventanas) y canastos colgantes
+  const faroles = [[-1.9, D / 2 + 1.4], [1.9, D / 2 + 1.4]];
+  for (const [lx, lz] of faroles) {
+    const yTecho = 2.55 + (lz - (D / 2 + 1.5)) * 0.12 - 0.06;
+    cil(0.006, 0.28, [lx, yTecho - 0.14, lz], '#2a2825'); cil(0.13, 0.03, [lx, yTecho - 0.3, lz], '#2a2825'); cil(0.13, 0.03, [lx, yTecho - 0.52, lz], '#2a2825');
+    for (const [sx, sz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) cil(0.008, 0.2, [lx + sx * 0.1, yTecho - 0.41, lz + sz * 0.1], '#2a2825');
+    for (const [nx, nz] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) { const v = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.2), vidrio); v.position.set(lx + nx * 0.1, yTecho - 0.41, lz + nz * 0.1); v.rotation.y = Math.atan2(nx, nz); grupoTe.add(v); }
+  }
+  const zP = D / 2 + 2.6;
+  for (const px of [-3.0, -1.22, 1.22, 3.0]) {
+    const yTecho = 2.55 + (zP + 0.25 - (D / 2 + 1.5)) * 0.12 - 0.12;
+    cil(0.006, 0.6, [px, yTecho - 0.3, zP + 0.25], '#2a2825');
+    c.agregar(new THREE.SphereGeometry(0.15, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), { color: '#6a5238', tipo: 0, matriz: matriz([px, yTecho - 0.63, zP + 0.25]), variar: 0.06 });   // el canasto
+    for (let k = 0; k < 6; k++) { const a = k * 1.05; flor(px + Math.cos(a) * 0.08, zP + 0.25 + Math.sin(a) * 0.08, yTecho - 0.62, 130 + k + px * 5); }
+    for (let k = 0; k < 4; k++) cil(0.01, 0.2 + hs(k + px) * 0.12, [px + Math.cos(k * 1.6) * 0.15, yTecho - 0.73, zP + 0.25 + Math.sin(k * 1.6) * 0.15], '#4d6b32');
+  }
+  // ---- una mecedora en el rincón de la galería, mirando al frente
+  {
+    const mx = 3.0, mz = D / 2 + 1.0, y = 0.24;
+    for (const sx of [-1, 1]) {
+      for (let i = 0; i < 7; i++) { const z = -0.45 + i * 0.15, yy = y + 0.05 + 0.13 * (z / 0.45) ** 2, pend = 0.26 * z / 0.45 ** 2; caja(c, [mx + sx * 0.29, yy, mz + z], [0.045, 0.04, 0.17], MADERA_OSCURA, 0); void pend; }
+      caja(c, [mx + sx * 0.27, y + 0.28, mz - 0.2], [0.05, 0.38, 0.05], MADERA); caja(c, [mx + sx * 0.27, y + 0.28, mz + 0.2], [0.05, 0.38, 0.05], MADERA);
+      caja(c, [mx + sx * 0.28, y + 0.58, mz], [0.06, 0.05, 0.5], MADERA_OSCURA);
+    }
+    caja(c, [mx, y + 0.45, mz], [0.54, 0.05, 0.5], '#a98456');
+    for (let i = 0; i < 5; i++) caja(c, [mx - 0.17 + i * 0.085, y + 0.8, mz + 0.24], [0.035, 0.5, 0.03], '#8a6b4a');
+    caja(c, [mx, y + 0.5, mz - 0.02], [0.5, 0.05, 0.44], '#9b3a2e');   // la almohadilla roja
+    caja(c, [mx, y + 0.95, mz + 0.26], [0.56, 0.06, 0.05], MADERA_OSCURA);
+    obst(mx, mz, 0.34, y, y + 0.9);
+    const q = w(mx, mz);
+    sentaderos.push({ x: q.x, z: q.z, y: sitio.y + y + 0.5, nombre: 'la mecedora de la galería', mira: rot });
+  }
+  return { luzGaleria: [0, 2.0, D / 2 + 1.5] };
+}
+
 // 3.8.8: el interior de la casa de té. Estaba vacío (el piso, las paredes y una luz), aunque la galesa cocina y duerme adentro (los
 // puntos `cocina` y `cama` de aldea.js): ahora tiene el hogar de piedra contra la chimenea (que ya salía por afuera), un sillón junto al
 // fuego, dos mesas con sillas para tomar el té, la cocina económica con su mesada y sus estantes, la cama de la galesa, un aparador con
@@ -2443,6 +2567,11 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         m.position.set(...q.pos); m.rotation.y = q.giro;
         grupoTe.add(m);
       }
+      // 3.8.8: y la parte de afuera (bandera, canteros, camino, pizarra, faroles) con su luz de noche
+      const afuera = exteriorCasaTe({ c, col, grupoTe, sitio, rot, W, D, vidrio, w, sueloLocal, sentaderos });
+      const luzGaleria = new THREE.PointLight(0xffc070, 0, 9, 1.6);
+      luzGaleria.position.set(...afuera.luzGaleria);
+      grupoTe.add(luzGaleria);
       const malla = new THREE.Mesh(c.geometria(), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       grupoTe.add(malla);
@@ -2456,7 +2585,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const ch = w(CHIM_TE.x, CHIM_TE.z);
       const mostrador = w(0, D / 2 + 1.5);
       const puertaTe = w(0, D / 2 + 3.1);
-      casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, mostrador, puerta: puertaTe,
+      casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, luzGaleria, mostrador, puerta: puertaTe,
         radio: Math.max(W / 2 + 1.4, D / 2 + 3.5) };
       T.lugares['casa-te'] = casaTe;
       // 3.6: en la aldea, la huella queda donde la dejaba el sorteo

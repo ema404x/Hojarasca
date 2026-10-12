@@ -9360,6 +9360,7 @@ function cuadroDelJuego(tRaf, manual) {
     brilloVentana(cab.vidrio, encendido, diaInterior);
     const cerquita = alcance(cam, cab, 22);
     cab.luz.intensity = encendido * 3.2 * (alcance(cam, cab, 55) ? 1 : 0);
+    if (cab.luzGaleria) cab.luzGaleria.intensity = encendido * 2.2 * (alcance(cam, cab, 40) ? 1 : 0);   // 3.8.8: los faroles de la galería de la casa de té
     cab.interior.intensity = cerquita ? rellenoInterior * 0.88 : 0;
     cab.interior.color.copy(colorInterior).lerp(COLOR_RAYO, encendido * 0.08);
   }
