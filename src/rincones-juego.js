@@ -484,8 +484,12 @@ export function crearRinconesJuego(ctx) {
   function usarLote() {
     const c = r().casa;
     if (c.estado === 'libre') {
+      // 3.8.8: el lote se escritura (ver propiedad.js): si ya tenés los amigos y falta la plata, primero la plata
+      const esc = ctx.escritura?.();
+      if (esc && !esc.ok && amigosEnLaAldea() >= CASA_PROPIA.amigos) { ctx.nota?.('Falta la escritura del lote', esc.texto); return; }
       const res = pedirLote(c, amigosEnLaAldea(), dia());
       if (!res.ok) { ctx.nota?.('El lote todavía no', `Con ${CASA_PROPIA.amigos} amigos en la aldea, la aldea te lo da (te faltan ${res.faltan || 0})`); return; }
+      if (esc?.precio) ctx.pagarEscritura?.();
       ctx.nota?.('El lote es tuyo', `Para la casa hacen falta ${CASA_PROPIA.pide.tabla} tablas, ${CASA_PROPIA.pide.tronco} troncos y ${CASA_PROPIA.pide.piedra} piedras. Traé lo que tengas`, true);
       ctx.guardar?.();
       return;

@@ -7,6 +7,7 @@
 // pasan a pesos, a $100 cada una: ver economia.js). Sólo en el Relax.
 import { BIENES, bienesDe, perfilDe, precios, comprar, vender, comercioDeHoy, fletesDelDia, tomarFlete, soltarFlete, entregarFletes, textoFlete, COMERCIO } from './comercio.js';
 import { kmh, CABINA } from './maquinista.js';
+import { factorEvento } from './aldea-viva.js';
 import { tienda, factorDe, nivelDe, existencias, registrarCompra, registrarVenta, puedeComprarte, puedeVenderte, destacados, nombreDelBien } from './mercado.js';
 import { PESOS_POR_YERBA, formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
 
@@ -52,7 +53,7 @@ export function crearPuestoDeCargas(ctx) {
   const alcanza = (unidades) => plata() >= aPesos(unidades);
   // el mercado del puesto (3.8.8, mercado.js): lo que tiene, su caja y cuánto cambia el precio por eso
   const mercadoDe = (nombre) => tienda(comercio(), nombre, ctx.dia());
-  const factor = (nombre, bien) => factorDe(mercadoDe(nombre), nombre, bien);
+  const factor = (nombre, bien) => factorDe(mercadoDe(nombre), nombre, bien) * factorEvento(ctx.dia(), ctx.temporada(), bien);   // 3.8.8: y el evento del día (aldea-viva.js)
   // lo que paga un flete, con la plata en pesos (lo guardado de un flete sigue en yerba: se pasa al cobrar)
   const pagaPesos = (f) => textoFlete(f).paga.replace(/^\d+ de yerba/, formatoPesos(aPesos(f.premio?.yerba || 0)));
   const minuscula = (bien) => BIENES[bien].nombre.toLowerCase();
@@ -82,7 +83,7 @@ export function crearPuestoDeCargas(ctx) {
     }
     const lista = bienesDe(nombre).filter((b) => estado.modo === 'vender' || conocido(b));
     return lista.map((bien) => {
-      const m = mercadoDe(nombre), p = precios(c, nombre, bien, dia, t, factorDe(m, nombre, bien));
+      const m = mercadoDe(nombre), p = precios(c, nombre, bien, dia, t, factor(nombre, bien));
       const hay = tengo(bien), nivel = nivelDe(m, nombre, bien);
       if (estado.modo === 'comprar') {
         const sinStock = !puedeVenderte(m, bien);
@@ -186,7 +187,7 @@ export function crearPuestoDeCargas(ctx) {
     if (!nombre || !BIENES[bien] || !conocido(bien)) return false;
     const m = mercadoDe(nombre);
     if (!puedeVenderte(m, bien)) { ctx.nota('Se les agotó', 'Mañana vuelven a tener'); return false; }
-    const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), plata() / PESOS_POR_YERBA, factorDe(m, nombre, bien));
+    const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), plata() / PESOS_POR_YERBA, factor(nombre, bien));
     if (!r.ok) {
       if (r.motivo === 'yerba') ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`);
       else if (r.motivo === 'agotado') ctx.nota('Hoy ya no les queda', 'Mañana vuelven a tener');
@@ -205,14 +206,14 @@ export function crearPuestoDeCargas(ctx) {
     const nombre = estado.parada?.nombre;
     if (!nombre || !BIENES[bien]) return false;
     const m = mercadoDe(nombre);
-    const oferta = precios(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), factorDe(m, nombre, bien));
+    const oferta = precios(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), factor(nombre, bien));
     const permiso = puedeComprarte(m, bien, aPesos(oferta.venta));
     if (!permiso.ok) {
       if (permiso.motivo === 'caja') ctx.nota('No tienen plata para pagarte', `En la caja hay ${formatoPesos(m.caja)} y tu lote vale ${formatoPesos(aPesos(oferta.venta))}. Probá con otra cosa o en otra parada`);
       else ctx.nota('Ya tienen de sobra', 'Probá en otra parada o esperá unos días');
       return false;
     }
-    const r = vender(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), tengo(bien), factorDe(m, nombre, bien));
+    const r = vender(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), tengo(bien), factor(nombre, bien));
     if (!r.ok) {
       if (r.motivo === 'falta') ctx.nota('No llevás suficiente', `Compran de a ${r.lote}; tenés ${tengo(bien)}`);
       else if (r.motivo === 'lleno') ctx.nota('Hoy ya no compran más de eso', 'Probá en otra parada');

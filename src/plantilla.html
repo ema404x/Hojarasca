@@ -171,6 +171,25 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .aviso { position: absolute; left: 50%; bottom: calc(max(13vh, 124px) + var(--alto-subtitulos, 0px)); transform: translateX(-50%); font-size: 19px; padding: 9px 18px 7px; border-radius: 10px;
   background: var(--tinta-velo); backdrop-filter: blur(6px); white-space: nowrap; transition: opacity .2s; }
 .reloj-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
+/* 3.8.8: el banco del pueblo (mostrador del gerente); se maneja con el mouse, como el almacén */
+.banco-velo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.45); z-index: 30; }
+.banco-velo.oculto { display: none; }
+.panel-banco { width: min(720px, 94vw); max-height: 88vh; overflow: auto; padding: 18px 22px; border-radius: 10px; background: rgba(28,34,28,.96); color: #efe6d2; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.panel-banco h2 { margin: 0 0 6px; font-weight: 600; letter-spacing: .04em; }
+.panel-banco .banco-saldo { font-size: 20px; margin: 0 0 10px; color: #b9e08a; }
+.panel-banco .banco-solapas, .panel-banco .banco-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
+.panel-banco button { padding: 7px 12px; border-radius: 6px; border: 1px solid rgba(239,230,210,.3); background: rgba(239,230,210,.08); color: inherit; cursor: pointer; font: inherit; }
+.panel-banco button:hover:not(:disabled) { background: rgba(239,230,210,.2); }
+.panel-banco button:disabled { opacity: .4; cursor: default; }
+.panel-banco button.marcada { background: #6b8f4e; border-color: #b9e08a; }
+.panel-banco .banco-texto { font-style: italic; opacity: .9; margin: 8px 0; }
+.panel-banco .banco-aviso { color: #e8a08a; margin: 8px 0; }
+.panel-banco .banco-pie { opacity: .65; font-size: 13px; }
+.panel-banco .banco-renglon { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
+.panel-banco .banco-casa { margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: rgba(239,230,210,.05); }
+.panel-banco .banco-casa h4 { margin: 0 0 4px; }
+.panel-banco .banco-fila { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
+.panel-banco .banco-fila i { grid-column: 1; font-style: normal; opacity: .65; font-size: 13px; }
 /* 3.8.8: la billetera (los pesos que llevás); debajo del reloj si lo tenés */
 .billetera-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
 .reloj-hud:not(.oculto) ~ .billetera-hud { top: 64px; }
@@ -989,6 +1008,13 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <h2>Billetera</h2>
     <div id="billetera-contenido"></div>
     <div class="acciones-modal"><button id="cerrar-billetera">Volver</button></div>
+  </div>
+</section>
+<section id="banco-pueblo" class="oculto banco-velo">
+  <div class="panel-modal panel-banco">
+    <h2>Banco del pueblo</h2>
+    <div id="banco-pueblo-contenido"></div>
+    <p class="seguir">E o Escape para salir del mostrador</p>
   </div>
 </section>
 

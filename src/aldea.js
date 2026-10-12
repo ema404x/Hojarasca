@@ -34,7 +34,10 @@ import { ENTRADAS_RINCONES } from './rincones-cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';
 import { porRetirar, porEnviar, enviarFoto } from './correo.js';
 import { MELODIAS, anotarPartitura } from './personal-musica.js';
-import { formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos } from './economia.js';
+import { formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos, hayEconomia } from './economia.js';
+import { ofertaDeJornal } from './trabajos.js';
+import { ofertaDePedido } from './pedidos.js';
+import { aplicarNegocio, demandaHoy } from './negocios-fx.js';
 import { elCaballo } from './personal-caballo.js';
 
 export const NOMBRE_ALDEA = 'Aldea de los Duendes';
@@ -1443,7 +1446,21 @@ function menosConfianza(progreso, aldea) {
 // del cuaderno que tienen dónde en el mapa: la guía te los marca), fotoPendiente ({ nombre, pista }: la foto
 // del álbum que falta, que la fotógrafa te cuenta), chisme ({ persona, quien, k, cosa, gusto }: lo que Pocha
 // sabe de un vecino, de vecindad.js) }.
+// 3.8.8: lo que ofrece cada vecino: su servicio de siempre y, cuando éste no tiene nada para darte (ya lo usaste hoy, o es sólo charla),
+// la economía: el pedido que te hizo (si lo traés, se lo entregás) y, si no, un jornal con sueldo (ver pedidos.js y trabajos.js)
 export function servicioDe(clave, progreso, dia, extra = {}) {
+  const base = servicioBase(clave, progreso, dia, extra);
+  if (base.efectos?.length || !esPobladorAldea(clave) || !hayEconomia(progreso) || !(progreso.aldea?.pobladores || []).some((q) => q.clave === clave) || !localAbierto(progreso.aldea, LOTE_DE[clave])) return base;
+  const nombre = POBLADORES_ALDEA[clave].nombre;
+  const d = diaValido(dia, 1);
+  const pedido = ofertaDePedido(progreso, clave, d, nombre, DALE);
+  if (pedido?.efectos) return { ...pedido, partes: [...base.partes, ...pedido.partes] };
+  const jornal = ofertaDeJornal(progreso, clave, d, nombre, demandaHoy(d, extra), DALE);
+  const aviso = pedido?.aviso ? pedido.partes : [];
+  if (!jornal) return aviso.length ? { ...base, partes: [...base.partes, ...aviso] } : base;
+  return { ...jornal, partes: [...base.partes, ...aviso, ...jornal.partes] };
+}
+export function servicioBase(clave, progreso, dia, extra = {}) {
   const aldea = progreso?.aldea || aldeaNueva();
   const S = SERVICIO;
   if (!esPobladorAldea(clave)) return { partes: [] };
@@ -1744,6 +1761,8 @@ export function aplicarEfectos(progreso, efectos, dia) {
     } else if (f.tipo === 'pesos') {
       // 3.8.8: la plata, por la puerta de la economía (con su renglón en el libro)
       if (entero(f.n) >= 0) cobrarPesos(progreso, entero(f.n), f.motivo, f.con); else pagarPesos(progreso, -entero(f.n), f.motivo, f.con);
+    } else if (f.tipo === 'jornal' || f.tipo === 'pedido') {
+      aplicarNegocio(progreso, f, diaValido(dia, 1));   // 3.8.8: el jornal y el pedido (negocios-fx.js)
     } else if (f.tipo === 'entrada' || f.tipo === 'carta') {
       progreso.entradas = progreso.entradas || {};
       const e = progreso.entradas[f.k] || (progreso.entradas[f.k] = { dia: diaValido(dia, 1), hora: 12, cantidad: 0 });

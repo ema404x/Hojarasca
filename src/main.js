@@ -169,6 +169,9 @@ import { crearGranjaJuego } from './granja-juego.js';
 // 3.7.5 (rincones): los duendes, el potrero, las huertas, los títeres, el fuerte, el camino con el sulky, tu casa y el taller
 import { crearRinconesMundo } from './rincones-mundo.js';
 import { crearRinconesJuego } from './rincones-juego.js';
+import { crearBancoMundo } from './banco-mundo.js';
+import { puedePagarEscritura, pagarEscritura, puedePagarEtapa, pagarEtapa, registrarCasa } from './propiedad.js';
+import { GERENTE } from './prestamos.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
 import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo, nocheDeLomo, alturaLomo, dondeAsoma } from './cuentos.js';
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
@@ -2995,6 +2998,7 @@ document.addEventListener('keydown', (e) => {
       if (enLaFeria) { cerrarFeria(); break; }
       // 2.9: y el puesto de cargas, igual
       if (enLasCargas()) { puestoCargas.cerrar(); break; }
+      if (enElBanco()) { bancoPueblo.cerrar(); break; }   // 3.8.8
       // 3.7.2: y el panel de recetas de la cocina, igual
       if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
       // 3.7.3: y el del taller ferroviario
@@ -3273,6 +3277,7 @@ document.addEventListener('keydown', (e) => {
       else if (enElAlmacen) cerrarAlmacen();
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
+      else if (enElBanco()) bancoPueblo.cerrar();   // 3.8.8
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
       else if (tallerTren?.panelAbierto()) tallerTren.atras();   // 3.7.3: de la pintura o la composición, al panel; del panel, afuera
       else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();   // 3.7.5: deja el partido (o se suelta del redomón)
@@ -4887,6 +4892,8 @@ function armarOficiosYAldea(esDesafio) {
   // 3.6: en el Desafío no hay aldea (ni gente, ni obras, ni llegadas)
   if (esDesafio) return;
   aldeaGente = crearAldeaGente({
+    abrirBanco: () => bancoDelPueblo().abrir(),   // 3.8.8: el gerente te atiende en el mostrador
+    temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),   // 3.8.8: la demanda del pueblo
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
@@ -5053,6 +5060,9 @@ function armarOficiosYAldea(esDesafio) {
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
     cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
+    // 3.8.8: la escritura del lote de tu casa (propiedad.js)
+    escritura: () => { if (desafio || !hayEconomia(progreso)) return null; const v = puedePagarEscritura(progreso); return { ok: v.ok, precio: v.precio, texto: `La escritura cuesta ${formatoPesos(v.precio)}; te faltan ${formatoPesos(v.falta || 0)}. El banco te puede prestar` }; },
+    pagarEscritura: () => { pagarEscritura(progreso, GERENTE); },
     dormir: (o) => dormir(o), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
     noche: () => { const h = progreso.horas; return h >= 20 || h < 5.5 ? 1 : h >= 18.5 ? (h - 18.5) / 1.5 : h < 7 ? (7 - h) / 1.5 : 0; },
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
@@ -5455,6 +5465,13 @@ function cargas() {
   return puestoCargas;
 }
 const enLasCargas = () => !!puestoCargas?.abierto();
+// 3.8.8: el mostrador del banco del pueblo (banco-mundo.js): préstamos, abastecimiento, casas y alquiler, y tu puesto en la feria
+let bancoPueblo = null;
+function bancoDelPueblo() {
+  if (!bancoPueblo) bancoPueblo = crearBancoMundo({ panel: $('banco-pueblo'), contenido: $('banco-pueblo-contenido'), progreso: () => progreso, dia: () => progreso.dia, nota, guardar, refrescar: () => refrescarBarra(true), T_, sonido, alClic: (el, fn) => alClicHud(el, fn) });
+  return bancoPueblo;
+}
+const enElBanco = () => !!bancoPueblo?.abierto();
 function puestoDeCargasCerca() {
   if (desafio || !tren || !jugador || jugador.estado.enTren) return null;
   return tren.puestoCerca(jugador.estado.pos);
@@ -6352,8 +6369,14 @@ function accionObra() {
     return;
   }
   if (obra) {
+    // 3.8.8: las casas prefabricadas cuestan, además de los materiales, el terreno y la mano de obra (propiedad.js)
+    const etapaCasa = obra.datos.etapas;
+    const pago = desafio ? { ok: true, precio: 0 } : puedePagarEtapa(progreso, obra.plano.id, etapaCasa);
+    if (!pago.ok) { nota('Falta plata para esta etapa', `El terreno y la mano de obra cuestan ${formatoPesos(pago.precio)} y te faltan ${formatoPesos(pago.falta)}. El banco te puede prestar`); return; }
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
+    if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); }
+    if (r.terminada && !desafio) registrarCasa(progreso, obra.plano.id);
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
     sonido.encender();
@@ -8157,7 +8180,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -9588,6 +9611,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (!marcaPerro) avisoMarca = false;
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
+    if (enElBanco()) aviso = null;   // 3.8.8
     if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
     if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
     if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
