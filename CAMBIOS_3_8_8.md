@@ -97,6 +97,9 @@ Todas son piezas sueltas de la categoría Mobiliario, sólo en el Relax, con mat
 - Pruebas: `verificar-3-8-8-muebles.mjs` y `verificar-3-8-8-muebles-2.mjs` (catálogo, geometría dentro de lo que dicen medir, física, inglés y reglas de siempre).
 - Honesto: baúl, barril, mesada y escritorio no guardan nada ni dan agua; no se puede uno sentar en lo construido (sillón, mecedora, hamaca); el hogar y la guirnalda no dan luz ni fuego de verdad; el cuadro no muestra fotos del álbum. Nada de esto se vio en el juego real.
 
+## Arreglo: no se podía entrar al taller del tren
+Un poste interior del frente del galpón (x 3,02) caía a 2 cm del eje de la puerta chica (x 3,0). Con su choque de 12 cm y el cuerpo del jugador (35 cm), el paso útil quedaba en 30 cm y la escalerita terminaba contra un poste invisible: no se podía entrar. Ahora ese poste no se dibuja ni choca (la cabriada sigue sostenida por las vigas). Prueba nueva en `verificar-3-7-3-taller.mjs`: se camina del pie de la escalerita al banco con el mundo de colisiones real (falla sin el arreglo). Las paredes se barrieron con 1.500 recorridos desde adentro y 600 desde afuera: no se pasa por ninguna, salvo la puerta chica y el portón abierto. No se encontró ninguna causa de atravesar piso o paredes: si sigue pasando, hace falta saber dónde.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.

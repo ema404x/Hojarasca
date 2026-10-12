@@ -5542,13 +5542,16 @@ export function armarTallerTren(opciones = {}) {
     cartel(K, 'Taller Ferroviario', [-W - 0.12, F0 + 4.35, 0], 3.0, 0.42, -Math.PI / 2);
   }
   // ---- adentro: postes, cabriadas (pendolón y tornapuntas) y la viga del aparejo
+  // (3.8.8: el poste del frente que caía en la puerta chica —x 3,02, a 6 cm del eje de la puerta— se sacaba el paso: con su choque
+  // de 12 cm y el cuerpo, quedaban 30 cm de ancho y no se podía entrar. Ahí no hay poste: la cabriada se sostiene de las vigas)
+  const poste = (x, s) => !(s > 0 && Math.abs(x - T.puerta) < 1.0);
   for (let x = -W + 0.2; x <= W - 0.1; x += 2.83) {
-    for (const s of [-1, 1]) caja(I, [x, (F0 + AL) / 2, s * (D - 0.12)], [0.16, AL - F0, 0.16], madera, { sup: SUP.tosca + AD });
+    for (const s of [-1, 1]) if (poste(x, s)) caja(I, [x, (F0 + AL) / 2, s * (D - 0.12)], [0.16, AL - F0, 0.16], madera, { sup: SUP.tosca + AD });
     viga(I, [x, AL, -D + 0.1], [x, AL, D - 0.1], 0.14, 0.18, madera);
     for (const s of [-1, 1]) viga(I, [x, AL + 0.05, s * (D - 0.1)], [x, CU - 0.1, 0], 0.14, 0.16, madera);
     viga(I, [x, AL, 0], [x, CU - 0.1, 0], 0.12, 0.12, madera);
     for (const s of [-1, 1]) viga(I, [x, AL + 0.1, 0], [x, AL + (CU - AL) * 0.5, s * D * 0.5], 0.09, 0.09, madera);
-    for (const s of [-1, 1]) K.circulo(x, s * (D - 0.12), 0.12, F0, AL);
+    for (const s of [-1, 1]) if (poste(x, s)) K.circulo(x, s * (D - 0.12), 0.12, F0, AL);
   }
   // la viga del aparejo (de hierro) sobre el foso, el carro, la cadena y el gancho
   {

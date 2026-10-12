@@ -404,6 +404,22 @@ function cargarVM(mods) {
       ok(pared(-3, 3.6) && pared(6, -3.6) && pared(8.5, 1) && !pared(3, 3.6), `${que}: las paredes frenan; por la puerta chica se pasa`);
       ok(pared(5.4, -1) && !pared(5.4, 2.05), `${que}: el tabique, con su paso`);
       ok(!pared(-8.5, 0) && pared(-8.5, 2.5), `${que}: el portón, abierto`);
+      // 3.8.8: se entra de verdad por la puerta chica (un poste del frente caía justo en la puerta y, con el choque y el cuerpo,
+      // dejaba 30 cm de paso: no se podía entrar): del pie de la escalerita al zaguán y al banco, con un cuerpo de 35 cm de radio
+      {
+        const pos = { x: 3, y: 0.32, z: 6.5 };
+        for (const [tx, tz] of [[3, 4.6], [3, 2.0], [1.35, 1.2], [1.35, -1.2], [0, -2.3]]) {
+          for (let i = 0; i < 400; i++) {
+            const dx = tx - pos.x, dz = tz - pos.z, d = Math.hypot(dx, dz); if (d < 0.12) break;
+            const paso = Math.min(0.08, d); pos.x += dx / d * paso; pos.z += dz / d * paso;
+            const p = col.plataformaEn(pos.x, pos.z, pos.y, 0.62); if (p) pos.y = p.alto;
+            col.resolver(pos, 0.35, 1.7);
+          }
+        }
+        ok(Math.hypot(pos.x - 0, pos.z + 2.3) < 0.35 && Math.abs(pos.y - 0.32) < 0.03, `${que}: se entra por la puerta chica y se llega al banco (${pos.x.toFixed(2)}, ${pos.z.toFixed(2)})`);
+        const postes = ed.colisiones.obstaculos.filter((o) => !o.seg && o.z > 3 && o.z < 3.7 && o.x > 1.6 && o.x < 4.4);
+        ok(postes.length === 0, `${que}: ningún poste en la puerta`);
+      }
     }
   }
   // las líneas de la gente adentro: la del zaguán al banco cruza el foso por la pasarela; las del zaguán a la mesa y a
