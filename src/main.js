@@ -10154,6 +10154,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
+    __banco: () => bancoDelPueblo(), __enElBanco: () => enElBanco(),   // 3.8.8: el mostrador del banco, para la partida real (pruebas/humo-economia.cjs)
     __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },
     // 2.9: las máquinas
     __maquinas: { revisar: revisarMaquinas, actualizar: actualizarMaquinas, usar: usarMaquina, aviso: avisoMaquina, pronostico: pronosticoActual, noches: nochesActuales, meteo: meteoPartida, radio: radioPartida, mundo: () => ({ molino: molinoMundo, meteo: meteoMundo }) },
