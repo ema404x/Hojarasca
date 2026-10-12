@@ -102,6 +102,19 @@ export const TRUEQUES = [
     texto: 'Porotos blancos secos, de la cosecha pasada, en un cucurucho.',
     efecto: 'Para el locro y los guisos de invierno.',
   },
+  // 3.8.8: para saber la hora y el día sin ir a la aldea (en la plaza hay un reloj y en la biblioteca un almanaque: ver reloj-almanaque.js)
+  {
+    id: 'reloj', nombre: 'Reloj de bolsillo',
+    pide: [['canto', 3], ['pluma', 2]],
+    texto: 'De cuerda, con tapa de bronce y una cadenita. Lo dejó un viajante de los que bajaban del tren.',
+    efecto: 'Muestra la hora en un costado de la pantalla.',
+  },
+  {
+    id: 'almanaque', nombre: 'Almanaque de pared',
+    pide: [['pinon', 2], ['ramita', 5]],
+    texto: 'Una hoja por día, con la luna y las estaciones del valle, impreso en papel de diario.',
+    efecto: 'Muestra el día de la semana, el día y la estación en un costado de la pantalla.',
+  },
 ];
 
 // Lo que se gasta (semillas, yerba) se puede volver a cambiar; lo demás, una vez.

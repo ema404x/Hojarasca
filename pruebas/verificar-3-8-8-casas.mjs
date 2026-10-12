@@ -7,11 +7,14 @@
 //   · el inglés de nombre, texto y etapas está.
 import assert from 'assert/strict';
 import fs from 'fs';
-import { PLANO, PLANOS } from '../src/construccion.js';
-import { Constructor } from '../src/geometria.js';
-import { crearColisiones } from '../src/colisiones.js';
-import { zonaCasa } from '../src/estilo-casa.js';
-import { EN } from '../src/idioma-en.js';
+import { registrarThree } from './ayuda-three.mjs';
+
+registrarThree();   // el juego trae su three: se lo presenta a Node (ver ayuda-three.mjs)
+const { PLANO, PLANOS } = await import('../src/construccion.js');
+const { Constructor } = await import('../src/geometria.js');
+const { crearColisiones } = await import('../src/colisiones.js');
+const { zonaCasa } = await import('../src/estilo-casa.js');
+const { EN } = await import('../src/idioma-en.js');
 
 const IDS = ['cabana-piedra', 'casa-galeria', 'casona'];
 const area = (p) => p.ancho * p.fondo;

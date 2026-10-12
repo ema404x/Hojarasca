@@ -3064,6 +3064,9 @@ function biblioteca(K) {
   }
   // un mapa del valle y una foto vieja de la aldea
   mapaPintado(K, xi - 0.02, PISO + 1.6, 0.6, -Math.PI / 2, 1.4, 0.95);
+  // 3.8.8: y el almanaque comunitario, en la pared de la izquierda, entre la ventana y el estante del fondo
+  almanaquePared(K, -xi + 0.03, PISO + 1.5, 2.5, Math.PI / 2);
+  K.punto('almanaque', -xi + 0.9, 1.9, -Math.PI / 2);
   cuadro(K, -2.9, PISO + 1.75, zi - 0.01, Math.PI, { ancho: 0.6, alto: 0.42, colores: ['#9a8a70', '#6a5a48', '#b8a888'] });
   lampara(K, -1.9, 3.3, { color: '#3f5a48' });
   // afuera: dos macetas y un banco en la galería
@@ -3163,6 +3166,44 @@ function canteroTroncos(K, r, x, z, L, A, giro = 0) {
     cartaHojas(K.fol, p[0], 0.1 + h, p[2], [0, 1, 0], h * (celda === 7 ? 0.6 : 1.0), h, (r() - 0.5) * 0.2, 0, celda, 3, k, k);
   }
   K.mueble(x, z, L + 0.22, A + 0.22, 0.3, giro, 0);
+}
+// 3.8.8: el reloj comunitario de la plaza: un poste de lenga con una caja de dos esferas (una mira al duende y la otra a la
+// estación), sobre una base de piedra. Marca las diez y diez, como los relojes de los anuncios: la hora de verdad se lee con
+// E (reloj-almanaque.js). La caja con su techito se ve de lejos.
+function relojPlaza(K, x, z) {
+  const c = K.ext, F = marcoLocal(x, z, 0, 0);
+  cilindro(c, [x, 0.14, z], 0.22, 0.3, 0.28, '#8a8274', { tipo: 4, lados: 8 });
+  palo(c, [x, 0.2, z], [x, 3.0, z], 0.095, '#4e3a28', { lados: 8 });
+  caja(c, [x, 3.3, z], [0.98, 0.98, 0.22], '#3a2c20', { tipo: 0 });
+  // el techito a dos aguas de la caja
+  for (const l of [-1, 1]) caja(c, [x + l * 0.27, 3.9, z], [0.62, 0.05, 0.42], '#5a4638', { tipo: 4, giro: 0, rz: -l * 0.45 });
+  for (const sg of [-1, 1]) {
+    const zc = sg * 0.115;
+    cj(c, F, 0, 3.3, zc, 0.84, 0.84, 0.016, '#efe8d8', { tipo: 4, bajo: 0.9 });
+    for (let k = 0; k < 12; k++) {
+      const a = k / 12 * Math.PI * 2, grande = k % 3 === 0;
+      cj(c, F, sg * Math.sin(a) * 0.35, 3.3 + Math.cos(a) * 0.35, zc + sg * 0.012, grande ? 0.04 : 0.025, grande ? 0.1 : 0.06, 0.006, '#2a2622', { tipo: 0, rz: -a * sg });
+    }
+    // las agujas: las diez y diez (la corta hacia el 10, la larga hacia el 2)
+    cj(c, F, sg * -0.1, 3.3 + 0.06, zc + sg * 0.018, 0.035, 0.26, 0.008, '#1f1c19', { tipo: 0, rz: sg * 0.9 });
+    cj(c, F, sg * 0.14, 3.3 + 0.1, zc + sg * 0.024, 0.025, 0.36, 0.008, '#1f1c19', { tipo: 0, rz: -sg * 0.95 });
+    cj(c, F, 0, 3.3, zc + sg * 0.03, 0.06, 0.06, 0.01, '#8a6a2a', { tipo: 0 });
+  }
+  K.circulo(x, z, 0.22, 0, 3.0);
+  K.punto('reloj', x, z - 1.3, 0, 0.03);
+}
+// 3.8.8: el almanaque comunitario de la biblioteca, colgado de un clavo: una hoja con la franja roja de arriba y los días en
+// filas. La fecha de verdad se lee con E.
+function almanaquePared(K, x, y, z, giro) {
+  const F = marcoLocal(x, z, giro, y), c = K.int;
+  cj(c, F, 0, 0, 0, 0.5, 0.74, 0.02, '#5a4130');
+  cj(c, F, 0, 0.1, 0.013, 0.44, 0.46, 0.006, '#efe8d8', { bajo: 0.9 });
+  cj(c, F, 0, 0.3, 0.016, 0.44, 0.1, 0.006, '#9b3a2e', { bajo: 0.9 });
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) cj(c, F, -0.165 + j * 0.11, 0.2 - i * 0.075, 0.019, 0.07, 0.04, 0.004, (i * 4 + j) % 6 === 0 ? '#b8322a' : '#8a8272', { bajo: 0.9 });
+  cj(c, F, 0, -0.27, 0.014, 0.4, 0.14, 0.006, '#e2d6b8', { bajo: 0.9 });
+  cj(c, F, -0.12, -0.27, 0.021, 0.09, 0.09, 0.004, '#d9d2b0', { bajo: 0.9 });   // la luna
+  cj(c, F, 0.1, -0.27, 0.021, 0.18, 0.02, 0.004, '#8a8272', { bajo: 0.9 });
+  cj(c, F, 0, 0.385, 0.012, 0.05, 0.05, 0.03, '#2f2c2a');   // el clavo
 }
 function aljibe(K, x, z) {
   const c = K.ext;
@@ -3335,6 +3376,7 @@ function plaza(K) {
   canteroTroncos(K, r, 5.9, 1.0, 1.0, 2.2);
   // el aljibe en el rincón del fondo y el sube y baja del otro lado
   aljibe(K, -7.6, -1.7);
+  relojPlaza(K, 1.65, ZM);   // 3.8.8: al lado del mástil (del lado opuesto a la soga), entre su base y el cantero
   const XS = 7.4, ZS = -1.9, Fs = marcoLocal(XS, ZS, 0.25);
   cj(c, Fs, 0, 0.45, 0, 0.3, 0.9, 0.3, '#5a4636', { tipo: 0 });
   cj(c, Fs, 0, 0.75, 0, 3.2, 0.1, 0.3, '#8a5236', { tipo: 0, rz: 0.14 });
@@ -4795,6 +4837,7 @@ function nombrar(K) {
     K.extra.juego.forEach((p, i) => { N['juego-' + (i + 1)] = copia(p); });
     N.musico = copia(P.musico); N.mastil = copia(P.mastil); N.duende = copia(P.duende);
     N.aljibe = copia(P.aljibe);
+    N.reloj = copia(P.reloj);   // 3.8.8
     if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };
     P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
     return N;
@@ -4807,7 +4850,7 @@ function nombrar(K) {
   // 3.6 (pulido): para las mecánicas de cada lugar (PLAN_ALDEA §14)
   P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
   P.estufas.forEach((a, i) => { N[i ? 'estufa-' + (i + 1) : 'estufa'] = copia(a); });
-  for (const k of ['aljibe', 'pizarron', 'dibujos', 'camilla', 'casillas', 'mapa-valle', 'pista-baile', 'colmenas', 'sierra', 'redes', 'campana-anden', 'horario-trenes']) if (P[k]) N[k] = copia(P[k]);
+  for (const k of ['aljibe', 'pizarron', 'dibujos', 'camilla', 'casillas', 'mapa-valle', 'pista-baile', 'colmenas', 'sierra', 'redes', 'campana-anden', 'horario-trenes', 'almanaque']) if (P[k]) N[k] = copia(P[k]);
   // 3.7.0 (loma): los lugares de los oficios nuevos
   for (const k of ['cuarto-oscuro', 'corral', 'mapa-cumbres', 'cartas-cielo', 'espejo', 'escalinata', 'escalera', 'escalera-arriba']) if (P[k]) N[k] = copia(P[k]);
   if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };

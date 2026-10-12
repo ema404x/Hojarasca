@@ -16,6 +16,7 @@
 //   · escuela: el pizarrón con lo que enseñó la maestra y los dibujos de los chicos (de lo que
 //     anotaste en el cuaderno);
 //   · estación: la campana del andén cuando llega el tren y el horario de trenes;
+//   · 3.8.8: el reloj de la plaza y el almanaque de la biblioteca (la hora y el día para todos: ver reloj-almanaque.js);
 //   · casa de té: sentado a la mesa, la galesa trae el té (el `servir` de siempre);
 //   · el gesto de cada oficio mientras su dueño trabaja (fragua, horno, rueca, colmenas, sierra);
 //   · el salón: el baile del sábado de 17 a 19 con el músico;
@@ -39,7 +40,7 @@ export const RADIO_ESTUFA = 2.3;     // a esta distancia de una estufa encendida
 // El orden de prioridad de lo que se hace con E (y del aviso: es la misma lista y la misma función).
 // Lo que se hace sentado va primero (sentado no hay otra cosa a mano); después la camilla, la
 // estufa y lo que se mira o se usa parado.
-export const ORDEN_MECANICAS = ['libro', 'libro-prestado', 'estufa', 'camilla', 'prestamo', 'aljibe', 'duende', 'pizarron', 'dibujos', 'horario', 'casillas', 'mapa',
+export const ORDEN_MECANICAS = ['libro', 'libro-prestado', 'estufa', 'camilla', 'prestamo', 'aljibe', 'duende', 'pizarron', 'dibujos', 'horario', 'reloj', 'almanaque', 'casillas', 'mapa',   // 3.8.8: el reloj de la plaza y el almanaque de la biblioteca
   'telescopio', 'cartas-cielo', 'mapa-cumbres', 'espejo'];   // 3.7.0 (integración): las de la calle de la Loma
 // Para cada una: hace falta estar sentado (true), parado (false) o da igual (null), el radio y el
 // punto con nombre de aldea-arquitectura.js (en su edificio) de donde sale.
@@ -54,6 +55,8 @@ export const MECANICAS = {
   pizarron: { sentado: false, radio: 2.2, edificio: 'escuela', punto: 'pizarron' },
   dibujos: { sentado: false, radio: 1.8, edificio: 'escuela', punto: 'dibujos' },
   horario: { sentado: false, radio: 2.0, edificio: 'estacion', punto: 'horario-trenes' },
+  reloj: { sentado: false, radio: 2.4, edificio: 'plaza', punto: 'reloj' },   // 3.8.8
+  almanaque: { sentado: false, radio: 1.7, edificio: 'biblioteca', punto: 'almanaque' },   // 3.8.8
   casillas: { sentado: false, radio: 1.6, edificio: 'estafeta', punto: 'casillas' },
   mapa: { sentado: false, radio: 1.8, edificio: 'seccional', punto: 'mapa-valle' },
   // 3.7.0 (integración)
@@ -73,6 +76,8 @@ export const AVISOS_MECANICAS = {
   pizarron: 'Mirar el pizarrón',
   dibujos: 'Mirar los dibujos de los chicos',
   horario: 'Mirar el horario de trenes',
+  reloj: 'Mirar el reloj de la plaza',
+  almanaque: 'Mirar el almanaque',
   casillas: 'Abrir tu casilla de correo',
   mapa: 'Mirar el mapa del valle',
   telescopio: 'Mirar por el telescopio', 'cartas-cielo': 'Mirar las cartas del cielo', 'mapa-cumbres': 'Mirar el mapa de las cumbres', espejo: 'Mirarte en el espejo',   // 3.7.0 (integración)
@@ -85,9 +90,11 @@ export const avisoDevolver = (libro) => `Devolver «${libro.titulo}»`;
 // en tu mesa gana, como antes de la 3.6, y leer queda para cuando no hay visita o en el menú de la charla
 // (3.7.0 (integración): el telescopio tampoco: Valentina trabaja parada al lado y hablarle va primero; mirar por el
 // telescopio queda en el menú de su charla)
-export const lugarTapaVecino = (tipo) => typeof tipo === 'string' && Object.hasOwn(MECANICAS, tipo) && tipo !== 'libro-prestado' && tipo !== 'telescopio';
+// (3.8.8: el reloj de la plaza y el almanaque de la biblioteca tampoco: en la plaza siempre hay vecinos; con alguien al lado le
+// ganan a la charla y mirarlos queda en el menú de su charla)
+export const lugarTapaVecino = (tipo) => typeof tipo === 'string' && Object.hasOwn(MECANICAS, tipo) && tipo !== 'libro-prestado' && tipo !== 'telescopio' && tipo !== 'reloj' && tipo !== 'almanaque';
 // Lo del lugar que también está en el menú de la charla (con alguien al lado no te tapa lo que viniste a hacer)
-export const MECANICAS_EN_LA_CHARLA = ['prestamo', 'casillas', 'horario', 'mapa', 'camilla', 'libro-prestado', 'telescopio'];
+export const MECANICAS_EN_LA_CHARLA = ['prestamo', 'casillas', 'horario', 'reloj', 'almanaque', 'mapa', 'camilla', 'libro-prestado', 'telescopio'];
 
 // Elegir, entre las que están a mano, la de más prioridad (y entre iguales, la más cercana).
 // `cands`: [{ tipo, d }]. La usan el aviso y la tecla E: por eso tienen siempre el mismo orden.

@@ -1253,6 +1253,27 @@ export function puedeLlegar(progreso) {
   if (!aldea.llamado && faltan > 0) return { ok: false, motivo: `El valle todavía se conoce poco: ${faltan === 1 ? 'falta 1 anotación' : `faltan ${faltan} anotaciones`} en el cuaderno`, quien, faltan };
   return { ok: true, motivo: '', quien };
 }
+// 3.8.8: lo que le falta a la aldea para el próximo vecino, dicho para el jugador (el aviso al abrir un local y el de cada
+// día). Devuelve { titulo, texto, listo } o null si no corresponde (el Desafío, sin vecinos o ya vinieron todos). Antes
+// el motivo sólo estaba en la ficha de la aldea del cuaderno y en el modo libre nadie lo leía.
+export function avisoProximoVecino(progreso) {
+  const r = puedeLlegar(progreso);
+  if (!r.quien) return null;
+  if (/no existe|no hay vecinos|Sin partida/.test(r.motivo)) return null;
+  const def = POBLADORES_ALDEA[r.quien];
+  const quien = `${def.nombre} (${def.oficio})`;
+  if (r.ok) return { titulo: 'Ya puede venir el próximo vecino', texto: `${quien} baja de la próxima trochita que pare en la ${NOMBRE_ALDEA}`, listo: true };
+  // lo que falta de anotaciones se dice siempre (aunque también haya que esperar al próximo tren): es lo que el jugador puede hacer
+  const aldea = progreso.aldea || aldeaNueva();
+  const faltan = aldea.llamado ? 0 : anotacionesPedidas(aldea) - anotacionesDe(progreso);
+  if (faltan > 0 && !r.obra && !aldea.llegando) {
+    return { titulo: `Para que venga el próximo vecino ${faltan === 1 ? 'falta 1 anotación' : `faltan ${faltan} anotaciones`}`, texto: `${quien}. Se anota lo que ves en el valle (plantas, animales, peces y lugares): abrí el cuaderno`, listo: false };
+  }
+  if (r.obra) return { titulo: 'Primero hay que terminar la obra', texto: `${mayusPrimera(EDIFICIOS_ALDEA[r.obra].nombre)}: después viene ${quien}`, listo: false };
+  if (/esperando/.test(r.motivo)) return { titulo: 'Hay alguien esperando en el andén', texto: `${quien} espera en la estación de la ${NOMBRE_ALDEA}: andá a hablarle`, listo: false };
+  return { titulo: 'El próximo vecino viene en unos días', texto: `${quien} baja en el próximo tren con gente`, listo: false };
+}
+const mayusPrimera = (t) => (typeof t === 'string' && t ? t.charAt(0).toUpperCase() + t.slice(1) : '');
 // La historia (o el evento del valle) llama al próximo: viene sin esperar días ni anotaciones
 // (la obra anterior igual tiene que estar terminada). Reemplaza a `llamarPoblador` de la 3.1.
 export function llamarProximo(aldea) {

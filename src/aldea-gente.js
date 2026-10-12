@@ -45,7 +45,7 @@ import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelA
 import { fichaVecinos } from './vecindad-juego.js';
 import { PREDIO } from './fiestas.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
-import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
+import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA , avisoProximoVecino } from './aldea.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
 // cuántos se arman las figuras
@@ -889,6 +889,19 @@ export function crearAldeaGente(ctx) {
   }
 
   // ---------------------------------------------------------------- las obras
+  // 3.8.8: lo que falta para el próximo vecino. `siempre`: aunque se haya dicho igual hace un rato (al abrir un local). Si no, sólo
+  // cuando cambió (una anotación más, ya puede venir): sin repetir lo mismo cada día.
+  let ultimoAvisoVecino = '';
+  function avisarProximoVecino(siempre = false) {
+    const p = progreso();
+    if (!p || p.modo === 'desafio') return;
+    const av = avisoProximoVecino(p);
+    if (!av) return;
+    const clave = `${av.titulo}|${av.texto}`;
+    if (!siempre && clave === ultimoAvisoVecino) return;
+    ultimoAvisoVecino = clave;
+    ctx.nota(av.titulo, av.texto, true);
+  }
   function revisarObras() {
     const a = aldea();
     const eventos = avanzarObras(a, dia(), horas());
@@ -897,6 +910,8 @@ export function crearAldeaGente(ctx) {
       if (ev.tipo === 'abierto') {
         ctx.nota(`Abrió ${nombreLocal(ev.lote)} de ${def?.nombre || 'la aldea'}`, def?.resumen || NOMBRE_ALDEA, true);
         ctx.sonido?.anotar?.();
+        // 3.8.8: y qué falta para el próximo vecino (antes sólo lo decía la ficha de la aldea del cuaderno)
+        avisarProximoVecino(true);
       } else {
         const hecha = ETAPAS_OBRA[ev.etapa - 1], sigue = ETAPAS_OBRA[ev.etapa];
         ctx.nota(`Avanzó la obra de ${nombreLocal(ev.lote)}`, `Quedó hecha: ${minus(hecha.nombre)}${sigue ? `. Ahora: ${minus(sigue.nombre)}` : ''}`);
@@ -1271,6 +1286,7 @@ export function crearAldeaGente(ctx) {
     if (diaRevisado === d) return;
     diaRevisado = d;
     const a = aldea(), v = vida(), p = progreso();
+    if (a.descubierta) avisarProximoVecino();   // 3.8.8
     // los chicos crecen el día de su cumpleaños
     for (const ev of pasarDiaChicos(a, d)) {
       const nombre = VECINOS_ALDEA[ev.clave]?.nombre || ev.clave;

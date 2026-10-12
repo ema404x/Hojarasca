@@ -142,6 +142,8 @@ import { RASTROS, elegirRastro, trazarRastro, arranque, huellaCerca, haciaDondeV
 import { crearRastrosMalla } from './rastros-malla.js';
 import { horasHasta, frente, frasePronostico } from './pronostico.js';
 import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
+// 3.8.8: el reloj y el almanaque propios
+import { textoHud as textoRelojHud } from './reloj-almanaque.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
@@ -1444,6 +1446,18 @@ function mostrarAviso(t) {
 }
 // 2.6.1: textos del HUD que se escriben cada cuadro: sólo se toca el DOM si cambiaron
 function ponerTexto(el, texto) { if (el && el.textContent !== texto) el.textContent = texto; }
+// 3.8.8: la línea del reloj de bolsillo y del almanaque de pared (si los tenés), cada medio segundo
+let acumuladoRelojHud = 99;
+function actualizarRelojHud(dt) {
+  acumuladoRelojHud += dt;
+  if (acumuladoRelojHud < 0.5) return;
+  acumuladoRelojHud = 0;
+  const el = $('reloj-hud');
+  if (!el) return;
+  const t = esDesafio || modo !== 'jugando' ? '' : textoRelojHud(progreso);
+  ponerTexto(el, t);
+  el.classList.toggle('oculto', !t);
+}
 
 // ------------------------------------------------------------------ menús
 let abiertoEn = 0;
@@ -9095,6 +9109,7 @@ function cuadroDelJuego(tRaf, manual) {
   }
   bajoTecho = bajoCubiertaActual;
   acumuladoHabitat += dt;
+  actualizarRelojHud(dt);
   const luzCielo = cielo.actualizar(progreso.horas, clima.estado, cam, 0);
   luzUltimaFoto = luzCielo;
   const noche = 1 - luzCielo.dia;

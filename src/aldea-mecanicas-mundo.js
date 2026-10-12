@@ -18,6 +18,8 @@ import { IDS_EDIFICIOS, EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea } from './alde
 import { empezarMelodia, seguirMelodia, callarMelodia } from './personal-musica.js';
 import { LIBRO_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js';
 import { vozDe, planBalbuceo } from './social-voz.js';
+// 3.8.8: la hora y el día para todos
+import { partesReloj, partesAlmanaque } from './reloj-almanaque.js';
 import { CERCA_GESTOS, LEJOS_MECANICAS, RADIO_ESTUFA, MECANICAS, AVISOS_MECANICAS, avisoPrestado, elegirMecanica, sanearMecanicas, izadaA, sacarAgua, libroParaLeer, textoPrestamo, pedirPrestado, devolverLibro, cuentoEscuchado, pizarronDelDia, dibujosDeLosChicos, horarioTrenes, descansarEnCamilla, faltanDelValle, hayBaile, melodiaDelBaile, GESTOS_OFICIO, trabajando, asientoValido, nombreAsiento, hayMurmullo, hayPerros, hayAbejas, cieloDelTelescopio, cartasDelCielo, mapaDeLasCumbres, espejoDeLaCosturera } from './aldea-mecanicas.js';
 
 const azar = (a, b) => a + Math.random() * (b - a);
@@ -488,6 +490,13 @@ export function crearMecanicasAldea(ctx) {
         ctx.leer({ quien: 'Horario de trenes', que: 'en el andén', partes: horarioTrenes({ segundos: q?.segundos, metros: q?.metros, enAnden, hora: hora(), duracionDia: ctx.duracionDia?.() ?? 30, vuelta }), despedida: 'El jefe de estación lo corrige con tiza cuando el tren se atrasa.' });
         break;
       }
+      // 3.8.8: la hora y el día, para todos (el reloj de la plaza y el almanaque de la biblioteca)
+      case 'reloj':
+        ctx.leer({ quien: 'El reloj de la plaza', que: 'la plaza de la aldea', partes: partesReloj({ hora: hora(), dia: dia() }), despedida: 'Lo cuidan entre todos los vecinos: marca la hora para el que pasa.' });
+        break;
+      case 'almanaque':
+        ctx.leer({ quien: 'El almanaque de la biblioteca', que: 'la biblioteca popular', partes: partesAlmanaque({ dia: dia(), horas: hora(), aldea: aldea() }), despedida: 'Cada mañana la abuela Herminia le arranca la hoja de ayer.' });
+        break;
       case 'casillas':
         ctx.abrirCasilla(e.c);
         break;

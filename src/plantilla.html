@@ -170,6 +170,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
    (14px + 70px): se dibujaba encima de las casillas. Ahora va justo arriba de la barra y el aviso, arriba de él. */
 .aviso { position: absolute; left: 50%; bottom: calc(max(13vh, 124px) + var(--alto-subtitulos, 0px)); transform: translateX(-50%); font-size: 19px; padding: 9px 18px 7px; border-radius: 10px;
   background: var(--tinta-velo); backdrop-filter: blur(6px); white-space: nowrap; transition: opacity .2s; }
+.reloj-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
 .estado { position: absolute; left: 50%; bottom: calc(94px + var(--alto-subtitulos, 0px)); transform: translateX(-50%); font-size: 16px; color: rgba(239,230,210,.85); text-shadow: 0 1px 8px rgba(0,0,0,.8); white-space: nowrap; }
 /* 2.0: escuchar con atención. Arriba del centro, en cursiva y apagado: es lo que se
    oye, no una orden. */
@@ -604,6 +605,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div class="mira" id="mira"></div>
   <div class="aviso oculto" id="aviso"></div>
   <div class="estado oculto" id="estado"></div>
+  <div class="reloj-hud oculto" id="reloj-hud"></div>
   <div class="carrera-hud oculto" id="carrera-hud"></div>
   <div class="cabina oculto" id="cabina"></div>
   <div class="escucha oculto" id="escucha" aria-live="polite"></div>
