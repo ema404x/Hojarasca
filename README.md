@@ -4,6 +4,10 @@ Un bosque andino patagónico para recorrer despacio, en primera persona. Todo se
 
 
 
+## 3.8.8 — La escalera de casas
+
+Tres casas prefabricadas más grandes que la casilla y el puesto de troncos, para ir creciendo de a poco: la cabaña de tablas y piedra (6,0 × 4,6 m), la casa con galería (7,8 × 5,6 m) y la casona de dos cuartos (9,6 × 6,4 m). Se levantan por etapas, se duerme adentro y traen su cama, su mesa, su hogar de piedra, ventanas y, las dos grandes, galería con baranda. Detalles: `CAMBIOS_3_8_8.md`.
+
 ## 2.6.0 — El fortín
 
 Dieciocho cosas para la base del Desafío: pirca con troneras (tus tiros pasan, los de ellos no), puente levadizo, embudo de empalizada, contrafuerte, muro de hielo, tejado de lajas contra los voladores, pasarela colgante, resina hirviendo desde el adarve, catapulta, troncos colgantes, cerco de cristal, rampa de troncos, trampa de lazo, abrojos, señuelo, espejo del faro, puesto de tirador para Ema y armero. Detalles: `CAMBIOS_2_6_0.md`.

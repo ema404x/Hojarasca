@@ -1,4 +1,4 @@
-# Hojarasca 3.8.8 — La escalera de casas (en curso)
+# Hojarasca 3.8.8 — La escalera de casas
 
 Hasta ahora las casas prefabricadas para vivir eran dos: la casilla de tablas (4,4 × 3,6 m) y el puesto de troncos
 (5,2 × 4,2 m). Ahora hay tres más, cada una más grande y con más cosas, para tener una progresión de tamaños.
@@ -39,4 +39,4 @@ Ahora la cantidad es siempre par.
   y en corte) y se probaron en Node. Falta recorrerlas en la partida: cómo se ven con el terreno y la luz del valle, y el
   confort que marca el HUD adentro.
 - Los precios (materiales) son una primera propuesta: ajustarlos jugando.
-- La versión no se subió (sigue la 3.8.7): `package.json`, `RELEASE_STATUS.md` y la etiqueta quedan para cuando se cierre.
+- Ideas que quedan sin hacer (no se pidieron): la cama como pieza suelta y el techo a dos aguas modular.
