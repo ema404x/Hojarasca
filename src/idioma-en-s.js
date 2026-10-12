@@ -1,6 +1,9 @@
 // Tanda S (3.8.8): la escalera de casas — la cabaña de tablas y piedra, la casa con galería y la casona de dos cuartos.
 // Se suma al final del diccionario: lo de acá manda.
 export const EN_S = {
+  "Cama de tablas": "Plank bed",
+  "Cama de tablas con cabecera, colchón de lana, frazada y almohada. La cabecera queda del lado de atrás: girala con R. Dentro de una habitación cerrada se duerme mejor que en un catre.":
+    "A plank bed with a headboard, a wool mattress, a blanket and a pillow. The headboard is at the back: turn it with R. In a closed room you sleep better than on a cot.",
   "Cabaña de tablas y piedra": "Plank and stone cabin",
   "Casa con galería": "House with a veranda",
   "Casona de dos cuartos": "Two-bedroom farmhouse",

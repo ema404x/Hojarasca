@@ -1003,6 +1003,23 @@ const PIEZAS = [
     },
   },
   {
+    // 3.8.8: la cama de las casas grandes, ahora suelta: se coloca, se gira y se mueve (Shift+Y) donde quieras
+    id: 'cama-tablas', nombre: 'Cama de tablas', pieza: true, radio: 1.55, separacion: 1.25,
+    ancho: 1.05, fondo: 2.05, alto: 1.1, apoyaEnPlataforma: true,
+    funciones: ['dormir'], confort: 4,
+    texto: 'Cama de tablas con cabecera, colchón de lana, frazada y almohada. La cabecera queda del lado de atrás: girala con R. Dentro de una habitación cerrada se duerme mejor que en un catre.',
+    pide: { tabla: 8, tronco: 2 },
+    arma(c) {
+      c.agregar(new THREE.BoxGeometry(1.0, 0.16, 2.0), { color: TABLA, tipo: 4, variar: 0.10, matriz: matriz([0, 0.38, 0]) });
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.10, 0.36, 0.10), {
+        color: MADERA_OSCURA, tipo: 0, variar: 0.06, matriz: matriz([sx * 0.44, 0.18, sz * 0.94]) });
+      c.agregar(new THREE.BoxGeometry(1.0, 0.56, 0.10), { color: MADERA_OSCURA, tipo: 0, variar: 0.06, matriz: matriz([0, 0.66, 0.99]) });
+      c.agregar(new THREE.BoxGeometry(0.92, 0.14, 1.86), { color: '#b9ae9a', tipo: 4, variar: 0.08, matriz: matriz([0, 0.53, -0.02]) });
+      c.agregar(new THREE.BoxGeometry(0.94, 0.06, 1.15), { color: '#7b4a3a', tipo: 4, variar: 0.10, matriz: matriz([0, 0.62, -0.42]) });
+      c.agregar(new THREE.BoxGeometry(0.60, 0.10, 0.34), { color: '#d8d0c0', tipo: 4, variar: 0.06, matriz: matriz([0, 0.63, 0.70]) });
+    },
+  },
+  {
     id: 'silla-campo', nombre: 'Silla de campo', pieza: true, radio: 0.82, separacion: 0.72,
     ancho: 0.64, fondo: 0.70, alto: 1.05, apoyaEnPlataforma: true, confort: 1,
     texto: 'Silla sencilla de tablas con respaldo alto. Aporta habitabilidad sin ocupar media habitación.',
@@ -2231,7 +2248,7 @@ const CATEGORIA_POR_PLANO = {
   galponcito: 'trabajo', cobertizo: 'trabajo', 'banco-trabajo': 'trabajo', lena: 'trabajo', acopio: 'trabajo', cantero: 'trabajo', gallinero: 'trabajo', telar: 'trabajo', colmena: 'trabajo', ahumadero: 'trabajo', vivero: 'trabajo', lenera: 'trabajo',
   'foso-estacas': 'defensa', 'porton-reforzado': 'defensa',
   mirador: 'exterior', fogon: 'exterior', tendal: 'exterior', pasarela: 'exterior', cerco: 'exterior', 'escalera-modular': 'exterior', 'escalera-nivel': 'exterior', 'baranda-modular': 'exterior',
-  banco: 'mobiliario', 'mesa-campo': 'mobiliario', estante: 'mobiliario', 'catre-campo': 'mobiliario', 'silla-campo': 'mobiliario', 'farol-interior': 'mobiliario', 'estufa-hierro': 'mobiliario', 'alfombra-lana': 'mobiliario',
+  banco: 'mobiliario', 'mesa-campo': 'mobiliario', estante: 'mobiliario', 'catre-campo': 'mobiliario', 'cama-tablas': 'mobiliario', 'silla-campo': 'mobiliario', 'farol-interior': 'mobiliario', 'estufa-hierro': 'mobiliario', 'alfombra-lana': 'mobiliario',
 };
 export const CATEGORIAS_CONSTRUCCION = [
   { clave: 'refugios', nombre: 'Refugios', texto: 'Construcciones cerradas para hacer base en el bosque.' },
@@ -3033,6 +3050,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (id === 'mesa-campo') unaVez(obra, 'pieza-mesa', () => segmentoLocal(obra, -0.70, 0, 0.70, 0, 0.48, 0.04, 0.98));
     if (id === 'estante') unaVez(obra, 'pieza-estante', () => segmentoLocal(obra, -0.78, 0, 0.78, 0, 0.26, -0.02, 1.72));
     if (id === 'catre-campo') unaVez(obra, 'pieza-catre', () => segmentoLocal(obra, -0.84, 0, 0.84, 0, 0.38, 0.02, 0.68));
+    if (id === 'cama-tablas') unaVez(obra, 'pieza-cama', () => segmentoLocal(obra, 0, -0.5, 0, 0.5, 0.5, 0.02, 0.95));   // 3.8.8: 1,0 × 2,0 m, como se ve
     if (id === 'silla-campo') unaVez(obra, 'pieza-silla', () => circuloLocal(obra, 0, 0, 0.34, 0.02, 1.06));
     if (id === 'farol-interior') unaVez(obra, 'pieza-farol', () => circuloLocal(obra, 0, 0, 0.18, 0.00, 1.66));
     if (id === 'estufa-hierro') unaVez(obra, 'pieza-estufa', () => segmentoLocal(obra, -0.34, 0, 0.34, 0, 0.34, 0.02, 2.22));

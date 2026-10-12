@@ -19,6 +19,12 @@ Hasta ahora las casas prefabricadas para vivir eran dos: la casilla de tablas (4
 - La galería cuenta en la huella (no se puede colocar con la galería encima de un árbol u otra obra) y cubre de la lluvia.
 - La cama, la mesa, los hogares, los postes y las barandas chocan; los dormitorios de la casona se entran por su vano.
 
+## La cama suelta
+- **Cama de tablas** (Mobiliario, ambos modos): 1,0 × 2,0 m con cabecera, colchón, frazada y almohada. Es una pieza: se coloca,
+  se gira con **R** y se mueve con **Shift+Y**. Duerme (como el catre) y abriga más (confort 4 contra 3). Pide 8 tablas y 2
+  troncos (sin lana, para que se pueda hacer también en el Desafío). Choca con su tamaño real.
+- El **techo a dos aguas modular ya existía** («Techo modular 3×3», con Shift+Y se mueve): no hizo falta agregar otro.
+
 ## Cómo está hecho
 - `src/planos-casas.js`: una fábrica de casas (`casa()`) con la geometría de las cuatro etapas, la medida y lo que lleva cada
   una; la física por etapa sale de `fisicaCasa(k)`.
@@ -39,4 +45,4 @@ Ahora la cantidad es siempre par.
   y en corte) y se probaron en Node. Falta recorrerlas en la partida: cómo se ven con el terreno y la luz del valle, y el
   confort que marca el HUD adentro.
 - Los precios (materiales) son una primera propuesta: ajustarlos jugando.
-- Ideas que quedan sin hacer (no se pidieron): la cama como pieza suelta y el techo a dos aguas modular.
+- Falta ver cómo se ve la cama suelta dentro de las casas nuevas (que no se encime con la cama que ya traen).

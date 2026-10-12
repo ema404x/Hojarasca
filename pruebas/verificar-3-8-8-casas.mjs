@@ -212,4 +212,24 @@ const cerca = (pos, x, z, tol = 0.35) => Math.hypot(pos.x - x, pos.z - z) <= tol
   assert.ok(con.includes('PLANOS.push(...PLANOS_CASAS)') && con.includes('P.fisicaCasa'), 'los planos y su física están conectados');
 }
 
+// ---------------------------------------------------------------- 6. la cama suelta
+{
+  const C = PLANO['cama-tablas'];
+  assert.ok(C, 'la cama suelta está en el catálogo');
+  assert.equal(C.categoria, 'mobiliario');
+  assert.equal(C.pieza, true, 'es una pieza: se coloca, se gira y se mueve (Shift+Y)');
+  assert.ok(C.funciones.includes('dormir') && C.confort >= PLANO['catre-campo'].confort, 'se duerme en ella y abriga más que el catre');
+  assert.ok(C.ancho >= 1.0 && C.fondo >= 2.0, 'mide lo que se ve');
+  assert.deepEqual(Object.keys(C.pide).sort(), ['tabla', 'tronco'], 'sólo pide lo que hay en los dos modos');
+  const c = new Constructor();
+  C.arma(c, C, {}, null);
+  assert.ok(c.pos.length > 0 && c.pos.every(Number.isFinite));
+  let mx = -Infinity, mn = Infinity;
+  for (let k = 1; k < c.pos.length; k += 3) { mx = Math.max(mx, c.pos[k]); mn = Math.min(mn, c.pos[k]); }
+  assert.ok(mn >= -0.01 && mx <= C.alto + 0.05, `la cama entra en su alto (${mn.toFixed(2)}..${mx.toFixed(2)})`);
+  const con = fs.readFileSync(new URL('../src/construccion.js', import.meta.url), 'utf8');
+  assert.ok(con.includes("id === 'cama-tablas'") && con.includes("'cama-tablas': 'mobiliario'"), 'la cama tiene su física y su categoría');
+  assert.ok(EN['Cama de tablas'] && EN[C.texto], 'la cama está traducida');
+}
+
 console.log('verificar-3-8-8-casas: ok');

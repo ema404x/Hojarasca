@@ -354,6 +354,7 @@ Con **Shift+Y** podés tomar una pieza terminada cercana y recolocarla: durante 
 
 **Mobiliario**
 - **Banco de tronco**.
+- **Cama de tablas** (3.8.8) — cama suelta con cabecera y colchón: se duerme en ella y se puede mover con Shift+Y.
 - **Mesa de campo**.
 - **Estante de tablas**.
 
