@@ -6,7 +6,7 @@
 // Ahora cada tramo es su propio rectángulo (con su propia normal, sin tocar al vecino) y en las vueltas se tapa el hueco de
 // afuera con un abanico redondo: el agua cubre lo mismo que el cauce del terreno (la distancia a la poligonal).
 const SEMI_EXTRA = 1.2;   // lo que la cinta se abre más allá del ancho del cauce (el terreno la recorta)
-const PIE_SALTO = 0.9;   // la cortina de agua está a esta distancia del labio (agua.js)
+const PIE_SALTO = 0.6;   // el agua de la poza empieza a esta distancia del labio: justo después del corte del terreno (la cortina cae sobre ella)
 const PASO_ABANICO = 0.35;   // radianes por triángulo del abanico de una vuelta
 
 // `rio`: [{ x, z, s, w }]. `saltoI`: el índice del salto de agua (el tramo del escalón no se dibuja: lo hace la cortina) o -1.
