@@ -182,4 +182,23 @@ function fsLeer(f) { return fs.readFileSync(new URL('../' + f, import.meta.url),
   delete globalThis.document;
 }
 
+
+// ---------------------------------------------------------------- 5. el gerente, en inglés
+{
+  const { EN_T } = await import('../src/idioma-en-t.js');
+  const V = await import('../src/vecindad-voces.js');
+  const S = await import('../src/vecindad-social-voces.js');
+  const textos = [];
+  const rec = (x) => { if (typeof x === 'string') textos.push(x); else if (Array.isArray(x)) x.forEach(rec); else if (x && typeof x === 'object') for (const [k, y] of Object.entries(x)) if (k !== 'cumplir' && k !== 'id') rec(y); };
+  for (const M of [...Object.values(V), ...Object.values(S)]) {
+    if (!M || typeof M !== 'object') continue;
+    if (M.gerente) rec(M.gerente);
+    for (const v of Object.values(M)) if (v && typeof v === 'object' && !Array.isArray(v) && v.gerente) rec(v.gerente);
+  }
+  const g = A.VECINOS_ALDEA.gerente;
+  rec([g.saludo, g.despedida, g.charla]);
+  const sin = [...new Set(textos)].filter((t) => !/^(material|cosa|tabla|yerba)$/.test(t)).filter((t) => !Object.hasOwn(EN_T, t.replace(/\{\w+\}/g, '{0}')));
+  ok(textos.length >= 80 && sin.length === 0, `todo lo que dice el gerente tiene su inglés (faltan ${sin.length}: ${sin.slice(0, 2).join(' | ')})`);
+}
+
 console.log(`verificar-3-8-8-banco: ${n} verificaciones ok`);

@@ -1,6 +1,6 @@
 # Plan del sistema de economía (Hojarasca 3.8.8 → 3.9)
 
-**Estado (3.8.8): todas las fases están hechas** (1 el peso, 2 el mercado, 3 los jornales, 3b el banco, 4 los pedidos, 5 la propiedad, 6 la aldea viva, 7 el pulido). Lo que se decidió sobre la marcha está en `CAMBIOS_3_8_8.md`: el jornal no gasta tiempo del reloj sino un cupo diario; el gerente es **Amadeo Lezcano**; el interés es 2 % por día (3 % si vence); «conseguirle cosas a muy buen precio» se hizo como **abastecimiento** (+25 a +40 %), **a confirmar**; las casas cuestan $36.000, $66.000 y $110.000 de terreno y mano de obra además de los materiales. No se vio en el juego real.
+**Estado (3.8.8): todas las fases están hechas** (1 el peso, 2 el mercado, 3 los jornales, 3b el banco, 4 los pedidos, 5 la propiedad, 6 la aldea viva, 7 el pulido). Lo que se decidió sobre la marcha está en `CAMBIOS_3_8_8.md`: el jornal no gasta tiempo del reloj sino un cupo diario; el gerente es **Amadeo Lezcano**; el interés es 2 % por día (3 % si vence); «conseguirle cosas a muy buen precio» se hizo como **abastecimiento** (+25 a +40 %), **confirmado**; las casas cuestan $36.000, $66.000 y $110.000 de terreno y mano de obra además de los materiales. No se vio en el juego real.
 
 Decidido con el usuario:
 - **Economía viva de la aldea**: locales y vecinos con oferta, demanda y caja propias.
