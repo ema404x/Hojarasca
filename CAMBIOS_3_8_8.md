@@ -50,6 +50,34 @@ faltaba para el próximo vecino) y la hora y el día sólo se veían en el menú
 - Al probar apareció que el primer lugar elegido para el reloj tapaba el punto de la soga del mástil (la prueba de la plaza lo
   atrapó): se pasó al otro lado del mástil.
 
+## La Cueva de las Manos vuelve (y ahora es una gruta, en la estepa, sin escalera)
+Pedido del usuario: el alero del arriero (la ex Cueva de las Manos) era muy cuadrado y de diseño malo. Decisiones: **diseño C, la gruta
+redonda**; **sólo las manos** (se saca la historia del abuelo de Martín); **manos en negativo**; **en la zona más árida, junto a los
+pastizales y las llanuras**; y **sin escalerilla** («la hace ver artificial»).
+- **La gruta** (`estructuras.js`): en vez del techo y los muros de cajas rectas, una bóveda de unos 170 bloques redondeados y abollados
+  (siete anillos, una corteza de afuera, la coronación con liquen seco, bloques enterrados que sostienen el conjunto). Unos 14.000
+  triángulos. El borde de adentro deja el mismo espacio y las mismas paredes de choque que antes.
+- **El lugar**: en la **estepa** (aridez ≥ 85 %, hacia el este, donde el bosque se abre y termina), **en un llano** (pendiente ≤ 0,12; del
+  frente al fondo el terreno sube a lo sumo 45 cm), lejos del arroyo y de la vía, sin agua cerca. Hoy queda en (307, 8). El **sorteo no
+  cambia** (seis mil vueltas con dos `r()` cada una y las mismas piedras sueltas y fogón): sólo cambia cuál sitio sirve, así el resto
+  del valle queda donde estaba.
+- **Sin escalerilla**: se sacó la cornisa de caja y los dieciséis peldaños. Se entra caminando: el suelo de adelante, un umbral de lajas
+  planas y desparejas a ras del terreno (tope a 11 cm) y el piso de arena de adentro (34 cm), con piedras irregulares en su borde. Sólo
+  hay dos pisos de choque (antes, 18).
+- **Las manos** (`dibujarPared`): siluetas de manos izquierdas (casi todas) con cuatro dedos separados y el pulgar, el pigmento soplado
+  abrazando el contorno (rojo, negro, ocre y blanco), repartidas sin orden y a veces superpuestas, más los guanacos y una hilera de puntos
+  rojos. El azar es propio y fijo: la pared es siempre la misma.
+- **Se sacó la historia de los arrieros**: `alero-arriero.js`, el menú de Martín, el estado `progreso.aleroArriero` (una partida vieja que
+  la traía se carga igual, el campo se descarta), la herradura, la pirca, el fogón renegrido, los nombres tallados y las dos pruebas de
+  Electron que la jugaban (`humo-3-8-6-alero.cjs` y `fotos-alero-384.cjs`).
+- Los textos de la cueva (cuaderno, visitante, cita, foto, inglés) vuelven a ser los de la Cueva de las Manos; la pista del cuaderno dice
+  ahora que está en la estepa, al este.
+- Pruebas: `verificar-3-8-8-cueva` (en la estepa, llano, sin agua, sin escalones, mismo lugar siempre; arma el valle de verdad),
+  `verificar-3-8-4-alero-sonido` (ahora comprueba la cueva y que no queden rastros de la historia), `verificar-3-8-6-relax`,
+  `verificar-3-8-7-mundo` e `implacable-rc4` al día.
+- Falta verla en el juego (la luz, la textura de la roca, el sonido adentro, que se entre sin trabarse) y que la historia de Martín
+  haya quedado fuera sin dejar opciones sueltas en su charla.
+
 ## Cómo está hecho
 - `src/planos-casas.js`: una fábrica de casas (`casa()`) con la geometría de las cuatro etapas, la medida y lo que lleva cada
   una; la física por etapa sale de `fisicaCasa(k)`.

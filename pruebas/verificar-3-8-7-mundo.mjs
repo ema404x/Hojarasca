@@ -108,7 +108,8 @@ const funcion = (texto, nombre) => { const i = texto.indexOf(`function ${nombre}
   ok(ar.includes("K.plataforma(0, 0, W, D, 0.02, 0.1, 0, { suelo: 'pasto' });") && ar.includes("{ radio: RC + 0.1, suelo: 'piedra' }") && ar.includes("K.plataforma(s.u[0] * m, s.u[1] * m, L, A, 0.07, 0.12, giro, { suelo: 'piedra' });"), 'la plaza: césped, la laja del centro y las sendas');
   ok(ar.includes("K.plataforma(xP, zc, ancho, pisada + 0.02, y1, 0.3, 0, { suelo: 'piedra' });"), 'la escalinata de laja');
   const es = leer('src/estructuras.js');
-  ok((es.match(/suelo: 'piedra'/g) || []).length >= 2 && es.includes("espesor: 0.40, suelo: 'tierra'"), 'el alero: arena y roca');
+  // (3.8.8: la cueva ya no tiene escalones: la arena del piso y la roca del umbral)
+  ok((es.match(/suelo: 'piedra'/g) || []).length >= 1 && es.includes("espesor: 0.40, suelo: 'tierra'"), 'la cueva: arena y roca');
   ok(leer('src/trochita.js').includes("espesor: alto, suelo: 'piedra'"), 'los escalones de piedra del andén');
   const { SUELOS } = await src('sonido-sintesis.js');
   for (const s of ['piedra', 'tierra', 'pasto', 'nieve']) ok(!!SUELOS[s], `hay pisada de ${s}`);

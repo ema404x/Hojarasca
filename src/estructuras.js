@@ -2378,22 +2378,34 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
   // entrada 'cueva' del cuaderno. El azar de la roca es propio (`hs`): no tira del sorteo `r()`.
   let cueva = null;
   {
-    // hace falta una ladera empinada y alta, lejos de todo
-    let sitio = null, mejor = 0;
+    // 3.8.8: en la estepa, la zona más árida (hacia el este, donde el bosque se abre y termina: pastizales y llanuras), en un llano:
+    // la boca mira cuesta abajo y el terreno sube poco hasta el fondo, así se entra caminando, sin escalera (antes: una ladera empinada
+    // y alta, y una cornisa con escalerilla). El sorteo es idéntico (dos `r()` por vuelta, seis mil vueltas): sólo cambia cuál sirve.
+    let sitio = null, mejor = -Infinity;
     for (let i = 0; i < 6000; i++) {
       const x = (r() * 2 - 1) * 400, z = (r() * 2 - 1) * 400;
       const k = T.indice(x, z);
       const y = TS.altura(x, z);
-      if (y < 20 || TS.agua(x, z) || TS.pendiente[k] < 0.55) continue;
-      if (T.distRio[k] < 30) continue;                     // lejos del arroyo
+      const arido = T.estepa ? T.estepa[k] : 1;
+      if (TS.agua(x, z) || arido < 0.85 || TS.pendiente[k] > 0.12) continue;
+      if (T.distRio[k] < 25) continue;                     // lejos del arroyo
       if (T.puentesRiel.some((b2) => Math.hypot(b2.x - x, b2.z - z) < 45)) continue;
       if (invadeHuella(x, z, 9, 8)) continue;
       if (T.distRiel[k] < 25) continue;
-      const puntaje = TS.pendiente[k] * 30 + y * 0.2;
+      // el terreno de la huella, con la boca cuesta abajo: lo que sube del frente al fondo y que no haya agua cerca
+      const nn = T.normal(x, z), giro = Math.atan2(nn.x, nn.z);
+      let alto = -Infinity, frente = Infinity, agua = false;
+      for (let lx = -3.3; lx <= 3.3 + 1e-6; lx += 0.66) for (let lz = -3.55; lz <= 0.3 + 1e-6; lz += 0.5) { const q = aMundo({ x, z }, giro, lx, lz); alto = Math.max(alto, T.altura(q.x, q.z)); }
+      for (let lx = -2; lx <= 2; lx += 1) for (const lz of [1.2, 1.8, 2.4]) { const q = aMundo({ x, z }, giro, lx, lz); frente = Math.min(frente, T.altura(q.x, q.z)); }
+      for (let a2 = 0; a2 < 8; a2++) { const q = aMundo({ x, z }, giro, Math.cos(a2 * 0.785) * 6.5, Math.sin(a2 * 0.785) * 6.5); if (TS.agua(q.x, q.z)) agua = true; }
+      const subida = alto - frente;
+      if (agua || subida > 0.45 || subida < -0.3) continue;
+      // lo más árido y llano, y no en el último rincón del mapa
+      const puntaje = arido * 30 - Math.abs(subida) * 10 - Math.hypot(x - 300, z) * 0.03;
       if (puntaje > mejor) { mejor = puntaje; sitio = { x, z, y }; }
     }
     if (sitio) {
-      // mira hacia donde baja la ladera
+      // mira hacia donde baja el terreno
       const n = T.normal(sitio.x, sitio.z);
       const rot = Math.atan2(n.x, n.z);
       const c = new Constructor();
@@ -2401,7 +2413,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       // 3.0.1: la cueva está en una ladera empinada y su piso plano quedaba bajo el cerro:
       // el pasto llenaba el abrigo y tapaba la mitad de abajo de las pinturas (y los
       // guanacos). Se levanta sobre una cornisa de roca hasta que el piso (0,34 m) quede
-      // por encima del terreno de adentro; al frente, una escalera de piedra baja de costado.
+      // por encima del terreno de adentro (3.8.8: en el llano de la estepa queda a ras del suelo y se entra caminando).
       {
         let alto = -Infinity;
         for (let lx = -ANCHO / 2 + 0.2; lx <= ANCHO / 2 - 0.2 + 1e-6; lx += (ANCHO - 0.4) / 10)
@@ -2411,6 +2423,13 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
           }
         sitio.y = Math.max(sitio.y, alto - 0.29);
       }
+      // el umbral (3.8.8: sin escalera ni cornisa de caja): la plataforma de la entrada queda a ras del terreno de adelante, a lo sumo
+      // unos centímetros sobre él, y se cubre con lajas planas y bajas. Su tope sube hasta rozar el piso de adentro (0,34 m).
+      const sueloUmbral = Math.min(sueloLocal(sitio, rot, -ANCHO / 2, 1.4), sueloLocal(sitio, rot, 0, 1.4), sueloLocal(sitio, rot, ANCHO / 2, 1.4));
+      let sueloMaxUmbral = -Infinity;
+      for (let lx = -ANCHO / 2 - 0.2; lx <= ANCHO / 2 + 0.2 + 1e-6; lx += 0.7) for (const lz of [0.3, 0.8, 1.3]) sueloMaxUmbral = Math.max(sueloMaxUmbral, sueloLocal(sitio, rot, lx, lz));
+      const topeUmbral = Math.min(0.32, Math.max(0.1, sueloMaxUmbral + 0.03));
+      const bajoUmbral = Math.max(3.2, topeUmbral - sueloUmbral + 0.4);
       // 3.8.8: la gruta. Cada bloque es un icosaedro abollado (cada uno distinto) y estirado; los anillos van de un lado al otro por
       // el techo, del frente al fondo; el borde de adentro queda a unos 4,45 m del eje a ras del piso y a 3,6 m de alto (la gente
       // cabe de pie hasta las paredes de choque, a 3,7 m, sin meterse en la roca); abajo, bloques enterrados la sostienen en la
@@ -2443,10 +2462,20 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
             roca(Math.cos(a) * (RX + 1.25), cy + Math.sin(a) * (RY + 1.2), z, rb * 1.1, rb, 1.5, h, h * 5, a, ROCAS[(i + j * 2) % 5]);
           }
         });
-        // la coronación: la roca de arriba, con su capa de musgo
+        // la coronación: la roca de arriba, con una capa de liquen seco (es la estepa: casi no hay musgo)
         roca(0, 6.3, -1.4, 4.8, 1.5, 4.2, 0, 0.2, 0, '#706963', 0.3);
-        roca(1.2, 7.3, -2.3, 3.0, 0.6, 2.2, 0.05, 0.4, -0.04, '#5f6a45', 0.14);
-        roca(-1.8, 7.0, -0.6, 2.2, 0.5, 1.6, 0.1, 0.9, 0.05, '#5f6a45', 0.14);
+        roca(1.2, 7.3, -2.3, 3.0, 0.6, 2.2, 0.05, 0.4, -0.04, '#8a8460', 0.14);
+        roca(-1.8, 7.0, -0.6, 2.2, 0.5, 1.6, 0.1, 0.9, 0.05, '#8a8460', 0.14);
+        // el umbral: lajas planas y bajas, a ras del suelo, por donde se entra caminando
+        for (let j = 0; j < 7; j++) {
+          const h = hs(j * 23 + 500);
+          roca(-3.9 + j * 1.3 + (h - 0.5) * 0.3, topeUmbral - 0.17, 0.8 + (hs(j * 11 + 700) - 0.5) * 0.5, 0.95 + h * 0.3, 0.2, 0.6 + h * 0.2, 0, h * 3, 0, ROCAS[(j * 2) % 5], 0.22);
+        }
+        // el borde del piso de arena, desparejo: piedras de distinto tamaño, para que no se vea un corte recto
+        for (let j = 0; j < 10; j++) {
+          const h = hs(j * 17 + 900);
+          roca(-3.8 + j * 0.85 + (h - 0.5) * 0.3, 0.17, 0.3 + (hs(j * 5 + 950) - 0.5) * 0.25, 0.4 + h * 0.4, 0.17 + h * 0.1, 0.35 + h * 0.2, 0, h * 5, 0, ROCAS[(j * 3) % 5], 0.26);
+        }
         // el fondo: la roca que cierra detrás de la pared pintada
         for (let j = 0; j < 7; j++) {
           const a = (j + 0.5) / 7 * Math.PI, h = hs(j * 19 + 300);
@@ -2456,10 +2485,6 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         roca(-5.3, 0.5, 1.9, 1.4, 1.0, 1.1, 0, 1, 0, '#6f6862');
         roca(5.5, 0.5, 2.0, 1.5, 1.1, 1.2, 0, 2, 0, '#665f59');
       }
-      // el umbral, para no ver el hueco. 3.0.1: baja hasta el terreno de adelante
-      const sueloUmbral = Math.min(sueloLocal(sitio, rot, -ANCHO / 2, 1.4), sueloLocal(sitio, rot, 0, 1.4), sueloLocal(sitio, rot, ANCHO / 2, 1.4));
-      const bajoUmbral = Math.max(3.2, 0.1 - sueloUmbral + 0.4);
-      c.agregar(new THREE.BoxGeometry(ANCHO + 1.4, bajoUmbral, 1.2), { color: '#6b645e', tipo: 4, variar: 0.16, matriz: matriz([0, 0.1 - bajoUmbral / 2, 0.8]) });
       // piso de arena y algunas piedras sueltas
       c.agregar(new THREE.BoxGeometry(ANCHO + 1, 0.4, FONDO + 0.6), { color: '#9a8d78', tipo: 4, variar: 0.1, matriz: matriz([0, 0.14, -FONDO / 2]) });
       // 3.0.1: las piedras sueltas y el fogón viejo, apoyados sobre el piso (su cara de
@@ -2472,21 +2497,6 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       for (let i = 0; i < 7; i++) {
         const a2 = (i / 7) * Math.PI * 2;
         c.agregar(new THREE.IcosahedronGeometry(0.18, 0), { color: '#6f6862', tipo: 4, variar: 0.2, matriz: matriz([1.6 + Math.cos(a2) * 0.6, 0.4, -2.2 + Math.sin(a2) * 0.6], [r(), r() * 6, 0]) });
-      }
-      // 3.0.1: la escalera de piedra que baja de la cornisa, de costado contra la roca
-      const pasosCueva = [];
-      {
-        let tope = 0.1;
-        for (let k = 0; k < 16; k++) {
-          const lx = -0.2 + k * 0.42, lz = 1.86;
-          const suelo = Math.min(sueloLocal(sitio, rot, lx, lz - 0.45), sueloLocal(sitio, rot, lx, lz + 0.45));
-          tope = Math.max(suelo + 0.08, tope - 0.24);
-          const alto = tope - suelo + 0.15;
-          c.agregar(new THREE.BoxGeometry(0.46, alto, 0.92), { color: k % 2 ? '#6f6862' : '#655f58', tipo: 4, variar: 0.14,
-            matriz: matriz([lx, tope - alto / 2, lz]) });
-          pasosCueva.push({ lx, lz, tope, alto });
-          if (tope - suelo < 0.1) break;
-        }
       }
       const grupoCueva = new THREE.Group();
       grupoCueva.position.set(sitio.x, sitio.y, sitio.z);
@@ -2597,13 +2607,9 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const pisoCueva = w(0, -FONDO / 2);
       // (3.8.7: el piso de arena y la roca suenan a eso, no a tablón: `suelo`, ver jugador.js)
       col.agregarPlataforma({ x: pisoCueva.x, z: pisoCueva.z, ang: -rot, largo: ANCHO + 1, ancho: FONDO + 0.6, alto: sitio.y + 0.34, espesor: 0.40, suelo: 'tierra' });
-      // la cornisa (el umbral) se pisa y, de frente, es una pared de roca
+      // el umbral se pisa: a ras del suelo de adelante (3.8.8: sin escalera)
       const umbralPos = w(0, 0.8);
-      col.agregarPlataforma({ x: umbralPos.x, z: umbralPos.z, ang: -rot, largo: ANCHO + 1.4, ancho: 1.2, alto: sitio.y + 0.1, espesor: bajoUmbral, suelo: 'piedra' });
-      for (const p of pasosCueva) {
-        const q = w(p.lx, p.lz);
-        col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.46, ancho: 0.92, alto: sitio.y + p.tope, espesor: p.alto, suelo: 'piedra' });
-      }
+      col.agregarPlataforma({ x: umbralPos.x, z: umbralPos.z, ang: -rot, largo: ANCHO + 1.4, ancho: 1.2, alto: sitio.y + topeUmbral, espesor: bajoUmbral, suelo: 'piedra' });
       const frente = w(0, 1.2);
       cueva = { x: sitio.x, y: sitio.y, z: sitio.z, rot, nombre: 'Cueva de las Manos', luz, pared: w(0, -FONDO + 0.6), puerta: frente, radio: 9 };
       T.lugares.cueva = cueva;
