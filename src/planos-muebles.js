@@ -440,3 +440,6 @@ export const PIEZAS_MUEBLES = [
 
 // Los que se usan con E (los dos de la pared): el id y qué dice el aviso.
 export const MUEBLES_QUE_SE_USAN = { 'reloj-pared': 'Mirar el reloj de pared', 'almanaque-pared': 'Mirar el almanaque de pared' };
+
+// Las herramientas de dibujo y los colores, para la segunda tanda (planos-muebles-2.js)
+export const AYUDAS_MUEBLES = { caja, cil, tira, pies, puerta, hs, MADERA, MADERA_OSCURA, TABLA, TABLA_CLARA, PIEDRA, HIERRO, BRONCE, PAPEL, VIDRIO };

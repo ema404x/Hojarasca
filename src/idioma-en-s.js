@@ -146,6 +146,50 @@ export const EN_S = {
   "Planta en maceta": "Potted plant",
   "Un helecho del bosque con unas flores, en una maceta de barro. Alegra un rincón de la casa.":
     "A forest fern with a few flowers, in a clay pot. It brightens a corner of the house.",
+
+  // ---- 3.8.8: la segunda tanda de mobiliario (planos-muebles-2.js)
+  "Cama doble": "Double bed",
+  "Una cama matrimonial de tablas, con cabecera alta, pie bajo, colchón de lana, dos almohadas y una colcha. La cabecera queda del lado de atrás: girala con R. Se duerme mejor en una habitación cerrada.":
+    "A plank double bed with a tall headboard, a low footboard, a wool mattress, two pillows and a bedspread. The headboard is at the back: turn it with R. You sleep better in a closed room.",
+  "Litera": "Bunk bed",
+  "Dos camas de tablas una sobre la otra, con una escalerita en un costado y un tope para que nadie se caiga. Para una casa con chicos, o con visitas.":
+    "Two plank beds one above the other, with a little ladder on one side and a rail so nobody falls out. For a house with kids, or with guests.",
+  "Tocador con espejo": "Dressing table with mirror",
+  "Una mesita con dos cajones, un espejo redondo con marco de madera, un banquito y los frascos de siempre. Contra la pared, de espaldas a +Z.":
+    "A small table with two drawers, a round wooden-framed mirror, a stool and the usual little bottles. Against the wall, its back facing +Z.",
+  "Bañera de chapa y biombo": "Tin bathtub and screen",
+  "Una bañera de chapa con patas de garra, llena de agua tibia, y un biombo plegable de tela y madera para que nadie mire. El biombo va atrás: el fondo mira a +Z.":
+    "A tin bathtub with claw feet, filled with warm water, and a folding cloth-and-wood screen so nobody peeks. The screen goes at the back: the back faces +Z.",
+  "Mecedora": "Rocking chair",
+  "Una silla mecedora de madera, con respaldo de varillas y una manta de lana sobre el respaldo. La de la abuela, junto al fuego.":
+    "A wooden rocking chair with a spindle back and a wool blanket over it. Grandma's chair, by the fire.",
+  "Vitrina": "Glass cabinet",
+  "Un mueble alto de puertas con vidrio, tres estantes y adentro las cosas lindas de la casa: copas, frascos, una jarra de barro. Contra la pared, de espaldas a +Z.":
+    "A tall cabinet with glass doors, three shelves and the house's nice things inside: glasses, jars, a clay jug. Against the wall, its back facing +Z.",
+  "Mesa ratona": "Coffee table",
+  "Una mesa baja de centro, con un estante abajo, para la tetera, las tazas y el libro del momento. Delante del sillón.":
+    "A low center table with a shelf underneath, for the teapot, the cups and the book of the moment. In front of the armchair.",
+  "Hogar con repisa": "Fireplace with mantel",
+  "Un hogar de piedra a la vista con la boca ancha, leños y brasas, la repisa de madera y una chimenea que sube hasta el techo. Se pone contra la pared. El fondo mira a +Z.":
+    "An exposed-stone hearth with a wide mouth, logs and embers, a wooden mantel and a chimney that rises to the roof. Place it against the wall. Its back faces +Z.",
+  "Banco de carpintero": "Carpenter's workbench",
+  "Un banco de tablones gruesos con un tornillo de banco, y atrás un tablero con las herramientas colgadas: serrucho, martillo, formones. Para el taller de la casa.":
+    "A workbench of thick planks with a vise, and behind it a board with the tools hung up: saw, hammer, chisels. For the house workshop.",
+  "Tonel y barricas": "Cask and barrels",
+  "Un tonel grande acostado en su caballete, con su canilla, y dos barricas paradas a un costado: la sidra, el vino y lo que se guarda para el invierno.":
+    "A big cask lying on its cradle, with its tap, and two barrels standing to one side: the cider, the wine and whatever is kept for winter.",
+  "Colgador de hierbas y chorizos": "Herb and sausage rack",
+  "Un travesaño de madera en dos postes, bajo, con ramos de hierbas secas, ristras de ajos, cebollas y chorizos colgando. Para la despensa o la cocina.":
+    "A wooden crossbar on two low posts, with bunches of dried herbs, strings of garlic, onions and sausages hanging. For the pantry or the kitchen.",
+  "Guirnalda de luces": "String lights",
+  "Un hilo de farolitos de papel y vidrio para colgar de una pared o del alero. De noche hace la casa más cálida. El fondo mira a +Z.":
+    "A string of paper-and-glass lanterns to hang on a wall or under the eaves. At night it makes the house warmer. Its back faces +Z.",
+  "Telar y rueca": "Loom and spinning wheel",
+  "Un telar de pie con una manta a medio tejer y, al lado, una rueca con su rueda y una canasta de lana. Para hilar y tejer en casa, al calor del fuego.":
+    "A standing loom with a blanket half woven and, beside it, a spinning wheel with its wheel and a basket of wool. To spin and weave at home, by the fire.",
+  "Hamaca paraguaya": "Hammock",
+  "Una hamaca de lana tejida a rayas, con flecos y almohadón, colgada de dos postes. Con un par de postes en el patio, la siesta está servida.":
+    "A striped woven-wool hammock with fringes and a cushion, hung from two posts. With a couple of posts in the yard, the nap is served.",
   "Mirar el reloj de pared": "Look at the wall clock",
   "Mirar el almanaque de pared": "Look at the wall almanac",
   "El reloj de pared": "The wall clock",

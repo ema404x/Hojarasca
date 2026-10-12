@@ -20,6 +20,7 @@ import { PLANOS_CASAS } from './planos-casas.js';
 // 3.8.8: más mobiliario (baúl, mesa de luz, ropero, cuna, sillón, mesa larga, aparador, librero, mesada, barril, escritorio, perchero,
 // reloj y almanaque de pared, cuadros, cortinas y planta en maceta)
 import { PIEZAS_MUEBLES } from './planos-muebles.js';
+import { PIEZAS_MUEBLES_2 } from './planos-muebles-2.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
 const MADERA = '#6b5238';
@@ -2235,7 +2236,7 @@ function matasJardin(c, x, z, y, f, k, esc = 1) {
 }
 
 PIEZAS.push(...PIEZAS_COCINA);   // 3.7.2: la cocina (ver planos-cocina.js)
-PIEZAS.push(...PIEZAS_MUEBLES);   // 3.8.8: más mobiliario (ver planos-muebles.js)
+PIEZAS.push(...PIEZAS_MUEBLES, ...PIEZAS_MUEBLES_2);   // 3.8.8: más mobiliario (ver planos-muebles.js)
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,

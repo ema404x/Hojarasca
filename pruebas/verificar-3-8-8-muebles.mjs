@@ -110,7 +110,7 @@ for (const id of IDS) {
   const src = leer('src/planos-muebles.js');
   for (const m of src.matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(m[0]), `import en una línea: ${m[0]}`);
   for (const m of src.matchAll(/^export\s+(?:const|let|function|class)\s+([^\s(=]+)/gm)) ok(!/ñ/i.test(m[1]), `exportado sin ñ: ${m[1]}`);
-  ok(leer('src/construccion.js').includes('PIEZAS.push(...PIEZAS_MUEBLES)'), 'construccion.js las suma');
+  ok(leer('src/construccion.js').includes('PIEZAS.push(...PIEZAS_MUEBLES'), 'construccion.js las suma');
 }
 
 function eq2(a, b, m) { assert.deepEqual(a, b, m); n++; }

@@ -89,6 +89,14 @@ pastizales y las llanuras**; y **sin escalerilla** («la hace ver artificial»).
   por la puerta, no se atraviesan las paredes, la cama, la mesa, los hogares y los postes frenan, el tabique del medio separa
   los dormitorios) e inglés.
 
+## Mobiliario: 31 piezas nuevas (elegidas por el usuario)
+Todas son piezas sueltas de la categoría Mobiliario, sólo en el Relax, con materiales que existen (tabla, tronco, piedra, lana) y dibujadas con madera y piedra.
+- **Primera tanda (17, `src/planos-muebles.js`):** baúl, mesa de luz, ropero, cuna; sillón, mesa larga de comedor, aparador, librero; mesada con pileta, barril de agua, escritorio, perchero y botas; reloj de pared, almanaque de pared (se usan con E y dicen lo mismo que los de la aldea), cuadros, cortinas y planta en maceta.
+- **Segunda tanda (14, `src/planos-muebles-2.js`):** cama doble y litera (se duermen: confort 5 y 4), tocador con espejo, bañera de chapa con biombo; mecedora, vitrina, mesa ratona, hogar de piedra con repisa; banco de carpintero, tonel con barricas, colgador de hierbas y chorizos; guirnalda de luces, telar con rueca y hamaca paraguaya.
+- Lo que se cuelga de la pared (reloj, almanaque, cuadros, cortinas, guirnalda) no choca; el resto tiene su física con los mismos límites que lo que se ve.
+- Pruebas: `verificar-3-8-8-muebles.mjs` y `verificar-3-8-8-muebles-2.mjs` (catálogo, geometría dentro de lo que dicen medir, física, inglés y reglas de siempre).
+- Honesto: baúl, barril, mesada y escritorio no guardan nada ni dan agua; no se puede uno sentar en lo construido (sillón, mecedora, hamaca); el hogar y la guirnalda no dan luz ni fuego de verdad; el cuadro no muestra fotos del álbum. Nada de esto se vio en el juego real.
+
 ## Defecto que apareció al probar
 La casona tenía una cantidad impar de postes en la galería y uno caía justo en el centro, delante del escalón y de la puerta.
 Ahora la cantidad es siempre par.
