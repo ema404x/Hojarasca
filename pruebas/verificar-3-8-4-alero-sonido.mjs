@@ -1,6 +1,7 @@
 // 3.8.4 (sonido): las decisiones 32, 33 y 34 de DECISIONES_3_8_4.md.
-// 32. La Cueva de las Manos pasa a ser «El alero del arriero» (pirca, fogón renegrido, pared tallada, herradura), con
-//     la historia chica de Martín y el nombre de su abuelo (alero-arriero.js). Las partidas viejas no pierden nada.
+// 32. (3.8.4: la Cueva de las Manos pasó a ser «El alero del arriero», con la historia de Martín y su abuelo.) 3.8.8: a pedido del
+//     usuario vuelve la Cueva de las Manos, ahora como una gruta de roca natural, con las manos en negativo, y se saca la
+//     historia de los arrieros (alero-arriero.js). Acá se comprueba cómo quedó (y que las partidas viejas no se rompen).
 // 33. Las voces de los vecinos: un murmullo cálido, corto y suave que nunca da miedo; los duendes conservan la suya.
 // 34. El silbato de la trochita: silbato de vapor con campanas en acorde, soplido, arranque, corte y eco del valle.
 import fs from 'node:fs';
@@ -9,10 +10,10 @@ import * as VZ from '../src/social-voz.js';
 import { VOCES as VOCES_DUENDES } from '../src/voz-alien.js';
 import { SILBATOS } from '../src/personal-trochita.js';
 import { SILBATO_PAJARO } from '../src/tren-viaje.js';
-import * as AL from '../src/alero-arriero.js';
 import { ENTRADA } from '../src/cuaderno.js';
 import { LUGARES_VISITA } from '../src/aldea-vida.js';
 import { LUGARES_CITA } from '../src/amor.js';
+import * as G from '../src/guardado.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -86,71 +87,46 @@ const RELIGIOSO = /capilla|\bmisa\b|\bcura\b|\bcuras\b|\brez[aoá]|\bdios|\bsant
   ok((sil.match(/createDelay/g) || []).length === 1 && /\[0\.42, 0\.42, -0\.55, 2200\]/.test(sil), 'cuatro paredes de eco');
 }
 
-// ============================================================ 32. el alero del arriero
+// ============================================================ 32. la Cueva de las Manos (vuelve en la 3.8.8)
 {
   const est = leer('src/estructuras.js');
-  ok(!/Cueva de las Manos'/.test(est) && /cartel\('El alero del arriero'/.test(est), 'el cartel');
-  for (const t of ["'J. Miranda 1911'", "'Los Sepúlveda pasaron acá'", "'Fermín Sepúlveda 1927'", 'TorusGeometry', 'la pirca', 'hollinTecho', 'los tizones']) ok(est.includes(t), `en el alero: ${t}`);
-  ok(!/manos en negativo y guanacos/.test(est) && !/const guanaco = /.test(est), 'sin las manos ni los guanacos');
-  // lo nuevo no tira del sorteo (así nada del valle se mueve)
-  const bloque = est.slice(est.indexOf('\n', est.indexOf('// (lo de acá en adelante no tira del sorteo')), est.indexOf('const grupoCueva = new THREE.Group();'));
-  ok(bloque.length > 200 && !/\br\(\)/.test(bloque), 'la pirca, el fogón y la herradura no cambian el sorteo');
+  ok(/cartel\('Cueva de las Manos'/.test(est) && /nombre: 'Cueva de las Manos'/.test(est), 'el cartel y el nombre');
+  ok(/manos en negativo y guanacos/.test(est) && /const guanaco = /.test(est) && /const mano = /.test(est), 'la pared pintada, con las manos en negativo y los guanacos');
+  // la gruta: bloques redondeados abollados, no el techo y los muros de cajas
+  ok(/abollar\(g, fuerza, /.test(est) && /new THREE\.IcosahedronGeometry\(1, 1\)/.test(est), 'la gruta de bloques redondeados');
+  ok(!/BoxGeometry\(ANCHO \+ 3\.4, 2\.2/.test(est) && !/BoxGeometry\(3\.2, ALTO \+ 8/.test(est) && !/BoxGeometry\(ANCHO \+ 6, ALTO \+ 9/.test(est), 'sin el techo ni los muros rectos de antes');
+  // el sorteo no cambia: la cueva sólo tira de r() en lo de siempre (el sitio, las nueve piedras sueltas y el fogón)
+  const bloque = est.slice(est.indexOf('let cueva = null;'), est.indexOf("registrarHuella('cueva'"));
+  ok(!/Sepúlveda|J\. Miranda|herradura|hollin|pirca|tizones|tallar\(/.test(bloque), 'sin lo de los arrieros en la cueva (nombres tallados, herradura, pirca, hollín)');
+  const codigo = bloque.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  ok((codigo.match(/\br\(\)/g) || []).length === 10, `la cueva tira del sorteo exactamente como antes (${(codigo.match(/\br\(\)/g) || []).length} llamadas)`);
+  ok(/const hs = \(k\) =>/.test(bloque), 'y el azar de la roca es propio');
   ok(/registrarHuella\('cueva', cueva, 9, 5\)/.test(est), 'la misma huella');
-  // el cuaderno: la misma entrada (una partida vieja la tiene anotada como 'cueva' y ve la nueva)
+  ok(/linea\(\[-ANCHO \/ 2 - 0\.2, 1\.0\], \[-ANCHO \/ 2 - 0\.2, -FONDO \+ 1\.05 - 0\.3\]\)/.test(est) && /suelo: 'tierra'/.test(bloque) && /suelo: 'piedra'/.test(bloque), 'las mismas colisiones y los pisos que suenan a tierra y a piedra');
+  // el cuaderno, el visitante, la cita y la foto: de nuevo la Cueva de las Manos (el id es el mismo)
   const e = ENTRADA.cueva;
-  ok(e && e.nombre === 'El alero del arriero' && /arrieros/.test(e.texto) && /J\. Miranda 1911/.test(e.texto) && /Los Sepúlveda pasaron acá/.test(e.texto) && /herradura/.test(e.texto), 'la entrada del cuaderno');
-  ok(!/manos/i.test(e.texto) && !/Cueva de las Manos/.test(JSON.stringify(Object.values(ENTRADA))), 'sin la cueva de las manos en el cuaderno');
-  ok(LUGARES_VISITA.cueva.nombre === 'el alero del arriero' && /tallaban su nombre/.test(LUGARES_VISITA.cueva.pide), 'el visitante pregunta por el alero');
-  ok(LUGARES_CITA.cueva.nombre === 'el alero del arriero', 'la cita con la pintora');
-  const fotos = leer('src/fotos.js');
-  ok(/id: 'f-manos', nombre: 'Los nombres tallados'/.test(fotos), 'la foto (el mismo id: la que ya sacaste sigue valiendo)');
-  // el inglés de lo que reemplaza claves que ya existían
+  ok(e && e.nombre === 'Cueva de las Manos' && /manos en negativo/.test(e.texto) && !/arriero/i.test(e.texto), 'la entrada del cuaderno');
+  ok(LUGARES_VISITA.cueva.nombre === 'la Cueva de las Manos' && /manos pintadas/.test(LUGARES_VISITA.cueva.pide), 'el visitante pregunta por la cueva');
+  ok(/pinturas/.test(LUGARES_CITA.cueva.nombre) && /pinturas/.test(LUGARES_CITA.cueva.cita), 'la cita con la pintora');
+  ok(/id: 'f-manos', nombre: 'Las manos'/.test(leer('src/fotos.js')), 'la foto de las manos');
   const en = ['b', 'e', 'g', 'l'].map((x) => leer(`src/idioma-en-${x}.js`)).join('\n');
-  ok(!/Cueva de las Manos'/.test(en) && /'El alero del arriero'/.test(en) && /The Drover's Overhang/.test(en), 'el nombre en inglés');
-  ok(en.includes(e.texto.slice(0, 60)) && en.includes('Los nombres tallados') && en.includes('La pared del alero del arriero'), 'el cuaderno y la foto en inglés');
-
-  // la historia de Martín
-  const p = { dia: 4 };
-  ok(AL.opcionesAlero(p, 'jefe').length === 0, 'sólo Martín');
-  ok(AL.opcionesAlero(p, 'martin', { hayAlero: false }).length === 0, 'sin alero en el valle, no pide nada');
-  ok(AL.opcionesAlero(p, 'martin')[0]?.id === 'alero:pedir', 'Martín: «¿Sos de familia ferroviaria?»');
-  ok(AL.buscarNombre(p, 0.5) === null, 'sin el pedido, el nombre no se «encuentra»');
-  const r1 = AL.elegirAlero(p, 'alero:pedir', { dia: 4 });
-  ok(r1 && r1.paso === 1 && r1.renglones.length >= 3 && /¿Me lo buscás\?/.test(r1.renglones.at(-1)) && /arriero/.test(r1.renglones[0]), 'te pide que lo busques');
-  ok(AL.elegirAlero(p, 'alero:pedir') === null && AL.opcionesAlero(p, 'martin')[0]?.id === 'alero:recordar', 'y después te lo recuerda');
-  ok(/a 600 m al noroeste/.test(AL.elegirAlero(p, 'alero:recordar', { rumbo: 'a 600 m al noroeste' }).renglones.join(' ')), 'con el rumbo desde la aldea');
-  ok(AL.buscarNombre(p, AL.RADIO_NOMBRE + 1) === null && p.aleroArriero.paso === 1, 'de lejos no se lee');
-  const nota = AL.buscarNombre(p, 1, 6);
-  ok(nota && nota.titulo.includes(AL.TALLADO_ABUELO) && /Martín/.test(nota.sub) && p.aleroArriero.paso === 2 && p.aleroArriero.dia === 6, 'delante del nombre: lo encontraste');
-  ok(AL.buscarNombre(p, 1) === null, 'una sola vez');
-  const r3 = AL.elegirAlero(p, 'alero:contar', { dia: 7 });
-  ok(r3 && r3.paso === 3 && r3.amistad === AL.AMISTAD_ALERO && r3.diario && r3.renglones.length >= 5, 'y te cuenta de su abuelo (y suma amistad)');
-  ok(r3.renglones.join(' ').length > 1500, 'mucho texto bueno');
-  ok(AL.opcionesAlero(p, 'martin').length === 0 && AL.elegirAlero(p, 'alero:contar') === null, 'y queda contado');
-  const dichos = JSON.stringify(AL.DICHOS_ALERO);
-  ok(!RELIGIOSO.test(dichos), `nada religioso (${RELIGIOSO.exec(dichos)?.[0]})`);
-  ok(dichos.includes(AL.NOMBRE_ABUELO) && est.includes(`'${AL.TALLADO_ABUELO}'`) && est.includes(`'${AL.TALLADO_FAMILIA}'`), 'lo tallado en la pared es lo que cuenta Martín');
-  // un guardado roto o viejo no rompe nada
-  for (const x of [null, undefined, 7, 'x', [], { paso: 99, dia: -3 }, { paso: '2', dia: '5' }, { paso: NaN }]) {
-    const s = AL.sanearAlero(x);
-    ok(Number.isInteger(s.paso) && s.paso >= 0 && s.paso <= 3 && Number.isInteger(s.dia) && s.dia >= 0, `saneo: ${JSON.stringify(x)}`);
+  ok(/'Cueva de las Manos'/.test(en) && !/Drover's Overhang/.test(en), 'el inglés, de nuevo el de la Cueva de las Manos');
+  ok(en.includes(e.texto.slice(0, 60)), 'el cuaderno en inglés');
+  // la historia de los arrieros se sacó entera
+  ok(!fs.existsSync(new URL('../src/alero-arriero.js', import.meta.url)), 'ya no existe alero-arriero.js');
+  for (const f of ['src/main.js', 'src/guardado.js', 'src/vecindad-juego.js', 'src/vecindad-social.js']) {
+    // (guardado.js descarta el campo viejo a propósito: `aleroArriero: undefined`)
+    const texto = leer(f).replace('    aleroArriero: undefined,\n', '');
+    ok(!/aleroJuego|aleroArriero|alero-arriero|crearAleroJuego|ctx\.alero|\^alero:/.test(texto.replace(/\/\/ 3\.8\.8: la historia del abuelo[^\n]*\n/, '')), `${f}: sin rastros de la historia del alero`);
   }
-  const g = leer('src/guardado.js');
-  ok(/aleroArriero: aleroNuevo\(\)/.test(g) && /aleroArriero: modoPartida === 'desafio' \? undefined : sanearAlero\(p\.aleroArriero\)/.test(g), 'en la partida (sólo en el Relax)');
-  // el juego: la charla con Martín, el nombre al pasar y el desafío sin nada
-  let guardado = 0, notas = [], am = [], diario = [];
-  const prog = { dia: 3 };
-  const juego = AL.crearAleroJuego({ progreso: () => prog, desafio: () => false, lugar: () => ({ sepulveda: { x: 10, z: 10 } }), jugador: () => ({ x: 10.5, z: 10 }),
-    rumbo: () => 'a 300 m al sur', sumarAmistad: (k, x) => am.push([k, x]), diario: (d) => diario.push(d), nota: (t, s2) => notas.push(t), guardar: () => guardado++ });
-  ok(juego.opciones('martin')[0].id === 'alero:pedir' && juego.elegir({}, 'alero:pedir').tipo === 'renglones', 'en la charla');
-  ok(juego.actualizar(1) && notas.length === 1 && prog.aleroArriero.paso === 2, 'parado delante del nombre, aparece la nota');
-  ok(juego.elegir({}, 'alero:contar').renglones.length >= 5 && am[0][0] === 'martin' && diario.length === 1 && guardado >= 3, 'al contarle: amistad, diario y guardado');
-  ok(juego.elegir({}, 'alero:pedir').tipo === 'menu', 'lo que ya no corresponde vuelve al menú');
-  const desafio = AL.crearAleroJuego({ progreso: () => ({ dia: 1 }), desafio: () => true, lugar: () => ({ sepulveda: { x: 0, z: 0 } }) });
-  ok(desafio.opciones('martin').length === 0, 'en el Desafío, nada');
-  const vj = leer('src/vecindad-juego.js'), main = leer('src/main.js');
-  ok(/ctx\.alero\?\.opciones\?\.\(s\.clave\)/.test(vj) && /\^alero:/.test(vj), 'vecindad-juego.js: lo ofrece y lo elige');
-  ok(/alero: aleroJuego,/.test(main) && /aleroJuego\?\.actualizar\(dt\)/.test(main) && /lugar: \(\) => T\.lugares\.cueva/.test(main), 'main.js: lo arma, lo pasa y lo mira cada cuadro');
+  // una partida vieja que traía el estado de la historia se carga sin romperse (y sin el campo)
+  const almacen = new Map();
+  globalThis.localStorage = { getItem: (k) => (almacen.has(k) ? almacen.get(k) : null), setItem: (k, v) => { almacen.set(k, String(v)); }, removeItem: (k) => { almacen.delete(k); }, key: (i) => [...almacen.keys()][i] ?? null, get length() { return almacen.size; } };
+  G.usarModoGuardado('relax', 1);
+  ok(!('aleroArriero' in G.progresoNuevo()), 'la partida nueva no trae el estado de la historia');
+  G.guardarProgreso({ ...G.progresoNuevo(), dia: 5, aleroArriero: { paso: 2, dia: 4 } });
+  const cargada = G.cargarProgreso();
+  ok(cargada && cargada.dia === 5 && cargada.aleroArriero === undefined, 'una partida vieja con la historia empezada se carga igual, sin el campo');
 }
 
-console.log(`OK 3.8.4 alero y sonido · ${n} verificaciones · el alero del arriero y la historia de Martín, voces cálidas, silbato de vapor`);
+console.log(`OK 3.8.4 sonido y 3.8.8 cueva · ${n} verificaciones · la Cueva de las Manos (gruta) sin la historia de los arrieros, voces cálidas, silbato de vapor`);

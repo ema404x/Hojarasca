@@ -170,7 +170,6 @@ const DEL_MENU = [
   [/^amor:chicos$/, 'charla', 'charla'],   // 3.8.6: hablar de tus hijos (con la ex también), en la charla
   [/^amor/, 'romantica', 'corazon'], [/^cocina/, 'ayuda', 'olla'], [/^granja/, 'ayuda', 'granja'],
   [/^rincones:/, 'hacer', 'herramienta'],   // 3.8.4: su sección propia («Hacer juntos»), no entre los regalos
-  [/^alero:/, 'charla', 'libro'],   // 3.8.6: lo del abuelo de Martín (alero-arriero.js), en «Charlar»
 ];
 const TITULOS_MENU = { 'como-andas': '¿Cómo andás?', novedades: 'Novedades', historia: 'Tu historia', regalar: 'Regalar…', invitar: 'Invitar a tomar algo…', ayudar: 'Dar una mano…', amor: 'Lo nuestro…' };
 
