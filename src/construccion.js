@@ -15,6 +15,8 @@ import { PLANOS_VEHICULOS } from './planos-vehiculos.js';
 // 3.7.2: la cocina (la parrilla con cruz y su techito, la cocina a leña y la alacena)
 import { PIEZAS_COCINA } from './planos-cocina.js';
 import { PLANOS_GRANJA } from './planos-granja.js';
+// 3.8.8: la escalera de casas (cabaña de piedra, casa con galería, casona)
+import { PLANOS_CASAS } from './planos-casas.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
 const MADERA = '#6b5238';
@@ -404,6 +406,9 @@ PLANOS.push({
     },
   ],
 });
+
+// 3.8.8: tres refugios más grandes, de menor a mayor (cabaña, casa con galería, casona)
+PLANOS.push(...PLANOS_CASAS);
 
 // ---------------------------------------------------------------- cobertizo rural
 PLANOS.push({
@@ -2975,6 +2980,13 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       for (const sx of [-1, 1]) circuloLocal(obra, sx * P.ancho * 0.34, -P.fondo / 2 - 0.9, 0.09, -0.05, 2.7);
     });
     if (id === 'casilla' && e >= 4) unaVez(obra, 'casilla-estufa', () => circuloLocal(obra, P.ancho / 2 - 0.75, P.fondo / 2 - 0.7, 0.4, 0.5, 3.6));
+    // 3.8.8: las casas prefabricadas grandes traen su física por etapa (planos-casas.js)
+    if (P.fisicaCasa) for (let k = 1; k <= Math.min(e, 4); k++) unaVez(obra, 'casa-' + k, () => {
+      const f = P.fisicaCasa(k);
+      for (const s of f.segmentos) segmentoLocal(obra, ...s);
+      for (const q of f.circulos) circuloLocal(obra, ...q);
+      for (const q of f.plataformas) plataformaLocal(obra, q[0], q[1], q[2], q[3], q[4], q[5]);
+    });
     if (id === 'galponcito' && e >= 1) unaVez(obra, 'galponcito-horcones', () => {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) circuloLocal(obra, sx * (P.ancho / 2 - 0.2), sz * (P.fondo / 2 - 0.2), 0.14, -0.05, P.alto + 0.3);
     });
@@ -3585,6 +3597,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       else if (P.cubreArea) rect(P.ancho || 3, P.fondo || 3, base + (P.alto || 2.4) - 0.3);
       else if (P.snap?.tipo === 'techo') rect(P.ancho || 3.45, P.fondo || 3.45, base);
       else if (P.habitable && !P.snap) rect((P.ancho || 3) + 0.4, (P.fondo || 3) + 0.4, base + Math.max(1.25, (P.alto || 2.3) - 0.1));
+      // 3.8.8: la galería techada de las casas grandes, delante del frente (no llueve abajo)
+      if (P.galeria && P.habitable && !P.snap) lista.push({ x: d.x, z: d.z, rot, x0: -P.ancho / 2 - 0.15, x1: P.ancho / 2 + 0.15, z0: -P.fondo / 2 - P.galeria - 0.1, z1: -P.fondo / 2, y: base + 2.55, ax: 0, ab: 0, az: 0 });
     }
     return lista;
   }

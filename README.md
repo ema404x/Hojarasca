@@ -320,6 +320,9 @@ Con **Shift+Y** podés tomar una pieza terminada cercana y recolocarla: durante 
 **Refugios**
 - **Puesto de troncos** — cuatro etapas, habitable y apto para dormir.
 - **Casilla de tablas** — basas, piso elevado, entramado con puerta/ventana y techo con estufa/chimenea; también habitable.
+- **Cabaña de tablas y piedra** (3.8.8) — 6,0 × 4,6 m: zócalo de piedra, hogar con chimenea, tres ventanas, cama, mesa con banquetas y repisa.
+- **Casa con galería** (3.8.8) — 7,8 × 5,6 m: galería techada con baranda y escalón, cinco ventanas, hogar de piedra, dos camas, mesa y alfombra.
+- **Casona de dos cuartos** (3.8.8) — 9,6 × 6,4 m: sala con dos hogares, galería, ocho ventanas y dos dormitorios con su cama, separados por tabiques.
 - **Piso modular 3×3** — base encastrable y caminable para levantar espacios propios.
 - **Pared modular** — paño sólido de tres metros.
 - **Pared con puerta** — vano transitable con **puerta funcional**, interacción con E y colisión dinámica ligada a la hoja.
