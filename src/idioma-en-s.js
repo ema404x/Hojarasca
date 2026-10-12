@@ -93,4 +93,64 @@ export const EN_S = {
   "{0} espera en la estación de la {1}: andá a hablarle": "{0} is waiting at the {1} station: go talk to them",
   "El próximo vecino viene en unos días": "The next neighbor comes in a few days",
   "{0} baja en el próximo tren con gente": "{0} gets off the next train with people",
+
+  // ---- 3.8.8: más mobiliario (planos-muebles.js)
+  "Baúl de tablas": "Plank chest",
+  "Un baúl de tablas con tapa abovedada, flejes de hierro y herrojo. Se pone al pie de la cama.":
+    "A plank chest with a domed lid, iron straps and a hasp. It goes at the foot of the bed.",
+  "Mesa de luz": "Bedside table",
+  "Una mesita con un cajón y un estante abajo, con una vela y un libro. Junto a la cama, para dejar lo de la noche.":
+    "A little table with a drawer and a shelf below, with a candle and a book. Next to the bed, for the things of the night.",
+  "Ropero de tablas": "Plank wardrobe",
+  "Alto, con dos puertas y una cornisa. Contra la pared del cuarto, para guardar la ropa de abrigo. El fondo mira a +Z.":
+    "Tall, with two doors and a cornice. Against the bedroom wall, to keep the warm clothes. Its back faces +Z.",
+  "Cuna de madera": "Wooden cradle",
+  "Una cuna de barrotes torneados sobre dos balancines, con su colchón y una frazada tejida. Para cuando haya hijos en la casa.":
+    "A cradle of turned bars on two rockers, with its mattress and a woven blanket. For when there are children in the house.",
+  "Sillón de lana": "Wool armchair",
+  "Un sillón de armazón de madera con almohadones de lana, apoyabrazos y respaldo alto. Junto al fuego es lo más cómodo de la casa.":
+    "An armchair with a wooden frame, wool cushions, armrests and a high back. By the fire it is the coziest thing in the house.",
+  "Mesa larga de comedor": "Long dining table",
+  "Una mesa de tablas gruesas de dos metros y medio, con un banco largo de cada lado. Entran ocho a comer, o diez apretados.":
+    "A table of thick planks two and a half meters long, with a long bench on each side. Eight can eat, or ten squeezed in.",
+  "Aparador": "Sideboard",
+  "Un mueble bajo con puertas y arriba una vitrina abierta con la vajilla a la vista. Contra la pared del comedor.":
+    "A low cabinet with doors and, above, an open display case with the dishes in view. Against the dining room wall.",
+  "Biblioteca (librero)": "Bookcase",
+  "Un librero alto con cinco estantes y los libros de la casa, apretados y a medio ordenar. Contra la pared, de espaldas a +Z.":
+    "A tall bookcase with five shelves and the books of the house, crammed and half in order. Against the wall, its back to +Z.",
+  "Mesada con pileta": "Counter with sink",
+  "Una mesada de laja sobre un mueble de tablas, con una pileta de piedra, una bomba de mano y un estante con frascos. Para lavar y preparar.":
+    "A slab counter over a plank cabinet, with a stone sink, a hand pump and a shelf of jars. For washing and preparing.",
+  "Barril de agua": "Water barrel",
+  "Un barril de duelas con aros de hierro, su tapa y un cucharón colgado. Junto a la mesada, para tener el agua a mano.":
+    "A stave barrel with iron hoops, its lid and a ladle hanging from it. Next to the counter, to keep the water at hand.",
+  "Escritorio": "Desk",
+  "Un escritorio con dos cajoneras, tintero, papeles, unos libros y una lámpara de kerosene. Para escribir las cartas y el diario.":
+    "A desk with two sets of drawers, an inkwell, papers, a few books and a kerosene lamp. For writing the letters and the diary.",
+  "Perchero y botas": "Coat rack and boots",
+  "Un perchero de pie con un poncho, un sombrero y una bufanda, y las botas embarradas en la base. Junto a la puerta, para dejar lo mojado.":
+    "A standing coat rack with a poncho, a hat and a scarf, and the muddy boots at the base. By the door, to leave what is wet.",
+  "Reloj de pared": "Wall clock",
+  "Un reloj de caja con péndulo y dos pesas, para colgar de la pared. Con E te dice la hora y el día, lo mismo que el de la plaza de la aldea. El fondo mira a +Z.":
+    "A case clock with a pendulum and two weights, to hang on the wall. With E it tells you the time and the day, just like the one in the village square. Its back faces +Z.",
+  "Almanaque de pared": "Wall almanac",
+  "Una hoja por día, con la luna y las estaciones, colgada de un clavo. Con E te dice el día, la fecha, la luna y lo que viene, lo mismo que el de la biblioteca. El fondo mira a +Z.":
+    "One page per day, with the moon and the seasons, hung from a nail. With E it tells you the day, the date, the moon and what is coming, just like the one in the library. Its back faces +Z.",
+  "Cuadros y fotos": "Pictures and photos",
+  "Tres cuadros para colgar juntos, uno grande con el lago y la cordillera y dos chicos: un bosque y un retrato. Para vestir una pared. El fondo mira a +Z.":
+    "Three pictures to hang together: a big one with the lake and the mountains and two small ones, a forest and a portrait. To dress a wall. Their back faces +Z.",
+  "Cortinas": "Curtains",
+  "Un par de cortinas de lana tejida, recogidas a los lados, en su varilla de bronce. Para una ventana. El fondo mira a +Z.":
+    "A pair of woven wool curtains, tied back at the sides, on their bronze rod. For a window. Their back faces +Z.",
+  "Planta en maceta": "Potted plant",
+  "Un helecho del bosque con unas flores, en una maceta de barro. Alegra un rincón de la casa.":
+    "A forest fern with a few flowers, in a clay pot. It brightens a corner of the house.",
+  "Mirar el reloj de pared": "Look at the wall clock",
+  "Mirar el almanaque de pared": "Look at the wall almanac",
+  "El reloj de pared": "The wall clock",
+  "El almanaque de pared": "The wall almanac",
+  "tu casa": "your house",
+  "Tic, tac.": "Tick, tock.",
+  "Una hoja por día.": "One page per day.",
 };

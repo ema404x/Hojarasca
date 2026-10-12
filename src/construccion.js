@@ -17,6 +17,9 @@ import { PIEZAS_COCINA } from './planos-cocina.js';
 import { PLANOS_GRANJA } from './planos-granja.js';
 // 3.8.8: la escalera de casas (cabaña de piedra, casa con galería, casona)
 import { PLANOS_CASAS } from './planos-casas.js';
+// 3.8.8: más mobiliario (baúl, mesa de luz, ropero, cuna, sillón, mesa larga, aparador, librero, mesada, barril, escritorio, perchero,
+// reloj y almanaque de pared, cuadros, cortinas y planta en maceta)
+import { PIEZAS_MUEBLES } from './planos-muebles.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
 const MADERA = '#6b5238';
@@ -2232,6 +2235,7 @@ function matasJardin(c, x, z, y, f, k, esc = 1) {
 }
 
 PIEZAS.push(...PIEZAS_COCINA);   // 3.7.2: la cocina (ver planos-cocina.js)
+PIEZAS.push(...PIEZAS_MUEBLES);   // 3.8.8: más mobiliario (ver planos-muebles.js)
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,

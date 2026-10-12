@@ -143,7 +143,9 @@ import { crearRastrosMalla } from './rastros-malla.js';
 import { horasHasta, frente, frasePronostico } from './pronostico.js';
 import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
 // 3.8.8: el reloj y el almanaque propios
-import { textoHud as textoRelojHud } from './reloj-almanaque.js';
+import { textoHud as textoRelojHud, partesReloj, partesAlmanaque } from './reloj-almanaque.js';
+// 3.8.8: el reloj y el almanaque de pared (lo que se usa con E)
+import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
@@ -6804,6 +6806,7 @@ function usarObraQueTrabaja(o) {
 // corren en horas de juego y se ponen al día solas (ver `molino.js`); el tiempo que
 // anuncia la estación es el que el clima va a seguir (ver `meteo.js`).
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
+OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
 // (en el Relax: en el Desafío no hay cocina y sigue horneando de una, como en la 2.4)
@@ -7053,6 +7056,7 @@ function avisoObra24(o) {
     case 'buzon': return porRetirar(correo(), progreso).length ? 'Abrir el buzón: hay carta' : porEnviar(correo()).length ? 'Mandar la foto por el buzón' : 'Mirar el buzón';
     case 'embarcadero': return 'Traer el kayak al embarcadero';
     case 'bebedero': return progreso.corral ? 'Mirar tu corral' : 'El bebedero';
+    case 'reloj-pared': case 'almanaque-pared': return MUEBLES_QUE_SE_USAN[o.plano.id];   // 3.8.8
     default: return null;
   }
 }
@@ -7075,6 +7079,13 @@ function usarObra24(o) {
       nota('Tu corral', conLana ? `${conLana} de ${total} con el vellón entero` : 'Las dos recién esquiladas: el vellón vuelve en unos días');
       return true;
     }
+    // 3.8.8: el reloj y el almanaque de tu casa dicen lo mismo que los de la aldea (reloj-almanaque.js)
+    case 'reloj-pared':
+      leerEnLaAldea({ quien: 'El reloj de pared', que: 'tu casa', partes: partesReloj({ hora: progreso.horas, dia: progreso.dia }), despedida: 'Tic, tac.' });
+      return true;
+    case 'almanaque-pared':
+      leerEnLaAldea({ quien: 'El almanaque de pared', que: 'tu casa', partes: partesAlmanaque({ dia: progreso.dia, horas: progreso.horas, aldea: progreso.aldea }), despedida: 'Una hoja por día.' });
+      return true;
     default: return false;
   }
 }
