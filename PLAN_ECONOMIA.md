@@ -4,7 +4,8 @@ Decidido con el usuario:
 - **Economía viva de la aldea**: locales y vecinos con oferta, demanda y caja propias.
 - **Sólo pesos**: la yerba deja de ser la moneda y pasa a ser un bien más. **Lo que se tiene de yerba se convierte a pesos**, a **$100 por yerba**.
 - **Ingresos:** vender lo que se produce, trabajos con sueldo, encargos y pedidos, y negocio propio o alquiler.
-- **Gastos:** materiales y herramientas, y terrenos y casas. Sin impuestos ni deudas.
+- **Gastos:** materiales y herramientas, y terrenos y casas. Sin impuestos. (Las deudas entran sólo por el banco: ver más abajo.)
+- **Un banco en el pueblo** (pedido después): préstamos con intereses y negocios con el gerente; edificio de piedra de pueblo patagónico; lo atiende un vecino nuevo, el gerente; está desde el día 1.
 - **Por ahora sólo en el Relax** (el Desafío sigue sin economía, como hoy el comercio).
 - Se avanza como recomiende el asistente: por fases, cada una jugable sola.
 
@@ -34,6 +35,26 @@ Decidido con el usuario:
 6. **Sólo Relax**: todo el sistema se apaga en el Desafío.
 7. **Migración reversible** hasta que la economía esté probada: la yerba vieja se convierte una sola vez y queda registrada.
 
+## El banco del pueblo (decidido con el usuario)
+- **Qué hace:** presta pesos con intereses y ofrece negocios: el gerente consigue pedidos "a muy buen precio" (se interpretó como encargos especiales de abastecimiento, mejor pagados que los comunes; **a confirmar**).
+- **Edificio:** banco de pueblo patagónico de piedra (fachada con frontón y columnas, rejas, reloj). Se arma con las mismas herramientas que los demás edificios de la aldea (`aldea-arquitectura.js`).
+- **Personal:** un vecino nuevo, el gerente, con casa, rutina y charla propias.
+- **Cuándo:** desde el principio (edificio inicial, como la estación y el almacén). Sin los pesos (Fase 1) no tiene qué hacer: el edificio y el personal pueden ir antes, pero las funciones llegan con la economía.
+- **Dónde toca el código** (por lo que cuesta hoy un local como la costurería): `aldea.js` (plano, vecino, rutina, usos), `aldea-arquitectura.js`, `aldea-gente.js`, `aldea-mecanicas.js` y `-mundo.js`, `aldea-mundo.js`, y el guardado. Unos 7 archivos más pruebas y traducción.
+
+**Reglas del préstamo** (propuesta, a ajustar con el simulador):
+- Tope según la reputación con el banco (crece con las entregas y las cuotas pagadas); el primer préstamo es chico.
+- Interés diario simple (propuesta: 2 % por día; un año del juego son 12 días, así que un préstamo a un año cuesta 24 %). Cuota diaria o pago libre.
+- Sin embargos ni pérdida de casas: si no se paga, el gerente deja de prestar, sube el interés y baja la reputación. El Relax no castiga con ruina.
+- Un solo préstamo a la vez al principio.
+- El gerente avisa antes de cada vencimiento.
+
+**Los negocios con el banco:**
+- Pedidos de abastecimiento: el banco necesita X (tablas, lana, harina…) para sus clientes y paga por encima del mercado, con plazo.
+- Se apoyan en el mercado (Fase 2) y en los encargos (Fase 4): el pago "muy bueno" es una prima sobre el precio de mercado de hoy (propuesta: +25 % a +40 %, con tope diario para que no sea una máquina de plata).
+
+**Riesgo propio del banco:** un préstamo con interés bajo y un negocio con prima alta pueden formar un ciclo de ganancia (pedir prestado → cumplir el pedido → repagar). El simulador lo prueba antes de soltarlo.
+
 ## Fases
 **Fase 1 · El peso y la billetera**
 - `src/economia.js`: saldo, libro de movimientos, redondeo.
@@ -54,6 +75,11 @@ Decidido con el usuario:
 **Fase 4 · Encargos y pedidos**
 - Pedidos concretos de los vecinos con plazo, pagados según calidad y rapidez.
 - Reputación por local, que desbloquea mejores encargos. Se apoya en `encargos-temporada.js`.
+
+**Fase 3b · El banco (edificio, gerente y préstamos)**
+- El edificio de piedra y el gerente (se pueden hacer apenas el peso exista).
+- Préstamos con intereses y reputación.
+- Pedidos de abastecimiento con prima (se suman a los encargos de la Fase 4).
 
 **Fase 5 · Propiedad y negocio**
 - Comprar lotes y casas (las tres prefabricadas), con un precio que suma terreno y mano de obra.
@@ -83,3 +109,4 @@ Decidido con el usuario:
 - Si el saldo se muestra siempre en el HUD o sólo en un panel.
 - El nombre exacto de la moneda ("pesos") y cómo se escriben los montos ($1.200).
 - Si la billetera tiene tope.
+- Para el banco: el nombre del gerente (y si es hombre o mujer), el interés exacto, y qué quiere decir "conseguirle cosas a muy buen precio" (ver arriba).
