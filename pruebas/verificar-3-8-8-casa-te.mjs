@@ -88,5 +88,9 @@ ok(O.adentro < 0.02, 'y el de entrar, también');
 const est = leer('src/estructuras.js');
 ok(est.includes('function amueblarCasaTe') && est.includes('amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H })'), 'estructuras.js amuebla la casa de té antes de armar la malla');
 for (const que of ['hogar de piedra', 'cocina económica', 'aparador', 'cama de la galesa', 'faroles colgados']) ok(est.includes(que), `lleva: ${que}`);
+// lo galés y lo de casa de té
+for (const que of ['function banderaGalesa', 'Y Ddraig Goch', 'llwy garu', 'telyn', 'Te Cymreig', 'Croeso', 'bara brith', 'torta negra', 'torre de tortas', 'cubretetera', 'platito de sauce', 'campanas de vidrio', 'patchwork galés']) ok(est.toLowerCase().includes(que.toLowerCase()), `lleva lo galés: ${que}`);
+ok(est.includes('const adornos = []') && est.includes('return adornos') && est.includes('new THREE.PlaneGeometry(q.w, q.h)'), 'los carteles de adentro (bandera, carta del té, Croeso) se arman como planos con su dibujo');
+ok(/for \(const q of amueblarCasaTe/.test(est), 'y se suman al grupo de la casa');
 for (const m of est.matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(m[0]), `import en una línea: ${m[0]}`);
 console.log(`verificar-3-8-8-casa-te: ${n} verificaciones ok`);

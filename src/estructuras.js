@@ -28,10 +28,46 @@ function caja(c, pos, tam, color, rotY = 0, tipo = 0) {
   c.agregar(new THREE.BoxGeometry(...tam), { color, tipo, matriz: matriz(pos, [0, rotY, 0]), variar: 0.08 });
 }
 
+// un lienzo dibujado como textura (para los carteles de adentro)
+function lienzoTextura(ancho, alto, dibujar) {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = ancho; lienzo.height = alto;
+  dibujar(lienzo.getContext('2d'), ancho, alto);
+  const t = new THREE.CanvasTexture(lienzo);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+// la bandera de Gales (Y Ddraig Goch): el dragón rojo sobre blanco y verde
+function banderaGalesa(x, w, h) {
+  x.fillStyle = '#f4f2ea'; x.fillRect(0, 0, w, h / 2);
+  x.fillStyle = '#2c7a4b'; x.fillRect(0, h / 2, w, h / 2);
+  x.fillStyle = '#c8102e'; x.strokeStyle = '#c8102e'; x.lineCap = 'round'; x.lineJoin = 'round';
+  x.lineWidth = h * 0.075;   // el cuello y el cuerpo, en S
+  x.beginPath(); x.moveTo(w * 0.28, h * 0.74); x.bezierCurveTo(w * 0.4, h * 0.5, w * 0.5, h * 0.66, w * 0.58, h * 0.44); x.bezierCurveTo(w * 0.63, h * 0.3, w * 0.74, h * 0.36, w * 0.76, h * 0.27); x.stroke();
+  x.lineWidth = h * 0.05;   // la cola enroscada y las patas
+  x.beginPath(); x.moveTo(w * 0.28, h * 0.74); x.bezierCurveTo(w * 0.14, h * 0.84, w * 0.1, h * 0.62, w * 0.22, h * 0.6); x.stroke();
+  x.lineWidth = h * 0.04;
+  for (const [a, b, c2, d] of [[0.4, 0.62, 0.34, 0.86], [0.52, 0.58, 0.5, 0.86], [0.59, 0.46, 0.67, 0.76]]) { x.beginPath(); x.moveTo(w * a, h * b); x.lineTo(w * c2, h * d); x.stroke(); }
+  x.beginPath(); x.moveTo(w * 0.46, h * 0.52); x.lineTo(w * 0.38, h * 0.18); x.lineTo(w * 0.5, h * 0.28); x.lineTo(w * 0.55, h * 0.12); x.lineTo(w * 0.62, h * 0.32); x.closePath(); x.fill();   // el ala
+  x.beginPath(); x.moveTo(w * 0.74, h * 0.2); x.lineTo(w * 0.88, h * 0.25); x.lineTo(w * 0.8, h * 0.31); x.lineTo(w * 0.74, h * 0.36); x.closePath(); x.fill();   // la cabeza
+}
+// la carta del té, en la pizarra (galés y castellano)
+function cartaDelTe(x, w, h) {
+  x.fillStyle = '#27332d'; x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(240,236,220,0.5)'; x.lineWidth = 3; x.strokeRect(10, 10, w - 20, h - 20);
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0ecdc';
+  x.font = `700 40px Georgia, serif`; x.fillText('Té Galés', w / 2, 52);
+  x.font = `italic 22px Georgia, serif`; x.fillStyle = '#c8c4b0'; x.fillText('Te Cymreig', w / 2, 88);
+  x.fillStyle = 'rgba(240,236,220,0.5)'; x.fillRect(40, 108, w - 80, 2);
+  x.fillStyle = '#f0ecdc'; x.font = `26px Georgia, serif`;
+  ['Torta negra', 'Bara brith', 'Tortas galesas', 'Scones con dulce', 'Té con leche', 'Pan con manteca'].forEach((t, i) => x.fillText(t, w / 2, 148 + i * 38));
+  x.fillStyle = '#c8a04a'; x.font = `italic 24px Georgia, serif`; x.fillText('¡Croeso!', w / 2, h - 36);
+}
+
 // 3.8.8: el interior de la casa de té. Estaba vacío (el piso, las paredes y una luz), aunque la galesa cocina y duerme adentro (los
 // puntos `cocina` y `cama` de aldea.js): ahora tiene el hogar de piedra contra la chimenea (que ya salía por afuera), un sillón junto al
 // fuego, dos mesas con sillas para tomar el té, la cocina económica con su mesada y sus estantes, la cama de la galesa, un aparador con
-// la loza, una alfombra, faroles colgados y cortinas. Marco local: el centro del cuerpo en el piso (y = 0 el terreno, el piso en 0,38),
+// la loza, una alfombra, faroles colgados y cortinas, y lo galés de una casa de té del Chubut (ver más abajo). Marco local: el centro del cuerpo en el piso (y = 0 el terreno, el piso en 0,38),
 // la puerta al frente (+z) y la chimenea en la pared oeste (x = −3,5, z = −1,2). Las sillas son asientos de verdad (`sentaderos`).
 function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
   const F = 0.38, PIEDRA_TE = '#7d766c', PIEDRA_OSC = '#6d675e', HIERRO_TE = '#34312e', LOZA = '#d8d2c0', AZUL = '#4a6a8a', ROJO = '#7b3a2e', LANA = '#8a3a2a', MIEL = '#c8a04a', PAPEL = '#e8e0c8';
@@ -98,15 +134,38 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
     for (let i = 0; i < 4; i++) cil(0.045, 0.34, [-2.6 + (i % 2) * 0.1, F + 0.36, -2.1 + (i > 1 ? 0.08 : -0.06)], '#5b4430', 0.2 * (i - 1.5), 0.15);
     redondo(-2.55, -2.1, 0.22, 0.5);
   }
-  // ---- las dos mesas del salón, con sus sillas y el servicio de té
-  for (const [mx, mz, nombre] of [[-1.3, 1.0, 'una silla del salón de té'], [1.3, 1.0, 'una silla del salón de té']]) {
+  // ---- las dos mesas del salón: mantel de encaje, el servicio de té galés (torre de tortas, tetera con su cubretetera, tazas con platito
+  // de sauce, dulce, azucarera y flores) y cuatro sillas
+  for (const [mx, mz, nombre, lado] of [[-1.3, 1.0, 'una silla del salón de té', -1], [1.3, 1.0, 'una silla del salón de té', 1]]) {
     cil(0.5, 0.06, [mx, F + 0.74, mz], TABLA);
     cil(0.07, 0.72, [mx, F + 0.37, mz], MADERA_OSCURA);
     cil(0.22, 0.05, [mx, F + 0.03, mz], MADERA_OSCURA);
-    caja(c, [mx, F + 0.775, mz], [0.5, 0.01, 0.5], '#e8e0c8', 0.3);   // el mantelito
-    cil(0.075, 0.1, [mx - 0.05, F + 0.84, mz + 0.05], '#a8573a'); bola(0.04, [mx - 0.05, F + 0.92, mz + 0.05], '#a8573a');
-    for (const [dx, dz] of [[0.18, -0.14], [-0.2, -0.12]]) { cil(0.035, 0.05, [mx + dx, F + 0.82, mz + dz], LOZA); cil(0.05, 0.008, [mx + dx, F + 0.79, mz + dz], LOZA); }
-    caja(c, [mx + 0.12, F + 0.8, mz + 0.18], [0.14, 0.03, 0.1], MIEL);   // una torta galesa
+    // el mantel de encaje: un disco blanco que cuelga más que la mesa, con la puntilla
+    cil(0.58, 0.012, [mx, F + 0.775, mz], '#f2ece0');
+    cil(0.61, 0.006, [mx, F + 0.77, mz], '#e2dac6');
+    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; cil(0.022, 0.008, [mx + Math.cos(a) * 0.55, F + 0.78, mz + Math.sin(a) * 0.55], '#f2ece0'); }
+    // la torre de tortas: tres platos con pie, scones, welsh cakes (azucaradas) y bara brith
+    cil(0.012, 0.3, [mx, F + 0.94, mz], '#9a7a3a');
+    cil(0.13, 0.012, [mx, F + 0.8, mz], '#d8d2c0'); cil(0.1, 0.012, [mx, F + 0.95, mz], '#d8d2c0'); cil(0.07, 0.012, [mx, F + 1.08, mz], '#d8d2c0');
+    for (let k = 0; k < 5; k++) { const a = k * 1.26; bola(0.032, [mx + Math.cos(a) * 0.08, F + 0.835, mz + Math.sin(a) * 0.08], '#c98a3a', [1, 0.7, 1]); }   // scones
+    for (let k = 0; k < 3; k++) { const a = k * 2.1 + 0.4; cil(0.034, 0.012, [mx + Math.cos(a) * 0.06, F + 0.97, mz + Math.sin(a) * 0.06], '#e8d8b0'); }   // welsh cakes
+    caja(c, [mx, F + 1.1, mz], [0.07, 0.04, 0.04], '#4a2e1c');   // una rodaja de torta negra
+    // la tetera con su cubretetera tejida (roja con franja blanca), y su plato
+    const tx = mx - 0.24 * lado, tz = mz + 0.2;
+    cil(0.1, 0.012, [tx, F + 0.79, tz], '#d8d2c0');
+    bola(0.085, [tx, F + 0.86, tz], '#9b3a2e', [1, 0.9, 1]); cil(0.088, 0.02, [tx, F + 0.865, tz], '#f2ece0');
+    cil(0.02, 0.03, [tx, F + 0.945, tz], '#9b3a2e'); bola(0.022, [tx, F + 0.965, tz], '#f2ece0');
+    cil(0.012, 0.09, [tx + 0.1 * lado, F + 0.88, tz], '#9b3a2e', 0, 0.9 * lado);   // el pico
+    // las tazas con platito de sauce (blanco con un aro azul)
+    for (const [dx, dz] of [[0.22 * lado, -0.12], [0.1 * lado, -0.28]]) {
+      cil(0.07, 0.008, [mx + dx, F + 0.783, mz + dz], '#f2ece0'); cil(0.06, 0.009, [mx + dx, F + 0.785, mz + dz], AZUL);
+      cil(0.036, 0.052, [mx + dx, F + 0.82, mz + dz], '#f2ece0'); cil(0.037, 0.008, [mx + dx, F + 0.842, mz + dz], AZUL);
+    }
+    // el dulce (un frasco rojo con cucharita), la azucarera y unas flores del campo
+    cil(0.032, 0.06, [mx - 0.05 * lado, F + 0.81, mz - 0.3], '#7b1e24'); cil(0.034, 0.012, [mx - 0.05 * lado, F + 0.845, mz - 0.3], '#e8e0c8');
+    cil(0.04, 0.05, [mx + 0.3 * lado, F + 0.81, mz + 0.05], '#f2ece0'); bola(0.025, [mx + 0.3 * lado, F + 0.845, mz + 0.05], AZUL);
+    cil(0.03, 0.09, [mx - 0.32 * lado, F + 0.83, mz - 0.12], '#cfc8b4');
+    for (let k = 0; k < 5; k++) { tallo(c, mx - 0.32 * lado, F + 0.86, mz - 0.12, k); bola(0.02, [mx - 0.32 * lado + Math.cos(k * 1.3) * 0.045, F + 1.0, mz - 0.12 + Math.sin(k * 1.3) * 0.045], ['#e8d84a', '#d07aa8', '#f2ece0', '#9a7ac8', '#e8845a'][k]); }
     redondo(mx, mz, 0.52, 0.8);
     silla(mx - 0.72, mz, 1, nombre); silla(mx + 0.72, mz, -1, nombre);
   }
@@ -119,7 +178,15 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
     caja(c, [-1.15, F + 0.9, zc], [0.5, 0.04, 0.38], '#5d574f', 0, 4);   // la pileta
     caja(c, [-1.15, F + 0.915, zc], [0.42, 0.012, 0.3], '#6a8a9a', 0, 4);
     cil(0.02, 0.28, [-1.15, F + 1.05, zc - 0.22], HIERRO_TE); caja(c, [-1.15, F + 1.18, zc - 0.13], [0.025, 0.025, 0.2], HIERRO_TE);
-    for (let i = 0; i < 3; i++) cil(0.045, 0.1 + i * 0.03, [-0.35 + i * 0.16, F + 0.96 + i * 0.015, zc + 0.05], ['#a8573a', '#c8a04a', '#6a8a5a'][i]);
+    // las tortas del día bajo campanas de vidrio, una lata de té y los frascos de dulce
+    for (const [dx, torta] of [[-0.5, '#4a2e1c'], [0.0, '#c98a3a']]) {
+      cil(0.16, 0.02, [dx, F + 0.91, zc + 0.02], '#d8d2c0'); cil(0.03, 0.06, [dx, F + 0.89, zc + 0.02], '#d8d2c0');
+      cil(0.13, 0.07, [dx, F + 0.96, zc + 0.02], torta);
+      c.agregar(new THREE.SphereGeometry(0.17, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), { color: '#a8c0c0', tipo: 4, matriz: matriz([dx, F + 0.94, zc + 0.02]), variar: 0.03 });
+      bola(0.018, [dx, F + 1.11, zc + 0.02], '#a8c0c0');
+    }
+    cil(0.07, 0.16, [0.22, F + 0.98, zc + 0.08], '#8a2e24'); cil(0.072, 0.02, [0.22, F + 1.07, zc + 0.08], MIEL);   // la lata de té
+    for (let i = 0; i < 2; i++) cil(0.035, 0.08, [0.1 + i * 0.1, F + 0.94, zc - 0.18], ['#7b1e24', '#c8a04a'][i]);
     PT.mueble({ lx: -0.7, ly: F + 0.45, lz: zc, largo: 2.0, alto: 0.9, ancho: 0.58, color: '#6a5238', dibujar: false });
     // la cocina económica: hierro negro, cuatro hornallas, el horno, el tubo hasta el techo y la pava
     const sx = 0.95;
@@ -128,7 +195,7 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
     for (const [dx, dz] of [[-0.2, -0.1], [0.2, -0.1], [-0.2, 0.14], [0.2, 0.14]]) cil(0.09, 0.012, [sx + dx, F + 0.92, zc + dz], '#4a4742');
     caja(c, [sx, F + 0.5, zc - 0.3], [0.5, 0.32, 0.02], '#5a5650'); caja(c, [sx, F + 0.64, zc - 0.32], [0.3, 0.02, 0.025], '#9a948a');   // la puerta del horno
     cil(0.055, H - (F + 0.9), [sx + 0.2, (F + 0.9 + H) / 2, zc + 0.16], HIERRO_TE);
-    cil(0.09, 0.14, [sx - 0.2, F + 1.0, zc - 0.1], '#7a8a8e'); cil(0.025, 0.12, [sx - 0.12, F + 1.05, zc - 0.1], '#7a8a8e', 0, 1.1);   // la pava
+    cil(0.09, 0.14, [sx - 0.2, F + 1.0, zc - 0.1], '#b87333'); cil(0.025, 0.12, [sx - 0.12, F + 1.05, zc - 0.1], '#b87333', 0, 1.1); bola(0.03, [sx - 0.2, F + 1.09, zc - 0.1], '#8a5a2a');   // la pava de cobre
     PT.mueble({ lx: sx, ly: F + 0.45, lz: zc, largo: 0.84, alto: 0.9, ancho: 0.62, color: HIERRO_TE, dibujar: false });
     // los estantes de la pared, con tazas, latas de té y frascos; y las ollas colgadas
     for (const [y, x0, x1] of [[F + 1.45, -1.7, 0.45], [F + 1.9, -1.7, 0.45]]) {
@@ -138,7 +205,7 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
     for (let i = 0; i < 6; i++) { cil(0.032, 0.05, [-1.55 + i * 0.13, F + 1.5, -2.34], LOZA); cil(0.04, 0.008, [-1.55 + i * 0.13, F + 1.47, -2.34], LOZA); }
     for (let i = 0; i < 4; i++) cil(0.05, 0.16 + (i % 2) * 0.04, [-0.75 + i * 0.28, F + 2.0 + (i % 2) * 0.02, -2.34], ['#a8573a', '#4a6a8a', '#c8a04a', '#6a8a5a'][i]);
     for (let i = 0; i < 5; i++) cil(0.05, 0.11, [-1.5 + i * 0.22, F + 1.99, -2.34], ['#9b3a2e', '#c8a04a', '#5a7a5a', '#7a5a8a', '#cfc8b4'][i]);
-    for (const [x, r] of [[0.75, 0.12], [1.05, 0.09], [1.3, 0.1]]) { cil(r, 0.1, [x, F + 1.55, -2.42], '#6a6e70'); caja(c, [x, F + 1.7, -2.45], [0.02, 0.1, 0.02], HIERRO_TE); }
+    for (const [x, r] of [[0.75, 0.12], [1.05, 0.09], [1.3, 0.1]]) { cil(r, 0.1, [x, F + 1.55, -2.42], '#b87333'); caja(c, [x, F + 1.7, -2.45], [0.02, 0.1, 0.02], HIERRO_TE); }
   }
   // ---- la cama de la galesa (esquina noreste, la cabecera contra la pared)
   {
@@ -146,8 +213,10 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(c, [bx + sx * 0.42, F + 0.14, bz + sz * 0.92], [0.09, 0.28, 0.09], MADERA_OSCURA);
     caja(c, [bx, F + 0.3, bz], [0.95, 0.14, 2.0], TABLA);
     caja(c, [bx, F + 0.44, bz], [0.88, 0.14, 1.9], '#c9bfa0', 0, 4);
-    caja(c, [bx, F + 0.52, bz + 0.45], [0.9, 0.06, 1.1], '#4a6a8a', 0, 4);   // la frazada
-    caja(c, [bx, F + 0.545, bz + 0.95], [0.92, 0.025, 0.2], MIEL, 0, 4);
+    // el cubrecama de retazos (patchwork galés, en rojos, blancos y azules) sobre una frazada de lana
+    caja(c, [bx, F + 0.51, bz + 0.45], [0.9, 0.05, 1.1], '#f2ece0', 0, 4);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 5; j++) caja(c, [bx - 0.33 + i * 0.22, F + 0.54, bz - 0.05 + j * 0.2], [0.2, 0.012, 0.18], ['#9b3a2e', '#f2ece0', '#4a6a8a', '#c8a04a', '#6a2e24'][(i * 2 + j * 3) % 5], 0, 4);
+    caja(c, [bx, F + 0.56, bz + 0.97], [0.92, 0.025, 0.14], MIEL, 0, 4);
     caja(c, [bx, F + 0.55, bz - 0.78], [0.5, 0.1, 0.3], PAPEL, 0, 4);
     caja(c, [bx, F + 0.62, bz - 0.98], [1.0, 0.8, 0.07], MADERA_OSCURA);   // la cabecera
     caja(c, [bx, F + 1.55, -2.43], [0.62, 0.46, 0.04], '#5a4130'); caja(c, [bx, F + 1.55, -2.41], [0.52, 0.36, 0.02], '#a9c2d2', 0, 4);   // un cuadrito
@@ -162,13 +231,54 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
     for (const dz of [-0.72, 0.72]) caja(c, [ax + 0.1, F + 1.45, az + dz], [0.04, 1.05, 0.05], MADERA_OSCURA);
     caja(c, [ax + 0.17, F + 1.45, az], [0.03, 1.0, 1.5], '#5b4735');
     for (const y of [F + 1.2, F + 1.6]) caja(c, [ax + 0.04, y, az], [0.3, 0.035, 1.5], TABLA);
-    // platos azules y blancos parados y tazas colgadas
-    for (let i = 0; i < 6; i++) cil(0.1, 0.018, [ax + 0.12, F + 1.34, az - 0.62 + i * 0.25], i % 2 ? '#cfc8b4' : AZUL, 0, Math.PI / 2 - 0.12);
-    for (let i = 0; i < 6; i++) { cil(0.1, 0.018, [ax + 0.12, F + 1.75, az - 0.62 + i * 0.25], i % 2 ? AZUL : '#cfc8b4', 0, Math.PI / 2 - 0.12); }
-    for (let i = 0; i < 5; i++) cil(0.035, 0.06, [ax, F + 1.24, az - 0.5 + i * 0.25], LOZA);
+    // platos de sauce (blancos con el aro y el centro azules) parados, tazas, y dos jarras de cobre arriba
+    for (const y of [F + 1.34, F + 1.75]) for (let i = 0; i < 6; i++) {
+      const z = az - 0.62 + i * 0.25;
+      cil(0.1, 0.018, [ax + 0.12, y, z], '#f2ece0', 0, Math.PI / 2 - 0.12);
+      cil(0.084, 0.02, [ax + 0.11, y, z], AZUL, 0, Math.PI / 2 - 0.12);
+      cil(0.062, 0.022, [ax + 0.108, y, z], '#f2ece0', 0, Math.PI / 2 - 0.12);
+      cil(0.03, 0.024, [ax + 0.106, y, z], AZUL, 0, Math.PI / 2 - 0.12);
+    }
+    for (let i = 0; i < 5; i++) { cil(0.035, 0.06, [ax, F + 1.24, az - 0.5 + i * 0.25], LOZA); cil(0.037, 0.01, [ax, F + 1.275, az - 0.5 + i * 0.25], AZUL); }
+    for (const dz of [-0.55, 0.5]) { cil(0.05, 0.15, [ax - 0.02, F + 2.04, az + dz], '#b87333'); cil(0.035, 0.03, [ax - 0.02, F + 2.13, az + dz], '#b87333'); caja(c, [ax - 0.02, F + 2.04, az + dz + 0.06], [0.02, 0.1, 0.02], '#b87333'); }
     cil(0.14, 0.08, [ax, F + 0.99, az], AZUL);   // la sopera
     PT.mueble({ lx: ax - 0.02, ly: F + 0.95, lz: az, largo: 0.5, alto: 1.9, ancho: 1.6, color: '#6a5238', dibujar: false });
   }
+  // ---- lo galés: la bandera del dragón rojo, los cucharones de amor, el arpa, el sombrero y el chal de la colonia, la carta del té y el
+  // «Croeso» de la puerta (los carteles se devuelven para armarlos como planos con su dibujo)
+  const adornos = [];
+  adornos.push({ w: 0.95, h: 0.62, pos: [-2.99, F + 1.85, 0.4], giro: Math.PI / 2, textura: lienzoTextura(380, 248, banderaGalesa) });
+  adornos.push({ w: 0.58, h: 0.78, pos: [-2.99, F + 1.62, 1.38], giro: Math.PI / 2, textura: lienzoTextura(290, 390, cartaDelTe) });
+  adornos.push({ w: 1.15, h: 0.28, pos: [0, 2.4, D / 2 - 0.15], giro: Math.PI, textura: cartelTextura('Croeso · Bienvenidos') });
+  caja(c, [-3.02, F + 1.62, 1.38], [0.03, 0.84, 0.64], MADERA_OSCURA);   // el marco de la carta
+  caja(c, [-3.02, F + 1.85, 0.4], [0.03, 0.68, 1.01], MADERA_OSCURA);   // y el de la bandera
+  // los cucharones de amor (llwy garu), tallados, colgados de la pared en una hilera
+  for (let i = 0; i < 4; i++) {
+    const z = 1.9 + i * 0.1, y = F + 1.72 - (i % 2) * 0.05;
+    caja(c, [-3.0, y, z], [0.014, 0.4, 0.03], '#b5946a');
+    c.agregar(new THREE.SphereGeometry(0.04, 8, 6), { color: '#b5946a', tipo: 4, matriz: matriz([-3.0, y - 0.24, z], [0, 0, 0], [0.4, 1.0, 0.8]), variar: 0.06 });
+    caja(c, [-3.0, y + 0.13, z], [0.016, 0.05, 0.05], ['#9b3a2e', '#6a8a4a', '#c8a04a', '#4a6a8a'][i], 0.4);
+  }
+  // el arpa galesa (la telyn), en la esquina: columna, cuello, caja de resonancia y cuerdas
+  {
+    const hx = -2.65, zA = 1.84, zB = 2.32, yCol = F + 1.4, yCuello = F + 1.12;
+    cilindroEntre(c, [hx, F + 0.06, zB], [hx, yCol, zB], 0.04, '#6a4228');
+    cilindroEntre(c, [hx, yCol, zB], [hx, yCuello, zA], 0.045, '#7a4e30');
+    cilindroEntre(c, [hx, F + 0.1, zB], [hx, yCuello - 0.02, zA], 0.07, '#8a5a3a');
+    cilindroEntre(c, [hx, F + 0.05, zA - 0.08], [hx, F + 0.05, zB + 0.1], 0.03, '#5a3a22');
+    for (let k = 0; k < 12; k++) {
+      const t = (k + 1) / 13, z = zA + (zB - zA) * t;
+      const yTop = yCuello + (yCol - yCuello) * t, yBot = (yCuello - 0.02) + (F + 0.1 - (yCuello - 0.02)) * t;
+      cilindroEntre(c, [hx, yBot + 0.04, z], [hx, yTop - 0.03, z], 0.004, k % 4 === 0 ? '#c8102e' : '#e8e0c8');
+    }
+    PT.mueble({ lx: hx, ly: F + 0.75, lz: (zA + zB) / 2, largo: 0.24, alto: 1.5, ancho: 0.62, color: '#6a4228', dibujar: false });
+  }
+  // el sombrero galés (alto, negro, de ala angosta) y el chal rojo, colgados de una tablita junto a la puerta, del lado del aparador
+  caja(c, [3.02, F + 1.78, 2.1], [0.04, 0.1, 0.62], MADERA_OSCURA);
+  cil(0.075, 0.3, [2.93, F + 1.6, 1.92], '#1f1c19'); cil(0.15, 0.015, [2.93, F + 1.46, 1.92], '#1f1c19'); cil(0.078, 0.03, [2.93, F + 1.6, 1.92], '#7b1e24');
+  caja(c, [3.0, F + 1.45, 2.24], [0.035, 0.62, 0.3], '#9b3a2e');
+  for (let k = 0; k < 4; k++) caja(c, [3.0, F + 1.62 - k * 0.1, 2.24], [0.037, 0.03, 0.3], k % 2 ? '#f2ece0' : '#3a3a3a');
+  for (let k = 0; k < 9; k++) caja(c, [3.0, F + 1.1, 2.1 + k * 0.035], [0.02, 0.07, 0.01], '#9b3a2e');   // los flecos
   // ---- los faroles colgados y las cortinas de las ventanas del frente
   for (const [lx, lz] of [[-1.3, 1.0], [1.3, 1.0], [0, -0.4]]) {
     // (a más de 2,25 m del piso: se pasa por debajo sin pegarse en la cabeza)
@@ -180,12 +290,14 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
   for (const vx of [-1.36, 1.36]) {
     const s = Math.sign(vx);
     cil(0.014, 1.0, [vx + s * 0.55, 2.2, D / 2 - 0.15], '#9a7a3a', 0, Math.PI / 2);   // la varilla, sobre el lado de afuera
-    caja(c, [vx + s * 0.78, 1.55, D / 2 - 0.14], [0.3, 1.2, 0.03], '#d8c8a8');
-    caja(c, [vx + s * 0.62, 1.4, D / 2 - 0.14], [0.14, 1.0, 0.03], '#cdb890');
+    caja(c, [vx + s * 0.78, 1.55, D / 2 - 0.14], [0.3, 1.2, 0.03], '#efe8d8');   // cortinas de encaje, como las de las casas de té del Chubut
+    for (let k = 0; k < 6; k++) caja(c, [vx + s * 0.78, 1.05 + k * 0.2, D / 2 - 0.125], [0.3, 0.03, 0.02], '#f8f2e4');
+    caja(c, [vx + s * 0.62, 1.4, D / 2 - 0.14], [0.14, 1.0, 0.03], '#e4dcc8');
     caja(c, [vx + s * 0.7, 1.45, D / 2 - 0.12], [0.34, 0.04, 0.03], MIEL);   // la atadura
     cil(0.1, 0.12, [vx, 1.12, D / 2 - 0.2], '#a8573a');   // una maceta en el alféizar
     for (let k = 0; k < 5; k++) tallo(c, vx, 1.18, D / 2 - 0.2, k);
   }
+  return adornos;
 }
 // una hoja de helecho de maceta
 function tallo(c, x, y, z, k) {
@@ -2326,7 +2438,11 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const altoPasoTe = Math.max(0.08, sueloAccesoTe + 0.055);
       PT.escalon({ lx: 0, lz: lzAccesoTe, largo: 1.8, ancho: 0.64,
         alto: altoPasoTe, espesor: Math.max(0.11, altoPasoTe - sueloAccesoTe + 0.045), color: TABLA });
-      amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H });   // 3.8.8: el interior
+      for (const q of amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H })) {   // 3.8.8: el interior (y sus carteles dibujados)
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(q.w, q.h), new THREE.MeshLambertMaterial({ map: q.textura }));
+        m.position.set(...q.pos); m.rotation.y = q.giro;
+        grupoTe.add(m);
+      }
       const malla = new THREE.Mesh(c.geometria(), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       grupoTe.add(malla);
