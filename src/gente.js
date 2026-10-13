@@ -233,6 +233,7 @@ const ROPA = {
   'aldea-martin': { piel: '#c49470', botas: 'altas', delantal: '#3b4a5e', panuelo: '#a83a2a', pantalon: '#3b4a5e' },   // 3.7.3: el mameluco azul de maquinista
   'aldea-gerente': { piel: '#c8a080', botas: 'altas', chaleco: true, panuelo: '#6b2f2a', pantalon: '#2c2f36' },   // 3.8.8: el gerente del banco, de traje oscuro con chaleco
   'aldea-moza': { piel: '#c4936a', pollera: true, melena: true, panuelo: '#d0242c', delantal: '#e8dcc4', botas: 'cortas', pantalon: '#2a2224' },   // 3.9: la moza de la cantina
+  'aldea-bailarina': { piel: '#e6bd98', pollera: true, rodete: true, pantalon: '#b88a70' },   // 3.9.1: la bailarina de la peña
   // 3.7.5: los invitados de otras paradas que llegan en el tren de fiesta (ver INVITADOS en fiestas.js)
   'inv-domador': { piel: '#b58a64', bombacha: true, chaleco: true, panuelo: '#c8b070', botas: 'altas', pantalon: '#4a3a2a' },
   'inv-cantora': { piel: '#c49470', pollera: true, trenza: true, abierta: true },
@@ -275,13 +276,14 @@ export function bajaSentado(asiento, talla) {
 // (3.7.3: y las del taller ferroviario: limar en la morsa y la llave en el juego de ruedas)
 const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar', 'limar', 'llave']);
 // 3.7.5: y las de las fiestas (aplaudir, los bailes, la jineteada, comer en la mesa larga, tirar la taba)
-for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar']) MANOS_OCUPADAS.add(p);
+for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar', 'tango', 'chamame-solo', 'bombo']) MANOS_OCUPADAS.add(p);   // (3.9.1: y los de la peña)
 // 3.8.6: las poses sentadas, en una sola lista (la usa también main.js para no ofrecerte la silla de alguien sentado:
 // faltaba «comer», la de la mesa larga)
 export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);
 export const estaSentado = (g) => !!g && POSES_SENTADAS.has(g.pose);
 // 3.9: las poses de la moza de la cantina (`npc.pose`): las resuelve alPosar en gente-cuerpo.js (POSES_CANTINA), también caminando; acá sólo la lista
 export const IDS_POSES_CANTINA = ['bandeja', 'barra', 'dejar'];
+export const IDS_POSES_BAILE = ['tango', 'chamame-solo', 'bombo'];   // 3.9.1
 function posar(g, charlando) {
   const t = g.fase;
   switch (estaSentado(g) ? 'sentado' : g.pose) {
@@ -488,6 +490,8 @@ function posar(g, charlando) {
       g.torso.rotation.x = 0.18 - k * 0.12; g.cabeza.rotation.x += 0.2;
       break;
     }
+    // 3.9.1: 'tango', 'chamame-solo' y 'bombo' (la peña) tampoco se arman acá: están en POSES_BAILE (gente-cuerpo.js), que se mueven con el tiempo
+    case 'tango': case 'chamame-solo': case 'bombo': break;
     // 3.7.1 (mundo): el brindis de la fiesta del casamiento (el vaso en alto)
     case 'brindar': {
       g.brazos[1].rotation.x = -1.55 + Math.sin(t * 2.2) * 0.06; g.brazos[1].rotation.z = 0.1;
@@ -1193,8 +1197,9 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         const andando = g.vel > 0.05;
         // 3.5: el cuerpo sube cuando las piernas se cruzan y baja con el paso abierto (antes al revés)
         const bote = andando ? (1 - Math.abs(Math.sin(g.paso))) * 0.03 : 0;
-        g.torso.position.y = 0.82 + respira + bote;
-        g.cabeza.position.y = 1.46 + respira + bote;
+        const alz = g.alzado || 0;   // 3.9.1: con tacos, todo el cuerpo sube (el piso queda en el taco)
+        g.torso.position.y = 0.82 + respira + bote + alz;
+        g.cabeza.position.y = 1.46 + respira + bote + alz;
         // 3.5: la rodilla dobla al llevar la pierna adelante y se estira al apoyar; caderas y
         // hombros giran apenas contra el paso, el peso se pasa de un lado al otro y la cabeza
         // compensa. Parado, el peso se mece despacio.
@@ -1212,10 +1217,10 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         }
         g.baja = (g.baja || 0) + (bajaObj - (g.baja || 0)) * 0.25;
         g.torso.position.y -= g.baja; g.cabeza.position.y -= g.baja;
-        g.brazos[0].position.y = 1.3 - g.baja; g.brazos[1].position.y = 1.3 - g.baja;
+        g.brazos[0].position.y = 1.3 - g.baja + alz; g.brazos[1].position.y = 1.3 - g.baja + alz;
         g.patas.forEach((p2, i) => {
           const f = g.paso + i * Math.PI;
-          p2.position.y = 0.82 - g.baja;
+          p2.position.y = 0.82 - g.baja + alz;
           const alza = Math.sqrt(Math.max(0, i ? alza1 : alza0) / 0.41);
           p2.rotation.x = andando ? Math.sin(f) * 0.5 : -alza;
           const rod = p2.userData.rodilla;
@@ -1256,8 +1261,8 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
         g.brazos[0].rotation.x = bIzq;
         g.brazos[1].rotation.x = bDer;
         // los brazos no van pegados al cuerpo: se abren apenas, un poco más al caminar
-        g.brazos[0].rotation.z = andando ? -0.07 : -0.035;
-        g.brazos[1].rotation.z = andando ? 0.07 : 0.035;
+        g.brazos[0].rotation.z = (andando ? -0.07 : -0.035) - (g.brazosAfuera || 0);   // (3.9.1: la cadera ancha)
+        g.brazos[1].rotation.z = (andando ? 0.07 : 0.035) + (g.brazosAfuera || 0);
         // 3.7.0: con las dos manos en lo suyo (Pocha cosiendo, Inés con el mortero), el mate se deja a un lado
         // (`__mateDejado`: lo guardó esto; lo que guardó otro, como los aliados del Desafío, no se toca)
         if (g.mate) {

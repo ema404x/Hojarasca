@@ -353,7 +353,7 @@ export function tramoEscalera(edificio, punto, subir = true) {
 }
 // 3.6 (vida): los puntos con silla o banco (la mesa de té, la mesa de lectura, el banco de la
 // plaza, el pupitre, la silla del salón, el sillón de los cuentos): ahí se sientan.
-const SENTADO = /^(mesa-[0-9]|lectura-|estar-|pupitre-|lugar-|cuentos$)/;
+const SENTADO = /^(mesa-[0-9]|lectura-|estar-|pupitre-|lugar-|cuentos$|silla-|truco-)/;   // (3.9.1: las sillas de la cantina y las de la mesa de truco)
 // 3.6.1: los cuatro almohadones de la alfombra de la biblioteca (lectura-13 a 16, ver aldea.js) y su
 // altura (el almohadón de aldea-arquitectura.js: a 10 cm del piso, de 28 cm aplastado a un tercio)
 export const ALMOHADONES = new Set(['lectura-13', 'lectura-14', 'lectura-15', 'lectura-16']);
@@ -736,7 +736,7 @@ export function crearAldeaGente(ctx) {
       break;
     }
     if (!r) return null;   // lo que viene es tiempo libre
-    if (r.punto === 'cama' || r.punto === 'cama-chicos') return null;   // a dormir, a su hora
+    if (/^cama/.test(r.punto || '')) return null;   // a dormir, a su hora
     // 3.6.2: lo que el horario manda en la plaza (la leyenda de la abuela) también se sale a tiempo; con
     // lluvia, nieve o de noche, a cubierto (como cuando ya le toca: ver aCubierto)
     if (r.edificio === 'plaza' && /^estar-/.test(r.punto || '')) r = aCubierto(k, hf, dsf, palabra()) || r;

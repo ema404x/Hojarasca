@@ -319,6 +319,30 @@ export const CANTINA = {
 // Abre al atardecer y cierra de madrugada (la moza trabaja de 18 a 2: el cartel de la puerta dice lo mismo)
 export const HORARIO_CANTINA = { abre: 18, cierra: 2 };
 export const cantinaAbierta = (hora) => { const h = (((num(hora) || 0) % 24) + 24) % 24; return h >= HORARIO_CANTINA.abre || h < HORARIO_CANTINA.cierra; };
+// 3.9.1: LA PEÑA DE LOS SÁBADOS. Los sábados a la noche (de 21:30 a 1:30, ya domingo) tocan la guitarra (el Cholo) y el bombo (Anselmo) en el rincón y
+// baila Dalia: tango la primera parte de la noche (hasta las 23:30) y chamamé después. `PUNTOS_PENA` son los lugares nuevos de la cantina, en su marco
+// (los mismos números que aldea-arquitectura.js: la prueba los compara): las dos sillas de la mesa de truco que miran a la mesa, la pista donde baila
+// Dalia (frente a las mesas), donde se apoya a descansar, los dos músicos del rincón del fondo y la segunda cama del cuarto de atrás (la de Dalia).
+export const PENA = { desde: 21.5, hasta: 25.5, tango: [21.5, 23.5], chamame: [23.5, 25.5], dia: 5 };
+export const PUNTOS_PENA = {
+  'truco-1': { x: 3.5, z: 1.72, rot: 0 }, 'truco-2': { x: 3.5, z: 3.08, rot: PI },
+  pista: { x: 3.15, z: 0.55, rot: -0.7 }, 'pista-descanso': { x: -2.3, z: -0.55, rot: -PI / 2 },
+  'musico-1': { x: 2.35, z: -0.95, rot: 0.4 }, 'musico-2': { x: 4.0, z: -0.95, rot: -0.4 },
+  'cama-2': { x: -1.475, z: -2.7, rot: -1.79 },
+};
+// ¿Es hora de peña? (sábado desde las 21:30, o la madrugada del domingo hasta la 1:30)
+export function penaActiva(dia, hora) {
+  const h = (((num(hora) || 0) % 24) + 24) % 24, ds = diaSemanaDe(dia);
+  return (ds === PENA.dia && h >= PENA.desde) || (ds === (PENA.dia + 1) % 7 && h < PENA.hasta - 24);
+}
+// Qué baila Dalia: 'tango' o 'chamame' (null: no hay peña)
+export function tandaDePena(dia, hora) {
+  if (!penaActiva(dia, hora)) return null;
+  const h = (((num(hora) || 0) % 24) + 24) % 24, hh = h < 6 ? h + 24 : h;
+  return hh < PENA.tango[1] ? 'tango' : 'chamame';
+}
+// La noche de la cantina a la que pertenece `dia` a la `hora` (la madrugada es de la noche de ayer)
+export const nocheDeCantina = (dia, hora) => (((num(hora) || 0) % 24) + 24) % 24 < 6 ? Math.max(1, Math.floor(num(dia) || 1) - 1) : Math.max(1, Math.floor(num(dia) || 1));
 function puntosBase(e, id) {
   const { ancho: W, fondo: D } = e;
   const frente0 = -D / 2 + atrasDe(e);            // donde empieza el cuarto del frente
@@ -458,6 +482,10 @@ function puntosLocales(id) {
     p.adentro = { x: CANTINA.barra.x, z: CANTINA.barra.z, rot: PI / 2 }; p.cliente = { x: CANTINA.barra.x + 1.65, z: CANTINA.barra.z, rot: -PI / 2 };
     p.cama = { x: -3.615, z: -2.66, rot: -1.784 };   // (donde la pone `cama` de aldea-arquitectura.js, en el cuarto de atrás)
     for (const m of CANTINA.mesas) p[m.id] = { x: m.servicio.x, z: m.servicio.z, rot: m.servicio.rot };
+    // 3.9.1: las ocho sillas de las mesas (donde se sientan los parroquianos: `silla-1` a `silla-8`, de a dos por mesa) y los lugares de la peña
+    let n = 0;
+    for (const m of CANTINA.mesas) for (const s of m.sillas) p[`silla-${++n}`] = { x: s.x, z: s.z, rot: s.mira };
+    Object.assign(p, PUNTOS_PENA);
   }
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
@@ -671,13 +699,28 @@ export const VECINOS_ALDEA = {
       'Me preguntan si no me da miedo atender sola a la noche. ¿Miedo yo? Al que se pasa de copas lo mando a su casa con un solo comentario. A los que se portan bien los acostumbro mal.',
     ],
   },
+  // 3.9.1: Dalia Kerber, la bailarina de la peña de los sábados: 30 años, rubia, de Crespo (Entre Ríos), nieta de alemanes del Volga y de una
+  // correntina que le enseñó el chamamé; el tango lo aprendió en las milongas del puerto. Vino con una compañía de variedades que se disolvió en Esquel
+  // y se quedó en el cuarto de atrás de la cantina, con Lucrecia. Expresiva, orgullosa, segura de su cuerpo: no baila con cualquiera, elige. Vestido
+  // negro de fiesta ceñido con tajo, flor roja en el pelo y tacos rojos.
+  bailarina: {
+    nombre: 'Dalia Kerber', oficio: 'bailarina de tango y chamamé', mano: null, casa: 'cantina', trabajo: 'cantina',
+    colores: { ropa: '#17151a', abrigo: '#2a1a22', gorro: null, pelo: '#e6c46a', bufanda: '#b01c2c' },
+    saludo: 'Mirá quién vino a verme bailar. Pasá, pasá: la pista es de todos, pero el primer paso lo marco yo.', despedida: 'Que la noche te sea larga y el compás, justo. Nos vemos el sábado.',
+    charla: [
+      'Nací en Crespo, Entre Ríos, entre chacras de alemanes del Volga: mi papá araba con caballos percherones y mi abuela, que era correntina, me enseñaba chamamé en la cocina, descalza, con el acordeón de un vecino.',
+      'El tango lo aprendí a escondidas, en las milongas del puerto de Rosario. Me decían que una chica de campo no sabía caminar con taco. Les demostré que sí sabía; lo que no sabían ellos era seguirme el paso.',
+      'Vine con una compañía de variedades que se disolvió en Esquel: el empresario se llevó la plata y nos dejó el telón. Lucrecia me ofreció una cama y la pista de los sábados. De ahí no me fui más, y no pienso pedirle permiso a nadie para quedarme.',
+    ],
+  },
 };
 // 3.7.3: Martín llegó con la 3.7.3: va al final de la lista de todos (ver ORDEN_PERSONAS_ALDEA), así los de antes
 // siguen con sus índices de siempre (su banco de la plaza, su silla de los cuentos, su lado de la obra)
 export const VECINOS_373 = ['martin'];
 export const VECINOS_388 = ['gerente'];   // 3.8.8
 export const VECINOS_390 = ['moza'];   // 3.9.0
-export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373, ...VECINOS_388, ...VECINOS_390];
+export const VECINOS_391 = ['bailarina'];   // 3.9.1
+export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373, ...VECINOS_388, ...VECINOS_390, ...VECINOS_391];
 // 3.6: Ercilia, la del almacén, también vive en la aldea (en el Relax), pero su figura, su saludo
 // y sus historias son los de siempre (PERSONAJES.ercilia y HISTORIAS en gente.js): acá sólo
 // están su casa, su trabajo y su rutina.
@@ -920,7 +963,7 @@ export const esPobladora37 = (clave) => POBLADORAS_37.includes(clave);
 // (3.7.0: los índices de siempre para los de la 3.6, que deciden su banco de la plaza o su lado de la obra, y
 // las nuevas al final: el orden de llegada intercalado no los mueve)
 // (3.7.3: y Martín al final)
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k) && !VECINOS_388.includes(k) && !VECINOS_390.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373, ...VECINOS_388, ...VECINOS_390];
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k) && !VECINOS_388.includes(k) && !VECINOS_390.includes(k) && !VECINOS_391.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373, ...VECINOS_388, ...VECINOS_390, ...VECINOS_391];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
 export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
@@ -938,6 +981,7 @@ export const CUMPLES_ALDEA = {
   martin: 10,   // 3.7.3
   gerente: 2,   // 3.8.8
   moza: 6,   // 3.9.0
+  bailarina: 9,   // 3.9.1
 };
 export const cumpleDe = (clave) => (typeof clave === 'string' && Object.hasOwn(CUMPLES_ALDEA, clave) ? CUMPLES_ALDEA[clave] : null);
 export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe(clave) === diaDelAnio(dia);
@@ -1862,7 +1906,7 @@ export const diaSemanaDe = (dia) => ((diaValido(dia, 1) - 1) % 7 + 7) % 7;
 // 3.8.9: el horario del banco (lo que dicen el LEEME y el cartel): de lunes a sábado; el sábado con baile cierra antes
 export const HORARIO_BANCO = { manana: [8.5, 12.5], tarde: [14.5, 18], sabadoDeBaile: 16 };
 export function desfaseDe(persona) {
-  if (persona === 'gerente' || persona === 'moza') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra (3.9.0: y la cantina)
+  if (persona === 'gerente' || persona === 'moza' || persona === 'bailarina') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra (3.9.0: y la cantina)
   let h = 5381;
   for (const ch of String(persona)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
   return ((h % 81) - 40) / 100;
@@ -1892,6 +1936,43 @@ const presente = (aldea, clave) => esVecinoAldea(clave) || (aldea?.pobladores ||
 // 'estacion', y `edificio`/`punto` dicen dónde pararse (ver `puntosDe`). Un poblador que todavía
 // no vino da { lugar: null }.
 // 3.7.0: `dia` (opcional): el día de la partida, para los cumpleaños (la fiesta de la tardecita).
+// ---------------------------------------------------------------- 3.9.1: los parroquianos de la cantina
+// Cada noche van algunos vecinos a la cantina, se sientan (de a dos por mesa) y se quedan un rato: entre semana tres, los viernes cinco, los sábados
+// seis (con la peña), el domingo dos. Quiénes y a qué hora salen del día y de cada uno (nunca más de seis: entre las ocho sillas y las dos de la mesa de
+// truco, siempre te queda dónde sentarte), con más ganas los trasnochadores. Los dos primeros que saben de truco juegan en la mesa del rincón. Sábado
+// de peña: el Cholo toca la guitarra y Anselmo el bombo (no vienen de parroquianos) y Pocha viene a ver a su marido.
+export const SOCIOS_CANTINA = ['jefe', 'padre', 'carpintero', 'herrero', 'pescador', 'telegrafista', 'apicultor', 'musico', 'martin', 'gerente', 'nelida', 'ercilia', 'panadera',
+  'maestra', 'enfermera', 'tejedora', 'guardaparque', 'veterinaria', 'herbolaria', 'botera', 'pintora', 'andinista', 'fotografa', 'ceramista', 'modista'];
+const TRASNOCHADORES = new Set(['carpintero', 'pescador', 'telegrafista', 'martin', 'nelida', 'botera', 'pintora', 'fotografa', 'jefe', 'musico']);
+export const TRUCOSOS = ['padre', 'carpintero', 'jefe', 'herrero', 'martin', 'gerente', 'telegrafista', 'pescador'];
+const ORDEN_SILLAS_CANTINA = [8, 7, 6, 5, 4, 3, 2, 1];
+const hashTextoAldea = (s) => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; };
+const cuarto = (x) => Math.round(x * 4) / 4;
+const cacheNocheCantina = { clave: '', lista: [] };
+// Los parroquianos de la noche `noche` (el día en que abre la cantina): [{ clave, punto, llega, sale }] (las horas, de 20:30 a 25:30 = 1:30)
+export function parroquianosDeLaNoche(aldea, noche) {
+  const a = aldea || aldeaNueva(), n = Math.max(1, Math.floor(num(noche) || 1)), ds = diaSemanaDe(n), pena = ds === PENA.dia;
+  const clave = `${n}|${(a.pobladores || []).map((q) => q.clave).join(',')}`;
+  if (cacheNocheCantina.clave === clave) return cacheNocheCantina.lista;
+  const cupo = pena ? 6 : ds === 4 ? 5 : ds === 6 ? 2 : 3;
+  const candidatos = SOCIOS_CANTINA.filter((k) => !(pena && (k === 'musico' || k === 'herrero')) && (esVecinoAldea(k) || presente(a, k)));
+  const ordenados = candidatos.map((k) => ({ k, s: azar(hashTextoAldea(`${k}|${n}|cantina`)) - (TRASNOCHADORES.has(k) ? 0.2 : 0) - (pena && k === 'modista' ? 2 : 0) })).sort((x, y) => x.s - y.s);
+  const elegidos = ordenados.slice(0, cupo).map((x) => x.k);
+  const truco = elegidos.filter((k) => TRUCOSOS.includes(k)).slice(0, 2);
+  const lista = [];
+  const horas = (k) => ({ llega: cuarto(20.5 + 1.25 * azar(hashTextoAldea(`${k}|${n}|llega`))), sale: cuarto((pena ? 24 : 22.75) + 1.5 * azar(hashTextoAldea(`${k}|${n}|sale`))) });
+  truco.forEach((k, i) => lista.push({ clave: k, punto: `truco-${i + 1}`, ...horas(k) }));
+  elegidos.filter((k) => !truco.includes(k)).forEach((k, i) => lista.push({ clave: k, punto: `silla-${ORDEN_SILLAS_CANTINA[i]}`, ...horas(k) }));
+  // los músicos de la peña
+  if (pena) { for (const [k, punto, pose] of [['musico', 'musico-1', 'tocar'], ['herrero', 'musico-2', 'bombo']]) if (esVecinoAldea(k) || presente(a, k)) lista.push({ clave: k, punto, pose, llega: 21, sale: PENA.hasta }); }
+  cacheNocheCantina.clave = clave; cacheNocheCantina.lista = lista;
+  return lista;
+}
+// Dónde está `persona` en la cantina de esa noche a esa hora (o null)
+export function enLaCantinaDe(aldea, persona, noche, hh) {
+  for (const x of parroquianosDeLaNoche(aldea, noche)) if (x.clave === persona && hh >= x.llega && hh < x.sale) return x;
+  return null;
+}
 export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   const a = estado || aldeaNueva();
   const fuera = { lugar: null, edificio: null, punto: null };
@@ -1932,6 +2013,25 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     if (cantinaAbierta(h)) return ir('trabajo', 'cantina', 'adentro');
     if (h >= HORARIO_CANTINA.cierra && h < 11) return enCasa('cama');
     return ir('local', 'cantina', 'adentro');
+  }
+  // 3.9.1: Dalia, la bailarina: duerme hasta las 11:30 en el cuarto de atrás (la segunda cama), a la mañana y a la tarde anda por la cantina, entre semana a
+  // las 15:30 sale a la plaza, y de noche acompaña la barra de pie; los sábados de peña baila: tango hasta las 23:30 y chamamé después
+  if (persona === 'bailarina') {
+    const f = dia !== null && h >= HORA_FIESTA[0] && h < HORA_FIESTA[1] ? fiestaDeCumple(dia, a) : null;
+    if (f?.claves.includes('bailarina')) return f.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', f.edificio, 'adentro');
+    const tanda = dia !== null ? tandaDePena(dia, h) : null;
+    if (tanda) return { ...ir('trabajo', 'cantina', 'pista'), pose: tanda, sentado: false };
+    if (h >= 1 && h < 11.5) return enCasa('cama-2');
+    if (ds !== 5 && ds !== 6 && h >= 15.5 && h < 17.5) return plaza();
+    return { ...ir('local', 'cantina', 'pista-descanso'), sentado: false };
+  }
+  // 3.9.1: la noche en la cantina: los parroquianos (cada uno en su silla, o jugando al truco) y, los sábados, los músicos de la peña
+  if (dia !== null && persona !== 'moza' && SOCIOS_CANTINA.includes(persona)) {
+    const hh = h < 6 ? h + 24 : h;
+    if (hh >= 20.5 && hh < 26) {
+      const x = enLaCantinaDe(a, persona, nocheDeCantina(dia, h), hh);
+      if (x) return x.pose ? { ...ir('trabajo', 'cantina', x.punto), pose: x.pose, sentado: false } : ir('cantina', 'cantina', x.punto);
+    }
   }
   // 3.7.0: la astrónoma, con su observatorio abierto, trabaja de noche (de 20 a 3:30) y duerme hasta la siesta
   const noctambula = persona === 'astronoma' && abierto;

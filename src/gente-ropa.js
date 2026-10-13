@@ -230,6 +230,22 @@ export const ASPECTO = {
     abrigo: { colores: { poncho: '#4a1a22', gorro: 'gorroPunto', gorroColor: '#5a1a24', bufanda: '#d0242c' } },
   },
 
+  // 3.9.1: Dalia Kerber, la bailarina de la peña (30): rubia, de piel clara y ojos celestes, figura de reloj de arena (cadera ancha, cintura marcada, mucho
+  // busto: `cuerpo.busto` y `cuerpo.cadera`, `R.curvas`: la misma estructura de huesos que todas, sólo cambian los radios). Vestido negro de fiesta
+  // pegado al cuerpo, sin mangas (breteles), a media pantorrilla, con el tajo en V sobre el muslo (la media a la vista), escote en V, flor roja en el rodete
+  // y tacos rojos. Las poses de baile las pide `npc.pose` ('tango', 'chamame', 'chamame-solo'; ver gente.js). En invierno se tapa con una estola roja.
+  'aldea-bailarina': {
+    edad: 30, mujer: true,
+    cuerpo: { ancho: 0.97, fondo: 1.0, brazos: 0.94, piernas: 1.0, alto: 1.04, busto: 2.1, cadera: 1.17, cintura: 0.92 },
+    cara: { ancho: 0.97, largo: 1.0, nariz: 0.85, ojos: 1.1, boca: 1.05, pomulos: 1.25, sonrisa: 0.8, labios: 1.3, arco: 1.3, rasgado: 0.1, rouge: '#b01428', iris: '#4a78a8' },
+    colores: { piel: '#e6bd98', pelo: '#ecd078', ropa: '#17151a', abrigo: '#17151a', gorro: null, bufanda: null, aros: 'chicos' },
+    R: { mujer: true, curvas: true, pollera: true, colPollera: '#17151a', rodete: true, escote: true, sinMangas: true, arremangado: true, tajo: true, tajoV: { a: 0.62, w: 0.2, y: 0.0 },
+      florPelo: '#e0303a', tacos: '#b4182a', cinturon: '#b4182a', pantalon: '#b88a70' },
+    guardas: {},
+    poses: ['cintura', 'atras'],
+    abrigo: { colores: { poncho: false, gorro: null, bufanda: '#b01c2c' }, R: { sinMangas: false } },
+  },
+
   // ------------------------------------------------------------ los once pobladores
   // Tito Arrieta, carpintero: boina, barba, chaleco, delantal de lona, pañuelo colorado al cuello
   'poblador-carpintero': {

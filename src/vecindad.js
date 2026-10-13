@@ -343,7 +343,7 @@ export function gustosConocidos(persona, estado) {
 // ---------------------------------------------------------------- la autonomía
 // Lo que la rutina obliga (y entonces manda): dormir, almorzar, trabajar, la música del sábado,
 // los cuentos del domingo, la leyenda de la abuela. Devuelve el motivo o null (tiempo libre).
-const OBLIGA = new Set(['trabajo', 'local', 'escuela', 'obra', 'estacion', 'biblioteca', 'almacen']);
+const OBLIGA = new Set(['trabajo', 'local', 'escuela', 'obra', 'estacion', 'biblioteca', 'almacen', 'cantina']);   // (3.9.1: y la noche en la cantina)
 // 3.7.0: `dia` (opcional): el de la partida, para la fiesta de cumpleaños de la tardecita (que también manda)
 function obligacion(persona, hora, ds, aldea, r = null, dia = null) {
   const ru = r || rutinaAldea(persona, hora, ds, aldea, dia);
@@ -351,7 +351,7 @@ function obligacion(persona, hora, ds, aldea, r = null, dia = null) {
   if (!ru.lugar) return 'ausente';
   const t = horaNorm(hora) - desfaseDe(persona);
   const chico = !!VECINOS_ALDEA[persona]?.chico;
-  if (ru.punto === 'cama' || ru.punto === 'cama-chicos') return 'dormir';
+  if (/^cama/.test(ru.punto || '')) return 'dormir';
   if (ds === 6 && t >= 10 && t < 11 && (ru.lugar === 'biblioteca' || persona === 'abuela')) return 'cuentos';
   if (OBLIGA.has(ru.lugar)) return 'trabajo';
   if (ru.punto === 'soga') return 'trabajo';   // 3.6 (mecánicas): el jefe iza o arría la bandera
@@ -444,7 +444,7 @@ function candidatas(persona, hora, ds, c, aldea, sem, dia = null) {
   const amigos = perfil.amigos.filter((a) => esPersonaAldea(a));
   for (const a of amigos) {
     const ra = rutinaAldea(a, hora, ds, aldea, dia);
-    if (!ra.lugar || ra.punto === 'cama' || ra.punto === 'cama-chicos') continue;
+    if (!ra.lugar || /^cama/.test(ra.punto || '')) continue;
     const tarde = t >= (perfil.rasgos.includes('trasnochador') ? 21.75 : 21.25);
     // 3.7.0: al amigo que cumple años se lo va a saludar (pesa más)
     const peso = (1.2 / Math.max(1, amigos.length)) * (dia !== null && esCumpleanos(a, dia) && ra.lugar === 'fiesta' ? 10 : 1);
