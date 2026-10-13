@@ -169,6 +169,8 @@ function medidas(mujer, chico, cara = {}) {
     // 3.7.0: más de qué distinguir: el arco de las cejas, los ojos rasgados y los labios más llenos
     arco: k('arco', 1), rasgado: k('rasgado', 0), labios: k('labios', 1),
   };
+  // 3.9: los labios pintados (opcional; sin `cara.rouge` queda el color de siempre)
+  if (typeof cara.rouge === 'string') F.rouge = cara.rouge;
   F.ceja = F.ey + (chico ? 0.025 : 0.024) * largo;
   F.punta = F.ey - (chico ? 0.027 : 0.032) * largo;
   F.base = F.punta - (chico ? 0.008 : 0.009) * largo;
@@ -367,7 +369,7 @@ function rostro(F, colPiel, colCeja, colBarba, ojos, canasBarba, soloBigote = fa
   })();
   const { vs, normales } = datos, partes = vs[0].partes, n = partes.length / 3;
   // los colores de cada uno
-  const labio = mezcla(colPiel, '#d0566a', F.chico ? 0.46 : F.mujer ? 0.58 : 0.3), labioSup = mezcla(matiz(labio, 0.8), '#8a3040', 0.12);
+  const labio = F.rouge ? mezcla(colPiel, F.rouge, 0.85) : mezcla(colPiel, '#d0566a', F.chico ? 0.46 : F.mujer ? 0.58 : 0.3), labioSup = mezcla(matiz(labio, 0.8), '#8a3040', 0.12);
   const linea = mezcla(labio, '#2a0c0e', 0.72), col = new Float32Array(n * 3), zona = new Float32Array(n * 2), at = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
     const parte = partes[i * 3], u = partes[i * 3 + 1], v = partes[i * 3 + 2];
@@ -490,6 +492,8 @@ function peloBase(F, colPelo, R, gorro) {
     c.multiplyScalar(0.94 + 0.12 * Math.max(0, Math.sin(a * 7 + p.y * 22)));
     tinta(c, brillo, 0.22 * gauss(p.y - 0.035, 0, 0.02, 1) * sv(-0.2, 0.5, n.y + n.z * 0.3));
     if (!gorro && !corto && !R.melena) tinta(c, matiz(colPelo, 0.5), 0.7 * Math.exp(-(((p.x - (R.rayaCostado ? 0.022 : 0)) / 0.0028) ** 2)) * sv(0.02, 0.06, p.y) * sv(-0.06, 0.0, p.z));   // la raya al medio
+    // 3.9: la melena con raya al costado (la moza): la raya más ancha y oscura, que se lea de frente
+    if (!gorro && R.melena && R.rayaCostado) tinta(c, '#a8785a', 0.85 * Math.exp(-(((p.x - 0.028) / 0.0034) ** 2)) * sv(0.0, 0.035, p.y) * sv(-0.07, -0.01, p.z));
     c.multiplyScalar(0.84 + 0.22 * sv(-0.6, 0.8, n.y));
   }, 36, 30, `pelo${R.melena ? 'm' : corto ? 'c' : 'l'}${R.flequillo ? 'f' : ''}`));
   // las mujeres y los chicos: un mechón grande a cada lado, de la sien a detrás de la oreja
@@ -1014,7 +1018,10 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     const piv = new THREE.Group(); piv.position.set(l * lx, 0.82, 0); piv.scale.set(anchoP, 1, anchoP);
     // (3.7.0: con pollera, el muslo es de la tela de la pollera: sentada, la pollera cubre las piernas)
     const muslo = torno(R.pollera ? colPollera : pantalon, perfilMuslo, null, null, [1, 1, 0.92], 12);
-    pintarPieza(muslo, (c, p) => { surcos(c, Math.sin(p.y * 70 + p.x * 40) * sv(-0.32, -0.42, p.y), 0.14); c.multiplyScalar(1 - 0.12 * sv(-0.02, 0.05, p.y)); });
+    pintarPieza(muslo, (c, p, n) => {
+      surcos(c, Math.sin(p.y * 70 + p.x * 40) * sv(-0.32, -0.42, p.y), 0.14); c.multiplyScalar(1 - 0.12 * sv(-0.02, 0.05, p.y));
+      if (R.tajo) { tinta(c, pantalon, sv(-0.1, -0.165, p.y)); tinta(c, '#9a2432', 0.9 * sv(-0.17, -0.158, p.y) * sv(-0.12, -0.132, p.y)); }   // 3.9: con tajo, la media (y la liga) desde el muslo
+    });
     piv.add(muslo);
     const rodilla = new THREE.Group(); rodilla.position.set(0, -RODILLA, 0);
     const canilla = torno(pantalon, perfilCanilla, null, null, [1, 1, 0.92], 12);
@@ -1040,7 +1047,9 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
 
   // ---- torso: cintura y caderas de adulto, pecho, hombros; la ropa de cada uno
   const torso = new THREE.Group(); torso.position.set(0, 0.82, 0); torso.scale.set(anchoT[0], 1, anchoT[1]);
-  const pechoK = chico ? 0 : mujer ? 0.17 : 0.07;
+  // 3.9: `R.talle` (la moza de la cantina): vestido ceñido a la cintura, con el pecho apenas más marcado
+  const talle = !!(R.talle && mujer);
+  const pechoK = chico ? 0 : mujer ? (talle ? 0.2 : 0.17) : 0.07;
   const panza = C.panza ?? 0;   // la panza de buen comer (Anselmo, Pocha)
   const zPecho = (x, y) => (1 + pechoK * Math.exp(-(((y - 0.325) / 0.075) ** 2)) * (mujer ? Math.exp(-((x / 0.11) ** 2)) * 1.4 : 1)) * (1 + panza * Math.exp(-(((y - 0.15) / 0.12) ** 2)) * Math.exp(-((x / 0.16) ** 2)));
   const capa = (c, perfil, lados = 18, desde = 0, arco = Math.PI * 2, zBase = 0.7, ondas = 0) => deformar(torno(c, perfil, null, null, null, lados, desde, arco), (v) => {
@@ -1050,7 +1059,8 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     v.x *= 1 + 0.05 * hombro;
   });
   const cuerpoAlto = mujer
-    ? [[0.15, 0.03], [0.139, 0.11], [0.126, 0.19], [0.13, 0.25], [0.146, 0.31], [0.151, 0.36], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]]
+    ? (talle ? [[0.152, 0.0], [0.141, 0.09], [0.121, 0.17], [0.114, 0.2], [0.124, 0.25], [0.143, 0.305], [0.152, 0.355], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]]
+      : [[0.15, 0.03], [0.139, 0.11], [0.126, 0.19], [0.13, 0.25], [0.146, 0.31], [0.151, 0.36], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]])
     : [[0.15, 0.03], [0.144, 0.11], [0.141, 0.19], [0.15, 0.26], [0.163, 0.33], [0.172, 0.39], [0.178, 0.44], [0.181, 0.468], [0.17, 0.503], [0.13, 0.532], [0.082, 0.55], [0.058, 0.558]];
   torso.add(bola(pantalon, [0.145 * (mujer ? 1.02 : 1), 0.115, 0.102], [0, 0.02, 0]));
   const faldon = R.campera === 'larga' ? [[0.17, -0.22], [0.16, -0.1]] : [[0.152, -0.07]];
@@ -1087,7 +1097,33 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     });
     if (R.telaCampera) conTela(capaHombro, TELA[R.telaCampera]);
     torso.add(rol(capaHombro, 'campera', perfilCampera.length, lados));
-    torso.add(rol(capa(matiz(abrigo, 0.88), [[0.078, 0.525], [0.08, 0.565], [0.07, 0.58]], 16, 0, Math.PI * 2, 0.95), 'cuello', 3, 16));   // el cuello
+    if (!(R.escote && mujer)) torso.add(rol(capa(matiz(abrigo, 0.88), [[0.078, 0.525], [0.08, 0.565], [0.07, 0.58]], 16, 0, Math.PI * 2, 0.95), 'cuello', 3, 16));   // el cuello
+    if (R.escote && mujer) {
+      // 3.9: el escote en V: un parche de piel sobre el pecho, cortado en V (se angosta hacia abajo), con el ribete del vestido en
+      // los dos bordes. Va por encima del corpiño (5 mm) con la misma curva, así que acompaña el busto y el cuello.
+      const yb = 0.4, yt = 0.553, ys = [yb, 0.42, 0.462, 0.5, 0.528, 0.545, yt], lados = 14, mitad = 1.25;
+      const rEn = (y) => { for (let i = 1; i < cuerpoAlto.length; i++) if (y <= cuerpoAlto[i][1]) { const [r0, y0] = cuerpoAlto[i - 1], [r1, y1] = cuerpoAlto[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return cuerpoAlto[cuerpoAlto.length - 1][0]; };
+      const parche = capa(colPiel, ys.map((y) => [rEn(y) + 0.005, y]), lados, -mitad, mitad * 2, 0.7);
+      {
+        const P = parche.geometry.attributes.position, np = ys.length, xmax = new Float32Array(np);
+        for (let i = 0; i < P.count; i++) xmax[i % np] = Math.max(xmax[i % np], Math.abs(P.getX(i)));
+        for (let i = 0; i < P.count; i++) {
+          const j = i % np, x = P.getX(i), z = P.getZ(i), y = ys[j], R0 = xmax[j] / Math.sin(mitad);
+          const hw = Math.min(xmax[j], 0.084 * Math.pow(Math.min(1, (y - yb) / (0.528 - yb)), 0.9));
+          const x2 = xmax[j] > 1e-6 ? x / xmax[j] * hw : 0;
+          const f = Math.sqrt(Math.max(0, 1 - (x2 / R0) ** 2)) / Math.sqrt(Math.max(1e-4, 1 - (x / R0) ** 2));
+          P.setXYZ(i, x2, P.getY(i), z * f);
+        }
+        parche.geometry.computeVertexNormals(); coser(parche.geometry);
+        // los dos bordes de la V (la primera y la última columna) para el ribete
+        for (const lado of [0, lados]) {
+          const pts = ys.map((y, j) => { const k = lado * np + j; return [P.getX(k) * 1.0, P.getY(k), P.getZ(k) + 0.002]; });
+          torso.add(conTela(huso(matiz(abrigo, 0.78), pts, pts.map(() => 0.0042), 8, 5), TELA.lienzo));
+        }
+      }
+      pintarPieza(parche, (c, p) => { c.multiplyScalar(1 - 0.1 * Math.exp(-(((p.y - 0.4) / 0.05) ** 2))); });   // la sombrita entre los pechos
+      torso.add(piel(parche));
+    }
     if (!R.campera && !R.pollera && !conPoncho && !R.pechera) {
       // el cinturón con hebilla
       torso.add(capa('#3a2a1e', [[0.152, -0.04], [0.153, -0.005], [0.15, 0.0]], 18));
@@ -1101,9 +1137,24 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     for (const l of [-1, 1]) torso.add(bola(tela, [0.015, 0.021, 0.003], [l * 0.027, 0.535, 0.066], [0.55, l * 0.3, l * 0.7]));
   }
   if (R.pollera) {
-    const perfilPollera = [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
+    const perfilPollera = talle
+      ? [[0.248, -0.43], [0.232, -0.35], [0.212, -0.24], [0.192, -0.12], [0.172, -0.03], [0.156, 0.05], [0.14, 0.12], [0.129, 0.18], [0.126, 0.205]]   // 3.9: ceñida a la cintura y de campana suave
+      : [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
     if (R.chamal) perfilPollera.splice(0, 1, [0.262, -0.71], [0.25, -0.6], [0.238, -0.5]);   // el chamal, hasta los tobillos
-    torso.add(rol(bordeTorno(pintarPieza(capa(colPollera, perfilPollera, 36, 0, Math.PI * 2, 0.78, 0.045), (c, p) => {
+    let faldaMalla = capa(colPollera, perfilPollera, 36, 0, Math.PI * 2, 0.78, talle ? 0.05 : 0.045);
+    if (R.tajo && talle) {
+      // 3.9: el tajo: el ruedo sube en una V a un costado de adelante (hasta medio muslo); lo de abajo de cada gajo se aplasta hacia el
+      // corte, siguiendo la silueta de la falda (los vértices siguen siendo los mismos: la guarda del ruedo sube con el corte)
+      const yH = perfilPollera[0][1], yT = perfilPollera[perfilPollera.length - 1][1], a0 = 0.95, mitad = 0.62, yCorte = -0.1;
+      const rAt = (y) => { for (let i = 1; i < perfilPollera.length; i++) if (y <= perfilPollera[i][1]) { const [r0, y0] = perfilPollera[i - 1], [r1, y1] = perfilPollera[i]; return r0 + (r1 - r0) * Math.max(0, (y - y0) / (y1 - y0)); } return perfilPollera[perfilPollera.length - 1][0]; };
+      deformar(faldaMalla, (v) => {
+        const ph = Math.atan2(v.x, v.z), d = Math.abs(Math.atan2(Math.sin(ph - a0), Math.cos(ph - a0)));
+        if (d >= mitad) return;
+        const h = yH + (yCorte - yH) * Math.pow(1 - d / mitad, 1.3), y0 = v.y, y1 = h + (y0 - yH) * (yT - h) / (yT - yH), f = rAt(y1) / rAt(y0);
+        v.x *= f; v.z *= f; v.y = y1;
+      });
+    }
+    torso.add(rol(bordeTorno(pintarPieza(faldaMalla, (c, p) => {
       surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.1, -0.3, p.y), 0.3);
       if (p.y < perfilPollera[0][1] + 0.04) c.multiplyScalar(0.84);  // el ruedo
       if (p.y > 0.17) c.multiplyScalar(0.9);                         // la pretina
@@ -1119,7 +1170,26 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       torso.add(fino(bola('#b8a070', [0.009, 0.009, 0.004], [l * 0.07, 0.35, 0.136])));
     }
   }
-  if (R.delantal && !conPoncho) {   // (3.7.0: con poncho, el delantal no: asomaba por el pecho)
+  const delantalCorto = !!(R.delantalCorto && R.pollera && R.delantal && !conPoncho);
+  if (delantalCorto) {
+    // 3.9: el delantal corto de la moza: de la cintura a mitad del muslo, sin pechera, con bolsillo y atado atrás con un moño al costado
+    const perfil = [[0.228, -0.21], [0.213, -0.13], [0.194, -0.05], [0.173, 0.04], [0.157, 0.12], [0.147, 0.165]];
+    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(R.delantal, perfil, 14, -0.7, 1.4, 0.79), (c, p) => {
+      surcos(c, Math.sin(p.x * 80 + 0.5) * sv(0.1, -0.2, p.y), 0.12);
+      if (p.y < -0.185) c.multiplyScalar(0.9);                                                  // el dobladillo
+      if (p.y > -0.12 && p.y < -0.03 && p.x > 0.015 && p.x < 0.075) c.multiplyScalar(0.93);     // el bolsillo
+      if ((Math.abs(p.y + 0.12) < 0.004 || Math.abs(p.y + 0.03) < 0.003) && p.x > 0.015 && p.x < 0.075) c.multiplyScalar(0.8);
+    }), TELA[R.telaDelantal || 'lienzo']), perfil.length, 14, true, true), 'delantal', perfil.length, 14));
+    // la cinta de la cintura (da toda la vuelta) y el moño, atrás a la izquierda
+    const cinta = matiz(R.delantal, 0.9), psi = -2.35, rM = 0.146, zM = Math.cos(psi) * rM * 0.76, xM = Math.sin(psi) * rM, tx = Math.cos(psi), tz = -Math.sin(psi) * 0.76;
+    torso.add(conTela(capa(cinta, [[0.15, 0.135], [0.153, 0.15], [0.15, 0.168]], 22, 0, Math.PI * 2, 0.78), TELA.lienzo));
+    for (const l of [-1, 1]) {
+      torso.add(conTela(bola(matiz(R.delantal, 0.94), [0.034, 0.018, 0.011], [xM + l * 0.03 * tx, 0.152, zM + l * 0.03 * tz], [0, psi, l * 0.25]), TELA.lienzo));
+      torso.add(conTela(bola(matiz(R.delantal, 0.86), [0.009, 0.062, 0.006], [xM + l * 0.012 * tx, 0.1, zM + l * 0.012 * tz - 0.004], [0.12, psi, l * 0.2]), TELA.lienzo));
+    }
+    torso.add(conTela(bola(matiz(R.delantal, 0.8), [0.014, 0.014, 0.01], [xM, 0.152, zM]), TELA.lienzo));
+  }
+  if (R.delantal && !conPoncho && !delantalCorto) {   // (3.7.0: con poncho, el delantal no: asomaba por el pecho)
     let perfil = R.pollera
       ? [[0.245, -0.4], [0.226, -0.28], [0.198, -0.14], [0.178, -0.04], [0.166, 0.04], [0.158, 0.12], [0.168, 0.24], [0.188, 0.36]]
       : [[0.186, -0.4], [0.178, -0.2], [0.166, -0.04], [0.162, 0.04], [0.158, 0.12], [0.168, 0.24], [0.19, 0.36]];
@@ -1187,7 +1257,13 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     const yf = R.pollera ? 0.15 : 0.0, perfilFaja = [[0.15, yf - 0.045], [0.155, yf - 0.035], [0.156, yf + 0.035], [0.151, yf + 0.045]];
     torso.add(rol(capa(R.faja, perfilFaja, 24), 'faja', perfilFaja.length, 24));
   }
-  if (!conPoncho && !R.fiesta && !R.pechera) {
+  if (talle && R.pollera && !conPoncho) {
+    // 3.9: la faja ancha que marca la cintura (cuero oscuro, con la hebilla adelante)
+    const cuero = R.cinto || '#3a2418', zf = 0.139 * 0.7 + 0.004;
+    torso.add(rol(conTela(capa(cuero, [[0.128, 0.163], [0.135, 0.17], [0.139, 0.2], [0.137, 0.226], [0.129, 0.236]], 24), TELA.cuero), 'faja', 5, 24));
+    torso.add(fino(conTela(torno('#b8a070', [[0.015, -0.012], [0.017, 0], [0.015, 0.012]], [0, 0.2, zf], [Math.PI / 2, 0, 0], [1.2, 0.3, 1], 8), 0)));
+  }
+  if (!conPoncho && !R.fiesta && !R.pechera && !(talle && R.pollera)) {
     const yc = R.pollera ? 0.19 : 0.005, rc = R.pollera ? 0.152 : R.chaleco ? 0.166 : 0.158, cuero = '#4e3420';
     torso.add(conTela(capa(cuero, [[rc - 0.002, yc - 0.013], [rc + 0.002, yc - 0.008], [rc + 0.002, yc + 0.008], [rc - 0.002, yc + 0.013]], 20), TELA.cuero));
     const zf = rc * 0.75 * zPecho(0, yc) + 0.004;
@@ -1207,11 +1283,18 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   if (cuello) {
     // (3.7.0: la bufanda también sobre el poncho, en invierno)
     const soloPanuelo = R.panuelo && !colores.bufanda;
-    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(rCuello, soloPanuelo ? 0.011 : 0.027, 8, 22), color(cuello));
+    const vuelta = new THREE.Mesh(new THREE.TorusGeometry(rCuello, soloPanuelo ? (R.escote ? 0.0145 : 0.011) : 0.027, 8, 22), color(cuello));
     vuelta.position.set(0, yCuello, 0.008); vuelta.rotation.set(Math.PI / 2 - 0.16, 0, 0); vuelta.scale.set(1, 0.9, soloPanuelo ? 0.6 : 1);
     pintarPieza(vuelta, (c, p) => { c.multiplyScalar(1 + 0.1 * Math.sin(Math.atan2(p.y, p.x) * 18)); });
     torso.add(conTela(vuelta, colores.bufanda ? TELA.punto : TELA.lienzo));
-    if (R.panuelo && !colores.bufanda) {
+    if (R.panuelo && !colores.bufanda && R.escote) {
+      // 3.9: con escote, el nudo va al costado del cuello (a la izquierda de ella) y las puntas caen cortas hacia el hombro
+      torso.add(conTela(bola(cuello, [0.02, 0.017, 0.015], [-0.054, yCuello - 0.014, 0.064], [0, -0.7, 0]), TELA.lienzo));
+      for (const l of [-1, 1]) {
+        const punta = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.085, 3, 1), color(matiz(cuello, 0.92))), (v) => { v.z *= 0.3; });
+        punta.position.set(-0.066 - l * 0.012, yCuello - 0.05, 0.07); punta.rotation.set(Math.PI - 0.3, -0.7, -l * 0.4 - 0.1); torso.add(conTela(punta, TELA.lienzo));
+      }
+    } else if (R.panuelo && !colores.bufanda) {
       torso.add(conTela(bola(cuello, [0.02, 0.017, 0.015], [0, yCuello - 0.033, 0.112]), TELA.lienzo));
       for (const l of [-1, 1]) {
         const punta = deformar(new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.07, 3, 1), color(matiz(cuello, 0.92))), (v) => { v.z *= 0.3; });
@@ -1352,6 +1435,17 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   // chico, más grande la cabeza para el cuerpo)
   const t = Number.isFinite(talla) && talla > 0.3 && talla < 1 ? talla : 0.76;
   cabeza.scale.setScalar(chico ? 1.2 * Math.pow(0.76 / t, 0.35) : 1.05);
+  if (R.florPelo) {
+    // 3.9: la flor roja en el pelo, sobre la oreja, mirando hacia afuera y un poco hacia adelante (seis pétalos chatos, el centro
+    // amarillo y una hoja; piezas finas: de lejos no se dibujan)
+    const psi = 0.7, fx = F.rx + 0.011, fy = F.cy + 0.034, fz = 0.012, cs = Math.cos(psi), sn = Math.sin(psi), R0 = 0.017;
+    for (let i = 0; i < 6; i++) {
+      const an = (i / 6) * Math.PI * 2, u = Math.cos(an) * R0, v = Math.sin(an) * R0;
+      cabeza.add(fino(bola(R.florPelo, [0.005, 0.0125, 0.0125], [fx - sn * v, fy + u, fz + cs * v], [0, -psi, an], [6, 4])));
+    }
+    cabeza.add(fino(bola('#f0c030', [0.007, 0.009, 0.009], [fx + cs * 0.005, fy, fz + sn * 0.005], [0, -psi, 0], [6, 4])));
+    cabeza.add(fino(bola('#3e5a2a', [0.004, 0.009, 0.024], [fx - sn * 0.026, fy - 0.016, fz - cs * 0.022], [0.5, -psi, 0], [5, 4])));   // una hoja, atrás
+  }
   telasPorColor(g, colores, R, bota, pantalon);
   guardasDe(g, A.guardas || {});
   g.add(cabeza);
@@ -1857,6 +1951,7 @@ function alPosar(est) {
       const obj = -(0.14 + (andando ? 0.2 : 0) + 0.55 * Math.min(1.4, adelante) + (charlando ? 0.25 : 0));
       cd.rotation.x += (obj - cd.rotation.x) * Math.min(1, dt * 10);
     }
+    poseCantina(g, st, dt, andando);   // 3.9: bandeja, barra, dejar (npc.pose) y la bandeja siempre horizontal
     // los pies quedan de plano en el piso (el tobillo contra la pierna)
     for (const p of g.patas) { const r = p.userData.rodilla, t = r?.userData.tobillo; if (t) t.rotation.x = -(p.rotation.x + r.rotation.x) * 0.85; }
     // la abuela, un poco encorvada
@@ -1970,6 +2065,133 @@ function quietud(g, st, dt, andando, charlando) {
   if (P.cabeza) g.cabeza.rotation.x += P.cabeza * w;
 }
 
+// ---------------------------------------------------------------- las poses de la cantina y la bandeja
+// 3.9: tres poses de la moza que se piden con `npc.pose` (las atiende alPosar, así que valen también CAMINANDO: la de la bandeja
+// sostiene el brazo mientras camina; las otras dos son para estar parada). Cada brazo va en la misma convención que POSES
+// (x adelante negativo, yl giro y zl apertura espejados según el lado, codo negativo doblado). `izqQuieto`: lo que hace el brazo
+// libre cuando está parada (caminando se mece como siempre). `torso`, `cabeza` y `patas` se SUMAN a lo que puso gente.js.
+//   · 'bandeja': el brazo derecho en alto con la bandeja a la altura del hombro; la otra mano en la cintura si está quieta.
+//   · 'barra': apoyada de costado en la barra (la barra queda del lado de `g.ladoBarra`, 0 = a su izquierda): el codo en la barra,
+//     la otra mano en la cintura, la cadera ladeada, el peso en una pierna y la mirada de costado.
+//   · 'dejar': se inclina y apoya la bandeja (o el vaso) en la mesa que tiene adelante; la otra mano atrás.
+export const POSES_CANTINA = {
+  bandeja: {
+    der: { x: -0.35, yl: 0.5, zl: 0.5, codo: -1.8 },
+    izqQuieto: { x: 0.08, yl: -1.4, zl: 0.5, codo: -1.6 },
+    torso: { x: 0, z: 0.04, y: 0 }, cabeza: { x: -0.03, y: 0.1, z: -0.08 },
+  },
+  barra: {
+    izq: { x: -0.05, yl: 0.1, zl: 0.58, codo: -1.45 },
+    der: { x: 0.08, yl: -1.4, zl: 0.5, codo: -1.6 },
+    torso: { x: 0.03, z: 0.08, y: 0.1 }, cabeza: { x: 0, y: 0.3, z: -0.14 },
+    patas: { der: { x: 0.08, z: 0.14, rodilla: 0.32 }, izq: { x: 0, z: -0.03, rodilla: 0 } },
+  },
+  dejar: {
+    der: { x: -0.55, yl: 0.1, zl: 0.12, codo: -0.3 },
+    izq: { x: 0.08, yl: -1.4, zl: 0.5, codo: -1.6 },
+    torso: { x: 0.27, z: 0, y: 0 }, cabeza: { x: -0.18, y: 0, z: 0 },
+  },
+};
+const _q1 = new THREE.Quaternion(), _v1 = new THREE.Vector3();
+function poseCantina(g, st, dt, andando) {
+  const pc = st.pc || (st.pc = { nombre: null, w: 0, sucio: false });
+  const pedido = g.pose && Object.hasOwn(POSES_CANTINA, g.pose) ? g.pose : null;
+  if (pedido && pedido === pc.nombre) pc.w = Math.min(1, pc.w + dt * 3);
+  else { pc.w = Math.max(0, pc.w - dt * 3); if (pc.w <= 0.001) { pc.w = 0; pc.nombre = pedido; } }
+  const B = g.bandeja;
+  if (pc.nombre && pc.w > 0) {
+    const P = POSES_CANTINA[pc.nombre], w = pc.w * pc.w * (3 - 2 * pc.w);
+    const lado = g.ladoBarra && pc.nombre === 'barra' ? -1 : 1;
+    let defs = [P.izq || (!andando && P.izqQuieto) || null, P.der || null];
+    if (lado < 0) defs = [defs[1], defs[0]];
+    g.brazos.forEach((b, i) => {
+      const d = defs[i];
+      if (!d || b.userData.muneca) return;
+      const l = i ? 1 : -1;
+      b.rotation.order = 'XZY';
+      b.rotation.x += (d.x - b.rotation.x) * w;
+      b.rotation.y = d.yl * l * w;
+      b.rotation.z += (d.zl * l - b.rotation.z) * w;
+      const cd = b.userData.codo; if (cd) cd.rotation.x += (d.codo - cd.rotation.x) * w;
+    });
+    pc.sucio = true;
+    if (P.torso) { g.torso.rotation.x += P.torso.x * w; g.torso.rotation.y += P.torso.y * lado * w; g.torso.rotation.z += P.torso.z * lado * w; }
+    if (P.cabeza) { g.cabeza.rotation.x += P.cabeza.x * w; g.cabeza.rotation.y += P.cabeza.y * lado * w; g.cabeza.rotation.z += P.cabeza.z * lado * w; }
+    if (P.patas && !andando) g.patas.forEach((pt, i) => {
+      const d = P.patas[(i === 0) !== (lado < 0) ? 'izq' : 'der'], r = pt.userData.rodilla;
+      pt.rotation.x += d.x * w; pt.rotation.z += d.z * lado * w; if (r) r.rotation.x += d.rodilla * w;
+    });
+  } else if (pc.sucio) {
+    // se terminó: el giro del hombro vuelve a cero (gente.js no lo toca)
+    for (const b of g.brazos) if (!b.userData.muneca) b.rotation.y = 0;
+    pc.sucio = false;
+  }
+  if (B && B.esta) {
+    // la bandeja siempre horizontal: se contra-gira con el hombro y el codo del brazo que la lleva, y va sobre la palma
+    const b = g.brazos[1], cd = b.userData.codo;
+    if (cd) {
+      _q1.copy(b.quaternion).multiply(cd.quaternion).invert();
+      B.g.quaternion.copy(_q1);
+      _v1.set(0, B.altura, 0).applyQuaternion(_q1);
+      B.g.position.set(0.006 + _v1.x, -0.3 + _v1.y, 0.03 + _v1.z);
+    }
+  }
+}
+// la bandeja con los vasos: una sola malla (la bandeja y hasta cinco vasos, con color por vértice) y un solo material para todas;
+// cuelga del codo del brazo derecho (no del antebrazo: si la ropa de la estación vuelve a armar a la persona, la bandeja nueva
+// no se duplica con la vieja). `vasos(n)` rearma la malla con n vasos (0 a 5).
+let MAT_BANDEJA = null;
+const DISPOSICION_VASOS = [[], [[0, 0]], [[-0.05, 0], [0.05, 0]], [[-0.055, -0.035], [0.055, -0.035], [0, 0.06]],
+  [[-0.06, -0.06], [0.06, -0.06], [-0.06, 0.06], [0.06, 0.06]], [[-0.06, -0.06], [0.06, -0.06], [-0.06, 0.06], [0.06, 0.06], [0, 0]]];
+const COL_VASOS = ['#d9902a', '#d9902a', '#8a2634', '#d9902a', '#cfd8c8'];
+function geoBandeja(n) {
+  const piezas = [], c = new THREE.Color();
+  const pintar = (geo, fn) => {
+    const P = geo.attributes.position, col = new Float32Array(P.count * 3);
+    for (let i = 0; i < P.count; i++) { fn(c, P.getX(i), P.getY(i), P.getZ(i)); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return geo;
+  };
+  const plato = new THREE.LatheGeometry([[0.0, 0.0], [0.135, 0.0], [0.148, 0.004], [0.154, 0.014], [0.15, 0.017], [0.144, 0.009], [0.0, 0.008]].map(([r, y]) => new THREE.Vector2(r, y)), 18);
+  piezas.push(pintar(plato, (cc, x, y) => cc.set(y > 0.0075 ? '#b4b2a8' : '#8c8a82')));
+  for (let i = 0; i < n; i++) {
+    const [x, z] = DISPOSICION_VASOS[n][i];
+    const v = new THREE.LatheGeometry([[0.0, 0.0], [0.02, 0.0], [0.0235, 0.04], [0.026, 0.09], [0.026, 0.1], [0.0, 0.1]].map(([r, y]) => new THREE.Vector2(r, y)), 10);
+    pintar(v, (cc, px, y) => cc.set(y > 0.088 ? '#f3ecd6' : COL_VASOS[i % COL_VASOS.length]));
+    v.translate(x, 0.008, z);
+    piezas.push(v);
+  }
+  let nv = 0, ni = 0; for (const q of piezas) { nv += q.attributes.position.count; ni += q.index.count; }
+  const pos = new Float32Array(nv * 3), col = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), ind = new Uint16Array(ni);
+  let ov = 0, oi = 0;
+  for (const q of piezas) {
+    q.computeVertexNormals();
+    pos.set(q.attributes.position.array, ov * 3); col.set(q.attributes.color.array, ov * 3); nor.set(q.attributes.normal.array, ov * 3);
+    for (let i = 0; i < q.index.count; i++) ind[oi++] = q.index.getX(i) + ov;
+    ov += q.attributes.position.count; q.dispose();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setIndex(new THREE.BufferAttribute(ind, 1)); geo.computeBoundingSphere();
+  return geo;
+}
+function crearBandeja(brazo) {
+  const cd = brazo.userData.codo; if (!cd) return null;
+  if (!MAT_BANDEJA) MAT_BANDEJA = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const malla = new THREE.Mesh(geoBandeja(3), MAT_BANDEJA);
+  malla.castShadow = false; malla.receiveShadow = false;
+  const grupo = new THREE.Group(); grupo.add(malla); grupo.visible = false; cd.add(grupo);
+  const B = {
+    g: grupo, malla, esta: false, n: 3, altura: 0.03,
+    // mostrar u ocultar la bandeja
+    visible(v) { B.esta = !!v; grupo.visible = B.esta; return B.esta; },
+    // cuántos vasos lleva (0 a 5)
+    vasos(n) { const k = Math.max(0, Math.min(5, Math.round(Number(n) || 0))); if (k !== B.n) { malla.geometry.dispose(); malla.geometry = geoBandeja(k); B.n = k; } return B.n; },
+    estado() { return { visible: B.esta, vasos: B.n }; },
+  };
+  return B;
+}
+
 // ---------------------------------------------------------------- la entrada
 // colores y R: los de quien la arma (gente.js, aldea.js); `opciones`: { talla, invierno, fiesta }.
 // 3.7.0: `opciones.aspecto` (el cuerpo del jugador): el aspecto armado afuera, sin gente-ropa.js
@@ -2026,6 +2248,7 @@ function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible, alPosar: alPosar(est), posesM: A.poses || ['cintura', 'cruzados', 'atras'], cara: cabeza.userData.rostro || null, conPoncho: f.conPoncho, edad: A.edad };
   r.soltar = () => soltarPersona(r);
   r.__est = est;
+  if (A.R && A.R.bandeja) r.bandeja = crearBandeja(brazos[1]);   // 3.9: la moza de la cantina: { visible(b), vasos(n), estado() }
   return r;
 }
 // 3.7.0: cuando alguien se va del todo: su tramo de huesos queda libre y se sueltan sus geometrías

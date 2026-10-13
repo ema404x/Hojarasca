@@ -214,6 +214,22 @@ export const ASPECTO = {
     abrigo: { colores: { poncho: '#3a3e44', bufanda: '#6b2f2a', gorro: 'gorro' } },
   },
 
+  // 3.9: la moza de la cantina (32): coqueta y segura. Vestido bordó ceñido a la cintura con escote en V y falda de campana con
+  // tajo (la media oscura a la vista y los botines), pañuelo rojo al cuello, delantal crudo corto atado con moño, melena suelta
+  // con raya al costado, labios rojos, aros chicos y una flor roja sobre la oreja. Las poses de la bandeja, la barra y el dejar
+  // las pone `npc.pose` (ver POSES_CANTINA en gente-cuerpo.js).
+  'aldea-moza': {
+    edad: 32, mujer: true,
+    cuerpo: { ancho: 0.93, fondo: 0.95, brazos: 0.95, piernas: 1.02, alto: 1.01 },
+    cara: { ancho: 0.96, largo: 1.0, nariz: 0.9, ojos: 1.08, boca: 1.04, pomulos: 1.2, sonrisa: 0.75, labios: 1.25, arco: 1.25, rasgado: 0.08, rouge: '#c0182a', iris: '#4a2e1c' },
+    colores: { piel: '#c4936a', pelo: '#3a2418', ropa: '#7a1e2a', abrigo: '#7a1e2a', gorro: null, bufanda: null, aros: 'chicos' },
+    R: { mujer: true, pollera: true, colPollera: '#7a1e2a', melena: true, rayaCostado: true, panuelo: '#d0242c', delantal: '#e8dcc4', telaDelantal: 'lienzo',
+      arremangado: true, talle: true, escote: true, tajo: true, delantalCorto: true, bandeja: true, florPelo: '#e0303a', cinto: '#2e1c16', pantalon: '#2a2224', botas: 'cortas', botaCol: '#2a1a14' },
+    guardas: { pollera: [12, 0.035] },
+    poses: ['cintura', 'atras'],
+    abrigo: { colores: { poncho: '#4a1a22', gorro: 'gorroPunto', gorroColor: '#5a1a24', bufanda: '#d0242c' } },
+  },
+
   // ------------------------------------------------------------ los once pobladores
   // Tito Arrieta, carpintero: boina, barba, chaleco, delantal de lona, pañuelo colorado al cuello
   'poblador-carpintero': {

@@ -232,6 +232,7 @@ const ROPA = {
   'aldea-nena': { piel: '#c49470', pollera: true, trenza: true, botas: 'goma' },
   'aldea-martin': { piel: '#c49470', botas: 'altas', delantal: '#3b4a5e', panuelo: '#a83a2a', pantalon: '#3b4a5e' },   // 3.7.3: el mameluco azul de maquinista
   'aldea-gerente': { piel: '#c8a080', botas: 'altas', chaleco: true, panuelo: '#6b2f2a', pantalon: '#2c2f36' },   // 3.8.8: el gerente del banco, de traje oscuro con chaleco
+  'aldea-moza': { piel: '#c4936a', pollera: true, melena: true, panuelo: '#d0242c', delantal: '#e8dcc4', botas: 'cortas', pantalon: '#2a2224' },   // 3.9: la moza de la cantina
   // 3.7.5: los invitados de otras paradas que llegan en el tren de fiesta (ver INVITADOS en fiestas.js)
   'inv-domador': { piel: '#b58a64', bombacha: true, chaleco: true, panuelo: '#c8b070', botas: 'altas', pantalon: '#4a3a2a' },
   'inv-cantora': { piel: '#c49470', pollera: true, trenza: true, abierta: true },
@@ -279,6 +280,8 @@ for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar']
 // faltaba «comer», la de la mesa larga)
 export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);
 export const estaSentado = (g) => !!g && POSES_SENTADAS.has(g.pose);
+// 3.9: las poses de la moza de la cantina (`npc.pose`): las resuelve alPosar en gente-cuerpo.js (POSES_CANTINA), también caminando; acá sólo la lista
+export const IDS_POSES_CANTINA = ['bandeja', 'barra', 'dejar'];
 function posar(g, charlando) {
   const t = g.fase;
   switch (estaSentado(g) ? 'sentado' : g.pose) {
@@ -491,6 +494,9 @@ function posar(g, charlando) {
       g.brazos[0].rotation.x = -0.2; g.cabeza.rotation.x -= 0.18;
       break;
     }
+    // 3.9: 'bandeja', 'barra' y 'dejar' (la moza de la cantina) no se arman acá: las pone alPosar de gente-cuerpo.js, que corre después y
+    // también con la persona andando (la bandeja se lleva caminando)
+    case 'bandeja': case 'barra': case 'dejar': break;
     default: break;
   }
 }
@@ -1399,9 +1405,11 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
     for (const o of g.children.slice()) g.remove(o);
     for (const o of m.g.children.slice()) g.add(o);
     const mateVisto = npc.mateVisible ? npc.mateVisible.visible : true;
+    const bandejaAntes = npc.bandeja ? npc.bandeja.estado() : null;   // 3.9: la bandeja de la moza pasa a la ropa nueva con sus vasos
     Object.assign(npc, { cabeza: m.cabeza, torso: m.torso, patas: m.patas, brazos: m.brazos, mano: m.mano, muneca: m.muneca, mateVisible: m.mateVisible,
-      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, soltar: m.soltar, __est: m.__est, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
+      alPosar: m.alPosar, posesM: m.posesM, cara: m.cara, conPoncho: m.conPoncho, soltar: m.soltar, __est: m.__est, bandeja: m.bandeja, __mira: null, __invierno: inv, __ropa: claveRopa(inv, est) });
     if (npc.mate) { npc.mate = m.mateVisible; if (npc.mate) npc.mate.visible = mateVisto; }
+    if (bandejaAntes && m.bandeja) { m.bandeja.vasos(bandejaAntes.vasos); m.bandeja.visible(bandejaAntes.visible); }
     g.updateMatrixWorld(true);
   }
   // 3.7.0: el atlas se pinta en la portada (después de compilar), de a un paso

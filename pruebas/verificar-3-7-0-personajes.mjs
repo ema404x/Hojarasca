@@ -140,7 +140,8 @@ for (const k of todos) {
     const mallas = []; p.g.traverse((o) => { if (o.isMesh) mallas.push(o); });
     const piel = mallas.filter((o) => o.isSkinnedMesh);
     const tri = piel[0].geometry.index.count / 3;
-    ok(piel.length === 1 && mallas.length === 2 && p.cara && !p.cara.visible, `${k}${invierno ? ' (invierno)' : ''}: una malla con piel por huesos y la cara con gestos aparte`);
+    // 3.9: la moza de la cantina lleva además la bandeja (una malla suelta, con sus vasos)
+    ok(piel.length === 1 && mallas.length === 2 + (p.bandeja ? 1 : 0) && p.cara && !p.cara.visible, `${k}${invierno ? ' (invierno)' : ''}: una malla con piel por huesos y la cara con gestos aparte`);
     ok(tri > 6000 && tri < 19000, `${k}${invierno ? ' (invierno)' : ''}: ${Math.round(tri)} triángulos`);
     const u = piel[0].userData;
     ok(u.indicesSinFino > 0 && u.indicesSinFino < u.indices, `${k}: lejos se dibuja sin lo fino`);
