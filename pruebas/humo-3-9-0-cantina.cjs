@@ -126,9 +126,10 @@ app.whenReady().then(async () => {
     // ------------------------------------------------------------ 2. te sentás: la moza viene caminando
     console.log('— sentarse y la carta');
     await js(`(() => { const H = ${H}, c = H.__cantina(), s = c.lugar.sillas.find((x) => x.mesa.id === 'mesa-3' && x.i === 1), js = H.jugador.estado;
-      H.jugador.ubicar(s.x, s.z, s.mira + Math.PI); js.pos.y = c.lugar.pisoY(); js.entumecido = 4; js.descansado = 0; H.jugador.sentarse(true); js.yaw = s.mira + Math.PI; js.pitch = -0.1; return 1 })()`);
+      H.jugador.ubicar(s.x, s.z, s.mira + Math.PI); js.pos.set(s.x, c.lugar.pisoY() + 0.04, s.z);   /* (como el juego: exacto en el asiento, sin que lo empuje la silla) */ js.entumecido = 4; js.descansado = 0; H.jugador.sentarse(true); js.yaw = s.mira + Math.PI; js.pitch = -0.1; return 1 })()`);
     let est = await hasta((x) => !!x.ses, 5000);
-    ok(!!est.ses && est.ses.mesa === 'mesa-3', `empezó la visita en la mesa 3 (fase ${est.ses?.fase})`);
+    console.log('  jugador:', JSON.stringify(await js(`(() => { const H = ${H}, c = H.__cantina(), s = c.lugar.sillas.find((x) => x.mesa.id === 'mesa-3' && x.i === 1), p = H.jugador.estado.pos; return { dx: +(p.x - s.x).toFixed(2), dz: +(p.z - s.z).toFixed(2), sentado: H.jugador.estado.sentado } })()`)));
+    ok(!!est.ses && est.ses.mesa === 'mesa-3', `empezó la visita en la mesa 3 (fase ${est.ses?.fase}, mesa ${est.ses?.mesa}, silla ${est.ses?.silla})`);
     ok(est.ses.fase === 'espera', 'la moza todavía no viene: te está viendo');
     const pos0 = await js(`(() => { const n = ${H}.__aldea.mundo().personas.get('moza').npc; return { x: n.pos.x, z: n.pos.z } })()`);
     // viene: se la ve caminar hasta la mesa (la cámara de la mesa, desde el costado)
@@ -224,7 +225,7 @@ app.whenReady().then(async () => {
     const guardado = await js(`JSON.stringify(${H}.progreso.cantina)`);
     ok(/"monto":600/.test(guardado), 'la cuenta se guarda en la partida');
     await js(`(() => { ${H}.progreso.horas = 13; return 1 })()`);
-    await js(`(() => { const c = ${H}.__cantina(), s = c.lugar.sillas[0]; ${H}.jugador.ubicar(s.x, s.z, s.mira + Math.PI); ${H}.jugador.estado.pos.y = c.lugar.pisoY(); ${H}.jugador.sentarse(true); return 1 })()`);
+    await js(`(() => { const c = ${H}.__cantina(), s = c.lugar.sillas[0]; ${H}.jugador.ubicar(s.x, s.z, s.mira + Math.PI); ${H}.jugador.estado.pos.set(s.x, c.lugar.pisoY() + 0.04, s.z); ${H}.jugador.sentarse(true); return 1 })()`);
     est = await hasta((x) => !!x.ses, 3000);
     ok(est.ses?.fase === 'cerrada', 'de día, la cantina está cerrada: no viene nadie');
     await js(`${tecla('KeyR')} 1`); await cuadro(2);

@@ -5048,7 +5048,7 @@ function cantina(K) {
   const manteles = ['#a8322a', null, '#d8cfb4', null];
   MESAS_CANTINA.forEach((m, i) => {
     mesa(K, m.x, m.z, 0, { largo: 1.1, ancho: 0.75, color: MADERA_MUEBLE[i % 4], mantel: manteles[i] });
-    for (const [sx, sz, g] of m.sillas) silla(K, sx, sz, g, { nombre: 'una silla de la cantina', color: MADERA_MUEBLE[(i + 1) % 4] });
+    for (const [sx, sz, g] of m.sillas) silla(K, sx, sz, g, { nombre: 'una silla de la cantina', color: MADERA_MUEBLE[(i + 1) % 4], choca: false });   // (sin círculo que choque: sentado, el cuerpo te sacaba de la silla y te dejaba arriba de la mesa)
     cilindro(K.int, [m.x - 0.3, PISO + 0.76 + 0.06, m.z + 0.08], 0.03, 0.03, 0.12, '#35502e', { lados: 6 });
     caja(K.bra, [m.x - 0.3, PISO + 0.76 + 0.15, m.z + 0.08], [0.025, 0.05, 0.025], '#ffc860', { tipo: 0, bajo: 1, alto: 1 });
   });

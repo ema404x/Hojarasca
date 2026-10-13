@@ -106,23 +106,25 @@ export function crearCantinaMundo(ctx) {
   function ponerEnMesa(mesa, silla, item, restantes) {
     quitarDeMesa(mesa);
     const g = (FORMAS[item.forma] || FORMAS.vaso)(item);
-    if (/^(vaso|jarra|taza)$/.test(item.forma)) g.add(mesh(cilindro(0.062, 0.062, 0.006, 12), mat('#3a2418'), 0, 0.003, 0));   // el posavasos de cuero: se ve sobre el mantel
     const base = lugarEnMesa(silla);
     g.position.copy(base);
     g.rotation.y = silla.mira;
     escena.add(g);
+    // el posavasos de cuero (queda en la mesa cuando el vaso sube): se ve sobre el mantel
+    let posavasos = null;
+    if (/^(vaso|jarra|taza)$/.test(item.forma)) { posavasos = mesh(cilindro(0.062, 0.062, 0.006, 12), mat('#3a2418'), base.x, base.y + 0.003, base.z); escena.add(posavasos); }
     const piezas = g.children.filter((c) => /^pieza-/.test(c.name));
-    enMesa.set(mesa.id, { g, item, silla, base, total: item.porciones, piezas });
+    enMesa.set(mesa.id, { g, item, silla, base, total: item.porciones, piezas, posavasos });
     nivel(mesa, restantes, item);
   }
   function quitarDeMesa(mesa) {
     const e = enMesa.get(mesa.id);
     if (!e) return;
-    escena.remove(e.g);
+    escena.remove(e.g); if (e.posavasos) escena.remove(e.posavasos);
     enMesa.delete(mesa.id);
     if (sorbo && sorbo.e === e) cancelarSorbo();
   }
-  function limpiarTodo() { for (const e of [...enMesa.values()]) { escena.remove(e.g); } enMesa.clear(); cancelarSorbo(); }
+  function limpiarTodo() { for (const e of [...enMesa.values()]) { escena.remove(e.g); if (e.posavasos) escena.remove(e.posavasos); } enMesa.clear(); cancelarSorbo(); }
   // Lo que queda: el líquido baja y las piezas se van comiendo
   function nivel(mesa, restantes) {
     const e = enMesa.get(mesa.id);
