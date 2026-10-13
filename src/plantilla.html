@@ -593,6 +593,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <button data-valor="relax">Relax</button><button data-valor="desafio">La noche de los duendes</button>
       </div>
       <p class="modo-texto" id="modo-texto"></p>
+      <p class="modo-texto" id="modo-aviso"></p>
       <div class="opcion oculto" id="opcion-relax"><span>Relax</span>
         <div class="segmentos" data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button></div>
         <p class="modo-texto" id="relax-tipo-texto"></p>
@@ -1108,6 +1109,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 (() => {
   const $ = (id) => document.getElementById(id);
   const VERSION_FALLBACK = '__HOJARASCA_VERSION__';
+  const BUILD_HUELLA = '__HOJARASCA_HUELLA__';   // 3.8.9: la huella del contenido de este build (armar.mjs): dos builds de la misma versión se distinguen por ella
   // (3.8.6: Controles y Créditos los abre y cierra main.js, como los otros paneles: ver abrirInfo)
   // 3.8.4 (decisión 8): en pantallas bajas las seis teclas de la portada quedan detrás del botón «Teclas» (Esc las cierra)
   const verTeclas = (si) => { $('inicio')?.classList.toggle('ver-teclas', si); $('btn-teclas-portada')?.setAttribute('aria-expanded', String(si)); };
@@ -1139,7 +1141,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     if ($('inicio')?.classList.contains('ver-teclas') && !$('inicio').classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); verTeclas(false); return; }
   }, true);
   const aplicarVersion = (v) => {
-    const t = `Hojarasca · ${v || VERSION_FALLBACK}`;
+    const t = `Hojarasca · ${v || VERSION_FALLBACK} · build ${BUILD_HUELLA}`;
     if ($('build-info')) $('build-info').textContent = t;
     if ($('version-completa')) $('version-completa').textContent = `Versión ${v || VERSION_FALLBACK}`;
   };

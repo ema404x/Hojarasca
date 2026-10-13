@@ -118,6 +118,9 @@ export const SECCIONES_GUIA = [
       ['El horno de barro', 'O → Trabajo. Con un tronco y E se hornea pan casero (dos medidas de harina) o empanadas (harina, un huevo y una papa). Se guardan: la feria los cambia.'],
       ['El buzón', 'O → Exterior. Con buzón, las cartas del tren te las dejan en casa y los pedidos de fotos se mandan desde ahí.'],
       ['Tu corral', 'Un bebedero con cuatro tramos de cerco alrededor es un corral: Don Ramón te trae dos ovejas. Se esquilan con la misma tijera.'],
+      // 3.8.9
+      ['Los pesos', 'En la Aldea de los Duendes (la trochita del sur) todo se paga en pesos: lo que vendés en los puestos, los jornales y los pedidos de los vecinos. Tu plata se ve en la pausa, en «Billetera y movimientos».'],
+      ['El Banco del Pueblo', 'Al este de la plaza de la aldea (también en el mapa). Amadeo presta pesos, compra cosas a buen precio y vende las etapas de las casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18.'],
     ],
   },
   {

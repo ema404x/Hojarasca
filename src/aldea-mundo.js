@@ -998,6 +998,16 @@ function repasoSinOcultos(obj) {
 const congelar = (o) => { o.traverse((k) => { k.updateMatrix(); k.matrixAutoUpdate = false; }); };
 
 // ---------------------------------------------------------------- en el mundo
+// 3.8.9: si un edificio de la aldea no se arma (el banco, la casa de té…) no queda sólo en la consola: en el juego empaquetado no hay consola,
+// y desaparecía sin dejar rastro. Va también al registro de caídas (el mismo reportarError de siempre), una vez por motivo.
+const FALLAS_VISTAS = new Set();
+function avisarFalla(que, err) {
+  console.error('aldea-mundo:', que, err);
+  const mensaje = `aldea-mundo: ${que}: ${String(err?.stack || err?.message || err)}`.slice(0, 1500);
+  if (FALLAS_VISTAS.has(mensaje.slice(0, 200)) || FALLAS_VISTAS.size >= 24) return;
+  FALLAS_VISTAS.add(mensaje.slice(0, 200));
+  try { globalThis.window?.hojarasca?.reportarError?.(mensaje); } catch { /* sin Electron */ }
+}
 // ctx: { T, escena, veg, calidad, progreso(), brilloVentana(mat, f, dia), alCambiar(qué) }
 export function crearAldeaMundo(ctx) {
   const { T, escena } = ctx;
@@ -1275,6 +1285,8 @@ export function crearAldeaMundo(ctx) {
   }
   // Donde estructuras.js arma el almacén y la casa de té.
   const sitiosValle = () => ({ almacen: sitioEstructura('almacen', parada), 'casa-te': sitioEstructura('casa-te', parada) });
+  // 3.8.9: dónde cae el banco en el valle (para rotularlo en el mapa: sin eso el juego no dice dónde está)
+  const lugarBanco = () => { const e = EDIFICIOS_ALDEA['banco-pueblo'], w = marcoAldea(parada).aMundo(e.x, e.z); return { x: w.x, z: w.z, nombre: 'Banco del Pueblo' }; };
 
   // ------------------------------------------------ las raíces (los complejos)
   // (lo que tarda armar las texturas del ripio, en la carga)
@@ -1546,7 +1558,7 @@ export function crearAldeaMundo(ctx) {
       const p = fabrica.pedir({ tipo: 'edificio', id: b.id, etapa: v.etapa, opciones }).then((datos) => {
         if (b.pedida !== clave) return;   // ya se pidió otra
         cola.push({ tipo: 'edificio', b, clave, datos });
-      }).catch((err) => { console.error('aldea-mundo: no se pudo armar', b.id, err); });
+      }).catch((err) => { avisarFalla(`no se pudo armar ${b.id}`, err); });
       promesas.push(p);
       // 3.6 (optimizar): la que ya llegó sale de la lista (antes quedaba toda la partida)
       p.then(() => { const i = promesas.indexOf(p); if (i >= 0) promesas.splice(i, 1); });
@@ -1587,7 +1599,7 @@ export function crearAldeaMundo(ctx) {
         else if (q.tipo === 'alamos') montarAlamos();
         else if (q.tipo === 'estacion') montarEstacion();
         else if (q.tipo === 'calles') montarCalles();
-      } catch (err) { console.error('aldea-mundo: falló el montaje', q.tipo, err); }
+      } catch (err) { avisarFalla(`falló el montaje de ${q.tipo}`, err); }
       info.msMontar += performance.now() - t0;
       hechos++;
       if (uno) break;
@@ -2252,7 +2264,7 @@ export function crearAldeaMundo(ctx) {
       puertas: b.puertas.map((p) => ({ nombre: p.nombre, clave: p.estructuraClave, x: p.x, z: p.z })), tris: b.datos ? b.datos.medidas.triangulos : null, techo: !!b.techo, sitio: { ...b.sitio } };
   }
   return {
-    emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,
+    emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, lugarBanco, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,
     actualizar, luces: actualizarLuces, adentro, bajoCubierta, techoEn, techos, pisos, cubiertas, versionCubiertas: () => versionCubiertas, chimeneasCerca, medir, estadoEdificio,
     raices: () => [...[...manzanas.values()].map((m) => m.raiz), alamos?.raiz, estacionHecha?.raiz, calles?.raiz].filter(Boolean),
     charcos: () => calles?.charcos || null,

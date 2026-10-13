@@ -94,7 +94,7 @@ for (const id of IDS) {
   const textos = [];
   for (const id of IDS) textos.push(PLANO[id].nombre, PLANO[id].texto);
     for (const x of textos) { const en = t(x); ok(en && en !== x, `falta el inglés de «${x.slice(0, 50)}»`); }
-  for (const id of IDS) ok(!/\b(el|la|los|las|con|para|de)\b/.test(t(PLANO[id].texto).replace(/\bde\b/g, '')) || true, `${id}: traducido`);
+  for (const id of IDS) ok(!/\b(el|la|los|las|con|para|de)\b/.test(t(PLANO[id].texto).replace(/\bde\b/g, '')), `${id}: traducido`);
   // el glosario: nada de «hut» ni «pine nuts» ni «little train»
   for (const id of IDS) ok(!/pine nuts?|\bhuts?\b|little train|stockpile/i.test(t(PLANO[id].texto)), `${id}: sigue el glosario`);
   const src = leer('src/planos-muebles-2.js');

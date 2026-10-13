@@ -1566,6 +1566,7 @@ function dibujarMapa() {
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
   for (const m of modos?.marcasMapa?.() || []) marcas.push(m);   // 3.1: los postes de largada
+  if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); }   // 3.8.9: el banco, rotulado (antes nada decía dónde estaba)
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
 
@@ -1969,6 +1970,10 @@ function sincronizarAjustes() {
   if ($('modo-texto')) $('modo-texto').textContent = ajustes.modo === 'desafio'
     ? 'Cada noche salen los duendes del bosque. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
     : 'El bosque de siempre: caminar, anotar, pescar y construir sin apuro. Nada te ataca.';
+  // 3.8.9: dónde está la aldea con su banco y los pesos (quien jugó la noche de los duendes no los veía y no sabía por qué)
+  if ($('modo-aviso')) $('modo-aviso').textContent = ajustes.modo === 'desafio'
+    ? 'Acá no hay aldea, banco ni pesos: eso es del modo Relax.'
+    : 'En el Relax están la aldea (se llega en tren), el mercado, el banco del pueblo y tus pesos.';
   // la dificultad sólo tiene sentido en el Desafío (y se puede cambiar en cualquier momento)
   $('opcion-dificultad')?.classList.toggle('oculto', ajustes.modo !== 'desafio');
   $('fila-dificultad')?.classList.toggle('oculto', !esDesafio);
@@ -3863,6 +3868,8 @@ function marcarPisos() {
 
 // 3.6: el primer viaje, en una línea: dónde se sube y dónde se baja
 const PISTA_PRIMER_VIAJE = 'Subite a la trochita en la Estación del Valle, acá cerca del refugio, y bajate en la Aldea de los Duendes: ahí está el almacén de Ercilia';
+// 3.8.9: dónde está el banco y cuándo atiende (el mapa lo rotula; el horario es el de HORARIO_BANCO, aldea.js)
+const PISTA_BANCO = 'En la aldea, saliendo de la plaza hacia el este, está el Banco del Pueblo (también en el mapa): Amadeo presta pesos, paga bien lo que le llevás y vende casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18';
 // Los primeros pasos: pistas que aparecen una sola vez, cuando corresponde,
 // para que el primer rato no sea andar sin saber qué se puede hacer.
 const PISTAS = [
@@ -3877,6 +3884,8 @@ const PISTAS = [
   { id: 'p-tren', cuando: (js, p) => !!p.entradas.estacion, titulo: 'La trochita', texto: 'Para en cada apeadero unos segundos; se sube con E y se viaja hasta donde quieras' },
   // 3.6: el primer viaje. En el Relax el almacén (y el hacha) está en la Aldea de los Duendes
   { id: 'p-aldea', cuando: (js, p) => !desafio && !p.cosas?.hacha && !p.aldea?.descubierta && (!!p.entradas.refugio || Object.keys(p.entradas).length >= 2), titulo: 'El hacha está en la aldea', texto: PISTA_PRIMER_VIAJE },
+  // 3.8.9: el banco. Quien baja en la aldea no sabía que había uno ni dónde (las pistas sólo hablaban del almacén)
+  { id: 'p-banco', cuando: (js, p) => !desafio && hayEconomia(p) && !!p.aldea?.descubierta, titulo: 'El Banco del Pueblo', texto: PISTA_BANCO },
   // Desafío, segundo acto: el nido aparece cuando cae la nodriza
   { id: 'p-nido', cuando: (js, p) => !!p.desafio?.nido && !p.desafio.nido.caido, titulo: 'Siguen saliendo', texto: 'Vienen de una cueva escondida en el valle. Los troncos huecos traen pistas que te la van a ubicar' },
   { id: 'p-cerco', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= 1 && !p.desafio.nido.caido, titulo: 'El cerco se achica', texto: 'Abrí el mapa (M): el redondel a lápiz marca dónde puede estar. Cada tronco hueco lo achica' },
@@ -10154,7 +10163,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
-    __banco: () => bancoDelPueblo(), __enElBanco: () => enElBanco(),   // 3.8.8: el mostrador del banco, para la partida real (pruebas/humo-economia.cjs)
+    __banco: () => bancoDelPueblo(), __enElBanco: () => enElBanco(),   // 3.8.8: el mostrador del banco, para la partida real (herramientas/partida-real-economia.cjs)
     __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },
     // 2.9: las máquinas
     __maquinas: { revisar: revisarMaquinas, actualizar: actualizarMaquinas, usar: usarMaquina, aviso: avisoMaquina, pronostico: pronosticoActual, noches: nochesActuales, meteo: meteoPartida, radio: radioPartida, mundo: () => ({ molino: molinoMundo, meteo: meteoMundo }) },

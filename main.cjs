@@ -36,6 +36,14 @@ if (process.platform === 'win32') app.setAppUserModelId('ar.hojarasca.juego');
 // whenReady) y cargaba el juego con el mismo perfil un par de segundos.
 const primeraInstancia = app.requestSingleInstanceLock();
 if (!primeraInstancia) app.quit();
+// 3.8.9: antes la segunda copia se cerraba sin decir nada y se veía el juego que ya estaba abierto: con un Hojarasca viejo minimizado o
+// colgado en segundo plano, abrir el instalado nuevo mostraba el viejo con el mismo número de versión. Ahora avisa.
+if (!primeraInstancia) {
+  try {
+    dialog.showErrorBox('Hojarasca ya está abierto · Hojarasca is already running',
+      `Ya hay un Hojarasca abierto y se muestra esa ventana (esta copia es la versión ${app.getVersion()}).\n\nSi ves una versión vieja del juego, cerrá todos los "Hojarasca.exe" desde el Administrador de tareas y abrilo de nuevo.\n\nHojarasca is already open (this copy is version ${app.getVersion()}). If the game on screen is an older version, close every "Hojarasca.exe" in Task Manager and start it again.`);
+  } catch { /* sin cuadro: se cierra igual */ }
+}
 let ventanaPrincipal = null;
 app.on('second-instance', () => {
   if (!ventanaPrincipal || ventanaPrincipal.isDestroyed()) return;

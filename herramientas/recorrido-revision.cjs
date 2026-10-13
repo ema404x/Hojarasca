@@ -1,6 +1,8 @@
 // Recorrido de revisión en el juego real (Chromium sin pantalla, vía Playwright): fotos del taller ferroviario, el arroyo y la cascada, la casa
 // de té (afuera y adentro), la bandera del mástil y las del pueblo, con la hora y el viento que se pida. Para mirar lo hecho sin abrir el juego.
-// Uso: node armar.mjs && node pruebas/humo-revision.cjs [toma,toma,...]   → fotos en pruebas/salidas/revision/
+// OJO: no es parte de la suite de partidas reales (esas son pruebas/humo-*.cjs y corren con Electron): este guion usa Playwright, que no está
+// en package.json (se instala aparte), y por eso vive en herramientas/ y no se corre solo.
+// Uso: node armar.mjs && node herramientas/recorrido-revision.cjs [toma,toma,...]   → fotos en pruebas/salidas/revision/
 const path = require('path');
 const fs = require('fs');
 let chromium;
@@ -20,6 +22,11 @@ const TOMAS = {
   'cascada-lejos': { salto: true, d: 18, ang: 0.0, hora: 14, mira: 'salto', nota: 'la cascada desde abajo' },
   'cascada-cerca': { salto: true, d: 8, ang: 0.4, hora: 14, mira: 'salto', nota: 'la cascada y su poza de cerca' },
   'arroyo': { rioIdx: 200, d: 7, ang: 0.8, hora: 14, mira: 'rio', nota: 'el arroyo' },
+  // 3.8.9: las banderas que faltaban y el cartel del banco
+  'tu-bandera-calma': { custom: 'mastil', d: 7, ang: 0.9, hora: 15, viento: 0.1, nota: 'tu bandera en el mástil del refugio, con poco viento' },
+  'tu-bandera-viento': { custom: 'mastil', d: 7, ang: 0.9, hora: 15, viento: 1, nota: 'tu bandera en el mástil del refugio, con viento fuerte' },
+  'loco-banderas': { custom: 'loco', cx: 3.2, cz: 7.5, hora: 15, viento: 0.9, nota: 'las dos banderas celeste y blanca de la locomotora (con los banderines del taller)' },
+  'banco-cartel': { lugar: 'banco-pueblo', punto: 'puerta', mira: 'adentro', atras: 5, dy: 1.7, hora: 11, nota: 'el frente del banco, con su cartel del horario' },
 };
 (async () => {
   const pedidas = (process.argv[2] || '').split(',').filter(Boolean);
@@ -53,11 +60,19 @@ const TOMAS = {
       } else if (t2.salto) {
         const s = T.saltoAgua; mx = s.x; mz = s.z; my = s.abajo + s.alto * 0.5;
         x = s.x + Math.sin(s.ang + t2.ang) * t2.d; z = s.z + Math.cos(s.ang + t2.ang) * t2.d;
+      } else if (t2.custom === 'mastil') {
+        const w = new H.THREE.Vector3(); H.__personal.bandera().mastil.getWorldPosition(w);
+        mx = w.x; mz = w.z; my = w.y; x = mx + Math.sin(t2.ang) * t2.d; z = mz + Math.cos(t2.ang) * t2.d;
+      } else if (t2.custom === 'loco') {
+        const t = H.progreso.tren; H.__aplicarMejorasTren({ ...t, loco: { ...t.loco, banderines: true } });
+        const V = H.THREE.Vector3, lo = H.tren.tren.loco; lo.updateWorldMatrix(true, false);
+        const w = lo.localToWorld(new V(0, 1.9, 3.98)), c = lo.localToWorld(new V(t2.cx, 0, t2.cz));
+        mx = w.x; mz = w.z; my = w.y; x = c.x; z = c.z;
       } else if (t2.rioIdx !== undefined) {
         const r = T.rio[t2.rioIdx]; mx = r.x; mz = r.z; x = r.x + Math.sin(t2.ang) * t2.d; z = r.z + Math.cos(t2.ang) * t2.d;
       }
       if (T.agua && (t2.salto || t2.rioIdx !== undefined)) { let k = 0; while (T.agua(x, z) && k++ < 60) { const d = Math.hypot(x - mx, z - mz) || 1; x += ((x - mx) / d) * 1.0; z += ((z - mz) / d) * 1.0; } }
-      if (H.__aldeaMundo) { const AM = H.__aldeaMundo(); let n = 0; while (AM.medir().cola > 0 && n < 200) { AM.montarCola(true); n++; } }
+      if (H.__aldeaMundo) { const AM = H.__aldeaMundo(); let n = 0; while (AM.medir().cola > 0 && n < 200) { AM.montarCola(true); n++; } if (t2.lugar === 'banco-pueblo') H.__aldea.mundo().prearmar(120000); }
       js.pos.set(x, T.altura(x, z) + 0.1, z);
       js.yaw = Math.atan2(-(mx - x), -(mz - z));
       const yMira = my !== null ? my : T.altura(mx, mz) + dy;

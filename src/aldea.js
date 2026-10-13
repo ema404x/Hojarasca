@@ -1815,7 +1815,10 @@ export function gastarFilo(aldea) {
 export const SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 export const diaSemanaDe = (dia) => ((diaValido(dia, 1) - 1) % 7 + 7) % 7;
 // Un corrimiento propio de cada uno (entre −0,4 y +0,4 h): que no se muevan todos juntos.
+// 3.8.9: el horario del banco (lo que dicen el LEEME y el cartel): de lunes a sábado; el sábado con baile cierra antes
+export const HORARIO_BANCO = { manana: [8.5, 12.5], tarde: [14.5, 18], sabadoDeBaile: 16 };
 export function desfaseDe(persona) {
+  if (persona === 'gerente') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra
   let h = 5381;
   for (const ch of String(persona)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
   return ((h % 81) - 40) / 100;
@@ -1987,7 +1990,8 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
       if (t >= 17 && t < 18) return enCasa('trabajo');
     } else if (persona === 'gerente') {
       // 3.8.8: el banco abre de 8:30 a 12:30 y de 14:30 a 18 de lunes a sábado; el gerente atiende detrás del mostrador (el domingo, en su casa)
-      if (ds !== 6 && ((t >= 8.5 && t < 12.5) || (t >= 14.5 && t < 18))) return ir('trabajo', 'banco-pueblo', 'adentro');
+      // 3.8.9: sin corrimiento (ver arriba), y el sábado con el salón abierto cierra a las 16, antes de ir a arreglarse para el baile
+      if (ds !== 6 && ((t >= HORARIO_BANCO.manana[0] && t < HORARIO_BANCO.manana[1]) || (t >= HORARIO_BANCO.tarde[0] && t < (sabadoDeBaile ? HORARIO_BANCO.sabadoDeBaile : HORARIO_BANCO.tarde[1])))) return ir('trabajo', 'banco-pueblo', 'adentro');
     } else if (persona === 'ercilia') {
       // horario de almacén de pueblo: de 8:30 a 12 y de 16 a 20, con siesta en el medio
       // (3.6.2: cierra a las 12 y la siesta es hasta las 15:15: su casa queda a 47 m por la calle, y la ida y la

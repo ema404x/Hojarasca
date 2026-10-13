@@ -62,6 +62,15 @@ const ID = 'banco-pueblo';
   const d = AR.armarEdificio(ID, 4);
   eq([d.ancho, d.fondo], [7.8, 6.4], 'las medidas');
   ok(d.exterior.estructura && d.interior.muebles, 'trae estructura y muebles');
+  // 3.8.9: el horario, en una chapita junto a la puerta (con el mismo horario que el gerente: HORARIO_BANCO)
+  {
+    const HB = A.HORARIO_BANCO, h = (x) => (x % 1 ? `${Math.floor(x)}:${String(Math.round((x % 1) * 60)).padStart(2, '0')}` : String(x));
+    const texto = `${h(HB.manana[0])} a ${h(HB.manana[1])} y ${h(HB.tarde[0])} a ${h(HB.tarde[1])}`;
+    ok(texto === '8:30 a 12:30 y 14:30 a 18', `el horario del cartel sale del horario del gerente (${texto})`);
+    ok(AR.CARTELES_ALDEA.some((c) => c.texto === texto), 'hay una celda del atlas con ese cartel');
+    ok(AR.CARTELES_ALDEA.length <= Math.floor(AR.ATLAS_CARTELES.alto / AR.ATLAS_CARTELES.celdaAlto) * AR.ATLAS_CARTELES.columnas, 'y el atlas alcanza');
+    ok(fsLeer('src/aldea-arquitectura.js').includes("cartel(K, '8:30 a 12:30 y 14:30 a 18', [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.2, 0);"), 'el banco lo cuelga entre la puerta y la ventana de la derecha');
+  }
   ok(d.puntos.nombrados.adentro && d.puntos.nombrados.puerta && d.puntos.nombrados.trabajo && d.puntos.nombrados.cama, 'los puntos con nombre');
   const dentro = (p) => Math.abs(p.lx) < 7.8 / 2 && Math.abs(p.lz) < 6.4 / 2;
   ok(dentro(d.puntos.nombrados.adentro) && dentro(d.puntos.nombrados.cama), 'el gerente atiende y duerme adentro');
@@ -86,6 +95,27 @@ const ID = 'banco-pueblo';
   eq([r(16, 4).edificio, r(16, 4).punto], [ID, 'adentro'], 'a la tarde también');
   ok(r(13.5, 2).lugar !== 'trabajo', 'a la siesta cierra');
   ok(r(10, 6).lugar !== 'trabajo', 'el domingo no atiende');
+  // 3.8.9 (auditoría): el horario del LEEME es el de verdad, minuto a minuto: sin el corrimiento de cada vecino
+  {
+    const HB = A.HORARIO_BANCO;
+    eq([HB.manana, HB.tarde, HB.sabadoDeBaile], [[8.5, 12.5], [14.5, 18], 16], 'el horario del banco: 8:30 a 12:30 y 14:30 a 18 (el sábado con baile, hasta las 16)');
+    const atiende = (h, ds, est) => { const x = A.rutinaAldea('gerente', h, ds, est, 5); return x.lugar === 'trabajo' && x.edificio === ID && x.punto === 'adentro'; };
+    const conSalon = A.aldeaNueva(); conSalon.locales = { salon: 3 };
+    const sinHora = [], conHora = [];
+    for (let m = 0; m < 24 * 60; m += 5) {
+      const h = m / 60;
+      const nominal = (h >= 8.5 && h < 12.5) || (h >= 14.5 && h < 18);
+      for (let ds = 0; ds <= 4; ds++) if (atiende(h, ds, estado) !== nominal) sinHora.push(`${ds}@${h}`);
+      if (atiende(h, 5, estado) !== nominal) sinHora.push(`sáb@${h}`);
+      const sabBaile = (h >= 8.5 && h < 12.5) || (h >= 14.5 && h < 16);
+      if (atiende(h, 5, conSalon) !== sabBaile) conHora.push(`sáb baile@${h}`);
+      if (atiende(h, 6, estado) || atiende(h, 6, conSalon)) sinHora.push(`dom@${h}`);
+    }
+    ok(sinHora.length === 0, `de lunes a viernes y el sábado sin baile atiende justo de 8:30 a 12:30 y de 14:30 a 18 (fallan ${sinHora.slice(0, 4).join(', ')})`);
+    ok(conHora.length === 0, `el sábado con el salón abierto atiende de 8:30 a 12:30 y de 14:30 a 16 (fallan ${conHora.slice(0, 4).join(', ')})`);
+    ok(A.desfaseDe('gerente') === 0 && ['jefe', 'ercilia', 'martin', 'panadera'].every((k) => A.desfaseDe(k) !== 0), 'los demás vecinos siguen con su corrimiento (sólo el gerente va con el reloj del banco)');
+    ok(/if \(persona === 'gerente'\) return 0;/.test(fsLeer('src/aldea.js')), 'aldea.js: el gerente va sin corrimiento (desfaseDe, que usan la rutina, la vecindad y la gente)');
+  }
   eq([r(3, 1).lugar, r(3, 1).edificio, r(3, 1).punto], ['casa', ID, 'cama'], 'de noche duerme en su cama del banco');
   // el sueldo del jefe del banco: charla con el mostrador cuando hay economía (aldea-gente.js ofrece abrirlo)
   const gente = fsLeer('src/aldea-gente.js');

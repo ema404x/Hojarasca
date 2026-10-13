@@ -853,6 +853,8 @@ export const CARTELES_ALDEA = [
   { texto: 'Taller Ferroviario', fondo: '#2e3a4c', tinta: '#e8d8a8' },
   // 3.8.8: el del banco del pueblo (sobre la galería)
   { texto: 'Banco del Pueblo', fondo: '#27382f', tinta: '#e9d79c' },
+  // 3.8.9: el horario del banco, en la pared junto a la puerta (HORARIO_BANCO en aldea.js: 8:30 a 12:30 y 14:30 a 18)
+  { texto: '8:30 a 12:30 y 14:30 a 18', fondo: '#e4ddca', tinta: '#27382f', mano: true },
 ];
 // (3.7.0: 2048 → 2560 de alto, 52 celdas: entran los carteles de la loma y sus lotes)
 export const ATLAS_CARTELES = { ancho: 1024, alto: 2560, celdaAncho: 512, celdaAlto: 96, columnas: 2 };
@@ -4918,6 +4920,8 @@ function bancoDelPueblo(K) {
   caja(K.ext, [0, H + 0.82, D / 2 + 0.15], [0.03, 0.2, 0.02], '#2a2826', { tipo: 4 });
   caja(K.ext, [0.08, H + 0.72, D / 2 + 0.15], [0.16, 0.03, 0.02], '#2a2826', { tipo: 4 });
   cartelGaleria(K, 'Banco del Pueblo', 0, 3.2, 0.5);
+  // el horario de atención, en una chapita junto a la puerta (entre la puerta y la ventana de la derecha)
+  cartel(K, '8:30 a 12:30 y 14:30 a 18', [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.2, 0);
   // las rejas de hierro de las ventanas del frente
   for (const x of [-2.5, 2.5]) for (let i = -4; i <= 4; i++) caja(K.ext, [x + i * 0.12, PISO + 0.9 + 0.7, D / 2 + 0.04], [0.02, 1.4, 0.02], '#26241f', { tipo: 4 });
   // el mostrador de lado a lado, con la tapa de mármol, y la reja de bronce con su ventanilla
@@ -5397,6 +5401,18 @@ function rielesTaller(c, pts, suelo, o = {}) {
   return { izq, der };
 }
 const escalarColor = (k, f) => new THREE.Color(k.r * f, k.g * f, k.b * f);
+// 3.8.9: los tramos del listón que une las tablas y la chapa en una pared de ancho 2·W: de punta a punta, menos los huecos (`{ a, b }` en x)
+// con un margen de cada lado (la puerta y la ventana del cuarto lo cortaban al medio: se veía una madera cruzando la puerta)
+export function tramosDeListon(W, huecos, margen = 0.08, sobra = 0.05) {
+  const tramos = [];
+  let desde = -W - sobra;
+  for (const h of [...huecos].sort((p, q) => p.a - q.a)) {
+    if (h.a - margen - desde > 0.05) tramos.push([desde, h.a - margen]);
+    desde = Math.max(desde, h.b + margen);
+  }
+  if (W + sobra - desde > 0.05) tramos.push([desde, W + sobra]);
+  return tramos;
+}
 export function armarTallerTren(opciones = {}) {
   const T = TALLER_TREN;
   const arreglado = !!opciones.arreglado;
@@ -5470,15 +5486,7 @@ export function armarTallerTren(opciones = {}) {
     paredConHuecos(E, 'x', z, -W, W, F0 + 1.2, AL, huecos, chapaPared, { sup: SUP.chapa, espesor: 0.08 });
     // el listón de unión de las tablas y la chapa: corrido de punta a punta, salvo donde hay un hueco (la puerta y la ventana del cuarto
     // lo cortaban al medio: se veía una madera cruzando la puerta)
-    {
-      const cortes = s > 0 ? [huecoPuerta, ventanaCuarto].sort((p, q) => p.a - q.a) : [];
-      let desde = -W - 0.05;
-      for (const c of [...cortes, { a: W + 0.05, b: W + 0.05 }]) {
-        const hasta = Math.min(c.a - 0.08, W + 0.05);
-        if (hasta - desde > 0.05) caja(E, [(desde + hasta) / 2, F0 + 1.22, z + s * 0.06], [hasta - desde, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
-        desde = c.b + 0.08;
-      }
-    }
+    for (const [desde, hasta] of tramosDeListon(W, s > 0 ? [huecoPuerta, ventanaCuarto] : [])) caja(E, [(desde + hasta) / 2, F0 + 1.22, z + s * 0.06], [hasta - desde, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
     // los marcos y los vidrios de las ventanas altas (la luz entra de verdad)
     for (const xv of xs) {
       for (const yy of [yv0, yv1]) caja(E, [xv, yy, z + s * 0.05], [1.72, 0.08, 0.07], '#d8cfb8', { sup: SUP.nada, abollar: 0 });

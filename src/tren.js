@@ -35,6 +35,7 @@ import { Constructor, matriz, abollar } from './geometria.js';
 import { materialVegetal } from './materiales.js';
 import { prepararMaterialAldea, SUPERFICIES_ALDEA } from './aldea-arquitectura.js';
 import { registrarLuz } from './luces.js';
+import { crearPanoBandera, registrarBandera } from './bandera-viento.js';
 import { mallaCaballo } from './caballo-mundo.js';
 import { VECINOS_ALDEA } from './aldea.js';
 import { bajaSentado, __mallaPersona } from './gente.js';
@@ -879,14 +880,12 @@ function armarLoco(ctx) {
     }
     for (const s of [-1, 1]) barra(c, [0, yb + 0.02, punta], [s * 0.82, yb + 0.02, zp + 0.1], 0.025, '#3a3632', { sup: ST.hierro });
   });
-  // ---- banderines: dos banderas celeste y blanca al frente, y una guirnalda de banderitas de fiesta (del taller)
+  // ---- banderines: los dos mástiles de las banderas celeste y blanca al frente, y una guirnalda de banderitas de fiesta (del taller)
   ctx.pieza('loco.banderines');
   for (const s of [-1, 1]) {
     barra(c, [s * 0.92, 1.12, 3.98], [s * 0.92, 2.05, 3.98], 0.016, K.bronce, { sup: ST.bronce });
     bola(c, [s * 0.92, 2.07, 3.98], [0.03, 0.03, 0.03], K.bronce, { sup: ST.bronce });
-    const ola = (fase) => (v) => { const t = (v.x + 0.21) / 0.42; v.z = Math.sin(t * 5 + fase) * 0.04 * t; };
-    const franjas = [['#8ec3e6', 0.09], ['#f4f1e8', 0.0], ['#8ec3e6', -0.09]];
-    for (const [hex, dy] of franjas) lamina(c, [s * 0.92, 1.88 + dy, 3.98 - 0.21], 0.42, 0.09, hex, { ry: PI / 2, sx: 6, forma: ola(s), sup: SA.adentro, variar: 0.02 });
+    // (3.8.9: el paño de cada banderín ya no va en la malla de la locomotora: es un paño suelto que flamea con el viento y el clima, ver `banderasLoco`)
   }
   {
     const pts = [];
@@ -1626,6 +1625,16 @@ export function armarTren(o = {}) {
   const luzFuego = new THREE.PointLight(0xff8a3a, 0, 6, 1.5);
   g.add(luzCoche, luzFuego);
   registrarLuz(luzFaro); registrarLuz(luzCoche); registrarLuz(luzFuego);
+  // ---- 3.8.9: las dos banderas celeste y blanca de los banderines: paños sueltos (bandera-viento.js) que cuelgan de los mástiles del frente
+  // de la locomotora, flamean con el viento y el clima y se orientan al viento (no van en la malla: se ven sólo con los banderines)
+  const banderasLoco = [-1, 1].map((s) => {
+    const b = registrarBandera(crearPanoBandera(0.42, 0.27, null, { franjas: ['#8ec3e6', '#f4f1e8', '#8ec3e6'], segmentos: [10, 3] }));
+    b.position.set(s * 0.92, 2.015, 3.98);
+    b.rotation.y = PI / 2;   // (de salida, hacia atrás, como antes; el viento la acomoda después)
+    b.visible = false;
+    vagones.loco.o.add(b);
+    return b;
+  });
   // lo que trochita.js toca de los coches de antes (los faroles, la pintura): de mentira
   const falso = () => ({ material: { color: new THREE.Color() } });
   for (const v of Object.values(vagones)) v.o.userData.farol = falso();
@@ -1652,6 +1661,7 @@ export function armarTren(o = {}) {
   }
   function piezas() {
     const l = estado.loco;
+    for (const b of banderasLoco) b.visible = !!l.banderines;
     const nombres = ['', 'loco', 'tender', l.farol ? 'loco.farol' : 'loco.farolViejo', l.farol ? 'loco.haz' : '', l.quitanieves ? 'loco.quitanieves' : 'loco.quitapiedras'];
     if (l.arenero) nombres.push('loco.arenero');
     if (l.banderines) nombres.push('loco.banderines');

@@ -2,7 +2,9 @@
 // Abre index.html (después de `node armar.mjs`), entra al Relax y recorre: el banco en su lugar, el gerente atendiendo detrás del mostrador,
 // el mostrador (préstamo, pago, abastecimiento, casas, puesto), el cierre de cuentas de un día nuevo, un jornal y una etapa de casa con precio.
 // Saca fotos a pruebas/salidas/economia/.
-// Uso: node pruebas/humo-economia.cjs        (necesita playwright: PLAYWRIGHT_BROWSERS_PATH apuntando a un Chromium)
+// OJO: no es parte de la suite de partidas reales (esas son pruebas/humo-*.cjs y corren con Electron): este guion usa Playwright, que no está
+// en package.json (se instala aparte), y por eso vive en herramientas/ y no se corre solo.
+// Uso: node herramientas/partida-real-economia.cjs        (necesita playwright: PLAYWRIGHT_BROWSERS_PATH apuntando a un Chromium)
 const path = require('path');
 const fs = require('fs');
 let chromium;
@@ -172,6 +174,6 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
   }
   await b.close();
   fs.writeFileSync(path.join(salida, 'resumen.txt'), pasos.join('\n') + '\n\nERRORES:\n' + errores.join('\n') + '\n');
-  console.log(errores.length ? `\nFALLÓ (${errores.length}):\n` + errores.join('\n') : '\nOK humo-economia: ' + pasos.length + ' pasos');
+  console.log(errores.length ? `\nFALLÓ (${errores.length}):\n` + errores.join('\n') : '\nOK partida-real-economia: ' + pasos.length + ' pasos');
   process.exit(errores.length ? 1 : 0);
 })();

@@ -1,6 +1,6 @@
-# Plan del sistema de economía (Hojarasca 3.8.8 → 3.9)
+# Plan del sistema de economía (Hojarasca 3.8.8; hecho y decidido)
 
-**Estado (3.8.8): todas las fases están hechas** (1 el peso, 2 el mercado, 3 los jornales, 3b el banco, 4 los pedidos, 5 la propiedad, 6 la aldea viva, 7 el pulido). Lo que se decidió sobre la marcha está en `CAMBIOS_3_8_8.md`: el jornal no gasta tiempo del reloj sino un cupo diario; el gerente es **Amadeo Lezcano**; el interés es 2 % por día (3 % si vence); «conseguirle cosas a muy buen precio» se hizo como **abastecimiento** (+25 a +40 %), **confirmado**; las casas cuestan $36.000, $66.000 y $110.000 de terreno y mano de obra además de los materiales. No se vio en el juego real.
+**Estado (3.8.8): todas las fases están hechas** (1 el peso, 2 el mercado, 3 los jornales, 3b el banco, 4 los pedidos, 5 la propiedad, 6 la aldea viva, 7 el pulido). Lo que se decidió sobre la marcha está en `CAMBIOS_3_8_8.md`: el jornal no gasta tiempo del reloj sino un cupo diario; el gerente es **Amadeo Lezcano**; el interés es 2 % por día (3 % si vence); «conseguirle cosas a muy buen precio» se hizo como **abastecimiento** (+25 a +40 %), **confirmado**; las casas cuestan $36.000, $66.000 y $110.000 de terreno y mano de obra además de los materiales. **Se vio en el juego real** (`herramientas/partida-real-economia.cjs`, 27 pasos: el banco, el gerente, el mostrador, un préstamo, un jornal y una etapa de casa con precio); falta ver las casas terminadas, el alquiler y el puesto propio. Lo de abajo es el plan original; donde dice «propuesta» o «a confirmar» se dejó la decisión final entre paréntesis.
 
 Decidido con el usuario:
 - **Economía viva de la aldea**: locales y vecinos con oferta, demanda y caja propias.
@@ -38,7 +38,7 @@ Decidido con el usuario:
 7. **Migración reversible** hasta que la economía esté probada: la yerba vieja se convierte una sola vez y queda registrada.
 
 ## El banco del pueblo (decidido con el usuario)
-- **Qué hace:** presta pesos con intereses y ofrece negocios: el gerente consigue pedidos "a muy buen precio" (se interpretó como encargos especiales de abastecimiento, mejor pagados que los comunes; **a confirmar**).
+- **Qué hace:** presta pesos con intereses y ofrece negocios: el gerente consigue pedidos "a muy buen precio" (son los pedidos de **abastecimiento**, mejor pagados que los comunes: **confirmado con el usuario**).
 - **Edificio:** banco de pueblo patagónico de piedra (fachada con frontón y columnas, rejas, reloj). Se arma con las mismas herramientas que los demás edificios de la aldea (`aldea-arquitectura.js`).
 - **Personal:** un vecino nuevo, el gerente, con casa, rutina y charla propias.
 - **Cuándo:** desde el principio (edificio inicial, como la estación y el almacén). Sin los pesos (Fase 1) no tiene qué hacer: el edificio y el personal pueden ir antes, pero las funciones llegan con la economía.
@@ -46,14 +46,14 @@ Decidido con el usuario:
 
 **Reglas del préstamo** (propuesta, a ajustar con el simulador):
 - Tope según la reputación con el banco (crece con las entregas y las cuotas pagadas); el primer préstamo es chico.
-- Interés diario simple (propuesta: 2 % por día; un año del juego son 12 días, así que un préstamo a un año cuesta 24 %). Cuota diaria o pago libre.
-- Sin embargos ni pérdida de casas: si no se paga, el gerente deja de prestar, sube el interés y baja la reputación. El Relax no castiga con ruina.
+- Interés de 2 % **por día sobre el saldo** (**decidido**; un año del juego son 12 días: un préstamo de $3.000 a un año devuelve $3.810, un 27 %, porque se compone). **Pago libre** (de a poco o todo junto), sin cuota diaria.
+- Sin embargos ni pérdida de casas (**confirmado con el usuario**): si no se paga a tiempo, el interés pasa al 3 %, el banco pierde confianza y no presta hasta que saldes; el alquiler que cobrás paga primero la deuda. El Relax no castiga con ruina.
 - Un solo préstamo a la vez al principio.
 - El gerente avisa antes de cada vencimiento.
 
 **Los negocios con el banco:**
 - Pedidos de abastecimiento: el banco necesita X (tablas, lana, harina…) para sus clientes y paga por encima del mercado, con plazo.
-- Se apoyan en el mercado (Fase 2) y en los encargos (Fase 4): el pago "muy bueno" es una prima sobre el precio de mercado de hoy (propuesta: +25 % a +40 %, con tope diario para que no sea una máquina de plata).
+- Se apoyan en el mercado (Fase 2) y en los encargos (Fase 4): el pago "muy bueno" es una prima sobre el precio de mercado de hoy (**decidido**: +25 % a +40 % según la confianza del banco, un pedido por ventana de dos días para que no sea una máquina de plata).
 
 **Riesgo propio del banco:** un préstamo con interés bajo y un negocio con prima alta pueden formar un ciclo de ganancia (pedir prestado → cumplir el pedido → repagar). El simulador lo prueba antes de soltarlo.
 
@@ -97,18 +97,17 @@ Decidido con el usuario:
 
 ## Números de partida (a ajustar con el simulador)
 - $100 por yerba. Poncho ≈ $2.000; tabla ≈ $100; tronco ≈ $150; lana ≈ $300.
-- Un jornal ≈ $1.500; un encargo ≈ $400 a $2.500; alquiler de un cuarto ≈ $150 a $400 por día.
-- Casas: a decidir en la Fase 5 (hay que subir el costo por encima de los materiales; ver el punto 2 de arriba).
+- **Final (3.8.8):** un jornal paga de $700 a $1.300 de base (+10 % cada tres jornales del oficio, hasta +50 %); los pedidos pagan de 10 a 22 % más de lo que valen (hasta +27 % con la rapidez); el alquiler es $300, $500 y $800 por día según la casa.
+- **Casas (Fase 5):** $36.000, $66.000 y $110.000 de terreno y mano de obra, más los materiales; con todo junto, un jugador goloso ahorra ≈ $3.230 por día (`herramientas/simulador-negocios.mjs`): la cabaña en ≈ 15 días (1,2 años del juego), la casa con galería en ≈ 26 y la casona en ≈ 42.
 
 ## Riesgos
 - **Arbitraje:** comprar barato en un local y vender caro en otro. El simulador lo busca antes de cada fase.
 - **Inflación:** si hay plata y nada en qué gastarla, deja de importar. Los terrenos y las casas son el pozo principal.
 - **Migración:** la conversión de yerba toca partidas ya guardadas. Se prueba con guardados viejos antes de soltarla.
 - **Peso del cálculo:** el cierre diario recorre unos 25 locales; es barato, pero se mide.
-- **No se probó en el juego real:** todo se verifica en Node y con vistas previas.
+- **Poco visto en el juego real:** casi todo se verifica en Node; se recorrió una partida real automática (ver arriba), pero no las casas terminadas ni el alquiler.
 
-## Qué falta decidir en la Fase 1
-- Si el saldo se muestra siempre en el HUD o sólo en un panel.
-- El nombre exacto de la moneda ("pesos") y cómo se escriben los montos ($1.200).
-- Si la billetera tiene tope.
-- Para el banco: el nombre del gerente (y si es hombre o mujer), el interés exacto, y qué quiere decir "conseguirle cosas a muy buen precio" (ver arriba).
+## Lo que había que decidir en la Fase 1 (todo decidido)
+- El saldo se ve en una línea del HUD cuando hay plata o un cambio reciente, y siempre en la pausa, en «Billetera y movimientos».
+- La moneda es el peso y los montos se escriben $1.200. La billetera tiene techo (sin saldos negativos ni decimales).
+- El gerente es **Amadeo Lezcano**; el interés es 2 % por día (3 % si vence); y «conseguirle cosas a muy buen precio» es el abastecimiento.

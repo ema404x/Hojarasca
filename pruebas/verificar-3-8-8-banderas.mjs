@@ -4,7 +4,8 @@
 //   · el paño trae sus atributos (a, b, L, A y los ejes) bien calculados;
 //   · el material engancha el viento, la lluvia y el tiempo del clima y conserva la niebla de siempre;
 //   · una bandera se orienta con el viento (con cualquier giro de base y del padre) y lo sigue cuando cambia;
-//   · todas están conectadas: las de la aldea (plaza, escuela, seccional) y las dos de la casa de té; y la de adentro, no.
+//   · todas están conectadas: las de la aldea (plaza, escuela, seccional), las dos de la casa de té y (3.8.9, auditoría) tu bandera del
+//     refugio y las banderitas de las torres, las dos de la locomotora y los banderines de los postes de largada; y la de adentro, no.
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
@@ -95,5 +96,38 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   ok(/lienzoTextura\(380, 248, banderaGalesa\)/.test(est), 'la bandera galesa de la pared de adentro sigue quieta (es un cuadro)');
   for (const f of ['src/bandera-viento.js']) for (const m of leer(f).matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(m[0]), `import en una línea: ${m[0]}`);
   for (const m of leer('src/bandera-viento.js').matchAll(/^export\s+(?:const|let|function|class)\s+([^\s(=]+)/gm)) ok(!/ñ/i.test(m[1]), `exportado sin ñ: ${m[1]}`);
+}
+// ---------------------------------------------------------------- 6. (3.8.9) las que faltaban: tu bandera, la locomotora y la largada
+{
+  // el giro del padre cuenta en el mundo: el mástil del refugio cuelga de un grupo que cuelga de otro girado
+  const abuelo = new THREE.Group(); abuelo.rotation.y = 1.3;
+  const padre = new THREE.Group(); padre.rotation.y = 0.4; abuelo.add(padre);
+  const g = new THREE.Group(); padre.add(g);
+  for (let i = 0; i < 400; i++) B.orientarBandera(g, 0, 0.1, 1.0, i * 0.1);
+  g.updateWorldMatrix(true, false);
+  const e = g.matrixWorld.elements, mundo = Math.atan2(e[8], e[0]);
+  let d = mundo - B.ANGULO_VIENTO; d = Math.atan2(Math.sin(d), Math.cos(d));
+  ok(Math.abs(d) < 0.3, `con dos padres girados apunta con el viento en el mundo (error ${d.toFixed(2)} rad)`);
+  // las que se arman y se desarman (las banderitas de las torres) se pueden soltar del registro
+  const x = new THREE.Group(); const antes = B.cuantasBanderas();
+  B.registrarBandera(x, 0);
+  ok(B.cuantasBanderas() === antes + 1 && B.quitarBandera(x) === true && B.cuantasBanderas() === antes && B.quitarBandera(x) === false, 'quitarBandera la suelta una sola vez');
+  // el paño con franjas lleva una textura de datos de una columna (la locomotora no tiene lienzo)
+  const f = B.crearPanoBandera(0.42, 0.27, null, { franjas: ['#8ec3e6', '#f4f1e8', '#8ec3e6'], segmentos: [10, 3] });
+  const m = f.children[0], tx = m.material.map;
+  ok(tx && tx.isDataTexture && tx.image.width === 1 && tx.image.height === 3 && tx.magFilter === 1003 && tx.minFilter === 1003, 'las franjas van en una textura de datos de 1×3, sin suavizado (filtro del más cercano: 1003)');
+  const px = (k) => Array.from(tx.image.data.slice(k * 4, k * 4 + 4));
+  ok(px(0)[0] < 200 && px(1)[0] > 230 && px(2)[0] < 200 && px(1)[3] === 255, 'celeste arriba y abajo, blanco al medio (la fila 0 es la de abajo)');
+  // las tres tuberías: cada una arma su paño con el flameo del clima y lo registra
+  const pm = leer('src/personal-bandera-mundo.js');
+  ok(pm.includes("import { crearPanoBandera, materialBandera, registrarBandera, quitarBandera } from './bandera-viento.js';") && pm.includes('registrarBandera(crearPanoBandera('), 'tu bandera (el refugio) usa el paño de bandera-viento.js');
+  ok(!/function ondear|pos\.needsUpdate|computeVertexNormals/.test(pm), 'y ya no tiene la onda propia en la CPU');
+  ok(/quitarBandera\(g\.userData\.pano\);/.test(pm) && /g\.traverse\(\(m\) => \{ if \(m\.isMesh\) m\.geometry\.dispose\(\); \}\);/.test(pm), 'la banderita de una torre que se desarma se suelta del registro y de la memoria');
+  const tr = leer('src/tren.js');
+  ok(tr.includes("import { crearPanoBandera, registrarBandera } from './bandera-viento.js';") && /const banderasLoco = \[-1, 1\]\.map\(/.test(tr) && tr.includes('for (const b of banderasLoco) b.visible = !!l.banderines;'), 'la locomotora: dos paños sueltos, que se ven con los banderines');
+  ok(!tr.includes('const ola = (fase)'), 'y ya no van en la malla con la onda fija');
+  const ca = leer('src/carreras-mundo.js');
+  ok(/registrarBandera\(crearPanoBandera\(0\.9, 0\.55, null, \{ material: matBanderin\(c\.medio\)/.test(ca) && !ca.includes('geoBanderin'), 'los banderines de los postes de largada flamean');
+  for (const f2 of ['src/personal-bandera-mundo.js', 'src/carreras-mundo.js']) for (const mm of leer(f2).matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(mm[0]), `import en una línea: ${mm[0]}`);
 }
 console.log(`verificar-3-8-8-banderas: ${n} verificaciones ok`);

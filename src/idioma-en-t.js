@@ -292,4 +292,12 @@ export const EN_T = {
   "Amadeo quiere tomar mate con usted": "Amadeo wants to have mate with you",
   "Me tomaría un mate en su mesa, mirando otra cosa que las cuentas. Para variar.": "I'd have a mate at your table, looking at something other than accounts. For a change.",
   "Buen mate, sin interés ni comisión. El próximo lo cebo yo, en el banco.": "Good mate, no interest or commission. I'll brew the next one, at the bank.",
+  "Acá no hay aldea, banco ni pesos: eso es del modo Relax.": "There is no village, bank or pesos here: those are in Relax mode.",
+  "En el Relax están la aldea (se llega en tren), el mercado, el banco del pueblo y tus pesos.": "Relax mode has the village (you get there by train), the market, the village bank and your pesos.",
+  "En la aldea, saliendo de la plaza hacia el este, está el Banco del Pueblo (también en el mapa): Amadeo presta pesos, paga bien lo que le llevás y vende casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18": "In the village, heading east out of the square, is the Village Bank (also on the map): Amadeo lends pesos, pays well for what you bring him and sells houses. Open Monday to Saturday, 8:30 to 12:30 and 2:30 to 6",
+  "Los pesos": "Pesos",
+  "En la Aldea de los Duendes (la trochita del sur) todo se paga en pesos: lo que vendés en los puestos, los jornales y los pedidos de los vecinos. Tu plata se ve en la pausa, en «Billetera y movimientos».": "In the Aldea de los Duendes (the southern stop of the trochita) everything is paid in pesos: what you sell at the stalls, day jobs and the neighbors' orders. You can see your money in the pause menu, under “Wallet and movements”.",
+  "Al este de la plaza de la aldea (también en el mapa). Amadeo presta pesos, compra cosas a buen precio y vende las etapas de las casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18.": "East of the village square (also on the map). Amadeo lends pesos, buys things at a good price and sells the stages of the houses. Open Monday to Saturday, 8:30 to 12:30 and 2:30 to 6.",
+  "Banco del Pueblo": "Village Bank",
+  "El Banco del Pueblo": "The Village Bank",
 };

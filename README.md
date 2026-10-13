@@ -4,8 +4,15 @@ Un bosque andino patagónico para recorrer despacio, en primera persona. Todo se
 
 
 
-## 3.8.8 — La escalera de casas
+## 3.8.9 — La auditoría de la entrega
 
+Después de una auditoría independiente del paquete de la 3.8.8: el juego ahora **lleva hasta el Banco del Pueblo** (una pista al llegar a la aldea, el rótulo en el mapa, la guía F1 y un cartel con el horario junto a la puerta; el gerente atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18), más banderas flamean con el viento (tu bandera, las de la locomotora y los postes de largada), la portada muestra la **versión y la huella del build** (para distinguir un paquete nuevo de uno viejo) y avisa en la portada que la aldea, el banco y los pesos son del modo Relax. Si ya hay otro Hojarasca abierto, la segunda copia lo dice en vez de cerrarse sola. Detalles: `CAMBIOS_3_8_9.md`.
+
+## 3.8.8 — La economía del pueblo y la escalera de casas
+
+**La economía (sólo en el Relax):** el peso reemplaza a la yerba como moneda (billetera en la pausa), cada puesto tiene su mercado con oferta y demanda, los vecinos ofrecen **jornales** y **pedidos** con reputación, la aldea tiene su caja y sus eventos del día, y el **Banco del Pueblo** —con su gerente, Amadeo Lezcano— presta pesos, compra cosas a buen precio y vende las casas por etapas (también hay alquiler y un puesto propio). Detalles: `CAMBIOS_3_8_8.md` y `PLAN_ECONOMIA.md`. También llegaron 31 muebles nuevos, la casa de té amueblada y con banderas, el arroyo y la cascada corregidos, y el taller ferroviario arreglado.
+
+**La escalera de casas:** 
 Tres casas prefabricadas más grandes que la casilla y el puesto de troncos, para ir creciendo de a poco: la cabaña de tablas y piedra (6,0 × 4,6 m), la casa con galería (7,8 × 5,6 m) y la casona de dos cuartos (9,6 × 6,4 m). Se levantan por etapas, se duerme adentro y traen su cama, su mesa, su hogar de piedra, ventanas y, las dos grandes, galería con baranda. Detalles: `CAMBIOS_3_8_8.md`. También: un aviso en pantalla de lo que falta para el próximo vecino de la aldea, el reloj de la plaza y el almanaque de la biblioteca (con **E** dan la hora y el día) y un reloj de bolsillo y un almanaque de pared propios que se cambian en el almacén.
 
 ## 2.6.0 — El fortín

@@ -84,11 +84,15 @@ export function prepararPano(geo, { along = [1, 0, 0], lat = [0, 0, 1], esquina 
 }
 // Un paño suelto (la bandera de un mástil de la casa de té): un grupo cuyo origen es la esquina de arriba junto al mástil, con el
 // paño hacia +x. Se gira con `orientarBandera`.
-export function crearPanoBandera(L, A, textura) {
-  const g = new THREE.PlaneGeometry(L, A, 28, 8);
+// 3.8.9: `material` (opcional): uno compartido por varios paños (tu bandera y las banderitas de las torres); `segmentos`: [a lo largo, a lo alto]
+// `franjas` (opcional): colores de arriba hacia abajo, en franjas horizontales iguales, con una textura de datos de una columna (sin
+// lienzo: sirve en la locomotora y en Node)
+export function crearPanoBandera(L, A, textura, { material = null, segmentos = [28, 8], franjas = null } = {}) {
+  const g = new THREE.PlaneGeometry(L, A, segmentos[0], segmentos[1]);
   g.translate(L / 2, -A / 2, 0);
   prepararPano(g, { along: [1, 0, 0], lat: [0, 0, 1], esquina: [0, 0, 0], L, A });
-  const mat = materialBandera({ map: textura });
+  if (franjas?.length && !textura) textura = texturaDeFranjas(franjas);
+  const mat = material || materialBandera({ map: textura });
   const malla = new THREE.Mesh(g, mat);
   malla.castShadow = false; malla.frustumCulled = false;
   const grupo = new THREE.Group();
@@ -96,14 +100,34 @@ export function crearPanoBandera(L, A, textura) {
   return grupo;
 }
 
+// una columna de píxeles por franja (la de arriba al final: la fila 0 de una textura es la de abajo), sin suavizado
+function texturaDeFranjas(franjas) {
+  const n = franjas.length, datos = new Uint8Array(n * 4), c = new THREE.Color();
+  franjas.forEach((hex, k) => { c.set(hex); datos.set([Math.round(c.r * 255), Math.round(c.g * 255), Math.round(c.b * 255), 255], (n - 1 - k) * 4); });
+  const t = new THREE.DataTexture(datos, 1, n, THREE.RGBAFormat);
+  // (una DataTexture ya viene sin suavizado: los dos filtros, en el más cercano)
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.needsUpdate = true;
+  return t;
+}
+
 // ---------------------------------------------------------------- orientación
 // Gira el objeto (un grupo en el mástil) sobre Y para que su paño apunte con el viento. `giroBase`: hacia dónde apunta el paño con el
 // objeto sin girar (en el marco del padre); el giro del padre se toma de `objeto.parent`. Con poco viento sigue más flojo y cambia de
 // lado con un vaivén lento; con viento fuerte, firme.
+// (3.8.9: el giro del padre en el mundo —no sólo el suyo—: el mástil del refugio cuelga de un grupo que cuelga del refugio, que está girado)
+function giroDelPadre(objeto) {
+  const p = objeto.parent;
+  if (!p) return 0;
+  if (typeof p.updateWorldMatrix !== 'function') return p.rotation?.y || 0;
+  p.updateWorldMatrix(true, false);
+  const e = p.matrixWorld.elements;
+  return Math.atan2(e[8], e[0]);
+}
 export function orientarBandera(objeto, giroBase, dt, viento = U.uViento.value, t = U.uTiempo.value) {
   const firme = Math.min(1, Math.max(0, (viento - 0.1) / 0.7));
   const vaiven = Math.sin(t * 0.31 + (objeto.id || 0) * 1.7) * (0.55 - 0.4 * firme) + Math.sin(t * 0.83 + (objeto.id || 0)) * 0.12 * (1 - firme);
-  const objetivo = ANGULO_VIENTO + vaiven - giroBase - (objeto.parent ? objeto.parent.rotation.y : 0);
+  const objetivo = ANGULO_VIENTO + vaiven - giroBase - giroDelPadre(objeto);
   let d = objetivo - objeto.rotation.y;
   d = Math.atan2(Math.sin(d), Math.cos(d));
   objeto.rotation.y += d * Math.min(1, dt * (0.5 + 2.5 * firme));
@@ -111,5 +135,7 @@ export function orientarBandera(objeto, giroBase, dt, viento = U.uViento.value, 
 // Las banderas sueltas (las de la casa de té) se registran y se orientan juntas, una vez por cuadro.
 const SUELTAS = [];
 export function registrarBandera(grupo, giroBase = 0) { SUELTAS.push({ grupo, giroBase }); return grupo; }
+// (3.8.9: las banderitas de las torres se arman y se desarman en el juego)
+export function quitarBandera(grupo) { const i = SUELTAS.findIndex((b) => b.grupo === grupo); if (i >= 0) SUELTAS.splice(i, 1); return i >= 0; }
 export function actualizarBanderas(dt) { for (const b of SUELTAS) orientarBandera(b.grupo, b.giroBase, dt); }
 export const cuantasBanderas = () => SUELTAS.length;
