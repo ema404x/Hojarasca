@@ -356,4 +356,21 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   ok([...textos].every((t) => !/\{\d\}|undefined|null|NaN/.test(t) || /\{0\}|\{1\}/.test(t)), 'ningún texto con undefined ni NaN (los {0} son moldes)');
 }
 
+// ---------------------------------------------------------------- 8. todo src/*.js se puede leer (una llave sin cerrar rompió el juego armado y ninguna otra prueba lo vio)
+{
+  const { spawnSync } = await import('node:child_process');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chk-'));
+  const malos = [];
+  for (const f of fs.readdirSync(new URL('../src/', import.meta.url)).filter((x) => x.endsWith('.js'))) {
+    const tmp = path.join(dir, f.slice(0, -3) + '.mjs');
+    fs.copyFileSync(new URL('../src/' + f, import.meta.url), tmp);
+    const r = spawnSync(process.execPath, ['--check', tmp], { encoding: 'utf8' });
+    if (r.status !== 0) malos.push(f + ': ' + (r.stderr || '').split(String.fromCharCode(10)).find((l) => /Error/.test(l)));
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+  ok(malos.length === 0, 'node --check de todos los src/*.js: ' + (malos.join(' | ') || 'bien'));
+}
+
 console.log(`OK 3.9.2 cantina y casa de té · ${n} verificaciones`);

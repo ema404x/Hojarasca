@@ -265,7 +265,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     if (d > RADIO_CANTINA) {
       // lejos: nada de esto se ve; se levanta la mesa y se suelta a la moza
       if (ses) terminarVisita();
-      if (limpieza || servidos.size || controla) { limpieza = null; servidos.clear(); soltar(); ctx.visual?.limpiarTodo?.(); }
+      if (limpieza || servidos.size || controla) { limpieza = null; servidos.clear(); soltar(); if (L.esCantina) ctx.visual?.limpiarTodo?.(); else for (const m of mesas) ctx.visual?.quitarDeMesa?.(m); }   // (la casa de té saca sólo lo suyo: lo de la cantina y los parroquianos no)
       return;
     }
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;

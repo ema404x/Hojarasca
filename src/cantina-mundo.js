@@ -13,7 +13,7 @@ export function crearCantinaMundo(ctx) {
   const escena = ctx.escena;
   const geos = new Map(), mats = new Map();
   const geo = (clave, hace) => { let g = geos.get(clave); if (!g) { g = hace(); geos.set(clave, g); } return g; };
-  const mat = (color, opts = {}) => { const k = `${color}|${opts.opacidad ?? 1}`; let m = mats.get(k); if (!m) { m = new THREE.MeshLambertMaterial({ color, emissive: new THREE.Color(color).multiplyScalar(0.22), ...(opts.opacidad < 1 ? { transparent: true, opacity: opts.opacidad } : {}) }); mats.set(k, m);   // (3.9.2: un resplandor propio chico: de noche, adentro, lo que hay en la mesa no se va a negro) } return m; };
+  const mat = (color, opts = {}) => { const k = `${color}|${opts.opacidad ?? 1}`; let m = mats.get(k); if (!m) { m = new THREE.MeshLambertMaterial({ color, emissive: new THREE.Color(color).multiplyScalar(0.22), ...(opts.opacidad < 1 ? { transparent: true, opacity: opts.opacidad } : {}) }); mats.set(k, m); } return m; };   // (3.9.2: con un resplandor propio chico: de noche, adentro, lo que hay en la mesa no se va a negro)
   const mesh = (g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = false; o.receiveShadow = false; return o; };
   const cilindro = (r0, r1, h, lados = 8) => geo(`cil|${r0}|${r1}|${h}|${lados}`, () => new THREE.CylinderGeometry(r1, r0, h, lados, 1));
   const caja = (x, y, z) => geo(`caja|${x}|${y}|${z}`, () => new THREE.BoxGeometry(x, y, z));
