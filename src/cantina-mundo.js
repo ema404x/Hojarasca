@@ -4,6 +4,7 @@
 // Barato: geometrías y materiales compartidos, un grupo por cosa servida (a lo sumo uno por mesa), nada de luces ni de sombras propias.
 import * as THREE from 'three';
 import { vozDe, planBalbuceo } from './social-voz.js';
+import { crearFormasNuevas } from './cantina-formas.js';
 
 const GRIS = '#b8d4cc';
 const MESA_Y = 0.32 + 0.78;   // el piso de adentro más la altura de la mesa (aldea-arquitectura.js: PISO + 0,76 + el mantel)
@@ -12,7 +13,7 @@ export function crearCantinaMundo(ctx) {
   const escena = ctx.escena;
   const geos = new Map(), mats = new Map();
   const geo = (clave, hace) => { let g = geos.get(clave); if (!g) { g = hace(); geos.set(clave, g); } return g; };
-  const mat = (color, opts = {}) => { const k = `${color}|${opts.opacidad ?? 1}`; let m = mats.get(k); if (!m) { m = new THREE.MeshLambertMaterial({ color, ...(opts.opacidad < 1 ? { transparent: true, opacity: opts.opacidad } : {}) }); mats.set(k, m); } return m; };
+  const mat = (color, opts = {}) => { const k = `${color}|${opts.opacidad ?? 1}`; let m = mats.get(k); if (!m) { m = new THREE.MeshLambertMaterial({ color, emissive: new THREE.Color(color).multiplyScalar(0.22), ...(opts.opacidad < 1 ? { transparent: true, opacity: opts.opacidad } : {}) }); mats.set(k, m); } return m; };   // (3.9.2: con un resplandor propio chico: de noche, adentro, lo que hay en la mesa no se va a negro)
   const mesh = (g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = false; o.receiveShadow = false; return o; };
   const cilindro = (r0, r1, h, lados = 8) => geo(`cil|${r0}|${r1}|${h}|${lados}`, () => new THREE.CylinderGeometry(r1, r0, h, lados, 1));
   const caja = (x, y, z) => geo(`caja|${x}|${y}|${z}`, () => new THREE.BoxGeometry(x, y, z));
@@ -86,11 +87,14 @@ export function crearCantinaMundo(ctx) {
       return g;
     },
   };
+  // 3.9.2: los platos y bebidas nuevos de la cantina y de la casa de té (cantina-formas.js)
+  Object.assign(FORMAS, crearFormasNuevas({ mesh, mat, cilindro, caja, bola, geo, GRIS }));
+  const matBocado = new THREE.MeshLambertMaterial({ color: '#c8863a' });
   const tenedor = (() => {
     const g = new THREE.Group();
     g.add(mesh(caja(0.012, 0.008, 0.14), mat('#b8b8b0'), 0, 0, 0.07));
     g.add(mesh(caja(0.03, 0.006, 0.03), mat('#b8b8b0'), 0, 0, -0.01));
-    const b = mesh(bola(0.02), mat('#c8863a'), 0, 0.016, -0.01); b.name = 'bocado'; g.add(b);
+    const b = mesh(bola(0.02), matBocado, 0, 0.016, -0.01); b.name = 'bocado'; g.add(b);
     g.visible = false;
     return g;
   })();
@@ -101,7 +105,10 @@ export function crearCantinaMundo(ctx) {
   // dónde queda lo tuyo en la mesa: adelante tuyo, apenas corrido a la derecha
   function lugarEnMesa(silla) {
     const dx = Math.sin(silla.mira), dz = Math.cos(silla.mira);
-    return new THREE.Vector3(silla.x + dx * 0.5 + dz * 0.1, ctx.pisoY ? ctx.pisoY() + 0.78 : MESA_Y, silla.z + dz * 0.5 - dx * 0.1);
+    // (3.9.2: cada mesa trae su altura: la de la galería de la casa de té no es la del salón ni la de la cantina)
+    const y = Number.isFinite(silla.mesa?.y) ? silla.mesa.y : ctx.pisoY ? ctx.pisoY() + 0.78 : MESA_Y;
+    const k = Number.isFinite(silla.mesa?.adelante) ? silla.mesa.adelante : 0.5;   // (a qué distancia de la silla: en la casa de té queda un poco más cerca, por lo que ya hay sobre las mesas)
+    return new THREE.Vector3(silla.x + dx * k + dz * 0.1, y, silla.z + dz * k - dx * 0.1);
   }
   function ponerEnMesa(mesa, silla, item, restantes) {
     quitarDeMesa(mesa);
@@ -112,29 +119,69 @@ export function crearCantinaMundo(ctx) {
     escena.add(g);
     // el posavasos de cuero (queda en la mesa cuando el vaso sube): se ve sobre el mantel
     let posavasos = null;
-    if (/^(vaso|jarra|taza)$/.test(item.forma)) { posavasos = mesh(cilindro(0.062, 0.062, 0.006, 12), mat('#3a2418'), base.x, base.y + 0.003, base.z); escena.add(posavasos); }
-    const piezas = g.children.filter((c) => /^pieza-/.test(c.name));
-    enMesa.set(mesa.id, { g, item, silla, base, total: item.porciones, piezas, posavasos });
+    if (/^(vaso|vaso-alto|jarra|taza)$/.test(item.forma)) { posavasos = mesh(cilindro(0.062, 0.062, 0.006, 12), mat('#3a2418'), base.x, base.y + 0.003, base.z); escena.add(posavasos); }
+    const piezas = []; g.traverse((c) => { if (/^pieza-/.test(c.name)) piezas.push(c); });
+    // lo caliente echa vapor (tres volutas que suben de la taza o el plato)
+    const vapor = item.caliente ? crearVapor(g) : null;
+    enMesa.set(mesa.id, { g, item, silla, base, total: item.porciones, piezas, posavasos, vapor, f: 1 });
     nivel(mesa, restantes, item);
   }
   function quitarDeMesa(mesa) {
     const e = enMesa.get(mesa.id);
     if (!e) return;
     escena.remove(e.g); if (e.posavasos) escena.remove(e.posavasos);
+    if (e.vapor) for (const v of e.vapor) escena.remove(v);
     enMesa.delete(mesa.id);
     if (sorbo && sorbo.e === e) cancelarSorbo();
   }
-  function limpiarTodo() { for (const e of [...enMesa.values()]) { escena.remove(e.g); if (e.posavasos) escena.remove(e.posavasos); } enMesa.clear(); cancelarSorbo(); }
+  function limpiarTodo() { for (const e of [...enMesa.values()]) { escena.remove(e.g); if (e.posavasos) escena.remove(e.posavasos); if (e.vapor) for (const v of e.vapor) escena.remove(v); } enMesa.clear(); cancelarSorbo(); }
   // Lo que queda: el líquido baja y las piezas se van comiendo
   function nivel(mesa, restantes) {
     const e = enMesa.get(mesa.id);
     if (!e) return;
     const f = Math.max(0, Math.min(1, restantes / e.total));
+    e.f = f;
     const liq = e.g.userData.liquido;
     if (liq) { liq.scale.y = Math.max(0.02, f); liq.position.y = (liq.userData.y0 ??= liq.position.y) - (e.g.userData.altoLiquido * (1 - f)) / 2; liq.visible = f > 0.01; }
     if (e.g.userData.espuma) e.g.userData.espuma.visible = f > 0.4;
     const n = e.piezas.length;
     if (n) { const quedan = Math.ceil(n * f); e.piezas.forEach((p, i) => { p.visible = i < quedan; }); }
+  }
+
+  // ---------------------------------------------------------------- 3.9.2: el vapor de lo caliente
+  // (una voluta blanda: un círculo difuso dibujado por código; sin DOM —en las pruebas—, un cuadradito translúcido)
+  const texVapor = (() => { try { if (typeof document === 'undefined') return null; const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'); const r = g.createRadialGradient(16, 16, 1, 16, 16, 15); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); } catch { return null; } })();
+  const matVapor = new THREE.MeshBasicMaterial({ color: '#f4f0e8', transparent: true, opacity: texVapor ? 0.5 : 0.16, depthWrite: false, ...(texVapor ? { map: texVapor } : {}) });
+  const planoVapor = new THREE.PlaneGeometry(0.07, 0.09);
+  function crearVapor(g) {
+    const o = g.userData.vapor || [0, (g.userData.boca || 0.08) + 0.01, 0];
+    const lista = [];
+    for (let i = 0; i < 3; i++) {
+      const m = new THREE.Mesh(planoVapor, matVapor);
+      m.userData = { fase: i / 3, ox: o[0], oy: o[1], oz: o[2] };
+      m.castShadow = false; m.receiveShadow = false; m.visible = false; m.frustumCulled = false;
+      escena.add(m); lista.push(m);
+    }
+    return lista;
+  }
+  const vp = new THREE.Vector3();
+  let relojVapor = 0;
+  function moverVapor(dt, camara) {
+    if (!camara) return;
+    relojVapor += dt;
+    for (const e of enMesa.values()) {
+      if (!e.vapor) continue;
+      const cerca = e.f > 0.02 && Math.hypot(camara.position.x - e.base.x, camara.position.z - e.base.z) < 9 && !(sorbo && sorbo.e === e);
+      for (const m of e.vapor) {
+        m.visible = cerca;
+        if (!cerca) continue;
+        const u = (relojVapor * 0.35 + m.userData.fase) % 1;
+        vp.set(m.userData.ox, m.userData.oy + u * 0.2, m.userData.oz).applyEuler(e.g.rotation);
+        m.position.set(e.base.x + vp.x + Math.sin(relojVapor * 1.7 + m.userData.fase * 9) * 0.012, e.base.y + vp.y, e.base.z + vp.z);
+        m.scale.setScalar(0.6 + u * 1.5);
+        m.quaternion.copy(camara.quaternion);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- el sorbo y el bocado
@@ -146,26 +193,35 @@ export function crearCantinaMundo(ctx) {
     const e = enMesa.get(mesa.id);
     if (!e) return;
     cancelarSorbo();
-    sorbo = { e, t: 0, comida: item.tipo === 'comida', base: e.base.clone() };
-    if (sorbo.comida) { tenedor.visible = true; tenedor.position.copy(e.base); }
+    sorbo = { e, t: 0, comida: item.tipo === 'comida', base: e.base.clone(), alz: null };
+    if (sorbo.comida) { matBocado.color.set(item.color || '#c8863a'); tenedor.visible = true; tenedor.position.copy(e.base); }
+    // (3.9.2: en la tetera y el mate sube sólo la taza o la calabaza: se saca un rato del grupo y vuelve al terminar)
+    else if (e.g.userData.alzable) {
+      const alz = e.g.userData.alzable;
+      sorbo.alz = alz; sorbo.alzLocal = alz.position.clone();
+      escena.attach(alz);
+      sorbo.base.copy(alz.position);
+    }
   }
   function cancelarSorbo() {
     if (!sorbo) return;
     const { e } = sorbo;
-    e.g.position.copy(e.base); e.g.rotation.set(0, e.silla.mira, 0);
+    if (sorbo.alz) { e.g.add(sorbo.alz); sorbo.alz.position.copy(sorbo.alzLocal); sorbo.alz.rotation.set(0, 0, 0); sorbo.alz.quaternion.identity(); }
+    else { e.g.position.copy(e.base); e.g.rotation.set(0, e.silla.mira, 0); }
     tenedor.visible = false;
     sorbo = null;
   }
   // 0 → 1 → 0: sube a la boca, se queda un instante y vuelve
   const curva = (u) => { const s = u < 0.45 ? u / 0.45 : u < 0.58 ? 1 : 1 - (u - 0.58) / 0.42; const x = Math.max(0, Math.min(1, s)); return x * x * (3 - 2 * x); };
   function actualizar(dt, camara) {
+    moverVapor(dt, camara);
     if (sorbo && camara) {
       sorbo.t += dt;
       const u = Math.min(1, sorbo.t / DUR), k = curva(u);
       // la boca: adelante de la cámara y un poco abajo
       camara.getWorldDirection(adelante);
       b.copy(camara.position).addScaledVector(adelante, 0.32); b.y -= 0.1;
-      const objeto = sorbo.comida ? tenedor : sorbo.e.g;
+      const objeto = sorbo.comida ? tenedor : sorbo.alz || sorbo.e.g;
       a.copy(sorbo.base); if (sorbo.comida) a.y += 0.03;
       objeto.position.lerpVectors(a, b, k);
       // mirando para donde mirás (sólo el giro) y, el vaso, inclinándose hacia la boca
@@ -181,13 +237,31 @@ export function crearCantinaMundo(ctx) {
   }
 
   // ---------------------------------------------------------------- la bandeja de la moza (la malla es de gente-cuerpo.js)
+  // 3.9.2: lo que lleva se ve de verdad (el vaso, la tetera con su taza, el plato del día) sobre la bandeja de la moza o de la galesa: se arman como en la mesa, más chicos, y se
+  // cuelgan del grupo de la bandeja (el de gente-cuerpo.js), que ya viene horizontal. `recoger`: lleva lo que levantó de la mesa (ya usado)
+  const ESCALA_BANDEJA = { tetera: 0.62, 'servicio-te': 0.4, mate: 0.7, 'plato-asado': 0.62, 'plato-milanesa': 0.7, 'plato-tarta': 0.72, 'torta-negra': 0.8 };
+  const DE_BEBER = /^(vaso|vaso-alto|jarra|taza)$/;
   function bandeja(npc, item, recoger = false) {
     const B = npc?.bandeja;
     if (!B) return;
+    for (const x of B.extras || []) x.parent?.remove(x);
+    B.extras = [];
     if (!item) { B.visible(false); B.vasos(0); return; }
     B.visible(true);
-    B.vasos(recoger ? 2 : item.tipo === 'comida' ? 3 : (item.porciones > 2 ? 2 : 1));
+    B.vasos(0);
+    const forma = FORMAS[item.forma] ? item.forma : 'vaso';
+    const copias = DE_BEBER.test(forma) ? (recoger || item.porciones > 2 ? 2 : 1) : 1;
+    const esc = DE_BEBER.test(forma) ? 0.85 : ESCALA_BANDEJA[forma] ?? 0.7;
+    for (let i = 0; i < copias; i++) {
+      const g = FORMAS[forma](item);
+      g.scale.setScalar(esc);
+      g.position.set(copias === 2 ? (i ? 0.055 : -0.055) : 0, 0.014, 0);
+      // lo que ya se usó (al levantar la mesa): lo de adentro, bajo
+      if (recoger) g.traverse((c) => { if (c.name === 'bocado') c.visible = false; });
+      B.g.add(g); B.extras.push(g);
+    }
   }
+  function traerTodo(npc) { bandeja(npc, null); }
 
   // ---------------------------------------------------------------- el murmullo (las otras mesas, de lejos)
   const VOCES = ['oeste', 'sur', 'este', 'rincón', 'barra'].map((k, i) => vozDe(`cantina-${k}`, { edad: 28 + i * 9, mujer: i % 3 === 0 }));
@@ -200,5 +274,5 @@ export function crearCantinaMundo(ctx) {
     sonido.balbuceo(planBalbuceo(frase, VOCES[i], Math.floor(Math.random() * 1e6)), { pos: { x: centro.x + Math.cos(ang) * r, y: centro.y ?? 1.5, z: centro.z + Math.sin(ang) * r }, vol: 0.02 + 0.03 * intensidad });
     return true;
   }
-  return { ponerEnMesa, quitarDeMesa, limpiarTodo, nivel, empezarSorbo, cancelarSorbo, actualizar, bandeja, murmullo, enMesa, sorboActivo: () => !!sorbo };
+  return { ponerEnMesa, quitarDeMesa, limpiarTodo, nivel, empezarSorbo, cancelarSorbo, actualizar, bandeja, murmullo, enMesa, sorboActivo: () => !!sorbo, formas: FORMAS, mat, mesh, cilindro, caja, bola, geo, traerTodo };
 }

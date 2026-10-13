@@ -1005,6 +1005,11 @@ export function crearAldeaGente(ctx) {
         charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
         return { id: 'aldea-moza', partes: [VECINOS_ALDEA.moza.saludo, '¿Qué te traigo, corazón? La carta la tenés acá.'], seguir: 'E: ver la carta · Escape: después', alTerminar: () => ctx.abrirCarta(), tipo: 'servicio', ofrece: true };
       }
+      // 3.9.2: lo mismo con Ceinwen en la casa de té: sentado a su mesa, te ofrece la carta
+      if (k === 'galesa' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirCartaTe && ctx.teSentado?.() && (charlasDichas.get(k) || 0) % 3 !== 2) {
+        charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
+        return { id: 'aldea-galesa', partes: [VECINOS_ALDEA.galesa.saludo, '¿Qué te sirvo, cariad? La carta la tenés en la mesa.'], seguir: 'E: ver la carta · Escape: después', alTerminar: () => ctx.abrirCartaTe(), tipo: 'servicio', ofrece: true };
+      }
       const lineas = dichosDe(k, a)?.charla || VECINOS_ALDEA[k].charla;   // 3.7.0: según la etapa (los chicos)
       const n = charlasDichas.get(k) || 0;
       charlasDichas.set(k, n + 1);

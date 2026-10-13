@@ -389,7 +389,7 @@ const GU = await import('../src/guardado.js');
   const at = m.indexOf("    if (!aviso && cacheTaller && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTaller.texto };");
   ok(av > at && at > 0 && av - at < 300, 'el aviso: en el mismo lugar (después del taller)');
   ok(m.includes("      cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5"), 'el aviso usa la misma función');
-  ok(m.includes("  if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5") && m.includes('|| !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto();'), 'las listas del HUD (teclado, mouse y mando)');
+  ok(m.includes("  if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5") && m.includes('|| !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();'), 'las listas del HUD (teclado, mouse y mando)');
   ok(m.split("if (fiestasJuego?.panelAbierto()) { marcarEn('fiesta', Number(codigo.slice(5)) - 1); fiestasJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'los números del 1 al 9');
   ok(m.includes('else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();') && m.includes('if (fiestasJuego?.panelAbierto()) { fiestasJuego.alApretarE(); break; }'), 'Escape deja el partido; E no');
   ok(m.includes('amorDestino: (k) => destinoConFiesta(k),') && m.includes("if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;") && m.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;'), 'quién va a dónde: la cita y el casamiento, después la fiesta, después lo demás');

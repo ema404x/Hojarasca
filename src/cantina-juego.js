@@ -12,14 +12,32 @@
 //   6. Te levantás (moviéndote, R) y ella levanta lo de la mesa después.
 // Módulo con estado pero sin three ni DOM propios (la mesa y el sorbo los dibuja `ctx.visual`, cantina-mundo.js; la carta usa el DOM de `ctx`):
 // se prueba en Node con figuras y un DOM de mentira. El resto del juego lo ve por `ctx` (progreso, jugador, la moza, nota, sonido…).
-import { EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea, CANTINA, cantinaAbierta, localAbierto } from './aldea.js';
-import { fechaDe, apodoDe } from './aldea-vida.js';
+import { EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea, CANTINA, cantinaAbierta, localAbierto, tandaDePena } from './aldea.js';
+import { fechaDe, apodoDe, nombreCortoDe } from './aldea-vida.js';
 import { formatoPesos, pesosDe, hayEconomia } from './economia.js';
-import { cartaDeHoy, cantinaDe, cuentaDe, formasDePago, pedir, saldarCuenta, afluencia, demoraDe, demoraEnVerte, tomarPorcion, verboDe, saludoDeMoza, dicho, NOMBRE_MOZA, textoBien, tengoBien, CARTA, FUERTES_POR_NOCHE } from './cantina.js';
+import { cartaDeHoy, cantinaDe, formasDePago, pedir, saldarCuenta, afluencia, demoraDe, demoraEnVerte, tomarPorcion, verboDe, saludoDeMoza, dicho, NOMBRE_MOZA, textoBien, tengoBien, CARTA, FUERTES_POR_NOCHE, LUGARES, produccionDe, itemEnCarta } from './cantina.js';
+import { comentarioDe, reaccionDeItem, saludoDeEntrada, charlaDe, saludoUltimo, POSES_VIDA } from './cantina-vida.js';
+import { cartaTeDeHoy, saludoDeGalesa, dichoTe, NOMBRE_GALESA, casaTeAbierta, planoCasaTe, afluenciaTe, itemTe } from './casa-te.js';
 import { elegirChiste, confianzaDe, sorberConAlcohol, nivelEbrio, faseEbrio, efectoEbrio, MULT_BORRACHERA, EBRIO } from './pena.js';
 import { BORRACHERA_MOZA } from './pena-voces.js';
 
 const PISO = 0.32;
+// 3.9.2: los dos lugares donde te atienden (la misma máquina de estados: sentarte, que venga a la mesa, la carta, el pago, la bandeja, el sorbo y levantar la mesa).
+// `E`: el edificio; `plano`: la barra (o la cocina), los pasos y las mesas en el marco del edificio; `R`: las reglas propias (la carta, el saludo, lo que dice).
+export function lugarDeCantina() {
+  return {
+    id: 'cantina', esCantina: true, persona: 'moza', nombre: NOMBRE_MOZA, E: EDIFICIOS_ALDEA.cantina, plano: CANTINA, abierta: cantinaAbierta, distLibre: 0,
+    titulo: 'La carta de hoy', llamar: 'Llamar a la moza', altoMesa: () => PISO + 0.78, afluencia, claseCarta: '',
+    R: { carta: (c) => cartaDeHoy(c), dicho, saludo: saludoDeMoza, item: itemEnCarta },
+  };
+}
+export function lugarDeCasaTe() {
+  return {
+    id: 'casa-te', esCantina: false, persona: 'galesa', nombre: NOMBRE_GALESA, E: EDIFICIOS_ALDEA['casa-te'], plano: planoCasaTe(), abierta: casaTeAbierta, distLibre: 16,
+    titulo: 'La carta de la casa de té', llamar: 'Llamar a Ceinwen', adelante: 0.4, altoMesa: (m) => m.alto, afluencia: afluenciaTe, claseCarta: 'panel-te',
+    R: { carta: (c) => cartaTeDeHoy(c), dicho: dichoTe, saludo: saludoDeGalesa, item: itemTe },
+  };
+}
 export const RADIO_CANTINA = 40;      // más lejos que esto no se calcula nada
 // segundos
 const ESPERA_SIN_PEDIDO = 7;          // al lado de tu mesa, esperando que elijas
@@ -28,8 +46,11 @@ const LEVANTAR = 5;                   // desde que te levantás hasta que viene 
 const REVER = 7;                      // desde que terminás hasta que viene a ver si querés otra
 const SORBO = 1.7;                    // lo que dura un sorbo o un bocado
 
-export function crearCantinaJuego(ctx) {
-  const E = EDIFICIOS_ALDEA.cantina;
+export function crearCantinaJuego(ctx, lugarDado = null) {
+  const L = lugarDado || lugarDeCantina();
+  const E = L.E, plano = L.plano;
+  const dichoL = (k, sem) => L.R.dicho(k, sem);   // (lo que dice, de la moza o de la galesa)
+  const estadoDe = (p) => LUGARES[L.id].estado(p);
   const marco = () => ctx.marco?.() || marcoAldea(PARADA_ALDEA);
   const T_ = ctx.T_ || ((t) => t);
   const P = () => ctx.progreso();
@@ -45,26 +66,31 @@ export function crearCantinaJuego(ctx) {
   const pisoY = () => E.y + PISO;
 
   // ---------------------------------------------------------------- el lugar, en el mundo
-  const mesas = CANTINA.mesas.map((m) => {
+  const mesas = plano.mesas.map((m) => {
     const w = aMundo(m.x, m.z), sv = aMundo(m.servicio.x, m.servicio.z);
-    const mesa = { id: m.id, x: w.x, z: w.z, servicio: { x: sv.x, z: sv.z, mira: rotMundo(m.servicio.rot) }, sillas: [] };
+    const mesa = { id: m.id, x: w.x, z: w.z, servicio: { x: sv.x, z: sv.z, mira: rotMundo(m.servicio.rot) }, sillas: [], y: E.y + L.altoMesa(m), adelante: L.adelante, fin: m.fin, extra: (m.extra || []).map((q) => aMundo(q.x, q.z)) };
     m.sillas.forEach((s, i) => { const q = aMundo(s.x, s.z); mesa.sillas.push({ mesa, i, x: q.x, z: q.z, mira: rotMundo(s.mira) }); });
     return mesa;
   });
   const sillas = mesas.flatMap((m) => m.sillas);
-  const barra = (() => { const w = aMundo(CANTINA.barra.x, CANTINA.barra.z); return { x: w.x, z: w.z, mira: rotMundo(Math.PI / 2) }; })();
-  const paso = CANTINA.paso.map((q) => aMundo(q.x, q.z));
+  const barra = (() => { const w = aMundo(plano.barra.x, plano.barra.z); return { x: w.x, z: w.z, mira: rotMundo(L.esCantina ? Math.PI / 2 : Math.PI) }; })();
+  const paso = plano.paso.map((q) => aMundo(q.x, q.z));
   // los nodos por donde camina la moza: la barra, el hueco, el pasillo de la barra y el del medio (la cadena); de ahí, a cada mesa
   const cadena = [{ x: barra.x, z: barra.z }, ...paso];
   const distancia = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   // De donde esté a la mesa (o a la barra): por la cadena (sin chocar con las mesas), todo sin choques de las colisiones
   function ruta(desde, haciaMesa) {
-    let i0 = 0;
-    for (let i = 1; i < cadena.length; i++) if (distancia(desde, cadena[i]) < distancia(desde, cadena[i0])) i0 = i;
-    const fin = haciaMesa ? cadena.length - 1 : 0;
+    // (3.9.2: si está parada al lado de una mesa con camino propio (la galería de la casa de té), sale primero por ese camino)
     const puntos = [];
+    const aqui = !haciaMesa ? mesas.find((m) => m.extra.length && distancia(desde, m.servicio) < 0.8) : null;
+    if (aqui) for (let i = aqui.extra.length - 1; i >= 0; i--) puntos.push(aqui.extra[i]);
+    const ref = aqui ? aqui.extra[0] || desde : desde;
+    let i0 = 0;
+    for (let i = 1; i < cadena.length; i++) if (distancia(ref, cadena[i]) < distancia(ref, cadena[i0])) i0 = i;
+    if (aqui && Number.isFinite(aqui.fin)) i0 = aqui.fin + 1;
+    const fin = haciaMesa ? (Number.isFinite(haciaMesa.fin) ? haciaMesa.fin + 1 : cadena.length - 1) : 0;
     for (let i = i0; i !== fin; i += i < fin ? 1 : -1) puntos.push(cadena[i + (i < fin ? 1 : -1)]);
-    if (haciaMesa) puntos.push({ x: haciaMesa.servicio.x, z: haciaMesa.servicio.z });
+    if (haciaMesa) { for (const q of haciaMesa.extra) puntos.push(q); if (!haciaMesa.extra.length) puntos.push({ x: haciaMesa.servicio.x, z: haciaMesa.servicio.z }); }
     return puntos;
   }
 
@@ -82,13 +108,14 @@ export function crearCantinaJuego(ctx) {
   const moza = () => ctx.moza?.() || null;
   const ambiente = () => ctx.ambiente?.() || {};
   const hablar = (texto, semilla = 0) => {
-    ctx.nota?.(NOMBRE_MOZA, T_(texto));
+    ctx.nota?.(L.nombre, T_(texto));
     ctx.hablo?.(texto, controla || moza(), semilla);   // (el balbuceo de su voz)
   };
-  const afl = () => afluencia(hora(), dia());
+  const afl = () => L.afluencia(hora(), dia());
   const absoluta = () => dia() * 24 + hora();
   // 3.9.1: un chiste de Lucrecia para esa situación (o null): según la confianza que le tengas (amistad o romance) y con memoria, para que no repita seguido
   const chiste = (situacion, sub = null, siempre = false) => {
+    if (!L.esCantina) return null;
     const p = P(), c = cantinaDe(p);
     if (!c) return null;
     return elegirChiste('moza', situacion, sub, c.chistes, { confianza: confianzaDe(p, 'moza'), semilla: dia() * 17 + c.pedidos * 5 + c.visitas * 3 + info.sorbos + info.servicios * 2, siempre });
@@ -96,7 +123,7 @@ export function crearCantinaJuego(ctx) {
   const elegirDe = (lista, k = 0) => (Array.isArray(lista) && lista.length ? lista[Math.abs(Math.floor(dia() * 7 + info.sorbos * 3 + info.servicios + k)) % lista.length] : '');
   // la borrachera: el nivel de ahora y en qué fase estaba (para avisar cuando cambia)
   let faseAntes = 'sobrio', avisoComenta = -1;
-  const nivelAhora = () => nivelEbrio(cantinaDe(P())?.ebrio, absoluta());
+  const nivelAhora = () => (L.esCantina ? nivelEbrio(cantinaDe(P())?.ebrio, absoluta()) : 0);
   const multEbrio = () => {
     const a = ctx.ajusteBorrachera?.() ?? 'normal';
     return (Object.hasOwn(MULT_BORRACHERA, a) ? MULT_BORRACHERA[a] : 1) * (ctx.movimientoCamara?.() === 'reducido' ? 0.2 : 1);
@@ -125,8 +152,8 @@ export function crearCantinaJuego(ctx) {
     n.pose = pose; n.velocidad = pose === 'bandeja' ? 0.8 : 0.95;
   }
   const llego = () => { const n = controla; return !n || !n.camino || n.camino.length === 0; };
-  const mozaLibre = () => { const n = moza(); return !!n && !n.deVisita && !n.dormido && !n.conVos && !n.llegando && !(ctx.hablandoCon?.() === n); };
-  const sirviendo = () => cantinaAbierta(hora()) && mozaLibre();
+  const mozaLibre = () => { const n = moza(); return !!n && !n.deVisita && !n.dormido && !n.conVos && !n.llegando && !(ctx.hablandoCon?.() === n) && (!L.distLibre || !n.pos || Math.hypot(n.pos.x - centro.x, n.pos.z - centro.z) < L.distLibre); };
+  const sirviendo = () => L.abierta(hora()) && mozaLibre();
 
   // ---------------------------------------------------------------- la visita
   const sillaCerca = (pos) => {
@@ -138,13 +165,13 @@ export function crearCantinaJuego(ctx) {
   function empezarVisita(silla) {
     const p = P();
     if (!hayEconomia(p)) return;
-    const c = cantinaDe(p);
-    const abierta = cantinaAbierta(hora());
+    const c = estadoDe(p);
+    const abierta = L.abierta(hora());
     ses = { silla, mesa: silla.mesa, fase: abierta ? 'espera' : 'cerrada', t: 0, orden: null, parado: false };
     if (limpieza) { limpieza = null; soltar(); }   // si venía a levantar y te sentaste de vuelta
     info.visitas++;
-    if (!abierta) { aviso(dicho('cerrada'), 'cerrada'); return; }
-    if (!mozaLibre()) { ses.fase = 'sola'; ses.t = 3; if (!moza()) aviso(dicho('sola'), 'sola'); return; }
+    if (!abierta) { aviso(dichoL('cerrada'), 'cerrada'); return; }
+    if (!mozaLibre()) { ses.fase = 'sola'; ses.t = 3; if (!moza()) aviso(dichoL('sola'), 'sola'); return; }
     ses.t = demoraEnVerte(afl());
     if (c.ultima !== dia()) c.visitas++;   // (una por día: la que te conoce)
     c.ultima = dia();
@@ -153,7 +180,7 @@ export function crearCantinaJuego(ctx) {
     const k = dia() * 100 + Math.floor(hora());
     if (avisadoCerrada === k) return;
     avisadoCerrada = k;
-    ctx.nota?.(NOMBRE_MOZA, T_(texto));
+    ctx.nota?.(L.nombre, T_(texto));
   }
   // Te levantaste. Con un pedido en camino (ya pagado), ella lo termina de traer igual a la mesa vacía; si no, se cierra la visita
   function terminarVisita(forzar = false) {
@@ -165,7 +192,7 @@ export function crearCantinaJuego(ctx) {
     const mesa = ses.mesa;
     if (controla) soltar();
     // (3.9.1: al irte, ella te saluda con un chiste; si estás alegre, te lo dice con humor)
-    if (cantinaAbierta(hora()) && !forzar) { const q = nivelAhora() >= EBRIO.alegre ? elegirDe(BORRACHERA_MOZA.alSalir, 3) : chiste('despedida'); if (q) hablar(q); }
+    if (L.abierta(hora()) && !forzar) { const q = !L.esCantina ? null : nivelAhora() >= EBRIO.alegre ? elegirDe(BORRACHERA_MOZA.alSalir, 3) : chiste('despedida'); if (q) hablar(q); }
     if (servidos.has(mesa.id)) limpieza = { mesa, t: LEVANTAR, fase: 'espera' };
     ses = null;
   }
@@ -177,18 +204,23 @@ export function crearCantinaJuego(ctx) {
   function contextoCarta() {
     const p = P(), a = p.aldea || null;
     return {
-      estacion: fechaDe(dia()).estacion, clima: clima(),
+      estacion: fechaDe(dia()).estacion, clima: clima(), dia: dia(), prod: produccionDe(p),
       locales: { panaderia: a ? localAbierto(a, 'panaderia') : false, pescaderia: a ? localAbierto(a, 'pescaderia') : false, 'sala-miel': a ? localAbierto(a, 'sala-miel') : false },
     };
   }
-  const cartaHoy = () => cartaDeHoy(contextoCarta());
+  const cartaHoy = () => L.R.carta(contextoCarta());
   function saludo() {
-    const p = P(), c = cantinaDe(p), a = ambiente();
+    const p = P(), c = estadoDe(p);
     const hechos = p.vecindad?.hechos || [];
-    const s = saludoDeMoza({
+    // (3.9.2: te recuerda lo último que pediste, si ya venías)
+    const ult = c?.ultimoPedido ? L.R.item(c.ultimoPedido) : null;
+    const s = L.R.saludo({
       hora: hora(), clima: clima(), estacion: fechaDe(dia()).estacion, apodo: apodoDe(p)?.texto || null, visitas: Math.max(0, (c?.visitas || 0) - 1),
       cuenta: c?.cuenta || null, hechos: hechos.filter((x) => dia() - x.dia <= 3), dia: dia(),
+      ultimo: ult ? ult.nombre.toLowerCase() : null, veces: ult ? c.veces?.[ult.id] || 0 : 0,
     });
+    // (3.9.2: en la cantina, lo último que pediste con su frase; la casa de té ya lo trae en su saludo)
+    if (L.esCantina && ult && (c?.visitas || 0) > 1 && !(c?.cuenta) && (dia() + (c.visitas || 0)) % 2 === 0) s[1] = saludoUltimo(ult.nombre.toLowerCase(), c.veces?.[ult.id] || 0, dia() * 3 + (c.pedidos || 0));
     const j = chiste('sentarse');   // (3.9.1: y a veces un chiste, al sentarte)
     return j ? [...s, j] : s;
   }
@@ -196,22 +228,22 @@ export function crearCantinaJuego(ctx) {
   // El pedido: cobra, la moza anota y se va a la barra
   function pedirItem(item, forma) {
     if (!ses || ses.orden) return false;
-    const r = pedir(P(), item.id, forma, dia(), hora(), cartaHoy());
+    const r = pedir(P(), item.id, forma, dia(), hora(), cartaHoy(), L.id);
     if (!r.ok) {
       if (r.motivo === 'ya-esta') {
         // el cuarto trago fuerte de la noche: ella te trae un mate cocido, por la casa, y te pone en tu lugar de buen modo
         const mate = cartaHoy().find((x) => x.id === 'mate-cocido') || CARTA.find((x) => x.id === 'mate-cocido');
-        hablar(elegirDe(BORRACHERA_MOZA.frena) || dicho('ya_esta'));
+        hablar(elegirDe(BORRACHERA_MOZA.frena) || dichoL('ya_esta'));
         aceptarOrden(mate, { medio: 'casa', regalo: true });
         return true;
       }
-      ctx.nota?.(T_('No se pudo pedir'), T_(r.motivo === 'plata' ? dicho('sin_plata') : r.motivo === 'cuenta' ? dicho('cuenta_llena') : 'Probá con otra cosa'));
+      ctx.nota?.(T_('No se pudo pedir'), T_(r.motivo === 'plata' ? dichoL('sin_plata') : r.motivo === 'cuenta' ? dichoL('cuenta_llena') : 'Probá con otra cosa'));
       return false;
     }
     ctx.sonido?.juntar?.();
     if (r.medio === 'pesos') ctx.nota?.(T_('Pagaste'), formatoPesos(r.cobro.pesos));
     else if (r.medio === 'trueque') ctx.nota?.(T_('Trueque'), textoBien(r.cobro.bien, r.cobro.n));
-    else ctx.nota?.(T_('Lo anotó en la cuenta'), formatoPesos(cuentaDe(P())?.monto || 0));
+    else ctx.nota?.(T_('Lo anotó en la cuenta'), formatoPesos(estadoDe(P())?.cuenta?.monto || 0));
     ctx.guardar?.(); ctx.refrescar?.();
     aceptarOrden(item, r);
     return true;
@@ -219,7 +251,7 @@ export function crearCantinaJuego(ctx) {
   function aceptarOrden(item, r) {
     ses.orden = { item, medio: r.medio, fase: 'anota', t: 0, regalo: !!r.regalo };
     // (3.9.1: con el pedido, a veces un chiste de lo que pediste —o de la cuenta, si la anotás— en vez del «anotado»)
-    if (!r.regalo) hablar((r.medio === 'cuenta' ? chiste('cuenta') : null) || chiste('pedir', item.id) || dicho('anota', dia() + info.servicios));
+    if (!r.regalo) hablar((r.medio === 'cuenta' ? chiste('cuenta') : null) || chiste('pedir', item.id) || reaccionDeItem(L.persona, item, dia() + info.servicios) || dichoL('anota', dia() + info.servicios));   // (3.9.2: lo nuevo de la carta tiene su frase)
     cerrarPanel();
     ses.fase = 'a-barra';
     if (controla) caminar(ruta(controla.pos, null), barra.mira);
@@ -233,7 +265,7 @@ export function crearCantinaJuego(ctx) {
     if (d > RADIO_CANTINA) {
       // lejos: nada de esto se ve; se levanta la mesa y se suelta a la moza
       if (ses) terminarVisita();
-      if (limpieza || servidos.size || controla) { limpieza = null; servidos.clear(); soltar(); ctx.visual?.limpiarTodo?.(); }
+      if (limpieza || servidos.size || controla) { limpieza = null; servidos.clear(); soltar(); if (L.esCantina) ctx.visual?.limpiarTodo?.(); else for (const m of mesas) ctx.visual?.quitarDeMesa?.(m); }   // (la casa de té saca sólo lo suyo: lo de la cantina y los parroquianos no)
       return;
     }
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
@@ -243,6 +275,7 @@ export function crearCantinaJuego(ctx) {
     else if (silla && (!ses || ses.silla !== silla)) { if (ses) terminarVisita(true); empezarVisita(silla); }
     else if (ses && (!js.sentado || !silla)) terminarVisita();
     if (ses) avanzar(dt);
+    vidaTick(dt, d, js);
     if (limpieza) avanzarLimpieza(dt, d);
     avanzarSorbo(dt);
     ctx.visual?.actualizar?.(dt, ctx.camara?.());
@@ -255,7 +288,7 @@ export function crearCantinaJuego(ctx) {
     switch (ses.fase) {
       case 'cerrada': case 'sola': {
         // la moza puede aparecer mientras seguís sentado (abre la cantina, vuelve)
-        if (cantinaAbierta(hora()) && sirviendo()) { ses.fase = 'espera'; ses.t = demoraEnVerte(afl()); }
+        if (sirviendo()) { ses.fase = 'espera'; ses.t = demoraEnVerte(afl()); }
         break;
       }
       case 'espera': {
@@ -320,7 +353,8 @@ export function crearCantinaJuego(ctx) {
         ctx.visual?.bandeja?.(controla, null);
         ctx.visual?.ponerEnMesa?.(ses.mesa, ses.silla, it, it.porciones);
         info.servicios++;
-        hablar(dicho(it.tipo === 'bebida' && !it.caliente ? 'trae_fria' : 'trae', dia() + info.servicios));
+        if (it.registra) ctx.registrar?.(it.registra);   // (3.9.2: el té con torta, los mates o el chocolate: lo que antes daba «pedir algo» en la casa de té)
+        hablar(dichoL(it.tipo === 'bebida' && !it.caliente ? 'trae_fria' : 'trae', dia() + info.servicios));
         ctx.sonido?.juntar?.();
         ses.fase = 'apoya';
         break;
@@ -346,12 +380,60 @@ export function crearCantinaJuego(ctx) {
         const s = enLaMesa();
         if (s && s.restantes === 0 && !sorbo) {
           ses.t += dt;
-          if (ses.t > REVER && sirviendo()) { hablar(dicho('vuelve_pronto')); ses.fase = 'espera'; ses.t = 0.5; ses.t = demoraEnVerte(afl()) * 0.5; }
+          if (ses.t > REVER && sirviendo()) { hablar(dichoL('vuelve_pronto')); ses.fase = 'espera'; ses.t = 0.5; ses.t = demoraEnVerte(afl()) * 0.5; }
         }
         break;
       }
       default: break;
     }
+  }
+
+  // ---------------------------------------------------------------- 3.9.2: más vida (cantina-vida.js)
+  // Al llegar te saluda con la mano en alto y por tu nombre; mientras está en la barra, seca un vaso; sentado, cada tanto te comenta algo (el tiempo, la hora, el reloj, los
+  // cuadros, la gente, lo último que pediste) y, con confianza, algo más picante (sólo sugerido). Nada de esto corre con vos lejos ni mientras ella te atiende.
+  const vida = { prox: 24, mem: {}, afuera: true, cd: 0, pose: null, poseT: 0, secarProx: 16, charlo: false };
+  const apodo = () => apodoDe(P())?.texto || null;
+  function ponerPose(n, pose, seg) { if (!n || n.pose) return false; n.pose = pose; vida.pose = pose; vida.poseT = seg; return true; }
+  function vidaTick(dt, d, js) {
+    const n = moza();
+    if (vida.pose) {
+      vida.poseT -= dt;
+      if (!n || n.pose !== vida.pose || controla || vida.poseT <= 0) { if (n && n.pose === vida.pose) n.pose = null; vida.pose = null; vida.poseT = 0; }
+    }
+    vida.cd = Math.max(0, vida.cd - dt);
+    if (d > 24) vida.afuera = true;
+    if (!n || controla || !sirviendo() || !js) return;
+    // llegás: te saluda con la mano, por tu nombre
+    if (vida.afuera && d < 9.5 && !js.sentado && vida.cd <= 0 && !n.pose && ctx.hablandoCon?.() !== n) {
+      vida.afuera = false; vida.cd = 90;
+      if (ponerPose(n, 'saludar', 2.6)) hablar(saludoDeEntrada(L.persona, apodo(), hora(), dia() * 5 + info.visitas));
+      return;
+    }
+    // en la barra, seca un vaso (sólo la moza)
+    vida.secarProx -= dt;
+    if (L.esCantina && vida.secarProx <= 0 && !ses && !n.pose && d < 10 && Math.hypot(n.pos.x - barra.x, n.pos.z - barra.z) < 1.4) { ponerPose(n, 'secar', 5.5); vida.secarProx = 28 + ((dia() * 7) % 25); }
+    // sentado, de tanto en tanto, algo que comenta
+    if (ses && !ses.orden && ses.fase === 'libre' && !estadoPanel.abierto && !sorbo && !limpieza) {
+      vida.prox -= dt;
+      if (vida.prox > 0) return;
+      vida.prox = 38 + ((dia() * 13 + info.sorbos * 7 + (vida.mem.n || 0) * 11) % 35);
+      const p = P(), c = estadoDe(p), ult = c?.ultimoPedido ? L.R.item(c.ultimoPedido) : null;
+      const txt = comentarioDe(L.persona, {
+        clima: clima(), hora: hora(), estacion: fechaDe(dia()).estacion, apodo: apodo(), ultimo: ult ? ult.nombre.toLowerCase() : null, confianza: confianzaDe(p, L.persona),
+        parroquianos: L.esCantina ? (ctx.parroquianos?.() || []).map((k) => nombreCortoDe(k)).filter(Boolean) : [], pena: L.esCantina && !!tandaDePena(dia(), hora()), semilla: dia() * 3 + info.sorbos,
+      }, vida.mem);
+      if (txt) hablar(txt);
+    } else if (!ses) vida.prox = Math.max(vida.prox, 22);
+  }
+  // «Charlar un rato»: te cuenta algo de lo suyo (de a ratos, un poquito de amistad)
+  function charlar() {
+    const txt = charlaDe(L.persona, dia() * 11 + info.servicios + (vida.mem.n || 0));
+    vida.mem.n = (vida.mem.n || 0) + 1;
+    if (!txt) return;
+    estadoPanel.texto = [txt];
+    hablar(txt);
+    if (!vida.charlo) { vida.charlo = true; ctx.sumarAmistad?.(L.persona, 1); }
+    dibujar();
   }
 
   // ---------------------------------------------------------------- levantar la mesa
@@ -372,9 +454,10 @@ export function crearCantinaJuego(ctx) {
     } else if (limpieza.fase === 'recoge') {
       limpieza.t -= dt;
       if (limpieza.t > DEJAR / 2) return;
+      const quitado = servidos.get(limpieza.mesa.id)?.item || CARTA[0];   // (3.9.2: se lleva lo que había en la mesa, no un vaso cualquiera)
       servidos.delete(limpieza.mesa.id);
       ctx.visual?.quitarDeMesa?.(limpieza.mesa);
-      ctx.visual?.bandeja?.(controla, CARTA[0], true);
+      ctx.visual?.bandeja?.(controla, quitado, true);
       info.limpiezas++;
       limpieza.fase = 'vuelve'; limpieza.t = DEJAR / 2;
     } else if (limpieza.fase === 'vuelve') {
@@ -412,7 +495,7 @@ export function crearCantinaJuego(ctx) {
         if (s.restantes === s.item.porciones - 1) { const j = chiste('tomar'); if (j) hablar(j); }   // (3.9.1: «despacito, que lo bueno se saborea»)
         if (r.efectos.some((e) => e.campo === 'entumecido') && entumecidoAntes > 0) ctx.nota?.(T_('Te calentó el cuerpo'), T_('Se te fue el entumecido'));
         if (r.termino) {
-          ctx.nota?.(T_(s.item.nombre), T_(dicho(s.item.tipo === 'comida' ? 'termino_comida' : 'termino_trago')));
+          ctx.nota?.(T_(s.item.nombre), T_(dichoL(s.item.tipo === 'comida' ? 'termino_comida' : 'termino_trago')));
           if (r.efectos.some((e) => e.campo === 'descansado')) ctx.nota?.(T_('Quedaste lleno'), T_('Vas a andar más descansado un rato, hasta que se te pase'));
           if (ses) { ses.t = 0; }
         }
@@ -426,6 +509,7 @@ export function crearCantinaJuego(ctx) {
   // Cada sorbo de algo fuerte (y, poquito, de cerveza) sube el nivel; con el tiempo baja y un mate cocido lo baja de golpe. Leve: la imagen se mueve un poquito y al caminar te
   // vas un poco para un lado; no se pierde nada. Lucrecia lo comenta con humor y al tercer trago fuerte de la noche te frena. Se puede suavizar o apagar (ajustes).
   function sorberAlcohol(s) {
+    if (!L.esCantina) return;
     const p = P(), c = cantinaDe(p);
     if (!c) return;
     const ahora = absoluta(), antes = nivelEbrio(c.ebrio, ahora);
@@ -441,7 +525,7 @@ export function crearCantinaJuego(ctx) {
     const sube = ['sobrio', 'achispado', 'alegre', 'torcido'].indexOf(ahora) > ['sobrio', 'achispado', 'alegre', 'torcido'].indexOf(antes);
     if (sube && ahora === 'alegre') { ctx.nota?.(T_('Estás alegre'), T_('Se te mueve un poquito el mundo: se pasa solo, con el tiempo o con un mate cocido')); hablar(elegirDe(BORRACHERA_MOZA.comenta)); avisoComenta = dia(); }
     else if (sube && ahora === 'torcido') ctx.nota?.(T_('Vas a caminar torcido'), T_('Un rato nomás: no pasa nada grave, y se te va con el tiempo'));
-    else if (!sube && ahora === 'sobrio' && antes !== 'sobrio') ctx.nota?.(T_(NOMBRE_MOZA), T_(elegirDe(BORRACHERA_MOZA.seTePasa, 2)));
+    else if (!sube && ahora === 'sobrio' && antes !== 'sobrio') ctx.nota?.(T_(L.nombre), T_(elegirDe(BORRACHERA_MOZA.seTePasa, 2)));
   }
   // El efecto de ahora en la cámara (o null): lo pide main.js cada cuadro dibujado
   const efectoEbrioAhora = (t) => (nivelAhora() > 0 ? efectoEbrio(nivelAhora(), t, multEbrio()) : null);
@@ -451,7 +535,7 @@ export function crearCantinaJuego(ctx) {
     if (!ses || ses.parado || estadoPanel.abierto || !hayEconomia(P())) return null;
     const s = enLaMesa();
     if (s && s.restantes > 0 && !sorbo && ses.fase !== 'carta') return { texto: verboDe(s.item), hacer: () => sorbear() };
-    if (ses.fase === 'libre' && sirviendo() && !sorbo) return { texto: 'Llamar a la moza', hacer: () => llamar() };
+    if (ses.fase === 'libre' && sirviendo() && !sorbo) return { texto: L.llamar, hacer: () => llamar() };
     if (ses.fase === 'carta' || ses.fase === 'se-va-sin-pedido') return { texto: 'Mirar la carta', hacer: () => { abrirPanel(saludo(), false); } };
     return null;
   }
@@ -460,7 +544,7 @@ export function crearCantinaJuego(ctx) {
   function llamar() {
     if (!ses || !sirviendo()) return false;
     ses.fase = 'espera'; ses.t = 0.6;
-    ctx.nota?.(T_(NOMBRE_MOZA), T_(dicho('llega')));
+    ctx.nota?.(T_(L.nombre), T_(dichoL('llega')));
     return true;
   }
 
@@ -489,25 +573,27 @@ export function crearCantinaJuego(ctx) {
       raiz.append(fila);
       return;
     }
-    { const h = ctx.panel?.querySelector?.('h2'); if (h) h.textContent = T_('La carta de hoy'); }
+    { const h = ctx.panel?.querySelector?.('h2'); if (h) h.textContent = T_(L.titulo); ctx.panel?.firstElementChild?.classList?.toggle?.('panel-te', !L.esCantina); }
     const p = P();
     raiz.append(el('p', 'cantina-saludo', estadoPanel.texto.map((x) => T_(x)).join(' ')));
     raiz.append(el('p', 'cantina-saldo', `${T_('Tenés')} ${formatoPesos(pesosDe(p))}`));
     const carta = cartaHoy();
     const lista = el('div', 'cantina-lista');
+    let grupo = '';
     for (const it of carta) {
-      const f = el('div', 'cantina-fila' + (estadoPanel.sel === it.id ? ' marcada' : ''));
-      const cab = boton(it.nombre, () => { estadoPanel.sel = estadoPanel.sel === it.id ? null : it.id; dibujar(); }, { clase: 'cantina-plato' });
+      if (it.tipo !== grupo) { grupo = it.tipo; lista.append(el('h3', 'cantina-grupo', it.tipo === 'comida' ? 'Para comer' : 'Para tomar')); }
+      const f = el('div', 'cantina-fila' + (estadoPanel.sel === it.id ? ' marcada' : '') + (it.delDia ? ' del-dia' : ''));
+      const cab = boton(it.nombre + (it.delDia ? ' · del día' : ''), () => { estadoPanel.sel = estadoPanel.sel === it.id ? null : it.id; dibujar(); }, { clase: 'cantina-plato' });
       f.append(cab, el('i', '', it.texto), el('b', '', formatoPesos(it.precio)));
       lista.append(f);
       if (estadoPanel.sel === it.id) {
         const fila = el('div', 'cantina-pagos');
-        for (const fp of formasDePago(p, it)) fila.append(boton(fp.texto, () => pedirItem(it, fp), { activo: fp.ok, clase: fp.medio }));
+        for (const fp of formasDePago(p, it, L.id)) fila.append(boton(fp.texto, () => pedirItem(it, fp), { activo: fp.ok, clase: fp.medio }));
         lista.append(fila);
       }
     }
     raiz.append(lista);
-    const c = cuentaDe(p);
+    const c = estadoDe(p)?.cuenta || null;
     if (c) {
       const caja = el('div', 'cantina-cuenta');
       caja.append(renglon('Tu cuenta', formatoPesos(c.monto)), renglon('Mandado', textoBien(c.k, c.n)));
@@ -517,19 +603,19 @@ export function crearCantinaJuego(ctx) {
       raiz.append(caja);
     }
     const pie = el('div', 'cantina-pagos');
-    pie.append(boton('Después pido', () => cerrarPanel()), boton('Levantarme', () => { cerrarPanel(); ctx.levantar?.(); }));
+    pie.append(boton('Charlar un rato', () => charlar()), boton('Después pido', () => cerrarPanel()), boton('Levantarme', () => { cerrarPanel(); ctx.levantar?.(); }));
     raiz.append(pie);
   }
   function saldar(medio) {
-    const r = saldarCuenta(P(), medio);
+    const r = saldarCuenta(P(), medio, L.id);
     if (!r.ok) { ctx.nota?.(T_('No se pudo saldar'), T_(r.motivo === 'plata' ? 'No te alcanza la plata' : 'Te falta lo que pide para el mandado')); return; }
     ctx.sonido?.juntar?.();
-    ctx.nota?.(T_('Saldaste la cuenta'), T_(dicho(medio === 'mandado' ? 'mandado' : 'pagada')));
+    ctx.nota?.(T_('Saldaste la cuenta'), T_(dichoL(medio === 'mandado' ? 'mandado' : 'pagada')));
     ctx.guardar?.(); ctx.refrescar?.();
     dibujar();
   }
   function abrirPanel(texto, conSaludo = true) {
-    estadoPanel.texto = conSaludo ? texto : [dicho('vuelve_pronto')];
+    estadoPanel.texto = conSaludo ? texto : [dichoL('vuelve_pronto')];
     estadoPanel.abierto = true;
     estadoPanel.sel = null;
     dibujar();
@@ -558,15 +644,16 @@ export function crearCantinaJuego(ctx) {
     alApretarE: () => cerrarPanel(), atras: () => cerrarPanel(),
     // el que habla con ella desde la charla («Dígame qué le sirvo»)
     abrirCarta: () => { if (!ses) return false; if (!ses.orden) { abrirPanel(saludo()); return true; } return false; },
-    estaSentado: () => !!ses, sinApuro: () => !!ses && cantinaAbierta(hora()),
+    estaSentado: () => !!ses, mesaOcupada: (id) => servidos.has(id) || (!!ses && ses.mesa.id === id), sinApuro: () => !!ses && L.abierta(hora()),
     // 3.9.1: la borrachera, el panel libre y lo que la peña necesita saber de tu mesa
     efectoEbrio: efectoEbrioAhora, nivelEbrio: nivelAhora, abrirPanelLibre, chiste,
     sentadoEn: () => (ses ? { mesa: ses.mesa, silla: ses.silla, fase: ses.fase } : null), ocupadaConVos: () => !!ses && ['viene', 'carta', 'a-barra', 'prepara', 'trae', 'deja', 'apoya', 'se-va'].includes(ses.fase) || !!limpieza,
-    sirviendo, saludo, cartaHoy, sorbear, llamar, dibujar, pedirItem, saldar, soltar,
+    decir: (texto) => hablar(texto), sirviendo, saludo, cartaHoy, sorbear, llamar, dibujar, pedirItem, saldar, soltar,
     // para las pruebas
     estado: () => ({ ses: ses ? { fase: ses.fase, parado: !!ses.parado, mesa: ses.mesa.id, silla: ses.silla.i, orden: ses.orden ? { item: ses.orden.item.id, fase: ses.orden.fase } : null } : null, limpieza: limpieza ? limpieza.fase : null,
       servidos: [...servidos.entries()].map(([k, v]) => ({ mesa: k, item: v.item.id, restantes: v.restantes })), controla: !!controla, panel: { ...estadoPanel }, sorbo: !!sorbo, info: { ...info } }),
-    lugar: { mesas, sillas, barra, centro, paso, ruta, aMundo, rotMundo, pisoY },
+    lugar: { mesas, sillas, barra, centro, paso, ruta, aMundo, rotMundo, pisoY, id: L.id, persona: L.persona, nombre: L.nombre, abierta: L.abierta },
+    id: L.id, persona: L.persona,
     panel: estadoPanel,
   };
 }

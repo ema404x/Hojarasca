@@ -91,7 +91,7 @@ const tramo = (texto, desde, hasta) => { const i = texto.indexOf(desde); assert.
   ok(main.includes("d.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); elegirRanura(i); });") && desafio.includes("li.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); fabricar(i); });"), 'la barra y el taller ya usaban mousedown');
   ok(!/addEventListener\('click', \(\) => (cambiar|cambiarFeria|elegir)\(i\)\)/.test(main + comercio), 'ya no queda ninguna lista con click');
   // con el mouse bloqueado (sin flecha), el clic con un panel abierto no tira la línea ni ataca
-  ok(main.includes('const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto();'), 'qué paneles cuentan');   // (3.7.2: y el panel de recetas de la cocina; 3.7.3: y el del taller; 3.7.5: y el de las fiestas)
+  ok(main.includes('const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();'), 'qué paneles cuentan');   // (3.7.2: y el panel de recetas de la cocina; 3.7.3: y el del taller; 3.7.5: y el de las fiestas)
   const pesca = tramo(main, "document.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || modo !== 'jugando' || !jugador", 'pesca.clic(true, mundoPesca());');
   ok(pesca.includes('if (panelDelHudAbierto()) return;   // 3.6.2'), 'la línea de pesca');
   const arma = tramo(main, "window.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || !desafio", 'desafio.atacar(id);');
@@ -195,7 +195,7 @@ globalThis.__R = (() => {
 {
   const mm = leer('src/aldea-mecanicas-mundo.js');
   ok(mm.includes('const sinApuro = () => musica.activa || (!!ctx.gente?.()?.oyendoCuento?.() && cerca);'), 'lo frenan la música del baile y los cuentos del domingo');
-  ok(main.includes("const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;"), 'y tu propia charla');   // (3.8.6: y la mesita y el fogón de la fiesta, y el fundido de dormir)
+  ok(main.includes("const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !teJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;"), 'y tu propia charla');   // (3.8.6: y la mesita y el fogón de la fiesta, y el fundido de dormir)
   // una semana en la aldea, con vos al lado de alguien a cada rato: se oyen charlas de vecinos todos los días
   // (no frenan) y los cuentos de la abuela sólo el domingo a la mañana, en la biblioteca (frenan)
   const A = await import('../src/aldea.js');

@@ -116,7 +116,7 @@ export function faseEbrio(nivel) {
 // Un sorbo de `item` de la carta: devuelve el estado nuevo (no toca el viejo)
 export function sorberConAlcohol(e, item, ahora) {
   const base = nivelEbrio(e, ahora);
-  const mas = item?.fuerte ? EBRIO.fuerte : item?.id === 'cerveza' ? EBRIO.cerveza : /mate-cocido/.test(item?.id || '') ? EBRIO.mate : 0;
+  const mas = item?.fuerte ? EBRIO.fuerte : /^cerveza/.test(item?.id || '') || item?.alcohol === 'suave' ? EBRIO.cerveza : /mate-cocido/.test(item?.id || '') ? EBRIO.mate : 0;
   return { n: acotar(Math.round((base + mas) * 1000) / 1000, 0, EBRIO.tope), t: num(ahora) };
 }
 export function sanearEbrio(v, ahora = 1e6) {

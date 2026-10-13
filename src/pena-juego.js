@@ -10,9 +10,10 @@
 // Módulo con estado pero sin three ni DOM propios (el panel y la mesa son de cantina-juego.js y cantina-mundo.js): se prueba en Node con figuras de mentira.
 // Aislado en main.js con `fallaSistema`. Nada pesa cuando estás lejos (a más de 45 m no se calcula nada).
 import { EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea, PUNTOS_PENA, CANTINA, tandaDePena, cantinaAbierta, penaActiva, nocheDeCantina, parroquianosDeLaNoche } from './aldea.js';
-import { nombreCortoDe } from './aldea-vida.js';
+import { nombreCortoDe, apodoDe } from './aldea-vida.js';
+import { comentarioDalia, recuerdoDeDalia, comentarioDeLucreSobreElBaile } from './cantina-vida.js';
 import { hayEconomia } from './economia.js';
-import { cantinaDe, CARTA } from './cantina.js';
+import { cantinaDe, CARTA, itemEnCarta } from './cantina.js';
 import { BAILES_PENA, IDS_BAILES_PENA, nivelDeBaile, descansoDeBaile, amistadDeBaile, INVITACION, proximaInvitacion, confianzaDe, elegirChiste, ARRIMA_TIEMPO, frasesDeArrima, cantarTruco, invitarAlTruco, faseEbrio, nivelEbrio } from './pena.js';
 
 export const RADIO_PENA = 45;
@@ -63,7 +64,7 @@ export function crearPenaJuego(ctx) {
 
   // ---------------------------------------------------------------- los vasos de los parroquianos (en su mesa)
   const conVaso = new Map();   // punto → { clave }
-  const BEBIDAS = ['cerveza', 'vino-patero', 'ginebra', 'mate-cocido', 'cerveza', 'vino-patero'];
+  const BEBIDAS = ['cerveza', 'vino-patero', 'ginebra', 'mate-cocido', 'cerveza', 'vino-patero', 'fernet-cola', 'cerveza-negra', 'licor-calafate', 'cafe', 'sidra'];   // (3.9.2: y lo nuevo de la carta)
   function vasos(lista) {
     const v = ctx.visual;
     if (!v?.ponerEnMesa) return;
@@ -76,7 +77,7 @@ export function crearPenaJuego(ctx) {
       hoy.add(s.punto);
       const sil = sillas[s.i - 1];
       if (!sil) continue;
-      const item = CARTA.find((x) => x.id === BEBIDAS[Math.floor(azarT(`${s.clave}|${nocheDeCantina(dia(), hora())}|b`) * BEBIDAS.length) % BEBIDAS.length]) || CARTA[0];
+      const item = itemEnCarta(BEBIDAS[Math.floor(azarT(`${s.clave}|${nocheDeCantina(dia(), hora())}|b`) * BEBIDAS.length) % BEBIDAS.length]) || CARTA[0];
       // lo que queda baja con la noche: del vaso lleno al último sorbo
       const x = parroquianosDeLaNoche(P().aldea, nocheDeCantina(dia(), hora())).find((q) => q.clave === s.clave);
       const hh = hora() < 6 ? hora() + 24 : hora();
@@ -299,10 +300,33 @@ export function crearPenaJuego(ctx) {
       default: D.fase = 'pista';
     }
   }
+  // 3.9.2: Dalia más viva: te saluda por tu nombre cuando llegás a la peña y, desde la pista, comenta lo suyo (el compás, lo que bailaste, Lucrecia, el descanso); sólo con vos cerca
+  const V = { afuera: true, prox: 45, cd: 0 };
+  function dalia_vida(dt, js, d) {
+    const n = dalia(), tanda = tandaDePena(dia(), hora());
+    if (d > 26) V.afuera = true;
+    if (!n || !tanda || D.fase !== 'pista' || !js) return;
+    V.cd = Math.max(0, V.cd - dt);
+    if (V.afuera && d < 9 && V.cd <= 0 && !js.sentado && !ctx.hablandoCon?.()) {
+      V.afuera = false; V.cd = 150;
+      decirDalia(comentarioDalia('entrada', semilla(), { apodo: apodoDe(P())?.texto || null }));
+      return;
+    }
+    if (d > 13 || ctx.hablandoCon?.() || ctx.panelAbierto?.() || cantina()?.panelAbierto?.()) return;
+    V.prox -= dt;
+    if (V.prox > 0) return;
+    V.prox = 55 + azarT(`${semilla()}|vd`) * 50;
+    const c = cantinaDe(P()), k = (semilla() + info.bailes) % 5;
+    const txt = k === 0 ? comentarioDalia('pista', semilla()) : k === 1 ? comentarioDalia(tanda, semilla()) : k === 2 ? comentarioDalia('lucrecia', semilla())
+      : k === 3 ? recuerdoDeDalia({ tango: c?.veces?.['baile-tango'], chamame: c?.veces?.['baile-chamame'] }, semilla()) : comentarioDalia('descanso', semilla());
+    decirDalia(txt);
+  }
   function abrirInvitacion() {
     const c = cantina();
     if (!c?.abrirPanelLibre) { cancelarDalia(false); return; }
-    const texto = [`${chisteD('invitar', null, true) || 'Si sabés llevar, te dejo llevar. Si no, te enseño.'}`, chisteD('elegir', null, true) || 'El tango, bien pegaditos; el chamamé, con un poco más de aire. Vos elegí.'];
+    // (3.9.2: a veces, en vez de la explicación, te dice lo que bailaron más y te propone lo otro)
+    const cc0 = cantinaDe(P()), recuerdo = info.bailes > 0 && semilla() % 3 === 0 ? recuerdoDeDalia({ tango: cc0?.veces?.['baile-tango'], chamame: cc0?.veces?.['baile-chamame'] }, semilla()) : null;
+    const texto = [`${chisteD('invitar', null, true) || 'Si sabés llevar, te dejo llevar. Si no, te enseño.'}`, recuerdo || chisteD('elegir', null, true) || 'El tango, bien pegaditos; el chamamé, con un poco más de aire. Vos elegí.'];
     const hablado = texto[0];
     ctx.decir?.(dalia(), hablado);
     const botones = IDS_BAILES_PENA.map((id) => ({ texto: BAILES_PENA[id].texto, alClic: () => aceptar(id) }));
@@ -341,13 +365,15 @@ export function crearPenaJuego(ctx) {
       info.bailes++;
       const cc = cantinaDe(P());
       const antesHoy = cc?.pena?.ultima === dia();
-      if (cc) cc.pena = { bailes: (cc.pena?.bailes || 0) + 1, ultima: dia() };
+      if (cc) { cc.pena = { bailes: (cc.pena?.bailes || 0) + 1, ultima: dia() }; cc.veces = cc.veces || {}; cc.veces[`baile-${b.id}`] = Math.min(9999, (cc.veces[`baile-${b.id}`] || 0) + 1); }   // (3.9.2: y cuál bailaste)
       const primeraHoy = !antesHoy;
       ctx.alJugador?.('descansado', descansoDeBaile(nivel));
       if (primeraHoy) ctx.sumarAmistad?.('bailarina', amistadDeBaile(nivel));
       ctx.nota?.(T_(b.id === 'tango' ? 'Bailaste un tango con Dalia' : 'Bailaste un chamamé con Dalia'), T_(nivel >= 2 ? 'La pista te aplaude: se nota la mano de Pocha' : nivel ? 'Ya no la pisás' : 'Pocha da clases en la fiesta: pedile una'), true);
       const j = chisteD('despedida', null, true);
       if (j) ctx.cantina?.() && setTimeout(() => { try { decirDalia(j); } catch { /* ya */ } }, 700);
+      // (3.9.2: y Lucrecia, desde la barra, lo comenta)
+      setTimeout(() => { try { if (cantinaAbierta(hora())) cantina()?.decir?.(comentarioDeLucreSobreElBaile(semilla())); } catch { /* ya */ } }, 5200);
       ctx.guardar?.();
     } else ctx.nota?.(T_(NOMBRE_DALIA), T_('¿Ya te cansaste? Vuelvo a la pista, que el compás no espera.'));
     if (n) { D.fase = 'vuelve'; D.t = 0; n.conVos = true; caminar(n, [pto('pista')], pto('pista').mira); D.proxima = proximaInvitacion(semilla(), false); }
@@ -374,6 +400,7 @@ export function crearPenaJuego(ctx) {
     cantosDelTruco(dt, d, ultimaLista);
     arrimarse(dt, ultimaLista);
     dalia_actualizar(dt, js, d);
+    dalia_vida(dt, js, d);
     info.ms = (typeof performance !== 'undefined' ? performance.now() : 0) - t0;
   }
   // lo que pide E y el aviso (la misma función)
