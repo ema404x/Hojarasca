@@ -5065,7 +5065,8 @@ function cantina(K) {
   chimeneaExtra(K, xi - 0.5, 0.45);
   for (let i = 0; i < 4; i++) palo(K.int, [xi - 0.28 + (i % 2) * 0.12, PISO + 0.06 + Math.floor(i / 2) * 0.12, -0.5], [xi - 0.28 + (i % 2) * 0.12, PISO + 0.06 + Math.floor(i / 2) * 0.12, -0.05], 0.05, i % 2 ? '#7a5a3a' : '#6a4d33', { abierto: false });
   // los farolitos colgados (una luz sobre cada fila de mesas y una en la barra), la alfombra del pasillo y los banderines
-  for (const [x, z] of [[-0.9, 1.5], [1.5, 1.5], [-3.0, 0.2]]) lampara(K, x, z, { cuelga: 0.85, color: '#7a2a1e', radio: 9, luz: 0xffb060, intensidad: 1.5, fuerza: 3.6 });
+  // (3.9.1: de las tres, la primera es la única que el mundo prende como luz (una luz de adentro por edificio): la de la noche se veía oscura. Ahora alcanza todo el cuarto (radio 13) y pesa más; las otras dos quedan de farolito encendido)
+  [[-0.9, 1.5, { radio: 13, intensidad: 2.6, fuerza: 8.5 }], [1.5, 1.5, {}], [-3.0, 0.2, {}]].forEach(([x, z, l]) => lampara(K, x, z, { cuelga: 0.85, color: '#7a2a1e', radio: 9, luz: 0xffb060, intensidad: 1.5, fuerza: 3.6, ...l }));
   alfombra(K, 0.3, 1.3, 4.6, 0.8, Math.PI / 2, '#6b2f2a', { guarda: '#c7a76a' });
   const rb = azar(semillaDe('banderines-cantina'));
   {

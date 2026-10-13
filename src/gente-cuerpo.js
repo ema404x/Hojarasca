@@ -1031,10 +1031,10 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     pintarPieza(caña, (c, p) => { if (p.y > (altas ? -0.075 : -0.255)) c.multiplyScalar(0.82); c.multiplyScalar(1 + 0.06 * Math.sin(p.y * 120)); });
     rodilla.add(rol(caña, 'bota', perfilBota.length, 12));
     const tobillo = new THREE.Group(); tobillo.position.set(0, TOBILLO, 0.0);
-    const empeine = bola(bota, [0.056, 0.046, 0.122], [0, -0.39 - TOBILLO, 0.05], null, [10, 7]);
+    const empeine = bola(bota, [0.056, 0.046, 0.122], [0, -0.396 - TOBILLO, 0.05], null, [10, 7]);   // (3.9.1: la suela 1 cm más abajo, que toque el piso: flotaban 1,1 cm en todos)
     if (barroPie) pintarPieza(empeine, barroPie);
     tobillo.add(empeine);
-    tobillo.add(bola(matiz(bota, 0.5), [0.059, 0.017, 0.125], [0, -0.425 - TOBILLO, 0.045], null, [10, 6]));         // la suela
+    tobillo.add(bola(matiz(bota, 0.5), [0.059, 0.017, 0.125], [0, -0.436 - TOBILLO, 0.045], null, [10, 6]));         // la suela
     const yTop = (altas ? -0.435 : -0.615) + RODILLA;
     rodilla.add(conTela(torno(matiz(bota, 1.2), [[altas ? 0.07 : 0.06, yTop - 0.03], [altas ? 0.078 : 0.066, yTop - 0.012], [altas ? 0.075 : 0.064, yTop + 0.004], [altas ? 0.066 : 0.058, yTop + 0.008]], null, null, null, 12), TELA.cuero));
     if (!altas) for (let i = 0; i < 3; i++) for (const s of [-1, 1]) rodilla.add(fino(bola('#2e2216', [0.016, 0.0028, 0.003], [0, yTop - 0.022 - i * 0.017, 0.056 - i * 0.002], [0.25, 0, s * 0.5], [5, 3])));
@@ -1136,10 +1136,12 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     torso.add(rol(capa(tela, [[0.066, 0.528], [0.07, 0.548], [0.066, 0.572], [0.06, 0.578]], 16, 0.35, Math.PI * 2 - 0.7, 0.98), 'cuello', 4, 16));
     for (const l of [-1, 1]) torso.add(bola(tela, [0.015, 0.021, 0.003], [l * 0.027, 0.535, 0.066], [0.55, l * 0.3, l * 0.7]));
   }
+  let radioFalda = null;   // 3.9.1: el radio de la pollera a cada altura (el delantal corto la sigue de cerca)
   if (R.pollera) {
     const perfilPollera = talle
       ? [[0.236, -0.35], [0.226, -0.3], [0.21, -0.22], [0.192, -0.12], [0.172, -0.03], [0.156, 0.05], [0.14, 0.12], [0.129, 0.18], [0.126, 0.205]]   // 3.9: ceñida a la cintura y de campana suave, a media pantorrilla (se ve la media y la bota)
       : [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
+    radioFalda = (y) => { for (let i = 1; i < perfilPollera.length; i++) if (y <= perfilPollera[i][1]) { const [r0, y0] = perfilPollera[i - 1], [r1, y1] = perfilPollera[i]; return r0 + (r1 - r0) * Math.max(0, (y - y0) / (y1 - y0)); } return perfilPollera[perfilPollera.length - 1][0]; };
     if (R.chamal) perfilPollera.splice(0, 1, [0.262, -0.71], [0.25, -0.6], [0.238, -0.5]);   // el chamal, hasta los tobillos
     let faldaMalla = capa(colPollera, perfilPollera, 36, 0, Math.PI * 2, 0.78, talle ? 0.05 : 0.045);
     if (R.tajo && talle) {
@@ -1173,13 +1175,14 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   const delantalCorto = !!(R.delantalCorto && R.pollera && R.delantal && !conPoncho);
   if (delantalCorto) {
     // 3.9: el delantal corto de la moza: de la cintura a mitad del muslo, sin pechera, con bolsillo y atado atrás con un moño al costado
-    const perfil = [[0.228, -0.21], [0.213, -0.13], [0.194, -0.05], [0.173, 0.04], [0.157, 0.12], [0.147, 0.165]];
-    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(R.delantal, perfil, 14, -0.7, 1.4, 0.79), (c, p) => {
+    // (3.9.1: pegado a la pollera —1,4 cm por afuera— y envolviendo hasta los costados (±83°, se ata atrás): antes sólo cubría ±40° y de frente o de 3/4 la pollera asomaba al costado: parecía un delantal partido en un pedazo blanco y otro bordó)
+    const perfil = [-0.21, -0.13, -0.05, 0.04, 0.12, 0.165].map((y) => [(radioFalda ? radioFalda(y) : 0.17) + 0.014, y]);
+    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(R.delantal, perfil, 22, -1.45, 2.9, 0.78), (c, p) => {
       surcos(c, Math.sin(p.x * 80 + 0.5) * sv(0.1, -0.2, p.y), 0.12);
       if (p.y < -0.185) c.multiplyScalar(0.9);                                                  // el dobladillo
       if (p.y > -0.12 && p.y < -0.03 && p.x > 0.015 && p.x < 0.075) c.multiplyScalar(0.93);     // el bolsillo
       if ((Math.abs(p.y + 0.12) < 0.004 || Math.abs(p.y + 0.03) < 0.003) && p.x > 0.015 && p.x < 0.075) c.multiplyScalar(0.8);
-    }), TELA[R.telaDelantal || 'lienzo']), perfil.length, 14, true, true), 'delantal', perfil.length, 14));
+    }), TELA[R.telaDelantal || 'lienzo']), perfil.length, 22, true, true), 'delantal', perfil.length, 22));
     // la cinta de la cintura (da toda la vuelta) y el moño, atrás a la izquierda
     const cinta = matiz(R.delantal, 0.9), psi = -2.35, rM = 0.146, zM = Math.cos(psi) * rM * 0.76, xM = Math.sin(psi) * rM, tx = Math.cos(psi), tz = -Math.sin(psi) * 0.76;
     torso.add(conTela(capa(cinta, [[0.15, 0.135], [0.153, 0.15], [0.15, 0.168]], 22, 0, Math.PI * 2, 0.78), TELA.lienzo));
@@ -2096,8 +2099,10 @@ const _q1 = new THREE.Quaternion(), _v1 = new THREE.Vector3();
 function poseCantina(g, st, dt, andando) {
   const pc = st.pc || (st.pc = { nombre: null, w: 0, sucio: false });
   const pedido = g.pose && Object.hasOwn(POSES_CANTINA, g.pose) ? g.pose : null;
-  if (pedido && pedido === pc.nombre) pc.w = Math.min(1, pc.w + dt * 3);
-  else { pc.w = Math.max(0, pc.w - dt * 3); if (pc.w <= 0.001) { pc.w = 0; pc.nombre = pedido; } }
+  // (3.9.1: un cuadro nunca cuenta menos de 1/60 s y la pose entra en 0,2 s: con pocos cuadros por segundo o con dt chico —las capturas— los brazos se quedaban caídos y la bandeja sin verse)
+  const paso = Math.max(dt, 1 / 60) * 5;
+  if (pedido && pedido === pc.nombre) pc.w = Math.min(1, pc.w + paso);
+  else { pc.w = Math.max(0, pc.w - paso); if (pc.w <= 0.001) { pc.w = 0; pc.nombre = pedido; } }
   const B = g.bandeja;
   if (pc.nombre && pc.w > 0) {
     const P = POSES_CANTINA[pc.nombre], w = pc.w * pc.w * (3 - 2 * pc.w);

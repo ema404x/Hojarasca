@@ -81,6 +81,8 @@ app.whenReady().then(async () => {
     await colocar(0, 11);
     await preparar();
     for (let i = 0; i < 25; i++) { await cuadro(1); await esperar(40); }
+    // (3.9.1: HOJ_PIES=1 mide a qué altura del suelo quedan las suelas de las dos, con el esqueleto de verdad)
+    if (process.env.HOJ_PIES) console.log(await js(`(() => { try { const r = {}; for (const [k, n] of Object.entries(window.__f)) { let sk = null; n.g.traverse((o) => { if (o.isSkinnedMesh) sk = o; }); sk.skeleton.update(); const g = sk.geometry, P = g.attributes.position, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight, M = sk.skeleton.boneMatrices; let minY = 9; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i); if (y > 0.2) continue; let Y = 0; for (let q = 0; q < 4; q++) { const w = SW.getComponent(i, q); if (w <= 0) continue; const o = SI.getComponent(i, q) * 16; Y += w * (M[o + 1] * x + M[o + 5] * y + M[o + 9] * z + M[o + 13]); } minY = Math.min(minY, Y); } const gy = n.g.position.y, s = n.g.scale.y; r[k] = { posY: +n.pos.y.toFixed(3), gY: +gy.toFixed(3), escala: +s.toFixed(3), minYbind: +minY.toFixed(4), suelaMundo: +(gy + s * minY).toFixed(4), altoSobreSuelo: +(gy + s * minY - n.pos.y).toFixed(4), terreno: +${H}.T.altura(n.pos.x, n.pos.z).toFixed(3) }; } return JSON.stringify(r); } catch (e) { return String(e.stack || e) } })()`));
     for (const [nom, ang] of angulos) { await (ang >= 80 ? camara(ang, 2.3, 1.2, 0.95, 'ella') : camara(ang)); await foto(`${clave}-${nom}`); }
     await camara(30, 1.8, 1.1, 0.85, 'ella'); await foto(`${clave}-cerca`);
   }
