@@ -398,8 +398,8 @@ const GESTO_SENTADO = { ceramica: 'tornear', costureria: 'coser' };
 // Lo que se ve de la aldea desde un punto del mundo: cuánto falta para el rectángulo que ocupa.
 export function distanciaAldea(x, z, M = marcoAldea(PARADA_ALDEA)) {
   const l = M.aLocal(x, z);
-  // (3.7.0: con la calle de la Loma, hasta x = −150; 3.7.3: y del otro lado de la vía, el taller ferroviario)
-  const dx = Math.max(-150 - l.lx, 0, l.lx - 92), dz = Math.max(-13 - l.lz, 0, l.lz - 72);
+  // (3.7.0: con la calle de la Loma, hasta x = −150 (3.9.0: −175, con la cantina); 3.7.3: y del otro lado de la vía, el taller ferroviario)
+  const dx = Math.max(-175 - l.lx, 0, l.lx - 92), dz = Math.max(-13 - l.lz, 0, l.lz - 72);
   return Math.hypot(dx, dz);
 }
 

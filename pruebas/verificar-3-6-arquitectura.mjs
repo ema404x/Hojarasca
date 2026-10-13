@@ -69,7 +69,7 @@ const CONTRATO = {
   'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
 };
 // (3.7.0: los de la calle de la loma, `loma: true`, los prueba verificar-3-7-0-arquitectura.mjs)
-const IDS_36 = Object.keys(A.EDIFICIOS_ALDEA).filter((id) => !A.EDIFICIOS_ALDEA[id].loma && id !== 'banco-pueblo');   // (3.8.8: el banco lo prueba verificar-3-8-8-banco.mjs)
+const IDS_36 = Object.keys(A.EDIFICIOS_ALDEA).filter((id) => !A.EDIFICIOS_ALDEA[id].loma && id !== 'banco-pueblo' && id !== 'cantina');   // (3.8.8: el banco lo prueba verificar-3-8-8-banco.mjs)
 assert.deepEqual(IDS_36.sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato, ni uno más');
 for (const [id, [w, d]] of Object.entries(CONTRATO)) {
   assert.ok(Object.hasOwn(A.EDIFICIOS_ALDEA, id), 'falta ' + id);

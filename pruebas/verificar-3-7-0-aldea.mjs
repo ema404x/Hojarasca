@@ -219,7 +219,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   for (const k of todos) ok(A.cumpleDe(k) >= 1 && A.cumpleDe(k) <= 12, `${k}: cumple el ${A.cumpleDe(k)}`);
   eq(Object.keys(A.CUMPLES_ALDEA).sort(), [...todos].sort(), 'todos y nadie más');
   const porDia = Array.from({ length: 12 }, (_, i) => todos.filter((k) => A.cumpleDe(k) === i + 1).length);
-  ok(Math.max(...porDia) <= 3, `repartidos (como mucho tres el mismo día: ${porDia.join(' ')})`);
+  ok(Math.max(...porDia) <= 4, `repartidos (como mucho cuatro el mismo día, 3.9.0: con la moza: ${porDia.join(' ')})`);
   ok(A.cumpleDe('ema') === 8 && A.cumpleDe('__proto__') === null && A.cumpleDe('nadie') === null, 'también los del valle');
   // lo de un día y el aviso del día antes
   const a = A.aldeaNueva();
@@ -248,7 +248,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const cal = V.calendarioDelAnio(15, { aldea: a, fiestas });
   ok(cal.anio === 2 && cal.filas.length === 12 && cal.filas.filter((x) => x.hoy).length === 1 && cal.filas[2].hoy && cal.filas[3].manana, 'el año en el cuaderno: doce filas, hoy y mañana');
   ok(cal.filas[5].eventos.some((e) => e.tipo === 'fiesta'), 'con las fiestas');
-  ok(V.listaCumples(a).length === 9 + 1 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín; 3.8.8: y el gerente)
+  ok(V.listaCumples(a).length === 9 + 1 + 1 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín; 3.8.8: y el gerente)
 }
 
 // ============================================================ 4. los cumpleaños

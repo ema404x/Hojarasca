@@ -503,7 +503,7 @@ export function planAccesorios() {
   // y el de la loma: al fondo de los lotes de cada lado y en la punta, pasando el observatorio
   for (let x = -60.5; x >= -144; x -= 8) bordes.push([x, 70.5, 5]);
   for (let x = -66.5; x >= -144; x -= 9) bordes.push([x, 35.5, 6]);
-  for (let z = 37.5; z <= 66; z += 7) bordes.push([-151.5, z, 7]);
+  for (let z = 37.5; z <= 66; z += 7) bordes.push([-168.5, z, 7]);   // (3.9.0: pasando la cantina)
   for (let z = 37.5; z <= 70.5; z += 7) bordes.push([98.6, z, 2]);
   for (let x = -40; x <= 10; x += 8.5) bordes.push([x, 83.6, 3]);
   for (let z = 33; z <= 63; z += 8.5) bordes.push([93.6, z, 4]);
@@ -532,7 +532,7 @@ export function planAccesorios() {
   // oeste baja por la ladera), unos pocos atrás de los de abajo y la punta, pasando el observatorio
   for (let x = -57; x >= -146; x -= 7.5) alamos.push([x, 73]);
   for (let x = -70; x >= -146; x -= 15) alamos.push([x, 33.5]);
-  for (let z = 40; z <= 64; z += 8) alamos.push([-153, z]);
+  for (let z = 34; z <= 64; z += 8) alamos.push([-169, z]);   // (3.9.0: pasando la cantina)
   alamos.forEach(([lx, lz], i) => {
     if (enCalle(lx, lz, 2) || ocupado(lx, lz, 1.5)) return;
     lista.push({ tipo: 'alamo', lx, lz, giro: (i * 2.39996) % (Math.PI * 2), escala: 0.88 + ((i * 7919) % 25) / 100 });
@@ -823,7 +823,8 @@ function texturaGrava() {
 // junta agua); B: el pasto ralo (el lomo del medio y los bordes); A: zonas de unos metros (más
 // claro o más oscuro, cuál de las dos escalas manda, dónde se junta el agua).
 // (3.7.0 (integración): desde x = −150, con la calle de la Loma)
-export const MARCO_RIPIO = { lx0: -150, lz0: 3, ancho: 248, alto: 82, paso: 0.25 };
+// (3.9.0: desde x = −175, con la cantina al final de la calle de la Loma)
+export const MARCO_RIPIO = { lx0: -175, lz0: 3, ancho: 273, alto: 82, paso: 0.25 };
 export function mascaraRipio(calles = CALLES_ALDEA) {
   const P = MARCO_RIPIO, W = Math.round(P.ancho / P.paso), H = Math.round(P.alto / P.paso);
   const d = new Uint8Array(W * H * 4), escrito = new Uint8Array(W * H), r = azarSemilla(36038);
@@ -1034,7 +1035,7 @@ export function crearAldeaMundo(ctx) {
   const centroY = T.altura(centro.x, centro.z);
   const distAldea = (x, z) => Math.hypot(x - centro.x, z - centro.z);
   // 3.7.0 (integración): cuánto falta para el rectángulo que ocupa la aldea (con la calle de la Loma, hasta x = −152)
-  const fueraAldea = (x, z) => { const l = M.aLocal(x, z); return Math.hypot(Math.max(-152 - l.lx, 0, l.lx - 100), Math.max(-6 - l.lz, 0, l.lz - 94)); };
+  const fueraAldea = (x, z) => { const l = M.aLocal(x, z); return Math.hypot(Math.max(-177 - l.lx, 0, l.lx - 100), Math.max(-6 - l.lz, 0, l.lz - 94)); };
 
   // ------------------------------------------------ el terreno
   function emparejar() {
@@ -1062,7 +1063,7 @@ export function crearAldeaMundo(ctx) {
     // lo que cubre: toda la aldea (con la estación, los álamos y las pircas) y un margen de una celda gruesa
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
     // (3.7.0 (integración): desde x = −158, con la calle de la Loma)
-    for (const [lx, lz] of [[-158, -4], [104, -4], [-158, 96], [104, 96]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
+    for (const [lx, lz] of [[-183, -4], [104, -4], [-183, 96], [104, 96]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
     const ia0 = Math.max(0, Math.floor((x0 - s + 512) / s)), ia1 = Math.min(seg, Math.ceil((x1 + s + 512) / s));
     const ja0 = Math.max(0, Math.floor((z0 - s + 512) / s)), ja1 = Math.min(seg, Math.ceil((z1 + s + 512) / s));
     const X0 = ia0 * s - 512, X1 = ia1 * s - 512, Z0 = ja0 * s - 512, Z1 = ja1 * s - 512;
@@ -1153,7 +1154,7 @@ export function crearAldeaMundo(ctx) {
         altura: (i, j) => pa[k(i, j) + 1], normal: (i, j) => [na[k(i, j)], na[k(i, j) + 1], na[k(i, j) + 2]] };
     }
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (const [lx, lz] of [[-150, 3], [98, 3], [-150, 85], [98, 85]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
+    for (const [lx, lz] of [[-175, 3], [98, 3], [-175, 85], [98, 85]]) { const w = aMundo(lx, lz); x0 = Math.min(x0, w.x); x1 = Math.max(x1, w.x); z0 = Math.min(z0, w.z); z1 = Math.max(z1, w.z); }
     const X0 = Math.floor(x0 / 2) * 2, Z0 = Math.floor(z0 / 2) * 2, nx = Math.ceil((x1 - X0) / 2), nz = Math.ceil((z1 - Z0) / 2);
     return { X0, Z0, dx: 2, dz: 2, nx, nz, altura: (i, j) => alturaEn(X0 + i * 2, Z0 + j * 2), normal: (i, j) => { const n = T.normal(X0 + i * 2, Z0 + j * 2); return [n.x, n.y, n.z]; } };
   }
@@ -1188,8 +1189,8 @@ export function crearAldeaMundo(ctx) {
       const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 4.4);
     }
     // 3.7.0 (integración): y el de la calle de la Loma (los lotes de los dos lados, sus fondos y la punta)
-    for (let lx = -155; lx < -47; lx += 6) for (let lz = 30; lz <= 76; lz += 6) {
-      const orilla = Math.min(lx + 155, 76 - lz, lz - 30), v = Math.sin(lx * 12.9898 + lz * 78.233) * 43758.5453;
+    for (let lx = -180; lx < -47; lx += 6) for (let lz = 30; lz <= 76; lz += 6) {   // (3.9.0: hasta la cantina)
+      const orilla = Math.min(lx + 180, 76 - lz, lz - 30), v = Math.sin(lx * 12.9898 + lz * 78.233) * 43758.5453;
       if (orilla < 5 && v - Math.floor(v) < 0.45) continue;
       const w = aMundo(lx, lz); sacados += veg.despejar(w.x, w.z, 4.4);
     }
@@ -1200,7 +1201,7 @@ export function crearAldeaMundo(ctx) {
     for (const lista of [veg.arboles, veg.matas]) for (const a of lista || []) {
       if (!a?.sacado || !a.choque || a.choque.alturaMax === -1e9) continue;
       const l = M.aLocal(a.x, a.z);
-      if (l.lx < -160 || l.lx > 108 || l.lz < -8 || l.lz > 98) continue;   // (3.7.0 (integración): con la loma)
+      if (l.lx < -185 || l.lx > 108 || l.lz < -8 || l.lz > 98) continue;   // (3.7.0 (integración): con la loma)
       a.choque.alturaMax = -1e9; choques++;
     }
     info.choquesApagados = choques;

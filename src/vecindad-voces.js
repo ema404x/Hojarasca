@@ -1146,6 +1146,47 @@ export const VOCES = {
     pronostico: 'Mi barómetro de oficina dice {pronostico}. No es infalible, pero es más confiable que algunos balances.',
     regalo: 'Amadeo, el gerente del banco, te dejó un frasco de miel de parte de la casa',
   },
+  // 3.9.0: Lucrecia, la moza de la cantina: coqueta, segura, con humor picante y de doble sentido liviano; pone en su lugar a los borrachos
+  moza: {
+    encanta: {
+      'calafate-seco': 'Calafate seco… con esto hago el licor de la casa, el que alivia las penas y arma otras. Gracias, corazón: te lo voy a hacer probar, pero de a poquito, que después no respondo.',
+      'frasco-frutilla': 'Dulce de frutilla. Mi madre lo ponía en el pan con manteca y decía «esto no se le da a cualquiera». Vos no sos cualquiera, ¿no?',
+      empanadas: 'Empanadas… con razón me caés bien. Dicen que al corazón se llega por el estómago; yo conozco otros atajos, pero este también sirve.',
+    },
+    gusta: '{cosa}, qué detalle. ¿Vos te creés que me ablando con cualquier cosa? Y sí, me ablando; con esto, un poquito más.',
+    noGusta: 'Un tronco… corazón, para el fuego tengo la salamandra, y para el calor, otros métodos. Llevátelo, que me ocupa lugar en la barra.',
+    ocupado: 'Ahora no, cariño, que tengo la barra llena y las manos peor. Pasá más tarde, que de noche hay tiempo para todo.',
+    noToma: { te: 'Té, no: eso lo toman las galesas. Yo, a esta hora, algo con más carácter. Pero tu compañía la acepto igual.' },
+    acepta: 'Dale, me escapo un ratito. Dejo la barra con el cartel de «vuelvo ya» y vamos a {lugar}.',
+    animo: {
+      bien: 'Bien, y con ganas de que pasen cosas. Hoy me levanté con el pie derecho, y con el izquierdo también, los dos con tacos.',
+      cansado: 'Cansada. Anoche se quedaron hasta las dos cantando y yo, atrás de la barra, sirviendo hasta el último verso.',
+      inquieto: 'Inquieta. Hay noches en que la barra se me queda chica y la calle, grande. Hoy es una de esas.',
+      charla: 'Con ganas de charlar. En la cantina escucho mil historias y cuento cero; hoy toca al revés, y vos sos buen público.',
+    },
+    historia: { titulo: 'El buffet de Jacobacci', partes: [
+      'Mi viejo atendía el buffet de la estación de Jacobacci. Yo, de chica, dormía arriba de los cajones de cerveza y me despertaba con el silbato del tren. Cuando me enteré de que el mundo seguía más allá de las vías, me subí al primero que pasó.',
+      'Serví mesas en tres pueblos. En uno me quisieron casar con el hijo del dueño; en otro, con el dueño. Les dije que primero quería terminar de aprender el oficio y que después, si sobraba tiempo, hablábamos de maridos.',
+      'Acá me quedé porque la calle termina en mi puerta. Me gusta eso: el que llega hasta el final de todo lo hace a propósito. Los que se pierden no llegan nunca; los que llegan vienen a quedarse un rato, y yo sé hacer que el rato valga.',
+    ] },
+    sobremesa: [
+      'Al que se pasa de copas le cuento tres chistes; al cuarto le sirvo mate cocido y lo mando a su casa. Nunca falla.',
+      'La guitarra de la pared era de mi tío, que tocaba como los ángeles y cantaba como una puerta sin aceite. La dejé en la cantina para que algún día vuelva a sonar.',
+      'El truco es un juego de mentirosos con buena educación. Yo miento mejor que nadie, pero el que me mira a los ojos y se queda… ese gana.',
+      'Hay que servir con la sonrisa y con los pies en la tierra. La moza que se marea con los piropos termina tirando la bandeja.',
+      'En esta barra aprendí que los hombres hablan más cuando creen que una no escucha. Y que las mujeres, cuando saben que sí.',
+      'No hay mal día que no se arregle con una empanada caliente y alguien que te cuente algo sin pedirte nada a cambio. O que te pida todo, pero con gracia.',
+    ],
+    visita: [
+      'Pasé a ver cómo vivías: una se entera de cómo es la gente por la casa. Muy prolija… y esa manta, ¿la tejiste vos o hay alguien que te la teje? Preguntar es de buena educación.',
+      'Te traje una botellita del fondo de la barra. De esa que no se vende: se regala, a los que se lo ganan. Probala de a sorbitos y pensame un poco.',
+    ],
+    saludoAmigo: '¡{nombre}! Justo cuando la barra se ponía aburrida entrás vos. Sentate, que hoy la primera la invita la casa.',
+    saludoCompadre: '{nombre}, mi preferido. Para vos la mejor mesa, la mejor empanada y la mejor sonrisa. Los demás que esperen.',
+    fauna: 'Desde la ventana de la cantina vi {unbicho}. Me quedé mirando con la bandeja en alto y se me enfriaron las empanadas. Valió la pena.',
+    pronostico: 'Dicen que {pronostico}. A mí el pronóstico me lo dan los clientes: si hace frío, vienen temprano y se quedan más.',
+    regalo: 'Lucrecia, la moza de la cantina, te dejó yerba para el mate, con un guiño',
+  },
   ramon: {
     encanta: {
       yerba: 'Yerba. Esto no se rechaza nunca, m\'hijo. Gracias.',
@@ -1484,6 +1525,16 @@ export const AYUDAS = {
       gracias: ['Esto es leña. Con esto el galpón aguanta la helada y la grasa no se pone dura como manteca de invierno.'],
       devuelve: { tipo: 'cosa', k: 'yerba', n: 1, texto: 'Tomá, yerba de la mía. De la que se toma en la cabina.' },
       consejo: 'En la meseta, cuando nevaba fuerte, el tren llevaba más palas que pasajeros. Si salís con nieve, llevá pala aunque te miren raro.' },
+  ],
+  // 3.9.0: Lucrecia, en la cantina
+  moza: [
+    { id: 'damajuana', titulo: 'Ayudarla a bajar la damajuana del estante más alto', hace: true,
+      gracias: ['Uf, gracias. Entre los tacos, la bandeja y la damajuana, una sola no puede con todo. Quedás invitado a la primera ronda.'],
+      consejo: 'Cuando alguien te hable demasiado dulce, mirale las manos: el que miente mueve los dedos. Y si no miente, mirale los ojos: ahí se ve si es sincero o nada más simpático.' },
+    { id: 'lena-cantina', titulo: 'Llevarle leña para la salamandra', pide: { tipo: 'material', k: 'tronco', n: 2 },
+      gracias: ['Leña seca y partida. Con esto la salamandra aguanta toda la noche y los clientes no se van antes de la última copa.'],
+      devuelve: { tipo: 'cosa', k: 'yerba', n: 1, texto: 'Tomá, yerba de la casa. La barra no es sólo para tomar.' },
+      consejo: 'En invierno, el que llega al final de la calle quiere calor más que compañía. Dale el calor primero; la compañía viene sola.' },
   ],
   // 3.8.8: Amadeo, en el banco
   gerente: [

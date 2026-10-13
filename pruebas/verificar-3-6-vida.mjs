@@ -313,7 +313,7 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
   // de noche, nadie libre
   p.horas = 23.5;
   ag.actualizar(0.6);
-  ok(ag.estado().npcs.every((x) => !x.libre && x.destino.punto.startsWith('cama')), 'de noche, todos a la cama');
+  ok(ag.estado().npcs.every((x) => x.clave === 'moza' || (!x.libre && x.destino.punto.startsWith('cama'))), 'de noche, todos a la cama (3.9.0: menos la moza de la cantina, que atiende hasta las 2)');
   // la cita a la casa de té manda (aunque sea de noche, mientras dure)
   p.horas = 18.75;
   ag.citar('nelida', { edificio: 'casa-te', punto: 'mesa-2' });

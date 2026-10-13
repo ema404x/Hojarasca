@@ -183,8 +183,8 @@ function mundo(p) {
   m.ir(10, 240);
   m.tick(3);
   ok(m.figuras.length >= 1 && m.figuras.length < 8, `de a una por cuadro (${m.figuras.length})`);
-  m.tick(10);
-  eq(m.figuras.length, 10, 'los diez vecinos de la aldea');   // (3.7.3: con Martín, el maquinista; 3.8.8: y el gerente)
+  m.tick(11);
+  eq(m.figuras.length, 11, 'los once vecinos de la aldea');   // (3.7.3: con Martín, el maquinista; 3.8.8: y el gerente)
   ok(m.ag.personas.get('ercilia').npc === m.ercilia && m.ercilia.claveAldea === 'ercilia', 'y Ercilia, la de siempre (no se arma otra)');
   ok(m.figuras.every((f) => f.dormido), 'a más de 150 m, quietos y sin dibujar');
   eq(m.figuras.map((f) => f.clave), A.ORDEN_VECINOS_ALDEA.map((k) => `aldea-${k}`));
@@ -195,7 +195,7 @@ function mundo(p) {
   m.tick(2);
   const est = m.ag.estado();
   ok(est.npcs.every((x) => Math.hypot(x.x - x.destino.x, x.z - x.destino.z) < 1e-6 && !x.caminando), 'de noche, cada uno en su cama');
-  ok(m.figuras.filter((f) => f.soloCerca === G.VER_ADENTRO).length === 10, 'adentro, se los ve sólo de cerca');   // (3.7.3: nueve, con Martín; 3.8.8: diez, con el gerente)
+  ok(m.figuras.filter((f) => f.soloCerca === G.VER_ADENTRO).length === 11, 'adentro, se los ve sólo de cerca');   // (3.7.3: nueve, con Martín; 3.8.8: diez, con el gerente)
   ok(Math.hypot(m.ercilia.pos.x - A.puntosMundo('casa-ercilia').cama.x, m.ercilia.pos.z - A.puntosMundo('casa-ercilia').cama.z) < 1e-6, 'Ercilia duerme en su casa de la aldea');
   // llegás a la plaza: despiertan, se anota el lugar
   p.horas = 10;

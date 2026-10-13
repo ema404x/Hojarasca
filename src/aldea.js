@@ -151,6 +151,10 @@ export const EDIFICIOS_ALDEA = {
   // la calle Norte. Inicial (desde el día 1) y con su gerente, Amadeo, que vive en el cuarto de atrás. Sitio medido con el terreno real
   // (verificar-3-8-8-banco.mjs): desnivel de poco más de un metro, sin agua y a más de 22 m de la vía.
   'banco-pueblo': { nombre: 'El banco del pueblo', rol: 'local', inicial: true, ancho: 7.8, fondo: 6.4, x: 60.3, z: 44.55, rot: -PI / 2, y: 20.0, calle: 'pasaje-este', lado: -1 },
+  // 3.9.0: LA CANTINA (DECISIONES_3_8_4.md): el boliche de campaña, al final de todo: pasando el observatorio, donde termina la calle de la
+  // Loma (lo más alejado de la estación por la calle: ~200 m de recorrido). Inicial (desde el día 1), con su moza, Lucrecia, que vive en
+  // el cuarto de atrás. Sitio medido con el terreno real (verificar-3-9-0-cantina.mjs): 1,2 m de desnivel, sin agua, a 7 m del observatorio.
+  cantina: { nombre: 'La cantina', rol: 'local', inicial: true, ancho: 10.4, fondo: 8, x: -153.5, z: 38.5, rot: 0, y: 29.36, calle: 'calle-loma', lado: -1 },
   'taller-tren': { nombre: 'El taller ferroviario', rol: 'taller-tren', fija: true, ancho: 17, fondo: 7.2, x: 20.5, z: -8.5, rot: 0, y: 25.215 },
 };
 export const IDS_EDIFICIOS = Object.keys(EDIFICIOS_ALDEA);
@@ -173,7 +177,7 @@ export const CALLES_ALDEA = [
   { id: 'pasaje-oeste', nombre: 'Pasaje de los Coihues', ancho: 4, puntos: [[-27, 26], [-27, 68]] },
   { id: 'pasaje-este', nombre: 'Pasaje de las Chacras', ancho: 4, puntos: [[53, 26], [53, 68]] },
   // 3.7.0: la que sigue a la calle Norte y sube a la loma, hasta el observatorio
-  { id: 'calle-loma', nombre: 'Calle de la Loma', ancho: 5, puntos: [[-44, 52], [-146, 52]] },
+  { id: 'calle-loma', nombre: 'Calle de la Loma', ancho: 5, puntos: [[-44, 52], [-146, 52], [-153.5, 52], [-153.5, 48.5]] },   // 3.9.0: dobla al norte y termina en la puerta de la cantina
 ];
 
 // De la planta de un edificio: dónde cae un punto suyo (bx, bz) en el plano de la aldea.
@@ -283,6 +287,7 @@ export const PUERTA_X = {
   panaderia: -1.2, carpinteria: -1, pescaderia: -1, 'puesto-sanitario': -0.9, estafeta: 0.8, hilanderia: -1.4, 'sala-miel': -0.9, seccional: -1,
   veterinaria: -0.6, 'estudio-fotos': 1.5, 'refugio-andinista': -0.9, herboristeria: -1, 'taller-arte': -1.4, ceramica: -0.6, observatorio: -1.7, costureria: 1,
   'banco-pueblo': 0,   // 3.8.8: la puerta del banco, en el medio del frente
+  cantina: 0,   // 3.9.0: la puerta de la cantina, en el medio del frente
   'taller-tren': 3,   // 3.7.3: la puerta chica del frente (el portón grande es el del desvío, en el testero oeste)
 };
 // 3.7.3: los puntos del taller ferroviario, en su marco ([x, z, rot]; la puerta chica en x 3, el eje de la vía a +8,5 m
@@ -296,6 +301,24 @@ export const PUNTOS_TALLER = {
   puerta: [3, 4.5, 0], zaguan: [3, 2.85, 0], banco: [0, -2.4, PI], fragua: [2.9, -1.35, PI], ruedas: [-6.4, 1.6, 0],
   adentro: [7.0, 2.35, 0], cama: [7.9, 0, 0], trabajo: [4.4, 4.2, 0], pie: [3, 6.35, 0], cruce: [-7, 8.25, 0], salida: [-11.5, 17.5, 0],
 };
+// 3.9.0: la cantina, en el marco del edificio (10,4 × 8; la puerta en +Z, x 0). La barra va contra la pared izquierda con su hueco por
+// donde pasa la moza (z 1,2 a 1,9); cuatro mesas de dos sillas (la silla de z menor mira a +z) a los dos lados del pasillo; la mesa de truco
+// (de adorno) en el rincón derecho. Cada mesa tiene su `servicio`: donde la moza se para a dejar la bandeja, mirando la mesa. `paso`: por
+// dónde va de la barra al pasillo (z 1,5) y, por el pasillo (x 0,3), a cada mesa. aldea-arquitectura.js tiene los mismos números
+// (`MESAS_CANTINA`): la prueba los compara.
+export const CANTINA = {
+  barra: { x: -3.95, z: 0.2 },
+  paso: [{ x: -3.95, z: 1.5 }, { x: -2.4, z: 1.5 }, { x: 0.3, z: 1.5 }],
+  mesas: [
+    { id: 'mesa-1', x: -0.9, z: 2.7, sillas: [{ x: -0.9, z: 2.05, mira: 0 }, { x: -0.9, z: 3.35, mira: PI }], servicio: { x: 0.05, z: 2.7, rot: -PI / 2 } },
+    { id: 'mesa-2', x: 1.5, z: 2.7, sillas: [{ x: 1.5, z: 2.05, mira: 0 }, { x: 1.5, z: 3.35, mira: PI }], servicio: { x: 0.6, z: 2.7, rot: PI / 2 } },
+    { id: 'mesa-3', x: -0.9, z: 0.25, sillas: [{ x: -0.9, z: -0.4, mira: 0 }, { x: -0.9, z: 0.9, mira: PI }], servicio: { x: 0.05, z: 0.25, rot: -PI / 2 } },
+    { id: 'mesa-4', x: 1.5, z: 0.25, sillas: [{ x: 1.5, z: -0.4, mira: 0 }, { x: 1.5, z: 0.9, mira: PI }], servicio: { x: 0.6, z: 0.25, rot: PI / 2 } },
+  ],
+};
+// Abre al atardecer y cierra de madrugada (la moza trabaja de 18 a 2: el cartel de la puerta dice lo mismo)
+export const HORARIO_CANTINA = { abre: 18, cierra: 2 };
+export const cantinaAbierta = (hora) => { const h = (((num(hora) || 0) % 24) + 24) % 24; return h >= HORARIO_CANTINA.abre || h < HORARIO_CANTINA.cierra; };
 function puntosBase(e, id) {
   const { ancho: W, fondo: D } = e;
   const frente0 = -D / 2 + atrasDe(e);            // donde empieza el cuarto del frente
@@ -429,6 +452,13 @@ function puntosLocales(id) {
   if (id === 'varadero') p['trabajo-muelle'] = desdePlano(e, MUELLE_ALDEA.lx, MUELLE_ALDEA.lz, MUELLE_ALDEA.rot);
   // 3.8.8: el gerente atiende detrás del mostrador (de lado a lado) y el público se para enfrente (aldea-arquitectura.js, `bancoDelPueblo`)
   if (id === 'banco-pueblo') { p.adentro = { x: 0, z: -0.1, rot: 0 }; p.cliente = { x: 0, z: 1.75, rot: PI }; }
+  // 3.9.0: la moza atiende detrás de la barra (contra la pared izquierda); el cliente de pie, enfrente. Los lugares de las mesas
+  // (`mesa-k`: el de pie de la moza, donde apoya la bandeja) los usa cantina-juego.js
+  if (id === 'cantina') {
+    p.adentro = { x: CANTINA.barra.x, z: CANTINA.barra.z, rot: PI / 2 }; p.cliente = { x: CANTINA.barra.x + 1.65, z: CANTINA.barra.z, rot: -PI / 2 };
+    p.cama = { x: -3.615, z: -2.66, rot: -1.784 };   // (donde la pone `cama` de aldea-arquitectura.js, en el cuarto de atrás)
+    for (const m of CANTINA.mesas) p[m.id] = { x: m.servicio.x, z: m.servicio.z, rot: m.servicio.rot };
+  }
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
     let k = 1;
@@ -629,12 +659,25 @@ export const VECINOS_ALDEA = {
       'Las cosas que el banco necesita las pago un poco por encima del mercado. Para eso hay que tener a mano lo que se pide, y para eso hay que haber trabajado antes.',
     ],
   },
+  // 3.9.0: Lucrecia Aguirre, «la Lucre», la moza de la cantina (DECISIONES_3_8_4.md): 34 años, coqueta, segura y con calle. Vive en el cuarto de
+  // atrás de la cantina y atiende de 18 a 2. Vestido bordó ceñido a la cintura, pañuelo rojo, delantal corto, labios rojos y una flor en el pelo.
+  moza: {
+    nombre: 'Lucrecia Aguirre', oficio: 'moza de la cantina', mano: null, casa: 'cantina', trabajo: 'cantina',
+    colores: { ropa: '#7a1e2a', abrigo: '#5a1620', gorro: null, pelo: '#2a1a14', bufanda: '#d0242c' },
+    saludo: 'Mirá quién anda por acá. Pasá, pasá, que la cantina es de todos y la moza es mía.', despedida: 'Andá con cuidado, y volvé pronto: la barra te extraña.',
+    charla: [
+      'Nací en Jacobacci, al lado de la estación: mi viejo atendía el buffet de los obreros de la línea y yo, de chica, aprendí a llevar cuatro vasos en una mano y los chismes de todo el mundo en la otra.',
+      'Serví mesas en tres pueblos antes de plantarme acá, donde termina la calle. Dicen que el último boliche es el mejor: ya nadie se va a ningún lado después.',
+      'Me preguntan si no me da miedo atender sola a la noche. ¿Miedo yo? Al que se pasa de copas lo mando a su casa con un solo comentario. A los que se portan bien los acostumbro mal.',
+    ],
+  },
 };
 // 3.7.3: Martín llegó con la 3.7.3: va al final de la lista de todos (ver ORDEN_PERSONAS_ALDEA), así los de antes
 // siguen con sus índices de siempre (su banco de la plaza, su silla de los cuentos, su lado de la obra)
 export const VECINOS_373 = ['martin'];
 export const VECINOS_388 = ['gerente'];   // 3.8.8
-export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373, ...VECINOS_388];
+export const VECINOS_390 = ['moza'];   // 3.9.0
+export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373, ...VECINOS_388, ...VECINOS_390];
 // 3.6: Ercilia, la del almacén, también vive en la aldea (en el Relax), pero su figura, su saludo
 // y sus historias son los de siempre (PERSONAJES.ercilia y HISTORIAS en gente.js): acá sólo
 // están su casa, su trabajo y su rutina.
@@ -877,7 +920,7 @@ export const esPobladora37 = (clave) => POBLADORAS_37.includes(clave);
 // (3.7.0: los índices de siempre para los de la 3.6, que deciden su banco de la plaza o su lado de la obra, y
 // las nuevas al final: el orden de llegada intercalado no los mueve)
 // (3.7.3: y Martín al final)
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k) && !VECINOS_388.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373, ...VECINOS_388];
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k) && !VECINOS_388.includes(k) && !VECINOS_390.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373, ...VECINOS_388, ...VECINOS_390];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
 export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
@@ -894,6 +937,7 @@ export const CUMPLES_ALDEA = {
   galesa: 12, tejedora: 12, astronoma: 12,
   martin: 10,   // 3.7.3
   gerente: 2,   // 3.8.8
+  moza: 6,   // 3.9.0
 };
 export const cumpleDe = (clave) => (typeof clave === 'string' && Object.hasOwn(CUMPLES_ALDEA, clave) ? CUMPLES_ALDEA[clave] : null);
 export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe(clave) === diaDelAnio(dia);
@@ -1818,7 +1862,7 @@ export const diaSemanaDe = (dia) => ((diaValido(dia, 1) - 1) % 7 + 7) % 7;
 // 3.8.9: el horario del banco (lo que dicen el LEEME y el cartel): de lunes a sábado; el sábado con baile cierra antes
 export const HORARIO_BANCO = { manana: [8.5, 12.5], tarde: [14.5, 18], sabadoDeBaile: 16 };
 export function desfaseDe(persona) {
-  if (persona === 'gerente') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra
+  if (persona === 'gerente' || persona === 'moza') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra (3.9.0: y la cantina)
   let h = 5381;
   for (const ch of String(persona)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
   return ((h % 81) - 40) / 100;
@@ -1880,6 +1924,15 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   // (cuenta la hora del reloj, sin su corrimiento: la bandera no espera)
   const bandera = persona === 'jefe' && ((h >= 7.5 && h < 8.25) || (h >= 18.5 && h < 19.25));
 
+  // 3.9.0: la moza de la cantina: de 18 a 2 atiende detrás de la barra (el horario del cartel: HORARIO_CANTINA, sin corrimiento); (a las 2 cierra y se acuesta)
+  // y duerme hasta las 11 en el cuarto de atrás; a la tarde acomoda la barra. Los días de cumpleaños (la fiesta de la tardecita) va a la plaza.
+  if (persona === 'moza') {
+    const f = dia !== null && h >= HORA_FIESTA[0] && h < HORA_FIESTA[1] ? fiestaDeCumple(dia, a) : null;
+    if (f?.claves.includes('moza')) return f.donde === 'plaza' ? ir('fiesta', 'plaza', 'mastil') : ir('fiesta', f.edificio, 'adentro');
+    if (cantinaAbierta(h)) return ir('trabajo', 'cantina', 'adentro');
+    if (h >= HORARIO_CANTINA.cierra && h < 11) return enCasa('cama');
+    return ir('local', 'cantina', 'adentro');
+  }
   // 3.7.0: la astrónoma, con su observatorio abierto, trabaja de noche (de 20 a 3:30) y duerme hasta la siesta
   const noctambula = persona === 'astronoma' && abierto;
   if (noctambula) {

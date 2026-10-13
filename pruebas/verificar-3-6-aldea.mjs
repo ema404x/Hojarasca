@@ -107,11 +107,12 @@ function distRiel(x, z) {
     // 3.7.0: los de la calle de la Loma (los mide verificar-3-7-0-aldea.mjs); 3.7.3: y el taller ferroviario (fijo, como la
     // estación: lo mide verificar-3-7-3-taller.mjs)
     'banco-pueblo': [7.8, 6.4],   // 3.8.8: el banco del pueblo (lo mide verificar-3-8-8-banco.mjs)
+    cantina: [10.4, 8],   // 3.9.0: la cantina (lo mide verificar-3-9-0-cantina.mjs)
     veterinaria: [8, 6], 'estudio-fotos': [6, 6], 'refugio-andinista': [7, 6], herboristeria: [6, 6], 'taller-arte': [7, 6], ceramica: [7, 6], varadero: [8, 6], observatorio: [6, 6], costureria: [6, 5],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
   for (const [id, t] of Object.entries(CONTRATO)) if (t) eq([E[id].ancho, E[id].fondo], t, `el tamaño de ${id}`);
-  eq(A.INICIALES_ALDEA.length, 12, 'doce edificios al empezar (con el almacén y la casa de té del valle, y 3.8.8: el banco)');
+  eq(A.INICIALES_ALDEA.length, 13, 'trece edificios al empezar (con el almacén y la casa de té del valle, 3.8.8: el banco y 3.9.0: la cantina)');
   eq(A.LOTES_ALDEA.length, A.ORDEN_POBLADORES_ALDEA.length, 'un lote por poblador');   // (3.7.0: veinte)
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id];
@@ -176,7 +177,7 @@ function distRiel(x, z) {
 
 // ============================================================ 3. los puntos
 {
-  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|baile-\d+|cliente(-\d+)?|escenario|deposito|zaguan|escalera(-[a-z0-9-]+)?|telescopio)$/;   // 3.6 (mecánicas): y la pista de baile del salón (3.7.0 (integración): el zaguán, y la escalera y el telescopio del observatorio)
+  const CERRADOS = /^(adentro|cama|cama-chicos|lectura-\d+|cuentos|pupitre-\d+|lugar-\d+|baile-\d+|cliente(-\d+)?|escenario|deposito|zaguan|mesa-\d+|escalera(-[a-z0-9-]+)?|telescopio)$/;   // 3.6 (mecánicas): y la pista de baile del salón (3.7.0 (integración): el zaguán, y la escalera y el telescopio del observatorio)
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id], pts = A.puntosDe(id);
     const pl = A.plantaDe(id);
@@ -267,7 +268,7 @@ function distRiel(x, z) {
 
 // ============================================================ 4. la gente
 {
-  eq(A.ORDEN_VECINOS_ALDEA.length, 10, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa, Martín y el gerente');   // (3.7.3: y Martín, el maquinista; 3.8.8: y Amadeo, el gerente del banco)
+  eq(A.ORDEN_VECINOS_ALDEA.length, 11, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa, Martín, el gerente y la moza de la cantina');   // (3.7.3: y Martín, el maquinista; 3.8.8: y Amadeo, el gerente del banco)
   ok(A.esVecinoAldea('ercilia') && A.esPersonaAldea('ercilia') && A.personaAldea('ercilia').casa === 'casa-ercilia' && !Object.hasOwn(A.VECINOS_ALDEA, 'ercilia'), 'Ercilia vive en la aldea, pero se define en gente.js');
   ok(A.ORDEN_PERSONAS_ALDEA.includes('ercilia') && !leer('src/aldea.js').includes('Pasá, pasá. Si traés algo'), 'sin duplicar su saludo ni sus historias');
   ok(A.VECINOS_ALDEA.nelida.oficio === 'ayudante del almacén' && A.VECINOS_ALDEA.nelida.casa === 'casa-nelida', 'Nélida, la ayudante');
@@ -534,7 +535,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const sillas = new Set(), oyen = gente.filter((k) => k !== 'abuela' && !A.POBLADORAS_37.includes(k) && A.rutinaAldea(k, 10.5, DOMINGO, llena).lugar === 'biblioteca');
   for (const k of oyen) { const r = A.rutinaAldea(k, 10.5, DOMINGO, llena); ok(/^lectura-\d+$/.test(r.punto), `${k}: el domingo a los cuentos`); sillas.add(r.punto); }
   eq(sillas.size, oyen.length, 'nadie se sienta encima de otro');
-  const gente36 = gente.filter((k) => !A.POBLADORAS_37.includes(k));
+  const gente36 = gente.filter((k) => !A.POBLADORAS_37.includes(k) && !A.VECINOS_390.includes(k));   // (3.9.0: la moza duerme hasta las 11)
   ok(oyen.length >= (gente36.length - 1) * 0.75 && oyen.length < gente36.length - 1, `van casi todos (${oyen.length} de ${gente36.length - 1})`);
   ok(['nene', 'nena'].every((k) => oyen.includes(k)), 'los chicos no se lo pierden');
   ok(A.rutinaAldea('jefe', 10.5, DOMINGO, llena).lugar === 'plaza' && A.rutinaAldea('nelida', 10.5, DOMINGO, llena).edificio === 'almacen', 'el jefe en la plaza y Nélida en el almacén');
@@ -544,7 +545,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   // sábado a la tarde, música (si llegó el músico). 3.6 (mecánicas): en el salón, con baile (PLAN_ALDEA
   // §14): el músico en el escenario, ocho en la pista, ocho en las sillas y los que sobran, en la plaza
   eq(A.rutinaAldea('musico', 18, SABADO, llena), { lugar: 'salon', edificio: 'salon', punto: 'escenario' }, 'el músico toca en el salón');
-  for (const k of gente) ok(['salon', 'plaza'].includes(A.rutinaAldea(k, 18, SABADO, llena).lugar), `${k}: el sábado al salón (o a la plaza)`);
+  for (const k of gente.filter((x) => x !== 'moza')) ok(['salon', 'plaza'].includes(A.rutinaAldea(k, 18, SABADO, llena).lugar), `${k}: el sábado al salón (o a la plaza)`);   // (3.9.0: la moza abre la cantina a las 18)
   ok(gente.filter((k) => /^baile-\d$/.test(A.rutinaAldea(k, 18, SABADO, llena).punto)).length === 8, 'ocho bailan');
   const sinMusico = A.aldeaNueva();
   ok(gente.filter((k) => A.esVecinoAldea(k)).some((k) => A.rutinaAldea(k, 17.5, SABADO, sinMusico).lugar !== 'plaza'), 'sin músico, sábado como cualquier día');

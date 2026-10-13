@@ -1088,6 +1088,36 @@ export const VOCES_SOCIAL = {
     ],
   },
 
+  // 3.9.0: Lucrecia, la moza de la cantina
+  moza: {
+    bien: ['¡Eso! Así me gusta: con ganas y sin vueltas.', 'Muy bien, cariño. Ves que cuando querés, podés.'],
+    mal: ['Ay, no. Eso no. Me hacés levantar una ceja, y mirá que las tengo cansadas.', 'Mmm. Tenés que mejorar, y yo tengo paciencia, pero no infinita.'],
+    abrazo: 'Venite para acá. Abrazo largo, que hace frío y la cantina queda lejos de todo.',
+    chiste: { bien: '¡Jajaja! Ese me lo robo para la barra. Te voy a cobrar derechos de autor… en copas.', mal: 'Ay, corazón, ese chiste tiene más años que la caja registradora. Y la caja tampoco se rió.' },
+    broma: { bien: 'Me hiciste creer que me quedaba sin hielo. ¡Mirá vos! Muy buena, corazón.', mal: 'No me hagas esas bromas, que de noche trabajo con botellas y con paciencia, y hoy me queda poca de las dos.' },
+    tiempo: 'Se viene cambio, se siente en las botellas: cuando va a llover, el vino patero se pone más charlatán.',
+    consuelo: 'Gracias, corazón. Una no lo dice, pero a veces, cuando cierro la barra, queda un silencio que pesa. Tu compañía lo achica.',
+    felicitar: 'Gracias, cariño. Hoy no quedó una botella sin vender ni un chiste sin risa. Un día redondo.',
+    enojo: ['Ah, mirá vos. Entonces yo también sé hacerme la desentendida. Desde la barra se ve todo, y se ignora mejor.', 'Cuando se te pase, sabés dónde estoy: al final de la calle, donde termina todo… menos mi paciencia.'],
+    perdon: { bien: 'Está bien, mi vida. Pero que no se repita, que no tengo tanto vino para tantas disculpas.', mal: 'Todavía no. Dejame enfriar el mal humor, que se enfría más rápido que el chocolate. Mañana hablamos.' },
+    mate: 'Mate a la tarde, antes de abrir, con la persiana a medio subir. Es el único rato que es sólo mío; te lo presto.',
+    cartas: 'Truco, sí. Pero ojo: miento tan bien que hasta mis propias cartas me creen.',
+    caminar: 'Caminemos hasta el observatorio, que de noche las estrellas se ven mejor que cualquier botella. Y la compañía, mejor que cualquier estrella… dicho sea de paso.',
+    foto: '¿Una foto? Dame un segundito: me acomodo el pañuelo, me suelto el pelo y me pongo de perfil. Siempre me sale mejor el izquierdo.',
+    viene: {
+      saludar: 'Hola, {nombre}. Salí un rato de la barra a ver si te encontraba: la cantina sin vos está más callada. Y una moza callada es sospechosa.',
+      invitar: 'Esta noche abro a las seis. Pasá temprano y te guardo la mesa del rincón, la de la salamandra.',
+      pedir: '¿Me ayudás a bajar una damajuana del estante? Con estos tacos no llego, y vos sos alto, ¿o me parece?',
+      chisme: 'Dicen que el herrero y la modista se escapan al atardecer con la excusa de los mates. En la cantina se sabe todo, corazón.',
+    },
+    deseos: [
+      { id: 'calafate-cantina', cumplir: { tipo: 'regalo', k: 'calafate-seco' }, texto: 'Lucrecia quiere calafates secos para el licor', pide: 'Se me terminó el calafate para el licor de la casa. ¿Me traés unos secos? Te prometo un traguito del primer frasco.', gracias: 'Calafate seco, y del bueno. Con esto el licor sale como me gusta: dulce de entrada y peligroso al final.' },
+      { id: 'viaje-moza', cumplir: { tipo: 'hecho', id: 'tren' }, texto: 'Lucrecia quiere que viajes en el tren', pide: 'Hace mucho que no me subo a un tren, y extraño el ruido. Subí vos y después me contás qué se ve por la ventanilla.', gracias: '¿Sí? ¿Y qué se veía? Contame todo, que yo viajo con las historias de los demás.' },
+      { id: 'truco-moza', cumplir: { tipo: 'interaccion', id: 'cartas' }, texto: 'Lucrecia quiere un truco', pide: 'Después de cerrar, a la una, ¿un truco? Pero de los de verdad, con mentiras y todo.', gracias: 'Me ganaste limpio, y hacía mucho que no pasaba. Te debo una revancha y, quién sabe, algo más.' },
+      { id: 'mate-moza', cumplir: { tipo: 'invitar', que: 'mate' }, texto: 'Lucrecia quiere tomar mate con vos', pide: 'A esta hora, antes de abrir, un mate a la sombra. Invitame vos, que de noche invito yo.', gracias: 'Qué buen mate. Cebás con cuidado, ¿sabés? Eso dice mucho de una persona.' },
+    ],
+  },
+
   ramon: {
     bien: ['Bien, m\'hijo. Así se hacen las cosas.', 'Eso me gustó. Hasta los perros movieron la cola.'],
     mal: ['Mmm. Te miro raro, m\'hijo, como a un ternero metido en la huerta.', 'No. Eso no tiene gracia. Ni los perros se rieron.'],
@@ -1343,6 +1373,7 @@ export const FRASES_SOCIAL = {
   // lo que extraña cada uno (los días tristes)
   extrana: {
     martin: 'Extraña a Elena.',
+    moza: 'Extraña el ruido del buffet de Jacobacci y el silbato del tren.',
     gerente: 'Extraña la sucursal de Esquel y el ruido de la calle de la ciudad.',
     abuela: 'Se acordó de los que ya no están.',
     ramon: 'Extraña los inviernos del puesto viejo.',

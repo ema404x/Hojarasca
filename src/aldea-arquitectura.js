@@ -162,6 +162,8 @@ export const EDIFICIOS_ALDEA = {
   costureria: { ancho: 6, fondo: 5, nombre: 'Costurería', clase: 'local', lote: true, loma: true },
   // 3.8.8: el banco del pueblo (PLAN_ECONOMIA.md): inicial, de piedra y cal, con galería de columnas y el gerente adentro
   'banco-pueblo': { ancho: 7.8, fondo: 6.4, nombre: 'Banco del Pueblo', clase: 'local', inicial: true },
+  // 3.9.0: la cantina, al final de la calle de la loma: inicial, de tablas verticales, con su barra, las mesas y la moza adentro
+  cantina: { ancho: 10.4, fondo: 8, nombre: 'La Cantina', clase: 'grande', inicial: true },
 };
 export const LOTES_ALDEA = ['panaderia', 'herreria', 'carpinteria', 'pescaderia', 'escuela', 'puesto-sanitario',
   'estafeta', 'hilanderia', 'sala-miel', 'seccional', 'salon'];
@@ -855,6 +857,9 @@ export const CARTELES_ALDEA = [
   { texto: 'Banco del Pueblo', fondo: '#27382f', tinta: '#e9d79c' },
   // 3.8.9: el horario del banco, en la pared junto a la puerta (HORARIO_BANCO en aldea.js: 8:30 a 12:30 y 14:30 a 18)
   { texto: '8:30 a 12:30 y 14:30 a 18', fondo: '#e4ddca', tinta: '#27382f', mano: true },
+  // 3.9.0: el de la cantina sobre la galería y su horario junto a la puerta (HORARIO_CANTINA en aldea.js: de 18 a 2)
+  { texto: 'La Cantina', fondo: '#4a1e22', tinta: '#f0d9a0' },
+  { texto: 'Abre de 18 a 2', fondo: '#e4ddca', tinta: '#4a1e22', mano: true },
 ];
 // (3.7.0: 2048 → 2560 de alto, 52 celdas: entran los carteles de la loma y sus lotes)
 export const ATLAS_CARTELES = { ancho: 1024, alto: 2560, celdaAncho: 512, celdaAlto: 96, columnas: 2 };
@@ -4875,6 +4880,7 @@ function nombrar(K) {
     if (e) N.escenario = copia(e);
     asientos('una silla del salón').slice(0, 8).forEach((a, i) => { N['lugar-' + (i + 1)] = copia(a); });
   }
+  if (K.id === 'cantina') asientos('una silla de la cantina').slice(0, 8).forEach((a, i) => { N['silla-' + (i + 1)] = copia(a); });
   if (K.id === 'casa-familia') N['cama-chicos'] = { lx: K.W / 2 - MURO - 1.2, ly: PISO, lz: -K.D / 2 + MURO + 1.0, mira: Math.PI / 2 };
   if (EDIFICIOS_ALDEA[K.id]?.lote && K.etapa < 4) {
     const { W, D } = K;
@@ -4959,6 +4965,131 @@ function bancoDelPueblo(K) {
   vivienda(K, tab, { manta: '#3b4a5e' });
 }
 
+// ---------------------------------------------------------------- 3.9.0: la cantina
+// El boliche de campaña, al final de la calle de la Loma: tablas verticales, galería con farol, palenque para los caballos, la barra contra la pared
+// izquierda con sus estantes de botellas y la moza detrás (punto `adentro`: mirando al público; hueco de paso en z 1,25 a 1,9), cuatro mesas
+// de dos sillas a los dos lados del pasillo, la mesa de truco de adorno en el rincón, la guitarra colgada, la salamandra con su luz cálida y,
+// atrás, el cuarto de la moza. Las mesas y sillas son las mismas de `CANTINA` en aldea.js (la prueba las compara). Se ve igual en todas las etapas.
+export const MESAS_CANTINA = [
+  { id: 'mesa-1', x: -0.9, z: 2.7, sillas: [[-0.9, 2.05, 0], [-0.9, 3.35, Math.PI]] },
+  { id: 'mesa-2', x: 1.5, z: 2.7, sillas: [[1.5, 2.05, 0], [1.5, 3.35, Math.PI]] },
+  { id: 'mesa-3', x: -0.9, z: 0.25, sillas: [[-0.9, -0.4, 0], [-0.9, 0.9, Math.PI]] },
+  { id: 'mesa-4', x: 1.5, z: 0.25, sillas: [[1.5, -0.4, 0], [1.5, 0.9, Math.PI]] },
+];
+const COLORES_BOTELLA = ['#35502e', '#7a4a1a', '#4a2c1a', '#a8b8a0', '#7a2a2a', '#3a4a5a', '#c8b070', '#2e4a3a'];
+// Una repisa de botellas contra la pared de la izquierda (de frente a +X): el fondo, los estantes y las botellas de pie, en filas parejas pero no iguales
+function estanteBotellas(K, x, z0, z1, giro) {
+  const F = marcoLocal(x, (z0 + z1) / 2, giro, PISO), c = K.int, L = z1 - z0, h = 2.05, P = 0.3, col = '#3e2616';
+  const r = azar(semillaDe(K.id + '|botellas'));
+  cj(c, F, 0, h / 2, -P / 2 + 0.02, L, h, 0.03, '#4a2f1c', { bajo: 0.7 });
+  for (const sx of [-1, 1]) cj(c, F, sx * (L / 2 - 0.02), h / 2, 0, 0.04, h, P, col);
+  for (let i = 0; i < 4; i++) {
+    const y = 0.95 + i * 0.36;
+    cj(c, F, 0, y, 0, L - 0.04, 0.035, P, col);
+    if (i === 3) break;
+    let lx = -L / 2 + 0.14;
+    while (lx < L / 2 - 0.12) {
+      const k = r(), rr = 0.034 + 0.012 * r(), hh = 0.2 + 0.09 * r();
+      if (k < 0.12) { bulto(c, F.p(lx + 0.08, y + 0.14, 0), 0.12, '#6e5a3a', { tipo: 0, detalle: 1, suave: true, esc: [0.85, 1.2, 0.85] }); lx += 0.26; continue; }   // una damajuana
+      const cb = COLORES_BOTELLA[Math.floor(r() * COLORES_BOTELLA.length) % COLORES_BOTELLA.length];
+      cl(c, F, lx, y + 0.0175 + hh / 2, 0, rr, rr, hh, cb, { lados: 5 });
+      if (r() < 0.6) cl(c, F, lx, y + 0.0175 + hh + 0.05, 0, 0.014, 0.02, 0.1, cb, { lados: 4 });
+      lx += rr * 2 + 0.035 + 0.02 * r();
+    }
+  }
+  // abajo, el mueble con sus puertitas
+  cj(c, F, 0, 0.45, 0, L - 0.04, 0.84, P - 0.04, '#4a2f1c', { bajo: 0.7 });
+  for (let i = 0; i < 3; i++) cj(c, F, -L / 2 + 0.5 + i * (L - 1) / 2, 0.45, P / 2 - 0.02, (L - 1) / 2 - 0.1, 0.68, 0.02, '#5a3a22', { bajo: 0.75 });
+  K.mueble(x, (z0 + z1) / 2, P, L, h, giro + Math.PI / 2);
+}
+function guitarraColgada(K, x, y, z, nx) {
+  // colgada de la pared (con la tapa hacia `nx`: -1, hacia la izquierda): la caja en ocho, el brazo, la boca y las clavijas
+  const c = K.int, d = 0.05 * -nx;
+  bulto(c, [x + d, y - 0.15, z], 0.19, '#a8682a', { tipo: 0, detalle: 1, suave: true, esc: [0.32, 1.1, 1] });
+  bulto(c, [x + d, y + 0.07, z], 0.14, '#a8682a', { tipo: 0, detalle: 1, suave: true, esc: [0.32, 1.05, 1] });
+  caja(c, [x + d * 1.25, y - 0.1, z], [0.012, 0.09, 0.09], '#1a1410', { tipo: 0 });
+  caja(c, [x + d * 1.4, y + 0.42, z], [0.03, 0.62, 0.045], '#3a2418', { tipo: 0 });
+  caja(c, [x + d * 1.4, y + 0.78, z], [0.035, 0.12, 0.07], '#2a1a10', { tipo: 0 });
+  caja(c, [x + d * 1.6, y - 0.32, z], [0.01, 0.02, 0.1], '#e8dcc0', { tipo: 0 });
+  palo(c, [x + d * 1.5, y + 0.78, z], [x - nx * 0.01, y + 1.0, z - 0.25], 0.006, '#7a2a2a');   // la cinta
+}
+function cantina(K) {
+  const C = coloresDe(K, { pared: ['alerce'], techo: ['negro', 'oxido'], postigo: ['rojo'] });
+  const tab = { z: -1.4, x: 3.6 };
+  casco(K, {
+    eje: 'z', estilo: 'vertical', color: C.pared, colorTecho: C.techo, postigo: C.postigo, cielo: false, colorInterior: '#8a6a46', colorPiso: '#6a4a30', alzada: 2.3, desgaste: 0.45,
+    puertas: [{ cara: 'frente', x: 0, ancho: 1.3, alto: 2.3, nombre: 'la puerta de la cantina' }],
+    ventanas: [{ cara: 'frente', x: -3.3, ancho: 1.2, alto: 1.3 }, { cara: 'frente', x: 3.3, ancho: 1.2, alto: 1.3 },
+      { cara: 'der', z: 2.0, ancho: 1.0, alto: 1.2 }, { cara: 'der', z: -0.3, ancho: 1.0, alto: 1.2 },
+      { cara: 'fondo', x: -2.0, ancho: 0.9, alto: 0.9, cuarto: 'vivienda' }],
+    galeria: { fondo: 1.6, x0: -2.4, x1: 2.4, postes: 2 }, tabique: tab, chimenea: chimeneaVivienda(K, tab),
+  });
+  if (!final(K)) return;
+  const W = K.W, D = K.D, H = K.H, xi = W / 2 - MURO;
+  cartel(K, 'La Cantina', [0, H + 0.75, D / 2 + 0.04], 2.6, 0.5, 0);
+  // el horario, en una chapita junto a la puerta (el mismo de HORARIO_CANTINA, aldea.js)
+  cartel(K, 'Abre de 18 a 2', [-1.55, PISO + 1.5, D / 2 + 0.04], 1.3, 0.22, 0);
+  // la barra: de la pared de atrás hacia el frente, con el hueco para pasar; la moza queda del lado de la pared
+  mostrador(K, -3.15, 0.2, Math.PI / 2, { largo: 2.1, ancho: 0.6, color: '#4a2f1c', tapa: '#7a4e2a', panel: '#3a2416', nombre: 'la barra' });
+  K.punto('adentro', -3.95, 0.2, Math.PI / 2);
+  estanteBotellas(K, -xi + 0.17, -1.0, 2.0, Math.PI / 2);
+  // sobre la barra: la canilla de la cerveza, vasos, una botella abierta y el cuaderno de la cuenta
+  const yb = PISO + 0.95 + 0.03;
+  caja(K.int, [-3.0, yb + 0.12, -0.55], [0.1, 0.24, 0.1], '#8a8a82', { tipo: 0 });
+  caja(K.int, [-2.88, yb + 0.22, -0.55], [0.18, 0.04, 0.04], '#8a8a82', { tipo: 0 });
+  for (let i = 0; i < 5; i++) cilindro(K.int, [-3.2, yb + 0.05, -0.45 + i * 0.13], 0.032, 0.026, 0.1, '#c8d4c8', { lados: 6 });
+  cilindro(K.int, [-3.05, yb + 0.15, 0.55], 0.04, 0.04, 0.3, '#35502e', { lados: 6 });
+  caja(K.int, [-2.92, yb + 0.01, 0.9], [0.22, 0.02, 0.3], '#d8cfb4', { tipo: 0, giro: 0.2 });
+  // en la pared del frente, una pizarra con la carta del día y, abajo, las barricas
+  caja(K.int, [-xi + 0.03, PISO + 1.9, 2.95], [0.03, 0.62, 0.9], '#2a2a26', { tipo: 0 });
+  for (let i = 0; i < 4; i++) caja(K.int, [-xi + 0.05, PISO + 2.1 - i * 0.12, 2.95], [0.01, 0.02, 0.5 - i * 0.07], '#e8e4d8', { tipo: 0, bajo: 0.95 });
+  barril(K, -xi + 0.45, 2.75, { alto: 0.75 }); barril(K, -xi + 0.45, 3.4, { alto: 0.75 });
+  // las mesas con sus sillas y una vela en cada una
+  const manteles = ['#a8322a', null, '#d8cfb4', null];
+  MESAS_CANTINA.forEach((m, i) => {
+    mesa(K, m.x, m.z, 0, { largo: 1.1, ancho: 0.75, color: MADERA_MUEBLE[i % 4], mantel: manteles[i] });
+    for (const [sx, sz, g] of m.sillas) silla(K, sx, sz, g, { nombre: 'una silla de la cantina', color: MADERA_MUEBLE[(i + 1) % 4] });
+    cilindro(K.int, [m.x - 0.3, PISO + 0.76 + 0.06, m.z + 0.08], 0.03, 0.03, 0.12, '#35502e', { lados: 6 });
+    caja(K.bra, [m.x - 0.3, PISO + 0.76 + 0.15, m.z + 0.08], [0.025, 0.05, 0.025], '#ffc860', { tipo: 0, bajo: 1, alto: 1 });
+  });
+  // la mesa de truco, de adorno, con su paño verde y el mazo
+  mesa(K, 3.5, 2.4, 0, { largo: 1.3, ancho: 0.9, color: '#4a2f1c', mantel: '#2f6b3e' });
+  for (const [sx, sz, g] of [[3.5, 1.65, 0], [3.5, 3.15, Math.PI], [2.7, 2.4, Math.PI / 2], [4.3, 2.4, -Math.PI / 2]]) silla(K, sx, sz, g, { asiento: false, color: MADERA_MUEBLE[2] });
+  for (let i = 0; i < 3; i++) caja(K.int, [3.3 + i * 0.16, PISO + 0.775, 2.35 + (i % 2) * 0.1], [0.06, 0.004, 0.09], '#efe8d6', { tipo: 0, giro: i * 0.7 });
+  caja(K.int, [3.85, PISO + 0.79, 2.55], [0.07, 0.03, 0.1], '#efe8d6', { tipo: 0 });
+  cilindro(K.int, [3.15, PISO + 0.79, 2.65], 0.03, 0.03, 0.03, '#2a2a26', { lados: 6 });
+  // la guitarra colgada de la pared de la derecha, arriba de la mesa de truco
+  guitarraColgada(K, xi - 0.03, PISO + 1.35, 1.7, -1);
+  // la salamandra del rincón (con su luz cálida), la leña al lado y el caño por el techo
+  salamandra(K, xi - 0.5, 0.45, { punto: [xi - 1.35, 0.45], cuarto: 'local' });
+  chimeneaExtra(K, xi - 0.5, 0.45);
+  for (let i = 0; i < 4; i++) palo(K.int, [xi - 0.28 + (i % 2) * 0.12, PISO + 0.06 + Math.floor(i / 2) * 0.12, -0.5], [xi - 0.28 + (i % 2) * 0.12, PISO + 0.06 + Math.floor(i / 2) * 0.12, -0.05], 0.05, i % 2 ? '#7a5a3a' : '#6a4d33', { abierto: false });
+  // los farolitos colgados (una luz sobre cada fila de mesas y una en la barra), la alfombra del pasillo y los banderines
+  for (const [x, z] of [[-0.9, 1.5], [1.5, 1.5], [-3.0, 0.2]]) lampara(K, x, z, { cuelga: 0.85, color: '#7a2a1e', radio: 7.5, luz: 0xffb060 });
+  alfombra(K, 0.3, 1.3, 4.6, 0.8, Math.PI / 2, '#6b2f2a', { guarda: '#c7a76a' });
+  const rb = azar(semillaDe('banderines-cantina'));
+  {
+    const a = [-xi, 2.75, 1.2], b = [xi, 2.75, 2.2], n = 16;
+    for (let i = 0; i < n; i++) {
+      const t0 = i / n, t1 = (i + 0.7) / n;
+      const p = (t) => [a[0] + (b[0] - a[0]) * t, PISO + a[1] - Math.sin(t * Math.PI) * 0.3, a[2] + (b[2] - a[2]) * t];
+      const p0 = p(t0), p1 = p(t1), pm = p((t0 + t1) / 2);
+      const k = tinte(elegir(rb, ['#b8322a', '#e0b030', '#3a6a9a', '#4a8a4a', '#e8e2d4']));
+      tri(K.int, p0, p1, [pm[0], pm[1] - 0.2, pm[2]], k, k, escalar(k, 0.8), 0);
+      tri(K.int, p1, p0, [pm[0], pm[1] - 0.2, pm[2]], k, k, escalar(k, 0.8), 0);
+    }
+  }
+  cuadro(K, -xi + 0.04, PISO + 1.85, -1.1, Math.PI / 2, { ancho: 0.5, alto: 0.38, colores: ['#7a9ab0', '#c8b070', '#5d7a4a'] });
+  vivienda(K, tab, { manta: '#7a1e2a' });
+  // afuera: el banco de la galería, el palenque para los caballos y la maceta
+  banco(K, K.ext, 3.7, D / 2 + 0.7, 0, { largo: 1.6, tipo: 0, nombre: 'el banco de la cantina' });
+  for (const x of [-5.0, -3.0]) caja(K.ext, [x, 0.55, D / 2 + 1.4], [0.12, 1.1, 0.12], '#4a3a2a', { tipo: 4 });
+  viga(K.ext, [-5.0, 0.95, D / 2 + 1.4], [-3.0, 0.95, D / 2 + 1.4], 0.1, 0.1, '#5a4331', { tipo: 4 });
+  K.segmento(-5.0, D / 2 + 1.4, -3.0, D / 2 + 1.4, 0.1, 0, 1.1);
+  maceta(K, -2.9, D / 2 + 0.55, { y: GALERIA_PISO });
+  K.abarcar(-W / 2 - 0.3, W / 2 + 0.3, -D / 2, D / 2 + 1.9);
+}
+
 // ---------------------------------------------------------------- armar
 const PLANOS_ALDEA = {
   biblioteca, escuela, 'casa-jefe': casaJefe, 'casa-ercilia': casaErcilia, 'casa-nelida': casaNelida,
@@ -4967,6 +5098,7 @@ const PLANOS_ALDEA = {
   // 3.7.0: la calle de la loma
   veterinaria, 'estudio-fotos': estudioFotos, 'refugio-andinista': refugioAndinista, herboristeria, 'taller-arte': tallerArte, ceramica, varadero, observatorio, costureria,
   'banco-pueblo': bancoDelPueblo,   // 3.8.8
+  cantina,   // 3.9.0
 };
 
 function geometriaCarteles(car) {

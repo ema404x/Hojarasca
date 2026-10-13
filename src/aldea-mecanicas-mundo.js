@@ -36,7 +36,7 @@ export function crearMecanicasAldea(ctx) {
   const centro = M.aMundo(22, 50);
   // 3.7.0 (integración): cuánto falta para el rectángulo de la aldea (con la calle de la Loma: el observatorio queda
   // a 160 m del centro, y con la distancia al centro sus cosas no se podían usar)
-  const fueraAldea = (x, z) => { const l = M.aLocal(x, z); return Math.hypot(Math.max(-152 - l.lx, 0, l.lx - 100), Math.max(-6 - l.lz, 0, l.lz - 94)); };
+  const fueraAldea = (x, z) => { const l = M.aLocal(x, z); return Math.hypot(Math.max(-177 - l.lx, 0, l.lx - 100), Math.max(-6 - l.lz, 0, l.lz - 94)); };
   const S = () => (ctx.sonido?.ctx ? ctx.sonido : null);
   const prog = () => ctx.progreso() || {};
   const mec = () => { const p = prog(); if (!p.mecanicas || typeof p.mecanicas !== 'object') p.mecanicas = sanearMecanicas(p.mecanicas); return p.mecanicas; };

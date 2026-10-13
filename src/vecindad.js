@@ -90,6 +90,8 @@ const TRATO = {
   martin: 'muchacho',
   // 3.8.8
   gerente: 'estimado',
+  // 3.9.0
+  moza: 'corazón',
 };
 
 // ---------------------------------------------------------------- lo que se puede regalar
@@ -169,6 +171,8 @@ export const PERFILES_VECINOS = {
   // (le forja las piezas) y Nahuel, su aprendiz
   martin: P(['madrugador', 'trabajador', 'curioso'], ['yerba', 'tronco', 'trucha-ahumada'], ['pan-casero', 'empanadas'], 'frasco-frutilla', ['jefe', 'herrero', 'nene'], { tipo: 'material', k: 'tronco', n: 3 }),
   // 3.8.8: Amadeo, el gerente del banco: metódico, conversador y prolijo; el pan y la miel con el té de la tarde. Sus amigos: Ernesto, Tito y la maestra
+  // 3.9.0: Lucrecia, la moza de la cantina: trasnochadora, charlatana y juguetona; el calafate, el dulce y las empanadas la ablandan. Sus amigos: el músico, Nélida y Ercilia
+  moza: P(['trasnochador', 'charlatan', 'jugueton'], ['calafate-seco', 'frasco-frutilla', 'empanadas'], ['trucha-ahumada', 'miel'], 'tronco', ['musico', 'nelida', 'ercilia'], { tipo: 'cosa', k: 'yerba', n: 2 }),
   gerente: P(['trabajador', 'charlatan', 'casero'], ['miel', 'pan-casero', 'yerba'], ['empanadas', 'huevo'], 'tronco', ['jefe', 'carpintero', 'maestra'], { tipo: 'entrada', k: 'miel', n: 1 }),
 };
 // Qué le parece una cosa: 'encanta' | 'gusta' | 'noGusta' | 'neutro'.
