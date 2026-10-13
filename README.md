@@ -4,6 +4,10 @@ Un bosque andino patagónico para recorrer despacio, en primera persona. Todo se
 
 
 
+## 3.9.2 — Dalia y el banco del pueblo
+
+La falda de Dalia cae en A con un tajo limpio y cinta de contraste; el banco del pueblo tiene más vida por dentro y por fuera (reloj de péndulo, libros contables, balanza, ficus, faroles, jardineras), y Amadeo, el gerente, habla según tus deudas, tus negocios, el día y la estación, con una historia en seis partes. Detalle: `CAMBIOS_3_9_2.md`.
+
 ## 3.9.1 — La peña de los sábados
 
 Los sábados a la noche, en la cantina, tocan el Cholo (guitarra) y Anselmo (bombo) y **Dalia**, la bailarina, baila tango y después chamamé; si te elige, te saca a bailar. Hay una mesa de truco con dos vecinos jugando, vecinos que se arriman a tu mesa, una borrachera leve que se puede suavizar o apagar en Ajustes, romance con Lucrecia y con Dalia, y chistes de doble sentido con picardía (nunca explícitos). Sólo en el Relax. Detalle en `CAMBIOS_3_9_1.md`.

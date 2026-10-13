@@ -4932,7 +4932,7 @@ function armarOficiosYAldea(esDesafio) {
   // 3.6: en el Desafío no hay aldea (ni gente, ni obras, ni llegadas)
   if (esDesafio) return;
   aldeaGente = crearAldeaGente({
-    abrirBanco: () => bancoDelPueblo().abrir(),   // 3.8.8: el gerente te atiende en el mostrador
+    abrirBanco: () => { bancoDelPueblo().abrir(); setTimeout(() => { if (enElBanco()) cerrarCharla(); }, 0); },   // 3.8.8: el gerente te atiende en el mostrador (3.9.2: y la charla se cierra: la rueda de temas quedaba dibujada detrás del panel)
     abrirCarta: () => !!cantinaJuego?.abrirCarta(), cantinaSentado: () => !!cantinaJuego?.estaSentado(),   // 3.9.0: la moza te trae la carta (si estás sentado a su mesa)
     temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),   // 3.8.8: la demanda del pueblo
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,

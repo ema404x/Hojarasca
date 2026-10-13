@@ -120,7 +120,7 @@ const ID = 'banco-pueblo';
   // el sueldo del jefe del banco: charla con el mostrador cuando hay economía (aldea-gente.js ofrece abrirlo)
   const gente = fsLeer('src/aldea-gente.js');
   ok(gente.includes("k === 'gerente'") && gente.includes('ctx.abrirBanco'), 'aldea-gente.js lo atiende con el mostrador');
-  ok(/abrirBanco: \(\) => bancoDelPueblo\(\)\.abrir\(\)/.test(fsLeer('src/main.js')), 'main.js abre el mostrador');
+  ok(/abrirBanco: \(\) => \{ bancoDelPueblo\(\)\.abrir\(\);/.test(fsLeer('src/main.js')), 'main.js abre el mostrador');
 }
 function fsLeer(f) { return fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'); }
 

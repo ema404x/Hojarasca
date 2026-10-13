@@ -82,8 +82,7 @@ app.whenReady().then(async () => {
       P.aldea.pobladores = ['musico', 'herrero', 'carpintero', 'pescador', 'modista', 'telegrafista', 'panadera', 'maestra', 'galesa'].map((clave) => ({ clave, dia: 1 })); return 1 })()`);
     await js(`(async () => { await ${H}.__aldeaMundo().listo(); ${H}.__aldeaMundo().montarCola(); return 1 })()`);
     if (quiero('banco')) await require('./partes-3-9-2-banco.cjs')(ctx);
-    if (quiero('te')) await require('./partes-3-9-2-te.cjs')(ctx);
-    if (quiero('cantina')) await require('./partes-3-9-2-cantina.cjs')(ctx);
+    if (quiero('economia')) await require('./partes-3-9-2-economia.cjs')(ctx);
   } catch (e) {
     errores.push('EXCEPCIÓN ' + (e && e.stack ? e.stack : e));
   }

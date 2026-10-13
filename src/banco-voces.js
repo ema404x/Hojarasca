@@ -177,16 +177,16 @@ const SOLAPA = {
   puesto: ['Dejando mercadería en consigna, el puesto vende todos los días. Pase a retirar la caja cuando le convenga.', 'Un puesto sin mercadería es una mesa vacía. Déjele algo.'],
 };
 export function lineaDeSolapa(solapa, p, ctx = {}) {
-  const base = SOLAPA[solapa] || SOLAPA.prestamos;
-  const lista = [...base];
+  const lista = [...(SOLAPA[solapa] || SOLAPA.prestamos)];
+  let urgente = null;   // lo urgente se dice siempre; lo demás, rotando
   if (hayEconomia(p)) {
     const pr = prestamoDe(p);
-    if (solapa === 'prestamos' && pr && pr.hasta - (ctx.dia || 1) < 0) lista.unshift('Mire que el plazo ya se pasó: salde primero y después hablamos.');
+    if (solapa === 'prestamos' && pr && pr.hasta - (ctx.dia || 1) < 0) urgente = 'Mire que el plazo ya se pasó: salde primero y después hablamos.';
     if (solapa === 'casas') {
       const hay = Object.keys(PROPIEDAD.casas).reduce((s, id) => s + casasDe(p, id) - enAlquilerDe(p, id), 0);
-      if (hay > 0) lista.unshift(`Le quedan ${hay} casa${hay > 1 ? 's' : ''} sin alquilar. ¿Las deja vacías?`);
+      if (hay > 0) urgente = `Le quedan ${hay} casa${hay > 1 ? 's' : ''} sin alquilar. ¿Las deja vacías?`;
     }
   }
-  return `${GERENTE}: «${elegir(lista, ctx.dia, ctx.n, solapa.length)}»`;
+  return `${GERENTE}: «${urgente || elegir(lista, ctx.dia, ctx.n, solapa.length)}»`;
 }
 export const VOZ_BANCO = { saludoDelGerente, comentarioDe, lineaDeSolapa };

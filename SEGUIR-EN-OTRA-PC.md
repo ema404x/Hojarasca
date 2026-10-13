@@ -67,6 +67,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.9.2 (rama v392-mejoras, sin etiqueta todavía): Dalia y el banco del pueblo.** `CAMBIOS_3_9_2.md`. Gate 206/206. La parte de la cantina y la casa de té, en la rama `v392-cantina`.
 - **3.9.1 (rama v391-pena, sin etiqueta todavía): la peña de los sábados** y el pulido de la cantina. `CAMBIOS_3_9_1.md`. Gate 205/205.
 - **3.9.0 (rama v390-cantina, sin etiqueta todavía): la cantina**, primera versión. `CAMBIOS_3_9_0.md`. Gate 204/204.
 - **3.8.7 (etiqueta v3.8.7):** segundo pase de bugs + decisiones del usuario. `CAMBIOS_3_8_7.md`. Gate 189/189.
