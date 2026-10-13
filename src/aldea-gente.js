@@ -48,6 +48,7 @@ import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { aplicarNegocio, temporadaDelDia } from './negocios-fx.js';
 import { cerrarCuentas } from './aldea-viva.js';
 import { diasParaVencer, GERENTE } from './prestamos.js';
+import { saludoDelGerente } from './banco-voces.js';
 import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA , avisoProximoVecino } from './aldea.js';
 import { cobrar as cobrarPesos, pagar as pagarPesos, hayEconomia, formatoPesos } from './economia.js';
 
@@ -995,7 +996,7 @@ export function crearAldeaGente(ctx) {
       if (k === 'gerente' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirBanco && (charlasDichas.get(k) || 0) % 3 !== 2) {
         charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
         return {
-          id: 'aldea-gerente', partes: [VECINOS_ALDEA.gerente.saludo, 'Dígame en qué lo ayudo: un préstamo, un pedido del banco, sus casas o su puesto en la feria.'],
+          id: 'aldea-gerente', partes: [...saludoDelGerente(progreso(), { dia: dia(), hora: horas(), temporada: ctx.temporada?.(), n: charlasDichas.get(k) || 0 }), 'Dígame en qué lo ayudo: un préstamo, un pedido del banco, sus casas o su puesto en la feria.'],
           seguir: 'E: pasar al mostrador · Escape: otro día', alTerminar: () => ctx.abrirBanco(), tipo: 'servicio', ofrece: true,
         };
       }

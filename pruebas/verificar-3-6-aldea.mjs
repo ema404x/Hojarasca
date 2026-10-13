@@ -290,7 +290,7 @@ function distRiel(x, z) {
   eq(lotes.size, 20, 'un lote para cada uno');
   for (const k of A.ORDEN_VECINOS_ALDEA) {
     const v = A.VECINOS_ALDEA[k];
-    ok(v.nombre && v.oficio && v.saludo && v.despedida && v.charla.length >= 2 && v.charla.length <= 3 && v.colores.ropa && A.esEdificioAldea(v.casa) && A.esEdificioAldea(v.trabajo), `${k}: completo`);
+    ok(v.nombre && v.oficio && v.saludo && v.despedida && v.charla.length >= 2 && v.charla.length <= (k === 'gerente' ? 9 : 3) && v.colores.ropa && A.esEdificioAldea(v.casa) && A.esEdificioAldea(v.trabajo), `${k}: completo`);
   }
   ok(A.VECINOS_ALDEA.nene.chico && A.VECINOS_ALDEA.nena.chico && A.VECINOS_ALDEA.nene.casa === 'casa-familia', 'los chicos de la familia');
   // nada mágico: los duendes son leyenda y tallas

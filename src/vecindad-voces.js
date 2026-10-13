@@ -22,6 +22,7 @@
 // avistaje. regalo: lo que dice la nota del regalo de amistad. pronostico: cómo cuenta el tiempo
 // de mañana (si no tiene, usa el genérico).
 import { VECINDAD_BAILARINA, AYUDAS_BAILARINA } from './pena-voces.js';
+import { HISTORIA_EXTRA_GERENTE, SOBREMESA_EXTRA_GERENTE } from './banco-textos.js';
 export const VOCES = {
   jefe: {
     encanta: {
@@ -1128,6 +1129,7 @@ export const VOCES = {
       'Empecé a los dieciséis de cadete en el Banco de la Nación de Esquel: barría, llevaba los sobres y aprendía a distinguir la firma de un hombre honesto de la de uno apurado. Después fui cajero, después contador y, por último, gerente de una sucursal chica.',
       'Cuando la sucursal cerró, los vecinos de acá juntaron lo suyo en un frasco, en una lata, en una media, y me pidieron que lo ordenara. Así nació este banco: nadie puso mucho, pero todos pusieron. Ese es el capital que más rinde.',
       'Presto poco y cobro justo. Un banco que se hace rico con la necesidad del vecino se queda sin vecinos. Y un pueblo sin vecinos, por más caja fuerte que tenga, no necesita banco.',
+      ...HISTORIA_EXTRA_GERENTE,
     ] },
     sobremesa: [
       'El interés es el precio del tiempo. Si usted necesita plata hoy y la devuelve mañana, no me debe tanto; si la devuelve en un año, me debe más porque yo también estuve esperando.',
@@ -1136,6 +1138,7 @@ export const VOCES = {
       'Un pueblo es una cuenta corriente: cada vecino deposita lo que sabe hacer y retira lo que le falta. Cuando las cuentas quedan parejas, hay paz.',
       'El pedido del banco lo pago por encima del precio porque de eso vive el pueblo: si el banco compra caro, el que vende tiene con qué comprarme después. Es la rueda.',
       'Una libreta bien llevada es como una huerta: si la riega todos los días, no hay que hacer magia a fin de mes.',
+      ...SOBREMESA_EXTRA_GERENTE,
     ],
     visita: [
       'Pasé a ver cómo vivía el vecino que pide prestado con tanta prudencia. Me gusta lo que veo: nada sobra, nada falta. Así se cuida una casa.',

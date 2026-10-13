@@ -107,7 +107,7 @@ const aldeaConObra = () => {
     for (const campo of ['gusta', 'noGusta', 'ocupado', 'acepta', 'saludoAmigo', 'saludoCompadre', 'fauna', 'regalo']) ok(typeof voz[campo] === 'string' && voz[campo].length > 5, `${k}: ${campo}`);
     ok(voz.saludoAmigo.includes('{nombre}') && voz.saludoCompadre.includes('{nombre}') && voz.fauna.includes('{unbicho}') && voz.acepta.includes('{lugar}'), `${k}: marcas`);
     ok(['bien', 'cansado', 'inquieto', 'charla'].every((a) => typeof voz.animo[a] === 'string'), `${k}: cuatro ánimos`);
-    ok(voz.historia.partes.length === 3 && voz.historia.titulo, `${k}: historia en tres partes`);
+    ok(voz.historia.partes.length === (k === 'gerente' ? 6 : 3) && voz.historia.titulo, `${k}: historia en tres partes (3.9.2: seis las de Amadeo, que se abren con más amistad)`);
     ok(voz.sobremesa.length >= 3 && voz.visita.length === 2, `${k}: sobremesa y visita`);
     ok(Array.isArray(VZ.AYUDAS[k]) && VZ.AYUDAS[k].length >= 1, `${k}: una ayuda de su oficio`);
     for (const a of VZ.AYUDAS[k]) {

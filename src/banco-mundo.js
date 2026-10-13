@@ -4,6 +4,7 @@
 import { BIENES } from './comercio.js';
 import { formatoPesos, pesosDe, hayEconomia } from './economia.js';
 import { negociosDe } from './negocios.js';
+import { lineaDeSolapa, comentarioDe } from './banco-voces.js';
 import { tengoDe } from './pedidos.js';
 import {
   BANCO, GERENTE, nivelBanco, topeDe, prestamoDe, costoEstimado, puedePedir, pedirPrestamo, pagarPrestamo, diasParaVencer,
@@ -24,7 +25,8 @@ const NIVELES = ['Recién llegado', 'Cliente', 'De confianza', 'Socio del pueblo
 // `ctx`: { panel, contenido, progreso(), dia(), nota(t, sub, importante), guardar(), refrescar(), T_(texto), sonido, alClic(el, fn) }
 export function crearBancoMundo(ctx) {
   const T_ = ctx.T_ || ((t) => t);
-  const estado = { abierto: false, solapa: 'prestamos', plazo: 12 };
+  const estado = { abierto: false, solapa: 'prestamos', plazo: 12, n: 0, comentario: '' };   // (3.9.2: `n` cuántas veces se abrió el mostrador; `comentario` lo último que dijo el gerente)
+  const dicho = (evento) => { estado.comentario = `${GERENTE}: «${comentarioDe(evento, { dia: dia(), n: estado.n })}»`; };
   const P = () => ctx.progreso();
   const dia = () => Math.max(1, Math.floor(P().dia || 1));
 
@@ -90,14 +92,14 @@ export function crearBancoMundo(ctx) {
     if (!r.ok) { ctx.nota('El banco no te presta ahora', r.motivo === 'tope' ? `El tope es ${formatoPesos(r.tope)}` : r.motivo === 'debe' ? 'Primero saldá lo que debés' : r.motivo === 'atraso' ? 'Primero saldá lo atrasado' : 'Revisá el monto y el plazo'); return; }
     ctx.sonido?.juntar?.();
     ctx.nota(`Te prestaron ${formatoPesos(r.monto)}`, `Hay que devolverlos hasta el día ${r.hasta}. El interés corre todos los días`, true);
-    ctx.guardar(); ctx.refrescar?.(); dibujar();
+    dicho('prestamo'); ctx.guardar(); ctx.refrescar?.(); dibujar();
   }
   function pagar(m) {
     const r = pagarPrestamo(P(), dia(), m);
     if (!r.ok) { ctx.nota('No se pudo pagar', r.motivo === 'plata' ? 'No te alcanza la plata' : 'Revisá el monto'); return; }
     ctx.sonido?.juntar?.();
     ctx.nota(r.saldado ? 'Saldaste el préstamo' : `Pagaste ${formatoPesos(r.pagado)}`, r.saldado ? 'El banco te tiene más confianza si fue a tiempo' : `Te quedan por pagar ${formatoPesos(r.resta)}`, r.saldado);
-    ctx.guardar(); ctx.refrescar?.(); dibujar();
+    dicho(r.saldado ? 'saldado' : 'pago'); ctx.guardar(); ctx.refrescar?.(); dibujar();
   }
 
   function solapaAbasto(cont) {
@@ -119,7 +121,7 @@ export function crearBancoMundo(ctx) {
     for (const f of efectosDeAbasto(a)) sumar(f.k, f.n);
     ctx.sonido?.juntar?.();
     ctx.nota(`El banco te pagó ${formatoPesos(c.premio)}`, `Abastecimiento cumplido: ${minuscula(a.k)}`, true);
-    ctx.guardar(); ctx.refrescar?.(); dibujar();
+    dicho('abasto'); ctx.guardar(); ctx.refrescar?.(); dibujar();
   }
 
   function solapaCasas(cont) {
@@ -142,7 +144,7 @@ export function crearBancoMundo(ctx) {
     const r = ponerEnAlquiler(P(), id, dia());
     if (!r.ok) { ctx.nota('No se puede', 'Necesitás una casa terminada que no esté ya alquilada'); return; }
     ctx.nota(`Alquilaste ${NOMBRES_CASA[id].toLowerCase()}`, `${r.inquilino} se instala: ${formatoPesos(r.renta)} por día`, true);
-    ctx.guardar(); dibujar();
+    dicho('alquiler'); ctx.guardar(); dibujar();
   }
   function retirar(id) {
     if (retirarDeAlquiler(P(), id).ok) { ctx.nota('Retiraste el alquiler', NOMBRES_CASA[id]); ctx.guardar(); dibujar(); }
@@ -174,7 +176,7 @@ export function crearBancoMundo(ctx) {
     if (!r.ok) { ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(PROPIEDAD.puesto.precio)}`); return; }
     ctx.sonido?.juntar?.();
     ctx.nota('Tenés tu puesto en la feria', 'Dejá mercadería en consigna: se vende todos los días', true);
-    ctx.guardar(); ctx.refrescar?.(); dibujar();
+    dicho('puesto'); ctx.guardar(); ctx.refrescar?.(); dibujar();
   }
   function dejar(b) {
     const r = dejarEnPuesto(P(), b, 1);
@@ -190,7 +192,7 @@ export function crearBancoMundo(ctx) {
     if (!r.ok) return;
     ctx.sonido?.juntar?.();
     ctx.nota(`Retiraste ${formatoPesos(r.monto)}`, 'Las ventas de tu puesto', true);
-    ctx.guardar(); ctx.refrescar?.(); dibujar();
+    dicho('caja'); ctx.guardar(); ctx.refrescar?.(); dibujar();
   }
 
   // ------------------------------------------------ el panel
@@ -201,15 +203,17 @@ export function crearBancoMundo(ctx) {
     if (!hayEconomia(P())) { raiz.append(el('p', 'banco-texto', 'El banco todavía no abre para esta partida.')); return; }
     raiz.append(el('p', 'banco-saldo', `Tenés ${formatoPesos(pesosDe(P()))}`));
     const tabs = el('div', 'banco-solapas');
-    for (const s of SOLAPAS) tabs.append(boton(TITULO[s], () => { estado.solapa = s; dibujar(); }, { clase: estado.solapa === s ? 'marcada' : '' }));
+    for (const s of SOLAPAS) tabs.append(boton(TITULO[s], () => { estado.solapa = s; estado.comentario = ''; dibujar(); }, { clase: estado.solapa === s ? 'marcada' : '' }));
     raiz.append(tabs);
+    // 3.9.2: Amadeo comenta: lo último que hiciste o, si no, algo de la solapa según tus deudas y tus negocios
+    raiz.append(el('p', 'banco-texto', estado.comentario || lineaDeSolapa(estado.solapa, P(), { dia: dia(), n: estado.n })));
     const cont = el('div', 'banco-cuerpo');
     SOLAPA[estado.solapa](cont);
     raiz.append(cont);
   }
   function abrir(solapa = null) {
     if (solapa && SOLAPAS.includes(solapa)) estado.solapa = solapa;
-    estado.abierto = true;
+    estado.abierto = true; estado.n++; estado.comentario = '';
     dibujar();
     ctx.panel.classList.remove('oculto');
   }

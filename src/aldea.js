@@ -39,6 +39,7 @@ import { ofertaDeJornal } from './trabajos.js';
 import { ofertaDePedido } from './pedidos.js';
 import { aplicarNegocio, demandaHoy } from './negocios-fx.js';
 import { elCaballo } from './personal-caballo.js';
+import { CHARLA_EXTRA_GERENTE } from './banco-textos.js';
 
 export const NOMBRE_ALDEA = 'Aldea de los Duendes';
 const PI = Math.PI;
@@ -685,6 +686,7 @@ export const VECINOS_ALDEA = {
       'Vine de la sucursal de Esquel con una caja fuerte y una libreta. El banco del pueblo se abrió con lo que juntaron entre todos: ahorro de vecinos, no de forasteros.',
       'Presto a un dos por ciento por día, que es poco para lo que cuesta no tener plata a tiempo. Un año acá son doce días: hágale la cuenta antes de pedir.',
       'Las cosas que el banco necesita las pago un poco por encima del mercado. Para eso hay que tener a mano lo que se pide, y para eso hay que haber trabajado antes.',
+      ...CHARLA_EXTRA_GERENTE,
     ],
   },
   // 3.9.0: Lucrecia Aguirre, «la Lucre», la moza de la cantina (DECISIONES_3_8_4.md): 34 años, coqueta, segura y con calle. Vive en el cuarto de

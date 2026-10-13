@@ -227,7 +227,8 @@ function fsLeer(f) { return fs.readFileSync(new URL('../' + f, import.meta.url),
   }
   const g = A.VECINOS_ALDEA.gerente;
   rec([g.saludo, g.despedida, g.charla]);
-  const sin = [...new Set(textos)].filter((t) => !/^(material|cosa|tabla|yerba)$/.test(t)).filter((t) => !Object.hasOwn(EN_T, t.replace(/\{\w+\}/g, '{0}')));
+  const { SIN_INGLES_392 } = await import('../src/banco-textos.js');   // 3.9.2: lo nuevo del gerente todavía sin inglés (a pedido del usuario): se lista en CAMBIOS_3_9_2.md
+  const sin = [...new Set(textos)].filter((t) => !/^(material|cosa|tabla|yerba)$/.test(t)).filter((t) => !SIN_INGLES_392.includes(t)).filter((t) => !Object.hasOwn(EN_T, t.replace(/\{\w+\}/g, '{0}')));
   ok(textos.length >= 80 && sin.length === 0, `todo lo que dice el gerente tiene su inglés (faltan ${sin.length}: ${sin.slice(0, 2).join(' | ')})`);
 }
 

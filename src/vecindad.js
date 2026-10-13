@@ -191,6 +191,8 @@ export function gustoDe(persona, cosa) {
 
 // ---------------------------------------------------------------- la amistad
 export const NIVELES_AMISTAD = ['conocido', 'amigo', 'compadre'];
+// 3.9.2: las partes de la historia de más allá de la tercera (Amadeo tiene seis) se abren con más amistad que la de compadre: estos puntos, de a una
+export const PUNTOS_HISTORIA_EXTRA = [150, 165, 180];
 // Puntos internos (nunca se muestran). Charlar suma poco y una vez por día; regalar lo que le
 // encanta, invitarlo y darle una mano suman más; aportar a la obra de su local también. Si
 // pasan unos días sin verse, baja de a poco, pero el que llegó a amigo no vuelve a conocido.
@@ -819,9 +821,10 @@ function historiaDe(persona, v) {
   const voz = VOCES[persona];
   const nivel = indiceNivel(persona, v);
   if (hist >= voz.historia.partes.length) return { renglones: [FRASES.historiaFin[hashTexto(persona) % FRASES.historiaFin.length]], parte: hist, bloqueada: false, termino: true };
-  if (nivel < hist) {
+  const puntos = f ? f.p : 0;
+  if (nivel < Math.min(hist, 2) || (hist >= 3 && puntos < (PUNTOS_HISTORIA_EXTRA[hist - 3] ?? 200))) {
     const pool = hist >= 2 ? FRASES.historiaCompadre : FRASES.historiaAmigo;
-    return { renglones: [pool[hashTexto(persona) % pool.length]], parte: hist, bloqueada: true, pide: NIVELES_AMISTAD[hist] };
+    return { renglones: [pool[(hashTexto(persona) + (hist >= 3 ? hist : 0)) % pool.length]], parte: hist, bloqueada: true, pide: NIVELES_AMISTAD[Math.min(hist, 2)] };
   }
   return { renglones: [voz.historia.partes[hist]], parte: hist + 1, bloqueada: false };
 }
