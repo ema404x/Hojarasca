@@ -181,7 +181,7 @@ export const ASPECTO = {
     cuerpo: { ancho: 0.95, fondo: 0.96, alto: 1.02 },
     cara: { ancho: 0.96, largo: 1.05, nariz: 1.05, ojos: 1.0, boca: 0.92, mand: 0.3, sonrisa: 0.4, arrugas: 'risa', iris: '#4c6c8a' },
     colores: { piel: '#e2b898', pelo: '#c8b89a', ropa: '#e8e0d0', abrigo: '#4e5a68', gorro: null, bufanda: null },
-    R: { mujer: true, pollera: true, colPollera: '#3e4a5a', delantal: '#f0ece0', chaleco: true, rodete: true, canas: 0.35 },
+    R: { mujer: true, pollera: true, colPollera: '#3e4a5a', delantal: '#f0ece0', chaleco: true, rodete: true, canas: 0.35, bandeja: true },   // (3.9.2: lleva la bandeja con la tetera y las tortas, como la moza de la cantina)
     guardas: { delantal: [1, 0.02], pollera: [10, 0.03], cuello: [10, 0, 'todo'] },
     poses: ['delantal', 'atras', 'cruzados'],
     abrigo: { colores: { poncho: '#4e5a68', gorro: 'gorroPunto', gorroColor: '#e2d6bd', bufanda: '#9a3c2a' } },

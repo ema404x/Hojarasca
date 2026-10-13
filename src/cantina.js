@@ -35,7 +35,7 @@ export const CARTA = [
   { id: 'trucha', nombre: 'Trucha a la parrilla', tipo: 'comida', precio: 800, porciones: 4, fuerte: false, caliente: true, descanso: 1.5, prepara: 12, forma: 'plato-trucha', color: '#c89a6a', texto: 'De las que trae el pescador de la aldea, con limón y sal gruesa.' },
 ];
 export const ID_CARTA = CARTA.map((x) => x.id);
-export const itemDe = (id) => CARTA.find((x) => x.id === id) || null;
+export const itemDe = (id) => CARTA.find((x) => x.id === id) || CARTA_EXTRA.find((x) => x.id === id) || null;
 // Cuándo está en la carta: `c` = { estacion, clima, locales }. Lo de siempre está siempre; el guiso y el chocolate piden frío o lluvia; las tortas fritas, lluvia
 // (o la panadería abierta); la trucha, la pescadería abierta.
 const FRIO = (c) => c.estacion === 'invierno' || c.clima === 'nieve';
@@ -46,21 +46,88 @@ const CUANDO = {
   'tortas-fritas': (c) => HUMEDO(c) || !!c.locales?.panaderia,
   trucha: (c) => !!c.locales?.pescaderia,
 };
+// 3.9.2: más platos y bebidas. Aparte de la carta de siempre (CARTA: la prueba de la 3.9.0 la mira tal cual), con las mismas reglas: `forma` es lo que se ve en la
+// mesa y en la bandeja (cantina-mundo.js). Cuándo salen: CUANDO_EXTRA (la estación, el tiempo y lo que produce la aldea: los locales abiertos y tu granja).
+export const CARTA_EXTRA = [
+  { id: 'fernet-cola', nombre: 'Fernet con cola', tipo: 'bebida', precio: 380, porciones: 3, fuerte: true, caliente: false, descanso: 0, prepara: 5, forma: 'vaso-alto', color: '#2a1612', texto: 'El amargo de siempre, con hielo de la cueva. Despierta el ánimo y tapa el frío.' },
+  { id: 'licor-calafate', nombre: 'Licor de calafate', tipo: 'bebida', precio: 330, porciones: 3, fuerte: true, caliente: false, descanso: 0, prepara: 4, forma: 'vaso', color: '#4a1a5a', texto: 'Casero, de calafate. Dicen que el que lo prueba vuelve a la Patagonia; yo digo que vuelve a la barra.' },
+  { id: 'cerveza-negra', nombre: 'Cerveza negra', tipo: 'bebida', precio: 380, porciones: 3, fuerte: false, caliente: false, descanso: 0.25, prepara: 5, forma: 'jarra', color: '#2a1a10', texto: 'Oscura, de malta tostada y espuma cremosa. Para los que no se asustan del color.' },
+  { id: 'sidra', nombre: 'Sidra de manzana', tipo: 'bebida', precio: 280, porciones: 3, fuerte: false, alcohol: 'suave', caliente: false, descanso: 0.1, prepara: 4, forma: 'vaso', color: '#e0d080', texto: 'De las manzanas del valle, con burbuja y sin apuro. Fresca y de las que se toman de a muchas.' },
+  { id: 'vino-caliente', nombre: 'Vino caliente con canela', tipo: 'bebida', precio: 300, porciones: 3, fuerte: true, caliente: true, descanso: 0.3, prepara: 6, forma: 'taza', color: '#7a1a2a', texto: 'Tinto con canela, clavo y cáscara de naranja, humeando. Para las noches que muerden.' },
+  { id: 'cafe', nombre: 'Café de filtro', tipo: 'bebida', precio: 130, porciones: 3, fuerte: false, caliente: true, descanso: 0.3, prepara: 4, forma: 'taza', color: '#2a1a10', texto: 'Negro y recién colado. Para el que todavía tiene camino o ganas de quedarse despierto.' },
+  { id: 'limonada', nombre: 'Limonada helada', tipo: 'bebida', precio: 160, porciones: 3, fuerte: false, caliente: false, descanso: 0.2, prepara: 4, forma: 'jarra', color: '#e8e07a', texto: 'Con limón, hielo de la cueva y una ramita de menta. Para los días largos.' },
+  { id: 'milanesa', nombre: 'Milanesa con papas', tipo: 'comida', precio: 700, porciones: 5, fuerte: false, caliente: true, descanso: 1.8, prepara: 12, forma: 'plato-milanesa', color: '#c8964a', texto: 'Grande, dorada, con papas fritas y un limón al costado. Sirve para dos, pero se la comen uno.' },
+  { id: 'choripan', nombre: 'Choripán con chimichurri', tipo: 'comida', precio: 380, porciones: 4, fuerte: false, caliente: true, descanso: 1, prepara: 8, forma: 'plato-choripan', color: '#8a3a2a', texto: 'Chorizo a la parrilla en pan crujiente, con chimichurri de la casa. Se come con las manos.' },
+  { id: 'locro', nombre: 'Locro de la casa', tipo: 'comida', precio: 600, porciones: 5, fuerte: false, caliente: true, descanso: 2, prepara: 12, forma: 'cuenco', color: '#c8782a', texto: 'Maíz, porotos, zapallo y panceta, a fuego lento desde la mañana. Para el frío que no afloja.' },
+  { id: 'cordero', nombre: 'Costillar de cordero al asador', tipo: 'comida', precio: 950, porciones: 6, fuerte: false, caliente: true, descanso: 2, prepara: 14, forma: 'plato-asado', color: '#a8582a', texto: 'Cordero patagónico a la cruz, con sal gruesa y mucha paciencia. El plato de las ocasiones.' },
+  { id: 'sopa-huerta', nombre: 'Sopa de verduras de la huerta', tipo: 'comida', precio: 380, porciones: 4, fuerte: false, caliente: true, descanso: 1.2, prepara: 9, forma: 'cuenco', color: '#8aa84a', texto: 'Zapallo, papa, acelga y lo que dio la huerta esta semana. Sencilla y de las que reconcilian.' },
+  { id: 'tarta-fruta', nombre: 'Tarta de fruta de la zona', tipo: 'comida', precio: 320, porciones: 3, fuerte: false, caliente: false, descanso: 0.8, prepara: 6, forma: 'plato-tarta', color: '#b84a3a', texto: 'Masa quebrada y fruta del valle, con azúcar por arriba. Sin crema, que se acaba antes.' },
+  { id: 'flan', nombre: 'Flan con dulce de leche', tipo: 'comida', precio: 300, porciones: 3, fuerte: false, caliente: false, descanso: 0.8, prepara: 5, forma: 'plato-flan', color: '#d8a850', texto: 'Casero, con caramelo y una buena cucharada de dulce de leche. Postre de los que se piden dos veces.' },
+  { id: 'pan-queso', nombre: 'Pan casero con queso y dulce', tipo: 'comida', precio: 240, porciones: 3, fuerte: false, caliente: false, descanso: 0.8, prepara: 5, forma: 'plato-pan', color: '#d8b070', texto: 'Del horno de la panadería, con queso de la zona y dulce de frutilla. Merienda de verdad.' },
+];
+// Lo que produce la aldea y tu campo, para la carta (puro: se arma desde la partida)
+export function produccionDe(p) {
+  const a = p?.aldea || null, g = p?.granja || null;
+  const abierto = (k) => !!a?.locales && Object.hasOwn(a.locales, k);
+  return {
+    panaderia: abierto('panaderia'), pescaderia: abierto('pescaderia'), miel: abierto('sala-miel'), herbolaria: abierto('herboristeria'),
+    leche: !!g?.vaca, cordero: Array.isArray(g?.corderos) && g.corderos.length > 0, cerdo: !!g?.chancha || (Array.isArray(g?.lechones) && g.lechones.length > 0),
+    fruta: !!g?.frutales && Object.keys(g.frutales).length > 0,
+  };
+}
+const LLUVIA = (c) => c.clima === 'lluvia' || c.clima === 'nieve';
+const CUANDO_EXTRA = {
+  'vino-caliente': (c) => FRIO(c) || c.estacion === 'otono' || LLUVIA(c),
+  limonada: (c) => c.estacion === 'verano' && !LLUVIA(c),
+  sidra: (c) => c.estacion !== 'invierno' || !!c.prod?.fruta,
+  locro: (c) => c.estacion !== 'verano' || LLUVIA(c),
+  cordero: (c) => c.estacion !== 'verano' || !!c.prod?.cordero,
+  'sopa-huerta': (c) => c.estacion !== 'invierno' || LLUVIA(c),
+  'tarta-fruta': (c) => c.estacion !== 'invierno' || !!c.prod?.fruta,
+  flan: (c) => !!c.prod?.leche || c.estacion !== 'verano',
+  'pan-queso': (c) => !!c.prod?.panaderia || c.estacion === 'verano',
+  choripan: (c) => !!c.prod?.cerdo || c.estacion !== 'invierno',
+};
+// Los candidatos a «plato del día»: el día elige uno de los que están en carta (con lo que produce la aldea primero), se le rebajan diez por ciento y se marca
+const PLATOS_DEL_DIA = ['locro', 'cordero', 'sopa-huerta', 'milanesa', 'tarta-fruta', 'trucha', 'empanadas', 'guiso', 'choripan', 'flan', 'pan-queso'];
+export function platoDelDia(lista, ctx = {}) {
+  const dia = Math.max(1, Math.floor(Number(ctx.dia) || 0));
+  if (!dia) return null;
+  const hay = (id) => lista.some((x) => x.id === id);
+  const prod = ctx.prod || {};
+  // lo de la aldea (lo que dio la granja o los locales) tiene prioridad
+  const propios = [prod.pescaderia && 'trucha', prod.cordero && 'cordero', prod.leche && 'flan', prod.fruta && 'tarta-fruta', prod.panaderia && 'pan-queso', prod.cerdo && 'choripan'].filter((k) => k && hay(k));
+  const base = PLATOS_DEL_DIA.filter(hay);
+  const lis = propios.length && dia % 2 === 0 ? propios : base;
+  return lis.length ? lis[dia % lis.length] : null;
+}
 export function cartaDeHoy(c = {}) {
-  const ctx = { estacion: c.estacion || 'verano', clima: c.clima || 'sol', locales: c.locales || {} };
-  return CARTA.filter((x) => !CUANDO[x.id] || CUANDO[x.id](ctx)).map((x) => {
+  const ctx = { estacion: c.estacion || 'verano', clima: c.clima || 'sol', locales: c.locales || {}, prod: c.prod || null, dia: c.dia || 0 };
+  const lista = [...CARTA.filter((x) => !CUANDO[x.id] || CUANDO[x.id](ctx)), ...CARTA_EXTRA.filter((x) => !CUANDO_EXTRA[x.id] || CUANDO_EXTRA[x.id](ctx))].map((x) => {
     // con la sala de miel abierta, el mate cocido va con miel (un poco más caro)
     if (x.id === 'mate-cocido' && ctx.locales['sala-miel']) return { ...x, nombre: 'Mate cocido con miel', precio: x.precio + 30, texto: 'Caliente y con miel de la sala de la aldea. Endulza el día.' };
     return { ...x };
   });
+  const dd = platoDelDia(lista, ctx);
+  if (dd) { const x = lista.find((q) => q.id === dd); if (x) { x.delDia = true; x.precio = Math.max(100, Math.round((x.precio * 0.9) / 10) * 10); } }
+  return lista;
 }
+export const itemEnCarta = (id) => CARTA.find((x) => x.id === id) || CARTA_EXTRA.find((x) => x.id === id) || null;
 
 // ---------------------------------------------------------------- el guardado
 export const CUENTA_MAX = 1500;
 export const FUERTES_POR_NOCHE = 3;
 // (3.9.1: `ebrio`: { n, t } el nivel de la borrachera y cuándo se midió (horas absolutas); `chistes`: la memoria de los chistes que ya salieron; `pena`: tus bailes con
 // Dalia y la última noche que bailaste)
-export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 } }; }
+// (3.9.2: `ultimoPedido` e `veces`: lo último que pediste y cuántas veces cada cosa, para que te recuerden; la casa de té usa la misma forma en `progreso.casaTe`)
+export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0 }; }
+const idItem = (v) => (typeof v === 'string' && /^[a-z0-9-]{1,40}$/.test(v) ? v : null);
+function sanearVeces(v) {
+  const r = {};
+  if (!objeto(v)) return r;
+  for (const [k, n] of Object.entries(v).slice(0, 60)) { const id = idItem(k); if (id && Object.hasOwn(v, k)) r[id] = Math.max(1, entero(n, 9999)); }
+  return r;
+}
 function sanearCuenta(v) {
   if (!objeto(v)) return null;
   const monto = entero(v.monto, 1e6);
@@ -81,6 +148,7 @@ export function sanearCantina(v, hoy = 1e6) {
     // (3.9.1: las partidas de antes no lo tienen: arrancan sobrias y sin chistes dichos)
     ebrio: sanearEbrio(v.ebrio, dia * 24 + 24), chistes: sanearMemoriaChistes(v.chistes),
     pena: objeto(v.pena) ? { bailes: entero(v.pena.bailes, 1e6), ultima: Math.min(dia, entero(v.pena.ultima, 1e6)) } : { bailes: 0, ultima: 0 },
+    ultimoPedido: idItem(v.ultimoPedido), veces: sanearVeces(v.veces), vistos: entero(v.vistos, 1e6),
   };
 }
 // La cantina de esta partida (se crea sola si la partida es de antes de la 3.9.0); sin economía (el Desafío), null
@@ -92,8 +160,28 @@ export function cantinaDe(p) {
   if (!objeto(q.ebrio)) q.ebrio = ebrioNuevo();
   if (!objeto(q.chistes)) q.chistes = {};
   if (!objeto(q.pena)) q.pena = { bailes: 0, ultima: 0 };
+  if (!objeto(q.veces)) q.veces = {};
+  if (q.ultimoPedido === undefined) q.ultimoPedido = null;
+  if (!Number.isFinite(q.vistos)) q.vistos = 0;
   return q;
 }
+// 3.9.2: la casa de té tiene su propia libreta (visitas, cuenta, lo último que pediste), con la misma forma que la de la cantina
+export function casaTeDe(p) {
+  if (!hayEconomia(p)) return null;
+  if (!objeto(p.casaTe)) p.casaTe = sanearCantina(null, p.dia);
+  const q = p.casaTe;
+  if (!objeto(q.veces)) q.veces = {};
+  if (q.ultimoPedido === undefined) q.ultimoPedido = null;
+  if (!Number.isFinite(q.vistos)) q.vistos = 0;
+  if (!objeto(q.fuertes)) q.fuertes = { dia: 0, n: 0 };
+  return q;
+}
+// Los dos lugares donde te atienden: quién, cómo se llama la libreta y cómo figura en la billetera
+export const LUGARES = {
+  cantina: { id: 'cantina', persona: 'moza', nombre: NOMBRE_MOZA, etiqueta: 'Cantina', estado: (p) => cantinaDe(p) },
+  'casa-te': { id: 'casa-te', persona: 'galesa', nombre: 'Ceinwen', etiqueta: 'Casa de té', estado: (p) => casaTeDe(p) },
+};
+export const estadoLugar = (p, lugar = 'cantina') => (LUGARES[lugar] || LUGARES.cantina).estado(p);
 export const cuentaDe = (p) => cantinaDe(p)?.cuenta || null;
 // Lo de la noche: un día de la cantina va de las 18 a las 2, así que «la noche» cambia al abrir
 export const nocheDe = (dia, hora) => (Number(hora) < HORARIO_CANTINA.cierra ? Math.max(1, Math.floor(dia) - 1) : Math.max(1, Math.floor(dia)));
@@ -129,7 +217,7 @@ export const cuantosPara = (k, monto) => Math.max(1, Math.ceil(monto / Math.max(
 
 // ---------------------------------------------------------------- pagar
 // Las formas de pagar un pedido: [{ medio: 'pesos'|'trueque'|'cuenta', ok, texto, bien?, n?, motivo? }]
-export function formasDePago(p, item) {
+export function formasDePago(p, item, lugar = 'cantina') {
   const lista = [];
   const pesos = pesosDe(p);
   lista.push({ medio: 'pesos', ok: pesos >= item.precio, texto: `Pagar ${formatoPesos(item.precio)}`, motivo: pesos >= item.precio ? '' : 'plata' });
@@ -139,7 +227,7 @@ export function formasDePago(p, item) {
     if (tengoBien(p, k) >= n) { lista.push({ medio: 'trueque', ok: true, texto: `Trueque: ${textoBien(k, n)}`, bien: k, n }); if (++hay >= 3) break; }
   }
   if (!hay) lista.push({ medio: 'trueque', ok: false, texto: 'Trueque (llevá truchas, leña, frascos…)', motivo: 'nada' });
-  const c = cantinaDe(p), deuda = c?.cuenta?.monto || 0;
+  const c = estadoLugar(p, lugar), deuda = c?.cuenta?.monto || 0;
   lista.push({ medio: 'cuenta', ok: deuda + item.precio <= CUENTA_MAX, texto: 'Anotalo en la cuenta', motivo: deuda + item.precio <= CUENTA_MAX ? '' : 'cuenta' });
   return lista;
 }
@@ -149,8 +237,9 @@ export function mandadoDe(monto, dia) {
   return { k, n: cuantosPara(k, monto) };
 }
 // Pedir algo. `forma`: { medio, bien? }. Cobra y devuelve el pedido ({ ok, item, medio, ... }) o el motivo de la negativa.
-export function pedir(p, itemId, forma, dia, hora = 20, carta = null) {
-  const c = cantinaDe(p);
+export function pedir(p, itemId, forma, dia, hora = 20, carta = null, lugar = 'cantina') {
+  const L = LUGARES[lugar] || LUGARES.cantina;
+  const c = L.estado(p);
   const lista = carta || CARTA;
   const item = lista.find((x) => x.id === itemId);
   if (!c || !item) return { ok: false, motivo: 'no-hay' };
@@ -159,7 +248,7 @@ export function pedir(p, itemId, forma, dia, hora = 20, carta = null) {
   const medio = forma?.medio;
   let cobro = null;
   if (medio === 'pesos') {
-    const r = pagar(p, item.precio, `Cantina: ${item.nombre}`, NOMBRE_MOZA);
+    const r = pagar(p, item.precio, `${L.etiqueta}: ${item.nombre}`, L.nombre);
     if (!r.ok) return { ok: false, motivo: 'plata', item, faltan: r.faltan };
     cobro = { pesos: item.precio };
   } else if (medio === 'trueque') {
@@ -176,18 +265,21 @@ export function pedir(p, itemId, forma, dia, hora = 20, carta = null) {
     cobro = { cuenta: item.precio };
   } else return { ok: false, motivo: 'medio', item };
   c.pedidos++;
+  c.ultimoPedido = idItem(item.id) || c.ultimoPedido || null;
+  if (idItem(item.id)) { c.veces = c.veces || {}; if (Object.keys(c.veces).length < 60 || c.veces[item.id]) c.veces[item.id] = Math.min(9999, (c.veces[item.id] || 0) + 1); }
   if (cobro.pesos) c.gastado += cobro.pesos;
   c.ultima = Math.max(1, Math.floor(dia));
   if (item.fuerte) { if (c.fuertes.dia !== noche) c.fuertes = { dia: noche, n: 0 }; c.fuertes.n++; }
   return { ok: true, item, medio, cobro, id: itemId };
 }
 // Saldar la cuenta: con pesos o con el mandado
-export function saldarCuenta(p, medio) {
-  const c = cantinaDe(p);
+export function saldarCuenta(p, medio, lugar = 'cantina') {
+  const L = LUGARES[lugar] || LUGARES.cantina;
+  const c = L.estado(p);
   if (!c?.cuenta) return { ok: false, motivo: 'sin-cuenta' };
   const { monto, k, n } = c.cuenta;
   if (medio === 'pesos') {
-    const r = pagar(p, monto, 'Cantina: la cuenta', NOMBRE_MOZA);
+    const r = pagar(p, monto, lugar === 'cantina' ? 'Cantina: la cuenta' : `${L.etiqueta}: la cuenta`, L.nombre);
     if (!r.ok) return { ok: false, motivo: 'plata', faltan: r.faltan };
     c.gastado += monto; c.cuenta = null;
     return { ok: true, medio, monto };
@@ -231,7 +323,7 @@ export const verboDe = (item) => (item.tipo === 'comida' ? 'Comer un bocado' : '
 
 // ---------------------------------------------------------------- lo que dice Lucrecia
 // Las frases: cada una es un texto (o un molde con {0}); la elegida sale del día y de cuántas veces viniste, así no repite siempre la misma
-const eleg = (lista, semilla) => lista[Math.abs(Math.floor(semilla)) % lista.length];
+export const eleg = (lista, semilla) => lista[Math.abs(Math.floor(semilla)) % lista.length];
 export const SALUDOS = {
   nuevo: ['Mirá quién llegó hasta el final de la calle. Sentate, forastero: acá nadie muerde, salvo que se lo pidan.', 'Cara nueva en la cantina. Soy Lucrecia, la moza. Pedí lo que quieras: lo que no tenga, lo invento.'],
   // {0}: tu apodo en la aldea
