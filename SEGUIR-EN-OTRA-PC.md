@@ -27,6 +27,9 @@ decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
    Después de clonar (o si ya lo tenías): `git fetch origin` y `git checkout claude/hojarasca-improvements-57k11e` y `git pull`;
    si te quedás en `main` falta todo lo de la 3.8.x (economía, banco, auditoría). Al terminar: `npm install`, `node armar.mjs`
    (`index.html` no se sube a git: hay que armarlo) y `npm run verify` (202 pasos, tiene que dar «202 pasos OK»).
+   **Para el zip completo de la 3.8.9** (como antes, en Descargas), desde Git Bash en la carpeta del proyecto:
+   `bash herramientas/empaquetar.sh . 3.8.9 herramientas/LEEME-3.8.9.txt`. La portada del juego armado tiene que decir
+   «Hojarasca · 3.8.9 · build c3d68ef5» (la huella sale del código: si dice otra, el código no es el de la rama).
 1. Instalá Git si no está: `winget install --id Git.Git -e --source winget`.
 2. Clonalo en `Documents\Hojarasca`:
    `git clone https://github.com/ema404x/Hojarasca.git hojarasca`
