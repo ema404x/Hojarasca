@@ -67,6 +67,7 @@ texturas, ni modelos, ni audio).
   que se abra la ventana de inicio de sesión (la credencial queda guardada).
 
 ### Versiones (lo último arriba)
+- **3.9.1 (rama v391-pena, sin etiqueta todavía): la peña de los sábados** y el pulido de la cantina. `CAMBIOS_3_9_1.md`. Gate 205/205.
 - **3.9.0 (rama v390-cantina, sin etiqueta todavía): la cantina**, primera versión. `CAMBIOS_3_9_0.md`. Gate 204/204.
 - **3.8.7 (etiqueta v3.8.7):** segundo pase de bugs + decisiones del usuario. `CAMBIOS_3_8_7.md`. Gate 189/189.
 - **3.8.6 (etiqueta v3.8.6):** pase de bugs completo (5 equipos, ~130 arreglos). `CAMBIOS_3_8_6.md`. Gate 184/184.
@@ -163,7 +164,7 @@ cuadro por segundo**. Lo que depende del tiempo de juego necesita esperas o rein
 
 ### 4.1 Construir y probar
 - `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba.
-- `npm run verify` es el gate (204 pasos en la 3.9.0, sólo Node).
+- `npm run verify` es el gate (205 pasos en la 3.9.1, sólo Node).
 - Partidas reales: `pruebas/humo-*.cjs` (80, con Electron; los guiones de Playwright viven en `herramientas/`). **Comparten el perfil de Electron: nunca dos a
   la vez.** Para capturas propias usar perfil propio (`app.setPath('userData', …)`).
 - **Nunca** matar electron por nombre si hay otras pruebas o capturas corriendo; matar por PID

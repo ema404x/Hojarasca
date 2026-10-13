@@ -4,6 +4,10 @@ Un bosque andino patagónico para recorrer despacio, en primera persona. Todo se
 
 
 
+## 3.9.1 — La peña de los sábados
+
+Los sábados a la noche, en la cantina, tocan el Cholo (guitarra) y Anselmo (bombo) y **Dalia**, la bailarina, baila tango y después chamamé; si te elige, te saca a bailar. Hay una mesa de truco con dos vecinos jugando, vecinos que se arriman a tu mesa, una borrachera leve que se puede suavizar o apagar en Ajustes, romance con Lucrecia y con Dalia, y chistes de doble sentido con picardía (nunca explícitos). Sólo en el Relax. Detalle en `CAMBIOS_3_9_1.md`.
+
 ## 3.9.0 — La cantina
 
 Al final de la calle de la Loma, pasando el observatorio, abre de 18 a 2 **la cantina**: barra con estante de botellas, mesas, guitarra en la pared y una salamandra. **Lucrecia**, la moza, te ve cuando te sentás y viene caminando con la carta del día; pagás con pesos, con trueque o a la cuenta; ella va a la barra, prepara y te trae el pedido en bandeja, y vos tomás y comés de a sorbos y bocados (un trago fuerte te saca el frío; la comida te deja descansado un rato). Sólo en el Relax. Detalles y lo que queda para la 3.9.1: `CAMBIOS_3_9_0.md`.
