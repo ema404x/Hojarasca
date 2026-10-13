@@ -13,7 +13,7 @@ export function crearCantinaMundo(ctx) {
   const escena = ctx.escena;
   const geos = new Map(), mats = new Map();
   const geo = (clave, hace) => { let g = geos.get(clave); if (!g) { g = hace(); geos.set(clave, g); } return g; };
-  const mat = (color, opts = {}) => { const k = `${color}|${opts.opacidad ?? 1}`; let m = mats.get(k); if (!m) { m = new THREE.MeshLambertMaterial({ color, ...(opts.opacidad < 1 ? { transparent: true, opacity: opts.opacidad } : {}) }); mats.set(k, m); } return m; };
+  const mat = (color, opts = {}) => { const k = `${color}|${opts.opacidad ?? 1}`; let m = mats.get(k); if (!m) { m = new THREE.MeshLambertMaterial({ color, emissive: new THREE.Color(color).multiplyScalar(0.22), ...(opts.opacidad < 1 ? { transparent: true, opacity: opts.opacidad } : {}) }); mats.set(k, m);   // (3.9.2: un resplandor propio chico: de noche, adentro, lo que hay en la mesa no se va a negro) } return m; };
   const mesh = (g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = false; o.receiveShadow = false; return o; };
   const cilindro = (r0, r1, h, lados = 8) => geo(`cil|${r0}|${r1}|${h}|${lados}`, () => new THREE.CylinderGeometry(r1, r0, h, lados, 1));
   const caja = (x, y, z) => geo(`caja|${x}|${y}|${z}`, () => new THREE.BoxGeometry(x, y, z));
@@ -107,7 +107,8 @@ export function crearCantinaMundo(ctx) {
     const dx = Math.sin(silla.mira), dz = Math.cos(silla.mira);
     // (3.9.2: cada mesa trae su altura: la de la galería de la casa de té no es la del salón ni la de la cantina)
     const y = Number.isFinite(silla.mesa?.y) ? silla.mesa.y : ctx.pisoY ? ctx.pisoY() + 0.78 : MESA_Y;
-    return new THREE.Vector3(silla.x + dx * 0.5 + dz * 0.1, y, silla.z + dz * 0.5 - dx * 0.1);
+    const k = Number.isFinite(silla.mesa?.adelante) ? silla.mesa.adelante : 0.5;   // (a qué distancia de la silla: en la casa de té queda un poco más cerca, por lo que ya hay sobre las mesas)
+    return new THREE.Vector3(silla.x + dx * k + dz * 0.1, y, silla.z + dz * k - dx * 0.1);
   }
   function ponerEnMesa(mesa, silla, item, restantes) {
     quitarDeMesa(mesa);
@@ -148,7 +149,9 @@ export function crearCantinaMundo(ctx) {
   }
 
   // ---------------------------------------------------------------- 3.9.2: el vapor de lo caliente
-  const matVapor = new THREE.MeshBasicMaterial({ color: '#f4f0e8', transparent: true, opacity: 0.16, depthWrite: false });
+  // (una voluta blanda: un círculo difuso dibujado por código; sin DOM —en las pruebas—, un cuadradito translúcido)
+  const texVapor = (() => { try { if (typeof document === 'undefined') return null; const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'); const r = g.createRadialGradient(16, 16, 1, 16, 16, 15); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); } catch { return null; } })();
+  const matVapor = new THREE.MeshBasicMaterial({ color: '#f4f0e8', transparent: true, opacity: texVapor ? 0.5 : 0.16, depthWrite: false, ...(texVapor ? { map: texVapor } : {}) });
   const planoVapor = new THREE.PlaneGeometry(0.07, 0.09);
   function crearVapor(g) {
     const o = g.userData.vapor || [0, (g.userData.boca || 0.08) + 0.01, 0];

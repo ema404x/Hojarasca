@@ -91,8 +91,8 @@ const CUANDO_EXTRA = {
 // Los candidatos a «plato del día»: el día elige uno de los que están en carta (con lo que produce la aldea primero), se le rebajan diez por ciento y se marca
 const PLATOS_DEL_DIA = ['locro', 'cordero', 'sopa-huerta', 'milanesa', 'tarta-fruta', 'trucha', 'empanadas', 'guiso', 'choripan', 'flan', 'pan-queso'];
 export function platoDelDia(lista, ctx = {}) {
-  const dia = Math.max(1, Math.floor(Number(ctx.dia) || 0));
-  if (!dia) return null;
+  const dia = Math.floor(Number(ctx.dia) || 0);
+  if (dia < 1) return null;
   const hay = (id) => lista.some((x) => x.id === id);
   const prod = ctx.prod || {};
   // lo de la aldea (lo que dio la granja o los locales) tiene prioridad

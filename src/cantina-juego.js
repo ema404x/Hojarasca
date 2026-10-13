@@ -34,7 +34,7 @@ export function lugarDeCantina() {
 export function lugarDeCasaTe() {
   return {
     id: 'casa-te', esCantina: false, persona: 'galesa', nombre: NOMBRE_GALESA, E: EDIFICIOS_ALDEA['casa-te'], plano: planoCasaTe(), abierta: casaTeAbierta, distLibre: 16,
-    titulo: 'La carta de la casa de té', llamar: 'Llamar a Ceinwen', altoMesa: (m) => m.alto, afluencia: afluenciaTe, claseCarta: 'panel-te',
+    titulo: 'La carta de la casa de té', llamar: 'Llamar a Ceinwen', adelante: 0.4, altoMesa: (m) => m.alto, afluencia: afluenciaTe, claseCarta: 'panel-te',
     R: { carta: (c) => cartaTeDeHoy(c), dicho: dichoTe, saludo: saludoDeGalesa, item: itemTe },
   };
 }
@@ -68,7 +68,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
   // ---------------------------------------------------------------- el lugar, en el mundo
   const mesas = plano.mesas.map((m) => {
     const w = aMundo(m.x, m.z), sv = aMundo(m.servicio.x, m.servicio.z);
-    const mesa = { id: m.id, x: w.x, z: w.z, servicio: { x: sv.x, z: sv.z, mira: rotMundo(m.servicio.rot) }, sillas: [], y: E.y + L.altoMesa(m), fin: m.fin, extra: (m.extra || []).map((q) => aMundo(q.x, q.z)) };
+    const mesa = { id: m.id, x: w.x, z: w.z, servicio: { x: sv.x, z: sv.z, mira: rotMundo(m.servicio.rot) }, sillas: [], y: E.y + L.altoMesa(m), adelante: L.adelante, fin: m.fin, extra: (m.extra || []).map((q) => aMundo(q.x, q.z)) };
     m.sillas.forEach((s, i) => { const q = aMundo(s.x, s.z); mesa.sillas.push({ mesa, i, x: q.x, z: q.z, mira: rotMundo(s.mira) }); });
     return mesa;
   });

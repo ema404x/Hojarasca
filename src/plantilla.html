@@ -210,6 +210,14 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .panel-cantina .cantina-pagos button.cuenta { border-color: #e8a08a; }
 .panel-cantina .cantina-cuenta { margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: rgba(232,160,138,.1); }
 .panel-cantina .cantina-renglon { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+/* 3.9.2: la carta con encabezados («Para tomar», «Para comer») y el plato del día; la casa de té con su tono (y precios legibles también sobre el papel del cuaderno) */
+.panel-cantina .cantina-grupo { margin: 14px 0 4px; font-size: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #e8c78a; opacity: .85; }
+.panel-cantina .cantina-fila.del-dia { background: rgba(232,199,138,.16); border-left: 3px solid #d9a441; }
+.panel-cantina.panel-te { background: rgba(30,34,42,.97); border-color: rgba(168,196,224,.32); }
+.panel-cantina.panel-te h2 { color: #d8e4f0; }
+.panel-cantina.panel-te .cantina-grupo, .panel-cantina.panel-te .cantina-saldo, .panel-cantina.panel-te .cantina-fila b { color: #d8c490; }
+:root[data-menu="cuaderno"] .panel-cantina :is(.cantina-grupo, .cantina-saldo, .cantina-fila b) { color: #6e3a14; opacity: 1; }
+:root[data-menu="cuaderno"] .panel-cantina .cantina-fila.del-dia { background: rgba(190,120,40,.14); border-left-color: #a2452f; }
 /* 3.8.8: la billetera (los pesos que llevás); debajo del reloj si lo tenés */
 .billetera-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
 .reloj-hud:not(.oculto) ~ .billetera-hud { top: 64px; }
