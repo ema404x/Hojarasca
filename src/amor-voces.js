@@ -11,6 +11,8 @@
 // {otra}, {dia}, {cita}.
 //
 // Módulo puro: sólo datos.
+// 3.9.1: las voces de la moza y de la bailarina están en pena-voces.js
+import { AMOR_MOZA, AMOR_BAILARINA } from './pena-voces.js';
 
 // ---------------------------------------------------------------- cada una
 // piropo: lo que contesta cuando le tirás un piropo (gusto: le gustó; rie: se ríe y cambia de tema; no: no
@@ -226,6 +228,11 @@ export const VOCES_AMOR = {
 };
 
 // ---------------------------------------------------------------- las frases de todos
+// 3.9.1: la moza y la bailarina de la cantina (los textos están en pena-voces.js): sus celos de siempre y los de las dos entre ellas, y por qué no se mudan al refugio
+VOCES_AMOR.moza = { ...AMOR_MOZA, celos: 'Me contaron que salís con otra. Pensalo unos días, corazón: yo no comparto la barra con nadie, y menos el corazón.', celosRival: AMOR_MOZA.celos,
+  refugioNo: 'Dejar la barra de noche no puedo, corazón: la cantina se queda sin moza y los vasos, sin dueña. En mi cuarto de atrás, sí: ahí te hago lugar.' };
+VOCES_AMOR.bailarina = { ...AMOR_BAILARINA, celos: 'Me contaron que salís con otra. Yo bailo de a una pieza por vez, pero con una sola pareja. No me busques por unos días.', celosRival: AMOR_BAILARINA.celos,
+  refugioNo: 'Mi pista está acá, y los sábados no falto aunque se caiga el techo. Quedate vos en el cuarto de atrás: hay lugar, y el escenario me queda a dos pasos.' };
 export const FRASES_AMOR = {
   // el menú de la charla (vecindad-juego.js)
   titulo: { coquetear: 'Coquetear…', nuestro: 'Lo nuestro…', reconquistar: 'Lo nuestro…' },

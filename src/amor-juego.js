@@ -17,7 +17,7 @@
 // El ñiki ñiki lo funde main.js (`ctx.fundido`), sin mostrar nada.
 //
 // Sin three ni DOM (se prueba en Node): las figuras y la pantalla llegan por `ctx`.
-import { bonosDeHabilidades, BONOS, esCandidata, puedeRomance, romanceActivo, etapaAmor, ETAPAS_AMOR, LUGARES_CITA, lugaresDeCita, coquetear, regalarFlores, invitarACita, citaAhora, empezarCita, terminarCita, vencerCita, declararse, encargarAnillo, retirarAnillo, tenesAnillo, anilloListo, proponer, bodaHoy, casarse, convivir, hablarDeLosChicos, buscarHijo, puedeBuscarHijo, esMadreDeTusHijos, puedeNikiNiki, nikiNiki, reconquistar, verla, comentarioDeAmor, pasarDiaAmor, puedeEscribirle, mandarCorreo, mundoAmor, ORDEN_CANDIDATAS, casaDeElla, horaTextoAmor, AMOR, llenarAmor } from './amor.js';
+import { SOLO_SUYA, bonosDeHabilidades, BONOS, esCandidata, puedeRomance, romanceActivo, etapaAmor, ETAPAS_AMOR, LUGARES_CITA, lugaresDeCita, coquetear, regalarFlores, invitarACita, citaAhora, empezarCita, terminarCita, vencerCita, declararse, encargarAnillo, retirarAnillo, tenesAnillo, anilloListo, proponer, bodaHoy, casarse, convivir, hablarDeLosChicos, buscarHijo, puedeBuscarHijo, esMadreDeTusHijos, puedeNikiNiki, nikiNiki, reconquistar, verla, comentarioDeAmor, pasarDiaAmor, puedeEscribirle, mandarCorreo, mundoAmor, ORDEN_CANDIDATAS, casaDeElla, horaTextoAmor, AMOR, llenarAmor } from './amor.js';
 import { FRASES_AMOR } from './amor-voces.js';
 import { nombreCorto, sumarAmistadDe } from './vecindad.js';
 import { CHISMOSOS } from './vecindad-voces.js';
@@ -129,7 +129,7 @@ export function crearAmorJuego(ctx) {
       for (const id of lugaresDeCita(clave, p.aldea)) if (posLugar(id)) opc.push({ id: `amor:cita:${id}`, titulo: `${LUGARES_CITA[id].cita.charAt(0).toUpperCase()}${LUGARES_CITA[id].cita.slice(1)}` });
       opc.splice(8);
     } else if (tipo === 'amor-casa') {
-      opc.push({ id: 'amor:convivir:refugio', titulo: FR.opcion.refugio });
+      if (!SOLO_SUYA.includes(clave)) opc.push({ id: 'amor:convivir:refugio', titulo: FR.opcion.refugio });   // (3.9.1: la moza y la bailarina sólo viven en su casa)
       if (casaDeElla(clave)) opc.push({ id: 'amor:convivir:suya', titulo: FR.opcion.suya });
     } else if (tipo === 'amor-correo') {
       for (const k of ORDEN_CANDIDATAS) {

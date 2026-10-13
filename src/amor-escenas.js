@@ -223,7 +223,7 @@ export function puntoCitaValle(v, quien = 'suyo') {
 // Qué hace ella en cada lugar, ya empezada la cita (la pose de gente.js). En el valle, en su lugar favorito y en los
 // que tienen dónde sentarse, se sienta (en el suelo, en el muelle); en los altos mira el paisaje.
 export const MOMENTO_CITA = {
-  plaza: { pose: 'sentado' }, 'casa-te': { pose: 'sentado' }, estacion: { pose: 'mirar' }, baile: { pose: 'bailar' }, observatorio: { pose: 'mirar' },
+  cantina: { pose: 'sentado' }, plaza: { pose: 'sentado' }, 'casa-te': { pose: 'sentado' }, estacion: { pose: 'mirar' }, baile: { pose: 'bailar' }, observatorio: { pose: 'mirar' },
   mirador: { pose: 'mirar' }, muelle: { pose: 'sentado', asiento: 0 }, arrayanes: { pose: 'mirar' }, puente: { pose: 'mirar' },
   mallin: { pose: 'sentado', asiento: 0 }, faro: { pose: 'mirar' }, torre: { pose: 'mirar' }, cueva: { pose: 'mirar' },
 };

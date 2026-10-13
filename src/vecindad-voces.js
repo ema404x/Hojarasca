@@ -21,6 +21,7 @@
 // saludoAmigo/saludoCompadre: cómo te saluda cuando ya hay confianza. fauna: cómo cuenta un
 // avistaje. regalo: lo que dice la nota del regalo de amistad. pronostico: cómo cuenta el tiempo
 // de mañana (si no tiene, usa el genérico).
+import { VECINDAD_BAILARINA, AYUDAS_BAILARINA } from './pena-voces.js';
 export const VOCES = {
   jefe: {
     encanta: {
@@ -1187,6 +1188,8 @@ export const VOCES = {
     pronostico: 'Dicen que {pronostico}. A mí el pronóstico me lo dan los clientes: si hace frío, vienen temprano y se quedan más.',
     regalo: 'Lucrecia, la moza de la cantina, te dejó yerba para el mate, con un guiño',
   },
+  // 3.9.1: Dalia Kerber, la bailarina de la peña: expresiva y orgullosa (los textos, en pena-voces.js)
+  bailarina: VECINDAD_BAILARINA,
   ramon: {
     encanta: {
       yerba: 'Yerba. Esto no se rechaza nunca, m\'hijo. Gracias.',
@@ -1526,6 +1529,8 @@ export const AYUDAS = {
       devuelve: { tipo: 'cosa', k: 'yerba', n: 1, texto: 'Tomá, yerba de la mía. De la que se toma en la cabina.' },
       consejo: 'En la meseta, cuando nevaba fuerte, el tren llevaba más palas que pasajeros. Si salís con nieve, llevá pala aunque te miren raro.' },
   ],
+  // 3.9.1: Dalia, la bailarina
+  bailarina: AYUDAS_BAILARINA,
   // 3.9.0: Lucrecia, en la cantina
   moza: [
     { id: 'damajuana', titulo: 'Ayudarla a bajar la damajuana del estante más alto', hace: true,

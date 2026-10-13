@@ -111,7 +111,12 @@ export const CANDIDATAS = {
   enfermera: { edad: 41, civil: 'soltera', favorito: 'plaza' },
   galesa: { edad: 36, civil: 'soltera', favorito: 'casa-te' },
   nelida: { edad: 26, civil: 'soltera', favorito: 'estacion' },
+  // de la 3.9.1: la moza y la bailarina de la cantina (las dos adultas y solteras, con su historia: ver vecindad-voces.js)
+  moza: { edad: 34, civil: 'soltera', favorito: 'estacion' },
+  bailarina: { edad: 30, civil: 'soltera', favorito: 'mirador' },
 };
+// 3.9.1: las que no se mudan al refugio (trabajan de noche en la cantina y la peña es de ellas): sólo viven con vos en su casa, el cuarto de atrás
+export const SOLO_SUYA = ['moza', 'bailarina'];
 export const ORDEN_CANDIDATAS = Object.keys(CANDIDATAS);
 const edadDe = (clave) => { const p = personaAldea(clave); return Number.isFinite(p?.edad) ? p.edad : CANDIDATAS[clave]?.edad; };
 // ¿Puede haber romance con ella, por lo que ella ES? (adulta, soltera, ni chica ni casada ni Pocha). No mira
@@ -147,17 +152,19 @@ export const LUGARES_CITA = {
   faro: { nombre: 'el faro', cita: 'subir al faro', valle: 'faro', horas: [10, 21] },
   torre: { nombre: 'la torre', cita: 'subir a la torre', valle: 'torre', horas: [9, 20] },
   cueva: { nombre: 'el alero de las pinturas', cita: 'ver las pinturas del alero', valle: 'cueva', horas: [10, 18.5] },
+  // 3.9.1: una noche en la cantina, en la mesa del frente; sólo con la bailarina (Lucrecia trabaja ahí: con ella, la cita es de día, afuera)
+  cantina: { nombre: 'la cantina', cita: 'una noche en la cantina', aldea: { edificio: 'cantina', suyo: 'silla-2', tuyo: 'silla-1' }, horas: [20, 24], rutina: 'cantina', publico: true, noche: true, soloPara: ['bailarina'] },
 };
 export const esLugarCita = (id) => typeof id === 'string' && Object.hasOwn(LUGARES_CITA, id);
 // Las ventanas propias de cada una (la galesa atiende la casa de té hasta las 20: su cita ahí es al cerrar).
-const HORAS_PROPIAS = { galesa: { 'casa-te': [20, 21.75] } };
+const HORAS_PROPIAS = { galesa: { 'casa-te': [20, 21.75] }, moza: { estacion: [14.5, 18] } };   // (3.9.1: Lucrecia abre a las 18: el tren de la tarde lo ve antes)
 const horasDe = (clave, id) => (HORAS_PROPIAS[clave]?.[id] || LUGARES_CITA[id].horas);
 // Los lugares que se le pueden ofrecer: su favorito primero; el observatorio sólo si está abierto.
 export function lugaresDeCita(clave, aldea = null) {
   if (!esCandidata(clave)) return [];
   const fav = CANDIDATAS[clave].favorito;
   const a = aldea || aldeaNueva();
-  return [fav, ...Object.keys(LUGARES_CITA).filter((k) => k !== fav)].filter((k) => !LUGARES_CITA[k].local || localAbierto(a, LUGARES_CITA[k].local));
+  return [fav, ...Object.keys(LUGARES_CITA).filter((k) => k !== fav)].filter((k) => (!LUGARES_CITA[k].local || localAbierto(a, LUGARES_CITA[k].local)) && (!LUGARES_CITA[k].soloPara || LUGARES_CITA[k].soloPara.includes(clave)));
 }
 
 // ---------------------------------------------------------------- los números
@@ -182,6 +189,7 @@ export const AMOR = {
   // [días de gracia sin verla, cuánto baja por día después] y el piso: por debajo se corta (o se separan)
   descuido: { coqueteo: [7, 1], saliendo: [6, 2], novios: [4, 3], comprometidos: [4, 3], casados: [5, 3], separados: [3, 1] },
   corte: { saliendo: 8, novios: 25, comprometidos: 25, casados: 20 },
+  rivales: { baja: 10, dias: 2 },   // 3.9.1: si salís con Lucrecia y con Dalia a la vez, se enojan más y por más días (las dos comparten el cuarto de atrás)
   celos: { dias: 3, baja: 15, entre: 4, chance: { tranquilo: 0.25, normal: 0.45, animado: 0.65 }, publico: 0.25 },
   enojo: { corte: 3, separacion: 4, plantada: 1, rechazo: 2 },
   reconquista: { minimo: 55, citas: 1 },
@@ -254,6 +262,15 @@ export const HABILIDADES = {
     N('Torta negra', 'Aprendiste la torta negra de Ceinwen: cada mañana, un pan casero de regalo.', [{ tipo: 'entrada', k: 'pan-casero', n: 1 }]),
     N('La chacra de Trevelin', 'Ceinwen te enseñó la huerta de su familia: el oficio de huertero sube un escalón (más cosecha).', [], { oficios: { huertero: 1 } }),
     N('La tetera del Mimosa', 'Un té en la tetera de la familia: arrancás el día descansado.', [{ tipo: 'jugador', campo: 'descansado', valor: 3 }])] },
+  // 3.9.1: lo que te enseñan la moza y la bailarina de la cantina
+  moza: { id: 'barra', nombre: 'Mano de barra', niveles: [
+    N('Empanadas de la casa', 'Lucrecia te pasa la receta del horno de barro: cada mañana, un par de empanadas calentitas.', [{ tipo: 'entrada', k: 'empanadas', n: 2 }]),
+    N('Leer a la gente', 'Aprendiste a leer a la gente desde la barra, como ella: lo que regalás y gusta suma más amistad.', [], { regalos: 3 }),
+    N('La botella del fondo', 'Una copita de la botella del fondo antes de dormir: arrancás el día descansado.', [{ tipo: 'jugador', campo: 'descansado', valor: 3 }])] },
+  bailarina: { id: 'compas', nombre: 'Llevar el compás', niveles: [
+    N('Estirar antes de bailar', 'Dalia te enseña a estirar como antes de salir a escena: arrancás el día más liviano.', [{ tipo: 'jugador', campo: 'descansado', valor: 2 }]),
+    N('El compás en las piernas', 'Caminás al compás: andás más rápido y no te cansás.', [], { paso: 1.06 }),
+    N('El pan de las colonias', 'La receta de pan de su familia, la de los alemanes del Volga: dos panes caseros cada mañana.', [{ tipo: 'entrada', k: 'pan-casero', n: 2 }])] },
   nelida: { id: 'sumar', nombre: 'Saber sumar', niveles: [
     N('El cuaderno del almacén', 'Nélida te enseñó a no desperdiciar nada: yerba de lo que sobra.', [{ tipo: 'cosa', k: 'yerba', n: 1 }]),
     N('Las cuentas de la obra', 'Sabés sumar como Nélida: el oficio de obrero sube un escalón (las obras piden menos material).', [], { oficios: { obrero: 1 } }),
@@ -499,6 +516,7 @@ export function huecoDeCita(estado, clave, lugar, ctx = {}) {
     for (let s = desde; s + AMOR.cita.duracion <= h1 + 1e-9; s += 0.5) {
       // (el baile: toda la aldea está en el baile, en el salón o en la plaza; la astrónoma, en su observatorio)
       const enSuLugar = (t) => (lugar === 'baile' ? ['salon', 'plaza'].includes(rutinaAldea(clave, t, ds, aldea, dia).lugar)
+        : lugar === 'cantina' ? rutinaAldea(clave, t, ds, aldea, dia).edificio === 'cantina'
         : clave === 'astronoma' && lugar === 'observatorio' && rutinaAldea(clave, t, ds, aldea, dia).edificio === 'observatorio');
       const libre = (t) => enSuLugar(t) || estaLibre(clave, t, ds, est);
       const marcas = L.rutina ? [s + 0.1, s + 0.75] : [s, s + 0.75, s + AMOR.cita.duracion - 0.1];
@@ -529,6 +547,7 @@ export function invitarACita(estado, clave, lugar, ctx = {}) {
   if (enojada(f, d)) return { ok: false, motivo: 'enojada', renglones: [elegir(FRASES_AMOR.enojada, `${clave}${d}`)] };
   if (amor.cita) return { ok: false, motivo: 'ya-hay', renglones: [FRASES_AMOR.noPuedeCita] };
   if (!esLugarCita(lugar)) return { ok: false, motivo: 'no-se', renglones: [] };
+  if (LUGARES_CITA[lugar].soloPara && !LUGARES_CITA[lugar].soloPara.includes(clave)) return { ok: false, motivo: 'no-se', renglones: [] };   // 3.9.1
   const hueco = huecoDeCita(estado, clave, lugar, ctx);
   if (!hueco) return { ok: false, motivo: 'sin-hueco', renglones: [FRASES_AMOR.sinHueco] };
   // 3.8.3: el día del casamiento no hay cita (de 10:30 a 14 manda la boda: la cita no se podía empezar y vencía como plantada)
@@ -762,6 +781,7 @@ export function convivir(estado, clave, donde, ctx = {}) {
   const r0 = puedeRomance(clave, estado, ctx);
   if (!r0.ok) return { ok: false, motivo: r0.motivo, renglones: [] };
   if (donde !== 'refugio' && donde !== 'suya') return { ok: false, motivo: 'no-se', renglones: [] };
+  if (donde === 'refugio' && SOLO_SUYA.includes(clave)) return { ok: true, si: false, renglones: [VOCES_AMOR[clave]?.refugioNo || FRASES_AMOR.convivirNo] };   // 3.9.1
   const { amor, progreso } = partes(estado, true);
   const d = diaDe(progreso, ctx);
   const f = ficha(amor, clave);
@@ -1126,15 +1146,16 @@ export function pasarDiaAmor(estado, dia, ctx = {}) {
       const p = AMOR.celos.chance[ritmo] + (publico ? AMOR.celos.publico : 0);
       if (sorteo(`chisme:${x}:${ellas.join(',')}`) < p) {
         amor.chisme = x;
+        const rivales = ellas.includes('moza') && ellas.includes('bailarina');
         for (const c of ellas) {
           const f = amor.personas[c];
-          sumarAfecto(f, -AMOR.celos.baja);
-          f.enojo = Math.max(f.enojo, x + AMOR.celos.dias - 1); f.motivo = 'celos';
+          sumarAfecto(f, -AMOR.celos.baja - (rivales && (c === 'moza' || c === 'bailarina') ? AMOR.rivales.baja : 0));
+          f.enojo = Math.max(f.enojo, x + AMOR.celos.dias - 1 + (rivales && (c === 'moza' || c === 'bailarina') ? AMOR.rivales.dias : 0)); f.motivo = 'celos';
           if (amor.cita?.clave === c) amor.cita = null;
         }
         noticia(amor, 'dos-a-la-vez', x, { con: ellas[0], otra: ellas[1] });
         // 3.8.3: con tres o más, «Ayelén, Sofía y Abril … con varias» (decía «Ayelén y Sofía y Abril … con las dos»)
-        eventos.push({ tipo: 'chisme', claves: [...ellas], texto: 'Corrió el chisme', sub: `${ellas.map(nombreDe).join(', ').replace(/, ([^,]*)$/, ' y $1')} se enteraron de que salís con ${ellas.length > 2 ? 'varias' : 'las dos'}. ${VOCES_AMOR[ellas[0]].celos}` });
+        eventos.push({ tipo: 'chisme', claves: [...ellas], texto: 'Corrió el chisme', sub: `${ellas.map(nombreDe).join(', ').replace(/, ([^,]*)$/, ' y $1')} se enteraron de que salís con ${ellas.length > 2 ? 'varias' : 'las dos'}. ${rivales ? VOCES_AMOR[ellas[0]].celosRival || VOCES_AMOR[ellas[0]].celos : VOCES_AMOR[ellas[0]].celos}` });
       }
     }
     // la cita de un día que ya pasó

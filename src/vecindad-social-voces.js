@@ -14,6 +14,7 @@
 // bien/mal: cómo reacciona a lo que le hacés (en general). abrazo, chiste, broma, tiempo, consuelo, felicitar,
 // enojo (a lo picante), perdon, mate, cartas, caminar, foto, pelota: lo propio de cada interacción. viene: lo que
 // dice cuando se te acerca él (saludar, invitar, pedir, chisme). deseos: [{ id, cumplir, texto, pide, gracias }].
+import { SOCIAL_BAILARINA, EXTRANA_BAILARINA } from './pena-voces.js';
 export const VOCES_SOCIAL = {
   jefe: {
     bien: ['Mirá vos, qué atento. Esto merece un toque de campana.', 'Bien, bien. Me cayó mejor que un tren en hora.'],
@@ -1118,6 +1119,9 @@ export const VOCES_SOCIAL = {
     ],
   },
 
+  // 3.9.1: Dalia, la bailarina de la peña (los textos, en pena-voces.js)
+  bailarina: SOCIAL_BAILARINA,
+
   ramon: {
     bien: ['Bien, m\'hijo. Así se hacen las cosas.', 'Eso me gustó. Hasta los perros movieron la cola.'],
     mal: ['Mmm. Te miro raro, m\'hijo, como a un ternero metido en la huerta.', 'No. Eso no tiene gracia. Ni los perros se rieron.'],
@@ -1321,6 +1325,22 @@ export const VOCES_SOCIAL_AMOR = {
     beso: { bien: 'Ay. Vi estrellas. Y yo de estrellas sé mucho, así que no es una forma de decir.', mal: '¡Atrevido! Paf, una cachetadita de mentira. En la cúpula se pide permiso hasta para mirar por el ocular.' },
     bailarLento: { bien: 'Bailemos así, despacito, como dos planetas que se dan vueltas sin apurarse.', mal: 'No, que dormí tres horas y te piso. Esta noche, si se despeja, capaz.' },
   },
+  // 3.9.1: Lucrecia, la moza de la cantina: coqueta y segura, siempre con un chiste a mano (sugerido, nunca explícito)
+  moza: {
+    mano: { bien: 'Dejala ahí. Hace rato que nadie me agarra de la mano sin pedirme otra ronda.', mal: 'Ahora no, que la barra está llena y los ojos de la clientela son más largos que la carta.' },
+    abrazoLargo: { bien: 'Quedémonos así. Los vasos se lavan solos, ¿no? Bueno, no. Pero un ratito más.', mal: 'Bueno, ya está, que me arrugás el delantal y me miran todos desde las mesas.' },
+    susurrar: { bien: 'Repetilo despacito, que con el ruido de la cantina no te escuché. Mentira: te escuché perfecto.', mal: '¿Qué? Con la música no te oigo nada. Qué casualidad, justo ahora.' },
+    beso: { bien: 'Eso no figura en la carta, pero lo voy a agregar. Con precio de amigo.', mal: '¡Atrevido! Para eso tenés que ganarte el trago, corazón. Y la noche.' },
+    bailarLento: { bien: 'Bailemos acá, entre las mesas. Si me pisás, te cobro el zapato.', mal: '¿Bailar con una bandeja en la mano? Dejame dejarla primero. Y pedime con más ganas.' },
+  },
+  // 3.9.1: Dalia, la bailarina de la peña: expresiva y orgullosa; para ella un baile es una conversación (sugerido, nunca explícito)
+  bailarina: {
+    mano: { bien: 'Me gusta cómo agarrás: firme, pero sin apuro. Eso se nota en el baile.', mal: 'Ahora no, que me están mirando de la pista y el público no perdona.' },
+    abrazoLargo: { bien: 'Quedémonos así, sin música. A veces el mejor compás es el de dos corazones.', mal: 'Después, que tengo la próxima pieza y los tacos no esperan.' },
+    susurrar: { bien: 'Eso me lo decís bajito para que lo escuche yo y nadie más. Qué buen ritmo tiene.', mal: '¿Qué dijiste? Con el bombo no se escucha nada. Tampoco te creas que me hacés cosquillas.' },
+    beso: { bien: 'Mirá vos. Un beso a tiempo, ni antes ni después. Estás aprendiendo el compás.', mal: '¡Eh! El tango se pide con la mirada, no se roba. Probá de nuevo.' },
+    bailarLento: { bien: 'Vení, que te llevo. Después me llevás vos: es lo lindo de bailar de a dos.', mal: 'Hoy no, que me duelen los pies de tanto taco. Otra noche, y te prometo la primera pieza.' },
+  },
 };
 
 // ---------------------------------------------------------------- lo genérico
@@ -1374,6 +1394,7 @@ export const FRASES_SOCIAL = {
   extrana: {
     martin: 'Extraña a Elena.',
     moza: 'Extraña el ruido del buffet de Jacobacci y el silbato del tren.',
+    bailarina: EXTRANA_BAILARINA,   // 3.9.1
     gerente: 'Extraña la sucursal de Esquel y el ruido de la calle de la ciudad.',
     abuela: 'Se acordó de los que ya no están.',
     ramon: 'Extraña los inviernos del puesto viejo.',
