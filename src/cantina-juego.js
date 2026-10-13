@@ -15,7 +15,9 @@
 import { EDIFICIOS_ALDEA, PARADA_ALDEA, marcoAldea, CANTINA, cantinaAbierta, localAbierto } from './aldea.js';
 import { fechaDe, apodoDe } from './aldea-vida.js';
 import { formatoPesos, pesosDe, hayEconomia } from './economia.js';
-import { cartaDeHoy, cantinaDe, cuentaDe, formasDePago, pedir, saldarCuenta, afluencia, demoraDe, demoraEnVerte, tomarPorcion, verboDe, saludoDeMoza, dicho, NOMBRE_MOZA, textoBien, tengoBien, CARTA } from './cantina.js';
+import { cartaDeHoy, cantinaDe, cuentaDe, formasDePago, pedir, saldarCuenta, afluencia, demoraDe, demoraEnVerte, tomarPorcion, verboDe, saludoDeMoza, dicho, NOMBRE_MOZA, textoBien, tengoBien, CARTA, FUERTES_POR_NOCHE } from './cantina.js';
+import { elegirChiste, confianzaDe, sorberConAlcohol, nivelEbrio, faseEbrio, efectoEbrio, MULT_BORRACHERA, EBRIO } from './pena.js';
+import { BORRACHERA_MOZA } from './pena-voces.js';
 
 const PISO = 0.32;
 export const RADIO_CANTINA = 40;      // más lejos que esto no se calcula nada
@@ -72,7 +74,7 @@ export function crearCantinaJuego(ctx) {
   const servidos = new Map();   // mesa.id → { item, restantes, silla } (lo que hay en cada mesa)
   let sorbo = null;          // { t, aplico, item } el sorbo en curso
   let controla = null;       // la moza, mientras la manejo yo
-  let avisadoCerrada = -1;
+  let avisadoCerrada = -1, pasoEbrio = 0;
   const estadoPanel = { abierto: false, sel: null, texto: [], medio: null };
   const info = { visitas: 0, servicios: 0, sorbos: 0, limpiezas: 0, ms: 0 };
 
@@ -84,6 +86,21 @@ export function crearCantinaJuego(ctx) {
     ctx.hablo?.(texto, controla || moza(), semilla);   // (el balbuceo de su voz)
   };
   const afl = () => afluencia(hora(), dia());
+  const absoluta = () => dia() * 24 + hora();
+  // 3.9.1: un chiste de Lucrecia para esa situación (o null): según la confianza que le tengas (amistad o romance) y con memoria, para que no repita seguido
+  const chiste = (situacion, sub = null, siempre = false) => {
+    const p = P(), c = cantinaDe(p);
+    if (!c) return null;
+    return elegirChiste('moza', situacion, sub, c.chistes, { confianza: confianzaDe(p, 'moza'), semilla: dia() * 17 + c.pedidos * 5 + c.visitas * 3 + info.sorbos + info.servicios * 2, siempre });
+  };
+  const elegirDe = (lista, k = 0) => (Array.isArray(lista) && lista.length ? lista[Math.abs(Math.floor(dia() * 7 + info.sorbos * 3 + info.servicios + k)) % lista.length] : '');
+  // la borrachera: el nivel de ahora y en qué fase estaba (para avisar cuando cambia)
+  let faseAntes = 'sobrio', avisoComenta = -1;
+  const nivelAhora = () => nivelEbrio(cantinaDe(P())?.ebrio, absoluta());
+  const multEbrio = () => {
+    const a = ctx.ajusteBorrachera?.() ?? 'normal';
+    return (Object.hasOwn(MULT_BORRACHERA, a) ? MULT_BORRACHERA[a] : 1) * (ctx.movimientoCamara?.() === 'reducido' ? 0.2 : 1);
+  };
 
   // ---------------------------------------------------------------- manejar a la moza
   function tomar(n) {
@@ -147,6 +164,8 @@ export function crearCantinaJuego(ctx) {
     if (!forzar && ses.orden) { ses.parado = true; return; }
     const mesa = ses.mesa;
     if (controla) soltar();
+    // (3.9.1: al irte, ella te saluda con un chiste; si estás alegre, te lo dice con humor)
+    if (cantinaAbierta(hora()) && !forzar) { const q = nivelAhora() >= EBRIO.alegre ? elegirDe(BORRACHERA_MOZA.alSalir, 3) : chiste('despedida'); if (q) hablar(q); }
     if (servidos.has(mesa.id)) limpieza = { mesa, t: LEVANTAR, fase: 'espera' };
     ses = null;
   }
@@ -166,10 +185,12 @@ export function crearCantinaJuego(ctx) {
   function saludo() {
     const p = P(), c = cantinaDe(p), a = ambiente();
     const hechos = p.vecindad?.hechos || [];
-    return saludoDeMoza({
+    const s = saludoDeMoza({
       hora: hora(), clima: clima(), estacion: fechaDe(dia()).estacion, apodo: apodoDe(p)?.texto || null, visitas: Math.max(0, (c?.visitas || 0) - 1),
       cuenta: c?.cuenta || null, hechos: hechos.filter((x) => dia() - x.dia <= 3), dia: dia(),
     });
+    const j = chiste('sentarse');   // (3.9.1: y a veces un chiste, al sentarte)
+    return j ? [...s, j] : s;
   }
 
   // El pedido: cobra, la moza anota y se va a la barra
@@ -180,7 +201,7 @@ export function crearCantinaJuego(ctx) {
       if (r.motivo === 'ya-esta') {
         // el cuarto trago fuerte de la noche: ella te trae un mate cocido, por la casa, y te pone en tu lugar de buen modo
         const mate = cartaHoy().find((x) => x.id === 'mate-cocido') || CARTA.find((x) => x.id === 'mate-cocido');
-        hablar(dicho('ya_esta'));
+        hablar(elegirDe(BORRACHERA_MOZA.frena) || dicho('ya_esta'));
         aceptarOrden(mate, { medio: 'casa', regalo: true });
         return true;
       }
@@ -197,7 +218,8 @@ export function crearCantinaJuego(ctx) {
   }
   function aceptarOrden(item, r) {
     ses.orden = { item, medio: r.medio, fase: 'anota', t: 0, regalo: !!r.regalo };
-    if (!r.regalo) hablar(dicho('anota', dia() + info.servicios));
+    // (3.9.1: con el pedido, a veces un chiste de lo que pediste —o de la cuenta, si la anotás— en vez del «anotado»)
+    if (!r.regalo) hablar((r.medio === 'cuenta' ? chiste('cuenta') : null) || chiste('pedir', item.id) || dicho('anota', dia() + info.servicios));
     cerrarPanel();
     ses.fase = 'a-barra';
     if (controla) caminar(ruta(controla.pos, null), barra.mira);
@@ -224,6 +246,8 @@ export function crearCantinaJuego(ctx) {
     if (limpieza) avanzarLimpieza(dt, d);
     avanzarSorbo(dt);
     ctx.visual?.actualizar?.(dt, ctx.camara?.());
+    pasoEbrio += dt;
+    if (pasoEbrio > 1.5) { pasoEbrio = 0; const f = faseEbrio(nivelAhora()); if (f !== faseAntes) avisarFase(faseAntes, f); }
     if (typeof performance !== 'undefined') info.ms = performance.now() - t0;
   }
   function avanzar(dt) {
@@ -384,6 +408,8 @@ export function crearCantinaJuego(ctx) {
         info.sorbos++;
         for (const e of r.efectos) ctx.alJugador?.(e.campo, e.valor);
         ctx.visual?.nivel?.(sorbo.mesa, s.restantes, s.item);
+        sorberAlcohol(s);
+        if (s.restantes === s.item.porciones - 1) { const j = chiste('tomar'); if (j) hablar(j); }   // (3.9.1: «despacito, que lo bueno se saborea»)
         if (r.efectos.some((e) => e.campo === 'entumecido') && entumecidoAntes > 0) ctx.nota?.(T_('Te calentó el cuerpo'), T_('Se te fue el entumecido'));
         if (r.termino) {
           ctx.nota?.(T_(s.item.nombre), T_(dicho(s.item.tipo === 'comida' ? 'termino_comida' : 'termino_trago')));
@@ -395,6 +421,30 @@ export function crearCantinaJuego(ctx) {
     }
     if (sorbo.t >= SORBO) sorbo = null;
   }
+
+  // ---------------------------------------------------------------- 3.9.1: la borrachera
+  // Cada sorbo de algo fuerte (y, poquito, de cerveza) sube el nivel; con el tiempo baja y un mate cocido lo baja de golpe. Leve: la imagen se mueve un poquito y al caminar te
+  // vas un poco para un lado; no se pierde nada. Lucrecia lo comenta con humor y al tercer trago fuerte de la noche te frena. Se puede suavizar o apagar (ajustes).
+  function sorberAlcohol(s) {
+    const p = P(), c = cantinaDe(p);
+    if (!c) return;
+    const ahora = absoluta(), antes = nivelEbrio(c.ebrio, ahora);
+    c.ebrio = sorberConAlcohol(c.ebrio, s.item, ahora);
+    const despues = nivelEbrio(c.ebrio, ahora);
+    const fa = faseEbrio(antes), fd = faseEbrio(despues);
+    if (fd !== fa) avisarFase(fa, fd);
+    // al terminar el tercer trago fuerte, ella te lo dice (el cuarto ya no te lo trae)
+    if (s.restantes === 0 && s.item.fuerte && c.fuertes.n >= FUERTES_POR_NOCHE) hablar(elegirDe(BORRACHERA_MOZA.frena, 1));
+  }
+  function avisarFase(antes, ahora) {
+    faseAntes = ahora;
+    const sube = ['sobrio', 'achispado', 'alegre', 'torcido'].indexOf(ahora) > ['sobrio', 'achispado', 'alegre', 'torcido'].indexOf(antes);
+    if (sube && ahora === 'alegre') { ctx.nota?.(T_('Estás alegre'), T_('Se te mueve un poquito el mundo: se pasa solo, con el tiempo o con un mate cocido')); hablar(elegirDe(BORRACHERA_MOZA.comenta)); avisoComenta = dia(); }
+    else if (sube && ahora === 'torcido') ctx.nota?.(T_('Vas a caminar torcido'), T_('Un rato nomás: no pasa nada grave, y se te va con el tiempo'));
+    else if (!sube && ahora === 'sobrio' && antes !== 'sobrio') ctx.nota?.(T_(NOMBRE_MOZA), T_(elegirDe(BORRACHERA_MOZA.seTePasa, 2)));
+  }
+  // El efecto de ahora en la cámara (o null): lo pide main.js cada cuadro dibujado
+  const efectoEbrioAhora = (t) => (nivelAhora() > 0 ? efectoEbrio(nivelAhora(), t, multEbrio()) : null);
 
   // ---------------------------------------------------------------- lo que hace E (y dice el aviso)
   function accion(js) {
@@ -429,6 +479,17 @@ export function crearCantinaJuego(ctx) {
     const raiz = ctx.contenido;
     if (!raiz) return;
     raiz.innerHTML = '';
+    if (estadoPanel.libre) {
+      // 3.9.1: un panel de otro (la peña: Dalia te saca a bailar): su texto y sus botones
+      const L = estadoPanel.libre;
+      const h = ctx.panel?.querySelector?.('h2'); if (h) h.textContent = T_(L.titulo || 'La carta de hoy');
+      raiz.append(el('p', 'cantina-saludo', (L.texto || []).map((x) => T_(x)).join(' ')));
+      const fila = el('div', 'cantina-pagos');
+      for (const b of L.botones || []) fila.append(boton(b.texto, () => { const f = b.alClic; cerrarPanel(false); f?.(); }, { activo: b.activo !== false }));
+      raiz.append(fila);
+      return;
+    }
+    { const h = ctx.panel?.querySelector?.('h2'); if (h) h.textContent = T_('La carta de hoy'); }
     const p = P();
     raiz.append(el('p', 'cantina-saludo', estadoPanel.texto.map((x) => T_(x)).join(' ')));
     raiz.append(el('p', 'cantina-saldo', `${T_('Tenés')} ${formatoPesos(pesosDe(p))}`));
@@ -475,10 +536,21 @@ export function crearCantinaJuego(ctx) {
     ctx.panel?.classList.remove('oculto');
     if (conSaludo && controla) ctx.hablo?.(texto[0], controla, dia());
   }
-  function cerrarPanel() {
+  function cerrarPanel(avisar = true) {
     if (!estadoPanel.abierto) return;
     estadoPanel.abierto = false;
     ctx.panel?.classList.add('oculto');
+    const L = estadoPanel.libre;
+    estadoPanel.libre = null;
+    if (L && avisar) L.alCerrar?.();
+  }
+  // 3.9.1: un panel de cualquier otra cosa (la peña): { titulo, texto: [renglones], botones: [{ texto, alClic, activo }], alCerrar } (Escape o E lo cierra: alCerrar)
+  function abrirPanelLibre(def) {
+    if (!def || estadoPanel.abierto) return false;
+    estadoPanel.libre = def; estadoPanel.abierto = true; estadoPanel.sel = null;
+    dibujar();
+    ctx.panel?.classList.remove('oculto');
+    return true;
   }
 
   return {
@@ -487,6 +559,9 @@ export function crearCantinaJuego(ctx) {
     // el que habla con ella desde la charla («Dígame qué le sirvo»)
     abrirCarta: () => { if (!ses) return false; if (!ses.orden) { abrirPanel(saludo()); return true; } return false; },
     estaSentado: () => !!ses, sinApuro: () => !!ses && cantinaAbierta(hora()),
+    // 3.9.1: la borrachera, el panel libre y lo que la peña necesita saber de tu mesa
+    efectoEbrio: efectoEbrioAhora, nivelEbrio: nivelAhora, abrirPanelLibre, chiste,
+    sentadoEn: () => (ses ? { mesa: ses.mesa, silla: ses.silla, fase: ses.fase } : null), ocupadaConVos: () => !!ses && ['viene', 'carta', 'a-barra', 'prepara', 'trae', 'deja', 'apoya', 'se-va'].includes(ses.fase) || !!limpieza,
     sirviendo, saludo, cartaHoy, sorbear, llamar, dibujar, pedirItem, saldar, soltar,
     // para las pruebas
     estado: () => ({ ses: ses ? { fase: ses.fase, parado: !!ses.parado, mesa: ses.mesa.id, silla: ses.silla.i, orden: ses.orden ? { item: ses.orden.item.id, fase: ses.orden.fase } : null } : null, limpieza: limpieza ? limpieza.fase : null,

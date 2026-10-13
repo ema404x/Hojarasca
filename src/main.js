@@ -70,7 +70,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa } from './aldea.js';
+import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
@@ -172,6 +172,10 @@ import { crearRinconesJuego } from './rincones-juego.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego } from './cantina-juego.js';
 import { crearCantinaMundo } from './cantina-mundo.js';
+// 3.9.1: la peña de los sábados (los parroquianos, el truco, el que se arrima y el baile con Dalia) y la guitarra y el bombo del rincón
+import { crearPenaJuego } from './pena-juego.js';
+import { crearPenaMundo } from './pena-mundo.js';
+import { sanearAjusteBorrachera } from './pena.js';
 import { puedePagarEscritura, pagarEscritura, puedePagarEtapa, pagarEtapa, registrarCasa } from './propiedad.js';
 import { GERENTE } from './prestamos.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
@@ -1295,6 +1299,18 @@ function fundidoAmor(r) {
   }, 1500);
 }
 
+// 3.9.1: un fundido corto (a negro y de vuelta) para llevarte de la mesa a la pista de la peña; en el medio, `alMedio`
+function fundirCorto(alMedio) {
+  if (durmiendo) { alMedio?.(); return; }
+  const f = $('fundido');
+  f.classList.add('activo');
+  durmiendo = true;
+  setTimeout(() => {
+    try { alMedio?.(); } catch (e) { fallaSistema('pena-fundido', e); }
+    setTimeout(() => { f.classList.remove('activo'); durmiendo = false; }, 450);
+  }, 900);
+}
+
 // ------------------------------------------------------------------ notas y HUD
 function nota(texto, sub, nueva = false) {
   texto = T_(texto); sub = sub ? T_(sub) : sub;
@@ -2004,6 +2020,7 @@ document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
       return;
     }
     if (clave === 'romance') v = v === 'true';   // 3.7.1: el romance, encendido o apagado
+    if (clave === 'borrachera') v = sanearAjusteBorrachera(v);   // 3.9.1: el efecto de la borrachera: normal, suave o apagado
     if (clave === 'vibracion' && v) { ajustes.vibracion = true; ultimoPulso = null; vibrarMando('golpe', 1); }   // que se sienta que anda
     // 2.6.1: el idioma no se pisa acá: si no, la comparación de abajo nunca veía el cambio y no recargaba
     if (clave !== 'idioma') ajustes[clave] = v;
@@ -3056,6 +3073,8 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !objetivo && fiestasJuego) { const a = fiestasJuego.accion(js); if (a) { a.hacer(); cacheFiesta = null; break; } }
       // 3.9.0: sentado en la cantina, E toma o come lo que te trajeron, llama a la moza o abre la carta (el aviso, en el mismo lugar y con la misma función)
       if (!js.enTren && !js.enKayak && !objetivo && cantinaJuego) { const a = cantinaJuego.accion(js); if (a) { a.hacer(); cacheCantina = null; break; } }
+      // 3.9.1: bailando con Dalia (E deja de bailar) o al lado de la mesa de truco (E te invita a una partida); el aviso, en el mismo lugar
+      if (!js.enTren && !js.enKayak && !objetivo && penaJuego) { const a = penaJuego.accion(js); if (a) { a.hacer(); cachePena = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
@@ -4896,6 +4915,7 @@ let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fech
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
+let penaJuego = null, penaMundo = null;   // 3.9.1: la peña (ver pena-juego.js y pena-mundo.js)
 let cantinaJuego = null, cantinaMundo = null;   // 3.9.0: la cantina de la aldea: sentarse, pedir y que la moza te traiga (ver cantina-juego.js)
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
@@ -4975,7 +4995,7 @@ function armarOficiosYAldea(esDesafio) {
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
     amorDestino: (k) => destinoConFiesta(k),   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado) (3.7.5: con la fiesta en el medio)
-    noticiasDestino: (k) => (k === 'moza' ? null : noticiasJuego?.destino(k) || null),   // (3.9.0: la moza atiende la cantina: el club de lectura y la noche de estrellas son sin ella)
+    noticiasDestino: (k) => (k === 'moza' || k === 'bailarina' ? null : noticiasJuego?.destino(k) || null),   // (3.9.0: la moza atiende la cantina: el club de lectura y la noche de estrellas son sin ella)
       // 3.7.5 (noticias): y si no, el club de lectura o la noche de estrellas
     extrasCalendario: (d) => noticiasJuego?.extrasCalendario(d) || [],   // 3.7.5 (noticias): las fechas, el aniversario, los concursos, el club y las estrellas
   });
@@ -5150,7 +5170,20 @@ function armarOficiosYAldea(esDesafio) {
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescar: () => refrescarBarra(true), sonido, T_,
       alJugador: (campo, valor) => alJugadorAldea(campo, valor), hablandoCon: () => charla.npc, hablo: (texto, npc) => vozSocial(npc, texto, { cerca: false }),
       levantar: () => jugador.sentarse(false), panel: $('cantina-carta'), contenido: $('cantina-contenido'), alClic: (el, fn) => alClicHud(el, fn), visual: cantinaMundo,
+      ajusteBorrachera: () => ajustes.borrachera, movimientoCamara: () => ajustes.movimientoCamara,   // 3.9.1: la borrachera, suavizada o apagada (y con la cámara reducida, casi nada)
     });
+    // 3.9.1: la peña (aislada aparte: si falla, la cantina sigue)
+    try {
+      penaMundo = crearPenaMundo({ sonido: () => sonido, mat: est?.mat });
+      penaJuego = crearPenaJuego({
+        progreso: () => progreso, jugador: () => jugador, aldeaGente: () => aldeaGente, cantina: () => cantinaJuego, visual: cantinaMundo,
+        nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, T_, alJugador: (campo, valor) => alJugadorAldea(campo, valor),
+        hablandoCon: () => charla.npc, panelAbierto: () => panelDelHudAbierto(),
+        decir: (npc, texto) => socialJuego?.decir(npc, texto, {}), jugarTruco: (npc, k) => fiestasJuego?.jugarTruco(npc, k),
+        levantar: () => jugador.sentarse(false), manos: (id) => manosSociales?.empezar(id), fundir: (fn) => fundirCorto(fn),
+        sumarAmistad: (k, n) => { if (k) sumarAmistadDe(progreso, k, n, progreso.dia); },
+      });
+    } catch (e) { fallaSistema('pena-armado', e); penaJuego = null; penaMundo = null; }
   } catch (e) { fallaSistema('cantina-armado', e); cantinaJuego = null; cantinaMundo = null; }
 }
 // 3.7.5: quién va a dónde por encima del horario: lo del amor que no se mueve (la cita, el casamiento), después la fiesta,
@@ -8773,6 +8806,7 @@ let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
+let cachePena = null;   // 3.9.1: lo de la peña (bailar con Dalia, el truco de la cantina)
 let cacheCantina = null;   // 3.9.0: lo que se hace sentado a una mesa de la cantina (ver cantina-juego.js)
 let cacheGranja = null, versionObrasInteraccion = -1;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
@@ -8895,6 +8929,8 @@ function dibujar(luz, noche) {
 }
 function dibujarCuadro(luz, noche) {
   if (HOJARASCA_DEBUG && window.__hojarasca?.__camaraFija) { const f = window.__hojarasca.__camaraFija; camara.position.set(f.x, f.y, f.z); camara.rotation.order = 'YXZ'; camara.rotation.set(f.pitch, f.yaw, 0); }   // 3.9.0: sólo para las capturas de las pruebas (?debug=1): una cámara quieta, sin mover tu cuerpo
+  // 3.9.1: la borrachera: la imagen se mueve un poquito (con el ajuste suave o apagado, o la cámara reducida, menos o nada); se pasa con el tiempo
+  if (cantinaJuego && !desafio && modo === 'jugando') { const ef = cantinaJuego.efectoEbrio(performance.now() / 1000); if (ef) { camara.rotation.order = 'YXZ'; camara.rotation.z += ef.roll; camara.rotation.y += ef.yaw; camara.rotation.x += ef.pitch; } }
   const medirRender = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   if (post && ajustes.post !== 'apagado') {
     if (medirRender) { renderer.info.autoReset = false; renderer.info.reset(); }
@@ -8987,7 +9023,7 @@ function actualizarTiempo(dt) {
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
     // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras;
     // ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
-    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() ? 40 : 1;
+    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   }
@@ -9182,6 +9218,8 @@ function cuadroDelJuego(tRaf, manual) {
     // su vía, como siempre
     else if (modo === 'jugando') { leerMando(dt); jugador.actualizar(dt); }
     else jugador.actualizar(jugador.estado.enKayak ? 0 : dt);
+    // 3.9.1: la borrachera: al caminar, el rumbo se te va un poquito para un lado y para el otro (leve; se pasa con el tiempo)
+    if (modo === 'jugando' && cantinaJuego && !desafio) { const js = jugador.estado, ef = cantinaJuego.efectoEbrio(performance.now() / 1000); if (ef && !js.sentado && Math.hypot(js.vel.x, js.vel.z) > 0.6) js.yaw += ef.deriva * dt; }
   }
   if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();   // 3.8.3
   if (!mandoUsado) leerMandoQuieto();   // 3.8.6: en cualquier otra pantalla, igual se lee (una vez por cuadro)
@@ -9409,6 +9447,13 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
     try { if (modo === 'jugando' && !desafio) cantinaJuego?.actualizar(dt); } catch (e) { fallaSistema('cantina', e); }   // 3.9.0: la cantina (la visita, la moza, el sorbo)
+    try {   // 3.9.1: la peña: los parroquianos, el truco, el que se arrima, el baile con Dalia y la guitarra y el bombo del rincón
+      if (modo === 'jugando' && !desafio && penaJuego) {
+        penaJuego.actualizar(dt);
+        const js = jugador.estado, c = penaJuego.lugar.centro, m = penaJuego.musica(), d = Math.hypot(js.pos.x - c.x, js.pos.z - c.z);
+        penaMundo?.actualizar(dt, { tanda: tandaDePena(progreso.dia, progreso.horas), guitarra: m.guitarra, bombo: m.bombo, distancia: d, adentro: d < 6.2, baja: penaJuego.baja() ? 1 : 0 });
+      } else penaMundo?.callar();
+    } catch (e) { fallaSistema('pena', e); }
     // 3.8.3: en el modo foto la hora es la del deslizador (`aplicarFoto`): la cocina y el taller no corren con esa hora (pasar
     // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
@@ -9538,7 +9583,7 @@ function cuadroDelJuego(tRaf, manual) {
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
-      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || cantinaJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || cantinaJuego?.tapaVecino(js) || penaJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
       if (vecino && !desafio && fiestasJuego?.sinVecino(js)) vecino = null;   // 3.7.5: sentado a la mesita de los juegos, E juega; al lado del que cuenta la leyenda, E escucha
     }
     acumuladoBuscar += dt;
@@ -9565,6 +9610,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
       cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5
       cacheCantina = cantinaJuego ? cantinaJuego.accion(js) : null;   // 3.9.0
+      cachePena = penaJuego ? penaJuego.accion(js) : null;   // 3.9.1
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -9619,6 +9665,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheFiesta && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheFiesta.texto };
     // 3.9.0: la cantina, como en la tecla E
     if (!aviso && cacheCantina && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheCantina.texto };
+    if (!aviso && cachePena && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cachePena.texto };   // 3.9.1: la peña
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
@@ -10194,6 +10241,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
+    __pena: () => penaJuego, __penaMundo: () => penaMundo,   // 3.9.1: la peña, para la partida real (pruebas/humo-3-9-1-pena.cjs)
     __cantina: () => cantinaJuego, __cantinaMundo: () => cantinaMundo,   // 3.9.0: la cantina, para la partida real (herramientas/partida-real-cantina.cjs)
     __banco: () => bancoDelPueblo(), __enElBanco: () => enElBanco(),   // 3.8.8: el mostrador del banco, para la partida real (herramientas/partida-real-economia.cjs)
     __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },

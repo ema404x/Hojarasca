@@ -241,6 +241,11 @@ export const MUSICAS = {
   chacarera: { nombre: 'chacarera', instrumento: 'violin', pulso: 200, compas: 6, ritmo: 'chacarera', vueltas: 2,
     notas: 'A4:1 D5:1 E5:1 F5:2 E5:1 D5:2 C5:1 A4:3 G4:1 A4:1 C5:1 D5:2 C5:1 A4:2 G4:1 F4:3 A4:1 D5:1 E5:1 F5:2 G5:1 A5:2 G5:1 F5:3 E5:1 D5:1 C5:1 A4:2 C5:1 D5:6',
     bajos: [50, 45, 48, 50, 50, 45, 48, 50] },
+  // 3.9.1: el tango de la peña de la cantina (guitarra y bombo): en re menor, a un compás de cuatro, con el marcato en el bombo y los rasgueos. Es propio
+  // (nada de música de nadie): dos frases de ocho compases, la segunda sube y cierra en la tónica
+  tango: { nombre: 'tango', instrumento: 'guitarra', pulso: 112, compas: 4, ritmo: 'tango', vueltas: 3,
+    notas: 'D5:1.5 E5:0.5 F5:1 A5:1 D5:1.5 C#5:0.5 D5:2 Bb4:1.5 C5:0.5 D5:1 G5:1 E5:1 F5:0.5 E5:0.5 D5:1 C#5:1 D5:1.5 E5:0.5 F5:1 A5:1 A5:1.5 G5:0.5 F5:1 E5:1 D5:1 Bb4:1 C5:1 D5:1 C#5:1.5 D5:0.5 E5:1 C#5:1 A5:1.5 G5:0.5 F5:1 E5:1 D5:2 F5:1 A4:1 Bb4:1 D5:1 G5:2 F5:1.5 E5:0.5 D5:2 C#5:1 E5:1 G5:1 E5:1 A5:2 R:1 E5:1 D5:1.5 F5:0.5 A5:1 F5:1 D5:4',
+    bajos: [50, 50, 43, 45, 50, 41, 43, 45, 50, 50, 43, 43, 45, 45, 50, 50] },
   sur: { nombre: 'folklore del sur', instrumento: 'quena', pulso: 150, compas: 6, ritmo: 'sur', vueltas: 2,
     notas: 'D5:2 E5:1 F#5:2 A5:1 G5:2 F#5:1 E5:3 D5:2 E5:1 F#5:2 D5:1 B4:3 A4:3 A4:2 B4:1 D5:2 E5:1 F#5:2 G5:1 F#5:3 E5:2 D5:1 B4:2 A4:1 D5:6',
     bajos: [50, 43, 45, 50, 43, 45, 45, 50] },
@@ -290,6 +295,8 @@ const RITMOS = {
   loncomeo: [[0, 'bombo'], [1, 'parche'], [2, 'bombo'], [2.5, 'bombo'], [3, 'parche']],
   chacarera: [[0, 'bombo'], [1, 'parche'], [2, 'bombo'], [3, 'bombo'], [4, 'parche'], [5, 'parche'], [0, 'rasgueo'], [3, 'rasgueo']],
   sur: [[0, 'rasgueo'], [2, 'rasgueo'], [3, 'rasgueo'], [5, 'rasgueo'], [0, 'bombo'], [3, 'parche']],
+  // 3.9.1: el marcato del tango (bombo en el primero y el tercer tiempo, la guitarra marcando los cuatro y un golpe de aro al final del compás)
+  tango: [[0, 'bombo'], [0, 'rasgueo'], [1, 'rasgueo'], [2, 'bombo'], [2, 'rasgueo'], [3, 'rasgueo'], [3.5, 'parche']],
 };
 
 // ---------------------------------------------------------------- los invitados de otras paradas

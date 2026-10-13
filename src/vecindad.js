@@ -92,6 +92,8 @@ const TRATO = {
   gerente: 'estimado',
   // 3.9.0
   moza: 'corazón',
+  // 3.9.1
+  bailarina: 'galán',
 };
 
 // ---------------------------------------------------------------- lo que se puede regalar
@@ -172,7 +174,9 @@ export const PERFILES_VECINOS = {
   martin: P(['madrugador', 'trabajador', 'curioso'], ['yerba', 'tronco', 'trucha-ahumada'], ['pan-casero', 'empanadas'], 'frasco-frutilla', ['jefe', 'herrero', 'nene'], { tipo: 'material', k: 'tronco', n: 3 }),
   // 3.8.8: Amadeo, el gerente del banco: metódico, conversador y prolijo; el pan y la miel con el té de la tarde. Sus amigos: Ernesto, Tito y la maestra
   // 3.9.0: Lucrecia, la moza de la cantina: trasnochadora, charlatana y juguetona; el calafate, el dulce y las empanadas la ablandan. Sus amigos: el músico, Nélida y Ercilia
-  moza: P(['trasnochador', 'charlatan', 'jugueton'], ['calafate-seco', 'frasco-frutilla', 'empanadas'], ['trucha-ahumada', 'miel'], 'tronco', ['musico', 'nelida', 'ercilia'], { tipo: 'cosa', k: 'yerba', n: 2 }),
+  moza: P(['trasnochador', 'charlatan', 'jugueton'], ['calafate-seco', 'frasco-frutilla', 'empanadas'], ['trucha-ahumada', 'miel'], 'tronco', ['musico', 'nelida', 'bailarina'], { tipo: 'cosa', k: 'yerba', n: 2 }),
+  // 3.9.1: Dalia, la bailarina: trasnochadora, juguetona y golosa; el pan casero (el de las colonias del Volga), el dulce y la miel la conquistan. Sus amigos: Lucrecia (comparten el cuarto de atrás), el Cholo (el de la guitarra) y Pocha (la de las clases de baile)
+  bailarina: P(['trasnochador', 'jugueton', 'goloso'], ['pan-casero', 'frasco-frutilla', 'miel'], ['empanadas', 'calafate-seco'], 'tronco', ['moza', 'musico', 'modista'], { tipo: 'entrada', k: 'pan-casero', n: 2 }),
   gerente: P(['trabajador', 'charlatan', 'casero'], ['miel', 'pan-casero', 'yerba'], ['empanadas', 'huevo'], 'tronco', ['jefe', 'carpintero', 'maestra'], { tipo: 'entrada', k: 'miel', n: 1 }),
 };
 // Qué le parece una cosa: 'encanta' | 'gusta' | 'noGusta' | 'neutro'.

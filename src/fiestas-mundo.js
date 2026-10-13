@@ -63,7 +63,7 @@ function geoAcordeon() {
   cj(c, [0.19, 0, 0], [0.05, 0.28, 0.17], '#1e1a18', [0, 0, 0], 4);
   return c.geometria();
 }
-function geoGuitarra() {
+export function geoGuitarra() {
   const c = new Constructor();
   bola(c, [0, -0.08, 0], 0.17, '#a8743a', [1, 1.2, 0.35]);
   bola(c, [0, 0.12, 0], 0.13, '#a8743a', [1, 1.1, 0.35]);

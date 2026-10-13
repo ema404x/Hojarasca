@@ -641,6 +641,7 @@ export function crearAldeaGente(ctx) {
     npc.camino = pasos.map((q, i) => ({ ...M.aMundo(q.x, q.z), sinChoque: !!q.sinChoque, cerca: i === pasos.length - 1 ? 0.12 : q.precisa ? 0.12 : 0.6, ...yEsc(q) }));
     npc.espera = 0;
     npc.miraFinal = d.mira;
+    npc.sinFrenar = d.edificio === 'cantina';   // 3.9.1: en la cantina no se frena porque estés cerca (Dalia no llegaba a la pista si entrabas antes que ella)
     // caminando se lo ve como a todos; adentro, sólo de cerca (se pone al llegar)
     npc.soloCerca = 0;
     npc.pose = null;   // 3.6 (vida): caminando, sin pose

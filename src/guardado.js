@@ -59,6 +59,7 @@ import { fiestasNuevas, sanearFiestas } from './fiestas.js';
 import { economiaNueva, sanearEconomia, convertirYerba } from './economia.js';
 import { negociosNuevo, sanearNegocios } from './negocios.js';
 import { cantinaNueva, sanearCantina } from './cantina.js';
+import { sanearAjusteBorrachera } from './pena.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -206,6 +207,7 @@ export const AJUSTES_BASE = {
   ritmoAldea: 'normal',
   // 3.7.1: el romance (coquetear, citas, casamiento, hijos): encendido de fábrica; apagado, no aparece nada
   romance: true,
+  borrachera: 'normal',   // 3.9.1: el efecto de la borrachera (normal, suave o apagado)
 };
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -348,6 +350,7 @@ function sanearAjustes(a) {
     distanciaPlantas: sanearPlantas(x.distanciaPlantas),
     ritmoAldea: sanearRitmo(x.ritmoAldea),   // 3.7.0
     romance: sanearAjusteRomance(x.romance),   // 3.7.1 (sin el ajuste guardado: encendido)
+    borrachera: sanearAjusteBorrachera(x.borrachera),   // 3.9.1 (sin el ajuste guardado: normal)
     teclas: objeto(x.teclas) ? x.teclas : {},
   };
 }

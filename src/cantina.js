@@ -6,11 +6,12 @@
 // algo que llevás, o «anotalo en la cuenta», que se salda con pesos o con un mandado), cuánto tarda la moza, lo que hace cada trago y cada
 // bocado (un trago fuerte o algo caliente te saca el frío; la comida te deja descansado un rato, y se gasta), el saludo de Lucrecia (según la
 // hora, el tiempo, la estación, lo que pasó en el valle y si ya te conoce) y el guardado (`progreso.cantina`, saneado como todo).
-// Sólo en el Relax (con economía). Nada de borrachera ni de peña: eso queda para la 3.9.1.
+// Sólo en el Relax (con economía). (3.9.1: la borrachera, los chistes de la moza y la peña de los sábados: ver pena.js y pena-juego.js.)
 import { BIENES } from './comercio.js';
 import { hayEconomia, pesosDe, pagar, formatoPesos, PESOS_POR_YERBA } from './economia.js';
 import { cantinaAbierta, HORARIO_CANTINA, diaSemanaDe } from './aldea.js';
 import { tengoDe } from './pedidos.js';
+import { ebrioNuevo, sanearEbrio, sanearMemoriaChistes } from './pena.js';
 
 const entero = (v, max = 1e7) => Math.max(0, Math.min(max, Math.floor(Number(v)) || 0));
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -57,7 +58,9 @@ export function cartaDeHoy(c = {}) {
 // ---------------------------------------------------------------- el guardado
 export const CUENTA_MAX = 1500;
 export const FUERTES_POR_NOCHE = 3;
-export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 } }; }
+// (3.9.1: `ebrio`: { n, t } el nivel de la borrachera y cuándo se midió (horas absolutas); `chistes`: la memoria de los chistes que ya salieron; `pena`: tus bailes con
+// Dalia y la última noche que bailaste)
+export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 } }; }
 function sanearCuenta(v) {
   if (!objeto(v)) return null;
   const monto = entero(v.monto, 1e6);
@@ -75,13 +78,21 @@ export function sanearCantina(v, hoy = 1e6) {
   return {
     visitas: entero(v.visitas, 1e6), ultima: Math.min(dia, entero(v.ultima, 1e6)), pedidos: entero(v.pedidos, 1e6), gastado: entero(v.gastado, 1e9),
     cuenta, fuertes: { dia: Math.min(dia, entero(f.dia, 1e6)), n: entero(f.n, 99) },
+    // (3.9.1: las partidas de antes no lo tienen: arrancan sobrias y sin chistes dichos)
+    ebrio: sanearEbrio(v.ebrio, dia * 24 + 24), chistes: sanearMemoriaChistes(v.chistes),
+    pena: objeto(v.pena) ? { bailes: entero(v.pena.bailes, 1e6), ultima: Math.min(dia, entero(v.pena.ultima, 1e6)) } : { bailes: 0, ultima: 0 },
   };
 }
 // La cantina de esta partida (se crea sola si la partida es de antes de la 3.9.0); sin economía (el Desafío), null
 export function cantinaDe(p) {
   if (!hayEconomia(p)) return null;
   if (!objeto(p.cantina)) p.cantina = sanearCantina(null, p.dia);
-  return p.cantina;
+  // (3.9.1: una partida cargada en esta sesión antes de la peña: lo nuevo, de fábrica)
+  const q = p.cantina;
+  if (!objeto(q.ebrio)) q.ebrio = ebrioNuevo();
+  if (!objeto(q.chistes)) q.chistes = {};
+  if (!objeto(q.pena)) q.pena = { bailes: 0, ultima: 0 };
+  return q;
 }
 export const cuentaDe = (p) => cantinaDe(p)?.cuenta || null;
 // Lo de la noche: un día de la cantina va de las 18 a las 2, así que «la noche» cambia al abrir

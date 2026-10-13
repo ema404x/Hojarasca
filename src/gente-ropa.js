@@ -241,9 +241,9 @@ export const ASPECTO = {
     colores: { piel: '#e6bd98', pelo: '#ecd078', ropa: '#17151a', abrigo: '#17151a', gorro: null, bufanda: null, aros: 'chicos' },
     R: { mujer: true, curvas: true, pollera: true, colPollera: '#17151a', rodete: true, escote: true, sinMangas: true, arremangado: true, tajo: true, tajoV: { a: 0.62, w: 0.2, y: 0.0 },
       florPelo: '#e0303a', tacos: '#b4182a', cinturon: '#b4182a', pantalon: '#b88a70' },
-    guardas: {},
+    guardas: { pollera: [12, 0.012] },   // (el ruedo, con un ribete de lentejuelas finito)
     poses: ['cintura', 'atras'],
-    abrigo: { colores: { poncho: false, gorro: null, bufanda: '#b01c2c' }, R: { sinMangas: false } },
+    abrigo: { colores: { poncho: '#2a1c24', gorro: 'gorroPunto', gorroColor: '#2a1c24', bufanda: '#b01c2c' }, R: { sinMangas: false } },
   },
 
   // ------------------------------------------------------------ los once pobladores

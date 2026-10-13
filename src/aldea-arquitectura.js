@@ -1568,8 +1568,11 @@ function cama(K, x, z, giro = 0, o = {}) {
   cj(c, F, 0, 0.48, 0.25, A + 0.04, 0.06, L - 0.55, o.manta ?? '#8e3f34', { bajo: 0.75 });
   cj(c, F, 0, 0.5, -L / 2 + 0.3, A - 0.2, 0.12, 0.34, '#f0ebe0', { bajo: 0.85 });
   cj(c, F, 0, 0.55, -L / 2 + 0.02, A + 0.06, 0.95, 0.07, col);
-  cj(c, F, 0, 0.32, L / 2 - 0.02, A + 0.06, 0.5, 0.06, col);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) cj(c, F, sx * (A / 2 - 0.03), 0.07, sz * (L / 2 - 0.05), 0.07, 0.14, 0.07, col);
+  // (3.9.1: `o.simple`: sin el pie de la cama ni las patas: la segunda cama de la cantina es de pasada, y el interior ya estaba en el tope de triángulos)
+  if (!o.simple) {
+    cj(c, F, 0, 0.32, L / 2 - 0.02, A + 0.06, 0.5, 0.06, col);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) cj(c, F, sx * (A / 2 - 0.03), 0.07, sz * (L / 2 - 0.05), 0.07, 0.14, 0.07, col);
+  }
   K.mueble(x, z, A + 0.06, L, 0.56, giro);
   if (o.punto !== false) {
     // al costado de la cama que da al centro de la casa
@@ -4994,7 +4997,7 @@ function estanteBotellas(K, x, z0, z1, giro) {
       const cb = COLORES_BOTELLA[Math.floor(r() * COLORES_BOTELLA.length) % COLORES_BOTELLA.length];
       cl(c, F, lx, y + 0.0175 + hh / 2, 0, rr, rr, hh, cb, { lados: 5 });
       if (r() < 0.6) cl(c, F, lx, y + 0.0175 + hh + 0.05, 0, 0.014, 0.02, 0.1, cb, { lados: 4 });
-      lx += rr * 2 + 0.035 + 0.02 * r();
+      lx += rr * 2 + 0.042 + 0.02 * r();   // (3.9.1: apenas más separadas: la segunda cama del cuarto de atrás entra en el tope de triángulos)
     }
   }
   // abajo, el mueble con sus puertitas
@@ -5054,7 +5057,8 @@ function cantina(K) {
   });
   // la mesa de truco, de adorno, con su paño verde y el mazo
   mesa(K, 3.5, 2.4, 0, { largo: 1.3, ancho: 0.9, color: '#4a2f1c', mantel: '#2f6b3e' });
-  for (const [sx, sz, g] of [[3.5, 1.65, 0], [3.5, 3.15, Math.PI], [2.7, 2.4, Math.PI / 2], [4.3, 2.4, -Math.PI / 2]]) silla(K, sx, sz, g, { asiento: false, color: MADERA_MUEBLE[2] });
+  // (3.9.1: ahora se pueden usar: los vecinos juegan al truco y vos te sentás a la tercera o la cuarta silla)
+  for (const [sx, sz, g] of [[3.5, 1.72, 0], [3.5, 3.08, Math.PI], [2.7, 2.4, Math.PI / 2], [4.3, 2.4, -Math.PI / 2]]) silla(K, sx, sz, g, { nombre: 'una silla de la mesa de truco', color: MADERA_MUEBLE[2], choca: false });
   for (let i = 0; i < 3; i++) caja(K.int, [3.3 + i * 0.16, PISO + 0.775, 2.35 + (i % 2) * 0.1], [0.06, 0.004, 0.09], '#efe8d6', { tipo: 0, giro: i * 0.7 });
   caja(K.int, [3.85, PISO + 0.79, 2.55], [0.07, 0.03, 0.1], '#efe8d6', { tipo: 0 });
   cilindro(K.int, [3.15, PISO + 0.79, 2.65], 0.03, 0.03, 0.03, '#2a2a26', { lados: 6 });
@@ -5082,6 +5086,8 @@ function cantina(K) {
   }
   cuadro(K, -xi + 0.04, PISO + 1.85, -1.1, Math.PI / 2, { ancho: 0.5, alto: 0.38, colores: ['#7a9ab0', '#c8b070', '#5d7a4a'] });
   vivienda(K, tab, { manta: '#7a1e2a' });
+  // 3.9.1: la segunda cama del cuarto de atrás (la de Dalia, la bailarina), al lado de la de Lucrecia, con un pasillo en el medio
+  cama(K, -2.4, -D / 2 + MURO + 1.0, 0, { manta: '#2f3a5a', nombre: 'cama-2', simple: true });
   // afuera: el banco de la galería, el palenque para los caballos y la maceta
   banco(K, K.ext, 3.7, D / 2 + 0.7, 0, { largo: 1.6, tipo: 0, nombre: 'el banco de la cantina' });
   for (const x of [-5.0, -3.0]) caja(K.ext, [x, 0.55, D / 2 + 1.4], [0.12, 1.1, 0.12], '#4a3a2a', { tipo: 4 });

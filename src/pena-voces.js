@@ -1,0 +1,676 @@
+// 3.9.1: las voces de la peña de la cantina: Lucrecia (la moza) y Dalia (la bailarina). Sólo texto (módulo puro, sin imports).
+//   · VECINDAD_BAILARINA / AYUDAS_BAILARINA / SOCIAL_BAILARINA / EXTRANA_BAILARINA: lo de Dalia, con la forma de VOCES.moza, AYUDAS.moza,
+//     VOCES_SOCIAL.moza y FRASES_SOCIAL.extrana.moza.
+//   · AMOR_MOZA / AMOR_BAILARINA: con la forma de cada entrada de VOCES_AMOR (amor-voces.js). Picardía sugerida, nada explícito.
+//   · CHISTES: doble sentido liviano en la cantina (moza: sentarse, pedir.<id>, cuenta, tomar, despedida, confianza, amor, mesa; bailarina:
+//     invitar, elegir, paso, pies, calor, bailando, pena, despedida, confianza, amor).
+//   · BORRACHERA_MOZA, ARRIMA (vecinos que se sientan a tu mesa), TRUCO_CANTINA (la mesa del rincón).
+//   · EN_PENA: inglés de TODO lo anterior (clave = texto en castellano exacto, con sus {marcadores}).
+
+export const VECINDAD_BAILARINA = {
+  encanta: {
+    'pan-casero': "¡Pan casero! Se me llenan los ojos, ¿ves? Mi abuela lo amasaba descalza, con el acordeón de fondo. Gracias: me lo como tibio y sin testigos.",
+    'frasco-frutilla': "¡Dulce de frutilla! Con esto me ganaste media pista. La otra media la ganás con los pasos, y ahí te quiero ver.",
+    miel: "Miel. Justo para la garganta de los sábados, que entre tango y chamamé la tengo hecha una lija. Gracias: sos generoso, y eso se nota más que el zapato.",
+  },
+  gusta: "{cosa}, qué gesto. Yo soy de agradecer con todo el cuerpo, pero acá, en público, alcanza con una sonrisa. Por ahora.",
+  noGusta: "Un tronco… ¿me viste cara de salamandra? Para bailar necesito los brazos livianos. Llevátelo, que me desafina el vestido.",
+  ocupado: "Ahora no, que estoy ensayando un paso y no pienso perder el compás por nadie. Buscame más tarde, que hasta el telón se corre a su tiempo.",
+  noToma: {
+    te: "Té no, que me aplana el ánimo. Yo, algo con más ritmo. Pero tu compañía sí: esa me sube el compás.",
+  },
+  acepta: "Vamos, dale. Me pongo los tacos rojos, que sin ellos no soy yo, y caminamos hasta {lugar}.",
+  animo: {
+    bien: "Con ganas de bailar hasta que se acabe el piso. Me desperté con un compás en la cabeza y no me lo saco ni a patadas.",
+    cansado: "Cansada. Sábado de peña, tacos hasta las dos, y los pies me piden vacaciones. Pero mañana vuelvo, ¿eh? El cansancio también se baila.",
+    inquieto: "Inquieta. Hay días en que el cuerpo me pide escenario y lo único que tengo es una pista de madera y cuatro sillas. Hoy es uno de esos.",
+    charla: "Con ganas de charlar. En la pista hablo con los pies; hoy me toca con la boca, y vos tenés buena cara de oyente.",
+  },
+  historia: {
+    titulo: "El telón de Esquel",
+    partes: [
+      "Salimos de Rosario con una compañía de variedades: seis cómicos, un mago, un acordeonista y yo, la estrella. El empresario prometía teatros llenos y sábanas limpias. Lo segundo era mentira; lo primero, casi.",
+      "En Esquel, una mañana, el empresario no estaba. Ni la plata ni el vestuario. Sólo quedó el telón, colgado como un pañuelo de despedida. Los demás se fueron a probar suerte; yo, con el orgullo hecho un nudo.",
+      "Lucrecia me encontró en un banco con las valijas. No me preguntó nada: me dio una cama, un café y la pista de los sábados. Todavía no se lo agradecí como corresponde: me cuesta pedir ayuda. Pero pago mis deudas bailando.",
+    ],
+  },
+  sobremesa: [
+    "Al tango se lo baila con el pecho; al chamamé, con los pies. El que baila uno con los pies y el otro con el pecho arma un lío muy lindo.",
+    "Mi abuela correntina decía que el chamamé se baila con el corazón pegado al piso. Yo le agregué los tacos, y a ella le dio risa.",
+    "Decían que una chica de campo no sabe caminar con taco. Ahora cuando camino por la calle hasta los perros se sientan a mirar.",
+    "Elegir con quién bailar es un arte: hay que mirar cómo agarran la copa. El que aprieta, aprieta todo; el que suelta, suelta todo. Yo busco el término medio.",
+    "Lucrecia y yo discutimos por el espejo del cuarto. Gana ella, que tiene el mostrador de su lado. Pero yo tengo la pista, y la pista se ve desde todos lados.",
+    "Un baile bien hecho no se anuncia: se nota. Es como el pan: no hay que gritarlo, el olor llega solo.",
+  ],
+  visita: [
+    "Vine a ver tu casita. Está linda; le falta un poco de música, nada más. La próxima traigo a Cholo con la verdulera y la llenamos de compás.",
+    "Te traje una flor roja de las mías. No te la doy: te la presto. Si la cuidás, vuelve conmigo con intereses. Si no, te la cobro bailando.",
+  ],
+  saludoAmigo: "¡{nombre}! Justo estaba por salir a la pista y me faltaba quien me mirara con atención. Sentate, que hoy ensayo para vos.",
+  saludoCompadre: "{nombre}, mi elegido. Para vos el primer paso, el mejor lugar de la pista y el último compás. Los demás que hagan fila.",
+  fauna: "Desde la ventana del cuarto de atrás vi {unbicho}. Me quedé quieta, con un zapato en la mano y el otro puesto. Se movía con más gracia que la mitad de mis pretendientes.",
+  pronostico: "Dicen que {pronostico}. Con tal de que no llueva sobre la pista de los sábados, me arreglo con cualquier cielo.",
+  regalo: "Dalia, la bailarina de la cantina, te dejó una flor roja de su pelo, con un guiño",
+};
+
+export const AYUDAS_BAILARINA = [
+  {
+    id: "baul-vestuario",
+    titulo: "Ayudarla a cargar el baúl del vestuario hasta el cuarto de atrás",
+    hace: true,
+    gracias: [
+      "Gracias. Entre los tacos, los vestidos y el recuerdo de un telón que no quiero soltar, el baúl pesa como un empresario: de puro peso muerto.",
+    ],
+    consejo: "Cuando alguien te invite a bailar, no mires los pies ni la cara: fijate cómo te sostiene la espalda. Ahí se sabe si te va a llevar o te va a arrastrar.",
+  },
+  {
+    id: "lana-roja",
+    titulo: "Alcanzarle lana roja para remendar el chal",
+    pide: { tipo: "material", k: "lana", n: 1 },
+    gracias: [
+      "Lana roja, justo la que buscaba. Con esto el chal aguanta otro año de tangos, y yo aguanto otro año sin pedirle nada a nadie. Bueno, a vos sí, pero poquito.",
+    ],
+    devuelve: {
+      tipo: "cosa",
+      k: "yerba",
+      n: 1,
+      texto: "Tomá, yerba como la que cebaba mi abuela. Para que te acuerdes de mí cuando tomes mate.",
+    },
+    consejo: "Me cuesta pedir ayuda, ya te habrás dado cuenta. Si a vos también, hacé como yo: pedila con gracia y un poco de teatro; el que quiere, entiende.",
+  },
+];
+
+export const SOCIAL_BAILARINA = {
+  bien: [
+    "¡Eso! Con garra y sin miedo al piso.",
+    "Muy bien. Se te nota que tenés oído, y eso no se enseña.",
+  ],
+  mal: [
+    "Ay, no. Eso me hizo levantar la ceja, y mirá que la tengo bien entrenada.",
+    "Mmm. Mejorá, que el compás es exigente y yo también.",
+  ],
+  abrazo: "Vení, un abrazo de los míos: apretado y con ritmo, que si no se me enfría la flor del pelo.",
+  chiste: {
+    bien: "¡Ja! Me reí tan fuerte que se me cayó una horquilla. Contame otro, pero que sea mejor, que ya me subiste la vara.",
+    mal: "Ese chiste tenía menos gracia que un telón sin función. Y de telones sin función entiendo bastante.",
+  },
+  broma: {
+    bien: "Casi me creo que la pista se hundía. Muy bueno, me hiciste dar un salto… de los buenos.",
+    mal: "No me hagas esas bromas, que de sustos ya tuve de sobra en Esquel. Hoy no estoy para sorpresas.",
+  },
+  tiempo: "Se viene cambio: me lo avisa el tobillo. Cuando va a llover, el piso de madera se pone más crujiente y los tacos más caprichosos.",
+  consuelo: "Gracias, de verdad. Cuesta decirlo, pero a veces, cuando se apagan las luces de la pista, queda un silencio muy grande. Con vos se hace más chico.",
+  felicitar: "Gracias, ¿viste? Hoy no pisé ni un solo pie ajeno y el vestido se portó bien. Un día redondo, como una vuelta completa.",
+  enojo: [
+    "Ah, ¿sí? Entonces yo también puedo darte la espalda con elegancia. Es lo que mejor me sale después de bailar.",
+    "Cuando se te pase, sabés dónde estoy: en la pista, con los tacos puestos y la paciencia gastada.",
+  ],
+  perdon: {
+    bien: "Está bien, te perdono. Pero que no se repita: no tengo tantos compases para tantas disculpas.",
+    mal: "Todavía no. Dejame bajar el orgullo, que lo tengo bien alto y baja despacito. Mañana hablamos.",
+  },
+  mate: "Mate amargo, como lo toma mi abuela, sentados en el piso de la cocina. Es de las pocas veces en que estoy descalza y callada.",
+  cartas: "Truco, dale. Pero te aviso que mi cara de jugadora es más teatral que la de cualquier mago de la compañía.",
+  caminar: "Caminemos por la plaza, que a la tarde me gusta pasear con los tacos puestos y que me miren. Vos hacé de escolta y de público.",
+  foto: "¿Una foto? Esperá: pose de perfil, mentón alto y la flor a la vista. Siempre salgo mejor desde la izquierda. Avisame cuando vayas a apretar el botón.",
+  viene: {
+    saludar: "Hola, {nombre}. Salí a buscarte porque una pista sin público es un ensayo, y yo no ensayo para las sillas.",
+    invitar: "El sábado hay peña. Te guardo un tango, y si venís bien parado, quizá dos. Pero vení temprano, que me piden mucho.",
+    pedir: "¿Me ayudás con el baúl del vestuario? Con estos tacos no me dan los brazos, y vos tenés cara de cargar bien.",
+    chisme: "Dicen que Lucrecia le cobra de más a los que miran de más. En esta cantina se sabe todo, pero yo no soy chismosa: soy bailarina, observo.",
+  },
+  deseos: [
+    {
+      id: "miel-dalia",
+      cumplir: { tipo: "regalo", k: "miel" },
+      texto: "Dalia quiere miel para la garganta",
+      pide: "Entre el tango y el chamamé tengo la garganta como lija. ¿Me conseguís un poco de miel? Te lo agradezco bailando.",
+      gracias: "Miel, y de la buena. Con esto la voz me dura toda la peña.",
+    },
+    {
+      id: "tren-dalia",
+      cumplir: { tipo: "hecho", id: "tren" },
+      texto: "Dalia quiere que viajes en el tren",
+      pide: "Llegué a Esquel en tren con la compañía y nunca miré el paisaje: iba discutiendo con el empresario. Subí vos y contame qué se ve.",
+      gracias: "Qué lindo cuento. Contás casi tan bien como bailás… bueno, no tanto, pero me hiciste viajar sentada.",
+    },
+    {
+      id: "ranchera-dalia",
+      cumplir: { tipo: "interaccion", id: "ranchera" },
+      texto: "Dalia quiere bailar una ranchera",
+      pide: "Entre tango y chamamé nunca me sacaron a bailar una ranchera. Sacame vos, y no me pises, que son mis tacos buenos.",
+      gracias: "Llevás bien, ¿sabés? Casi te perdono que no sea tango.",
+    },
+    {
+      id: "pan-dalia",
+      cumplir: { tipo: "regalo", k: "pan-casero" },
+      texto: "Dalia quiere pan casero",
+      pide: "Extraño el pan de mi abuela: corteza dura, miga tibia. ¿Me traés uno casero? Te debo un baile.",
+      gracias: "Esa corteza, esa miga… Me hiciste volver a Crespo por cinco minutos. Te debo un baile, y yo no me olvido de mis deudas.",
+    },
+  ],
+};
+
+export const EXTRANA_BAILARINA = "Extraña el acordeón de su abuela y un escenario con telón de verdad.";
+
+export const AMOR_MOZA = {
+  piropo: {
+    gusto: [
+      "Ay, mirá vos, con la lengua suelta. Me gustó, corazón. Seguí así, pero con cuidado: yo soy de las que piden bis.",
+      "Ese piropo lo tenías guardado, ¿no? Se nota que lo pulís antes de usarlo. Me gustó. No se lo cuentes a nadie.",
+      "Mirá cómo me hacés subir los colores. Y eso que a mí no me suben ni con el licor de la casa. Seguí, cariño.",
+    ],
+    rie: [
+      "Ja, ¿ese te lo enseñó el de la esquina? Tiene su gracia, pero te falta el final: yo lo termino mejor.",
+      "Muy simpático. Pero a mí el piropo me llega mejor con la sonrisa a tiempo. Volvé a intentarlo cuando se te acomode el pulso.",
+    ],
+    no: [
+      "Hoy no, cariño: tengo la barra llena y la paciencia en la última botella.",
+      "Me levanté con el pie izquierdo, y con tacos. No es buen día para piropos.",
+    ],
+  },
+  cita: {
+    si: "Dale, me escapo. Dejo el cartel de «vuelvo ya» y me suelto el pelo. Mirá que me hago esperar poco.",
+    no: "Hoy no, que trabajo hasta las dos y después, bueno, ya conocés mis horarios. Otro día, antes de abrir.",
+    charla: [
+      "Qué lindo es salir a la luz del día. De noche todo se ve más lindo, pero de día se ve más verdadero. Me gusta verte a la luz.",
+      "Cuando salgo de la barra me siento rara: sin delantal, sin bandeja, sin nadie pidiéndome nada. Con vos, rara y bien.",
+    ],
+  },
+  favorito: "La barra, antes de abrir, con la persiana a medio subir y la luz entrando de costado. Es el único rato que es sólo mío; a vos te lo presto.",
+  declaracion: {
+    si: [
+      "Sí. Me hiciste esperar, y yo no espero a nadie. Pero a vos sí. Sí, corazón: soy tuya… bueno, tuya a ratos; la barra sigue siendo mía.",
+    ],
+    no: "Todavía no, cariño. No es que no quiera: es que cuando digo que sí es de verdad, y todavía me falta un trago de decisión.",
+  },
+  propuesta: {
+    si: [
+      "Sí. Y que sea con baile hasta la madrugada y la barra abierta para los invitados. Si me caso, me caso con fiesta.",
+    ],
+    no: "Todavía no. Me gusta que me lo pidas, pero me gusta más hacerte esperar un poquito. Un poquito, ¿eh?",
+  },
+  boda: "Prometo guardarte siempre la mesa del rincón, servirte la primera copa y no cerrar la barra hasta que llegues. Y si llegás tarde, castigo con mate cocido.",
+  celos: "Me contaron que salís con otra. Que no sea Dalia, porque si es Dalia me quedo sin bailarina y sin paciencia. Pensalo unos días, corazón.",
+  carta: "Me llegó tu carta. La leí atrás de la barra, a escondidas, y me puse colorada como el vestido. Dalia me preguntó qué me pasaba. Le dije que era el calor de la salamandra.",
+  flores: "¡Flores! Las pongo en la barra, entre las botellas. Los clientes van a preguntar y les voy a contestar: son de un admirador, y el admirador es mío.",
+  chicos: "Un hijo… Le voy a enseñar a llevar cuatro vasos en una mano y a no creerles a los que dicen que no se toman otra. Y a decir gracias con una sonrisa.",
+};
+
+export const AMOR_BAILARINA = {
+  piropo: {
+    gusto: [
+      "¿Eso fue un piropo? Repetilo, pero mirándome a los ojos, que a mí me hablan a la cara o no me hablan.",
+      "Mirá qué bien: hasta me hiciste olvidar el paso, y eso es difícil. Me gustó.",
+      "Ay, qué cosas decís. Me vas a hacer sonrojar y después cómo salgo a la pista, con el vestido y la cara del mismo color.",
+    ],
+    rie: [
+      "Ja. Lindo intento. Todavía no me convenciste: seguí practicando, que tengo mucho público.",
+      "Muy dulce, pero me lo dijiste con los ojos en el piso. Los piropos, de frente, o no son piropos.",
+    ],
+    no: [
+      "Hoy no, que ensayé seis horas y los pies me piden clemencia. Piropos, mañana.",
+      "Estoy de mal humor y con los tacos nuevos. Es una mala combinación para cualquiera, ni te cuento para vos.",
+    ],
+  },
+  cita: {
+    si: "Sí. Me pongo los tacos rojos, que a una cita se va con estilo. Vos ponés el paseo; yo pongo el paso y la gracia.",
+    no: "Hoy no puedo: tengo ensayo con Cholo y la peña no se prepara sola. Otro día, y que sea tarde, que de mañana soy gruñona.",
+    charla: [
+      "Dicen que una bailarina no se enamora: se acostumbra. Yo creo que lo dicen los que nunca la sacaron a bailar de verdad.",
+      "No bailo con cualquiera, y con vos ya fueron varias tandas. Me estoy dejando llevar. Anotalo, que no lo repito.",
+    ],
+  },
+  favorito: "La pista de la cantina, un sábado a las once y media, cuando el tango se rinde y empieza el chamamé. Ahí soy yo entera.",
+  declaracion: {
+    si: [
+      "Sí. Y no hacía falta tanto ruego, aunque un poquito me gustó. Sí: ya elegí. Y yo, cuando elijo, no cambio de pareja a mitad de la pieza.",
+    ],
+    no: "Todavía no. Me gusta que me lo pidas, pero me gusta más que me lo pidas dos veces. Probá otra vez, y con más ritmo.",
+  },
+  propuesta: {
+    si: [
+      "Sí. Pero con vals, con tango y con chamamé hasta que amanezca. Y que Lucrecia haga el brindis, que algo me debe.",
+    ],
+    no: "Todavía no. Un casamiento es el baile más largo de todos y quiero estar segura de que me sigue el paso.",
+  },
+  boda: "Prometo bailar con vos aunque se acabe la música, ponerte la flor roja en el ojal cada aniversario y no soltarte la mano ni en el giro más difícil.",
+  celos: "Me contaron que salís con otra. Yo bailo de a una pieza por vez, pero con una sola pareja. Y que no sea Lucrecia, porque me quedo sin cuarto y sin novio. No me busques por unos días.",
+  carta: "Me llegó tu carta. La leí en voz alta, en el cuarto, con gestos y todo. Lucrecia se rió; después me la sacó para leerla ella. La recuperé: es mía.",
+  flores: "¡Flores! Hay que saber entregarlas: despacio, con la mirada. Vos casi lo lográs. Las pongo en el espejo del cuarto, así se ven por duplicado.",
+  chicos: "Un hijo… Le voy a enseñar a caminar al compás antes que a caminar derecho, y chamamé descalzo en la cocina, como me enseñó mi abuela.",
+};
+
+export const CHISTES = {
+  moza: {
+    sentarse: [
+      "¿Mesa para uno? Qué desperdicio de silla de al lado.",
+      "Sentate, que la silla no muerde. Yo, depende de la hora y de cómo te portes.",
+    ],
+    pedir: {
+      ginebra: [
+        "Esta ginebra pega fuerte y despacito. Como yo.",
+        "Ginebra: se toma de a sorbos y se recuerda de a pedazos. Como a mí, dicen.",
+      ],
+      'vino-patero': [
+        "Vino patero: con carácter, como la casa. Si te sube rápido, no es el vino, es la compañía.",
+      ],
+      cerveza: [
+        "Bien tirada, con buena espuma. Todo está en la técnica, forastero.",
+        "Helada y con espuma. Si te sobra, no la desperdicies: yo no desperdicio nada.",
+      ],
+      'mate-cocido': [
+        "Mate cocido: el trago de los prudentes. Después no digas que no te avisé que la noche es larga.",
+      ],
+      chocolate: [
+        "Chocolate caliente, espeso y sin apuro. Hay cosas que mejoran cuanto más se revuelven.",
+      ],
+      empanadas: [
+        "Te las traigo calentitas. Lo demás depende de cómo te portes.",
+        "Empanadas: se comen con la mano y con calma. Y ojo con el jugo: el que se mancha se lleva mi mirada de regalo.",
+      ],
+      picada: [
+        "Picada para compartir. Si no tenés con quién, te acompaño yo un ratito. Un ratito, eh.",
+      ],
+      guiso: [
+        "Lleva todo lo que hace falta para aguantar la noche.",
+        "Guiso de cuchara, de los que abrigan por dentro. El que repite se queda con ganas de más, y eso lo digo con conocimiento.",
+      ],
+      'tortas-fritas': [
+        "Tortas fritas: crocantes por fuera, tiernas por dentro. Como la moza, pero a mí no me tocan sin permiso.",
+        "Fritas, calentitas y con azúcar. Cuidado con los dedos: se pegan a todo lo dulce.",
+      ],
+      trucha: [
+        "Trucha: se pesca con paciencia y buena carnada. A mí me pasa igual: hay que saber tentarme.",
+        "Trucha del lago, bien fresquita. Pescada con caña y no con red, que a mí también me gusta que me conquisten de a poco.",
+      ],
+    },
+    cuenta: [
+      "Anotalo, nomás. Pero yo cobro de a poquito y con intereses.",
+      "Va a la cuenta. Pero ojo: yo llevo la cuenta de todo, hasta de las miradas.",
+    ],
+    tomar: [
+      "Despacito, que lo bueno se saborea.",
+      "Sin apuro. La noche hay que tratarla con cariño, como a las cosas que uno quiere que duren.",
+    ],
+    despedida: [
+      "Volvé pronto, que la barra se pone fría sin vos.",
+      "Andá con cuidado y no tardes: acá siempre hay una silla con tu forma.",
+    ],
+    confianza: [
+      "Ya sos de la casa: no te cobro la sonrisa, y eso es mucho viniendo de mí.",
+      "Mirá cómo te trato: ya te guardo la mejor mesa. No se lo cuentes a los demás, que se me ponen celosos.",
+    ],
+    amor: [
+      "Hoy cerrar la barra me va a costar: se me hace tarde, y no es por el trabajo.",
+      "Ya no sirvo nada a medias: ni las copas, ni las miradas.",
+    ],
+    mesa: [
+      "Mesas de cuatro patas, las mejores: firmes, de las que no se mueven aunque las apoyes con ganas. Yo también soy de apoyarme bien firme.",
+      "Una buena silla se reconoce enseguida: te recibe sin quejarse, te sostiene sin apuro y no te deja ir fácil. A mí me pasa algo parecido con algunos clientes.",
+      "Este mostrador es de lenga maciza: aguanta lo que le apoyen encima y nunca se queja. Hay quien envidia a la madera, ¿eh?",
+    ],
+  },
+  bailarina: {
+    invitar: [
+      "Si sabés llevar, te dejo llevar. Si no, te enseño.",
+      "Si te animás a pisar la pista, yo me animo a no pisarte. Es un trato justo.",
+    ],
+    elegir: [
+      "El tango, bien pegaditos; el chamamé, con un poco más de aire. Vos elegí.",
+      "Tango para el que se anima, chamamé para el que se divierte. Y los dos para el que se queda toda la noche.",
+    ],
+    paso: [
+      "¿Me seguís el paso o preferís que te persiga yo?",
+      "Uno, dos, y en el tres me mirás a los ojos. El resto lo pone el piso.",
+    ],
+    pies: [
+      "No me mires los pies, que el baile no está ahí.",
+      "Los pies hacen el paso, pero el baile lo hacen los ojos. Mirá donde corresponde.",
+    ],
+    calor: [
+      "Con este calor dan ganas de aflojarse todo menos el compás.",
+      "Se me pega el vestido y se me pega el ritmo. De las dos cosas, sólo una me molesta.",
+    ],
+    bailando: [
+      "Dicen que bailo como si el piso quemara. Vení a probarlo.",
+      "Aflojá los hombros, que no estás cargando leña. Ahí, así. Ya sos otro.",
+    ],
+    pena: [
+      "Entre tanda y tanda se me enfrían los pies y se me calienta la vanidad. Tengo que cuidar las dos.",
+      "En la pista no hay pena que dure una tanda entera. Por eso siempre pido otra.",
+    ],
+    despedida: [
+      "Gracias por el baile. Quedamos a mano: vos me llevaste y yo te dejé. Hasta la próxima tanda.",
+      "Qué lindo compás tenés. No lo gastes con cualquiera.",
+    ],
+    confianza: [
+      "A vos ya te dejo marcar el paso. No se lo digas a los demás, que se acostumbran.",
+      "Con vos no hace falta que me levanten en vilo: me alcanza con que me sigas el compás sin mirar.",
+    ],
+    amor: [
+      "Cuando bailo con vos, el piso aprende a no quemar.",
+      "Todas las tandas bailo con la gente; la última, con vos. Nadie se da cuenta, pero la pista sí.",
+    ],
+  },
+};
+
+export const BORRACHERA_MOZA = {
+  comenta: [
+    "Ese ya fue el segundo, corazón. Los que van por el segundo con esa cara después se acuerdan de todo… menos de lo que dijeron.",
+    "Mirá que la ginebra pega, ¿eh? Yo te sirvo, pero me gusta que sigas sabiendo cómo te llamás.",
+    "Vas muy bien… y vas muy rápido. Cuidado, que a esta altura la barra empieza a inclinarse.",
+  ],
+  frena: [
+    "Hasta acá llegamos con lo fuerte. Te traigo un mate cocido y me lo agradecés mañana, cuando te acuerdes de tu nombre.",
+    "No, mi vida. Un trago más y la barra te la tiene que sostener otro. Mate cocido, calentito, y charlamos un ratito.",
+    "Lo fuerte se terminó por hoy. Mate cocido o agua, vos elegís; lo que no elegís es seguir de largo.",
+  ],
+  alSalir: [
+    "Ojo con la puerta, que a esta hora se mueve de lugar. Andá derechito, y si no podés, andá despacito.",
+    "Cuidado en el camino, corazón: los escalones también se tambalean a esta hora, no sos el único.",
+  ],
+  seTePasa: [
+    "Mirá quién volvió a estar derecho. No hay nada como un mate cocido y un poco de aire.",
+    "Eso es: ya no se te mueve el piso. Ahora sí, hablemos como gente grande.",
+  ],
+};
+
+export const ARRIMA = {
+  general: [
+    "¿Se puede? Hoy la barra está llena de caras largas y esta mesa tiene la mejor vista.",
+    "Me siento un rato, que se me acabó el trabajo y me sobra la conversación.",
+    "No muerdo, ¿viste? Sólo quiero apoyar los codos y ver pasar la noche.",
+    "¿Te molesta si me siento? Es que la silla de al lado parecía que me estaba esperando.",
+    "Un ratito nomás: lo justo para un trago y un par de novedades.",
+    "Hoy está lindo para charlar. ¿Te hago compañía o te dejo con tus pensamientos?",
+  ],
+  por: {
+    jefe: [
+      "Mientras el tren esté en hora, yo estoy en paz. Y como hoy ya no pasa ninguno, me siento un rato.",
+      "Un trago y un silbato lejano: es lo único que le pido a la noche.",
+    ],
+    padre: [
+      "Corté leña desde temprano. Me merezco una silla sin astillas.",
+      "Una copa y a dormir. Mañana hay obra, y la Gladys me espera con el reto de siempre.",
+    ],
+    carpintero: [
+      "Esta mesa la hizo alguien que sabía: mirá cómo ajusta la pata, ni una cuña. Es deformación del oficio, perdoná.",
+      "Me siento a probar si esta silla aguanta. Tranquilo, la pruebo yo primero.",
+    ],
+    herrero: [
+      "Anselmo. Me siento. No hablo mucho, pero escucho todo.",
+      "Hoy el yunque me ganó. Ahora le gano yo a una cerveza.",
+    ],
+    pescador: [
+      "El lago hoy estuvo generoso. Yo, más todavía: me siento a contarlo.",
+      "Pesqué de más y hablo de más. Dejame que cuente, que el pez no se achica solo.",
+    ],
+    telegrafista: [
+      "Aviso: me siento. Fin del mensaje.",
+      "Hoy entraron tres telegramas, todos con malas noticias. Necesito una conversación de las lindas, sin puntos ni paradas.",
+    ],
+    martin: [
+      "Cuando manejaba la locomotora me sentaba mirando para adelante. Ahora me siento mirando a la gente: se aprende más.",
+      "Elena decía que no hay mal día con compañía. Me siento un ratito, a ver si tenía razón.",
+    ],
+    gerente: [
+      "Disculpe la molestia. Estoy cuadrando mentalmente el día, y acompañado salen menos errores.",
+      "Un saldo a favor: esta silla libre. Si me lo permite, la ocupo.",
+    ],
+    nelida: [
+      "Salí del almacén escapándome de Ercilia. Si pregunta, no me viste.",
+      "Hoy anoté todo lo que pasó. Me falta anotar esto, así que me siento.",
+    ],
+    ercilia: [
+      "Me siento, sí. Y que nadie me pregunte por el vuelto, que hoy ya di mi cuota de explicaciones.",
+      "Cuando una trabaja todo el día se gana una silla y el derecho a opinar de lo que sea.",
+    ],
+    panadera: [
+      "Pasé horas con la masa, y la masa no contesta. Necesito un rato con gente que sí.",
+      "Si querés pan, mañana temprano. Hoy, charla.",
+    ],
+    modista: [
+      "Ay, qué día. Hilo, dedal y los pies hinchados. Me siento un ratito, que me lo merezco.",
+      "Me siento, pero si me ofrecen una copa la acepto con el meñique en alto. Soy modista, no abstemia.",
+    ],
+    musico: [
+      "Se me quedó una melodía pegada. Si la silbo bajito, ¿te molesta?",
+      "Me siento un rato a escuchar, que la mejor canción siempre la dice alguien en la mesa de al lado.",
+    ],
+  },
+};
+
+export const TRUCO_CANTINA = {
+  cantan: [
+    "¡Envido! Y mirá que yo nunca miento. Bueno, casi nunca. Bueno, cuando me conviene.",
+    "¡Truco! Con cara de bueno y cartas de ladrón.",
+    "¡Quiero retruco! Pensalo bien, que el que duda en el truco ya perdió la mitad.",
+    "¡Flor! Y de la flor no se discute: se admira.",
+    "¡Falta envido! Si me equivoco, pago la ronda; si acierto, brindás vos.",
+  ],
+  invitan: [
+    "Sentate, que nos falta uno que mienta peor que el Mario.",
+    "Dale, sentate: tenemos una silla libre, una baraja gastada y ganas de ganarle a alguien nuevo.",
+    "Venite, que acá se juega con honor… y con trampa, pero con honor.",
+  ],
+};
+
+export const EN_PENA = {
+  "¡Pan casero! Se me llenan los ojos, ¿ves? Mi abuela lo amasaba descalza, con el acordeón de fondo. Gracias: me lo como tibio y sin testigos.": "Homemade bread! Look, my eyes are welling up. My grandmother kneaded it barefoot with the accordion playing in the background. Thank you: I'll eat it warm and with no witnesses.",
+  "¡Dulce de frutilla! Con esto me ganaste media pista. La otra media la ganás con los pasos, y ahí te quiero ver.": "Strawberry jam! With this you've won half the dance floor. You win the other half with your steps, and that I want to see.",
+  "Miel. Justo para la garganta de los sábados, que entre tango y chamamé la tengo hecha una lija. Gracias: sos generoso, y eso se nota más que el zapato.": "Honey. Just right for my Saturday throat, which after all that tango and chamamé is pure sandpaper. Thank you: you're generous, and that shows more than a good shoe.",
+  "{cosa}, qué gesto. Yo soy de agradecer con todo el cuerpo, pero acá, en público, alcanza con una sonrisa. Por ahora.": "{cosa}, what a lovely gesture. I'm the type to say thanks with my whole body, but here, in public, a smile will do. For now.",
+  "Un tronco… ¿me viste cara de salamandra? Para bailar necesito los brazos livianos. Llevátelo, que me desafina el vestido.": "A log... do I look like a wood stove to you? To dance I need light arms. Take it away, it clashes with the dress.",
+  "Ahora no, que estoy ensayando un paso y no pienso perder el compás por nadie. Buscame más tarde, que hasta el telón se corre a su tiempo.": "Not now, I'm rehearsing a step and I won't lose the beat for anybody. Find me later; even the curtain gets drawn in its own time.",
+  "Té no, que me aplana el ánimo. Yo, algo con más ritmo. Pero tu compañía sí: esa me sube el compás.": "Not tea, it flattens my mood. Something with more rhythm for me. But your company, yes: that picks up my tempo.",
+  "Vamos, dale. Me pongo los tacos rojos, que sin ellos no soy yo, y caminamos hasta {lugar}.": "Let's go, then. I'll put on my red heels, because without them I'm not me, and we'll walk over to {lugar}.",
+  "Con ganas de bailar hasta que se acabe el piso. Me desperté con un compás en la cabeza y no me lo saco ni a patadas.": "Ready to dance until the floor runs out. I woke up with a beat in my head and I can't shake it, not even by kicking.",
+  "Cansada. Sábado de peña, tacos hasta las dos, y los pies me piden vacaciones. Pero mañana vuelvo, ¿eh? El cansancio también se baila.": "Tired. Saturday gathering, heels until two, and my feet are begging for a holiday. But I'll be back tomorrow, you'll see. Tiredness can be danced off too.",
+  "Inquieta. Hay días en que el cuerpo me pide escenario y lo único que tengo es una pista de madera y cuatro sillas. Hoy es uno de esos.": "Restless. Some days my body wants a stage and all I have is a wooden floor and four chairs. Today is one of those days.",
+  "Con ganas de charlar. En la pista hablo con los pies; hoy me toca con la boca, y vos tenés buena cara de oyente.": "In the mood to talk. On the floor I talk with my feet; today it's my mouth's turn, and you have the face of a good listener.",
+  "El telón de Esquel": "The Curtain of Esquel",
+  "Salimos de Rosario con una compañía de variedades: seis cómicos, un mago, un acordeonista y yo, la estrella. El empresario prometía teatros llenos y sábanas limpias. Lo segundo era mentira; lo primero, casi.": "We left Rosario with a variety troupe: six comedians, a magician, an accordionist and me, the star. The manager promised full theaters and clean sheets. The second was a lie; the first, nearly.",
+  "En Esquel, una mañana, el empresario no estaba. Ni la plata ni el vestuario. Sólo quedó el telón, colgado como un pañuelo de despedida. Los demás se fueron a probar suerte; yo, con el orgullo hecho un nudo.": "One morning in Esquel the manager was gone. So were the money and the wardrobe. All that was left was the curtain, hanging like a farewell handkerchief. The others went off to try their luck; I stayed, my pride tied in a knot.",
+  "Lucrecia me encontró en un banco con las valijas. No me preguntó nada: me dio una cama, un café y la pista de los sábados. Todavía no se lo agradecí como corresponde: me cuesta pedir ayuda. Pero pago mis deudas bailando.": "Lucrecia found me on a bench with my suitcases. She asked nothing: she gave me a bed, a coffee and the Saturday dance floor. I still haven't thanked her properly: I find it hard to ask for help. But I pay my debts dancing.",
+  "Al tango se lo baila con el pecho; al chamamé, con los pies. El que baila uno con los pies y el otro con el pecho arma un lío muy lindo.": "Tango is danced with the chest; chamamé, with the feet. Whoever dances one with their feet and the other with their chest makes a lovely mess.",
+  "Mi abuela correntina decía que el chamamé se baila con el corazón pegado al piso. Yo le agregué los tacos, y a ella le dio risa.": "My Corrientes grandmother used to say chamamé is danced with your heart pressed to the floor. I added the heels, and it made her laugh.",
+  "Decían que una chica de campo no sabe caminar con taco. Ahora cuando camino por la calle hasta los perros se sientan a mirar.": "They said a country girl can't walk in heels. Now when I walk down the street even the dogs sit down to watch.",
+  "Elegir con quién bailar es un arte: hay que mirar cómo agarran la copa. El que aprieta, aprieta todo; el que suelta, suelta todo. Yo busco el término medio.": "Choosing who to dance with is an art: look at how they hold their glass. The one who grips, grips everything; the one who lets go, lets go of everything. I look for the happy medium.",
+  "Lucrecia y yo discutimos por el espejo del cuarto. Gana ella, que tiene el mostrador de su lado. Pero yo tengo la pista, y la pista se ve desde todos lados.": "Lucrecia and I argue over the mirror in our room. She wins, because she has the bar on her side. But I have the dance floor, and the floor can be seen from everywhere.",
+  "Un baile bien hecho no se anuncia: se nota. Es como el pan: no hay que gritarlo, el olor llega solo.": "A well-danced dance doesn't announce itself: it shows. It's like bread: you don't have to shout it, the smell gets there on its own.",
+  "Vine a ver tu casita. Está linda; le falta un poco de música, nada más. La próxima traigo a Cholo con la verdulera y la llenamos de compás.": "I came to see your little house. It's lovely; it just needs a bit of music, that's all. Next time I'll bring Cholo and his concertina and we'll fill it with rhythm.",
+  "Te traje una flor roja de las mías. No te la doy: te la presto. Si la cuidás, vuelve conmigo con intereses. Si no, te la cobro bailando.": "I brought you one of my red flowers. I'm not giving it to you, only lending it. If you take care of it, it comes back to me with interest. If not, I'll collect in dances.",
+  "¡{nombre}! Justo estaba por salir a la pista y me faltaba quien me mirara con atención. Sentate, que hoy ensayo para vos.": "{nombre}! I was just about to step onto the floor and I needed someone to watch me closely. Sit down, today I'm rehearsing for you.",
+  "{nombre}, mi elegido. Para vos el primer paso, el mejor lugar de la pista y el último compás. Los demás que hagan fila.": "{nombre}, my chosen one. For you the first step, the best spot on the floor and the last beat. Everyone else can line up.",
+  "Desde la ventana del cuarto de atrás vi {unbicho}. Me quedé quieta, con un zapato en la mano y el otro puesto. Se movía con más gracia que la mitad de mis pretendientes.": "From the window of the back room I saw {unbicho}. I stood still, one shoe in my hand and the other on. It moved with more grace than half my suitors.",
+  "Dicen que {pronostico}. Con tal de que no llueva sobre la pista de los sábados, me arreglo con cualquier cielo.": "They say {pronostico}. As long as it doesn't rain on the Saturday dance floor, I'll make do with any sky.",
+  "Dalia, la bailarina de la cantina, te dejó una flor roja de su pelo, con un guiño": "Dalia, the dancer from the cantina, left you a red flower from her hair, with a wink",
+  "Ayudarla a cargar el baúl del vestuario hasta el cuarto de atrás": "Help her carry the costume trunk to the back room",
+  "Gracias. Entre los tacos, los vestidos y el recuerdo de un telón que no quiero soltar, el baúl pesa como un empresario: de puro peso muerto.": "Thanks. Between the heels, the dresses and the memory of a curtain I refuse to let go of, that trunk weighs as much as a manager: pure dead weight.",
+  "Cuando alguien te invite a bailar, no mires los pies ni la cara: fijate cómo te sostiene la espalda. Ahí se sabe si te va a llevar o te va a arrastrar.": "When someone asks you to dance, don't look at the feet or the face: notice how they hold your back. That's where you can tell if they'll lead you or drag you.",
+  "Alcanzarle lana roja para remendar el chal": "Bring her red wool to mend her shawl",
+  "Lana roja, justo la que buscaba. Con esto el chal aguanta otro año de tangos, y yo aguanto otro año sin pedirle nada a nadie. Bueno, a vos sí, pero poquito.": "Red wool, exactly what I was after. With this the shawl lasts another year of tangos, and I last another year without asking anyone for anything. Well, you, yes, but just a little.",
+  "Tomá, yerba como la que cebaba mi abuela. Para que te acuerdes de mí cuando tomes mate.": "Here, yerba like the kind my grandmother used to brew. So you remember me whenever you have mate.",
+  "Me cuesta pedir ayuda, ya te habrás dado cuenta. Si a vos también, hacé como yo: pedila con gracia y un poco de teatro; el que quiere, entiende.": "I find it hard to ask for help, as you've probably noticed. If you do too, do as I do: ask with grace and a touch of drama; whoever cares will understand.",
+  "¡Eso! Con garra y sin miedo al piso.": "That's it! With bite and no fear of the floor.",
+  "Muy bien. Se te nota que tenés oído, y eso no se enseña.": "Very good. It shows you have an ear, and that can't be taught.",
+  "Ay, no. Eso me hizo levantar la ceja, y mirá que la tengo bien entrenada.": "Oh, no. That made me raise an eyebrow, and mine is very well trained.",
+  "Mmm. Mejorá, que el compás es exigente y yo también.": "Hmm. Do better; the beat is demanding and so am I.",
+  "Vení, un abrazo de los míos: apretado y con ritmo, que si no se me enfría la flor del pelo.": "Come here, a hug the way I do them: tight and with rhythm, or the flower in my hair will get cold.",
+  "¡Ja! Me reí tan fuerte que se me cayó una horquilla. Contame otro, pero que sea mejor, que ya me subiste la vara.": "Ha! I laughed so loud a hairpin fell out. Tell me another, but a better one; you've raised the bar now.",
+  "Ese chiste tenía menos gracia que un telón sin función. Y de telones sin función entiendo bastante.": "That joke had less sparkle than a curtain with no show behind it. And I know plenty about curtains with no show.",
+  "Casi me creo que la pista se hundía. Muy bueno, me hiciste dar un salto… de los buenos.": "I almost believed the floor was caving in. Very good, you made me jump... a proper leap.",
+  "No me hagas esas bromas, que de sustos ya tuve de sobra en Esquel. Hoy no estoy para sorpresas.": "Don't pull jokes like that on me; I had plenty of nasty surprises in Esquel. I'm not in the mood today.",
+  "Se viene cambio: me lo avisa el tobillo. Cuando va a llover, el piso de madera se pone más crujiente y los tacos más caprichosos.": "Weather's turning: my ankle tells me. When rain is coming, the wooden floor gets creakier and my heels get moodier.",
+  "Gracias, de verdad. Cuesta decirlo, pero a veces, cuando se apagan las luces de la pista, queda un silencio muy grande. Con vos se hace más chico.": "Thank you, truly. It's hard to say, but sometimes, when the lights go out over the floor, a very big silence is left. With you it gets smaller.",
+  "Gracias, ¿viste? Hoy no pisé ni un solo pie ajeno y el vestido se portó bien. Un día redondo, como una vuelta completa.": "Thanks, did you see? Today I didn't step on a single foot and the dress behaved. A rounded day, like a full turn.",
+  "Ah, ¿sí? Entonces yo también puedo darte la espalda con elegancia. Es lo que mejor me sale después de bailar.": "Oh, is that so? Then I can turn my back on you with elegance too. It's what I do best after dancing.",
+  "Cuando se te pase, sabés dónde estoy: en la pista, con los tacos puestos y la paciencia gastada.": "When you've cooled down, you know where I am: on the floor, heels on and patience worn thin.",
+  "Está bien, te perdono. Pero que no se repita: no tengo tantos compases para tantas disculpas.": "All right, I forgive you. But don't let it happen again: I don't have that many beats to spare for apologies.",
+  "Todavía no. Dejame bajar el orgullo, que lo tengo bien alto y baja despacito. Mañana hablamos.": "Not yet. Let me bring my pride down; it's held very high and it comes down slowly. We'll talk tomorrow.",
+  "Mate amargo, como lo toma mi abuela, sentados en el piso de la cocina. Es de las pocas veces en que estoy descalza y callada.": "Bitter mate, the way my grandmother takes it, sitting on the kitchen floor. It's one of the few times I'm barefoot and quiet.",
+  "Truco, dale. Pero te aviso que mi cara de jugadora es más teatral que la de cualquier mago de la compañía.": "Truco, sure. But fair warning: my poker face is more theatrical than any magician's in the troupe.",
+  "Caminemos por la plaza, que a la tarde me gusta pasear con los tacos puestos y que me miren. Vos hacé de escolta y de público.": "Let's walk through the plaza; in the afternoon I like to stroll in my heels and be looked at. You can be my escort and my audience.",
+  "¿Una foto? Esperá: pose de perfil, mentón alto y la flor a la vista. Siempre salgo mejor desde la izquierda. Avisame cuando vayas a apretar el botón.": "A photo? Wait: profile pose, chin up and the flower in view. I always look better from the left. Warn me before you press the button.",
+  "Hola, {nombre}. Salí a buscarte porque una pista sin público es un ensayo, y yo no ensayo para las sillas.": "Hello, {nombre}. I came looking for you because a dance floor without an audience is a rehearsal, and I don't rehearse for chairs.",
+  "El sábado hay peña. Te guardo un tango, y si venís bien parado, quizá dos. Pero vení temprano, que me piden mucho.": "Saturday is peña night. I'll save you a tango, and if you show up standing tall, maybe two. But come early, I'm in demand.",
+  "¿Me ayudás con el baúl del vestuario? Con estos tacos no me dan los brazos, y vos tenés cara de cargar bien.": "Can you help me with the costume trunk? In these heels my arms give out, and you look like someone who carries well.",
+  "Dicen que Lucrecia le cobra de más a los que miran de más. En esta cantina se sabe todo, pero yo no soy chismosa: soy bailarina, observo.": "They say Lucrecia charges extra to those who look extra. In this cantina everything gets known, but I'm no gossip: I'm a dancer, I observe.",
+  "Dalia quiere miel para la garganta": "Dalia wants honey for her throat",
+  "Entre el tango y el chamamé tengo la garganta como lija. ¿Me conseguís un poco de miel? Te lo agradezco bailando.": "Between the tango and the chamamé my throat is like sandpaper. Could you get me a little honey? I'll thank you by dancing.",
+  "Miel, y de la buena. Con esto la voz me dura toda la peña.": "Honey, and the good kind. With this my voice will last the whole peña.",
+  "Dalia quiere que viajes en el tren": "Dalia wants you to ride the train",
+  "Llegué a Esquel en tren con la compañía y nunca miré el paisaje: iba discutiendo con el empresario. Subí vos y contame qué se ve.": "I arrived in Esquel by train with the troupe and never looked at the scenery: I was arguing with the manager. You ride it and tell me what you see.",
+  "Qué lindo cuento. Contás casi tan bien como bailás… bueno, no tanto, pero me hiciste viajar sentada.": "What a lovely tale. You tell it almost as well as you dance... well, not quite, but you made me travel sitting down.",
+  "Dalia quiere bailar una ranchera": "Dalia wants to dance a ranchera",
+  "Entre tango y chamamé nunca me sacaron a bailar una ranchera. Sacame vos, y no me pises, que son mis tacos buenos.": "Between tango and chamamé nobody ever asked me for a ranchera. You ask me, and don't step on me, these are my good heels.",
+  "Llevás bien, ¿sabés? Casi te perdono que no sea tango.": "You lead well, you know. I almost forgive you for it not being a tango.",
+  "Dalia quiere pan casero": "Dalia wants homemade bread",
+  "Extraño el pan de mi abuela: corteza dura, miga tibia. ¿Me traés uno casero? Te debo un baile.": "I miss my grandmother's bread: hard crust, warm crumb. Would you bring me a homemade one? I owe you a dance.",
+  "Esa corteza, esa miga… Me hiciste volver a Crespo por cinco minutos. Te debo un baile, y yo no me olvido de mis deudas.": "That crust, that crumb... you took me back to Crespo for five minutes. I owe you a dance, and I never forget my debts.",
+  "Extraña el acordeón de su abuela y un escenario con telón de verdad.": "She misses her grandmother's accordion and a proper stage with a real curtain.",
+  "Ay, mirá vos, con la lengua suelta. Me gustó, corazón. Seguí así, pero con cuidado: yo soy de las que piden bis.": "Well, look at you, with a loose tongue. I liked it, sweetheart. Keep going, but carefully: I'm the type who asks for an encore.",
+  "Ese piropo lo tenías guardado, ¿no? Se nota que lo pulís antes de usarlo. Me gustó. No se lo cuentes a nadie.": "You'd been saving that one, hadn't you? You can tell you polish it before use. I liked it. Don't tell anyone.",
+  "Mirá cómo me hacés subir los colores. Y eso que a mí no me suben ni con el licor de la casa. Seguí, cariño.": "Look at you, bringing color to my cheeks. And not even the house liqueur manages that. Go on, darling.",
+  "Ja, ¿ese te lo enseñó el de la esquina? Tiene su gracia, pero te falta el final: yo lo termino mejor.": "Ha, did the guy on the corner teach you that one? It's got charm, but it lacks an ending: I'd finish it better.",
+  "Muy simpático. Pero a mí el piropo me llega mejor con la sonrisa a tiempo. Volvé a intentarlo cuando se te acomode el pulso.": "Very cute. But a compliment lands better with a well-timed smile. Try again when your pulse settles down.",
+  "Hoy no, cariño: tengo la barra llena y la paciencia en la última botella.": "Not today, darling: the bar is packed and my patience is down to the last bottle.",
+  "Me levanté con el pie izquierdo, y con tacos. No es buen día para piropos.": "I got up on the wrong foot, and in heels. Not a good day for compliments.",
+  "Dale, me escapo. Dejo el cartel de «vuelvo ya» y me suelto el pelo. Mirá que me hago esperar poco.": "All right, I'm slipping out. I'll leave the \"back soon\" sign up and let my hair down. Mind you, I don't keep people waiting long.",
+  "Hoy no, que trabajo hasta las dos y después, bueno, ya conocés mis horarios. Otro día, antes de abrir.": "Not today, I work until two and after that, well, you know my hours. Another day, before opening.",
+  "Qué lindo es salir a la luz del día. De noche todo se ve más lindo, pero de día se ve más verdadero. Me gusta verte a la luz.": "It's lovely being out in daylight. At night everything looks prettier, but by day it looks truer. I like seeing you in the light.",
+  "Cuando salgo de la barra me siento rara: sin delantal, sin bandeja, sin nadie pidiéndome nada. Con vos, rara y bien.": "When I leave the bar I feel odd: no apron, no tray, nobody asking me for anything. With you, odd and happy.",
+  "La barra, antes de abrir, con la persiana a medio subir y la luz entrando de costado. Es el único rato que es sólo mío; a vos te lo presto.": "The bar, before opening, with the shutter half up and the light slanting in. It's the only hour that's all mine; I'll lend it to you.",
+  "Sí. Me hiciste esperar, y yo no espero a nadie. Pero a vos sí. Sí, corazón: soy tuya… bueno, tuya a ratos; la barra sigue siendo mía.": "Yes. You made me wait, and I wait for nobody. But for you, I did. Yes, sweetheart: I'm yours... well, yours in my spare time; the bar is still mine.",
+  "Todavía no, cariño. No es que no quiera: es que cuando digo que sí es de verdad, y todavía me falta un trago de decisión.": "Not yet, darling. It's not that I don't want to: when I say yes I mean it, and I still need one more sip of resolve.",
+  "Sí. Y que sea con baile hasta la madrugada y la barra abierta para los invitados. Si me caso, me caso con fiesta.": "Yes. And let it be with dancing until dawn and the bar open for the guests. If I marry, I marry with a party.",
+  "Todavía no. Me gusta que me lo pidas, pero me gusta más hacerte esperar un poquito. Un poquito, ¿eh?": "Not yet. I like that you're asking, but I like making you wait a little more. Just a little, mind you.",
+  "Prometo guardarte siempre la mesa del rincón, servirte la primera copa y no cerrar la barra hasta que llegues. Y si llegás tarde, castigo con mate cocido.": "I promise to always keep the corner table for you, pour your first drink and not close the bar until you arrive. And if you're late, the punishment is mate cocido.",
+  "Me contaron que salís con otra. Que no sea Dalia, porque si es Dalia me quedo sin bailarina y sin paciencia. Pensalo unos días, corazón.": "I heard you're seeing someone else. Let it not be Dalia, because if it's Dalia I lose my dancer and my patience. Think it over for a few days, sweetheart.",
+  "Me llegó tu carta. La leí atrás de la barra, a escondidas, y me puse colorada como el vestido. Dalia me preguntó qué me pasaba. Le dije que era el calor de la salamandra.": "Your letter arrived. I read it behind the bar, on the sly, and went as red as my dress. Dalia asked what was wrong. I told her it was the heat from the stove.",
+  "¡Flores! Las pongo en la barra, entre las botellas. Los clientes van a preguntar y les voy a contestar: son de un admirador, y el admirador es mío.": "Flowers! I'll put them on the bar among the bottles. The customers will ask and I'll tell them: they're from an admirer, and the admirer is mine.",
+  "Un hijo… Le voy a enseñar a llevar cuatro vasos en una mano y a no creerles a los que dicen que no se toman otra. Y a decir gracias con una sonrisa.": "A child... I'll teach them to carry four glasses in one hand and never to believe anyone who says they won't have another. And to say thank you with a smile.",
+  "¿Eso fue un piropo? Repetilo, pero mirándome a los ojos, que a mí me hablan a la cara o no me hablan.": "Was that a compliment? Say it again, but looking me in the eye; people talk to my face or they don't talk to me.",
+  "Mirá qué bien: hasta me hiciste olvidar el paso, y eso es difícil. Me gustó.": "Well now: you even made me forget the step, and that's hard to do. I liked it.",
+  "Ay, qué cosas decís. Me vas a hacer sonrojar y después cómo salgo a la pista, con el vestido y la cara del mismo color.": "Oh, the things you say. You'll make me blush, and how will I step onto the floor then, with my dress and my face the same color?",
+  "Ja. Lindo intento. Todavía no me convenciste: seguí practicando, que tengo mucho público.": "Ha. Nice try. You haven't convinced me yet: keep practicing, I've got a big audience.",
+  "Muy dulce, pero me lo dijiste con los ojos en el piso. Los piropos, de frente, o no son piropos.": "Very sweet, but you said it staring at the floor. Compliments are delivered face to face, or they aren't compliments.",
+  "Hoy no, que ensayé seis horas y los pies me piden clemencia. Piropos, mañana.": "Not today, I rehearsed six hours and my feet are begging for mercy. Compliments tomorrow.",
+  "Estoy de mal humor y con los tacos nuevos. Es una mala combinación para cualquiera, ni te cuento para vos.": "I'm in a bad mood and in new heels. A bad combination for anyone, never mind for you.",
+  "Sí. Me pongo los tacos rojos, que a una cita se va con estilo. Vos ponés el paseo; yo pongo el paso y la gracia.": "Yes. I'll put on my red heels, because one goes to a date with style. You provide the outing; I provide the step and the charm.",
+  "Hoy no puedo: tengo ensayo con Cholo y la peña no se prepara sola. Otro día, y que sea tarde, que de mañana soy gruñona.": "I can't today: I have rehearsal with Cholo and the peña doesn't prepare itself. Another day, and make it late, because mornings I'm grumpy.",
+  "Dicen que una bailarina no se enamora: se acostumbra. Yo creo que lo dicen los que nunca la sacaron a bailar de verdad.": "They say a dancer doesn't fall in love: she gets used to it. I think it's said by those who never really asked her to dance.",
+  "No bailo con cualquiera, y con vos ya fueron varias tandas. Me estoy dejando llevar. Anotalo, que no lo repito.": "I don't dance with just anyone, and with you it's been several rounds now. I'm letting myself be led. Make a note, I won't repeat it.",
+  "La pista de la cantina, un sábado a las once y media, cuando el tango se rinde y empieza el chamamé. Ahí soy yo entera.": "The cantina dance floor, on a Saturday at half past eleven, when the tango surrenders and the chamamé begins. That's where I'm wholly myself.",
+  "Sí. Y no hacía falta tanto ruego, aunque un poquito me gustó. Sí: ya elegí. Y yo, cuando elijo, no cambio de pareja a mitad de la pieza.": "Yes. And all that begging wasn't necessary, though I liked a little of it. Yes: I've chosen. And when I choose, I don't change partners halfway through the piece.",
+  "Todavía no. Me gusta que me lo pidas, pero me gusta más que me lo pidas dos veces. Probá otra vez, y con más ritmo.": "Not yet. I like that you're asking, but I like it better when you ask twice. Try again, and with more rhythm.",
+  "Sí. Pero con vals, con tango y con chamamé hasta que amanezca. Y que Lucrecia haga el brindis, que algo me debe.": "Yes. But with waltz, tango and chamamé until daybreak. And let Lucrecia make the toast; she owes me one.",
+  "Todavía no. Un casamiento es el baile más largo de todos y quiero estar segura de que me sigue el paso.": "Not yet. A wedding is the longest dance of all and I want to be sure you can keep step with me.",
+  "Prometo bailar con vos aunque se acabe la música, ponerte la flor roja en el ojal cada aniversario y no soltarte la mano ni en el giro más difícil.": "I promise to dance with you even when the music runs out, to pin the red flower on your lapel every anniversary and not to let go of your hand even in the hardest turn.",
+  "Me contaron que salís con otra. Yo bailo de a una pieza por vez, pero con una sola pareja. Y que no sea Lucrecia, porque me quedo sin cuarto y sin novio. No me busques por unos días.": "I heard you're seeing someone else. I dance one piece at a time, but with one partner only. And let it not be Lucrecia, or I lose my room and my sweetheart. Don't come looking for me for a few days.",
+  "Me llegó tu carta. La leí en voz alta, en el cuarto, con gestos y todo. Lucrecia se rió; después me la sacó para leerla ella. La recuperé: es mía.": "Your letter arrived. I read it out loud in the room, gestures and all. Lucrecia laughed; then she snatched it to read it herself. I got it back: it's mine.",
+  "¡Flores! Hay que saber entregarlas: despacio, con la mirada. Vos casi lo lográs. Las pongo en el espejo del cuarto, así se ven por duplicado.": "Flowers! There's an art to handing them over: slowly, with a look. You almost managed it. I'll put them by the mirror in our room, so they show up twice.",
+  "Un hijo… Le voy a enseñar a caminar al compás antes que a caminar derecho, y chamamé descalzo en la cocina, como me enseñó mi abuela.": "A child... I'll teach them to walk to the beat before walking straight, and chamamé barefoot in the kitchen, the way my grandmother taught me.",
+  "¿Mesa para uno? Qué desperdicio de silla de al lado.": "Table for one? What a waste of the chair next to you.",
+  "Sentate, que la silla no muerde. Yo, depende de la hora y de cómo te portes.": "Sit down, the chair doesn't bite. Me, that depends on the hour and on how you behave.",
+  "Esta ginebra pega fuerte y despacito. Como yo.": "This gin hits hard and slow. Like me.",
+  "Ginebra: se toma de a sorbos y se recuerda de a pedazos. Como a mí, dicen.": "Gin: sipped in little drops and remembered in little pieces. Just like me, they say.",
+  "Vino patero: con carácter, como la casa. Si te sube rápido, no es el vino, es la compañía.": "Foot-pressed wine: it's got character, like the house. If it goes to your head fast, it isn't the wine, it's the company.",
+  "Bien tirada, con buena espuma. Todo está en la técnica, forastero.": "Well poured, with a good head. It's all in the technique, stranger.",
+  "Helada y con espuma. Si te sobra, no la desperdicies: yo no desperdicio nada.": "Ice cold with a good head. If you've got some left, don't waste it: I never waste anything.",
+  "Mate cocido: el trago de los prudentes. Después no digas que no te avisé que la noche es larga.": "Mate cocido: the drink of the cautious. Don't say I didn't warn you the night is long.",
+  "Chocolate caliente, espeso y sin apuro. Hay cosas que mejoran cuanto más se revuelven.": "Hot chocolate, thick and unhurried. Some things only get better the more they're stirred.",
+  "Te las traigo calentitas. Lo demás depende de cómo te portes.": "I'll bring them piping hot. The rest depends on how you behave.",
+  "Empanadas: se comen con la mano y con calma. Y ojo con el jugo: el que se mancha se lleva mi mirada de regalo.": "Empanadas: eaten by hand and with patience. And mind the juice: whoever gets stained earns my look as a gift.",
+  "Picada para compartir. Si no tenés con quién, te acompaño yo un ratito. Un ratito, eh.": "A sharing platter. If you've got no one to share it with, I'll keep you company a while. A little while, mind you.",
+  "Lleva todo lo que hace falta para aguantar la noche.": "It's got everything you need to last the night.",
+  "Guiso de cuchara, de los que abrigan por dentro. El que repite se queda con ganas de más, y eso lo digo con conocimiento.": "A good spoon-stew, the kind that warms you from the inside. Whoever has seconds wants thirds, and I say that from experience.",
+  "Tortas fritas: crocantes por fuera, tiernas por dentro. Como la moza, pero a mí no me tocan sin permiso.": "Fried tortas: crisp outside, tender inside. Just like your waitress, only nobody touches me without permission.",
+  "Fritas, calentitas y con azúcar. Cuidado con los dedos: se pegan a todo lo dulce.": "Fried, warm and sugared. Careful with your fingers: they stick to anything sweet.",
+  "Trucha: se pesca con paciencia y buena carnada. A mí me pasa igual: hay que saber tentarme.": "Trout: caught with patience and good bait. Same with me: you have to know how to tempt me.",
+  "Trucha del lago, bien fresquita. Pescada con caña y no con red, que a mí también me gusta que me conquisten de a poco.": "Fresh lake trout. Caught with a rod, not a net, because I like being won over slowly too.",
+  "Anotalo, nomás. Pero yo cobro de a poquito y con intereses.": "Put it on the tab, then. But I collect little by little, and with interest.",
+  "Va a la cuenta. Pero ojo: yo llevo la cuenta de todo, hasta de las miradas.": "It goes on the tab. But watch out: I keep count of everything, even the glances.",
+  "Despacito, que lo bueno se saborea.": "Slowly now, the good things are savored.",
+  "Sin apuro. La noche hay que tratarla con cariño, como a las cosas que uno quiere que duren.": "No rush. The night should be treated gently, like anything you want to last.",
+  "Volvé pronto, que la barra se pone fría sin vos.": "Come back soon, the bar goes cold without you.",
+  "Andá con cuidado y no tardes: acá siempre hay una silla con tu forma.": "Go safely and don't be long: there's always a chair here shaped like you.",
+  "Ya sos de la casa: no te cobro la sonrisa, y eso es mucho viniendo de mí.": "You're one of the house now: I don't charge you for the smile, and that's a lot coming from me.",
+  "Mirá cómo te trato: ya te guardo la mejor mesa. No se lo cuentes a los demás, que se me ponen celosos.": "See how I treat you: I'm already saving you the best table. Don't tell the others, they get jealous.",
+  "Hoy cerrar la barra me va a costar: se me hace tarde, y no es por el trabajo.": "Closing the bar tonight is going to be hard: it's getting late, and not because of work.",
+  "Ya no sirvo nada a medias: ni las copas, ni las miradas.": "I don't serve anything by halves anymore: neither the drinks nor the glances.",
+  "Mesas de cuatro patas, las mejores: firmes, de las que no se mueven aunque las apoyes con ganas. Yo también soy de apoyarme bien firme.": "Four-legged tables are the best: steady, the kind that won't budge however hard you lean on them. I like leaning on things good and steady myself.",
+  "Una buena silla se reconoce enseguida: te recibe sin quejarse, te sostiene sin apuro y no te deja ir fácil. A mí me pasa algo parecido con algunos clientes.": "You spot a good chair right away: it welcomes you without complaint, holds you without hurry and doesn't let you go easily. Something similar happens to me with certain customers.",
+  "Este mostrador es de lenga maciza: aguanta lo que le apoyen encima y nunca se queja. Hay quien envidia a la madera, ¿eh?": "This counter is solid lenga wood: it takes whatever gets leaned on it and never complains. Some people envy the timber, you know.",
+  "Si sabés llevar, te dejo llevar. Si no, te enseño.": "If you know how to lead, I'll let you lead. If not, I'll teach you.",
+  "Si te animás a pisar la pista, yo me animo a no pisarte. Es un trato justo.": "If you dare step onto the floor, I dare not to step on you. A fair deal.",
+  "El tango, bien pegaditos; el chamamé, con un poco más de aire. Vos elegí.": "Tango, nice and close; chamamé, with a little more air. You choose.",
+  "Tango para el que se anima, chamamé para el que se divierte. Y los dos para el que se queda toda la noche.": "Tango for the daring, chamamé for the fun-loving. And both for whoever stays all night.",
+  "¿Me seguís el paso o preferís que te persiga yo?": "Will you follow my step, or would you rather I chase you?",
+  "Uno, dos, y en el tres me mirás a los ojos. El resto lo pone el piso.": "One, two, and on three you look me in the eye. The floor does the rest.",
+  "No me mires los pies, que el baile no está ahí.": "Don't look at my feet, the dance isn't down there.",
+  "Los pies hacen el paso, pero el baile lo hacen los ojos. Mirá donde corresponde.": "The feet make the step, but the eyes make the dance. Look where you should.",
+  "Con este calor dan ganas de aflojarse todo menos el compás.": "In this heat you want to loosen everything except the beat.",
+  "Se me pega el vestido y se me pega el ritmo. De las dos cosas, sólo una me molesta.": "The dress sticks to me and so does the rhythm. Of the two, only one bothers me.",
+  "Dicen que bailo como si el piso quemara. Vení a probarlo.": "They say I dance as if the floor were burning. Come and try it.",
+  "Aflojá los hombros, que no estás cargando leña. Ahí, así. Ya sos otro.": "Loosen your shoulders, you're not hauling firewood. There, like that. Now you're someone else.",
+  "Entre tanda y tanda se me enfrían los pies y se me calienta la vanidad. Tengo que cuidar las dos.": "Between rounds my feet cool down and my vanity heats up. I have to look after both.",
+  "En la pista no hay pena que dure una tanda entera. Por eso siempre pido otra.": "On the floor no sorrow lasts a whole round. That's why I always ask for another.",
+  "Gracias por el baile. Quedamos a mano: vos me llevaste y yo te dejé. Hasta la próxima tanda.": "Thanks for the dance. We're even: you led me and I let you. Until the next round.",
+  "Qué lindo compás tenés. No lo gastes con cualquiera.": "You've got a lovely sense of rhythm. Don't waste it on just anyone.",
+  "A vos ya te dejo marcar el paso. No se lo digas a los demás, que se acostumbran.": "I already let you set the step. Don't tell the others, they'd get used to it.",
+  "Con vos no hace falta que me levanten en vilo: me alcanza con que me sigas el compás sin mirar.": "With you no grand lifts are needed: it's enough that you keep the beat without looking.",
+  "Cuando bailo con vos, el piso aprende a no quemar.": "When I dance with you, the floor learns not to burn.",
+  "Todas las tandas bailo con la gente; la última, con vos. Nadie se da cuenta, pero la pista sí.": "All night I dance with everyone; the last round, with you. Nobody notices, but the floor does.",
+  "Ese ya fue el segundo, corazón. Los que van por el segundo con esa cara después se acuerdan de todo… menos de lo que dijeron.": "That was your second, sweetheart. People who reach the second with that face remember everything afterwards... except what they said.",
+  "Mirá que la ginebra pega, ¿eh? Yo te sirvo, pero me gusta que sigas sabiendo cómo te llamás.": "Careful, the gin hits, you know. I'll serve you, but I like you to keep knowing your own name.",
+  "Vas muy bien… y vas muy rápido. Cuidado, que a esta altura la barra empieza a inclinarse.": "You're doing very well... and very fast. Careful, by now the bar is starting to tilt.",
+  "Hasta acá llegamos con lo fuerte. Te traigo un mate cocido y me lo agradecés mañana, cuando te acuerdes de tu nombre.": "That's as far as we go with the strong stuff. I'll bring you a mate cocido and you can thank me tomorrow, once you remember your name.",
+  "No, mi vida. Un trago más y la barra te la tiene que sostener otro. Mate cocido, calentito, y charlamos un ratito.": "No, my dear. One more and somebody else has to hold the bar up for you. Hot mate cocido, and we'll chat a while.",
+  "Lo fuerte se terminó por hoy. Mate cocido o agua, vos elegís; lo que no elegís es seguir de largo.": "The strong stuff is finished for today. Mate cocido or water, your choice; what you don't get to choose is carrying on.",
+  "Ojo con la puerta, que a esta hora se mueve de lugar. Andá derechito, y si no podés, andá despacito.": "Watch the door, it moves around at this hour. Walk straight, and if you can't, walk slowly.",
+  "Cuidado en el camino, corazón: los escalones también se tambalean a esta hora, no sos el único.": "Careful on your way, sweetheart: the steps wobble too at this hour, you're not the only one.",
+  "Mirá quién volvió a estar derecho. No hay nada como un mate cocido y un poco de aire.": "Look who's standing straight again. Nothing beats a mate cocido and a bit of fresh air.",
+  "Eso es: ya no se te mueve el piso. Ahora sí, hablemos como gente grande.": "There you go: the floor has stopped moving. Now we can talk like grown-ups.",
+  "¿Se puede? Hoy la barra está llena de caras largas y esta mesa tiene la mejor vista.": "May I? The bar is full of long faces tonight and this table has the best view.",
+  "Me siento un rato, que se me acabó el trabajo y me sobra la conversación.": "I'll sit a while; my work is done and I've got conversation to spare.",
+  "No muerdo, ¿viste? Sólo quiero apoyar los codos y ver pasar la noche.": "I don't bite, see? I just want to rest my elbows and watch the night go by.",
+  "¿Te molesta si me siento? Es que la silla de al lado parecía que me estaba esperando.": "Mind if I sit? That chair next to you looked like it was waiting for me.",
+  "Un ratito nomás: lo justo para un trago y un par de novedades.": "Just a little while: enough for one drink and a bit of news.",
+  "Hoy está lindo para charlar. ¿Te hago compañía o te dejo con tus pensamientos?": "It's a nice evening for talking. Shall I keep you company or leave you with your thoughts?",
+  "Mientras el tren esté en hora, yo estoy en paz. Y como hoy ya no pasa ninguno, me siento un rato.": "As long as the train's on time, I'm at peace. And since none more come through today, I'll sit a while.",
+  "Un trago y un silbato lejano: es lo único que le pido a la noche.": "A drink and a distant whistle: that's all I ask of the night.",
+  "Corté leña desde temprano. Me merezco una silla sin astillas.": "I've been chopping wood since early. I deserve a chair without splinters.",
+  "Una copa y a dormir. Mañana hay obra, y la Gladys me espera con el reto de siempre.": "One drink and off to bed. There's work tomorrow, and Gladys is waiting with the usual scolding.",
+  "Esta mesa la hizo alguien que sabía: mirá cómo ajusta la pata, ni una cuña. Es deformación del oficio, perdoná.": "Somebody who knew his trade built this table: look how the leg fits, not a single wedge. Occupational habit, forgive me.",
+  "Me siento a probar si esta silla aguanta. Tranquilo, la pruebo yo primero.": "I'll sit and test whether this chair holds. Relax, I'll go first.",
+  "Anselmo. Me siento. No hablo mucho, pero escucho todo.": "Anselmo. I'm sitting. I don't talk much, but I hear everything.",
+  "Hoy el yunque me ganó. Ahora le gano yo a una cerveza.": "The anvil beat me today. Now I'll beat a beer.",
+  "El lago hoy estuvo generoso. Yo, más todavía: me siento a contarlo.": "The lake was generous today. I'm more so: I'm sitting down to tell about it.",
+  "Pesqué de más y hablo de más. Dejame que cuente, que el pez no se achica solo.": "I caught too much and I talk too much. Let me tell it; the fish won't shrink on their own.",
+  "Aviso: me siento. Fin del mensaje.": "Notice: I am sitting down. End of message.",
+  "Hoy entraron tres telegramas, todos con malas noticias. Necesito una conversación de las lindas, sin puntos ni paradas.": "Three telegrams came in today, all bad news. I need a nice conversation, with no full stops and no stops.",
+  "Cuando manejaba la locomotora me sentaba mirando para adelante. Ahora me siento mirando a la gente: se aprende más.": "When I drove the locomotive I sat facing forward. Now I sit looking at people: you learn more.",
+  "Elena decía que no hay mal día con compañía. Me siento un ratito, a ver si tenía razón.": "Elena used to say no day is bad with company. I'll sit a moment to see if she was right.",
+  "Disculpe la molestia. Estoy cuadrando mentalmente el día, y acompañado salen menos errores.": "Pardon the intrusion. I'm balancing the day in my head, and with company there are fewer errors.",
+  "Un saldo a favor: esta silla libre. Si me lo permite, la ocupo.": "A credit in our favor: this empty chair. If you'll allow it, I'll occupy it.",
+  "Salí del almacén escapándome de Ercilia. Si pregunta, no me viste.": "I slipped out of the store running from Ercilia. If she asks, you haven't seen me.",
+  "Hoy anoté todo lo que pasó. Me falta anotar esto, así que me siento.": "I wrote down everything that happened today. I still have to write this down, so I'm sitting.",
+  "Me siento, sí. Y que nadie me pregunte por el vuelto, que hoy ya di mi cuota de explicaciones.": "Yes, I'm sitting. And let nobody ask me about change, I've met my quota of explanations today.",
+  "Cuando una trabaja todo el día se gana una silla y el derecho a opinar de lo que sea.": "When you work all day you earn a chair and the right to opine on anything.",
+  "Pasé horas con la masa, y la masa no contesta. Necesito un rato con gente que sí.": "I spent hours with the dough, and dough doesn't answer back. I need a while with people who do.",
+  "Si querés pan, mañana temprano. Hoy, charla.": "If you want bread, come early tomorrow. Tonight, conversation.",
+  "Ay, qué día. Hilo, dedal y los pies hinchados. Me siento un ratito, que me lo merezco.": "Oh, what a day. Thread, thimble and swollen feet. I'll sit a while; I've earned it.",
+  "Me siento, pero si me ofrecen una copa la acepto con el meñique en alto. Soy modista, no abstemia.": "I'll sit, but if somebody offers me a drink I'll accept it with my pinky up. I'm a seamstress, not a teetotaler.",
+  "Se me quedó una melodía pegada. Si la silbo bajito, ¿te molesta?": "A tune's stuck in my head. If I whistle it softly, do you mind?",
+  "Me siento un rato a escuchar, que la mejor canción siempre la dice alguien en la mesa de al lado.": "I'll sit and listen a while; the best song always comes from somebody at the next table.",
+  "¡Envido! Y mirá que yo nunca miento. Bueno, casi nunca. Bueno, cuando me conviene.": "Envido! And mind you, I never lie. Well, hardly ever. Well, when it suits me.",
+  "¡Truco! Con cara de bueno y cartas de ladrón.": "Truco! With a good-guy face and a thief's cards.",
+  "¡Quiero retruco! Pensalo bien, que el que duda en el truco ya perdió la mitad.": "I want retruco! Think it over: whoever hesitates at truco has already lost half.",
+  "¡Flor! Y de la flor no se discute: se admira.": "Flor! And you don't argue with a flor: you admire it.",
+  "¡Falta envido! Si me equivoco, pago la ronda; si acierto, brindás vos.": "Falta envido! If I'm wrong I buy the round; if I'm right, you toast.",
+  "Sentate, que nos falta uno que mienta peor que el Mario.": "Sit down, we're missing someone who lies worse than Mario.",
+  "Dale, sentate: tenemos una silla libre, una baraja gastada y ganas de ganarle a alguien nuevo.": "Go on, sit down: we've got a free chair, a worn deck and a hankering to beat somebody new.",
+  "Venite, que acá se juega con honor… y con trampa, pero con honor.": "Come on over, we play with honor here... and with cheating, but with honor.",
+};

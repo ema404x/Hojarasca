@@ -344,7 +344,7 @@ export function decidirIA(p, j, perfil = PERFIL_TRUCO, semilla = 1) {
 // Cómo juega cada vecino (los que hablan del truco en vecindad-social-voces.js)
 export const PERFILES_TRUCO = {
   jefe: { miente: 0.35, corazon: 0.6 }, herrero: { miente: 0.05, corazon: 0.4 }, ercilia: { miente: 0.45, corazon: 0.7 },
-  padre: { miente: 0.3, corazon: 0.55 }, madre: { miente: 0.2, corazon: 0.6 }, martin: { miente: 0.4, corazon: 0.5 }, gerente: { miente: 0.1, corazon: 0.4 }, moza: { miente: 0.7, corazon: 0.5 },
+  padre: { miente: 0.3, corazon: 0.55 }, madre: { miente: 0.2, corazon: 0.6 }, martin: { miente: 0.4, corazon: 0.5 }, gerente: { miente: 0.1, corazon: 0.4 }, moza: { miente: 0.7, corazon: 0.5 }, bailarina: { miente: 0.55, corazon: 0.6 },
   carpintero: { miente: 0.6, corazon: 0.5 }, musico: { miente: 0.5, corazon: 0.65 }, abuela: { miente: 0.15, corazon: 0.35 },
   'inv-domador': { miente: 0.3, corazon: 0.7 }, 'inv-pescador': { miente: 0.4, corazon: 0.5 },
 };

@@ -328,7 +328,7 @@ export const PUNTOS_PENA = {
   'truco-1': { x: 3.5, z: 1.72, rot: 0 }, 'truco-2': { x: 3.5, z: 3.08, rot: PI },
   pista: { x: 3.15, z: 0.55, rot: -0.7 }, 'pista-descanso': { x: -2.3, z: -0.55, rot: -PI / 2 },
   'musico-1': { x: 2.35, z: -0.95, rot: 0.4 }, 'musico-2': { x: 4.0, z: -0.95, rot: -0.4 },
-  'cama-2': { x: -1.475, z: -2.7, rot: -1.79 },
+  'cama-2': { x: -1.475, z: -2.66, rot: -1.79 },
 };
 // ¿Es hora de peña? (sábado desde las 21:30, o la madrugada del domingo hasta la 1:30)
 export function penaActiva(dia, hora) {
@@ -2030,7 +2030,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     const hh = h < 6 ? h + 24 : h;
     if (hh >= 20.5 && hh < 26) {
       const x = enLaCantinaDe(a, persona, nocheDeCantina(dia, h), hh);
-      if (x) return x.pose ? { ...ir('trabajo', 'cantina', x.punto), pose: x.pose, sentado: false } : ir('cantina', 'cantina', x.punto);
+      if (x) return x.pose ? { ...ir('trabajo', 'cantina', x.punto), pose: x.pose, sentado: false } : /^truco-/.test(x.punto) ? { ...ir('cantina', 'cantina', x.punto), pose: 'cartas' } : ir('cantina', 'cantina', x.punto);
     }
   }
   // 3.7.0: la astrónoma, con su observatorio abierto, trabaja de noche (de 20 a 3:30) y duerme hasta la siesta

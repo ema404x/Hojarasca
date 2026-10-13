@@ -276,10 +276,10 @@ export function bajaSentado(asiento, talla) {
 // (3.7.3: y las del taller ferroviario: limar en la morsa y la llave en el juego de ruedas)
 const MANOS_OCUPADAS = new Set(['martillar', 'amasar', 'serruchar', 'palear', 'hachar', 'tornear', 'coser', 'curar', 'mortero', 'calafatear', 'pintar', 'telescopio', 'izar', 'tocar', 'limar', 'llave']);
 // 3.7.5: y las de las fiestas (aplaudir, los bailes, la jineteada, comer en la mesa larga, tirar la taba)
-for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar', 'tango', 'chamame-solo', 'bombo']) MANOS_OCUPADAS.add(p);   // (3.9.1: y los de la peña)
+for (const p of ['aplaudir', 'chamame', 'chacarera', 'jinete', 'comer', 'tirar', 'tango', 'chamame-solo', 'bombo', 'cartas']) MANOS_OCUPADAS.add(p);   // (3.9.1: y los de la peña)
 // 3.8.6: las poses sentadas, en una sola lista (la usa también main.js para no ofrecerte la silla de alguien sentado:
 // faltaba «comer», la de la mesa larga)
-export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);
+export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer', 'cartas']);   // (3.9.1: y las cartas del truco de la cantina)
 export const estaSentado = (g) => !!g && POSES_SENTADAS.has(g.pose);
 // 3.9: las poses de la moza de la cantina (`npc.pose`): las resuelve alPosar en gente-cuerpo.js (POSES_CANTINA), también caminando; acá sólo la lista
 export const IDS_POSES_CANTINA = ['bandeja', 'barra', 'dejar'];
@@ -304,6 +304,8 @@ function posar(g, charlando) {
       else if (g.pose === 'coser') { const k = Math.sin(t * 7); g.brazos[0].rotation.x = -0.95 + k * 0.04; g.brazos[1].rotation.x = -0.85; g.torso.rotation.x = 0.12; g.cabeza.rotation.x += 0.32; }
       // 3.7.5: comer en la mesa larga: la mano del tenedor va y viene del plato a la boca, la otra apoyada en la mesa
       else if (g.pose === 'comer') { const k = Math.max(0, Math.sin(t * 1.6)); g.brazos[1].rotation.x = -0.75 - k * 0.75; g.brazos[1].rotation.z = 0.12 * k; g.brazos[0].rotation.x = -0.7; g.torso.rotation.x = 0.1; g.cabeza.rotation.x += 0.18 - k * 0.12; }
+      // 3.9.1: jugar al truco en la mesa del rincón: las dos manos adelante, sobre el paño, con las cartas; de vez en cuando una sube a tirar una y la cabeza mira la mesa
+      else if (g.pose === 'cartas') { const k = Math.max(0, Math.sin(t * 0.55)); g.brazos[1].rotation.x = -0.85 - k * 0.55; g.brazos[1].rotation.z = 0.1 * k; g.brazos[0].rotation.x = -0.8; g.torso.rotation.x = 0.1; g.cabeza.rotation.x += 0.26; }
       else if (!charlando && !g.mate) { g.brazos[0].rotation.x = -0.45; g.brazos[1].rotation.x = -0.45; }
       break;
     }
@@ -1147,7 +1149,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       // acompañabas a la casa de té, se quedaba parado en la calle esperando que te alejaras)
       // 3.7.1 (mundo): ni la que vuelve al refugio ni la que camina con vos (`enLejano`, `conVos`)
       let cerquita = d < 7 && !g.enBase && !(g.deVisita && g.espera <= 0) && !g.charlaVecinos && !g.enCita;
-      if (g.enLejano || g.conVos || g.alAmor) cerquita = false;
+      if (g.enLejano || g.conVos || g.alAmor || g.sinFrenar) cerquita = false;   // (3.9.1: y la de la cantina)
       let etapa = g.ruta ? g.ruta[g.etapa % g.ruta.length] : null;
       if (g.camino && !charlando && !cerquita) {
         // 3.6: con horario (la gente de la aldea): `camino` son los puntos que faltan (por las
