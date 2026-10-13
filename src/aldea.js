@@ -310,10 +310,10 @@ export const CANTINA = {
   barra: { x: -3.95, z: 0.2 },
   paso: [{ x: -3.95, z: 1.5 }, { x: -2.4, z: 1.5 }, { x: 0.3, z: 1.5 }],
   mesas: [
-    { id: 'mesa-1', x: -0.9, z: 2.7, sillas: [{ x: -0.9, z: 2.05, mira: 0 }, { x: -0.9, z: 3.35, mira: PI }], servicio: { x: 0.05, z: 2.7, rot: -PI / 2 } },
-    { id: 'mesa-2', x: 1.5, z: 2.7, sillas: [{ x: 1.5, z: 2.05, mira: 0 }, { x: 1.5, z: 3.35, mira: PI }], servicio: { x: 0.6, z: 2.7, rot: PI / 2 } },
-    { id: 'mesa-3', x: -0.9, z: 0.25, sillas: [{ x: -0.9, z: -0.4, mira: 0 }, { x: -0.9, z: 0.9, mira: PI }], servicio: { x: 0.05, z: 0.25, rot: -PI / 2 } },
-    { id: 'mesa-4', x: 1.5, z: 0.25, sillas: [{ x: 1.5, z: -0.4, mira: 0 }, { x: 1.5, z: 0.9, mira: PI }], servicio: { x: 0.6, z: 0.25, rot: PI / 2 } },
+    { id: 'mesa-1', x: -0.9, z: 2.7, sillas: [{ x: -0.9, z: 1.98, mira: 0 }, { x: -0.9, z: 3.42, mira: PI }], servicio: { x: 0.05, z: 2.7, rot: -PI / 2 } },
+    { id: 'mesa-2', x: 1.5, z: 2.7, sillas: [{ x: 1.5, z: 1.98, mira: 0 }, { x: 1.5, z: 3.42, mira: PI }], servicio: { x: 0.6, z: 2.7, rot: PI / 2 } },
+    { id: 'mesa-3', x: -0.9, z: 0.25, sillas: [{ x: -0.9, z: -0.47, mira: 0 }, { x: -0.9, z: 0.97, mira: PI }], servicio: { x: 0.05, z: 0.25, rot: -PI / 2 } },
+    { id: 'mesa-4', x: 1.5, z: 0.25, sillas: [{ x: 1.5, z: -0.47, mira: 0 }, { x: 1.5, z: 0.97, mira: PI }], servicio: { x: 0.6, z: 0.25, rot: PI / 2 } },
   ],
 };
 // Abre al atardecer y cierra de madrugada (la moza trabaja de 18 a 2: el cartel de la puerta dice lo mismo)

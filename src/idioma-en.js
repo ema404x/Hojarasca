@@ -19,6 +19,7 @@ import { EN_R } from './idioma-en-r.js';
 // 3.8.8: la escalera de casas (cabaña, casa con galería, casona)
 import { EN_S } from './idioma-en-s.js';
 import { EN_T } from './idioma-en-t.js';
+import { EN_U } from './idioma-en-u.js';
 
 export const EN = {
  "}; if (!CODIGO_VALIDO.test(c)) return { ok: false, mapa: { ...base }, motivo: 'Esa tecla no sirve para el juego.' }; if (base[accion] === c) return { ok: true, mapa: { ...base }, motivo: '' }; if (esFija(accion)) { return { ok: false, mapa: { ...base }, motivo:": "}; if (!CODIGO_VALIDO.test(c)) return { ok: false, mapa: { ...base }, motivo: 'That key does not work in the game.' }; if (base[accion] === c) return { ok: true, mapa: { ...base }, motivo: '' }; if (esFija(accion)) { return { ok: false, mapa: { ...base }, motivo:",
@@ -2308,6 +2309,7 @@ Object.assign(EN, EN_Q);
 Object.assign(EN, EN_R);
 Object.assign(EN, EN_S);
 Object.assign(EN, EN_T);
+Object.assign(EN, EN_U);
 // 2.4: la carta que llega al buzón dice lo mismo que la de Ercilia, con otro final.
 // Sale de las que ya están (una por carta, en las tandas M y N).
 for (const [es, en] of Object.entries(EN)) {

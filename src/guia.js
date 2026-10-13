@@ -121,6 +121,8 @@ export const SECCIONES_GUIA = [
       // 3.8.9
       ['Los pesos', 'En la Aldea de los Duendes (la trochita del sur) todo se paga en pesos: lo que vendés en los puestos, los jornales y los pedidos de los vecinos. Tu plata se ve en la pausa, en «Billetera y movimientos».'],
       ['El Banco del Pueblo', 'Al este de la plaza de la aldea (también en el mapa). Amadeo presta pesos, compra cosas a buen precio y vende las etapas de las casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18.'],
+      // 3.9.0
+      ['La cantina', 'Al final de la calle de la Loma (también en el mapa). Abre de 18 a 2. Sentate a una mesa con E: Lucrecia viene, te muestra la carta y te trae lo que pidas. Se paga en pesos, con trueque o a la cuenta. E toma o come; R te levanta.'],
     ],
   },
   {

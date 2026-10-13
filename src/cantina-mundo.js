@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { vozDe, planBalbuceo } from './social-voz.js';
 
-const GRIS = '#cfe0dc';
+const GRIS = '#b8d4cc';
 const MESA_Y = 0.32 + 0.78;   // el piso de adentro más la altura de la mesa (aldea-arquitectura.js: PISO + 0,76 + el mantel)
 
 export function crearCantinaMundo(ctx) {
@@ -23,18 +23,18 @@ export function crearCantinaMundo(ctx) {
   const FORMAS = {
     vaso(it) {
       const g = new THREE.Group();
-      g.add(mesh(cilindro(0.026, 0.032, 0.09), mat(GRIS, { opacidad: 0.5 }), 0, 0.045, 0));
+      g.add(mesh(cilindro(0.026, 0.032, 0.09), mat(GRIS, { opacidad: 0.78 }), 0, 0.045, 0));
       const liq = mesh(cilindro(0.024, 0.029, 0.07), mat(it.color), 0, 0.037, 0);
       g.add(liq); g.userData.liquido = liq; g.userData.altoLiquido = 0.07; g.userData.boca = 0.09;
       return g;
     },
     jarra(it) {
       const g = new THREE.Group();
-      g.add(mesh(cilindro(0.04, 0.046, 0.13), mat(GRIS, { opacidad: 0.5 }), 0, 0.065, 0));
+      g.add(mesh(cilindro(0.04, 0.046, 0.13), mat(GRIS, { opacidad: 0.78 }), 0, 0.065, 0));
       const liq = mesh(cilindro(0.038, 0.043, 0.1), mat(it.color), 0, 0.055, 0);
       g.add(liq);
       const espuma = mesh(bola(0.042), mat('#f4ecd4'), 0, 0.12, 0); espuma.scale.set(1, 0.4, 1); g.add(espuma);
-      g.add(mesh(caja(0.015, 0.09, 0.02), mat(GRIS, { opacidad: 0.5 }), 0.056, 0.07, 0));
+      g.add(mesh(caja(0.015, 0.09, 0.02), mat(GRIS, { opacidad: 0.78 }), 0.056, 0.07, 0));
       g.userData.liquido = liq; g.userData.altoLiquido = 0.1; g.userData.espuma = espuma; g.userData.boca = 0.13;
       return g;
     },
@@ -106,6 +106,7 @@ export function crearCantinaMundo(ctx) {
   function ponerEnMesa(mesa, silla, item, restantes) {
     quitarDeMesa(mesa);
     const g = (FORMAS[item.forma] || FORMAS.vaso)(item);
+    if (/^(vaso|jarra|taza)$/.test(item.forma)) g.add(mesh(cilindro(0.062, 0.062, 0.006, 12), mat('#3a2418'), 0, 0.003, 0));   // el posavasos de cuero: se ve sobre el mantel
     const base = lugarEnMesa(silla);
     g.position.copy(base);
     g.rotation.y = silla.mira;

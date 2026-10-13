@@ -4971,10 +4971,10 @@ function bancoDelPueblo(K) {
 // de dos sillas a los dos lados del pasillo, la mesa de truco de adorno en el rincón, la guitarra colgada, la salamandra con su luz cálida y,
 // atrás, el cuarto de la moza. Las mesas y sillas son las mismas de `CANTINA` en aldea.js (la prueba las compara). Se ve igual en todas las etapas.
 export const MESAS_CANTINA = [
-  { id: 'mesa-1', x: -0.9, z: 2.7, sillas: [[-0.9, 2.05, 0], [-0.9, 3.35, Math.PI]] },
-  { id: 'mesa-2', x: 1.5, z: 2.7, sillas: [[1.5, 2.05, 0], [1.5, 3.35, Math.PI]] },
-  { id: 'mesa-3', x: -0.9, z: 0.25, sillas: [[-0.9, -0.4, 0], [-0.9, 0.9, Math.PI]] },
-  { id: 'mesa-4', x: 1.5, z: 0.25, sillas: [[1.5, -0.4, 0], [1.5, 0.9, Math.PI]] },
+  { id: 'mesa-1', x: -0.9, z: 2.7, sillas: [[-0.9, 1.98, 0], [-0.9, 3.42, Math.PI]] },
+  { id: 'mesa-2', x: 1.5, z: 2.7, sillas: [[1.5, 1.98, 0], [1.5, 3.42, Math.PI]] },
+  { id: 'mesa-3', x: -0.9, z: 0.25, sillas: [[-0.9, -0.47, 0], [-0.9, 0.97, Math.PI]] },
+  { id: 'mesa-4', x: 1.5, z: 0.25, sillas: [[1.5, -0.47, 0], [1.5, 0.97, Math.PI]] },
 ];
 const COLORES_BOTELLA = ['#35502e', '#7a4a1a', '#4a2c1a', '#a8b8a0', '#7a2a2a', '#3a4a5a', '#c8b070', '#2e4a3a'];
 // Una repisa de botellas contra la pared de la izquierda (de frente a +X): el fondo, los estantes y las botellas de pie, en filas parejas pero no iguales

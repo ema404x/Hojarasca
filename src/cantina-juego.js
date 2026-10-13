@@ -489,7 +489,7 @@ export function crearCantinaJuego(ctx) {
     estaSentado: () => !!ses, sinApuro: () => !!ses && cantinaAbierta(hora()),
     sirviendo, saludo, cartaHoy, sorbear, llamar, dibujar, pedirItem, saldar, soltar,
     // para las pruebas
-    estado: () => ({ ses: ses ? { fase: ses.fase, mesa: ses.mesa.id, silla: ses.silla.i, orden: ses.orden ? { item: ses.orden.item.id, fase: ses.orden.fase } : null } : null, limpieza: limpieza ? limpieza.fase : null,
+    estado: () => ({ ses: ses ? { fase: ses.fase, parado: !!ses.parado, mesa: ses.mesa.id, silla: ses.silla.i, orden: ses.orden ? { item: ses.orden.item.id, fase: ses.orden.fase } : null } : null, limpieza: limpieza ? limpieza.fase : null,
       servidos: [...servidos.entries()].map(([k, v]) => ({ mesa: k, item: v.item.id, restantes: v.restantes })), controla: !!controla, panel: { ...estadoPanel }, sorbo: !!sorbo, info: { ...info } }),
     lugar: { mesas, sillas, barra, centro, paso, ruta, aMundo, rotMundo, pisoY },
     panel: estadoPanel,

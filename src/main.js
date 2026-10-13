@@ -1568,7 +1568,7 @@ function dibujarMapa() {
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
   for (const m of modos?.marcasMapa?.() || []) marcas.push(m);   // 3.1: los postes de largada
-  if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); }   // 3.8.9: el banco, rotulado (antes nada decía dónde estaba)
+  if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); const c = aldeaMundo.lugarCantina(); marcas.push({ x: c.x, z: c.z, tipo: 'parada', nombre: c.nombre }); }   // 3.8.9: el banco, rotulado (3.9.0: y la cantina) (antes nada decía dónde estaba)
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
 
@@ -3875,6 +3875,8 @@ function marcarPisos() {
 // 3.6: el primer viaje, en una línea: dónde se sube y dónde se baja
 const PISTA_PRIMER_VIAJE = 'Subite a la trochita en la Estación del Valle, acá cerca del refugio, y bajate en la Aldea de los Duendes: ahí está el almacén de Ercilia';
 // 3.8.9: dónde está el banco y cuándo atiende (el mapa lo rotula; el horario es el de HORARIO_BANCO, aldea.js)
+// 3.9.0: la cantina (el mapa la rotula; atiende de 18 a 2: HORARIO_CANTINA, aldea.js)
+const PISTA_CANTINA = 'Al final de la calle de la Loma, pasando el observatorio, está la cantina (también en el mapa). Lucrecia atiende de 18 a 2: sentate a una mesa con E y mirá la carta. Se paga con pesos, con trueque o a la cuenta';
 const PISTA_BANCO = 'En la aldea, saliendo de la plaza hacia el este, está el Banco del Pueblo (también en el mapa): Amadeo presta pesos, paga bien lo que le llevás y vende casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18';
 // Los primeros pasos: pistas que aparecen una sola vez, cuando corresponde,
 // para que el primer rato no sea andar sin saber qué se puede hacer.
@@ -3891,6 +3893,8 @@ const PISTAS = [
   // 3.6: el primer viaje. En el Relax el almacén (y el hacha) está en la Aldea de los Duendes
   { id: 'p-aldea', cuando: (js, p) => !desafio && !p.cosas?.hacha && !p.aldea?.descubierta && (!!p.entradas.refugio || Object.keys(p.entradas).length >= 2), titulo: 'El hacha está en la aldea', texto: PISTA_PRIMER_VIAJE },
   // 3.8.9: el banco. Quien baja en la aldea no sabía que había uno ni dónde (las pistas sólo hablaban del almacén)
+  // 3.9.0: la cantina, también desde que llegaste a la aldea (sólo en el Relax)
+  { id: 'p-cantina', cuando: (js, p) => !desafio && hayEconomia(p) && !!p.aldea?.descubierta, titulo: 'La cantina', texto: PISTA_CANTINA },
   { id: 'p-banco', cuando: (js, p) => !desafio && hayEconomia(p) && !!p.aldea?.descubierta, titulo: 'El Banco del Pueblo', texto: PISTA_BANCO },
   // Desafío, segundo acto: el nido aparece cuando cae la nodriza
   { id: 'p-nido', cuando: (js, p) => !!p.desafio?.nido && !p.desafio.nido.caido, titulo: 'Siguen saliendo', texto: 'Vienen de una cueva escondida en el valle. Los troncos huecos traen pistas que te la van a ubicar' },

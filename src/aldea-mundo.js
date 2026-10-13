@@ -1287,6 +1287,8 @@ export function crearAldeaMundo(ctx) {
   // Donde estructuras.js arma el almacén y la casa de té.
   const sitiosValle = () => ({ almacen: sitioEstructura('almacen', parada), 'casa-te': sitioEstructura('casa-te', parada) });
   // 3.8.9: dónde cae el banco en el valle (para rotularlo en el mapa: sin eso el juego no dice dónde está)
+  // 3.9.0: y dónde cae la cantina, al final de la calle de la Loma (el rótulo del mapa)
+  const lugarCantina = () => { const e = EDIFICIOS_ALDEA.cantina, w = marcoAldea(parada).aMundo(e.x, e.z); return { x: w.x, z: w.z, nombre: 'La Cantina' }; };
   const lugarBanco = () => { const e = EDIFICIOS_ALDEA['banco-pueblo'], w = marcoAldea(parada).aMundo(e.x, e.z); return { x: w.x, z: w.z, nombre: 'Banco del Pueblo' }; };
 
   // ------------------------------------------------ las raíces (los complejos)
@@ -2265,7 +2267,7 @@ export function crearAldeaMundo(ctx) {
       puertas: b.puertas.map((p) => ({ nombre: p.nombre, clave: p.estructuraClave, x: p.x, z: p.z })), tris: b.datos ? b.datos.medidas.triangulos : null, techo: !!b.techo, sitio: { ...b.sitio } };
   }
   return {
-    emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, lugarBanco, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,
+    emparejar, despejar: medido('despejarMs', despejar), sitiosValle, zonasObjetos, lugarBanco, lugarCantina, montar: medido('montarMs', montar), estacion, arrancar: medido('arrancarMs', arrancar), listo, montarCola, trasCompilar,
     actualizar, luces: actualizarLuces, adentro, bajoCubierta, techoEn, techos, pisos, cubiertas, versionCubiertas: () => versionCubiertas, chimeneasCerca, medir, estadoEdificio,
     raices: () => [...[...manzanas.values()].map((m) => m.raiz), alamos?.raiz, estacionHecha?.raiz, calles?.raiz].filter(Boolean),
     charcos: () => calles?.charcos || null,

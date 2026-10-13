@@ -163,7 +163,7 @@ app.whenReady().then(async () => {
     ok(sirve, 'se inclinó a apoyarla (pose «dejar»)');
     est = await hasta((x) => x.ses && x.ses.fase === 'libre', 30000, 40);
     ok(est.ses?.fase === 'libre' && !est.controla, `se fue a atender a otro (fase ${est.ses?.fase})`);
-    await js(`(() => { const s = ${H}.__cantina().lugar.sillas.find((x) => x.mesa.id === 'mesa-3' && x.i === 1); ${H}.jugador.estado.yaw = s.mira + Math.PI; ${H}.jugador.estado.pitch = -0.28; return 1 })()`);
+    await js(`(() => { const s = ${H}.__cantina().lugar.sillas.find((x) => x.mesa.id === 'mesa-3' && x.i === 1); ${H}.jugador.estado.yaw = s.mira + Math.PI; ${H}.jugador.estado.pitch = -0.5; return 1 })()`);
     await cuadro(3); await esperar(200);
     await foto('mesa-servida');
     // (la misma mesa vista desde afuera, con tu cuerpo en la silla: lo servido y la silla de enfrente)
@@ -204,7 +204,7 @@ app.whenReady().then(async () => {
     est = await hasta((x) => x.servidos.length > 0 && x.servidos[0].item === 'empanadas', 70000, 40);
     ok(est.servidos[0]?.item === 'empanadas', 'te trajo las empanadas');
     est = await hasta((x) => x.ses && x.ses.fase === 'libre', 30000, 40);
-    await js(`(() => { ${H}.jugador.estado.pitch = -0.3; return 1 })()`); await cuadro(2); await esperar(200);
+    await js(`(() => { ${H}.jugador.estado.pitch = -0.5; return 1 })()`); await cuadro(2); await esperar(200);
     await foto('empanadas');
     await js(`${tecla('KeyE')} 1`); for (let i = 0; i < 40 && (await estado()).sorbo; i++) { await cuadro(1); await esperar(45); }
     await foto('bocado').catch(() => {});

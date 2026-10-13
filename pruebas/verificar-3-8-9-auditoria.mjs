@@ -115,8 +115,8 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
   const main = leer('src/main.js'), guia = leer('src/guia.js'), am = leer('src/aldea-mundo.js');
   ok(/const PISTA_BANCO = 'En la aldea, saliendo de la plaza hacia el este, está el Banco del Pueblo[^']*8:30 a 12:30 y de 14:30 a 18';/.test(main), 'hay un texto que dice dónde está el banco y a qué hora atiende');
   ok(/\{ id: 'p-banco', cuando: \(js, p\) => !desafio && hayEconomia\(p\) && !!p\.aldea\?\.descubierta, titulo: 'El Banco del Pueblo', texto: PISTA_BANCO \}/.test(main), 'sale como pista una vez que llegaste a la aldea, sólo en el Relax');
-  ok(main.includes("if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); }"), 'el mapa lo rotula (sólo en el Relax)');
-  ok(/const lugarBanco = \(\) => \{ const e = EDIFICIOS_ALDEA\['banco-pueblo'\], w = marcoAldea\(parada\)\.aMundo\(e\.x, e\.z\);/.test(am) && am.includes('zonasObjetos, lugarBanco, montar'), 'aldea-mundo.js dice dónde cae el banco en el valle');
+  ok(main.includes("if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre });"), 'el mapa lo rotula (sólo en el Relax)');
+  ok(/const lugarBanco = \(\) => \{ const e = EDIFICIOS_ALDEA\['banco-pueblo'\], w = marcoAldea\(parada\)\.aMundo\(e\.x, e\.z\);/.test(am) && am.includes('zonasObjetos, lugarBanco, lugarCantina, montar'), 'aldea-mundo.js dice dónde cae el banco en el valle');
   ok(guia.includes("['Los pesos',") && guia.includes("['El Banco del Pueblo', 'Al este de la plaza de la aldea (también en el mapa)") && guia.includes('de 8:30 a 12:30 y de 14:30 a 18.'), 'la guía (F1, sólo del Relax) explica los pesos y el banco');
   // los textos nuevos tienen su inglés
   const EN = (await import('../src/idioma-en.js')).default || (await import('../src/idioma-en.js')).EN;
