@@ -4,14 +4,17 @@
 // Para elegir otro: HOJ_PANTALLA=<parte del nombre> (p. ej. LS22D300G); HOJ_PANTALLA=no lo apaga.
 let electron;
 try { electron = require('electron'); } catch { electron = null; }
-const { app, screen } = electron && typeof electron === 'object' ? electron : {};
-if (app && screen && process.env.HOJ_PANTALLA !== 'no') {
+// (3.9.0: `screen` no se puede pedir antes de que la app esté lista: destructurarlo acá tiraba un error en el proceso principal y la ventana de
+// error dejaba todo colgado. Se pide al usar, y siempre después de `ready`)
+const app = electron && typeof electron === 'object' ? electron.app : null;
+if (app && process.env.HOJ_PANTALLA !== 'no') {
+  const pantalla = () => electron.screen;
   const elegir = () => {
-    const todas = screen.getAllDisplays();
+    const screen = pantalla(), todas = screen.getAllDisplays();
     const nombre = process.env.HOJ_PANTALLA;
     return (nombre && todas.find((d) => (d.label || '').includes(nombre)))
       || todas.find((d) => d.internal === false)
-      || todas.find((d) => d.id !== screen.getPrimaryDisplay().id) || null;
+      || todas.find((d) => d.id !== pantalla().getPrimaryDisplay().id) || null;
   };
   const mover = (w) => {
     try {

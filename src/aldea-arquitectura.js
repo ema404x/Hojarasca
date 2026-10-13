@@ -426,7 +426,7 @@ function crearContexto(id, etapa, op, def) {
     K.ocupa.x0 = Math.min(K.ocupa.x0, x0); K.ocupa.x1 = Math.max(K.ocupa.x1, x1);
     K.ocupa.z0 = Math.min(K.ocupa.z0, z0); K.ocupa.z1 = Math.max(K.ocupa.z1, z1);
   };
-  K.luz = (lx, ly, lz, o = {}) => K.luces.push({ lx, ly, lz, color: o.color ?? 0xffb070, radio: o.radio ?? 8, intensidad: o.intensidad ?? 1.1, clase: o.clase ?? 'interior', cuarto: o.cuarto ?? 'local' });
+  K.luz = (lx, ly, lz, o = {}) => K.luces.push({ lx, ly, lz, color: o.color ?? 0xffb070, radio: o.radio ?? 8, intensidad: o.intensidad ?? 1.1, clase: o.clase ?? 'interior', cuarto: o.cuarto ?? 'local', fuerza: o.fuerza ?? 1 });
   K.punto = (nombre, lx, lz, mira = 0, ly = PISO) => { K.puntos[nombre] = { lx, ly, lz, mira }; return K.puntos[nombre]; };
   K.trabajo = (nombre, lx, lz, mira = 0, ly = PISO) => { K.puntos.trabajo.push({ nombre, lx, ly, lz, mira }); };
   K.asiento = (nombre, lx, ly, lz, mira = 0) => { K.puntos.asientos.push({ nombre, lx, ly, lz, mira }); };
@@ -1617,7 +1617,7 @@ function salamandra(K, x, z, o = {}) {
   cilindro(c, [x, (PISO + 0.95 + yC) / 2, z], 0.07, 0.07, yC - PISO - 0.95, '#2b2825', { lados: 8, abierto: true });
   K.circulo(x, z, 0.3, PISO, PISO + 1.0);
   { const l = Math.hypot(x, z) || 1, ex = o.punto?.[0] ?? x - (x / l) * 0.75, ez = o.punto?.[1] ?? z - (z / l) * 0.75; K.estufa(ex, ez, Math.atan2(x - ex, z - ez)); }
-  K.luz(x, PISO + 0.6, z + 0.4, { color: 0xff8a40, radio: 3.5, intensidad: 0.5, clase: 'fuego', cuarto: o.cuarto ?? 'local' });
+  K.luz(x, PISO + 0.6, z + 0.4, { color: 0xff8a40, radio: o.radioLuz ?? 3.5, intensidad: 0.5, clase: 'fuego', cuarto: o.cuarto ?? 'local', fuerza: o.fuerza });
 }
 // estantería contra la pared (frente a +Z), con lo que corresponda al oficio
 function estanteria(K, x, z, giro = 0, o = {}) {
@@ -1737,7 +1737,7 @@ function lampara(K, x, z, o = {}) {
   palo(c, [x, y + 0.12, z], [x, yC, z], 0.008, '#2a2826');
   cono(c, [x, y + 0.08, z], 0.2, 0.16, o.color ?? '#3f5a48', { tipo: 0, lados: 10, abierto: true });
   caja(K.bra, [x, y + 0.02, z], [0.08, 0.06, 0.08], '#ffe2a8', { tipo: 0, bajo: 1, alto: 1 });
-  K.luz(x, y - 0.3, z, { color: o.luz ?? 0xffc884, radio: o.radio ?? 7, intensidad: 0.9, clase: 'interior', cuarto: o.cuarto ?? 'local' });
+  K.luz(x, y - 0.3, z, { color: o.luz ?? 0xffc884, radio: o.radio ?? 7, intensidad: o.intensidad ?? 0.9, clase: 'interior', cuarto: o.cuarto ?? 'local', fuerza: o.fuerza });
 }
 function cuadro(K, x, y, z, giro, o = {}) {
   const F = marcoLocal(x, z, giro, y), c = K.int;
@@ -5061,11 +5061,11 @@ function cantina(K) {
   // la guitarra colgada de la pared de la derecha, arriba de la mesa de truco
   guitarraColgada(K, xi - 0.03, PISO + 1.35, 1.7, -1);
   // la salamandra del rincón (con su luz cálida), la leña al lado y el caño por el techo
-  salamandra(K, xi - 0.5, 0.45, { punto: [xi - 1.35, 0.45], cuarto: 'local' });
+  salamandra(K, xi - 0.5, 0.45, { punto: [xi - 1.35, 0.45], cuarto: 'local', radioLuz: 5.5, fuerza: 2 });
   chimeneaExtra(K, xi - 0.5, 0.45);
   for (let i = 0; i < 4; i++) palo(K.int, [xi - 0.28 + (i % 2) * 0.12, PISO + 0.06 + Math.floor(i / 2) * 0.12, -0.5], [xi - 0.28 + (i % 2) * 0.12, PISO + 0.06 + Math.floor(i / 2) * 0.12, -0.05], 0.05, i % 2 ? '#7a5a3a' : '#6a4d33', { abierto: false });
   // los farolitos colgados (una luz sobre cada fila de mesas y una en la barra), la alfombra del pasillo y los banderines
-  for (const [x, z] of [[-0.9, 1.5], [1.5, 1.5], [-3.0, 0.2]]) lampara(K, x, z, { cuelga: 0.85, color: '#7a2a1e', radio: 7.5, luz: 0xffb060 });
+  for (const [x, z] of [[-0.9, 1.5], [1.5, 1.5], [-3.0, 0.2]]) lampara(K, x, z, { cuelga: 0.85, color: '#7a2a1e', radio: 9, luz: 0xffb060, intensidad: 1.5, fuerza: 3.6 });
   alfombra(K, 0.3, 1.3, 4.6, 0.8, Math.PI / 2, '#6b2f2a', { guarda: '#c7a76a' });
   const rb = azar(semillaDe('banderines-cantina'));
   {

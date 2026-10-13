@@ -998,6 +998,11 @@ export function crearAldeaGente(ctx) {
           seguir: 'E: pasar al mostrador · Escape: otro día', alTerminar: () => ctx.abrirBanco(), tipo: 'servicio', ofrece: true,
         };
       }
+      // 3.9.0: la moza de la cantina, con vos sentado a su mesa, te ofrece la carta (cantina-juego.js). Cada tanto, charla
+      if (k === 'moza' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirCarta && ctx.cantinaSentado?.() && (charlasDichas.get(k) || 0) % 3 !== 2) {
+        charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
+        return { id: 'aldea-moza', partes: [VECINOS_ALDEA.moza.saludo, '¿Qué te traigo, corazón? La carta la tenés acá.'], seguir: 'E: ver la carta · Escape: después', alTerminar: () => ctx.abrirCarta(), tipo: 'servicio', ofrece: true };
+      }
       const lineas = dichosDe(k, a)?.charla || VECINOS_ALDEA[k].charla;   // 3.7.0: según la etapa (los chicos)
       const n = charlasDichas.get(k) || 0;
       charlasDichas.set(k, n + 1);

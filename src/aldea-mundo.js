@@ -1766,7 +1766,7 @@ export function crearAldeaMundo(ctx) {
     luz.updateMatrix(); luz.matrixAutoUpdate = false;
     m.raiz.add(luz); luz.updateMatrixWorld(true);
     registrarLuz(luz);
-    const q = { luz, clase, x: w.x, y: s.y + spec.ly, z: w.z, alto: spec.ly, intensidad: spec.intensidad ?? 1, color: new THREE.Color(spec.color ?? 0xffc384) };
+    const q = { luz, clase, x: w.x, y: s.y + spec.ly, z: w.z, alto: spec.ly, intensidad: spec.intensidad ?? 1, fuerza: spec.fuerza ?? 1, color: new THREE.Color(spec.color ?? 0xffc384) };   // (3.9.0: `fuerza`: cuánto pesa la luz de la noche en esa lámpara; la cantina es de las que más)
     luces.push(q);
     return q;
   }
@@ -2170,7 +2170,7 @@ export function crearAldeaMundo(ctx) {
       if (q.clase === 'farol') q.luz.intensity = d2 < 8100 ? encendido * (q.alto > 4 ? 15 : 6) * q.intensidad * (1 - suave01((Math.sqrt(d2) - 70) / 20)) : 0;
       else if (q.clase === 'fragua') q.luz.intensity = d2 < 900 ? titila * (1 - suave01((Math.sqrt(d2) - 22) / 8)) : 0;
       else {
-        q.luz.intensity = d2 < 324 ? (relleno * 0.7 * q.intensidad + encendido * 1.5) * (1 - suave01((Math.sqrt(d2) - 13) / 5)) : 0;
+        q.luz.intensity = d2 < 324 ? (relleno * 0.7 * q.intensidad + encendido * 1.5 * q.fuerza) * (1 - suave01((Math.sqrt(d2) - 13) / 5)) : 0;
         if (q.luz.intensity > 0) q.luz.color.copy(colorInterior).lerp(q.color, Math.min(1, 0.35 + encendido));
       }
     }

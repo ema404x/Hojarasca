@@ -170,6 +170,8 @@ import { crearGranjaJuego } from './granja-juego.js';
 import { crearRinconesMundo } from './rincones-mundo.js';
 import { crearRinconesJuego } from './rincones-juego.js';
 import { crearBancoMundo } from './banco-mundo.js';
+import { crearCantinaJuego } from './cantina-juego.js';
+import { crearCantinaMundo } from './cantina-mundo.js';
 import { puedePagarEscritura, pagarEscritura, puedePagarEtapa, pagarEtapa, registrarCasa } from './propiedad.js';
 import { GERENTE } from './prestamos.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
@@ -3004,6 +3006,7 @@ document.addEventListener('keydown', (e) => {
       // 2.9: y el puesto de cargas, igual
       if (enLasCargas()) { puestoCargas.cerrar(); break; }
       if (enElBanco()) { bancoPueblo.cerrar(); break; }   // 3.8.8
+      if (cantinaJuego?.panelAbierto()) { cantinaJuego.alApretarE(); break; }   // 3.9.0: y la carta de la cantina
       // 3.7.2: y el panel de recetas de la cocina, igual
       if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
       // 3.7.3: y el del taller ferroviario
@@ -3051,6 +3054,8 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !objetivo && tallerTren) { const a = tallerTren.accion(js); if (a) { a.hacer(); cacheTaller = null; break; } }
       // 3.7.5: lo de las fiestas, después del taller (el aviso, en el mismo lugar y con la misma función: fiestasJuego.accion)
       if (!js.enTren && !js.enKayak && !objetivo && fiestasJuego) { const a = fiestasJuego.accion(js); if (a) { a.hacer(); cacheFiesta = null; break; } }
+      // 3.9.0: sentado en la cantina, E toma o come lo que te trajeron, llama a la moza o abre la carta (el aviso, en el mismo lugar y con la misma función)
+      if (!js.enTren && !js.enKayak && !objetivo && cantinaJuego) { const a = cantinaJuego.accion(js); if (a) { a.hacer(); cacheCantina = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
@@ -3283,6 +3288,7 @@ document.addEventListener('keydown', (e) => {
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
       else if (enElBanco()) bancoPueblo.cerrar();   // 3.8.8
+      else if (cantinaJuego?.panelAbierto()) cantinaJuego.atras();   // 3.9.0
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
       else if (tallerTren?.panelAbierto()) tallerTren.atras();   // 3.7.3: de la pintura o la composición, al panel; del panel, afuera
       else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();   // 3.7.5: deja el partido (o se suelta del redomón)
@@ -4886,6 +4892,7 @@ let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fech
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
+let cantinaJuego = null, cantinaMundo = null;   // 3.9.0: la cantina de la aldea: sentarse, pedir y que la moza te traiga (ver cantina-juego.js)
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
 const pronosticoDeManana = () => {
@@ -4902,6 +4909,7 @@ function armarOficiosYAldea(esDesafio) {
   if (esDesafio) return;
   aldeaGente = crearAldeaGente({
     abrirBanco: () => bancoDelPueblo().abrir(),   // 3.8.8: el gerente te atiende en el mostrador
+    abrirCarta: () => !!cantinaJuego?.abrirCarta(), cantinaSentado: () => !!cantinaJuego?.estaSentado(),   // 3.9.0: la moza te trae la carta (si estás sentado a su mesa)
     temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),   // 3.8.8: la demanda del pueblo
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
@@ -4963,7 +4971,8 @@ function armarOficiosYAldea(esDesafio) {
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
     amorDestino: (k) => destinoConFiesta(k),   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado) (3.7.5: con la fiesta en el medio)
-    noticiasDestino: (k) => noticiasJuego?.destino(k) || null,   // 3.7.5 (noticias): y si no, el club de lectura o la noche de estrellas
+    noticiasDestino: (k) => (k === 'moza' ? null : noticiasJuego?.destino(k) || null),   // (3.9.0: la moza atiende la cantina: el club de lectura y la noche de estrellas son sin ella)
+      // 3.7.5 (noticias): y si no, el club de lectura o la noche de estrellas
     extrasCalendario: (d) => noticiasJuego?.extrasCalendario(d) || [],   // 3.7.5 (noticias): las fechas, el aniversario, los concursos, el club y las estrellas
   });
   // 3.7.1: el amor en la aldea (sólo en el Relax y con el ajuste «Romance» encendido)
@@ -5128,6 +5137,17 @@ function armarOficiosYAldea(esDesafio) {
     duracionDia: () => (ajustes.duracion === 'reloj' ? 1440 : ajustes.duracion),
     ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),   // (3.7.0 (integración): y lo nublado, para el telescopio)
   });
+  // 3.9.0: la cantina: la mesa, la carta, la moza que te trae el pedido y el sorbo en primera persona (aislada: si falla, lo demás sigue)
+  try {
+    cantinaMundo = crearCantinaMundo({ escena, pisoY: () => cantinaJuego.lugar.pisoY() });
+    cantinaJuego = crearCantinaJuego({
+      progreso: () => progreso, jugador: () => jugador, moza: () => aldeaGente?.figura('moza') || null, camara: () => camara,
+      ambiente: () => ({ invierno: U.uInvierno.value, lluvia: clima?.estado?.lluvia || 0, viento: clima?.estado?.viento ?? 0.4, nublado: clima?.estado?.nublado || 0 }),
+      nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescar: () => refrescarBarra(true), sonido, T_,
+      alJugador: (campo, valor) => alJugadorAldea(campo, valor), hablandoCon: () => charla.npc, hablo: (texto, npc) => vozSocial(npc, texto, { cerca: false }),
+      levantar: () => jugador.sentarse(false), panel: $('cantina-carta'), contenido: $('cantina-contenido'), alClic: (el, fn) => alClicHud(el, fn), visual: cantinaMundo,
+    });
+  } catch (e) { fallaSistema('cantina-armado', e); cantinaJuego = null; cantinaMundo = null; }
 }
 // 3.7.5: quién va a dónde por encima del horario: lo del amor que no se mueve (la cita, el casamiento), después la fiesta,
 // después lo demás del amor (la que vive con vos) y el olor del asado
@@ -8190,7 +8210,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -8749,6 +8769,7 @@ let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
+let cacheCantina = null;   // 3.9.0: lo que se hace sentado a una mesa de la cantina (ver cantina-juego.js)
 let cacheGranja = null, versionObrasInteraccion = -1;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
@@ -8869,6 +8890,7 @@ function dibujar(luz, noche) {
   try { dibujarCuadro(luz, noche); } finally { prenderVacias(); }
 }
 function dibujarCuadro(luz, noche) {
+  if (HOJARASCA_DEBUG && window.__hojarasca?.__camaraFija) { const f = window.__hojarasca.__camaraFija; camara.position.set(f.x, f.y, f.z); camara.rotation.order = 'YXZ'; camara.rotation.set(f.pitch, f.yaw, 0); }   // 3.9.0: sólo para las capturas de las pruebas (?debug=1): una cámara quieta, sin mover tu cuerpo
   const medirRender = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   if (post && ajustes.post !== 'apagado') {
     if (medirRender) { renderer.info.autoReset = false; renderer.info.reset(); }
@@ -8961,7 +8983,7 @@ function actualizarTiempo(dt) {
     // (3.6 (mecánicas): ni escuchando los cuentos del domingo o la música del baile)
     // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras;
     // ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
-    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() ? 40 : 1;
+    const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() ? 40 : 1;
     progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   }
@@ -9382,6 +9404,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
+    try { if (modo === 'jugando' && !desafio) cantinaJuego?.actualizar(dt); } catch (e) { fallaSistema('cantina', e); }   // 3.9.0: la cantina (la visita, la moza, el sorbo)
     // 3.8.3: en el modo foto la hora es la del deslizador (`aplicarFoto`): la cocina y el taller no corren con esa hora (pasar
     // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
@@ -9511,7 +9534,7 @@ function cuadroDelJuego(tRaf, manual) {
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
-      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || cantinaJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
       if (vecino && !desafio && fiestasJuego?.sinVecino(js)) vecino = null;   // 3.7.5: sentado a la mesita de los juegos, E juega; al lado del que cuenta la leyenda, E escucha
     }
     acumuladoBuscar += dt;
@@ -9537,6 +9560,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
       cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5
+      cacheCantina = cantinaJuego ? cantinaJuego.accion(js) : null;   // 3.9.0
       cacheSemillaArbol = arbolParaSemilla();
       if (gallinasMundo && gallinerosTerminados().length !== gallinerosVistos) refrescarGallineros();
       // un cantero recién terminado aparece sin esperar al día siguiente
@@ -9589,6 +9613,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheTaller && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTaller.texto };
     // 3.7.5: lo de las fiestas, después del taller, como en la tecla E
     if (!aviso && cacheFiesta && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheFiesta.texto };
+    // 3.9.0: la cantina, como en la tecla E
+    if (!aviso && cacheCantina && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheCantina.texto };
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
@@ -9625,6 +9651,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
     if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
     if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
+    if (cantinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.9.0: y con la carta de la cantina
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
     if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
     if (js.enTren) {
@@ -10163,6 +10190,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
+    __cantina: () => cantinaJuego, __cantinaMundo: () => cantinaMundo,   // 3.9.0: la cantina, para la partida real (herramientas/partida-real-cantina.cjs)
     __banco: () => bancoDelPueblo(), __enElBanco: () => enElBanco(),   // 3.8.8: el mostrador del banco, para la partida real (herramientas/partida-real-economia.cjs)
     __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },
     // 2.9: las máquinas

@@ -190,6 +190,26 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .panel-banco .banco-casa h4 { margin: 0 0 4px; }
 .panel-banco .banco-fila { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
 .panel-banco .banco-fila i { grid-column: 1; font-style: normal; opacity: .65; font-size: 13px; }
+/* 3.9.0: la carta de la cantina (mismos modos que el mostrador del banco, con tono de boliche) */
+.panel-cantina { background: rgba(40,22,20,.97); border: 1px solid rgba(240,217,160,.28); }
+.panel-cantina h2 { color: #f0d9a0; font-family: Georgia, serif; }
+.panel-cantina .cantina-saludo { font-style: italic; margin: 6px 0 10px; opacity: .95; }
+.panel-cantina .cantina-saldo { font-size: 17px; margin: 0 0 8px; color: #e8c78a; }
+.panel-cantina .cantina-lista { display: flex; flex-direction: column; gap: 4px; }
+.panel-cantina .cantina-fila { display: grid; grid-template-columns: minmax(150px, 1fr) auto; gap: 2px 12px; align-items: center; padding: 5px 8px; border-radius: 6px; background: rgba(240,217,160,.05); }
+.panel-cantina .cantina-fila.marcada { background: rgba(240,217,160,.14); }
+.panel-cantina .cantina-fila i { grid-column: 1; font-style: normal; opacity: .68; font-size: 13px; }
+.panel-cantina .cantina-fila b { grid-column: 2; grid-row: 1 / span 2; color: #e8c78a; }
+.panel-cantina .cantina-plato { text-align: left; font-weight: 600; background: transparent; border-color: transparent; padding-left: 0; }
+.panel-cantina button { padding: 7px 12px; border-radius: 6px; border: 1px solid rgba(240,217,160,.3); background: rgba(240,217,160,.08); color: inherit; cursor: pointer; font: inherit; }
+.panel-cantina button:hover:not(:disabled) { background: rgba(240,217,160,.22); }
+.panel-cantina button:disabled { opacity: .4; cursor: default; }
+.panel-cantina .cantina-pagos { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 8px; }
+.panel-cantina .cantina-pagos button.pesos { border-color: #b9e08a; }
+.panel-cantina .cantina-pagos button.trueque { border-color: #8ad0e0; }
+.panel-cantina .cantina-pagos button.cuenta { border-color: #e8a08a; }
+.panel-cantina .cantina-cuenta { margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: rgba(232,160,138,.1); }
+.panel-cantina .cantina-renglon { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
 /* 3.8.8: la billetera (los pesos que llevás); debajo del reloj si lo tenés */
 .billetera-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
 .reloj-hud:not(.oculto) ~ .billetera-hud { top: 64px; }
@@ -1016,6 +1036,14 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <h2>Banco del pueblo</h2>
     <div id="banco-pueblo-contenido"></div>
     <p class="seguir">E o Escape para salir del mostrador</p>
+  </div>
+</section>
+
+<section id="cantina-carta" class="oculto banco-velo">
+  <div class="panel-modal panel-banco panel-cantina">
+    <h2>La carta de hoy</h2>
+    <div id="cantina-contenido"></div>
+    <p class="seguir">E o Escape para cerrar la carta</p>
   </div>
 </section>
 

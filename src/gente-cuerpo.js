@@ -1138,7 +1138,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   }
   if (R.pollera) {
     const perfilPollera = talle
-      ? [[0.248, -0.43], [0.232, -0.35], [0.212, -0.24], [0.192, -0.12], [0.172, -0.03], [0.156, 0.05], [0.14, 0.12], [0.129, 0.18], [0.126, 0.205]]   // 3.9: ceñida a la cintura y de campana suave
+      ? [[0.236, -0.35], [0.226, -0.3], [0.21, -0.22], [0.192, -0.12], [0.172, -0.03], [0.156, 0.05], [0.14, 0.12], [0.129, 0.18], [0.126, 0.205]]   // 3.9: ceñida a la cintura y de campana suave, a media pantorrilla (se ve la media y la bota)
       : [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
     if (R.chamal) perfilPollera.splice(0, 1, [0.262, -0.71], [0.25, -0.6], [0.238, -0.5]);   // el chamal, hasta los tobillos
     let faldaMalla = capa(colPollera, perfilPollera, 36, 0, Math.PI * 2, 0.78, talle ? 0.05 : 0.045);
@@ -2119,11 +2119,13 @@ function poseCantina(g, st, dt, andando) {
     if (P.cabeza) { g.cabeza.rotation.x += P.cabeza.x * w; g.cabeza.rotation.y += P.cabeza.y * lado * w; g.cabeza.rotation.z += P.cabeza.z * lado * w; }
     if (P.patas && !andando) g.patas.forEach((pt, i) => {
       const d = P.patas[(i === 0) !== (lado < 0) ? 'izq' : 'der'], r = pt.userData.rodilla;
-      pt.rotation.x += d.x * w; pt.rotation.z += d.z * lado * w; if (r) r.rotation.x += d.rodilla * w;
+      pt.rotation.x += d.x * w; pt.rotation.z = d.z * lado * w; if (r) r.rotation.x += d.rodilla * w;   // (la z se pone, no se suma: gente.js no la repone y se acumulaba cuadro a cuadro)
     });
+    else for (const pt of g.patas) pt.rotation.z = 0;
   } else if (pc.sucio) {
     // se terminó: el giro del hombro vuelve a cero (gente.js no lo toca)
     for (const b of g.brazos) if (!b.userData.muneca) b.rotation.y = 0;
+    for (const pt of g.patas) pt.rotation.z = 0;
     pc.sucio = false;
   }
   if (B && B.esta) {

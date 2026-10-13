@@ -58,6 +58,7 @@ import { concursosNuevo, sanearConcursos } from './concursos.js';
 import { fiestasNuevas, sanearFiestas } from './fiestas.js';
 import { economiaNueva, sanearEconomia, convertirYerba } from './economia.js';
 import { negociosNuevo, sanearNegocios } from './negocios.js';
+import { cantinaNueva, sanearCantina } from './cantina.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -371,7 +372,7 @@ export function progresoNuevo() {
     // 3.6.1: y en el Desafío, ninguna: allá no hay aldea)
     oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1), amor: amorNuevo() }),   // (3.7.0: y la vida de la aldea; 3.7.1: y el amor)
     ...(desafio ? {} : { cocina: cocinaNueva() }),   // 3.7.2: la cocina (el recetario de siempre, nada al fuego)
-    ...(desafio ? {} : { economia: economiaNueva(), negocios: negociosNuevo() }),   // 3.8.8: el peso (sin plata ni movimientos todavía; ver economia.js)
+    ...(desafio ? {} : { economia: economiaNueva(), negocios: negociosNuevo(), cantina: cantinaNueva() }),   // 3.8.8: el peso (sin plata ni movimientos todavía; ver economia.js)
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
     ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
@@ -607,8 +608,8 @@ function sanearProgreso(p) {
     ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined, noticias: undefined, concursos: undefined } : { desafio: undefined }),
   };
   // 3.8.8: la economía. Sólo en el Relax. Una partida de antes no la trae: arranca en cero y la yerba que tenía se convierte a pesos (una vez)
-  if (modoPartida === 'desafio') { limpio.economia = undefined; limpio.negocios = undefined; }
-  else { limpio.economia = sanearEconomia(p.economia); convertirYerba(limpio); limpio.negocios = sanearNegocios(p.negocios, limpio.dia); }   // 3.8.8: los negocios (negocios.js)
+  if (modoPartida === 'desafio') { limpio.economia = undefined; limpio.negocios = undefined; limpio.cantina = undefined; }
+  else { limpio.economia = sanearEconomia(p.economia); convertirYerba(limpio); limpio.negocios = sanearNegocios(p.negocios, limpio.dia); limpio.cantina = sanearCantina(p.cantina, limpio.dia); }   // 3.9.0: la cuenta de la cantina (una partida de antes no la trae: arranca vacía)   // 3.8.8: los negocios (negocios.js)
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)

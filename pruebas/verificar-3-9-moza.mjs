@@ -1,5 +1,5 @@
 // 3.9.0 (cantina): el cuerpo y la ropa de la moza de la cantina ('aldea-moza') y sus poses.
-//  · gente-ropa.js: su aspecto (32 años, vestido bordó ceñido con escote en V y tajo, delantal corto, labios rojos, flor);
+//  · gente-ropa.js: su aspecto (32 años, vestido bordó ceñido con escote en V a media pantorrilla, delantal corto, labios rojos, flor);
 //  · gente-cuerpo.js: la bandeja con sus vasos ({ visible(b), vasos(n), estado() }), siempre horizontal, y las poses
 //    'bandeja' (también caminando), 'barra' y 'dejar' que se piden con `npc.pose`;
 //  · gente.js: la ropa de la estación le conserva la bandeja; nada nuevo en el peso de la figura.
@@ -32,7 +32,7 @@ ok(/\/\/ 3\.9:/.test(cuerpo) && /\/\/ 3\.9:/.test(ropa), 'los comentarios llevan
 const R = await import(pathToFileURL(path.join(src, 'gente-ropa.js')).href);
 const d = R.ASPECTO['aldea-moza'];
 ok(d && d.mujer && d.edad === 32, 'la moza: mujer de 32');
-ok(d.cara.rouge && d.R.pollera && d.R.talle && d.R.escote && d.R.tajo && d.R.delantalCorto && d.R.florPelo && d.R.bandeja, 'vestido ceñido, escote, tajo, delantal corto, flor, labios y bandeja');
+ok(d.cara.rouge && d.R.pollera && d.R.talle && d.R.escote && d.R.delantalCorto && d.R.florPelo && d.R.bandeja, 'vestido ceñido, escote, delantal corto, flor, labios y bandeja');
 ok(d.guardas.pollera && d.poses.length && d.abrigo.colores, 'con guarda, poses de quietud y ropa de abrigo');
 const inv = R.aspectoGente('aldea-moza', {}, {}, { invierno: true });
 ok(inv.invierno && inv.colores.bufanda && inv.colores.gorro && inv.colores.poncho, 'en invierno: poncho, gorro y bufanda');
@@ -94,7 +94,7 @@ B.visible(false); ok(!B.g.visible, 'visible(false) la guarda'); B.visible(true);
 m.pos = m.g.position; m.fase = 0;
 const euler = new THREE.Euler();
 function cuadro(t, andando) {
-  m.patas.forEach((p, i) => { const f = t + i * Math.PI; p.rotation.set(andando ? Math.sin(f) * 0.5 : 0, 0, 0); p.userData.rodilla.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 : 0.03; });
+  m.patas.forEach((p, i) => { const f = t + i * Math.PI; p.rotation.x = andando ? Math.sin(f) * 0.5 : 0;   /* (como gente.js: la z de las piernas NO se repone cada cuadro) */ p.userData.rodilla.rotation.x = andando ? 0.1 + Math.max(0, -Math.cos(f)) * 0.75 : 0.03; });
   m.torso.rotation.set(andando ? 0.035 : 0, andando ? Math.sin(t) * 0.06 : 0, andando ? Math.cos(t) * 0.022 : 0);
   m.cabeza.rotation.set(0, 0, 0);
   m.brazos[0].rotation.set(andando ? Math.sin(t + Math.PI) * 0.3 : 0, 0, andando ? -0.07 : -0.035);
@@ -126,11 +126,12 @@ cerca(m.brazos[0].rotation.z, -0.58, 0.04, 'barra: el codo izquierdo afuera, sob
 cerca(m.brazos[0].userData.codo.rotation.x, -1.45, 0.05, 'barra: el antebrazo sobre la tapa');
 ok(m.torso.rotation.z > 0.05, 'barra: el cuerpo se inclina hacia la barra');
 ok(m.patas[1].userData.rodilla.rotation.x > 0.25, 'barra: una pierna descansa con la rodilla doblada');
+ok(m.patas.every((pt) => Math.abs(pt.rotation.z) < 0.2), `barra: las piernas no se abren de más con los cuadros (${m.patas.map((pt) => pt.rotation.z.toFixed(2)).join(', ')})`);   // (se acumulaba: la pierna quedaba de costado)
 // del otro lado
 m.ladoBarra = 1; for (let i = 0; i < 90; i++) cuadro(0, false);
 cerca(m.brazos[1].rotation.z, 0.58, 0.04, 'barra a su derecha: el codo derecho sobre la barra');
 ok(m.torso.rotation.z < -0.05, 'barra a su derecha: se inclina para el otro lado'); m.ladoBarra = 0;
-// dejar
+// dejar (y al terminar la barra, las piernas vuelven a su lugar)
 m.pose = 'dejar'; for (let i = 0; i < 90; i++) cuadro(0, false);
 cerca(m.torso.rotation.x, 0.27, 0.03, 'dejar: se inclina hacia adelante');
 ok(m.brazos[1].rotation.x < -0.45, 'dejar: el brazo derecho adelante');
@@ -141,6 +142,9 @@ cerca(m.brazos[1].rotation.y, 0, 1e-6, 'sin pose: el giro del hombro derecho vue
 cerca(m.torso.rotation.x, 0, 1e-6, 'sin pose: el torso derecho');
 // una pose de otro (que no es de la cantina) no mueve nada
 m.pose = 'leyendo'; for (let i = 0; i < 30; i++) cuadro(0, false); cerca(m.brazos[1].rotation.y, 0, 1e-6, "una pose ajena ('leyendo') no se toca");
+// al dejar la pose, las piernas vuelven a cero
+m.pose = null; for (let i = 0; i < 60; i++) cuadro(0, false);
+ok(m.patas.every((pt) => Math.abs(pt.rotation.z) < 1e-6), 'sin pose: las piernas vuelven a su lugar (la z a cero)');
 // cambiar de una a otra sin saltos grandes
 m.pose = 'bandeja'; for (let i = 0; i < 90; i++) cuadro(0, false);
 const antes = m.brazos[1].rotation.x; m.pose = 'dejar'; cuadro(0, false); ok(Math.abs(m.brazos[1].rotation.x - antes) < 0.2, 'de una pose a otra, sin un salto de golpe');
