@@ -1,0 +1,37 @@
+Hojarasca 3.9.0 — paquete completo
+==================================
+Hojarasca-3.9.0-Setup-x64.exe ............ instalador de Windows (64 bits)
+Hojarasca-3.9.0-Portable-x64.exe ......... versión portable: se abre sin instalar
+Hojarasca-3.9.0-Steam-depot-win64.zip .... carpeta del juego lista para el depot de Steam (Hojarasca.exe adentro)
+Hojarasca-3.9.0-codigo-fuente.zip ........ código fuente, con el juego ya armado (index.html)
+
+CÓMO SABER QUE ES ESTA VERSIÓN
+En la portada, abajo a la derecha, tiene que decir:   Hojarasca · 3.9.0 · build 8a6875d4
+Si dice otra cosa, o «3.8.8», lo que se abrió es un juego anterior. Pasa cuando hay un Hojarasca viejo abierto (aunque esté minimizado o
+en segundo plano): Windows no deja abrir dos y muestra el que ya estaba. Cerrá todos los «Hojarasca.exe» desde el Administrador de tareas
+(Ctrl+Mayús+Esc) y abrí el nuevo. El instalador reemplaza a la versión anterior; el portable no instala nada.
+
+PARA VER LO NUEVO (hay que jugar en modo RELAX; «La noche de los duendes» no tiene aldea, banco ni pesos)
+- Tomá la trochita hasta la parada del sur, «Aldea de los Duendes». Al llegar sale una pista con dónde está el banco, y también está
+  rotulado en el mapa (M).
+- El BANCO DEL PUEBLO (piedra, columnas, reloj y cartel) está sobre el pasaje de las Chacras, unos 55 m al este de la plaza, cerca de la
+  seccional de guardaparques. Junto a la puerta hay un cartel con el horario: de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18 (el sábado,
+  si el salón de baile ya está abierto, cierra a las 16; el domingo no atiende). Amadeo Lezcano, el gerente, atiende detrás de la reja: hablale con E.
+  Presta pesos, compra cosas a buen precio, vende las etapas de las casas y alquila.
+- Los vecinos con local te ofrecen un jornal cuando no tienen otro servicio; algunos te piden cosas a cambio de pesos.
+- La billetera aparece arriba a la izquierda cuando tenés pesos; los movimientos, en la pausa («Billetera y movimientos»).
+- Casa de té (cerca de la plaza): amueblada por dentro, con el mástil de las dos banderas afuera. Los 31 muebles nuevos, en los planos (O).
+- Las banderas flamean con el viento y el clima: la de la plaza, la escuela, la seccional, la casa de té, la tuya del refugio y las de la
+  locomotora (con los banderines del taller).
+- Taller del tren, arroyo y cascada: con todos los arreglos de esta versión.
+
+LO QUE NO ESTÁ
+- Armado en un equipo Linux (electron-builder + Wine): no se abrió el .exe en una PC con Windows. No están firmados, y el ícono, el nombre
+  y la empresa que muestra Windows en Propiedades son los de Electron.
+- El inglés de la economía (banco, pedidos, billetera, charlas largas de los vecinos sobre plata) está incompleto.
+- No se vieron en el juego las casas terminadas, el alquiler y el puesto propio.
+
+NOVEDAD 3.9.0: LA CANTINA (sólo Relax)
+- Al final de la calle de la Loma, en el extremo más lejano de la aldea. Abre de 18 a 2. Lucrecia Aguirre, la moza, viene caminando a tu mesa,
+  te trae la carta y el pedido en bandeja. Se paga con pesos, con trueque o anotándolo en la cuenta. Sentate con E; te levantás con R o caminando.
+- Sin peña de los sábados, bailarina, truco ni borrachera todavía (3.9.1).
