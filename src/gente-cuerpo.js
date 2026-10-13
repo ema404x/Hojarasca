@@ -1070,7 +1070,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   const pechoK = chico ? 0 : mujer ? (talle ? 0.2 : 0.17) * busto : 0.07;
   const panza = C.panza ?? 0;   // la panza de buen comer (Anselmo, Pocha)
   const zPecho = (x, y) => (1 + pechoK * Math.exp(-(((y - 0.325) / 0.075) ** 2)) * (mujer ? Math.exp(-((x / 0.11) ** 2)) * 1.4 : 1)) * (1 + panza * Math.exp(-(((y - 0.15) / 0.12) ** 2)) * Math.exp(-((x / 0.16) ** 2)));
-  const capa = (c, perfil, lados = 18, desde = 0, arco = Math.PI * 2, zBase = 0.7, ondas = 0) => deformar(torno(c, perfil, null, null, null, lados, desde, arco), (v) => {
+  const capa = (c, perfil, lados = 18, desde = 0, arco = Math.PI * 2, zBase = 0.7, ondas = 0, antes = null) => deformar((() => { const t = torno(c, perfil, null, null, null, lados, desde, arco); if (antes) antes(t.geometry); return t; })(), (v) => {
     const hombro = Math.max(0, 1 - Math.abs(v.y - 0.46) / 0.07);
     if (ondas) { const q = 1 + ondas * Math.sin(Math.atan2(v.x, v.z) * 9 + 0.3) * Math.min(1, Math.max(0, -v.y / 0.4)); v.x *= q; v.z *= q; }
     v.z *= zBase * (v.z > 0 ? zPecho(v.x, v.y) : 0.97) * (v.y > 0.44 ? 0.84 : 1);
@@ -1159,32 +1159,36 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   if (R.pollera) {
     // 3.9.1: la falda de tango de Dalia: pegada a la cadera y a los muslos, con un vuelo suave de la rodilla para abajo, hasta media pantorrilla
     const perfilPollera = curvas
-      ? [[0.2, -0.66], [0.186, -0.58], [0.172, -0.47], [0.162, -0.36], [0.163, -0.31], [0.166, -0.26], [0.172, -0.21], [0.178, -0.16], [0.181, -0.11], [0.183, -0.06], [0.18, -0.01], [0.178, 0.04], [0.152, 0.12], [0.118, 0.205]].map(([r, y], i, a) => [i >= a.length - 2 ? r * cintura : r * (1 + (cadera - 1) * sv(-0.36, -0.1, y)), y])
+      // 3.9.2: la falda de tango de Dalia: ceñida a la cadera (ancha) y al muslo, y de la rodilla para abajo cae en A con vuelo (antes se angostaba de golpe
+      // en el muslo y quedaba como un jarrón; con las piernas abiertas del tango parecía un pantalón ancho)
+      ? [[0.292, -0.66], [0.27, -0.585], [0.246, -0.51], [0.226, -0.43], [0.21, -0.35], [0.203, -0.28], [0.205, -0.21], [0.21, -0.14], [0.213, -0.075], [0.208, -0.02], [0.192, 0.05], [0.16, 0.12], [0.121, 0.205]].map(([r, y], i, a) => [i >= a.length - 2 ? r * cintura : r, y])
       : talle ? [[0.236, -0.35], [0.226, -0.3], [0.21, -0.22], [0.192, -0.12], [0.172, -0.03], [0.156, 0.05], [0.14, 0.12], [0.129, 0.18], [0.126, 0.205]]   // 3.9: ceñida a la cintura y de campana suave, a media pantorrilla (se ve la media y la bota)
       : [[0.24, -0.52], [0.227, -0.42], [0.198, -0.24], [0.174, -0.08], [0.162, 0.02], [0.146, 0.1], [0.132, 0.18], [0.129, 0.21]];
     radioFalda = (y) => { for (let i = 1; i < perfilPollera.length; i++) if (y <= perfilPollera[i][1]) { const [r0, y0] = perfilPollera[i - 1], [r1, y1] = perfilPollera[i]; return r0 + (r1 - r0) * Math.max(0, (y - y0) / (y1 - y0)); } return perfilPollera[perfilPollera.length - 1][0]; };
     if (R.chamal) perfilPollera.splice(0, 1, [0.262, -0.71], [0.25, -0.6], [0.238, -0.5]);   // el chamal, hasta los tobillos
-    let faldaMalla = capa(colPollera, perfilPollera, curvas ? 48 : 36, 0, Math.PI * 2, curvas ? 0.8 : 0.78, curvas ? 0 : talle ? 0.05 : 0.045);
-    if (curvas && R.tajoV) {
-      // 3.9.1: el tajo en V: los vértices de la cuña (que se ensancha del muslo al ruedo) se pegan al borde de su lado y se sacan los triángulos que
-      // quedaron todos adentro (los que cruzaban el hueco). Queda una abertura de verdad, con bordes rectos, por donde se ve la pierna: no una cola ni un
-      // ruedo levantado, como el tajo de la 3.9.0
-      const a0 = R.tajoV.a ?? 0.5, wmax = R.tajoV.w ?? 0.3, yApice = R.tajoV.y ?? -0.1, yR = perfilPollera[0][1], zb = 0.8;
-      const geo = faldaMalla.geometry, Pp = geo.attributes.position, marca = new Uint8Array(Pp.count);
-      for (let i = 0; i < Pp.count; i++) {
-        const x = Pp.getX(i), y = Pp.getY(i), z = Pp.getZ(i);
-        if (y >= yApice) continue;
-        const r = Math.hypot(x, z / zb), ph = Math.atan2(x, z / zb), d = Math.atan2(Math.sin(ph - a0), Math.cos(ph - a0));
-        const w = wmax * Math.min(1, (yApice - y) / (yApice - yR));
-        if (Math.abs(d) >= w) continue;
-        const ph2 = a0 + (d >= 0 ? w : -w);
-        Pp.setXYZ(i, r * Math.sin(ph2), y, r * Math.cos(ph2) * zb);
-        marca[i] = 1;
+    const ladosFalda = curvas ? 48 : 36;
+    // 3.9.2: el tajo en V SIN sacar triángulos: se arma el torno completo con la costura en el centro del tajo y cada columna se reparte en el arco que
+    // queda (el tajo se abre desde su vértice, en `y`, hasta el ruedo): los dos bordes del tajo son la primera y la última columna (rectos y limpios) y se
+    // les cose una cinta de contraste
+    const tajoV = curvas && R.tajoV ? { a: R.tajoV.a ?? 0.5, w: R.tajoV.w ?? 0.3, y: R.tajoV.y ?? -0.1 } : null;
+    const abrirTajo = tajoV && ((geo) => {
+      const P = geo.attributes.position, np = perfilPollera.length, yR = perfilPollera[0][1];
+      for (let k = 0; k < P.count; k++) {
+        const i = Math.floor(k / np), y = P.getY(k), r = Math.hypot(P.getX(k), P.getZ(k));
+        const h = tajoV.w * Math.max(0, Math.min(1, (tajoV.y - y) / (tajoV.y - yR)));
+        const ph = tajoV.a + h + (i / ladosFalda) * (Math.PI * 2 - 2 * h);
+        P.setXYZ(k, r * Math.sin(ph), y, r * Math.cos(ph));
       }
-      const I = geo.index.array, nuevo = [];
-      for (let t = 0; t < I.length; t += 3) if (!(marca[I[t]] && marca[I[t + 1]] && marca[I[t + 2]])) nuevo.push(I[t], I[t + 1], I[t + 2]);
-      geo.setIndex(nuevo);
-      geo.computeVertexNormals(); coser(geo);
+    });
+    const faldaMalla = capa(colPollera, perfilPollera, ladosFalda, 0, Math.PI * 2, curvas ? 0.8 : 0.78, curvas ? 0.026 : talle ? 0.05 : 0.045, abrirTajo);
+    if (tajoV) {
+      // la cinta de contraste en los dos bordes del tajo (de la punta al ruedo)
+      const P = faldaMalla.geometry.attributes.position, np = perfilPollera.length, cinta = R.cinturon || '#b4182a';
+      for (const col of [0, ladosFalda]) {
+        const pts = [], rad = [];
+        for (let j = 0; j < np; j++) { const k = col * np + j; if (P.getY(k) > tajoV.y + 0.0001) continue; pts.push([P.getX(k) * 1.012, P.getY(k), P.getZ(k) * 1.012]); rad.push(0.0042); }
+        if (pts.length >= 2) torso.add(fino(conTela(huso(cinta, pts, rad, 8, 5), TELA.lienzo)));
+      }
     }
     if (R.tajo && talle && !curvas) {
       // 3.9: el tajo: el ruedo sube en una V a un costado de adelante (hasta medio muslo); lo de abajo de cada gajo se aplasta hacia el
@@ -1199,7 +1203,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       });
     }
     if (curvas && R.cinturon) torso.add(capa(R.cinturon, [[0.122 * cintura, 0.185], [0.126 * cintura, 0.205], [0.122 * cintura, 0.226]], 26, 0, Math.PI * 2, 0.8));   // 3.9.1: el cinturón fino del vestido (marca la cintura)
-    faldaMalla.userData.piernas = curvas ? 2.4 : 1;   // 3.9.1: la falda ceñida sigue más a las piernas (con los pasos del baile no las atraviesa)
+    faldaMalla.userData.piernas = curvas ? 0.95 : 1; if (curvas) faldaMalla.userData.piernasX = 0.15;   // 3.9.1: la falda ceñida sigue más a las piernas (con los pasos del baile no las atraviesa)
     torso.add(rol(bordeTorno(pintarPieza(faldaMalla, (c, p) => {
       if (!curvas) surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.1, -0.3, p.y), 0.3);
       else surcos(c, Math.sin(p.y * 70 + Math.abs(p.x) * 20) * sv(0.2, 0.05, p.y), 0.1);   // (los tirones de la tela ceñida en la cintura)
@@ -1892,7 +1896,7 @@ function* continuoPasos(f) {
         for (const [b, s] of [[hombroIzq, -1], [hombroDer, 1]]) if (q.x * s > 0 && q.y < 0.56) mezclar(idx.get(b), 0.4 * sv(0.09, 0.16, Math.abs(q.x)) * sv(0.36, 0.44, q.y));
         for (const [pt, s] of [[patas[0], -1], [patas[1], 1]]) if (q.x * s > 0) {
           mezclar(idx.get(pt), 0.38 * sv(0.05, -0.07, q.y) * sv(0.0, 0.07, Math.abs(q.x)) * sv(-0.3, -0.1, q.y + 0.2));   // la cadera
-          mezclar(idx.get(pt), Math.min(0.9, 0.3 * (m.userData.piernas || 1)) * sv(-0.12, -0.45, q.y) * sv(0.0, 0.08, Math.abs(q.x)));   // la pollera sigue a la pierna (3.9.1: la ceñida, más)
+          mezclar(idx.get(pt), Math.min(0.9, 0.3 * (m.userData.piernas || 1)) * sv(-0.12, -0.45, q.y) * sv(0.0, m.userData.piernasX || 0.08, Math.abs(q.x)));   // la pollera sigue a la pierna (3.9.1: la ceñida, más)
         }
       } else if (patas.includes(grupo)) {
         mezclar(0, 0.45 * sv(-0.08, 0.03, q.y));
