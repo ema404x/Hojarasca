@@ -23,6 +23,10 @@ decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
 **Desde el 01-10-2026 el código vive en GitHub: `https://github.com/ema404x/Hojarasca`
 (privado).** Ya no hacen falta zips para el código.
 
+0. **El trabajo de la 3.8.x está en la rama `claude/hojarasca-improvements-57k11e` (el PR #1 sigue abierto, sin juntar con `main`).**
+   Después de clonar (o si ya lo tenías): `git fetch origin` y `git checkout claude/hojarasca-improvements-57k11e` y `git pull`;
+   si te quedás en `main` falta todo lo de la 3.8.x (economía, banco, auditoría). Al terminar: `npm install`, `node armar.mjs`
+   (`index.html` no se sube a git: hay que armarlo) y `npm run verify` (202 pasos, tiene que dar «202 pasos OK»).
 1. Instalá Git si no está: `winget install --id Git.Git -e --source winget`.
 2. Clonalo en `Documents\Hojarasca`:
    `git clone https://github.com/ema404x/Hojarasca.git hojarasca`
