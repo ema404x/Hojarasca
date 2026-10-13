@@ -54,7 +54,7 @@ const ctxDe = (p, extra = {}) => ({ dia: p.dia, hora: p.horas, aldea: p.aldea, m
   }
   ok(main.includes("import { crearAmorMundo } from './amor-mundo.js';") && main.includes('amorDestino: (k) => destinoConFiesta(k),') && main.includes('const a = amorMundo?.destino(k) || null;') && main.includes('mundo: () => amorMundo,') && main.includes('if (!desafio) amorMundo?.actualizar(dt);'), 'main.js: el mundo del amor enganchado (sólo en el Relax)');   // (3.7.2: el destino del amor manda; detrás, el del asado) (3.7.5: delante, la fiesta)
   ok(ag.includes('const r = ctx.amorDestino(k);') && ag.includes('if (n.conVos) { st.clave = \'\'; continue; }') && ag.includes('function llegarCaminando(n, d)'), 'aldea-gente.js: el destino del amor manda, y llega caminando');
-  ok(gente.includes("case 'dormir':") && gente.includes("case 'brindar':") && gente.includes('function gestoAmor(g)') && gente.includes('if (g.enLejano || g.conVos || g.alAmor) cerquita = false;'), 'gente.js: acostada, el brindis, de la mano y del brazo');
+  ok(gente.includes("case 'dormir':") && gente.includes("case 'brindar':") && gente.includes('function gestoAmor(g)') && gente.includes('if (g.enLejano || g.conVos || g.alAmor || g.sinFrenar) cerquita = false;'), 'gente.js: acostada, el brindis, de la mano y del brazo');
   ok(aj.includes("ctx.mundo?.()?.opcionCaminar?.(clave)") && aj.includes("que === 'caminar'"), 'amor-juego.js: salir a caminar juntos');
 }
 

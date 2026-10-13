@@ -195,7 +195,7 @@ globalThis.__R = (() => {
 {
   const mm = leer('src/aldea-mecanicas-mundo.js');
   ok(mm.includes('const sinApuro = () => musica.activa || (!!ctx.gente?.()?.oyendoCuento?.() && cerca);'), 'lo frenan la música del baile y los cuentos del domingo');
-  ok(main.includes("const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() ? 40 : 1;"), 'y tu propia charla');   // (3.8.6: y la mesita y el fogón de la fiesta, y el fundido de dormir)
+  ok(main.includes("const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;"), 'y tu propia charla');   // (3.8.6: y la mesita y el fogón de la fiesta, y el fundido de dormir)
   // una semana en la aldea, con vos al lado de alguien a cada rato: se oyen charlas de vecinos todos los días
   // (no frenan) y los cuentos de la abuela sólo el domingo a la mañana, en la biblioteca (frenan)
   const A = await import('../src/aldea.js');
@@ -289,8 +289,8 @@ globalThis.__R = (() => {
     const pct = Object.fromEntries(Object.entries(por).map(([k, r]) => [k, (100 * r.caminando) / r.horario]));
     const peor = Object.entries(pct).sort((a, b) => b[1] - a[1]);
     ok(peor.length >= (completa ? 20 : 9), `aldea ${completa ? 'completa' : 'recién empezada'}: ${peor.length} con horario`);
-    ok(peor[0][1] <= 10, `aldea ${completa ? 'completa' : 'recién empezada'}: nadie pasa del 10 % caminando (${peor.slice(0, 4).map(([k, v]) => `${k} ${v.toFixed(1)} %`).join(', ')})`);
-    ok(pct.jefe <= 10, `el jefe de estación: ${pct.jefe.toFixed(1)} %`);
+    ok(peor[0][1] <= 16, `aldea ${completa ? 'completa' : 'recién empezada'}: nadie pasa del 16 % (3.9.1: el jefe y otros se van a la cantina de noche) caminando (${peor.slice(0, 4).map(([k, v]) => `${k} ${v.toFixed(1)} %`).join(', ')})`);
+    ok(pct.jefe <= 16, `el jefe de estación: ${pct.jefe.toFixed(1)} %`);
   }
   // el jefe: de su casa derecho a izar, unos mates en la plaza, la estación de 8:45 a 18 (andén y adentro cada dos
   // horas), almuerza ahí con la vianda, y a las 19:15 ya arrió y está libre

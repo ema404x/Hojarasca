@@ -447,7 +447,7 @@ function cargarVM(mods) {
 {
   const m = A.VECINOS_ALDEA.martin;
   ok(m && m.casa === 'taller-tren' && m.trabajo === 'taller-tren' && /maquinista/.test(m.oficio) && m.charla.length >= 3, 'Martín: el maquinista retirado, vive y trabaja en el taller');
-  ok(A.ORDEN_VECINOS_ALDEA.includes('martin') && A.ORDEN_PERSONAS_ALDEA[A.ORDEN_PERSONAS_ALDEA.length - 3] === 'martin' && A.ORDEN_PERSONAS_ALDEA.indexOf('ercilia') === 8, 'Martín, al final (3.8.8: antes del gerente; los índices de los demás no se mueven)');
+  ok(A.ORDEN_VECINOS_ALDEA.includes('martin') && A.ORDEN_PERSONAS_ALDEA[A.ORDEN_PERSONAS_ALDEA.length - 4] === 'martin' && A.ORDEN_PERSONAS_ALDEA.indexOf('ercilia') === 8, 'Martín, al final (3.9.1: antes del gerente, la moza y la bailarina; los índices de los demás no se mueven)');
   ok(A.cumpleDe('martin') >= 1 && A.cumpleDe('martin') <= 12, 'su cumpleaños');
   const r = (h, ds = 1) => { const x = A.rutinaAldea('martin', h, ds, A.aldeaNueva()); return `${x.edificio}/${x.punto}`; };
   eq([7, 9, 10.6, 13, 14.6, 17.5, 23].map((h) => r(h)), ['taller-tren/adentro', 'taller-tren/banco', 'taller-tren/fragua', 'taller-tren/adentro', 'taller-tren/fragua', 'taller-tren/trabajo', 'taller-tren/cama'], 'el día de Martín');

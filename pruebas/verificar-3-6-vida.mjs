@@ -297,7 +297,8 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
   let est = ag.estado();
   const libres = est.npcs.filter((x) => x.libre);
   ok(libres.length >= 1 && libres.every((x) => V.estaLibre(x.clave, 16.6, 0, p)), `a las 16:36 hay gente libre haciendo lo suyo (${libres.map((x) => `${x.clave}: ${x.actividad}`).join(', ')})`);
-  ok(est.npcs.filter((x) => !x.libre).every((x) => !V.estaLibre(x.clave, 16.6, 0, p) || x.llegando), 'los que trabajan, en su trabajo');
+  // (3.9.1: el que está libre pero todavía no eligió qué hacer —un paseo de menos de media hora no alcanza para salir— tampoco trabaja: es Dalia, que a esa hora pasea por la plaza)
+  ok(est.npcs.filter((x) => !x.libre).every((x) => !V.estaLibre(x.clave, 16.6, 0, p) || x.llegando || x.clave === 'bailarina'), 'los que trabajan, en su trabajo');
   ok(libres.every((x) => Object.hasOwn(V.ACTIVIDADES, x.actividad)), 'actividades de la vecindad');
   ok(p.vecindad.personas[libres[0].clave].hizo === libres[0].actividad, 'y se le cumplen las ganas');
   // lo elegido dura: diez ticks más con la misma hora, lo mismo
@@ -313,7 +314,7 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
   // de noche, nadie libre
   p.horas = 23.5;
   ag.actualizar(0.6);
-  ok(ag.estado().npcs.every((x) => x.clave === 'moza' || (!x.libre && x.destino.punto.startsWith('cama'))), 'de noche, todos a la cama (3.9.0: menos la moza de la cantina, que atiende hasta las 2)');
+  ok(ag.estado().npcs.every((x) => x.clave === 'moza' || x.clave === 'bailarina' || x.destino.edificio === 'cantina' || (!x.libre && x.destino.punto.startsWith('cama'))), 'de noche, todos a la cama (3.9.0: menos la moza de la cantina, que atiende hasta las 2; 3.9.1: y Dalia y los parroquianos, que se quedan en la cantina un rato)');
   // la cita a la casa de té manda (aunque sea de noche, mientras dure)
   p.horas = 18.75;
   ag.citar('nelida', { edificio: 'casa-te', punto: 'mesa-2' });

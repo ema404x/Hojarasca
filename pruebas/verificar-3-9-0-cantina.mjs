@@ -122,7 +122,7 @@ void crearGuardado;
 {
   const m = A.VECINOS_ALDEA.moza;
   ok(m && m.nombre === 'Lucrecia Aguirre' && m.casa === ID && m.trabajo === ID && /moza/.test(m.oficio) && m.charla.length >= 3, 'Lucrecia: vive y trabaja en la cantina');
-  ok(A.ORDEN_VECINOS_ALDEA.includes('moza') && A.esVecinoAldea('moza') && A.ORDEN_PERSONAS_ALDEA.at(-1) === 'moza', 'entre los vecinos, al final del orden');
+  ok(A.ORDEN_VECINOS_ALDEA.includes('moza') && A.esVecinoAldea('moza') && A.ORDEN_PERSONAS_ALDEA.at(-2) === 'moza' && A.ORDEN_PERSONAS_ALDEA.at(-1) === 'bailarina', 'entre los vecinos, al final del orden (3.9.1: y detrás, Dalia)');
   ok(A.cumpleDe('moza') >= 1 && A.cumpleDe('moza') <= 12, 'su cumpleaños');
   const est = A.aldeaNueva();
   const r = (h, ds = 1) => A.rutinaAldea('moza', h, ds, est, null);
@@ -140,7 +140,7 @@ void crearGuardado;
   ok(leer('src/aldea-gente.js').includes("k === 'moza'") && leer('src/aldea-gente.js').includes('ctx.abrirCarta'), 'aldea-gente.js: te ofrece la carta cuando estás sentado');
   const main = leer('src/main.js');
   ok(/abrirCarta: \(\) => !!cantinaJuego\?\.abrirCarta\(\)/.test(main), 'main.js abre la carta desde la charla');
-  ok(/noticiasDestino: \(k\) => \(k === 'moza' \? null/.test(main), 'el club de lectura y la noche de estrellas no se la llevan de la barra');
+  ok(main.includes("noticiasDestino: (k) => (k === 'moza' || k === 'bailarina' ? null"), 'el club de lectura y la noche de estrellas no se la llevan de la barra');
 }
 
 // ---------------------------------------------------------------- 4. la carta
@@ -435,7 +435,7 @@ function BIENES_DONDE(k) { return ({ tronco: 'material', harina: 'cosa' })[k] ||
   const sucio = C.sanearCantina({ visitas: -5, ultima: 9999, pedidos: 'x', gastado: NaN, cuenta: { monto: -3, k: 'tronco', n: 2 }, fuertes: { dia: 1e9, n: 'z' } }, 10);
   ok(sucio.visitas === 0 && sucio.ultima === 10 && sucio.pedidos === 0 && sucio.gastado === 0 && sucio.cuenta === null && sucio.fuertes.dia === 10 && sucio.fuertes.n === 0, 'la basura se sanea (nada negativo, nada del futuro)');
   const buena = C.sanearCantina({ visitas: 3, ultima: 8, pedidos: 7, gastado: 2100, cuenta: { monto: 600, k: 'trucha-fresca', n: 3, dia: 7 }, fuertes: { dia: 8, n: 2 } }, 10);
-  eq(buena, { visitas: 3, ultima: 8, pedidos: 7, gastado: 2100, cuenta: { monto: 600, k: 'trucha-fresca', n: 3, dia: 7 }, fuertes: { dia: 8, n: 2 } }, 'lo bueno queda como está');
+  eq(buena, { visitas: 3, ultima: 8, pedidos: 7, gastado: 2100, cuenta: { monto: 600, k: 'trucha-fresca', n: 3, dia: 7 }, fuertes: { dia: 8, n: 2 }, chistes: {}, ebrio: { n: 0, t: 0 }, pena: { bailes: 0, ultima: 0 } }, 'lo bueno queda como está (3.9.1: y los campos nuevos, vacíos)');
   ok(C.sanearCantina({ cuenta: { monto: 100, k: 'poncho-raro', n: 0 } }, 5).cuenta.k === 'tronco', 'un mandado raro vuelve a un tronco, con al menos uno');
   ok(C.sanearCantina({ cuenta: { monto: 100, k: 'tronco', n: 5, dia: 99 } }, 5).cuenta.dia === 5, 'la cuenta no es de un día futuro');
   const g = leer('src/guardado.js');
@@ -463,7 +463,8 @@ function BIENES_DONDE(k) { return ({ tronco: 'material', harina: 'cosa' })[k] ||
   const { EN_U } = await import('../src/idioma-en-u.js');
   const V = await import('../src/vecindad-voces.js');
   const S = await import('../src/vecindad-social-voces.js');
-  const hay = (t) => Object.hasOwn(EN_U, t.replace(/\{\w+\}/g, '{0}'));
+  const { EN_V } = await import('../src/idioma-en-v.js');   // (3.9.1: lo de Lucrecia con confianza, en la tanda V)
+  const hay = (t) => { const k = t.replace(/\{\w+\}/g, '{0}'); return Object.hasOwn(EN_U, k) || Object.hasOwn(EN_V, k) || Object.hasOwn(EN_V, t); };
   const textos = new Set(C.textosCantina());
   for (const x of ['Cantina: la cuenta', 'Pagaste', 'Trueque', 'Lo anotó en la cuenta', 'No se pudo pedir', 'Probá con otra cosa', 'Te calentó el cuerpo', 'Se te fue el entumecido', 'Quedaste lleno', 'Vas a andar más descansado un rato, hasta que se te pase', 'Saldaste la cuenta', 'No se pudo saldar', 'No alcanza la plata'.replace('No alcanza', 'No te alcanza'), 'Te falta lo que pide para el mandado', 'La carta de hoy', 'E o Escape para cerrar la carta', 'Tenés', 'Tu cuenta', 'Mandado', 'Después pido', 'Levantarme', 'Pagar {0}', 'Trueque: {0}', 'Anotalo en la cuenta', 'Trueque (llevá truchas, leña, frascos…)', 'Saldar con {0}', 'Saldar con el mandado ({0})', 'Tomar un trago', 'Comer un bocado', 'Llamar a la moza', 'Mirar la carta', 'Lucrecia', '¿Qué te traigo, corazón? La carta la tenés acá.', 'E: ver la carta · Escape: después', 'La cantina', 'Abre de 18 a 2']) textos.add(x);
   for (const l of [...Object.values(A.VECINOS_ALDEA.moza.charla ? { c: A.VECINOS_ALDEA.moza.charla } : {})]) for (const t of l) textos.add(t);

@@ -42,7 +42,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
 // ---------------------------------------------------------------- 2. gente: una sola lista de poses sentadas (con «comer»)
 {
   const g = leer('src/gente.js'), m = leer('src/main.js');
-  ok(g.includes("export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer']);") && g.includes("switch (estaSentado(g) ? 'sentado' : g.pose) {"), 'gente: las poses sentadas en una sola lista, y el cuerpo sentado sale de ahí');
+  ok(g.includes("export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer', 'cartas']);") && g.includes("switch (estaSentado(g) ? 'sentado' : g.pose) {"), 'gente: las poses sentadas en una sola lista, y el cuerpo sentado sale de ahí');
   ok(m.includes('est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido') && m.includes("import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';"), 'main: la silla de alguien sentado (comiendo también) no se ofrece');
   ok(!/g\.pose === 'sentado' \|\| g\.pose === 'leyendo'/.test(m), 'main: sin una segunda lista a mano');
   sinCR('src/gente.js');
@@ -191,7 +191,7 @@ const aldeaCompleta = () => { const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN
 // ---------------------------------------------------------------- 11. fiestas: la mesita y el fogón sin el reloj ×40; el rival quieto; la taba
 {
   const m = leer('src/main.js'), j = leer('src/fiestas-juego.js');
-  ok(m.includes('!mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() ? 40 : 1;') && j.includes('const sinApuro = () => !!panel || oyendoLeyenda') && j.includes('oyendoLeyenda = visto.leyenda.i < ley.partes.length;'), 'fiestas: sentado jugando o oyendo la leyenda, el reloj no corre ×40 (el partido se cortaba y la leyenda no se oía)');
+  ok(m.includes('!mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;') && j.includes('const sinApuro = () => !!panel || oyendoLeyenda') && j.includes('oyendoLeyenda = visto.leyenda.i < ley.partes.length;'), 'fiestas: sentado jugando o oyendo la leyenda, el reloj no corre ×40 (el partido se cortaba y la leyenda no se oía)');
   ok(j.includes('if (n !== quieto) { soltarRival(); if (n && !n.conVos) { n.conVos = true; quieto = n; } }') && j.includes('    soltarRival();   // 3.8.6\n    panel = null;'), 'fiestas: el rival de la mesita se queda sentado mientras dure el partido (y se suelta al cerrar)');
   ok(j.includes("texto: r ? `Tirar la taba con ${r.nombre}` : 'La taba: no hay con quién tirar', hacer: () => abrirTaba(r)") && j.includes("const mario = sirve('padre');"), 'fiestas: la taba, con Mario si está (o con quien esté en la cancha); el aviso y la E, con el mismo');
 }

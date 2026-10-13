@@ -87,7 +87,7 @@ const ID = 'banco-pueblo';
 {
   const g = A.VECINOS_ALDEA.gerente;
   ok(g && g.nombre === 'Amadeo Lezcano' && g.casa === ID && g.trabajo === ID && /gerente/.test(g.oficio) && g.charla.length >= 3, 'Amadeo, el gerente: vive y trabaja en el banco');
-  ok(A.ORDEN_VECINOS_ALDEA.includes('gerente') && A.esVecinoAldea('gerente') && A.esPersonaAldea('gerente') && A.ORDEN_PERSONAS_ALDEA.at(-2) === 'gerente', 'entre los vecinos, al final del orden');
+  ok(A.ORDEN_VECINOS_ALDEA.includes('gerente') && A.esVecinoAldea('gerente') && A.esPersonaAldea('gerente') && A.ORDEN_PERSONAS_ALDEA.at(-3) === 'gerente', 'entre los vecinos, al final del orden');
   ok(A.cumpleDe('gerente') >= 1 && A.cumpleDe('gerente') <= 12, 'su cumpleaños');
   const estado = A.aldeaNueva();
   const r = (h, ds) => A.rutinaAldea('gerente', h, ds, estado, 5);
@@ -114,7 +114,7 @@ const ID = 'banco-pueblo';
     ok(sinHora.length === 0, `de lunes a viernes y el sábado sin baile atiende justo de 8:30 a 12:30 y de 14:30 a 18 (fallan ${sinHora.slice(0, 4).join(', ')})`);
     ok(conHora.length === 0, `el sábado con el salón abierto atiende de 8:30 a 12:30 y de 14:30 a 16 (fallan ${conHora.slice(0, 4).join(', ')})`);
     ok(A.desfaseDe('gerente') === 0 && ['jefe', 'ercilia', 'martin', 'panadera'].every((k) => A.desfaseDe(k) !== 0), 'los demás vecinos siguen con su corrimiento (sólo el gerente va con el reloj del banco)');
-    ok(/if \(persona === 'gerente' \|\| persona === 'moza'\) return 0;/.test(fsLeer('src/aldea.js')), 'aldea.js: el gerente va sin corrimiento (desfaseDe, que usan la rutina, la vecindad y la gente)');
+    ok(fsLeer('src/aldea.js').includes("if (persona === 'gerente' || persona === 'moza' || persona === 'bailarina') return 0;"), 'aldea.js: el gerente va sin corrimiento (desfaseDe, que usan la rutina, la vecindad y la gente)');
   }
   eq([r(3, 1).lugar, r(3, 1).edificio, r(3, 1).punto], ['casa', ID, 'cama'], 'de noche duerme en su cama del banco');
   // el sueldo del jefe del banco: charla con el mostrador cuando hay economía (aldea-gente.js ofrece abrirlo)
