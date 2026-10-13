@@ -4955,7 +4955,7 @@ function bancoDelPueblo(K) {
   caja(K.int, [2.75, PISO + 0.82, -0.55], [0.34, 0.05, 0.26], '#6b2f2a');
   caja(K.int, [3.1, PISO + 0.86, -0.5], [0.1, 0.12, 0.1], '#b5903a');
   silla(K, 2.9, -0.05, Math.PI, { nombre: 'la silla del gerente' });
-  lampara(K, 0, -0.4, { cuarto: 'banco', color: '#27382f' });
+  lampara(K, 0, -0.4, { cuarto: 'banco', color: '#27382f', radio: 13, intensidad: 2.2, fuerza: 7 });   // 3.9.2: la única que el mundo prende de noche: alcanza todo el cuarto (como la de la cantina)
   lampara(K, 0, 1.9, { cuarto: 'banco', color: '#27382f' });
   // el lado del público: el banco de espera, las macetas, un cuadro del valle y el reloj de pared
   banco(K, K.int, -3.0, 2.3, Math.PI / 2, { y: PISO, largo: 1.4, nombre: 'el banco de espera del banco' });
@@ -4965,7 +4965,147 @@ function bancoDelPueblo(K) {
   cuadro(K, xi - 0.04, PISO + 1.7, 2.0, -Math.PI / 2, { colores: ['#8a6a3a', '#e8e4d8', '#4a5a6a'] });
   maceta(K, -3.2, D / 2 + 0.55, { y: GALERIA_PISO });
   maceta(K, 3.2, D / 2 + 0.55, { y: GALERIA_PISO });
+  bancoDetalle(K, tab);   // 3.9.2
   vivienda(K, tab, { manta: '#3b4a5e' });
+}
+
+// ---------------------------------------------------------------- 3.9.2: el banco, con más vida
+// Sin luces nuevas: lo que brilla de noche va en `K.bra` (brasas) y `K.vid` (vidrios), que ya se encienden con la noche. Adentro: el reloj de pared con su
+// péndulo, los casilleros y los libros contables sobre el tabique, la balanza, la campanilla, el tintero, las monedas y el libro abierto sobre el mostrador,
+// la lámpara de banquero y los libros del escritorio, un ficus en cada rincón, el perchero con el sombrero y el paragüero, la pizarra de las tasas, el
+// felpudo y otra alfombra. Afuera: los faroles de pared a los lados de la puerta, las jardineras de las ventanas, el banco de la galería y el tablón de avisos.
+function farolPared(K, x, y, z) {
+  const c = K.ext, F = marcoLocal(x, z, 0, 0);
+  cj(c, F, 0, y, 0.04, 0.05, 0.22, 0.05, '#2b2926', { tipo: 4 });                  // el brazo
+  cj(c, F, 0, y + 0.02, 0.12, 0.2, 0.3, 0.2, '#2b2926', { tipo: 4, bajo: 0.9 });   // el cuerpo de hierro
+  cj(c, F, 0, y + 0.2, 0.12, 0.27, 0.05, 0.27, '#2b2926', { tipo: 4 });            // el techito
+  const k0 = { r: 1, g: 0.86, b: 0.6 }, k1 = { r: 1, g: 0.95, b: 0.78 };
+  for (const [nx, nz] of [[0, 1], [1, 0], [-1, 0]]) {   // el vidrio (brilla de noche: va con los vidrios)
+    const ux = nz, uz = -nx, P = (s, yy) => F.p(s * ux + 0.092 * nx, yy, 0.12 + s * uz + 0.092 * nz);
+    quad(K.vid, P(-0.07, y - 0.1), P(0.07, y - 0.1), P(0.07, y + 0.12), P(-0.07, y + 0.12), k0, k0, k1, k1, 0);
+  }
+}
+function ficus(K, x, z) {
+  const c = K.int, r = azar(semillaDe(K.id + '|ficus' + x.toFixed(1)));
+  cilindro(c, [x, PISO + 0.2, z], 0.22, 0.17, 0.4, '#9a5a3a', { lados: 8 });
+  cilindro(c, [x, PISO + 0.41, z], 0.2, 0.2, 0.03, '#3a2a1e', { lados: 8 });
+  palo(c, [x, PISO + 0.4, z], [x + 0.03, PISO + 1.15, z - 0.02], 0.025, '#5a4330');
+  for (let i = 0; i < 7; i++) {
+    const a = i * 2.4 + r(), h = 0.8 + 0.07 * i + r() * 0.1, d = 0.1 + 0.12 * r() + (i % 3) * 0.05;
+    bulto(c, [x + Math.cos(a) * d, PISO + h, z + Math.sin(a) * d], 0.13 + r() * 0.04, elegir(r, ['#3f6a3a', '#4f7a3a', '#35602f']), { tipo: 0, detalle: 0, esc: [1.1, 0.8, 1.1] });
+  }
+  K.circulo(x, z, 0.24, PISO, PISO + 1.3);
+}
+function bancoDetalle(K, tab) {
+  const D = K.D, xi = K.W / 2 - MURO, c = K.int, yP = PISO, zF = tab.z + 0.075, zFr = D / 2 - MURO;
+  const r = azar(semillaDe(K.id + '|detalle'));
+  const T = marcoLocal(0, zF, 0, yP);   // la cara del tabique que mira al mostrador (lz hacia el público)
+  // el reloj de pared de péndulo, a la izquierda del gerente
+  {
+    const xr = -1.2, yr = 1.95;
+    cj(c, T, xr, yr + 0.3, 0.05, 0.36, 0.07, 0.1, '#4a3020');
+    cl(c, T, xr, yr, 0.05, 0.26, 0.26, 0.08, '#5a3a22', { rx: Math.PI / 2, lados: 18 });
+    cl(c, T, xr, yr, 0.095, 0.2, 0.2, 0.012, '#efe8d6', { rx: Math.PI / 2, lados: 18 });
+    for (const [dx, dy] of [[0, 0.165], [0, -0.165], [0.165, 0], [-0.165, 0]]) cj(c, T, xr + dx, yr + dy, 0.103, dx ? 0.03 : 0.012, dx ? 0.012 : 0.03, 0.006, '#2a2826');
+    cj(c, T, xr, yr + 0.055, 0.106, 0.014, 0.12, 0.006, '#2a2826');
+    cj(c, T, xr + 0.045, yr + 0.01, 0.108, 0.1, 0.014, 0.006, '#2a2826', { rz: 0.4 });
+    cj(c, T, xr, yr - 0.52, 0.045, 0.2, 0.6, 0.09, '#5a3a22');
+    cj(c, T, xr, yr - 0.52, 0.092, 0.14, 0.5, 0.006, '#26332f');
+    cj(c, T, xr, yr - 0.5, 0.098, 0.006, 0.34, 0.004, '#b5903a');
+    cl(c, T, xr, yr - 0.66, 0.1, 0.05, 0.05, 0.012, '#b5903a', { rx: Math.PI / 2 });
+  }
+  // los libros contables sobre el tabique: dos estantes a la derecha del reloj y los casilleros a la izquierda
+  for (const [yb, n] of [[1.5, 9], [1.95, 7]]) {
+    cj(c, T, 0.75, yb, 0.11, 0.95, 0.03, 0.22, '#4a3020');
+    let lx = 0.31;
+    for (let i = 0; i < n; i++) {
+      const w = 0.045 + 0.03 * r(), h = 0.19 + 0.07 * r(), inclina = i === n - 1 && yb < 1.8;
+      cj(c, T, lx + w / 2 + (inclina ? 0.03 : 0), yb + 0.015 + h / 2, 0.11, w, h, 0.15, elegir(r, ['#6b2f2a', '#27382f', '#3b4a5e', '#4a3020', '#7a5a2a', '#2a2826']), { rz: inclina ? -0.25 : 0 });
+      lx += w + 0.004;
+    }
+  }
+  {
+    const xc = -2.15, yc = 1.75;
+    cj(c, T, xc, yc, 0.04, 0.9, 0.72, 0.02, '#26180f');
+    for (const dy of [-0.36, 0.36]) cj(c, T, xc, yc + dy, 0.1, 0.94, 0.03, 0.2, '#4a3020');
+    for (const dx of [-0.45, 0.45]) cj(c, T, xc + dx, yc, 0.1, 0.03, 0.72, 0.2, '#4a3020');
+    for (const dx of [-0.15, 0.15]) cj(c, T, xc + dx, yc, 0.1, 0.015, 0.7, 0.2, '#4a3020');
+    for (const dy of [-0.12, 0.12]) cj(c, T, xc, yc + dy, 0.1, 0.9, 0.015, 0.2, '#4a3020');
+    for (let i = 0; i < 6; i++) if (r() < 0.75) cl(c, T, xc - 0.3 + 0.3 * (i % 3) + 0.05 * (r() - 0.5), yc - 0.24 + 0.24 * Math.floor(i / 3) * 2 - 0.0, 0.1, 0.035, 0.035, 0.16, elegir(r, ['#efe8d6', '#d8cdb0', '#c9b27a']), { rz: Math.PI / 2, lados: 6 });
+  }
+  // sobre el mostrador (la tapa está a 0,98 m): la campanilla, el tintero con su pluma, las monedas, la balanza, el sello y el libro abierto
+  {
+    const M = marcoLocal(0, 0.7, 0, yP + 0.98);
+    cono(c, M.p(-1.3, 0.04, 0.2), 0.055, 0.07, '#b5903a', { lados: 8, tipo: 0 });
+    bulto(c, M.p(-1.3, 0.09, 0.2), 0.014, '#b5903a', { tipo: 0, detalle: 0 });
+    cl(c, M, -0.5, 0.03, 0.2, 0.04, 0.04, 0.06, '#1f2a3a');
+    palo(c, M.p(-0.5, 0.05, 0.2), M.p(-0.4, 0.22, 0.16), 0.005, '#efe8d6', { tipo: 0 });
+    for (const [x, n] of [[0.4, 4], [0.47, 6]]) for (let k = 0; k < n; k++) cl(c, M, x, 0.007 + k * 0.012, 0.2, 0.03, 0.03, 0.01, '#c9a64a', { lados: 8 });
+    cj(c, M, -1.2, 0.015, -0.2, 0.14, 0.03, 0.09, '#b5903a');
+    cj(c, M, -1.2, 0.15, -0.2, 0.014, 0.28, 0.014, '#b5903a');
+    cj(c, M, -1.2, 0.29, -0.2, 0.36, 0.012, 0.012, '#b5903a', { rz: 0.04 });
+    for (const dx of [-0.17, 0.17]) cl(c, M, -1.2 + dx, 0.2 - dx * 0.2, -0.2, 0.05, 0.04, 0.012, '#b5903a', { lados: 10 });
+    cl(c, M, -0.55, 0.05, -0.2, 0.02, 0.02, 0.07, '#3a2a1e');
+    cj(c, M, -0.75, 0.01, -0.2, 0.1, 0.02, 0.07, '#6b2f2a');
+    cj(c, M, 1.22, 0.004, -0.19, 0.46, 0.012, 0.26, '#6b2f2a');
+    for (const s of [-1, 1]) cj(c, M, 1.22 + s * 0.1, 0.014, -0.19, 0.2, 0.012, 0.23, '#efe8d6', { rz: -s * 0.04 });
+    for (let k = 0; k < 3; k++) cj(c, M, 0.78, 0.015 + k * 0.03, -0.2, 0.26 - k * 0.02, 0.028, 0.19, ['#27382f', '#7a5a2a', '#6b2f2a'][k]);
+  }
+  // el escritorio del gerente: la lámpara de banquero (el foco brilla de noche), los libros, los papeles y la otra alfombra
+  {
+    const E = marcoLocal(2.9, -0.55, 0, yP + 0.76);
+    cl(c, E, 0.38, 0.01, -0.15, 0.06, 0.06, 0.02, '#b5903a', { lados: 8 });
+    cl(c, E, 0.38, 0.17, -0.15, 0.008, 0.008, 0.3, '#b5903a', { lados: 5 });
+    cilindro(c, E.p(0.38, 0.33, -0.15), 0.05, 0.12, 0.1, '#27382f', { lados: 10, abierto: true });
+    caja(K.bra, E.p(0.38, 0.28, -0.15), [0.05, 0.04, 0.05], '#ffe2a8', { tipo: 0, bajo: 1, alto: 1 });
+    for (let k = 0; k < 3; k++) cj(c, E, -0.4, 0.025 + k * 0.05, 0.12, 0.26 - k * 0.02, 0.05, 0.2, ['#2f4a3a', '#6b2f2a', '#3b4a5e'][k], { giro: k * 0.2 });
+    cj(c, E, 0.0, 0.004, 0.18, 0.2, 0.006, 0.28, '#efe8d6', { giro: 0.2 });
+    cj(c, E, 0.12, 0.006, 0.17, 0.2, 0.006, 0.28, '#e2d9c0', { giro: -0.3 });
+    alfombra(K, 2.9, -0.05, 1.3, 0.8, 0, '#27382f', { guarda: '#b5903a' });
+  }
+  // la sala del público: los ficus, el perchero con el sombrero, el paragüero, la pizarra de las tasas, el mapa, el acta, el calendario y el felpudo
+  ficus(K, -3.48, 2.72); ficus(K, 3.48, 2.72);
+  {
+    const x = -1.3, z = zFr - 0.14;
+    cilindro(c, [x, yP + 0.02, z], 0.18, 0.18, 0.04, '#3a2a1e', { lados: 8 });
+    palo(c, [x, yP, z], [x, yP + 1.75, z], 0.022, '#4a3020');
+    for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + i * Math.PI / 2; palo(c, [x, yP + 1.6, z], [x + Math.cos(a) * 0.17, yP + 1.69, z + Math.sin(a) * 0.17], 0.009, '#b5903a'); }
+    cilindro(c, [x + 0.12, yP + 1.51, z + 0.12], 0.07, 0.07, 0.1, '#2a2826', { lados: 8 });
+    cilindro(c, [x + 0.12, yP + 1.455, z + 0.12], 0.14, 0.14, 0.012, '#2a2826', { lados: 10 });
+    caja(c, [x - 0.12, yP + 1.28, z + 0.12], [0.22, 0.6, 0.12], '#3b3f46', { giro: -0.3 });
+    K.circulo(x, z, 0.16, yP, yP + 1.8);
+    const px = 1.0, pz = zFr - 0.2;
+    cilindro(c, [px, yP + 0.24, pz], 0.12, 0.11, 0.48, '#6b4a2e', { lados: 8 });
+    palo(c, [px - 0.03, yP + 0.4, pz], [px - 0.06, yP + 0.98, pz + 0.03], 0.012, '#2a2826');
+    palo(c, [px + 0.03, yP + 0.4, pz], [px + 0.07, yP + 0.9, pz - 0.02], 0.012, '#6b2f2a');
+    K.circulo(px, pz, 0.14, yP, yP + 0.6);
+  }
+  {
+    const F = marcoLocal(1.65, zFr - 0.03, Math.PI, yP + 1.65);
+    cuadro(K, 1.65, yP + 1.65, zFr - 0.02, Math.PI, { ancho: 0.78, alto: 0.54, marco: '#6a4a2e', colores: ['#233a2f', '#233a2f', '#233a2f'] });
+    for (const [dy, a] of [[0.16, 0.5], [0.04, 0.42], [-0.08, 0.46]]) { cj(c, F, -0.22 + a / 2 - 0.05, dy, 0.024, a, 0.012, 0.004, '#e8e4d8'); cj(c, F, 0.27, dy, 0.024, 0.1, 0.014, 0.004, '#e8e4d8'); }
+    cj(c, F, -0.26, -0.2, 0.024, 0.2, 0.012, 0.004, '#e8e4d8');
+    cuadro(K, -xi + 0.04, yP + 1.7, 2.78, Math.PI / 2, { ancho: 0.62, alto: 0.46, colores: ['#9ab6c4', '#6f9a5a', '#c9b27a', '#6f9a5a'] });
+    cuadro(K, -3.1, yP + 1.7, zF + 0.02, 0, { ancho: 0.42, alto: 0.56, marco: '#3a2a1e', colores: ['#e8dcc0', '#efe8d6', '#e8dcc0'] });
+    cuadro(K, xi - 0.04, yP + 1.62, -0.55, -Math.PI / 2, { ancho: 0.26, alto: 0.36, marco: '#4a3020', colores: ['#a8322a', '#efe8d6', '#efe8d6'] });
+  }
+  alfombra(K, 0, zFr - 0.3, 0.9, 0.45, 0, '#4a3a2c', { guarda: '#6b5a3c' });
+  // ---- afuera
+  const zP = D / 2;
+  farolPared(K, -0.98, yP + 1.82, zP); farolPared(K, 0.98, yP + 1.82, zP);
+  for (const x of [-2.5, 2.5]) {
+    const J = marcoLocal(x, zP + 0.13, 0, 0), yj = yP + 1.08;
+    cj(K.ext, J, 0, yj, 0, 1.3, 0.2, 0.22, '#5a4130', { tipo: 4 });
+    cj(K.ext, J, 0, yj + 0.1, 0, 1.22, 0.02, 0.16, '#3a2a1e', { tipo: 4 });
+    for (let i = 0; i < 8; i++) bulto(K.ext, J.p(-0.56 + i * 0.16, yj + 0.17 + 0.03 * (i % 2), (i % 2 ? 0.03 : -0.03)), 0.075, i % 3 === 1 ? '#4f6b3a' : elegir(r, ['#b8322a', '#e0a040', '#c25a7a', '#d0563a']), { tipo: 4, detalle: 0, esc: [1, 0.85, 1] });
+  }
+  banco(K, K.ext, 2.1, zP + 0.38, 0, { y: GALERIA_PISO, largo: 1.5, tipo: 4, nombre: 'el banco de la galería del banco' });
+  {
+    const B = marcoLocal(-1.5, zP, 0, 0);
+    cj(K.ext, B, 0, yP + 1.55, 0.045, 0.74, 0.54, 0.03, '#6a4a2e', { tipo: 4 });
+    cj(K.ext, B, 0, yP + 1.55, 0.065, 0.66, 0.46, 0.012, '#b88a52', { tipo: 4 });
+    for (let i = 0; i < 6; i++) cj(K.ext, B, -0.24 + (i % 3) * 0.24 + 0.03 * (r() - 0.5), yP + 1.67 - Math.floor(i / 3) * 0.2, 0.074, 0.16 + 0.04 * r(), 0.18, 0.004, elegir(r, ['#efe8d6', '#e2d9c0', '#d8c9a0', '#c9d6c0']), { tipo: 4, giro: 0, rz: (r() - 0.5) * 0.15 });
+  }
 }
 
 // ---------------------------------------------------------------- 3.9.0: la cantina
