@@ -160,6 +160,8 @@ export const EDIFICIOS_ALDEA = {
   varadero: { ancho: 8, fondo: 6, nombre: 'Varadero', clase: 'local', lote: true, loma: true },
   observatorio: { ancho: 6, fondo: 6, nombre: 'Observatorio', clase: 'local', lote: true, loma: true, desnivelSugerido: 0.6 },
   costureria: { ancho: 6, fondo: 5, nombre: 'Costurería', clase: 'local', lote: true, loma: true },
+  // 3.8.8: el banco del pueblo (PLAN_ECONOMIA.md): inicial, de piedra y cal, con galería de columnas y el gerente adentro
+  'banco-pueblo': { ancho: 7.8, fondo: 6.4, nombre: 'Banco del Pueblo', clase: 'local', inicial: true },
 };
 export const LOTES_ALDEA = ['panaderia', 'herreria', 'carpinteria', 'pescaderia', 'escuela', 'puesto-sanitario',
   'estafeta', 'hilanderia', 'sala-miel', 'seccional', 'salon'];
@@ -849,6 +851,10 @@ export const CARTELES_ALDEA = [
   ...LOTES_LOMA.map((id) => ({ texto: 'Lote para ' + PARA_LOTE[id], fondo: '#cdb98e', tinta: '#3a2a1a', mano: true })),
   // 3.7.3: el del taller ferroviario (sobre el portón, cuando se arregla)
   { texto: 'Taller Ferroviario', fondo: '#2e3a4c', tinta: '#e8d8a8' },
+  // 3.8.8: el del banco del pueblo (sobre la galería)
+  { texto: 'Banco del Pueblo', fondo: '#27382f', tinta: '#e9d79c' },
+  // 3.8.9: el horario del banco, en la pared junto a la puerta (HORARIO_BANCO en aldea.js: 8:30 a 12:30 y 14:30 a 18)
+  { texto: '8:30 a 12:30 y 14:30 a 18', fondo: '#e4ddca', tinta: '#27382f', mano: true },
 ];
 // (3.7.0: 2048 → 2560 de alto, 52 celdas: entran los carteles de la loma y sus lotes)
 export const ATLAS_CARTELES = { ancho: 1024, alto: 2560, celdaAncho: 512, celdaAlto: 96, columnas: 2 };
@@ -1865,9 +1871,9 @@ function mastil(K, x, z, o = {}) {
   const y0 = h - 0.15 - A;
   const franjas = [['#74acdf', 0, 1 / 3], ['#f4f1ea', 1 / 3, 2 / 3], ['#74acdf', 2 / 3, 1]];
   const cg = Math.cos(giro), sg = Math.sin(giro);
-  const onda = (u) => Math.sin(u * 5.5) * 0.06 * u;
+  const onda = () => 0;   // 3.8.8: la onda ya no está pintada en la malla: la hace el viento (bandera-viento.js)
   const P = (u, v) => { const lx = 0.07 + u * L, lz = onda(u); return [x + lx * cg + lz * sg, y0 + v * A, z - lx * sg + lz * cg]; };
-  const seg = 6;
+  const seg = 14;   // (3.8.8: más cortes para que el paño pueda ondear)
   if (o.base !== false) K.circulo(x, z, 0.6, 0, 0.25);
   K.circulo(x, z, 0.1, 0, h);
   K.extra.bandera = { lx: x, ly: h - 0.15 - A / 2, lz: z, alto: h, izada: y0, arriada: 1.1 };
@@ -1891,7 +1897,7 @@ function mastil(K, x, z, o = {}) {
     }
     const ps = P(0.5, 0.5);
     bulto(cb, [ps[0] + sg * 0.012, ps[1], ps[2] + cg * 0.012], 0.075, '#e0a83a', { detalle: 1, esc: [1, 1, 0.25], rot: [0, giro, 0], tipo: 0 });
-  }, { sup: SUP.nada, datos: { movimiento: 'sube', desde: 1.1 - y0, hasta: 0 } });
+  }, { sup: SUP.nada, material: 'bandera', datos: { movimiento: 'sube', desde: 1.1 - y0, hasta: 0, giroBase: giro, largo: L, altoPano: A } });
 }
 function cerco(K, x0, z0, x1, z1, o = {}) {
   const c = K.ext, L = Math.hypot(x1 - x0, z1 - z0);
@@ -3064,6 +3070,9 @@ function biblioteca(K) {
   }
   // un mapa del valle y una foto vieja de la aldea
   mapaPintado(K, xi - 0.02, PISO + 1.6, 0.6, -Math.PI / 2, 1.4, 0.95);
+  // 3.8.8: y el almanaque comunitario, en la pared de la izquierda, entre la ventana y el estante del fondo
+  almanaquePared(K, -xi + 0.03, PISO + 1.5, 2.5, Math.PI / 2);
+  K.punto('almanaque', -xi + 0.9, 1.9, -Math.PI / 2);
   cuadro(K, -2.9, PISO + 1.75, zi - 0.01, Math.PI, { ancho: 0.6, alto: 0.42, colores: ['#9a8a70', '#6a5a48', '#b8a888'] });
   lampara(K, -1.9, 3.3, { color: '#3f5a48' });
   // afuera: dos macetas y un banco en la galería
@@ -3163,6 +3172,44 @@ function canteroTroncos(K, r, x, z, L, A, giro = 0) {
     cartaHojas(K.fol, p[0], 0.1 + h, p[2], [0, 1, 0], h * (celda === 7 ? 0.6 : 1.0), h, (r() - 0.5) * 0.2, 0, celda, 3, k, k);
   }
   K.mueble(x, z, L + 0.22, A + 0.22, 0.3, giro, 0);
+}
+// 3.8.8: el reloj comunitario de la plaza: un poste de lenga con una caja de dos esferas (una mira al duende y la otra a la
+// estación), sobre una base de piedra. Marca las diez y diez, como los relojes de los anuncios: la hora de verdad se lee con
+// E (reloj-almanaque.js). La caja con su techito se ve de lejos.
+function relojPlaza(K, x, z) {
+  const c = K.ext, F = marcoLocal(x, z, 0, 0);
+  cilindro(c, [x, 0.14, z], 0.22, 0.3, 0.28, '#8a8274', { tipo: 4, lados: 8 });
+  palo(c, [x, 0.2, z], [x, 3.0, z], 0.095, '#4e3a28', { lados: 8 });
+  caja(c, [x, 3.3, z], [0.98, 0.98, 0.22], '#3a2c20', { tipo: 0 });
+  // el techito a dos aguas de la caja
+  for (const l of [-1, 1]) caja(c, [x + l * 0.27, 3.9, z], [0.62, 0.05, 0.42], '#5a4638', { tipo: 4, giro: 0, rz: -l * 0.45 });
+  for (const sg of [-1, 1]) {
+    const zc = sg * 0.115;
+    cj(c, F, 0, 3.3, zc, 0.84, 0.84, 0.016, '#efe8d8', { tipo: 4, bajo: 0.9 });
+    for (let k = 0; k < 12; k++) {
+      const a = k / 12 * Math.PI * 2, grande = k % 3 === 0;
+      cj(c, F, sg * Math.sin(a) * 0.35, 3.3 + Math.cos(a) * 0.35, zc + sg * 0.012, grande ? 0.04 : 0.025, grande ? 0.1 : 0.06, 0.006, '#2a2622', { tipo: 0, rz: -a * sg });
+    }
+    // las agujas: las diez y diez (la corta hacia el 10, la larga hacia el 2)
+    cj(c, F, sg * -0.1, 3.3 + 0.06, zc + sg * 0.018, 0.035, 0.26, 0.008, '#1f1c19', { tipo: 0, rz: sg * 0.9 });
+    cj(c, F, sg * 0.14, 3.3 + 0.1, zc + sg * 0.024, 0.025, 0.36, 0.008, '#1f1c19', { tipo: 0, rz: -sg * 0.95 });
+    cj(c, F, 0, 3.3, zc + sg * 0.03, 0.06, 0.06, 0.01, '#8a6a2a', { tipo: 0 });
+  }
+  K.circulo(x, z, 0.22, 0, 3.0);
+  K.punto('reloj', x, z - 1.3, 0, 0.03);
+}
+// 3.8.8: el almanaque comunitario de la biblioteca, colgado de un clavo: una hoja con la franja roja de arriba y los días en
+// filas. La fecha de verdad se lee con E.
+function almanaquePared(K, x, y, z, giro) {
+  const F = marcoLocal(x, z, giro, y), c = K.int;
+  cj(c, F, 0, 0, 0, 0.5, 0.74, 0.02, '#5a4130');
+  cj(c, F, 0, 0.1, 0.013, 0.44, 0.46, 0.006, '#efe8d8', { bajo: 0.9 });
+  cj(c, F, 0, 0.3, 0.016, 0.44, 0.1, 0.006, '#9b3a2e', { bajo: 0.9 });
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) cj(c, F, -0.165 + j * 0.11, 0.2 - i * 0.075, 0.019, 0.07, 0.04, 0.004, (i * 4 + j) % 6 === 0 ? '#b8322a' : '#8a8272', { bajo: 0.9 });
+  cj(c, F, 0, -0.27, 0.014, 0.4, 0.14, 0.006, '#e2d6b8', { bajo: 0.9 });
+  cj(c, F, -0.12, -0.27, 0.021, 0.09, 0.09, 0.004, '#d9d2b0', { bajo: 0.9 });   // la luna
+  cj(c, F, 0.1, -0.27, 0.021, 0.18, 0.02, 0.004, '#8a8272', { bajo: 0.9 });
+  cj(c, F, 0, 0.385, 0.012, 0.05, 0.05, 0.03, '#2f2c2a');   // el clavo
 }
 function aljibe(K, x, z) {
   const c = K.ext;
@@ -3335,6 +3382,7 @@ function plaza(K) {
   canteroTroncos(K, r, 5.9, 1.0, 1.0, 2.2);
   // el aljibe en el rincón del fondo y el sube y baja del otro lado
   aljibe(K, -7.6, -1.7);
+  relojPlaza(K, 1.65, ZM);   // 3.8.8: al lado del mástil (del lado opuesto a la soga), entre su base y el cantero
   const XS = 7.4, ZS = -1.9, Fs = marcoLocal(XS, ZS, 0.25);
   cj(c, Fs, 0, 0.45, 0, 0.3, 0.9, 0.3, '#5a4636', { tipo: 0 });
   cj(c, Fs, 0, 0.75, 0, 3.2, 0.1, 0.3, '#8a5236', { tipo: 0, rz: 0.14 });
@@ -4795,6 +4843,7 @@ function nombrar(K) {
     K.extra.juego.forEach((p, i) => { N['juego-' + (i + 1)] = copia(p); });
     N.musico = copia(P.musico); N.mastil = copia(P.mastil); N.duende = copia(P.duende);
     N.aljibe = copia(P.aljibe);
+    N.reloj = copia(P.reloj);   // 3.8.8
     if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };
     P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
     return N;
@@ -4807,7 +4856,7 @@ function nombrar(K) {
   // 3.6 (pulido): para las mecánicas de cada lugar (PLAN_ALDEA §14)
   P.asientos.forEach((a, i) => { N['asiento-' + (i + 1)] = copia(a); });
   P.estufas.forEach((a, i) => { N[i ? 'estufa-' + (i + 1) : 'estufa'] = copia(a); });
-  for (const k of ['aljibe', 'pizarron', 'dibujos', 'camilla', 'casillas', 'mapa-valle', 'pista-baile', 'colmenas', 'sierra', 'redes', 'campana-anden', 'horario-trenes']) if (P[k]) N[k] = copia(P[k]);
+  for (const k of ['aljibe', 'pizarron', 'dibujos', 'camilla', 'casillas', 'mapa-valle', 'pista-baile', 'colmenas', 'sierra', 'redes', 'campana-anden', 'horario-trenes', 'almanaque']) if (P[k]) N[k] = copia(P[k]);
   // 3.7.0 (loma): los lugares de los oficios nuevos
   for (const k of ['cuarto-oscuro', 'corral', 'mapa-cumbres', 'cartas-cielo', 'espejo', 'escalinata', 'escalera', 'escalera-arriba']) if (P[k]) N[k] = copia(P[k]);
   if (P['mastil-soga']) N['mastil-soga'] = { ...copia(P['mastil-soga']), alto: P['mastil-soga'].alto, izada: P['mastil-soga'].izada };
@@ -4835,6 +4884,81 @@ function nombrar(K) {
   return N;
 }
 
+
+// ---------------------------------------------------------------- 3.8.8: el banco del pueblo
+// De piedra y cal, con el frontón al frente, el reloj en el tímpano, la galería de columnas, las ventanas con reja, el mostrador de lado a
+// lado con su reja de bronce, la caja fuerte, el escritorio del gerente y, atrás, su cuarto. El gerente atiende detrás del mostrador (punto
+// `adentro`: detrás de la reja, mirando al público); los clientes se paran enfrente (`cliente`). Se ve igual en todas las etapas (es inicial).
+function bancoDelPueblo(K) {
+  const tab = { z: -1.2, x: 1.8 };
+  casco(K, {
+    eje: 'z', estilo: 'cal', fronton: 'cal', color: '#c4b9a0', colorFronton: '#c4b9a0', colorTecho: '#4a5057', postigo: '#2f4a3a', marco: '#8c8578', alzada: 1.5, zocaloAlto: 1.15,
+    colorInterior: '#d8cfb8', colorPiso: '#5a4a3a', cortina: '#6b2f2a',
+    puertas: [{ cara: 'frente', x: 0, ancho: 1.3, alto: 2.3, nombre: 'la puerta del banco' }],
+    ventanas: [{ cara: 'frente', x: -2.5, ancho: 1.1, alto: 1.4 }, { cara: 'frente', x: 2.5, ancho: 1.1, alto: 1.4 },
+      { cara: 'izq', z: 0.8, ancho: 0.9, alto: 1.2 }, { cara: 'der', z: 0.8, ancho: 0.9, alto: 1.2 }, { cara: 'fondo', x: -1.0, ancho: 0.8, alto: 0.9, cuarto: 'vivienda' }],
+    galeria: { fondo: 1.7, postes: 4 }, tabique: tab, chimenea: chimeneaVivienda(K, tab),
+  });
+  if (!final(K)) return;
+  const W = K.W, D = K.D, H = K.H, xi = W / 2 - MURO;
+  const g = K.extra.galeria;
+  // afuera: las columnas de piedra sobre los postes, el friso, el reloj del tímpano y el cartel de la galería
+  const xsCol = [0, 1, 2, 3].map((i) => g.x0 + 0.14 + (g.x1 - g.x0 - 0.28) * (i / 3));   // (donde caen los postes de la galería)
+  for (const x of xsCol) {
+    cilindro(K.ext, [x, GALERIA_PISO + 0.1, g.zP], 0.2, 0.2, 0.2, '#cfc6b0', { tipo: 4, lados: 10 });
+    cilindro(K.ext, [x, (GALERIA_PISO + g.yPoste) / 2, g.zP], 0.15, 0.17, g.yPoste - GALERIA_PISO - 0.3, '#d9d1bd', { tipo: 4, lados: 12 });
+    cilindro(K.ext, [x, g.yPoste - 0.12, g.zP], 0.2, 0.2, 0.16, '#cfc6b0', { tipo: 4, lados: 10 });
+  }
+  // las esquinas de sillares (piedra tallada, alternados) y la cornisa
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let k = 0; k < 8; k++) {
+    const w = k % 2 ? 0.3 : 0.44;
+    caja(K.ext, [sx * (W / 2 - 0.02), PISO + 0.2 + k * 0.37, sz * (D / 2 - 0.02)], [w, 0.34, w], k % 2 ? '#bdb29a' : '#cfc6b0', { tipo: 4 });
+  }
+  caja(K.ext, [0, H + 0.04, D / 2 + 0.07], [W + 0.34, 0.2, 0.26], '#cfc6b0', { tipo: 4 });
+  cilindro(K.ext, [0, H + 0.72, D / 2 + 0.07], 0.42, 0.42, 0.1, '#efe8d6', { rx: Math.PI / 2, lados: 20, tipo: 4 });
+  cilindro(K.ext, [0, H + 0.72, D / 2 + 0.13], 0.46, 0.46, 0.04, '#6a5a3a', { rx: Math.PI / 2, lados: 20, tipo: 4, abierto: true });
+  caja(K.ext, [0, H + 0.82, D / 2 + 0.15], [0.03, 0.2, 0.02], '#2a2826', { tipo: 4 });
+  caja(K.ext, [0.08, H + 0.72, D / 2 + 0.15], [0.16, 0.03, 0.02], '#2a2826', { tipo: 4 });
+  cartelGaleria(K, 'Banco del Pueblo', 0, 3.2, 0.5);
+  // el horario de atención, en una chapita junto a la puerta (entre la puerta y la ventana de la derecha)
+  cartel(K, '8:30 a 12:30 y 14:30 a 18', [1.3, PISO + 1.55, D / 2 + 0.04], 1.1, 0.2, 0);
+  // las rejas de hierro de las ventanas del frente
+  for (const x of [-2.5, 2.5]) for (let i = -4; i <= 4; i++) caja(K.ext, [x + i * 0.12, PISO + 0.9 + 0.7, D / 2 + 0.04], [0.02, 1.4, 0.02], '#26241f', { tipo: 4 });
+  // el mostrador de lado a lado, con la tapa de mármol, y la reja de bronce con su ventanilla
+  mostrador(K, 0, 0.7, 0, { largo: W - 2 * MURO - 0.04, ancho: 0.6, color: '#3e3226', tapa: '#c9c4b6', panel: '#27382f', nombre: 'mostrador del banco' });
+  const yR = PISO + 0.98;
+  for (let i = -15; i <= 15; i++) {
+    const x = i * 0.12;
+    if (Math.abs(x) < 0.7) continue;
+    caja(K.int, [x, yR + 0.55, 0.66], [0.018, 1.1, 0.018], '#b5903a', { tipo: 0 });
+  }
+  caja(K.int, [0, yR + 1.12, 0.66], [W - 2 * MURO, 0.05, 0.05], '#b5903a', { tipo: 0 });
+  caja(K.int, [0, yR + 0.04, 0.66], [1.45, 0.05, 0.05], '#b5903a', { tipo: 0 });
+  K.punto('adentro', 0, -0.1, 0);
+  // detrás: la caja fuerte (verde, con la rueda de bronce) y el escritorio del gerente con su libro mayor y su lámpara
+  const sx = -2.9, sz = -0.55;
+  caja(K.int, [sx, PISO + 0.7, sz], [0.95, 1.4, 0.8], '#27382f', { bajo: 0.7 });
+  caja(K.int, [sx, PISO + 1.43, sz], [1.0, 0.06, 0.85], '#1d2a23');
+  cilindro(K.int, [sx, PISO + 0.85, sz + 0.42], 0.17, 0.17, 0.04, '#b5903a', { rx: Math.PI / 2, lados: 12 });
+  for (let i = 0; i < 4; i++) caja(K.int, [sx + Math.cos(i * 1.57) * 0.12, PISO + 0.85 + Math.sin(i * 1.57) * 0.12, sz + 0.46], [0.03, 0.03, 0.03], '#b5903a');
+  K.mueble(sx, sz, 0.95, 0.8, 1.4, 0);
+  mesa(K, 2.9, -0.55, 0, { largo: 1.1, ancho: 0.6, color: '#4a3a2c', mantel: '#27382f' });
+  caja(K.int, [2.75, PISO + 0.82, -0.55], [0.34, 0.05, 0.26], '#6b2f2a');
+  caja(K.int, [3.1, PISO + 0.86, -0.5], [0.1, 0.12, 0.1], '#b5903a');
+  silla(K, 2.9, -0.05, Math.PI, { nombre: 'la silla del gerente' });
+  lampara(K, 0, -0.4, { cuarto: 'banco', color: '#27382f' });
+  lampara(K, 0, 1.9, { cuarto: 'banco', color: '#27382f' });
+  // el lado del público: el banco de espera, las macetas, un cuadro del valle y el reloj de pared
+  banco(K, K.int, -3.0, 2.3, Math.PI / 2, { y: PISO, largo: 1.4, nombre: 'el banco de espera del banco' });
+  banco(K, K.int, 3.0, 2.3, -Math.PI / 2, { y: PISO, largo: 1.4, nombre: 'el banco de espera del banco' });
+  alfombra(K, 0, 1.9, 2.6, 1.1, 0, '#6b2f2a', { guarda: '#c7a76a' });
+  cuadro(K, -xi + 0.04, PISO + 1.7, 2.0, Math.PI / 2, { colores: ['#7a9ab0', '#e8e4d8', '#5d7a4a'] });
+  cuadro(K, xi - 0.04, PISO + 1.7, 2.0, -Math.PI / 2, { colores: ['#8a6a3a', '#e8e4d8', '#4a5a6a'] });
+  maceta(K, -3.2, D / 2 + 0.55, { y: GALERIA_PISO });
+  maceta(K, 3.2, D / 2 + 0.55, { y: GALERIA_PISO });
+  vivienda(K, tab, { manta: '#3b4a5e' });
+}
+
 // ---------------------------------------------------------------- armar
 const PLANOS_ALDEA = {
   biblioteca, escuela, 'casa-jefe': casaJefe, 'casa-ercilia': casaErcilia, 'casa-nelida': casaNelida,
@@ -4842,6 +4966,7 @@ const PLANOS_ALDEA = {
   'puesto-sanitario': puestoSanitario, estafeta, hilanderia, 'sala-miel': salaMiel, seccional, salon,
   // 3.7.0: la calle de la loma
   veterinaria, 'estudio-fotos': estudioFotos, 'refugio-andinista': refugioAndinista, herboristeria, 'taller-arte': tallerArte, ceramica, varadero, observatorio, costureria,
+  'banco-pueblo': bancoDelPueblo,   // 3.8.8
 };
 
 function geometriaCarteles(car) {
@@ -5276,6 +5401,18 @@ function rielesTaller(c, pts, suelo, o = {}) {
   return { izq, der };
 }
 const escalarColor = (k, f) => new THREE.Color(k.r * f, k.g * f, k.b * f);
+// 3.8.9: los tramos del listón que une las tablas y la chapa en una pared de ancho 2·W: de punta a punta, menos los huecos (`{ a, b }` en x)
+// con un margen de cada lado (la puerta y la ventana del cuarto lo cortaban al medio: se veía una madera cruzando la puerta)
+export function tramosDeListon(W, huecos, margen = 0.08, sobra = 0.05) {
+  const tramos = [];
+  let desde = -W - sobra;
+  for (const h of [...huecos].sort((p, q) => p.a - q.a)) {
+    if (h.a - margen - desde > 0.05) tramos.push([desde, h.a - margen]);
+    desde = Math.max(desde, h.b + margen);
+  }
+  if (W + sobra - desde > 0.05) tramos.push([desde, W + sobra]);
+  return tramos;
+}
 export function armarTallerTren(opciones = {}) {
   const T = TALLER_TREN;
   const arreglado = !!opciones.arreglado;
@@ -5347,7 +5484,9 @@ export function armarTallerTren(opciones = {}) {
     if (s > 0) { huecos.push(huecoPuerta); huecos.push(ventanaCuarto); }
     paredConHuecos(E, 'x', z, -W, W, F0 - 0.02, F0 + 1.2, huecos, tabla, { sup: SUP.tablasHorizontales });
     paredConHuecos(E, 'x', z, -W, W, F0 + 1.2, AL, huecos, chapaPared, { sup: SUP.chapa, espesor: 0.08 });
-    caja(E, [0, F0 + 1.22, z + s * 0.06], [2 * W + 0.1, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
+    // el listón de unión de las tablas y la chapa: corrido de punta a punta, salvo donde hay un hueco (la puerta y la ventana del cuarto
+    // lo cortaban al medio: se veía una madera cruzando la puerta)
+    for (const [desde, hasta] of tramosDeListon(W, s > 0 ? [huecoPuerta, ventanaCuarto] : [])) caja(E, [(desde + hasta) / 2, F0 + 1.22, z + s * 0.06], [hasta - desde, 0.06, 0.06], '#3e2e22', { sup: SUP.tosca, abollar: 0 });
     // los marcos y los vidrios de las ventanas altas (la luz entra de verdad)
     for (const xv of xs) {
       for (const yy of [yv0, yv1]) caja(E, [xv, yy, z + s * 0.05], [1.72, 0.08, 0.07], '#d8cfb8', { sup: SUP.nada, abollar: 0 });
@@ -5499,13 +5638,16 @@ export function armarTallerTren(opciones = {}) {
     cartel(K, 'Taller Ferroviario', [-W - 0.12, F0 + 4.35, 0], 3.0, 0.42, -Math.PI / 2);
   }
   // ---- adentro: postes, cabriadas (pendolón y tornapuntas) y la viga del aparejo
+  // (3.8.8: el poste del frente que caía en la puerta chica —x 3,02, a 6 cm del eje de la puerta— se sacaba el paso: con su choque
+  // de 12 cm y el cuerpo, quedaban 30 cm de ancho y no se podía entrar. Ahí no hay poste: la cabriada se sostiene de las vigas)
+  const poste = (x, s) => !(s > 0 && Math.abs(x - T.puerta) < 1.0);
   for (let x = -W + 0.2; x <= W - 0.1; x += 2.83) {
-    for (const s of [-1, 1]) caja(I, [x, (F0 + AL) / 2, s * (D - 0.12)], [0.16, AL - F0, 0.16], madera, { sup: SUP.tosca + AD });
+    for (const s of [-1, 1]) if (poste(x, s)) caja(I, [x, (F0 + AL) / 2, s * (D - 0.12)], [0.16, AL - F0, 0.16], madera, { sup: SUP.tosca + AD });
     viga(I, [x, AL, -D + 0.1], [x, AL, D - 0.1], 0.14, 0.18, madera);
     for (const s of [-1, 1]) viga(I, [x, AL + 0.05, s * (D - 0.1)], [x, CU - 0.1, 0], 0.14, 0.16, madera);
     viga(I, [x, AL, 0], [x, CU - 0.1, 0], 0.12, 0.12, madera);
     for (const s of [-1, 1]) viga(I, [x, AL + 0.1, 0], [x, AL + (CU - AL) * 0.5, s * D * 0.5], 0.09, 0.09, madera);
-    for (const s of [-1, 1]) K.circulo(x, s * (D - 0.12), 0.12, F0, AL);
+    for (const s of [-1, 1]) if (poste(x, s)) K.circulo(x, s * (D - 0.12), 0.12, F0, AL);
   }
   // la viga del aparejo (de hierro) sobre el foso, el carro, la cadena y el gancho
   {
@@ -5670,7 +5812,12 @@ export function armarTallerTren(opciones = {}) {
     for (let i = 0; i < tramo.length - 1; i++) {
       const a = tramo[i], b = tramo[i + 1];
       const L = Math.hypot(b[0] - a[0], b[2] - a[2]);
-      K.plataforma((a[0] + b[0]) / 2, (a[2] + b[2]) / 2, L + 0.05, 1.9, (a[1] + b[1]) / 2 + 0.03, 0.4, -Math.atan2(b[2] - a[2], b[0] - a[0]));
+      // (3.8.8: el terraplén caminable medía 1,9 m y el balasto que se ve, 2,3 o más; en la boca del portón, que mide 2,8, el
+      // cuerpo se salía del borde justo en la entrada —y la zorra, sobre los rieles, empuja hacia el costado—: se caía al
+      // terreno, 1,2 m más abajo, y entraba por debajo del piso. Ahora el paso es tan ancho como lo que se ve, y como el portón
+      // en los últimos 4 m)
+      const ancho = Math.max(a[0], b[0]) > -W - 4 ? 2.9 : 2.3;
+      K.plataforma((a[0] + b[0]) / 2, (a[2] + b[2]) / 2, L + 0.05, ancho, (a[1] + b[1]) / 2 + 0.03, 0.4, -Math.atan2(b[2] - a[2], b[0] - a[0]));
     }
     // las agujas: dos rieles finitos que se afinan desde el talón hasta la punta, sobre la vía principal
     const p0 = via[0], p1 = via[Math.max(1, desde)];

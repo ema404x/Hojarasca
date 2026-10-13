@@ -16,6 +16,9 @@ import { EN_P } from './idioma-en-p.js';
 import { EN_Q } from './idioma-en-q.js';
 // 3.8.0: la noche de los duendes (el Desafío con duendes en vez de invasores)
 import { EN_R } from './idioma-en-r.js';
+// 3.8.8: la escalera de casas (cabaña, casa con galería, casona)
+import { EN_S } from './idioma-en-s.js';
+import { EN_T } from './idioma-en-t.js';
 
 export const EN = {
  "}; if (!CODIGO_VALIDO.test(c)) return { ok: false, mapa: { ...base }, motivo: 'Esa tecla no sirve para el juego.' }; if (base[accion] === c) return { ok: true, mapa: { ...base }, motivo: '' }; if (esFija(accion)) { return { ok: false, mapa: { ...base }, motivo:": "}; if (!CODIGO_VALIDO.test(c)) return { ok: false, mapa: { ...base }, motivo: 'That key does not work in the game.' }; if (base[accion] === c) return { ok: true, mapa: { ...base }, motivo: '' }; if (esFija(accion)) { return { ok: false, mapa: { ...base }, motivo:",
@@ -441,7 +444,7 @@ export const EN = {
  "Picotea el suelo en los claros y sale volando si te acercás.": "Pecks at the ground in the clearings and flies off if you come close.",
  "Arriba, entre los árboles: una torre de madera con escalera.": "Up among the trees: a wooden tower with a stairway.",
  "Muy escaso. Buscalo en lo alto, al amanecer o al atardecer.": "Very scarce. Look for it high up, at dawn or at dusk.",
- "Un alero de roca en una ladera empinada, lejos del sendero.": "A rock overhang on a steep slope, far from the trail.",
+ "Una cueva de roca en la estepa, hacia el este, donde el bosque se abre y el pasto es seco: lejos del sendero.": "A rock cave on the steppe, to the east, where the forest opens and the grass is dry: far from the trail.",
  "Matita dura de frutitos rosados, arriba entre las piedras.": "A tough little shrub with pink berries, up among the rocks.",
  "Arbusto espinoso de flores amarillas, en lugares abiertos.": "A thorny shrub with yellow flowers, out in the open.",
  "Desde acá se ve el lago entero y, al oeste, la cordillera.": "From here you see the whole lake and, to the west, the cordillera.",
@@ -2292,7 +2295,7 @@ export const EN = {
  "cambiadas en el almacén": "traded at the store",
  "cantos rodados": "river stones",
  "quien te lo pidió": "whoever asked you",
- "Un alero de piedra con la pared pintada: decenas de manos en negativo y una tropilla de guanacos. Se pintaban soplando pigmento sobre la mano apoyada, con un hueso hueco, y por eso casi todas son manos izquierdas: la derecha sostenía el tubo. Las de la Cueva de las Manos, en el cañadón del río Pinturas, en Santa Cruz, tienen más de 9.000 años y son Patrimonio de la Humanidad. Abajo quedan las piedras de un fogón.": "A rock overhang with a painted wall: dozens of hands in negative and a small herd of guanacos. They were painted by blowing pigment over a hand pressed to the rock, through a hollow bone, which is why almost all are left hands: the right one held the tube. Those at the Cueva de las Manos, in the Pinturas river canyon in Santa Cruz, are more than 9,000 years old and a World Heritage Site. Below lie the stones of an old fire ring.",
+ "Una cueva de roca con la pared pintada: decenas de manos en negativo y una tropilla de guanacos. Se pintaban soplando pigmento sobre la mano apoyada, con un hueso hueco, y por eso casi todas son manos izquierdas: la derecha sostenía el tubo. Las de la Cueva de las Manos, en el cañadón del río Pinturas, en Santa Cruz, tienen más de 9.000 años y son Patrimonio de la Humanidad. Abajo quedan las piedras de un fogón.": "A rock cave with a painted wall: dozens of hands in negative and a small herd of guanacos. They were painted by blowing pigment over a hand pressed to the rock, through a hollow bone, which is why almost all are left hands: the right one held the tube. Those at the Cueva de las Manos, in the Pinturas river canyon in Santa Cruz, are more than 9,000 years old and a World Heritage Site. Below lie the stones of an old fire ring.",
  "Galpón de esquila con sus tablas, la prensa de lana y los fardos apilados. Afuera, los corrales de palo a pique, la manga que lleva a la rampa, una pirca de piedra de un corral más viejo y el molino australiano que llena el tanque. Entre 1880 y 1950 la lana movió la Patagonia: las comparsas de esquiladores recorrían las estancias de campo en campo, y en un galpón como este trabajaban veinte personas de sol a sol.": "A shearing shed with its boards, the wool press and the stacked bales. Outside, the post-and-rail pens, the race leading to the ramp, a dry-stone wall from an older pen and the windmill that fills the tank. Between 1880 and 1950 wool drove Patagonia: shearing gangs went from estancia to estancia, and in a shed like this twenty people worked from dawn to dusk.",
  "Base de piedra en ocho caras, torre encalada y capucha de madera. Se entra por la puerta y se sube por veinticuatro peldaños pegados a la pared hasta el entrepiso, donde están las dos muelas: la de abajo fija y la de arriba girando, movida por el árbol central y la rueda dentada que baja de las aspas. Arriba, la tolva por donde se echa el grano; abajo, las bolsas donde cae la harina. Un molino así muele entre cincuenta y cien kilos por hora con buen viento.": "An eight-sided stone base, a whitewashed tower and a wooden cap. You go in through the door and climb twenty-four steps set into the wall up to the mezzanine, where the two millstones are: the lower one fixed and the upper one turning, driven by the central shaft and the gear wheel coming down from the sails. Above, the hopper where the grain goes in; below, the sacks where the flour falls. A mill like this grinds fifty to a hundred kilos an hour in a good wind."
 };
@@ -2303,6 +2306,8 @@ Object.assign(EN, EN_O);
 Object.assign(EN, EN_P);
 Object.assign(EN, EN_Q);
 Object.assign(EN, EN_R);
+Object.assign(EN, EN_S);
+Object.assign(EN, EN_T);
 // 2.4: la carta que llega al buzón dice lo mismo que la de Ercilia, con otro final.
 // Sale de las que ya están (una por carta, en las tandas M y N).
 for (const [es, en] of Object.entries(EN)) {

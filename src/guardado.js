@@ -49,8 +49,6 @@ import { sanearCocina, cocinaNueva, sanearCoccion } from './cocina-pasos.js';
 import { sanearGranja, granjaNueva } from './granja.js';
 // 3.7.5 (rincones): los duendes, las huertas, el potrero, el taller, tu casa, el camino y el sulky (sólo en el Relax)
 import { rinconesNuevos, sanearRincones } from './rincones.js';
-// 3.8.4: el alero del arriero (la historia chica de Martín y el nombre de su abuelo; sólo en el Relax)
-import { aleroNuevo, sanearAlero } from './alero-arriero.js';
 // 3.7.3: el tren mejorado y el taller ferroviario de la aldea (sólo en el Relax)
 import { trenNuevo, sanearTren, unificarNombreLoco } from './tren-mejoras.js';
 // 3.7.5 (noticias): el diario de la aldea, las cartas de lejos, el club y las estrellas; los concursos y las cintas
@@ -58,6 +56,8 @@ import { noticiasNuevas, sanearNoticias } from './noticias.js';
 import { concursosNuevo, sanearConcursos } from './concursos.js';
 // 3.7.5: las fiestas y las fechas (los recuerdos, la minga, la nevada, los juegos, tu cumpleaños; sólo en el Relax)
 import { fiestasNuevas, sanearFiestas } from './fiestas.js';
+import { economiaNueva, sanearEconomia, convertirYerba } from './economia.js';
+import { negociosNuevo, sanearNegocios } from './negocios.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -371,6 +371,7 @@ export function progresoNuevo() {
     // 3.6.1: y en el Desafío, ninguna: allá no hay aldea)
     oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1), amor: amorNuevo() }),   // (3.7.0: y la vida de la aldea; 3.7.1: y el amor)
     ...(desafio ? {} : { cocina: cocinaNueva() }),   // 3.7.2: la cocina (el recetario de siempre, nada al fuego)
+    ...(desafio ? {} : { economia: economiaNueva(), negocios: negociosNuevo() }),   // 3.8.8: el peso (sin plata ni movimientos todavía; ver economia.js)
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
     ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
@@ -383,8 +384,6 @@ export function progresoNuevo() {
     ...(desafio ? {} : { granja: granjaNueva(1 + Math.floor(Math.random() * 1e9)) }),
     // 3.7.5 (rincones): nada encontrado ni aprendido; el lote de tu casa, libre; sin sulky; el camino, una huella
     ...(desafio ? {} : { rincones: rinconesNuevos() }),
-    // 3.8.4: Martín todavía no te pidió que busques el nombre de su abuelo en el alero del arriero
-    ...(desafio ? {} : { aleroArriero: aleroNuevo() }),
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -435,6 +434,7 @@ function sanearObras(v) {
     if (d.y !== undefined && (!Number.isFinite(Number(d.y)) || Math.abs(Number(d.y)) > ALTO_OBRA)) delete d.y;
     else if (d.y !== undefined) d.y = Number(d.y);
     if (d.tinte !== undefined && typeof d.tinte !== 'string') delete d.tinte;
+    if (d.pagadas !== undefined) d.pagadas = Math.max(0, Math.min(8, Math.floor(finito(d.pagadas, 0))));   // 3.8.8: las etapas de la casa ya pagadas (propiedad.js)
     // 3.8.6: el nombre que le pusiste (pedirNombre): un texto; otra cosa (una partida rota) rompía el mapa
     if (d.nombre !== undefined) { if (typeof d.nombre === 'string' && d.nombre.trim()) d.nombre = d.nombre.trim().slice(0, 28); else delete d.nombre; }
     // 3.7.2: lo que se está cocinando en la obra (la parrilla, el horno, la cocina a leña)
@@ -532,8 +532,8 @@ function sanearProgreso(p) {
     granja: modoPartida === 'desafio' ? undefined : sanearGranja(p.granja, Math.max(1, Math.floor(finito(p.dia, 1))), 1 + Math.floor(Math.random() * 1e9)),
     // 3.7.5 (rincones): una partida vieja no los trae: arrancan de cero (en el Desafío, nada)
     rincones: modoPartida === 'desafio' ? undefined : sanearRincones(p.rincones, Math.max(1, Math.floor(finito(p.dia, 1)))),
-    // 3.8.4: una partida vieja no la trae: Martín todavía no te pidió nada (en el Desafío, nada)
-    aleroArriero: modoPartida === 'desafio' ? undefined : sanearAlero(p.aleroArriero),
+    // 3.8.8: la historia del abuelo de Martín en el alero del arriero se sacó (vuelve la Cueva de las Manos): una partida vieja la traía
+    aleroArriero: undefined,
     correo: sanearCorreo(p.correo),
     // la cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real
     tormenta: sanearTormenta(p.tormenta),
@@ -606,6 +606,9 @@ function sanearProgreso(p) {
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
     ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined, noticias: undefined, concursos: undefined } : { desafio: undefined }),
   };
+  // 3.8.8: la economía. Sólo en el Relax. Una partida de antes no la trae: arranca en cero y la yerba que tenía se convierte a pesos (una vez)
+  if (modoPartida === 'desafio') { limpio.economia = undefined; limpio.negocios = undefined; }
+  else { limpio.economia = sanearEconomia(p.economia); convertirYerba(limpio); limpio.negocios = sanearNegocios(p.negocios, limpio.dia); }   // 3.8.8: los negocios (negocios.js)
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)

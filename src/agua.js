@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { U, GLSL_COMUN, cuentaNiebla } from './materiales.js';
 import { LAGO } from './config.js';
+import { construirCintaArroyo } from './cinta-arroyo.js';
 
 function materialAgua() {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]);
@@ -182,69 +183,207 @@ function materialAgua() {
   });
 }
 
-// La cortina del salto de agua, la espuma de abajo y el rocío
+// La cascada. 3.8.8: «parece sacada de lego». Era un plano vertical liso con un disco y puntitos; ahora es una cortina curva que
+// sale del labio en caída libre (la distancia horizontal crece con la raíz de la caída), con hilos de agua suaves, aireada y más
+// blanca hacia abajo, bordes deshilachados y un velo de bruma blanda al pie; la poza tiene su espuma con ondas que se abren; y
+// el escalón del terreno, que es un corte recto, queda entre rocas de varios tamaños con su musgo.
+const hashC = (k) => { const v = Math.sin(k * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+const GLSL_RUIDO_C = /* glsl */`
+  float hC(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+  float vC(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hC(i), hC(i + vec2(1.0, 0.0)), f.x), mix(hC(i + vec2(0.0, 1.0)), hC(i + vec2(1.0, 1.0)), f.x), f.y); }
+`;
+// las rocas del salto: icosaedros abollados, grises y pardos, con musgo arriba; todas en una malla (un solo dibujo)
+function rocasDelSalto(T, s) {
+  const dx = Math.sin(s.ang), dz = Math.cos(s.ang), nx = Math.cos(s.ang), nz = -Math.sin(s.ang);
+  const lista = [];
+  const poner = (along, lat, r, hundir = 0.25) => lista.push({ x: s.x + dx * along + nx * lat, z: s.z + dz * along + nz * lat, r, hundir });
+  // las dos orillas del labio, y las paredes a los lados de la caída
+  for (const lado of [-1, 1]) {
+    poner(-1.2, lado * (s.ancho + 0.3), 1.0); poner(0.2, lado * (s.ancho + 1.0), 1.35); poner(-3.0, lado * (s.ancho + 0.7), 0.85);
+    poner(1.4, lado * (s.ancho + 1.9), 1.2); poner(2.6, lado * (s.ancho + 0.8), 0.95); poner(0.7, lado * (s.ancho * 0.8), 0.55, 0.1);
+  }
+  // en el pie: rocas medio hundidas en la poza y al borde
+  for (let k = 0; k < 9; k++) poner(2.6 + hashC(k + 1) * 6.0, (hashC(k + 20) - 0.5) * 2 * (s.ancho * 0.95), 0.55 + hashC(k + 40) * 0.8, -0.7);
+  // en el labio, una hilera de piedras sueltas contra la corriente
+  for (let k = 0; k < 5; k++) poner(-2.4 - hashC(k + 70) * 1.2, (hashC(k + 90) - 0.5) * 2 * s.ancho * 0.8, 0.28 + hashC(k + 110) * 0.3, 0.3);
+  const pos = [], col = [], nor = [];
+  const c = new THREE.Color(), musgo = new THREE.Color(0.2, 0.3, 0.12);
+  lista.forEach((q, n) => {
+    const g = new THREE.IcosahedronGeometry(1, 3).toNonIndexed();
+    const p = g.attributes.position, normales = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      // forma: un elipsoide achatado, abollado en grande (poca frecuencia: sin facetas) y con grano fino
+      const r = 1 + 0.2 * Math.sin(x * 2.3 + n * 1.7) * Math.cos(z * 2.1 + n * 0.6) + 0.12 * Math.sin(y * 3.7 + x * 2.9 + n) + 0.035 * (hashC(Math.round(x * 9 + n * 7) * 31 + Math.round(y * 9) * 17 + Math.round(z * 9) * 5) - 0.5);
+      p.setXYZ(i, x * r * q.r * 1.1, y * r * q.r * 0.68, z * r * q.r);
+      // la normal del elipsoide (suave, sin facetas)
+      const nn = new THREE.Vector3(x / 1.21, y / 0.4624, z).normalize();
+      normales.set([nn.x, nn.y, nn.z], i * 3);
+    }
+    g.setAttribute('normal', new THREE.BufferAttribute(normales, 3));
+    g.rotateY(hashC(n + 3) * 6.28);
+    const y0 = T.altura(q.x, q.z) - q.r * 0.68 * q.hundir;
+    const gp = g.attributes.position, gn = g.attributes.normal;
+    const base = 0.3 + hashC(n + 9) * 0.1;
+    for (let i = 0; i < gp.count; i++) {
+      pos.push(gp.getX(i) + q.x, gp.getY(i) + y0 + q.r * 0.45, gp.getZ(i) + q.z);
+      nor.push(gn.getX(i), gn.getY(i), gn.getZ(i));
+      const alto = gn.getY(i);
+      const grano = 0.86 + 0.28 * hashC(Math.round(gp.getX(i) * 6) * 13 + Math.round(gp.getY(i) * 6) * 7 + Math.round(gp.getZ(i) * 6) * 3 + n);
+      const veta = 0.9 + 0.2 * Math.sin(gp.getY(i) * 5 + gp.getX(i) * 2 + n * 3);
+      c.setRGB(base * 0.95, base * 0.92, base * 0.84).multiplyScalar(grano * veta);
+      // más oscura y húmeda cerca del agua, musgo donde mira para arriba
+      c.multiplyScalar(1 - Math.max(0, 0.4 - gp.getY(i) / (q.r + 0.1)) * 0.5);
+      if (alto > 0.4) c.lerp(musgo, Math.min(1, (alto - 0.4) * 1.6) * 0.65 * (0.6 + 0.4 * hashC(n + gp.getX(i) * 3)));
+      col.push(c.r, c.g, c.b);
+    }
+    g.dispose();
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const malla = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  malla.frustumCulled = true;
+  return malla;
+}
+
 export function crearCascada(T, escena, U) {
   const s = T.saltoAgua;
   if (!s) return { actualizar: () => null, pos: null };
   const grupo = new THREE.Group();
+  const dx = Math.sin(s.ang), dz = Math.cos(s.ang), nx = Math.cos(s.ang), nz = -Math.sin(s.ang);
   const ancho = s.ancho * 1.45;
+  const luzU = { uAmbiente: U.uAmbiente, uSolColor: U.uSolColor, uSolDir: U.uSolDir, uTiempo: U.uTiempo };
+  // ---- la cortina: una malla curva (nu × nv) desde el labio hasta la poza
+  const NU = 36, NV = 20, W0 = s.ancho * 2.0, DESV = 1.7;
+  const alto = s.arriba - s.abajo, pie = s.abajo + 0.1;
+  const pos = [], uv = [], ind = [];
+  for (let j = 0; j <= NV; j++) {
+    const f = j / NV;
+    // en caída libre la distancia al labio crece con la raíz de lo caído; y la lámina se ensancha un poco al caer
+    const d = 0.12 + DESV * Math.sqrt(f), y = s.arriba + 0.12 - f * (s.arriba + 0.12 - pie);
+    const ancha = W0 * (1 + 0.14 * f);
+    for (let i = 0; i <= NU; i++) {
+      const u = i / NU, lat = (u - 0.5) * ancha;
+      // hilos: la lámina se abolla un poco más hacia afuera en cada hilo, más abajo
+      const hilo = 0.1 * f * Math.sin(u * 19 + hashC(i) * 2) + 0.06 * f * Math.sin(u * 41);
+      pos.push(s.x + dx * (d + hilo) + nx * lat, y, s.z + dz * (d + hilo) + nz * lat);
+      uv.push(u, f);
+    }
+  }
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) { const a = j * (NU + 1) + i, b = a + 1, c = a + NU + 1, e = c + 1; ind.push(a, c, b, b, c, e); }
+  const gC = new THREE.BufferGeometry();
+  gC.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  gC.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  gC.setIndex(ind);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
-    uniforms: { uTiempo: U.uTiempo, uAlto: { value: s.alto } },
-    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    uniforms: { ...luzU, uAlto: { value: alto } },
+    vertexShader: 'varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
     fragmentShader: `
-      uniform float uTiempo; uniform float uAlto; varying vec2 vUv;
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+      uniform float uTiempo; uniform float uAlto; uniform vec3 uAmbiente; uniform vec3 uSolColor; uniform vec3 uSolDir;
+      varying vec2 vUv; varying vec3 vW;
+      ${GLSL_RUIDO_C}
       void main(){
-        // hilos de agua que caen, más rápidos abajo
-        float caida = uTiempo * (1.2 + vUv.y * 0.8);
-        float fila = floor(vUv.x * 26.0);
-        float h = hash(vec2(fila, floor(vUv.y * 3.0 + caida)));
-        float hilo = smoothstep(0.35, 0.95, h);
-        float franja = fract(vUv.y * 5.0 + caida + hash(vec2(fila, 1.0)));
-        float brillo = 0.55 + 0.45 * smoothstep(0.2, 0.9, franja) * hilo;
-        float borde = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x);
-        vec3 col = mix(vec3(0.62, 0.74, 0.78), vec3(0.95, 0.98, 1.0), brillo);
-        gl_FragColor = vec4(col, (0.34 + 0.4 * brillo * hilo) * borde);
+        float f = vUv.y, y = f * uAlto;
+        // el agua acelera al caer: los hilos corren más rápido abajo
+        float fase = uTiempo * (3.2 + f * 5.5) * 1.6;
+        float fino = vC(vec2(vUv.x * 80.0, y * 0.32 + fase * 0.5)) * 0.5 + vC(vec2(vUv.x * 38.0 + 5.0, y * 0.2 + fase * 0.4)) * 0.5;
+        float grueso = vC(vec2(vUv.x * 14.0 + 2.0, y * 0.09 + fase * 0.3));
+        float hilos = clamp(fino * 0.7 + grueso * 0.5, 0.0, 1.0);
+        float espuma = smoothstep(0.42, 0.85, hilos) * (0.25 + 0.75 * smoothstep(0.0, 0.85, f));
+        // arriba, agua lisa y casi clara; abajo, aireada y blanca; al pie, nube de espuma
+        float pieEspuma = smoothstep(0.78, 1.0, f);
+        float aire = clamp(espuma + pieEspuma * (0.55 + 0.45 * vC(vec2(vUv.x * 22.0, uTiempo * 2.4))), 0.0, 1.0);
+        vec3 agua = mix(vec3(0.38, 0.62, 0.68), vec3(0.62, 0.8, 0.84), smoothstep(0.0, 0.5, f));
+        vec3 luz = uAmbiente * 2.3 + uSolColor * max(uSolDir.y, 0.0) * 0.9 + 0.04;
+        vec3 col = mix(agua, vec3(0.97, 0.99, 1.0), aire) * luz;
+        // los bordes se deshilachan: no son una línea recta
+        float orilla = min(vUv.x, 1.0 - vUv.x);
+        float borde = smoothstep(0.0, 0.05 + 0.05 * vC(vec2(y * 0.9, 3.0 + vUv.x * 4.0)), orilla + (vC(vec2(y * 1.3, vUv.x * 9.0)) - 0.5) * 0.06);
+        // el labio de arriba: la lámina nace gruesa y clara
+        float labio = smoothstep(0.0, 0.025, f);
+        float a = (0.42 + 0.3 * aire + 0.12 * hilos) * borde * (0.55 + 0.45 * labio);
+        gl_FragColor = vec4(col, clamp(a, 0.0, 0.88));
       }`,
   });
-  const cortina = new THREE.Mesh(new THREE.PlaneGeometry(ancho, s.alto + 0.7, 1, 1), mat);
-  cortina.position.set(s.x + Math.sin(s.ang) * 0.9, s.arriba - (s.alto + 0.7) / 2 + 0.3, s.z + Math.cos(s.ang) * 0.9);
-  cortina.rotation.y = s.ang;   // la cortina cruza el arroyo, mirando aguas abajo
+  const cortina = new THREE.Mesh(gC, mat);
+  cortina.renderOrder = 6;
+  cortina.frustumCulled = false;
   grupo.add(cortina);
-  // la espuma de la poza
-  const espuma = new THREE.Mesh(new THREE.CircleGeometry(ancho * 0.4, 18), new THREE.MeshBasicMaterial({ color: 0xe8f1f2, transparent: true, opacity: 0.3, depthWrite: false }));
+  // ---- la poza: espuma que se deshace y ondas que se abren desde donde cae
+  const px = s.x + dx * (0.12 + DESV + 0.9), pz = s.z + dz * (0.12 + DESV + 0.9);
+  const R = ancho * 0.62;
+  const espuma = new THREE.Mesh(new THREE.CircleGeometry(R, 32), new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, uniforms: { ...luzU, uOp: { value: 0.6 } },
+    vertexShader: 'varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float uTiempo; uniform float uOp; uniform vec3 uAmbiente; uniform vec3 uSolColor; uniform vec3 uSolDir; varying vec2 vP;
+      ${GLSL_RUIDO_C}
+      void main(){
+        float r = length(vP) / ${R.toFixed(3)};
+        float n = vC(vP * 1.7 + vec2(uTiempo * 0.7, -uTiempo * 0.5)) * 0.6 + vC(vP * 4.1 - vec2(uTiempo * 0.9, uTiempo * 0.3)) * 0.4;
+        float masa = smoothstep(1.0, 0.1, r) * (0.3 + 0.7 * smoothstep(0.3, 0.78, n));
+        // anillos que se abren desde el centro
+        float anillo = smoothstep(0.1, 0.0, abs(fract(r * 2.2 - uTiempo * 0.35) - 0.5) - 0.38) * smoothstep(1.0, 0.25, r) * 0.35;
+        vec3 luz = uAmbiente * 2.4 + uSolColor * max(uSolDir.y, 0.0) * 0.9 + 0.05;
+        gl_FragColor = vec4(vec3(0.94, 0.98, 0.99) * luz, (masa + anillo) * uOp);
+      }`,
+  }));
   espuma.rotation.x = -Math.PI / 2;
-  espuma.position.set(s.x + Math.sin(s.ang) * 2.2, s.abajo + 0.06, s.z + Math.cos(s.ang) * 2.2);
+  espuma.position.set(px, s.abajo + 0.07, pz);
+  espuma.renderOrder = 6;
   grupo.add(espuma);
-  // rocío: partículas que saltan al pie
-  const N = 60;
-  const geo = new THREE.BufferGeometry();
-  const arr = new Float32Array(N * 3);
-  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const gotas = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xdfeef0, size: 0.16, transparent: true, opacity: 0.55, depthWrite: false }));
+  // ---- la bruma al pie: nubecitas blandas que suben y se van con el aire, y gotas finas
+  const N = 70, M = 80;
+  const nubes = new THREE.BufferGeometry();
+  const aN = new Float32Array(N * 3), tamN = new Float32Array(N), alN = new Float32Array(N);
+  nubes.setAttribute('position', new THREE.BufferAttribute(aN, 3));
+  nubes.setAttribute('aTam', new THREE.BufferAttribute(tamN, 1));
+  nubes.setAttribute('aAlfa', new THREE.BufferAttribute(alN, 1));
+  const matNube = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, uniforms: { ...luzU },
+    vertexShader: 'attribute float aTam; attribute float aAlfa; varying float vA; void main(){ vA = aAlfa; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = clamp(aTam * 620.0 / max(-mv.z, 1.0), 1.0, 160.0); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 uAmbiente; uniform vec3 uSolColor; uniform vec3 uSolDir; varying float vA; void main(){ float r = length(gl_PointCoord - 0.5) * 2.0; float a = smoothstep(1.0, 0.0, r); a *= a; vec3 luz = uAmbiente * 2.4 + uSolColor * max(uSolDir.y, 0.0) * 0.9 + 0.05; gl_FragColor = vec4(vec3(0.95, 0.98, 1.0) * luz, a * vA); }',
+  });
+  const nube = new THREE.Points(nubes, matNube);
+  nube.frustumCulled = false; nube.renderOrder = 7;
+  grupo.add(nube);
+  const gotasGeo = new THREE.BufferGeometry();
+  const arr = new Float32Array(M * 3);
+  gotasGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const gotas = new THREE.Points(gotasGeo, new THREE.PointsMaterial({ color: 0xe6f2f4, size: 0.1, transparent: true, opacity: 0.6, depthWrite: false }));
   gotas.frustumCulled = false;
   grupo.add(gotas);
-  const vidas = Array.from({ length: N }, () => Math.random());
+  grupo.add(rocasDelSalto(T, s));
+  const vidasN = Array.from({ length: N }, (_, i) => hashC(i + 5)), vidas = Array.from({ length: M }, (_, i) => hashC(i + 55));
   escena.add(grupo);
 
   function actualizar(dt, cam) {
     const d = Math.hypot(cam.x - s.x, cam.z - s.z);
-    grupo.visible = d < 160;
+    grupo.visible = d < 170;
     if (!grupo.visible) return s;
-    const px = s.x + Math.sin(s.ang) * 2.0, pz = s.z + Math.cos(s.ang) * 2.0;
     for (let i = 0; i < N; i++) {
+      vidasN[i] += dt * (0.12 + hashC(i) * 0.1);
+      if (vidasN[i] > 1) vidasN[i] -= 1;
+      const v = vidasN[i], lat = (hashC(i + 200) - 0.5) * s.ancho * 1.7, fuera = 0.4 + v * 3.2 * (0.4 + hashC(i + 300));
+      aN[i * 3] = px + nx * lat + dx * fuera;
+      aN[i * 3 + 1] = s.abajo + 0.3 + v * (2.2 + hashC(i + 400) * 2.4);
+      aN[i * 3 + 2] = pz + nz * lat + dz * fuera;
+      tamN[i] = 1.2 + v * 2.6 + hashC(i + 500);
+      alN[i] = Math.sin(v * Math.PI) * (0.1 + 0.11 * hashC(i + 600));
+    }
+    nubes.attributes.position.needsUpdate = true; nubes.attributes.aTam.needsUpdate = true; nubes.attributes.aAlfa.needsUpdate = true;
+    for (let i = 0; i < M; i++) {
       vidas[i] += dt * (0.5 + (i % 5) * 0.12);
       if (vidas[i] > 1) vidas[i] -= 1;
-      const v = vidas[i];
-      const a = (i / N) * Math.PI * 2;
-      const r = 0.4 + v * ancho * 0.45;
-      arr[i * 3] = px + Math.cos(a) * r * 0.8;
-      arr[i * 3 + 1] = s.abajo + Math.sin(v * Math.PI) * 1.5;
-      arr[i * 3 + 2] = pz + Math.sin(a) * r * 0.8;
+      const v = vidas[i], lat = (hashC(i + 700) - 0.5) * s.ancho * 1.6, fuera = 0.3 + v * 2.4;
+      arr[i * 3] = px + nx * lat + dx * fuera;
+      arr[i * 3 + 1] = s.abajo + 0.1 + Math.sin(v * Math.PI) * (0.8 + hashC(i + 800) * 1.4);
+      arr[i * 3 + 2] = pz + nz * lat + dz * fuera;
     }
     gotas.geometry.attributes.position.needsUpdate = true;
-    espuma.material.opacity = 0.35 + Math.sin(U.uTiempo.value * 2.2) * 0.1;
+    espuma.material.uniforms.uOp.value = 0.62 + Math.sin(U.uTiempo.value * 2.0) * 0.08;
     return s;
   }
   return { actualizar, pos: { x: s.x, y: s.abajo, z: s.z }, salto: s };
@@ -263,26 +402,9 @@ export function crearAgua(T, escena) {
   lago.renderOrder = 5;
   escena.add(lago);
 
-  // Arroyo: cinta que sigue el cauce y baja con el terreno
-  const pos = [], flujo = [], ind = [], cauce = [];
-  const rio = T.rio;
-  let largo = 0;   // 3.5.2: metros río abajo desde la naciente (para las vetas de la corriente)
-  for (let i = 0; i < rio.length; i++) {
-    const a = rio[Math.max(0, i - 1)], b = rio[Math.min(rio.length - 1, i + 1)];
-    const tx = b.x - a.x, tz = b.z - a.z, l = Math.hypot(tx, tz) || 1;
-    const nx = -tz / l, nz = tx / l;
-    const p = rio[i], w = p.w + 1.2;
-    const y = p.s - 0.08;
-    const pendiente = i > 0 ? Math.max(0, rio[i - 1].s - p.s) : 0;
-    const vel = 0.6 + Math.min(2.5, pendiente * 3);
-    if (i > 0) largo += Math.hypot(p.x - rio[i - 1].x, p.z - rio[i - 1].z);
-    pos.push(p.x + nx * w, y, p.z + nz * w, p.x - nx * w, y, p.z - nz * w);
-    flujo.push(tx / l * vel, tz / l * vel, tx / l * vel, tz / l * vel);
-    cauce.push(largo, w, largo, -w);
-    // en el salto de agua la cinta se corta: la caída la hace la cortina
-    const corta = T.saltoAgua && (i === T.saltoAgua.i || i === T.saltoAgua.i + 1);
-    if (i < rio.length - 1 && !corta) { const k = i * 2; ind.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
-  }
+  // Arroyo: cinta que sigue el cauce y baja con el terreno (cada tramo, su rectángulo; ver cinta-arroyo.js)
+  // en el salto de agua se corta sólo el escalón: la caída la hace la cortina, y la poza de abajo tiene su agua
+  const { pos, flujo, ind, cauce } = construirCintaArroyo(T.rio, T.saltoAgua ? T.saltoAgua.i : -1);
   const gRio = new THREE.BufferGeometry();
   gRio.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   gRio.setAttribute('aFlujo', new THREE.Float32BufferAttribute(flujo, 2));

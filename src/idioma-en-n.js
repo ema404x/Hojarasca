@@ -202,6 +202,7 @@ const COSA_EN = {
 // "4 habas y 3 papas" → "4 broad beans and 3 potatoes"
 function listaEn(texto) {
   return texto.split(/, | y /).map((parte) => {
+    if (/^[\d.]+ pesos$/.test(parte)) return parte.replace(/\./g, ',');   // 3.8.8: los pesos, con coma de miles en inglés (1.600 pesos → 1,600 pesos)
     const m = /^(\d+) (.+)$/.exec(parte);
     if (m) return `${m[1]} ${COSA_EN[m[2]] || m[2]}`;
     return COSA_EN[parte] || parte;

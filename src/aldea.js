@@ -34,6 +34,10 @@ import { ENTRADAS_RINCONES } from './rincones-cuaderno.js';
 import { vecinosActivos } from './personal-partida.js';
 import { porRetirar, porEnviar, enviarFoto } from './correo.js';
 import { MELODIAS, anotarPartitura } from './personal-musica.js';
+import { formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as pagarPesos, hayEconomia } from './economia.js';
+import { ofertaDeJornal } from './trabajos.js';
+import { ofertaDePedido } from './pedidos.js';
+import { aplicarNegocio, demandaHoy } from './negocios-fx.js';
 import { elCaballo } from './personal-caballo.js';
 
 export const NOMBRE_ALDEA = 'Aldea de los Duendes';
@@ -143,6 +147,10 @@ export const EDIFICIOS_ALDEA = {
   // queda PISO_ALDEA más arriba, a `PARADA_ALDEA.y` + 0,3).
   // Medido con el terreno real (verificar-3-7-3-taller.mjs): el eje de la vía pasa a 4,3 m o más del frente, el
   // terreno de la planta queda entre 0,5 y 1,9 m abajo del piso y no hay agua. En la punta este, el cuarto de Martín.
+  // 3.8.8: el banco del pueblo (PLAN_ECONOMIA.md): de piedra, con frontón y columnas, sobre el pasaje de las Chacras, a la altura de
+  // la calle Norte. Inicial (desde el día 1) y con su gerente, Amadeo, que vive en el cuarto de atrás. Sitio medido con el terreno real
+  // (verificar-3-8-8-banco.mjs): desnivel de poco más de un metro, sin agua y a más de 22 m de la vía.
+  'banco-pueblo': { nombre: 'El banco del pueblo', rol: 'local', inicial: true, ancho: 7.8, fondo: 6.4, x: 60.3, z: 44.55, rot: -PI / 2, y: 20.0, calle: 'pasaje-este', lado: -1 },
   'taller-tren': { nombre: 'El taller ferroviario', rol: 'taller-tren', fija: true, ancho: 17, fondo: 7.2, x: 20.5, z: -8.5, rot: 0, y: 25.215 },
 };
 export const IDS_EDIFICIOS = Object.keys(EDIFICIOS_ALDEA);
@@ -274,6 +282,7 @@ export const PUERTA_X = {
   biblioteca: -1.6, escuela: -1.5, 'casa-jefe': -1, 'casa-ercilia': 0.7, 'casa-nelida': -0.9, 'casa-abuela': 0.6, 'casa-familia': -1.2,
   panaderia: -1.2, carpinteria: -1, pescaderia: -1, 'puesto-sanitario': -0.9, estafeta: 0.8, hilanderia: -1.4, 'sala-miel': -0.9, seccional: -1,
   veterinaria: -0.6, 'estudio-fotos': 1.5, 'refugio-andinista': -0.9, herboristeria: -1, 'taller-arte': -1.4, ceramica: -0.6, observatorio: -1.7, costureria: 1,
+  'banco-pueblo': 0,   // 3.8.8: la puerta del banco, en el medio del frente
   'taller-tren': 3,   // 3.7.3: la puerta chica del frente (el portón grande es el del desvío, en el testero oeste)
 };
 // 3.7.3: los puntos del taller ferroviario, en su marco ([x, z, rot]; la puerta chica en x 3, el eje de la vía a +8,5 m
@@ -418,6 +427,8 @@ function puntosLocales(id) {
   if (e.anexo?.id === 'horno') p.horno = { x: e.anexo.x, z: e.anexo.z + 1.7, rot: PI };
   if ((id === 'estudio-fotos' || id === 'taller-arte' || id === 'costureria') && !p['lugar-1']) p['lugar-1'] = { x: -W / 4, z: medioDe(e), rot: PI / 2 };
   if (id === 'varadero') p['trabajo-muelle'] = desdePlano(e, MUELLE_ALDEA.lx, MUELLE_ALDEA.lz, MUELLE_ALDEA.rot);
+  // 3.8.8: el gerente atiende detrás del mostrador (de lado a lado) y el público se para enfrente (aldea-arquitectura.js, `bancoDelPueblo`)
+  if (id === 'banco-pueblo') { p.adentro = { x: 0, z: -0.1, rot: 0 }; p.cliente = { x: 0, z: 1.75, rot: PI }; }
   // alrededor de un lote, donde trabajan los vecinos mientras dura la obra
   if (e.poblador) {
     let k = 1;
@@ -606,11 +617,24 @@ export const VECINOS_ALDEA = {
       'Me jubilé y no supe quedarme quieto. Ernesto me ofreció este galpón viejo: si traés material, entre los dos te dejamos la locomotora como nueva.',
     ],
   },
+  // 3.8.8: Amadeo Lezcano, el gerente del banco del pueblo (PLAN_ECONOMIA.md): vive en el cuarto de atrás del banco. Traje oscuro de
+  // gerente de pueblo, chaleco, lentes y una cadena de reloj. Atiende el mostrador (préstamos, abastecimiento, casas y tu puesto).
+  gerente: {
+    nombre: 'Amadeo Lezcano', oficio: 'gerente del banco', mano: null, casa: 'banco-pueblo', trabajo: 'banco-pueblo',
+    colores: { ropa: '#3b3f46', abrigo: '#2c2f36', gorro: null, pelo: '#8f8f8f', bufanda: '#6b2f2a' },
+    saludo: 'Buenas tardes. Pase, pase: el mostrador es de todos, y los números también.', despedida: 'Que le rinda. Y no se olvide: la plata es como la leña, mejor guardada para el invierno.',
+    charla: [
+      'Vine de la sucursal de Esquel con una caja fuerte y una libreta. El banco del pueblo se abrió con lo que juntaron entre todos: ahorro de vecinos, no de forasteros.',
+      'Presto a un dos por ciento por día, que es poco para lo que cuesta no tener plata a tiempo. Un año acá son doce días: hágale la cuenta antes de pedir.',
+      'Las cosas que el banco necesita las pago un poco por encima del mercado. Para eso hay que tener a mano lo que se pide, y para eso hay que haber trabajado antes.',
+    ],
+  },
 };
 // 3.7.3: Martín llegó con la 3.7.3: va al final de la lista de todos (ver ORDEN_PERSONAS_ALDEA), así los de antes
 // siguen con sus índices de siempre (su banco de la plaza, su silla de los cuentos, su lado de la obra)
 export const VECINOS_373 = ['martin'];
-export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373];
+export const VECINOS_388 = ['gerente'];   // 3.8.8
+export const ORDEN_VECINOS_ALDEA = ['jefe', 'nelida', 'abuela', 'padre', 'madre', 'nene', 'nena', 'galesa', ...VECINOS_373, ...VECINOS_388];
 // 3.6: Ercilia, la del almacén, también vive en la aldea (en el Relax), pero su figura, su saludo
 // y sus historias son los de siempre (PERSONAJES.ercilia y HISTORIAS en gente.js): acá sólo
 // están su casa, su trabajo y su rutina.
@@ -640,7 +664,7 @@ export const POBLADORES_ALDEA = {
       'Un pueblo sin pan no es pueblo. Si me dejás quedarme, el horno va a estar prendido todas las mañanas.',
     ],
     saludo: 'Pasá, que recién sale la tanda.', despedida: 'Y no te comas todo en el camino, eh.',
-    resumen: 'Te cambia pan casero por yerba: tres panes por dos de yerba, una vez por día.',
+    resumen: 'Te vende pan casero: tres panes por $200, una vez por día.',
   },
   herrero: {
     nombre: 'Anselmo Ruiz', oficio: 'herrero', mano: null, lote: 'herreria', afuera: true, obrero: true,
@@ -670,7 +694,7 @@ export const POBLADORES_ALDEA = {
       'Un pueblo que empieza necesita alguien que anote lo que pasa. Vi la escuela a medio hacer: ¿me ayudás a terminarla?',
     ],
     saludo: 'Buen día. ¿Trajiste el cuaderno?', despedida: 'Seguí anotando, que de eso se aprende.',
-    resumen: 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: cuatro de yerba por cada uno cumplido.',
+    resumen: 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: $400 por cada uno cumplido.',
   },
   enfermera: {
     nombre: 'Marta Williams', oficio: 'enfermera', mano: null, lote: 'puesto-sanitario',
@@ -720,7 +744,7 @@ export const POBLADORES_ALDEA = {
       'Cuido el bosque y llevo el registro de la fauna, con Josefina, mi compañera, que recorre el valle. Si anotás lo que ves, nos vamos a llevar muy bien.',
     ],
     saludo: 'Buen día. ¿Algún avistaje para el registro?', despedida: 'Mirá dónde pisás, que el bosque es de todos.',
-    resumen: 'Pasa al registro de la seccional la fauna y los rastros que anotaste: por cada uno nuevo, una de yerba (hasta cuatro por día). Si no hay nada nuevo, te dice qué buscar.',
+    resumen: 'Pasa al registro de la seccional la fauna y los rastros que anotaste: por cada uno nuevo, $100 (hasta cuatro por día). Si no hay nada nuevo, te dice qué buscar.',
   },
   musico: {
     nombre: 'Cholo Barrientos', oficio: 'músico', mano: null, lote: 'salon',
@@ -780,7 +804,7 @@ export const POBLADORES_ALDEA = {
       'Acá crecen el calafate, la frutilla del bosque y el maqui casi en la puerta. Con una herboristería, nada de eso se pierde y nadie se queda sin remedio.',
     ],
     saludo: 'Buenas. Pasá, que hay olor a poleo.', despedida: 'Lo que juntes del monte, juntalo con permiso y dejá para otros.',
-    resumen: 'Una vez por día te cambia un poco de yerba por un puñado de frutos del monte y te da pistas de las plantas que te faltan en el cuaderno (las de los animales las da Julia).',
+    resumen: 'Una vez por día te vende un puñado de frutos del monte por $100 y te da pistas de las plantas que te faltan en el cuaderno (las de los animales las da Julia).',
   },
   pintora: {
     nombre: 'Abril Moretti', oficio: 'pintora', edad: 27, mano: null, lote: 'taller-arte', afuera: true,
@@ -853,7 +877,7 @@ export const esPobladora37 = (clave) => POBLADORAS_37.includes(clave);
 // (3.7.0: los índices de siempre para los de la 3.6, que deciden su banco de la plaza o su lado de la obra, y
 // las nuevas al final: el orden de llegada intercalado no los mueve)
 // (3.7.3: y Martín al final)
-export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373];
+export const ORDEN_PERSONAS_ALDEA = [...ORDEN_VECINOS_ALDEA.filter((k) => !VECINOS_373.includes(k) && !VECINOS_388.includes(k)), 'ercilia', ...POBLADORES_36, ...POBLADORAS_37, ...VECINOS_373, ...VECINOS_388];
 export const esPersonaAldea = (clave) => esVecinoAldea(clave) || esPobladorAldea(clave);
 export const personaAldea = (clave) => (esVecinoAldea(clave) ? vecinoDe(clave) : esPobladorAldea(clave) ? POBLADORES_ALDEA[clave] : null);
 
@@ -869,6 +893,7 @@ export const CUMPLES_ALDEA = {
   nena: 8, fotografa: 8, ema: 8, panadera: 9, musico: 9, botera: 9, abuela: 10, enfermera: 10, herrero: 11, herbolaria: 11, ramon: 11,
   galesa: 12, tejedora: 12, astronoma: 12,
   martin: 10,   // 3.7.3
+  gerente: 2,   // 3.8.8
 };
 export const cumpleDe = (clave) => (typeof clave === 'string' && Object.hasOwn(CUMPLES_ALDEA, clave) ? CUMPLES_ALDEA[clave] : null);
 export const esCumpleanos = (clave, dia) => cumpleDe(clave) !== null && cumpleDe(clave) === diaDelAnio(dia);
@@ -1084,10 +1109,10 @@ const etapaInicial = (lote) => (Object.hasOwn(OBRA.etapaInicial, lote) ? OBRA.et
 
 // Lo que ofrece cada uno, por día (los de la 3.1, tal cual, y los nuevos).
 export const SERVICIO = {
-  troncosPorDia: 6, tablasPorTronco: 5, yerbaPorPan: 2, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, yerbaMandado: 4, cantosHacha: 3, cantosTijera: 2,
-  descanso: 3, lanaPoncho: 2, lanaManta: 3, tablasMiel: 3, miel: 2, yerbaPorAvistaje: 1, avistajesPorDia: 4, diasPartitura: 7,
+  troncosPorDia: 6, tablasPorTronco: 5, pesosPorPan: 200, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, pesosMandado: 400, cantosHacha: 3, cantosTijera: 2,
+  descanso: 3, lanaPoncho: 2, lanaManta: 3, tablasMiel: 3, miel: 2, pesosPorAvistaje: 100, avistajesPorDia: 4, diasPartitura: 7,
   // 3.7.0: las de la calle de la Loma
-  huevosVet: 2, lanaVet: 1, fotosLente: 3, yerbaPorFrutos: 1, frutos: 3, tablaBastidor: 1, amistadDibujo: 8,
+  huevosVet: 2, lanaVet: 1, fotosLente: 3, pesosPorFrutos: 100, frutos: 3, tablaBastidor: 1, amistadDibujo: 8,
   piedrasMacetas: 4, macetasPorVez: 2, macetasMax: 4, tablaKayak: 1,
 };
 
@@ -1253,6 +1278,27 @@ export function puedeLlegar(progreso) {
   if (!aldea.llamado && faltan > 0) return { ok: false, motivo: `El valle todavía se conoce poco: ${faltan === 1 ? 'falta 1 anotación' : `faltan ${faltan} anotaciones`} en el cuaderno`, quien, faltan };
   return { ok: true, motivo: '', quien };
 }
+// 3.8.8: lo que le falta a la aldea para el próximo vecino, dicho para el jugador (el aviso al abrir un local y el de cada
+// día). Devuelve { titulo, texto, listo } o null si no corresponde (el Desafío, sin vecinos o ya vinieron todos). Antes
+// el motivo sólo estaba en la ficha de la aldea del cuaderno y en el modo libre nadie lo leía.
+export function avisoProximoVecino(progreso) {
+  const r = puedeLlegar(progreso);
+  if (!r.quien) return null;
+  if (/no existe|no hay vecinos|Sin partida/.test(r.motivo)) return null;
+  const def = POBLADORES_ALDEA[r.quien];
+  const quien = `${def.nombre} (${def.oficio})`;
+  if (r.ok) return { titulo: 'Ya puede venir el próximo vecino', texto: `${quien} baja de la próxima trochita que pare en la ${NOMBRE_ALDEA}`, listo: true };
+  // lo que falta de anotaciones se dice siempre (aunque también haya que esperar al próximo tren): es lo que el jugador puede hacer
+  const aldea = progreso.aldea || aldeaNueva();
+  const faltan = aldea.llamado ? 0 : anotacionesPedidas(aldea) - anotacionesDe(progreso);
+  if (faltan > 0 && !r.obra && !aldea.llegando) {
+    return { titulo: `Para que venga el próximo vecino ${faltan === 1 ? 'falta 1 anotación' : `faltan ${faltan} anotaciones`}`, texto: `${quien}. Se anota lo que ves en el valle (plantas, animales, peces y lugares): abrí el cuaderno`, listo: false };
+  }
+  if (r.obra) return { titulo: 'Primero hay que terminar la obra', texto: `${mayusPrimera(EDIFICIOS_ALDEA[r.obra].nombre)}: después viene ${quien}`, listo: false };
+  if (/esperando/.test(r.motivo)) return { titulo: 'Hay alguien esperando en el andén', texto: `${quien} espera en la estación de la ${NOMBRE_ALDEA}: andá a hablarle`, listo: false };
+  return { titulo: 'El próximo vecino viene en unos días', texto: `${quien} baja en el próximo tren con gente`, listo: false };
+}
+const mayusPrimera = (t) => (typeof t === 'string' && t ? t.charAt(0).toUpperCase() + t.slice(1) : '');
 // La historia (o el evento del valle) llama al próximo: viene sin esperar días ni anotaciones
 // (la obra anterior igual tiene que estar terminada). Reemplaza a `llamarPoblador` de la 3.1.
 export function llamarProximo(aldea) {
@@ -1386,6 +1432,7 @@ export function etapaDe(aldea, id) {
 const cant = (progreso, tipo, k) => {
   if (tipo === 'material') return entero(progreso?.materiales?.[k]);
   if (tipo === 'cosa') return entero(progreso?.cosas?.[k]);
+  if (tipo === 'pesos') return pesosDe(progreso);   // 3.8.8
   return entero(progreso?.entradas?.[k]?.cantidad);
 };
 const yaHoy = (aldea, clave, dia) => !!aldea?.usos && Object.hasOwn(aldea.usos, clave) && aldea.usos[clave] === dia;
@@ -1420,7 +1467,21 @@ function menosConfianza(progreso, aldea) {
 // del cuaderno que tienen dónde en el mapa: la guía te los marca), fotoPendiente ({ nombre, pista }: la foto
 // del álbum que falta, que la fotógrafa te cuenta), chisme ({ persona, quien, k, cosa, gusto }: lo que Pocha
 // sabe de un vecino, de vecindad.js) }.
+// 3.8.8: lo que ofrece cada vecino: su servicio de siempre y, cuando éste no tiene nada para darte (ya lo usaste hoy, o es sólo charla),
+// la economía: el pedido que te hizo (si lo traés, se lo entregás) y, si no, un jornal con sueldo (ver pedidos.js y trabajos.js)
 export function servicioDe(clave, progreso, dia, extra = {}) {
+  const base = servicioBase(clave, progreso, dia, extra);
+  if (base.efectos?.length || !esPobladorAldea(clave) || !hayEconomia(progreso) || !(progreso.aldea?.pobladores || []).some((q) => q.clave === clave) || !localAbierto(progreso.aldea, LOTE_DE[clave])) return base;
+  const nombre = POBLADORES_ALDEA[clave].nombre;
+  const d = diaValido(dia, 1);
+  const pedido = ofertaDePedido(progreso, clave, d, nombre, DALE);
+  if (pedido?.efectos) return { ...pedido, partes: [...base.partes, ...pedido.partes] };
+  const jornal = ofertaDeJornal(progreso, clave, d, nombre, demandaHoy(d, extra), DALE);
+  const aviso = pedido?.aviso ? pedido.partes : [];
+  if (!jornal) return aviso.length ? { ...base, partes: [...base.partes, ...aviso] } : base;
+  return { ...jornal, partes: [...base.partes, ...aviso, ...jornal.partes] };
+}
+export function servicioBase(clave, progreso, dia, extra = {}) {
   const aldea = progreso?.aldea || aldeaNueva();
   const S = SERVICIO;
   if (!esPobladorAldea(clave)) return { partes: [] };
@@ -1446,11 +1507,11 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
     }
     case 'panadera': {
       if (yaHoy(aldea, clave, dia)) return { partes: ['La tanda de hoy ya salió. Mañana temprano hay más.'] };
-      if (cant(progreso, 'cosa', 'yerba') < S.yerbaPorPan) return { partes: [`Por ${S.yerbaPorPan} de yerba te doy ${S.panes} panes. Yerba hay en el almacén de Ercilia.`] };
+      if (pesosDe(progreso) < S.pesosPorPan) return { partes: [`Los ${S.panes} panes salen ${formatoPesos(S.pesosPorPan)}. Cuando juntes algo de plata, pasá.`] };
       return {
-        partes: [`Te cambio ${S.panes} panes caseros por ${S.yerbaPorPan} de yerba. Están calentitos.`],
+        partes: [`Te vendo ${S.panes} panes caseros por ${formatoPesos(S.pesosPorPan)}. Están calentitos.`],
         seguir: DALE,
-        efectos: [{ tipo: 'cosa', k: 'yerba', n: -S.yerbaPorPan }, { tipo: 'entrada', k: 'pan-casero', n: S.panes }, uso],
+        efectos: [{ tipo: 'pesos', n: -S.pesosPorPan, motivo: 'Pan casero', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'entrada', k: 'pan-casero', n: S.panes }, uso],
         titulo: `${S.panes} panes de la panadería`,
       };
     }
@@ -1490,8 +1551,8 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
       const E = m ? ENTRADAS.find((e) => e.id === m.id) : null;
       if (m && E && Object.hasOwn(entradas, m.id)) {
         return {
-          partes: [`¡Anotaste ${E.nombre.toLowerCase()}! Así me gusta.`, `Tomá: ${S.yerbaMandado} de yerba, para el mate de la tarde.`],
-          efectos: [{ tipo: 'cosa', k: 'yerba', n: S.yerbaMandado }, { tipo: 'aldea', campo: 'mandado', valor: null }, { tipo: 'aldea', campo: 'mandados', valor: 1 }],
+          partes: [`¡Anotaste ${E.nombre.toLowerCase()}! Así me gusta.`, `Tomá: ${formatoPesos(S.pesosMandado)}, para el mate de la tarde.`],
+          efectos: [{ tipo: 'pesos', n: S.pesosMandado, motivo: 'Mandado cumplido', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'aldea', campo: 'mandado', valor: null }, { tipo: 'aldea', campo: 'mandados', valor: 1 }],
           titulo: 'Mandado cumplido',
         };
       }
@@ -1573,8 +1634,8 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
       if (nuevos > 0) {
         const n = Math.min(S.avistajesPorDia, nuevos);
         return {
-          partes: [`${n === 1 ? 'Un avistaje nuevo' : `${n} avistajes nuevos`} para el registro de la seccional. Muy bien anotados.`, `Tomá ${n * S.yerbaPorAvistaje} de yerba, que el registro no se llena solo.`],
-          efectos: [{ tipo: 'cosa', k: 'yerba', n: n * S.yerbaPorAvistaje }, { tipo: 'aldea', campo: 'fauna', valor: n }, uso],
+          partes: [`${n === 1 ? 'Un avistaje nuevo' : `${n} avistajes nuevos`} para el registro de la seccional. Muy bien anotados.`, `Tomá ${formatoPesos(n * S.pesosPorAvistaje)}, que el registro no se llena solo.`],
+          efectos: [{ tipo: 'pesos', n: n * S.pesosPorAvistaje, motivo: 'Avistajes al registro', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'aldea', campo: 'fauna', valor: n }, uso],
           titulo: 'Avistajes al registro',
         };
       }
@@ -1639,14 +1700,14 @@ export function servicioDe(clave, progreso, dia, extra = {}) {
       if (yaHoy(aldea, clave, dia)) return { partes: ['Por hoy ya te di lo del monte. Lo que queda, queda para los pájaros.'] };
       const fruto = diaValido(dia, 1) % 2 ? 'calafate' : 'frutilla';
       const nombre = fruto === 'calafate' ? 'calafates' : 'frutillas del bosque';
-      if (cant(progreso, 'cosa', 'yerba') >= S.yerbaPorFrutos) {
-        return { partes: [`Por un poco de yerba te doy ${S.frutos} ${nombre} que junté esta mañana, antes de que salga el sol.`, 'Comelas despacio, que el monte las hizo despacio.'], seguir: DALE,
-          efectos: [{ tipo: 'cosa', k: 'yerba', n: -S.yerbaPorFrutos }, { tipo: 'entrada', k: fruto, n: S.frutos }, uso], titulo: `${S.frutos} ${nombre} de la herboristería` };
+      if (pesosDe(progreso) >= S.pesosPorFrutos) {
+        return { partes: [`Por ${formatoPesos(S.pesosPorFrutos)} te doy ${S.frutos} ${nombre} que junté esta mañana, antes de que salga el sol.`, 'Comelas despacio, que el monte las hizo despacio.'], seguir: DALE,
+          efectos: [{ tipo: 'pesos', n: -S.pesosPorFrutos, motivo: 'Frutos del monte', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'entrada', k: fruto, n: S.frutos }, uso], titulo: `${S.frutos} ${nombre} de la herboristería` };
       }
       const pend = pendientesDelCuaderno(progreso?.entradas || {}, ['flora', 'frutos']);
       if (!pend.length) return { partes: ['Ya anotaste todas las plantas del valle. Ahora aprendé para qué sirve cada una: eso no entra en ningún cuaderno.'] };
       const e = pend[(diaValido(dia, 1) * 3) % pend.length];
-      return { partes: [`Si me traés yerba te doy frutos del monte. Mientras: ¿anotaste ${minusc(e.nombre)}?`, `${e.pista} Los bichos te los cuenta Julia; las plantas, yo.`] };
+      return { partes: [`Si me traés unos pesos te doy frutos del monte. Mientras: ¿anotaste ${minusc(e.nombre)}?`, `${e.pista} Los bichos te los cuenta Julia; las plantas, yo.`] };
     }
     case 'pintora': {
       if (yaHoy(aldea, clave, dia)) return { partes: ['Hoy ya pinté uno. Si pinto dos, el segundo sale feo y lo tengo que regalar igual.'] };
@@ -1718,6 +1779,11 @@ export function aplicarEfectos(progreso, efectos, dia) {
     } else if (f.tipo === 'cosa') {
       progreso.cosas = progreso.cosas || {};
       progreso.cosas[f.k] = f.fijar !== undefined ? f.fijar : Math.max(0, entero(progreso.cosas[f.k]) + entero(f.n));
+    } else if (f.tipo === 'pesos') {
+      // 3.8.8: la plata, por la puerta de la economía (con su renglón en el libro)
+      if (entero(f.n) >= 0) cobrarPesos(progreso, entero(f.n), f.motivo, f.con); else pagarPesos(progreso, -entero(f.n), f.motivo, f.con);
+    } else if (f.tipo === 'jornal' || f.tipo === 'pedido') {
+      aplicarNegocio(progreso, f, diaValido(dia, 1));   // 3.8.8: el jornal y el pedido (negocios-fx.js)
     } else if (f.tipo === 'entrada' || f.tipo === 'carta') {
       progreso.entradas = progreso.entradas || {};
       const e = progreso.entradas[f.k] || (progreso.entradas[f.k] = { dia: diaValido(dia, 1), hora: 12, cantidad: 0 });
@@ -1749,7 +1815,10 @@ export function gastarFilo(aldea) {
 export const SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 export const diaSemanaDe = (dia) => ((diaValido(dia, 1) - 1) % 7 + 7) % 7;
 // Un corrimiento propio de cada uno (entre −0,4 y +0,4 h): que no se muevan todos juntos.
+// 3.8.9: el horario del banco (lo que dicen el LEEME y el cartel): de lunes a sábado; el sábado con baile cierra antes
+export const HORARIO_BANCO = { manana: [8.5, 12.5], tarde: [14.5, 18], sabadoDeBaile: 16 };
 export function desfaseDe(persona) {
+  if (persona === 'gerente') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra
   let h = 5381;
   for (const ch of String(persona)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
   return ((h % 81) - 40) / 100;
@@ -1919,6 +1988,10 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
       // yunque), una hora y media en cada uno; de 17 a 18, el mate en la puerta, mirando pasar el tren
       if ((t >= 8 && t < 12.5) || (t >= 13.5 && t < 17)) return ir('trabajo', 'taller-tren', Math.floor(t / 1.5) % 2 ? 'fragua' : 'banco');
       if (t >= 17 && t < 18) return enCasa('trabajo');
+    } else if (persona === 'gerente') {
+      // 3.8.8: el banco abre de 8:30 a 12:30 y de 14:30 a 18 de lunes a sábado; el gerente atiende detrás del mostrador (el domingo, en su casa)
+      // 3.8.9: sin corrimiento (ver arriba), y el sábado con el salón abierto cierra a las 16, antes de ir a arreglarse para el baile
+      if (ds !== 6 && ((t >= HORARIO_BANCO.manana[0] && t < HORARIO_BANCO.manana[1]) || (t >= HORARIO_BANCO.tarde[0] && t < (sabadoDeBaile ? HORARIO_BANCO.sabadoDeBaile : HORARIO_BANCO.tarde[1])))) return ir('trabajo', 'banco-pueblo', 'adentro');
     } else if (persona === 'ercilia') {
       // horario de almacén de pueblo: de 8:30 a 12 y de 16 a 20, con siesta en el medio
       // (3.6.2: cierra a las 12 y la siesta es hasta las 15:15: su casa queda a 47 m por la calle, y la ida y la

@@ -15,6 +15,12 @@ import { PLANOS_VEHICULOS } from './planos-vehiculos.js';
 // 3.7.2: la cocina (la parrilla con cruz y su techito, la cocina a leña y la alacena)
 import { PIEZAS_COCINA } from './planos-cocina.js';
 import { PLANOS_GRANJA } from './planos-granja.js';
+// 3.8.8: la escalera de casas (cabaña de piedra, casa con galería, casona)
+import { PLANOS_CASAS } from './planos-casas.js';
+// 3.8.8: más mobiliario (baúl, mesa de luz, ropero, cuna, sillón, mesa larga, aparador, librero, mesada, barril, escritorio, perchero,
+// reloj y almanaque de pared, cuadros, cortinas y planta en maceta)
+import { PIEZAS_MUEBLES } from './planos-muebles.js';
+import { PIEZAS_MUEBLES_2 } from './planos-muebles-2.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
 const MADERA = '#6b5238';
@@ -404,6 +410,9 @@ PLANOS.push({
     },
   ],
 });
+
+// 3.8.8: tres refugios más grandes, de menor a mayor (cabaña, casa con galería, casona)
+PLANOS.push(...PLANOS_CASAS);
 
 // ---------------------------------------------------------------- cobertizo rural
 PLANOS.push({
@@ -995,6 +1004,23 @@ const PIEZAS = [
       c.agregar(new THREE.BoxGeometry(0.38, 0.12, 0.66), { color: '#b3aa96', tipo: 4, variar: 0.04, matriz: matriz([-0.66, 0.64, 0]) });
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.08, 0.44, 0.08), {
         color: MADERA_OSCURA, tipo: 0, matriz: matriz([sx * 0.82, 0.24, sz * 0.30]) });
+    },
+  },
+  {
+    // 3.8.8: la cama de las casas grandes, ahora suelta: se coloca, se gira y se mueve (Shift+Y) donde quieras
+    id: 'cama-tablas', nombre: 'Cama de tablas', pieza: true, radio: 1.55, separacion: 1.25,
+    ancho: 1.05, fondo: 2.05, alto: 1.1, apoyaEnPlataforma: true,
+    funciones: ['dormir'], confort: 4,
+    texto: 'Cama de tablas con cabecera, colchón de lana, frazada y almohada. La cabecera queda del lado de atrás: girala con R. Dentro de una habitación cerrada se duerme mejor que en un catre.',
+    pide: { tabla: 8, tronco: 2 },
+    arma(c) {
+      c.agregar(new THREE.BoxGeometry(1.0, 0.16, 2.0), { color: TABLA, tipo: 4, variar: 0.10, matriz: matriz([0, 0.38, 0]) });
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.10, 0.36, 0.10), {
+        color: MADERA_OSCURA, tipo: 0, variar: 0.06, matriz: matriz([sx * 0.44, 0.18, sz * 0.94]) });
+      c.agregar(new THREE.BoxGeometry(1.0, 0.56, 0.10), { color: MADERA_OSCURA, tipo: 0, variar: 0.06, matriz: matriz([0, 0.66, 0.99]) });
+      c.agregar(new THREE.BoxGeometry(0.92, 0.14, 1.86), { color: '#b9ae9a', tipo: 4, variar: 0.08, matriz: matriz([0, 0.53, -0.02]) });
+      c.agregar(new THREE.BoxGeometry(0.94, 0.06, 1.15), { color: '#7b4a3a', tipo: 4, variar: 0.10, matriz: matriz([0, 0.62, -0.42]) });
+      c.agregar(new THREE.BoxGeometry(0.60, 0.10, 0.34), { color: '#d8d0c0', tipo: 4, variar: 0.06, matriz: matriz([0, 0.63, 0.70]) });
     },
   },
   {
@@ -2210,6 +2236,7 @@ function matasJardin(c, x, z, y, f, k, esc = 1) {
 }
 
 PIEZAS.push(...PIEZAS_COCINA);   // 3.7.2: la cocina (ver planos-cocina.js)
+PIEZAS.push(...PIEZAS_MUEBLES, ...PIEZAS_MUEBLES_2);   // 3.8.8: más mobiliario (ver planos-muebles.js)
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,
@@ -2226,7 +2253,7 @@ const CATEGORIA_POR_PLANO = {
   galponcito: 'trabajo', cobertizo: 'trabajo', 'banco-trabajo': 'trabajo', lena: 'trabajo', acopio: 'trabajo', cantero: 'trabajo', gallinero: 'trabajo', telar: 'trabajo', colmena: 'trabajo', ahumadero: 'trabajo', vivero: 'trabajo', lenera: 'trabajo',
   'foso-estacas': 'defensa', 'porton-reforzado': 'defensa',
   mirador: 'exterior', fogon: 'exterior', tendal: 'exterior', pasarela: 'exterior', cerco: 'exterior', 'escalera-modular': 'exterior', 'escalera-nivel': 'exterior', 'baranda-modular': 'exterior',
-  banco: 'mobiliario', 'mesa-campo': 'mobiliario', estante: 'mobiliario', 'catre-campo': 'mobiliario', 'silla-campo': 'mobiliario', 'farol-interior': 'mobiliario', 'estufa-hierro': 'mobiliario', 'alfombra-lana': 'mobiliario',
+  banco: 'mobiliario', 'mesa-campo': 'mobiliario', estante: 'mobiliario', 'catre-campo': 'mobiliario', 'cama-tablas': 'mobiliario', 'silla-campo': 'mobiliario', 'farol-interior': 'mobiliario', 'estufa-hierro': 'mobiliario', 'alfombra-lana': 'mobiliario',
 };
 export const CATEGORIAS_CONSTRUCCION = [
   { clave: 'refugios', nombre: 'Refugios', texto: 'Construcciones cerradas para hacer base en el bosque.' },
@@ -2975,6 +3002,13 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       for (const sx of [-1, 1]) circuloLocal(obra, sx * P.ancho * 0.34, -P.fondo / 2 - 0.9, 0.09, -0.05, 2.7);
     });
     if (id === 'casilla' && e >= 4) unaVez(obra, 'casilla-estufa', () => circuloLocal(obra, P.ancho / 2 - 0.75, P.fondo / 2 - 0.7, 0.4, 0.5, 3.6));
+    // 3.8.8: las casas prefabricadas grandes traen su física por etapa (planos-casas.js)
+    if (P.fisicaCasa) for (let k = 1; k <= Math.min(e, 4); k++) unaVez(obra, 'casa-' + k, () => {
+      const f = P.fisicaCasa(k);
+      for (const s of f.segmentos) segmentoLocal(obra, ...s);
+      for (const q of f.circulos) circuloLocal(obra, ...q);
+      for (const q of f.plataformas) plataformaLocal(obra, q[0], q[1], q[2], q[3], q[4], q[5]);
+    });
     if (id === 'galponcito' && e >= 1) unaVez(obra, 'galponcito-horcones', () => {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) circuloLocal(obra, sx * (P.ancho / 2 - 0.2), sz * (P.fondo / 2 - 0.2), 0.14, -0.05, P.alto + 0.3);
     });
@@ -3021,6 +3055,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (id === 'mesa-campo') unaVez(obra, 'pieza-mesa', () => segmentoLocal(obra, -0.70, 0, 0.70, 0, 0.48, 0.04, 0.98));
     if (id === 'estante') unaVez(obra, 'pieza-estante', () => segmentoLocal(obra, -0.78, 0, 0.78, 0, 0.26, -0.02, 1.72));
     if (id === 'catre-campo') unaVez(obra, 'pieza-catre', () => segmentoLocal(obra, -0.84, 0, 0.84, 0, 0.38, 0.02, 0.68));
+    if (id === 'cama-tablas') unaVez(obra, 'pieza-cama', () => segmentoLocal(obra, 0, -0.5, 0, 0.5, 0.5, 0.02, 0.95));   // 3.8.8: 1,0 × 2,0 m, como se ve
     if (id === 'silla-campo') unaVez(obra, 'pieza-silla', () => circuloLocal(obra, 0, 0, 0.34, 0.02, 1.06));
     if (id === 'farol-interior') unaVez(obra, 'pieza-farol', () => circuloLocal(obra, 0, 0, 0.18, 0.00, 1.66));
     if (id === 'estufa-hierro') unaVez(obra, 'pieza-estufa', () => segmentoLocal(obra, -0.34, 0, 0.34, 0, 0.34, 0.02, 2.22));
@@ -3585,6 +3620,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       else if (P.cubreArea) rect(P.ancho || 3, P.fondo || 3, base + (P.alto || 2.4) - 0.3);
       else if (P.snap?.tipo === 'techo') rect(P.ancho || 3.45, P.fondo || 3.45, base);
       else if (P.habitable && !P.snap) rect((P.ancho || 3) + 0.4, (P.fondo || 3) + 0.4, base + Math.max(1.25, (P.alto || 2.3) - 0.1));
+      // 3.8.8: la galería techada de las casas grandes, delante del frente (no llueve abajo)
+      if (P.galeria && P.habitable && !P.snap) lista.push({ x: d.x, z: d.z, rot, x0: -P.ancho / 2 - 0.15, x1: P.ancho / 2 + 0.15, z0: -P.fondo / 2 - P.galeria - 0.1, z1: -P.fondo / 2, y: base + 2.55, ax: 0, ab: 0, az: 0 });
     }
     return lista;
   }

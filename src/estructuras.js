@@ -1,6 +1,6 @@
 // Construcciones de madera del sendero, con sus colisiones y plataformas
 import * as THREE from 'three';
-import { Constructor, matriz, troncoCurvo } from './geometria.js';
+import { Constructor, matriz, troncoCurvo, abollar } from './geometria.js';
 import { materialVegetal } from './materiales.js';
 import { piezas } from './piezas.js';
 import { rng, lerp } from './ruido.js';
@@ -9,6 +9,7 @@ import { fusionarPorMaterial } from './fusion.js';
 import { registrarLuz } from './luces.js';
 import { marcarConstructor } from './estilo-casa.js';
 import { crearDecoRefugio } from './personal-casa-mundo.js';
+import { crearPanoBandera, registrarBandera } from './bandera-viento.js';
 import { cubierta } from './techo-lluvia.js';
 
 const MADERA = '#6e5238', MADERA_OSCURA = '#4e3a28', TABLA = '#8a6b4a';
@@ -26,6 +27,399 @@ function cilindroEntre(c, a, b, radio, color, tipo = 0) {
 
 function caja(c, pos, tam, color, rotY = 0, tipo = 0) {
   c.agregar(new THREE.BoxGeometry(...tam), { color, tipo, matriz: matriz(pos, [0, rotY, 0]), variar: 0.08 });
+}
+
+// un lienzo dibujado como textura (para los carteles de adentro)
+function lienzoTextura(ancho, alto, dibujar) {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = ancho; lienzo.height = alto;
+  dibujar(lienzo.getContext('2d'), ancho, alto);
+  const t = new THREE.CanvasTexture(lienzo);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+// la bandera de Gales (Y Ddraig Goch): el dragón rojo sobre blanco y verde
+function banderaGalesa(x, w, h) {
+  x.fillStyle = '#f4f2ea'; x.fillRect(0, 0, w, h / 2);
+  x.fillStyle = '#2c7a4b'; x.fillRect(0, h / 2, w, h / 2);
+  x.fillStyle = '#c8102e'; x.strokeStyle = '#c8102e'; x.lineCap = 'round'; x.lineJoin = 'round';
+  x.lineWidth = h * 0.075;   // el cuello y el cuerpo, en S
+  x.beginPath(); x.moveTo(w * 0.28, h * 0.74); x.bezierCurveTo(w * 0.4, h * 0.5, w * 0.5, h * 0.66, w * 0.58, h * 0.44); x.bezierCurveTo(w * 0.63, h * 0.3, w * 0.74, h * 0.36, w * 0.76, h * 0.27); x.stroke();
+  x.lineWidth = h * 0.05;   // la cola enroscada y las patas
+  x.beginPath(); x.moveTo(w * 0.28, h * 0.74); x.bezierCurveTo(w * 0.14, h * 0.84, w * 0.1, h * 0.62, w * 0.22, h * 0.6); x.stroke();
+  x.lineWidth = h * 0.04;
+  for (const [a, b, c2, d] of [[0.4, 0.62, 0.34, 0.86], [0.52, 0.58, 0.5, 0.86], [0.59, 0.46, 0.67, 0.76]]) { x.beginPath(); x.moveTo(w * a, h * b); x.lineTo(w * c2, h * d); x.stroke(); }
+  x.beginPath(); x.moveTo(w * 0.46, h * 0.52); x.lineTo(w * 0.38, h * 0.18); x.lineTo(w * 0.5, h * 0.28); x.lineTo(w * 0.55, h * 0.12); x.lineTo(w * 0.62, h * 0.32); x.closePath(); x.fill();   // el ala
+  x.beginPath(); x.moveTo(w * 0.74, h * 0.2); x.lineTo(w * 0.88, h * 0.25); x.lineTo(w * 0.8, h * 0.31); x.lineTo(w * 0.74, h * 0.36); x.closePath(); x.fill();   // la cabeza
+}
+// la carta del té, en la pizarra (galés y castellano)
+function cartaDelTe(x, w, h) {
+  x.fillStyle = '#27332d'; x.fillRect(0, 0, w, h);
+  x.strokeStyle = 'rgba(240,236,220,0.5)'; x.lineWidth = 3; x.strokeRect(10, 10, w - 20, h - 20);
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0ecdc';
+  x.font = `700 40px Georgia, serif`; x.fillText('Té Galés', w / 2, 52);
+  x.font = `italic 22px Georgia, serif`; x.fillStyle = '#c8c4b0'; x.fillText('Te Cymreig', w / 2, 88);
+  x.fillStyle = 'rgba(240,236,220,0.5)'; x.fillRect(40, 108, w - 80, 2);
+  x.fillStyle = '#f0ecdc'; x.font = `26px Georgia, serif`;
+  ['Torta negra', 'Bara brith', 'Tortas galesas', 'Scones con dulce', 'Té con leche', 'Pan con manteca'].forEach((t, i) => x.fillText(t, w / 2, 148 + i * 38));
+  x.fillStyle = '#c8a04a'; x.font = `italic 24px Georgia, serif`; x.fillText('¡Croeso!', w / 2, h - 36);
+}
+
+// la bandera argentina: celeste y blanca, con el Sol de Mayo
+function banderaArgentina(x, w, h) {
+  x.fillStyle = '#74acdf'; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#f6f4ee'; x.fillRect(0, h / 3, w, h / 3);
+  const cx = w / 2, cy = h / 2, r = h * 0.1;
+  x.strokeStyle = '#f6b40e'; x.fillStyle = '#f6b40e'; x.lineCap = 'round';
+  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; x.lineWidth = k % 2 ? 2 : 3.5; x.beginPath(); x.moveTo(cx + Math.cos(a) * r * 1.2, cy + Math.sin(a) * r * 1.2); x.lineTo(cx + Math.cos(a) * r * (k % 2 ? 1.7 : 2.0), cy + Math.sin(a) * r * (k % 2 ? 1.7 : 2.0)); x.stroke(); }
+  x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#85340a'; x.beginPath(); x.arc(cx - r * 0.3, cy - r * 0.15, r * 0.1, 0, Math.PI * 2); x.arc(cx + r * 0.3, cy - r * 0.15, r * 0.1, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#85340a'; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, cy + r * 0.1, r * 0.4, 0.2, Math.PI - 0.2); x.stroke();
+}
+// 3.8.8: la parte de afuera de la casa de té: el mástil con la bandera argentina arriba y la galesa más abajo (la nacional va más alta),
+// canteros con flores del sur (lupinos, margaritas, geranios), macetones en la galería, un camino de lajas hasta el escalón, la pizarra
+// con la carta del día, faroles en la galería (se prenden de noche con la luz `luzGaleria`), canastos colgantes y una mecedora. El
+// humo de la chimenea ya salía (casa-viva.js). Mismo marco local que el interior; el suelo se mide con `sueloLocal`.
+function exteriorCasaTe({ c, col, grupoTe, sitio, rot, W, D, vidrio, w, sueloLocal, sentaderos }) {
+  const hs = (k) => { const v = Math.sin(k * 12.9898 + 4.1) * 43758.5453; return v - Math.floor(v); };
+  const suelo = (lx, lz) => sueloLocal(sitio, rot, lx, lz);
+  const obst = (lx, lz, r, y0, y1) => { const q = w(lx, lz); col.agregar({ x: q.x, z: q.z, r, alturaMin: sitio.y + y0, alturaMax: sitio.y + y1 }); };
+  const cil = (r, h, pos, color, rotX = 0, rotZ = 0) => c.agregar(new THREE.CylinderGeometry(r, r, h, 10), { color, tipo: 4, matriz: matriz(pos, [rotX, 0, rotZ]), variar: 0.06 });
+  const bola = (r, pos, color, esc = [1, 1, 1]) => c.agregar(new THREE.SphereGeometry(r, 7, 5), { color, tipo: 4, matriz: matriz(pos, [0, 0, 0], esc), variar: 0.08 });
+  const LOZA = '#d8d2c0', MIEL = '#c8a04a', BLANCO = '#efe9dc';
+  const flor = (lx, lz, y, k) => {
+    // lupino (espiga de florcitas, violeta, rosa o azul), margarita o geranio
+    const t = Math.floor(hs(k * 3.1) * 3), h = 0.28 + hs(k * 1.7) * 0.22;
+    cil(0.008, h, [lx, y + h / 2, lz], '#4d6b32');
+    if (t === 0) { const col2 = ['#7a5ac8', '#d07aa8', '#4a6ac8'][Math.floor(hs(k) * 3)]; for (let i = 0; i < 5; i++) bola(0.034 - i * 0.004, [lx, y + h + i * 0.045 - 0.04, lz], col2); }
+    else if (t === 1) { bola(0.05, [lx, y + h + 0.02, lz], '#f6f4ee', [1, 0.45, 1]); bola(0.02, [lx, y + h + 0.035, lz], '#e8c43a'); }
+    else { bola(0.05, [lx, y + h + 0.02, lz], '#c8243a'); bola(0.035, [lx + 0.03, y + h + 0.005, lz + 0.02], '#d83a4a'); }
+    for (const s of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.1, 0.012, 0.04), { color: '#4d6b32', tipo: 4, matriz: matriz([lx + s * 0.05, y + 0.1, lz], [0, 0, s * 0.5]), variar: 0.1 });
+  };
+  const frenteZ = D / 2 + 3.4;
+  // ---- los canteros a los lados del camino, de tablas, con tierra y flores
+  for (const sx of [-1, 1]) {
+    const cx = sx * 2.5, lz = frenteZ, ancho = 3.0, fondo = 0.7;
+    const yb = Math.min(suelo(cx - ancho / 2, lz), suelo(cx + ancho / 2, lz), suelo(cx, lz - fondo / 2), suelo(cx, lz + fondo / 2));
+    caja(c, [cx, yb + 0.16, lz], [ancho, 0.32, fondo], '#7a5f43');
+    caja(c, [cx, yb + 0.325, lz], [ancho - 0.1, 0.03, fondo - 0.1], '#3a2c20', 0, 4);   // la tierra
+    for (let k = 0; k < 18; k++) flor(cx - ancho / 2 + 0.2 + (k % 9) * 0.32 + hs(k) * 0.08, lz - 0.17 + Math.floor(k / 9) * 0.34 + hs(k + 9) * 0.06, yb + 0.33, k + sx * 40);
+    col.agregar({ seg: true, ax: w(cx - ancho / 2 + 0.2, lz).x, az: w(cx - ancho / 2 + 0.2, lz).z, bx: w(cx + ancho / 2 - 0.2, lz).x, bz: w(cx + ancho / 2 - 0.2, lz).z, r: 0.34, alturaMin: sitio.y + yb, alturaMax: sitio.y + yb + 0.34 });
+  }
+  // ---- macetones de barro en las esquinas de la galería y junto al escalón
+  for (const [mx, mz] of [[-3.15, D / 2 + 0.5], [3.15, D / 2 + 0.5], [-0.95, D / 2 + 2.45], [0.95, D / 2 + 2.45]]) {
+    const y = 0.24;
+    cil(0.22, 0.4, [mx, y + 0.2, mz], '#a8573a'); cil(0.25, 0.06, [mx, y + 0.42, mz], '#b8654a'); cil(0.2, 0.02, [mx, y + 0.45, mz], '#3a2c20');
+    for (let k = 0; k < 7; k++) flor(mx + Math.cos(k * 0.9) * 0.12, mz + Math.sin(k * 0.9) * 0.12, y + 0.45, 90 + k + mx * 7);
+    obst(mx, mz, 0.26, y, y + 0.5);
+  }
+  // ---- el camino de lajas, del escalón hacia el sendero
+  for (let k = 0; k < 9; k++) {
+    const lz = D / 2 + 3.5 + k * 0.5, lx = Math.sin(k * 1.3) * 0.18 + (hs(k) - 0.5) * 0.18;
+    const y = suelo(lx, lz);
+    c.agregar(new THREE.BoxGeometry(0.62 + hs(k + 3) * 0.2, 0.05, 0.4 + hs(k + 7) * 0.12), { color: ['#8a8378', '#7d766c', '#948c80'][k % 3], tipo: 4, matriz: matriz([lx, y + 0.015, lz], [0, hs(k) * 0.6, 0]), variar: 0.1 });
+  }
+  // ---- la pizarra con la carta del día, de caballete, junto al camino
+  {
+    const px = 1.6, pz = D / 2 + 5.1, y = suelo(px, pz);
+    for (const s of [-1, 1]) cilindroEntre(c, [px + s * 0.3, y, pz + 0.22], [px + s * 0.22, y + 0.95, pz + 0.04], 0.025, MADERA_OSCURA);
+    cilindroEntre(c, [px - 0.26, y + 0.95, pz - 0.02], [px + 0.26, y + 0.95, pz - 0.02], 0.025, MADERA_OSCURA);
+    caja(c, [px, y + 0.52, pz + 0.01], [0.7, 0.86, 0.04], '#5b4735');
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.78), new THREE.MeshLambertMaterial({ map: lienzoTextura(290, 365, cartaDelTe) }));
+    m.position.set(px, y + 0.52, pz - 0.015); m.rotation.y = Math.PI;   // mira al que viene por el camino (−z de la casa es hacia ella: el frente es +z)
+    m.rotation.y = 0; m.position.z = pz + 0.035;
+    grupoTe.add(m);
+    obst(px, pz, 0.38, y, y + 1.0);
+  }
+  // ---- el mástil: la bandera argentina arriba y, más abajo, la galesa
+  {
+    const mx = 4.9, mz = D / 2 + 3.4, y = suelo(mx, mz), alto = 6.4;
+    cil(0.09, alto + 0.2, [mx, y + alto / 2 - 0.1, mz], '#e6e0d2'); cil(0.06, 0.4, [mx, y + alto + 0.1, mz], '#e6e0d2');
+    bola(0.1, [mx, y + alto + 0.35, mz], '#c9a64a');
+    cil(0.45, 0.2, [mx, y + 0.1, mz], '#857c6e');
+    cil(0.006, alto - 0.8, [mx + 0.1, y + 0.4 + (alto - 0.8) / 2, mz], '#d8d0bc');   // la driza
+    obst(mx, mz, 0.5, y, y + 0.3); obst(mx, mz, 0.1, y, y + alto);
+    // los paños flamean con el viento y el clima (bandera-viento.js): cada uno cuelga de un grupo en el mástil que se orienta al viento
+    const arg = registrarBandera(crearPanoBandera(1.5, 0.95, lienzoTextura(450, 285, banderaArgentina)));
+    arg.position.set(mx + 0.07, y + alto - 0.15, mz); arg.userData.bandera = 'argentina';
+    const gal = registrarBandera(crearPanoBandera(1.3, 0.78, lienzoTextura(390, 234, banderaGalesa)));
+    gal.position.set(mx + 0.07, y + alto - 0.15 - 0.95 - 0.25, mz); gal.userData.bandera = 'galesa';
+    grupoTe.add(arg, gal);
+  }
+  // ---- faroles en la galería (el vidrio brilla de noche con las ventanas) y canastos colgantes
+  const faroles = [[-1.9, D / 2 + 1.4], [1.9, D / 2 + 1.4]];
+  for (const [lx, lz] of faroles) {
+    const yTecho = 2.55 + (lz - (D / 2 + 1.5)) * 0.12 - 0.06;
+    cil(0.006, 0.28, [lx, yTecho - 0.14, lz], '#2a2825'); cil(0.13, 0.03, [lx, yTecho - 0.3, lz], '#2a2825'); cil(0.13, 0.03, [lx, yTecho - 0.52, lz], '#2a2825');
+    for (const [sx, sz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) cil(0.008, 0.2, [lx + sx * 0.1, yTecho - 0.41, lz + sz * 0.1], '#2a2825');
+    for (const [nx, nz] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) { const v = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.2), vidrio); v.position.set(lx + nx * 0.1, yTecho - 0.41, lz + nz * 0.1); v.rotation.y = Math.atan2(nx, nz); grupoTe.add(v); }
+  }
+  const zP = D / 2 + 2.6;
+  for (const px of [-3.0, -1.22, 1.22, 3.0]) {
+    const yTecho = 2.55 + (zP + 0.25 - (D / 2 + 1.5)) * 0.12 - 0.12;
+    cil(0.006, 0.6, [px, yTecho - 0.3, zP + 0.25], '#2a2825');
+    c.agregar(new THREE.SphereGeometry(0.15, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), { color: '#6a5238', tipo: 0, matriz: matriz([px, yTecho - 0.63, zP + 0.25]), variar: 0.06 });   // el canasto
+    for (let k = 0; k < 6; k++) { const a = k * 1.05; flor(px + Math.cos(a) * 0.08, zP + 0.25 + Math.sin(a) * 0.08, yTecho - 0.62, 130 + k + px * 5); }
+    for (let k = 0; k < 4; k++) cil(0.01, 0.2 + hs(k + px) * 0.12, [px + Math.cos(k * 1.6) * 0.15, yTecho - 0.73, zP + 0.25 + Math.sin(k * 1.6) * 0.15], '#4d6b32');
+  }
+  // ---- una mecedora en el rincón de la galería, mirando al frente
+  {
+    const mx = 3.0, mz = D / 2 + 1.0, y = 0.24;
+    for (const sx of [-1, 1]) {
+      for (let i = 0; i < 7; i++) { const z = -0.45 + i * 0.15, yy = y + 0.05 + 0.13 * (z / 0.45) ** 2, pend = 0.26 * z / 0.45 ** 2; caja(c, [mx + sx * 0.29, yy, mz + z], [0.045, 0.04, 0.17], MADERA_OSCURA, 0); void pend; }
+      caja(c, [mx + sx * 0.27, y + 0.28, mz - 0.2], [0.05, 0.38, 0.05], MADERA); caja(c, [mx + sx * 0.27, y + 0.28, mz + 0.2], [0.05, 0.38, 0.05], MADERA);
+      caja(c, [mx + sx * 0.28, y + 0.58, mz], [0.06, 0.05, 0.5], MADERA_OSCURA);
+    }
+    caja(c, [mx, y + 0.45, mz], [0.54, 0.05, 0.5], '#a98456');
+    for (let i = 0; i < 5; i++) caja(c, [mx - 0.17 + i * 0.085, y + 0.8, mz + 0.24], [0.035, 0.5, 0.03], '#8a6b4a');
+    caja(c, [mx, y + 0.5, mz - 0.02], [0.5, 0.05, 0.44], '#9b3a2e');   // la almohadilla roja
+    caja(c, [mx, y + 0.95, mz + 0.26], [0.56, 0.06, 0.05], MADERA_OSCURA);
+    obst(mx, mz, 0.34, y, y + 0.9);
+    const q = w(mx, mz);
+    sentaderos.push({ x: q.x, z: q.z, y: sitio.y + y + 0.5, nombre: 'la mecedora de la galería', mira: rot });
+  }
+  return { luzGaleria: [0, 2.0, D / 2 + 1.5] };
+}
+
+// 3.8.8: el interior de la casa de té. Estaba vacío (el piso, las paredes y una luz), aunque la galesa cocina y duerme adentro (los
+// puntos `cocina` y `cama` de aldea.js): ahora tiene el hogar de piedra contra la chimenea (que ya salía por afuera), un sillón junto al
+// fuego, dos mesas con sillas para tomar el té, la cocina económica con su mesada y sus estantes, la cama de la galesa, un aparador con
+// la loza, una alfombra, faroles colgados y cortinas, y lo galés de una casa de té del Chubut (ver más abajo). Marco local: el centro del cuerpo en el piso (y = 0 el terreno, el piso en 0,38),
+// la puerta al frente (+z) y la chimenea en la pared oeste (x = −3,5, z = −1,2). Las sillas son asientos de verdad (`sentaderos`).
+function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
+  const F = 0.38, PIEDRA_TE = '#7d766c', PIEDRA_OSC = '#6d675e', HIERRO_TE = '#34312e', LOZA = '#d8d2c0', AZUL = '#4a6a8a', ROJO = '#7b3a2e', LANA = '#8a3a2a', MIEL = '#c8a04a', PAPEL = '#e8e0c8';
+  const bola = (r, pos, color, esc = [1, 1, 1]) => c.agregar(new THREE.SphereGeometry(r, 8, 6), { color, tipo: 4, matriz: matriz(pos, [0, 0, 0], esc), variar: 0.06 });
+  const cil = (r, h, pos, color, rotX = 0, rotZ = 0) => c.agregar(new THREE.CylinderGeometry(r, r, h, 10), { color, tipo: 4, matriz: matriz(pos, [rotX, 0, rotZ]), variar: 0.06 });
+  // un obstáculo redondo (mesas) y el sitio de una silla
+  const redondo = (lx, lz, r, alto) => { const q = w(lx, lz); col.agregar({ x: q.x, z: q.z, r, alturaMin: sitio.y + F, alturaMax: sitio.y + F + alto }); };
+  const silla = (lx, lz, mira, nombre) => {
+    // una silla de tablas: asiento, patas y respaldo del lado de afuera de la mesa
+    caja(c, [lx, F + 0.4, lz], [0.42, 0.06, 0.42], TABLA);
+    for (const px of [-0.17, 0.17]) for (const pz of [-0.17, 0.17]) caja(c, [lx + px, F + 0.2, lz + pz], [0.05, 0.4, 0.05], MADERA_OSCURA);
+    const d = mira > 0 ? 1 : -1;   // el respaldo va del lado contrario a donde mira
+    caja(c, [lx - d * 0.2, F + 0.68, lz], [0.05, 0.5, 0.4], TABLA);
+    const q = w(lx, lz);
+    sentaderos.push({ x: q.x, z: q.z, y: sitio.y + F + 0.44, nombre, mira: mira > 0 ? rot + Math.PI / 2 : rot - Math.PI / 2 });
+  };
+  // ---- la alfombra, bajo las mesas y el sillón
+  caja(c, [0, F + 0.012, 0.1], [3.2, 0.024, 2.0], LANA, 0, 4);
+  caja(c, [0, F + 0.016, 0.1], [2.9, 0.02, 1.7], '#d8c49a', 0, 4);
+  caja(c, [0, F + 0.02, 0.1], [2.6, 0.02, 1.4], '#6a2e24', 0, 4);
+  // ---- el hogar de piedra, contra la chimenea de afuera (pared oeste)
+  {
+    const x0 = -3.06, hz = -1.2;
+    const piedras = (xa, xb, ya, yb, za, zb, sem) => {   // un paño de piedra a hiladas, con aparejo trabado
+      for (let f = 0, y = ya; y < yb - 0.01; f++) {
+        const alto = Math.min(0.19 + ((f * 37 + sem) % 5) * 0.012, yb - y);
+        for (let z = za + (f % 2) * 0.1, i = 0; z < zb - 0.02; i++) {
+          const ancho = Math.min(0.24 + ((i * 53 + f * 17 + sem) % 7) * 0.02, zb - z);
+          caja(c, [(xa + xb) / 2, y + alto / 2, z + ancho / 2], [xb - xa, alto - 0.012, ancho - 0.012], ['#7d766c', '#8a8378', '#6d675e', '#948c80'][(i + f * 3 + sem) % 4], 0, 4);
+          z += ancho;
+        }
+        y += alto;
+      }
+    };
+    caja(c, [x0 + 0.45, F + 0.05, hz], [0.9, 0.1, 1.75], PIEDRA_OSC, 0, 4);   // la losa del hogar
+    piedras(x0, x0 + 0.5, F + 0.1, F + 1.45, hz - 0.85, hz - 0.45, 3);
+    piedras(x0, x0 + 0.5, F + 0.1, F + 1.45, hz + 0.45, hz + 0.85, 11);
+    caja(c, [x0 + 0.25, F + 1.52, hz], [0.5, 0.14, 1.78], MADERA_OSCURA);   // el dintel de madera
+    piedras(x0, x0 + 0.42, F + 1.59, H - 0.02, hz - 0.65, hz + 0.65, 21);   // la campana, hasta el techo
+    caja(c, [x0 + 0.04, F + 0.7, hz], [0.06, 1.2, 0.9], '#241f1b');   // el fondo del fuego, negro de hollín
+    cil(0.075, 0.7, [x0 + 0.3, F + 0.2, hz - 0.1], '#5b4430', Math.PI / 2, 0);
+    cil(0.07, 0.62, [x0 + 0.22, F + 0.3, hz + 0.12], '#5b4430', Math.PI / 2, 0.1);
+    for (let i = 0; i < 6; i++) caja(c, [x0 + 0.2 + (i % 2) * 0.1, F + 0.13, hz - 0.3 + i * 0.12], [0.1, 0.05, 0.1], i % 3 ? '#d6641c' : '#f0a030', i, 4);   // las brasas
+    // la repisa, con candeleros, la tetera de la casa y un reloj de bolsillo
+    caja(c, [x0 + 0.3, F + 1.66, hz], [0.46, 0.07, 1.9], '#a98456');
+    for (const dz of [-0.7, 0.7]) { cil(0.04, 0.2, [x0 + 0.3, F + 1.8, hz + dz], '#9a7a3a'); cil(0.018, 0.1, [x0 + 0.3, F + 1.95, hz + dz], PAPEL); }
+    cil(0.09, 0.15, [x0 + 0.3, F + 1.78, hz - 0.1], '#a8573a');
+    bola(0.05, [x0 + 0.3, F + 1.9, hz - 0.1], '#a8573a');
+    caja(c, [x0 + 0.3, F + 1.8, hz + 0.25], [0.04, 0.2, 0.3], '#3a5a6a');
+    PT.mueble({ lx: x0 + 0.3, ly: F + 0.7, lz: hz, largo: 0.62, alto: 1.4, ancho: 1.8, color: PIEDRA_TE, dibujar: false });
+  }
+  // ---- el sillón junto al fuego (se mira al hogar) y un cesto de leña
+  {
+    const sx = -1.95, sz = -1.2;
+    caja(c, [sx, F + 0.2, sz], [0.82, 0.24, 0.84], MADERA);
+    caja(c, [sx, F + 0.38, sz], [0.66, 0.14, 0.7], '#7b4a3a');
+    caja(c, [sx + 0.36, F + 0.62, sz], [0.14, 0.62, 0.84], '#8a5644');   // el respaldo, del lado contrario al fuego
+    caja(c, [sx + 0.0, F + 0.6, sz - 0.4], [0.76, 0.14, 0.1], '#8a5644');
+    caja(c, [sx + 0.0, F + 0.6, sz + 0.4], [0.76, 0.14, 0.1], '#8a5644');
+    caja(c, [sx - 0.1, F + 0.46, sz + 0.1], [0.5, 0.05, 0.34], MIEL, 0.4);   // la manta
+    PT.mueble({ lx: sx, ly: F + 0.3, lz: sz, largo: 0.86, alto: 0.6, ancho: 0.86, color: MADERA, dibujar: false });
+    { const q = w(sx, sz); sentaderos.push({ x: q.x, z: q.z, y: sitio.y + F + 0.46, nombre: 'el sillón junto al fuego', mira: rot - Math.PI / 2 }); }
+    cil(0.2, 0.3, [-2.55, F + 0.15, -2.1], '#a98456');
+    for (let i = 0; i < 4; i++) cil(0.045, 0.34, [-2.6 + (i % 2) * 0.1, F + 0.36, -2.1 + (i > 1 ? 0.08 : -0.06)], '#5b4430', 0.2 * (i - 1.5), 0.15);
+    redondo(-2.55, -2.1, 0.22, 0.5);
+  }
+  // ---- las dos mesas del salón: mantel de encaje, el servicio de té galés (torre de tortas, tetera con su cubretetera, tazas con platito
+  // de sauce, dulce, azucarera y flores) y cuatro sillas
+  for (const [mx, mz, nombre, lado] of [[-1.3, 1.0, 'una silla del salón de té', -1], [1.3, 1.0, 'una silla del salón de té', 1]]) {
+    cil(0.5, 0.06, [mx, F + 0.74, mz], TABLA);
+    cil(0.07, 0.72, [mx, F + 0.37, mz], MADERA_OSCURA);
+    cil(0.22, 0.05, [mx, F + 0.03, mz], MADERA_OSCURA);
+    // el mantel de encaje: un disco blanco que cuelga más que la mesa, con la puntilla
+    cil(0.58, 0.012, [mx, F + 0.775, mz], '#f2ece0');
+    cil(0.61, 0.006, [mx, F + 0.77, mz], '#e2dac6');
+    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; cil(0.022, 0.008, [mx + Math.cos(a) * 0.55, F + 0.78, mz + Math.sin(a) * 0.55], '#f2ece0'); }
+    // la torre de tortas: tres platos con pie, scones, welsh cakes (azucaradas) y bara brith
+    cil(0.012, 0.3, [mx, F + 0.94, mz], '#9a7a3a');
+    cil(0.13, 0.012, [mx, F + 0.8, mz], '#d8d2c0'); cil(0.1, 0.012, [mx, F + 0.95, mz], '#d8d2c0'); cil(0.07, 0.012, [mx, F + 1.08, mz], '#d8d2c0');
+    for (let k = 0; k < 5; k++) { const a = k * 1.26; bola(0.032, [mx + Math.cos(a) * 0.08, F + 0.835, mz + Math.sin(a) * 0.08], '#c98a3a', [1, 0.7, 1]); }   // scones
+    for (let k = 0; k < 3; k++) { const a = k * 2.1 + 0.4; cil(0.034, 0.012, [mx + Math.cos(a) * 0.06, F + 0.97, mz + Math.sin(a) * 0.06], '#e8d8b0'); }   // welsh cakes
+    caja(c, [mx, F + 1.1, mz], [0.07, 0.04, 0.04], '#4a2e1c');   // una rodaja de torta negra
+    // la tetera con su cubretetera tejida (roja con franja blanca), y su plato
+    const tx = mx - 0.24 * lado, tz = mz + 0.2;
+    cil(0.1, 0.012, [tx, F + 0.79, tz], '#d8d2c0');
+    bola(0.085, [tx, F + 0.86, tz], '#9b3a2e', [1, 0.9, 1]); cil(0.088, 0.02, [tx, F + 0.865, tz], '#f2ece0');
+    cil(0.02, 0.03, [tx, F + 0.945, tz], '#9b3a2e'); bola(0.022, [tx, F + 0.965, tz], '#f2ece0');
+    cil(0.012, 0.09, [tx + 0.1 * lado, F + 0.88, tz], '#9b3a2e', 0, 0.9 * lado);   // el pico
+    // las tazas con platito de sauce (blanco con un aro azul)
+    for (const [dx, dz] of [[0.22 * lado, -0.12], [0.1 * lado, -0.28]]) {
+      cil(0.07, 0.008, [mx + dx, F + 0.783, mz + dz], '#f2ece0'); cil(0.06, 0.009, [mx + dx, F + 0.785, mz + dz], AZUL);
+      cil(0.036, 0.052, [mx + dx, F + 0.82, mz + dz], '#f2ece0'); cil(0.037, 0.008, [mx + dx, F + 0.842, mz + dz], AZUL);
+    }
+    // el dulce (un frasco rojo con cucharita), la azucarera y unas flores del campo
+    cil(0.032, 0.06, [mx - 0.05 * lado, F + 0.81, mz - 0.3], '#7b1e24'); cil(0.034, 0.012, [mx - 0.05 * lado, F + 0.845, mz - 0.3], '#e8e0c8');
+    cil(0.04, 0.05, [mx + 0.3 * lado, F + 0.81, mz + 0.05], '#f2ece0'); bola(0.025, [mx + 0.3 * lado, F + 0.845, mz + 0.05], AZUL);
+    cil(0.03, 0.09, [mx - 0.32 * lado, F + 0.83, mz - 0.12], '#cfc8b4');
+    for (let k = 0; k < 5; k++) { tallo(c, mx - 0.32 * lado, F + 0.86, mz - 0.12, k); bola(0.02, [mx - 0.32 * lado + Math.cos(k * 1.3) * 0.045, F + 1.0, mz - 0.12 + Math.sin(k * 1.3) * 0.045], ['#e8d84a', '#d07aa8', '#f2ece0', '#9a7ac8', '#e8845a'][k]); }
+    redondo(mx, mz, 0.52, 0.8);
+    silla(mx - 0.72, mz, 1, nombre); silla(mx + 0.72, mz, -1, nombre);
+  }
+  // ---- la mesada y la cocina económica, contra la pared norte
+  {
+    const zc = -2.18;
+    caja(c, [-0.7, F + 0.43, zc], [2.0, 0.84, 0.56], '#6a5238');
+    for (const x of [-1.3, -0.7, -0.1]) { caja(c, [x, F + 0.43, zc + 0.285], [0.52, 0.66, 0.02], TABLA); caja(c, [x + 0.18, F + 0.45, zc + 0.3], [0.025, 0.1, 0.02], HIERRO_TE); }
+    caja(c, [-0.7, F + 0.87, zc], [2.1, 0.06, 0.64], '#9a8f7e', 0, 4);
+    caja(c, [-1.15, F + 0.9, zc], [0.5, 0.04, 0.38], '#5d574f', 0, 4);   // la pileta
+    caja(c, [-1.15, F + 0.915, zc], [0.42, 0.012, 0.3], '#6a8a9a', 0, 4);
+    cil(0.02, 0.28, [-1.15, F + 1.05, zc - 0.22], HIERRO_TE); caja(c, [-1.15, F + 1.18, zc - 0.13], [0.025, 0.025, 0.2], HIERRO_TE);
+    // las tortas del día bajo campanas de vidrio, una lata de té y los frascos de dulce
+    for (const [dx, torta] of [[-0.5, '#4a2e1c'], [0.0, '#c98a3a']]) {
+      cil(0.16, 0.02, [dx, F + 0.91, zc + 0.02], '#d8d2c0'); cil(0.03, 0.06, [dx, F + 0.89, zc + 0.02], '#d8d2c0');
+      cil(0.13, 0.07, [dx, F + 0.96, zc + 0.02], torta);
+      c.agregar(new THREE.SphereGeometry(0.17, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), { color: '#a8c0c0', tipo: 4, matriz: matriz([dx, F + 0.94, zc + 0.02]), variar: 0.03 });
+      bola(0.018, [dx, F + 1.11, zc + 0.02], '#a8c0c0');
+    }
+    cil(0.07, 0.16, [0.22, F + 0.98, zc + 0.08], '#8a2e24'); cil(0.072, 0.02, [0.22, F + 1.07, zc + 0.08], MIEL);   // la lata de té
+    for (let i = 0; i < 2; i++) cil(0.035, 0.08, [0.1 + i * 0.1, F + 0.94, zc - 0.18], ['#7b1e24', '#c8a04a'][i]);
+    PT.mueble({ lx: -0.7, ly: F + 0.45, lz: zc, largo: 2.0, alto: 0.9, ancho: 0.58, color: '#6a5238', dibujar: false });
+    // la cocina económica: hierro negro, cuatro hornallas, el horno, el tubo hasta el techo y la pava
+    const sx = 0.95;
+    caja(c, [sx, F + 0.44, zc], [0.8, 0.86, 0.58], HIERRO_TE, 0, 4);
+    caja(c, [sx, F + 0.89, zc], [0.84, 0.05, 0.62], '#2a2825', 0, 4);
+    for (const [dx, dz] of [[-0.2, -0.1], [0.2, -0.1], [-0.2, 0.14], [0.2, 0.14]]) cil(0.09, 0.012, [sx + dx, F + 0.92, zc + dz], '#4a4742');
+    caja(c, [sx, F + 0.5, zc - 0.3], [0.5, 0.32, 0.02], '#5a5650'); caja(c, [sx, F + 0.64, zc - 0.32], [0.3, 0.02, 0.025], '#9a948a');   // la puerta del horno
+    cil(0.055, H - (F + 0.9), [sx + 0.2, (F + 0.9 + H) / 2, zc + 0.16], HIERRO_TE);
+    cil(0.09, 0.14, [sx - 0.2, F + 1.0, zc - 0.1], '#b87333'); cil(0.025, 0.12, [sx - 0.12, F + 1.05, zc - 0.1], '#b87333', 0, 1.1); bola(0.03, [sx - 0.2, F + 1.09, zc - 0.1], '#8a5a2a');   // la pava de cobre
+    PT.mueble({ lx: sx, ly: F + 0.45, lz: zc, largo: 0.84, alto: 0.9, ancho: 0.62, color: HIERRO_TE, dibujar: false });
+    // los estantes de la pared, con tazas, latas de té y frascos; y las ollas colgadas
+    for (const [y, x0, x1] of [[F + 1.45, -1.7, 0.45], [F + 1.9, -1.7, 0.45]]) {
+      caja(c, [(x0 + x1) / 2, y, -2.34], [x1 - x0, 0.04, 0.24], TABLA);
+      for (const dx of [x0 + 0.05, x1 - 0.05]) caja(c, [dx, y - 0.1, -2.4], [0.04, 0.2, 0.12], MADERA_OSCURA);
+    }
+    for (let i = 0; i < 6; i++) { cil(0.032, 0.05, [-1.55 + i * 0.13, F + 1.5, -2.34], LOZA); cil(0.04, 0.008, [-1.55 + i * 0.13, F + 1.47, -2.34], LOZA); }
+    for (let i = 0; i < 4; i++) cil(0.05, 0.16 + (i % 2) * 0.04, [-0.75 + i * 0.28, F + 2.0 + (i % 2) * 0.02, -2.34], ['#a8573a', '#4a6a8a', '#c8a04a', '#6a8a5a'][i]);
+    for (let i = 0; i < 5; i++) cil(0.05, 0.11, [-1.5 + i * 0.22, F + 1.99, -2.34], ['#9b3a2e', '#c8a04a', '#5a7a5a', '#7a5a8a', '#cfc8b4'][i]);
+    for (const [x, r] of [[0.75, 0.12], [1.05, 0.09], [1.3, 0.1]]) { cil(r, 0.1, [x, F + 1.55, -2.42], '#b87333'); caja(c, [x, F + 1.7, -2.45], [0.02, 0.1, 0.02], HIERRO_TE); }
+  }
+  // ---- la cama de la galesa (esquina noreste, la cabecera contra la pared)
+  {
+    const bx = 2.5, bz = -1.45;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(c, [bx + sx * 0.42, F + 0.14, bz + sz * 0.92], [0.09, 0.28, 0.09], MADERA_OSCURA);
+    caja(c, [bx, F + 0.3, bz], [0.95, 0.14, 2.0], TABLA);
+    caja(c, [bx, F + 0.44, bz], [0.88, 0.14, 1.9], '#c9bfa0', 0, 4);
+    // el cubrecama de retazos (patchwork galés, en rojos, blancos y azules) sobre una frazada de lana
+    caja(c, [bx, F + 0.51, bz + 0.45], [0.9, 0.05, 1.1], '#f2ece0', 0, 4);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 5; j++) caja(c, [bx - 0.33 + i * 0.22, F + 0.54, bz - 0.05 + j * 0.2], [0.2, 0.012, 0.18], ['#9b3a2e', '#f2ece0', '#4a6a8a', '#c8a04a', '#6a2e24'][(i * 2 + j * 3) % 5], 0, 4);
+    caja(c, [bx, F + 0.56, bz + 0.97], [0.92, 0.025, 0.14], MIEL, 0, 4);
+    caja(c, [bx, F + 0.55, bz - 0.78], [0.5, 0.1, 0.3], PAPEL, 0, 4);
+    caja(c, [bx, F + 0.62, bz - 0.98], [1.0, 0.8, 0.07], MADERA_OSCURA);   // la cabecera
+    caja(c, [bx, F + 1.55, -2.43], [0.62, 0.46, 0.04], '#5a4130'); caja(c, [bx, F + 1.55, -2.41], [0.52, 0.36, 0.02], '#a9c2d2', 0, 4);   // un cuadrito
+    PT.mueble({ lx: bx, ly: F + 0.3, lz: bz, largo: 0.97, alto: 0.6, ancho: 2.02, color: TABLA, dibujar: false });
+  }
+  // ---- el aparador de la loza, contra la pared este (delante de la cama)
+  {
+    const ax = 2.83, az = 0.95;
+    caja(c, [ax, F + 0.45, az], [0.44, 0.9, 1.5], '#6a5238');
+    for (const dz of [-0.38, 0.38]) { caja(c, [ax - 0.225, F + 0.46, az + dz], [0.02, 0.7, 0.6], TABLA); caja(c, [ax - 0.24, F + 0.5, az + dz + (dz < 0 ? 0.22 : -0.22)], [0.02, 0.1, 0.025], HIERRO_TE); }
+    caja(c, [ax, F + 0.93, az], [0.48, 0.05, 1.56], MADERA_OSCURA);
+    for (const dz of [-0.72, 0.72]) caja(c, [ax + 0.1, F + 1.45, az + dz], [0.04, 1.05, 0.05], MADERA_OSCURA);
+    caja(c, [ax + 0.17, F + 1.45, az], [0.03, 1.0, 1.5], '#5b4735');
+    for (const y of [F + 1.2, F + 1.6]) caja(c, [ax + 0.04, y, az], [0.3, 0.035, 1.5], TABLA);
+    // platos de sauce (blancos con el aro y el centro azules) parados, tazas, y dos jarras de cobre arriba
+    for (const y of [F + 1.34, F + 1.75]) for (let i = 0; i < 6; i++) {
+      const z = az - 0.62 + i * 0.25;
+      cil(0.1, 0.018, [ax + 0.12, y, z], '#f2ece0', 0, Math.PI / 2 - 0.12);
+      cil(0.084, 0.02, [ax + 0.11, y, z], AZUL, 0, Math.PI / 2 - 0.12);
+      cil(0.062, 0.022, [ax + 0.108, y, z], '#f2ece0', 0, Math.PI / 2 - 0.12);
+      cil(0.03, 0.024, [ax + 0.106, y, z], AZUL, 0, Math.PI / 2 - 0.12);
+    }
+    for (let i = 0; i < 5; i++) { cil(0.035, 0.06, [ax, F + 1.24, az - 0.5 + i * 0.25], LOZA); cil(0.037, 0.01, [ax, F + 1.275, az - 0.5 + i * 0.25], AZUL); }
+    for (const dz of [-0.55, 0.5]) { cil(0.05, 0.15, [ax - 0.02, F + 2.04, az + dz], '#b87333'); cil(0.035, 0.03, [ax - 0.02, F + 2.13, az + dz], '#b87333'); caja(c, [ax - 0.02, F + 2.04, az + dz + 0.06], [0.02, 0.1, 0.02], '#b87333'); }
+    cil(0.14, 0.08, [ax, F + 0.99, az], AZUL);   // la sopera
+    PT.mueble({ lx: ax - 0.02, ly: F + 0.95, lz: az, largo: 0.5, alto: 1.9, ancho: 1.6, color: '#6a5238', dibujar: false });
+  }
+  // ---- lo galés: la bandera del dragón rojo, los cucharones de amor, el arpa, el sombrero y el chal de la colonia, la carta del té y el
+  // «Croeso» de la puerta (los carteles se devuelven para armarlos como planos con su dibujo)
+  const adornos = [];
+  adornos.push({ w: 0.95, h: 0.62, pos: [-2.99, F + 1.85, 0.4], giro: Math.PI / 2, textura: lienzoTextura(380, 248, banderaGalesa) });
+  adornos.push({ w: 0.58, h: 0.78, pos: [-2.99, F + 1.62, 1.38], giro: Math.PI / 2, textura: lienzoTextura(290, 390, cartaDelTe) });
+  adornos.push({ w: 1.15, h: 0.28, pos: [0, 2.4, D / 2 - 0.15], giro: Math.PI, textura: cartelTextura('Croeso · Bienvenidos') });
+  caja(c, [-3.02, F + 1.62, 1.38], [0.03, 0.84, 0.64], MADERA_OSCURA);   // el marco de la carta
+  caja(c, [-3.02, F + 1.85, 0.4], [0.03, 0.68, 1.01], MADERA_OSCURA);   // y el de la bandera
+  // los cucharones de amor (llwy garu), tallados, colgados de la pared en una hilera
+  for (let i = 0; i < 4; i++) {
+    const z = 1.9 + i * 0.1, y = F + 1.72 - (i % 2) * 0.05;
+    caja(c, [-3.0, y, z], [0.014, 0.4, 0.03], '#b5946a');
+    c.agregar(new THREE.SphereGeometry(0.04, 8, 6), { color: '#b5946a', tipo: 4, matriz: matriz([-3.0, y - 0.24, z], [0, 0, 0], [0.4, 1.0, 0.8]), variar: 0.06 });
+    caja(c, [-3.0, y + 0.13, z], [0.016, 0.05, 0.05], ['#9b3a2e', '#6a8a4a', '#c8a04a', '#4a6a8a'][i], 0.4);
+  }
+  // el arpa galesa (la telyn), en la esquina: columna, cuello, caja de resonancia y cuerdas
+  {
+    const hx = -2.65, zA = 1.84, zB = 2.32, yCol = F + 1.4, yCuello = F + 1.12;
+    cilindroEntre(c, [hx, F + 0.06, zB], [hx, yCol, zB], 0.04, '#6a4228');
+    cilindroEntre(c, [hx, yCol, zB], [hx, yCuello, zA], 0.045, '#7a4e30');
+    cilindroEntre(c, [hx, F + 0.1, zB], [hx, yCuello - 0.02, zA], 0.07, '#8a5a3a');
+    cilindroEntre(c, [hx, F + 0.05, zA - 0.08], [hx, F + 0.05, zB + 0.1], 0.03, '#5a3a22');
+    for (let k = 0; k < 12; k++) {
+      const t = (k + 1) / 13, z = zA + (zB - zA) * t;
+      const yTop = yCuello + (yCol - yCuello) * t, yBot = (yCuello - 0.02) + (F + 0.1 - (yCuello - 0.02)) * t;
+      cilindroEntre(c, [hx, yBot + 0.04, z], [hx, yTop - 0.03, z], 0.004, k % 4 === 0 ? '#c8102e' : '#e8e0c8');
+    }
+    PT.mueble({ lx: hx, ly: F + 0.75, lz: (zA + zB) / 2, largo: 0.24, alto: 1.5, ancho: 0.62, color: '#6a4228', dibujar: false });
+  }
+  // el sombrero galés (alto, negro, de ala angosta) y el chal rojo, colgados de una tablita junto a la puerta, del lado del aparador
+  caja(c, [3.02, F + 1.78, 2.1], [0.04, 0.1, 0.62], MADERA_OSCURA);
+  cil(0.075, 0.3, [2.93, F + 1.6, 1.92], '#1f1c19'); cil(0.15, 0.015, [2.93, F + 1.46, 1.92], '#1f1c19'); cil(0.078, 0.03, [2.93, F + 1.6, 1.92], '#7b1e24');
+  caja(c, [3.0, F + 1.45, 2.24], [0.035, 0.62, 0.3], '#9b3a2e');
+  for (let k = 0; k < 4; k++) caja(c, [3.0, F + 1.62 - k * 0.1, 2.24], [0.037, 0.03, 0.3], k % 2 ? '#f2ece0' : '#3a3a3a');
+  for (let k = 0; k < 9; k++) caja(c, [3.0, F + 1.1, 2.1 + k * 0.035], [0.02, 0.07, 0.01], '#9b3a2e');   // los flecos
+  // ---- los faroles colgados y las cortinas de las ventanas del frente
+  for (const [lx, lz] of [[-1.3, 1.0], [1.3, 1.0], [0, -0.4]]) {
+    // (a más de 2,25 m del piso: se pasa por debajo sin pegarse en la cabeza)
+    cil(0.006, 0.3, [lx, H - 0.21, lz], HIERRO_TE);
+    cil(0.14, 0.03, [lx, H - 0.3, lz], HIERRO_TE);
+    cil(0.12, 0.22, [lx, H - 0.42, lz], '#3e5a46');
+    cil(0.07, 0.15, [lx, H - 0.44, lz], '#ffe0a0');
+  }
+  for (const vx of [-1.36, 1.36]) {
+    const s = Math.sign(vx);
+    cil(0.014, 1.0, [vx + s * 0.55, 2.2, D / 2 - 0.15], '#9a7a3a', 0, Math.PI / 2);   // la varilla, sobre el lado de afuera
+    caja(c, [vx + s * 0.78, 1.55, D / 2 - 0.14], [0.3, 1.2, 0.03], '#efe8d8');   // cortinas de encaje, como las de las casas de té del Chubut
+    for (let k = 0; k < 6; k++) caja(c, [vx + s * 0.78, 1.05 + k * 0.2, D / 2 - 0.125], [0.3, 0.03, 0.02], '#f8f2e4');
+    caja(c, [vx + s * 0.62, 1.4, D / 2 - 0.14], [0.14, 1.0, 0.03], '#e4dcc8');
+    caja(c, [vx + s * 0.7, 1.45, D / 2 - 0.12], [0.34, 0.04, 0.03], MIEL);   // la atadura
+    cil(0.1, 0.12, [vx, 1.12, D / 2 - 0.2], '#a8573a');   // una maceta en el alféizar
+    for (let k = 0; k < 5; k++) tallo(c, vx, 1.18, D / 2 - 0.2, k);
+  }
+  return adornos;
+}
+// una hoja de helecho de maceta
+function tallo(c, x, y, z, k) {
+  const a = k * 1.3 + 0.4;
+  c.agregar(new THREE.BoxGeometry(0.03, 0.26, 0.01), { color: ['#4d6b32', '#5a7a3a', '#3f5a2a'][k % 3], tipo: 4, variar: 0.1, matriz: matriz([x + Math.cos(a) * 0.05, y + 0.12, z + Math.sin(a) * 0.05], [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5]) });
 }
 
 function cartelTextura(texto) {
@@ -2161,6 +2555,16 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const altoPasoTe = Math.max(0.08, sueloAccesoTe + 0.055);
       PT.escalon({ lx: 0, lz: lzAccesoTe, largo: 1.8, ancho: 0.64,
         alto: altoPasoTe, espesor: Math.max(0.11, altoPasoTe - sueloAccesoTe + 0.045), color: TABLA });
+      for (const q of amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H })) {   // 3.8.8: el interior (y sus carteles dibujados)
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(q.w, q.h), new THREE.MeshLambertMaterial({ map: q.textura }));
+        m.position.set(...q.pos); m.rotation.y = q.giro;
+        grupoTe.add(m);
+      }
+      // 3.8.8: y la parte de afuera (bandera, canteros, camino, pizarra, faroles) con su luz de noche
+      const afuera = exteriorCasaTe({ c, col, grupoTe, sitio, rot, W, D, vidrio, w, sueloLocal, sentaderos });
+      const luzGaleria = new THREE.PointLight(0xffc070, 0, 9, 1.6);
+      luzGaleria.position.set(...afuera.luzGaleria);
+      grupoTe.add(luzGaleria);
       const malla = new THREE.Mesh(c.geometria(), mat);
       malla.castShadow = true; malla.receiveShadow = true;
       grupoTe.add(malla);
@@ -2174,7 +2578,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const ch = w(CHIM_TE.x, CHIM_TE.z);
       const mostrador = w(0, D / 2 + 1.5);
       const puertaTe = w(0, D / 2 + 3.1);
-      casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, mostrador, puerta: puertaTe,
+      casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, luzGaleria, mostrador, puerta: puertaTe,
         radio: Math.max(W / 2 + 1.4, D / 2 + 3.5) };
       T.lugares['casa-te'] = casaTe;
       // 3.6: en la aldea, la huella queda donde la dejaba el sorteo
@@ -2370,30 +2774,42 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
     }
   }
 
-  // ---------------------------------------------------------------- el alero del arriero
-  // 3.8.4: antes era la Cueva de las Manos (las pinturas de Santa Cruz no son de esta cordillera). Ahora es un alero
-  // donde hacían noche los arrieros que cruzaban la hacienda a Chile: la pirca baja que corta el viento, el fogón
-  // renegrido, la pared con los nombres y las fechas que tallaron y una herradura vieja clavada. Es el mismo lugar
-  // (la misma roca, la misma escalera y el mismo sorteo, así no se mueve nada del valle) y por adentro sigue siendo
-  // `T.lugares.cueva` y la entrada 'cueva' del cuaderno (una partida vieja la tiene anotada y pasa sola a la nueva).
+  // ---------------------------------------------------------------- la Cueva de las Manos
+  // 3.8.8: vuelve la Cueva de las Manos (en la 3.8.4 había pasado a ser el alero del arriero) y como una gruta de roca natural: en
+  // vez del techo y los muros de cajas rectas, una bóveda de bloques redondeados que se curva hacia el techo, con la boca irregular y
+  // musgo arriba; adentro, la pared pintada con las manos en negativo. Es el mismo lugar de siempre (la misma roca, la misma
+  // escalera, la misma huella y el mismo sorteo, así no se mueve nada del valle) y por adentro sigue siendo `T.lugares.cueva` y la
+  // entrada 'cueva' del cuaderno. El azar de la roca es propio (`hs`): no tira del sorteo `r()`.
   let cueva = null;
   {
-    // hace falta una ladera empinada y alta, lejos de todo
-    let sitio = null, mejor = 0;
+    // 3.8.8: en la estepa, la zona más árida (hacia el este, donde el bosque se abre y termina: pastizales y llanuras), en un llano:
+    // la boca mira cuesta abajo y el terreno sube poco hasta el fondo, así se entra caminando, sin escalera (antes: una ladera empinada
+    // y alta, y una cornisa con escalerilla). El sorteo es idéntico (dos `r()` por vuelta, seis mil vueltas): sólo cambia cuál sirve.
+    let sitio = null, mejor = -Infinity;
     for (let i = 0; i < 6000; i++) {
       const x = (r() * 2 - 1) * 400, z = (r() * 2 - 1) * 400;
       const k = T.indice(x, z);
       const y = TS.altura(x, z);
-      if (y < 20 || TS.agua(x, z) || TS.pendiente[k] < 0.55) continue;
-      if (T.distRio[k] < 30) continue;                     // lejos del arroyo
+      const arido = T.estepa ? T.estepa[k] : 1;
+      if (TS.agua(x, z) || arido < 0.85 || TS.pendiente[k] > 0.12) continue;
+      if (T.distRio[k] < 25) continue;                     // lejos del arroyo
       if (T.puentesRiel.some((b2) => Math.hypot(b2.x - x, b2.z - z) < 45)) continue;
       if (invadeHuella(x, z, 9, 8)) continue;
       if (T.distRiel[k] < 25) continue;
-      const puntaje = TS.pendiente[k] * 30 + y * 0.2;
+      // el terreno de la huella, con la boca cuesta abajo: lo que sube del frente al fondo y que no haya agua cerca
+      const nn = T.normal(x, z), giro = Math.atan2(nn.x, nn.z);
+      let alto = -Infinity, frente = Infinity, agua = false;
+      for (let lx = -3.3; lx <= 3.3 + 1e-6; lx += 0.66) for (let lz = -3.55; lz <= 0.3 + 1e-6; lz += 0.5) { const q = aMundo({ x, z }, giro, lx, lz); alto = Math.max(alto, T.altura(q.x, q.z)); }
+      for (let lx = -2; lx <= 2; lx += 1) for (const lz of [1.2, 1.8, 2.4]) { const q = aMundo({ x, z }, giro, lx, lz); frente = Math.min(frente, T.altura(q.x, q.z)); }
+      for (let a2 = 0; a2 < 8; a2++) { const q = aMundo({ x, z }, giro, Math.cos(a2 * 0.785) * 6.5, Math.sin(a2 * 0.785) * 6.5); if (TS.agua(q.x, q.z)) agua = true; }
+      const subida = alto - frente;
+      if (agua || subida > 0.45 || subida < -0.3) continue;
+      // lo más árido y llano, y no en el último rincón del mapa
+      const puntaje = arido * 30 - Math.abs(subida) * 10 - Math.hypot(x - 300, z) * 0.03;
       if (puntaje > mejor) { mejor = puntaje; sitio = { x, z, y }; }
     }
     if (sitio) {
-      // mira hacia donde baja la ladera
+      // mira hacia donde baja el terreno
       const n = T.normal(sitio.x, sitio.z);
       const rot = Math.atan2(n.x, n.z);
       const c = new Constructor();
@@ -2401,7 +2817,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       // 3.0.1: la cueva está en una ladera empinada y su piso plano quedaba bajo el cerro:
       // el pasto llenaba el abrigo y tapaba la mitad de abajo de las pinturas (y los
       // guanacos). Se levanta sobre una cornisa de roca hasta que el piso (0,34 m) quede
-      // por encima del terreno de adentro; al frente, una escalera de piedra baja de costado.
+      // por encima del terreno de adentro (3.8.8: en el llano de la estepa queda a ras del suelo y se entra caminando).
       {
         let alto = -Infinity;
         for (let lx = -ANCHO / 2 + 0.2; lx <= ANCHO / 2 - 0.2 + 1e-6; lx += (ANCHO - 0.4) / 10)
@@ -2411,17 +2827,68 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
           }
         sitio.y = Math.max(sitio.y, alto - 0.29);
       }
-      // el alero de roca y las paredes del abrigo
-      c.agregar(new THREE.BoxGeometry(ANCHO + 3.4, 2.2, FONDO + 2.2), { color: '#6f6862', tipo: 4, variar: 0.16, matriz: matriz([0, ALTO + 0.9, -FONDO / 2 + 0.4], [0.06, 0, 0]) });
-      for (const l of [-1, 1]) {
-        // los muros bajan varios metros para que no queden colgados en la ladera
-        c.agregar(new THREE.BoxGeometry(3.2, ALTO + 8, FONDO + 2), { color: '#6b645e', tipo: 4, variar: 0.18, matriz: matriz([l * (ANCHO / 2 + 1.5), ALTO / 2 - 4, -FONDO / 2 + 0.3], [0, l * 0.06, 0]) });
-      }
-      c.agregar(new THREE.BoxGeometry(ANCHO + 6, ALTO + 9, 3.4), { color: '#67605a', tipo: 4, variar: 0.18, matriz: matriz([0, ALTO / 2 - 3.6, -FONDO - 1.2]) });
-      // el umbral, para no ver el hueco. 3.0.1: baja hasta el terreno de adelante
+      // el umbral (3.8.8: sin escalera ni cornisa de caja): la plataforma de la entrada queda a ras del terreno de adelante, a lo sumo
+      // unos centímetros sobre él, y se cubre con lajas planas y bajas. Su tope sube hasta rozar el piso de adentro (0,34 m).
       const sueloUmbral = Math.min(sueloLocal(sitio, rot, -ANCHO / 2, 1.4), sueloLocal(sitio, rot, 0, 1.4), sueloLocal(sitio, rot, ANCHO / 2, 1.4));
-      const bajoUmbral = Math.max(3.2, 0.1 - sueloUmbral + 0.4);
-      c.agregar(new THREE.BoxGeometry(ANCHO + 1.4, bajoUmbral, 1.2), { color: '#6b645e', tipo: 4, variar: 0.16, matriz: matriz([0, 0.1 - bajoUmbral / 2, 0.8]) });
+      let sueloMaxUmbral = -Infinity;
+      for (let lx = -ANCHO / 2 - 0.2; lx <= ANCHO / 2 + 0.2 + 1e-6; lx += 0.7) for (const lz of [0.3, 0.8, 1.3]) sueloMaxUmbral = Math.max(sueloMaxUmbral, sueloLocal(sitio, rot, lx, lz));
+      const topeUmbral = Math.min(0.32, Math.max(0.1, sueloMaxUmbral + 0.03));
+      const bajoUmbral = Math.max(3.2, topeUmbral - sueloUmbral + 0.4);
+      // 3.8.8: la gruta. Cada bloque es un icosaedro abollado (cada uno distinto) y estirado; los anillos van de un lado al otro por
+      // el techo, del frente al fondo; el borde de adentro queda a unos 4,45 m del eje a ras del piso y a 3,6 m de alto (la gente
+      // cabe de pie hasta las paredes de choque, a 3,7 m, sin meterse en la roca); abajo, bloques enterrados la sostienen en la
+      // ladera (como los muros que bajaban varios metros).
+      {
+        const hs = (k) => { const v = Math.sin(k * 12.9898 + 4.1) * 43758.5453; return v - Math.floor(v); };
+        const ROCAS = ['#6f6862', '#665f59', '#7a736b', '#5f5953', '#756e66'];
+        let ruido = 0;
+        const roca = (x, y, z, ex, ey, ez, rx, ry, rz, color, fuerza = 0.32) => {
+          const g = new THREE.IcosahedronGeometry(1, 1);
+          abollar(g, fuerza, 1.1 + (ruido++ % 7) * 0.37);
+          c.agregar(g, { color, tipo: 4, variar: 0.16, matriz: matriz([x, y, z], [rx, ry, rz], [ex, ey, ez]) });
+          g.dispose();
+        };
+        const cy = 0.34, RX = 5.45, RY = 4.6;
+        // la bóveda: siete anillos de trece bloques, un poco más angostos hacia el fondo
+        [1.0, 0.3, -0.5, -1.3, -2.1, -2.9, -3.7].forEach((z, i) => {
+          const k = i < 5 ? 1 : i === 5 ? 0.96 : 0.9;
+          for (let j = 0; j < 13; j++) {
+            const a = (j + 0.5) / 13 * Math.PI, h = hs(i * 41 + j * 7), q = 1 + (hs(i * 13 + j * 5) - 0.5) * 0.08, rb = 1.05 + h * 0.35;
+            roca(Math.cos(a) * RX * k * q, cy + Math.sin(a) * RY * k * q, z, rb, rb * (0.9 + h * 0.3), 0.85 + h * 0.3, h, h * 5, a, ROCAS[(i * 3 + j) % 5]);
+            // abajo, un bloque enterrado que baja por la ladera (los muros llegaban a 8 m)
+            if (j === 0 || j === 12) roca(Math.sign(Math.cos(a)) * (RX * k + 0.3), -1.9, z, 1.6, 3.0, 1.3, h, h * 4, 0, ROCAS[(i + j) % 5]);
+          }
+        });
+        // la corteza de afuera: bloques más grandes, para que la silueta no sea una cáscara fina
+        [0.6, -0.8, -2.2, -3.6].forEach((z, i) => {
+          for (let j = 0; j < 11; j++) {
+            const a = (j + 0.5) / 11 * Math.PI, h = hs(i * 37 + j * 3 + 100), rb = 1.35 + h * 0.5;
+            roca(Math.cos(a) * (RX + 1.25), cy + Math.sin(a) * (RY + 1.2), z, rb * 1.1, rb, 1.5, h, h * 5, a, ROCAS[(i + j * 2) % 5]);
+          }
+        });
+        // la coronación: la roca de arriba, con una capa de liquen seco (es la estepa: casi no hay musgo)
+        roca(0, 6.3, -1.4, 4.8, 1.5, 4.2, 0, 0.2, 0, '#706963', 0.3);
+        roca(1.2, 7.3, -2.3, 3.0, 0.6, 2.2, 0.05, 0.4, -0.04, '#8a8460', 0.14);
+        roca(-1.8, 7.0, -0.6, 2.2, 0.5, 1.6, 0.1, 0.9, 0.05, '#8a8460', 0.14);
+        // el umbral: lajas planas y bajas, a ras del suelo, por donde se entra caminando
+        for (let j = 0; j < 7; j++) {
+          const h = hs(j * 23 + 500);
+          roca(-3.9 + j * 1.3 + (h - 0.5) * 0.3, topeUmbral - 0.17, 0.8 + (hs(j * 11 + 700) - 0.5) * 0.5, 0.95 + h * 0.3, 0.2, 0.6 + h * 0.2, 0, h * 3, 0, ROCAS[(j * 2) % 5], 0.22);
+        }
+        // el borde del piso de arena, desparejo: piedras de distinto tamaño, para que no se vea un corte recto
+        for (let j = 0; j < 10; j++) {
+          const h = hs(j * 17 + 900);
+          roca(-3.8 + j * 0.85 + (h - 0.5) * 0.3, 0.17, 0.3 + (hs(j * 5 + 950) - 0.5) * 0.25, 0.4 + h * 0.4, 0.17 + h * 0.1, 0.35 + h * 0.2, 0, h * 5, 0, ROCAS[(j * 3) % 5], 0.26);
+        }
+        // el fondo: la roca que cierra detrás de la pared pintada
+        for (let j = 0; j < 7; j++) {
+          const a = (j + 0.5) / 7 * Math.PI, h = hs(j * 19 + 300);
+          roca(Math.cos(a) * 4.3, cy + Math.sin(a) * 3.8, -4.7 - h * 0.3, 1.5, 1.5, 1.3, h, h * 4, a, ROCAS[j % 5]);
+        }
+        // los dos bloques grandes de la boca, caídos al frente
+        roca(-5.3, 0.5, 1.9, 1.4, 1.0, 1.1, 0, 1, 0, '#6f6862');
+        roca(5.5, 0.5, 2.0, 1.5, 1.1, 1.2, 0, 2, 0, '#665f59');
+      }
       // piso de arena y algunas piedras sueltas
       c.agregar(new THREE.BoxGeometry(ANCHO + 1, 0.4, FONDO + 0.6), { color: '#9a8d78', tipo: 4, variar: 0.1, matriz: matriz([0, 0.14, -FONDO / 2]) });
       // 3.0.1: las piedras sueltas y el fogón viejo, apoyados sobre el piso (su cara de
@@ -2429,52 +2896,11 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       for (let i = 0; i < 9; i++) {
         c.agregar(new THREE.IcosahedronGeometry(0.2 + r() * 0.3, 0), { color: '#7d766c', tipo: 4, variar: 0.2, matriz: matriz([(r() - 0.5) * ANCHO, 0.36, -r() * FONDO], [r(), r() * 6, r()]) });
       }
-      // un fogón viejo, de los que dejaron (3.8.4: renegrido de cien años de fuegos: la ceniza, los tizones y las
-      // piedras del círculo quemadas; el hollín sube por la pared y mancha el techo del alero)
-      c.agregar(new THREE.CylinderGeometry(0.55, 0.6, 0.12, 10), { color: '#2a2622', tipo: 4, matriz: matriz([1.6, 0.36, -2.2]) });
+      // un fogón viejo, de los que dejaron
+      c.agregar(new THREE.CylinderGeometry(0.55, 0.6, 0.12, 10), { color: '#4a443c', tipo: 4, matriz: matriz([1.6, 0.36, -2.2]) });
       for (let i = 0; i < 7; i++) {
         const a2 = (i / 7) * Math.PI * 2;
-        c.agregar(new THREE.IcosahedronGeometry(0.18, 0), { color: i % 2 ? '#3b3632' : '#4d4741', tipo: 4, variar: 0.2, matriz: matriz([1.6 + Math.cos(a2) * 0.6, 0.4, -2.2 + Math.sin(a2) * 0.6], [r(), r() * 6, 0]) });
-      }
-      // (lo de acá en adelante no tira del sorteo `r()`: así el resto del valle queda donde estaba)
-      c.agregar(new THREE.CylinderGeometry(0.4, 0.46, 0.05, 10), { color: '#8e8a84', tipo: 4, variar: 0.12, matriz: matriz([1.6, 0.43, -2.2]) });   // la ceniza
-      for (const [dx, dz, giro, largo] of [[-0.12, 0.05, 0.4, 0.62], [0.1, -0.08, 1.9, 0.55], [0.02, 0.14, 2.9, 0.48]]) {
-        c.agregar(new THREE.CylinderGeometry(0.045, 0.055, largo, 6), { color: '#1c1916', tipo: 4, variar: 0.15, matriz: matriz([1.6 + dx, 0.48, -2.2 + dz], [Math.PI / 2, giro, 0.12]) });   // los tizones
-      }
-      // la pirca: piedras apiladas en seco, a la altura de la rodilla, al frente del alero, con el paso en el medio (por
-      // donde llega la escalera); cortaba el viento del fogón
-      const azarPirca = (k) => { const v = Math.sin(k * 12.9898 + 4.1) * 43758.5453; return v - Math.floor(v); };
-      const pirca = [];
-      for (const [desde, hasta] of [[-ANCHO / 2 + 0.15, -1.05], [0.95, ANCHO / 2 - 0.15]]) {
-        for (let fila = 0; fila < 3; fila++) {
-          let lx = desde + (fila % 2 ? 0.18 : 0);
-          for (let k = 0; lx < hasta - 0.1; k++) {
-            const q = azarPirca(fila * 97 + k * 13 + desde * 7);
-            const largoP = 0.34 + q * 0.18;
-            c.agregar(new THREE.IcosahedronGeometry(0.2, 1), { color: q < 0.33 ? '#6b645c' : q < 0.66 ? '#77706a' : '#5f5953', tipo: 4, variar: 0.18,
-              matriz: matriz([Math.min(hasta - 0.1, lx + largoP / 2), 0.44 + fila * 0.2, 0.02 + (q - 0.5) * 0.08], [q * 0.4, q * 3, 0.1 - q * 0.2], [largoP / 0.4, (0.22 - fila * 0.02) / 0.4, 0.42 / 0.4]) });
-            lx += largoP * 0.92;
-          }
-        }
-        pirca.push([desde, hasta]);
-      }
-      // la herradura vieja, clavada en la pared con dos clavos (las puntas para abajo)
-      c.agregar(new THREE.TorusGeometry(0.09, 0.017, 5, 14, Math.PI * 1.3), { color: '#4a2e20', tipo: 4, variar: 0.15, matriz: matriz([2.35, 1.62, -FONDO + 1.08], [0, 0, -Math.PI * 0.15]) });
-      for (const lado of [-1, 1]) c.agregar(new THREE.BoxGeometry(0.016, 0.016, 0.05), { color: '#2a2420', tipo: 4, matriz: matriz([2.35 + lado * 0.085, 1.6, -FONDO + 1.09]) });
-      // 3.0.1: la escalera de piedra que baja de la cornisa, de costado contra la roca
-      const pasosCueva = [];
-      {
-        let tope = 0.1;
-        for (let k = 0; k < 16; k++) {
-          const lx = -0.2 + k * 0.42, lz = 1.86;
-          const suelo = Math.min(sueloLocal(sitio, rot, lx, lz - 0.45), sueloLocal(sitio, rot, lx, lz + 0.45));
-          tope = Math.max(suelo + 0.08, tope - 0.24);
-          const alto = tope - suelo + 0.15;
-          c.agregar(new THREE.BoxGeometry(0.46, alto, 0.92), { color: k % 2 ? '#6f6862' : '#655f58', tipo: 4, variar: 0.14,
-            matriz: matriz([lx, tope - alto / 2, lz]) });
-          pasosCueva.push({ lx, lz, tope, alto });
-          if (tope - suelo < 0.1) break;
-        }
+        c.agregar(new THREE.IcosahedronGeometry(0.18, 0), { color: '#6f6862', tipo: 4, variar: 0.2, matriz: matriz([1.6 + Math.cos(a2) * 0.6, 0.4, -2.2 + Math.sin(a2) * 0.6], [r(), r() * 6, 0]) });
       }
       const grupoCueva = new THREE.Group();
       grupoCueva.position.set(sitio.x, sitio.y, sitio.z);
@@ -2483,106 +2909,89 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       malla.castShadow = true; malla.receiveShadow = true;
       grupoCueva.add(malla);
 
-      // 3.8.4: la pared tallada: los nombres y las fechas que dejaron los arrieros y los colonos que pasaban, a punta
-      // de cuchillo, unos sobre otros y de todas las épocas; las rayitas de las noches que alguien contó, la marca de
-      // los Sepúlveda y el hollín del fogón que sube por la roca. Todo por código. (El lienzo mide 8,4 × 3,1 m: x = 0
-      // es el borde izquierdo mirando la pared; y = 0, el de arriba.) Se dibuja otra vez cuando llega la letra a mano
-      // (Caveat, la de las notas): hasta entonces, con la del juego.
+      // la pared pintada: manos en negativo y guanacos, dibujados por código. Se pintaban soplando pigmento (con un hueso hueco)
+      // sobre la mano apoyada en la roca: queda la silueta de la mano en el color de la piedra, rodeada de pintura; casi todas
+      // son manos izquierdas, porque la derecha sostenía el tubo. El azar es propio y fijo: la pared es la misma siempre.
       const lienzo = document.createElement('canvas');
       lienzo.width = 1024; lienzo.height = 512;
       const x2 = lienzo.getContext('2d');
-      const LETRA = "'Caveat', 'Spectral', Georgia, serif";
-      // tallar: una canaleta oscura, con el borde de abajo claro (la luz de arriba entra en el corte), y el cuchillo que
-      // no va derecho; los más viejos, gastados
-      const tallar = (texto, x, y, tam, ang = 0, { viejo = 0 } = {}) => {
-        x2.save(); x2.translate(x, y); x2.rotate(ang);
-        x2.font = `700 ${tam}px ${LETRA}`;
-        x2.textAlign = 'center'; x2.textBaseline = 'middle';
-        const a = 1 - viejo * 0.5;
-        x2.fillStyle = `rgba(176,164,144,${0.55 * a})`;
-        x2.fillText(texto, 0.8, 1.8);
-        x2.fillStyle = `rgba(46,39,32,${0.78 * a})`;
-        x2.fillText(texto, 0, 0);
-        x2.strokeStyle = `rgba(46,39,32,${0.35 * a})`; x2.lineWidth = 0.8;
-        x2.strokeText(texto, (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 1.4);
+      let semilla = 20251008;
+      const az = () => { semilla = (semilla * 1664525 + 1013904223) % 4294967296; return semilla / 4294967296; };
+      const ROCA_PARED = '#8a7f70';
+      x2.fillStyle = ROCA_PARED; x2.fillRect(0, 0, 1024, 512);
+      // la roca: manchas parejas de color y algunas vetas
+      for (let i = 0; i < 2600; i++) {
+        const l = 92 + az() * 60 | 0;
+        x2.fillStyle = `rgba(${l + 14},${l + 6},${l - 6},0.35)`;
+        x2.fillRect(az() * 1024, az() * 512, 5 + az() * 14, 4 + az() * 10);
+      }
+      for (let i = 0; i < 10; i++) {
+        x2.strokeStyle = `rgba(60,52,44,${0.1 + az() * 0.14})`; x2.lineWidth = 1 + az() * 2.5;
+        const y0 = az() * 512;
+        x2.beginPath(); x2.moveTo(0, y0); x2.bezierCurveTo(300, y0 + (az() - 0.5) * 60, 700, y0 + (az() - 0.5) * 60, 1024, y0 + (az() - 0.5) * 40); x2.stroke();
+      }
+      // la silueta de una mano izquierda (la palma, la muñeca, cuatro dedos separados y el pulgar), en el color de relleno que esté puesto
+      const silueta = () => {
+        x2.beginPath(); x2.ellipse(0, 20, 18, 21, 0, 0, Math.PI * 2); x2.fill();
+        x2.fillRect(-8, 24, 16, 26);
+        [[-0.46, 40, 8.5], [-0.15, 50, 9], [0.15, 47, 9], [0.44, 36, 8]].forEach(([ang, largo, ancho]) => {
+          x2.save(); x2.translate(0, 12); x2.rotate(ang);
+          x2.beginPath(); x2.roundRect(-ancho / 2, -largo, ancho, largo, ancho / 2); x2.fill();
+          x2.restore();
+        });
+        x2.save(); x2.translate(-12, 24); x2.rotate(-1.12);
+        x2.beginPath(); x2.roundRect(-5, -32, 10, 32, 5); x2.fill();
         x2.restore();
       };
-      // una raya a cuchillo (para las rayitas y la marca)
-      const raya = (x0, y0, x1, y1, g = 3) => {
-        x2.lineCap = 'round';
-        x2.strokeStyle = 'rgba(176,164,144,0.5)'; x2.lineWidth = g;
-        x2.beginPath(); x2.moveTo(x0 + 0.8, y0 + 1.8); x2.lineTo(x1 + 0.8, y1 + 1.8); x2.stroke();
-        x2.strokeStyle = 'rgba(46,39,32,0.75)'; x2.lineWidth = g * 0.85;
-        x2.beginPath(); x2.moveTo(x0, y0); x2.lineTo(x1, y1); x2.stroke();
-      };
-      // las rayitas de las noches (de a cinco, la quinta cruzada)
-      const rayitas = (x, y, n, tam = 22) => {
-        for (let i = 0; i < n; i++) {
-          const g = Math.floor(i / 5), k = i % 5, px = x + g * tam * 1.9 + k * tam * 0.3;
-          if (k < 4) raya(px, y, px + (Math.random() - 0.5) * 3, y + tam);
-          else raya(px - tam * 1.15, y + tam * 0.75, px + tam * 0.1, y + tam * 0.2);
+      const mano = (cx, cy, esc, color, derecha) => {
+        x2.save(); x2.translate(cx, cy); x2.scale(derecha ? -esc : esc, esc); x2.rotate((az() - 0.5) * 0.5);
+        // el pigmento soplado: una niebla que abraza el contorno de la mano, más fuerte cerca de ella
+        for (let pasada = 0; pasada < 3; pasada++) {
+          x2.shadowColor = color.replace('ALFA', (0.5 - pasada * 0.08).toFixed(2)); x2.shadowBlur = 14 + pasada * 8;
+          x2.fillStyle = color.replace('ALFA', '0.3'); silueta();
         }
-      };
-      const dibujarPared = () => {
-        x2.fillStyle = '#8a7f70'; x2.fillRect(0, 0, 1024, 512);
-        // la roca: manchas parejas de color (sin los papelitos de colores de antes) y vetas
-        for (let i = 0; i < 2600; i++) {
-          const l = 92 + Math.random() * 60 | 0;
-          x2.fillStyle = `rgba(${l + 14},${l + 6},${l - 6},0.35)`;
-          x2.fillRect(Math.random() * 1024, Math.random() * 512, 5 + Math.random() * 14, 4 + Math.random() * 10);
+        x2.shadowBlur = 0; x2.shadowColor = 'transparent';
+        // y las gotitas que salpican alrededor
+        for (let i = 0; i < 360; i++) {
+          const a2 = az() * Math.PI * 2, rr = 26 + Math.pow(az(), 1.6) * 40;
+          x2.fillStyle = color.replace('ALFA', (0.12 + az() * 0.3).toFixed(2));
+          x2.beginPath(); x2.arc(Math.cos(a2) * rr * 0.85, 12 + Math.sin(a2) * rr * 1.2, 1 + az() * 3.2, 0, Math.PI * 2); x2.fill();
         }
-        for (let i = 0; i < 14; i++) {
-          x2.strokeStyle = `rgba(60,52,44,${0.12 + Math.random() * 0.15})`; x2.lineWidth = 1 + Math.random() * 2.5;
-          const y0 = Math.random() * 512;
-          x2.beginPath(); x2.moveTo(0, y0); x2.bezierCurveTo(300, y0 + (Math.random() - 0.5) * 60, 700, y0 + (Math.random() - 0.5) * 60, 1024, y0 + (Math.random() - 0.5) * 40); x2.stroke();
-        }
-        // los nombres (los más viejos, más gastados); el de los Sepúlveda queda a la altura de los ojos, a 0,85 m a la
-        // izquierda del centro (x ≈ 408), que es donde lo busca la historia de Martín (alero-arriero.js)
-        tallar('J. Miranda 1911', 150, 200, 40, -0.05, { viejo: 0.5 });
-        tallar('Los Vera, tropilla 1938', 250, 118, 30, 0.02, { viejo: 0.2 });
-        tallar('Nevó tres días · 1923', 160, 335, 32, 0.05, { viejo: 0.35 });
-        tallar('Los Sepúlveda pasaron acá', 410, 236, 40, 0.03);
-        tallar('Fermín Sepúlveda 1927', 400, 292, 38, -0.025);
-        // la marca de los Sepúlveda: una S con una raya arriba (la que llevaban sus vacas en el anca)
-        tallar('S', 612, 300, 50, 0.04);
-        raya(592, 270, 634, 268, 4);
-        tallar('H. Quilodrán 1908', 640, 150, 32, 0.06, { viejo: 0.65 });
-        tallar('A Chile con 400 vacunos · 1934', 690, 212, 28, -0.04, { viejo: 0.15 });
-        tallar('P. Huenchul 1919', 590, 372, 32, 0.01, { viejo: 0.45 });
-        tallar('R. Paillalef', 890, 120, 34, 0.02, { viejo: 0.3 });
-        tallar('Elba y Juan 1952', 910, 392, 28, -0.06);
-        tallar('M. G. 1945', 955, 300, 26, 0.1, { viejo: 0.1 });
-        tallar('Aquí no llueve', 310, 420, 28, -0.03, { viejo: 0.25 });
-        rayitas(40, 400, 17);
-        rayitas(470, 100, 9, 18);
-        rayitas(820, 450, 12, 18);
-        // el hollín del fogón (el fogón está a 1,6 m a la derecha del centro: x ≈ 707), por encima de todo
-        const hollin = x2.createRadialGradient(707, 520, 20, 707, 470, 300);
-        hollin.addColorStop(0, 'rgba(22,18,15,0.8)'); hollin.addColorStop(0.55, 'rgba(30,25,21,0.38)'); hollin.addColorStop(1, 'rgba(30,25,21,0)');
-        x2.fillStyle = hollin; x2.fillRect(380, 150, 660, 362);
+        // la mano queda en el color de la roca: es el negativo
+        x2.fillStyle = ROCA_PARED; silueta();
+        x2.restore();
       };
-      dibujarPared();
+      const guanaco = (cx, cy, esc) => {
+        x2.save(); x2.translate(cx, cy); x2.scale(esc, esc);
+        x2.fillStyle = 'rgba(70,40,34,0.85)';
+        x2.beginPath(); x2.ellipse(0, 0, 34, 17, 0, 0, Math.PI * 2); x2.fill();
+        x2.fillRect(24, -40, 8, 30);                       // cuello
+        x2.beginPath(); x2.ellipse(30, -44, 11, 7, 0.4, 0, Math.PI * 2); x2.fill();   // cabeza
+        x2.fillRect(28, -56, 3, 12); x2.fillRect(34, -55, 3, 11);                      // orejas
+        for (const px of [-22, -12, 14, 24]) x2.fillRect(px, 10, 6, 34);               // patas
+        x2.restore();
+      };
+      const colores = ['rgba(150,58,42,ALFA)', 'rgba(56,44,40,ALFA)', 'rgba(188,142,66,ALFA)', 'rgba(232,224,204,ALFA)'];
+      // las manos: repartidas sin orden (a veces una encima de otra), en rojo, negro, ocre y blanco; casi todas izquierdas
+      {
+        const puestas = [];
+        for (let intento = 0, i = 0; i < 22 && intento < 400; intento++) {
+          const x = 70 + az() * 880, y = 80 + az() * 310;
+          if (puestas.some(([px, py]) => Math.hypot(px - x, py - y) < 88)) continue;
+          puestas.push([x, y]);
+          mano(x, y, 0.7 + az() * 0.55, colores[i % 4], az() < 0.15);
+          i++;
+        }
+      }
+      // los guanacos, abajo, y una hilera de puntos rojos
+      for (let i = 0; i < 5; i++) guanaco(180 + i * 190 + (az() - 0.5) * 40, 440 + (az() - 0.5) * 24, 0.7 + az() * 0.3);
+      for (let i = 0; i < 9; i++) { x2.fillStyle = 'rgba(150,58,42,0.8)'; x2.beginPath(); x2.arc(740 + i * 22, 36 + Math.sin(i) * 4, 5, 0, Math.PI * 2); x2.fill(); }
       const tex = new THREE.CanvasTexture(lienzo);
-      // 3.8.4: con su espacio de color (sin esto la roca salía lavada, casi blanca, con la luz del alero)
+      // con su espacio de color (sin esto la roca salía lavada, casi blanca, con la luz de la cueva)
       tex.colorSpace = THREE.SRGBColorSpace;
-      try { document.fonts?.load?.("700 40px 'Caveat'")?.then?.(() => { dibujarPared(); tex.needsUpdate = true; }, () => {}); } catch { /* con la letra del juego */ }
       const pared = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO + 1.4, ALTO - 0.1), new THREE.MeshLambertMaterial({ map: tex }));
       pared.position.set(0, (ALTO - 0.1) / 2 + 0.16, -FONDO + 1.05);
       grupoCueva.add(pared);
-      // 3.8.4: el hollín del techo, sobre el fogón: una mancha que se esfuma (una tabla negra o unas piedras chatas
-      // quedaban duras; la roca del alero se abolla con la luz)
-      {
-        const lh = document.createElement('canvas'); lh.width = lh.height = 128;
-        const xh = lh.getContext('2d');
-        const gh = xh.createRadialGradient(64, 64, 4, 64, 64, 62);
-        gh.addColorStop(0, 'rgba(18,15,12,0.85)'); gh.addColorStop(0.5, 'rgba(22,18,15,0.5)'); gh.addColorStop(1, 'rgba(22,18,15,0)');
-        xh.fillStyle = gh; xh.fillRect(0, 0, 128, 128);
-        const th = new THREE.CanvasTexture(lh); th.colorSpace = THREE.SRGBColorSpace;
-        const hollinTecho = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.2), new THREE.MeshLambertMaterial({ map: th, transparent: true, depthWrite: false }));
-        hollinTecho.rotation.x = Math.PI / 2 + 0.06;
-        hollinTecho.position.set(1.6, ALTO - 0.23, -2.3);
-        grupoCueva.add(hollinTecho);
-      }
       const luz = new THREE.PointLight(0xffe0b8, 0, 16, 1.2);
       luz.position.set(0, 2.1, -FONDO * 0.35);
       grupoCueva.add(luz);
@@ -2594,7 +3003,6 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         alturaMin: sitio.y - 6.0, alturaMax: sitio.y + ALTO + 2.3 }); };
       // 3.0.1: las paredes frenan en la cara de la roca (antes, 20 cm antes) y hasta el
       // frente del muro; el fondo frena en la pared pintada (se caminaba detrás de ella)
-      // (3.8.4: la pared tallada, la misma)
       linea([-ANCHO / 2 - 0.2, 1.0], [-ANCHO / 2 - 0.2, -FONDO + 1.05 - 0.3]);
       linea([ANCHO / 2 + 0.2, 1.0], [ANCHO / 2 + 0.2, -FONDO + 1.05 - 0.3]);
       linea([-ANCHO / 2 - 0.2, -FONDO + 1.05 - 0.3], [ANCHO / 2 + 0.2, -FONDO + 1.05 - 0.3]);
@@ -2603,29 +3011,15 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const pisoCueva = w(0, -FONDO / 2);
       // (3.8.7: el piso de arena y la roca suenan a eso, no a tablón: `suelo`, ver jugador.js)
       col.agregarPlataforma({ x: pisoCueva.x, z: pisoCueva.z, ang: -rot, largo: ANCHO + 1, ancho: FONDO + 0.6, alto: sitio.y + 0.34, espesor: 0.40, suelo: 'tierra' });
-      // la cornisa (el umbral) se pisa y, de frente, es una pared de roca
+      // el umbral se pisa: a ras del suelo de adelante (3.8.8: sin escalera)
       const umbralPos = w(0, 0.8);
-      col.agregarPlataforma({ x: umbralPos.x, z: umbralPos.z, ang: -rot, largo: ANCHO + 1.4, ancho: 1.2, alto: sitio.y + 0.1, espesor: bajoUmbral, suelo: 'piedra' });
-      for (const p of pasosCueva) {
-        const q = w(p.lx, p.lz);
-        col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.46, ancho: 0.92, alto: sitio.y + p.tope, espesor: p.alto, suelo: 'piedra' });
-
-      }
-      // 3.8.4: la pirca frena (es baja, pero no se pasa por arriba: se entra por el paso del medio)
-      for (const [desde, hasta] of pirca) {
-        const A = w(desde, 0.02), B = w(hasta, 0.02);
-        col.agregar({ seg: true, ax: A.x, az: A.z, bx: B.x, bz: B.z, r: 0.24, alturaMin: sitio.y - 1, alturaMax: sitio.y + 0.95 });
-      }
+      col.agregarPlataforma({ x: umbralPos.x, z: umbralPos.z, ang: -rot, largo: ANCHO + 1.4, ancho: 1.2, alto: sitio.y + topeUmbral, espesor: bajoUmbral, suelo: 'piedra' });
       const frente = w(0, 1.2);
-      // 3.8.4: `nombre`: el alero del arriero; `pared`: delante de la pared tallada; `sepulveda`: delante del nombre
-      // del abuelo de Martín (la historia chica de alero.js); `fogon`, `herradura`: para mirarlos
-      const sepulveda = w(-0.85, -FONDO + 1.75), fogon = w(1.6, -2.2), herradura = w(2.35, -FONDO + 1.3);
-      cueva = { x: sitio.x, y: sitio.y, z: sitio.z, rot, nombre: 'El alero del arriero', luz, pared: w(0, -FONDO + 0.6), puerta: frente, radio: 9,
-        sepulveda: { x: sepulveda.x, z: sepulveda.z }, fogon: { x: fogon.x, z: fogon.z }, herradura: { x: herradura.x, z: herradura.z } };
+      cueva = { x: sitio.x, y: sitio.y, z: sitio.z, rot, nombre: 'Cueva de las Manos', luz, pared: w(0, -FONDO + 0.6), puerta: frente, radio: 9 };
       T.lugares.cueva = cueva;
       registrarHuella('cueva', cueva, 9, 5);
       const cc = w(-3.2, 3.6);
-      cartel('El alero del arriero', cc.x, cc.z, rot + Math.PI);
+      cartel('Cueva de las Manos', cc.x, cc.z, rot + Math.PI);
     }
   }
 

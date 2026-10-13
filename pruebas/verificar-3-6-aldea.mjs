@@ -15,6 +15,7 @@ import * as A from '../src/aldea.js';
 const P = { ORDEN_POBLADORES: ['carpintero', 'panadera', 'herrero', 'pescador', 'maestra'], puebloNuevo: () => ({ nombre: '', cartel: null, pobladores: [], llegando: null, ultimaLlegada: 0, llamado: false, usos: {}, afilado: 0, mandado: null, mandados: 0 }) };
 import { ENTRADAS } from '../src/cuaderno.js';
 import { CARTAS } from '../src/correo.js';
+import { economiaNueva, pesosDe } from '../src/economia.js';
 import { MELODIAS } from '../src/personal-musica.js';
 import { generarTerreno } from '../src/terreno.js';
 import { LIMITE } from '../src/config.js';
@@ -105,11 +106,12 @@ function distRiel(x, z) {
     panaderia: [7, 6], herreria: [7, 7], carpinteria: [8, 6], pescaderia: [6, 5], 'puesto-sanitario': [6, 6], estafeta: [5, 5], hilanderia: [7, 6], 'sala-miel': [6, 5], seccional: [6, 6], salon: [10, 8],
     // 3.7.0: los de la calle de la Loma (los mide verificar-3-7-0-aldea.mjs); 3.7.3: y el taller ferroviario (fijo, como la
     // estación: lo mide verificar-3-7-3-taller.mjs)
+    'banco-pueblo': [7.8, 6.4],   // 3.8.8: el banco del pueblo (lo mide verificar-3-8-8-banco.mjs)
     veterinaria: [8, 6], 'estudio-fotos': [6, 6], 'refugio-andinista': [7, 6], herboristeria: [6, 6], 'taller-arte': [7, 6], ceramica: [7, 6], varadero: [8, 6], observatorio: [6, 6], costureria: [6, 5],
   };
   eq([...A.IDS_EDIFICIOS].sort(), Object.keys(CONTRATO).sort(), 'los ids del contrato');
   for (const [id, t] of Object.entries(CONTRATO)) if (t) eq([E[id].ancho, E[id].fondo], t, `el tamaño de ${id}`);
-  eq(A.INICIALES_ALDEA.length, 11, 'once edificios al empezar (con el almacén y la casa de té del valle)');
+  eq(A.INICIALES_ALDEA.length, 12, 'doce edificios al empezar (con el almacén y la casa de té del valle, y 3.8.8: el banco)');
   eq(A.LOTES_ALDEA.length, A.ORDEN_POBLADORES_ALDEA.length, 'un lote por poblador');   // (3.7.0: veinte)
   for (const id of A.IDS_EDIFICIOS) {
     const e = E[id];
@@ -265,7 +267,7 @@ function distRiel(x, z) {
 
 // ============================================================ 4. la gente
 {
-  eq(A.ORDEN_VECINOS_ALDEA.length, 9, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa y Martín');   // (3.7.3: y Martín, el maquinista)
+  eq(A.ORDEN_VECINOS_ALDEA.length, 10, 'jefe, Nélida, abuela, la familia con dos chicos, la galesa, Martín y el gerente');   // (3.7.3: y Martín, el maquinista; 3.8.8: y Amadeo, el gerente del banco)
   ok(A.esVecinoAldea('ercilia') && A.esPersonaAldea('ercilia') && A.personaAldea('ercilia').casa === 'casa-ercilia' && !Object.hasOwn(A.VECINOS_ALDEA, 'ercilia'), 'Ercilia vive en la aldea, pero se define en gente.js');
   ok(A.ORDEN_PERSONAS_ALDEA.includes('ercilia') && !leer('src/aldea.js').includes('Pasá, pasá. Si traés algo'), 'sin duplicar su saludo ni sus historias');
   ok(A.VECINOS_ALDEA.nelida.oficio === 'ayudante del almacén' && A.VECINOS_ALDEA.nelida.casa === 'casa-nelida', 'Nélida, la ayudante');
@@ -276,7 +278,7 @@ function distRiel(x, z) {
   // (3.6, gente: pueblo.js ya no está; los cinco viven sólo en aldea.js, con sus diálogos de siempre)
   for (const k of P.ORDEN_POBLADORES) ok(A.POBLADORES_ALDEA[k].llegada.length === 2 && A.POBLADORES_ALDEA[k].resumen, `${k}: el mismo de la 3.1 (movido)`);
   eq(A.POBLADORES_ALDEA.carpintero.llegada[0], 'Buenas. Me llamo Tito Arrieta, soy carpintero. Vengo del valle de abajo, donde ya no queda madera que trabajar.', 'los diálogos, tal cual');
-  eq(A.POBLADORES_ALDEA.maestra.resumen, 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: cuatro de yerba por cada uno cumplido.');
+  eq(A.POBLADORES_ALDEA.maestra.resumen, 'Lee tu cuaderno, te dice qué te falta anotar y te da mandados: $400 por cada uno cumplido.');
   const lotes = new Set();
   for (const k of A.ORDEN_POBLADORES_ALDEA) {
     const p = A.POBLADORES_ALDEA[k];
@@ -412,7 +414,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 // ============================================================ 7. los servicios
 {
   const todos = () => {
-    const p = partida(30, { materiales: { tronco: 9, tabla: 5, lana: 5 }, cosas: { yerba: 5, hacha: 1 }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
+    const p = partida(30, { materiales: { tronco: 9, tabla: 5, lana: 5 }, cosas: { hacha: 1 }, economia: { ...economiaNueva(), pesos: 500 }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
     p.aldea.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 }));
     p.aldea.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
     return p;
@@ -420,88 +422,88 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const dia = 10;
   let q = todos();
   for (const k of A.ORDEN_POBLADORES_ALDEA) {
-    const s = A.servicioDe(k, q, dia);
+    const s = A.servicioBase(k, q, dia);
     ok(Array.isArray(s.partes) && s.partes.length && s.partes.every((x) => typeof x === 'string' && x), `${k}: dice algo`);
   }
-  eq(A.servicioDe('nadie', q, dia), { partes: [] });
+  eq(A.servicioBase('nadie', q, dia), { partes: [] });
   // sin local abierto, primero la obra
   const sin = partida(0); sin.aldea.pobladores = [{ clave: 'herrero', dia: 1 }]; sin.aldea.obras = { herreria: { etapa: 1, aportado: {}, lista: null, desde: 1 } };
-  ok(/Primero levantemos la herrería/.test(A.servicioDe('herrero', sin, dia).partes[0]) && !A.servicioDe('herrero', sin, dia).efectos, 'sin local, primero la obra');
-  eq(A.servicioDe('panadera', sin, dia), { partes: [] }, 'el que no vino no ofrece nada');
+  ok(/Primero levantemos la herrería/.test(A.servicioBase('herrero', sin, dia).partes[0]) && !A.servicioBase('herrero', sin, dia).efectos, 'sin local, primero la obra');
+  eq(A.servicioBase('panadera', sin, dia), { partes: [] }, 'el que no vino no ofrece nada');
   // los de la 3.1, como siempre
-  let s = A.servicioDe('carpintero', q, dia);
+  let s = A.servicioBase('carpintero', q, dia);
   A.aplicarEfectos(q, s.efectos, dia);
   ok(q.materiales.tronco === 3 && q.materiales.tabla === 5 + 30, 'el carpintero aserra seis troncos');
-  ok(!A.servicioDe('carpintero', q, dia).efectos, 'una vez por día');
-  ok(A.servicioDe('carpintero', q, dia + 1).efectos, 'y al otro día de nuevo');
-  s = A.servicioDe('panadera', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(q.cosas.yerba === 3 && q.entradas['pan-casero'].cantidad === A.SERVICIO.panes, 'la panadera');
-  s = A.servicioDe('herrero', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  ok(!A.servicioBase('carpintero', q, dia).efectos, 'una vez por día');
+  ok(A.servicioBase('carpintero', q, dia + 1).efectos, 'y al otro día de nuevo');
+  s = A.servicioBase('panadera', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  ok(pesosDe(q) === 500 - A.SERVICIO.pesosPorPan && q.entradas['pan-casero'].cantidad === A.SERVICIO.panes, 'la panadera vende los panes por pesos');
+  s = A.servicioBase('herrero', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   eq(q.aldea.afilado, A.SERVICIO.filo, 'el herrero afila');
   ok(A.golpesConFilo(3, q.aldea) === 2 && A.gastarFilo(q.aldea), 'un hachazo menos');
   for (let i = 1; i < A.SERVICIO.filo; i++) A.gastarFilo(q.aldea);
   ok(!A.gastarFilo(q.aldea) && A.golpesConFilo(3, q.aldea) === 3, 'el filo se gasta');
   const sinHacha = todos(); delete sinHacha.cosas.hacha; sinHacha.entradas.canto = { dia: 1, hora: 9, cantidad: 3 };
-  s = A.servicioDe('herrero', sinHacha, dia); A.aplicarEfectos(sinHacha, s.efectos, dia);
+  s = A.servicioBase('herrero', sinHacha, dia); A.aplicarEfectos(sinHacha, s.efectos, dia);
   ok(sinHacha.cosas.hacha === 1 && sinHacha.entradas.canto.cantidad === 0, 'forja el hacha con cantos rodados');
-  s = A.servicioDe('pescador', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  s = A.servicioBase('pescador', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   ok(q.entradas['trucha-fresca'].cantidad === 2 && q.materiales.tronco === 1, 'el pescador');
-  s = A.servicioDe('maestra', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  s = A.servicioBase('maestra', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   const m = q.aldea.mandado;
   ok(m && !Object.hasOwn(q.entradas, m.id), 'la maestra manda a buscar algo que falta');
-  ok(/Todavía no anotaste/.test(A.servicioDe('maestra', q, dia).partes[0]));
+  ok(/Todavía no anotaste/.test(A.servicioBase('maestra', q, dia).partes[0]));
   q.entradas[m.id] = { dia, hora: 12, cantidad: 0 };
-  const yerba = q.cosas.yerba;
-  s = A.servicioDe('maestra', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(q.cosas.yerba === yerba + A.SERVICIO.yerbaMandado && q.aldea.mandado === null && q.aldea.mandados === 1, 'mandado cumplido');
+  const plata0 = pesosDe(q);
+  s = A.servicioBase('maestra', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  ok(pesosDe(q) === plata0 + A.SERVICIO.pesosMandado && q.aldea.mandado === null && q.aldea.mandados === 1, 'mandado cumplido');
   // la enfermera: descansado y sin entumecido (lo aplica el mundo)
-  s = A.servicioDe('enfermera', q, dia);
+  s = A.servicioBase('enfermera', q, dia);
   const alJugador = A.aplicarEfectos(q, s.efectos, dia);
   eq(alJugador, [{ tipo: 'jugador', campo: 'descansado', valor: A.SERVICIO.descanso }, { tipo: 'jugador', campo: 'entumecido', valor: 0 }], 'la enfermera te deja descansado');
-  ok(!A.servicioDe('enfermera', q, dia).efectos, 'una vez por día');
+  ok(!A.servicioBase('enfermera', q, dia).efectos, 'una vez por día');
   // el telegrafista: la carta que llegó, la foto pedida o el pronóstico
   const carta = CARTAS[0];
   q.correo.llegadas[carta.id] = 3;
-  s = A.servicioDe('telegrafista', q, dia);
+  s = A.servicioBase('telegrafista', q, dia);
   ok(s.efectos[0].tipo === 'carta' && s.efectos[0].k === carta.id && s.partes.length === 1 + carta.texto.length, 'entrega la carta que llegó');
   A.aplicarEfectos(q, s.efectos, dia);
   ok(Object.hasOwn(q.entradas, carta.id), 'y la carta queda en el cuaderno');
   const pedido = CARTAS.find((c) => c.foto);
   q.correo.fotos[pedido.id] = { dia: 4, enviada: false };
-  s = A.servicioDe('telegrafista', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  s = A.servicioBase('telegrafista', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   ok(s.efectos[0].tipo === 'foto' && q.correo.fotos[pedido.id].enviada, 'despacha la foto pedida');
-  ok(/llueve el jueves/.test(A.servicioDe('telegrafista', q, dia, { pronostico: 'que llueve el jueves' }).partes[1]), 'y si no hay nada, el pronóstico');
+  ok(/llueve el jueves/.test(A.servicioBase('telegrafista', q, dia, { pronostico: 'que llueve el jueves' }).partes[1]), 'y si no hay nada, el pronóstico');
   // la tejedora: la manta si falta, si no un poncho con menos lana
-  s = A.servicioDe('tejedora', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  s = A.servicioBase('tejedora', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   ok(q.cosas.manta === 1 && q.materiales.lana === 5 - A.SERVICIO.lanaManta, 'la manta primero');
-  s = A.servicioDe('tejedora', q, dia + 1); A.aplicarEfectos(q, s.efectos, dia + 1);
+  s = A.servicioBase('tejedora', q, dia + 1); A.aplicarEfectos(q, s.efectos, dia + 1);
   ok(q.cosas.poncho === 1 && q.materiales.lana === 0, 'después ponchos, con dos vellones');
-  ok(/Traeme 2 vellones/.test(A.servicioDe('tejedora', q, dia + 2).partes[0]), 'sin lana, pide');
+  ok(/Traeme 2 vellones/.test(A.servicioBase('tejedora', q, dia + 2).partes[0]), 'sin lana, pide');
   // el apicultor: tablas por miel
   const tablas = q.materiales.tabla;
-  s = A.servicioDe('apicultor', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  s = A.servicioBase('apicultor', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   ok(q.materiales.tabla === tablas - 3 && q.entradas.miel.cantidad === 2, 'tres tablas, dos frascos de miel');
-  // la guardaparque: yerba por la fauna anotada, de a cuatro por día
+  // la guardaparque: pesos por la fauna anotada, de a cuatro por día
   const fauna = ENTRADAS.filter((e) => e.seccion === 'fauna').slice(0, 6);
   for (const e of fauna) q.entradas[e.id] = { dia: 1, hora: 9, cantidad: 0 };
-  const y0 = q.cosas.yerba, ya = A.avistajesDe(q.entradas);
+  const y0 = pesosDe(q), ya = A.avistajesDe(q.entradas);
   ok(ya >= 6, 'los avistajes se cuentan del cuaderno');
-  s = A.servicioDe('guardaparque', q, dia); A.aplicarEfectos(q, s.efectos, dia);
-  ok(q.cosas.yerba === y0 + 4 && q.aldea.fauna === 4, 'cuatro por día');
-  s = A.servicioDe('guardaparque', q, dia + 1); A.aplicarEfectos(q, s.efectos, dia + 1);
+  s = A.servicioBase('guardaparque', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  ok(pesosDe(q) === y0 + 4 * A.SERVICIO.pesosPorAvistaje && q.aldea.fauna === 4, 'cuatro por día');
+  s = A.servicioBase('guardaparque', q, dia + 1); A.aplicarEfectos(q, s.efectos, dia + 1);
   ok(q.aldea.fauna === Math.min(8, ya), 'al otro día, los que quedaban');
-  for (let d = dia + 2; d < dia + 80; d++) { s = A.servicioDe('guardaparque', q, d); if (s.efectos) A.aplicarEfectos(q, s.efectos, d); }
-  ok(q.aldea.fauna === ya && /buscar|Probaste|Nada nuevo/.test(A.servicioDe('guardaparque', q, dia + 90).partes.join(' ')), 'sin nada nuevo, te dice qué buscar');
+  for (let d = dia + 2; d < dia + 80; d++) { s = A.servicioBase('guardaparque', q, d); if (s.efectos) A.aplicarEfectos(q, s.efectos, d); }
+  ok(q.aldea.fauna === ya && /buscar|Probaste|Nada nuevo/.test(A.servicioBase('guardaparque', q, dia + 90).partes.join(' ')), 'sin nada nuevo, te dice qué buscar');
   // el músico: una melodía por semana
-  s = A.servicioDe('musico', q, dia); A.aplicarEfectos(q, s.efectos, dia);
+  s = A.servicioBase('musico', q, dia); A.aplicarEfectos(q, s.efectos, dia);
   const primera = MELODIAS.find((x) => !x.inicial);
   ok(q.personal.musica.halladas.includes(primera.id) && q.aldea.partitura === dia, 'te enseña una melodía');
-  ok(!A.servicioDe('musico', q, dia + 6).efectos && A.servicioDe('musico', q, dia + 7).efectos, 'una por semana');
-  for (let d = dia + 7; d < dia + 100; d += 7) { s = A.servicioDe('musico', q, d); if (s.efectos) A.aplicarEfectos(q, s.efectos, d); }
-  ok(q.personal.musica.halladas.length === MELODIAS.filter((x) => !x.inicial).length && /todas/.test(A.servicioDe('musico', q, dia + 200).partes[0]), 'hasta que las sabés todas');
+  ok(!A.servicioBase('musico', q, dia + 6).efectos && A.servicioBase('musico', q, dia + 7).efectos, 'una por semana');
+  for (let d = dia + 7; d < dia + 100; d += 7) { s = A.servicioBase('musico', q, d); if (s.efectos) A.aplicarEfectos(q, s.efectos, d); }
+  ok(q.personal.musica.halladas.length === MELODIAS.filter((x) => !x.inicial).length && /todas/.test(A.servicioBase('musico', q, dia + 200).partes[0]), 'hasta que las sabés todas');
   // nadie consume ni se va: pasan los días y siguen todos
   q = todos();
-  for (let d = dia; d < dia + 60; d++) for (const k of A.ORDEN_POBLADORES_ALDEA) { const x = A.servicioDe(k, q, d); if (x.efectos) A.aplicarEfectos(q, x.efectos, d); }
+  for (let d = dia; d < dia + 60; d++) for (const k of A.ORDEN_POBLADORES_ALDEA) { const x = A.servicioBase(k, q, d); if (x.efectos) A.aplicarEfectos(q, x.efectos, d); }
   ok(q.aldea.pobladores.length === 20 && Object.keys(q.aldea.locales).length === 20, 'la aldea sólo crece');   // (3.7.0: veinte)
   for (const k of Object.keys(A)) ok(!/hambre|irse|seVa|consum|necesidad|abandon/i.test(k), `sin economía de necesidades: ${k}`);
   ok(!/pobladores\.(splice|pop|shift)|pobladores = pobladores\.filter/.test(leer('src/aldea.js')), 'ningún poblador se saca de la lista');

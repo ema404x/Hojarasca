@@ -2,8 +2,11 @@
 // comparten el mástil del refugio y las banderitas de las torres de vigía del Desafío.
 // `texturaBandera()` la deja a mano para cualquier otro que la quiera usar (una obra,
 // un cartel, el kayak…): devuelve siempre la misma CanvasTexture, al día.
+// 3.8.9: el paño flamea con el viento y el clima como el resto (bandera-viento.js: el mismo material con el flameo en el vertex shader
+// y la orientación al viento); antes tenía una onda propia en la CPU, que no seguía la lluvia ni se orientaba.
 import * as THREE from 'three';
 import { dibujarBandera, sanearBandera } from './personal-bandera.js';
+import { crearPanoBandera, materialBandera, registrarBandera, quitarBandera } from './bandera-viento.js';
 
 const ANCHO = 192, ALTO = 128;
 let lienzo = null, textura = null, datosActuales = sanearBandera(null);
@@ -39,28 +42,10 @@ export function pintarBanderaEn(canvas, datos = datosActuales) {
   return true;
 }
 
-// El paño: un plano con columnas que ondean. `largo` × `alto` en metros.
-function crearPano(largo, alto, material) {
-  const g = new THREE.PlaneGeometry(largo, alto, 8, 3);
-  g.translate(largo / 2, 0, 0);
-  const base = Float32Array.from(g.attributes.position.array);
-  const m = new THREE.Mesh(g, material);
-  m.castShadow = true;
-  m.userData.base = base;
-  m.userData.largo = largo;
-  return m;
-}
-function ondear(pano, t, fuerza) {
-  const pos = pano.geometry.attributes.position;
-  const base = pano.userData.base, L = pano.userData.largo;
-  for (let i = 0; i < pos.count; i++) {
-    const x = base[i * 3], y = base[i * 3 + 1];
-    const k = x / L;   // pegado al mástil no se mueve
-    pos.array[i * 3 + 2] = Math.sin(t * 3.1 - x * 3.4 + y * 0.8) * 0.12 * k * fuerza;
-    pos.array[i * 3 + 1] = y - k * k * 0.06 * (1 - fuerza * 0.5);
-  }
-  pos.needsUpdate = true;
-  pano.geometry.computeVertexNormals();
+// El paño: el de bandera-viento.js (cuelga de un grupo en el mástil, con el origen en la esquina de arriba junto al palo, y se orienta
+// con el viento). `largo` × `alto` en metros.
+function crearPano(largo, alto, material, tex) {
+  return registrarBandera(crearPanoBandera(largo, alto, tex, { material, segmentos: [largo > 1 ? 24 : 16, 6] }));
 }
 
 // `T`: el terreno (lugares.refugio con x, z, y, rot). `col`: colisiones (el mástil ataja).
@@ -69,22 +54,20 @@ function ondear(pano, t, fuerza) {
 // paño que ondea se cuelga ahí y el quieto se esconde; si no, se arma un mástil propio.
 export function crearBanderaMundo(escena, T, col, { mastilAjeno = null } = {}) {
   const tex = asegurarTextura();
-  const matPano = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+  const matPano = materialBandera({ map: tex });   // (el mismo para todos tus paños: el refugio y las torres)
   const matMastil = new THREE.MeshLambertMaterial({ color: new THREE.Color('#6b5238') });
   const matRemate = new THREE.MeshLambertMaterial({ color: new THREE.Color('#b9a271') });
-  const panos = [];
 
   // el mástil del refugio: adelante a la izquierda de la puerta, lejos del fogón y del banco
   const ref = T?.lugares?.refugio;
   let mastil = null;
   if (mastilAjeno?.grupo?.isObject3D) {
-    const pano = crearPano(1.2, 0.8, matPano);
-    pano.position.set(0.03, -0.38, 0);
+    const pano = crearPano(1.2, 0.8, matPano, tex);
+    pano.position.set(0.03, 0.02, 0);
     mastilAjeno.grupo.add(pano);
     if (mastilAjeno.bandera) mastilAjeno.bandera.visible = false;
     mastilAjeno.ponerTextura?.(tex);
     mastil = mastilAjeno.grupo;
-    panos.push(pano);
   } else if (ref && Number.isFinite(ref.x)) {
     const rot = ref.rot || 0, lx = -4.8, lz = 4.3;
     const x = ref.x + lx * Math.cos(rot) + lz * Math.sin(rot);
@@ -99,12 +82,11 @@ export function crearBanderaMundo(escena, T, col, { mastilAjeno = null } = {}) {
     remate.position.y = 5.64;
     const piedras = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.22, 8), new THREE.MeshLambertMaterial({ color: new THREE.Color('#7d776b') }));
     piedras.position.y = 0.06; piedras.receiveShadow = true;
-    const pano = crearPano(1.5, 1.0, matPano);
-    pano.position.set(0.04, 4.95, 0);
+    const pano = crearPano(1.5, 1.0, matPano, tex);
+    pano.position.set(0.04, 5.45, 0);
     mastil.add(palo, remate, piedras, pano);
     mastil.rotation.y = rot;
     escena.add(mastil);
-    panos.push(pano);
     col?.agregar?.({ x, z, r: 0.12 });
   }
 
@@ -115,8 +97,8 @@ export function crearBanderaMundo(escena, T, col, { mastilAjeno = null } = {}) {
     const g = new THREE.Group();
     const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 1.5, 6), matMastil);
     palo.position.y = 0.75; palo.castShadow = true;
-    const pano = crearPano(0.75, 0.5, matPano);
-    pano.position.set(0.02, 1.25, 0);
+    const pano = crearPano(0.75, 0.5, matPano, tex);
+    pano.position.set(0.02, 1.5, 0);
     g.add(palo, pano);
     g.userData.pano = pano;
     return g;
@@ -128,7 +110,7 @@ export function crearBanderaMundo(escena, T, col, { mastilAjeno = null } = {}) {
       if (o?.plano?.id !== 'torre-vigia' || !o.grupo || !(o.datos?.etapas >= (o.plano.etapas?.length || 1))) continue;
       vivas.add(o);
       let g = torres.get(o);
-      if (!g) { g = banderita(); escena.add(g); torres.set(o, g); panos.push(g.userData.pano); }
+      if (!g) { g = banderita(); escena.add(g); torres.set(o, g); }
       // arriba del poste de una esquina de la torre
       o.grupo.updateWorldMatrix(true, false);
       _v.set(-1.05, 3.42, -1.05).applyMatrix4(o.grupo.matrixWorld);
@@ -141,31 +123,17 @@ export function crearBanderaMundo(escena, T, col, { mastilAjeno = null } = {}) {
       // 3.5.4: las geometrías de la banderita son suyas (los materiales, compartidos): antes quedaban
       // en la placa, dos por cada torre derribada o desarmada
       g.traverse((m) => { if (m.isMesh) m.geometry.dispose(); });
-      const i = panos.indexOf(g.userData.pano);
-      if (i >= 0) panos.splice(i, 1);
+      quitarBandera(g.userData.pano);
       torres.delete(o);
     }
   }
 
-  let t = 0, acumulado = 0;
-  // `desde`: la posición del jugador (sólo ondea lo que está cerca).
-  function actualizar(dt, desde, { obras = null, viento = 0.5 } = {}) {
-    t += dt;
+  // `desde`, `viento`: ya no hacen falta (el paño flamea en la placa de video con el clima y se orienta en bandera-viento.js);
+  // se siguen recibiendo para no cambiar la llamada de main.js.
+  function actualizar(dt, desde, { obras = null } = {}) {
     // cada dos segundos de reloj (el dt del juego se recorta y se congela en el modo foto)
     const ahora = typeof performance !== 'undefined' ? performance.now() : Date.now();
     if (ahora - ultimaRevision > 2000) { ultimaRevision = ahora; revisarTorres(obras); }
-    acumulado += dt;
-    if (acumulado < 1 / 24) return;   // el paño se mueve a 24 cuadros: no hace falta más
-    acumulado = 0;
-    const fuerza = 0.45 + Math.min(1, Math.max(0, viento)) * 0.55;
-    for (const p of panos) {
-      let o = p;
-      while (o && o.visible) o = o.parent;
-      if (o) continue;   // escondido (sin mástil, torre lejos): no se mueve
-      p.getWorldPosition(_v);
-      if (desde && (_v.x - desde.x) ** 2 + (_v.z - desde.z) ** 2 > 90 * 90) continue;
-      ondear(p, t + _v.x * 0.1, fuerza);
-    }
   }
 
   function aplicar(datos) {

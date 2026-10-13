@@ -1,7 +1,6 @@
 // 3.8.6 (relax): el pase de bugs del Relax base. Una comprobación por arreglo.
-// 1. El alero del arriero: lo del abuelo de Martín va en «Charlar» (caía en «Regalar y ayudar») y la amistad de la
-//    historia suma los 12 de AMISTAD_ALERO (sumarAmistadDe topea en 10). La partida real: humo-3-8-6-alero.cjs.
-//    Y lo de arriba de la rueda (el nombre en dos renglones) entra en la pantalla: se mide su alto de verdad.
+// 1. Lo de arriba de la rueda de la charla (el nombre en dos renglones) entra en la pantalla: se mide su alto de verdad.
+//    (3.8.8: la historia del abuelo de Martín en el alero del arriero se sacó: vuelve la Cueva de las Manos.)
 // 2. El kayak amarrado se muda con su embarcadero (quedaba flotando en el lugar viejo y amanecía en el muelle).
 // 3. Dormir: la página del diario pasada la medianoche es la del día de antes; con la hora de tu reloj no hay siesta;
 //    durante el fundido no se juega ni corre el reloj acelerado; «Dormí en la carpa» sólo si dormiste.
@@ -28,7 +27,6 @@ globalThis.localStorage = {
 const SR = await import('../src/social-rueda.js');
 const VS = await import('../src/vecindad-social.js');
 const V = await import('../src/vecindad.js');
-const AL = await import('../src/alero-arriero.js');
 const KA = await import('../src/kayak-amarre.js');
 const G = await import('../src/guardado.js');
 
@@ -42,24 +40,8 @@ const main = leer('src/main.js');
 const trozoFn = (inicio) => { const i = main.indexOf(inicio); ok(i >= 0, `falta ${inicio}`); const j = main.indexOf('\nfunction ', i + 10); return main.slice(i, j > i ? j : undefined); };
 const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G.progresoNuevo(), dia: 5, ...x }); return G.cargarProgreso(); };
 
-// ---------------------------------------------------------------- 1. el alero del arriero
+// ---------------------------------------------------------------- 1. la rueda de la charla
 {
-  for (const id of ['alero:pedir', 'alero:recordar', 'alero:contar']) eq(SR.categoriaDeOpcion(id), 'charla', `${id} en «Charlar»`);
-  eq(SR.iconoDeOpcion('alero:pedir', AL.TITULOS_ALERO.pedir), 'libro', 'con el ícono del libro');
-  // la rueda de verdad (vecindad-social: las de siempre, con la categoría que les pone menuParaRueda)
-  const p = { dia: 3, vecindad: V.vecindadNueva(), aleroArriero: AL.aleroNuevo() };
-  const menu = SR.menuParaRueda({ opciones: [{ id: 'como-andas', titulo: '¿Cómo andás?' }, ...AL.opcionesAlero(p, 'martin'), { id: 'chau', titulo: 'Chau' }] });
-  const grupos = VS.opcionesRueda('martin', p, { menu, dia: 3 });
-  const g = grupos.find((x) => x.opciones?.some((o) => o.id === 'alero:pedir'));
-  eq(g?.categoria, 'charla', 'en la rueda, lo del abuelo está en «Charlar»');
-  const rueda = SR.armarRueda({ tipo: 'charla', opciones: menu.map(({ id, titulo }) => ({ id, titulo })) }, null, VS.CATEGORIAS_RUEDA);
-  ok(rueda.categorias.find((c) => c.id === 'charla')?.opciones.some((o) => o.id === 'alero:pedir'), 'armarRueda lo pone en «Charlar»');
-  // la amistad: 12 de una vez (con sumarAmistadDe llegaban 10)
-  const e = { vecindad: V.vecindadNueva() };
-  const antes = V.puntosAmistad('martin', e);
-  V.cambiarAmistad(e, 'martin', AL.AMISTAD_ALERO, 5);
-  eq(V.puntosAmistad('martin', e) - antes, AL.AMISTAD_ALERO, 'cambiarAmistad suma los 12 del alero');
-  ok(/aleroJuego = crearAleroJuego\(\{[\s\S]{0,700}sumarAmistad: \(k, n\) => \{ const am = cambiarAmistad\(progreso, k, Math\.max\(0, n\)/.test(main), 'main.js suma la amistad del alero con cambiarAmistad');
   ok(/arriba = \(info \? 62 \+ Math\.max\(70, info\.offsetHeight/.test(trozoFn('function ubicarRueda(')), 'la rueda mide lo de arriba');
 }
 

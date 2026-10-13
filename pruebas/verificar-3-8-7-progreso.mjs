@@ -106,7 +106,7 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
 {
   const main = leer('src/main.js');
   ok(main.includes('libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra'), 'la tarjeta espera a que se cierre el panel');
-  ok(/const panelDelHudAbierto = \(\) => enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| mochilaAbierta .*cocinaJuego\?\.panelAbierto\(\).*tallerTren\?\.panelAbierto\(\).*fiestasJuego\?\.panelAbierto\(\)/.test(main), 'y el panel abierto incluye la cocina, el taller y las fiestas');
+  ok(/const panelDelHudAbierto = \(\) => enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| enElBanco\(\) \|\| mochilaAbierta .*cocinaJuego\?\.panelAbierto\(\).*tallerTren\?\.panelAbierto\(\).*fiestasJuego\?\.panelAbierto\(\)/.test(main), 'y el panel abierto incluye la cocina, el taller y las fiestas');
   ok(leer('src/modos-juego.js').includes('mundo?.marcarSiguiente(0);\n    mundo?.ponerFantasma(null);'), 'largar esconde el fantasma');
 }
 

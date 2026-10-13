@@ -77,8 +77,8 @@ export const CARTAS = [
       'Estimado lector: nos llegó el dato de que en su valle todavía se ven huemules. Estamos armando un número especial sobre el ciervo del sur, que está en peligro y que casi nadie ha visto.',
       'Si consigue una foto de un huemul con la luz baja de la mañana o de la tarde, mándela con el tren. Dejamos pagado el flete y un pequeño honorario en el almacén.',
     ],
-    foto: 'f-huemul', premio: { cuenta: { yerba: 16 } },
-    gracias: 'La revista dejó pagado en yerba: dos kilos. Tomá, que es tuyo.',
+    foto: 'f-huemul', premio: { pesos: 1600 },
+    gracias: 'La revista dejó pagado el honorario: $1.600. Tomá, que es tuyo.',
   },
   {
     id: 'c-almanaque', de: 'La administración del ramal', desde: 7,

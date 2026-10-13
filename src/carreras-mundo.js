@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { CIRCUITOS } from './carreras.js';
 import { cartelNombre } from './personal-mallas.js';
+import { crearPanoBandera, materialBandera, registrarBandera } from './bandera-viento.js';
 
 const COLOR_MEDIO = { pie: '#d8a23a', caballo: '#b8452f', kayak: '#e0662a', vela: '#3f7fb0' };
 const VISTA_POSTE = 150;   // metros: más lejos, el poste no se dibuja
@@ -18,8 +19,10 @@ export function crearCarrerasMundo(T, escena) {
   escena.add(grupo);
   const madera = new THREE.MeshLambertMaterial({ color: '#7a5a3a' });
   const geoPalo = new THREE.CylinderGeometry(0.07, 0.09, 3.2, 7);
-  const geoBanderin = new THREE.PlaneGeometry(0.9, 0.55);
   const materiales = {};
+  // 3.8.9: el banderín de cada poste de largada es un paño que flamea con el viento y el clima (bandera-viento.js)
+  const matsBanderin = {};
+  const matBanderin = (medio) => (matsBanderin[medio] ||= materialBandera({ color: COLOR_MEDIO[medio] || '#d8a23a' }));
   const matMedio = (medio) => (materiales[medio] ||= new THREE.MeshLambertMaterial({ color: COLOR_MEDIO[medio] || '#d8a23a', side: THREE.DoubleSide }));
   const sueloEn = (x, z, agua) => (agua ? 0 : T.altura(x, z));
 
@@ -33,8 +36,8 @@ export function crearCarrerasMundo(T, escena) {
     const palo = new THREE.Mesh(geoPalo, madera);
     palo.position.y = 1.6;
     g.add(palo);
-    const banderin = new THREE.Mesh(geoBanderin, matMedio(c.medio));
-    banderin.position.set(0.47, 2.85, 0);
+    const banderin = registrarBandera(crearPanoBandera(0.9, 0.55, null, { material: matBanderin(c.medio), segmentos: [14, 4] }));
+    banderin.position.set(0.02, 3.125, 0);
     g.add(banderin);
     // el cartel, mirando al centro del circuito
     const cartel = cartelNombre(c.nombre, 1.9, 0.36, { ancho: 512, alto: 96, fondo: '#3b2a1c', tinta: '#f2ead8' });

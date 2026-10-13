@@ -231,6 +231,7 @@ const ROPA = {
   'aldea-nene': { piel: '#c99a72', botas: 'goma', pantalon: '#3a4250' },
   'aldea-nena': { piel: '#c49470', pollera: true, trenza: true, botas: 'goma' },
   'aldea-martin': { piel: '#c49470', botas: 'altas', delantal: '#3b4a5e', panuelo: '#a83a2a', pantalon: '#3b4a5e' },   // 3.7.3: el mameluco azul de maquinista
+  'aldea-gerente': { piel: '#c8a080', botas: 'altas', chaleco: true, panuelo: '#6b2f2a', pantalon: '#2c2f36' },   // 3.8.8: el gerente del banco, de traje oscuro con chaleco
   // 3.7.5: los invitados de otras paradas que llegan en el tren de fiesta (ver INVITADOS en fiestas.js)
   'inv-domador': { piel: '#b58a64', bombacha: true, chaleco: true, panuelo: '#c8b070', botas: 'altas', pantalon: '#4a3a2a' },
   'inv-cantora': { piel: '#c49470', pollera: true, trenza: true, abierta: true },

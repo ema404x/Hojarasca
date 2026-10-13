@@ -3,6 +3,7 @@
 // los módulos ES locales de src/ en un único script autocontenido.
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
@@ -109,8 +110,13 @@ const js = `${three}\n\n${juego}`.replace(/<\/script/gi, '<\\/script');
 html = html
   .replace('/*FUENTES*/', () => fuentes)
   .replace('/*MENUS*/', () => menus)
-  .replace('/*JUEGO*/', () => js)
-  .replace('<!--HOJARASCA_BUILD-->', `<!-- HOJARASCA BUILD ${pkg.version} -->`);
+  .replace('/*JUEGO*/', () => js);
+// 3.8.9: la huella del build: ocho letras del contenido completo del juego (sin fecha: el mismo código da la misma huella). La versión
+// no alcanzaba para saber si lo que se instaló era el build de ahora o uno anterior de la misma versión: se ve en la portada y en el LEEME.
+const huella = crypto.createHash('sha256').update(html).digest('hex').slice(0, 8);
+html = html
+  .replace('<!--HOJARASCA_BUILD-->', `<!-- HOJARASCA BUILD ${pkg.version} · huella ${huella} -->`)
+  .split('__HOJARASCA_HUELLA__').join(huella);
 
 if (html.includes('/*JUEGO*/') || html.includes('/*FUENTES*/') || html.includes('/*MENUS*/')) throw new Error('La plantilla quedó sin completar');
 if (/https?:\/\/unpkg\.com|https?:\/\/cdn\./i.test(html)) throw new Error('El build final todavía depende de un CDN');
@@ -119,4 +125,4 @@ if (html.length < 700_000) throw new Error(`index.html sospechosamente pequeño 
 const tmp = path.join(raiz, 'index.html.tmp');
 fs.writeFileSync(tmp, html);
 fs.renameSync(tmp, path.join(raiz, 'index.html'));
-console.log(`index.html offline listo · Hojarasca ${pkg.version} · ${orden.length} módulos · ${(html.length / 1024 / 1024).toFixed(2)} MB`);
+console.log(`index.html offline listo · Hojarasca ${pkg.version} (huella ${huella}) · ${orden.length} módulos · ${(html.length / 1024 / 1024).toFixed(2)} MB`);

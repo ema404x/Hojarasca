@@ -1,8 +1,10 @@
-# Hojarasca — cómo seguir en la otra PC (traspaso del 11-10-2026, 3.8.7 cerrada)
+# Hojarasca — cómo seguir en la otra PC (traspaso del 12-10-2026, 3.8.9)
 
 > **ATENCIÓN (08-10, notebook):** la 3.8.0 La noche de los duendes y su revisión de bugs 3.8.1 (`CAMBIOS_3_8_1.md`, etiqueta v3.8.1) quedaron cerradas en la notebook. Las 6 partidas pendientes de la 3.7.5 ya se repitieron: 4 eran de carga y las 2 reales (caos y la trochita) están arregladas. Decisiones del usuario en `PLAN_3_8.md`; lo que quedó para después, al final de `CAMBIOS_3_8_0.md`. **Para el usuario:** jugar una noche grande, la subida y el Rey en su PC (4600G) y escuchar los sonidos nuevos. Sigue el resto de `PLAN_3_8.md` (preguntarle antes de arrancar).
 
 > **Lo que sigue (08-10, charlado con el usuario):**
+> 00000. **3.8.9 (12-10), la auditoría de la entrega** (`CAMBIOS_3_8_9.md`): el usuario jugó el zip de la 3.8.8 y no veía el banco; la auditoría independiente dijo que el paquete estaba íntegro pero que **el juego no llevaba al banco** (nada lo nombraba). Ahora hay una pista al llegar a la aldea, un rótulo en el mapa, entradas en la guía (F1) y un cartel con el horario junto a la puerta; el gerente atiende de verdad de 8:30 a 12:30 y de 14:30 a 18 (el sábado con baile, hasta las 16); las banderas que faltaban (tu bandera, la locomotora, los postes de largada) flamean con el viento; la versión sube y el build lleva una **huella** del contenido, visible en la portada (para distinguir un paquete nuevo de uno viejo de la misma versión); la segunda copia del juego avisa en vez de cerrarse sola. Los guiones de Playwright pasaron a `herramientas/` (`partida-real-economia.cjs`, `recorrido-revision.cjs`): no son de la suite de Electron. **Pendiente: el inglés de la economía** (el usuario dijo que se saltee por ahora; ver «Lo que la auditoría propuso y no se hizo»).
+> 0000. **3.8.8 (12-10), la economía del pueblo** (`CAMBIOS_3_8_8.md`, `PLAN_ECONOMIA.md`): pesos y billetera (la yerba deja de ser moneda), mercado con oferta y demanda, jornales, pedidos con reputación, la aldea viva (cajas de los locales y eventos), el **Banco del Pueblo** con su gerente **Amadeo Lezcano** (préstamos al 2 % por día, abastecimiento, venta de las casas por etapas, alquiler y puesto propio) y el precio de las casas ($36.000, $66.000 y $110.000). Sólo en el Relax; el estado vive en `progreso.economia` y `progreso.negocios` (`src/negocios.js`). Probada en Node y en una partida real automática (`herramientas/partida-real-economia.cjs`, 27 pasos); **falta ver las casas terminadas, el alquiler y el puesto propio**. Antes, el mismo día: **la escalera de casas** la escalera de casas (`CAMBIOS_3_8_8.md`): cabaña de tablas y piedra, casa con galería y casona de dos cuartos, en `src/planos-casas.js`. Se probó en Node y con una vista previa propia, **no en el juego**: falta recorrerlas en una partida real (cómo se ven con el terreno y la luz, el confort adentro) y ajustar los precios. También trae la cama de tablas como pieza suelta (el techo a dos aguas modular ya existía). Y el aviso del próximo vecino, el reloj de la plaza, el almanaque de la biblioteca y el reloj y el almanaque propios del almacén (`src/reloj-almanaque.js`; sin verlos en el juego todavía). **La Cueva de las Manos volvió** (`CAMBIOS_3_8_8.md`): gruta de roca en la estepa (x≈307), sin escalera, con las manos en negativo; se sacó la historia del abuelo de Martín. Falta verla en el juego. **Mobiliario: 31 piezas nuevas** en `src/planos-muebles.js` (17) y `src/planos-muebles-2.js` (14: cama doble, litera, tocador, bañera con biombo, mecedora, vitrina, mesa ratona, hogar con repisa, banco de carpintero, tonel y barricas, colgador de hierbas, guirnalda, telar y rueca, hamaca); sin verlas en el juego todavía.
 > 000. **3.8.7 cerrada (11-10, etiqueta v3.8.7):** segundo pase de bugs (`CAMBIOS_3_8_7.md`) más las decisiones del usuario (fogatas, siesta, invitaciones, chinchón, viento). `npm run verify` ahora corre por pasos con `herramientas/verificar-todo.cjs` (los pasos están en `scripts["verify:pasos"]`; `sumar-prueba` sigue igual). Pendiente: construir con mando (para Steam), compilaciones al primer uso del cielo y las ventanas, y la lista del final de CAMBIOS_3_8_7.md. **Para ahorrar uso: pasadas con 2 o 3 equipos y modelo liviano; sesión nueva por versión.**
 > 00. **3.8.6 cerrada (10-10, etiqueta v3.8.6):** pase de bugs completo (`CAMBIOS_3_8_6.md`), ~130 arreglos. Las decisiones se tomaron con lo recomendado (el usuario dijo «arreglá todo») y quedan listadas para revisar, con lo pendiente de diseño (chinchón, invitaciones de vecinos, siesta, fogatas, construir con mando, soak de memoria del Desafío).
 > 0. **3.8.5 cerrada (10-10, etiqueta v3.8.5):** risas de duende y piano de misterio sintetizados (`CAMBIOS_3_8_5.md`). **Regla:** no meter audios grabados de terceros (licencias); sólo de referencia. **Lo que sigue: un pase de bugs de todo el juego (pedido del usuario el 10-10).**
@@ -21,6 +23,13 @@ decile: **"leé SEGUIR-EN-OTRA-PC.md y seguimos"**.
 **Desde el 01-10-2026 el código vive en GitHub: `https://github.com/ema404x/Hojarasca`
 (privado).** Ya no hacen falta zips para el código.
 
+0. **El trabajo de la 3.8.x está en la rama `claude/hojarasca-improvements-57k11e` (el PR #1 sigue abierto, sin juntar con `main`).**
+   Después de clonar (o si ya lo tenías): `git fetch origin` y `git checkout claude/hojarasca-improvements-57k11e` y `git pull`;
+   si te quedás en `main` falta todo lo de la 3.8.x (economía, banco, auditoría). Al terminar: `npm install`, `node armar.mjs`
+   (`index.html` no se sube a git: hay que armarlo) y `npm run verify` (202 pasos, tiene que dar «202 pasos OK»).
+   **Para el zip completo de la 3.8.9** (como antes, en Descargas), desde Git Bash en la carpeta del proyecto:
+   `bash herramientas/empaquetar.sh . 3.8.9 herramientas/LEEME-3.8.9.txt`. La portada del juego armado tiene que decir
+   «Hojarasca · 3.8.9 · build c3d68ef5» (la huella sale del código: si dice otra, el código no es el de la rama).
 1. Instalá Git si no está: `winget install --id Git.Git -e --source winget`.
 2. Clonalo en `Documents\Hojarasca`:
    `git clone https://github.com/ema404x/Hojarasca.git hojarasca`
@@ -119,7 +128,7 @@ texturas, ni modelos, ni audio).
   cómo va quedando y el **porcentaje de avance honesto** (pregunta "¿por dónde vas?" seguido).
 - Ideas **rechazadas** (no proponer): vida tranquila/conservas/huellas, trineo, globo,
   trincheras, zorra blindada, arenas, modo pueblo, represa, puerto, sabotaje, expediciones,
-  economía del pueblo, invasores que roban.
+  invasores que roban. (La «economía del pueblo» estuvo aquí, pero el usuario la pidió después y se hizo en la 3.8.8.)
 
 ---
 
@@ -152,8 +161,8 @@ cuadro por segundo**. Lo que depende del tiempo de juego necesita esperas o rein
 
 ### 4.1 Construir y probar
 - `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba.
-- `npm run verify` es el gate (150 pasos en la 3.7.0, sólo Node).
-- Partidas reales: `pruebas/humo-*.cjs` (57). **Comparten el perfil de Electron: nunca dos a
+- `npm run verify` es el gate (202 pasos en la 3.8.9, sólo Node).
+- Partidas reales: `pruebas/humo-*.cjs` (80, con Electron; los guiones de Playwright viven en `herramientas/`). **Comparten el perfil de Electron: nunca dos a
   la vez.** Para capturas propias usar perfil propio (`app.setPath('userData', …)`).
 - **Nunca** matar electron por nombre si hay otras pruebas o capturas corriendo; matar por PID
   o por línea de comandos.

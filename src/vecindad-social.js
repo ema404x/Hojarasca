@@ -81,7 +81,7 @@ function renglonDe(lista, datos, semilla) {
 }
 const textoSano = (s, tope = 30) => (typeof s === 'string' ? s.replace(/[\u0000-\u001f<>{}]/g, '').trim().slice(0, tope) : '');
 const esChico = (k) => CHICOS_ALDEA.includes(k);
-const MAYORES = new Set(['abuela', 'ramon', 'martin', 'ercilia', 'modista', 'tejedora']);
+const MAYORES = new Set(['abuela', 'ramon', 'martin', 'ercilia', 'modista', 'tejedora', 'gerente']);
 
 // ---------------------------------------------------------------- las animaciones y los íconos
 // Todos los ids de animación que esto puede pedir (el equipo de lo visual tiene que tener cada uno).
@@ -170,7 +170,6 @@ const DEL_MENU = [
   [/^amor:chicos$/, 'charla', 'charla'],   // 3.8.6: hablar de tus hijos (con la ex también), en la charla
   [/^amor/, 'romantica', 'corazon'], [/^cocina/, 'ayuda', 'olla'], [/^granja/, 'ayuda', 'granja'],
   [/^rincones:/, 'hacer', 'herramienta'],   // 3.8.4: su sección propia («Hacer juntos»), no entre los regalos
-  [/^alero:/, 'charla', 'libro'],   // 3.8.6: lo del abuelo de Martín (alero-arriero.js), en «Charlar»
 ];
 const TITULOS_MENU = { 'como-andas': '¿Cómo andás?', novedades: 'Novedades', historia: 'Tu historia', regalar: 'Regalar…', invitar: 'Invitar a tomar algo…', ayudar: 'Dar una mano…', amor: 'Lo nuestro…' };
 

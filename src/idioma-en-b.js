@@ -285,8 +285,8 @@ export const EN_B = {
     "Up among the trees: a wooden tower with a stairway.",
   'Muy escaso. Buscalo en lo alto, al amanecer o al atardecer.':
     "Very scarce. Look for it high up, at dawn or at dusk.",
-  'Un alero de roca en una ladera empinada, lejos del sendero.':
-    "A rock overhang on a steep slope, far from the trail.",
+  'Una cueva de roca en la estepa, hacia el este, donde el bosque se abre y el pasto es seco: lejos del sendero.':
+    "A rock cave on the steppe, to the east, where the forest opens and the grass is dry: far from the trail.",
   'Matita dura de frutitos rosados, arriba entre las piedras.':
     "A tough little shrub with pink berries, up among the rocks.",
   'Arbusto espinoso de flores amarillas, en lugares abiertos.':
@@ -673,9 +673,8 @@ export const EN_B = {
     "Pehuén Lookout",
   'El ramal del valle':
     "The valley branch line",
-  // 3.8.4: la Cueva de las Manos pasó a ser el alero del arriero
-  'El alero del arriero':
-    "The Drover's Overhang",
+  'Cueva de las Manos':
+    "Cueva de las Manos",
   'Árboles y plantas':
     "Trees and plants",
   'Zorzal patagónico':

@@ -18,10 +18,10 @@ for (const c of Object.values(C.CONCURSOS)) {
   ok(Object.keys(c.compiten).length >= 4 && Object.keys(c.compiten).every((k) => esVecinoAldea(k) || esPobladorAldea(k)), `${c.id}: compiten vecinos de verdad`);
   ok(c.jurado.length >= 5 && c.jurado.every((k) => (esVecinoAldea(k) || esPobladorAldea(k)) && !Object.hasOwn(c.compiten, k)), `${c.id}: el jurado son vecinos que no compiten`);
   ok([1, 2, 3].every((p) => C.regaloDe(c.id, p)?.texto) && C.regaloDe(c.id, 4) === null, `${c.id}: un regalo para cada uno de los tres primeros`);
-  // el regalo es de lo que ya existe (sin economía nueva): cosas que se cuentan y materiales
+  // el regalo es de lo que ya existe: cosas que se cuentan, materiales y (3.8.8) pesos
   for (const p of [1, 2, 3]) {
     const r = C.regaloDe(c.id, p);
-    ok(Object.keys(r).every((k) => ['cuenta', 'materiales', 'texto'].includes(k)) && Object.keys(r.cuenta || {}).every((k) => ['azucar', 'cacao', 'sal', 'yerba', 'harina'].includes(k)) && Object.keys(r.materiales || {}).every((k) => ['lana', 'tabla', 'tronco', 'piedra'].includes(k)), `${c.id}: el regalo ${p} es útil y de lo que hay`);
+    ok(Object.keys(r).every((k) => ['cuenta', 'materiales', 'pesos', 'texto'].includes(k)) && (r.pesos === undefined || (Number.isInteger(r.pesos) && r.pesos > 0)) && Object.keys(r.cuenta || {}).every((k) => ['azucar', 'cacao', 'sal', 'yerba', 'harina'].includes(k)) && Object.keys(r.materiales || {}).every((k) => ['lana', 'tabla', 'tronco', 'piedra'].includes(k)), `${c.id}: el regalo ${p} es útil y de lo que hay`);
   }
 }
 ok(Object.keys(C.DULCES).every((k) => Object.hasOwn(COMIDAS, k) || Object.hasOwn(ALACENA_EXTRA, k)), 'los dulces son los de la alacena (la cocina de la 3.7.2)');

@@ -9,6 +9,8 @@ import { U, materialTerreno } from './materiales.js';
 import { configurarTexturas, prepararTexturas, esperarTexturas, origenTexturas } from './texturas.js';
 import { cargarTerreno } from './terreno.js';
 import { crearAgua, crearCascada } from './agua.js';
+import { actualizarBanderas } from './bandera-viento.js';
+import { cobrar as cobrarPesos, pesosDe, hayEconomia, formatoPesos, resumenBilletera, textoDiferencia } from './economia.js';
 import { crearCielo, crearConstelaciones, crearFugaces } from './cielo.js';
 import { faseLunar, nombreFase, iluminada, luzDeLuna, nocheDeEstrellas, fugacesPorMinuto, fugaz, lunaAnotable, FUGACES_PARA_ANOTAR } from './cielo-noche.js';
 import { crearPostproceso } from './postproceso.js';
@@ -142,6 +144,10 @@ import { RASTROS, elegirRastro, trazarRastro, arranque, huellaCerca, haciaDondeV
 import { crearRastrosMalla } from './rastros-malla.js';
 import { horasHasta, frente, frasePronostico } from './pronostico.js';
 import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
+// 3.8.8: el reloj y el almanaque propios
+import { textoHud as textoRelojHud, partesReloj, partesAlmanaque } from './reloj-almanaque.js';
+// 3.8.8: el reloj y el almanaque de pared (lo que se usa con E)
+import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
@@ -163,8 +169,9 @@ import { crearGranjaJuego } from './granja-juego.js';
 // 3.7.5 (rincones): los duendes, el potrero, las huertas, los títeres, el fuerte, el camino con el sulky, tu casa y el taller
 import { crearRinconesMundo } from './rincones-mundo.js';
 import { crearRinconesJuego } from './rincones-juego.js';
-// 3.8.4: el alero del arriero: Martín te pide buscar el nombre de su abuelo tallado en la pared
-import { crearAleroJuego } from './alero-arriero.js';
+import { crearBancoMundo } from './banco-mundo.js';
+import { puedePagarEscritura, pagarEscritura, puedePagarEtapa, pagarEtapa, registrarCasa } from './propiedad.js';
+import { GERENTE } from './prestamos.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
 import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo, nocheDeLomo, alturaLomo, dondeAsoma } from './cuentos.js';
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
@@ -1444,6 +1451,69 @@ function mostrarAviso(t) {
 }
 // 2.6.1: textos del HUD que se escriben cada cuadro: sólo se toca el DOM si cambiaron
 function ponerTexto(el, texto) { if (el && el.textContent !== texto) el.textContent = texto; }
+// 3.8.8: la línea del reloj de bolsillo y del almanaque de pared (si los tenés), cada medio segundo
+let acumuladoRelojHud = 99;
+function actualizarRelojHud(dt) {
+  acumuladoRelojHud += dt;
+  if (acumuladoRelojHud < 0.5) return;
+  acumuladoRelojHud = 0;
+  const el = $('reloj-hud');
+  if (!el) return;
+  const t = esDesafio || modo !== 'jugando' ? '' : textoRelojHud(progreso);
+  ponerTexto(el, t);
+  el.classList.toggle('oculto', !t);
+}
+
+// 3.8.8: la billetera: el saldo en una línea del HUD (y lo que acaba de entrar o salir, unos segundos) y el panel con los movimientos
+let acumuladoBilleteraHud = 99, saldoVisto = null, cambioHasta = 0, cambioTexto = '';
+function actualizarBilleteraHud(dt) {
+  acumuladoBilleteraHud += dt;
+  if (acumuladoBilleteraHud < 0.25) return;
+  acumuladoBilleteraHud = 0;
+  const el = $('billetera-hud');
+  if (!el) return;
+  const hay = !esDesafio && modo === 'jugando' && hayEconomia(progreso);
+  const saldo = hay ? pesosDe(progreso) : 0;
+  if (hay && saldoVisto !== null && saldo !== saldoVisto) { cambioTexto = textoDiferencia(saldoVisto, saldo); cambioHasta = performance.now() + 3500; }
+  saldoVisto = hay ? saldo : null;
+  const mostrar = hay && (saldo > 0 || performance.now() < cambioHasta);
+  el.classList.toggle('oculto', !mostrar);
+  if (!mostrar) return;
+  const cambio = performance.now() < cambioHasta ? cambioTexto : '';
+  const clave = `${saldo}|${cambio}`;
+  if (el.dataset.clave === clave) return;
+  el.dataset.clave = clave;
+  el.textContent = formatoPesos(saldo);
+  if (cambio) { const s = document.createElement('span'); s.className = `cambio ${cambio.startsWith('+') ? 'sube' : 'baja'}`; s.textContent = cambio; el.appendChild(s); }
+}
+function abrirBilletera() {
+  if (esDesafio) return;
+  const cont = $('billetera-contenido');
+  const r = resumenBilletera(progreso, 14);
+  cont.innerHTML = '';
+  const saldo = document.createElement('p'); saldo.className = 'billetera-saldo'; saldo.textContent = formatoPesos(r.saldo);
+  const tot = document.createElement('p'); tot.className = 'billetera-totales'; tot.textContent = T_(`Ganaste ${formatoPesos(r.ganado)} y gastaste ${formatoPesos(r.gastado)} en total`);
+  const ul = document.createElement('ul');
+  for (const m of r.movimientos) {
+    const li = document.createElement('li');
+    const dia = document.createElement('i'); dia.textContent = T_(`Día ${m.dia}`);
+    const que = document.createElement('span'); que.textContent = T_(m.motivo);
+    if (m.con) { const c = document.createElement('small'); c.textContent = T_(m.con); que.appendChild(c); }
+    const monto = document.createElement('b'); monto.className = m.monto > 0 ? 'sube' : 'baja'; monto.textContent = `${m.monto > 0 ? '+' : ''}${formatoPesos(m.monto)}`;
+    li.append(dia, que, monto); ul.appendChild(li);
+  }
+  if (!r.movimientos.length) { const li = document.createElement('li'); li.textContent = T_('Todavía no hubo movimientos'); ul.appendChild(li); }
+  cont.append(saldo, tot, ul);
+  $('pausa').classList.add('oculto');
+  $('billetera').classList.remove('oculto');
+}
+function cerrarBilletera() {
+  $('billetera').classList.add('oculto');
+  $('pausa').classList.remove('oculto');
+}
+if (!esDesafio) $('btn-billetera').classList.remove('oculto');
+$('btn-billetera').addEventListener('click', abrirBilletera);
+$('cerrar-billetera').addEventListener('click', cerrarBilletera);
 
 // ------------------------------------------------------------------ menús
 let abiertoEn = 0;
@@ -1496,6 +1566,7 @@ function dibujarMapa() {
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
   for (const m of modos?.marcasMapa?.() || []) marcas.push(m);   // 3.1: los postes de largada
+  if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); }   // 3.8.9: el banco, rotulado (antes nada decía dónde estaba)
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
 
@@ -1899,6 +1970,10 @@ function sincronizarAjustes() {
   if ($('modo-texto')) $('modo-texto').textContent = ajustes.modo === 'desafio'
     ? 'Cada noche salen los duendes del bosque. Levantá tu cabaña, rodeala de defensas, fabricá o encontrá armas y resistí hasta el amanecer.'
     : 'El bosque de siempre: caminar, anotar, pescar y construir sin apuro. Nada te ataca.';
+  // 3.8.9: dónde está la aldea con su banco y los pesos (quien jugó la noche de los duendes no los veía y no sabía por qué)
+  if ($('modo-aviso')) $('modo-aviso').textContent = ajustes.modo === 'desafio'
+    ? 'Acá no hay aldea, banco ni pesos: eso es del modo Relax.'
+    : 'En el Relax están la aldea (se llega en tren), el mercado, el banco del pueblo y tus pesos.';
   // la dificultad sólo tiene sentido en el Desafío (y se puede cambiar en cualquier momento)
   $('opcion-dificultad')?.classList.toggle('oculto', ajustes.modo !== 'desafio');
   $('fila-dificultad')?.classList.toggle('oculto', !esDesafio);
@@ -2845,6 +2920,7 @@ document.addEventListener('keydown', (e) => {
   const codigo = codigoCanonico(e.code);
   if (modo === 'cuaderno' && (codigo === 'KeyJ' || codigo === 'Escape')) { volverAlJuego(); return; }
   if (modo === 'mapa' && (codigo === 'KeyM' || codigo === 'Escape')) { volverAlJuego(); return; }
+  if (codigo === 'Escape' && !$('billetera').classList.contains('oculto')) { cerrarBilletera(); return; }   // 3.8.8
   if (codigo === 'Escape' && !$('logros').classList.contains('oculto')) { cerrarLogros(); return; }
   if (codigo === 'Escape' && modos?.panelAbierto()) { modos.cerrarPanel(); return; }   // 3.1
   if (guiaAbierta() && (codigo === 'Escape' || codigo === 'F1')) { e.preventDefault(); cerrarGuia(); return; }
@@ -2927,6 +3003,7 @@ document.addEventListener('keydown', (e) => {
       if (enLaFeria) { cerrarFeria(); break; }
       // 2.9: y el puesto de cargas, igual
       if (enLasCargas()) { puestoCargas.cerrar(); break; }
+      if (enElBanco()) { bancoPueblo.cerrar(); break; }   // 3.8.8
       // 3.7.2: y el panel de recetas de la cocina, igual
       if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
       // 3.7.3: y el del taller ferroviario
@@ -3205,6 +3282,7 @@ document.addEventListener('keydown', (e) => {
       else if (enElAlmacen) cerrarAlmacen();
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
+      else if (enElBanco()) bancoPueblo.cerrar();   // 3.8.8
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
       else if (tallerTren?.panelAbierto()) tallerTren.atras();   // 3.7.3: de la pintura o la composición, al panel; del panel, afuera
       else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();   // 3.7.5: deja el partido (o se suelta del redomón)
@@ -3790,6 +3868,8 @@ function marcarPisos() {
 
 // 3.6: el primer viaje, en una línea: dónde se sube y dónde se baja
 const PISTA_PRIMER_VIAJE = 'Subite a la trochita en la Estación del Valle, acá cerca del refugio, y bajate en la Aldea de los Duendes: ahí está el almacén de Ercilia';
+// 3.8.9: dónde está el banco y cuándo atiende (el mapa lo rotula; el horario es el de HORARIO_BANCO, aldea.js)
+const PISTA_BANCO = 'En la aldea, saliendo de la plaza hacia el este, está el Banco del Pueblo (también en el mapa): Amadeo presta pesos, paga bien lo que le llevás y vende casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18';
 // Los primeros pasos: pistas que aparecen una sola vez, cuando corresponde,
 // para que el primer rato no sea andar sin saber qué se puede hacer.
 const PISTAS = [
@@ -3804,6 +3884,8 @@ const PISTAS = [
   { id: 'p-tren', cuando: (js, p) => !!p.entradas.estacion, titulo: 'La trochita', texto: 'Para en cada apeadero unos segundos; se sube con E y se viaja hasta donde quieras' },
   // 3.6: el primer viaje. En el Relax el almacén (y el hacha) está en la Aldea de los Duendes
   { id: 'p-aldea', cuando: (js, p) => !desafio && !p.cosas?.hacha && !p.aldea?.descubierta && (!!p.entradas.refugio || Object.keys(p.entradas).length >= 2), titulo: 'El hacha está en la aldea', texto: PISTA_PRIMER_VIAJE },
+  // 3.8.9: el banco. Quien baja en la aldea no sabía que había uno ni dónde (las pistas sólo hablaban del almacén)
+  { id: 'p-banco', cuando: (js, p) => !desafio && hayEconomia(p) && !!p.aldea?.descubierta, titulo: 'El Banco del Pueblo', texto: PISTA_BANCO },
   // Desafío, segundo acto: el nido aparece cuando cae la nodriza
   { id: 'p-nido', cuando: (js, p) => !!p.desafio?.nido && !p.desafio.nido.caido, titulo: 'Siguen saliendo', texto: 'Vienen de una cueva escondida en el valle. Los troncos huecos traen pistas que te la van a ubicar' },
   { id: 'p-cerco', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= 1 && !p.desafio.nido.caido, titulo: 'El cerco se achica', texto: 'Abrí el mapa (M): el redondel a lápiz marca dónde puede estar. Cada tronco hueco lo achica' },
@@ -4803,7 +4885,6 @@ let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
-let aleroJuego = null;   // 3.8.4: ver alero-arriero.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 // 3.6 (vida): el clima como lo entiende la vecindad (lluvia, nieve, viento, sol)
 const climaVecindad = () => { const e = clima?.estado || {}; return { lluvia: e.lluvia || 0, invierno: U.uInvierno.value, viento: e.viento || 0, nublado: e.nublado || 0 }; };
@@ -4820,6 +4901,8 @@ function armarOficiosYAldea(esDesafio) {
   // 3.6: en el Desafío no hay aldea (ni gente, ni obras, ni llegadas)
   if (esDesafio) return;
   aldeaGente = crearAldeaGente({
+    abrirBanco: () => bancoDelPueblo().abrir(),   // 3.8.8: el gerente te atiende en el mostrador
+    temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),   // 3.8.8: la demanda del pueblo
     progreso: () => progreso, gente: () => gente, tren: () => tren, jugador: () => jugador,
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
@@ -4986,22 +5069,15 @@ function armarOficiosYAldea(esDesafio) {
     sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
     cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
+    // 3.8.8: la escritura del lote de tu casa (propiedad.js)
+    escritura: () => { if (desafio || !hayEconomia(progreso)) return null; const v = puedePagarEscritura(progreso); return { ok: v.ok, precio: v.precio, texto: `La escritura cuesta ${formatoPesos(v.precio)}; te faltan ${formatoPesos(v.falta || 0)}. El banco te puede prestar` }; },
+    pagarEscritura: () => { pagarEscritura(progreso, GERENTE); },
     dormir: (o) => dormir(o), refrescarHuerta: () => refrescarHuerta(), anotaciones: () => Object.keys(progreso.entradas || {}).length,
     noche: () => { const h = progreso.horas; return h >= 20 || h < 5.5 ? 1 : h >= 18.5 ? (h - 18.5) / 1.5 : h < 7 ? (7 - h) / 1.5 : 0; },
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
-  // 3.8.4: el alero del arriero: Martín te pide buscar el nombre de su abuelo (alero-arriero.js); el rumbo, desde la plaza
-  aleroJuego = crearAleroJuego({
-    progreso: () => progreso, desafio: () => !!desafio, lugar: () => T.lugares.cueva || null, jugador: () => jugador?.estado?.pos || null,
-    rumbo: () => { const c = edificioEnMundo('plaza'), l = T.lugares.cueva; return c && l ? rumboDesde(c, l) : null; },
-    // 3.8.6: con cambiarAmistad (hasta 20 de una vez): sumarAmistadDe topea en 10 (un regalo que le encanta) y de los 12
-    // de AMISTAD_ALERO llegaban 10
-    sumarAmistad: (k, n) => { const am = cambiarAmistad(progreso, k, Math.max(0, n), progreso.dia); if (am?.subio) nota(`${nombreCorto(k)} te tiene confianza`, am.nivel === 'compadre' ? 'Ya son compadres' : 'Ya son amigos', true); },
-    diario: (dato) => diario.anotar('historia', dato), nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
-  });
   vecindadJuego = crearVecindadJuego({
-    alero: aleroJuego,   // 3.8.4: Martín y el nombre de su abuelo
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
@@ -5356,6 +5432,7 @@ function cambiarFeria(i) {
   for (const [k, n] of Object.entries(o.pide)) gastarFeria(k, n);
   for (const [k, n] of Object.entries(o.da.materiales || {})) sumarMaterial(k, n);
   for (const [k, n] of Object.entries(o.da.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
+  if (o.da.pesos) cobrarPesos(progreso, o.da.pesos, 'Cambio en la feria', o.texto);   // 3.8.8: la feria paga en pesos
   if (o.da.cosa) progreso.cosas[o.da.cosa] = 1;
   sonido.juntar();
   diario.anotar('feria', o.texto.charAt(0).toLowerCase() + o.texto.slice(1));
@@ -5397,6 +5474,13 @@ function cargas() {
   return puestoCargas;
 }
 const enLasCargas = () => !!puestoCargas?.abierto();
+// 3.8.8: el mostrador del banco del pueblo (banco-mundo.js): préstamos, abastecimiento, casas y alquiler, y tu puesto en la feria
+let bancoPueblo = null;
+function bancoDelPueblo() {
+  if (!bancoPueblo) bancoPueblo = crearBancoMundo({ panel: $('banco-pueblo'), contenido: $('banco-pueblo-contenido'), progreso: () => progreso, dia: () => progreso.dia, nota, guardar, refrescar: () => refrescarBarra(true), T_, sonido, alClic: (el, fn) => alClicHud(el, fn) });
+  return bancoPueblo;
+}
+const enElBanco = () => !!bancoPueblo?.abierto();
 function puestoDeCargasCerca() {
   if (desafio || !tren || !jugador || jugador.estado.enTren) return null;
   return tren.puestoCerca(jugador.estado.pos);
@@ -6294,8 +6378,15 @@ function accionObra() {
     return;
   }
   if (obra) {
+    // 3.8.8: las casas prefabricadas cuestan, además de los materiales, el terreno y la mano de obra (propiedad.js)
+    const etapaCasa = obra.datos.etapas;
+    // (si deshiciste una etapa y la rehacés, ya la pagaste: `datos.pagadas` es hasta dónde pagaste)
+    const pago = desafio || etapaCasa < (obra.datos.pagadas || 0) ? { ok: true, precio: 0 } : puedePagarEtapa(progreso, obra.plano.id, etapaCasa);
+    if (!pago.ok) { nota('Falta plata para esta etapa', `El terreno y la mano de obra cuestan ${formatoPesos(pago.precio)} y te faltan ${formatoPesos(pago.falta)}. El banco te puede prestar`); return; }
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
+    if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); obra.datos.pagadas = etapaCasa + 1; }
+    if (r.terminada && !desafio) registrarCasa(progreso, obra.plano.id);
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
     sonido.encender();
@@ -6803,6 +6894,7 @@ function usarObraQueTrabaja(o) {
 // corren en horas de juego y se ponen al día solas (ver `molino.js`); el tiempo que
 // anuncia la estación es el que el clima va a seguir (ver `meteo.js`).
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
+OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
 // (en el Relax: en el Desafío no hay cocina y sigue horneando de una, como en la 2.4)
@@ -7052,6 +7144,7 @@ function avisoObra24(o) {
     case 'buzon': return porRetirar(correo(), progreso).length ? 'Abrir el buzón: hay carta' : porEnviar(correo()).length ? 'Mandar la foto por el buzón' : 'Mirar el buzón';
     case 'embarcadero': return 'Traer el kayak al embarcadero';
     case 'bebedero': return progreso.corral ? 'Mirar tu corral' : 'El bebedero';
+    case 'reloj-pared': case 'almanaque-pared': return MUEBLES_QUE_SE_USAN[o.plano.id];   // 3.8.8
     default: return null;
   }
 }
@@ -7074,6 +7167,13 @@ function usarObra24(o) {
       nota('Tu corral', conLana ? `${conLana} de ${total} con el vellón entero` : 'Las dos recién esquiladas: el vellón vuelve en unos días');
       return true;
     }
+    // 3.8.8: el reloj y el almanaque de tu casa dicen lo mismo que los de la aldea (reloj-almanaque.js)
+    case 'reloj-pared':
+      leerEnLaAldea({ quien: 'El reloj de pared', que: 'tu casa', partes: partesReloj({ hora: progreso.horas, dia: progreso.dia }), despedida: 'Tic, tac.' });
+      return true;
+    case 'almanaque-pared':
+      leerEnLaAldea({ quien: 'El almanaque de pared', que: 'tu casa', partes: partesAlmanaque({ dia: progreso.dia, horas: progreso.horas, aldea: progreso.aldea }), despedida: 'Una hoja por día.' });
+      return true;
     default: return false;
   }
 }
@@ -7486,6 +7586,8 @@ function cobrarPremio(e) {
   if (premio.cosa) progreso.cosas[premio.cosa] = Math.max(1, Number(progreso.cosas[premio.cosa]) || 0);
   // Lo que se cuenta (yerba, semillas) se suma a lo que ya tenías.
   for (const [k, n] of Object.entries(premio.cuenta || {})) progreso.cosas[k] = (progreso.cosas[k] || 0) + n;
+  // 3.8.8: y los pesos (los concursos, la revista): por la puerta de la economía, con su renglón en el libro
+  if (premio.pesos) cobrarPesos(progreso, premio.pesos, premio.texto || 'Un premio', e?.quien || e?.titulo || 'Premio');
   // El cierre deja varias cosas de una: las que ya tenías no se duplican.
   const yaTenias = { ...progreso.cosas };
   for (const c of premio.cosas || []) progreso.cosas[c] = 1;
@@ -7996,7 +8098,7 @@ function cambiar(i) {
 }
 
 // Dónde está parado el jugador, para elegir la reverberación
-// 3.8.7: bajo la roca del alero del arriero: entre la pared tallada y el borde de la cornisa, y a su altura. Antes era «a menos
+// 3.8.7: bajo la roca de la Cueva de las Manos (3.8.8: de nuevo la cueva): entre la pared pintada y el borde de la cornisa, y a su altura. Antes era «a menos
 // de 10 m del lugar», a cualquier altura: parado en el cerro, arriba del alero, también sonaba a cueva (y no llovía)
 function bajoLaRoca(pos) {
   const c = T.lugares.cueva;
@@ -8088,7 +8190,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -9095,12 +9197,15 @@ function cuadroDelJuego(tRaf, manual) {
   }
   bajoTecho = bajoCubiertaActual;
   acumuladoHabitat += dt;
+  actualizarRelojHud(dt);
+  actualizarBilleteraHud(dt);   // 3.8.8: los pesos que llevás
   const luzCielo = cielo.actualizar(progreso.horas, clima.estado, cam, 0);
   luzUltimaFoto = luzCielo;
   const noche = 1 - luzCielo.dia;
   obras?.actualizarAmbiente?.(noche);
 
   if (cascada) cascada.actualizar(dt, cam);
+  actualizarBanderas(dt);   // 3.8.8: las banderas se orientan al viento (el flameo es del vertex shader)
   // la bruma, las partículas y las aves solo deciden visibilidad y centro:
   // con cinco veces por segundo alcanza, y el movimiento lo hace el shader
   acumuladoAmbiente += dt;
@@ -9153,7 +9258,6 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
   try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
   try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
-  try { if (modo === 'jugando' && !desafio) aleroJuego?.actualizar(dt); } catch (e) { fallaSistema('alero', e); }   // 3.8.4: ¿estás delante del nombre del abuelo de Martín?
   try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
@@ -9348,6 +9452,7 @@ function cuadroDelJuego(tRaf, manual) {
     brilloVentana(cab.vidrio, encendido, diaInterior);
     const cerquita = alcance(cam, cab, 22);
     cab.luz.intensity = encendido * 3.2 * (alcance(cam, cab, 55) ? 1 : 0);
+    if (cab.luzGaleria) cab.luzGaleria.intensity = encendido * 2.2 * (alcance(cam, cab, 40) ? 1 : 0);   // 3.8.8: los faroles de la galería de la casa de té
     cab.interior.intensity = cerquita ? rellenoInterior * 0.88 : 0;
     cab.interior.color.copy(colorInterior).lerp(COLOR_RAYO, encendido * 0.08);
   }
@@ -9516,6 +9621,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (!marcaPerro) avisoMarca = false;
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
+    if (enElBanco()) aviso = null;   // 3.8.8
     if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
     if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
     if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
@@ -10057,6 +10163,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __apuntarRueda: (x, y, abs) => apuntarRueda(x, y, abs), __flechaRueda: (c) => flechaRueda(c), __animSocial: (g, id, o) => empezarAnim(g, id, o), __elegirCharla: (i) => elegirEnMenuCharla(i), __atrasCharla: () => atrasCharla(), __moverCharla: (n) => moverMenuCharla(n),
     __cantero: usarCantero, __aviso: () => $('aviso')?.textContent || '',
     // 3.6.2: los paneles del HUD que se eligen con un clic, para las pruebas
+    __banco: () => bancoDelPueblo(), __enElBanco: () => enElBanco(),   // 3.8.8: el mostrador del banco, para la partida real (herramientas/partida-real-economia.cjs)
     __hud: { abrirAlmacen, cerrarAlmacen, abrirMochila, panelAbierto: () => panelDelHudAbierto(), mapa: () => dibujarMapa() },
     // 2.9: las máquinas
     __maquinas: { revisar: revisarMaquinas, actualizar: actualizarMaquinas, usar: usarMaquina, aviso: avisoMaquina, pronostico: pronosticoActual, noches: nochesActuales, meteo: meteoPartida, radio: radioPartida, mundo: () => ({ molino: molinoMundo, meteo: meteoMundo }) },

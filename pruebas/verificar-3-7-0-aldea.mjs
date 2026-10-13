@@ -16,6 +16,7 @@ import * as G from '../src/aldea-gente.js';
 import { ENTRADAS } from '../src/cuaderno.js';
 import { generarTerreno } from '../src/terreno.js';
 import { LIMITE } from '../src/config.js';
+import { economiaNueva, pesosDe } from '../src/economia.js';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -247,7 +248,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const cal = V.calendarioDelAnio(15, { aldea: a, fiestas });
   ok(cal.anio === 2 && cal.filas.length === 12 && cal.filas.filter((x) => x.hoy).length === 1 && cal.filas[2].hoy && cal.filas[3].manana, 'el año en el cuaderno: doce filas, hoy y mañana');
   ok(cal.filas[5].eventos.some((e) => e.tipo === 'fiesta'), 'con las fiestas');
-  ok(V.listaCumples(a).length === 9 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín)
+  ok(V.listaCumples(a).length === 9 + 1 + 1 + 1 + 4 && V.listaCumples(a).every((x, i, l) => !i || l[i - 1].diaDelAnio <= x.diaDelAnio), 'la lista de cumpleaños, ordenada');   // (3.7.3: nueve vecinos, con Martín; 3.8.8: y el gerente)
 }
 
 // ============================================================ 4. los cumpleaños
@@ -458,7 +459,7 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
 // ============================================================ 11. los servicios de las nueve
 {
   const llena = () => {
-    const p = partida(40, { dia: 10, horas: 22, fotos: 5, materiales: { tabla: 5, piedra: 9, tronco: 3 }, cosas: { yerba: 4, caballo: 1, tijera: 1 }, gallineros: { '1:2': { desde: 1, juntados: 0 } }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
+    const p = partida(40, { dia: 10, horas: 22, fotos: 5, materiales: { tabla: 5, piedra: 9, tronco: 3 }, cosas: { yerba: 4, caballo: 1, tijera: 1 }, economia: { ...economiaNueva(), pesos: 400 }, gallineros: { '1:2': { desde: 1, juntados: 0 } }, correo: { llegadas: {}, ultimoDia: -1, fotos: {} } });
     p.aldea.pobladores = A.ORDEN_POBLADORES_ALDEA.map((k) => ({ clave: k, dia: 1 }));
     p.aldea.locales = Object.fromEntries(A.LOTES_ALDEA.map((l) => [l, 1]));
     return p;
@@ -466,49 +467,49 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   const extra = { hora: 22, lugares: new Set(['mirador', 'cascada', 'cueva']), fotoPendiente: { nombre: 'Un pudú', pista: 'Agachate y acercate despacio.' }, chisme: { persona: 'jefe', quien: 'Ernesto', k: 'yerba', cosa: 'la yerba', gusto: 'encanta' } };
   const p = llena();
   for (const k of NUEVAS) {
-    const s = A.servicioDe(k, p, 10, extra);
+    const s = A.servicioBase(k, p, 10, extra);
     ok(s.partes.length && s.partes.every((x) => typeof x === 'string' && x.length > 5 && !/\{|\}|undefined|null/.test(x)), `${k}: dice algo`);
-    ok(!s.efectos || s.efectos.every((f) => ['material', 'cosa', 'entrada', 'aldea', 'jugador', 'registrar', 'chinche', 'amistad', 'gusto'].includes(f.tipo)), `${k}: con lo que ya existe en el valle`);
+    ok(!s.efectos || s.efectos.every((f) => ['material', 'cosa', 'entrada', 'aldea', 'jugador', 'registrar', 'chinche', 'amistad', 'gusto', 'pesos'].includes(f.tipo)), `${k}: con lo que ya existe en el valle`);
   }
-  const usar = (k, d, x = extra, q = p) => { const s = A.servicioDe(k, q, d, x); const al = s.efectos ? A.aplicarEfectos(q, s.efectos, d) : []; return { s, al }; };
+  const usar = (k, d, x = extra, q = p) => { const s = A.servicioBase(k, q, d, x); const al = s.efectos ? A.aplicarEfectos(q, s.efectos, d) : []; return { s, al }; };
   // la veterinaria: el zaino, las gallinas o la majada, uno por día
   let u = usar('veterinaria', 10);
   ok(u.s.efectos && (p.aldea.herrado === 10 || p.entradas.huevo?.cantidad === 2 || p.materiales.lana === 1), 'Ayelén ayuda con tus animales');
-  ok(!A.servicioDe('veterinaria', p, 10, extra).efectos, 'una vez por día');
+  ok(!A.servicioBase('veterinaria', p, 10, extra).efectos, 'una vez por día');
   const hechos = new Set();
   for (let d = 11; d < 14; d++) { u = usar('veterinaria', d); hechos.add(u.s.titulo); }
   ok(hechos.size >= 2, `y va variando (${[...hechos].join(' / ')})`);
-  ok(/no tenés animales/i.test(A.servicioDe('veterinaria', { ...llena(), cosas: {}, gallineros: {} }, 10, extra).partes[0]), 'sin animales, te lo dice');
+  ok(/no tenés animales/i.test(A.servicioBase('veterinaria', { ...llena(), cosas: {}, gallineros: {} }, 10, extra).partes[0]), 'sin animales, te lo dice');
   // la fotógrafa: el lente y después la foto que falta
   u = usar('fotografa', 10);
   ok(p.cosas.lente === 1 && /lente/.test(u.s.partes[0]), 'Sofía te mejora la cámara');
   u = usar('fotografa', 11);
   ok(/Un pudú/.test(u.s.partes[0]) && /agachate/.test(u.s.partes[1]), 'y te dice qué foto falta y cómo');
   ok(leer('src/fotos.js').includes('(c.lente ? 1.5 : 1)') && leer('src/main.js').includes('lente: !!progreso.cosas?.lente'), 'el lente se nota en las fotos');
-  ok(/Benigno/.test(A.POBLADORES_ALDEA.fotografa.resumen) && A.servicioDe('telegrafista', p, 10).partes.length, 'Benigno sigue despachando las fotos');
+  ok(/Benigno/.test(A.POBLADORES_ALDEA.fotografa.resumen) && A.servicioBase('telegrafista', p, 10).partes.length, 'Benigno sigue despachando las fotos');
   // la guía: un lugar que no conocés, con chinche en el mapa
   u = usar('andinista', 10);
   ok(u.al.some((f) => f.tipo === 'chinche' && extra.lugares.has(f.k)) && /mapa/.test(u.s.partes[1]), 'Rocío te marca en el mapa un lugar que no conocés');
-  // la herbolaria: frutos por yerba, y pistas de flora
-  const y0 = p.cosas.yerba;
+  // la herbolaria: frutos por pesos (3.8.8: antes por yerba), y pistas de flora
+  const y0 = pesosDe(p);
   u = usar('herbolaria', 10);
-  ok(p.cosas.yerba === y0 - 1 && (p.entradas.frutilla?.cantidad >= 3 || p.entradas.calafate?.cantidad >= 3), 'Inés te cambia frutos del monte por yerba');
-  const sinYerba = { ...llena(), cosas: {} };
-  const pista = A.servicioDe('herbolaria', sinYerba, 10, extra).partes.join(' ');
-  ok(/anotaste/.test(pista) && /Julia/.test(pista), 'sin yerba, una pista de flora (los bichos, Julia)');
+  ok(pesosDe(p) === y0 - A.SERVICIO.pesosPorFrutos && (p.entradas.frutilla?.cantidad >= 3 || p.entradas.calafate?.cantidad >= 3), 'Inés te vende frutos del monte por pesos');
+  const sinYerba = { ...llena(), cosas: {}, economia: economiaNueva() };
+  const pista = A.servicioBase('herbolaria', sinYerba, 10, extra).partes.join(' ');
+  ok(/anotaste/.test(pista) && /Julia/.test(pista), 'sin plata, una pista de flora (los bichos, Julia)');
   // la pintora: un dibujo de tu parte
   u = usar('pintora', 10);
   ok(u.al.some((f) => f.tipo === 'amistad' && A.esPersonaAldea(f.k) && f.n === A.SERVICIO.amistadDibujo) && p.materiales.tabla === 4, 'Abril le pinta un dibujo de tu parte al que menos confianza te tiene');
   // la ceramista: macetas hasta cuatro
   usar('ceramista', 10); usar('ceramista', 11); usar('ceramista', 12);
-  ok(p.cosas['macetas-barro'] === 4 && !A.servicioDe('ceramista', p, 13, extra).efectos, 'Malena: macetas para el vivero, hasta cuatro');
+  ok(p.cosas['macetas-barro'] === 4 && !A.servicioBase('ceramista', p, 13, extra).efectos, 'Malena: macetas para el vivero, hasta cuatro');
   ok(leer('src/vivero.js').includes('export const macetasDe = (extra = 0) =>') && leer('src/main.js').includes("progreso.cosas?.['macetas-barro']"), 'y el vivero las usa');
   // la del varadero: el kayak calafateado
   usar('botera', 10);
-  ok(p.aldea.calafateado === 10 && /calafateado/.test(A.servicioDe('botera', p, 10, extra).partes[0]), 'Martina te calafatea el kayak');
+  ok(p.aldea.calafateado === 10 && /calafateado/.test(A.servicioBase('botera', p, 10, extra).partes[0]), 'Martina te calafatea el kayak');
   ok(leer('src/main.js').includes("progreso.aldea?.calafateado === progreso.dia ? 1.15 : 1") && leer('src/main.js').includes('if (progreso.aldea?.herrado === progreso.dia)'), 'el kayak y el zaino lo notan');
   // la astrónoma: de noche, el telescopio
-  const dia = A.servicioDe('astronoma', p, 10, { ...extra, hora: 12 });
+  const dia = A.servicioBase('astronoma', p, 10, { ...extra, hora: 12 });
   ok(!dia.efectos && /noche/.test(dia.partes[0]), 'de día, no');
   u = usar('astronoma', 10);
   ok(u.s.efectos?.some((f) => f.tipo === 'registrar') && Object.hasOwn(p.entradas, u.s.efectos.find((f) => f.tipo === 'registrar').k), 'de noche, Valentina te muestra algo del cielo y queda anotado');
@@ -517,9 +518,9 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   ok(/A Ernesto le encanta la yerba/.test(u.s.partes[1]) && u.al.some((f) => f.tipo === 'gusto' && f.k === 'jefe' && f.cosa === 'yerba'), 'Pocha te cuenta qué le gusta a un vecino');
   const ch = VE.proximoChisme({ dia: 10, aldea: A.aldeaNueva(), vecindad: VE.vecindadNueva() }, 10);
   ok(ch && VE.gustoDe(ch.persona, ch.k) === ch.gusto && VE.revelarGusto({ vecindad: VE.vecindadNueva() }, ch.persona, ch.k), 'el chisme sale de los gustos de verdad');
-  // nada de economía nueva
-  const t = JSON.stringify(NUEVAS.map((k) => A.POBLADORES_ALDEA[k]));
-  ok(!/\b(plata|pesos|precio\w*|cobr\w+|vend\w+|pag\w+)\b/i.test(t), 'sin plata, ni precios, ni ventas');
+  // nada de economía nueva (3.8.8: salvo la herbolaria, que ahora vende sus frutos por pesos, como la panadería: ya hay economía)
+  const t = JSON.stringify(NUEVAS.filter((k) => k !== 'herbolaria').map((k) => A.POBLADORES_ALDEA[k]));
+  ok(!/\b(plata|pesos|precio\w*|cobr\w+|vend\w+|pag\w+)\b/i.test(t), 'sin plata, ni precios, ni ventas (salvo la herbolaria)');
 }
 
 // ============================================================ 12. las voces y las charlas

@@ -170,6 +170,40 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
    (14px + 70px): se dibujaba encima de las casillas. Ahora va justo arriba de la barra y el aviso, arriba de él. */
 .aviso { position: absolute; left: 50%; bottom: calc(max(13vh, 124px) + var(--alto-subtitulos, 0px)); transform: translateX(-50%); font-size: 19px; padding: 9px 18px 7px; border-radius: 10px;
   background: var(--tinta-velo); backdrop-filter: blur(6px); white-space: nowrap; transition: opacity .2s; }
+.reloj-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
+/* 3.8.8: el banco del pueblo (mostrador del gerente); se maneja con el mouse, como el almacén */
+.banco-velo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.45); z-index: 30; }
+.banco-velo.oculto { display: none; }
+.panel-banco { width: min(720px, 94vw); max-height: 88vh; overflow: auto; padding: 18px 22px; border-radius: 10px; background: rgba(28,34,28,.96); color: #efe6d2; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.panel-banco h2 { margin: 0 0 6px; font-weight: 600; letter-spacing: .04em; }
+.panel-banco .banco-saldo { font-size: 20px; margin: 0 0 10px; color: #b9e08a; }
+.panel-banco .banco-solapas, .panel-banco .banco-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
+.panel-banco button { padding: 7px 12px; border-radius: 6px; border: 1px solid rgba(239,230,210,.3); background: rgba(239,230,210,.08); color: inherit; cursor: pointer; font: inherit; }
+.panel-banco button:hover:not(:disabled) { background: rgba(239,230,210,.2); }
+.panel-banco button:disabled { opacity: .4; cursor: default; }
+.panel-banco button.marcada { background: #6b8f4e; border-color: #b9e08a; }
+.panel-banco .banco-texto { font-style: italic; opacity: .9; margin: 8px 0; }
+.panel-banco .banco-aviso { color: #e8a08a; margin: 8px 0; }
+.panel-banco .banco-pie { opacity: .65; font-size: 13px; }
+.panel-banco .banco-renglon { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
+.panel-banco .banco-casa { margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: rgba(239,230,210,.05); }
+.panel-banco .banco-casa h4 { margin: 0 0 4px; }
+.panel-banco .banco-fila { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
+.panel-banco .banco-fila i { grid-column: 1; font-style: normal; opacity: .65; font-size: 13px; }
+/* 3.8.8: la billetera (los pesos que llevás); debajo del reloj si lo tenés */
+.billetera-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
+.reloj-hud:not(.oculto) ~ .billetera-hud { top: 64px; }
+.billetera-hud .cambio { margin-left: 8px; font-weight: 600; }
+.billetera-hud .cambio.sube { color: #b9e08a; }
+.billetera-hud .cambio.baja { color: #e8a08a; }
+.panel-billetera .billetera-saldo { font-size: 34px; margin: 4px 0 2px; }
+.panel-billetera .billetera-totales { opacity: .75; margin: 0 0 14px; }
+.panel-billetera ul { list-style: none; padding: 0; margin: 0; max-height: 46vh; overflow: auto; }
+.panel-billetera li { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
+.panel-billetera li i { font-style: normal; opacity: .6; }
+.panel-billetera li small { display: block; opacity: .65; }
+.panel-billetera li b.sube { color: #b9e08a; }
+.panel-billetera li b.baja { color: #e8a08a; }
 .estado { position: absolute; left: 50%; bottom: calc(94px + var(--alto-subtitulos, 0px)); transform: translateX(-50%); font-size: 16px; color: rgba(239,230,210,.85); text-shadow: 0 1px 8px rgba(0,0,0,.8); white-space: nowrap; }
 /* 2.0: escuchar con atención. Arriba del centro, en cursiva y apagado: es lo que se
    oye, no una orden. */
@@ -559,6 +593,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <button data-valor="relax">Relax</button><button data-valor="desafio">La noche de los duendes</button>
       </div>
       <p class="modo-texto" id="modo-texto"></p>
+      <p class="modo-texto" id="modo-aviso"></p>
       <div class="opcion oculto" id="opcion-relax"><span>Relax</span>
         <div class="segmentos" data-ajuste="relaxTipo"><button data-valor="libre">Libre</button><button data-valor="historia">Historia</button></div>
         <p class="modo-texto" id="relax-tipo-texto"></p>
@@ -604,6 +639,8 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div class="mira" id="mira"></div>
   <div class="aviso oculto" id="aviso"></div>
   <div class="estado oculto" id="estado"></div>
+  <div class="reloj-hud oculto" id="reloj-hud"></div>
+  <div class="billetera-hud oculto" id="billetera-hud"></div>
   <div class="carrera-hud oculto" id="carrera-hud"></div>
   <div class="cabina oculto" id="cabina"></div>
   <div class="escucha oculto" id="escucha" aria-live="polite"></div>
@@ -738,6 +775,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       <div class="menu">
         <button id="btn-seguir">Seguir recorriendo</button>
         <button id="btn-cuaderno">Abrir el cuaderno<kbd>J</kbd></button>
+        <button id="btn-billetera" class="oculto">Billetera y movimientos</button>
         <button id="btn-logros" class="oculto">Logros y récords</button>
         <button id="btn-modos">Carreras, desafío del día y torneo</button>
         <button id="btn-mapa">Ver el mapa<kbd>M</kbd></button>
@@ -966,6 +1004,21 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   </div>
 </section>
 
+<section id="billetera" class="velo oculto">
+  <div class="panel-modal panel-billetera">
+    <h2>Billetera</h2>
+    <div id="billetera-contenido"></div>
+    <div class="acciones-modal"><button id="cerrar-billetera">Volver</button></div>
+  </div>
+</section>
+<section id="banco-pueblo" class="oculto banco-velo">
+  <div class="panel-modal panel-banco">
+    <h2>Banco del pueblo</h2>
+    <div id="banco-pueblo-contenido"></div>
+    <p class="seguir">E o Escape para salir del mostrador</p>
+  </div>
+</section>
+
 <section id="logros" class="velo oculto">
   <div class="panel-modal panel-logros">
     <h2>Logros y récords</h2>
@@ -1056,6 +1109,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 (() => {
   const $ = (id) => document.getElementById(id);
   const VERSION_FALLBACK = '__HOJARASCA_VERSION__';
+  const BUILD_HUELLA = '__HOJARASCA_HUELLA__';   // 3.8.9: la huella del contenido de este build (armar.mjs): dos builds de la misma versión se distinguen por ella
   // (3.8.6: Controles y Créditos los abre y cierra main.js, como los otros paneles: ver abrirInfo)
   // 3.8.4 (decisión 8): en pantallas bajas las seis teclas de la portada quedan detrás del botón «Teclas» (Esc las cierra)
   const verTeclas = (si) => { $('inicio')?.classList.toggle('ver-teclas', si); $('btn-teclas-portada')?.setAttribute('aria-expanded', String(si)); };
@@ -1087,7 +1141,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     if ($('inicio')?.classList.contains('ver-teclas') && !$('inicio').classList.contains('oculto')) { e.preventDefault(); e.stopImmediatePropagation(); verTeclas(false); return; }
   }, true);
   const aplicarVersion = (v) => {
-    const t = `Hojarasca · ${v || VERSION_FALLBACK}`;
+    const t = `Hojarasca · ${v || VERSION_FALLBACK} · build ${BUILD_HUELLA}`;
     if ($('build-info')) $('build-info').textContent = t;
     if ($('version-completa')) $('version-completa').textContent = `Versión ${v || VERSION_FALLBACK}`;
   };

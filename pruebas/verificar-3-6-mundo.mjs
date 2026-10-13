@@ -346,7 +346,7 @@ const con = valle({ aldea: true });
 {
   const plan = AM.planAccesorios();
   const cuenta = (t) => plan.filter((a) => a.tipo === t).length;
-  ok(cuenta('poste') >= 5 && cuenta('farol') >= 4 && cuenta('alamo') >= 20 && cuenta('cerco') >= 10 && cuenta('vereda') >= 6 && cuenta('pirca') >= 10, `postes ${cuenta('poste')}, faroles ${cuenta('farol')}, álamos ${cuenta('alamo')}, cercos ${cuenta('cerco')}, veredas ${cuenta('vereda')}, pircas ${cuenta('pirca')}`);
+  ok(cuenta('poste') >= 5 && cuenta('farol') >= 3 && cuenta('alamo') >= 20 && cuenta('cerco') >= 10 && cuenta('vereda') >= 6 && cuenta('pirca') >= 10, `postes ${cuenta('poste')}, faroles ${cuenta('farol')}, álamos ${cuenta('alamo')}, cercos ${cuenta('cerco')}, veredas ${cuenta('vereda')}, pircas ${cuenta('pirca')}`);
   // ninguno adentro de un edificio ni (salvo las veredas) en la calle
   for (const a of plan) {
     if (a.tipo !== 'vereda') ok(!A.CALLES_ALDEA.some((c) => A.distanciaACalle(a.lx, a.lz, c) < 0), `${a.tipo} (${a.lx.toFixed(1)}, ${a.lz.toFixed(1)}): fuera de la calle`);

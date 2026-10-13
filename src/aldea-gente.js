@@ -45,7 +45,11 @@ import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelA
 import { fichaVecinos } from './vecindad-juego.js';
 import { PREDIO } from './fiestas.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
-import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA } from './aldea.js';
+import { aplicarNegocio, temporadaDelDia } from './negocios-fx.js';
+import { cerrarCuentas } from './aldea-viva.js';
+import { diasParaVencer, GERENTE } from './prestamos.js';
+import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA , avisoProximoVecino } from './aldea.js';
+import { cobrar as cobrarPesos, pagar as pagarPesos, hayEconomia, formatoPesos } from './economia.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
 // cuántos se arman las figuras
@@ -889,6 +893,19 @@ export function crearAldeaGente(ctx) {
   }
 
   // ---------------------------------------------------------------- las obras
+  // 3.8.8: lo que falta para el próximo vecino. `siempre`: aunque se haya dicho igual hace un rato (al abrir un local). Si no, sólo
+  // cuando cambió (una anotación más, ya puede venir): sin repetir lo mismo cada día.
+  let ultimoAvisoVecino = '';
+  function avisarProximoVecino(siempre = false) {
+    const p = progreso();
+    if (!p || p.modo === 'desafio') return;
+    const av = avisoProximoVecino(p);
+    if (!av) return;
+    const clave = `${av.titulo}|${av.texto}`;
+    if (!siempre && clave === ultimoAvisoVecino) return;
+    ultimoAvisoVecino = clave;
+    ctx.nota(av.titulo, av.texto, true);
+  }
   function revisarObras() {
     const a = aldea();
     const eventos = avanzarObras(a, dia(), horas());
@@ -897,6 +914,8 @@ export function crearAldeaGente(ctx) {
       if (ev.tipo === 'abierto') {
         ctx.nota(`Abrió ${nombreLocal(ev.lote)} de ${def?.nombre || 'la aldea'}`, def?.resumen || NOMBRE_ALDEA, true);
         ctx.sonido?.anotar?.();
+        // 3.8.8: y qué falta para el próximo vecino (antes sólo lo decía la ficha de la aldea del cuaderno)
+        avisarProximoVecino(true);
       } else {
         const hecha = ETAPAS_OBRA[ev.etapa - 1], sigue = ETAPAS_OBRA[ev.etapa];
         ctx.nota(`Avanzó la obra de ${nombreLocal(ev.lote)}`, `Quedó hecha: ${minus(hecha.nombre)}${sigue ? `. Ahora: ${minus(sigue.nombre)}` : ''}`);
@@ -971,6 +990,14 @@ export function crearAldeaGente(ctx) {
           return { id: 'aldea-cachorro', partes: of.partes, seguir: of.seguir, alTerminar: () => adoptarCachorro(), tipo: 'llegada' };
         }
       }
+      // 3.8.8: el gerente te atiende en el mostrador (banco-mundo.js): préstamos, abastecimiento, casas y tu puesto en la feria. Cada tanto, charla
+      if (k === 'gerente' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirBanco && (charlasDichas.get(k) || 0) % 3 !== 2) {
+        charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
+        return {
+          id: 'aldea-gerente', partes: [VECINOS_ALDEA.gerente.saludo, 'Dígame en qué lo ayudo: un préstamo, un pedido del banco, sus casas o su puesto en la feria.'],
+          seguir: 'E: pasar al mostrador · Escape: otro día', alTerminar: () => ctx.abrirBanco(), tipo: 'servicio', ofrece: true,
+        };
+      }
       const lineas = dichosDe(k, a)?.charla || VECINOS_ALDEA[k].charla;   // 3.7.0: según la etapa (los chicos)
       const n = charlasDichas.get(k) || 0;
       charlasDichas.set(k, n + 1);
@@ -1005,7 +1032,7 @@ export function crearAldeaGente(ctx) {
   // 3.7.0: lo que necesitan saber las nuevas (la hora, los lugares con dónde en el mapa, la foto que falta y
   // lo que Pocha sabe de algún vecino)
   function extraServicio() {
-    return { pronostico: ctx.pronostico?.() || '', hora: horas(), lugares: ctx.lugaresConMapa?.() || null, fotoPendiente: ctx.fotoPendiente?.() || null, chisme: proximoChisme(progreso(), dia()) };
+    return { pronostico: ctx.pronostico?.() || '', temporada: ctx.temporada?.() || null, hora: horas(), lugares: ctx.lugaresConMapa?.() || null, fotoPendiente: ctx.fotoPendiente?.() || null, chisme: proximoChisme(progreso(), dia()) };
   }
   function usarServicio(k, s) {
     const p = progreso();
@@ -1018,6 +1045,8 @@ export function crearAldeaGente(ctx) {
     }
     for (const f of s.efectos) {
       if (f.tipo === 'material') ctx.sumarMaterial(f.k, f.n);
+      else if (f.tipo === 'jornal' || f.tipo === 'pedido') aplicarNegocio(p, f, dia(), extraServicio());   // 3.8.8: el sueldo y los pedidos (negocios-fx.js)
+      else if (f.tipo === 'pesos') { if (f.n >= 0) cobrarPesos(p, f.n, f.motivo, f.con); else pagarPesos(p, -f.n, f.motivo, f.con); }   // 3.8.8: la plata
       else if (f.tipo === 'cosa') { p.cosas = p.cosas || {}; p.cosas[f.k] = f.fijar !== undefined ? f.fijar : Math.max(0, (Number(p.cosas[f.k]) || 0) + f.n); }
       else if (f.tipo === 'entrada') ctx.sumarEntrada(f.k, f.n);
       else if (f.tipo === 'jugador') ctx.alJugador?.(f.campo, f.valor);
@@ -1271,6 +1300,19 @@ export function crearAldeaGente(ctx) {
     if (diaRevisado === d) return;
     diaRevisado = d;
     const a = aldea(), v = vida(), p = progreso();
+    if (a.descubierta) avisarProximoVecino();   // 3.8.8
+    // 3.8.8: la aldea cierra las cuentas del día (las cajas de los locales, el interés del banco, los alquileres y el puesto)
+    if (hayEconomia(p)) {
+      const claves = (a.pobladores || []).filter((q) => esPobladorAldea(q.clave) && localAbierto(a, LOTE_DE[q.clave])).map((q) => q.clave);
+      const cierre = cerrarCuentas(p, d, claves, temporadaDelDia(d));
+      if (a.descubierta && cierre) {
+        if (cierre.evento) ctx.nota(cierre.evento.titulo, cierre.evento.texto, true);
+        if (cierre.renta > 0) ctx.nota(`Cobraste ${formatoPesos(cierre.renta)} de alquiler`, 'Está en tu billetera, en el libro de cuentas', true);
+        const vence = diasParaVencer(p, d);
+        if (vence === 1) ctx.nota('Mañana vence tu préstamo', `Pasá por el banco: ${GERENTE} te espera`, true);
+        else if (vence !== null && vence <= 0) ctx.nota('Tu préstamo está vencido', 'El interés subió: saldalo en el banco', true);
+      }
+    }
     // los chicos crecen el día de su cumpleaños
     for (const ev of pasarDiaChicos(a, d)) {
       const nombre = VECINOS_ALDEA[ev.clave]?.nombre || ev.clave;

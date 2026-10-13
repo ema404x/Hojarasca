@@ -404,6 +404,26 @@ function cargarVM(mods) {
       ok(pared(-3, 3.6) && pared(6, -3.6) && pared(8.5, 1) && !pared(3, 3.6), `${que}: las paredes frenan; por la puerta chica se pasa`);
       ok(pared(5.4, -1) && !pared(5.4, 2.05), `${que}: el tabique, con su paso`);
       ok(!pared(-8.5, 0) && pared(-8.5, 2.5), `${que}: el portón, abierto`);
+      // 3.8.8: se entra de verdad por la puerta chica (un poste del frente caía justo en la puerta y, con el choque y el cuerpo,
+      // dejaba 30 cm de paso: no se podía entrar): del pie de la escalerita al zaguán y al banco, con un cuerpo de 35 cm de radio
+      {
+        const pos = { x: 3, y: 0.32, z: 6.5 };
+        for (const [tx, tz] of [[3, 4.6], [3, 2.0], [1.35, 1.2], [1.35, -1.2], [0, -2.3]]) {
+          for (let i = 0; i < 400; i++) {
+            const dx = tx - pos.x, dz = tz - pos.z, d = Math.hypot(dx, dz); if (d < 0.12) break;
+            const paso = Math.min(0.08, d); pos.x += dx / d * paso; pos.z += dz / d * paso;
+            const p = col.plataformaEn(pos.x, pos.z, pos.y, 0.62); if (p) pos.y = p.alto;
+            col.resolver(pos, 0.35, 1.7);
+          }
+        }
+        ok(Math.hypot(pos.x - 0, pos.z + 2.3) < 0.35 && Math.abs(pos.y - 0.32) < 0.03, `${que}: se entra por la puerta chica y se llega al banco (${pos.x.toFixed(2)}, ${pos.z.toFixed(2)})`);
+        // 3.8.8: por la vía hasta el portón no se cae del terraplén (la boca mide 2,8 m): hay piso en todo el ancho, y adentro sigue
+        let hueco = null;
+        for (let x = -10.5; x <= -6 && !hueco; x += 0.25) for (let z = -1.3; z <= 1.31; z += 0.2) if (!col.plataformaEn(x, z, 0.4, 0.62) && Math.abs(z) < 1.4) { hueco = [x, z]; break; }
+        ok(!hueco, `${que}: el terraplén cubre toda la boca del portón (${hueco})`);
+        const postes = ed.colisiones.obstaculos.filter((o) => !o.seg && o.z > 3 && o.z < 3.7 && o.x > 1.6 && o.x < 4.4);
+        ok(postes.length === 0, `${que}: ningún poste en la puerta`);
+      }
     }
   }
   // las líneas de la gente adentro: la del zaguán al banco cruza el foso por la pasarela; las del zaguán a la mesa y a
@@ -427,7 +447,7 @@ function cargarVM(mods) {
 {
   const m = A.VECINOS_ALDEA.martin;
   ok(m && m.casa === 'taller-tren' && m.trabajo === 'taller-tren' && /maquinista/.test(m.oficio) && m.charla.length >= 3, 'Martín: el maquinista retirado, vive y trabaja en el taller');
-  ok(A.ORDEN_VECINOS_ALDEA.includes('martin') && A.ORDEN_PERSONAS_ALDEA[A.ORDEN_PERSONAS_ALDEA.length - 1] === 'martin' && A.ORDEN_PERSONAS_ALDEA.indexOf('ercilia') === 8, 'Martín, al final (los índices de los demás no se mueven)');
+  ok(A.ORDEN_VECINOS_ALDEA.includes('martin') && A.ORDEN_PERSONAS_ALDEA[A.ORDEN_PERSONAS_ALDEA.length - 2] === 'martin' && A.ORDEN_PERSONAS_ALDEA.indexOf('ercilia') === 8, 'Martín, al final (3.8.8: antes del gerente; los índices de los demás no se mueven)');
   ok(A.cumpleDe('martin') >= 1 && A.cumpleDe('martin') <= 12, 'su cumpleaños');
   const r = (h, ds = 1) => { const x = A.rutinaAldea('martin', h, ds, A.aldeaNueva()); return `${x.edificio}/${x.punto}`; };
   eq([7, 9, 10.6, 13, 14.6, 17.5, 23].map((h) => r(h)), ['taller-tren/adentro', 'taller-tren/banco', 'taller-tren/fragua', 'taller-tren/adentro', 'taller-tren/fragua', 'taller-tren/trabajo', 'taller-tren/cama'], 'el día de Martín');
