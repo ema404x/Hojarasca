@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { __mallaPersona } from '../../src/gente.js';
 import { atlasPersonajes, completarAtlas } from '../../src/gente-atlas.js';
 
-const CLAVE = 'aldea-moza';
+const CLAVE = new URLSearchParams(location.search).get('quien') || 'aldea-moza';   // (3.9.2: `&quien=<clave>` para ver a otra persona en el rincón)
 // ---------------------------------------------------------------- la escena: interior con luz de farol
 const lienzo = document.createElement('canvas');
 lienzo.width = 1600; lienzo.height = 900; document.body.appendChild(lienzo);
