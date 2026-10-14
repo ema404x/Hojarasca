@@ -177,6 +177,7 @@ C.soltarPersona(yo);
 const mano = C.manoPrimeraPersona({ piel: '#c49a70', manga: '#6b4a3a', guarda: 1 });
 ok(mano.isMesh && !mano.isSkinnedMesh && mano.geometry.attributes.aTela && mano.geometry.attributes.aGuarda && mano.material === C.materialGente(), 'tu mano: una malla fija con el material de la gente');
 const pm = leer('src/personal-personaje-mundo.js');
-ok(pm.includes("import { crearPersona, soltarPersona, manoPrimeraPersona } from './gente-cuerpo.js';") && pm.includes("crearPersona({}, 'jugador', false, {}, { aspecto: aspectoJugador(aspecto(datos)) })"), 'personal-personaje-mundo.js: tu cuerpo y tu mano, al estilo de la gente');
+// (4.1: con Bruno creado el cuerpo sale de su genoma; si no, de «Tu personaje» como siempre: las dos rutas pasan por crearPersona del jugador)
+ok(pm.includes("import { crearPersona, soltarPersona, manoPrimeraPersona } from './gente-cuerpo.js';") && pm.includes("crearPersona({}, 'jugador', false, {}, { aspecto: bruno && bruno.creado ? aspectoJugadorBruno(bruno, datos) : aspectoJugador(aspecto(datos)) })"), 'personal-personaje-mundo.js: tu cuerpo y tu mano, al estilo de la gente (con Bruno creado o sin crear)');
 
 console.log(`OK 3.7.0 personajes · ${pasos} verificaciones · el estilo P para todos, la ropa de cada uno y la de abrigo, los pulidos y el juego`);
