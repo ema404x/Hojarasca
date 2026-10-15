@@ -292,16 +292,19 @@ export const ASPECTO = {
     poses: ['cintura', 'gorro', 'delantal'],
     abrigo: { colores: { poncho: '#7a4f3e', bufanda: '#d8cdb8', gorro: 'panuelo' } },
   },
-  // Anselmo Ruiz, herrero: robusto, gorro, barba, delantal de cuero repujado, camisa arremangada
+  // Anselmo Ruiz, herrero: robusto, barba, camisa arremangada. 4.0 (prototipo, la referencia 5 de `referencias-4-0/`): boina, chaleco
+  // oscuro con botones, pañuelo colorado al cuello, cinturón con hebilla, pantalón pardo y botas con vuelta; el delantal de cuero
+  // repujado quedó en la fragua (decisión del prototipo: la referencia va sin delantal; si el usuario lo quiere, vuelve con
+  // `delantal: '#6c4a2c', telaDelantal: 'cuero'` y la guarda 7)
   'poblador-herrero': {
     edad: 52, mujer: false,
-    cuerpo: { ancho: 1.09, fondo: 1.13, panza: 0.13, brazos: 1.13, piernas: 1.08, alto: 1.0, robusto: true },
-    cara: { ancho: 1.06, largo: 1.0, nariz: 1.2, ojos: 0.92, mand: 0.36, sonrisa: 0.35, arrugas: 'risa', iris: '#5c3b22' },
-    colores: { piel: '#a87a56', pelo: '#3a2a1e', barba: '#4a3626', ropa: '#b39466', abrigo: '#6b5a36', gorro: 'gorro', gorroColor: '#5c4a32' },
-    R: { pantalon: '#5e4c36', delantal: '#6c4a2c', telaDelantal: 'cuero', faja: '#8a3c2a', botaCol: '#5a3c26', arremangado: true, canas: 0.25 },
-    guardas: { delantal: [7, 0.06] },
+    cuerpo: { ancho: 1.09, fondo: 1.13, panza: 0.1, brazos: 1.13, piernas: 1.08, alto: 1.0, robusto: true },
+    cara: { ancho: 1.06, largo: 1.0, nariz: 1.2, ojos: 0.96, mand: 0.36, sonrisa: 0.5, arco: 1.15, rubor: 1.25, arrugas: 'risa', iris: '#5c3b22' },
+    colores: { piel: '#c0906a', pelo: '#2e221a', barba: '#3a2a20', ropa: '#e4dac4', abrigo: '#463a36', gorro: 'boina', gorroColor: '#4a3a30' },
+    R: { chaleco: true, telaChaleco: 'lana', botones: '#6a5a48', panuelo: '#b8302a', pantalon: '#6a6048', botas: 'altas', botaCol: '#4a3426', arremangado: true, canas: 0.25 },
+    guardas: { cuello: [1, 0, 'todo'] },   // (el ribete tejido en el cuello de la camisa; la guarda 7 del delantal se fue con él)
     poses: ['cintura', 'cruzados', 'barba'],
-    abrigo: { colores: { poncho: '#4c4640', gorro: 'gorroPunto', gorroColor: '#5c4a32', bufanda: '#8a3c2a' } },
+    abrigo: { colores: { poncho: '#4c4640', gorro: 'boina', bufanda: '#b8302a' } },
   },
   // Aurelio Nahuel, pescador de red: sombrero, campera encerada, barba gris, botas de goma
   'poblador-pescador': {
