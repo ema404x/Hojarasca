@@ -14,6 +14,7 @@
 // 3.7.0: el cuerpo y la mano, al estilo de la gente (gente-cuerpo.js).
 import * as THREE from 'three';
 import { aspecto } from './personal-personaje.js';
+import { aspectoJugadorBruno, pielDeBruno } from './personal-bruno.js';
 import { crearPersona, soltarPersona, manoPrimeraPersona } from './gente-cuerpo.js';
 
 // Todas las mallas de `g` en una sola geometría (sólo posiciones: es para la sombra).
@@ -66,9 +67,10 @@ export function crearCuerpoJugador(escena) {
   // por huesos, con la ropa que elegiste (la campera, el poncho con su guarda, el gorro de lana, la
   // bufanda, los guantes, las botas) y tu peinado. Los pivotes de siempre (la figura de varón, a 1,07:
   // cadera a 0,88 y cabeza a 1,56). Sin sombra propia: la sombra es la silueta.
-  function armar(datos) {
+  function armar(datos, bruno) {
     tirar();
-    persona = crearPersona({}, 'jugador', false, {}, { aspecto: aspectoJugador(aspecto(datos)) });
+    // 4.1: con Bruno ya creado, su aspecto (cara, piel, pelo, físico) y la ropa de abrigo de «Tu personaje»; si no, «Tu personaje» de siempre
+    persona = crearPersona({}, 'jugador', false, {}, { aspecto: bruno && bruno.creado ? aspectoJugadorBruno(bruno, datos) : aspectoJugador(aspecto(datos)) });
     const g = persona.g;
     piernas = persona.patas; brazos = persona.brazos;
     g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
@@ -121,7 +123,8 @@ export function crearCuerpoJugador(escena) {
     return cambio && conSombras;
   }
 
-  return { aplicar: (d) => { armar(d); conSilueta = null; }, actualizar, mostrarEnCamara, raiz, silueta, cuerpo: () => cuerpo, tomarMano: (lado) => { manoAmor = lado === 0 || lado === 1 ? lado : null; } };
+  let ultima = null;   // 4.1: lo último que se aplicó: si no cambió, no se rearma el cuerpo (las dos secciones, Bruno y «Tu personaje», llaman a `aplicar`)
+  return { aplicar: (d, b) => { const firma = JSON.stringify([d, b]); if (firma === ultima && cuerpo) return; ultima = firma; armar(d, b); conSilueta = null; }, actualizar, mostrarEnCamara, raiz, silueta, cuerpo: () => cuerpo, tomarMano: (lado) => { manoAmor = lado === 0 || lado === 1 ? lado : null; } };
 }
 
 // La mano y la manga en primera persona, debajo de lo que llevás. `enMano` es el de
@@ -138,10 +141,10 @@ export function crearManoPropia(enMano) {
   // 3.7.0: al estilo P (gente-cuerpo.js): la piel con su pincelada (o el guante de lana) y la manga
   // con la tela y la guarda en el puño; una sola malla, que se rearma al cambiar la ropa.
   let malla = null;
-  function aplicar(datos) {
+  function aplicar(datos, bruno) {
     const a = aspecto(datos);
     if (malla) { grupo.remove(malla); malla.geometry.dispose(); }
-    malla = manoPrimeraPersona({ piel: a.piel, guantes: a.guantes, manga: a.poncho || a.campera, guarda: a.poncho ? 2 : 1 });
+    malla = manoPrimeraPersona({ piel: bruno && bruno.creado ? pielDeBruno(bruno) : a.piel, guantes: a.guantes, manga: a.poncho || a.campera, guarda: a.poncho ? 2 : 1 });
     malla.userData.guante = a.guantes || null;   // 3.7.1: el guante va pintado en la malla; queda anotado (humo-2-8)
     grupo.add(malla);
   }

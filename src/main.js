@@ -148,6 +148,7 @@ import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
 import { textoHud as textoRelojHud, partesReloj, partesAlmanaque } from './reloj-almanaque.js';
 // 3.8.8: el reloj y el almanaque de pared (lo que se usa con E)
 import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
+import { ESPEJO_QUE_SE_USA } from './planos-espejo.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
 import { COLMENA, sanearColmena, avanzarColmena, usarColmena, avisoColmena, cosechaConAbejas, seAlborotan } from './colmena.js';
@@ -217,6 +218,10 @@ import { templarNoche } from './personal-personaje.js';
 import { sanearInterfaz, escalaFinal, colorAcento, MIRAS } from './personal-interfaz.js';
 import { empezarConReceta, factorAnimales, vecinosActivos } from './personal-partida.js';
 import { crearCuerpoJugador, crearManoPropia } from './personal-personaje-mundo.js';
+// 4.1: Bruno Castellanos: la pantalla de creación (antes de entrar al bosque) y el espejo
+import { abrirCreador } from './creador-pantalla.js';
+import { dibujarFichaBruno } from './creador-ficha.js';
+import { genomaDesdePersonajeViejo } from './creador-personaje.js';
 import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-bandera-mundo.js';
 // 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js)
 import { crearModos, CSS_MODOS } from './modos-juego.js';
@@ -975,7 +980,8 @@ function dibujarCuaderno() {
   lista.appendChild(btnLamina);
   const pest = el('div', 'pestanas');
   pest.setAttribute('role', 'tablist');
-  const pestanas = [['especies', 'Especies y lugares'], ['fotos', 'Álbum de fotos'], ['diario', 'Diario']];
+  // 4.1: la ficha de Bruno es la primera pestaña (sólo lectura); no suma ni resta anotaciones del cuaderno
+  const pestanas = [['bruno', 'Bruno'], ['especies', 'Especies y lugares'], ['fotos', 'Álbum de fotos'], ['diario', 'Diario']];
   // 3.1: rangos y oficios (3.6: y en el Relax, la Aldea de los Duendes)
   pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y aldea']);
   if (!desafio && cocinaJuego) pestanas.push(['recetario', 'Recetario']);   // 3.7.2
@@ -995,6 +1001,7 @@ function dibujarCuaderno() {
   lista.appendChild(pest);
   const ficha = $('cuaderno-ficha');
   ficha.innerHTML = '';
+  if (pestana === 'bruno') { dibujarFichaBruno(lista, ficha, el, progreso.personal?.bruno, !!desafio); return; }   // 4.1
   if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
   if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
   if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
@@ -2145,6 +2152,8 @@ $('btn-codigo-semana')?.addEventListener('click', () => { $('codigo-partida').va
 if (esDesafio && !partidaEmpezada() && progreso.desafio?.semilla && $('codigo-partida')) $('codigo-partida').value = progreso.desafio.semilla;
 
 $('btn-entrar').addEventListener('click', () => {
+  // 4.1: Bruno Castellanos: antes de entrar por primera vez a una partida, la pantalla de creación (también en las partidas viejas); al terminar, entra solo
+  if (!sinCreadorDeBruno() && !progreso.personal?.bruno?.creado) { crearABruno('crear', () => $('btn-entrar').click()); return; }
   // 3.8.4: la corrida sin fin fija su dificultad al entrar (una corrida de antes sin dificultad, la de ahora)
   if (esSinFin && progreso.desafio?.sinFin && !progreso.desafio.sinFin.terminada && !progreso.desafio.sinFin.dificultad) {
     progreso.desafio.sinFin.dificultad = dificultadDeCorrida(null, ajustes.dificultad);
@@ -2665,6 +2674,53 @@ function cambiarPersonal(s, parcial) {
   aplicarPersonal();
   return nuevo;
 }
+// 4.1: Bruno Castellanos. 'crear': las dos pantallas, antes de entrar al bosque (se parte de lo que el jugador ya había elegido en «Tu personaje»);
+// 'rehacer': sólo el aspecto (el carácter queda fijo y la ropa de abrigo es la de «Tu personaje»). Una sola a la vez.
+let creadorAbierto = null;
+function crearABruno(modo, alTerminar) {
+  if (creadorAbierto) return;
+  const sBruno = secciones().find((x) => x.id === 'bruno'), sPersonaje = secciones().find((x) => x.id === 'personaje');
+  if (!sBruno || !sPersonaje) { alTerminar?.(); return; }
+  const personaje = datosPersonal(sPersonaje);
+  const base = modo === 'rehacer' ? datosPersonal(sBruno) : genomaDesdePersonajeViejo(personaje);
+  creadorAbierto = abrirCreador({
+    genoma: base, modo, ropa: personaje,
+    alAceptar: (g, retrato) => {
+      creadorAbierto = null;
+      // al crear, la campera y el accesorio que eligió pasan a «Tu personaje» (el guardarropa); al rehacer, no se toca la ropa
+      if (modo === 'crear') cambiarPersonal(sPersonaje, { campera: g.campera, gorro: g.accesorio === 'gorro', bufanda: g.accesorio === 'bufanda' });
+      cambiarPersonal(sBruno, { ...g, creado: true, retrato: retrato || '' });
+      if (modo === 'crear') colocarEspejoDeFabrica();
+      alTerminar?.();
+    },
+    alCancelar: () => { creadorAbierto = null; },
+  });
+}
+// 4.1: el espejo de fábrica: al crear a Bruno, cada refugio nuevo trae un espejo armado (gratis) cerca de la puerta, así nadie se queda sin poder rehacer su aspecto.
+// Se prueban lugares alrededor del refugio hasta que uno sirva; si ninguno sirve, queda el botón de respaldo del panel de Bruno. Una sola vez por partida (si después lo
+// desmontás, no vuelve solo: el plano es gratis y siempre está).
+const hayEspejoArmado = () => (obras?.obras || []).some((o) => o.plano?.id === 'espejo' && o.datos.etapas >= o.plano.etapas.length);
+function colocarEspejoDeFabrica() {
+  const sBruno = secciones().find((x) => x.id === 'bruno');
+  if (!sBruno || !obras || esDesafio || progreso.personal?.bruno?.espejoPuesto || !PLANO.espejo) return;
+  let puesto = hayEspejoArmado();
+  const ref = T.lugares?.refugio;
+  if (!puesto && ref) {
+    const previo = obras.plano;
+    try {
+      obras.elegir(PLANO.espejo);
+      for (const d of [3.4, 4.2, 2.8, 5, 6]) for (let k = 0; k < 12 && !puesto; k++) {
+        const a = (ref.rot || 0) + (k / 12) * Math.PI * 2;
+        const r = obras.fundar(ref.x + Math.sin(a) * d, ref.z + Math.cos(a) * d, a + Math.PI);
+        if (r.ok) { obras.avanzar(r.obra, {}); progreso.obras = obras.obras.map((o) => o.datos); puesto = true; }   // (lo que se guarda: sin esto el espejo no sobrevive a recargar)
+      }
+    } catch (err) { console.warn('Bruno · espejo de fábrica:', err); }
+    finally { try { obras.elegir(previo); } catch { /* nada */ } }
+  }
+  if (puesto) cambiarPersonal(sBruno, { espejoPuesto: true });
+}
+// ¿Hay que crear a Bruno antes de entrar? Siempre, salvo en depuración (las pruebas de humo no pasan por la pantalla; con `&creador=1` sí).
+const sinCreadorDeBruno = () => HOJARASCA_DEBUG && new URLSearchParams(location.search).get('creador') !== '1';
 function aplicarPersonal() {
   for (const s of secciones()) {
     if (typeof s.aplicar !== 'function') continue;
@@ -2747,7 +2803,11 @@ function armarMundoPersonal() {
     ajustes, esDesafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardarAjustes: () => guardarAjustes(ajustes),
     texturaBandera, empezarPartidaNueva,
     // lo de cada sección propia
-    personaje: { aplicar: (d) => { cuerpoJugador?.aplicar(d); manoPropia?.aplicar(d); } },
+    personaje: { aplicar: (d) => { const b = progreso.personal?.bruno; cuerpoJugador?.aplicar(d, b); manoPropia?.aplicar(d, b); } },
+    // 4.1: Bruno Castellanos: al cambiar su aspecto se rearma el cuerpo y la mano (con la ropa de «Tu personaje»)
+    bruno: { aplicar: (b) => { const d = progreso.personal?.personaje; cuerpoJugador?.aplicar(d, b); manoPropia?.aplicar(d, b); },
+      hayEspejo: () => hayEspejoArmado(),
+      abrirCreador: () => crearABruno(progreso.personal?.bruno?.creado ? 'rehacer' : 'crear', () => dibujarPersonal()) },
     interfaz: { aplicar: (d) => aplicarInterfazPersonal(d) },
     bandera: { aplicar: (d) => banderaMundo?.aplicar(d) },
     partida: { aplicar: () => {} },
@@ -6982,6 +7042,7 @@ function usarObraQueTrabaja(o) {
 // anuncia la estación es el que el clima va a seguir (ver `meteo.js`).
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
 OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
+OBRAS_QUE_TRABAJAN.push(...Object.keys(ESPEJO_QUE_SE_USA));   // 4.1: el espejo de Bruno
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
 // (en el Relax: en el Desafío no hay cocina y sigue horneando de una, como en la 2.4)
@@ -7232,6 +7293,7 @@ function avisoObra24(o) {
     case 'embarcadero': return 'Traer el kayak al embarcadero';
     case 'bebedero': return progreso.corral ? 'Mirar tu corral' : 'El bebedero';
     case 'reloj-pared': case 'almanaque-pared': return MUEBLES_QUE_SE_USAN[o.plano.id];   // 3.8.8
+    case 'espejo': return ESPEJO_QUE_SE_USA.espejo;   // 4.1
     default: return null;
   }
 }
@@ -7254,6 +7316,8 @@ function usarObra24(o) {
       nota('Tu corral', conLana ? `${conLana} de ${total} con el vellón entero` : 'Las dos recién esquiladas: el vellón vuelve en unos días');
       return true;
     }
+    // 4.1: el espejo: rehacer el aspecto de Bruno (el carácter queda fijo y la ropa de abrigo es la de «Tu personaje»)
+    case 'espejo': crearABruno('rehacer', () => dibujarPersonal()); return true;
     // 3.8.8: el reloj y el almanaque de tu casa dicen lo mismo que los de la aldea (reloj-almanaque.js)
     case 'reloj-pared':
       leerEnLaAldea({ quien: 'El reloj de pared', que: 'tu casa', partes: partesReloj({ hora: progreso.horas, dia: progreso.dia }), despedida: 'Tic, tac.' });
@@ -10292,6 +10356,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
       secciones: () => secciones().map((s) => s.id), datos: () => progreso.personal, mundo: mundoPersonal,
       abrir: (origen = 'pausa') => abrirPersonal(origen), cerrar: cerrarPersonal, abierto: personalAbierto, desdeElJuego: personalizarDesdeElJuego,
       cambiar: (id, parcial) => { const s = secciones().find((x) => x.id === id); return s ? cambiarPersonal(s, parcial) : null; },
+      usarObra: (o) => usarObra24(o), obras: () => obras, hayEspejo: () => hayEspejoArmado(), colocarEspejo: colocarEspejoDeFabrica,
       aplicar: aplicarPersonal, cuerpo: () => cuerpoJugador, mano: () => manoPropia, bandera: () => banderaMundo, texturaBandera,
     },
   });

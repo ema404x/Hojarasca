@@ -92,9 +92,11 @@ export function empezarConReceta(personal, ajustes) {
   const r = d.proxima;
   const nuevosAjustes = { ...(ajustes || {}) };
   for (const k of ['estacion', 'clima', 'dificultad']) if (r[k] !== 'igual') nuevosAjustes[k] = r[k];
+  // 4.1: cada partida tiene su propio Bruno: el de la vieja no pasa (la nueva pide crearlo de nuevo)
+  const { bruno: _brunoViejo, ...resto } = p;
   return {
     ajustes: nuevosAjustes,
-    personal: { ...p, partida: { ...d, actual: { animales: r.animales, vecinos: r.vecinos } } },
+    personal: { ...resto, partida: { ...d, actual: { animales: r.animales, vecinos: r.vecinos } } },
   };
 }
 export const factorAnimales = (progreso) => FACTOR_ANIMALES[sanearPartida(progreso?.personal?.partida).actual.animales] || 1;

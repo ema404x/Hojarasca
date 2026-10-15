@@ -62,6 +62,8 @@ app.whenReady().then(async () => {
   for (let i = 0; i < 80 && !(await js('!!window.estudioListo').catch(() => false)); i++) await new Promise((r) => setTimeout(r, 200));
   if (!(await js('!!window.estudioListo'))) { console.log('no cargó:\n' + errores.join('\n')); app.exit(1); return; }
   const quienes = arg('quienes', 'poblador-panadera,poblador-herrero,aldea-nena,poblador-herbolaria');
+  // 3.9.2: `genomas=<archivo.json>`: los personajes del creador ({ "gen:Mariana": {...genoma}, ... }); se piden en `quienes` por su clave
+  if (arg('genomas', '')) await js(`window.__genomas = ${fs.readFileSync(path.resolve(arg('genomas', '')), 'utf8')}; 1`);
   const nombre = arg('nombre', 'estudio');
   const opciones = JSON.stringify({ invierno: arg('invierno', '0') === '1', fiesta: arg('fiesta', '0') === '1' });
   for (const t of arg('tomas', 'cuerpo,cara').split(',').filter(Boolean)) {

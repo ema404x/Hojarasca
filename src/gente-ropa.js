@@ -237,13 +237,35 @@ export const ASPECTO = {
   'aldea-bailarina': {
     edad: 30, mujer: true,
     cuerpo: { ancho: 0.97, fondo: 1.0, brazos: 0.94, piernas: 1.0, alto: 1.04, busto: 2.1, cadera: 1.17, cintura: 0.92 },
-    cara: { ancho: 0.97, largo: 1.0, nariz: 0.85, ojos: 1.1, boca: 1.05, pomulos: 1.25, sonrisa: 0.8, labios: 1.3, arco: 1.3, rasgado: 0.1, rouge: '#b01428', iris: '#4a78a8' },
-    colores: { piel: '#e6bd98', pelo: '#ecd078', ropa: '#17151a', abrigo: '#17151a', gorro: null, bufanda: null, aros: 'chicos' },
-    R: { mujer: true, curvas: true, pollera: true, colPollera: '#17151a', rodete: true, escote: true, sinMangas: true, arremangado: true, tajo: true, tajoV: { a: 0.62, w: 0.2, y: 0.0 },
-      florPelo: '#e0303a', tacos: '#b4182a', cinturon: '#b4182a', pantalon: '#b88a70' },
+    // 3.9.2: para que no se confunda con Greta (la anfitriona, rubia de rodete): melena suelta hasta los hombros con raya al costado, rubio
+    // más claro, cara más angosta y larga con pómulos altos, cejas muy arqueadas, ojos verdes un poco rasgados y labios llenos; el vestido
+    // de paño de fiesta con brillo de raso y un collar fino con dije
+    // (y la mirada de tango: el párpado entornado, los ojos rasgados, la sonrisa apenas, el rojo profundo; el escote más hondo y el tajo más alto)
+    cara: { ancho: 0.93, largo: 1.05, nariz: 0.8, ojos: 1.06, boca: 1.0, pomulos: 1.35, sonrisa: 0.6, labios: 1.5, arco: 1.5, rasgado: 0.25, parpado: 0.22, menton: 0.92, rouge: '#9e0c24', rubor: 1.3, iris: '#4e6a3c' },
+    colores: { piel: '#e9c4a0', pelo: '#eed890', ropa: '#17151a', abrigo: '#17151a', gorro: null, bufanda: null, aros: 'chicos' },
+    R: { mujer: true, curvas: true, pollera: true, colPollera: '#17151a', melena: true, rayaCostado: true, escote: true, escoteHondo: true, sinMangas: true, arremangado: true, tajo: true, tajoV: { a: 0.62, w: 0.24, y: 0.08 },
+      telaCampera: 'fiesta', telaPollera: 'fiesta', collar: '#d4b05a', florPelo: '#e0303a', tacos: '#b4182a', cinturon: '#b4182a', pantalon: '#b88a70' },
     guardas: { pollera: [12, 0.012] },   // (el ruedo, con un ribete de lentejuelas finito)
     poses: ['cintura', 'atras'],
     abrigo: { colores: { poncho: '#2a1c24', gorro: 'gorroPunto', gorroColor: '#2a1c24', bufanda: '#b01c2c' }, R: { sinMangas: false } },
+  },
+
+  // 3.9.2 (prototipo): Greta, la anfitriona de la casa de té (36): rubia de rodete con una flor roja, piel clara y ojos celestes. Vestido
+  // azul noche largo hasta el tobillo (`R.polleraLarga`), ceñido a la cintura (`R.talle`) con escote en V, la blusa blanca arremangada por
+  // debajo (`R.colManga`), la faja roja ancha atada atrás con moño (`R.faja` con el vestido), el delantal crudo sin pechera hasta un palmo
+  // del ruedo (`R.delantalSinPechera`) con la guarda de amancay, y zapatos colorados. Clave provisoria; el núcleo todavía no la da de alta.
+  'aldea-anfitriona': {
+    edad: 36, mujer: true,
+    cuerpo: { ancho: 0.96, fondo: 0.98, brazos: 0.94, piernas: 1.0, alto: 1.03, busto: 1.5 },
+    cara: { ancho: 1.02, largo: 0.98, nariz: 0.8, ojos: 1.14, boca: 1.08, pomulos: 1.3, sonrisa: 0.9, labios: 1.0, arco: 1.3, rasgado: 0.04, rouge: '#b8303a', rubor: 2.2, iris: '#5c7fa6' },
+    colores: { piel: '#edc8a6', pelo: '#d6bd68', ropa: '#ece6d8', abrigo: '#232a3c', gorro: null, bufanda: null, aros: 'chicos' },
+    // (hoja de modelo del 13-10: jumper azul sobre blusa crema de cuello alto —camisa + chaleco—, faja roja, delantal con dos rayas rojas,
+    // medias crema y zapatos bordó)
+    R: { mujer: true, talle: true, pollera: true, polleraLarga: true, colPollera: '#232a3c', rodete: true, rodeteBajo: true, peloEsculpido: true, rayaCostado: true, chaleco: true, jumper: true, telaChaleco: 'lana', telaPollera: 'lana', cuelloAlto: true, mangaAbullonada: true,
+      faja: '#b4202a', delantal: '#e9dfc8', telaDelantal: 'lienzo', delantalSinPechera: true, delantalRayas: '#b5342c', delantalHoja: '#b5342c', florPelo: '#d8302e', zapatos: '#7a2a22', vivoPollera: '#c9a858', pantalon: '#e8e0d0' },
+    guardas: {},   // (el vivo dorado de la pollera, la hoja y las rayas del delantal van pintados, no son guardas del atlas)
+    poses: ['juntas', 'cintura', 'delantal'],
+    abrigo: { colores: { poncho: '#2c3446', gorro: 'gorroPunto', gorroColor: '#2c3446', bufanda: '#b4202a' } },
   },
 
   // ------------------------------------------------------------ los once pobladores

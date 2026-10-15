@@ -162,10 +162,14 @@ function construir(cont, api) {
   const opcionesLana = LANAS.map((l) => ({ valor: l.id, color: l.color, texto: l.nombre, bloqueado: !desbloqueado(p, `lana:${l.id}`), titulo: l.ayuda }));
 
   cont.appendChild(parrafo('Así te ven la sombra, las fotos del modo foto y tus manos. La ropa abriga de verdad: con poncho, gorro y bufanda una noche de invierno sin fuego se pasa mejor.'));
-  fila(cont, 'Piel', muestras(PIELES.map((x) => ({ valor: x.id, color: x.color, texto: x.nombre })), d.piel, (v) => cambiar({ piel: v }), 'Tono de piel'));
-  fila(cont, 'Pelo', muestras(PELOS.map((x) => ({ valor: x.id, color: x.color, texto: x.nombre })), d.pelo, (v) => cambiar({ pelo: v }), 'Color de pelo'));
-  fila(cont, 'Peinado', segmentos(PEINADOS.map((x) => ({ valor: x.id, texto: x.nombre })), d.peinado, (v) => cambiar({ peinado: v })));
-  fila(cont, 'Contextura', segmentos(CONTEXTURAS.map((x) => ({ valor: x.id, texto: x.nombre })), d.contextura, (v) => cambiar({ contextura: v })));
+  // 4.1: con Bruno ya creado, su piel, su pelo, su peinado y su físico son los suyos (se rehacen en el espejo del refugio): acá queda sólo la ropa
+  if (api.progreso?.personal?.bruno?.creado) cont.appendChild(parrafo('Tu piel, tu pelo y tu físico son los de Bruno: se rehacen en el espejo del refugio. Acá elegís la ropa.'));
+  else {
+    fila(cont, 'Piel', muestras(PIELES.map((x) => ({ valor: x.id, color: x.color, texto: x.nombre })), d.piel, (v) => cambiar({ piel: v }), 'Tono de piel'));
+    fila(cont, 'Pelo', muestras(PELOS.map((x) => ({ valor: x.id, color: x.color, texto: x.nombre })), d.pelo, (v) => cambiar({ pelo: v }), 'Color de pelo'));
+    fila(cont, 'Peinado', segmentos(PEINADOS.map((x) => ({ valor: x.id, texto: x.nombre })), d.peinado, (v) => cambiar({ peinado: v })));
+    fila(cont, 'Contextura', segmentos(CONTEXTURAS.map((x) => ({ valor: x.id, texto: x.nombre })), d.contextura, (v) => cambiar({ contextura: v })));
+  }
   fila(cont, 'Campera', muestras(opcionesLana, d.campera, (v) => cambiar({ campera: v }), 'Color de la campera'));
   for (const k of Object.keys(PRENDAS)) {
     const pr = PRENDAS[k];

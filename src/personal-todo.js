@@ -8,6 +8,8 @@
 // que exporta), aunque acá no se use.
 import { secciones, sanearPersonal } from './personalizacion.js';
 import { SECCION_PERSONAJE } from './personal-personaje.js';
+// 4.1: Bruno Castellanos (el creador de personaje)
+import { SECCION_BRUNO } from './personal-bruno.js';
 import { SECCION_INTERFAZ } from './personal-interfaz.js';
 import { SECCION_BANDERA } from './personal-bandera.js';
 import { SECCION_PARTIDA } from './personal-partida.js';
