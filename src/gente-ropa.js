@@ -301,8 +301,8 @@ export const ASPECTO = {
     cuerpo: { ancho: 1.09, fondo: 1.13, panza: 0.1, brazos: 1.13, piernas: 1.08, alto: 1.0, robusto: true },
     cara: { ancho: 1.06, largo: 1.0, nariz: 1.2, ojos: 0.96, mand: 0.36, sonrisa: 0.5, arco: 1.15, rubor: 1.25, arrugas: 'risa', iris: '#5c3b22' },
     colores: { piel: '#c0906a', pelo: '#2e221a', barba: '#3a2a20', ropa: '#e4dac4', abrigo: '#463a36', gorro: 'boina', gorroColor: '#4a3a30' },
-    R: { chaleco: true, telaChaleco: 'lana', botones: '#6a5a48', panuelo: '#b8302a', pantalon: '#6a6048', botas: 'altas', botaCol: '#4a3426', arremangado: true, canas: 0.25 },
-    guardas: { cuello: [1, 0, 'todo'] },   // (el ribete tejido en el cuello de la camisa; la guarda 7 del delantal se fue con él)
+    R: { chaleco: true, telaChaleco: 'lana', botones: '#6a5a48', panuelo: '#b8302a', pantalon: '#6a6048', botas: 'altas', botaCol: '#4a3426', delantal: '#6c4a2c', telaDelantal: 'cuero', arremangado: true, canas: 0.25 },
+    guardas: { cuello: [1, 0, 'todo'], delantal: [7, 0.06] },   // (el ribete tejido en el cuello de la camisa y la guarda 7 del delantal de cuero, que conserva)
     poses: ['cintura', 'cruzados', 'barba'],
     abrigo: { colores: { poncho: '#4c4640', gorro: 'boina', bufanda: '#b8302a' } },
   },
