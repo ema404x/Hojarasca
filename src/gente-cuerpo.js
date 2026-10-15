@@ -1100,10 +1100,15 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   // `C.cadera` (cuánto más ancha; 1 = la de siempre). Es el mismo esqueleto, con los mismos huesos y las mismas poses: sólo cambian los radios.
   const curvas = !!(R.curvas && mujer);
   const talle = !!((R.talle || R.curvas) && mujer);
-  const busto = Number(C.busto) > 0 ? Number(C.busto) : 1, cadera = Number(C.cadera) > 0 ? Number(C.cadera) : 1, cintura = Number(C.cintura) > 0 ? Number(C.cintura) : 1;
+  const adulta = mujer && !chico;
+  // 4.1: cada mujer adulta tiene su propio busto (de chico a bien llenero) según su clave, salvo que su ficha lo fije con `cuerpo.busto`
+  const bustoPropio = (() => { let h = 2166136261; for (const ch of String(clave)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return 0.8 + (((h >>> 0) % 1000) / 1000) * 1.3; })();
+  const busto = Number(C.busto) > 0 ? Number(C.busto) : adulta ? bustoPropio : 1, cadera = Number(C.cadera) > 0 ? Number(C.cadera) : 1, cintura = Number(C.cintura) > 0 ? Number(C.cintura) : 1;
   const pechoK = chico ? 0 : mujer ? (talle ? 0.2 : 0.17) * busto : 0.07;
   const panza = C.panza ?? 0;   // la panza de buen comer (Anselmo, Pocha)
-  const zPecho = (x, y) => (1 + pechoK * Math.exp(-(((y - 0.325) / 0.075) ** 2)) * (mujer ? Math.exp(-((x / 0.11) ** 2)) * 1.4 : 1)) * (1 + panza * Math.exp(-(((y - 0.15) / 0.12) ** 2)) * Math.exp(-((x / 0.16) ** 2)));
+  // 4.1: en las mujeres adultas el pecho son dos lóbulos (y no un solo montículo): cada uno redondo y más lleno abajo que arriba, con un surco entre los dos
+  const lobulos = (x, y) => { const sg = curvas ? 0.052 : 0.062, c = curvas ? 0.052 : 0.056; return 1.45 * (Math.exp(-(((x - c) / sg) ** 2)) + Math.exp(-(((x + c) / sg) ** 2))) * Math.exp(-(((y - 0.322) / (y > 0.322 ? 0.06 : 0.082)) ** 2)); };
+  const zPecho = (x, y) => (1 + pechoK * (adulta ? lobulos(x, y) : Math.exp(-(((y - 0.325) / 0.075) ** 2)) * (mujer ? Math.exp(-((x / 0.11) ** 2)) * 1.4 : 1))) * (1 + panza * Math.exp(-(((y - 0.15) / 0.12) ** 2)) * Math.exp(-((x / 0.16) ** 2)));
   const capa = (c, perfil, lados = 18, desde = 0, arco = Math.PI * 2, zBase = 0.7, ondas = 0, antes = null) => deformar((() => { const t = torno(c, perfil, null, null, null, lados, desde, arco); if (antes) antes(t.geometry); return t; })(), (v) => {
     const hombro = Math.max(0, 1 - Math.abs(v.y - 0.46) / 0.07);
     if (ondas) { const q = 1 + ondas * Math.sin(Math.atan2(v.x, v.z) * 9 + 0.3) * Math.min(1, Math.max(0, -v.y / 0.4)); v.x *= q; v.z *= q; }
@@ -1126,11 +1131,11 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   };
   if (R.chaleco || R.abierta) {
     const perfilCamisa = [[0.142, -0.02], ...cuerpoAlto.map(([r, y]) => [r - 0.006, y])];
-    capaHombro = pintarPieza(capa(ropa, perfilCamisa, 16), (c, p) => {
+    capaHombro = pintarPieza(capa(ropa, perfilCamisa, adulta ? 30 : 16), (c, p) => {
       arrugasTorso(c, p);
       if (p.z > 0 && Math.abs(p.x) < 0.012 && p.y > 0.05 && p.y < 0.5) c.multiplyScalar(0.9);   // la tapeta de la camisa
     });
-    torso.add(rol(capaHombro, 'camisa', perfilCamisa.length, 16));
+    torso.add(rol(capaHombro, 'camisa', perfilCamisa.length, adulta ? 30 : 16));
   }
   if (R.chaleco) {
     const perfilChaleco = R.chamal
@@ -1139,9 +1144,10 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       // frente es angosta (±14°) y deja ver la blusa como un panel
       : R.jumper ? [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.196, 0.43], [0.192, 0.478], [0.184, 0.5], [0.152, 0.522], [0.095, 0.54]]
       : [[0.158, -0.06], [0.157, 0.02], [0.148, 0.12], [0.162, 0.24], [0.188, 0.35], [0.196, 0.43], [0.188, 0.478]];
-    const abreCh = R.chamal ? 0 : R.jumper ? 0.25 : 0.4, ladosCh = R.jumper ? 40 : 16;
+    // (4.1: abajo, el chaleco de las mujeres un poco más ancho: a la altura de la cintura tenía casi el mismo radio que la blusa y las dos telas se pisaban en triángulos)
+    const abreCh = R.chamal ? 0 : R.jumper ? 0.25 : 0.4, ladosCh = R.jumper ? 40 : adulta ? 28 : 16;
     const vivoJ = R.jumper ? mezcla(abrigo, ropa, 0.55) : null;   // (3.9.2: el jumper lleva un vivo claro cosido a lo largo de la abertura del frente)
-    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(abrigo, perfilChaleco.map(([r, y]) => [r * (mujer ? 0.92 : 1), y]), ladosCh, abreCh, R.chamal ? Math.PI * 2 : Math.PI * 2 - abreCh * 2), (c, p) => {
+    torso.add(rol(bordeTorno(conTela(pintarPieza(capa(abrigo, perfilChaleco.map(([r, y]) => [r * (mujer ? (y < 0.15 ? 0.995 : 0.92) : 1), y]), ladosCh, abreCh, R.chamal ? Math.PI * 2 : Math.PI * 2 - abreCh * 2), (c, p) => {
       arrugasTorso(c, p);
       if (vivoJ && p.y > -0.05 && Math.abs(Math.atan2(p.x, p.z / 0.7)) < abreCh + 0.04) c.set(vivoJ);
     }), TELA[R.telaChaleco || 'lana']), perfilChaleco.length, ladosCh, !R.chamal, true), 'chaleco', perfilChaleco.length, ladosCh));
@@ -1149,7 +1155,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
     else torso.add(capa('#4a3626', [[0.16, -0.035], [0.16, 0.02]], 16));
     if (!R.delantal) for (const y of [0.1, 0.2, 0.3]) torso.add(fino(bola('#2a2018', [0.008, 0.008, 0.005], [0.064, y, 0.118 * zPecho(0.064, y) + 0.004])));
   } else {
-    const perfilCampera = [...faldon, ...cuerpoAlto], lados = R.campera === 'larga' ? 26 : 18;
+    const perfilCampera = [...faldon, ...cuerpoAlto], lados = R.campera === 'larga' ? (adulta ? 34 : 26) : curvas ? 36 : adulta ? 30 : 18;   // (4.1: con curvas, más columnas para que los dos lóbulos del pecho no salgan en facetas)
     capaHombro = pintarPieza(capa(abrigo, perfilCampera, lados, R.abierta ? 0.3 : 0, R.abierta ? Math.PI * 2 - 0.6 : Math.PI * 2, 0.7, R.campera === 'larga' ? 0.03 : 0), (c, p) => {
       arrugasTorso(c, p);
       if (R.campera === 'larga') surcos(c, Math.sin(Math.atan2(p.x, p.z) * 9 + 0.3) * sv(0.0, -0.2, p.y), 0.16);
@@ -1161,15 +1167,15 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       // 3.9: el escote en V: un parche de piel sobre el pecho, cortado en V (se angosta hacia abajo), con el ribete del vestido en
       // los dos bordes. Va por encima del corpiño (5 mm) con la misma curva, así que acompaña el busto y el cuello.
       // (3.9.2: `R.escoteHondo`: 6 cm más abajo, con filas intermedias para que la punta de la V no salga en sierra; 28 columnas: el borde salía dentado)
-      const yb = R.escoteHondo ? 0.34 : 0.4, yt = 0.553, ys = [yb, ...(R.escoteHondo ? [0.36, 0.38, 0.4] : []), 0.42, 0.462, 0.5, 0.528, 0.545, yt], lados = 28, mitad = 1.25;
+      const yb = R.escoteHondo ? 0.325 : 0.4, yt = 0.553, ys = [yb, ...(R.escoteHondo ? [0.36, 0.38, 0.4] : []), 0.42, 0.462, 0.5, 0.528, 0.545, yt], lados = curvas ? 44 : 28, mitad = 1.25;
       const rEn = (y) => { for (let i = 1; i < cuerpoAlto.length; i++) if (y <= cuerpoAlto[i][1]) { const [r0, y0] = cuerpoAlto[i - 1], [r1, y1] = cuerpoAlto[i]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return cuerpoAlto[cuerpoAlto.length - 1][0]; };
-      const parche = capa(colPiel, ys.map((y) => [rEn(y) + 0.005, y]), lados, -mitad, mitad * 2, 0.7);
+      const parche = capa(colPiel, ys.map((y) => [rEn(y) + (curvas ? 0.011 : 0.005), y]), lados, -mitad, mitad * 2, 0.7);
       {
         const P = parche.geometry.attributes.position, np = ys.length, xmax = new Float32Array(np);
         for (let i = 0; i < P.count; i++) xmax[i % np] = Math.max(xmax[i % np], Math.abs(P.getX(i)));
         for (let i = 0; i < P.count; i++) {
           const j = i % np, x = P.getX(i), z = P.getZ(i), y = ys[j], R0 = xmax[j] / Math.sin(mitad);
-          const hw = Math.min(xmax[j], 0.084 * Math.pow(Math.min(1, (y - yb) / (0.528 - yb)), 0.9));
+          const hw = Math.min(xmax[j], (R.escoteHondo ? 0.094 : 0.084) * Math.pow(Math.min(1, (y - yb) / (0.528 - yb)), 0.9));
           const x2 = xmax[j] > 1e-6 ? x / xmax[j] * hw : 0;
           const f = Math.sqrt(Math.max(0, 1 - (x2 / R0) ** 2)) / Math.sqrt(Math.max(1e-4, 1 - (x / R0) ** 2));
           P.setXYZ(i, x2, P.getY(i), z * f);
@@ -1193,10 +1199,18 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   if (R.collar && !conPoncho) {
     // 3.9.2: el collar fino (Dalia): la cadena apoyada en la base del cuello, que baja al frente, y el dije sobre el pecho; piezas finas
     const oro = typeof R.collar === 'string' ? R.collar : '#d4b05a';
-    const cad = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.002, 6, 30), color(oro));
-    cad.position.set(0, 0.512, 0.016); cad.rotation.x = Math.PI / 2 - 0.42; cad.scale.set(1, 1, 0.8);   // (apoyada en la base del cuello, cayendo al frente)
-    torso.add(fino(conTela(cad, TELA.plata)));
-    const zd = 0.128 * 0.7 * zPecho(0, 0.47) + 0.006;
+    // 4.1: la cadena sigue la piel: rodea el cuello (atrás y a los lados) y, adelante, baja pegada al pecho hasta el dije, por dentro de la V del escote
+    // (antes era un aro plano que flotaba sobre el escote)
+    const rAlto = (y) => { for (let n = 1; n < cuerpoAlto.length; n++) if (y <= cuerpoAlto[n][1]) { const [r0, y0] = cuerpoAlto[n - 1], [r1, y1] = cuerpoAlto[n]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return cuerpoAlto[cuerpoAlto.length - 1][0]; };
+    const zPiel = (x, y) => { const r = rAlto(y); return Math.sqrt(Math.max(0, 1 - (x / r) ** 2)) * r * 0.7 * 0.84 * zPecho(x, y) + 0.012; };
+    const ptsCad = [];
+    for (let n = 0; n <= 40; n++) {
+      const th = -Math.PI + (n / 40) * Math.PI * 2, cs = Math.cos(th), sn = Math.sin(th), f = Math.max(0, cs) ** 2;
+      const yy = 0.558 - 0.072 * f, xx = 0.068 * sn, zc = 0.06 * cs;
+      ptsCad.push([xx, yy, cs > 0 && yy < 0.548 ? Math.max(zc, zPiel(xx, yy)) : zc]);
+    }
+    torso.add(fino(conTela(huso(oro, ptsCad, ptsCad.map(() => 0.0021), 6, 4), TELA.plata)));
+    const zd = zPiel(0, 0.47) + 0.004;
     torso.add(fino(conTela(bola(oro, [0.009, 0.012, 0.0035], [0, 0.47, zd], null, [8, 6]), TELA.plata)));
     torso.add(fino(conTela(bola(matiz(oro, 0.7), [0.004, 0.004, 0.004], [0, 0.487, zd - 0.002], null, [6, 4]), TELA.plata)));   // la argollita
   }

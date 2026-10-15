@@ -220,7 +220,7 @@ export const ASPECTO = {
   // las pone `npc.pose` (ver POSES_CANTINA en gente-cuerpo.js).
   'aldea-moza': {
     edad: 32, mujer: true,
-    cuerpo: { ancho: 0.93, fondo: 0.95, brazos: 0.95, piernas: 1.02, alto: 1.01 },
+    cuerpo: { ancho: 0.93, fondo: 0.95, brazos: 0.95, piernas: 1.02, alto: 1.01, busto: 1.9 },
     cara: { ancho: 0.96, largo: 1.0, nariz: 0.9, ojos: 1.08, boca: 1.04, pomulos: 1.2, sonrisa: 0.75, labios: 1.25, arco: 1.25, rasgado: 0.08, rouge: '#c0182a', iris: '#4a2e1c' },
     colores: { piel: '#c4936a', pelo: '#3a2418', ropa: '#7a1e2a', abrigo: '#7a1e2a', gorro: null, bufanda: null, aros: 'chicos' },
     R: { mujer: true, pollera: true, colPollera: '#7a1e2a', melena: true, rayaCostado: true, panuelo: '#d0242c', delantal: '#e8dcc4', telaDelantal: 'lienzo',
@@ -236,7 +236,7 @@ export const ASPECTO = {
   // y tacos rojos. Las poses de baile las pide `npc.pose` ('tango', 'chamame', 'chamame-solo'; ver gente.js). En invierno se tapa con una estola roja.
   'aldea-bailarina': {
     edad: 30, mujer: true,
-    cuerpo: { ancho: 0.97, fondo: 1.0, brazos: 0.94, piernas: 1.0, alto: 1.04, busto: 2.1, cadera: 1.17, cintura: 0.92 },
+    cuerpo: { ancho: 0.97, fondo: 1.0, brazos: 0.94, piernas: 1.0, alto: 1.04, busto: 2.7, cadera: 1.17, cintura: 0.92 },
     // 3.9.2: para que no se confunda con Greta (la anfitriona, rubia de rodete): melena suelta hasta los hombros con raya al costado, rubio
     // más claro, cara más angosta y larga con pómulos altos, cejas muy arqueadas, ojos verdes un poco rasgados y labios llenos; el vestido
     // de paño de fiesta con brillo de raso y un collar fino con dije

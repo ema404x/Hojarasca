@@ -24,7 +24,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   ok(/faldaMalla\.userData\.piernas = curvas \? 0\.95 : 1;/.test(gc), 'las demás faldas siguen a las piernas como siempre');
   const R = await import('../src/gente-ropa.js');
   const d = R.ASPECTO['aldea-bailarina'];
-  ok(d.cuerpo.busto === 2.1 && d.cuerpo.cadera === 1.17 && d.cuerpo.cintura === 0.92, 'busto grande y caderas anchas, como el usuario las pidió');
+  ok(d.cuerpo.busto === 2.7 && d.cuerpo.cadera === 1.17 && d.cuerpo.cintura === 0.92, 'busto grande y caderas anchas, como el usuario las pidió (4.1: más busto, 2,7)');
   ok(d.R.curvas && d.R.tajoV && d.R.tacos && d.R.florPelo, 'el vestido, el tajo, los tacos y la flor');
   ok(/\/\/ 3\.9\.2:/.test(gc), 'los comentarios llevan la versión');
 }
