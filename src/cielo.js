@@ -569,7 +569,7 @@ export function crearCielo(escena, calidad) {
     // medio a 250-350 m. Mantener atmósfera sin convertir el valle en una pared gris.
     // 3.5: `nieblaDistancia` (main.js): con otra distancia de dibujo la niebla se estira o se
     // acorta con el borde del bosque (1 con la distancia de la calidad)
-    escena.fog.density = (0.00185 + neblinaManana * (calidad.post ? 0.0042 : 0.0029) + nub * 0.0009 + clima.lluvia * 0.0028 + extraNiebla * 0.55 - claridadMediodia * 0.00025) * calidad.niebla * (calidad.nieblaDistancia || 1) * NIEBLA_ESTILO;
+    escena.fog.density = (0.00185 + neblinaManana * 0.0029 + neblinaManana * (calidad.post ? 0.0013 : 0) + nub * 0.0009 + clima.lluvia * 0.0028 + extraNiebla * 0.55 - claridadMediodia * 0.00025) * calidad.niebla * (calidad.nieblaDistancia || 1) * NIEBLA_ESTILO;
     const rasante = factorLuzRasante(solDir.y, nub);
     const humedadAire = clamp(nub * 0.5 + clima.lluvia * 0.85 + neblinaManana * 0.42 + extraNiebla * 18, 0, 1);
     matCord.uniforms.uNiebla.value = 1 + nub * 2.1 + clima.lluvia * 3.2;

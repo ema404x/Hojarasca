@@ -4,6 +4,9 @@ import { U, GLSL_COMUN, cuentaNiebla } from './materiales.js';
 import { LAGO } from './config.js';
 import { construirCintaArroyo } from './cinta-arroyo.js';
 
+// (lo fija main.js antes de crear el lago, según la calidad)
+let aguaNueva = false;
+export const ajustarAguaNueva = (v) => { aguaNueva = !!v; };
 function materialAgua(nuevo = false) {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]);
   Object.assign(uniforms, {
@@ -410,8 +413,8 @@ export function crearCascada(T, escena, U) {
   return { actualizar, pos: { x: s.x, y: s.abajo, z: s.z }, salto: s };
 }
 
-export function crearAgua(T, escena, calidad = null) {
-  const mat = materialAgua(!!(calidad && calidad.post));
+export function crearAgua(T, escena) {
+  const mat = materialAgua(aguaNueva);
 
   // Lago: plano grande; se descarta donde el fondo queda sobre el nivel
   const gLago = new THREE.PlaneGeometry(420, 420, 1, 1);

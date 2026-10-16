@@ -9,6 +9,7 @@ import { U, materialTerreno } from './materiales.js';
 import { configurarTexturas, prepararTexturas, esperarTexturas, origenTexturas } from './texturas.js';
 import { cargarTerreno } from './terreno.js';
 import { crearAgua, crearCascada } from './agua.js';
+import { ajustarAguaNueva } from './agua.js';
 import { actualizarBanderas } from './bandera-viento.js';
 import { cobrar as cobrarPesos, pesosDe, hayEconomia, formatoPesos, resumenBilletera, textoDiferencia } from './economia.js';
 import { crearCielo, crearConstelaciones, crearFugaces } from './cielo.js';
@@ -557,7 +558,8 @@ async function construir() {
     escena.add(suelo);
   });
 
-  agua = await paso('Llenando el lago', 30, () => crearAgua(T, escena, calidad));
+  ajustarAguaNueva(calidad.post);   // 4.0: reflejo de la orilla y espuma nuevos, sólo media y alta
+  agua = await paso('Llenando el lago', 30, () => crearAgua(T, escena));
   cascada = crearCascada(T, escena, U);
   cielo = await paso('Pintando el cielo', 36, async () => { await esperarTexturas('montana'); return crearCielo(escena, calidad); });
   constelaciones = crearConstelaciones(escena);
