@@ -71,3 +71,11 @@ export const modificadorDeAmistad = (leerBruno, desafio = false) => (vecino, n, 
 // pescador...) como una cadena de factores. El de Bruno es uno más de esa cadena: 1 - 5 % por paso, o sea 0,8 con +4 pasos (pica un 20 % antes) y 1,2 con -4.
 // Decisión conservadora: sólo cambia la ESPERA del pique. No toca el tiempo para clavar, la tensión de la línea ni qué pez sale (eso sería dificultad nueva).
 export const factorPiqueBruno = (bruno, desafio = false) => 1 - efectosDeBruno(bruno, desafio).pesca * PASO_PORCENTAJE / 100;
+
+// ---------------------------------------------------------------- 4. cuaderno
+// Qué mide hoy el cuaderno de campo: entradas que se anotan de a una. Casi todas se anotan de un golpe (acercarse, mirar, E), sin tiempo que acortar. Las únicas que
+// tienen un TIEMPO de observación son las del cielo: mirar una constelación (2,2 s de mirada) o la luna llena, que ya tienen un multiplicador de velocidad
+// (el zoom y los «ojos de noche» de la pareja, amor.js). El de Bruno es uno más de esa cadena: 1 + 5 % por paso, o sea 1,2 con +4 pasos (anota un 20 % más rápido)
+// y 0,8 con -4. Decisión conservadora: las demás entradas (fauna, plantas, lugares) NO cambian; tocarlas obligaría a cambiar la distancia o el ángulo con que
+// se «ve» un animal en fauna.js, vida.js y bichos.js, y eso es dificultad nueva que se decide aparte (queda como pregunta en CAMBIOS_4_1_F3.md).
+export const factorCuadernoBruno = (bruno, desafio = false) => 1 + efectosDeBruno(bruno, desafio).cuaderno * PASO_PORCENTAJE / 100;

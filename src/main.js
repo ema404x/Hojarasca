@@ -225,7 +225,7 @@ import { abrirCreador } from './creador-pantalla.js';
 import { dibujarFichaBruno } from './creador-ficha.js';
 import { genomaDesdePersonajeViejo } from './creador-personaje.js';
 // 4.1 (F3): lo que los rasgos de Bruno cambian en el juego (abrigo, afecto, pesca, cuaderno); sólo en el Relax y con Bruno creado
-import { abrigoExtra, modificadorDeAmistad, factorPiqueBruno } from './creador-efectos.js';
+import { abrigoExtra, modificadorDeAmistad, factorPiqueBruno, factorCuadernoBruno } from './creador-efectos.js';
 import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-bandera-mundo.js';
 // 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js)
 import { crearModos, CSS_MODOS } from './modos-juego.js';
@@ -8657,7 +8657,7 @@ function cieloDeLaNoche(dt, noche, luz) {
   // la luna llena se anota mirándola un rato, como una constelación
   if (luz?.lunaDir && noche > 0.7 && nub < 0.6 && lunaAnotable(fase) && !progreso.entradas['luna-llena']) {
     camara.getWorldDirection(mirada);
-    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) : 0;
+    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) * factorCuadernoBruno(progreso.personal?.bruno, esDesafio) : 0;   // (4.1 F3: y los rasgos de Bruno)
     if (nocheCielo.mirandoLuna > 2.2) registrar('luna-llena');
   }
 }
@@ -8688,7 +8688,7 @@ function actualizarCielo(dt, noche, luz) {
       n++;
       // mirarla un rato la anota en el cuaderno
       if (!conocida) {
-        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1);   // (3.7.1: los ojos de noche de Valentina)
+        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) * factorCuadernoBruno(progreso.personal?.bruno, esDesafio);   // (3.7.1: los ojos de noche de Valentina; 4.1 F3: y los rasgos de Bruno)
         if (tiempoMirando[c.id] > 2.2) registrar(c.id);
       }
     }
