@@ -54,6 +54,7 @@ const FRAG = `
 export function crearNiebla(T, escena, calidad) {
   const r = rng(3131);
   const cantidad = calidad.niebla > 1.2 ? 26 : 46;
+  const calidadPost = !!calidad.post;
   const pos = [], uvs = [], ind = [], fases = [];
   let k = 0;
   const poner = (x, z, y, ancho, alto) => {
@@ -103,6 +104,18 @@ export function crearNiebla(T, escena, calidad) {
     }
   }
 
+  // 4.0 (prototipo de agua y cielo, sólo media y alta): niebla de valle. Más bancos bajos y anchos sobre el fondo del valle (no sólo en el lago
+  // y el mallín), que se ven de arriba, desde el mirador y las lomas; se apagan solos con la hora (la opacidad es la de siempre).
+  if (calidad.post) {
+    const r2 = rng(5252);
+    for (let i = 0; i < 64; i++) {
+      const x = (r2() - 0.5) * 760, z = (r2() - 0.5) * 760;
+      const y = T.altura(x, z);
+      if (y < 0.5 || y > 22) continue;
+      poner(x, z, y + 1.2 + r2() * 2.8, 46 + r2() * 56, 34 + r2() * 44);
+    }
+  }
+
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
@@ -134,7 +147,7 @@ export function crearNiebla(T, escena, calidad) {
     // Mallines y riberas sostienen una capa baja algo más tiempo que una ladera expuesta.
     const persistenciaLocal = 0.68 + humedadLocal * 0.62;
     const v = (amanecer + anochecer) * quieto * humedo * persistenciaLocal * (1 + invierno * 0.4);
-    material.uniforms.uOpacidad.value = Math.min(0.56, v * 0.52);
+    material.uniforms.uOpacidad.value = calidadPost ? Math.min(0.68, v * 0.8) : Math.min(0.56, v * 0.52);   // 4.0: más espesa en media y alta
     material.uniforms.uRafaga.value = Math.max(0, clima.rafaga || 0);
     malla.visible = material.uniforms.uOpacidad.value > 0.006;
     // 3.2: la bruma baja toma un poco del color del aire del estilo (turquesa de mañana)

@@ -4,7 +4,7 @@ import { U, GLSL_COMUN, cuentaNiebla } from './materiales.js';
 import { LAGO } from './config.js';
 import { construirCintaArroyo } from './cinta-arroyo.js';
 
-function materialAgua() {
+function materialAgua(nuevo = false) {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]);
   Object.assign(uniforms, {
     uTiempo: U.uTiempo, uAlturas: U.uAlturas, uSolDir: U.uSolDir, uSolColor: U.uSolColor,
@@ -126,6 +126,20 @@ function materialAgua() {
         vec3 col = mix(agua * luzAgua, cielo, clamp(fres * 0.85 + 0.12, 0.0, 1.0) * (1.0 - corre352 * 0.5));
         // 3.4: el lago patagónico es verde azulado aun cuando refleja el cielo
         col *= vec3(0.9, 1.0, 0.95);
+        // 4.0 (prototipo de agua y cielo, sólo media y alta): reflejo de la orilla por color. Cerca de la costa lo que se ve
+        // en el agua es la costa misma, boca abajo: una franja verde oscura (el bosque) estirada en el rumbo de la vista y rota por las
+        // ondas. Y el espejo toma un poco más del cielo del momento (dorado al ocaso, rosado al alba).
+        ${nuevo ? `
+        vec2 vistaXZ = normalize(vPos.xz - cameraPosition.xz + vec2(1e-4, 0.0));
+        float aLo = dot(vPos.xz, vistaXZ), aAn = dot(vPos.xz, vec2(-vistaXZ.y, vistaXZ.x));
+        float tira = vnoise(vec2(aAn * 0.9, aLo * 0.06 + uTiempo * 0.05)) * 0.6 + vnoise(vec2(aAn * 2.7 + 5.0, aLo * 0.15 - uTiempo * 0.04)) * 0.4;
+        float cercaOrilla = smoothstep(3.4, 0.2, prof) * (1.0 - corre352);
+        float rasante4 = pow(1.0 - clamp(V.y, 0.0, 1.0), 1.5);
+        vec3 verdeOrilla = mix(srgb(vec3(0.07, 0.17, 0.13)) * luzLejos * 1.7, cielo, 0.18);
+        float refOrilla = cercaOrilla * (0.28 + 0.6 * rasante4) * (0.4 + 0.8 * smoothstep(0.22, 0.8, tira)) * (1.0 - uInvierno * 0.4);
+        col = mix(col, verdeOrilla, clamp(refOrilla, 0.0, 0.66));
+        col = mix(col, cielo * 0.97, 0.13 * (1.0 - corre352 * 0.6) * (1.0 - cercaOrilla) * (1.0 - uLluvia * 0.4));
+        ` : ''}
         // 3.5.2: el arroyo que baja por la cuesta se leía como una losa inclinada (el mismo espejo
         // liso que el agua quieta). Donde corre rápido el agua está batida: refleja menos, se
         // aclara a un turquesa lechoso y se abre en vetas blancas que bajan con la corriente y en
@@ -157,12 +171,19 @@ function materialAgua() {
         vec3 blancoEspuma = uAmbiente * 2.4 + uSolColor * max(uSolDir.y, 0.0) * 0.95 + uHorizonte * 0.12;
         col = mix(col, uHorizonte * 0.9 + uAmbiente, espuma * 0.35 * (1.0 - lineaOrilla));
         col = mix(col, blancoEspuma, clamp(lineaOrilla * detalle * 0.55, 0.0, 0.6));
+        ${nuevo ? `
+        // 4.0: puntillas de espuma: un encaje ancho que sube y baja por la orilla (además de la línea fina de siempre)
+        float ola4 = sin(prof * 9.0 - uTiempo * 1.1 + vnoise(vPos.xz * 0.9) * 6.0) * 0.5 + 0.5;
+        float puntillas = smoothstep(1.0, 0.3, prof) * smoothstep(0.66, 0.94, ola4) * (0.45 + 0.55 * vnoise(vPos.xz * 3.4 + uTiempo * 0.12)) * (0.55 + 0.45 * detalle) * (1.0 - corre352 * 0.6);
+        col = mix(col, blancoEspuma, clamp(puntillas * 0.7, 0.0, 0.7));
+        ` : ''}
         col = mix(col, vec3(0.75, 0.8, 0.85) * (uAmbiente * 2.5 + 0.2), uInvierno * smoothstep(0.35, 0.0, prof) * 0.5);
         float transparenciaSomera = smoothstep(0.0, 1.3, prof);
         col = mix(col, col + uHorizonte * 0.035, (1.0 - transparenciaSomera) * (1.0 - uLluvia * 0.55));
         float alfa = smoothstep(0.0, 0.3, prof) * mix(0.58, 0.95, smoothstep(0.0, 2.5, prof));
         alfa = max(alfa, fres * smoothstep(0.0, 0.08, prof));
-        alfa = max(alfa, lineaOrilla * detalle * 0.75 * smoothstep(0.0, 0.035, prof));   // 3.5: la espuma se ve
+        alfa = max(alfa, lineaOrilla * detalle * 0.75 * smoothstep(0.0, 0.035, prof));
+        ${nuevo ? `alfa = max(alfa, puntillas * 0.78 * smoothstep(0.0, 0.03, prof));` : ''}   // 3.5: la espuma se ve
         alfa = max(alfa, (0.72 + 0.25 * rapido352) * corre352 * smoothstep(0.0, 0.06, prof));   // 3.5.2: el agua batida no se transparenta
         gl_FragColor = vec4(col, alfa);
         #include <tonemapping_fragment>
@@ -389,8 +410,8 @@ export function crearCascada(T, escena, U) {
   return { actualizar, pos: { x: s.x, y: s.abajo, z: s.z }, salto: s };
 }
 
-export function crearAgua(T, escena) {
-  const mat = materialAgua();
+export function crearAgua(T, escena, calidad = null) {
+  const mat = materialAgua(!!(calidad && calidad.post));
 
   // Lago: plano grande; se descarta donde el fondo queda sobre el nivel
   const gLago = new THREE.PlaneGeometry(420, 420, 1, 1);

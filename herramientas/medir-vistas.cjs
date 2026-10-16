@@ -65,6 +65,12 @@ const VISTAS = [
   // tarde y de noche (en la 3.6.2 ahí no hay nada: no se comparan)
   { id: 'aldea-loma-tarde', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52);
       return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 17 } })()` },
+  // 4.0 (prototipo de agua y cielo): el bosque y la orilla del lago en la hora dorada (rayos entre los árboles, espuma, reflejos)
+  { id: 'bosque-tarde', modos: ['relax', 'desafio'], donde: `(()=>{ const L = H.T.lugares.refugio; return { x: L.x - 24, z: L.z - 18, yaw: Math.atan2(24, 18) + Math.PI, horas: 19 } })()` },
+  { id: 'lago-tarde', modos: ['relax', 'desafio'], donde: `(()=>{ const M = H.T.lugares.muelle; if (!M) return null; const c = Math.cos(M.ang), s = Math.sin(M.ang);
+      return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: Math.atan2(-c, -s), horas: 19 } })()` },
+  { id: 'lago-amanecer', modos: ['relax', 'desafio'], donde: `(()=>{ const M = H.T.lugares.muelle; if (!M) return null; const c = Math.cos(M.ang), s = Math.sin(M.ang);
+      return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: Math.atan2(-c, -s), horas: 7 } })()` },
   { id: 'aldea-loma-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52);
       return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22 } })()` },
 ];

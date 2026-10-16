@@ -17,6 +17,7 @@ import { crearPostproceso } from './postproceso.js';
 import { crearVariantesLuces, registrarLuz } from './luces.js';
 import { crearPresupuestoLuces } from './luces.js';
 import { crearNiebla } from './niebla.js';
+import { crearRayosBosque } from './rayos-bosque.js';
 import { crearFlotantes } from './flotantes.js';
 import { crearAves } from './aves.js';
 import { crearRenovales } from './renovales.js';
@@ -556,7 +557,7 @@ async function construir() {
     escena.add(suelo);
   });
 
-  agua = await paso('Llenando el lago', 30, () => crearAgua(T, escena));
+  agua = await paso('Llenando el lago', 30, () => crearAgua(T, escena, calidad));
   cascada = crearCascada(T, escena, U);
   cielo = await paso('Pintando el cielo', 36, async () => { await esperarTexturas('montana'); return crearCielo(escena, calidad); });
   constelaciones = crearConstelaciones(escena);
@@ -564,6 +565,7 @@ async function construir() {
   mallaRastros = crearRastrosMalla(escena, T);
   if (calidad.post) post = crearPostproceso(renderer, escena, camara, calidad);
   niebla = crearNiebla(T, escena, calidad);
+  rayosBosque = crearRayosBosque(T, escena, calidad);   // 4.0: sólo media y alta
   flotantes = crearFlotantes(escena, calidad, T);
   aves = crearAves(escena, calidad);
   veg = await paso('Plantando el bosque andino-patagónico', 45, () => generarVegetacion(T, calidad, escena));
@@ -8927,6 +8929,7 @@ const COLOR_RAYO = new THREE.Color('#cfe0ff');
 let cascada = null;
 let post = null;
 let niebla = null;
+let rayosBosque = null;
 let flotantes = null;
 let bajoTecho = false;
 let aves = null;
@@ -9371,6 +9374,7 @@ function cuadroDelJuego(tRaf, manual) {
   if (acumuladoAmbiente > presupuestoAdaptativo.intervalo(0.2, 1.8) && planificadorAntitirones.permitir('ambiente', { pesada: true })) {
     acumuladoAmbiente = 0;
     if (niebla) { niebla.actualizar(progreso.horas, clima.estado, U.uInvierno.value, cam); niebla.malla.visible = niebla.malla.visible && !bajoTecho; }
+    if (rayosBosque) rayosBosque.actualizar(cam, luzCielo, clima.estado, bajoTecho, factorEfectos);
     if (flotantes) flotantes.actualizar(cam, luzCielo ? luzCielo.dia : 1, bajoTecho, factorEfectos);
     if (aves) { aves.actualizar(cam, luzCielo ? luzCielo.dia : 1, clima.estado.lluvia, Math.max(0.65, factorEfectos)); if (bajoTecho && aves.puntos) aves.puntos.visible = false; }
   }

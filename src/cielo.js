@@ -74,6 +74,18 @@ export function crearCielo(escena, calidad) {
         col = mix(col, uSolColor * 2.4 + vec3(0.5, 0.42, 0.3), disco_sol * (1.0 - uNublado * 0.85));
         col += uSolColor * pow(ds, 900.0) * 5.0 * (1.0 - uNublado);
         col += tinteHalo * pow(ds, 60.0) * 0.4 * (1.0 - uNublado * 0.7);
+        ${calidad.post ? `
+        // 4.0 (prototipo de agua y cielo, sólo media y alta): el horizonte dorado del alba y del ocaso: una banda de luz ancha y baja,
+        // más fuerte del lado del sol, y un halo más grande y tibio alrededor del sol
+        {
+          float haciaSol4 = max(dot(normalize(d.xz + vec2(1e-4, 0.0)), normalize(uSol.xz + vec2(1e-4, 0.0))), 0.0);
+          float baja4 = max(uTarde, uDorada * 0.6) * (1.0 - uNublado * 0.8);
+          float banda4 = exp(-max(h, 0.0) / 0.085) * smoothstep(-0.06, 0.0, h);
+          col += vec3(1.0, 0.60, 0.22) * banda4 * baja4 * (0.26 + 0.8 * pow(haciaSol4, 3.0));
+          col += vec3(1.0, 0.66, 0.30) * pow(ds, 3.0) * baja4 * 0.2;
+          col += tinteHalo * pow(ds, 12.0) * baja4 * 0.45;
+        }
+        ` : ''}
         // estrellas
         float noche = 1.0 - uDia;
         if (noche > 0.02 && h > 0.0) {
@@ -557,7 +569,7 @@ export function crearCielo(escena, calidad) {
     // medio a 250-350 m. Mantener atmósfera sin convertir el valle en una pared gris.
     // 3.5: `nieblaDistancia` (main.js): con otra distancia de dibujo la niebla se estira o se
     // acorta con el borde del bosque (1 con la distancia de la calidad)
-    escena.fog.density = (0.00185 + neblinaManana * 0.0029 + nub * 0.0009 + clima.lluvia * 0.0028 + extraNiebla * 0.55 - claridadMediodia * 0.00025) * calidad.niebla * (calidad.nieblaDistancia || 1) * NIEBLA_ESTILO;
+    escena.fog.density = (0.00185 + neblinaManana * (calidad.post ? 0.0042 : 0.0029) + nub * 0.0009 + clima.lluvia * 0.0028 + extraNiebla * 0.55 - claridadMediodia * 0.00025) * calidad.niebla * (calidad.nieblaDistancia || 1) * NIEBLA_ESTILO;
     const rasante = factorLuzRasante(solDir.y, nub);
     const humedadAire = clamp(nub * 0.5 + clima.lluvia * 0.85 + neblinaManana * 0.42 + extraNiebla * 18, 0, 1);
     matCord.uniforms.uNiebla.value = 1 + nub * 2.1 + clima.lluvia * 3.2;
