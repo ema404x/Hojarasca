@@ -65,3 +65,9 @@ export function ajustarGananciaAmistad(n, porcentaje, semilla = '') {
 }
 // Lo que se le entrega a vecindad.js (`fijarModificadorAmistad`): (vecino, n, semilla) → n ajustado, mirando al Bruno de la partida en ese momento.
 export const modificadorDeAmistad = (leerBruno, desafio = false) => (vecino, n, semilla) => ajustarGananciaAmistad(n, porcentajeAfecto(leerBruno(), vecino, desafio), `${vecino}|${semilla}`);
+
+// ---------------------------------------------------------------- 3. pesca
+// La pesca (pesca.js) sortea al lanzar cuánto tarda el pique (de 5 a 21 segundos, más corto al amanecer y al atardecer, con mosca, con lluvia, con el oficio de
+// pescador...) como una cadena de factores. El de Bruno es uno más de esa cadena: 1 - 5 % por paso, o sea 0,8 con +4 pasos (pica un 20 % antes) y 1,2 con -4.
+// Decisión conservadora: sólo cambia la ESPERA del pique. No toca el tiempo para clavar, la tensión de la línea ni qué pez sale (eso sería dificultad nueva).
+export const factorPiqueBruno = (bruno, desafio = false) => 1 - efectosDeBruno(bruno, desafio).pesca * PASO_PORCENTAJE / 100;
