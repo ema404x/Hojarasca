@@ -14,7 +14,7 @@ import { Constructor, matriz } from './geometria.js';
 const F = 0.38;
 
 // ---------------------------------------------------------------- texturas pintadas por código
-function lienzo(ancho, alto, dibujar, srgb = true) {
+export function lienzo(ancho, alto, dibujar, srgb = true) {
   const l = document.createElement('canvas'); l.width = ancho; l.height = alto;
   dibujar(l.getContext('2d'), ancho, alto);
   const t = new THREE.CanvasTexture(l);
@@ -65,7 +65,7 @@ function pintarPaisaje(x, w, h) {
   x.fillRect(0, h * 0.84, w, 3); x.fillRect(0, h * 0.89, w, 3);
 }
 // un charco de luz: blanco al centro y negro afuera (se suma a lo que hay)
-function pintarCharco(x, w, h) {
+export function pintarCharco(x, w, h) {
   const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
   g.addColorStop(0, '#ffffff'); g.addColorStop(0.25, '#b8b8b8'); g.addColorStop(0.55, '#4a4a4a'); g.addColorStop(1, '#000000');
   x.fillStyle = g; x.fillRect(0, 0, w, h);
@@ -84,11 +84,42 @@ function pintarHaz(x, w, h) {
 }
 
 // ---------------------------------------------------------------- piezas
+// el material de los halos (un cuadrado que mira a la cámara, aditivo): lo usan la casa de té y la aldea de noche (aldea-noche-luz.js)
+export function crearMaterialHalo() {
+  const uniforms = { uBrillo: { value: 0 }, uEnc: { value: 0 }, uTiempo: { value: 0 }, uColor: { value: new THREE.Color(1.0, 0.6, 0.26) } };
+  const mat = new THREE.ShaderMaterial({
+    uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    vertexShader: `
+      attribute vec2 esq; attribute vec3 par;
+      uniform float uTiempo;
+      varying vec2 vE; varying float vF; varying float vD; varying float vN;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        if (mv.z > -0.05) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vE = vec2(2.0); vF = 0.0; vD = 0.0; vN = 0.0; return; }   // detrás de la cámara: afuera
+        float f = 1.0 + par.y * (0.07 * sin(uTiempo * 7.0 + position.x * 13.0 + position.z * 5.0) + 0.05 * sin(uTiempo * 12.3 + position.z * 9.0));
+        mv.xy += esq * par.x * f;
+        gl_Position = projectionMatrix * mv;
+        vE = esq; vF = f; vD = -mv.z; vN = par.z;
+      }`,
+    fragmentShader: `
+      uniform vec3 uColor; uniform float uBrillo; uniform float uEnc;
+      varying vec2 vE; varying float vF; varying float vD; varying float vN;
+      void main() {
+        float r = length(vE);
+        if (r >= 1.0) discard;
+        float a = pow(1.0 - r, 2.4);
+        float nucleo = exp(-r * r * 22.0);
+        float cerca = smoothstep(0.3, 1.4, vD);
+        gl_FragColor = vec4(uColor * (a * 0.36 + nucleo * 0.6) * mix(uBrillo, uEnc * 0.9, vN) * vF * cerca, 1.0);
+      }`,
+  });
+  return { mat, uniforms };
+}
 // un cuadrado en el aire, para los halos: 4 vértices con la misma posición y la esquina que se abre en el shader
 function agregarHalo(P, E, A, [x, y, z], radio, fluctua, soloNoche) {
   for (const [ex, ey] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { P.push(x, y, z); E.push(ex, ey); A.push(radio, fluctua, soloNoche ? 1 : 0); }
 }
-function geoHalos(lista) {
+export function geoHalos(lista) {
   const P = [], E = [], A = [], I = [];
   for (const h of lista) { const b = P.length / 3; agregarHalo(P, E, A, h.pos, h.radio, h.fluctua, h.soloNoche); I.push(b, b + 1, b + 2, b, b + 2, b + 3); }
   const g = new THREE.BufferGeometry();
@@ -99,7 +130,7 @@ function geoHalos(lista) {
   return g;
 }
 // un cuadrado plano con uv y color de vértice (charcos y haces): `pts` = 4 puntos en el orden de las esquinas del uv
-function geoPlano(quads) {
+export function geoPlano(quads) {
   const P = [], U = [], C = [], I = [];
   for (const q of quads) {
     const b = P.length / 3;
@@ -159,33 +190,7 @@ export function crearLuzCasaTe({ W, D, H }) {
   for (const g of gal) lista.push({ pos: [g.x, g.y, g.z], radio: 0.85, fluctua: 0.3 });
   // la luz que sale por los dos ventanales hacia afuera (sólo de noche, y cuando el alumbrado está prendido)
   for (const vx of [-1.36, 1.36]) lista.push({ pos: [vx, 1.55, D / 2 + 0.15], radio: 1.25, fluctua: 0.15, soloNoche: true });
-  const uHalo = { uBrillo: { value: 0 }, uEnc: { value: 0 }, uTiempo: { value: 0 }, uColor: { value: new THREE.Color(1.0, 0.6, 0.26) } };
-  const matHalo = new THREE.ShaderMaterial({
-    uniforms: uHalo, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
-    vertexShader: `
-      attribute vec2 esq; attribute vec3 par;
-      uniform float uTiempo;
-      varying vec2 vE; varying float vF; varying float vD; varying float vN;
-      void main() {
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        if (mv.z > -0.05) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vE = vec2(2.0); vF = 0.0; vD = 0.0; vN = 0.0; return; }   // detrás de la cámara: afuera
-        float f = 1.0 + par.y * (0.07 * sin(uTiempo * 7.0 + position.x * 13.0 + position.z * 5.0) + 0.05 * sin(uTiempo * 12.3 + position.z * 9.0));
-        mv.xy += esq * par.x * f;
-        gl_Position = projectionMatrix * mv;
-        vE = esq; vF = f; vD = -mv.z; vN = par.z;
-      }`,
-    fragmentShader: `
-      uniform vec3 uColor; uniform float uBrillo; uniform float uEnc;
-      varying vec2 vE; varying float vF; varying float vD; varying float vN;
-      void main() {
-        float r = length(vE);
-        if (r >= 1.0) discard;
-        float a = pow(1.0 - r, 2.4);
-        float nucleo = exp(-r * r * 22.0);
-        float cerca = smoothstep(0.3, 1.4, vD);
-        gl_FragColor = vec4(uColor * (a * 0.36 + nucleo * 0.6) * mix(uBrillo, uEnc * 0.9, vN) * vF * cerca, 1.0);
-      }`,
-  });
+  const { mat: matHalo, uniforms: uHalo } = crearMaterialHalo();
   const halos = new THREE.Mesh(geoHalos(lista), matHalo); halos.name = 'halos-casa-te'; halos.frustumCulled = false; halos.renderOrder = 3;
   // (los halos de la galería son los últimos: el dibujo entero se muestra desde más lejos que el resto)
 

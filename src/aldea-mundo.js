@@ -36,6 +36,7 @@
 import * as THREE from 'three';
 import { PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, zonasAldea, sitioEstructura, escucharAldea, esLote, puntosDe, distanciaACalle, quienLlega, obraEnCurso, LOTE_DE, plantaDe, suave01 } from './aldea.js';
 import { estadoVisual } from './aldea-gente.js';
+import { crearLuzAldeaNoche } from './aldea-noche-luz.js';
 import { armarEdificio, armarAccesorio, armarAgregadoEstacion, registrarEnMundo, crearTexturaCarteles, ESCUELA_A_MEDIO_HACER, prepararMaterialAldea, prepararVidrioAldea, prepararFollajeAldea, armarCable, SUPERFICIES_ALDEA, aMundoAldea, azarAldea, EDIFICIOS_ALDEA as EDIFICIOS_ARQUITECTURA } from './aldea-arquitectura.js';
 import { texturaCartas } from './vegetacion.js';
 import { materialVegetal, U } from './materiales.js';
@@ -2077,6 +2078,7 @@ export function crearAldeaMundo(ctx) {
   function rehacerCharcos() {
     if (!calles?.lista) return;
     calles.sucio = false;
+    rehacerLuzNoche();   // 4.0 (prototipo): halos de las ventanas y los faroles, charcos de luz bajo los faroles (aldea-noche-luz.js)
     if (calles.charcos) { calles.raiz.remove(calles.charcos); calles.charcos.geometry.dispose(); calles.charcos = null; }
     const pos = [], uv = [];
     const suelo = (x, z, y0) => {
@@ -2112,6 +2114,42 @@ export function crearAldeaMundo(ctx) {
     malla.updateMatrix(); malla.matrixAutoUpdate = false;
     calles.raiz.add(malla); malla.updateMatrixWorld(true);
     calles.charcos = malla;
+  }
+  // 4.0 (prototipo): los halos y los charcos de la aldea de noche. Las listas salen de lo que ya está: las ventanas de cada edificio terminado, las luces de
+  // clase farol (calle, plaza, estación y faroles de pared de las puertas), la puerta y los farolitos de la cantina y el reloj de la plaza.
+  const luzNoche = crearLuzAldeaNoche(ctx.escena);
+  function rehacerLuzNoche() {
+    const halos = [], charcos = [];
+    const calido = [1.0, 0.56, 0.24];
+    for (const b of edificios.values()) {
+      const d = b.datos;
+      if (!d || d.etapa < 3) continue;
+      for (const v of d.ventanas || []) {
+        if (!(Math.hypot(v.nx, v.nz) > 0.5)) continue;
+        const w = aMundoEn(b.sitio, v.lx + v.nx * 0.2, v.lz + v.nz * 0.2);
+        halos.push({ pos: [w.x, b.sitio.y + v.ly, w.z], radio: Math.min(2.1, Math.max(1.15, Math.max(v.ancho, v.alto) * 0.85 + 0.5)), fluctua: 0.04, soloNoche: true });
+      }
+      if (b.id === 'cantina') {
+        // la puerta abierta (en el medio del frente), los tres farolitos de adentro y el charco de luz en la galería y el suelo de adelante
+        const f = b.fondo / 2, p = aMundoEn(b.sitio, 0, f + 0.25);
+        halos.push({ pos: [p.x, b.sitio.y + 1.45, p.z], radio: 2.3, fluctua: 0.1, soloNoche: true });
+        for (const [lx, lz] of [[-0.9, 1.5], [1.5, 1.5], [-3.0, 0.2]]) { const q = aMundoEn(b.sitio, lx, lz); halos.push({ pos: [q.x, b.sitio.y + 2.2, q.z], radio: 0.9, fluctua: 0.2, soloNoche: true }); }
+        const y0 = b.sitio.y + 0.08, esq = [[-1.7, f + 0.2], [1.7, f + 0.2], [2.6, f + 3.6], [-2.6, f + 3.6]].map(([lx, lz]) => { const w = aMundoEn(b.sitio, lx, lz); return [w.x, y0 - (lz > f + 1 ? 0.12 : 0), w.z]; });
+        charcos.push({ pts: [esq[3], esq[2], esq[1], esq[0]], col: calido.map((k) => k * 0.9) });
+      }
+    }
+    for (const q of luces) {
+      if (q.clase !== 'farol') continue;
+      halos.push({ pos: [q.x, q.y + 0.08, q.z], radio: q.alto > 4 ? 1.6 : (q.alto > 2.6 ? 1.25 : 0.8), fluctua: 0.12, soloNoche: true });
+      // el charco bajo el farol: el piso de la lámpara es q.y - q.alto; los postes de la calle y los faroles bajos lo abren más; el de la puerta, chico
+      const r = q.alto > 4 ? 4.6 : (q.alto > 2.6 ? 3.4 : 1.9), y0 = q.y - q.alto, calle = q.alto > 2.6;
+      const esq = [[-r, r], [r, r], [r, -r], [-r, -r]].map(([dx, dz]) => [q.x + dx, (calle ? Math.max(y0, alturaEn(q.x + dx, q.z + dz)) : y0) + 0.06, q.z + dz]);
+      charcos.push({ pts: esq, col: calido.map((k) => k * (q.alto > 2.6 ? 0.42 : 0.5)) });
+    }
+    // el reloj de la plaza (una caja con dos esferas, a 3,3 m, del lado del mástil): un halo adelante de cada esfera
+    const pl = edificios.get('plaza');
+    if (pl?.sitio) for (const dz of [-0.35, 0.35]) { const w = aMundoEn(pl.sitio, 1.65, pl.fondo / 2 - 1.75 + dz); halos.push({ pos: [w.x, pl.sitio.y + 3.3, w.z], radio: 1.25, fluctua: 0, soloNoche: true }); }
+    luzNoche.reconstruir(halos, charcos);
   }
   function rehacerChimeneas() {
     chimeneas = [];
@@ -2152,6 +2190,7 @@ export function crearAldeaMundo(ctx) {
   // Las ventanas, los faroles y la luz de adentro (cada cuadro, después de las del valle).
   function actualizarLuces(cam, encendido, dia, relleno, colorInterior) {
     if (materiales && ctx.brilloVentana) ctx.brilloVentana(materiales.vidrios, encendido, dia);
+    luzNoche.actualizar({ enc: encendido, pleno: !!ctx.calidad?.post, tiempo: performance.now() / 1000, cerca: distAldea(cam.x, cam.z) < 230 });   // 4.0 (prototipo)
     if (calles?.charcos) {
       const k = encendido * 0.26;
       calles.charcos.visible = k > 0.02;
