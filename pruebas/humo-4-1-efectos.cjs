@@ -83,6 +83,33 @@ app.whenReady().then(async () => {
   await esperar(3000);
   ok(Math.abs((await pique()) - p0 * 0.8) < 0.02 * p0 + 1e-9, 'después de recargar, el pique sigue acortado (el oficio puede haber movido los décimos)');
 
+  // ---- 4b. el guardarropa en «Tu personaje»
+  await js(`${H}.progreso.cosas.poncho = 0; ${H}.__personal.cambiar('personaje', { poncho: false, botas: 'cuero', gorro: true, bufanda: true, guantes: false }); ${H}.__personal.abrir('pausa'); 1`);
+  await esperar(500);
+  await js(`document.getElementById('personal-pestana-personaje').click(); 1`);
+  await esperar(400);
+  const botones = () => js(`JSON.stringify([...document.querySelectorAll('#personal-contenido .personal-segmentos button')].filter((b) => /todos los días|Liviano|lluvia|invierno|nieve/i.test(b.textContent)).map((b) => ({ t: b.textContent, off: b.disabled, on: b.getAttribute('aria-pressed') })))`).then(JSON.parse);
+  let bt = await botones();
+  ok(bt.length === 5, `la fila Guardarropa tiene los cinco conjuntos (${bt.map((b) => b.t).join(' | ')})`);
+  ok(bt.find((b) => /todos los días/.test(b.t)).on === 'true', 'el de todos los días está puesto al arrancar');
+  ok(bt.find((b) => /Abrigo de invierno/.test(b.t)).off && bt.find((b) => /lluvia/.test(b.t)).off, 'sin poncho, el de invierno y el de lluvia están bloqueados');
+  await js(`[...document.querySelectorAll('#personal-contenido .personal-segmentos button')].find((b) => /Liviano/.test(b.textContent)).click(); 1`);
+  await esperar(400);
+  const pj = await js(`JSON.stringify(${H}.__personal.datos().personaje)`).then(JSON.parse);
+  ok(pj.gorro === false && pj.bufanda === false && pj.poncho === false, 'el liviano se saca el gorro y la bufanda');
+  await js(`${H}.progreso.cosas.poncho = 1; ${H}.__personal.abrir('pausa'); 1`);
+  await esperar(300);
+  await js(`document.getElementById('personal-pestana-bruno').click(); document.getElementById('personal-pestana-personaje').click(); 1`);
+  await esperar(300);
+  bt = await botones();
+  ok(!bt.find((b) => /Abrigo de invierno/.test(b.t)).off && bt.find((b) => /lluvia/.test(b.t)).off, 'con el poncho se desbloquea el de invierno; el de lluvia sigue pidiendo las botas');
+  await js(`[...document.querySelectorAll('#personal-contenido .personal-segmentos button')].find((b) => /Abrigo de invierno/.test(b.textContent)).click(); 1`);
+  await esperar(400);
+  const pj2 = await js(`JSON.stringify(${H}.__personal.datos().personaje)`).then(JSON.parse);
+  ok(pj2.poncho === true && pj2.gorro === true && pj2.bufanda === true, 'el abrigo de invierno pone poncho, gorro y bufanda');
+  ok(/abrigado|un escalón/.test(await js(`document.getElementById('personal-contenido').textContent`)), 'el panel dice que vas abrigado');
+  await js(`${H}.__personal.cerrar(); 1`);
+
   // ---- 5. una noche despejada con Bruno creado: el cielo corre sin errores
   await js(`${H}.progreso.horas = 23; 1`);
   await esperar(4000);

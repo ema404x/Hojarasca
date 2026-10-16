@@ -8,6 +8,9 @@
 // botas de goma del almacén, y los tintes más lindos de lo que anotaste en el cuaderno.
 import { registrarSeccion, elegir } from './personalizacion.js';
 import { fila, segmentos, muestras, siNo, parrafo } from './personal-controles.js';
+// 4.1 (F3): el guardarropa de Bruno (conjuntos con las piezas que ya tenés) y los puntos de abrigo que suman sus rasgos
+import { CONJUNTOS, estadoDeConjunto, ponerConjunto, conjuntoPuesto } from './creador-guardarropa.js';
+import { abrigoExtra } from './creador-efectos.js';
 
 export const PIELES = [
   { id: 'clara', nombre: 'Clara', color: '#f0d0b4' },
@@ -171,6 +174,9 @@ function construir(cont, api) {
     fila(cont, 'Peinado', segmentos(PEINADOS.map((x) => ({ valor: x.id, texto: x.nombre })), d.peinado, (v) => cambiar({ peinado: v })));
     fila(cont, 'Contextura', segmentos(CONTEXTURAS.map((x) => ({ valor: x.id, texto: x.nombre })), d.contextura, (v) => cambiar({ contextura: v })));
   }
+  // 4.1 (F3): el guardarropa: conjuntos por ocasión y estación, con los desbloqueos de siempre (los textos son provisorios)
+  const estaDesbloqueado = (q) => desbloqueado(p, q);
+  fila(cont, 'Guardarropa', segmentos(CONJUNTOS.map((c) => { const e = estadoDeConjunto(c, estaDesbloqueado); return { valor: c.id, texto: c.nombre, bloqueado: !e.ok, titulo: e.ok ? '' : `Todavía te falta: ${e.falta.map((q) => (q === 'poncho' ? 'el poncho' : 'las botas de goma')).join(' y ')}` }; }), conjuntoPuesto(d), (v) => cambiar(ponerConjunto(d, v, estaDesbloqueado))));
   fila(cont, 'Campera', muestras(opcionesLana, d.campera, (v) => cambiar({ campera: v }), 'Color de la campera'));
   for (const k of Object.keys(PRENDAS)) {
     const pr = PRENDAS[k];
@@ -186,7 +192,7 @@ function construir(cont, api) {
     fila(cont, pr.nombre, caja);
   }
   fila(cont, 'Botas', segmentos(BOTAS.map((b) => ({ valor: b.id, texto: b.nombre, bloqueado: !desbloqueado(p, `botas:${b.id}`), titulo: b.ayuda })), d.botas, (v) => cambiar({ botas: v })));
-  const n = abrigoDeRopa(d);
+  const n = abrigoDeRopa(d) + abrigoExtra(p?.personal?.bruno, !!api.mundo?.esDesafio);   // 4.1 (F3): y los rasgos de Bruno (±1 punto, sólo en el Relax)
   cont.appendChild(parrafo(n >= ABRIGO_QUE_TEMPLA
     ? 'Vas bien abrigado: en invierno, sin fuego, la noche se pasa un escalón mejor.'
     : `Abrigo: ${n} de ${ABRIGO_QUE_TEMPLA}. Con poncho, gorro y bufanda la ropa ya ayuda de noche.`));
