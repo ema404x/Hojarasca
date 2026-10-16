@@ -49,6 +49,13 @@ const VISTAS = [
       return { x: a.x + 16, z: a.z + 16, yaw: Math.atan2(16, 16), horas: 12 } })()` },
   { id: 'casa-te-antes', modos: ['relax'], donde: `(()=>{ const a = (H.est.lugaresSorteo && H.est.lugaresSorteo['casa-te']) || H.est.casaTe; if (!a) return null;
       return { x: a.x + 16, z: a.z + 16, yaw: Math.atan2(16, 16), horas: 12 } })()` },
+  // 4.0 (prototipo de la casa de té): la misma vista de afuera pero de noche, y adentro (desde la puerta, mirando al salón) de día y de noche
+  { id: 'casa-te-fuera-noche', modos: ['relax'], donde: `(()=>{ const a = (H.est.lugaresSorteo && H.est.lugaresSorteo['casa-te']) || H.est.casaTe; if (!a) return null;
+      return { x: a.x + 16, z: a.z + 16, yaw: Math.atan2(16, 16), horas: 22 } })()` },
+  { id: 'casa-te-dentro-dia', modos: ['relax'], donde: `(()=>{ const c = H.est.casaTe; if (!c) return null; const lz = 2.3;
+      return { x: c.x + lz * Math.sin(c.rot), z: c.z + lz * Math.cos(c.rot), yaw: c.rot, horas: 14.5 } })()` },
+  { id: 'casa-te-dentro-noche', modos: ['relax'], donde: `(()=>{ const c = H.est.casaTe; if (!c) return null; const lz = 2.3;
+      return { x: c.x + lz * Math.sin(c.rot), z: c.z + lz * Math.cos(c.rot), yaw: c.rot, horas: 22 } })()` },
   // la Aldea de los Duendes (sólo 3.6): la plaza de día y la aldea entera de noche
   { id: 'aldea-plaza-dia', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const s = A.estadoEdificio('plaza').sitio;
       const fx = Math.sin(s.rot), fz = Math.cos(s.rot); return { x: s.x + fx * 16, z: s.z + fz * 16, yaw: Math.atan2(fx, fz), horas: 12 } })()` },
