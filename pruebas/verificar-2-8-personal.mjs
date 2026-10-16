@@ -268,7 +268,8 @@ const ok = (m) => pasos.push(m);
   assert.match(main, /function personalizarDesdeElJuego\(\) \{[\s\S]*?abrirMochila\(false\);\s*abrir\('pausa'\);\s*abrirPersonal\('pausa'\);/);
   assert.ok(!/Key[A-Z]'?: *'personalizar'|personalizar: 'Key/.test(leer('src/accesibilidad.js')), 'no se robó ninguna letra');
   // los efectos en el juego
-  assert.match(main, /const como = templarNoche\(comoSinRopa, progreso\.personal\?\.personaje\);/, 'la ropa abriga al dormir');
+  // (4.1 F3: con el abrigo extra de los rasgos de Bruno como tercer parámetro)
+  assert.match(main, /const como = templarNoche\(comoSinRopa, progreso\.personal\?\.personaje(, abrigoExtra\(progreso\.personal\?\.bruno, esDesafio\))?\);/, 'la ropa abriga al dormir');
   assert.match(main, /crearFauna\(T, veg, col, escena, sonido, registrar, progreso, \{ animales: factorAnimales\(progreso\) \}\)/);
   assert.match(main, /gente: \(\) => \(vecinosActivos\(progreso\) \? gente : null\),/);
   assert.match(main, /if \(visitante \|\| !vecinosActivos\(progreso\) \|\| !tocaVisita\(/);

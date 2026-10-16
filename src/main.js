@@ -8309,7 +8309,8 @@ function mundoPesca() {
   ctxPesca.lluvia = clima.estado.lluvia; ctxPesca.tormenta = !!clima.estado.tormenta; ctxPesca.crecida = progreso.tormenta?.crecida || 0;
   // 3.1: el oficio de pescador (el pique, el tiempo para clavar y la línea)
   const nPesca = nivelDe('pescador');
-  ctxPesca.pique = factorPique(nPesca) * factorPiqueBruno(progreso.personal?.bruno, esDesafio);   ctxPesca.clavar = segundosParaClavar(nPesca); ctxPesca.linea = factorLinea(nPesca);   // 4.1 (F3): el pique también cuenta los rasgos de Bruno (memoizados: sin cuenta por cuadro)
+  ctxPesca.pique = factorPique(nPesca); ctxPesca.clavar = segundosParaClavar(nPesca); ctxPesca.linea = factorLinea(nPesca);
+  ctxPesca.pique *= factorPiqueBruno(progreso.personal?.bruno, esDesafio);   // 4.1 (F3): el pique también cuenta los rasgos de Bruno (memoizados: sin cuenta por cuadro)
   return ctxPesca;
 }
 function puedeDormirJuntoAlFuego() {

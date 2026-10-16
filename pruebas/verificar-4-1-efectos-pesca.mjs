@@ -3,7 +3,7 @@
 //  · cada rasgo de pesca del catálogo mueve el pique en el sentido que dice (más pesca = espera más corta);
 //  · en las 56 250 combinaciones el factor queda entre 0,8 y 1,2 (±20 %, el tope) y coincide con el efecto aplicado del catálogo;
 //  · el resultado no depende de cuántas veces se pregunte (se memoiza por objeto de Bruno y se recalcula cuando Bruno cambia);
-//  · main.js lo multiplica en la cadena de factores del pique SIN comentar el resto de la línea (clavar y línea siguen), y pesca.js sigue usando `mundo.pique`.
+//  · main.js lo multiplica en el pique en una línea aparte, sin tocar la del oficio (clavar y línea siguen igual), y pesca.js sigue usando `mundo.pique`.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -57,9 +57,10 @@ ok(cerca(E.factorPiqueBruno(b1, true), 1) && cerca(E.factorPiqueBruno(b1, false)
 
 // ---------------------------------------------------------------- 5. el enchufe
 const main = leer('src/main.js');
-const linea = main.split('\n').find((l) => l.includes('ctxPesca.pique ='));
-ok(!!linea && /^\s*ctxPesca\.pique = factorPique\(nPesca\) \* factorPiqueBruno\(progreso\.personal\?\.bruno, esDesafio\);/.test(linea), 'mundoPesca multiplica el factor de Bruno en el pique');
-ok(/;\s+ctxPesca\.clavar = segundosParaClavar\(nPesca\); ctxPesca\.linea = factorLinea\(nPesca\);/.test(linea.split('//')[0]), 'clavar y línea siguen en la línea, fuera del comentario');
+const lineas = main.split(String.fromCharCode(10));
+ok(lineas.some((l) => l.trim() === 'ctxPesca.pique = factorPique(nPesca); ctxPesca.clavar = segundosParaClavar(nPesca); ctxPesca.linea = factorLinea(nPesca);'), 'la línea de la pesca del oficio (pique, clavar, línea) quedó exactamente como estaba');
+ok(lineas.some((l) => /^\s*ctxPesca\.pique \*= factorPiqueBruno\(progreso\.personal\?\.bruno, esDesafio\);/.test(l)), 'mundoPesca multiplica después el factor de Bruno en el pique');
+ok(lineas.filter((l) => l.includes('factorPiqueBruno(')).length === 1, 'y no se usa en ningún otro lado');
 ok(main.includes('factorPiqueBruno } from \'./creador-efectos.js\';'), 'main.js importa el factor en una línea');
 const pesca = leer('src/pesca.js');
 ok(/if \(mundo\.pique\) espera \*= mundo\.pique;/.test(pesca), 'pesca.js sigue multiplicando la espera por mundo.pique');

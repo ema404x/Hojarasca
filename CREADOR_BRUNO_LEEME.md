@@ -15,7 +15,7 @@ muestran en texto, sin números. **Los efectos valen sólo en el Relax** («La n
 | F0 | Documentos de preparación (`RASGOS_BRUNO.md`, `GUSTOS_VECINOS_BRUNO.md`, `TEXTOS_BRUNO.md`) | hecha |
 | F1 | Datos, reglas y pruebas (`creador-catalogo.js`, `creador-personaje.js`) | hecha |
 | F2 | Pantalla de creación, sección «Bruno» en Personalizar, retrato, pestaña del cuaderno, espejo | hecha, salvo mando |
-| F3 | **Efectos** de los rasgos en abrigo, afecto, pesca y cuaderno; guardarropa | **falta** |
+| F3 | **Efectos** de los rasgos en abrigo, afecto, pesca y cuaderno; guardarropa | hecha en la rama `creador-bruno-f3` (ver `CAMBIOS_4_1_F3.md`: decisiones y preguntas); falta la ropa de fiesta |
 | F4 | Prólogo, textos definitivos y las 26 líneas de vecinos (asado y lluvia) | **falta** (los textos los escribe el autor) |
 | F5 | Cierre: todas las pruebas, una partida de punta a punta con varios Brunos | falta |
 
