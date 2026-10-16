@@ -102,7 +102,7 @@ V.fijarModificadorAmistad(null);
 
 // ---------------------------------------------------------------- 5. el enchufe en main.js
 const main = leer('src/main.js');
-ok(main.includes("import { abrigoExtra, modificadorDeAmistad } from './creador-efectos.js';"), 'main.js importa el modificador en una línea');
+ok(main.split(String.fromCharCode(10)).some((l) => l.startsWith('import {') && l.includes(' modificadorDeAmistad') && l.endsWith("} from './creador-efectos.js';")), 'main.js importa el modificador en una línea');
 ok(main.includes("amistades, fijarModificadorAmistad } from './vecindad.js';"), 'main.js importa fijarModificadorAmistad');
 ok(/fijarModificadorAmistad\(modificadorDeAmistad\(\(\) => progreso\?\.personal\?\.bruno, esDesafio\)\);/.test(main), 'main.js lo fija una vez, leyendo a Bruno en el momento y apagado en el Desafío');
 const vec = leer('src/vecindad.js');

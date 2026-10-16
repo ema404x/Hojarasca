@@ -59,7 +59,7 @@ ok(cuantasMiradas(1.2, true) < cuantasMiradas(1, true) && cuantasMiradas(1.2, fa
 
 // ---------------------------------------------------------------- 5. el enchufe
 const main = leer('src/main.js');
-ok(main.includes('factorCuadernoBruno } from \'./creador-efectos.js\';'), 'main.js importa el factor en una línea');
+ok(main.split(String.fromCharCode(10)).some((l) => l.startsWith('import {') && l.includes(' factorCuadernoBruno') && l.endsWith("} from './creador-efectos.js';")), 'main.js importa el factor en una línea');
 const lineas = main.split(String.fromCharCode(10));
 const usos = lineas.filter((l) => l.includes('2.2 / factorCuadernoBruno(progreso.personal?.bruno, esDesafio)'));
 ok(usos.length === 2, 'se usa en las dos cuentas de mirada del cielo');

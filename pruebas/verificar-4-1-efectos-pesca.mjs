@@ -61,7 +61,7 @@ const lineas = main.split(String.fromCharCode(10));
 ok(lineas.some((l) => l.trim() === 'ctxPesca.pique = factorPique(nPesca); ctxPesca.clavar = segundosParaClavar(nPesca); ctxPesca.linea = factorLinea(nPesca);'), 'la línea de la pesca del oficio (pique, clavar, línea) quedó exactamente como estaba');
 ok(lineas.some((l) => /^\s*ctxPesca\.pique \*= factorPiqueBruno\(progreso\.personal\?\.bruno, esDesafio\);/.test(l)), 'mundoPesca multiplica después el factor de Bruno en el pique');
 ok(lineas.filter((l) => l.includes('factorPiqueBruno(')).length === 1, 'y no se usa en ningún otro lado');
-ok(main.includes('factorPiqueBruno } from \'./creador-efectos.js\';'), 'main.js importa el factor en una línea');
+ok(main.split(String.fromCharCode(10)).some((l) => l.startsWith('import {') && l.includes(' factorPiqueBruno') && l.endsWith("} from './creador-efectos.js';")), 'main.js importa el factor en una línea');
 const pesca = leer('src/pesca.js');
 ok(/if \(mundo\.pique\) espera \*= mundo\.pique;/.test(pesca), 'pesca.js sigue multiplicando la espera por mundo.pique');
 ok(!/creador-efectos/.test(pesca), 'pesca.js no sabe nada de Bruno (el contexto es lo único que cruza)');

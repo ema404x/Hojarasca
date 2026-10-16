@@ -66,7 +66,7 @@ ok(P.templarNoche('frio', r4, 'basura') === 'fresco' && P.templarNoche('frio', r
 
 // ---------------------------------------------------------------- 5. el enchufe en main.js
 const main = leer('src/main.js');
-ok(main.includes("import { abrigoExtra } from './creador-efectos.js';"), 'main.js importa abrigoExtra en una línea');
+ok(main.split(String.fromCharCode(10)).some((l) => l.startsWith('import {') && l.includes(' abrigoExtra') && l.endsWith("} from './creador-efectos.js';")), 'main.js importa abrigoExtra en una línea');
 ok(/templarNoche\(comoSinRopa, progreso\.personal\?\.personaje, abrigoExtra\(progreso\.personal\?\.bruno, esDesafio\)\)/.test(main), 'dormir usa el abrigo extra de Bruno (apagado en el Desafío)');
 ok(!/^import .*\/\/.*$/m.test(fs.readFileSync(path.join(raiz, 'src/creador-efectos.js'), 'utf8')), 'el módulo no tiene imports con comentario (armar.mjs sólo entiende una línea)');
 
