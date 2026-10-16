@@ -122,8 +122,9 @@ export function abrigoDeRopa(d) {
 // 2.8: la ropa en una noche de invierno sin fuego (ver abrigo.js / dormir en main.js).
 // Con poncho, gorro y bufanda (o guantes en vez de algo), la noche mejora un escalón:
 // 'frio' pasa a 'fresco' y 'fresco' a 'normal'. Lo que ya era bueno queda igual.
-export function templarNoche(como, d) {
-  if (abrigoDeRopa(d) < ABRIGO_QUE_TEMPLA) return como;
+// 4.1 (F3): `extra` son los puntos de abrigo que suman o restan los rasgos de Bruno (-1, 0 o +1; ver creador-efectos.js). Sin Bruno creado, 0: igual que siempre.
+export function templarNoche(como, d, extra = 0) {
+  if (abrigoDeRopa(d) + (Number(extra) || 0) < ABRIGO_QUE_TEMPLA) return como;
   if (como === 'frio') return 'fresco';
   if (como === 'fresco') return 'normal';
   return como;

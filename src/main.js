@@ -224,6 +224,8 @@ import { crearCuerpoJugador, crearManoPropia } from './personal-personaje-mundo.
 import { abrirCreador } from './creador-pantalla.js';
 import { dibujarFichaBruno } from './creador-ficha.js';
 import { genomaDesdePersonajeViejo } from './creador-personaje.js';
+// 4.1 (F3): lo que los rasgos de Bruno cambian en el juego (abrigo, afecto, pesca, cuaderno); sólo en el Relax y con Bruno creado
+import { abrigoExtra } from './creador-efectos.js';
 import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-bandera-mundo.js';
 // 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js)
 import { crearModos, CSS_MODOS } from './modos-juego.js';
@@ -1241,7 +1243,7 @@ function dormir(opRincon = null) {
     invierno: U.uInvierno.value, manta: !!progreso.cosas.manta, distanciaAlFuego, casa, carpa: enLaCarpa(),
   });
   // 2.8: la ropa abriga (ver personal-personaje.js): con poncho, gorro y bufanda, un escalón mejor
-  const como = templarNoche(comoSinRopa, progreso.personal?.personaje);
+  const como = templarNoche(comoSinRopa, progreso.personal?.personaje, abrigoExtra(progreso.personal?.bruno, esDesafio));   // 4.1 (F3): y los rasgos de Bruno (±1 punto)
   const descanso = desafio || !deNoche ? 0 : horasDescansado({ como, casa });
   const calorDeLaCasa = como === 'calentito' && distanciaAlFuego > LENA.calorFuego;
   const inviernoEnCasa = deNoche && !desafio && U.uInvierno.value >= 0.5 && casaCerrada(casa);
