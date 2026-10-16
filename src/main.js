@@ -27,6 +27,7 @@ import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS
 import { crearPuertas } from './puertas.js';
 import { generarVegetacion } from './vegetacion.js';
 import { crearPasto } from './pasto.js';
+import { crearPisadas } from './pisadas.js';
 import { crearColisiones } from './colisiones.js';
 import { crearEstructuras } from './estructuras.js';
 import { crearObjetos } from './objetos.js';
@@ -9074,6 +9075,7 @@ let vecino = null;
 let anguloFaro = 0;
 let chimeneas = [];
 const miraPasto = new THREE.Vector3();
+let pisadasMundo = null;
 let acumuladoVeg = 0, acumuladoGuardado = 0, acumuladoLugares = 0, acumuladoFauna = 0, acumuladoEncargos = 9;
 const pasoFauna = calidad.sombras ? 0 : 1 / 30;
 let horaCine = 0;
@@ -9335,6 +9337,8 @@ function cuadroDelJuego(tRaf, manual) {
   if (acumuladoVeg > presupuestoAdaptativo.intervalo(0.25, 1.7) && planificadorAntitirones.permitir('vegetacion', { pesada: true })) { veg.actualizar(cam, presupuestoAdaptativo.factorDetalle()); objetos.actualizar(cam); acumuladoVeg = 0; }
   camara.getWorldDirection(miraPasto);
   pasto.actualizar(cam, miraPasto, presupuestoAdaptativo.factorDetalle(0.78));
+  // 4.0: el pasto y las flores se aplastan donde pasan vos y los animales (sólo calidad alta; ver pisadas.js)
+  (pisadasMundo ||= crearPisadas({ calidad, perro, caballo: caballoMundo, fauna })).actualizar(dtReal, js.pos, !!js.montado);
 
   const k = T.indice(cam.x, cam.z);
   const ref = T.lugares.refugio;

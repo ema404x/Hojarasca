@@ -234,6 +234,13 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             posI = instanceMatrix[3].xyz;
           #endif
           float azar = fract(sin(dot(posI.xz, vec2(12.9898, 78.233))) * 43758.5453);
+          // 4.0: las hojas caídas de la hojarasca (aTipo 2.6) se ponen rojas, naranjas y amarillas en otoño (más apagadas que en la copa)
+          if (aTipo > 2.55 && aTipo < 2.65) {
+            float a2 = fract(azar * 7.7 + position.x * 13.1 + position.z * 7.3);
+            vec3 oto2 = a2 < 0.4 ? mix(vec3(0.42, 0.05, 0.012), vec3(0.62, 0.09, 0.015), a2 * 2.5) : mix(vec3(0.70, 0.20, 0.012), vec3(0.80, 0.42, 0.03), (a2 - 0.4) * 1.7);
+            float lumH = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+            vColor.rgb = mix(vColor.rgb, oto2 * clamp(lumH / 0.12, 0.45, 1.1) * 0.78, uOtono * (0.65 + 0.35 * a2));
+          }
           if (aTipo > 1.5 && aTipo < 2.5) {
             vec3 otono = azar < 0.45 ? mix(vec3(0.42, 0.05, 0.012), vec3(0.62, 0.09, 0.015), azar * 2.2) : mix(vec3(0.70, 0.20, 0.012), vec3(0.82, 0.42, 0.03), (azar - 0.45) * 1.8);
             // 3.2: el otoño conserva el degradado del bulto (base oscura, puntas claras)
@@ -278,6 +285,8 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
           }
         }`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
+        // 4.0: las hojas caídas de la hojarasca (aTipo 2.6) sólo se ven en otoño: el resto del año quedan bajo la tierra
+        if (aTipo > 2.55 && aTipo < 2.65) transformed.y -= (1.0 - smoothstep(0.1, 0.6, uOtono)) * 0.8 + smoothstep(0.2, 0.7, uInvierno) * 0.8;
         {
           vec3 posI = vec3(0.0);
           #ifdef USE_INSTANCING

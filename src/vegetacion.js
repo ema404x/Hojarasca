@@ -1,5 +1,6 @@
 // Especies del bosque andino patagónico, sotobosque y su distribución en chunks
 import * as THREE from 'three';
+import { calidadConPisadas } from './pisadas.js';
 import { rng, smoothstep, clamp } from './ruido.js';
 import { Constructor, abollar, matriz, troncoCurvo, lamina, h3 } from './geometria.js';
 import { materialVegetal, U, TIPO_HELECHO, TIPO_COIRON } from './materiales.js';
@@ -1239,7 +1240,9 @@ function notro(semilla) {
 
 // Hojarasca del piso del bosque: hojas secas, ramitas y pequeñas manchas de materia orgánica.
 // Se instancia por parches para sumar detalle de contacto sin llenar la escena de objetos individuales.
-function mantaHojarasca(semilla) {
+// 4.0 (prototipo de vegetación): `rico` (sólo calidad alta) suma hojas más variadas y 36 hojas «caídas» (aTipo 2.6) que sólo
+// están en otoño (el resto del año quedan bajo la tierra: ver materiales.js). Sin `rico` sale exactamente la de siempre.
+function mantaHojarasca(semilla, rico = false) {
   const r = rng(semilla), c = new Constructor();
   // 3.2: tonos cercanos al piso pintado del bosque (se integran, no salpican)
   const tonos = ['#6b5a37', '#76623c', '#5f5634', '#7d6a40'];
@@ -1253,6 +1256,22 @@ function mantaHojarasca(semilla) {
     const ang = r() * Math.PI * 2, largo = 0.45 + r() * 0.65;
     c.agregar(new THREE.CylinderGeometry(0.012, 0.018, largo, 4), { color: '#554535', tipo: 0, variar: 0.12,
       matriz: matriz([(r() - 0.5) * 1.4, 0.035, (r() - 0.5) * 1.4], [Math.PI / 2, -ang, 0]) });
+  }
+  if (rico) {
+    const q = rng(semilla + 500);
+    const tonos2 = ['#6b5a37', '#8a6a38', '#5a4a2e', '#7d6a40', '#56603a', '#9a7a42'];
+    // todo el año: más hojas secas, de tonos más variados
+    for (let i = 0; i < 14; i++) {
+      const ang = q() * Math.PI * 2, d = Math.sqrt(q()) * 1.5;
+      c.agregar(new THREE.CircleGeometry(0.07 + q() * 0.08, 6), { color: tonos2[i % tonos2.length], tipo: 0, variar: 0.1,
+        matriz: matriz([Math.cos(ang) * d, 0.02 + q() * 0.014, Math.sin(ang) * d], [-Math.PI / 2 + (q() - 0.5) * 0.2, q() * 6.28, 0], [1.0, 0.4 + q() * 0.5, 1.0]) });
+    }
+    // sólo en otoño: las hojas de las lengas y los ñires, más grandes, en montones sueltos
+    for (let i = 0; i < 36; i++) {
+      const ang = q() * Math.PI * 2, d = Math.pow(q(), 0.75) * 1.75;
+      c.agregar(new THREE.CircleGeometry(0.09 + q() * 0.08, 6), { color: tonos2[(i + 2) % tonos2.length], tipo: 2.6, variar: 0.1,
+        matriz: matriz([Math.cos(ang) * d, 0.026 + q() * 0.02, Math.sin(ang) * d], [-Math.PI / 2 + (q() - 0.5) * 0.25, q() * 6.28, 0], [1.0, 0.45 + q() * 0.45, 1.0]) });
+    }
   }
   return c.geometria({ soldar: true });
 }
@@ -1274,22 +1293,48 @@ function arbolSeco(semilla, detalle) {
   return { geo: c.geometria(), radio: 0.42, alto };
 }
 
-function roca(semilla) {
+// 4.0 (prototipo de vegetación): `rico` (sólo calidad alta) le oscurece el pie (tierra húmeda) y le pone cojines de musgo
+// arriba (aplastados, más claros en el lomo). Las rocas de siempre salen igual sin `rico`.
+function roca(semilla, rico = false) {
   const r = rng(semilla), c = new Constructor();
   // 3.4: piedra redondeada y suave (HushWood): menos abollada y con las normales del todo
   // suaves (antes quedaban aristas)
   const g = abollar(new THREE.IcosahedronGeometry(1, 1), 0.15, 1.1);
   // 3.2: piedra gris azulada con un poco de musgo arriba (sin volverse una bola verde)
-  c.agregar(g, { color: '#7a7e82', colorArriba: '#6d7452', tipo: 4, variar: 0.1, suave: 3, matriz: matriz([0, 0.15, 0], [r() * 0.3, r() * 6, r() * 0.3], [1 + r() * 0.4, 0.55 + r() * 0.2, 0.9 + r() * 0.3]) });
+  const rx = r() * 0.3, ry = r() * 6, rz = r() * 0.3, sx = 1 + r() * 0.4, sy = 0.55 + r() * 0.2, sz = 0.9 + r() * 0.3;
+  c.agregar(g, { color: '#7a7e82', colorArriba: '#6d7452', tipo: 4, variar: 0.1, suave: 3, sombraAbajo: rico ? [-0.7, 0.05] : undefined, matriz: matriz([0, 0.15, 0], [rx, ry, rz], [sx, sy, sz]) });
+  if (rico) {
+    const q = rng(semilla + 900);
+    for (let i = 0; i < 4; i++) {
+      const ang = q() * Math.PI * 2, f = 0.05 + q() * 0.4;
+      const u = Math.cos(ang) * f * sx, v = Math.sin(ang) * f * sz;
+      const alto = sy * Math.sqrt(Math.max(0.05, 1 - f * f)) - 0.14;
+      const tam = 0.3 + q() * 0.25;
+      // (el cojín gira con la piedra: se pone en su marco)
+      const pos = new THREE.Vector3(u, alto, v).applyEuler(new THREE.Euler(rx, ry * 0, rz)); pos.y += 0.15;
+      c.agregar(abollar(new THREE.IcosahedronGeometry(1, 1), 0.2, 1.7), { color: '#425a2c', colorArriba: '#5d7a35', tipo: 4, variar: 0.14, suave: 3,
+        matriz: matriz([pos.x, pos.y, pos.z], [rx * 0.4, q() * 6, rz * 0.4], [tam * (0.9 + q() * 0.6), tam * (0.5 + q() * 0.2), tam * (0.8 + q() * 0.5)]) });
+    }
+  }
   return c.geometria({ soldar: true });
 }
 
-function troncoCaido(semilla) {
+function troncoCaido(semilla, rico = false) {
   const r = rng(semilla), c = new Constructor();
   const largo = 5 + r() * 4;
   const g = troncoCurvo(largo, 0.38, 0.28, [0, (r() - 0.5) * 0.6], 8, 4);
   c.agregar(g, { color: '#5b4635', colorArriba: '#4a6a2a', tipo: 4, variar: 0.12, matriz: matriz([0, 0.3, -largo / 2], [Math.PI / 2, 0, 0]) });
   c.agregar(new THREE.CircleGeometry(0.36, 8), { color: '#8a6f52', tipo: 0, matriz: matriz([0, 0.3, -largo / 2], [0, Math.PI, 0]) });
+  if (rico) {
+    // 4.0: tiras de musgo sobre el lomo del tronco, más tupidas hacia un extremo (el lado húmedo)
+    const q = rng(semilla + 77);
+    for (let i = 0; i < 7; i++) {
+      const t = Math.pow(q(), 1.4), z0 = -largo / 2 + t * largo * 0.9 + 0.2;
+      const tam = 0.14 + q() * 0.12;
+      c.agregar(abollar(new THREE.IcosahedronGeometry(1, 1), 0.2, 1.7), { color: '#4d6532', colorArriba: '#6f8a3c', tipo: 4, variar: 0.14, suave: 3,
+        matriz: matriz([(q() - 0.5) * 0.18, 0.3 + 0.3, z0], [q() * 0.3, q() * 6, q() * 0.3], [tam * (1 + q() * 0.9), tam * 0.45, tam * (1.1 + q() * 1.4)]) });
+    }
+  }
   return c.geometria({ soldar: true });
 }
 
@@ -1424,10 +1469,11 @@ export function generarVegetacion(T, calidad, escena) {
   registrar('neneo', arbusto(13, '#7d8a5a', '#c9b06a', 26, 0.7), null, mats.arbusto, 'soto');
   registrar('maqui', arbusto(9, '#37582a', '#2e2340', 22, 1.3), null, mats.arbusto, 'soto');
   registrar('chaura', arbusto(10, '#2f4a24', '#e8c3c6', 30, 0.55), null, mats.arbusto, 'soto');
-  registrar('roca', roca(7), null, mats.roca, 'soto');
-  registrar('tronco', troncoCaido(8), null, mats.roca, 'soto');
-  registrar('hojarasca0', mantaHojarasca(31), null, mats.suelo, 'suelo');
-  registrar('hojarasca1', mantaHojarasca(47), null, mats.suelo, 'suelo');
+  const rico = calidadConPisadas(calidad);   // 4.0 (prototipo de vegetación): musgo y hojarasca más ricos, sólo en calidad alta
+  registrar('roca', roca(7, rico), null, mats.roca, 'soto');
+  registrar('tronco', troncoCaido(8, rico), null, mats.roca, 'soto');
+  registrar('hojarasca0', mantaHojarasca(31, rico), null, mats.suelo, 'suelo');
+  registrar('hojarasca1', mantaHojarasca(47, rico), null, mats.suelo, 'suelo');
   registrar('contactoArbol', discoContactoArbol(), null, mats.contacto, 'contacto');
 
   const chunks = new Map();
@@ -1438,13 +1484,13 @@ export function generarVegetacion(T, calidad, escena) {
   const matas = [];       // todo el sotobosque, para poder despejarlo si estorba
 
   const q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
-  function colocar(tipo, x, y, z, esc, rotY, inclinar = 0) {
+  function colocar(tipo, x, y, z, esc, rotY, inclinar = 0, azar = r) {
     const cx = Math.floor((x + MITAD) / TAM_CHUNK), cz = Math.floor((z + MITAD) / TAM_CHUNK);
     const k = cx + ',' + cz;
     if (!chunks.has(k)) chunks.set(k, { cx, cz, x: (cx + 0.5) * TAM_CHUNK - MITAD, z: (cz + 0.5) * TAM_CHUNK - MITAD, listas: {}, mallas: [] });
     const ch = chunks.get(k);
     if (!ch.listas[tipo]) ch.listas[tipo] = [];
-    e.set(inclinar * (r() - 0.5), rotY, inclinar * (r() - 0.5), 'YXZ');
+    e.set(inclinar * (azar() - 0.5), rotY, inclinar * (azar() - 0.5), 'YXZ');
     q.setFromEuler(e);
     const escala = typeof esc === 'number' ? s.set(esc, esc, esc) : s.set(esc[0], esc[1], esc[2]);
     ch.listas[tipo].push(new THREE.Matrix4().compose(p.set(x, y, z), q, escala));
@@ -1605,6 +1651,24 @@ export function generarVegetacion(T, calidad, escena) {
       const escH = 0.65 + r() * 0.8;
       const variante = Math.abs((Math.floor(x * 0.9) * 31) ^ (Math.floor(z * 0.9) * 17)) % 2;
       colocar('hojarasca' + variante, x, T.altura(x, z) + 0.012, z, [escH * (0.85 + r() * 0.35), 1, escH], r() * Math.PI * 2);
+    }
+  }
+
+  // ----- 4.0 (prototipo de vegetación, sólo calidad alta): hojarasca también al borde de los senderos del bosque
+  // (con su propio azar: no mueve ni un árbol ni una piedra de los de siempre)
+  if (rico) {
+    const rr = rng(5151), PASO_E = 4.5;
+    for (let gz = -MITAD; gz < MITAD; gz += PASO_E) {
+      for (let gx = -MITAD; gx < MITAD; gx += PASO_E) {
+        const x = gx + rr() * PASO_E, z = gz + rr() * PASO_E, tira = rr(), esc = 0.55 + rr() * 0.6, rot = rr() * Math.PI * 2;
+        if (Math.abs(x) > 495 || Math.abs(z) > 495) continue;
+        const k = T.indice(x, z), d = T.distSendero[k];
+        if (d < 0.9 || d > 5 || T.agua(x, z)) continue;
+        const perfil = perfilHabitatPatagonico(T, x, z);
+        if (perfil.estepa > 0.3 || perfil.bosque < 0.2) continue;
+        if (tira > clamp(perfil.bosque * 0.9, 0, 0.7) * dens) continue;
+        colocar('hojarasca' + (Math.abs((Math.floor(x * 0.9) * 31) ^ (Math.floor(z * 0.9) * 17)) % 2), x, T.altura(x, z) + 0.014, z, [esc, 1, esc * (0.85 + rr() * 0.3)], rot, 0, rr);
+      }
     }
   }
 
