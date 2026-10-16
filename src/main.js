@@ -112,7 +112,7 @@ import { crearFiestasJuego } from './fiestas-juego.js';
 import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
 import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN } from './cocina-pasos.js';
-import { sumarAmistadDe, cambiarAmistad, nombreCorto, amistades } from './vecindad.js';
+import { sumarAmistadDe, cambiarAmistad, nombreCorto, amistades, fijarModificadorAmistad } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -225,7 +225,7 @@ import { abrirCreador } from './creador-pantalla.js';
 import { dibujarFichaBruno } from './creador-ficha.js';
 import { genomaDesdePersonajeViejo } from './creador-personaje.js';
 // 4.1 (F3): lo que los rasgos de Bruno cambian en el juego (abrigo, afecto, pesca, cuaderno); sólo en el Relax y con Bruno creado
-import { abrigoExtra } from './creador-efectos.js';
+import { abrigoExtra, modificadorDeAmistad } from './creador-efectos.js';
 import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-bandera-mundo.js';
 // 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js)
 import { crearModos, CSS_MODOS } from './modos-juego.js';
@@ -2727,6 +2727,8 @@ function colocarEspejoDeFabrica() {
 }
 // ¿Hay que crear a Bruno antes de entrar? Siempre, salvo en depuración (las pruebas de humo no pasan por la pantalla; con `&creador=1` sí).
 const sinCreadorDeBruno = () => HOJARASCA_DEBUG && new URLSearchParams(location.search).get('creador') !== '1';
+// 4.1 (F3): el afecto con los vecinos: los rasgos y los gustos de Bruno cambian cuánto suma cada gesto bueno (ver creador-efectos.js). Una vez, al cargar el juego; lee a Bruno en el momento del gesto.
+fijarModificadorAmistad(modificadorDeAmistad(() => progreso?.personal?.bruno, esDesafio));
 function aplicarPersonal() {
   for (const s of secciones()) {
     if (typeof s.aplicar !== 'function') continue;

@@ -315,8 +315,13 @@ function ficha(v, persona) {
   return v.personas[persona];
 }
 const recordar = (lista, clave, tope) => { const i = lista.indexOf(clave); if (i >= 0) lista.splice(i, 1); lista.push(clave); while (lista.length > tope) lista.shift(); };
+// 4.1 (F3): los rasgos de Bruno (creador-efectos.js) cambian cuánto SUMA cada gesto bueno con cada vecino. Un enganche chico que fija main.js al empezar
+// la partida; sin él (las pruebas, el Desafío) todo es igual que siempre. Sólo escala ganancias (n > 0) y devuelve un entero >= 0.
+let modificadorAmistad = null;
+export function fijarModificadorAmistad(fn) { modificadorAmistad = typeof fn === 'function' ? fn : null; }
 function sumarAmistad(v, persona, n, dia) {
   const f = ficha(v, persona);
+  if (modificadorAmistad && n > 0) { const m = modificadorAmistad(persona, n, `${f.p}|${diaValido(dia, 1)}`); if (Number.isFinite(m) && m >= 0) n = Math.floor(m); }
   const antes = nivelPorPuntos(f.p);
   f.p = acotar(f.p + n, pisoDe(f), AMISTAD.tope);
   const despues = Math.max(nivelPorPuntos(f.p), f.max >= 1 ? 1 : 0);
