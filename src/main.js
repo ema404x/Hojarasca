@@ -9628,6 +9628,9 @@ function cuadroDelJuego(tRaf, manual) {
     if (cab.luzGaleria) cab.luzGaleria.intensity = encendido * 2.2 * (alcance(cam, cab, 40) ? 1 : 0);   // 3.8.8: los faroles de la galería de la casa de té
     cab.interior.intensity = cerquita ? rellenoInterior * 0.88 : 0;
     cab.interior.color.copy(colorInterior).lerp(COLOR_RAYO, encendido * 0.08);
+    // 4.0 (prototipo): los faroles encendidos con halo, el fuego, los charcos de luz y los ventanales de la casa de té (sin luces nuevas)
+    cab.efectos?.actualizar({ enc: encendido, dia: diaInterior, noche, nublado: clima.estado.nublado, cielo: colorInterior, tiempo: U.uTiempo.value,
+      cerca: cerquita, lejos: alcance(cam, cab, 45), pleno: !!calidad.post, interior: cab.interior });
   }
   if (est.molino) {
     if (est.molino.luzInterior) {

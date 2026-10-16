@@ -11,6 +11,8 @@ import { marcarConstructor } from './estilo-casa.js';
 import { crearDecoRefugio } from './personal-casa-mundo.js';
 import { crearPanoBandera, registrarBandera } from './bandera-viento.js';
 import { cubierta } from './techo-lluvia.js';
+// 4.0 (prototipo): faroles encendidos, halos, fuego y ventanales de la casa de té
+import { crearLuzCasaTe, ferreteriaFarolColgado, ferreteriaFarolMesa } from './casa-te-luz.js';
 
 const MADERA = '#6e5238', MADERA_OSCURA = '#4e3a28', TABLA = '#8a6b4a';
 
@@ -397,13 +399,9 @@ function amueblarCasaTe({ c, PT, col, sentaderos, w, sitio, rot, W, D, H }) {
   for (let k = 0; k < 4; k++) caja(c, [3.0, F + 1.62 - k * 0.1, 2.24], [0.037, 0.03, 0.3], k % 2 ? '#f2ece0' : '#3a3a3a');
   for (let k = 0; k < 9; k++) caja(c, [3.0, F + 1.1, 2.1 + k * 0.035], [0.02, 0.07, 0.01], '#9b3a2e');   // los flecos
   // ---- los faroles colgados y las cortinas de las ventanas del frente
-  for (const [lx, lz] of [[-1.3, 1.0], [1.3, 1.0], [0, -0.4]]) {
-    // (a más de 2,25 m del piso: se pasa por debajo sin pegarse en la cabeza)
-    cil(0.006, 0.3, [lx, H - 0.21, lz], HIERRO_TE);
-    cil(0.14, 0.03, [lx, H - 0.3, lz], HIERRO_TE);
-    cil(0.12, 0.22, [lx, H - 0.42, lz], '#3e5a46');
-    cil(0.07, 0.15, [lx, H - 0.44, lz], '#ffe0a0');
-  }
+  // 4.0 (prototipo): la parte de hierro de los faroles (sombrerete, aro, base y montantes); el vidrio encendido y su halo son de casa-te-luz.js
+  for (const [lx, lz] of [[-1.3, 1.0], [1.3, 1.0], [0, -0.4]]) ferreteriaFarolColgado(c, cil, lx, lz, H);
+  for (const mx of [-1.5, 1.5]) ferreteriaFarolMesa(c, cil, mx, F + 0.78, 1.3);
   for (const vx of [-1.36, 1.36]) {
     const s = Math.sign(vx);
     cil(0.014, 1.0, [vx + s * 0.55, 2.2, D / 2 - 0.15], '#9a7a3a', 0, Math.PI / 2);   // la varilla, sobre el lado de afuera
@@ -2526,6 +2524,8 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         v.position.set(vx, 1.55, D / 2 - 0.02);
         grupoTe.add(v);
       }
+      const efectosTe = crearLuzCasaTe({ W, D, H });   // 4.0 (prototipo): lo emisivo, los halos, los charcos de luz y los ventanales (sin luces nuevas)
+      grupoTe.add(efectosTe.grupo, efectosTe.halos);
       const luz = new THREE.PointLight(0xffb070, 0, 16, 1.6);
       luz.position.set(0, 1.9, 0);
       const interior = new THREE.PointLight(0xd8e0e8, 0, 8, 1.4);
@@ -2578,7 +2578,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       const ch = w(CHIM_TE.x, CHIM_TE.z);
       const mostrador = w(0, D / 2 + 1.5);
       const puertaTe = w(0, D / 2 + 3.1);
-      casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, luzGaleria, mostrador, puerta: puertaTe,
+      casaTe = { x: sitio.x, z: sitio.z, y: sitio.y, rot, nombre: 'Casa de Té', chimenea: { x: ch.x, y: sitio.y + chTopeTe + 0.09, z: ch.z }, vidrio, luz, interior, luzGaleria, efectos: efectosTe, mostrador, puerta: puertaTe,
         radio: Math.max(W / 2 + 1.4, D / 2 + 3.5) };
       T.lugares['casa-te'] = casaTe;
       // 3.6: en la aldea, la huella queda donde la dejaba el sorteo
