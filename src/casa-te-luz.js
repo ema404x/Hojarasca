@@ -138,7 +138,8 @@ export function crearLuzCasaTe({ W, D, H }) {
   // las dos velas de la repisa del hogar
   for (const dz of [-0.7, 0.7]) ce.agregar(new THREE.ConeGeometry(0.012, 0.045, 6), { color: '#ffd37a', tipo: 0, variar: 0, matriz: matriz([-3.06 + 0.3, F + 2.0, -1.2 + dz]) });
   const matEmisivo = new THREE.MeshBasicMaterial({ vertexColors: true });
-  const emisivo = new THREE.Mesh(ce.geometria(), matEmisivo); emisivo.name = 'faroles-encendidos'; grupo.add(emisivo);
+  const geoEmisivo = ce.geometria(); geoEmisivo.deleteAttribute('aTipo');   // (sin `aTipo`: no es del material del edificio, no se viste con el de la aldea)
+  const emisivo = new THREE.Mesh(geoEmisivo, matEmisivo); emisivo.name = 'faroles-encendidos'; grupo.add(emisivo);
 
   // ---- el fuego del hogar
   const cf = new Constructor();
@@ -146,7 +147,8 @@ export function crearLuzCasaTe({ W, D, H }) {
   llama(0.0, 0.0, 0.46, 0.1, '#ff9a3a'); llama(0.02, -0.17, 0.34, 0.075, '#ff7a28'); llama(0.02, 0.17, 0.36, 0.08, '#ff8a30'); llama(-0.04, 0.06, 0.28, 0.06, '#ffd070'); llama(0.0, -0.08, 0.2, 0.045, '#fff0b0');
   for (let i = 0; i < 6; i++) cf.agregar(new THREE.BoxGeometry(0.11, 0.05, 0.11), { color: i % 3 ? '#ff6a24' : '#ffa23c', tipo: 0, variar: 0, matriz: matriz([-3.06 + 0.2 + (i % 2) * 0.1, F + 0.15, -1.2 - 0.3 + i * 0.12], [0, i, 0]) });
   const matFuego = new THREE.MeshBasicMaterial({ vertexColors: true });
-  const fuego = new THREE.Mesh(cf.geometria(), matFuego); fuego.name = 'fuego-hogar'; grupo.add(fuego);
+  const geoFuego = cf.geometria(); geoFuego.deleteAttribute('aTipo');
+  const fuego = new THREE.Mesh(geoFuego, matFuego); fuego.name = 'fuego-hogar'; grupo.add(fuego);
 
   // ---- los halos (un dibujo): cada farol, el fuego y los de la galería
   const lista = [];
