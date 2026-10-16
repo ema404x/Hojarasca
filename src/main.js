@@ -8658,8 +8658,8 @@ function cieloDeLaNoche(dt, noche, luz) {
   // la luna llena se anota mirándola un rato, como una constelación
   if (luz?.lunaDir && noche > 0.7 && nub < 0.6 && lunaAnotable(fase) && !progreso.entradas['luna-llena']) {
     camara.getWorldDirection(mirada);
-    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) * factorCuadernoBruno(progreso.personal?.bruno, esDesafio) : 0;   // (4.1 F3: y los rasgos de Bruno)
-    if (nocheCielo.mirandoLuna > 2.2) registrar('luna-llena');
+    nocheCielo.mirandoLuna = mirada.dot(luz.lunaDir) > 0.95 ? nocheCielo.mirandoLuna + dt * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) : 0;
+    if (nocheCielo.mirandoLuna > 2.2 / factorCuadernoBruno(progreso.personal?.bruno, esDesafio)) registrar('luna-llena');   // 4.1 (F3): los rasgos de Bruno acortan o alargan la mirada que hace falta (lo mismo que acelerarla)
   }
 }
 
@@ -8689,8 +8689,8 @@ function actualizarCielo(dt, noche, luz) {
       n++;
       // mirarla un rato la anota en el cuaderno
       if (!conocida) {
-        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1) * factorCuadernoBruno(progreso.personal?.bruno, esDesafio);   // (3.7.1: los ojos de noche de Valentina; 4.1 F3: y los rasgos de Bruno)
-        if (tiempoMirando[c.id] > 2.2) registrar(c.id);
+        tiempoMirando[c.id] = (tiempoMirando[c.id] || 0) + 0.2 * (jugador.estado.zoom ? 2 : 1) * (amorJuego?.bonos().cielo || 1);   // (3.7.1: los ojos de noche de Valentina)
+        if (tiempoMirando[c.id] > 2.2 / factorCuadernoBruno(progreso.personal?.bruno, esDesafio)) registrar(c.id);   // 4.1 (F3): ídem
       }
     }
   }

@@ -3,7 +3,7 @@
 //  · sin Bruno creado, o en el Desafío, el factor es exactamente 1;
 //  · cada rasgo de cuaderno del catálogo mueve el factor en el sentido que dice; en las 56 250 combinaciones queda entre 0,8 y 1,2;
 //  · simulado: con +20 % una constelación se anota en menos cuadros de mirada que con 0 y con -20 % en más (y siempre se puede anotar: nunca se bloquea);
-//  · main.js lo multiplica en las DOS cuentas de mirada del cielo, junto al multiplicador de la pareja, y nada más (las entradas de un golpe no cambian).
+//  · main.js lo usa en las DOS cuentas de mirada del cielo (dividiendo el umbral de 2,2 s: equivale a multiplicar la velocidad), y nada más (las entradas de un golpe no cambian).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -60,9 +60,11 @@ ok(cuantasMiradas(1.2, true) < cuantasMiradas(1, true) && cuantasMiradas(1.2, fa
 // ---------------------------------------------------------------- 5. el enchufe
 const main = leer('src/main.js');
 ok(main.includes('factorCuadernoBruno } from \'./creador-efectos.js\';'), 'main.js importa el factor en una línea');
-const usos = main.split('\n').filter((l) => l.includes('factorCuadernoBruno(progreso.personal?.bruno, esDesafio)'));
-ok(usos.length === 2 && usos.every((l) => l.includes('amorJuego?.bonos().cielo')), 'se usa en las dos cuentas de mirada del cielo, junto al multiplicador de la pareja');
-ok(usos.some((l) => l.includes('mirandoLuna')) && usos.some((l) => l.includes('tiempoMirando')), 'una es la luna llena y la otra las constelaciones');
-ok(main.split('\n').filter((l) => l.includes('factorCuadernoBruno(')).length === 2, 'no se usa en ningún otro lado (las entradas de un golpe no cambian)');
+const lineas = main.split(String.fromCharCode(10));
+const usos = lineas.filter((l) => l.includes('2.2 / factorCuadernoBruno(progreso.personal?.bruno, esDesafio)'));
+ok(usos.length === 2, 'se usa en las dos cuentas de mirada del cielo');
+ok(usos.some((l) => l.includes('mirandoLuna') && l.includes("registrar('luna-llena')")) && usos.some((l) => l.includes('tiempoMirando[c.id]') && l.includes('registrar(c.id)')), 'una es la luna llena y la otra las constelaciones');
+ok(lineas.filter((l) => l.includes('factorCuadernoBruno(')).length === 2, 'no se usa en ningún otro lado (las entradas de un golpe no cambian)');
+ok(lineas.some((l) => l.includes('* (amorJuego?.bonos().cielo || 1);')), 'las cuentas de la pareja (zoom y ojos de noche) quedaron como estaban: el factor de Bruno mueve el umbral, que es lo mismo que acelerar la mirada');
 
 console.log(`verificar-4-1-efectos-cuaderno: ${pasos} verificaciones OK`);
