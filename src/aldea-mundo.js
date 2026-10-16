@@ -2146,9 +2146,7 @@ export function crearAldeaMundo(ctx) {
       const esq = [[-r, r], [r, r], [r, -r], [-r, -r]].map(([dx, dz]) => [q.x + dx, (calle ? Math.max(y0, alturaEn(q.x + dx, q.z + dz)) : y0) + 0.06, q.z + dz]);
       charcos.push({ pts: esq, col: calido.map((k) => k * (q.alto > 2.6 ? 0.42 : 0.5)) });
     }
-    // el reloj de la plaza (una caja con dos esferas, a 3,3 m, del lado del mástil): un halo adelante de cada esfera
-    const pl = edificios.get('plaza');
-    if (pl?.sitio) for (const dz of [-0.35, 0.35]) { const w = aMundoEn(pl.sitio, 1.65, pl.fondo / 2 - 1.75 + dz); halos.push({ pos: [w.x, pl.sitio.y + 3.3, w.z], radio: 1.25, fluctua: 0, soloNoche: true }); }
+    // (el reloj de la plaza no lleva halo: lavaba la esfera y no se leía la hora)
     luzNoche.reconstruir(halos, charcos);
   }
   function rehacerChimeneas() {
