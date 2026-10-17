@@ -92,7 +92,7 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   const mat = materialVegetal({ flex: 0 });
   // 4.0.1: el sendero real (que NO se mueve) cruza el campo y sale por la esquina sudeste del cerco; lo nuevo le deja paso: sin flores sobre el camino y con un hueco en el cerco
   const alSendero = (lx, lz) => { const p = mundo(lx, lz); return typeof T.val === 'function' && T.distSendero ? T.val(T.distSendero, p.x, p.z) : 999; };
-  const LIBRE_FLORES = 1.6, LIBRE_CERCO = 1.9;
+  const LIBRE_FLORES = 1.6, LIBRE_CERCO = 1.0;
 
   // ============================================================ el campo de tulipanes (instanciado)
   const siembra = sembrarTulipanes();
