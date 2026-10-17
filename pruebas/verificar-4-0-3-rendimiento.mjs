@@ -1,6 +1,7 @@
 // 4.0.3: rendimiento (H1, H2, H6 de la zona H de la segunda ronda de bugs). Ejecuta los módulos reales.
 import assert from 'node:assert/strict';
 import { crearRitmoAuto, AJUSTES_RITMO, crearPresupuestoAdaptativo, crearPlanificadorAntitirones } from '../src/rendimiento.js';
+import { crearEstadoAutocalidad, anotarCuadro, decidirCalidad, fpsMedio, fpsPeor } from '../src/autocalidad.js';
 
 let s = 11; const az = () => (s = (s * 16807) % 2147483647) / 2147483647;
 const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += az(); return (u - 3) / 0.7071; };
@@ -93,5 +94,27 @@ for (const c of [11, 12, 13]) {
   const q = crearPlanificadorAntitirones({ objetivoMs: 16.7, maxPesadas: 1, maxSecundarias: 3 });
   q.comenzarCuadro(1 / 60, 0, 1000 / 60);
   ok(q.permitir('a', { pesada: true }) && !q.permitir('b', { pesada: true }), 'H6: en frío sigue siendo una pesada por cuadro');
+}
+// ---- H4: la calidad automática decide igual, y sólo ordena la ventana cuando hace falta
+{
+  const sim = (fps, segundos, calidad) => {
+    const e = crearEstadoAutocalidad(calidad); let decision = null, t0 = performance.now(), cuadros = 0;
+    for (let i = 0; i < fps * segundos && !decision; i++) { anotarCuadro(e, 1 / fps); decision = decidirCalidad(e); cuadros++; }
+    return { e, decision, cuadros, ms: performance.now() - t0 };
+  };
+  const lento = sim(25, 60, 'alta');
+  ok(lento.decision?.motivo === 'bajar' && lento.decision.hasta === 'media', `H4: a 25 fps pide bajar un escalón (${JSON.stringify(lento.decision && { m: lento.decision.motivo, h: lento.decision.hasta })})`);
+  ok(Number.isFinite(lento.decision.fps.medio) && Number.isFinite(lento.decision.fps.peor), 'H4: y la decisión trae sus fps (medio y peor)');
+  const rapido = sim(144, 60, 'media');
+  ok(rapido.decision?.motivo === 'subir' && rapido.decision.hasta === 'alta', 'H4: a 144 fps pide subir');
+  const parejo = sim(60, 30, 'media');
+  ok(parejo.decision === null, 'H4: a 60 parejos no pide nada');
+  // el costo por cuadro cuando no hay nada para decidir (lo que pasa casi siempre)
+  const e = crearEstadoAutocalidad('media'); for (let i = 0; i < 400; i++) anotarCuadro(e, 1 / 60);
+  const N = 20000, ti = performance.now();
+  for (let i = 0; i < N; i++) { anotarCuadro(e, 1 / 60); decidirCalidad(e); }
+  const us = ((performance.now() - ti) / N) * 1000;
+  console.log('  (anotarCuadro + decidirCalidad en estado parejo: ' + us.toFixed(1) + ' µs por cuadro; antes ~62)');
+  ok(us < 45, `H4: el costo por cuadro bajó (${us.toFixed(1)} µs)`);
 }
 console.log(`OK 4.0.3 rendimiento · ${n} verificaciones · ritmo auto vuelve a 60, presupuesto adaptativo baja de nivel, sombras no se quedan sin turno`);
