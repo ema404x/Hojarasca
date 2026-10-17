@@ -33,6 +33,28 @@ export const FRANJAS = Object.freeze([
   { id: 'f5', mezcla: { rojo: 0.65, naranja: 0.3, blanco: 0.05 } },
   { id: 'f6', mezcla: { amarillo: 0.6, naranja: 0.4 } },
 ]);
+// 4.2 (huevos de pascua): un corazón escondido en el campo. Visto desde arriba (la loma, el techo del molino) las seis franjas son las
+// seis filas de un corazón de siete columnas, en tulipanes blancos; de cerca son parches blancos entre los de siempre. Sólo cambia el
+// COLOR de algunas plantas: las mismas, en el mismo lugar, en las mismas mallas (cinco, una por color). Fila 0 = la franja del fondo
+// (hacia el arroyo): los lóbulos miran al arroyo y la punta, al sendero.
+export const DIBUJO_CAMPO = Object.freeze({
+  id: 'corazon', color: 'blanco', pureza: 0.96,   // el 4 % del parche conserva el color de la franja (no se ve «pintado»)
+  filas: Object.freeze(['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...']),
+  suave: 0.3,     // m: en el borde de cada parche, las plantas se mezclan con las de al lado (el límite no es una raya)
+});
+// ¿La planta de la franja `fi` (0 = la de adelante, hacia el sendero) en `x` (marco local del molino) cae en un parche del corazón?
+// `u`: un azar fijo de la planta, para el borde.
+export function enDibujo(fi, x, u = 0.5, dibujo = DIBUJO_CAMPO) {
+  const filas = dibujo.filas, fila = filas[filas.length - 1 - fi];
+  if (!fila) return false;
+  const cols = fila.length, ancho = (CAMPO.lx1 - CAMPO.lx0) / cols, t = (x - CAMPO.lx0) / ancho;
+  const c = Math.max(0, Math.min(cols - 1, Math.floor(t))), mio = fila[c] === '#';
+  const aIzq = (t - c) * ancho, aDer = (1 - (t - c)) * ancho, lado = aIzq < aDer ? -1 : 1, d = Math.min(aIzq, aDer);
+  const otro = fila[c + lado] === '#';
+  // pegada al vecino distinto, una de cada dos (menos, a medida que se aleja del borde) cambia de parche
+  const cambia = otro !== mio && u < 0.5 * (1 - Math.min(1, d / dibujo.suave));
+  return cambia ? otro : mio;
+}
 export function limitesFranjas() {
   const n = FRANJAS.length, total = CAMPO.lz1 - CAMPO.lz0, ancho = (total - CAMPO.surco * (n - 1)) / n;
   return FRANJAS.map((f, i) => ({ ...f, z0: CAMPO.lz0 + i * (ancho + CAMPO.surco), z1: CAMPO.lz0 + i * (ancho + CAMPO.surco) + ancho }));
@@ -54,7 +76,7 @@ export function sembrarTulipanes() {
         todas.push({
           x: x + (azarFijo(x, z, 1) - 0.5) * 0.09, z: z + (azarFijo(x, z, 2) - 0.5) * 0.09,
           giro: azarFijo(x, z, 3) * Math.PI * 2, esc: 0.85 + azarFijo(x, z, 4) * 0.35,
-          color: elegirColor(f.mezcla, azarFijo(x, z, 5 + k * 0)), orden: azarFijo(x, z, 6),
+          color: enDibujo(fi, x, azarFijo(x, z, 9)) && azarFijo(x, z, 10) < DIBUJO_CAMPO.pureza ? DIBUJO_CAMPO.color : elegirColor(f.mezcla, azarFijo(x, z, 5 + k * 0)), orden: azarFijo(x, z, 6),
         });
       }
     }

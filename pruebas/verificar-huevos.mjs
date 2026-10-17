@@ -89,6 +89,42 @@ function VECINOS() { return H.VECINOS_DESEO; }
   ok(con / N > 0.3 && con / N < 0.6, `un regalito en poco menos de la mitad de los convites (${con}/${N})`);
   ok(H.NOTAS_DUENDE.length >= 5 && H.NOTAS_DUENDE.every((t) => t.length > 20 && t.length < 100 && !/[A-Za-z]{3,} (the|and) /.test(t)), 'las notas, en castellano y cortas');
 }
+// ---------------------------------------------------------------- 1c. el corazón en los tulipanes
+{
+  const P = await imp('molino-paisaje-plano.js');
+  const D = P.DIBUJO_CAMPO, sie = P.sembrarTulipanes();
+  ok(sie.total === 1926, `los tulipanes siguen siendo los mismos 1926 (${sie.total})`);
+  const todas = Object.values(sie.porColor).flat();
+  ok(todas.length === 1926 && Object.keys(sie.porColor).length === 5 && Object.values(sie.porColor).every((l) => l.length > 0), 'siguen las cinco mallas (una por color), todas con plantas: no se suma ni un dibujo');
+  ok(JSON.stringify(P.sembrarTulipanes().porColor.blanco[3]) === JSON.stringify(sie.porColor.blanco[3]), 'la siembra es la misma cada vez');
+  ok(D.filas.length === P.FRANJAS.length && D.filas.every((f) => f.length === D.filas[0].length && /^[.#]+$/.test(f)), 'el dibujo tiene una fila por franja');
+  // por celda (franja × columna): adentro del corazón casi todo blanco; afuera, casi nada
+  const fr = P.limitesFranjas(), cols = D.filas[0].length, ancho = (P.CAMPO.lx1 - P.CAMPO.lx0) / cols;
+  let dentro = 0, fuera = 0, nDentro = 0, nFuera = 0, mal = 0;
+  for (let fi = 0; fi < fr.length; fi++) for (let c = 0; c < cols; c++) {
+    const x0 = P.CAMPO.lx0 + c * ancho, x1 = x0 + ancho, f = fr[fi], mio = D.filas[fr.length - 1 - fi][c] === '#';
+    // el centro de la celda (lejos del borde): ahí no se mezcla
+    const lista = todas.filter((t) => t.z >= f.z0 - 0.06 && t.z <= f.z1 + 0.06 && t.x >= x0 + D.suave && t.x < x1 - D.suave);
+    if (lista.length < 5) { mal++; continue; }
+    const b = lista.filter((t) => t.color === D.color).length / lista.length;
+    if (mio) { dentro += b; nDentro++; } else { fuera += b; nFuera++; }
+    if (mio ? b < 0.8 : b > 0.3) mal++;
+  }
+  ok(mal === 0 && dentro / nDentro > 0.9 && fuera / nFuera < 0.2, `cada celda del corazón es casi toda blanca (${(dentro / nDentro).toFixed(2)}) y las de afuera, casi nada (${(fuera / nFuera).toFixed(2)})`);
+  // el borde no es una raya: hay mezcla pegada al límite
+  { const f = fr[0], xb = P.CAMPO.lx0 + 3 * ancho;   // en la fila de la punta, el borde entre la columna 2 (vacía) y la 3 (llena)
+    const cerca = todas.filter((t) => t.z >= f.z0 - 0.06 && t.z <= f.z1 + 0.06 && Math.abs(t.x - xb) < 0.2);
+    const b = cerca.filter((t) => t.color === D.color).length / cerca.length;
+    ok(cerca.length > 6 && b > 0.1 && b < 0.9, `el borde del parche se mezcla (${b.toFixed(2)} blancas a 20 cm del límite)`); }
+  // la fracción blanca del campo es la del dibujo (el resto conserva los colores de siempre)
+  const blancas = todas.filter((t) => t.color === D.color).length / todas.length;
+  ok(blancas > 0.45 && blancas < 0.75, `el corazón ocupa un poco más de la mitad del campo (${(blancas * 100).toFixed(0)} %)`);
+  ok(['rojo', 'naranja', 'amarillo'].every((k) => sie.porColor[k].length >= 150) && sie.porColor.rosa.length >= 8, 'los colores de las franjas siguen a la vista alrededor (el rosa, apenas: su franja queda casi toda adentro del corazón)');
+  // bajar la calidad saca plantas parejo: el corazón sigue leyéndose con la mitad
+  const mitad = (l) => l.slice(0, Math.floor(l.length / 2));
+  ok(Math.abs(mitad(sie.porColor.blanco).length / sie.porColor.blanco.length - 0.5) < 0.01, 'con la mitad de las plantas (calidad baja) las mallas se acortan parejo');
+}
+
 // ---------------------------------------------------------------- 2. lo que se guarda
 eq(H.sanearHuevos(undefined, 10), H.huevosNuevos(), 'una partida vieja (sin el campo) arranca de cero');
 eq(H.sanearHuevos(null, 10), H.huevosNuevos(), 'null: de cero');
@@ -135,4 +171,4 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   ok(!/from 'three'/.test(p) && !/document\./.test(p) && !/Date\.now|Math\.random/.test(p.replace(/\/\/.*$/gm, '')), 'huevos.js es puro: ni three ni DOM ni reloj ni Math.random');
 }
 
-console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, guardado saneado y enganche`);
+console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, guardado saneado y enganche`);
