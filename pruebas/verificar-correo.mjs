@@ -82,7 +82,7 @@ assert.match(main, /const correoAca = npc\.clave === 'ercilia' \|\| npc\.clave =
 assert.match(main, /if \(carta\) \{ charla\.historia = \{ id: carta\.id, partes: partesDeCarta\(carta\) \}; \}/, 'la carta se lee como una historia y se registra al terminar');
 // 3.6: llega sólo a la estación del almacén: en el Relax el almacén de Ercilia se mudó a la aldea
 assert.ok(main.includes("const delCorreo = tren.paradas.find((p) => p.aldea) || tren.paradas.find((p) => p.nombre === 'Estación del Valle');") && main.includes('if (!aqui || aqui !== delCorreo) return;'), 'llega sólo a la estación del almacén');
-assert.match(main, /if \(modo === 'jugando' && !desafio\) revisarCorreo\(\);/, 'el correo es del Relax');
+assert.match(main, /if \(modo === 'jugando' && !desafio( && !foto\.activo)?\) revisarCorreo\(\);/, 'el correo es del Relax');   // 4.0.3: y no con el modo foto (la hora del deslizador)
 assert.match(main, /for \(const \[k, n\] of Object\.entries\(premio\.cuenta \|\| \{\}\)\) progreso\.cosas\[k\] = \(progreso\.cosas\[k\] \|\| 0\) \+ n;/);
 assert.match(leer('src/trochita.js'), /let nombre = sitio === principal \? 'Estación del Valle' : null;/, 'la estación principal sigue llamándose así');
 assert.match(leer('src/guardado.js'), /correo: sanearCorreo\(p\.correo\)/);
