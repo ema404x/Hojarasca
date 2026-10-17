@@ -1,10 +1,11 @@
 // 4.2 (huevos de pascua): lo que se ve de los easter eggs (las reglas, en huevos.js; el enganche, en huevos-juego.js).
 //   · la rueda de hongos al pie del coihue de los duendes, la pilita de yerba y el bultito atado con hilo;
-//   · (se suman el montículo del hueso y el huemul blanco).
+//   · el huemul blanco del mallín (se para, mueve las orejas y, si te acercás, se va caminando);
+//   · (se suma el montículo del hueso).
 // Todo con MAT_FAUNA (color por vértice, el de la gente y los animales: no compila nada nuevo), una malla por cosa y sólo a la vista
 // cuando hace falta (lejos no se dibuja). Nada se mueve por cuadro.
 import * as THREE from 'three';
-import { MAT_FAUNA } from './vida.js';
+import { MAT_FAUNA, mallaHuemulBlanco } from './vida.js';
 
 const ruido = (x, y, z) => { const s = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return s - Math.floor(s); };
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _n3 = new THREE.Matrix3();
@@ -83,8 +84,47 @@ export function crearHuevosMundo({ escena, altura }) {
     m.position.set(x, altura(x, z) + dy, z); m.rotation.y = giro; m.scale.set(1, 1, 1);
     m.updateMatrix(); m.updateMatrixWorld(true);
   };
+  // ---------------------------------------------------------------- el huemul blanco (se arma la primera vez que sale)
+  let hu = null;
+  const H = { activo: false, huyendo: false, x: 0, z: 0, yaw: 0, t: 0, fase: 0, dx: 0, dz: 0, camino: 0 };
+  const asentar = () => { hu.g.position.set(H.x, altura(H.x, H.z), H.z); hu.g.rotation.y = H.yaw; };
   const api = {
     grupo, rueda: null, pila, bulto,
+    huemulEstado: H,
+    // lo pone en (x, z) mirando a `yaw` (en el mallín, de cara al agua)
+    ponerHuemul(x, z, yaw) {
+      if (!hu) { hu = mallaHuemulBlanco(); hu.g.scale.setScalar(1.15); grupo.add(hu.g); }
+      Object.assign(H, { activo: true, huyendo: false, x, z, yaw, t: 0, fase: 0, camino: 0 });
+      hu.g.visible = true; asentar();
+    },
+    quitarHuemul() { H.activo = false; H.huyendo = false; if (hu) hu.g.visible = false; },
+    // se va caminando (primero al paso, después al trote) en la dirección (dx, dz), `largo` metros; después desaparece en la niebla
+    huirHuemul(dx, dz, largo) {
+      if (!hu || !H.activo || H.huyendo) return;
+      const d = Math.hypot(dx, dz) || 1;
+      H.dx = dx / d; H.dz = dz / d; H.camino = largo; H.huyendo = true; H.yaw = Math.atan2(H.dx, H.dz);
+    },
+    // por cuadro sólo mientras está afuera: las orejas, la cabeza que sube y baja y, si huye, las patas
+    animarHuemul(dt) {
+      if (!hu || !H.activo) return false;
+      H.t += dt;
+      if (H.huyendo) {
+        const v = H.t < 1.5 ? 1.1 : 3.6;   // un rato al paso y después al trote
+        const paso = Math.min(v * dt, H.camino);
+        H.x += H.dx * paso; H.z += H.dz * paso; H.camino -= paso; H.fase += dt * (v < 2 ? 4.2 : 8);
+        hu.g.rotation.y = H.yaw;
+        hu.patas.forEach((p, i) => { p.rotation.x = Math.sin(H.fase + (i % 2 ? Math.PI : 0) + (i > 1 ? 0.4 : 0)) * (v < 2 ? 0.4 : 0.6); });
+        hu.cabeza.rotation.x = -0.12;
+        asentar();
+        if (H.camino <= 0.001) { api.quitarHuemul(); return false; }
+      } else {
+        hu.cabeza.rotation.x = Math.sin(H.t * 0.5) * 0.07 + 0.02;
+        hu.cabeza.rotation.y = Math.sin(H.t * 0.23) * 0.35;
+        hu.orejas.forEach((o, i) => { o.rotation.y = Math.max(0, Math.sin(H.t * 1.7 + i * 2.1) - 0.8) * 1.6 * (i ? -1 : 1); });
+      }
+      return true;
+    },
+    huemulPos: () => (hu && H.activo ? hu.g.position : null),
     // el pie del coihue: la rueda alrededor del árbol y el convite a un paso, del lado del refugio
     ponerCoihue(c, haciaX, haciaZ) {
       if (!rueda) { rueda = armarRueda(c, altura); grupo.add(rueda); api.rueda = rueda; }

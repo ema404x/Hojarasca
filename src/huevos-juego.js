@@ -2,8 +2,10 @@
 // en huevos-mundo.js. Todo por evento, nada por cuadro: `actualizar(dt)` sólo junta tiempo y mira cada 2 segundos.
 // `ctx`: { progreso(), desafio(), jugador() → { estado }, sonido, nota(t, sub, nueva), diario(tipo, dato), guardar(),
 //   sumarMaterial(k, n), sumarCosa(k, n), cantidad(tipo, k), refrescarBarra(), registrar(id), mundo (huevos-mundo.js), arboles() → veg.arboles,
-//   refugio() → { x, z } }
-import { sanearHuevos, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cumplirDeseo, DESEOS, ESTRELLA, DUENDES, elegirCoihue, puedeConvidar, convidar, bultoListo, levantarBulto } from './huevos.js';
+//   refugio() → { x, z },
+//   niebla() → la opacidad de la niebla de valle (0 a 0,68), camara() → la cámara, mallin() → { x, z }, agua(x, z), altura(x, z) }
+import { sanearHuevos, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cumplirDeseo, DESEOS, ESTRELLA, DUENDES, elegirCoihue, puedeConvidar, convidar, bultoListo, levantarBulto,
+  HUEMUL, huemulAfuera, salioHuemul, seFueHuemul, avistoHuemul, seAsusta } from './huevos.js';
 import { sumarAmistadDe, nombreCorto } from './vecindad.js';
 
 export function crearHuevosJuego(ctx) {
@@ -138,9 +140,75 @@ export function crearHuevosJuego(ctx) {
     return null;
   }
 
+  // ------------------------------------------------------------ 3) el huemul blanco del mallín
+  let lugarHuemul = null, buscadoHuemul = false, acumHuemul = 0;
+  // El lugar fijo: en el mallín (ahí bajan los huemules), en el primer claro de tierra firme y parejo, de cara al agua
+  function buscarLugarHuemul() {
+    buscadoHuemul = true;
+    const m = ctx.mallin?.();
+    if (!m) return;
+    const arboles = ctx.arboles?.() || [];
+    for (const r of [9, 13, 17, 21, 26]) {
+      for (let k = 0; k < 12; k++) {
+        const a = k * (Math.PI / 6) + 0.4, x = m.x + Math.cos(a) * r, z = m.z + Math.sin(a) * r;
+        if (ctx.agua?.(x, z)) continue;
+        const y = ctx.altura(x, z);
+        if (!(y > 0.6) || [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dz]) => Math.abs(ctx.altura(x + dx, z + dz) - y) > 0.5)) continue;
+        if (arboles.some((t) => Math.abs(t.x - x) < 7 && Math.abs(t.z - z) < 7 && Math.hypot(t.x - x, t.z - z) < 6)) continue;
+        lugarHuemul = { x, z, yaw: Math.atan2(m.x - x, m.z - z) };   // mira al centro del mallín
+        return;
+      }
+    }
+  }
+  const distA = (p, x, z) => Math.hypot(p.x - x, p.z - z);
+  function huemulSale() {
+    if (!lugarHuemul || !ctx.mundo) return;
+    salioHuemul(h(), dia());
+    ctx.mundo.ponerHuemul(lugarHuemul.x, lugarHuemul.z, lugarHuemul.yaw);
+    acumHuemul = 0;
+    ctx.guardar?.();
+  }
+  function huemulSeVa(p) {
+    const e = ctx.mundo.huemulEstado;
+    if (!e.activo || e.huyendo) return;
+    // se aleja del jugador (si está encima, hacia el bosque que da la espalda al mallín)
+    let dx = e.x - p.x, dz = e.z - p.z;
+    if (Math.hypot(dx, dz) < 0.5) { dx = -Math.sin(lugarHuemul.yaw); dz = -Math.cos(lugarHuemul.yaw); }
+    ctx.mundo.huirHuemul(dx, dz, HUEMUL.fuga);
+    seFueHuemul(h());
+    ctx.guardar?.();
+  }
+  // Por cuadro sólo mientras está afuera; mirarlo se mira cuatro veces por segundo
+  function pasoHuemul(dt) {
+    if (!ctx.mundo.animarHuemul(dt)) { seFueHuemul(h()); return; }
+    acumHuemul += dt;
+    if (acumHuemul < 0.25) return;
+    acumHuemul = 0;
+    const p = ctx.jugador?.()?.estado?.pos, e = ctx.mundo.huemulEstado;
+    if (!p || e.huyendo) return;
+    const d = distA(p, e.x, e.z);
+    if (seAsusta(d)) { huemulSeVa(p); return; }
+    const E = ctx.camara?.()?.matrixWorld?.elements, pos = ctx.mundo.huemulPos();
+    if (!E || !pos || d > HUEMUL.ver || ctx.progreso().entradas?.['avistaje-huemul']) return;
+    const cx = E[12], cy = E[13], cz = E[14], vx = pos.x - cx, vy = pos.y + 1 - cy, vz = pos.z - cz, n = Math.hypot(vx, vy, vz) || 1;
+    if ((vx * -E[8] + vy * -E[9] + vz * -E[10]) / n > 0.95) { avistoHuemul(h()); ctx.registrar?.('avistaje-huemul'); }
+  }
+  function revisarHuemul(pos) {
+    if (!buscadoHuemul) buscarLugarHuemul();
+    if (!lugarHuemul || !ctx.mundo) return;
+    const e = ctx.mundo.huemulEstado, afuera = huemulAfuera(h(), dia(), horas(), Number(ctx.niebla?.()) || 0);
+    if (afuera && !e.activo) huemulSale();
+    else if (!afuera && e.activo && !e.huyendo) {
+      // terminó la mañana (o se fue la niebla): si lo estás mirando de cerca se va caminando; si no, se pierde en la niebla
+      if (pos && distA(pos, e.x, e.z) < 60) huemulSeVa(pos);
+      else { ctx.mundo.quitarHuemul(); seFueHuemul(h()); }
+    }
+  }
+
   // ------------------------------------------------------------ cada 2 segundos
   let acum = 0;
   function actualizar(dt) {
+    if (ctx.mundo?.huemulEstado.activo) pasoHuemul(dt);
     acum += dt;
     if (acum < 2) return;
     acum = 0;
@@ -149,7 +217,8 @@ export function crearHuevosJuego(ctx) {
     const x = h();
     if (deseoListo(x, dia(), horas())) cumplir();
     ponerVista(ctx.jugador?.()?.estado?.pos);
+    revisarHuemul(ctx.jugador?.()?.estado?.pos);
   }
 
-  return { fugazVista, actualizar, accion, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
+  return { fugazVista, actualizar, accion, lugarHuemul: () => lugarHuemul, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
 }

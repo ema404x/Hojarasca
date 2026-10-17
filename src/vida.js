@@ -187,10 +187,11 @@ export function patas(g, mat, largo, x, z, r) {
 // patas cortas y fuertes, cuello grueso, cabeza corta con la "Y" oscura de la frente, orejas
 // grandes y, el macho, cuernos cortos en horqueta. Pelaje pardo grisáceo pintado en los
 // vértices (más oscuro en la cara y las cañas, más claro en la garganta). Mismos pivotes.
-function mallaHuemul(macho) {
+function mallaHuemul(macho, blanco = false) {
   const g = new THREE.Group();
-  const pelo = '#776957', oscuro = '#3d342b', asta = '#584938';
-  const cOsc = new THREE.Color('#2f2822'), claro = new THREE.Color('#b8aa91');
+  // 4.2 (huevos de pascua): el huemul blanco (pelaje claro, la «Y» de la frente apenas más oscura); el de siempre, pardo
+  const pelo = blanco ? '#ebe6da' : '#776957', oscuro = blanco ? '#8f897c' : '#3d342b', asta = blanco ? '#d4cbb8' : '#584938';
+  const cOsc = new THREE.Color(blanco ? '#7d776a' : '#2f2822'), claro = new THREE.Color(blanco ? '#fffef8' : '#b8aa91');
   const sv = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const pelaje = (c, p, n) => {
     c.multiplyScalar(1 + ruido3(p.x * 18, p.y * 16, p.z * 17) * 0.05 + 0.06 * Math.max(0, n.y));
@@ -244,6 +245,9 @@ function mallaHuemul(macho) {
   compactar(g, { alto: 1.3, pie: 0.86, todo: true });
   return { g, cabeza, patas: ps, orejas };
 }
+
+// 4.2 (huevos de pascua): el huemul blanco, macho (lo arma huevos-mundo.js; no es de la fauna: no se caza ni se cuenta)
+export function mallaHuemulBlanco() { return mallaHuemul(true, true); }
 
 // 3.4: el zorro colorado (culpeo): cuerpo esbelto rojizo con el lomo canoso, garganta y
 // cachetes blancos, hocico fino, orejas en punta con el dorso oscuro, patas finas con medias

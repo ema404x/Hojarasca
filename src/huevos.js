@@ -140,10 +140,51 @@ export function levantarBulto(h, dia) {
   return { nota, material: regalo ? { ...regalo } : null };
 }
 
+// ---------------------------------------------------------------- 3) el huemul blanco
+// Una mañana de niebla de valle, muy de vez en cuando, un huemul de pelaje claro está parado en el mallín. No se caza ni se lastima (no es
+// de la fauna del juego: ni flechas ni rastro ni cámara de caza); se va caminando si te acercás demasiado. Mirarlo lo anota en el cuaderno.
+export const HUEMUL = {
+  prob: 0.07,        // por mañana con niebla (y el tiempo que haya pasado)
+  separacion: 5,     // días entre una aparición y la siguiente
+  desde: 5.5, hasta: 8.8,   // la ventana del amanecer (horas del juego)
+  nieblaMin: 0.2,    // cuánta niebla de valle hace falta (la opacidad de niebla.js, 0 a 0,68)
+  cerca: 24,         // m: más cerca que esto, se va
+  ver: 80,           // m: de más lejos que esto no se lo anota
+  fuga: 46,          // m que camina al irse
+};
+export const ENTRADAS_HUEVOS = [
+  { id: 'avistaje-huemul', seccion: 'fauna', nombre: 'Un huemul blanco', cientifico: 'avistaje raro', modo: 'observar',
+    pista: 'Hay que tener suerte: una mañana de niebla en el valle, bien temprano.',
+    texto: 'Entero claro, como si la niebla se hubiera puesto a caminar. Se quedó mirando un momento, con la «Y» de la frente apenas más oscura, y se fue despacio hacia el bosque. Los guardaparques cuentan que existe y nadie lo firma. Mejor no contárselo a muchos.' },
+];
+export const huemulNuevo = () => ({ ultimo: 0, ido: false, avistajes: 0 });
+function sanearHuemul(x, dia) {
+  const v = objeto(x) ? x : {}, b = huemulNuevo();
+  b.ultimo = Math.min(entero(v.ultimo), Math.max(1, dia));
+  b.ido = b.ultimo > 0 && v.ido === true;
+  b.avistajes = entero(v.avistajes, 0, 0, 999);
+  return b;
+}
+export const ventanaHuemul = (horas) => Number(horas) >= HUEMUL.desde && Number(horas) < HUEMUL.hasta;
+// ¿Está el huemul en el mallín ahora? Se sortea una vez por mañana (con la misma semilla: recargar no cambia nada) y se queda hasta que se va
+export function huemulAfuera(h, dia, horas, niebla) {
+  const x = h?.huemul;
+  if (!x || !ventanaHuemul(horas)) return false;
+  if (x.ultimo === dia) return !x.ido;
+  if (x.ultimo && dia - x.ultimo < HUEMUL.separacion) return false;
+  if (!(niebla >= HUEMUL.nieblaMin)) return false;
+  return azarDe(7201, dia) < HUEMUL.prob;
+}
+export function salioHuemul(h, dia) { if (h?.huemul && h.huemul.ultimo !== dia) { h.huemul.ultimo = entero(dia, 1, 1); h.huemul.ido = false; } }
+export function seFueHuemul(h) { if (h?.huemul) h.huemul.ido = true; }
+export function avistoHuemul(h) { if (h?.huemul) h.huemul.avistajes = Math.min(999, h.huemul.avistajes + 1); }
+// ¿Se asusta? El jugador (o lo que lo busque) a menos de `cerca` metros
+export const seAsusta = (dist) => dist < HUEMUL.cerca;
+
 // ---------------------------------------------------------------- lo que se guarda
-export function huevosNuevos() { return { v: 1, estrella: estrellaNueva(), duendes: duendesNuevos() }; }
+export function huevosNuevos() { return { v: 1, estrella: estrellaNueva(), duendes: duendesNuevos(), huemul: huemulNuevo() }; }
 export function sanearHuevos(h, dia = 1) {
   const d = entero(dia, 1, 1);
   const x = objeto(h) ? h : {};
-  return { v: 1, estrella: sanearEstrella(x.estrella, d), duendes: sanearDuendes(x.duendes, d) };
+  return { v: 1, estrella: sanearEstrella(x.estrella, d), duendes: sanearDuendes(x.duendes, d), huemul: sanearHuemul(x.huemul, d) };
 }

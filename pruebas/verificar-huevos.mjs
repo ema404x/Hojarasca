@@ -125,23 +125,53 @@ function VECINOS() { return H.VECINOS_DESEO; }
   ok(Math.abs(mitad(sie.porColor.blanco).length / sie.porColor.blanco.length - 0.5) < 0.01, 'con la mitad de las plantas (calidad baja) las mallas se acortan parejo');
 }
 
+// ---------------------------------------------------------------- 1d. el huemul blanco
+{
+  const U = H.HUEMUL;
+  ok(!H.ventanaHuemul(5.4) && H.ventanaHuemul(5.5) && H.ventanaHuemul(7.4) && !H.ventanaHuemul(8.8) && !H.ventanaHuemul(15) && !H.ventanaHuemul(2), 'sólo al amanecer (de 5:30 a 8:48)');
+  // los días en que el sorteo da que sí: pocos
+  const dias = []; for (let d = 10; d < 4010; d++) if (H.azarDe(7201, d) < U.prob) dias.push(d);
+  ok(dias.length / 4000 > 0.04 && dias.length / 4000 < 0.11, `el sorteo da que sí en una de cada ~14 mañanas con niebla (${dias.length}/4000)`);
+  const h = H.huevosNuevos(), d0 = dias[0];
+  ok(!H.huemulAfuera(h, d0, 7.4, 0.1) && !H.huemulAfuera(h, d0, 10, 0.6) && !H.huemulAfuera(h, d0 + 1, 7.4, 0.6) === !(dias.includes(d0 + 1)), 'sin niebla de valle o fuera del amanecer, no sale');
+  ok(H.huemulAfuera(h, d0, 7.4, 0.5) === true, 'una mañana sorteada, con niebla, sale');
+  ok(H.huemulAfuera(h, d0, 7.4, 0.5) === H.huemulAfuera(H.huevosNuevos(), d0, 7.4, 0.5), 'el sorteo es el mismo cada vez (recargar no lo cambia)');
+  H.salioHuemul(h, d0);
+  ok(h.huemul.ultimo === d0 && H.huemulAfuera(h, d0, 6.5, 0), 'una vez afuera, se queda toda la mañana aunque la niebla baje');
+  H.seFueHuemul(h);
+  ok(!H.huemulAfuera(h, d0, 7.4, 0.6) && h.huemul.ido, 'si se fue, no vuelve esa mañana (ni al recargar)');
+  // separación: el siguiente día sorteado a menos de 5 días no sale
+  const cerca = dias.find((d) => d > d0 && d - d0 < U.separacion);
+  const lejos = dias.find((d) => d - d0 >= U.separacion);
+  ok(cerca === undefined || !H.huemulAfuera(h, cerca, 7.4, 0.6), `no sale otra vez antes de ${U.separacion} días`);
+  ok(lejos !== undefined && H.huemulAfuera(h, lejos, 7.4, 0.6), 'pasados los días de separación, sí');
+  ok(H.seAsusta(U.cerca - 0.1) && !H.seAsusta(U.cerca + 0.1) && U.cerca >= 15, 'se asusta cuando te acercás demasiado');
+  H.avistoHuemul(h); ok(h.huemul.avistajes === 1, 'el avistaje se cuenta');
+  const E = H.ENTRADAS_HUEVOS[0], C = await imp('cuaderno.js');
+  ok(E.id === 'avistaje-huemul' && E.seccion === 'fauna' && E.cientifico === 'avistaje raro' && E.modo === 'observar' && C.ENTRADA['avistaje-huemul'] === E, 'se anota en el cuaderno como «avistaje raro» (fauna)');
+  ok(C.ENTRADAS.filter((e) => e.id === 'avistaje-huemul').length === 1, 'una sola entrada');
+}
+
 // ---------------------------------------------------------------- 2. lo que se guarda
 eq(H.sanearHuevos(undefined, 10), H.huevosNuevos(), 'una partida vieja (sin el campo) arranca de cero');
 eq(H.sanearHuevos(null, 10), H.huevosNuevos(), 'null: de cero');
 eq(H.sanearHuevos({ estrella: { ultimaNoche: 9999, deseo: { id: 'lena', pedido: 5, cumple: 7 }, cumplidos: -4 } }, 20).estrella, { ultimaNoche: 20, deseo: { id: 'lena', pedido: 5, cumple: 7 }, cumplidos: 0 }, 'las fechas no pasan de hoy');
 eq(H.sanearHuevos({ duendes: { ofrenda: 9999, ultima: -3, recibidos: 1e9 } }, 20).duendes, { ofrenda: 20, ultima: 20, recibidos: 999 }, 'los duendes: las fechas no pasan de hoy y el convite no queda sin fecha');
 eq(H.sanearHuevos({ duendes: 'x' }, 20).duendes, H.duendesNuevos(), 'duendes roto: de cero');
+eq(H.sanearHuevos({ huemul: { ultimo: 5000, ido: true, avistajes: -2 } }, 20).huemul, { ultimo: 20, ido: true, avistajes: 0 }, 'el huemul: la fecha no pasa de hoy');
+eq(H.sanearHuevos({ huemul: { ultimo: 0, ido: true } }, 20).huemul, H.huemulNuevo(), 'sin aparición no puede haberse ido');
+eq(H.sanearHuevos({ huemul: 7 }, 20).huemul, H.huemulNuevo(), 'huemul roto: de cero');
 for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido: 30, cumple: 32 }, { id: 'lena', pedido: 5, cumple: 5 }, { id: 'lena', pedido: 5, cumple: 90 }, 'x', 7, [], { id: 'lena' }]) {
   ok(H.sanearHuevos({ estrella: { deseo: malo } }, 20).estrella.deseo === null, `un deseo imposible se descarta: ${JSON.stringify(malo)}`);
 }
 {
   let rng = 11; const azar = () => ((rng = (rng * 1103515245 + 12345) >>> 0) / 4294967296);
-  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
+  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos', 'huemul', 'ido', 'avistajes']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
   let bien = 0;
   for (let i = 0; i < 500; i++) {
     const x = H.sanearHuevos(valor(), 1 + Math.floor(azar() * 60));
     const y = H.sanearHuevos(JSON.parse(JSON.stringify(x)), 100);
-    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima) bien++;
+    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima && x.huemul.avistajes >= 0 && (!x.huemul.ido || x.huemul.ultimo > 0)) bien++;
   }
   eq(bien, 500, 'el caos: nunca se rompe y lo saneado queda igual');
 }
@@ -165,10 +195,13 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   const j = leer('src/huevos-juego.js');
   ok(!/requestAnimationFrame/.test(j) && !/from 'three'/.test(j) && /acum < 2/.test(j), 'huevos-juego.js: por evento, sin cuadros ni three');
   ok(m.includes('cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null') && m.includes("aviso = { tecla: 'E', texto: cacheHuevos.texto }") && m.includes('cacheHuevos) { const a = cacheHuevos; cacheHuevos = null; a.hacer(); break; }'), 'main.js: la E y el aviso de los huevos, en el mismo lugar (después de los rincones) y con la misma función');
+  const vi = leer('src/vida.js');
+  ok(vi.includes('export function mallaHuemulBlanco()') && vi.includes('function mallaHuemul(macho, blanco = false)'), 'vida.js: el huemul blanco es el mismo modelo con otro pelaje');
+  ok(!/huemulEstado|mallaHuemulBlanco|huevos/.test(leer('src/fauna.js')) && !/mallaHuemulBlanco/.test(vi.slice(vi.indexOf('export function crearVida'))), 'el huemul blanco no está en la fauna del juego: no se caza, no se cuenta, no lo rastrea el perro');
   const mu = leer('src/huevos-mundo.js');
   ok(/MAT_FAUNA/.test(mu) && !/new THREE.(MeshStandardMaterial|MeshBasicMaterial|ShaderMaterial|MeshPhongMaterial)/.test(mu) && !/OctahedronGeometry|Vector4|Frustum|ShapeGeometry/.test(mu), 'huevos-mundo.js: sólo MAT_FAUNA (no compila nada nuevo) y sin clases que el three recortado no trae');
   const p = leer('src/huevos.js');
   ok(!/from 'three'/.test(p) && !/document\./.test(p) && !/Date\.now|Math\.random/.test(p.replace(/\/\/.*$/gm, '')), 'huevos.js es puro: ni three ni DOM ni reloj ni Math.random');
 }
 
-console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, guardado saneado y enganche`);
+console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, huemul blanco, guardado saneado y enganche`);

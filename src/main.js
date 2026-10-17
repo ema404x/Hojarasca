@@ -5248,6 +5248,8 @@ function armarOficiosYAldea(esDesafio) {
     sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
     cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
     mundo: huevosMundo, arboles: () => veg.arboles, refugio: () => T.lugares.refugio,
+    niebla: () => niebla?.malla?.material?.uniforms?.uOpacidad?.value || 0, camara: () => camara, mallin: () => T.lugares.mallin,
+    agua: (x, z) => T.agua(x, z), altura: (x, z) => T.altura(x, z),
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego =crearVecindadJuego({
@@ -10464,7 +10466,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
   // 4.2 (huevos de pascua): para las pruebas y las capturas
-  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego, mundo: () => huevosMundo };
+  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego, mundo: () => huevosMundo, niebla: () => niebla?.malla?.material?.uniforms?.uOpacidad?.value };
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta(), amistad: (k, n) => sumarAmistadDe(progreso, k, n, progreso.dia) };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });

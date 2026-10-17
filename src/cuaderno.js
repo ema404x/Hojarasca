@@ -7,6 +7,8 @@ import { LIBROS_ALDEA, PLACA_DUENDE, CUENTOS_DOMINGO } from './aldea-lecturas.js
 import { ENTRADAS_COCINA } from './cocina-pasos.js';
 // 3.7.5 (rincones): los doce duendes tallados y los rincones de la aldea (ver rincones-cuaderno.js)
 import { ENTRADAS_RINCONES } from './rincones-cuaderno.js';
+// 4.2 (huevos de pascua): el avistaje raro del huemul blanco (ver huevos.js)
+import { ENTRADAS_HUEVOS } from './huevos.js';
 export const SECCIONES = [
   { id: 'flora', nombre: 'Árboles y plantas' },
   { id: 'frutos', nombre: 'Flores, frutos y hongos' },
@@ -466,4 +468,5 @@ ENTRADAS.push({ id: CUENTOS_DOMINGO.id, seccion: 'pueblo', nombre: CUENTOS_DOMIN
 // 3.7.5 (rincones): los duendes escondidos, la talla, el cuaderno en la biblioteca, el potrero, las huertas, los títeres,
 // el fuerte, el campamento, tu casa, el camino, el sulky y el taller
 ENTRADAS.push(...ENTRADAS_RINCONES);
+ENTRADAS.push(...ENTRADAS_HUEVOS);   // 4.2 (huevos de pascua)
 export const ENTRADA = Object.fromEntries(ENTRADAS.map((e) => [e.id, e]));

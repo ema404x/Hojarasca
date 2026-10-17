@@ -1,5 +1,7 @@
 // 4.2 (huevos de pascua): humo en el juego real (Electron, Relax) de los easter eggs que dependen del mundo:
 //  · la estrella fugaz con deseo: el cartel de tres deseos, la tecla 1/2/3, y a los 2 a 4 días la nota y el regalo chico;
+//  · los duendes del Coihue (el convite, el bulto y la rueda de hongos);
+//  · el huemul blanco: sale al amanecer con niebla, se ve de lejos, se anota en el cuaderno y se va caminando si te acercás;
 //  · (se suman las demás secciones a medida que entran) y la consola sin errores.
 // Uso: npx electron --no-sandbox -r <ruta>/herramientas/al-monitor.cjs -r <ruta>/herramientas/perfil-propio.cjs pruebas/humo-huevos.cjs [salida=pruebas/salidas/huevos]
 const { app, BrowserWindow, dialog } = require('electron');
@@ -105,6 +107,46 @@ app.whenReady().then(async () => {
     const d2 = await js(`({ of: ${H}.progreso.huevos.duendes.ofrenda, rec: ${H}.progreso.huevos.duendes.recibidos, bulto: ${H}.__huevos.mundo().bulto.visible, nota: [...document.querySelectorAll('#notas .nota')].map((n) => n.textContent).join(' | ') })`);
     ok('E lo levanta: nota del duende, el bulto desaparece', d2.of === 0 && d2.rec === 1 && d2.bulto === false && /Alguien te dejó una nota/.test(d2.nota), d2);
     await js(`(() => { ${H}.progreso.dia = 71; ${H}.__huevos.juego().actualizar(2.1); })()`);
+  }
+
+  // ------------------------------------------------------------ 3) el huemul blanco
+  {
+    const HU = await import(require('url').pathToFileURL(path.join(raiz, 'src', 'huevos.js')).href);
+    let dia = 300; while (!(HU.azarDe(7201, dia) < HU.HUEMUL.prob)) dia++;
+    const ir = async (x, z, yaw) => { await js(`(() => { const J = ${H}.jugador; J.ubicar(${x}, ${z}, ${yaw}); J.estado.vel.set(0, 0, 0); for (let i = 0; i < 10; i++) J.actualizar(0.05); })()`); };
+    // un amanecer tranquilo y húmedo; la niebla de valle la pone el juego
+    await js(`(() => { const p = ${H}.progreso; p.dia = ${dia}; p.horas = 7.3; ${H}.clima.estado.viento = 0.04; ${H}.clima.estado.nublado = 0.5; ${H}.clima.estado.lluvia = 0; })()`);
+    for (let i = 0; i < 12; i++) { await esperar(500); await js(`(() => { const p = ${H}.progreso; p.horas = 7.3; ${H}.clima.estado.viento = 0.04; })()`); if ((await js(`${H}.__huevos.niebla()`)) >= 0.25) break; }
+    const l = await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); const m = ${H}.__huevos.mundo(); return { lugar: hj.lugarHuemul(), activo: m.huemulEstado.activo, niebla: ${H}.__huevos.juego() && (document.querySelector('canvas') ? 1 : 0), op: ${H}.__nieblaOp ? ${H}.__nieblaOp() : null }; })()`);
+    ok('hay un lugar fijo para el huemul (en el mallín)', !!l.lugar, l);
+    // si la niebla del juego no alcanzó, se mira cuánta hay
+    const nb = await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); const e = ${H}.__huevos.mundo().huemulEstado; return { activo: e.activo, x: e.x, z: e.z, niebla: ${H}.__huevos.niebla(), horas: ${H}.progreso.horas, dia: ${H}.progreso.dia }; })()`);
+    ok('en la mañana sorteada y con niebla, el huemul blanco está en el mallín', nb.activo === true, nb);
+    if (nb.activo) {
+      const d = 36, yaw0 = l.lugar.yaw;
+      const ang = l.lugar.yaw + Math.PI;   // desde el lado opuesto al mallín (de cara a él)
+      const px = nb.x + Math.sin(ang) * d, pz = nb.z + Math.cos(ang) * d;
+      await ir(px, pz, Math.atan2(-(nb.x - px), -(nb.z - pz)));
+      await js(`(() => { const p = ${H}.progreso; p.horas = 7.3; ${H}.__huevos.juego().actualizar(2.1); })()`);
+      await esperar(1500);
+      await js(`${H}.jugador.estado.pitch = 0.03; 1`);
+      await foto('huemul-lejos');
+      const vis = await js(`(() => { const e = ${H}.__huevos.mundo().huemulEstado; return { activo: e.activo, huyendo: e.huyendo, entrada: !!${H}.progreso.entradas['avistaje-huemul'], av: ${H}.progreso.huevos.huemul.avistajes }; })()`);
+      ok('a 36 m, mirándolo, se queda quieto y se anota como avistaje raro', vis.activo && !vis.huyendo && vis.entrada && vis.av === 1, vis);
+      // más cerca: se acerca a 14 m
+      const d2 = 14, px2 = nb.x + Math.sin(ang) * d2, pz2 = nb.z + Math.cos(ang) * d2;
+      await ir(px2, pz2, Math.atan2(-(nb.x - px2), -(nb.z - pz2)));
+      await js(`${H}.__huevos.juego().actualizar(0.3)`);
+      await esperar(600);
+      await foto('huemul-cerca');
+      const mov = await js(`(() => { const e = ${H}.__huevos.mundo().huemulEstado; return { huyendo: e.huyendo, x: e.x, z: e.z }; })()`);
+      ok('a 14 m se va caminando (no se lo puede acorralar)', mov.huyendo === true, mov);
+      await js(`(() => { const hj = ${H}.__huevos.juego(); for (let i = 0; i < 400; i++) hj.actualizar(0.05); })()`);
+      const fin = await js(`(() => { const e = ${H}.__huevos.mundo().huemulEstado; return { activo: e.activo, ido: ${H}.progreso.huevos.huemul.ido, ultimo: ${H}.progreso.huevos.huemul.ultimo }; })()`);
+      ok('se pierde en la niebla y no vuelve esa mañana', fin.activo === false && fin.ido === true && fin.ultimo === dia, fin);
+      await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); hj.actualizar(2.1); })()`);
+      ok('ni al recargar el estado', (await js(`${H}.__huevos.mundo().huemulEstado.activo`)) === false);
+    }
   }
 
   let mal = 0;
