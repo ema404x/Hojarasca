@@ -3174,7 +3174,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     tr.est.s = v.s;
     tr.est.velVarado = dt > 0 ? avance / dt : 0;
     if (!v.llego) return;
-    tr.soltar(35);
+    tr.soltarVarada(35);   // 4.0.3: se llamaba `soltar`, nombre que pisaba la de la caída
     const premio = premioVarada(d.oleadas);
     for (const [k, n] of Object.entries(premio)) ctx.sumarMaterial(k, n);
     sonido.silbato?.(p);
