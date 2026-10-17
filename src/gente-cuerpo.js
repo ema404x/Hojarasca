@@ -1150,7 +1150,8 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       : talle ? [[0.152, 0.0], [0.141, 0.09], [0.121, 0.17], [0.114, 0.2], [0.124, 0.25], [0.143, 0.305], [0.152, 0.355], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]]
       : [[0.15, 0.03], [0.139, 0.11], [0.126, 0.19], [0.13, 0.25], [0.146, 0.31], [0.151, 0.36], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]])
     : [[0.15, 0.03], [0.144, 0.11], [0.141, 0.19], [0.15, 0.26], [0.163, 0.33], [0.172, 0.39], [0.178, 0.44], [0.181, 0.468], [0.17, 0.503], [0.13, 0.532], [0.082, 0.55], [0.058, 0.558]];
-  torso.add(bola(pantalon, [0.145 * (mujer ? 1.02 : 1) * (curvas ? cadera : 1), 0.115, 0.102 * (curvas ? 1.08 : 1)], [0, 0.02, 0]));
+  // 4.0.2: en las mujeres sin curvas la cadera es 8 mm menos honda: con 0,102 asomaba por la blusa y el chaleco en la cintura y dibujaba un festoneado (la intersección de las dos telas)
+  torso.add(bola(pantalon, [0.145 * (mujer ? 1.02 : 1) * (curvas ? cadera : 1), 0.115, (mujer && !curvas ? 0.094 : 0.102) * (curvas ? 1.08 : 1)], [0, 0.02, 0]));
   const faldon = R.campera === 'larga' ? [[0.17, -0.22], [0.16, -0.1]] : [[0.152, -0.07]];
   let capaHombro;
   const arrugasTorso = (c, p) => {
