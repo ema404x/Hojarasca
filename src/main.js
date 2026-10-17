@@ -5255,7 +5255,7 @@ function armarOficiosYAldea(esDesafio) {
     cobrar: (pesos, motivo) => cobrarPesos(progreso, pesos, motivo, 'el perro'), perroPos: () => perro?.est?.pos || null, nombrePerro: () => perro?.nombre?.() || '',
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
-  vecindadJuego =crearVecindadJuego({
+  vecindadJuego = crearVecindadJuego({
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
