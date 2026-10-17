@@ -21,6 +21,8 @@
 import { ENTRADAS } from './cuaderno.js';
 import { VECINOS_ALDEA, POBLADORES_ALDEA, EDIFICIOS_ALDEA, LOTE_DE, ORDEN_PERSONAS_ALDEA, esPersonaAldea, esEdificioAldea, personaAldea, rutinaAldea, puntosDe, localAbierto, obraEnCurso, etapaDe, desfaseDe, aldeaNueva, obrerosDe, pobladorDeLote, diaSemanaDe, num, azar, esCumpleanos, esVecinoAldea } from './aldea.js';
 import { VOCES, AYUDAS, COMENTARIOS, CHISMOSOS, FRASES } from './vecindad-voces.js';
+// 4.1 (F4): las líneas de asado y lluvia de los vecinos
+import { lineaDeGustoCompartido } from './creador-textos.js';
 
 // ---------------------------------------------------------------- utilidades
 // (3.6 (optimizar): `num` y `azar` son los de aldea.js)
@@ -319,6 +321,10 @@ const recordar = (lista, clave, tope) => { const i = lista.indexOf(clave); if (i
 // la partida; sin él (las pruebas, el Desafío) todo es igual que siempre. Sólo escala ganancias (n > 0) y devuelve un entero >= 0.
 let modificadorAmistad = null;
 export function fijarModificadorAmistad(fn) { modificadorAmistad = typeof fn === 'function' ? fn : null; }
+// 4.1 (F4): los gustos de Bruno (asado y lluvia) los dicen en voz alta los vecinos que los comparten, al preguntarles «¿Cómo andás?». Otro enganche chico que fija main.js:
+// devuelve la lista de gustos de Bruno (vacía si todavía no fue creado o si es el Desafío). Sin él, todo es igual que siempre. Los textos están en creador-textos.js.
+let gustosDeBruno = null;
+export function fijarGustosDeBruno(fn) { gustosDeBruno = typeof fn === 'function' ? fn : null; }
 function sumarAmistad(v, persona, n, dia) {
   const f = ficha(v, persona);
   if (modificadorAmistad && n > 0) { const m = modificadorAmistad(persona, n, `${f.p}|${diaValido(dia, 1)}`); if (Number.isFinite(m) && m >= 0) n = Math.floor(m); }
@@ -845,6 +851,8 @@ export function temasDeCharla(persona, estado, contexto = {}) {
   const como = [voz.animo[tipoDeAnimo(f, contexto?.hora ?? progreso?.horas ?? 12)]];
   const hizo = f?.hizo && FRASES.hizo[f.hizo] ? llenar(FRASES.hizo[f.hizo], { amigo: f.con ? nombreCorto(f.con) : null }) : null;
   como.push(hizo || FRASES.clima[c][(d + hashTexto(persona)) % FRASES.clima[c].length]);
+  const gustoBruno = gustosDeBruno ? lineaDeGustoCompartido(persona, gustosDeBruno()) : null;   // 4.1 (F4)
+  if (gustoBruno) como.push(gustoBruno);
   const nov = novedades(persona, v, aldea, progreso, contexto);
   const his = historiaDe(persona, v);
   return [

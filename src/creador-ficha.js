@@ -1,5 +1,5 @@
 // 4.1 (F2): la ficha de Bruno Castellanos, para la pestaña «Bruno» del cuaderno. Módulo puro al importarse: sólo usa `el` (el creador de nodos del cuaderno) adentro.
-// Es de sólo lectura: lo elegido al crear el carácter queda fijo y el aspecto se rehace en el espejo. Los textos salen de creador-textos.js (provisorios hasta la F4).
+// Es de sólo lectura: lo elegido al crear el carácter queda fijo y el aspecto se rehace en el espejo. Los textos salen de creador-textos.js (propuestos por Claude, a revisar por el usuario).
 import { fichaDeBruno } from './creador-textos.js';
 
 // `lista`: la columna de la izquierda del cuaderno; `ficha`: la hoja de la derecha; `el(tag, clase, texto)`; `desafio`: en el Desafío los rasgos no valen.
@@ -15,10 +15,11 @@ export function dibujarFichaBruno(lista, ficha, el, bruno, desafio = false) {
     ficha.appendChild(img);
   }
   ficha.appendChild(el('p', 'texto', f.presentacion));
-  for (const [titulo, valor] of f.datos) {
+  for (const [titulo, valor, frase] of f.datos) {
     const p = el('p', 'texto');
     p.appendChild(el('strong', '', `${titulo}: `));
     p.appendChild(document.createTextNode(valor));
+    if (frase) p.appendChild(el('span', 'anotado', ` · ${frase}`));
     ficha.appendChild(p);
   }
   const bloque = (titulo, items, clase) => {

@@ -31,13 +31,15 @@ for (const t of [...f.pros, ...f.contras, ...f.avisos, f.presentacion]) ok(!tien
 ok(f.sistemas.length === 4 && f.sistemas.every((s) => Number.isInteger(s.valor) && Math.abs(s.valor) <= K.TOPES[s.id]), 'los cuatro sistemas traen su valor dentro del tope');
 // la pantalla y la ficha usan los mismos textos
 const pantalla = leer('src/creador-pantalla.js');
-ok(pantalla.includes("from './creador-textos.js'") && pantalla.includes('lineaDeContribucion(c)'), 'la pantalla de creación usa lineaDeContribucion (los mismos textos)');
-ok(!pantalla.includes('se nota en el día a día') && !pantalla.includes("'mejora' : 'empeora'") && !pantalla.includes('CLASE_TEXTO'), 'y ya no tiene textos propios duplicados');
-// la línea sale del efecto
+ok(pantalla.includes("from './creador-textos.js'") && pantalla.includes('lineasDeBruno(genoma)'), 'la pantalla de creación usa lineasDeBruno (los mismos textos que la ficha)');
+ok(!pantalla.includes('se nota en el día a día') && !pantalla.includes("'mejora' : 'empeora'") && !pantalla.includes('CLASE_TEXTO') && !pantalla.includes('Textos provisorios'), 'y ya no tiene textos propios duplicados');
+// la línea sale de la tarjeta escrita (F4): «Nombre: texto»
 const lin = (c) => T.lineaDeContribucion(c);
-ok(lin({ clase: 'virtud', lado: 'pro', sistema: 'pesca', pasos: 2 }) === 'Su virtud: mejora la pesca', 'un pro con efecto dice qué mejora');
-ok(lin({ clase: 'defecto', lado: 'contra', sistema: 'abrigo', pasos: -2 }) === 'Su defecto: empeora el abrigo', 'un contra con efecto dice qué empeora');
-ok(lin({ clase: 'hobby', lado: 'pro', sistema: null, pasos: null }).includes('se nota') && lin({ clase: 'gustos', lado: 'contra', sistema: null, pasos: null }) === null, 'lo de sabor se nota, y el contra de un gusto de sabor no se lista');
+ok(lin({ clase: 'virtud', id: 'paciente', lado: 'pro' }) === 'Paciente: Los peces pican antes.', 'un pro con efecto dice qué mejora, con el texto de la tarjeta');
+ok(lin({ clase: 'defecto', id: 'friolero', lado: 'contra' }) === 'Friolero: Su ropa abriga un poco menos en invierno.', 'un contra con efecto dice qué empeora');
+ok(lin({ clase: 'virtud', id: 'paciente', lado: 'contra' }) === null && lin({ clase: 'defecto', id: 'friolero', lado: 'pro' }) === null, 'la virtud no tiene contra ni el defecto tiene pro');
+ok(f.pros.some((t) => t.includes(':')) && T.lineasDeBruno(def).pros.length === f.pros.length, 'lineasDeBruno y la ficha traen lo mismo');
+ok(f.datos.every((d) => typeof d[2] === 'string' && d[2].length > 0), 'cada dato de la ficha trae la frase del rasgo');
 // los avisos de tope
 const alMax = T.fichaDeBruno({ ...def, personalidad: 'sociable', oficio: 'docente', virtud: 'simpatico', gustos: ['mate', 'libros'] });
 ok(alMax.avisos.length >= 1 && alMax.avisos.some((a) => a.includes('máximo')), 'con tres rasgos que suman afecto, la ficha avisa que está al máximo');

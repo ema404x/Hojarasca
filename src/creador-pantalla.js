@@ -5,13 +5,13 @@
 // izquierda, en texto y sin números, con una barra por sistema.
 //   · modo 'crear': las dos pantallas; «Empezar» entrega el genoma completo. No se puede cerrar sin crear (es obligatorio para empezar).
 //   · modo 'rehacer': sólo el aspecto (el carácter queda fijo y la ropa de abrigo es la de «Tu personaje»); «Listo» y «Cancelar».
-// Los textos de los pros y contras son PROVISORIOS: los definitivos los escribe el autor (ver TEXTOS_BRUNO.md).
+// Los textos (frases, pros y contras) viven en creador-textos.js: propuestos por Claude, a revisar por el usuario.
 import * as THREE from 'three';
 import { crearPersona, soltarPersona } from './gente-cuerpo.js';
 import { PERSONALIZACIONES, SISTEMAS, TOPES } from './creador-catalogo.js';
-import { sanearGenoma, aspectoDeGenoma, efectosAplicados, efectosBrutos, sistemasAlTope, contribuciones, opcionesAlCrear, PROTAGONISTA } from './creador-personaje.js';
+import { sanearGenoma, aspectoDeGenoma, efectosAplicados, efectosBrutos, sistemasAlTope, opcionesAlCrear, PROTAGONISTA } from './creador-personaje.js';
 import { aspectoJugadorBruno } from './personal-bruno.js';
-import { lineaDeContribucion, NOMBRE_SISTEMA } from './creador-textos.js';
+import { lineasDeBruno, fraseDe, TARJETAS, NOMBRE_SISTEMA } from './creador-textos.js';
 
 const ETIQUETA = { cara: 'Forma de la cara', ojos: 'Ojos', piel: 'Tono', pelo: 'Color', peinado: 'Peinado', barba: 'Barba', contextura: 'Contextura', estatura: 'Estatura', campera: 'Campera', accesorio: 'Accesorio', personalidad: 'Es', oficio: 'Trabajaba de', gustos: 'Le gusta (dos)', hobby: 'En su tiempo libre', virtud: 'Su virtud', defecto: 'Su defecto' };
 
@@ -48,6 +48,7 @@ const CSS = `
 #creador-bruno .cb-resumen ul{margin:0;padding:0;list-style:none;font-size:13.5px;line-height:1.4}
 #creador-bruno .cb-resumen li.pro::before{content:'+ ';color:#4a7a3a;font-weight:bold}
 #creador-bruno .cb-resumen li.con::before{content:'− ';color:#a8452e;font-weight:bold}
+#creador-bruno .cb-frase{margin:0 0 3px 112px;font-size:13px;line-height:1.3;color:#7a6642;font-style:italic}
 #creador-bruno .cb-barras{display:flex;flex-direction:column;gap:7px;margin-top:6px}
 #creador-bruno .cb-barra{font-size:13px;color:#6b573a}
 #creador-bruno .cb-riel{position:relative;height:10px;background:#e0d1a8;border-radius:5px;margin-top:3px}
@@ -162,16 +163,18 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
   }
   // en 'rehacer' la ropa de abrigo es la de «Tu personaje»: no se elige acá
   const bloquesDe = (p) => (modo === 'rehacer' ? p.id !== 'ropa' : true);
+  // la frase de lo elegido (sólo en el carácter): una línea chica bajo la fila; con los dos gustos, las dos
+  function frases(campo) {
+    if (!TARJETAS[campo]) return null;
+    const ids = campo === 'gustos' ? genoma.gustos : [genoma[campo]];
+    return h('p', { class: 'cb-frase' }, ids.map((id) => fraseDe(campo, id)).filter(Boolean).join(' '));
+  }
   function bloque(p) {
-    return h('section', { class: 'cb-bloque' }, h('h2', {}, p.nombre), p.campos.map((c) => h('div', { class: 'cb-fila' }, h('label', {}, ETIQUETA[c.campo]), opciones(c.campo, c.lista))));
+    return h('section', { class: 'cb-bloque' }, h('h2', {}, p.nombre), p.campos.flatMap((c) => [h('div', { class: 'cb-fila' }, h('label', {}, ETIQUETA[c.campo]), opciones(c.campo, c.lista)), frases(c.campo)]));
   }
   function lineas() {
-    const pros = [], contras = [];
-    for (const c of contribuciones(genoma)) {
-      const t = lineaDeContribucion(c);
-      if (t !== null) (c.lado === 'pro' ? pros : contras).push(h('li', { class: c.lado === 'pro' ? 'pro' : 'con' }, t));
-    }
-    return [pros, contras];
+    const { pros, contras } = lineasDeBruno(genoma);
+    return [pros.map((t) => h('li', { class: 'pro' }, t)), contras.map((t) => h('li', { class: 'con' }, t))];
   }
   function barras() {
     const a = efectosAplicados(genoma), b = efectosBrutos(genoma), tope = new Set(sistemasAlTope(genoma));
@@ -185,8 +188,7 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
     raiz.querySelector('.cb-ficha')?.remove();
     if (modo !== 'crear' || pantalla !== 2) return;
     const [pros, contras] = lineas();
-    raiz.appendChild(h('div', { class: 'cb-ficha' }, h('h2', {}, 'Pros y contras de Bruno'), h('div', { class: 'cb-nota' }, 'Textos provisorios'),
-      h('div', { class: 'cb-resumen' }, h('div', {}, h('h3', {}, 'A su favor'), h('ul', {}, pros)), h('div', {}, h('h3', {}, 'En su contra'), h('ul', {}, contras))), barras()));
+    raiz.appendChild(h('div', { class: 'cb-ficha' }, h('h2', {}, 'Pros y contras de Bruno'),       h('div', { class: 'cb-resumen' }, h('div', {}, h('h3', {}, 'A su favor'), h('ul', {}, pros)), h('div', {}, h('h3', {}, 'En su contra'), h('ul', {}, contras))), barras()));
   }
   function azar() {
     let s = Math.floor(Math.random() * 1e9);
