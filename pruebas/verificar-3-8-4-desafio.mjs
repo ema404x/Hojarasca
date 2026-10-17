@@ -214,7 +214,7 @@ const DR = await import('../src/desafio-duendes-reglas.js');
     progreso: { dia: 4, horas: 22.5, materiales: { cristal: 9, tronco: 10, tabla: 10, piedra: 3 } },
     $: () => ({ classList: { add() {}, remove() {} } }), nota() {}, refrescarBarra() {}, abrirObra() {}, abrirMochila() {},
     puntoBase: () => ({ x: 10, z: 20, yaw: 1, y: null }),
-    jugador: { ubicar() {} }, setTimeout: (f) => timers.push(f),
+    jugador: { ubicar() {}, estado: {} }, setTimeout: (f) => timers.push(f),   // (4.0.1: `estado` para soltar de los vehículos al caer)
     // (devolverRobado: las semillas que se llevó un duende vuelven antes de la pérdida y se pierden con las demás)
     desafio: { abrirTaller() {}, limpiar() {}, levantarse() {}, perderNocheSalteada: () => 0, devolverRobado() { ctx.progreso.materiales.cristal += 2; } },
   };
