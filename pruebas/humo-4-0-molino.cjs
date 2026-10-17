@@ -50,6 +50,9 @@ app.whenReady().then(async () => {
     const W = (lx, lz) => ({ x: m.x + lx * c + lz * sn, z: m.z - lx * sn + lz * c });
     const loc = (p) => ({ lx: (p.x - m.x) * c - (p.z - m.z) * sn, lz: (p.x - m.x) * sn + (p.z - m.z) * c });
     const hacia = (a, b) => { const A = W(...a), B = W(...b); return dir(B.x - A.x, B.z - A.z); };
+    // la puerta del molino empieza cerrada (como siempre): se abre y se entra
+    for (const p of (H.puertas?.lista || [])) if (Math.hypot(p.x - m.x, p.z - m.z) < 5) p.objetivo = 1;
+    for (let i = 0; i < 60; i++) H.puertas.actualizar(0.05);
     { const a = W(0, 8); poner(a.x, a.z, hacia([0, 8], [0, 0])); const f = caminar(60); const l = loc(f);
       ok('el molino se entra por su puerta', Math.hypot(l.lx, l.lz) < 2.3, { lx: +l.lx.toFixed(2), lz: +l.lz.toFixed(2) }); }
     { const a = W(-10, 16.5); poner(a.x, a.z, hacia([-10, 16.5], [-10, 3])); const f = caminar(90); const l = loc(f);

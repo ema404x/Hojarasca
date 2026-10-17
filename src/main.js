@@ -9237,8 +9237,8 @@ function aplicarCalidadAutomatica(cambio, avisar = true) {
   // 3.5: la distancia de dibujo elegida por el jugador no se toca; «según la calidad» sigue a
   // la nueva (y ahora llega a los árboles, los carteles y la niebla, de a poco)
   calidadActiva = cambio.hasta;
-  est?.molinoPaisaje?.aplicarCalidad(nueva.densidad ?? 1);   // 4.0: menos tulipanes en las calidades bajas
   aplicarDistancias();
+  est?.molinoPaisaje?.aplicarCalidad(nueva.densidad ?? 1);   // 4.0: menos tulipanes en las calidades bajas
   // las sombras son lo más caro que se puede acomodar sin rehacer el mundo
   if (nueva.sombras !== calidad.sombras) {
     calidad.sombras = nueva.sombras;

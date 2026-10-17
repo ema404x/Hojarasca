@@ -21,7 +21,7 @@ function lienzo(ancho, alto, dibujar) {
   const l = document.createElement('canvas'); l.width = ancho; l.height = alto;
   dibujar(l.getContext('2d'), ancho, alto);
   const t = new THREE.CanvasTexture(l);
-  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 4;
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = 1000; t.wrapT = 1001;   /* RepeatWrapping y ClampToEdgeWrapping: el three local no trae los nombres */ t.anisotropy = 4;
   return t;
 }
 function texturaAgua() {
