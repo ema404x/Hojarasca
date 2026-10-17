@@ -72,4 +72,22 @@ const clima = { escuchando: 0, dia: 1, noche: 0, lluvia: 0, otono: 0 };
   const p1 = { ...q }; col.resolver(p1, 0.35, 1.65);
   ok(Math.hypot(p1.x - q.x, p1.z - q.z) < 0.01, 'y el cilindro de colisión del tronco ya no está');
 }
+// ---------------------------------------------------------------- las gallinas (F5)
+{
+  const { crearGallinas } = await import('../src/gallinero-mundo.js');
+  const g = crearGallinas({ altura: () => 0 }, new THREE.Scene());
+  g.sincronizar([{ x: 0, z: 0 }]);
+  const a = g.aves[0];
+  let max = 0;
+  for (let i = 0; i < 1200; i++) {   // 60 s persiguiendo a una gallina a 1 m por detrás
+    const dx = a.x - a.cx, dz = a.z - a.cz, l = Math.hypot(dx, dz) || 1;
+    g.actualizar(0.05, 12, { x: a.x - (dx / l) * 1.0, z: a.z - (dz / l) * 1.0 });
+    max = Math.max(max, Math.hypot(a.x - a.cx, a.z - a.cz));
+  }
+  ok(max <= 4.3, `F5: la gallina perseguida 60 s no pasa de ${max.toFixed(1)} m del gallinero (antes ~97 m)`);
+  // sin perseguirla, anda por el corral como siempre
+  const h = crearGallinas({ altura: () => 0 }, new THREE.Scene()); h.sincronizar([{ x: 0, z: 0 }]);
+  for (let i = 0; i < 400; i++) h.actualizar(0.05, 12, { x: 500, z: 500 });
+  ok(h.aves.every((b) => Math.hypot(b.x - b.cx, b.z - b.cz) <= 4.3), 'sin nadie cerca, todas siguen en el corral');
+}
 console.log(`OK 4.0.3 fauna · ${n} verificaciones · el carpintero y el panal no quedan pegados a un árbol talado`);

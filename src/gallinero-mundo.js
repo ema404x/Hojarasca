@@ -74,6 +74,9 @@ export function crearGallinas(T, escena) {
       a.picotea = Math.max(0, a.picotea - dt);
       a.x += Math.sin(a.rumbo) * vel * dt;
       a.z += Math.cos(a.rumbo) * vel * dt;
+      // 4.0.3 (F5): una gallina perseguida pisaba el rumbo en cada cuadro y llegaba a ~100 m del gallinero (por el lago y las paredes): se queda en el corral y un metro de más
+      const dc = Math.hypot(a.x - a.cx, a.z - a.cz);
+      if (dc > RADIO + 1) { a.x = a.cx + ((a.x - a.cx) / dc) * (RADIO + 1); a.z = a.cz + ((a.z - a.cz) / dc) * (RADIO + 1); }
       const cabeceo = a.picotea > 0 ? Math.max(0, Math.sin(a.picotea * 18)) * 0.5 : 0;
       _e.set(cabeceo, a.rumbo, 0, 'YXZ');
       malla.setMatrixAt(n++, _M.compose(_p.set(a.x, T.altura(a.x, a.z), a.z), _q.setFromEuler(_e), _s));
