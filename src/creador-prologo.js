@@ -2,7 +2,7 @@
 // Sólo DOM (sin three): una capa a pantalla completa con un fondo de color por escena. Los textos y los botones están en creador-textos.js
 // (propuestos por Claude, a revisar por el usuario; el texto de las cinco pantallas lo eligió el usuario).
 //   · Enter, Espacio o flecha derecha: siguiente (la última tarjeta termina el prólogo y lleva a la llegada al refugio); flecha izquierda: volver; Escape: saltarlo.
-//   · No hay mando todavía (deuda con fecha, igual que la pantalla de creación).
+//   · 4.0.3: con mando, la cruceta y A mueven y aprietan los botones, B vuelve y Start lo salta (ver navegarMando en main.js).
 // `alTerminar(saltado)` se llama una sola vez, al llegar al final o al saltarlo.
 import { PROLOGO, BOTONES_PROLOGO } from './creador-textos.js';
 
@@ -67,7 +67,7 @@ export function abrirPrologo({ alTerminar } = {}) {
       h('div', { class: 'pb-pie' },
         h('div', { class: 'pb-botones' },
           h('button', { class: 'pb-boton suave', onclick: () => terminar(true) }, BOTONES_PROLOGO.saltar),
-          i > 0 ? h('button', { class: 'pb-boton', onclick: volver }, BOTONES_PROLOGO.volver) : null,
+          i > 0 ? h('button', { class: 'pb-boton', 'data-atras': '1', onclick: volver }, BOTONES_PROLOGO.volver) : null,   // 4.0.3: data-atras: la B del mando
           h('button', { class: 'pb-boton principal', onclick: siguiente }, ultima ? BOTONES_PROLOGO.llegar : BOTONES_PROLOGO.siguiente)),
         h('div', { class: 'pb-ayuda' }, BOTONES_PROLOGO.ayuda)),
     );

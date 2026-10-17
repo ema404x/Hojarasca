@@ -78,7 +78,17 @@ for (const c of [11, 12, 13]) {
   }
   ok(sombras >= 5, `H6: las sombras tuvieron turno (${sombras} de 120 cuadros)`);
   ok(aldea >= 100, `H6: y la aldea sigue avanzando (${aldea})`);
-  ok(maximo <= 2, `H6: nunca más de 2 pesadas por cuadro (${maximo})`);
+  ok(maximo <= 1, `H6: nunca más de 1 pesada por cuadro (${maximo})`);
+  // una tarea que pidió una vez y se olvidó no frena a las demás para siempre
+  const z = crearPlanificadorAntitirones({ objetivoMs: 16.7, maxPesadas: 1, maxSecundarias: 3 });
+  let viva = 0;
+  for (let f = 0; f < 200; f++) {
+    z.comenzarCuadro(1 / 60, 0, 1000 / 60);
+    if (f < 3) z.permitir('olvidada', { pesada: true }); else if (f === 3) { /* ya no pide */ }
+    if (f === 0) z.permitir('otra', { pesada: true });
+    if (z.permitir('viva', { pesada: true })) viva++;
+  }
+  ok(viva >= 150, `H6: la tarea que dejó de pedir no frena a la que sigue pidiendo (${viva} de 200 cuadros)`);
   // sin hambre nada cambia: una sola pesada por cuadro
   const q = crearPlanificadorAntitirones({ objetivoMs: 16.7, maxPesadas: 1, maxSecundarias: 3 });
   q.comenzarCuadro(1 / 60, 0, 1000 / 60);

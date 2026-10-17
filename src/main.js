@@ -131,6 +131,7 @@ import { empaquetar, leerPaquete, avisoImportar, nombreArchivoPartida } from './
 import { nombreSync, tocaCopiar, compararCopia, textoOferta as textoOfertaSync, textoDosCambiaron } from './sincronia.js';
 import { crearEstadoAutocalidad, anotarCuadro as anotarCuadroCalidad, decidirCalidad, aplicarCambio, calidadVecina, nombreCalidad, reiniciarMedicion, sincronizarCalidad } from './autocalidad.js';
 import { crearMando, girarMirada } from './mando.js';
+import { elegirVecino, pasoDeBarra, direccionDeCruceta } from './mando-menu.js';
 import { RECORRIDO, crearCorrida, anotarCuadro, informeBanco, nombreArchivoBanco, duracionBanco } from './banco.js';
 import { resumenPartida, htmlParte, textoParte, CSS_PARTE } from './parte.js';
 import { estadoFotoInicial, aplicarControl, textoControl, htmlPanelFoto, nombreArchivoFoto, AYUDA_FOTO, CSS_FOTO } from './foto-modo.js';
@@ -2993,6 +2994,7 @@ function mostrarCorrida() {
   modo = 'victoria';
   if (personalAbierto()) { $('personalizar').classList.add('oculto'); origenPersonal = null; }
   $('corrida').classList.remove('oculto');
+  try { $('corrida-otra').focus({ preventScroll: true }); } catch { /* sin foco */ }   // 4.0.3: como la victoria, con el foco en el primer botón (el mando y el teclado)
 }
 // Otra corrida: mismo camino que empezar una partida nueva (sin guardar() en el medio).
 function nuevaCorrida(codigo = null) {
@@ -4425,14 +4427,14 @@ const TECLA_DE_MANDO = {
 };
 const ACCIONES_TECLA_MANDO = Object.keys(TECLA_DE_MANDO);   // 2.7.3: una vez, no en cada cuadro
 const pisadasMando = new Set();
-function golpeDeTecla(code) {
+function golpeDeTecla(code, shift = false) {   // 4.0.3: `shift` para las órdenes con Mayús de los planos
   // 3.5.1: el mando aprieta la tecla que el jugador eligió para esa acción. Antes apretaba la de
   // fábrica y, con E movida a otra tecla, el botón X no hacía nada (la de fábrica quedaba huérfana)
   // o hacía otra cosa (si otra acción había tomado esa tecla).
   const accion = ACCIONES_TECLA.find((a) => TECLAS_POR_DEFECTO[a] === code);
   if (accion && teclasPropias[accion]) code = teclasPropias[accion];
-  document.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
-  document.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
+  document.dispatchEvent(new KeyboardEvent('keydown', { code, shiftKey: shift, bubbles: true }));
+  document.dispatchEvent(new KeyboardEvent('keyup', { code, shiftKey: shift, bubbles: true }));
 }
 function sostenerTecla(code, apretada) {
   if (apretada) { jugador.teclas.add(code); pisadasMando.add(code); }
@@ -4469,6 +4471,12 @@ function cambioDeMando(m) {
   if (m.conectado === habiaMando) return;
   habiaMando = m.conectado;
   document.body.classList.toggle('con-mando', m.conectado);
+  // 4.0.3: el pie de los planos habla del mando mientras hay uno enchufado
+  const pieObra = $('obra')?.querySelector('.seguir');
+  if (pieObra) {
+    if (m.conectado) { pieObra.dataset.pieTeclado ??= pieObra.textContent; pieObra.textContent = 'Cruceta ← →: plano · ↑ ↓: categoría · LB RB: girar · A: construir o confirmar · X: mover una pieza · Y: encastre · Ver: deshacer etapa · R2: cancelar marca · L2 + R3: desmontar · B: cerrar'; }
+    else if (pieObra.dataset.pieTeclado) pieObra.textContent = pieObra.dataset.pieTeclado;
+  }
   nota(m.conectado ? 'Mando conectado' : 'Se desconectó el mando', m.conectado ? m.nombre : 'Volvés al teclado', true);
   // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
   if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
@@ -4479,8 +4487,15 @@ function leerMandoQuieto() {
   if (!m.conectado || dialogos.abierto()) return;
   // 3.8.7: en el modo foto el mando no se leía (con el mando solo no había cómo salir): Start o B lo cierran, como Esc
   if (foto.activo && modo === 'jugando' && usarMando() && (m.recien.pausa || m.recien.agacharse)) { abrirModoFoto(false); return; }
-  const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria') : null;
-  if (!caja || caja.classList.contains('oculto') || !usarMando()) return;
+  // 4.0.3 (G3): la pantalla de la corrida sin fin reusa el modo 'victoria' pero es otro panel (antes se miraba el de la victoria, oculto)
+  const caja = modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? ($('corrida')?.classList.contains('oculto') ? $('victoria') : $('corrida')) : null;
+  if (!caja || caja.classList.contains('oculto')) {
+    // 4.0.3 (G1): el resto de las pantallas (la portada, la creación de Bruno, el prólogo y lo que se abre desde la portada) se maneja con la cruceta
+    const capa = capaDeMando();
+    if (capa && usarMando()) mandoEnCapa(m, capa);
+    return;
+  }
+  if (!usarMando()) return;
   const mover = (m.recien.mochila || m.recien.planos || m.recien.objetoAnterior) ? -1 : (m.recien.taller || m.recien.mapa || m.recien.objetoSiguiente) ? 1 : 0;
   if (mover) moverFocoEn(caja, mover);
   if (m.recien.saltar) {
@@ -4489,6 +4504,86 @@ function leerMandoQuieto() {
     else moverFocoEn(caja, 0);
   }
   if (m.recien.agacharse && modo === 'valle') golpeDeTecla('Escape');
+}
+// ---- 4.0.3: navegar las pantallas del DOM con el mando (G1, G3, G4 y la lista de pantallas sin mando de la zona G).
+// La cruceta salta al botón que está en esa dirección (por posición en pantalla), LB y RB al anterior y al siguiente, A lo aprieta
+// (en una barra, izquierda y derecha la mueven). Arriba de todo manda la capa de más arriba: la creación de Bruno, el prólogo, el último
+// panel abierto de la pausa o la portada. El marco de color (clase foco-mando) se ve aunque el foco lo haya puesto el programa.
+let focoMando = null;
+function quitarFocoMando() { if (focoMando) { focoMando.classList.remove('foco-mando'); focoMando = null; } }
+document.addEventListener('pointerdown', quitarFocoMando, true);
+function capaDeMando() {
+  const c = document.querySelector('#creador-bruno, #prologo-bruno');
+  if (c) return c;
+  let tope = null;
+  for (const el of document.querySelectorAll('#inicio, section.velo')) if (!el.classList.contains('oculto') && el.id !== 'dialogo' && el.id !== 'mapa') tope = el;
+  return tope;
+}
+function elementosDeMando(caja) {
+  return [...caja.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((b) => !b.disabled && b.type !== 'hidden' && b.getClientRects().length && !b.closest('.oculto'));
+}
+function enfocarConMando(el) {
+  quitarFocoMando();
+  try { el.focus({ preventScroll: true }); el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); } catch { /* sin foco */ }
+  el.classList.add('foco-mando'); focoMando = el;
+}
+function navegarMando(m, caja) {
+  if (focoMando && !caja.contains(focoMando)) quitarFocoMando();
+  const els = elementosDeMando(caja);
+  if (!els.length) return false;
+  const actual = els.indexOf(document.activeElement);
+  const dir = direccionDeCruceta(m.recien);
+  const antes = m.recien.objetoAnterior, despues = m.recien.objetoSiguiente;
+  const sobre = actual >= 0 ? els[actual] : null;
+  if (!dir && !antes && !despues && !m.recien.saltar) return false;
+  // sin nada marcado: lo primero que se aprieta marca el botón principal (o el primero)
+  if (!sobre) {
+    const principal = caja.querySelector('.principal, .accion-principal, [autofocus]');
+    enfocarConMando(principal && els.includes(principal) ? principal : els[0]);
+    return true;
+  }
+  if ((dir === 'izq' || dir === 'der') && sobre.type === 'range') {
+    const nuevo = pasoDeBarra(Number(sobre.value), Number(sobre.min), Number(sobre.max), Number(sobre.step), dir === 'izq' ? -1 : 1);
+    if (String(nuevo) !== sobre.value) { sobre.value = String(nuevo); sobre.dispatchEvent(new Event('input', { bubbles: true })); sobre.dispatchEvent(new Event('change', { bubbles: true })); }
+    return true;
+  }
+  if ((dir === 'izq' || dir === 'der') && sobre.tagName === 'SELECT') {
+    const j = Math.max(0, Math.min(sobre.options.length - 1, sobre.selectedIndex + (dir === 'izq' ? -1 : 1)));
+    if (j !== sobre.selectedIndex) { sobre.selectedIndex = j; sobre.dispatchEvent(new Event('change', { bubbles: true })); }
+    return true;
+  }
+  if (dir || antes || despues) {
+    let j = actual;
+    if (dir) j = elegirVecino(els.map((b) => { const r = b.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }), actual, dir);
+    else j = (actual + (antes ? -1 : 1) + els.length) % els.length;
+    if (j !== actual && j >= 0) enfocarConMando(els[j]);
+    return true;
+  }
+  if (m.recien.saltar && !['range', 'text', 'number', 'search', 'password', 'email'].includes(sobre.type) && sobre.tagName !== 'SELECT' && sobre.tagName !== 'TEXTAREA') {
+    const k = actual;
+    sobre.click();
+    // si el panel se rehízo (el creador de Bruno redibuja al elegir), el marco vuelve al mismo lugar
+    if (!sobre.isConnected) {
+      const ya = document.activeElement;   // lo que el propio panel marcó al rehacerse (la opción o el botón principal)
+      const nuevos = elementosDeMando(caja);
+      if (ya && ya !== document.body && caja.contains(ya)) enfocarConMando(ya);
+      else if (nuevos.length) enfocarConMando(nuevos[Math.min(k, nuevos.length - 1)]);
+    }
+    else if (focoMando !== sobre) enfocarConMando(sobre);
+    return true;
+  }
+  return false;
+}
+// La creación de Bruno y el prólogo: Start sale (como Escape: saltar el prólogo o cancelar al rehacer) y B vuelve (el botón con data-atras)
+function mandoEnCapa(m, capa) {
+  const esCreador = capa.id === 'creador-bruno' || capa.id === 'prologo-bruno';
+  if (m.recien.pausa) { golpeDeTecla('Escape'); return; }
+  if (m.recien.agacharse) {
+    const b = capa.querySelector('[data-atras]');
+    if (b && !b.disabled) { b.click(); return; }
+    if (!esCreador) { golpeDeTecla('Escape'); return; }   // 4.0.3: en un panel abierto desde la portada, B lo cierra como Esc
+  }
+  navegarMando(m, capa);
 }
 // Pasa el foco al botón siguiente (o anterior) que se ve y se puede apretar; con 0, al primero si no hay ninguno marcado.
 function moverFocoEn(caja, paso) {
@@ -4502,6 +4597,9 @@ function leerMando(dt) {
   const m = leerMandoActual();
   cambioDeMando(m);
   if (!m.conectado || modo !== 'jugando' || !jugador || !usarMando()) return;
+  // 4.0.3: el creador de Bruno abierto desde el espejo del refugio (el juego sigue de fondo): el mando maneja la pantalla, no a Bruno
+  const capaCreador = document.querySelector('#creador-bruno, #prologo-bruno');
+  if (capaCreador) { mandoEnCapa(m, capaCreador); return; }
   // 3.7.4: con la rueda abierta, el palito derecho apunta (no mira) y A elige
   const enRueda = !!charla.menu && !foto.activo;
   if (enRueda) { if (Math.hypot(m.mirada.x, m.mirada.y) > 0.5) apuntarRueda(m.mirada.x, m.mirada.y, true); if (m.recien.saltar) { seguirCharla(); m.recien.saltar = false; } }
@@ -4523,9 +4621,12 @@ function leerMando(dt) {
   }
   // 3.8.6: en el velero, A sostenido es la vara corta (Espacio sostenido, como en el teclado: vela.js mira la tecla
   // apretada). Antes A sólo daba un golpe de tecla y con el mando la vara no se podía usar
-  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla;
+  // 4.0.3 (G2): los planos (O) abiertos: la cruceta, LB/RB y los botones tienen su propio trabajo (ver mandoEnObra)
+  const enObra = !!modoObra && !!obras && !enCharla && !enLista;
+  if (enObra) mandoEnObra(m);
+  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla && !enObra;
   sostenerTecla('Space', enVelero && !!m.activos.saltar);
-  if (!enLista && !enVelero) { if (m.recien.saltar) golpeDeTecla('Space'); }
+  if (!enLista && !enVelero && !enObra) { if (m.recien.saltar) golpeDeTecla('Space'); }
   // 3.8.6: con la mochila, el taller de los duendes o los planos abiertos, B también sale (como en el almacén y la cocina;
   // antes agachaba y había que volver a apretar la cruceta). En los planos, moviendo una pieza, B cancela el movimiento
   if (!enLista) {
@@ -4540,12 +4641,20 @@ function leerMando(dt) {
     if (!m.recien[a]) continue;
     if (enCharla && charla.menu && (a === 'mochila' || a === 'taller')) { moverMenuCharla(a === 'mochila' ? -1 : 1); continue; }
     if (enLista && (a === 'mochila' || a === 'taller')) continue;
+    // 4.0.3: con una lista del HUD abierta, la cruceta de los costados no abre los planos ni el mapa por detrás (el taller del Desafío la usa para la categoría)
+    if (enLista && (a === 'planos' || a === 'mapa')) continue;
+    if (enObra && ['mochila', 'taller', 'planos', 'mapa', 'linterna', 'interactuar', 'guia'].includes(a)) continue;   // 4.0.3: los usa mandoEnObra
     golpeDeTecla(TECLA_DE_MANDO[a]);
   }
   // 3.6 (vida): con el menú de la charla abierto, LB y RB mueven la opción marcada (X la elige)
-  if (!enLista) {
+  if (!enLista && !enObra) {
     if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
     if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
+  }
+  // 4.0.3: el taller del Desafío (K): la cruceta de los costados cambia de categoría (el equivalente de Tab)
+  if (enLista && desafio?.tallerAbierto) {
+    const c = m.recien.planos ? -1 : m.recien.mapa ? 1 : 0;
+    if (c) { desafio.cambiarCategoriaTaller(c); marcarEn('taller-desafio', 0); marcarHud(0, true); }
   }
   // 4.0.1: soltar L2 siempre suelta el escudo (también con el taller o los planos abiertos; antes quedaba levantado y los golpes de frente bajaban a 25 %)
   if (m.soltados.bloquear && desafio?.bloqueando) desafio.bloquear(false);
@@ -4557,7 +4666,25 @@ function leerMando(dt) {
     if (m.recien.bloquear && id === 'arco' && desafio.cambiarFlecha()) refrescarBarra(true);
     else if (m.recien.bloquear && desafio.puedeBloquear(id)) desafio.bloquear(true, id);
     if (m.recien.esquivar) desafio.esquivar(m.mov.x >= 0 ? 1 : -1);
-  } else if (m.recien.atacar) usarRanura();
+  } else if (m.recien.atacar && !enObra) usarRanura();
+}
+
+// 4.0.3 (G2): los planos (O) con el mando. Cruceta izquierda y derecha: el plano anterior y el siguiente; arriba y abajo: la categoría; LB y RB giran la pieza;
+// A construye o confirma (Y del teclado); X mueve una pieza ya hecha (Mayús+Y); Y (el botón) alterna el encastre (N); Ver deshace la última etapa (Retroceso);
+// R2 cancela la marca o el movimiento (Supr); L2 apretado + R3 desmonta la pieza más cercana (Mayús+Supr); B cierra (o cancela el movimiento).
+function mandoEnObra(m) {
+  if (m.recien.planos) moverPlanoObra(-1);
+  if (m.recien.mapa) moverPlanoObra(1);
+  if (m.recien.mochila) cambiarCategoriaObra(-1);
+  if (m.recien.taller) cambiarCategoriaObra(1);
+  if (m.recien.objetoAnterior) { obras.girar(-1); dibujarPanelObra(); }
+  if (m.recien.objetoSiguiente) { obras.girar(1); dibujarPanelObra(); }
+  if (m.recien.saltar) golpeDeTecla('KeyY');
+  if (m.recien.interactuar && !obras.editando) golpeDeTecla('KeyY', true);
+  if (m.recien.linterna) golpeDeTecla('KeyN');
+  if (m.recien.guia) golpeDeTecla('Backspace');
+  if (m.recien.atacar) golpeDeTecla('Delete');
+  if (m.activos.bloquear && m.recien.esquivar) golpeDeTecla('Delete', true);
 }
 
 // 3.8.3: en la pausa, el cuaderno y el mapa el mando sólo se leía jugando: Start abría la pausa (y la cruceta el mapa)
@@ -4570,7 +4697,12 @@ function leerMandoEnMenu() {
   if (!m.conectado) return;
   if (m.soltados.bloquear && desafio?.bloqueando) desafio.bloquear(false);   // 4.0.1: soltar L2 en la pausa suelta el escudo
   if (dialogos.abierto() || !usarMando()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
-  if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
+  // 4.0.3: la creación de Bruno abierta desde Personalizar (rehacer) sobre la pausa
+  const capaCreador = document.querySelector('#creador-bruno, #prologo-bruno');
+  if (capaCreador) { mandoEnCapa(m, capaCreador); return; }
+  if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) { golpeDeTecla('Escape'); return; }
+  // 4.0.3 (G4 y la lista de pantallas sin mando): la pausa, el cuaderno y todo lo que se abre desde ahí se navegan con la cruceta y A
+  if (modo === 'pausa' || modo === 'cuaderno') { const capa = capaDeMando(); if (capa) navegarMando(m, capa); }
 }
 
 // Letra más grande, paleta para daltonismo y subtítulos de los avisos.
@@ -6197,6 +6329,17 @@ function cambiarPaginaObra(direccion = 1) {
   paginaObra = (paginaObra + Math.sign(direccion || 1) + total) % total;
   const primero = planosPaginaObra()[0];
   if (primero) obras.elegir(primero);
+  ultimoSitioObra = '';
+  dibujarPanelObra();
+}
+// 4.0.3: el plano anterior o siguiente de la categoría (cambia de página solo); es lo que usa la cruceta del mando
+function moverPlanoObra(delta) {
+  const lista = planosDeCategoria();
+  if (!lista.length || !obras) return;
+  const i = Math.max(0, lista.findIndex((p) => p.id === obras.plano?.id));
+  const j = (((i + delta) % lista.length) + lista.length) % lista.length;
+  paginaObra = Math.floor(j / PLANOS_POR_PAGINA);
+  obras.elegir(lista[j]);
   ultimoSitioObra = '';
   dibujarPanelObra();
 }
@@ -8414,6 +8557,7 @@ function listaHudAbierta() {
   if (enElAlmacen) return { id: 'almacen', ul: $('trueque-lista'), pie: $('trueque-seguir'), elegir: (i) => cambiar(paginaAlmacen * POR_PAGINA_ALMACEN + i) };
   if (enLaFeria) return { id: 'feria', ul: $('feria-lista'), pie: $('feria')?.querySelector('.seguir'), elegir: (i) => cambiarFeria(i) };
   if (enLasCargas()) return { id: 'cargas', ul: $('cargas-lista'), pie: $('cargas')?.querySelector('.seguir'), elegir: (i) => puestoCargas.elegir(i) };
+  if (desafio?.tallerAbierto) return { id: 'taller-desafio', ul: $('taller-lista'), pie: $('taller')?.querySelector('.seguir'), elegir: (i) => desafio.fabricar(i) };   // 4.0.3 (G2): el taller del Desafío (K) con el mando
   if (cocinaJuego?.panelAbierto()) return { id: 'cocina', ...cocinaJuego.lista() };   // 3.7.2
   if (tallerTren?.panelAbierto()) return { id: 'taller-tren', ...tallerTren.lista() };   // 3.7.3
   if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5
@@ -8427,9 +8571,10 @@ function marcarHud(mover = 0, mostrar = false) {
   let lis = l.ul.children;
   // 3.8.3: en el puesto de cargas, pasando el final (o el principio) de la lista se cambia de modo: comprar, vender, fletes.
   // Con el mando no hay Tab: abría en «Comprar» y no había cómo llegar a vender ni a los fletes (con la lista vacía, tampoco)
-  if (l.id === 'cargas' && mover) {
+  if ((l.id === 'cargas' || l.id === 'taller-desafio') && mover) {
     const j = Math.min(marcaHud.i, lis.length - 1) + mover;
-    if (!lis.length || j < 0 || j >= lis.length) { puestoCargas.pasarModo(mover < 0 ? -1 : 1); lis = l.ul.children; marcaHud.i = mover < 0 ? Math.max(0, lis.length - 1) : 0; mover = 0; mostrar = true; }
+    // (4.0.3: en el taller del Desafío, pasando el final de la lista se pasa a la categoría de al lado)
+    if (!lis.length || j < 0 || j >= lis.length) { if (l.id === 'cargas') puestoCargas.pasarModo(mover < 0 ? -1 : 1); else desafio.cambiarCategoriaTaller(mover < 0 ? -1 : 1); lis = l.ul.children; marcaHud.i = mover < 0 ? Math.max(0, lis.length - 1) : 0; mover = 0; mostrar = true; }
   }
   if (!lis.length) return l;
   let i = Math.min(marcaHud.i, lis.length - 1) + mover;
@@ -8447,7 +8592,7 @@ function marcarHud(mover = 0, mostrar = false) {
     if (lis[k].classList.contains('elegida') !== si) { lis[k].classList.toggle('elegida', si); if (si) mostrar = true; }
   }
   if (mostrar) lis[i].scrollIntoView?.({ block: 'nearest' });
-  const pie = l.id === 'cargas' ? `${PIE_PANEL_MANDO} · pasando el final de la lista, otro modo` : PIE_PANEL_MANDO;   // 3.8.3
+  const pie = l.id === 'cargas' ? `${PIE_PANEL_MANDO} · pasando el final de la lista, otro modo` : l.id === 'taller-desafio' ? `${PIE_PANEL_MANDO} · cruceta ← →, o pasando el final: otra categoría` : PIE_PANEL_MANDO;   // 3.8.3
   if (habiaMando && l.pie && l.pie.textContent !== pie) l.pie.textContent = pie;
   return l;
 }
@@ -9875,7 +10020,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
     if (cantinaJuego?.panelAbierto() || teJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.9.0: y con la carta de la cantina
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
-    if (enElAlmacen || enLaFeria || enLasCargas()) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo)
+    if (enElAlmacen || enLaFeria || enLasCargas() || desafio?.tallerAbierto) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo; 4.0.3: y la del taller del Desafío)
     if (js.enTren) {
       if (vecino) aviso = { tecla: 'E', texto: `Hablar con ${vecino.nombre}` };
       // (3.7.3: en el tren mejorado, lo de cada lugar primero, como en la tecla E)

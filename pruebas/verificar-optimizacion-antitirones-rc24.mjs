@@ -56,7 +56,7 @@ assert.doesNotMatch(guardado, /return !!parsear\(localStorage\.getItem\(CLAVE\)\
 
 // El helper debe mantener explícitamente la política de una tarea pesada/cuadro.
 assert.match(rendimiento, /crearPlanificadorAntitirones/);
-assert.match(rendimiento, /if \(pesadas >= max( \+ \(hambrienta \? 1 : 0\))?\) return false/);   // 4.0.3: la hambrienta tiene un cupo extra
+assert.match(rendimiento, /if \(pesadas >= max\) return false/);
 assert.match(rendimiento, /crearRelojCadencia/);
 
 console.log('OK Optimización Anti-tirones RC24 · frame pacing 60 correcto en 120/144/165/240 Hz · tareas pesadas escalonadas · sombras diferidas · autosave en idle');

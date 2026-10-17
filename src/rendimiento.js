@@ -264,6 +264,7 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
   let nivel = 0;
   let reloj = 0;                 // 3.5: segundos de cuadros vistos
   const esperando = new Map();   // 3.5: tarea pesada → reloj del primer pedido sin turno
+  const ultimoPedido = new Map();   // 4.0.3: tarea pesada → reloj de su último pedido (para no cederle el cupo a una que dejó de pedir)
 
   function comenzarCuadro(dtReal = 0, nivelPresupuesto = 0, objetivoActualMs = objetivoMs) {
     cuadro++;
@@ -281,14 +282,19 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
     if (urgente) return true;
     if (pesada) {
       if (!esperando.has(clave)) esperando.set(clave, reloj);
+      ultimoPedido.set(clave, reloj);
       const hambrienta = reloj - esperando.get(clave) >= ESPERA_MAXIMA_S;
       // Tras un frame realmente malo no arrancamos trabajo diferible pesado (salvo el que ya
       // esperó demasiado: 3.5)
       if (frameLento && !hambrienta) return false;
       const max = nivel >= 2 ? 1 : maxPesadas;
-      // 4.0.3: la hambrienta puede usar un cupo extra: si otra tarea (el montaje de la aldea) pide turno en
-      // todos los cuadros, la que va última (las sombras) no llegaba nunca aunque llevara esperando mucho
-      if (pesadas >= max + (hambrienta ? 1 : 0)) return false;
+      // 4.0.3: si otra tarea lleva más tiempo esperando que ésta (y ya está hambrienta), le deja el cupo de este cuadro:
+      // antes, si el montaje de la aldea pedía turno en TODOS los cuadros, las sombras (que piden al final) no llegaban nunca
+      // aunque llevaran mucho esperando. Sigue valiendo «una pesada por cuadro»: la otra pasa en el cuadro que viene.
+      // (sólo cuenta a las que siguen pidiendo turno: una que pidió una vez y se olvidó no frena a nadie)
+      const mia = esperando.get(clave);
+      for (const [otra, desde] of esperando) if (otra !== clave && desde < mia && reloj - desde >= ESPERA_MAXIMA_S && reloj - (ultimoPedido.get(otra) ?? -1e9) < 0.12) return false;
+      if (pesadas >= max) return false;
       pesadas++;
       secundarias++;
       esperando.delete(clave);
