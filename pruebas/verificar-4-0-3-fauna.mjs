@@ -90,4 +90,9 @@ const clima = { escuchando: 0, dia: 1, noche: 0, lluvia: 0, otono: 0 };
   for (let i = 0; i < 400; i++) h.actualizar(0.05, 12, { x: 500, z: 500 });
   ok(h.aves.every((b) => Math.hypot(b.x - b.cx, b.z - b.cz) <= 4.3), 'sin nadie cerca, todas siguen en el corral');
 }
+// ---------------------------------------------------------------- los zorros (F10): sólo se prueba el enchufe (el recorrido en el juego no se vio)
+{
+  const v = (await import('node:fs')).readFileSync(new URL('../src/vida.js', import.meta.url), 'utf8');
+  ok(v.includes('if (Math.hypot(p.x - js.pos.x, p.z - js.pos.z) > 190) { z.pos.set(p.x, T.altura(p.x, p.z), p.z);'), 'F10: el zorro reaparece a más de 190 m (se los ve hasta los 180)');
+}
 console.log(`OK 4.0.3 fauna · ${n} verificaciones · el carpintero y el panal no quedan pegados a un árbol talado`);

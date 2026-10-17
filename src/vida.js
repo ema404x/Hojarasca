@@ -884,9 +884,10 @@ export function crearVida(T, veg, col, escena, sonido, registrar, progreso) {
         vel = 3.8;
         if (z.t <= 0) {
           // reaparece lejos, en otra parte del sendero
-          for (let i = 0; i < 20; i++) {
+          // 4.0.3 (F10): a más de 190 m (se los ve hasta los 180): antes reaparecían a la vista, de golpe
+          for (let i = 0; i < 40; i++) {
             const idx = Math.floor(r() * T.sendero.length), p = T.sendero[idx];
-            if (Math.hypot(p.x - js.pos.x, p.z - js.pos.z) > 90) { z.pos.set(p.x, T.altura(p.x, p.z), p.z); z.idx = idx; break; }
+            if (Math.hypot(p.x - js.pos.x, p.z - js.pos.z) > 190) { z.pos.set(p.x, T.altura(p.x, p.z), p.z); z.idx = idx; break; }
           }
           z.estado = 'andar';
         }
