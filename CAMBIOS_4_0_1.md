@@ -68,7 +68,7 @@ Leyenda: **arreglado** (con prueba en el gate) · **no se confirmó** · **pospu
 
 **Resumen:** de 50 hallazgos, 4 altos y 17 más arreglados (con prueba); 1 medio pospuesto (A3, mando); el resto, bajos pospuestos o preguntas. Ninguno se descartó por «no se confirmó».
 
-## Pruebas agregadas (todas en el gate)
+## Pruebas agregadas (todas en el gate: `npm run verify` da 225 pasos OK, antes 219)
 
 - `verificar-4-0-1-cantina.mjs` — pedido servido desde la charla, cerrado sin cobrar, lejos-y-vuelta en cinco fases.
 - `verificar-4-0-1-creador.mjs` — sin WebGL no queda capa colgada; retrato a 240×300 reales; prólogo ignora teclas repetidas.
@@ -76,7 +76,7 @@ Leyenda: **arreglado** (con prueba en el gate) · **no se confirmó** · **pospu
 - `verificar-4-0-1-nucleo.mjs` — kayak, fauna, escudo, victoria, banco de pruebas, espejo, catapulta, modo foto.
 - `verificar-4-0-1-sincronia.mjs` — dos «PC» con relojes desfasados, base de la carpeta, álbum incompleto.
 - `verificar-4-0-1-molino.mjs` — con el terreno real: sendero, tulipanes, cerco, arroyo, galería y niebla.
-- Humo en Electron (ventana al monitor externo): `humo-4-0-molino.cjs` (todo OK) y `fotos-molino-40.cjs` (capturas vistas a tamaño completo).
+- Humo en Electron (ventana al monitor externo), todos OK: `humo-4-0-molino.cjs`, `fotos-molino-40.cjs` (capturas vistas a tamaño completo), `humo-caos.cjs` (800 pasos), `humo-4-1-creador.cjs` y `humo-3-9-2-cantina.cjs` (la cantina y la casa de té de verdad).
 
 ## Decisiones tomadas sin consultar
 
