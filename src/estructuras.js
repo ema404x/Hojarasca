@@ -1,6 +1,6 @@
 // Construcciones de madera del sendero, con sus colisiones y plataformas
 import * as THREE from 'three';
-import { Constructor, matriz, troncoCurvo, abollar } from './geometria.js';
+import { Constructor, matriz, troncoCurvo, abollar, h3 } from './geometria.js';
 import { materialVegetal } from './materiales.js';
 import { piezas } from './piezas.js';
 import { rng, lerp } from './ruido.js';
@@ -1250,6 +1250,57 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         cilindroEntre(c, [xs[i], -0.05, lado * ancho / 2], [xs[i + 1], yB, lado * ancho / 2], 0.045, '#5e4632');
       }
     }
+    // 4.0 (molino y puente): como el puente de la referencia. Vigas de tablón a los costados con herrajes negros atornillados,
+    // postes cuadrados con tres listones de baranda, estribos de piedra apilada en los dos extremos y dos faroles en postes altos.
+    // Todo es visual: la plataforma y los segmentos de baranda de más abajo no cambian.
+    {
+      const HIERRO = '#26231f', VIGA = '#5b432d', basePuente4 = { x: p.x, z: p.z, y: p.alto - 0.06 };
+      const nh = Math.max(2, Math.round(p.largo / 3.4));
+      for (const lado of [-1, 1]) {
+        const zb = lado * (ancho / 2 - 0.02);
+        c.agregar(new THREE.BoxGeometry(p.largo + 0.2, 0.36, 0.2), { color: VIGA, tipo: 0, variar: 0.08, matriz: matriz([0, -0.28, zb]) });
+        for (let i = 0; i <= nh; i++) {
+          const x = -p.largo / 2 + 0.55 + (i / nh) * (p.largo - 1.1);
+          c.agregar(new THREE.BoxGeometry(0.34, 0.3, 0.04), { color: HIERRO, tipo: 4, matriz: matriz([x, -0.26, zb + lado * 0.11]) });
+          for (const [bx, by] of [[-0.11, 0.09], [0.11, 0.09], [-0.11, -0.09], [0.11, -0.09]]) c.agregar(new THREE.BoxGeometry(0.04, 0.04, 0.03), { color: '#3a3631', tipo: 4, matriz: matriz([x + bx, -0.26 + by, zb + lado * 0.14]) });
+        }
+        // postes cuadrados de la baranda con su placa de hierro abajo y tres listones corridos
+        const zp = lado * ancho / 2, np = Math.max(4, Math.round(p.largo / 2.6));
+        for (let i = 0; i <= np; i++) {
+          const x = -p.largo / 2 + (i / np) * p.largo;
+          c.agregar(new THREE.BoxGeometry(0.15, 1.16, 0.15), { color: MADERA_OSCURA, tipo: 0, variar: 0.08, matriz: matriz([x, 0.52, zp]) });
+          c.agregar(new THREE.BoxGeometry(0.19, 0.04, 0.19), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([x, 1.12, zp]) });
+          c.agregar(new THREE.BoxGeometry(0.2, 0.14, 0.2), { color: HIERRO, tipo: 4, matriz: matriz([x, 0.05, zp]) });
+        }
+        for (const [yy, hh] of [[1.0, 0.09], [0.68, 0.08], [0.36, 0.08]]) c.agregar(new THREE.BoxGeometry(p.largo + 0.1, hh, 0.06), { color: yy > 0.9 ? '#7a5c40' : '#6a5038', tipo: 0, variar: 0.06, matriz: matriz([0, yy, zp + lado * 0.0]) });
+      }
+      // los estribos: sillares apilados desde el suelo hasta el tablero, a los dos lados (si la orilla queda más alta, no se ven)
+      for (const sx of [-1, 1]) {
+        const cx = sx * (p.largo / 2 - 4.6), prof = 1.4;   // sobre la orilla del agua (el ancho del cauce es largo - 9)
+        const bajo = Math.min(...[-1, 0, 1].flatMap((fz) => [-0.5, 0.5].map((fx) => sueloLocal(basePuente4, -p.ang, cx + fx * prof, fz * ancho * 0.5)))) - 0.3;
+        const tope = -0.14, alto = tope - Math.max(bajo, tope - 6.5), filas = Math.max(1, Math.ceil(alto / 0.3));
+        for (let f = 0; f < filas; f++) {
+          const y = tope - (f + 0.5) * (alto / filas), n = 5, ac = (ancho + 0.5);
+          let z0 = -ac / 2;
+          for (let i = 0; i < n; i++) {
+            const ww = (ac / n) * (0.8 + h3(i, f, sx + 3) * 0.4), zc = Math.min(ac / 2 - ww / 2, z0 + ww / 2);
+            c.agregar(new THREE.BoxGeometry(prof * (0.9 + h3(i, f, 7) * 0.1), alto / filas * 0.96, ww * 0.97), { color: ['#8a8277', '#77706a', '#948b7e', '#6f675d'][Math.floor(h3(i, f, sx + 9) * 4)], tipo: 4, variar: 0.1, matriz: matriz([cx + sx * (h3(i, f, 2) - 0.5) * 0.08, y, zc]) });
+            z0 += ww;
+          }
+        }
+      }
+      // dos faroles en postes altos, uno en cada punta y en lados opuestos, con el brazo hacia el tablero
+      const cilF = (r, h, pos, color) => c.agregar(new THREE.CylinderGeometry(r, r, h, 8), { color, tipo: 4, matriz: matriz(pos), variar: 0.04 });
+      for (const [sx, lado] of [[-1, 1], [1, -1]]) {
+        const x = sx * (p.largo / 2 - 0.4), zp = lado * (ancho / 2 + 0.16), alto = 2.75;
+        c.agregar(new THREE.BoxGeometry(0.17, alto, 0.17), { color: MADERA_OSCURA, tipo: 0, variar: 0.08, matriz: matriz([x, alto / 2 - 0.15, zp]) });
+        c.agregar(new THREE.BoxGeometry(0.07, 0.09, 0.95), { color: MADERA_OSCURA, tipo: 0, matriz: matriz([x, alto - 0.3, zp - lado * 0.5]) });
+        cilindroEntre(c, [x, alto - 0.78, zp], [x, alto - 0.34, zp - lado * 0.4], 0.035, HIERRO, 4);
+        const zl = zp - lado * 0.9;
+        ferreteriaFarolColgado(c, cilF, x, zl, alto - 0.18);
+        c.agregar(new THREE.BoxGeometry(0.17, 0.23, 0.17), { color: '#f3cf86', tipo: 4, matriz: matriz([x, alto - 0.18 - 0.425, zl]) });
+      }
+    }
     // vigas transversales bajo el tablero y topes de piedra en los estribos
     for (let x = -p.largo / 2 + 0.6; x < p.largo / 2; x += 1.6)
       cilindroEntre(c, [x, -0.25, -ancho / 2], [x, -0.25, ancho / 2], 0.065, MADERA);
@@ -2172,6 +2223,22 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       });
       // Banda de coronación, ya por encima del dintel: puede ser continua.
       c.agregar(new THREE.CylinderGeometry(2.62, 2.62, 0.22, 16, 1, true), { color: '#5f574e', tipo: 4, matriz: matriz([0, 2.72, 0]) });
+      // 4.0 (molino y puente): piedra apilada a la vista, en hiladas que se trabán (como el molino de la referencia): sillares
+      // chatos de tamaños y tonos distintos, pegados a la cara de afuera; sólo se dibujan (la pared y la física son las de arriba)
+      // y se saltea el vano de la puerta.
+      {
+        const HILADAS = 7, TONOS = ['#8a8277', '#7a7268', '#948b7e', '#6f675d', '#a09686'];
+        for (let f = 0; f < HILADAS; f++) {
+          const n = 17 + (f % 2), y = -0.12 + f * 0.4 + 0.2;
+          for (let i = 0; i < n; i++) {
+            const a2 = ((i + (f % 2) * 0.5 + (h3(i, f, 4) - 0.5) * 0.18) / n) * Math.PI * 2;
+            if (y < 2.35 && Math.abs(Math.atan2(Math.sin(a2 - Math.PI), Math.cos(a2 - Math.PI))) < 0.36) continue;
+            const [px, pz] = dir(a2, 2.7 + (h3(i, f, 9) - 0.5) * 0.05);
+            const ancho = (Math.PI * 2 * 2.7 / n) * (0.84 + h3(i, f, 1) * 0.14), alto = 0.33 + h3(i, f, 2) * 0.05;
+            c.agregar(new THREE.BoxGeometry(ancho, alto, 0.2), { color: TONOS[Math.floor(h3(i, f, 3) * TONOS.length)], tipo: 4, variar: 0.1, matriz: matriz([px, y, pz], [0, -a2, 0]) });
+          }
+        }
+      }
 
       // La torre de madera empieza arriba de la base pétrea. Antes ambas capas
       // ocupaban los mismos 2,6 m inferiores y se z-fighteaban/solapaban.
@@ -2184,7 +2251,7 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
         const r0 = radioA(y0 + h / 2);
         PM.paredCurva({
           radio: r0, desde: y0, hasta: y0 + h * 1.02, espesor: 0.22, sectores: 18,
-          color: i % 2 ? '#e3ddd0' : '#d9d2c3',
+          color: i % 2 ? '#a47d55' : '#97724d',   // 4.0: cuerpo de tablas de madera (antes encalado)
           hueco: y0 < 2.2 ? HUECO_MOLINO : null,
           // 3.0.1: la torre se angosta 14 cm por metro y el cuerpo es un cilindro de 1,65 m:
           // contado hasta la coronilla, entre las muelas y la pared no quedaba lugar ni en el
@@ -2225,7 +2292,32 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
       // capucha
       c.agregar(new THREE.CylinderGeometry(1.35, 1.6, 1.1, 8), { color: '#6a4f36', tipo: 4, matriz: matriz([0, H - 0.4, 0]) });
       c.agregar(new THREE.SphereGeometry(1.35, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), { color: '#5a4130', tipo: 4, matriz: matriz([0, H + 0.15, 0]) });
+      // 4.0: tejuelas sobre la cúpula y el aro de abajo, en hiladas que se montan una sobre otra
+      {
+        const TEJA = ['#5d4532', '#6c5039', '#4f392a', '#74573f'];
+        const tejas = (R, y0, phi, n, tam) => {
+          for (let i = 0; i < n; i++) {
+            const a2 = ((i + (Math.round(phi * 10) % 2) * 0.5) / n) * Math.PI * 2;
+            const px = Math.sin(a2) * R * Math.sin(phi), pz = -Math.cos(a2) * R * Math.sin(phi);
+            c.agregar(new THREE.BoxGeometry(tam, 0.035, 0.3), { color: TEJA[Math.floor(h3(i, phi * 7, 5) * TEJA.length)], tipo: 4, variar: 0.1,
+              matriz: matriz([px, y0 + R * Math.cos(phi), pz], [phi, -a2, 0]) });
+          }
+        };
+        for (const phi of [1.42, 1.22, 1.02, 0.82, 0.62, 0.42, 0.2]) tejas(1.42, H + 0.15, phi, Math.max(6, Math.round(Math.PI * 2 * 1.42 * Math.sin(phi) / 0.36)), 0.38);
+        tejas(1.42, H + 0.15, 0, 1, 0.34);
+        // el aro de la capucha (cilindro de 1,35 a 1,6 m de radio): tres hileras casi verticales
+        for (let k = 0; k < 3; k++) {
+          const yy = H - 0.4 - 0.34 + k * 0.34, rr = 1.6 - (yy - (H - 0.95)) * 0.227 + 0.05;
+          for (let i = 0; i < 26; i++) {
+            const a2 = ((i + (k % 2) * 0.5) / 26) * Math.PI * 2;
+            const [px, pz] = dir(a2, rr);
+            c.agregar(new THREE.BoxGeometry(0.4, 0.34, 0.035), { color: TEJA[Math.floor(h3(i, k, 6) * TEJA.length)], tipo: 4, variar: 0.1, matriz: matriz([px, yy + 0.05, pz], [0.2, -a2, 0]) });
+          }
+        }
+      }
 
+      // 4.0: zunchos de hierro que abrazan la torre de madera (a la altura de las ventanas y arriba)
+      for (const yz of [3.4, 5.2, 7.4]) c.agregar(new THREE.TorusGeometry(radioA(yz) + 0.12, 0.045, 5, 24), { color: '#2d2926', tipo: 4, variar: 0.05, matriz: matriz([0, yz, 0], [Math.PI / 2, 0, 0]) });
       // ---------- adentro ----------
       c.agregar(new THREE.CylinderGeometry(0.22, 0.26, H - 1.6, 8), { color: '#6b5238', tipo: 0, variar: 0.08, matriz: matriz([0, 1.0 + (H - 1.6) / 2, 0]) });
       // las dos muelas y su aro
@@ -2336,7 +2428,15 @@ export function crearEstructuras(T, escena, col, veg, puertas, opciones = {}) {
           const t = k / 7, d = L2 * t, ancho = 1.05 * (1 - t * 0.25);
           a.agregar(new THREE.BoxGeometry(ancho, 0.08, 0.08), { color: '#7a5f43', tipo: 0, matriz: matriz([Math.sin(ang) * d + Math.cos(ang) * ancho * 0.35, Math.cos(ang) * d - Math.sin(ang) * ancho * 0.35, 0], [0, 0, -ang]) });
         }
-        a.agregar(new THREE.BoxGeometry(0.9, L2 * 0.75, 0.03), { color: '#d8cfbc', tipo: 4, matriz: matriz([Math.sin(ang) * L2 * 0.52 + Math.cos(ang) * 0.5, Math.cos(ang) * L2 * 0.52 - Math.sin(ang) * 0.5, 0.06], [0, 0, -ang]) });
+        // 4.0: el paño liso pasó a ser un enrejado de listones (como las aspas de la referencia): marco a los dos lados y
+        // listones cada 22 cm, claros, con aire entre uno y otro
+        {
+          const px = (t, o, z) => [Math.sin(ang) * t + Math.cos(ang) * o, Math.cos(ang) * t - Math.sin(ang) * o, z];
+          const t0 = 0.8, t1 = L2 * 0.98, largo = t1 - t0;
+          for (const o of [0.06, 0.95]) a.agregar(new THREE.BoxGeometry(0.06, largo, 0.05), { color: '#6a4f36', tipo: 0, matriz: matriz(px((t0 + t1) / 2, o, 0.05), [0, 0, -ang]) });
+          const N = Math.round(largo / 0.22);
+          for (let k = 0; k <= N; k++) a.agregar(new THREE.BoxGeometry(0.92, 0.055, 0.035), { color: k % 2 ? '#c9a878' : '#b8946a', tipo: 0, variar: 0.08, matriz: matriz(px(t0 + (k / N) * largo, 0.5, 0.07), [0, 0, -ang]) });
+        }
       }
       a.agregar(new THREE.CylinderGeometry(0.35, 0.35, 0.5, 8), { color: '#4a3524', tipo: 0, matriz: matriz([0, 0, 0.1], [Math.PI / 2, 0, 0]) });
       const aspas = new THREE.Mesh(a.geometria(), mat);
