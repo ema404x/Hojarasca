@@ -187,7 +187,7 @@ export function crearLuzCasaTe({ W, D, H }) {
   for (const m of deMesa) lista.push({ pos: [m.x, m.y + 0.09, m.z], radio: 0.4, fluctua: 0.5 });
   lista.push({ pos: [hogar.x, hogar.y + 0.1, hogar.z], radio: 1.45, fluctua: 1 });
   const nInt = lista.length;
-  for (const g of gal) lista.push({ pos: [g.x, g.y, g.z], radio: 0.85, fluctua: 0.3 });
+  for (const g of gal) lista.push({ pos: [g.x, g.y, g.z], radio: 0.85, fluctua: 0.3, soloNoche: true });   // 4.0.2: los faroles de la galería, apagados de día, ya no brillan de día (como la luz de los ventanales)
   // la luz que sale por los dos ventanales hacia afuera (sólo de noche, y cuando el alumbrado está prendido)
   for (const vx of [-1.36, 1.36]) lista.push({ pos: [vx, 1.55, D / 2 + 0.15], radio: 1.25, fluctua: 0.15, soloNoche: true });
   const { mat: matHalo, uniforms: uHalo } = crearMaterialHalo();
