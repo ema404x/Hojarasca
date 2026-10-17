@@ -74,7 +74,7 @@ assert.match(leer('src/guardado.js'), /feria: sanearFeria\(p\.feria\)/, 'una par
 // ---------------------------------------------------------------- cableado
 assert.equal(ENTRADA.feria?.seccion, 'lugares');
 const main = leer('src/main.js');
-assert.match(main, /crearPuestoFeria\(T, escena, e\)/, 'el puesto está en el mundo');
+assert.match(main, /crearPuestoFeria\(T, escena, e(, col)?\)/, 'el puesto está en el mundo');   // 4.0.3: con el cuerpo (col)
 assert.match(main, /if \(desafio \|\| !puestoFeria \|\| !feriaAbierta\(progreso\.dia, progreso\.horas\)\) return false;/, 'sólo en el Relax y en horario');
 assert.match(main, /feriaCerca\(\) && !enLaFeria\) aviso = \{ tecla: 'E', texto: 'Ver la feria' \}/, 'el aviso');
 assert.match(main, /if \(!objetivo && feriaCerca\(\)\) \{ abrirFeria\(\); break; \}/, 'la tecla E');
