@@ -133,6 +133,7 @@ import { crearEstadoAutocalidad, anotarCuadro as anotarCuadroCalidad, decidirCal
 import { crearMando, girarMirada } from './mando.js';
 import { elegirVecino, pasoDeBarra, direccionDeCruceta } from './mando-menu.js';
 import { puntoLibreJuntoA, huellaQueContiene } from './despertar.js';
+import { participio } from './concordancia.js';
 import { RECORRIDO, crearCorrida, anotarCuadro, informeBanco, nombreArchivoBanco, duracionBanco } from './banco.js';
 import { resumenPartida, htmlParte, textoParte, CSS_PARTE } from './parte.js';
 import { estadoFotoInicial, aplicarControl, textoControl, htmlPanelFoto, nombreArchivoFoto, AYUDA_FOTO, CSS_FOTO } from './foto-modo.js';
@@ -6396,7 +6397,7 @@ function elegirPlano(i) {
   dibujarPanelObra();
 }
 // 3.8.6: «Mesa de campo desmontada», «Galería con alero recolocada» (la regla de «terminada» de la 3.8.3)
-const participioObra = (nombre, raiz) => `${raiz}${/a$/i.test(String(nombre).split(' ')[0]) ? 'a' : 'o'}`;
+const participioObra = (nombre, raiz) => participio(nombre, raiz);   // 4.0.3 (II-11): con plurales y femeninos sin «a» (concordancia.js)
 function costoPlano(p) {
   const total = {};
   for (const e of p.etapas) for (const [k,n] of Object.entries(e.pide)) total[k] = (total[k] || 0) + n;
