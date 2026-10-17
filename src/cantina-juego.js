@@ -544,6 +544,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
   }
   function avisarFase(antes, ahora) {
     faseAntes = ahora;
+    if (multEbrio() <= 0.01) return;   // 4.0.2: con la borrachera «apagada» no se mueve nada en pantalla: tampoco se avisa ni se comenta
     const sube = ['sobrio', 'achispado', 'alegre', 'torcido'].indexOf(ahora) > ['sobrio', 'achispado', 'alegre', 'torcido'].indexOf(antes);
     if (sube && ahora === 'alegre') { ctx.nota?.(T_('Estás alegre'), T_('Se te mueve un poquito el mundo: se pasa solo, con el tiempo o con un mate cocido')); hablar(elegirDe(BORRACHERA_MOZA.comenta)); avisoComenta = dia(); }
     else if (sube && ahora === 'torcido') ctx.nota?.(T_('Vas a caminar torcido'), T_('Un rato nomás: no pasa nada grave, y se te va con el tiempo'));
