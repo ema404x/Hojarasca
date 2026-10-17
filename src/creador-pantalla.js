@@ -74,10 +74,12 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
   const lienzo = document.createElement('canvas');
   const panel = h('div', { class: 'cb-panel' });
   raiz.append(estilo, lienzo, panel);
-  document.body.appendChild(raiz);
 
   // ---------------------------------------------------------------- la escena (su propio dibujante: se libera al cerrar)
-  const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true });
+  // 4.0.1: si no hay un segundo contexto 3D (placa que se cayó, demasiados contextos), no se cuelga la capa beige: devuelve null y quien lo abrió entra con el genoma de partida
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true }); } catch (e) { console.warn('creador: sin contexto 3D', e); return null; }
+  document.body.appendChild(raiz);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -249,7 +251,7 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
     raiz.remove();
   }
   addEventListener('resize', ajustar);
-  ajustar(); armarFigura(); pintar();
+  try { ajustar(); armarFigura(); pintar(); } catch (e) { console.warn('creador: no se pudo armar la figura', e); cerrar(); return null; }   // 4.0.1
   cuadro = requestAnimationFrame(bucle);
   return { cerrar, genoma: () => genoma, pantalla: (n) => { pantalla = n; pintar(); }, elegir: cambiar };
 }

@@ -2710,7 +2710,7 @@ function crearABruno(modo, alTerminar) {
   if (!sBruno || !sPersonaje) { alTerminar?.(); return; }
   const personaje = datosPersonal(sPersonaje);
   const base = modo === 'rehacer' ? datosPersonal(sBruno) : genomaDesdePersonajeViejo(personaje);
-  creadorAbierto = abrirCreador({
+  const opcionesCreador = {
     genoma: base, modo, ropa: personaje,
     alAceptar: (g, retrato) => {
       creadorAbierto = null;
@@ -2721,7 +2721,13 @@ function crearABruno(modo, alTerminar) {
       alTerminar?.();
     },
     alCancelar: () => { creadorAbierto = null; },
-  });
+  };
+  // 4.0.1: si la pantalla de creación no puede abrirse (sin segundo contexto 3D), crear sigue con lo que ya había elegido y rehacer se deja para después: nunca queda la capa colgada
+  try { creadorAbierto = abrirCreador(opcionesCreador); } catch (e) { console.warn('creador', e); creadorAbierto = null; }
+  if (!creadorAbierto) {
+    if (modo === 'crear') { opcionesCreador.alAceptar(base, ''); nota('Bruno', 'No se pudo abrir la pantalla de creación: entrás con el aspecto que ya tenías. Podés rehacerlo con el espejo del refugio.'); }
+    else nota('Bruno', 'No se pudo abrir la pantalla ahora. Probá de nuevo en un rato.');
+  }
 }
 // 4.1: el espejo de fábrica: al crear a Bruno, cada refugio nuevo trae un espejo armado (gratis) cerca de la puerta, así nadie se queda sin poder rehacer su aspecto.
 // Se prueban lugares alrededor del refugio hasta que uno sirva; si ninguno sirve, queda el botón de respaldo del panel de Bruno. Una sola vez por partida (si después lo
