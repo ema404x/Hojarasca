@@ -39,7 +39,7 @@ tiene(main, "modo === 'valle' || modo === 'cuaderno' || modo === 'mapa') mostrar
 
 // 5) el banco de pruebas: el informe se cierra al volver al juego y, lanzado desde la portada, se vuelve a la portada
 tiene(main, "for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');   // (4.0.1", 'banco: volverAlJuego esconde el informe');
-tiene(main, "if (g?.modo === 'inicio') { $('hud').classList.add('oculto'); modo = 'inicio'; }", 'banco: desde la portada se vuelve a la portada');
+tiene(main, "if (g?.modo === 'inicio') { $('hud').classList.add('oculto'); $('inicio').classList.remove('oculto'); modo = 'inicio'; }", 'banco: desde la portada se vuelve a la portada (4.0.3: y se la vuelve a mostrar)');
 tiene(main, "if (modo !== 'inicio') abrir('pausa');", 'banco: Cerrar no abre la pausa desde la portada');
 
 // 6) el espejo de Bruno: suelta el mouse y las teclas, y soltar el mouse no abre la pausa
