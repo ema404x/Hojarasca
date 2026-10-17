@@ -153,8 +153,11 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, sol
   let emaMs = objetivoMs;
   let lento = 0;
   let holgado = 0;
+  // 4.0.3: tiempo propio y espera para bajar de nivel (se duplica si el nivel vuelve a subir enseguida)
+  let reloj = 0, ultimaBajada = -1e9, esperaBajar = 1.5;
 
   function actualizar(dtReal, objetivoActualMs = objetivoMs) {
+    reloj += Math.max(0, Math.min(1, dtReal || 0));
     const ms = Math.max(0, Math.min(200, (dtReal || 0) * 1000));
     const objetivo = Math.max(8, objetivoActualMs || objetivoMs);
     emaMs += (ms - emaMs) * 0.08;
@@ -162,7 +165,10 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, sol
     if (emaMs > objetivo * 1.18) {
       lento += Math.max(0, dtReal || 0);
       holgado = Math.max(0, holgado - (dtReal || 0) * 2);
-    } else if (emaMs < objetivo * 0.94) {
+    } else if (emaMs <= objetivo * 1.06) {
+      // 4.0.3: con el ritmo por vsync el intervalo entre cuadros es EXACTAMENTE el objetivo, así que
+      // nunca había un cuadro más corto (< 0,94) y un tirón suelto dejaba el nivel subido para siempre.
+      // Un cuadro que llega a su objetivo cuenta como holgado.
       holgado += Math.max(0, dtReal || 0);
       lento = Math.max(0, lento - (dtReal || 0));
     } else {
@@ -171,11 +177,14 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, sol
     }
 
     if (lento >= 0.35 && nivel < niveles) {
+      // si recién bajamos y no aguantó, la próxima bajada espera el doble (no oscila)
+      if (reloj - ultimaBajada < 12) esperaBajar = Math.min(48, esperaBajar * 2);
       nivel++;
       lento = 0;
       holgado = 0;
-    } else if (holgado >= 1.5 && nivel > 0) {
+    } else if (holgado >= esperaBajar && nivel > 0) {
       nivel--;
+      ultimaBajada = reloj;
       lento = 0;
       holgado = 0;
     }
@@ -255,6 +264,7 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
   let nivel = 0;
   let reloj = 0;                 // 3.5: segundos de cuadros vistos
   const esperando = new Map();   // 3.5: tarea pesada → reloj del primer pedido sin turno
+  const ultimoPedido = new Map();   // 4.0.3: tarea pesada → reloj de su último pedido (para no cederle el cupo a una que dejó de pedir)
 
   function comenzarCuadro(dtReal = 0, nivelPresupuesto = 0, objetivoActualMs = objetivoMs) {
     cuadro++;
@@ -272,11 +282,18 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
     if (urgente) return true;
     if (pesada) {
       if (!esperando.has(clave)) esperando.set(clave, reloj);
+      ultimoPedido.set(clave, reloj);
       const hambrienta = reloj - esperando.get(clave) >= ESPERA_MAXIMA_S;
       // Tras un frame realmente malo no arrancamos trabajo diferible pesado (salvo el que ya
       // esperó demasiado: 3.5)
       if (frameLento && !hambrienta) return false;
       const max = nivel >= 2 ? 1 : maxPesadas;
+      // 4.0.3: si otra tarea lleva más tiempo esperando que ésta (y ya está hambrienta), le deja el cupo de este cuadro:
+      // antes, si el montaje de la aldea pedía turno en TODOS los cuadros, las sombras (que piden al final) no llegaban nunca
+      // aunque llevaran mucho esperando. Sigue valiendo «una pesada por cuadro»: la otra pasa en el cuadro que viene.
+      // (sólo cuenta a las que siguen pidiendo turno: una que pidió una vez y se olvidó no frena a nadie)
+      const mia = esperando.get(clave);
+      for (const [otra, desde] of esperando) if (otra !== clave && desde < mia && reloj - desde >= ESPERA_MAXIMA_S && reloj - (ultimoPedido.get(otra) ?? -1e9) < 0.12) return false;
       if (pesadas >= max) return false;
       pesadas++;
       secundarias++;
@@ -467,7 +484,9 @@ export function divisorInicial(periodoMs, op = {}) {
 // (como la calidad automática, pero doblando): nunca oscila.
 export const AJUSTES_RITMO = {
   fpsMax: 165, fpsMin: 28,
-  margenBajar: 0.7,      // para bajar k: el 90% de los cuadros cabe en el 70% del presupuesto nuevo
+  // 4.0.3: 0,85 en vez de 0,7. Con 0,7 la banda de 11,7 a 15,8 ms (a 60 Hz) era zona muerta: el juego
+  // mide ~14,5 ms y, una vez en 30 fps, no había forma de volver a 60. Con 0,9 el caso del borde ya rompe.
+  margenBajar: 0.85,     // para bajar k: el 90% de los cuadros cabe en el 85% del presupuesto nuevo
   perdidosBajar: 0.05,   // y (sin la placa medida) casi ninguno se pasa de su turno
   margenSubir: 0.95,     // para subir k: tres de cada cuatro cuadros ya usan el 95% del presupuesto
   perdidosSubir: 0.5,    // sin poder medir la placa: la mitad de los cuadros se pasa de su turno.

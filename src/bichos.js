@@ -582,7 +582,7 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
       puntos.frustumCulled = false;
       escena.add(puntos);
       panal = { g, puntos, pos: new THREE.Vector3(g.position.x, a.y + 2.9, g.position.z), fases: Array.from({ length: N }, () => r()), arbol: a, enojo: 0 };
-      col.agregar({ x: a.x, z: a.z, r: a.r + 0.1 });
+      col.agregar({ x: a.x, z: a.z, r: a.r + 0.1, duenio: 'panal' });   // 4.0.3 (F4): con dueño, para sacarlo si talás el árbol
     }
   }
 
@@ -854,7 +854,12 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
 
     // ----- panal
     let panalSonido = null;
-    if (panal) {
+    // 4.0.3 (F4): si talaste el árbol del panal, el panal y sus abejas se van (antes giraban sobre el tocón) y el cilindro de colisión del tronco se retira
+    if (panal && !panal.talado && panal.arbol.sacado) {
+      panal.talado = true; panal.g.visible = false; panal.puntos.visible = false;
+      try { col.eliminarPorDuenio?.('panal'); } catch { /* sin colisiones */ }
+    }
+    if (panal && !panal.talado) {
       const d = Math.hypot(panal.pos.x - js.pos.x, panal.pos.z - js.pos.z);
       const visible = d < 70;
       panal.g.visible = (visible) && sale(panal);

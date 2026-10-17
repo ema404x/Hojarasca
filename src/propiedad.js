@@ -47,6 +47,16 @@ export function pagarEtapa(p, id, i, con = 'Obra de la casa') {
   const r = pagar(p, v.precio, `Terreno y mano de obra: ${PROPIEDAD.casas[id].nombre}`, con);
   return r.ok ? v : { ok: false, precio: v.precio, falta: v.precio - pesosDe(p) };
 }
+// 4.0.3 (II-1): al retirar una marca (Supr) que ya tenía etapas pagadas (pagaste la primera, deshiciste y cancelaste), el terreno y la mano de obra
+// vuelven a la billetera: el cartel dice «no se gastaron materiales» y los pesos se perdían. `pagadas` es hasta qué etapa se pagó.
+export function devolverEtapasPagadas(p, id, pagadas, con = 'Los albañiles de la aldea') {
+  if (!hayEconomia(p) || !esCasaDePrecio(id)) return 0;
+  let monto = 0;
+  for (let i = 0; i < Math.max(0, Math.min(4, pagadas | 0)); i++) monto += precioDeEtapa(id, i);
+  if (monto <= 0) return 0;
+  const r = cobrar(p, monto, `Devolución del terreno y la mano de obra: ${PROPIEDAD.casas[id].nombre}`, con);
+  return r.ok ? r.monto : 0;
+}
 export function puedePagarEscritura(p) {
   if (!hayEconomia(p)) return { ok: true, precio: 0 };
   const tengo = pesosDe(p);

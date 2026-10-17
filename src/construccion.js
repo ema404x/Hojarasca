@@ -1582,7 +1582,11 @@ const PIEZAS = [
     },
     fisica(h) {
       for (const [x, z] of [[-1.05, -1.05], [1.05, -1.05], [-1.05, 1.05], [1.05, 1.05]]) h.circulo(x, z, 0.14, -0.05, 2.3);
-      h.plataforma(0, 0, 2.4, 2.4, 2.42, 0.16, 0.62);
+      // 4.0.3 (II-2): el piso de arriba hacía de techo para cualquier cuerpo a menos de 0,35 m de su borde, y la escalera (de x 1,16 a 1,88) sólo se subía por su
+      // mitad de afuera (x ≥ 1,56). El piso va en dos: el grueso y una franja de 35 cm del lado de la escalera, `sinTecho` (se camina igual encima, pero no le
+      // hace de techo al que sube): ahora se sube por todo el ancho de los peldaños. La malla no cambió.
+      h.plataforma(-0.175, 0, 2.05, 2.4, 2.42, 0.16, 0.62);
+      h.plataforma(1.025, 0, 0.35, 2.4, 2.42, 0.16, 0.62, { sinTecho: true });
       // 2.4: hasta acá la escalera no se podía subir: el peldaño de arriba (y el borde del
       // piso) le hacían de techo al cuerpo. Los peldaños son abiertos (sinTecho), más
       // anchos hacia afuera (se sube por x ≈ 1,6, donde el cuerpo no toca el piso) y
@@ -2716,6 +2720,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // 3.6.1: donde no se construye (en el Relax, la Aldea de los Duendes: ver main.js)
     const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, plano.radio || 1) : null;
     if (reservado) return { ok: false, motivo: reservado };
+    // 4.0.3 (I-1): ni encima de la casa decorativa del molino, su campo de tulipanes ni el cauce de su arroyo (sólo el Relax; ver main.js). Las obras que ya había ahí no se mudan.
+    const reservaMolino = typeof T.reservaMolino === 'function' ? T.reservaMolino(x, z, plano.radio || 1) : null;
+    if (reservaMolino) return { ok: false, motivo: reservaMolino };
     // 3.8.6: un plano con tope (`maximo`: el hoyo para frutal, tantos como frutales lleva la granja): el de más se armaba,
     // costaba su tronco y quedaba muerto, sin aviso ni E
     if (Number.isFinite(plano.maximo) && obras.filter((o) => o !== ignorarObra && o.plano.id === plano.id).length >= plano.maximo) return { ok: false, motivo: plano.motivoMaximo || `Ya tenés ${plano.maximo}: no entran más` };
@@ -3429,11 +3436,14 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (!base || base.datos.etapas < base.plano.etapas.length) return null;
     const cotaMuros = cotaSuperiorPiso(base), cotaTecho = cotaMuros + 2.02;
     for (const o of obras) {
-      if (o === base || o === edicion?.obra || o.datos.etapas < o.plano.etapas.length || o.plano.snap?.tipo !== 'techo') continue;
+      // 4.0.3 (II-4): un entrepiso terminado encima (el segundo nivel, 2,28 m sobre el piso) también cubre la planta baja: antes sólo el techo, y la planta baja de una
+      // casa de dos niveles quedaba «cerramiento sin techo» (sin confort, sin dormir en el catre, dormir contaba como afuera)
+      const tipoCubierta = o.plano.snap?.tipo;
+      if (o === base || o === edicion?.obra || o.datos.etapas < o.plano.etapas.length || (tipoCubierta !== 'techo' && tipoCubierta !== 'entrepiso')) continue;
       if (Math.hypot(o.datos.x - base.datos.x, o.datos.z - base.datos.z) > 0.42) continue;
-      if (Math.abs((o.datos.y ?? 0) - cotaTecho) > 0.42) continue;
+      if (Math.abs((o.datos.y ?? 0) - (tipoCubierta === 'entrepiso' ? cotaMuros + 2.28 : cotaTecho)) > 0.42) continue;
       if (diferenciaEje(o.datos.rot || 0, base.datos.rot || 0) > 0.36) continue;
-      return { obra: o, id: o.plano.id, nombre: o.plano.nombre, transitable: o.plano.id === 'techo-plano' };
+      return { obra: o, id: o.plano.id, nombre: o.plano.nombre, transitable: o.plano.id === 'techo-plano' || tipoCubierta === 'entrepiso' };
     }
     return null;
   }
@@ -3639,6 +3649,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (P.id === 'alero') rect(P.ancho, P.fondo, base + 2.38, { az: -0.14 });
       else if (P.cubreArea) rect(P.ancho || 3, P.fondo || 3, base + (P.alto || 2.4) - 0.3);
       else if (P.snap?.tipo === 'techo') rect(P.ancho || 3.45, P.fondo || 3.45, base);
+      else if (P.snap?.tipo === 'entrepiso') rect(P.ancho || 3, P.fondo || 3, base);   // 4.0.3 (II-4): el piso de arriba también cubre de la lluvia
       else if (P.habitable && !P.snap) rect((P.ancho || 3) + 0.4, (P.fondo || 3) + 0.4, base + Math.max(1.25, (P.alto || 2.3) - 0.1));
       // 3.8.8: la galería techada de las casas grandes, delante del frente (no llueve abajo)
       if (P.galeria && P.habitable && !P.snap) lista.push({ x: d.x, z: d.z, rot, x0: -P.ancho / 2 - 0.15, x1: P.ancho / 2 + 0.15, z0: -P.fondo / 2 - P.galeria - 0.1, z1: -P.fondo / 2, y: base + 2.55, ax: 0, ab: 0, az: 0 });

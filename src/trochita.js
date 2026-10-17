@@ -1208,7 +1208,8 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     return dn < 40 ? { ...SIN_NIEVE, tope: Math.max(0, (dn - 1.2) * 0.6) } : SIN_NIEVE;
   }
   function varar(s) { est.varado = true; est.s = ((s % total) + total) % total; est.vel = 0; est.velVarado = 0; }
-  function soltar(esperar = 0) { est.varado = false; est.velVarado = 0; est.proxima = siguienteParada(est.s); est.parado = esperar; }
+  // 4.0.3: antes se llamaba `soltar` como la de arriba (la de la caída) y la pisaba: `tren.soltar(jugador)` nunca bajaba al jugador
+  function soltarVarada(esperar = 0) { est.varado = false; est.velVarado = 0; est.proxima = siguienteParada(est.s); est.parado = esperar; }
   // 3.8.4: plantado en la nieve sin quitanieves (esperando a la cuadrilla), arriba (de pasajero o en la cabina) te podés
   // bajar y seguir a pie: quedás al costado de la vía y el tren sigue esperando a la cuadrilla; después sigue solo hasta
   // la próxima parada (antes había que esperar los cuatro minutos adentro)
@@ -1241,7 +1242,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     // 2.9: de maquinista y el puesto de cargas de cada parada
     puedeConducir, subirACabina, bajarDeCabina, silbar, puestoCerca, paradaEnVentana,
     conduciendo: () => est.conduce, paradaCabina: () => est.paradaCabina,
-    largo: total, varar, soltar,
+    largo: total, varar, soltarVarada, soltar,
     personalizar, personal: () => personal, nombreLocomotora: () => personal.nombre, tren,   // 2.8
     // 2.7.4: si el tren (y sus luces) se ve desde `pos`, y cuántos metros le faltan al
     // jugador para que cambie: el mismo corte que en `actualizar` (ver luces.js)

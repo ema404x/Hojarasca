@@ -110,7 +110,7 @@ export function anotarCuadro(estado, dt, objetivoFps = null) {
   if (estado.llenas < op.minimoMuestras) return estado;
 
   const medio = fpsMedio(estado);
-  const peor = fpsPeor(estado);
+  // 4.0.3 (H4): el peor 5 % (copia y ordena la ventana) sólo se calcula si hace falta (antes, en cada cuadro)
   const escala = Number(objetivoFps) > 0 ? Math.min(1, Number(objetivoFps) / 60) : 1;
   // 3.8.6: tirones son muchos cuadros lentos, no uno: con el 5% peor promediado, un solo tirón de 200 ms (o un congelón,
   // que llegaba recortado a 0,2 s) dejaba «en rojo» los 3 s que tardaba en salir de la ventana, justo lo que hace falta
@@ -118,7 +118,7 @@ export function anotarCuadro(estado, dt, objetivoFps = null) {
   if (medio < op.fpsBajar * escala || hayTirones(estado, op.fpsTirones * escala)) {
     estado.rojo += v;
     estado.verde = 0;
-  } else if (medio > op.fpsSubir && peor > op.fpsBajar) {
+  } else if (medio > op.fpsSubir && fpsPeor(estado) > op.fpsBajar) {
     estado.verde += v;
     estado.rojo = 0;
   } else {
@@ -190,19 +190,20 @@ export function decidirCalidad(estado) {
   if (estado.desdeCambio < op.gracia) return null;        // recién tocamos: dejalo asentar
   if (estado.llenas < op.minimoMuestras) return null;
 
-  const fps = { medio: fpsMedio(estado), peor: fpsPeor(estado) };
+  // 4.0.3 (H4): lo de los fps (ordena 180 muestras) se arma sólo si de verdad hay un cambio para devolver, no en cada cuadro
+  const fpsDe = () => ({ medio: fpsMedio(estado), peor: fpsPeor(estado) });
 
   if (estado.rojo >= op.segundosBajar) {
     if (estado.bajadas >= op.bajadasMaximas) return null;  // ya bajamos bastante, no rebotemos más
     const hasta = calidadVecina(estado.calidad, -1, op);   // nunca más de un escalón por vez
     if (!hasta) return null;                               // ya estamos en lo más liviano
-    return { motivo: 'bajar', desde: estado.calidad, hasta, fps, aviso: avisoCalidad(estado.calidad, hasta) };
+    return { motivo: 'bajar', desde: estado.calidad, hasta, fps: fpsDe(), aviso: avisoCalidad(estado.calidad, hasta) };
   }
 
   if (estado.verde >= segundosParaSubir(estado)) {
     const hasta = calidadVecina(estado.calidad, 1, op);
     if (!hasta) return null;                               // ya estamos en lo más lindo
-    return { motivo: 'subir', desde: estado.calidad, hasta, fps, aviso: avisoCalidad(estado.calidad, hasta) };
+    return { motivo: 'subir', desde: estado.calidad, hasta, fps: fpsDe(), aviso: avisoCalidad(estado.calidad, hasta) };
   }
 
   return null;

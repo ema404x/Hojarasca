@@ -37,8 +37,8 @@ const tramo = (desde, largo = 3000) => { const i = main.indexOf(desde); assert.o
   ok(/const m = leerMandoActual\(\);/.test(menu) && menu.includes('if (dialogos.abierto() || !usarMando()) return;'), 'en la pausa, por la lectura única y sin pisar al cuadro de pregunta');
   ok(/leerMandoEnMenu\(\);[^\n]*\n\s*if \(!mandoUsado\) leerMandoQuieto\(\);[^\n]*\n\s*mandoLeido = false; mandoUsado = false;/.test(main), 'el bucle lee el mando en cualquier otra pantalla y se prepara para el cuadro siguiente');
   ok(main.includes("if (!m.conectado || modo !== 'jugando' || !jugador || !usarMando()) return;"), 'lo recién apretado se usa una vez por cuadro (la cruceta no abre y cierra el mapa en el mismo cuadro)');
-  const quieto = tramo('function leerMandoQuieto() {', 1400);
-  ok(quieto.includes("modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? $('victoria')"), 'la tarjeta del valle y la victoria, con el mando');
+  const quieto = tramo('function leerMandoQuieto() {', 2400);   // 4.0.3: más larga (la navegación de las demás pantallas)
+  ok(quieto.includes("modo === 'valle' ? valle?.tarjetas?.velo : modo === 'victoria' ? ($('corrida')?.classList.contains('oculto') ? $('victoria') : $('corrida'))"), 'la tarjeta del valle, la victoria y (4.0.3) la corrida, con el mando');
   ok(quieto.includes('moverFocoEn(caja, mover)') && quieto.includes('b.click()'), 'la cruceta pasa de botón y A lo aprieta');
   ok(quieto.includes("if (m.recien.agacharse && modo === 'valle') golpeDeTecla('Escape');"), 'B cierra las tarjetas de un botón (como Esc)');
 }

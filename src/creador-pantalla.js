@@ -154,7 +154,11 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
       if (g.has(id)) { if (g.size > 1) g.delete(id); } else { if (g.size >= 2) g.delete([...g][0]); g.add(id); }
       genoma = sanearGenoma({ ...genoma, gustos: [...g] });
     } else genoma = sanearGenoma({ ...genoma, [campo]: id });
+    // 4.0.3: al elegir una opción el panel se rehace y el foco saltaba a «Siguiente»: se queda en la opción (el teclado y el mando)
+    const opcionesDeFoco = () => [...panel.querySelectorAll('.cb-muestra, .cb-chip')];
+    const k = opcionesDeFoco().indexOf(document.activeElement);
     armarFigura(); pintar();
+    if (k >= 0) opcionesDeFoco()[k]?.focus();
   }
   function opciones(campo, lista) {
     const elegido = (id) => (campo === 'gustos' ? genoma.gustos.includes(id) : genoma[campo] === id);
@@ -231,8 +235,8 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
     const principal = modo === 'rehacer' ? h('button', { class: 'cb-boton principal', onclick: aceptar }, 'Listo')
       : pantalla === 1 ? h('button', { class: 'cb-boton principal', onclick: () => { pantalla = 2; pintar(); } }, 'Siguiente') : h('button', { class: 'cb-boton principal', onclick: aceptar }, 'Empezar');
     panel.append(cuerpo, h('div', { class: 'cb-pie' }, h('div', { class: 'cb-izq' },
-      modo === 'rehacer' ? h('button', { class: 'cb-boton', onclick: cancelar }, 'Cancelar') : null,
-      pantalla === 2 ? h('button', { class: 'cb-boton', onclick: () => { pantalla = 1; pintar(); } }, 'Volver') : null,
+      modo === 'rehacer' ? h('button', { class: 'cb-boton', 'data-atras': '1', onclick: cancelar }, 'Cancelar') : null,   // 4.0.3: data-atras: la B del mando
+      pantalla === 2 ? h('button', { class: 'cb-boton', 'data-atras': '1', onclick: () => { pantalla = 1; pintar(); } }, 'Volver') : null,
       h('button', { class: 'cb-boton', onclick: azar }, 'Al azar')), principal));
     panel.querySelector('.cb-boton.principal')?.focus({ preventScroll: true });
   }

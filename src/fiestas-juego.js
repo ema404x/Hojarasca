@@ -68,7 +68,8 @@ export function crearFiestasJuego(ctx) {
 
   // ---------------------------------------------------------------- quién va a dónde (para aldea-gente.js)
   let reparto = { clave: '', mapa: new Map() };
-  const presentes = () => [...(ctx.aldeaGente?.()?.personas?.keys?.() || [])];
+  // 4.0.3 (E3): sin el que estudia afuera ni el que espera en el andén (`ctx.ausente`): el reparto de la fiesta le ganaba a la rutina y los llevaba al predio
+  const presentes = () => [...(ctx.aldeaGente?.()?.personas?.keys?.() || [])].filter((k) => !ctx.ausente?.(k));
   function destino(k) {
     if (!activo()) return null;
     const a = ahora();

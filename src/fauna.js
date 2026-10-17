@@ -309,8 +309,14 @@ export function crearFauna(T, veg, col, escena, sonido, registrar, progreso, opc
     c.g.rotation.set(0, Math.atan2(-Math.cos(ang), -Math.sin(ang)), 0);
     c.posada = a;
   }
+  // 4.0.3 (F4): una posada es de un árbol que sigue en pie (talado, el pájaro quedaba picoteando en el aire sobre el tocón y se espantaba hacia otro talado)
+  const posadaViva = (a) => !!a && !a.sacado && !a.caido;
   function actualizarCarpintero(c, dt, jug) {
     const js = jug.estado;
+    if (!c.volando && !posadaViva(c.posada)) {
+      const otra = posadas.find((p) => posadaViva(p) && !carpinteros.some((o) => o !== c && o.posada === p)) || posadas.find(posadaViva);
+      if (otra) { c.g.visible = true; ubicarEnTronco(c, otra); } else { c.g.visible = false; return; }
+    }
     const d = Math.hypot(c.g.position.x - js.pos.x, c.g.position.z - js.pos.z);
     if (c.volando) {
       const v = c.volando;
@@ -330,7 +336,8 @@ export function crearFauna(T, veg, col, escena, sonido, registrar, progreso, opc
     }
     if (c.picoteo > 0) { c.picoteo -= dt; c.g.rotation.x = Math.sin(c.picoteo * 40) * 0.25; } else c.g.rotation.x = 0;
     if (d < (js.agachado ? 3 : 6.5)) {
-      const destino = posadas[Math.floor(r() * posadas.length)];
+      const vivas = posadas.filter(posadaViva);
+      const destino = vivas[Math.floor(r() * vivas.length)];
       if (destino && destino !== c.posada) {
         c.volando = { desde: c.g.position.clone(), hasta: new THREE.Vector3(destino.x, destino.y + 5, destino.z), dur: Math.max(2, Math.hypot(destino.x - c.g.position.x, destino.z - c.g.position.z) / 10), t: 0, arbol: destino };
         c.g.rotation.y = Math.atan2(destino.x - c.g.position.x, destino.z - c.g.position.z);

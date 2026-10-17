@@ -111,7 +111,7 @@ const DR = await import('../src/desafio-duendes-reglas.js');
   assert.equal(llamadas.length, 2, 'sobrevivida: el asedio arranca al alba de siempre');
   // en el juego: lo mira revisarHorario (que no corre con vos caído), y empezar usa el lugar guardado
   assert.match(extraer(des, 'revisarHorario'), /if \(d\.asedioAlAlba\) asedioMundo\.revisarAlba\(esHoraDeAtaque\(p\.horas\)\);/);
-  assert.ok(des.includes('if (!caido && !naveMundo.adentro) revisarHorario();'), 'caído no arranca nada: arranca al despertar');
+  assert.ok(des.includes('if (!caido && !naveMundo.adentro && !mundo.fotoActiva) revisarHorario();'), 'caído no arranca nada: arranca al despertar');
   assert.match(extraer(asedioM, 'empezar'), /\|\| guardado \|\| ubicarNave\(c, llano, azar\)/);
 }
 

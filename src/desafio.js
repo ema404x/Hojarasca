@@ -3174,7 +3174,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     tr.est.s = v.s;
     tr.est.velVarado = dt > 0 ? avance / dt : 0;
     if (!v.llego) return;
-    tr.soltar(35);
+    tr.soltarVarada(35);   // 4.0.3: se llamaba `soltar`, nombre que pisaba la de la caída
     const premio = premioVarada(d.oleadas);
     for (const [k, n] of Object.entries(premio)) ctx.sumarMaterial(k, n);
     sonido.silbato?.(p);
@@ -3437,7 +3437,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       climaActual = efectoClima(climaVisto);
     }
     recarga = Math.max(0, recarga - dt);
-    if (!caido && !naveMundo.adentro) revisarHorario();   // 3.5.1: con el día de reloj real la hora corre adentro: la noche no arranca con vos arriba
+    // 4.0.3 (F2): con el modo foto la hora es la del deslizador: no dispara oleadas ni amaneceres (`fotoActiva` lo pone main.js)
+    if (!caido && !naveMundo.adentro && !mundo.fotoActiva) revisarHorario();   // 3.5.1: con el día de reloj real la hora corre adentro: la noche no arranca con vos arriba
     actualizarNave(dt);
     actualizarDefensas(dt);
     defensas.actualizar(dt, js, mundo.noche);

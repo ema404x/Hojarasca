@@ -12,6 +12,7 @@ import { armarPrograma, RADIO_ALDEA, PROGRAMAS_RADIO, DIARIO_ALDEA, tocaDiario, 
 import { extrasDelDia, extrasDelAnio, avisoMananaExtra, clubAhora, estrellasAhora, libroDeLaSemana, asistentes, CLUB_LECTURA, NOCHE_ESTRELLAS, hayClub, hayEstrellas, nombreDiaSemana } from './calendario.js';
 import { fechaDe as fechaDelCalendario } from './fiestas.js';
 import { eventosDelDia, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
+import { climaDe } from './vecindad.js';
 import { obraEnCurso, etapaDe, EDIFICIOS_ALDEA, esVecinoAldea, ORDEN_PERSONAS_ALDEA, POBLADORES_ALDEA } from './aldea.js';
 import { noticiasDeAmor } from './amor.js';
 import { VOCES_SOCIAL } from './vecindad-social-voces.js';
@@ -182,7 +183,7 @@ export function crearNoticiasJuego(ctx) {
       ], alTerminar: () => { if (!n.club.includes(d)) n.club.push(d); ctx.guardar(); ctx.redibujar?.(); } };
     }
     // la noche de estrellas (una vez por día)
-    if (k === NOCHE_ESTRELLAS.quien && estrellasAhora(d, h, aldea(), fechaDeFiesta) && !n.estrellas.includes(d)) {
+    if (k === NOCHE_ESTRELLAS.quien && estrellasAhora(d, h, aldea(), fechaDeFiesta) && !cieloTapado() && !n.estrellas.includes(d)) {   // 4.0.3: con lluvia o nieve no se baja el telescopio
       const ya = progreso().entradas || {};
       const pend = CIELO.find((id) => !Object.hasOwn(ya, id));
       const r = generador(hashTexto(`estrellas-${d}`));
@@ -197,6 +198,8 @@ export function crearNoticiasJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- dónde van (para aldea-gente.js)
+  // 4.0.3: la noche de estrellas es a cielo abierto: con lluvia o nieve (la palabra de vecindad.js) no sale (antes los 8 se quedaban parados bajo la nevada)
+  const cieloTapado = () => { const p = ctx.clima ? climaDe(ctx.clima()) : null; return p === 'lluvia' || p === 'nieve'; };
   const cache = { t: -1, mapa: new Map() };
   function destino(k) {
     if (!activo()) return null;
@@ -211,7 +214,7 @@ export function crearNoticiasJuego(ctx) {
     if (clubAhora(d, h, a, fechaDeFiesta)) {
       m.set(CLUB_LECTURA.quien, { lugar: 'club', edificio: 'biblioteca', punto: 'cuentos' });
       asistentes('club', d, a).forEach((k, i) => m.set(k, { lugar: 'club', edificio: 'biblioteca', punto: `lectura-${i + 1}` }));
-    } else if (estrellasAhora(d, h, a, fechaDeFiesta)) {
+    } else if (estrellasAhora(d, h, a, fechaDeFiesta) && !cieloTapado()) {   // 4.0.3: con lluvia o nieve no se junta nadie en la plaza
       m.set(NOCHE_ESTRELLAS.quien, { lugar: 'estrellas', edificio: 'plaza', punto: 'estar-1' });
       asistentes('estrellas', d, a).forEach((k, i) => m.set(k, { lugar: 'estrellas', edificio: 'plaza', punto: `estar-${i + 2}` }));
     }

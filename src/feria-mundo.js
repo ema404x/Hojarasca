@@ -8,7 +8,7 @@ import { Constructor, matriz } from './geometria.js';
 // va de x -9 a 9 y el galpón queda entre z 3.5 y 8.5; el puesto se para pasando la punta.
 const LOCAL = { x: 12.5, z: 4.5 };
 
-export function crearPuestoFeria(T, escena, estacion) {
+export function crearPuestoFeria(T, escena, estacion, col = null) {
   const rot = estacion.ang || 0;
   const x = estacion.x + LOCAL.x * Math.cos(rot) + LOCAL.z * Math.sin(rot);
   const z = estacion.z - LOCAL.x * Math.sin(rot) + LOCAL.z * Math.cos(rot);
@@ -34,5 +34,17 @@ export function crearPuestoFeria(T, escena, estacion) {
   malla.visible = false;
   malla.name = 'feria';
   escena.add(malla);
-  return { malla, x, z, y };
+  // 4.0.3 (I-2): la mesa (2,2 × 0,9 m) y los cuatro palos del toldo frenan, pero sólo mientras el puesto está armado (los días de feria): `ponerCuerpo(true)`
+  let conCuerpo = false;
+  const mundo = (lx, lz) => ({ x: x + lx * Math.cos(rot) + lz * Math.sin(rot), z: z - lx * Math.sin(rot) + lz * Math.cos(rot) });
+  function ponerCuerpo(si) {
+    if (!col?.agregar || !!si === conCuerpo) return;
+    conCuerpo = !!si;
+    col.eliminarPorDuenio?.('feria');
+    if (!si) return;
+    const a = mundo(-0.65, 0), b = mundo(0.65, 0);
+    col.agregar({ seg: true, ax: a.x, az: a.z, bx: b.x, bz: b.z, r: 0.45, alturaMin: y - 0.3, alturaMax: y + 1.0, duenio: 'feria' });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const p = mundo(sx * 1.15, sz * 0.6); col.agregar({ x: p.x, z: p.z, r: 0.06, alturaMin: y - 0.3, alturaMax: y + 2.1, duenio: 'feria' }); }
+  }
+  return { malla, x, z, y, ponerCuerpo };
 }

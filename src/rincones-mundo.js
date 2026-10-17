@@ -801,6 +801,50 @@ export function crearRinconesMundo(ctx) {
   }
 
   // ------------------------------------------------ montar todo (en la carga)
+  // ------------------------------------------------ los cuerpos (4.0.3, I-2)
+  // Nada de esto tenía colisión: el fuerte del bosque, el retablo, el cerco de la huerta de todos, los arcos del potrero, el atril y tu talla se cruzaban caminando,
+  // con la cámara adentro de la malla. Ahora los palos y los lados llenos frenan (las aberturas se dejan: la entrada del fuerte, la tranquera de la huerta, la boca
+  // de los arcos). Lo chico (los canteros bajos, los duendes tallados, el fogón, la carpa, los títeres) sigue sin cuerpo: no estorba.
+  const cuerpos = { fijos: false, fuerteEtapa: -1, talla: false };
+  const DUENIO_CUERPOS = 'rincones:cuerpos';
+  const alto = (x, z, h) => ({ alturaMin: alturaEn(x, z) - 0.6, alturaMax: alturaEn(x, z) + h });
+  function circulo(x, z, r, h, duenio = DUENIO_CUERPOS) { ctx.col?.agregar?.({ x, z, r, ...alto(x, z, h), duenio }); }
+  function lado(a, b, r, h, duenio = DUENIO_CUERPOS) { ctx.col?.agregar?.({ seg: true, ax: a.x, az: a.z, bx: b.x, bz: b.z, r, alturaMin: Math.min(alturaEn(a.x, a.z), alturaEn(b.x, b.z)) - 0.6, alturaMax: Math.max(alturaEn(a.x, a.z), alturaEn(b.x, b.z)) + h, duenio }); }
+  function enLugarLocal(L, lx, lz) { const c = Math.cos(L.rotMundo), s = Math.sin(L.rotMundo); return { x: L.x + lx * c + lz * s, z: L.z - lx * s + lz * c }; }
+  function montarCuerpos() {
+    if (!ctx.col?.agregar || cuerpos.fijos) return;
+    cuerpos.fijos = true;
+    // el retablo (1,7 × 0,5 m, alto) y el atril
+    { const L = lugarEnMundo('retablo'); lado(enLugarLocal(L, -0.6, 0), enLugarLocal(L, 0.6, 0), 0.25, 2.5); }
+    { const L = lugarEnMundo('atril'); const p = { x: L.x, z: L.z }; circulo(p.x, p.z, 0.25, 1.1); }
+    // el cerco de la huerta de todos: cuatro lados (9 × 6) con la tranquera del lado de la calle (el de −u, 1,6 m en el medio)
+    { const H = LUGARES_RINCONES.huerta, a = H.ancho / 2, l = H.largo / 2, P = (u, v) => puntoDeLugar('huerta', u, v);
+      lado(P(-a, -l), P(a, -l), 0.06, 1.1); lado(P(a, -l), P(a, l), 0.06, 1.1); lado(P(a, l), P(-a, l), 0.06, 1.1);
+      lado(P(-a, l), P(-a, 0.8), 0.06, 1.1); lado(P(-a, -0.8), P(-a, -l), 0.06, 1.1);
+    }
+    // los palos de los arcos del potrero (la boca queda abierta; el travesaño está a 1,7 m)
+    { const A = CANCHA.arco, L2 = CANCHA.largo / 2;
+      for (const lado2 of [-1, 1]) for (const su of [-1, 1]) { const w = potrero.aMundo ? potrero.aMundo((su * A.ancho) / 2, lado2 * L2) : null; if (w) circulo(w.x, w.z, 0.1, A.alto); }
+    }
+  }
+  // lo que depende del estado: los palos del fuerte (de la 1.ª etapa en adelante) y tu talla
+  function cuerposDelEstado(etapaFuerte, talla) {
+    if (!ctx.col?.agregar) return;
+    if (etapaFuerte !== cuerpos.fuerteEtapa) {
+      cuerpos.fuerteEtapa = etapaFuerte;
+      ctx.col.eliminarPorDuenio?.('rincones:fuerte');
+      if (etapaFuerte >= 1 && objetos.fuerte) {
+        const L = objetos.fuerte.L, R = 1.7, n = 13;
+        for (let i = 0; i <= n; i++) { const a = -PI / 2 - 0.4 + (i / n) * (PI * 2 - 1.4), p = enLugarLocal(L, Math.cos(a) * R, Math.sin(a) * R); circulo(p.x, p.z, 0.1, 1.3, 'rincones:fuerte'); }
+      }
+    }
+    if (!!talla !== cuerpos.talla) {
+      cuerpos.talla = !!talla;
+      ctx.col.eliminarPorDuenio?.('rincones:talla');
+      if (talla && objetos.talla) circulo(objetos.talla.L.x, objetos.talla.L.z, 0.45, 2.0, 'rincones:talla');
+    }
+  }
+
   function montar() {
     const t0 = performance.now();
     montarDuendes();
@@ -808,6 +852,7 @@ export function crearRinconesMundo(ctx) {
     montarHuertas();
     montarPlaza();
     montarFuerte();
+    montarCuerpos();
     montarCamino();
     montarSulky();
     montarTaller();
@@ -843,6 +888,7 @@ export function crearRinconesMundo(ctx) {
     if (objetos.fuerte) {
       const et = Math.max(0, Math.min(3, e.etapaFuerte | 0));
       if (et !== est.estado.etapaFuerte) { objetos.fuerte.m.geometry = objetos.fuerte.etapas[et]; est.estado.etapaFuerte = et; }
+      cuerposDelEstado(et, e.talla);   // 4.0.3 (I-2)
       objetos.fuerte.g.visible = !lejos(objetos.fuerte.L, VER_ALDEA);
       const k = objetos.campamento, cerca = !lejos(k.L, VER_ALDEA);
       k.fogon.visible = cerca && (e.fuerteHecho || e.campamento);
