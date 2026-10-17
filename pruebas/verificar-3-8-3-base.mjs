@@ -72,7 +72,7 @@ ok(main.includes("if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.s
 // 8. Con el mando solo se puede salir de la pausa, el cuaderno y el mapa (antes el mando se leía sólo jugando).
 {
   ok(main.includes("if (modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') leerMandoEnMenu();"), 'el bucle lee el mando en los menús');
-  ok(main.includes("if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');"), 'Start, B (y la cruceta en el mapa) hacen de Esc');
+  ok(main.includes("if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) { golpeDeTecla('Escape'); return; }"), 'Start, B (y la cruceta en el mapa) hacen de Esc');   // 4.0.3: con `return` (si no, seguía a la navegación)
 }
 
 // 9. «Partida recuperada» (se cargó la copia de seguridad) se avisa al entrar la primera vez, no cada vez que se vuelve
