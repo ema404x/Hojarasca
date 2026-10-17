@@ -132,6 +132,7 @@ import { nombreSync, tocaCopiar, compararCopia, textoOferta as textoOfertaSync, 
 import { crearEstadoAutocalidad, anotarCuadro as anotarCuadroCalidad, decidirCalidad, aplicarCambio, calidadVecina, nombreCalidad, reiniciarMedicion, sincronizarCalidad } from './autocalidad.js';
 import { crearMando, girarMirada } from './mando.js';
 import { elegirVecino, pasoDeBarra, direccionDeCruceta } from './mando-menu.js';
+import { puntoLibreJuntoA, huellaQueContiene } from './despertar.js';
 import { RECORRIDO, crearCorrida, anotarCuadro, informeBanco, nombreArchivoBanco, duracionBanco } from './banco.js';
 import { resumenPartida, htmlParte, textoParte, CSS_PARTE } from './parte.js';
 import { estadoFotoInicial, aplicarControl, textoControl, htmlPanelFoto, nombreArchivoFoto, AYUDA_FOTO, CSS_FOTO } from './foto-modo.js';
@@ -183,7 +184,7 @@ import { crearCantinaMundo } from './cantina-mundo.js';
 import { crearPenaJuego } from './pena-juego.js';
 import { crearPenaMundo } from './pena-mundo.js';
 import { sanearAjusteBorrachera } from './pena.js';
-import { puedePagarEscritura, pagarEscritura, puedePagarEtapa, pagarEtapa, registrarCasa } from './propiedad.js';
+import { puedePagarEscritura, pagarEscritura, puedePagarEtapa, pagarEtapa, registrarCasa, devolverEtapasPagadas } from './propiedad.js';
 import { GERENTE } from './prestamos.js';
 import { TINTES, ORDEN_TINTES, siguienteTinte, costoTinte } from './tintes.js';
 import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo, nocheDeLomo, alturaLomo, dondeAsoma } from './cuentos.js';
@@ -3357,10 +3358,12 @@ document.addEventListener('keydown', (e) => {
         const r = obras.cancelarMarcada(js.pos, 10, obras.plano?.id);
         if (!r.ok) nota('Nada que cancelar', r.motivo);
         else {
+          // 4.0.3 (II-1): si ya habías pagado el terreno y la mano de obra de una casa, vuelven a la billetera (antes de guardar)
+          const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);
           progreso.obras = obras.obras.map((o) => o.datos);
           guardar();
           sonido.juntar();
-          nota('Marca retirada', `${r.plano.nombre}: no se gastaron materiales`);
+          nota('Marca retirada', `${r.plano.nombre}: no se gastaron materiales${devuelto ? `. Te devolvieron ${formatoPesos(devuelto)} del terreno y la mano de obra` : ''}`);
           dibujarPanelObra();
         }
       }
@@ -4278,6 +4281,8 @@ function puntoBase() {
   const catre = obras?.obras.find((o) => o.plano.funciones?.includes?.('dormir') && o.datos.etapas > 0);
   if (catre) {
     const r = catre.datos.rot || 0;
+    // 4.0.3 (II-3): el lado con lugar (antes siempre 1,1 m «adelante», aunque ahí hubiera una pared o el propio mueble)
+    try { return puntoLibreJuntoA(col, catre.datos.x, catre.datos.z, r, catre.datos.y, huellaQueContiene(obras.obras, catre.datos.x, catre.datos.z)); } catch (e) { fallaSistema('despertar', e); }
     return { x: catre.datos.x + Math.sin(r) * 1.1, z: catre.datos.z + Math.cos(r) * 1.1, yaw: r, y: catre.datos.y };
   }
   const bm = desafio?.baseMapa;   // 3.0: la base del mapa de la semilla

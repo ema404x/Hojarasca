@@ -1582,7 +1582,11 @@ const PIEZAS = [
     },
     fisica(h) {
       for (const [x, z] of [[-1.05, -1.05], [1.05, -1.05], [-1.05, 1.05], [1.05, 1.05]]) h.circulo(x, z, 0.14, -0.05, 2.3);
-      h.plataforma(0, 0, 2.4, 2.4, 2.42, 0.16, 0.62);
+      // 4.0.3 (II-2): el piso de arriba hacía de techo para cualquier cuerpo a menos de 0,35 m de su borde, y la escalera (de x 1,16 a 1,88) sólo se subía por su
+      // mitad de afuera (x ≥ 1,56). El piso va en dos: el grueso y una franja de 35 cm del lado de la escalera, `sinTecho` (se camina igual encima, pero no le
+      // hace de techo al que sube): ahora se sube por todo el ancho de los peldaños. La malla no cambió.
+      h.plataforma(-0.175, 0, 2.05, 2.4, 2.42, 0.16, 0.62);
+      h.plataforma(1.025, 0, 0.35, 2.4, 2.42, 0.16, 0.62, { sinTecho: true });
       // 2.4: hasta acá la escalera no se podía subir: el peldaño de arriba (y el borde del
       // piso) le hacían de techo al cuerpo. Los peldaños son abiertos (sinTecho), más
       // anchos hacia afuera (se sube por x ≈ 1,6, donde el cuerpo no toca el piso) y
