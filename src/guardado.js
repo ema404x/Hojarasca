@@ -225,7 +225,8 @@ const opcion = (v, permitidas, defecto) => permitidas.includes(v) ? v : defecto;
 
 function parsear(texto) {
   if (!texto) return null;
-  try { const v = JSON.parse(texto); return objeto(v) ? v : null; } catch { return null; }
+  // 4.0.2: una partida retocada a mano con `"toString": 1` (o `valueOf`) hacía tirar a cada `Number(...)` de los módulos y se perdía la carga entera: esas dos claves no existen en ningún guardado de verdad, se sacan al leer
+  try { const v = JSON.parse(texto, (_k, x) => { if (x && typeof x === 'object' && !Array.isArray(x)) { delete x.toString; delete x.valueOf; } return x; }); return objeto(v) ? v : null; } catch { return null; }
 }
 function leer(clave) {
   try { return parsear(localStorage.getItem(clave)); } catch { return null; }

@@ -1995,8 +1995,11 @@ $('lienzo-mapa').addEventListener('click', tocarMapa);
 $('lienzo-mapa').addEventListener('contextmenu', sacarDelMapa);
 
 // `sinMouse` (3.8.6): sin atrapar el mouse, porque sigue abierto un panel del HUD que se usa con él (el almacén, la cocina…)
+// 4.0.2: avisos de «primera vez» que esperan a que de verdad se entre al juego (antes colgaban del primer clic en «Entrar», que con el creador o el prólogo no entra: la nota salía detrás, con el HUD oculto)
+const avisosAlEntrar = [];
 function volverAlJuego(sinMouse = false) {
   reiniciarMedicion(autoCalidad);
+  if (avisosAlEntrar.length) for (const f of avisosAlEntrar.splice(0)) setTimeout(f, 1200);
   for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');   // (4.0.1: y el informe del banco, que con el segundo Esc quedaba tapando el juego)
   modo = 'jugando';
   entroAlJuego = true;   // 3.8.3
@@ -2475,7 +2478,7 @@ $('btn-partidas-inicio').addEventListener('click', () => abrirPartidas('inicio')
 // La base se recuerda entre sesiones: así una copia que ya viste (o que importaste) no se
 // vuelve a ofrecer aunque los relojes de las dos computadoras no coincidan.
 const syncApi = window.hojarasca?.sync || null;
-let carpetaSync = null, ultimaCopiaSync = 0, copiadoEnSync = 0, relojSync = 0, conflictoSync = false;
+let carpetaSync = null, ultimaCopiaSync = 0, copiadoEnSync = 0, relojSync = 0, conflictoSync = false, avisoSyncFallo = false;
 const claveBaseSync = () => `hojarasca-sync-base-${modoJuego}-p${ranuraActual()}`;
 let baseSync = (() => { try { return Number(localStorage.getItem(claveBaseSync())) || 0; } catch { return 0; } })();
 function fijarBaseSync(g) {
@@ -2499,7 +2502,14 @@ function copiarASync(forzar = false, ya = false) {
   ultimaCopiaSync = Date.now();
   copiadoEnSync = guardadoEnActual();
   if (ya) { const r = syncApi.escribirYa(nombre, texto, base); if (r === true) fijarBaseSync(copiadoEnSync); else if (r === 'conflicto') conflictoSync = true; return r === true; }
-  syncApi.escribir(nombre, texto, base).then((r) => { if (r === true) fijarBaseSync(copiadoEnSync); else if (r === 'conflicto') avisarConflictoSync(); }).catch(() => {});
+  syncApi.escribir(nombre, texto, base).then((r) => {
+    if (r === true) fijarBaseSync(copiadoEnSync);
+    else if (r === 'conflicto') avisarConflictoSync();
+    else if (r === false) {   // 4.0.2: no se pudo (típico: la partida con muchas fotos pasa de 64 MB): se avisa una vez y se espera 10 min antes de volver a armar el paquete entero (antes se rearmaba en cada guardado, sin decir nada)
+      ultimaCopiaSync = Date.now() + 10 * 60 * 1000;
+      if (!avisoSyncFallo) { avisoSyncFallo = true; nota('No se pudo copiar la partida a la carpeta sincronizada', 'Puede ser que pese demasiado (muchas fotos). Seguís jugando igual: la partida queda guardada en esta computadora', true); }
+    }
+  }).catch(() => {});
   return true;
 }
 function dibujarSync() {
@@ -10247,7 +10257,7 @@ function avisarRecuperado() {
     : 'El juego se cerró de golpe y se volvió a abrir solo, con tu partida guardada.';
   const p = $('aviso-recuperado');
   if (p) { p.textContent = texto; p.classList.remove('oculto'); }
-  $('btn-entrar')?.addEventListener('click', () => setTimeout(() => nota('El juego se recuperó', 'Seguís desde el último guardado', true), 1200), { once: true });
+  avisosAlEntrar.push(() => nota('El juego se recuperó', 'Seguís desde el último guardado', true));   // (4.0.2: ver avisosAlEntrar)
 }
 // 3.8.4 (decisión 35): la primera vez que se abre el juego, la calidad la elige la placa (calidadParaEquipo) y se avisa
 // cuál: en la portada (al lado de lo que se puede cambiar) y en una nota al entrar
@@ -10256,7 +10266,7 @@ function avisarCalidadInicial() {
   const texto = `Elegí la calidad ${nombreCalidad(calidadElegidaAlAbrir)} según tu placa de video. La podés cambiar acá o en Ajustes.`;
   const p = $('aviso-calidad-inicial');
   if (p) { p.textContent = T_(texto); p.classList.remove('oculto'); }
-  $('btn-entrar')?.addEventListener('click', () => setTimeout(() => nota(`Calidad ${nombreCalidad(calidadElegidaAlAbrir)}, según tu placa de video`, 'La podés cambiar en Ajustes (Esc)', true), 1800), { once: true });
+  avisosAlEntrar.push(() => nota(`Calidad ${nombreCalidad(calidadElegidaAlAbrir)}, según tu placa de video`, 'La podés cambiar en Ajustes (Esc)', true));   // (4.0.2: ver avisosAlEntrar)
 }
 // main.cjs pide guardar ya (antes de reiniciar con otras opciones de gráficos)
 window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) { cancelarGuardadoSuave(); guardar(); } });

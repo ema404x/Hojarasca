@@ -9,7 +9,7 @@
 // Sólo en el Relax (con economía). (3.9.1: la borrachera, los chistes de la moza y la peña de los sábados: ver pena.js y pena-juego.js.)
 import { BIENES } from './comercio.js';
 import { hayEconomia, pesosDe, pagar, formatoPesos, PESOS_POR_YERBA } from './economia.js';
-import { cantinaAbierta, HORARIO_CANTINA, diaSemanaDe } from './aldea.js';
+import { cantinaAbierta, HORARIO_CANTINA, diaSemanaDe, nocheDeCantina } from './aldea.js';
 import { tengoDe } from './pedidos.js';
 import { ebrioNuevo, sanearEbrio, sanearMemoriaChistes } from './pena.js';
 
@@ -296,7 +296,8 @@ export function saldarCuenta(p, medio, lugar = 'cantina') {
 // Qué tan llena está la cantina (0 a 1): de noche, y más los viernes y sábados. Hace tardar más a la moza y se oyen más charlas.
 export function afluencia(hora, dia) {
   if (!cantinaAbierta(hora)) return 0;
-  const h = ((Number(hora) % 24) + 24) % 24, ds = diaSemanaDe(dia);
+  // 4.0.2: la madrugada (0 a 6 h) es la noche de ayer: la peña del sábado de madrugada ya no cuenta como «domingo flojo»
+  const h = ((Number(hora) % 24) + 24) % 24, ds = diaSemanaDe(nocheDeCantina(dia, hora));
   const noche = h >= 18 ? Math.min(1, (h - 18) / 4) : Math.max(0, 1 - h / 2);   // sube hasta las 22 y baja pasada la medianoche
   const semana = ds === 4 || ds === 5 ? 1 : ds === 6 ? 0.35 : 0.6;
   return Math.max(0.1, Math.min(1, noche * semana));

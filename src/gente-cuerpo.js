@@ -1102,7 +1102,8 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       tobillo.add(bola(zap, [0.044, 0.03, 0.1], [0, -0.04, 0.062], [0.56, 0, 0], [10, 7]));
       tobillo.add(bola(zap, [0.036, 0.034, 0.05], [0, -0.022, -0.02], [0.2, 0, 0], [8, 6]));
       tobillo.add(bola(matiz(zap, 1.25), [0.02, 0.012, 0.034], [0, -0.048, 0.07], [0.56, 0, 0], [6, 4]));   // el brillo del empeine
-      tobillo.add(tubo(matiz(zap, 0.8), 0.015, 0.0065, 0.078, [0, -0.088, -0.05], null, 8, true));
+      // 4.0.2: el taco sube hasta meterse 2 cm dentro del contrafuerte (antes arrancaba 7 mm más abajo y, de costado, se veía un hueco: el taco flotaba sin tocar el zapato)
+      tobillo.add(tubo(matiz(zap, 0.8), 0.016, 0.0065, 0.098, [0, -0.078, -0.047], null, 8, true));
       tobillo.add(bola(matiz(zap, 0.6), [0.018, 0.006, 0.018], [0, -0.127, -0.05], null, [6, 3]));       // la tapita del taco
     } else if (R.zapatos) {
       // 3.9.2: el mocasín (la anfitriona de la casa de té): sin caña (la media a la vista), el empeine cerrado con la tira cruzada, la suela
@@ -1163,7 +1164,8 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       : talle ? [[0.152, 0.0], [0.141, 0.09], [0.121, 0.17], [0.114, 0.2], [0.124, 0.25], [0.143, 0.305], [0.152, 0.355], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]]
       : [[0.15, 0.03], [0.139, 0.11], [0.126, 0.19], [0.13, 0.25], [0.146, 0.31], [0.151, 0.36], [0.155, 0.42], [0.16, 0.462], [0.15, 0.5], [0.116, 0.528], [0.075, 0.545], [0.05, 0.553]])
     : [[0.15, 0.03], [0.144, 0.11], [0.141, 0.19], [0.15, 0.26], [0.163, 0.33], [0.172, 0.39], [0.178, 0.44], [0.181, 0.468], [0.17, 0.503], [0.13, 0.532], [0.082, 0.55], [0.058, 0.558]];
-  torso.add(bola(pantalon, [0.145 * (mujer ? 1.02 : 1) * (curvas ? cadera : 1), 0.115, 0.102 * (curvas ? 1.08 : 1)], [0, 0.02, 0]));
+  // 4.0.2: en las mujeres sin curvas la cadera es 8 mm menos honda: con 0,102 asomaba por la blusa y el chaleco en la cintura y dibujaba un festoneado (la intersección de las dos telas)
+  torso.add(bola(pantalon, [0.145 * (mujer ? 1.02 : 1) * (curvas ? cadera : 1), 0.115, (mujer && !curvas ? 0.094 : 0.102) * (curvas ? 1.08 : 1)], [0, 0.02, 0]));
   const faldon = R.campera === 'larga' ? [[0.17, -0.22], [0.16, -0.1]] : [[0.152, -0.07]];
   let capaHombro;
   const arrugasTorso = (c, p) => {
@@ -1241,7 +1243,8 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
         // los dos bordes de la V (la primera y la última columna) para el ribete
         for (const lado of [0, lados]) {
           const pts = ys.map((y, j) => { const k = lado * np + j; return [P.getX(k) * 1.0, P.getY(k), P.getZ(k) + 0.002]; });
-          torso.add(conTela(huso(matiz(abrigo, 0.78), pts, pts.map(() => 0.0042), 8, 5), TELA.lienzo));
+          // 4.0.2: con curvas el ribete se afina hacia abajo y muere donde entra el lóbulo del vestido (antes terminaba en un tope grueso que sobresalía: la «muesquita» del borde de la V)
+          torso.add(conTela(huso(matiz(abrigo, 0.78), pts, ys.map((y) => (curvas ? 0.0042 * Math.max(0.12, sv(0.4, 0.47, y)) : 0.0042)), 8, 5), TELA.lienzo));
         }
       }
       pintarPieza(parche, (c, p) => { c.multiplyScalar(1 - 0.1 * Math.exp(-(((p.y - 0.4) / 0.05) ** 2))); });   // la sombrita entre los pechos
@@ -2387,7 +2390,7 @@ function poseCantina(g, st, dt, andando) {
     if (P.cabeza) { g.cabeza.rotation.x += P.cabeza.x * w; g.cabeza.rotation.y += P.cabeza.y * lado * w; g.cabeza.rotation.z += P.cabeza.z * lado * w; }
     if (P.patas && !andando) g.patas.forEach((pt, i) => {
       const d = P.patas[(i === 0) !== (lado < 0) ? 'izq' : 'der'], r = pt.userData.rodilla;
-      pt.rotation.x += d.x * w; pt.rotation.z = d.z * lado * w; if (r) r.rotation.x += d.rodilla * w;   // (la z se pone, no se suma: gente.js no la repone y se acumulaba cuadro a cuadro)
+      pt.rotation.x += d.x * (g.pasoCorto || 1) * w; pt.rotation.z = d.z * lado * w; if (r) r.rotation.x += d.rodilla * w;   // (la z se pone, no se suma: gente.js no la repone y se acumulaba cuadro a cuadro)
     });
     else for (const pt of g.patas) pt.rotation.z = 0;
   } else if (pc.sucio) {
@@ -2517,6 +2520,7 @@ function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
   if (brazos[1].userData.codo) { const a = brazos[1].userData.ante; brazos[1].userData.codo.add(a); a.position.set(0, -0.01, 0); mano = a; }
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible, alPosar: alPosar(est), posesM: A.poses || ['cintura', 'cruzados', 'atras'], cara: cabeza.userData.rostro || null, conPoncho: f.conPoncho, edad: A.edad };
   r.soltar = () => soltarPersona(r);
+  r.pasoCorto = A.R && A.R.curvas ? 0.72 : 1;   // 4.0.2: la falda ceñida con tajo (Dalia) abre menos el paso al bailar: con el paso entero parecía un pantalón ancho
   r.alzado = A.R && A.R.tacos ? 0.069 : 0;   // 3.9.1: cuánto sube todo el cuerpo con los tacos (ver gente.js): el taco y la punta quedan en el piso
   r.brazosAfuera = A.cuerpo && A.cuerpo.cadera > 1.1 ? 0.1 : 0;   // 3.9.1: con la cadera ancha, los brazos cuelgan un poco más abiertos
   r.__est = est;

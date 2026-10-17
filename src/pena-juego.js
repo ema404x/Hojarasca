@@ -84,7 +84,9 @@ export function crearPenaJuego(ctx) {
       const f = x ? Math.max(0, Math.min(1, (hh - x.llega) / Math.max(0.5, x.sale - x.llega))) : 0.3;
       const quedan = Math.max(1, Math.round(item.porciones * (1 - 0.8 * f)));
       const ya = conVaso.get(s.punto);
-      if (!ya || ya.clave !== s.clave) { v.ponerEnMesa({ id: `p-${s.punto}` }, sil, item, quedan); conVaso.set(s.punto, { clave: s.clave, quedan }); info.vasos++; }
+      // 4.0.2: si la cantina vació las mesas (te alejaste con algo servido), el vaso se vuelve a poner aunque este mapa crea que ya está
+      const falta = typeof v.enMesa?.has === 'function' && !v.enMesa.has(`p-${s.punto}`);
+      if (!ya || ya.clave !== s.clave || falta) { v.ponerEnMesa({ id: `p-${s.punto}` }, sil, item, quedan); conVaso.set(s.punto, { clave: s.clave, quedan }); info.vasos++; }
       else if (ya.quedan !== quedan) { v.nivel?.({ id: `p-${s.punto}` }, quedan, item); ya.quedan = quedan; }
     }
     for (const [punto] of [...conVaso]) if (!hoy.has(punto)) { v.quitarDeMesa?.({ id: `p-${punto}` }); conVaso.delete(punto); }

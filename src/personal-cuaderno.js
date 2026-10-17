@@ -187,7 +187,7 @@ export const SECCION_CUADERNO = registrarSeccion({
             a.y = Math.max(2, Math.min(98, ((e2.clientY - caja.top) / caja.height) * 100));
             n.style.left = `${a.x}%`; n.style.top = `${a.y}%`;
           };
-          const soltar = () => { n.removeEventListener('pointermove', mover); n.removeEventListener('pointerup', soltar); n.removeEventListener('pointercancel', soltar); d.adornos[i] = a; guardarAdornos(); };
+          const soltar = () => { n.removeEventListener('pointermove', mover); n.removeEventListener('pointerup', soltar); n.removeEventListener('pointercancel', soltar); d.adornos[i] = a; guardarAdornos(); dibujarVista(); };   // 4.0.2: se vuelve a dibujar con lo guardado: antes «Girar» (y el siguiente arrastre) usaban el objeto viejo y el primer clic no hacía nada
           n.addEventListener('pointermove', mover);
           n.addEventListener('pointerup', soltar);
           n.addEventListener('pointercancel', soltar);

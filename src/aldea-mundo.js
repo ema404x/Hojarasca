@@ -2134,8 +2134,11 @@ export function crearAldeaMundo(ctx) {
         const f = b.fondo / 2, p = aMundoEn(b.sitio, 0, f + 0.25);
         halos.push({ pos: [p.x, b.sitio.y + 1.45, p.z], radio: 2.3, fluctua: 0.1, soloNoche: true });
         for (const [lx, lz] of [[-0.9, 1.5], [1.5, 1.5], [-3.0, 0.2]]) { const q = aMundoEn(b.sitio, lx, lz); halos.push({ pos: [q.x, b.sitio.y + 2.2, q.z], radio: 0.9, fluctua: 0.2, soloNoche: true }); }
-        const y0 = b.sitio.y + 0.08, esq = [[-1.7, f + 0.2], [1.7, f + 0.2], [2.6, f + 3.6], [-2.6, f + 3.6]].map(([lx, lz]) => { const w = aMundoEn(b.sitio, lx, lz); return [w.x, y0 - (lz > f + 1 ? 0.12 : 0), w.z]; });
-        charcos.push({ pts: [esq[3], esq[2], esq[1], esq[0]], col: calido.map((k) => k * 0.9) });
+        // 4.0.2: el charco en dos pedazos: el de la galería sobre sus tablas (el piso de la galería está a 30 cm: el de antes, a 8 cm, quedaba tapado por las tablas los primeros 1,5 m, los más
+        // brillantes) y el del suelo de adelante, desde el borde de la galería
+        const y0 = b.sitio.y + 0.08, yG = b.sitio.y + 0.33, w4 = (lista, y) => lista.map(([lx, lz, yy]) => { const w = aMundoEn(b.sitio, lx, lz); return [w.x, yy ?? y, w.z]; });
+        charcos.push({ pts: w4([[-1.7, f + 1.6], [1.7, f + 1.6], [1.7, f + 0.2], [-1.7, f + 0.2]], yG), col: calido.map((k) => k * 0.9) });
+        charcos.push({ pts: w4([[-2.6, f + 3.6, y0 - 0.12], [2.6, f + 3.6, y0 - 0.12], [2.1, f + 1.7, y0 - 0.05], [-2.1, f + 1.7, y0 - 0.05]], y0), col: calido.map((k) => k * 0.9) });
       }
     }
     for (const q of luces) {
