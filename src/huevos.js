@@ -1,6 +1,7 @@
 // 4.2 (huevos de pascua): reglas puras de los easter eggs del Relax (no entran al Desafío). Ni three ni DOM ni reloj: todo
 // depende del día, de la hora y de una semilla, así que se prueba sin abrir el juego (pruebas/verificar-huevos.mjs).
-//   · estrella fugaz con deseo;  · los duendes del Coihue;  · el huemul blanco;  · el hueso del perro.
+//   · estrella fugaz con deseo;  · los duendes del Coihue;  · el huemul blanco;  · el hueso del perro;  · la radio de la madrugada;
+//   · el código de la portada (hojas que caen).
 // Lo visual es de huevos-mundo.js y el enganche con el juego, de huevos-juego.js.
 // Se guarda en `progreso.huevos` (saneado acá; una partida vieja sin el campo carga con todo en cero).
 
@@ -230,10 +231,66 @@ export function desenterrarHueso(h) {
   return { ...hall };
 }
 
+// ---------------------------------------------------------------- 5) la radio de la madrugada
+// Entre las 2 y las 4 de la mañana (hora del juego), algunas noches, al prender la radio hay una emisora que de día no está: un tango viejo
+// (tocado por una orquesta que no existe, una frase propia de cuatro compases) o alguien que transmite en código Morse. Una vez por noche.
+// Cómo suena: radio-madrugada.js (síntesis propia, nada grabado).
+export const RADIO_MAD = {
+  desde: 2, hasta: 4,   // horas del juego
+  prob: 0.4,            // las noches que hay señal
+  tango: 0.55,          // y de esas, la fracción que es tango (el resto, Morse)
+};
+export const MENSAJES_MORSE = ['HOLA VALLE', 'BUENAS NOCHES', 'NO ESTAS SOLO', 'HOJARASCA', 'ABRIGATE', 'LLEGA EL INVIERNO'];
+export const radioNueva = () => ({ ultima: 0, oidos: 0 });
+function sanearRadioMad(x, dia) {
+  const v = objeto(x) ? x : {}, b = radioNueva();
+  b.ultima = Math.min(entero(v.ultima), Math.max(1, dia));
+  b.oidos = entero(v.oidos, 0, 0, 999);
+  return b;
+}
+// ¿Esta noche (la que empezó el día `noche`) hay señal? Fija para cada noche
+export const hayEmisoraMadrugada = (noche) => azarDe(7401, noche) < RADIO_MAD.prob;
+export const ventanaMadrugada = (horas) => Number(horas) >= RADIO_MAD.desde && Number(horas) < RADIO_MAD.hasta;
+// Lo que se oye: { tipo: 'tango' | 'morse', mensaje? } o null (sólo estática). Una vez por noche; `noche` = dia − 1 pasada la medianoche
+export function escucharMadrugada(h, noche, horas) {
+  const r = h?.radio;
+  if (!r || !ventanaMadrugada(horas) || r.ultima === noche || !hayEmisoraMadrugada(noche)) return null;
+  r.ultima = entero(noche, 1, 1); r.oidos = Math.min(999, r.oidos + 1);
+  if (azarDe(7402, noche) < RADIO_MAD.tango) return { tipo: 'tango' };
+  return { tipo: 'morse', mensaje: MENSAJES_MORSE[Math.floor(azarDe(7403, noche) * MENSAJES_MORSE.length)] };
+}
+
+// ---------------------------------------------------------------- 6) el código secreto de la portada
+// ↑ ↑ ↓ ↓ ← → ← → B A en la portada: caen hojas de colores unos segundos.
+export const CODIGO_PORTADA = Object.freeze(['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA']);
+// Se llama con cada tecla: `memoria` es el arreglo (de los últimos códigos) que va y viene; devuelve true cuando cierra la secuencia
+export function teclaDelCodigo(memoria, codigo) {
+  if (!Array.isArray(memoria)) return false;
+  memoria.push(String(codigo));
+  while (memoria.length > CODIGO_PORTADA.length) memoria.shift();
+  return memoria.length === CODIGO_PORTADA.length && memoria.every((c, i) => c === CODIGO_PORTADA[i]);
+}
+export const COLORES_HOJAS = ['#c8452b', '#e08a2c', '#f0c24a', '#8aa03a', '#a8553a', '#d9a066', '#6f8f3a', '#b9492f'];
+// Las hojas: posición (% del ancho), tamaño, color, cuánto tardan en caer, cuándo salen y para qué lado se mecen. Con la semilla, siempre iguales.
+export function planHojas(n = 44, semilla = 1, calmo = false) {
+  const cuantas = Math.max(1, Math.min(80, Math.floor(calmo ? Math.min(n, 14) : n)));
+  const hojas = [];
+  for (let i = 0; i < cuantas; i++) {
+    hojas.push({
+      x: Math.round(azarDe(7501, semilla, i) * 1000) / 10, tam: 14 + Math.round(azarDe(7502, semilla, i) * 14),
+      color: COLORES_HOJAS[Math.floor(azarDe(7503, semilla, i) * COLORES_HOJAS.length)],
+      dur: 4.5 + Math.round(azarDe(7504, semilla, i) * 30) / 10, espera: Math.round(azarDe(7505, semilla, i) * 25) / 10,
+      mece: (azarDe(7506, semilla, i) < 0.5 ? -1 : 1) * (30 + Math.round(azarDe(7507, semilla, i) * 70)), giro: 180 + Math.round(azarDe(7508, semilla, i) * 540),
+    });
+  }
+  return hojas;
+}
+export const SEGUNDOS_HOJAS = 10;   // lo que dura todo (la última sale a los 2,5 s y cae en 8 como mucho)
+
 // ---------------------------------------------------------------- lo que se guarda
-export function huevosNuevos() { return { v: 1, estrella: estrellaNueva(), duendes: duendesNuevos(), huemul: huemulNuevo(), hueso: huesoNuevo() }; }
+export function huevosNuevos() { return { v: 1, estrella: estrellaNueva(), duendes: duendesNuevos(), huemul: huemulNuevo(), hueso: huesoNuevo(), radio: radioNueva() }; }
 export function sanearHuevos(h, dia = 1) {
   const d = entero(dia, 1, 1);
   const x = objeto(h) ? h : {};
-  return { v: 1, estrella: sanearEstrella(x.estrella, d), duendes: sanearDuendes(x.duendes, d), huemul: sanearHuemul(x.huemul, d), hueso: sanearHueso(x.hueso, d) };
+  return { v: 1, estrella: sanearEstrella(x.estrella, d), duendes: sanearDuendes(x.duendes, d), huemul: sanearHuemul(x.huemul, d), hueso: sanearHueso(x.hueso, d), radio: sanearRadioMad(x.radio, d) };
 }

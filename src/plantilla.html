@@ -177,6 +177,19 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .huevo-deseo-titulo { margin-bottom: 8px; color: #f3e6b4; letter-spacing: .02em; }
 .huevo-deseo-fila { padding: 3px 0; cursor: pointer; white-space: nowrap; }
 .huevo-deseo-fila kbd { margin-right: 6px; }
+/* 4.2 (huevos de pascua): las hojas que caen con el código de la portada (una sola capa; se saca sola) */
+.huevo-hojas { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 60; }
+.huevo-hojas i { position: absolute; top: -40px; display: block; border-radius: 0 100% 0 100%; opacity: 0; box-shadow: inset -2px -2px 0 rgba(0,0,0,.12); will-change: transform, opacity;
+  animation: huevo-hoja var(--dur, 6s) ease-in var(--espera, 0s) forwards; }
+@keyframes huevo-hoja {
+  0% { transform: translate3d(0, -4vh, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: .95; }
+  50% { transform: translate3d(calc(var(--mece) * .7px), 52vh, 0) rotate(calc(var(--giro) * .45deg)); }
+  90% { opacity: .9; }
+  100% { transform: translate3d(calc(var(--mece) * -.4px), 108vh, 0) rotate(calc(var(--giro) * 1deg)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .huevo-hojas i { animation-name: huevo-hoja-quieta; } }
+@keyframes huevo-hoja-quieta { 0% { opacity: 0; } 30% { opacity: .85; transform: translate3d(0, 18vh, 0); } 100% { opacity: 0; transform: translate3d(0, 24vh, 0); } }
 .reloj-hud { position: absolute; top: 26px; left: 28px; padding: 6px 12px 5px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.7); white-space: nowrap; pointer-events: none; }
 /* 3.8.8: el banco del pueblo (mostrador del gerente); se maneja con el mouse, como el almacén */
 .banco-velo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,14,12,.45); z-index: 30; }

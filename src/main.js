@@ -177,6 +177,7 @@ import { crearRinconesJuego } from './rincones-juego.js';
 // 4.2 (huevos de pascua): la estrella fugaz con deseo, los duendes del Coihue, el huemul blanco, el hueso del perro, la portada y la radio
 import { crearHuevosJuego } from './huevos-juego.js';
 import { crearHuevosMundo } from './huevos-mundo.js';
+import { crearHuevosPortada } from './huevos-portada.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego, lugarDeCasaTe } from './cantina-juego.js';
 import { crearAmbienteCantina } from './cantina-ambiente.js';
@@ -5040,7 +5041,7 @@ let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
-let huevosJuego = null, huevosMundo = null;   // 4.2 (huevos de pascua): ver huevos-juego.js y huevos-mundo.js
+let huevosJuego = null, huevosMundo = null, huevosPortada = null;   // 4.2 (huevos de pascua): ver huevos-juego.js y huevos-mundo.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 let penaJuego = null, penaMundo = null;   // 3.9.1: la peña (ver pena-juego.js y pena-mundo.js)
 let cantinaAmbiente = null;   // 3.9.2: los cuadros, el reloj, lo usado en las mesas y la música de fondo de la cantina (cantina-ambiente.js)
@@ -7320,6 +7321,8 @@ function usarRadio(o) {
     guardar();
     return;
   }
+  // 4.2 (huevos de pascua): a la madrugada, algunas noches, una emisora que de día no está (un tango viejo o Morse)
+  if (huevosJuego?.radioMadrugada()) { guardar(); return; }
   const estacion = o.plano.id === 'estacion-meteo';
   const oido = escucharRadio(r, { dia: progreso.dia, horas: progreso.horas, pronostico: pronosticoActual(), noches: nochesActuales(), desafio: !!desafio });
   let enElAire = oido.de ? `${oido.de}: «${oido.texto}»` : oido.texto;
@@ -10327,6 +10330,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   }
   sincronizarAjustes();
   modo = 'inicio';
+  // 4.2 (huevos de pascua): el código secreto de la portada (hojas de colores que caen)
+  huevosPortada = crearHuevosPortada({ enPortada: () => modo === 'inicio' && !$('inicio').classList.contains('oculto'), sonido, calmo: () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches });
   document.addEventListener('pointerdown', () => sonido.iniciar(), { once: true });
   window.addEventListener('beforeunload', guardar);
   window.addEventListener('beforeunload', () => copiarASync(true, true));
@@ -10482,7 +10487,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
   // 4.2 (huevos de pascua): para las pruebas y las capturas
-  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego, mundo: () => huevosMundo, niebla: () => niebla?.malla?.material?.uniforms?.uOpacidad?.value };
+  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego, mundo: () => huevosMundo, niebla: () => niebla?.malla?.material?.uniforms?.uOpacidad?.value, portada: () => huevosPortada };
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta(), amistad: (k, n) => sumarAmistadDe(progreso, k, n, progreso.dia) };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });

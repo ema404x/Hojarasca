@@ -7,7 +7,8 @@
 //   pelarPasto(x, z, radio) → cómo devolver el pasto, cobrar(pesos, motivo) → { ok }, perroPos() → la posición del perro, nombrePerro() }
 import { sanearHuevos, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cumplirDeseo, DESEOS, ESTRELLA, DUENDES, elegirCoihue, puedeConvidar, convidar, bultoListo, levantarBulto,
   HUEMUL, huemulAfuera, salioHuemul, seFueHuemul, avistoHuemul, seAsusta,
-  HUESO, enterroHueso, lugarDelHueso, hayHueso, desenterrarHueso } from './huevos.js';
+  HUESO, enterroHueso, lugarDelHueso, hayHueso, desenterrarHueso, diaDeNoche, escucharMadrugada, MENSAJES_MORSE } from './huevos.js';
+import { sintetizarTango, sintetizarMorse, TASA_RADIO } from './radio-madrugada.js';
 import { sumarAmistadDe, nombreCorto } from './vecindad.js';
 
 export function crearHuevosJuego(ctx) {
@@ -260,6 +261,30 @@ export function crearHuevosJuego(ctx) {
     ctx.guardar?.();
   }
 
+  // ------------------------------------------------------------ 5) la radio de la madrugada
+  // Al prender la radio entre las 2 y las 4: algunas noches, una emisora que de día no está. Devuelve true si sonó algo especial
+  // (main.js entonces no cuenta lo de siempre: a esa hora sólo habría estática)
+  function radioMadrugada() {
+    if (!activo()) return false;
+    const noche = diaDeNoche(dia(), horas());
+    const r = escucharMadrugada(h(), noche, horas());
+    if (!r) return false;
+    const son = ctx.sonido;
+    const poner = (nombre, crear) => { if (son?.ctx && son.preparar) son.preparar(nombre, crear, (buf) => son.sonarBuffer?.(buf, son.bus?.efectos, 0.55), TASA_RADIO); };
+    if (r.tipo === 'tango') {
+      poner('radio-mad-tango', () => sintetizarTango(TASA_RADIO, 7));
+      ctx.nota('Una emisora que de día no está', 'Entre la estática, una orquesta lejana toca un tango viejo. Se pierde antes del final', true);
+      ctx.diario?.('evento', 'A la madrugada la radio pescó un tango viejo, muy lejos, que se perdió antes del final.');
+    } else {
+      const i = MENSAJES_MORSE.indexOf(r.mensaje);
+      poner(`radio-mad-morse-${i}`, () => sintetizarMorse(r.mensaje, TASA_RADIO, 11 + i));
+      ctx.nota('Alguien transmite en Morse', `Anotás lo que podés: «${r.mensaje}»`, true);
+      ctx.diario?.('evento', `A la madrugada la radio pescó a alguien que transmitía en Morse. Decía: ${r.mensaje.toLowerCase()}.`);
+    }
+    ctx.guardar?.();
+    return true;
+  }
+
   // ------------------------------------------------------------ cada 2 segundos
   let acum = 0;
   function actualizar(dt) {
@@ -276,5 +301,5 @@ export function crearHuevosJuego(ctx) {
     revisarHueso(ctx.jugador?.()?.estado?.pos);
   }
 
-  return { fugazVista, actualizar, accion, lugarHuemul: () => lugarHuemul, lugarHueso: () => lugarHueso, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
+  return { fugazVista, actualizar, accion, radioMadrugada, lugarHuemul: () => lugarHuemul, lugarHueso: () => lugarHueso, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
 }

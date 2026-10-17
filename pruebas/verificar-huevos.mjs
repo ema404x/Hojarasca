@@ -179,6 +179,58 @@ function VECINOS() { return H.VECINOS_DESEO; }
   ok(H.HALLAZGOS.reduce((a, c) => a + c.peso, 0) === 1 && H.HALLAZGOS.every((c) => c.texto.length > 15 && c.pesos >= 0 && c.pesos <= 150), 'los pesos suman 1 y los premios son de verdad chicos (hasta $150)');
 }
 
+// ---------------------------------------------------------------- 1f. la radio de la madrugada y el código de la portada
+{
+  const U = H.RADIO_MAD, R = await imp('radio-madrugada.js'), S = await imp('sonido-sintesis.js');
+  ok(!H.ventanaMadrugada(1.9) && H.ventanaMadrugada(2) && H.ventanaMadrugada(3.9) && !H.ventanaMadrugada(4) && !H.ventanaMadrugada(12) && !H.ventanaMadrugada(23), 'sólo entre las 2 y las 4 de la mañana');
+  const noches = []; for (let d = 10; d < 4010; d++) if (H.hayEmisoraMadrugada(d)) noches.push(d);
+  ok(noches.length / 4000 > 0.33 && noches.length / 4000 < 0.47, `hay señal alrededor de dos noches de cada cinco (${noches.length}/4000)`);
+  const h = H.huevosNuevos(), n0 = noches[0];
+  ok(H.escucharMadrugada(h, n0, 12) === null && H.escucharMadrugada(h, n0, 1) === null, 'de día o antes de las 2, sólo estática');
+  const sin = [...Array(60).keys()].map((i) => 10 + i).find((d) => !H.hayEmisoraMadrugada(d));
+  ok(H.escucharMadrugada(h, sin, 3) === null && h.radio.ultima === 0, 'una noche sin señal no cuenta ni se anota');
+  const r = H.escucharMadrugada(h, n0, 3);
+  ok(r && (r.tipo === 'tango' || (r.tipo === 'morse' && H.MENSAJES_MORSE.includes(r.mensaje))) && h.radio.ultima === n0 && h.radio.oidos === 1, 'una noche con señal, a las 3: tango o Morse, y queda anotada');
+  ok(H.escucharMadrugada(h, n0, 3.5) === null, 'una vez por noche');
+  const tipos = { tango: 0, morse: 0 }; for (const n of noches) { const x = H.huevosNuevos(); tipos[H.escucharMadrugada(x, n, 3).tipo]++; }
+  ok(tipos.tango / noches.length > 0.45 && tipos.tango / noches.length < 0.65 && tipos.morse > 100, `las dos cosas salen, un poco más de tango (${JSON.stringify(tipos)})`);
+  { const a = H.escucharMadrugada(H.huevosNuevos(), n0, 3), b = H.escucharMadrugada(H.huevosNuevos(), n0, 3); ok(JSON.stringify(a) === JSON.stringify(b), 'es el mismo sonido para la misma noche'); }
+  // los sonidos: síntesis propia (sin audios), finitos, con nivel y duraciones razonables
+  const stats = (d) => { let p = 0, q = 0, nan = 0; for (const v of d) { if (!Number.isFinite(v)) nan++; p = Math.max(p, Math.abs(v)); q += v * v; } return { pico: p, rms: Math.sqrt(q / d.length), nan }; };
+  const tango = S.completar(R.sintetizarTango()), st = stats(tango);
+  ok(st.nan === 0 && st.pico > 0.2 && st.pico <= 1 && st.rms > 0.03 && Math.abs(tango.length / R.TASA_RADIO - R.duracionTango()) < 0.01, `el tango suena (pico ${st.pico.toFixed(2)}, rms ${st.rms.toFixed(3)}, ${(tango.length / R.TASA_RADIO).toFixed(1)} s)`);
+  ok(R.duracionTango() > 9 && R.duracionTango() < 18, 'y es corto (menos de 18 s)');
+  { const a = S.completar(R.sintetizarTango(R.TASA_RADIO, 7)), b = S.completar(R.sintetizarTango(R.TASA_RADIO, 7)); let igual = true; for (let i = 0; i < a.length; i += 97) if (a[i] !== b[i]) igual = false; ok(igual, 'con la misma semilla suena igual'); }
+  { const fin = tango.slice(tango.length - 4000); ok(stats(fin).rms < st.rms * 0.5, 'se pierde al final, como una emisora lejana'); }
+  ok(R.TANGO.melodia.reduce((a, x) => a + x[1], 0) === 16 && R.TANGO.melodia.every(([m]) => [69, 71, 72, 74, 76, 77, 68].includes(m)), 'la frase: cuatro compases en la menor (escala armónica de la)');
+  ok(R.TANGO.bajo.every(([m, t]) => m >= 40 && m <= 55 && t >= 0 && t < 16) && R.TANGO.acordes.every(([c, t]) => c.length >= 3 && t >= 0 && t < 16), 'el bajo y los acordes entran en los cuatro compases');
+  ok(R.aMorse('SOS') === '... --- ...' && R.aMorse('hola  valle') === '.... --- .-.. .- / ...- .- .-.. .-.. .' && R.aMorse('') === '', 'el código Morse (ITU)');
+  ok(Object.keys(R.MORSE).length === 36 && H.MENSAJES_MORSE.every((m) => [...m.replace(/ /g, '')].every((c) => Object.hasOwn(R.MORSE, c))), 'los mensajes se pueden transmitir (letras sin ñ ni tildes)');
+  { const t = R.tramosMorse('SOS'); ok(t.filter((x) => x.suena).length === 9 && t.filter((x) => x.suena && x.u === 3).length === 3 && t.filter((x) => !x.suena && x.u === 3).length === 2, 'los tramos de SOS: tres puntos, tres rayas, tres puntos, con sus pausas'); }
+  const mo = S.completar(R.sintetizarMorse('SOS')), sm = stats(mo);
+  ok(sm.nan === 0 && sm.pico > 0.2 && sm.pico <= 1 && Math.abs(mo.length / R.TASA_RADIO - R.duracionMorse('SOS')) < 0.01, `el Morse suena (pico ${sm.pico.toFixed(2)}, ${(mo.length / R.TASA_RADIO).toFixed(1)} s)`);
+  for (const m of H.MENSAJES_MORSE) ok(R.duracionMorse(m) < 20, `«${m}» dura menos de 20 s`);
+  const src = leer('src/radio-madrugada.js');
+  ok(!/from 'three'/.test(src) && !/AudioContext|createBuffer|Math\.random|\.wav|\.mp3|\.ogg|fetch\(/.test(src.replace(/\/\/.*$/gm, '')), 'radio-madrugada.js: puro, sin WebAudio, sin azar suelto y sin audios');
+  ok(!/^export function\*/m.test(src) && /^export \{ sintetizarTango, sintetizarMorse \};/m.test(src), 'radio-madrugada.js: sin export function* (armar.mjs no lo entiende) y los generadores se exportan aparte');
+  const K = H.CODIGO_PORTADA;
+  ok(K.length === 10 && K.join(',') === 'ArrowUp,ArrowUp,ArrowDown,ArrowDown,ArrowLeft,ArrowRight,ArrowLeft,ArrowRight,KeyB,KeyA', 'el código: ↑ ↑ ↓ ↓ ← → ← → B A');
+  { const mem = []; let cierra = 0; for (const c of K) if (H.teclaDelCodigo(mem, c)) cierra++; ok(cierra === 1, 'la secuencia entera lo cierra, una sola vez, y en la última tecla'); }
+  { const mem = []; let cierra = 0; for (const c of [...K.slice(0, 9), 'KeyX', ...K]) if (H.teclaDelCodigo(mem, c)) cierra++; ok(cierra === 1, 'una tecla de más antes no lo estropea (cuenta la última tanda)'); }
+  { const mem = []; let cierra = 0; for (const c of [...K.slice(0, 9), 'KeyX']) if (H.teclaDelCodigo(mem, c)) cierra++; ok(cierra === 0, 'con una tecla equivocada al final no cierra'); }
+  { const mem = []; let c1 = false; for (const c of [...K, ...K]) c1 = H.teclaDelCodigo(mem, c); ok(c1 === true && mem.length === 10, 'se puede repetir, y la memoria no crece'); }
+  ok(H.teclaDelCodigo(null, 'KeyA') === false, 'sin memoria no se rompe');
+  const hojas = H.planHojas(44, 1);
+  ok(hojas.length === 44 && JSON.stringify(hojas) === JSON.stringify(H.planHojas(44, 1)) && JSON.stringify(hojas) !== JSON.stringify(H.planHojas(44, 2)), 'las hojas: 44, siempre las mismas con la misma semilla');
+  ok(hojas.every((x) => x.x >= 0 && x.x <= 100 && x.tam >= 14 && x.tam <= 28 && x.dur >= 4.5 && x.dur <= 7.5 && x.espera >= 0 && x.espera <= 2.5 && H.COLORES_HOJAS.includes(x.color)), 'dentro de la pantalla, de tamaño y tiempos razonables');
+  ok(Math.max(...hojas.map((x) => x.espera + x.dur)) <= H.SEGUNDOS_HOJAS, 'la última hoja llega al suelo antes de que se saque la capa');
+  ok(new Set(hojas.map((x) => x.color)).size >= 5, 'de varios colores');
+  ok(H.planHojas(44, 1, true).length <= 14 && H.planHojas(1000, 1).length <= 80 && H.planHojas(0, 1).length >= 1, 'con «reducir movimiento», pocas; con tope');
+  const pt = leer('src/huevos-portada.js');
+  ok(/\.huevo-hojas/.test(leer('src/plantilla.html')) && /prefers-reduced-motion/.test(leer('src/plantilla.html')) && !/requestAnimationFrame|setInterval/.test(pt), 'las hojas caen con CSS (sin cuadros ni intervalos) y respetan «reducir movimiento»');
+  ok(!/\.iniciar\(/.test(pt), 'en la portada no se arranca el audio: suena sólo si ya está andando');
+}
+
 // ---------------------------------------------------------------- 2. lo que se guarda
 eq(H.sanearHuevos(undefined, 10), H.huevosNuevos(), 'una partida vieja (sin el campo) arranca de cero');
 eq(H.sanearHuevos(null, 10), H.huevosNuevos(), 'null: de cero');
@@ -190,17 +242,19 @@ eq(H.sanearHuevos({ huemul: { ultimo: 0, ido: true } }, 20).huemul, H.huemulNuev
 eq(H.sanearHuevos({ huemul: 7 }, 20).huemul, H.huemulNuevo(), 'huemul roto: de cero');
 eq(H.sanearHuevos({ hueso: { dia: 9999, ultimo: -1, cavados: 5000 } }, 20).hueso, { dia: 20, ultimo: 20, cavados: 999 }, 'el hueso: las fechas no pasan de hoy y el último no es anterior al enterrado');
 eq(H.sanearHuevos({ hueso: 'x' }, 20).hueso, H.huesoNuevo(), 'hueso roto: de cero');
+eq(H.sanearHuevos({ radio: { ultima: 9999, oidos: -4 } }, 20).radio, { ultima: 20, oidos: 0 }, 'la radio: la noche no pasa de hoy');
+eq(H.sanearHuevos({ radio: [] }, 20).radio, H.radioNueva(), 'radio rota: de cero');
 for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido: 30, cumple: 32 }, { id: 'lena', pedido: 5, cumple: 5 }, { id: 'lena', pedido: 5, cumple: 90 }, 'x', 7, [], { id: 'lena' }]) {
   ok(H.sanearHuevos({ estrella: { deseo: malo } }, 20).estrella.deseo === null, `un deseo imposible se descarta: ${JSON.stringify(malo)}`);
 }
 {
   let rng = 11; const azar = () => ((rng = (rng * 1103515245 + 12345) >>> 0) / 4294967296);
-  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos', 'huemul', 'ido', 'avistajes', 'hueso', 'cavados']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
+  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos', 'huemul', 'ido', 'avistajes', 'hueso', 'cavados', 'radio', 'oidos']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
   let bien = 0;
   for (let i = 0; i < 500; i++) {
     const x = H.sanearHuevos(valor(), 1 + Math.floor(azar() * 60));
     const y = H.sanearHuevos(JSON.parse(JSON.stringify(x)), 100);
-    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima && x.huemul.avistajes >= 0 && (!x.huemul.ido || x.huemul.ultimo > 0) && x.hueso.ultimo >= x.hueso.dia && x.hueso.cavados >= 0) bien++;
+    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima && x.huemul.avistajes >= 0 && (!x.huemul.ido || x.huemul.ultimo > 0) && x.hueso.ultimo >= x.hueso.dia && x.hueso.cavados >= 0 && x.radio.oidos >= 0 && Number.isFinite(x.radio.ultima)) bien++;
   }
   eq(bien, 500, 'el caos: nunca se rompe y lo saneado queda igual');
 }
@@ -224,6 +278,8 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   const j = leer('src/huevos-juego.js');
   ok(!/requestAnimationFrame/.test(j) && !/from 'three'/.test(j) && /acum < 2/.test(j), 'huevos-juego.js: por evento, sin cuadros ni three');
   ok(m.includes('cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null') && m.includes("aviso = { tecla: 'E', texto: cacheHuevos.texto }") && m.includes('cacheHuevos) { const a = cacheHuevos; cacheHuevos = null; a.hacer(); break; }'), 'main.js: la E y el aviso de los huevos, en el mismo lugar (después de los rincones) y con la misma función');
+  ok(m.includes('if (huevosJuego?.radioMadrugada()) { guardar(); return; }') && m.indexOf('huevosJuego?.radioMadrugada()') < m.indexOf('const oido = escucharRadio(r,') && m.indexOf('cumplirPedido(r, progreso.materiales') < m.indexOf('huevosJuego?.radioMadrugada()'), 'main.js: la radio de madrugada va después de mandar un pedido y antes de lo de siempre');
+  ok(m.includes("huevosPortada = crearHuevosPortada({ enPortada: () => modo === 'inicio'") && m.includes("prefers-reduced-motion: reduce"), "main.js: el código de la portada sólo en la portada y con reducir movimiento");
   const vi = leer('src/vida.js');
   ok(vi.includes('export function mallaHuemulBlanco()') && vi.includes('function mallaHuemul(macho, blanco = false)'), 'vida.js: el huemul blanco es el mismo modelo con otro pelaje');
   ok(!/huemulEstado|mallaHuemulBlanco|huevos/.test(leer('src/fauna.js')) && !/mallaHuemulBlanco/.test(vi.slice(vi.indexOf('export function crearVida'))), 'el huemul blanco no está en la fauna del juego: no se caza, no se cuenta, no lo rastrea el perro');
@@ -233,4 +289,4 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   ok(!/from 'three'/.test(p) && !/document\./.test(p) && !/Date\.now|Math\.random/.test(p.replace(/\/\/.*$/gm, '')), 'huevos.js es puro: ni three ni DOM ni reloj ni Math.random');
 }
 
-console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, huemul blanco, hueso del perro, guardado saneado y enganche`);
+console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, huemul blanco, hueso del perro, radio de la madrugada, código de la portada, guardado saneado y enganche`);

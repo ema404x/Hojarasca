@@ -3,7 +3,9 @@
 //  · los duendes del Coihue (el convite, el bulto y la rueda de hongos);
 //  · el huemul blanco: sale al amanecer con niebla, se ve de lejos, se anota en el cuaderno y se va caminando si te acercás;
 //  · el hueso del perro: el montículo aparece un día sorteado, se excava con E y sale algo viejo y chico;
-//  · (se suman las demás secciones a medida que entran) y la consola sin errores.
+//  · el código de la portada (↑ ↑ ↓ ↓ ← → ← → B A): caen hojas de colores y se sacan solas;
+//  · la radio de la madrugada (entre las 2 y las 4, en las noches con señal: un tango viejo o Morse, una vez por noche);
+//  · y la consola sin errores.
 // Uso: npx electron --no-sandbox -r <ruta>/herramientas/al-monitor.cjs -r <ruta>/herramientas/perfil-propio.cjs pruebas/humo-huevos.cjs [salida=pruebas/salidas/huevos]
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
@@ -24,7 +26,7 @@ app.whenReady().then(async () => {
   const w = new BrowserWindow({ show: true, width: 1280, height: 720, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   const errores = [];
   w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || /Uncaught/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) errores.push(m.slice(0, 300)); });
-  const js = (c) => w.webContents.executeJavaScript(c);
+  const js = (c) => w.webContents.executeJavaScript(c).catch((e) => { console.log("ERROR en el script de la página: " + String(c).slice(0, 200)); throw e; });
   const H = 'window.__hojarasca';
   const url = path.join(raiz, 'index.html');
   const foto = async (nombre) => { const img = await w.webContents.capturePage(); fs.writeFileSync(path.join(salida, nombre + '.png'), img.toPNG()); };
@@ -34,6 +36,26 @@ app.whenReady().then(async () => {
   await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'media', clima:'despejado', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, limiteFps:'libre', estacion:'verano'})); 1`);
   await w.loadFile(url, { search: '?debug=1' });
   for (let i = 0; i < 300; i++) { await esperar(1000); if (await js(`!!(${H} && ${H}.__aldea && ${H}.est && ${H}.__huevos)`).catch(() => false)) break; }
+  // ------------------------------------------------------------ 6a) el código de la portada (antes de entrar)
+  {
+    const tecla = (c) => js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: ${JSON.stringify(c)}, bubbles: true })); 1`);
+    const en = await js("(() => { const i = document.getElementById('inicio'); return !!i && !i.classList.contains('oculto'); })()");
+    ok('estamos en la portada', en === true);
+    for (const c of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB']) await tecla(c);
+    ok('con el código incompleto no pasa nada', (await js("document.querySelectorAll('.huevo-hojas').length")) === 0);
+    await tecla('KeyA');
+    await esperar(3200);
+    const q = await js("(() => { const c = document.querySelector('.huevo-hojas'); return { capas: document.querySelectorAll('.huevo-hojas').length, hojas: c ? c.children.length : 0, colores: c ? new Set([...c.children].map((i) => i.style.background)).size : 0, evento: c ? getComputedStyle(c).pointerEvents : null }; })()");
+    ok('con ↑ ↑ ↓ ↓ ← → ← → B A caen hojas de colores (una capa, sin tapar los botones)', q.capas === 1 && q.hojas >= 30 && q.colores >= 4 && q.evento === 'none', q);
+    await foto('portada-hojas');
+    for (const c of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA']) await tecla(c);
+    ok('mientras caen, el código no suma otra capa', (await js("document.querySelectorAll('.huevo-hojas').length")) === 1);
+    await esperar(8200);
+    ok('a los diez segundos la capa se saca sola', (await js("document.querySelectorAll('.huevo-hojas').length")) === 0);
+    // dentro de un campo de texto no cuenta
+    const t = await js("(() => { const i = document.createElement('input'); document.body.appendChild(i); i.focus(); const m = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA']; for (const c of m) i.dispatchEvent(new KeyboardEvent('keydown', { code: c, bubbles: true })); const n = document.querySelectorAll('.huevo-hojas').length; i.remove(); return n; })()");
+    ok('escribiendo en un campo de texto no cuenta', t === 0);
+  }
   await js(`document.getElementById('btn-entrar').click(); 1`);
   await esperar(3000);
   await js(`${H}.ajustes.limiteFps = 'libre'; ${H}.volverAlJuego?.(true); 1`);
@@ -117,7 +139,9 @@ app.whenReady().then(async () => {
     const ir = async (x, z, yaw) => { await js(`(() => { const J = ${H}.jugador; J.ubicar(${x}, ${z}, ${yaw}); J.estado.vel.set(0, 0, 0); for (let i = 0; i < 10; i++) J.actualizar(0.05); })()`); };
     // un amanecer tranquilo y húmedo; la niebla de valle la pone el juego
     await js(`(() => { const p = ${H}.progreso; p.dia = ${dia}; p.horas = 7.3; ${H}.clima.estado.viento = 0.04; ${H}.clima.estado.nublado = 0.5; ${H}.clima.estado.lluvia = 0; })()`);
-    for (let i = 0; i < 12; i++) { await esperar(500); await js(`(() => { const p = ${H}.progreso; p.horas = 7.3; ${H}.clima.estado.viento = 0.04; })()`); if ((await js(`${H}.__huevos.niebla()`)) >= 0.25) break; }
+    // la niebla de valle es más espesa cerca del mallín y con el aire quieto y nublado: se va para allá y se espera a que se arme
+    { const mm = await js(`(() => { const m = ${H}.T.lugares.mallin; return { x: m.x, z: m.z }; })()`); await ir(mm.x + 25, mm.z + 25, 0); }
+    for (let i = 0; i < 24; i++) { await esperar(500); await js(`(() => { const p = ${H}.progreso; p.horas = 7.3; ${H}.clima.estado.viento = 0.02; ${H}.clima.estado.nublado = 0.9; })()`); if ((await js(`${H}.__huevos.niebla()`)) >= 0.28) break; }
     const l = await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); const m = ${H}.__huevos.mundo(); return { lugar: hj.lugarHuemul(), activo: m.huemulEstado.activo, niebla: ${H}.__huevos.juego() && (document.querySelector('canvas') ? 1 : 0), op: ${H}.__nieblaOp ? ${H}.__nieblaOp() : null }; })()`);
     ok('hay un lugar fijo para el huemul (en el mallín)', !!l.lugar, l);
     // si la niebla del juego no alcanzó, se mira cuánta hay
@@ -178,6 +202,25 @@ app.whenReady().then(async () => {
     // otro día sorteado dentro de la separación: no hay otro hueso
     const dentro = await js(`(() => { const p = ${H}.progreso; p.horas = 10.5; const d0 = p.dia; for (let d = d0 + 1; d < d0 + 6; d++) { p.dia = d; ${H}.__huevos.juego().actualizar(2.1); if (p.huevos.hueso.dia) return d; } return 0; })()`);
     ok('en los días siguientes (dentro de la separación) no hay otro hueso', dentro === 0, dentro);
+  }
+
+  // ------------------------------------------------------------ 6b) la radio de la madrugada
+  {
+    const HU = await import(require('url').pathToFileURL(path.join(raiz, 'src', 'huevos.js')).href);
+    let noche = 800; while (!HU.hayEmisoraMadrugada(noche)) noche++;
+    let sinSenal = 800; while (HU.hayEmisoraMadrugada(sinSenal)) sinSenal++;
+    const hablarAntes = () => js("[...document.querySelectorAll('#notas .nota')].map((n) => n.textContent).join(' | ')");
+    // una noche con señal, a las 3 de la mañana (la noche es la del día anterior)
+    await js("(() => { const p = " + H + ".progreso; p.dia = " + (noche + 1) + "; p.horas = 3; p.huevos.radio = { ultima: 0, oidos: 0 }; })()");
+    const r1 = await js("(() => { const hj = " + H + ".__huevos.juego(); const a = hj.radioMadrugada(); const p = " + H + ".progreso; return { a, ultima: p.huevos.radio.ultima, oidos: p.huevos.radio.oidos, nota: [...document.querySelectorAll('#notas .nota')].map((n) => n.textContent).join(' | ') }; })()");
+    ok('una noche con señal, a las 3, sale una emisora que de día no está (tango o Morse)', r1.a === true && r1.ultima === noche && r1.oidos === 1 && /Una emisora que de día no está|Alguien transmite en Morse/.test(r1.nota), r1);
+    const r2 = await js(H + ".__huevos.juego().radioMadrugada()");
+    ok('la segunda vez esa noche, sólo estática (una vez por noche)', r2 === false);
+    await js("(() => { const p = " + H + ".progreso; p.dia = " + (sinSenal + 1) + "; p.horas = 3; })()");
+    ok('una noche sin señal, no hay nada', (await js(H + ".__huevos.juego().radioMadrugada()")) === false);
+    await js("(() => { const p = " + H + ".progreso; p.dia = " + (noche + 1) + "; p.horas = 15; p.huevos.radio.ultima = 0; })()");
+    ok('de día no hay emisora especial', (await js(H + ".__huevos.juego().radioMadrugada()")) === false);
+    await foto('radio-madrugada');
   }
 
   let mal = 0;
