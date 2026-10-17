@@ -2720,6 +2720,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // 3.6.1: donde no se construye (en el Relax, la Aldea de los Duendes: ver main.js)
     const reservado = typeof T.sinObras === 'function' ? T.sinObras(x, z, plano.radio || 1) : null;
     if (reservado) return { ok: false, motivo: reservado };
+    // 4.0.3 (I-1): ni encima de la casa decorativa del molino, su campo de tulipanes ni el cauce de su arroyo (sólo el Relax; ver main.js). Las obras que ya había ahí no se mudan.
+    const reservaMolino = typeof T.reservaMolino === 'function' ? T.reservaMolino(x, z, plano.radio || 1) : null;
+    if (reservaMolino) return { ok: false, motivo: reservaMolino };
     // 3.8.6: un plano con tope (`maximo`: el hoyo para frutal, tantos como frutales lleva la granja): el de más se armaba,
     // costaba su tronco y quedaba muerto, sin aviso ni E
     if (Number.isFinite(plano.maximo) && obras.filter((o) => o !== ignorarObra && o.plano.id === plano.id).length >= plano.maximo) return { ok: false, motivo: plano.motivoMaximo || `Ya tenés ${plano.maximo}: no entran más` };

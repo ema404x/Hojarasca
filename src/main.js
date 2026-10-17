@@ -656,6 +656,7 @@ async function construir() {
         const mp = crearMolinoPaisaje({ T, escena, col, molino: e.molino, densidad: calidad.densidad ?? 1 });
         if (mp) {
           e.molinoPaisaje = mp;
+          if (!esDesafio) T.reservaMolino = (x, z, radio) => mp.reservado(x, z, radio);   // 4.0.3 (I-1): no se funda encima (el Desafío sigue como estaba: ahí el campo es terreno de defensa)
           for (const z of mp.zonas) { veg.despejar(z.x, z.z, z.r); pelar(z.x, z.z, z.pasto ?? z.r); }
           edificios.push(...mp.huella);   // la casa, el campo y el arroyo no se llenan de frutillas ni plumas
         }
@@ -5790,10 +5791,11 @@ function cambiarFeria(i) {
 }
 function actualizarFeria() {
   if (desafio) return;
-  if (!puestoFeria && tren) { const e = tren.paradas.find((p) => p.nombre === 'Estación del Valle'); if (e) puestoFeria = crearPuestoFeria(T, escena, e); }
+  if (!puestoFeria && tren) { const e = tren.paradas.find((p) => p.nombre === 'Estación del Valle'); if (e) puestoFeria = crearPuestoFeria(T, escena, e, col); }   // 4.0.3 (I-2): con cuerpo los días de feria
   if (!puestoFeria) return;
   const abre = feriaAbierta(progreso.dia, progreso.horas);
   puestoFeria.malla.visible = esDiaDeFeria(progreso.dia) && progreso.horas >= FERIA.abre - 1 && progreso.horas < FERIA.cierra + 1;
+  puestoFeria.ponerCuerpo?.(puestoFeria.malla.visible);   // 4.0.3 (I-2)
   if (abre && feriaAvisada !== progreso.dia) {
     feriaAvisada = progreso.dia;
     nota('Hoy hay feria en la estación', 'Junto al andén de la Estación del Valle, hasta las seis de la tarde');

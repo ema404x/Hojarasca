@@ -448,8 +448,30 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   }
   // las zonas a despejar de árboles, matas y pasto, en coordenadas del mundo
   const zonas = zonasDespeje().map((z) => ({ ...mundo(z.x, z.z), r: z.r, pasto: z.pasto }));
+  // 4.0.3 (I-1): lo que no se puede fundar encima: la casa de la galería (de adorno, no se entra), el campo de tulipanes con su cerco y el cauce del arroyo.
+  // `reservado(x, z, radio)` dice con qué choca una obra tuya de ese radio (o null). Marco local del molino; la casa, con su galería y el voladizo.
+  const rectas = [
+    { nombre: 'la casa del molino', x0: casa.x0 - 0.6, x1: casa.x1 + 0.6, z0: casa.z0 - 0.6, z1: casa.gz1 + 0.6 },
+    { nombre: 'el campo de tulipanes', x0: -3.4 - 0.6, x1: 10.4 + 0.6, z0: 8.2 - 0.6, z1: 23.8 + 0.6 },
+  ];
+  const cauce = ARROYO.puntos;
+  const distCauce = (lx, lz) => {
+    let mejor = Infinity;
+    for (let i = 1; i < cauce.length; i++) {
+      const [ax, az] = cauce[i - 1], [bx, bz] = cauce[i], dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((lx - ax) * dx + (lz - az) * dz) / l2));
+      mejor = Math.min(mejor, Math.hypot(lx - (ax + dx * t), lz - (az + dz * t)));
+    }
+    return mejor;
+  };
+  const reservado = (x, z, radio = 1) => {
+    const dx = x - molino.x, dz = z - molino.z, lx = dx * cr - dz * sr, lz = dx * sr + dz * cr;
+    for (const r of rectas) if (lx > r.x0 - radio && lx < r.x1 + radio && lz > r.z0 - radio && lz < r.z1 + radio) return `Ahí están ${r.nombre}: buscá otro lugar`;
+    if (distCauce(lx, lz) < ARROYO.ancho / 2 + 1.2 + radio) return 'Ahí corre el arroyo del molino: buscá otro lugar';
+    return null;
+  };
   return {
-    grupo, actualizar, aplicarCalidad, liberar, zonas, casa,
+    grupo, actualizar, aplicarCalidad, liberar, zonas, casa, reservado,
     huella: [[CASA.cx, CASA.cz + 1.2, 8], [(CAMPO.lx0 + CAMPO.lx1) / 2, (CAMPO.lz0 + CAMPO.lz1) / 2, 11], [8, 26.5, 15]].map(([lx, lz, radio]) => ({ ...mundo(lx, lz), radio, nombre: 'Molino (paisaje)' })),
     info: { tulipanes: siembra.total, instancias: () => tul.reduce((n, u) => n + u.malla.count, 0), triangulos: () => (geo.attributes.position.count / 3) | 0 },
     mallas: { obras: malla, agua: mAgua, espuma: mEspuma, tulipanes: tul.map((u) => u.malla) },
