@@ -169,6 +169,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     const fx = -Math.sin(js.yaw), fz = -Math.cos(js.yaw);
     let mejor = null, d0 = 1e9;
     for (const b of blancos) {
+      if (Math.abs(b.pos.y - js.pos.y) > 12) continue;   // 4.0.2: también la altura (la arena del Rey está 650 m arriba, bajo el mismo x y z)
       const dx = b.pos.x - js.pos.x, dz = b.pos.z - js.pos.z, l = Math.hypot(dx, dz) || 1;
       const dist = l - b.radio;
       if (dist > alcance || dist >= d0 || (dx * fx + dz * fz) / l < 0.45) continue;

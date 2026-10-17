@@ -203,6 +203,7 @@ export function crearArsenalMundo(T, escena, efectos, sonido, api) {
     for (const r of enElSuelo) {
       if (!r.activo) continue;
       if (Math.hypot(js.pos.x - r.x, js.pos.z - r.z) > 1.5) continue;
+      if (Math.abs(js.pos.y - r.malla.position.y) > 6) continue;   // 4.0.2: también la altura: en la arena del Rey (650 m arriba, mismo x y z que el pie del Coihue) no se juntan armas tiradas abajo
       const d = api.D();
       const k = RECUPERABLES[r.tipo];
       if ((d[k] || 0) >= TOPE_SUELTAS) continue;   // 3.8.3: con el tope lleno queda en el suelo (antes se levantaba y se perdía)

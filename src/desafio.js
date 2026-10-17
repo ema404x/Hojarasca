@@ -3092,6 +3092,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function golpearCapulloCerca(js, alcance) {
     const fx = -Math.sin(js.yaw), fz = -Math.cos(js.yaw);
     for (const c of D().capullos || []) {
+      if (Math.abs(T.altura(c.x, c.z) - js.pos.y) > 12) continue;   // 4.0.2: también la altura (la arena del Rey está 650 m arriba, bajo el mismo x y z)
       const dx = c.x - js.pos.x, dz = c.z - js.pos.z, l = Math.hypot(dx, dz) || 1;
       if (l - 0.55 > alcance || (dx * fx + dz * fz) / l < 0.45 || quemandoCapullo.has(c)) continue;
       _v.set(c.x, T.altura(c.x, c.z) + 0.7, c.z);
