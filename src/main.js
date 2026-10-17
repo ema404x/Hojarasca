@@ -9420,7 +9420,7 @@ function cuadroDelJuego(tRaf, manual) {
   actualizarBanderas(dt);   // 3.8.8: las banderas se orientan al viento (el flameo es del vertex shader)
   // la bruma, las partículas y las aves solo deciden visibilidad y centro:
   // con cinco veces por segundo alcanza, y el movimiento lo hace el shader
-  acumuladoAmbiente += dt;
+  acumuladoAmbiente += (foto.activo && foto.congelado) ? Math.min(0.05, dtReal) : dt;   // 4.0.1: con la hora congelada del modo foto dt es 0 y los rayos, la niebla y la pelusa no seguían la hora del deslizador
   const tAmbiente = perfilador.iniciar(medirRendimiento);
   if (acumuladoAmbiente > presupuestoAdaptativo.intervalo(0.2, 1.8) && planificadorAntitirones.permitir('ambiente', { pesada: true })) {
     acumuladoAmbiente = 0;

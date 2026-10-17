@@ -365,6 +365,8 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
     // física: las cuatro paredes (la casa es de adorno por dentro: no se entra) y el zócalo
     const yA = molino.y + bajo, yB = molino.y + F + H + 0.5;
     seg([x0, z0], [x1, z0], 0.2, yA, yB); seg([x0, z0], [x0, z1], 0.2, yA, yB); seg([x1, z0], [x1, z1], 0.2, yA, yB); seg([x0, z1], [x1, z1], 0.2, yA, yB);
+    // 4.0.1: la galería también es de adorno (el zócalo de piedra sube hasta 1,7 m): su frente y sus dos lados son sólidos; antes se la atravesaba hasta la pared de la casa con la cámara adentro del bloque
+    seg([gx0 - 0.3, gz1], [gx1 + 0.3, gz1], 0.2, yA, yB); seg([x0, z1], [x0, gz1], 0.2, yA, yB); seg([x1, z1], [x1, gz1], 0.2, yA, yB);
     colisiones.push({ x: mundo(x0 - 0.45, cz - 0.2).x, z: mundo(x0 - 0.45, cz - 0.2).z, r: 0.5, alturaMin: yA, alturaMax: yB + 1 });
     return { F: molino.y + F, x0, x1, z0, z1, gz1 };
   })();

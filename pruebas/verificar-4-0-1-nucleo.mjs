@@ -50,4 +50,6 @@ tiene(main, 'jugador.soltar(); } catch { /* sin bloqueo */ } }\n  jugador.teclas
 tiene(fortin, "a.estado !== 'dormido' && !a.enNave;", 'catapulta: las crías de la nave no son blanco');
 tiene(defensas, "a.estado === 'bajar' || a.enNave) continue;", 'campana: no suena por las crías');
 tiene(defensas, "a.estado === 'irse' || a.enNave) continue;", 'trampa: no hiere a las crías');
+// 8) modo foto con la hora congelada: el ambiente (rayos, niebla, pelusa) sigue la hora que movés
+tiene(main, 'acumuladoAmbiente += (foto.activo && foto.congelado) ? Math.min(0.05, dtReal) : dt;', 'foto: el ambiente corre con el tiempo real si la hora está congelada');
 console.log('4.0.1 núcleo: ok');

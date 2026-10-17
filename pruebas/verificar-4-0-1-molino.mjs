@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { cargar } from './ayuda-4-0-1-mundo.mjs';
 
-const M = cargar(['terreno.js', 'colisiones.js', 'estructuras.js', 'molino-paisaje.js', 'molino-paisaje-plano.js']);
+const M = cargar(['terreno.js', 'colisiones.js', 'estructuras.js', 'molino-paisaje.js', 'molino-paisaje-plano.js', 'niebla.js']);
 const { THREE } = M;
 const T = M.terreno.generarTerreno();
 const escena = new THREE.Scene(), col = M.colisiones.crearColisiones();
@@ -60,4 +60,35 @@ for (let j = 0; j < a.length / 6; j++) {
 }
 assert.ok(peor < 0.8, `el agua de lo llano no cuelga (${peor.toFixed(2)} m sobre el suelo)`);
 assert.ok(cruce < 0.5, `donde cruza el sendero el agua está a ras del suelo (${cruce.toFixed(2)} m)`);
+// 3) la galería de la casa es sólida: caminando de frente por el eje de la galería, el cuerpo se frena en el frente de la galería (antes llegaba a la pared de la casa)
+{
+  const c = mp.casa ?? null;
+  const frente = c?.gz1 ?? 10.8 + 2.3;
+  const mundoDe = (lx, lz) => ({ x: m.x + lx * cr + lz * sr, z: m.z - lx * sr + lz * cr });
+  for (const lx of [-10.2, -12.5, -7.5]) {
+    const pos = { ...mundoDe(lx, frente + 6), y: 0 }; pos.y = T.altura(pos.x, pos.z);
+    let corte = null;
+    for (let lz = frente + 6; lz > frente - 6; lz -= 0.05) {
+      const q = mundoDe(lx, lz), t = { x: q.x, y: T.altura(q.x, q.z), z: q.z };
+      col.resolver(t, 0.35, 1.65);
+      if (Math.hypot(t.x - q.x, t.z - q.z) > 0.04) { corte = lz; break; }
+    }
+    assert.ok(corte !== null && corte > frente - 0.8, `la galería frena a quien camina de frente (lx ${lx}): se frenó en lz ${corte}, el frente está en ${frente.toFixed(1)}`);
+  }
+}
+// 4) los bancos de niebla de valle (zona C, hallazgo 4) no cortan cabaña, galpón ni faro; los de siempre no se mueven
+{
+  const sin = M.niebla.crearNiebla(T, escena, { niebla: 1.08, post: false }), con = M.niebla.crearNiebla(T, escena, { niebla: 1.08, post: true });
+  const na = sin.malla.geometry.attributes.position.count / 4, nb = con.malla.geometry.attributes.position.count / 4;
+  const A = sin.malla.geometry.attributes.position.array, B = con.malla.geometry.attributes.position.array;
+  for (let i = 0; i < na * 12; i++) assert.equal(A[i], B[i], 'los bancos de siempre quedan idénticos');
+  assert.ok(nb - na >= 25, `siguen los bancos nuevos (${nb - na})`);
+  for (let i = na; i < nb; i++) {
+    const cx = (B[i * 12] + B[i * 12 + 3] + B[i * 12 + 6] + B[i * 12 + 9]) / 4, cz = (B[i * 12 + 2] + B[i * 12 + 5] + B[i * 12 + 8] + B[i * 12 + 11]) / 4;
+    for (const [k, l] of Object.entries(T.lugares)) {
+      if (!l || typeof l.x !== 'number') continue;
+      assert.ok(Math.hypot(cx - l.x, cz - l.z) > (l.radio || 8) + 20, `el banco ${i - na} no cae sobre ${k}`);
+    }
+  }
+}
 console.log('4.0.1 molino: sendero libre de flores y cerco, arroyo pegado a la loma');

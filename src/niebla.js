@@ -112,7 +112,13 @@ export function crearNiebla(T, escena, calidad) {
       const x = (r2() - 0.5) * 760, z = (r2() - 0.5) * 760;
       const y = T.altura(x, z);
       if (y < 0.5 || y > 22) continue;
-      poner(x, z, y + 1.2 + r2() * 2.8, 46 + r2() * 56, 34 + r2() * 44);
+      const alto = y + 1.2 + r2() * 2.8, ancho = 46 + r2() * 56, fondo = 34 + r2() * 44;   // (se sortea todo antes de decidir: los demás bancos quedan donde estaban)
+      // 4.0.1: un banco plano a 1-4 m del suelo cortaba el techo de la cabaña y partía el galpón a la cintura con una línea dura: no va donde hay una construcción
+      const mitad = Math.max(ancho, fondo) / 2;
+      let sobreObra = false;
+      for (const l of Object.values(T.lugares || {})) if (l && typeof l.x === 'number' && typeof l.z === 'number' && Math.hypot(l.x - x, l.z - z) < mitad + (l.radio || 8) + 3) { sobreObra = true; break; }
+      if (sobreObra) continue;
+      poner(x, z, alto, ancho, fondo);
     }
   }
 
