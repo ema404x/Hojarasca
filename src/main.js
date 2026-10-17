@@ -174,6 +174,8 @@ import { crearGranjaJuego } from './granja-juego.js';
 // 3.7.5 (rincones): los duendes, el potrero, las huertas, los títeres, el fuerte, el camino con el sulky, tu casa y el taller
 import { crearRinconesMundo } from './rincones-mundo.js';
 import { crearRinconesJuego } from './rincones-juego.js';
+// 4.2 (huevos de pascua): la estrella fugaz con deseo, los duendes del Coihue, el huemul blanco, el hueso del perro, la portada y la radio
+import { crearHuevosJuego } from './huevos-juego.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego, lugarDeCasaTe } from './cantina-juego.js';
 import { crearAmbienteCantina } from './cantina-ambiente.js';
@@ -5035,6 +5037,7 @@ let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
+let huevosJuego = null;   // 4.2 (huevos de pascua): ver huevos-juego.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 let penaJuego = null, penaMundo = null;   // 3.9.1: la peña (ver pena-juego.js y pena-mundo.js)
 let cantinaAmbiente = null;   // 3.9.2: los cuadros, el reloj, lo usado en las mesas y la música de fondo de la cantina (cantina-ambiente.js)
@@ -5233,8 +5236,14 @@ function armarOficiosYAldea(esDesafio) {
     noche: () => { const h = progreso.horas; return h >= 20 || h < 5.5 ? 1 : h >= 18.5 ? (h - 18.5) / 1.5 : h < 7 ? (7 - h) / 1.5 : 0; },
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
   });
+  // 4.2 (huevos de pascua): la estrella fugaz con deseo y lo que sigue (sólo en el Relax)
+  huevosJuego = crearHuevosJuego({
+    progreso: () => progreso, desafio: () => !!desafio, jugador: () => jugador, sonido,
+    nota: (t, sub, nueva) => nota(t, sub, nueva), diario: (tipo, dato) => diario.anotar(tipo, dato), guardar: () => guardar(),
+    sumarMaterial: (k, n) => sumarMaterial(k, n), refrescarBarra: () => refrescarBarra(true), registrar: (id) => registrar(id),
+  });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
-  vecindadJuego = crearVecindadJuego({
+  vecindadJuego =crearVecindadJuego({
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
@@ -8693,6 +8702,7 @@ function cieloDeLaNoche(dt, noche, luz) {
       if (!bajoTecho && mirada.dot(dirFugaz) > 0.55) {
         nocheCielo.vistas++;
         diario.anotar('fugaz');
+        huevosJuego?.fugazVista(diaNoche, nocheCielo.vistas);   // 4.2 (huevos de pascua): una de cada tanto trae un deseo
         if (nocheCielo.lluvia && nocheCielo.vistas >= FUGACES_PARA_ANOTAR && !progreso.entradas.geminidas) registrar('geminidas');
       }
     }
@@ -9471,6 +9481,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
   try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
   try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
+  try { if (modo === 'jugando' && !desafio) huevosJuego?.actualizar(dt); } catch (e) { fallaSistema('huevos', e); }   // 4.2 (huevos de pascua)
   try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
@@ -10442,6 +10453,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__mecanicas = () => mecanicasAldea;
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
+  // 4.2 (huevos de pascua): para las pruebas y las capturas
+  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego };
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta(), amistad: (k, n) => sumarAmistadDe(progreso, k, n, progreso.dia) };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
