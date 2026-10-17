@@ -255,6 +255,22 @@ export function materialVegetal({ flex = 1, doble = false, lod = null, copa = fa
             float lumC = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
             vColor.rgb = mix(vColor.rgb, mix(vec3(lumC), vColor.rgb, 0.65) * vec3(1.1, 1.06, 1.0), uInvierno * 0.8);
           }
+          // 4.0 (musgo de las piedras): el aTipo de una roca con musgo lleva el puntaje de la geometría (4 + 0,95 · puntaje:
+          // cara de arriba, grietas y ruido). El musgo sale de ese puntaje con un umbral suave (borde que se desvanece en la piedra,
+          // sin corte) que cambia de roca en roca y se sube del lado del sol (el sol siempre sale por el lado +z: la sombra, hacia -z).
+          // Todo por vértice: sin dibujos ni texturas de más. Los techos (aTipo 4 justo) y las rocas de calidad baja no entran.
+          if (aTipo > 4.01) {
+            float puntajeM = (aTipo - 4.0) / 0.95;
+            float ladoSolM = 0.0;
+            #ifdef USE_INSTANCING
+              ladoSolM = smoothstep(-0.25, 0.85, normalize(mat3(instanceMatrix) * normal).z);
+            #endif
+            float umbralM = 0.34 + 0.2 * azar + 0.24 * ladoSolM;
+            float musgoM = smoothstep(umbralM, umbralM + 0.4, puntajeM);
+            float luzM = clamp(dot(vColor.rgb, vec3(0.3333)) / 0.2, 0.55, 1.25);
+            vec3 cMusgoM = mix(srgb(vec3(0.20, 0.30, 0.11)), srgb(vec3(0.44, 0.56, 0.21)), smoothstep(0.4, 1.0, puntajeM)) * luzM;
+            vColor.rgb = mix(vColor.rgb, cMusgoM, musgoM * 0.93);
+          }
           // oclusión: lo que está cerca del suelo recibe menos luz del cielo
           float ao = mix(0.62, 1.0, smoothstep(0.0, 1.6, position.y));
           vColor.rgb *= ao;
