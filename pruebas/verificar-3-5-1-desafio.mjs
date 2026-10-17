@@ -30,7 +30,7 @@ const cuerpo = (txt, firma) => { const i = txt.indexOf(firma); assert.ok(i >= 0,
   assert.match(horario, /!d\.oleadaTerminada && d\.nodriza && !d\.victoria && !d\.asedio && !eventos\.nodrizaActiva\) \{[^}]*eventos\.iniciarNodriza\(\)/,
     'guardada en la noche final sin invasores vivos, la nodriza vuelve al abrir');
   tiene(des, 'if (D().asedio?.ganado && !D().victoria) vencer({ nave: true });', 'cerrado mientras caía la nave: la victoria llega al abrir');
-  tiene(des, 'if (!caido && !naveMundo.adentro) revisarHorario();', 'adentro de la nave no arranca la noche (día de reloj real)');
+  tiene(des, 'if (!caido && !naveMundo.adentro && !mundo.fotoActiva) revisarHorario();', 'adentro de la nave no arranca la noche (día de reloj real)');
   ok('nodriza: las tandas bajan, vuelve al abrir, la victoria no se pierde');
 }
 
