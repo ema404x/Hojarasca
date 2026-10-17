@@ -72,7 +72,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta } from './aldea.js';
+import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
@@ -5325,6 +5325,8 @@ function armarOficiosYAldea(esDesafio) {
   // la jineteada, la minga, la nevada solidaria, los recuerdos; y lo que se ve y se oye (el predio, la música)
   fiestasJuego = crearFiestasJuego({
     progreso: () => progreso, desafio: () => !!desafio, jugador: () => jugador, aldeaGente: () => aldeaGente, mundo: () => fiestasMundo,
+    // 4.0.3 (E3): el chico que estudia afuera y el poblador que espera en el andén no van a la fiesta (el reparto los mandaba al predio)
+    ausente: (k) => chicoAfuera(progreso.aldea, k) || progreso.aldea?.llegando?.clave === k,
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alAbrirPanel: () => { marcarEn('fiesta', 0); marcarHud(0, true); },
     amigos: () => Object.values(amistades(progreso) || {}).filter((n) => n === 'amigo' || n === 'compadre').length,
@@ -5426,7 +5428,7 @@ function armarOficiosYAldea(esDesafio) {
   noticiasJuego = crearNoticiasJuego({
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
     registrar: (id) => registrar(id), pronostico: () => pronosticoActual(), cartaVieja: () => porRetirar(correo(), progreso).length > 0,
-    concursos: () => concursosJuego, redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
+    concursos: () => concursosJuego, redibujar: () => { if (modo === 'cuaderno') dibujarCuaderno(); }, clima: climaVecindad,   // 4.0.3: la noche de estrellas mira el cielo
   });
   // 3.6 (mecánicas): lo que se hace en cada lugar de la aldea (ver aldea-mecanicas-mundo.js)
   if (aldeaMundo) mecanicasAldea = crearMecanicasAldea({

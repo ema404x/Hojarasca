@@ -9,7 +9,7 @@
 //     por semana, con el observatorio abierto).
 // Y el aviso del día antes de todo eso (`avisoMananaExtra`), que se suma al de los cumpleaños.
 // Módulo puro (sin three ni DOM).
-import { DIAS_ANIO, diaDelAnio, diaSemanaDe, SEMANA, localAbierto, fiestaDeCumple, esVecinoAldea, esPobladorAldea, chicoAfuera, ORDEN_PERSONAS_ALDEA } from './aldea.js';
+import { DIAS_ANIO, diaDelAnio, diaSemanaDe, SEMANA, localAbierto, fiestaDeCumple, esVecinoAldea, esPobladorAldea, chicoAfuera, ORDEN_PERSONAS_ALDEA, enLaCantinaDe, nocheDeCantina, penaActiva } from './aldea.js';
 import { concursoDeFecha, CONCURSOS, HORAS_CONCURSO } from './concursos.js';
 import { hashTexto, generador } from './semilla.js';
 
@@ -68,7 +68,15 @@ export function asistentes(cual, dia, aldea = null) {
   const def = cual === 'club' ? CLUB_LECTURA : NOCHE_ESTRELLAS;
   const a = objeto(aldea) ? aldea : {};
   const llegaron = new Set((Array.isArray(a.pobladores) ? a.pobladores : []).map((p) => p?.clave));
-  const lista = ORDEN_PERSONAS_ALDEA.filter((k) => k !== def.quien && k !== 'ercilia' && (esVecinoAldea(k) || (esPobladorAldea(k) && llegaron.has(k))) && !chicoAfuera(a, k));   // (3.8.6: ni el chico que estudia afuera)
+  // 4.0.3: la moza y la bailarina trabajan en la cantina (el club y las estrellas las nombraban y las llevaban); y la noche de estrellas es sábado, el día de la peña:
+  // los dos músicos (la guitarra y el bombo) y los parroquianos de esa noche tampoco van (sin guitarra ni bombo, Dalia bailaba sin música)
+  const d = diaValido(dia, 1);
+  const ocupados = new Set(['moza', 'bailarina']);
+  if (cual !== 'club') {
+    if (penaActiva(d, 22)) { ocupados.add('musico'); ocupados.add('herrero'); }
+    for (const k of ORDEN_PERSONAS_ALDEA) if (enLaCantinaDe(a, k, nocheDeCantina(d, 22), 21.5) || enLaCantinaDe(a, k, nocheDeCantina(d, 22), 22.5)) ocupados.add(k);
+  }
+  const lista = ORDEN_PERSONAS_ALDEA.filter((k) => k !== def.quien && k !== 'ercilia' && !ocupados.has(k) && (esVecinoAldea(k) || (esPobladorAldea(k) && llegaron.has(k))) && !chicoAfuera(a, k));   // (3.8.6: ni el chico que estudia afuera)
   const r = generador(hashTexto(`${cual}-${Math.floor((diaValido(dia, 1) - 1) / 7)}`));
   const elegidos = [];
   while (lista.length && elegidos.length < def.asisten) elegidos.push(lista.splice(Math.floor(r() * lista.length) % lista.length, 1)[0]);

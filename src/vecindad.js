@@ -423,8 +423,8 @@ const elPunto = (edificio, opciones) => {
   const p = puntosDe(edificio);
   return opciones.find((k) => Object.hasOwn(p, k)) || null;
 };
-const casaTeAbierta = (aldea, hora, ds) => {
-  const r = rutinaAldea('galesa', hora, ds, aldea);
+const casaTeAbierta = (aldea, hora, ds, dia = null) => {
+  const r = rutinaAldea('galesa', hora, ds, aldea, dia);
   return r.lugar === 'trabajo' && r.edificio === 'casa-te' && r.punto === 'adentro';
 };
 const almacenAbierto = (aldea, hora, ds) => {
@@ -960,11 +960,11 @@ export function invitar(persona, que, estado, hora, extra = {}) {
   if (h >= 21 || h < 7) return no('noche', FRASES.noche[(d + hashTexto(persona)) % FRASES.noche.length]);
   if (f.invito === d) return no('ya-tomo', FRASES.yaTomo[(d + hashTexto(persona)) % FRASES.yaTomo.length]);
   if (esPersonaAldea(persona)) {
-    const m = obligacion(persona, h, ds, aldea);
+    const m = obligacion(persona, h, ds, aldea, null, d);   // 4.0.3: con el día (sin él no se veía el cumpleaños que se festeja ni la silla de la cantina: aceptaba y a los 0,5 s la cita se cancelaba)
     if (m === 'ausente') return no('ausente', 'Todavía no vive en la aldea.');
     if (m) return no('trabajando', voz.ocupado);
   } else if ((TRABAJO_VALLE[persona] || []).some(([a, b]) => h >= a && h < b)) return no('trabajando', voz.ocupado);
-  if (que === 'te' && !casaTeAbierta(aldea, h, ds)) return no('cerrado', FRASES.teCerrado);
+  if (que === 'te' && !casaTeAbierta(aldea, h, ds, d)) return no('cerrado', FRASES.teCerrado);
   const destino = que === 'mate' ? { lugar: 'mesa-refugio', edificio: null, punto: null, tuPunto: null }
     : { lugar: 'casa-te', edificio: 'casa-te', punto: 'mesa-2', tuPunto: 'mesa-1' };
   // la charla de la mesa: una de apertura y una o dos de sobremesa que no haya dicho hace poco
