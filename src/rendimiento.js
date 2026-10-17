@@ -153,8 +153,11 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, sol
   let emaMs = objetivoMs;
   let lento = 0;
   let holgado = 0;
+  // 4.0.3: tiempo propio y espera para bajar de nivel (se duplica si el nivel vuelve a subir enseguida)
+  let reloj = 0, ultimaBajada = -1e9, esperaBajar = 1.5;
 
   function actualizar(dtReal, objetivoActualMs = objetivoMs) {
+    reloj += Math.max(0, Math.min(1, dtReal || 0));
     const ms = Math.max(0, Math.min(200, (dtReal || 0) * 1000));
     const objetivo = Math.max(8, objetivoActualMs || objetivoMs);
     emaMs += (ms - emaMs) * 0.08;
@@ -162,7 +165,10 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, sol
     if (emaMs > objetivo * 1.18) {
       lento += Math.max(0, dtReal || 0);
       holgado = Math.max(0, holgado - (dtReal || 0) * 2);
-    } else if (emaMs < objetivo * 0.94) {
+    } else if (emaMs <= objetivo * 1.06) {
+      // 4.0.3: con el ritmo por vsync el intervalo entre cuadros es EXACTAMENTE el objetivo, así que
+      // nunca había un cuadro más corto (< 0,94) y un tirón suelto dejaba el nivel subido para siempre.
+      // Un cuadro que llega a su objetivo cuenta como holgado.
       holgado += Math.max(0, dtReal || 0);
       lento = Math.max(0, lento - (dtReal || 0));
     } else {
@@ -171,11 +177,14 @@ export function crearPresupuestoAdaptativo({ objetivoMs = 16.7, niveles = 3, sol
     }
 
     if (lento >= 0.35 && nivel < niveles) {
+      // si recién bajamos y no aguantó, la próxima bajada espera el doble (no oscila)
+      if (reloj - ultimaBajada < 12) esperaBajar = Math.min(48, esperaBajar * 2);
       nivel++;
       lento = 0;
       holgado = 0;
-    } else if (holgado >= 1.5 && nivel > 0) {
+    } else if (holgado >= esperaBajar && nivel > 0) {
       nivel--;
+      ultimaBajada = reloj;
       lento = 0;
       holgado = 0;
     }
@@ -277,7 +286,9 @@ export function crearPlanificadorAntitirones({ objetivoMs = 16.7, maxPesadas = 1
       // esperó demasiado: 3.5)
       if (frameLento && !hambrienta) return false;
       const max = nivel >= 2 ? 1 : maxPesadas;
-      if (pesadas >= max) return false;
+      // 4.0.3: la hambrienta puede usar un cupo extra: si otra tarea (el montaje de la aldea) pide turno en
+      // todos los cuadros, la que va última (las sombras) no llegaba nunca aunque llevara esperando mucho
+      if (pesadas >= max + (hambrienta ? 1 : 0)) return false;
       pesadas++;
       secundarias++;
       esperando.delete(clave);
@@ -467,7 +478,9 @@ export function divisorInicial(periodoMs, op = {}) {
 // (como la calidad automática, pero doblando): nunca oscila.
 export const AJUSTES_RITMO = {
   fpsMax: 165, fpsMin: 28,
-  margenBajar: 0.7,      // para bajar k: el 90% de los cuadros cabe en el 70% del presupuesto nuevo
+  // 4.0.3: 0,85 en vez de 0,7. Con 0,7 la banda de 11,7 a 15,8 ms (a 60 Hz) era zona muerta: el juego
+  // mide ~14,5 ms y, una vez en 30 fps, no había forma de volver a 60. Con 0,9 el caso del borde ya rompe.
+  margenBajar: 0.85,     // para bajar k: el 90% de los cuadros cabe en el 85% del presupuesto nuevo
   perdidosBajar: 0.05,   // y (sin la placa medida) casi ninguno se pasa de su turno
   margenSubir: 0.95,     // para subir k: tres de cada cuatro cuadros ya usan el 95% del presupuesto
   perdidosSubir: 0.5,    // sin poder medir la placa: la mitad de los cuadros se pasa de su turno.
