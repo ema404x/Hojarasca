@@ -4622,11 +4622,10 @@ function leerMando(dt) {
   // 3.8.6: en el velero, A sostenido es la vara corta (Espacio sostenido, como en el teclado: vela.js mira la tecla
   // apretada). Antes A sólo daba un golpe de tecla y con el mando la vara no se podía usar
   // 4.0.3 (G2): los planos (O) abiertos: la cruceta, LB/RB y los botones tienen su propio trabajo (ver mandoEnObra)
-  const enObra = !!modoObra && !!obras && !enCharla && !enLista;
-  if (enObra) mandoEnObra(m);
-  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla && !enObra;
+  if (modoObra && obras && !enCharla && !enLista) mandoEnObra(m);   // (gasta los botones que usa: lo que sigue no los vuelve a tomar)
+  const enVelero = !!jugador.estado.enVela && !enLista && !enCharla;
   sostenerTecla('Space', enVelero && !!m.activos.saltar);
-  if (!enLista && !enVelero && !enObra) { if (m.recien.saltar) golpeDeTecla('Space'); }
+  if (!enLista && !enVelero) { if (m.recien.saltar) golpeDeTecla('Space'); }
   // 3.8.6: con la mochila, el taller de los duendes o los planos abiertos, B también sale (como en el almacén y la cocina;
   // antes agachaba y había que volver a apretar la cruceta). En los planos, moviendo una pieza, B cancela el movimiento
   if (!enLista) {
@@ -4643,11 +4642,10 @@ function leerMando(dt) {
     if (enLista && (a === 'mochila' || a === 'taller')) continue;
     // 4.0.3: con una lista del HUD abierta, la cruceta de los costados no abre los planos ni el mapa por detrás (el taller del Desafío la usa para la categoría)
     if (enLista && (a === 'planos' || a === 'mapa')) continue;
-    if (enObra && ['mochila', 'taller', 'planos', 'mapa', 'linterna', 'interactuar', 'guia'].includes(a)) continue;   // 4.0.3: los usa mandoEnObra
     golpeDeTecla(TECLA_DE_MANDO[a]);
   }
   // 3.6 (vida): con el menú de la charla abierto, LB y RB mueven la opción marcada (X la elige)
-  if (!enLista && !enObra) {
+  if (!enLista) {
     if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
     if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
   }
@@ -4666,7 +4664,7 @@ function leerMando(dt) {
     if (m.recien.bloquear && id === 'arco' && desafio.cambiarFlecha()) refrescarBarra(true);
     else if (m.recien.bloquear && desafio.puedeBloquear(id)) desafio.bloquear(true, id);
     if (m.recien.esquivar) desafio.esquivar(m.mov.x >= 0 ? 1 : -1);
-  } else if (m.recien.atacar && !enObra) usarRanura();
+  } else if (m.recien.atacar) usarRanura();
 }
 
 // 4.0.3 (G2): los planos (O) con el mando. Cruceta izquierda y derecha: el plano anterior y el siguiente; arriba y abajo: la categoría; LB y RB giran la pieza;
@@ -4685,6 +4683,8 @@ function mandoEnObra(m) {
   if (m.recien.guia) golpeDeTecla('Backspace');
   if (m.recien.atacar) golpeDeTecla('Delete');
   if (m.activos.bloquear && m.recien.esquivar) golpeDeTecla('Delete', true);
+  // se gastan: los planos abiertos no saltan, no cambian de casilla, no tiran ni abren la mochila, el taller, el mapa ni la linterna
+  for (const a of ['planos', 'mapa', 'mochila', 'taller', 'objetoAnterior', 'objetoSiguiente', 'saltar', 'interactuar', 'linterna', 'guia', 'atacar', 'esquivar']) m.recien[a] = false;
 }
 
 // 3.8.3: en la pausa, el cuaderno y el mapa el mando sólo se leía jugando: Start abría la pausa (y la cruceta el mapa)
