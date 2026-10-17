@@ -182,6 +182,8 @@ function medidas(mujer, chico, cara = {}) {
   };
   // 3.9: los labios pintados (opcional; sin `cara.rouge` queda el color de siempre)
   if (typeof cara.rouge === 'string') F.rouge = cara.rouge;
+  if (Number(cara.pestanas) > 0) F.pest = Number(cara.pestanas);   // 4.0 (pulido de Greta): el largo de las pestañas (1 = el de siempre)
+  if (Number(cara.brillo) > 0) F.brillo = Number(cara.brillo);      // 4.0: el tamaño de los brillos del ojo (1 = el de siempre)
   if (Number(cara.rubor) > 0) F.rubor = Number(cara.rubor);   // 3.9.2: el rubor de las mejillas (1 = el de siempre)
   F.ceja = F.ey + (chico ? 0.025 : 0.024) * largo;
   F.punta = F.ey - (chico ? 0.027 : 0.032) * largo;
@@ -189,7 +191,7 @@ function medidas(mujer, chico, cara = {}) {
   F.boca = F.base - (chico ? 0.014 : 0.016) * largo;
   F.menton = F.boca - (chico ? 0.032 : mujer ? 0.035 : 0.04) * largo;
   const r = (x) => Math.round(x * 1000);
-  F.clave = [mujer ? 'm' : 'v', chico ? 'c' : '', r(F.rx), r(F.ry), r(F.rz), r(F.re * 10), r(F.nariz), r(F.mand), r(F.menton2), r(F.pom), r(F.cejaK), r(F.abre), r(F.bocaW * 10), r(F.s0), r(F.arco), r(F.rasgado), r(F.labios), r((F.rubor || 1) * 10)].join(':');
+  F.clave = [mujer ? 'm' : 'v', chico ? 'c' : '', r(F.rx), r(F.ry), r(F.rz), r(F.re * 10), r(F.nariz), r(F.mand), r(F.menton2), r(F.pom), r(F.cejaK), r(F.abre), r(F.bocaW * 10), r(F.s0), r(F.arco), r(F.rasgado), r(F.labios), r((F.rubor || 1) * 10), r((F.pest || 1) * 10), r((F.brillo || 1) * 10)].join(':');
   return F;
 }
 // la forma del cráneo y de la cara (sin los rasgos): v relativo al centro
@@ -505,7 +507,7 @@ function peloBase(F, colPelo, R, gorro) {
   const mechon = (v) => Math.max(0, Math.sin(Math.atan2(v.x, v.z) * 7 + v.y * 22));
   const mechonFino = (v) => Math.max(0, Math.sin(Math.atan2(v.x, v.z) * 13 - v.y * 35 + 1.2));
   const brillo = mezcla(colPelo, '#e8c8a0', 0.22);
-  const extra = (R.melena ? 0.006 : corto ? 0 : 0.003) + (gorro ? 0 : 0.002), kM = gorro ? 0.7 : 1;
+  const extra = (R.melena ? 0.006 : corto ? 0 : 0.003) + (gorro ? 0 : 0.002 + (Number(R.masaPelo) || 0)), kM = gorro ? 0.7 : 1;   // (4.0: `R.masaPelo`: metros de volumen extra del pelo sin gorro, p. ej. 0.004)
   piezas.push(casco(F, colPelo, true, (v) => 0.007 + 0.004 * sv(0, F.ry, v.y) + extra + (0.004 * mechon(v) + 0.002 * mechonFino(v) * sv(-0.03, 0.02, v.y)) * kM + (R.melena ? 0.006 * sv(0.0, -0.06, v.y) : 0), ocultaPelo, (c, p, n) => {
     const a = Math.atan2(p.x, p.z);
     c.multiplyScalar(0.92 + 0.16 * Math.max(0, Math.sin(a * 7 + p.y * 22)) + 0.06 * Math.max(0, Math.sin(a * 13 - p.y * 35 + 1.2)));
@@ -538,6 +540,13 @@ function peloBase(F, colPelo, R, gorro) {
     const m = huso(matiz(colPelo, 1.06), pts, [0.006, 0.0105, 0.009, 0.004], 10, 8);
     piezas.push(pintarPieza(m, (c, p, nn) => { c.multiplyScalar(0.86 + 0.24 * sv(-0.5, 0.9, nn.y)); }));
   }
+  // 4.0 (pulido de Greta): `R.mechonesFrente`: dos mechones finos y sueltos por lado, delante de las orejas, que bajan de la sien por el
+  // borde de la cara hasta la mandíbula con una curva suave (el rodete tirante deja de leerse como casco liso)
+  if (R.mechonesFrente && !R.melena && !gorro) for (const l of [-1, 1]) for (const [k, dz, dy] of [[0, 0, 0], [1, 0.011, -0.012]]) {
+    const pts = [[0.056, 0.038, 0.056], [0.067, 0.02, 0.045], [0.0715, -0.012, 0.037], [0.0665, -0.048, 0.039 + dz], [0.0605, -0.076 + dy, 0.044 + dz]].map(([x, y, z]) => [l * (x - 0.004 * k) * F.rx / 0.074, y + F.cy, z]);
+    const m = huso(matiz(colPelo, k ? 0.96 : 1.08), pts, [0.0035, 0.0062, 0.0066 - 0.0012 * k, 0.0048, 0.0014], 8, 6);
+    piezas.push(pintarPieza(m, (c, p, nn) => { c.multiplyScalar(0.84 + 0.26 * sv(-0.5, 0.9, nn.y)); tinta(c, brillo, 0.22 * sv(-0.2, 0.7, nn.z)); }));
+  }
   if (R.melena) {
     // 3.7.0: la melena: el pelo suelto que cae por los costados y la espalda hasta los hombros (una
     // cortina abierta adelante, más ancha abajo), con las puntas desparejas
@@ -565,12 +574,17 @@ function peloBase(F, colPelo, R, gorro) {
   if (R.rodete) {
     // el rodete: un rollo retorcido, con un mechón que lo cruza
     // (3.9.2: `R.rodeteBajo`: el rodete en la nuca, más abajo y más grande, como el de la anfitriona de la casa de té)
-    const bajo = !!R.rodeteBajo, rR = bajo ? 0.032 : 0.027, gR = bajo ? 0.018 : 0.0155, yR = F.cy - (bajo ? 0.045 : 0.012), zR = -F.rz - (bajo ? 0.002 : 0.006), inc = bajo ? 0.55 : 0.35;
+    const gr = R.rodeteGrande ? 1.28 : 1;   // (4.0: `R.rodeteGrande`: más masa en el rodete)
+    const bajo = !!R.rodeteBajo, rR = (bajo ? 0.032 : 0.027) * gr, gR = (bajo ? 0.018 : 0.0155) * gr, yR = F.cy - (bajo ? 0.045 : 0.012), zR = -F.rz - (bajo ? 0.002 : 0.006), inc = bajo ? 0.55 : 0.35;
     const t = new THREE.Mesh(new THREE.TorusGeometry(rR, gR, 10, 24), color(colPelo));
     deformar(t, (v) => { const a = Math.atan2(v.y, v.x), r = Math.hypot(v.x, v.y), b = Math.atan2(v.z, r - rR); const k = 1 + 0.12 * Math.sin(a * 6 + b); v.x = Math.cos(a) * (rR + (r - rR) * k); v.y = Math.sin(a) * (rR + (r - rR) * k); v.z *= k; });
     t.position.set(0, yR, zR); t.rotation.set(inc, 0, 0);
     piezas.push(pintarPieza(t, (c, p, n) => { c.multiplyScalar(0.9 + 0.16 * Math.max(0, Math.sin(Math.atan2(p.y, p.x) * 6 + Math.atan2(p.z, Math.hypot(p.x, p.y) - rR)))); c.multiplyScalar(0.86 + 0.2 * sv(-0.6, 0.8, n.y)); }));
-    piezas.push(bola(matiz(colPelo, 0.92), [rR * 0.9, rR * 0.82, 0.014], [0, yR, zR - 0.004], [inc, 0, 0], [12, 9]));
+    piezas.push(bola(matiz(colPelo, 0.92), [rR * 0.9, rR * 0.82, 0.014 * gr], [0, yR, zR - 0.004], [inc, 0, 0], [12, 9]));
+    if (R.rodeteGrande) {
+      // el vuelo del rodete: dos rulos gruesos que lo cruzan y una cola de pelo suelta que asoma abajo
+      for (const l of [-1, 1]) piezas.push(pintarPieza(huso(matiz(colPelo, l < 0 ? 1.08 : 0.94), [[l * 0.004, yR + rR * 0.55, zR - gR * 0.8], [l * rR * 0.7, yR + rR * 0.15, zR - gR * 1.3], [l * rR * 0.85, yR - rR * 0.45, zR - gR * 1.1], [l * rR * 0.4, yR - rR * 0.85, zR - gR * 0.8]], [0.004, 0.0085, 0.0075, 0.003], 8, 6), (c, p, nn) => { c.multiplyScalar(0.84 + 0.26 * sv(-0.5, 0.9, nn.y)); tinta(c, brillo, 0.2 * sv(0.0, 0.8, nn.y)); }));
+    }
   }
   if (R.coleta) {
     // 3.7.0: la coleta (el pelo atado atrás): la gomita y la cola que cae por la espalda
@@ -679,7 +693,7 @@ function pestanas(F, lat, pos, col, sup, idx, colL) {
   const punto = (u, k, atras) => {
     const [ar] = bordesAlmendra(u, F);
     const fuera = sv(0.2, 0.93, u);
-    const largo = (F.chico ? 0.12 : F.mujer ? 0.17 : 0.09) * (0.75 + 0.7 * fuera);
+    const largo = (F.chico ? 0.12 : F.mujer ? 0.17 : 0.09) * (0.75 + 0.7 * fuera) * (F.pest || 1);
     const uu = u + k * largo * 0.55 * fuera, vv = ar - 0.012 + k * largo * (1 - 0.35 * fuera);
     const r = re * (1.048 + k * 0.13) - (atras ? 0.00022 : 0);
     const z = Math.sqrt(Math.max(0.03, 1 - uu * uu - vv * vv));
@@ -723,8 +737,8 @@ function ojo(F, iris) {
   for (let i = 0; i < N; i++) for (let k = 0; k < K - 1; k++) { const a = i * K + k, b = (i + 1) * K + k; idx.push(a, a + 1, b, a + 1, b + 1, b); }   // (hacia afuera)
   // el brillo: un disquito blanco apenas delante de la córnea, arriba a un costado (igual en los dos ojos)
   // (4.0: el brillo principal más grande y el chico abajo a la izquierda, como el reflejo de la ventana en las referencias de arte)
-  for (const [rb, dd, kk] of [[0.2, new THREE.Vector3(0.36, 0.42, 0.85).normalize(), 1.007], [0.085, new THREE.Vector3(-0.24, -0.28, 0.94).normalize(), 1.006]]) {
-    const c0 = pos.length / 3, centro = dd.clone().multiplyScalar(F.re * kk);
+  for (let [rb, dd, kk] of [[0.2, new THREE.Vector3(0.36, 0.42, 0.85).normalize(), 1.007], [0.085, new THREE.Vector3(-0.24, -0.28, 0.94).normalize(), 1.006]]) {
+    const c0 = pos.length / 3, centro = dd.clone().multiplyScalar(F.re * kk); rb *= F.brillo || 1;
     const u1 = new THREE.Vector3().crossVectors(dd, new THREE.Vector3(0, 1, 0)).normalize(), u2 = new THREE.Vector3().crossVectors(u1, dd).normalize();
     pos.push(centro.x, centro.y, centro.z); col.push(1, 1, 1);
     for (let i = 0; i < 10; i++) {

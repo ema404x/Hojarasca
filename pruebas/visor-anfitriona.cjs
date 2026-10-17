@@ -123,7 +123,9 @@ app.whenReady().then(async () => {
     P.camara(cam, { x: c.x, z: c.z, y: y0 + o.mira }, o.fov);
     return 1 })()`;
   const congelar = `(() => { window.__proto.hora(${HORA}); return 1 })()`;
+  const SOLO = arg('tomas', '').split(',').filter(Boolean);
   for (const [nombre, t] of Object.entries(TOMAS)) {
+    if (SOLO.length && !SOLO.includes(nombre)) continue;
     await js(montar(t)); await esperar(2500); await js(montar(t)); await esperar(800); await js(congelar); await js(montar(t)); await esperar(600);
     const img = await w.webContents.capturePage();
     fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());

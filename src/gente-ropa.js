@@ -257,11 +257,12 @@ export const ASPECTO = {
   'aldea-anfitriona': {
     edad: 36, mujer: true,
     cuerpo: { ancho: 0.96, fondo: 0.98, brazos: 0.94, piernas: 1.0, alto: 1.03, busto: 1.5 },
-    cara: { ancho: 1.02, largo: 0.98, nariz: 0.8, ojos: 1.14, boca: 1.08, pomulos: 1.3, sonrisa: 0.9, labios: 1.0, arco: 1.3, rasgado: 0.04, rouge: '#b8303a', rubor: 2.2, iris: '#5c7fa6' },
+    // (4.0, pulido: cara más redonda y amable —más ancha, menos larga, mandíbula menos angosta—, ojos grandes con brillo y pestañas largas, cejas finas y curvas, rubor y sonrisa más marcados)
+    cara: { ancho: 1.07, largo: 0.95, nariz: 0.8, ojos: 1.3, boca: 1.14, abre: 1.22, mand: 0.2, pomulos: 1.35, sonrisa: 1.1, labios: 1.05, arco: 1.4, cejas: 0.8, pestanas: 1.2, brillo: 1.3, rasgado: 0.04, rouge: '#b8303a', rubor: 3.0, iris: '#5c7fa6' },
     colores: { piel: '#edc8a6', pelo: '#d6bd68', ropa: '#ece6d8', abrigo: '#232a3c', gorro: null, bufanda: null, aros: 'chicos' },
     // (hoja de modelo del 13-10: jumper azul sobre blusa crema de cuello alto —camisa + chaleco—, faja roja, delantal con dos rayas rojas,
     // medias crema y zapatos bordó)
-    R: { mujer: true, talle: true, pollera: true, polleraLarga: true, colPollera: '#232a3c', rodete: true, rodeteBajo: true, peloEsculpido: true, rayaCostado: true, chaleco: true, jumper: true, telaChaleco: 'lana', telaPollera: 'lana', cuelloAlto: true, mangaAbullonada: true,
+    R: { mujer: true, talle: true, pollera: true, polleraLarga: true, colPollera: '#232a3c', rodete: true, rodeteBajo: true, peloEsculpido: true, rayaCostado: true, masaPelo: 0.004, rodeteGrande: true, mechonesFrente: true, chaleco: true, jumper: true, telaChaleco: 'lana', telaPollera: 'lana', cuelloAlto: true, mangaAbullonada: true,
       faja: '#b4202a', delantal: '#e9dfc8', telaDelantal: 'lienzo', delantalSinPechera: true, delantalRayas: '#b5342c', delantalHoja: '#b5342c', florPelo: '#d8302e', zapatos: '#7a2a22', vivoPollera: '#c9a858', pantalon: '#e8e0d0' },
     guardas: {},   // (el vivo dorado de la pollera, la hoja y las rayas del delantal van pintados, no son guardas del atlas)
     poses: ['juntas', 'cintura', 'delantal'],
