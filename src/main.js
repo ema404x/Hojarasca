@@ -1498,6 +1498,8 @@ function mostrarAviso(t) {
   if (!t) { a.classList.add('oculto'); a.textContent = ''; return; }
   a.innerHTML = '';
   const k = document.createElement('kbd'); k.textContent = teclaVisible(t.tecla, teclasPropias); a.appendChild(k);   // 3.8.4: la tecla del jugador
+  // 4.0.3 (G10): con un mando enchufado, el cartel de «E · Hablar» dice el botón (X) y no una tecla que no se está tocando
+  if (document.body.classList.contains('con-mando') && t.tecla === 'E' && k.textContent === 'E') k.textContent = mando.boton('interactuar') || 'E';
   a.appendChild(document.createTextNode(T_(t.texto)));
   a.classList.remove('oculto');
 }

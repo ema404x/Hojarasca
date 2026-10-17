@@ -165,6 +165,12 @@ export function crearColisiones() {
       // comparaban solo los pies con alturaMin y los muebles elevados
       // resultaban atravesables aun cuando el torso los intersectaba.
       if (o.alturaMin !== undefined && cabeza < o.alturaMin - 0.01) continue;
+      // 4.0.3 (H3): descarte por caja antes de la cuenta fina. Las puertas (`dinamicos`) se prueban todas en cada llamada, de cada cuerpo y cada cuadro, aunque
+      // estén a 300 m: fuera de la caja del obstáculo ensanchada en `r + radio` el círculo no puede tocarlo. Mismo resultado exacto, sin `hypot`.
+      const alcance = o.r + radio;
+      if (o.seg) {
+        if ((pos.x < o.ax - alcance && pos.x < o.bx - alcance) || (pos.x > o.ax + alcance && pos.x > o.bx + alcance) || (pos.z < o.az - alcance && pos.z < o.bz - alcance) || (pos.z > o.az + alcance && pos.z > o.bz + alcance)) continue;
+      } else if (pos.x < o.x - alcance || pos.x > o.x + alcance || pos.z < o.z - alcance || pos.z > o.z + alcance) continue;
       let cx = o.x, cz = o.z;
       if (o.seg) {
         const abx = o.bx - o.ax, abz = o.bz - o.az;
