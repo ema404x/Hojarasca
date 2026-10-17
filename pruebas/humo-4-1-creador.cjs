@@ -38,6 +38,9 @@ app.whenReady().then(async () => {
   const pj = () => js(`JSON.stringify(window.__hojarasca.__personal.datos().personaje)`).then(JSON.parse);
 
   // ---- 1. entrar abre la pantalla de creación
+  // (la página que se va guarda su partida al descargarse: se descarga primero y recién después se borra el almacenamiento; si no, un perfil usado de antes ya trae a Bruno creado)
+  await w.loadURL('about:blank');
+  await w.webContents.session.clearStorageData({ storages: ['localstorage'] });
   await cargar('?debug=1&creador=1');
   await js(`localStorage.clear(); localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'media', clima:'despejado', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, estacion:'verano'})); 1`);
   ok(await cargar('?debug=1&creador=1'), 'cargó el juego');
@@ -65,6 +68,10 @@ app.whenReady().then(async () => {
   ok(await js(`document.querySelector('#creador-bruno .cb-ficha').textContent.includes('ya está al máximo')`), 'la tarjeta avisa cuando un sistema llegó al máximo');
   ok(await clic('Volver') && await js(`document.querySelector('#creador-bruno .cb-paso b.act').textContent.includes('aspecto')`), '«Volver» vuelve al aspecto');
   ok(await clic('Siguiente') && await clic('Empezar'), '«Empezar» termina la creación');
+  await esperar(2500);
+  // 4.1 (F4): una partida nueva ve el prólogo después de crear a Bruno; acá se salta (el recorrido del prólogo es de humo-4-1-prologo.cjs)
+  ok(await js(`!!document.getElementById('prologo-bruno')`), 'una partida nueva muestra el prólogo después de crear a Bruno');
+  await js(`[...document.querySelectorAll('#prologo-bruno button')].find((b) => b.textContent === 'Saltar el prólogo').click(); 1`);
   await esperar(2500);
 
   // ---- 4. lo que quedó

@@ -17,11 +17,17 @@ import { fila, boton, parrafo } from './personal-controles.js';
 const RETRATO_MAX = 60000;
 const PREFIJO_RETRATO = 'data:image/jpeg;base64,';
 export const retratoValido = (v) => typeof v === 'string' && v.length <= RETRATO_MAX && v.startsWith(PREFIJO_RETRATO) && v.length > PREFIJO_RETRATO.length && /^[A-Za-z0-9+/]+={0,2}$/.test(v.slice(PREFIJO_RETRATO.length));
-export const brunoDefecto = () => ({ ...genomaDefecto(), creado: false, retrato: '', espejoPuesto: false });
+// `prologoVisto` (4.1, F4): si ya pasó por el prólogo de texto. Vale `true` salvo que una partida NUEVA lo deje pendiente (false) al crear a Bruno: las partidas viejas y el Desafío no lo ven.
+export const brunoDefecto = () => ({ ...genomaDefecto(), creado: false, retrato: '', espejoPuesto: false, prologoVisto: true });
 export function sanearBruno(d) {
   const x = d && typeof d === 'object' ? d : {};
-  return { ...sanearGenoma(x), creado: x.creado === true, retrato: retratoValido(x.retrato) ? x.retrato : '', espejoPuesto: x.espejoPuesto === true };
+  return { ...sanearGenoma(x), creado: x.creado === true, retrato: retratoValido(x.retrato) ? x.retrato : '', espejoPuesto: x.espejoPuesto === true, prologoVisto: x.prologoVisto !== false };
 }
+
+// ¿Hay que mostrar el prólogo? Sólo en el Relax, con Bruno ya creado y el prólogo pendiente (lo dejó pendiente una partida nueva al crearlo).
+export const debeMostrarPrologo = (bruno, esDesafio) => !esDesafio && !!bruno && bruno.creado === true && bruno.prologoVisto === false;
+// Al crear a Bruno: ¿ya está «visto» el prólogo? Sí en una partida ya empezada y en el Desafío; sólo una partida nueva del Relax lo deja pendiente.
+export const prologoVistoAlCrear = (partidaEmpezada, esDesafio) => !!partidaEmpezada || !!esDesafio;
 
 // El color de piel de Bruno (también para la mano en primera persona).
 export const pielDeBruno = (bruno) => (PIELES.find((p) => p.id === sanearBruno(bruno).piel) || PIELES[0]).color;

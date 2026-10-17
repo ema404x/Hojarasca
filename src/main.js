@@ -112,7 +112,7 @@ import { crearFiestasJuego } from './fiestas-juego.js';
 import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
 import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN } from './cocina-pasos.js';
-import { sumarAmistadDe, cambiarAmistad, nombreCorto, amistades, fijarModificadorAmistad } from './vecindad.js';
+import { sumarAmistadDe, cambiarAmistad, nombreCorto, amistades, fijarModificadorAmistad, fijarGustosDeBruno } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
 import { RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from './rastreo.js';
@@ -223,6 +223,9 @@ import { crearCuerpoJugador, crearManoPropia } from './personal-personaje-mundo.
 // 4.1: Bruno Castellanos: la pantalla de creación (antes de entrar al bosque) y el espejo
 import { abrirCreador } from './creador-pantalla.js';
 import { dibujarFichaBruno } from './creador-ficha.js';
+// 4.1 (F4): el prólogo
+import { abrirPrologo } from './creador-prologo.js';
+import { debeMostrarPrologo, prologoVistoAlCrear } from './personal-bruno.js';
 import { genomaDesdePersonajeViejo } from './creador-personaje.js';
 // 4.1 (F3): lo que los rasgos de Bruno cambian en el juego (abrigo, afecto, pesca, cuaderno); sólo en el Relax y con Bruno creado
 import { abrigoExtra, modificadorDeAmistad, factorPiqueBruno, factorCuadernoBruno } from './creador-efectos.js';
@@ -2160,6 +2163,11 @@ if (esDesafio && !partidaEmpezada() && progreso.desafio?.semilla && $('codigo-pa
 $('btn-entrar').addEventListener('click', () => {
   // 4.1: Bruno Castellanos: antes de entrar por primera vez a una partida, la pantalla de creación (también en las partidas viejas); al terminar, entra solo
   if (!sinCreadorDeBruno() && !progreso.personal?.bruno?.creado) { crearABruno('crear', () => $('btn-entrar').click()); return; }
+  // 4.1 (F4): el prólogo (5 tarjetas de texto) de una partida nueva, justo después de crear a Bruno; al terminar o saltarlo, entra solo (a la llegada al refugio)
+  if (!sinCreadorDeBruno() && debeMostrarPrologo(progreso.personal?.bruno, esDesafio)) {
+    abrirPrologo({ alTerminar: () => { const sB = secciones().find((x) => x.id === 'bruno'); if (sB) cambiarPersonal(sB, { prologoVisto: true }); $('btn-entrar').click(); } });
+    return;
+  }
   // 3.8.4: la corrida sin fin fija su dificultad al entrar (una corrida de antes sin dificultad, la de ahora)
   if (esSinFin && progreso.desafio?.sinFin && !progreso.desafio.sinFin.terminada && !progreso.desafio.sinFin.dificultad) {
     progreso.desafio.sinFin.dificultad = dificultadDeCorrida(null, ajustes.dificultad);
@@ -2695,7 +2703,7 @@ function crearABruno(modo, alTerminar) {
       creadorAbierto = null;
       // al crear, la campera y el accesorio que eligió pasan a «Tu personaje» (el guardarropa); al rehacer, no se toca la ropa
       if (modo === 'crear') cambiarPersonal(sPersonaje, { campera: g.campera, gorro: g.accesorio === 'gorro', bufanda: g.accesorio === 'bufanda' });
-      cambiarPersonal(sBruno, { ...g, creado: true, retrato: retrato || '' });
+      cambiarPersonal(sBruno, { ...g, creado: true, retrato: retrato || '', prologoVisto: prologoVistoAlCrear(!!progreso.pos || entroAlJuego, esDesafio) });   // 4.1 (F4): sólo una partida nueva ve el prólogo
       if (modo === 'crear') colocarEspejoDeFabrica();
       alTerminar?.();
     },
@@ -2729,6 +2737,8 @@ function colocarEspejoDeFabrica() {
 const sinCreadorDeBruno = () => HOJARASCA_DEBUG && new URLSearchParams(location.search).get('creador') !== '1';
 // 4.1 (F3): el afecto con los vecinos: los rasgos y los gustos de Bruno cambian cuánto suma cada gesto bueno (ver creador-efectos.js). Una vez, al cargar el juego; lee a Bruno en el momento del gesto.
 fijarModificadorAmistad(modificadorDeAmistad(() => progreso?.personal?.bruno, esDesafio));
+// 4.1 (F4): y los vecinos dicen en voz alta los gustos de Bruno que comparten (asado, lluvia): sólo con Bruno creado y fuera del Desafío
+fijarGustosDeBruno(() => (!esDesafio && progreso?.personal?.bruno?.creado ? progreso.personal.bruno.gustos : []));
 function aplicarPersonal() {
   for (const s of secciones()) {
     if (typeof s.aplicar !== 'function') continue;
