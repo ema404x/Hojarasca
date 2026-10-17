@@ -1,5 +1,7 @@
 # Textos de Bruno: plantilla para escribir (F0)
 
+> **F4 (17-10-2026): el usuario no completó esta plantilla; los textos los escribió Claude** (prólogo con los textos que eligió el usuario; 32 tarjetas y 26 líneas de vecinos propuestas por Claude, a revisar). **Viven en `src/creador-textos.js`**: se editan ahí. Esta plantilla queda como referencia de los largos y del tono.
+
 Esta plantilla es para vos: completás lo que dice «…». Yo después **adapto al voseo y a las voces de los vecinos** y lo integro en la F4.
 Los **límites de largo** son para que entre en la pantalla: si te pasás un poco no pasa nada, pero avisame así lo reviso.
 

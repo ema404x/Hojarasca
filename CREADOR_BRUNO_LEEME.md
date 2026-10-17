@@ -16,7 +16,7 @@ muestran en texto, sin números. **Los efectos valen sólo en el Relax** («La n
 | F1 | Datos, reglas y pruebas (`creador-catalogo.js`, `creador-personaje.js`) | hecha |
 | F2 | Pantalla de creación, sección «Bruno» en Personalizar, retrato, pestaña del cuaderno, espejo | hecha, salvo mando |
 | F3 | **Efectos** de los rasgos en abrigo, afecto, pesca y cuaderno; guardarropa | hecha en la rama `creador-bruno-f3` (ver `CAMBIOS_4_1_F3.md`: decisiones y preguntas); falta la ropa de fiesta |
-| F4 | Prólogo, textos definitivos y las 26 líneas de vecinos (asado y lluvia) | **falta** (los textos los escribe el autor) |
+| F4 | Prólogo, textos y las 26 líneas de vecinos (asado y lluvia) | hecha en la rama `creador-bruno-f4` (ver `CAMBIOS_4_1_F4.md`): textos escritos por Claude a pedido, **a revisar por el usuario**, todos en `src/creador-textos.js`; falta mando, música o imagen del prólogo y el inglés |
 | F5 | Cierre: todas las pruebas, una partida de punta a punta con varios Brunos | falta |
 
 **Lo que ya anda dentro del juego:** «Entrar al bosque» abre la pantalla de creación si Bruno todavía no fue creado (partidas nuevas y viejas); dos pantallas con vista previa 3D que gira; todo se guarda
