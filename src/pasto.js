@@ -21,10 +21,28 @@ import { nivelTexturas, texturaManchas } from './texturas.js';
 import { rng } from './ruido.js';
 import { texturaCartas, CELDAS_CARTA, FILAS_CARTA } from './vegetacion.js';
 import { PLANTAS_MAX } from './config.js';
+import { N_PISADAS, calidadConPisadas } from './pisadas.js';
 
 // el anillo: cada instancia tiene un lugar fijo en el mundo que se repite cada 2R metros
 const GLSL_ANILLO = /* glsl */`
   uniform float uR; uniform vec3 uCam; uniform vec3 uMira;
+  // 4.0 (aplastado, sólo calidad alta): las pisadas del jugador y los animales (pisadas.js; x, z, radio, fuerza).
+  // Devuelve (empuje en x, empuje en z, cuánto se aplastó) para el pie de la planta.
+  uniform vec4 uPisadas[${N_PISADAS}];
+  vec3 pisadas(vec2 b) {
+    vec3 r = vec3(0.0);
+    for (int i = 0; i < ${N_PISADAS}; i++) {
+      vec4 s = uPisadas[i];
+      if (s.w <= 0.0) continue;
+      vec2 a = b - s.xy;
+      float q = dot(a, a);
+      if (q >= s.z * s.z) continue;
+      float k = s.w * (1.0 - smoothstep(0.0, s.z * s.z, q));
+      r += vec3(normalize(a + vec2(1e-4)) * k, k);
+    }
+    r.xy *= min(1.0, 1.0 / max(r.z, 1e-3));
+    return r;
+  }
   vec2 lugarAnillo(vec2 offset) { return uCam.xz + mod(offset - uCam.xz + uR, 2.0 * uR) - uR; }
   // 3.4 (sotobosque): el mismo anillo con su propio radio (r ≤ uR)
   vec2 lugarAnilloR(vec2 offset, float r) { return uCam.xz + mod(offset - uCam.xz + r, 2.0 * r) - r; }
@@ -88,7 +106,7 @@ function uniformesAnillo(R, fino) {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uR: { value: R }, uCam: { value: new THREE.Vector3() }, uMira: { value: new THREE.Vector3(0, 0, -1) } }]);
   Object.assign(uniforms, {
     uTiempo: U.uTiempo, uViento: U.uViento, uOtono: U.uOtono, uInvierno: U.uInvierno, uJugador: U.uJugador, uEscarcha: U.uEscarcha,
-    uAlturas: U.uAlturas, uMascara: U.uMascara, uEstepa: U.uEstepa, uSolDir: U.uSolDir, uSolColor: U.uSolColor, uAmbiente: U.uAmbiente,
+    uPisadas: U.uPisadas, uAlturas: U.uAlturas, uMascara: U.uMascara, uEstepa: U.uEstepa, uSolDir: U.uSolDir, uSolColor: U.uSolColor, uAmbiente: U.uAmbiente,
     uBruma: U.uBruma, uBrumaSol: U.uBrumaSol, uBrumaFuerza: U.uBrumaFuerza, uGradoMat: U.uGradoMat, uSolDirEst: U.uSolDir,
   });
   if (fino) uniforms.uManchas = { value: texturaManchas() };
@@ -101,6 +119,8 @@ export function crearPasto(calidad) {
   // 2.7: con detalle material, hojas más finas (y más anchas sólo a lo lejos, donde
   // una hoja fina titilaría), color por hoja y las manchas del prado
   const fino = nivelTexturas() > 0;
+  // 4.0: el aplastado sólo en calidad alta
+  const rico = calidadConPisadas(calidad);
 
   // hoja: 2 tramos + punta (3.2: antes 3; con el doblez del viento no se nota)
   // 3.4 (sotobosque): tres hojas por mata (aHoja: cuál), que salen del mismo pie
@@ -177,6 +197,7 @@ export function crearPasto(calidad) {
 
   const mat = new THREE.ShaderMaterial({
     uniforms,
+    defines: rico ? { RICO: 1 } : {},
     fog: true,
     side: THREE.DoubleSide,
     vertexShader: /* glsl */`
@@ -249,6 +270,15 @@ export function crearPasto(calidad) {
         float empuje = smoothstep(1.3, 0.0, pd) * t * t;
         p.xz += normalize(aleja + 0.0001) * empuje * 0.55 * alto;
         p.y -= empuje * 0.35 * alto;
+        #ifdef RICO
+        // 4.0: el pasto se aplasta y se abre donde pasaron vos, el perro, el caballo o un pudú, y de a poco se vuelve a parar
+        // (se apaga entre 14 y 22 m de la cámara para que no se note el corte)
+        if (d < 22.0) {
+          vec3 ps = pisadas(b) * (1.0 - smoothstep(14.0, 22.0, d));
+          p.xz += ps.xy * (t * t * alto * 0.75);
+          p.y -= min(ps.z, 1.0) * t * t * alto * 0.55;
+        }
+        #endif
         vec4 mvPosition = viewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -318,7 +348,7 @@ export function crearPasto(calidad) {
   const uFila = (1 / FILAS_CARTA).toFixed(5);
   const [luU, luV] = celdaUV(CELDAS_CARTA.lupino), [maU, maV] = celdaUV(CELDAS_CARTA.margarita), [amU, amV] = celdaUV(CELDAS_CARTA.amancay);
   const flores = nFlores ? crearAnillo({
-    R: Rf, cantidad: nFlores, semilla: 131, fino, cartas: true,
+    R: Rf, cantidad: nFlores, semilla: 131, fino, cartas: true, rico,
     geometria: () => {
       const esq = [], ind2 = [];
       for (let k = 0; k < 2; k++) {
@@ -383,6 +413,13 @@ export function crearPasto(calidad) {
         q.xz += dirV * aEsquina.y * aEsquina.y * esc * uViento * (0.1 + 0.28 * racha) * (0.8 + 0.4 * sin(uTiempo * 3.1 + b.x));
         vec2 aleja = b - uJugador.xz;
         q.xz += normalize(aleja + 0.0001) * smoothstep(1.2, 0.0, length(aleja)) * aEsquina.y * esc * 0.5;
+        #ifdef RICO
+        if (d < 22.0) {
+          vec3 ps = pisadas(b) * (1.0 - smoothstep(14.0, 22.0, d));
+          q.xz += ps.xy * aEsquina.y * esc * 0.5;
+          q.y -= min(ps.z, 1.0) * aEsquina.y * esc * 0.3;
+        }
+        #endif
         vec3 p = vec3(b.x, h - 0.03, b.y) + q;
         vec4 mvPosition = viewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mvPosition;
@@ -420,7 +457,7 @@ export function crearPasto(calidad) {
   const nHelechos = Math.max(0, Math.round(n * 0.019));
   const [frU, frV] = celdaUV(CELDAS_CARTA.fronda);
   const helechos = nHelechos ? crearAnillo({
-    R: Rh, cantidad: nHelechos, semilla: 177, fino, cartas: true,
+    R: Rh, cantidad: nHelechos, semilla: 177, fino, cartas: true, rico,
     geometria: () => {
       const p = [], tt = [], uvs = [], ind2 = [];
       const rf = rng(11);
@@ -479,6 +516,9 @@ export function crearPasto(calidad) {
         q.xz += dirV * aT * aT * esc * uViento * (0.12 + racha * 0.25) * (0.8 + 0.4 * sin(uTiempo * 2.3 + b.y));
         vec2 aleja = b - uJugador.xz;
         q += vec3(normalize(aleja + 0.0001).x, -0.4, normalize(aleja + 0.0001).y) * smoothstep(1.4, 0.0, length(aleja)) * aT * 0.4 * esc;
+        #ifdef RICO
+        if (d < 22.0) { vec3 ps = pisadas(b) * (1.0 - smoothstep(14.0, 22.0, d)); q += vec3(ps.x, -min(ps.z, 1.0) * 0.5, ps.y) * aT * 0.4 * esc; }
+        #endif
         vec3 p = vec3(b.x, h, b.y) + q;
         vec4 mvPosition = viewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mvPosition;
@@ -541,7 +581,7 @@ export function crearPasto(calidad) {
 // 3.4 (sotobosque): `cartas`: la malla lee el atlas de cartas (vUvCarta, vVerde, vCentro)
 // 3.5: `ajustar(f)` estira el anillo a f·R con f² de las matas (la misma densidad); con f = 1,
 // las mismas de antes. Los búferes ya vienen del tamaño del máximo.
-function crearAnillo({ R, cantidad, semilla, geometria, vertice, fino, cartas = false }) {
+function crearAnillo({ R, cantidad, semilla, geometria, vertice, fino, cartas = false, rico = false }) {
   const geo = geometria();
   const capacidad = Math.ceil(cantidad * PLANTAS_MAX * PLANTAS_MAX) + 4;
   const offs = new Float32Array(capacidad * 2), azar = new Float32Array(capacidad);
@@ -564,6 +604,7 @@ function crearAnillo({ R, cantidad, semilla, geometria, vertice, fino, cartas = 
   if (cartas) uniforms.uCartas = { value: texturaCartas() };
   const mat = new THREE.ShaderMaterial({
     uniforms,
+    defines: rico ? { RICO: 1 } : {},
     fog: true,
     side: THREE.DoubleSide,
     vertexShader: /* glsl */`
