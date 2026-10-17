@@ -237,7 +237,17 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
     panel.querySelector('.cb-boton.principal')?.focus({ preventScroll: true });
   }
   // mientras está abierta, el resto del juego no recibe teclas (sí los botones: Tab, Enter y Espacio); Escape cancela sólo al rehacer
-  const alTeclear = (e) => { e.stopPropagation(); if (e.key === 'Escape' && modo === 'rehacer') { e.preventDefault(); cancelar(); } };
+  const alTeclear = (e) => {
+    e.stopPropagation();
+    if (e.key === 'Tab') {   // 4.0.2: el foco no se va a los botones de la portada que están detrás: con Tab (y Mayús+Tab) da la vuelta adentro
+      const fs = [...raiz.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.disabled && x.offsetParent !== null);
+      if (fs.length) {
+        const k = fs.indexOf(document.activeElement);
+        if (k < 0 || (!e.shiftKey && k === fs.length - 1) || (e.shiftKey && k === 0)) { e.preventDefault(); fs[k < 0 || !e.shiftKey ? 0 : fs.length - 1].focus({ preventScroll: true }); }
+      }
+    }
+    if (e.key === 'Escape' && modo === 'rehacer') { e.preventDefault(); cancelar(); }
+  };
   const alSoltarTecla = (e) => e.stopPropagation();
   window.addEventListener('keydown', alTeclear, true); window.addEventListener('keyup', alSoltarTecla, true);
 

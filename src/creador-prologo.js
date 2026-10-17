@@ -76,6 +76,13 @@ export function abrirPrologo({ alTerminar } = {}) {
   // mientras está abierto, el resto del juego no recibe teclas; sobre un botón, Enter y Espacio hacen lo del botón
   function alTeclear(e) {
     e.stopPropagation();
+    if (e.key === 'Tab') {   // 4.0.2: el foco no se va a los botones de la portada que están detrás: con Tab (y Mayús+Tab) da la vuelta adentro
+      const fs = [...raiz.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.disabled && x.offsetParent !== null);
+      if (fs.length) {
+        const k = fs.indexOf(document.activeElement);
+        if (k < 0 || (!e.shiftKey && k === fs.length - 1) || (e.shiftKey && k === 0)) { e.preventDefault(); fs[k < 0 || !e.shiftKey ? 0 : fs.length - 1].focus({ preventScroll: true }); }
+      }
+    }
     if (e.repeat && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); return; }   // 4.0.1: Enter sostenido al cerrar la creación pasaba las cinco tarjetas
     const enBoton = !!e.target?.closest?.('button');
     if ((e.key === 'Enter' || e.key === ' ') && enBoton) return;
