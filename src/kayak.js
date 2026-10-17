@@ -138,6 +138,13 @@ export function crearKayak(T, escena, camara, col, sonido) {
     return true;
   }
 
+  // 4.0.1: te bajan a la fuerza (caer en el Desafío arriba del kayak): sin buscar orilla
+  function soltar(jugador) {
+    est.activo = false; est.vel = 0; est.giro = 0;
+    remo.visible = false;
+    jugador.estado.enKayak = false;
+  }
+
   function actualizar(dt, tecla, jugador, tiempo) {
     if (!est.activo) { colocarBarco(tiempo); return; }
     const adelante = tecla('KeyW') || tecla('ArrowUp');
@@ -215,5 +222,5 @@ export function crearKayak(T, escena, camara, col, sonido) {
     bote.personalizar?.(personal);
   }
 
-  return { est, cerca, subir, bajar, actualizar, lugarParaBajar, remo, personalizar, barco, personal: () => personal, sumarBote };
+  return { est, cerca, subir, bajar, soltar, actualizar, lugarParaBajar, remo, personalizar, barco, personal: () => personal, sumarBote };
 }

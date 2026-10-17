@@ -1107,6 +1107,12 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     return true;
   }
 
+  // 4.0.1: te bajan a la fuerza (caer en el Desafío arriba de la trochita): sin andén, el tren sigue y vos quedás a pie
+  function soltar(jugador) {
+    est.subido = false;
+    jugador.estado.enTren = false;
+  }
+
   function proximoTrenA(parada) {
     if (!parada) return null;
     const d = delta(est.s, poste(parada));
@@ -1228,7 +1234,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   return {
     varadoEnNieve, bajarEnLaNieve,
     soloLocomotora: () => !hayCoches(),   // 3.8.6: sin coches (el taller con vagones y ninguno enganchado)
-    est, actualizar, puedeSubir, subir, bajar, moverse, proximoTrenA, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
+    est, actualizar, puedeSubir, subir, bajar, soltar, moverse, proximoTrenA, reiniciarVuelta, estacion, paradas, chunks, cruces, enVia, paradaCerca,
     // 3.7.3: el lugar donde vas, ir a uno (la cocina, una cama), la vía nevada y dónde para la locomotora
     asientoActual: () => (est.subido && !est.conduce ? ASIENTOS[est.asiento] : null), irA, taparVia, viaNevada: () => est.nevada.slice(), poste,
     viajando: () => est.subido, parado: () => est.parado > 0 || paradoEnCabina(),

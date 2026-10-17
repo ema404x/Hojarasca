@@ -737,7 +737,7 @@ async function construir() {
     movimientoCamara: () => ajustes.movimientoCamara,
     invierno: () => U.uInvierno.value,
     otono: () => U.uOtono.value,
-    alSoltar: () => { if (modo === 'jugando') abrir('pausa'); },
+    alSoltar: () => { if (modo === 'jugando' && !creadorAbierto) abrir('pausa'); },   // (4.0.1: soltar el mouse para usar el creador no abre la pausa detrás)
     alBloquear: () => {},
     capturarMirada: (dx, dy) => (!!charla.menu && !foto.activo ? apuntarRueda(dx, dy) : false),   // 3.7.4: la rueda
     flechasOcupadas: () => !!charla.menu,   // 3.7.4
@@ -1798,8 +1798,9 @@ function terminarBanco() {
   $('banco-informe').textContent = informe;
   traducirPanel($('banco'));
   $('banco').classList.remove('oculto');
-  $('hud').classList.remove('oculto');
-  modo = 'pausa';
+  // 4.0.1: si lo largaste desde la portada, volvés a la portada (antes quedaba el HUD prendido, el mundo corriendo detrás y «Seguir» dejaba la partida en marcha bajo la portada)
+  if (g?.modo === 'inicio') { $('hud').classList.add('oculto'); modo = 'inicio'; }
+  else { $('hud').classList.remove('oculto'); modo = 'pausa'; }
   guardarAjustes(ajustes);
 }
 function tarjetaDeVideo() {
@@ -1819,7 +1820,7 @@ function actualizarBanco(dtReal) {
 }
 $('btn-banco').addEventListener('click', () => empezarBanco());
 $('btn-banco-inicio').addEventListener('click', () => empezarBanco());
-$('cerrar-banco').addEventListener('click', () => { $('banco').classList.add('oculto'); abrir('pausa'); });
+$('cerrar-banco').addEventListener('click', () => { $('banco').classList.add('oculto'); if (modo !== 'inicio') abrir('pausa'); });   // (4.0.1: desde la portada no se abre la pausa)
 $('banco-copiar').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(banco.informe || ''); nota('Copiado', 'El informe quedó en el portapapeles'); }
   catch { nota('No se pudo copiar', 'Seleccioná el texto y copialo a mano'); }
@@ -1996,7 +1997,7 @@ $('lienzo-mapa').addEventListener('contextmenu', sacarDelMapa);
 // `sinMouse` (3.8.6): sin atrapar el mouse, porque sigue abierto un panel del HUD que se usa con él (el almacén, la cocina…)
 function volverAlJuego(sinMouse = false) {
   reiniciarMedicion(autoCalidad);
-  for (const id of ['pausa', 'cuaderno', 'mapa']) $(id).classList.add('oculto');
+  for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');   // (4.0.1: y el informe del banco, que con el segundo Esc quedaba tapando el juego)
   modo = 'jugando';
   entroAlJuego = true;   // 3.8.3
   $('hud').classList.remove('oculto');
@@ -2706,6 +2707,9 @@ function cambiarPersonal(s, parcial) {
 let creadorAbierto = null;
 function crearABruno(modo, alTerminar) {
   if (creadorAbierto) return;
+  // 4.0.1: desde el espejo (con el mouse bloqueado y quizás una tecla apretada) se suelta el mouse y se olvidan las teclas: el creador no deja pasar los keyup y el personaje seguía caminando solo
+  if (document.pointerLockElement) { try { jugador.soltar(); } catch { /* sin bloqueo */ } }
+  jugador.teclas.clear();
   const sBruno = secciones().find((x) => x.id === 'bruno'), sPersonaje = secciones().find((x) => x.id === 'personaje');
   if (!sBruno || !sPersonaje) { alTerminar?.(); return; }
   const personaje = datosPersonal(sPersonaje);
@@ -2864,7 +2868,7 @@ function mostrarVictoria(s, final = false) {
   setTimeout(() => {
     // 3.8.3: en esos segundos se pudo pausar (espera a que vuelvas) o salir a la portada (ahí no se abre: quedaba la
     // pantalla de victoria sobre la portada y «Seguir» volvía al juego detrás de ella)
-    if (modo !== 'jugando') { if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle') mostrarVictoria(s, final); return; }
+    if (modo !== 'jugando') { if (modo === 'pausa' || modo === 'dialogo' || modo === 'valle' || modo === 'cuaderno' || modo === 'mapa') mostrarVictoria(s, final); return; }   // (4.0.1: y con el cuaderno o el mapa abiertos)
     // 3.0: si se ganó desde adentro de la nave (el asedio), la pantalla lo cuenta
     $('victoria-titulo').textContent = final ? 'Se derrumbó la cueva' : s?.nave ? 'El Coihue cayó desde adentro' : '¡Cayó el Coihue Viejo!';
     $('victoria-sub').textContent = final ? 'Se terminó La noche de los duendes' : 'Ganaste La noche de los duendes';
@@ -4281,6 +4285,8 @@ function caerEnDesafio() {
   if (modoObra) abrirObra(false);
   if (mochilaAbierta) abrirMochila(false);
   desafio?.abrirTaller(false);
+  // 4.0.1: si caés arriba del velero, el kayak o la trochita, te bajan (antes seguías en el lago o en el tren y se guardaba el muelle o la estación)
+  { const js = jugador.estado; if (js.enVela) vela.soltar(jugador); if (js.enKayak) kayak.soltar(jugador); if (js.enTren) tren.soltar(jugador); }
   nota('Los duendes te dejaron fuera de combate', 'Perdiste las semillas doradas y parte de los materiales', true);
   // 3.8.4: la caída se anota en el momento y se guarda: antes todo pasaba al final del fundido y cerrar el juego en
   // ese segundo y medio la evitaba (ni materiales perdidos ni noche perdida, y al abrir seguías donde caíste)
@@ -4528,6 +4534,8 @@ function leerMando(dt) {
     if (m.recien.objetoAnterior) { if (charla.menu) moverMenuCharla(-1); else elegirRanura(elegida - 1); }
     if (m.recien.objetoSiguiente) { if (charla.menu) moverMenuCharla(1); else elegirRanura(elegida + 1); }
   }
+  // 4.0.1: soltar L2 siempre suelta el escudo (también con el taller o los planos abiertos; antes quedaba levantado y los golpes de frente bajaban a 25 %)
+  if (m.soltados.bloquear && desafio?.bloqueando) desafio.bloquear(false);
   if (desafio && !desafio.caido && !modoObra) {
     const id = ranuras[elegida]?.id;
     // 3.8.3: con el emplasto en la mano, el gatillo lo usa (con el mando no había forma de curarse); con el taller o la
@@ -4535,7 +4543,6 @@ function leerMando(dt) {
     if (m.recien.atacar) { if (ranuras[elegida]?.accion === 'curar') usarRanura(); else if (!panelDelHudAbierto() && !charla.npc) desafio.atacar(id); refrescarBarra(true); }
     if (m.recien.bloquear && id === 'arco' && desafio.cambiarFlecha()) refrescarBarra(true);
     else if (m.recien.bloquear && desafio.puedeBloquear(id)) desafio.bloquear(true, id);
-    if (m.soltados.bloquear && desafio.bloqueando) desafio.bloquear(false);
     if (m.recien.esquivar) desafio.esquivar(m.mov.x >= 0 ? 1 : -1);
   } else if (m.recien.atacar) usarRanura();
 }
@@ -4548,6 +4555,7 @@ function leerMandoEnMenu() {
   cambioDeMando(m);
 
   if (!m.conectado) return;
+  if (m.soltados.bloquear && desafio?.bloqueando) desafio.bloquear(false);   // 4.0.1: soltar L2 en la pausa suelta el escudo
   if (dialogos.abierto() || !usarMando()) return;   // 3.8.6: el cuadro de pregunta lee el mando por su cuenta (A acepta, B cancela)
   if (m.recien.pausa || m.recien.agacharse || (modo === 'mapa' && m.recien.mapa)) golpeDeTecla('Escape');
 }
@@ -9526,7 +9534,8 @@ function cuadroDelJuego(tRaf, manual) {
   }
   try { huellas?.actualizar(dt, jugador.estado, U.uInvierno.value, clima.estado.lluvia); } catch (e) { fallaSistema('huellas', e); }
   perfilador.terminar('clima', tClima, medirRendimiento);
-  acumuladoFauna += dt;
+  // 4.0.1: en la pausa, el cuaderno o el mapa no se acumula nada (al volver, la fauna gastaba todo ese tiempo en un cuadro: un pudú corría 500 m)
+  acumuladoFauna = (modo === 'jugando' || modo === 'inicio') ? acumuladoFauna + dt : 0;
   const tFauna = perfilador.iniciar(medirRendimiento);
   if ((modo === 'jugando' || modo === 'inicio') && acumuladoFauna >= pasoFauna) {
     const df = acumuladoFauna;

@@ -176,7 +176,7 @@ export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opc
       silencioCampana.set(o, t);
       if (t > 0) continue;
       for (const a of api.aliens) {
-        if (a.estado === 'morir' || a.estado === 'irse' || a.estado === 'bajar') continue;
+        if (a.estado === 'morir' || a.estado === 'irse' || a.estado === 'bajar' || a.enNave) continue;   // (4.0.1: ni las crías del corazón del Coihue)
         const p = a.m.g.position;
         if (Math.hypot(p.x - o.datos.x, p.z - o.datos.z) > o.plano.defensa.radio) continue;
         silencioCampana.set(o, 25);
@@ -251,7 +251,7 @@ export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opc
     sonido.golpeRuido?.({ dur: 1.2, frec: 140, tipo: 'lowpass', vol: 0.9, destino: sonido.fuente?.(c, 1.4) });
     sonido.golpeRuido?.({ dur: 0.5, frec: 900, vol: 0.4, destino: sonido.fuente?.(c, 1) });
     for (const a of api.aliens) {
-      if (a.estado === 'morir' || a.estado === 'irse') continue;
+      if (a.estado === 'morir' || a.estado === 'irse' || a.enNave) continue;   // (4.0.1)
       const d = Math.hypot(a.m.g.position.x - c.x, a.m.g.position.z - c.z);
       if (d < f.estallido) api.herirAlien(a, f.dano * (1 - d / f.estallido * 0.6), c, 'trampa');
     }

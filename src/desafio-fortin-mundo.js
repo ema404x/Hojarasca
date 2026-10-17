@@ -13,7 +13,7 @@ import { QUEMA } from './desafio-arsenal.js';
 import { ESTILO, LLAMAS } from './estilo-casa.js';
 
 const _v = new THREE.Vector3();
-const vivo = (a) => a.estado !== 'morir' && a.estado !== 'irse' && a.estado !== 'bajoTierra' && a.estado !== 'dormido';
+const vivo = (a) => a.estado !== 'morir' && a.estado !== 'irse' && a.estado !== 'bajoTierra' && a.estado !== 'dormido' && !a.enNave;   // (4.0.1: las crías de adentro del Coihue no son blanco: están 650 m más arriba)
 const enTierra = (a, T) => a.estado !== 'bajar' && (!a.def.vuela || a.m.g.position.y - T.altura(a.m.g.position.x, a.m.g.position.z) < 2.5);
 
 export function crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas) {

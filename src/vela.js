@@ -253,6 +253,13 @@ export function crearVela(T, escena, col, sonido, ctx = {}) {
     return true;
   }
 
+  // 4.0.1: te bajan a la fuerza (caer en el Desafío arriba del velero): sin buscar orilla
+  function soltar(jugador) {
+    est.activo = false; est.vel = 0; est.giro = 0; est.timon = 0;
+    if (!est.hay) barco.visible = false;
+    jugador.estado.enKayak = false; jugador.estado.enVela = false;
+  }
+
   // navegando: se llama desde el jugador (como el kayak, por `alKayak`)
   function actualizar(dt, tecla, jugador, tiempo) {
     if (!est.activo) return;
@@ -352,5 +359,5 @@ export function crearVela(T, escena, col, sonido, ctx = {}) {
     return true;
   }
 
-  return { est, barco, cerca, subir, bajar, lugarParaBajar, actualizar, actualizarQuieto, accion, amarrar, puntoAmarre, texto, datos, cargar, paraGuardar, personalizar, personal: () => personal };
+  return { est, barco, cerca, subir, bajar, soltar, lugarParaBajar, actualizar, actualizarQuieto, accion, amarrar, puntoAmarre, texto, datos, cargar, paraGuardar, personalizar, personal: () => personal };
 }
