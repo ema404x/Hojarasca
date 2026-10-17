@@ -228,6 +228,8 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
   // El pedido: cobra, la moza anota y se va a la barra
   function pedirItem(item, forma) {
     if (!ses || ses.orden) return false;
+    // 4.0.1: antes de cobrar, que haya quien lo sirva (si la carta se abrió hablando con ella, no la tenías tomada: el pedido se cobraba y nunca se servía)
+    if (!controla && !mozaTomable()) { ctx.nota?.(T_('No se pudo pedir'), T_(L.abierta(hora()) ? dichoL('sola') : dichoL('cerrada'))); return false; }
     const r = pedir(P(), item.id, forma, dia(), hora(), cartaHoy(), L.id);
     if (!r.ok) {
       if (r.motivo === 'ya-esta') {
@@ -254,7 +256,25 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     if (!r.regalo) hablar((r.medio === 'cuenta' ? chiste('cuenta') : null) || chiste('pedir', item.id) || reaccionDeItem(L.persona, item, dia() + info.servicios) || dichoL('anota', dia() + info.servicios));   // (3.9.2: lo nuevo de la carta tiene su frase)
     cerrarPanel();
     ses.fase = 'a-barra';
+    if (!controla) tomar(moza());   // 4.0.1: si no la tenías tomada (la carta vino de la charla), ahora sí
     if (controla) caminar(ruta(controla.pos, null), barra.mira);
+  }
+  // 4.0.1: ¿hay moza a quien pedirle (despierta, en su puesto y con el local abierto)? No exige que esté «libre»: puede estar charlando con vos
+  function mozaTomable() { const n = moza(); return !!n && !n.deVisita && !n.dormido && !n.llegando && L.abierta(hora()); }
+  // 4.0.1: el pedido ya está pagado y se perdió a la moza (te alejaste más de 40 m, o se fue): se retoma, o se apoya sin ella; nunca queda colgado
+  function servirSinMoza() {
+    const it = ses.orden.item;
+    servidos.set(ses.mesa.id, { item: it, restantes: it.porciones, silla: ses.silla, desde: dia() * 24 + hora() });
+    ctx.visual?.ponerEnMesa?.(ses.mesa, ses.silla, it, it.porciones);
+    info.servicios++;
+    if (it.registra) ctx.registrar?.(it.registra);
+    ses.orden = null; ses.fase = 'libre'; ses.t = 0;
+  }
+  function retomarPedido() {
+    const n = moza();
+    if (!n || n.deVisita || n.dormido || !tomar(n)) { servirSinMoza(); return; }
+    if (ses.fase === 'trae') { ctx.visual?.bandeja?.(n, ses.orden.item); caminar(ruta(n.pos, ses.mesa), haciaSilla(), 'bandeja'); }
+    else if (ses.fase === 'a-barra') caminar(ruta(n.pos, null), barra.mira);
   }
 
   // ---------------------------------------------------------------- el bucle
@@ -285,6 +305,8 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
   }
   function avanzar(dt) {
     const n = moza();
+    // 4.0.1: con un pedido en marcha y sin la moza tomada (te fuiste lejos y volviste) las fases siguientes la usan: se la retoma
+    if (!controla && ses.orden && (ses.fase === 'a-barra' || ses.fase === 'prepara' || ses.fase === 'trae' || ses.fase === 'deja' || ses.fase === 'apoya')) { retomarPedido(); if (!ses.orden) return; }
     switch (ses.fase) {
       case 'cerrada': case 'sola': {
         // la moza puede aparecer mientras seguís sentado (abre la cantina, vuelve)
@@ -643,7 +665,8 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     actualizar, accion, tapaVecino, panelAbierto: () => estadoPanel.abierto, cerrarPanel,
     alApretarE: () => cerrarPanel(), atras: () => cerrarPanel(),
     // el que habla con ella desde la charla («Dígame qué le sirvo»)
-    abrirCarta: () => { if (!ses) return false; if (!ses.orden) { abrirPanel(saludo()); return true; } return false; },
+    // (4.0.1: cerrado no se pide)
+    abrirCarta: () => { if (!ses) return false; if (!ses.orden && L.abierta(hora())) { abrirPanel(saludo()); return true; } return false; },
     estaSentado: () => !!ses, mesaOcupada: (id) => servidos.has(id) || (!!ses && ses.mesa.id === id), sinApuro: () => !!ses && L.abierta(hora()),
     // 3.9.1: la borrachera, el panel libre y lo que la peña necesita saber de tu mesa
     efectoEbrio: efectoEbrioAhora, nivelEbrio: nivelAhora, abrirPanelLibre, chiste,
