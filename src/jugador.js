@@ -476,5 +476,13 @@ export function crearJugador(camara, T, col, opciones) {
     }
   }
 
-  return { estado, actualizar, ubicar, pedirBloqueo, soltar, sentarse, eventos, teclas, bloqueado: () => bloqueado || modoArrastre };
+  // 4.0.1: si una obra recién levantada (el piso de una casa en ladera) te dejó metido adentro de su plataforma, te sube a la cara de arriba
+  function desencajar() {
+    const alto = estado.montado ? ALTURA_OJOS + estado.montado.alto : estado.agachado ? ALTURA_AGACHADO : ALTURA_OJOS;
+    const p = col.plataformaQueEncaja?.(estado.pos, estado.montado ? 0.6 : 0.35, alto, 0.62);
+    if (!p) return false;
+    estado.pos.y = p.alto; estado.vy = 0; estado.enSuelo = true;
+    return true;
+  }
+  return { estado, actualizar, ubicar, desencajar, pedirBloqueo, soltar, sentarse, eventos, teclas, bloqueado: () => bloqueado || modoArrastre };
 }

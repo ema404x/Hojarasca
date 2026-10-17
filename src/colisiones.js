@@ -389,6 +389,25 @@ export function crearColisiones() {
     }
   }
 
+  // 4.0.1: el piso de una casa que se levanta con vos adentro, en una ladera: si el pie queda más de un paso por debajo de la cara superior, no hay
+  // escalón que valga y salir cruzaría el zócalo (el cuerpo quedaba encajonado). Devuelve la plataforma rectangular, entera (sin laterales ni huecos),
+  // que contiene el centro del cuerpo, con su cara superior fuera del alcance de un paso pero a menos de `subidaMax`, y donde cabe de pie encima (o null).
+  function plataformaQueEncaja(pos, radio, alturaCuerpo = 1.65, pasoMaximo = 0.62, subidaMax = 1.6) {
+    const lista = celdasPlat.get(clave(Math.floor(pos.x / TAM), Math.floor(pos.z / TAM)));
+    if (!lista) return null;
+    const cabeza = pos.y + Math.max(0.2, alturaCuerpo);
+    let mejor = null;
+    for (const p of lista) {
+      if (p.sinLaterales || p.sinTecho || p.radio !== undefined || !dentroPlataforma(p, pos.x, pos.z)) continue;
+      const paso = Math.min(pasoMaximo, Math.max(0, p.escalonMax !== undefined ? p.escalonMax : pasoMaximo));
+      const abajo = p.alto - Math.max(0.02, p.espesor ?? 0.12);
+      if (p.alto <= pos.y + paso + 0.02 || p.alto - pos.y > subidaMax || abajo >= cabeza - 0.01) continue;
+      if (!espacioVerticalLibre(pos.x, pos.z, p.alto, alturaCuerpo, radio)) continue;
+      if (!mejor || p.alto > mejor.alto) mejor = p;
+    }
+    return mejor;
+  }
+
   // Sirve para ponerse de pie y para validar un step-up. Si hay un piso cuyo
   // intradós atraviesa el volumen corporal solicitado, el espacio no alcanza.
   function espacioVerticalLibre(x, z, yPies, alturaCuerpo, radio = 0.35) {
@@ -446,5 +465,5 @@ export function crearColisiones() {
     return mejor;
   }
 
-  return { agregar, agregarPlataforma, eliminar, eliminarPorDuenio, resolver, resolverPlataformas, plataformaEn, plataformaBaja, techoEntre, espacioVerticalLibre, paredEntre, cercanos, plataformas, dinamicos };
+  return { agregar, agregarPlataforma, eliminar, eliminarPorDuenio, resolver, resolverPlataformas, plataformaEn, plataformaBaja, techoEntre, espacioVerticalLibre, plataformaQueEncaja, paredEntre, cercanos, plataformas, dinamicos };
 }

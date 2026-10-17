@@ -6549,6 +6549,7 @@ function accionObra() {
   if (obra?.plano.pieza) {
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
+    jugador.desencajar();   // 4.0.1
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
     sonido.encender();
@@ -6569,6 +6570,7 @@ function accionObra() {
     if (!pago.ok) { nota('Falta plata para esta etapa', `El terreno y la mano de obra cuestan ${formatoPesos(pago.precio)} y te faltan ${formatoPesos(pago.falta)}. El banco te puede prestar`); return; }
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
+    jugador.desencajar();   // 4.0.1: el piso nuevo en una ladera no te deja encajonado adentro
     if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, 'Los albañiles de la aldea'); obra.datos.pagadas = etapaCasa + 1; }
     if (r.terminada && !desafio) registrarCasa(progreso, obra.plano.id);
     avisarSobrante(r);

@@ -2648,6 +2648,14 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     return false;
   }
 
+  // 4.0.1: el borde de afuera del escalón de entrada (z local) y su altura sobre la base, de los planos que lo tienen (ver registrarFisicaPremium)
+  function escalonDeEntrada(P) {
+    if (P.fisicaCasa) return { lz: -P.fondo / 2 - (P.galeria || 0) - 0.67, alto: 0.38 };
+    if (P.id === 'casilla') return { lz: -P.fondo / 2 - 0.66, alto: 0.38 };
+    if (P.id === 'puesto') return { lz: -P.fondo / 2 - 0.66, alto: 0.36 };
+    return null;
+  }
+
   function muestrasHuella(x, z, plano, rot) {
     const hw = Math.max(0.45, (plano.ancho || plano.radio * 1.5) / 2 * 0.88);
     const hd = Math.max(0.45, (plano.fondo || plano.radio * 1.5) / 2 * 0.88);
@@ -2787,6 +2795,16 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
 
     // Piezas apoyadas sobre un piso propio pueden vivir dentro del edificio.
     // En el suelo, en cambio, se sigue comprobando agua/desnivel y separación.
+    // 4.0.1: la entrada. El escalón de las casas, la casilla y el puesto sale de la base: con el frente cuesta abajo su cara superior queda a más de un paso del
+    // suelo (0,62 m) y la casa se pagaba sin poder entrar. Se rechaza el sitio con ese frente (girarla con R lo arregla) en vez de levantar una casa sin puerta.
+    if (!sobrePlataforma) {
+      const esc = escalonDeEntrada(plano);
+      if (esc) {
+        const q = mundoDesdeLocal(x, z, rot, 0, esc.lz);
+        if (base + esc.alto - T.altura(q.x, q.z) > 0.60) return { ok: false, motivo: 'La entrada queda muy alta sobre el terreno: girala (R) o buscá un lugar más parejo' };
+      }
+    }
+
     if (!sobrePlataforma) {
       let desnivel = 0;
       const y0 = T.altura(x, z);
