@@ -80,7 +80,7 @@ app.whenReady().then(async () => {
   const b1 = await bruno(), p1 = await pj();
   ok(b1.creado === true && b1.cara === 'fuerte' && b1.barba === 'barba' && b1.contextura === 'robusta' && b1.estatura === 'alta' && b1.piel === 'morena' && b1.pelo === 'colorado' && b1.ojos === 'verdes', 'quedó guardado el aspecto de Bruno');
   ok(b1.personalidad === 'sociable' && b1.oficio === 'docente' && b1.gustos.join() === 'folklore,trenes' && b1.hobby === 'guitarra' && b1.virtud === 'simpatico' && b1.defecto === 'distraido', 'y su historia');
-  ok(p1.campera === 'musgo' && p1.gorro === true && p1.bufanda === false, 'la campera y el gorro que eligió pasaron a «Tu personaje»');
+  ok(p1.campera === 'musgo' && p1.gorro === true, 'la campera y el gorro que eligió pasaron a «Tu personaje» (4.0.1: la bufanda de antes no se saca)');
   await js(`window.__hojarasca.__personal.cuerpo().mostrarEnCamara(true); 1`);
   ok(await js(`window.__hojarasca.__personal.cuerpo().cuerpo() !== null`), 'el cuerpo del jugador existe');
   ok(b1.espejoPuesto === true && (await js('window.__hojarasca.__personal.hayEspejo()')), 'cada refugio trae su espejo: se colocó uno armado al crear a Bruno');

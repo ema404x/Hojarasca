@@ -2373,10 +2373,12 @@ function irAPartida(ranura) {
   location.reload();
 }
 // Llevarse la partida a otra computadora: se baja como archivo y se vuelve a leer acá.
-function textoParaExportar(ranura) {
+function textoParaExportar(ranura, paraCarpeta = false) {
   if (ranura === ranuraActual()) guardar();
   const datos = leerPartida(modoJuego, ranura);
   if (!datos) return null;
+  // 4.0.1: con el álbum incompleto (una foto que no se pudo leer) no se deja la copia en la carpeta sincronizada: la otra computadora la importa "reemplazando" y le borraría fotos
+  if (paraCarpeta && datos.fotosIncompletas) return null;
   return empaquetar({
     progreso: datos.progreso, fotos: datos.fotos, modo: modoJuego, ranura,
     version: (document.getElementById('version-completa')?.textContent || '').replace('Versión ', '').trim(),
@@ -2490,7 +2492,7 @@ function copiarASync(forzar = false, ya = false) {
   if (esSinFin) return false;   // 3.0: la corrida sin fin no es una de las tres partidas: no viaja
   if (!syncApi || !carpetaSync || reiniciandoPartida || conflictoSync) return false;
   if (!tocaCopiar({ ultimaCopia: ultimaCopiaSync, guardadoEn: guardadoEnActual(), copiadoEn: copiadoEnSync, forzar })) return false;
-  const texto = textoParaExportar(ranuraActual());
+  const texto = textoParaExportar(ranuraActual(), true);
   if (!texto) return false;
   const nombre = nombreSync(modoJuego, ranuraActual());
   const base = baseSync;
@@ -2537,8 +2539,9 @@ async function mirarCarpetaSync() {
   // la base en silencio y la próxima copia de acá pisaba lo de la otra.
   const masNueva = compararCopia(local, r.paquete) === 'ofrecer';
   const si = await dialogos.confirmar(masNueva ? textoOfertaSync(local, r.paquete) : textoDosCambiaron(local, r.paquete));   // 3.5.1
-  fijarBaseSync(enCarpeta);   // con un sí se importa; con un no, la próxima copia la reemplaza
-  if (si) importarTexto(ranuraActual(), texto, false);
+  // 4.0.1: la base se fija DESPUÉS de importar: si la importación falla (sin espacio), la copia de acá, más vieja, no puede pisar la de la otra computadora
+  if (si) { const r2 = importarTexto(ranuraActual(), texto, false); if (r2?.ok === false) return; }
+  fijarBaseSync(enCarpeta);   // con un sí se importó; con un no, la próxima copia la reemplaza
 }
 // Al abrir: si la copia de la carpeta es más nueva que la de esta máquina, se ofrece.
 async function revisarCarpetaSync() {
@@ -2719,7 +2722,7 @@ function crearABruno(modo, alTerminar) {
     alAceptar: (g, retrato) => {
       creadorAbierto = null;
       // al crear, la campera y el accesorio que eligió pasan a «Tu personaje» (el guardarropa); al rehacer, no se toca la ropa
-      if (modo === 'crear') cambiarPersonal(sPersonaje, { campera: g.campera, gorro: g.accesorio === 'gorro', bufanda: g.accesorio === 'bufanda' });
+      if (modo === 'crear') cambiarPersonal(sPersonaje, { campera: g.campera, gorro: g.accesorio === 'gorro' || !!personaje.gorro, bufanda: g.accesorio === 'bufanda' || !!personaje.bufanda });   // 4.0.1: el accesorio elegido se suma; no se saca la prenda de abrigo que ya tenías (el gorro y la bufanda cuentan para templar la noche)
       cambiarPersonal(sBruno, { ...g, creado: true, retrato: retrato || '', prologoVisto: prologoVistoAlCrear(!!progreso.pos || entroAlJuego, esDesafio) });   // 4.1 (F4): sólo una partida nueva ve el prólogo
       if (modo === 'crear') colocarEspejoDeFabrica();
       alTerminar?.();

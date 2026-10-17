@@ -90,7 +90,7 @@ ok(tiene(pantalla, "modo === 'rehacer'") && tiene(pantalla, 'bloquesDe'), 'rehac
 ok(tiene(main, "import { abrirCreador } from './creador-pantalla.js';") && tiene(main, "import { genomaDesdePersonajeViejo } from './creador-personaje.js';"), 'main.js importa la pantalla y la precarga, cada uno en una línea');
 ok(tiene(main, "if (!sinCreadorDeBruno() && !progreso.personal?.bruno?.creado) { crearABruno('crear', () => $('btn-entrar').click()); return; }"), '«Entrar al bosque» pide crear a Bruno si todavía no está creado, y entra solo al terminar');
 ok(tiene(main, "const sinCreadorDeBruno = () => HOJARASCA_DEBUG && new URLSearchParams(location.search).get('creador') !== '1';"), 'sólo en depuración se puede saltar la creación (las pruebas de humo viejas), y con &creador=1 se prueba');
-ok(tiene(main, "cambiarPersonal(sPersonaje, { campera: g.campera, gorro: g.accesorio === 'gorro', bufanda: g.accesorio === 'bufanda' })"), 'al crear, la campera y el accesorio pasan a «Tu personaje»');
+ok(tiene(main, "cambiarPersonal(sPersonaje, { campera: g.campera, gorro: g.accesorio === 'gorro' || !!personaje.gorro, bufanda: g.accesorio === 'bufanda' || !!personaje.bufanda })"), 'al crear, la campera y el accesorio pasan a «Tu personaje»');
 ok(tiene(main, "if (modo === 'crear') cambiarPersonal"), 'al rehacer no se toca la ropa');
 ok(tiene(main, 'genomaDesdePersonajeViejo(personaje)'), 'al crear se parte de lo que el jugador ya había elegido en «Tu personaje»');
 ok(tiene(main, 'if (creadorAbierto) return;'), 'sólo una pantalla de creación a la vez');

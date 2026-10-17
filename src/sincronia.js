@@ -35,7 +35,11 @@ export function compararCopia(local, remota) {
   const enCarpeta = Number(remota.progreso.guardadoEn) || 0;
   if (!local?.hay) return enCarpeta ? 'ofrecer' : 'nada';
   const aca = Number(local.guardadoEn) || 0;
-  return enCarpeta > aca + SINCRONIA.margen * 1000 ? 'ofrecer' : 'nada';
+  if (enCarpeta > aca + SINCRONIA.margen * 1000) return 'ofrecer';
+  // 4.0.1: la de la carpeta se guardó más veces que la de acá y el sello no es más viejo: es la misma partida seguida en la otra computadora, aunque los relojes
+  // de las dos no coincidan (el sello nunca baja: tras importar una partida de un reloj adelantado, una hora de juego sumaba milisegundos)
+  const sr = Number(remota.progreso.secuencia) || 0, sl = Number(local.secuencia) || 0;
+  return sr > sl && enCarpeta >= aca ? 'ofrecer' : 'nada';
 }
 
 const dosDigitos = (n) => String(n).padStart(2, '0');

@@ -207,6 +207,7 @@ export function abrirCreador({ genoma: inicial, modo = 'crear', ropa = null, alA
     try {
       if (!figura) return '';
       const alto = aspectoActual().cuerpo.alto || 1;
+      renderer.setPixelRatio(1);   // 4.0.1: con la escala de Windows en 150 o 200 % el retrato salía de 360x450 o 480x600 y pasaba el tope del guardado (se descartaba sin avisar)
       renderer.setSize(240, 300, false);
       camara.aspect = 240 / 300; camara.clearViewOffset(); camara.fov = 24; camara.updateProjectionMatrix();
       figura.g.rotation.y = 0.28;

@@ -21,4 +21,6 @@ assert.ok(avisos.length >= 1, 'deja un aviso en la consola');
 
 const main = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 assert.ok(/if \(!creadorAbierto\) \{\s*if \(modo === 'crear'\) \{ opcionesCreador\.alAceptar\(base, ''\)/.test(main), 'main.js: si la pantalla no abre, crear sigue con el genoma de partida');
+const pantallaTxt = fs.readFileSync(new URL('../src/creador-pantalla.js', import.meta.url), 'utf8');
+assert.ok(pantallaTxt.includes('renderer.setPixelRatio(1);') && pantallaTxt.indexOf('renderer.setPixelRatio(1);') < pantallaTxt.indexOf('renderer.setSize(240, 300, false);'), 'el retrato se saca a 240x300 reales, sin la escala de la pantalla');
 console.log('4.0.1 creador: sin WebGL no queda capa colgada y se entra igual');

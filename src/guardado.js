@@ -122,6 +122,7 @@ export function infoPartida(modo, ranura) {
     dia: Math.max(1, Math.floor(finito(p.dia, 1))),
     horas: ((finito(p.horas, 8) % 24) + 24) % 24,
     guardadoEn: finito(p.guardadoEn, 0),
+    secuencia: secuenciaDe(p),   // 4.0.1
     noches: finito(p.desafio?.noches, 0),
     anotaciones: Object.keys(obj(p.entradas)).length,
     vista,
@@ -134,9 +135,10 @@ export function leerPartida(modo, ranura) {
   const p = leerPlausible(k);
   if (!progresoPlausible(p)) return null;
   const fotos = leerFotosDe(k.fotos);   // 3.8.4
+  const fotosIncompletas = lecturaFotosIncompleta;   // 4.0.1
   let vista = null;
   try { vista = localStorage.getItem(k.vista); } catch {}
-  return { progreso: p, fotos, vista };
+  return { progreso: p, fotos, vista, fotosIncompletas };
 }
 // Escribe una partida que viene de afuera. Se sanea igual que cualquier otra: un
 // archivo retocado a mano no puede dejar la partida en un estado imposible.
@@ -167,7 +169,7 @@ export function escribirPartida(modo, ranura, progreso, fotos = {}, vista = null
 }
 export function borrarPartida(modo, ranura) {
   const k = clavesDe(modo, ranura);
-  if (k.principal === CLAVE) { ultimoPrincipalValidoTexto = null; ultimoSello = 0; }
+  if (k.principal === CLAVE) { ultimoPrincipalValidoTexto = null; ultimoSello = 0; ultimaSecuencia = 0; }
   borrarFotosDe(k.fotos);   // 3.8.4: (también los archivos)
   try { for (const clave of Object.values(k)) localStorage.removeItem(clave); return true; } catch { return false; }
 }
@@ -183,10 +185,14 @@ let ultimoOrigenCarga = 'ninguno';
 let ultimoPrincipalValidoTexto = null;
 // 3.8.6: el sello (guardadoEn) del último guardado de esta partida, para que el próximo no sea menor (ver guardarProgreso)
 let ultimoSello = 0;
+// 4.0.1: cuántas veces se guardó esta partida (sube de a uno y viaja con la partida al exportar o sincronizar). Los relojes de dos computadoras no coinciden: con
+// el sello solo, lo que se juega en la otra computadora tras importar una partida de un reloj adelantado se veía como «apenas más nuevo» (ver sincronia.js)
+let ultimaSecuencia = 0;
 // 3.8.6: el principal no se pudo sanear y se cargó la copia: el próximo guardado no lo pasa a copia de seguridad
 let principalRoto = false;
 // (uno de más de un mes en el futuro es de un reloj roto o un archivo retocado: no cuenta)
 const selloDe = (p) => { const s = typeof p?.guardadoEn === 'number' ? p.guardadoEn : 0; return Number.isFinite(s) && s > 0 && s < Date.now() + 30 * 864e5 ? s : 0; };
+const secuenciaDe = (p) => { const s = typeof p?.secuencia === 'number' ? p.secuencia : 0; return Number.isFinite(s) && s > 0 && s < 1e9 ? Math.floor(s) : 0; };
 export function origenUltimaCarga() { return ultimoOrigenCarga; }
 
 export const AJUSTES_BASE = {
@@ -250,7 +256,10 @@ function archivosFotos() {
 // ya no relee el álbum entero del disco, y guardar sólo manda las fotos nuevas (antes, en cada foto, dos veces el álbum
 // entero, cada archivo leído y comparado: cientos de ms con el juego quieto en un álbum grande).
 const fotosEnDisco = new Map();
+// 4.0.1: ¿la última lectura del álbum dejó fotos afuera (un archivo ocupado, el disco que no respondió)? Un paquete armado así no puede reemplazar el álbum de otra computadora
+let lecturaFotosIncompleta = false;
 function leerFotosDe(clave) {
+  lecturaFotosIncompleta = false;
   const local = leer(clave);
   const a = archivosFotos();
   if (!a) return objeto(local) ? local : {};
@@ -261,7 +270,8 @@ function leerFotosDe(clave) {
   // (preload.cjs entrega { fotos, sinLeer }; un puente viejo o de prueba, las fotos solas)
   if (objeto(deArchivos) && objeto(deArchivos.fotos) && typeof deArchivos.sinLeer === 'number') { entera = deArchivos.sinLeer === 0; deArchivos = deArchivos.fotos; }
   else entera = true;
-  if (!objeto(deArchivos)) return objeto(local) ? local : {};   // (el disco no respondió: lo que haya)
+  if (!objeto(deArchivos)) { lecturaFotosIncompleta = true; return objeto(local) ? local : {}; }   // (el disco no respondió: lo que haya)
+  lecturaFotosIncompleta = !entera;
   // (si alguna no se pudo leer, no queda en memoria: la próxima vez se vuelve a leer del disco)
   if (entera) fotosEnDisco.set(clave, { ...deArchivos }); else fotosEnDisco.delete(clave);
   if (!hayLocal) return deArchivos;
@@ -626,7 +636,7 @@ export function cargarProgreso() {
   try {
     const principalTexto = localStorage.getItem(CLAVE);
     p = parsear(principalTexto);
-    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; ultimoSello = Math.max(ultimoSello, selloDe(p)); }
+    if (progresoPlausible(p)) { ultimoOrigenCarga = 'principal'; ultimoPrincipalValidoTexto = principalTexto; ultimoSello = Math.max(ultimoSello, selloDe(p)); ultimaSecuencia = Math.max(ultimaSecuencia, secuenciaDe(p)); }
     else {
       ultimoPrincipalValidoTexto = null;
       p = parsear(localStorage.getItem(CLAVE_BACKUP));
@@ -679,20 +689,22 @@ export function guardarProgreso(p) {
     if (!anteriorTexto && !principalRoto) {
       const candidato = localStorage.getItem(CLAVE);
       const anterior = parsear(candidato);
-      if (progresoPlausible(anterior)) { anteriorTexto = candidato; ultimoSello = Math.max(ultimoSello, selloDe(anterior)); }
+      if (progresoPlausible(anterior)) { anteriorTexto = candidato; ultimoSello = Math.max(ultimoSello, selloDe(anterior)); ultimaSecuencia = Math.max(ultimaSecuencia, secuenciaDe(anterior)); }
     }
     // 3.8.6: el sello de cuándo se guardó nunca va para atrás en una partida, aunque el reloj de esta computadora atrase:
     // la carpeta sincronizada compara sellos de dos computadoras, y con el de una atrasada lo jugado acá quedaba «más viejo»
     // que lo que la otra ya había visto y se pisaba sin preguntar. Tampoco por debajo del de una partida importada.
     const guardadoEn = Math.max(Date.now(), ultimoSello + 1, selloDe(limpio));
     let nuevo;
-    try { nuevo = JSON.stringify({ ...limpio, desafios, guardadoEn }); } catch { return false; }
+    const secuencia = Math.max(ultimaSecuencia, secuenciaDe(limpio)) + 1;   // 4.0.1
+    try { nuevo = JSON.stringify({ ...limpio, desafios, guardadoEn, secuencia }); } catch { return false; }
     if (anteriorTexto) localStorage.setItem(CLAVE_BACKUP, anteriorTexto);
     if (!escribirTexto(CLAVE, nuevo)) return false;
     ultimoPrincipalValidoTexto = nuevo;
     ultimoSello = guardadoEn;
+    ultimaSecuencia = secuencia;
     principalRoto = false;
     return true;
   } catch { return false; }
 }
-export function borrarProgreso() { ultimoPrincipalValidoTexto = null; ultimoSello = 0; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }
+export function borrarProgreso() { ultimoPrincipalValidoTexto = null; ultimoSello = 0; ultimaSecuencia = 0; borrarFotosDe(CLAVE_FOTOS); try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_BACKUP); localStorage.removeItem(CLAVE_FOTOS); localStorage.removeItem(CLAVE_VISTA); } catch {} }
