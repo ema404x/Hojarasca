@@ -71,6 +71,19 @@ const VISTAS = [
       return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: Math.atan2(-c, -s), horas: 19 } })()` },
   { id: 'lago-amanecer', modos: ['relax', 'desafio'], donde: `(()=>{ const M = H.T.lugares.muelle; if (!M) return null; const c = Math.cos(M.ang), s = Math.sin(M.ang);
       return { x: M.x - c * 3 - s * 4, z: M.z - s * 3 + c * 4, yaw: Math.atan2(-c, -s), horas: 7 } })()` },
+  // 4.0 (molino y puente): el campo de tulipanes desde el oeste (la vista más cargada del molino), el molino de lejos a la tarde y el puente de costado
+  { id: 'molino-campo-dia', modos: ['relax', 'desafio'], donde: `(()=>{ const m = H.est.molino; if (!m) return null; const c = Math.cos(m.rot), s = Math.sin(m.rot);
+      const w = (lx, lz) => ({ x: m.x + lx * c + lz * s, z: m.z - lx * s + lz * c }), a = w(-6, 20), b = w(6, 14);
+      return { x: a.x, z: a.z, yaw: Math.atan2(-(b.x - a.x), -(b.z - a.z)), horas: 12.5 } })()` },
+  { id: 'molino-campo-tarde', modos: ['relax', 'desafio'], donde: `(()=>{ const m = H.est.molino; if (!m) return null; const c = Math.cos(m.rot), s = Math.sin(m.rot);
+      const w = (lx, lz) => ({ x: m.x + lx * c + lz * s, z: m.z - lx * s + lz * c }), a = w(-6, 20), b = w(6, 14);
+      return { x: a.x, z: a.z, yaw: Math.atan2(-(b.x - a.x), -(b.z - a.z)), horas: 18.4 } })()` },
+  { id: 'molino-lejos-tarde', modos: ['relax', 'desafio'], donde: `(()=>{ const m = H.est.molino; if (!m) return null; const c = Math.cos(m.rot), s = Math.sin(m.rot);
+      const w = (lx, lz) => ({ x: m.x + lx * c + lz * s, z: m.z - lx * s + lz * c }), a = w(16, 30), b = w(0, 0);
+      return { x: a.x, z: a.z, yaw: Math.atan2(-(b.x - a.x), -(b.z - a.z)), horas: 18.4 } })()` },
+  { id: 'puente-dia', modos: ['relax', 'desafio'], donde: `(()=>{ const p = H.T.puentes[0]; if (!p) return null; const c = Math.cos(p.ang), s = Math.sin(p.ang);
+      const w = (lx, lz) => ({ x: p.x + lx * c - lz * s, z: p.z + lx * s + lz * c }), a = w(-12, 5), b = w(0, 0);
+      return { x: a.x, z: a.z, yaw: Math.atan2(-(b.x - a.x), -(b.z - a.z)), horas: 12.5 } })()` },
   { id: 'aldea-loma-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52);
       return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22 } })()` },
 ];

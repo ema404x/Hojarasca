@@ -159,6 +159,8 @@ import { VIVERO, ARBOLES_VIVERO, sanearVivero, sanearJuntadas, puedeJuntarSemill
 import { LENA, sanearLenera, sanearHumedad, humedecer, guardarEnLenera, avisoLenera, lenaParaPrender, horasEntumecido, desentumecer } from './lena.js';
 import { MOLINO, sanearAserradero, sanearMuela, fuerzaDelAgua, horasDesde, avanzarAserradero, aserrando, avanzarMuela, moliendo, molinoQueMueve, usarAserradero, avisoAserradero, usarMolino, avisoMolino } from './molino.js';
 import { crearMolinoMundo } from './molino-mundo.js';
+// 4.0: el campo de tulipanes, el arroyo con su caída, los cercos y la casa del molino
+import { crearMolinoPaisaje } from './molino-paisaje.js';
 import { crearMeteoMundo } from './meteo-mundo.js';
 import { sanearMeteo, crearPrograma, pronostico as pronosticoMeteo, nochesQueVienen, textoPronostico, horaAbsoluta, inviernoDelDia, TRAMO } from './meteo.js';
 import { sanearRadio, escucharRadio, cumplirPedido, pedidoRadio, alcanzaPedido, textoPide as textoPideRadio, nombreEstacionRadio } from './radio.js';
@@ -645,6 +647,17 @@ async function construir() {
     }
     pelar(T.lugares.refugio.x, T.lugares.refugio.z, 6);
     if (e.molino) pelar(e.molino.x, e.molino.z, 4.5);
+    // 4.0: lo que rodea al molino (tulipanes, arroyo, cercos y casa); despeja árboles, matas y pasto de su huella
+    if (e.molino) {
+      try {
+        const mp = crearMolinoPaisaje({ T, escena, col, molino: e.molino, densidad: calidad.densidad ?? 1 });
+        if (mp) {
+          e.molinoPaisaje = mp;
+          for (const z of mp.zonas) { veg.despejar(z.x, z.z, z.r); pelar(z.x, z.z, z.pasto ?? z.r); }
+          edificios.push(...mp.huella);   // la casa, el campo y el arroyo no se llenan de frutillas ni plumas
+        }
+      } catch (err) { console.warn('molino-paisaje', err); }
+    }
     if (e.casaTe) pelar(e.casaTe.x, e.casaTe.z, e.casaTe.radio + 2);
     if (e.torre) pelar(e.torre.x, e.torre.z, 4);
     for (const cab of e.cabañas) pelar(cab.x, cab.z, cab.radio + 1.5);
@@ -9224,6 +9237,7 @@ function aplicarCalidadAutomatica(cambio, avisar = true) {
   // 3.5: la distancia de dibujo elegida por el jugador no se toca; «según la calidad» sigue a
   // la nueva (y ahora llega a los árboles, los carteles y la niebla, de a poco)
   calidadActiva = cambio.hasta;
+  est?.molinoPaisaje?.aplicarCalidad(nueva.densidad ?? 1);   // 4.0: menos tulipanes en las calidades bajas
   aplicarDistancias();
   // las sombras son lo más caro que se puede acomodar sin rehacer el mundo
   if (nueva.sombras !== calidad.sombras) {
@@ -9346,6 +9360,7 @@ function cuadroDelJuego(tRaf, manual) {
   // 3.5.1: en el modo foto la hora es la del deslizador: los tendales, la colmena y el ahumadero no cuentan ese tiempo
   if (modo === 'jugando') { if (!foto.activo) actualizarTendales(); actualizarRastros(dtReal); revisarEstacion(); }
   if (modo === 'jugando') actualizarMaquinas(dt);   // 2.9: el molino, el aserradero y la estación
+  est?.molinoPaisaje?.actualizar(dt, camara.position.x, camara.position.z);   // 4.0: el agua que corre y los tulipanes lejanos se ocultan
   if (modo === 'jugando' && !desafio) { revisarColmenas(dtReal); actualizarLomo(dtReal); }
   actualizarTiempo(dt);
 
