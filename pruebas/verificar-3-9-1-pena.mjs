@@ -225,7 +225,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   const chistes = []; const r2 = (x) => { if (typeof x === 'string') chistes.push(x); else if (Array.isArray(x)) x.forEach(r2); else if (x && typeof x === 'object') Object.values(x).forEach(r2); }; r2(PV.CHISTES);
   ok(chistes.every((x) => { const en = EN[x]; return en && en !== x && en.length > 12; }), 'cada chiste tiene su versión en inglés (no una copia)');
   const pk = JSON.parse(leer('package.json'));
-  ok(/^3.9.[1-9]$/.test(pk.version), 'la versión: 3.9.1 o posterior');
+  ok(/^(3\.9\.[1-9]|[4-9]\.\d+\.\d+)$/.test(pk.version), 'la versión: 3.9.1 o posterior (4.0.0 incluida)');
   const lis = fs.existsSync(new URL('../CAMBIOS_3_9_1.md', import.meta.url)) ? leer('CAMBIOS_3_9_1.md') : '';
   ok(lis.length > 2000 && /chistes/i.test(lis), 'CAMBIOS_3_9_1.md: lo que hay, lo que no, cómo verlo y la lista de chistes');
   const enLista = chistes.filter((x) => !lis.includes(x.slice(0, 24)));
