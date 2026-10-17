@@ -1274,8 +1274,40 @@ function arbolSeco(semilla, detalle) {
   return { geo: c.geometria(), radio: 0.42, alto };
 }
 
-function roca(semilla) {
+// 4.0 (musgo de las piedras): ruido de valor suave en 3D (sin costuras, mismo resultado siempre) para abollar la roca y pintarle el musgo
+const _sua = (t) => t * t * (3 - 2 * t);
+export function ruido3(x, y, z) {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z), fx = _sua(x - ix), fy = _sua(y - iy), fz = _sua(z - iz);
+  const v = (a, b, d) => h3(ix + a + 0.37, iy + b + 0.11, iz + d + 0.73);
+  const l = (a, b, t) => a + (b - a) * t;
+  return l(l(l(v(0, 0, 0), v(1, 0, 0), fx), l(v(0, 1, 0), v(1, 1, 0), fx), fy), l(l(v(0, 0, 1), v(1, 0, 1), fx), l(v(0, 1, 1), v(1, 1, 1), fx), fy), fz);
+}
+const sm01 = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+// cuánto se abolla la roca fina en la dirección unitaria u (lomos y hondonadas suaves, de unos 30 cm)
+const abolladura = (ux, uy, uz) => (ruido3(ux * 1.5 + 4, uy * 1.5 + 9, uz * 1.5 + 2) - 0.5) * 0.28 + (ruido3(ux * 3.4 + 1, uy * 3.4 + 5, uz * 3.4 + 8) - 0.5) * 0.035;
+// el puntaje de musgo de un punto de la roca (0..1): lo que mira para arriba, lo hundido (grietas) y manchas de ruido; el shader lo
+// convierte en musgo con un umbral suave (ver materiales.js, «musgo de las piedras»)
+export function puntajeMusgo(ux, uy, uz, nyMundo) {
+  const hondo = sm01(0.02, -0.1, abolladura(ux, uy, uz));
+  const mancha = ruido3(ux * 2.1 + 31, uy * 2.1 + 17, uz * 2.1 + 5) - 0.5, fino = ruido3(ux * 4.4 + 3, uy * 4.4 + 7, uz * 4.4 + 1) - 0.5;
+  return Math.min(1, Math.max(0, 0.9 * sm01(0.0, 0.95, 0.25 * nyMundo + 0.75 * uy) + 0.5 * hondo + 0.7 * mancha + 0.14 * fino));
+}
+
+export function roca(semilla, rico = false) {
   const r = rng(semilla), c = new Constructor();
+  if (rico) {
+    // 4.0: la misma piedra con más vértices (720 caras) para que el musgo tenga borde fino; el color de piedra es oscuro abajo y
+    // claro arriba, y el musgo va en el aTipo de cada vértice (ver puntajeMusgo)
+    const gf = new THREE.IcosahedronGeometry(1, 5), p = gf.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), l = Math.hypot(x, y, z) || 1, d = 1 + abolladura(x / l, y / l, z / l);
+      p.setXYZ(i, x / l * d, y / l * d, z / l * d);
+    }
+    const mt = matriz([0, 0.15, 0], [r() * 0.3, r() * 6, r() * 0.3], [1 + r() * 0.4, 0.55 + r() * 0.2, 0.9 + r() * 0.3]);
+    c.agregar(gf, { color: '#767a7d', colorArriba: '#8a8c88', tipo: 4, variar: 0.04, suave: 3, sombraAbajo: [-0.85, 0.15], matriz: mt,
+      tipoVert: (lx, ly, lz, wx, wy, wz, ny) => { const l = Math.hypot(lx, ly, lz) || 1; return 4 + 0.95 * puntajeMusgo(lx / l, ly / l, lz / l, ny); } });
+    return c.geometria({ soldar: true });
+  }
   // 3.4: piedra redondeada y suave (HushWood): menos abollada y con las normales del todo
   // suaves (antes quedaban aristas)
   const g = abollar(new THREE.IcosahedronGeometry(1, 1), 0.15, 1.1);
@@ -1424,7 +1456,8 @@ export function generarVegetacion(T, calidad, escena) {
   registrar('neneo', arbusto(13, '#7d8a5a', '#c9b06a', 26, 0.7), null, mats.arbusto, 'soto');
   registrar('maqui', arbusto(9, '#37582a', '#2e2340', 22, 1.3), null, mats.arbusto, 'soto');
   registrar('chaura', arbusto(10, '#2f4a24', '#e8c3c6', 30, 0.55), null, mats.arbusto, 'soto');
-  registrar('roca', roca(7), null, mats.roca, 'soto');
+  const musgo = calidad.pasto >= 40000;   // 4.0: el musgo pintado de las piedras, sólo en calidad media y alta (baja: lo de siempre)
+  registrar('roca', roca(7, musgo), null, mats.roca, 'soto');
   registrar('tronco', troncoCaido(8), null, mats.roca, 'soto');
   registrar('hojarasca0', mantaHojarasca(31), null, mats.suelo, 'suelo');
   registrar('hojarasca1', mantaHojarasca(47), null, mats.suelo, 'suelo');

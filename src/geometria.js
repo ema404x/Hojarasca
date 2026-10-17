@@ -102,7 +102,7 @@ export class Constructor {
       } else {
         _n.fromBufferAttribute(nLocal, i);
       }
-      const yLocal = _v.y;
+      const yLocal = _v.y, xLocal = _v.x, zLocal = _v.z;
       _v.applyMatrix4(M);
       _n.applyMatrix3(NM).normalize();
       this.pos.push(_v.x, _v.y, _v.z);
@@ -118,7 +118,9 @@ export class Constructor {
         _c.copy(base).multiplyScalar(f);
       }
       this.col.push(_c.r, _c.g, _c.b);
-      this.tipo.push(o.tipo ?? 0);
+      // 4.0 (musgo): `tipoVert(local x, y, z, mundo x, y, z, normal y de mundo)` da el tipo de este vértice (la roca lleva ahí
+      // cuánto musgo le toca: 4 + 0,95 · puntaje; el shader del material lo pinta con borde que se desvanece)
+      this.tipo.push(o.tipoVert ? o.tipoVert(xLocal, yLocal, zLocal, _v.x, _v.y, _v.z, _n.y) : (o.tipo ?? 0));
     }
     geo.dispose();
     return this;
