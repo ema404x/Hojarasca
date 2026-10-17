@@ -176,6 +176,7 @@ import { crearRinconesMundo } from './rincones-mundo.js';
 import { crearRinconesJuego } from './rincones-juego.js';
 // 4.2 (huevos de pascua): la estrella fugaz con deseo, los duendes del Coihue, el huemul blanco, el hueso del perro, la portada y la radio
 import { crearHuevosJuego } from './huevos-juego.js';
+import { crearHuevosMundo } from './huevos-mundo.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego, lugarDeCasaTe } from './cantina-juego.js';
 import { crearAmbienteCantina } from './cantina-ambiente.js';
@@ -3154,6 +3155,8 @@ document.addEventListener('keydown', (e) => {
       // 3.7.5 (rincones): los duendes, el sulky, el potrero, las huertas, el retablo, el atril, el fuerte, el campamento, tu casa y
       // el taller (el aviso, en el mismo lugar y con la misma función: rinconesJuego.accion)
       if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accion(js); if (a) { a.hacer(); cacheRincones = null; if (js.enSulky && modoObra) abrirObra(false); break; } }   // (3.8.7: subiendo al sulky se cierran los planos)
+      // 4.2 (huevos de pascua): al pie del coihue de los duendes (el aviso, en el mismo lugar y con la misma función)
+      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && cacheHuevos) { const a = cacheHuevos; cacheHuevos = null; a.hacer(); break; }
       // 3.7.3: montado al lado de la jaula del tren (parado), E sube a tu caballo y vos con él
       if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }
       if (puenteDelCaballo()) { caballoEnElPuente(); break; }   // 3.8.4: el aviso, en el mismo lugar
@@ -5037,7 +5040,7 @@ let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
-let huevosJuego = null;   // 4.2 (huevos de pascua): ver huevos-juego.js
+let huevosJuego = null, huevosMundo = null;   // 4.2 (huevos de pascua): ver huevos-juego.js y huevos-mundo.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 let penaJuego = null, penaMundo = null;   // 3.9.1: la peña (ver pena-juego.js y pena-mundo.js)
 let cantinaAmbiente = null;   // 3.9.2: los cuadros, el reloj, lo usado en las mesas y la música de fondo de la cantina (cantina-ambiente.js)
@@ -5237,10 +5240,14 @@ function armarOficiosYAldea(esDesafio) {
     tieneCaballo: () => tieneCaballo(), caballo: () => dondeEstaElCaballo(), dejarCaballo: (x, z, yaw) => { const c = caballo(); c.x = x; c.z = z; c.yaw = yaw; },
   });
   // 4.2 (huevos de pascua): la estrella fugaz con deseo y lo que sigue (sólo en el Relax)
+  if (!desafio) huevosMundo = crearHuevosMundo({ escena, altura: (x, z) => T.altura(x, z) });
   huevosJuego = crearHuevosJuego({
     progreso: () => progreso, desafio: () => !!desafio, jugador: () => jugador, sonido,
     nota: (t, sub, nueva) => nota(t, sub, nueva), diario: (tipo, dato) => diario.anotar(tipo, dato), guardar: () => guardar(),
     sumarMaterial: (k, n) => sumarMaterial(k, n), refrescarBarra: () => refrescarBarra(true), registrar: (id) => registrar(id),
+    sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
+    cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
+    mundo: huevosMundo, arboles: () => veg.arboles, refugio: () => T.lugares.refugio,
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego =crearVecindadJuego({
@@ -8959,6 +8966,7 @@ let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que está
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
+let cacheHuevos = null;   // 4.2 (huevos de pascua): lo que se puede hacer acá (ver huevos-juego.js)
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
 let cachePena = null;   // 3.9.1: lo de la peña (bailar con Dalia, el truco de la cantina)
@@ -9778,6 +9786,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
+      cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null;   // 4.2 (huevos de pascua)
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
       cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5
       cacheCantina = cantinaJuego ? (cantinaJuego.accion(js) || teJuego?.accion(js) || null) : null;   // 3.9.0 (3.9.2: y la casa de té)
@@ -9811,6 +9820,7 @@ function cuadroDelJuego(tRaf, manual) {
     // después de la carrera
     { const u = !charla.npc && rinconesJuego ? rinconesJuego.urgente(js) : null; if (u) aviso = { tecla: 'E', texto: u.texto }; }
     if (!aviso && cacheRincones && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheRincones.texto };
+    if (!aviso && cacheHuevos && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheHuevos.texto };   // 4.2 (huevos de pascua)
     if (charla.npc && Math.hypot(charla.npc.pos.x - js.pos.x, charla.npc.pos.z - js.pos.z) > 6) cerrarCharla();
     // 2.4.1: el aviso sigue el orden de la tecla E paso a paso. El mostrador va acá (E lo
     // atiende antes que la puerta del almacén); el kayak, el tren y la bitácora, más abajo.
@@ -10454,7 +10464,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.7.2 (granja): la granja, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__granja = { juego: () => granjaJuego, mundo: () => granjaMundo };
   // 4.2 (huevos de pascua): para las pruebas y las capturas
-  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego };
+  if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego, mundo: () => huevosMundo };
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta(), amistad: (k, n) => sumarAmistadDe(progreso, k, n, progreso.dia) };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });

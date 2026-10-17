@@ -1,8 +1,9 @@
 // 4.2 (huevos de pascua): el enganche de los easter eggs con el juego (sólo en el Relax). Las reglas, en huevos.js; lo que se ve,
 // en huevos-mundo.js. Todo por evento, nada por cuadro: `actualizar(dt)` sólo junta tiempo y mira cada 2 segundos.
 // `ctx`: { progreso(), desafio(), jugador() → { estado }, sonido, nota(t, sub, nueva), diario(tipo, dato), guardar(),
-//   sumarMaterial(k, n), refrescarBarra(), registrar(id) }
-import { azarDe, sanearHuevos, diaDeNoche, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cumplirDeseo, DESEOS, ESTRELLA } from './huevos.js';
+//   sumarMaterial(k, n), sumarCosa(k, n), cantidad(tipo, k), refrescarBarra(), registrar(id), mundo (huevos-mundo.js), arboles() → veg.arboles,
+//   refugio() → { x, z } }
+import { sanearHuevos, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cumplirDeseo, DESEOS, ESTRELLA, DUENDES, elegirCoihue, puedeConvidar, convidar, bultoListo, levantarBulto } from './huevos.js';
 import { sumarAmistadDe, nombreCorto } from './vecindad.js';
 
 export function crearHuevosJuego(ctx) {
@@ -89,6 +90,54 @@ export function crearHuevosJuego(ctx) {
     ctx.guardar?.();
   }
 
+  // ------------------------------------------------------------ 2) los duendes del Coihue
+  let coihue = null, buscado = false;
+  const cerca = (p, q, r) => !!p && !!q && Math.hypot(p.x - q.x, p.z - q.z) <= r;
+  function buscarCoihue() {
+    buscado = true;
+    const c = elegirCoihue(ctx.arboles?.(), ctx.refugio?.() || { x: 0, z: 0 });
+    if (!c) return;
+    coihue = c; ctx.mundo?.ponerCoihue(c, ctx.refugio().x, ctx.refugio().z);
+  }
+  function ponerVista(pos) {
+    if (!coihue || !ctx.mundo) return;
+    const lejos = !cerca(pos, coihue, 90), d = h().duendes;
+    ctx.mundo.ver({ rueda: !lejos, pila: !lejos && !!d.ofrenda && !bultoListo(h(), dia(), horas()), bulto: !lejos && bultoListo(h(), dia(), horas()) });
+  }
+  function dejarConvite() {
+    const x = h();
+    if (!convidar(x, dia())) return;
+    ctx.sumarCosa?.('yerba', -1);
+    ctx.refrescarBarra?.();
+    ctx.sonido?.pulsar?.(76, { dur: 1.4, vol: 0.04, destino: ctx.sonido.bus?.efectos });
+    ctx.nota('Dejaste un poco de yerba', 'Al pie del coihue', false);
+    ponerVista(ctx.jugador?.()?.estado?.pos);
+    ctx.guardar?.();
+  }
+  function levantar() {
+    const r = levantarBulto(h(), dia());
+    if (!r) return;
+    if (r.material) ctx.sumarMaterial?.(r.material.k, r.material.n);
+    ctx.sonido?.anotar?.();
+    ctx.nota('Alguien te dejó una nota', r.nota + (r.material ? `  (${r.material.n} ${NOMBRE_MAT[r.material.k] || r.material.k})` : ''), true);
+    ctx.diario?.('evento', 'Al pie del coihue había un bulto atado con hilo: ' + r.nota);
+    ctx.refrescarBarra?.();
+    ponerVista(ctx.jugador?.()?.estado?.pos);
+    ctx.guardar?.();
+  }
+  const NOMBRE_MAT = { calafate: 'calafates', frutilla: 'frutillas', piedra: 'piedras', tronco: 'troncos' };
+
+  // Lo que hace E (y dice el aviso, con la misma función) al pie del coihue
+  function accion(js) {
+    if (!activo() || !coihue || !ctx.mundo?.puntoConvite) return null;
+    if (js.enTren || js.enKayak || js.montado || js.nadando) return null;
+    if (!cerca(js.pos, ctx.mundo.puntoConvite, DUENDES.alcance)) return null;
+    const x = h();
+    if (bultoListo(x, dia(), horas())) return { texto: 'Levantar el bulto que dejaron al pie del coihue', hacer: levantar };
+    if (puedeConvidar(x, dia()) && (Number(ctx.cantidad?.('cosa', 'yerba')) || 0) >= 1) return { texto: 'Dejar un poco de yerba al pie del coihue', hacer: dejarConvite };
+    return null;
+  }
+
   // ------------------------------------------------------------ cada 2 segundos
   let acum = 0;
   function actualizar(dt) {
@@ -96,9 +145,11 @@ export function crearHuevosJuego(ctx) {
     if (acum < 2) return;
     acum = 0;
     if (!activo()) return;
+    if (!buscado) buscarCoihue();
     const x = h();
     if (deseoListo(x, dia(), horas())) cumplir();
+    ponerVista(ctx.jugador?.()?.estado?.pos);
   }
 
-  return { fugazVista, actualizar, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
+  return { fugazVista, actualizar, accion, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
 }

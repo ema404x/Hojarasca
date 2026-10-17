@@ -65,21 +65,47 @@ function VECINOS() { return H.VECINOS_DESEO; }
   ok(H.VECINOS_DESEO.every((k) => V.VALLE_VECINDAD.includes(k)), 'los vecinos de la visita son del valle (vecindad.js)');
 }
 
+// ---------------------------------------------------------------- 1b. los duendes del Coihue
+{
+  const D = H.DUENDES;
+  const arboles = [
+    { x: 0, z: 100, especie: 'coihue', esc: 1.2 }, { x: 10, z: 120, especie: 'coihue', esc: 1.38 }, { x: 20, z: 60, especie: 'lenga', esc: 1.9 },
+    { x: 5, z: 10, especie: 'coihue', esc: 2.0 }, { x: 900, z: 900, especie: 'coihue', esc: 2.5 }, { x: 30, z: 130, especie: 'coihue', esc: 1.38 }, null, { especie: 'coihue' },
+  ];
+  eq(H.elegirCoihue(arboles, { x: 0, z: 0 }), { x: 10, z: 120, esc: 1.38 }, 'el coihue elegido: el más grande a una caminata (ni lenga, ni encima, ni perdido); en un empate, el de x menor');
+  ok(H.elegirCoihue([], { x: 0, z: 0 }) === null && H.elegirCoihue(null, { x: 0, z: 0 }) === null && H.elegirCoihue([{ x: 1, z: 1, especie: 'lenga', esc: 1 }], { x: 0, z: 0 }) === null, 'sin coihue a mano, ninguno');
+  ok(H.elegirCoihue(arboles, { x: 0, z: 0 })?.x === H.elegirCoihue([...arboles].reverse(), { x: 0, z: 0 })?.x, 'no depende del orden de la lista');
+  const h = H.huevosNuevos();
+  ok(H.puedeConvidar(h, 5) && H.convidar(h, 5) && h.duendes.ofrenda === 5, 'se deja el convite el día 5');
+  ok(!H.puedeConvidar(h, 6) && !H.convidar(h, 6), 'con un convite esperando no se deja otro');
+  ok(!H.bultoListo(h, 5, 12) && !H.bultoListo(h, 6, 5) && H.bultoListo(h, 6, 8) && H.bultoListo(h, 9, 18) && !H.bultoListo(h, 6, 22), 'el bulto está a la mañana siguiente (de 6 a 21 h), no el mismo día ni de noche');
+  const r = H.levantarBulto(h, 6);
+  ok(r && H.NOTAS_DUENDE.includes(r.nota) && (r.material === null || (r.material.n >= 1 && r.material.n <= D.matMax)), 'siempre una nota; el regalo, si hay, es chico');
+  ok(h.duendes.ofrenda === 0 && h.duendes.recibidos === 1 && H.levantarBulto(h, 6) === null, 'se levanta una sola vez');
+  ok(!H.puedeConvidar(h, 5 + D.separacion - 1) && H.puedeConvidar(h, 5 + D.separacion), `no se puede otro convite hasta ${D.separacion} días después`);
+  // de cuántos convites sale regalo
+  let con = 0; const N = 2000;
+  for (let i = 1; i <= N; i++) { const x = H.huevosNuevos(); H.convidar(x, i * 10); if (H.levantarBulto(x, i * 10 + 1).material) con++; }
+  ok(con / N > 0.3 && con / N < 0.6, `un regalito en poco menos de la mitad de los convites (${con}/${N})`);
+  ok(H.NOTAS_DUENDE.length >= 5 && H.NOTAS_DUENDE.every((t) => t.length > 20 && t.length < 100 && !/[A-Za-z]{3,} (the|and) /.test(t)), 'las notas, en castellano y cortas');
+}
 // ---------------------------------------------------------------- 2. lo que se guarda
 eq(H.sanearHuevos(undefined, 10), H.huevosNuevos(), 'una partida vieja (sin el campo) arranca de cero');
 eq(H.sanearHuevos(null, 10), H.huevosNuevos(), 'null: de cero');
 eq(H.sanearHuevos({ estrella: { ultimaNoche: 9999, deseo: { id: 'lena', pedido: 5, cumple: 7 }, cumplidos: -4 } }, 20).estrella, { ultimaNoche: 20, deseo: { id: 'lena', pedido: 5, cumple: 7 }, cumplidos: 0 }, 'las fechas no pasan de hoy');
+eq(H.sanearHuevos({ duendes: { ofrenda: 9999, ultima: -3, recibidos: 1e9 } }, 20).duendes, { ofrenda: 20, ultima: 20, recibidos: 999 }, 'los duendes: las fechas no pasan de hoy y el convite no queda sin fecha');
+eq(H.sanearHuevos({ duendes: 'x' }, 20).duendes, H.duendesNuevos(), 'duendes roto: de cero');
 for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido: 30, cumple: 32 }, { id: 'lena', pedido: 5, cumple: 5 }, { id: 'lena', pedido: 5, cumple: 90 }, 'x', 7, [], { id: 'lena' }]) {
   ok(H.sanearHuevos({ estrella: { deseo: malo } }, 20).estrella.deseo === null, `un deseo imposible se descarta: ${JSON.stringify(malo)}`);
 }
 {
   let rng = 11; const azar = () => ((rng = (rng * 1103515245 + 12345) >>> 0) / 4294967296);
-  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
+  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
   let bien = 0;
   for (let i = 0; i < 500; i++) {
     const x = H.sanearHuevos(valor(), 1 + Math.floor(azar() * 60));
     const y = H.sanearHuevos(JSON.parse(JSON.stringify(x)), 100);
-    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0) bien++;
+    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima) bien++;
   }
   eq(bien, 500, 'el caos: nunca se rompe y lo saneado queda igual');
 }
@@ -102,8 +128,11 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   ok(m.includes('huevosJuego?.fugazVista(diaNoche, nocheCielo.vistas)') && m.includes("!desafio) huevosJuego?.actualizar(dt)"), 'main.js: la fugaz vista y el reloj de 2 segundos, sólo en el Relax');
   const j = leer('src/huevos-juego.js');
   ok(!/requestAnimationFrame/.test(j) && !/from 'three'/.test(j) && /acum < 2/.test(j), 'huevos-juego.js: por evento, sin cuadros ni three');
+  ok(m.includes('cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null') && m.includes("aviso = { tecla: 'E', texto: cacheHuevos.texto }") && m.includes('cacheHuevos) { const a = cacheHuevos; cacheHuevos = null; a.hacer(); break; }'), 'main.js: la E y el aviso de los huevos, en el mismo lugar (después de los rincones) y con la misma función');
+  const mu = leer('src/huevos-mundo.js');
+  ok(/MAT_FAUNA/.test(mu) && !/new THREE.(MeshStandardMaterial|MeshBasicMaterial|ShaderMaterial|MeshPhongMaterial)/.test(mu) && !/OctahedronGeometry|Vector4|Frustum|ShapeGeometry/.test(mu), 'huevos-mundo.js: sólo MAT_FAUNA (no compila nada nuevo) y sin clases que el three recortado no trae');
   const p = leer('src/huevos.js');
   ok(!/from 'three'/.test(p) && !/document\./.test(p) && !/Date\.now|Math\.random/.test(p.replace(/\/\/.*$/gm, '')), 'huevos.js es puro: ni three ni DOM ni reloj ni Math.random');
 }
 
-console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, guardado saneado y enganche`);
+console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, guardado saneado y enganche`);

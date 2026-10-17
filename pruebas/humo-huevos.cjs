@@ -60,6 +60,53 @@ app.whenReady().then(async () => {
     await foto('estrella-nota');
   }
 
+  // ------------------------------------------------------------ 2) los duendes del Coihue
+  {
+    const ir = async (x, z, yaw) => { await js(`(() => { const J = ${H}.jugador; J.ubicar(${x}, ${z}, ${yaw}); J.estado.vel.set(0, 0, 0); for (let i = 0; i < 10; i++) J.actualizar(0.05); })()`); };
+    const c = await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); const c = hj.coihue(), pt = ${H}.__huevos.mundo().puntoConvite; return c && { x: c.x, z: c.z, px: pt.x, pz: pt.z, ring: !!${H}.__huevos.mundo().rueda }; })()`);
+    ok('hay un coihue elegido, con su rueda de hongos armada', !!c && c.ring, c);
+    // de lejos no se dibuja; de cerca, sí
+    await ir(c.px + 130, c.pz + 40, 0);
+    const lejos = await js(`(() => { ${H}.__huevos.juego().actualizar(2.1); return ${H}.__huevos.mundo().rueda.visible; })()`);
+    ok('lejos, la rueda no se dibuja', lejos === false);
+    const dx = c.x - (c.px + 6), dz = c.z - (c.pz + 6), yaw = Math.atan2(-dx, -dz);
+    await ir(c.px + 6, c.pz + 6, yaw);
+    await js(`(() => { const p = ${H}.progreso; p.dia = 70; p.horas = 11; p.cosas.yerba = 2; ${H}.__huevos.juego().actualizar(2.1); })()`);
+    await esperar(1200);
+    await foto('coihue-rueda');
+    const cerca = await js(`${H}.__huevos.mundo().rueda.visible`);
+    ok('cerca se ve la rueda de hongos', cerca === true);
+    await ir(c.px, c.pz, yaw);
+    await esperar(900);
+    const av = await js(`(document.getElementById('aviso')?.textContent || '')`);
+    ok('con yerba, al pie, el aviso ofrece dejarla', /Dejar un poco de yerba al pie del coihue/.test(av), av);
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true })); 1`);
+    await esperar(300);
+    const d1 = await js(`({ yerba: ${H}.progreso.cosas.yerba, of: ${H}.progreso.huevos.duendes.ofrenda, pila: ${H}.__huevos.mundo().pila.visible })`);
+    ok('E deja la yerba (queda 1), anota el día y se ve la pilita', d1.yerba === 1 && d1.of === 70 && d1.pila === true, d1);
+    { const ux = (c.px - c.x), uz = (c.pz - c.z), d = Math.hypot(ux, uz); await ir(c.px + ux / d * 1.6, c.pz + uz / d * 1.6, Math.atan2(ux, uz)); await js(`${H}.jugador.estado.pitch = -0.55; 1`); }
+    await esperar(1000);
+    await foto('coihue-pila');
+    const d1b = await js(`(() => { ${H}.progreso.dia = 70; ${H}.progreso.horas = 12; return null; })()`);
+    await esperar(300);
+    const av2 = await js(`(document.getElementById('aviso')?.textContent || '')`);
+    ok('el mismo día no hay otro convite que dejar', !/yerba al pie/.test(av2), av2);
+    // a la mañana siguiente
+    const mat0 = await js(`(() => { const p = ${H}.progreso; p.dia = 71; p.horas = 9; ${H}.__huevos.juego().actualizar(2.1); return { b: ${H}.__huevos.mundo().bulto.visible, p: ${H}.__huevos.mundo().pila.visible, m: JSON.stringify(p.materiales || {}) }; })()`);
+    ok('a la mañana siguiente la pila se vuelve un bulto atado con hilo', mat0.b === true && mat0.p === false, mat0);
+    await esperar(1000);
+    await foto('coihue-bulto');
+    await ir(c.px, c.pz, yaw);
+    await esperar(600);
+    const av3 = await js(`(document.getElementById('aviso')?.textContent || '')`);
+    ok('el aviso ofrece levantarlo', /Levantar el bulto/.test(av3), av3);
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true })); 1`);
+    await esperar(400);
+    const d2 = await js(`({ of: ${H}.progreso.huevos.duendes.ofrenda, rec: ${H}.progreso.huevos.duendes.recibidos, bulto: ${H}.__huevos.mundo().bulto.visible, nota: [...document.querySelectorAll('#notas .nota')].map((n) => n.textContent).join(' | ') })`);
+    ok('E lo levanta: nota del duende, el bulto desaparece', d2.of === 0 && d2.rec === 1 && d2.bulto === false && /Alguien te dejó una nota/.test(d2.nota), d2);
+    await js(`(() => { ${H}.progreso.dia = 71; ${H}.__huevos.juego().actualizar(2.1); })()`);
+  }
+
   let mal = 0;
   for (const r of out) { console.log(`${r.ok ? 'OK   ' : 'FALLA'} ${r.nombre} ${JSON.stringify(r.dato ?? '')}`); if (!r.ok) mal++; }
   console.log(errores.length ? 'ERRORES: ' + errores.join(' | ') : 'sin errores en la consola');
