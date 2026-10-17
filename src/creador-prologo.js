@@ -76,6 +76,7 @@ export function abrirPrologo({ alTerminar } = {}) {
   // mientras está abierto, el resto del juego no recibe teclas; sobre un botón, Enter y Espacio hacen lo del botón
   function alTeclear(e) {
     e.stopPropagation();
+    if (e.repeat && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); return; }   // 4.0.1: Enter sostenido al cerrar la creación pasaba las cinco tarjetas
     const enBoton = !!e.target?.closest?.('button');
     if ((e.key === 'Enter' || e.key === ' ') && enBoton) return;
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); siguiente(); }
