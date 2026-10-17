@@ -1773,6 +1773,7 @@ function empezarBanco(recorrido = RECORRIDO) {
   banco.activa = true;
   ajustes.autoCalidad = false;   // el banco mide una calidad fija
   for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');
+  $('inicio').classList.add('oculto');   // 4.0.3 (G14): lanzado desde la portada, la portada (con sus botones) quedaba dibujada sobre la medición; vuelve al terminar
   $('hud').classList.add('oculto');
   $('banco-corriendo').classList.remove('oculto');
   banco.aviso = $('banco-tramo');
@@ -1807,7 +1808,7 @@ function terminarBanco() {
   traducirPanel($('banco'));
   $('banco').classList.remove('oculto');
   // 4.0.1: si lo largaste desde la portada, volvés a la portada (antes quedaba el HUD prendido, el mundo corriendo detrás y «Seguir» dejaba la partida en marcha bajo la portada)
-  if (g?.modo === 'inicio') { $('hud').classList.add('oculto'); modo = 'inicio'; }
+  if (g?.modo === 'inicio') { $('hud').classList.add('oculto'); $('inicio').classList.remove('oculto'); modo = 'inicio'; }   // (4.0.3: y la portada, que el banco había escondido)
   else { $('hud').classList.remove('oculto'); modo = 'pausa'; }
   guardarAjustes(ajustes);
 }
@@ -2118,6 +2119,8 @@ document.querySelectorAll('[data-ajuste-rango]').forEach((i) => {
     ajustes[i.dataset.ajusteRango] = Number(i.value);
     guardarAjustes(ajustes);
     if (i.dataset.ajusteRango === 'volumen') sonido.setVolumen(ajustes.volumen);
+    // 4.0.3 (G5): el bosque, los efectos y la música se oyen al moverlos (la mezcla sólo se rehacía cada 4 s y jugando: en la pausa, donde se tocan, no se oía)
+    if (['volumenAmbiente', 'volumenEfectos', 'volumenMusica'].includes(i.dataset.ajusteRango)) { try { aplicarMezcla(); } catch (e) { fallaSistema('mezcla', e); } }
     if (i.dataset.ajusteRango === 'sensibilidad') mando.opciones.sensibilidad = ajustes.sensibilidad;   // 3.8.3: el mando también, sin reiniciar (como invertirY)
   });
 });
@@ -4064,7 +4067,8 @@ const PISTAS = [
 let acumuladoPistas = 0;
 function revisarPistas(dt) {
   acumuladoPistas += dt;
-  if (acumuladoPistas < 1.5 || charla.npc || mochilaAbierta || modoObra) return;
+  // 4.0.3 (G12): con el HUD escondido (el modo foto, el banco de pruebas) el consejo no se ve: no se marca como dicho (el banco lo dispara de noche sí o sí)
+  if (acumuladoPistas < 1.5 || charla.npc || mochilaAbierta || modoObra || foto.activo || banco.activa) return;
   acumuladoPistas = 0;
   progreso.pistas = progreso.pistas || {};
   for (const p of PISTAS) {
@@ -10489,7 +10493,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     revisarRebrote, talados, acopio, conMateriales, materialesVisibles, autoCalidad, mando, revisarGuiaRelax, abrirBase,
     traductor, T_, traducirPanel, __icono: icono,   // 3.8.2: el ícono tal como se dibuja en este modo (QA)
     abrirModoFoto, __foto: () => foto, guardarFotoArchivo,
-    __post: () => post?.uniforms, __peligros: () => ctxMundoVivo.peligros,
+    __sonido: () => sonido, __post: () => post?.uniforms, __peligros: () => ctxMundoVivo.peligros,
     __riesgoPeligros: (pos) => riesgoDePeligros(pos, ctxMundoVivo.peligros),
     empezarBanco, banco, textoParaExportar, importarTexto, leerPartida,
     __mostrarVictoria: (s, final) => mostrarVictoria(s, final),
