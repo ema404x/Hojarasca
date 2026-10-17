@@ -90,9 +90,13 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   const grupo = new THREE.Group(); grupo.name = 'molino-paisaje';
   escena.add(grupo);
   const mat = materialVegetal({ flex: 0 });
+  // 4.0.1: el sendero real (que NO se mueve) cruza el campo y sale por la esquina sudeste del cerco; lo nuevo le deja paso: sin flores sobre el camino y con un hueco en el cerco
+  const alSendero = (lx, lz) => { const p = mundo(lx, lz); return typeof T.val === 'function' && T.distSendero ? T.val(T.distSendero, p.x, p.z) : 999; };
+  const LIBRE_FLORES = 1.6, LIBRE_CERCO = 1.9;
 
   // ============================================================ el campo de tulipanes (instanciado)
   const siembra = sembrarTulipanes();
+  for (const color of Object.keys(siembra.porColor)) siembra.porColor[color] = siembra.porColor[color].filter((t) => alSendero(t.x, t.z) >= LIBRE_FLORES);
   const tul = [];   // { malla, todos, color }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
   for (const [color, lista] of Object.entries(siembra.porColor)) {
@@ -128,15 +132,16 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
     const largo = Math.hypot(t.b[0] - t.a[0], t.b[1] - t.a[1]), n = Math.max(1, Math.round(largo / CERCOS.poste));
     const pt = (i) => [t.a[0] + (t.b[0] - t.a[0]) * i / n, t.a[1] + (t.b[1] - t.a[1]) * i / n];
     const enPorton = (x) => t.porton && x > t.porton[0] - 0.4 && x < t.porton[1] + 0.4;
+    const porElSendero = (x, z) => alSendero(x, z) < LIBRE_CERCO;   // (4.0.1: donde cruza el camino, el cerco se abre como un portón)
     for (let i = 0; i <= n; i++) {
       const [x, z] = pt(i), y = rel(x, z), alto = 1.05 + (azarFijo(x, z, 31) - 0.5) * 0.08;
-      if (!(i > 0 && i < n && enPorton(x))) {
+      if (!(i > 0 && i < n && enPorton(x)) && !porElSendero(x, z)) {
         c.agregar(new THREE.BoxGeometry(0.14, alto + 0.35, 0.14), { color: i % 2 ? MADERA : OSCURA, tipo: 0, variar: 0.1, matriz: matriz([x, y + alto / 2 - 0.17, z], [0, azarFijo(x, z, 32) * 0.4, 0]) });
         c.agregar(new THREE.BoxGeometry(0.17, 0.04, 0.17), { color: OSCURA, tipo: 0, matriz: matriz([x, y + alto + 0.02, z]) });
       }
       if (i < n) {
         const [x2, z2] = pt(i + 1), y2 = rel(x2, z2);
-        if (!enPorton((x + x2) / 2)) {
+        if (!enPorton((x + x2) / 2) && !porElSendero((x + x2) / 2, (z + z2) / 2) && !porElSendero(x, z) && !porElSendero(x2, z2)) {
           for (const h of [0.86, 0.46]) tablaEntre(c, [x, y + h, z], [x2, y2 + h, z2], 0.06, 0.12, h > 0.7 ? TABLA_CLARA : TABLA);
           seg([x, z], [x2, z2], 0.1, molino.y + Math.min(y, y2) - 0.5, molino.y + Math.max(y, y2) + 1.0);
         }
@@ -149,12 +154,18 @@ export function crearMolinoPaisaje({ T, escena, col, molino, densidad = 1 }) {
   const nivel = new Array(mu.length);
   {
     // en lo llano el agua está a nivel (la sostienen las rocas de las orillas); pasada la caída sigue la loma
-    let maxLlano = -1e9;
-    for (const m of mu) if (m.x <= ARROYO.lazoDique) for (const o of [-1, 0, 1]) maxLlano = Math.max(maxLlano, rel(m.x + m.nx * o * m.ancho * 0.45, m.z + m.nz * o * m.ancho * 0.45));
-    const L = maxLlano + ARROYO.desfase;
-    let ant = L;
+    // 4.0.1: ...pero "a nivel" lo ponía en el punto más alto de todo el tramo y la loma cae unos 3,7 m en esos 32 m: el agua quedaba hasta 3,9 m en el aire, con muros de
+    // piedra de 4 m y el sendero pasando por debajo. Ahora el agua sigue la loma (con el mismo desfase sobre lo más alto del ancho de cada muestra) y baja a pasos de
+    // hasta 0,35 m: sin paredón, sin agua colgada. Lo de después de la caída no cambia.
+    let ant = -1e9;
     mu.forEach((m, i) => {
-      if (m.x <= ARROYO.lazoDique) { nivel[i] = L; ant = L; return; }
+      if (m.x <= ARROYO.lazoDique) {
+        let raw = -1e9;
+        for (const o of [-1, 0, 1]) raw = Math.max(raw, rel(m.x + m.nx * o * m.ancho * 0.45, m.z + m.nz * o * m.ancho * 0.45));
+        ant = ant < -1e8 ? raw + ARROYO.desfase : Math.max(raw + ARROYO.desfase, ant - 0.35);
+        nivel[i] = ant;
+        return;
+      }
       let raw = -1e9;
       for (const o of [-1, 0, 1]) raw = Math.max(raw, rel(m.x + m.nx * o * m.ancho * 0.45, m.z + m.nz * o * m.ancho * 0.45));
       ant = Math.max(raw + 0.07, ant - 0.55);   // la caída: baja de golpe (hasta 0,55 m por muestra), después hugs la loma

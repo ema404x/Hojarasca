@@ -40,7 +40,8 @@ function cargar(raices) {
   let code = leer('three-r186-inline.js') + '\n';
   for (const f of orden) code += transformar(f, info.get(f)) + '\n';
   code += `\n;globalThis.__M={THREE,${orden.map((f) => `${path.basename(f, '.js').replace(/[^A-Za-z0-9_$]/g, '_')}:${idModulo(f)}`).join(',')}};\n`;
-  const ctx = { console, Math, Float32Array, Uint8Array, Uint8ClampedArray, Uint16Array, Uint32Array, Int8Array, Int16Array, Int32Array, ArrayBuffer, DataView, Map, Set, WeakMap, WeakSet, Date, performance: { now: () => 0 } };
+  const fakeCtx = new Proxy({ measureText: (t) => ({ width: String(t).length * 20 }), createLinearGradient: () => ({ addColorStop() {} }), createRadialGradient: () => ({ addColorStop() {} }) }, { get: (t, p) => (p in t ? t[p] : () => {}), set: (t, p, v) => { t[p] = v; return true; } });
+  const ctx = { document: { createElement: (tag) => (tag === 'canvas' ? { width: 1, height: 1, getContext: () => fakeCtx } : {}) }, console, Math, Float32Array, Uint8Array, Uint8ClampedArray, Uint16Array, Uint32Array, Int8Array, Int16Array, Int32Array, ArrayBuffer, DataView, Map, Set, WeakMap, WeakSet, Date, performance: { now: () => 0 } };
   ctx.globalThis = ctx; vm.createContext(ctx); vm.runInContext(code, ctx, { timeout: 30000 });
   return ctx.__M;
 }
@@ -61,4 +62,4 @@ function mundo(extraT = {}, veg = { arboles: [], despejar() {} }) {
   return { s, col, T, terminar, mats };
 }
 
-export { M, mundo, ok, eq, C, THREE };
+export { M, mundo, ok, eq, C, THREE, cargar };
