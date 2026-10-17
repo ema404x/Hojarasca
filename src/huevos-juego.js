@@ -3,9 +3,11 @@
 // `ctx`: { progreso(), desafio(), jugador() → { estado }, sonido, nota(t, sub, nueva), diario(tipo, dato), guardar(),
 //   sumarMaterial(k, n), sumarCosa(k, n), cantidad(tipo, k), refrescarBarra(), registrar(id), mundo (huevos-mundo.js), arboles() → veg.arboles,
 //   refugio() → { x, z },
-//   niebla() → la opacidad de la niebla de valle (0 a 0,68), camara() → la cámara, mallin() → { x, z }, agua(x, z), altura(x, z) }
+//   niebla() → la opacidad de la niebla de valle (0 a 0,68), camara() → la cámara, mallin() → { x, z }, agua(x, z), altura(x, z),
+//   pelarPasto(x, z, radio) → cómo devolver el pasto, cobrar(pesos, motivo) → { ok }, perroPos() → la posición del perro, nombrePerro() }
 import { sanearHuevos, trajoDeseo, ofrecerEstrella, pedirDeseo, deseoListo, cumplirDeseo, DESEOS, ESTRELLA, DUENDES, elegirCoihue, puedeConvidar, convidar, bultoListo, levantarBulto,
-  HUEMUL, huemulAfuera, salioHuemul, seFueHuemul, avistoHuemul, seAsusta } from './huevos.js';
+  HUEMUL, huemulAfuera, salioHuemul, seFueHuemul, avistoHuemul, seAsusta,
+  HUESO, enterroHueso, lugarDelHueso, hayHueso, desenterrarHueso } from './huevos.js';
 import { sumarAmistadDe, nombreCorto } from './vecindad.js';
 
 export function crearHuevosJuego(ctx) {
@@ -131,9 +133,10 @@ export function crearHuevosJuego(ctx) {
 
   // Lo que hace E (y dice el aviso, con la misma función) al pie del coihue
   function accion(js) {
-    if (!activo() || !coihue || !ctx.mundo?.puntoConvite) return null;
+    if (!activo() || !ctx.mundo) return null;
     if (js.enTren || js.enKayak || js.montado || js.nadando) return null;
-    if (!cerca(js.pos, ctx.mundo.puntoConvite, DUENDES.alcance)) return null;
+    if (lugarHueso && hayHueso(h()) && cerca(js.pos, lugarHueso, HUESO.alcance)) return { texto: 'Excavar el montículo de tierra', hacer: cavar };
+    if (!coihue || !ctx.mundo.puntoConvite || !cerca(js.pos, ctx.mundo.puntoConvite, DUENDES.alcance)) return null;
     const x = h();
     if (bultoListo(x, dia(), horas())) return { texto: 'Levantar el bulto que dejaron al pie del coihue', hacer: levantar };
     if (puedeConvidar(x, dia()) && (Number(ctx.cantidad?.('cosa', 'yerba')) || 0) >= 1) return { texto: 'Dejar un poco de yerba al pie del coihue', hacer: dejarConvite };
@@ -205,6 +208,58 @@ export function crearHuevosJuego(ctx) {
     }
   }
 
+  // ------------------------------------------------------------ 4) el hueso del perro
+  let lugarHueso = null, diaLugarHueso = 0, ladroDia = 0, devolverPasto = null;
+  const soltarPasto = () => { if (devolverPasto) { try { devolverPasto(); } catch (e) { /* (sin máscara: nada que devolver) */ } devolverPasto = null; } };
+  // Un lugar parejo, de tierra firme y sin árboles encima, lo más cerca posible del que sortea el día (el mismo si se recarga)
+  function buscarLugarHueso(diaHueso) {
+    const base = ctx.refugio?.() || { x: 0, z: 0 }, arboles = ctx.arboles?.() || [], g = lugarDelHueso(diaHueso);
+    for (let k = 0; k < 40; k++) {
+      const a = g.ang + k * 0.7, r = Math.min(HUESO.maxR + 12, g.r + k * 1.3), x = base.x + Math.cos(a) * r, z = base.z + Math.sin(a) * r;
+      if (ctx.agua?.(x, z)) continue;
+      const y = ctx.altura(x, z);
+      if (!(y > 0.6) || [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5]].some(([dx, dz]) => Math.abs(ctx.altura(x + dx, z + dz) - y) > 0.35)) continue;
+      if (arboles.some((t) => Math.abs(t.x - x) < 4 && Math.abs(t.z - z) < 4 && Math.hypot(t.x - x, t.z - z) < 3.2)) continue;
+      return { x, z, giro: g.ang * 3 };
+    }
+    return { x: base.x + Math.cos(g.ang) * g.r, z: base.z + Math.sin(g.ang) * g.r, giro: 0 };
+  }
+  function revisarHueso(pos) {
+    if (!ctx.mundo) return;
+    const x = h();
+    if (!hayHueso(x) && enterroHueso(x, dia(), horas())) ctx.guardar?.();
+    if (!hayHueso(x)) { lugarHueso = null; ctx.mundo.verMonticulo(false); soltarPasto(); return; }
+    if (!lugarHueso || diaLugarHueso !== x.hueso.dia) {
+      soltarPasto();
+      lugarHueso = buscarLugarHueso(x.hueso.dia); diaLugarHueso = x.hueso.dia;
+      ctx.mundo.ponerMonticulo(lugarHueso.x, lugarHueso.z, lugarHueso.giro);
+      devolverPasto = ctx.pelarPasto?.(lugarHueso.x, lugarHueso.z, 3.2) || null;   // un claro de tierra pelada: si no, el pasto tapa el montículo
+    }
+    const cerca2 = !!pos && cerca(pos, lugarHueso, HUESO.ver);
+    ctx.mundo.verMonticulo(cerca2);
+    // el perro lo huele: un ladrido la primera vez que te acercás (no más de uno por hueso)
+    if (cerca2 && ladroDia !== x.hueso.dia && cerca(pos, lugarHueso, 14)) { ladroDia = x.hueso.dia; const pp = ctx.perroPos?.(); if (pp) ctx.sonido?.ladrido?.(pp); }
+  }
+  function cavar() {
+    const r = desenterrarHueso(h());
+    if (!r) return;
+    let dichoPesos = '';
+    if (r.pesos > 0) {
+      const c = ctx.cobrar?.(r.pesos, 'Una moneda vieja del hueso del perro');
+      if (c && c.ok) dichoPesos = ` (te la cambian por ${r.pesos})`;
+      else ctx.sumarMaterial?.('piedra', 1);
+    }
+    ctx.sonido?.juntar?.();
+    const perro = ctx.nombrePerro?.() || 'El perro';
+    ctx.nota(`Desenterraste ${r.texto}`, `${perro} mueve la cola, contento${dichoPesos}`, true);
+    ctx.diario?.('evento', `Donde escarbó ${ctx.nombrePerro?.() || 'el perro'} había ${r.texto}.`);
+    const pp = ctx.perroPos?.();
+    if (pp) { ctx.sonido?.ladrido?.(pp); setTimeout(() => { const q = ctx.perroPos?.(); if (q) ctx.sonido?.ladrido?.(q); }, 650); }
+    ctx.mundo?.verMonticulo(false); lugarHueso = null; soltarPasto();
+    ctx.refrescarBarra?.();
+    ctx.guardar?.();
+  }
+
   // ------------------------------------------------------------ cada 2 segundos
   let acum = 0;
   function actualizar(dt) {
@@ -218,7 +273,8 @@ export function crearHuevosJuego(ctx) {
     if (deseoListo(x, dia(), horas())) cumplir();
     ponerVista(ctx.jugador?.()?.estado?.pos);
     revisarHuemul(ctx.jugador?.()?.estado?.pos);
+    revisarHueso(ctx.jugador?.()?.estado?.pos);
   }
 
-  return { fugazVista, actualizar, accion, lugarHuemul: () => lugarHuemul, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
+  return { fugazVista, actualizar, accion, lugarHuemul: () => lugarHuemul, lugarHueso: () => lugarHueso, coihue: () => coihue, ponerVista, cerrarDeseo, estado: h, deseoAbierto: () => enDeseo, elegirDeseo };
 }

@@ -1,7 +1,7 @@
 // 4.2 (huevos de pascua): lo que se ve de los easter eggs (las reglas, en huevos.js; el enganche, en huevos-juego.js).
 //   · la rueda de hongos al pie del coihue de los duendes, la pilita de yerba y el bultito atado con hilo;
 //   · el huemul blanco del mallín (se para, mueve las orejas y, si te acercás, se va caminando);
-//   · (se suma el montículo del hueso).
+//   · el montículo de tierra donde el perro enterró un hueso.
 // Todo con MAT_FAUNA (color por vértice, el de la gente y los animales: no compila nada nuevo), una malla por cosa y sólo a la vista
 // cuando hace falta (lejos no se dibuja). Nada se mueve por cuadro.
 import * as THREE from 'three';
@@ -57,6 +57,17 @@ function armarRueda(c, altura) {
   }
   return P.malla();
 }
+// El montículo del hueso: tierra removida con un par de terrones y piedritas, unos 60 cm de ancho
+function armarMonticulo() {
+  const P = new Pieza();
+  P.cil('#4f3a2a', 0.62, 0.7, 0.03, [0, 0.015, 0], 12);   // la tierra pelada alrededor
+  P.bola('#5b4331', 0.4, [0, 0.0, 0], [1.2, 0.55, 1], [10, 5]);
+  P.bola('#6b4f3a', 0.16, [0.2, 0.05, 0.1], [1, 0.6, 1], [6, 4]);
+  P.bola('#4a3526', 0.12, [-0.18, 0.04, -0.12], [1, 0.6, 1], [6, 4]);
+  P.bola('#8b8579', 0.05, [0.12, 0.13, -0.08], [1, 0.7, 1], [5, 3]);
+  P.bola('#8b8579', 0.04, [-0.3, 0.02, 0.18], [1, 0.7, 1], [5, 3]);
+  return P.malla();
+}
 // La pilita de yerba que se deja: un montoncito verde-pardo, aplastado
 function armarPila() {
   const P = new Pieza();
@@ -78,8 +89,8 @@ export function crearHuevosMundo({ escena, altura }) {
   grupo.name = 'huevos';
   escena.add(grupo);
   let rueda = null;
-  const pila = armarPila(), bulto = armarBulto();
-  for (const m of [pila, bulto]) grupo.add(m);
+  const pila = armarPila(), bulto = armarBulto(), monticulo = armarMonticulo();
+  for (const m of [pila, bulto, monticulo]) grupo.add(m);
   const ponerEn = (m, x, z, giro = 0, dy = 0) => {
     m.position.set(x, altura(x, z) + dy, z); m.rotation.y = giro; m.scale.set(1, 1, 1);
     m.updateMatrix(); m.updateMatrixWorld(true);
@@ -91,6 +102,10 @@ export function crearHuevosMundo({ escena, altura }) {
   const api = {
     grupo, rueda: null, pila, bulto,
     huemulEstado: H,
+    monticulo,
+    // el montículo del hueso en (x, z), con un giro cualquiera; `ver` lo muestra o lo esconde (de lejos no se dibuja)
+    ponerMonticulo(x, z, giro) { ponerEn(monticulo, x, z, giro, 0.01); },
+    verMonticulo(si) { monticulo.visible = !!si; },
     // lo pone en (x, z) mirando a `yaw` (en el mallín, de cara al agua)
     ponerHuemul(x, z, yaw) {
       if (!hu) { hu = mallaHuemulBlanco(); hu.g.scale.setScalar(1.15); grupo.add(hu.g); }

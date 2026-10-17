@@ -152,6 +152,33 @@ function VECINOS() { return H.VECINOS_DESEO; }
   ok(C.ENTRADAS.filter((e) => e.id === 'avistaje-huemul').length === 1, 'una sola entrada');
 }
 
+// ---------------------------------------------------------------- 1e. el hueso del perro
+{
+  const U = H.HUESO;
+  const dias = []; for (let d = 10; d < 4010; d++) if (H.azarDe(7301, d) < U.prob) dias.push(d);
+  ok(dias.length / 4000 > 0.1 && dias.length / 4000 < 0.22, `el sorteo da que sí en uno de cada ~6 días (${dias.length}/4000)`);
+  const h = H.huevosNuevos(), d0 = dias[0];
+  ok(!H.enterroHueso(h, d0, 3) && !H.enterroHueso(h, d0, 22) && !H.hayHueso(h), 'de noche no lo entierra');
+  const sin = dias.find((d) => !(H.azarDe(7301, d) < U.prob));
+  ok(!H.enterroHueso(H.huevosNuevos(), 5, 12) === !(H.azarDe(7301, 5) < U.prob), 'sólo los días sorteados');
+  ok(H.enterroHueso(h, d0, 12) === true && H.hayHueso(h) && h.hueso.dia === d0 && h.hueso.ultimo === d0, 'un día sorteado, de día, entierra uno');
+  ok(!H.enterroHueso(h, dias.find((d) => d > d0), 12), 'con uno enterrado no entierra otro (un hueso por vez)');
+  const lug = H.lugarDelHueso(d0);
+  ok(lug.r >= U.minR && lug.r <= U.maxR && lug.ang >= 0 && lug.ang < Math.PI * 2 && JSON.stringify(lug) === JSON.stringify(H.lugarDelHueso(d0)), 'el lugar: a una distancia razonable del refugio y siempre el mismo');
+  { let distintos = new Set(); for (let d = 0; d < 50; d++) distintos.add(H.lugarDelHueso(d).ang.toFixed(3)); ok(distintos.size > 40, 'y cada hueso, en otro lado'); }
+  const r = H.desenterrarHueso(h);
+  ok(r && H.HALLAZGOS.some((x) => x.id === r.id) && r.pesos <= 150 && !H.hayHueso(h) && h.hueso.cavados === 1, 'se excava: sale algo viejo y chico, y el montículo se va');
+  ok(H.desenterrarHueso(h) === null, 'se excava una sola vez');
+  // el siguiente, no antes de la separación (contada desde que se enterró)
+  const cerca = dias.find((d) => d > d0 && d - d0 < U.separacion), lejos = dias.find((d) => d - d0 >= U.separacion);
+  ok(cerca === undefined || !H.enterroHueso(h, cerca, 12), `no se entierra otro antes de ${U.separacion} días`);
+  ok(lejos !== undefined && H.enterroHueso(h, lejos, 12), 'pasados los días, sí');
+  const cuenta = { moneda: 0, cobre: 0, cuenta: 0 };
+  for (let d = 1; d <= 3000; d++) { const x = H.huevosNuevos(); x.hueso.dia = d; x.hueso.ultimo = d; cuenta[H.desenterrarHueso(x).id]++; }
+  ok(cuenta.moneda > 1000 && cuenta.cobre > 1000 && cuenta.cuenta > 400 && cuenta.cuenta < 800, `los hallazgos salen en las proporciones (${JSON.stringify(cuenta)})`);
+  ok(H.HALLAZGOS.reduce((a, c) => a + c.peso, 0) === 1 && H.HALLAZGOS.every((c) => c.texto.length > 15 && c.pesos >= 0 && c.pesos <= 150), 'los pesos suman 1 y los premios son de verdad chicos (hasta $150)');
+}
+
 // ---------------------------------------------------------------- 2. lo que se guarda
 eq(H.sanearHuevos(undefined, 10), H.huevosNuevos(), 'una partida vieja (sin el campo) arranca de cero');
 eq(H.sanearHuevos(null, 10), H.huevosNuevos(), 'null: de cero');
@@ -161,17 +188,19 @@ eq(H.sanearHuevos({ duendes: 'x' }, 20).duendes, H.duendesNuevos(), 'duendes rot
 eq(H.sanearHuevos({ huemul: { ultimo: 5000, ido: true, avistajes: -2 } }, 20).huemul, { ultimo: 20, ido: true, avistajes: 0 }, 'el huemul: la fecha no pasa de hoy');
 eq(H.sanearHuevos({ huemul: { ultimo: 0, ido: true } }, 20).huemul, H.huemulNuevo(), 'sin aparición no puede haberse ido');
 eq(H.sanearHuevos({ huemul: 7 }, 20).huemul, H.huemulNuevo(), 'huemul roto: de cero');
+eq(H.sanearHuevos({ hueso: { dia: 9999, ultimo: -1, cavados: 5000 } }, 20).hueso, { dia: 20, ultimo: 20, cavados: 999 }, 'el hueso: las fechas no pasan de hoy y el último no es anterior al enterrado');
+eq(H.sanearHuevos({ hueso: 'x' }, 20).hueso, H.huesoNuevo(), 'hueso roto: de cero');
 for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido: 30, cumple: 32 }, { id: 'lena', pedido: 5, cumple: 5 }, { id: 'lena', pedido: 5, cumple: 90 }, 'x', 7, [], { id: 'lena' }]) {
   ok(H.sanearHuevos({ estrella: { deseo: malo } }, 20).estrella.deseo === null, `un deseo imposible se descarta: ${JSON.stringify(malo)}`);
 }
 {
   let rng = 11; const azar = () => ((rng = (rng * 1103515245 + 12345) >>> 0) / 4294967296);
-  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos', 'huemul', 'ido', 'avistajes']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
+  const valor = (d = 0) => { const r = azar(); if (d > 2 || r < 0.3) return [null, -1, 0, 1e9, NaN, 'x', true, 'lena', 'tierra'][Math.floor(azar() * 9)]; if (r < 0.65) { const o = {}; for (const k of ['estrella', 'deseo', 'id', 'pedido', 'cumple', 'cumplidos', 'ultimaNoche', 'v', 'duendes', 'ofrenda', 'ultima', 'recibidos', 'huemul', 'ido', 'avistajes', 'hueso', 'cavados']) if (azar() < 0.6) o[k] = valor(d + 1); return o; } return [valor(d + 1), valor(d + 1)]; };
   let bien = 0;
   for (let i = 0; i < 500; i++) {
     const x = H.sanearHuevos(valor(), 1 + Math.floor(azar() * 60));
     const y = H.sanearHuevos(JSON.parse(JSON.stringify(x)), 100);
-    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima && x.huemul.avistajes >= 0 && (!x.huemul.ido || x.huemul.ultimo > 0)) bien++;
+    if (JSON.stringify(y) === JSON.stringify(x) && Number.isFinite(x.estrella.ultimaNoche) && x.estrella.cumplidos >= 0 && x.duendes.ofrenda <= x.duendes.ultima && x.huemul.avistajes >= 0 && (!x.huemul.ido || x.huemul.ultimo > 0) && x.hueso.ultimo >= x.hueso.dia && x.hueso.cavados >= 0) bien++;
   }
   eq(bien, 500, 'el caos: nunca se rompe y lo saneado queda igual');
 }
@@ -204,4 +233,4 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   ok(!/from 'three'/.test(p) && !/document\./.test(p) && !/Date\.now|Math\.random/.test(p.replace(/\/\/.*$/gm, '')), 'huevos.js es puro: ni three ni DOM ni reloj ni Math.random');
 }
 
-console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, huemul blanco, guardado saneado y enganche`);
+console.log(`OK 4.2 huevos de pascua · ${pasos} verificaciones · estrella con deseo, duendes del Coihue, corazón de tulipanes, huemul blanco, hueso del perro, guardado saneado y enganche`);

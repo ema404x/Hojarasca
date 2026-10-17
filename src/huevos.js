@@ -181,10 +181,59 @@ export function avistoHuemul(h) { if (h?.huemul) h.huemul.avistajes = Math.min(9
 // ¿Se asusta? El jugador (o lo que lo busque) a menos de `cerca` metros
 export const seAsusta = (dist) => dist < HUEMUL.cerca;
 
+// ---------------------------------------------------------------- 4) el hueso del perro
+// De vez en cuando el perro entierra un hueso en algún lugar del valle y queda un montículo chico de tierra. Con E se lo excava: sale
+// algo viejo (una moneda, una cuenta de vidrio) y el perro se pone contento. Un hueso por vez; el montículo se va al desenterrarlo.
+export const HUESO = {
+  prob: 0.16,        // por día (con el sorteo fijo de cada día)
+  separacion: 6,     // días entre un hueso y el siguiente (contando desde que se enterró)
+  desde: 6.5, hasta: 19,   // el perro lo entierra de día
+  minR: 24, maxR: 80,      // m desde el refugio donde queda el montículo
+  alcance: 2.3,      // m: a cuánto se puede excavar
+  ver: 90,           // m: de más lejos no se dibuja
+};
+export const HALLAZGOS = [
+  { id: 'moneda', peso: 0.4, pesos: 120, texto: 'una moneda vieja, con un águila casi borrada' },
+  { id: 'cobre', peso: 0.4, pesos: 90, texto: 'una moneda de cobre, verde de tierra' },
+  { id: 'cuenta', peso: 0.2, pesos: 0, texto: 'una cuenta de vidrio azul, chiquita como un garbanzo' },
+];
+export const huesoNuevo = () => ({ dia: 0, ultimo: 0, cavados: 0 });
+function sanearHueso(x, dia) {
+  const v = objeto(x) ? x : {}, b = huesoNuevo();
+  b.ultimo = Math.min(entero(v.ultimo), Math.max(1, dia));
+  b.dia = Math.min(entero(v.dia), Math.max(1, dia));
+  if (b.dia && b.ultimo < b.dia) b.ultimo = b.dia;
+  b.cavados = entero(v.cavados, 0, 0, 999);
+  return b;
+}
+// ¿Entierra uno hoy? Sólo sin otro enterrado, pasados los días de separación, de día y si el sorteo de hoy da que sí
+export function enterroHueso(h, dia, horas) {
+  const x = h?.hueso;
+  if (!x || x.dia || !(horas >= HUESO.desde && horas < HUESO.hasta)) return false;
+  if (x.ultimo && dia - x.ultimo < HUESO.separacion) return false;
+  if (!(azarDe(7301, dia) < HUESO.prob)) return false;
+  x.dia = entero(dia, 1, 1); x.ultimo = x.dia;
+  return true;
+}
+// Dónde (ángulo y distancia al refugio): el mismo para el mismo día, así recargar no lo mueve
+export function lugarDelHueso(dia) {
+  return { ang: azarDe(7303, dia) * Math.PI * 2, r: HUESO.minR + azarDe(7304, dia) * (HUESO.maxR - HUESO.minR) };
+}
+export const hayHueso = (h) => !!h?.hueso?.dia;
+// Excavarlo: lo que sale (siempre algo viejo y chico) y el montículo se va
+export function desenterrarHueso(h) {
+  const x = h?.hueso;
+  if (!x || !x.dia) return null;
+  let u = azarDe(7302, x.dia), hall = HALLAZGOS[HALLAZGOS.length - 1];
+  for (const c of HALLAZGOS) { if (u < c.peso) { hall = c; break; } u -= c.peso; }
+  x.dia = 0; x.cavados = Math.min(999, x.cavados + 1);
+  return { ...hall };
+}
+
 // ---------------------------------------------------------------- lo que se guarda
-export function huevosNuevos() { return { v: 1, estrella: estrellaNueva(), duendes: duendesNuevos(), huemul: huemulNuevo() }; }
+export function huevosNuevos() { return { v: 1, estrella: estrellaNueva(), duendes: duendesNuevos(), huemul: huemulNuevo(), hueso: huesoNuevo() }; }
 export function sanearHuevos(h, dia = 1) {
   const d = entero(dia, 1, 1);
   const x = objeto(h) ? h : {};
-  return { v: 1, estrella: sanearEstrella(x.estrella, d), duendes: sanearDuendes(x.duendes, d), huemul: sanearHuemul(x.huemul, d) };
+  return { v: 1, estrella: sanearEstrella(x.estrella, d), duendes: sanearDuendes(x.duendes, d), huemul: sanearHuemul(x.huemul, d), hueso: sanearHueso(x.hueso, d) };
 }

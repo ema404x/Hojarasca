@@ -2,6 +2,7 @@
 //  · la estrella fugaz con deseo: el cartel de tres deseos, la tecla 1/2/3, y a los 2 a 4 días la nota y el regalo chico;
 //  · los duendes del Coihue (el convite, el bulto y la rueda de hongos);
 //  · el huemul blanco: sale al amanecer con niebla, se ve de lejos, se anota en el cuaderno y se va caminando si te acercás;
+//  · el hueso del perro: el montículo aparece un día sorteado, se excava con E y sale algo viejo y chico;
 //  · (se suman las demás secciones a medida que entran) y la consola sin errores.
 // Uso: npx electron --no-sandbox -r <ruta>/herramientas/al-monitor.cjs -r <ruta>/herramientas/perfil-propio.cjs pruebas/humo-huevos.cjs [salida=pruebas/salidas/huevos]
 const { app, BrowserWindow, dialog } = require('electron');
@@ -147,6 +148,36 @@ app.whenReady().then(async () => {
       await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); hj.actualizar(2.1); })()`);
       ok('ni al recargar el estado', (await js(`${H}.__huevos.mundo().huemulEstado.activo`)) === false);
     }
+  }
+
+  // ------------------------------------------------------------ 4) el hueso del perro
+  {
+    const HU = await import(require('url').pathToFileURL(path.join(raiz, 'src', 'huevos.js')).href);
+    let dia = 500; while (!(HU.azarDe(7301, dia) < HU.HUESO.prob)) dia++;
+    const ir = async (x, z, yaw) => { await js(`(() => { const J = ${H}.jugador; J.ubicar(${x}, ${z}, ${yaw}); J.estado.vel.set(0, 0, 0); for (let i = 0; i < 10; i++) J.actualizar(0.05); })()`); };
+    await js(`(() => { const p = ${H}.progreso; p.dia = ${dia}; p.horas = 10.5; p.huevos.hueso = { dia: 0, ultimo: 0, cavados: 0 }; ${H}.__huevos.juego().actualizar(2.1); })()`);
+    const q = await js(`(() => { const hj = ${H}.__huevos.juego(); hj.actualizar(2.1); return { hay: !!${H}.progreso.huevos.hueso.dia, lugar: hj.lugarHueso(), pesos: ${H}.progreso.economia?.pesos ?? null }; })()`);
+    ok('un día sorteado, de día, el perro enterró un hueso (hay montículo en un lugar del valle)', q.hay && !!q.lugar && Number.isFinite(q.lugar.x), q);
+    const L = q.lugar, ang = L.giro;
+    await ir(L.x + 3.2, L.z + 3.2, Math.atan2(3.2, 3.2));
+    await js(`${H}.jugador.estado.pitch = -0.55; ${H}.__huevos.juego().actualizar(2.1); 1`);
+    await esperar(1500);
+    const vis = await js(`${H}.__huevos.mundo().monticulo.visible`);
+    ok('de cerca se ve el montículo', vis === true);
+    await foto('hueso-monticulo');
+    await ir(L.x + 1.4, L.z + 1.4, Math.atan2(1.4, 1.4));
+    await esperar(900);
+    const av = await js(`(document.getElementById('aviso')?.textContent || '')`);
+    ok('al lado, el aviso ofrece excavar', /Excavar el montículo de tierra/.test(av), av);
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true })); 1`);
+    await esperar(500);
+    const d = await js(`({ hay: !!${H}.progreso.huevos.hueso.dia, cav: ${H}.progreso.huevos.hueso.cavados, vis: ${H}.__huevos.mundo().monticulo.visible, pesos: ${H}.progreso.economia?.pesos ?? null, nota: [...document.querySelectorAll('#notas .nota')].map((n) => n.textContent).join(' | ') })`);
+    ok('E lo excava: sale algo viejo, el montículo se va y el perro se alegra', !d.hay && d.cav === 1 && d.vis === false && /Desenterraste/.test(d.nota) && /mueve la cola/.test(d.nota), d);
+    ok('la moneda se cambia por pesos chicos (o, sin monedas, una cuenta)', d.pesos === null || d.pesos - (q.pesos || 0) <= 150, { antes: q.pesos, despues: d.pesos });
+    await foto('hueso-nota');
+    // otro día sorteado dentro de la separación: no hay otro hueso
+    const dentro = await js(`(() => { const p = ${H}.progreso; p.horas = 10.5; const d0 = p.dia; for (let d = d0 + 1; d < d0 + 6; d++) { p.dia = d; ${H}.__huevos.juego().actualizar(2.1); if (p.huevos.hueso.dia) return d; } return 0; })()`);
+    ok('en los días siguientes (dentro de la separación) no hay otro hueso', dentro === 0, dentro);
   }
 
   let mal = 0;

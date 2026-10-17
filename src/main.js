@@ -5250,6 +5250,8 @@ function armarOficiosYAldea(esDesafio) {
     mundo: huevosMundo, arboles: () => veg.arboles, refugio: () => T.lugares.refugio,
     niebla: () => niebla?.malla?.material?.uniforms?.uOpacidad?.value || 0, camara: () => camara, mallin: () => T.lugares.mallin,
     agua: (x, z) => T.agua(x, z), altura: (x, z) => T.altura(x, z),
+    pelarPasto: (x, z, radio) => pelarPastoTemporal(x, z, radio),
+    cobrar: (pesos, motivo) => cobrarPesos(progreso, pesos, motivo, 'el perro'), perroPos: () => perro?.est?.pos || null, nombrePerro: () => perro?.nombre?.() || '',
   });
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego =crearVecindadJuego({
@@ -8670,6 +8672,20 @@ function programarGuardadoSuave() {
 function flushGuardadoSuave() {
   cancelarGuardadoSuave();
   guardar();
+}
+
+// 4.2 (huevos de pascua): baja el pasto en un claro chico (la máscara del pasto, de 2 m por celda) y devuelve cómo dejarlo como estaba
+function pelarPastoTemporal(x, z, radio) {
+  const masc = U.uMascara.value.image.data;
+  const i0 = Math.max(0, Math.floor((x - radio + 512) / 2)), i1 = Math.min(RES, Math.ceil((x + radio + 512) / 2));
+  const j0 = Math.max(0, Math.floor((z - radio + 512) / 2)), j1 = Math.min(RES, Math.ceil((z + radio + 512) / 2));
+  const antes = [];
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const d = Math.hypot(i * 2 - 512 - x, j * 2 - 512 - z), k = (j * N + i) * 4;
+    if (d < radio) { antes.push(k, masc[k]); masc[k] *= Math.min(1, (d / radio) ** 2); }
+  }
+  U.uMascara.value.needsUpdate = true;
+  return () => { for (let a = 0; a < antes.length; a += 2) masc[antes[a]] = antes[a + 1]; U.uMascara.value.needsUpdate = true; };
 }
 
 // ------------------------------------------------------------------ constelaciones
