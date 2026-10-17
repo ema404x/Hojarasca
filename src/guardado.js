@@ -49,6 +49,8 @@ import { sanearCocina, cocinaNueva, sanearCoccion } from './cocina-pasos.js';
 import { sanearGranja, granjaNueva } from './granja.js';
 // 3.7.5 (rincones): los duendes, las huertas, el potrero, el taller, tu casa, el camino y el sulky (sólo en el Relax)
 import { rinconesNuevos, sanearRincones } from './rincones.js';
+// 4.2 (huevos de pascua): la estrella fugaz con deseo y lo que sigue (sólo en el Relax)
+import { huevosNuevos, sanearHuevos } from './huevos.js';
 // 3.7.3: el tren mejorado y el taller ferroviario de la aldea (sólo en el Relax)
 import { trenNuevo, sanearTren, unificarNombreLoco } from './tren-mejoras.js';
 // 3.7.5 (noticias): el diario de la aldea, las cartas de lejos, el club y las estrellas; los concursos y las cintas
@@ -399,6 +401,7 @@ export function progresoNuevo() {
     ...(desafio ? {} : { granja: granjaNueva(1 + Math.floor(Math.random() * 1e9)) }),
     // 3.7.5 (rincones): nada encontrado ni aprendido; el lote de tu casa, libre; sin sulky; el camino, una huella
     ...(desafio ? {} : { rincones: rinconesNuevos() }),
+    ...(desafio ? {} : { huevos: huevosNuevos() }),   // 4.2 (huevos de pascua)
     // Se conserva por compatibilidad con partidas anteriores; el mapa ya no usa este progreso.
     explorado: new Array(GRILLA_EXPLORADA * GRILLA_EXPLORADA).fill(0),
   };
@@ -547,6 +550,8 @@ function sanearProgreso(p) {
     granja: modoPartida === 'desafio' ? undefined : sanearGranja(p.granja, Math.max(1, Math.floor(finito(p.dia, 1))), 1 + Math.floor(Math.random() * 1e9)),
     // 3.7.5 (rincones): una partida vieja no los trae: arrancan de cero (en el Desafío, nada)
     rincones: modoPartida === 'desafio' ? undefined : sanearRincones(p.rincones, Math.max(1, Math.floor(finito(p.dia, 1)))),
+    // 4.2 (huevos de pascua): una partida vieja no los trae: arrancan de cero (en el Desafío, nada)
+    huevos: modoPartida === 'desafio' ? undefined : sanearHuevos(p.huevos, Math.max(1, Math.floor(finito(p.dia, 1)))),
     // 3.8.8: la historia del abuelo de Martín en el alero del arriero se sacó (vuelve la Cueva de las Manos): una partida vieja la traía
     aleroArriero: undefined,
     correo: sanearCorreo(p.correo),
