@@ -335,7 +335,8 @@ try {
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, calidad.pixelRatio));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+const EXPOSICION_BASE = 1.15;   // 4.0.3: la de siempre (el modo foto la multiplica sin posproceso)
+renderer.toneMappingExposure = EXPOSICION_BASE;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = calidad.sombras > 0;
 // 2.7: en three r186 PCFSoftShadowMap ya no existe (cae a PCFShadowMap con aviso): la
@@ -1626,7 +1627,7 @@ function dibujarMapa() {
 let foto = estadoFotoInicial({ fov: ajustes.fov, bloom: calidad.bloom ?? 0.4 });
 let guardadoFoto = null;
 function dibujarPanelFoto() {
-  $('foto-controles').innerHTML = htmlPanelFoto(foto);
+  $('foto-controles').innerHTML = htmlPanelFoto(foto, { post: !!post?.uniforms });   // 4.0.3 (G6): sin posproceso, los controles del posproceso quedan apagados
   traducirPanel($('foto-controles'));
   dibujarGuiasFoto();
 }
@@ -1653,19 +1654,22 @@ function aplicarFoto() {
     post.uniforms.uVineta.value = foto.vineta;
     post.uniforms.uGrano.value = foto.grano;
   }
+  // 4.0.3 (G6): la exposición del modo foto: con posproceso va en `exposicion` del cuadro (ver el dibujo); sin él, en la exposición del dibujante
+  if (!post?.uniforms) renderer.toneMappingExposure = foto.activo ? EXPOSICION_BASE * foto.exposicion : EXPOSICION_BASE;
 }
 function abrirModoFoto(encender) {
   if (encender === foto.activo) return;
   if (encender) {
     guardadoFoto = {
       fov: ajustes.fov, horas: progreso.horas, hud: $('hud').classList.contains('oculto'),
-      bloom: post?.uniforms?.uBloom.value, vineta: post?.uniforms?.uVineta.value, grano: post?.uniforms?.uGrano.value,
+      expo: renderer.toneMappingExposure, bloom: post?.uniforms?.uBloom.value, vineta: post?.uniforms?.uVineta.value, grano: post?.uniforms?.uGrano.value,
     };
     foto = { ...foto, activo: true, hora: progreso.horas, fov: ajustes.fov };
     libre.activa = true;
     modo = 'jugando';
-    for (const id of ['pausa', 'cuaderno', 'mapa', 'banco', 'partidas', 'guia', 'teclas', 'personalizar']) $(id).classList.add('oculto');
-    origenPersonal = null;
+    // 4.0.3 (G7): también la billetera, el estado de la base y los demás paneles de la pausa (con F2 desde ahí quedaban encima del modo foto y, al salir, la pausa se dibujaba sobre el juego)
+    for (const id of ['pausa', 'cuaderno', 'mapa', 'banco', 'partidas', 'guia', 'teclas', 'personalizar', 'billetera', 'base', 'logros', 'modos31', 'controles-completos', 'creditos']) $(id).classList.add('oculto');
+    origenPersonal = null; origenBase = null;
     $('hud').classList.add('oculto');
     $('foto-panel').classList.remove('oculto');
     cuerpoJugador?.mostrarEnCamara(true);   // 2.8: en el modo foto te ves (ver personal-personaje-mundo.js)
@@ -1683,6 +1687,7 @@ function abrirModoFoto(encender) {
     if (g) {
       camara.fov = g.fov; camara.updateProjectionMatrix();
       progreso.horas = g.horas;
+      if (!post?.uniforms && g.expo) renderer.toneMappingExposure = g.expo;   // 4.0.3 (G6)
       if (post?.uniforms) {
         if (g.bloom !== undefined) post.uniforms.uBloom.value = g.bloom;
         if (g.vineta !== undefined) post.uniforms.uVineta.value = g.vineta;
@@ -9245,8 +9250,8 @@ function dibujarCuadro(luz, noche) {
       nublado: clima.estado.nublado,
       humedad: Math.max(clima.estado.lluvia, clima.estado.nublado * 0.45),
       interior: espacioAudioActual === 'adentro' ? 1 : (bajoTecho ? 0.32 : 0),
-      dt: dtVisualPost,
-      exposicion: 1 + (luz ? (1 - luz.dia) * 0.05 : 0) - clima.estado.lluvia * 0.02,
+      dt: foto.activo ? Math.max(dtVisualPost, 1 / 30) : dtVisualPost,   // 4.0.3 (G6): con el mundo congelado dt es 0 y la exposición de la foto no se acomodaba (tardaba segundos)
+      exposicion: (1 + (luz ? (1 - luz.dia) * 0.05 : 0) - clima.estado.lluvia * 0.02) * (foto.activo ? foto.exposicion : 1),   // 4.0.3 (G6): el control Exposición del modo foto
     });
     if (medirRender) {
       const ri = renderer.info.render;
@@ -9626,7 +9631,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && gallinasMundo) gallinasMundo.actualizar(dt, progreso.horas, jugador.estado.pos); } catch (e) { fallaSistema('gallinero', e); }
   try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
   try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
-  try { if (modo === 'jugando' && !desafio) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }
+  try { if (modo === 'jugando' && !desafio && !foto.activo) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }   // 4.0.3: ni el correo con la hora del deslizador
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
   try { if (modo === 'jugando') modos?.actualizar(dt); } catch (e) { fallaSistema('modos', e); }   // 3.1: la carrera en curso, el desafío del día y el torneo
@@ -9770,7 +9775,8 @@ function cuadroDelJuego(tRaf, manual) {
     // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
     try { if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
-    try { if (modo === 'jugando' && !desafio) { fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt); if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
+    try { if (modo === 'jugando' && !desafio) { if (!foto.activo) fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt);   // 4.0.3 (F3): con el modo foto la hora del deslizador no termina la minga ni tapa la vía
+      if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
     if (modo === 'jugando' && (relojSync -= dt) <= 0) { relojSync = 10; copiarASync(); }
     try { marcaPerro = perro.actualizar(dt, jugador, camara, mundoPerro, indiceSujetosPerro); } catch (e) { fallaSistema('perro', e); }
@@ -9808,6 +9814,7 @@ function cuadroDelJuego(tRaf, manual) {
 
     ctxDesafio.noche = noche;
     ctxDesafio.dtReal = Math.min(0.1, dtReal);
+    ctxDesafio.fotoActiva = foto.activo;   // 4.0.3 (F2): con el modo foto la hora es la del deslizador: no cuenta para las oleadas ni el amanecer
     try { desafio.actualizar(dt, ctxDesafio); } catch (e) { fallaSistema('desafio', e); }
     perfilador.terminar('desafio', tDesafio, medirRendimiento);
   }

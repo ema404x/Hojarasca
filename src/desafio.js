@@ -3437,7 +3437,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       climaActual = efectoClima(climaVisto);
     }
     recarga = Math.max(0, recarga - dt);
-    if (!caido && !naveMundo.adentro) revisarHorario();   // 3.5.1: con el día de reloj real la hora corre adentro: la noche no arranca con vos arriba
+    // 4.0.3 (F2): con el modo foto la hora es la del deslizador: no dispara oleadas ni amaneceres (`fotoActiva` lo pone main.js)
+    if (!caido && !naveMundo.adentro && !mundo.fotoActiva) revisarHorario();   // 3.5.1: con el día de reloj real la hora corre adentro: la noche no arranca con vos arriba
     actualizarNave(dt);
     actualizarDefensas(dt);
     defensas.actualizar(dt, js, mundo.noche);

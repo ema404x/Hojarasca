@@ -48,12 +48,14 @@ export function textoControl(estado, id) {
 
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-export function htmlPanelFoto(estado) {
-  const filas = CONTROLES_FOTO.map((c) => `<label class="foto-fila">
+// 4.0.3 (G6): sin posproceso (calidad Mínima o Baja) el brillo de las luces, la viñeta y el grano no existen: esos controles quedan apagados en vez de ofrecerse sin hacer nada
+export const CONTROLES_DEL_POSPROCESO = ['bloom', 'vineta', 'grano'];
+export function htmlPanelFoto(estado, { post = true } = {}) {
+  const filas = CONTROLES_FOTO.map((c) => { const sin = !post && CONTROLES_DEL_POSPROCESO.includes(c.id); return `<label class="foto-fila"${sin ? ' title="Necesita calidad Media o Alta"' : ''}>
     <span>${esc(c.etiqueta)}</span>
-    <input type="range" data-foto="${c.id}" min="${c.min}" max="${c.max}" step="${c.paso}" value="${estado[c.id]}">
+    <input type="range" data-foto="${c.id}" min="${c.min}" max="${c.max}" step="${c.paso}" value="${estado[c.id]}"${sin ? ' disabled' : ''}>
     <b data-foto-valor="${c.id}">${esc(textoControl(estado, c.id))}</b>
-  </label>`).join('');
+  </label>`; }).join('');
   const guias = GUIAS.map((g) => `<button data-foto-guia="${g.id}" aria-pressed="${estado.guias === g.id}">${esc(g.nombre)}</button>`).join('');
   return `${filas}
     <div class="foto-fila foto-botones"><span>Guías</span><div class="foto-guias">${guias}</div></div>
