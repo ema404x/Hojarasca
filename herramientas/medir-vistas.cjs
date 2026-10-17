@@ -86,6 +86,13 @@ const VISTAS = [
       return { x: a.x, z: a.z, yaw: Math.atan2(-(b.x - a.x), -(b.z - a.z)), horas: 12.5 } })()` },
   { id: 'aldea-loma-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-40, 53), q = A.aMundo(-100, 52);
       return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22 } })()` },
+  // 4.0.2: la cantina por fuera (de noche, desde la calle de la Loma) y por dentro, y la peña del sábado a las 22:30 (el día 13 es sábado: Dalia, parroquianos, música)
+  { id: 'cantina-fuera-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-146, 56), q = A.aMundo(-153.5, 41);
+      return { x: p.x, z: p.z, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22 } })()` },
+  { id: 'cantina-dentro-noche', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-153.5, 43.2), q = A.aMundo(-153.5, 36), b = A.estadoEdificio('cantina');
+      return { x: p.x, z: p.z, y: (b && b.sitio ? b.sitio.y : H.T.altura(p.x, p.z)) + 1.6, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 21 } })()` },
+  { id: 'pena-sabado', modos: ['relax'], donde: `(()=>{ const A = H.__aldeaMundo && H.__aldeaMundo(); if (!A) return null; const p = A.aMundo(-153.5, 43.2), q = A.aMundo(-153.5, 36), b = A.estadoEdificio('cantina');
+      return { x: p.x, z: p.z, y: (b && b.sitio ? b.sitio.y : H.T.altura(p.x, p.z)) + 1.6, yaw: Math.atan2(-(q.x - p.x), -(q.z - p.z)), horas: 22.5, dia: 13 } })()` },
 ];
 
 app.whenReady().then(async () => {
@@ -158,17 +165,17 @@ app.whenReady().then(async () => {
       if (!v.modos.includes(MODO) || (SOLO && !SOLO.includes(v.id))) continue;
       const puesto = await js(`(()=>{ const H = window.__hojarasca, js = H.jugador.estado; const p = ${v.donde}; if (!p) return null;
         H.volverAlJuego && H.volverAlJuego();
-        js.pos.set(p.x, H.T.altura(p.x, p.z) + 1.65, p.z); js.yaw = p.yaw; js.pitch = -0.05; js.vel && js.vel.set && js.vel.set(0, 0, 0);
-        H.progreso.horas = p.horas; window.__vista = p; return { x: +p.x.toFixed(1), z: +p.z.toFixed(1), yaw: +p.yaw.toFixed(3), horas: p.horas } })()`);
+        js.pos.set(p.x, p.y ?? H.T.altura(p.x, p.z) + 1.65, p.z); js.yaw = p.yaw; js.pitch = -0.05; js.vel && js.vel.set && js.vel.set(0, 0, 0);
+        H.progreso.horas = p.horas; if (p.dia !== undefined) H.progreso.dia = p.dia; window.__vista = p; return { x: +p.x.toFixed(1), z: +p.z.toFixed(1), yaw: +p.yaw.toFixed(3), horas: p.horas } })()`);
       if (!puesto) { r.vistas[v.id] = null; continue; }
       // que se acomode: cuadros sin medir (con la hora fija) y un respiro para lo que va por tiempo
       await js(`(()=>{ const H = window.__hojarasca, js = H.jugador.estado, p = window.__vista;
-        for (let i = 0; i < ${ASIENTO}; i++) { H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; js.yaw = p.yaw; js.pitch = -0.05; H.__bucle(); } return 1 })()`);
+        for (let i = 0; i < ${ASIENTO}; i++) { H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; if (p.y !== undefined) js.pos.y = p.y; if (p.dia !== undefined) H.progreso.dia = p.dia; js.yaw = p.yaw; js.pitch = -0.05; H.__bucle(); } return 1 })()`);
       await esperar(1500);
       const m = await js(`(()=>{ const H = window.__hojarasca, R = H.renderer, gl = R.getContext(), js = H.jugador.estado, p = window.__vista;
         const ms = []; let llamadas = 0, triangulos = 0;
         for (let i = 0; i < ${CUADROS}; i++) {
-          H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; js.yaw = p.yaw; js.pitch = -0.05;
+          H.progreso.horas = p.horas; js.pos.x = p.x; js.pos.z = p.z; if (p.y !== undefined) js.pos.y = p.y; if (p.dia !== undefined) H.progreso.dia = p.dia; js.yaw = p.yaw; js.pitch = -0.05;
           const medirDibujo = i === ${CUADROS} - 1;
           let reset = null;
           if (medirDibujo) { R.info.autoReset = false; R.info.reset(); reset = R.info.reset; R.info.reset = () => {}; }
