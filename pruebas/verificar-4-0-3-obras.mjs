@@ -50,6 +50,25 @@ for (const id of ['cabana-piedra', 'casa-galeria', 'casona']) {
   ok(q.economia.libro.at(-1).monto > 0 && /Devolución/.test(q.economia.libro.at(-1).motivo), 'el libro de la billetera anota la devolución');
   ok(PROPIEDAD.casas.casona.total > 0, 'hay precios');
 }
+// II-4: la planta baja bajo un entrepiso cuenta como techada (con 2 niveles decía «cerramiento sin techo»)
+{
+  const casa = (dos) => {
+    const w = mundo({}); const P = (id, x, z, rot, y) => w.terminar(id, x, z, rot, y);
+    P('piso-modular', 0, 0, 0); const y0 = 0.285;
+    P('pared-modular', 0, -1.42, 0, y0 + 0.1); P('pared-puerta', 0, 1.42, Math.PI, y0 + 0.1); P('pared-ventana', -1.42, 0, Math.PI / 2, y0 + 0.1); P('pared-modular', 1.42, 0, -Math.PI / 2, y0 + 0.1);
+    if (dos) {
+      const e = P('entrepiso-escalera', 0, 0, 0, y0 + 2.4); P('escalera-nivel', 0, 0, 0, y0 + 0.1); const yu = e.o.datos.y + 0.285;
+      for (const [x, z, r] of [[0, -1.42, 0], [0, 1.42, Math.PI], [-1.42, 0, Math.PI / 2], [1.42, 0, -Math.PI / 2]]) P('pared-modular', x, z, r, yu + 0.1);
+      P('techo-una-agua', 0, 0, 0, yu + 0.1);
+    } else P('techo-una-agua', 0, 0, 0, y0 + 0.1);
+    const abajo = { x: 0.5, y: y0, z: 0.5 };
+    return { dentro: w.s.dentro(abajo)?.plano.id ?? null, cubierta: !!w.s.bajoCubierta(abajo), etiqueta: w.s.estadoHabitat(abajo, {})?.etiqueta, lluvia: w.s.cubiertasLluvia({ x: 0, z: 0 }, 20).length };
+  };
+  const uno = casa(false), dos = casa(true);
+  ok(uno.dentro && uno.cubierta && uno.etiqueta === 'habitación cerrada', 'la casa de un piso sigue igual: habitación cerrada');
+  ok(dos.dentro === 'piso-modular' && dos.cubierta && dos.etiqueta === 'habitación cerrada', `la planta baja de la casa de dos niveles ya es una habitación cerrada (${JSON.stringify(dos)})`);
+  ok(dos.lluvia > uno.lluvia, 'y el piso de arriba también cubre de la lluvia');
+}
 {
   const m = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
   ok(m.includes('const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);'), 'main.js devuelve los pesos al retirar la marca');

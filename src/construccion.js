@@ -3436,11 +3436,14 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (!base || base.datos.etapas < base.plano.etapas.length) return null;
     const cotaMuros = cotaSuperiorPiso(base), cotaTecho = cotaMuros + 2.02;
     for (const o of obras) {
-      if (o === base || o === edicion?.obra || o.datos.etapas < o.plano.etapas.length || o.plano.snap?.tipo !== 'techo') continue;
+      // 4.0.3 (II-4): un entrepiso terminado encima (el segundo nivel, 2,28 m sobre el piso) también cubre la planta baja: antes sólo el techo, y la planta baja de una
+      // casa de dos niveles quedaba «cerramiento sin techo» (sin confort, sin dormir en el catre, dormir contaba como afuera)
+      const tipoCubierta = o.plano.snap?.tipo;
+      if (o === base || o === edicion?.obra || o.datos.etapas < o.plano.etapas.length || (tipoCubierta !== 'techo' && tipoCubierta !== 'entrepiso')) continue;
       if (Math.hypot(o.datos.x - base.datos.x, o.datos.z - base.datos.z) > 0.42) continue;
-      if (Math.abs((o.datos.y ?? 0) - cotaTecho) > 0.42) continue;
+      if (Math.abs((o.datos.y ?? 0) - (tipoCubierta === 'entrepiso' ? cotaMuros + 2.28 : cotaTecho)) > 0.42) continue;
       if (diferenciaEje(o.datos.rot || 0, base.datos.rot || 0) > 0.36) continue;
-      return { obra: o, id: o.plano.id, nombre: o.plano.nombre, transitable: o.plano.id === 'techo-plano' };
+      return { obra: o, id: o.plano.id, nombre: o.plano.nombre, transitable: o.plano.id === 'techo-plano' || tipoCubierta === 'entrepiso' };
     }
     return null;
   }
@@ -3646,6 +3649,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       if (P.id === 'alero') rect(P.ancho, P.fondo, base + 2.38, { az: -0.14 });
       else if (P.cubreArea) rect(P.ancho || 3, P.fondo || 3, base + (P.alto || 2.4) - 0.3);
       else if (P.snap?.tipo === 'techo') rect(P.ancho || 3.45, P.fondo || 3.45, base);
+      else if (P.snap?.tipo === 'entrepiso') rect(P.ancho || 3, P.fondo || 3, base);   // 4.0.3 (II-4): el piso de arriba también cubre de la lluvia
       else if (P.habitable && !P.snap) rect((P.ancho || 3) + 0.4, (P.fondo || 3) + 0.4, base + Math.max(1.25, (P.alto || 2.3) - 0.1));
       // 3.8.8: la galería techada de las casas grandes, delante del frente (no llueve abajo)
       if (P.galeria && P.habitable && !P.snap) lista.push({ x: d.x, z: d.z, rot, x0: -P.ancho / 2 - 0.15, x1: P.ancho / 2 + 0.15, z0: -P.fondo / 2 - P.galeria - 0.1, z1: -P.fondo / 2, y: base + 2.55, ax: 0, ab: 0, az: 0 });
