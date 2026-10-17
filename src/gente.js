@@ -453,7 +453,7 @@ function posar(g, charlando) {
       g.torso.rotation.z = k * 0.07; g.torso.position.y += s * 0.025; g.cabeza.position.y += s * 0.025;
       g.brazos[0].rotation.x = -1.25; g.brazos[0].rotation.z = 0.55;
       g.brazos[1].rotation.x = -1.35; g.brazos[1].rotation.z = -0.5;
-      for (const [i, p2] of g.patas.entries()) p2.rotation.x = (i ? 1 : -1) * k * 0.22;
+      for (const [i, p2] of g.patas.entries()) p2.rotation.x = (i ? 1 : -1) * k * 0.22 * (g.pasoCorto || 1);   // (4.0.2: Dalia, con paso más corto: ver gente-cuerpo.js)
       g.cabeza.rotation.z = -k * 0.06;
       break;
     }
