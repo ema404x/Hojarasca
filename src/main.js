@@ -9962,8 +9962,9 @@ function cuadroDelJuego(tRaf, manual) {
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
       if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || cantinaJuego?.tapaVecino(js) || teJuego?.tapaVecino(js) || penaJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
-      // 4.0.5: junto a un asiento sólo te tapa el que está más cerca que el asiento (el que come del otro lado de la mesa no)
-      if (vecino && fiestasJuego?.alAsiento(js) && Math.hypot(vecino.pos.x - js.pos.x, vecino.pos.z - js.pos.z) > 1.0) vecino = null;
+      // 4.0.5: junto a un asiento, o con algo de la fiesta a mano (la clase en la pista llena), sólo te tapa el que está más cerca
+      // que eso (el que come del otro lado de la mesa o baila a dos pasos no). Sólo corre con un vecino adelante y en el predio (a 15 Hz como mucho): sin cuentas nuevas por cuadro
+      if (vecino && (fiestasJuego?.alAsiento(js) || (fiestasJuego?.tapaVecino(js) && fiestasJuego.accion(js))) && Math.hypot(vecino.pos.x - js.pos.x, vecino.pos.z - js.pos.z) > 1.0) vecino = null;
       if (vecino && !desafio && fiestasJuego?.sinVecino(js)) vecino = null;   // 3.7.5: sentado a la mesita de los juegos, E juega; al lado del que cuenta la leyenda, E escucha
     }
     acumuladoBuscar += dt;

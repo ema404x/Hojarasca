@@ -134,11 +134,13 @@ app.whenReady().then(async () => {
     // (en el borde de la pista que da a la calle de la estación, mirando para afuera: los que bailan quedan atrás)
     await js(`(()=>{ const M = ${FM}; const a = M.punto('pista-0'), b = M.punto('pista-1'); const dx = a.x - b.x, dz = a.z - b.z, L = Math.hypot(dx, dz); const x = a.x + dx / L * 1.1, z = a.z + dz / L * 1.1; const j = ${H}.jugador; j.ubicar(x, z, Math.atan2(-dx, -dz)); return 1 })()`);
     await cuadros(4);
+    await aviso();   // (el aviso del vecino va un tick detrás de lo de la fiesta: se lee dos veces)
     av = await aviso();
     // (si hay alguien parado justo enfrente, el juego —con razón— ofrece hablarle: se prueba mirando para otro lado)
     for (let k = 1; k < 8 && !/clase/.test(av); k++) {
       await js(`(()=>{ const j = ${H}.jugador; j.ubicar(j.estado.pos.x, j.estado.pos.z, j.estado.yaw + Math.PI / 4); return 1 })()`);
       await cuadros(4);
+      await aviso();
       av = await aviso();
     }
     if (!/clase/.test(av)) decir(`  (diagnóstico: ${JSON.stringify(await js(`(()=>{ const j = ${H}.jugador.estado; const a = ${F}.accion(j); return { sentado: j.sentado, y: j.pos.y, fase: ${F}.ahora()?.fase.fase, accion: a?.texto || null, objetivo: ${H}.__objetivo?.() || null } })()`))})`);
@@ -165,6 +167,7 @@ app.whenReady().then(async () => {
     ok(av === 'Sentarte en una silla de la mesita de juegos', `al lado de la mesita: ${av}`);
     await tecla('KeyE'); await cuadros(2);
     av = await aviso();
+    if (!/^Jugar con/.test(av)) decir(`  (diagnóstico: ${JSON.stringify(await js(`(()=>{ const j = ${H}.jugador.estado; const a = ${F}.accion(j); const q = ${FM}.punto('juegos-0'); return { sentado: j.sentado, d: Math.hypot(q.x - j.pos.x, q.z - j.pos.z), accion: a?.tipo, texto: a?.texto, charla: !!document.querySelector('#charla:not(.oculto)'), panel: ${F}.panelAbierto?.() } })()`))})`);
     ok(/^Jugar con .+ \(truco, chinchón o damas\)$/.test(av), `sentado en la mesita: ${av}`);
     await tecla('KeyE');
     p = await panel();
@@ -196,6 +199,7 @@ app.whenReady().then(async () => {
     await enPredio('tranquera', 0, 0, 'palenque');
     await cuadros(4);
     av = await aviso();
+    if (av !== 'Anotarte en la jineteada') decir(`  (diagnóstico: ${JSON.stringify(await js(`(()=>{ const j = ${H}.jugador.estado; const a = ${F}.accion(j); return { sentado: j.sentado, enSilla: j.enSilla, acc: a?.texto || null, panel: ${F}.panelAbierto?.(), pos: [j.pos.x, j.pos.z].map((n) => +n.toFixed(1)) } })()`))})`);
     ok(av === 'Anotarte en la jineteada', `en la tranquera: ${av}`);
     await tecla('KeyE');
     ok(await js(`${F}.montando()`) && (await panel()).titulo === 'La jineteada', 'montás: el panel de la jineteada');
