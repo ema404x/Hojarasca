@@ -350,6 +350,14 @@ export function crearFiestasJuego(ctx) {
     // (en la pista, con el baile: ahí gana bailar)
     const fs = ahora().fase.fase;
     if ((fs === 'baile' || fs === 'sorpresa') && enLaPista(js.pos)) return true;
+    return alAsiento(js);
+  }
+  // 4.0.5: parado a menos de 1 m de un asiento del predio. Con la mesa llena, el que come del otro lado queda en tu línea
+  // de visión: main.js sólo deja que te tape el vecino que esté más cerca que el asiento (si no, E habla y no te sentás)
+  function alAsiento(js) {
+    if (!activo() || !js?.pos || js.sentado || !ahora()) return false;
+    const m = mundo();
+    if (!m || !enElPredioMundo(js.pos)) return false;
     const P = puntosPredio();
     for (const k of Object.keys(P)) {
       if (!/^(mesa-[ns]-|fogon-|juegos-[01]$)/.test(k)) continue;
@@ -890,7 +898,7 @@ export function crearFiestasJuego(ctx) {
 
   const api = {
     activo, actualizar, destino, accion, paraElMundo, estado, ahora, fechasDeHoy, enCursoHoy,
-    panelAbierto, sinApuro, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, sinVecino, redibujar: () => dibujarPanel(false),
+    panelAbierto, sinApuro, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, alAsiento, sinVecino, redibujar: () => dibujarPanel(false),
     jugarTruco, camara, montando: () => jineteada.monta?.quien === 'jugador', fotoDeLaFiesta, climaForzado,
     fotosAlbum: () => fotosParaAlbum(estado()),
     cumple: () => cumpleDelJugador(estado()),

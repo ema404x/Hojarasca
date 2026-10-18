@@ -105,6 +105,7 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const M = ${FM}; const q = M.punto('${libre}'); const t = M.punto('${libre.includes('-n-') ? libre.replace('-n-', '-s-') : libre.replace('-s-', '-n-')}'); const j = ${H}.jugador; const dx = q.x - t.x, dz = q.z - t.z, L = Math.hypot(dx, dz); const x = q.x + dx / L * 0.55, z = q.z + dz / L * 0.55; j.ubicar(x, z, Math.atan2(-(q.x - x), -(q.z - z))); j.estado.pitch = -0.35; return 1 })()`);
     await cuadros(4);
     let av = await aviso();
+    if (!/banco de la mesa larga/i.test(av)) decir(`  (diagnóstico: ${JSON.stringify(await js(`(()=>{ const j = ${H}.jugador.estado; return ${H}.__aldea.mundo().estado().npcs.map((x) => ({ k: x.clave, d: Math.hypot((x.pos?.x ?? x.x) - j.pos.x, (x.pos?.z ?? x.z) - j.pos.z) })).filter((x) => x.d < 4).sort((a, b) => a.d - b.d).slice(0, 4) })()`))})`);
     ok(/banco de la mesa larga/i.test(av), `el aviso: ${av}`);
     await tecla('KeyE');
     await cuadros(2);
@@ -134,6 +135,12 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const M = ${FM}; const a = M.punto('pista-0'), b = M.punto('pista-1'); const dx = a.x - b.x, dz = a.z - b.z, L = Math.hypot(dx, dz); const x = a.x + dx / L * 1.1, z = a.z + dz / L * 1.1; const j = ${H}.jugador; j.ubicar(x, z, Math.atan2(-dx, -dz)); return 1 })()`);
     await cuadros(4);
     av = await aviso();
+    // (si hay alguien parado justo enfrente, el juego —con razón— ofrece hablarle: se prueba mirando para otro lado)
+    for (let k = 1; k < 8 && !/clase/.test(av); k++) {
+      await js(`(()=>{ const j = ${H}.jugador; j.ubicar(j.estado.pos.x, j.estado.pos.z, j.estado.yaw + Math.PI / 4); return 1 })()`);
+      await cuadros(4);
+      av = await aviso();
+    }
     if (!/clase/.test(av)) decir(`  (diagnóstico: ${JSON.stringify(await js(`(()=>{ const j = ${H}.jugador.estado; const a = ${F}.accion(j); return { sentado: j.sentado, y: j.pos.y, fase: ${F}.ahora()?.fase.fase, accion: a?.texto || null, objetivo: ${H}.__objetivo?.() || null } })()`))})`);
     ok(/clase de chamamé con Pocha/.test(av), `en la pista: ${av}`);
     await tecla('KeyE');

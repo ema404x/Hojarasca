@@ -199,6 +199,8 @@ app.whenReady().then(async () => {
     await asentar(2);
     a = await aviso();
     ok(a === 'Pedir este lote para tu casa', `en el lote, el aviso: «${a}»`);
+    // (3.8.8: el lote se escritura; la plata se apura a mano, como los amigos)
+    await js(`(()=>{ if (${P}.economia) ${P}.economia.pesos += 8000; return 1 })()`);
     await tecla('KeyE'); await asentar(1);
     ok(await js(`${R}.casa.estado`) === 'obra', 'E: el lote es tuyo');
     a = await aviso();
