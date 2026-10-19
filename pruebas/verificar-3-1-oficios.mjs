@@ -18,7 +18,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 // ============================================================ 1. los oficios
 {
   for (const k of Object.keys(O)) assert.ok(!/ñ/.test(k), `export sin eñe: ${k}`);
-  assert.deepEqual(O.ORDEN_OFICIOS, ['hachero', 'pescador', 'cazador', 'obrero', 'huertero', 'navegante']);
+  assert.deepEqual(O.ORDEN_OFICIOS, ['hachero', 'picapedrero', 'pescador', 'cazador', 'obrero', 'huertero', 'navegante']);
   assert.ok(!O.esOficio('constructor') && !O.esOficio('__proto__') && !O.esOficio('toString') && !O.esOficio(undefined), 'nada heredado es un oficio');
   for (const id of O.ORDEN_OFICIOS) {
     const o = O.OFICIOS[id];
@@ -160,7 +160,7 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   assert.ok(main.includes('armarOficiosYAldea(esDesafio);'), 'se arman al cargar');
   assert.ok(main.includes("if (modo === 'jugando') actualizarAldea(dt);"), 'y se actualizan en el bucle');
   // cada acción da su experiencia
-  for (const [oficio, xp] of [['hachero', 'tala'], ['hachero', 'mata'], ['hachero', 'aserrar'], ['pescador', 'pez'], ['cazador', 'rastro'], ['cazador', 'rastreo'], ['huertero', 'siembra'], ['huertero', 'cosecha']]) {
+  for (const [oficio, xp] of [['hachero', 'tala'], ['hachero', 'mata'], ['hachero', 'aserrar'], ['picapedrero', 'roca'], ['picapedrero', 'golpe'], ['pescador', 'pez'], ['cazador', 'rastro'], ['cazador', 'rastreo'], ['huertero', 'siembra'], ['huertero', 'cosecha']]) {
     assert.ok(main.includes(`ganarOficio('${oficio}', XP.${xp})`), `${oficio} gana con ${xp}`);
   }
   assert.ok(main.includes("ganarOficio('obrero', xpDeEtapa(r.etapa.pide))"), 'constructor gana con cada etapa');

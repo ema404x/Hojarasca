@@ -70,7 +70,7 @@ import { FERIA, esDiaDeFeria, abierta as feriaAbierta, ofertasDelDia, sanearFeri
 import { crearPuestoFeria } from './feria-mundo.js';
 import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, empezarVisita, saltearTurno, seVa, terminarVisita, llegoVisita, charlaDeVisita, puntoDeLlegada, lugarEnLaMesa } from './visitas.js';
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
-import { XP, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
+import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
 import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
@@ -4372,6 +4372,7 @@ function caerEnDesafio() {
 const GOLPES_TALA = 3, TRONCOS_TALA = 4, TRONCOS_MATA = 3, PIEDRA_MATA = 4;
 const scratchMatasHacha = [], scratchArbolesHacha = [];
 const golpesTala = new WeakMap();
+const golpesPico = new WeakMap();   // 4.2: lo picado de cada pedrero (como la tala: se recuerda mientras no lo termines; no se guarda)
 function objetivoHacha() {
   const hacha = tieneHacha(), pico = tienePico();
   if (!hacha && !pico) return null;
@@ -4384,7 +4385,7 @@ function objetivoHacha() {
     const d = Math.hypot(m.x - js.pos.x, m.z - js.pos.z);
     if (d < d0) { d0 = d; mejor = m; }
   }
-  if (mejor) return { tipo: mejor.tipo === 'roca' ? 'piedra' : 'tronco', mata: mejor, sinPico: mejor.tipo === 'roca' && !pico };
+  if (mejor) return { tipo: mejor.tipo === 'roca' ? 'piedra' : 'tronco', mata: mejor, sinPico: mejor.tipo === 'roca' && !pico, ...(mejor.tipo === 'roca' ? { golpes: golpesPico.get(mejor) || 0 } : {}) };
   if (!hacha) return null;   // 4.2: los árboles, sólo con el hacha
   const arbolesHacha = veg.arbolesCerca ? veg.arbolesCerca(js.pos.x, js.pos.z, 6, scratchArbolesHacha) : veg.arboles;
   let arbol = null, da = Infinity;
@@ -4398,7 +4399,8 @@ function objetivoHacha() {
   return { tipo: 'tronco', arbol, talar: true, protegido: arbol.especie === 'pehuen', golpes: golpesTala.get(arbol) || 0 };
 }
 function textoHacha(o) {
-  if (o.tipo === 'piedra') return o.sinPico ? 'Para picar piedra hace falta el pico' : 'Picar piedra';   // 4.2
+  // 4.2: la piedra se pica a golpes de pico, como la tala: «Picar piedra (3/6)»
+  if (o.tipo === 'piedra') return o.sinPico ? 'Para picar piedra hace falta el pico' : o.golpes ? `Picar piedra (${o.golpes}/${golpesParaPicarAhora(o.mata)})` : 'Picar piedra';
   if (!o.talar) return 'Hacer troncos';
   if (o.protegido) return 'El pehuén no se tala';
   return o.golpes ? `Talar el árbol (${o.golpes}/${golpesParaTalarAhora()})` : 'Talar el árbol';
@@ -4447,9 +4449,24 @@ function usarHacha() {
     guardar();
     return;
   }
+  // 4.2: el pedrero se pica a golpes de pico (oficio de picapedrero: 6, 5, 4, 3 y 2 en una roca grande; una chica, el 60 %; el filo del herrero, uno menos)
+  if (o.tipo === 'piedra') {
+    const golpes = (golpesPico.get(o.mata) || 0) + 1;
+    const hacen = golpesParaPicarAhora(o.mata);
+    const dondeSuena = { x: o.mata.x, y: T.altura(o.mata.x, o.mata.z) + 0.5, z: o.mata.z };
+    sonido.picazo(dondeSuena, Math.min(1, golpes / hacen));
+    if (golpes < hacen) {
+      golpesPico.set(o.mata, golpes);
+      ganarOficio('picapedrero', XP.golpe);
+      nota(`Golpe ${golpes} de ${hacen}`, 'Seguí dándole con H');
+      return;
+    }
+    golpesPico.delete(o.mata);
+    gastarFilo(progreso.aldea);   // el filo que te dio el herrero también vale para el pico
+  }
   // El árbol que tiró el rayo rinde más que un tronco caído, y su tocón rebrota.
   const delRayo = !!o.caido && progreso.tormenta?.rayo && veg.arboles[progreso.tormenta.rayo.i] === o.arbol;
-  const cuanto = (delRayo ? RAYO.troncos : o.tipo === 'tronco' ? TRONCOS_MATA : PIEDRA_MATA) + extraDeMata(nivelDe('hachero'));   // 3.1
+  const cuanto = (delRayo ? RAYO.troncos : o.tipo === 'tronco' ? TRONCOS_MATA : PIEDRA_MATA) + (o.tipo === 'piedra' ? extraDePiedra(nivelDe('picapedrero')) : extraDeMata(nivelDe('hachero')));   // 3.1 (4.2: la piedra extra es del picapedrero)
   sumarMaterial(o.tipo, cuanto);
   if (o.mata) veg.despejar(o.mata.x, o.mata.z, 0.6, true);
   if (o.caido) { veg.talar(o.arbol); anotarTalado(o.arbol); }
@@ -4458,7 +4475,8 @@ function usarHacha() {
   nota(`+${cuanto} ${MATERIALES[o.tipo].nombre}`, `Llevás ${material(o.tipo)}`);
   registrar(o.tipo === 'tronco' ? 'tronco-mat' : 'piedra-mat');
   if (o.tipo === 'piedra') registrar('pico');   // 4.2: el pico forjado por el herrero se anota en el cuaderno la primera vez que se usa
-  ganarOficio('hachero', XP.mata);
+  if (o.tipo === 'piedra') ganarOficio('picapedrero', XP.roca);   // 4.2: la piedra sube al picapedrero; el hachero, sólo con lo de la madera
+  else ganarOficio('hachero', XP.mata);
   guardar();
 }
 
@@ -5613,6 +5631,8 @@ function actualizarAldea(dt) {
   if (!desafio) animalesAldea?.actualizar(dt, progreso.horas);   // 3.7.0: los animales de la aldea y tu cachorro
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
+// 4.2: y los golpes de pico que pide ese pedrero (según su tamaño, el nivel de picapedrero y el filo)
+const golpesParaPicarAhora = (mata) => golpesConFilo(golpesParaPicar(nivelDe('picapedrero'), mata?.esc), progreso?.aldea);
 const golpesParaTalarAhora = () => golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea);
 // Lo que sobra de una etapa de obra, según el oficio (va a la mochila), y la experiencia
 function conOficioDeObra(r, m) {

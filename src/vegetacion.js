@@ -1614,7 +1614,7 @@ export function generarVegetacion(T, calidad, escena) {
         choque = { seg: true, ax: x - sx, az: z - sz, bx: x + sx, bz: z + sz, r: 0.45 };
         colisiones.push(choque);
       }
-      matas.push({ x, z, tipo, ref, choque });
+      matas.push({ x, z, tipo, ref, choque, esc });
       if (tipo === 'calafate') calafates.push({ x, z, y: h, esc });
       if (['helecho', 'nalca', 'colihue', 'chilco', 'notro', 'maqui', 'chaura', 'coiron', 'neneo'].includes(tipo)) {
         const planta = { x, z, y: h, tipo };
@@ -1668,7 +1668,7 @@ export function generarVegetacion(T, calidad, escena) {
           const esc = 0.38 + r() * (0.7 + perfil.exposicion * 0.45);
           const ref = colocar('roca', x, T.altura(x, z) - 0.16 * esc, z,
             [esc * (0.78 + r() * 0.55), esc * (0.58 + r() * 0.38), esc * (0.82 + r() * 0.5)], r() * Math.PI * 2, 0.08);
-          matas.push({ x, z, tipo: 'roca', ref, choque: null, decorativo: true });
+          matas.push({ x, z, tipo: 'roca', ref, choque: null, decorativo: true, esc });
           composicionPaisaje.rocas++;
         }
       }

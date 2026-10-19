@@ -1624,13 +1624,16 @@ export function servicioBase(clave, progreso, dia, extra = {}) {
         return { partes: [`Te veo sin tijera de esquilar. Con ${S.cantosTijera} cantos rodados te la forjo.`, ...avisoPico], seguir: DALE,
           efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosTijera }, { tipo: 'cosa', k: 'tijera', fijar: 1 }], titulo: 'El herrero te forjó una tijera' };
       }
-      if (yaHoy(aldea, clave, dia)) return { partes: ['El hacha ya te la afilé hoy. Mañana la vemos.', ...avisoPico] };
-      if (aldea.afilado >= S.filo) return { partes: ['Tu hacha todavía tiene el filo que le di. Usala y volvé.', ...avisoPico] };
+      // 4.2: el filo vale para el hacha y para el pico (un solo contador: cada árbol talado o pedrero picado lo gasta; gratis, como siempre)
+      const conPico = !sinPico;
+      const filadas = conPico ? 'el hacha y el pico' : 'el hacha';
+      if (yaHoy(aldea, clave, dia)) return { partes: [conPico ? 'El hacha y el pico ya te los afilé hoy. Mañana los vemos.' : 'El hacha ya te la afilé hoy. Mañana la vemos.', ...avisoPico] };
+      if (aldea.afilado >= S.filo) return { partes: [conPico ? 'Tu hacha y tu pico todavía tienen el filo que les di. Usalos y volvé.' : 'Tu hacha todavía tiene el filo que le di. Usala y volvé.', ...avisoPico] };
       return {
-        partes: [`Dame esa hacha, que le paso la piedra. Los próximos ${S.filo} árboles caen con un hachazo menos.`, ...avisoPico],
+        partes: [conPico ? `Dame esa hacha y ese pico, que les paso la piedra. Las próximas ${S.filo} veces (un árbol o un pedrero) hace falta un golpe menos.` : `Dame esa hacha, que le paso la piedra. Los próximos ${S.filo} árboles caen con un hachazo menos.`, ...avisoPico],
         seguir: DALE,
         efectos: [{ tipo: 'aldea', campo: 'afilado', valor: S.filo }, uso],
-        titulo: 'El herrero te afiló el hacha',
+        titulo: `El herrero te afiló ${filadas}`,
       };
     }
     case 'pescador': {

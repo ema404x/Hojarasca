@@ -1127,6 +1127,28 @@ export class Sonido {
     this.tono({ frec: 128 + r * 24, fin: 96, dur: 0.14, tipo: 'sine', vol: 0.05, destino: d, ataque: 0.004, cuando: 0.008 });
   }
 
+  // 4.2: el pico mordiendo la piedra (todo sintetizado). No es el hachazo: la punta de acero hace un «tac» corto y agudo contra la piedra, la
+  // roca contesta seca y sin la resonancia del tronco, y saltan esquirlas. `avance` (0 a 1) es cuánto va picado el pedrero: cuanto más
+  // avanzado, más hueca y grave suena la piedra (y el último golpe, la que se parte, suena más hondo).
+  picazo(pos, avance = 0.5) {
+    if (!this.ctx) return;
+    if (!this.turnoPico) this.turnoPico = ronda(11);
+    const r = this.turnoPico();
+    const d = this.fuente(pos, 1.2, 0.6);
+    const f = 0.85 + r * 0.3;
+    // la punta: acero contra piedra, un instante
+    this.golpeRuido({ dur: 0.01 + r * 0.006, frec: 6800 + r * 2600, q: 1.5, vol: 0.34 * f, destino: d });
+    this.impacto('metal', { tamaño: 0.2 + r * 0.08, dureza: 1, fuerza: 0.5, vol: 0.14, destino: d, capasMax: 2 });
+    // la roca: seca y corta; cuanto más picada, más grande y más sorda
+    this.impacto('piedra', { tamaño: 1.1 + avance * 1.5, dureza: 0.95, fuerza: 1.0 * f, vol: 1.0, destino: d });
+    // las esquirlas que saltan, un poco después
+    const esquirla = this.variante('estallido', 4, () => estallido(TASA_PREVIA), 0.15, nada);
+    this.sonarBuffer(esquirla, d, azar(0.05, 0.1) * f, azar(0.015, 0.04), azar(1.4, 1.9));
+    if (avance >= 1 || r > 0.55) this.sonarBuffer(esquirla, d, azar(0.04, 0.08), azar(0.05, 0.1), azar(1.5, 2));
+    // el cabo, que devuelve el golpe a la mano
+    this.tono({ frec: 150 + r * 26, fin: 110, dur: 0.1, tipo: 'sine', vol: 0.04, destino: d, ataque: 0.004, cuando: 0.006 });
+  }
+
   // El árbol que se viene abajo. Es el sonido más largo del juego y el que más se
   // acuerda la gente, así que tiene las tres etapas completas: la fibra que se rompe
   // de a poco, el arrastre entre las ramas de los vecinos, y el golpe contra el suelo,

@@ -1,7 +1,8 @@
 // 4.2 · EL PICO, en una partida de verdad (Electron + WebGL), con capturas.
 //   1. con el hacha y sin pico, H frente a una roca no da piedra y avisa dónde conseguir el pico (el cartel también lo dice);
 //   2. las tres vías: trueque en el almacén, compra en el almacén (con plata) y la forja del herrero de la aldea;
-//   3. con pico se pica (una roca suelta y una decorativa): da 4 piedras, borra la roca y sube el oficio de hachero; el hacha sigue talando;
+//   3. con pico se pica A GOLPES (oficio de picapedrero: 6, 5, 4, 3 y 2 golpes por nivel; el filo del herrero, uno menos; las chicas, el 60 %): se ve el contador,
+//      sube el picapedrero (y no el hachero) y avisa al subir de nivel; el hacha sigue talando y sube al hachero;
 //   4. mochila y barra: el hacha y el pico, cada uno con lo suyo, y el pico en la mano;
 //   5. una partida de antes (con hacha y sin pico) recibe su pico una sola vez, con el aviso.
 // Uso (después de `node armar.mjs`), siempre en el monitor externo y con perfil propio:
@@ -62,8 +63,8 @@ app.whenReady().then(async () => {
     console.log(`  (captura ${nombre}.png)`);
   };
   // una roca: la más cercana al refugio que no sea decorativa (o que lo sea), y el jugador parado a 1,6 m, mirándola
-  const aRoca = (decorativa) => js(`(async () => {
-    const r = H.T.lugares.refugio, vivas = H.veg.matas.filter((m) => m.tipo === 'roca' && !m.sacado && !!m.decorativo === ${!!decorativa} && Math.hypot(m.x - r.x, m.z - r.z) < 260);
+  const aRoca = (decorativa, tam = null) => js(`(async () => {
+    const r = H.T.lugares.refugio, vivas = H.veg.matas.filter((m) => m.tipo === 'roca' && !m.sacado && !!m.decorativo === ${!!decorativa} && ${tam === 'grande' ? '(m.esc ?? 1) >= 0.8' : tam === 'chica' ? '(m.esc ?? 1) < 0.8' : 'true'} && Math.hypot(m.x - r.x, m.z - r.z) < 260);
     vivas.sort((a, b) => Math.hypot(a.x - r.x, a.z - r.z) - Math.hypot(b.x - r.x, b.z - r.z));
     const m = vivas[0]; if (!m) return null;
     const j = H.jugador.estado, ang = 0.6, px = m.x + Math.sin(ang) * 1.6, pz = m.z + Math.cos(ang) * 1.6;
@@ -150,33 +151,91 @@ app.whenReady().then(async () => {
     ok(/Pico forjado/.test(await js(`H.progreso.economia.libro.at(-1).motivo`)), 'el libro anota «Pico forjado»');
     await js(`window.__charlaHerrero = null; 1`);
 
-    // ---- 3. con pico se pica: una roca suelta y una decorativa
-    await js(`(() => { const P = H.progreso; P.cosas = { hacha: 1, pico: 1 }; P.materiales = {}; 1 })()`);
-    const r2 = await aRoca(false);
-    ok(r2 && r2.d < 3.2, 'otra roca para picar');
+    // ---- 3. con pico se pica A GOLPES (oficio de picapedrero): nivel bajo, el máximo; el contador se ve; sube el oficio (y no el de hachero)
+    const xps = () => js(`({ h: H.progreso.oficios.xp.hachero || 0, p: H.progreso.oficios.xp.picapedrero || 0, nivelP: H.__aldea.oficios().nivel('picapedrero') })`);
+    // pica la roca `r` hasta que desaparece (máximo 12 golpes) y dice cuántos hicieron falta
+    const picar = async (r) => { let n = 0; while (n < 12 && await rocaViva(r)) { await js(`H.usarHacha(); 1`); await cuadros(1); n++; } return n; };
+    await js(`(() => { const P = H.progreso; P.cosas = { hacha: 1, pico: 1 }; P.materiales = {}; P.oficios.xp = { hachero: 100, picapedrero: 33 }; P.aldea.afilado = 0; 1 })()`);
+    const r2 = await aRoca(false, 'grande');
+    ok(r2 && r2.d < 3.2, `una roca grande para picar (${JSON.stringify(r2)})`);
     ok((await js('H.__textoHacha()')) === 'Picar piedra', 'con el pico el cartel dice «Picar piedra»');
-    const xp0 = (await estado()).xp;
+    let x0 = await xps();
     await js(`H.usarHacha(); 1`); await cuadros(2);
     e = await estado();
-    ok(e.piedra >= 4, `con el pico se pican las piedras (${e.piedra})`);
-    ok(!(await rocaViva(r2)), 'la roca desaparece');
-    ok(e.xp !== xp0, 'sube el oficio de hachero');
-    const avisos = await js(`H.__avisos().slice(-4).join(' | ')`);
-    ok(/\+\d+ piedra/i.test(avisos), `el aviso dice las piedras (${avisos.slice(0, 140)})`);
-    await foto('3-picada');
-    const r3 = await aRoca(true);
+    ok(e.piedra === 0 && await rocaViva(r2), 'un solo golpe no la parte: no da piedra y la roca sigue');
+    ok((await js('H.__textoHacha()')) === 'Picar piedra (1/6)', `con nivel bajo una roca grande pide 6 golpes y el cartel cuenta: ${await js('H.__textoHacha()')}`);
+    ok(/Golpe 1 de 6/.test(await js('notas()')), 'y el aviso dice «Golpe 1 de 6»');
+    for (let i = 0; i < 2; i++) { await js(`H.usarHacha(); 1`); await cuadros(1); }
+    ok((await js('H.__textoHacha()')) === 'Picar piedra (3/6)', 'a los tres golpes: «Picar piedra (3/6)»');
+    await cuadros(3);
+    await foto('3a-picando-3-de-6');
+    for (let i = 0; i < 2; i++) { await js(`H.usarHacha(); 1`); await cuadros(1); }
+    let x1 = await xps();
+    ok(x1.p === x0.p + 5 && x1.h === x0.h, `cada golpe suma un poco al picapedrero (33 → ${x1.p}) y nada al hachero (${x1.h})`);
+    ok((await estado()).piedra === 0 && await rocaViva(r2), 'a los cinco golpes todavía no está');
+    await js(`H.usarHacha(); 1`); await cuadros(2);
+    e = await estado();
+    ok(e.piedra === 4 && !(await rocaViva(r2)), `al sexto golpe se parte: 4 piedras y la roca desaparece (${e.piedra})`);
+    x1 = await xps();
+    ok(x1.p === 42 && x1.h === 100, `terminar la roca suma 4 más al picapedrero (${x1.p}) y el hachero queda igual (${x1.h})`);
+    ok(x1.nivelP === 1, 'y con eso es aprendiz de picapedrero (nivel 1)');
+    const avisos = await js(`H.__avisos().slice(-5).join(' | ')`);
+    ok(/Aprendiz de picapedrero/.test(avisos) && /\+\d+ piedra/i.test(avisos), `aviso de subida de nivel y de las piedras (${avisos.slice(0, 160)})`);
+    await cuadros(3);
+    await foto('3b-subida-de-nivel');
+    // el oficio en la pantalla de oficios del cuaderno
+    await juego(); await tecla('KeyJ'); await cuadros(3);
+    await js(`H.__aldea.oficios().elegir('picapedrero'); H.__aldea.cuaderno('oficios'); 1`); await cuadros(3);
+    const ficha = await js(`document.body.innerText`);
+    ok(/Aprendiz de picapedrero/.test(ficha) && /pico/i.test(ficha) && /6 golpes/.test(ficha) && /Hachero|hachero/.test(ficha), 'la pantalla de oficios muestra al picapedrero con su título y sus habilidades (y el hachero)');
+    await foto('3c-oficio-picapedrero');
+    await tecla('KeyJ'); await cuadros(3);
+    await juego();
+    // los golpes por nivel (rocas grandes): nivel 0 → 6, nivel 2 → 5, nivel 5 → 2
+    const probar = async (xp, tam, deco = false) => {
+      await js(`(() => { const P = H.progreso; P.materiales = {}; P.oficios.xp = { hachero: 100, picapedrero: ${xp} }; 1 })()`);
+      const r = await aRoca(deco, tam);
+      if (!r) return null;
+      return picar(r);
+    };
+    ok(await probar(0, 'grande') === 6, 'sin oficio, una roca grande: 6 golpes');
+    ok(await probar(120, 'grande') === 5, 'nivel 2 (picapedrero): 5 golpes');
+    ok(await probar(260, 'grande') === 4, 'nivel 3: 4 golpes');
+    ok(await probar(480, 'grande') === 3, 'nivel 4: 3 golpes');
+    ok(await probar(800, 'grande') === 2, 'nivel 5 (maestro): 2 golpes');
+    ok(await probar(0, 'chica') === 4, 'una roca chica sin oficio: 4 golpes (el 60 %)');
+    ok(await probar(800, 'chica') === 1, 'una roca chica con el maestro: 1 golpe');
+    // el nivel 4 rinde una piedra más
+    await js(`(() => { H.progreso.materiales = {}; H.progreso.oficios.xp = { picapedrero: 480 }; 1 })()`);
+    const rExtra = await aRoca(false, 'grande'); await picar(rExtra);
+    ok((await estado()).piedra === 5, `con nivel 4 la roca rinde 5 piedras (${(await estado()).piedra})`);
+    // el filo del herrero: un golpe menos (nivel 2: 5 → 4) y se gasta al terminar cada roca
+    await js(`(() => { H.progreso.oficios.xp = { picapedrero: 120 }; H.progreso.aldea.afilado = 2; 1 })()`);
+    const rFilo = await aRoca(false, 'grande');
+    ok(await picar(rFilo) === 4 && (await js('H.progreso.aldea.afilado')) === 1, 'con el filo del herrero, un golpe menos (4 en vez de 5) y el filo baja de a uno por roca');
+    // una roca decorativa también se pica con el pico (con el maestro, en dos golpes), y por el avance que se recuerda se puede dejar y volver
+    await js(`(() => { H.progreso.oficios.xp = { picapedrero: 120 }; H.progreso.aldea.afilado = 0; H.progreso.materiales = {}; 1 })()`);
+    const r3 = await aRoca(true, 'grande');
     if (r3) {
-      const p0 = (await estado()).piedra;
-      await js(`H.usarHacha(); 1`); await cuadros(2);
-      ok((await estado()).piedra > p0 && !(await rocaViva(r3)), 'una roca decorativa también se pica con el pico (decisión: se sigue pudiendo)');
-    } else console.log('  (no hay roca decorativa cerca para probar)');
+      await js(`H.usarHacha(); 1`); await cuadros(1); await js(`H.usarHacha(); 1`); await cuadros(1);
+      await aRoca(false, 'grande');   // se va a otra roca
+      await js(`H.progreso.materiales = {}; 1`);
+      const vuelta = await js(`(async () => { const m = H.veg.matas.find((q) => q.tipo === 'roca' && q.decorativo && Math.abs(q.x - ${r3.x}) < 1e-6 && Math.abs(q.z - ${r3.z}) < 1e-6); const j = H.jugador.estado, px = m.x + Math.sin(0.6) * 1.6, pz = m.z + Math.cos(0.6) * 1.6; ir(px, pz); j.yaw = Math.atan2(-(m.x - px), -(m.z - pz)); j.pitch = -0.35; await cuadros(8); return H.__textoHacha() })()`);
+      ok(vuelta === 'Picar piedra (2/5)', `se deja una roca a medias, se vuelve y el avance sigue (${vuelta})`);
+      await js(`H.usarHacha(); 1`); await cuadros(1); await js(`H.usarHacha(); 1`); await cuadros(1); await js(`H.usarHacha(); 1`); await cuadros(2);
+      ok(!(await rocaViva(r3)), 'una roca decorativa también se pica con el pico (decisión: se sigue pudiendo)');
+    } else console.log('  (no hay roca decorativa grande cerca para probar)');
+    await js(`(() => { H.progreso.oficios.xp = { hachero: 100, picapedrero: 33 }; 1 })()`);
     // el hacha sigue talando: con el pico en la mochila, un árbol cae a los hachazos
+    const xT0 = await xps();
     const arbol = await js(`(async () => { const j = H.jugador.estado, r = H.T.lugares.refugio;
       const a = H.veg.arboles.find((q) => !q.sacado && !q.caido && q.especie !== 'pehuen' && Math.hypot(q.x - r.x, q.z - r.z) < 120);
       if (!a) return null; ir(a.x + 1.9 + (a.r || 0.4), a.z); j.yaw = Math.atan2(-(a.x - j.pos.x), -(a.z - j.pos.z)); await cuadros(8);
       const t0 = H.progreso.materiales.tronco || 0; for (let i = 0; i < 6; i++) { H.usarHacha(); await cuadros(1); }
       return { t0, t1: H.progreso.materiales.tronco || 0 } })()`);
     ok(arbol && arbol.t1 > arbol.t0, `el hacha sigue talando árboles (${JSON.stringify(arbol)})`);
+    const xT1 = await xps();
+    ok(xT1.h > xT0.h && xT1.p === xT0.p, `talar sube al hachero (${xT0.h} → ${xT1.h}) y no toca al picapedrero (${xT1.p})`);
 
     // ---- 4. mochila y barra
     await js(`(() => { const P = H.progreso; P.materiales = { tronco: 3, piedra: 8 }; P.cosas = { hacha: 1, pico: 1 }; 1 })()`);

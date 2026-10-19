@@ -19,7 +19,9 @@ export const NIVEL_MAX = UMBRALES.length - 1;
 // Cuánta experiencia da cada cosa.
 export const XP = {
   tala: 12,        // un árbol talado
-  mata: 4,         // un tronco caído o un pedrero
+  mata: 4,         // un tronco caído
+  roca: 4,         // 4.2: un pedrero picado hasta el final (picapedrero)
+  golpe: 1,        // 4.2: cada golpe de pico que no termina la roca (picapedrero)
   aserrar: 1,      // un tronco aserrado
   pez: 10,         // un pez sacado
   abatido: 4,      // un invasor abatido (Desafío)
@@ -35,14 +37,26 @@ export const METROS_REMO = 25;
 
 export const OFICIOS = {
   hachero: {
-    nombre: 'Hachero', de: 'Talar, hacer troncos y aserrar',
+    nombre: 'Hachero', de: 'Talar, hacer troncos con lo caído y aserrar',
     titulos: ['Aprendiz de hachero', 'Hachero', 'Hachero de monte', 'Hachero baqueano', 'Maestro hachero'],
     habilidades: [
       'Al talar sale un tronco más',
       'Aserrando a mano sale una tabla más por tronco',
       'Los árboles caen con un hachazo menos',
-      'Los troncos caídos y los pedreros rinden uno más',
+      'Los troncos caídos rinden uno más',
       'Al talar salen dos troncos más',
+    ],
+  },
+  // 4.2: el pico es la herramienta de este oficio (el hacha sigue siendo la del hachero)
+  picapedrero: {
+    nombre: 'Picapedrero', de: 'Picar piedra de los pedreros con el pico',
+    titulos: ['Aprendiz de picapedrero', 'Picapedrero', 'Picapedrero de cantera', 'Picapedrero baqueano', 'Maestro picapedrero'],
+    habilidades: [
+      'Le agarrás el golpe a la piedra: un pedrero grande se pica en 6 golpes',
+      'Un pedrero grande se pica en 5 golpes',
+      'Un pedrero grande se pica en 4 golpes',
+      'Un pedrero grande se pica en 3 golpes y rinde una piedra más',
+      'Un pedrero grande se pica en 2 golpes',
     ],
   },
   pescador: {
@@ -102,7 +116,7 @@ export const OFICIOS = {
     ],
   },
 };
-export const ORDEN_OFICIOS = ['hachero', 'pescador', 'cazador', 'obrero', 'huertero', 'navegante'];
+export const ORDEN_OFICIOS = ['hachero', 'picapedrero', 'pescador', 'cazador', 'obrero', 'huertero', 'navegante'];
 export const esOficio = (id) => typeof id === 'string' && Object.hasOwn(OFICIOS, id);
 
 const entero = (v) => Math.max(0, Math.floor(Number.isFinite(Number(v)) ? Number(v) : 0));
@@ -183,7 +197,16 @@ const nv = (n) => Math.max(0, Math.min(NIVEL_MAX, Math.floor(Number(n) || 0)));
 export const troncosAlTalar = (base, n) => base + (nv(n) >= 5 ? 2 : nv(n) >= 1 ? 1 : 0);
 export const tablasAMano = (base, n) => base + (nv(n) >= 2 ? 1 : 0);
 export const golpesParaTalar = (base, n) => (nv(n) >= 3 ? Math.max(1, base - 1) : base);
-export const extraDeMata = (n) => (nv(n) >= 4 ? 1 : 0);
+export const extraDeMata = (n) => (nv(n) >= 4 ? 1 : 0);   // (los troncos caídos; 4.2: la piedra extra es del picapedrero)
+// picapedrero (4.2): los golpes de pico que pide un pedrero según el nivel (0 = sin oficio todavía) y la piedra que sobra.
+// Una roca chica (escala menor a ESCALA_ROCA_CHICA) pide el 60 % (redondeado, al menos uno).
+export const GOLPES_PICAR = [6, 6, 5, 4, 3, 2];
+export const ESCALA_ROCA_CHICA = 0.8;
+export const golpesParaPicar = (n, escala = 1) => {
+  const g = GOLPES_PICAR[nv(n)];
+  return Number(escala) < ESCALA_ROCA_CHICA ? Math.max(1, Math.round(g * 0.6)) : g;
+};
+export const extraDePiedra = (n) => (nv(n) >= 4 ? 1 : 0);
 // pescador: cuánto se acorta la espera del pique, cuánto dura el pique para clavar y
 // cuánto se tensa la línea cuando el pez tira
 const PIQUE = [1, 0.92, 0.92, 0.84, 0.84, 0.75];

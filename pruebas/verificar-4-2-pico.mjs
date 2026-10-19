@@ -84,7 +84,8 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   // ya con pico: no lo ofrece de nuevo y sigue afilando el hacha
   s = A.servicioBase('herrero', p, dia);
   ok(!s.efectos?.some((f) => f.k === 'pico') && s.efectos?.some((f) => f.campo === 'afilado'), 'con el pico hecho, el herrero afila el hacha como siempre');
-  ok(!/pico/i.test(s.partes.join(' ')), 'y no insiste con el pico');
+  ok(!/te falta un pico/i.test(s.partes.join(' ')), 'y no insiste con el pico');
+  ok(/hacha y (ese|el) pico/.test(s.partes.join(' ')) && /hacha y el pico/.test(s.titulo), 'afila los dos: el texto y el título hablan del hacha y el pico');
   // le faltan pesos: no lo forja pero avisa cuánto sale (y todavía afila)
   p = partida({ entradas: cantos(S.cantosPico), economia: { ...economiaNueva(), pesos: S.pesosPico - 1 } });
   s = A.servicioBase('herrero', p, dia);
@@ -174,7 +175,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   ok(/Para picar piedra hace falta el pico/.test(tramo('function textoHacha(o) {', 400)), 'el cartel de la H dice que hace falta el pico');
   ok(/case 'hacha': case 'pico': usarHacha\(\)/.test(main), 'el pico de la mochila usa la misma H');
   ok((main.match(/'hacha', 'pico', 'aserrar'/g) || []).length === 2, 'a caballo y en el sulky tampoco se pica');
-  ok(/PIEDRA_MATA/.test(uso) && /ganarOficio\('hachero', XP\.mata\)/.test(uso), 'con pico se da la piedra y sube el oficio de hachero como antes');
+  ok(/PIEDRA_MATA/.test(uso) && /ganarOficio\('picapedrero', XP\.roca\)/.test(uso), 'con pico se da la piedra y sube el oficio de picapedrero');
   const alma = tramo('function cambiar(i) {', 2500);
   ok(/pagarPesos\(progreso, t\.pesos/.test(alma) && /puedePagar\(progreso, t\.pesos\)/.test(alma), 'el almacén cobra el pico en pesos por la puerta de la economía');
   ok(/t\.cosa \|\| t\.id/.test(alma), 'y lo que se lleva es `pico`, venga de donde venga');
@@ -195,6 +196,77 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   ok(/pico/.test(leer('src/plantilla.html').slice(leer('src/plantilla.html').indexOf('<kbd>H</kbd>'), leer('src/plantilla.html').indexOf('<kbd>H</kbd>') + 200)), 'y la ayuda de teclas');
   ok(/con el pico/.test(leer('src/construccion.js')) && /con el pico/.test(leer('src/desafio.js')), 'los textos de la piedra (planos y honda) dicen pico');
   ok(/pico/.test(leer('src/guardado.js')) && /cosas: desafio \? \{ hacha: 1, pico: 1 \}/.test(leer('src/guardado.js')), 'el Desafío arranca con pico');
+}
+
+// ============================================================ 6. el picapedrero: golpes por nivel, filo, tamaños, experiencia y guardado
+{
+  const O = await import('../src/oficios.js');
+  ok(O.OFICIOS.picapedrero && O.ORDEN_OFICIOS.includes('picapedrero'), 'hay un oficio nuevo: el picapedrero');
+  eq(O.ORDEN_OFICIOS.filter((i) => i === 'picapedrero').length, 1, 'una sola vez en el orden');
+  const of = O.OFICIOS.picapedrero;
+  ok(of.titulos.length === 5 && of.habilidades.length === 5 && of.titulos.every((x) => x.length < 40), 'cinco títulos y cinco habilidades');
+  eq(of.titulos, ['Aprendiz de picapedrero', 'Picapedrero', 'Picapedrero de cantera', 'Picapedrero baqueano', 'Maestro picapedrero'], 'los títulos');
+  ok(!Object.hasOwn(O.OFICIOS, 'cantero'), 'no choca con «cantero» (el de las plantas)');
+  // la tabla: roca grande 6 (sin oficio y aprendiz), 5, 4, 3, 2
+  eq([0, 1, 2, 3, 4, 5].map((n) => O.golpesParaPicar(n, 1)), [6, 6, 5, 4, 3, 2], 'golpes por nivel en una roca grande');
+  eq([0, 1, 2, 3, 4, 5].map((n) => O.golpesParaPicar(n, 0.5)), [4, 4, 3, 2, 2, 1], 'una roca chica pide el 60 % (redondeado, al menos uno)');
+  ok(O.golpesParaPicar(1, 0.8) === 6 && O.golpesParaPicar(1, 0.79) === 4, 'el corte entre chica y grande es 0,8');
+  ok(O.golpesParaPicar(1) === 6 && O.golpesParaPicar(9, 1) === 2 && O.golpesParaPicar(-3, 1) === 6, 'sin escala vale como grande; el nivel se acota');
+  // los números de la tabla están en el texto de las habilidades
+  of.habilidades.forEach((h, i) => ok(h.includes(`${O.GOLPES_PICAR[i + 1]} golpes`), `la habilidad ${i + 1} dice sus golpes`));
+  // el filo del herrero: un golpe menos, nunca menos de uno
+  const afilada = { afilado: 5 }, sin = { afilado: 0 };
+  eq([1, 2, 3, 4, 5].map((n) => A.golpesConFilo(O.golpesParaPicar(n, 1), afilada)), [5, 4, 3, 2, 1], 'con el filo, uno menos en cada nivel');
+  eq([1, 2, 3, 4, 5].map((n) => A.golpesConFilo(O.golpesParaPicar(n, 0.5), afilada)), [3, 2, 1, 1, 1], 'y las chicas no bajan de uno');
+  eq(A.golpesConFilo(6, sin), 6, 'sin filo, los de la tabla');
+  // la piedra extra es del picapedrero (nivel 4); la del hachero es sólo de troncos
+  ok(O.extraDePiedra(3) === 0 && O.extraDePiedra(4) === 1 && O.extraDePiedra(5) === 1, 'la piedra extra sale en el nivel 4 del picapedrero');
+  ok(O.OFICIOS.hachero.habilidades[3] === 'Los troncos caídos rinden uno más', 'el hachero ya no habla de pedreros');
+  // la experiencia: los golpes suman poco, terminar la roca suma más; sube de nivel
+  const p = O.oficiosNuevos();
+  ok(O.XP.golpe >= 1 && O.XP.roca >= 1 && O.XP.golpe < O.XP.roca, 'un golpe suma menos que terminar la roca');
+  let sube = null;
+  for (let i = 0; i < 200 && !sube; i++) { for (let g = 0; g < 5; g++) { const q = O.sumarXp(p, 'picapedrero', O.XP.golpe); if (q.subio) sube = sube || q; } const r = O.sumarXp(p, 'picapedrero', O.XP.roca); if (r.subio) sube = sube || r; }
+  ok(sube && sube.id === 'picapedrero' && sube.nivel === 1 && sube.titulo === 'Aprendiz de picapedrero', 'picando se llega a aprendiz de picapedrero');
+  eq(O.xpDe(p, 'hachero'), 0, 'y el hachero no sube con eso');
+  O.sumarXp(p, 'hachero', O.XP.tala);
+  const antes = O.xpDe(p, 'picapedrero'); O.sumarXp(p, 'hachero', O.XP.tala);
+  eq(O.xpDe(p, 'picapedrero'), antes, 'talar no le suma al picapedrero');
+  // el cableado en main: picar da al picapedrero y talar al hachero
+  const tala = tramo('function usarHacha() {', 4800), i0 = tala.indexOf('if (o.talar) {'), i1 = tala.indexOf('// 4.2: el pedrero se pica');
+  ok(i0 >= 0 && i1 > i0, 'el bloque de talar va antes del de picar');
+  ok(/ganarOficio\('hachero', XP\.tala\)/.test(tala.slice(i0, i1)) && !/picapedrero/.test(tala.slice(i0, i1)), 'talar: sólo hachero');
+  const pica = tala.slice(i1);
+  ok(/ganarOficio\('picapedrero', XP\.golpe\)/.test(pica) && /ganarOficio\('picapedrero', XP\.roca\)/.test(pica), 'picar: los golpes y la roca van al picapedrero');
+  ok(!/ganarOficio\('hachero', XP\.tala\)/.test(pica) && /else ganarOficio\('hachero', XP\.mata\)/.test(pica), 'el hachero sólo suma por un tronco caído (nunca por la piedra)');
+  ok(/extraDePiedra\(nivelDe\('picapedrero'\)\)/.test(pica) && /extraDeMata\(nivelDe\('hachero'\)\)/.test(pica), 'la piedra extra del picapedrero; los troncos caídos, del hachero');
+  ok(/sonido\.picazo\(/.test(pica) && /golpesPico\.set\(o\.mata, golpes\)/.test(pica) && /golpesPico\.delete\(o\.mata\)/.test(pica), 'suena el pico y el avance de cada roca se recuerda y se borra al terminarla');
+  ok(/gastarFilo\(progreso\.aldea\)/.test(pica), 'terminar una roca gasta el filo');
+  ok(main.includes('Picar piedra (${o.golpes}/${golpesParaPicarAhora(o.mata)})'), 'el cartel de la H muestra el avance: «Picar piedra (3/6)»');
+  ok(main.includes("golpesParaPicar(nivelDe('picapedrero'), mata?.esc)"), 'los golpes salen del nivel y del tamaño de la roca');
+  const veg = leer('src/vegetacion.js');
+  ok(veg.includes('matas.push({ x, z, tipo, ref, choque, esc });') && veg.includes('decorativo: true, esc });'), 'las rocas guardan su tamaño (esc), las sueltas y las decorativas');
+  const son = leer('src/sonido.js');
+  ok(/picazo\(pos, avance/.test(son) && /impacto\('piedra'/.test(son.slice(son.indexOf('picazo('))), 'el golpe de pico existe, sintetizado, y suena a piedra');
+  // el guardado: el oficio nuevo se guarda y vuelve; una partida vieja conserva lo del hachero y el picapedrero empieza en cero
+  const v = O.sanearOficios({ version: 1, xp: { hachero: 500, picapedrero: 130 }, acreditado: true });
+  ok(O.xpDe(v, 'hachero') === 500 && O.xpDe(v, 'picapedrero') === 130, 'el guardado trae los dos oficios');
+  const vieja = O.sanearOficios({ version: 1, xp: { hachero: 500 }, acreditado: true });
+  ok(O.xpDe(vieja, 'hachero') === 500 && O.xpDe(vieja, 'picapedrero') === 0 && O.nivelOficio(vieja, 'hachero') === 4, 'una partida vieja: el hachero conserva todo y el picapedrero empieza en 0');
+  const cred = O.creditoInicial({ talados: Array.from({ length: 60 }, (_, i) => i), entradas: { 'piedra-mat': { cantidad: 1 } } });
+  ok(!Object.hasOwn(cred, 'picapedrero'), 'no hay contador de rocas picadas: el crédito de las partidas muy viejas no inventa picapedrero');
+  const rotos = O.sanearOficios({ xp: { picapedrero: -4, cantero: 900 } });
+  ok(!Object.hasOwn(rotos.xp, 'picapedrero') && !Object.hasOwn(rotos.xp, 'cantero'), 'lo roto no pasa');
+  // por el guardado de verdad
+  G.usarModoGuardado('relax', 1);
+  const pr = G.progresoNuevo(); pr.oficios = { version: 1, xp: { hachero: 300, picapedrero: 90 }, resto: { obra: {}, cosecha: 0 }, metros: 0, acreditado: true };
+  ok(G.guardarProgreso(pr), 'se guarda');
+  const c = G.cargarProgreso();
+  ok(c.oficios.xp.hachero === 300 && c.oficios.xp.picapedrero === 90, 'recargada, la partida conserva el hachero y el picapedrero');
+  // la pantalla de oficios y las ayudas
+  const ui = leer('src/oficios-ui.js');
+  ok(/ORDEN_OFICIOS/.test(ui) && /nombre\.toLowerCase\(\)/.test(ui), 'la pantalla de oficios y el aviso de nivel salen de la lista de oficios');
+  ok(!/pedreros rinden/.test(leer('src/guia.js') + leer('src/cuaderno.js')), 'ninguna ayuda habla de «hachero y piedra»');
 }
 
 console.log(`OK 4.2 el pico · ${n} comprobaciones`);
