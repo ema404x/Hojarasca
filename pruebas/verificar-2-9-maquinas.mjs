@@ -345,6 +345,44 @@ function cargar(raices, final) {
   paso('el clima sigue el programa tramo a tramo, se pone al día al dormir y respeta el ajuste');
 }
 
+// ---------------------------------------------------------------- 4.0.5 (F12): el trueno de la lluvia fuerte viene con su destello
+{
+  const r = cargar(['clima.js', 'meteo.js'], `
+  globalThis.__R = (() => {
+    const timers = []; globalThis.setTimeout = (f, ms) => { timers.push({ f, ms }); return timers.length; };
+    const T = { indice: () => 0, estepa: [0], bosque: [1], altura: () => 0, val: () => 0 };
+    const clima = __mod_clima.crearClima(new THREE.Scene(), T, { clima: 'variable' });
+    let truenos = 0; const sonido = { trueno() { truenos++; } };
+    const cam = { x: 0, y: 1, z: 0 };
+    // lluvia fuerte con cielo poco cubierto: no es tormenta, así que no caen sus rayos
+    clima.estado.lluvia = 0.9; clima.estado.nublado = 0.3;
+    const sinDestello = clima.actualizarTormenta(0.016, cam, sonido);
+    const disparo = clima.relampagoLejano(sonido, 0.4);
+    const truenosAlDisparar = truenos;
+    const destello = clima.actualizarTormenta(0.016, cam, sonido);
+    const demora = timers.length ? timers[0].ms : -1;
+    timers.forEach((t) => t.f());
+    const truenosDespues = truenos;
+    for (let i = 0; i < 60; i++) clima.actualizarTormenta(0.016, cam, sonido);
+    const apagado = clima.actualizarTormenta(0.016, cam, sonido);
+    // con tormenta no hace nada (ya caen sus rayos): ni destello ni trueno de más
+    clima.estado.lluvia = 0.9; clima.estado.nublado = 0.9; clima.actualizarTormenta(0.016, cam, sonido);
+    const enTormenta = clima.relampagoLejano(sonido, 0.4);
+    return { sinDestello, disparo, truenosAlDisparar, destello, demora, truenosDespues, apagado, enTormenta, tormenta: clima.estado.tormenta };
+  })();`);
+  assert.equal(r.sinDestello, 0, 'sin relámpago no hay fogonazo');
+  assert.equal(r.disparo, true, 'la lluvia fuerte sin tormenta dispara el relámpago lejano');
+  assert.equal(r.truenosAlDisparar, 0, 'el trueno ya no suena al instante');
+  assert.ok(r.destello > 0.3, 'se ve el destello (' + r.destello + ')');
+  assert.equal(r.demora, 0.4 * 7.5 * 1000, 'el trueno llega después, según la distancia');
+  assert.equal(r.truenosDespues, 1, 'el trueno llega una vez');
+  assert.equal(r.apagado, 0, 'el destello se apaga');
+  assert.equal(r.tormenta, true, 'con cielo cubierto la lluvia fuerte es tormenta');
+  assert.equal(r.enTormenta, false, 'con tormenta no se suma un trueno suelto');
+  assert.doesNotMatch(leer('src/clima.js'), /estado\.relampago = 1; mundo\.sonido\.trueno\(\)/, 'el trueno inmediato sin destello ya no está');
+  paso('el trueno de la lluvia fuerte llega después de su destello, y con tormenta no se duplica');
+}
+
 // ---------------------------------------------------------------- el cableado
 {
   const main = leer('src/main.js'), cons = leer('src/construccion.js');

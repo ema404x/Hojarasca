@@ -245,7 +245,8 @@ export function crearClima(escena, T, ajustes) {
 
     // relámpagos lejanos
     estado.relampago = Math.max(0, estado.relampago - dt * 4);
-    if (estado.lluvia > 0.8 && mundo.invierno < 0.5 && Math.random() < dt / 70) { estado.relampago = 1; mundo.sonido.trueno(); }
+    // 4.0.5 (F12): el trueno de la lluvia fuerte sin tormenta ya no suena solo: primero el destello lejano y el trueno llega después
+    if (estado.lluvia > 0.8 && mundo.invierno < 0.5 && Math.random() < dt / 70) relampagoLejano(mundo.sonido);
 
     const invierno = mundo.invierno > 0.5;
     const precip = estado.lluvia;
@@ -426,6 +427,14 @@ export function crearClima(escena, T, ajustes) {
   // De vez en cuando la lluvia fuerte se vuelve tormenta: relámpagos que
   // iluminan el valle y truenos que llegan después, según la distancia.
   const relampago = { luz: 0, proximo: 30 + Math.random() * 90, secuencia: 0, lejos: 1 };
+  // 4.0.5 (F12): un relámpago lejano suelto (lluvia fuerte sin tormenta): se ve el destello y el trueno llega después, según la distancia
+  // (antes sonaba el trueno al instante y sin destello). Con tormenta no hace nada: ya caen sus propios rayos.
+  function relampagoLejano(sonido, lejos = 0.55 + Math.random() * 0.45) {
+    if (estado.tormenta) return false;
+    relampago.lejos = lejos; relampago.secuencia = 0; relampago.luz = 1.1 - lejos * 0.55;
+    if (sonido) setTimeout(() => sonido.trueno(lejos), lejos * 7.5 * 1000);
+    return true;
+  }
   function actualizarTormenta(dt, cam, sonido) {
     // 3.8.7: la nevada no es tormenta (la estación anuncia «Nevada», sin tormenta; caían rayos, sonaban truenos y el diario
     // decía «Tormenta» en vez de «Nevó»)
@@ -448,7 +457,7 @@ export function crearClima(escena, T, ajustes) {
   }
 
   return {
-    estado, actualizar, actualizarTormenta, encenderFogata, apagarFogata, usarPrograma,
+    estado, actualizar, actualizarTormenta, relampagoLejano, encenderFogata, apagarFogata, usarPrograma,
     // 3.8.7: los cuatro fuegos, el más cercano (compatible con lo de antes: `clima.fogata`) y el que arde en un lugar
     fogatas, get fogata() { return fogataCercana(); },
     fuegoEn: (x, z, r) => { const i = fuegoEn(fogatas, x, z, r); return i >= 0 ? fogatas[i] : null; },

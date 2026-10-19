@@ -64,3 +64,12 @@ Pruebas nuevas: `pruebas/verificar-4-0-5-bajos.mjs` (en el gate) y `pruebas/humo
 ## 5. No verificado
 
 fps en la 4600G (nada de lo nuevo suma trabajo por cuadro: F7 corre una vez al armar el mundo y la cuenta de cada cuadro es la misma; G15 agrega una comparación booleana a eventos del mouse; F8 dos comparaciones por muestra del clima, sólo después de un anuncio); el aspecto en pantalla de E8 y F9; F7 con el cambio de estación a media sesión (no cambia: sólo se tocó el arranque).
+
+## F12 resuelto (19-10, a pedido del usuario: conectar el trueno al destello)
+- **Qué pasaba:** con lluvia fuerte sin tormenta (`lluvia > 0,8`, fuera del invierno), `clima.js` hacía sonar el trueno al instante y sin destello
+  (cada ~70 s de promedio).
+- **Ahora:** `relampagoLejano(sonido, lejos)` (`src/clima.js`) enciende un destello suave y el trueno llega después, a 7,5 s por unidad de distancia
+  (mismo criterio que los rayos de la tormenta). Con tormenta (cielo cubierto) no hace nada: ya caen sus propios rayos y no se duplica el trueno.
+  El destello usa el fogonazo que `main.js` ya aplicaba (sin luces nuevas ni geometría).
+- **Prueba:** nuevo grupo en `pruebas/verificar-2-9-maquinas.mjs` (destello primero, trueno retrasado una sola vez, sin duplicar con tormenta).
+- **No visto en el juego:** el aspecto del destello lejano en pantalla.
