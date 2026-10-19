@@ -48,7 +48,7 @@ Textos que ya existían y cambiaron (en castellano): efecto del hacha en el alma
 
 ## `npm run verify` (245 pasos)
 
-Pasó completo, pero en dos tandas: la corrida entera llegó hasta el paso 181 y se cortó en el 182 y antes en el 76 por tres pruebas viejas que miraban el texto exacto de `main.js` (`verificar-huerta`, `verificar-3-8-6-relax`, `verificar-3-8-7-mundo`: se actualizaron a `clave` y a la lista con `'pico'`). Después de arreglarlas se corrieron los pasos 182 a 245 y las tres sueltas, todo verde. Los pasos 1 a 181 no se repitieron tras esos dos retoques de pruebas (no tocan nada que ellos usen).
+`npm run verify` pasó completo y de corrido: 245 pasos OK (tras el último retoque, el texto de la guía de la piedra, acortado por el límite de 260 caracteres de `verificar-guia`).
 
 ## Picar a golpes y el oficio de picapedrero
 
