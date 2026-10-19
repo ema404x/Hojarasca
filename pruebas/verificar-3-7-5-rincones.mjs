@@ -404,7 +404,7 @@ const M = A.marcoAldea();
 {
   const main = leer('src/main.js'), jug = leer('src/jugador.js'), vec = leer('src/vecindad-juego.js');
   // la E: lo urgente (bajar del sulky, patear) antes de hablar; lo demás después de la carrera
-  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'KeyE': {") + 9000);
+  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'KeyE': {") + 14000);
   const iu = tecla.indexOf('rinconesJuego.urgente(js)'), iv = tecla.indexOf('if (vecino) { hablar(vecino); break; }'), ic = tecla.indexOf('modos?.accion(jugador.estado)'), ia = tecla.indexOf('rinconesJuego.accion(js)'), im = tecla.indexOf('cercaDelMostrador()) { abrirAlmacen(); break; }');
   ok(iu > 0 && iu < iv, 'E: lo urgente de los rincones, antes de hablar');
   ok(ic > 0 && ia > ic && ia < im, 'E: los rincones, después de la carrera y antes del almacén');
