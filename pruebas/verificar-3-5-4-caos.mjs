@@ -95,9 +95,9 @@ const main = leer('src/main.js');
   ok(corta > 0 && abre > corta, 'en el modo foto F1 no abre la pausa ni la guía (se corta antes)');
   // y el mouse es de la cámara: la rueda, el clic derecho (usar), el izquierdo del Desafío (atacar) y la caña
   const rueda = main.slice(main.indexOf("window.addEventListener('wheel'"), main.indexOf("window.addEventListener('wheel'") + 200);
-  ok(/mochilaAbierta \|\| foto\.activo\) return;/.test(rueda), 'la rueda no cambia la ranura en el modo foto');
-  ok(main.includes("if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta || foto.activo) return;"), 'el clic derecho no usa nada en el modo foto');
-  ok(main.includes('desafio.caido || foto.activo) return;'), 'el clic izquierdo no ataca en el modo foto');
+  ok(/mochilaAbierta \|\| foto\.activo( \|\| banco\.activa)?\) return;/.test(rueda), 'la rueda no cambia la ranura en el modo foto');   // 4.0.5: y tampoco en el banco de pruebas
+  ok(main.includes("if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta || foto.activo"), 'el clic derecho no usa nada en el modo foto');
+  ok(main.includes('desafio.caido || foto.activo'), 'el clic izquierdo no ataca en el modo foto');
   ok(main.includes('!jugador.bloqueado() || foto.activo) return;'), 'ni tira la línea en el modo foto');
 }
 // ---------------------------------------------------------------- 2b. el clic derecho, una vez

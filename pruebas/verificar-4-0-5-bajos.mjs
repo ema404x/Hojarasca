@@ -71,4 +71,20 @@ const ok = (cond, que) => { assert.ok(cond, que); console.log('✓', que); };
   tiene(b, 'l.pos.z += Math.cos(l.rumbo) * 0.6;\n        l.pos.y = T.altura(l.pos.x, l.pos.z) + 0.35;', 'al huir, la altura sale del terreno donde queda');
 }
 
+// ---------------------------------------------------------------- F8: el diario juzga el pronóstico por lo que llovió DESPUÉS
+{
+  const { crearDiario } = await import('../src/diario.js');
+  const dia = (antes, anuncio, despues) => {
+    const d = crearDiario();
+    for (const l of antes) d.clima(1, { lluvia: l, viento: 0.1 }, 0);
+    d.anotar('pronostico', { quien: 'Don Ramón', proximo: anuncio });
+    for (const l of despues) d.clima(1, { lluvia: l, viento: 0.1 }, 0);
+    return d.cerrar(4, 'verano', () => 0).texto;
+  };
+  ok(/Don Ramón dijo que paraba, y paró./.test(dia([0.9, 0.9], 'despejado', [0.7, 0.3, 0.05])), 'llovía a la mañana, dijo «ya para» y paró: acertó (antes decía «Siguió lloviendo»)');
+  ok(/Don Ramón dijo que paraba. Siguió lloviendo./.test(dia([0.9], 'despejado', [0.8, 0.7, 0.9])), 'dijo que paraba y siguió lloviendo: falló');
+  ok(/Don Ramón dijo que llovía, y llovió./.test(dia([0], 'lluvia', [0.1, 0.8])), 'dijo que llovía y llovió después: acertó');
+  ok(/Don Ramón anunció lluvia y no cayó una gota./.test(dia([0.9, 0.9], 'lluvia', [0.0, 0.05])), 'anunció lluvia después de la que ya había caído y no volvió a llover: falló (antes contaba la de la mañana)');
+}
+
 console.log('OK 4.0.5 bajos');

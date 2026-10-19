@@ -131,6 +131,9 @@ export function crearDiario() {
   function clima(dt, estado, invierno) {
     if (!hoy) return;
     hoy.lluvia = Math.max(hoy.lluvia, estado.lluvia);
+    // 4.0.5 (F8): lo que llovió DESPUÉS de que el vecino anunciara el tiempo (con el máximo del día entero, el que dijo «ya para» porque estaba
+    // lloviendo quedaba siempre en «siguió lloviendo»): lo más y lo menos que llovió desde entonces
+    if (hoy.pronostico) { hoy.lluviaTrasMax = Math.max(hoy.lluviaTrasMax ?? 0, estado.lluvia); hoy.lluviaTrasMin = Math.min(hoy.lluviaTrasMin ?? 1, estado.lluvia); }
     hoy.viento = Math.max(hoy.viento, estado.viento);
     if (invierno > 0.5) hoy.nieve = Math.max(hoy.nieve, estado.lluvia);
     if (estado.tormenta) hoy.tormenta = true;
@@ -172,7 +175,7 @@ export function crearDiario() {
     ]));
     // 2.1: el que anunció el tiempo, y si acertó
     if (d.pronostico?.quien) {
-      const p = d.pronostico, ok = acerto(p, d.lluvia);
+      const p = d.pronostico, ok = acerto(p, p.proximo === 'despejado' ? (d.lluviaTrasMin ?? d.lluvia) : (d.lluviaTrasMax ?? d.lluvia));   // 4.0.5 (F8): «paró» si en algún momento después dejó de llover; «llovió» si después llovió
       if (p.proximo === 'lluvia') lineas.push(ok ? `${p.quien} dijo que llovía, y llovió.` : `${p.quien} anunció lluvia y no cayó una gota.`);
       else if (p.proximo === 'despejado') lineas.push(ok ? `${p.quien} dijo que paraba, y paró.` : `${p.quien} dijo que paraba. Siguió lloviendo.`);
     }
