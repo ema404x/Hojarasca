@@ -13,14 +13,19 @@ const B = await import('../src/prestamos.js');
 const R = await import('../src/propiedad.js');
 const C = await import('../src/comercio.js');
 const NF = await import('../src/negocios-fx.js');
+const EM = await import('../src/empleo.js');   // 4.3: el empleo fijo
+const OF = await import('../src/oficios.js');
 
 const DIAS = Number(process.argv[2]) || 240;
 const $ = (v) => '$' + Math.round(v).toLocaleString('es-AR');
 const claves = Object.keys(T.TRABAJOS);
 
-function jugar({ jornales = true, pedidos = true, abasto = true, compraCaro = 1.05 } = {}) {
-  const p = { modo: 'relax', dia: 1, horas: 12, cosas: {}, materiales: {}, entradas: {}, economia: E.economiaNueva() };
-  const por = { jornales: 0, pedidos: 0, abasto: 0 };
+// 4.3: `turno`: null (sin empleo), 'sin-oficio' (un turno por día de lunes a sábado, siempre de aprendiz: no tiene el nivel de oficio para ascender) o
+// 'oficio' (con los oficios a nivel 2: asciende con los días). El turno ocupa uno de los dos jornales del día. `soloTurno`: sin jornales ni nada más.
+function jugar({ jornales = true, pedidos = true, abasto = true, compraCaro = 1.05, turno = null } = {}) {
+  const p = { modo: 'relax', dia: 1, horas: 12, cosas: {}, materiales: {}, entradas: {}, economia: E.economiaNueva(), oficios: OF.oficiosNuevos() };
+  if (turno === 'oficio') for (const id of ['huertero', 'picapedrero', 'obrero']) OF.sumarXp(p.oficios, id, 140);
+  const por = { jornales: 0, pedidos: 0, abasto: 0, turnos: 0 }, ascensos = {};
   const dar = (bien, cant) => { const b = C.BIENES[bien]; if (b.donde === "material") p.materiales[bien] = cant; else if (b.donde === "entrada") p.entradas[bien] = { dia: 1, hora: 1, cantidad: cant }; else p.cosas[bien] = cant; };
   for (let d = 1; d <= DIAS; d++) {
     p.dia = d;
@@ -40,14 +45,29 @@ function jugar({ jornales = true, pedidos = true, abasto = true, compraCaro = 1.
       const a = B.abastoDe(p, d);
       if (a) { const costo = Math.ceil((a.n / C.BIENES[a.k].lote) * C.BIENES[a.k].valor * compraCaro * 100); if (a.premio > costo) { dar(a.k, a.n); const r = B.cumplirAbasto(p, d); if (r.ok) por.abasto += r.premio - costo; } }
     }
+    if (turno && !EM.esDiaLibre(d)) {
+      // el mejor sueldo que da hoy alguno de los cuatro puestos
+      const k = EM.IDS_PUESTOS.slice().sort((a, b) => EM.sueldoDe(b, EM.escalonDe(p, b)) - EM.sueldoDe(a, EM.escalonDe(p, a)))[0];
+      const a = antes();
+      if (EM.fichar(p, k, d, EM.PUESTOS[k].desde).ok) { while (!EM.hacerTarea(p).terminado); const r = EM.cerrarTurno(p, 'completo'); if (r.ascendio) ascensos[r.ascendio.nombre] = ascensos[r.ascendio.nombre] || d; por.turnos += E.pesosDe(p) - a; }
+    }
     if (jornales) for (const k of claves) { const a = antes(); const r = T.cumplirJornal(p, k, d, 'x', dem); if (r.ok) por.jornales += E.pesosDe(p) - a; }
   }
-  return { p, por, total: por.jornales + por.pedidos + por.abasto };
+  return { p, por, ascensos, total: por.jornales + por.pedidos + por.abasto + por.turnos };
 }
 console.log(`# Rendimiento de cada ingreso en ${DIAS} días (jugador goloso)\n`);
 for (const [nombre, o] of [['sólo jornales', { pedidos: false, abasto: false }], ['sólo pedidos', { jornales: false, abasto: false }], ['sólo abastecimiento', { jornales: false, pedidos: false }], ['todo junto', {}]]) {
   const { por, total } = jugar(o);
   console.log(`- ${nombre}: ${$(total / DIAS)} por día (jornales ${$(por.jornales / DIAS)}, pedidos ${$(por.pedidos / DIAS)}, abastecimiento ${$(por.abasto / DIAS)})`);
+}
+// 4.3: el empleo fijo (un turno de lunes a sábado; ocupa uno de los dos jornales del día)
+console.log(`
+# El empleo fijo (4.3), en ${DIAS} días
+`);
+for (const [nombre, o] of [['sólo el turno, sin oficios (aprendiz)', { turno: 'sin-oficio', jornales: false, pedidos: false, abasto: false }], ['sólo el turno, con oficios nivel 2 (asciende)', { turno: 'oficio', jornales: false, pedidos: false, abasto: false }], ['turno + el jornal que queda, con oficios', { turno: 'oficio', pedidos: false, abasto: false }], ['todo junto con turno y oficios', { turno: 'oficio' }]]) {
+  const { por, total, ascensos } = jugar(o);
+  const asc = Object.entries(ascensos).map(([n, d]) => `${n.toLowerCase()} el día ${d}`).join(', ');
+  console.log(`- ${nombre}: ${$(total / DIAS)} por día (turnos ${$(por.turnos / DIAS)}, jornales ${$(por.jornales / DIAS)})${asc ? ` · asciende: ${asc}` : ''}`);
 }
 const dia = jugar({}).total / DIAS;
 console.log('\n# Días para comprar cada casa (precio por etapas + materiales) con ese ritmo\n');

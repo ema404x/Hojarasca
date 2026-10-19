@@ -62,7 +62,9 @@ export function crearOficiosUI(ctx) {
     const ul = el('ul', 'lista');
     // 3.6 (vida): y «Tus vecinos» (cómo te llevás con cada uno y lo que le gusta; ver vecindad-juego.js)
     // 3.7.0: y «Calendario y vida de la aldea» (los cumpleaños, el año, los visitantes, las cartas)
-    const ids = [...ORDEN_OFICIOS, ...(aldea ? ['aldea'] : []), ...(aldea?.dibujarVecinos ? ['vecinos'] : []), ...(aldea?.dibujarCalendario ? ['calendario'] : [])];
+    // 4.3: páginas que suman otros sistemas (el empleo fijo: «Trabajo en la aldea»): { id, nombre, marca, pendiente, dibujar(ficha, el) }
+    const extras = ctx.extras?.() || [];
+    const ids = [...ORDEN_OFICIOS, ...(aldea ? ['aldea'] : []), ...(aldea?.dibujarVecinos ? ['vecinos'] : []), ...(aldea?.dibujarCalendario ? ['calendario'] : []), ...extras.map((x) => x.id)];
     if (!ids.includes(elegido)) elegido = r.id || ORDEN_OFICIOS[0];
     for (const id of ids) {
       const b = el('button');
@@ -80,6 +82,10 @@ export function crearOficiosUI(ctx) {
         const conocidos = Object.keys(amistades(ctx.progreso())).length;
         b.appendChild(el('span', conocidos ? '' : 'pendiente', 'Tus vecinos'));
         b.appendChild(el('span', 'marca', conocidos === 1 ? '1 conocido' : `${conocidos} conocidos`));
+      } else if (extras.some((x) => x.id === id)) {
+        const x = extras.find((y) => y.id === id);
+        b.appendChild(el('span', x.pendiente ? 'pendiente' : '', x.nombre));
+        b.appendChild(el('span', 'marca', x.marca || ''));
       } else {
         const e = estadoOficio(of, id);
         b.appendChild(el('span', e.nivel ? '' : 'pendiente', e.nivel ? e.titulo : OFICIOS[id].nombre));
@@ -95,6 +101,8 @@ export function crearOficiosUI(ctx) {
     if (elegido === 'aldea' && aldea) { aldea.dibujarCuaderno(ficha, el); return; }
     if (elegido === 'vecinos' && aldea?.dibujarVecinos) { aldea.dibujarVecinos(ficha, el); return; }
     if (elegido === 'calendario' && aldea?.dibujarCalendario) { aldea.dibujarCalendario(ficha, el); return; }   // 3.7.0
+    const extra = extras.find((x) => x.id === elegido);
+    if (extra) { extra.dibujar(ficha, el); return; }
     const e = estadoOficio(of, elegido);
     ficha.appendChild(el('h2', '', e.nivel ? e.titulo : e.nombre));
     ficha.appendChild(el('p', 'anotado', `${e.nombre} · nivel ${e.nivel} de 5 · ${e.xp} de experiencia`));

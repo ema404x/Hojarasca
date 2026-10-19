@@ -160,6 +160,8 @@ import { alternarGramola, gramolaSuena, DISTANCIA_GRAMOLA } from './gramola.js';
 // 4.2: el almacenaje con tope (pila y depósito de piedra, barraca, silo, herramientero): las cuentas en almacen.js, lo del juego en almacen-juego.js
 import { TOPE_ACOPIO } from './almacen.js';
 import { crearAlmacenJuego } from './almacen-juego.js';
+// 4.3: el empleo fijo (empleo.js tiene las reglas, empleo-mundo.js lo que se ve)
+import { crearEmpleoJuego } from './empleo-juego.js';
 import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
 // 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
 import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
@@ -3192,6 +3194,8 @@ document.addEventListener('keydown', (e) => {
       // trueque o una puerta cercana se coman la interacción.
       if (vecino && desafio && vecino.enBase) { ordenarCompanero(vecino); break; }
       if (vecino) { hablar(vecino); break; }
+      // 4.3: el empleo fijo: el cartel de turnos y la tarea del puesto, antes que el mostrador y lo de adentro (el aviso, en el mismo lugar y con la misma función: empleoJuego.accion)
+      if (!js.enTren && !js.enKayak && !js.montado && empleoJuego) { const a = empleoJuego.accion(js); if (a && (a.tipo !== 'info' || !objetivo)) { a.hacer(); cacheEmpleo = null; break; } }
       // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, E te sienta (el aviso, en el mismo lugar)
       if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
       // 3.1: en el poste de una carrera, E larga (también montado, en el kayak o en el velero; el aviso va en el mismo lugar)
@@ -5272,6 +5276,7 @@ let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
 let noticiasJuego = null, concursosJuego = null;   // 3.7.5 (noticias): ver noticias-juego.js y concursos-juego.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
+let empleoJuego = null;   // 4.3: el empleo fijo: el cartel de turnos, las tareas del puesto y el sueldo (ver empleo-juego.js)
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
@@ -5291,7 +5296,7 @@ const nivelDe = (id) => Math.min(5, (oficios?.nivel(id) || 0) + (amorJuego?.bono
 const ganarOficio = (id, cuanto) => oficios?.ganar(id, cuanto) || null;
 function armarOficiosYAldea(esDesafio) {
   const redibujar = () => { if (modo === 'cuaderno') dibujarCuaderno(); };
-  oficios = crearOficiosUI({ progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, redibujar });
+  oficios = crearOficiosUI({ progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, redibujar, extras: () => (empleoJuego && !esDesafio ? [empleoJuego.paginaCuaderno()] : []) });   // (4.3: y «Trabajo en la aldea» en el cuaderno)
   oficios.acreditar();
   // 3.6: en el Desafío no hay aldea (ni gente, ni obras, ni llegadas)
   if (esDesafio) return;
@@ -5580,6 +5585,24 @@ function armarOficiosYAldea(esDesafio) {
       });
     } catch (e) { fallaSistema('pena-armado', e); penaJuego = null; penaMundo = null; }
   } catch (e) { fallaSistema('cantina-armado', e); cantinaJuego = null; cantinaMundo = null; teJuego = null; }
+  // 4.3: el empleo fijo: el cartel de turnos de cada local y las tareas del puesto (aislado aparte: si falla, lo demás sigue)
+  try {
+    empleoJuego = crearEmpleoJuego({
+      progreso: () => progreso, jugador: () => jugador, escena: () => escena, desafio: () => !!desafio,
+      nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido: () => sonido,
+      confirmar: (texto, extra) => dialogos.confirmar(texto, extra),
+      // el reloj corre con cada tarea (con la hora de tu reloj no se salta)
+      avanzarHoras: (h) => {
+        if (ajustes.duracion === 'reloj') return false;
+        progreso.horas += h;
+        if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }
+        return true;
+      },
+      reloj: () => ajustes.duracion === 'reloj', azar: () => Math.random(),
+      ver: () => modo === 'jugando' && !panelDelHudAbierto() && !charla.npc,
+    });
+    empleoJuego.alCargar();
+  } catch (e) { fallaSistema('empleo-armado', e); empleoJuego = null; }
 }
 // 3.7.5: quién va a dónde por encima del horario: lo del amor que no se mueve (la cita, el casamiento), después la fiesta,
 // después lo demás del amor (la que vive con vos) y el olor del asado
@@ -9386,6 +9409,7 @@ let cacheAcopio = false, cacheCantero = null, cacheGallinero = null, cacheTelar 
 let cacheObraAldea = null;   // 3.6: el lote de la obra de la aldea en que estás parado
 let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en la aldea (ver aldea-mecanicas-mundo.js)
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
+let cacheEmpleo = null;   // 4.3: lo que se hace con E en el cartel de turnos o en el lugar de la tarea que toca (ver empleo-juego.js)
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
 let cacheHuevos = null;   // 4.2 (huevos de pascua): lo que se puede hacer acá (ver huevos-juego.js)
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
@@ -10060,6 +10084,7 @@ function cuadroDelJuego(tRaf, manual) {
     // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
     try { if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
+    try { if (modo === 'jugando' && !desafio && !foto.activo) empleoJuego?.actualizar(dt); } catch (e) { fallaSistema('empleo', e); }   // 4.3: la tarea en curso, el turno y su cierre
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt);   // 4.0.3 (F3): con el modo foto la hora del deslizador no termina la minga ni tapa la vía
       if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
@@ -10190,7 +10215,7 @@ function cuadroDelJuego(tRaf, manual) {
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
-      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || cantinaJuego?.tapaVecino(js) || teJuego?.tapaVecino(js) || penaJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
+      if (vecino && !desafio && !js.enTren && (cercaDelMostrador() || enLaCasaDeTe() || fiestasJuego?.tapaVecino(js) || cantinaJuego?.tapaVecino(js) || teJuego?.tapaVecino(js) || penaJuego?.tapaVecino(js) || empleoJuego?.tapaVecino(js) || lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);   // (3.7.5: y al lado de un lugar libre en la mesa larga o el fogón: ahí gana sentarse)
       // 4.0.5: junto a un asiento, o con algo de la fiesta a mano (la clase en la pista llena), sólo te tapa el que está más cerca
       // que eso (el que come del otro lado de la mesa o baila a dos pasos no). Sólo corre con un vecino adelante y en el predio (a 15 Hz como mucho): sin cuentas nuevas por cuadro
       if (vecino && (fiestasJuego?.alAsiento(js) || (fiestasJuego?.tapaVecino(js) && fiestasJuego.accion(js))) && Math.hypot(vecino.pos.x - js.pos.x, vecino.pos.z - js.pos.z) > 1.0) vecino = null;
@@ -10216,6 +10241,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
+      cacheEmpleo = empleoJuego ? empleoJuego.accion(js) : null;   // 4.3
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
       cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null;   // 4.2 (huevos de pascua)
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
@@ -10244,6 +10270,8 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
     // 3.8.3: salvo que ella te espere para la cita o el casamiento: la E empieza eso primero (hablar → amorJuego.hablar)
     if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
+    // 4.3: el empleo fijo, después de hablar y antes que el mostrador y los objetos de adentro, como en la tecla E
+    if (cacheEmpleo && !charla.npc && !vecino && !js.enTren && !js.enKayak && !js.montado && (cacheEmpleo.tipo !== 'info' || !objetivo)) aviso = { tecla: 'E', texto: cacheEmpleo.texto };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };
@@ -10838,6 +10866,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __cocina: () => cocinaJuego, __cocinaMundo: () => cocinaMundo,   // 3.7.2
     __noticias: () => noticiasJuego, __concursos: () => concursosJuego,   // 3.7.5 (noticias)
     __taller: () => tallerTren,   // 3.7.3
+    __empleo: () => empleoJuego,   // 4.3: el empleo fijo, para la partida real (pruebas/humo-4-3-empleo.cjs)
     __fiestas: () => fiestasJuego, __fiestasMundo: () => fiestasMundo,   // 3.7.5
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
     // mover la cámara de golpe (con cuadros seguidos, sin tiempo entre medio, el LOD tarda en mirar de nuevo)

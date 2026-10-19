@@ -5,6 +5,7 @@
 // para ofrecerte. Sólo en el Relax.
 import { negociosDe, caja, TOPE_CAJA } from './negocios.js';
 import { cobrar, formatoPesos, hayEconomia } from './economia.js';
+import { turnosDelDia } from './empleo.js';
 
 export const JORNAL = { porDia: 2, hechosPorNivel: 3, nivelMax: 5, porNivel: 0.1, redondeo: 50 };
 
@@ -46,7 +47,8 @@ export function puedeTrabajar(p, k, dia, demanda = 1) {
   if (!hayEconomia(p) || !hayTrabajo(k)) return { ok: false, motivo: 'nada' };
   const n = negociosDe(p);
   if (n.jornal[k] === dia) return { ok: false, motivo: 'ya' };
-  if (jornalesHoy(p, dia) >= JORNAL.porDia) return { ok: false, motivo: 'cupo' };
+  // 4.3: el turno del empleo fijo ocupa uno de los dos jornales del día (turno + un jornal ≈ lo de dos jornales y medio de antes)
+  if (jornalesHoy(p, dia) + turnosDelDia(p, dia) >= JORNAL.porDia) return { ok: false, motivo: 'cupo' };
   const sueldo = sueldoDe(p, k, demanda);
   if (caja(p, k) < sueldo) return { ok: false, motivo: 'caja', sueldo };
   return { ok: true, sueldo };
