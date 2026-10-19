@@ -12,7 +12,7 @@ import { negociosDe } from './negocios.js';
 import { cobrar, pagar, pesosDe, hayEconomia } from './economia.js';
 import { tengoDe } from './pedidos.js';
 import { abonarAlMoroso } from './prestamos.js';
-import { registrarPrecios, precioDeEtapa, puedePagarEtapa, pagarEtapa, devolverEtapasPagadas } from './obra-pesos.js';
+import { registrarPrecios, precioDeEtapa as precioDeEtapaComun, puedePagarEtapa as puedePagarEtapaComun, pagarEtapa as pagarEtapaComun, devolverEtapasPagadas as devolverEtapasPagadasComun } from './obra-pesos.js';
 
 export const PROPIEDAD = {
   casas: {
@@ -42,7 +42,11 @@ for (const id of Object.keys(PROPIEDAD.casas)) {
     sujeto: 'El terreno y la mano de obra', verbo: 'cuestan', deLoPagado: 'del terreno y la mano de obra', pagaA: 'Obra de la casa', reintegro: 0,
   });
 }
-export { precioDeEtapa, puedePagarEtapa, pagarEtapa, devolverEtapasPagadas };
+// (se re-exportan con los nombres de siempre: main.js y las pruebas de las casas los usan así)
+export const precioDeEtapa = precioDeEtapaComun;
+export const puedePagarEtapa = puedePagarEtapaComun;
+export const pagarEtapa = pagarEtapaComun;
+export const devolverEtapasPagadas = devolverEtapasPagadasComun;
 export function puedePagarEscritura(p) {
   if (!hayEconomia(p)) return { ok: true, precio: 0 };
   const tengo = pesosDe(p);
