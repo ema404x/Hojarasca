@@ -30,6 +30,8 @@ import { PIEZAS_LUJO_2 } from './planos-lujo-2.js';
 import { PIEZAS_OFICIOS } from './planos-oficios.js';
 // 4.2: el almacenaje con tope (pila y depósito de piedra, barraca, herramientero, silo: planos-almacen.js) y la huerta, la granja y los exteriores
 import { PIEZAS_ALMACEN } from './planos-almacen.js';
+// 4.3: los locales del negocio propio (almacén de campo y panadería: se atienden con E; ver negocio-propio.js)
+import { PIEZAS_NEGOCIO } from './planos-negocio.js';
 import { PIEZAS_EXTERIORES } from './planos-exteriores.js';
 // 4.2: ampliar el refugio y las casas (dormitorio, cocina, salón, planta alta, torreón…: ver planos-ampliar.js)
 import { PLANOS_AMPLIAR, PIEZAS_AMPLIAR } from './planos-ampliar.js';
@@ -2259,6 +2261,7 @@ PIEZAS.push(...PIEZAS_MUEBLES, ...PIEZAS_MUEBLES_2);   // 3.8.8: más mobiliario
 PIEZAS.push(...PIEZAS_LUJO);   // 4.2: el lujo, que además de materiales cuesta pesos
 PIEZAS.push(...PIEZAS_LUJO_2);   // 4.2: más lujo (muebles, cuadros, piedra y patio)
 PIEZAS.push(...PIEZAS_OFICIOS);   // 4.2: los edificios de oficio propios (también cuestan pesos y hacen algo con E)
+PIEZAS.push(...PIEZAS_NEGOCIO);   // 4.3: los locales del negocio propio (cuestan pesos y se atienden con E)
 PIEZAS.push(...PIEZAS_ALMACEN, ...PIEZAS_EXTERIORES);   // 4.2: el almacenaje con tope y la huerta, la granja y los exteriores
 PIEZAS.push(...PIEZAS_AMPLIAR);   // 4.2: el gran hogar, la pared de piedra y el techo de teja (ver planos-ampliar.js)
 for (const pieza of PIEZAS) {

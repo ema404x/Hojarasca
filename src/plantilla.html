@@ -212,6 +212,31 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .panel-banco .banco-casa h4 { margin: 0 0 4px; }
 .panel-banco .banco-fila { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(239,230,210,.12); }
 .panel-banco .banco-fila i { grid-column: 1; font-style: normal; opacity: .65; font-size: 13px; }
+/* 4.3: el panel de tu local (mismo marco que el mostrador del banco): resumen, acciones y la lista de productos con su estante y sus tres precios */
+.panel-negocio { width: min(980px, 96vw); max-width: min(980px, 96vw); background: rgba(34,30,22,.97); border: 1px solid rgba(232,199,138,.3); }
+.panel-negocio h2 { color: #f0d9a0; font-family: Georgia, serif; }
+.panel-negocio .negocio-tip { font-style: italic; margin: 4px 0 10px; opacity: .92; font-size: 16px; }
+.panel-negocio .negocio-resumen { margin: 6px 0 10px; padding: 8px 12px; border-radius: 8px; background: rgba(232,199,138,.08); }
+.panel-negocio .negocio-linea { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: 16px; }
+.panel-negocio .negocio-linea b { color: #e8c78a; text-align: right; }
+.panel-negocio .negocio-barra { height: 8px; border-radius: 4px; background: rgba(239,230,210,.14); overflow: hidden; margin: 2px 0 6px; }
+.panel-negocio .negocio-barra i { display: block; height: 100%; background: #b9e08a; }
+.panel-negocio .negocio-acciones, .panel-negocio .negocio-pie { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.panel-negocio button { min-height: 36px; padding: 6px 12px; font-size: 15px; }
+.panel-negocio button.principal { background: #6b8f4e; border-color: #b9e08a; }
+.panel-negocio button.marcado { background: #8a6d2c; border-color: #e8c78a; font-weight: 600; }
+.panel-negocio .negocio-lista { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
+.panel-negocio .negocio-fila { display: grid; grid-template-columns: minmax(130px, 1fr) 78px auto auto; gap: 6px 10px; align-items: center; padding: 4px 8px; border-radius: 6px; background: rgba(239,230,210,.05); }
+.panel-negocio .negocio-fila.vacio { opacity: .85; }
+.panel-negocio .negocio-cab { background: transparent; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; opacity: .7; padding-bottom: 0; }
+.panel-negocio .negocio-nom b { display: block; }
+.panel-negocio .negocio-nom i { font-style: normal; font-size: 13px; opacity: .65; }
+.panel-negocio .negocio-surtir, .panel-negocio .negocio-precios { display: flex; flex-wrap: nowrap; gap: 4px; }
+.panel-negocio .negocio-surtir button { padding: 4px 8px; font-size: 14px; min-height: 34px; }
+:root[data-menu="cuaderno"] .panel-negocio :is(.negocio-linea b, h2) { color: #6e3a14; }
+:root[data-menu="cuaderno"] .panel-negocio .negocio-resumen { background: rgba(110,58,20,.08); }
+:root[data-menu="cuaderno"] .panel-negocio button.marcado { background: #8a6d2c; color: #fff8e6; }
+.panel-negocio .negocio-precios button { padding: 4px 7px; font-size: 14px; min-height: 34px; }
 /* 3.9.0: la carta de la cantina (mismos modos que el mostrador del banco, con tono de boliche) */
 .panel-cantina { background: rgba(40,22,20,.97); border: 1px solid rgba(240,217,160,.28); }
 .panel-cantina h2 { color: #f0d9a0; font-family: Georgia, serif; }
@@ -1081,6 +1106,14 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <h2>La carta de hoy</h2>
     <div id="cantina-contenido"></div>
     <p class="seguir">E o Escape para cerrar la carta</p>
+  </div>
+</section>
+
+<section id="negocio-panel" class="oculto banco-velo">
+  <div class="panel-modal panel-banco panel-negocio">
+    <h2>Tu local</h2>
+    <div id="negocio-contenido"></div>
+    <p class="seguir">E o Escape para cerrar el panel · los clientes se atienden con E</p>
   </div>
 </section>
 

@@ -40,6 +40,7 @@ import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
+import { BIENES } from './comercio.js';
 import { crearPesca } from './pesca.js';
 import { crearKayak } from './kayak.js';
 import { amarreDe, dondeAmanece } from './kayak-amarre.js';
@@ -162,6 +163,8 @@ import { TOPE_ACOPIO } from './almacen.js';
 import { crearAlmacenJuego } from './almacen-juego.js';
 // 4.3: el empleo fijo (empleo.js tiene las reglas, empleo-mundo.js lo que se ve)
 import { crearEmpleoJuego } from './empleo-juego.js';
+// 4.3: el negocio propio (un local con estantes, precios y clientes que atendés con E: negocio-propio.js, negocio-propio-juego.js, planos-negocio.js)
+import { crearNegocioJuego } from './negocio-propio-juego.js';
 import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
 // 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
 import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
@@ -3170,6 +3173,8 @@ document.addEventListener('keydown', (e) => {
       if (charla.npc) { seguirCharla(); break; }
       // 4.2: Mayús + E junto a un almacén con tope lo amplía (muestra el precio y, con otra Mayús + E, lo paga)
       if (e.shiftKey && !e.repeat && !js.enTren && !js.enKayak && !js.montado && !enElAlmacen) { const o = obraQueTrabajaCerca(); if (o && almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); break; } }
+      // 4.3: y en tu local, Mayús + E es el panel de estantes y precios (aunque haya un cliente esperando)
+      if (e.shiftKey && !e.repeat && !js.enTren && !js.enKayak && !js.montado && !enElAlmacen) { const o = obraQueTrabajaCerca(); if (o && negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o, true); break; } }
       if (enElAlmacen) { cerrarAlmacen(); break; }
       // 2.6.1: con la feria abierta E la cierra, como el almacén (antes hablaba con Elsa
       // o bajaba del caballo con el panel abierto, y el aviso no decía nada)
@@ -3177,6 +3182,7 @@ document.addEventListener('keydown', (e) => {
       // 2.9: y el puesto de cargas, igual
       if (enLasCargas()) { puestoCargas.cerrar(); break; }
       if (enElBanco()) { bancoPueblo.cerrar(); break; }   // 3.8.8
+      if (negocioJuego?.panelAbierto()) { negocioJuego.cerrarPanel(); break; }   // 4.3: y el panel de tu local
       if (cantinaJuego?.panelAbierto()) { cantinaJuego.alApretarE(); break; }   // 3.9.0: y la carta de la cantina
       if (teJuego?.panelAbierto()) { teJuego.alApretarE(); break; }   // 3.9.2: y la de la casa de té
       // 3.7.2: y el panel de recetas de la cocina, igual
@@ -3474,6 +3480,7 @@ document.addEventListener('keydown', (e) => {
       else if (enLaFeria) cerrarFeria();
       else if (enLasCargas()) puestoCargas.cerrar();
       else if (enElBanco()) bancoPueblo.cerrar();   // 3.8.8
+      else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();   // 4.3
       else if (cantinaJuego?.panelAbierto()) cantinaJuego.atras();   // 3.9.0
       else if (teJuego?.panelAbierto()) teJuego.atras();   // 3.9.2
       else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();   // 3.7.2
@@ -4926,6 +4933,19 @@ const almacenJuego = crearAlmacenJuego({
   material: (k) => material(k), cuantoHay: (k) => cuantoHay(k), sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
   conMateriales: (fn) => conMateriales(fn), materialesVisibles: () => materialesVisibles(),
 });
+// 4.3: el negocio propio (aislado: si falla al armarse, el resto del juego sigue). Todo por función: se lee al usarlo.
+let negocioJuego = null;
+try {
+  negocioJuego = crearNegocioJuego({
+    progreso: () => progreso, obras: () => obras, jugador: () => jugador, gente: () => gente, sonido: () => sonido,
+    nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    tengo: (k) => tengoDeOficio({ k, donde: BIENES[k].donde }), quitar: (k, n) => quitarDeOficio({ k, donde: BIENES[k].donde }, n),
+    dar: (k, n) => { const d = BIENES[k].donde; if (d === 'material') sumarMaterial(k, n); else if (d === 'cosa') { progreso.cosas[k] = (progreso.cosas[k] || 0) + n; registrar(k); } else sumarEntrada(k, n); },
+    lluvia: () => clima?.estado?.lluvia || 0, agua: (x, z) => T.agua(x, z), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
+    msFigura: () => (planificadorAntitirones.permitir('negocio-propio') ? 3 : 0),
+    panel: $('negocio-panel'), contenido: $('negocio-contenido'), alClic: (el, fn) => alClicHud(el, fn),
+  });
+} catch (e) { fallaSistema('negocio-propio-armado', e); negocioJuego = null; }
 // Lo que se puede gastar sin moverse: la mochila más el acopio si está cerca.
 function materialesVisibles() {
   const m = progreso.materiales || {};
@@ -6794,6 +6814,7 @@ function devolverCoccion(coccion) {
 }
 function devolverContenido(d) {
   if (!d || typeof d !== 'object') return;
+  if (typeof negocioJuego !== 'undefined' && negocioJuego) negocioJuego.alDesarmar(d);   // 4.3: tu local: la mercadería y la plata de la caja vuelven a vos
   if (typeof almacenJuego !== 'undefined') almacenJuego.devolver(d);   // 4.2: lo guardado en la pila, el depósito, la barraca, el silo vuelve a tus cosas (el typeof: las pruebas cortan esta función y la corren sola)
   if (d.lenera) sumarMaterial('tronco', sanearLenera(d.lenera).secos);
   if (d.aserradero) { const a = sanearAserradero(d.aserradero); sumarMaterial('tronco', a.troncos); sumarMaterial('tabla', a.tablas); }
@@ -7356,6 +7377,7 @@ function leneraCerca(radio = LENA.radioLenera) {
   return mejor;
 }
 function avisoObraQueTrabaja(o) {
+  if (negocioJuego?.esLocal(o.plano.id)) return negocioJuego.aviso(o);   // 4.3
   if (Object.hasOwn(OFICIOS_PROPIOS_QUE_SE_USAN, o.plano.id)) return avisoOficioPropio(o);   // 4.2
   if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo()) return cocinaJuego.aviso(o);   // 3.7.2: la cocina (la misma función que usa la tecla E)
   switch (o.plano.id) {
@@ -7368,6 +7390,7 @@ function avisoObraQueTrabaja(o) {
   }
 }
 function usarObraQueTrabaja(o) {
+  if (negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o); refrescarBarra(true); return; }   // 4.3: atender al cliente que espera o abrir el panel (guarda por su cuenta)
   if (Object.hasOwn(OFICIOS_PROPIOS_QUE_SE_USAN, o.plano.id) && usarOficioPropio(o)) { refrescarBarra(true); guardar(); return; }   // 4.2
   if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo() && cocinaJuego.usar(o)) { refrescarBarra(true); return; }   // 3.7.2: la cocina
   if (usarObra24(o)) { refrescarBarra(true); guardar(); return; }
@@ -7513,6 +7536,7 @@ OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
 OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO_QUE_SE_USA));   // 4.2
 OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO2_QUE_SE_USA));   // 4.2: la gramola
 OBRAS_QUE_TRABAJAN.push(...Object.keys(OFICIOS_PROPIOS_QUE_SE_USAN));   // 4.2: los edificios de oficio propios
+OBRAS_QUE_TRABAJAN.push(...(negocioJuego?.ids || []));   // 4.3: el almacén de campo y la panadería propios se usan con E
 OBRAS_QUE_TRABAJAN.push(...almacenJuego.ids);   // 4.2: la pila, el depósito, la barraca, el silo y el herramientero se usan con E
 OBRAS_QUE_TRABAJAN.push(...Object.keys(ESPEJO_QUE_SE_USA));   // 4.1: el espejo de Bruno
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
@@ -8836,7 +8860,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller; 4.3: y el de tu local)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -10065,6 +10089,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
+    try { if (modo === 'jugando' && !desafio) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }   // 4.3: los clientes de tu local
     try { if (modo === 'jugando' && !desafio) cantinaJuego?.actualizar(dt); } catch (e) { fallaSistema('cantina', e); }
     try { if (modo === 'jugando' && !desafio) teJuego?.actualizar(dt); } catch (e) { fallaSistema('casa-te', e); }   // 3.9.2: la casa de té (la visita, Ceinwen, el sorbo)   // 3.9.0: la cantina (la visita, la moza, el sorbo)
     try {   // 3.9.1: la peña: los parroquianos, el truco, el que se arrima, el baile con Dalia y la guitarra y el bombo del rincón
@@ -10212,6 +10237,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (js.enKayak || js.enSulky) vecino = null;   // (3.7.5 (rincones): ni arriba del sulky)
     else if (acumuladoVecino >= 1 / 15 && acumuladoVecino >= presupuestoAdaptativo.intervalo(1 / 15, 1.35)) {
       acumuladoVecino = 0; vecino = gente.cerca(js, camara);
+      if (vecino?.clienteNegocio) vecino = null;   // 4.3: los clientes de tu local no se charlan: E sobre el mostrador los atiende (ver obraQueTrabajaCerca)
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
@@ -10344,6 +10370,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
     if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
     if (cantinaJuego?.panelAbierto() || teJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.9.0: y con la carta de la cantina
+    if (negocioJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 4.3: y con el panel de tu local
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
     if (enElAlmacen || enLaFeria || enLasCargas() || desafio?.tallerAbierto) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo; 4.0.3: y la del taller del Desafío)
     if (js.enTren) {
@@ -10817,7 +10844,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
     cocinar, hayQueCocinar, __mundoPerro: () => mundoPerro, __abierto: () => ({ enElAlmacen, enLaFeria }),
     __sync: { copiarASync, revisarCarpetaSync, estado: () => ({ carpetaSync, ultimaCopiaSync, copiadoEnSync }) },
-    visitas, actualizarVisitas, mueblesTerminados, __visitante: () => visitante,
+    visitas, actualizarVisitas, mueblesTerminados, __visitante: () => visitante, __negocio: () => negocioJuego,   // (4.3: el negocio propio, para las pruebas)
     pedirRastro, dejarRastro, __rastroPerro: () => rastro,
     tejer, telarCerca, abrirFeria, cambiarFeria, feriaCerca, feria, __puestoFeria: () => puestoFeria,
     gallineros, gallineroCerca, usarGallinero, refrescarGallineros, __gallinas: () => gallinasMundo,
