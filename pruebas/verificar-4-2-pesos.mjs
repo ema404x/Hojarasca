@@ -219,6 +219,7 @@ ok(PRECIOS_LUJO['fuente-piedra'] > PRECIOS_LUJO['reloj-pie'] && PRECIOS_LUJO['re
   tiene('const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);', 'desmontar reintegra');
   ok(m.indexOf('const reint = reintegroAlDesmontar') < m.indexOf("nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, [devuelto"), 'antes de avisar');
   tiene('const pesosPl = hayEconomia(progreso) ? precioTotal(pl.id) : 0;', 'la lista muestra el precio');
+  tiene('const faltaPl = pesosPl > 0 && precioDeEtapa(pl.id, 0) > pesosDe(progreso);', 'y «no alcanza» mira la primera etapa (se paga de a una)');
   tiene("(faltaPl ? ' sinplata' : '')", 'y marca el que no alcanza');
   tiene("${faltaPl ? ' (no alcanza)' : ''}", 'con texto, no sólo color');
   tiene("$('obra-costo').textContent = `Costo total · ${costoPlano(p)}${totalPesos ? ` · ${formatoPesos(totalPesos)}` : ''}`;", 'la ficha muestra el costo total en pesos');

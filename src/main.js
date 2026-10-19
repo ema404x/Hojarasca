@@ -6499,7 +6499,7 @@ function dibujarPanelObra() {
     const funcional = (pl.funciones || []).length ? ' ◆' : '';
     const interactiva = pl.interactiva ? ' ◇' : '';
     const pesosPl = hayEconomia(progreso) ? precioTotal(pl.id) : 0;   // 4.2: «$12.000» junto al nombre; en rojo y con aviso si no alcanza
-    const faltaPl = pesosPl > pesosDe(progreso);
+    const faltaPl = pesosPl > 0 && precioDeEtapa(pl.id, 0) > pesosDe(progreso);   // (una obra por etapas se paga de a una: «no alcanza» es que no alcanza para empezar)
     b2.textContent = `${i + 1}. ${pl.nombre}${funcional}${interactiva}${pesosPl ? ` · ${formatoPesos(pesosPl)}${faltaPl ? ' (no alcanza)' : ''}` : ''}`;
     b2.className = (pl.id === p.id ? 'elegido' : '') + (faltaPl ? ' sinplata' : '');
     b2.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); elegirPlano(i); });
