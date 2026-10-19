@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { matriz } from './geometria.js';
 import { AYUDAS_MUEBLES } from './planos-muebles.js';
 
-const { caja, cil, tira, hs, MADERA, MADERA_OSCURA, TABLA_CLARA, PIEDRA, HIERRO, BRONCE, PAPEL, VIDRIO } = AYUDAS_MUEBLES;
+const { caja, cil, tira, hs, MADERA, MADERA_OSCURA, TABLA_CLARA, PIEDRA, HIERRO, BRONCE, PAPEL } = AYUDAS_MUEBLES;
 const ROBLE = '#8a6a43';
 const ROBLE_OSCURO = '#5d4529';
 const DORADO = '#c29a43';
@@ -241,7 +241,7 @@ export const PIEZAS_LUJO_2 = [
     pide: { tabla: 8, lana: 3 }, pesos: 3000,
     fisica(h) { h.segmento(-0.15, 0, 0.15, 0, 0.45, 0, 1.0); },
     arma(c) {
-      const CUERO = '#6e3b24', CUERO2 = '#7d4629', CUERO_OSC = '#4a2616';
+      const CUERO = '#8a4c2c', CUERO2 = '#9a5732', CUERO_OSC = '#5e3220';
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) cil(c, 0.04, 0.03, 0.12, [sx * 0.42, 0.06, sz * 0.36], ROBLE_OSCURO, { tipo: 0, lados: 6 });
       caja(c, 0.92, 0.14, 0.82, [0, 0.19, 0], CUERO_OSC, { variar: 0.06 });
       caja(c, 0.64, 0.16, 0.66, [0, 0.34, -0.04], CUERO2, { variar: 0.07 });
@@ -315,25 +315,25 @@ export const PIEZAS_LUJO_2 = [
       // zócalo con patas de bola y el cuerpo
       caja(c, 1.55, 0.14, 0.66, [0, 0.14, 0], ROBLE_OSCURO, { tipo: 0 });
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) cil(c, 0.06, 0.05, 0.08, [sx * 0.68, 0.04, sz * 0.26], ROBLE_OSCURO, { tipo: 0, lados: 6 });
-      caja(c, 1.4, 1.88, 0.6, [0, 1.12, 0.02], '#76593a');
+      caja(c, 1.4, 1.88, 0.6, [0, 1.12, 0.02], '#8e6d45');
       // dos columnas al frente con base y capitel
       for (const sx of [-1, 1]) {
-        cil(c, 0.055, 0.055, 1.7, [sx * 0.7, 1.12, -0.3], ROBLE_OSCURO, { tipo: 0, lados: 8 });
+        cil(c, 0.055, 0.055, 1.7, [sx * 0.7, 1.12, -0.3], '#a07c4e', { tipo: 0, lados: 8 });
         caja(c, 0.13, 0.05, 0.13, [sx * 0.7, 0.25, -0.3], ROBLE, { tipo: 0 });
         caja(c, 0.13, 0.06, 0.13, [sx * 0.7, 1.98, -0.3], ROBLE, { tipo: 0 });
       }
       // las puertas: tabla, tablero hundido, medallón de bronce y tirador
       for (const sx of [-1, 1]) {
-        caja(c, 0.64, 1.3, 0.035, [sx * 0.33, 1.38, -0.31], ROBLE);
-        caja(c, 0.5, 1.1, 0.02, [sx * 0.33, 1.38, -0.33], ROBLE_OSCURO, { variar: 0.06 });
+        caja(c, 0.64, 1.3, 0.035, [sx * 0.33, 1.38, -0.31], '#a07c4e');
+        caja(c, 0.5, 1.1, 0.02, [sx * 0.33, 1.38, -0.33], '#7d5d3a', { variar: 0.06 });
         cil(c, 0.1, 0.1, 0.02, [sx * 0.33, 1.4, -0.345], '#a8873f', { tipo: 0, lados: 8, rot: [Math.PI / 2, 0, 0] });
         cil(c, 0.05, 0.05, 0.02, [sx * 0.33, 1.4, -0.358], ROBLE, { lados: 6, rot: [Math.PI / 2, 0, 0] });
         cil(c, 0.016, 0.016, 0.16, [sx * 0.04, 1.35, -0.345], BRONCE, { tipo: 0, lados: 5 });
       }
       // los cajones de abajo
       for (const sx of [-1, 1]) {
-        caja(c, 0.66, 0.2, 0.035, [sx * 0.33, 0.43, -0.31], ROBLE);
-        caja(c, 0.5, 0.1, 0.014, [sx * 0.33, 0.43, -0.332], ROBLE_OSCURO, { variar: 0.06 });
+        caja(c, 0.66, 0.2, 0.035, [sx * 0.33, 0.43, -0.31], '#a07c4e');
+        caja(c, 0.5, 0.1, 0.014, [sx * 0.33, 0.43, -0.332], '#7d5d3a', { variar: 0.06 });
         cil(c, 0.022, 0.022, 0.04, [sx * 0.33, 0.43, -0.35], BRONCE, { tipo: 0, lados: 6, rot: [Math.PI / 2, 0, 0] });
       }
       // el friso de rosetas, la cornisa y el frontón con una piña de bronce
@@ -367,7 +367,7 @@ export const PIEZAS_LUJO_2 = [
       // la bocina: un cuerno de bronce que sale de atrás y se abre hacia el frente
       const ruta = [[0.1, 0.84, 0.17, 0.035], [0.1, 0.98, 0.13, 0.055], [0.09, 1.1, 0.04, 0.09], [0.08, 1.2, -0.09, 0.15], [0.07, 1.27, -0.27, 0.24]];
       for (let i = 0; i < ruta.length - 1; i++) cano(c, ruta[i].slice(0, 3), ruta[i + 1].slice(0, 3), ruta[i][3], ruta[i + 1][3], BRONCE, { lados: 10 });
-      cil(c, 0.2, 0.2, 0.02, [0.07, 1.27, -0.275], '#2a1f16', { tipo: 0, lados: 10, rot: [Math.PI / 2 + 0.37, 0, 0], variar: 0.04 });
+      cil(c, 0.17, 0.17, 0.02, [0.07, 1.27, -0.275], '#6a4a1e', { tipo: 0, lados: 10, rot: [Math.PI / 2 + 0.37, 0, 0], variar: 0.04 });
       // el soporte del cuerno y un adorno en la tapa
       caja(c, 0.03, 0.2, 0.03, [0.1, 0.9, 0.17], BRONCE, { tipo: 0 });
       cil(c, 0.05, 0.06, 0.05, [-0.2, 0.815, 0.12], ROBLE_OSCURO, { tipo: 0, lados: 6 });
@@ -435,16 +435,16 @@ export const PIEZAS_LUJO_2 = [
       const ZP = 1.03, XP = 0.86;
       // los cuatro postes: caja, dos aros de bronce y la piña de arriba
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        caja(c, 0.09, 2.3, 0.09, [sx * XP, 1.15, sz * ZP], ROBLE_OSCURO, { tipo: 0 });
+        caja(c, 0.09, 2.3, 0.09, [sx * XP, 1.15, sz * ZP], '#7a5a36', { tipo: 0 });
         for (const y of [0.45, 1.5]) caja(c, 0.115, 0.04, 0.115, [sx * XP, y, sz * ZP], BRONCE, { tipo: 0 });
         bola(c, 0.065, [sx * XP, 2.36, sz * ZP], BRONCE, [1, 1.2, 1], { tipo: 0, w: 6, h: 4, variar: 0.05 });
       }
       // la base, la cabecera tallada y el pie bajo
       caja(c, 1.64, 0.2, 2.05, [0, 0.36, 0], ROBLE, { variar: 0.08 });
-      caja(c, 1.7, 1.35, 0.08, [0, 0.95, ZP], ROBLE_OSCURO, { tipo: 0 });
-      caja(c, 1.5, 1.1, 0.03, [0, 0.95, ZP - 0.045], ROBLE, { variar: 0.06 });
-      caja(c, 0.6, 0.22, 0.06, [0, 1.68, ZP], ROBLE_OSCURO, { tipo: 0, rot: [0, 0, 0] });
-      caja(c, 1.7, 0.5, 0.07, [0, 0.55, -ZP], ROBLE_OSCURO, { tipo: 0 });
+      caja(c, 1.7, 1.35, 0.08, [0, 0.95, ZP], '#7a5a36', { tipo: 0 });
+      caja(c, 1.5, 1.1, 0.03, [0, 0.95, ZP - 0.045], '#a07c4e', { variar: 0.06 });
+      caja(c, 0.6, 0.22, 0.06, [0, 1.68, ZP], '#7a5a36', { tipo: 0 });
+      caja(c, 1.7, 0.5, 0.07, [0, 0.55, -ZP], '#7a5a36', { tipo: 0 });
       // las ropas de cama: colchón, colcha de lana, doblez y dos almohadones
       caja(c, 1.5, 0.18, 1.98, [0, 0.56, 0], '#d8cfba', { variar: 0.05 });
       caja(c, 1.54, 0.06, 1.3, [0, 0.67, -0.32], VINO, { variar: 0.08 });
@@ -468,10 +468,10 @@ export const PIEZAS_LUJO_2 = [
 
   // ================================================================ el patio y lo de piedra
   {
-    ...base, id: 'farol-hierro', nombre: 'Farol de hierro forjado', categoria: 'exterior', radio: 0.4, ancho: 0.7, fondo: 0.7, alto: 2.8, separacion: 1.0, confort: 1,
+    ...base, id: 'farol-hierro', nombre: 'Farol de hierro forjado', categoria: 'exterior', radio: 0.4, ancho: 0.7, fondo: 0.7, alto: 3.0, separacion: 1.0, confort: 1,
     texto: 'Un poste alto de hierro forjado sobre una base de piedra, con un farol de cuatro vidrios, techito en punta y dos volutas. Para el camino de la entrada o el patio. De adorno: no da luz propia.',
     pide: { piedra: 4, tabla: 2, tronco: 1 }, pesos: 2600, pendienteMax: 0.3, distSendero: 0.3,
-    fisica(h) { h.circulo(0, 0, 0.22, 0, 2.8); },
+    fisica(h) { h.circulo(0, 0, 0.22, 0, 3.0); },
     arma(c) {
       // la base de piedra (un poco enterrada) y el poste con dos collares de bronce
       cil(c, 0.22, 0.26, 0.2, [0, 0.1, 0], PIEDRA, { lados: 8, variar: 0.1 });
@@ -481,12 +481,11 @@ export const PIEZAS_LUJO_2 = [
       // las dos volutas
       for (const sx of [-1, 1]) c.agregar(new THREE.TorusGeometry(0.11, 0.013, 4, 8, Math.PI * 1.4), { color: HIERRO, tipo: 0, variar: 0.04, matriz: matriz([sx * 0.11, 2.05, 0], [0, 0, sx > 0 ? 2.2 : 0.9]) });
       // el farol: plato, cuatro montantes, vidrios (color de llama), techito y piña
-      cil(c, 0.16, 0.1, 0.05, [0, 2.33, 0], HIERRO, { tipo: 0, lados: 8 });
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(c, 0.03, 0.3, 0.03, [sx * 0.1, 2.5, sz * 0.1], HIERRO, { tipo: 0 });
-      caja(c, 0.17, 0.27, 0.17, [0, 2.5, 0], '#e9c273', { variar: 0.04 });
-      cil(c, 0.015, 0.2, 0.14, [0, 2.7, 0], HIERRO, { tipo: 0, lados: 4, rot: [0, Math.PI / 4, 0] });
-      bola(c, 0.04, [0, 2.78, 0], BRONCE, [1, 1, 1], { tipo: 0, w: 6, h: 4, variar: 0.04 });
-      llama(c, 0, 2.43, 0, 0.03, 0.12);
+      cil(c, 0.19, 0.12, 0.05, [0, 2.33, 0], HIERRO, { tipo: 0, lados: 8 });
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(c, 0.035, 0.36, 0.035, [sx * 0.12, 2.54, sz * 0.12], HIERRO, { tipo: 0 });
+      caja(c, 0.21, 0.32, 0.21, [0, 2.54, 0], '#f0cc7a', { variar: 0.04 });
+      cil(c, 0.015, 0.25, 0.17, [0, 2.78, 0], HIERRO, { tipo: 0, lados: 4, rot: [0, Math.PI / 4, 0] });
+      bola(c, 0.04, [0, 2.89, 0], BRONCE, [1, 1, 1], { tipo: 0, w: 6, h: 4, variar: 0.04 });
     },
   },
   {
@@ -517,11 +516,16 @@ export const PIEZAS_LUJO_2 = [
           p = [p[0] + v.x * 0.85, p[1] + v.y * 0.85, p[2] + v.z * 0.85];
         }
       }
-      // matas de hojas arriba, sobre las vigas, y racimos de glicina que cuelgan
-      const matas = [[-1.2, -1.0], [-0.1, -1.1], [1.1, -0.9], [-1.4, 0.1], [0.3, 0.2], [1.4, 0.3], [-1.0, 1.0], [0.2, 1.1], [1.2, 1.0]];
-      matas.forEach(([x, z], i) => bola(c, 0.26, [x, 2.76, z], VERDE[i % 4], [1.2, 0.42, 1], { w: 6, h: 4, variar: 0.12 }));
-      const racimos = [[-1.0, -1.1], [0.1, -1.15], [1.0, -1.1], [-1.3, 0.9], [0.6, 1.15], [1.35, 0.8], [-0.4, 0.0], [0.9, 0.2]];
-      racimos.forEach(([x, z], i) => caja(c, 0.07, 0.34 + hs(i) * 0.12, 0.07, [x, 2.45 - hs(i) * 0.06, z], i % 2 ? '#8a6ab8' : '#a07ac8', { variar: 0.1 }));
+      // el follaje: bolas de hojas sobre las vigas y colgando de las de adelante y de atrás (cada una de distinto verde y tamaño)
+      let q = 0;
+      const hoja = (x, y, z, r, a = 1, b = 1) => { c.agregar(new THREE.IcosahedronGeometry(r, 0), { color: VERDE[q % 4], tipo: 4, variar: 0.14, matriz: matriz([x, y, z], [0, q * 2.1, 0], [a, b, 1.1]) }); q++; };
+      for (let k = 0; k < 8; k++) hoja(-1.4 + k * 0.4, 2.42 - hs(k + 20) * 0.12, -ZP - 0.02, 0.17 + hs(k + 30) * 0.06, 1.1, 1.3);
+      for (let k = 0; k < 5; k++) hoja(-1.2 + k * 0.6, 2.46 - hs(k + 40) * 0.1, ZP + 0.02, 0.18 + hs(k + 50) * 0.05, 1.1, 1.2);
+      for (let k = 0; k < 3; k++) hoja(-0.9 + k * 0.9, 2.78, -0.7 + (k % 2) * 1.2, 0.34, 1.3, 0.4);
+      for (const sx of [-1, 1]) { hoja(sx * XP, 2.44, -0.35, 0.2, 1, 1.2); hoja(sx * XP, 2.42, 0.4, 0.19, 1, 1.2); }
+      // y racimos de glicina que cuelgan
+      const racimos = [[-1.0, -1.1], [0.1, -1.15], [1.0, -1.1], [-1.35, 0.7], [1.35, 0.2], [0.6, 1.15]];
+      racimos.forEach(([x, z], i) => caja(c, 0.07, 0.34 + hs(i) * 0.12, 0.07, [x, 2.3 - hs(i) * 0.06, z], i % 2 ? '#8a6ab8' : '#a07ac8', { variar: 0.1 }));
     },
   },
   {
