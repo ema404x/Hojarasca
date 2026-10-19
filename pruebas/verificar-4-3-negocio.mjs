@@ -466,6 +466,8 @@ for (const [id, def] of Object.entries(LOCALES)) {
   ok(pl.includes('id="negocio-panel"') && pl.includes('id="negocio-contenido"') && pl.includes('.panel-negocio'), 'la plantilla trae el panel y su estilo');
   ok(!/Math\.random/.test(leer('src/negocio-propio.js')), 'las reglas no usan azar suelto (todo sale de la cuenta: pruebas y simulador dan lo mismo)');
   ok(!/escuela/.test(j) && !/gamepad|bmandob/i.test(j), 'sin mando ni nada heredado');
+  // (el armado de un solo archivo sólo conoce el primer nombre de «export const A = 1, B = 2;»: una declaración por constante)
+  for (const f of ['src/negocio-propio.js', 'src/negocio-propio-juego.js', 'src/planos-negocio.js']) ok(!/^export const [A-Za-z_]+ = [0-9]+, [A-Za-z_]+ =/m.test(leer(f)), `${f}: una constante exportada por declaración`);
   // nada por cuadro: el juego del negocio trabaja cada 0,25 s y sin geometría ni luces nuevas
   ok(/const PASO = 0\.25;/.test(j) && /if \(acum < PASO\) return;/.test(j) && !/new THREE\.|PointLight|SpotLight/.test(j), 'trabaja cada 0,25 s, sin geometría ni luces propias');
   ok(/armarPobladorDeAPoco/.test(j) && /ctx\.msFigura/.test(j), 'las figuras se arman de a poco, con el planificador antitirones');
