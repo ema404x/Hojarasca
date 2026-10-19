@@ -159,7 +159,8 @@ app.whenReady().then(async () => {
     return 1;
   })()`;
   const N = (c) => A(`(()=>{ const N = window.__A.neg(), E = window.__A.est(); return (${c}) })()`);
-  const mochila = async (obj) => A(`(()=>{ const P = H.progreso; for (const [k, n] of Object.entries(${JSON.stringify(obj)})) { const d = H.BIENES_DONDE[k]; if (d === 'material') P.materiales[k] = n; else if (d === 'cosa') P.cosas[k] = n; else P.entradas[k] = { dia: 1, hora: 1, cantidad: n }; } return 1 })()`);
+  const DONDE = { tronco: 'material', tabla: 'material', piedra: 'material', cristal: 'material', lana: 'material', huevo: 'entrada', haba: 'entrada', papa: 'entrada', frutilla: 'entrada', miel: 'entrada', 'trucha-fresca': 'entrada', 'trucha-ahumada': 'entrada', 'frasco-frutilla': 'entrada', 'calafate-seco': 'entrada', 'hongos-secos': 'entrada', 'pan-casero': 'entrada', empanadas: 'entrada', harina: 'cosa', poncho: 'cosa' };
+  const mochila = async (obj) => A(`(()=>{ const P = H.progreso; for (const [k, n] of Object.entries(${JSON.stringify(obj)})) { const d = ${JSON.stringify(DONDE)}[k]; if (d === 'material') P.materiales[k] = n; else if (d === 'cosa') P.cosas[k] = n; else P.entradas[k] = { dia: 1, hora: 1, cantidad: n }; } return 1 })()`);
   const verLocal = async (nombre, dist = 7.5, alto = 2.6, mira = 1.2, ang = -0.5) => { await A(`A.camara(A.local(), ${dist}, ${alto}, ${mira}, ${ang})`); await foto(nombre); await A('A.sinCamara()'); };
 
   try {
