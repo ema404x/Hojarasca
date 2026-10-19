@@ -11,9 +11,11 @@ import { matriz } from './geometria.js';
 import { calce } from './calces.js';
 import { AYUDAS_MUEBLES } from './planos-muebles.js';
 
-const { caja, cil, hs, MADERA, MADERA_OSCURA, TABLA, TABLA_CLARA, PIEDRA, HIERRO, BRONCE, VIDRIO } = AYUDAS_MUEBLES;
-const TECHO = '#4e4038';
-const PAJA = '#b59a5c';
+const { caja, cil, hs, MADERA, TABLA, TABLA_CLARA, PIEDRA, HIERRO, BRONCE, VIDRIO } = AYUDAS_MUEBLES;
+const POSTE = '#7a5e40';
+const TEJA = '#7a6552';
+const TEJA_2 = '#6b574a';
+const PAJA = '#d1b46a';
 const TIERRA = '#3a2c20';
 const PIEDRAS = [PIEDRA, '#6c665d', '#8a857b', '#756f66'];
 const base = { soloRelax: true, apoyaEnPlataforma: true, pieza: true };
@@ -68,11 +70,11 @@ export const PIEZAS_EXTERIORES = [
       for (const sx of [-1, 1]) h.circulo(sx * 2.05, -1.65, 0.1, -0.05, 2.7);
     },
     arma(c, P, datos, suelo) {
-      caja(c, 4.2, 0.1, 3.4, [0, 0.05, 0], MADERA_OSCURA, { tipo: 0 });
+      caja(c, 4.2, 0.1, 3.4, [0, 0.05, 0], POSTE, { tipo: 0 });
       // paja en el piso
-      for (let i = 0; i < 6; i++) caja(c, 0.9, 0.04, 0.7, [-1.2 + (i % 3) * 1.0, 0.12, -0.3 + Math.floor(i / 3) * 0.8], i % 2 ? PAJA : '#a08850', { variar: 0.2, rot: [0, i * 0.7, 0] });
+      for (let i = 0; i < 6; i++) caja(c, 0.9, 0.04, 0.7, [-1.2 + (i % 3) * 1.0, 0.12, -0.3 + Math.floor(i / 3) * 0.8], i % 2 ? PAJA : '#bda05a', { variar: 0.2, rot: [0, i * 0.7, 0] });
       // los postes (más altos atrás: el techo cae hacia el fondo)
-      for (const sx of [-1, 1]) for (const [sz, h] of [[-1.65, 2.6], [1.65, 2.9]]) { caja(c, 0.16, h, 0.16, [sx * 2.05, h / 2, sz], MADERA_OSCURA, { tipo: 0 }); calce(c, suelo, sx * 2.05, sz, 0, 0.1, MADERA_OSCURA, 0); }
+      for (const sx of [-1, 1]) for (const [sz, h] of [[-1.65, 2.6], [1.65, 2.9]]) { caja(c, 0.16, h, 0.16, [sx * 2.05, h / 2, sz], POSTE, { tipo: 0 }); calce(c, suelo, sx * 2.05, sz, 0, 0.1, POSTE, 0); }
       // las tres paredes
       caja(c, 4.0, 2.7, 0.07, [0, 1.4, 1.65], TABLA, { variar: 0.12 });
       for (const sx of [-1, 1]) caja(c, 0.07, 2.5, 2.6, [sx * 2.05, 1.3, 0.35], TABLA, { variar: 0.12 });
@@ -83,11 +85,11 @@ export const PIEZAS_EXTERIORES = [
       caja(c, 4.4, 0.16, 0.16, [0, 2.6, -1.65], MADERA, { tipo: 0 });
       caja(c, 4.4, 0.16, 0.16, [0, 2.9, 1.65], MADERA, { tipo: 0 });
       const incl = Math.atan2(0.3, 3.3);
-      for (let i = 0; i < 6; i++) caja(c, 0.72, 0.05, 3.9, [-1.8 + i * 0.72, 2.8, 0], i % 2 ? TECHO : '#453a31', { variar: 0.1, rot: [incl, 0, 0] });
+      for (let i = 0; i < 6; i++) caja(c, 0.72, 0.05, 3.9, [-1.8 + i * 0.72, 2.8, 0], i % 2 ? TEJA : TEJA_2, { variar: 0.1, rot: [incl, 0, 0] });
       // el pesebre contra el fondo, el heno y el balde
       caja(c, 2.0, 0.08, 0.5, [0, 0.8, 1.35], TABLA, { variar: 0.1 });
       for (const sz of [-1, 1]) caja(c, 2.0, 0.28, 0.05, [0, 0.96, 1.35 + sz * 0.23], TABLA, { variar: 0.12 });
-      for (const sx of [-1, 1]) caja(c, 0.1, 0.8, 0.1, [sx * 0.9, 0.4, 1.35], MADERA_OSCURA, { tipo: 0 });
+      for (const sx of [-1, 1]) caja(c, 0.1, 0.8, 0.1, [sx * 0.9, 0.4, 1.35], POSTE, { tipo: 0 });
       caja(c, 1.9, 0.14, 0.4, [0, 0.95, 1.35], PAJA, { variar: 0.2 });
       cil(c, 0.14, 0.11, 0.26, [1.5, 0.3, 0.9], '#8a8f94', { lados: 8 });
       // las pacas de heno en el rincón
@@ -112,7 +114,7 @@ export const PIEZAS_EXTERIORES = [
       // los lados del corral: postes cada ~1,5 m y tres varas; el frente deja la entrada de 1,8 m
       const lado = (ax, az, bx, bz, k) => {
         const largo = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(largo / 1.5)), ang = Math.atan2(-(bz - az), bx - ax);
-        for (let i = 0; i <= n; i++) palo(c, suelo, ax + (bx - ax) * i / n, az + (bz - az) * i / n, 1.45 + hs(i + k) * 0.1, 0.075, i % 2 ? MADERA : MADERA_OSCURA, i + k);
+        for (let i = 0; i <= n; i++) palo(c, suelo, ax + (bx - ax) * i / n, az + (bz - az) * i / n, 1.45 + hs(i + k) * 0.1, 0.075, i % 2 ? MADERA : POSTE, i + k);
         for (const y of [0.4, 0.8, 1.2]) c.agregar(new THREE.BoxGeometry(largo, 0.07, 0.05), { color: TABLA, tipo: 4, variar: 0.1, matriz: matriz([(ax + bx) / 2, y, (az + bz) / 2], [0, ang, 0]) });
       };
       lado(-3.0, 2.5, 3.0, 2.5, 1); lado(-3.0, -2.5, -3.0, 2.5, 2); lado(3.0, -2.5, 3.0, 2.5, 3);
@@ -123,7 +125,7 @@ export const PIEZAS_EXTERIORES = [
       // el bebedero (tronco ahuecado sobre dos patas) y el pasto
       caja(c, 1.0, 0.26, 0.45, [1.7, 0.35, 0.9], MADERA, { variar: 0.1 });
       caja(c, 0.9, 0.04, 0.33, [1.7, 0.47, 0.9], '#3f5a66', { variar: 0.04 });
-      for (const sx of [-1, 1]) caja(c, 0.08, 0.25, 0.4, [1.7 + sx * 0.4, 0.12, 0.9], MADERA_OSCURA, { tipo: 0 });
+      for (const sx of [-1, 1]) caja(c, 0.08, 0.25, 0.4, [1.7 + sx * 0.4, 0.12, 0.9], POSTE, { tipo: 0 });
       for (let i = 0; i < 4; i++) caja(c, 0.8, 0.12, 0.5, [-1.7 + (i % 2) * 0.7, 0.08 + Math.floor(i / 2) * 0.12, -0.8 + (i % 2) * 0.3], PAJA, { variar: 0.2, rot: [0, i * 0.8, 0] });
     },
   },
@@ -136,15 +138,15 @@ export const PIEZAS_EXTERIORES = [
       h.segmento(-1.2, 0.3, 1.2, 0.3, 0.7, 0, 1.3);
     },
     arma(c, P, datos, suelo) {
-      for (const sx of [-1, 1]) for (const [sz, h] of [[-1.25, 2.5], [1.25, 2.8]]) { caja(c, 0.16, h, 0.16, [sx * 1.7, h / 2, sz], MADERA_OSCURA, { tipo: 0 }); calce(c, suelo, sx * 1.7, sz, 0, 0.1, MADERA_OSCURA, 0); }
+      for (const sx of [-1, 1]) for (const [sz, h] of [[-1.25, 2.5], [1.25, 2.8]]) { caja(c, 0.16, h, 0.16, [sx * 1.7, h / 2, sz], POSTE, { tipo: 0 }); calce(c, suelo, sx * 1.7, sz, 0, 0.1, POSTE, 0); }
       caja(c, 3.9, 0.15, 0.15, [0, 2.5, -1.25], MADERA, { tipo: 0 });
       caja(c, 3.9, 0.15, 0.15, [0, 2.8, 1.25], MADERA, { tipo: 0 });
       const incl = Math.atan2(0.3, 2.5);
-      for (let i = 0; i < 6; i++) caja(c, 0.68, 0.05, 3.0, [-1.7 + i * 0.68, 2.72, 0], i % 2 ? TECHO : '#453a31', { variar: 0.1, rot: [incl, 0, 0] });
+      for (let i = 0; i < 6; i++) caja(c, 0.68, 0.05, 3.0, [-1.7 + i * 0.68, 2.72, 0], i % 2 ? TEJA : TEJA_2, { variar: 0.1, rot: [incl, 0, 0] });
       // el heno: tres pacas abajo, dos arriba y una suelta
       for (const [x, y, z] of [[-0.9, 0.24, 0.4], [0.0, 0.24, 0.4], [0.9, 0.24, 0.4], [-0.45, 0.7, 0.4], [0.45, 0.7, 0.4], [0.0, 1.16, 0.4], [-0.9, 0.24, 1.0], [0.9, 0.24, 1.0]])
         caja(c, 0.86, 0.44, 0.55, [x, y, z], PAJA, { variar: 0.16, rot: [0, (x * 0.1), 0] });
-      caja(c, 0.5, 0.2, 0.4, [-1.2, 0.1, -0.7], '#a08850', { variar: 0.2, rot: [0, 0.5, 0.1] });
+      caja(c, 0.5, 0.2, 0.4, [-1.2, 0.1, -0.7], '#bda05a', { variar: 0.2, rot: [0, 0.5, 0.1] });
       // la horquilla
       cil(c, 0.025, 0.025, 1.5, [1.55, 0.75, -0.9], '#7a5a38', { tipo: 0, lados: 5, rot: [0.12, 0, 0] });
       for (const s of [-1, 0, 1]) caja(c, 0.02, 0.2, 0.02, [1.55 + s * 0.05, 1.55, -0.96], HIERRO, { tipo: 0 });
@@ -156,13 +158,13 @@ export const PIEZAS_EXTERIORES = [
     pide: { tabla: 10, tronco: 3 }, pesos: 1500,
     fisica(h) { h.circulo(0, 0, 0.2, -0.05, 3.3); },
     arma(c, P, datos, suelo) {
-      cil(c, 0.1, 0.13, 2.4, [0, 1.2, 0], MADERA_OSCURA, { tipo: 0, lados: 6 });
-      calce(c, suelo, 0, 0, 0, 0.15, MADERA_OSCURA, 0);
+      cil(c, 0.1, 0.13, 2.4, [0, 1.2, 0], POSTE, { tipo: 0, lados: 6 });
+      calce(c, suelo, 0, 0, 0, 0.15, POSTE, 0);
       for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; caja(c, 0.05, 0.9, 0.05, [Math.cos(a) * 0.32, 2.0, Math.sin(a) * 0.32], MADERA, { tipo: 0, rot: [Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35] }); }
       // la casita y su techo
       caja(c, 1.0, 0.8, 0.8, [0, 2.8, 0], TABLA, { variar: 0.12 });
-      caja(c, 1.14, 0.06, 0.1, [0, 2.4, -0.44], MADERA_OSCURA, { tipo: 0 });
-      for (const s of [-1, 1]) caja(c, 1.25, 0.05, 0.62, [0, 3.38, s * 0.3], s < 0 ? TECHO : '#453a31', { variar: 0.1, rot: [s * 0.62, 0, 0] });
+      caja(c, 1.14, 0.06, 0.1, [0, 2.4, -0.44], POSTE, { tipo: 0 });
+      for (const s of [-1, 1]) caja(c, 1.25, 0.05, 0.62, [0, 3.38, s * 0.3], s < 0 ? TEJA : TEJA_2, { variar: 0.1, rot: [s * 0.62, 0, 0] });
       // los nichos (dos filas de tres) y los palitos para posarse
       for (let f = 0; f < 2; f++) for (let i = 0; i < 3; i++) {
         const x = -0.3 + i * 0.3, y = 2.95 - f * 0.34;
@@ -210,10 +212,10 @@ export const PIEZAS_EXTERIORES = [
       for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; c.agregar(new THREE.BoxGeometry(0.34, 0.3, 0.22), { color: PIEDRAS[i % 4], tipo: 4, variar: 0.14, matriz: matriz([Math.cos(a) * 0.64, 0.65, Math.sin(a) * 0.64], [0, -a, 0]) }); }
       c.agregar(new THREE.CylinderGeometry(0.5, 0.5, 0.03, 12), { color: '#25343a', tipo: 4, variar: 0.04, matriz: matriz([0, 0.62, 0]) });
       // el bastidor: dos postes, el travesaño con el cilindro de la soga, la manivela, y un techo a dos aguas
-      for (const sx of [-1, 1]) { caja(c, 0.1, 2.0, 0.1, [sx * 0.88, 1.0, 0], MADERA_OSCURA, { tipo: 0 }); calce(c, suelo, sx * 0.88, 0, 0, 0.07, MADERA_OSCURA, 0); }
+      for (const sx of [-1, 1]) { caja(c, 0.1, 2.0, 0.1, [sx * 0.88, 1.0, 0], POSTE, { tipo: 0 }); calce(c, suelo, sx * 0.88, 0, 0, 0.07, POSTE, 0); }
       cil(c, 0.07, 0.07, 1.75, [0, 1.35, 0], MADERA, { tipo: 0, lados: 6, rot: [0, 0, Math.PI / 2] });
       caja(c, 0.05, 0.05, 0.3, [0.95, 1.35, -0.12], HIERRO, { tipo: 0 }); caja(c, 0.05, 0.22, 0.05, [0.95, 1.25, -0.27], HIERRO, { tipo: 0 });
-      for (const s of [-1, 1]) caja(c, 2.0, 0.05, 0.7, [0, 2.0, s * 0.28], s < 0 ? TECHO : '#453a31', { variar: 0.1, rot: [s * 0.5, 0, 0] });
+      for (const s of [-1, 1]) caja(c, 2.0, 0.05, 0.7, [0, 2.0, s * 0.28], s < 0 ? TEJA : TEJA_2, { variar: 0.1, rot: [s * 0.5, 0, 0] });
       cil(c, 0.012, 0.012, 0.7, [0, 1.0, 0], '#8a7a5a', { tipo: 0, lados: 4 });
       cil(c, 0.13, 0.1, 0.24, [0, 0.78, 0], '#8a8f94', { lados: 8 });
     },
@@ -225,14 +227,14 @@ export const PIEZAS_EXTERIORES = [
     pide: { tronco: 4, tabla: 4 }, pesos: 1000,
     fisica(h) { for (const sx of [-1, 1]) h.circulo(sx * 1.5, 0, 0.12, -0.05, 1.7); h.segmento(-1.5, 0, -1.5 + 2.6 * Math.cos(0.7), -2.6 * Math.sin(0.7), 0.05, 0, 1.4); },
     arma(c, P, datos, suelo) {
-      for (const sx of [-1, 1]) { palo(c, suelo, sx * 1.5, 0, 1.7, 0.12, MADERA_OSCURA, sx + 3); piedra(c, sx * 1.5, 0.08, 0, 0.2, sx + 5); }
+      for (const sx of [-1, 1]) { palo(c, suelo, sx * 1.5, 0, 1.7, 0.12, POSTE, sx + 3); piedra(c, sx * 1.5, 0.08, 0, 0.2, sx + 5); }
       // los tramos de cerco de los costados, dos varas cada uno
       for (const sx of [-1, 1]) for (const y of [0.55, 1.05]) caja(c, 0.4, 0.06, 0.05, [sx * 1.74, y, 0], TABLA, { variar: 0.1 });
       // la hoja, abierta a medias: bisagra en el poste de la izquierda y girada 40° hacia el frente (4 varas, dos tablones y una cruz)
       const L = 2.6, ang = 0.7, mx = -1.5 + Math.cos(ang) * L / 2, mz = -Math.sin(ang) * L / 2;
       for (const y of [0.35, 0.7, 1.05, 1.4]) caja(c, L, 0.07, 0.05, [mx, y, mz], TABLA, { variar: 0.1, rot: [0, ang, 0] });
       for (const t of [0.04, 0.96]) caja(c, 0.07, 1.14, 0.06, [-1.5 + Math.cos(ang) * L * t, 0.87, -Math.sin(ang) * L * t], MADERA, { tipo: 0, rot: [0, ang, 0] });
-      caja(c, Math.hypot(L, 1.05), 0.06, 0.04, [mx, 0.87, mz], MADERA_OSCURA, { tipo: 0, rot: [0, ang, Math.atan2(1.05, L)] });
+      caja(c, Math.hypot(L, 1.05), 0.06, 0.04, [mx, 0.87, mz], POSTE, { tipo: 0, rot: [0, ang, Math.atan2(1.05, L)] });
       // el pasador de hierro en el poste de la derecha
       caja(c, 0.14, 0.04, 0.04, [1.4, 1.05, -0.1], HIERRO, { tipo: 0 });
     },
@@ -254,7 +256,7 @@ export const PIEZAS_EXTERIORES = [
       const R = 1.45, Y0 = 2.3;
       for (let i = 0; i < 8; i++) {
         const am = Math.PI * (i + 0.5) / 8;
-        caja(c, 2 * R * Math.sin(Math.PI / 16) + 0.07, 0.22, 0.22, [Math.cos(am) * R, Y0 + Math.sin(am) * R, 0], i % 2 ? MADERA : MADERA_OSCURA, { tipo: 0, rot: [0, 0, am + Math.PI / 2] });
+        caja(c, 2 * R * Math.sin(Math.PI / 16) + 0.07, 0.22, 0.22, [Math.cos(am) * R, Y0 + Math.sin(am) * R, 0], i % 2 ? MADERA : POSTE, { tipo: 0, rot: [0, 0, am + Math.PI / 2] });
       }
       // el farol colgado del medio del arco
       cil(c, 0.008, 0.008, 0.5, [0, Y0 + R - 0.36, 0], HIERRO, { tipo: 0, lados: 4 });
@@ -264,35 +266,41 @@ export const PIEZAS_EXTERIORES = [
       for (const sx of [-1, 1]) {
         for (const y of [0.4, 0.9, 1.4, 1.9]) caja(c, 0.05, 0.1, 1.0, [sx * 1.3, y, -0.6], TABLA, { variar: 0.1 });
         for (const z of [-1.08, -0.12]) caja(c, 0.07, 1.7, 0.06, [sx * 1.3, 1.15, z], MADERA, { tipo: 0 });
-        caja(c, 0.05, 0.06, 1.3, [sx * 1.3, 1.15, -0.6], MADERA_OSCURA, { tipo: 0, rot: [Math.atan2(1.5, 1.0), 0, 0] });
+        caja(c, 0.05, 0.06, 1.3, [sx * 1.3, 1.15, -0.6], POSTE, { tipo: 0, rot: [Math.atan2(1.5, 1.0), 0, 0] });
       }
     },
   },
   {
-    ...base, id: 'puente-piedra', nombre: 'Puente de piedra', categoria: 'exterior', radio: 2.5, ancho: 4.8, fondo: 1.9, alto: 1.05, separacion: 1.2, pendienteMax: 0.5,
-    texto: 'Un puentecito de piedra de un solo ojo, con el tablero a medio metro del suelo y un parapeto bajo a cada lado. Se cruza caminando. Se pone sobre el arroyo seco o un zanjón; gasta mucha piedra del pico.',
+    ...base, id: 'puente-piedra', nombre: 'Puente de piedra', categoria: 'exterior', radio: 3.2, ancho: 6.0, fondo: 1.9, alto: 1.6, separacion: 1.2, pendienteMax: 0.5,
+    texto: 'Un puentecito de piedra de un solo ojo, con el tablero a un metro del suelo, parapetos bajos y tres escalones de piedra en cada punta. Se cruza caminando. Va sobre el arroyo o un zanjón; gasta mucha piedra del pico.',
     pide: { piedra: 36, tabla: 2 }, pesos: 5000,
     fisica(h) {
-      h.plataforma(0, 0, 4.7, 1.5, 0.52, 0.2, 0.62);
-      for (const sz of [-1, 1]) h.segmento(-2.3, sz * 0.82, 2.3, sz * 0.82, 0.12, 0.5, 1.0);
+      h.plataforma(0, 0, 3.2, 1.5, 1.05, 0.2, 0.62);
+      for (const sx of [-1, 1]) { h.plataforma(sx * 1.95, 0, 0.7, 1.5, 0.7, 0.2, 0.62); h.plataforma(sx * 2.65, 0, 0.7, 1.5, 0.35, 0.2, 0.62); }
+      for (const sz of [-1, 1]) { h.segmento(-1.6, sz * 0.78, 1.6, sz * 0.78, 0.12, 1.05, 1.5); h.segmento(-0.95, sz * 0.7, 0.95, sz * 0.7, 0.1, 0, 1.0); }
     },
     arma(c, P, datos, suelo) {
-      // los dos estribos de los extremos y el arco de dovelas entre ellos (a cada cara)
+      // los dos estribos junto al arco, los escalones de cada punta y el tablero de lajas
       for (const sx of [-1, 1]) {
-        for (const sz of [-1, 1]) for (let i = 0; i < 2; i++) caja(c, 1.0 - i * 0.1, 0.27, 0.34, [sx * 1.9, 0.14 + i * 0.27, sz * 0.7], PIEDRAS[(i + (sx > 0 ? 1 : 0)) % 4], { variar: 0.16 });
-        caja(c, 1.0, 0.5, 1.1, [sx * 1.9, 0.25, 0], '#5f5a52', { variar: 0.1 });
+        caja(c, 0.75, 1.0, 1.7, [sx * 1.22, 0.5, 0], PIEDRAS[sx > 0 ? 1 : 0], { variar: 0.16 });
+        caja(c, 0.7, 0.7, 1.7, [sx * 1.95, 0.35, 0], PIEDRAS[2], { variar: 0.16 });
+        caja(c, 0.7, 0.35, 1.7, [sx * 2.65, 0.175, 0], PIEDRAS[3], { variar: 0.16 });
+        for (const sz of [-1, 1]) piedra(c, sx * 1.95, 0.82, sz * 0.8, 0.14, sx + sz + 4, [1.5, 0.6, 1.2]);
       }
-      for (const sz of [-1, 1]) for (let i = 0; i < 7; i++) {
-        const a = Math.PI * (i + 0.5) / 7, x = Math.cos(a) * 1.0, y = Math.sin(a) * 0.32 + 0.12;
-        caja(c, 0.32, 0.16, 0.36, [x, y + 0.04, sz * 0.7], PIEDRAS[i % 4], { variar: 0.16, rot: [0, 0, a - Math.PI / 2 + 0.0] });
+      // el arco de dovelas, a cada cara
+      for (const sz of [-1, 1]) for (let i = 0; i < 9; i++) {
+        const a = Math.PI * (i + 0.5) / 9, r = 0.93;
+        caja(c, 0.34, 0.24, 0.34, [Math.cos(a) * r, Math.sin(a) * r, sz * 0.72], PIEDRAS[i % 4], { variar: 0.16, rot: [0, 0, a + Math.PI / 2] });
       }
-      // el tablero de lajas y los parapetos con su tapa
-      caja(c, 4.6, 0.14, 1.5, [0, 0.45, 0], '#6c665d', { variar: 0.12 });
-      for (let i = 0; i < 6; i++) caja(c, 0.7, 0.04, 1.3, [-1.85 + i * 0.74, 0.54, 0], PIEDRAS[(i + 1) % 4], { variar: 0.14, rot: [0, 0, 0] });
+      caja(c, 1.7, 0.2, 1.7, [0, 0.95, 0], '#6c665d', { variar: 0.12 });
+      for (let i = 0; i < 5; i++) caja(c, 0.62, 0.04, 1.4, [-1.24 + i * 0.62, 1.07, 0], PIEDRAS[(i + 1) % 4], { variar: 0.14 });
+      // los parapetos con piedras por tapa
       for (const sz of [-1, 1]) {
-        caja(c, 4.6, 0.3, 0.24, [0, 0.69, sz * 0.8], PIEDRA, { variar: 0.16 });
-        for (let i = 0; i < 6; i++) piedra(c, -1.85 + i * 0.74, 0.88, sz * 0.8, 0.16, i + (sz > 0 ? 3 : 0), [1.6, 0.6, 1.1]);
+        caja(c, 3.2, 0.35, 0.22, [0, 1.225, sz * 0.78], PIEDRA, { variar: 0.16 });
+        for (let i = 0; i < 6; i++) piedra(c, -1.35 + i * 0.54, 1.45, sz * 0.78, 0.15, i + (sz > 0 ? 3 : 0), [1.6, 0.6, 1.1]);
       }
+      // y el alféizar del arco: una piedra clave más grande en el medio
+      for (const sz of [-1, 1]) piedra(c, 0, 1.0, sz * 0.8, 0.22, 7 + sz, [1.0, 0.8, 1.0]);
     },
   },
   // ================================================================ lo que se encadena (sin pesos)

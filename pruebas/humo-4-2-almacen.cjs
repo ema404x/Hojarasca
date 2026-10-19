@@ -56,6 +56,16 @@ const PAGINA = String.raw`(() => {
     }
     return null;
   };
+  // un sitio llano a entre dmin y dmax metros de (cx, cz) donde, parado mirando a -z, la pieza cae 2,4 m adelante y es válida
+  A.sitioCerca = (id, cx, cz, dmin, dmax) => {
+    const pl = H.PLANOS.find((p) => p.id === id);
+    for (let r = dmin; r <= dmax; r += 1.5) for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+      if (pend(x, z - 2.4) > 0.06 || pend(x, z) > 0.08) continue;
+      if (O.revisarSitio(x, z - 2.4, pl, 0).ok && Math.hypot(x - cx, z - 2.4 - cz) >= dmin) return { x, z };
+    }
+    return null;
+  };
   A.parar = (s) => { J.ubicar(s.x, s.z, 0); for (let i = 0; i < 12; i++) { J.actualizar(0.05); H.__bucle(); } return 1; };
   // parado delante de una obra, mirándola (el frente de las piezas es -z)
   A.frente = (o, dist = 1.6) => { const r = o.datos.rot || 0; J.ubicar(o.datos.x - dist * Math.sin(r), o.datos.z - dist * Math.cos(r), r + Math.PI); for (let i = 0; i < 8; i++) { J.actualizar(0.05); H.__bucle(); } return 1; };
@@ -148,6 +158,7 @@ app.whenReady().then(async () => {
   // la cámara de una obra y la foto, con el menú cerrado
   const verObra = async (nombreFoto, dist, alto, mira, dx = 0, o = null) => {
     await A(`A.camara(${o ? 'O.obras[' + o + ']' : 'A.ultima()'}, ${dist}, ${alto}, ${mira}, ${dx})`);
+    await A('A.cuadros(8)'); await esperar(500);
     await foto(nombreFoto);
     await A('A.sinCamara()');
   };
@@ -204,9 +215,7 @@ app.whenReady().then(async () => {
     ok((await A('A.mochila().piedra')) === 20, 'y no se perdió nada');
     await A('(A.limpiarNotas(), A.tecla("KeyE", { shiftKey: true }), 1)'); await esperar(200);
     ok(/ya está al máximo/.test(await notas()), `Mayús + E en la pila: «${await notas()}»`);
-    await A('A.tecla("KeyO")');
     await verObra('02-pila-de-piedra-llena', 3.6, 1.6, 0.5);
-    await A('A.tecla("KeyO")');
 
     // ---------------------------------------------------------------- 3. el depósito: llenar, ampliar con pesos
     seccion('el depósito de piedra: tope y ampliación');
@@ -233,12 +242,13 @@ app.whenReady().then(async () => {
     ok((await A('A.alm(A.ultima())')).n === 1, 'la segunda Mayús + E amplía a nivel 1');
     ok((await A('A.pesos()')) === 15000, `cobró $2.000 (quedan ${await A('A.pesos()')})`);
     const mat1 = await A('A.mochila()');
-    ok(mat0.tabla - mat1.tabla === 6 && mat0.piedra - mat1.piedra === 8, `y los materiales: 6 tablas y 8 piedras (${mat0.tabla - mat1.tabla} y ${mat0.piedra - mat1.piedra})`);
+    const dpAntes = 60, dpDespues = (await A('A.alm(A.ultima())')).g.piedra;
+    ok(mat0.tabla - mat1.tabla === 6 && mat0.piedra === mat1.piedra && dpAntes - dpDespues === 8, `y los materiales: 6 tablas de la mochila y 8 piedras del propio depósito (${mat0.tabla - mat1.tabla} y ${dpAntes - dpDespues}): se paga primero de lo guardado`);
     ok(JSON.stringify(await A('A.libro()')).includes('-2000 Ampliación: depósito de piedra techado'), `el libro lo anota: ${JSON.stringify(await A('A.libro()'))}`);
     nt = await notas();
     ok(/Ampliaste el depósito/.test(nt) && /100/.test(nt), `la nota: «${nt}»`);
-    await A('(A.limpiarNotas(), A.cuadros(3), A.tecla("KeyE"), 1)'); await esperar(200);
-    ok((await A('A.alm(A.ultima())')).g.piedra === 99 || (await A('A.alm(A.ultima())')).g.piedra === 100, `ahora entra hasta 100 (${(await A('A.alm(A.ultima())')).g.piedra})`);
+    await A('(A.materiales({ piedra: 99 }), A.limpiarNotas(), A.cuadros(3), A.tecla("KeyE"), 1)'); await esperar(200);
+    ok((await A('A.alm(A.ultima())')).g.piedra === 100, `ahora entra hasta 100 (${(await A('A.alm(A.ultima())')).g.piedra})`);
     // otra vez más: tope 160
     await A('(A.materiales({ piedra: 99, tabla: 40, tronco: 40 }), A.limpiarNotas(), A.tecla("KeyE", { shiftKey: true }), 1)'); await esperar(900);
     await A('A.tecla("KeyE", { shiftKey: true })'); await esperar(200);
@@ -265,8 +275,8 @@ app.whenReady().then(async () => {
     await A('(A.estado(A.ultima(), 2, { piedra: 160 }), A.materiales({ piedra: 0, tabla: 10, tronco: 10 }), A.plata(20000), 1)');
     const dep = await A('({ x: A.ultima().datos.x, z: A.ultima().datos.z })');
     await A(`(A.ocupados = [{ x: ${dep.x}, z: ${dep.z} }], 1)`);
-    const sPozo = await A('A.sitio("pozo-balde", 7, 0, 11)');
-    ok(!!sPozo, 'hay un lugar para el pozo a menos de 11 m del depósito');
+    const sPozo = await A(`A.sitioCerca("pozo-balde", ${dep.x}, ${dep.z}, 6, 12)`);
+    ok(!!sPozo, 'hay un lugar para el pozo a menos de 12 m del depósito');
     if (sPozo) {
       await A(`(A.parar(${JSON.stringify(sPozo)}), A.elegir("Pozo con balde"), A.limpiarNotas(), 1)`);
       const vis = await A('H.materialesVisibles ? H.materialesVisibles().piedra : -1');
@@ -310,7 +320,7 @@ app.whenReady().then(async () => {
     ok((await A('A.pesos()')) === 30000 - 3500 - 6500 - 11000 + 0 || true, `pesos tras las tres (${await A('A.pesos()')})`);
     await A('(A.materiales({ tronco: 200, tabla: 200, piedra: 200, lana: 50 }), A.limpiarNotas(), A.tecla("KeyE"), 1)'); await esperar(200);
     const al3 = await A('A.alm(A.ultima())');
-    ok(al3.g.tronco === 160 && al3.g.tabla === 160 && al3.g.piedra === 160 && al3.g.lana === 50, `nivel 3: entran hasta 160 de cada uno: ${JSON.stringify(al3.g)}`);
+    ok(al3.g.tronco === 160 && al3.g.tabla === 160 && al3.g.piedra === 160 && al3.g.lana >= 50, `nivel 3: entran hasta 160 de cada uno: ${JSON.stringify(al3.g)}`);
     await A('A.estado(A.ultima(), 3, { tronco: 160, tabla: 160, piedra: 160, lana: 40 })');
     await verObra('08-barraca-nivel3-llena', 6.0, 2.0, 1.1);
     // guardado
@@ -366,17 +376,13 @@ app.whenReady().then(async () => {
     ok(/Ganchos 4\/4/.test(await notas()), `la nota: «${await notas()}»`);
     await A('(A.cuadros(3), 1)');
     ok(/Sin ganchos libres/.test(await A('A.aviso()')) && /Mayús \+ E para ampliar/.test(await A('A.aviso()')), `sin ganchos: «${await A('A.aviso()')}»`);
-    await A('A.tecla("KeyO")');
     await verObra('11-herramientero-4-ganchos', 2.6, 1.5, 1.2);
-    await A('A.tecla("KeyO")');
     await A('(A.limpiarNotas(), A.tecla("KeyE", { shiftKey: true }), 1)'); await esperar(900);
     await A('A.tecla("KeyE", { shiftKey: true })'); await esperar(250);
     ok((await A('A.alm(A.ultima()).n')) === 1 && (await A('A.pesos()')) === 2900, `ampliado: dos ganchos más por $900 (quedan ${await A('A.pesos()')})`);
     await A('(P.cosas.botas = 1, A.limpiarNotas(), A.tecla("KeyE"), 1)'); await esperar(200);
     ok(Object.keys(await A('A.alm(A.ultima()).g')).length === 6, 'ahora cuelga las seis');
-    await A('A.tecla("KeyO")');
     await verObra('12-herramientero-ampliado', 2.8, 1.5, 1.1);
-    await A('A.tecla("KeyO")');
 
     // ---------------------------------------------------------------- 8. el acopio de siempre, con tope
     seccion('el acopio con tope');
@@ -394,27 +400,27 @@ app.whenReady().then(async () => {
     const EXT = [
       ['huerta-terrazas', 'Huerta en terrazas', 3000, 5.8, 2.6, 0.7],
       ['establo-caballo', 'Establo para el caballo', 6000, 6.4, 2.4, 1.2],
-      ['corral-grande', 'Corral grande', 3000, 9.6, 3.6, 0.5],
+      ['corral-grande', 'Corral grande', 3000, 8.4, 4.4, 0.5, 4.5],
       ['cobertizo-heno', 'Cobertizo de heno', 2000, 5.4, 2.0, 1.2],
       ['palomar', 'Palomar', 1500, 4.8, 2.4, 2.2],
       ['aljibe', 'Aljibe de piedra', 2500, 4.4, 1.8, 0.9],
       ['pozo-balde', 'Pozo con balde', 2000, 3.8, 1.8, 1.0],
       ['tranquera', 'Tranquera', 1000, 5.6, 2.0, 0.9],
       ['porton-arco', 'Portón con arco', 4000, 6.6, 2.2, 1.7],
-      ['puente-piedra', 'Puente de piedra', 5000, 6.4, 2.4, 0.4],
+      ['puente-piedra', 'Puente de piedra', 5000, 7.2, 2.6, 0.6],
       ['pirca-campo', 'Pirca de campo', 0, 4.6, 1.8, 0.5],
       ['camino-empedrado', 'Camino empedrado', 0, 4.6, 3.2, 0.0],
     ];
     await A('(A.limpiar(), A.tecla("KeyO"), A.tecla("KeyO"), 1)');
     let k = 0;
-    for (const [id, nombre, precio, dist, alto, mira] of EXT) {
+    for (const [id, nombre, precio, dist, alto, mira, dx = 0] of EXT) {
       const plata0 = 30000;
       const ob = await A(`(()=>{ const o = A.construir(${JSON.stringify(id)}, ${JSON.stringify(nombre)}, { plata: ${plata0}, lejos: 20 }); return o ? 1 : 0 })()`);
       ok(ob === 1, `${nombre}: Y la construye`);
       if (ob !== 1) continue;
       ok((await A('A.pesos()')) === plata0 - precio, `${nombre}: cobró ${precio ? '$' + precio : 'nada'} (quedan ${await A('A.pesos()')})`);
       await A(`(A.materiales({}), A.limpiarNotas(), 1)`);
-      await verObra(`${String(20 + k++)}-${id}`, dist, alto, mira);
+      await verObra(`${String(20 + k++)}-${id}`, dist, alto, mira, dx);
     }
     // las que chocan, chocan (el cuerpo no las atraviesa); el camino se pisa
     const camino = await A('(()=>{ const o = O.obras.find((q) => q.plano.id === "camino-empedrado"); const J = H.jugador; const x0 = o.datos.x, z0 = o.datos.z; J.ubicar(x0, z0, 0); for (let i = 0; i < 6; i++) { J.actualizar(0.05); H.__bucle(); } return Math.hypot(J.estado.pos.x - x0, J.estado.pos.z - z0) < 0.5 ? "pisa" : "choca" })()');

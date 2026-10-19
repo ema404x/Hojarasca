@@ -3380,7 +3380,9 @@ document.addEventListener('keydown', (e) => {
             if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
             else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
             if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`, 'La mitad de la mano de obra que pagaste');   // 4.2
-            { const rAmp = almacenJuego.reintegro(r.datos); if (rAmp) nota(`Te devolvieron ${formatoPesos(rAmp)} de las ampliaciones`, 'La mitad de lo que pagaste al ampliar'); }   // 4.2
+            // 4.2: y de las ampliaciones de un depósito, la mitad de los pesos y de los materiales
+            { const rAmp = almacenJuego.reintegro(r.datos), mAmp = almacenJuego.materialesDeAmpliaciones(r.datos); for (const [k, n] of Object.entries(mAmp)) sumarMaterial(k, n); const txt = Object.entries(mAmp).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
+              if (rAmp || txt) nota(rAmp ? `Te devolvieron ${formatoPesos(rAmp)} de las ampliaciones` : 'Recuperaste materiales de las ampliaciones', `La mitad de lo que pagaste al ampliar${txt ? `: ${txt}` : ''}`); }
             dibujarPanelObra();
           }
           break;

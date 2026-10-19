@@ -74,9 +74,9 @@ export function crearAlmacenJuego(d) {
     const lleva = D.guarda.filter((k) => (D.tipo === 'cosecha' ? d.cuantoHay(k) : d.material(k)) > 0);
     const cabe = lleva.some((k) => libreDe(id, a, k) > 0);
     if (cabe) return `Guardar en ${D.articulo} (${r})`;
-    if (lleva.length) return `${D.nombre} llena (${r})${proximaAmpliacion(id, a) ? ' · Mayús + E para ampliar' : ''}`;
-    if (totalGuardado(id, a) > 0) return `Sacar de ${D.articulo} (${r})`;
-    return `${D.nombre} vacía (${resumen(id, a)})`;
+    if (lleva.length) return `${D.nombre} ${D.f ? 'llena' : 'lleno'} (${r})${proximaAmpliacion(id, a) ? ' · Mayús + E para ampliar' : ''}`;
+    if (totalGuardado(id, a) > 0) return `Sacar ${D.del} (${r})`;
+    return `${D.nombre} ${D.f ? 'vacía' : 'vacío'} (${resumen(id, a)})`;
   }
 
   // ---------------------------------------------------------------- la E
@@ -108,7 +108,7 @@ export function crearAlmacenJuego(d) {
         d.nota(`Guardaste en ${D.articulo}`, `${partes.join(' · ')}. ${resumen(id, a)}${sobra.length ? `. No entró el resto de ${sobra.join(' y ')}: está lleno` : ''}`, true);
       } else {
         const sig = proximaAmpliacion(id, a);
-        d.nota(`${D.nombre} llena`, `${resumen(id, a)}. ${sig ? `Mayús + E la amplía: ${textoAmpliacion(id, a)}` : 'No se puede ampliar más: armá otro'}`, true);
+        d.nota(`${D.nombre} ${D.f ? 'llena' : 'lleno'}`, `${resumen(id, a)}. ${sig ? `Mayús + E la amplía: ${textoAmpliacion(id, a)}` : 'No se puede ampliar más: armá otro'}`, true);
       }
     } else if (totalGuardado(id, a) > 0) {
       const partes = [];
@@ -117,9 +117,9 @@ export function crearAlmacenJuego(d) {
         if (n > 0) { if (D.tipo === 'cosecha') d.sumarEntrada(k, n); else d.sumarMaterial(k, n); partes.push(cantidad(n, k)); }
       }
       d.sonido()?.juntar?.();
-      d.nota(`Sacaste todo de ${D.articulo}`, partes.join(' · '));
+      d.nota(`Sacaste todo ${D.del}`, partes.join(' · '));
     } else {
-      d.nota(`${D.nombre} vacía`, D.tipo === 'cosecha' ? `Traé habas, papas, frutillas o calafates y apretá E acá. ${resumen(id, a)}` : `Traé ${D.guarda.map((k) => nombreDe(k)).join(', ')} y apretá E acá. ${resumen(id, a)}`);
+      d.nota(`${D.nombre} ${D.f ? 'vacía' : 'vacío'}`, D.tipo === 'cosecha' ? `Traé habas, papas, frutillas o calafates y apretá E acá. ${resumen(id, a)}` : `Traé ${D.guarda.map((k) => nombreDe(k)).join(', ')} y apretá E acá. ${resumen(id, a)}`);
     }
     refrescarSiCambio(o, antes);
     d.refrescarBarra();
@@ -189,5 +189,13 @@ export function crearAlmacenJuego(d) {
     return a.n > 0 ? reintegroAlDesmontar(d.progreso(), idPrecioAmpliacion(datos.plano), a.n, a.n, 'Los carpinteros de la aldea') : 0;
   }
 
-  return { esAlmacen: esAlmacen, ids: IDS_ALMACEN, cerca, totales, gastar, textoPanel, aviso, usar, ampliar, contenido, devolver, reintegro, estado };
+  // Los materiales de las ampliaciones que hiciste, a la mitad (como los de cada etapa de una obra: lo que costó 1 no vuelve)
+  function materialesDeAmpliaciones(datos) {
+    if (!datos || !esAlmacen(datos.plano)) return {};
+    const n = sanearAlmacen(datos.almacen, datos.plano).n, salida = {};
+    for (let i = 0; i < n; i++) for (const [k, c] of Object.entries(ALMACENES[datos.plano].ampliaciones[i]?.pide || {})) if (c > 1) salida[k] = (salida[k] || 0) + Math.max(1, Math.floor(c * 0.5));
+    return salida;
+  }
+
+  return { esAlmacen: esAlmacen, ids: IDS_ALMACEN, cerca, totales, gastar, textoPanel, aviso, usar, ampliar, contenido, devolver, reintegro, materialesDeAmpliaciones, estado };
 }

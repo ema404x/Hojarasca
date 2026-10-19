@@ -27,26 +27,26 @@ export const TOPE_ACOPIO = 40;
 // topes[n]: el tope en el nivel n. ampliaciones[i]: lo que cuesta pasar del nivel i al i+1 (materiales y pesos).
 export const ALMACENES = {
   'pila-piedra': {
-    nombre: 'Pila de piedra', articulo: 'la pila de piedra', tipo: 'material', modo: 'clase', guarda: ['piedra'], titulo: 'Piedra',
+    nombre: 'Pila de piedra', articulo: 'la pila de piedra', del: 'de la pila de piedra', f: true, tipo: 'material', modo: 'clase', guarda: ['piedra'], titulo: 'Piedra',
     topes: [30], ampliaciones: [],
   },
   'deposito-piedra': {
-    nombre: 'Depósito de piedra techado', articulo: 'el depósito', tipo: 'material', modo: 'clase', guarda: ['piedra'], titulo: 'Piedra',
+    nombre: 'Depósito de piedra techado', articulo: 'el depósito', del: 'del depósito', f: false, tipo: 'material', modo: 'clase', guarda: ['piedra'], titulo: 'Piedra',
     topes: [60, 100, 160],
     ampliaciones: [{ pide: { tabla: 6, piedra: 8 }, pesos: 2000 }, { pide: { tabla: 10, piedra: 14, tronco: 3 }, pesos: 4000 }],
   },
   barraca: {
-    nombre: 'Barraca de materiales', articulo: 'la barraca', tipo: 'material', modo: 'clase', guarda: ['tronco', 'tabla', 'piedra', 'lana'], titulo: 'Materiales',
+    nombre: 'Barraca de materiales', articulo: 'la barraca', del: 'de la barraca', f: true, tipo: 'material', modo: 'clase', guarda: ['tronco', 'tabla', 'piedra', 'lana'], titulo: 'Materiales',
     topes: [40, 70, 110, 160],
     ampliaciones: [{ pide: { tabla: 12, tronco: 4 }, pesos: 3500 }, { pide: { tabla: 16, tronco: 6, piedra: 8 }, pesos: 6500 }, { pide: { tabla: 24, tronco: 8, piedra: 12, lana: 4 }, pesos: 11000 }],
   },
   silo: {
-    nombre: 'Silo y granero', articulo: 'el silo', tipo: 'cosecha', modo: 'total', guarda: ['haba', 'papa', 'frutilla-huerta', 'calafate'], titulo: 'Cosecha',
+    nombre: 'Silo y granero', articulo: 'el silo', del: 'del silo', f: false, tipo: 'cosecha', modo: 'total', guarda: ['haba', 'papa', 'frutilla-huerta', 'calafate'], titulo: 'Cosecha',
     topes: [60, 120, 200],
     ampliaciones: [{ pide: { tabla: 10, tronco: 4 }, pesos: 3000 }, { pide: { tabla: 16, tronco: 6, piedra: 6 }, pesos: 5500 }],
   },
   herramientero: {
-    nombre: 'Herramientero', articulo: 'el herramientero', tipo: 'herramienta', modo: 'total', guarda: ['hacha', 'pico', 'tijera', 'mosca', 'farol', 'botas'], titulo: 'Ganchos', unidad: 'ganchos',
+    nombre: 'Herramientero', articulo: 'el herramientero', del: 'del herramientero', f: false, tipo: 'herramienta', modo: 'total', guarda: ['hacha', 'pico', 'tijera', 'mosca', 'farol', 'botas'], titulo: 'Ganchos', unidad: 'ganchos',
     topes: [4, 6],
     ampliaciones: [{ pide: { tabla: 4, tronco: 1 }, pesos: 900 }],
   },
