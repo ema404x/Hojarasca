@@ -27,7 +27,7 @@ export const SECCIONES_GUIA = [
       ['Troncos', 'Arrimate a un coihue o una lenga con el hacha y apretá H tres veces: el árbol se viene abajo y te da 4 troncos. Un tronco suelto en el suelo da 3 de un golpe. El pehuén no se tala.'],
       ['El bosque vuelve', 'Donde talaste queda un tocón que rebrota solo: a los pocos días hay un renoval y a los nueve, el árbol entero. Plantar un renoval al lado (B) apura el rebrote.'],
       ['Tablas', 'Con el hacha, Y aserra un tronco en cualquier lado: a mano rinde 2 tablas. En un banco de carpintero (o en el galpón de esquila) rinde 4.'],
-      ['Piedra', 'Las rocas grises del suelo (pedreros) se pican a golpes de pico (H): al principio una roca grande pide 6 golpes y cada nivel de picapedrero (cuaderno, J) te ahorra uno, hasta 2; las chicas, menos. Cada pedrero da 4 piedras. El hacha no alcanza: el pico lo forja el herrero de la aldea (cantos rodados y plata) o se consigue en el almacén, por trueque o comprado.'],
+      ['Piedra', 'Los pedreros se pican a golpes de pico (H): 6 golpes al principio, y cada nivel de picapedrero (J) ahorra uno, hasta 2. Da 4 piedras. El pico lo forja el herrero o se consigue en el almacén.'],
       ['Ramitas', 'Están tiradas en todo el bosque: E para juntarlas. Sirven para el fuego.'],
       ['Frutas', 'Piñones, calafates y frutillas se juntan con E. Se comen o se cocinan.'],
       ['Semillas doradas', 'Las sueltan los duendes al caer y aparecen en los troncos huecos. Sirven para las mejoras y las defensas doradas.', 'desafio'],
