@@ -31,6 +31,8 @@ import { PIEZAS_OFICIOS } from './planos-oficios.js';
 // 4.2: el almacenaje con tope (pila y depósito de piedra, barraca, herramientero, silo: planos-almacen.js) y la huerta, la granja y los exteriores
 import { PIEZAS_ALMACEN } from './planos-almacen.js';
 import { PIEZAS_EXTERIORES } from './planos-exteriores.js';
+// 4.2: ampliar el refugio y las casas (dormitorio, cocina, salón, planta alta, torreón…: ver planos-ampliar.js)
+import { PLANOS_AMPLIAR, PIEZAS_AMPLIAR } from './planos-ampliar.js';
 import { registrarPreciosDePlano } from './obra-pesos.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
@@ -424,6 +426,7 @@ PLANOS.push({
 
 // 3.8.8: tres refugios más grandes, de menor a mayor (cabaña, casa con galería, casona)
 PLANOS.push(...PLANOS_CASAS);
+PLANOS.push(...PLANOS_AMPLIAR);   // 4.2: las ampliaciones de la casa, por etapas y con pesos
 
 // ---------------------------------------------------------------- cobertizo rural
 PLANOS.push({
@@ -2257,6 +2260,7 @@ PIEZAS.push(...PIEZAS_LUJO);   // 4.2: el lujo, que además de materiales cuesta
 PIEZAS.push(...PIEZAS_LUJO_2);   // 4.2: más lujo (muebles, cuadros, piedra y patio)
 PIEZAS.push(...PIEZAS_OFICIOS);   // 4.2: los edificios de oficio propios (también cuestan pesos y hacen algo con E)
 PIEZAS.push(...PIEZAS_ALMACEN, ...PIEZAS_EXTERIORES);   // 4.2: el almacenaje con tope y la huerta, la granja y los exteriores
+PIEZAS.push(...PIEZAS_AMPLIAR);   // 4.2: el gran hogar, la pared de piedra y el techo de teja (ver planos-ampliar.js)
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,
@@ -3049,7 +3053,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       const f = P.fisicaCasa(k);
       for (const s of f.segmentos) segmentoLocal(obra, ...s);
       for (const q of f.circulos) circuloLocal(obra, ...q);
-      for (const q of f.plataformas) plataformaLocal(obra, q[0], q[1], q[2], q[3], q[4], q[5]);
+      for (const q of f.plataformas) plataformaLocal(obra, q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]);   // (4.2: q[6] y q[7]: el escalón máximo y las banderas, como `sinTecho` de los peldaños de una escalera interior)
     });
     if (id === 'galponcito' && e >= 1) unaVez(obra, 'galponcito-horcones', () => {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) circuloLocal(obra, sx * (P.ancho / 2 - 0.2), sz * (P.fondo / 2 - 0.2), 0.14, -0.05, P.alto + 0.3);
