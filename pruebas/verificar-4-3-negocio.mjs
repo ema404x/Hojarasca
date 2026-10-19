@@ -455,8 +455,8 @@ for (const [id, def] of Object.entries(LOCALES)) {
   tiene('else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();', 'Escape también');
   tiene('|| !!negocioJuego?.panelAbierto();', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');
   tiene('if (negocioJuego?.panelAbierto()) { aviso = null; marcarHud(); }', 'con el panel abierto no hay aviso');
-  tiene('if (negocioJuego?.esCliente(npc)) { negocioJuego.atenderA(npc); refrescarBarra(true); return; }', 'E sobre el cliente lo atiende (antes que cualquier charla)');
-  tiene('texto: (negocioJuego?.esCliente(vecino) && negocioJuego.avisoCliente(vecino)) ||', 'y el aviso de ese cliente es el de atenderlo');
+  tiene('if (vecino?.clienteNegocio) vecino = null;', 'los clientes de tu local no se charlan: E sobre el mostrador los atiende');
+  tiene('acumuladoVecino = 0; vecino = gente.cerca(js, camara);', 'y la búsqueda del vecino de siempre queda como estaba');
   tiene("try { if (modo === 'jugando' && !desafio) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }", 'el bucle lo avanza aislado con fallaSistema');
   tiene("negocioJuego.alDesarmar(d);", 'al desarmar el local la mercadería y la caja vuelven a vos');
   ok(m.indexOf('negocioJuego.alDesarmar(d)') < m.indexOf('almacenJuego.devolver(d)'), '… (antes de lo demás, por la misma puerta que todos los desarmados)');

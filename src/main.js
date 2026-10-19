@@ -8036,7 +8036,6 @@ function zumbidoColmena() {
 const charla = { npc: null, historia: null, parte: 0, fin: false };
 function hablar(npc) {
   if (!npc) return;
-  if (negocioJuego?.esCliente(npc)) { negocioJuego.atenderA(npc); refrescarBarra(true); return; }   // 4.3: el cliente del mostrador de tu local: E lo atiende
   // 3.6 (vida): el que invitaste a tomar algo, ya sentado: E te sienta con él; si todavía va
   // para la mesa, te lo dice (ver vecindad-juego.js)
   const enCita = vecindadJuego?.invitado(npc);
@@ -10213,6 +10212,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (js.enKayak || js.enSulky) vecino = null;   // (3.7.5 (rincones): ni arriba del sulky)
     else if (acumuladoVecino >= 1 / 15 && acumuladoVecino >= presupuestoAdaptativo.intervalo(1 / 15, 1.35)) {
       acumuladoVecino = 0; vecino = gente.cerca(js, camara);
+      if (vecino?.clienteNegocio) vecino = null;   // 4.3: los clientes de tu local no se charlan: E sobre el mostrador los atiende (ver obraQueTrabajaCerca)
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
@@ -10264,7 +10264,7 @@ function cuadroDelJuego(tRaf, manual) {
     let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
     if (charla.npc) aviso = null;
     else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
-    else if (vecino) aviso = { tecla: 'E', texto: (negocioJuego?.esCliente(vecino) && negocioJuego.avisoCliente(vecino)) || (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
+    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
     // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
     else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
     // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
