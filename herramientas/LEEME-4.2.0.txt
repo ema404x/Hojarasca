@@ -1,0 +1,75 @@
+﻿Hojarasca 4.2.0 — paquete completo
+==================================
+Hojarasca-4.2.0-Setup-x64.exe ............ instalador de Windows (64 bits)
+Hojarasca-4.2.0-Portable-x64.exe ......... versión portable: se abre sin instalar
+Hojarasca-4.2.0-Steam-depot-win64.zip .... carpeta del juego lista para el depot de Steam (Hojarasca.exe adentro)
+Hojarasca-4.2.0-codigo-fuente.zip ........ código fuente, con el juego ya armado (index.html)
+
+CÓMO SABER QUE ES ESTA VERSIÓN
+En la portada, abajo a la derecha, tiene que decir:   Hojarasca · 4.2.0 · build <huella>
+Si dice otra cosa, lo que se abrió es un juego anterior. Pasa cuando hay un Hojarasca viejo abierto (aunque esté minimizado): Windows no deja
+abrir dos y muestra el que ya estaba. Cerrá todos los «Hojarasca.exe» desde el Administrador de tareas (Ctrl+Mayús+Esc) y abrí el nuevo.
+
+QUÉ HAY DE NUEVO (jugá en modo RELAX)
+- LA CANTINA (3.9.0) al final de la calle de la Loma, con Lucrecia la moza (de 18 a 2), y LA PEÑA DE LOS SÁBADOS con Dalia la bailarina (3.9.1).
+  El banco del pueblo y la casa de té con más vida (3.9.2).
+- EL CREADOR DE BRUNO (4.1): al empezar una partida nueva elegís su aspecto y su historia (personalidad, oficio, gustos, hobby, virtud y
+  defecto). Hay un prólogo de 5 tarjetas que se puede saltar. Los rasgos tienen efecto en el abrigo, el trato con los vecinos, la pesca y el
+  cuaderno de cielo, y hay un guardarropa. Los textos de las tarjetas son una propuesta: decime cuáles cambiar.
+- MEJORAS VISUALES (4.0): faroles con halo y charcos de luz de noche en la aldea; la casa de té por dentro con faroles encendidos, fuego y
+  ventanas con paisaje; rayos de luz entre los árboles al atardecer, espuma en la orilla del lago y niebla de valle al amanecer; las mujeres
+  con busto propio y Dalia más escotada; caras, pelo y botas con más detalle.
+- EL MOLINO Y EL PUENTE REHECHOS (4.0): molino de piedra y madera con aspas de listones, puente con herrajes y faroles, y junto al molino un
+  campo de tulipanes en franjas, un arroyo con cascadita de rocas, cercos y una casa con galería.
+
+NOVEDADES DE LAS VERSIONES 4.0.1 A 4.2.0
+- Cantina y casa de té: el pedido ya no se cobra sin servirse. Creador de Bruno: si falla el 3D, entrás igual.
+- Casas en ladera, escalera de la torre de vigía, dinero que volvía mal al deshacer una casa, trochita, modo foto, fauna tras la pausa.
+- El molino: el campo de tulipanes ya no tapa el sendero; el arroyo sigue el suelo.
+- Ritmo automático: vuelve a 60 fps después de un momento pesado (antes se quedaba en 30).
+- Dalia: zapatos que apoyan y paso de baile más corto; borde de la blusa de las mujeres sin festoneado. Greta con la cara y el pelo pulidos.
+- Piedras con musgo (calidad media y alta).
+- EASTER EGGS (sólo Relax): una estrella fugaz con deseo, la yerba al pie de un coihue grande, un huemul blanco al amanecer con niebla, el
+  hueso que entierra el perro, un código secreto en la portada y la radio de madrugada. No se explican en el juego: a descubrirlos.
+
+NOVEDADES DE LA 4.2.0 (19-10)
+- Dalia: los zapatos de taco apoyan la punta y el taco juntos (no flotan) y la V del escote es de borde limpio.
+- Con la mesa larga llena, E te sienta en el banco libre en vez de hablar con quien come del otro lado.
+- Arreglos: con la estación en automático el paisaje ya no arranca en verano y pasa a invierno a la vista; el ratón en el banco de pruebas;
+  el aviso de Chela al bajar del tren; el diario juzga el pronóstico por lo que llovió después; la lagartija que huye por la loma.
+
+NOVEDADES DE LA 4.2 (19-10) — MÁS PARA CONSTRUIR Y MÁS USO DEL DINERO (jugá en modo RELAX)
+- EL PICO: para picar piedra hace falta el pico (tecla H frente a una roca). Se consigue de tres maneras: trueque en el almacén (3 cantos y 12 ramitas),
+  el herrero de la aldea lo forja (3 cantos y $300) o se compra en el almacén por $1.200. Picar piedra es a golpes (6 al empezar, 2 de Maestro) y
+  tiene su propio oficio, el PICAPEDRERO, que sube con el uso. El herrero también afila el pico.
+- LAS PIEZAS AHORA PUEDEN COSTAR PESOS: el menú de construcción muestra el precio de cada una («Vitrina de roble · $4.500») y avisa lo que te falta.
+- ~50 PIEZAS NUEVAS PARA CONSTRUIR:
+  · Ampliaciones de la casa (de $20.000 a $78.000): dormitorio anexo, despensa de piedra, taller anexo, quincho, galería cerrada, cocina ampliada,
+    bodega de piedra, buhardilla, salón grande, planta alta con escalera, torreón de piedra, gran hogar de piedra, y paredes de piedra y techo de teja.
+  · Edificios de oficio (de $18.000 a $42.000): cantería, carpintería, quesería, panadería de horno grande, tienda de campo, herrería propia,
+    telar grande y cervecería (Lucrecia compra los barriles y la cerveza de la cantina te sale más barata).
+  · Lujo y decoración (de $900 a $12.000, más las 5 del ejemplo): estantería de roble, sillón de cuero, cama con dosel, mesa de banquete, biombo,
+    candelabros, cuadros, gramola (con E suena música), estatua del baqueano, chimenea de salón, pérgola y más.
+  · Almacenaje con tope que se amplía con pesos: pila de piedra, depósito de piedra techado, barraca de materiales, silo y herramientero.
+    El acopio de siempre ahora guarda hasta 40 de cada material.
+  · Huerta, granja y exteriores: huerta en terrazas, establo, corral grande, cobertizo de heno, palomar, aljibe, pozo, tranquera, portón, puente de piedra,
+    pirca y camino empedrado.
+- Al armar una pieza, el juego avisa lo que te sobró.
+- El trueno de la lluvia fuerte ahora llega después de su destello.
+
+PARA MIRAR Y CONTARME (agregado)
+- Cómo suena la gramola y cómo se siente el golpe del pico (no se oyeron).
+- Los fps en la PC de escritorio con tantas piezas nuevas.
+- Los dos sonidos de la radio de madrugada (el tango y el Morse) no se escucharon a oído.
+- El prólogo y las tarjetas del creador de Bruno, que son una propuesta mía de textos.
+
+PARA MIRAR Y CONTARME (versión 4.0.0)
+- Si el juego anda parejo (60 fps) en tu PC con todo esto, sobre todo en la aldea y en el interior de la casa de té. No se midió todavía
+  en la Ryzen 5 4600G desde este paquete.
+- Si te gustan los rayos entre los árboles, el campo de tulipanes y el molino nuevo.
+- Los detalles que quedaron sueltos: zapatos de Dalia que parecen flotar, y el chamamé con la falda abierta.
+
+LO QUE NO ESTÁ
+- Armado sin firmar: el ícono, el nombre y la empresa que muestra Windows en Propiedades son los de Electron.
+- El inglés queda para el final: los textos nuevos están sólo en castellano.
+- El aplastado del pasto no entró (cuesta fps en la plaza).
