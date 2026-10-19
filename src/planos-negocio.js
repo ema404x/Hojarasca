@@ -171,7 +171,7 @@ export const PIEZAS_NEGOCIO = [
   // ================================================================ la panadería y cafetería
   {
     ...base, id: 'local-panaderia', nombre: 'Panadería y cafetería (tu local)', ...lleno(4.4, 3.6, 2.6), separacion: 0.6,
-    texto: 'Una panadería con horno de ladrillo a la vista, vitrina sobre el mostrador con el pan y las empanadas del día, estantes con dulces y miel, la caja y un toldo celeste. Con E la abrís, la surtís de tu mochila, fijás los precios y atendés vos a cada cliente: vecinas que vienen a merendar, hacheros con hambre, viajeros de la trochita. Si no estás, no se vende. Para extenderla: más tipos de local usan el mismo estante, la misma caja y los mismos clientes.',
+    texto: 'Una panadería con horno de ladrillo a la vista, el pan y las empanadas del día sobre el mostrador, estantes con dulces y miel, la caja y un toldo celeste. Con E la abrís, la surtís de tu mochila, fijás los precios y atendés vos a cada cliente: vecinas que vienen a merendar, hacheros con hambre, viajeros de la trochita. Si no estás, no se vende. Para extenderla: más tipos de local usan el mismo estante, la misma caja y los mismos clientes.',
     pide: { tabla: 44, tronco: 12, piedra: 24 }, pesos: 36000,
     fisica: fisicaLocal(4.4, 3.6),
     arma(c, P, datos) {
@@ -187,10 +187,7 @@ export const PIEZAS_NEGOCIO = [
       caja(c, 0.34, 1.4, 0.34, [-1.55, 2.4, 1.05], '#8a5238', { variar: 0.12 });
       caja(c, 0.05, 1.5, 0.05, [-0.95, 0.95, 0.5], MADERA, { tipo: 0, rot: [0, 0, 0.08] });
       caja(c, 0.3, 0.02, 0.26, [-0.95, 1.72, 0.5], MADERA, { tipo: 0 });
-      // la vitrina de vidrio sobre el mostrador (pan y empanadas quedan adentro) y un banquito con taza para los que meriendan
-      caja(c, 1.7, 0.02, 0.4, [0, 1.08, MOSTRADOR_Z(D)], '#9bb0b0', { tipo: 4, variar: 0.03 });
-      for (const sx of [-1, 1]) caja(c, 0.02, 0.28, 0.4, [sx * 0.85, 1.22, MOSTRADOR_Z(D)], '#9bb0b0', { tipo: 4, variar: 0.03 });
-      caja(c, 1.7, 0.02, 0.4, [0, 1.36, MOSTRADOR_Z(D)], '#9bb0b0', { tipo: 4, variar: 0.03 });
+      // los dos banquitos de la cafetería, a los costados del frente
       for (const sx of [-1, 1]) cil(c, 0.17, 0.19, 0.05, [sx * 1.9, 0.62, -1.25], MADERA, { lados: 8, tipo: 0, variar: 0.08 });
       for (const sx of [-1, 1]) cil(c, 0.04, 0.04, 0.6, [sx * 1.9, 0.32, -1.25], MADERA_OSCURA, { lados: 5, tipo: 0 });
       productos(c, 'local-panaderia', v);

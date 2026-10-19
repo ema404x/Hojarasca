@@ -150,7 +150,7 @@ export function crearNegocioJuego(ctx) {
           f.npc.camino = []; f.fase = 'espera'; f.cliente.listo = true;
           const c = f.cliente;
           ctx.nota?.(`${etiquetaDe(c)} en el mostrador`, `«${fraseDePedido(c)}»`, true);
-          ctx.sonido?.anotar?.();
+          ctx.sonido?.()?.anotar?.();
         }
       } else if (f.fase === 'va') {
         f.t += dt;
@@ -227,7 +227,7 @@ export function crearNegocioJuego(ctx) {
     if (r.nada) {
       ctx.nota?.('Se fue sin comprar', `No tenías nada de lo que pedía (${textoLista(r.faltan)}). Tené los estantes surtidos`, false);
     } else {
-      ctx.sonido?.juntar?.();
+      ctx.sonido?.()?.juntar?.();
       const falta = r.faltan.length ? ` Te faltó ${textoLista(r.faltan)}` : '';
       ctx.nota?.(`+${formatoPesos(r.total)} en la caja`, `Le diste ${textoLista(r.vendidos)}.${falta}`, true);
     }
@@ -281,13 +281,13 @@ export function crearNegocioJuego(ctx) {
     const acciones = el('div', 'negocio-acciones');
     acciones.append(
       boton(est.abierto ? 'Cerrar el local' : 'Abrir el local', tras((e) => { e.abierto = !e.abierto; if (!e.abierto) for (const c of [...cola.clientes]) { const f = c.figura; cola.clientes.splice(cola.clientes.indexOf(c), 1); if (f) sale(f, local()); } ctx.nota?.(e.abierto ? 'Abriste el local' : 'Cerraste el local', e.abierto ? `Los clientes empiezan a llegar. ${cuantasCosas(e, e.tipo) ? '' : 'Ojo: no tenés nada en los estantes'}` : 'El cartel dice cerrado: no entra nadie'); }), { clase: est.abierto ? '' : 'principal' }),
-      boton(est.caja > 0 ? `Retirar la caja (${formatoPesos(est.caja)})` : 'La caja está vacía', tras((e) => { const m = retirarCaja(P(), e); if (m > 0) { ctx.sonido?.juntar?.(); ctx.nota?.(`Retiraste ${formatoPesos(m)}`, 'Pasaron a tu billetera', true); } }), { activo: est.caja > 0 }),
-      boton('Surtir con todo lo que llevás', tras((e) => { const puesto = surtirTodo(e, env()); if (puesto.length) { ctx.sonido?.juntar?.(); ctx.nota?.('Surtiste los estantes', textoLista(puesto), true); } else ctx.nota?.('No hay qué poner', 'No llevás nada de lo que vende este local, o los estantes ya están llenos'); })),
+      boton(est.caja > 0 ? `Retirar la caja (${formatoPesos(est.caja)})` : 'La caja está vacía', tras((e) => { const m = retirarCaja(P(), e); if (m > 0) { ctx.sonido?.()?.juntar?.(); ctx.nota?.(`Retiraste ${formatoPesos(m)}`, 'Pasaron a tu billetera', true); } }), { activo: est.caja > 0 }),
+      boton('Surtir con todo lo que llevás', tras((e) => { const puesto = surtirTodo(e, env()); if (puesto.length) { ctx.sonido?.()?.juntar?.(); ctx.nota?.('Surtiste los estantes', textoLista(puesto), true); } else ctx.nota?.('No hay qué poner', 'No llevás nada de lo que vende este local, o los estantes ya están llenos'); })),
       boton('Sacar toda la mercadería', tras((e) => { const sacado = []; for (const k of Object.keys(e.stock)) { const n = sacarDelEstante(e, k); if (n > 0) { ctx.dar(k, n); sacado.push({ k, n }); } } if (sacado.length) ctx.nota?.('Sacaste la mercadería', textoLista(sacado)); }), { activo: unidadesEnEstantes(est) > 0 }),
     );
     raiz.append(acciones);
     const lista = el('div', 'negocio-lista');
-    const cab = el('div', 'negocio-fila negocio-cab'); cab.append(el('span', '', 'Producto'), el('span', '', 'En el estante'), el('span', '', 'Surtir'), el('span', '', 'Precio de cada uno'));
+    const cab = el('div', 'negocio-fila negocio-cab'); cab.append(el('span', '', 'Producto'), el('span', '', 'Estante'), el('span', '', 'Surtir'), el('span', '', 'Precio de cada uno'));
     lista.append(cab);
     for (const f of filasDelPanel(est, tipo, { tengo: (k) => ctx.tengo(k) })) {
       const fila = el('div', 'negocio-fila' + (f.hay === 0 ? ' vacio' : ''));
@@ -295,8 +295,8 @@ export function crearNegocioJuego(ctx) {
       const cantidad = el('span', 'negocio-cant', f.hay === 0 ? `vacío (cabe ${f.tope})` : `${f.hay} de ${f.tope}`);
       const surtido = el('span', 'negocio-surtir');
       surtido.append(
-        boton(`+${f.lote}`, tras((e) => { const n = surtir(e, f.k, f.lote, env()); if (n) ctx.sonido?.juntar?.(); else ctx.nota?.('No se pudo surtir', f.enMano <= 0 ? `No llevás ${nombreUnidad(f.k, 2)}` : 'El estante ya está lleno'); }), { activo: f.enMano > 0 && f.hay < f.tope, titulo: `Dejar ${f.lote} en el estante` }),
-        boton('Llenar', tras((e) => { const n = surtir(e, f.k, 1e5, env()); if (n) ctx.sonido?.juntar?.(); }), { activo: f.enMano > 0 && f.hay < f.tope, titulo: 'Dejar todo lo que llevás, hasta el tope' }),
+        boton(`+${f.lote}`, tras((e) => { const n = surtir(e, f.k, f.lote, env()); if (n) ctx.sonido?.()?.juntar?.(); else ctx.nota?.('No se pudo surtir', f.enMano <= 0 ? `No llevás ${nombreUnidad(f.k, 2)}` : 'El estante ya está lleno'); }), { activo: f.enMano > 0 && f.hay < f.tope, titulo: `Dejar ${f.lote} en el estante` }),
+        boton('Llenar', tras((e) => { const n = surtir(e, f.k, 1e5, env()); if (n) ctx.sonido?.()?.juntar?.(); }), { activo: f.enMano > 0 && f.hay < f.tope, titulo: 'Dejar todo lo que llevás, hasta el tope' }),
         boton('Sacar', tras((e) => { const n = sacarDelEstante(e, f.k); if (n) ctx.dar(f.k, n); }), { activo: f.hay > 0, titulo: 'Volver a guardar lo del estante' }),
       );
       const precios = el('span', 'negocio-precios');
@@ -342,13 +342,16 @@ export function crearNegocioJuego(ctx) {
     abrirPanel(o);
     return true;
   }
-  const esCliente = (npc) => !!npc && figuras.some((f) => f.npc === npc && f.cliente);
+  // (cualquiera de las tres figuras: el que ya se está yendo con su compra tampoco se puede parar a charlar: E sigue siendo atender)
+  const esCliente = (npc) => !!npc && !!npc.clienteNegocio && figuras.some((f) => f.npc === npc);
   const avisoCliente = (npc) => {
-    const f = figuras.find((x) => x.npc === npc && x.cliente);
+    const f = figuras.find((x) => x.npc === npc);
     if (!f) return 'Hablar';
-    return f.cliente.listo ? `Atender: ${textoLista(f.cliente.pide)}` : `${etiquetaDe(f.cliente)} viene al mostrador`;
+    if (f.cliente) return f.cliente.listo ? `Atender: ${textoLista(f.cliente.pide)}` : `${etiquetaDe(f.cliente)} viene al mostrador`;
+    const sig = primeroEnLaCola(cola);
+    return sig ? `Atender: ${textoLista(sig.pide)}` : 'Se va con su compra';
   };
-  function atenderA(npc) { const f = figuras.find((x) => x.npc === npc && x.cliente); return f ? atender(f.cliente) : false; }
+  function atenderA(npc) { const f = figuras.find((x) => x.npc === npc); return f ? atender(f.cliente || undefined) : false; }
   // Al desarmar una obra (la llama devolverContenido de main.js con los datos de la obra): si era el local activo, todo vuelve a vos
   function alDesarmar(d) {
     const est = estado();
