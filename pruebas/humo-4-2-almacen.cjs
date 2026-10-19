@@ -121,6 +121,8 @@ const PAGINA = String.raw`(() => {
   // dejar un almacén en un estado (para las capturas) y rehacer su malla
   A.estado = (o, n, g) => { o.datos.almacen = { n, g }; O.rehacer(o); return 1; };
   A.mochila = () => ({ ...P.materiales });
+  // parado en un punto de la obra (x a lo ancho, z al fondo, en coordenadas de la obra): cuánto se levanta del suelo
+  A.alturaEn = (o, lx, lz) => { const r = o.datos.rot || 0, x = o.datos.x + lx * Math.cos(r) + lz * Math.sin(r), z = o.datos.z - lx * Math.sin(r) + lz * Math.cos(r); J.ubicar(x, z, 0); for (let i = 0; i < 24; i++) { J.actualizar(0.05); H.__bucle(); } return +(J.estado.pos.y - T.altura(x, z)).toFixed(2); };
   A.guardadoEn = () => Object.keys(localStorage).map((k) => localStorage.getItem(k)).filter((v) => v && v.includes('"almacen"')).map((v) => /"almacen":(\{[^}]*\{[^}]*\}[^}]*\})/.exec(v)?.[1] || 'sin');
   return 1;
 })()`;
@@ -309,6 +311,7 @@ app.whenReady().then(async () => {
     o = await A('(()=>{ const o = A.construir("barraca", "Barraca de materiales", { plata: 60000, mats: { piedra: 99, tabla: 99, tronco: 99, lana: 20 }, extraAtras: 0 }); return o ? 1 : 0 })()');
     ok(o === 1, 'Y arma la barraca');
     ok((await A('A.pesos()')) === 48000, `cobró $12.000 (quedan ${await A('A.pesos()')})`);
+    { const piso = await A('A.alturaEn(A.ultima(), 0, 0.2)'); ok(piso > 0.25 && piso < 0.45, `el piso de la barraca se pisa: el cuerpo queda ${piso} m arriba del suelo (el escalón de 0,35)`); }
     await A('(A.materiales({ tronco: 50, tabla: 12, piedra: 18, lana: 5 }), A.frente(A.ultima(), 3.0), A.limpiarNotas(), A.cuadros(3), 1)');
     ok(/Guardar en la barraca/.test(await A('A.aviso()')), `el aviso a 3 m del frente: «${await A('A.aviso()')}»`);
     await A('A.tecla("KeyE")'); await esperar(200);
@@ -436,6 +439,9 @@ app.whenReady().then(async () => {
       await A(`(A.materiales({}), A.limpiarNotas(), 1)`);
       await verObra(`${String(20 + k++)}-${id}`, dist, alto, mira, dx);
     }
+    // el puente de piedra se cruza: el tablero a 1,05 m, los escalones a 0,70 y 0,35
+    { const q = await A('({ tablero: A.alturaEn(O.obras.find((o) => o.plano.id === "puente-piedra"), 0, 0), esc2: A.alturaEn(O.obras.find((o) => o.plano.id === "puente-piedra"), 1.95, 0), esc1: A.alturaEn(O.obras.find((o) => o.plano.id === "puente-piedra"), 2.65, 0) })');
+      ok(q.tablero > 0.9 && q.tablero < 1.2 && q.esc2 > 0.55 && q.esc2 < 0.85 && q.esc1 > 0.2 && q.esc1 < 0.5, `el puente de piedra se sube por los escalones y se cruza: tablero ${q.tablero}, escalones ${q.esc2} y ${q.esc1} m`); }
     // las que chocan, chocan (el cuerpo no las atraviesa); el camino se pisa
     const camino = await A('(()=>{ const o = O.obras.find((q) => q.plano.id === "camino-empedrado"); const J = H.jugador; const x0 = o.datos.x, z0 = o.datos.z; J.ubicar(x0, z0, 0); for (let i = 0; i < 6; i++) { J.actualizar(0.05); H.__bucle(); } return Math.hypot(J.estado.pos.x - x0, J.estado.pos.z - z0) < 0.5 ? "pisa" : "choca" })()');
     ok(camino === 'pisa', 'el camino empedrado se pisa (no choca)');
