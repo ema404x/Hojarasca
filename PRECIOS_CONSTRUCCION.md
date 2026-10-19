@@ -14,7 +14,7 @@ Con todo comprado, la plata se acumula sin uso. Un jugador goloso junta unos **$
 | Mueble bueno | **$800 a $3.000** | menos de 1 | alfombra tejida grande $2.400 |
 | Lujo | **$4.000 a $20.000** | 1 a 6 | vitrina de roble $4.500, araña de velas $6.500, reloj de pie $9.000, fuente de piedra $14.000 |
 | Edificio de oficio (taller, molino, fragua, algo que trabaja) | **$15.000 a $60.000** | 5 a 19 | (por hacer) |
-| Ampliación de casa (cuarto, galería, planta alta) | **$20.000 a $80.000** | 6 a 25 | (por hacer) |
+| Ampliación de casa (cuarto, galería, planta alta) | **$20.000 a $80.000** | 6 a 25 | dormitorio anexo $20.000, cocina ampliada $32.000, planta alta con escalera $64.000, torreón de piedra $78.000 (las once: `CAMBIOS_4_2_AMPLIAR.md`) |
 | Las tres casas (terreno y mano de obra, ya existentes) | $36.000 / $66.000 / $110.000 | 11 / 21 / 34 | cabaña, casa con galería, casona |
 
 Reglas para elegir el número dentro del rango:

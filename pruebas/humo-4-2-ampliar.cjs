@@ -72,6 +72,7 @@ const PAGINA = String.raw`(() => {
   // levanta un plano entero (todas sus etapas) con materiales de sobra, sin cobrar: para ver cómo queda
   A.levantar = (id, s) => {
     const pl = H.PLANOS.find((p) => p.id === id);
+    H.veg.despejar(s.x, s.z, 12);   // (un claro para la cámara)
     O.elegir(pl);
     const f = O.fundar(s.x, s.z, 0, T.altura(s.x, s.z));
     if (!f.ok) return 'no funda: ' + f.motivo;
@@ -120,6 +121,28 @@ const PAGINA = String.raw`(() => {
     return 1;
   };
   A.sinCamara = () => { delete H.__camaraFija; return 1; };
+  // una habitación modular: piso, tres paredes de piedra y una con puerta, y el techo de teja encima (como se arma de verdad: encastrando sobre el piso)
+  A.modular = (s) => {
+    const m = { tronco: 9999, tabla: 9999, piedra: 9999, lana: 9999 };
+    const lev = (id, x, z, rot, y) => {
+      const pl = H.PLANOS.find((p) => p.id === id);
+      O.elegir(pl);
+      const f = O.fundar(x, z, rot, y);
+      if (!f.ok) return id + ': ' + f.motivo;
+      while (f.obra.datos.etapas < pl.etapas.length) O.avanzar(f.obra, m);
+      return null;
+    };
+    H.veg.despejar(s.x, s.z, 12);   // (un claro para la cámara: los árboles de alrededor tapaban la toma)
+    const y0 = T.altura(s.x, s.z);
+    let e = lev('piso-modular', s.x, s.z, 0, y0);
+    if (e) return e;
+    const top = O.obras.at(-1).datos.y + 0.285;
+    for (const [id, dx, dz, rot] of [['pared-piedra', 0, 1.5, 0], ['pared-piedra', 0, -1.5, 0], ['pared-piedra', 1.5, 0, Math.PI / 2], ['pared-puerta', -1.5, 0, Math.PI / 2]]) { e = lev(id, s.x + dx, s.z + dz, rot, top); if (e) return e; }
+    e = lev('techo-teja', s.x, s.z, 0, top + 2.26);
+    if (e) return e;
+    P.obras = O.obras.map((o) => o.datos);
+    return 'ok';
+  };
   A.triangulos = () => { const o = O.obras.at(-1); return o && o.malla ? (o.malla.geometry.index ? o.malla.geometry.index.count / 3 : o.malla.geometry.attributes.position.count / 3) : -1; };
   return 1;
 })()`;
@@ -254,6 +277,25 @@ app.whenReady().then(async () => {
         await foto(`${id}-${nombre}`);
       }
       await A('A.sinCamara()');
+    }
+    // la habitación modular con paredes de piedra y techo de teja
+    if (!solo.length || solo.includes('techo-teja')) {
+      await A('A.limpiar()');
+      const s = await A('A.sitioGrande("piso-modular", 3, 22, 0.1)');
+      ok(!!s, 'techo-teja: hay un lugar llano para el módulo');
+      if (s) {
+        const r = await A(`A.modular(${JSON.stringify(s)})`);
+        ok(r === 'ok', `techo-teja: la habitación modular (piso, tres paredes de piedra, una con puerta y el techo de teja) se levanta (${r})`);
+        if (r === 'ok') {
+          await js("(() => { if (!document.getElementById('fx-hud')) { const e = document.createElement('style'); e.id = 'fx-hud'; e.textContent = '#hud { display: none !important }'; document.head.appendChild(e); } return 1 })()");
+          // (las alturas van desde la base del techo, que está a 2,55 m del suelo)
+          for (const [nombre, cam, mira] of [['ext-frente', [-5.5, 0.85, -6.2], [0, -0.65, 0]], ['ext-fondo', [5.2, 1.05, 5.8], [0, -0.65, 0]], ['int', [-0.9, -0.65, -1.0], [0.8, -1.5, 1.0]]]) {
+            await A(`A.camLocal(${JSON.stringify(cam)}, ${JSON.stringify(mira)})`);
+            await foto(`techo-teja-${nombre}`);
+          }
+          await A('A.sinCamara()');
+        }
+      }
     }
     if (!sinTeclas) await seccionTeclas();
     ok(errores.length === 0, `sin errores en la consola${errores.length ? ': ' + errores.slice(0, 3).join(' | ') : ''}`);

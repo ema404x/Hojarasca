@@ -21,7 +21,7 @@ import { sueloMin } from './calces.js';
 import { AYUDAS_CASAS } from './planos-casas.js';
 import { AYUDAS_MUEBLES } from './planos-muebles.js';
 
-const { casa, medidas, fisicaDe, etapaTecho, etapaPiso, caja, cilindro, triangulo, ventana, mesa, alfombra, repisa, hogar, PISO_Y, Y0, PUERTA, ALTO_PUERTA, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED } = AYUDAS_CASAS;
+const { casa, medidas, fisicaDe, etapaTecho, etapaPiso, caja, triangulo, ventana, mesa, alfombra, repisa, hogar, PISO_Y, Y0, PUERTA, ALTO_PUERTA, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED } = AYUDAS_CASAS;
 const { cil, hs, HIERRO, BRONCE, PAPEL, TABLA_CLARA, VIDRIO } = AYUDAS_MUEBLES;
 
 const TABLAS_PARED = ['#786047', '#81684d', '#745c43'];
@@ -33,8 +33,8 @@ const T_PIEDRA = 0.3;                  // el grueso de los muros de piedra
 
 // ---------------------------------------------------------------- paredes
 // Una pared recta: `eje` 'x' (corre a lo largo de x, en z = `fijo`) o 'z', de `s0` a `s1`. `alto(u)` da la altura sobre Y0 en cada
-// punto (u de 0 a largo): así sirve para una pared pareja, un frontón o un techo de una agua. `huecos`: [{ u0, u1, h }] pasos libres
-// hasta la altura h (la puerta). De tablas paradas o de piedra hilada.
+// punto (u de 0 a largo): así sirve para una pared pareja, un frontón o un techo de una agua. `huecos`: [{ u0, u1, h, y0? }] pasos libres
+// de la altura y0 (0 si falta) a la altura h (la puerta; en la planta alta, también la del balcón). De tablas paradas o de piedra hilada.
 function muro(c, eje, fijo, s0, s1, alto, o = {}) {
   const { y0 = Y0, t = 0.1, piedra = false, huecos = [], semilla = 0, tabla = 0.46, desde = 0 } = o;   // `desde`: sólo las hiladas que están sobre esa cota (la planta de arriba de una torre)
   const largo = s1 - s0;
@@ -91,9 +91,8 @@ function marcoPuerta(c, zc) {
   for (const sx of [-1, 1]) caja(c, 0.14, 1.82, 0.17, [sx * (PUERTA / 2 + 0.07), 1.50, zc], MADERA_OSCURA, { tipo: 0 });
   caja(c, PUERTA + 0.28, 0.14, 0.17, [0, 2.42, zc], MADERA_OSCURA, { tipo: 0 });
 }
-const HUECO_PUERTA = { u0: 0, u1: 0, h: ALTO_PUERTA - Y0 };
 // el hueco de la puerta (centrada en x = 0) para una pared que corre en x de -W/2 a W/2
-const huecoDePuerta = (W) => ({ u0: W / 2 - PUERTA / 2, u1: W / 2 + PUERTA / 2, h: HUECO_PUERTA.h });
+const huecoDePuerta = (W) => ({ u0: W / 2 - PUERTA / 2, u1: W / 2 + PUERTA / 2, h: ALTO_PUERTA - Y0 });
 
 // los postes de las esquinas
 function postesEsquina(c, W, D, alto, y0 = Y0) {
