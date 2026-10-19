@@ -1408,7 +1408,7 @@ export function crearAldeaGente(ctx) {
       const vis = visitanteDelDia(v, d, { ritmo: ritmo(), lugares: ctx.lugaresVisita?.() || [], semilla: aldea().descubierta });
       if (vis) {
         const def = visitanteDef(vis.id);
-        ctx.nota(`Bajó un visitante en la ${NOMBRE_ALDEA}`, `${def.nombre}, ${def.de}, pregunta por ${LUGARES_VISITA[vis.lugar].nombre}`, true);
+        ctx.nota(`Bajó un visitante en la ${NOMBRE_ALDEA}`, `${def.nombre}, ${def.de}, ${def.plural ? 'preguntan' : 'pregunta'} por ${LUGARES_VISITA[vis.lugar].nombre}`, true);
         ctx.guardar();
       }
     }
@@ -1436,8 +1436,8 @@ export function crearAldeaGente(ctx) {
         const g = guiado(v, d);
         const tx = textosVisitante(vis);
         if (g && tx) {
-          ctx.nota(`Llevaste a ${tx.nombre} hasta ${LUGARES_VISITA[vis.lugar].nombre}`, 'Queda anotado en el cuaderno, en «Visitantes que guiaste»', true);
-          ctx.decir?.(`${tx.nombre}: ${tx.gracias[0]}`);
+          ctx.nota(`Llevaste a ${tx.corto} hasta ${LUGARES_VISITA[vis.lugar].nombre}`, 'Queda anotado en el cuaderno, en «Visitantes que guiaste»', true);
+          ctx.decir?.(`${tx.corto}: ${tx.gracias[0]}`);
           decirHasta = performance.now() + 6000;
           ctx.sonido?.anotar?.();
           ctx.alGuiar?.(g);
@@ -1472,9 +1472,9 @@ export function crearAldeaGente(ctx) {
     const v = vida(), tx = textosVisitante(v.visitante);
     if (!tx || !despedirVisitante(v)) return;
     if (npc) npc.enCita = false;
-    ctx.decir?.(`${tx.nombre}: ${tx.chau}`);
+    ctx.decir?.(`${tx.corto}: ${tx.chau}`);
     decirHasta = performance.now() + 7000;
-    ctx.nota(`${tx.nombre} se vuelve a la estación`, 'Otro día, otro visitante', false);
+    ctx.nota(`${tx.corto} se vuelve a la estación`, 'Otro día, otro visitante', false);
     ctx.guardar();
   }
   function charlaVisitante(npc) {
@@ -1483,7 +1483,7 @@ export function crearAldeaGente(ctx) {
     if (!tx) return { id: 'visitante', partes: ['Gracias, ya me arreglo solo.'], tipo: 'llegada' };
     if (v.estado === 'anden') {
       return { id: 'visitante', partes: tx.pide, seguir: tx.seguir, tipo: 'llegada',
-        alTerminar: () => { if (empezarGuia(vida())) { ctx.nota(`${tx.nombre} te sigue`, `Llevalo hasta ${LUGARES_VISITA[v.lugar].nombre}`, true); npc.enCita = true; ctx.guardar(); } } };
+        alTerminar: () => { if (empezarGuia(vida())) { ctx.nota(`${tx.corto} te sigue`, `${tx.lleva} hasta ${LUGARES_VISITA[v.lugar].nombre}`, true); npc.enCita = true; ctx.guardar(); } } };
     }
     // (3.8.6: y con Escape, «Hasta acá»: se despide y vuelve a la estación)
     if (v.estado === 'guiando') return { id: 'visitante', partes: [tx.yendo], seguir: tx.seguirGuia, tipo: 'llegada', alEscape: () => despedir(npc) };

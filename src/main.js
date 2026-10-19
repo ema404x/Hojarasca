@@ -417,7 +417,7 @@ presupuestoLuces.activar();
 // la mano (antes el clic derecho comía, prendía la linterna o sacaba la caña con la hora congelada,
 // y el izquierdo atacaba en el Desafío o tiraba la línea), como E, F y O desde la 3.5.1
 window.addEventListener('wheel', (e) => {
-  if (modo !== 'jugando' || mochilaAbierta || foto.activo) return;
+  if (modo !== 'jugando' || mochilaAbierta || foto.activo || banco.activa) return;   // 4.0.5 (G15): en el banco de pruebas el mouse no es tuyo
   if (charla.menu) { moverMenuCharla(e.deltaY > 0 ? 1 : -1); return; }   // 3.6 (vida): el menú de la charla
   if (listaHudAbierta()) { marcarHud(e.deltaY > 0 ? 1 : -1); return; }   // 3.6.2: la marca del almacén, la feria o las cargas
   if (modoObra && obras) {
@@ -430,7 +430,7 @@ window.addEventListener('wheel', (e) => {
 window.addEventListener('contextmenu', (e) => { if (modo === 'jugando') e.preventDefault(); });
 // botón derecho: usar lo que tenés en la mano
 window.addEventListener('mousedown', (e) => {
-  if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta || foto.activo) return;
+  if (e.button !== 2 || modo !== 'jugando' || mochilaAbierta || foto.activo || banco.activa) return;   // 4.0.5 (G15): ni el clic derecho (comía o prendía la linterna a mitad de la medición)
   e.preventDefault();
   // Desafío: con la lanza, el clic derecho sostenido bloquea; la pistola mejorada dispara cargado
   const id = ranuras[elegida]?.id;
@@ -453,7 +453,7 @@ window.addEventListener('mouseup', (e) => {
 window.addEventListener('blur', () => { if (desafio?.bloqueando) desafio.bloquear(false); desafio?.cancelarTension?.(); });
 // Desafío: clic izquierdo ataca con el arma en la mano (la caña de pescar conserva su clic)
 window.addEventListener('mousedown', (e) => {
-  if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo) return;
+  if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo || banco.activa) return;
   if (panelDelHudAbierto()) return;   // 3.6.2: con el taller (o el almacén del valle) abierto, el clic no ataca
   if (charla.npc) return;   // 3.8.3: charlando, el clic sigue la charla (también tensaba el arco o pegaba, y gastaba munición)
   if (!jugador?.bloqueado() || pesca?.est.equipada) return;
@@ -898,8 +898,11 @@ async function construir() {
   // 3.8.6: el cuerpo (el frío de una noche sin fuego, el descanso de la casa o de la enfermera) sigue después de recargar
   if (progreso.cuerpo) { jugador.estado.entumecido = progreso.cuerpo.entumecido || 0; jugador.estado.descansado = progreso.cuerpo.descansado || 0; }
 
-  U.uOtono.value = ajustes.estacion === 'otono' ? 1 : 0;
-  U.uInvierno.value = ajustes.estacion === 'invierno' ? 1 : 0;
+  // 4.0.5 (F7): con la estación en «auto» se arranca ya en la de la fecha de la partida (antes se empezaba en verano y se pasaba al
+  // otoño o al invierno a la vista en los primeros segundos después de cargar)
+  { const e0 = ajustes.estacion === 'auto' ? estacionObjetivo() : null;
+    U.uOtono.value = e0 ? e0.oto : (ajustes.estacion === 'otono' ? 1 : 0);
+    U.uInvierno.value = e0 ? e0.inv : (ajustes.estacion === 'invierno' ? 1 : 0); }
 
   await paso('Afinando los sonidos del bosque', 94, async () => {
     // 2.7.4: los materiales piden sus texturas al compilarse: que ya estén
@@ -3053,7 +3056,7 @@ $('victoria-copiar').addEventListener('click', async () => {
 });
 $('cerrar-cuaderno').addEventListener('click', volverAlJuego);
 $('cerrar-mapa').addEventListener('click', volverAlJuego);
-lienzo.addEventListener('click', () => { if (jugador && modo === 'jugando' && !jugador.bloqueado()) jugador.pedirBloqueo(); });
+lienzo.addEventListener('click', () => { if (jugador && modo === 'jugando' && !banco.activa && !jugador.bloqueado()) jugador.pedirBloqueo(); });   // 4.0.5 (G15): durante el banco el clic no bloquea el mouse
 
 // ------------------------------------------------------------------ acciones del jugador
 let pedirFoto = false;
@@ -9329,6 +9332,17 @@ let opacidadMiraPuesta = '';   // 2.6.1: la mira sólo se toca cuando cambia
 let cantada = false;
 let edificios = [];
 const DIAS_ANIO = 12;
+// 4.0.5: a qué estación va el cielo y el paisaje ahora (oto e inv de 0 a 1); la misma cuenta para cada cuadro y para el arranque
+function estacionObjetivo() {
+  let oto = ajustes.estacion === 'otono' ? 1 : 0, inv = ajustes.estacion === 'invierno' ? 1 : 0;
+  if (ajustes.estacion === 'auto') {
+    const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
+    // verano · otoño · invierno, con una transición que dura casi un día entero
+    oto = smoothstep(0.30, 0.40, fase) * (1 - smoothstep(0.63, 0.73, fase));
+    inv = smoothstep(0.63, 0.73, fase) * (1 - smoothstep(0.96, 1.0, fase));
+  }
+  return { oto, inv };
+}
 function nombreEstacion() {
   if (ajustes.estacion !== 'auto') return { verano: 'Verano', otono: 'Otoño', invierno: 'Invierno' }[ajustes.estacion] || 'Verano';
   if (U.uInvierno.value > 0.5) return 'Invierno';
@@ -9548,13 +9562,7 @@ function cuadroDelJuego(tRaf, manual) {
   U.uTiempo.value += dt;
 
   // estaciones con transición suave; en modo automático avanzan con los días
-  let oto = ajustes.estacion === 'otono' ? 1 : 0, inv = ajustes.estacion === 'invierno' ? 1 : 0;
-  if (ajustes.estacion === 'auto') {
-    const fase = (((progreso.dia - 1 + progreso.horas / 24) % DIAS_ANIO) + DIAS_ANIO) % DIAS_ANIO / DIAS_ANIO;
-    // verano · otoño · invierno, con una transición que dura casi un día entero
-    oto = smoothstep(0.30, 0.40, fase) * (1 - smoothstep(0.63, 0.73, fase));
-    inv = smoothstep(0.63, 0.73, fase) * (1 - smoothstep(0.96, 1.0, fase));
-  }
+  const { oto, inv } = estacionObjetivo();
   U.uOtono.value = lerp(U.uOtono.value, oto, 1 - Math.exp(-dt * 1.5));
   U.uInvierno.value = lerp(U.uInvierno.value, inv, 1 - Math.exp(-dt * 1.5));
   if (Math.abs(U.uOtono.value - oto) < 0.01) U.uOtono.value = oto;

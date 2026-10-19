@@ -1171,6 +1171,7 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
         l.huyendo = 1.6;
         l.pos.x += Math.sin(l.rumbo) * 0.6;
         l.pos.z += Math.cos(l.rumbo) * 0.6;
+        l.pos.y = T.altura(l.pos.x, l.pos.z) + 0.35;   // 4.0.5 (F9): corrida de lugar, apoya en el suelo de ahí (antes quedaba a la altura de la piedra y flotaba o se hundía en la loma)
       } else {
         l.t -= dt;
         if (l.t <= 0) { l.t = 2 + r() * 4; l.rumbo += (r() - 0.5) * 1.6; }

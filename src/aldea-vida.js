@@ -212,7 +212,7 @@ export function sanearVidaAldea(v0, hoy = null) {
 // siguen; al llegar te dan las gracias y el lugar queda anotado en el cuaderno («Visitantes que guiaste»).
 // Uno por vez, y como mucho uno por día (la chance de cada día la da el ritmo de la aldea).
 export const VISITANTES = [
-  { id: 'lena', nombre: 'Lena', de: 'una mochilera de Hamburgo', tipo: 'mochilera',
+  { id: 'lena', nombre: 'Lena', genero: 'f', de: 'una mochilera de Hamburgo', tipo: 'mochilera',
     colores: { ropa: '#c85a3a', abrigo: '#3a5a7a', gorro: 'gorro', pelo: '#d8b878', bufanda: '#e8d8b0' },
     saludo: 'Hola. Perdón mi castellano: lo aprendí en un libro y en tres colectivos.', despedida: 'Danke! Gracias, digo.' },
   { id: 'tomas', nombre: 'Tomás', de: 'un mochilero de Rosario', tipo: 'mochilero',
@@ -221,13 +221,13 @@ export const VISITANTES = [
   { id: 'kenji', nombre: 'Kenji', de: 'un fotógrafo de Osaka', tipo: 'turista',
     colores: { ropa: '#2e2e3a', abrigo: '#8a8a7a', gorro: 'gorro', pelo: '#1a1614' },
     saludo: 'Buenas tardes. Muy lindo valle. Muy lindo tren pequeño.', despedida: 'Muchas gracias. Arigatō.' },
-  { id: 'chela', nombre: 'Chela y Rubén', de: 'un matrimonio de jubilados de Mar del Plata', tipo: 'turistas',
+  { id: 'chela', nombre: 'Chela y Rubén', corto: 'Chela', genero: 'f', plural: true, de: 'un matrimonio de jubilados de Mar del Plata', tipo: 'turistas',
     colores: { ropa: '#a87a9a', abrigo: '#5a4a6a', gorro: 'sombrero', pelo: '#c8c0b8', bufanda: '#e0d0c0' },
     saludo: 'Hola, querido. Rubén se quedó en el tren discutiendo con el guarda. Yo me adelanto.', despedida: 'Gracias, querido. Rubén te manda saludos, aunque no te conoce.' },
   { id: 'mateo', nombre: 'Mateo', de: 'un estudiante de geología de Córdoba', tipo: 'mochilero',
     colores: { ropa: '#7a6a3a', abrigo: '#4a3a2a', gorro: 'boina', pelo: '#5a3a22' },
     saludo: 'Hola. ¿Sabías que estas piedras tienen como diez millones de años? Perdón, me emociono.', despedida: 'Gracias. Te debo una piedra linda.' },
-  { id: 'ana', nombre: 'Ana', de: 'una maestra de Neuquén de vacaciones', tipo: 'turista',
+  { id: 'ana', nombre: 'Ana', genero: 'f', de: 'una maestra de Neuquén de vacaciones', tipo: 'turista',
     colores: { ropa: '#5a7a8a', abrigo: '#3a4a5a', gorro: null, pelo: '#4a2e1e', bufanda: '#c8a868' },
     saludo: 'Buen día. Les voy a mostrar fotos de esto a mis alumnos y no me lo van a creer.', despedida: 'Gracias. Les voy a contar a los chicos que me guió un vecino del valle.' },
 ];
@@ -277,7 +277,9 @@ export function textosVisitante(v) {
   const def = visitanteDef(v?.id), l = LUGARES_VISITA[v?.lugar];
   if (!def || !l) return null;
   return {
-    nombre: def.nombre, de: def.de, saludo: def.saludo, despedida: def.despedida,
+    nombre: def.nombre, de: def.de,
+    // 4.0.5 (E8): cómo se nombra al que de verdad está con vos (Chela y Rubén: sólo Chela baja del tren) y el «llevalo» según quién sea
+    corto: def.corto || def.nombre, lleva: def.genero === 'f' ? 'Llevala' : 'Llevalo', saludo: def.saludo, despedida: def.despedida,
     // (el saludo lo dice al hablarle, como todos: acá, lo que pide)
     pide: [l.pide, `¿Me llevarías hasta ${l.nombre}? Te sigo, prometo no perderme.`],
     seguir: 'E: vamos · Escape: ahora no',
