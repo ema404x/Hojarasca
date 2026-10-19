@@ -13,7 +13,7 @@ Con todo comprado, la plata se acumula sin uso. Un jugador goloso junta unos **$
 | Pieza común (la que ya había: bancos, cercos, mesas, camas simples, senderos) | **sin pesos** | — | todo lo viejo |
 | Mueble bueno | **$800 a $3.000** | menos de 1 | alfombra tejida grande $2.400 |
 | Lujo | **$4.000 a $20.000** | 1 a 6 | vitrina de roble $4.500, araña de velas $6.500, reloj de pie $9.000, fuente de piedra $14.000 |
-| Edificio de oficio (taller, molino, fragua, algo que trabaja) | **$15.000 a $60.000** | 5 a 19 | (por hacer) |
+| Edificio de oficio (taller, molino, fragua, algo que trabaja) | **$15.000 a $60.000** | 5 a 19 | herrería propia $32.000, cervecería $42.000, telar grande $36.000, panadería de horno grande $27.000, tienda de campo $30.000, quesería $24.000, carpintería $22.000, cantería $18.000 (ver CAMBIOS_4_2_OFICIOS.md) |
 | Ampliación de casa (cuarto, galería, planta alta) | **$20.000 a $80.000** | 6 a 25 | (por hacer) |
 | Las tres casas (terreno y mano de obra, ya existentes) | $36.000 / $66.000 / $110.000 | 11 / 21 / 34 | cabaña, casa con galería, casona |
 

@@ -225,14 +225,18 @@ export const factorRemo = (n) => 1 + 0.04 * nv(n);
 // guarda (`resto`) y se suma en la próxima, así el 5% de una etapa chica no se pierde.
 const AHORRO = [0, 0.05, 0.10, 0.15, 0.20, 0.25];
 export const porcentajeAhorro = (n) => AHORRO[nv(n)];
-export function ahorroDeObra(pide, n, resto = {}) {
-  const pct = AHORRO[nv(n)];
+// 4.2: `extraMadera` (la carpintería propia): un tanto más de lo que sobra, sólo de tablas y troncos
+export function ahorroDeObra(pide, n, resto = {}, extraMadera = 0) {
+  const base = AHORRO[nv(n)];
+  const extra = Math.max(0, Math.min(0.5, Number(extraMadera) || 0));
   const devuelve = {};
   const nuevoResto = { ...resto };
-  if (pct <= 0 || !pide || typeof pide !== 'object') return { devuelve, resto: nuevoResto };
+  if ((base <= 0 && extra <= 0) || !pide || typeof pide !== 'object') return { devuelve, resto: nuevoResto };
   for (const [k, cant] of Object.entries(pide)) {
     const c = entero(cant);
     if (c <= 0) continue;
+    const pct = base + (k === 'tabla' || k === 'tronco' ? extra : 0);
+    if (pct <= 0) continue;
     const total = c * pct + (Object.hasOwn(nuevoResto, k) ? fraccion(nuevoResto[k]) : 0);
     // nunca sobra todo lo que se pidió
     const entera = Math.min(c - 1, Math.floor(total + 1e-9));
