@@ -23,7 +23,8 @@ const redondo = (v, paso = 10) => Math.round(v / paso) * paso;
 
 export const CAJA_MAX = 12000;          // lo que entra en la caja del local (igual que las cajas de la aldea: negocios.js)
 export const REP_INICIAL = 25;
-export const HORA_ABRE = 8, HORA_CIERRA = 21;   // cuándo sale a comprar la gente (el local abierto de noche no vende)
+export const HORA_ABRE = 8;
+export const HORA_CIERRA = 21;   // cuándo sale a comprar la gente (el local abierto de noche no vende)
 export const LOTES_POR_ESTANTE = 6;     // lo que cabe de cada producto, en lotes del mercado (comercio.js)
 
 // ---------------------------------------------------------------- los tipos de local
