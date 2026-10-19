@@ -9,7 +9,13 @@
 //   6. la noche de la leyenda (día 9, de noche): el fogón, E para escucharla entera; el recuerdo;
 //   7. tu cumpleaños con amigos: la fiesta sorpresa en el predio;
 //   8. colgar los recuerdos en el refugio; guardar y cargar; sin errores.
-// Uso: npx electron --no-sandbox pruebas/humo-3-7-5-fiestas.cjs (HUMO_LOG=<archivo>: cada renglón también ahí)
+// 4.0.5: determinista. Antes fallaba en un lugar distinto cada vez (pista, truco, leñera, fogón…): (1) el bucle del juego corría solo y
+// los vecinos caían donde caían (Math.random y el reloj real); ahora, al entrar, se congela requestAnimationFrame (el mundo avanza sólo
+// con los cuadros de la prueba) y Math.random sale de una semilla (HUMO_SEMILLA, 12345 si no se dice); (2) las notas del juego duran 5,6 s
+// reales y la prueba leía el texto «a tiempo»: con la máquina lenta ya se había ido; ahora un observador las junta todas (notas());
+// (3) esperas por reloj real y de cuadros contados pasaron a esperas por estado (hasta que pase lo que tiene que pasar, con tope).
+// Uso: npx electron --no-sandbox pruebas/humo-3-7-5-fiestas.cjs (HUMO_LOG=<archivo>: cada renglón también ahí; HUMO_SEMILLA=<n>;
+//   HUMO_LENTO=<n>: la página corre n veces más lenta, para probar con una PC floja)
 // Perfil propio (HUMO_PERFIL, o una carpeta temporal): borra su localStorage, nunca el de %APPDATA%\Hojarasca.
 const { app, BrowserWindow, dialog } = require('electron');
 dialog.showErrorBox = () => {};
@@ -21,6 +27,7 @@ const raiz = path.resolve(__dirname, '..');
 app.setPath('userData', path.resolve(process.env.HUMO_PERFIL || path.join(os.tmpdir(), 'hojarasca-humo-3-7-5-fiestas')));
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
+const SEMILLA = Number(process.env.HUMO_SEMILLA) || 12345;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 const decir = (s) => { console.log(s); if (process.env.HUMO_LOG) try { require('fs').appendFileSync(process.env.HUMO_LOG, s + String.fromCharCode(10)); } catch { /* nada */ } };
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 15 minutos'); app.exit(2); }, 15 * 60 * 1000).unref?.();
@@ -32,13 +39,15 @@ app.whenReady().then(async () => {
     const m = String(e.message);
     if ((e.level === 'error' || /Uncaught|falló "fiestas"/.test(m)) && !/Security|GL_INVALID|PCF|Autofill|AudioContext|favicon/.test(m)) errores.push(m.slice(0, 300));
   });
+  // HUMO_LENTO=<n>: la página corre n veces más lenta (una PC floja o con la CPU ocupada), sin tocar la placa de video
+  if (process.env.HUMO_LENTO) { try { w.webContents.debugger.attach('1.3'); w.webContents.debugger.sendCommand('Emulation.setCPUThrottlingRate', { rate: Number(process.env.HUMO_LENTO) || 1 }); } catch { /* nada */ } }
   let donde = 'carga';
   const js = (c) => Promise.race([
     w.webContents.executeJavaScript(c),
     new Promise((_, no) => setTimeout(() => no(new Error(`la página no respondió en 120 s (${donde})`)), 120000)),
   ]);
   const ok = (cond, texto) => { decir(`${cond ? '✓' : '✗'} ${texto}`); if (!cond) errores.push(texto); };
-  const seccion = (s) => { donde = s; decir(`— ${s}`); };
+  const seccion = async (s) => { donde = s; decir(`— ${s}`); await js(`window.__notasHist = []; 1`).catch(() => 0); };
   const url = path.join(raiz, 'index.html');
   const abrir = async () => { try { await w.loadFile(url, { search: '?debug=1' }); } catch (e) { await esperar(1500); await w.loadFile(url, { search: '?debug=1' }); } };
   const listo = async () => {
@@ -53,10 +62,19 @@ app.whenReady().then(async () => {
   const entrar = async () => {
     await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2500);
     await js(`${H}.volverAlJuego?.(); ${H}.ajustes.limiteFps = 'libre'; 1`);
+    // las notas que pasan (duran 5,6 s reales: en una máquina lenta se iban antes de que la prueba las mirara)
+    await js(`(()=>{ window.__notasHist = []; const caja = document.getElementById('notas');
+      new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.classList?.contains('nota')) window.__notasHist.push(n.textContent); }).observe(caja, { childList: true });
+      return 1 })()`);
+    // el mundo avanza sólo con los cuadros de la prueba, y los vecinos salen de una semilla
+    await js(`(()=>{ let s = ${SEMILLA} >>> 0; Math.random = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      window.requestAnimationFrame = () => 0; return 1 })()`);
   };
   const tecla = (code) => js(`(()=>{ document.dispatchEvent(new KeyboardEvent('keydown', { code: '${code}', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keyup', { code: '${code}', bubbles: true })); return 1 })()`);
   const aviso = () => js(`(()=>{ const a = ${H}.__avisoYa(); return a ? a.texto : '' })()`);
-  const notas = () => js(`document.getElementById('notas').textContent`);
+  const notas = () => js(`(window.__notasHist || []).join(' | ') + ' | ' + document.getElementById('notas').textContent`);
+  // espera por estado: repite `paso` (en la página) hasta que `cond` (en la página) dé verdadero, con un tope de vueltas
+  const hasta = async (cond, paso, vueltas = 60) => { for (let i = 0; i < vueltas; i++) { if (await js(`!!(${cond})`)) return true; await js(`(()=>{ ${paso}; return 1 })()`); await cuadros(1); } return !!(await js(`!!(${cond})`)); };
   const cuadros = (n = 4) => js(`(()=>{ for (let i = 0; i < ${n}; i++) ${H}.__bucle(); return 1 })()`);
   const panel = () => js(`(()=>{ const d = document.getElementById('fiesta-panel'); const lis = [...d.querySelectorAll('li')]; return { abierto: !d.classList.contains('oculto'), titulo: d.querySelector('.quien').textContent, dicho: d.querySelector('.dicho').textContent, lis: lis.map((l) => l.textContent), estado: ${F}.estadoPanel() } })()`);
   // el jugador en un punto del predio (o un poco corrido), mirando a otro
@@ -88,7 +106,7 @@ app.whenReady().then(async () => {
     ok(e.fiestas && e.cal === 3, `partida nueva: las fiestas de cero (tu cumpleaños, el día ${e.cal} del año)`);
 
     // ------------------------------------------------------------ 1. la Fiesta de la Fruta Fina: la mesa larga
-    seccion('la fiesta de estación: la mesa larga');
+    await seccion('la fiesta de estación: la mesa larga');
     await hora(2, 12.4);
     await enPredio('mesa-n-3', 0.8, 1.2, 'mesa-s-3');
     await aldeaLista(); await acomodar();
@@ -110,10 +128,11 @@ app.whenReady().then(async () => {
     await tecla('KeyE');
     await cuadros(2);
     ok(await js(`${H}.jugador.estado.sentado`), 'sentado a la mesa larga');
-    for (let i = 0; i < 10; i++) { await js(`${F}.actualizar(0.6); 1`); await cuadros(1); }
+    await hasta(`${P}.fiestas.comio.includes('fiesta-verano|1')`, `${F}.actualizar(0.6)`);
     let nt = await notas();
+    if (!/Te sirven cordero al asador/.test(nt)) decir(`  (diagnóstico: ${JSON.stringify(await js(`(()=>{ const j = ${H}.jugador.estado; const a = ${F}.ahora(); return { nota: document.getElementById('notas').textContent.slice(0, 120), sentado: j.sentado, hora: ${P}.horas, dia: ${P}.dia, fase: a?.fase.fase, comio: ${P}.fiestas.comio } })()`))})`);
     ok(/Te sirven cordero al asador/.test(nt) && await js(`${P}.fiestas.comio.includes('fiesta-verano|1')`), 'te sirven (cordero al asador)');
-    for (let i = 0; i < 20; i++) await js(`${F}.actualizar(0.6); 1`);
+    await hasta(`${P}.fiestas.recuerdos.some((r) => r.id === 'fiesta-verano')`, `${F}.actualizar(0.6)`);
     ok(await js(`${P}.fiestas.recuerdos.some((r) => r.id === 'fiesta-verano')`), 'el recuerdo de la Fruta Fina');
     // (levantarse: W sostenida un ratito)
     await js(`(()=>{ ${H}.jugador.teclas.add('KeyW'); return 1 })()`); await cuadros(3); await js(`(()=>{ ${H}.jugador.teclas.delete('KeyW'); return 1 })()`); await cuadros(1);
@@ -121,11 +140,12 @@ app.whenReady().then(async () => {
     void lado;
 
     // ------------------------------------------------------------ 2. el baile y la clase de Pocha
-    seccion('el baile');
+    await seccion('el baile');
     await hora(2, 18.2);
     await enPredio('mira-baile-3', 0, 0.8, 'pista-0');
     await acomodar();
     for (let i = 0; i < 12; i++) { await js(`(()=>{ ${H}.__aldea.actualizar(0.6); return 1 })()`); await cuadros(1); }
+    await hasta(`${H}.__aldea.mundo().estado().npcs.filter((x) => x.pose === 'chamame').length >= 4 && ${H}.__aldea.mundo().estado().npcs.filter((x) => x.pose === 'aplaudir').length >= 2`, `${H}.__aldea.actualizar(0.6)`, 30);
     e = await js(`(()=>{ const l = ${H}.__aldea.mundo().estado().npcs; const mu = l.find((x) => x.clave === 'musico'); const m = ${FM}.estado(); return { bailan: l.filter((x) => x.pose === 'chamame').length, musico: mu?.pose, punto: mu?.destino?.punto, instr: m.instrumentos, aplauden: l.filter((x) => x.pose === 'aplaudir').length } })()`);
     ok(e.bailan >= 4, `parejas bailando chamamé (${e.bailan})`);
     ok(e.musico === 'tocar' && e.punto === 'tarima' && e.instr >= 1, `el músico en la tarima, con su acordeón (${e.musico}, ${e.instr})`);
@@ -158,7 +178,7 @@ app.whenReady().then(async () => {
     ok(!(await panel()).abierto, 'Escape cierra la clase');
 
     // ------------------------------------------------------------ 3. una mano de truco
-    seccion('una mano de truco');
+    await seccion('una mano de truco');
     await hora(2, 15.2);
     await enPredio('juegos-0', -0.7, 0, 'mesita');
     await acomodar();
@@ -194,7 +214,7 @@ app.whenReady().then(async () => {
     ok(!(await js(`${H}.jugador.estado.sentado`)), 'te levantás de la mesita');
 
     // ------------------------------------------------------------ 4. la jineteada
-    seccion('la jineteada');
+    await seccion('la jineteada');
     await js(`(()=>{ ${F}.sinMonta(); return 1 })()`);   // (si el domador estaba montando, terminó)
     await enPredio('tranquera', 0, 0, 'palenque');
     await cuadros(4);
@@ -220,11 +240,12 @@ app.whenReady().then(async () => {
     ok(e.aguanto && await js(`${P}.fiestas.recuerdos.some((r) => r.id === 'jineteada')`), 'adelantándote, aguantás el tiempo: la cinta del jinete');
     nt = await notas();
     ok(/Aguantaste el tiempo/.test(nt), 'el aviso: ¡aguantaste!');
-    await esperar(3200); await cuadros(2);
+    // (los apadrinadores te bajan a los 2,5 s con un temporizador de la página: se espera a que pase, no un tiempo fijo)
+    for (let i = 0; i < 40 && await js(`${F}.montando()`); i++) { await esperar(500); await cuadros(1); }
     ok(!(await js(`${F}.montando()`)), 'te bajan los apadrinadores');
 
     // ------------------------------------------------------------ 5. la minga
-    seccion('la minga');
+    await seccion('la minga');
     await hora(7, 9.6);
     await enPredio('minga-2', 0, -1.2, 'lenera');
     await acomodar();
@@ -234,13 +255,13 @@ app.whenReady().then(async () => {
     for (let i = 0; i < 6; i++) { await tecla('KeyE'); await cuadros(1); }
     ok(await js(`${P}.fiestas.mingaHoy.cargas`) === 6 && await js(`${P}.fiestas.recuerdos.some((r) => r.id === 'minga')`), 'seis cargas: tu parte, y la cuña de la minga');
     await js(`(()=>{ ${P}.horas = 13.3; return 1 })()`);
-    for (let i = 0; i < 4; i++) { await js(`${F}.actualizar(0.6); 1`); await cuadros(1); }
+    await hasta(`${P}.fiestas.minga.some((m) => m.obra === 'lenera')`, `${F}.actualizar(0.6)`, 30);
     await cuadros(4);
     e = await js(`(()=>({ hecha: ${P}.fiestas.minga.some((m) => m.obra === 'lenera'), malla: ${FM}.estado().predio }))()`);
     ok(e.hecha && /La minga terminó: la leñera de la aldea/.test(await notas()), 'al mediodía, la leñera queda hecha');
 
     // ------------------------------------------------------------ 6. la noche de la leyenda
-    seccion('la noche de la leyenda');
+    await seccion('la noche de la leyenda');
     await hora(9, 20.6);
     await enPredio('narrador', 0.5, 1.4, 'narrador');
     await acomodar();
@@ -262,19 +283,19 @@ app.whenReady().then(async () => {
     ok(await js(`${P}.fiestas.leyendas.includes('duendes') && ${P}.fiestas.recuerdos.some((r) => r.id === 'leyenda')`), 'la leyenda escuchada y el farolito');
 
     // ------------------------------------------------------------ 7. tu cumpleaños con amigos: la sorpresa
-    seccion('la fiesta sorpresa');
+    await seccion('la fiesta sorpresa');
     await js(`(()=>{ for (const k of ['jefe', 'nelida', 'herrero', 'padre']) ${H}.__aldea.amigo(k); return 1 })()`);
     await hora(15, 18.4);   // (el día 15 es el 3 del año 2: tu cumpleaños)
     await acomodar();
     e = await js(`(()=>{ const a = ${F}.ahora(); return { fecha: a?.fecha.id, fase: a?.fase.fase } })()`);
     ok(e.fecha === 'cumple-jugador' && e.fase === 'sorpresa', `tu cumpleaños, con amigos: ${e.fecha} (${e.fase})`);
     await enPredio('mesa-s-5', 0, -1.5, 'mesa-s-5');
-    for (let i = 0; i < 4; i++) { await js(`${F}.actualizar(0.6); 1`); await cuadros(1); }
+    await hasta(`${P}.fiestas.cumples.includes(2)`, `${F}.actualizar(0.6)`, 30);
     nt = await notas();
     ok(/¡Sorpresa! ¡Feliz cumpleaños!/.test(nt) && await js(`${P}.fiestas.cumples.includes(2)`), 'la sorpresa en el predio');
 
     // ------------------------------------------------------------ 8. colgar los recuerdos, guardar y cargar
-    seccion('los recuerdos en el refugio');
+    await seccion('los recuerdos en el refugio');
     await js(`(()=>{ ${P}.dia = 16; ${P}.horas = 11; ${F}.reiniciarDia(); return 1 })()`);
     const tab = await js(`(()=>{ const t = ${FM}.tablero(); const r = ${H}.T.lugares.refugio; const c = Math.cos(r.rot || 0), s = Math.sin(r.rot || 0); const x = t.x - 1.3 * s, z = t.z - 1.3 * c; const j = ${H}.jugador; j.ubicar(x, z, Math.atan2(-(t.x - x), -(t.z - z))); j.estado.pitch = 0.05; return { t, y: j.estado.pos.y } })()`);
     await cuadros(4);

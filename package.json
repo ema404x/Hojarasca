@@ -17,6 +17,7 @@
     "verify:physics": "electron pruebas/verificar-fisica.cjs",
     "verify:smoke": "electron pruebas/humo-partida.cjs",
     "verify:desafio": "electron pruebas/humo-desafio.cjs",
+    "verify:fiestas": "electron pruebas/humo-3-7-5-fiestas.cjs",
     "verify:nido": "electron pruebas/humo-nido.cjs",
     "verify:campo": "electron pruebas/humo-1-10.cjs",
     "verify:desafio-1-10": "electron pruebas/humo-1-10-desafio.cjs",
