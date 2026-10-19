@@ -72,3 +72,17 @@ Nuevos: `src/negocio-propio.js` (reglas puras), `src/negocio-propio-juego.js` (E
 
 - Verificado: `verificar-4-3-negocio.mjs` (reglas, planos, demanda, cola, caja, guardado, equilibrio, cableado) y la partida real en Electron (ver abajo).
 - Razonado, no medido: el costo en la 4600G (nada nuevo por cuadro: la cola corre cada 0,25 s, tres figuras dormidas cuando no se usan, geometría de los locales entre ~700 y ~1.500 triángulos con los estantes llenos, sin luces nuevas).
+
+## Resultado
+
+- `npm run verify` completo y de corrido: **251 pasos OK** (los 250 de la 4.2.0 más `verificar-4-3-negocio.mjs`, 1.891 comprobaciones).
+- Partida real en Electron (`pruebas/humo-4-3-negocio.cjs`, capturas en `C:\Users\Andres\Documents\Hojarasca\salida-cantina\negocio\`): menú con precios, sin plata no se construye, construir, panel, surtir, precios, abrir, tres clientes caminando al mostrador, atender con E, el que no se atiende se cansa y baja la fama, retirar la caja, cerrar, clientes que llegan solos con el reloj corriendo, alejarse, guardar y recargar, desarmar (todo vuelve) y la panadería. El último recorrido completo pasó todo salvo la panadería (un descuido de la prueba tras recargar, ya arreglado); la panadería se repitió sola (`HUMO_SOLO=panaderia`) con la geometría final y pasó.
+- No quedó ningún Electron abierto.
+
+## Lo que NO quedó
+
+- Empleados, compra de un negocio existente y sociedad con un vecino (otra parte; los enganches están arriba).
+- Quesos y cerveza como mercadería; más tipos de local (carnicería, herrería…).
+- Voz o charla de los clientes; clientes con nombre propio de los vecinos de la aldea.
+- Medir fps en la 4600G (no se midió: sólo se razonó que no hay nada nuevo por cuadro).
+- Oír el sonido de la venta y del pedido (usan los sonidos de siempre, `juntar` y `anotar`; no se escucharon a oído).
