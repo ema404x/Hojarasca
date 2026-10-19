@@ -20,7 +20,8 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-const soloIds = arg('solo', '').split(',').filter(Boolean);
+// --solo=a,b o la variable HUMO_SOLO: sólo esos edificios (los demás pasos se saltan); el lanzador sólo pasa un argumento, por eso la variable
+const soloIds = (arg('solo', '') || process.env.HUMO_SOLO || '').split(',').filter(Boolean);
 
 const PAGINA = String.raw`(() => {
   const H = window.__hojarasca, O = H.obras, T = H.T, J = H.jugador, P = H.progreso;
@@ -85,7 +86,8 @@ const PAGINA = String.raw`(() => {
   // parado adentro, de frente a la obra, a 0,9 m del centro
   A.alLado = (id) => { const o = A.obra(id), r = o.datos.rot || 0; J.ubicar(o.datos.x - 0.9 * Math.sin(r), o.datos.z - 0.9 * Math.cos(r), r + Math.PI); for (let i = 0; i < 6; i++) { J.actualizar(0.05); H.__bucle(); } return 1; };
   A.aviso = (id) => H.__avisoObraQueTrabaja(A.obra(id));
-  A.dias = (n, h = 14) => { P.dia += n; P.horas = h; A.cuadros(2); return P.dia; };
+  // pasan n días y una hora y media más (el juego sigue corriendo entre una cosa y otra: sin ese margen a veces falta un minuto para la tanda)
+  A.dias = (n) => { P.dia += n; P.horas = Math.min(23.5, P.horas + 1.5); A.cuadros(2); return P.dia; };
   A.entrada = (k) => P.entradas?.[k]?.cantidad || 0;
   A.libro = (n = 2) => P.economia.libro.slice(-n).map((m) => m.monto + ' ' + m.motivo + ' · ' + m.con);
   return 1;
@@ -185,13 +187,24 @@ app.whenReady().then(async () => {
     for (const [id, nombre, precio] of EDIFICIOS) {
       if (soloIds.length && !soloIds.includes(id)) continue;
       await A(`(A.plata(100000), A.materiales({ tronco: 999, tabla: 999, piedra: 999, lana: 999 }), A.limpiarNotas(), 1)`);
-      const s = await A(`A.sitio(${JSON.stringify(id)})`);
+      // (hasta tres lugares: si Y no arma, se cuenta por qué y se prueba en otro)
+      let s = null, antes = 0, armado = false;
+      for (let intento = 0; intento < 3 && !armado; intento++) {
+        s = await A(`A.sitio(${JSON.stringify(id)})`);
+        if (!s) break;
+        await A(`(A.parar(${JSON.stringify(s)}), A.limpiarNotas(), A.elegir(${JSON.stringify(nombre)}), 1)`);
+        antes = await A('A.n()');
+        await A('A.tecla("KeyY")'); await esperar(400);
+        armado = (await A('A.n()')) === antes + 1;
+        if (!armado) {
+          console.log(`  (el intento ${intento + 1} no armó en ${JSON.stringify(s)}: ${await nuevas()})`);
+          await A(`(A.ocupados.push({ x: ${s.x}, z: ${s.z} }), A.tecla("KeyO"), A.tecla("KeyO"), 1)`);
+        }
+      }
       ok(!!s, `${nombre}: hay lugar`);
       if (!s) continue;
-      await A(`(A.parar(${JSON.stringify(s)}), A.elegir(${JSON.stringify(nombre)}), 1)`);
-      const antes = await A('A.n()');
-      await A('A.tecla("KeyY")'); await esperar(300);
-      ok((await A('A.n()')) === antes + 1 && (await A('A.obra(' + JSON.stringify(id) + ')?.datos.etapas')) >= 1, `${nombre}: Y la construye`);
+      ok(armado && (await A('A.obra(' + JSON.stringify(id) + ')?.datos.etapas')) >= 1, `${nombre}: Y la construye`);
+      if (!armado) continue;
       ok((await A('A.pesos()')) === 100000 - precio, `${nombre}: cobró $${precio} (quedan ${await A('A.pesos()')})`);
       await A(`(A.ocupados.push({ x: ${s.x}, z: ${s.z} }), A.tecla("KeyO"), 1)`);
       await A(`A.camara(A.obra(${JSON.stringify(id)}), 7.2, 2.9, 1.1, 0.55)`);
