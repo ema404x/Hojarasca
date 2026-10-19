@@ -217,7 +217,7 @@ app.whenReady().then(async () => {
     ok((await A('A.n()')) === antes, 'Mayús + Supr desmonta la vitrina');
     ok((await A('A.pesos()')) === 17750, `devolvió la mitad de los pesos: $2.250 (hay ${await A('A.pesos()')})`);
     nt = await A('A.notas()');
-    ok(nt.some((t) => /desmontad/.test(t) && /Te devolvieron \$2\.250/.test(t) && /Recuperaste/.test(t)), `el aviso: «${nt[0]}»`);
+    ok(nt.some((t) => /desmontad/.test(t) && /Recuperaste/.test(t)) && nt.some((t) => /Te devolvieron \$2\.250/.test(t)), `los avisos: «${nt.join(' | ')}»`);
     await foto('05-desmontada-devuelve', true);
     ok(/Mano de obra|Reintegro/.test(JSON.stringify(await A('A.libro()'))) && JSON.stringify(await A('A.libro()')).includes('2250 Reintegro por desmontar: vitrina de roble'), 'el libro anota el reintegro');
     // una pieza de una partida anterior al precio (sin `pagadas`) no devuelve plata que nunca se pagó

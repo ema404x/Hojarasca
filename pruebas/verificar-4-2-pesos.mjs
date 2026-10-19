@@ -217,7 +217,7 @@ ok(PRECIOS_LUJO['fuente-piedra'] > PRECIOS_LUJO['reloj-pie'] && PRECIOS_LUJO['re
   tiene('if (pago.precio) { pagarEtapa(progreso, obra.plano.id, etapaCasa, \'Los albañiles de la aldea\'); obra.datos.pagadas = etapaCasa + 1; }', 'la cuenta de las casas, intacta');
   tiene('const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);', 'retirar la marca devuelve');
   tiene('const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);', 'desmontar reintegra');
-  ok(m.indexOf('const reint = reintegroAlDesmontar') < m.indexOf("nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, [devuelto"), 'antes de avisar');
+  ok(m.indexOf('const reint = reintegroAlDesmontar') > 0 && m.indexOf('const reint = reintegroAlDesmontar') < m.indexOf('if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`'), 'el reintegro se cobra antes de avisar (y el aviso de la pieza desmontada queda como estaba)');
   tiene('const pesosPl = hayEconomia(progreso) ? precioTotal(pl.id) : 0;', 'la lista muestra el precio');
   tiene('const faltaPl = pesosPl > 0 && precioDeEtapa(pl.id, 0) > pesosDe(progreso);', 'y «no alcanza» mira la primera etapa (se paga de a una)');
   tiene("(faltaPl ? ' sinplata' : '')", 'y marca el que no alcanza');

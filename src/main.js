@@ -3369,8 +3369,9 @@ document.addEventListener('keydown', (e) => {
             progreso.obras = obras.obras.map((o) => o.datos);
             guardar(); sonido.juntar();
             const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => cantidadMaterial(n, k)).join(' · ');
-            if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}${reint ? `Te devolvieron ${formatoPesos(reint)}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
-            else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, [devuelto && `Recuperaste ${devuelto}`, reint && `Te devolvieron ${formatoPesos(reint)}`].filter(Boolean).join('. ') || 'La pieza fue retirada');
+            if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
+            else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
+            if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`, 'La mitad de la mano de obra que pagaste');   // 4.2
             dibujarPanelObra();
           }
           break;
