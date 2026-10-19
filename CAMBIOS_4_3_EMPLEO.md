@@ -75,7 +75,7 @@ caso corriente (aprendiz o empleado) queda en $2.900 a $3.300. Es para revisar c
 - **Nuevos**: `src/empleo.js` (reglas puras: puestos, tareas, turnos, escalones, sueldos, guardado), `src/empleo-juego.js` (fichar, tareas con E, avisos, HUD,
   cobro, cuaderno), `src/empleo-mundo.js` (los carteles y la marca; sólo `MAT_FAUNA`: no compila nada nuevo), `pruebas/verificar-4-3-empleo.mjs` (en el gate),
   `pruebas/humo-4-3-empleo.cjs` (partida real, no está en el gate), este informe.
-- **Compartidos con otras ramas (tocados lo mínimo)**: `src/main.js` (+32 líneas: la importación, la creación aislada con `fallaSistema`, la E después del vecino y
+- **Compartidos con otras ramas (tocados lo mínimo)**: `src/main.js` (+33 líneas: la importación, la creación aislada con `fallaSistema`, la E después del vecino y
   antes del mostrador, el aviso en el mismo lugar, `tapaVecino`, el `actualizar` por `fallaSistema`, `extras` del cuaderno y `__empleo` de depuración),
   `src/guardado.js` (+4: `empleo: empleoNuevo()` y `sanearEmpleo` como líneas aparte), `package.json` (sólo la prueba nueva en `verify:pasos`; **la versión no se subió**).
   `src/aldea.js` y `plantilla.html` **no se tocaron**.
@@ -97,7 +97,12 @@ caso corriente (aprendiz o empleado) queda en $2.900 a $3.300. Es para revisar c
 
 ## Verificación
 
-(ver el informe de entrega)
+- **Verificado** — `npm run verify` completo, una vez y de corrido, al final: **251 pasos OK** (los 250 de antes y `verificar-4-3-empleo.mjs`; 413 s en esta notebook).
+- **Verificado** — `pruebas/verificar-4-3-empleo.mjs` (332 comprobaciones, Node): los cuatro puestos y sus escalas, el orden de las tareas, fichar y sus horarios, el cobro completo, proporcional y con multa, el cierre por hora o por día, los escalones (con y sin oficio, y que nunca se baja), el equilibrio, el guardado (una partida vieja sin `empleo` queda como estaba, lo roto se sanea, el turno a medias viaja, el Desafío no lo tiene), el cupo de jornales, el juego completo con un contexto de mentira (cartel, pregunta, tarea con E, reloj, cobro, irse antes, alejarse, la hora con el reloj real, el cuaderno) y lo enganchado en main.js, guardado.js, oficios-ui.js y trabajos.js (sin mando ni textos en otro idioma).
+- **Verificado en Electron, partida real** — `pruebas/humo-4-3-empleo.cjs` (219 comprobaciones, con las teclas de verdad, en el monitor externo; no está en el gate): los cuatro locales, cada uno un día (cartel, aviso, pregunta, fichar, HUD, marca, las 8 tareas con E y su barra, el reloj corre ~3,2 h, se cobra, y la E no se la come el mostrador, ni una charla, ni la puerta); cada lugar del puesto **se alcanza a pie** con las colisiones; el cartel que sólo informa (antes de hora, domingo, turno de hoy ya hecho); irse antes (pregunta, multa y falta); el ascenso (con el gancho de la prueba: 4 días + oficio nivel 1) y el sueldo nuevo al día siguiente; el turno a medias en el guardado; y la página del cuaderno. **TODO BIEN** en la última corrida (las corridas anteriores fallaron por la propia prueba: se paraba en el lugar viejo del cartel, o se sentaba en un banco mirando el cartel, o miraba el guardado antes de que se escribiera; se arregló y se repitió entera).
+- **Capturas** (a tamaño completo, miradas una por una; en `C:\Users\Andres\Documents\Hojarasca\salida-cantina\empleo\`): `01` el cartel que informa, `02a/03a/04a/05a` el cartel de cada local, `02b-pregunta-del-puesto`, `02b/03b/04b/05b` HUD y marca de la primera tarea, `02c/03c/04c/05c` el cobro, `06a/06b` irse antes, `07-ascenso`, `08-cuaderno-trabajo`. Lo que se vio y se corrigió: la flecha dorada era enorme (se achicó); el cartel de la casa de té y el del almacén estaban pegados a la puerta o a una tarea y el del banco caía en el perchero (se movieron, y el radio del cartel bajó a 1,3 m); había lugares que no se alcanzaban a pie (se corrigieron con un caminador real y quedó como prueba).
+- **Razonado, no probado en el juego**: el ritmo de un turno con otras duraciones del día (se probó con el de 30 min); el comportamiento con la hora de tu reloj (sólo en Node); los fps (no se midieron en la 4600G: no hay nada por cuadro salvo la barra mientras se hace una tarea, y 5 mallas estáticas chicas con el material de la fauna).
+- **No verificado**: oído (los sonidos son los de siempre: `juntar`, `paso`, `anotar`), jugarlo un día entero a mano, mando (a propósito no se hizo), cargar una partida real guardada a mitad de turno y seguir (sólo el saneado en Node y que el turno está en el guardado).
 
 ## Lo que no quedó
 
