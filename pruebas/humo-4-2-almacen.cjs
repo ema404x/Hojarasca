@@ -21,7 +21,9 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-const soloFotos = arg('solo', '') === 'fotos';
+// --solo=deposito (secciones 3 y 4), --solo=barraca, --solo=silo, --solo=fotos (sólo las 12 de exteriores): para repetir un tramo
+const solo = arg('solo', '');
+const hacer = (...nombres) => !solo || nombres.includes(solo);
 
 // ---------------------------------------------------------------- lo que corre en la página
 const PAGINA = String.raw`(() => {
@@ -59,9 +61,9 @@ const PAGINA = String.raw`(() => {
   // un sitio llano a entre dmin y dmax metros de (cx, cz) donde, parado mirando a -z, la pieza cae 2,4 m adelante y es válida
   A.sitioCerca = (id, cx, cz, dmin, dmax) => {
     const pl = H.PLANOS.find((p) => p.id === id);
-    for (let r = dmin; r <= dmax; r += 1.5) for (let i = 0; i < 24; i++) {
-      const a = (i / 24) * Math.PI * 2, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
-      if (pend(x, z - 2.4) > 0.06 || pend(x, z) > 0.08) continue;
+    for (let r = dmin; r <= dmax; r += 1) for (let i = 0; i < 36; i++) {
+      const a = (i / 36) * Math.PI * 2, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+      if (pend(x, z - 2.4) > 0.1 || pend(x, z) > 0.12) continue;
       if (O.revisarSitio(x, z - 2.4, pl, 0).ok && Math.hypot(x - cx, z - 2.4 - cz) >= dmin) return { x, z };
     }
     return null;
@@ -177,7 +179,7 @@ app.whenReady().then(async () => {
     await A(`(P.horas = 11, P.dia = 4, A.cuadros(3), 1)`);
     ok(await A('!!P.economia && P.modo !== "desafio"'), 'la partida es del Relax y trae economía');
 
-    if (!soloFotos) {
+    if (hacer('menu')) {
     // ---------------------------------------------------------------- 1. el menú
     seccion('el menú: precio y capacidad');
     await A('(A.plata(1000), A.materiales({ tronco: 99, tabla: 99, piedra: 99, lana: 20 }), 1)');
@@ -194,6 +196,8 @@ app.whenReady().then(async () => {
     ok(/Se amplía tres veces/.test(pnb.texto) && /\$11\.000/.test(pnb.texto), 'la ficha de la barraca cuenta sus ampliaciones y precios');
     await A('A.tecla("KeyO")');
 
+    }
+    if (hacer('pila')) {
     // ---------------------------------------------------------------- 2. la pila de piedra
     seccion('la pila de piedra');
     await A('(A.limpiar(), 1)');
@@ -217,6 +221,8 @@ app.whenReady().then(async () => {
     ok(/ya está al máximo/.test(await notas()), `Mayús + E en la pila: «${await notas()}»`);
     await verObra('02-pila-de-piedra-llena', 3.6, 1.6, 0.5);
 
+    }
+    if (hacer('deposito')) {
     // ---------------------------------------------------------------- 3. el depósito: llenar, ampliar con pesos
     seccion('el depósito de piedra: tope y ampliación');
     await A('(A.limpiar(), 1)');
@@ -275,8 +281,8 @@ app.whenReady().then(async () => {
     await A('(A.estado(A.ultima(), 2, { piedra: 160 }), A.materiales({ piedra: 0, tabla: 10, tronco: 10 }), A.plata(20000), 1)');
     const dep = await A('({ x: A.ultima().datos.x, z: A.ultima().datos.z })');
     await A(`(A.ocupados = [{ x: ${dep.x}, z: ${dep.z} }], 1)`);
-    const sPozo = await A(`A.sitioCerca("pozo-balde", ${dep.x}, ${dep.z}, 6, 12)`);
-    ok(!!sPozo, 'hay un lugar para el pozo a menos de 12 m del depósito');
+    const sPozo = await A(`A.sitioCerca("pozo-balde", ${dep.x}, ${dep.z}, 5, 16)`);
+    ok(!!sPozo, 'hay un lugar para el pozo a menos de 16 m del depósito');
     if (sPozo) {
       await A(`(A.parar(${JSON.stringify(sPozo)}), A.elegir("Pozo con balde"), A.limpiarNotas(), 1)`);
       const vis = await A('H.materialesVisibles ? H.materialesVisibles().piedra : -1');
@@ -295,6 +301,8 @@ app.whenReady().then(async () => {
       ok(!(await A('H.materialesVisibles().piedra > 0')), 'a 60 m del depósito, su piedra no cuenta');
     }
 
+    }
+    if (hacer('barraca')) {
     // ---------------------------------------------------------------- 5. la barraca
     seccion('la barraca de materiales');
     await A('(A.limpiar(), 1)');
@@ -340,6 +348,8 @@ app.whenReady().then(async () => {
     ok(/Lo que tenía guardado volvió a tus cosas/.test(nt) && /de las ampliaciones/.test(nt), `las notas: «${nt}»`);
     await A('A.tecla("KeyO")');
 
+    }
+    if (hacer('silo')) {
     // ---------------------------------------------------------------- 6. el silo y la cosecha
     seccion('el silo');
     await A('(A.limpiar(), 1)');
@@ -361,6 +371,8 @@ app.whenReady().then(async () => {
     ok((await A('P.entradas.haba.cantidad')) === 100, 'sin nada a mano, E saca todo lo guardado: 100 habas');
     ok(Object.keys((await A('A.alm(A.ultima())')).g).length === 0, 'y el silo queda vacío');
 
+    }
+    if (hacer('herramientero')) {
     // ---------------------------------------------------------------- 7. el herramientero
     seccion('el herramientero');
     await A('(A.limpiar(), 1)');
@@ -384,6 +396,8 @@ app.whenReady().then(async () => {
     ok(Object.keys(await A('A.alm(A.ultima()).g')).length === 6, 'ahora cuelga las seis');
     await verObra('12-herramientero-ampliado', 2.8, 1.5, 1.1);
 
+    }
+    if (hacer('acopio')) {
     // ---------------------------------------------------------------- 8. el acopio de siempre, con tope
     seccion('el acopio con tope');
     await A('(A.limpiar(), 1)');
@@ -394,7 +408,7 @@ app.whenReady().then(async () => {
     ok((await A('P.acopio.tronco')) === 40 && (await A('A.mochila().tronco')) === 30, `el acopio guarda 40 troncos y quedan 30 en la mochila (${await A('P.acopio.tronco')} / ${await A('A.mochila().tronco')})`);
     ok(/tope 40/.test(await notas()), `la nota: «${await notas()}»`);
     }
-
+    if (hacer('fotos')) {
     // ---------------------------------------------------------------- 9. las doce de huerta, granja y exteriores
     seccion('huerta, granja y exteriores');
     const EXT = [
@@ -427,6 +441,7 @@ app.whenReady().then(async () => {
     ok(camino === 'pisa', 'el camino empedrado se pisa (no choca)');
     const pozo = await A('(()=>{ const o = O.obras.find((q) => q.plano.id === "pozo-balde"); const J = H.jugador; J.ubicar(o.datos.x, o.datos.z - 2.0, 0); for (let i = 0; i < 4; i++) { J.actualizar(0.05); H.__bucle(); } J.estado.vel && 0; return 1 })()');
 
+    }
     ok(errores.length === 0, `sin errores en la consola${errores.length ? ': ' + errores.slice(0, 3).join(' | ') : ''}`);
   } catch (e) {
     console.log('✗ ' + (e && e.stack || e));

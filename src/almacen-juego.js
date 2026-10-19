@@ -35,7 +35,8 @@ export function crearAlmacenJuego(d) {
     const lista = [];
     for (const o of obras.obrasCerca(js.pos, radio, [])) {
       if (!esDeMateriales(o.plano.id) || !terminada(o) || o === obras.editando) continue;
-      lista.push({ o, dist: Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z) });
+      const dist = Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z);
+      if (dist <= radio) lista.push({ o, dist });   // (el índice devuelve por celdas: se mide acá)
     }
     return lista.sort((p, q) => p.dist - q.dist).map((x) => x.o);
   }
