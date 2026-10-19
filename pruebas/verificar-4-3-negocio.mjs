@@ -453,7 +453,7 @@ for (const [id, def] of Object.entries(LOCALES)) {
   tiene('if (o && negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o, true); break; }', 'Mayús + E abre el panel aunque haya un cliente');
   tiene('if (negocioJuego?.panelAbierto()) { negocioJuego.cerrarPanel(); break; }', 'E cierra el panel');
   tiene('else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();', 'Escape también');
-  tiene('|| !!negocioJuego?.panelAbierto();', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');
+  tiene('|| !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');
   tiene('if (negocioJuego?.panelAbierto()) { aviso = null; marcarHud(); }', 'con el panel abierto no hay aviso');
   tiene('if (vecino?.clienteNegocio) vecino = null;', 'los clientes de tu local no se charlan: E sobre el mostrador los atiende');
   tiene('acumuladoVecino = 0; vecino = gente.cerca(js, camara);', 'y la búsqueda del vecino de siempre queda como estaba');
