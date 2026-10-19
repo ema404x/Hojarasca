@@ -156,6 +156,9 @@ import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 // 4.2: el lujo y los pesos de cualquier plano (obra-pesos.js)
 import { LUJO_QUE_SE_USA } from './planos-lujo.js';
 import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
+// 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
+import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
+import { TALLERES, TEMPLE, sanearTaller, sanearHerreria, sanearTienda, usarTaller, avisoTaller, mensajeTaller, textoUnidades, avisoHerreria, usarHerreria, extraMadera, textoCarpinteria, venderDias, dejarEnTienda, retirarCajaTienda, avisoTienda, lotesEnTienda, aTexto } from './oficios-propios.js';
 import { ESPEJO_QUE_SE_USA } from './planos-espejo.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
@@ -5637,14 +5640,16 @@ function actualizarAldea(dt) {
 }
 // Los hachazos que hacen falta: el oficio de hachero y el filo que te dio el herrero
 // 4.2: y los golpes de pico que pide ese pedrero (según su tamaño, el nivel de picapedrero y el filo)
-const golpesParaPicarAhora = (mata) => golpesConFilo(golpesParaPicar(nivelDe('picapedrero'), mata?.esc), progreso?.aldea);
-const golpesParaTalarAhora = () => golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea);
+// 4.2: con tu herrería propia y el hacha y el pico templados, el filo saca un golpe más (dos en vez de uno: ver herreriaTemplada)
+const conTemple = (g) => (herreriaTemplada() ? Math.max(1, g - (TEMPLE.golpesMenos - 1)) : g);
+const golpesParaPicarAhora = (mata) => conTemple(golpesConFilo(golpesParaPicar(nivelDe('picapedrero'), mata?.esc), progreso?.aldea));
+const golpesParaTalarAhora = () => conTemple(golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea));
 // Lo que sobra de una etapa de obra, según el oficio (va a la mochila), y la experiencia
 function conOficioDeObra(r, m) {
   if (!r?.ok || !r.etapa) return r;
   const of = oficios?.oficios();
   if (of) {
-    const a = ahorroDeObra(r.etapa.pide, nivelDe('obrero'), of.resto.obra);
+    const a = ahorroDeObra(r.etapa.pide, nivelDe('obrero'), of.resto.obra, carpinteriaExtra());   // (4.2: y tu carpintería, si la tenés)
     of.resto.obra = a.resto;
     for (const [k, n] of Object.entries(a.devuelve)) m[k] = (m[k] || 0) + n;
     r.sobro = a.devuelve;
@@ -7293,6 +7298,7 @@ function leneraCerca(radio = LENA.radioLenera) {
   return mejor;
 }
 function avisoObraQueTrabaja(o) {
+  if (Object.hasOwn(OFICIOS_PROPIOS_QUE_SE_USAN, o.plano.id)) return avisoOficioPropio(o);   // 4.2
   if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo()) return cocinaJuego.aviso(o);   // 3.7.2: la cocina (la misma función que usa la tecla E)
   switch (o.plano.id) {
     case 'colmena': return avisoColmena(datosDe(o, 'colmena', sanearColmena), estadoAbejas(o));
@@ -7304,6 +7310,7 @@ function avisoObraQueTrabaja(o) {
   }
 }
 function usarObraQueTrabaja(o) {
+  if (Object.hasOwn(OFICIOS_PROPIOS_QUE_SE_USAN, o.plano.id) && usarOficioPropio(o)) { refrescarBarra(true); guardar(); return; }   // 4.2
   if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo() && cocinaJuego.usar(o)) { refrescarBarra(true); return; }   // 3.7.2: la cocina
   if (usarObra24(o)) { refrescarBarra(true); guardar(); return; }
   if (usarMaquina(o)) { refrescarBarra(true); guardar(); return; }   // 2.9
@@ -7357,6 +7364,86 @@ function usarObraQueTrabaja(o) {
   guardar();
 }
 
+// ---------------------------------------------------------------- 4.2: los edificios de oficio propios
+// Ocho construcciones de oficio (planos-oficios.js) que van por el mismo camino que la colmena: el aviso y la tecla E. Las reglas puras
+// (cuánto da, qué pide, el tope de tandas, el filo templado, la tienda) están en oficios-propios.js; acá sólo se lee y se escribe lo del
+// juego. El estado de cada uno vive en su obra (`obra.datos.taller`) y no hay nada por cuadro: todo se calcula al apretar E o al mostrar el aviso.
+const tengoDeOficio = (e) => (e.donde === 'material' ? materialesVisibles()[e.k] || 0 : e.donde === 'cosa' ? progreso.cosas?.[e.k] || 0 : cuantoHay(e.k));
+function quitarDeOficio(e, n) {
+  if (e.donde === 'material') conMateriales((m) => { m[e.k] = (m[e.k] || 0) - n; });
+  else if (e.donde === 'cosa') progreso.cosas[e.k] = Math.max(0, (progreso.cosas[e.k] || 0) - n);
+  else sumarEntrada(e.k, -n);
+}
+const tiendaDeCampoArmada = () => obrasTerminadas('tienda-campo').length > 0;
+const envOficios = () => ({ tengo: tengoDeOficio, quitar: quitarDeOficio, nivel: nivelDe, tienda: tiendaDeCampoArmada() });
+function entregarDeOficio(def, retiro) {
+  if (retiro.pesos) { cobrarPesos(progreso, retiro.pesos, `${def.nombre}: ${textoUnidades(retiro, retiro.n)}`, retiro.con); return; }
+  if (retiro.donde === 'material') sumarMaterial(retiro.k, retiro.n);
+  else if (retiro.donde === 'cosa') { progreso.cosas[retiro.k] = (progreso.cosas[retiro.k] || 0) + retiro.n; registrar(retiro.k); }
+  else sumarEntrada(retiro.k, retiro.n);
+}
+// El hacha y el pico templados en tu herrería: sólo se mira si tenés filo (casi nunca) y es un recorrido corto
+function herreriaTemplada() {
+  if (!(progreso?.aldea?.afilado > 0)) return false;
+  for (const o of obras?.obras || []) if (o.plano.id === 'herreria-propia' && o.datos.taller?.templado === true && obraTerminada(o) && o !== obras.editando) return true;
+  return false;
+}
+const carpinteriaExtra = () => (!desafio && obrasTerminadas('carpinteria').length > 0 ? extraMadera(nivelDe('hachero')) : 0);
+const envHerreria = () => ({
+  tengoMaterial: (k) => materialesVisibles()[k] || 0,
+  pesos: () => pesosDe(progreso),
+  puedeTemplar: () => (materialesVisibles().piedra || 0) >= TEMPLE.piedra && (materialesVisibles().tronco || 0) >= TEMPLE.tronco && pesosDe(progreso) >= TEMPLE.pesos,
+  pagarTemple: () => { conMateriales((m) => { m.piedra -= TEMPLE.piedra; m.tronco -= TEMPLE.tronco; }); pagarPesos(progreso, TEMPLE.pesos, 'Templar el hacha y el pico', 'Tu herrería'); },
+});
+const tallerDe = (o) => datosDe(o, 'taller', (d) => sanearTaller(d, TALLERES[o.plano.id].tope));
+function avisoOficioPropio(o) {
+  const id = o.plano.id;
+  if (Object.hasOwn(TALLERES, id)) return avisoTaller(tallerDe(o), TALLERES[id], horaDeJuego(), envOficios());
+  if (id === 'herreria-propia') return avisoHerreria(datosDe(o, 'taller', sanearHerreria), progreso.aldea, envHerreria());
+  if (id === 'carpinteria') return `Tu banco: en cada obra sobra ${Math.round(extraMadera(nivelDe('hachero')) * 100)} % más de madera`;
+  if (id === 'tienda-campo') return avisoTienda(datosDe(o, 'taller', (d) => sanearTienda(d, progreso.dia)), progreso);
+  return null;
+}
+function usarOficioPropio(o) {
+  const id = o.plano.id;
+  if (Object.hasOwn(TALLERES, id)) {
+    const def = TALLERES[id], t = tallerDe(o);
+    const r = usarTaller(t, def, horaDeJuego(), envOficios());
+    if (r.retiro) { entregarDeOficio(def, r.retiro); sonido.juntar(); }
+    if (r.cargo) sonido.encender();
+    const m = mensajeTaller(r, def, t);
+    nota(m.titulo, m.detalle, !!r.retiro || r.cargo > 0);
+    return true;
+  }
+  if (id === 'herreria-propia') {
+    const h = datosDe(o, 'taller', sanearHerreria);
+    const r = usarHerreria(h, progreso.aldea, envHerreria());
+    if (r.accion === 'afilar') { sonido.juntar(); nota('Afilaste el hacha y el pico', h.templado ? `Los próximos ${r.usos} árboles o pedreros, dos golpes menos: están templados` : `Los próximos ${r.usos} árboles o pedreros, un golpe menos`, true); }
+    else if (r.accion === 'templar') { sonido.encender(); nota('Templaste el hacha y el pico', 'Con filo, dos golpes menos en vez de uno. Vale mientras tu herrería esté en pie', true); }
+    else if (r.accion === 'falta') nota('Para templar falta', `${r.falta.join(', ')}. Es una sola vez: ${TEMPLE.piedra} piedras, ${TEMPLE.tronco} troncos y ${formatoPesos(TEMPLE.pesos)}`);
+    else if (r.accion === 'al-dia') nota('El filo está al día', 'Templados: con filo, dos golpes menos. Cuando se gaste, volvé a afilar');
+    else nota('Todavía no hay aldea', 'El filo se anota en la libreta de la aldea');
+    return true;
+  }
+  if (id === 'carpinteria') { nota('Tu carpintería', textoCarpinteria(nivelDe('hachero'))); return true; }
+  if (id === 'tienda-campo') {
+    const t = datosDe(o, 'taller', (d) => sanearTienda(d, progreso.dia));
+    venderDias(t, progreso.dia);
+    const caja = retirarCajaTienda(progreso, t);
+    const dejado = dejarEnTienda(progreso, t);
+    const partes = [];
+    if (caja > 0) partes.push(`Retiraste ${formatoPesos(caja)} de la caja`);
+    if (dejado.length) partes.push(`Dejaste a la venta ${dejado.map((x) => aTexto(x.k, x.lotes)).join(', ')}`);
+    if (partes.length) { sonido.juntar(); nota(caja > 0 ? `+${formatoPesos(caja)} de la tienda` : 'Tu tienda de campo', partes.join('. '), true); }
+    else {
+      const hay = lotesEnTienda(t);
+      nota('Tu tienda de campo', hay ? `${hay} ${hay === 1 ? 'lote' : 'lotes'} a la venta: vende hasta 4 por día, lo más caro primero` : 'Sin mercadería. Dejá acá ponchos, pan, empanadas, miel, dulce, truchas ahumadas, hongos o calafate: vende hasta 4 lotes por día');
+    }
+    return true;
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------- 2.9: el molino, el aserradero, la estación y la radio
 // Van por el mismo camino que la colmena: `obraQueTrabajaCerca` las encuentra y el aviso
 // y la tecla E las atienden en el mismo lugar (ver `avisoObraQueTrabaja`). Las máquinas
@@ -7365,6 +7452,7 @@ function usarObraQueTrabaja(o) {
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
 OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
 OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO_QUE_SE_USA));   // 4.2
+OBRAS_QUE_TRABAJAN.push(...Object.keys(OFICIOS_PROPIOS_QUE_SE_USAN));   // 4.2: los edificios de oficio propios
 OBRAS_QUE_TRABAJAN.push(...Object.keys(ESPEJO_QUE_SE_USA));   // 4.1: el espejo de Bruno
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos

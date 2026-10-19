@@ -24,6 +24,8 @@ import { PIEZAS_MUEBLES_2 } from './planos-muebles-2.js';
 import { PIEZAS_ESPEJO } from './planos-espejo.js';
 // 4.2: las piezas de lujo (cuestan pesos además de materiales: ver planos-lujo.js y PRECIOS_CONSTRUCCION.md)
 import { PIEZAS_LUJO } from './planos-lujo.js';
+// 4.2: los edificios de oficio propios (herrería, carpintería, panadería, cervecería, telar grande, quesería, tienda, cantería: ver planos-oficios.js)
+import { PIEZAS_OFICIOS } from './planos-oficios.js';
 import { registrarPreciosDePlano } from './obra-pesos.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
@@ -2247,6 +2249,7 @@ PIEZAS.push(...PIEZAS_COCINA);   // 3.7.2: la cocina (ver planos-cocina.js)
 PIEZAS.push(...PIEZAS_ESPEJO);   // 4.1: el espejo de Bruno (ver planos-espejo.js)
 PIEZAS.push(...PIEZAS_MUEBLES, ...PIEZAS_MUEBLES_2);   // 3.8.8: más mobiliario (ver planos-muebles.js)
 PIEZAS.push(...PIEZAS_LUJO);   // 4.2: el lujo, que además de materiales cuesta pesos
+PIEZAS.push(...PIEZAS_OFICIOS);   // 4.2: los edificios de oficio propios (también cuestan pesos y hacen algo con E)
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,

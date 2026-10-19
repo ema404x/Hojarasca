@@ -73,8 +73,13 @@ export function produccionDe(p) {
     panaderia: abierto('panaderia'), pescaderia: abierto('pescaderia'), miel: abierto('sala-miel'), herbolaria: abierto('herboristeria'),
     leche: !!g?.vaca, cordero: Array.isArray(g?.corderos) && g.corderos.length > 0, cerdo: !!g?.chancha || (Array.isArray(g?.lechones) && g.lechones.length > 0),
     fruta: !!g?.frutales && Object.keys(g.frutales).length > 0,
+    cerveza: tieneCerveceria(p),   // 4.2: tu cervecería (planos-oficios.js): la cerveza de la casa es la tuya
   };
 }
+// 4.2: con la cervecería propia terminada (una etapa), la cerveza de la cantina te sale un 25 % más barata: precio de proveedor
+const tieneCerveceria = (p) => Array.isArray(p?.obras) && p.obras.some((o) => !!o && o.plano === 'cerveceria' && Number(o.etapas) >= 1);
+export const DESCUENTO_CERVEZA = 0.25;
+const CERVEZAS_PROPIAS = { cerveza: 'Tu cerveza artesanal', 'cerveza-negra': 'Tu cerveza negra' };
 const LLUVIA = (c) => c.clima === 'lluvia' || c.clima === 'nieve';
 const CUANDO_EXTRA = {
   'vino-caliente': (c) => FRIO(c) || c.estacion === 'otono' || LLUVIA(c),
@@ -105,6 +110,7 @@ export function cartaDeHoy(c = {}) {
   const ctx = { estacion: c.estacion || 'verano', clima: c.clima || 'sol', locales: c.locales || {}, prod: c.prod || null, dia: c.dia || 0 };
   const lista = [...CARTA.filter((x) => !CUANDO[x.id] || CUANDO[x.id](ctx)), ...CARTA_EXTRA.filter((x) => !CUANDO_EXTRA[x.id] || CUANDO_EXTRA[x.id](ctx))].map((x) => {
     // con la sala de miel abierta, el mate cocido va con miel (un poco más caro)
+    if (ctx.prod?.cerveza && Object.hasOwn(CERVEZAS_PROPIAS, x.id)) return { ...x, nombre: CERVEZAS_PROPIAS[x.id], precio: Math.round((x.precio * (1 - DESCUENTO_CERVEZA)) / 10) * 10, texto: 'La que sale de tu cervecería: la cantina te la deja a precio de proveedor.' };
     if (x.id === 'mate-cocido' && ctx.locales['sala-miel']) return { ...x, nombre: 'Mate cocido con miel', precio: x.precio + 30, texto: 'Caliente y con miel de la sala de la aldea. Endulza el día.' };
     return { ...x };
   });
