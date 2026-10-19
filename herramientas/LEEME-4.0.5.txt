@@ -51,4 +51,4 @@ PARA MIRAR Y CONTARME (versión 4.0.0)
 LO QUE NO ESTÁ
 - Armado sin firmar: el ícono, el nombre y la empresa que muestra Windows en Propiedades son los de Electron.
 - El inglés queda para el final: los textos nuevos están sólo en castellano.
-- El prólogo no se probó con un mando real. El aplastado del pasto no entró (cuesta fps en la plaza).
+- El aplastado del pasto no entró (cuesta fps en la plaza).
