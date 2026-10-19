@@ -196,10 +196,13 @@ export function crearEmpleoJuego(ctx) {
     const l = tarea ? lugar(t.local, tarea.id) : null;
     if (l) m.marcar(l.x, l.y + 0.03, l.z); else m.quitarMarca();
   }
+  let cartelesListos = false;
   function ponerCarteles() {
+    if (cartelesListos) return;
     const m = el();
-    if (!m || m.carteles().length) return;
-    for (const k of IDS_PUESTOS) { const l = lugar(k, 'ficha'); if (l) m.ponerCartel(k, l.x, l.y, l.z, l.giro); }
+    if (!m) return;
+    cartelesListos = true;
+    for (const k of IDS_PUESTOS) { const l = lugar(k, 'ficha'); if (l) m.ponerCartel(k, l.x, l.y, l.z, l.giro + (PUESTOS[k].ficha.giro || 0)); }
   }
 
   // ---------------------------------------------------------------- el reloj del sistema
@@ -219,7 +222,6 @@ export function crearEmpleoJuego(ctx) {
       const m = el();
       if (m && js) {
         for (const k of IDS_PUESTOS) { const l = lugar(k, 'ficha'); if (l) m.verCartel(k, Math.hypot(js.pos.x - l.cx, js.pos.z - l.cz) < RADIO_CARTELES); }
-        if (m.marcaVisible() && turnoActivo(prog())) { const l = lugar(turnoActivo(prog()).local, 'ficha'); if (l && Math.hypot(js.pos.x - l.cx, js.pos.z - l.cz) > RADIO_CARTELES) m.quitarMarca(); else if (!m.marcaVisible()) ponerMarca(); }
       }
     }
     if (acum < 0.5) return;

@@ -34,14 +34,14 @@ export const ESCALONES = [
 ];
 
 // Cada puesto: el local de la aldea, quién manda, el turno, el sueldo por escalón (turno completo), el oficio que cuenta para ascender
-// y las tareas. Los lugares (`x`, `z`) están en el marco del edificio (el centro de su planta, +z hacia la puerta) y `dy` es la altura
+// y las tareas. El cartel de turnos (`ficha`) mira, por defecto, hacia la puerta del local (`giro`: lo que se aparta de eso, en radianes). Los lugares (`x`, `z`) están en el marco del edificio (el centro de su planta, +z hacia la puerta) y `dy` es la altura
 // del piso sobre el nivel del lote; `seg` es lo que lleva la tarea, en segundos.
 export const PUESTOS = {
   almacen: {
     local: 'almacen', saludos: ['Tomá el delantal: atendé a los que entren y lo demás se hace solo.','Hoy no se para: la mercadería no se acomoda sola.'], nombre: 'el almacén', completo: 'Almacén de Ramos Generales', jefe: 'Ercilia', desde: 16, hasta: 20,
     sueldos: [1600, 2100, 2700], cargos: ['Ayudante de mostrador', 'Despachante', 'Encargado del almacén'],
     oficio: 'huertero', oficioNombre: 'huertero',
-    ficha: { x: 2.4, z: 0.9, dy: 0.45 },
+    ficha: { x: 2.4, z: 0.9, dy: 0.45, giro: -Math.PI / 2 },
     tareas: [
       { id: 'mostrador', nombre: 'Atender el mostrador', x: 0, z: -1.1, dy: 0.45, seg: 4, hecho: 'Atendiste a un cliente', donde: 'frente al mostrador' },
       { id: 'bolsas', nombre: 'Pesar y embolsar la yerba y la harina', x: -2.4, z: 0.3, dy: 0.45, seg: 5, hecho: 'Embolsaste la mercadería', donde: 'junto a las bolsas, a la izquierda' },
@@ -77,12 +77,12 @@ export const PUESTOS = {
     local: 'banco-pueblo', saludos: ['Sin apuro, pero sin errores: la plata ajena se cuenta dos veces.','Bienvenido a la ventanilla: lo que se anota, se anota derecho.'], nombre: 'el banco', completo: 'Banco del Pueblo', jefe: 'Amadeo', desde: 8.5, hasta: 12.5,
     sueldos: [1700, 2200, 2800], cargos: ['Ayudante de ventanilla', 'Cajero', 'Encargado de caja'],
     oficio: 'obrero', oficioNombre: 'constructor',
-    ficha: { x: -2.3, z: 2.6, dy: 0.32 },
+    ficha: { x: 2.2, z: 2.9, dy: 0.32, giro: -Math.PI / 2 },
     tareas: [
       { id: 'billetes', nombre: 'Contar los billetes de la caja', x: -1.0, z: 1.4, dy: 0.32, seg: 5, hecho: 'La caja cerró justa', donde: 'frente al mostrador, a la izquierda' },
-      { id: 'sellos', nombre: 'Sellar los formularios', x: 1.8, z: 1.5, dy: 0.32, seg: 4, hecho: 'Sellaste los formularios', donde: 'frente al mostrador, a la derecha' },
-      { id: 'archivo', nombre: 'Ordenar el archivo de legajos', x: 2.5, z: 2.5, dy: 0.32, seg: 5, hecho: 'El archivo quedó en orden', donde: 'junto al banco de espera, a la derecha' },
-      { id: 'reja', nombre: 'Lustrar los bronces de la reja', x: 0.9, z: 1.4, dy: 0.32, seg: 4, hecho: 'La reja brilla', donde: 'frente a la reja de la ventanilla' },
+      { id: 'sellos', nombre: 'Sellar los formularios', x: 1.5, z: 1.4, dy: 0.32, seg: 4, hecho: 'Sellaste los formularios', donde: 'frente al mostrador, a la derecha' },
+      { id: 'archivo', nombre: 'Ordenar el archivo de legajos', x: -2.5, z: 2.5, dy: 0.32, seg: 5, hecho: 'El archivo quedó en orden', donde: 'junto al banco de espera, a la izquierda' },
+      { id: 'reja', nombre: 'Lustrar los bronces de la reja', x: 0.1, z: 1.4, dy: 0.32, seg: 4, hecho: 'La reja brilla', donde: 'frente a la ventanilla, en el medio' },
     ],
   },
 };

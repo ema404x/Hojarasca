@@ -46,7 +46,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
       ok(Number.isFinite(t.dy) && t.dy >= 0 && t.dy < 1, `${k}/${t.id}: altura del piso`);
     }
     ok(Math.abs(P.ficha.x) <= ed.ancho / 2 + 4 && Math.abs(P.ficha.z) <= ed.fondo / 2 + 4, `${k}: el cartel de turnos está en el local`);
-    for (const t of P.tareas) ok(Math.hypot(t.x - P.ficha.x, t.z - P.ficha.z) > 1.4, `${k}/${t.id}: no se pisa con el cartel`);
+    for (const t of P.tareas) ok(Math.hypot(t.x - P.ficha.x, t.z - P.ficha.z) > 1.6, `${k}/${t.id}: no se pisa con el cartel (el radio de una tarea es 1,5)`);
     ok(E.hayPuesto(k), `${k}: hayPuesto`);
   }
   ok(!E.hayPuesto('cantina') && !E.hayPuesto('constructor') && !E.hayPuesto(null), 'lo que no es un puesto no lo es (ni «constructor», ni null)');

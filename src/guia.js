@@ -123,6 +123,8 @@ export const SECCIONES_GUIA = [
       ['El Banco del Pueblo', 'Al este de la plaza de la aldea (también en el mapa). Amadeo presta pesos, compra cosas a buen precio y vende las etapas de las casas. Atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18.'],
       // 3.9.0
       ['La cantina', 'Al final de la calle de la Loma (también en el mapa). Abre de 18 a 2. Sentate a una mesa con E: Lucrecia viene, te muestra la carta y te trae lo que pidas. Se paga en pesos, con trueque o a la cuenta. E toma o come; R te levanta.'],
+      // 4.3
+      ['Trabajar en la aldea', 'En el almacén, la casa de té, el taller ferroviario y el banco hay un cartel de turnos: E ficha. Hacés las tareas del puesto con E (la flecha dorada marca dónde), cobrás al terminar y, con los días y tu oficio, ascendés. Se ve en el cuaderno (J).'],
     ],
   },
   {

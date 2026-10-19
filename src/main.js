@@ -3195,7 +3195,7 @@ document.addEventListener('keydown', (e) => {
       if (vecino && desafio && vecino.enBase) { ordenarCompanero(vecino); break; }
       if (vecino) { hablar(vecino); break; }
       // 4.3: el empleo fijo: el cartel de turnos y la tarea del puesto, antes que el mostrador y lo de adentro (el aviso, en el mismo lugar y con la misma función: empleoJuego.accion)
-      if (!js.enTren && !js.enKayak && !js.montado && empleoJuego) { const a = empleoJuego.accion(js); if (a && (a.tipo !== 'info' || !objetivo)) { a.hacer(); cacheEmpleo = null; break; } }
+      if (!js.enTren && !js.enKayak && !js.montado && empleoJuego) { const a = empleoJuego.accion(js); if (a && (a.tipo !== 'info' || !objetivo || objetivo.tipo === 'sentarse')) { a.hacer(); cacheEmpleo = null; break; } }
       // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, E te sienta (el aviso, en el mismo lugar)
       if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
       // 3.1: en el poste de una carrera, E larga (también montado, en el kayak o en el velero; el aviso va en el mismo lugar)
@@ -10271,7 +10271,7 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.8.3: salvo que ella te espere para la cita o el casamiento: la E empieza eso primero (hablar → amorJuego.hablar)
     if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
     // 4.3: el empleo fijo, después de hablar y antes que el mostrador y los objetos de adentro, como en la tecla E
-    if (cacheEmpleo && !charla.npc && !vecino && !js.enTren && !js.enKayak && !js.montado && (cacheEmpleo.tipo !== 'info' || !objetivo)) aviso = { tecla: 'E', texto: cacheEmpleo.texto };
+    if (cacheEmpleo && !charla.npc && !vecino && !js.enTren && !js.enKayak && !js.montado && (cacheEmpleo.tipo !== 'info' || !objetivo || objetivo.tipo === 'sentarse')) aviso = { tecla: 'E', texto: cacheEmpleo.texto };
     // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
     const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
     if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };
