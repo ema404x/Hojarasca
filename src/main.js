@@ -3532,7 +3532,7 @@ function encenderFuego() {
     avisarFuegoReemplazado(clima.encenderFogata(propio.datos.x, y, propio.datos.z, 900, { contenida, duenio: propio }));   // 3.8.7: el fuego sabe de qué obra es
     gastarLenaDelInvierno(lena);
     sonido.encender();
-    if (propio.plano.id === 'pared-hogar') nota('Encendiste el hogar', 'Calienta la casa, y el humo sale por la chimenea');
+    if (propio.plano.id === 'pared-hogar' || propio.plano.id === 'hogar-grande') nota('Encendiste el hogar', 'Calienta la casa, y el humo sale por la chimenea');
     else nota(contenida ? 'Encendiste la estufa' : 'Encendiste tu fogón', contenida ? 'El calor queda contenido dentro del refugio' : 'Dura toda la noche');
     return;
   }
@@ -10215,7 +10215,7 @@ function cuadroDelJuego(tRaf, manual) {
     // en el medio y tapaban el aviso de E: junto al tendal decía «B Plantar» y E colgaba.
     if (!aviso && desafio && desafio.antorchaApagadaCerca?.(js.pos)) aviso = { tecla: 'F', texto: 'Encender la antorcha' };
     const fuegoPropio = !aviso ? cacheFuegoPropio : null;
-    if (fuegoPropio) aviso = { tecla: 'F', texto: fuegoPropio.plano.id === 'pared-hogar' ? 'Encender el hogar' : fuegoPropio?.plano?.fuegoContenido ? 'Encender la estufa' : 'Encender tu fogón' };
+    if (fuegoPropio) aviso = { tecla: 'F', texto: fuegoPropio.plano.id === 'pared-hogar' || fuegoPropio.plano.id === 'hogar-grande' ? 'Encender el hogar' : fuegoPropio?.plano?.fuegoContenido ? 'Encender la estufa' : 'Encender tu fogón' };
     const hachaCerca = !aviso ? cacheHacha : null;
     if (hachaCerca) aviso = { tecla: 'H', texto: textoHacha(hachaCerca) };
     if (!aviso && cacheAserrar) aviso = { tecla: 'Y', texto: cacheAserrar === 'banco' ? 'Aserrar en el banco (1 tronco → 4 tablas)' : 'Aserrar a mano (1 tronco → 2 tablas)' };

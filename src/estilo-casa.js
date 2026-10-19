@@ -154,7 +154,7 @@ const MADERAS_OBRA = new Set(['#6b5238', '#4a3b2c', '#8a6b4a', '#5f4a33', '#7a5f
 
 // Zona de una pieza de tus casas: 'pared', 'aberturas' (marcos, postes, jambas), 'techo' o null.
 export function zonaCasa(plano, etapa, color) {
-  if (!plano || plano.categoria !== 'refugios' || !color || NO_PINTAR.has(color)) return null;
+  if (!plano || plano.categoria !== 'refugios' || plano.sinPintura || !color || NO_PINTAR.has(color)) return null;   // (4.2: la pared de piedra y el techo de teja no se pintan)
   const tipo = plano.snap?.tipo;
   if (tipo === 'piso' || tipo === 'entrepiso' || tipo === 'acceso' || tipo === 'baranda') return null;
   if (tipo === 'techo' || (!plano.pieza && /techo/i.test(etapa || ''))) return TECHOS_OBRA.has(color) ? 'techo' : null;

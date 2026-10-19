@@ -13,6 +13,7 @@
 export const CHIMENEAS = {
   'estufa-hierro': { lx: 0.18, ly: 2.3, lz: 0.08 },
   'pared-hogar': { lx: 0, ly: 3.75, lz: 0 },
+  'hogar-grande': { lx: 0, ly: 4.6, lz: 0.15 },   // 4.2: el gran hogar de piedra (planos-ampliar.js)
 };
 // Los huecos de ventana de cada pared (centro y tamaño, locales: la pared va por x).
 export const VENTANAS = {

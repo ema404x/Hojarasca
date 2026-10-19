@@ -124,10 +124,13 @@ function hogar(c, M, suelo, h) {
 function ventana(c, v) {
   const { orient, s, cx, cz } = v;
   const parte = (ox, oy, oz, w, h, d, color, o = {}) => {
-    if (orient === 'z') caja(c, w, h, d, [cx + ox, oy, cz + s * oz], color, o);
-    else caja(c, d, h, w, [cx + s * oz, oy, cz + ox], color, o);
+    // 4.2: `t` es el grueso de la pared cuando no es el de siempre (las ampliaciones de piedra)
+    const oz2 = oz + (v.t ? (v.t - T_PARED) / 2 : 0);
+    if (orient === 'z') caja(c, w, h, d, [cx + ox, oy, cz + s * oz2], color, o);
+    else caja(c, d, h, w, [cx + s * oz2, oy, cz + ox], color, o);
   };
-  const yc = 1.62, wv = 0.95, hv = 0.9;
+  // 4.2: `dy` sube la ventana (la del piso de arriba de una ampliación)
+  const yc = 1.62 + (v.dy || 0), wv = 0.95, hv = 0.9;
   parte(0, yc, 0.06, wv, hv, 0.035, VIDRIO, { variar: 0.03 });
   parte(0, yc + hv / 2 + 0.04, 0.08, wv + 0.16, 0.08, 0.08, MADERA_OSCURA, { tipo: 0, variar: 0.05 });
   parte(0, yc - hv / 2 - 0.04, 0.08, wv + 0.16, 0.08, 0.08, MADERA_OSCURA, { tipo: 0, variar: 0.05 });
@@ -417,3 +420,6 @@ export const PLANOS_CASAS = [
     ],
   }),
 ];
+
+// 4.2: lo que las ampliaciones (planos-ampliar.js) toman de las casas en vez de repetirlo: la fábrica, las etapas y los muebles de adentro.
+export const AYUDAS_CASAS = { casa, medidas, fisicaDe, etapaCimientos, etapaPiso, etapaParedes, etapaTecho, caja, cilindro, triangulo, ventana, cama, mesa, alfombra, repisa, hogar, perimetro, tramosFrente, postesGaleria, PISO_Y, Y0, PUERTA, T_PARED, ALTO_PUERTA, ZOCALO_ALTO, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED, VIDRIO };
