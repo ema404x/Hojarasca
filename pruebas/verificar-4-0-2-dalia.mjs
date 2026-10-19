@@ -49,8 +49,9 @@ const armar = (clave, o = {}) => C.crearPersona({}, clave, false, {}, o);
 const cuerpo = leer('src/gente-cuerpo.js'), gente = leer('src/gente.js');
 ok(!cuerpo.includes('\r') && !gente.includes('\r'), 'fines de línea LF');
 ok(/\/\/ 4\.0\.2:/.test(cuerpo) && /4\.0\.2:/.test(gente), 'los comentarios llevan la versión');
-const tacoM = cuerpo.match(/tobillo\.add\(tubo\(matiz\(zap, 0\.8\), ([\d.]+), ([\d.]+), ([\d.]+), \[0, (-[\d.]+), (-[\d.]+)\]/);
-const contraM = cuerpo.match(/tobillo\.add\(bola\(zap, \[0\.036, 0\.034, 0\.05\], \[0, (-[\d.]+), (-[\d.]+)\]/);
+// (4.0.5: las piezas del zapato van por `pit(y, z)`, el giro del pie alrededor del tobillo: acá se miden en el pie recto, como antes)
+const tacoM = cuerpo.match(/tobillo\.add\(tubo\(matiz\(zap, 0\.8\), ([\d.]+), ([\d.]+), ([\d.]+), pit\((-[\d.]+), (-[\d.]+)\)/);
+const contraM = cuerpo.match(/tobillo\.add\(bola\(zap, \[0\.036, 0\.034, 0\.05\], pit\((-[\d.]+), (-[\d.]+)\)/);
 ok(tacoM && contraM, 'se leen el taco y el contrafuerte del zapato de taco');
 const [alto, yTaco] = [Number(tacoM[3]), Number(tacoM[4])];
 const arriba = yTaco + alto / 2, abajo = yTaco - alto / 2, bajoContra = Number(contraM[1]) - 0.034;

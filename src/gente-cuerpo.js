@@ -1062,6 +1062,7 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
   // ---- piernas (muslo en la cadera, canilla y bota en la rodilla, el pie en el tobillo)
   const altas = R.botas === 'altas' || R.botas === 'goma';
   const RODILLA = 0.37, TOBILLO = -0.39;
+  const PITCH_TACO = 0.2;   // 4.0.5: cuánto baja la punta del zapato de taco (rad); ver el bloque de `R.tacos`
   const lx = (mujer ? 0.086 : 0.094) * anchoT[0];
   const perfilMuslo = R.bombacha
     ? [[0.0, -0.49], [0.058, -0.475], [0.083, -0.44], [0.096, -0.3], [0.096, -0.17], [0.088, -0.04], [0.07, 0.06]]
@@ -1099,12 +1100,15 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
       // 3.9.1: el zapato de taco (Dalia): el empeine con la punta hacia abajo, el contrafuerte y el taco de aguja de 7,5 cm. El cuerpo sube `alzado` (gente.js)
       // para que la punta y el taco toquen el piso
       const zap = typeof R.tacos === 'string' ? R.tacos : '#b4182a';
-      tobillo.add(bola(zap, [0.044, 0.03, 0.1], [0, -0.04, 0.062], [0.56, 0, 0], [10, 7]));
-      tobillo.add(bola(zap, [0.036, 0.034, 0.05], [0, -0.022, -0.02], [0.2, 0, 0], [8, 6]));
-      tobillo.add(bola(matiz(zap, 1.25), [0.02, 0.012, 0.034], [0, -0.048, 0.07], [0.56, 0, 0], [6, 4]));   // el brillo del empeine
+      // 4.0.5: todo el zapato gira PITCH_TACO hacia abajo en la punta, alrededor del tobillo: con el taco en el piso la punta quedaba 3,5 cm en el aire (parada
+      // en puntas de pie: los zapatos «flotaban»); ahora la punta y el taco apoyan juntos (el cuerpo sube `alzado`, ver abajo)
+      const cT = Math.cos(PITCH_TACO), sT = Math.sin(PITCH_TACO), pit = (y, z) => [0, y * cT - z * sT, y * sT + z * cT];
+      tobillo.add(bola(zap, [0.044, 0.03, 0.1], pit(-0.04, 0.062), [0.56 + PITCH_TACO, 0, 0], [10, 7]));
+      tobillo.add(bola(zap, [0.036, 0.034, 0.05], pit(-0.022, -0.02), [0.2 + PITCH_TACO, 0, 0], [8, 6]));
+      tobillo.add(bola(matiz(zap, 1.25), [0.02, 0.012, 0.034], pit(-0.048, 0.07), [0.56 + PITCH_TACO, 0, 0], [6, 4]));   // el brillo del empeine
       // 4.0.2: el taco sube hasta meterse 2 cm dentro del contrafuerte (antes arrancaba 7 mm más abajo y, de costado, se veía un hueco: el taco flotaba sin tocar el zapato)
-      tobillo.add(tubo(matiz(zap, 0.8), 0.016, 0.0065, 0.098, [0, -0.078, -0.047], null, 8, true));
-      tobillo.add(bola(matiz(zap, 0.6), [0.018, 0.006, 0.018], [0, -0.127, -0.05], null, [6, 3]));       // la tapita del taco
+      tobillo.add(tubo(matiz(zap, 0.8), 0.016, 0.0065, 0.098, pit(-0.078, -0.047), [PITCH_TACO, 0, 0], 8, true));
+      tobillo.add(bola(matiz(zap, 0.6), [0.018, 0.006, 0.018], pit(-0.127, -0.05), [PITCH_TACO, 0, 0], [6, 3]));       // la tapita del taco
     } else if (R.zapatos) {
       // 3.9.2: el mocasín (la anfitriona de la casa de té): sin caña (la media a la vista), el empeine cerrado con la tira cruzada, la suela
       // y el taco bajo de 2 cm marcado atrás
@@ -1238,6 +1242,18 @@ function* figuraPasos(colores, clave, conMate, R, A, talla) {
           const x2 = xmax[j] > 1e-6 ? x / xmax[j] * hw : 0;
           const f = Math.sqrt(Math.max(0, 1 - (x2 / R0) ** 2)) / Math.sqrt(Math.max(1e-4, 1 - (x / R0) ** 2));
           P.setXYZ(i, x2, P.getY(i), z * f);
+        }
+        if (curvas) {
+          // 4.0.5: la «muesquita» de la V: el parche se angosta en x pero su z seguía la curva del pecho de la columna SIN angostar: no coincidía con los lóbulos del
+          // vestido (a x = ±5 cm el vestido sube y el parche no), y el lóbulo lo atravesaba dibujando un escalón en el borde. Ahora la z del parche es la del vestido
+          // de verdad (un rayo de adelante contra la malla del corpiño) más 6 mm: la V es la del parche, de borde limpio
+          const rc = new THREE.Raycaster(), o = new THREE.Vector3(), dir = new THREE.Vector3(0, 0, -1);
+          capaHombro.updateMatrixWorld(true);
+          for (let i = 0; i < P.count; i++) {
+            o.set(P.getX(i), P.getY(i), 1); rc.set(o, dir); rc.far = 2;
+            const h = rc.intersectObject(capaHombro, false)[0];
+            if (h) P.setZ(i, h.point.z + 0.006);
+          }
         }
         parche.geometry.computeVertexNormals(); coser(parche.geometry);
         // los dos bordes de la V (la primera y la última columna) para el ribete
@@ -2521,7 +2537,7 @@ function* crearPersonaPasos(colores, clave, conMate, R, opciones) {
   const r = { g, cabeza, torso, patas, brazos, mano, muneca, mateVisible, alPosar: alPosar(est), posesM: A.poses || ['cintura', 'cruzados', 'atras'], cara: cabeza.userData.rostro || null, conPoncho: f.conPoncho, edad: A.edad };
   r.soltar = () => soltarPersona(r);
   r.pasoCorto = A.R && A.R.curvas ? 0.72 : 1;   // 4.0.2: la falda ceñida con tajo (Dalia) abre menos el paso al bailar: con el paso entero parecía un pantalón ancho
-  r.alzado = A.R && A.R.tacos ? 0.069 : 0;   // 3.9.1: cuánto sube todo el cuerpo con los tacos (ver gente.js): el taco y la punta quedan en el piso
+  r.alzado = A.R && A.R.tacos ? 0.06 : 0;   // (4.0.5: 0,06 en vez de 0,069: con el zapato girado PITCH_TACO la punta y el taco apoyan juntos 9 mm más arriba) 3.9.1: cuánto sube todo el cuerpo con los tacos (ver gente.js): el taco y la punta quedan en el piso
   r.brazosAfuera = A.cuerpo && A.cuerpo.cadera > 1.1 ? 0.1 : 0;   // 3.9.1: con la cadera ancha, los brazos cuelgan un poco más abiertos
   r.__est = est;
   if (A.R && A.R.bandeja) r.bandeja = crearBandeja(brazos[1]);   // 3.9: la moza de la cantina: { visible(b), vasos(n), estado() }
