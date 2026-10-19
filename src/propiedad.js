@@ -12,6 +12,7 @@ import { negociosDe } from './negocios.js';
 import { cobrar, pagar, pesosDe, hayEconomia } from './economia.js';
 import { tengoDe } from './pedidos.js';
 import { abonarAlMoroso } from './prestamos.js';
+import { registrarPrecios, precioDeEtapa as precioDeEtapaComun, puedePagarEtapa as puedePagarEtapaComun, pagarEtapa as pagarEtapaComun, devolverEtapasPagadas as devolverEtapasPagadasComun } from './obra-pesos.js';
 
 export const PROPIEDAD = {
   casas: {
@@ -26,37 +27,26 @@ export const PROPIEDAD = {
 export const esCasaDePrecio = (id) => typeof id === 'string' && Object.hasOwn(PROPIEDAD.casas, id);
 export const precioCasa = (id) => (esCasaDePrecio(id) ? PROPIEDAD.casas[id].total : 0);
 // Lo que se paga al empezar la etapa `i` (0 a 3), redondo a $50; la última ajusta para que sume el total
-export function precioDeEtapa(id, i) {
-  if (!esCasaDePrecio(id) || !(i >= 0)) return 0;
+function precioCasaEtapa(id, i) {
   const c = PROPIEDAD.casas[id];
-  if (i >= c.reparto.length) return 0;
   const parte = (j) => Math.round((c.total * c.reparto[j]) / 50) * 50;
   if (i < c.reparto.length - 1) return parte(i);
   return c.total - c.reparto.slice(0, -1).reduce((s, _, j) => s + parte(j), 0);
 }
-// ¿Se puede pagar la etapa?: { ok, precio } o { ok: false, precio, falta }
-export function puedePagarEtapa(p, id, i) {
-  const precio = hayEconomia(p) ? precioDeEtapa(id, i) : 0;
-  if (!precio) return { ok: true, precio: 0 };
-  const tengo = pesosDe(p);
-  return tengo >= precio ? { ok: true, precio } : { ok: false, precio, falta: precio - tengo };
+// 4.2: la cuenta de pagar por etapas, devolver al retirar la marca y avisar es la de cualquier plano (obra-pesos.js); acá sólo se anotan
+// los precios de las tres casas, con sus textos de siempre (terreno y mano de obra; al desmontar no hay reintegro, así estaba)
+for (const id of Object.keys(PROPIEDAD.casas)) {
+  const c = PROPIEDAD.casas[id];
+  registrarPrecios(id, c.reparto.map((_, i) => precioCasaEtapa(id, i)), {
+    nombre: c.nombre, motivoPago: `Terreno y mano de obra: ${c.nombre}`, motivoDevolucion: `Devolución del terreno y la mano de obra: ${c.nombre}`,
+    sujeto: 'El terreno y la mano de obra', verbo: 'cuestan', deLoPagado: 'del terreno y la mano de obra', pagaA: 'Obra de la casa', reintegro: 0,
+  });
 }
-export function pagarEtapa(p, id, i, con = 'Obra de la casa') {
-  const v = puedePagarEtapa(p, id, i);
-  if (!v.ok || !v.precio) return v;
-  const r = pagar(p, v.precio, `Terreno y mano de obra: ${PROPIEDAD.casas[id].nombre}`, con);
-  return r.ok ? v : { ok: false, precio: v.precio, falta: v.precio - pesosDe(p) };
-}
-// 4.0.3 (II-1): al retirar una marca (Supr) que ya tenía etapas pagadas (pagaste la primera, deshiciste y cancelaste), el terreno y la mano de obra
-// vuelven a la billetera: el cartel dice «no se gastaron materiales» y los pesos se perdían. `pagadas` es hasta qué etapa se pagó.
-export function devolverEtapasPagadas(p, id, pagadas, con = 'Los albañiles de la aldea') {
-  if (!hayEconomia(p) || !esCasaDePrecio(id)) return 0;
-  let monto = 0;
-  for (let i = 0; i < Math.max(0, Math.min(4, pagadas | 0)); i++) monto += precioDeEtapa(id, i);
-  if (monto <= 0) return 0;
-  const r = cobrar(p, monto, `Devolución del terreno y la mano de obra: ${PROPIEDAD.casas[id].nombre}`, con);
-  return r.ok ? r.monto : 0;
-}
+// (se re-exportan con los nombres de siempre: main.js y las pruebas de las casas los usan así)
+export const precioDeEtapa = precioDeEtapaComun;
+export const puedePagarEtapa = puedePagarEtapaComun;
+export const pagarEtapa = pagarEtapaComun;
+export const devolverEtapasPagadas = devolverEtapasPagadasComun;
 export function puedePagarEscritura(p) {
   if (!hayEconomia(p)) return { ok: true, precio: 0 };
   const tengo = pesosDe(p);

@@ -22,6 +22,9 @@ import { PLANOS_CASAS } from './planos-casas.js';
 import { PIEZAS_MUEBLES } from './planos-muebles.js';
 import { PIEZAS_MUEBLES_2 } from './planos-muebles-2.js';
 import { PIEZAS_ESPEJO } from './planos-espejo.js';
+// 4.2: las piezas de lujo (cuestan pesos además de materiales: ver planos-lujo.js y PRECIOS_CONSTRUCCION.md)
+import { PIEZAS_LUJO } from './planos-lujo.js';
+import { registrarPreciosDePlano } from './obra-pesos.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
 const MADERA = '#6b5238';
@@ -2243,11 +2246,12 @@ function matasJardin(c, x, z, y, f, k, esc = 1) {
 PIEZAS.push(...PIEZAS_COCINA);   // 3.7.2: la cocina (ver planos-cocina.js)
 PIEZAS.push(...PIEZAS_ESPEJO);   // 4.1: el espejo de Bruno (ver planos-espejo.js)
 PIEZAS.push(...PIEZAS_MUEBLES, ...PIEZAS_MUEBLES_2);   // 3.8.8: más mobiliario (ver planos-muebles.js)
+PIEZAS.push(...PIEZAS_LUJO);   // 4.2: el lujo, que además de materiales cuesta pesos
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,
     ancho: pieza.ancho ?? pieza.radio * 2, fondo: pieza.fondo ?? pieza.radio * 2, alto: pieza.alto ?? 1,
-    etapas: [{ nombre: 'Armarlo', pide: pieza.pide, dice: pieza.texto, termina: true, arma: pieza.arma }],
+    etapas: [{ nombre: 'Armarlo', pide: pieza.pide, dice: pieza.texto, termina: true, arma: pieza.arma, ...(pieza.pesos ? { pesos: pieza.pesos } : {}) }],   // 4.2: `pesos` va junto a `pide`
   });
 }
 
@@ -2274,6 +2278,7 @@ for (const p of PLANOS) {
   p.distancia = p.distancia || (p.pieza ? 2.4 : 5.5);
   if (p.id === 'puesto') p.habitable = true;
   if (p.id === 'banco') p.apoyaEnPlataforma = true;
+  registrarPreciosDePlano(p);   // 4.2: lo que el plano declara en `pesos` (en el plano o en cada etapa) queda anotado
 }
 
 export const PLANO = Object.fromEntries(PLANOS.map((p) => [p.id, p]));

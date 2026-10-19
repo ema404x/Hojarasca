@@ -153,6 +153,9 @@ import { cuandoSeVe, avisoDeEstacion } from './almanaque.js';
 import { textoHud as textoRelojHud, partesReloj, partesAlmanaque } from './reloj-almanaque.js';
 // 3.8.8: el reloj y el almanaque de pared (lo que se usa con E)
 import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
+// 4.2: el lujo y los pesos de cualquier plano (obra-pesos.js)
+import { LUJO_QUE_SE_USA } from './planos-lujo.js';
+import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
 import { ESPEJO_QUE_SE_USA } from './planos-espejo.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
 import { CONSERVAS, HORAS_SECADO, sanearTendal, usarTendal, avanzarSecado, avisoTendal, queAbrir, AL_ABRIR } from './conservas.js';
@@ -3363,12 +3366,14 @@ document.addEventListener('keydown', (e) => {
           else {
             for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
             devolverContenido(r.datos);   // 3.5.1
+            const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);   // 4.2: la mitad de los pesos que pagaste (antes de guardar)
             const delAcopio = r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null;   // 3.8.4: el último acopio
             progreso.obras = obras.obras.map((o) => o.datos);
             guardar(); sonido.juntar();
             const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => cantidadMaterial(n, k)).join(' · ');
             if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
             else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
+            if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`, 'La mitad de la mano de obra que pagaste');   // 4.2
             dibujarPanelObra();
           }
           break;
@@ -3381,7 +3386,7 @@ document.addEventListener('keydown', (e) => {
           progreso.obras = obras.obras.map((o) => o.datos);
           guardar();
           sonido.juntar();
-          nota('Marca retirada', `${r.plano.nombre}: no se gastaron materiales${devuelto ? `. Te devolvieron ${formatoPesos(devuelto)} del terreno y la mano de obra` : ''}`);
+          nota('Marca retirada', `${r.plano.nombre}: no se gastaron materiales${devuelto ? `. Te devolvieron ${formatoPesos(devuelto)} ${textoDeLoPagado(r.plano.id)}` : ''}`);
           dibujarPanelObra();
         }
       }
@@ -6531,8 +6536,10 @@ function dibujarPanelObra() {
     const b2 = document.createElement('button');
     const funcional = (pl.funciones || []).length ? ' ◆' : '';
     const interactiva = pl.interactiva ? ' ◇' : '';
-    b2.textContent = `${i + 1}. ${pl.nombre}${funcional}${interactiva}`;
-    b2.className = pl.id === p.id ? 'elegido' : '';
+    const pesosPl = hayEconomia(progreso) ? precioTotal(pl.id) : 0;   // 4.2: «$12.000» junto al nombre; en rojo y con aviso si no alcanza
+    const faltaPl = pesosPl > 0 && precioDeEtapa(pl.id, 0) > pesosDe(progreso);   // (una obra por etapas se paga de a una: «no alcanza» es que no alcanza para empezar)
+    b2.textContent = `${i + 1}. ${pl.nombre}${funcional}${interactiva}${pesosPl ? ` · ${formatoPesos(pesosPl)}${faltaPl ? ' (no alcanza)' : ''}` : ''}`;
+    b2.className = (pl.id === p.id ? 'elegido' : '') + (faltaPl ? ' sinplata' : '');
     b2.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); elegirPlano(i); });
     planos.appendChild(b2);
   });
@@ -6555,9 +6562,13 @@ function dibujarPanelObra() {
   const hechas = obra ? obra.datos.etapas : 0;
   p.etapas.forEach((e, i) => {
     const li = document.createElement('li');
-    const falta = faltan(e.pide, materialesVisibles());
-    li.className = i < hechas ? 'hecha' : i === hechas && !falta.length ? 'lista' : '';
-    const pide = Object.entries(e.pide).map(([k, n]) => cantidadMaterial(n, k)).join(', ');
+    const faltaMat = faltan(e.pide, materialesVisibles());
+    // 4.2: los pesos de la etapa (si ya la pagaste no se cobran de nuevo)
+    const precioE = !hayEconomia(progreso) || i < (obra?.datos.pagadas || 0) ? 0 : precioDeEtapa(p.id, i);
+    const pagoE = precioE ? puedePagarEtapa(progreso, p.id, i) : { ok: true, precio: 0 };
+    const falta = listaDeFaltantes(faltaMat, pagoE);
+    li.className = (i < hechas ? 'hecha' : i === hechas && !falta.length ? 'lista' : '') + (pagoE.ok ? '' : ' sinplata');
+    const pide = Object.entries(e.pide).map(([k, n]) => cantidadMaterial(n, k)).join(', ') + (precioE ? `${Object.keys(e.pide).length ? ' · ' : ''}${formatoPesos(precioE)}` : '');
     const b = document.createElement('b');
     b.textContent = `${i + 1}. ${e.nombre}`;
     const sp = document.createElement('span');
@@ -6571,11 +6582,13 @@ function dibujarPanelObra() {
   const pct = p.pieza ? 0 : Math.round((hechas / p.etapas.length) * 100);
   $('obra-progreso').style.setProperty('--avance', `${pct}%`);
   $('obra-progreso').textContent = p.pieza ? 'Se construye de una vez' : obra ? `${hechas}/${p.etapas.length} etapas · ${pct}%` : 'Todavía no fundado';
-  $('obra-costo').textContent = `Costo total · ${costoPlano(p)}`;
+  const totalPesos = hayEconomia(progreso) ? precioTotal(p.id) : 0;   // 4.2
+  $('obra-costo').textContent = `Costo total · ${costoPlano(p)}${totalPesos ? ` · ${formatoPesos(totalPesos)}` : ''}`;
   const m = progreso.materiales || {};
   const enAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA) ? acopio() : null;
   $('obra-materiales').textContent = `Llevás ${cuantas(m.tronco || 0, 'tronco', 'troncos')} · ${cuantas(m.tabla || 0, 'tabla', 'tablas')} · ${cuantas(m.piedra || 0, 'piedra', 'piedras')}`
-    + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '');
+    + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '')
+    + (totalPesos ? ` · Tenés ${formatoPesos(pesosDe(progreso))}` : '');
   actualizarEstadoModuloObra(true);
   actualizarEstadoSitioObra(obras.estadoSitio);
 }
@@ -6744,6 +6757,23 @@ function devolverContenido(d) {
   }
   refrescarBarra(true);
 }
+// 4.2: los pesos de una etapa de cualquier plano (la cuenta es la de las casas: obra-pesos.js). Ya pagada, en el Desafío o sin precio: nada.
+function pagoDeEtapa(plano, datos, i) {
+  if (desafio || i < (datos?.pagadas || 0)) return { ok: true, precio: 0 };
+  return puedePagarEtapa(progreso, plano.id, i);
+}
+function cobrarEtapa(plano, datos, i, pago) {
+  if (!pago?.precio) return;
+  pagarEtapa(progreso, plano.id, i);
+  datos.pagadas = i + 1;   // hasta dónde pagaste: rehacer la etapa o retirar la marca no cobra (ni devuelve) de más
+}
+// «Faltan 2 tablas y $1.200»: los materiales y los pesos que faltan, en una sola frase; si sólo faltan pesos, cuánto cuesta y cuánto falta
+function notaSinPlata(plano, etapa, pago, faltaMateriales = null) {
+  const falta = faltaMateriales || faltan(plano.etapas[etapa].pide, materialesVisibles());
+  if (falta.length) { nota('Todavía no', textoFaltan(listaDeFaltantes(falta, pago))); return; }
+  const a = avisoSinPlata(plano.id, pago, plano.etapas.length);
+  nota(a.titulo, a.detalle);
+}
 // 3.5.1: la pieza de varias etapas de este plano que quedó a medio hacer más cerca (o null)
 function piezaAMedias(plano, pos, radio) {
   if (!plano?.pieza || !(plano.etapas?.length > 1)) return null;
@@ -6793,9 +6823,13 @@ function accionObra() {
   // también: antes cada Y fundaba otra y ninguna pasaba de la primera etapa (el capítulo 6 se trababa)
   const obra = obras.plano?.pieza ? piezaAMedias(obras.plano, js.pos, 10) : obraAMedias(obras.plano, js.pos, 10);
   if (obra?.plano.pieza) {
+    // 4.2: una pieza con pesos cobra cada etapa al hacerla (lo ya pagado no se cobra de nuevo)
+    const etapaPieza = obra.datos.etapas, pagoPieza = pagoDeEtapa(obra.plano, obra.datos, etapaPieza);
+    if (!pagoPieza.ok) { notaSinPlata(obra.plano, etapaPieza, pagoPieza); return; }
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
     jugador.desencajar();   // 4.0.1
+    cobrarEtapa(obra.plano, obra.datos, etapaPieza, pagoPieza);
     avisarSobrante(r);
     progreso.obras = obras.obras.map((o) => o.datos);
     sonido.encender();
@@ -6813,7 +6847,7 @@ function accionObra() {
     const etapaCasa = obra.datos.etapas;
     // (si deshiciste una etapa y la rehacés, ya la pagaste: `datos.pagadas` es hasta dónde pagaste)
     const pago = desafio || etapaCasa < (obra.datos.pagadas || 0) ? { ok: true, precio: 0 } : puedePagarEtapa(progreso, obra.plano.id, etapaCasa);
-    if (!pago.ok) { nota('Falta plata para esta etapa', `El terreno y la mano de obra cuestan ${formatoPesos(pago.precio)} y te faltan ${formatoPesos(pago.falta)}. El banco te puede prestar`); return; }
+    if (!pago.ok) { const a = avisoSinPlata(obra.plano.id, pago, obra.plano.etapas.length); nota(a.titulo, a.detalle); return; }   // (4.2: el texto sale del registro de precios; el de las casas es el de siempre)
     const r = conMateriales((m) => conOficioDeObra(obras.avanzar(obra, m), m));   // 3.1: el oficio de constructor
     if (!r.ok) { nota('Todavía no', r.motivo); return; }
     jugador.desencajar();   // 4.0.1: el piso nuevo en una ladera no te deja encajonado adentro
@@ -6838,9 +6872,11 @@ function accionObra() {
   // Las piezas de una sola etapa se pagan antes de fundarlas. La versión vieja
   // podía dejar un marcador huérfano de pieza si faltaban materiales, porque
   // la siguiente pulsación siempre intentaba crear otra pieza nueva.
+  let pagoNueva = { ok: true, precio: 0 };   // 4.2
   if (obras.plano?.pieza) {
     const faltaPieza = faltan(obras.plano.etapas[0].pide, materialesVisibles());
-    if (faltaPieza.length) { nota('Todavía no', textoFaltan(faltaPieza)); return; }
+    pagoNueva = pagoDeEtapa(obras.plano, null, 0);   // 4.2: y los pesos, si la pieza los pide
+    if (faltaPieza.length || !pagoNueva.ok) { notaSinPlata(obras.plano, 0, pagoNueva, faltaPieza); return; }
   }
   const adelante = obras.plano?.distancia || (obras.plano?.pieza ? 2.4 : 5.5);
   const fx = js.pos.x - Math.sin(js.yaw) * adelante;
@@ -6857,6 +6893,7 @@ function accionObra() {
       if (!paso.ok) {
         nota('Todavía no', paso.motivo);
       } else {
+        cobrarEtapa(obras.plano, nueva.datos, 0, pagoNueva);   // 4.2
         progreso.obras = obras.obras.map((o) => o.datos);
         // 3.5.1: una pieza de varias etapas recién fundada todavía no está terminada
         if (paso.terminada === false) nota(paso.etapa.nombre, `${paso.etapa.dice} · Y para seguir`);
@@ -7327,6 +7364,7 @@ function usarObraQueTrabaja(o) {
 // anuncia la estación es el que el clima va a seguir (ver `meteo.js`).
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
 OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
+OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO_QUE_SE_USA));   // 4.2
 OBRAS_QUE_TRABAJAN.push(...Object.keys(ESPEJO_QUE_SE_USA));   // 4.1: el espejo de Bruno
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
@@ -7580,6 +7618,7 @@ function avisoObra24(o) {
     case 'embarcadero': return 'Traer el kayak al embarcadero';
     case 'bebedero': return progreso.corral ? 'Mirar tu corral' : 'El bebedero';
     case 'reloj-pared': case 'almanaque-pared': return MUEBLES_QUE_SE_USAN[o.plano.id];   // 3.8.8
+    case 'reloj-pie': return LUJO_QUE_SE_USA[o.plano.id];   // 4.2
     case 'espejo': return ESPEJO_QUE_SE_USA.espejo;   // 4.1
     default: return null;
   }
@@ -7608,6 +7647,9 @@ function usarObra24(o) {
     // 3.8.8: el reloj y el almanaque de tu casa dicen lo mismo que los de la aldea (reloj-almanaque.js)
     case 'reloj-pared':
       leerEnLaAldea({ quien: 'El reloj de pared', que: 'tu casa', partes: partesReloj({ hora: progreso.horas, dia: progreso.dia }), despedida: 'Tic, tac.' });
+      return true;
+    case 'reloj-pie':   // 4.2
+      leerEnLaAldea({ quien: 'El reloj de pie', que: 'tu casa', partes: partesReloj({ hora: progreso.horas, dia: progreso.dia }), despedida: 'Tic, tac.' });
       return true;
     case 'almanaque-pared':
       leerEnLaAldea({ quien: 'El almanaque de pared', que: 'tu casa', partes: partesAlmanaque({ dia: progreso.dia, horas: progreso.horas, aldea: progreso.aldea }), despedida: 'Una hoja por día.' });
