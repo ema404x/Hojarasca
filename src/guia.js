@@ -9,7 +9,7 @@ export const SECCIONES_GUIA = [
       ['Caminá y mirá', 'WASD para moverte, el mouse para mirar. Cuando algo se puede usar, abajo aparece la tecla que lo hace.'],
       ['Anotá lo que encuentres', 'Plantas, aves y lugares se anotan con E al acercarte. El cuaderno (J) guarda todo y dice qué falta.'],
       ['Hacé fuego', 'Juntá tres ramitas con E y apretá F en un lugar despejado. Junto al fuego podés cocinar (G) y dormir.'],
-      ['Tu primer refugio', 'Juntá troncos y piedra con el hacha (H), aserrá tablas (Y) y abrí los planos con O.'],
+      ['Tu primer refugio', 'Juntá troncos con el hacha y piedra con el pico (H), aserrá tablas (Y) y abrí los planos con O.'],
     ],
   },
   {
@@ -27,7 +27,7 @@ export const SECCIONES_GUIA = [
       ['Troncos', 'Arrimate a un coihue o una lenga con el hacha y apretá H tres veces: el árbol se viene abajo y te da 4 troncos. Un tronco suelto en el suelo da 3 de un golpe. El pehuén no se tala.'],
       ['El bosque vuelve', 'Donde talaste queda un tocón que rebrota solo: a los pocos días hay un renoval y a los nueve, el árbol entero. Plantar un renoval al lado (B) apura el rebrote.'],
       ['Tablas', 'Con el hacha, Y aserra un tronco en cualquier lado: a mano rinde 2 tablas. En un banco de carpintero (o en el galpón de esquila) rinde 4.'],
-      ['Piedra', 'Las rocas grises del suelo (pedreros) se pican con H: cada una da 4 piedras.'],
+      ['Piedra', 'Las rocas grises del suelo (pedreros) se pican con el pico (H): cada una da 4 piedras. El hacha no alcanza: el pico lo forja el herrero de la aldea (cantos rodados y plata) o se consigue en el almacén, por trueque o comprado.'],
       ['Ramitas', 'Están tiradas en todo el bosque: E para juntarlas. Sirven para el fuego.'],
       ['Frutas', 'Piñones, calafates y frutillas se juntan con E. Se comen o se cocinan.'],
       ['Semillas doradas', 'Las sueltan los duendes al caer y aparecen en los troncos huecos. Sirven para las mejoras y las defensas doradas.', 'desafio'],
@@ -130,7 +130,7 @@ export const SECCIONES_GUIA = [
     items: [
       ['WASD · Shift · Espacio · C', 'caminar · correr · saltar · agacharte'],
       ['E', 'juntar, anotar, hablar, abrir puertas y portones'],
-      ['H', 'hacha: talar árboles y picar piedra'],
+      ['H', 'hacha y pico: talar árboles (hacha) y picar piedra (pico)'],
       ['Y', 'aserrar tablas / levantar la etapa de una obra'],
       ['O', 'planos de construcción'],
       ['K', 'taller: armas, munición y mejoras', 'desafio'],

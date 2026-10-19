@@ -31,6 +31,17 @@ function icono(tipo) {
       x.fillStyle = '#c9d0d6';
       x.beginPath(); x.moveTo(50, 18); x.lineTo(54, 20); x.lineTo(46, 32); x.fill();
     },
+    // 4.2: el pico: el mismo cabo que el hacha y una cabeza larga con una punta de cada lado
+    pico() {
+      x.strokeStyle = '#6b5238'; x.lineWidth = 6;
+      x.beginPath(); x.moveTo(22, 56); x.lineTo(40, 20); x.stroke();
+      x.fillStyle = '#9aa3aa';
+      x.beginPath(); x.moveTo(8, 26); x.quadraticCurveTo(26, 8, 40, 14); x.lineTo(44, 22); x.quadraticCurveTo(28, 18, 14, 32); x.fill();
+      x.fillStyle = '#c9d0d6';
+      x.beginPath(); x.moveTo(40, 14); x.quadraticCurveTo(52, 16, 58, 30); x.lineTo(46, 24); x.lineTo(44, 22); x.fill();
+      x.strokeStyle = '#5a5f66'; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(36, 17); x.lineTo(42, 24); x.stroke();
+    },
     tronco() {
       x.fillStyle = '#6b5238';
       x.beginPath(); x.roundRect(8, 24, 48, 18, 8); x.fill();
@@ -493,7 +504,8 @@ export function armarMochila(progreso, estado) {
   if (cant('calafate-seco')) ranuras.push({ id: 'calafate-seco', nombre: 'Calafates secos', icono: 'calafate', cuenta: cant('calafate-seco'), texto: 'Para el invierno, o para cambiar en el almacén.' });
   if (cant('hongos-secos')) ranuras.push({ id: 'hongos-secos', nombre: 'Llao llao seco', icono: 'hongo', cuenta: cant('hongos-secos'), texto: 'Para el invierno, o para cambiar en el almacén.' });
   if (cant('canto')) ranuras.push({ id: 'canto', nombre: 'Cantos rodados', icono: 'canto', cuenta: cant('canto'), texto: 'En el almacén se cambian por cosas útiles.' });
-  if (progreso.cosas?.hacha) ranuras.push({ id: 'hacha', nombre: 'Hacha de mano', icono: 'hacha', accion: 'hacha', texto: 'Para hacer troncos de lo caído y juntar piedra.' });
+  if (progreso.cosas?.hacha) ranuras.push({ id: 'hacha', nombre: 'Hacha de mano', icono: 'hacha', accion: 'hacha', texto: 'Para talar árboles y hacer troncos de lo caído (H). La piedra se pica con el pico.' });
+  if (progreso.cosas?.pico) ranuras.push({ id: 'pico', nombre: 'Pico de cantero', icono: 'pico', accion: 'pico', texto: 'Para picar piedra de los pedreros (H): cada uno da cuatro.' });   // 4.2
   const M = progreso.materiales || {};
   if (M.tronco) ranuras.push({ id: 'tronco', nombre: 'Troncos', icono: 'tronco', cuenta: M.tronco, accion: 'aserrar', texto: 'Y: aserrar. A mano rinde dos tablas; en un banco de carpintero, cuatro.' });
   if (M.tabla) ranuras.push({ id: 'tabla', nombre: 'Tablas', icono: 'tabla', cuenta: M.tabla, texto: 'Para el piso y el techo de lo que levantes.' });
@@ -547,7 +559,7 @@ export function armarMochila(progreso, estado) {
     if (progreso.cosas?.boleadoras) armas.push({ id: 'boleadoras', nombre: 'Boleadoras', icono: 'boleadoras', cuenta: D.boleadoras || '0', accion: 'arma', texto: 'Enredan al duende y lo dejan quieto unos segundos.' });
     if (D.emplastos) armas.push({ id: 'emplasto', nombre: 'Emplasto de hierbas', icono: 'emplasto', cuenta: D.emplastos, accion: 'curar', texto: 'Clic derecho para curarte 45 puntos.' });
     if (progreso.cosas?.martillo) armas.push({ id: 'martillo', nombre: 'Martillo de carpintero', icono: 'martillo', accion: 'arma', texto: 'Tocá una defensa dañada para repararla.' });
-    const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'hacha'];
+    const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'hacha', 'pico'];
     // 2.5: el arsenal va después de la linterna y el hacha, para no sacarlas de la barra
     const C = progreso.cosas || {};
     const nuevas = [];

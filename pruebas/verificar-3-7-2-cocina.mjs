@@ -51,7 +51,7 @@ for (const k of C.DEL_ALMACEN) {
   ok(t && t.repetible && t.da > 0 && ENTRADA[k]?.seccion === 'trueque', `${k}: en el almacén de Ercilia (se gasta: se cambia cada vez), con su entrada`);
   ok(t.pide.every(([q, m]) => Number.isInteger(m) && m > 0 && NOMBRE_COSA[q]), `${k}: se paga con lo de siempre (piñones, cantos, ramitas…)`);
 }
-ok(TRUEQUES.length <= 18, `el almacén entra en dos páginas (${TRUEQUES.length})`);
+ok(TRUEQUES.length <= 27, `el almacén entra en tres páginas (${TRUEQUES.length})`);
 for (const k of ['zapallo', 'mariscos']) ok(porVecinos.has(k), `${k}: por trueque con un vecino`);
 const conFuente = new Set([...C.DE_LA_GRANJA, ...C.DEL_ALMACEN, ...porVecinos, 'harina', 'huevo', 'papa', 'frutilla']);
 for (const rc of C.RECETAS_PASOS) for (const x of rc.pide) ok(x.k === 'fruta' || conFuente.has(x.k), `${rc.id}: ${x.k} se consigue`);

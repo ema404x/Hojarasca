@@ -1,10 +1,13 @@
+// 4.2: lo que cuesta el pico si se compra directo en el almacén, en pesos (el trueque y la forja del herrero salen más baratos)
+export const PESOS_PICO_COMPRADO = 1200;
+
 // Lo que se consigue en el almacén, a cambio de lo que juntás en el bosque
 export const TRUEQUES = [
   {
     id: 'hacha', nombre: 'Hacha de mano',
     pide: [['canto', 2], ['ramita', 8]],
     texto: 'Cabeza de acero y cabo de lenga. La misma que usan los puesteros para la leña.',
-    efecto: 'Sirve para hacer troncos y juntar piedra.',
+    efecto: 'Sirve para hacer troncos y talar árboles. Para picar piedra hace falta el pico.',
   },
   {
     id: 'mosca', nombre: 'Mosca de pescar atada a mano',
@@ -115,11 +118,27 @@ export const TRUEQUES = [
     texto: 'Una hoja por día, con la luna y las estaciones del valle, impreso en papel de diario.',
     efecto: 'Muestra el día de la semana, el día y la estación en un costado de la pantalla.',
   },
+  // 4.2: el pico. Para picar piedra no alcanza el hacha. Se consigue de tres maneras (van al final: no mueven los números de lo que ya había):
+  //   · acá, por trueque (cantos y ramitas, un poco más caro que el hacha);
+  //   · con el herrero de la aldea, que lo forja por cantos y pesos (el camino «normal»: ver `cantosPico` y `pesosPico` en aldea.js);
+  //   · acá mismo con plata (`pesos`): el atajo, el más caro. Sólo hay plata en el Relax (en el Desafío se arranca con el pico).
+  // `cosa` es lo que se lleva (y la anotación del cuaderno); si falta, es el `id`.
+  {
+    id: 'pico', cosa: 'pico', nombre: 'Pico de cantero',
+    pide: [['canto', 3], ['ramita', 12]],
+    texto: 'Cabeza de acero con una punta y una pala chica, cabo de lenga. De los que usan en la cantera de la loma.',
+    efecto: 'Sirve para picar piedra de los pedreros (H). Los árboles se siguen talando con el hacha.',
+  },
+  {
+    id: 'pico-comprado', cosa: 'pico', nombre: 'Pico de cantero, ya hecho', pesos: PESOS_PICO_COMPRADO, pide: [],
+    texto: 'El mismo pico, de los que Ercilia tiene colgados detrás del mostrador. Sale caro: es para el apuro.',
+    efecto: 'Sirve para picar piedra de los pedreros (H). Los árboles se siguen talando con el hacha.',
+  },
 ];
 
 // Lo que se gasta (semillas, yerba) se puede volver a cambiar; lo demás, una vez.
 export function tieneYa(trueque, cosas = {}) {
-  return !trueque.repetible && !!cosas[trueque.id];
+  return !trueque.repetible && !!cosas[trueque.cosa || trueque.id];
 }
 
 export const TRUEQUE = Object.fromEntries(TRUEQUES.map((t) => [t.id, t]));

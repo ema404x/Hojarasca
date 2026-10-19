@@ -18,7 +18,7 @@ export const TECLAS_POR_DEFECTO = {
 export const NOMBRES_ACCIONES = {
   adelante: 'Caminar adelante', atras: 'Caminar atrás', izquierda: 'Ir a la izquierda', derecha: 'Ir a la derecha',
   saltar: 'Saltar', correr: 'Correr', agacharse: 'Agacharse',
-  interactuar: 'Juntar, anotar y hablar', hacha: 'Hacha: talar y picar', aserrar: 'Aserrar / levantar obra',
+  interactuar: 'Juntar, anotar y hablar', hacha: 'Hacha y pico: talar y picar', aserrar: 'Aserrar / levantar obra',
   planos: 'Planos de construcción', taller: 'Taller', fuego: 'Fuego y antorchas',
   mochila: 'Mochila', cuaderno: 'Cuaderno', mapa: 'Mapa',
   linterna: 'Linterna', prismaticos: 'Prismáticos', foto: 'Sacar una foto',

@@ -762,7 +762,7 @@ export const POBLADORES_ALDEA = {
       'Donde hay hachas hay filo que se gasta. Si me das un techo, le doy fragua a este lugar.',
     ],
     saludo: 'El fuego de la fragua ya está vivo.', despedida: 'Cuidá el filo, que no es eterno.',
-    resumen: 'Forja lo que te falte (el hacha, la tijera) con cantos rodados y te afila el hacha: diez árboles con un hachazo menos, una vez por día.',
+    resumen: 'Forja lo que te falte (el hacha, el pico, la tijera) con cantos rodados (el pico, también con plata) y te afila el hacha: diez árboles con un hachazo menos, una vez por día.',
   },
   pescador: {
     nombre: 'Aurelio Nahuel', oficio: 'pescador de red', mano: 'cana', lote: 'pescaderia', afuera: true,
@@ -1199,7 +1199,8 @@ const etapaInicial = (lote) => (Object.hasOwn(OBRA.etapaInicial, lote) ? OBRA.et
 
 // Lo que ofrece cada uno, por día (los de la 3.1, tal cual, y los nuevos).
 export const SERVICIO = {
-  troncosPorDia: 6, tablasPorTronco: 5, pesosPorPan: 200, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, pesosMandado: 400, cantosHacha: 3, cantosTijera: 2,
+  troncosPorDia: 6, tablasPorTronco: 5, pesosPorPan: 200, panes: 3, troncosPorTruchas: 2, truchas: 2, filo: 10, pesosMandado: 400, cantosHacha: 3, cantosTijera: 2, cantosPico: 3, pesosPico: 300,   // 4.2: el pico lo forja el herrero por cantos y plata (el trueque del almacén sale en cantos y ramitas; comprado directo, $1.200)
+ 
   descanso: 3, lanaPoncho: 2, lanaManta: 3, tablasMiel: 3, miel: 2, pesosPorAvistaje: 100, avistajesPorDia: 4, diasPartitura: 7,
   // 3.7.0: las de la calle de la Loma
   huevosVet: 2, lanaVet: 1, fotosLente: 3, pesosPorFrutos: 100, frutos: 3, tablaBastidor: 1, amistadDibujo: 8,
@@ -1612,14 +1613,21 @@ export function servicioBase(clave, progreso, dia, extra = {}) {
         return { partes: [`Con ${S.cantosHacha} cantos rodados te forjo un hacha. Cabo de lenga, filo de acero.`], seguir: DALE,
           efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosHacha }, { tipo: 'cosa', k: 'hacha', fijar: 1 }], titulo: 'El herrero te forjó un hacha' };
       }
+      // 4.2: el pico (para picar piedra). Con el hacha en la mano y sin pico, el herrero lo ofrece apenas hay cantos y plata; si falta algo, lo dice
+      const sinPico = !cant(progreso, 'cosa', 'pico');
+      if (sinPico && hayEconomia(progreso) && cantos >= S.cantosPico && pesosDe(progreso) >= S.pesosPico) {
+        return { partes: [`Para picar piedra el hacha no sirve. Con ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)} te forjo un pico.`], seguir: DALE,
+          efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosPico }, { tipo: 'pesos', n: -S.pesosPico, motivo: 'Pico forjado', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'cosa', k: 'pico', fijar: 1 }], titulo: 'El herrero te forjó un pico' };
+      }
+      const avisoPico = sinPico && hayEconomia(progreso) ? [`Y si querés picar piedra, te falta un pico: ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)}.`] : [];
       if (!cant(progreso, 'cosa', 'tijera') && cantos >= S.cantosTijera) {
-        return { partes: [`Te veo sin tijera de esquilar. Con ${S.cantosTijera} cantos rodados te la forjo.`], seguir: DALE,
+        return { partes: [`Te veo sin tijera de esquilar. Con ${S.cantosTijera} cantos rodados te la forjo.`, ...avisoPico], seguir: DALE,
           efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosTijera }, { tipo: 'cosa', k: 'tijera', fijar: 1 }], titulo: 'El herrero te forjó una tijera' };
       }
-      if (yaHoy(aldea, clave, dia)) return { partes: ['El hacha ya te la afilé hoy. Mañana la vemos.'] };
-      if (aldea.afilado >= S.filo) return { partes: ['Tu hacha todavía tiene el filo que le di. Usala y volvé.'] };
+      if (yaHoy(aldea, clave, dia)) return { partes: ['El hacha ya te la afilé hoy. Mañana la vemos.', ...avisoPico] };
+      if (aldea.afilado >= S.filo) return { partes: ['Tu hacha todavía tiene el filo que le di. Usala y volvé.', ...avisoPico] };
       return {
-        partes: [`Dame esa hacha, que le paso la piedra. Los próximos ${S.filo} árboles caen con un hachazo menos.`],
+        partes: [`Dame esa hacha, que le paso la piedra. Los próximos ${S.filo} árboles caen con un hachazo menos.`, ...avisoPico],
         seguir: DALE,
         efectos: [{ tipo: 'aldea', campo: 'afilado', valor: S.filo }, uso],
         titulo: 'El herrero te afiló el hacha',

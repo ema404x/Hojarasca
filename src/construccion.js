@@ -2281,7 +2281,7 @@ export const PLANO = Object.fromEntries(PLANOS.map((p) => [p.id, p]));
 export const MATERIALES = {
   tronco: { nombre: 'troncos', uno: 'tronco', de: 'talar un árbol con el hacha (H, tres hachazos)' },
   tabla: { nombre: 'tablas', uno: 'tabla', de: 'aserrar un tronco con Y (a mano 2, en el banco 4)' },
-  piedra: { nombre: 'piedras', uno: 'piedra', de: 'picar un pedrero con el hacha (H)' },
+  piedra: { nombre: 'piedras', uno: 'piedra', de: 'picar un pedrero con el pico (H)' },
   cristal: { nombre: 'semillas doradas', uno: 'semilla dorada', de: 'los duendes abatidos' },
   lana: { nombre: 'vellones de lana', uno: 'vellón de lana', de: 'esquilar una oveja en el corral del galpón (E, con la tijera)' },
 };

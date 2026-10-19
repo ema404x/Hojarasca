@@ -52,7 +52,7 @@ export function firmaArma(id, datos, forja) {
   const d = datos || armasPorDefecto();
   const f = forja || {};
   switch (id) {
-    case 'hacha': case 'hachuela': case 'martillo': return `${d.mango}|${d.grabado}`;
+    case 'hacha': case 'pico': case 'hachuela': case 'martillo': return `${d.mango}|${d.grabado}`;
     case 'arco': return `${d.plumas}|${f.arco ? 1 : 0}`;
     case 'ballesta': return `${d.plumas}|${d.nombreBallesta}|${f.ballesta ? 1 : 0}`;
     case 'lanza': return `${d.conCintas ? d.cinta : '-'}|${f.lanza ? 1 : 0}`;

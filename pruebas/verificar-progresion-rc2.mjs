@@ -18,7 +18,7 @@ unicos(TRUEQUES, 'trueques');
 
 for (const e of encargos) assert.ok(entradas.has(e), `encargo ${e} no tiene entrada en el cuaderno`);
 for (const t of TRUEQUES) {
-  assert.ok(entradas.has(t.id), `trueque ${t.id} no tiene entrada en el cuaderno`);
+  assert.ok(entradas.has(t.cosa || t.id), `trueque ${t.id} no tiene entrada en el cuaderno`);
   for (const [id, n] of t.pide) {
     assert.ok(Number.isInteger(n) && n > 0, `trueque ${t.id} tiene cantidad inválida para ${id}`);
     assert.ok(id === 'ramita' || entradas.has(id), `trueque ${t.id} pide recurso inexistente: ${id}`);

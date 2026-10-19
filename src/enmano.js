@@ -336,6 +336,27 @@ const MODELOS = {
     g.add(cabeza);
     return g;
   },
+  // 4.2: el pico de cantero: el mismo mango que el hacha (con la madera y el grabado elegidos) y una cabeza larga con una punta de cada lado,
+  // apenas curvada hacia abajo. Pocas piezas y una sola cabeza fusionable por material: no pesa más que el hacha.
+  pico(o = OPCIONES_BASE) {
+    const g = new THREE.Group();
+    const mango = mangoGrabado(o.armas.mango, 0.016, 0.34, o.armas.grabado);
+    mango.rotation.z = 0.3;
+    g.add(mango);
+    const cabeza = new THREE.Group();
+    cabeza.position.set(0.052, 0.165, 0);
+    cabeza.rotation.z = 0.3;
+    const acero = lam('#85847d', 'metal');
+    cabeza.add(caja(acero, [0.03, 0.03, 0.034]));   // el ojo, donde entra el mango
+    for (const lado of [-1, 1]) {
+      const punta = new THREE.Mesh(new THREE.ConeGeometry(0.0155, 0.115, 8), acero);
+      punta.rotation.z = -lado * Math.PI / 2;        // el cono (que mira hacia +y) pasa a mirar hacia el lado, como el filo del hacha
+      punta.position.set(lado * 0.0715, 0, 0);
+      cabeza.add(punta);
+    }
+    g.add(cabeza);
+    return g;
+  },
   tronco() {
     // 3.5.2: el leño redondo y apenas torcido, con la corteza en vetas y los cortes claros con
     // sus anillos (antes, un prisma de ocho caras)
@@ -678,7 +699,7 @@ export function crearEnMano(camara) {
     const vert = anda ? Math.abs(Math.cos(paso * 2)) * 0.028 : Math.sin(paso * 0.45) * 0.006;
     gesto = Math.max(0, gesto - dt * 3.4);
     entrada = Math.max(0, entrada - dt * 4);
-    const amplio = idActual === 'hacha' || idActual === 'martillo' || idActual === 'maza' ? 1.7 : 1;
+    const amplio = idActual === 'hacha' || idActual === 'pico' || idActual === 'martillo' || idActual === 'maza' ? 1.7 : 1;
     rodela.visible = !!estado.bloqueo && idActual !== 'lanza' && !estado.oculto;
     // 2.5: el arco se tensa mientras está el clic apretado
     tensado = estado.tension ? Math.min(1, tensado + dt * 1.1) : Math.max(0, tensado - dt * 6);

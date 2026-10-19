@@ -11,7 +11,7 @@ import { cargarTerreno } from './terreno.js';
 import { crearAgua, crearCascada } from './agua.js';
 import { ajustarAguaNueva } from './agua.js';
 import { actualizarBanderas } from './bandera-viento.js';
-import { cobrar as cobrarPesos, pesosDe, hayEconomia, formatoPesos, resumenBilletera, textoDiferencia } from './economia.js';
+import { cobrar as cobrarPesos, pagar as pagarPesos, puedePagar, pesosDe, hayEconomia, formatoPesos, resumenBilletera, textoDiferencia } from './economia.js';
 import { crearCielo, crearConstelaciones, crearFugaces } from './cielo.js';
 import { faseLunar, nombreFase, iluminada, luzDeLuna, nocheDeEstrellas, fugacesPorMinuto, fugaz, lunaAnotable, FUGACES_PARA_ANOTAR } from './cielo-noche.js';
 import { crearPostproceso } from './postproceso.js';
@@ -2224,12 +2224,14 @@ $('btn-entrar').addEventListener('click', () => {
   if (origenGuardado === 'backup' && !entroAlJuego) setTimeout(() => nota('Partida recuperada', 'Se usó la última copia segura del recorrido'), 900);
   // (3.8.7: las del primer día, también sólo la primera vez que se entra)
   else if (esDesafio && (!habiaGuardado || !progreso.pos) && !entroAlJuego) {
-    setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos y piedra con el hacha (H) y armá defensas (O → Defensa)', true), 1500);
+    setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos con el hacha y piedra con el pico (H) y armá defensas (O → Defensa)', true), 1500);
     setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
   }
   else if ((!habiaGuardado || !progreso.pos) && !entroAlJuego) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
   // 3.6.2: lo tuyo que quedó donde ahora está la aldea (una partida de antes de la 3.6): una sola nota
   if (avisoDesalojo) { const a = avisoDesalojo; avisoDesalojo = null; setTimeout(() => nota(a.titulo, a.sub, true), 2600); }
+  // 4.2: una partida de antes, con hacha y sin pico, recibió el suyo al cargar (ver `sanearProgreso`): se lo decimos una sola vez
+  if (progreso.picoAviso) { delete progreso.picoAviso; setTimeout(() => { nota('Ahora para picar piedra hace falta el pico', 'Te dejamos uno en la mochila: H sigue siendo la tecla', true); registrar('pico'); guardar(); }, 3400); }
   valle?.alEntrar();   // 3.1: con Historia elegida, empieza (o sigue) el capítulo
   volverAlJuego();
 });
@@ -3751,10 +3753,10 @@ function usarRanura() {
   // cable o en el fundido de dormir, nada; a caballo, ni el hacha, ni el fuego, ni la carpa, ni plantar, ni cocinar
   // (se talaba montado y se prendía una fogata bajando por la tirolesa)
   if (js.enCable || durmiendo) return;
-  if (js.montado && ['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
+  if (js.montado && ['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`); return; }
   // 3.8.7: arriba del sulky, lo mismo que las teclas (con el clic derecho se talaba o se plantaba desde el asiento), y en el
   // kayak o el tren ni el fuego ni cocinar (F y G no lo hacen: con el clic derecho se prendía una fogata al lado de la vía)
-  if (js.enSulky && ['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
+  if (js.enSulky && ['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].includes(r.accion)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E'); return; }
   if ((js.enKayak || js.enTren) && (r.accion === 'fuego' || r.accion === 'cocinar')) return;
 
   switch (r.accion) {
@@ -3782,7 +3784,7 @@ function usarRanura() {
       linterna.intensity = linterna.intensity > 0 ? 0 : (progreso.cosas.farol ? 80 : 45);
       break;
     case 'carpa': armarCarpa(); break;
-    case 'hacha': usarHacha(); break;
+    case 'hacha': case 'pico': usarHacha(); break;   // 4.2: el pico y el hacha comparten la H: según lo que tengas adelante, tala o pica
     case 'aserrar': if (puedeAserrar()) aserrar(); else nota('No tenés troncos', 'Talá un árbol con H (tres hachazos)'); break;
     case 'fuego': encenderFuego(); break;
     case 'plantar-pehuen': case 'plantar-coihue': case 'plantar': plantarRenoval(); break;
@@ -4264,6 +4266,7 @@ function enLaSalaDelFaro() {
 
 // ---------------------------------------------------------------- materiales y obra
 function tieneHacha() { return !!progreso.cosas?.hacha; }
+function tienePico() { return !!progreso.cosas?.pico; }   // 4.2: para picar piedra hace falta el pico (el hacha ya no alcanza)
 function material(k) { return progreso.materiales?.[k] || 0; }
 function sumarMaterial(k, n) {
   progreso.materiales = progreso.materiales || {};
@@ -4362,22 +4365,27 @@ function caerEnDesafio() {
   }, 1600);
 }
 
-// Con el hacha: un tronco caído o un pedrero se aprovechan de un golpe; un árbol en pie
-// se tala con tres hachazos y da cuatro troncos. El pehuén no se toca: es sagrado.
+// Con el hacha: un tronco caído se aprovecha de un golpe; un árbol en pie se tala con tres hachazos y da cuatro troncos.
+// El pehuén no se toca: es sagrado. 4.2: un pedrero se pica con el PICO (misma tecla, H): sin pico, el aviso dice dónde conseguirlo.
+// Las rocas decorativas (`decorativo:true`, los grupos de rocas del paisaje) se siguen picando como siempre, pero ahora con el pico: se ven igual que las demás y
+// distinguirlas haría que una roca sí y otra no (decisión 4.2).
 const GOLPES_TALA = 3, TRONCOS_TALA = 4, TRONCOS_MATA = 3, PIEDRA_MATA = 4;
 const scratchMatasHacha = [], scratchArbolesHacha = [];
 const golpesTala = new WeakMap();
 function objetivoHacha() {
-  if (!tieneHacha()) return null;
+  const hacha = tieneHacha(), pico = tienePico();
+  if (!hacha && !pico) return null;
   const js = jugador.estado;
   let mejor = null, d0 = 3.2;
   const matasHacha = veg.matasCerca ? veg.matasCerca(js.pos.x, js.pos.z, 4.2, scratchMatasHacha) : veg.matas;
   for (const m of matasHacha) {
     if (m.sacado || (m.tipo !== 'roca' && m.tipo !== 'tronco')) continue;
+    if (m.tipo === 'tronco' && !hacha) continue;   // 4.2: con sólo el pico, los troncos no
     const d = Math.hypot(m.x - js.pos.x, m.z - js.pos.z);
     if (d < d0) { d0 = d; mejor = m; }
   }
-  if (mejor) return { tipo: mejor.tipo === 'roca' ? 'piedra' : 'tronco', mata: mejor };
+  if (mejor) return { tipo: mejor.tipo === 'roca' ? 'piedra' : 'tronco', mata: mejor, sinPico: mejor.tipo === 'roca' && !pico };
+  if (!hacha) return null;   // 4.2: los árboles, sólo con el hacha
   const arbolesHacha = veg.arbolesCerca ? veg.arbolesCerca(js.pos.x, js.pos.z, 6, scratchArbolesHacha) : veg.arboles;
   let arbol = null, da = Infinity;
   for (const a of arbolesHacha) {
@@ -4390,7 +4398,7 @@ function objetivoHacha() {
   return { tipo: 'tronco', arbol, talar: true, protegido: arbol.especie === 'pehuen', golpes: golpesTala.get(arbol) || 0 };
 }
 function textoHacha(o) {
-  if (o.tipo === 'piedra') return 'Picar piedra';
+  if (o.tipo === 'piedra') return o.sinPico ? 'Para picar piedra hace falta el pico' : 'Picar piedra';   // 4.2
   if (!o.talar) return 'Hacer troncos';
   if (o.protegido) return 'El pehuén no se tala';
   return o.golpes ? `Talar el árbol (${o.golpes}/${golpesParaTalarAhora()})` : 'Talar el árbol';
@@ -4399,7 +4407,15 @@ function usarHacha() {
   const o = objetivoHacha();
   if (!o) {
     // 3.6: en el Relax el almacén está en la Aldea de los Duendes: se llega en la trochita
-    nota(tieneHacha() ? 'Acá no hay nada que cortar' : 'Te falta el hacha', tieneHacha() ? 'Arrimate a un árbol, un tronco o un pedrero' : desafio ? 'Se cambia en el almacén' : 'Está en el almacén de la Aldea de los Duendes: tomá la trochita en la Estación del Valle');
+    // 4.2: con sólo el pico no se corta nada: el aviso habla de la piedra
+    if (tieneHacha()) nota('Acá no hay nada que cortar', tienePico() ? 'Arrimate a un árbol, un tronco o un pedrero' : 'Arrimate a un árbol o un tronco');
+    else if (tienePico()) nota('Acá no hay piedra para picar', 'Arrimate a un pedrero. Para cortar madera hace falta el hacha');
+    else nota('Te falta el hacha', desafio ? 'Se cambia en el almacén' : 'Está en el almacén de la Aldea de los Duendes: tomá la trochita en la Estación del Valle');
+    return;
+  }
+  if (o.sinPico) {
+    // 4.2: el hacha no pica piedra. El aviso dice las tres vías (el herrero es la normal; el almacén, por trueque o con plata, y la plata es el atajo)
+    nota('Te falta el pico', desafio ? 'Se cambia en el almacén' : 'Para picar piedra hace falta el pico: lo forja el herrero de la aldea, o se consigue en el almacén (Tab: más cambios)', true);
     return;
   }
   if (o.talar) {
@@ -8458,10 +8474,10 @@ function dibujarAlmacen() {
   TRUEQUES.slice(desde, desde + POR_PAGINA_ALMACEN).forEach((t, j) => {
     const i = desde + j;
     const li = document.createElement('li');
-    const tengo = t.pide.every(([k, n]) => cuanto(k) >= n);
+    const tengo = t.pide.every(([k, n]) => cuanto(k) >= n) && (!t.pesos || puedePagar(progreso, t.pesos));   // 4.2: el pico comprado pide plata
     const hecho = tieneYa(t, progreso.cosas);
     li.className = hecho ? 'hecho' : tengo ? '' : 'falta';
-    const pedido = t.pide.map(([k, n]) => `${cantidadCosa(k, n)} (tenés ${cuanto(k)})`).join(' y ');   // 3.8.6: (en singular si es una)
+    const pedido = [...t.pide.map(([k, n]) => `${cantidadCosa(k, n)} (tenés ${cuanto(k)})`), ...(t.pesos ? [`${formatoPesos(t.pesos)} (tenés ${formatoPesos(pesosDe(progreso))})`] : [])].join(' y ');   // 3.8.6: (en singular si es una)   // 4.2: y en pesos, si lo pide
     const b = document.createElement('b');
     b.textContent = `${j + 1}. ${t.nombre}`;
     const span = document.createElement('span');
@@ -8482,17 +8498,22 @@ function cambiar(i) {
   const t = TRUEQUES[i];
   if (!t) return;
   if (tieneYa(t, progreso.cosas)) { nota('Eso ya lo tenés', 'Pedile otra cosa'); return; }
-  if (!t.pide.every(([k, n]) => cuanto(k) >= n)) {
-    nota('Todavía te falta', `Hacen falta ${t.pide.map(([k, n]) => cantidadCosa(k, n)).join(' y ')}`);
+  // 4.2: lo que se paga en pesos va por la puerta de la economía (con su renglón en el libro). Sin economía (el Desafío) no se vende por plata.
+  if (t.pesos && !hayEconomia(progreso)) { nota('Acá no se paga con plata', 'Ese cambio es sólo en el Relax'); return; }
+  if (!t.pide.every(([k, n]) => cuanto(k) >= n) || (t.pesos && !puedePagar(progreso, t.pesos))) {
+    const faltan = [...t.pide.map(([k, n]) => cantidadCosa(k, n)), ...(t.pesos ? [formatoPesos(t.pesos)] : [])];
+    nota('Todavía te falta', `Hacen falta ${faltan.join(' y ')}`);
     return;
   }
+  if (t.pesos && !pagarPesos(progreso, t.pesos, t.nombre, 'Ercilia (almacén)').ok) { nota('Todavía te falta', `Hacen falta ${formatoPesos(t.pesos)}`); return; }
   for (const [k, n] of t.pide) {
     if (k === 'ramita') progreso.ramitas -= n;
     else progreso.entradas[k].cantidad -= n;
   }
-  progreso.cosas[t.id] = t.repetible ? (progreso.cosas[t.id] || 0) + (t.da || 1) : 1;
+  const clave = t.cosa || t.id;   // 4.2: lo que se lleva (el pico, sea comprado o por trueque, es `pico`)
+  progreso.cosas[clave] = t.repetible ? (progreso.cosas[clave] || 0) + (t.da || 1) : 1;
   sonido.juntar();
-  registrar(t.id);
+  registrar(clave);
   nota(t.nombre, t.efecto, true);
   guardar();
   dibujarAlmacen();

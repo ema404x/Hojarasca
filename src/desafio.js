@@ -1250,7 +1250,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const SIN_MUNICION = {
     arco: ['No te quedan flechas', 'Fabricá más con K, junto a un banco de trabajo'],
     pistola: ['La pistola está descargada', 'Una semilla dorada da seis cargas (K)'],
-    honda: ['No tenés piedras', 'Juntá piedra con el hacha en un pedrero (H)'],
+    honda: ['No tenés piedras', 'Juntá piedra con el pico en un pedrero (H)'],
     boleadoras: ['No te quedan boleadoras', 'Se hacen con piedra y tabla (K → Munición)'],
     // 2.5
     ballesta: ['No te quedan virotes', 'Se hacen con tabla y piedra, junto a un banco (K → Munición)'],

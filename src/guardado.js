@@ -376,9 +376,9 @@ export function progresoNuevo() {
   return {
     versionGuardado: VERSION_GUARDADO,
     modo: modoPartida,
-    // El Desafío arranca con hacha y algo de material: la primera noche llega pronto.
+    // El Desafío arranca con hacha y pico (4.2: para picar piedra hace falta el pico) y algo de material: la primera noche llega pronto.
     ...(desafio ? { desafio: sanearDesafio(null) } : {}),
-    entradas: {}, tomados: [], ramitas: 0, fotos: 0, peces: {}, desafios: {}, encargos: {}, cosas: desafio ? { hacha: 1 } : {}, vueltas: 0, carpa: null, diario: [], renovales: [], talados: [], acopio: {}, huerta: {}, gallineros: {}, feria: { dia: 0, tomadas: [] }, visitas: visitasNuevas(), majada: majadaNueva(), correo: correoNuevo(), tormenta: tormentaNueva(), caballo: caballoNuevo(), chinches: [], pescaTarde: 0, guiaDia: 0, barra: [], ranura: 0, materiales: desafio ? { tronco: 6, tabla: 6, piedra: 6 } : {}, obras: [], pistas: {},
+    entradas: {}, tomados: [], ramitas: 0, fotos: 0, peces: {}, desafios: {}, encargos: {}, cosas: desafio ? { hacha: 1, pico: 1 } : {}, picoEntregado: true, vueltas: 0, carpa: null, diario: [], renovales: [], talados: [], acopio: {}, huerta: {}, gallineros: {}, feria: { dia: 0, tomadas: [] }, visitas: visitasNuevas(), majada: majadaNueva(), correo: correoNuevo(), tormenta: tormentaNueva(), caballo: caballoNuevo(), chinches: [], pescaTarde: 0, guiaDia: 0, barra: [], ranura: 0, materiales: desafio ? { tronco: 6, tabla: 6, piedra: 6 } : {}, obras: [], pistas: {},
     horas: 8.2, dia: 1, pos: null, yaw: 0,
     // 2.8: cada sección de Personalizar con lo suyo de fábrica
     personal: sanearPersonal(null),
@@ -626,6 +626,11 @@ function sanearProgreso(p) {
     // (3.6.1: y en el Desafío no hay aldea: ni la vacía ni la de una partida del Relax importada)
     ...(modoPartida === 'desafio' ? { desafio: sanearDesafio(p.desafio), aldea: undefined, vidaAldea: undefined, amor: undefined, cocina: undefined, tren: undefined, noticias: undefined, concursos: undefined } : { desafio: undefined }),
   };
+  // 4.2: el pico. Antes el hacha picaba piedra; ahora hace falta el pico. Una partida de antes (sin `picoEntregado`) que tiene el hacha y no el pico
+  // recibe uno, UNA sola vez (`picoEntregado` queda en verdadero) y `picoAviso` hace que el juego se lo cuente al entrar. Quien no tenía hacha, no recibe nada.
+  if (p.picoEntregado !== true) { if (limpio.cosas.hacha && !limpio.cosas.pico) { limpio.cosas.pico = 1; limpio.picoAviso = true; } }
+  limpio.picoEntregado = true;
+  if (limpio.picoAviso !== true || !limpio.cosas.pico) delete limpio.picoAviso;
   // 3.8.8: la economía. Sólo en el Relax. Una partida de antes no la trae: arranca en cero y la yerba que tenía se convierte a pesos (una vez)
   if (modoPartida === 'desafio') { limpio.economia = undefined; limpio.negocios = undefined; limpio.cantina = undefined; limpio.casaTe = undefined; }
   else { limpio.economia = sanearEconomia(p.economia); convertirYerba(limpio); limpio.negocios = sanearNegocios(p.negocios, limpio.dia); limpio.cantina = sanearCantina(p.cantina, limpio.dia); limpio.casaTe = sanearCantina(p.casaTe, limpio.dia); }   // 3.9.2: la libreta de la casa de té (una partida de antes: vacía)   // 3.9.0: la cuenta de la cantina (una partida de antes no la trae: arranca vacía)   // 3.8.8: los negocios (negocios.js)

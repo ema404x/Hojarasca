@@ -113,8 +113,8 @@ const anotar = (p, k) => { for (let i = 0; i < k; i++) p.entradas['e' + i] = { c
     ok(ENTRADAS.some((e) => e.id === id && e.seccion === 'trueque' && e.nombre && e.texto && e.pista), `${id}: tiene su anotación en el cuaderno`);
   }
   ok(TRUEQUES.length === new Set(TRUEQUES.map((t) => t.id)).size, 'ids del almacén sin repetir');
-  // los dos van al final: no mueven los números de lo que ya había
-  eq(TRUEQUES.slice(-2).map((t) => t.id), ['reloj', 'almanaque'], 'al final de la lista del almacén');
+  // los dos van al final (antes del pico de la 4.2): no mueven los números de lo que ya había
+  eq(TRUEQUES.slice(-4, -2).map((t) => t.id), ['reloj', 'almanaque'], 'al final de la lista del almacén (después, los dos del pico de la 4.2)');
 }
 
 // ============================================================ 5. las mecánicas (E) y los puntos
