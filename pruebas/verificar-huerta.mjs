@@ -119,7 +119,7 @@ const cocina = leer('src/cocina.js');
 assert.match(cocina, /\{ id: 'papas-rescoldo', nombre: 'papas al rescoldo', pide: \[\{ k: 'papa', n: 3 \}\] \}/);
 assert.match(cocina, /\{ id: 'habas-salteadas', nombre: 'habas salteadas', pide: \[\{ k: 'haba', n: 4 \}\] \}/);
 assert.match(main, /if \(tieneYa\(t, progreso\.cosas\)\)/, 'el almacén usa el mismo criterio que la prueba');
-assert.match(main, /progreso\.cosas\[t\.id\] = t\.repetible \? \(progreso\.cosas\[t\.id\] \|\| 0\) \+ \(t\.da \|\| 1\) : 1;/);
+assert.match(main, /progreso\.cosas\[clave\] = t\.repetible \? \(progreso\.cosas\[clave\] \|\| 0\) \+ \(t\.da \|\| 1\) : 1;/);   // 4.2: `clave` = t.cosa || t.id
 assert.match(guardado, /huerta: sanearHuerta\(p\.huerta\)/);
 assert.match(leer('src/huerta-malla.js'), /new THREE\.InstancedMesh\(hojaGeo/, 'las matas van instanciadas: más canteros no suman llamadas de dibujo');
 

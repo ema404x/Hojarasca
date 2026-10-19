@@ -45,3 +45,7 @@ Textos que ya existían y cambiaron (en castellano): efecto del hacha en el alma
 
 - Una pista de la primera hora («Hace falta un pico para la piedra») cuando el jugador junta troncos y todavía no tiene pico: hoy lo dice el aviso al apretar H frente a una roca.
 - Número de página y orden: las ofertas del pico están en la tercera página; si se prefiere en la primera, hay que mover dos entradas y dos pruebas viejas (los números de lo ya conocido se correrían).
+
+## `npm run verify` (245 pasos)
+
+Pasó completo, pero en dos tandas: la corrida entera llegó hasta el paso 181 y se cortó en el 182 y antes en el 76 por tres pruebas viejas que miraban el texto exacto de `main.js` (`verificar-huerta`, `verificar-3-8-6-relax`, `verificar-3-8-7-mundo`: se actualizaron a `clave` y a la lista con `'pico'`). Después de arreglarlas se corrieron los pasos 182 a 245 y las tres sueltas, todo verde. Los pasos 1 a 181 no se repitieron tras esos dos retoques de pruebas (no tocan nada que ellos usen).

@@ -157,7 +157,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
 {
   const u = trozoFn('function usarRanura(');
   ok(u.indexOf('if (js.enCable || durmiendo) return;') > 0 && u.indexOf('if (js.enCable || durmiendo) return;') < u.indexOf('switch (r.accion)'), 'colgado del cable o durmiendo, el clic derecho no usa nada');
-  ok(/if \(js\.montado && \['carpa', 'hacha', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'\]\.includes\(r\.accion\)\)/.test(u), 'a caballo, lo mismo que las teclas');
+  ok(/if \(js\.montado && \['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'\]\.includes\(r\.accion\)\)/.test(u), 'a caballo, lo mismo que las teclas');
   const f = trozoFn('function encenderFuego(');
   ok(f.indexOf("nota('El fuego ya está prendido'") > 0 && f.indexOf("nota('El fuego ya está prendido'") < f.indexOf('lenaDelInvierno()'), 'F con el fuego ya prendido no gasta otra vez');
   ok(trozoFn('function puedeArmarCarpaAca(').includes('!js.enPlataforma') && trozoFn('function enLaCarpa(').includes('Math.abs(js.pos.y - T.altura(progreso.carpa.x, progreso.carpa.z)) < 1.6'), 'la carpa, en la tierra y a su altura');
