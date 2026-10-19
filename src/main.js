@@ -155,6 +155,8 @@ import { textoHud as textoRelojHud, partesReloj, partesAlmanaque } from './reloj
 import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 // 4.2: el lujo y los pesos de cualquier plano (obra-pesos.js)
 import { LUJO_QUE_SE_USA } from './planos-lujo.js';
+import { LUJO2_QUE_SE_USA } from './planos-lujo-2.js';
+import { alternarGramola, gramolaSuena, DISTANCIA_GRAMOLA } from './gramola.js';
 import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
 import { ESPEJO_QUE_SE_USA } from './planos-espejo.js';
 import { SALUDO_ENOJADO } from './desafio-valle.js';
@@ -7365,6 +7367,7 @@ function usarObraQueTrabaja(o) {
 OBRAS_QUE_TRABAJAN.push(...MAQUINAS_QUE_TRABAJAN);
 OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
 OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO_QUE_SE_USA));   // 4.2
+OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO2_QUE_SE_USA));   // 4.2: la gramola
 OBRAS_QUE_TRABAJAN.push(...Object.keys(ESPEJO_QUE_SE_USA));   // 4.1: el espejo de Bruno
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
@@ -7619,6 +7622,7 @@ function avisoObra24(o) {
     case 'bebedero': return progreso.corral ? 'Mirar tu corral' : 'El bebedero';
     case 'reloj-pared': case 'almanaque-pared': return MUEBLES_QUE_SE_USAN[o.plano.id];   // 3.8.8
     case 'reloj-pie': return LUJO_QUE_SE_USA[o.plano.id];   // 4.2
+    case 'gramola': return gramolaSuena() ? 'Parar la gramola' : LUJO2_QUE_SE_USA.gramola;   // 4.2
     case 'espejo': return ESPEJO_QUE_SE_USA.espejo;   // 4.1
     default: return null;
   }
@@ -7651,6 +7655,14 @@ function usarObra24(o) {
     case 'reloj-pie':   // 4.2
       leerEnLaAldea({ quien: 'El reloj de pie', que: 'tu casa', partes: partesReloj({ hora: progreso.horas, dia: progreso.dia }), despedida: 'Tic, tac.' });
       return true;
+    // 4.2: la gramola: E le da cuerda (suena un tema suave sintetizado) o la para; se calla sola si te alejás o si la desmontás
+    case 'gramola': {
+      const r = alternarGramola(sonido, () => (obras?.obras || []).includes(o) && Math.hypot(o.datos.x - jugador.estado.pos.x, o.datos.z - jugador.estado.pos.z) < DISTANCIA_GRAMOLA);
+      if (r.sinSonido) nota('La gramola no suena', 'El sonido todavía no arrancó');
+      else if (r.suena) nota('Le diste cuerda a la gramola', r.titulo);
+      else nota('Paraste la gramola', 'Queda el disco quieto');
+      return true;
+    }
     case 'almanaque-pared':
       leerEnLaAldea({ quien: 'El almanaque de pared', que: 'tu casa', partes: partesAlmanaque({ dia: progreso.dia, horas: progreso.horas, aldea: progreso.aldea }), despedida: 'Una hoja por día.' });
       return true;
