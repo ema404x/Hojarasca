@@ -28,6 +28,9 @@ import { PIEZAS_LUJO } from './planos-lujo.js';
 import { PIEZAS_LUJO_2 } from './planos-lujo-2.js';
 // 4.2: los edificios de oficio propios (herrería, carpintería, panadería, cervecería, telar grande, quesería, tienda, cantería: ver planos-oficios.js)
 import { PIEZAS_OFICIOS } from './planos-oficios.js';
+// 4.2: el almacenaje con tope (pila y depósito de piedra, barraca, herramientero, silo: planos-almacen.js) y la huerta, la granja y los exteriores
+import { PIEZAS_ALMACEN } from './planos-almacen.js';
+import { PIEZAS_EXTERIORES } from './planos-exteriores.js';
 import { registrarPreciosDePlano } from './obra-pesos.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 
@@ -2253,6 +2256,7 @@ PIEZAS.push(...PIEZAS_MUEBLES, ...PIEZAS_MUEBLES_2);   // 3.8.8: más mobiliario
 PIEZAS.push(...PIEZAS_LUJO);   // 4.2: el lujo, que además de materiales cuesta pesos
 PIEZAS.push(...PIEZAS_LUJO_2);   // 4.2: más lujo (muebles, cuadros, piedra y patio)
 PIEZAS.push(...PIEZAS_OFICIOS);   // 4.2: los edificios de oficio propios (también cuestan pesos y hacen algo con E)
+PIEZAS.push(...PIEZAS_ALMACEN, ...PIEZAS_EXTERIORES);   // 4.2: el almacenaje con tope y la huerta, la granja y los exteriores
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,
@@ -4047,7 +4051,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   return { repintar, pintarCasa, restilizarJardin, casas: (desde = null) => agruparCasas(obras, desde),
     recuperaDeObra, elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
     destruir, portonAbierto, reemplazarPlano, obrasCerca: (pos, radio, salida = []) => obrasCerca(pos, radio, salida),
-    cancelarMarcada, obraCerca, tieneFuncionCerca, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
+    cancelarMarcada, obraCerca, tieneFuncionCerca, rehacer, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
     get plano() { return planoElegido; }, get rotacion() { return rotacionFantasma || 0; }, get estadoSitio() { return ultimoEstado; },
     get snapActivo() { return snapActivo; }, get editando() { return edicion?.obra || null; }, get version() { return version; } };
 }

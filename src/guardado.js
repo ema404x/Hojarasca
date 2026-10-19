@@ -26,6 +26,8 @@ import { sanearCarreras } from './carreras.js';
 import { sanearDiarios } from './diarios.js';
 import { sanearDiarioHoy } from './diario.js';
 import { sanearAmarre } from './kayak-amarre.js';
+// 4.2: lo que guardan la barraca, el depósito, el silo y el herramientero (ver almacen.js)
+import { sanearAlmacen, esAlmacen } from './almacen.js';
 // 3.1: la historia guiada y los eventos del valle
 import { sanearHistoria } from './historia.js';
 import { sanearFogatas } from './fogatas.js';
@@ -455,6 +457,8 @@ function sanearObras(v) {
     if (d.pagadas !== undefined) d.pagadas = Math.max(0, Math.min(8, Math.floor(finito(d.pagadas, 0))));   // 3.8.8: las etapas de la casa ya pagadas (propiedad.js)
     // 3.8.6: el nombre que le pusiste (pedirNombre): un texto; otra cosa (una partida rota) rompía el mapa
     if (d.nombre !== undefined) { if (typeof d.nombre === 'string' && d.nombre.trim()) d.nombre = d.nombre.trim().slice(0, 28); else delete d.nombre; }
+    // 4.2: lo guardado en un almacén con tope (el nivel y las cosas que guarda); una obra de antes no lo trae y queda como estaba
+    if (d.almacen !== undefined) { if (esAlmacen(d.plano) && d.almacen && typeof d.almacen === 'object' && !Array.isArray(d.almacen)) d.almacen = sanearAlmacen(d.almacen, d.plano); else delete d.almacen; }
     // 3.7.2: lo que se está cocinando en la obra (la parrilla, el horno, la cocina a leña)
     if (d.coccion !== undefined) { const c = sanearCoccion(d.coccion); if (c) d.coccion = c; else delete d.coccion; }
     salida.push(d);

@@ -157,6 +157,9 @@ import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 import { LUJO_QUE_SE_USA } from './planos-lujo.js';
 import { LUJO2_QUE_SE_USA } from './planos-lujo-2.js';
 import { alternarGramola, gramolaSuena, DISTANCIA_GRAMOLA } from './gramola.js';
+// 4.2: el almacenaje con tope (pila y depósito de piedra, barraca, silo, herramientero): las cuentas en almacen.js, lo del juego en almacen-juego.js
+import { TOPE_ACOPIO } from './almacen.js';
+import { crearAlmacenJuego } from './almacen-juego.js';
 import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
 // 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
 import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
@@ -3163,6 +3166,8 @@ document.addEventListener('keydown', (e) => {
   switch (codigo) {
     case 'KeyE': {
       if (charla.npc) { seguirCharla(); break; }
+      // 4.2: Mayús + E junto a un almacén con tope lo amplía (muestra el precio y, con otra Mayús + E, lo paga)
+      if (e.shiftKey && !e.repeat && !js.enTren && !js.enKayak && !js.montado && !enElAlmacen) { const o = obraQueTrabajaCerca(); if (o && almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); break; } }
       if (enElAlmacen) { cerrarAlmacen(); break; }
       // 2.6.1: con la feria abierta E la cierra, como el almacén (antes hablaba con Elsa
       // o bajaba del caballo con el panel abierto, y el aviso no decía nada)
@@ -3370,15 +3375,19 @@ document.addEventListener('keydown', (e) => {
           if (!r.ok) nota('Nada que desmontar', r.motivo);
           else {
             for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
+            const delDeposito = almacenJuego.contenido(r.datos);   // 4.2: lo que guardaba el depósito (antes de devolverlo)
             devolverContenido(r.datos);   // 3.5.1
             const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);   // 4.2: la mitad de los pesos que pagaste (antes de guardar)
-            const delAcopio = r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null;   // 3.8.4: el último acopio
+            const delAcopio = (r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null) || delDeposito || null;   // 3.8.4: el último acopio (4.2: o lo que tenía guardado el depósito)
             progreso.obras = obras.obras.map((o) => o.datos);
             guardar(); sonido.juntar();
             const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => cantidadMaterial(n, k)).join(' · ');
             if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
             else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
             if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`, 'La mitad de la mano de obra que pagaste');   // 4.2
+            // 4.2: y de las ampliaciones de un depósito, la mitad de los pesos y de los materiales
+            { const rAmp = almacenJuego.reintegro(r.datos), mAmp = almacenJuego.materialesDeAmpliaciones(r.datos); for (const [k, n] of Object.entries(mAmp)) sumarMaterial(k, n); const txt = Object.entries(mAmp).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
+              if (rAmp || txt) nota(rAmp ? `Te devolvieron ${formatoPesos(rAmp)} de las ampliaciones` : 'Recuperaste materiales de las ampliaciones', `La mitad de lo que pagaste al ampliar${txt ? `: ${txt}` : ''}`); }
             dibujarPanelObra();
           }
           break;
@@ -4906,31 +4915,43 @@ function vaciarUltimoAcopio(a = null) {
   return partes.length ? partes.join(' · ') : null;
 }
 function totalEnMano() { return CLAVES_MATERIAL.reduce((s, k) => s + material(k), 0); }
+// 4.2: el almacenaje con tope (almacen-juego.js): sólo necesita estas pocas cosas de acá, todas por función (se leen al usarlas)
+const almacenJuego = crearAlmacenJuego({
+  progreso: () => progreso, obras: () => obras, jugador: () => jugador, sonido: () => sonido,
+  nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+  material: (k) => material(k), cuantoHay: (k) => cuantoHay(k), sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
+  conMateriales: (fn) => conMateriales(fn), materialesVisibles: () => materialesVisibles(),
+});
 // Lo que se puede gastar sin moverse: la mochila más el acopio si está cerca.
 function materialesVisibles() {
   const m = progreso.materiales || {};
-  if (!hayAcopioCerca(RADIO_ACOPIO_OBRA)) return m;
-  const a = acopio(), vista = { ...m };
-  for (const k of CLAVES_MATERIAL) vista[k] = (m[k] || 0) + (a[k] || 0);
+  // 4.2: y lo que guardan los depósitos de alrededor (la pila, el depósito de piedra, la barraca), después del acopio
+  const delAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA), deps = almacenJuego.cerca(RADIO_ACOPIO_OBRA);
+  if (!delAcopio && !deps.length) return m;
+  const a = acopio(), vista = { ...m }, t = deps.length ? almacenJuego.totales(deps) : null;
+  for (const k of CLAVES_MATERIAL) vista[k] = (m[k] || 0) + (delAcopio ? (a[k] || 0) : 0) + (t?.[k] || 0);
   return vista;
 }
 // Corre `fn` con esa vista y después cobra: primero del acopio, después de la mochila.
 function conMateriales(fn) {
   progreso.materiales = progreso.materiales || {};
   const m = progreso.materiales;
-  if (!hayAcopioCerca(RADIO_ACOPIO_OBRA)) return fn(m);
-  const a = acopio();
-  const vista = { ...m };
-  for (const k of CLAVES_MATERIAL) vista[k] = (m[k] || 0) + (a[k] || 0);
+  // 4.2: se paga primero del acopio, después de los depósitos de alrededor (el más cercano primero) y por último de la mochila
+  const cercaAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA), deps = almacenJuego.cerca(RADIO_ACOPIO_OBRA);
+  if (!cercaAcopio && !deps.length) return fn(m);
+  const a = acopio(), t = deps.length ? almacenJuego.totales(deps) : null;
+  const antes = {}, vista = { ...m };
+  for (const k of CLAVES_MATERIAL) { antes[k] = (m[k] || 0) + (cercaAcopio ? (a[k] || 0) : 0) + (t?.[k] || 0); vista[k] = antes[k]; }
   const r = fn(vista);
   for (const k of CLAVES_MATERIAL) {
-    const gasto = (m[k] || 0) + (a[k] || 0) - (vista[k] || 0);
+    const gasto = antes[k] - (vista[k] || 0);
     if (gasto === 0) continue;
     // Si la obra devolvió material en vez de gastarlo, va a la mochila: no se pierde.
     if (gasto < 0) { m[k] = (m[k] || 0) - gasto; continue; }
-    const delAcopio = Math.min(a[k] || 0, gasto);
-    a[k] = (a[k] || 0) - delAcopio;
-    m[k] = Math.max(0, (m[k] || 0) - (gasto - delAcopio));
+    const delAcopio = cercaAcopio ? Math.min(a[k] || 0, gasto) : 0;
+    if (delAcopio) a[k] = (a[k] || 0) - delAcopio;
+    const delDeposito = deps.length && gasto > delAcopio ? almacenJuego.gastar(deps, k, gasto - delAcopio) : 0;
+    m[k] = Math.max(0, (m[k] || 0) - (gasto - delAcopio - delDeposito));
   }
   return r;
 }
@@ -4938,16 +4959,21 @@ function usarAcopio() {
   const a = acopio(), m = progreso.materiales = progreso.materiales || {};
   const enMano = totalEnMano();
   if (enMano > 0) {
-    const partes = [];
+    const partes = [], noEntro = [];
     for (const k of CLAVES_MATERIAL) {
       const n = material(k);
       if (!n) continue;
-      a[k] = (a[k] || 0) + n;
-      m[k] = 0;
-      partes.push(cantidadMaterial(n, k));
+      // 4.2: el acopio también tiene tope: de cada material (lo que ya había de más en una partida de antes se queda, no entra más)
+      const entra = Math.max(0, Math.min(n, TOPE_ACOPIO - (a[k] || 0)));
+      if (entra < n) noEntro.push(MATERIALES[k]?.nombre || k);
+      if (!entra) continue;
+      a[k] = (a[k] || 0) + entra;
+      m[k] = n - entra;
+      partes.push(cantidadMaterial(entra, k));
     }
+    if (!partes.length) { nota('El acopio está lleno', `Guarda hasta ${TOPE_ACOPIO} de cada material. Un depósito (O → Trabajo) guarda más y se amplía`); return; }
     sonido.juntar();
-    nota('Guardaste en el acopio', `${partes.join(' · ')}. Podés construir cerca sin cargarlo encima`);
+    nota('Guardaste en el acopio', `${partes.join(' · ')}. Hay ${a.tronco || 0}/${a.tabla || 0}/${a.piedra || 0} (tope ${TOPE_ACOPIO} de cada uno)${noEntro.length ? `. No entró todo: ${noEntro.join(', ')}` : ''}`);
   } else if (totalAcopio() > 0) {
     const partes = [];
     for (const k of CLAVES_MATERIAL) {
@@ -6597,6 +6623,7 @@ function dibujarPanelObra() {
   const enAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA) ? acopio() : null;
   $('obra-materiales').textContent = `Llevás ${cuantas(m.tronco || 0, 'tronco', 'troncos')} · ${cuantas(m.tabla || 0, 'tabla', 'tablas')} · ${cuantas(m.piedra || 0, 'piedra', 'piedras')}`
     + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '')
+    + almacenJuego.textoPanel(RADIO_ACOPIO_OBRA)   // 4.2
     + (totalPesos ? ` · Tenés ${formatoPesos(pesosDe(progreso))}` : '');
   actualizarEstadoModuloObra(true);
   actualizarEstadoSitioObra(obras.estadoSitio);
@@ -6743,6 +6770,7 @@ function devolverCoccion(coccion) {
 }
 function devolverContenido(d) {
   if (!d || typeof d !== 'object') return;
+  if (typeof almacenJuego !== 'undefined') almacenJuego.devolver(d);   // 4.2: lo guardado en la pila, el depósito, la barraca, el silo vuelve a tus cosas (el typeof: las pruebas cortan esta función y la corren sola)
   if (d.lenera) sumarMaterial('tronco', sanearLenera(d.lenera).secos);
   if (d.aserradero) { const a = sanearAserradero(d.aserradero); sumarMaterial('tronco', a.troncos); sumarMaterial('tabla', a.tablas); }
   if (d.muela) { const m = sanearMuela(d.muela); if (m.habas) sumarEntrada('haba', m.habas); if (m.harina) progreso.cosas.harina = (Number(progreso.cosas.harina) || 0) + m.harina; }
@@ -7269,7 +7297,7 @@ const obrasTerminadas = (id) => (obras?.obras || []).filter((o) => o.plano.id ==
 const OBRAS_QUE_TRABAJAN = ['colmena', 'ahumadero', 'vivero', 'lenera', 'horno', 'buzon', 'embarcadero', 'bebedero'];
 function obraQueTrabajaCerca(radio = 2.6) {
   const js = jugador.estado;
-  let mejor = null, d0 = radio;
+  let mejor = null, d0 = Infinity;
   for (const o of obras?.obras || []) {
     if (!OBRAS_QUE_TRABAJAN.includes(o.plano.id) || !obraTerminada(o)) continue;
     if (o === obras?.editando) continue;   // 3.8.6: la que estás moviendo (Shift+Y): la colmena o la leñera invisibles no se usan
@@ -7283,7 +7311,8 @@ function obraQueTrabajaCerca(radio = 2.6) {
     const d = o.plano.id === 'embarcadero' ? 0 : Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z);
     // `js.pos.y` son los pies, como `o.datos.y`
     // 3.0.1: y sin una pared en el medio (ver `sinParedEnMedio`)
-    if (d < d0 && Math.abs((o.datos.y ?? js.pos.y) - js.pos.y) < 2.2 && sinParedEnMedio(o)) { d0 = d; mejor = o; }
+    // 4.2: lo grande (la barraca, el silo) se usa desde más lejos del centro (`radioE`)
+    if (d < Math.max(radio, o.plano.radioE || 0) && d < d0 && Math.abs((o.datos.y ?? js.pos.y) - js.pos.y) < 2.2 && sinParedEnMedio(o)) { d0 = d; mejor = o; }
   }
   return mejor;
 }
@@ -7460,6 +7489,7 @@ OBRAS_QUE_TRABAJAN.push(...Object.keys(MUEBLES_QUE_SE_USAN));   // 3.8.8
 OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO_QUE_SE_USA));   // 4.2
 OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO2_QUE_SE_USA));   // 4.2: la gramola
 OBRAS_QUE_TRABAJAN.push(...Object.keys(OFICIOS_PROPIOS_QUE_SE_USAN));   // 4.2: los edificios de oficio propios
+OBRAS_QUE_TRABAJAN.push(...almacenJuego.ids);   // 4.2: la pila, el depósito, la barraca, el silo y el herramientero se usan con E
 OBRAS_QUE_TRABAJAN.push(...Object.keys(ESPEJO_QUE_SE_USA));   // 4.1: el espejo de Bruno
 // 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y
 // tecla E con la misma prioridad que las obras que trabajan); el horno de barro ya estaba y ahora cocina en pasos
@@ -7707,6 +7737,7 @@ function sobreEmbarcadero(o, pos) {
   return Math.abs(lx) < o.plano.ancho / 2 + 0.6 && Math.abs(lz) < o.plano.fondo / 2 + 0.6 && Math.abs(pos.y - (o.datos.y + 0.46)) < 1.6;
 }
 function avisoObra24(o) {
+  if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.aviso(o);   // 4.2
   switch (o.plano.id) {
     case 'horno': { const rc = elegirHorneada(cuantoCocina, guardadoHorno); return rc ? `Hornear ${rc.nombre}` : 'El horno de barro'; }
     case 'buzon': return porRetirar(correo(), progreso).length ? 'Abrir el buzón: hay carta' : porEnviar(correo()).length ? 'Mandar la foto por el buzón' : 'Mirar el buzón';
@@ -7720,6 +7751,7 @@ function avisoObra24(o) {
   }
 }
 function usarObra24(o) {
+  if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.usar(o);   // 4.2
   switch (o.plano.id) {
     case 'horno': hornear(); return true;
     case 'buzon': abrirBuzon(o); return true;
