@@ -4457,6 +4457,7 @@ function usarHacha() {
   sonido.paso(o.tipo === 'tronco' ? 'madera' : 'tierra', 1);
   nota(`+${cuanto} ${MATERIALES[o.tipo].nombre}`, `Llevás ${material(o.tipo)}`);
   registrar(o.tipo === 'tronco' ? 'tronco-mat' : 'piedra-mat');
+  if (o.tipo === 'piedra') registrar('pico');   // 4.2: el pico forjado por el herrero se anota en el cuaderno la primera vez que se usa
   ganarOficio('hachero', XP.mata);
   guardar();
 }
@@ -10608,7 +10609,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __fusionar: fusionarPorMaterial,
     __armarLamina: armarLamina, __guardarLamina: guardarLamina,
     // 2.1
-    __cantosOidos: cantosOidos, __usarGrabador: usarGrabador, __usarTendal: usarElTendal, __cocinar: cocinar, __cambiar: (i) => cambiar(i),
+    __cantosOidos: cantosOidos, __usarGrabador: usarGrabador, __usarTendal: usarElTendal, __cocinar: cocinar, __cambiar: (i) => cambiar(i), __abrirAlmacen: abrirAlmacen, __cerrarAlmacen: cerrarAlmacen, __refrescarBarra: () => refrescarBarra(true), __textoHacha: () => { const o = objetivoHacha(); return o ? textoHacha(o) : null; },   // 4.2 (pruebas/humo-4-2-pico.cjs)
+   
     __rastro: () => rastroActivo, __apurarRastro: () => { esperaRastro = 0; rastroActivo = null; }, __mirarRastro: mirarRastro,
     __mallaRastros: () => mallaRastros,
     __sonidosEscritos: () => sonidosEscritos.map(renglonSubtitulo), __avisos: () => avisosDichos.map((a) => `${a.hora.toFixed(2)} ${a.titulo}`), __vibrar: vibrarMando, __pulsos: () => ({ dados: pulsosDados, ultimo: ultimoPulso }), __fotosJuego: () => fotos, __DESAFIOS: DESAFIOS,
