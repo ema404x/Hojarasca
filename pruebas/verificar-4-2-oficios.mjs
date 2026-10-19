@@ -63,8 +63,10 @@ for (const id of IDS) {
   ok(Math.max(Math.abs(z0), Math.abs(z1)) <= P.fondo / 2 + 0.05, `${id}: entra en su fondo`);
   ok(P.ancho <= 4.6 && P.fondo <= 4.0, `${id}: no es una mole (${P.ancho.toFixed(1)} × ${P.fondo.toFixed(1)} m)`);
   // la física: el fondo y lo grande, en coordenadas locales; se entra por el frente (-z)
-  const reg = { s: [], c: [] };
-  P.fisica({ segmento: (...a) => reg.s.push(a), circulo: (...a) => reg.c.push(a), plataforma: () => {} });
+  const reg = { s: [], c: [], p: [] };
+  P.fisica({ segmento: (...a) => reg.s.push(a), circulo: (...a) => reg.c.push(a), plataforma: (...a) => reg.p.push(a) });
+  // el piso: una plataforma a ras del suelo (limpia el pasto de adentro y se camina) del tamaño de la platea
+  ok(reg.p.length === 1 && reg.p[0].every(Number.isFinite) && reg.p[0][0] === 0 && reg.p[0][1] === 0 && reg.p[0][4] > 0 && reg.p[0][4] <= 0.3 && reg.p[0][2] <= P.ancho - 0.4 && reg.p[0][3] <= P.fondo - 0.6 && reg.p[0][2] >= 3 && reg.p[0][3] >= 3, `${id}: el piso es una plataforma baja del tamaño de la platea (${reg.p[0]?.slice(2, 5)})`);
   ok(reg.s.length >= 1, `${id}: choca con el fondo`);
   for (const s of reg.s) ok(s.length === 7 && s.every(Number.isFinite) && s[4] > 0 && s[5] < s[6] && s[6] <= P.alto + 0.1 && Math.abs(s[0]) <= P.ancho / 2 && Math.abs(s[2]) <= P.ancho / 2 && Math.abs(s[1]) <= P.fondo / 2 && Math.abs(s[3]) <= P.fondo / 2, `${id}: segmento sano`);
   for (const q of reg.c) ok(q.length === 5 && q.every(Number.isFinite) && q[2] > 0 && q[3] < q[4] && q[4] <= P.alto + 0.1 && Math.abs(q[0]) + q[2] <= P.ancho / 2 && Math.abs(q[1]) + q[2] <= P.fondo / 2, `${id}: círculo sano`);
@@ -340,6 +342,8 @@ const AHORA = 24 * 10 + 8;   // día 10, ocho de la mañana
   tiene("const golpesParaPicarAhora = (mata) => conTemple(golpesConFilo(golpesParaPicar(nivelDe('picapedrero'), mata?.esc), progreso?.aldea));", 'y al picar');
   tiene("if (!(progreso?.aldea?.afilado > 0)) return false;", 'el temple sólo se mira si hay filo (nada nuevo por cuadro)');
   tiene("datosDe(o, 'taller'", 'el estado vive en la obra');
+  tiene('get tienda() { return tiendaDeCampoArmada(); }', 'el aviso (que corre cada cuadro junto al taller) no recorre las obras: la tienda se mira sólo cuando hace falta');
+  tiene('avisarSobrante(paso);   // 4.2', 'armar una pieza también avisa lo que te sobró');
   ok(!/function\s+\w*[Oo]ficioPropio[\s\S]{0,40}requestAnimationFrame/.test(m), 'ningún bucle por cuadro');
   ok(c.includes("import { PIEZAS_OFICIOS } from './planos-oficios.js';") && c.includes('PIEZAS.push(...PIEZAS_OFICIOS)'), 'construccion.js los suma con una línea');
   ok(cant.includes('cerveza: tieneCerveceria(p)'), 'la cantina mira la cervecería');

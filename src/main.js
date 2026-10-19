@@ -5659,7 +5659,9 @@ function conOficioDeObra(r, m) {
 }
 function avisarSobrante(r) {
   const partes = Object.entries(r?.sobro || {}).map(([k, n]) => cantidadMaterial(n, k));
-  if (partes.length) setTimeout(() => nota('Te sobró material', `${partes.join(' · ')}: oficio de constructor`), 700);
+  // 4.2: de dónde sale lo que sobra: el oficio de constructor y/o tu carpintería
+  const de = nivelDe('obrero') > 0 ? (carpinteriaExtra() > 0 ? 'oficio de constructor y tu carpintería' : 'oficio de constructor') : 'tu carpintería';
+  if (partes.length) setTimeout(() => nota('Te sobró material', `${partes.join(' · ')}: ${de}`), 700);
 }
 // Para la historia u otro evento: que el próximo poblador de la aldea venga sin esperar
 function llamarAlProximoPoblador() {
@@ -6907,6 +6909,7 @@ function accionObra() {
           modos?.obraTerminada?.(obras.plano.id, progreso.horas);   // 3.1: el desafío del día
           registrar('piezas');
         }
+        avisarSobrante(paso);   // 4.2: la pieza también avisa lo que te sobró (antes sólo lo devolvía)
       }
     }
   } else {
@@ -7375,7 +7378,8 @@ function quitarDeOficio(e, n) {
   else sumarEntrada(e.k, -n);
 }
 const tiendaDeCampoArmada = () => obrasTerminadas('tienda-campo').length > 0;
-const envOficios = () => ({ tengo: tengoDeOficio, quitar: quitarDeOficio, nivel: nivelDe, tienda: tiendaDeCampoArmada() });
+// (`tienda` se mira sólo cuando hace falta: el aviso corre cada cuadro junto al taller y no tiene que recorrer las obras)
+const envOficios = () => ({ tengo: tengoDeOficio, quitar: quitarDeOficio, nivel: nivelDe, get tienda() { return tiendaDeCampoArmada(); } });
 function entregarDeOficio(def, retiro) {
   if (retiro.pesos) { cobrarPesos(progreso, retiro.pesos, `${def.nombre}: ${textoUnidades(retiro, retiro.n)}`, retiro.con); return; }
   if (retiro.donde === 'material') sumarMaterial(retiro.k, retiro.n);
@@ -10775,7 +10779,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __seguirCharla: () => seguirCharla(),
     __cerrarCharla: () => cerrarCharla(),
     // 2.3: las diez ideas
-    __obraQueTrabajaCerca: obraQueTrabajaCerca, __usarObraQueTrabaja: usarObraQueTrabaja, __avisoObraQueTrabaja: avisoObraQueTrabaja,
+    __obraQueTrabajaCerca: obraQueTrabajaCerca, __usarObraQueTrabaja: usarObraQueTrabaja, __avisoObraQueTrabaja: avisoObraQueTrabaja, __golpesParaTalar: () => golpesParaTalarAhora(), __golpesParaPicar: (m) => golpesParaPicarAhora(m),
     // 2.4
     __casaViva: () => ({ chimeneas: chimeneasTodas || chimeneas, ventanas: ventanasMundo?.malla, corral: corralMundo, kayak }), __actualizarCasaViva: (dt = 3) => actualizarCasaViva(dt),
     __tenirPieza: () => tenirPieza(), __hornear: () => hornear(), __amarrarKayak: amarrarKayak, __vela: () => vela, __tirolesas: () => tirolesas, __helarLaHuerta: () => helarLaHuerta(huerta()), __refrescarCorral: refrescarCorral,
