@@ -17,14 +17,15 @@
 // Las tres piezas sueltas son de una etapa (`PIEZAS_AMPLIAR`, con el molde de planos-lujo.js).
 import * as THREE from 'three';
 import { matriz } from './geometria.js';
+import { sueloMin } from './calces.js';
 import { AYUDAS_CASAS } from './planos-casas.js';
 import { AYUDAS_MUEBLES } from './planos-muebles.js';
 
-const { casa, medidas, fisicaDe, etapaTecho, caja, cilindro, triangulo, ventana, mesa, alfombra, repisa, hogar, PISO_Y, Y0, PUERTA, ALTO_PUERTA, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED } = AYUDAS_CASAS;
+const { casa, medidas, fisicaDe, etapaTecho, etapaPiso, caja, cilindro, triangulo, ventana, mesa, alfombra, repisa, hogar, PISO_Y, Y0, PUERTA, ALTO_PUERTA, MADERA_OSCURA, TABLA, PIEDRA, TECHO, TECHO_2, PARED } = AYUDAS_CASAS;
 const { cil, hs, HIERRO, BRONCE, PAPEL, TABLA_CLARA, VIDRIO } = AYUDAS_MUEBLES;
 
 const TABLAS_PARED = ['#786047', '#81684d', '#745c43'];
-const PIEDRAS = [PIEDRA, '#6c665d', '#8a857b', '#77736b'];
+const PIEDRAS = ['#8a8378', '#77706a', '#958e82', '#807a70'];   // (un poco más claras y cálidas que el zócalo de las casas: se tiene que ver la hilada)
 const LLAMA = '#ffcf6a';
 const FILA = (ALTO_PUERTA - Y0) / 4;   // la altura de una hilada de piedra: cuatro llegan justo al dintel de la puerta
 const FILA_ALTA = 0.63;                // y arriba del dintel las hiladas son más altas (menos bloques)
@@ -76,7 +77,7 @@ function muro(c, eje, fijo, s0, s1, alto, o = {}) {
       for (const hu of huecos) if (ya < hu.h - 0.01) trozos = trozos.flatMap(([p, q]) => (q <= hu.u0 || p >= hu.u1 ? [[p, q]] : sin(p, q, hu)));
       for (const [p, q] of trozos) {
         if (q - p < 0.12) continue;
-        const top = Math.min(yb, Math.max(alt(p), alt(q)));
+        const top = Math.min(yb, alt(p), alt(q));   // (por debajo de la línea del techo; lo que falta lo tapa una solera o el frontón)
         if (top - ya < 0.1) continue;
         const color = PIEDRAS[Math.floor(hs(semilla + r * 3.1 + p * 5.7) * 4) % 4];
         poner(p, q, ya, top, t + hs(semilla + r * 1.7 + p * 2.3) * 0.05, color, 0.16);
@@ -159,8 +160,22 @@ function techoPiramide(c, yBase, medio, alto, pisos = 7) {
   cil(c, 0.03, 0.05, 0.4, [0, yBase + alto + 0.12, 0], HIERRO, { tipo: 0, lados: 5 });
   c.agregar(new THREE.IcosahedronGeometry(0.09, 0), { color: BRONCE, tipo: 0, variar: 0.04, matriz: matriz([0, yBase + alto + 0.36, 0]) });
 }
-// El piso de lajas de piedra (en vez de tablas): para la despensa, la bodega y el quincho. Termina a 0,62 como el de tablas.
-function pisoLajas(M, extra = null) {
+// El faldón de piedra bajo el piso: tapa el hueco entre el suelo y el piso de una obra que no lleva el zócalo alto de las casas (el quincho y la galería,
+// con un lado abierto). `lados`: 'f' frente, 'b' fondo, 'l' izquierda, 'r' derecha. Sigue el terreno.
+function faldon(c, suelo, W, D, lados = 'fblr') {
+  const tira = (ax, az, bx, bz, largo, horizontal) => {
+    const abajo = Math.min(-0.15, sueloMin(suelo, [[ax, az], [(ax + bx) / 2, (az + bz) / 2], [bx, bz]]) - 0.15), alto = 0.6 - abajo;
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+    if (horizontal) caja(c, largo, alto, 0.2, [mx, abajo + alto / 2, mz], PIEDRA, { variar: 0.16 });
+    else caja(c, 0.2, alto, largo, [mx, abajo + alto / 2, mz], PIEDRA, { variar: 0.16 });
+  };
+  if (lados.includes('f')) tira(-W / 2, -D / 2, W / 2, -D / 2, W, true);
+  if (lados.includes('b')) tira(-W / 2, D / 2, W / 2, D / 2, W, true);
+  if (lados.includes('l')) tira(-W / 2, -D / 2, -W / 2, D / 2, D, false);
+  if (lados.includes('r')) tira(W / 2, -D / 2, W / 2, D / 2, D, false);
+}
+// El piso de lajas de piedra (en vez de tablas): para la despensa, la bodega, el quincho y el torreón. Termina a 0,62 como el de tablas.
+function pisoLajas(M, lados = null) {
   return (c, _P, _d, suelo) => {
     const { W, D } = M;
     const nx = Math.max(2, Math.round((W - 0.2) / 1.05)), nz = Math.max(2, Math.round((D - 0.2) / 1.05));
@@ -169,7 +184,7 @@ function pisoLajas(M, extra = null) {
       caja(c, w - 0.03, 0.09, d - 0.03, [-(W - 0.16) / 2 + w * (i + 0.5), 0.575 + hs(i * 3.1 + j * 1.9) * 0.01, -(D - 0.08) / 2 + d * (j + 0.5)], PIEDRAS[(i + j * 2) % 4], { variar: 0.14 });
     }
     caja(c, 1.35, 0.16, 0.62, [0, 0.30, -D / 2 - 0.35], PIEDRA, { variar: 0.14 });
-    void suelo; void extra;
+    if (lados) faldon(c, suelo, W, D, lados);
   };
 }
 
@@ -317,7 +332,7 @@ function ampliacion(cfg) {
   const P = casa({
     id: cfg.id, nombre: cfg.nombre, texto: cfg.texto,
     ancho: cfg.ancho, fondo: cfg.fondo, alto: cfg.alto, subida: cfg.subida, eje: cfg.eje || 'x',
-    galeria: 0, zocalo: cfg.zocalo !== false, radio: cfg.radio ?? Math.hypot(cfg.ancho, cfg.fondo) / 2 + 0.5, distancia: cfg.distancia ?? 6.5, desnivelMax: cfg.desnivelMax ?? 1.0,
+    galeria: 0, zocalo: cfg.zocalo !== false, radio: Math.round(((Math.hypot(cfg.ancho, cfg.fondo) / 2 + 0.6) / 0.72) * 10) / 10,   // (al levantar la primera etapa se despeja el 72 % del radio: así llega a las esquinas) distancia: cfg.distancia ?? 6.5, desnivelMax: cfg.desnivelMax ?? 1.0,
     ventanas: cfg.ventanas || [], hogares: cfg.hogares || [], camas: cfg.camas || [], mesas: cfg.mesas || [], alfombras: cfg.alfombras || [], repisa: cfg.repisa || null,
     tabiques: cfg.tabiques || [], pide: cfg.pide, dice: cfg.dice,
   });
@@ -369,7 +384,7 @@ const despensa = (() => {
   const P = ampliacion({
     id: 'despensa-anexa', nombre: 'Despensa de piedra',
     texto: 'Un cuartito de piedra, fresco y oscuro, para guardar lo del invierno: estantes con frascos hasta el techo, jamones y ristras colgando, sacos de harina, barriles y quesos. Sin ventanas, sólo rejillas. Pide mucha piedra.',
-    ancho: W, fondo: D, alto: hF + 0.35, subida: 0.55, eje: 'x', desnivelMax: 0.8, categoria: 'trabajo', zocalo: false,
+    ancho: W, fondo: D, alto: hF + 0.35, subida: 0.55, eje: 'x', desnivelMax: 0.8, categoria: 'trabajo',
     pide: [{ piedra: 14, tronco: 2 }, { piedra: 6, tabla: 8 }, { piedra: 34, tabla: 6, tronco: 2 }, { tabla: 12, piedra: 4, tronco: 2 }],
     dice: [
       'Piedra sobre piedra: un anillo grueso asienta el cuartito.',
@@ -386,6 +401,9 @@ const despensa = (() => {
       muro(c, 'x', D / 2, -W / 2, W / 2, hB, { t, piedra: true, semilla: 2 });
       muro(c, 'z', -W / 2, -D / 2, D / 2, alt, { t, piedra: true, semilla: 3 });
       muro(c, 'z', W / 2, -D / 2, D / 2, alt, { t, piedra: true, semilla: 4 });
+      // la solera de madera que corre sobre cada costado (la piedra sube por hiladas y la solera sigue la pendiente del techo)
+      const incl = Math.atan2(hB - hF, D);
+      for (const sx of [-1, 1]) caja(c, t + 0.06, 0.34, Math.hypot(D, hB - hF) + 0.1, [sx * W / 2, Y0 + (hF + hB) / 2 - 0.1, 0], MADERA_OSCURA, { tipo: 0, rot: [-incl, 0, 0], variar: 0.06 });
       marcoPuerta(c, -D / 2 - t / 2 - 0.06);
       // las rejillas de ventilación (listones oscuros) a los costados, arriba
       for (const sx of [-1, 1]) for (const dz of [-0.7, 0.7]) {
@@ -516,7 +534,7 @@ const quincho = (() => {
       'El techo de dos aguas, el asador con su chimenea, la mesa larga, la barra y la leña.',
     ],
     pesos: 28000, reparto: [0.2, 0.2, 0.3, 0.3],
-    piso: (M) => pisoLajas(M),
+    piso: (M) => pisoLajas(M, 'fblr'),
     paredes: (M) => (c) => {
       const t = T_PIEDRA, yv = Y0 + hw + 0.1;
       muro(c, 'x', D / 2, -W / 2, W / 2, hw, { t, piedra: true, semilla: 7 });
@@ -590,6 +608,7 @@ const galeriaCerrada = (() => {
       'El techo de una agua que baja hacia el frente, el banco corrido, la mesa y las macetas.',
     ],
     pesos: 30000, reparto: [0.15, 0.2, 0.35, 0.3],
+    piso: (M) => { const tablas = etapaPiso(M); return (c, p, d, suelo) => { tablas(c, p, d, suelo); faldon(c, suelo, W, D, 'flr'); }; },
     paredes: () => (c) => {
       const yTop = Y0 + hw;
       // el antepecho, a los tres lados (atrás se deja abierto)
@@ -732,25 +751,26 @@ function botellero(c, x, z, py, w = 1.5, alto = 1.5) {
 }
 const bodega = (() => {
   const W = 5.6, D = 4.6, hw = 5 * FILA, sub = 1.1;
-  const gable = (u) => hw + sub * (1 - Math.abs(u - W / 2) / (W / 2));
   return ampliacion({
     id: 'bodega-piedra', nombre: 'Bodega de piedra', categoria: 'trabajo',
     texto: 'Una bodega de muros de piedra gruesos, con el techo bajo de dos aguas: fresca en verano y sin helar en invierno. Barriles en su caballete, botellero hasta arriba, estantes con frascos, una mesa de piedra y el piso de lajas. Pide mucha piedra: es trabajo para el pico.',
-    ancho: W, fondo: D, alto: hw + 0.35, subida: sub, eje: 'z', desnivelMax: 0.9, zocalo: false,
+    ancho: W, fondo: D, alto: hw + 0.35, subida: sub, eje: 'z', desnivelMax: 0.9,
     ventanas: [{ orient: 'z', s: -1, cx: -1.85, cz: -D / 2, t: 0.42 }, { orient: 'z', s: -1, cx: 1.85, cz: -D / 2, t: 0.42 }, { orient: 'x', s: -1, cx: -W / 2, cz: 0, t: 0.42 }],
     pide: [{ piedra: 20, tronco: 4 }, { piedra: 24, tabla: 4 }, { piedra: 56, tronco: 8 }, { tabla: 24, piedra: 8, tronco: 6 }],
     dice: [
       'Piedra sobre piedra: un anillo ancho asienta la bodega.',
       'Un piso de lajas de piedra, parejo y fresco.',
-      'Los muros gruesos de piedra, hilada por hilada, con el frontón de piedra, la puerta y tres ventanas chicas.',
+      'Los muros gruesos de piedra, hilada por hilada, con los frontones de tabla, la puerta y tres ventanas chicas.',
       'El techo bajo de dos aguas, los barriles en su caballete, el botellero, los estantes y la mesa de piedra.',
     ],
     pesos: 36000, reparto: [0.2, 0.2, 0.35, 0.25],
     piso: (M) => pisoLajas(M),
     paredes: (M, P) => (c) => {
       const t = T_PIEDRA;
-      muro(c, 'x', -D / 2, -W / 2, W / 2, gable, { t, piedra: true, huecos: [huecoDePuerta(W)], semilla: 21 });
-      muro(c, 'x', D / 2, -W / 2, W / 2, gable, { t, piedra: true, semilla: 22 });
+      muro(c, 'x', -D / 2, -W / 2, W / 2, hw, { t, piedra: true, huecos: [huecoDePuerta(W)], semilla: 21 });
+      muro(c, 'x', D / 2, -W / 2, W / 2, hw, { t, piedra: true, semilla: 22 });
+      // los frontones, de tabla, sobre el muro de piedra
+      for (const dz of [-D / 2, D / 2]) triangulo(c, [-W / 2, M.techoPared, dz], [W / 2, M.techoPared, dz], [0, M.techoPared + sub, dz], PARED);
       muro(c, 'z', -W / 2, -D / 2, D / 2, hw, { t, piedra: true, semilla: 23 });
       muro(c, 'z', W / 2, -D / 2, D / 2, hw, { t, piedra: true, semilla: 24 });
       marcoPuerta(c, -D / 2 - t / 2 - 0.06);
@@ -854,7 +874,7 @@ const salon = (() => {
   return ampliacion({
     id: 'salon-grande', nombre: 'Salón grande',
     texto: 'Un salón de verdad para juntar a todos: dos hogares de piedra, uno en cada punta; vigas a la vista bajo el techo alto; una mesa larga de tres metros y medio con bancos; sillones junto al fuego; estantes con libros y cuatro ventanas al frente. Un lugar para el invierno y las fiestas.',
-    ancho: W, fondo: D, alto: H, subida: 1.9, eje: 'x', desnivelMax: 1.2, radio: 6.2,
+    ancho: W, fondo: D, alto: H, subida: 1.9, eje: 'x', desnivelMax: 1.2,
     ventanas: [...frenteV(D, [-3.4, -1.9, 1.9, 3.4]), ...fondoV(D, [-1.2, 1.2]), ...ladoV(W, -1, [-1.8]), ...ladoV(W, 1, [-1.8])],
     hogares: [{ lado: -1, z: 0 }, { lado: 1, z: 0 }],
     alfombras: [{ x: 0, z: 0.3, w: 5.0, d: 3.2 }],
@@ -900,7 +920,7 @@ const plantaAlta = (() => {
   const P = ampliacion({
     id: 'planta-alta', nombre: 'Planta alta con escalera',
     texto: 'Una casa de dos plantas que se arrima a la tuya: abajo la sala con su hogar de piedra, la mesa y los estantes; una escalera de tablas con baranda sube al piso de arriba, con dos camas, ropero y alfombra, y un balcón al frente. Es la ampliación más alta del refugio.',
-    ancho: W, fondo: D, alto: hw + 0.35, subida: sub, eje: 'z', desnivelMax: 1.1, radio: 4.8,
+    ancho: W, fondo: D, alto: hw + 0.35, subida: sub, eje: 'z', desnivelMax: 1.1,
     ventanas: [...frenteV(D, [-1.75, 1.75]), ...frenteV(D, [-1.9, 1.9]).map((v) => ({ ...v, dy: PISO2 })), ...fondoV(D, [0.2]).map((v) => ({ ...v, dy: PISO2 })), ...ladoV(W, -1, [0.6]).map((v) => ({ ...v, dy: PISO2 })), ...ladoV(W, 1, [-1.3])],
     hogares: [{ lado: 1, z: 0.6 }],
     mesas: [{ x: 0.5, z: -0.7 }],
@@ -986,7 +1006,7 @@ const torreon = (() => {
   const P = ampliacion({
     id: 'torreon-piedra', nombre: 'Torreón de piedra',
     texto: 'Un torreón cuadrado de piedra de dos plantas, con techo en punta: abajo la sala con su hogar y su mesa; una escalera de tablas sube al cuarto de arriba, con cama, escritorio, un catalejo y ventanas a los cuatro vientos. Pide mucha piedra: es la obra grande del pico.',
-    ancho: W, fondo: D, alto: hw + 0.35, subida: 2.0, eje: 'x', desnivelMax: 1.0, zocalo: false, radio: 4.2,
+    ancho: W, fondo: D, alto: hw + 0.35, subida: 2.0, eje: 'x', desnivelMax: 1.0,
     nombres: [null, 'Piso y planta baja', 'Entrepiso, escalera y planta alta', null],
     ventanas: [{ orient: 'z', s: -1, cx: -1.4, cz: -D / 2, t: 0.42 }, { orient: 'z', s: -1, cx: 1.4, cz: -D / 2, t: 0.42 }, { orient: 'z', s: -1, cx: 0, cz: -D / 2, t: 0.42, dy: PISO2 }, { orient: 'z', s: 1, cx: 0.4, cz: D / 2, t: 0.42, dy: PISO2 }, { orient: 'x', s: -1, cx: -W / 2, cz: 0.2, t: 0.42, dy: PISO2 }, { orient: 'x', s: 1, cx: W / 2, cz: -1.0, t: 0.42, dy: PISO2 }],
     hogares: [{ lado: 1, z: 0.6 }],

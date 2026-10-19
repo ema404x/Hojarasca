@@ -6579,9 +6579,10 @@ function dibujarPanelObra() {
     ul.appendChild(li);
   });
 
-  const pct = p.pieza ? 0 : Math.round((hechas / p.etapas.length) * 100);
+  const deUnaVez = p.pieza && p.etapas.length === 1;   // (4.2: una pieza de varias etapas —las ampliaciones, el molino— muestra su avance como una obra)
+  const pct = deUnaVez ? 0 : Math.round((hechas / p.etapas.length) * 100);
   $('obra-progreso').style.setProperty('--avance', `${pct}%`);
-  $('obra-progreso').textContent = p.pieza ? 'Se construye de una vez' : obra ? `${hechas}/${p.etapas.length} etapas · ${pct}%` : 'Todavía no fundado';
+  $('obra-progreso').textContent = deUnaVez ? 'Se construye de una vez' : obra ? `${hechas}/${p.etapas.length} etapas · ${pct}%` : 'Todavía no fundado';
   const totalPesos = hayEconomia(progreso) ? precioTotal(p.id) : 0;   // 4.2
   $('obra-costo').textContent = `Costo total · ${costoPlano(p)}${totalPesos ? ` · ${formatoPesos(totalPesos)}` : ''}`;
   const m = progreso.materiales || {};

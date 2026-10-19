@@ -54,9 +54,9 @@ const PAGINA = String.raw`(() => {
   A.limpiar = () => { if (O.editando) O.cancelarEdicion(); for (const o of [...O.obras]) O.destruir(o); O.elegir(null); P.obras = []; A.ocupados = []; return 1; };
   A.ocupados = [];
   // un lugar llano de radio R (sin agua, sin pendiente), lejos de lo ya construido, donde el plano se puede fundar
-  A.sitioGrande = (id, R = 7, lejos = 22) => {
+  A.sitioGrande = (id, R = 7, lejos = 22, tol = 0.14) => {
     const pl = H.PLANOS.find((p) => p.id === id), r0 = T.lugares.refugio;
-    const llano = (x, z) => { const y0 = T.altura(x, z); for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283, q = T.altura(x + Math.cos(a) * R, z + Math.sin(a) * R); if (Math.abs(q - y0) > 0.14 || T.agua(x + Math.cos(a) * R, z + Math.sin(a) * R)) return false; } return true; };
+    const llano = (x, z) => { const y0 = T.altura(x, z); for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283, q = T.altura(x + Math.cos(a) * R, z + Math.sin(a) * R); if (Math.abs(q - y0) > tol || T.agua(x + Math.cos(a) * R, z + Math.sin(a) * R)) return false; } return true; };
     for (let r = 26; r < 300; r += 3.3) {
       const k = Math.max(8, Math.round(2 * Math.PI * r / 3.3));
       for (let i = 0; i < k; i++) {
@@ -83,6 +83,33 @@ const PAGINA = String.raw`(() => {
     return 'ok';
   };
   A.ultima = () => O.obras.at(-1);
+  A.libro = () => P.economia.libro.slice(-3).map((m) => m.monto + ' ' + m.motivo);
+  // parado a d metros al sur del sitio (la pieza cae al frente, a su distancia), mirando al norte (-z)
+  A.parar = (s, d) => { J.ubicar(s.x, s.z + d, 0); for (let i = 0; i < 12; i++) { J.actualizar(0.05); H.__bucle(); } return 1; };
+  A.menuAbierto = () => !document.getElementById('obra').classList.contains('oculto');
+  const clic = (el) => el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  A.elegir = (nombre) => {
+    if (!A.menuAbierto()) A.tecla('KeyO');
+    for (const cat of document.querySelectorAll('#obra-categorias button')) {
+      clic(cat);
+      for (let pag = 0; pag < 16; pag++) {
+        const b = [...document.querySelectorAll('#obra-planos button')].find((x) => new RegExp('^\\d+\\. ' + nombre.replace(/[.*+?^$()]/g, '\\$&')).test(x.textContent));
+        if (b) { clic(b); return true; }
+        const sig = [...document.querySelectorAll('#obra-planos button')].find((x) => x.textContent === '›');
+        if (!sig) break;
+        clic(sig);
+      }
+    }
+    return false;
+  };
+  A.panel = () => ({
+    elegido: document.getElementById('obra-nombre').textContent,
+    lista: [...document.querySelectorAll('#obra-planos button')].map((b) => ({ t: b.textContent, sinplata: b.classList.contains('sinplata') })),
+    etapas: [...document.querySelectorAll('#obra-etapas li')].map((li) => ({ t: li.textContent.replace(/\s+/g, ' '), sinplata: li.classList.contains('sinplata') })),
+    progreso: document.getElementById('obra-progreso').textContent,
+    costo: document.getElementById('obra-costo').textContent,
+  });
+  A.estado = () => { const o = O.obras.at(-1); return o ? { plano: o.plano.id, etapas: o.datos.etapas, pagadas: o.datos.pagadas ?? null } : null; };
   // la cámara quieta en un punto local de la obra, mirando a otro punto local
   A.camLocal = (cam, mira) => {
     const o = O.obras.at(-1), r = o.datos.rot || 0, c = Math.cos(r), s = Math.sin(r), y0 = Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z);
@@ -129,6 +156,71 @@ app.whenReady().then(async () => {
   const abrir = async () => { try { await w.loadFile(url, { search: '?debug=1' }); } catch (e) { await esperar(1500); await w.loadFile(url, { search: '?debug=1' }); } };
   const H = 'window.__hojarasca';
 
+  // ---------------------------------------------------------------- lo que se hace con las teclas de verdad
+  async function seccionTeclas() {
+    seccion('con las teclas: el menú, Y por etapas, la falta de plata y desmontar');
+    await js("document.getElementById('fx-hud')?.remove(); 1");   // (el HUD a la vista: el menú y los avisos son lo que se mira acá)
+    await A('(A.limpiar(), A.limpiarNotas(), A.plata(100000), A.materiales({ tronco: 999, tabla: 999, piedra: 999, lana: 99 }), 1)');
+    ok(await A('A.elegir("Dormitorio anexo")'), 'el dormitorio anexo está en el menú (Refugios)');
+    let pn = await A('A.panel()');
+    const bl = pn.lista.find((b) => /Dormitorio anexo/.test(b.t));
+    ok(/\$20\.000/.test(bl?.t) && !bl?.sinplata, `la lista dice «${bl?.t}»`);
+    ok(/\$4\.000/.test(pn.etapas[0]?.t) && /\$6\.000/.test(pn.etapas[3]?.t) && /\$20\.000/.test(pn.costo), `la ficha: «${pn.etapas[0]?.t}» … «${pn.etapas[3]?.t}» y «${pn.costo}»`);
+    ok(/Todavía no fundado|etapas/.test(pn.progreso) && !/de una vez/.test(pn.progreso), `y el avance no dice «de una vez» (${pn.progreso})`);
+    await foto('menu-dormitorio-anexo');
+    // sin plata no se levanta
+    await A('(A.plata(1000), A.limpiarNotas(), 1)');
+    const sitio = await A('A.sitioGrande("dormitorio-anexo", 6)');
+    ok(!!sitio, 'hay un lugar llano');
+    await A(`(A.parar(${JSON.stringify(sitio)}, 6.5), 1)`);
+    const n0 = await A('A.n()');
+    await A('A.tecla("KeyY")'); await esperar(300);
+    ok((await A('A.n()')) === n0 && (await A('A.pesos()')) === 1000, 'con $1.000 Y no levanta nada ni cobra');
+    ok((await A('A.notas()')).some((t) => /Falta plata para esta (pieza|etapa)/.test(t) && /\$4\.000/.test(t)), `el aviso: «${(await A('A.notas()'))[0]}»`);
+    // con plata: cuatro Y, una por etapa, cada una cobra la suya
+    await A('(A.plata(100000), A.limpiarNotas(), 1)');
+    const cobros = [4000, 4000, 6000, 6000];
+    for (let i = 0; i < 4; i++) {
+      await A('A.tecla("KeyY")'); await esperar(300);
+      const e = await A('A.estado()');
+      ok(e && e.etapas === i + 1 && e.pagadas === i + 1, `Y número ${i + 1}: etapa ${i + 1} hecha y pagada (${JSON.stringify(e)})`);
+      ok((await A('A.pesos()')) === 100000 - cobros.slice(0, i + 1).reduce((a, b) => a + b, 0), `cobró $${cobros[i]} (quedan ${await A('A.pesos()')})`);
+      if (i === 1) await foto('etapas-a-la-mitad', true);
+    }
+    ok((await A('A.n()')) === n0 + 1, 'quedó una sola obra (las Y siguientes siguieron la misma)');
+    ok((await A('A.notas()')).some((t) => /Dormitorio anexo/.test(t)), `al terminar la nota dice el nombre: «${(await A('A.notas()'))[0]}»`);
+    await A('A.tecla("KeyO")');
+    ok(await A('!!H.obras.dentro({ x: O.obras.at(-1).datos.x, z: O.obras.at(-1).datos.z, y: O.obras.at(-1).datos.y + 0.7 })'), 'adentro del dormitorio cuenta como adentro');
+    // desmontarlo: vuelve la mitad de los pesos
+    await A('(A.tecla("KeyO"), A.limpiarNotas(), A.plata(0), 1)');   // (el panel de obra abierto: Mayús + Supr desmonta ahí)
+    await A('(H.jugador.ubicar(O.obras.at(-1).datos.x, O.obras.at(-1).datos.z + 4, 0), A.cuadros(4), 1)');
+    await A('A.tecla("Delete", { shiftKey: true })'); await esperar(400);
+    ok((await A('A.n()')) === n0, 'Mayús + Supr desmonta el dormitorio entero');
+    ok((await A('A.pesos()')) === 10000, `devolvió la mitad de los pesos: $10.000 (hay ${await A('A.pesos()')})`);
+    ok(JSON.stringify(await A('A.libro()')).includes('Reintegro por desmontar: dormitorio anexo'), 'y el libro lo anota');
+    await foto('desmontado', true);
+
+    // el gran hogar: Y lo levanta (una etapa, $20.000), F lo prende y echa humo por la chimenea
+    seccion('el gran hogar de piedra: Y, F y el humo');
+    await A('(A.limpiar(), A.limpiarNotas(), A.plata(50000), A.materiales({ tronco: 99, tabla: 99, piedra: 99 }), 1)');
+    ok(await A('A.elegir("Gran hogar de piedra")'), 'el gran hogar está en el menú');
+    const sh = await A('A.sitioGrande("hogar-grande", 4)');
+    await A(`(A.parar(${JSON.stringify(sh)}, 2.4), 1)`);
+    await A('A.tecla("KeyY")'); await esperar(300);
+    ok((await A('A.n()')) === 1 && (await A('A.pesos()')) === 30000 && (await A('A.estado()')).etapas === 1, `Y lo levanta de una vez y cobra $20.000 (quedan ${await A('A.pesos()')})`);
+    await A('(A.tecla("KeyO"), A.limpiarNotas(), 1)');
+    await A('(H.jugador.ubicar(O.obras.at(-1).datos.x, O.obras.at(-1).datos.z - 1.6, Math.PI), A.cuadros(6), 1)');
+    await A('A.tecla("KeyF")'); await esperar(500);
+    ok(await A('H.clima.fogatas.some((f) => f.activa && f.contenida)'), 'F prende el gran hogar (fuego contenido)');
+    ok((await A('A.notas()')).some((t) => /Encendiste el hogar/.test(t)), `y avisa «${(await A('A.notas()'))[0]}»`);
+    await A('(H.__actualizarCasaViva(3), A.cuadros(3), 1)');
+    ok(await A('(H.__casaViva().chimeneas || []).some((c) => c && Math.abs(c.x - O.obras.at(-1).datos.x) < 1 && Math.abs(c.z - O.obras.at(-1).datos.z) < 1)'), 'el humo sale de la chimenea del gran hogar');
+    await A('(A.camLocal([-3.2, 2.2, -4.6], [0, 2.0, 0]), 1)');
+    await js("(() => { if (!document.getElementById('fx-hud')) { const e = document.createElement('style'); e.id = 'fx-hud'; e.textContent = '#hud { display: none !important }'; document.head.appendChild(e); } return 1 })()");
+    await foto('hogar-grande-prendido');
+    await A('(A.sinCamara(), 1)');
+  }
+
   try {
     seccion('carga');
     await abrir();
@@ -147,20 +239,23 @@ app.whenReady().then(async () => {
     seccion('cada ampliación, levantada y fotografiada');
     for (const id of ORDEN) {
       if (solo.length && !solo.includes(id)) continue;
-      const R = id === 'salon-grande' ? 9 : id === 'planta-alta' || id === 'quincho' || id === 'torreon-piedra' ? 7 : id === 'pared-piedra' || id === 'hogar-grande' ? 4 : 6;
-      const s = await A(`A.sitioGrande(${JSON.stringify(id)}, ${R})`);
+      await A('A.limpiar()');
+      const R = id === 'salon-grande' ? 8 : id === 'planta-alta' || id === 'quincho' || id === 'torreon-piedra' ? 7 : id === 'pared-piedra' || id === 'hogar-grande' ? 4 : 6;
+      const s = await A(`A.sitioGrande(${JSON.stringify(id)}, ${R}, 22, ${id === "salon-grande" ? 0.4 : 0.14})`);
       ok(!!s, `${id}: hay un lugar llano`);
       if (!s) continue;
       const r = await A(`A.levantar(${JSON.stringify(id)}, ${JSON.stringify(s)})`);
       ok(r === 'ok', `${id}: se levanta entero (${r})`);
       if (r !== 'ok') continue;
       await A('(P.horas = 11.5, 1)');
+      await js("(() => { if (!document.getElementById('fx-hud')) { const e = document.createElement('style'); e.id = 'fx-hud'; e.textContent = '#hud { display: none !important }'; document.head.appendChild(e); } return 1 })()");
       for (const [nombre, cam, mira] of TOMAS[id]) {
         await A(`A.camLocal(${JSON.stringify(cam)}, ${JSON.stringify(mira)})`);
         await foto(`${id}-${nombre}`);
       }
       await A('A.sinCamara()');
     }
+    if (!sinTeclas) await seccionTeclas();
     ok(errores.length === 0, `sin errores en la consola${errores.length ? ': ' + errores.slice(0, 3).join(' | ') : ''}`);
   } catch (e) {
     console.log('✗ ' + (e && e.stack || e));

@@ -231,6 +231,35 @@ const tri = (P, i, suelo = null) => { const c = new Constructor(); P.etapas[i].a
   }
 }
 
+// ---------------------------------------------------------------- 6b. mover, desmontar y rehacer: la física acompaña
+{
+  // se la mueve entera (Mayús + Y): la escalera se sube en el lugar nuevo y el viejo queda libre
+  const w = mundo(terreno(0));
+  const r = w.terminar('planta-alta', 0, 0, 0);
+  const ed = w.s.iniciarEdicionCerca({ x: 0, y: 0.62, z: -4 }, 8);
+  ok(ed.ok && ed.obra === r.o, `planta alta: se agarra para moverla (${ed.motivo || 'ok'})`);
+  const conf = w.s.confirmarEdicion(30, 0, 0);
+  ok(conf.ok, `planta alta: se suelta en otro lugar (${conf.motivo || 'ok'})`);
+  const libre = rutaLocal(w, { datos: { x: 0, z: 0, rot: 0 } }, [[0, -4], [0, 4]]);
+  ok(libre.z > 3.5, `en el lugar viejo ya no hay paredes (z=${libre.z.toFixed(2)})`);
+  const q = rutaLocal(w, r.o, [[0, -4], [0, -1.6], [-2.15, -1.6], [-2.15, -1.0], [-2.15, 1.0], [-2.15, 1.85]]);
+  ok(Math.abs(q.y - 3.32) < 0.06, `y en el lugar nuevo la escalera se sube hasta arriba (y=${q.y.toFixed(2)})`);
+  // se la desmonta: no queda nada que frene
+  const des = w.s.desmontarCerca({ x: r.o.datos.x, y: 0.62, z: r.o.datos.z - 4 }, 8);
+  ok(des.ok && des.recupera.piedra > 0, `planta alta: se desmonta y devuelve la mitad de los materiales (${JSON.stringify(des.recupera)})`);
+  const pasa = rutaLocal(w, { datos: { x: 30, z: 0, rot: 0 } }, [[0, -4], [0, 4]]);
+  ok(pasa.z > 3.5, `y donde estaba ya se camina libre (z=${pasa.z.toFixed(2)})`);
+  // a medias: se retoma con la misma obra (no funda otra) y la física de lo hecho está
+  const m = mundo(terreno(0));
+  m.s.elegir(C.PLANO['torreon-piedra']);
+  const f = m.s.fundar(0, 0, 0);
+  m.s.avanzar(f.obra, m.mats); m.s.avanzar(f.obra, m.mats);
+  const entra = rutaLocal(m, f.obra, [[0, -4], [0, -1.0]]);
+  ok(Math.abs(entra.y - 0.62) < 0.06 && entra.z > -2.0, `torreón a medias (piso y planta baja): se entra por la puerta y se pisa el piso (y=${entra.y.toFixed(2)})`);
+  const atrav = rutaLocal(m, f.obra, [[0, -1.0], [0, 4]]);
+  ok(atrav.z < 2.3, `y sus muros de la planta baja ya frenan (z=${atrav.z.toFixed(2)})`);
+}
+
 // ---------------------------------------------------------------- 7. el gran hogar, la pared de piedra y el techo de teja
 {
   const H = PLANO['hogar-grande'];
