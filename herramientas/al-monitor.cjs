@@ -1,6 +1,6 @@
 // Manda toda ventana que abra una prueba o herramienta al monitor externo (no a la pantalla de la
 // notebook). Se carga sin tocar cada prueba: NODE_OPTIONS="--require <este archivo>" antes de
-// `npx electron ...`. Si no hay monitor externo, no hace nada. Las ventanas ocultas siguen ocultas.
+// `npx electron ...`. Si no hay monitor externo, la ventana queda oculta (nunca aparece en la notebook). Las ventanas ocultas siguen ocultas.
 // Para elegir otro: HOJ_PANTALLA=<parte del nombre> (p. ej. LS22D300G); HOJ_PANTALLA=no lo apaga.
 let electron;
 try { electron = require('electron'); } catch { electron = null; }
@@ -18,6 +18,8 @@ if (app && process.env.HUMO_OCULTO === '1') {
   });
 } else
 if (app && process.env.HOJ_PANTALLA !== 'no') {
+  // 4.4: NUNCA en la notebook. Si hay monitor externo, la ventana va ahí y se la vigila (si algo la reacomoda o la cruza a la pantalla
+  // de la notebook, vuelve); si NO hay monitor externo, la ventana se queda oculta en vez de aparecer en la notebook.
   const pantalla = () => electron.screen;
   const elegir = () => {
     const screen = pantalla(), todas = screen.getAllDisplays();
@@ -26,10 +28,19 @@ if (app && process.env.HOJ_PANTALLA !== 'no') {
       || todas.find((d) => d.internal === false)
       || todas.find((d) => d.id !== pantalla().getPrimaryDisplay().id) || null;
   };
+  const ocultar = (w) => {
+    try { w.show = () => {}; w.showInactive = () => {}; w.focus = () => {}; w.setAlwaysOnTop = () => {}; w.hide(); w.webContents.setBackgroundThrottling(false); } catch {}
+  };
+  let avisado = false;
   const mover = (w) => {
     try {
+      if (w.isDestroyed()) return;
       const d = elegir();
-      if (!d || w.isDestroyed()) return;
+      if (!d) {
+        if (!avisado) { avisado = true; console.warn('al-monitor: no hay monitor externo; la ventana queda oculta (no se muestra en la notebook)'); }
+        ocultar(w); return;
+      }
+      if (w.isFullScreen()) w.setFullScreen(false);
       const b = w.getBounds(), a = d.workArea;
       const ancho = Math.min(b.width, a.width), alto = Math.min(b.height, a.height);
       const destino = { x: a.x + Math.round((a.width - ancho) / 2), y: a.y + Math.round((a.height - alto) / 2), width: ancho, height: alto };
@@ -37,10 +48,24 @@ if (app && process.env.HOJ_PANTALLA !== 'no') {
       w.setBounds(destino); w.setBounds(destino);
     } catch {}
   };
+  const enOtraPantalla = (w) => {
+    try {
+      const d = elegir();
+      if (!d) return false;
+      return pantalla().getDisplayMatching(w.getBounds()).id !== d.id;
+    } catch { return false; }
+  };
   app.on('browser-window-created', (_e, w) => {
     mover(w);
-    // algunas pruebas o el juego reacomodan la ventana al mostrarla: se vuelve a mandar una vez
+    // algunas pruebas o el juego reacomodan la ventana al mostrarla: se vuelve a mandar
     w.once('ready-to-show', () => mover(w));
     w.once('show', () => mover(w));
+    let esperando = false;
+    const vigilar = () => {
+      if (esperando) return;
+      esperando = true;
+      setTimeout(() => { esperando = false; if (!w.isDestroyed() && enOtraPantalla(w)) mover(w); }, 150);
+    };
+    for (const ev of ['move', 'moved', 'resize', 'enter-full-screen', 'restore', 'maximize']) { try { w.on(ev, vigilar); } catch {} }
   });
 }
