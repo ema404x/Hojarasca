@@ -5,7 +5,9 @@
 //   · el vecino reacciona según la amistad y lo que le escuchaste de su historia (y, Lucrecia, el romance): se ofende, se niega, pide que antes sepas de
 //     dónde viene, pide más plata, pone condiciones o acepta con gusto; se queda de empleado a sueldo o se va a pasar el día a la plaza;
 //   · al comprar, un cartel nuevo junto a la puerta dice «de Bruno»; cada día un aviso cuenta lo que rindió cada negocio (a la caja, con tope);
-//   · una página del cuaderno («Negocios y sociedades»).
+//   · una página del cuaderno («Negocios y sociedades»);
+//   · 4.4.3: venderle de vuelta el negocio al dueño de siempre («Venderle … de vuelta», en «Hablar de su negocio») y sumar plata a una sociedad ya hecha
+//     («Sumar plata a la sociedad», en «Hablar de la sociedad»): el cálculo a la vista, la voz del vecino, el aviso.
 // Todo corre por eventos y a un segundo: nada nuevo por cuadro.
 import { formatoPesos } from './economia.js';
 import { cambiarAmistad, sumarAmistadDe, puntosAmistad } from './vecindad.js';
@@ -17,8 +19,9 @@ import {
   NEGOCIOS, IDS_NEGOCIOS, COMPRA, SOCIEDAD, CONSEJERO, TIPOS_QUE_VENDEN, negocioDeVecino, tuyoDe, negocioAbierto, hayNegocios, leerNegociosVecinos,
   esTuyo, esSocio, tusNegocios, tusSociedades, vecinosQueSeFueron, evaluarCompra, anotarRechazo, comprar, retirarCaja, visitar, cajasTotal, cajaDe, pasarDia, reaccionSocio,
   entrarSocio, avisarRetiro, cancelarRetiro, montosDeAporte, rangoDeAporte, porcentajeDe, gananciaBase, gananciaDelDia, resumenNegociosVecinos, diasParaPagarse,
+  VENTA, evaluarVenta, vender, recargoDeRecompra, restoDeAporte, montosDeAporteExtra, reaccionAporteExtra, porcentajeConAporte, sumarAporte,
 } from './negocios-vecinos.js';
-import { VOCES_NEGOCIO, VOZ_GERENTE } from './negocios-vecinos-voces.js';
+import { VOCES_NEGOCIO, VOZ_GERENTE, VOCES_VENTA, VOCES_APORTE } from './negocios-vecinos-voces.js';
 
 export const RADIO_CARTELES = 70;
 const llenar = (t, d = {}) => String(t).replace(/\{(\w+)\}/g, (_m, k) => (d[k] === undefined || d[k] === null ? '' : String(d[k])));
@@ -34,6 +37,12 @@ const FRASES = {
   noHay: 'Hoy no hay nada de eso para hablar.',
   credito: 'Descontando lo que ya habías puesto como socio ({credito}), te quedan {precio}.',
   sociosTope: 'Ya sos socio de {n} negocios, que es lo que se puede atender. Retirate de alguno primero.',
+  noEsTuyo: 'Eso ya no es {tuyo}: no hay nada que vender.',
+  techo: 'La billetera no aguanta tanta plata junta: gastá o guardá algo y volvé a proponérselo.',
+  aporteAviso: 'Avisaste que te retirás: primero elegí «Seguir de socio» y después hablamos de sumar plata.',
+  aporteFalta: 'Para que acepte más plata hace falta que la amistad llegue a {min} puntos (hoy: {hoy}).',
+  aporteTope: 'Ya pusiste {aporte}, que es lo máximo: el {fraccion} del precio del negocio.',
+  vender: 'Si querés vender alguno, hablá con su dueño de siempre: el precio depende de los días que lo tuviste, de la amistad y de cómo lo atendiste.',
 };
 
 // `ctx`: progreso(), desafio(), escena() (el de three; sin él no hay cartel), altura(x, z), jugador() (el del juego: estado.pos), nota(t, sub, nueva), guardar(),
@@ -72,7 +81,7 @@ export function crearNegociosVecinosJuego(ctx) {
     if (clave === CONSEJERO) return [{ id: 'negocios:resumen', titulo: 'Hablar de negocios' }];
     const id = negocioDeVecino(clave);
     if (!id || !negocioAbierto(prog(), id)) return [];
-    return [{ id: 'negocios', titulo: 'Hablar de su negocio' }];
+    return [{ id: 'negocios', titulo: esSocio(prog(), id) && !esTuyo(prog(), id) ? 'Hablar de la sociedad' : 'Hablar de su negocio' }];
   }
   function textoDeEstado(id) {
     const p = prog(), N = NEGOCIOS[id];
@@ -94,11 +103,13 @@ export function crearNegociosVecinosJuego(ctx) {
       lista.push({ id: 'negocios:cuentas', titulo: 'Cómo viene el negocio' });
       const caja = cajaDe(p, id);
       if (caja > 0) lista.push({ id: 'negocios:caja', titulo: `Retirar la caja (${formatoPesos(caja)})` });
+      lista.push({ id: 'negocios:vender', titulo: `Venderle ${N.corto} de vuelta` });
     } else {
       if (esSocio(p, id)) {
         const s = leerNegociosVecinos(p).socios[id], caja = cajaDe(p, id);
         lista.push({ id: 'negocios:cuentas', titulo: 'Cómo viene la sociedad' });
         if (caja > 0) lista.push({ id: 'negocios:caja', titulo: `Retirar mi parte (${formatoPesos(caja)})` });
+        lista.push({ id: 'negocios:aporte', titulo: 'Sumar plata a la sociedad' });
         lista.push(s.aviso ? { id: 'negocios:seguir', titulo: 'Seguir de socio' } : { id: 'negocios:retiro', titulo: 'Avisar que me retiro' });
       } else {
         lista.push({ id: 'negocios:cuentas', titulo: 'Preguntarle cómo le va' });
@@ -135,6 +146,7 @@ export function crearNegociosVecinosJuego(ctx) {
       return { tipo: 'renglones', renglones: [texto], reaccion: r.tipo };
     }
     const renglones = [texto];
+    if (e.recargo > 1) renglones.push(`Se lo vendiste de vuelta hace poco, así que recomprarlo cuesta un ${Math.round((e.recargo - 1) * 100)} % más (hasta el día ${recargoDeRecompra(p, id, dia())?.hasta}).`);
     if (e.credito > 0) renglones.push(llenar(FRASES.credito, { credito: formatoPesos(e.credito), precio: formatoPesos(e.precio) }));
     if (e.motivo === 'dinero') { renglones.push(llenar(v.sinPlata, { faltan: formatoPesos(e.faltan) })); return { tipo: 'renglones', renglones, reaccion: r.tipo }; }
     // el trato está a un paso: la última palabra es tuya
@@ -175,7 +187,7 @@ export function crearNegociosVecinosJuego(ctx) {
       renglones.push(x.destino === 'se-va' ? `${N.dueno} se fue a otra cosa y atiende alguien del pueblo por ${formatoPesos(N.sueldo)} al día; con la cara nueva, se vende un poco menos.` : `${N.dueno} sigue atendiendo, a sueldo: ${formatoPesos(N.sueldo)} por día.`);
     }
     const s = r.socios.find((q) => q.id === id);
-    if (s) renglones.push(`Tu parte (${pct(s.pct)}) son unos ${formatoPesos(s.porDia)} por día; en la caja hay ${formatoPesos(s.caja)}. Llevás ${s.dias} ${plural(s.dias, 'día', 'días')} de socio: si te retiraras hoy te devolverían ${formatoPesos(s.devolucion)} del aporte.`);
+    if (s) renglones.push(`Tu parte (${pct(s.pct)}) son unos ${formatoPesos(s.porDia)} por día; en la caja hay ${formatoPesos(s.caja)}. Llevás ${s.dias} ${plural(s.dias, 'día', 'días')} de socio: si te retiraras hoy te devolverían ${formatoPesos(s.devolucion)} de los ${formatoPesos(s.aporte)} puestos${s.extras ? ` (con ${s.extras} ${plural(s.extras, 'aporte adicional', 'aportes adicionales')})` : ''}.`);
     return { tipo: 'renglones', renglones };
   }
   function sacarCaja(id) {
@@ -229,6 +241,74 @@ export function crearNegociosVecinosJuego(ctx) {
     return { tipo: 'renglones', renglones: [v.retiro.cancela] };
   }
 
+  // ---------------------------------------------------------------- 4.4.3 · venderle de vuelta el negocio al dueño de siempre
+  const sig = (n, signo) => `${signo} ${pct(Math.abs(n) * 100)}`;
+  function proponerVenta(id) {
+    const p = prog(), N = NEGOCIOS[id], v = VOCES_VENTA[N.vecino], c = contexto(id);
+    const e = evaluarVenta(p, id, c);
+    if (e.motivo === 'no-tuyo') return { tipo: 'renglones', renglones: [llenar(FRASES.noEsTuyo, { tuyo: tuyoDe(id) })] };
+    if (!e.reaccion) return { tipo: 'renglones', renglones: [FRASES.noHay] };
+    if (e.motivo === 'techo') return { tipo: 'renglones', renglones: [FRASES.techo] };
+    const r = e.reaccion, d = r.detalle;
+    const partes = [`${pct(d.base * 100)} de base`];
+    if (d.porDias > 0) partes.push(`${sig(d.porDias, 'más')} por los días que lo tuviste`);
+    if (d.porAmistad > 0) partes.push(`${sig(d.porAmistad, 'más')} por la amistad`);
+    if (d.ajuste !== 0) partes.push(r.tipo === 'ofendido' ? `${sig(d.ajuste, 'menos')} porque lo vendés enseguida` : r.tipo === 'regatea' ? `${sig(d.ajuste, 'menos')} porque regatea` : `${sig(d.ajuste, 'más')} porque le hace ilusión`);
+    if (d.descuido > 0) partes.push(`${sig(d.descuido, 'menos')} por lo descuidado`);
+    const calculo = [
+      `Pagaste ${formatoPesos(e.pagado)} hace ${e.dias} ${plural(e.dias, 'día', 'días')}: por el negocio te dan ${formatoPesos(e.precio)} (el ${pct(r.fraccion * 100)}; sale de ${partes.join(', ')}; nunca menos del ${Math.round(VENTA.piso * 100)} % ni más del ${Math.round(VENTA.techo * 100)} %).`,
+      e.caja > 0 ? `Además cobrás lo que hay en la caja: ${formatoPesos(e.caja)}. En total, ${formatoPesos(e.total)}.` : `La caja está vacía. En total, ${formatoPesos(e.total)}.`,
+      `Si más adelante lo querés recomprar, hasta ${VENTA.recompra.dias} días después de venderlo cuesta un ${Math.round((VENTA.recompra.recargo - 1) * 100)} % más.`,
+    ];
+    return { tipo: 'menu', sub: { tipo: 'negocios', texto: [llenar(v[r.tipo], { precio: formatoPesos(e.precio) }), ...calculo].join(' '), opciones: [{ id: 'negocios:vendido', titulo: `Venderlo: cobrás ${formatoPesos(e.total)}` }, { id: 'volver', titulo: 'Pensarlo' }], i: 0 } };
+  }
+  function cerrarVenta(id) {
+    const p = prog(), N = NEGOCIOS[id], v = VOCES_VENTA[N.vecino], c = contexto(id);
+    const r = vender(p, id, c);
+    if (!r.ok) return { tipo: 'renglones', renglones: [r.motivo === 'techo' ? FRASES.techo : r.motivo === 'no-tuyo' ? llenar(FRASES.noEsTuyo, { tuyo: tuyoDe(id) }) : FRASES.noHay] };
+    if (r.amistad) cambiarAmistad(p, N.vecino, r.amistad, dia());
+    const liberado = ctx.liberarEmpleado?.(N.vecino) === true;   // el que trabajaba para vos en tu local propio no puede estar en dos lados: se lo suelta con aviso
+    refrescarIdos();
+    ponerCarteles();
+    ctx.sonido?.()?.anotar?.();
+    ctx.nota?.(`Le vendiste ${N.corto} a ${N.dueno}`, `Cobraste ${formatoPesos(r.total)} (${formatoPesos(r.precio)} por el negocio${r.caja > 0 ? ` y ${formatoPesos(r.caja)} de la caja` : ''}) · el cartel ya no dice tu nombre${liberado ? ` · ${N.dueno} dejó de trabajar en tu local` : ''}`, true);
+    ctx.refrescarBarra?.();
+    ctx.guardar?.();
+    const cierre = r.vuelve && v.vuelve ? v.vuelve : v.cierra;
+    return { tipo: 'renglones', renglones: [...cierre, `Cobraste ${formatoPesos(r.total)}. Si algún día lo querés de vuelta, preguntale: lo vas a poder recomprar.`], vendido: id };
+  }
+
+  // ---------------------------------------------------------------- 4.4.3 · sumar plata a una sociedad ya hecha
+  function proponerAporte(id) {
+    const p = prog(), N = NEGOCIOS[id], v = VOCES_APORTE[N.vecino], c = contexto(id), s = leerNegociosVecinos(p)?.socios?.[id];
+    if (!s) return { tipo: 'renglones', renglones: [FRASES.noHay] };
+    const { max } = rangoDeAporte(id), rea = reaccionAporteExtra(id, s, c);
+    if (rea.tipo === 'tope') return { tipo: 'renglones', renglones: [v.tope, llenar(FRASES.aporteTope, { aporte: formatoPesos(s.aporte), fraccion: pct(SOCIEDAD.maximoFraccion * 100) })] };
+    if (rea.tipo === 'aviso') return { tipo: 'renglones', renglones: [FRASES.aporteAviso] };
+    if (rea.tipo === 'resiste') return { tipo: 'renglones', renglones: [voz(id).socio.resiste] };
+    if (rea.tipo === 'rechaza') return { tipo: 'renglones', renglones: [v.rechaza, llenar(FRASES.aporteFalta, { min: N.minimoSocio, hoy: Math.round(c.puntos) })] };
+    const montos = montosDeAporteExtra(id, s);
+    const opc = montos.map((m) => ({ id: `negocios:aporte:${m}`, titulo: `Sumar ${formatoPesos(m)} · del ${pct(s.pct)} al ${pct(porcentajeConAporte(id, s, m, rea.factor))}` }));
+    opc.push({ id: 'volver', titulo: 'Pensarlo' });
+    const primera = Math.round(SOCIEDAD.devolucion[0].parte * 100);
+    const texto = `Tenés puestos ${formatoPesos(s.aporte)} de los ${formatoPesos(max)} que se pueden poner en total (el ${pct(SOCIEDAD.maximoFraccion * 100)} del precio): podés sumar hasta ${formatoPesos(restoDeAporte(id, s))}. Hoy cobrás el ${pct(s.pct)} (${formatoPesos(Math.round((gananciaBase(id) * s.pct) / 100))} por día). ${N.dueno} te lo cuenta por ${rea.factor === 1 ? 'compadre' : 'amigo'}, al mismo precio que el primer aporte. Lo que sumes rinde desde mañana; si te retirás, cada aporte cuenta sus propios días (lo nuevo vuelve el ${primera} % si te vas antes de ${SOCIEDAD.devolucion[0].hasta} días).`;
+    return { tipo: 'menu', sub: { tipo: 'negocios', texto, opciones: opc, i: 0 } };
+  }
+  function ponerAporte(id, monto) {
+    const p = prog(), N = NEGOCIOS[id], v = VOCES_APORTE[N.vecino], c = contexto(id);
+    const r = sumarAporte(p, id, monto, c);
+    if (!r.ok) {
+      if (r.motivo === 'dinero') return { tipo: 'renglones', renglones: [llenar(voz(id).sinPlata, { faltan: formatoPesos(r.faltan || 0) })] };
+      return { tipo: 'renglones', renglones: [FRASES.noHay] };
+    }
+    sumarAmistadDe(p, N.vecino, 1, dia());
+    ctx.sonido?.()?.anotar?.();
+    ctx.nota?.(`Sumaste plata a tu sociedad en ${N.corto}`, `Pusiste ${formatoPesos(r.aporte)} más (en total ${formatoPesos(r.aporteTotal)}) · ahora te toca el ${pct(r.pct)} (antes ${pct(r.pctAntes)}): unos ${formatoPesos(r.porDia)} por día`, true);
+    ctx.refrescarBarra?.();
+    ctx.guardar?.();
+    return { tipo: 'renglones', renglones: [llenar(v.acepta, { aporte: formatoPesos(r.aporte), pct: pct(r.pct) }), `Tu parte pasó del ${pct(r.pctAntes)} al ${pct(r.pct)}: unos ${formatoPesos(r.porDia)} por día, y la caja guarda hasta ${formatoPesos(r.tope)}. Lo nuevo rinde desde mañana.`, r.resto > 0 ? `Todavía podés sumar hasta ${formatoPesos(r.resto)}.` : 'Con esto llegaste al máximo que acepta.'], socio: id };
+  }
+
   // ---------------------------------------------------------------- el gerente
   function resumenGerente() {
     const p = prog(), r = resumenNegociosVecinos(p, dia()), renglones = [VOZ_GERENTE.intro];
@@ -238,6 +318,7 @@ export function crearNegociosVecinosJuego(ctx) {
       for (const x of r.propios) renglones.push(`${cap(x.nombre)}: ${tuyoDe(x.id)}, rinde unos ${formatoPesos(x.porDia)} por día; en la caja, ${formatoPesos(x.caja)}${x.llena ? ' (llena)' : ''}.`);
       for (const x of r.socios) renglones.push(`${cap(x.nombre)}: sos socio (${pct(x.pct)}), ${formatoPesos(x.porDia)} por día; tu parte en la caja, ${formatoPesos(x.caja)}${x.aviso ? `; te retirás el día ${x.aviso.sale}` : ''}.`);
       renglones.push(`En total rinden unos ${formatoPesos(r.porDia)} por día y hay ${formatoPesos(r.caja)} esperándolo en las cajas.`);
+      if (r.propios.length) renglones.push(FRASES.vender);
       renglones.push(VOZ_GERENTE.recomendacion);
       if (r.propios.some((x) => x.llena) || r.socios.some((x) => x.caja >= x.tope)) renglones.push(VOZ_GERENTE.cajaLlena);
     }
@@ -260,6 +341,9 @@ export function crearNegociosVecinosJuego(ctx) {
       case 'cuentas': return cuentas(nid);
       case 'caja': return sacarCaja(nid);
       case 'socio': return arg ? ponerPlata(nid, Number(arg)) : proponerSocio(nid);
+      case 'vender': return proponerVenta(nid);
+      case 'vendido': return cerrarVenta(nid);
+      case 'aporte': return arg ? ponerAporte(nid, Number(arg)) : proponerAporte(nid);
       case 'retiro': return avisarYRetirar(nid);
       case 'seguir': return seguirDeSocio(nid);
       default: return { tipo: 'menu' };
@@ -341,22 +425,25 @@ export function crearNegociosVecinosJuego(ctx) {
         if (!r.hay) ficha.appendChild(e('p', 'texto', 'Todavía no tenés ningún negocio ni sociedad. Hablá con el dueño de un local (el almacén, la casa de té, la cantina, la panadería, la herrería, la pescadería, la hilandería o la sala de miel) y elegí «Hablar de su negocio»: podés comprárselo o ser su socio. Lo que pida depende de cuánto te conozca y de cuánto de su historia le hayas escuchado.'));
         else {
           ficha.appendChild(e('p', 'anotado', `Rinden unos ${formatoPesos(r.porDia)} por día · ${formatoPesos(r.caja)} esperando en las cajas · ${formatoPesos(r.total.ganado)} ganado en total`));
-          ficha.appendChild(e('p', 'pista', 'Pasá por los locales a retirar la caja: tiene tope (diez días de ganancia) y, si hace muchos días que no aparecés, el negocio rinde menos.'));
+          ficha.appendChild(e('p', 'pista', 'Pasá por los locales a retirar la caja: tiene tope (diez días de ganancia) y, si hace muchos días que no aparecés, el negocio rinde menos. Para venderle un negocio de vuelta o sumar plata a una sociedad, hablá con su dueño de siempre.'));
         }
         for (const x of r.propios) {
           ficha.appendChild(e('h3', '', cap(x.nombre)));
           ficha.appendChild(e('p', 'texto', `${cap(tuyoDe(x.id))} desde el día ${x.desde} (pagaste ${formatoPesos(x.pagado)}). ${x.destino === 'se-va' ? `${x.dueno} se fue a otra cosa y atiende alguien del pueblo` : `${x.dueno} sigue atendiendo, a sueldo`} (${formatoPesos(x.sueldo)} por día). Rinde unos ${formatoPesos(x.porDia)} por día${x.cartera < 1 ? ` (con ${r.propios.length} negocios, tu atención se reparte: ${Math.round(x.cartera * 100)} %)` : ''}.`));
+          const vv = evaluarVenta(p, x.id, contexto(x.id));
+          if (vv.reaccion) ficha.appendChild(e('p', 'anotado', `Para venderlo de vuelta, hablá con ${x.dueno}: hoy te darían ${formatoPesos(vv.precio)} por el negocio (el ${pct(vv.reaccion.fraccion * 100)} de lo que pagaste) y ${formatoPesos(vv.caja)} de la caja.`));
           ficha.appendChild(e('p', x.llena || x.sinVer > COMPRA.gestion.gracia ? 'pista' : 'anotado', `Caja: ${formatoPesos(x.caja)} de ${formatoPesos(x.tope)}${x.llena ? ' (llena: se pierde lo que sigue entrando)' : ''}${x.sinVer > COMPRA.gestion.gracia ? ` · hace ${x.sinVer} días que no pasás: rinde el ${Math.round(x.gestion * 100)} %` : ''} · te dejó ${formatoPesos(x.total)} hasta ahora.`));
         }
         for (const x of r.socios) {
           ficha.appendChild(e('h3', '', `Socio de ${x.nombre}`));
-          ficha.appendChild(e('p', 'texto', `Desde el día ${x.desde}: pusiste ${formatoPesos(x.aporte)} y te toca el ${pct(x.pct)} (unos ${formatoPesos(x.porDia)} por día). Si te retiraras hoy te devolverían ${formatoPesos(x.devolucion)} del aporte.`));
+          ficha.appendChild(e('p', 'texto', `Desde el día ${x.desde}: pusiste ${formatoPesos(x.aporte)} y te toca el ${pct(x.pct)} (unos ${formatoPesos(x.porDia)} por día). Si te retiraras hoy te devolverían ${formatoPesos(x.devolucion)}${x.extras ? ` (cada aporte cuenta sus propios días; sumaste ${x.extras} ${plural(x.extras, 'vez', 'veces')})` : ' del aporte'}.`));
+          if (x.restoAporte > 0) ficha.appendChild(e('p', 'anotado', `Podés sumar hasta ${formatoPesos(x.restoAporte)} más (de ${formatoPesos(x.aporteMax)} en total): hablá con ${x.dueno} y elegí «Sumar plata a la sociedad».`));
           ficha.appendChild(e('p', x.aviso ? 'pista' : 'anotado', `Tu parte en la caja: ${formatoPesos(x.caja)} de ${formatoPesos(x.tope)}${x.aviso ? ` · avisaste que te retirás: se hace el día ${x.aviso.sale}` : ''}.`));
         }
         if (r.historial.length) {
           ficha.appendChild(e('h3', '', 'Últimos movimientos'));
           const ul = e('ul', 'habilidades');
-          const TXT = { compra: 'compraste', caja: 'retiraste la caja de', parte: 'retiraste tu parte de', socio: 'te hiciste socio de', retiro: 'te retiraste de' };
+          const TXT = { compra: 'compraste', caja: 'retiraste la caja de', parte: 'retiraste tu parte de', socio: 'te hiciste socio de', retiro: 'te retiraste de', venta: 'le vendiste de vuelta', aporte: 'sumaste plata a tu sociedad en' };
           for (const h of r.historial.slice(0, 8)) ul.appendChild(e('li', '', `Día ${h.dia} · ${TXT[h.tipo] || h.tipo} ${NEGOCIOS[h.local].corto}: ${formatoPesos(Math.abs(h.monto))}`));
           ficha.appendChild(ul);
         }
@@ -364,7 +451,7 @@ export function crearNegociosVecinosJuego(ctx) {
         if (libres.length) {
           ficha.appendChild(e('h3', '', 'Para comprar o asociarse'));
           const ul = e('ul', 'habilidades');
-          for (const id of libres) ul.appendChild(e('li', '', `${cap(NEGOCIOS[id].nombre)}: de lista ${formatoPesos(NEGOCIOS[id].precio)} · se paga solo en unos ${diasParaPagarse(id)} días`));
+          for (const id of libres) { const rec = recargoDeRecompra(p, id, dia()); ul.appendChild(e('li', '', `${cap(NEGOCIOS[id].nombre)}: de lista ${formatoPesos(NEGOCIOS[id].precio)} · se paga solo en unos ${diasParaPagarse(id)} días${rec ? ` · lo vendiste hace poco: hasta el día ${rec.hasta} cuesta un ${Math.round((rec.recargo - 1) * 100)} % más` : ''}`)); }
           ficha.appendChild(ul);
         }
       },
@@ -377,6 +464,6 @@ export function crearNegociosVecinosJuego(ctx) {
     opciones, elegir, actualizar, alCargar, paginaCuaderno,
     mundo: () => mundo, lugarCartel, ponerCarteles, contexto, resumen: () => resumenNegociosVecinos(prog(), dia()),
     // para las pruebas y las capturas
-    _submenu: submenuPrincipal, _cerrar: cerrarCompra, _avisarDia: avisarDia, _idos: () => [...idos], _refrescarIdos: refrescarIdos, _fijarRutina: fijarRutina,
+    _submenu: submenuPrincipal, _cerrar: cerrarCompra, _proponerVenta: proponerVenta, _cerrarVenta: cerrarVenta, _proponerAporte: proponerAporte, _ponerAporte: ponerAporte, _avisarDia: avisarDia, _idos: () => [...idos], _refrescarIdos: refrescarIdos, _fijarRutina: fijarRutina,
   };
 }

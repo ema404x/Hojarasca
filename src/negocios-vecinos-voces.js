@@ -306,3 +306,116 @@ export const VOZ_GERENTE = {
   recomendacion: 'Un consejo de banco: pase a ver sus negocios cada tanto. Un dueño que no aparece rinde menos, y una caja llena no sigue llenándose.',
   cajaLlena: 'Y ojo: hay caja llena por ahí. Lo que pase del tope se pierde.',
 };
+
+// 4.4.3 · VENDERLE DE VUELTA EL LOCAL AL DUEÑO DE SIEMPRE. Cada vecino dice cómo recibe la oferta según cómo viene la cosa (las reglas deciden el tipo):
+//   · `ofendido`: se lo vendés enseguida (menos de una semana); `regatea`: poca amistad, ofrece de menos; `acepta`: trato corriente; `emocionado`: vuelve a
+//     su local (se había ido) o su apego es fuerte y te quiere; {precio} es lo que paga por el negocio (la caja te la pagan aparte);
+//   · `cierra`: lo que pasa al cerrar la venta si seguía atendiendo de empleado; `vuelve`: si se había ido a otra cosa y retoma su mostrador (los que no
+//     pueden irse no lo tienen).
+export const VOCES_VENTA = {
+  ercilia: {
+    ofendido: '¿Ya? ¿A la semana? Querido, me hiciste llorar por un mostrador y ahora me lo devolvés como una pila de yerba que no te gustó. Te lo pago, pero me quedo con el mate frío. {precio}.',
+    regatea: 'Si querés vendérmelo, te pago {precio}. No es por mala: el almacén me cuesta lo mismo que me costó siempre y vos todavía no me tomaste ni un mate seguido.',
+    acepta: 'Bueno, querido, te lo recibo. {precio}, que es lo justo por lo que pagaste y por el cuidado que le tuviste. El mostrador va a estar contento de volver a su casa.',
+    emocionado: 'Ay, querido… ¿me devolvés el almacén? {precio} y no hablemos más, que me tiembla el delantal. Prometo no volver a decir que no se vende, aunque no se vendía.',
+    cierra: ['Ercilia pasa la mano por el mostrador como quien saluda a un perro viejo. «Vuelve a ser mío, entonces. Pero seguís entrando por la puerta de siempre, ¿eh?»', 'Descuelga el cartel que dice tu nombre y lo guarda en el cajón, con cuidado.'],
+  },
+  galesa: {
+    ofendido: '¿Tan pronto, cariad? Ni se enfrió la tetera. Me parece una descortesía, pero un trato es un trato: {precio}.',
+    regatea: 'Te la recibo, cariad, pero sin muchas gracias: {precio}. Todavía no nos conocemos bien y no quiero pagar de más por un cariño que no sé si es mutuo.',
+    acepta: '{precio}, cariad. Gracias por haber cuidado las mesas y las tazas. La casa de té te lo va a agradecer con una torta.',
+    emocionado: 'Ay, cariad… ¿me devolvés la casa de té? {precio}, y diolch de corazón. Tenía el alma en la galería aunque me pagaras el sueldo.',
+    cierra: ['Ceinwen se sienta un momento con la mano sobre la tetera. «Vuelve a ser mía. Y vos, cariad, siempre vas a tener una mesa.»', 'Saca el cartel con tu nombre y lo guarda doblado en una servilleta.'],
+  },
+  moza: {
+    ofendido: '¿A la semana, corazón? Me hiciste ilusionar con una barra que ahora me devolvés como un sombrero que no te quedó. Te pago {precio}, pero te quedo debiendo la sonrisa.',
+    regatea: '{precio}, corazón. Es lo que puedo pagar, y no es poco. Después de tanto tiempo sin que me invites un café no me pidas más.',
+    acepta: 'Bueno, trato hecho: {precio}. Lo cuidaste bien a la barra, y eso se agradece. Un día de éstos me invitás a mí.',
+    emocionado: 'Corazón, me devolvés la cantina… {precio}. Y esta noche la casa invita, que hoy me siento dueña otra vez.',
+    cierra: ['Lucrecia pasa un trapo por la barra aunque ya brilla. «Vuelvo a ser la patrona. Pero el cartel con tu nombre lo guardo, por si algún día lo querés de vuelta.»', 'Te guiña un ojo. «Vení a gastarte lo que cobraste, que la barra te espera.»'],
+  },
+  panadera: {
+    ofendido: '¿A la semana, m\'hijo? Si apenas se enfrió el horno. Te lo recibo, pero con el ceño fruncido: {precio}.',
+    regatea: '{precio}, m\'hijo. Poco, ya sé, pero apenas nos conocemos y a mí las cuentas me salen apretadas.',
+    acepta: 'Está bien, m\'hijo, te lo recibo. {precio}, que es justo. El horno estuvo en buenas manos.',
+    emocionado: '¡Ay, m\'hijo, me devolvés la panadería! {precio}, y traigo pan tibio para festejar. Hace días que no sé qué hacer con las manos fuera del horno.',
+    cierra: ['Rosa se pone el delantal de siempre. «Vuelvo a ser la dueña. A las cuatro, como siempre, y con la masa madre bien contenta.»'],
+    vuelve: ['Rosa vuelve de la plaza con el delantal ya puesto. «¡Al fin de nuevo detrás del mostrador! Dejame que te sirva el primer pan, m\'hijo.»'],
+  },
+  herrero: {
+    ofendido: '¿A la semana? Ni siquiera se enfrió la fragua. Te lo recibo, pero no me gusta. {precio}.',
+    regatea: '{precio}. Poco, ya sé. Todavía no sé cómo golpeás el hierro y no pago de más.',
+    acepta: '{precio}. Bien cuidada la fragua. Trato hecho.',
+    emocionado: '{precio}. Y gracias, porque con la fragua apagada no soy el mismo. Esta noche vuelvo a encender el fuego.',
+    cierra: ['Anselmo cuelga el cartel con tu nombre junto al yunque. «Vuelve a ser mía. Si necesitás hierro, ya sabés.»'],
+    vuelve: ['Anselmo vuelve de la plaza ya con el martillo en la mano. «Fragua prendida. Gracias por devolvérmela.»'],
+  },
+  pescador: {
+    ofendido: '¿A la semana, vecino? Si ni vi el lago entero desde que me la vendiste. Te la recibo, pero con mala cara: {precio}.',
+    regatea: '{precio}, vecino. No te ofendas: todavía no salimos al agua juntos y no pago de más.',
+    acepta: '{precio}, vecino. Bien cuidada la pescadería. Trato.',
+    emocionado: '{precio}, vecino, y gracias. Extrañaba mi orilla y mi mostrador. Mañana salgo temprano a festejar.',
+    cierra: ['Aurelio mira el lago desde la puerta. «Vuelve a ser mía. Y si querés una trucha, la primera va por mi cuenta.»'],
+    vuelve: ['Aurelio vuelve de la otra orilla con las cañas al hombro. «Mi mostrador de nuevo. Gracias, vecino.»'],
+  },
+  tejedora: {
+    ofendido: '¿A la semana? Si el telar ni se acostumbró a vos. Te la recibo, pero con el ceño: {precio}.',
+    regatea: '{precio}, querido. Poco, ya sé. Todavía no nos conocemos lo suficiente.',
+    acepta: '{precio}, querido. La hilandería estuvo en buenas manos. Trato hecho.',
+    emocionado: '{precio}, y gracias. El telar grande me extrañaba. Esta tarde vuelvo a tensar la urdimbre.',
+    cierra: ['Elvira pasa los dedos por el peine. «Vuelvo a ser la dueña. El primer poncho nuevo va por mi cuenta.»'],
+    vuelve: ['Elvira vuelve con el witral bajo el brazo. «Mi telar de nuevo, gracias, querido.»'],
+  },
+  apicultor: {
+    ofendido: '¿A la semana, amico? Las abejas ni se acostumbraron a vos. Te la recibo, pero me pesa: {precio}.',
+    regatea: '{precio}, amico. Poco, ya sé. Las abejas todavía no te conocen del todo.',
+    acepta: '{precio}, amico. Bien cuidada la sala de miel. Trato.',
+    emocionado: '{precio}, caro, y gracias. Las abejas me extrañaban. Esta tarde las visito una por una.',
+    cierra: ['Guido se sacude el sombrero de red. «Vuelve a ser mía. Pasá a buscar un frasco cuando quieras.»'],
+    vuelve: ['Guido vuelve del bosque con su sombrero de red. «Mis cajones de nuevo, caro. Gracias.»'],
+  },
+};
+// 4.4.3 · SUMARLE PLATA A LA SOCIEDAD: `acepta` ({aporte}: lo que ponés ahora, {pct}: tu porcentaje nuevo), `tope` (ya pusiste lo máximo) y `rechaza` (la amistad bajó
+// de lo que hacía falta para entrar: no recibe más capital).
+export const VOCES_APORTE = {
+  ercilia: {
+    acepta: 'Más plata al cajón, querido. Con {aporte} más, ahora te toca el {pct}. Lo anoto en la libreta con la misma letra redonda.',
+    tope: 'Querido, ya pusiste todo lo que se puede. El mostrador es mío, y de alguien tiene que seguir siendo. Más plata no te recibo.',
+    rechaza: 'Mirá, querido: antes de sumar plata, vení a tomar unos mates, que últimamente te veo poco. Más adelante lo hablamos.',
+  },
+  galesa: {
+    acepta: 'Con {aporte} más, cariad, ahora te toca el {pct} de lo que dé la galería. Diolch.',
+    tope: 'Cariad, ya pusiste lo máximo que acepto. La casa de té tiene que seguir siendo también mía. Más no.',
+    rechaza: 'Cariad, últimamente casi no te veo por la galería. Para sumar plata, que nos reencontremos primero.',
+  },
+  moza: {
+    acepta: '{aporte} más a la barra, corazón. Ahora te toca el {pct}. Pero la barra sigue siendo mía, eh.',
+    tope: 'Corazón, ya pusiste todo lo que acepto. Más plata, no. La cantina tiene que seguir siendo mía.',
+    rechaza: 'Corazón, si hace días que no te veo por acá, no te voy a recibir más plata. Primero venite a tomar algo.',
+  },
+  panadera: {
+    acepta: 'Con {aporte} más, m\'hijo, ahora te toca el {pct} del horno. Anotado.',
+    tope: 'M\'hijo, ya pusiste todo lo que puedo aceptar. Más no. El horno tiene que seguir siendo mío.',
+    rechaza: 'M\'hijo, últimamente no te veo mucho. Antes de ponerle más plata al horno, pasá por acá.',
+  },
+  herrero: {
+    acepta: '{aporte} más. Ahora te toca el {pct}. Anotado.',
+    tope: 'Ya pusiste lo máximo. Más no.',
+    rechaza: 'Hace tiempo que no nos vemos. Para más plata, primero charlemos.',
+  },
+  pescador: {
+    acepta: '{aporte} más, vecino. Ahora te toca el {pct}. Anotado.',
+    tope: 'Vecino, ya pusiste lo máximo. Más no.',
+    rechaza: 'Vecino, hace días que no salimos al agua. Para más plata, primero hablemos.',
+  },
+  tejedora: {
+    acepta: '{aporte} más, querido. Ahora te toca el {pct}. Anotado.',
+    tope: 'Querido, ya pusiste lo máximo. Más no.',
+    rechaza: 'Querido, hace días que no te veo. Para más plata, primero pasá a visitar.',
+  },
+  apicultor: {
+    acepta: '{aporte} más, amico. Ahora te toca el {pct}. Anotado.',
+    tope: 'Amico, ya pusiste lo máximo. Más no.',
+    rechaza: 'Amico, hace días que no pasás. Para más plata, primero visitá a las abejas.',
+  },
+};

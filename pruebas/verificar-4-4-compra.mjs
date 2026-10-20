@@ -469,7 +469,7 @@ const ctxDe = (puntos, hist = 0, extra = {}) => ({ puntos, hist, histTotal: 3, e
   ok(/Ya es tuya/.test(r.renglones[0]), 'si volvés a proponerlo: ya es tuya (la pescadería)');
   // el submenú de un negocio tuyo
   r = elegir('pescador', 'negocios');
-  eq(r.sub.opciones.map((o) => o.id), ['negocios:cuentas', 'volver'], 'sin caja todavía: sólo «Cómo viene»');
+  eq(r.sub.opciones.map((o) => o.id), ['negocios:cuentas', 'negocios:vender', 'volver'], 'sin caja todavía: «Cómo viene» y (4.4.3) «Venderle … de vuelta»');
   ok(/es tuya desde el día 10/.test(r.sub.texto) && r.sub.texto.includes(`Rinde unos ${formatoPesos(N.gananciaEstimada('pescaderia', { sinVecino: true }))} por día`), `el texto dice desde cuándo y cuánto rinde (${r.sub.texto.slice(0, 90)})`);
   ok(N.gananciaEstimada('pescaderia', { sinVecino: true }) < N.gananciaBase('pescaderia') && Math.abs(N.gananciaEstimada('almacen') - N.gananciaBase('almacen')) <= 30, 'la estimación: sin Aurelio rinde menos; sin cambios, la ganancia base');
   // los días: aviso y caja
@@ -514,7 +514,7 @@ const ctxDe = (puntos, hist = 0, extra = {}) => ({ puntos, hist, histTotal: 3, e
   ok(r.tipo === 'renglones' && r.socio === 'herreria' && /9 %/.test(r.renglones[0]) && pesosDe(p) === antesS - 15000, 'poner el mínimo: te dice el porcentaje y se paga');
   ok(/Sos socio de la herrería/.test(notas.at(-1)[0]), 'y avisa');
   r = elegir('herrero', 'negocios');
-  ok(r.sub.opciones.map((o) => o.id).join() === 'negocios:cuentas,negocios:retiro,negocios:comprar,volver', 'siendo socio: cuentas, retirarte, comprar');
+  ok(r.sub.opciones.map((o) => o.id).join() === 'negocios:cuentas,negocios:aporte,negocios:retiro,negocios:comprar,volver', 'siendo socio: cuentas, sumar plata (4.4.3), retirarte, comprar');
   r = elegir('herrero', 'negocios:retiro');
   ok(r.renglones.length === 2 && r.renglones[1].includes('efectivo el día ' + (p.dia + 2)), 'avisar el retiro: sale en dos días');
   r = elegir('herrero', 'negocios');

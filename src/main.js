@@ -5512,6 +5512,7 @@ function armarOficiosYAldea(esDesafio) {
     negociosVecinosJuego = crearNegociosVecinosJuego({
       progreso: () => progreso, desafio: () => !!desafio, escena: () => escena, altura: (x, z) => T.altura(x, z), jugador: () => jugador,
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
+      liberarEmpleado: (k) => { try { return empleadosNegocioJuego?.liberar(k) === true; } catch (e) { fallaSistema('negocios-vecinos-liberar', e); return false; } },   // 4.4.3
     });
     negociosVecinosJuego.alCargar();
   } catch (e) { fallaSistema('negocios-vecinos-armado', e); negociosVecinosJuego = null; }
