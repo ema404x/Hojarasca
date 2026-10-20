@@ -43,6 +43,33 @@ export function sanearTalados(lista, cantidadArboles = Infinity) {
   return salida;
 }
 
+// 4.4.2 (C4): los pedreros y los troncos caídos que picaste o cortaste no vuelven al recargar (antes sólo se recordaban los árboles
+// talados: la roca volvía y daba piedra y experiencia otra vez). Se guardan sus posiciones, planas: [x, z, x, z, …] con un decimal. A
+// diferencia de los árboles no rebrotan: una roca no vuelve a crecer. Tope: las más viejas se olvidan.
+export const PICADOS_MAX = 1500;
+export function sanearPicados(lista) {
+  if (!Array.isArray(lista)) return [];
+  const vistos = new Set(), salida = [];
+  for (let k = 0; k + 1 < lista.length; k += 2) {
+    const x = Number(lista[k]), z = Number(lista[k + 1]);
+    if (!Number.isFinite(x) || !Number.isFinite(z) || Math.abs(x) > 5000 || Math.abs(z) > 5000) continue;
+    const rx = Math.round(x * 10) / 10, rz = Math.round(z * 10) / 10, clave = rx + ',' + rz;
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    salida.push(rx, rz);
+  }
+  return salida.length > PICADOS_MAX * 2 ? salida.slice(salida.length - PICADOS_MAX * 2) : salida;
+}
+// Anota una posición en la lista (sin repetir); devuelve la lista (la misma, recortada si se pasó del tope)
+export function anotarPicadoEn(lista, x, z) {
+  if (!Array.isArray(lista) || !Number.isFinite(x) || !Number.isFinite(z)) return lista;
+  const rx = Math.round(x * 10) / 10, rz = Math.round(z * 10) / 10;
+  for (let k = 0; k + 1 < lista.length; k += 2) if (lista[k] === rx && lista[k + 1] === rz) return lista;
+  lista.push(rx, rz);
+  if (lista.length > PICADOS_MAX * 2) lista.splice(0, lista.length - PICADOS_MAX * 2);
+  return lista;
+}
+
 // Devuelve qué árboles cambiaron de etapa y cuáles ya volvieron a ser adultos.
 export function avanzarRebrote(talados, dia) {
   const cambios = [], adultos = [], quedan = [];

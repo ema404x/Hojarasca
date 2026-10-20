@@ -336,7 +336,7 @@ La colocación ya no usa un cuadrado genérico: cada plano valida su **huella re
 
 RC9 conserva el **encastre inteligente** de RC8 y lo extiende a niveles estructurales. Con **N** activás o desactivás el snap; pisos, paredes, techos, escaleras, barandas, cercos y pasarelas sólo se atraen a familias compatibles. Las paredes se enderezan al eje válido del piso, el techo se centra y eleva sobre el módulo, y escaleras/barandas buscan bordes de soporte en vez de depender de una grilla global. La validación combina huellas OBB/SAT con intervalos verticales, de modo que dos piezas pueden compartir planta si realmente están en cotas distintas.
 
-Con **Shift+Y** podés tomar una pieza terminada cercana y recolocarla: durante la edición se retiran su física y sus interacciones hijas, y al confirmar o cancelar se reconstruyen exactamente una vez. La selección prioriza el tipo de plano activo para poder editar correctamente elementos apilados. **Supr** cancela una recolocación activa y **Shift+Supr** desmonta una pieza, recuperando parte de los materiales. Los pisos con elementos apoyados encima no pueden moverse ni desmontarse hasta liberar esas dependencias.
+Con **M** (con los planos abiertos) podés tomar una pieza terminada cercana y recolocarla: durante la edición se retiran su física y sus interacciones hijas, y al confirmar o cancelar se reconstruyen exactamente una vez. La selección prioriza el tipo de plano activo para poder editar correctamente elementos apilados. **Supr** cancela una recolocación activa y **Shift+Supr** desmonta una pieza, recuperando parte de los materiales. Los pisos con elementos apoyados encima no pueden moverse ni desmontarse hasta liberar esas dependencias.
 
 ### 25 planos en cuatro familias
 
@@ -373,7 +373,7 @@ Con **Shift+Y** podés tomar una pieza terminada cercana y recolocarla: durante 
 
 **Mobiliario**
 - **Banco de tronco**.
-- **Cama de tablas** (3.8.8) — cama suelta con cabecera y colchón: se duerme en ella y se puede mover con Shift+Y.
+- **Cama de tablas** (3.8.8) — cama suelta con cabecera y colchón: se duerme en ella y se puede mover con M (con los planos abiertos).
 - **Mesa de campo**.
 - **Estante de tablas**.
 
@@ -504,9 +504,9 @@ Las fuentes Spectral y Caveat tienen licencia SIL Open Font License.
 - Catálogo ampliado de 14 a **18 planos** sin cambiar las cuatro categorías existentes.
 - Nuevo kit modular: piso 3×3, pared sólida, pared con puerta y pared con ventana.
 - Snap geométrico por familias para pisos, muros, cercos y pasarelas; se puede alternar con **N**.
-- Recolocación de piezas con **Shift+Y** y confirmación con **Y**.
+- Recolocación de piezas con **M** y confirmación con **Y**.
 - La física de cada obra tiene propietario y puede retirarse/reconstruirse de forma determinista; mover o desmontar ya no deja colisiones fantasma.
-- Desmontaje seguro con **Shift+Supr**, recuperación parcial de materiales y bloqueo de pisos con dependencias apoyadas.
+- Desmontaje seguro con **Supr** (dos veces, sin marca cerca), recuperación parcial de materiales y bloqueo de pisos con dependencias apoyadas.
 - Validación OBB para las nuevas huellas precisas, evitando superposiciones de módulos distintos.
 - Nueva regresión `verificar-construccion-senior-rc7.mjs`: snap, edición, desmontaje, dependencias y remoción real de colisiones/plataformas por propietario.
 

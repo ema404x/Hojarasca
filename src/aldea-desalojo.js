@@ -74,7 +74,7 @@ const NOMBRES = { tronco: ['tronco', 'troncos'], tabla: ['tabla', 'tablas'], pie
 const enumerar = (l) => (l.length < 2 ? l.join('') : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
 const mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // La nota (una sola): `r` = { obras: { mudadas, desarmadas }, renovales: { mudados, devueltos }, carpa:
-// 'mudada'|'levantada'|null, materiales: { tronco: n, … } }. null si no hubo nada.
+// 'mudada'|'levantada'|null, materiales: { tronco: n, … }, pesos: n (4.4.2: lo pagado de mano de obra, que vuelve entero) }. null si no hubo nada.
 export function textoDesalojo(r) {
   const o = r?.obras || {}, v = r?.renovales || {};
   const mudado = [], desarmado = [];   // [texto, cuántos]
@@ -92,7 +92,7 @@ export function textoDesalojo(r) {
     const devuelto = Object.entries(r.materiales || {}).filter(([, n]) => n > 0).map(([k, n]) => cuenta(n, ...(NOMBRES[k] || [k, k])));
     if (v.devueltos > 0) devuelto.push(cuenta(v.devueltos, 'plantín', 'plantines'));
     const que = desarmado.map((x) => x[0]);
-    partes.push(`${mayus(enumerar(que))} no ${varios(desarmado) ? 'entraban' : 'entraba'} en ningún lado${r?.carpa === 'levantada' && que.length === 1 ? ': la levantaste' : ''}${devuelto.length ? `: tenés en la mochila ${enumerar(devuelto)}${r?.acopio ? ' (con lo que guardabas en el acopio)' : ''}` : ''}`);   // 3.8.4: el último acopio vuelve con lo demás
+    partes.push(`${mayus(enumerar(que))} no ${varios(desarmado) ? 'entraban' : 'entraba'} en ningún lado${r?.carpa === 'levantada' && que.length === 1 ? ': la levantaste' : ''}${devuelto.length ? `: tenés en la mochila ${enumerar(devuelto)}${r?.acopio ? ' (con lo que guardabas en el acopio)' : ''}` : ''}${r?.pesos > 0 ? `${devuelto.length ? ' y' : ':'} te devolvimos $${Math.floor(r.pesos).toLocaleString('es-AR')} de lo que habías pagado de mano de obra` : ''}`);   // 4.4.2: y los pesos pagados vuelven enteros   // 3.8.4: el último acopio vuelve con lo demás
   }
   return { titulo: 'La Aldea de los Duendes ocupó tu lugar', sub: partes.join('. ') };
 }

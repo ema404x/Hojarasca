@@ -167,7 +167,7 @@ const libro = (p, i = 1) => p.economia.libro.at(-i);
   const r2 = G.cobrarGastos(p, e, 7);
   ok(r2.cerroAhora && r2.deuda === 2 * g && G.cerradoPorDeuda(e) && !G.abiertoDeVerdad(e), 'el segundo día cierra solo');
   ok(e.abierto === true, '… pero lo tuyo no se toca: la bandera de abierto sigue como la dejaste');
-  ok(new RegExp('cerrado por una deuda de ' + re$(2 * gA)).test(N.avisoDelLocal(e, 'almacen', N.colaNueva(), 12)) && /Mayús \+ E/.test(N.avisoDelLocal(e, 'almacen', N.colaNueva(), 12)), `el cartel del local dice que hay deuda: «${N.avisoDelLocal(e, 'almacen', N.colaNueva(), 12)}»`);
+  ok(new RegExp('cerrado por una deuda de ' + re$(2 * gA)).test(N.avisoDelLocal(e, 'almacen', N.colaNueva(), 12)) && /mantené E/.test(N.avisoDelLocal(e, 'almacen', N.colaNueva(), 12)), `el cartel del local dice que hay deuda: «${N.avisoDelLocal(e, 'almacen', N.colaNueva(), 12)}»`);
   eq(N.vistaDelLocal(e).abierto, false, 'el cartel del edificio queda en «cerrado»');
   // cerrado: no entra nadie
   const cola = N.colaNueva();

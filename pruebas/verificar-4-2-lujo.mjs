@@ -202,9 +202,9 @@ ok(PLANO['cama-dosel'].confort <= 5, 'la cama con dosel no pasa a la cama doble 
 // ---------------------------------------------------------------- 9. el código: main.js, construccion.js, y el estilo de los imports
 {
   const m = leer('src/main.js');
-  ok(m.includes("import { LUJO2_QUE_SE_USA } from './planos-lujo-2.js';") && m.includes("import { alternarGramola, gramolaSuena, DISTANCIA_GRAMOLA } from './gramola.js';"), 'main.js trae la gramola');
+  ok(m.includes("import { LUJO2_QUE_SE_USA } from './planos-lujo-2.js';") && m.includes("import { alternarGramola, gramolaSuena, gramolaSuenaEn, DISTANCIA_GRAMOLA } from './gramola.js';"), 'main.js trae la gramola');
   ok(m.includes('OBRAS_QUE_TRABAJAN.push(...Object.keys(LUJO2_QUE_SE_USA));'), 'la gramola es una obra que se usa con E');
-  ok(m.includes("case 'gramola': return gramolaSuena() ? 'Parar la gramola' : LUJO2_QUE_SE_USA.gramola;"), 'el aviso cambia según suene o no');
+  ok(m.includes("case 'gramola': return gramolaSuenaEn(o) ? 'Parar la gramola' : LUJO2_QUE_SE_USA.gramola;"), 'el aviso cambia según suene o no (esa gramola)');
   ok(m.includes('const r = alternarGramola(sonido, () => (obras?.obras || []).includes(o)'), 'E la alterna y se calla si la desmontan');
   const c = leer('src/construccion.js');
   ok(c.includes("import { PIEZAS_LUJO_2 } from './planos-lujo-2.js';") && c.includes('PIEZAS.push(...PIEZAS_LUJO_2);'), 'construccion.js suma las piezas con un import y un push');

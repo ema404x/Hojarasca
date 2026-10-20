@@ -4,7 +4,7 @@ import { GRILLA_EXPLORADA } from './mapa.js';
 import { LIMITE, sanearDistancia, sanearPlantas } from './config.js';
 import { sanearDesafio } from './desafio-reglas.js';
 import { sanearChinches } from './chinches.js';
-import { sanearTalados } from './bosque.js';
+import { sanearTalados, sanearPicados } from './bosque.js';
 import { sanearBase } from './encargos-temporada.js';
 import { sanearGrabaciones } from './grabador.js';
 import { sanearHuerta, desdeCanteroViejo, claveCantero } from './huerta.js';
@@ -387,7 +387,7 @@ export function progresoNuevo() {
     modo: modoPartida,
     // El Desafío arranca con hacha y pico (4.2: para picar piedra hace falta el pico) y algo de material: la primera noche llega pronto.
     ...(desafio ? { desafio: sanearDesafio(null) } : {}),
-    entradas: {}, tomados: [], ramitas: 0, fotos: 0, peces: {}, desafios: {}, encargos: {}, cosas: desafio ? { hacha: 1, pico: 1 } : {}, picoEntregado: true, vueltas: 0, carpa: null, diario: [], renovales: [], talados: [], acopio: {}, huerta: {}, gallineros: {}, feria: { dia: 0, tomadas: [] }, visitas: visitasNuevas(), majada: majadaNueva(), correo: correoNuevo(), tormenta: tormentaNueva(), caballo: caballoNuevo(), chinches: [], pescaTarde: 0, guiaDia: 0, barra: [], ranura: 0, materiales: desafio ? { tronco: 6, tabla: 6, piedra: 6 } : {}, obras: [], pistas: {},
+    entradas: {}, tomados: [], ramitas: 0, fotos: 0, peces: {}, desafios: {}, encargos: {}, cosas: desafio ? { hacha: 1, pico: 1 } : {}, picoEntregado: true, vueltas: 0, carpa: null, diario: [], renovales: [], talados: [], picados: [], acopio: {}, huerta: {}, gallineros: {}, feria: { dia: 0, tomadas: [] }, visitas: visitasNuevas(), majada: majadaNueva(), correo: correoNuevo(), tormenta: tormentaNueva(), caballo: caballoNuevo(), chinches: [], pescaTarde: 0, guiaDia: 0, barra: [], ranura: 0, materiales: desafio ? { tronco: 6, tabla: 6, piedra: 6 } : {}, obras: [], pistas: {},
     horas: 8.2, dia: 1, pos: null, yaw: 0,
     // 2.8: cada sección de Personalizar con lo suyo de fábrica
     personal: sanearPersonal(null),
@@ -545,6 +545,7 @@ function sanearProgreso(p) {
     // La cantidad de árboles no se conoce acá: main.js vuelve a sanear con el número real.
     chinches: sanearChinches(p.chinches),
     talados: sanearTalados(p.talados),
+    picados: sanearPicados(p.picados),   // 4.4.2: los pedreros picados no vuelven (partidas viejas: vacío)
     // 3.5.1: lo talado y lo cosechado en total (no bajan); una partida vieja arranca de lo que tiene
     taladosTotal: Math.max(arr(p.talados).length, Math.floor(finito(p.taladosTotal, 0))),
     cosechasTotal: Math.max(0, Math.floor(finito(p.cosechasTotal, ['haba', 'papa', 'frutilla-huerta'].reduce((s, k) => s + (Number(p.entradas?.[k]?.cantidad) || 0), 0)))),

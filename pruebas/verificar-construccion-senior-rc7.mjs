@@ -134,9 +134,9 @@ assert.ok(!colReal.plataformas.some(p=>p.duenio===owner),'lista de plataformas r
 
 const main=fs.readFileSync(path.join(src,'main.js'),'utf8'); const html=fs.readFileSync(path.join(src,'plantilla.html'),'utf8');
 assert.match(main,/case 'KeyN':[\s\S]*alternarSnap/,'N no alterna snap');
-assert.match(main,/e\.shiftKey && !obras\.editando[\s\S]*iniciarEdicionCerca/,'Shift+Y no inicia edición');
-assert.match(main,/e\.shiftKey[\s\S]*desmontarCerca/,'Shift+Supr no desmonta');
+assert.match(main,/function moverPiezaCerca[\s\S]*iniciarEdicionCerca/,'M no inicia edición');   // 4.4.2: antes Shift+Y (Mayús es correr)
+assert.match(main,/function desmontarPiezaCerca[\s\S]*desmontarCerca/,'Supr no desmonta');   // 4.4.2: antes Shift+Supr; ahora Supr dos veces
 assert.match(main,/confirmarEdicion/,'Y no confirma edición');
-assert.match(html,/Shift\+Y mueve pieza/,'la ayuda no documenta edición');
-assert.match(html,/Shift\+Supr desmonta/,'la ayuda no documenta desmontaje');
+assert.match(html,/M mueve pieza/,'la ayuda no documenta edición');
+assert.match(html,/desmonta \(dos veces\)/,'la ayuda no documenta desmontaje');
 console.log(`OK construcción Senior RC7 · ${r.total} planos · snap modular · edición sin física fantasma · desmontaje seguro`);

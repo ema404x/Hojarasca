@@ -132,7 +132,7 @@ function estantes(c, nivelesAlturas, ancho = 3.4) {
     for (const sx of [-1, 1]) caja(c, 0.05, 0.55, 0.3, [sx * (ancho / 2 - 0.02), y - 0.3, 1.35], MADERA_OSCURA, { tipo: 0 });
   }
 }
-function lleno(W, D, H) { return { ancho: W + 0.5, fondo: D + 2 * VUELO, alto: H + RISE + 0.2, radio: Math.max(W, D) / 2 + 0.2 }; }
+function lleno(W, D, H) { return { ancho: W + 0.5, fondo: D + 2 * VUELO, alto: H + RISE + 0.2, radio: Math.max(W, D) / 2 + 0.2, cubreArea: true, ocupaSuelo: true }; }   // 4.4.2: techados: no llueve adentro
 function fisicaLocal(W, D) {
   return (h) => { h.plataforma(0, 0, W, D, 0.18, 0.14, 0.5); h.segmento(-(W / 2 - 0.3), D / 2 - 0.22, W / 2 - 0.3, D / 2 - 0.22, 0.14, 0, 2.6); h.segmento(-1.3, MOSTRADOR_Z(D), 1.3, MOSTRADOR_Z(D), 0.32, 0, 1.0); };
 }

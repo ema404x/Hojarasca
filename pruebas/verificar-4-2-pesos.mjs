@@ -205,7 +205,7 @@ ok(PRECIOS_LUJO['fuente-piedra'] > PRECIOS_LUJO['reloj-pie'] && PRECIOS_LUJO['re
 {
   const m = leer('src/main.js');
   const tiene = (t, msg) => ok(m.includes(t), msg);
-  tiene("import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';", 'main.js trae lo de obra-pesos.js');
+  tiene("import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar, montoReintegroAlDesmontar } from './obra-pesos.js';", 'main.js trae lo de obra-pesos.js');
   tiene('function pagoDeEtapa(plano, datos, i) {\n  if (desafio || i < (datos?.pagadas || 0)) return { ok: true, precio: 0 };', 'el Desafío y lo ya pagado no cobran');
   tiene('pagoNueva = pagoDeEtapa(obras.plano, null, 0);', 'la pieza nueva mira los pesos antes de fundarse');
   tiene('if (faltaPieza.length || !pagoNueva.ok) { notaSinPlata(obras.plano, 0, pagoNueva, faltaPieza); return; }', 'y no se funda sin plata');

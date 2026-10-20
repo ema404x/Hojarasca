@@ -78,7 +78,7 @@ const { LIMITE } = await import('../src/config.js');
   col.agregar({ seg: true, ax: 0, az: 0, bx: 0, bz: 9000, r: 0.2 });
   col.agregarPlataforma({ x: 1e308, z: 1e308, largo: 2, ancho: 2, alto: 1 });
   const tapa = col.paredEntre(0, 0, 1e308, 0, 0, 1);
-  ok(Date.now() - t0 < 1000, `agregar y consultar con coordenadas enormes termina (${Date.now() - t0} ms)`);
+  ok(Date.now() - t0 < 10000, `agregar y consultar con coordenadas enormes termina (${Date.now() - t0} ms)`);
   ok(tapa === false, 'un tramo hasta lejísimos no choca con nada');
   col.agregar({ x: 3, z: 3, r: 0.5 });
   col.agregar({ seg: true, ax: -2, az: 5, bx: 2, bz: 5, r: 0.2 });

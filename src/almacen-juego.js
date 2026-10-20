@@ -1,13 +1,14 @@
 // 4.2: el almacenaje con tope, del lado del juego. almacen.js sabe los topes y las cuentas; esto pone la E, las notas, el pago de la
-// construcción desde los depósitos de alrededor, la ampliación con pesos (Mayús + E, en dos pasos) y la devolución de lo guardado cuando
+// construcción desde los depósitos de alrededor, la ampliación con pesos (mantener E, en dos pasos) y la devolución de lo guardado cuando
 // se desarma la obra. main.js lo crea una sola vez con lo que necesita y lo usa en pocos lugares (ver «almacenJuego» ahí).
 //   · guardar: E con materiales a mano los deja en el depósito (hasta el tope); sin nada a mano, E saca todo;
 //   · pagar: mientras estés a menos de 18 m de un depósito, lo que construís se paga primero del acopio, después de los depósitos
 //     (el más cercano primero) y por último de la mochila;
 //   · desarmar: lo guardado vuelve a tus cosas (devolverContenido de main.js, que usan todos los caminos de desarmado, del viento, del desalojo);
-//   · ampliar: Mayús + E dice qué sube y cuánto cuesta; otra Mayús + E (entre 0,6 y 12 segundos después) lo paga y lo hace.
+//   · ampliar: mantener E (0,7 s) dice qué sube y cuánto cuesta; mantener E otra vez (entre 0,6 y 12 segundos después) lo paga y lo hace.
+//   · sacar: Supr junto al depósito saca todo lo guardado, lleves lo que lleves (E, con algo a mano, guarda).
 import { faltan, textoFaltan } from './construccion.js';
-import { puedePagarEtapa, pagarEtapa, reintegroAlDesmontar, listaDeFaltantes, avisoSinPlata } from './obra-pesos.js';
+import { puedePagarEtapa, pagarEtapa, reintegroAlDesmontar, montoReintegroAlDesmontar, devolverEtapasPagadas, listaDeFaltantes, avisoSinPlata } from './obra-pesos.js';
 import { hayEconomia } from './economia.js';
 import { ALMACENES, IDS_ALMACEN, esAlmacen, esDeMateriales, sanearAlmacen, guardadoDe, totalGuardado, libreDe, guardar as guardarEn, sacar as sacarDe, resumen, pasoDeLlenura, pasoDe, proximaAmpliacion, ampliar as ampliarNivel, textoAmpliacion, idPrecioAmpliacion, topeDe, contenidoEnPalabras, nombreDe, cuantosDe } from './almacen.js';
 
@@ -17,7 +18,7 @@ export function crearAlmacenJuego(d) {
   const sano = new WeakMap();
   const terminada = (o) => o.datos.etapas >= o.plano.etapas.length;
   const ahora = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
-  let pendiente = null;   // { obra, hora }: la ampliación que mostró su precio y espera la segunda Mayús + E
+  let pendiente = null;   // { obra, hora }: la ampliación que mostró su precio y espera la segunda vez que mantenés E
 
   // El estado de una obra, saneado la primera vez que se toca en la sesión (como datosDe de main.js)
   function estado(o) {
@@ -87,13 +88,13 @@ export function crearAlmacenJuego(d) {
     if (D.tipo === 'herramienta') {
       const tengo = (k) => !!d.progreso().cosas?.[k];
       if (D.guarda.some((k) => tengo(k) && libreDe(id, a, k) > 0)) return `Colgar tus herramientas (${resumen(id, a)})`;
-      if (D.guarda.some((k) => tengo(k) && !guardadoDe(a, k))) return `Sin ganchos libres (${resumen(id, a)})${proximaAmpliacion(id, a) ? ' · Mayús + E para ampliar' : ''}`;
+      if (D.guarda.some((k) => tengo(k) && !guardadoDe(a, k))) return `Sin ganchos libres (${resumen(id, a)})${proximaAmpliacion(id, a) ? ' · mantené E para ampliar' : ''}`;
       return `${D.nombre}: ${resumen(id, a)}`;
     }
     const lleva = D.guarda.filter((k) => (D.tipo === 'cosecha' ? d.cuantoHay(k) : d.material(k)) > 0);
     const cabe = lleva.some((k) => libreDe(id, a, k) > 0);
     if (cabe) return `Guardar en ${D.articulo} (${r})`;
-    if (lleva.length) return `${D.nombre} ${D.f ? 'llena' : 'lleno'} (${r})${proximaAmpliacion(id, a) ? ' · Mayús + E para ampliar' : ''}`;
+    if (lleva.length) return `${D.nombre} ${D.f ? 'llena' : 'lleno'} (${r}) · Supr: sacar${proximaAmpliacion(id, a) ? ' · mantené E para ampliar' : ''}`;
     if (totalGuardado(id, a) > 0) return `Sacar ${D.del} (${r})`;
     return `${D.nombre} ${D.f ? 'vacía' : 'vacío'} (${resumen(id, a)})`;
   }
@@ -127,7 +128,7 @@ export function crearAlmacenJuego(d) {
         d.nota(`Guardaste en ${D.articulo}`, `${partes.join(' · ')}. ${resumen(id, a)}${sobra.length ? `. No entró el resto de ${sobra.join(' y ')}: está lleno` : ''}`, true);
       } else {
         const sig = proximaAmpliacion(id, a);
-        d.nota(`${D.nombre} ${D.f ? 'llena' : 'lleno'}`, `${resumen(id, a)}. ${sig ? `Mayús + E la amplía: ${textoAmpliacion(id, a)}` : 'No se puede ampliar más: armá otro'}`, true);
+        d.nota(`${D.nombre} ${D.f ? 'llena' : 'lleno'}`, `${resumen(id, a)}. Supr saca lo guardado. ${sig ? `Mantené E para ampliarla: ${textoAmpliacion(id, a)}` : 'No se puede ampliar más: armá otro'}`, true);
       }
     } else if (totalGuardado(id, a) > 0) {
       const partes = [];
@@ -146,7 +147,25 @@ export function crearAlmacenJuego(d) {
     return true;
   }
 
-  // ---------------------------------------------------------------- Mayús + E: ampliar
+  // 4.4.2 (C7): sacar todo lo guardado sin que importe lo que llevás encima (con E, si llevabas algo que se guarda, se guardaba)
+  function sacarTodo(o) {
+    const id = o.plano.id, D = ALMACENES[id], a = estado(o), antes = firma(o);
+    if (D.tipo === 'herramienta') { d.nota(`${D.nombre}: ${resumen(id, a)}`, 'Las herramientas colgadas siguen a mano: no hay nada que sacar'); return true; }
+    if (totalGuardado(id, a) <= 0) { d.nota(`${D.nombre} ${D.f ? 'vacía' : 'vacío'}`, resumen(id, a)); return true; }
+    const partes = [];
+    for (const k of D.guarda) {
+      const n = sacarDe(id, a, k);
+      if (n > 0) { if (D.tipo === 'cosecha') d.sumarEntrada(k, n); else d.sumarMaterial(k, n); partes.push(cuantosDe(n, k)); }
+    }
+    d.sonido()?.juntar?.();
+    d.nota(`Sacaste todo ${D.del}`, partes.join(' · '));
+    refrescarSiCambio(o, antes);
+    d.refrescarBarra();
+    d.guardar();
+    return true;
+  }
+
+  // ---------------------------------------------------------------- mantener E: ampliar
   function ampliar(o) {
     const id = o.plano.id, D = ALMACENES[id], a = estado(o), p = d.progreso();
     const sig = proximaAmpliacion(id, a);
@@ -166,7 +185,7 @@ export function crearAlmacenJuego(d) {
     const t = ahora();
     if (!pendiente || pendiente.obra !== o || t - pendiente.hora < MIN_CONFIRMAR || t - pendiente.hora > MAX_CONFIRMAR) {
       pendiente = { obra: o, hora: t };
-      d.nota(`Ampliar ${D.articulo}`, `${textoAmpliacion(id, a)}. Mayús + E otra vez para confirmar`, true);
+      d.nota(`Ampliar ${D.articulo}`, `${textoAmpliacion(id, a)}. Mantené E otra vez para confirmar`, true);
       return true;
     }
     pendiente = null;
@@ -208,6 +227,20 @@ export function crearAlmacenJuego(d) {
     return a.n > 0 ? reintegroAlDesmontar(d.progreso(), idPrecioAmpliacion(datos.plano), a.n, a.n, 'Los carpinteros de la aldea') : 0;
   }
 
+  // 4.4.2 (C3): el desalojo al cargar (no hay lugar para la obra) devuelve las ampliaciones enteras, no a la mitad: { pesos, materiales }
+  function devolucionTotal(datos) {
+    if (!datos || !esAlmacen(datos.plano)) return { pesos: 0, materiales: {} };
+    const n = sanearAlmacen(datos.almacen, datos.plano).n, materiales = {};
+    for (let i = 0; i < n; i++) for (const [k, c] of Object.entries(ALMACENES[datos.plano].ampliaciones[i]?.pide || {})) if (c > 0) materiales[k] = (materiales[k] || 0) + c;
+    return { pesos: n > 0 ? devolverEtapasPagadas(d.progreso(), idPrecioAmpliacion(datos.plano), n) : 0, materiales };
+  }
+  // 4.4.2: lo mismo que reintegro(), sin cobrar (para avisar cuánto vuelve antes de desmontar)
+  function reintegroPrevio(datos) {
+    if (!datos || !esAlmacen(datos.plano) || !hayEconomia(d.progreso())) return 0;
+    const a = sanearAlmacen(datos.almacen, datos.plano);
+    return a.n > 0 ? montoReintegroAlDesmontar(idPrecioAmpliacion(datos.plano), a.n, a.n) : 0;
+  }
+
   // Los materiales de las ampliaciones que hiciste, a la mitad (como los de cada etapa de una obra: lo que costó 1 no vuelve)
   function materialesDeAmpliaciones(datos) {
     if (!datos || !esAlmacen(datos.plano)) return {};
@@ -216,5 +249,5 @@ export function crearAlmacenJuego(d) {
     return salida;
   }
 
-  return { esAlmacen: esAlmacen, ids: IDS_ALMACEN, cerca, cercaDe, depositosDe, totales, gastar, textoPanel, aviso, usar, ampliar, contenido, devolver, reintegro, materialesDeAmpliaciones, estado };
+  return { esAlmacen: esAlmacen, ids: IDS_ALMACEN, cerca, cercaDe, depositosDe, totales, gastar, textoPanel, aviso, usar, ampliar, sacarTodo, contenido, devolver, reintegro, reintegroPrevio, devolucionTotal, materialesDeAmpliaciones, estado };
 }

@@ -42,8 +42,8 @@ Reglas para elegir el número dentro del rango:
 - El **panel de construcción** muestra «$4.500» junto al nombre del plano (en rojo y con «(no alcanza)» si no alcanza), el precio de cada etapa, el costo total y cuánto tenés.
 - **Retirar la marca** (Supr) de una obra que ya había pagado etapas devuelve **todo** lo pagado.
 - **Deshacer una etapa** (Retroceso) devuelve la mitad de los materiales y **no** los pesos, pero la etapa queda pagada: rehacerla no cobra de nuevo (igual que las casas).
-- **Desmontar una pieza terminada** (Mayús + Supr) devuelve la mitad de los materiales y **la mitad de los pesos que de verdad pagaste** (una pieza de una partida anterior al precio no devuelve plata que nunca se pagó). Las casas no reintegran: no se desmontan.
-- **Mover** una pieza (Mayús + Y) es gratis.
+- **Desmontar una pieza terminada** (Supr, dos veces: la primera avisa lo que recuperás) devuelve la mitad de los materiales y **la mitad de los pesos que de verdad pagaste** (una pieza de una partida anterior al precio no devuelve plata que nunca se pagó). Las casas no reintegran: no se desmontan.
+- **Mover** una pieza (M, con los planos abiertos) es gratis.
 - **Sólo en el Relax.** En el Desafío no hay economía: los `pesos` se ignoran (el plano se arma sólo con materiales). Las piezas de lujo son `soloRelax` de todos modos.
 - **Partidas viejas**: sin `economia` no se cobra nada; una obra sin `pagadas` cuenta como «nada pagado».
 
@@ -57,7 +57,7 @@ Reglas para elegir el número dentro del rango:
 6. Edificio o ampliación **por etapas** (con `PLANOS.push({ … etapas: [ … ] })`): `pesos` dentro de cada etapa, junto a su `pide` (`{ nombre, pide, pesos: 12000, dice, arma, … }`), o un `pesos` total en el plano con `repartoPesos: [0.35, 0.2, 0.25, 0.2]` (si no, se reparte parejo). Una etapa sin `pesos` es gratis.
 7. Si se usa con E, sumala a `OBRAS_QUE_TRABAJAN` y a `avisoObra24` / `usarObra24` en `main.js` como el reloj de pie (`LUJO_QUE_SE_USA`).
 8. Una prueba propia en `pruebas/verificar-<algo>.mjs` (copiá la sección 5 de `verificar-4-2-pesos.mjs`: existe, precio, geometría, triángulos, física) y registrala con `node herramientas/sumar-prueba.cjs . verificar-<algo>.mjs` (sólo el nombre, sin `pruebas/`).
-9. Probala en el juego: abrir el menú de construcción (O), ver «$…» en la lista y en la ficha, construirla con plata, sin plata (el aviso) y desmontarla (Mayús + Supr).
+9. Probala en el juego: abrir el menú de construcción (O), ver «$…» en la lista y en la ficha, construirla con plata, sin plata (el aviso) y desmontarla (Supr dos veces).
 
 ## Lo que queda abierto
 

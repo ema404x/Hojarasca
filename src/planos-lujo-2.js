@@ -529,7 +529,7 @@ export const PIEZAS_LUJO_2 = [
     },
   },
   {
-    ...base, id: 'estatua-baqueano', nombre: 'Estatua del baqueano', categoria: 'exterior', radio: 0.7, ancho: 1.1, fondo: 1.1, alto: 2.9, separacion: 1.2, confort: 3,
+    ...base, ocupaSuelo: true, id: 'estatua-baqueano', nombre: 'Estatua del baqueano', categoria: 'exterior', radio: 0.7, ancho: 1.1, fondo: 1.1, alto: 2.9, separacion: 1.2, confort: 3,
     texto: 'Un baqueano de piedra con poncho, sombrero ancho y su bastón, mirando el horizonte desde un pedestal con placa de bronce. Se talla con piedra del valle, la que sacás con el pico. Para el centro de una plaza chica o el fondo del jardín.',
     pide: { piedra: 30 }, pesos: 11000, pendienteMax: 0.2, distSendero: 0.4,
     fisica(h) { h.circulo(0, 0, 0.56, 0, 2.9); },
