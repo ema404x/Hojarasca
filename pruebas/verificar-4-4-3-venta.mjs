@@ -145,6 +145,16 @@ const avanzar = (p, hasta, id = null, visita = 5) => {
   ok(peorRet <= 0.851, `ninguna venta pasa del 85 % de lo pagado (${peorRet.toFixed(3)})`);
   ok(mejorInmediato <= 0.66, `comprar y vender el mismo día devuelve hasta el ${(mejorInmediato * 100).toFixed(1)} %: pérdida de más de un tercio`);
 
+  // el local vuelve a funcionar como antes: el cartel de turnos del empleo (4.3) deja de decir «tuyo»
+  const E = await import('../src/empleo.js');
+  const fi = relax(1e6, 3), ctxFi = ctxDe(150, 3, { dia: 3 });
+  N.comprar(fi, 'almacen', ctxFi);
+  eq(E.puedeFichar(fi, 'almacen', 3, 10).motivo, 'tuyo', 'comprado, el cartel de turnos del almacén no te toma («tuyo»)');
+  avanzar(fi, 20);
+  N.vender(fi, 'almacen', ctxDe(150, 3, { dia: 20 }));
+  const pf = E.puedeFichar(fi, 'almacen', 20, 10);
+  ok(pf.motivo !== 'tuyo' && E.esLocalTuyo(fi, 'almacen') === false, `vendido, el cartel de turnos vuelve a funcionar como antes (${pf.ok ? 'ficha' : pf.motivo})`);
+
   // vender con sociedad (una partida rara): se cierra y se cobra
   const w = relax(400000, 1); N.comprar(w, 'herreria', ctxDe(100, 2, { dia: 1 }));
   w.negociosVecinos.socios.herreria = { desde: 1, aporte: 20000, pct: 11.9, caja: 3000, total: 0, aviso: null, ultimo: null, extras: [], previo: null };
