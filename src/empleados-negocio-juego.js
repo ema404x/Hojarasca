@@ -31,6 +31,8 @@ export function crearEmpleadosNegocioJuego(ctx) {
   const estadoE = () => (hayEconomia(P()) ? empleadosDe(P()) : null);
   const nombreDe = (k) => nombreCorto(k) || k;
   const nivelDe = (k) => nivelPorPuntos(puntosAmistad(k, P()));
+  // los días de fiesta grande (la cosecha), una cita o el asado, la aldea lo lleva a otra parte: manda lo de la aldea y en el local no está (sigue cobrando)
+  const ocupado = (k) => !!ctx.evento?.(k);
   const absAhora = () => (Number(P().dia) || 1) * 24 + (Number(P().horas) || 0);
   const figuras = new Map();   // clave del vecino → { k, npc, tarea, fase: 'libre' | 'entra' | 'puesto' | 'sale', t }
   let acum = 0, acumCuenta = 0, armando = null, sinLugar = 0, ultimoResumen = -99, relojResumen = 0;
@@ -128,7 +130,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     for (const f of figuras.values()) {
       const emp = empleadoDe(E, f.k);
       if (!f.npc) continue;
-      const debe = !!emp && !!o && enTurno(emp, abs) && dist < RADIO_FIGURAS;
+      const debe = !!emp && !!o && enTurno(emp, abs) && dist < RADIO_FIGURAS && !ocupado(emp.k);
       if (debe) {
         if (f.fase === 'libre') entrar(f, o, emp, dist < RADIO_VER);
         else if (f.fase === 'sale') { f.fase = 'entra'; }   // (volvió a empezar el turno antes de terminar de irse)
@@ -153,7 +155,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
 
   // ---------------------------------------------------------------- los avisos
   const env = (presente) => ({
-    abs: absAhora(), presente, nivel: nivelDe, nombre: nombreDe, lluvia: ctx.lluvia?.() || 0,
+    abs: absAhora(), presente, nivel: nivelDe, nombre: nombreDe, lluvia: ctx.lluvia?.() || 0, ocupado,
     cambiarAmistad: (k, n) => { cambiarAmistad(P(), k, n, P().dia); },
   });
   function avisar(ev, presente) {
@@ -219,12 +221,12 @@ export function crearEmpleadosNegocioJuego(ctx) {
     }
     // cuando estás, ayudan: al que esperó lo suyo lo despachan ellos
     if (presente && N.cola.clientes.length && !N.panelAbierto()) {
-      for (const a of elegirAyuda(N.cola, E, est.tipo, abs, nivelDe, d)) {
+      for (const a of elegirAyuda(N.cola, E, est.tipo, abs, nivelDe, d, ocupado)) {
         if (N.atender(a.c, nombreDe(a.emp.k)) === false) a.c._ayuda = false;
       }
     }
     // las figuras: las de los que están de turno se arman de a poco cuando estás cerca
-    const deTurno = E.lista.filter((x) => enTurno(x, abs));
+    const deTurno = E.lista.filter((x) => enTurno(x, abs) && !ocupado(x.k));
     if (dist < RADIO_FIGURAS && deTurno.some((x) => !figuraDe(x.k).npc)) avanzarArmado(o, deTurno);
     for (const k of [...figuras.keys()]) if (!empleadoDe(E, k)) soltar(figuras.get(k));
     moverFiguras(o, abs, dist, d);
@@ -319,7 +321,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
         const fila = el('div', 'negocio-fila' + (of.ok ? '' : ' vacio'));
         const nom = el('span', 'negocio-nom');
         nom.append(el('b', '', `${nombreDe(k)} · ${dp.oficio || 'vecino'}`), el('i', '', of.ok ? textoTrato(of.trato) : of.motivo === 'dueno' ? 'Tiene su local: sólo si sos amigo' : textoTrato('rechaza')));
-        const rinde = el('span', 'negocio-cant', `${pct(of.inicio)} a ${pct(of.tope)}`);
+        const rinde = el("span", "negocio-cant", `${Math.round(of.inicio * 100)}–${pct(of.tope)}`);
         const sueldo = el('span', 'negocio-cant', `${formatoPesos(of.sueldo)}`);
         fila.append(nom, rinde, sueldo, boton('Contratar', () => hacerContratar(k), { activo: of.ok, titulo: of.ok ? `${nombreDe(k)} deja ${of.dueno ? 'su local cerrado' : 'lo que hacía'} durante el turno` : 'No acepta' }));
         cand.append(fila);

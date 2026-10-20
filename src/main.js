@@ -4957,6 +4957,7 @@ try {
     nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     lluvia: () => clima?.estado?.lluvia || 0, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     msFigura: () => (planificadorAntitirones.permitir('empleados-negocio') ? 3 : 0), alClic: (el, fn) => alClicHud(el, fn),
+    evento: (k) => destinoConFiesta(k),   // (si la aldea lo lleva a una fiesta o a una cita, no está en el local)
   });
   fijarOcupacionExterna(empleadosNegocioJuego.ocupacion);
 } catch (e) { fallaSistema('empleados-negocio-armado', e); empleadosNegocioJuego = null; }

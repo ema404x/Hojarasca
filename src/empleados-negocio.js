@@ -113,11 +113,12 @@ export function enTurno(emp, abs) {
   if (!v || hora < v[0] || hora >= v[1]) return false;
   return !(hora >= HORA_FIESTA[0] && hora < HORA_FIESTA[1] && esCumpleanos(emp.k, dia));
 }
-// Con la lista de empleados, a esa hora: { e, activos: [{ emp, r }] }; `e` es la fracción de lo que atenderías vos (1 − Π(1 − r))
-export function cobertura(lista, tipo, abs, nivelDe = () => 0) {
+// Con la lista de empleados, a esa hora: { e, activos: [{ emp, r }] }; `e` es la fracción de lo que atenderías vos (1 − Π(1 − r)).
+// `ocupado(k)`: el que ahora está en otra cosa (la fiesta de la aldea, una cita) no atiende.
+export function cobertura(lista, tipo, abs, nivelDe = () => 0, ocupado = null) {
   const activos = [];
   let falla = 1;
-  for (const emp of lista || []) if (enTurno(emp, abs)) { const r = rendimientoDe(emp, tipo, nivelDe(emp.k)); activos.push({ emp, r }); falla *= 1 - r; }
+  for (const emp of lista || []) if (enTurno(emp, abs) && !(ocupado && ocupado(emp.k))) { const r = rendimientoDe(emp, tipo, nivelDe(emp.k)); activos.push({ emp, r }); falla *= 1 - r; }
   return { e: activos.length ? 1 - falla : 0, activos };
 }
 // Las horas del día (para el panel): «de 8:30 a 19 h»
@@ -233,7 +234,7 @@ export function simularTramo(est, tipo, E, desde, hasta, env = {}) {
     t = sigue;
     const { dia, hora } = partesDeAbs(mid);
     if (!est.abierto || est.tipo !== tipo || hora < HORA_ABRE || hora >= HORA_CIERRA) { E.sim.acum = 0; continue; }
-    const cob = cobertura(E.lista, tipo, mid, nivel);
+    const cob = cobertura(E.lista, tipo, mid, nivel, env.ocupado);
     if (!cob.activos.length) { E.sim.acum = 0; continue; }
     if (dia > est.hoy.dia) ponerAlDia(est, dia);
     E.sim.acum = Math.min(50, E.sim.acum + tasaPorHora(est, tipo, hora, { lluvia: env.lluvia || 0 }) * cob.e * dt);
@@ -259,8 +260,8 @@ export function simularTramo(est, tipo, E, desde, hasta, env = {}) {
 
 // ---------------------------------------------------------------- cuando estás: ayudan
 // De los que están de turno, el que esté libre despacha al cliente que ya esperó lo suyo. Vuelve [{ c, emp, r }] (el que llama los despacha).
-export function elegirAyuda(cola, E, tipo, abs, nivelDe, dt = 1) {
-  const cob = cobertura(E.lista, tipo, abs, nivelDe), out = [];
+export function elegirAyuda(cola, E, tipo, abs, nivelDe, dt = 1, ocupado = null) {
+  const cob = cobertura(E.lista, tipo, abs, nivelDe, ocupado), out = [];
   for (const a of cob.activos) a.emp._cd = Math.max(0, (a.emp._cd || 0) - dt);
   for (const a of cob.activos) {
     if ((a.emp._cd || 0) > 0) continue;
@@ -275,7 +276,7 @@ export function elegirAyuda(cola, E, tipo, abs, nivelDe, dt = 1) {
 // ---------------------------------------------------------------- el paso del tiempo (sueldos, ventas sin vos, renuncias)
 // Eventos: { tipo: 'sueldo', k, monto, deCaja, deBilletera } · { tipo: 'impago', k, debe } · { tipo: 'renuncia', k, motivo: 'impago' | 'ausencia' }
 //          { tipo: 'caja-llena' } · { tipo: 'vendieron', ventas, clientes }.
-// `env`: { abs, presente, nivel(k), nombre(k), cambiarAmistad(k, n), lluvia }
+// `env`: { abs, presente, nivel(k), nombre(k), cambiarAmistad(k, n), lluvia, ocupado(k) }
 export function avanzarEmpleados(p, est, tipo, E, env) {
   const ev = [];
   if (!E.lista.length) { E.sim.ultima = Number(env.abs) || 0; return ev; }
@@ -285,7 +286,7 @@ export function avanzarEmpleados(p, est, tipo, E, env) {
 
   // 1. las ventas de las horas que pasaron sin vos
   if (!env.presente && est.tipo === tipo) {
-    const r = simularTramo(est, tipo, E, Math.max(E.sim.ultima, abs - SIM_MAX_HORAS), abs, { nivel: env.nivel, lluvia: env.lluvia });
+    const r = simularTramo(est, tipo, E, Math.max(E.sim.ultima, abs - SIM_MAX_HORAS), abs, { nivel: env.nivel, lluvia: env.lluvia, ocupado: env.ocupado });
     if (r.clientes > 0 || r.ventas > 0) {
       E.pend.ventas += r.ventas; E.pend.clientes += r.clientes; E.total.vendido += r.ventas;
       for (const [k, x] of Object.entries(r.porEmp)) { const q = (E.pend.porEmp[k] ||= { ventas: 0, clientes: 0 }); q.ventas += x.ventas; q.clientes += x.clientes; }
