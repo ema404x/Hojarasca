@@ -1,0 +1,108 @@
+﻿Hojarasca 4.4.1 — paquete completo
+==================================
+Hojarasca-4.4.1-Setup-x64.exe ............ instalador de Windows (64 bits)
+Hojarasca-4.4.1-Portable-x64.exe ......... versión portable: se abre sin instalar
+Hojarasca-4.4.1-Steam-depot-win64.zip .... carpeta del juego lista para el depot de Steam (Hojarasca.exe adentro)
+Hojarasca-4.4.1-codigo-fuente.zip ........ código fuente, con el juego ya armado (index.html)
+
+CÓMO SABER QUE ES ESTA VERSIÓN
+En la portada, abajo a la derecha, tiene que decir:   Hojarasca · 4.4.1 · build <huella>
+Si dice otra cosa, lo que se abrió es un juego anterior. Pasa cuando hay un Hojarasca viejo abierto (aunque esté minimizado): Windows no deja
+abrir dos y muestra el que ya estaba. Cerrá todos los «Hojarasca.exe» desde el Administrador de tareas (Ctrl+Mayús+Esc) y abrí el nuevo.
+
+QUÉ HAY DE NUEVO (jugá en modo RELAX)
+- LA CANTINA (3.9.0) al final de la calle de la Loma, con Lucrecia la moza (de 18 a 2), y LA PEÑA DE LOS SÁBADOS con Dalia la bailarina (3.9.1).
+  El banco del pueblo y la casa de té con más vida (3.9.2).
+- EL CREADOR DE BRUNO (4.1): al empezar una partida nueva elegís su aspecto y su historia (personalidad, oficio, gustos, hobby, virtud y
+  defecto). Hay un prólogo de 5 tarjetas que se puede saltar. Los rasgos tienen efecto en el abrigo, el trato con los vecinos, la pesca y el
+  cuaderno de cielo, y hay un guardarropa. Los textos de las tarjetas son una propuesta: decime cuáles cambiar.
+- MEJORAS VISUALES (4.0): faroles con halo y charcos de luz de noche en la aldea; la casa de té por dentro con faroles encendidos, fuego y
+  ventanas con paisaje; rayos de luz entre los árboles al atardecer, espuma en la orilla del lago y niebla de valle al amanecer; las mujeres
+  con busto propio y Dalia más escotada; caras, pelo y botas con más detalle.
+- EL MOLINO Y EL PUENTE REHECHOS (4.0): molino de piedra y madera con aspas de listones, puente con herrajes y faroles, y junto al molino un
+  campo de tulipanes en franjas, un arroyo con cascadita de rocas, cercos y una casa con galería.
+
+NOVEDADES DE LAS VERSIONES 4.0.1 A 4.4.1
+- Cantina y casa de té: el pedido ya no se cobra sin servirse. Creador de Bruno: si falla el 3D, entrás igual.
+- Casas en ladera, escalera de la torre de vigía, dinero que volvía mal al deshacer una casa, trochita, modo foto, fauna tras la pausa.
+- El molino: el campo de tulipanes ya no tapa el sendero; el arroyo sigue el suelo.
+- Ritmo automático: vuelve a 60 fps después de un momento pesado (antes se quedaba en 30).
+- Dalia: zapatos que apoyan y paso de baile más corto; borde de la blusa de las mujeres sin festoneado. Greta con la cara y el pelo pulidos.
+- Piedras con musgo (calidad media y alta).
+- EASTER EGGS (sólo Relax): una estrella fugaz con deseo, la yerba al pie de un coihue grande, un huemul blanco al amanecer con niebla, el
+  hueso que entierra el perro, un código secreto en la portada y la radio de madrugada. No se explican en el juego: a descubrirlos.
+
+NOVEDADES DE LA 4.4.1 (19-10)
+- Dalia: los zapatos de taco apoyan la punta y el taco juntos (no flotan) y la V del escote es de borde limpio.
+- Con la mesa larga llena, E te sienta en el banco libre en vez de hablar con quien come del otro lado.
+- Arreglos: con la estación en automático el paisaje ya no arranca en verano y pasa a invierno a la vista; el ratón en el banco de pruebas;
+  el aviso de Chela al bajar del tren; el diario juzga el pronóstico por lo que llovió después; la lagartija que huye por la loma.
+
+NOVEDADES DE LA 4.2 (19-10) — MÁS PARA CONSTRUIR Y MÁS USO DEL DINERO (jugá en modo RELAX)
+- EL PICO: para picar piedra hace falta el pico (tecla H frente a una roca). Se consigue de tres maneras: trueque en el almacén (3 cantos y 12 ramitas),
+  el herrero de la aldea lo forja (3 cantos y $300) o se compra en el almacén por $1.200. Picar piedra es a golpes (6 al empezar, 2 de Maestro) y
+  tiene su propio oficio, el PICAPEDRERO, que sube con el uso. El herrero también afila el pico.
+- LAS PIEZAS AHORA PUEDEN COSTAR PESOS: el menú de construcción muestra el precio de cada una («Vitrina de roble · $4.500») y avisa lo que te falta.
+- ~50 PIEZAS NUEVAS PARA CONSTRUIR:
+  · Ampliaciones de la casa (de $20.000 a $78.000): dormitorio anexo, despensa de piedra, taller anexo, quincho, galería cerrada, cocina ampliada,
+    bodega de piedra, buhardilla, salón grande, planta alta con escalera, torreón de piedra, gran hogar de piedra, y paredes de piedra y techo de teja.
+  · Edificios de oficio (de $18.000 a $42.000): cantería, carpintería, quesería, panadería de horno grande, tienda de campo, herrería propia,
+    telar grande y cervecería (Lucrecia compra los barriles y la cerveza de la cantina te sale más barata).
+  · Lujo y decoración (de $900 a $12.000, más las 5 del ejemplo): estantería de roble, sillón de cuero, cama con dosel, mesa de banquete, biombo,
+    candelabros, cuadros, gramola (con E suena música), estatua del baqueano, chimenea de salón, pérgola y más.
+  · Almacenaje con tope que se amplía con pesos: pila de piedra, depósito de piedra techado, barraca de materiales, silo y herramientero.
+    El acopio de siempre ahora guarda hasta 40 de cada material.
+  · Huerta, granja y exteriores: huerta en terrazas, establo, corral grande, cobertizo de heno, palomar, aljibe, pozo, tranquera, portón, puente de piedra,
+    pirca y camino empedrado.
+- Al armar una pieza, el juego avisa lo que te sobró.
+- El trueno de la lluvia fuerte ahora llega después de su destello.
+
+NOVEDADES DE LA 4.3 (19-10) — TRABAJAR DE EMPLEADO Y TENER TU NEGOCIO (jugá en modo RELAX)
+- EMPLEO FIJO: en cuatro locales (almacén de Ercilia, casa de té, taller ferroviario y banco) hay un cartel de turnos junto a la puerta. Con E tomás el
+  puesto, fichás y hacés 8 tareas cortas con E (barrer la vereda, atender el mostrador, amasar, atizar la fragua, contar billetes…); al terminar cobrás
+  el sueldo (de $1.600 a $2.800 según el escalón). Si te vas antes cobrás lo hecho menos el 25 % y queda una falta. Hay un turno por día y ocupa
+  uno de los dos jornales. Se asciende por días cumplidos y el nivel de un oficio: Aprendiz, Empleado y Encargado. El cuaderno tiene la página
+  «Trabajo en la aldea» con tu historial.
+- NEGOCIO PROPIO: en O → Trabajo hay dos locales para construir: el almacén de campo ($28.000) y la panadería y cafetería ($36.000). Con E abrís el
+  panel: surtís los estantes desde la mochila, fijás el precio de cada producto (barato, normal o caro) y abrís o cerrás el local. Los clientes
+  llegan de 8 a 21 h mientras el local esté abierto y vos cerca; los atendés vos, uno por uno, con E junto al mostrador. La reputación sube con la buena
+  atención y trae más clientes; la caja tiene un tope de $12.000. Un solo local por partida.
+
+NOVEDADES DE LA 4.4 (20-10) — EMPLEADOS, COMPRAR NEGOCIOS Y SOCIEDAD (jugá en modo RELAX)
+- CONTRATAR EMPLEADOS EN TU NEGOCIO: desde el panel de tu local (E) contratás hasta 2 vecinos a sueldo diario (de $600 a $1.200 según su habilidad).
+  Con menos de 25 puntos de amistad no aceptan; de amigo aceptan; de compadre aceptan con gusto y cobran menos. Trabajan de lunes a sábado detrás del
+  mostrador de tu local (el primero de 8:30 a 19, el segundo de 11 a 21) y venden aunque vos no estés, a un 56–63 % de lo que vendés vos el primer día y hasta
+  un 79–87 % con los días y la habilidad. Si te vas lejos, las ventas se simulan y al volver te cuentan qué vendieron. El primer día es de prueba, sin sueldo.
+  El vecino contratado deja de hacer lo suyo durante su turno.
+- COMPRAR EL NEGOCIO DE UN VECINO: en la charla con el dueño, «Hacer juntos» → «Hablar de su negocio» (y Amadeo, en el banco, te ofrece «Hablar de negocios»).
+  Se pueden comprar la panadería de Rosa ($80.000), la pescadería de Aurelio, la sala de miel de Guido, la hilandería de Elvira, la casa de té de Ceinwen, la
+  herrería de Anselmo, el almacén de Ercilia y la cantina de Lucrecia ($200.000). Cada vecino reacciona según su historia y su amistad con vos. El local
+  lleva un cartel «de [tu nombre]», rinde una ganancia por día a una caja que guarda hasta 10 días (si no pasás a verlo, rinde menos) y paga sueldos, insumos y
+  gastos fijos (alquiler, impuestos y luz).
+- SOCIEDAD CON UN VECINO: ponés del 10 al 40 % del precio y cobrás un porcentaje de la ganancia diaria; podés retirarte con aviso (se hace a los 2 días).
+
+NOVEDADES DE LA 4.4.1 — GASTOS FIJOS Y REPOSICIÓN DE TU LOCAL (jugá en modo RELAX)
+- TU LOCAL PAGA GASTOS FIJOS cada día, estés donde estés: el almacén de campo $250 (alquiler, impuesto y luz) y la panadería y cafetería $200. Salen de la caja del
+  local y, si no alcanza, de tu billetera. Si no hay con qué pagar queda una deuda (hasta 5 días); con 2 días el local cierra solo, sin perder mercadería ni fama.
+  El panel muestra los gastos, el balance de hoy y de la semana, y un botón para pagar la deuda.
+- REPOSICIÓN: tu empleado repone los estantes desde tus depósitos cercanos (barraca, pila y depósito de piedra, silo) cuando no estás; y hay un botón
+  «Pedir al proveedor» que surte los estantes a precio de plaza más un 20 % (tope de $3.000 por día).
+
+PARA MIRAR Y CONTARME (agregado)
+- Cómo se siente el ritmo de los gastos en varios días seguidos, y si la reposición y el proveedor alcanzan para sostener el local.
+- Cómo se siente contratar, comprar y asociarte; el equilibrio de plata (los ocho negocios juntos rinden unas tres veces los jornales).
+- Cómo se siente el turno de trabajo y la atención del local (clientes, tiempos, precios y reputación).
+- Cómo suena la gramola y cómo se siente el golpe del pico (no se oyeron).
+- Los fps en la PC de escritorio con tantas piezas nuevas.
+- Los dos sonidos de la radio de madrugada (el tango y el Morse) no se escucharon a oído.
+- El prólogo y las tarjetas del creador de Bruno, que son una propuesta mía de textos.
+
+PARA MIRAR Y CONTARME (versión 4.0.0)
+- Si el juego anda parejo (60 fps) en tu PC con todo esto, sobre todo en la aldea y en el interior de la casa de té. No se midió todavía
+  en la Ryzen 5 4600G desde este paquete.
+- Si te gustan los rayos entre los árboles, el campo de tulipanes y el molino nuevo.
+- Los detalles que quedaron sueltos: zapatos de Dalia que parecen flotar, y el chamamé con la falda abierta.
+
+LO QUE NO ESTÁ
+- Armado sin firmar: el ícono, el nombre y la empresa que muestra Windows en Propiedades son los de Electron.
+- El aplastado del pasto no entró (cuesta fps en la plaza).
