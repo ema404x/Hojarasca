@@ -1613,13 +1613,14 @@ export function servicioBase(clave, progreso, dia, extra = {}) {
         return { partes: [`Con ${S.cantosHacha} cantos rodados te forjo un hacha. Cabo de lenga, filo de acero.`], seguir: DALE,
           efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosHacha }, { tipo: 'cosa', k: 'hacha', fijar: 1 }], titulo: 'El herrero te forjó un hacha' };
       }
-      // 4.2: el pico (para picar piedra). Con el hacha en la mano y sin pico, el herrero lo ofrece apenas hay cantos y plata; si falta algo, lo dice
+      // 4.2: el pico (para picar piedra). 4.4.2 (C6): la oferta del pico ya no tapa el afilado ni la tijera (con «Escape: otro día» no queda nada
+      // anotado y a la visita siguiente volvía a ofrecerse): va después de la tijera y del afilado; con el afilado pendiente, el pico se ofrece en la
+      // charla siguiente (el afilado anota el día y deja libre el lugar)
       const sinPico = !cant(progreso, 'cosa', 'pico');
-      if (sinPico && hayEconomia(progreso) && cantos >= S.cantosPico && pesosDe(progreso) >= S.pesosPico) {
-        return { partes: [`Para picar piedra el hacha no sirve. Con ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)} te forjo un pico.`], seguir: DALE,
-          efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosPico }, { tipo: 'pesos', n: -S.pesosPico, motivo: 'Pico forjado', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'cosa', k: 'pico', fijar: 1 }], titulo: 'El herrero te forjó un pico' };
-      }
-      const avisoPico = sinPico && hayEconomia(progreso) ? [`Y si querés picar piedra, te falta un pico: ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)}.`] : [];
+      const puedePico = sinPico && hayEconomia(progreso) && cantos >= S.cantosPico && pesosDe(progreso) >= S.pesosPico;
+      const avisoPico = sinPico && hayEconomia(progreso)
+        ? [puedePico ? `Y si querés picar piedra, después hablame de nuevo: con ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)} te forjo un pico.` : `Y si querés picar piedra, te falta un pico: ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)}.`]
+        : [];
       if (!cant(progreso, 'cosa', 'tijera') && cantos >= S.cantosTijera) {
         return { partes: [`Te veo sin tijera de esquilar. Con ${S.cantosTijera} cantos rodados te la forjo.`, ...avisoPico], seguir: DALE,
           efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosTijera }, { tipo: 'cosa', k: 'tijera', fijar: 1 }], titulo: 'El herrero te forjó una tijera' };
@@ -1627,8 +1628,13 @@ export function servicioBase(clave, progreso, dia, extra = {}) {
       // 4.2: el filo vale para el hacha y para el pico (un solo contador: cada árbol talado o pedrero picado lo gasta; gratis, como siempre)
       const conPico = !sinPico;
       const filadas = conPico ? 'el hacha y el pico' : 'el hacha';
-      if (yaHoy(aldea, clave, dia)) return { partes: [conPico ? 'El hacha y el pico ya te los afilé hoy. Mañana los vemos.' : 'El hacha ya te la afilé hoy. Mañana la vemos.', ...avisoPico] };
-      if (aldea.afilado >= S.filo) return { partes: [conPico ? 'Tu hacha y tu pico todavía tienen el filo que les di. Usalos y volvé.' : 'Tu hacha todavía tiene el filo que le di. Usala y volvé.', ...avisoPico] };
+      const afiladoHoy = yaHoy(aldea, clave, dia), afiladoVigente = aldea.afilado >= S.filo;
+      if (puedePico && (afiladoHoy || afiladoVigente)) {
+        return { partes: [`Para picar piedra el hacha no sirve. Con ${S.cantosPico} cantos rodados y ${formatoPesos(S.pesosPico)} te forjo un pico.`], seguir: DALE,
+          efectos: [{ tipo: 'entrada', k: 'canto', n: -S.cantosPico }, { tipo: 'pesos', n: -S.pesosPico, motivo: 'Pico forjado', con: VECINOS_ALDEA[clave]?.nombre || '' }, { tipo: 'cosa', k: 'pico', fijar: 1 }], titulo: 'El herrero te forjó un pico' };
+      }
+      if (afiladoHoy) return { partes: [conPico ? 'El hacha y el pico ya te los afilé hoy. Mañana los vemos.' : 'El hacha ya te la afilé hoy. Mañana la vemos.', ...avisoPico] };
+      if (afiladoVigente) return { partes: [conPico ? 'Tu hacha y tu pico todavía tienen el filo que les di. Usalos y volvé.' : 'Tu hacha todavía tiene el filo que le di. Usala y volvé.', ...avisoPico] };
       return {
         partes: [conPico ? `Dame esa hacha y ese pico, que les paso la piedra. Las próximas ${S.filo} veces (un árbol o un pedrero) hace falta un golpe menos.` : `Dame esa hacha, que le paso la piedra. Los próximos ${S.filo} árboles caen con un hachazo menos.`, ...avisoPico],
         seguir: DALE,

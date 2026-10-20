@@ -67,8 +67,10 @@ const TIC = 500;         // cada cuánto mira el temporizador (ms)
 export const DISTANCIA_GRAMOLA = 18;    // más lejos que esto, la gramola se calla (main.js lo usa en la función `cerca`)
 
 // Lo que suena ahora (uno solo a la vez en todo el juego)
-const G = { suena: false, indice: 0, tema: null, ev: null, i: 0, t0: 0, fin: 0, salida: null, timer: null, sonido: null, cerca: null };
+const G = { suena: false, indice: 0, tema: null, ev: null, i: 0, t0: 0, fin: 0, salida: null, timer: null, sonido: null, cerca: null, duenio: null };
 export const gramolaSuena = () => G.suena;
+// 4.4.2 (C5): ¿suena la gramola de ESTA obra? (con dos gramolas, el aviso de la segunda no debe decir «Parar» si la que suena es la otra)
+export const gramolaSuenaEn = (duenio) => G.suena && (!duenio || !G.duenio || G.duenio === duenio);
 export const temaDeGramola = () => G.tema;
 
 // Una nota: triángulo más su octava (más suave), con ataque corto y caída
@@ -105,6 +107,8 @@ function programar() {
   const hasta = ahora + ADELANTO - G.t0;
   while (G.i < G.ev.eventos.length && G.ev.eventos[G.i].cuando <= hasta) {
     const e = G.ev.eventos[G.i++];
+    // 4.4.2 (C5): tras un tirón largo (ventana minimizada, la PC suspendida) las notas atrasadas se descartan: antes sonaban todas juntas
+    if (G.t0 + e.cuando < ahora - 0.25) continue;
     sonarNota(ctx, G.salida.entrada, e, Math.max(ahora, G.t0 + e.cuando));
   }
   // el crujido: uno cada tanto
@@ -114,8 +118,13 @@ function programar() {
 
 // E sobre la gramola: si suena, la para; si no, le da cuerda con el tema que sigue. Devuelve { suena, titulo } o { sinSonido: true }.
 // `cerca` es una función que dice si el jugador sigue cerca (y si la gramola sigue en pie): si da falso, se calla sola.
-export function alternarGramola(sonido, cerca) {
-  if (G.suena) { const titulo = G.tema?.nombre; detenerGramola(); return { suena: false, titulo }; }
+// 4.4.2 (C5): `duenio` es la obra: hay una sola gramola sonando en todo el juego; E en otra mientras suena una, la pasa a esa (y lo avisa: `cambio`)
+export function alternarGramola(sonido, cerca, duenio = null) {
+  let cambio = false;
+  if (G.suena) {
+    if (duenio && G.duenio && G.duenio !== duenio) { cambio = true; detenerGramola(); }
+    else { const titulo = G.tema?.nombre; detenerGramola(); return { suena: false, titulo }; }
+  }
   const ctx = sonido?.ctx;
   if (!ctx || !sonido.bus?.efectos) return { sinSonido: true };
   try { if (ctx.state === 'suspended') ctx.resume(); } catch { /* sigue */ }
@@ -129,18 +138,18 @@ export function alternarGramola(sonido, cerca) {
   const d = ruido.getChannelData(0);
   for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
   const ev = eventosDeTema(tema);
-  Object.assign(G, { suena: true, tema, ev, i: 0, t0: ctx.currentTime + 0.25, fin: ctx.currentTime + 0.25 + ev.duracion + 1.5, salida: { entrada, volumen, ruido }, sonido, cerca });
+  Object.assign(G, { suena: true, tema, ev, i: 0, t0: ctx.currentTime + 0.25, fin: ctx.currentTime + 0.25 + ev.duracion + 1.5, salida: { entrada, volumen, ruido }, sonido, cerca, duenio });
   // la música de fondo se corre mientras suena
   try { sonido.bajaMusica?.gain.setTargetAtTime(0.3, ctx.currentTime, 0.4); } catch { /* sigue */ }
   programar();
   G.timer = setInterval(() => { try { programar(); } catch (e) { detenerGramola(); console.warn('gramola:', e); } }, TIC);
-  return { suena: true, titulo: tema.nombre };
+  return { suena: true, titulo: tema.nombre, cambio };
 }
 
 export function detenerGramola() {
   if (G.timer) { clearInterval(G.timer); G.timer = null; }
   const salida = G.salida, s = G.sonido, ctx = s?.ctx;
-  G.suena = false; G.salida = null; G.ev = null; G.cerca = null;
+  G.suena = false; G.salida = null; G.ev = null; G.cerca = null; G.duenio = null;
   if (!salida || !ctx) return;
   try {
     const t = ctx.currentTime;
