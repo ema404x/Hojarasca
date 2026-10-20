@@ -394,7 +394,7 @@ function sinVos({ tipo = 'almacen', claves = ['madre'], dias = 24, dias0 = 0, am
   // con empleados vuelve igual
   const Em = M.empleadosNuevo();
   M.contratar(Em, 'madre', { tipo: 'almacen', dia: 10, abs: 10 * 24 + 9, puntos: 60 }); M.contratar(Em, 'padre', { tipo: 'almacen', dia: 11, abs: 11 * 24 + 9, puntos: 150 });
-  Em.lista[0].dias = 5; Em.lista[0].vendido = 4200; Em.lista[0].clientes = 9; Em.lista[0].impagos = 1; Em.lista[0].pagadoDia = 11; Em.visita = 11; Em.sim = { ultima: 11 * 24 + 12.5, acum: 0.4, n: 17 };
+  Em.lista[0].dias = 5; Em.lista[0].vendido = 4200; Em.lista[0].clientes = 9; Em.lista[0].impagos = 1; Em.lista[0].pagadoDia = 11; Em.visita = 11; Em.sim = { ultima: 11 * 24 + 12.5, acum: 0.4, n: 17, tope: 0 };
   Em.pend = { ventas: 1800, clientes: 4, sueldos: 1500, cajaLlena: true, porEmp: { madre: { ventas: 1800, clientes: 4 } }, repuesto: {} }; Em.total = { contratados: 3, despedidos: 1, renuncias: 0, vendido: 9000, sueldos: 6000 };
   G.escribirPartida('relax', 2, { modo: 'relax', dia: 12, horas: 10, economia: E.economiaNueva(), empleadosNegocio: Em });
   r = G.leerPartida('relax', 2).progreso;
@@ -649,7 +649,7 @@ const dar = (progreso, k, pts) => { for (let i = 0; i < 12; i++) V.cambiarAmista
   tiene(m, 'empleadosNegocioJuego = crearEmpleadosNegocioJuego({', 'y lo arma');
   tiene(m, "fallaSistema('empleados-negocio-armado', e); empleadosNegocioJuego = null;", 'aislado en un try: si falla al armarse, el local sigue');
   tiene(m, 'fijarOcupacionExterna(empleadosNegocioJuego.ocupacion);', 'engancha la aldea con una línea');
-  tiene(m, "try { if (modo === 'jugando' && !desafio) empleadosNegocioJuego?.actualizar(dt); } catch (e) { fallaSistema('empleados-negocio', e); }", 'el bucle lo avanza aislado con fallaSistema (sólo en el Relax)');
+  tiene(m, "try { if (modo === 'jugando' && !desafio && !foto.activo) empleadosNegocioJuego?.actualizar(dt); } catch (e) { fallaSistema('empleados-negocio', e); }", 'el bucle lo avanza aislado con fallaSistema (sólo en el Relax)');
   tiene(m, 'extraPanel: (raiz, est) => { try { empleadosNegocioJuego?.dibujarPanel(raiz, est); } catch (e) { fallaSistema(', 'el panel de los empleados es aparte: si falla, el del local sigue');
   tiene(m, 'if (vecino?.empleadoNegocio) vecino = null;', 'los empleados detrás del mostrador no se charlan (E sigue siendo del local)');
   tiene(m, 'if (vecino?.clienteNegocio) vecino = null;', '… y lo de los clientes quedó como estaba');

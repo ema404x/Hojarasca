@@ -11,7 +11,7 @@ import { formatoPesos } from './economia.js';
 import { cambiarAmistad, sumarAmistadDe, puntosAmistad } from './vecindad.js';
 import { VOCES } from './vecindad-voces.js';
 import { etapaAmor } from './amor.js';
-import { edificioEnMundo, puntosMundo, fijarDesvioRutina } from './aldea.js';
+import { edificioEnMundo, puntosMundo, fijarDesvioRutina, esCumpleanos, HORA_FIESTA, localAbierto } from './aldea.js';
 import { crearNegociosVecinosMundo } from './negocios-vecinos-mundo.js';
 import {
   NEGOCIOS, IDS_NEGOCIOS, COMPRA, SOCIEDAD, CONSEJERO, TIPOS_QUE_VENDEN, negocioDeVecino, tuyoDe, negocioAbierto, hayNegocios, leerNegociosVecinos,
@@ -50,7 +50,14 @@ export function crearNegociosVecinosJuego(ctx) {
 
   // el desvío de la rutina: el que se fue a otra cosa pasa el día (de 9 a 19, menos el domingo) en la plaza
   const refrescarIdos = () => { idos = new Set(activo() ? vecinosQueSeFueron(prog()) : []); };
-  const fijarRutina = () => fijarDesvioRutina((persona, h, ds) => (idos.size > 0 && idos.has(persona) && h >= 9 && h < 19 && ds !== 6 ? 'plaza' : null));
+  // (4.4.2: no en la fiesta de su cumpleaños ni en el baile del sábado: la aldea lo espera en otra parte; antes se quedaba en la plaza)
+  const fijarRutina = () => fijarDesvioRutina((persona, h, ds, dia, t) => {
+    if (idos.size === 0 || !idos.has(persona) || h < 9 || h >= 19 || ds === 6) return null;
+    const hh = Number.isFinite(t) ? t : h;
+    if (dia !== null && dia !== undefined && hh >= HORA_FIESTA[0] && hh < HORA_FIESTA[1] && esCumpleanos(persona, dia)) return null;
+    if (ds === 5 && hh >= 17 && hh < 19 && localAbierto(prog().aldea || {}, 'salon')) return null;
+    return 'plaza';
+  });
   fijarRutina();
 
   // ---------------------------------------------------------------- lo que el vecino sabe de vos

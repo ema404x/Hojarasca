@@ -1109,7 +1109,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
 
   // 3.6: `deFrente`: sólo el que tenés de frente y a mano (al lado de un mostrador o de algo para
   // hacer, un cliente o la que atiende no te tapan la E si no los mirás a ellos)
-  function cerca(js, camara, deFrente = false) {
+  function cerca(js, camara, deFrente = false, omitir = null) {
     camara.getWorldDirection(adelante);
     adelantePlano.set(adelante.x, 0, adelante.z).normalize();
     const minimo = deFrente ? 0.9 : 0.45;
@@ -1118,6 +1118,7 @@ export function crearGente(T, escena, col, sonido, opciones = {}) {
       // 3.8.3: ni el que no se ve (dormido: lejos, o escondido a propósito: el visitante que se fue, la familia después de
       // la visita, el chico que se fue a estudiar). Antes quedaban «fantasmas» invisibles con «Hablar con…» donde se fueron
       if (g.dormido || (g.aBordo && !g.enViaje)) continue;
+      if (omitir && omitir(g)) continue;   // 4.4.2: (los clientes y empleados de tu local: que no tapen al vecino de verdad que tenés detrás)
       const d = Math.hypot(g.pos.x - js.pos.x, g.pos.z - js.pos.z);
       if (d > mejorD) continue;
       tmp.set(g.pos.x - camara.position.x, 0, g.pos.z - camara.position.z).normalize();

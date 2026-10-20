@@ -592,7 +592,7 @@ const ctxDe = (puntos, hist = 0, extra = {}) => ({ puntos, hist, histTotal: 3, e
   const sr = leer('src/social-rueda.js');
   ok(/negocios/.test(sr) && sr.includes("return 'hacer'"), 'social-rueda.js: va en «Hacer juntos»');
   const al = leer('src/aldea.js');
-  ok(al.includes('export function fijarDesvioRutina(fn)') && al.includes("desvioRutina(persona, h, ds) === 'plaza'"), 'aldea.js: el desvío de la rutina');
+  ok(al.includes('export function fijarDesvioRutina(fn)') && al.includes("desvioRutina(persona, h, ds, dia, t) === 'plaza'"), 'aldea.js: el desvío de la rutina');
   const gu = leer('src/guia.js');
   ok(gu.includes("'Comprar un negocio y ser socio'") && gu.includes('Hablar de su negocio') && gu.includes('$80.000 a $200.000'), 'la guía (F1) lo explica');
   // sin inglés ni mando en lo nuevo

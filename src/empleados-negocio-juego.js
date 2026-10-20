@@ -14,6 +14,7 @@ import { hayEconomia, formatoPesos } from './economia.js';
 import { esVecinoAldea, personaAldea, localAbierto, LOTE_DE } from './aldea.js';
 import { nombreCorto, puntosAmistad, cambiarAmistad } from './vecindad.js';
 import { COLA, textoLista } from './negocio-propio.js';
+import { negocioDeVecino, esTuyo } from './negocios-vecinos.js';
 import { REPOSICION, aplicaReposicion, reponibles } from './negocio-propio-reposicion.js';
 import { MOSTRADOR_Z } from './planos-negocio.js';
 import {
@@ -36,7 +37,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
   const ocupado = (k) => !!ctx.evento?.(k);
   const absAhora = () => (Number(P().dia) || 1) * 24 + (Number(P().horas) || 0);
   const figuras = new Map();   // clave del vecino → { k, npc, tarea, fase: 'libre' | 'entra' | 'puesto' | 'sale', t }
-  let acum = 0, acumCuenta = 0, armando = null, sinLugar = 0, ultimoResumen = -99, relojResumen = 0;
+  let acum = 0, acumCuenta = 0, armando = null, sinLugar = 0, ultimoResumen = -99, relojResumen = 0, guardadoN = -1;
   const ui = { contratando: false, despedir: null };
 
   // ---------------------------------------------------------------- el enganche con la aldea
@@ -54,8 +55,10 @@ export function crearEmpleadosNegocioJuego(ctx) {
     return false;
   }
   // los que se pueden contratar y están en la aldea (los pobladores, sólo con su local abierto)
+  // 4.4.2: al que ya atiende el negocio que le compraste (su sueldo ya lo descuenta ese negocio) no se lo contrata además: cobraría dos veces
+  const suNegocioEsTuyo = (k) => { const id = negocioDeVecino(k); return !!id && esTuyo(P(), id); };
   function enLaAldea(k) {
-    if (!esCandidato(k)) return false;
+    if (!esCandidato(k) || suNegocioEsTuyo(k)) return false;
     if (esVecinoAldea(k)) return true;
     const a = P().aldea || {};
     return (a.pobladores || []).some((q) => q.clave === k) && localAbierto(a, LOTE_DE[k]);
@@ -205,15 +208,18 @@ export function crearEmpleadosNegocioJuego(ctx) {
     // sin local (lo desarmaste): se van, sin culpa de nadie
     if (!est.tipo) {
       const nombres = E.lista.map((x) => nombreDe(x.k));
-      E.lista.length = 0; E.pend = { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {}, repuesto: {} };
+      E.lista.length = 0; E.ficha = {};   // (4.4.2: sin local se borran también las pruebas ya usadas: otro local, otra prueba)
+      E.pend = { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {}, repuesto: {} };
       quitarFiguras();
       ctx.nota?.(nombres.length > 1 ? 'Tus empleados volvieron a lo suyo' : `${nombres[0]} volvió a lo suyo`, 'Ya no tenés local: sin mostrador no hay trabajo', false);
       ctx.guardar?.();
       return;
     }
-    if (!o) return;   // (lo estás moviendo)
+    // 4.4.2: lo estás moviendo (Shift+Y): no hay local activo, pero los sueldos y las ventas siguen contando (antes se congelaban y se ponían al día de golpe)
+    const real = o || N.localReal?.();
+    if (!real) return;
     const abs = absAhora();
-    const dist = N.distancia(o);
+    const dist = N.distancia(real);
     const presente = dist < (N.cola.clientes.length ? COLA.radioPartir : COLA.radioAtencion);
     // los sueldos y las ventas sin vos, una vez por segundo
     acumCuenta += d;
@@ -222,9 +228,11 @@ export function crearEmpleadosNegocioJuego(ctx) {
       const ev = avanzarEmpleados(P(), est, est.tipo, E, env(presente));
       if (ev.length) avisar(ev, presente);
       if (presente) contarSiVolviste(E);
-      if (E.sim.n % 5 === 0 && !presente && hayPendiente(E)) ctx.guardar?.();
+      // 4.4.2: «cada 5 ventas simuladas», una sola vez por cada múltiplo (antes, con `n` quieto en un múltiplo de 5, guardaba una vez por segundo)
+      if (E.sim.n % 5 === 0 && E.sim.n !== guardadoN && !presente && hayPendiente(E)) { guardadoN = E.sim.n; ctx.guardar?.(); }
       if (!E.lista.length) { quitarFiguras(); return; }
     }
+    if (!o) return;   // (lo estás moviendo: las figuras y la ayuda esperan)
     // cuando estás, ayudan: al que esperó lo suyo lo despachan ellos
     if (presente && N.cola.clientes.length && !N.panelAbierto()) {
       for (const a of elegirAyuda(N.cola, E, est.tipo, abs, nivelDe, d, ocupado)) {
@@ -264,6 +272,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     const N = negocio(), est = N?.estado();
     if (!est || !est.tipo) return;
     const E = estadoE();
+    if (suNegocioEsTuyo(k)) { ctx.nota?.('No se pudo contratar', `${nombreDe(k)} ya trabaja en el negocio que le compraste: ese negocio le paga el sueldo`, false); return; }
     const r = contratar(E, k, { tipo: est.tipo, dia: P().dia, abs: absAhora(), puntos: puntosAmistad(k, P()) });
     if (!r.ok) { ctx.nota?.('No se pudo contratar', (MOTIVOS[r.motivo] || MOTIVOS['no-contrata'])(k), false); return; }
     ctx.sonido?.()?.juntar?.();

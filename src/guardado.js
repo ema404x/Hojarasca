@@ -106,6 +106,7 @@ export function usarModoGuardado(modo, ranura = ranuraPartida) {
   CLAVE_VISTA = k.vista;
   ultimoPrincipalValidoTexto = null;
   ultimoSello = 0;   // 3.8.6
+  ultimaSecuencia = 0;   // 4.4.2: (la cuenta de guardados es de cada partida: importar en otra ranura no la hereda)
   principalRoto = false;
   return modoPartida;
 }

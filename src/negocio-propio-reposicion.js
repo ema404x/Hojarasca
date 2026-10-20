@@ -11,7 +11,7 @@
 //      (plaza + 15 %) no cubre el recargo, así que sólo conviene para no perder clientes por un estante vacío, o con precios caros.
 import { BIENES } from './comercio.js';
 import { ALMACENES, IDS_ALMACEN } from './almacen.js';
-import { catalogo, topeEstante, precioPlaza, TIPOS } from './negocio-propio.js';
+import { catalogo, topeEstante, precioPlaza, TIPOS, fijarProv, marcarProveedor } from './negocio-propio.js';
 import { pagar, pesosDe, hayEconomia, formatoPesos } from './economia.js';
 import { anotarFin } from './negocio-propio-gastos.js';
 
@@ -49,6 +49,7 @@ export function reponerDesdeDepositos(est, tipo, rend, dep) {
     if (disp <= 0) { agotado.add(k); continue; }
     const sacado = entero(dep.sacar(k, Math.min(quiere, disp)));
     if (sacado <= 0) { agotado.add(k); continue; }
+    fijarProv(est, k);   // 4.4.2: (la marca del proveedor se ajusta a lo que queda antes de sumar lo tuyo)
     est.stock[k] = entero(est.stock[k]) + sacado;
     hecho[k] = (hecho[k] || 0) + sacado;
     lotes--; usados++;
@@ -107,7 +108,12 @@ export function pedirAlProveedor(p, est, dia) {
     if (!r.ok) return { ok: false, motivo: 'plata', items: [], total: 0, deCaja: 0, deBilletera: 0 };
   }
   est.caja -= deCaja;
-  for (const x of pres.items) est.stock[x.k] = Math.min(topeEstante(x.k), entero(est.stock[x.k]) + x.n);
+  for (const x of pres.items) {
+    fijarProv(est, x.k);
+    const antes = entero(est.stock[x.k]);
+    est.stock[x.k] = Math.min(topeEstante(x.k), antes + x.n);
+    marcarProveedor(est, x.k, est.stock[x.k] - antes);   // 4.4.2: lo que viene del proveedor se vende, pero no se saca del estante
+  }
   const fin = est.fin;
   if (fin.prov.dia !== dia) { fin.prov.dia = dia; fin.prov.gastado = 0; }
   fin.prov.gastado += pres.total; fin.total.proveedor += pres.total;

@@ -15,7 +15,7 @@
 import { formatoPesos, hayEconomia } from './economia.js';
 import {
   TIPOS, IDS_LOCALES, esLocal, tipoDePlano, catalogo, negocioPropioDe, ponerAlDia, colaNueva, avanzarCola, primeroEnLaCola, despachar, armarCliente, fraseDePedido, etiquetaDe,
-  surtir, surtirTodo, sacarDelEstante, ponerPrecio, retirarCaja, cerrarLocal, vistaDelLocal, firmaDeVista, filasDelPanel, avisoDelLocal, nombreDeRep, nivelDeRep, NIVELES, precioUnidad,
+  surtir, surtirTodo, sacarDelEstante, unidadesSacables, ponerPrecio, retirarCaja, cerrarLocal, vistaDelLocal, firmaDeVista, filasDelPanel, avisoDelLocal, nombreDeRep, nivelDeRep, NIVELES, precioUnidad,
   textoLista, nombreUnidad, unidadesEnEstantes, CAJA_MAX, COLA, resumenDelDia, cuantasCosas, llegadasPorDia, HORA_ABRE, HORA_CIERRA,
 } from './negocio-propio.js';
 import { MEDIDAS, SITIOS_CLIENTES } from './planos-negocio.js';
@@ -42,14 +42,20 @@ export function crearNegocioJuego(ctx) {
   const ui = { abierto: false, tip: true };
 
   // ---------------------------------------------------------------- el local
-  // El primer local terminado (el que no estás moviendo): se mira cada segundo, no cada cuadro
-  function local() {
+  // El primer local terminado: se mira cada segundo, no cada cuadro. 4.4.2: «real» es el dueño del estado (stock, caja, tipo) aunque lo estés moviendo (Shift+Y);
+  // `local()` es ese mismo, salvo mientras lo movés (entonces no hay: ni clientes ni empleados en el lugar viejo). Antes, mover el activo dejaba a OTRO local
+  // de adorno como «el activo» y la cuenta se cerraba sola (se devolvía la mercadería, se retiraba la caja, se perdonaba la deuda).
+  function localReal() {
     const ob = ctx.obras();
     if (!ob) return null;
-    if (cacheLocal && ahora() < cacheHasta && cacheLocal.datos && terminada(cacheLocal) && cacheLocal !== ob.editando) return cacheLocal;
+    if (cacheLocal && ahora() < cacheHasta && cacheLocal.datos && terminada(cacheLocal)) return cacheLocal;
     cacheLocal = null; cacheHasta = ahora() + 1000;
-    for (const o of ob.obras) if (esLocal(o.plano.id) && terminada(o) && o !== ob.editando) { cacheLocal = o; break; }
+    for (const o of ob.obras) if (esLocal(o.plano.id) && terminada(o)) { cacheLocal = o; break; }
     return cacheLocal;
+  }
+  function local() {
+    const r = localReal();
+    return r && r !== ctx.obras()?.editando ? r : null;
   }
   const esActivo = (o) => !!o && local() === o;
   const medidas = (o) => MEDIDAS[o.plano.id];
@@ -171,8 +177,15 @@ export function crearNegocioJuego(ctx) {
     if (acum < PASO) return;
     const d = acum; acum = 0;
     const o = local();
-    if (!o) { if (figuras.some((f) => f.npc || f.tarea)) quitarFiguras(); return; }
+    if (!o) {
+      if (figuras.some((f) => f.npc || f.tarea)) quitarFiguras();
+      // 4.4.2: lo estás moviendo: los gastos del día se cobran igual (antes se congelaban y después se perdonaban más de 7 días)
+      const real = localReal();
+      if (real && est.tipo) { ponerAlDia(est, P().dia); cobrarDia(est); }
+      return;
+    }
     prepararTipoSiHaceFalta(o, est);
+    if (!est.sitio || est.sitio.x !== o.datos.x || est.sitio.z !== o.datos.z) est.sitio = { x: o.datos.x, z: o.datos.z };   // (para reconocerlo si la aldea lo desarma antes del primer cuadro)
     ponerAlDia(est, P().dia);
     cobrarDia(est);
     sincronizarVista(o, est);
@@ -311,7 +324,7 @@ export function crearNegocioJuego(ctx) {
       boton(est.abierto ? 'Cerrar el local' : 'Abrir el local', tras((e) => { e.abierto = !e.abierto; if (!e.abierto) for (const c of [...cola.clientes]) { const f = c.figura; cola.clientes.splice(cola.clientes.indexOf(c), 1); if (f) sale(f, local()); } ctx.nota?.(e.abierto ? 'Abriste el local' : 'Cerraste el local', e.abierto ? `Los clientes empiezan a llegar. ${cuantasCosas(e, e.tipo) ? '' : 'Ojo: no tenés nada en los estantes'}${e.fin.activa ? '' : ` Desde mañana paga ${formatoPesos(gastoPorDia(e.tipo))} por día de gastos fijos (${TEXTO_GASTOS}).`}` : 'El cartel dice cerrado: no entra nadie'); }), { clase: est.abierto ? '' : 'principal' }),
       boton(est.caja > 0 ? `Retirar la caja (${formatoPesos(est.caja)})` : 'La caja está vacía', tras((e) => { const m = retirarCaja(P(), e); if (m > 0) { ctx.sonido?.()?.juntar?.(); ctx.nota?.(`Retiraste ${formatoPesos(m)}`, 'Pasaron a tu billetera', true); } }), { activo: est.caja > 0 }),
       boton('Surtir con todo lo que llevás', tras((e) => { const puesto = surtirTodo(e, env()); if (puesto.length) { ctx.sonido?.()?.juntar?.(); ctx.nota?.('Surtiste los estantes', textoLista(puesto), true); } else ctx.nota?.('No hay qué poner', 'No llevás nada de lo que vende este local, o los estantes ya están llenos'); })),
-      boton('Sacar toda la mercadería', tras((e) => { const sacado = []; for (const k of Object.keys(e.stock)) { const n = sacarDelEstante(e, k); if (n > 0) { ctx.dar(k, n); sacado.push({ k, n }); } } if (sacado.length) ctx.nota?.('Sacaste la mercadería', textoLista(sacado)); }), { activo: unidadesEnEstantes(est) > 0 }),
+      boton('Sacar toda la mercadería', tras((e) => { const sacado = []; for (const k of Object.keys(e.stock)) { const n = sacarDelEstante(e, k); if (n > 0) { ctx.dar(k, n); sacado.push({ k, n }); } } if (sacado.length) ctx.nota?.('Sacaste la mercadería', textoLista(sacado)); }), { activo: unidadesSacables(est) > 0, titulo: unidadesEnEstantes(est) > unidadesSacables(est) ? 'Lo que pediste al proveedor se vende, pero no se saca del estante' : '' }),
       boton(pres.items.length ? `Pedir al proveedor (${formatoPesos(pres.total)})` : 'Pedir al proveedor', tras((e) => {
         const r = pedirAlProveedor(P(), e, P().dia);
         if (r.ok) { ctx.sonido?.()?.juntar?.(); ctx.nota?.(`Pedido al proveedor: −${formatoPesos(r.total)}`, `${textoLista(r.items)}. Son ${formatoPesos(r.plaza)} de mercado y ${formatoPesos(r.recargo)} de recargo${r.deBilletera > 0 ? (r.deCaja > 0 ? `. Salió ${formatoPesos(r.deCaja)} de la caja y ${formatoPesos(r.deBilletera)} de tu billetera` : '. Salió de tu billetera') : '. Salió de la caja del local'}`, false); }
@@ -330,12 +343,12 @@ export function crearNegocioJuego(ctx) {
     for (const f of filasDelPanel(est, tipo, { tengo: (k) => ctx.tengo(k) })) {
       const fila = el('div', 'negocio-fila' + (f.hay === 0 ? ' vacio' : ''));
       const nom = el('span', 'negocio-nom'); nom.append(el('b', '', f.nombre), el('i', '', `llevás ${f.enMano} · plaza ${formatoPesos(f.plaza)}`));
-      const cantidad = el('span', 'negocio-cant', f.hay === 0 ? `vacío (cabe ${f.tope})` : `${f.hay} de ${f.tope}`);
+      const cantidad = el('span', 'negocio-cant', f.hay === 0 ? `vacío (cabe ${f.tope})` : `${f.hay} de ${f.tope}${f.prov > 0 ? ` · ${f.prov} del proveedor` : ''}`);
       const surtido = el('span', 'negocio-surtir');
       surtido.append(
         boton(`+${f.lote}`, tras((e) => { const n = surtir(e, f.k, f.lote, env()); if (n) ctx.sonido?.()?.juntar?.(); else ctx.nota?.('No se pudo surtir', f.enMano <= 0 ? `No llevás ${nombreUnidad(f.k, 2)}` : 'El estante ya está lleno'); }), { activo: f.enMano > 0 && f.hay < f.tope, titulo: `Dejar ${f.lote} en el estante` }),
         boton('Llenar', tras((e) => { const n = surtir(e, f.k, 1e5, env()); if (n) ctx.sonido?.()?.juntar?.(); }), { activo: f.enMano > 0 && f.hay < f.tope, titulo: 'Dejar todo lo que llevás, hasta el tope' }),
-        boton('Sacar', tras((e) => { const n = sacarDelEstante(e, f.k); if (n) ctx.dar(f.k, n); }), { activo: f.hay > 0, titulo: 'Volver a guardar lo del estante' }),
+        boton('Sacar', tras((e) => { const n = sacarDelEstante(e, f.k); if (n) ctx.dar(f.k, n); }), { activo: f.hay - f.prov > 0, titulo: f.prov > 0 ? 'Volver a guardar lo tuyo (lo del proveedor se queda en el estante)' : 'Volver a guardar lo del estante' }),
       );
       const precios = el('span', 'negocio-precios');
       NIVELES.forEach((nv, i) => precios.append(boton(`${nv.nombre} ${formatoPesos(precioDe(f.k, i))}`, tras((e) => { ponerPrecio(e, f.k, i); }), { clase: i === f.nivel ? 'marcado' : '', titulo: `${nv.nombre}: ${i === 0 ? 'viene más gente y la fama sube más' : i === 1 ? 'el equilibrio' : 'viene menos gente, ganás más por cada uno'}` })));
@@ -395,7 +408,12 @@ export function crearNegocioJuego(ctx) {
   function alDesarmar(d) {
     const est = estado();
     if (!est || !d || !esLocal(d.plano)) return '';
-    const activo = cacheLocal ? cacheLocal.datos === d : true;
+    // 4.4.2: ¿es el local activo? Con la caché puesta, por identidad; sin ella (partida recién cargada, el desalojo de la aldea desarma antes del primer cuadro)
+    // por el lugar que el estado se acuerda (`sitio`), o, si no lo trae, sólo si no hay ningún otro local en pie. Antes, sin caché, CUALQUIER local cerraba la cuenta.
+    let activo;
+    if (cacheLocal) activo = cacheLocal.datos === d;
+    else if (est.sitio) activo = Math.abs(est.sitio.x - d.x) < 0.5 && Math.abs(est.sitio.z - d.z) < 0.5;
+    else { const otro = localReal(); activo = !otro || otro.datos === d; }
     if (!activo) return '';
     const r = cerrarLocal(P(), est, (k, n) => ctx.dar(k, n));
     quitarFiguras();
@@ -403,14 +421,15 @@ export function crearNegocioJuego(ctx) {
     const partes = [];
     const deuda = r.deuda > 0 ? (r.deudaPagada ? ` Pagaste los ${formatoPesos(r.deuda)} que debías de gastos.` : ` Los ${formatoPesos(r.deuda)} que debías de gastos se perdonaron.`) : '';
     if (r.devuelto.length) partes.push(textoLista(r.devuelto));
+    const perdido = r.sinDevolver > 0 ? ` Lo que le pediste al proveedor (${r.sinDevolver}) se quedó en el local.` : '';
     if (r.plata > 0) partes.push(formatoPesos(r.plata));
-    if (partes.length || deuda) ctx.nota?.('Cerró tu local', `${partes.length ? `Volvió a vos: ${partes.join(' y ')}. ` : ''}La fama que te hiciste, se queda.${deuda}`, true);
+    if (partes.length || deuda || perdido) ctx.nota?.('Cerró tu local', `${partes.length ? `Volvió a vos: ${partes.join(' y ')}. ` : ''}La fama que te hiciste, se queda.${deuda}${perdido}`, true);
     ui.abierto = false; ctx.panel?.classList.add('oculto');
     return partes.join(' · ');
   }
 
   return {
-    ids: IDS_LOCALES, esLocal, esActivo, local, aviso, usar, atender, atenderA, esCliente, avisoCliente, actualizar, alDesarmar,
+    ids: IDS_LOCALES, esLocal, esActivo, local, localReal, aviso, usar, atender, atenderA, esCliente, avisoCliente, actualizar, alDesarmar,
     panelAbierto: () => ui.abierto, cerrarPanel, abrirPanel, redibujar: () => { if (ui.abierto) dibujar(); },
     // 4.4: lo que necesitan los empleados (el estado, la cola, dónde está el local y a cuánto estás)
     cola, estado, distancia: distA, aMundo, medidas,

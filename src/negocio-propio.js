@@ -132,7 +132,7 @@ export const tasaPorHora = (est, tipo, hora, env = {}) => (pesoDeHora(hora) > 0 
 // ---------------------------------------------------------------- el estado guardado
 export function negocioPropioNuevo() {
   return {
-    v: 1, tipo: null, abierto: false, stock: {}, precios: {}, rep: REP_INICIAL, caja: 0, fin: finNuevo(),
+    v: 1, tipo: null, abierto: false, stock: {}, precios: {}, rep: REP_INICIAL, caja: 0, fin: finNuevo(), prov: {}, sitio: null,
     hoy: { dia: 0, clientes: 0, atendidos: 0, perdidos: 0, faltas: 0, ventas: 0, unidades: 0 },
     total: { clientes: 0, atendidos: 0, perdidos: 0, ventas: 0, unidades: 0, dias: 0, mejorDia: 0 },
   };
@@ -143,6 +143,11 @@ export function negocioPropioDe(p) {
   if (!objeto(p.negocioPropio)) p.negocioPropio = negocioPropioNuevo();
   if (!objeto(p.negocioPropio.fin)) p.negocioPropio.fin = sanearFin(undefined, { hoy: p.dia, tipo: p.negocioPropio.tipo, abierto: p.negocioPropio.abierto === true });   // 4.4.1: (una partida armada a mano, sin pasar por el guardado)
   return p.negocioPropio;
+}
+function sanearProv(v, stock) {
+  const out = {};
+  if (objeto(v)) for (const k of Object.keys(stock)) { const n = Math.min(entero(v[k], 1e4), stock[k]); if (n > 0) out[k] = n; }
+  return out;
 }
 export function sanearNegocioPropio(v, hoy = 1e6) {
   const base = negocioPropioNuevo();
@@ -156,6 +161,9 @@ export function sanearNegocioPropio(v, hoy = 1e6) {
   const rep = Number(v.rep);
   return {
     v: 1, tipo, abierto: v.abierto === true && tipo !== null, stock, precios,
+    // 4.4.2: lo que hay en el estante y vino del proveedor (no se saca; sólo se vende) y dónde está el local (para reconocerlo al desarmar)
+    prov: sanearProv(v.prov, stock),
+    sitio: objeto(v.sitio) && Number.isFinite(v.sitio.x) && Number.isFinite(v.sitio.z) ? { x: v.sitio.x, z: v.sitio.z } : null,
     rep: Number.isFinite(rep) ? Math.round(limitar(rep, 0, 100) * 10) / 10 : REP_INICIAL, caja: entero(v.caja, CAJA_MAX),
     fin: sanearFin(v.fin, { hoy: dia, tipo, abierto: v.abierto === true && tipo !== null }),   // 4.4.1 (una partida de antes no lo trae: valores por defecto)
     hoy: { dia: Math.min(dia, entero(h.dia, 1e6)), clientes: entero(h.clientes, 500), atendidos: entero(h.atendidos, 500), perdidos: entero(h.perdidos, 500), faltas: entero(h.faltas, 500), ventas: entero(h.ventas, 1e7), unidades: entero(h.unidades, 1e5) },
@@ -210,6 +218,7 @@ export function surtir(est, k, n, env) {
   const mueve = Math.min(entero(n, 1e5), cabe, entero(env.tengo(k)));
   if (mueve <= 0) return 0;
   env.quitar(k, mueve);
+  fijarProv(est, k);
   est.stock[k] = entero(est.stock[k]) + mueve;
   return mueve;
 }
@@ -221,11 +230,24 @@ export function surtirTodo(est, env) {
 }
 // Sacar del estante (todo o hasta `n`): vuelve [{ k, n }] y el que llama se lo da al jugador
 export function sacarDelEstante(est, k, n = 1e5) {
-  const hay = entero(est.stock[k]), saca = Math.min(hay, entero(n, 1e5));
+  const hay = entero(est.stock[k]), saca = Math.min(sacableDe(est, k), entero(n, 1e5));
   if (saca <= 0) return 0;
   est.stock[k] = hay - saca;
-  if (est.stock[k] <= 0) delete est.stock[k];
+  if (est.stock[k] <= 0) { delete est.stock[k]; if (est.prov) delete est.prov[k]; }
   return saca;
+}
+// 4.4.2: lo que viene del proveedor queda marcado en el estante: se vende, pero no se puede sacar (si no, «Pedir al proveedor» + «Sacar» era una tienda de materiales).
+// Las ventas gastan primero lo tuyo, así que lo marcado es `min(marca, hay)`; antes de sumar algo al estante se ajusta la marca a lo que realmente queda.
+export const deProveedor = (est, k) => Math.min(entero(est?.prov?.[k]), entero(est?.stock?.[k]));
+export const sacableDe = (est, k) => Math.max(0, entero(est?.stock?.[k]) - deProveedor(est, k));
+export const unidadesSacables = (est) => Object.keys(est?.stock || {}).reduce((s, k) => s + sacableDe(est, k), 0);
+export function fijarProv(est, k) {
+  if (!objeto(est.prov)) est.prov = {};
+  const m = deProveedor(est, k);
+  if (m > 0) est.prov[k] = m; else delete est.prov[k];
+}
+export function marcarProveedor(est, k, n) {   // (después de sumar `n` al estante: esas `n` son del proveedor)
+  if (n > 0) est.prov[k] = entero(est.prov[k]) + n;
 }
 export function ponerPrecio(est, k, nivel) {
   if (!est.tipo || !catalogo(est.tipo).includes(k) || ![0, 1, 2].includes(nivel)) return false;
@@ -244,10 +266,12 @@ export function retirarCaja(p, est) {
 export function cerrarLocal(p, est, darCosa) {
   const devuelto = [];
   for (const k of Object.keys(est.stock)) { const n = sacarDelEstante(est, k); if (n > 0) { darCosa(k, n); devuelto.push({ k, n }); } }
+  const sinDevolver = unidadesEnEstantes(est);   // 4.4.2: lo del proveedor no vuelve a la mochila
+  est.stock = {}; est.prov = {}; est.sitio = null;
   const cuenta = cerrarCuenta(p, est);   // 4.4.1: lo que se debía de gastos se paga de la caja o la billetera; si no alcanza, se perdona
   const plata = retirarCaja(p, est);
   est.abierto = false; est.tipo = null; est.precios = {};
-  return { devuelto, plata, deuda: cuenta.deuda, deudaPagada: cuenta.pagada };
+  return { devuelto, plata, deuda: cuenta.deuda, deudaPagada: cuenta.pagada, sinDevolver };
 }
 
 // ---------------------------------------------------------------- un cliente
@@ -352,7 +376,7 @@ export const primeroEnLaCola = (cola) => cola.clientes.find((c) => c.listo) || n
 // ---------------------------------------------------------------- lo que muestra el panel y lo que dice el aviso (puro: se prueba)
 export function filasDelPanel(est, tipo, env = {}) {
   return catalogo(tipo).map((k) => ({
-    k, nombre: BIENES[k].nombre, hay: entero(est.stock[k]), tope: topeEstante(k), nivel: nivelDeProducto(est, k), precio: precioUnidad(k, nivelDeProducto(est, k)),
+    k, nombre: BIENES[k].nombre, hay: entero(est.stock[k]), prov: deProveedor(est, k), tope: topeEstante(k), nivel: nivelDeProducto(est, k), precio: precioUnidad(k, nivelDeProducto(est, k)),
     plaza: precioPlaza(k), enMano: entero(env.tengo ? env.tengo(k) : 0), lote: BIENES[k].lote,
   }));
 }

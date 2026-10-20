@@ -2027,7 +2027,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   // 3.6 (mecánicas): la bandera de la plaza: el jefe de estación la iza a las 8 y la arría a las 19
   // (cuenta la hora del reloj, sin su corrimiento: la bandera no espera)
   const bandera = persona === 'jefe' && ((h >= 7.5 && h < 8.25) || (h >= 18.5 && h < 19.25));
-  if (desvioRutina !== null && desvioRutina(persona, h, ds) === 'plaza') return plaza();   // 4.4: el que vendió su negocio y se fue a otra cosa
+  if (desvioRutina !== null && desvioRutina(persona, h, ds, dia, t) === 'plaza') return plaza();   // 4.4: el que vendió su negocio y se fue a otra cosa
 
   // 3.9.0: la moza de la cantina: de 18 a 2 atiende detrás de la barra (el horario del cartel: HORARIO_CANTINA, sin corrimiento); (a las 2 cierra y se acuesta)
   // y duerme hasta las 11 en el cuarto de atrás; a la tarde acomoda la barra. Los días de cumpleaños (la fiesta de la tardecita) va a la plaza.

@@ -135,7 +135,7 @@ export const textoTurno = (turno) => `de ${horaTxt(TURNOS[turno === 1 ? 1 : 0].d
 // ---------------------------------------------------------------- el estado guardado
 export function empleadosNuevo() {
   return {
-    v: 1, lista: [], sim: { ultima: 0, acum: 0, n: 0 }, visita: 0,
+    v: 1, lista: [], ficha: {}, sim: { ultima: 0, acum: 0, n: 0, tope: 0 }, visita: 0,
     pend: { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {}, repuesto: {} },
     total: { contratados: 0, despedidos: 0, renuncias: 0, vendido: 0, sueldos: 0 },
   };
@@ -145,7 +145,8 @@ function sanearEmp(v, hoy, usados) {
   const tope = hoy * 24 + 24;
   return {
     k: v.k, turno: v.turno === 1 ? 1 : 0, alta: real(v.alta, 0, tope, 0), dias: entero(v.dias, 1e5), sueldo: limitar(entero(v.sueldo, 1e5), SUELDO.min, SUELDO.max) || SUELDO.min,
-    pagadoDia: Math.min(hoy, entero(v.pagadoDia, 1e6)), impagos: Math.min(IMPAGOS_MAX - 1, entero(v.impagos, 9)), vendido: entero(v.vendido, 1e10), clientes: entero(v.clientes, 1e7),
+    pagadoDia: v.pagadoDia === undefined || v.pagadoDia === null || !Number.isFinite(Number(v.pagadoDia)) ? hoy : Math.min(hoy, entero(v.pagadoDia, 1e6)), impagos: Math.min(IMPAGOS_MAX - 1, entero(v.impagos, 9)), vendido: entero(v.vendido, 1e10), clientes: entero(v.clientes, 1e7),
+    // (4.4.2: sin `pagadoDia` arranca hoy; antes, desde el día 1: cobraba todos los días de golpe)
     amistadHasta: entero(v.amistadHasta, 1e6), repuestoDia: Math.min(hoy, entero(v.repuestoDia, 1e6)),   // 4.4.1 (una partida de antes no lo trae: 0)
   };
 }
@@ -167,9 +168,11 @@ export function sanearEmpleadosNegocio(v, hoy = 1e6) {
   if (objeto(p.porEmp)) for (const k of IDS_CANDIDATOS) if (Object.hasOwn(p.porEmp, k) && objeto(p.porEmp[k])) porEmp[k] = { ventas: entero(p.porEmp[k].ventas, 1e8), clientes: entero(p.porEmp[k].clientes, 1e5) };
   const repuesto = {};
   if (objeto(p.repuesto)) for (const k of Object.keys(p.repuesto)) if (esReponible(k)) { const n = entero(p.repuesto[k], 1e5); if (n > 0) repuesto[k] = n; }
+  const ficha = {};
+  if (objeto(v.ficha)) for (const k of IDS_CANDIDATOS) if (Object.hasOwn(v.ficha, k)) { const d = entero(v.ficha[k], 1e6); if (d > 0) ficha[k] = Math.min(dia, d); }
   return {
-    v: 1, lista,
-    sim: { ultima: real(s.ultima, 0, tope, 0), acum: real(s.acum, 0, 50, 0), n: entero(s.n, 1e9) },
+    v: 1, lista, ficha,
+    sim: { ultima: real(s.ultima, 0, tope, 0), acum: real(s.acum, 0, 50, 0), n: entero(s.n, 1e9), tope: real(s.tope, 0, tope, 0) },
     visita: Math.min(dia, entero(v.visita, 1e6)),
     pend: { ventas: entero(p.ventas, 1e8), clientes: entero(p.clientes, 1e5), sueldos: entero(p.sueldos, 1e8), cajaLlena: p.cajaLlena === true, porEmp, repuesto },
     total: { contratados: entero(t.contratados, 1e5), despedidos: entero(t.despedidos, 1e5), renuncias: entero(t.renuncias, 1e5), vendido: entero(t.vendido, 1e10), sueldos: entero(t.sueldos, 1e10) },
@@ -196,9 +199,18 @@ export function contratar(E, k, d) {
   if (!oferta.ok) return { ok: false, motivo: oferta.motivo, oferta };
   const turno = E.lista.some((x) => x.turno === 0) ? 1 : 0;
   const dia = Math.max(1, Math.floor(Number(d.dia) || 1));
-  const emp = { k, turno, alta: Number(d.abs) || dia * 24, dias: 0, sueldo: oferta.sueldo, pagadoDia: dia, impagos: 0, vendido: 0, clientes: 0, amistadHasta: 0, repuestoDia: 0 };
+  const alta = Number(d.abs) || dia * 24;
+  // 4.4.2: el día de prueba sin sueldo es UNA vez por vecino (y por local): al que ya trabajó para vos y despediste, el día de hoy se le paga al cerrar el turno
+  // (si todavía no cerró), sin volver a cobrar lo que ya se le pagó al despedirlo (`ficha`: hasta qué día estaba pago)
+  const pruebaUsada = Object.hasOwn(E.ficha || (E.ficha = {}), k);
+  let pagadoDia = dia;
+  if (pruebaUsada) {
+    const v = ventanaDeTurno(turno, diaSemana(dia)), hora = alta - dia * 24;
+    pagadoDia = Math.max(E.ficha[k], v && hora < v[1] ? dia - 1 : dia);
+  }
+  const emp = { k, turno, alta, dias: 0, sueldo: oferta.sueldo, pagadoDia, impagos: 0, vendido: 0, clientes: 0, amistadHasta: 0, repuestoDia: 0 };
   E.lista.push(emp);
-  if (!E.sim.ultima || E.lista.length === 1) E.sim.ultima = emp.alta;
+  if (!E.sim.ultima || E.lista.length === 1) { E.sim.ultima = emp.alta; E.sim.tope = 0; }
   E.visita = dia;
   E.total.contratados++;
   return { ok: true, emp, oferta };
@@ -220,10 +232,11 @@ export function despedir(p, est, E, k, env = {}) {
   if (!emp) return { ok: false, motivo: 'no-esta' };
   const abs = Number(env.abs) || emp.alta, { dia, hora } = partesDeAbs(abs), v = ventanaDeTurno(emp.turno, diaSemana(dia));
   let pago = null;
-  if (v && hora >= v[0] && dia > emp.pagadoDia && dia > partesDeAbs(emp.alta).dia) {
+  if (v && hora >= v[0] && dia > emp.pagadoDia) {   // (4.4.2: sin mirar el día de la alta: el que recontrataste esta mañana y ya trabajó, cobra)
     pago = pagarJornada(p, est, emp, env.nombre?.(k));
     if (pago.ok) { emp.pagadoDia = dia; emp.dias++; E.total.sueldos += pago.monto; anotarFin(est, dia, 'sueldos', pago.monto); }
   }
+  (E.ficha || (E.ficha = {}))[emp.k] = emp.pagadoDia;   // 4.4.2: ya tuvo su día de prueba en este local
   sacar(E, emp);
   E.total.despedidos++;
   env.cambiarAmistad?.(k, AMISTAD_EMP.despedido);
@@ -301,14 +314,16 @@ export function elegirAyuda(cola, E, tipo, abs, nivelDe, dt = 1, ocupado = null)
 // `env`: { abs, presente, nivel(k), nombre(k), cambiarAmistad(k, n), lluvia, ocupado(k), depositos() (4.4.1: { hay(k), sacar(k, n) } de los depósitos cerca del local) }
 export function avanzarEmpleados(p, est, tipo, E, env) {
   const ev = [];
-  if (!E.lista.length) { E.sim.ultima = Number(env.abs) || 0; return ev; }
+  if (!E.lista.length) { E.sim.ultima = Number(env.abs) || 0; E.sim.tope = 0; return ev; }
   const abs = Number(env.abs) || 0, dia = partesDeAbs(abs).dia;
   if (!(E.sim.ultima > 0) || E.sim.ultima > abs) E.sim.ultima = abs;
   if (env.presente) E.visita = dia;
 
   // 1. las ventas de las horas que pasaron sin vos
   if (!env.presente && est.tipo === tipo) {
-    const r = simularTramo(est, tipo, E, Math.max(E.sim.ultima, abs - SIM_MAX_HORAS), abs, { nivel: env.nivel, lluvia: env.lluvia, ocupado: env.ocupado, depositos: env.depositos });
+    // 4.4.2: `tope` es lo más lejos que ya se simuló: con «hora de tu reloj», dormir antes de medianoche sube el día (+24 h) y a medianoche la hora vuelve atrás;
+    // sin esto el mismo día se vendía dos veces
+    const r = simularTramo(est, tipo, E, Math.max(E.sim.ultima, E.sim.tope || 0, abs - SIM_MAX_HORAS), abs, { nivel: env.nivel, lluvia: env.lluvia, ocupado: env.ocupado, depositos: env.depositos });
     if (!objeto(E.pend.repuesto)) E.pend.repuesto = {};
     for (const [k, n] of Object.entries(r.repuesto)) { E.pend.repuesto[k] = (E.pend.repuesto[k] || 0) + n; est.fin.total.reposicion += n; }
     if (r.clientes > 0 || r.ventas > 0) {
@@ -318,9 +333,11 @@ export function avanzarEmpleados(p, est, tipo, E, env) {
     if (r.cajaLlena) { E.pend.cajaLlena = true; ev.push({ tipo: 'caja-llena' }); }
   }
   E.sim.ultima = abs;
+  if (!(E.sim.tope >= abs)) E.sim.tope = abs;
 
   // 2. los sueldos de los turnos que ya cerraron
   for (const emp of [...E.lista]) {
+    if (emp.pagadoDia < dia - AUSENCIA_MAX_DIAS - 1) emp.pagadoDia = dia - AUSENCIA_MAX_DIAS - 1;   // 4.4.2: nunca más días de golpe que los que se aguantan sin pasar
     for (let d = emp.pagadoDia + 1; d <= dia; d++) {
       const v = ventanaDeTurno(emp.turno, diaSemana(d));
       if (!v) { emp.pagadoDia = d; continue; }   // domingo: descansa

@@ -276,6 +276,7 @@ export function motivoDeCierre(p, dia, hora, reloj = false) {
   const t = turnoActivo(p);
   if (!t) return null;
   if (dia1(dia) !== t.dia) return 'dia';
+  if (p?.negociosVecinos?.comprados && Object.hasOwn(p.negociosVecinos.comprados, t.local)) return 'tiempo';   // 4.4.2: le compraste el local al jefe con el turno en curso: se cierra con lo hecho (no seguís cobrándole el sueldo a tu empleada)
   if (!reloj && (((Number(hora) || 0) % 24 + 24) % 24) > t.hasta + EMPLEO.gracia) return 'tiempo';
   return null;
 }
