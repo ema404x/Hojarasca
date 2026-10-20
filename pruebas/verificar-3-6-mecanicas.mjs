@@ -383,7 +383,7 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
 {
   const main = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
   const gente = fs.readFileSync(new URL('../src/gente.js', import.meta.url), 'utf8');
-  ok(gente.includes('function cerca(js, camara, deFrente = false)') && gente.includes('const minimo = deFrente ? 0.9 : 0.45;'), 'gente.cerca con deFrente');
+  ok(gente.includes('function cerca(js, camara, deFrente = false, omitir = null)') && gente.includes('const minimo = deFrente ? 0.9 : 0.45;'), 'gente.cerca con deFrente');
   ok(main.includes('vecino = gente.cerca(js, camara, true);') && main.includes('function accionDelLugar()') && main.includes("if (m.opciones[i].id === '__lugar')"), 'el mostrador gana y queda en el menú de la charla');
 }
 
