@@ -23,13 +23,13 @@ export const GRUPOS = {
 
 export const AYUDA = {
   plata: { uso: 'plata 50000', linea: 'Fija tus pesos (con + o − suma o resta: plata +500).', detalle: 'Fija el saldo de pesos. Con signo suma o resta: «plata +2000», «plata -300». Va de 0 a 99.999.999. Sólo en el Relax. No deja rastro en el libro de movimientos ni en lo ganado.' },
-  materiales: { uso: 'materiales 100', linea: 'Fija troncos, tablas, piedras y lana de la mochila.', detalle: 'Deja troncos, tablas, piedras y vellones de lana en la cantidad que digas (de 0 a 9.999). Con signo suma o resta: «materiales +50». En el Desafío son sólo troncos, tablas y piedras.' },
+  materiales: { uso: 'materiales 100', linea: 'Fija troncos, tablas, piedras y lana de la mochila.', detalle: 'Deja troncos, tablas, piedras y vellones de lana en la cantidad que digas (de 0 a 9.999). Con signo suma o resta: «materiales +50». En La noche de los duendes son sólo troncos, tablas y piedras.' },
   troncos: { uso: 'troncos 50', linea: 'Fija los troncos que llevás.', detalle: 'Deja los troncos de la mochila en esa cantidad (de 0 a 9.999). Con signo suma o resta.' },
   tablas: { uso: 'tablas 200', linea: 'Fija las tablas que llevás.', detalle: 'Deja las tablas de la mochila en esa cantidad (de 0 a 9.999). Con signo suma o resta.' },
   piedras: { uso: 'piedras 80', linea: 'Fija las piedras que llevás.', detalle: 'Deja las piedras de la mochila en esa cantidad (de 0 a 9.999). Con signo suma o resta.' },
   lana: { uso: 'lana 20', linea: 'Fija los vellones de lana que llevás (sólo Relax).', detalle: 'Deja los vellones de lana de la mochila en esa cantidad (de 0 a 9.999). Con signo suma o resta. Sólo en el Relax.' },
   depositos: { uso: 'depositos', linea: 'Llena hasta el tope tus pilas, depósitos, barracas y silos.', detalle: 'Llena al máximo cada pila de piedra, depósito, barraca y silo que hayas construido (con las ampliaciones que tengan). No toca lo que llevás encima ni el herramientero.' },
-  herramientas: { uso: 'herramientas', linea: 'Te da hacha, pico, tijera, mosca, farol y botas (sólo Relax).', detalle: 'Te da una de cada herramienta que no tengas: hacha, pico, tijera, mosca de pescar, farol y botas de goma. En el Desafío las herramientas se fabrican, así que no aplica.' },
+  herramientas: { uso: 'herramientas', linea: 'Te da hacha, pico, tijera, mosca, farol y botas (sólo Relax).', detalle: 'Te da una de cada herramienta que no tengas: hacha, pico, tijera, mosca de pescar, farol y botas de goma. En La noche de los duendes las herramientas se fabrican, así que no aplica.' },
 
   hora: { uso: 'hora 18', linea: 'Pone la hora del día (hora 18, hora 6:30).', detalle: 'Pone la hora: «hora 18», «hora 6:30», «hora 21.5». No cambia el día. No anda si jugás con la hora de tu reloj. Sólo en el Relax.' },
   amanecer: { uso: 'amanecer', linea: 'Son las 6:30.', detalle: 'Atajo de «hora 6:30».' },
@@ -49,7 +49,7 @@ export const AYUDA = {
   ir: { uso: 'ir faro', linea: 'Te lleva a un lugar por su nombre (ir sola lista los lugares).', detalle: 'Te teletransporta a un lugar: «ir faro», «ir plaza», «ir muelle». También a un punto: «ir 120 -80». «ir» sola lista todos los lugares. No anda arriba del tren, el kayak o el sulky, ni sentado.' },
   donde: { uso: 'donde', linea: 'Te dice dónde estás y qué lugar tenés más cerca.', detalle: 'Muestra tu posición y el lugar más cercano.' },
 
-  planos: { uso: 'planos todos', linea: 'Abre todos los planos (en el Relax ya están todos abiertos).', detalle: 'En el Relax ningún plano está bloqueado: se construye con lo que tengas. En el Desafío los planos se ganan de los restos de las naves y no se regalan.' },
+  planos: { uso: 'planos todos', linea: 'Abre todos los planos (en el Relax ya están todos abiertos).', detalle: 'En el Relax ningún plano está bloqueado: se construye con lo que tengas. En La noche de los duendes los planos se ganan de los restos de las naves y no se regalan.' },
   oficios: { uso: 'oficios maximo', linea: 'Sube oficios: oficios maximo, oficios hachero 3.', detalle: 'Sube los oficios (hachero, picapedrero, pescador, cazador, obrero, huertero, navegante). «oficios maximo» los pone todos en nivel 5; «oficios hachero 3» sube uno solo, de 0 a 5; «oficios cero» los vacía.' },
   historia: { uso: 'historia capitulo 5', linea: 'Salta o completa capítulos de la historia (sólo Relax).', detalle: '«historia capitulo 5» te deja al comienzo del capítulo 5 (los anteriores quedan completos); «historia completar» termina los ocho; «historia reiniciar» vuelve al capítulo 1. No se entregan los premios de los capítulos saltados. Sólo en el Relax.' },
   amigos: { uso: 'amigos todos', linea: 'Amistad con los vecinos: amigos todos, amigos rosa compadre.', detalle: '«amigos todos» deja a todos los vecinos como compadres; «amigos todos amigo» sólo como amigos; «amigos ercilia» sólo a ella. Sólo sube la amistad: nunca la baja. Sólo en el Relax.' },
@@ -76,17 +76,17 @@ export const R = {
   fueraDeRango: (txt, min, max, unidad = '') => `«${txt}» no vale: tiene que estar entre ${miles(min)} y ${miles(max)}${unidad}`,
   demasiado: (txt) => `«${txt}» es demasiado grande`,
   sobra: (resto) => `Sobra «${resto}»: no lo usé`,
-  soloRelax: (que) => `${que} es del modo Relax: en el Desafío no aplica`,
+  soloRelax: (que) => `${que} es del modo Relax: en La noche de los duendes no aplica`,
   soloDesafio: (que) => `${que} es de La noche de los duendes`,
   noHayPartida: 'No hay una partida en marcha',
 
   plata: (n) => `Listo: tenés ${pesos(n)}`,
-  plataDesafio: 'En el Desafío no hay pesos: eso es del modo Relax',
+  plataDesafio: 'En La noche de los duendes no hay pesos: eso es del modo Relax',
   material: (k, n) => `Listo: tenés ${cantidad(n)} ${k}`,
   materiales: (n) => `Listo: troncos, tablas, piedras y lana en ${cantidad(n)}`,
-  materialesDesafio: (n) => `Listo: troncos, tablas y piedras en ${cantidad(n)} (la lana no existe en el Desafío)`,
+  materialesDesafio: (n) => `Listo: troncos, tablas y piedras en ${cantidad(n)} (la lana no existe en La noche de los duendes)`,
   materialesRel: (signo, n) => `Listo: ${signo > 0 ? 'sumé' : 'resté'} ${cantidad(n)} de cada material`,
-  lanaDesafio: 'La lana es del modo Relax: en el Desafío no aplica',
+  lanaDesafio: 'La lana es del modo Relax: en La noche de los duendes no aplica',
   depositos: (n) => (n ? `Listo: ${n} ${n === 1 ? 'depósito lleno' : 'depósitos llenos'}` : 'No hay depósitos para llenar: construí una pila, un depósito, una barraca o un silo'),
   herramientas: (lista) => (lista.length ? `Listo: te di ${lista.join(', ')}` : 'Ya tenías todas las herramientas'),
 
@@ -123,7 +123,7 @@ export const R = {
   donde: (x, z, cerca, metros) => `Estás en ${Math.round(x)}, ${Math.round(z)}${cerca ? `: a ${metros} m de ${cerca}` : ''}`,
 
   planosRelax: 'En el Relax ya están todos los planos abiertos: se construye con lo que tengas',
-  planosDesafio: 'En el Desafío los planos se ganan de los restos de las naves: no se regalan',
+  planosDesafio: 'En La noche de los duendes los planos se ganan de los restos de las naves: no se regalan',
   oficiosTodos: 'Listo: los siete oficios en el nivel máximo',
   oficio: (nombre, nivel) => `Listo: ${nombre} en nivel ${nivel}`,
   oficiosCero: 'Listo: los oficios vuelven a cero',

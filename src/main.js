@@ -11053,6 +11053,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__caidas = { dialogos, graficos: estadoGraficos, fallas: () => [...fallasBucle.values()], fallaSistema, rehacerGraficos, pedirNombre, recuperadoDe, modo: () => modo };
   // 3.1: las carreras, el desafío del día y el torneo, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;
+  if (HOJARASCA_DEBUG) window.__hojarasca.__trucos = () => trucosJuego;   // 4.5: la consola de códigos (QA)
   if (HOJARASCA_DEBUG) window.__hojarasca.__sinFin = { es: esSinFin, terminar: () => terminarCorrida(), records: () => recordsSinFin(), nueva: (c) => nuevaCorrida(c), empezarMapa: () => empezarMapaDesafio() };
   // 3.1: los oficios (3.6: y la aldea), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldea = { oficios: () => oficios, mundo: () => aldeaGente, llamar: llamarAlProximoPoblador, actualizar: (dt = 1) => actualizarAldea(dt),
