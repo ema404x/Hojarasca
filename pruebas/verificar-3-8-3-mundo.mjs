@@ -205,7 +205,7 @@ ${cuerpo('devolverContenido')}`;
   }
 }
 // 6c. con un panel abierto el aviso queda vacío (E lo cierra), aunque lo de más arriba lo vuelva a escribir
-ok(/aviso = null;\n {4}\/\/ 3\.8\.3: con un panel abierto E lo cierra[\s\S]{0,200}if \(enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| cocinaJuego\?\.panelAbierto\(\) \|\| tallerTren\?\.panelAbierto\(\)\) aviso = null;\n {4}mostrarAviso\(aviso\);/.test(main), 'con un panel abierto, el aviso es el de la tecla E (nada), justo antes de mostrarlo');
+ok(/aviso = null;\n {4}\/\/ 3\.8\.3: con un panel abierto E lo cierra[\s\S]{0,400}if \(enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| cocinaJuego\?\.panelAbierto\(\) \|\| tallerTren\?\.panelAbierto\(\)[^\n]*\) aviso = null;\n {4}mostrarAviso\(aviso\);/.test(main), 'con un panel abierto, el aviso es el de la tecla E (nada), justo antes de mostrarlo');
 
 // ---------------------------------------------------------------- 7. el deslizador de la hora del modo foto no hace correr el reloj
 // aplicarFoto escribe progreso.horas: la cocina, el taller y las máquinas avanzaban con esa hora (y de vuelta, otra vez)
