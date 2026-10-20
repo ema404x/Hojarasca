@@ -55,16 +55,20 @@ if (app && process.env.HOJ_PANTALLA !== 'no') {
       return pantalla().getDisplayMatching(w.getBounds()).id !== d.id;
     } catch { return false; }
   };
+  // 4.4: la ventana nace transparente y sin botón en la barra de tareas (la barra de la notebook no la muestra); se la mueve al monitor externo y
+  // recién entonces se hace visible: así no hay un destello en la notebook. (`BrowserWindow` no se puede reemplazar: es un getter fijo.)
+  const revelar = (w) => setTimeout(() => { try { if (!w.isDestroyed() && elegir() && !enOtraPantalla(w)) w.setOpacity(1); } catch {} }, 120);
   app.on('browser-window-created', (_e, w) => {
-    mover(w);
+    try { w.setOpacity(0); w.setSkipTaskbar(true); } catch {}
+    mover(w); revelar(w);
     // algunas pruebas o el juego reacomodan la ventana al mostrarla: se vuelve a mandar
-    w.once('ready-to-show', () => mover(w));
-    w.once('show', () => mover(w));
+    w.once('ready-to-show', () => { mover(w); revelar(w); });
+    w.once('show', () => { mover(w); revelar(w); });
     let esperando = false;
     const vigilar = () => {
       if (esperando) return;
       esperando = true;
-      setTimeout(() => { esperando = false; if (!w.isDestroyed() && enOtraPantalla(w)) mover(w); }, 150);
+      setTimeout(() => { esperando = false; if (!w.isDestroyed() && enOtraPantalla(w)) { try { w.setOpacity(0); } catch {} mover(w); revelar(w); } }, 150);
     };
     for (const ev of ['move', 'moved', 'resize', 'enter-full-screen', 'restore', 'maximize']) { try { w.on(ev, vigilar); } catch {} }
   });
