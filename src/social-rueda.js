@@ -30,6 +30,8 @@ export function categoriaDeOpcion(id) {
   if (s === 'chau') return 'chau';
   if (s === 'contame' || s === 'como-andas' || s === 'novedades' || s === 'historia') return 'charla';
   if (s === 'invitar') return 'juntos';
+  if (s === 'negocios:resumen') return 'charla';   // 4.4: lo que cuenta el gerente es una charla
+  if (/^negocios(?::|$)/.test(s)) return 'hacer';   // 4.4: hablar de su negocio (comprarlo, ser socio): «Hacer juntos»
   if (/^rincones:/.test(s)) return 'hacer';   // 3.8.4: lo de los rincones (aprender una manualidad, el sulky, la pista de los duendes)
   if (/^alero:/.test(s)) return 'charla';   // 3.8.6: lo del abuelo de Martín es una charla (caía en «Regalar y ayudar», donde nadie lo buscaba)
   if (s === 'amor:chicos') return 'charla';   // 3.8.6: hablar de tus hijos no es romance (con la ex, casado con otra)
@@ -42,7 +44,7 @@ export const menuParaRueda = (menu) => (Array.isArray(menu?.opciones) ? menu.opc
 const ICONO_OPCION = {
   servicio: 'herramienta', contame: 'libro', 'como-andas': 'sonrisa', novedades: 'diario', historia: 'libro', regalar: 'regalo', invitar: 'mate',
   ayudar: 'mano', chau: 'chau', volver: 'volver', __lugar: 'puerta', amor: 'corazon', 'amor-cita': 'flor', 'amor-casa': 'casa', 'amor-correo': 'carta',
-  'invitar:mate': 'mate', 'invitar:te': 'taza',
+  'invitar:mate': 'mate', 'invitar:te': 'taza', negocios: 'casa', 'negocios:resumen': 'libro',   // (4.4)
   'alero:pedir': 'libro', 'alero:recordar': 'libro', 'alero:contar': 'libro',   // 3.8.6: el abuelo de Martín
 };
 const ICONO_COSA = [

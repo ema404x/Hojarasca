@@ -262,6 +262,7 @@ export function crearVecindadJuego(ctx) {
     for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
     for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2: una receta y el trueque para la cocina (una sola opción, «Para la cocina…»)
     for (const o of ctx.rincones?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.5 (rincones): lo que te enseña, el sulky de Tito, la pista de los duendes
+    for (const o of ctx.negocios?.opciones?.(s.clave) || []) lista.push(o);   // 4.4: «Hablar de su negocio» (comprarlo, ser socio) y, con el gerente, «Hablar de negocios»
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -345,6 +346,14 @@ export function crearVecindadJuego(ctx) {
     // 3.7.5 (rincones): lo que te enseña un amigo, el sulky, la pista de los duendes (rincones-juego.js)
     if (/^rincones:/.test(String(id)) && ctx.rincones) {
       const r = ctx.rincones.elegir(s, String(id));
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
+    // 4.4: comprar el negocio de un vecino o ser su socio (negocios-vecinos-juego.js): un submenú propio o lo que contesta el vecino
+    if (/^negocios(?::|$)/.test(String(id)) && ctx.negocios) {
+      const r = ctx.negocios.elegir(s, String(id), npc);
+      if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
       s.sub = null;
       if (r.tipo !== 'menu') s.vueltas++;
       return r;

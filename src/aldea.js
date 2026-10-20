@@ -1943,6 +1943,10 @@ export function obrerosDe(aldea, lote) {
   return lista;
 }
 const presente = (aldea, clave) => esVecinoAldea(clave) || (aldea?.pobladores || []).some((p) => p.clave === clave);
+// 4.4: el vecino que le vendió su negocio al jugador y se fue a otra cosa pasa el día en la plaza (negocios-vecinos-juego.js fija esta función; sin ella,
+// todo es igual que siempre). Recibe (persona, hora, díaDeSemana) y devuelve 'plaza' o null.
+let desvioRutina = null;
+export function fijarDesvioRutina(fn) { desvioRutina = typeof fn === 'function' ? fn : null; }
 // Dónde está cada uno a cada hora. `persona`: la clave de un vecino o de un poblador;
 // `diaSemana`: 0 (lunes) a 6 (domingo); `estado`: la aldea. Devuelve { lugar, edificio,
 // punto }: `lugar` es 'casa'|'local'|'trabajo'|'plaza'|'biblioteca'|'almacen'|'escuela'|'obra'|'salon'|
@@ -2017,6 +2021,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   // 3.6 (mecánicas): la bandera de la plaza: el jefe de estación la iza a las 8 y la arría a las 19
   // (cuenta la hora del reloj, sin su corrimiento: la bandera no espera)
   const bandera = persona === 'jefe' && ((h >= 7.5 && h < 8.25) || (h >= 18.5 && h < 19.25));
+  if (desvioRutina !== null && desvioRutina(persona, h, ds) === 'plaza') return plaza();   // 4.4: el que vendió su negocio y se fue a otra cosa
 
   // 3.9.0: la moza de la cantina: de 18 a 2 atiende detrás de la barra (el horario del cartel: HORARIO_CANTINA, sin corrimiento); (a las 2 cierra y se acuesta)
   // y duerme hasta las 11 en el cuarto de atrás; a la tarde acomoda la barra. Los días de cumpleaños (la fiesta de la tardecita) va a la plaza.
