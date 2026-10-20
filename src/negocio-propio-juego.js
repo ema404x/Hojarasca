@@ -213,23 +213,24 @@ export function crearNegocioJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- atender (E)
-  function atender(c) {
+  // `quien`: el nombre de un empleado que atiende por vos (4.4: empleados-negocio-juego.js); sin él, atendés vos
+  function atender(c, quien = null) {
     const est = estado(), o = local();
     if (!est || !o) return false;
     c = c || primeroEnLaCola(cola);
     if (!c) return false;
     if (!c.listo) { ctx.nota?.('Todavía viene caminando', 'Esperá a que llegue al mostrador'); return true; }
     const r = despachar(est, c);
-    if (!r.ok) { ctx.nota?.('La caja no tiene lugar', `Hay ${formatoPesos(est.caja)} adentro y el tope es ${formatoPesos(CAJA_MAX)}. Retirá la plata (Mayús + E) y seguí atendiendo`); return true; }
+    if (!r.ok) { if (quien) return false; ctx.nota?.('La caja no tiene lugar', `Hay ${formatoPesos(est.caja)} adentro y el tope es ${formatoPesos(CAJA_MAX)}. Retirá la plata (Mayús + E) y seguí atendiendo`); return true; }
     cola.clientes.splice(cola.clientes.indexOf(c), 1);
     const f = c.figura;
     if (f) sale(f, o);
     if (r.nada) {
-      ctx.nota?.('Se fue sin comprar', `No tenías nada de lo que pedía (${textoLista(r.faltan)}). Tené los estantes surtidos`, false);
+      ctx.nota?.('Se fue sin comprar', `${quien ? 'No había' : 'No tenías'} nada de lo que pedía (${textoLista(r.faltan)}). Tené los estantes surtidos`, false);
     } else {
       ctx.sonido?.()?.juntar?.();
-      const falta = r.faltan.length ? ` Te faltó ${textoLista(r.faltan)}` : '';
-      ctx.nota?.(`+${formatoPesos(r.total)} en la caja`, `Le diste ${textoLista(r.vendidos)}.${falta}`, true);
+      const falta = r.faltan.length ? ` ${quien ? 'Faltó' : 'Te faltó'} ${textoLista(r.faltan)}` : '';
+      ctx.nota?.(quien ? `${quien} atendió: +${formatoPesos(r.total)} en la caja` : `+${formatoPesos(r.total)} en la caja`, `${quien ? 'Le dio' : 'Le diste'} ${textoLista(r.vendidos)}.${falta}`, true);
     }
     avisarRep(est);
     sincronizarVista(o, est);
@@ -305,6 +306,7 @@ export function crearNegocioJuego(ctx) {
       lista.append(fila);
     }
     raiz.append(lista);
+    ctx.extraPanel?.(raiz, est);   // 4.4: la sección de los empleados (empleados-negocio-juego.js)
     const pie = el('div', 'negocio-pie');
     pie.append(boton('Todo en precio normal', tras((e) => { for (const k of catalogo(e.tipo)) ponerPrecio(e, k, 1); })), boton('Todo barato', tras((e) => { for (const k of catalogo(e.tipo)) ponerPrecio(e, k, 0); })), boton('Todo caro', tras((e) => { for (const k of catalogo(e.tipo)) ponerPrecio(e, k, 2); })), boton('Listo', () => cerrarPanel()));
     raiz.append(pie);
@@ -372,6 +374,8 @@ export function crearNegocioJuego(ctx) {
   return {
     ids: IDS_LOCALES, esLocal, esActivo, local, aviso, usar, atender, atenderA, esCliente, avisoCliente, actualizar, alDesarmar,
     panelAbierto: () => ui.abierto, cerrarPanel, abrirPanel, redibujar: () => { if (ui.abierto) dibujar(); },
+    // 4.4: lo que necesitan los empleados (el estado, la cola, dónde está el local y a cuánto estás)
+    cola, estado, distancia: distA, aMundo, medidas,
     // para las pruebas: ver y empujar lo que hace el juego sin esperar horas de juego
     __cola: cola, __figuras: figuras, __estado: estado,
     __llegar: (semilla = 1, hora = 12) => {

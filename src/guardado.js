@@ -66,6 +66,8 @@ import { empleoNuevo, sanearEmpleo } from './empleo.js';
 import { cantinaNueva, sanearCantina } from './cantina.js';
 // 4.3: el negocio propio (un local con estantes, precios, caja y fama; sólo en el Relax)
 import { negocioPropioNuevo, sanearNegocioPropio } from './negocio-propio.js';
+// 4.4: los empleados de tu negocio propio
+import { empleadosNuevo, sanearEmpleadosNegocio } from './empleados-negocio.js';
 import { sanearAjusteBorrachera } from './pena.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
@@ -396,6 +398,7 @@ export function progresoNuevo() {
     ...(desafio ? {} : { economia: economiaNueva(), negocios: negociosNuevo(), cantina: cantinaNueva(), casaTe: cantinaNueva(), negocioPropio: negocioPropioNuevo() }),   // 3.8.8: el peso (sin plata ni movimientos todavía; ver economia.js)
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
     ...(desafio ? {} : { empleo: empleoNuevo() }),   // 4.3: el empleo fijo (ningún puesto todavía; ver empleo.js)
+    ...(desafio ? {} : { empleadosNegocio: empleadosNuevo() }),   // 4.4: los vecinos contratados en tu negocio propio (nadie todavía; ver empleados-negocio.js)
     ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
@@ -644,6 +647,8 @@ function sanearProgreso(p) {
   else { limpio.economia = sanearEconomia(p.economia); convertirYerba(limpio); limpio.negocios = sanearNegocios(p.negocios, limpio.dia); limpio.negocioPropio = sanearNegocioPropio(p.negocioPropio, limpio.dia); limpio.cantina = sanearCantina(p.cantina, limpio.dia); limpio.casaTe = sanearCantina(p.casaTe, limpio.dia); }   // 3.9.2: la libreta de la casa de té (una partida de antes: vacía)   // 3.9.0: la cuenta de la cantina (una partida de antes no la trae: arranca vacía)   // 3.8.8: los negocios (negocios.js)
   // 4.3: el empleo fijo (sólo en el Relax). Una partida de antes no lo trae: sale vacío, sin ningún puesto, y lo demás queda como estaba
   limpio.empleo = modoPartida === 'desafio' ? undefined : sanearEmpleo(p.empleo, limpio.dia);
+  // 4.4: los empleados de tu negocio propio (sólo en el Relax). Una partida de antes no los trae: sale vacío, nadie contratado, y lo demás queda como estaba
+  limpio.empleadosNegocio = modoPartida === 'desafio' ? undefined : sanearEmpleadosNegocio(p.empleadosNegocio, limpio.dia);
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)

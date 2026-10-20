@@ -1986,6 +1986,11 @@ export function enLaCantinaDe(aldea, persona, noche, hh) {
   for (const x of parroquianosDeLaNoche(aldea, noche)) if (x.clave === persona && hh >= x.llega && hh < x.sale) return x;
   return null;
 }
+// 4.4: el vecino contratado en tu negocio propio (empleados-negocio-juego.js): durante su turno no está en la aldea (sale como «fuera», igual que el chico que se fue
+// a estudiar) y su figura está detrás del mostrador de tu local. Un enganche chico que fija main.js al armar el juego: devuelve verdadero si `persona` está de turno a esa
+// hora y ese día de la semana (`dia` puede venir null). Sin él (las pruebas, el Desafío) todo es igual que siempre.
+let ocupacionExterna = null;
+export function fijarOcupacionExterna(fn) { ocupacionExterna = typeof fn === 'function' ? fn : null; }
 export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   const a = estado || aldeaNueva();
   const fuera = { lugar: null, edificio: null, punto: null };
@@ -1993,6 +1998,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
   const h = (((num(hora) || 0) % 24) + 24) % 24;
   const t = h - desfaseDe(persona);
   const ds = ((Math.floor(num(diaSemana) || 0) % 7) + 7) % 7;
+  if (ocupacionExterna !== null && ocupacionExterna(persona, h, ds, dia)) return fuera;   // 4.4: de turno en tu local
   const domingo = ds === 6, sabado = ds === 5, habil = ds < 5;
   const i = indicePersona(persona);
   const ir = (lugar, edificio, punto) => ({ lugar, edificio, punto });

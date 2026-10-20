@@ -73,7 +73,7 @@ import { VISITA, VISITANTES, visitasNuevas, mesaPuesta, quienViene, tocaVisita, 
 // 3.1: rangos y oficios. 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { XP, golpesParaPicar, extraDePiedra, troncosAlTalar, tablasAMano, golpesParaTalar, extraDeMata, factorPique, segundosParaClavar, factorLinea, factorPulso, radioHuellas, factorEsperaRastro, factorRemo, ahorroDeObra, extraDeCosecha, xpDeEtapa, xpDeAporte } from './oficios.js';
 import { crearOficiosUI } from './oficios-ui.js';
-import { golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
+import { fijarOcupacionExterna, golpesConFilo, gastarFilo, llamarProximo, PARADA_ALDEA, NOMBRE_ALDEA, puntosMundo, edificioEnMundo, planoAldeaMapa, tandaDePena, cantinaAbierta, chicoAfuera } from './aldea.js';
 import { crearAldeaGente, distanciaAldea } from './aldea-gente.js';
 // 3.7.0: la vida de la aldea (los visitantes, la familia) y sus animales
 import { LUGARES_VISITA, apodoPorId } from './aldea-vida.js';
@@ -165,6 +165,8 @@ import { crearAlmacenJuego } from './almacen-juego.js';
 import { crearEmpleoJuego } from './empleo-juego.js';
 // 4.3: el negocio propio (un local con estantes, precios y clientes que atendés con E: negocio-propio.js, negocio-propio-juego.js, planos-negocio.js)
 import { crearNegocioJuego } from './negocio-propio-juego.js';
+// 4.4: los empleados del negocio propio
+import { crearEmpleadosNegocioJuego } from './empleados-negocio-juego.js';
 import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
 // 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
 import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
@@ -4935,6 +4937,7 @@ const almacenJuego = crearAlmacenJuego({
 });
 // 4.3: el negocio propio (aislado: si falla al armarse, el resto del juego sigue). Todo por función: se lee al usarlo.
 let negocioJuego = null;
+let empleadosNegocioJuego = null;   // 4.4: los vecinos contratados en tu local (empleados-negocio-juego.js)
 try {
   negocioJuego = crearNegocioJuego({
     progreso: () => progreso, obras: () => obras, jugador: () => jugador, gente: () => gente, sonido: () => sonido,
@@ -4944,8 +4947,19 @@ try {
     lluvia: () => clima?.estado?.lluvia || 0, agua: (x, z) => T.agua(x, z), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     msFigura: () => (planificadorAntitirones.permitir('negocio-propio') ? 3 : 0),
     panel: $('negocio-panel'), contenido: $('negocio-contenido'), alClic: (el, fn) => alClicHud(el, fn),
+    extraPanel: (raiz, est) => { try { empleadosNegocioJuego?.dibujarPanel(raiz, est); } catch (e) { fallaSistema('empleados-negocio-panel', e); } },   // 4.4
   });
 } catch (e) { fallaSistema('negocio-propio-armado', e); negocioJuego = null; }
+// 4.4: los empleados del negocio propio (aislado: si falla al armarse, el local sigue como siempre)
+try {
+  empleadosNegocioJuego = crearEmpleadosNegocioJuego({
+    progreso: () => progreso, negocio: () => negocioJuego, gente: () => gente, sonido: () => sonido,
+    nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    lluvia: () => clima?.estado?.lluvia || 0, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
+    msFigura: () => (planificadorAntitirones.permitir('empleados-negocio') ? 3 : 0), alClic: (el, fn) => alClicHud(el, fn),
+  });
+  fijarOcupacionExterna(empleadosNegocioJuego.ocupacion);
+} catch (e) { fallaSistema('empleados-negocio-armado', e); empleadosNegocioJuego = null; }
 // Lo que se puede gastar sin moverse: la mochila más el acopio si está cerca.
 function materialesVisibles() {
   const m = progreso.materiales || {};
@@ -10090,6 +10104,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
     try { if (modo === 'jugando' && !desafio) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }   // 4.3: los clientes de tu local
+    try { if (modo === 'jugando' && !desafio) empleadosNegocioJuego?.actualizar(dt); } catch (e) { fallaSistema('empleados-negocio', e); }   // 4.4: los vecinos contratados en tu local
     try { if (modo === 'jugando' && !desafio) cantinaJuego?.actualizar(dt); } catch (e) { fallaSistema('cantina', e); }
     try { if (modo === 'jugando' && !desafio) teJuego?.actualizar(dt); } catch (e) { fallaSistema('casa-te', e); }   // 3.9.2: la casa de té (la visita, Ceinwen, el sorbo)   // 3.9.0: la cantina (la visita, la moza, el sorbo)
     try {   // 3.9.1: la peña: los parroquianos, el truco, el que se arrima, el baile con Dalia y la guitarra y el bombo del rincón
@@ -10238,6 +10253,7 @@ function cuadroDelJuego(tRaf, manual) {
     else if (acumuladoVecino >= 1 / 15 && acumuladoVecino >= presupuestoAdaptativo.intervalo(1 / 15, 1.35)) {
       acumuladoVecino = 0; vecino = gente.cerca(js, camara);
       if (vecino?.clienteNegocio) vecino = null;   // 4.3: los clientes de tu local no se charlan: E sobre el mostrador los atiende (ver obraQueTrabajaCerca)
+      if (vecino?.empleadoNegocio) vecino = null;   // 4.4: ni tus empleados detrás del mostrador
       // 3.6: con la aldea, al mostrador del almacén o de la biblioteca suele haber alguien (un cliente,
       // la abuela atendiendo): ahí gana lo del lugar, y para hablarle hay que mirarlo de frente
       // (3.6.2: salvo leer el libro prestado sentado en tu casa: la visita en tu mesa gana, ver lugarTapaVecino)
@@ -10845,7 +10861,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __carga: () => ({ etapas: tiemposCarga, total: Math.round(performance.now()), cache: infoCarga }),
     cocinar, hayQueCocinar, __mundoPerro: () => mundoPerro, __abierto: () => ({ enElAlmacen, enLaFeria }),
     __sync: { copiarASync, revisarCarpetaSync, estado: () => ({ carpetaSync, ultimaCopiaSync, copiadoEnSync }) },
-    visitas, actualizarVisitas, mueblesTerminados, __visitante: () => visitante, __negocio: () => negocioJuego,   // (4.3: el negocio propio, para las pruebas)
+    visitas, actualizarVisitas, mueblesTerminados, __visitante: () => visitante, __negocio: () => negocioJuego, __empleadosNegocio: () => empleadosNegocioJuego,   // (4.3: el negocio propio, para las pruebas; 4.4: y sus empleados)
     pedirRastro, dejarRastro, __rastroPerro: () => rastro,
     tejer, telarCerca, abrirFeria, cambiarFeria, feriaCerca, feria, __puestoFeria: () => puestoFeria,
     gallineros, gallineroCerca, usarGallinero, refrescarGallineros, __gallinas: () => gallinasMundo,
