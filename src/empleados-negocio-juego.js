@@ -282,20 +282,22 @@ export function crearEmpleadosNegocioJuego(ctx) {
     ctx.guardar?.(); ctx.refrescarBarra?.();
     N.redibujar();
   }
-  function hacerDespedir(k) {
+  function hacerDespedir(k, liberar = false) {
     const N = negocio(), est = N?.estado();
     if (!est) return;
-    if (ui.despedir !== k) { ui.despedir = k; N.redibujar(); return; }
+    if (ui.despedir !== k && !liberar) { ui.despedir = k; N.redibujar(); return; }
     ui.despedir = null;
     ultimoResumen = -99; contarSiVolviste(estadoE());   // (lo que se vendió sin vos, antes de que se vaya)
     const ev = avanzarEmpleados(P(), est, est.tipo, estadoE(), env(true));   // (se saldan los turnos que ya cerraron antes de despedirlo)
     if (ev.length) avisar(ev, true);
     if (!empleadoDe(estadoE(), k)) { N.redibujar(); return; }
-    const r = despedir(P(), est, estadoE(), k, env(true));
+    const e = env(true);
+    if (liberar) e.cambiarAmistad = null;   // 4.4.3: lo suelta porque le vendiste su negocio de vuelta: no es un despido, no le baja la amistad
+    const r = despedir(P(), est, estadoE(), k, e);
     if (!r.ok) return;
     const f = figuras.get(k);
     if (f) { if (f.npc) f.npc.dormido = true; soltar(f); }
-    ctx.nota?.(`${nombreDe(k)} ya no trabaja para vos`, r.pago?.ok ? `Le pagaste lo de hoy (${formatoPesos(r.pago.monto)}). Vuelve a lo suyo` : 'Vuelve a lo suyo', false);
+    ctx.nota?.(`${nombreDe(k)} ya no trabaja para vos`, `${liberar ? 'Volvió a su negocio. ' : ''}${r.pago?.ok ? `Le pagaste lo de hoy (${formatoPesos(r.pago.monto)}). Vuelve a lo suyo` : 'Vuelve a lo suyo'}`, false);
     ctx.guardar?.(); ctx.refrescarBarra?.();
     N.redibujar();
   }
@@ -370,6 +372,8 @@ export function crearEmpleadosNegocioJuego(ctx) {
     ui, figuras,
     // para las pruebas: empujar el paso del tiempo sin esperar
     __tick: (n = 1) => { for (let i = 0; i < n; i++) { acum = PASO; acumCuenta = CADA; actualizar(0); } },
+    // 4.4.3: si el vecino al que le vendés su negocio de vuelta trabajaba en tu local, se lo suelta con aviso (sin castigo de amistad); true si lo soltó
+    liberar: (k) => { if (!empleadoDe(estadoE(), k)) return false; hacerDespedir(k, true); return !empleadoDe(estadoE(), k); },
     __contratar: hacerContratar, __despedir: (k) => { ui.despedir = k; hacerDespedir(k); },
     __armarTodo: () => { const N = negocio(), o = N?.local(); if (!o) return 0; for (let i = 0; i < 40; i++) { const E = estadoE(); if (!E.lista.some((x) => !figuras.get(x.k)?.npc)) break; avanzarArmado(o, E.lista); } return [...figuras.values()].filter((f) => f.npc).length; },
   };

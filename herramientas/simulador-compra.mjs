@@ -1,11 +1,11 @@
-// 4.4: simulador de los negocios comprados y las sociedades (src/negocios-vecinos.js). Corre las reglas de verdad, día por día.
+// 4.4 (y 4.4.3: vender de vuelta y aporte adicional, secciones 6 y 7): simulador de los negocios comprados y las sociedades (src/negocios-vecinos.js). Corre las reglas de verdad, día por día.
 // Uso: node herramientas/simulador-compra.mjs [dias=240] [jornal=3200]
 //   · la tabla de los ocho negocios: precio de lista, ganancia por día, días para pagarse y tope de la caja;
 //   · cuánto cuesta cada uno según la amistad (de mala a compadre) y cuánto tarda en pagarse a ese precio;
 //   · un jugador que ahorra sus jornales ($3.200 por día) y compra de a uno, de lo más barato a lo más caro, reinvirtiendo lo que rinden: cuándo compra
 //     cada uno, y cuánto gana por día con cada cantidad de negocios, según cada cuánto pase a verlos (cada 2, 5 o 10 días, o nunca);
 //   · la sociedad: lo que da cada aporte mínimo, medio y máximo, y cuánto tarda en volver (con la devolución según los días).
-import { NEGOCIOS, IDS_NEGOCIOS, FACTORES_CARTERA, COMPRA, SOCIEDAD, gananciaBase, gananciaEstimada, diasParaPagarse, topeDeCaja, reaccionCompra, rangoDeAporte, montosDeAporte, porcentajeDe, devolucionPorDias, negociosVecinosNuevo, comprar, pasarDia, retirarCaja, entrarSocio, cajasTotal, tusNegocios } from '../src/negocios-vecinos.js';
+import { NEGOCIOS, IDS_NEGOCIOS, FACTORES_CARTERA, COMPRA, SOCIEDAD, gananciaBase, gananciaEstimada, diasParaPagarse, topeDeCaja, reaccionCompra, rangoDeAporte, montosDeAporte, porcentajeDe, devolucionPorDias, negociosVecinosNuevo, comprar, pasarDia, retirarCaja, entrarSocio, cajasTotal, tusNegocios, vender, VENTA, sumarAporte, restoDeAporte, devolucionDe } from '../src/negocios-vecinos.js';
 import { economiaNueva } from '../src/economia.js';
 import { esPobladorAldea, LOTE_DE } from '../src/aldea.js';
 
@@ -102,6 +102,63 @@ console.log('\n   retirarse con aviso (devuelve del aporte): ' + [0, 6, 18, 36].
   const e = entrarSocio(p, 'almacen', 43000, { puntos: 150, hist: 3, dia: 1 });
   for (let d = 2; d <= 60; d++) { p.dia = d; pasarDia(p, d); retirarCaja(p, 'almacen', d); }
   console.log(`   ejemplo: ${$(43000)} en el almacén (compadre, ${e.pct} %): en 59 días cobrás ${$(p.negociosVecinos.socios.almacen.total)} de tu parte (${$(e.porDia)} por día, ${(p.negociosVecinos.socios.almacen.total / 43000 * 100).toFixed(0)} % del aporte) y el aporte vuelve entero.`);
+}
+
+// 6. 4.4.3 · VENDER DE VUELTA: comprar, tenerlo X días (pasando a verlo cada 5, o nunca) y vender. Todo con las reglas de verdad.
+console.log('\n6. VENDER DE VUELTA (4.4.3): comprás con 100 puntos de amistad y dos partes de su historia, tenés el negocio X días y vendés');
+console.log(`El precio de venta es un porcentaje de lo que pagaste: ${Math.round(VENTA.base * 100)} % de base + ${VENTA.porDia * 100} puntos por día (hasta ${VENTA.diasMax} días) + hasta ${VENTA.amistadMax * 100} por la amistad (${VENTA.amistadDesde} a ${VENTA.amistadHasta} puntos) − descuido (hasta ${VENTA.descuido.max * 100}); siempre entre ${VENTA.piso * 100} y ${VENTA.techo * 100} %.`);
+function ida(id, dias, { visita = 5, puntos = 100 } = {}) {
+  const p = partida(1e6), ctx = { puntos, hist: 2, histTotal: 3, etapa: '', dia: 1, compadre: puntos >= 140 };
+  const c = comprar(p, id, ctx); if (!c.ok) return null;
+  const antesDeComprar = 1e6;
+  for (let d = 2; d <= 1 + dias; d++) { p.dia = d; pasarDia(p, d); if (visita > 0 && d % visita === 0) retirarCaja(p, id, d); }
+  p.dia = 1 + dias;
+  const v = vender(p, id, { ...ctx, dia: 1 + dias });
+  return { c, v, neto: p.economia.pesos - antesDeComprar };   // (lo que tenés al final menos lo que tenías antes de comprar)
+}
+console.log(`${pad('negocio', 12)}${pad('pagaste', 10)}${[0, 7, 30, 60, 90].map((d) => padL(`vendés d${d}`, 15)).join('')}`);
+for (const id of ordenBarato) {
+  const celdas = [0, 7, 30, 60, 90].map((d) => { const r = ida(id, d); return padL(`${$(r.v.precio)} ${Math.round(r.v.fraccion * 100)}%`, 15); });
+  console.log(`${pad(id, 12)}${pad($(ida(id, 0).c.precio), 10)}${celdas.join('')}`);
+}
+console.log('\n   resultado neto en pesos de comprar, tener y vender (todo lo cobrado, caja y venta, menos lo pagado), pasando a verlo cada 5 días | nunca:');
+console.log(`   ${pad('negocio', 12)}${[0, 7, 30, 60, 90].map((d) => padL(`d${d}`, 24)).join('')}`);
+for (const id of ordenBarato) {
+  const cel = (d) => padL(`${$(ida(id, d, { visita: 5 }).neto)} | ${$(ida(id, d, { visita: 0 }).neto)}`, 24);
+  console.log(`   ${pad(id, 12)}${[0, 7, 30, 60, 90].map(cel).join('')}`);
+}
+{
+  // comprar y vender de inmediato, en todos los casos de amistad: siempre pierde
+  let peor = Infinity, mejor = -Infinity, inmediato = -Infinity;
+  for (const id of IDS_NEGOCIOS) for (const puntos of [30, 60, 100, 150, 200]) for (const dias of [0, 3, 7, 20, 60, 120]) {
+    const r = ida(id, dias, { puntos, visita: 2 }); if (!r) continue;
+    const ret = r.v.precio / r.c.precio; peor = Math.min(peor, ret); mejor = Math.max(mejor, ret);
+    if (dias === 0) inmediato = Math.max(inmediato, ret);
+  }
+  console.log(`\n   el precio de venta, sobre lo que pagaste, va de ${(peor * 100).toFixed(1)} % a ${(mejor * 100).toFixed(1)} % en cualquier combinación de negocio, amistad (30 a 200 puntos) y días (0 a 120): nunca llega al 100 %.`);
+  console.log(`   comprar y vender el mismo día devuelve como máximo el ${(inmediato * 100).toFixed(1)} % de lo pagado: se pierde al menos el ${((1 - inmediato) * 100).toFixed(1)} %. No hay manija de plata.`);
+}
+console.log('   recompra: lo que vendiste hace menos de 30 días cuesta un 10 % más; después, el precio de la reacción de siempre.');
+
+// 7. 4.4.3 · APORTE ADICIONAL a una sociedad ya hecha
+console.log('\n7. APORTE ADICIONAL A UNA SOCIEDAD (4.4.3): entrás con el mínimo (10 % del precio) y sumás hasta el 40 % (compadre, 150 puntos)');
+console.log(`${pad('negocio', 12)}${padL('entrás', 9)}${padL('% inicial', 11)}${padL('sumás', 9)}${padL('% final', 9)}${padL('por día', 9)}${padL('vuelve en', 11)}`);
+for (const id of IDS_NEGOCIOS) {
+  const p = partida(1e6), ctx = { puntos: 150, hist: 3, histTotal: 3, etapa: '', dia: 1 };
+  const { min } = rangoDeAporte(id);
+  const e = entrarSocio(p, id, min, ctx);
+  const s = p.negociosVecinos.socios[id];
+  const monto = restoDeAporte(id, s);
+  const r = sumarAporte(p, id, monto, ctx);
+  console.log(`${pad(id, 12)}${padL($(min), 9)}${padL(`${e.pct} %`, 11)}${padL($(monto), 9)}${padL(`${r.pct} %`, 9)}${padL($(r.porDia), 9)}${padL(`${Math.ceil(r.aporteTotal / r.porDia)} d`, 11)}`);
+}
+{
+  const p = partida(1e6), ctx = { puntos: 150, hist: 3, histTotal: 3, etapa: '', dia: 1 };
+  entrarSocio(p, 'almacen', 17000, ctx);
+  for (let d = 2; d <= 41; d++) { p.dia = d; pasarDia(p, d); }
+  p.dia = 41; sumarAporte(p, 'almacen', 34000, { ...ctx, dia: 41 });
+  const s = p.negociosVecinos.socios.almacen;
+  console.log(`\n   retiro con aportes en tramos (almacén: ${$(17000)} el día 1 y ${$(34000)} el día 41): si avisás el día 41 (sale el 43) te devuelven ${$(devolucionDe(s, 43))} de ${$(s.aporte)} puestos (el primero al ${Math.round(devolucionPorDias(42) * 100)} %, el segundo al ${Math.round(devolucionPorDias(2) * 100)} %); el día 60: ${$(devolucionDe(s, 60))}; el día 100: ${$(devolucionDe(s, 100))} (todo).`);
 }
 console.log('\n5. LECTURA');
 console.log('  · Un negocio comprado rinde 1,2 % a 1,6 % de su precio por día: se paga solo en 64 a 84 días de juego a precio de lista; a un compadre con su historia entera (−14 %), en 56 a 70 días; a un amigo (+20 %), en 77 a 100.');

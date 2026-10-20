@@ -10,8 +10,9 @@
 //     cobrás cuando pasás a verlo (y si no pasás, el negocio rinde menos: la gestión);
 //   · la SOCIEDAD: ponés plata (un mínimo y un máximo por negocio), te corresponde un porcentaje de lo que gana por día y te retirás con aviso, con una
 //     devolución que crece con los días;
+//   · 4.4.3: VENDER DE VUELTA el negocio comprado (al dueño de siempre, por un porcentaje de lo que pagaste) y SUMAR PLATA a una sociedad ya hecha;
 //   · el guardado: `progreso.negociosVecinos` (una partida de antes no lo trae y sale vacío; el Desafío no lo tiene). Todo cobro y pago pasa por economia.js.
-import { hayEconomia, cobrar, pagar, formatoPesos, pesosDe } from './economia.js';
+import { hayEconomia, cobrar, pagar, formatoPesos, pesosDe, MAX_PESOS } from './economia.js';
 import { diaSemanaDe, esPobladorAldea, localAbierto, LOTE_DE } from './aldea.js';
 
 const entero = (v, max = 1e9) => { const n = Math.floor(Number(v)); return Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0; };
@@ -85,6 +86,31 @@ export function devolucionPorDias(dias) {
   return SOCIEDAD.devolucion.find((t) => d < t.hasta).parte;
 }
 
+// 4.4.3 · vender de vuelta: el precio es un porcentaje de lo que pagaste (entre el 50 y el 85 %). Parte de 55 %, suma 0,25 puntos por día de haberlo tenido
+// (hasta 60 días: +15) y hasta +15 por la amistad (de 50 a 180 puntos); resta hasta 15 si lo descuidaste (días sin pasar a verlo, caja que se llenó y se perdió).
+export const VENTA = {
+  base: 0.55, porDia: 0.0025, diasMax: 60, amistadMax: 0.15, amistadDesde: 50, amistadHasta: 180,
+  piso: 0.5, techo: 0.85,
+  regateo: -0.05,       // con poca amistad (< 50 puntos) regatea
+  emocion: 0.03,        // si volvía a su local (se había ido) o es de apego fuerte y te quiere (95), se emociona
+  ofensa: -0.05,        // si lo vendés enseguida (menos de 7 días) se ofende un poco
+  enseguida: 7,
+  amistad: { ofendido: -2, regatea: 0, acepta: 1, emocionado: 2 },
+  descuido: { dias: 0.12, perdido: 0.10, max: 0.15 },
+  recompra: { dias: 30, recargo: 1.1 },   // si lo vendiste hace menos de 30 días de juego, recomprarlo cuesta un 10 % más
+  redondeo: 50,
+};
+export const APORTE_EXTRA = { minimoFraccion: 0.05, maxExtras: 8, redondeo: 500 };
+// 4.4.3: lo que devolverían de TODO lo puesto si te retiraras el día `dia`: cada aporte cuenta sus propios días (el original desde que entraste y cada aporte
+// adicional desde el día que lo hiciste), así lo que sumaste ayer no vuelve entero sólo porque la sociedad es vieja
+export function devolucionDe(s, dia) {
+  if (!s) return 0;
+  const extras = Array.isArray(s.extras) ? s.extras : [], sumaExtras = extras.reduce((t, q) => t + q.monto, 0);
+  let t = Math.max(0, s.aporte - sumaExtras) * devolucionPorDias(dia - s.desde);
+  for (const q of extras) t += q.monto * devolucionPorDias(dia - q.dia);
+  return t;
+}
+
 // ---------------------------------------------------------------- las cuentas de un negocio
 // un número parejo entre 0 y 1 para un texto (el mismo día y el mismo negocio dan siempre lo mismo)
 export function azarParejo(texto) {
@@ -131,7 +157,7 @@ export function gananciaEstimada(id, o = {}) {
 }
 
 // ---------------------------------------------------------------- lo guardado
-export const negociosVecinosNuevo = () => ({ v: 1, comprados: {}, socios: {}, ultimoDia: 0, orden: 0, rechazos: {}, historial: [], total: { ganado: 0, invertido: 0, devuelto: 0, cobrado: 0 } });
+export const negociosVecinosNuevo = () => ({ v: 1, comprados: {}, socios: {}, ultimoDia: 0, orden: 0, rechazos: {}, vendidos: {}, historial: [], total: { ganado: 0, invertido: 0, devuelto: 0, cobrado: 0, vendido: 0 } });
 const HISTORIAL_MAX = 24;
 const destinoValido = (d) => (d === 'se-va' ? 'se-va' : 'queda');
 function sanearComprado(id, x, hoy) {
@@ -140,7 +166,7 @@ function sanearComprado(id, x, hoy) {
   return {
     desde: Math.min(hoy, Math.max(1, entero(x.desde, 1e6) || 1)), pagado: entero(x.pagado, 1e8), destino: N.puedeIrse ? destinoValido(x.destino) : 'queda',
     orden: entero(x.orden, 1e4), visita: Math.min(hoy, Math.max(1, entero(x.visita, 1e6) || 1)), bono: x.bono === COMPRA.bonoCompadre ? COMPRA.bonoCompadre : 1,
-    caja: Math.min(tope, entero(x.caja, 1e8)), total: entero(x.total, 1e10), perdido: entero(x.perdido, 1e10),
+    caja: Math.min(tope, entero(x.caja, 1e8)), total: entero(x.total, 1e10), perdido: entero(x.perdido, 1e10), mala: entero(x.mala, 1e6),
     ultimo: objeto(x.ultimo) ? { dia: entero(x.ultimo.dia, 1e6), neto: entero(x.ultimo.neto, 1e8), ventas: entero(x.ultimo.ventas, 1e8) } : null,
   };
 }
@@ -149,9 +175,21 @@ function sanearSocio(id, x, hoy) {
   const aporte = Math.min(aMil(N.precio * SOCIEDAD.maximoFraccion), Math.max(0, entero(x.aporte, 1e8)));
   const pct = Math.min(SOCIEDAD.porcentajeMax, Math.max(0, Math.round(Number(x.pct) * 10) / 10 || 0));
   const aviso = objeto(x.aviso) && entero(x.aviso.sale, 1e6) > 0 ? { dia: Math.min(hoy, Math.max(1, entero(x.aviso.dia, 1e6) || 1)), sale: entero(x.aviso.sale, 1e6) } : null;
+  // 4.4.3: los aportes adicionales (nunca suman más que el aporte total) y el porcentaje de antes del último, que rige hasta el día del aporte
+  const extras = [];
+  let resto = aporte;
+  if (Array.isArray(x.extras)) for (const q of x.extras.slice(0, APORTE_EXTRA.maxExtras)) {
+    if (!objeto(q)) continue;
+    const monto = Math.min(resto, entero(q.monto, 1e8));
+    if (monto <= 0) continue;
+    extras.push({ dia: Math.min(hoy, Math.max(1, entero(q.dia, 1e6) || 1)), monto });
+    resto -= monto;
+  }
+  const previo = objeto(x.previo) && entero(x.previo.dia, 1e6) > 0
+    ? { dia: Math.min(hoy, entero(x.previo.dia, 1e6)), pct: Math.min(SOCIEDAD.porcentajeMax, Math.max(0, Math.round(Number(x.previo.pct) * 10) / 10 || 0)) } : null;
   return {
     desde: Math.min(hoy, Math.max(1, entero(x.desde, 1e6) || 1)), aporte, pct, caja: Math.min(topeDeSocio(id, pct), entero(x.caja, 1e8)),
-    total: entero(x.total, 1e10), aviso, ultimo: objeto(x.ultimo) ? { dia: entero(x.ultimo.dia, 1e6), parte: entero(x.ultimo.parte, 1e8) } : null,
+    total: entero(x.total, 1e10), aviso, ultimo: objeto(x.ultimo) ? { dia: entero(x.ultimo.dia, 1e6), parte: entero(x.ultimo.parte, 1e8) } : null, extras, previo,
   };
 }
 export const topeDeSocio = (id, pct) => Math.max(100, Math.round((gananciaBase(id) * (Number(pct) || 0) / 100 * COMPRA.topeDias) / 100) * 100);
@@ -164,6 +202,8 @@ export function sanearNegociosVecinos(v, hoy = 1) {
   if (objeto(v.comprados)) for (const id of IDS_NEGOCIOS) if (objeto(v.comprados[id])) e.comprados[id] = sanearComprado(id, v.comprados[id], h);
   if (objeto(v.socios)) for (const id of IDS_NEGOCIOS) if (objeto(v.socios[id]) && !e.comprados[id] && entero(v.socios[id].aporte) > 0) e.socios[id] = sanearSocio(id, v.socios[id], h);
   if (objeto(v.rechazos)) for (const id of IDS_NEGOCIOS) { const d = entero(v.rechazos[id], 1e6); if (d > h) e.rechazos[id] = d; }
+  // 4.4.3: los negocios que vendiste de vuelta (para el recargo si los recomprás pronto)
+  if (objeto(v.vendidos)) for (const id of IDS_NEGOCIOS) if (objeto(v.vendidos[id]) && !e.comprados[id]) e.vendidos[id] = { dia: Math.min(h, Math.max(1, entero(v.vendidos[id].dia, 1e6) || 1)), monto: entero(v.vendidos[id].monto, 1e8), pagado: entero(v.vendidos[id].pagado, 1e8) };
   if (Array.isArray(v.historial)) e.historial = v.historial.filter((x) => objeto(x) && hayNegocio(x.local) && typeof x.tipo === 'string').slice(-HISTORIAL_MAX)
     .map((x) => ({ dia: entero(x.dia, 1e6), tipo: String(x.tipo).slice(0, 16), local: x.local, monto: Math.floor(Number(x.monto) || 0) }));
   if (objeto(v.total)) for (const k of Object.keys(e.total)) e.total[k] = entero(v.total[k], 1e11);
@@ -239,12 +279,15 @@ export function evaluarCompra(p, id, ctx = {}) {
   const e = leerNegociosVecinos(p);
   const dia = dia1(ctx.dia ?? p.dia);
   if (e && e.rechazos[id] > dia) return { ok: false, motivo: 'espera', hasta: e.rechazos[id] };
-  const r = reaccionCompra(id, ctx);
+  let r = reaccionCompra(id, ctx);
   if (!TIPOS_QUE_VENDEN.includes(r.tipo)) return { ok: false, motivo: r.tipo, reaccion: r };
-  const credito = e?.socios?.[id] ? aMil(e.socios[id].aporte * devolucionPorDias(dia - e.socios[id].desde), 50) : 0;
+  // 4.4.3: si se lo vendiste de vuelta hace menos de 30 días de juego, recomprarlo cuesta un 10 % más
+  const vend = e?.vendidos?.[id], recargo = vend && dia - vend.dia < VENTA.recompra.dias ? VENTA.recompra.recargo : 1;
+  if (recargo > 1) r = { ...r, precio: aMil(r.precio * recargo, COMPRA.redondeo), recargo };
+  const credito = e?.socios?.[id] ? aMil(devolucionDe(e.socios[id], dia), 50) : 0;
   const precio = Math.max(COMPRA.redondeo, r.precio - credito);
   const saldo = pesosDe(p);
-  return { ok: saldo >= precio, motivo: saldo >= precio ? null : 'dinero', reaccion: r, precio, credito, faltan: Math.max(0, precio - saldo) };
+  return { ok: saldo >= precio, motivo: saldo >= precio ? null : 'dinero', reaccion: r, precio, credito, recargo, faltan: Math.max(0, precio - saldo) };
 }
 // El vecino se negó (o se ofendió): no vuelve a hablarse del tema por unos días. Anota la fecha de espera.
 export function anotarRechazo(p, id, tipo, dia) {
@@ -265,13 +308,14 @@ export function comprar(p, id, ctx = {}) {
   if (e.socios[id]) { cajaSocio = e.socios[id].caja; delete e.socios[id]; if (cajaSocio > 0) cobrar(p, cajaSocio, `Tu parte de ${N.nombre}, al comprarla`, N.dueno); }
   e.comprados[id] = {
     desde: dia, pagado: v.precio + v.credito, destino: v.reaccion.destino || 'queda', orden: ++e.orden, visita: dia, bono: ctx.compadre && v.reaccion.destino === 'queda' ? COMPRA.bonoCompadre : 1,
-    caja: 0, total: 0, perdido: 0, ultimo: null,
+    caja: 0, total: 0, perdido: 0, mala: 0, ultimo: null,
   };
   if (!e.ultimoDia) e.ultimoDia = dia;
   e.total.invertido += v.precio;
   anotar(e, dia, 'compra', id, -v.precio);
   delete e.rechazos[id];
-  return { ok: true, precio: v.precio, credito: v.credito, cajaSocio, destino: e.comprados[id].destino, reaccion: v.reaccion, ganancia: gananciaBase(id), tope: topeDeCaja(id) };
+  if (e.vendidos) delete e.vendidos[id];
+  return { ok: true, precio: v.precio, credito: v.credito, cajaSocio, destino: e.comprados[id].destino, reaccion: v.reaccion, ganancia: gananciaBase(id), tope: topeDeCaja(id), recargo: v.recargo };
 }
 
 // ---------------------------------------------------------------- la caja
@@ -324,6 +368,7 @@ export function pasarDia(p, dia) {
     ids.forEach((id, i) => {
       const n = e.comprados[id];
       if (!n || d <= n.desde) return;
+      if (factorGestion(d - n.visita) < 1) n.mala = (n.mala || 0) + 1;   // 4.4.3: un día sin atención (cuenta para el precio de venta)
       const g = gananciaDelDia(id, d, { gestion: factorGestion(d - n.visita), cartera: factorCartera(i), sinVecino: n.destino === 'se-va', bono: n.bono });
       const lugar = Math.max(0, topeDeCaja(id) - n.caja), entra = Math.min(g.neto, lugar);
       n.caja += entra; n.total += entra; n.perdido += g.neto - entra;
@@ -336,7 +381,8 @@ export function pasarDia(p, dia) {
     for (const id of tusSociedades(p)) {
       const s = e.socios[id];
       if (!s || d <= s.desde) continue;
-      const parte = Math.round((gananciaDelDia(id, d).neto * s.pct) / 100 / 10) * 10;
+      const pctDia = s.previo && d <= s.previo.dia ? s.previo.pct : s.pct;   // 4.4.3: el aporte adicional rinde desde el día siguiente
+      const parte = Math.round((gananciaDelDia(id, d).neto * pctDia) / 100 / 10) * 10;
       const entra = Math.min(parte, Math.max(0, topeDeSocio(id, s.pct) - s.caja));
       s.caja += entra; s.total += entra; s.ultimo = { dia: d, parte };
       const r = resumen.socios[id] || (resumen.socios[id] = { id, parte: 0, caja: 0 });
@@ -399,7 +445,7 @@ export function entrarSocio(p, id, aporte, ctx = {}) {
   const e = asegurarNegociosVecinos(p), N = NEGOCIOS[id], dia = dia1(ctx.dia ?? p.dia);
   const r = pagar(p, v.aporte, `Aporte de socio en ${N.nombre}`, N.dueno);
   if (!r.ok) return { ok: false, motivo: 'dinero', faltan: r.faltan || 0 };
-  e.socios[id] = { desde: dia, aporte: v.aporte, pct: v.pct, caja: 0, total: 0, aviso: null, ultimo: null };
+  e.socios[id] = { desde: dia, aporte: v.aporte, pct: v.pct, caja: 0, total: 0, aviso: null, ultimo: null, extras: [], previo: null };
   if (!e.ultimoDia) e.ultimoDia = dia;
   e.total.invertido += v.aporte;
   anotar(e, dia, 'socio', id, -v.aporte);
@@ -412,7 +458,7 @@ export function avisarRetiro(p, id, dia) {
   const d = dia1(dia ?? p.dia);
   if (s.aviso) return { ok: false, motivo: 'ya', sale: s.aviso.sale };
   s.aviso = { dia: d, sale: d + SOCIEDAD.avisoDias };
-  return { ok: true, sale: s.aviso.sale, devolucion: Math.round(s.aporte * devolucionPorDias(s.aviso.sale - s.desde)) };
+  return { ok: true, sale: s.aviso.sale, devolucion: Math.round(devolucionDe(s, s.aviso.sale)) };
 }
 export function cancelarRetiro(p, id) {
   const s = leerNegociosVecinos(p)?.socios?.[id];
@@ -421,19 +467,135 @@ export function cancelarRetiro(p, id) {
   return true;
 }
 // cuánto devolverían hoy (si el aviso ya estuviera cumplido): para mostrarlo antes de avisar
-export const devolucionHoy = (p, id, dia) => { const s = leerNegociosVecinos(p)?.socios?.[id]; return s ? Math.round(s.aporte * devolucionPorDias(dia1(dia ?? p.dia) + SOCIEDAD.avisoDias - s.desde)) : 0; };
+export const devolucionHoy = (p, id, dia) => { const s = leerNegociosVecinos(p)?.socios?.[id]; return s ? Math.round(devolucionDe(s, dia1(dia ?? p.dia) + SOCIEDAD.avisoDias)) : 0; };
 // Se cumple el retiro (lo llama `pasarDia` al llegar el día): devuelve el aporte según los días y te da lo que hay en la caja
 export function cerrarSociedad(p, id, dia) {
   const e = leerNegociosVecinos(p), s = e?.socios?.[id];
   if (!s) return { ok: false };
   const N = NEGOCIOS[id], d = dia1(dia ?? p.dia);
-  const devuelto = Math.round(s.aporte * devolucionPorDias(d - s.desde)), caja = s.caja;
+  const devuelto = Math.round(devolucionDe(s, d)), caja = s.caja;
   const total = devuelto + caja;
   if (total > 0) cobrar(p, total, `Te retiraste de la sociedad de ${N.nombre}`, N.dueno);
   e.total.devuelto += devuelto; e.total.cobrado += caja;
   anotar(e, d, 'retiro', id, total);
   delete e.socios[id];
   return { ok: true, devuelto, caja, perdido: s.aporte - devuelto };
+}
+
+// ---------------------------------------------------------------- 4.4.3 · vender de vuelta
+// El porcentaje de lo que pagaste que te darían: { base, porDias, porAmistad, ajuste, descuido, fraccion }. `n`: el negocio comprado; `ctx`: { puntos, dia }.
+export function fraccionVenta(n, ctx = {}, ajuste = 0) {
+  const dia = dia1(ctx.dia), tenido = Math.max(0, dia - n.desde);
+  const porDias = VENTA.porDia * Math.min(tenido, VENTA.diasMax);
+  const puntos = Math.max(0, Number(ctx.puntos) || 0);
+  const porAmistad = VENTA.amistadMax * Math.max(0, Math.min(1, (puntos - VENTA.amistadDesde) / (VENTA.amistadHasta - VENTA.amistadDesde)));
+  const descuidoDias = (n.mala || 0) / Math.max(1, tenido), descuidoCaja = (n.perdido || 0) / Math.max(1, (n.total || 0) + (n.perdido || 0));
+  const descuido = Math.min(VENTA.descuido.max, descuidoDias * VENTA.descuido.dias + descuidoCaja * VENTA.descuido.perdido);
+  const fraccion = Math.max(VENTA.piso, Math.min(VENTA.techo, VENTA.base + porDias + porAmistad + ajuste - descuido));
+  return { base: VENTA.base, porDias, porAmistad, ajuste, descuido, fraccion };
+}
+// Cómo reacciona el vecino cuando le vendés el local de vuelta: 'ofendido' (lo vendés enseguida), 'regatea' (poca amistad), 'emocionado' (vuelve a su local,
+// o es de apego fuerte y te quiere) o 'acepta'. Devuelve { tipo, precio, fraccion, detalle, amistad, vuelve } (el precio es de lo que pagaste, sin la caja).
+export function reaccionVenta(id, n, ctx = {}) {
+  const N = NEGOCIOS[id];
+  if (!N || !n) return { tipo: 'acepta', precio: 0, fraccion: 0, detalle: null, amistad: 0, vuelve: false };
+  const dia = dia1(ctx.dia), tenido = Math.max(0, dia - n.desde), puntos = Math.max(0, Number(ctx.puntos) || 0);
+  const vuelve = n.destino === 'se-va';
+  let tipo, ajuste = 0;
+  if (tenido < VENTA.enseguida) { tipo = 'ofendido'; ajuste = VENTA.ofensa; }
+  else if (puntos < 50) { tipo = 'regatea'; ajuste = VENTA.regateo; }
+  else if (vuelve || (N.apego >= 0.8 && puntos >= 95)) { tipo = 'emocionado'; ajuste = VENTA.emocion; }
+  else tipo = 'acepta';
+  const detalle = fraccionVenta(n, ctx, ajuste);
+  const pagado = entero(n.pagado, 1e8);
+  const precio = Math.round((pagado * detalle.fraccion) / VENTA.redondeo) * VENTA.redondeo;
+  return { tipo, precio, fraccion: detalle.fraccion, detalle, amistad: VENTA.amistad[tipo], vuelve };
+}
+// ¿Se puede vender ahora? { ok, motivo, reaccion, precio (lo que pagan por el negocio), caja (lo que había en la caja), total, pagado, dias }
+//   motivos: 'nada' (no hay economía), 'no-tuyo', 'techo' (la billetera no puede con tanta plata junta)
+export function evaluarVenta(p, id, ctx = {}) {
+  if (!hayNegocios(p) || !hayNegocio(id)) return { ok: false, motivo: 'nada' };
+  const n = leerNegociosVecinos(p)?.comprados?.[id];
+  if (!n) return { ok: false, motivo: 'no-tuyo' };
+  const dia = dia1(ctx.dia ?? p.dia), r = reaccionVenta(id, n, { ...ctx, dia });
+  const caja = entero(n.caja, 1e8), total = r.precio + caja;
+  const techo = pesosDe(p) + total > MAX_PESOS;
+  return { ok: !techo && r.precio > 0, motivo: techo ? 'techo' : null, reaccion: r, precio: r.precio, caja, total, pagado: entero(n.pagado, 1e8), dias: Math.max(0, dia - n.desde) };
+}
+// Cierra la venta: te pagan lo que había en la caja, la sociedad (si hubiera una) se cierra, te pagan el negocio y el vecino vuelve a ser el dueño. Se puede
+// recomprar más tarde (con recargo si es en menos de 30 días). Soltar a los empleados que tuvieras por este vecino lo hace el juego (con aviso).
+export function vender(p, id, ctx = {}) {
+  const v = evaluarVenta(p, id, ctx);
+  if (!v.ok) return { ok: false, motivo: v.motivo || 'nada' };
+  const e = asegurarNegociosVecinos(p), N = NEGOCIOS[id], dia = dia1(ctx.dia ?? p.dia), n = e.comprados[id];
+  let cajaCobrada = 0;
+  if (n.caja > 0) {
+    const c = cobrar(p, n.caja, `Caja de ${N.nombre}, al venderlo`, N.dueno);
+    if (c.ok) { cajaCobrada = c.monto; e.total.cobrado += c.monto; }
+  }
+  const r = cobrar(p, v.precio, `Vendiste ${N.nombre}`, N.dueno);
+  let sociedad = null;
+  if (e.socios[id]) sociedad = cerrarSociedad(p, id, dia);   // (no debería haber: comprar cierra la sociedad; por si una partida rara la trae)
+  delete e.comprados[id];
+  (e.vendidos || (e.vendidos = {}))[id] = { dia, monto: r.monto, pagado: v.pagado };
+  e.total.vendido = (e.total.vendido || 0) + r.monto;
+  anotar(e, dia, 'venta', id, r.monto);
+  return { ok: true, precio: r.monto, caja: cajaCobrada, total: r.monto + cajaCobrada, pagado: v.pagado, fraccion: v.reaccion.fraccion, tipo: v.reaccion.tipo, amistad: v.reaccion.amistad, sociedad,
+    perdida: v.pagado - r.monto, vuelve: v.reaccion.vuelve, vecino: N.vecino };
+}
+// Si lo recomprás ahora, ¿hay recargo? { recargo, hasta } (hasta: el día en que se acaba) o null
+export function recargoDeRecompra(p, id, dia) {
+  const vend = leerNegociosVecinos(p)?.vendidos?.[id], d = dia1(dia ?? p?.dia);
+  return vend && d - vend.dia < VENTA.recompra.dias ? { recargo: VENTA.recompra.recargo, hasta: vend.dia + VENTA.recompra.dias } : null;
+}
+
+// ---------------------------------------------------------------- 4.4.3 · sumar plata a una sociedad ya hecha
+// Lo que falta para el aporte total máximo (el 40 % del precio) y los montos que se ofrecen: un tercio, dos tercios y todo lo que falta (de a $500; nada
+// por debajo del 5 % del precio, salvo el último pedazo)
+export const restoDeAporte = (id, s) => (hayNegocio(id) && s ? Math.max(0, rangoDeAporte(id).max - s.aporte) : 0);
+export const minimoDeAporteExtra = (id, s) => { const resto = restoDeAporte(id, s); return resto <= 0 ? 0 : Math.min(resto, Math.max(APORTE_EXTRA.redondeo, aMil(NEGOCIOS[id].precio * APORTE_EXTRA.minimoFraccion, APORTE_EXTRA.redondeo))); };
+export function montosDeAporteExtra(id, s) {
+  const resto = restoDeAporte(id, s), min = minimoDeAporteExtra(id, s);
+  if (resto <= 0) return [];
+  return [...new Set([aMil(resto / 3, APORTE_EXTRA.redondeo), aMil((resto * 2) / 3, APORTE_EXTRA.redondeo), resto])].filter((x) => x >= min && x <= resto);
+}
+// lo que sube tu porcentaje por `monto` (al mismo precio por punto que el aporte original: el monto sobre el precio del negocio por el factor de la amistad)
+export const puntosDeAporte = (id, monto, factor = SOCIEDAD.factorAmigo) => (NEGOCIOS[id] ? Math.round(((Number(monto) || 0) / NEGOCIOS[id].precio) * 100 * factor * 10) / 10 : 0);
+export const porcentajeConAporte = (id, s, monto, factor) => Math.min(SOCIEDAD.porcentajeMax, Math.round((s.pct + puntosDeAporte(id, monto, factor)) * 10) / 10);
+// La reacción: 'acepta' | 'tope' (ya pusiste lo máximo) | 'rechaza' (la amistad bajó de lo que hacía falta para entrar) | 'resiste' | 'aviso' (avisaste que te retirás)
+export function reaccionAporteExtra(id, s, ctx = {}) {
+  const N = NEGOCIOS[id];
+  if (!N || !s) return { tipo: 'rechaza', factor: 0 };
+  if (restoDeAporte(id, s) <= 0 || (s.extras || []).length >= APORTE_EXTRA.maxExtras) return { tipo: 'tope', factor: 0 };
+  if (s.aviso) return { tipo: 'aviso', factor: 0 };
+  const r = reaccionSocio(id, ctx);
+  return r.tipo === 'acepta' ? { tipo: 'acepta', factor: r.factor } : { tipo: r.tipo, factor: 0, faltan: r.faltan, pide: r.pide };
+}
+export function evaluarAporteExtra(p, id, monto, ctx = {}) {
+  if (!hayNegocios(p) || !hayNegocio(id)) return { ok: false, motivo: 'nada' };
+  const s = leerNegociosVecinos(p)?.socios?.[id];
+  if (!s) return { ok: false, motivo: 'no-socio' };
+  const r = reaccionAporteExtra(id, s, ctx);
+  if (r.tipo !== 'acepta') return { ok: false, motivo: r.tipo, reaccion: r };
+  const min = minimoDeAporteExtra(id, s), max = restoDeAporte(id, s), a = Math.floor(Number(monto) || 0);
+  if (a < min || a > max) return { ok: false, motivo: 'monto', reaccion: r, min, max };
+  const saldo = pesosDe(p);
+  return { ok: saldo >= a, motivo: saldo >= a ? null : 'dinero', reaccion: r, aporte: a, aporteTotal: s.aporte + a, pct: porcentajeConAporte(id, s, a, r.factor), pctAntes: s.pct, faltan: Math.max(0, a - saldo) };
+}
+export function sumarAporte(p, id, monto, ctx = {}) {
+  const v = evaluarAporteExtra(p, id, monto, ctx);
+  if (!v.ok) return { ok: false, motivo: v.motivo, faltan: v.faltan || 0, reaccion: v.reaccion };
+  const e = asegurarNegociosVecinos(p), N = NEGOCIOS[id], dia = dia1(ctx.dia ?? p.dia), s = e.socios[id];
+  const r = pagar(p, v.aporte, `Aporte adicional a tu sociedad en ${N.nombre}`, N.dueno);
+  if (!r.ok) return { ok: false, motivo: 'dinero', faltan: r.faltan || 0 };
+  if (!s.previo || s.previo.dia < dia) s.previo = { dia, pct: s.pct };   // hasta hoy se cobra al porcentaje de antes; el nuevo rinde desde mañana
+  if (!Array.isArray(s.extras)) s.extras = [];
+  s.extras.push({ dia, monto: v.aporte });
+  s.aporte += v.aporte;
+  s.pct = v.pct;
+  e.total.invertido += v.aporte;
+  anotar(e, dia, 'aporte', id, -v.aporte);
+  return { ok: true, aporte: v.aporte, aporteTotal: s.aporte, pct: s.pct, pctAntes: v.pctAntes, porDia: Math.round((gananciaBase(id) * s.pct) / 100), tope: topeDeSocio(id, s.pct), resto: restoDeAporte(id, s) };
 }
 
 // ---------------------------------------------------------------- lo que se cuenta
@@ -445,16 +607,16 @@ export function resumenNegociosVecinos(p, hoy = null) {
     const n = e.comprados[id], N = NEGOCIOS[id];
     const porDia = gananciaEstimada(id, { gestion: factorGestion(d - n.visita), cartera: factorCartera(i), sinVecino: n.destino === 'se-va', bono: n.bono });
     return { id, nombre: N.nombre, corto: N.corto, dueno: N.dueno, destino: n.destino, desde: n.desde, pagado: n.pagado, caja: n.caja, tope: topeDeCaja(id), total: n.total, perdido: n.perdido,
-      ultimo: n.ultimo, sinVer: d - n.visita, gestion: factorGestion(d - n.visita), cartera: factorCartera(i), porDia, base: gananciaBase(id), sueldo: N.sueldo, gastos: N.gastos, llena: n.caja >= topeDeCaja(id) };
+      ultimo: n.ultimo, mala: n.mala || 0, sinVer: d - n.visita, gestion: factorGestion(d - n.visita), cartera: factorCartera(i), porDia, base: gananciaBase(id), sueldo: N.sueldo, gastos: N.gastos, llena: n.caja >= topeDeCaja(id) };
   });
   const socios = tusSociedades(p).map((id) => {
     const s = e.socios[id], N = NEGOCIOS[id];
     return { id, nombre: N.nombre, corto: N.corto, dueno: N.dueno, desde: s.desde, dias: Math.max(0, d - s.desde), aporte: s.aporte, pct: s.pct, caja: s.caja, tope: topeDeSocio(id, s.pct), total: s.total,
-      porDia: Math.round((gananciaBase(id) * s.pct) / 100), aviso: s.aviso, devolucion: Math.round(s.aporte * devolucionPorDias(d - s.desde)), ultimo: s.ultimo };
+      porDia: Math.round((gananciaBase(id) * s.pct) / 100), aviso: s.aviso, devolucion: Math.round(devolucionDe(s, d)), ultimo: s.ultimo, extras: (s.extras || []).length, restoAporte: restoDeAporte(id, s), aporteMax: rangoDeAporte(id).max };
   });
   return {
     hay: !!e && (propios.length > 0 || socios.length > 0), propios, socios, caja: cajasTotal(p), porDia: propios.reduce((s, x) => s + x.porDia, 0) + socios.reduce((s, x) => s + x.porDia, 0),
-    total: e ? e.total : { ganado: 0, invertido: 0, devuelto: 0, cobrado: 0 }, historial: e ? e.historial.slice().reverse() : [],
+    total: e ? e.total : { ganado: 0, invertido: 0, devuelto: 0, cobrado: 0, vendido: 0 }, historial: e ? e.historial.slice().reverse() : [],
   };
 }
 // «$1.200 por día»

@@ -127,6 +127,8 @@ export const SECCIONES_GUIA = [
       ['Trabajar en la aldea', 'En el almacén, la casa de té, el taller ferroviario y el banco hay un cartel de turnos: E ficha. Hacés las tareas del puesto con E (la flecha dorada marca dónde), cobrás al terminar y, con los días y tu oficio, ascendés. Se ve en el cuaderno (J).'],
       // 4.4
       ['Comprar un negocio y ser socio', 'Con el dueño de un local de la aldea elegí «Hablar de su negocio»: comprarlo ($80.000 a $200.000; cada uno reacciona a su manera) o ser su socio. Lo que rinde va a una caja con tope: pasá a retirarla. Se ve en el cuaderno (J).'],
+      // 4.4.3
+      ['Vender el negocio y sumar plata', 'Con el dueño de siempre: «Venderle el local de vuelta» (te paga del 50 al 85 % de lo que pagaste, más la caja) y, si sos socio, «Sumar plata a la sociedad» (sube tu porcentaje hasta el 40 % del precio). Ves el cálculo antes de cerrar.'],
     ],
   },
   {
