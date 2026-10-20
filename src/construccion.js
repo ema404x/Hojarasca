@@ -2855,6 +2855,10 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
         if (o === ignorarObra || o.datos.etapas <= 0) continue;
         const d = Math.hypot(o.datos.x - x, o.datos.z - z);
         if (!sobrePlataforma && chocaHuellaExtra(plano, x, z, rot, base, o)) return { ok: false, motivo: 'Se superpone con otra pieza' };   // 3.8.7
+        // 4.4.2 (C9): las piezas grandes de la 4.2 (oficios, locales, depósitos, establo, fuente…) no se fundan una sobre otra: ni en el suelo ni sobre el piso de la otra
+        // (un depósito chico entraba «arriba» del piso de la barraca)
+        if (plano.ocupaSuelo && o.plano.ocupaSuelo && (Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z)) - T.altura(o.datos.x, o.datos.z) <= 0.15 &&
+            solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Se superpone con otra pieza' };
         // Una pared o mueble colocado sobre un piso modular puede solaparse en
         // planta con ese soporte: la altura de base ya demuestra que está encima.
         if (sobrePlataforma && o.plano.soportaPiezas) continue;
@@ -4056,7 +4060,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
   }
 
   return { repintar, pintarCasa, restilizarJardin, casas: (desde = null) => agruparCasas(obras, desde),
-    recuperaDeObra, elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
+    recuperaDeObra, elegir, girar, moverFantasma, fundar, avanzar, alternarSnap, iniciarEdicionCerca, confirmarEdicion, cancelarEdicion, desmontarCerca, piezaADesmontar: (pos, radio = 4.5) => (edicion ? null : piezaCerca(pos, radio)), deshacerEtapa, copiarCerca, tenibleCerca, tenir, cubiertaDePieza,
     destruir, portonAbierto, reemplazarPlano, obrasCerca: (pos, radio, salida = []) => obrasCerca(pos, radio, salida),
     cancelarMarcada, obraCerca, tieneFuncionCerca, rehacer, sincronizar, dentro, estadoModulo, estadoModuloCerca, estadoHabitat, redInterior, bajoCubierta, cubiertasLluvia, firmaCubiertas, actualizarAmbiente, obras, revisarSitio,
     get plano() { return planoElegido; }, get rotacion() { return rotacionFantasma || 0; }, get estadoSitio() { return ultimoEstado; },

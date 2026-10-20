@@ -37,7 +37,7 @@ function armazon(c, W, D, H, { platea = PIEDRA, techo = TECHO, fondoAlto = 0, fo
   for (const s of [-1, 1]) caja(c, W + 0.5, 0.07, largo, [0, H + RISE / 2 + 0.04, (s * medio) / 2], techo, { rot: [s * ang, 0, 0], variar: 0.1 });
   caja(c, W + 0.52, 0.1, 0.16, [0, H + RISE + 0.08, 0], MADERA_OSCURA, { tipo: 0 });
 }
-const lleno = (W, D, H) => ({ ancho: W + 0.5, fondo: D + 2 * VUELO, alto: H + RISE + 0.2, radio: Math.max(W, D) / 2 + 0.2 });
+const lleno = (W, D, H) => ({ ancho: W + 0.5, fondo: D + 2 * VUELO, alto: H + RISE + 0.2, radio: Math.max(W, D) / 2 + 0.2, cubreArea: true, ocupaSuelo: true });   // 4.4.2: techados: no llueve adentro
 
 export const PIEZAS_OFICIOS = [
   // ================================================================ la herrería propia

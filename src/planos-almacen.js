@@ -1,6 +1,6 @@
 // 4.2: el almacenaje con tope (O → Trabajo, sólo en el Relax): pila de piedra, depósito de piedra techado, barraca de materiales,
 // herramientero y silo. Cada uno guarda hasta un tope según su tamaño (almacen.js) y se amplía pagando pesos y materiales
-// (Mayús + E); las pilas crecen a la vista a medida que se llenan y la barraca, el depósito, el silo y el herramientero cambian
+// (mantener E); las pilas crecen a la vista a medida que se llenan y la barraca, el depósito, el silo y el herramientero cambian
 // con cada ampliación. Lo que se guarda vive en `datos.almacen` de la obra y se dibuja desde ahí (sin luces ni nada por cuadro: la malla
 // se rehace sólo cuando cambia el paso de llenado o el nivel). Mismas reglas que planos-lujo.js: frente a -z, origen en el centro sobre el
 // piso, sólo tipo 0 y 4, menos de ~1.000 triángulos con el depósito al máximo y lleno. La barraca y el depósito tienen el piso de tablas
@@ -18,7 +18,7 @@ const TEJA = '#7a6552';
 const TEJA_2 = '#6b574a';
 const PAJA = '#d1b46a';
 const LANA = '#e3dcc6';
-const base = { soloRelax: true, apoyaEnPlataforma: true, pieza: true, categoria: 'trabajo' };
+const base = { soloRelax: true, apoyaEnPlataforma: true, pieza: true, categoria: 'trabajo', ocupaSuelo: true };
 
 // El estado del almacén de una obra para dibujar (los datos pueden venir null: el fantasma del plano)
 const estadoDe = (id, datos) => sanearAlmacen(datos?.almacen, id);
@@ -62,7 +62,7 @@ const PILA = {
 const DEP = { ancho: 3.4, fondo: 2.4, alto: 2.75, piso: 0.3 };
 const BAHIAS = [-1.05, 0, 1.05];
 const DEPOSITO = {
-  ...base, id: 'deposito-piedra', nombre: 'Depósito de piedra techado', radio: 2.0, ancho: DEP.ancho, fondo: DEP.fondo, alto: DEP.alto, separacion: 2.0, radioE: 2.9,
+  ...base, cubreArea: true, id: 'deposito-piedra', nombre: 'Depósito de piedra techado', radio: 2.0, ancho: DEP.ancho, fondo: DEP.fondo, alto: DEP.alto, separacion: 2.0, radioE: 2.9,
   texto: `Un cobertizo de tablas con el techo caído para atrás y cajones de tablas para la piedra. Lo que picás se deja acá (E) y se paga solo de ahí cuando construís cerca. ${textoCapacidad('deposito-piedra')} Cada ampliación arma un cajón más.`,
   pide: { tabla: 8, tronco: 4, piedra: 10 }, pesos: 3000,
   fisica(h) {
@@ -99,7 +99,7 @@ const DEPOSITO = {
 // ---------------------------------------------------------------- la barraca de materiales
 const BAR = { ancho: 5.2, fondo: 3.4, alto: 3.5, piso: 0.35 };
 const BARRACA = {
-  ...base, id: 'barraca', nombre: 'Barraca de materiales', radio: 2.9, ancho: BAR.ancho, fondo: BAR.fondo, alto: BAR.alto, separacion: 3.2, radioE: 3.4,
+  ...base, cubreArea: true, id: 'barraca', nombre: 'Barraca de materiales', radio: 2.9, ancho: BAR.ancho, fondo: BAR.fondo, alto: BAR.alto, separacion: 3.2, radioE: 3.4,
   texto: `Un galpón grande de tablas, abierto al frente, con un lugar para los troncos, otro para las tablas, otro para la piedra y otro para la lana. Todo lo que juntás se deja acá (E) y se paga solo de ahí cuando construís cerca. ${textoCapacidad('barraca')} Cada ampliación suma estantes y un altillo.`,
   pide: { tabla: 28, tronco: 12, piedra: 12 }, pesos: 12000,
   fisica(h) {

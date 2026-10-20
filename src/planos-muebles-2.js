@@ -214,7 +214,7 @@ export const PIEZAS_MUEBLES_2 = [
   },
   // ================================================================ el trabajo y la despensa
   {
-    ...base, id: 'banco-carpintero', nombre: 'Banco de carpintero', radio: 1.3, ancho: 2.0, fondo: 0.8, alto: 1.55, separacion: 1.6, confort: 1,
+    ...base, id: 'banco-carpintero', nombre: 'Banco de taller', radio: 1.3, ancho: 2.0, fondo: 0.8, alto: 1.55, separacion: 1.6, confort: 1,
     texto: 'Un banco de tablones gruesos con un tornillo de banco, y atrás un tablero con las herramientas colgadas: serrucho, martillo, formones. Para el taller de la casa.',
     pide: { tabla: 12, tronco: 2 },
     fisica(h) { h.segmento(-0.7, 0, 0.7, 0, 0.38, 0, 0.95); },

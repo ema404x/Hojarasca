@@ -143,7 +143,7 @@ export const PIEZAS_LUJO = [
 
   // ================================================================ el patio
   {
-    ...base, id: 'fuente-piedra', nombre: 'Fuente de piedra', categoria: 'exterior', radio: 1.5, ancho: 2.4, fondo: 2.4, alto: 1.5, separacion: 1.2, confort: 3,
+    ...base, ocupaSuelo: true, id: 'fuente-piedra', nombre: 'Fuente de piedra', categoria: 'exterior', radio: 1.5, ancho: 2.4, fondo: 2.4, alto: 1.5, separacion: 1.2, confort: 3,
     texto: 'Una fuente de piedra de dos tazas, con el agua quieta abajo y un chorro tallado arriba. Para el medio de un patio o el fondo de un jardín. Pide un lugar casi llano.',
     pide: { piedra: 36, tabla: 2 }, pesos: 14000, pendienteMax: 0.22, distSendero: 0.4,
     fisica(h) { h.circulo(0, 0, 1.2, 0, 1.4); },
