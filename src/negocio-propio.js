@@ -12,6 +12,8 @@
 //   · los clientes llegan sólo si el local está abierto, vos estás cerca y hay algo para vender; se acercan caminando al mostrador (hasta
 //     tres juntos), piden algo de lo que les gusta (cada perfil tiene sus gustos), y esperan un rato: cada despacho es con la E;
 //   · lo que se cobra entra a la caja del local (con tope: llena, no se atiende más); se retira de a toda a la billetera.
+//   · 4.4.1: el local paga gastos fijos por día (alquiler, impuesto y luz: negocio-propio-gastos.js), con deuda y cierre solo si no hay con qué; los estantes se
+//     reponen con el empleado desde tus depósitos o con el pedido al proveedor (negocio-propio-reposicion.js).
 // Sólo en el Relax (sin economía no hay negocio). Los partidas viejas no traen el campo: arrancan en el estado nuevo, sin tocar nada más.
 import { BIENES, esBien, hashTexto, azarDe } from './comercio.js';
 import { hayEconomia, cobrar, formatoPesos } from './economia.js';
