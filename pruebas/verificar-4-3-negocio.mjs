@@ -457,7 +457,7 @@ for (const [id, def] of Object.entries(LOCALES)) {
   tiene('if (negocioJuego?.panelAbierto()) { aviso = null; marcarHud(); }', 'con el panel abierto no hay aviso');
   tiene('if (vecino?.clienteNegocio) vecino = null;', 'los clientes de tu local no se charlan: E sobre el mostrador los atiende');
   tiene('acumuladoVecino = 0; vecino = gente.cerca(js, camara);', 'y la búsqueda del vecino de siempre queda como estaba');
-  tiene("try { if (modo === 'jugando' && !desafio) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }", 'el bucle lo avanza aislado con fallaSistema');
+  tiene("try { if (modo === 'jugando' && !desafio && !foto.activo) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }", 'el bucle lo avanza aislado con fallaSistema');
   tiene("negocioJuego.alDesarmar(d);", 'al desarmar el local la mercadería y la caja vuelven a vos');
   ok(m.indexOf('negocioJuego.alDesarmar(d)') < m.indexOf('almacenJuego.devolver(d)'), '… (antes de lo demás, por la misma puerta que todos los desarmados)');
   ok(c.includes("import { PIEZAS_NEGOCIO } from './planos-negocio.js';") && c.includes('PIEZAS.push(...PIEZAS_NEGOCIO);'), 'construccion.js suma los dos locales con una línea');
