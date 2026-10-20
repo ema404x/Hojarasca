@@ -13,7 +13,8 @@
 import { hayEconomia, formatoPesos } from './economia.js';
 import { esVecinoAldea, personaAldea, localAbierto, LOTE_DE } from './aldea.js';
 import { nombreCorto, puntosAmistad, cambiarAmistad } from './vecindad.js';
-import { COLA } from './negocio-propio.js';
+import { COLA, textoLista } from './negocio-propio.js';
+import { REPOSICION, aplicaReposicion, reponibles } from './negocio-propio-reposicion.js';
 import { MOSTRADOR_Z } from './planos-negocio.js';
 import {
   IDS_CANDIDATOS, MAX_EMPLEADOS, AUSENCIA_MAX_DIAS, esCandidato, empleadosDe, empleadoDe, cuantosEmpleados, contratar, despedir, ofertaDe, textoTrato, nivelPorPuntos,
@@ -155,9 +156,14 @@ export function crearEmpleadosNegocioJuego(ctx) {
 
   // ---------------------------------------------------------------- los avisos
   const env = (presente) => ({
-    abs: absAhora(), presente, nivel: nivelDe, nombre: nombreDe, lluvia: ctx.lluvia?.() || 0, ocupado,
+    abs: absAhora(), presente, nivel: nivelDe, nombre: nombreDe, lluvia: ctx.lluvia?.() || 0, ocupado, depositos: depositosDelLocal,
     cambiarAmistad: (k, n) => { cambiarAmistad(P(), k, n, P().dia); },
   });
+  // 4.4.1: los depósitos con tope que tenés cerca del local (se arma sólo cuando un empleado va a reponer, no cada segundo)
+  function depositosDelLocal() {
+    const o = negocio()?.local?.(), A = ctx.almacen?.();
+    return o && A ? A.depositosDe(o.datos.x, o.datos.z, REPOSICION.radio) : null;
+  }
   function avisar(ev, presente) {
     const N = negocio();
     for (const e of ev) {
@@ -199,7 +205,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     // sin local (lo desarmaste): se van, sin culpa de nadie
     if (!est.tipo) {
       const nombres = E.lista.map((x) => nombreDe(x.k));
-      E.lista.length = 0; E.pend = { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {} };
+      E.lista.length = 0; E.pend = { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {}, repuesto: {} };
       quitarFiguras();
       ctx.nota?.(nombres.length > 1 ? 'Tus empleados volvieron a lo suyo' : `${nombres[0]} volvió a lo suyo`, 'Ya no tenés local: sin mostrador no hay trabajo', false);
       ctx.guardar?.();
@@ -284,6 +290,24 @@ export function crearEmpleadosNegocioJuego(ctx) {
     ctx.guardar?.(); ctx.refrescarBarra?.();
     N.redibujar();
   }
+  // 4.4.1: «Reposición automática desde tus depósitos: sí / no»
+  function dibujarReposicion(raiz, est) {
+    const caja = el('div', 'negocio-resumen');
+    const aplica = aplicaReposicion(est.tipo), activa = aplica && est.fin?.reponer === true;
+    const l1 = el('div', 'negocio-linea'); l1.append(el('span', '', 'Reposición automática desde tus depósitos'), el('b', '', aplica ? (activa ? 'sí' : 'no') : 'no aplica'));
+    caja.append(l1);
+    if (!aplica) caja.append(el('div', 'negocio-linea', 'Nada de lo que vende este local se guarda en los depósitos: surtí a mano o pedí al proveedor.'));
+    else {
+      let dep = null;
+      try { dep = depositosDelLocal(); } catch (e) { dep = null; }
+      const cosas = dep && dep.n ? reponibles(est.tipo).map((k) => ({ k, n: dep.hay(k) })).filter((x) => x.n > 0) : [];
+      caja.append(el('div', 'negocio-linea', !dep || !dep.n ? `No hay depósitos a menos de ${REPOSICION.radio} m del local. La barraca, el silo y los depósitos de piedra que armes cerca alimentan los estantes.` : `${dep.n} ${dep.n === 1 ? 'depósito cerca' : 'depósitos cerca'}${cosas.length ? ` con ${textoLista(cosas)}` : ', vacíos'}. Al empezar el turno, el empleado repone lo que falta mientras no estás: sale del depósito.`));
+      const acc = el('div', 'negocio-acciones');
+      acc.append(boton(activa ? 'Apagar la reposición' : 'Activar la reposición', () => { est.fin.reponer = !est.fin.reponer; ctx.guardar?.(); negocio()?.redibujar?.(); }, { titulo: 'Que el empleado de turno reponga los estantes con lo de tus depósitos cuando no estás' }));
+      caja.append(acc);
+    }
+    raiz.append(caja);
+  }
   function dibujarPanel(raiz, est) {
     const E = estadoE();
     if (!E || !est?.tipo) return;
@@ -294,6 +318,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     if (!E.lista.length) caja.append(el('div', 'negocio-linea', 'Contratá a un vecino a sueldo diario: vende por vos aunque no estés (rinde menos que vos) y ayuda cuando estás.'));
     else caja.append(el('div', 'negocio-linea', 'El sueldo se paga al cerrar el turno: de la caja del local y, si no alcanza, de tu billetera. Sin pagar dos días, se van.'));
     raiz.append(caja);
+    dibujarReposicion(raiz, est);
     const lista = el('div', 'negocio-lista');
     for (const emp of E.lista) {
       const dp = personaAldea(emp.k) || {};
