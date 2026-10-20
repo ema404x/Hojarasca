@@ -25,6 +25,7 @@ export const EMPLEO = {
   redondeo: 50,
   historialMax: 24,
   diasLibres: [6],         // domingo (el 7.º día de la semana: ver diaSemanaDe de aldea.js)
+  ausenciaMax: 0.5,        // 4.4.2: si el jefe falta de su local la mitad del turno o más (fiesta, baile, cumpleaños, cita), ese día no hay turno
 };
 
 export const ESCALONES = [
@@ -38,7 +39,7 @@ export const ESCALONES = [
 // del piso sobre el nivel del lote; `seg` es lo que lleva la tarea, en segundos.
 export const PUESTOS = {
   almacen: {
-    local: 'almacen', saludos: ['Tomá el delantal: atendé a los que entren y lo demás se hace solo.','Hoy no se para: la mercadería no se acomoda sola.'], nombre: 'el almacén', completo: 'Almacén de Ramos Generales', jefe: 'Ercilia', desde: 16, hasta: 20,
+    local: 'almacen', saludos: ['Tomá el delantal: atendé a los que entren y lo demás se hace solo.','Hoy no se para: la mercadería no se acomoda sola.'], nombre: 'el almacén', completo: 'Almacén de Ramos Generales', jefe: 'Ercilia', jefeClave: 'ercilia', desde: 16, hasta: 20,
     sueldos: [1600, 2100, 2700], cargos: ['Ayudante de mostrador', 'Despachante', 'Encargado del almacén'],
     oficio: 'huertero', oficioNombre: 'huertero',
     ficha: { x: 2.4, z: 0.9, dy: 0.45, giro: -Math.PI / 2 },
@@ -50,7 +51,7 @@ export const PUESTOS = {
     ],
   },
   'casa-te': {
-    local: 'casa-te', saludos: ['Pasá, querida: las mesas esperan y la tanda no se amasa sola.','Cuidado con las tazas, que son de mi abuela.'], nombre: 'la casa de té', completo: 'Casa de Té', jefe: 'Ceinwen', desde: 9, hasta: 13,
+    local: 'casa-te', saludos: ['Pasá, querida: las mesas esperan y la tanda no se amasa sola.','Cuidado con las tazas, que son de mi abuela.'], nombre: 'la casa de té', completo: 'Casa de Té', jefe: 'Ceinwen', jefeClave: 'galesa', desde: 9, hasta: 13,
     sueldos: [1600, 2000, 2600], cargos: ['Ayudante de salón', 'Moza de té', 'Encargada del salón'],
     oficio: 'huertero', oficioNombre: 'huertero',
     ficha: { x: 0.85, z: 3.2, dy: 0.24 },
@@ -58,11 +59,11 @@ export const PUESTOS = {
       { id: 'servir', nombre: 'Servir el té en las mesas', x: -0.8, z: 1.8, dy: 0.24, seg: 4, hecho: 'Serviste una mesa', donde: 'en la galería, entre las mesas' },
       { id: 'amasar', nombre: 'Amasar y hornear la tanda', x: -1.2, z: -2.4, dy: 0.38, seg: 6, hecho: 'La tanda entró al horno', donde: 'adentro, en la mesada de la cocina (abrí la puerta con E)' },
       { id: 'lena', nombre: 'Cargar leña a la cocina', x: 0.4, z: -3.2, dy: 0.38, seg: 4, hecho: 'La cocina quedó con leña', donde: 'adentro, junto a la cocina económica' },
-      { id: 'bandejas', nombre: 'Armar las bandejas con scones', x: 2.2, z: -1.2, dy: 0.38, seg: 5, hecho: 'Las bandejas están listas', donde: 'adentro, en la mesa larga' },
+      { id: 'bandejas', nombre: 'Armar las bandejas con scones', x: 1.9, z: -2.7, dy: 0.38, seg: 5, hecho: 'Las bandejas están listas', donde: 'adentro, junto a la barra donde se arman' },
     ],
   },
   'taller-tren': {
-    local: 'taller-tren', saludos: ['Ponete los guantes: acá se trabaja con fuego y con paciencia.','Lo que sale de este taller anda sobre rieles: sin apuro, pero bien hecho.'], nombre: 'el taller ferroviario', completo: 'Taller ferroviario', jefe: 'Martín', desde: 8, hasta: 12,
+    local: 'taller-tren', saludos: ['Ponete los guantes: acá se trabaja con fuego y con paciencia.','Lo que sale de este taller anda sobre rieles: sin apuro, pero bien hecho.'], nombre: 'el taller ferroviario', completo: 'Taller ferroviario', jefe: 'Martín', jefeClave: 'martin', desde: 8, hasta: 12,
     sueldos: [1800, 2300, 2800], cargos: ['Ayudante de taller', 'Herrero de taller', 'Encargado del taller'],
     oficio: 'picapedrero', oficioNombre: 'picapedrero',
     ficha: { x: 1.5, z: 2.3, dy: 0.33 },
@@ -74,7 +75,7 @@ export const PUESTOS = {
     ],
   },
   'banco-pueblo': {
-    local: 'banco-pueblo', saludos: ['Sin apuro, pero sin errores: la plata ajena se cuenta dos veces.','Bienvenido a la ventanilla: lo que se anota, se anota derecho.'], nombre: 'el banco', completo: 'Banco del Pueblo', jefe: 'Amadeo', desde: 8.5, hasta: 12.5,
+    local: 'banco-pueblo', saludos: ['Sin apuro, pero sin errores: la plata ajena se cuenta dos veces.','Bienvenido a la ventanilla: lo que se anota, se anota derecho.'], nombre: 'el banco', completo: 'Banco del Pueblo', jefe: 'Amadeo', jefeClave: 'gerente', desde: 8.5, hasta: 12.5,
     sueldos: [1700, 2200, 2800], cargos: ['Ayudante de ventanilla', 'Cajero', 'Encargado de caja'],
     oficio: 'obrero', oficioNombre: 'constructor',
     ficha: { x: 2.2, z: 2.9, dy: 0.32, giro: -Math.PI / 2 },
@@ -136,7 +137,7 @@ export function sanearEmpleo(v, hoy = 1e6) {
   const t = objeto(v.total) ? { turnos: entero(v.total.turnos, 1e6), cobrado: entero(v.total.cobrado, 1e10), abandonos: entero(v.total.abandonos, 1e6) } : base.total;
   const historial = (Array.isArray(v.historial) ? v.historial : []).filter((x) => objeto(x) && hayPuesto(x.local)).map((x) => ({
     dia: Math.min(dia, dia1(x.dia)), local: x.local, escalon: Math.min(ESCALONES.length - 1, entero(x.escalon, 9)), hechas: entero(x.hechas, 40), total: Math.max(1, entero(x.total, 40)),
-    monto: entero(x.monto, 1e7), motivo: ['completo', 'tiempo', 'abandono', 'dia'].includes(x.motivo) ? x.motivo : 'completo',
+    monto: entero(x.monto, 1e7), motivo: ['completo', 'tiempo', 'abandono', 'dia', 'compra'].includes(x.motivo) ? x.motivo : 'completo',
   })).slice(-EMPLEO.historialMax);
   return { v: 1, locales, turno: sanearTurno(v.turno, dia), hoy: h, total: t, historial };
 }
@@ -194,11 +195,11 @@ export function tareaActual(p) {
   const t = turnoActivo(p);
   return t && t.hechas < t.total ? tareaDe(t.local, t.seq[t.hechas]) : null;
 }
-// Cuántas tareas entran si fichás a la `hora`: las que caben hasta el cierre (con el cuarto de hora que se deja de gracia)
+// Cuántas tareas entran si fichás a la `hora`: las que caben hasta el cierre real del turno (la hora de cierre más la gracia de 45 minutos)
 export function tareasPosibles(k, hora) {
   if (!hayPuesto(k)) return 0;
   const P = PUESTOS[k], desde = Math.max(Number(hora) || 0, P.desde);
-  return Math.max(0, Math.min(EMPLEO.tareasPorTurno, Math.floor((P.hasta + 0.25 - desde) / EMPLEO.horasPorTareaEstimada + 1e-9)));
+  return Math.max(0, Math.min(EMPLEO.tareasPorTurno, Math.floor((P.hasta + EMPLEO.gracia - desde) / EMPLEO.horasPorTareaEstimada + 1e-9)));
 }
 // Lo que cobrás hoy por lo hecho (para el cartel del turno): proporcional a las tareas, redondeado
 export const sueldoAcumulado = (t) => (t ? redondear(t.sueldo * Math.min(1, t.hechas / t.total)) : 0);
@@ -206,23 +207,50 @@ export const sueldoAcumulado = (t) => (t ? redondear(t.sueldo * Math.min(1, t.he
 // ---------------------------------------------------------------- fichar
 export const turnosDelDia = (p, dia) => { const h = leer(p)?.hoy; return h && h.dia === dia1(dia) ? entero(h.turnos, 9) : 0; };
 // ¿Podés fichar ahora en `k`?: { ok, sueldo, escalon, cargo, desde, hasta, posibles } o { ok: false, motivo }
-//   motivo: 'nada' (no hay economía o puesto), 'activo' (ya estás en un turno), 'domingo', 'hoy' (ya hiciste el turno de hoy), 'temprano', 'tarde'
-export function puedeFichar(p, k, dia, hora) {
+//   motivo: 'nada' (no hay economía o puesto), 'activo' (ya estás en un turno), 'tuyo' (el local es tuyo), 'domingo', 'hoy' (ya hiciste el turno de hoy),
+//   'cupo' (ya hiciste los dos jornales del día), 'ausente' (el jefe no está en su local: fiesta, baile, cumpleaños, cita), 'temprano', 'tarde'
+// `extra` (lo pone el juego; sin él esas dos miradas no se hacen): { jornales, porDia } (los jornales de hoy y el cupo del día: trabajos.js, que no se puede importar acá
+// sin dar una vuelta) y { donde(clave, dia, hora) → { en, razon } } (dónde está el jefe a esa hora: empleo-presencia.js)
+export function puedeFichar(p, k, dia, hora, extra = {}) {
   if (!hayEconomia(p) || !hayPuesto(k)) return { ok: false, motivo: 'nada' };
   const P = PUESTOS[k];
   if (turnoActivo(p)) return { ok: false, motivo: 'activo' };
-  if (p?.negociosVecinos?.comprados && Object.hasOwn(p.negociosVecinos.comprados, k)) return { ok: false, motivo: 'tuyo' };   // 4.4: si le compraste el local al vecino, ya no tomás turnos ahí
+  if (esLocalTuyo(p, k)) return { ok: false, motivo: 'tuyo' };   // 4.4: si le compraste el local al vecino, ya no tomás turnos ahí
   if (esDiaLibre(dia)) return { ok: false, motivo: 'domingo' };
   if (turnosDelDia(p, dia) >= EMPLEO.turnosPorDia) return { ok: false, motivo: 'hoy' };
+  // 4.4.2: el cupo de dos jornales por día vale en los dos sentidos (el turno ocupa uno): con los dos jornales hechos, no se ficha
+  if (Number.isFinite(extra?.jornales) && extra.jornales + turnosDelDia(p, dia) >= Math.max(1, entero(extra.porDia, 9) || 2)) return { ok: false, motivo: 'cupo' };
   const h = ((Number(hora) || 0) % 24 + 24) % 24;
-  if (h < P.desde - EMPLEO.adelanto) return { ok: false, motivo: 'temprano', desde: P.desde };
   if (h > P.hasta - EMPLEO.horasMinimas) return { ok: false, motivo: 'tarde', desde: P.desde, hasta: P.hasta };
+  // 4.4.2: si el jefe no está en su local la mitad del turno o más, hoy no hay turno (y se dice por qué)
+  const aus = ausenciaDelJefe(k, dia, h, extra?.donde);
+  if (aus.fraccion >= EMPLEO.ausenciaMax) return { ok: false, motivo: 'ausente', razon: aus.razon };
+  if (h < P.desde - EMPLEO.adelanto) return { ok: false, motivo: 'temprano', desde: P.desde };
   const esc = escalonDe(p, k);
   return { ok: true, sueldo: P.sueldos[esc], escalon: esc, cargo: P.cargos[esc], desde: P.desde, hasta: P.hasta, posibles: tareasPosibles(k, h) };
 }
+// 4.4.2: ¿se compró el local? (el vecino ya no te toma: el local es tuyo)
+export const esLocalTuyo = (p, k) => !!p?.negociosVecinos?.comprados && Object.hasOwn(p.negociosVecinos.comprados, k);
+// 4.4.2: qué parte del turno que queda (desde `hora` hasta el cierre) el jefe no está en su local, y por qué (el primer motivo). `donde(clave, dia, hora)` → { en, razon }
+// (en = el edificio donde está). Se mira cada cuarto de hora; sin `donde` (o si falla), el jefe está.
+export function ausenciaDelJefe(k, dia, hora, donde) {
+  const P = PUESTOS[k];
+  if (!P || typeof donde !== 'function') return { fraccion: 0, razon: '' };
+  const a = Math.max(Number(hora) || 0, P.desde), largo = P.hasta - a;
+  if (!(largo > 0)) return { fraccion: 0, razon: '' };
+  const pasos = Math.max(1, Math.round(largo / 0.25));
+  let fuera = 0, razon = '';
+  try {
+    for (let i = 0; i < pasos; i++) {
+      const d = donde(P.jefeClave, dia1(dia), a + (i + 0.5) * (largo / pasos));
+      if (d && d.en !== P.local) { fuera++; if (!razon) razon = String(d.razon || ''); }
+    }
+  } catch { return { fraccion: 0, razon: '' }; }
+  return { fraccion: fuera / pasos, razon };
+}
 // Ficha: arma el turno. Devuelve { ok, turno } o { ok: false, motivo }
-export function fichar(p, k, dia, hora) {
-  const v = puedeFichar(p, k, dia, hora);
+export function fichar(p, k, dia, hora, extra = {}) {
+  const v = puedeFichar(p, k, dia, hora, extra);
   if (!v.ok) return v;
   const e = empleoDe(p), P = PUESTOS[k], d = dia1(dia);
   e.turno = { local: k, dia: d, desde: P.desde, hasta: P.hasta, escalon: v.escalon, sueldo: v.sueldo, total: EMPLEO.tareasPorTurno, hechas: 0, fichado: ((Number(hora) || 0) % 24 + 24) % 24, seq: secuenciaDelTurno(k, d) };
@@ -248,14 +276,16 @@ export function pagoDelTurno(t, abandono = false) {
   return { monto: bruto - multa, multa, proporcion };
 }
 // Cierra el turno en curso: cobra, suma el día si lo cumpliste, anota el historial y mira si ascendés.
-//   motivo: 'completo' (hiciste todas), 'tiempo' (se pasó la hora de cierre), 'dia' (pasó el día: dormiste) o 'abandono' (te fuiste)
+//   motivo: 'completo' (hiciste todas), 'tiempo' (se pasó la hora de cierre), 'dia' (pasó el día: dormiste), 'abandono' (te fuiste) o
+//   'compra' (4.4.2: compraste el local con el turno en marcha: se cobra lo hecho hasta ahí, sin multa y sin sumar el día)
 // Devuelve { ok, monto, multa, hechas, total, cumplido, motivo, ascendio: null | { escalon, nombre, cargo, sueldo }, local }
 export function cerrarTurno(p, motivo = 'completo', nombre = '') {
   const e = empleoDe(p), t = e?.turno;
   if (!t) return { ok: false, motivo: 'nada' };
   const P = PUESTOS[t.local], abandono = motivo === 'abandono', pago = pagoDelTurno(t, abandono);
-  const cumplido = !abandono && t.hechas >= Math.ceil(t.total * EMPLEO.cumplido);
-  const l = localDe(e, t.local), antes = escalonDe(p, t.local);
+  const cumplido = !abandono && motivo !== 'compra' && t.hechas >= Math.ceil(t.total * EMPLEO.cumplido);
+  // (4.4.2: el escalón de antes es el ya anunciado y guardado, no el de ahora: si el oficio llegó después de los días, el ascenso igual se avisa)
+  const l = localDe(e, t.local), antes = Math.min(ESCALONES.length - 1, l.escalon || 0);
   let ascendio = null;
   if (pago.monto > 0) cobrar(p, pago.monto, `Sueldo: ${P.cargos[t.escalon]}, ${P.nombre}`, P.jefe);
   l.cobrado = Math.min(1e9, l.cobrado + pago.monto);
@@ -270,13 +300,13 @@ export function cerrarTurno(p, motivo = 'completo', nombre = '') {
   e.turno = null;
   return { ok: true, local: t.local, monto: pago.monto, multa: pago.multa, hechas: t.hechas, total: t.total, cumplido, motivo, ascendio };
 }
-// ¿Hay que cerrar el turno de solo?: 'dia' (ya es otro día), 'tiempo' (pasó la hora de cierre y la gracia) o null. `reloj`: con la hora de tu
-// reloj (que corre de verdad) el turno no se cierra por la hora, sólo por el día.
+// ¿Hay que cerrar el turno de solo?: 'dia' (ya es otro día), 'tiempo' (pasó la hora de cierre y la gracia) o null. (4.4.2: también con la hora de tu reloj:
+// el parámetro `reloj` se conserva y no cambia nada; el turno se cierra por la hora como siempre.)
 export function motivoDeCierre(p, dia, hora, reloj = false) {
   const t = turnoActivo(p);
   if (!t) return null;
   if (dia1(dia) !== t.dia) return 'dia';
-  if (!reloj && (((Number(hora) || 0) % 24 + 24) % 24) > t.hasta + EMPLEO.gracia) return 'tiempo';
+  if ((((Number(hora) || 0) % 24 + 24) % 24) > t.hasta + EMPLEO.gracia) return 'tiempo';
   return null;
 }
 
@@ -284,12 +314,13 @@ export function motivoDeCierre(p, dia, hora, reloj = false) {
 // «el almacén» → «del almacén» / «al almacén»; «la casa de té» → «de la casa de té» / «a la casa de té»
 export const deNombre = (nombre) => (nombre.startsWith('el ') ? `del ${nombre.slice(3)}` : `de ${nombre}`);
 export const aNombre = (nombre) => (nombre.startsWith('el ') ? `al ${nombre.slice(3)}` : `a ${nombre}`);
-const motivoTexto = { domingo: 'Hoy es domingo: no se trabaja.', hoy: 'Ya hiciste tu turno de hoy.', activo: 'Ya estás en un turno.', tuyo: 'Este local ahora es tuyo: ya no se toman turnos acá.' };
+const motivoTexto = { cupo: 'Hoy ya hiciste tus dos jornales: no queda lugar para el turno.', domingo: 'Hoy es domingo: no se trabaja.', hoy: 'Ya hiciste tu turno de hoy.', activo: 'Ya estás en un turno.', tuyo: 'Este local ahora es tuyo: ya no se toman turnos acá.' };
 // El cartel del puesto: «Ayudante de mostrador · turno de 16 a 20 · $1.600»
 export const textoPuesto = (k, escalon) => `${cargoDe(k, escalon)} · turno de ${horaCorta(PUESTOS[k].desde)} a ${horaCorta(PUESTOS[k].hasta)} · ${formatoPesos(sueldoDe(k, escalon))}`;
 // Lo que pregunta el cartel para tomar el puesto
 export function textoOferta(k, escalon, posibles = EMPLEO.tareasPorTurno) {
-  const P = PUESTOS[k], parcial = posibles < EMPLEO.tareasPorTurno ? ` Llegás con el turno empezado: entran ${posibles} tareas de ${EMPLEO.tareasPorTurno}, y cobrás por las que hagas.` : '';
+  const P = PUESTOS[k], minimas = Math.ceil(EMPLEO.tareasPorTurno * EMPLEO.cumplido);
+  const parcial = posibles < EMPLEO.tareasPorTurno ? ` Llegás con el turno empezado: entran unas ${posibles} tareas de ${EMPLEO.tareasPorTurno}, y cobrás por las que hagas${posibles < minimas ? `; con menos de ${minimas} el día no cuenta para el ascenso` : ''}.` : '';
   return `¿Querés trabajar acá? ${cargoDe(k, escalon)} en ${P.nombre}: turno de ${horaCorta(P.desde)} a ${horaCorta(P.hasta)}, ${formatoPesos(sueldoDe(k, escalon))}. ${P.jefe} te dice qué hacer; las tareas se hacen con E y se cobra al terminar.${parcial}`;
 }
 // El aviso de la E junto al cartel cuando no podés fichar: por qué
@@ -298,6 +329,7 @@ export function textoNoPodes(v, k) {
   if (!v || v.ok) return '';
   if (v.motivo === 'temprano') return `Se ficha desde las ${horaCorta(P.desde - EMPLEO.adelanto)}: el turno es de ${horaCorta(P.desde)} a ${horaCorta(P.hasta)}.`;
   if (v.motivo === 'tarde') return `Se terminó la hora de fichar (el turno es de ${horaCorta(P.desde)} a ${horaCorta(P.hasta)}). Volvé mañana.`;
+  if (v.motivo === 'ausente') return `Hoy no hay turno: ${P.jefe} ${v.razon || 'no está en el local'}. Volvé otro día.`;
   return motivoTexto[v.motivo] || '';
 }
 // El pie del aviso al terminar: «Cobraste $1.600 · 3 de 5 días para Empleado»
@@ -320,10 +352,10 @@ export function textoCierre(r, p) {
 // Lo que muestra el cuaderno: el historial laboral por local y los últimos turnos
 export function resumenEmpleo(p) {
   const e = leer(p);
-  if (!e) return { hay: hayEconomia(p), locales: IDS_PUESTOS.map((k) => ({ local: k, nombre: PUESTOS[k].completo, jefe: PUESTOS[k].jefe, turno: `${horaCorta(PUESTOS[k].desde)} a ${horaCorta(PUESTOS[k].hasta)}`, dias: 0, faltas: 0, cobrado: 0, trabajo: false, escalon: 0, escalonNombre: ESCALONES[0].nombre, cargo: PUESTOS[k].cargos[0], sueldo: PUESTOS[k].sueldos[0], falta: faltaParaAscender(p, k) })), total: { turnos: 0, cobrado: 0, abandonos: 0 }, historial: [], turno: null };
+  if (!e) return { hay: hayEconomia(p), locales: IDS_PUESTOS.map((k) => ({ local: k, nombre: PUESTOS[k].completo, jefe: PUESTOS[k].jefe, turno: `${horaCorta(PUESTOS[k].desde)} a ${horaCorta(PUESTOS[k].hasta)}`, dias: 0, faltas: 0, cobrado: 0, trabajo: false, tuyo: esLocalTuyo(p, k), escalon: 0, escalonNombre: ESCALONES[0].nombre, cargo: PUESTOS[k].cargos[0], sueldo: PUESTOS[k].sueldos[0], falta: faltaParaAscender(p, k) })), total: { turnos: 0, cobrado: 0, abandonos: 0 }, historial: [], turno: null };
   const locales = IDS_PUESTOS.map((k) => {
     const l = e.locales[k] || localNuevo(), esc = escalonDe(p, k), f = faltaParaAscender(p, k);
-    return { local: k, nombre: PUESTOS[k].completo, jefe: PUESTOS[k].jefe, turno: `${horaCorta(PUESTOS[k].desde)} a ${horaCorta(PUESTOS[k].hasta)}`, dias: l.dias, faltas: l.faltas, cobrado: l.cobrado, trabajo: l.dias > 0 || l.cobrado > 0 || esc > 0, escalon: esc, escalonNombre: ESCALONES[esc].nombre, cargo: PUESTOS[k].cargos[esc], sueldo: PUESTOS[k].sueldos[esc], falta: f };
+    return { local: k, nombre: PUESTOS[k].completo, jefe: PUESTOS[k].jefe, turno: `${horaCorta(PUESTOS[k].desde)} a ${horaCorta(PUESTOS[k].hasta)}`, dias: l.dias, faltas: l.faltas, cobrado: l.cobrado, trabajo: l.dias > 0 || l.cobrado > 0 || esc > 0, tuyo: esLocalTuyo(p, k), escalon: esc, escalonNombre: ESCALONES[esc].nombre, cargo: PUESTOS[k].cargos[esc], sueldo: PUESTOS[k].sueldos[esc], falta: f };
   });
   return { hay: true, locales, total: { ...e.total }, historial: e.historial.slice(-8).reverse(), turno: e.turno ? { ...e.turno } : null };
 }

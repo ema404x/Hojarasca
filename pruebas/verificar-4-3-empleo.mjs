@@ -93,8 +93,8 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   eq(E.puedeFichar({ modo: 'desafio' }, 'almacen', 1, 16).motivo, 'nada', 'en el Desafío, nada (no hay economía)');
   const v = E.puedeFichar(p, 'almacen', 1, 16);
   eq([v.sueldo, v.escalon, v.cargo, v.posibles], [1600, 0, 'Ayudante de mostrador', 8], 'el primer día: aprendiz, $1.600 y las ocho tareas');
-  eq(E.puedeFichar(p, 'almacen', 1, 18).posibles, 4, 'llegando a las 18 entran cuatro tareas');
-  eq(E.tareasPosibles('almacen', 18.5), 3, 'a las 18:30, tres');
+  eq(E.puedeFichar(p, 'almacen', 1, 18).posibles, 5, 'llegando a las 18 entran unas cinco tareas (4.4.2: se cuenta hasta el cierre real, con la gracia)');
+  eq(E.tareasPosibles('almacen', 18.5), 4, 'a las 18:30, cuatro');
   // fichar
   const f = E.fichar(p, 'almacen', 1, 16);
   ok(f.ok && f.turno.local === 'almacen' && f.turno.hechas === 0 && f.turno.total === 8 && f.turno.sueldo === 1600, 'fichar arma el turno');
@@ -143,7 +143,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   eq(E.motivoDeCierre(p, 4, 19.5), null, 'durante el turno no se cierra');
   eq(E.motivoDeCierre(p, 4, 20.7), null, 'ni un rato después de la hora (la gracia)');
   eq(E.motivoDeCierre(p, 4, 20.8), 'tiempo', 'pasada la gracia, se cierra por el tiempo');
-  eq(E.motivoDeCierre(p, 4, 20.8, true), null, 'con la hora de tu reloj no se cierra por la hora');
+  eq(E.motivoDeCierre(p, 4, 20.8, true), 'tiempo', '4.4.2: con la hora de tu reloj también se cierra por la hora');
   eq(E.motivoDeCierre(p, 5, 7), 'dia', 'si pasó el día, se cierra por el día');
   eq(E.motivoDeCierre(relax(), 1, 12), null, 'sin turno, nada');
 }
@@ -400,6 +400,7 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   await J.accion(js).hacer();
   eq(J.turno().local, 'taller-tren', 'taller ferroviario: ficha a las 8');
   { const t = E.tareaActual(p); ponerEn('taller-tren', t.id); J.accion(js).hacer(); J.actualizar(t.seg + 0.1); }
+  p.horas = 12.5; J.actualizar(0.6);   // (4.4.2: el reloj corre de a poco; un salto de la tarea a la noche es dormir y se trata aparte)
   p.horas = 13;
   J.actualizar(0.6);
   eq(J.turno(), null, 'pasada la hora de cierre (12 + gracia), se cierra solo');

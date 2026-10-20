@@ -5647,6 +5647,8 @@ function armarOficiosYAldea(esDesafio) {
       },
       reloj: () => ajustes.duracion === 'reloj', azar: () => Math.random(),
       ver: () => modo === 'jugando' && !panelDelHudAbierto() && !charla.npc,
+      fiestaEn: (k, d, h) => fiestasJuego?.destinoEn?.(k, d, h) || null,   // 4.4.2: ¿el jefe del puesto va a estar en la fiesta?
+      falla: (nombre, e) => fallaSistema(nombre, e),
     });
     empleoJuego.alCargar();
   } catch (e) { fallaSistema('empleo-armado', e); empleoJuego = null; }
@@ -10116,8 +10118,8 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
-    try { if (modo === 'jugando' && !desafio) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }   // 4.3: los clientes de tu local
-    try { if (modo === 'jugando' && !desafio) empleadosNegocioJuego?.actualizar(dt); } catch (e) { fallaSistema('empleados-negocio', e); }   // 4.4: los vecinos contratados en tu local
+    try { if (modo === 'jugando' && !desafio && !foto.activo) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }   // 4.3: los clientes de tu local
+    try { if (modo === 'jugando' && !desafio && !foto.activo) empleadosNegocioJuego?.actualizar(dt); } catch (e) { fallaSistema('empleados-negocio', e); }   // 4.4: los vecinos contratados en tu local
     try { if (modo === 'jugando' && !desafio) cantinaJuego?.actualizar(dt); } catch (e) { fallaSistema('cantina', e); }
     try { if (modo === 'jugando' && !desafio) teJuego?.actualizar(dt); } catch (e) { fallaSistema('casa-te', e); }   // 3.9.2: la casa de té (la visita, Ceinwen, el sorbo)   // 3.9.0: la cantina (la visita, la moza, el sorbo)
     try {   // 3.9.1: la peña: los parroquianos, el truco, el que se arrima, el baile con Dalia y la guitarra y el bombo del rincón
@@ -10138,7 +10140,7 @@ function cuadroDelJuego(tRaf, manual) {
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
     try { if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
     try { if (modo === 'jugando' && !desafio && !foto.activo) empleoJuego?.actualizar(dt); } catch (e) { fallaSistema('empleo', e); }
-    try { if (modo === 'jugando' && !desafio) negociosVecinosJuego?.actualizar(dt); } catch (e) { fallaSistema('negocios-vecinos', e); }   // 4.4: lo que rindieron tus negocios y el aviso de cada día   // 4.3: la tarea en curso, el turno y su cierre
+    try { if (modo === 'jugando' && !desafio && !foto.activo) negociosVecinosJuego?.actualizar(dt); } catch (e) { fallaSistema('negocios-vecinos', e); }   // 4.4: lo que rindieron tus negocios y el aviso de cada día   // 4.3: la tarea en curso, el turno y su cierre
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt);   // 4.0.3 (F3): con el modo foto la hora del deslizador no termina la minga ni tapa la vía
       if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye

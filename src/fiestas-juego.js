@@ -81,6 +81,18 @@ export function crearFiestasJuego(ctx) {
     return reparto.mapa.get(k) || null;
   }
 
+  // 4.4.2: ¿`k` iría a la fiesta ese día a esa hora? → la fecha o null. Es lo mismo que `destino` pero para otro momento (lo usa el empleo para saber si el jefe
+  // de un puesto va a estar en su local); no toca la caché de la fiesta de ahora.
+  function destinoEn(k, d, h) {
+    if (!activo()) return null;
+    const a = fiestaDeAhora(d, h, opciones(d));
+    if (!a || a.fecha.tipo === 'noventa') return null;
+    if (a.fase.fase === 'llegada' && a.fecha.tipo !== 'fiesta' && a.fecha.tipo !== 'aldea') return null;
+    const lista = [...new Set([...presentes(), k])];
+    const mapa = repartoFiesta(a.fecha, a.fase, lista, { leyenda: leyendaDe(estado(), a.fecha.anio), musica: musicaDe(a.fecha), clase: false });
+    return mapa.get(k) ? a.fecha : null;
+  }
+
   // ---------------------------------------------------------------- lo que ve el mundo
   const invitadosHoy = () => {
     const a = ahora();
@@ -897,7 +909,7 @@ export function crearFiestasJuego(ctx) {
   }
 
   const api = {
-    activo, actualizar, destino, accion, paraElMundo, estado, ahora, fechasDeHoy, enCursoHoy,
+    activo, actualizar, destino, destinoEn, accion, paraElMundo, estado, ahora, fechasDeHoy, enCursoHoy,
     panelAbierto, sinApuro, cerrarPanel, elegirPanel, atras, alApretarE, lista, tapaVecino, alAsiento, sinVecino, redibujar: () => dibujarPanel(false),
     jugarTruco, camara, montando: () => jineteada.monta?.quien === 'jugador', fotoDeLaFiesta, climaForzado,
     fotosAlbum: () => fotosParaAlbum(estado()),

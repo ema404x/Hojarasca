@@ -8,12 +8,15 @@
 import { edificioEnMundo } from './aldea.js';
 import { formatoPesos, hayEconomia } from './economia.js';
 import { crearEmpleoMundo } from './empleo-mundo.js';
-import { EMPLEO, PUESTOS, IDS_PUESTOS, ESCALONES, empleoDe, turnoActivo, tareaActual, puedeFichar, fichar, hacerTarea, cerrarTurno, motivoDeCierre, pagoDelTurno, sueldoAcumulado, deNombre, aNombre, textoPuesto, textoOferta, textoNoPodes, textoCierre, resumenEmpleo, horaReloj, escalonDe } from './empleo.js';
+import { EMPLEO, PUESTOS, IDS_PUESTOS, ESCALONES, empleoDe, turnoActivo, tareaActual, puedeFichar, fichar, hacerTarea, cerrarTurno, motivoDeCierre, pagoDelTurno, sueldoAcumulado, deNombre, aNombre, textoPuesto, textoOferta, textoNoPodes, textoCierre, resumenEmpleo, horaReloj, escalonDe, esLocalTuyo } from './empleo.js';
+import { jornalesHoy, JORNAL } from './trabajos.js';
+import { dondeEstaElJefe } from './empleo-presencia.js';
 
 export const RADIO_TAREA = 1.5, RADIO_CARTEL = 1.3, RADIO_ABANDONO = 45, RADIO_AVISO = 28, RADIO_CARTELES = 70;
 
 // `ctx`: progreso(), jugador() (el del juego: estado.pos), escena(), desafio(), nota(t, sub, nueva), sonido(), guardar(), confirmar(texto, extra) → Promise<bool>,
-// avanzarHoras(h) → bool (false con la hora de tu reloj: no se salta), reloj() → bool, ver() → bool (¿se muestra el HUD?), azar() (0..1)
+// avanzarHoras(h) → bool (false con la hora de tu reloj: no se salta), reloj() → bool, ver() → bool (¿se muestra el HUD?), azar() (0..1),
+// fiestaEn(clave, dia, hora) → la fecha de la fiesta a la que va esa persona a esa hora, o null (4.4.2: ¿el jefe está en su local?), falla(nombre, error) (4.4.2)
 export function crearEmpleoJuego(ctx) {
   const prog = () => ctx.progreso();
   const activo = () => !ctx.desafio?.() && hayEconomia(prog());
@@ -24,6 +27,19 @@ export function crearEmpleoJuego(ctx) {
   let hace = null;          // la tarea que se está haciendo: { t, dur, x, z, id }
   let hud = null, barra = null, textoHud = '';
   let acum = 1, acumCarteles = 9, avisoLejos = false, ofreciendo = false;
+  let horaVista = -1, memoT = 0;   // 4.4.2: la hora de la última pasada (para saber si te dormiste antes de que terminara el turno) y cada cuánto se olvida dónde estaba el jefe
+
+  // ---------------------------------------------------------------- ¿se puede fichar? (con el cupo de jornales del día y con el jefe en su local)
+  // dónde está el jefe a esa hora: se recuerda un rato (se mira cada cuarto de hora del turno y la E junto al cartel pregunta seguido)
+  const memoJefe = new Map();
+  function dondeJefe(clave, d, h) {
+    const c = `${clave}|${d}|${Math.round(h * 8)}`;
+    let r = memoJefe.get(c);
+    if (!r) { r = dondeEstaElJefe(prog(), clave, d, h, ctx.fiestaEn); if (memoJefe.size > 400) memoJefe.clear(); memoJefe.set(c, r); }
+    return r;
+  }
+  const extraFichar = () => ({ jornales: jornalesHoy(prog(), dia()), porDia: JORNAL.porDia, donde: dondeJefe });
+  const fichable = (k) => puedeFichar(prog(), k, dia(), horas(), extraFichar());
 
   // ---------------------------------------------------------------- dónde está cada cosa
   const cacheLugar = new Map();
@@ -49,6 +65,9 @@ export function crearEmpleoJuego(ctx) {
 
   // ---------------------------------------------------------------- la E y el aviso
   function accion(js) {
+    try { return accionSinRed(js); } catch (e) { ctx.falla?.('empleo-accion', e); return null; }   // (4.4.2: la E y el aviso no pueden caer por un error del empleo)
+  }
+  function accionSinRed(js) {
     if (!activo() || !js) return null;
     const p = prog(), t = turnoActivo(p);
     if (t) {
@@ -60,7 +79,7 @@ export function crearEmpleoJuego(ctx) {
     }
     for (const k of IDS_PUESTOS) {
       if (!cerca(js, lugar(k, 'ficha'), RADIO_CARTEL)) continue;
-      const v = puedeFichar(p, k, dia(), horas());
+      const v = fichable(k);
       if (v.ok) return { tipo: 'ficha', local: k, texto: `Tomar el puesto: ${textoPuesto(k, v.escalon)}`, hacer: () => ofrecer(k) };
       return { tipo: 'info', local: k, texto: `Cartel de turnos: ${PUESTOS[k].completo}`, hacer: () => ctx.nota(`Cartel de turnos: ${PUESTOS[k].completo}`, `${textoPuesto(k, escalonDe(p, k))}. ${textoNoPodes(v, k)}`, true) };
     }
@@ -71,14 +90,14 @@ export function crearEmpleoJuego(ctx) {
 
   async function ofrecer(k) {
     if (ofreciendo) return;
-    const p = prog(), v = puedeFichar(p, k, dia(), horas());
+    const p = prog(), v = fichable(k);
     if (!v.ok) { ctx.nota('No se puede fichar', textoNoPodes(v, k), true); return; }
     ofreciendo = true;
     let si = false;
     try { si = await ctx.confirmar(textoOferta(k, v.escalon, v.posibles), { si: 'Tomar el puesto', no: 'Ahora no' }); } catch { si = false; }
     ofreciendo = false;
     if (!si || !activo()) return;
-    const r = fichar(prog(), k, dia(), horas());   // (se vuelve a mirar: entre la pregunta y el sí no pasa el tiempo, pero el estado manda)
+    const r = fichar(prog(), k, dia(), horas(), extraFichar());   // (se vuelve a mirar: entre la pregunta y el sí no pasa el tiempo, pero el estado manda)
     if (!r.ok) { ctx.nota('No se puede fichar', textoNoPodes(r, k), true); return; }
     const P = PUESTOS[k], saludo = P.saludos[Math.floor((ctx.azar?.() ?? Math.random()) * P.saludos.length) % P.saludos.length];
     ctx.sonido?.()?.anotar?.();
@@ -130,8 +149,8 @@ export function crearEmpleoJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- cerrar el turno
-  const TITULOS = { completo: (P) => `Terminó el turno en ${P.nombre}`, tiempo: (P) => `Se cerró el turno en ${P.nombre}`, dia: () => 'Pasó el día: se cerró el turno', abandono: (P) => `Te fuiste ${deNombre(P.nombre)}` };
-  function cerrar(motivo) {
+  const TITULOS = { completo: (P) => `Terminó el turno en ${P.nombre}`, tiempo: (P) => `Se cerró el turno en ${P.nombre}`, dia: () => 'Pasó el día: se cerró el turno', abandono: (P) => `Te fuiste ${deNombre(P.nombre)}`, compra: (P) => `Ya es tuyo ${P.nombre}: se cerró el turno` };
+  function cerrar(motivo, titulo = '') {
     const p = prog(), t = turnoActivo(p);
     if (!t) return null;
     const P = PUESTOS[t.local];
@@ -140,7 +159,7 @@ export function crearEmpleoJuego(ctx) {
     mundo?.quitarMarca(); dibujarHud(true);
     if (!r.ok) return r;
     if (r.monto > 0) ctx.sonido?.()?.anotar?.();
-    ctx.nota(TITULOS[motivo]?.(P) || 'Terminó el turno', textoCierre(r, p), true);
+    ctx.nota(titulo || TITULOS[motivo]?.(P) || 'Terminó el turno', textoCierre(r, p), true);
     if (r.ascendio) {
       const a = r.ascendio;
       setTimeout(() => { try { ctx.sonido?.()?.anotar?.(); ctx.nota(`Ascendiste: ${a.cargo}`, `Ahora sos ${a.nombre.toLowerCase()} en ${P.nombre} y cobrás ${formatoPesos(a.sueldo)} por turno`, true); } catch { /* nada */ } }, 2200);
@@ -154,16 +173,17 @@ export function crearEmpleoJuego(ctx) {
     if (hud || typeof document === 'undefined') return;
     hud = document.createElement('div');
     hud.id = 'turno-hud';
-    hud.setAttribute('aria-live', 'polite');
-    hud.style.cssText = 'position:fixed;left:14px;top:96px;width:min(330px,40vw);padding:9px 12px 10px;border-radius:8px;background:var(--tinta-velo,rgba(20,28,23,0.72));'
-      + 'color:#f1e7d6;font:14px/1.35 Spectral,Georgia,serif;pointer-events:none;z-index:6;text-shadow:0 1px 2px #000;display:none;backdrop-filter:blur(4px)';
+    hud.setAttribute('aria-live', 'off');   // (4.4.2: el texto se reescribe con cada minuto del juego; el cambio de tarea ya lo anuncia la nota)
+    // 4.4.2: adentro de #hud (no del body): así queda DEBAJO de la pausa, el cuaderno, el mapa y la guía, se esconde con el modo foto y crece con la letra grande
+    hud.style.cssText = 'position:absolute;left:14px;top:96px;width:min(330px,40vw);padding:9px 12px 10px;border-radius:8px;background:var(--tinta-velo,rgba(20,28,23,0.72));'
+      + 'color:#f1e7d6;font:14px/1.35 Spectral,Georgia,serif;pointer-events:none;text-shadow:0 1px 2px #000;display:none;backdrop-filter:blur(4px)';
     const caja = document.createElement('div'); caja.className = 'turno-texto';
     barra = document.createElement('div');
     barra.style.cssText = 'height:6px;border-radius:3px;background:rgba(241,231,214,0.18);margin-top:7px;overflow:hidden;display:none';
     const lleno = document.createElement('div'); lleno.style.cssText = 'height:100%;width:0%;background:#e8c46a';
     barra.appendChild(lleno);
     hud.appendChild(caja); hud.appendChild(barra);
-    document.body.appendChild(hud);
+    (document.getElementById('hud') || document.body).appendChild(hud);
   }
   function dibujarHud(forzar = false) {
     const p = prog(), t = activo() ? turnoActivo(p) : null;
@@ -227,14 +247,23 @@ export function crearEmpleoJuego(ctx) {
     if (acum < 0.5) return;
     acum = 0;
     const p = prog(), t = turnoActivo(p);
+    const horaAntes = horaVista; horaVista = horas();
+    if ((memoT += 0.5) >= 10) { memoT = 0; memoJefe.clear(); }
     if (!t) { dibujarHud(); return; }
+    // 4.4.2: ¿compraste el local con el turno en marcha? Se cierra con lo hecho hasta ahí (no se ficha en un negocio propio)
+    if (esLocalTuyo(p, t.local)) { cerrar('compra'); return; }
     // ¿Se acabó el día o la hora? Se cierra con lo hecho. ¿Te fuiste lejos? Se cierra con multa
     const motivo = motivoDeCierre(p, dia(), horas(), !!ctx.reloj?.());
-    if (motivo) { cerrar(motivo); return; }
+    if (motivo) {
+      // 4.4.2: dormir (o la siesta) con el turno todavía abierto, sin haberlo terminado, es irse antes: lleva la multa y la falta como cualquier abandono
+      if (t.hechas < t.total && horaAntes >= 0 && horaAntes < t.hasta) cerrar('abandono', 'Te fuiste a dormir sin terminar el turno');
+      else cerrar(motivo);
+      return;
+    }
     if (js) {
       const c = lugar(t.local, 'ficha');
       const d = c ? Math.hypot(js.pos.x - c.cx, js.pos.z - c.cz) : 0;
-      if (d > RADIO_ABANDONO) { ctx.nota('Te fuiste del trabajo', 'Dejaste el turno a medias: se cierra con lo que hiciste.', true); cerrar('abandono'); return; }
+      if (d > RADIO_ABANDONO) { cerrar('abandono'); return; }   // (4.4.2: un solo aviso: el del cierre, que dice lo que cobraste y la multa)
       if (d > RADIO_AVISO && !avisoLejos) { avisoLejos = true; ctx.nota('Estás lejos del trabajo', `Volvé ${aNombre(PUESTOS[t.local].nombre)}: si te vas, el turno se cierra con multa.`); }
       else if (d < RADIO_AVISO - 4) avisoLejos = false;
     }
@@ -244,7 +273,7 @@ export function crearEmpleoJuego(ctx) {
   const marcaFalta = () => { const m = el(); return !!m && !hace && !!tareaActual(prog()) && !m.marcaVisible(); };
 
   // Al cargar una partida con un turno empezado: se retoma (si ya pasó su hora o su día, actualizar() lo cierra con lo hecho)
-  function alCargar() { hace = null; avisoLejos = false; acum = 1; ponerCarteles(); ponerMarca(); dibujarHud(true); }
+  function alCargar() { hace = null; avisoLejos = false; acum = 1; horaVista = -1; memoJefe.clear(); ponerCarteles(); ponerMarca(); dibujarHud(true); }
 
   // ---------------------------------------------------------------- el cuaderno
   function paginaCuaderno() {
@@ -260,7 +289,8 @@ export function crearEmpleoJuego(ctx) {
         else ficha.appendChild(e('p', 'anotado', `${r.total.turnos} ${r.total.turnos === 1 ? 'turno hecho' : 'turnos hechos'} · ${formatoPesos(r.total.cobrado)} cobrados${r.total.abandonos ? ` · ${r.total.abandonos} ${r.total.abandonos === 1 ? 'vez' : 'veces'} que te fuiste antes` : ''}`));
         if (r.turno) ficha.appendChild(e('p', 'pista', `Ahora estás trabajando en ${PUESTOS[r.turno.local].nombre}: ${r.turno.hechas} de ${r.turno.total} tareas.`));
         for (const l of r.locales) {
-          ficha.appendChild(e('h3', '', `${l.nombre}${l.trabajo ? ` · ${l.cargo}` : ''}`));
+          ficha.appendChild(e('h3', '', `${l.nombre}${l.tuyo ? ' · es tuyo' : l.trabajo ? ` · ${l.cargo}` : ''}`));
+          if (l.tuyo) { ficha.appendChild(e('p', 'texto', `Le compraste el local a ${l.jefe}: ya no se toman turnos acá.${l.trabajo ? ` Llegaste a ${l.escalonNombre.toLowerCase()} y cobraste ${formatoPesos(l.cobrado)} en total.` : ''}`)); continue; }
           const horario = `Turno de ${l.turno} · te recibe ${l.jefe} · ${formatoPesos(l.sueldo)} por turno`;
           ficha.appendChild(e('p', 'texto', l.trabajo ? `${l.escalonNombre} · ${l.dias} ${l.dias === 1 ? 'día cumplido' : 'días cumplidos'}${l.faltas ? ` · ${l.faltas} ${l.faltas === 1 ? 'vez' : 'veces'} que te fuiste antes` : ''}. ${horario}.` : `Sin empezar. ${horario}.`));
           if (l.falta.hay) {
