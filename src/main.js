@@ -5647,6 +5647,8 @@ function armarOficiosYAldea(esDesafio) {
       },
       reloj: () => ajustes.duracion === 'reloj', azar: () => Math.random(),
       ver: () => modo === 'jugando' && !panelDelHudAbierto() && !charla.npc,
+      fiestaEn: (k, d, h) => fiestasJuego?.destinoEn?.(k, d, h) || null,   // 4.4.2: ¿el jefe del puesto va a estar en la fiesta?
+      falla: (nombre, e) => fallaSistema(nombre, e),
     });
     empleoJuego.alCargar();
   } catch (e) { fallaSistema('empleo-armado', e); empleoJuego = null; }
