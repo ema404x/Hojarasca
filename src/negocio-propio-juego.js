@@ -9,7 +9,9 @@
 //     uno por figura libre); cada uno camina hasta el mostrador, espera y pide. E sobre él (o E junto al local) lo despacha; Mayús + E abre el panel;
 //   · las figuras de los clientes son tres (la vecina, el hachero, el viajero), se arman de a poco y se reusan; fuera de hora o sin clientes están
 //     dormidas (ni se dibujan ni se mueven). No hay luces ni nada nuevo por cuadro;
-//   · si no estás cerca (más de 35 m) no llega nadie; los que esperaban se van sin que baje la fama.
+//   · si no estás cerca (más de 35 m) no llega nadie; los que esperaban se van sin que baje la fama;
+//   · 4.4.1: cada día que empieza (estés donde estés) el local paga sus gastos fijos —alquiler, impuesto y luz— de la caja y, si no alcanza, de tu billetera (reglas en
+//     negocio-propio-gastos.js); el panel lleva el balance, la deuda y el «Pedir al proveedor» (negocio-propio-reposicion.js).
 import { formatoPesos, hayEconomia } from './economia.js';
 import {
   TIPOS, IDS_LOCALES, esLocal, tipoDePlano, catalogo, negocioPropioDe, ponerAlDia, colaNueva, avanzarCola, primeroEnLaCola, despachar, armarCliente, fraseDePedido, etiquetaDe,
@@ -17,6 +19,8 @@ import {
   textoLista, nombreUnidad, unidadesEnEstantes, CAJA_MAX, COLA, resumenDelDia, cuantasCosas, llegadasPorDia, HORA_ABRE, HORA_CIERRA,
 } from './negocio-propio.js';
 import { MEDIDAS, SITIOS_CLIENTES } from './planos-negocio.js';
+import { cobrarGastos, pagarDeudaAMano, lineasFinanzas, cerradoPorDeuda, hayDeuda, gastoPorDia, TEXTO_GASTOS } from './negocio-propio-gastos.js';
+import { pedirAlProveedor, presupuestoProveedor, textoPedido, PROVEEDOR } from './negocio-propio-reposicion.js';
 
 const PASO = 0.25;            // cada cuánto se avanza la cola (segundos): nada por cuadro
 const RADIO_FIGURAS = 110;    // a cuántos metros se arman las figuras de los clientes
@@ -170,6 +174,7 @@ export function crearNegocioJuego(ctx) {
     if (!o) { if (figuras.some((f) => f.npc || f.tarea)) quitarFiguras(); return; }
     prepararTipoSiHaceFalta(o, est);
     ponerAlDia(est, P().dia);
+    cobrarDia(est);
     sincronizarVista(o, est);
     const tipo = est.tipo;
     if (!tipo) return;
@@ -198,6 +203,21 @@ export function crearNegocioJuego(ctx) {
     moverFiguras(d, o);
     // si cerrás o te vas lejos con la gente armada, se sueltan (ni se dibujan)
     if (!est.abierto && enMarcha() === 0) for (const f of figuras) if (f.npc && f.fase === 'libre') f.npc.dormido = true;
+  }
+  // 4.4.1: los gastos fijos del día (se miran cada 0,25 s, pero sólo cuando cambia el día pasa algo)
+  function cobrarDia(est) {
+    const r = cobrarGastos(P(), est, P().dia);
+    if (!r) return;
+    const p = r.pago;
+    if (p.ok) {
+      const origen = p.deBilletera > 0 ? (p.deCaja > 0 ? `${formatoPesos(p.deCaja)} de la caja y ${formatoPesos(p.deBilletera)} de tu billetera` : 'de tu billetera') : 'de la caja del local';
+      ctx.nota?.(`Gastos del local: −${formatoPesos(p.monto)}`, `${TEXTO_GASTOS[0].toUpperCase()}${TEXTO_GASTOS.slice(1)}${r.dias > 1 ? ` de ${r.dias} días` : ''}, ${origen}${p.monto > r.gasto ? '. Incluye lo que debías' : ''}`, false);
+      if (r.abrioAhora) ctx.nota?.('Pagaste lo que debías', 'El local vuelve a abrir', true);
+    } else {
+      ctx.nota?.('No pudiste pagar los gastos del local', `Debés ${formatoPesos(r.deuda)} (${TEXTO_GASTOS}). ${r.cerroAhora ? 'El local cerró solo hasta que pagues: Mayús + E y «Pagar la deuda»' : 'Un día más sin pagar y el local cierra solo'}`, false);
+    }
+    ctx.guardar?.(); ctx.refrescarBarra?.();
+    if (ui.abierto) dibujar();
   }
   function prepararTipoSiHaceFalta(o, est) {
     // (sólo reacomoda si el tipo guardado no es el de este local y hay algo guardado: el primer uso lo hace la E)
@@ -276,15 +296,32 @@ export function crearNegocioJuego(ctx) {
     const l2 = el('div', 'negocio-linea'); l2.append(el('span', '', 'Caja'), el('b', '', `${formatoPesos(est.caja)} de ${formatoPesos(CAJA_MAX)}`));
     const l3 = el('div', 'negocio-linea'); l3.append(el('span', '', 'Hoy'), el('b', '', `${resumenDelDia(est)} · ${formatoPesos(est.hoy.ventas)}`));
     const esperan = Math.round(llegadasPorDia(est, tipo, {}) * 10) / 10;
-    const l4 = el('div', 'negocio-linea'); l4.append(el('span', '', 'Con estos estantes y precios'), el('b', '', est.abierto ? `unos ${esperan} clientes por día (de ${HORA_ABRE} a ${HORA_CIERRA} h)` : 'cerrado: no entra nadie'));
+    const l4 = el('div', 'negocio-linea'); l4.append(el('span', '', 'Con estos estantes y precios'), el('b', '', est.abierto && !cerradoPorDeuda(est) ? `unos ${esperan} clientes por día (de ${HORA_ABRE} a ${HORA_CIERRA} h)` : cerradoPorDeuda(est) ? 'cerrado por la deuda de gastos: no entra nadie' : 'cerrado: no entra nadie'));
     rep.append(l1, barra, l2, l3, l4);
     raiz.append(rep);
+    // 4.4.1: gastos fijos, balance, deuda y el pedido al proveedor
+    const pres = presupuestoProveedor(est, P(), P().dia);
+    const fin = el('div', 'negocio-resumen');
+    for (const l of lineasFinanzas(est, tipo, P().dia)) { const li = el('div', 'negocio-linea' + (l.alerta ? ' alerta' : '')); li.append(el('span', '', l.t), el('b', '', l.v)); fin.append(li); }
+    const lp = el('div', 'negocio-linea'); lp.append(el('span', '', 'Proveedor'), el('b', '', pres.items.length ? `${textoPedido(pres)} · hoy podés pedir hasta ${formatoPesos(pres.hoyRestante)}` : pres.limite === 'lleno' ? 'los estantes están llenos' : pres.hoyRestante <= 0 ? `ya pediste lo de hoy (tope ${formatoPesos(PROVEEDOR.topeDia)} por día)` : 'no te alcanza la plata para pedir'));
+    fin.append(lp);
+    raiz.append(fin);
     const acciones = el('div', 'negocio-acciones');
     acciones.append(
-      boton(est.abierto ? 'Cerrar el local' : 'Abrir el local', tras((e) => { e.abierto = !e.abierto; if (!e.abierto) for (const c of [...cola.clientes]) { const f = c.figura; cola.clientes.splice(cola.clientes.indexOf(c), 1); if (f) sale(f, local()); } ctx.nota?.(e.abierto ? 'Abriste el local' : 'Cerraste el local', e.abierto ? `Los clientes empiezan a llegar. ${cuantasCosas(e, e.tipo) ? '' : 'Ojo: no tenés nada en los estantes'}` : 'El cartel dice cerrado: no entra nadie'); }), { clase: est.abierto ? '' : 'principal' }),
+      boton(est.abierto ? 'Cerrar el local' : 'Abrir el local', tras((e) => { e.abierto = !e.abierto; if (!e.abierto) for (const c of [...cola.clientes]) { const f = c.figura; cola.clientes.splice(cola.clientes.indexOf(c), 1); if (f) sale(f, local()); } ctx.nota?.(e.abierto ? 'Abriste el local' : 'Cerraste el local', e.abierto ? `Los clientes empiezan a llegar. ${cuantasCosas(e, e.tipo) ? '' : 'Ojo: no tenés nada en los estantes'}${e.fin.activa ? '' : ` Desde mañana paga ${formatoPesos(gastoPorDia(e.tipo))} por día de gastos fijos (${TEXTO_GASTOS}).`}` : 'El cartel dice cerrado: no entra nadie'); }), { clase: est.abierto ? '' : 'principal' }),
       boton(est.caja > 0 ? `Retirar la caja (${formatoPesos(est.caja)})` : 'La caja está vacía', tras((e) => { const m = retirarCaja(P(), e); if (m > 0) { ctx.sonido?.()?.juntar?.(); ctx.nota?.(`Retiraste ${formatoPesos(m)}`, 'Pasaron a tu billetera', true); } }), { activo: est.caja > 0 }),
       boton('Surtir con todo lo que llevás', tras((e) => { const puesto = surtirTodo(e, env()); if (puesto.length) { ctx.sonido?.()?.juntar?.(); ctx.nota?.('Surtiste los estantes', textoLista(puesto), true); } else ctx.nota?.('No hay qué poner', 'No llevás nada de lo que vende este local, o los estantes ya están llenos'); })),
       boton('Sacar toda la mercadería', tras((e) => { const sacado = []; for (const k of Object.keys(e.stock)) { const n = sacarDelEstante(e, k); if (n > 0) { ctx.dar(k, n); sacado.push({ k, n }); } } if (sacado.length) ctx.nota?.('Sacaste la mercadería', textoLista(sacado)); }), { activo: unidadesEnEstantes(est) > 0 }),
+      boton(pres.items.length ? `Pedir al proveedor (${formatoPesos(pres.total)})` : 'Pedir al proveedor', tras((e) => {
+        const r = pedirAlProveedor(P(), e, P().dia);
+        if (r.ok) { ctx.sonido?.()?.juntar?.(); ctx.nota?.(`Pedido al proveedor: −${formatoPesos(r.total)}`, `${textoLista(r.items)}. Son ${formatoPesos(r.plaza)} de mercado y ${formatoPesos(r.recargo)} de recargo${r.deBilletera > 0 ? (r.deCaja > 0 ? `. Salió ${formatoPesos(r.deCaja)} de la caja y ${formatoPesos(r.deBilletera)} de tu billetera` : '. Salió de tu billetera') : '. Salió de la caja del local'}`, false); }
+        else ctx.nota?.('No se pudo pedir', r.motivo === 'lleno' ? 'Los estantes ya están llenos' : r.motivo === 'tope' ? `Hoy ya pediste lo máximo (${formatoPesos(PROVEEDOR.topeDia)}). Mañana se puede de nuevo` : 'No te alcanza la plata entre la caja y la billetera');
+      }), { activo: pres.items.length > 0, titulo: pres.items.length ? textoPedido(pres) : 'Surte los estantes pagando el precio de mercado más un recargo' }),
+      ...(hayDeuda(est) ? [boton(`Pagar la deuda (${formatoPesos(est.fin.deuda)})`, tras((e) => {
+        const r = pagarDeudaAMano(P(), e);
+        if (r.ok) { ctx.sonido?.()?.juntar?.(); ctx.nota?.(`Pagaste la deuda: −${formatoPesos(r.monto)}`, r.abrioAhora ? 'El local vuelve a abrir' : 'Al día con los gastos', true); }
+        else ctx.nota?.('No te alcanza para la deuda', `Debés ${formatoPesos(r.debe)} y entre la caja y la billetera faltan ${formatoPesos(r.falta)}`, false);
+      }), { clase: cerradoPorDeuda(est) ? 'principal' : '', activo: est.caja + P().economia.pesos >= est.fin.deuda })] : []),
     );
     raiz.append(acciones);
     const lista = el('div', 'negocio-lista');
@@ -364,9 +401,10 @@ export function crearNegocioJuego(ctx) {
     quitarFiguras();
     cacheLocal = null; cacheHasta = 0;
     const partes = [];
+    const deuda = r.deuda > 0 ? (r.deudaPagada ? ` Pagaste los ${formatoPesos(r.deuda)} que debías de gastos.` : ` Los ${formatoPesos(r.deuda)} que debías de gastos se perdonaron.`) : '';
     if (r.devuelto.length) partes.push(textoLista(r.devuelto));
     if (r.plata > 0) partes.push(formatoPesos(r.plata));
-    if (partes.length) ctx.nota?.('Cerró tu local', `Volvió a vos: ${partes.join(' y ')}. La fama que te hiciste, se queda`, true);
+    if (partes.length || deuda) ctx.nota?.('Cerró tu local', `${partes.length ? `Volvió a vos: ${partes.join(' y ')}. ` : ''}La fama que te hiciste, se queda.${deuda}`, true);
     ui.abierto = false; ctx.panel?.classList.add('oculto');
     return partes.join(' · ');
   }

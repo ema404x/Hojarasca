@@ -395,7 +395,7 @@ function sinVos({ tipo = 'almacen', claves = ['madre'], dias = 24, dias0 = 0, am
   const Em = M.empleadosNuevo();
   M.contratar(Em, 'madre', { tipo: 'almacen', dia: 10, abs: 10 * 24 + 9, puntos: 60 }); M.contratar(Em, 'padre', { tipo: 'almacen', dia: 11, abs: 11 * 24 + 9, puntos: 150 });
   Em.lista[0].dias = 5; Em.lista[0].vendido = 4200; Em.lista[0].clientes = 9; Em.lista[0].impagos = 1; Em.lista[0].pagadoDia = 11; Em.visita = 11; Em.sim = { ultima: 11 * 24 + 12.5, acum: 0.4, n: 17 };
-  Em.pend = { ventas: 1800, clientes: 4, sueldos: 1500, cajaLlena: true, porEmp: { madre: { ventas: 1800, clientes: 4 } } }; Em.total = { contratados: 3, despedidos: 1, renuncias: 0, vendido: 9000, sueldos: 6000 };
+  Em.pend = { ventas: 1800, clientes: 4, sueldos: 1500, cajaLlena: true, porEmp: { madre: { ventas: 1800, clientes: 4 } }, repuesto: {} }; Em.total = { contratados: 3, despedidos: 1, renuncias: 0, vendido: 9000, sueldos: 6000 };
   G.escribirPartida('relax', 2, { modo: 'relax', dia: 12, horas: 10, economia: E.economiaNueva(), empleadosNegocio: Em });
   r = G.leerPartida('relax', 2).progreso;
   eq(r.empleadosNegocio, Em, 'los empleados vuelven igual (turnos, días, ventas, impagos, lo pendiente)');

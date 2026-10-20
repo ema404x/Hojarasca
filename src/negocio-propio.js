@@ -15,6 +15,7 @@
 // Sólo en el Relax (sin economía no hay negocio). Los partidas viejas no traen el campo: arrancan en el estado nuevo, sin tocar nada más.
 import { BIENES, esBien, hashTexto, azarDe } from './comercio.js';
 import { hayEconomia, cobrar, formatoPesos } from './economia.js';
+import { finNuevo, sanearFin, cerrarDiaFin, cerrarCuenta, abiertoDeVerdad, cerradoPorDeuda, hayDeuda } from './negocio-propio-gastos.js';
 
 const entero = (v, max = 1e7) => Math.max(0, Math.min(max, Math.floor(Number(v)) || 0));
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -129,7 +130,7 @@ export const tasaPorHora = (est, tipo, hora, env = {}) => (pesoDeHora(hora) > 0 
 // ---------------------------------------------------------------- el estado guardado
 export function negocioPropioNuevo() {
   return {
-    v: 1, tipo: null, abierto: false, stock: {}, precios: {}, rep: REP_INICIAL, caja: 0,
+    v: 1, tipo: null, abierto: false, stock: {}, precios: {}, rep: REP_INICIAL, caja: 0, fin: finNuevo(),
     hoy: { dia: 0, clientes: 0, atendidos: 0, perdidos: 0, faltas: 0, ventas: 0, unidades: 0 },
     total: { clientes: 0, atendidos: 0, perdidos: 0, ventas: 0, unidades: 0, dias: 0, mejorDia: 0 },
   };
@@ -138,6 +139,7 @@ export const hayNegocioPropio = (p) => hayEconomia(p) && objeto(p?.negocioPropio
 export function negocioPropioDe(p) {
   if (!hayEconomia(p)) return null;
   if (!objeto(p.negocioPropio)) p.negocioPropio = negocioPropioNuevo();
+  if (!objeto(p.negocioPropio.fin)) p.negocioPropio.fin = sanearFin(undefined, { hoy: p.dia, tipo: p.negocioPropio.tipo, abierto: p.negocioPropio.abierto === true });   // 4.4.1: (una partida armada a mano, sin pasar por el guardado)
   return p.negocioPropio;
 }
 export function sanearNegocioPropio(v, hoy = 1e6) {
@@ -153,6 +155,7 @@ export function sanearNegocioPropio(v, hoy = 1e6) {
   return {
     v: 1, tipo, abierto: v.abierto === true && tipo !== null, stock, precios,
     rep: Number.isFinite(rep) ? Math.round(limitar(rep, 0, 100) * 10) / 10 : REP_INICIAL, caja: entero(v.caja, CAJA_MAX),
+    fin: sanearFin(v.fin, { hoy: dia, tipo, abierto: v.abierto === true && tipo !== null }),   // 4.4.1 (una partida de antes no lo trae: valores por defecto)
     hoy: { dia: Math.min(dia, entero(h.dia, 1e6)), clientes: entero(h.clientes, 500), atendidos: entero(h.atendidos, 500), perdidos: entero(h.perdidos, 500), faltas: entero(h.faltas, 500), ventas: entero(h.ventas, 1e7), unidades: entero(h.unidades, 1e5) },
     total: { clientes: entero(t.clientes, 1e7), atendidos: entero(t.atendidos, 1e7), perdidos: entero(t.perdidos, 1e7), ventas: entero(t.ventas, 1e10), unidades: entero(t.unidades, 1e8), dias: entero(t.dias, 1e6), mejorDia: entero(t.mejorDia, 1e8) },
   };
@@ -165,7 +168,7 @@ export const pasoDeEstante = (n, k) => { const h = entero(n); return h <= 0 ? 0 
 export function vistaDelLocal(est) {
   const p = {};
   for (const k of catalogo(est.tipo)) { const s = pasoDeEstante(est.stock[k], k); if (s > 0) p[k] = s; }
-  return { abierto: est.abierto === true, p };
+  return { abierto: abiertoDeVerdad(est), p };   // (4.4.1: con deuda que lo cierra, el cartel dice cerrado)
 }
 export const firmaDeVista = (v) => `${v?.abierto ? 'A' : 'C'}|${Object.entries(v?.p || {}).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, s]) => k + s).join(',')}`;
 
@@ -188,6 +191,7 @@ export function ponerAlDia(est, dia) {
   const d = Math.max(1, entero(dia, 1e6));
   if (est.hoy.dia === d) return false;
   if (est.hoy.dia > 0) {
+    cerrarDiaFin(est, est.hoy.dia, est.hoy.ventas);   // 4.4.1: lo vendido ese día queda en el balance
     if (est.hoy.atendidos > 0) est.total.dias++;
     if (est.hoy.atendidos >= REP.atendidosParaDiaBueno && est.hoy.perdidos === 0) moverRep(est, REP.diaBueno);
     est.total.mejorDia = Math.max(est.total.mejorDia, est.hoy.ventas);
@@ -238,9 +242,10 @@ export function retirarCaja(p, est) {
 export function cerrarLocal(p, est, darCosa) {
   const devuelto = [];
   for (const k of Object.keys(est.stock)) { const n = sacarDelEstante(est, k); if (n > 0) { darCosa(k, n); devuelto.push({ k, n }); } }
+  const cuenta = cerrarCuenta(p, est);   // 4.4.1: lo que se debía de gastos se paga de la caja o la billetera; si no alcanza, se perdona
   const plata = retirarCaja(p, est);
   est.abierto = false; est.tipo = null; est.precios = {};
-  return { devuelto, plata };
+  return { devuelto, plata, deuda: cuenta.deuda, deudaPagada: cuenta.pagada };
 }
 
 // ---------------------------------------------------------------- un cliente
@@ -315,7 +320,7 @@ export const hayLugarEnCola = (cola, max = COLA.maxPresentes) => cola.clientes.l
 // Un cliente `listo` es el que ya llegó al mostrador (el juego lo marca): sólo ése gasta paciencia.
 export function avanzarCola(cola, est, tipo, dt, dtHoras, env = {}) {
   const ev = [];
-  const abre = est.abierto && est.tipo === tipo;
+  const abre = abiertoDeVerdad(est) && est.tipo === tipo;
   for (const c of [...cola.clientes]) {
     c.edad += dt;
     const sale = () => { cola.clientes.splice(cola.clientes.indexOf(c), 1); };
@@ -358,9 +363,10 @@ export function avisoDelLocal(est, tipo, cola, ahoraHora, hayPanel = false) {
   if (est.tipo !== tipo) return `${T.nombre}: abrirlo y surtirlo`;
   const espera = primeroEnLaCola(cola);
   if (espera) return `Atender: ${textoLista(espera.pide)} (${etiquetaDe(espera).toLowerCase()})`;
+  if (cerradoPorDeuda(est)) return `${T.corto}: cerrado por una deuda de ${formatoPesos(est.fin.deuda)}. Pagala en el panel (Mayús + E)`;
   if (!est.abierto) return `${T.corto}: cerrado. Abrirlo, surtir y fijar precios`;
   if (est.caja >= CAJA_MAX) return `${T.corto}: la caja está llena, retirá la plata`;
   if (!cuantasCosas(est, tipo)) return `${T.corto}: sin mercadería. Surtí los estantes`;
   if (!(ahoraHora >= HORA_ABRE && ahoraHora < HORA_CIERRA)) return `${T.corto}: a esta hora no sale nadie de compras`;
-  return `${T.corto}: esperando clientes${est.caja > 0 ? ` · en caja ${formatoPesos(est.caja)}` : ''}`;
+  return `${T.corto}: esperando clientes${est.caja > 0 ? ` · en caja ${formatoPesos(est.caja)}` : ''}${hayDeuda(est) ? ` · debés ${formatoPesos(est.fin.deuda)} de gastos` : ''}`;
 }

@@ -15,9 +15,13 @@
 //   · cuando estás, atendés vos (E) y ellos ayudan: al cliente que ya esperó unos segundos lo despachan ellos (menos gente que se cansa, mejor fama);
 //   · el sueldo se paga al cerrar el turno de cada día: primero de la caja del local y, si no alcanza, de tu billetera. Si no hay con qué, se anota el impago;
 //     al segundo impago seguido, se van (y la amistad cae). Si pasan más de 5 días sin que pases por el local, se van también (tope de lo que se acumula);
+//   · 4.4.1: al empezar su turno (y si activaste la reposición automática del panel) el que está de turno, estando vos lejos, repone los estantes desde los depósitos
+//     con tope que tengas cerca del local (negocio-propio-reposicion.js); lo que repone sale del depósito. Con el local cerrado por deuda no se vende;
 //   · lo vendido sin vos queda en la caja (tope de $12.000: con la caja llena no se vende) y al volver el juego te cuenta qué vendió cada uno.
 // Sólo en el Relax. Una partida de antes no trae el campo: sale vacío (nadie contratado) y lo demás queda como estaba.
-import { tasaPorHora, armarCliente, despachar, ponerAlDia, HORA_ABRE, HORA_CIERRA, CAJA_MAX as N_CAJA_MAX } from './negocio-propio.js';
+import { tasaPorHora, armarCliente, despachar, ponerAlDia, textoLista, HORA_ABRE, HORA_CIERRA, CAJA_MAX as N_CAJA_MAX } from './negocio-propio.js';
+import { abiertoDeVerdad, anotarFin } from './negocio-propio-gastos.js';
+import { reponerDesdeDepositos, sumarRepuesto, reponibles } from './negocio-propio-reposicion.js';
 import { formatoPesos, hayEconomia, pagar, pesosDe } from './economia.js';
 import { esCumpleanos, HORA_FIESTA } from './aldea.js';
 
@@ -132,7 +136,7 @@ export const textoTurno = (turno) => `de ${horaTxt(TURNOS[turno === 1 ? 1 : 0].d
 export function empleadosNuevo() {
   return {
     v: 1, lista: [], sim: { ultima: 0, acum: 0, n: 0 }, visita: 0,
-    pend: { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {} },
+    pend: { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {}, repuesto: {} },
     total: { contratados: 0, despedidos: 0, renuncias: 0, vendido: 0, sueldos: 0 },
   };
 }
@@ -142,7 +146,7 @@ function sanearEmp(v, hoy, usados) {
   return {
     k: v.k, turno: v.turno === 1 ? 1 : 0, alta: real(v.alta, 0, tope, 0), dias: entero(v.dias, 1e5), sueldo: limitar(entero(v.sueldo, 1e5), SUELDO.min, SUELDO.max) || SUELDO.min,
     pagadoDia: Math.min(hoy, entero(v.pagadoDia, 1e6)), impagos: Math.min(IMPAGOS_MAX - 1, entero(v.impagos, 9)), vendido: entero(v.vendido, 1e10), clientes: entero(v.clientes, 1e7),
-    amistadHasta: entero(v.amistadHasta, 1e6),
+    amistadHasta: entero(v.amistadHasta, 1e6), repuestoDia: Math.min(hoy, entero(v.repuestoDia, 1e6)),   // 4.4.1 (una partida de antes no lo trae: 0)
   };
 }
 // Lo guardado, saneado. `hoy`: el día de la partida (nada puede ser de un día que todavía no llegó).
@@ -161,14 +165,17 @@ export function sanearEmpleadosNegocio(v, hoy = 1e6) {
   const s = objeto(v.sim) ? v.sim : {}, p = objeto(v.pend) ? v.pend : {}, t = objeto(v.total) ? v.total : {};
   const porEmp = {};
   if (objeto(p.porEmp)) for (const k of IDS_CANDIDATOS) if (Object.hasOwn(p.porEmp, k) && objeto(p.porEmp[k])) porEmp[k] = { ventas: entero(p.porEmp[k].ventas, 1e8), clientes: entero(p.porEmp[k].clientes, 1e5) };
+  const repuesto = {};
+  if (objeto(p.repuesto)) for (const k of Object.keys(p.repuesto)) if (esReponible(k)) { const n = entero(p.repuesto[k], 1e5); if (n > 0) repuesto[k] = n; }
   return {
     v: 1, lista,
     sim: { ultima: real(s.ultima, 0, tope, 0), acum: real(s.acum, 0, 50, 0), n: entero(s.n, 1e9) },
     visita: Math.min(dia, entero(v.visita, 1e6)),
-    pend: { ventas: entero(p.ventas, 1e8), clientes: entero(p.clientes, 1e5), sueldos: entero(p.sueldos, 1e8), cajaLlena: p.cajaLlena === true, porEmp },
+    pend: { ventas: entero(p.ventas, 1e8), clientes: entero(p.clientes, 1e5), sueldos: entero(p.sueldos, 1e8), cajaLlena: p.cajaLlena === true, porEmp, repuesto },
     total: { contratados: entero(t.contratados, 1e5), despedidos: entero(t.despedidos, 1e5), renuncias: entero(t.renuncias, 1e5), vendido: entero(t.vendido, 1e10), sueldos: entero(t.sueldos, 1e10) },
   };
 }
+const esReponible = (k) => reponibles('almacen').includes(k) || reponibles('panaderia').includes(k);
 export const hayEmpleados = (p) => hayEconomia(p) && objeto(p?.empleadosNegocio);
 export function empleadosDe(p) {
   if (!hayEconomia(p)) return null;
@@ -189,7 +196,7 @@ export function contratar(E, k, d) {
   if (!oferta.ok) return { ok: false, motivo: oferta.motivo, oferta };
   const turno = E.lista.some((x) => x.turno === 0) ? 1 : 0;
   const dia = Math.max(1, Math.floor(Number(d.dia) || 1));
-  const emp = { k, turno, alta: Number(d.abs) || dia * 24, dias: 0, sueldo: oferta.sueldo, pagadoDia: dia, impagos: 0, vendido: 0, clientes: 0, amistadHasta: 0 };
+  const emp = { k, turno, alta: Number(d.abs) || dia * 24, dias: 0, sueldo: oferta.sueldo, pagadoDia: dia, impagos: 0, vendido: 0, clientes: 0, amistadHasta: 0, repuestoDia: 0 };
   E.lista.push(emp);
   if (!E.sim.ultima || E.lista.length === 1) E.sim.ultima = emp.alta;
   E.visita = dia;
@@ -215,7 +222,7 @@ export function despedir(p, est, E, k, env = {}) {
   let pago = null;
   if (v && hora >= v[0] && dia > emp.pagadoDia && dia > partesDeAbs(emp.alta).dia) {
     pago = pagarJornada(p, est, emp, env.nombre?.(k));
-    if (pago.ok) { emp.pagadoDia = dia; emp.dias++; E.total.sueldos += pago.monto; }
+    if (pago.ok) { emp.pagadoDia = dia; emp.dias++; E.total.sueldos += pago.monto; anotarFin(est, dia, 'sueldos', pago.monto); }
   }
   sacar(E, emp);
   E.total.despedidos++;
@@ -228,7 +235,7 @@ export function despedir(p, est, E, k, env = {}) {
 // (negocio-propio.js) por la fracción `e` que atienden los de turno, cada uno pide, se le despacha y se cobra a la caja; el stock, los precios, la fama y el
 // tope de la caja son los de verdad. Vuelve { ventas, clientes, porEmp: { k: { ventas, clientes } }, cajaLlena }.
 export function simularTramo(est, tipo, E, desde, hasta, env = {}) {
-  const res = { ventas: 0, clientes: 0, porEmp: {}, cajaLlena: false };
+  const res = { ventas: 0, clientes: 0, porEmp: {}, cajaLlena: false, repuesto: {} };
   const nivel = env.nivel || (() => 0);
   let t = Number(desde) || 0;
   const fin = Number(hasta) || 0;
@@ -236,10 +243,18 @@ export function simularTramo(est, tipo, E, desde, hasta, env = {}) {
     const sigue = Math.min(fin, Math.floor(t * 2 + 1e-9) / 2 + 0.5), dt = sigue - t, mid = t + dt / 2;
     t = sigue;
     const { dia, hora } = partesDeAbs(mid);
-    if (!est.abierto || est.tipo !== tipo || hora < HORA_ABRE || hora >= HORA_CIERRA) { E.sim.acum = 0; continue; }
+    if (!abiertoDeVerdad(est) || est.tipo !== tipo || hora < HORA_ABRE || hora >= HORA_CIERRA) { E.sim.acum = 0; continue; }
     const cob = cobertura(E.lista, tipo, mid, nivel, env.ocupado);
     if (!cob.activos.length) { E.sim.acum = 0; continue; }
     if (dia > est.hoy.dia) ponerAlDia(est, dia);
+    // 4.4.1: al empezar su turno repone los estantes con lo que haya en tus depósitos (una vez por día y por empleado; `env.depositos()` se arma sólo si hace falta)
+    if (env.depositos && est.fin?.reponer) {
+      for (const a of cob.activos) {
+        if (a.emp.repuestoDia >= dia) continue;
+        a.emp.repuestoDia = dia;
+        sumarRepuesto(res.repuesto, reponerDesdeDepositos(est, tipo, a.r, env.depositos()).puesto);
+      }
+    }
     E.sim.acum = Math.min(50, E.sim.acum + tasaPorHora(est, tipo, hora, { lluvia: env.lluvia || 0 }) * cob.e * dt * (EMP_LOCAL.demanda[Math.min(2, E.lista.length)] || 1));
     while (E.sim.acum >= 1) {
       E.sim.acum -= 1; E.sim.n++;
@@ -283,7 +298,7 @@ export function elegirAyuda(cola, E, tipo, abs, nivelDe, dt = 1, ocupado = null)
 // ---------------------------------------------------------------- el paso del tiempo (sueldos, ventas sin vos, renuncias)
 // Eventos: { tipo: 'sueldo', k, monto, deCaja, deBilletera } · { tipo: 'impago', k, debe } · { tipo: 'renuncia', k, motivo: 'impago' | 'ausencia' }
 //          { tipo: 'caja-llena' } · { tipo: 'vendieron', ventas, clientes }.
-// `env`: { abs, presente, nivel(k), nombre(k), cambiarAmistad(k, n), lluvia, ocupado(k) }
+// `env`: { abs, presente, nivel(k), nombre(k), cambiarAmistad(k, n), lluvia, ocupado(k), depositos() (4.4.1: { hay(k), sacar(k, n) } de los depósitos cerca del local) }
 export function avanzarEmpleados(p, est, tipo, E, env) {
   const ev = [];
   if (!E.lista.length) { E.sim.ultima = Number(env.abs) || 0; return ev; }
@@ -293,7 +308,9 @@ export function avanzarEmpleados(p, est, tipo, E, env) {
 
   // 1. las ventas de las horas que pasaron sin vos
   if (!env.presente && est.tipo === tipo) {
-    const r = simularTramo(est, tipo, E, Math.max(E.sim.ultima, abs - SIM_MAX_HORAS), abs, { nivel: env.nivel, lluvia: env.lluvia, ocupado: env.ocupado });
+    const r = simularTramo(est, tipo, E, Math.max(E.sim.ultima, abs - SIM_MAX_HORAS), abs, { nivel: env.nivel, lluvia: env.lluvia, ocupado: env.ocupado, depositos: env.depositos });
+    if (!objeto(E.pend.repuesto)) E.pend.repuesto = {};
+    for (const [k, n] of Object.entries(r.repuesto)) { E.pend.repuesto[k] = (E.pend.repuesto[k] || 0) + n; est.fin.total.reposicion += n; }
     if (r.clientes > 0 || r.ventas > 0) {
       E.pend.ventas += r.ventas; E.pend.clientes += r.clientes; E.total.vendido += r.ventas;
       for (const [k, x] of Object.entries(r.porEmp)) { const q = (E.pend.porEmp[k] ||= { ventas: 0, clientes: 0 }); q.ventas += x.ventas; q.clientes += x.clientes; }
@@ -312,7 +329,7 @@ export function avanzarEmpleados(p, est, tipo, E, env) {
       const pago = pagarJornada(p, est, emp, env.nombre?.(emp.k));
       emp.pagadoDia = d;
       if (pago.ok) {
-        emp.dias++; E.total.sueldos += pago.monto; E.pend.sueldos += pago.monto;
+        emp.dias++; E.total.sueldos += pago.monto; E.pend.sueldos += pago.monto; anotarFin(est, d, 'sueldos', pago.monto);
         ev.push({ tipo: 'sueldo', k: emp.k, monto: pago.monto, deCaja: pago.deCaja, deBilletera: pago.deBilletera });
         if (emp.dias - emp.amistadHasta >= AMISTAD_EMP.cadaDias) { emp.amistadHasta = emp.dias; env.cambiarAmistad?.(emp.k, AMISTAD_EMP.suma); }
       } else {
@@ -335,13 +352,15 @@ export function avanzarEmpleados(p, est, tipo, E, env) {
 }
 
 // ---------------------------------------------------------------- lo que cuenta el juego al volver
-export const hayPendiente = (E) => !!E && (E.pend.ventas > 0 || E.pend.sueldos > 0 || E.pend.clientes > 0);
+const hayRepuesto = (E) => objeto(E?.pend?.repuesto) && Object.keys(E.pend.repuesto).length > 0;
+export const hayPendiente = (E) => !!E && (E.pend.ventas > 0 || E.pend.sueldos > 0 || E.pend.clientes > 0 || hayRepuesto(E));
 // [{ titulo, sub }] a mostrar al volver: quién vendió cuánto mientras no estabas (puro: se prueba)
 export function resumenAlVolver(E, nombre = (k) => k) {
   if (!hayPendiente(E)) return null;
   const partes = Object.entries(E.pend.porEmp).filter(([, x]) => x.clientes > 0).map(([k, x]) => `${nombre(k)} vendió ${formatoPesos(x.ventas)} (${x.clientes} ${x.clientes === 1 ? 'cliente' : 'clientes'})`);
   const titulo = E.pend.ventas > 0 ? `Mientras no estabas, se vendió ${formatoPesos(E.pend.ventas)}` : 'Mientras no estabas, no se vendió nada';
-  const sub = [partes.join('. '), E.pend.sueldos > 0 ? `Sueldos pagados: ${formatoPesos(E.pend.sueldos)}` : '', E.pend.cajaLlena ? 'La caja se llenó: retirá la plata para que sigan vendiendo' : ''].filter(Boolean).join('. ');
+  const repuesto = hayRepuesto(E) ? `Repusieron los estantes con lo de tus depósitos: ${textoLista(Object.entries(E.pend.repuesto).map(([k, n]) => ({ k, n })))}` : '';
+  const sub = [partes.join('. '), repuesto, E.pend.sueldos > 0 ? `Sueldos pagados: ${formatoPesos(E.pend.sueldos)}` : '', E.pend.cajaLlena ? 'La caja se llenó: retirá la plata para que sigan vendiendo' : ''].filter(Boolean).join('. ');
   return { titulo, sub };
 }
-export function limpiarPendiente(E) { E.pend = { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {} }; }
+export function limpiarPendiente(E) { E.pend = { ventas: 0, clientes: 0, sueldos: 0, cajaLlena: false, porEmp: {}, repuesto: {} }; }

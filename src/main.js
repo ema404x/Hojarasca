@@ -4955,7 +4955,7 @@ try {
 // 4.4: los empleados del negocio propio (aislado: si falla al armarse, el local sigue como siempre)
 try {
   empleadosNegocioJuego = crearEmpleadosNegocioJuego({
-    progreso: () => progreso, negocio: () => negocioJuego, gente: () => gente, sonido: () => sonido,
+    progreso: () => progreso, negocio: () => negocioJuego, gente: () => gente, sonido: () => sonido, almacen: () => almacenJuego,   // 4.4.1: los depósitos de los que repone el empleado
     nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     lluvia: () => clima?.estado?.lluvia || 0, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     msFigura: () => (planificadorAntitirones.permitir('empleados-negocio') ? 3 : 0), alClic: (el, fn) => alClicHud(el, fn),

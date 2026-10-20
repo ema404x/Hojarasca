@@ -40,6 +40,24 @@ export function crearAlmacenJuego(d) {
     }
     return lista.sort((p, q) => p.dist - q.dist).map((x) => x.o);
   }
+  // 4.4.1: los depósitos con tope (de materiales y el silo; no el herramientero) a menos de `radio` de un punto —el local, no vos—, el más cercano primero
+  function cercaDe(x, z, radio) {
+    const obras = d.obras();
+    if (!obras) return [];
+    const lista = [];
+    for (const o of obras.obrasCerca({ x, z }, radio, [])) {
+      const D = ALMACENES[o.plano.id];
+      if (!D || D.tipo === 'herramienta' || !terminada(o) || o === obras.editando) continue;
+      const dist = Math.hypot(o.datos.x - x, o.datos.z - z);
+      if (dist <= radio) lista.push({ o, dist });
+    }
+    return lista.sort((p, q) => p.dist - q.dist).map((e) => e.o);
+  }
+  // Lo que ve y puede sacar quien repone el local desde esos depósitos: { n (cuántos hay), hay(k), sacar(k, n) }
+  function depositosDe(x, z, radio) {
+    const deps = cercaDe(x, z, radio);
+    return { n: deps.length, hay: (k) => (deps.length ? totales(deps)[k] || 0 : 0), sacar: (k, n) => (deps.length ? gastar(deps, k, n) : 0) };
+  }
   // Lo guardado en esos depósitos, por material
   function totales(deps) {
     const t = {};
@@ -198,5 +216,5 @@ export function crearAlmacenJuego(d) {
     return salida;
   }
 
-  return { esAlmacen: esAlmacen, ids: IDS_ALMACEN, cerca, totales, gastar, textoPanel, aviso, usar, ampliar, contenido, devolver, reintegro, materialesDeAmpliaciones, estado };
+  return { esAlmacen: esAlmacen, ids: IDS_ALMACEN, cerca, cercaDe, depositosDe, totales, gastar, textoPanel, aviso, usar, ampliar, contenido, devolver, reintegro, materialesDeAmpliaciones, estado };
 }
