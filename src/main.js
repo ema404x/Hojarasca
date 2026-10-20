@@ -163,6 +163,8 @@ import { TOPE_ACOPIO } from './almacen.js';
 import { crearAlmacenJuego } from './almacen-juego.js';
 // 4.3: el empleo fijo (empleo.js tiene las reglas, empleo-mundo.js lo que se ve)
 import { crearEmpleoJuego } from './empleo-juego.js';
+// 4.4: comprar el negocio de un vecino y ser su socio (negocios-vecinos.js, negocios-vecinos-juego.js, negocios-vecinos-mundo.js, negocios-vecinos-voces.js)
+import { crearNegociosVecinosJuego } from './negocios-vecinos-juego.js';
 // 4.3: el negocio propio (un local con estantes, precios y clientes que atendés con E: negocio-propio.js, negocio-propio-juego.js, planos-negocio.js)
 import { crearNegocioJuego } from './negocio-propio-juego.js';
 // 4.4: los empleados del negocio propio
@@ -5311,6 +5313,7 @@ let amorMundo = null;   // 3.7.1 (mundo): ver amor-mundo.js
 let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y cocina-mundo.js (sólo en el Relax)
 let noticiasJuego = null, concursosJuego = null;   // 3.7.5 (noticias): ver noticias-juego.js y concursos-juego.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
+let negociosVecinosJuego = null;   // 4.4: comprar el negocio de un vecino y ser su socio (ver negocios-vecinos-juego.js)
 let empleoJuego = null;   // 4.3: el empleo fijo: el cartel de turnos, las tareas del puesto y el sueldo (ver empleo-juego.js)
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
@@ -5331,7 +5334,7 @@ const nivelDe = (id) => Math.min(5, (oficios?.nivel(id) || 0) + (amorJuego?.bono
 const ganarOficio = (id, cuanto) => oficios?.ganar(id, cuanto) || null;
 function armarOficiosYAldea(esDesafio) {
   const redibujar = () => { if (modo === 'cuaderno') dibujarCuaderno(); };
-  oficios = crearOficiosUI({ progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, redibujar, extras: () => (empleoJuego && !esDesafio ? [empleoJuego.paginaCuaderno()] : []) });   // (4.3: y «Trabajo en la aldea» en el cuaderno)
+  oficios = crearOficiosUI({ progreso: () => progreso, nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, redibujar, extras: () => (empleoJuego && !esDesafio ? [empleoJuego.paginaCuaderno()] : []).concat(negociosVecinosJuego && !esDesafio ? [negociosVecinosJuego.paginaCuaderno()] : []) });   // (4.3: y «Trabajo en la aldea» en el cuaderno; 4.4: y «Negocios y sociedades»)
   oficios.acreditar();
   // 3.6: en el Desafío no hay aldea (ni gente, ni obras, ni llegadas)
   if (esDesafio) return;
@@ -5530,8 +5533,17 @@ function armarOficiosYAldea(esDesafio) {
     pelarPasto: (x, z, radio) => pelarPastoTemporal(x, z, radio),
     cobrar: (pesos, motivo) => cobrarPesos(progreso, pesos, motivo, 'el perro'), perroPos: () => perro?.est?.pos || null, nombrePerro: () => perro?.nombre?.() || '',
   });
+  // 4.4: comprar el negocio de un vecino y ser su socio (aislado aparte: si falla, la charla sigue como siempre)
+  try {
+    negociosVecinosJuego = crearNegociosVecinosJuego({
+      progreso: () => progreso, desafio: () => !!desafio, escena: () => escena, altura: (x, z) => T.altura(x, z), jugador: () => jugador,
+      nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
+    });
+    negociosVecinosJuego.alCargar();
+  } catch (e) { fallaSistema('negocios-vecinos-armado', e); negociosVecinosJuego = null; }
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
+    negocios: negociosVecinosJuego,   // 4.4: «Hablar de su negocio» (comprarlo, ser socio) en el menú de la charla
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
     granja: granjaJuego,   // 3.7.2 (granja): la vaca, la chancha, los fardos y los plantines
@@ -10125,7 +10137,8 @@ function cuadroDelJuego(tRaf, manual) {
     // el deslizador de 8 a 23 terminaba un asado o una mejora; y de vuelta, se podía repetir)
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }   // 3.7.2: la cocina en pasos
     try { if (modo === 'jugando' && !desafio && !foto.activo) tallerTren?.actualizar(dt); } catch (e) { fallaSistema('taller', e); }   // 3.7.3: el reloj del taller ferroviario
-    try { if (modo === 'jugando' && !desafio && !foto.activo) empleoJuego?.actualizar(dt); } catch (e) { fallaSistema('empleo', e); }   // 4.3: la tarea en curso, el turno y su cierre
+    try { if (modo === 'jugando' && !desafio && !foto.activo) empleoJuego?.actualizar(dt); } catch (e) { fallaSistema('empleo', e); }
+    try { if (modo === 'jugando' && !desafio) negociosVecinosJuego?.actualizar(dt); } catch (e) { fallaSistema('negocios-vecinos', e); }   // 4.4: lo que rindieron tus negocios y el aviso de cada día   // 4.3: la tarea en curso, el turno y su cierre
     try { if (modo === 'jugando' && !desafio) { if (!foto.activo) fiestasJuego?.actualizar(dt); fiestasMundo?.actualizar(dt);   // 4.0.3 (F3): con el modo foto la hora del deslizador no termina la minga ni tapa la vía
       if (fiestasJuego?.montando()) fiestasJuego.camara(camara); } } catch (e) { fallaSistema('fiestas', e); }   // 3.7.5: las fiestas (y la cámara arriba del redomón)
     if (modo !== 'jugando' && renglonAldea && renglonAldea.style.display !== 'none') decirCharlaAldea(null);   // 3.6: en pausa no se oye
@@ -10911,6 +10924,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __cocina: () => cocinaJuego, __cocinaMundo: () => cocinaMundo,   // 3.7.2
     __noticias: () => noticiasJuego, __concursos: () => concursosJuego,   // 3.7.5 (noticias)
     __taller: () => tallerTren,   // 3.7.3
+    __negociosVecinos: () => negociosVecinosJuego,   // 4.4: comprar un negocio y ser socio, para la partida real (pruebas/humo-4-4-compra.cjs)
     __empleo: () => empleoJuego,   // 4.3: el empleo fijo, para la partida real (pruebas/humo-4-3-empleo.cjs)
     __fiestas: () => fiestasJuego, __fiestasMundo: () => fiestasMundo,   // 3.7.5
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de

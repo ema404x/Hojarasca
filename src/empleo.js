@@ -211,6 +211,7 @@ export function puedeFichar(p, k, dia, hora) {
   if (!hayEconomia(p) || !hayPuesto(k)) return { ok: false, motivo: 'nada' };
   const P = PUESTOS[k];
   if (turnoActivo(p)) return { ok: false, motivo: 'activo' };
+  if (p?.negociosVecinos?.comprados && Object.hasOwn(p.negociosVecinos.comprados, k)) return { ok: false, motivo: 'tuyo' };   // 4.4: si le compraste el local al vecino, ya no tomás turnos ahí
   if (esDiaLibre(dia)) return { ok: false, motivo: 'domingo' };
   if (turnosDelDia(p, dia) >= EMPLEO.turnosPorDia) return { ok: false, motivo: 'hoy' };
   const h = ((Number(hora) || 0) % 24 + 24) % 24;
@@ -283,7 +284,7 @@ export function motivoDeCierre(p, dia, hora, reloj = false) {
 // «el almacén» → «del almacén» / «al almacén»; «la casa de té» → «de la casa de té» / «a la casa de té»
 export const deNombre = (nombre) => (nombre.startsWith('el ') ? `del ${nombre.slice(3)}` : `de ${nombre}`);
 export const aNombre = (nombre) => (nombre.startsWith('el ') ? `al ${nombre.slice(3)}` : `a ${nombre}`);
-const motivoTexto = { domingo: 'Hoy es domingo: no se trabaja.', hoy: 'Ya hiciste tu turno de hoy.', activo: 'Ya estás en un turno.' };
+const motivoTexto = { domingo: 'Hoy es domingo: no se trabaja.', hoy: 'Ya hiciste tu turno de hoy.', activo: 'Ya estás en un turno.', tuyo: 'Este local ahora es tuyo: ya no se toman turnos acá.' };
 // El cartel del puesto: «Ayudante de mostrador · turno de 16 a 20 · $1.600»
 export const textoPuesto = (k, escalon) => `${cargoDe(k, escalon)} · turno de ${horaCorta(PUESTOS[k].desde)} a ${horaCorta(PUESTOS[k].hasta)} · ${formatoPesos(sueldoDe(k, escalon))}`;
 // Lo que pregunta el cartel para tomar el puesto

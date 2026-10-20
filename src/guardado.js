@@ -63,6 +63,7 @@ import { fiestasNuevas, sanearFiestas } from './fiestas.js';
 import { economiaNueva, sanearEconomia, convertirYerba } from './economia.js';
 import { negociosNuevo, sanearNegocios } from './negocios.js';
 import { empleoNuevo, sanearEmpleo } from './empleo.js';
+import { negociosVecinosNuevo, sanearNegociosVecinos } from './negocios-vecinos.js';
 import { cantinaNueva, sanearCantina } from './cantina.js';
 // 4.3: el negocio propio (un local con estantes, precios, caja y fama; sólo en el Relax)
 import { negocioPropioNuevo, sanearNegocioPropio } from './negocio-propio.js';
@@ -399,6 +400,7 @@ export function progresoNuevo() {
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
     ...(desafio ? {} : { empleo: empleoNuevo() }),   // 4.3: el empleo fijo (ningún puesto todavía; ver empleo.js)
     ...(desafio ? {} : { empleadosNegocio: empleadosNuevo() }),   // 4.4: los vecinos contratados en tu negocio propio (nadie todavía; ver empleados-negocio.js)
+    ...(desafio ? {} : { negociosVecinos: negociosVecinosNuevo() }),   // 4.4: negocios comprados y sociedades con vecinos (ninguno todavía; ver negocios-vecinos.js)
     ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
@@ -649,6 +651,8 @@ function sanearProgreso(p) {
   limpio.empleo = modoPartida === 'desafio' ? undefined : sanearEmpleo(p.empleo, limpio.dia);
   // 4.4: los empleados de tu negocio propio (sólo en el Relax). Una partida de antes no los trae: sale vacío, nadie contratado, y lo demás queda como estaba
   limpio.empleadosNegocio = modoPartida === 'desafio' ? undefined : sanearEmpleadosNegocio(p.empleadosNegocio, limpio.dia);
+  // 4.4: los negocios que le compraste a un vecino y tus sociedades (sólo en el Relax). Una partida de antes no lo trae: sale vacío y lo demás queda como estaba
+  limpio.negociosVecinos = modoPartida === 'desafio' ? undefined : sanearNegociosVecinos(p.negociosVecinos, limpio.dia);
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)

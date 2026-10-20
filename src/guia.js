@@ -125,6 +125,8 @@ export const SECCIONES_GUIA = [
       ['La cantina', 'Al final de la calle de la Loma (también en el mapa). Abre de 18 a 2. Sentate a una mesa con E: Lucrecia viene, te muestra la carta y te trae lo que pidas. Se paga en pesos, con trueque o a la cuenta. E toma o come; R te levanta.'],
       // 4.3
       ['Trabajar en la aldea', 'En el almacén, la casa de té, el taller ferroviario y el banco hay un cartel de turnos: E ficha. Hacés las tareas del puesto con E (la flecha dorada marca dónde), cobrás al terminar y, con los días y tu oficio, ascendés. Se ve en el cuaderno (J).'],
+      // 4.4
+      ['Comprar un negocio y ser socio', 'Con el dueño de un local de la aldea elegí «Hablar de su negocio»: comprarlo ($80.000 a $200.000; cada uno reacciona a su manera) o ser su socio. Lo que rinde va a una caja con tope: pasá a retirarla. Se ve en el cuaderno (J).'],
     ],
   },
   {
