@@ -21,6 +21,7 @@ const A = await import('../src/aldea.js');
 const V = await import('../src/vecindad.js');
 const PN = await import('../src/planos-negocio.js');
 const E = await import('../src/economia.js');
+const { COMERCIO } = await import('../src/comercio.js');
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; if (process.env.VERBOSO) console.log('  ' + m); };
@@ -63,17 +64,17 @@ const PUNTOS = { conocido: 30, amigo: 60, compadre: 150 };
       ok(a.ok && a.trato === 'normal' && c.ok && c.trato === 'gusto', `${k}: de amigo acepta, de compadre con gusto`);
       ok(c.sueldo < a.sueldo || a.sueldo === M.SUELDO.min || a.sueldo >= M.SUELDO.max - 100, `${k}/${tipo}: el compadre cobra menos que el amigo (${c.sueldo} vs ${a.sueldo}), salvo contra el techo`);
       if (!dueno) ok(d.sueldo > a.sueldo || a.sueldo * 1.2 > M.SUELDO.max, `${k}/${tipo}: de mala gana pide más ($${d.sueldo} vs $${a.sueldo})`);
-      for (const o of [d, a, c]) ok(o.sueldo >= M.SUELDO.min && o.sueldo <= M.SUELDO.max && o.sueldo % 50 === 0, `${k}/${tipo}: el sueldo ($${o.sueldo}) entre $900 y $1.800, redondo`);
+      for (const o of [d, a, c]) ok(o.sueldo >= M.SUELDO.min && o.sueldo <= M.SUELDO.max && o.sueldo % 50 === 0, `${k}/${tipo}: el sueldo ($${o.sueldo}) entre $600 y $1.200, redondo`);
       ok(a.inicio >= 0.5 && a.inicio <= 0.66 && a.tope >= 0.75 && a.tope <= 0.9 && a.tope > a.inicio + 0.15, `${k}/${tipo}: rinde de ${a.inicio} a ${a.tope}`);
       ok(c.inicio > a.inicio && c.tope >= a.tope, `${k}/${tipo}: de compadre rinde un poco más`);
     }
   }
   // más hábil, más sueldo (y más rendimiento)
-  ok(M.sueldoPara('panadera', 'panaderia', 'normal') >= M.sueldoPara('pintora', 'panaderia', 'normal') + 500, 'la panadera pide bastante más que la pintora');
+  ok(M.sueldoPara('panadera', 'panaderia', 'normal') >= M.sueldoPara('pintora', 'panaderia', 'normal') + 400, 'la panadera pide bastante más que la pintora');
   ok(M.habilidadDe('panadera', 'panaderia') > M.habilidadDe('panadera', 'almacen') && M.habilidadDe('madre', 'panaderia') > M.habilidadDe('madre', 'almacen'), 'cada uno sabe más de lo suyo (la panadería)');
   ok(M.rendimientoPara('panadera', 'almacen', 0, 1) > M.rendimientoPara('pintora', 'almacen', 0, 1), 'y rinde más');
   const sueldos = M.IDS_CANDIDATOS.map((k) => M.sueldoPara(k, 'almacen', 'normal'));
-  ok(Math.min(...sueldos) === 900 && Math.max(...sueldos) >= 1500, `los sueldos van de $${Math.min(...sueldos)} a $${Math.max(...sueldos)} por día`);
+  ok(Math.min(...sueldos) === 600 && Math.max(...sueldos) >= 1000 && Math.max(...sueldos) <= 1200, `los sueldos van de $${Math.min(...sueldos)} a $${Math.max(...sueldos)} por día`);
   // el rendimiento crece con los días, sin pasarse
   let prev = 0;
   for (const dias of [0, 1, 3, 6, 12, 24, 60, 1000]) { const r = M.rendimientoPara('madre', 'almacen', dias, 1); ok(r >= prev && r <= M.RENDIMIENTO.max, `madre a los ${dias} días: ${r}`); prev = r; }
@@ -145,37 +146,38 @@ const PUNTOS = { conocido: 30, amigo: 60, compadre: 150 };
 // ---------------------------------------------------------------- 4. las ventas sin vos
 // El mismo jugador de siempre (negocio-propio), atendiendo todo el día, contra los vecinos solos.
 function conVos(tipo = 'almacen', dias = 24, atiende = 8) {
-  const est = nuevoLocal(tipo), cola = N.colaNueva(); let ventas = 0;
+  const est = nuevoLocal(tipo), cola = N.colaNueva(); let ventas = 0, costo = 0;
   for (let d = 1; d <= dias; d++) {
     N.ponerAlDia(est, d); surtidoBueno(est);
     for (let h = N.HORA_ABRE; h < N.HORA_CIERRA; h++) for (let s = 0; s < 75; s++) {
       N.avanzarCola(cola, est, tipo, 1, 1 / 75, { hora: h + s / 75, dia: d, presente: true });
       for (const c of cola.clientes) if (!c.listo && c.edad >= 8) c.listo = true;
       const c = N.primeroEnLaCola(cola);
-      if (c && c.espera >= atiende) { const r = N.despachar(est, c); cola.clientes.splice(cola.clientes.indexOf(c), 1); if (r.ok) ventas += r.total; }
+      if (c && c.espera >= atiende) { const r = N.despachar(est, c); cola.clientes.splice(cola.clientes.indexOf(c), 1); if (r.ok) { ventas += r.total; for (const v of r.vendidos) costo += N.precioPlaza(v.k) * (1 - COMERCIO.margen) * v.n; } }
     }
     est.caja = 0;
   }
-  return { ventas: ventas / dias, rep: est.rep };
+  return { ventas: ventas / dias, rep: est.rep, sobre: (ventas - costo) / dias };
 }
 function sinVos({ tipo = 'almacen', claves = ['madre'], dias = 24, dias0 = 0, amistad = 'amigo', dia0 = 1, abierto = true, surtir = true, p = null } = {}) {
   const est = nuevoLocal(tipo); est.abierto = abierto;
   const Em = M.empleadosNuevo();
   const pp = p || { modo: 'relax', dia: 1, horas: 0, economia: { ...E.economiaNueva(), pesos: 1e8 } };
   for (const k of claves) { const r = M.contratar(Em, k, { tipo, dia: dia0, abs: dia0 * 24, puntos: PUNTOS[amistad] }); r.emp.dias = dias0; }
-  let ventas = 0, sueldos = 0, trabajados = 0, eventos = [];
+  let ventas = 0, sueldos = 0, trabajados = 0, eventos = [], costo = 0;
   for (let d = dia0; d < dia0 + dias; d++) {
     pp.dia = d;
     N.ponerAlDia(est, d); if (surtir) surtidoBueno(est);
-    const v0 = est.total.ventas;
+    const v0 = est.total.ventas, antes = { ...est.stock };
     const ev = M.avanzarEmpleados(pp, est, tipo, Em, { abs: (d + 1) * 24, presente: false, nivel: () => M.nivelPorPuntos(PUNTOS[amistad]), nombre: (k) => k });
     eventos.push(...ev);
     ventas += est.total.ventas - v0;
+    for (const k of Object.keys(antes)) costo += N.precioPlaza(k) * (1 - COMERCIO.margen) * Math.max(0, antes[k] - (est.stock[k] || 0));
     for (const e of ev) if (e.tipo === 'sueldo') sueldos += e.monto;
     if (M.diaSemana(d) !== 6) trabajados++;
     est.caja = 0; Em.visita = d + 1;
   }
-  return { ventas: ventas / dias, porDiaTrabajado: ventas / Math.max(1, trabajados), sueldos: sueldos / dias, est, Em, eventos, p: pp, cuantos: Em.lista.length };
+  return { sobreMercado: (ventas - costo - sueldos) / dias, ventas: ventas / dias, porDiaTrabajado: ventas / Math.max(1, trabajados), sueldos: sueldos / dias, est, Em, eventos, p: pp, cuantos: Em.lista.length };
 }
 {
   // sin empleados, con vos lejos: no se vende nada (como siempre)
@@ -225,12 +227,18 @@ function sinVos({ tipo = 'almacen', claves = ['madre'], dias = 24, dias0 = 0, am
   ok(frac(uno12) > frac(uno0) && frac(uno40) >= frac(uno12) - 0.02, `con los días mejora: ${(frac(uno0) * 100).toFixed(0)} % → ${(frac(uno12) * 100).toFixed(0)} % → ${(frac(uno40) * 100).toFixed(0)} %`);
   ok(frac(uno40) <= 0.85, 'y no pasa del 85 %: nunca vende más que vos');
   const dos = sinVos({ claves: ['madre', 'padre'], dias0: 12 });
-  ok(dos.ventas > uno12.ventas && dos.porDiaTrabajado / vos.ventas <= 0.95, `dos empleados venden más (${(dos.porDiaTrabajado / vos.ventas * 100).toFixed(0)} %) y siguen sin pasarse de lo tuyo`);
+  ok(dos.ventas > uno12.ventas && dos.porDiaTrabajado / vos.ventas <= 1.3, `dos empleados venden más (${(dos.porDiaTrabajado / vos.ventas * 100).toFixed(0)} % de lo tuyo por día de trabajo: el local atendido todo el día y con fama sube la demanda) sin pasarse de 1,3 veces`);
   // los sueldos y la ganancia neta de caja (ventas − sueldos)
   ok(uno12.sueldos > 0 && uno12.sueldos < uno12.ventas, `un empleado se paga con lo que vende (sueldo $${Math.round(uno12.sueldos)}/día contra ventas $${Math.round(uno12.ventas)}/día)`);
   const netoUno = uno12.ventas - uno12.sueldos, netoDos = dos.ventas - dos.sueldos;
-  ok(netoUno >= 600 && netoUno < vos.ventas * 0.5, `neto de caja con uno: $${Math.round(netoUno)}/día (de $600 a menos de la mitad de lo que hacés vos: $${Math.round(vos.ventas)})`);
+  ok(netoUno >= 1500 && netoUno < vos.ventas * 0.6, `neto de caja con uno: $${Math.round(netoUno)}/día (menos que los $${Math.round(vos.ventas)} que hacés vos)`);
   ok(netoDos < vos.ventas, `con dos: $${Math.round(netoDos)}/día, menos que atendiendo vos ($${Math.round(vos.ventas)})`);
+  // el ajuste: contra vender lo mismo al mercado, un empleado de 12 días gana; el segundo suma de verdad
+  ok(uno12.sobreMercado >= 200 && uno12.sobreMercado <= 800, `un empleado (12 días) gana $${Math.round(uno12.sobreMercado)}/día sobre venderlo al mercado (de $200 a $800, ya pagado el sueldo)`);
+  ok(uno0.sobreMercado > 0, `y el recién llegado también: $${Math.round(uno0.sobreMercado)}/día`);
+  const dos40 = sinVos({ claves: ['madre', 'padre'], dias0: 40 }), uno40b = sinVos({ claves: ['padre'], dias0: 40 });
+  ok(dos40.sobreMercado - uno40b.sobreMercado >= 350 && dos40.sobreMercado - uno40b.sobreMercado <= 800, `el segundo suma $${Math.round(dos40.sobreMercado - uno40b.sobreMercado)}/día más (de $350 a $800): $${Math.round(uno40b.sobreMercado)} con uno, $${Math.round(dos40.sobreMercado)} con dos`);
+  ok(dos40.sobreMercado < vos.sobre, `y con dos sigue por debajo de lo que ganás vos atendiendo ($${Math.round(dos40.sobreMercado)} vs $${Math.round(vos.sobre)})`);
   // con poca mercadería el empleado no se paga: hay que surtir
   const chico = sinVos({ dias0: 12 });
   const pobre = (() => { const est = nuevoLocal(); const Em = M.empleadosNuevo(); M.contratar(Em, 'madre', { tipo: 'almacen', dia: 1, abs: 24, puntos: 60 }); Em.lista[0].dias = 12; let v = 0, s = 0; const pp = { modo: 'relax', dia: 1, horas: 0, economia: { ...E.economiaNueva(), pesos: 1e8 } }; for (let d = 1; d <= 24; d++) { pp.dia = d; N.ponerAlDia(est, d); for (const [k, c] of Object.entries({ huevo: 6, papa: 4, miel: 2, tronco: 4 })) N.surtir(est, k, c, ilimitado); const v0 = est.total.ventas; const ev = M.avanzarEmpleados(pp, est, 'almacen', Em, { abs: (d + 1) * 24, presente: false, nivel: () => 1, nombre: (k) => k }); v += est.total.ventas - v0; for (const e of ev) if (e.tipo === 'sueldo') s += e.monto; est.caja = 0; Em.visita = d + 1; } return { ventas: v / 24, sueldos: s / 24 }; })();
@@ -400,7 +408,7 @@ function sinVos({ tipo = 'almacen', claves = ['madre'], dias = 24, dias0 = 0, am
   for (const rota of basura) {
     const s = M.sanearEmpleadosNegocio(rota, 20);
     ok(s.v === 1 && Array.isArray(s.lista) && s.lista.length <= 2, `basura (${JSON.stringify(rota)?.slice(0, 30)}): un estado sano`);
-    ok(s.lista.every((x) => M.esCandidato(x.k) && x.sueldo >= 900 && x.sueldo <= 1800 && x.dias >= 0 && x.pagadoDia <= 20 && x.impagos < M.IMPAGOS_MAX && (x.turno === 0 || x.turno === 1)), '… con los empleados en su rango');
+    ok(s.lista.every((x) => M.esCandidato(x.k) && x.sueldo >= 600 && x.sueldo <= 1200 && x.dias >= 0 && x.pagadoDia <= 20 && x.impagos < M.IMPAGOS_MAX && (x.turno === 0 || x.turno === 1)), '… con los empleados en su rango');
     ok(new Set(s.lista.map((x) => x.k)).size === s.lista.length && new Set(s.lista.map((x) => x.turno)).size === s.lista.length, '… sin repetidos y cada uno en su turno');
     ok(s.sim.ultima <= 20 * 24 + 24 && s.sim.acum >= 0 && s.sim.acum <= 50 && s.visita <= 20 && s.pend.ventas >= 0 && Object.keys(s.pend.porEmp).every(M.esCandidato), '… el tiempo y lo pendiente en rango');
   }

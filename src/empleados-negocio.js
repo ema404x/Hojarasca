@@ -17,7 +17,7 @@
 //     al segundo impago seguido, se van (y la amistad cae). Si pasan más de 5 días sin que pases por el local, se van también (tope de lo que se acumula);
 //   · lo vendido sin vos queda en la caja (tope de $12.000: con la caja llena no se vende) y al volver el juego te cuenta qué vendió cada uno.
 // Sólo en el Relax. Una partida de antes no trae el campo: sale vacío (nadie contratado) y lo demás queda como estaba.
-import { tasaPorHora, armarCliente, despachar, ponerAlDia, HORA_ABRE, HORA_CIERRA } from './negocio-propio.js';
+import { tasaPorHora, armarCliente, despachar, ponerAlDia, HORA_ABRE, HORA_CIERRA, CAJA_MAX as N_CAJA_MAX } from './negocio-propio.js';
 import { formatoPesos, hayEconomia, pagar, pesosDe } from './economia.js';
 import { esCumpleanos, HORA_FIESTA } from './aldea.js';
 
@@ -35,7 +35,10 @@ export const IMPAGOS_MAX = 2;                    // a los dos impagos seguidos, 
 export const SIM_MAX_HORAS = (AUSENCIA_MAX_DIAS + 1) * 24;
 export const UMBRAL = { acepta: 25, amigo: 50, compadre: 140 };   // puntos de amistad (los de vecindad.js: AMISTAD.umbral)
 export const RENDIMIENTO = { inicioBase: 0.50, inicioHab: 0.10, topeBase: 0.70, topeHab: 0.15, tau: 6, amigo: 0.03, compadre: 0.05, max: 0.9 };
-export const SUELDO = { min: 900, max: 1800, habMin: 0.5, porHab: 1800, dueno: 1.1, desgana: 1.2, gusto: 0.9, redondeo: 50 };
+export const SUELDO = { min: 600, max: 1200, habMin: 0.5, porHab: 1200, dueno: 1.1, desgana: 1.2, gusto: 0.9, redondeo: 50 };
+// 4.4 (ajuste): con empleados el local está siempre atendido y se corre la voz: llegan más clientes de los que traería el local con vos lejos (por la cantidad de contratados), y el
+// empleado ofrece algo más en cada venta (`propina`: un % extra sobre lo cobrado). Atendiendo vos nada de esto cambia.
+export const EMP_LOCAL = { demanda: [1, 1.12, 1.35], propina: [0, 0.10, 0.20] };
 export const AYUDA = { esperaBase: 22, esperaRend: 12, atencionBase: 7, atencionRend: 3 };   // segundos: cuándo ayuda y cuánto tarda en despachar
 export const AMISTAD_EMP = { cadaDias: 4, suma: 2, despedido: -6, impago: -10, ausencia: -4 };
 
@@ -237,7 +240,7 @@ export function simularTramo(est, tipo, E, desde, hasta, env = {}) {
     const cob = cobertura(E.lista, tipo, mid, nivel, env.ocupado);
     if (!cob.activos.length) { E.sim.acum = 0; continue; }
     if (dia > est.hoy.dia) ponerAlDia(est, dia);
-    E.sim.acum = Math.min(50, E.sim.acum + tasaPorHora(est, tipo, hora, { lluvia: env.lluvia || 0 }) * cob.e * dt);
+    E.sim.acum = Math.min(50, E.sim.acum + tasaPorHora(est, tipo, hora, { lluvia: env.lluvia || 0 }) * cob.e * dt * (EMP_LOCAL.demanda[Math.min(2, E.lista.length)] || 1));
     while (E.sim.acum >= 1) {
       E.sim.acum -= 1; E.sim.n++;
       const c = armarCliente(est, tipo, `emp|${E.sim.n}`, hora);
@@ -246,6 +249,10 @@ export function simularTramo(est, tipo, E, desde, hasta, env = {}) {
       est.hoy.clientes++; est.total.clientes++;
       const r = despachar(est, c);
       if (!r.ok) { est.hoy.clientes--; est.total.clientes--; res.cajaLlena = true; E.sim.acum = 0; break; }
+      if (!r.nada) {   // la propina del que ofrece más (con el tope de la caja)
+        const extra = Math.min(Math.floor(r.total * EMP_LOCAL.propina[Math.min(2, E.lista.length)]), N_CAJA_MAX - est.caja);
+        if (extra > 0) { est.caja += extra; est.hoy.ventas += extra; est.total.ventas += extra; r.total += extra; }
+      }
       // lo atendió uno de los de turno (más seguido el que rinde más)
       let x = ((E.sim.n * 0.6180339887) % 1) * cob.activos.reduce((s, a) => s + a.r, 0), quien = cob.activos[cob.activos.length - 1];
       for (const a of cob.activos) { x -= a.r; if (x <= 0) { quien = a; break; } }

@@ -18,35 +18,40 @@ Sale de `v431-tiron` (4.3.0 + herramientas de medición). Sólo Relax, sin mando
 | | |
 |---|---|
 | Empleados | hasta 2 |
-| Sueldo diario | `900 + 1.800 × (habilidad − 0,5)`, de $900 a $1.800; ×1,10 si tiene local propio; ×1,20 de mala gana; ×0,90 compadre; redondo a $50 |
+| Sueldo diario | `600 + 1.200 × (habilidad − 0,5)`, de $600 a $1.200; ×1,10 si tiene local propio; ×1,20 de mala gana; ×0,90 compadre; redondo a $50 |
 | Habilidad | 0,50 (Abril) a 0,90 (Rosa), +0,05/0,10 si lo suyo es el tipo de local (la panadera y Gladys en la panadería, Tito en el almacén…) |
-| Rendimiento | inicio `0,50 + 0,10 × hab`; tope `0,70 + 0,15 × hab`; crece como `1 − e^(−días/6)` (casi todo en el primer año del juego = 12 días); +0,03 amigo, +0,05 compadre; máximo 0,90. Con los números reales: de 56–63 % el primer día a 79–87 % |
+| Rendimiento | inicio `0,50 + 0,10 × hab`; tope `0,70 + 0,15 × hab`; crece como `1 − e^(−días/6)` (casi todo en el primer año del juego = 12 días); +0,03 amigo, +0,05 compadre; máximo 0,90. Con los números reales: de 56–63 % el primer día a 79–87 % (sin cambios en el ajuste) |
+| Ventas sin vos | clientes ×1,12 con uno, ×1,35 con dos; propina +10 % con uno, +20 % con dos (`EMP_LOCAL`) |
 | Dos juntos (11 a 19) | `1 − (1 − a)(1 − b)` |
 | Ayuda cuando estás | espera mínima `22 − 12 × r` s; tarda `7 − 3 × r` s en despachar |
 
-## Equilibrio (`herramientas/simulador-negocio-propio.mjs 60`, sección nueva)
+## Equilibrio (`herramientas/simulador-negocio-propio.mjs 60`, sección nueva) — AJUSTADO
 
-Almacén, surtido bueno, precios normales. **Vos atendiendo todo el día: ventas $6.840/día, ganancia sobre venderlo al mercado $1.596/día.** Con el empleado y vos lejos (promedio por día de calendario, 6 de 7 trabajan):
+Almacén, surtido bueno, precios normales. **Vos atendiendo todo el día: ventas $6.703/día, ganancia sobre venderlo al mercado $1.564/día** (no cambió: `negocio-propio.js` no se tocó y `verificar-4-3-negocio.mjs` sigue en 1.891).
 
-| | ventas/día | sueldo/día | **neto de caja** | sobre venderlo al mercado |
-|---|---|---|---|---|
-| Mario (barato, $1.100), recién llegado | $2.593 | $935 | $1.658 | −$328 |
-| Mario con 12 días | $2.934 | $935 | **$1.999** | −$249 |
-| Gladys ($1.550) recién llegada | $2.628 | $1.318 | $1.311 | −$704 |
-| Gladys con 12 días | $3.000 | $1.318 | **$1.683** | −$615 |
-| Rosa (panadera, $1.800) con 12 días | $3.029 | $1.530 | $1.499 | −$822 |
-| Dos (Mario + Gladys) con 40 días | $4.217 | $2.253 | $1.965 | −$1.266 |
-| Dos (Gladys + Rosa) con 40 días | $3.906 | $2.848 | $1.059 | −$1.933 |
-| Gladys, precios baratos / caros | $3.523 / $1.341 | $1.318 | $2.205 / $23 | |
-| Gladys, surtido chico | $1.199 | $1.318 | **−$119** | |
+Ajuste pedido por el usuario (el primer corte daba pérdida con cualquier empleado y el segundo no se pagaba): **sueldos de $600 a $1.200** (`600 + 1.200 × (habilidad − 0,5)`, ×1,10 con local propio, ×1,20 de mala gana, ×0,90 compadre), y `EMP_LOCAL`: con empleados el local está siempre atendido y se corre la voz (**+12 % de clientes con uno, +35 % con dos**) y el empleado **ofrece algo más** en cada venta (**propina de +10 % sobre lo cobrado con uno, +20 % con dos**). Todo es sólo para lo que se vende sin vos; el rendimiento (56–63 % → 79–87 %), los turnos, la amistad, las renuncias y el día de prueba no cambiaron. La propina cuenta como venta del local (ventas, caja con su tope, anotado a su nombre).
 
-(El sueldo por día de calendario es 6/7 del nominal.) Por día de trabajo, un empleado vende **51 % de lo que vendés vos al arrancar y ~60 % a los 12 días** (lo comprueba la prueba), y dos juntos ~80 %: nunca más que vos. «Neto de caja» = lo que entra menos los sueldos, con la mercadería ya producida; contra los $3.200/día de jornales, un empleado barato suma ~$1.700–2.000/día **mientras vos hacés jornales**.
+Con el empleado y vos lejos (por día de calendario; trabajan 6 de 7). «Sobre el mercado» = ventas − lo que valía lo vendido en el mercado − sueldos:
 
-**Lo que hay que saber (honesto):**
-- «Sobre venderlo al mercado» es **negativo** con cualquier empleado: el local rinde ~25 % sobre el mercado, y un sueldo de $900–1.800 se come eso. Contratar **no es para ganar más que vendiendo al mercado**, es para **ganar plata con el local mientras estás en otra cosa**. El más barato (Mario/Abril) casi empata ($−250). Si querés que también supere al mercado, hay que bajar sueldos (`SUELDO`) o subir el margen del local; está todo en una tabla.
-- **El segundo empleado casi no se paga** ($+300 de neto sobre uno): la demanda del local es el límite (~4–5 clientes/día), no las manos. Sirve para cubrir mañana y noche y levantar la fama (58–63 vs 48), que trae más gente.
-- **Con surtido chico no se paga** (−$119/día): hay que surtir bien, igual que atendiendo vos; los edificios de la 4.2 siguen siendo los que llenan los estantes.
-- No rompe la economía: sólo vende lo que vos surtiste (stock real), la caja tiene su tope de $12.000, y nunca vende más que vos.
+| Almacén, de amigo | Antes: ventas / neto de caja / sobre el mercado | Después: ventas / sueldo / neto de caja / **sobre el mercado** |
+|---|---|---|
+| Mario (barato), recién llegado | $2.593 / $1.658 / −$328 | $3.094 / $595 / $2.499 / **+$344** |
+| Mario, 12 días | $2.934 / $1.999 / −$249 | $3.373 / $595 / $2.778 / **+$429** |
+| Gladys, recién llegada | $2.628 / $1.311 / −$704 | $3.264 / $850 / $2.414 / +$139 |
+| Gladys, 12 días | $3.000 / $1.683 / −$615 | $3.919 / $850 / $3.069 / **+$339** |
+| Rosa (panadera), 12 días | $3.029 / $1.499 / −$822 | $4.017 / $1.020 / $2.997 / +$201 |
+| Dos (Mario + Gladys), recién llegados | $3.984 / $1.731 / −$1.316 | $6.174 / $1.445 / $4.729 / **+$785** |
+| Dos (Mario + Gladys), 40 días | $4.217 / $1.965 / −$1.266 | $6.864 / $1.445 / $5.419 / **+$1.039** |
+| Dos (Gladys + Rosa), 40 días | $3.906 / $1.059 / −$1.933 | $7.003 / $1.870 / $5.133 / +$663 |
+| Gladys, 12 días, precios baratos / caros | −$943 / −$820 | +$41 / −$195 |
+| Gladys, 12 días, **surtido chico** | $1.199 / −$119 / −$1.034 | $1.264 / $850 / $414 / **−$464** |
+
+- **Un empleado a los 12 días: +$340 a +$430/día sobre el mercado** (Mario +$429, Gladys +$339), con sueldos de $595–850 por día de calendario ($700–1.000 nominales; un jornal es $700–1.300). Los caros y los muy hábiles (Rosa $1.200) quedan en +$200 o menos; con precios baratos queda en ~$0 (se gana fama, no plata).
+- **El segundo suma +$610 de más** (Mario solo +$429 a 40 días; los dos +$1.039) con Mario + Gladys; con los dos más caros (Gladys + Rosa), +$663 contra +$405 de Gladys sola (+$260): ahí el sueldo de Rosa se come casi todo. La fama sube a 68–74 (con uno, 48–52), que trae más gente.
+- **Atendiendo vos sigue ganando más**: $1.564/día sobre el mercado, contra $430 con uno y $1.039 con dos.
+- **Con surtido chico sigue perdiendo** (−$464): hay que surtir bien.
+- Por día de trabajo, un empleado vende ~60 % de lo que vendés vos al arrancar y ~70–75 % a los 12 días (algo por encima de lo que cabía con el primer corte por el +12 % de clientes y la propina); **dos juntos pueden llegar a ~110 % de lo tuyo** por día de trabajo: sale de la fama alta y la propina, y está limitado por la mercadería que surtís (no hay venta de la nada). Es el costo de que el segundo se pague; la prueba lo acota en 1,3 veces.
+- Panadería: el ajuste da menos (Gladys +$41 a 12 días, Mario +$341) porque su mercadería vale menos.
 
 ## Decisiones mías (para revisar)
 
