@@ -4,7 +4,7 @@
 //   · el saneo del guardado (partida vieja sin `almacen` intacta; lo guardado no se recorta; nivel y claves válidos);
 //   · los planos: existen, cuestan según la escala, dibujan sin números rotos con el depósito al máximo y lleno, sólo tipo 0 y 4, dentro del
 //     presupuesto de triángulos y de lo que dicen medir, con su física sana;
-//   · main.js usa todo esto (la E, Mayús + E, pagar de los depósitos, devolver lo guardado al desarmar y el reintegro de las ampliaciones).
+//   · main.js usa todo esto (la E, mantener E, pagar de los depósitos, devolver lo guardado al desarmar y el reintegro de las ampliaciones).
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
@@ -189,7 +189,7 @@ const valorMateriales = (pide) => Object.entries(pide).reduce((s, [k, c]) => s +
     eq([dep.datos.almacen.g.piedra, W.progreso.materiales.piedra], [60, 10], 'E guarda hasta el tope y deja el resto en la mochila');
     ok(/Guardaste en el depósito \|.*Piedra 60\/60.*No entró el resto de piedra/.test(W.notas.at(-1)), 'la nota dice cuánto entró y que el resto no: ' + W.notas.at(-1));
     ok(W.rehechas.includes(dep), 'se rehizo la malla (la pila creció)');
-    eq(W.J.aviso(dep), 'Depósito de piedra techado lleno (Piedra 60/60) · Mayús + E para ampliar', 'lleno: el aviso ofrece ampliar');
+    eq(W.J.aviso(dep), 'Depósito de piedra techado lleno (Piedra 60/60) · Supr: sacar · mantené E para ampliar', 'lleno: el aviso ofrece ampliar');
     W.progreso.materiales.piedra = 0;
     eq(W.J.aviso(dep), 'Sacar del depósito (Piedra 60/60)', 'sin nada a mano: sacar');
     W.J.usar(dep);
@@ -243,7 +243,7 @@ const valorMateriales = (pide) => Object.entries(pide).reduce((s, [k, c]) => s +
     ok(/Falta plata para ampliar \| La ampliación cuesta \$2\.000 y te faltan \$500/.test(W.notas.at(-1)), 'sin plata: ' + W.notas.at(-1));
     W.progreso.economia.pesos = 5000;
     W.J.ampliar(dep);
-    ok(/Ampliar el depósito \| Sube el tope de 60 a 100 · cuesta 6 tablas, 8 piedras y \$2\.000\. Mayús \+ E otra vez/.test(W.notas.at(-1)), 'la primera sólo muestra el precio: ' + W.notas.at(-1));
+    ok(/Ampliar el depósito \| Sube el tope de 60 a 100 · cuesta 6 tablas, 8 piedras y \$2\.000\. Mantené E otra vez/.test(W.notas.at(-1)), 'la primera sólo muestra el precio: ' + W.notas.at(-1));
     W.J.ampliar(dep);
     eq([dep.datos.almacen.n, pesosDe(W.progreso)], [0, 5000], 'la segunda enseguida (menos de 0,6 s) tampoco cobra: evita el doble toque');
     await espera(700);
@@ -355,7 +355,7 @@ for (const id of A.IDS_ALMACEN) ok(PLANO[id].texto.includes(A.textoCapacidad(id)
   tiene('if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.aviso(o);', 'el aviso de la E de un almacén');
   tiene('if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.usar(o);', 'y la E');
   tiene('OBRAS_QUE_TRABAJAN.push(...almacenJuego.ids);', 'los almacenes son obras que se usan con E (con la misma prioridad que la leñera)');
-  tiene('if (e.shiftKey && !e.repeat && !js.enTren && !js.enKayak && !js.montado && !enElAlmacen) { const o = obraQueTrabajaCerca(); if (o && almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); break; } }', 'Mayús + E amplía (y no con la tecla mantenida)');
+  tiene('if (almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); return; }', 'mantener E amplía (4.4.2: ya no con Mayús, que es correr; y no con la tecla mantenida)');
   tiene('const cercaAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA), deps = almacenJuego.cerca(RADIO_ACOPIO_OBRA);', 'pagar: conMateriales mira el acopio y los depósitos de alrededor');
   tiene('const delDeposito = deps.length && gasto > delAcopio ? almacenJuego.gastar(deps, k, gasto - delAcopio) : 0;', 'primero el acopio, después los depósitos, al final la mochila');
   tiene('const delAcopio = hayAcopioCerca(RADIO_ACOPIO_OBRA), deps = almacenJuego.cerca(RADIO_ACOPIO_OBRA);', 'y materialesVisibles suma lo mismo (el panel y los avisos dicen «Faltan» con lo guardado cerca)');

@@ -450,7 +450,7 @@ for (const [id, def] of Object.entries(LOCALES)) {
   tiene('OBRAS_QUE_TRABAJAN.push(...(negocioJuego?.ids || []));', 'los dos locales entran en las obras que trabajan (aviso y E con la misma prioridad)');
   tiene('if (negocioJuego?.esLocal(o.plano.id)) return negocioJuego.aviso(o);', 'el aviso');
   tiene('if (negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o); refrescarBarra(true); return; }', 'y la tecla E');
-  tiene('if (o && negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o, true); break; }', 'Mayús + E abre el panel aunque haya un cliente');
+  tiene('if (negocioJuego?.esLocal(o.plano.id)) negocioJuego.usar(o, true);', 'mantener E abre el panel aunque haya un cliente (4.4.2: antes Mayús + E, que es correr)');
   tiene('if (negocioJuego?.panelAbierto()) { negocioJuego.cerrarPanel(); break; }', 'E cierra el panel');
   tiene('else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();', 'Escape también');
   tiene('|| !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');

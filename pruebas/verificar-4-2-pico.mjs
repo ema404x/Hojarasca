@@ -73,6 +73,8 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   const S = A.SERVICIO, dia = 10;
   // con los cantos y la plata: lo forja
   let p = partida({ entradas: cantos(S.cantosPico), economia: { ...economiaNueva(), pesos: S.pesosPico + 50 } });
+  // (4.4.2: con el afilado pendiente el herrero ofrece primero el afilado y el pico en la charla siguiente: acá, con el filo todavía vigente, va directo)
+  p.aldea.afilado = A.SERVICIO.filo;
   let s = A.servicioBase('herrero', p, dia);
   ok(s.efectos && s.efectos.some((f) => f.tipo === 'cosa' && f.k === 'pico'), 'el herrero ofrece forjar el pico');
   ok(s.efectos.some((f) => f.tipo === 'pesos' && f.n === -S.pesosPico && f.motivo), 'y lo cobra en pesos con su motivo');
@@ -82,6 +84,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   ok(p.cosas.pico === 1 && p.entradas.canto.cantidad === 0 && pesosDe(p) === 50, 'forjado: pico, cantos y pesos descontados');
   ok(p.economia.libro.some((m) => m.monto === -S.pesosPico && /Pico/.test(m.motivo)), 'el libro anota «Pico forjado»');
   // ya con pico: no lo ofrece de nuevo y sigue afilando el hacha
+  p.aldea.afilado = 0;
   s = A.servicioBase('herrero', p, dia);
   ok(!s.efectos?.some((f) => f.k === 'pico') && s.efectos?.some((f) => f.campo === 'afilado'), 'con el pico hecho, el herrero afila el hacha como siempre');
   ok(!/te falta un pico/i.test(s.partes.join(' ')), 'y no insiste con el pico');
@@ -168,7 +171,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   ok(/const hacha = tieneHacha\(\), pico = tienePico\(\)/.test(hacha) && /if \(!hacha && !pico\) return null/.test(hacha), 'el objetivo mira el hacha y el pico');
   ok(/m\.tipo === 'tronco' && !hacha/.test(hacha), 'sin hacha, un tronco caído no se corta');
   ok(/sinPico: mejor\.tipo === 'roca' && !pico/.test(hacha), 'la roca sin pico se marca');
-  ok(/if \(!hacha\) return null;/.test(hacha), 'los árboles, sólo con hacha');
+  ok(/if \(!hacha\) return deMata;/.test(hacha), 'los árboles, sólo con hacha (4.4.2: sin hacha queda la roca, o nada)');
   const uso = tramo('function usarHacha() {', 4800);
   ok(/if \(o\.sinPico\)/.test(uso) && /Te falta el pico/.test(uso) && /herrero/.test(uso) && /almacén/.test(uso), 'sin pico: aviso claro con dónde conseguirlo');
   ok(uso.indexOf('o.sinPico') < uso.indexOf('sumarMaterial(o.tipo'), 'y el aviso va ANTES de dar la piedra');

@@ -67,7 +67,7 @@ assert.equal(suma, 6, 'ahora sí suma en vez de concatenar');
 assert.match(guardado, /chinches: sanearChinches\(p\.chinches\)/, 'las chinches se sanean al cargar');
 assert.match(guardado, /talados: sanearTalados\(p\.talados\)/, 'los tocones también');
 assert.match(guardado, /import \{ sanearChinches \} from '\.\/chinches\.js'/);
-assert.match(guardado, /import \{ sanearTalados \} from '\.\/bosque\.js'/);
+assert.match(guardado, /import \{ sanearTalados(, sanearPicados)? \} from '\.\/bosque\.js'/);   // (4.4.2: y el saneador de los pedreros picados)
 
 // el guardián de main.js estaba al revés: saneaba sólo cuando NO había nada que sanear
 const main = leer('src/main.js');
