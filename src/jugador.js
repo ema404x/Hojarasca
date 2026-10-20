@@ -265,6 +265,9 @@ export function crearJugador(camara, T, col, opciones) {
       if (estado.profAgua > 0.15) vmax *= lerp(1, 0.5, smoothstep(0.15, 0.9, estado.profAgua));
     }
     if (estado.zoom) vmax *= 0.5;
+    if (estado.trucoSinFrio) estado.entumecido = 0;   // 4.5 (consola de códigos): «frio»
+    if (estado.trucoVel > 0) vmax *= estado.trucoVel;   // 4.5: «velocidad»; volando, un poco más
+    if (estado.trucoVuelo) vmax *= 1.6;
     // 2.3: después de una noche de invierno sin fuego, el cuerpo tarda en arrancar
     if (estado.entumecido > 0 && !estado.montado) vmax *= 1 - 0.25 * Math.min(1, estado.entumecido);
     // 2.4: después de una buena noche en una casa con confort, un poco más liviano
@@ -385,10 +388,12 @@ export function crearJugador(camara, T, col, opciones) {
     if (estado.nadando && !nadabaAntes) eventos.chapuzon.push(1);
 
     // salto con algo de tolerancia: sirve justo antes de tocar y justo después de despegar
+    const yAntesDelVuelo = estado.pos.y;   // 4.5: «volar»
     estado.saltoPedido = Math.max(0, estado.saltoPedido - dt);
     estado.coyote = estado.enSuelo ? 0.12 : Math.max(0, estado.coyote - dt);
     if (estado.saltoPedido > 0 && estado.coyote > 0 && !estado.sentado && !estado.nadando && estado.resbalando < 0.5) {
       estado.vy = 4.8; estado.enSuelo = false; estado.coyote = 0; estado.saltoPedido = 0;
+      if (estado.trucoSalto > 1) estado.vy *= estado.trucoSalto;   // 4.5: «salto»
       eventos.salto.push(1);
     }
 
@@ -424,6 +429,13 @@ export function crearJugador(camara, T, col, opciones) {
       }
     }
 
+    // 4.5 (consola de códigos): «volar». Espacio sube, C o Ctrl bajan; no atraviesa el suelo. Apagado, no cuesta nada.
+    if (estado.trucoVuelo && !estado.montado) {
+      const sube = activo && teclas.has('Space') ? 1 : 0, baja = activo && (teclas.has('KeyC') || teclas.has('ControlLeft')) ? 1 : 0;
+      estado.pos.y = clamp(yAntesDelVuelo + (sube - baja) * (estado.corriendo ? 14 : 8) * dt, suelo, 400);
+      estado.vy = 0; estado.nadando = false; estado.agachado = false; estado.coyote = 0;
+      estado.enSuelo = estado.pos.y <= suelo + 0.02;
+    }
     // 3.6.1: el último lugar donde estuviste parado (la salida del próximo asiento)
     if (!estado.sentado && estado.enSuelo && !estado.nadando && !estado.montado) { dePie.copy(estado.pos); hayDePie = true; }
     // altura de ojos

@@ -230,6 +230,10 @@ import { PASOS_RELAX, PREMIO_RELAX, avanzarRelax, dibujarPasos } from './relax-t
 import { crearValleUi } from './historia-ui.js';
 // 3.8.6: la noche del temporal del capítulo 8
 import { CAPITULOS, FIN_TEMPORAL } from './historia.js';
+// 4.5: la consola de códigos (Ctrl+Mayús+C) y hasta dónde se puede teletransportar
+import { crearTrucosJuego } from './trucos-juego.js';
+import { vistaParaLogros } from './trucos.js';
+import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos, notaRepetida, notaASacar } from './accesibilidad.js';
@@ -494,6 +498,7 @@ window.addEventListener('resize', () => {
 });
 
 let modo = 'carga';
+let trucosJuego = null;   // 4.5: la consola de códigos (se arma abajo, con las preguntas del juego)
 let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, gente, perro, tren, pesca, kayak, fotos, linterna;
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
 let modos = null;   // 3.1: carreras, desafío del día y torneo (ver modos-juego.js)
@@ -2312,6 +2317,7 @@ const steamPuente = crearSteam();
 // 3.8.6: lo ganado sin Steam (cerrado, sin red, o de antes) se manda al arrancar
 setTimeout(() => { steamPuente.sincronizar().catch(() => {}); }, 3000);
 const logrosRelax = esDesafio ? null : crearLogrosRelax();
+if (logrosRelax) { const revisarCrudo = logrosRelax.revisar; logrosRelax.revisar = (p) => revisarCrudo(vistaParaLogros(p)); }   // 4.5: lo que puso la consola de códigos en el cuaderno no cuenta para los logros
 {
   const estilo = document.createElement('style');
   estilo.textContent = CSS_LOGROS;
@@ -9733,6 +9739,7 @@ function contarAcercamientos() {
 }
 
 function actualizarTiempo(dt) {
+  if (trucosJuego?.reloj.congelado) return;   // 4.5: «congelar» (consola de códigos): la hora y el día no corren
   const js = jugador.estado;
   // 3.5.1: en el modo foto manda el deslizador; "En movimiento" corre la hora pero no cambia el día
   // (se sumaban días sin fin poniendo 23.9 y esperando). Al salir vuelve la hora de antes.
@@ -10736,6 +10743,20 @@ const dialogos = crearDialogos({
     return typeof f === 'function' && f !== NATIVOS_DIALOGO[tipo] ? f(texto, inicial) : undefined;
   } : null,
 });
+
+// 4.5: la consola de códigos (Ctrl+Mayús+C; trucos.js, trucos-pantalla.js, trucos-juego.js y los textos en trucos-textos.js). Aislada: si falla
+// al armarse, el juego sigue sin ella. Abierta, `modo` vale 'trucos' (el mundo queda quieto y las teclas son de la consola).
+try {
+  trucosJuego = crearTrucosJuego({
+    esDesafio, progreso: () => progreso, ajustes: () => ajustes, jugador: () => jugador, T: { get lugares() { return T?.lugares; } }, limite: LIMITE,
+    obras: () => obras, modo: () => modo, ponerModo: (m) => { modo = m; }, volverAlJuego: (sinMouse) => volverAlJuego(sinMouse), panelHudAbierto: () => panelDelHudAbierto(),
+    ocupado: () => !jugador || foto.activo || durmiendo || banco.activa || creadorAbierto || personalAbierto() || teclasAbiertas() || infoAbierta() || !!desafio?.caido,
+    alCambiarClima: () => { if (clima?.estado) { clima.estado.t = 0; clima.estado.tramo = undefined; } },
+    alCambiarEstacion: () => { const e = estacionObjetivo(); U.uOtono.value = e.oto; U.uInvierno.value = e.inv; },
+    refrescar: () => refrescarBarra(true), guardar: () => guardar(),
+    moverCamara: () => { const js = jugador.estado; camara.position.set(js.pos.x, js.pos.y + js.alturaOjos, js.pos.z); camara.rotation.set(js.pitch, js.yaw, 0, 'YXZ'); },
+  });
+} catch (e) { fallaSistema('trucos-armado', e); trucosJuego = null; }
 
 // Un sistema del bucle que tira una excepción: se anota una vez por sistema y mensaje (consola
 // y registro de caídas, por el mismo reportarError de siempre) y el resto del cuadro sigue.

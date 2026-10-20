@@ -612,6 +612,28 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 @media (max-width: 900px) { .portada { grid-template-columns: 1fr; } .controles { display: none; } .pausa { grid-template-columns: 1fr; gap: 30px; } }
 /* 3.8.4 (decisión 36): los menús en estilo «Cuaderno de campo» (src/menus/sistema.css y cuaderno.css, los mete armar.mjs) */
 /*MENUS*/
+/* 4.5: la consola de códigos (Ctrl+Mayús+C). Pegada al borde de arriba, como la de Los Sims; papel de «Cuaderno de campo» */
+.trucos { position: fixed; top: 0; left: 0; right: 0; z-index: 800; display: flex; justify-content: center; padding: 10px 16px 0; pointer-events: none; }
+.trucos.oculto { display: none; }
+.trucos-hoja { pointer-events: auto; width: min(780px, 100%); box-sizing: border-box; padding: 14px 20px 10px; color: var(--p-color, #2e2416); background: var(--p-fondo, #efe3c3); border-radius: var(--p-radio, 3px); box-shadow: var(--p-sombra, 0 22px 50px rgba(10,6,2,.55)); font-family: var(--f-texto, Georgia, serif); font-size: 17px; line-height: 1.35; }
+.trucos-titulo { margin: 0 0 6px; font-family: var(--f-titulo, 'Caveat', cursive); font-size: 26px; font-weight: 400; color: var(--p-titulo, #4a3418); line-height: 1.1; }
+.trucos-registro { max-height: min(38vh, 340px); overflow-y: auto; margin: 0 0 8px; padding: 2px 4px 2px 0; scrollbar-width: thin; scrollbar-color: rgba(74,52,24,.4) transparent; }
+.trucos-registro p { margin: 0; padding: 3px 0; border-bottom: 1px dashed var(--p-linea-suave, rgba(58,42,22,.16)); white-space: pre-wrap; overflow-wrap: anywhere; }
+.trucos-registro .escrito { color: var(--p-tenue, #6f5c3c); font-family: var(--f-mano, 'Caveat', cursive); font-size: 19px; }
+.trucos-registro .bien { color: var(--p-bien, #4b6a2e); }
+.trucos-registro .mal { color: var(--acento, #a2452f); }
+.trucos-registro .grupo { color: var(--p-titulo, #4a3418); font-family: var(--f-mano, 'Caveat', cursive); font-size: 20px; padding-top: 6px; }
+.trucos-registro .tenue { color: var(--p-tenue, #6f5c3c); font-style: italic; }
+.trucos-sugerencias { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0 0 6px; max-height: 96px; overflow-y: auto; }
+.trucos-sugerencias.oculto { display: none; }
+.trucos-sugerencias button { font: inherit; font-size: 15px; padding: 2px 10px; cursor: pointer; color: var(--b-color, #2e2416); background: rgba(122,92,48,.10); border: 1.5px solid rgba(58,42,22,.28); border-radius: 3px; }
+.trucos-sugerencias button:hover, .trucos-sugerencias button.elegida { background: rgba(196,140,60,.30); }
+.trucos-sugerencias small { display: block; color: var(--p-tenue, #6f5c3c); font-size: 12px; line-height: 1.1; }
+.trucos-linea { display: flex; align-items: center; gap: 8px; }
+.trucos-signo { font-family: var(--f-mano, 'Caveat', cursive); font-size: 26px; color: var(--acento, #a2452f); line-height: 1; }
+#trucos-entrada { flex: 1; min-width: 0; box-sizing: border-box; height: 38px; padding: 0 12px; font-family: var(--f-texto, Georgia, serif); font-size: 18px; color: var(--p-color, #2e2416); background: var(--campo-fondo, rgba(255,250,235,.55)); border: var(--campo-borde, 1.5px solid rgba(58,42,22,.4)); border-radius: 3px; outline: none; }
+#trucos-entrada:focus { border-color: var(--acento, #a2452f); }
+.trucos-pie { margin: 6px 0 0; font-size: 13px; color: var(--p-tenue, #6f5c3c); }
 </style>
 </head>
 <body>
@@ -1191,6 +1213,16 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
     <input id="dialogo-entrada" class="oculto" type="text" autocomplete="off" spellcheck="false" aria-labelledby="dialogo-texto">
     <div class="acciones-modal"><button id="dialogo-no">No</button><button id="dialogo-si">Sí</button></div>
     <p class="dialogo-ayuda">Enter acepta · Esc cancela · con el mando, A y B</p>
+  </div>
+</section>
+<!-- 4.5: la consola de códigos (trucos-pantalla.js; los textos, en trucos-textos.js) -->
+<section id="trucos" class="trucos oculto" role="dialog" aria-label="Consola de códigos">
+  <div class="trucos-hoja">
+    <h2 class="trucos-titulo" id="trucos-titulo">Consola de códigos</h2>
+    <div class="trucos-registro" id="trucos-registro" role="log" aria-live="polite"></div>
+    <div class="trucos-sugerencias oculto" id="trucos-sugerencias"></div>
+    <div class="trucos-linea"><span class="trucos-signo" aria-hidden="true">›</span><input id="trucos-entrada" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120" aria-labelledby="trucos-titulo"></div>
+    <p class="trucos-pie" id="trucos-pie"></p>
   </div>
 </section>
 <!-- 3.5.1: la placa perdió el contexto 3D (main.js lo rehace o, si no vuelve, recarga la partida guardada) -->

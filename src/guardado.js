@@ -34,6 +34,8 @@ import { sanearFogatas } from './fogatas.js';
 import { sanearEventosValle } from './eventos-valle.js';
 // 3.1: rangos y oficios
 import { sanearOficios, oficiosNuevos } from './oficios.js';
+// 4.5: lo único que deja la consola de códigos en la partida
+import { sanearMarcaTrucos } from './trucos.js';
 // 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';
 // 3.6: la vecindad (amistad, ganas y memoria de los vecinos; ver vecindad.js)
@@ -596,6 +598,7 @@ function sanearProgreso(p) {
     // 3.1: una partida vieja no los trae: los oficios salen sin acreditar (main.js le
     // acredita una vez lo que ya había hecho)
     oficios: sanearOficios(p.oficios),
+    trucos: modoPartida === 'desafio' ? undefined : sanearMarcaTrucos(p.trucos),   // 4.5: las anotaciones del cuaderno que puso la consola (para que no cuenten en los logros)
     // 3.6: la aldea. Una partida de la 3.1 trae `pueblo` y no `aldea`: sus pobladores se mudan
     // a la aldea con el local ya levantado (ver `migrarDesdePueblo`); el resto se descarta.
     // 3.6.1: con el día de la partida (ninguna fecha de la aldea puede ser del futuro). En el
