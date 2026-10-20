@@ -42,7 +42,7 @@ export function crearNegocioJuego(ctx) {
   const ui = { abierto: false, tip: true };
 
   // ---------------------------------------------------------------- el local
-  // El primer local terminado: se mira cada segundo, no cada cuadro. 4.4.2: «real» es el dueño del estado (stock, caja, tipo) aunque lo estés moviendo (Shift+Y);
+  // El primer local terminado: se mira cada segundo, no cada cuadro. 4.4.2: «real» es el dueño del estado (stock, caja, tipo) aunque lo estés moviendo (mover con M);
   // `local()` es ese mismo, salvo mientras lo movés (entonces no hay: ni clientes ni empleados en el lugar viejo). Antes, mover el activo dejaba a OTRO local
   // de adorno como «el activo» y la cuenta se cerraba sola (se devolvía la mercadería, se retiraba la caja, se perdonaba la deuda).
   function localReal() {

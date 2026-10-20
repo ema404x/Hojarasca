@@ -215,7 +215,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
       ctx.guardar?.();
       return;
     }
-    // 4.4.2: lo estás moviendo (Shift+Y): no hay local activo, pero los sueldos y las ventas siguen contando (antes se congelaban y se ponían al día de golpe)
+    // 4.4.2: lo estás moviendo (mover con M): no hay local activo, pero los sueldos y las ventas siguen contando (antes se congelaban y se ponían al día de golpe)
     const real = o || N.localReal?.();
     if (!real) return;
     const abs = absAhora();
