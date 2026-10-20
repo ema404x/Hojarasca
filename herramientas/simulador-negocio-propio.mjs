@@ -90,3 +90,71 @@ for (const [id, precio] of [['almacén de campo', 28000], ['panadería y cafeter
   const r = promedio(() => jugar({ tipo: id.startsWith('alm') ? 'almacen' : 'panaderia', nivel: 1 }));
   console.log(`- ${id}: ${$(precio)} de pesos (más materiales) → con ${$(r.margen)}/día de ganancia sobre venderlo al mercado se paga en ${(precio / r.margen).toFixed(0)} días (${(precio / r.margen / 12).toFixed(1)} años del juego)`);
 }
+
+// ================================================================ 4.4: con empleados (empleados-negocio.js)
+// Lo mismo, pero SIN VOS en el local (estás en tus jornales, en la obra, de paseo): los vecinos contratados venden por su cuenta con las horas simuladas de
+// empleados-negocio.js, se les paga de la caja (y, si no alcanza, de la billetera) y a la noche retirás lo que quedó. Se surte cada mañana con la misma producción.
+const Emp = await import('../src/empleados-negocio.js');
+const PUNTOS = { conocido: 30, amigo: 60, compadre: 150 };
+const nivelDe = (p) => Emp.nivelPorPuntos(p);
+
+function conEmpleados({ tipo = 'almacen', prod = 'bueno', nivel = 1, claves = ['madre'], dias = DIAS, dias0 = 0, amistad = 'amigo', rep0 = N.REP_INICIAL, siempreStock = false } = {}) {
+  const est = N.negocioPropioNuevo();
+  est.tipo = tipo; est.abierto = true; est.rep = rep0;
+  if (nivel !== 1) for (const k of N.catalogo(tipo)) est.precios[k] = nivel;
+  const E = Emp.empleadosNuevo();
+  const p = { modo: 'relax', dia: 1, economia: { ...E_economia() } };
+  const puntos = PUNTOS[amistad];
+  for (const k of claves) { const r = Emp.contratar(E, k, { tipo, dia: 1, abs: 24, puntos }); if (!r.ok) throw new Error(`no se pudo contratar a ${k}: ${r.motivo}`); r.emp.dias = dias0; }
+  let ventas = 0, sueldos = 0, costo = 0, clientes = 0, unidades = 0;
+  const unaVez = { tengo: () => 1e5, quitar: () => {} };
+  for (let d = 1; d <= dias; d++) {
+    p.dia = d;
+    N.ponerAlDia(est, d);
+    for (const [k, n] of Object.entries(PRODUCCION[tipo][prod])) N.surtir(est, k, siempreStock ? 1e5 : n, unaVez);
+    const antes = { ...est.stock }, v0 = est.total.ventas, c0 = est.total.clientes;
+    const ev = Emp.avanzarEmpleados(p, est, tipo, E, { abs: (d + 1) * 24, presente: false, nivel: () => nivelDe(puntos), nombre: (k) => k, lluvia: 0 });
+    ventas += est.total.ventas - v0; clientes += est.total.clientes - c0;
+    for (const k of Object.keys({ ...antes, ...est.stock })) { const vendido = Math.max(0, (antes[k] || 0) - (est.stock[k] || 0)); costo += consigna(k) * vendido; unidades += vendido; }
+    for (const e of ev) if (e.tipo === 'sueldo') sueldos += e.monto;
+    est.caja = 0;                                                       // a la noche retirás la caja (esa plata ya está contada en las ventas)
+    E.visita = d + 1;                                                   // (pasás por el local cada tanto: no renuncian por ausencia)
+  }
+  return { ventas: ventas / dias, costo: costo / dias, sueldo: sueldos / dias, clientes: clientes / dias, neto: (ventas - sueldos) / dias, sobreMercado: (ventas - costo - sueldos) / dias, rep: est.rep, rend: Emp.rendimientoDe(E.lista[0] || { k: claves[0], dias: dias0 }, tipo, nivelDe(puntos)) };
+}
+function E_economia() { return { pesos: 1e9, libro: [], migrada: true, ganado: 0, gastado: 0 }; }
+const filaE = (nombre, r) => console.log(`- ${nombre}: ${r.clientes.toFixed(1)} clientes/día · ventas ${$(r.ventas)}/día · sueldos ${$(r.sueldo)}/día · **neto de caja ${$(r.neto)}/día** · sobre venderlo al mercado ${$(r.sobreMercado)}/día · fama final ${r.rep.toFixed(0)}`);
+
+console.log(`\n# Con empleados y SIN vos en el local (${DIAS} días; el sueldo sale de la caja y, si no alcanza, de la billetera)\n`);
+const referencia = promedio(() => jugar({ tipo: 'almacen' }));
+console.log(`Referencia, atendiendo vos todo el día (almacén, surtido bueno, normales): ventas ${$(referencia.ventas)}/día · ganancia sobre el mercado ${$(referencia.margen)}/día\n`);
+for (const tipo of N.IDS_TIPOS) {
+  console.log(`## ${N.TIPOS[tipo].nombre}: un empleado, de amigo, según quién es y cuántos días lleva`);
+  for (const k of ['pintora', 'padre', 'modista', 'madre', 'panadera']) {
+    const of = Emp.ofertaDe(k, tipo, PUNTOS.amigo);
+    for (const dias0 of [0, 12, 40]) {
+      const r = promedio(() => conEmpleados({ tipo, claves: [k], dias0, dias: 20 }));
+      filaE(`${k} (sueldo ${$(of.sueldo)}, rinde ${(Emp.rendimientoPara(k, tipo, dias0, 1) * 100).toFixed(0)} %) con ${dias0} días`, r);
+    }
+  }
+  console.log();
+}
+console.log('## Almacén: dos empleados (de amigos)');
+for (const [claves, nombre] of [[['padre', 'madre'], 'padre y madre (baratos)'], [['madre', 'panadera'], 'madre y panadera (los mejores)']]) {
+  for (const dias0 of [0, 40]) filaE(`${nombre} con ${dias0} días`, promedio(() => conEmpleados({ claves, dias0, dias: 20 })));
+}
+console.log('\n## Almacén, un empleado (madre, amiga, con 12 días): según el surtido y los precios');
+filaE('surtido bueno, normales', promedio(() => conEmpleados({ claves: ['madre'], dias0: 12, dias: 20 })));
+filaE('surtido bueno, baratos', promedio(() => conEmpleados({ claves: ['madre'], dias0: 12, dias: 20, nivel: 0 })));
+filaE('surtido bueno, caros', promedio(() => conEmpleados({ claves: ['madre'], dias0: 12, dias: 20, nivel: 2 })));
+filaE('surtido chico, normales', promedio(() => conEmpleados({ claves: ['madre'], dias0: 12, dias: 20, prod: 'chico' })));
+console.log('\n## Almacén, un empleado (madre, con 12 días): según la amistad');
+for (const am of ['conocido', 'amigo', 'compadre']) {
+  const of = Emp.ofertaDe('madre', 'almacen', PUNTOS[am]);
+  filaE(`${am} (sueldo ${$(of.sueldo)})`, promedio(() => conEmpleados({ claves: ['madre'], dias0: 12, dias: 20, amistad: am })));
+}
+console.log('\n## Sueldos y rendimiento de cada vecino contratable (almacén / panadería; amigo, con 0 y 40 días)');
+for (const k of Emp.IDS_CANDIDATOS) {
+  const a = Emp.ofertaDe(k, 'almacen', PUNTOS.amigo), b = Emp.ofertaDe(k, 'panaderia', PUNTOS.amigo);
+  console.log(`- ${k}${a.dueno ? ' (con local propio)' : ''}: ${$(a.sueldo)} / ${$(b.sueldo)} por día · rinde ${(Emp.rendimientoPara(k, 'almacen', 0, 1) * 100).toFixed(0)} % → ${(Emp.rendimientoPara(k, 'almacen', 40, 1) * 100).toFixed(0)} %`);
+}
