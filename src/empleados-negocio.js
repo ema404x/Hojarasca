@@ -19,6 +19,7 @@
 // Sólo en el Relax. Una partida de antes no trae el campo: sale vacío (nadie contratado) y lo demás queda como estaba.
 import { tasaPorHora, armarCliente, despachar, ponerAlDia, HORA_ABRE, HORA_CIERRA } from './negocio-propio.js';
 import { formatoPesos, hayEconomia, pagar, pesosDe } from './economia.js';
+import { esCumpleanos, HORA_FIESTA } from './aldea.js';
 
 const entero = (v, max = 1e7) => { const n = Math.floor(Number(v)); return Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0; };
 const real = (v, a, b, d = a) => { const n = Number(v); return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : d; };
@@ -105,11 +106,12 @@ export function ventanaDeTurno(turno, ds) {
   return [t.desde, t.hasta];
 }
 const partesDeAbs = (abs) => { const dia = Math.floor(abs / 24 + 1e-12); return { dia, hora: abs - dia * 24 }; };
-// ¿Está de turno en esa hora absoluta (días*24 + hora)? (no antes de que lo contrates)
+// ¿Está de turno en esa hora absoluta (días*24 + hora)? No antes de que lo contrates, ni el domingo, ni en la fiesta de su cumpleaños (de 18 a 20: la aldea lo espera)
 export function enTurno(emp, abs) {
   if (!emp || abs < emp.alta) return false;
   const { dia, hora } = partesDeAbs(abs), v = ventanaDeTurno(emp.turno, diaSemana(dia));
-  return !!v && hora >= v[0] && hora < v[1];
+  if (!v || hora < v[0] || hora >= v[1]) return false;
+  return !(hora >= HORA_FIESTA[0] && hora < HORA_FIESTA[1] && esCumpleanos(emp.k, dia));
 }
 // Con la lista de empleados, a esa hora: { e, activos: [{ emp, r }] }; `e` es la fracción de lo que atenderías vos (1 − Π(1 − r))
 export function cobertura(lista, tipo, abs, nivelDe = () => 0) {

@@ -11,7 +11,7 @@
 //     con vos lejos no hay figuras de clientes: las ventas se simulan por horas (empleados-negocio.js) y, al volver, el juego te cuenta qué vendió cada uno;
 //   · el sueldo se paga solo al cerrar el turno de cada día (de la caja del local y, si no alcanza, de tu billetera).
 import { hayEconomia, formatoPesos } from './economia.js';
-import { esVecinoAldea, esCumpleanos, personaAldea, localAbierto, LOTE_DE } from './aldea.js';
+import { esVecinoAldea, personaAldea, localAbierto, LOTE_DE } from './aldea.js';
 import { nombreCorto, puntosAmistad, cambiarAmistad } from './vecindad.js';
 import { COLA } from './negocio-propio.js';
 import { MOSTRADOR_Z } from './planos-negocio.js';
@@ -44,10 +44,9 @@ export function crearEmpleadosNegocioJuego(ctx) {
     if (!e || !e.lista?.length || p.modo === 'desafio') return false;
     for (const x of e.lista) {
       if (x.k !== k) continue;
+      if (dia !== null && dia !== undefined) return enTurno(x, dia * 24 + h);   // (no antes de la alta, ni el domingo, ni en la fiesta de su cumpleaños)
       const v = ventanaDeTurno(x.turno, ds);
-      if (!v || h < v[0] || h >= v[1]) return false;
-      if (dia !== null && dia !== undefined) { if (dia * 24 + h < x.alta) return false; if (esCumpleanos(k, dia)) return false; }   // (el día de su cumpleaños no trabaja)
-      return true;
+      return !!v && h >= v[0] && h < v[1];
     }
     return false;
   }
@@ -272,6 +271,9 @@ export function crearEmpleadosNegocioJuego(ctx) {
     if (ui.despedir !== k) { ui.despedir = k; N.redibujar(); return; }
     ui.despedir = null;
     ultimoResumen = -99; contarSiVolviste(estadoE());   // (lo que se vendió sin vos, antes de que se vaya)
+    const ev = avanzarEmpleados(P(), est, est.tipo, estadoE(), env(true));   // (se saldan los turnos que ya cerraron antes de despedirlo)
+    if (ev.length) avisar(ev, true);
+    if (!empleadoDe(estadoE(), k)) { N.redibujar(); return; }
     const r = despedir(P(), est, estadoE(), k, env(true));
     if (!r.ok) return;
     const f = figuras.get(k);
