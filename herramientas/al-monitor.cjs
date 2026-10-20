@@ -7,6 +7,16 @@ try { electron = require('electron'); } catch { electron = null; }
 // (3.9.0: `screen` no se puede pedir antes de que la app esté lista: destructurarlo acá tiraba un error en el proceso principal y la ventana de
 // error dejaba todo colgado. Se pide al usar, y siempre después de `ready`)
 const app = electron && typeof electron === 'object' ? electron.app : null;
+// 4.3.1: modo OCULTO (HUMO_OCULTO=1): ninguna ventana se muestra ni toma el foco (show/showInactive/focus no hacen nada y se esconde
+// apenas nace); el juego igual dibuja y corre sus bucles (backgroundThrottling apagado) y capturePage sigue andando.
+if (app && process.env.HUMO_OCULTO === '1') {
+  app.commandLine.appendSwitch('mute-audio');
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.on('browser-window-created', (_e, w) => {
+    try { w.show = () => {}; w.showInactive = () => {}; w.focus = () => {}; w.setAlwaysOnTop = () => {}; w.hide(); w.webContents.setBackgroundThrottling(false); } catch {}
+  });
+} else
 if (app && process.env.HOJ_PANTALLA !== 'no') {
   const pantalla = () => electron.screen;
   const elegir = () => {
