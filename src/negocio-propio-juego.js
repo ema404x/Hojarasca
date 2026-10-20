@@ -6,7 +6,7 @@
 //   · el estado vive en `progreso.negocioPropio` (uno por partida); el local activo es el primero que armaste y terminaste (un segundo local se
 //     queda de adorno: avisa que ya tenés uno). Si lo desarmás, la mercadería y la plata de la caja vuelven a vos;
 //   · cada 0,25 s (no por cuadro) se avanza la cola: si el local está abierto, vos estás cerca y es la hora, llegan clientes (como mucho tres a la vez,
-//     uno por figura libre); cada uno camina hasta el mostrador, espera y pide. E sobre él (o E junto al local) lo despacha; Mayús + E abre el panel;
+//     uno por figura libre); cada uno camina hasta el mostrador, espera y pide. E sobre él (o E junto al local) lo despacha; mantener E abre el panel;
 //   · las figuras de los clientes son tres (la vecina, el hachero, el viajero), se arman de a poco y se reusan; fuera de hora o sin clientes están
 //     dormidas (ni se dibujan ni se mueven). No hay luces ni nada nuevo por cuadro;
 //   · si no estás cerca (más de 35 m) no llega nadie; los que esperaban se van sin que baje la fama;
@@ -214,7 +214,7 @@ export function crearNegocioJuego(ctx) {
       ctx.nota?.(`Gastos del local: −${formatoPesos(p.monto)}`, `${TEXTO_GASTOS[0].toUpperCase()}${TEXTO_GASTOS.slice(1)}${r.dias > 1 ? ` de ${r.dias} días` : ''}, ${origen}${p.monto > r.gasto ? '. Incluye lo que debías' : ''}`, false);
       if (r.abrioAhora) ctx.nota?.('Pagaste lo que debías', 'El local vuelve a abrir', true);
     } else {
-      ctx.nota?.('No pudiste pagar los gastos del local', `Debés ${formatoPesos(r.deuda)} (${TEXTO_GASTOS}). ${r.cerroAhora ? 'El local cerró solo hasta que pagues: Mayús + E y «Pagar la deuda»' : 'Un día más sin pagar y el local cierra solo'}`, false);
+      ctx.nota?.('No pudiste pagar los gastos del local', `Debés ${formatoPesos(r.deuda)} (${TEXTO_GASTOS}). ${r.cerroAhora ? 'El local cerró solo hasta que pagues: mantené E y «Pagar la deuda»' : 'Un día más sin pagar y el local cierra solo'}`, false);
     }
     ctx.guardar?.(); ctx.refrescarBarra?.();
     if (ui.abierto) dibujar();
@@ -241,7 +241,7 @@ export function crearNegocioJuego(ctx) {
     if (!c) return false;
     if (!c.listo) { ctx.nota?.('Todavía viene caminando', 'Esperá a que llegue al mostrador'); return true; }
     const r = despachar(est, c);
-    if (!r.ok) { if (quien) return false; ctx.nota?.('La caja no tiene lugar', `Hay ${formatoPesos(est.caja)} adentro y el tope es ${formatoPesos(CAJA_MAX)}. Retirá la plata (Mayús + E) y seguí atendiendo`); return true; }
+    if (!r.ok) { if (quien) return false; ctx.nota?.('La caja no tiene lugar', `Hay ${formatoPesos(est.caja)} adentro y el tope es ${formatoPesos(CAJA_MAX)}. Retirá la plata (mantené E) y seguí atendiendo`); return true; }
     cola.clientes.splice(cola.clientes.indexOf(c), 1);
     const f = c.figura;
     if (f) sale(f, o);
@@ -288,7 +288,7 @@ export function crearNegocioJuego(ctx) {
     const h = ctx.panel?.querySelector?.('h2'); if (h) h.textContent = T.nombre;
     raiz.innerHTML = '';
     if (ui.tip) {
-      raiz.append(el('p', 'negocio-tip', 'Surtí los estantes con lo que llevás, fijá los precios y abrí. Los clientes llegan solos mientras estés cerca: atendelos con E. Mayús + E vuelve a este panel. Si no estás, no se vende.'));
+      raiz.append(el('p', 'negocio-tip', 'Surtí los estantes con lo que llevás, fijá los precios y abrí. Los clientes llegan solos mientras estés cerca: atendelos con E. Mantener E vuelve a este panel. Si no estás, no se vende.'));
     }
     const rep = el('div', 'negocio-resumen');
     const barra = el('div', 'negocio-barra'); const relleno = el('i'); relleno.style.width = `${Math.round(est.rep)}%`; barra.append(relleno);

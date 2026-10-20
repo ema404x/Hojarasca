@@ -40,7 +40,7 @@ export const SECCIONES_GUIA = [
       ['Abrí los planos', 'O abre los planos. Elegí uno, mirá lo que pide y marcá el lugar con el clic.'],
       ['El mapa es tuyo', 'M abre el mapa: un clic pone una chinche donde quieras, otro clic encima hace que la brújula te lleve hasta ahí, y el clic derecho la saca.'],
       ['Levantá por etapas', 'Parado junto a la obra, Y levanta la etapa siguiente si llevás los materiales. Si falta algo, el panel te dice qué y de dónde sale.'],
-      ['Arrepentirse sale barato', 'Con los planos abiertos: Retroceso deshace la última etapa y te devuelve la mitad, Shift+Supr desmonta una pieza entera, y X copia lo que tenés enfrente para repetirlo con la misma orientación.'],
+      ['Arrepentirse sale barato', 'Con los planos abiertos: Retroceso deshace la última etapa y te devuelve la mitad, Supr (sin marca cerca, y otra vez para confirmar) desmonta una pieza entera, M la mueve, y X copia lo que tenés enfrente para repetirlo con la misma orientación.'],
       ['El banco de carpintero', 'Es lo primero que conviene armar: sólo pide 4 troncos y 2 piedras, y aserrar ahí rinde el doble.'],
       ['El acopio', 'Una pila donde dejás lo que juntás (E al lado). Mientras estés cerca, lo que levantes se paga solo del acopio: se termina el ir y venir con todo encima.'],
       // 2.4

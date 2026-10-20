@@ -50,7 +50,7 @@
 - Construir `Entrepiso con escalera` + `Escalera de nivel`: atravesar el hueco sin plataforma invisible y subir los 11 peldaños sin saltos o enganches.
 - Superar 8 planos en una categoría y verificar paginación con `[` / `]`, selección 1–8 y edición de una pieza situada en otra página del catálogo.
 - Construir una habitación modular RC10: cuatro lados cerrados, al menos una puerta y una cubierta; comprobar que el panel indique “habitación cerrada” y que `dentro()`/mecánicas de refugio la reconozcan.
-- Repetir quitando temporalmente una pared con Shift+Y: durante la edición debe dejar de figurar habitable y restaurarse al cancelar.
+- Repetir quitando temporalmente una pared con M (planos abiertos): durante la edición debe dejar de figurar habitable y restaurarse al cancelar.
 - Probar marco abierto + tres paredes + techo: debe figurar “espacio protegido”, no habitación cerrada.
 - Probar cuatro medias paredes: no deben habilitar un entrepiso estructural.
 - Subir a la cubierta plana y revisar que la superficie física coincida con la geometría visible.

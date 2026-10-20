@@ -96,13 +96,19 @@ export function devolverEtapasPagadas(p, id, pagadas, con = 'Los albañiles de l
 }
 // Al desmontar una pieza terminada vuelve la parte `reintegro` (la mitad, como con los materiales) de lo que de verdad pagaste: sólo
 // cuentan las etapas hechas Y pagadas (una pieza de una partida anterior al precio no devuelve plata que nunca se pagó).
-export function reintegroAlDesmontar(p, id, etapasHechas, pagadas, con = 'Los artesanos de la aldea') {
+// 4.4.2: cuánto sería, sin cobrar nada (para avisar el reintegro antes de confirmar el desmontaje)
+export function montoReintegroAlDesmontar(id, etapasHechas, pagadas) {
   const r = typeof id === 'string' ? REGISTRO.get(id) : null;
-  if (!hayEconomia(p) || !r || !(r.reintegro > 0)) return 0;
+  if (!r || !(r.reintegro > 0)) return 0;
   let monto = 0;
   for (let i = 0; i < Math.max(0, Math.min(r.precios.length, etapasHechas | 0, pagadas | 0)); i++) monto += r.precios[i];
-  monto = Math.floor((monto * r.reintegro) / 10) * 10;
-  if (monto <= 0) return 0;
+  return Math.max(0, Math.floor((monto * r.reintegro) / 10) * 10);
+}
+export function reintegroAlDesmontar(p, id, etapasHechas, pagadas, con = 'Los artesanos de la aldea') {
+  if (!hayEconomia(p)) return 0;
+  const r = typeof id === 'string' ? REGISTRO.get(id) : null;
+  const monto = montoReintegroAlDesmontar(id, etapasHechas, pagadas);
+  if (!r || monto <= 0) return 0;
   const res = cobrar(p, monto, r.motivoReintegro, con);
   return res.ok ? res.monto : 0;
 }

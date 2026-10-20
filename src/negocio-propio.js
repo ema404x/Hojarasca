@@ -365,7 +365,7 @@ export function avisoDelLocal(est, tipo, cola, ahoraHora, hayPanel = false) {
   if (est.tipo !== tipo) return `${T.nombre}: abrirlo y surtirlo`;
   const espera = primeroEnLaCola(cola);
   if (espera) return `Atender: ${textoLista(espera.pide)} (${etiquetaDe(espera).toLowerCase()})`;
-  if (cerradoPorDeuda(est)) return `${T.corto}: cerrado por una deuda de ${formatoPesos(est.fin.deuda)}. Pagala en el panel (Mayús + E)`;
+  if (cerradoPorDeuda(est)) return `${T.corto}: cerrado por una deuda de ${formatoPesos(est.fin.deuda)}. Pagala en el panel (mantené E)`;
   if (!est.abierto) return `${T.corto}: cerrado. Abrirlo, surtir y fijar precios`;
   if (est.caja >= CAJA_MAX) return `${T.corto}: la caja está llena, retirá la plata`;
   if (!cuantasCosas(est, tipo)) return `${T.corto}: sin mercadería. Surtí los estantes`;

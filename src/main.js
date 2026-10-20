@@ -157,7 +157,7 @@ import { MUEBLES_QUE_SE_USAN } from './planos-muebles.js';
 // 4.2: el lujo y los pesos de cualquier plano (obra-pesos.js)
 import { LUJO_QUE_SE_USA } from './planos-lujo.js';
 import { LUJO2_QUE_SE_USA } from './planos-lujo-2.js';
-import { alternarGramola, gramolaSuena, DISTANCIA_GRAMOLA } from './gramola.js';
+import { alternarGramola, gramolaSuena, gramolaSuenaEn, DISTANCIA_GRAMOLA } from './gramola.js';
 // 4.2: el almacenaje con tope (pila y depósito de piedra, barraca, silo, herramientero): las cuentas en almacen.js, lo del juego en almacen-juego.js
 import { TOPE_ACOPIO } from './almacen.js';
 import { crearAlmacenJuego } from './almacen-juego.js';
@@ -169,7 +169,7 @@ import { crearNegociosVecinosJuego } from './negocios-vecinos-juego.js';
 import { crearNegocioJuego } from './negocio-propio-juego.js';
 // 4.4: los empleados del negocio propio
 import { crearEmpleadosNegocioJuego } from './empleados-negocio-juego.js';
-import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar } from './obra-pesos.js';
+import { precioTotal, precioDeEtapa, avisoSinPlata, listaDeFaltantes, textoDeLoPagado, reintegroAlDesmontar, montoReintegroAlDesmontar } from './obra-pesos.js';
 // 4.2: los edificios de oficio propios (planos-oficios.js la geometría, oficios-propios.js las reglas)
 import { OFICIOS_PROPIOS_QUE_SE_USAN } from './planos-oficios.js';
 import { TALLERES, TEMPLE, sanearTaller, sanearHerreria, sanearTienda, usarTaller, avisoTaller, mensajeTaller, textoUnidades, avisoHerreria, usarHerreria, extraMadera, textoCarpinteria, venderDias, dejarEnTienda, retirarCajaTienda, avisoTienda, lotesEnTienda, aTexto } from './oficios-propios.js';
@@ -242,7 +242,7 @@ import { crearLogrosRelax } from './logros-relax.js';
 import { crearSteam } from './steam.js';
 import { datosAlbum, htmlAlbum, nombreArchivoAlbum } from './album.js';
 import { htmlGuia, CSS_GUIA } from './guia.js';
-import { sanearTalados, avanzarRebrote, apurarRebrote, resumenBosque, DIAS_QUE_APURA_UN_RENOVAL } from './bosque.js';
+import { sanearTalados, sanearPicados, anotarPicadoEn, avanzarRebrote, apurarRebrote, resumenBosque, DIAS_QUE_APURA_UN_RENOVAL } from './bosque.js';
 // 2.8: personalización (ver personalizacion.js y personal-todo.js)
 import { secciones, sanearPersonal } from './personal-todo.js';
 import { templarNoche } from './personal-personaje.js';
@@ -470,7 +470,7 @@ window.addEventListener('mouseup', (e) => {
     else desafio.cancelarTension();
   }
 });
-window.addEventListener('blur', () => { if (desafio?.bloqueando) desafio.bloquear(false); desafio?.cancelarTension?.(); });
+window.addEventListener('blur', () => { soltarMantenerE(); if (desafio?.bloqueando) desafio.bloquear(false); desafio?.cancelarTension?.(); });
 // Desafío: clic izquierdo ataca con el arma en la mano (la caña de pescar conserva su clic)
 window.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !desafio || modo !== 'jugando' || mochilaAbierta || modoObra || desafio.caido || foto.activo || banco.activa) return;
@@ -802,6 +802,8 @@ async function construir() {
   // el mundo se genera con todos los árboles en pie: acá se vuelven a sacar los talados
   progreso.talados = sanearTalados(progreso.talados, veg.arboles.length);
   revisarRebrote(true);
+  // 4.4.2 (C4): y los pedreros y troncos que ya picaste, que el mundo vuelve a generar: se sacan igual que cuando los picaste
+  { const lp = progreso.picados = sanearPicados(progreso.picados); for (let k = 0; k + 1 < lp.length; k += 2) veg.despejar(lp[k], lp[k + 1], 0.6, true); }
   progreso.tormenta = sanearTormenta(progreso.tormenta, veg.arboles.length);
   if (progreso.tormenta.rayo) {
     const r = progreso.tormenta.rayo, a = veg.arboles[r.i];
@@ -3175,10 +3177,7 @@ document.addEventListener('keydown', (e) => {
   switch (codigo) {
     case 'KeyE': {
       if (charla.npc) { seguirCharla(); break; }
-      // 4.2: Mayús + E junto a un almacén con tope lo amplía (muestra el precio y, con otra Mayús + E, lo paga)
-      if (e.shiftKey && !e.repeat && !js.enTren && !js.enKayak && !js.montado && !enElAlmacen) { const o = obraQueTrabajaCerca(); if (o && almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); break; } }
-      // 4.3: y en tu local, Mayús + E es el panel de estantes y precios (aunque haya un cliente esperando)
-      if (e.shiftKey && !e.repeat && !js.enTren && !js.enKayak && !js.montado && !enElAlmacen) { const o = obraQueTrabajaCerca(); if (o && negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o, true); break; } }
+      armarMantenerE();   // 4.4.2: mantener E un instante: ampliar un depósito o abrir el panel del local (antes Mayús + E, que es correr)
       if (enElAlmacen) { cerrarAlmacen(); break; }
       // 2.6.1: con la feria abierta E la cierra, como el almacén (antes hablaba con Elsa
       // o bajaba del caballo con el panel abierto, y el aviso no decía nada)
@@ -3384,30 +3383,9 @@ document.addEventListener('keydown', (e) => {
           if (r.ok) { ultimoSitioObra = ''; nota('Movimiento cancelado', 'La pieza volvió exactamente a su lugar'); dibujarPanelObra(); }
           break;
         }
-        if (e.shiftKey) {
-          const r = obras.desmontarCerca(js.pos, 5.0);
-          if (!r.ok) nota('Nada que desmontar', r.motivo);
-          else {
-            for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
-            const delDeposito = almacenJuego.contenido(r.datos);   // 4.2: lo que guardaba el depósito (antes de devolverlo)
-            devolverContenido(r.datos);   // 3.5.1
-            const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);   // 4.2: la mitad de los pesos que pagaste (antes de guardar)
-            const delAcopio = (r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null) || delDeposito || null;   // 3.8.4: el último acopio (4.2: o lo que tenía guardado el depósito)
-            progreso.obras = obras.obras.map((o) => o.datos);
-            guardar(); sonido.juntar();
-            const devuelto = Object.entries(r.recupera || {}).map(([k,n]) => cantidadMaterial(n, k)).join(' · ');
-            if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
-            else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
-            if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`, 'La mitad de la mano de obra que pagaste');   // 4.2
-            // 4.2: y de las ampliaciones de un depósito, la mitad de los pesos y de los materiales
-            { const rAmp = almacenJuego.reintegro(r.datos), mAmp = almacenJuego.materialesDeAmpliaciones(r.datos); for (const [k, n] of Object.entries(mAmp)) sumarMaterial(k, n); const txt = Object.entries(mAmp).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
-              if (rAmp || txt) nota(rAmp ? `Te devolvieron ${formatoPesos(rAmp)} de las ampliaciones` : 'Recuperaste materiales de las ampliaciones', `La mitad de lo que pagaste al ampliar${txt ? `: ${txt}` : ''}`); }
-            dibujarPanelObra();
-          }
-          break;
-        }
         const r = obras.cancelarMarcada(js.pos, 10, obras.plano?.id);
-        if (!r.ok) nota('Nada que cancelar', r.motivo);
+        // 4.4.2: sin marca que retirar, Supr propone desmontar la pieza terminada más cercana y pide Supr otra vez (antes era Mayús + Supr, y Mayús es correr)
+        if (!r.ok) { if (!pedirDesmontarPieza(js)) nota('Nada que cancelar', r.motivo); }
         else {
           // 4.0.3 (II-1): si ya habías pagado el terreno y la mano de obra de una casa, vuelven a la billetera (antes de guardar)
           const devuelto = devolverEtapasPagadas(progreso, r.plano.id, r.datos?.pagadas || 0);
@@ -3417,23 +3395,14 @@ document.addEventListener('keydown', (e) => {
           nota('Marca retirada', `${r.plano.nombre}: no se gastaron materiales${devuelto ? `. Te devolvieron ${formatoPesos(devuelto)} ${textoDeLoPagado(r.plano.id)}` : ''}`);
           dibujarPanelObra();
         }
+      } else if (!js.enTren && !js.enKayak && !js.montado && !panelDelHudAbierto()) {
+        // 4.4.2: Supr junto a un depósito saca todo lo guardado, aunque lleves lo mismo en la mochila (con E, si llevabas algo, se guardaba)
+        const o = obraQueTrabajaCerca();
+        if (o && almacenJuego.esAlmacen(o.plano.id)) almacenJuego.sacarTodo(o);
       }
       break;
     case 'KeyY':
-      if (modoObra) {
-        if (e.shiftKey && !obras.editando) {
-          const r = obras.iniciarEdicionCerca(js.pos, 5.0);
-          if (!r.ok) nota('Nada que mover', r.motivo);
-          else {
-            categoriaObra = r.plano.categoria;
-            const indicePlano = planosDeCategoria().findIndex((p) => p.id === r.plano.id);
-            paginaObra = indicePlano >= 0 ? Math.floor(indicePlano / PLANOS_POR_PAGINA) : 0;
-            ultimoSitioObra = '';
-            nota(`Moviendo ${r.plano.nombre.toLowerCase()}`, 'Mirá el nuevo lugar · R gira · Y confirma · Supr cancela');
-            dibujarPanelObra();
-          }
-        } else accionObra();
-      }
+      if (modoObra) accionObra();
       else if (puedeAserrar()) aserrar();
       break;
     case 'KeyI': abrirMochila(!mochilaAbierta); break;
@@ -3473,7 +3442,10 @@ document.addEventListener('keydown', (e) => {
         else cargas().abrir(tren.paradaCabina());
       }
       break;
-    case 'KeyM': abrir('mapa'); break;
+    case 'KeyM':
+      // 4.4.2: con los planos abiertos, M («mover») levanta la pieza más cercana para llevarla a otro lado (antes Mayús + Y); el mapa se abre con los planos cerrados
+      if (modoObra && obras) { moverPiezaCerca(js); break; }
+      abrir('mapa'); break;
     case 'KeyP': pedirFoto = true; break;
     case 'Escape':
       if (modoObra && obras?.editando) {
@@ -4419,8 +4391,10 @@ function objetivoHacha() {
     const d = Math.hypot(m.x - js.pos.x, m.z - js.pos.z);
     if (d < d0) { d0 = d; mejor = m; }
   }
-  if (mejor) return { tipo: mejor.tipo === 'roca' ? 'piedra' : 'tronco', mata: mejor, sinPico: mejor.tipo === 'roca' && !pico, ...(mejor.tipo === 'roca' ? { golpes: golpesPico.get(mejor) || 0 } : {}) };
-  if (!hacha) return null;   // 4.2: los árboles, sólo con el hacha
+  const deMata = mejor ? { tipo: mejor.tipo === 'roca' ? 'piedra' : 'tronco', mata: mejor, sinPico: mejor.tipo === 'roca' && !pico, ...(mejor.tipo === 'roca' ? { golpes: golpesPico.get(mejor) || 0 } : {}) } : null;
+  // 4.4.2 (C10): una roca sin pico no le gana a un árbol que sí podés talar (decía «Te falta el pico» pegado a un coihue)
+  if (deMata && !deMata.sinPico) return deMata;
+  if (!hacha) return deMata;   // 4.2: los árboles, sólo con el hacha
   const arbolesHacha = veg.arbolesCerca ? veg.arbolesCerca(js.pos.x, js.pos.z, 6, scratchArbolesHacha) : veg.arboles;
   let arbol = null, da = Infinity;
   for (const a of arbolesHacha) {
@@ -4428,7 +4402,7 @@ function objetivoHacha() {
     const d = Math.hypot(a.x - js.pos.x, a.z - js.pos.z) - (a.r || 0.4);
     if (d < 2.2 && d < da) { da = d; arbol = a; }
   }
-  if (!arbol) return null;
+  if (!arbol) return deMata;
   if (arbol.caido) return { tipo: 'tronco', arbol, caido: true };
   return { tipo: 'tronco', arbol, talar: true, protegido: arbol.especie === 'pehuen', golpes: golpesTala.get(arbol) || 0 };
 }
@@ -4502,7 +4476,7 @@ function usarHacha() {
   const delRayo = !!o.caido && progreso.tormenta?.rayo && veg.arboles[progreso.tormenta.rayo.i] === o.arbol;
   const cuanto = (delRayo ? RAYO.troncos : o.tipo === 'tronco' ? TRONCOS_MATA : PIEDRA_MATA) + (o.tipo === 'piedra' ? extraDePiedra(nivelDe('picapedrero')) : extraDeMata(nivelDe('hachero')));   // 3.1 (4.2: la piedra extra es del picapedrero)
   sumarMaterial(o.tipo, cuanto);
-  if (o.mata) veg.despejar(o.mata.x, o.mata.z, 0.6, true);
+  if (o.mata) { veg.despejar(o.mata.x, o.mata.z, 0.6, true); anotarPicadoEn(picados(), o.mata.x, o.mata.z); }   // 4.4.2 (C4): y se recuerda: no vuelve al recargar
   if (o.caido) { veg.talar(o.arbol); anotarTalado(o.arbol); }
   if (delRayo) progreso.tormenta.rayo = null;
   sonido.paso(o.tipo === 'tronco' ? 'madera' : 'tierra', 1);
@@ -4570,7 +4544,7 @@ function cambioDeMando(m) {
   // 4.0.3: el pie de los planos habla del mando mientras hay uno enchufado
   const pieObra = $('obra')?.querySelector('.seguir');
   if (pieObra) {
-    if (m.conectado) { pieObra.dataset.pieTeclado ??= pieObra.textContent; pieObra.textContent = 'Cruceta ← →: plano · ↑ ↓: categoría · LB RB: girar · A: construir o confirmar · X: mover una pieza · Y: encastre · Ver: deshacer etapa · R2: cancelar marca · L2 + R3: desmontar · B: cerrar'; }
+    if (m.conectado) { pieObra.dataset.pieTeclado ??= pieObra.textContent; pieObra.textContent = 'Cruceta ← →: plano · ↑ ↓: categoría · LB RB: girar · A: construir o confirmar · X: mover una pieza · Y: encastre · Ver: deshacer etapa · R2: cancelar marca o, sin marca, desmontar (dos veces) · B: cerrar'; }
     else if (pieObra.dataset.pieTeclado) pieObra.textContent = pieObra.dataset.pieTeclado;
   }
   nota(m.conectado ? 'Mando conectado' : 'Se desconectó el mando', m.conectado ? m.nombre : 'Volvés al teclado', true);
@@ -4764,8 +4738,8 @@ function leerMando(dt) {
 }
 
 // 4.0.3 (G2): los planos (O) con el mando. Cruceta izquierda y derecha: el plano anterior y el siguiente; arriba y abajo: la categoría; LB y RB giran la pieza;
-// A construye o confirma (Y del teclado); X mueve una pieza ya hecha (Mayús+Y); Y (el botón) alterna el encastre (N); Ver deshace la última etapa (Retroceso);
-// R2 cancela la marca o el movimiento (Supr); L2 apretado + R3 desmonta la pieza más cercana (Mayús+Supr); B cierra (o cancela el movimiento).
+// A construye o confirma (Y del teclado); X mueve una pieza ya hecha (M); Y (el botón) alterna el encastre (N); Ver deshace la última etapa (Retroceso);
+// R2 cancela la marca o el movimiento (Supr); L2 apretado + R3 ya no desmonta: R2 sin marca propone desmontar y pide confirmar (4.4.2); B cierra (o cancela el movimiento).
 function mandoEnObra(m) {
   if (m.recien.planos) moverPlanoObra(-1);
   if (m.recien.mapa) moverPlanoObra(1);
@@ -4774,11 +4748,11 @@ function mandoEnObra(m) {
   if (m.recien.objetoAnterior) { obras.girar(-1); dibujarPanelObra(); }
   if (m.recien.objetoSiguiente) { obras.girar(1); dibujarPanelObra(); }
   if (m.recien.saltar) golpeDeTecla('KeyY');
-  if (m.recien.interactuar && !obras.editando) golpeDeTecla('KeyY', true);
+  if (m.recien.interactuar && !obras.editando) golpeDeTecla('KeyM');
   if (m.recien.linterna) golpeDeTecla('KeyN');
   if (m.recien.guia) golpeDeTecla('Backspace');
   if (m.recien.atacar) golpeDeTecla('Delete');
-  if (m.activos.bloquear && m.recien.esquivar) golpeDeTecla('Delete', true);
+  if (m.activos.bloquear && m.recien.esquivar) golpeDeTecla('Delete');
   // se gastan: los planos abiertos no saltan, no cambian de casilla, no tiran ni abren la mochila, el taller, el mapa ni la linterna
   for (const a of ['planos', 'mapa', 'mochila', 'taller', 'objetoAnterior', 'objetoSiguiente', 'saltar', 'interactuar', 'linterna', 'guia', 'atacar', 'esquivar']) m.recien[a] = false;
 }
@@ -5012,7 +4986,7 @@ function usarAcopio() {
       m[k] = n - entra;
       partes.push(cantidadMaterial(entra, k));
     }
-    if (!partes.length) { nota('El acopio está lleno', `Guarda hasta ${TOPE_ACOPIO} de cada material. Un depósito (O → Trabajo) guarda más y se amplía`); return; }
+    if (!partes.length) { nota('El acopio está lleno', desafio ? `Guarda hasta ${TOPE_ACOPIO} de cada material: lo que sobra se queda en la mochila` : `Guarda hasta ${TOPE_ACOPIO} de cada material. Un depósito (O → Trabajo) guarda más y se amplía`); return; }   // 4.4.2 (D2): en el Desafío no hay depósitos
     sonido.juntar();
     nota('Guardaste en el acopio', `${partes.join(' · ')}. Hay ${a.tronco || 0}/${a.tabla || 0}/${a.piedra || 0} (tope ${TOPE_ACOPIO} de cada uno)${noEntro.length ? `. No entró todo: ${noEntro.join(', ')}` : ''}`);
   } else if (totalAcopio() > 0) {
@@ -6452,6 +6426,10 @@ function talados() {
   if (!Array.isArray(progreso.talados)) progreso.talados = sanearTalados(progreso.talados, veg.arboles.length);
   return progreso.talados;
 }
+function picados() {
+  if (!Array.isArray(progreso.picados)) progreso.picados = sanearPicados(progreso.picados);
+  return progreso.picados;
+}
 function anotarTalado(arbol) {
   const i = veg.arboles.indexOf(arbol);
   if (i < 0) return;
@@ -6808,6 +6786,11 @@ function desalojarObras(lista) {
       for (const o of obras.obras) { const a = antes.get(o.datos); if (a) mudarDatosDeObra(o, a.x, a.z); }
       desalojo.obras.mudadas += ds.length;
     } else {
+      // 4.4.2 (C3): y lo que pagaste de mano de obra (las etapas hechas y pagadas) y las ampliaciones del depósito, enteros: era lo único que no volvía
+      for (const d of ds) {
+        desalojo.pesos = (desalojo.pesos || 0) + devolverEtapasPagadas(progreso, d.plano, Math.min(Number(d.pagadas) || 0, Number(d.etapas) || 0));
+        const t = almacenJuego.devolucionTotal(d); desalojo.pesos += t.pesos; sumarMateriales(desalojo.materiales, t.materiales);
+      }
       for (const d of ds) { sumarMateriales(desalojo.materiales, materialesDeObra(d, PLANO[d.plano])); devolverContenido(d); if (PLANO[d.plano].funciones?.includes('acopio')) desalojo.acopio = true; }   // 3.8.4
       desalojo.obras.desarmadas += ds.length;
     }
@@ -7820,7 +7803,7 @@ function avisoObra24(o) {
     case 'bebedero': return progreso.corral ? 'Mirar tu corral' : 'El bebedero';
     case 'reloj-pared': case 'almanaque-pared': return MUEBLES_QUE_SE_USAN[o.plano.id];   // 3.8.8
     case 'reloj-pie': return LUJO_QUE_SE_USA[o.plano.id];   // 4.2
-    case 'gramola': return gramolaSuena() ? 'Parar la gramola' : LUJO2_QUE_SE_USA.gramola;   // 4.2
+    case 'gramola': return gramolaSuenaEn(o) ? 'Parar la gramola' : LUJO2_QUE_SE_USA.gramola;   // 4.2
     case 'espejo': return ESPEJO_QUE_SE_USA.espejo;   // 4.1
     default: return null;
   }
@@ -7856,9 +7839,9 @@ function usarObra24(o) {
       return true;
     // 4.2: la gramola: E le da cuerda (suena un tema suave sintetizado) o la para; se calla sola si te alejás o si la desmontás
     case 'gramola': {
-      const r = alternarGramola(sonido, () => (obras?.obras || []).includes(o) && Math.hypot(o.datos.x - jugador.estado.pos.x, o.datos.z - jugador.estado.pos.z) < DISTANCIA_GRAMOLA);
+      const r = alternarGramola(sonido, () => (obras?.obras || []).includes(o) && Math.hypot(o.datos.x - jugador.estado.pos.x, o.datos.z - jugador.estado.pos.z) < DISTANCIA_GRAMOLA, o);
       if (r.sinSonido) nota('La gramola no suena', 'El sonido todavía no arrancó');
-      else if (r.suena) nota('Le diste cuerda a la gramola', r.titulo);
+      else if (r.suena) nota('Le diste cuerda a la gramola', r.cambio ? `${r.titulo}. La otra gramola se quedó callada: suena una sola` : r.titulo);
       else nota('Paraste la gramola', 'Queda el disco quieto');
       return true;
     }
@@ -8860,7 +8843,82 @@ function puedeDormirJuntoAlFuego() {
   // con la manta de lana se puede dormir en cualquier lado
   return deNoche && (cercaDelFuego() || (!!progreso.cosas.manta && jugador.estado.enSuelo && !jugador.estado.nadando));
 }
+// ------------------------------------------------------------------ 4.4.2: lo que antes pedía Mayús (que es correr)
+// Mantener E ~0,7 s junto a un depósito con tope: ampliarlo (primero muestra el precio; hay que volver a mantener E para pagarlo).
+// Junto a tu local: abre el panel de estantes y precios aunque haya un cliente esperando. Tocar E sigue siendo guardar, sacar o atender.
+const MANTENER_E_MS = 700;
+let tMantenerE = 0;
+function soltarMantenerE() { if (tMantenerE) { clearTimeout(tMantenerE); tMantenerE = 0; } }
+function armarMantenerE() {
+  soltarMantenerE();
+  if (panelDelHudAbierto()) return;   // con un panel abierto, E lo cierra: mantenerla no debe reabrirlo
+  tMantenerE = setTimeout(alMantenerE, MANTENER_E_MS);
+}
+function alMantenerE() {
+  tMantenerE = 0;
+  if (modo !== 'jugando' || !jugador || foto.activo || desafio?.caido || durmiendo || charla.npc || panelDelHudAbierto()) return;
+  const js = jugador.estado;
+  if (js.enTren || js.enKayak || js.montado || js.enSulky || js.enCable) return;
+  const o = obraQueTrabajaCerca();
+  if (!o) return;
+  if (almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); return; }
+  if (negocioJuego?.esLocal(o.plano.id)) negocioJuego.usar(o, true);
+}
+// M con los planos abiertos: levantar la pieza terminada más cercana para ponerla en otro lado
+function moverPiezaCerca(js) {
+  if (obras.editando) return;
+  const r = obras.iniciarEdicionCerca(js.pos, 5.0);
+  if (!r.ok) { nota('Nada que mover', r.motivo); return; }
+  categoriaObra = r.plano.categoria;
+  const indicePlano = planosDeCategoria().findIndex((p) => p.id === r.plano.id);
+  paginaObra = indicePlano >= 0 ? Math.floor(indicePlano / PLANOS_POR_PAGINA) : 0;
+  ultimoSitioObra = '';
+  nota(`Moviendo ${r.plano.nombre.toLowerCase()}`, 'Mirá el nuevo lugar · R gira · Y confirma · Supr cancela');
+  dibujarPanelObra();
+}
+// Supr sin marca cerca: desmontar la pieza más cercana, en dos pasos. El primero dice qué se recupera; el segundo Supr (entre 0,6 y 12 s
+// después, sobre la misma pieza) la desmonta. Devuelve false si no hay pieza cerca (para que Supr diga «Nada que cancelar»)
+const DESMONTE_MIN_MS = 600, DESMONTE_MAX_MS = 12000;
+let desmontePendiente = null;
+function pedirDesmontarPieza(js) {
+  const o = obras.piezaADesmontar(js.pos, 5.0);
+  if (!o) { desmontePendiente = null; return false; }
+  const t = performance.now();
+  if (desmontePendiente && desmontePendiente.obra === o && t - desmontePendiente.hora >= DESMONTE_MIN_MS && t - desmontePendiente.hora <= DESMONTE_MAX_MS) {
+    desmontePendiente = null;
+    desmontarPiezaCerca(js);
+    return true;
+  }
+  desmontePendiente = { obra: o, hora: t };
+  const mats = obras.recuperaDeObra(o);
+  const txtMats = Object.entries(mats).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
+  const pesos = hayEconomia(progreso) ? montoReintegroAlDesmontar(o.plano.id, o.datos?.etapas || 0, o.datos?.pagadas || 0) + almacenJuego.reintegroPrevio(o.datos) : 0;
+  const guardado = almacenJuego.contenido(o.datos);
+  const recupera = [txtMats, pesos > 0 ? formatoPesos(pesos) : ''].filter(Boolean).join(' y ');
+  nota(`Desmontar ${o.plano.nombre.toLowerCase()}`, `${recupera ? `Recuperás ${recupera} (la mitad de lo que costó)` : 'No recuperás nada'}${guardado ? ' · lo guardado vuelve a tus cosas' : ''}. Supr otra vez para confirmar`, true);
+  return true;
+}
+function desmontarPiezaCerca(js) {
+  const r = obras.desmontarCerca(js.pos, 5.0);
+  if (!r.ok) { nota('Nada que desmontar', r.motivo); return; }
+  for (const [k, n] of Object.entries(r.recupera || {})) sumarMaterial(k, n);
+  const delDeposito = almacenJuego.contenido(r.datos);   // 4.2: lo que guardaba el depósito (antes de devolverlo)
+  devolverContenido(r.datos);   // 3.5.1
+  const reint = reintegroAlDesmontar(progreso, r.plano.id, r.datos?.etapas || 0, r.datos?.pagadas || 0);   // 4.2: la mitad de los pesos que pagaste (antes de guardar)
+  const delAcopio = (r.plano?.funciones?.includes('acopio') ? vaciarUltimoAcopio() : null) || delDeposito || null;   // 3.8.4: el último acopio (4.2: o lo que tenía guardado el depósito)
+  progreso.obras = obras.obras.map((o) => o.datos);
+  guardar(); sonido.juntar();
+  const devuelto = Object.entries(r.recupera || {}).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
+  if (delAcopio) nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, `${devuelto ? `Recuperaste ${devuelto}. ` : ''}Lo que tenía guardado volvió a tus cosas: ${delAcopio}`, true);
+  else nota(`${r.plano.nombre} ${participioObra(r.plano.nombre, 'desmontad')}`, devuelto ? `Recuperaste ${devuelto}` : 'La pieza fue retirada');
+  if (reint) nota(`Te devolvieron ${formatoPesos(reint)}`, 'La mitad de la mano de obra que pagaste');   // 4.2
+  // 4.2: y de las ampliaciones de un depósito, la mitad de los pesos y de los materiales
+  { const rAmp = almacenJuego.reintegro(r.datos), mAmp = almacenJuego.materialesDeAmpliaciones(r.datos); for (const [k, n] of Object.entries(mAmp)) sumarMaterial(k, n); const txt = Object.entries(mAmp).map(([k, n]) => cantidadMaterial(n, k)).join(' · ');
+    if (rAmp || txt) nota(rAmp ? `Te devolvieron ${formatoPesos(rAmp)} de las ampliaciones` : 'Recuperaste materiales de las ampliaciones', `La mitad de lo que pagaste al ampliar${txt ? `: ${txt}` : ''}`); }
+  dibujarPanelObra();
+}
 document.addEventListener('keyup', (e) => {
+  if (codigoCanonico(e.code) === 'KeyE') soltarMantenerE();   // 4.4.2: soltada antes de tiempo, no pasa nada
   // La liberación debe procesarse incluso con pausa/cuaderno abierto; si no,
   // X puede quedar 'recogiendo' al volver al juego.
   if (e.code === 'KeyX' && pesca) pesca.clic(false, mundoPesca());

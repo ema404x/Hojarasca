@@ -187,5 +187,5 @@ export function textoCapacidad(id) {
   const base = `Guarda hasta ${que}.`;
   if (A.ampliaciones.length === 0) return `${base} No se amplía: para más, el depósito techado.`;
   const pasos = A.ampliaciones.map((x, i) => `${t[i + 1]} por ${formatoPesos(x.pesos)}`);
-  return `${base} Se amplía ${A.ampliaciones.length === 1 ? 'una vez' : A.ampliaciones.length === 2 ? 'dos veces' : 'tres veces'} con Mayús + E, pagando pesos y materiales: ${pasos.join(', ')}.`;
+  return `${base} Se amplía ${A.ampliaciones.length === 1 ? 'una vez' : A.ampliaciones.length === 2 ? 'dos veces' : 'tres veces'} manteniendo E, pagando pesos y materiales: ${pasos.join(', ')}.`;
 }
