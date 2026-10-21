@@ -21,6 +21,7 @@ export const CATEGORIAS_VISTA = {
   romantica: { nombre: 'Románticas', icono: 'corazon' },
   picante: { nombre: 'Picantes', icono: 'rayo' },
   chau: { nombre: 'Nada más, chau', icono: 'chau' },
+  trato: { nombre: 'Pedidos y compras', icono: 'canasta' },   // 4.6 gente: el pedido y la tiendita de la gente del campo
 };
 export const ORDEN_CATEGORIAS = ['charla', 'amistosa', 'graciosa', 'juntos', 'hacer', 'ayuda', 'romantica', 'picante'];
 
@@ -30,6 +31,8 @@ export function categoriaDeOpcion(id) {
   if (s === 'chau') return 'chau';
   if (s === 'contame' || s === 'como-andas' || s === 'novedades' || s === 'historia') return 'charla';
   if (s === 'invitar') return 'juntos';
+  if (s === 'campo:historia') return 'charla';   // 4.6 gente: la historia de Fermín, Belisario o Tobías es una charla
+  if (/^campo:/.test(s)) return 'trato';   // 4.6 gente: su pedido y su tiendita, en «Pedidos y compras»
   if (s === 'negocios:resumen') return 'charla';   // 4.4: lo que cuenta el gerente es una charla
   if (/^negocios(?::|$)/.test(s)) return 'hacer';   // 4.4: hablar de su negocio (comprarlo, ser socio): «Hacer juntos»
   if (/^rincones:/.test(s)) return 'hacer';   // 3.8.4: lo de los rincones (aprender una manualidad, el sulky, la pista de los duendes)
@@ -46,6 +49,7 @@ const ICONO_OPCION = {
   ayudar: 'mano', chau: 'chau', volver: 'volver', __lugar: 'puerta', amor: 'corazon', 'amor-cita': 'flor', 'amor-casa': 'casa', 'amor-correo': 'carta',
   'invitar:mate': 'mate', 'invitar:te': 'taza', negocios: 'casa', 'negocios:resumen': 'libro',   // (4.4)
   'alero:pedir': 'libro', 'alero:recordar': 'libro', 'alero:contar': 'libro',   // 3.8.6: el abuelo de Martín
+  'campo:historia': 'libro', 'campo:pedido': 'canasta', 'campo:tienda': 'canasta',   // 4.6 gente
 };
 const ICONO_COSA = [
   [/yerba|mate/, 'mate'], [/trucha|pez|pejerrey|perca/, 'pez'], [/pan|harina|empanada/, 'canasta'], [/miel|dulce|frasco/, 'olla'], [/lana|vell/, 'oveja'],
@@ -68,6 +72,7 @@ export function iconoDeOpcion(id, titulo = '') {
   if (/^granja/.test(s)) return 'vaca';
   if (/^cocina/.test(s)) return 'olla';
   if (/^invitar/.test(s)) return 'mate';
+  if (/^campo:comprar:/.test(s)) { for (const [re, ic] of ICONO_COSA) if (re.test(t)) return ic; return /pico|hoz|pala|esquiladora|tijera/.test(t) ? 'herramienta' : 'canasta'; }   // 4.6 gente: lo que vende la gente del campo
   return 'pregunta';
 }
 

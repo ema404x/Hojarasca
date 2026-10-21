@@ -162,6 +162,7 @@ export const CATEGORIAS_RUEDA = [
   { id: 'ayuda', nombre: 'Regalar y ayudar', icono: 'regalo' },
   { id: 'romantica', nombre: 'Románticas', icono: 'corazon' },
   { id: 'picante', nombre: 'Picantes', icono: 'rayo' },
+  { id: 'trato', nombre: 'Pedidos y compras', icono: 'canasta' },   // 4.6 gente: el pedido y la tiendita de Nicanor y Josefina (gente-campo-juego.js)
 ];
 // Lo de siempre (el menú de vecindad-juego.js): en qué categoría va cada opción y con qué ícono.
 const DEL_MENU = [
@@ -170,6 +171,7 @@ const DEL_MENU = [
   [/^amor:chicos$/, 'charla', 'charla'],   // 3.8.6: hablar de tus hijos (con la ex también), en la charla
   [/^amor/, 'romantica', 'corazon'], [/^cocina/, 'ayuda', 'olla'], [/^granja/, 'ayuda', 'granja'],
   [/^rincones:/, 'hacer', 'herramienta'],   // 3.8.4: su sección propia («Hacer juntos»), no entre los regalos
+  [/^campo:historia$/, 'charla', 'libro'], [/^campo:/, 'trato', 'canasta'],   // 4.6 gente: el pedido y la tiendita, en «Pedidos y compras»
 ];
 const TITULOS_MENU = { 'como-andas': '¿Cómo andás?', novedades: 'Novedades', historia: 'Tu historia', regalar: 'Regalar…', invitar: 'Invitar a tomar algo…', ayudar: 'Dar una mano…', amor: 'Lo nuestro…' };
 

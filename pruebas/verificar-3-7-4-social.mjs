@@ -40,8 +40,8 @@ const NO_CANDIDATAS = PERSONAS.filter((k) => !M.esCandidata(k));
 // ---------------------------------------------------------------- el contrato
 {
   const cats = ['amistosa', 'graciosa', 'picante', 'romantica', 'juntos', 'charla', 'ayuda'];
-  eq(S.CATEGORIAS_RUEDA.map((c) => c.id), ['charla', 'amistosa', 'graciosa', 'juntos', 'hacer', 'ayuda', 'romantica', 'picante'], 'el orden de la rueda (3.8.4: con «Hacer juntos»)');
-  eq(S.CATEGORIAS_RUEDA.map((c) => c.nombre), ['Charlar', 'Amistosas', 'Graciosas', 'Juntos', 'Hacer juntos', 'Regalar y ayudar', 'Románticas', 'Picantes'], 'los nombres de la rueda');
+  eq(S.CATEGORIAS_RUEDA.map((c) => c.id), ['charla', 'amistosa', 'graciosa', 'juntos', 'hacer', 'ayuda', 'romantica', 'picante', 'trato'], 'el orden de la rueda (3.8.4: con «Hacer juntos»; 4.6 gente: y «Pedidos y compras» al final)');
+  eq(S.CATEGORIAS_RUEDA.map((c) => c.nombre), ['Charlar', 'Amistosas', 'Graciosas', 'Juntos', 'Hacer juntos', 'Regalar y ayudar', 'Románticas', 'Picantes', 'Pedidos y compras'], 'los nombres de la rueda (4.6 gente: y «Pedidos y compras»)');
   const ids = Object.keys(S.INTERACCIONES);
   ok(ids.length === 30, `hay 30 interacciones propias (${ids.length})`);
   for (const [id, x] of Object.entries(S.INTERACCIONES)) {

@@ -73,6 +73,8 @@ import { negocioPropioNuevo, sanearNegocioPropio } from './negocio-propio.js';
 // 4.4: los empleados de tu negocio propio
 import { empleadosNuevo, sanearEmpleadosNegocio } from './empleados-negocio.js';
 import { sanearAjusteBorrachera } from './pena.js';
+// 4.6 gente: el tablón de encargos y lo de la gente del campo (pedidos, tienditas, historias)
+import { sanearGenteCampo, genteCampoNueva } from './gente-campo.js';
 
 // Cada modo tiene su propia partida: jugar al Desafío nunca pisa el recorrido
 // tranquilo (Relax), que conserva las claves históricas.
@@ -405,6 +407,7 @@ export function progresoNuevo() {
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
     ...(desafio ? {} : { empleo: empleoNuevo() }),   // 4.3: el empleo fijo (ningún puesto todavía; ver empleo.js)
     ...(desafio ? {} : { empleadosNegocio: empleadosNuevo() }),   // 4.4: los vecinos contratados en tu negocio propio (nadie todavía; ver empleados-negocio.js)
+    ...(desafio ? {} : { genteCampo: genteCampoNueva() }),   // 4.6 gente: el tablón de encargos sin nada tomado y la gente del campo sin pedidos ni compras
     ...(desafio ? {} : { negociosVecinos: negociosVecinosNuevo() }),   // 4.4: negocios comprados y sociedades con vecinos (ninguno todavía; ver negocios-vecinos.js)
     ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
@@ -662,6 +665,9 @@ function sanearProgreso(p) {
   limpio.empleadosNegocio = modoPartida === 'desafio' ? undefined : sanearEmpleadosNegocio(p.empleadosNegocio, limpio.dia);
   // 4.4: los negocios que le compraste a un vecino y tus sociedades (sólo en el Relax). Una partida de antes no lo trae: sale vacío y lo demás queda como estaba
   limpio.negociosVecinos = modoPartida === 'desafio' ? undefined : sanearNegociosVecinos(p.negociosVecinos, limpio.dia);
+  // 4.6 gente: el tablón de encargos y la gente del campo (sólo en el Relax). Una partida de antes no lo trae: sale vacío (nada tomado,
+  // nada comprado, ninguna historia contada) y lo demás queda como estaba
+  limpio.genteCampo = modoPartida === 'desafio' ? undefined : sanearGenteCampo(p.genteCampo, limpio.dia);
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)

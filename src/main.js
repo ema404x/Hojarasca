@@ -270,6 +270,12 @@ import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-b
 import { crearModos, CSS_MODOS } from './modos-juego.js';
 // 3.5.1: las preguntas del juego (Electron no tiene prompt y confirm traba la ventana)
 import { crearDialogos } from './dialogo.js';
+// 4.6 gente: la gente fuera del pueblo (Fermín, Belisario, Tobías; pedidos y tiendita de Nicanor y Josefina) y el tablón de encargos
+import { crearGenteCampoJuego } from './gente-campo-juego.js';
+import { crearGenteCampoMundo } from './gente-campo-mundo.js';
+import { crearTablonMundo } from './tablon-mundo.js';
+import { existeEnJuego } from './tablon.js';
+import { genteCampoDe } from './gente-campo.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
@@ -3156,6 +3162,8 @@ document.addEventListener('keydown', (e) => {
     if (ultimaTeclaEsquiva.code === codigo && ahora - ultimaTeclaEsquiva.t < 260) { desafio.esquivar(codigo === 'KeyD' ? 1 : -1); ultimaTeclaEsquiva.t = 0; }
     else { ultimaTeclaEsquiva.code = codigo; ultimaTeclaEsquiva.t = ahora; }
   }
+  // 4.6 gente: con el tablón de encargos abierto, sus teclas (los números toman o entregan; E y Escape lo cierran)
+  if (tablonJuego?.abierto() && tablonJuego.tecla(codigo)) return;
   if (desafio?.tallerAbierto) {
     if (codigo === 'KeyK' || codigo === 'Escape') { desafio.abrirTaller(false); return; }
     if (codigo === 'Tab') { e.preventDefault(); desafio.cambiarCategoriaTaller(e.shiftKey ? -1 : 1); return; }
@@ -3243,6 +3251,8 @@ document.addEventListener('keydown', (e) => {
       // 3.6: parado en el lote de una obra de la aldea, E aporta lo que tengas (el aviso va en el mismo lugar)
       if (!js.enTren && !js.enKayak && !objetivo && aldeaGente) { const lote = aldeaGente.obraCerca(js.pos); if (lote) { aldeaGente.aportarObra(lote); break; } }
       // 3.6 (mecánicas): lo de cada lugar de la aldea (el aviso va en el mismo lugar, con la misma función)
+      // 4.6 gente: el tablón de encargos de la plaza, antes de lo de cada lugar de la aldea (el aviso, en el mismo lugar y con la misma función: tablonJuego.accion)
+      if (!js.enTren && !js.enKayak && !objetivo && tablonJuego) { const a = tablonJuego.accion(js); if (a) { a.hacer(); cacheTablon = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && mecanicasAldea) { const m = mecanicasAldea.accion(js); if (m) { m.hacer(); cacheMecanica = null; break; } }
       // 3.7.2 (granja): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales (el aviso, en el mismo
       // lugar y con la misma función: granjaJuego.accion)
@@ -5304,6 +5314,11 @@ let cocinaJuego = null, cocinaMundo = null;   // 3.7.2: ver cocina-juego.js y co
 let noticiasJuego = null, concursosJuego = null;   // 3.7.5 (noticias): ver noticias-juego.js y concursos-juego.js (sólo en el Relax)
 let tallerTren = null;   // 3.7.3: el taller ferroviario (ver taller-tren-juego.js)
 let negociosVecinosJuego = null;   // 4.4: comprar el negocio de un vecino y ser su socio (ver negocios-vecinos-juego.js)
+let genteCampoJuego = null, genteCampoMundo = null, tablonJuego = null, cacheTablon = null;   // 4.6 gente: ver gente-campo-juego.js, gente-campo-mundo.js y tablon-mundo.js (sólo en el Relax)
+// 4.6 gente: el enganche con el agente «recursos» para vender las herramientas de zona (hoz, pala de arcilla, esquiladora y pico de
+// cantero: HERRAMIENTAS_CAMPO en gente-campo.js). AL JUNTAR: que esto llame a la función de «recursos» (p. ej. darHerramientaZona(id),
+// la de HERRAMIENTAS_ZONA). Mientras tanto, el respaldo seguro: queda en progreso.cosas[id] (se guarda; todavía no hace nada).
+function darHerramientaDeZona(id) { if (typeof id !== 'string' || !id || !progreso?.cosas) return false; progreso.cosas[id] = 1; return true; }
 let empleoJuego = null;   // 4.3: el empleo fijo: el cartel de turnos, las tareas del puesto y el sueldo (ver empleo-juego.js)
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
@@ -5533,8 +5548,30 @@ function armarOficiosYAldea(esDesafio) {
     });
     negociosVecinosJuego.alCargar();
   } catch (e) { fallaSistema('negocios-vecinos-armado', e); negociosVecinosJuego = null; }
+  // 4.6 gente: la gente fuera del pueblo (pedidos y tiendita en la charla; las figuras nuevas se arman al acercarte) y el tablón de
+  // encargos de la plaza (aislado aparte: si falla, el resto sigue como siempre)
+  try {
+    genteCampoDe(progreso);
+    const tengoCampo = (donde, k) => (donde === 'material' ? material(k) : donde === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k));
+    const aplicarCampo = (efectos) => aplicarEfectos(progreso, efectos, { sumarMaterial, sumarEntrada });
+    const existeCampo = (k) => existeEnJuego(k, MATERIALES, BIENES);
+    genteCampoJuego = crearGenteCampoJuego({
+      progreso: () => progreso, desafio: () => !!desafio, dia: () => progreso.dia, horas: () => progreso.horas, lluvia: () => clima?.estado?.lluvia || 0,
+      existe: existeCampo, cantidad: tengoCampo, aplicar: aplicarCampo, tiene: (k) => (Number(progreso.cosas?.[k]) || 0) > 0, nivel: (id) => nivelDe(id),
+      pagar: (monto, motivo, con) => pagarPesos(progreso, monto, motivo, con).ok, cobrar: (monto, motivo, con) => cobrarPesos(progreso, monto, motivo, con),
+      darHerramienta: (id) => darHerramientaDeZona(id),
+      nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    });
+    genteCampoMundo = crearGenteCampoMundo({ T, col, gente });
+    tablonJuego = crearTablonMundo({
+      escena, T, col, hud: $('hud'), progreso: () => progreso, dia: () => progreso.dia, existe: existeCampo, tengo: tengoCampo, aplicar: aplicarCampo,
+      estacion: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }), sonido,
+      nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescar: () => refrescarBarra(true), alClic: (el, fn) => alClicHud(el, fn),
+    });
+  } catch (e) { fallaSistema('gente-campo-armado', e); genteCampoJuego = null; genteCampoMundo = null; tablonJuego = null; }
   // 3.6 (vida): la vecindad en el juego: el menú de la charla, las invitaciones, la amistad y la memoria
   vecindadJuego = crearVecindadJuego({
+    campo: genteCampoJuego,   // 4.6 gente: el pedido y la tiendita de la gente del campo, y la charla de Fermín, Belisario y Tobías
     negocios: negociosVecinosJuego,   // 4.4: «Hablar de su negocio» (comprarlo, ser socio) en el menú de la charla
     amor: amorJuego,   // 3.7.1: lo del romance en el menú de la charla
     cocina: cocinaJuego,   // 3.7.2: te enseñan recetas y cambian ingredientes
@@ -10185,6 +10222,8 @@ function cuadroDelJuego(tRaf, manual) {
   const tNPC = perfilador.iniciar(medirRendimiento);
   if (modo === 'jugando' || modo === 'inicio') {
     try { gente.actualizar(dt, js, camara, charla.npc, presupuestoAdaptativo.nivel); } catch (e) { fallaSistema('gente', e); }
+    // 4.6 gente: la gente del campo (se arma de a poco al acercarte; lo que hace en cada parada) y el tablón (se cierra si te alejás)
+    try { if (modo === 'jugando' && !desafio) { genteCampoMundo?.actualizar(dt, js, charla.npc); tablonJuego?.actualizar(js); } } catch (e) { fallaSistema('gente-campo', e); }
     try { socialMundo?.actualizar(dt, js.pos, charla.menu ? charla.npc : null); manosSociales?.actualizar(dt); if (charla.menu) ubicarRueda(); } catch (e) { fallaSistema('social', e); }   // 3.7.4
     mundoPerro.noche = noche;
     mundoPerro.ataque = desafio && modo === 'jugando' ? desafio.objetivoPerro(js, perro.est.pos) : null;
@@ -10376,6 +10415,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheObraTrabaja = obraQueTrabajaCerca();
       cacheObraAldea = aldeaGente ? aldeaGente.obraCerca(js.pos) : null;
       cacheMecanica = mecanicasAldea ? mecanicasAldea.accion(js) : null;
+      cacheTablon = tablonJuego ? tablonJuego.accion(js) : null;   // 4.6 gente
       cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;   // 3.7.2 (granja)
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
       cacheEmpleo = empleoJuego ? empleoJuego.accion(js) : null;   // 4.3
@@ -10431,6 +10471,8 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.6: la obra de la aldea, después de las obras que trabajan, como en la tecla E
     if (!aviso && cacheObraAldea && !js.enTren && !js.enKayak && !objetivo) { const t = aldeaGente.avisoObra(cacheObraAldea); if (t) aviso = { tecla: 'E', texto: t }; }
     // 3.6 (mecánicas): lo de cada lugar de la aldea, después de la obra, como en la tecla E
+    // 4.6 gente: el tablón de encargos, antes de lo de cada lugar de la aldea, como en la tecla E
+    if (!aviso && cacheTablon && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTablon.texto };
     if (!aviso && cacheMecanica && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheMecanica.texto };
     // 3.7.2 (granja): después de lo de la aldea y antes que la oveja, como en la tecla E
     if (!aviso && cacheGranja && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheGranja.texto };
@@ -10476,6 +10518,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (enElAlmacen || enLaFeria) aviso = null;
     if (enLasCargas()) aviso = null;
     if (enElBanco()) aviso = null;   // 3.8.8
+    if (tablonJuego?.abierto()) aviso = null;   // 4.6 gente: con el tablón abierto
     if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
     if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
     if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
@@ -11020,6 +11063,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     __noticias: () => noticiasJuego, __concursos: () => concursosJuego,   // 3.7.5 (noticias)
     __taller: () => tallerTren,   // 3.7.3
     __negociosVecinos: () => negociosVecinosJuego,   // 4.4: comprar un negocio y ser socio, para la partida real (pruebas/humo-4-4-compra.cjs)
+    __tablon: () => tablonJuego, __genteCampo: () => genteCampoMundo, __genteCampoJuego: () => genteCampoJuego,   // 4.6 gente: para la partida real (pruebas/humo-4-6-gente.cjs)
     __empleo: () => empleoJuego,   // 4.3: el empleo fijo, para la partida real (pruebas/humo-4-3-empleo.cjs)
     __fiestas: () => fiestasJuego, __fiestasMundo: () => fiestasMundo,   // 3.7.5
     // 3.7.1 (mundo): para las capturas: el LOD de los complejos (el refugio, las manzanas de la aldea) al instante, después de
