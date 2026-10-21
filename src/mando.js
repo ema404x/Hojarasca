@@ -162,21 +162,30 @@ export function girarMirada(estado, mirada, dt, opciones = {}) {
   return estado;
 }
 
+// 4.0.5 (G8): sólo se toma un mando con el mapeo estándar del navegador (el que ordena los botones y los ejes como un mando de Xbox
+// o de PlayStation). Un volante, un joystick de vuelo o un pedal que Windows anuncia como mando NO lo tiene: sus botones y sus ejes
+// quieren decir otra cosa (un acelerador en reposo marca -1 en un eje y el personaje caminaba solo; el botón 0 no es «A»). Se ignora
+// por completo, sin mezclarlo «con lo básico»: no hay forma segura de adivinar cuál eje es un stick. Un mando que no dice su mapeo
+// (una lista armada a mano en una prueba) se toma como estándar.
+export const esMandoEstandar = (g) => !!g && (typeof g.mapping !== 'string' || g.mapping === 'standard');
+// El nombre del último mando ignorado por no ser estándar ('' si no hay): para avisarlo una vez y para el texto de los ajustes.
+let ignoradoVisto = '';
+export const mandoIgnorado = () => ignoradoVisto;
+
 // Lo único que mira el navegador, y sólo cuando se lo llama.
 function primerMando() {
   if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return null;
   let lista;
   try { lista = navigator.getGamepads(); } catch { return null; }
   if (!lista) return null;
-  // 2.6.1: primero uno con el mapeo estándar: un volante o un auricular que Windows
-  // anuncia como mando le ganaba el lugar al joystick de verdad
-  let otro = null;
+  let ignorado = '';
   for (const g of lista) {
     if (!g || g.connected === false || !Array.isArray(g.axes)) continue;
-    if (g.mapping === 'standard') return g;
-    if (!otro) otro = g;
+    if (esMandoEstandar(g)) { ignoradoVisto = ''; return g; }
+    if (!ignorado) ignorado = String(g.id || 'mando sin nombre').trim();
   }
-  return otro;
+  ignoradoVisto = ignorado;
+  return null;
 }
 
 // `opciones` se guarda tal cual: se le puede cambiar la sensibilidad o la zona muerta en caliente.
@@ -195,6 +204,7 @@ export function crearMando(opciones = {}) {
     estado: () => estado,
     hayMando: () => estado.conectado,
     nombre: () => estado.nombre,
+    ignorado: () => (typeof opciones.leerCrudo === 'function' ? '' : ignoradoVisto),   // 4.0.5 (G8)
     activo: (a) => !!estado.activos[a],
     recien: (a) => !!estado.recien[a],
     soltado: (a) => !!estado.soltados[a],

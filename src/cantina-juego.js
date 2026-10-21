@@ -611,7 +611,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
       lista.append(f);
       if (estadoPanel.sel === it.id) {
         const fila = el('div', 'cantina-pagos');
-        for (const fp of formasDePago(p, it, L.id)) fila.append(boton(fp.texto, () => pedirItem(it, fp), { activo: fp.ok, clase: fp.medio }));
+        for (const fp of formasDePago(p, it, L.id)) fila.append(boton(fp.texto, () => pedirItem(it, fp), { activo: fp.ok, clase: 'pago-' + fp.medio }));   // 4.0.5: «pago-», porque la clase «trueque» pelada es la del cartel del almacén (plantilla.html) y el botón salía como un panel encima de la carta
         lista.append(fila);
       }
     }

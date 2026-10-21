@@ -2617,7 +2617,7 @@ function dibujarTeclas() {
   traducirPanel($('teclas'));
   cont.innerHTML = '';
   const m = mando.hayMando();
-  $('teclas-mando').textContent = m ? `Mando conectado: ${mando.nombre()}. El stick izquierdo camina, el derecho mira; A salta, X interactúa, R2 ataca, L2 bloquea.` : 'No hay ningún mando conectado. Si enchufás uno, el juego lo toma solo.';
+  $('teclas-mando').textContent = m ? `Mando conectado: ${mando.nombre()}. El stick izquierdo camina, el derecho mira; A salta, X interactúa, R2 ataca, L2 bloquea.` : mando.ignorado() ? `«${mando.ignorado()}» no tiene el mapeo estándar y el juego no lo usa. Seguí con el teclado y el ratón, o enchufá un mando de Xbox o de PlayStation.` : 'No hay ningún mando conectado. Si enchufás uno, el juego lo toma solo.';
   for (const accion of ACCIONES_TECLA) {
     const fila = document.createElement('div');
     fila.className = 'fila-tecla';
@@ -4474,10 +4474,18 @@ let habiaMando = false;
 // Y lo recién apretado se usa una sola vez por cuadro (`usarMando`): si jugando Start abre la pausa (o la cruceta el mapa),
 // la pausa no vuelve a tomar ese mismo Start en ese cuadro para cerrarla.
 let mandoLeido = false, mandoUsado = false;
+let ignoradoAvisado = '';
 function leerMandoActual() {
   if (mandoLeido) return mando.estado();
   mandoLeido = true;
-  return mando.actualizar();
+  const e = mando.actualizar();
+  // 4.0.5 (G8): un volante o un joystick de vuelo (sin el mapeo estándar) no se usa: se avisa una vez por aparato y se sigue con el teclado y el ratón
+  const ig = mando.ignorado();
+  if (ig !== ignoradoAvisado) {
+    ignoradoAvisado = ig;
+    if (ig) nota('Ese mando no se puede usar', `«${ig}» no tiene el mapeo estándar. Seguí con el teclado y el ratón, o enchufá un mando de Xbox o de PlayStation`, true);
+  }
+  return e;
 }
 function usarMando() {
   if (mandoUsado) return false;
@@ -4501,6 +4509,7 @@ function cambioDeMando(m) {
     if (m.conectado) { pieObra.dataset.pieTeclado ??= pieObra.textContent; pieObra.textContent = 'Cruceta ← →: plano · ↑ ↓: categoría · LB RB: girar · A: construir o confirmar · X: mover una pieza · Y: encastre · Ver: deshacer etapa · R2: cancelar marca · L2 + R3: desmontar · B: cerrar'; }
     else if (pieObra.dataset.pieTeclado) pieObra.textContent = pieObra.dataset.pieTeclado;
   }
+  if (!m.conectado) for (const id of ['banco-pueblo', 'cantina-carta']) { const pie = $(id)?.querySelector('.seguir'); if (pie?.dataset.pieTeclado) pie.textContent = pie.dataset.pieTeclado; }   // 4.0.5 (A3): los pies del banco y de la carta vuelven a hablar del teclado
   nota(m.conectado ? 'Mando conectado' : 'Se desconectó el mando', m.conectado ? m.nombre : 'Volvés al teclado', true);
   // 3.5.1: desenchufado con el stick apretado, el jugador seguía caminando solo
   if (!m.conectado) { for (const c of pisadasMando) jugador?.teclas.delete(c); pisadasMando.clear(); }
@@ -4551,7 +4560,9 @@ function enfocarConMando(el) {
   try { el.focus({ preventScroll: true }); el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); } catch { /* sin foco */ }
   el.classList.add('foco-mando'); focoMando = el;
 }
-function navegarMando(m, caja) {
+// `opc` (4.0.5, A3): { activar(boton) } cómo se aprieta un botón (los de los paneles del HUD no escuchan el clic sino el mousedown y Enter);
+// { reencontrar(nuevos, k, texto) } cuál es el mismo botón después de que el panel se rehízo
+function navegarMando(m, caja, opc = {}) {
   if (focoMando && !caja.contains(focoMando)) quitarFocoMando();
   const els = elementosDeMando(caja);
   if (!els.length) return false;
@@ -4578,25 +4589,122 @@ function navegarMando(m, caja) {
   }
   if (dir || antes || despues) {
     let j = actual;
-    if (dir) j = elegirVecino(els.map((b) => { const r = b.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }), actual, dir);
+    if (dir) {
+      const rects = els.map((b) => { const r = b.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+      const propio = opc.vecino ? opc.vecino(els, actual, dir, rects) : undefined;   // 4.0.5: los paneles del HUD deciden algunos saltos
+      j = propio !== undefined ? propio : elegirVecino(rects, actual, dir);
+    }
     else j = (actual + (antes ? -1 : 1) + els.length) % els.length;
     if (j !== actual && j >= 0) enfocarConMando(els[j]);
     return true;
   }
   if (m.recien.saltar && !['range', 'text', 'number', 'search', 'password', 'email'].includes(sobre.type) && sobre.tagName !== 'SELECT' && sobre.tagName !== 'TEXTAREA') {
-    const k = actual;
-    sobre.click();
+    const k = actual, texto = sobre.textContent;
+    if (opc.activar) opc.activar(sobre); else sobre.click();
     // si el panel se rehízo (el creador de Bruno redibuja al elegir), el marco vuelve al mismo lugar
     if (!sobre.isConnected) {
       const ya = document.activeElement;   // lo que el propio panel marcó al rehacerse (la opción o el botón principal)
       const nuevos = elementosDeMando(caja);
-      if (ya && ya !== document.body && caja.contains(ya)) enfocarConMando(ya);
+      const mismo = opc.reencontrar ? opc.reencontrar(nuevos, k, texto) : null;
+      if (mismo) enfocarConMando(mismo);
+      else if (ya && ya !== document.body && caja.contains(ya)) enfocarConMando(ya);
       else if (nuevos.length) enfocarConMando(nuevos[Math.min(k, nuevos.length - 1)]);
     }
     else if (focoMando !== sobre) enfocarConMando(sobre);
     return true;
   }
   return false;
+}
+// ---- 4.0.5 (A3): la carta de la cantina, la de la casa de té y el mostrador del banco con el mando. Son paneles del HUD (el #hud no recibe el
+// mouse: cada botón escucha el mousedown y Enter, no el clic) y se rehacen enteros con cada elección, así que el marco recuerda el botón por su
+// texto y su lugar. Cruceta: marcar (por posición en pantalla, la lista se desplaza para que lo marcado se vea); A: elegir; B, Start o X: salir.
+// LB y RB: en el banco, de solapa en solapa; en la carta, de «Para comer» a «Para tomar» y a lo que sigue (la cuenta y los botones de abajo).
+// Sólo corre con uno de esos paneles abierto, y sólo cuando se aprieta algo.
+const PIE_BANCO_MANDO = 'Cruceta: marcar · A: elegir · LB y RB: cambiar de solapa · B: salir del mostrador';
+const PIE_CARTA_MANDO = 'Cruceta: marcar · A: elegir · LB y RB: saltar de una parte de la carta a otra · B: cerrar la carta';
+function panelDomDeMando() {
+  if (foto.activo) return null;
+  if (enElBanco()) return { id: 'banco', el: $('banco-pueblo'), pie: PIE_BANCO_MANDO };
+  if (cantinaJuego?.panelAbierto() || teJuego?.panelAbierto()) return { id: 'carta', el: $('cantina-carta'), pie: PIE_CARTA_MANDO };
+  return null;
+}
+let memoPanelDom = null;   // { texto, i }: el botón marcado, para encontrarlo cuando el panel se rehace
+function mismoBotonDeMando(nuevos, k, texto) {
+  if (!nuevos.length) return null;
+  const aca = nuevos[Math.min(k, nuevos.length - 1)];
+  if (aca?.textContent === texto) return aca;
+  let mejor = -1;
+  for (let i = 0; i < nuevos.length; i++) if (nuevos[i].textContent === texto && (mejor < 0 || Math.abs(i - k) < Math.abs(mejor - k))) mejor = i;
+  return mejor >= 0 ? nuevos[mejor] : aca;
+}
+// A los costados sólo se pasa a un botón de la misma fila (si no, de la última forma de pago se saltaba a un botón de abajo a la derecha); de un plato con el
+// pago desplegado se baja a la primera forma de pago, y de la primera forma de pago (o del plato de abajo) se sube al plato
+function vecinoDePanelDom(els, actual, dir, rects) {
+  const b = els[actual], r = rects[actual];
+  if (dir === 'izq' || dir === 'der') {
+    const cy = r.y + r.h / 2, fila = [];
+    for (let i = 0; i < els.length; i++) if (i !== actual && Math.abs(rects[i].y + rects[i].h / 2 - cy) < Math.max(r.h, rects[i].h) * 0.5) fila.push(i);
+    if (!fila.length) return actual;
+    const k = elegirVecino([r, ...fila.map((i) => rects[i])], 0, dir);
+    return k > 0 ? fila[k - 1] : actual;
+  }
+  const primero = (caja) => { const k = caja ? els.findIndex((x) => caja.contains(x)) : -1; return k >= 0 ? k : undefined; };
+  if (b.classList.contains('cantina-plato')) {
+    const fila = b.parentElement;
+    if (dir === 'abajo' && fila.nextElementSibling?.classList.contains('cantina-pagos')) return primero(fila.nextElementSibling);
+    if (dir === 'arriba' && fila.previousElementSibling?.classList.contains('cantina-pagos')) return primero(fila.previousElementSibling);
+  } else if (dir === 'arriba') {
+    const pagos = b.closest('.cantina-pagos'), plato = pagos?.previousElementSibling?.querySelector?.('.cantina-plato');
+    if (plato && els.includes(plato) && primero(pagos) === actual) return els.indexOf(plato);
+  }
+  return undefined;
+}
+const apretarBotonDePanel = (b) => b.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true, cancelable: true }));
+function mandoEnPanelDom(m, panel) {
+  const caja = panel.el;
+  if (!caja) return;
+  const pie = caja.querySelector('.seguir');
+  if (pie && pie.textContent !== panel.pie) { pie.dataset.pieTeclado ??= pie.textContent; pie.textContent = panel.pie; }
+  if (m.recien.agacharse || m.recien.pausa || m.recien.interactuar) { golpeDeTecla('Escape'); return; }
+  const opc = { activar: apretarBotonDePanel, reencontrar: mismoBotonDeMando, vecino: vecinoDePanelDom };
+  // el panel se rehízo solo (otra hora, otro saldo): el marco vuelve al mismo botón
+  if (focoMando && !focoMando.isConnected && memoPanelDom) { focoMando = null; const b = mismoBotonDeMando(elementosDeMando(caja), memoPanelDom.i, memoPanelDom.texto); if (b) enfocarConMando(b); }
+  const els = elementosDeMando(caja);
+  if (!els.length) return;
+  // recién abierto: ya queda un botón marcado (el primero), sin esperar a que se apriete algo
+  if (!focoMando || !caja.contains(focoMando)) { const ini = caja.querySelector('.banco-solapas .marcada'); enfocarConMando(ini && els.includes(ini) ? ini : els[0]); caja.querySelector('.panel-modal')?.scrollTo?.(0, 0); memoPanelDom = { texto: focoMando.textContent, i: els.indexOf(focoMando) }; return; }
+  const hizo = (m.recien.objetoAnterior || m.recien.objetoSiguiente) ? saltoDePanelDom(m, panel, caja, els) : false;
+  if (!hizo && !navegarMando(m, caja, opc)) return;
+  const ahora = elementosDeMando(caja), i = ahora.indexOf(focoMando);
+  if (i >= 0) {
+    memoPanelDom = { texto: focoMando.textContent, i };
+    if (i === 0) caja.querySelector('.panel-modal')?.scrollTo?.(0, 0);   // en el primero se ve también el encabezado
+  }
+}
+// LB y RB en los paneles: devuelve true si el salto lo hizo
+function saltoDePanelDom(m, panel, caja, els) {
+  const atras = !!m.recien.objetoAnterior;
+  let anclas;
+  if (panel.id === 'banco') anclas = [...caja.querySelectorAll('.banco-solapas button')].filter((b) => els.includes(b));
+  else {
+    // la carta: el primer plato de cada parte, la cuenta (si la hay) y los botones de abajo
+    anclas = [];
+    for (const h of caja.querySelectorAll('.cantina-grupo')) { const b = els.find((x) => (h.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) && x.classList.contains('cantina-plato')); if (b) anclas.push(b); }
+    const cuenta = caja.querySelector('.cantina-cuenta button:not(:disabled)'); if (cuenta) anclas.push(cuenta);
+    const pie = [...caja.querySelectorAll('#cantina-contenido > .cantina-pagos')].pop(); const bp = pie && els.find((x) => pie.contains(x)); if (bp) anclas.push(bp);
+  }
+  if (anclas.length < 2) return false;
+  const orden = (b) => els.indexOf(b), aqui = orden(focoMando);
+  let j;
+  if (panel.id === 'banco') { const a = anclas.findIndex((b) => b.classList.contains('marcada')); j = (Math.max(0, a) + (atras ? -1 : 1) + anclas.length) % anclas.length; }
+  else {
+    j = atras ? anclas.map(orden).reduce((r, o, n) => (o < aqui ? n : r), -1) : anclas.findIndex((b) => orden(b) > aqui);
+    if (j < 0) j = atras ? anclas.length - 1 : 0;
+  }
+  const destino = anclas[j];
+  if (panel.id === 'banco') { const i = els.indexOf(destino); apretarBotonDePanel(destino); const b = mismoBotonDeMando(elementosDeMando(caja), i, destino.textContent); if (b) enfocarConMando(b); }
+  else enfocarConMando(destino);
+  return true;
 }
 // La creación de Bruno y el prólogo: Start sale (como Escape: saltar el prólogo o cancelar al rehacer) y B vuelve (el botón con data-atras)
 function mandoEnCapa(m, capa) {
@@ -4624,6 +4732,13 @@ function leerMando(dt) {
   // 4.0.3: el creador de Bruno abierto desde el espejo del refugio (el juego sigue de fondo): el mando maneja la pantalla, no a Bruno
   const capaCreador = document.querySelector('#creador-bruno, #prologo-bruno');
   if (capaCreador) { mandoEnCapa(m, capaCreador); return; }
+  // 4.0.5 (A3): la carta de la cantina o de la casa de té y el mostrador del banco: la cruceta y A manejan el panel, B lo cierra; el stick no camina ni mira
+  const panelDom = panelDomDeMando();
+  if (panelDom) {
+    for (const c of ['KeyW', 'KeyS', 'KeyD', 'KeyA', 'ShiftLeft']) sostenerTecla(c, false);
+    mandoEnPanelDom(m, panelDom);
+    return;
+  }
   // 3.7.4: con la rueda abierta, el palito derecho apunta (no mira) y A elige
   const enRueda = !!charla.menu && !foto.activo;
   if (enRueda) { if (Math.hypot(m.mirada.x, m.mirada.y) > 0.5) apuntarRueda(m.mirada.x, m.mirada.y, true); if (m.recien.saltar) { seguirCharla(); m.recien.saltar = false; } }
