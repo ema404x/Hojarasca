@@ -131,7 +131,7 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
   const filas = TB.filasTablon(q.genteCampo.tablon, 10, ctxD, tengoDe(q));
   ok(filas.length === 3 && filas.every((f) => f.tipo === 'tomar' && f.puede && /\$\d/.test(f.titulo) && /m, ×/.test(f.detalle)), 'el panel: tres para tomar, con el pago, la distancia y el multiplicador');
   sinRotos(filas, 'filas');
-  ok(filas.every((fi) => !/[Dd]e el/.test(fi.detalle)), 'sin «de el» (del mallín, del pehuenal)');
+  ok(filas.every((fi) => !/\b[Dd]e el\b/.test(fi.detalle)), 'sin «de el» (del mallín, del pehuenal)');
   eq(TB.deLugar('el mallín'), 'del mallín', '«del»'); eq(TB.deLugar('la cantera'), 'de la cantera', '«de la»');
   TB.tomar(q.genteCampo.tablon, filas[0].id, 10, ctxD);
   const f2 = TB.filasTablon(q.genteCampo.tablon, 10, ctxD, tengoDe(q));
