@@ -6,7 +6,7 @@ description: Cómo repartir una versión de Hojarasca entre agentes en paralelo 
 # Repartir y juntar ramas en Hojarasca
 
 ## Repartir
-1. Rama base: la última (mirá `SEGUIR-EN-OTRA-PC.md` y `RELEASE_STATUS.md`; no es `main`).
+1. Rama base: `main` (`git pull` antes), salvo que haya una versión en curso sin cerrar (mirá el bloque de arriba de `SEGUIR-EN-OTRA-PC.md`).
 2. Un worktree por agente, desde el repositorio:
    ```bash
    cd ~/Documents/Hojarasca/hojarasca

@@ -14,7 +14,7 @@ Pedir OK al usuario antes del push si no lo pidió. Distinguir siempre lo verifi
    - `CAMBIOS_<ver>.md`: qué trae, decisiones, verificación con números, partidas reales, pendientes.
    - Una línea al principio de la lista de `RELEASE_STATUS.md`.
    - Un bloque nuevo arriba de todo en `SEGUIR-EN-OTRA-PC.md`: rama, cómo seguir (`git fetch`, `git checkout <rama>`, `git pull`, `npm install`, `node armar.mjs`, `npm run verify` → «N pasos OK»), qué trae, decisiones a revisar, sin probar, lo que sigue.
-5. **Juntar** en la rama de trabajo vigente si corresponde (`git merge --ff-only` o merge normal) y **push** de la rama: `git push origin <rama>`; etiqueta `git tag v<ver>` y `git push origin v<ver>`. Si `git push` falla con "terminal prompts disabled": `GCM_INTERACTIVE=always GIT_TERMINAL_PROMPT=1 git push ...`.
+5. **Juntar en `main`** (`git checkout main`, `git merge --ff-only v<ver>-integra`, o merge normal si no se puede) y **push**: `git push origin main`; etiqueta `git tag v<ver>` y `git push origin v<ver>`. Subí también la rama de integración. Si `git push` falla con "terminal prompts disabled": `GCM_INTERACTIVE=always GIT_TERMINAL_PROMPT=1 git push ...`.
 6. **LEEME del paquete** en `herramientas/LEEME-<ver>.txt` (sin tildes ni eñes): qué hay en la carpeta, qué trae, «lo que me falta que mires vos», estado de QA real.
 7. **Zip completo** (PowerShell):
    ```powershell

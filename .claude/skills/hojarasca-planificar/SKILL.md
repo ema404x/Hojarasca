@@ -20,7 +20,7 @@ Mientras se planifica **no se ejecuta nada**: ni agentes, ni ramas, ni código. 
 - Si el plan crece mucho, proponé partirlo en tandas o versiones.
 
 ## Dejarlo escrito
-Cuando el usuario lo pida (o al cerrar la charla, preguntando): un `PLAN_<tema>.md` en la rama de trabajo vigente con
+Cuando el usuario lo pida (o al cerrar la charla, preguntando): un `PLAN_<tema>.md` en `main` (o en la versión en curso, si hay una sin cerrar) con
 - lo decidido (y por quién), el orden respecto de los otros planes,
 - lo **descartado** en la charla (para no volver a proponerlo),
 - los puntos a cuidar sin decidir,

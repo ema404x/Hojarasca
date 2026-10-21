@@ -9,7 +9,7 @@ El usuario habla **castellano rioplatense**. Juego, textos, comentarios, commits
 
 ## Dónde está cada cosa
 - Repositorio: `Documents\Hojarasca\hojarasca` (GitHub `ema404x/Hojarasca`). Las carpetas `Documents\Hojarasca\src\hojarasca-<ver>` son copias viejas: **no se trabaja ahí**.
-- La rama de trabajo cambia con cada versión y **no es `main`**: mirá el bloque de arriba de `SEGUIR-EN-OTRA-PC.md` y la primera línea de `RELEASE_STATUS.md` para saber cuál es la última.
+- **`main` es la línea oficial** (desde la 4.6.0): cada versión cerrada se une a `main` y lleva su etiqueta `v<ver>`. El trabajo en curso va en ramas `v<ver>-<x>` que salen de `main`. El bloque de arriba de `SEGUIR-EN-OTRA-PC.md` dice lo último.
 - Planes vigentes: `PLAN_*.md` en la raíz (por ejemplo `PLAN_MAPA_VALOR.md`, `PLAN_DESAFIO_MEJORAS.md`). Lo hecho en cada versión: `CAMBIOS_<ver>.md`.
 - Trabajo en paralelo: un worktree por tarea en `Documents\Hojarasca\trabajo\t<ver>-<x>`, con `node_modules` como unión (`New-Item -ItemType Junction`) al del repositorio.
 
