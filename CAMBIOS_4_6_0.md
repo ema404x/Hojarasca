@@ -46,7 +46,7 @@ parte está en `CAMBIOS_4_6_PUESTOS.md`, `CAMBIOS_4_6_RECURSOS.md` y `CAMBIOS_4_
 - El cuaderno sigue diciendo «cuatro paradas».
 
 ## Partidas reales
-Corridas de a una, ocultas, con `herramientaslanzar-electron.ps1` (perfil `%TEMP%hxperfil46`), después de `node armar.mjs`.
+Corridas de a una, ocultas, con `herramientas\lanzar-electron.ps1` (perfil `%TEMP%\hx\perfil46`), después de `node armar.mjs`.
 
 | Partida | Resultado |
 |---|---|
@@ -72,9 +72,9 @@ Corridas de a una, ocultas, con `herramientaslanzar-electron.ps1` (perfil `%TEMP
   el resto del valle nada cambia (sólo se mira cuando estás en el radio de un punto o al pie de un pehuén). Además, **juntar los
   piñones anota el pehuén** en el cuaderno (si no, apenas juntabas volvía «Anotar pehuén» y tapaba «ya dio sus piñones»). Seis
   comprobaciones nuevas en `verificar-4-6-recursos`.
-- **Dos pruebas con un carácter de retroceso donde iba ``** (de la 4.6): `humo-4-2-pico.cjs` (`/Pico/` en la lista del almacén
-  y en la mochila: fallaban aunque el texto estaba bien) y `verificar-4-6-gente.mjs` (`/[Dd]e el/`: pasaba sin probar nada; con
-  `` de verdad sigue OK).
+- **Dos pruebas con un carácter de retroceso donde iba `\b`** (de la 4.6): `humo-4-2-pico.cjs` (`/Pico\b/` en la lista del almacén
+  y en la mochila: fallaban aunque el texto estaba bien) y `verificar-4-6-gente.mjs` (`/\b[Dd]e el\b/`: pasaba sin probar nada; con
+  `\b` de verdad sigue OK).
 - Gate después de todo: **264 pasos OK**.
 
 ### Capturas (vistas a tamaño completo)
@@ -89,6 +89,6 @@ Corridas de a una, ocultas, con `herramientaslanzar-electron.ps1` (perfil `%TEMP
   parece salir del techo visto de frente** (ya anotado en Pendiente).
 
 ### Otro hallazgo (de antes, no arreglado)
-- `src/vecindad-social.js` (`INVITA_TEXTO.mate`) tiene un retroceso en lugar de `` (`/<retroceso>mate/i`): ya estaba en la 4.5.1. Esa
-  expresión nunca encuentra «mate» en el texto de una invitación propia; habría que cambiarlo por `/mate/i` y probar las
+- `src/vecindad-social.js` (`INVITA_TEXTO.mate`) tiene un retroceso en lugar de `\b` (`/<retroceso>mate/i`): ya estaba en la 4.5.1. Esa
+  expresión nunca encuentra «mate» en el texto de una invitación propia; habría que cambiarlo por `/\bmate/i` y probar las
   invitaciones.
