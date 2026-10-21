@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { MAT_FAUNA } from './vida.js';
 import { generador, hashTexto } from './semilla.js';
-import { PUNTOS_ZONA, PUNTO_ZONA, MATERIALES_ZONA, IDS_MATERIALES_ZONA, IDS_HERRAMIENTAS_ZONA, estadoZona, puntoCerca, avisoPunto, usarPunto, faltaPara, textoDa, pehuenCerca, avisoPehuen, juntarPehuen, entradaDeMaterial } from './recursos-zona.js';
+import { PUNTOS_ZONA, PUNTO_ZONA, MATERIALES_ZONA, IDS_MATERIALES_ZONA, IDS_HERRAMIENTAS_ZONA, estadoZona, puntoCerca, avisoPunto, usarPunto, faltaPara, textoDa, pehuenCerca, avisoPehuen, juntarPehuen, pehuenDisponible, entradaDeMaterial } from './recursos-zona.js';
 
 const LEJOS = 170;
 const RADIO_PEHUENAL = 140;   // los 8 pehuenes están a menos de 80 m del mirador: más allá ni se buscan
@@ -256,6 +256,7 @@ export function crearRecursosZonaMundo(ctx) {
     const est = estadoZona(p);
     const r0 = juntarPehuen(est, a, dia(), p.horas, ctx.estacion?.() || 'auto');
     if (!r0.ok) { ctx.nota?.('Pehuén', avisoPehuen(est, a, dia(), p.horas, ctx.estacion?.() || 'auto')); return; }
+    ctx.registrar?.('pehuen');   // 4.6.0: al pie del pehuén, juntando sus piñones, queda anotado (si no, «Anotar pehuén» le volvía a ganar a la E)
     const total = ctx.sumarEntrada?.('pinon', r0.pinones);
     ctx.sonido?.juntar?.();
     ctx.nota?.(`+${r0.pinones} piñones`, `Llevás ${total ?? r0.pinones}. El pehuén vuelve a dar el otoño que viene`);
@@ -263,6 +264,8 @@ export function crearRecursosZonaMundo(ctx) {
     ctx.guardar?.();
   }
   // { texto, hacer } o null, según dónde estás (`js.pos`)
+  // 4.6.0: `gana`: le gana a «Anotar» una planta o un árbol que estés mirando (main.js, la E y el aviso): en un punto, si tenés
+  // su herramienta (fuiste a trabajarlo; si todavía no volvió, el aviso dice cuándo); en un pehuén, si tiene piñones para dar
   function accion(js) {
     const p = prog();
     if (!p || !js?.pos) return null;
@@ -272,11 +275,11 @@ export function crearRecursosZonaMundo(ctx) {
       const est = estadoZona(p);
       const n = golpes.get(punto.id) || 0;
       const texto = n > 0 && faltaPara(est, punto, dia()) === 0 && Number(p.cosas?.[punto.herramienta]) > 0 ? `Seguir labrando la veta (golpe ${n + 1} de ${punto.golpes})` : avisoPunto(est, punto, dia(), p.cosas);
-      return { tipo: 'zona', id: punto.id, texto, hacer: () => usar(punto) };
+      return { tipo: 'zona', id: punto.id, texto, gana: Number(p.cosas?.[punto.herramienta]) > 0, hacer: () => usar(punto) };
     }
     if (enElPehuenal(pos)) {
       const a = pehuenCerca(listaPehuenes(), pos.x, pos.z);
-      if (a) return { tipo: 'pehuen', texto: avisoPehuen(estadoZona(p), a, dia(), p.horas, ctx.estacion?.() || 'auto'), hacer: () => usarPehuen(a) };
+      if (a) { const est = estadoZona(p), aj = ctx.estacion?.() || 'auto'; return { tipo: 'pehuen', texto: avisoPehuen(est, a, dia(), p.horas, aj), gana: pehuenDisponible(est, a, dia(), p.horas, aj), hacer: () => usarPehuen(a) }; }
     }
     return null;
   }

@@ -10462,6 +10462,10 @@ function cuadroDelJuego(tRaf, manual) {
     // 3.1: parado en el andén al lado de la locomotora, subir a la cabina le gana al banco
     // de la parada (desde la 3.0.1 el andén se pisa de verdad y el banco quedaba a mano)
     if (objetivo?.tipo === 'sentarse' && !desafio && tren?.puedeConducir?.(js)) objetivo = null;
+    // 4.6.0: en un recurso de zona con su herramienta (o al pie de un pehuén con piñones), el recurso le gana a «Anotar» la planta
+    // o el árbol que mires (en el juncal ganaba «Anotar helecho»; al pie del pehuén, «Anotar pehuén»). Al anularlo acá, la E y el
+    // aviso siguen yendo juntos (los dos miran `objetivo`); el resto del valle anota como siempre
+    if ((objetivo?.tipo === 'planta' || objetivo?.tipo === 'arbol') && recursosZona?.accion(js)?.gana) objetivo = null;
     let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
     if (charla.npc) aviso = null;
     else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
