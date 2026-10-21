@@ -13,6 +13,7 @@
     "dist:linux": "node armar.mjs && electron-builder --linux",
     "start:prebuilt": "electron .",
     "verify": "node herramientas/verificar-todo.cjs",
+    "verify:paralelo": "node herramientas/verificar-paralelo.cjs",
     "verify:geometry": "electron pruebas/verificar-geometria.cjs",
     "verify:physics": "electron pruebas/verificar-fisica.cjs",
     "verify:smoke": "electron pruebas/humo-partida.cjs",

@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/herramientas/revisar-escritura.cjs\"",
+            "timeout": 20,
+            "statusMessage": "Revisando caracteres escondidos"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/herramientas/revisar-escritura.cjs\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
