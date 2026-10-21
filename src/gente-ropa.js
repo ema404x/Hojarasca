@@ -71,6 +71,42 @@ export const ASPECTO = {
     poses: ['cintura', 'atras', 'cruzados'],
     abrigo: { colores: { poncho: '#5a6236', bufanda: '#4e6a34', gorro: 'sombrero' } },
   },
+  // 4.6 gente: la gente nueva fuera del pueblo (gente-campo.js). Fermín Catrileo, el pastor del galpón de esquila: flaco y
+  // curtido, poncho pardo de oveja con la guarda de telar, boina, bombacha y alpargatas de cuero (botas cortas)
+  fermin: {
+    edad: 57, mujer: false,
+    cuerpo: { ancho: 0.94, fondo: 0.95, alto: 1.01, encorvada: 0.03 },
+    cara: { ancho: 1.0, largo: 1.06, nariz: 1.18, ojos: 0.9, mand: 0.34, pomulos: 1.25, sonrisa: 0.2, arrugas: 'mayor', iris: '#4a3020' },
+    colores: { piel: '#a87a56', pelo: '#3a2e26', ropa: '#cdbb98', abrigo: '#5a4a3a', gorro: 'boina', gorroColor: '#2a2622', poncho: '#8a6e52' },
+    R: { bombacha: true, botas: 'altas', botaCol: '#5a4030', pantalon: '#6a5e4c', faja: '#7a2e2e', chaleco: true, canas: 0.3 },
+    guardas: { poncho: [4, 0.07], faja: [3, 0] },
+    poses: ['atras', 'cruzados', 'barba'],
+    abrigo: { colores: { bufanda: '#7a2e2e', gorro: 'boina' } },
+  },
+  // Belisario Paredes, el arriero del paso: grandote y charlatán, sombrero de ala ancha, pañuelo rojo al cuello, chaleco de
+  // cuero, bombacha y botas de caña alta
+  belisario: {
+    edad: 46, mujer: false,
+    cuerpo: { ancho: 1.08, fondo: 1.07, panza: 0.04, alto: 1.03 },
+    cara: { ancho: 1.06, largo: 1.0, nariz: 1.12, ojos: 0.96, mand: 0.4, menton: 1.05, sonrisa: 0.6, arrugas: 'risa', iris: '#5c3b22' },
+    colores: { piel: '#b98a62', pelo: '#2a2018', barba: '#2e241c', ropa: '#d8c8a4', abrigo: '#6b4a32', gorro: 'sombrero' },
+    R: { bombacha: true, botas: 'altas', botaCol: '#3b2a1e', pantalon: '#4e463a', chaleco: true, panuelo: '#9a3c2a', faja: '#2c3446' },
+    guardas: { faja: [4, 0], cuello: [1, 0, 'todo'] },
+    poses: ['cintura', 'cruzados', 'atras'],
+    abrigo: { colores: { poncho: '#6b4a32', bufanda: '#9a3c2a', gorro: 'sombrero' } },
+  },
+  // Tobías Hughes, el cantero galés de la cantera: ancho de hombros, barba rojiza, gorra de paño, camisa arremangada, delantal
+  // de cuero con polvo de piedra y botas de trabajo
+  tobias: {
+    edad: 51, mujer: false,
+    cuerpo: { ancho: 1.1, fondo: 1.04, alto: 0.99 },
+    cara: { ancho: 1.04, largo: 1.02, nariz: 1.08, ojos: 0.94, mand: 0.42, menton: 1.0, sonrisa: 0.35, arrugas: 'mayor', iris: '#5a7088' },
+    colores: { piel: '#d6a888', pelo: '#8a4a2a', barba: '#9a5432', ropa: '#a8a090', abrigo: '#4a4a44', gorro: 'boina', gorroColor: '#4a4640' },
+    R: { botas: 'altas', botaCol: '#3a3028', pantalon: '#5a5244', delantal: '#6b4a32', arremangado: true, canas: 0.25 },
+    guardas: { puno: [1, 0, 'todo'] },
+    poses: ['cruzados', 'cintura', 'barba'],
+    abrigo: { colores: { poncho: '#5a5a52', bufanda: '#8a8a7a', gorro: 'gorroPunto', gorroColor: '#4a4640' } },
+  },
   // Ercilia, la del almacén: pollera, delantal de lienzo, chaleco tejido, rodete con canas
   ercilia: {
     edad: 61, mujer: true,

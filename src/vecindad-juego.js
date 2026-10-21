@@ -238,7 +238,7 @@ export function crearVecindadJuego(ctx) {
   function abrir(npc, extra = {}) {
     if (ctx.desafio?.()) return null;
     const clave = claveVecindad(npc);
-    if (!clave) return null;
+    if (!clave) return ctx.campo?.sesion?.(npc) || null;   // 4.6 gente: Fermín, Belisario y Tobías (gente-campo-juego.js), fuera de la vecindad
     const a = abrirCharla(clave, progreso(), contexto());
     if (!a) return null;
     avisarAmistad(clave, a.amistad);
@@ -252,6 +252,8 @@ export function crearVecindadJuego(ctx) {
   function opcionesPrincipales(s) {
     const p = progreso();
     const lista = [];
+    // 4.6 gente: las personas del campo, un menú corto (su historia, su pedido y su tiendita: gente-campo-juego.js) y «chau»
+    if (s.campo) { for (const o of ctx.campo?.opciones?.(s.clave) || []) lista.push(o); lista.push({ id: 'chau', titulo: TITULOS.chau }); return lista; }
     if (s.servicio) lista.push({ id: 'servicio', titulo: TITULOS.servicio });
     if (s.historia) lista.push({ id: 'contame', titulo: `Contame algo · ${s.historia.titulo}` });
     for (const t of temasTitulos(s)) lista.push(t);
@@ -263,6 +265,7 @@ export function crearVecindadJuego(ctx) {
     for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.2: una receta y el trueque para la cocina (una sola opción, «Para la cocina…»)
     for (const o of ctx.rincones?.opciones?.(s.clave) || []) lista.push(o);   // 3.7.5 (rincones): lo que te enseña, el sulky de Tito, la pista de los duendes
     for (const o of ctx.negocios?.opciones?.(s.clave) || []) lista.push(o);   // 4.4: «Hablar de su negocio» (comprarlo, ser socio) y, con el gerente, «Hablar de negocios»
+    for (const o of ctx.campo?.opciones?.(s.clave) || []) lista.push(o);   // 4.6 gente: el pedido y la tiendita de Nicanor y Josefina
     lista.push({ id: 'chau', titulo: TITULOS.chau });
     return lista;
   }
@@ -353,6 +356,14 @@ export function crearVecindadJuego(ctx) {
     // 4.4: comprar el negocio de un vecino o ser su socio (negocios-vecinos-juego.js): un submenú propio o lo que contesta el vecino
     if (/^negocios(?::|$)/.test(String(id)) && ctx.negocios) {
       const r = ctx.negocios.elegir(s, String(id), npc);
+      if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
+      s.sub = null;
+      if (r.tipo !== 'menu') s.vueltas++;
+      return r;
+    }
+    // 4.6 gente: el pedido, la tiendita y la historia de la gente del campo (gente-campo-juego.js)
+    if (/^campo:/.test(String(id)) && ctx.campo) {
+      const r = ctx.campo.elegir(s, String(id), npc);
       if (r.tipo === 'menu' && r.sub) { s.sub = r.sub; return { tipo: 'menu' }; }
       s.sub = null;
       if (r.tipo !== 'menu') s.vueltas++;
