@@ -14,6 +14,9 @@ import { PESOS_POR_YERBA, formatoPesos, pesosDe, cobrar as cobrarPesos, pagar as
 
 export const MODOS_PUESTO = ['comprar', 'vender', 'fletes'];
 const TITULO = { comprar: 'Comprar', vender: 'Vender', fletes: 'Fletes' };
+// 4.6 puestos: un puesto de ruta que no es parada (puestos-ruta.js) no tiene fletes: la parada que se abre trae `sinFletes` y su propio
+// `cerca(pos)` (el panel se cierra si te alejás del mostrador, no de un andén)
+const MODOS_SIN_FLETES = ['comprar', 'vender'];
 const NOMBRE_TEMPORADA = { verano: 'verano', otono: 'otoño', invierno: 'invierno' };
 
 // `ctx`: { panel, tablero, tren, progreso(), dia(), temporada(), nota(t, sub, importante),
@@ -22,6 +25,7 @@ const NOMBRE_TEMPORADA = { verano: 'verano', otono: 'otoño', invierno: 'inviern
 export function crearPuestoDeCargas(ctx) {
   const T_ = ctx.T_ || ((t) => t);
   const estado = { abierto: false, parada: null, modo: 'comprar' };
+  const modos = () => (estado.parada?.sinFletes ? MODOS_SIN_FLETES : MODOS_PUESTO);   // 4.6 puestos
   const P = () => ctx.progreso();
   const estaciones = () => ctx.tren.paradas.map((p) => p.nombre);
   const extraFletes = () => ctx.furgon?.()?.extra || 0;
@@ -105,7 +109,7 @@ export function crearPuestoDeCargas(ctx) {
     if (!estado.abierto || !ctx.panel) return;
     estado.dia = ctx.dia(); estado.temporada = ctx.temporada();   // 3.8.6: de qué día es lo que se ve
     const nombre = estado.parada.nombre;
-    $$('.quien').textContent = T_(`Cargas · ${nombre} · ${TITULO[estado.modo]}`);
+    $$('.quien').textContent = T_(`${estado.parada.sinFletes ? 'Puesto' : 'Cargas'} · ${nombre} · ${TITULO[estado.modo]}`);   // (4.6 puestos: el de ruta dice «Puesto»)
     const c = comercio();
     const intro = estado.modo === 'fletes'
       ? `Pasajeros y carga hasta otra parada. Se cobran al llegar manejando la trochita · llevás ${c.fletes.length} de ${aLaVez()}`
@@ -131,11 +135,13 @@ export function crearPuestoDeCargas(ctx) {
       li.textContent = T_(estado.modo === 'comprar' ? 'Por ahora no tienen nada que te sirva' : 'Nada por acá');
       ul.appendChild(li);
     }
-    $$('.seguir').textContent = T_(`Tab: comprar, vender o fletes · Elegí con el número o con un clic · Escape para salir`);
+    $$('.seguir').textContent = T_(estado.parada.sinFletes ? 'Tab: comprar o vender · Elegí con el número o con un clic · Escape para salir' : `Tab: comprar, vender o fletes · Elegí con el número o con un clic · Escape para salir`);
   }
   function abrir(parada, modo = 'comprar') {
     if (!parada) return false;
-    estado.abierto = true; estado.parada = parada; estado.modo = MODOS_PUESTO.includes(modo) ? modo : 'comprar';
+    // 4.6 puestos: el apeadero del Riel Sur sólo comercia con el puesto reparado (desde la cabina también)
+    if (parada.atiende && !parada.atiende()) { ctx.nota(`${parada.nombre}: el puesto está abandonado`, 'Hay que repararlo para comerciar ahí. Los fletes se entregan igual'); return false; }
+    estado.abierto = true; estado.parada = parada; estado.modo = (parada.sinFletes ? MODOS_SIN_FLETES : MODOS_PUESTO).includes(modo) ? modo : 'comprar';
     ctx.panel?.classList.remove('oculto');
     dibujar();
     return true;
@@ -145,14 +151,14 @@ export function crearPuestoDeCargas(ctx) {
     ctx.panel?.classList.add('oculto');
   }
   function pasarModo(dir = 1) {
-    const i = MODOS_PUESTO.indexOf(estado.modo);
-    estado.modo = MODOS_PUESTO[(i + dir + MODOS_PUESTO.length) % MODOS_PUESTO.length];
+    const M = modos(), i = M.indexOf(estado.modo);
+    estado.modo = M[(i + dir + M.length) % M.length];
     dibujar();
   }
   // Se cierra solo si te alejás del puesto (o, en la cabina, si el tren deja el andén).
   function vigilar(pos) {
     if (!estado.abierto) return;
-    const aca = ctx.tren.conduciendo() ? ctx.tren.paradaCabina() === estado.parada : ctx.tren.puestoCerca(pos, 3.4) === estado.parada;
+    const aca = estado.parada.cerca ? estado.parada.cerca(pos) : ctx.tren.conduciendo() ? ctx.tren.paradaCabina() === estado.parada : ctx.tren.puestoCerca(pos, 3.4) === estado.parada;   // (4.6 puestos: el de ruta, su mostrador)
     if (!aca) { cerrar(); return; }
     // 3.8.6: abierto mientras pasa la medianoche (o cambia la temporada), se rehace: antes se veía la lista de ayer y el
     // número elegía de la de hoy (otro flete, otro precio)

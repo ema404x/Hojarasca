@@ -27,7 +27,8 @@ export function nivelBase(nombre, bien) {
   return p.produce.includes(bien) ? MERCADO.baseProduce : p.pide.includes(bien) ? MERCADO.basePide : MERCADO.baseOtros;
 }
 // La caja de cada puesto: lo más que junta y con cuánto arranca (pesos, redondos a $100)
-export function cajaMaxima(nombre) { return 4000 + (hashTexto(`${nombre}|caja`) % 41) * 100; }
+// (4.6 puestos: un perfil con `caja` tiene la suya fija: los puestos de ruta, $5.000; ver comercio.js)
+export function cajaMaxima(nombre) { const fija = Number(perfilDe(nombre).caja) || 0; return fija > 0 ? fija : 4000 + (hashTexto(`${nombre}|caja`) % 41) * 100; }
 function estadoInicial(nombre, dia) {
   const r = azarDe(hashTexto(`${nombre}|mercado`));
   const stock = {};

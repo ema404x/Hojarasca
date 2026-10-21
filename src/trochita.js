@@ -425,6 +425,53 @@ function construirParada(T, escena, col, mat, cartel, sentaderos, indiceEstacion
   };
 }
 
+// ---------------------------------------------------------------- 4.6 puestos: un apeadero sin galpón
+// El del Riel Sur (ver puestos-ruta.js): sólo el andén chico (zócalo, tablones, filo y escalones en las dos puntas) y el cartel; el
+// galpón es el puesto de al lado, así que no hay sala de espera ni luz (las luces fijas no cambian). `a`: { x, z (un punto junto a la
+// vía), nombre, cargas: { x, z, y } (dónde se comercia: el mostrador del puesto), atiende() (si hoy se comercia ahí) }.
+function construirApeadero(T, escena, col, mat, cartel, a, paradas) {
+  const riel = T.riel;
+  let i = -1, mejor = Infinity;
+  for (let k = 4; k < riel.length - 4; k++) { const d = Math.hypot(riel[k].x - a.x, riel[k].z - a.z); if (d < mejor) { mejor = d; i = k; } }
+  if (i < 0 || mejor > 30 || riel[i].sobrePuente || paradas.some((q) => Math.abs(q.indice - i) < 40)) return null;
+  const p = riel[i], A = riel[i - 4], B = riel[i + 4];
+  const ang = Math.atan2(B.x - A.x, B.z - A.z), rot = ang + Math.PI / 2, y = p.h;
+  const largo = 9, ancho = 2.6, borde = 1.15, centro = borde + ancho / 2;
+  const w = (lx, lz) => ({ x: p.x + lx * Math.cos(rot) + lz * Math.sin(rot), z: p.z - lx * Math.sin(rot) + lz * Math.cos(rot) });
+  const c = new Constructor();
+  c.agregar(new THREE.BoxGeometry(largo, 2.6, ancho), { color: '#7f7a70', tipo: 4, variar: 0.1, matriz: matriz([0, -0.8, centro]) });
+  for (let k = 0; k < 10; k++) c.agregar(new THREE.BoxGeometry(0.84, 0.1, ancho - 0.2), { color: k % 2 ? '#93836b' : '#8a7a63', tipo: 4, variar: 0.12, matriz: matriz([-largo / 2 + 0.45 + k * 0.9, 0.55, centro]) });
+  c.agregar(new THREE.BoxGeometry(largo, 0.14, 0.26), { color: '#d8d2c2', tipo: 4, matriz: matriz([0, 0.55, borde]) });
+  // los escalones de piedra de las dos puntas (como en las paradas chicas)
+  for (const lado of [-1, 1]) {
+    let tope = 0.6;
+    for (let k = 0; k < 8; k++) {
+      const lx = lado * (largo / 2 + 0.22 + k * 0.42), q = w(lx, centro + 0.2);
+      const suelo = T.altura(q.x, q.z) - y;
+      if (k === 0 && suelo > 0.42) break;
+      tope = Math.max(suelo + 0.08, tope - 0.2);
+      const alto = tope - suelo + 0.15;
+      c.agregar(new THREE.BoxGeometry(0.44, alto, 2.2), { color: k % 2 ? '#7f7a70' : '#77726a', tipo: 4, variar: 0.1, matriz: matriz([lx, tope - alto / 2, centro + 0.2]) });
+      col.agregarPlataforma({ x: q.x, z: q.z, ang: -rot, largo: 0.44, ancho: 2.2, alto: y + tope, espesor: alto, suelo: 'piedra' });
+      if (tope - suelo < 0.1) break;
+    }
+  }
+  const m = new THREE.Mesh(c.geometria(), mat);
+  m.position.set(p.x, y, p.z); m.rotation.y = rot;
+  m.castShadow = true; m.receiveShadow = true;
+  escena.add(m);
+  const anden = w(0, centro);
+  col.agregarPlataforma({ x: anden.x, z: anden.z, ang: -rot, largo, ancho, alto: y + 0.6, espesor: 0.2 });
+  const cc = w(largo / 2 - 1.2, centro + ancho / 2 + 0.9);
+  cartel?.(a.nombre, cc.x, cc.z, rot + Math.PI);
+  return {
+    x: p.x, z: p.z, y, ang: rot, nombre: a.nombre, chica: true, apeadero: true,
+    vidrio: { color: new THREE.Color() }, luz: { intensity: 0 },   // (sin ventanas ni luz: main.js las recorre igual en todas las paradas)
+    s: p.s, anden, indice: i, espera: { x: anden.x, z: anden.z, y: y + 0.6 },
+    cargas: a.cargas || null, atiende: typeof a.atiende === 'function' ? a.atiende : null, cubiertas: [],
+  };
+}
+
 // ---------------------------------------------------------------- el tren
 function construirTren(mat) {
   const g = new THREE.Group();
@@ -648,6 +695,8 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
     if (antes !== nombre) parada.nombreAntes = antes;
     paradas.push(parada);
   });
+  // 4.6 puestos: los apeaderos de más (en el Relax, el del Riel Sur): el tren para ahí y entra al comercio entre paradas
+  for (const a of opciones.apeaderos || []) { const parada = construirApeadero(T, escena, col, mat, opciones.cartel, a, paradas); if (parada) paradas.push(parada); }
   paradas.sort((a, b) => a.s - b.s);
   const estacion = paradas.find((p) => !p.chica) || paradas[0];
   T.lugares.estacion = estacion;
@@ -1017,7 +1066,7 @@ export function crearTrochita(T, escena, col, sonido, opciones) {
   }
   // El puesto de cargas más cercano a `pos`, si está a menos de `radio` metros.
   function puestoCerca(pos, radio = 2.2) {
-    for (const p of paradas) if (p.cargas && Math.hypot(p.cargas.x - pos.x, p.cargas.z - pos.z) < radio && Math.abs((pos.y ?? p.cargas.y) - p.cargas.y) < 2.5) return p;
+    for (const p of paradas) if (p.cargas && (!p.atiende || p.atiende()) && Math.hypot(p.cargas.x - pos.x, p.cargas.z - pos.z) < radio && Math.abs((pos.y ?? p.cargas.y) - p.cargas.y) < 2.5) return p;   // (4.6 puestos: el apeadero del Riel Sur, sólo con el puesto reparado)
     return null;
   }
 

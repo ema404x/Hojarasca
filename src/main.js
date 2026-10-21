@@ -38,6 +38,10 @@ import { crearBichos } from './bichos.js';
 import { crearPerro } from './perro.js';
 import { crearGente, saludoDe, alturaDePie, estaSentado } from './gente.js';
 import { crearTrochita } from './trochita.js';
+// 4.6 puestos: los puestos de ruta (reglas, lo que se ve y la E)
+import { crearPuestosRutaMundo, apeaderoDelRielSur } from './puestos-ruta-mundo.js';
+import { crearPuestosRutaJuego } from './puestos-ruta-juego.js';
+import { CASA_PUESTO } from './puestos-ruta.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
 import { BIENES } from './comercio.js';
@@ -716,7 +720,8 @@ async function construir() {
     // tren de siempre.
     const t = crearTrochita(T, escena, col, sonido, { cartel: est.cartel, sentaderos: est.sentaderos, aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }, lugaresAntes: est.lugaresSorteo || null,
       armarTren: esDesafio ? null : (o) => armarTren({ ...o, T, estado: progreso?.tren, personal: progreso?.personal?.trochita || null, pasajeros: pasajerosDelDia(progreso?.dia), invierno: inviernoDeAjustes(), caballo: progreso?.personal?.caballo || null }),
-      silbato: esDesafio ? null : () => silbatoDelTren(progreso?.tren, sonido.silbatoElegido) });
+      silbato: esDesafio ? null : () => silbatoDelTren(progreso?.tren, sonido.silbatoElegido),
+      apeaderos: esDesafio ? null : [apeaderoDelRielSur(T, () => progreso)] });   // 4.6 puestos: el Riel Sur, parada nueva de la trochita
     // lo del comercio guardado con el nombre de antes de la parada pasa al de ahora (3.6: la del
     // sur es la de la aldea, y la que se llamaba como la casa de té toma el nombre de lo que le
     // queda cerca). En dos pasos: un nombre nuevo puede ser el viejo de otra.
@@ -742,6 +747,16 @@ async function construir() {
     // Las estaciones también reservan su huella antes de poblar el mundo.
     // Evita objetos coleccionables dentro del andén, galpón o sala de espera.
     for (const p of t.paradas) edificios.push({ x: p.x, z: p.z, radio: p.chica ? 10 : 14, nombre: p.nombre || 'Estación' });
+    // 4.6 puestos: los cuatro puestos de ruta (sólo en el Relax; ver puestos-ruta.js), en coordenadas fijas: sin árboles, pasto ni
+    // objetos sueltos encima. Su E y su aviso, en puestos-ruta-juego.js
+    if (!esDesafio) {
+      try {
+        puestosRutaMundo = crearPuestosRutaMundo({ T, escena, grupo: est.grupo, mat: est.mat, col, cartel: est.cartel, sentaderos: est.sentaderos, cubiertas: est.cubiertas, progreso: () => progreso });
+        for (const z of puestosRutaMundo.zonas) { veg.despejar(z.x, z.z, z.r); pelarPastoTemporal(z.x, z.z, z.r - 0.5); edificios.push({ x: z.x, z: z.z, radio: z.r + 1, nombre: z.nombre }); }
+        puestosJuego = crearPuestosRutaJuego({ progreso: () => progreso, desafio: () => !!desafio, mundo: puestosRutaMundo, nota: (tx, sub, nueva) => nota(tx, sub, nueva), guardar: () => guardar(),
+          refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas });
+      } catch (err) { console.warn('puestos-ruta', err); puestosRutaMundo = null; puestosJuego = null; }
+    }
     // 3.7.5 (rincones): los duendes, el potrero, las huertas, el retablo, el fuerte, el camino al refugio (rodea las
     // construcciones y las estaciones de recién), el sulky, el taller y tu casa (sólo en el Relax, donde está la aldea)
     if (aldeaMundo) {
@@ -1278,7 +1293,7 @@ function dormir(opRincon = null) {
   if (durmiendo) return;
   const enCarpa = !!opRincon?.carpa;   // 3.8.6: la carpa se anota después de las guardas (antes, «Dormí en la carpa» aunque no se durmiera)
   const op = { enTren: dormirEnElTren };
-  const enCasaAldea = !desafio && !!opRincon?.casaAldea;
+  const enCasaAldea = !desafio && (!!opRincon?.casaAldea || !!opRincon?.puestoRuta);   // (4.6 puestos: el catre de un puesto de ruta también es techo propio y tibio)
   if (desafio) {
     const r = desafio.puedeDormir();
     if (!r.ok) { nota('No podés dormir ahora', r.motivo); return; }
@@ -1314,7 +1329,7 @@ function dormir(opRincon = null) {
   });
   // 2.8: la ropa abriga (ver personal-personaje.js): con poncho, gorro y bufanda, un escalón mejor
   const como = templarNoche(comoSinRopa, progreso.personal?.personaje, abrigoExtra(progreso.personal?.bruno, esDesafio));   // 4.1 (F3): y los rasgos de Bruno (±1 punto)
-  const descanso = desafio || !deNoche ? 0 : horasDescansado({ como, casa });
+  const descanso = desafio || !deNoche ? 0 : horasDescansado({ como, casa: !desafio && opRincon?.puestoRuta ? CASA_PUESTO : casa });   // (4.6 puestos: el del puesto descansa)
   const calorDeLaCasa = como === 'calentito' && distanciaAlFuego > LENA.calorFuego;
   const inviernoEnCasa = deNoche && !desafio && U.uInvierno.value >= 0.5 && casaCerrada(casa);
   const f = $('fundido');
@@ -1669,6 +1684,7 @@ function dibujarMapa() {
   }
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
+  if (puestosJuego && !desafio) for (const m of puestosJuego.marcasDelMapa()) marcas.push({ ...m, tipo: 'parada' });   // 4.6 puestos: los puestos de ruta (el del Riel Sur ya está, es parada)
   if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); const c = aldeaMundo.lugarCantina(); marcas.push({ x: c.x, z: c.z, tipo: 'parada', nombre: c.nombre }); }   // 3.8.9: el banco, rotulado (3.9.0: y la cantina) (antes nada decía dónde estaba)
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
@@ -3243,6 +3259,8 @@ document.addEventListener('keydown', (e) => {
       if (!objetivo && feriaCerca()) { abrirFeria(); break; }
       // 2.9: el puesto de cargas de la parada (el aviso va en el mismo lugar)
       if (!js.enTren && !js.enKayak && !objetivo && puestoDeCargasCerca()) { cargas().abrir(puestoDeCargasCerca()); break; }
+      // 4.6 puestos: un puesto de ruta: reparar, dormir, comerciar y el depósito (el aviso, en el mismo lugar y con la misma función: puestosJuego.accion)
+      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && puestosJuego) { const a = puestosJuego.accion(js); if (a) { a.hacer(); cachePuestos = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo) { const c = canteroCerca(); if (c) { usarCantero(c); break; } }
       if (!js.enTren && !js.enKayak && !objetivo) { const g = gallineroCerca(); if (g) { usarGallinero(g); break; } }
       if (!js.enTren && !js.enKayak && !objetivo && telarCerca()) { tejer(); break; }
@@ -3568,6 +3586,8 @@ function encenderFuego() {
     nota('El fogón está encendido', 'Sentate en un tronco para descansar');
     return;
   }
+  // 4.6 puestos: el fogón de un puesto de ruta reparado (con la misma leña que el del refugio)
+  { const fp = puestosJuego?.fogonCerca(js.pos); if (fp) { avisarFuegoReemplazado(clima.encenderFogata(fp.x, T.altura(fp.x, fp.z), fp.z, 900)); gastarLenaDelInvierno(lena); sonido.encender(); nota('Encendiste el fogón del puesto', 'Dura toda la noche. Sentate en el tronco a descansar'); return; } }
   if (progreso.ramitas < 3) { nota('Juntá al menos tres ramitas', 'Hay muchas bajo los árboles'); return; }
   const x = js.pos.x - Math.sin(js.yaw) * 1.9, z = js.pos.z - Math.cos(js.yaw) * 1.9;
   if (T.agua(x, z) || js.nadando || js.enPlataforma) { nota('Acá no se puede', 'Buscá suelo firme y seco'); return; }
@@ -5326,6 +5346,7 @@ let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mund
 let recursosZona = null;   // 4.6 recursos: ver recursos-zona-mundo.js
 let huevosJuego = null, huevosMundo = null, huevosPortada = null;   // 4.2 (huevos de pascua): ver huevos-juego.js y huevos-mundo.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
+let puestosRutaMundo = null, puestosJuego = null;   // 4.6 puestos: ver puestos-ruta-mundo.js y puestos-ruta-juego.js
 let penaJuego = null, penaMundo = null;   // 3.9.1: la peña (ver pena-juego.js y pena-mundo.js)
 let cantinaAmbiente = null;   // 3.9.2: los cuadros, el reloj, lo usado en las mesas y la música de fondo de la cantina (cantina-ambiente.js)
 let teJuego = null;   // 3.9.2: la casa de té de la aldea con Ceinwen que viene a tu mesa (el mismo flujo de la cantina: cantina-juego.js con el lugar de casa-te.js)
@@ -9580,6 +9601,7 @@ let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al l
 let cacheRecursosZona = null;   // 4.6 recursos: la veta, el juncal, las hierbas, la arcilla o el pehuén que tenés al lado
 let cacheHuevos = null;   // 4.2 (huevos de pascua): lo que se puede hacer acá (ver huevos-juego.js)
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
+let cachePuestos = null;   // 4.6 puestos: lo que se puede hacer en el puesto de ruta de acá (ver puestos-ruta-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
 let cachePena = null;   // 3.9.1: lo de la peña (bailar con Dalia, el truco de la cantina)
 let cacheCantina = null;   // 3.9.0: lo que se hace sentado a una mesa de la cantina (ver cantina-juego.js)
@@ -10420,6 +10442,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheTaller = tallerTren ? tallerTren.accion(js) : null;   // 3.7.3
       cacheEmpleo = empleoJuego ? empleoJuego.accion(js) : null;   // 4.3
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
+      cachePuestos = puestosJuego ? puestosJuego.accion(js) : null;   // 4.6 puestos
       cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null;   // 4.2 (huevos de pascua)
       cacheRecursosZona = recursosZona ? recursosZona.accion(js) : null;   // 4.6 recursos
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
@@ -10462,6 +10485,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && !objetivo && caballoCerca()) aviso = { tecla: 'E', texto: `Subir ${caballoDicho('a')}` };
     if (!aviso && !objetivo && feriaCerca() && !enLaFeria) aviso = { tecla: 'E', texto: 'Ver la feria' };
     if (!aviso && !js.enTren && !js.enKayak && !objetivo && !enLasCargas() && puestoDeCargasCerca()) aviso = { tecla: 'E', texto: 'Comerciar en el puesto de cargas' };
+    if (!aviso && cachePuestos && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: 'E', texto: cachePuestos.texto };   // 4.6 puestos: el puesto de ruta, como en la tecla E
     // Mismo orden que la tecla E: cantero, oveja y acopio van antes que las puertas.
     // Si no, con un cantero al lado de una puerta el aviso dice "Abrir" y E siembra.
     if (!aviso && cacheCantero && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: textoAvisoCantero(cacheCantero) };
@@ -10570,6 +10594,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && enLaCarpa()) aviso = { tecla: 'T', texto: 'Levantar la carpa' };
     else if (!aviso && progreso.cosas.manta && !progreso.carpa && puedeArmarCarpaAca(js)) aviso = { tecla: 'T', texto: 'Armar la carpa' };
     if (!aviso && !js.enTren && !js.enKayak && Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 && !clima.fuegoEn(ref.fogon.x, ref.fogon.z, 1.5)) aviso = { tecla: 'F', texto: 'Encender el fogón' };
+    if (!aviso && puestosJuego && !js.enTren && !js.enKayak) { const f = puestosJuego.fogonCerca(js.pos); if (f && !clima.fuegoEn(f.x, f.z, 1.5)) aviso = { tecla: 'F', texto: 'Encender el fogón del puesto' }; }   // 4.6 puestos
     // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
@@ -11110,6 +11135,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.1: el desafío del día, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;
   if (HOJARASCA_DEBUG) window.__hojarasca.__trucos = () => trucosJuego;   // 4.5: la consola de códigos (QA)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__puestos = () => ({ juego: puestosJuego, mundo: puestosRutaMundo, cache: () => cachePuestos });   // 4.6 puestos (QA)
   if (HOJARASCA_DEBUG) window.__hojarasca.__sinFin = { es: esSinFin, terminar: () => terminarCorrida(), records: () => recordsSinFin(), nueva: (c) => nuevaCorrida(c), empezarMapa: () => empezarMapaDesafio() };
   // 3.1: los oficios (3.6: y la aldea), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldea = { oficios: () => oficios, mundo: () => aldeaGente, llamar: llamarAlProximoPoblador, actualizar: (dt = 1) => actualizarAldea(dt),

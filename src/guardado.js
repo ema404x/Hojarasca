@@ -67,6 +67,8 @@ import { economiaNueva, sanearEconomia, convertirYerba } from './economia.js';
 import { negociosNuevo, sanearNegocios } from './negocios.js';
 import { empleoNuevo, sanearEmpleo } from './empleo.js';
 import { negociosVecinosNuevo, sanearNegociosVecinos } from './negocios-vecinos.js';
+// 4.6 puestos: los puestos de ruta
+import { puestosRutaNuevos, sanearPuestosRuta } from './puestos-ruta.js';
 import { cantinaNueva, sanearCantina } from './cantina.js';
 // 4.3: el negocio propio (un local con estantes, precios, caja y fama; sólo en el Relax)
 import { negocioPropioNuevo, sanearNegocioPropio } from './negocio-propio.js';
@@ -409,6 +411,7 @@ export function progresoNuevo() {
     ...(desafio ? {} : { empleadosNegocio: empleadosNuevo() }),   // 4.4: los vecinos contratados en tu negocio propio (nadie todavía; ver empleados-negocio.js)
     ...(desafio ? {} : { genteCampo: genteCampoNueva() }),   // 4.6 gente: el tablón de encargos sin nada tomado y la gente del campo sin pedidos ni compras
     ...(desafio ? {} : { negociosVecinos: negociosVecinosNuevo() }),   // 4.4: negocios comprados y sociedades con vecinos (ninguno todavía; ver negocios-vecinos.js)
+    ...(desafio ? {} : { puestosRuta: puestosRutaNuevos() }),   // 4.6 puestos: los cuatro puestos de ruta, abandonados (ver puestos-ruta.js)
     ...(desafio ? {} : { noticias: noticiasNuevas(), concursos: concursosNuevo() }),   // 3.7.5 (noticias): sin diarios, cartas ni cintas todavía
     // 3.6: la vecindad: nadie te conoce todavía
     vecindad: vecindadNueva(),
@@ -668,6 +671,8 @@ function sanearProgreso(p) {
   // 4.6 gente: el tablón de encargos y la gente del campo (sólo en el Relax). Una partida de antes no lo trae: sale vacío (nada tomado,
   // nada comprado, ninguna historia contada) y lo demás queda como estaba
   limpio.genteCampo = modoPartida === 'desafio' ? undefined : sanearGenteCampo(p.genteCampo, limpio.dia);
+  // 4.6 puestos: los puestos de ruta (sólo en el Relax): etapa y depósito de cada uno. Una partida de antes no los trae: los cuatro abandonados
+  limpio.puestosRuta = modoPartida === 'desafio' ? undefined : sanearPuestosRuta(p.puestosRuta);
   // 3.7.4: lo de la vida social (humor, deseos y lo hecho hoy: `progreso.vecindad.social`), si lo trae (ver vecindad-social.js)
   conSocial(limpio.vecindad, p.vecindad, limpio.dia);
   // 3.8.4: un solo nombre de la locomotora (el del taller y el de Personalizar; ver tren-mejoras.js)
