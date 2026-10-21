@@ -1669,7 +1669,7 @@ function dibujarMapa() {
   }
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
-  if (puestosJuego && !desafio) for (const m of puestosJuego.marcasMapa()) marcas.push({ ...m, tipo: 'parada' });   // 4.6 puestos: los puestos de ruta (el del Riel Sur ya está, es parada)
+  if (puestosJuego && !desafio) for (const m of puestosJuego.marcasDelMapa()) marcas.push({ ...m, tipo: 'parada' });   // 4.6 puestos: los puestos de ruta (el del Riel Sur ya está, es parada)
   if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); const c = aldeaMundo.lugarCantina(); marcas.push({ x: c.x, z: c.z, tipo: 'parada', nombre: c.nombre }); }   // 3.8.9: el banco, rotulado (3.9.0: y la cantina) (antes nada decía dónde estaba)
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }

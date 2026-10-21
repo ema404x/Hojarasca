@@ -113,7 +113,7 @@ export function crearPuestosRutaJuego(ctx) {
   return {
     accion, fogonCerca, reparar, usarDeposito, paradaDe,
     // el mapa: los puestos que no son parada (el del Riel Sur sale con las paradas), con cómo están
-    marcasMapa: () => (activo() ? IDS_PUESTOS.filter((id) => !PUESTOS_RUTA[id].parada).map((id) => ({ x: PUESTOS_RUTA[id].pos.x, z: PUESTOS_RUTA[id].pos.z, nombre: reparado(P(), id) ? PUESTOS_RUTA[id].nombre : `${PUESTOS_RUTA[id].nombre} (abandonado)` })) : []),
+    marcasDelMapa: () => (activo() ? IDS_PUESTOS.filter((id) => !PUESTOS_RUTA[id].parada).map((id) => ({ x: PUESTOS_RUTA[id].pos.x, z: PUESTOS_RUTA[id].pos.z, nombre: reparado(P(), id) ? PUESTOS_RUTA[id].nombre : `${PUESTOS_RUTA[id].nombre} (abandonado)` })) : []),
     // (para las pruebas: dónde queda cada puesto y cada cosa)
     def: (id) => PUESTOS_RUTA[id] || null, punto: (id, cual) => puntoDe(id, cual), aMundo: (id, lx, lz) => aMundo(id, lx, lz),
     estado: () => Object.fromEntries(IDS_PUESTOS.map((id) => [id, { etapa: etapaDe(P(), id), reparado: reparado(P(), id), falta: faltaPara(P(), id, materiales()) }])),

@@ -222,8 +222,8 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
   for (let i = 0; i < 3; i++) R.repararEtapa(p, 'D', { tabla: 99, piedra: 99 });
   ok(J.accion(js('D', 'mostrador'))?.tipo !== 'comerciar', 'en el Riel Sur la ventanilla es el puesto de cargas de la trochita');
   // el mapa: los tres que no son parada (el del Riel Sur sale con las paradas), con cómo están
-  eq(J.marcasMapa().map((m) => m.nombre), ['Puesto de la Cantera', 'Puesto del Paso (abandonado)', 'Puesto de la Estepa (abandonado)'], 'el mapa rotula los puestos');
-  ok(leer('src/main.js').includes("for (const m of puestosJuego.marcasMapa()) marcas.push({ ...m, tipo: 'parada' });"), 'main.js los pone en el mapa');
+  eq(J.marcasDelMapa().map((m) => m.nombre), ['Puesto de la Cantera', 'Puesto del Paso (abandonado)', 'Puesto de la Estepa (abandonado)'], 'el mapa rotula los puestos');
+  ok(leer('src/main.js').includes("for (const m of puestosJuego.marcasDelMapa()) marcas.push({ ...m, tipo: 'parada' });"), 'main.js los pone en el mapa');
   // en el otro modo, nada
   const J2 = crearPuestosRutaJuego({ progreso: () => p, desafio: () => true });
   ok(J2.accion(js('A', 'puerta')) === null && J2.fogonCerca(R.puntoDe('A', 'fogon')) === null, 'en el otro modo, nada');
