@@ -8,11 +8,8 @@ const fs = require('fs');
 
 const NOMBRE_SYNC = /^hojarasca-(relax|desafio)-p[1-3]\.hojarasca\.json$/;
 const MAX_SYNC = 64 * 1024 * 1024;   // 3.8.6: como MAX_BYTES de transferir.js (antes 12 MB: unas 400 fotos)
-// 3.1: el torneo de la semana (ver src/torneo.js y src/torneo-sync.js). Cada compu escribe
-// sólo su archivo, con nombre fijo; se leen todos los que tengan ese formato de nombre.
-const NOMBRE_TORNEO = /^hojarasca-torneo-[a-z0-9]{4,16}\.json$/;
-const MAX_TORNEO = 256 * 1024;
-const MAX_ARCHIVOS_TORNEO = 40;
+// 4.5.1: se sacó el torneo de la semana: los archivos hojarasca-torneo-<pc>.json que hayan quedado en la carpeta no se
+// leen, no se escriben y no se borran (no tienen el nombre de una partida: NOMBRE_SYNC no los toma).
 
 // Cuándo se guardó la partida que hay en un archivo de la carpeta (0 si no se sabe).
 function guardadoEnDe(texto) {
@@ -93,42 +90,6 @@ function registrarSincronia({ ipcMain, dialog, app, ventana = () => null, alErro
   ipcMain.handle('sync-escribir', (_evento, nombre, texto, base) => escribirSync(nombre, texto, base));
   // al cerrar la ventana no hay tiempo para una promesa: esta va sincrónica
   ipcMain.on('sync-escribir-ya', (evento, nombre, texto, base) => { evento.returnValue = escribirSync(nombre, texto, base); });
-  // 3.1: el torneo. Escribir: sólo un nombre de torneo, por un temporal (el sincronizador
-  // nunca ve medio archivo). Leer: todos los archivos del torneo que haya, chicos.
-  function escribirTorneo(nombre, texto) {
-    const c = carpetaSync();
-    const n = String(nombre || ''), t = String(texto || '');
-    if (!c || !NOMBRE_TORNEO.test(n) || !t || t.length > MAX_TORNEO) return false;
-    const dir = path.join(c, 'Hojarasca'), ruta = path.join(dir, n), tmp = `${ruta}.tmp`;
-    try {
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(tmp, t, 'utf8');
-      try { fs.renameSync(tmp, ruta); } catch { fs.writeFileSync(ruta, t, 'utf8'); fs.rmSync(tmp, { force: true }); }
-      return true;
-    } catch (e) {
-      try { fs.rmSync(tmp, { force: true }); } catch {}
-      alError(String(e?.message || e)); return false;
-    }
-  }
-  function leerTorneos() {
-    const c = carpetaSync();
-    if (!c) return null;
-    const dir = path.join(c, 'Hojarasca');
-    let nombres = [];
-    try { nombres = fs.readdirSync(dir).filter((n) => NOMBRE_TORNEO.test(n)).sort().slice(0, MAX_ARCHIVOS_TORNEO); } catch { return []; }
-    const salida = [];
-    for (const n of nombres) {
-      try {
-        const ruta = path.join(dir, n);
-        const st = fs.statSync(ruta);
-        if (!st.isFile() || st.size > MAX_TORNEO) continue;
-        salida.push({ nombre: n, texto: fs.readFileSync(ruta, 'utf8') });
-      } catch {}
-    }
-    return salida;
-  }
-  ipcMain.handle('torneo-escribir', (_evento, nombre, texto) => escribirTorneo(nombre, texto));
-  ipcMain.handle('torneo-leer', () => leerTorneos());
   ipcMain.handle('sync-conflictos', (_evento, nombre) => {   // 3.8.6
     const d = destinoSync(nombre);
     if (!d) return [];
@@ -139,7 +100,7 @@ function registrarSincronia({ ipcMain, dialog, app, ventana = () => null, alErro
     if (!d || !fs.existsSync(d.ruta)) return null;
     try { return fs.statSync(d.ruta).size > MAX_SYNC ? null : fs.readFileSync(d.ruta, 'utf8'); } catch { return null; }
   });
-  return { carpetaSync, destinoSync, escribirSync, elegirCarpeta, escribirTorneo, leerTorneos };
+  return { carpetaSync, destinoSync, escribirSync, elegirCarpeta };
 }
 
-module.exports = { registrarSincronia, copiasEnConflicto, puedePisar, guardadoEnDe, NOMBRE_SYNC, MAX_SYNC, NOMBRE_TORNEO, MAX_TORNEO };
+module.exports = { registrarSincronia, copiasEnConflicto, puedePisar, guardadoEnDe, NOMBRE_SYNC, MAX_SYNC };

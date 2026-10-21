@@ -24,9 +24,6 @@ contextBridge.exposeInMainWorld('hojarasca', {
     leer: (nombre) => ipcRenderer.invoke('sync-leer', String(nombre || '')),
     // 3.8.6: las copias en conflicto que dejó el programa de sincronización (sólo los nombres; el juego no las toca)
     conflictos: (nombre) => ipcRenderer.invoke('sync-conflictos', String(nombre || '')),
-    // 3.1: el torneo de la semana (un archivo por compu en la misma carpeta)
-    torneoLeer: () => ipcRenderer.invoke('torneo-leer'),
-    torneoEscribir: (nombre, texto) => ipcRenderer.invoke('torneo-escribir', String(nombre || ''), String(texto || '')),
   },
   // 3.8.4: las fotos del álbum, en archivos aparte en la carpeta de la partida (ver fotos-main.cjs). Sincrónico, como
   // el localStorage donde estaban

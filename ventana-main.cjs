@@ -53,8 +53,8 @@ function cuidarVentana({ ventana, index, escribirCrash = () => {}, powerMonitor 
   return { esElJuego: (url) => esElJuego(url, index), pedirGuardar };
 }
 
-// 3.8.6: los permisos que usa el juego: atrapar el mouse, copiar al portapapeles (el informe del banco, el parte, el código
-// del torneo) y la pantalla completa. Todo lo demás (cámara, micrófono, ubicación, avisos del sistema, MIDI…) se niega:
+// 3.8.6: los permisos que usa el juego: atrapar el mouse, copiar al portapapeles (el informe del banco, el parte) y la
+// pantalla completa (4.5.1: el código del torneo ya no: se sacó el torneo). Todo lo demás (cámara, micrófono, ubicación, avisos del sistema, MIDI…) se niega:
 // Electron, sin un manejador, los aprueba todos.
 const PERMISOS_DEL_JUEGO = new Set(['pointerLock', 'clipboard-sanitized-write', 'fullscreen']);
 const permisoPermitido = (permiso) => PERMISOS_DEL_JUEGO.has(String(permiso || ''));
