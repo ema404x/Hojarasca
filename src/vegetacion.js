@@ -1316,6 +1316,40 @@ export function roca(semilla, rico = false) {
   return c.geometria({ soldar: true });
 }
 
+// 4.6.0: cuánto se acuesta la roca con la ladera (0: derecha, como antes; 1: con el plano del suelo bajo su huella)
+export const ACOSTAR_ROCA = 1;
+// 4.6.0: lo que puede quedar la cintura de la roca (su borde) arriba del suelo donde la ladera no es pareja (m)
+export const HOLGURA_ROCA = 0.05;
+// 4.6.0: lo más que puede quedar en el aire la panza que sobresale de una ladera empinada (m): el resto, se hunde
+export const VUELO_ROCA = 0.5;
+// 4.6.0: puntos de la superficie de la roca (local, con su normal) para apoyarla en la ladera al colocarla: los vértices y puntos
+// dentro de cada triángulo (más si la geometría tiene pocos vértices, como la de calidad baja), así el borde queda bien medido.
+// La normal es la suave (la del dibujo: un bollo chico de la piedra no cuenta), salvo en la de pocos vértices.
+export function muestrasRoca(geo) {
+  const p = geo.attributes.position, nr = geo.attributes.normal, idx = geo.index, n = idx ? idx.count : p.count;
+  const pocos = p.count < 300, sub = pocos ? 4 : 2, vistos = new Set(), out = [];
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), na = new THREE.Vector3(), nb = new THREE.Vector3(), nc = new THREE.Vector3();
+  for (let t = 0; t < n; t += 3) {
+    const ia = idx ? idx.getX(t) : t, ib = idx ? idx.getX(t + 1) : t + 1, ic = idx ? idx.getX(t + 2) : t + 2;
+    a.fromBufferAttribute(p, ia); b.fromBufferAttribute(p, ib); c.fromBufferAttribute(p, ic);
+    if (pocos) {
+      // con pocos vértices la normal suave engaña (una cara que sobresale puede «mirar para arriba»): va la de la cara
+      na.subVectors(b, a); nb.subVectors(c, a); na.cross(nb).normalize(); nb.copy(na); nc.copy(na);
+    } else { na.fromBufferAttribute(nr, ia); nb.fromBufferAttribute(nr, ib); nc.fromBufferAttribute(nr, ic); }
+    for (let i = 0; i <= sub; i++) for (let j = 0; j <= sub - i; j++) {
+      const u = i / sub, w = j / sub;
+      const v = new THREE.Vector3().addScaledVector(a, 1 - u - w).addScaledVector(b, u).addScaledVector(c, w);
+      const k = v.x.toFixed(3) + ',' + v.y.toFixed(3) + ',' + v.z.toFixed(3);
+      if (vistos.has(k)) continue;
+      vistos.add(k);
+      // la normal dice si ese punto de la roca mira para abajo o de costado
+      out.push({ p: v, n: new THREE.Vector3().addScaledVector(na, 1 - u - w).addScaledVector(nb, u).addScaledVector(nc, w).normalize() });
+    }
+  }
+  out.pocos = pocos;   // la geometría tiene pocos vértices (calidad baja)
+  return out;
+}
+
 function troncoCaido(semilla) {
   const r = rng(semilla), c = new Constructor();
   const largo = 5 + r() * 4;
@@ -1484,6 +1518,56 @@ export function generarVegetacion(T, calidad, escena) {
     return { ch, tipo, i: ch.listas[tipo].length - 1 };
   }
 
+  // 4.6.0: las rocas apoyan en el suelo también en la ladera. Antes se ponían derechas, a la altura del suelo en su centro menos
+  // 0,2 × escala, y en pendiente el lado de abajo quedaba en el aire (ver CAMBIOS_4_6_0.md). Ahora, sin tocar cuántas son ni
+  // dónde (ni los números al azar que se sacan: el resto del bosque sale igual), se acuestan con el plano del suelo bajo su huella
+  // (quedan sobre la ladera como en lo llano) y se hunden lo que haga falta: donde el suelo cae por debajo de ese plano y donde la
+  // panza sobresale de una ladera muy empinada. En lo llano no cambia nada.
+  const puntosRoca = muestrasRoca(tipos.roca.alta);
+  const _pRoca = new THREE.Vector3(), _qRoca = new THREE.Quaternion(), _sRoca = new THREE.Vector3();
+  const _qLadera = new THREE.Quaternion(), _nLadera = new THREE.Vector3(), _vRoca = new THREE.Vector3(), _arriba = new THREE.Vector3(0, 1, 0);
+  const _nRoca = new THREE.Vector3();
+  // la cintura: lo que en la piedra mira de costado (normal casi horizontal). La panza: lo que en el mundo mira para abajo (en la
+  // de pocas caras, de calidad baja, un poco más: una cara grande que apenas mira para arriba puede ser el borde de abajo)
+  const corteRoca = 0.3, abajoRoca = puntosRoca.pocos ? 0.5 : 0.1;
+  const holguraRoca = HOLGURA_ROCA;
+  function colocarRoca(x, y, z, esc, rotY, inclinar) {
+    const ref = colocar('roca', x, y, z, esc, rotY, inclinar);
+    const M = ref.ch.listas.roca[ref.i];
+    M.decompose(_pRoca, _qRoca, _sRoca);
+    const R = Math.max(0.5, Math.max(_sRoca.x, _sRoca.z));
+    const hx = (T.altura(x + R, z) - T.altura(x - R, z)) / (2 * R), hz = (T.altura(x, z + R) - T.altura(x, z - R)) / (2 * R);
+    _nLadera.set(-hx * ACOSTAR_ROCA, 1, -hz * ACOSTAR_ROCA).normalize();
+    _qLadera.setFromUnitVectors(_arriba, _nLadera);
+    _qRoca.premultiply(_qLadera);
+    M.compose(_pRoca, _qRoca, _sRoca);
+    // la cintura (el borde que se ve) tiene que llegar al suelo en toda la vuelta, salvo la holgura: así no queda ningún lado con
+    // el borde en el aire. Arriba de la cintura la piedra asoma como en lo llano.
+    let sobra = 0;
+    const h0 = T.altura(x, z);
+    for (const { p: v, n } of puntosRoca) {
+      _vRoca.copy(v).applyMatrix4(M);
+      const suelo = T.altura(_vRoca.x, _vRoca.z);
+      if (Math.abs(n.y) <= corteRoca) {
+        // cuánto cae el suelo de verdad, ahí, por debajo del plano de la ladera (en una ladera pareja, nada)
+        const plano = h0 - ((_vRoca.x - x) * _nLadera.x + (_vRoca.z - z) * _nLadera.z) / _nLadera.y;
+        sobra = Math.max(sobra, plano - suelo - holguraRoca);
+      }
+      // y lo que mira para abajo (la panza que sobresale de la ladera) no puede quedar más alto que VUELO_ROCA sobre el suelo
+      _nRoca.set(n.x / _sRoca.x, n.y / _sRoca.y, n.z / _sRoca.z).applyQuaternion(_qRoca);
+      if (_nRoca.y <= abajoRoca * _nRoca.length()) sobra = Math.max(sobra, _vRoca.y - suelo - VUELO_ROCA);
+    }
+    if (sobra > 0) M.elements[13] -= sobra;
+    // lo alto de la roca cerca de su centro (donde se sube la lagartija): ya no es el suelo + 0,35 de antes
+    let arriba = -Infinity;
+    for (const { p: v } of puntosRoca) {
+      _vRoca.copy(v).applyMatrix4(M);
+      if (Math.hypot(_vRoca.x - x, _vRoca.z - z) < 0.45 && _vRoca.y > arriba) arriba = _vRoca.y;
+    }
+    if (arriba > -Infinity) ref.arriba = Math.max(arriba, T.altura(x, z));
+    return ref;
+  }
+
   const lug = T.lugares;
   const miradorVista = lug.mirador;
   const finVistaMirador = { x: miradorVista.x + (LAGO.x - miradorVista.x) * 0.62, z: miradorVista.z + (LAGO.z - miradorVista.z) * 0.62 };
@@ -1606,7 +1690,7 @@ export function generarVegetacion(T, calidad, escena) {
       else if (b > 0.5 && tirada < 0.02) { tipo = 'tronco'; esc = 1; }
       if (!tipo) continue;
       const rot = r() * Math.PI * 2;
-      const ref = colocar(tipo, x, h - (tipo === 'roca' ? 0.2 * esc : 0.05), z, esc, rot, tipo === 'tronco' ? 0 : 0.1);
+      const ref = tipo === 'roca' ? colocarRoca(x, h - 0.2 * esc, z, esc, rot, 0.1) : colocar(tipo, x, h - 0.05, z, esc, rot, tipo === 'tronco' ? 0 : 0.1);   // 4.6.0: la roca, apoyada
       let choque = null;
       if (tipo === 'roca' && esc > 0.9) { choque = { x, z, r: esc * 0.9 }; colisiones.push(choque); }
       if (tipo === 'tronco') {
@@ -1666,7 +1750,7 @@ export function generarVegetacion(T, calidad, escena) {
           const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
           if (T.agua(x, z) || T.distSendero[T.indice(x, z)] < 3.2) continue;
           const esc = 0.38 + r() * (0.7 + perfil.exposicion * 0.45);
-          const ref = colocar('roca', x, T.altura(x, z) - 0.16 * esc, z,
+          const ref = colocarRoca(x, T.altura(x, z) - 0.16 * esc, z,   // 4.6.0: apoyada en la ladera
             [esc * (0.78 + r() * 0.55), esc * (0.58 + r() * 0.38), esc * (0.82 + r() * 0.5)], r() * Math.PI * 2, 0.08);
           matas.push({ x, z, tipo: 'roca', ref, choque: null, decorativo: true, esc });
           composicionPaisaje.rocas++;

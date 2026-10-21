@@ -1156,7 +1156,8 @@ export function crearBichos(T, veg, col, escena, sonido, registrar, progreso, ob
         l.roca = mejor;
         if (mejor) {
           const a2 = r() * 6.28;
-          l.pos.set(mejor.x + Math.cos(a2) * 0.3, T.altura(mejor.x, mejor.z) + 0.35, mejor.z + Math.sin(a2) * 0.3);
+          // 4.6.0: arriba de la piedra de verdad (las rocas ahora se apoyan y se hunden en la ladera: con «suelo + 0,35» flotaba)
+          l.pos.set(mejor.x + Math.cos(a2) * 0.3, mejor.ref?.arriba ?? T.altura(mejor.x, mejor.z) + 0.35, mejor.z + Math.sin(a2) * 0.3);
           l.rumbo = a2;
           l.huyendo = 0;
         }
