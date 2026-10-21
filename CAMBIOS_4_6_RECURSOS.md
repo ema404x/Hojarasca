@@ -116,7 +116,7 @@ quede ninguna «enterrada» del todo y mirar el musgo (va arriba de la roca).
 - Partida real escrita y **no corrida** (no se usó Electron, por pedido): `pruebas/humo-4-6-recursos.cjs` (vender el pico de cantero
   con y sin oficio/plata, la cantera con el pico común y con el de cantero, el mallín, la barranca, que se repone, el pehuén en otoño,
   guardar y recargar; con capturas).
-- `npm run verify` de corrido: ver el informe final (GATE).
+- `npm run verify` de corrido (sin Electron), con todo commiteado: **262 pasos OK** (eran 261; el nuevo es éste).
 
 ## Pendientes y para decidir
 - Correr `humo-4-6-recursos.cjs` y mirar las capturas: el frente de roca, el juncal, las hierbas y la barranca nunca se vieron en
