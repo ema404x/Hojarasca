@@ -50,3 +50,28 @@ El juego anda justo en la plaza (la base cuesta ~15 ms; el margen hasta 16,7 ms 
 - Los precios de los puestos y los pedidos no deben romper el equilibrio del dinero (~$3.200/día con jornales; más con empleo y negocios).
 - Abiertas: dónde van los puestos y los recursos (lo responde la auditoría), los números (precios por puesto, pago de los pedidos, tope de la carga, casillas y tamaño de pila), ejemplos de 2 o 3 pedidos por personaje nuevo, cómo se ve el tablón y cuántos pedidos trae por día.
 - Antes de sumar mucho al mapa: medir los fps en la Ryzen 5 4600G (`npm run medir:caminata`).
+
+---
+
+## Decisiones tras la auditoría (21-10-2026; ver `AUDITORIA_MAPA_VALOR.md`)
+- **Paquete 1a todo junto**, en una sola versión (no se parte en dos).
+- **Puestos de ruta (cuatro):** A Puesto de la Cantera (−320, −288), B Puesto del Paso (−350, −20; correrlo ~10 m al
+  este de la vía), C Puesto de la Estepa (320, 80) y D Puesto del Riel Sur (288, −224). **El D es además una parada
+  nueva de la trochita** y entra al comercio entre paradas. Usar los perfiles de parada sin usar de `comercio.js`.
+  Coordenadas fijas (no dependen de la calidad gráfica).
+- **Reparar un puesto:** 3 etapas de $3.000 + 10 tablas + 10 piedras; caja de $5.000 que se repone $700/día.
+- **Recursos de zona** (puntos que dan N cada D días, como la cantera del Desafío): piedra buena en la cantera
+  (−405, −305), 6 cada 2 días (hace falta un frente de roca); junco 3/día y hierbas 2/día en el mallín (−260, −240);
+  arcilla 4 cada 2 días en la desembocadura (66, 44); lana y **cuero del pastor** (no se caza); piñones: **no se suman
+  pehuenes**, los 8 del mirador dan 6 cada otoño.
+- **Tablón de encargos en la plaza:** 3 a la vista por día, 1 entrega por día, 2 días de plazo; pagan ×1,5 / ×2 / ×2,5
+  según la distancia a la plaza ($700–2.200 por encargo; ~$1.000–2.000/día sobre los $3.200 de hoy).
+- **Gente:** a **Nicanor** (Cabaña del Pescador) y **Josefina** (mirador) se les da economía (pedidos y una tiendita)
+  en vez de crear pescador y guardaparque nuevos; nuevos: **pastor** (galpón de esquila, hoy mudo), **arriero**
+  (puesto B, va y viene por el oeste) y **cantero** (cantera, con el puesto A).
+- **Pico:** el pico común (hoy se llama «Pico de cantero») pasa a llamarse **«Pico»**; el **«Pico de cantero»** nuevo
+  es el único que trabaja la veta de la cantera, que se repone; lo vende el cantero y pide picapedrero nivel 2 o 3.
+- **Herramientas de zona:** las cuatro del plan (hoz o cuchillo de junco, pala de arcilla, esquiladora o cuchillo de
+  cuero, pico de cantero), dadas o vendidas por la gente de cada zona.
+- **A revisar:** en la captura `auditoria-mapa/20b-cantera-de-cerca.jpg` hay piedras oscuras que parecen flotar sobre
+  la ladera (puede ser perspectiva); mirarlo de cerca antes de poner la cantera. Medir fps en la 4600G antes de sumar.
