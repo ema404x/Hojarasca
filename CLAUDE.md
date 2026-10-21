@@ -53,5 +53,10 @@ El usuario habla **castellano rioplatense**. Juego, textos, comentarios, commits
 - `hojarasca-medir`: rendimiento según la PC (la referencia es la Ryzen 5 4600G; en la notebook, sólo antes/después).
 - `hojarasca-cerrar-version`: cerrar, subir y empaquetar.
 
+## Agentes del proyecto (`.claude/agents/`)
+- `hojarasca-corredor` (Sonnet): corre el gate, las partidas, mediciones y capturas y devuelve el resultado exacto; no cambia el juego.
+- `hojarasca-revisor`: pase de bugs de sólo lectura por zona, con reproducción de cada hallazgo.
+- El trabajo delicado (diseñar, juntar ramas, buscar la causa de un bug) se hace con el modelo principal.
+
 ## Cerrar una versión
 Ver la skill `hojarasca-cerrar-version`: versión, `CAMBIOS_<ver>.md`, línea en `RELEASE_STATUS.md`, traspaso en `SEGUIR-EN-OTRA-PC.md`, commit, push con etiqueta `v<ver>` y zip completo en Descargas.
