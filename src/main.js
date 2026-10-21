@@ -207,7 +207,7 @@ import { crearHuevosMundo } from './huevos-mundo.js';
 import { crearHuevosPortada } from './huevos-portada.js';
 // 4.6 recursos: la veta de la cantera, el juncal y las hierbas del mallín, la barranca de arcilla y los piñones de los pehuenes
 import { crearRecursosZonaMundo } from './recursos-zona-mundo.js';
-import { HERRAMIENTAS_ZONA, venderHerramienta, darHerramienta, puedeComprarHerramienta } from './recursos-zona.js';
+import { HERRAMIENTAS_ZONA, venderHerramienta, darHerramienta, puedeComprarHerramienta, PUNTO_ZONA } from './recursos-zona.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego, lugarDeCasaTe } from './cantina-juego.js';
 import { crearAmbienteCantina } from './cantina-ambiente.js';
@@ -892,6 +892,9 @@ async function construir() {
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, registrar: (id) => registrar(id), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarEntrada: (id, n) => sumarEntrada(id, n), nivel: (id) => nivelDe(id), ganarOficio: (id, n) => ganarOficio(id, n), refrescarBarra: () => refrescarBarra(true),
   });
+  // 4.6.0: el juncal y las hierbas, en su propio claro: sin pasto alto ni helechos encima (antes, crecido y «al ras» casi no se
+  // distinguían entre el pasto y el helecho del mallín)
+  if (recursosZona) for (const id of ['juncal', 'hierbas']) { const p = PUNTO_ZONA[id]; veg.despejar(p.x, p.z, 3.4); pelarPastoTemporal(p.x, p.z, 3.6); }
   // 3.1: el desafío del día (4.5.1: sin carreras ni torneo)
   { const estilo = document.createElement('style'); estilo.textContent = CSS_MODOS; document.head.appendChild(estilo); }
   modos = crearModos({ esDesafio, progreso: () => progreso, guardar: () => guardar(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, traducir: traducirPanel });

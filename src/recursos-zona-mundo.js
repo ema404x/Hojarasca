@@ -81,32 +81,50 @@ function geoPilaCantera(r, s) {
   return juntar(partes);
 }
 // El juncal: tallos finos y altos, verdes con la punta parda. Cortado: los mismos tallos, al ras
+// 4.6.0: que se distinga a simple vista del pasto alto y del helecho de alrededor. Crecido: más alto (1,4 a 2,4 m), más grueso
+// y de un verde junco oscuro, azulado, con más espigas pardas. Al ras: tocones cortos color paja y manchones de rastrojo claro
+// en el suelo. (Los mismos números al azar que antes: lo demás del lugar sale igual; los tallos van sin tapa de abajo, así el
+// total de triángulos no crece.)
 function geoJuncal(r, s) {
   const tallos = Array.from({ length: 64 }, () => {
     const a = r() * 6.28, d = Math.sqrt(r()) * 2.4;
-    return { x: Math.cos(a) * d, z: Math.sin(a) * d * 0.7, h: 1.0 + r() * 0.7, rx: (r() - 0.5) * 0.25, rz: (r() - 0.5) * 0.25, color: r() < 0.25 ? '#8a8a46' : '#5e7a36', espiga: r() < 0.14 };
+    return { x: Math.cos(a) * d, z: Math.sin(a) * d * 0.7, h: 1.0 + r() * 0.7, rx: (r() - 0.5) * 0.25, rz: (r() - 0.5) * 0.25, color: r() < 0.25 ? '#4f7a3a' : '#3c6a32', espiga: r() < 0.14 };
   });
-  const armar = (corte) => juntar(tallos.flatMap((t) => {
-    const h = t.h * corte, y = s(t.x, t.z) - 0.05;
-    const p = [{ g: new THREE.CylinderGeometry(corte < 1 ? 0.012 : 0.004, 0.022, h, 3, 1).translate(0, h / 2, 0).rotateX(t.rx).rotateZ(t.rz).translate(t.x, y, t.z), color: corte < 1 ? '#8a7a46' : t.color, variar: 0.1, apoya: true }];
-    if (t.espiga && corte === 1) p.push({ g: new THREE.ConeGeometry(0.03, 0.12, 4).translate(t.x, y + h * 0.82, t.z), color: '#6a4a2a' });
+  const crecido = () => juntar(tallos.flatMap((t, i) => {
+    const h = t.h * 1.4, y = s(t.x, t.z) - 0.05;
+    const p = [{ g: new THREE.CylinderGeometry(0.006, 0.028, h, 3, 1, true).translate(0, h / 2, 0).rotateX(t.rx).rotateZ(t.rz).translate(t.x, y, t.z), color: t.color, variar: 0.1, apoya: true }];
+    if (t.espiga || i % 3 === 0) p.push({ g: new THREE.ConeGeometry(0.035, 0.16, 4).translate(0, h * 0.86, 0).rotateX(t.rx).rotateZ(t.rz).translate(t.x, y, t.z), color: '#5a3a1e' });
     return p;
   }));
-  return { lleno: armar(1), ras: armar(0.18) };
+  const alRas = () => {
+    const partes = tallos.map((t) => {
+      const h = 0.2 + t.h * 0.07, y = s(t.x, t.z) - 0.05;
+      return { g: new THREE.CylinderGeometry(0.022, 0.03, h, 3, 1, true).translate(t.x, y + h / 2, t.z), color: '#d8c68c', variar: 0.1, apoya: true };
+    });
+    // el rastrojo: manchones bajos y claros donde estaban las matas
+    for (let i = 0; i < 8; i++) {
+      const t = tallos[i * 8], rad = 0.5 + (i % 3) * 0.15;
+      partes.push({ g: new THREE.CylinderGeometry(rad, rad * 1.1, 0.05, 6, 1).translate(t.x, sMin(s, t.x, t.z, rad) - 0.01, t.z), color: '#c4b27a', variar: 0.08, apoya: true });
+    }
+    return juntar(partes);
+  };
+  return { lleno: crecido(), ras: alRas() };
 }
 // Las hierbas: matas bajas, con alguna flor lila. Cortadas: matas chicas, sin flor
+// 4.6.0: que se note: crecidas, matas más grandes y de un verde más vivo, con flores lilas más grandes; cortadas, matas chicas
+// y pálidas, color paja (los mismos números al azar que antes)
 function geoHierbas(r, s) {
   const matas = Array.from({ length: 14 }, () => {
     const a = r() * 6.28, d = Math.sqrt(r()) * 2.0;
-    return { x: Math.cos(a) * d, z: Math.sin(a) * d, e: 0.18 + r() * 0.14, color: r() < 0.5 ? '#5f8a42' : '#6f9a4a', flor: r() < 0.5, giro: r() * 6.28 };
+    return { x: Math.cos(a) * d, z: Math.sin(a) * d, e: 0.18 + r() * 0.14, color: r() < 0.5 ? '#4f9a3c' : '#62a845', flor: r() < 0.5, giro: r() * 6.28 };
   });
-  const armar = (k) => juntar(matas.flatMap((m) => {
+  const armar = (k, palido) => juntar(matas.flatMap((m) => {
     const e = m.e * k, y = s(m.x, m.z);
-    const p = [{ g: new THREE.IcosahedronGeometry(e, 0).scale(1.3, 0.9, 1.3).rotateY(m.giro).translate(m.x, y + e * 0.45, m.z), color: m.color, variar: 0.12, apoya: true }];
-    if (m.flor && k === 1) p.push({ g: new THREE.IcosahedronGeometry(0.05, 0).translate(m.x, y + e * 1.3, m.z), color: '#b48ac0' });
+    const p = [{ g: new THREE.IcosahedronGeometry(e, 0).scale(1.3, palido ? 0.6 : 1.0, 1.3).rotateY(m.giro).translate(m.x, y + e * (palido ? 0.25 : 0.45), m.z), color: palido ? '#b4b47e' : m.color, variar: 0.12, apoya: true }];
+    if (m.flor && !palido) p.push({ g: new THREE.IcosahedronGeometry(0.07, 0).translate(m.x, y + e * 1.35, m.z), color: '#a678c4' });
     return p;
   }));
-  return { lleno: armar(1), ras: armar(0.45) };
+  return { lleno: armar(1.3, false), ras: armar(0.4, true) };
 }
 // La barranca: un lomo de barro rojizo con el corte a la vista
 function geoBarranca(r, s) {
