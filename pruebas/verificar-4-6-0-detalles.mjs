@@ -59,6 +59,7 @@ const main = leer('src/main.js');
   const tapados = faroles.filter((l) => Math.abs(l.lx - LUGAR_TABLON.lx) < 1.3 && l.lz < LUGAR_TABLON.lz);
   ok(!tapados.length, 'visto de frente, ningún farol detrás del techito');
   ok(LUGAR_TABLON.lz > 7 && LUGAR_TABLON.lz < 8.2, 'sigue en el frente de la plaza, entre el lote y la vereda de la calle de la Vía');
+  ok(main.includes('lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo) || tablonJuego?.accion(js))) vecino = gente.cerca(js, camara, true);'), 'delante del tablón, la E es del tablón (al vecino de atrás, como el jefe en la soga del mástil, hay que mirarlo de frente)');
   ok(Math.abs(LUGAR_TABLON.lx - 5.4) > 5 && Math.hypot(LUGAR_TABLON.lx, LUGAR_TABLON.lz - (7 - 1.75)) > 3, 'lejos del cartel (en +5,4) y del mástil');
 }
 
