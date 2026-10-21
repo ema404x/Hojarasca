@@ -201,6 +201,9 @@ import { crearRinconesJuego } from './rincones-juego.js';
 import { crearHuevosJuego } from './huevos-juego.js';
 import { crearHuevosMundo } from './huevos-mundo.js';
 import { crearHuevosPortada } from './huevos-portada.js';
+// 4.6 recursos: la veta de la cantera, el juncal y las hierbas del mallín, la barranca de arcilla y los piñones de los pehuenes
+import { crearRecursosZonaMundo } from './recursos-zona-mundo.js';
+import { HERRAMIENTAS_ZONA, venderHerramienta, darHerramienta, puedeComprarHerramienta } from './recursos-zona.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego, lugarDeCasaTe } from './cantina-juego.js';
 import { crearAmbienteCantina } from './cantina-ambiente.js';
@@ -861,6 +864,12 @@ async function construir() {
   vela.cargar(progreso.vela);
   kayak.sumarBote(vela);
   tirolesas = crearTirolesas(T, escena, col, veg, sonido, { obras: () => obras, nota: (t, sub) => nota(t, sub) });
+  // 4.6 recursos: los recursos de zona (sólo en el Relax; ver recursos-zona-mundo.js). Las mallas nacen ya, así su programa se compila en la carga
+  if (!esDesafio) recursosZona = crearRecursosZonaMundo({
+    T, escena, col, progreso: () => progreso, estacion: () => ajustes.estacion, pehuenes: () => veg.arboles.filter((a) => a.especie === 'pehuen' && !a.sacado),
+    nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, registrar: (id) => registrar(id), sumarMaterial: (k, n) => sumarMaterial(k, n),
+    sumarEntrada: (id, n) => sumarEntrada(id, n), nivel: (id) => nivelDe(id), ganarOficio: (id, n) => ganarOficio(id, n), refrescarBarra: () => refrescarBarra(true),
+  });
   // 3.1: el desafío del día (4.5.1: sin carreras ni torneo)
   { const estilo = document.createElement('style'); estilo.textContent = CSS_MODOS; document.head.appendChild(estilo); }
   modos = crearModos({ esDesafio, progreso: () => progreso, guardar: () => guardar(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, traducir: traducirPanel });
@@ -3247,6 +3256,8 @@ document.addEventListener('keydown', (e) => {
       // 3.9.1: bailando con Dalia (E deja de bailar) o al lado de la mesa de truco (E te invita a una partida); el aviso, en el mismo lugar
       if (!js.enTren && !js.enKayak && !objetivo && penaJuego) { const a = penaJuego.accion(js); if (a) { a.hacer(); cachePena = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
+      // 4.6 recursos: la veta, el juncal, las hierbas, la barranca de arcilla y el pehuén (el aviso, en el mismo lugar y con la misma función: recursosZona.accion)
+      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && recursosZona) { const a = recursosZona.accion(js); if (a) { a.hacer(); cacheRecursosZona = null; break; } }
       if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
       // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
       if (desafio && !js.enTren && !objetivo && desafio.usarCercaDe?.(js.pos, distanciaAPuerta(js.pos))) break;
@@ -4866,6 +4877,8 @@ function vibrarMando(evento, intensidad = 1) {
 // estés cerca, lo que levantes se paga primero del acopio: se termina el ir y
 // venir con todo encima.
 const CLAVES_MATERIAL = ['tronco', 'tabla', 'piedra', 'cristal', 'lana'];
+// 4.6 recursos: el acopio guarda también los materiales de zona (ver recursos-zona.js)
+CLAVES_MATERIAL.push('junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera');
 const RADIO_ACOPIO_OBRA = 18, RADIO_ACOPIO_MANO = 3.4;
 function acopio() {
   if (!progreso.acopio || typeof progreso.acopio !== 'object') progreso.acopio = {};
@@ -5295,6 +5308,7 @@ let empleoJuego = null;   // 4.3: el empleo fijo: el cartel de turnos, las tarea
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla
 let granjaMundo = null, granjaJuego = null;   // 3.7.2 (granja): ver granja-mundo.js y granja-juego.js
+let recursosZona = null;   // 4.6 recursos: ver recursos-zona-mundo.js
 let huevosJuego = null, huevosMundo = null, huevosPortada = null;   // 4.2 (huevos de pascua): ver huevos-juego.js y huevos-mundo.js
 let rinconesMundo = null, rinconesJuego = null;   // 3.7.5 (rincones): ver rincones-mundo.js y rincones-juego.js
 let penaJuego = null, penaMundo = null;   // 3.9.1: la peña (ver pena-juego.js y pena-mundo.js)
@@ -9526,6 +9540,7 @@ let cacheMecanica = null;   // 3.6 (mecánicas): lo que se puede hacer acá en l
 let cacheTaller = null;   // 3.7.3: el panel del taller ferroviario (ver taller-tren-juego.js)
 let cacheEmpleo = null;   // 4.3: lo que se hace con E en el cartel de turnos o en el lugar de la tarea que toca (ver empleo-juego.js)
 let cacheDuende = null;   // 3.7.5 (rincones): el duende tallado que tenés al lado
+let cacheRecursosZona = null;   // 4.6 recursos: la veta, el juncal, las hierbas, la arcilla o el pehuén que tenés al lado
 let cacheHuevos = null;   // 4.2 (huevos de pascua): lo que se puede hacer acá (ver huevos-juego.js)
 let cacheRincones = null;   // 3.7.5 (rincones): lo que se puede hacer acá en los rincones (ver rincones-juego.js)
 let cacheFiesta = null;   // 3.7.5: lo de las fiestas (ver fiestas-juego.js)
@@ -10056,6 +10071,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }   // 3.7.2 (granja)
   try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }   // 3.7.5 (rincones)
   try { if (modo === 'jugando' && !desafio) huevosJuego?.actualizar(dt); } catch (e) { fallaSistema('huevos', e); }   // 4.2 (huevos de pascua)
+  try { if (modo === 'jugando' && !desafio) recursosZona?.actualizar(dt, jugador.estado.pos); } catch (e) { fallaSistema('recursos-zona', e); }   // 4.6 recursos
   try { if (modo === 'jugando' && !desafio && !foto.activo) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }   // 4.0.3: ni el correo con la hora del deslizador
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
@@ -10365,6 +10381,7 @@ function cuadroDelJuego(tRaf, manual) {
       cacheEmpleo = empleoJuego ? empleoJuego.accion(js) : null;   // 4.3
       cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;   // 3.7.5 (rincones)
       cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null;   // 4.2 (huevos de pascua)
+      cacheRecursosZona = recursosZona ? recursosZona.accion(js) : null;   // 4.6 recursos
       cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;   // 3.7.5 (rincones)
       cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5
       cacheCantina = cantinaJuego ? (cantinaJuego.accion(js) || teJuego?.accion(js) || null) : null;   // 3.9.0 (3.9.2: y la casa de té)
@@ -10425,6 +10442,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (!aviso && cacheCantina && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheCantina.texto };
     if (!aviso && cachePena && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cachePena.texto };   // 3.9.1: la peña
     if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
+    if (!aviso && cacheRecursosZona && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: 'E', texto: cacheRecursosZona.texto };   // 4.6 recursos: como en la tecla E
     if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
     // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
     if (!aviso && desafio && !objetivo && !js.enTren) { const t = desafio.avisoCercaDe?.(js.pos, distanciaAPuerta(js.pos)); if (t) aviso = { tecla: 'E', texto: t }; }
@@ -11067,6 +11085,10 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__huevos = { juego: () => huevosJuego, mundo: () => huevosMundo, niebla: () => niebla?.malla?.material?.uniforms?.uOpacidad?.value, portada: () => huevosPortada };
   // 3.7.5 (rincones): los rincones, para las pruebas y las capturas
   if (HOJARASCA_DEBUG) window.__hojarasca.__rincones = { juego: () => rinconesJuego, mundo: () => rinconesMundo, refrescarHuerta: () => refrescarHuerta(), amistad: (k, n) => sumarAmistadDe(progreso, k, n, progreso.dia) };
+  // 4.6 recursos: para las pruebas: los puntos, reponer todo y dar o vender las herramientas de zona (como lo harán los personajes)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__recursosZona = { mundo: () => recursosZona, reponer: () => recursosZona?.reponer(), HERRAMIENTAS: HERRAMIENTAS_ZONA,
+    dar: (id) => { const r = darHerramienta(progreso, id); refrescarBarra(true); return r; }, vender: (id) => { const r = venderHerramienta(progreso, id, { nivel: nivelDe(HERRAMIENTAS_ZONA[id]?.requisito?.oficio || 'picapedrero') }); refrescarBarra(true); return r; },
+    puede: (id) => puedeComprarHerramienta(progreso, id, { nivel: nivelDe(HERRAMIENTAS_ZONA[id]?.requisito?.oficio || 'picapedrero') }) };
   if (HOJARASCA_DEBUG) window.__hojarasca.__techo = () => ({ bajoTecho, espacio: espacioAudioActual, techo: techoAudioActual });
   requestAnimationFrame(bucle);
 })();
