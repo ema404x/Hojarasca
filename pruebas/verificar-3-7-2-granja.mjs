@@ -18,6 +18,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import * as G from '../src/granja.js';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -51,16 +52,13 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
   // main.js: E y el aviso en el mismo lugar y con la misma función
   const main = leer('src/main.js');
   ok(main.includes("import { crearGranjaMundo } from './granja-mundo.js';") && main.includes("import { crearGranjaJuego } from './granja-juego.js';"), 'main.js importa la granja');
-  const iE = main.indexOf("if (!js.enTren && !js.enKayak && !objetivo && granjaJuego) { const a = granjaJuego.accion(js); if (a) { a.hacer(); cacheGranja = null; break; } }");
-  const iOvejaE = main.indexOf('if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }');
-  const iMecE = main.indexOf('if (!js.enTren && !js.enKayak && !objetivo && mecanicasAldea) { const m = mecanicasAldea.accion(js);');
-  ok(iE > iMecE && iE < iOvejaE && iMecE > 0, 'la tecla E: la granja después de lo de la aldea y antes que la oveja');
-  const iA = main.indexOf("if (!aviso && cacheGranja && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheGranja.texto };");
-  const iOvejaA = main.indexOf('if (!aviso && ovejaCercana && !objetivo) aviso = ');
-  const iMecA = main.indexOf('if (!aviso && cacheMecanica && !js.enTren && !js.enKayak && !objetivo) aviso = ');
-  ok(iA > iMecA && iA < iOvejaA && iMecA > 0, 'el aviso: en el mismo orden que la tecla E');
-  ok(main.includes('cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;'), 'el aviso usa la misma función que E');
-  ok(/\/\/ 3\.7\.2 \(granja\): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales \(el aviso, en el mismo/.test(main), 'el comentario de la prioridad compartida, en main.js');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['mecanica', 'granja', 'oveja'], 'la tecla E y el aviso: la granja después de lo de la aldea y antes que la oveja'); n++;
+  { const r = que({ acciones: { granja: true, mecanica: true }, ovejaCercana: { i: 0 } }); ok(r.e === 'mecanica' && r.avisoId === 'mecanica', 'lo de la aldea le gana a la granja'); }
+  { const r = que({ acciones: { granja: true }, ovejaCercana: { i: 0 } }); ok(r.e === 'granja' && r.avisoId === 'granja', 'y la granja, a la oveja'); }
+  revisarModulo('granja', 'granja'); n++;
+  ok(main.includes('cacheGranja = granjaJuego ? granjaJuego.accion(js) : null;') && /case 'granja': return enE \? granjaJuego\?\.accion\(js\) : cacheGranja;/.test(main), 'el aviso usa la misma función que E');
+  ok(/3\.7\.2 \(granja\): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales/.test(leer('src/interacciones.js')), 'el comentario de la prioridad compartida, en interacciones.js');
   ok(main.includes("try { if (modo === 'jugando' && !desafio) granjaJuego?.actualizar(dt); } catch (e) { fallaSistema('granja', e); }"), 'la granja, aislada en el bucle (fallaSistema)');
   ok(main.includes("if (!esDesafio) granjaMundo = crearGranjaMundo({ T, escena, col: () => col, permitir: () => planificadorAntitirones.permitir('granja', { pesada: true }), inviernoVisual: () => U.uInvierno.value > 0.5 });"), 'las mallas de la granja se crean al cargar (sólo en el Relax), y lo pesado cuando el planificador deja');
   ok(main.includes('granja: granjaJuego,   // 3.7.2 (granja)'), 'la charla conoce la granja');

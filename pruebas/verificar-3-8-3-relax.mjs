@@ -31,6 +31,7 @@ import * as Comercio from '../src/comercio.js';
 import * as EV from '../src/eventos-valle.js';
 import { crearTraductor } from '../src/idioma.js';
 import { EN } from '../src/idioma-en.js';
+import { que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -105,12 +106,15 @@ const trozo = (desde, hasta) => {
 
 // ---------------------------------------------------------------- 3. E y el aviso: dormir en la carpa o en la casa
 {
-  const e = trozo("case 'KeyE': {", "    case 'Tab':");
-  // (3.8.6: la carpa se anota adentro de dormir(), después de las guardas)
-  ok(e.includes("if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { dormir({ carpa: true }); break; }"), 'tecla E: la carpa duerme sólo sin nada mirado');
-  ok(e.includes('if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }'), 'tecla E: tu casa duerme sólo sin nada mirado');
-  // el aviso: lo mirado (objetivo) gana y la carpa y la casa van con !aviso
-  ok(main.includes("let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;") && main.includes("if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };") && main.includes('if (!aviso && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) {'), 'el aviso: lo mirado antes que dormir (como la tecla E)');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js; la carpa se anota adentro de dormir())
+  const ramita = { tipo: 'ramita', texto: 'Juntar la ramita' };
+  for (const [donde, est, id] of [['la carpa', { enLaCarpa: true }, 'carpa'], ['tu casa', { dentroDeTuObra: true }, 'obra-dormir']]) {
+    const sin = que({ ...est, puedeDormirJuntoAlFuego: true });
+    ok(sin.e === id && sin.hechos.includes('dormir') && sin.avisoId === id, `tecla E: en ${donde}, de noche, dormís (y el aviso lo dice)`);
+    const con = que({ ...est, puedeDormirJuntoAlFuego: true, objetivo: ramita });
+    ok(con.e === 'objetivo' && con.hechos.join() === 'usarObjetivo', `tecla E: ${donde} duerme sólo sin nada mirado`);
+    ok(con.texto === 'Juntar la ramita', 'el aviso: lo mirado antes que dormir (como la tecla E)');
+  }
 }
 
 // ---------------------------------------------------------------- 4. las ramitas llenas
@@ -119,7 +123,7 @@ const trozo = (desde, hasta) => {
   const i = obj.indexOf("if (obj.it.tipo === 'ramita' && progreso.ramitas >= 12) return { ramita: true, llena: true };"), j = obj.indexOf('if (!quitar(obj.it)) return null;', i);
   ok(i > 0 && j > i && j - i < 120, 'objetos.js: con doce ramitas no se quita la del suelo (se mira antes de quitar)');
   ok(obj.includes('progreso.ramitas = Math.min(12, progreso.ramitas + 1)'), 'y el tope sigue en doce');
-  const e = trozo("case 'KeyE': {", "    case 'Tab':");
+  const e = trozo('function usarObjetivo() {', '\n}');   // (4.6.1: lo que mirás, en usarObjetivo, que llama la tabla de interacciones)
   ok(e.includes("if (r?.llena) nota('No te entran más ramitas'") && e.includes('if (r && !r.llena) destellarRanura('), 'tecla E: con las ramitas llenas lo dice y no destella la casilla');
 }
 

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { enOrden, revisarModulo, que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const imp = (f) => import(pathToFileURL(path.join(raiz, 'src', f)).href);
@@ -241,7 +242,11 @@ for (const malo of [{ id: 'magia', pedido: 5, cumple: 7 }, { id: 'lena', pedido:
   ok(m.includes('huevosJuego?.fugazVista(diaNoche, nocheCielo.vistas)') && m.includes("!desafio) huevosJuego?.actualizar(dt)"), 'main.js: la fugaz vista y el reloj de 2 segundos, sólo en el Relax');
   const j = leer('src/huevos-juego.js');
   ok(!/requestAnimationFrame/.test(j) && !/from 'three'/.test(j) && /acum < 2/.test(j), 'huevos-juego.js: por evento, sin cuadros ni three');
-  ok(m.includes('cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null') && m.includes("aviso = { tecla: 'E', texto: cacheHuevos.texto }") && m.includes('cacheHuevos) { const a = cacheHuevos; cacheHuevos = null; a.hacer(); break; }'), 'main.js: la E y el aviso de los huevos, en el mismo lugar (después de los rincones) y con la misma función');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  ok(m.includes('cacheHuevos = huevosJuego ? huevosJuego.accion(js) : null') && /case 'huevos': return cacheHuevos;/.test(m), 'main.js: la E y el aviso de los huevos, con la misma función (lo buscado)');
+  enOrden(['rincones', 'huevos', 'jaula'], 'la E y el aviso de los huevos, en el mismo lugar (después de los rincones)');
+  revisarModulo('huevos', 'huevos');
+  { const r = que({ acciones: { huevos: true } }); ok(r.hechos[0] === 'limpiar(huevos)' && r.hechos[1] === 'huevos.hacer', 'la E lo saca de lo buscado antes de hacerlo (no se repite)'); }
   ok(m.includes('if (huevosJuego?.radioMadrugada()) { guardar(); return; }') && m.indexOf('huevosJuego?.radioMadrugada()') < m.indexOf('const oido = escucharRadio(r,') && m.indexOf('cumplirPedido(r, progreso.materiales') < m.indexOf('huevosJuego?.radioMadrugada()'), 'main.js: la radio de madrugada va después de mandar un pedido y antes de lo de siempre');
   ok(m.includes("huevosPortada = crearHuevosPortada({ enPortada: () => modo === 'inicio'") && m.includes("prefers-reduced-motion: reduce"), "main.js: el código de la portada sólo en la portada y con reducir movimiento");
   const vi = leer('src/vida.js');

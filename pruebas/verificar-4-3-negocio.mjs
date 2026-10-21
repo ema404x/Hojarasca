@@ -12,6 +12,7 @@
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
+import { que } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const { PLANO, PLANOS } = await import('../src/construccion.js');
@@ -451,10 +452,12 @@ for (const [id, def] of Object.entries(LOCALES)) {
   tiene('if (negocioJuego?.esLocal(o.plano.id)) return negocioJuego.aviso(o);', 'el aviso');
   tiene('if (negocioJuego?.esLocal(o.plano.id)) { negocioJuego.usar(o); refrescarBarra(true); return; }', 'y la tecla E');
   tiene('if (negocioJuego?.esLocal(o.plano.id)) negocioJuego.usar(o, true);', 'mantener E abre el panel aunque haya un cliente (4.4.2: antes Mayús + E, que es correr)');
-  tiene('if (negocioJuego?.panelAbierto()) { negocioJuego.cerrarPanel(); break; }', 'E cierra el panel');
+  tiene("if (nombre === 'negocio') negocioJuego.cerrarPanel();", 'E cierra el panel');   // (4.6.1: por la tabla de interacciones)
+  ok(que({ panelAbierto: (x) => x === 'negocio', vecino: { nombre: 'Ercilia' } }).e === 'local-abierto', 'E cierra el panel antes que nada');
   tiene('else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();', 'Escape también');
   tiene('|| !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');
-  tiene('if (negocioJuego?.panelAbierto()) { aviso = null; marcarHud(); }', 'con el panel abierto no hay aviso');
+  tiene('if (negocioJuego?.panelAbierto()) marcarHud();', 'con el panel abierto, la marca del HUD');
+  ok(que({ panelAbierto: (x) => x === 'negocio', hachaCerca: {}, cercaDelFuego: true }).aviso === null, 'con el panel abierto no hay aviso');
   tiene('if (vecino?.clienteNegocio) vecino = null;', 'los clientes de tu local no se charlan: E sobre el mostrador los atiende');
   tiene('acumuladoVecino = 0; vecino = gente.cerca(js, camara, false, (g) => g.clienteNegocio || g.empleadoNegocio);', 'y la búsqueda del vecino salta a los clientes y empleados (4.4.2) y pide el siguiente');
   tiene("try { if (modo === 'jugando' && !desafio && !foto.activo) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }", 'el bucle lo avanza aislado con fallaSistema');

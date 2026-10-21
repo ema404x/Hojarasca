@@ -13,6 +13,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(raiz, 'src');
@@ -525,11 +526,12 @@ function cargarVM(mods) {
 // ============================================================ 10. los enganches de main.js y la plantilla
 {
   const m = leer('src/main.js');
-  const iE = m.indexOf("case 'KeyE': {"), tecla = m.slice(iE, m.indexOf('case \'KeyI\':', iE));
-  ok(tecla.indexOf('granjaJuego.accion(js)') < tecla.indexOf('tallerTren.accion(js)') && tecla.indexOf('tallerTren.accion(js)') < tecla.indexOf('ovejaCercana) { esquilarOveja'), 'la tecla E: el taller después de la granja y antes que la oveja');
-  const iA = m.indexOf('let aviso = objetivo ?'), av = m.slice(iA, iA + 12000);
-  ok(av.indexOf('cacheGranja.texto') < av.indexOf('cacheTaller.texto') && av.indexOf('cacheTaller.texto') < av.indexOf('textoOveja('), 'el aviso: en el mismo orden');
-  ok(m.includes("cacheTaller = tallerTren ? tallerTren.accion(js) : null;") && m.includes("if (tallerTren?.panelAbierto()) return { id: 'taller-tren', ...tallerTren.lista() };"), 'la misma función y la lista del HUD (teclado, mouse y mando)');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['granja', 'taller-tren', 'oveja'], 'la tecla E y el aviso: el taller después de la granja y antes que la oveja'); n++;
+  { const r = que({ acciones: { taller: true }, ovejaCercana: { i: 0 } }); ok(r.e === 'taller-tren' && r.avisoId === 'taller-tren', 'el aviso: en el mismo orden'); }
+  revisarModulo('taller-tren', 'taller'); n++;
+  { const r = que({ panelAbierto: (n) => n === 'taller', vecino: { nombre: 'Elsa' } }); ok(r.e === 'taller-tren-abierto' && r.hechos.includes('cerrarPanel') && r.aviso === null, 'con el panel abierto, E lo cierra y el aviso calla'); }
+  ok(m.includes("cacheTaller = tallerTren ? tallerTren.accion(js) : null;") && /case 'taller': return enE \? tallerTren\?\.accion\(js\) : cacheTaller;/.test(m) && m.includes("if (tallerTren?.panelAbierto()) return { id: 'taller-tren', ...tallerTren.lista() };"), 'la misma función y la lista del HUD (teclado, mouse y mando)');
   ok(m.includes('alClic: (el, fn) => alClicHud(el, fn)') && m.includes("alAbrirPanel: () => { marcarEn('taller-tren', 0); marcarHud(0, true); }"), 'el clic y la marca, como en las listas del HUD');
   ok((m.match(/tallerTren\.elegirPanel\(Number\(codigo\.slice\(5\)\) - 1\)/g) || []).length === 2 && m.includes('else if (tallerTren?.panelAbierto()) tallerTren.atras();'), 'los números y Escape');
   ok(m.includes("aplicarMejoras: (estado) => aplicarMejoras(estado),") && m.includes("import { armarTren, aplicarMejoras } from './tren.js';") && m.includes('dialogos.pedirTexto(texto, inicial, extra)'), 'el enganche con el tren y el cuadro de texto');

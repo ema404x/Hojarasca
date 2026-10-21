@@ -11,6 +11,7 @@
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
+import { antes, que } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const E = await import('../src/empleo.js');
@@ -454,8 +455,14 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   const main = leer('src/main.js'), ui = leer('src/oficios-ui.js'), tr = leer('src/trabajos.js'), mundo = leer('src/empleo-mundo.js'), juego = leer('src/empleo-juego.js');
   ok(main.includes("import { crearEmpleoJuego } from './empleo-juego.js';") && main.includes('empleoJuego = crearEmpleoJuego({') && main.includes("fallaSistema('empleo-armado', e)"), 'main.js crea el empleo, aislado');
   ok(main.includes("fallaSistema('empleo', e)") && main.includes('empleoJuego?.actualizar(dt)'), 'y lo actualiza con fallaSistema');
-  ok(main.includes('const a = empleoJuego.accion(js)') && main.includes('empleoJuego?.tapaVecino(js)') && main.includes('cacheEmpleo = empleoJuego ? empleoJuego.accion(js) : null'), 'la E, el aviso y el vecino mirado');
-  ok(main.indexOf('const a = empleoJuego.accion(js)') < main.indexOf('cercaDelMostrador()) { abrirAlmacen()'), 'la E del puesto va antes que la del mostrador del almacén');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  ok(/case 'empleo': return enE \? empleoJuego\?\.accion\(js\) : cacheEmpleo;/.test(main) && main.includes('empleoJuego?.tapaVecino(js)') && main.includes('cacheEmpleo = empleoJuego ? empleoJuego.accion(js) : null'), 'la E, el aviso y el vecino mirado');
+  antes('empleo', 'mostrador', 'la E del puesto va antes que la del mostrador del almacén'); n++;
+  { const r = que({ acciones: { empleo: { tipo: 'tarea' } }, cercaDelMostrador: true }); ok(r.e === 'empleo' && r.avisoId === 'empleo' && r.hechos.includes('empleo.hacer') && r.hechos.includes('limpiar(empleo)'), 'en el puesto, E hace la tarea (y el aviso lo dice)'); }
+  { const r = que({ acciones: { empleo: { tipo: 'info' } }, objetivo: { tipo: 'planta', texto: 'Anotar' } }); ok(r.e === 'objetivo' && r.avisoId === 'objetivo', 'lo que sólo informa no le gana a lo que mirás'); }
+  { const r = que({ acciones: { empleo: { tipo: 'info' } }, objetivo: { tipo: 'sentarse', texto: 'Sentarte' } }); ok(r.e === 'empleo' && r.avisoId === 'empleo', 'salvo a un asiento'); }
+  { const r = que({ acciones: { empleo: { tipo: 'tarea' } }, objetivo: { tipo: 'planta', texto: 'Anotar' } }); ok(r.e === 'empleo', 'la tarea, sí'); }
+  ok(que({ acciones: { empleo: true }, js: { montado: true } }).e === 'desmontar' && que({ acciones: { empleo: true }, vecino: { nombre: 'Ercilia' } }).e === 'vecino', 'a caballo, no; con alguien adelante, hablar');
   ok(/extras: \(\) => \(empleoJuego && !esDesafio/.test(main) && ui.includes('ctx.extras?.()'), 'el cuaderno trae la página «Trabajo en la aldea»');
   ok(tr.includes("import { turnosDelDia } from './empleo.js';") && tr.includes('jornalesHoy(p, dia) + turnosDelDia(p, dia)'), 'trabajos.js cuenta el turno en el cupo');
   ok(/MAT_FAUNA/.test(mundo) && !/ShaderMaterial|MeshBasicMaterial|MeshStandardMaterial|CanvasTexture/.test(mundo), 'el mundo usa el material de la fauna: no compila nada nuevo');

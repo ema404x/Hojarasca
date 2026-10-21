@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -138,7 +139,8 @@ const funcion = (texto, nombre) => { const i = texto.indexOf(`function ${nombre}
   ok(usar.includes("if ((js.enKayak || js.enTren) && (r.accion === 'fuego' || r.accion === 'cocinar')) return;"), 'en el kayak o el tren, ni fuego ni cocinar');
   ok(main.includes('if (!js.enKayak && !js.enTren) encenderFuego();'), 'la F tampoco desde el tren');
   ok(main.includes("&& !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`)") && main.includes("&& !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E')"), 'subido, la O que cierra los planos pasa');
-  ok(funcion(main, 'montar').includes('if (modoObra) abrirObra(false);') && main.includes('if (js.enSulky && modoObra) abrirObra(false);'), 'y subir cierra los planos');
+  // (4.6.1: el sulky, por la tabla de interacciones: después de los rincones, alSubirAlSulky)
+  ok(funcion(main, 'montar').includes('if (modoObra) abrirObra(false);') && /alSubirAlSulky: \(\) => \{ if \(jugador\.estado\.enSulky && modoObra\) abrirObra\(false\); \}/.test(main) && que({ acciones: { rincones: true } }).hechos.includes('alSubirAlSulky'), 'y subir cierra los planos');
   ok(funcion(main, 'leerMandoQuieto').includes("if (foto.activo && modo === 'jugando' && usarMando() && (m.recien.pausa || m.recien.agacharse)) { abrirModoFoto(false); return; }"), 'en el modo foto, Start o B con el mando lo cierran');
   const cambio = funcion(main, 'cambioDeMando');
   ok(cambio.includes('pisadasMando.clear()') && cambio.includes("'Se desconectó el mando'"), 'desenchufar suelta el stick y avisa');

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { GALLINAS, NIDAL, claveGallinero, gallineroNuevo, sanearGallineros, huevosEnNidal, juntarHuevos, afuera, textoGallinero } from '../src/gallinero.js';
 import { ENTRADA } from '../src/cuaderno.js';
+import { que, enganche } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -37,8 +38,10 @@ assert.equal(ENTRADA.huevo.seccion, 'huerta');
 const main = leer('src/main.js'), cons = leer('src/construccion.js');
 assert.match(cons, /id: 'gallinero', nombre: 'Gallinero'/);
 assert.match(cons, /gallinero: 'trabajo'/);
-assert.match(main, /const g = gallineroCerca\(\); if \(g\) \{ usarGallinero\(g\); break; \}/, 'E junta los huevos');
-assert.ok(main.indexOf('texto: textoGallinero(') < main.indexOf('const puertaCerca = !objetivo'), 'el aviso del gallinero va antes que el de la puerta, como en la tecla E');
+// 4.6.1: la E y el aviso salen de la misma tabla (src/interacciones.js)
+{ const r = que({ cerca: { gallinero: { clave: 'a' } }, puertaCerca: { objetivo: 0, nombre: 'la puerta' } }); assert.equal(r.e, 'gallinero', 'E junta los huevos'); assert.deepEqual(r.hechos, ['usarGallinero']); assert.equal(r.avisoId, 'gallinero', 'el aviso del gallinero va antes que el de la puerta, como en la tecla E'); }
+assert.match(enganche(main, 'usarGallinero'), /usarGallinero\(g\)/, 'E junta los huevos');
+assert.match(main, /case 'gallinero': return enE \? gallineroCerca\(\) : cacheGallinero;/);
 assert.match(leer('src/gallinero-mundo.js'), /new THREE\.InstancedMesh\(geometriaGallina\(\)/, 'todas las gallinas en una sola llamada de dibujo');
 assert.match(leer('src/guardado.js'), /gallineros: sanearGallineros\(p\.gallineros\)/);
 

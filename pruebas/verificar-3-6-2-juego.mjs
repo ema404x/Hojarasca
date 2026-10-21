@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(raiz, 'src');
@@ -187,8 +188,9 @@ globalThis.__R = (() => {
   ok(main.includes('lugarTapaVecino(mecanicasAldea?.accion(js)?.tipo))) vecino = gente.cerca(js, camara, true);'), 'main.js: el vecino de frente sólo si lo del lugar tapa');
   ok(main.includes('if (m && MECANICAS_EN_LA_CHARLA.includes(m.tipo)) return { texto: m.texto, hacer: m.hacer };'), 'main.js: lo del lugar en el menú');
   // la tecla E y el aviso miran el mismo `vecino` (el mismo orden)
-  const e = tramo(main, "    case 'KeyE': {", "      // 3.6 (vida): al lado de tu lugar en la mesa");
-  ok(e.includes('if (vecino) { hablar(vecino); break; }'), 'E habla con el mismo vecino que dice el aviso');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js, y miran el mismo `c.vecino`)
+  { const v = { nombre: 'Ercilia' }; const r = que({ vecino: v, cercaDelMostrador: true, acciones: { mecanica: true } }); ok(r.e === 'vecino' && r.hechos.join() === 'hablar' && r.avisoId === 'vecino', 'E habla con el mismo vecino que dice el aviso'); }
+  ok(/get vecino\(\) \{ return vecino; \}/.test(main), 'el contexto de la tabla mira el `vecino` del juego');
 }
 
 // ============================================================ 5. el reloj de estar sentado

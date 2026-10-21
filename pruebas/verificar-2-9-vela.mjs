@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import * as V from '../src/vela-reglas.js';
 import * as R from '../src/tirolesa-reglas.js';
+import { enOrden, que, enganche } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // (sin \r: el texto se compara igual con saltos de Windows o de Unix)
@@ -286,12 +287,16 @@ console.log('✓ planos (tipo 0/4, sólo Relax), varadero al agua honda, puente 
   assert.ok(main.includes("import { crearVela } from './vela.js';") && main.includes("import { crearTirolesas } from './tirolesa.js';"));
   assert.ok(main.includes('kayak.sumarBote(vela);') && main.includes('vela.cargar(progreso.vela);'));
   // la tecla E: bajar del velero antes que del kayak; subir al velero y la tirolesa después del kayak
-  assert.ok(en('if (js.enVela) {\n        if (!vela.bajar(jugador))') < en('if (js.enKayak) {\n        if (!kayak.bajar(jugador))'), 'E: el velero antes que el kayak');
-  assert.ok(en("if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador)") < en('const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; }'), 'E: el velero y la tirolesa después del kayak');
-  // el aviso, en el mismo orden
-  assert.ok(en("aviso = { tecla: 'E', texto: 'Bajar del velero' }") < en("aviso = { tecla: 'E', texto: 'Bajar del kayak' }"), 'aviso: el velero antes que el kayak');
-  assert.ok(en("aviso = { tecla: 'E', texto: 'Subir al kayak' }") < en('const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) aviso = { tecla: \'E\', texto: a.texto }; }'), 'aviso: el velero y la tirolesa después del kayak');
-  assert.ok(main.includes('if (js.enCable) return;') && main.includes('if (js.enCable) aviso = null;'), 'colgado del cable, ni E ni aviso');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['velero', 'kayak', 'subir-kayak', 'velero-tirolesa'], 'el velero antes que el kayak; subir al velero y la tirolesa después del kayak');
+  { const r = que({ js: { enKayak: true, enVela: true }, lugarParaBajar: true }); assert.equal(r.e, 'velero', 'E: arriba del velero, bajar del velero'); assert.equal(r.texto, 'Bajar del velero', 'aviso: el velero antes que el kayak'); }
+  { const r = que({ js: { enKayak: true, enVela: true }, lugarParaBajar: null }); assert.equal(r.e, 'velero', 'sin orilla, la E avisa que no hay'); assert.equal(r.aviso, null, 'y el aviso no ofrece bajar'); }
+  { const r = que({ js: { enKayak: true }, lugarParaBajar: true }); assert.equal(r.texto, 'Bajar del kayak'); }
+  { const r = que({ kayakCerca: true, accionVelaOTirolesa: { texto: 'Subir al velero', hacer() {} } }); assert.equal(r.e, 'subir-kayak', 'E: el velero y la tirolesa después del kayak'); assert.equal(r.avisoId, 'subir-kayak', 'aviso: el velero y la tirolesa después del kayak'); }
+  { const r = que({ accionVelaOTirolesa: { texto: 'Largarse por la tirolesa', hacer() {} } }); assert.equal(r.e, 'velero-tirolesa'); assert.equal(r.texto, 'Largarse por la tirolesa'); }
+  assert.match(enganche(main, 'accionVelaOTirolesa'), /vela\?\.accion\(jugador\) \|\| tirolesas\?\.accion\(jugador\)/);
+  assert.ok(main.includes('if (js.enCable) return;'), 'colgado del cable, la E no hace nada');
+  { const r = que({ js: { enCable: true }, hachaCerca: {}, cercaDelMostrador: true }); assert.equal(r.aviso, null, 'colgado del cable, ni aviso'); }
   assert.ok(main.includes('progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();'), 'el velero se guarda');
   assert.ok(/"verify:pasos": "[^"]*node pruebas\/verificar-2-9-vela\.mjs/.test(leer('package.json')), 'la prueba está en npm run verify');
   console.log('✓ enganches: construccion, guardado, jugador, kayak y main (E y aviso en el mismo orden)');

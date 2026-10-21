@@ -24,6 +24,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 // aldea-mecanicas-mundo.js usa three: en Node, el three local del juego (three-r186-inline.js) como módulo
@@ -73,22 +74,16 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); n++; };
 // ============================================================ 2. el orden de E y del aviso
 {
   const main = leer('src/main.js');
-  const e0 = main.indexOf("case 'KeyE': {"), e1 = main.indexOf("case 'Tab':", e0);
-  const tecla = main.slice(e0, e1);
-  const a0 = main.indexOf('let aviso = objetivo ?'), a1 = main.indexOf('const fuegoPropio = ', a0);
-  const aviso = main.slice(a0, a1);
-  ok(e0 > 0 && a0 > 0, 'están la tecla E y el aviso');
-  // en los dos, después de la obra de la aldea y antes de la oveja, el acopio y las puertas
-  const orden = (txt, marcas) => marcas.map((m) => txt.indexOf(m));
-  const enE = orden(tecla, ['aldeaGente.obraCerca(js.pos)', 'mecanicasAldea.accion(js)', 'ovejaCercana', 'hayAcopioCerca(RADIO_ACOPIO_MANO)', 'puertas.accionar(p)', 'enLaCasaDeTe()']);
-  const enAviso = orden(aviso, ['cacheObraAldea && !js.enTren', 'cacheMecanica && !js.enTren', 'ovejaCercana && !objetivo', 'cacheAcopio && !objetivo', 'puertaCerca)', 'enLaCasaDeTe()']);
-  ok(enE.every((x, i) => x > 0 && (i === 0 || x > enE[i - 1])), `E: obra de la aldea → mecánicas → oveja → acopio → puerta → casa de té (${enE.join(', ')})`);
-  ok(enAviso.every((x, i) => x > 0 && (i === 0 || x > enAviso[i - 1])), `aviso: el mismo orden (${enAviso.join(', ')})`);
+  // 4.6.1: la E y el aviso salen de la misma tabla (src/interacciones.js)
+  ok(main.includes('hacerConE(ctxInteraccion)') && main.includes('avisoDe(ctxInteraccion)'), 'están la tecla E y el aviso');
+  // después de la obra de la aldea y antes de la oveja, el acopio, las puertas y la casa de té
+  enOrden(['obra-aldea', 'mecanica', 'oveja', 'acopio', 'puerta', 'casa-te'], 'E y aviso: obra de la aldea → mecánicas → oveja → acopio → puerta → casa de té'); n++;
+  { const r = que({ acciones: { mecanica: true }, ovejaCercana: { i: 0 }, cerca: { acopio: true }, puertaCerca: { objetivo: 0, nombre: 'la puerta' }, enLaCasaDeTe: true }); ok(r.e === 'mecanica' && r.avisoId === 'mecanica', 'lo de la aldea gana a la oveja, el acopio, la puerta y la casa de té'); }
   // las mismas condiciones y la misma función (el aviso usa lo que dio `accion` hace un momento)
-  ok(/if \(!js\.enTren && !js\.enKayak && !objetivo && mecanicasAldea\) \{ const m = mecanicasAldea\.accion\(js\); if \(m\) \{ m\.hacer\(\);/.test(tecla), 'E: accion(js).hacer()');
-  ok(/if \(!aviso && cacheMecanica && !js\.enTren && !js\.enKayak && !objetivo\) aviso = \{ tecla: 'E', texto: cacheMecanica\.texto \};/.test(aviso), 'aviso: accion(js).texto');
+  revisarModulo('mecanica', 'mecanica'); n++;
+  ok(/case 'mecanica': return enE \? mecanicasAldea\?\.accion\(js\) : cacheMecanica;/.test(main), 'E: accion(js) en el momento; el aviso, lo buscado');
   ok(/cacheMecanica = mecanicasAldea \? mecanicasAldea\.accion\(js\) : null;/.test(main), 'el aviso se calcula con la misma función');
-  ok(/El aviso visual y la acción usan la misma prioridad/.test(main), 'el comentario de la prioridad sigue en main.js');
+  ok(/si estás mirando a una persona, E habla con ella antes de accionar puertas/.test(leer('src/interacciones.js')), 'el comentario de la prioridad sigue (en interacciones.js)');
   // y adentro, la prioridad es una sola lista
   eq(MC.ORDEN_MECANICAS.slice().sort(), Object.keys(MC.MECANICAS).sort(), 'cada mecánica tiene su lugar en el orden');
   const c = MC.elegirMecanica([{ tipo: 'mapa', d: 0.1 }, { tipo: 'aljibe', d: 1.5 }, { tipo: 'aljibe', d: 0.9 }, { tipo: 'nada', d: 0 }]);

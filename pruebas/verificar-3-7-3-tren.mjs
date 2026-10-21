@@ -11,6 +11,7 @@ import * as V from '../src/tren-viaje.js';
 import * as M from '../src/maquinista.js';
 import * as C from '../src/comercio.js';
 import { SILBATOS } from '../src/personal-trochita.js';
+import { antes, que, funcionDeMain } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8').replace(/\r\n/g, '\n');
@@ -148,10 +149,23 @@ const ok = (c, t) => { n++; assert.ok(c, t); };
   ok(main.includes("cocinaComedor = cocinaJuego.registrarMovil({") && main.includes("id: 'tren-comedor', tipo: 'cocina-lena', techo: true,") && main.includes('tren.tren.cocina(c, c ? RECETA_PASOS[c.receta] : null);'), 'main.js: la cocina del comedor es la cocina móvil de la 3.7.2, y tren.js dibuja su fuego y su olla');
   ok(tren.includes("ctx.conPieza('comedor.fuego'") && tren.includes("ctx.conPieza('comedor.olla-grande'") && tren.includes("ctx.conPieza('comedor.olla-dulce'") && tren.includes("ctx.conPieza('comedor.olla-jarro'"), 'tren.js: el fuego y las tres ollas del comedor');
   // la tecla E y el aviso, en el mismo orden
-  const iE = main.indexOf("case 'KeyE': {"), e = main.slice(iE, main.indexOf("case 'KeyJ':", iE));
-  ok(e.indexOf('if (js.enTren && usarLugarDelTren()) break;') >= 0 && e.indexOf('if (js.enTren && usarLugarDelTren()) break;') < e.indexOf('if (js.enTren && tren.conduciendo()) { bajarDeLaCabina(); break; }'), 'E: lo de cada lugar del tren antes que bajar');
-  ok(e.indexOf('if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }') >= 0 && e.indexOf('if (js.montado && jaulaCerca())') < e.indexOf('if (js.montado) { desmontar(); break; }'), 'E: montado al lado de la jaula, sube el caballo (antes que bajarte)');
-  ok(main.includes("else aviso = avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : ")   /* 3.8.4: (y varado en la nieve, bajarte) */ && main.includes("jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' }"), 'el aviso dice lo mismo');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js; lo de arriba del tren, de usarTrenInteraccion y
+  // avisoTrenInteraccion en main.js, que se prueban acá con un tren de mentira)
+  {
+    const hechos = [];
+    const entorno = (est) => ({
+      tren: { conduciendo: () => !!est.conduce, parado: () => !!est.parado, varadoEnNieve: () => false, bajar: () => { hechos.push('bajar'); return true; } },
+      usarLugarDelTren: () => { if (est.lugar) { hechos.push('lugar'); return true; } return false; }, avisoLugarDelTren: () => (est.lugar ? { tecla: 'E', texto: 'Tomar unos mates' } : null),
+      bajarDeLaCabina: () => hechos.push('cabina'), bajarEnLaNieve: () => hechos.push('nieve'), bajarCaballoDelTren: () => hechos.push('caballo'), nota: (t) => hechos.push(t), enLasCargas: () => false, jugador: {},
+    });
+    funcionDeMain(main, 'usarTrenInteraccion', entorno({ lugar: true, parado: true }))();
+    ok(hechos.join() === 'lugar', 'E: lo de cada lugar del tren antes que bajar');
+    hechos.length = 0; funcionDeMain(main, 'usarTrenInteraccion', entorno({ parado: true }))();
+    ok(hechos.join() === 'bajar,caballo', 'sin un lugar, E baja (y baja tu caballo)');
+    ok(funcionDeMain(main, 'avisoTrenInteraccion', entorno({ lugar: true, parado: true }))().texto === 'Tomar unos mates' && funcionDeMain(main, 'avisoTrenInteraccion', entorno({ parado: true }))().texto === 'Bajar del tren', 'el aviso dice lo mismo');
+  }
+  antes('jaula', 'desmontar', 'E: montado al lado de la jaula, sube el caballo (antes que bajarte)'); n++;
+  { const r = que({ js: { montado: true }, jaulaCerca: true }); ok(r.e === 'jaula' && r.hechos.join() === 'subirCaballoAlTren' && r.texto === 'Subir el caballo a la jaula del tren', 'y el aviso lo dice'); }
   ok(main.includes('|| alCalorDelTren());') && main.includes("op?.enTren ? (conVagon('pasajeros') ? 'calentito' : 'normal')"), 'la salamandra saca el frío; en la cucheta se duerme (con la salamandra, calentito)');
   ok(main.includes('prepararTren(dt);') && main.includes('ctxTren.manejo = cacheManejo.manejo;') && main.includes('ctxTren.agarre = cacheManejo.agarre;'), 'la caldera, el freno y el arenero llegan a la cabina');
   // los pulidos del prototipo

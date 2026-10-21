@@ -17,6 +17,7 @@ import { progresoNuevo, usarModoGuardado } from '../src/guardado.js';
 import { armarMochila } from '../src/mochila.js';
 import { esPersonaVecindad } from '../src/vecindad.js';
 import { PRODUCTOS_GRANJA } from '../src/granja.js';
+import { que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8').replace(/\r\n/g, '\n');
@@ -307,7 +308,7 @@ const main = leer('src/main.js');
 ok(main.includes("import { crearCocinaJuego } from './cocina-juego.js';") && main.includes("import { crearCocinaMundo } from './cocina-mundo.js';") && main.includes('OBRAS_QUE_TRABAJAN.push(...PLANOS_COCINA_E);'), 'main.js: la cocina, con las obras que trabajan');
 ok(main.includes('if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo()) return cocinaJuego.aviso(o);') && main.includes('if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo() && cocinaJuego.usar(o)) { refrescarBarra(true); return; }'), 'main.js: el aviso y la tecla E, con la misma función y el mismo orden');
 ok(main.includes('// 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y'), 'main.js: el comentario de la prioridad compartida');
-ok(main.includes("if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }") && main.includes("else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();") && main.split("cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'main.js: el panel de recetas con E, Escape y los números');
+ok(que({ panelAbierto: (n) => n === 'cocina' }).e === 'recetas-cocina' && /if \(nombre === 'cocina'\) cocinaJuego\.cerrarPanel\(\);/.test(main) && main.includes("else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();") && main.split("cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'main.js: el panel de recetas con E, Escape y los números');
 ok(main.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;') && main.includes("mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;"), 'main.js: los vecinos por el olor (después del amor) y el perro');
 ok(main.includes("if (cocinaJuego?.comer(r.id)) break;") && main.includes("pestanas.push(['recetario', 'Recetario'])") && main.includes('cocinaMundo?.trasCompilar();'), 'main.js: comer, el recetario y las semillas');
 ok(main.includes("try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }"), 'main.js: la cocina corre aislada (fallaSistema), sólo en el Relax');

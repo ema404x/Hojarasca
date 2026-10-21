@@ -1,6 +1,7 @@
 import { nivelRc } from './version.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { antes, que } from './ayuda-interacciones.mjs';
 const leer=(f)=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
 const estructuras=leer('src/estructuras.js');
 const main=leer('src/main.js');
@@ -29,9 +30,13 @@ for(const marca of ['zona(e.faro, e.faro?.radio || 6.2)','zona(e.almacen, e.alma
 
 // La acción E debe obedecer al mismo orden que el aviso: mirar a una persona
 // gana frente a mostrador/puerta, y el mostrador no pisa un aviso ya existente.
-assert.ok(main.indexOf('if (vecino) { hablar(vecino); break; }') < main.indexOf('cercaDelMostrador()) { abrirAlmacen(); break; }'));
-// 2.4.1: el aviso del mostrador lleva más condiciones (tren, kayak, caballo, lo que mirás)
-assert.match(main,/if \(!aviso && [^\n]*cercaDelMostrador\(\)/);
+// (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+antes('vecino', 'mostrador'); antes('mostrador', 'puerta');
+{ const r = que({ vecino: { nombre: 'Ercilia' }, cercaDelMostrador: true }); assert.equal(r.e, 'vecino'); assert.equal(r.avisoId, 'vecino'); }
+// 2.4.1: el aviso del mostrador lleva más condiciones (tren, kayak, lo que mirás)
+for (const js of [{ enTren: true }, { enKayak: true }]) assert.notEqual(que({ js, cercaDelMostrador: true }).avisoId, 'mostrador');
+assert.notEqual(que({ objetivo: { tipo: 'planta', texto: 'Anotar' }, cercaDelMostrador: true }).avisoId, 'mostrador');
+assert.equal(que({ cercaDelMostrador: true }).texto, 'Ver qué hay en el almacén');
 
 // Ercilia ya no es contenido huérfano.
 assert.match(gente,/if \(L\.almacen\) \{/);

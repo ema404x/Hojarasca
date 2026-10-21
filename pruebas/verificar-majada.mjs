@@ -7,6 +7,7 @@ import {
 } from '../src/majada.js';
 import { TRUEQUE, TRUEQUES, tieneYa } from '../src/trueque.js';
 import { ENTRADA, SECCIONES } from '../src/cuaderno.js';
+import { que, enganche } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -68,7 +69,11 @@ assert.ok(!/pide: \{ tabla: 1 \}/.test(alfombra), 'y no una tabla');
 const main = leer('src/main.js');
 assert.match(main, /const CLAVES_MATERIAL = \['tronco', 'tabla', 'piedra', 'cristal', 'lana'\];/, 'el acopio guarda lana');
 assert.match(main, /majadaMundo = crearMajada\(T, escena\);/);
-assert.match(main, /if \(!js\.enTren && !js\.enKayak && !objetivo && ovejaCercana\) \{ esquilarOveja\(ovejaCercana\); break; \}/, 'E esquila');
+// 4.6.1: la E sale de la tabla de interacciones (src/interacciones.js)
+{ const o = { i: 3 }; const r = que({ ovejaCercana: o }); assert.equal(r.e, 'oveja', 'E esquila'); assert.deepEqual(r.hechos, ['esquilarOveja']); assert.equal(r.avisoId, 'oveja'); }
+for (const js of [{ enTren: true }, { enKayak: true }]) assert.notEqual(que({ js, ovejaCercana: { i: 0 } }).e, 'oveja', 'ni en el tren ni en el kayak');
+assert.notEqual(que({ objetivo: { tipo: 'planta', texto: 'Anotar' }, ovejaCercana: { i: 0 } }).e, 'oveja', 'mirando algo, eso');
+assert.match(enganche(main, 'esquilarOveja'), /esquilarOveja\(o\)/, 'E esquila');
 assert.match(main, /majadaMundo\.actualizar\(dt, js, perro\?\.est\?\.pos \|\| null, ocultas\)/, 'el perro entra en la cuenta');
 assert.match(main, /const ocultas = !!desafio && \(progreso\.horas >= 20\.5 \|\| progreso\.horas < 6\);/, 'en el Desafío, de noche, la majada se encierra');
 assert.match(leer('src/guardado.js'), /majada: sanearMajada\(p\.majada\)/);

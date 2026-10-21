@@ -1,6 +1,7 @@
 // 2.1: las diez mejoras (cinco del Relax, cinco del Desafío), en lo que tienen de
 // lógica pura. Las partidas reales están en `pruebas/humo-2-1.cjs`.
 import fs from 'node:fs';
+import { que, enganche } from './ayuda-interacciones.mjs';
 import assert from 'node:assert/strict';
 import * as G from '../src/grabador.js';
 import * as R from '../src/rastros.js';
@@ -87,7 +88,10 @@ const ENTRADA = Object.fromEntries(ENTRADAS.map((e) => [e.id, e]));
   assert.ok(R.envejecer(0, 1, 1) > R.envejecer(0, 1, 0), 'la lluvia borra más rápido');
   const arr = R.arranque(jug, { x: 100, z: 0 }, () => 0.5);
   assert.ok(arr.x > 5 && arr.x < 25, 'arranca cerca tuyo, del lado del animal');
-  assert.match(main, /if \(!objetivo && mirarRastro\(\)\) break;/);
+  // 4.6.1: parado sobre un rastro, E mira las huellas (en la tabla de interacciones, la misma que el aviso)
+  { const r = que({ rastroAlPie: { R: { entrada: 'zorro', nombre: 'zorro' } } }); assert.equal(r.e, 'huellas'); assert.deepEqual(r.hechos, ['mirarRastro']); assert.equal(r.avisoId, 'huellas'); }
+  assert.equal(que({ objetivo: { tipo: 'planta', texto: 'Anotar' }, rastroAlPie: {} }).e, 'objetivo', 'mirando algo, eso');
+  assert.match(enganche(main, 'mirarRastro'), /mirarRastro\(\)/);
 }
 
 // ======================================================== 3. el tiempo que se ve venir

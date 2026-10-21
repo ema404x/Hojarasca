@@ -17,6 +17,7 @@ import * as A from '../src/aldea.js';
 import * as V from '../src/vecindad.js';
 import * as VJ from '../src/vecindad-juego.js';
 import * as AJ from '../src/amor-juego.js';
+import { que, funcionDeMain } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -81,13 +82,22 @@ function llevarHasta(p, k, etapa, d0 = 1) {
     "import { crearAmorJuego } from './amor-juego.js';", 'amorJuego = crearAmorJuego({', 'amor: amorJuego,', "if (!desafio) amorJuego?.actualizar(dt);",
     "if (clave === 'romance') v = v === 'true';", 'const deAmor = !desafio ? amorJuego?.hablar(npc) : null;', 'amorJuego?.alCerrar();',
     "else if (r.tipo === 'fundido') charla.historia = { id: 'amor-fundido'", 'function fundidoAmor(r) {',
-    "else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando'",
     "const nivelDe = (id) => Math.min(5, (oficios?.nivel(id) || 0) + (amorJuego?.bonos().oficios[id] || 0));", "* (amorJuego?.bonos().remo || 1);", "lente: !!progreso.cosas?.lente || !!amorJuego?.bonos().lente,",
     "* (amorJuego?.bonos().cielo || 1);", "if (deNoche && amorJuego?.bonos().dormir) jugador.estado.descansado += amorJuego.bonos().dormir;", "if (r?.juntado) amorJuego?.alJuntar(r.juntado);", 'alBonos: (b) => { const js = jugador?.estado; if (js) { js.pasoAmor = b.paso; js.huidaAmor = b.huida; } },',
   ]) ok(main.includes(t), `main.js: ${t.slice(0, 80)}`);
   // la tecla E y el aviso: lo de la cita va en la rama del vecino en los dos (hablar() lo resuelve primero)
-  const iE = main.indexOf('if (vecino) { hablar(vecino); break; }'), iAviso = main.indexOf('amorJuego?.textoAviso(vecino)');
-  ok(iE > 0 && iAviso > 0 && main.indexOf('const deAmor = !desafio ? amorJuego?.hablar(npc) : null;') < main.indexOf('const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;'), 'E y el aviso con la misma prioridad');
+  // (4.6.1: la E sale de la tabla de interacciones: con alguien adelante, hablar(); el aviso, de textoVecinoAviso en main.js)
+  ok(que({ vecino: { nombre: 'Ayelén' } }).hechos.join() === 'hablar', 'con ella adelante, E: hablar()');
+  const textoVecino = (est = {}) => funcionDeMain(main, 'textoVecinoAviso', {
+    jugador: { estado: { enTren: false, montado: false, ...(est.js || {}) } }, desafio: est.desafio || null, textoOrdenar: () => 'Ordenar',
+    amorJuego: { textoAviso: () => est.amor || null }, vecindadJuego: { invitado: () => (est.esperando ? 'esperando' : null), textoSentarse: () => 'Sentarte' },
+    socialJuego: { quiereDecir: () => !!est.quiere },
+  })({ nombre: 'Ayelén', enBase: false });
+  ok(textoVecino({ amor: 'Empezar la cita con Ayelén', esperando: true, quiere: true }) === 'Empezar la cita con Ayelén', 'el aviso: la cita primero, como hablar()');
+  ok(textoVecino({ amor: 'Empezar la cita con Ayelén', js: { montado: true } }) === 'Empezar la cita con Ayelén', 'también a caballo');
+  ok(textoVecino({ amor: 'Empezar la cita con Ayelén', desafio: {} }) === 'Hablar con Ayelén', 'en el Desafío no hay amor');
+  ok(textoVecino({ esperando: true }) === 'Sentarte' && textoVecino({}) === 'Hablar con Ayelén', 'sin la cita, el invitado o hablar');
+  ok(main.includes('hablar: (v) => hablar(v)') && main.indexOf('const deAmor = !desafio ? amorJuego?.hablar(npc) : null;') < main.indexOf('const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;'), 'E y el aviso con la misma prioridad');
   const vj = leer('src/vecindad-juego.js');
   ok(leer('src/jugador.js').includes('if (!estado.montado && estado.pasoAmor > 1) vmax *= Math.min(1.2, estado.pasoAmor);') && leer('src/fauna.js').includes('* Math.max(0.5, Math.min(1, js.huidaAmor || 1));'), 'jugador.js y fauna.js: el paso y los animales mansos');
   ok(vj.includes('ctx.amor?.alRegalar?.(s.clave, r.reaccion);') && vj.includes('for (const o of ctx.amor?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('const amor = ctx.amor?.alAbrir?.(clave) || null;'), 'vecindad-juego.js: el amor en el menú y al saludar');

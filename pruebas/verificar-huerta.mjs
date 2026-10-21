@@ -7,6 +7,7 @@ import {
 } from '../src/huerta.js';
 import { TRUEQUES, TRUEQUE, tieneYa } from '../src/trueque.js';
 import { SECCIONES, ENTRADA } from '../src/cuaderno.js';
+import { antes, que, enganche } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -111,7 +112,11 @@ assert.match(cons, /id: 'cantero', nombre: 'Cantero de huerta'/, 'el cantero se 
 assert.match(cons, /funciones: \['huerta'\]/);
 assert.match(cons, /cantero: 'trabajo'/, 'aparece en O → Trabajo');
 assert.match(main, /function usarCantero\(c\)/);
-assert.match(main, /const c = canteroCerca\(\); if \(c\) \{ usarCantero\(c\); break; \}/, 'E siembra y cosecha');
+// 4.6.1: la E sale de la tabla de interacciones (ver ayuda-interacciones.mjs)
+{ const k = { x: 1, z: 2 }; const r = que({ cerca: { cantero: k } }); assert.equal(r.e, 'cantero', 'E siembra y cosecha'); assert.deepEqual(r.hechos, ['usarCantero']); }
+assert.match(enganche(main, 'usarCantero'), /usarCantero\(k\)/, 'E siembra y cosecha');
+assert.match(enganche(main, 'textoAvisoCantero'), /textoAvisoCantero\(k\)/);
+assert.match(main, /case 'cantero': return enE \? canteroCerca\(\) : cacheCantero;/, 'la E busca el cantero en el momento; el aviso usa lo buscado');
 assert.match(main, /matasHuerta = crearMatasHuerta\(escena\);/);
 assert.match(main, /revisarHuerta\(\);/, 'la lluvia y los días se revisan');
 // 1.11: las recetas se mudaron a cocina.js
@@ -126,13 +131,13 @@ assert.match(leer('src/huerta-malla.js'), /new THREE\.InstancedMesh\(hojaGeo/, '
 // El aviso y la tecla E usan la misma prioridad (lo pide el comentario de la tecla E).
 // La partida real lo encontró: con el cantero al lado de una puerta, el aviso decía
 // "Abrir la puerta" y E sembraba. El acopio tenía el mismo desfase desde la 1.6.
-const avisoCantero = main.indexOf("aviso = { tecla: 'E', texto: textoAvisoCantero");
-const avisoAcopio = main.indexOf("aviso = { tecla: 'E', texto: totalEnMano() > 0");
-const avisoPuerta = main.indexOf("const puertaCerca = !objetivo && !js.enTren && !js.enKayak && puertas && puertas.cerca(js.pos);");
-assert.ok(avisoCantero > 0 && avisoAcopio > 0 && avisoPuerta > 0);
-assert.ok(avisoCantero < avisoPuerta && avisoAcopio < avisoPuerta, "el aviso del cantero y del acopio van antes que el de la puerta, como en la tecla E");
-const teclaCantero = main.indexOf("const c = canteroCerca(); if (c) { usarCantero(c); break; }");
-const teclaPuerta = main.indexOf("if (p) { puertas.accionar(p); break; }");
-assert.ok(teclaCantero > 0 && teclaCantero < teclaPuerta, "y en la tecla E, el cantero antes que la puerta");
+// 4.6.1: desde la 4.6.1 las dos salen de la misma tabla (src/interacciones.js): el desfase no puede volver
+antes('cantero', 'puerta', 'el cantero va antes que la puerta, en la E y en el aviso');
+antes('acopio', 'puerta', 'el acopio va antes que la puerta, en la E y en el aviso');
+for (const [cerca, id] of [[{ cantero: { x: 0, z: 0 } }, 'cantero'], [{ acopio: true }, 'acopio']]) {
+  const r = que({ cerca, puertaCerca: { objetivo: 0, nombre: 'la puerta' } });
+  assert.equal(r.e, id, `con ${id} al lado de una puerta, E usa ${id}`);
+  assert.equal(r.avisoId, id, `y el aviso dice lo de ${id}`);
+}
 
 console.log('huerta: ok ·', ORDEN_CULTIVOS.length, 'cultivos · la lluvia riega una vez por día · semillas repetibles en el almacén');

@@ -15,6 +15,7 @@ import * as I from '../src/social-iconos.js';
 import * as AN from '../src/social-anim.js';
 import * as VZ from '../src/social-voz.js';
 import { crearSocialJuego, SOCIAL } from '../src/social-juego.js';
+import { enOrden, que, funcionDeMain } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -156,11 +157,16 @@ const figura = (x = 0, z = 0) => ({ fase: 0, torso: hueso(), cabeza: hueso(), br
     "if (!desafio) socialJuego?.actualizar(dt);",
   ]) ok(main.includes(t), `main.js: ${t.slice(0, 90)}`);
   // la E y el aviso: el que te quiere decir algo, en el lugar del vecino (hablar), antes de todo lo demás
-  const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
-  const orden = (t, a, b) => t.indexOf(a) >= 0 && t.indexOf(b) > t.indexOf(a);
-  ok(orden(aviso, 'else if (vecino) aviso', 'socialJuego?.quiereDecir(vecino)') && orden(aviso, 'socialJuego?.quiereDecir(vecino)', 'cacheRincones.texto'), 'el aviso «te quiere decir algo», con el del vecino');   // (4.5.1: antes, el de la carrera)
-  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'Tab':"));
-  ok(orden(tecla, 'if (vecino) { hablar(vecino); break; }', 'vecindadJuego?.puedeSentarse(js.pos)'), 'la E: hablar (y ahí, lo que te quería decir) en el mismo lugar');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js; el texto del vecino, de textoVecinoAviso)
+  const textoVecino = (est = {}) => funcionDeMain(main, 'textoVecinoAviso', {
+    jugador: { estado: { enTren: false, montado: false } }, desafio: est.desafio || null, textoOrdenar: () => 'Ordenar',
+    amorJuego: { textoAviso: () => est.amor || null }, vecindadJuego: { invitado: () => (est.esperando ? 'esperando' : null), textoSentarse: () => 'Sentarte' },
+    socialJuego: { quiereDecir: () => true },
+  })({ nombre: 'Ercilia' });
+  ok(textoVecino() === 'Ercilia te quiere decir algo', 'el aviso «te quiere decir algo», con el del vecino');   // (4.5.1: antes, el de la carrera)
+  ok(textoVecino({ desafio: {} }) === 'Hablar con Ercilia' && textoVecino({ esperando: true }) === 'Sentarte' && textoVecino({ amor: 'Empezar la cita' }) === 'Empezar la cita', 'salvo en el Desafío, con la mesa servida o la cita');
+  enOrden(['vecino', 'cita', 'rincones'], 'la E: hablar (y ahí, lo que te quería decir) en el mismo lugar'); n++;
+  ok(que({ vecino: { nombre: 'Ercilia' }, acciones: { rincones: true } }).hechos.join() === 'hablar', 'con alguien adelante, E: hablar()');
   const hablar = main.slice(main.indexOf('function hablar(npc) {'), main.indexOf('function mostrarCharla() {'));
   ok(hablar.includes('loQueTeQueriaDecir(npc);') && hablar.includes('if (!desafio && !charla.enojado && vecindadJuego) {'), 'en el Desafío, la charla como antes (sin vecindad no hay rueda)');
   const ge = leer('src/gente.js');

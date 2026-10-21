@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { TEJIDOS, queTejer, textoTelar } from '../src/telar.js';
 import { ENTRADA } from '../src/cuaderno.js';
+import { que, enganche } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -20,6 +21,10 @@ const main = leer('src/main.js'), cons = leer('src/construccion.js');
 assert.match(cons, /id: 'telar', nombre: 'Telar de palos'/);
 assert.match(cons, /funciones: \['tejer'\]/);
 assert.match(main, /conMateriales\(\(m\) => \{ m\.lana -= t\.lana; \}\);/, 'la lana sale de la mochila y del acopio, como al construir');
-assert.match(main, /if \(!js\.enTren && !js\.enKayak && !objetivo && telarCerca\(\)\) \{ tejer\(\); break; \}/);
-assert.ok(main.indexOf('texto: textoTelar(') < main.indexOf('const puertaCerca = !objetivo'), 'el aviso del telar va antes que el de la puerta');
+// 4.6.1: la E y el aviso salen de la misma tabla (src/interacciones.js)
+{ const r = que({ cerca: { telar: true }, puertaCerca: { objetivo: 0, nombre: 'la puerta' } }); assert.equal(r.e, 'telar'); assert.deepEqual(r.hechos, ['tejer']); assert.equal(r.avisoId, 'telar', 'el aviso del telar va antes que el de la puerta'); }
+for (const js of [{ enTren: true }, { enKayak: true }]) assert.notEqual(que({ js, cerca: { telar: true } }).e, 'telar');
+assert.notEqual(que({ objetivo: { tipo: 'planta', texto: 'Anotar' }, cerca: { telar: true } }).e, 'telar');
+assert.match(enganche(main, 'tejer'), /tejer\(\)/);
+assert.match(enganche(main, 'textoTelar'), /textoTelar\(lanaAMano\(\), progreso\.cosas\)/);
 console.log('telar: ok · manta con', TEJIDOS.manta.lana, 'vellones · poncho con', TEJIDOS.poncho.lana);

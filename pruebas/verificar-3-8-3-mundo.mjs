@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { elCaballo } from '../src/personal-caballo.js';
+import { que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const main = leer('src/main.js');
@@ -205,7 +206,16 @@ ${cuerpo('devolverContenido')}`;
   }
 }
 // 6c. con un panel abierto el aviso queda vacío (E lo cierra), aunque lo de más arriba lo vuelva a escribir
-ok(/aviso = null;\n {4}\/\/ 3\.8\.3: con un panel abierto E lo cierra[\s\S]{0,400}if \(enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| cocinaJuego\?\.panelAbierto\(\) \|\| tallerTren\?\.panelAbierto\(\)[^\n]*\) aviso = null;\n {4}mostrarAviso\(aviso\);/.test(main), 'con un panel abierto, el aviso es el de la tecla E (nada), justo antes de mostrarlo');
+// (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js: un panel abierto corta todo, también las otras teclas)
+{
+  const loDeArriba = { js: { montado: true }, cercaDelFuego: true, puedeDormirJuntoAlFuego: true, tendalCerca: {}, hachaCerca: {}, fuegoPropio: { plano: { id: 'fogon' } } };
+  const paneles = [['almacen-abierto', { enElAlmacen: true }], ['feria-abierta', { enLaFeria: true }], ['cargas-abiertas', { enLasCargas: true }], ['banco-abierto', { enElBanco: true }]];
+  for (const n of ['negocio', 'cantina', 'te', 'cocina', 'taller', 'fiestas']) paneles.push([null, { panelAbierto: (x) => x === n }]);
+  let todos = true;
+  for (const [id, est] of paneles) { const r = que({ ...loDeArriba, ...est }); if (r.aviso !== null || (id && r.e !== id)) todos = false; }
+  ok(todos, 'con un panel abierto, el aviso es el de la tecla E (nada), aunque lo de más arriba quiera escribirlo');
+  ok(/const aviso = avisoDe\(ctxInteraccion\);(\n {4}if \([^\n]*\) (marcarHud\(\);|\{ [^\n]*marcarHud\(\); \})[^\n]*)*\n {4}mostrarAviso\(aviso\);/.test(main), 'justo antes de mostrarlo (en el medio, sólo las marcas de los paneles)');
+}
 
 // ---------------------------------------------------------------- 7. el deslizador de la hora del modo foto no hace correr el reloj
 // aplicarFoto escribe progreso.horas: la cocina, el taller y las máquinas avanzaban con esa hora (y de vuelta, otra vez)

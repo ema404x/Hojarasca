@@ -14,6 +14,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { que } from './ayuda-interacciones.mjs';
 
 // un localStorage de mentira, para el guardado en Node
 const almacen = new Map();
@@ -65,17 +66,22 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
 
 // ---------------------------------------------------------------- 4. el aviso junto al fuego
 {
-  ok(main.includes("if (juntoAlFuego && !casaDeTe && (!aviso || aviso.tecla === '·' || objetivo?.tipo === 'sentarse')) {"), 'el fuego le gana al «·» del perro');
-  const g = main.indexOf("if (!aviso && juntoAlFuego) aviso = { tecla: 'G', texto: 'Cocinar algo en el fuego' };");
-  ok(g > main.indexOf('const te = tendalCerca();') && g > main.indexOf('aviso = { tecla: \'E\', texto: `Juntar semilla de'), 'la G, después del tendal, las huellas y la semilla');
-  ok(main.includes("if (!objetivo && enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }"), 'la bitácora, sin nada mirado');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js; los «·» van en OTRAS_TECLAS, después de todo lo de E)
+  { const r = que({ cercaDelFuego: true, puedeDormirJuntoAlFuego: true, marcaPerro: {} }); ok(r.e === 'fuego' && r.texto === 'Dormir junto al fuego', 'el fuego le gana al «·» del perro'); }
+  { const r = que({ cercaDelFuego: true, hayQueCocinar: true, objetivo: { tipo: 'sentarse', texto: 'Sentarte' } }); ok(r.e === 'fuego' && r.texto === 'Cocinar algo en el fuego', 'y a un asiento al lado'); }
+  { const r = que({ marcaPerro: {} }); ok(r.tecla === '·' && r.texto === '<textoMarca>' && r.e === null, 'sin otra cosa, el perro marca (y la E no hace nada)'); }
+  // la G, después del tendal, las huellas y la semilla (y del «·» del perro)
+  for (const est of [{ tendalCerca: {} }, { rastroAlPie: { R: {} } }, { cerca: { semillaArbol: { arbol: {} } } }, { marcaPerro: {} }]) ok(que({ ...est, cercaDelFuego: true }).tecla !== 'G', 'la G, después del tendal, las huellas y la semilla');
+  ok(que({ cercaDelFuego: true }).tecla === 'G', 'de día y sin nada para cocinar, G');
+  { const r = que({ enLaSalaDelFaro: true, bitacoraLeida: false }); ok(r.e === 'bitacora' && r.hechos.join() === 'leerBitacora', 'la bitácora'); }
+  ok(que({ enLaSalaDelFaro: true, bitacoraLeida: false, objetivo: { tipo: 'planta', texto: 'x' } }).e === 'objetivo', 'la bitácora, sin nada mirado');
 }
 
 // ---------------------------------------------------------------- 5. la carpa
 {
   const p = trozoFn('function puedeArmarCarpaAca(');
   for (const k of ['enTren', 'enKayak', 'enVela', 'enSulky', 'enCable', 'montado', 'nadando']) ok(p.includes(`!js.${k}`), `la carpa no se arma con ${k}`);
-  ok(main.includes("progreso.carpa && puedeArmarCarpaAca(js)) aviso = { tecla: 'T', texto: 'Armar la carpa' }") && trozoFn('function armarCarpa(').includes('if (!puedeArmarCarpaAca(js)) return;'), 'el aviso y la T, con la misma cuenta');
+  ok(que({ puedeArmarCarpa: true }).texto === 'Armar la carpa' && /puedeArmarCarpa: \(\) => progreso\.cosas\.manta && !progreso\.carpa && puedeArmarCarpaAca\(jugador\.estado\)/.test(main) && trozoFn('function armarCarpa(').includes('if (!puedeArmarCarpaAca(js)) return;'), 'el aviso y la T, con la misma cuenta');
   ok(/g\.dispose\(\)[\s\S]{0,40}m\.dispose\(\)/.test(trozoFn('function quitarCarpa(')) && trozoFn('function armarCarpa(').includes('quitarCarpa();'), 'levantarla libera la malla');
 }
 

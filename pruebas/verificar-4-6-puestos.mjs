@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { registrarThree } from './ayuda-three.mjs';
 import { cargarValle } from './ayuda-4-0-3-valle.mjs';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const R = await import('../src/puestos-ruta.js');
@@ -356,14 +357,14 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
   ok(main.includes('apeaderos: esDesafio ? null : [apeaderoDelRielSur(T, () => progreso)] });'), 'la trochita del Relax tiene el apeadero del Riel Sur');
   ok(main.includes('if (!esDesafio) {\n      try {\n        puestosRutaMundo = crearPuestosRutaMundo('), 'los puestos se arman sólo en el Relax');
   // la tecla E y el aviso: la misma función (puestosJuego.accion), en el mismo lugar (después del puesto de cargas, antes del cantero)
-  const iE = main.indexOf("case 'KeyE': {"), fE = main.indexOf("case 'Tab':", iE), tecla = main.slice(iE, fE);
-  const enE = (t) => { const i = tecla.indexOf(t); ok(i >= 0, `en la tecla E: ${t}`); return i; };
-  ok(enE('puestoDeCargasCerca()) { cargas().abrir') < enE('const a = puestosJuego.accion(js); if (a) { a.hacer(); cachePuestos = null; break; }') && enE('const a = puestosJuego.accion(js);') < enE('const c = canteroCerca()'), 'E: el puesto de ruta va después del puesto de cargas y antes del cantero');
-  const iA = main.indexOf("let aviso = objetivo ? { tecla: 'E'"), fA = main.indexOf('mostrarAviso(aviso);', iA), aviso = main.slice(iA, fA);
-  const enA = (t) => { const i = aviso.indexOf(t); ok(i >= 0, `en el aviso: ${t}`); return i; };
-  ok(enA("texto: 'Comerciar en el puesto de cargas'") < enA('cachePuestos.texto') && enA('cachePuestos.texto') < enA('cacheCantero &&'), 'el aviso del puesto de ruta, en el mismo lugar que la tecla');
-  ok(main.includes('cachePuestos = puestosJuego ? puestosJuego.accion(js) : null;'), 'el aviso usa la misma función que la tecla');
-  ok(aviso.includes("texto: 'Encender el fogón del puesto'") && main.includes('const fp = puestosJuego?.fogonCerca(js.pos); if (fp) {'), 'la F prende el fogón del puesto (aviso y tecla)');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['cargas', 'puestos', 'cantero'], 'E y aviso: el puesto de ruta va después del puesto de cargas y antes del cantero'); n++;
+  { const r = que({ puestoDeCargasCerca: { p: 1 }, acciones: { puestos: true } }); ok(r.e === 'cargas' && r.avisoId === 'cargas', 'el puesto de cargas le gana al de ruta'); }
+  { const r = que({ acciones: { puestos: true }, cerca: { cantero: { x: 0 } } }); ok(r.e === 'puestos' && r.avisoId === 'puestos', 'el aviso del puesto de ruta, en el mismo lugar que la tecla'); }
+  revisarModulo('puestos', 'puestos'); n++;
+  ok(main.includes('cachePuestos = puestosJuego ? puestosJuego.accion(js) : null;') && /case 'puestos': return enE \? puestosJuego\?\.accion\(js\) : cachePuestos;/.test(main), 'el aviso usa la misma función que la tecla');
+  { const r = que({ fogonDelPuestoApagado: true }); ok(r.tecla === 'F' && r.texto === 'Encender el fogón del puesto' && main.includes('const fp = puestosJuego?.fogonCerca(js.pos); if (fp) {'), 'la F prende el fogón del puesto (aviso y tecla)'); }
+  ok(/fogonDelPuestoApagado: \(\) => \{ if \(!puestosJuego\) return false; const f = puestosJuego\.fogonCerca\(jugador\.estado\.pos\); return !!f && !clima\.fuegoEn\(f\.x, f\.z, 1\.5\); \}/.test(main), 'el aviso de la F, sólo con el fogón apagado');
   ok(main.includes('const enCasaAldea = !desafio && (!!opRincon?.casaAldea || !!opRincon?.puestoRuta);') && main.includes('horasDescansado({ como, casa: !desafio && opRincon?.puestoRuta ? CASA_PUESTO : casa })'), 'dormir en el puesto: bajo techo y con descanso');
   ok(leer('src/trochita.js').includes('if (p.cargas && (!p.atiende || p.atiende()) && Math.hypot('), 'trochita.js: el apeadero comercia sólo si el puesto atiende');
 }

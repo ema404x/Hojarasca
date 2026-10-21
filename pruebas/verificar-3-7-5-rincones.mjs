@@ -25,6 +25,7 @@ import { esPersonaVecindad } from '../src/vecindad.js';
 import { CULTIVOS } from '../src/huerta.js';
 import { generarTerreno } from '../src/terreno.js';
 import { aspectoGente, ROPA_ESTACION, clavesConAspecto } from '../src/gente-ropa.js';
+import { antes, enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -404,18 +405,17 @@ const M = A.marcoAldea();
 {
   const main = leer('src/main.js'), jug = leer('src/jugador.js'), vec = leer('src/vecindad-juego.js');
   // la E: lo urgente (bajar del sulky, patear) antes de hablar; lo demás después de sentarse a la cita (4.5.1: antes, de la carrera)
-  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'KeyE': {") + 14000);
-  const iu = tecla.indexOf('rinconesJuego.urgente(js)'), iv = tecla.indexOf('if (vecino) { hablar(vecino); break; }'), ic = tecla.indexOf('vecindadJuego?.puedeSentarse(js.pos)'), ia = tecla.indexOf('rinconesJuego.accion(js)'), im = tecla.indexOf('cercaDelMostrador()) { abrirAlmacen(); break; }');
-  ok(iu > 0 && iu < iv, 'E: lo urgente de los rincones, antes de hablar');
-  ok(ic > 0 && ia > ic && ia < im, 'E: los rincones, después de sentarse y antes del almacén');
-  // el aviso, en el mismo orden
-  const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
-  const au = aviso.indexOf('rinconesJuego.urgente(js)'), ac = aviso.indexOf('vecindadJuego?.puedeSentarse(js.pos)'), aa = aviso.indexOf('cacheRincones.texto'), am = aviso.indexOf("'Ver qué hay en el almacén'");
-  ok(au > 0 && ac > 0 && aa > au && aa > ac && aa < am, 'el aviso: lo urgente pisa a hablar; lo demás, después de sentarse y antes del almacén');
-  ok(main.includes('cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;'), 'el aviso usa la misma función');
-  const td = tecla.indexOf('rinconesJuego.accionDuende(js)'), tp = tecla.indexOf('puedoPedirRastro()) { pedirRastro(); break; }'), tt = tecla.indexOf('if (js.enTren && usarLugarDelTren()) break;');
-  const ad = aviso.indexOf('cacheDuende.texto'), ap = aviso.indexOf("'Pedirle al perro que rastree'"), at = aviso.indexOf("'Subir a la cabina y manejar'");
-  ok(td > tp && td < tt && ad > ap && ad < at && main.includes('cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;'), 'el duende, al último y en el mismo lugar en la E y en el aviso (después del perro, antes del tren)');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  antes('urgente', 'vecino', 'E y aviso: lo urgente de los rincones, antes de hablar'); n++;
+  { let hizo = false; const r = que({ urgente: { texto: 'Patear la pelota', hacer: () => { hizo = true; } }, vecino: { nombre: 'Tito' } }); ok(r.e === 'urgente' && r.texto === 'Patear la pelota' && hizo && r.hechos.includes('limpiar(rincones)'), 'lo urgente pisa a hablar'); }
+  ok(/urgente: \(\) => \(rinconesJuego \? rinconesJuego\.urgente\(jugador\.estado\) : null\)/.test(main), 'con la misma función (urgente)');
+  enOrden(['cita', 'rincones', 'mostrador'], 'E y aviso: los rincones, después de sentarse y antes del almacén'); n++;
+  revisarModulo('rincones', 'rincones'); n++;
+  ok(main.includes('cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;') && /case 'rincones': return enE \? rinconesJuego\?\.accion\(js\) : cacheRincones;/.test(main), 'el aviso usa la misma función');
+  enOrden(['pedir-rastro', 'duende', 'tren'], 'el duende, al último: después del perro, antes del tren'); n++;
+  revisarModulo('duende', 'duende'); n++;
+  { const r = que({ acciones: { duende: true }, puertaCerca: { objetivo: 0, nombre: 'la puerta' } }); ok(r.e === 'puerta' && r.avisoId === 'puerta', 'una puerta le gana al duende'); }
+  ok(main.includes('cacheDuende = rinconesJuego ? rinconesJuego.accionDuende(js) : null;') && /case 'duende': return enE \? rinconesJuego\?\.accionDuende\(js\) : cacheDuende;/.test(main), 'el duende, en el mismo lugar en la E y en el aviso');
   ok(main.includes('if (js.enKayak || js.enSulky) vecino = null;') && main.includes('js.enTren || js.enSulky || js.montado || vecino) objetivo = null;'), 'arriba del sulky no se habla ni se junta');
   ok(main.includes("try { if (modo === 'jugando' && !desafio) rinconesJuego?.actualizar(dt); } catch (e) { fallaSistema('rincones', e); }"), 'cada cuadro, aislado');
   ok(main.includes('rinconesMundo?.paraCompilar();') && main.includes('rinconesMundo?.trasCompilar();'), 'se compila en la carga');

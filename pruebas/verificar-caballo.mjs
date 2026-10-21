@@ -5,6 +5,7 @@ import { MARCHA_CABALLO, ALTURA_MONTADO, AGUA_QUE_NO_PISA, caballoNuevo, sanearC
 import { VELOCIDAD } from '../src/config.js';
 import { ENCARGO, estadoEncargo } from '../src/encargos.js';
 import { ENTRADA } from '../src/cuaderno.js';
+import { que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -57,10 +58,15 @@ assert.match(jug, /if \(hondo && hondo\.prof > estado\.montado\.aguaMax\) \{/, '
 assert.match(jug, /const radioFisico = estado\.montado \? 0\.6 : 0\.35;/, 'el caballo ocupa más: por una puerta angosta no pasa');
 // a pie nada cambia: las líneas de antes siguen intactas en su rama
 assert.match(jug, /: estado\.agachado \? ALTURA_AGACHADO : ALTURA_OJOS;/);
-assert.match(main, /if \(js\.montado\) \{ desmontar\(\); break; \}/, 'montado, E baja');
-assert.match(main, /if \(!objetivo && caballoCerca\(\)\) \{ montar\(\); break; \}/, 'y al lado, E sube');
+// 4.6.1: la E y el aviso salen de la misma tabla (src/interacciones.js)
+{ const r = que({ js: { montado: true } }); assert.equal(r.e, 'desmontar', 'montado, E baja'); assert.deepEqual(r.hechos, ['desmontar']); assert.equal(r.avisoId, 'desmontar', 'montado, el aviso dice lo mismo que hace E'); }
+{ const r = que({ caballoCerca: true }); assert.equal(r.e, 'caballo', 'y al lado, E sube'); assert.deepEqual(r.hechos, ['montar']); }
+assert.notEqual(que({ caballoCerca: true, objetivo: { tipo: 'planta', texto: 'Anotar' } }).e, 'caballo', 'mirando algo, eso');
+// montado, el aviso no ofrece otras cosas (la carpa, un fogón, el hacha): sólo bajarse
+assert.equal(que({ js: { montado: true }, hachaCerca: {}, fuegoPropio: { plano: { id: 'fogon' } }, cercaDelMostrador: true }).avisoId, 'desmontar');
 // 2.4.1: hablando arriba del caballo, E sigue la charla: el aviso no pisa eso
-assert.match(main, /if \(js\.montado && !charla\.npc\) aviso = vecino \?/, 'montado, el aviso dice lo mismo que hace E');
+{ const r = que({ js: { montado: true }, charlaNpc: {} }); assert.equal(r.e, 'charla'); assert.equal(r.aviso, null, 'charlando a caballo, el aviso no dice bajarse'); }
+{ const r = que({ js: { montado: true }, vecino: { nombre: 'Ercilia' } }); assert.equal(r.e, 'vecino'); assert.equal(r.texto, '<textoVecino>', 'montado, con alguien adelante: hablar'); }
 assert.match(main, /js\.montado \|\| vecino\) objetivo = null;/, 'desde la montura no se junta nada');
 assert.match(main, /if \(js\.montado\) sonido\.casco\?\.\(js\.superficie, f\);/, 'arriba del caballo suenan cascos, no pasos');
 assert.match(main, /caballoMundo = esDesafio \? null : crearCaballo\(T, escena\);/, 'sólo en el Relax');

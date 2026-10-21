@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { registrarThree } from './ayuda-three.mjs';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const mem = new Map();
@@ -348,15 +349,13 @@ const pehuenes = veg.arboles.filter((a) => a.especie === 'pehuen');
 // ---------------------------------------------------------------- 9. lo enganchado en main.js (la E y el aviso, en el mismo orden)
 {
   const main = leer('src/main.js');
-  const e = main.indexOf('if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }');
-  const eZona = main.indexOf('const a = recursosZona.accion(js); if (a) { a.hacer(); cacheRecursosZona = null; break; }');
-  const eAcopio = main.indexOf('hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }');
-  ok(e > 0 && eZona > e && eAcopio > eZona, 'la E: después de la oveja y antes del acopio');
-  const av = main.indexOf("if (!aviso && ovejaCercana && !objetivo) aviso =");
-  const avZona = main.indexOf('if (!aviso && cacheRecursosZona && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: \'E\', texto: cacheRecursosZona.texto };');
-  const avAcopio = main.indexOf('if (!aviso && cacheAcopio && !objetivo');
-  ok(av > 0 && avZona > av && avAcopio > avZona, 'el aviso: en el mismo lugar');
-  ok(main.includes('cacheRecursosZona = recursosZona ? recursosZona.accion(js) : null;'), 'el aviso usa la misma función que la E');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['oveja', 'recursos', 'acopio'], 'la E y el aviso: después de la oveja y antes del acopio');
+  { const r = que({ acciones: { recursos: true }, cerca: { acopio: true } }); ok(r.e === 'recursos' && r.avisoId === 'recursos', 'el recurso le gana al acopio, en la E y en el aviso'); }
+  { const r = que({ acciones: { recursos: true }, ovejaCercana: { i: 0 } }); ok(r.e === 'oveja' && r.avisoId === 'oveja', 'y la oveja, al recurso'); }
+  revisarModulo('recursos', 'recursos');
+  ok(que({ acciones: { recursos: true }, js: { montado: true } }).e === 'desmontar', 'a caballo, no: bajarte');
+  ok(main.includes('cacheRecursosZona = recursosZona ? recursosZona.accion(js) : null;') && /case 'recursos': return enE \? recursosZona\?\.accion\(js\) : cacheRecursosZona;/.test(main), 'el aviso usa la misma función que la E');
   ok(main.includes("if ((objetivo?.tipo === 'planta' || objetivo?.tipo === 'arbol') && recursosZona?.accion(js)?.gana) objetivo = null;"), '4.6.0: el recurso que gana anula «Anotar» en `objetivo` (lo miran la E y el aviso)');
   ok(/if \(!esDesafio\) recursosZona = crearRecursosZonaMundo\(/.test(main), 'sólo en el Relax');
   ok(/recursosZona\?\.actualizar\(dt, jugador\.estado\.pos\)/.test(main), 'se actualiza en el bucle (una vez por segundo adentro)');

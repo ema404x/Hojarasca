@@ -9,6 +9,7 @@
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
+import { que } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const store = new Map();
@@ -343,10 +344,12 @@ caso('D8 secuencia', () => {
 // ---------------------------------------------------------------- el cableado de main.js (D4, D7, A11)
 caso('D4 D7 main.js', () => {
   const m = leer('src/main.js');
-  const i = m.indexOf('// 3.8.3: con un panel abierto E lo cierra');
-  ok(i > 0, 'el reseteo final del aviso está');
-  const linea = m.slice(i, i + 900).split('\n').find((l) => /aviso = null/.test(l) && /enElAlmacen/.test(l)) || '';
-  ok(/negocioJuego\?\.panelAbierto\(\)/.test(linea) && /fiestasJuego\?\.panelAbierto\(\)/.test(linea) && /cantinaJuego\?\.panelAbierto\(\)/.test(linea) && /enElBanco\(\)/.test(linea), 'el panel del local, las fiestas, la cantina y el banco borran el aviso al final');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js: los paneles abiertos van primero y cortan todo)
+  ok(m.includes('const aviso = avisoDe(ctxInteraccion);'), 'el aviso sale de la tabla');
+  const loDeArriba = { js: { montado: true }, cercaDelFuego: true, puedeDormirJuntoAlFuego: true, hachaCerca: {}, tendalCerca: {} };
+  const borra = (est) => que({ ...loDeArriba, ...est }).aviso === null;
+  ok(borra({ panelAbierto: (x) => x === 'negocio' }) && borra({ panelAbierto: (x) => x === 'fiestas' }) && borra({ panelAbierto: (x) => x === 'cantina' }) && borra({ enElBanco: true }), 'el panel del local, las fiestas, la cantina y el banco borran el aviso al final');
+  ok(que({ panelAbierto: (x) => x === 'negocio' }).hechos.join() === 'cerrarPanel' && /if \(nombre === 'negocio'\) negocioJuego\.cerrarPanel\(\);/.test(m), 'y la E cierra el panel del local');
   ok(/modo === 'jugando' && !desafio && !foto\.activo\) negocioJuego\?\.actualizar/.test(m), 'el modo foto no mueve el local');
   ok(/!foto\.activo\) empleadosNegocioJuego\?\.actualizar/.test(m), 'ni a los empleados');
   ok(/!foto\.activo\) negociosVecinosJuego\?\.actualizar/.test(m), 'ni a los negocios de los vecinos');

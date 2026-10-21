@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { RASTREO, RASTREABLES, nombreRastro, mirandoAlPerro, elegirPresa, seguirPresa, destinoRastro, estadoRastro } from '../src/rastreo.js';
 import { ENTRADA } from '../src/cuaderno.js';
+import { antes, que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const s = (tipo, x, z) => ({ tipo, pos: { x, z } });
@@ -51,12 +52,12 @@ assert.match(perro, /mundo\?\.ataque\) \{[\s\S]*mundo\?\.rastro/, 'atacar va ant
 const main = leer('src/main.js');
 assert.match(main, /return !desafio && !rastro && /, 'sólo en el Relax');
 // aviso y tecla E en el mismo orden: el perro después de las puertas
-const iAvisoPuerta = main.indexOf('if (!aviso && puertaCerca) aviso');
-const iAvisoPerro = main.indexOf("texto: rastro ? 'Dejar el rastro' : 'Pedirle al perro que rastree'");
-const iEPuerta = main.indexOf('if (p) { puertas.accionar(p); break; }');
-const iEPerro = main.indexOf('if (!objetivo && puedoPedirRastro()) { pedirRastro(); break; }');
-assert.ok(iAvisoPuerta > 0 && iAvisoPerro > iAvisoPuerta, 'aviso: puertas antes que el perro');
-assert.ok(iEPuerta > 0 && iEPerro > iEPuerta, 'tecla E: puertas antes que el perro');
+// (4.6.1: desde la 4.6.1 las dos salen de la misma tabla, src/interacciones.js)
+antes('puerta', 'dejar-rastro'); antes('puerta', 'pedir-rastro');
+{ const r = que({ puertaCerca: { objetivo: 0, nombre: 'la puerta' }, puedoPedirRastro: true }); assert.equal(r.avisoId, 'puerta', 'aviso: puertas antes que el perro'); assert.equal(r.e, 'puerta', 'tecla E: puertas antes que el perro'); }
+{ const r = que({ puedoPedirRastro: true }); assert.equal(r.texto, 'Pedirle al perro que rastree'); assert.deepEqual(r.hechos, ['pedirRastro']); }
+{ const r = que({ rastro: {}, mirandoAlPerro: true }); assert.equal(r.texto, 'Dejar el rastro'); assert.deepEqual(r.hechos, ['dejarRastro']); }
+assert.notEqual(que({ rastro: {}, mirandoAlPerro: true, desafio: {}, usarDesafioCerca: false }).e, 'dejar-rastro', 'en el Desafío, el rastro no se deja con E');
 assert.match(main, /rastrosFauna\.push\(pisadaRastro\)/, 'en la nieve se ven las pisadas');
 assert.match(leer('src/guardado.js'), /rastreos: Math\.max\(0, Math\.floor\(finito\(p\.rastreos, 0\)\)\)/);
 

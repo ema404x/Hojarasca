@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { ORDENES, NOMBRE_ORDEN, RESPUESTAS, RADIO_ARREGLO, ordenInicial, ordenDe, siguienteOrden, sanearOrdenes, puntoDeOrden, centroDeArreglo, portonDeLaBase, velocidadSiguiendo } from '../src/desafio-ordenes.js';
 import { COMPANEROS, sanearDesafio } from '../src/desafio-reglas.js';
+import { que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -54,7 +55,10 @@ assert.match(aliados, /const obra = radio \? api\.obraMasDanada\(centroDeArreglo
 assert.match(aliados, /if \(c\.tMover <= 0\) \{ c\.tMover = 0\.4; irA\(npc, puesto \|\| puntoDeOrden\(orden, contextoOrden\(1\)\), orden\); \}\n\s+if \(!nocheActiva \|\| c\.t > 0\) continue;/, 'Ema se mueve de día y tira de noche');
 assert.match(leer('src/desafio.js'), /portones: \(\) => obras\.obras\.filter\(\(o\) => o\.plano\.porton && completa\(o\)\)/);
 const main = leer('src/main.js');
-assert.match(main, /if \(vecino && desafio && vecino\.enBase\) \{ ordenarCompanero\(vecino\); break; \}\n\s+if \(vecino\) \{ hablar\(vecino\); break; \}/, 'E ordena en el Desafío');
-assert.match(main, /else if \(vecino && desafio && vecino\.enBase\) aviso = \{ tecla: 'E', texto: textoOrdenar\(vecino\) \};\n\s+else if \(vecino\) aviso/, 'y el aviso lo dice');
+// 4.6.1: la E y el aviso salen de la misma tabla (src/interacciones.js; el texto, en textoVecinoAviso de main.js)
+assert.deepEqual(que({ vecino: { nombre: 'Ramón', enBase: true }, desafio: {} }).hechos, ['ordenarCompanero'], 'E ordena en el Desafío');
+assert.deepEqual(que({ vecino: { nombre: 'Ramón', enBase: false }, desafio: {} }).hechos, ['hablar'], 'fuera de la base, habla');
+assert.deepEqual(que({ vecino: { nombre: 'Ramón', enBase: true } }).hechos, ['hablar'], 'en el Relax, habla');
+assert.match(main, /if \(desafio && v\.enBase\) return textoOrdenar\(v\);/, 'y el aviso lo dice');
 
 console.log('órdenes:', Object.entries(ORDENES).map(([k, l]) => `${k} (${l.join(', ')})`).join(' · '));

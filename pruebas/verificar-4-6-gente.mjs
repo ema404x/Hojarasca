@@ -12,6 +12,7 @@
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const TB = await import('../src/tablon.js');
@@ -355,15 +356,13 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
 // ============================================================ 8. lo enganchado en main.js
 {
   const main = leer('src/main.js');
-  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'Tab':"));
-  const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
-  const tt = tecla.indexOf('tablonJuego.accion(js)'), tm = tecla.indexOf('mecanicasAldea.accion(js)'), to = tecla.indexOf('aldeaGente.obraCerca(js.pos)');
-  ok(tt > to && tt < tm, 'E: el tablón, después de la obra de la aldea y antes de lo de cada lugar');
-  const at = aviso.indexOf('cacheTablon.texto'), am = aviso.indexOf('cacheMecanica.texto'), ao = aviso.indexOf('aldeaGente.avisoObra(cacheObraAldea)');
-  ok(at > ao && at < am, 'el aviso, en el mismo lugar');
-  ok(main.includes('cacheTablon = tablonJuego ? tablonJuego.accion(js) : null;   // 4.6 gente'), 'el aviso usa la misma función');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['obra-aldea', 'tablon', 'mecanica'], 'E y aviso: el tablón, después de la obra de la aldea y antes de lo de cada lugar'); n++;
+  { const r = que({ acciones: { tablon: true, mecanica: true } }); ok(r.e === 'tablon' && r.avisoId === 'tablon', 'el tablón le gana a lo del lugar, en la E y en el aviso'); }
+  revisarModulo('tablon', 'tablon'); n++;
+  ok(main.includes('cacheTablon = tablonJuego ? tablonJuego.accion(js) : null;   // 4.6 gente') && /case 'tablon': return enE \? tablonJuego\?\.accion\(js\) : cacheTablon;/.test(main), 'el aviso usa la misma función');
   ok(main.includes('if (tablonJuego?.abierto() && tablonJuego.tecla(codigo)) return;'), 'con el tablón abierto, sus teclas');
-  ok(main.includes('if (tablonJuego?.abierto()) aviso = null;'), 'con el tablón abierto, sin aviso');
+  ok(que({ panelAbierto: (x) => x === 'tablon', hachaCerca: {}, cercaDelFuego: true, js: { montado: true } }).aviso === null && /tablon: \(\) => tablonJuego\?\.abierto\(\)/.test(main), 'con el tablón abierto, sin aviso (4.6.1: tampoco el de las otras teclas ni el de bajarte del caballo)');
   ok(main.includes("try { if (modo === 'jugando' && !desafio) { genteCampoMundo?.actualizar(dt, js, charla.npc); tablonJuego?.actualizar(js); } } catch (e) { fallaSistema('gente-campo', e); }"), 'cada cuadro, aislado y sólo en el Relax');
   ok(main.includes("} catch (e) { fallaSistema('gente-campo-armado', e); genteCampoJuego = null; genteCampoMundo = null; tablonJuego = null; }"), 'el armado, aislado');
   ok(main.includes('campo: genteCampoJuego,   // 4.6 gente'), 'la vecindad recibe lo del campo');

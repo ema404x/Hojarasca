@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
 import assert from 'node:assert/strict';
+import { que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(raiz, 'src');
@@ -133,7 +134,7 @@ const main=fs.readFileSync(path.join(src,'main.js'),'utf8');
 const clima=fs.readFileSync(path.join(src,'clima.js'),'utf8');
 assert.match(main,/obras\?\.bajoCubierta\?\.\(js\.pos\)/,'el clima local no consulta cubierta modular');
 assert.match(main,/obras\?\.dentro\(js\.pos\)/,'el audio no reconoce habitaciones modulares');
-assert.match(main,/Dormir en tu catre/,'el catre no tiene UX funcional');
+assert.equal(que({ dentroDeTuObra: true, puedeDormirJuntoAlFuego: true, catreCerca: true }).texto,'Dormir en tu catre','el catre no tiene UX funcional');   // 4.6.1: el aviso sale de la tabla de interacciones
 assert.match(main,/fuegoContenido/,'la estufa no diferencia fuego contenido');
 assert.match(main,/actualizarAmbiente\?\.\(noche\)/,'las luces de obra no siguen el ciclo nocturno');
 assert.match(clima,/opciones = \{\}/,'clima no acepta configuración de fuego contenido');

@@ -2,6 +2,7 @@
 // o sincronizar), y el aviso que tiene que decir lo mismo que hace la tecla.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import { antes, que, IDS_OTRAS } from './ayuda-interacciones.mjs';
 
 // un localStorage de mentira, para el guardado en Node
 const almacen = new Map();
@@ -79,25 +80,25 @@ const leer = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
 
 // ---------------------------------------------------------------- 4. el aviso dice lo que hace la tecla
 {
-  const main = leer('src/main.js');
-  const i0 = main.indexOf("let aviso = objetivo ? { tecla: 'E'");
-  const i1 = main.indexOf('mostrarAviso(aviso);', i0);
-  const cadena = main.slice(i0, i1);
-  const en = (t) => { const i = cadena.indexOf(t); assert.ok(i >= 0, `falta en el aviso: ${t}`); return i; };
-  // el mismo orden que la tecla E
-  assert.ok(en("texto: 'Ver qué hay en el almacén'") < en("${puertaCerca.objetivo > 0.5 ? 'Cerrar' : 'Abrir'}"), 'el mostrador antes que la puerta del almacén');
-  assert.ok(en("texto: `Subir ${caballoDicho('a')}`") < en("texto: 'Subir a la trochita'"), 'el caballo antes que el tren');   // 3.8.4: el caballo con su nombre
-  assert.ok(en('cacheCantero &&') < en("texto: 'Subir al kayak'") && en('cacheAcopio &&') < en("texto: 'Subir al kayak'"), 'el kayak después del cantero y el acopio');
-  // las otras teclas, después de todo lo de E
-  const primeraOtra = Math.min(en("tecla: 'F', texto: fuegoPropio"), en("tecla: 'H'"), en("tecla: 'Y'"), en("tecla: 'B'"), en("texto: 'Armar la carpa'"), en("texto: 'Levantar la carpa'"));
-  for (const e of ["texto: 'Dormir junto al fuego'", "'Pedir algo en la casa de té'", "'Mirar el tendal'", 'Juntar semilla de', "texto: 'Dormir en la carpa'"]) assert.ok(en(e) < primeraOtra, `${e} va antes que F/H/Y/B/T`);
-  assert.match(cadena, /if \(modoObra && aviso && \['H', 'T', 'Y', 'B', 'G'\]\.includes\(aviso\.tecla\)\) aviso = null;/, 'con los planos abiertos no se ofrecen H, T, Y, B ni G');
-  assert.match(cadena, /if \(js\.montado && !charla\.npc\) aviso =/, 'hablando arriba del caballo, el aviso no dice bajarse');
-  assert.match(cadena, /desafio\.antorchaApagadaCerca\?\.\(js\.pos\)\) aviso = \{ tecla: 'F', texto: 'Encender la antorcha' \}/, 'la antorcha apagada se avisa');
-  assert.match(cadena, /mirandoAlPerro\(js, perro\.est\.pos\) && \(rastro \|\| puedoPedirRastro\(\)\)\)/, 'el perro sólo si E puede');
+  // 4.6.1: el aviso y la E salen de la misma tabla (src/interacciones.js): el orden es uno solo
+  antes('mostrador', 'puerta', 'el mostrador antes que la puerta del almacén');
+  antes('caballo', 'trochita', 'el caballo antes que el tren');
+  antes('cantero', 'subir-kayak', 'el kayak después del cantero'); antes('acopio', 'subir-kayak', 'y del acopio');
+  // las otras teclas, después de todo lo de E: con algo de E a mano, el aviso es el de E
+  const otras = { fuegoPropio: { plano: { id: 'fogon' } }, hachaCerca: {}, aserrar: 'mano', semilla: { nombre: 'un ñire' }, puedeArmarCarpa: true };
+  for (const [nombre, est] of [['Dormir junto al fuego', { cercaDelFuego: true, puedeDormirJuntoAlFuego: true }], ['Pedir algo en la casa de té', { enLaCasaDeTe: true }], ['el tendal', { tendalCerca: {} }], ['la semilla', { cerca: { semillaArbol: { arbol: {} } } }], ['Dormir en la carpa', { enLaCarpa: true, puedeDormirJuntoAlFuego: true }]]) {
+    assert.equal(que({ ...otras, ...est }).tecla, 'E', `${nombre} va antes que F/H/Y/B/T`);
+  }
+  assert.ok(['fuego-propio', 'hacha', 'aserrar', 'plantar', 'armar-carpa', 'levantar-carpa'].every((id) => IDS_OTRAS.includes(id)), 'F, H, Y, B y T van en la lista de las otras teclas');
+  for (const [est, t] of [[{ hachaCerca: {} }, 'H'], [{ aserrar: 'mano' }, 'Y'], [{ semilla: { nombre: 'x' } }, 'B'], [{ enLaCarpa: true }, 'T'], [{ cercaDelFuego: true }, 'G']]) {
+    assert.equal(que(est).tecla, t);
+    assert.equal(que({ ...est, modoObra: true }).aviso, null, `con los planos abiertos no se ofrece ${t}`);
+  }
+  { const r = que({ js: { montado: true }, charlaNpc: {} }); assert.equal(r.aviso, null, 'hablando arriba del caballo, el aviso no dice bajarse'); }
+  { const r = que({ desafio: {}, avisoDesafioCerca: null, antorchaApagadaCerca: true }); assert.equal(r.tecla, 'F'); assert.equal(r.texto, 'Encender la antorcha', 'la antorcha apagada se avisa'); }
+  assert.equal(que({ mirandoAlPerro: true }).aviso, null, 'el perro sólo si E puede');
   // en la tecla E: lo que mirás gana al tren y al mostrador, como en el aviso
-  assert.match(main, /if \(!js\.enKayak && !objetivo && tren\.puedeSubir\(js\)\) \{ tren\.subir\(jugador\);/);
-  assert.match(main, /if \(!js\.enTren && !js\.enKayak && !objetivo && cercaDelMostrador\(\)\) \{ abrirAlmacen\(\); break; \}/);
+  for (const est of [{ puedeSubirAlTren: true }, { cercaDelMostrador: true }]) { const r = que({ ...est, objetivo: { tipo: 'planta', texto: 'Anotar' } }); assert.equal(r.e, 'objetivo'); assert.equal(r.avisoId, 'objetivo'); }
 }
 
 console.log('2.4.1: fotos al importar, partidas con basura, obras de otra versión y el aviso en el orden de la tecla E');

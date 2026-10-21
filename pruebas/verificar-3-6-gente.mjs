@@ -16,6 +16,7 @@ import * as C from '../src/comercio.js';
 import { ENTRADA, ENTRADAS } from '../src/cuaderno.js';
 import { CARTAS, sanearCorreo } from '../src/correo.js';
 import { XP, xpDeAporte } from '../src/oficios.js';
+import { enOrden, que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const existe = (f) => fs.existsSync(new URL('../' + f, import.meta.url));
@@ -360,11 +361,12 @@ function mundo(p) {
   ok(main.includes('const deLaAldea = npc.poblador && aldeaGente ? aldeaGente.charla(npc) : null;'), 'E habla con la gente de la aldea');
   ok(main.includes('if (charla.historia?.alTerminar && charla.parte === charla.historia.partes.length) charla.historia.alTerminar();'), 'el trato se acepta con E en el último renglón');
   // la tecla E y el aviso, en el mismo orden: la obra de la aldea va después de las obras que trabajan
-  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'Tab':"));
-  const aviso = main.slice(main.indexOf('2.4.1: el aviso sigue el orden de la tecla E paso a paso'), main.indexOf('mostrarAviso(aviso);'));
-  const orden = (t, a, b) => t.indexOf(a) >= 0 && t.indexOf(b) > t.indexOf(a);
-  ok(orden(tecla, 'obraQueTrabajaCerca()', 'aldeaGente.obraCerca(js.pos)') && orden(tecla, 'aldeaGente.obraCerca(js.pos)', 'ovejaCercana'), 'la tecla E: después de las obras que trabajan, antes de la oveja');
-  ok(orden(aviso, 'avisoObraQueTrabaja(cacheObraTrabaja)', 'aldeaGente.avisoObra(cacheObraAldea)') && orden(aviso, 'aldeaGente.avisoObra(cacheObraAldea)', 'ovejaCercana && !objetivo'), 'el aviso, en el mismo lugar');
+  // (4.6.1: las dos salen de la misma tabla, src/interacciones.js)
+  enOrden(['obra-trabaja', 'obra-aldea', 'oveja'], 'la tecla E y el aviso: después de las obras que trabajan, antes de la oveja'); n++;
+  { const lote = { id: 'carpinteria' }; const r = que({ cerca: { obraAldea: lote }, ovejaCercana: { i: 0 } }); ok(r.e === 'obra-aldea' && r.hechos.includes('aportarObra') && r.avisoId === 'obra-aldea', 'parado en el lote, E aporta y el aviso lo dice'); }
+  { const r = que({ cerca: { obraAldea: { id: 'x' } }, avisoObraAldea: null, ovejaCercana: { i: 0 } }); ok(r.e === 'obra-aldea' && r.avisoId === 'oveja', 'sin texto de la obra, el aviso sigue (como antes)'); }
+  ok(/aportarObra: \(l\) => aldeaGente\.aportarObra\(l\)/.test(main) && /avisoObraAldea: \(l\) => aldeaGente\.avisoObra\(l\)/.test(main), 'la E y el aviso usan las funciones de la aldea');
+  ok(/case 'obraAldea': return enE \? aldeaGente && aldeaGente\.obraCerca\(js\.pos\) : cacheObraAldea;/.test(main), 'la E busca el lote en el momento; el aviso usa lo buscado');
   ok(main.includes("gastarFilo(progreso.aldea);") && main.includes("golpesConFilo(golpesParaTalar(GOLPES_TALA, nivelDe('hachero')), progreso?.aldea)"), 'el filo del herrero, con la aldea');
   ok(main.includes("pestanas.push(['oficios', desafio ? 'Oficios' : 'Oficios y aldea']);") && main.includes('oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente)'), 'la pestaña «Oficios y aldea»');
   ok(main.includes("aldea: esDesafio ? null : { indice: PARADA_ALDEA.indice, nombre: NOMBRE_ALDEA }"), 'la parada del sur, con el nombre de la aldea sólo en el Relax');

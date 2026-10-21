@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { que } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -240,11 +241,13 @@ assert.match(extraer(des, 'usarEmplasto'), /^function usarEmplasto\(\) \{\n\s*co
 // ---------------------------------------------------------------- 11. la tecla E y el aviso: dormir no le gana a lo que mirás
 {
   const main = leer('src/main.js');
-  assert.ok(main.includes("      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { dormir({ carpa: true }); break; }"), 'E en la carpa mirando algo: eso, no dormir');   // (3.8.6: la carpa se anota en dormir())
-  assert.ok(main.includes('      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }'), 'E en tu obra mirando algo: eso, no dormir');
-  // el aviso: lo que mirás va primero, y dormir sólo sin aviso
-  assert.ok(main.includes('let aviso = objetivo ? { tecla: \'E\', texto: objetivo.texto } : null;'));
-  assert.ok(main.includes("if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };"));
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  const mirando = { tipo: 'arbol', texto: 'Anotar ñire' };
+  assert.equal(que({ enLaCarpa: true, puedeDormirJuntoAlFuego: true, objetivo: mirando }).e, 'objetivo', 'E en la carpa mirando algo: eso, no dormir');   // (3.8.6: la carpa se anota en dormir())
+  assert.equal(que({ dentroDeTuObra: true, puedeDormirJuntoAlFuego: true, objetivo: mirando }).e, 'objetivo', 'E en tu obra mirando algo: eso, no dormir');
+  // el aviso: lo que mirás va primero, y dormir sólo sin nada mirado
+  assert.equal(que({ enLaCarpa: true, puedeDormirJuntoAlFuego: true, objetivo: mirando }).texto, 'Anotar ñire');
+  assert.equal(que({ enLaCarpa: true, puedeDormirJuntoAlFuego: true }).texto, 'Dormir en la carpa');
 }
 
 // ---------------------------------------------------------------- 12. el asedio: caer en un contraataque no deja el fogón gastado

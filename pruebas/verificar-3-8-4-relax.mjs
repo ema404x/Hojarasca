@@ -28,6 +28,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { enOrden, que, funcionDeMain } from './ayuda-interacciones.mjs';
 
 // un localStorage de mentira, para el guardado en Node
 const almacen = new Map();
@@ -139,9 +140,14 @@ const c = (n, palo) => ({ n, palo });
   ok(leer('src/jugador.js').includes('if (noPisa(col.plataformaEn?.(estado.pos.x, estado.pos.z, estado.pos.y, 0.6))) {'), 'montado, se planta en el estribo');
   ok(leer('src/tirolesa.js').includes('function estriboCerca(pos, radio = 3.5) {'), 'el estribo de un puente tendido');
   // la E y el aviso, en el mismo orden: la jaula, el puente, bajarte
-  const e1 = en(main, 'if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }'), e2 = en(main, 'if (puenteDelCaballo()) { caballoEnElPuente(); break; }'), e3 = en(main, 'if (js.montado) { desmontar(); break; }');
-  ok(e1 < e2 && e2 < e3, 'la E: la jaula, el puente, bajarte');
-  en(main, "jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : puenteDelCaballo() ? { tecla: 'E', texto: `${caballoDicho('', true)} no cruza el puente: bajarte` } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };");
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['jaula', 'puente', 'desmontar'], 'la E y el aviso: la jaula, el puente, bajarte');
+  {
+    const dicho = (a, may) => `${may ? 'El' : a} zaino`;
+    const r = que({ js: { montado: true }, puenteDelCaballo: true, caballoDicho: dicho });
+    ok(r.e === 'puente' && r.hechos.join() === 'caballoEnElPuente' && r.texto === 'El zaino no cruza el puente: bajarte', 'en el estribo del puente: lo pregunta (y el aviso lo dice)');
+    ok(que({ js: { montado: true }, caballoDicho: dicho }).texto === 'Bajarte de zaino', 'si no, bajarte');
+  }
   const pr = trozo('async function caballoEnElPuente() {', '\n}');
   ok(pr.includes("{ si: 'Mandarlo al refugio', no: 'Amarrarlo acá', cancelado: null }") && pr.includes('mandarAlRefugio(c);') && pr.includes('guardar();'), 'pregunta, te baja y se guarda');
   ok(pr.includes("nota(`${caballoDicho('', true)} vuelve solo al refugio`, 'Te espera atado al palenque');") && pr.includes("nota(`Amarraste ${caballoDicho('a')} al estribo`, 'Te espera acá: volvé a subir con E');"), 'las notas');
@@ -330,10 +336,20 @@ const c = (n, palo) => ({ n, palo });
 {
   const tro = leer('src/trochita.js');
   ok(tro.includes('const varadoEnNieve = () => est.subido && !est.varado && est.esperaNieve > 0 && est.vel < 0.05;') && tro.includes('varadoEnNieve, bajarEnLaNieve,'), 'la trochita sabe cuándo se puede bajar');
-  const e1 = en(main, 'if (js.enTren && usarLugarDelTren()) break;'), e2 = en(main, 'if (js.enTren && tren.varadoEnNieve?.()) { bajarEnLaNieve(); break; }'), e3 = en(main, 'if (js.enTren && tren.conduciendo()) { bajarDeLaCabina(); break; }');
-  ok(e1 < e2 && e2 < e3, 'la E: lo del vagón, bajarte en la nieve, la cabina');
-  en(main, "else aviso = avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : tren.varadoEnNieve?.() ? { tecla: 'E', texto: 'Bajarte y seguir a pie' } : null);");
-  en(main, "if (!vecino && tren.conduciendo()) aviso = tren.parado() && !enLasCargas() ? { tecla: 'E', texto: 'Bajar de la cabina' } : tren.varadoEnNieve?.() ? { tecla: 'E', texto: 'Bajarte y seguir a pie' } : null;");
+  // (4.6.1: arriba del tren, usarTrenInteraccion y avisoTrenInteraccion de main.js, con un tren de mentira)
+  {
+    const hechos = [];
+    const entorno = (est) => ({
+      tren: { conduciendo: () => !!est.conduce, parado: () => !!est.parado, varadoEnNieve: () => !!est.varado, bajar: () => { hechos.push('bajar'); return true; } },
+      usarLugarDelTren: () => { if (est.lugar) { hechos.push('lugar'); return true; } return false; }, avisoLugarDelTren: () => (est.lugar ? { tecla: 'E', texto: 'Tomar unos mates' } : null),
+      bajarDeLaCabina: () => hechos.push('cabina'), bajarEnLaNieve: () => hechos.push('nieve'), bajarCaballoDelTren: () => {}, nota: (t) => hechos.push(t), enLasCargas: () => false, jugador: {},
+    });
+    const usar = (est) => { hechos.length = 0; funcionDeMain(main, 'usarTrenInteraccion', entorno(est))(); return hechos.join(); };
+    const aviso = (est) => funcionDeMain(main, 'avisoTrenInteraccion', entorno(est))()?.texto || null;
+    ok(usar({ lugar: true, varado: true, conduce: true }) === 'lugar' && usar({ varado: true, conduce: true }) === 'nieve' && usar({ conduce: true }) === 'cabina', 'la E: lo del vagón, bajarte en la nieve, la cabina');
+    ok(aviso({ varado: true }) === 'Bajarte y seguir a pie' && aviso({ lugar: true, varado: true }) === 'Tomar unos mates' && aviso({ parado: true }) === 'Bajar del tren', 'el aviso de pasajero: lo del vagón, bajar en la estación o en la nieve');
+    ok(aviso({ conduce: true, parado: true }) === 'Bajar de la cabina' && aviso({ conduce: true, varado: true }) === 'Bajarte y seguir a pie' && aviso({ conduce: true }) === null, 'y en la cabina');
+  }
   ok(trozo('function bajarEnLaNieve() {', '\n}').includes("nota('Te bajaste en la nieve', 'El tren espera a la cuadrilla con las palas: vos seguí a pie', true);"), 'la nota');
 }
 

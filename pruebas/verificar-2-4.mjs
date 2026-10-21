@@ -18,6 +18,7 @@ import { crearDiario } from '../src/diario.js';
 import { ENTRADA } from '../src/cuaderno.js';
 import { armarMochila } from '../src/mochila.js';
 import { LENA } from '../src/lena.js';
+import { que, enganche } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -284,10 +285,11 @@ const casi = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`)
   // el embarcadero no le gana a «Subir al kayak»: con el kayak al alcance, la obra no cuenta y E sube
   assert.match(main, /if \(o\.plano\.id === 'embarcadero' && \(js\.enKayak \|\| kayak\?\.cerca\(js\) \|\| !sobreEmbarcadero\(o, js\.pos\)( \|\| kayakAmarradoEn\(o\))?\)\) continue;/);   // (3.8.6: y con el kayak ya amarrado ahí)
   assert.match(main, /ovejaCercana = js\.enTren \|\| js\.enKayak \? null : corralMundo\?\.ovejaCerca\(js\.pos\) \|\| majadaMundo\.ovejaCerca\(js\.pos\);/, 'tus ovejas se esquilan');
-  assert.match(main, /textoOveja\(majadaDe\(ovejaCercana\), ovejaCercana\.i/, 'y el aviso dice de cuál');
+  assert.match(enganche(main, 'textoOveja'), /textoOveja\(majadaDe\(o\), o\.i/, 'y el aviso dice de cuál');   // (4.6.1: el aviso sale de la tabla de interacciones)
   assert.match(main, /const correoAca = npc\.clave === 'ercilia' \|\| npc\.clave === 'buzon';/, 'el buzón da las cartas');
   assert.match(main, /Te la dejaron en el buzón/);
-  assert.match(main, /fuegoPropio\.plano\.id === 'pared-hogar' \? 'Encender el hogar'/);
+  assert.equal(que({ fuegoPropio: { plano: { id: 'pared-hogar' } } }).tecla, 'F', 'tu hogar se prende con F');
+  assert.match(enganche(main, 'textoFuegoPropio'), /f\.plano\.id === 'pared-hogar'[^\n]*'Encender el hogar'/);
   assert.match(main, /diario\.anotar\('noche', como === 'fresco' && inviernoEnCasa \? 'casa' : como\);/);
   // el corral es del Relax
   assert.match(main, /function refrescarCorral\(\) \{\n  if \(desafio \|\| !obras\) return;/);

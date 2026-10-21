@@ -20,6 +20,7 @@ import { sanearVisitas } from '../src/visitas.js';
 import { CAPITULO } from '../src/historia.js';
 import { PASOS_RELAX } from '../src/relax-tutorial.js';
 import { sanearCorreo } from '../src/correo.js';
+import { enOrden, que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -372,11 +373,12 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
     'if (!desafio && !charla.enojado && vecindadJuego) {',
   ]) ok(main.includes(t), `main.js: ${t.slice(0, 90)}`);
   // la tecla E y el aviso, en el mismo orden: sentarse a la mesa de la cita, justo después de hablar
-  const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'Tab':"));
-  const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
-  const orden = (t, a, b) => t.indexOf(a) >= 0 && t.indexOf(b) > t.indexOf(a);
-  ok(orden(tecla, 'if (vecino) { hablar(vecino); break; }', 'vecindadJuego?.puedeSentarse(js.pos)') && orden(tecla, 'vecindadJuego?.puedeSentarse(js.pos)', 'rinconesJuego.accion(js)'), 'la tecla E: sentarse va después de hablar y antes de los rincones');   // (4.5.1: antes, de la carrera)
-  ok(orden(aviso, 'else if (vecino) aviso', 'vecindadJuego?.puedeSentarse(js.pos)') && orden(aviso, 'vecindadJuego?.puedeSentarse(js.pos)', 'cacheRincones.texto'), 'el aviso, en el mismo lugar');
+  // (4.6.1: las dos salen de la misma tabla, src/interacciones.js)
+  enOrden(['vecino', 'cita', 'rincones'], 'la tecla E y el aviso: sentarse va después de hablar y antes de los rincones'); n++;   // (4.5.1: antes, de la carrera)
+  { const r = que({ puedeSentarseALaCita: true, acciones: { rincones: true } }); ok(r.e === 'cita' && r.hechos.includes('sentarseALaCita') && r.avisoId === 'cita' && r.texto === '<textoSentarse>', 'al lado de tu lugar, E te sienta y el aviso lo dice'); }
+  { const r = que({ puedeSentarseALaCita: true, objetivo: { tipo: 'planta', texto: 'Anotar' } }); ok(r.e === 'cita' && r.avisoId === 'cita', 'aunque mires una planta'); }
+  ok(que({ puedeSentarseALaCita: true, js: { montado: true } }).e !== 'cita' && que({ puedeSentarseALaCita: true, js: { enTren: true } }).e !== 'cita', 'ni a caballo ni en el tren');
+  ok(/puedeSentarseALaCita: \(\) => vecindadJuego\?\.puedeSentarse\(jugador\.estado\.pos\)/.test(main), 'con la función de la vecindad');
   const pl = leer('src/plantilla.html');
   ok(pl.includes('<ul class="charla-opciones oculto" id="charla-opciones"></ul>') && pl.includes('.charla-opciones li.elegida'), 'la plantilla: la lista de opciones de la charla');
   const ge = leer('src/gente.js');

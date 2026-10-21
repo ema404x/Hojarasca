@@ -9,6 +9,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { registrarThree } from './ayuda-three.mjs';
+import { que } from './ayuda-interacciones.mjs';
 
 registrarThree();
 const A = await import('../src/aldea.js');
@@ -325,7 +326,10 @@ const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
   ok(/baja: charla\.npc/.test(leer('src/main.js')) && /1 - 0\.65 \* \(i\.baja \|\| 0\)/.test(am), 'y baja cuando hablás con alguien');
   const m = leer('src/main.js');
   ok(/teJuego = crearCantinaJuego\(\{[\s\S]*lugarDeCasaTe\(\)\)/.test(m) && /fallaSistema\('te-armado'/.test(m) && /fallaSistema\('casa-te'/.test(m) && /fallaSistema\('cantina-ambiente'/.test(m), 'main.js: la casa de té y el ambiente, cada uno aislado con fallaSistema');
-  ok(/teEnLaAldea\(\)/.test(m) && /!teEnLaAldea\(\) && enLaCasaDeTe\(\)/.test(m), 'main.js: en la aldea, pedir de pie ya no «aparece» el té (en el valle del Desafío sigue como antes)');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  ok(que({ enLaCasaDeTe: true, teEnLaAldea: true }).e === null && que({ enLaCasaDeTe: true, teEnLaAldea: false }).e === 'casa-te', 'main.js: en la aldea, pedir de pie ya no «aparece» el té (en el valle del Desafío sigue como antes)');
+  { const r = que({ enLaCasaDeTe: true, teEnLaAldea: true }); ok(r.tecla === '·' && /Ceinwen/.test(r.texto), 'en la aldea, el aviso dice que te sientes y Ceinwen te atiende'); }
+  ok(que({ enLaCasaDeTe: true, teEnLaAldea: true, js: { sentado: true } }).aviso === null, 'sentado, ese aviso no va');
   ok(/teJuego\?\.panelAbierto\(\)/.test(m) && /teJuego\?\.sinApuro\(\)/.test(m) && /teJuego\?\.tapaVecino\(js\)/.test(m) && /teJuego\?\.accion\(js\)/.test(m), 'main.js: la carta, el reloj, el vecino de adelante y la tecla E también cuentan la casa de té');
   ok(/abrirCartaTe/.test(m) && /abrirCartaTe/.test(leer('src/aldea-gente.js')), 'Ceinwen, hablándole sentado, te ofrece la carta');
   { const g = leer('src/gente-ropa.js'), a = g.indexOf("'aldea-galesa'"), b = g.indexOf("'aldea-", a + 10); ok(a > 0 && g.slice(a, b).includes('bandeja: true'), 'gente-ropa.js: Ceinwen lleva bandeja'); }

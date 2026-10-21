@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -382,16 +383,15 @@ const GU = await import('../src/guardado.js');
 // ============================================================ 9. los enganches
 {
   const m = leer('src/main.js');
-  const e = m.indexOf("      if (!js.enTren && !js.enKayak && !objetivo && fiestasJuego) { const a = fiestasJuego.accion(js); if (a) { a.hacer(); cacheFiesta = null; break; } }");
-  const t = m.indexOf("      if (!js.enTren && !js.enKayak && !objetivo && tallerTren) { const a = tallerTren.accion(js); if (a) { a.hacer(); cacheTaller = null; break; } }");
-  ok(e > 0 && t > 0 && e > t, 'la tecla E: lo de la fiesta, después del taller');
-  const av = m.indexOf("    if (!aviso && cacheFiesta && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheFiesta.texto };");
-  const at = m.indexOf("    if (!aviso && cacheTaller && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTaller.texto };");
-  ok(av > at && at > 0 && av - at < 300, 'el aviso: en el mismo lugar (después del taller)');
-  ok(m.includes("      cacheFiesta = fiestasJuego ? fiestasJuego.accion(js) : null;   // 3.7.5"), 'el aviso usa la misma función');
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  enOrden(['taller-tren', 'fiestas', 'cantina'], 'la tecla E y el aviso: lo de la fiesta, después del taller'); n++;
+  { const r = que({ acciones: { taller: true, fiesta: true } }); ok(r.e === 'taller-tren' && r.avisoId === 'taller-tren', 'el aviso: en el mismo lugar (después del taller)'); }
+  revisarModulo('fiestas', 'fiesta'); n++;
+  ok(/cacheFiesta = fiestasJuego \? fiestasJuego\.accion\(js\) : null;/.test(m) && /case 'fiesta': return enE \? fiestasJuego\?\.accion\(js\) : cacheFiesta;/.test(m), 'el aviso usa la misma función');
+  { const r = que({ panelAbierto: (n) => n === 'fiestas' }); ok(r.e === 'fiestas-abierto' && r.aviso === null && /else if \(nombre === 'fiestas'\) fiestasJuego\.alApretarE\(\);/.test(m), 'con el panel de las fiestas, E llama a alApretarE (en un partido no lo deja)'); }
   ok(m.includes("  if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5") && m.includes('|| !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();'), 'las listas del HUD (teclado, mouse y mando)');
   ok(m.split("if (fiestasJuego?.panelAbierto()) { marcarEn('fiesta', Number(codigo.slice(5)) - 1); fiestasJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'los números del 1 al 9');
-  ok(m.includes('else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();') && m.includes('if (fiestasJuego?.panelAbierto()) { fiestasJuego.alApretarE(); break; }'), 'Escape deja el partido; E no');
+  ok(m.includes('else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();'), 'Escape deja el partido; E no');
   ok(m.includes('amorDestino: (k) => destinoConFiesta(k),') && m.includes("if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;") && m.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;'), 'quién va a dónde: la cita y el casamiento, después la fiesta, después lo demás');
   ok(m.includes('if (fiestasJuego?.montando()) fiestasJuego.camara(camara);') && m.includes("fallaSistema('fiestas', e)"), 'el cuadro (aislado) y la cámara de la jineteada');
   ok(m.includes("|| (!desafio && fiestasJuego?.climaForzado(k))) || tipo(k);"), 'el tiempo de la gran nevada');   // (3.8.6: después de la noche del temporal del capítulo 8; 3.8.7: y nada forzado con el clima fijo despejado)

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import * as C from '../src/comercio.js';
 import * as M from '../src/maquinista.js';
 import { ENTRADAS } from '../src/cuaderno.js';
+import { antes, enOrden, que, enganche } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -280,21 +281,20 @@ const vacio = () => C.comercioDeHoy(C.comercioNuevo(), 1);
   // main: la tecla E y el aviso en el mismo orden
   const main = leer('src/main.js');
   assert.match(main, /^import \{ crearPuestoDeCargas \} from '\.\/comercio-mundo\.js';$/m);
-  const iE = main.indexOf("case 'KeyE': {"), fE = main.indexOf("case 'Tab':", iE);
-  const tecla = main.slice(iE, fE);
-  const enE = (t) => { const i = tecla.indexOf(t); assert.ok(i >= 0, `falta en la tecla E: ${t}`); return i; };
-  assert.ok(enE('if (enLasCargas()) { puestoCargas.cerrar(); break; }') < enE('if (vecino) { hablar(vecino); break; }'), 'E cierra el puesto antes que nada');
-  assert.ok(enE('feriaCerca()) { abrirFeria(); break; }') < enE('puestoDeCargasCerca()) { cargas().abrir(puestoDeCargasCerca()); break; }'));
-  assert.ok(enE('puestoDeCargasCerca()) { cargas().abrir') < enE('const c = canteroCerca()'), 'el puesto antes que el cantero');
-  assert.ok(enE('if (js.enTren && tren.conduciendo()) { bajarDeLaCabina(); break; }') < enE("if (js.enTren && !tren.parado()) { nota('El tren está andando'"), 'en la cabina E baja antes que lo del pasajero');
-  assert.ok(enE('tren.puedeConducir(js)) { subirALaCabina(); break; }') < enE('tren.puedeSubir(js)) { tren.subir(jugador);'), 'la cabina antes que el coche');
-  const iA = main.indexOf("let aviso = objetivo ? { tecla: 'E'"), fA = main.indexOf('mostrarAviso(aviso);', iA);
-  const aviso = main.slice(iA, fA);
-  const enA = (t) => { const i = aviso.indexOf(t); assert.ok(i >= 0, `falta en el aviso: ${t}`); return i; };
-  assert.ok(enA("texto: 'Ver la feria'") < enA("texto: 'Comerciar en el puesto de cargas'") && enA("texto: 'Comerciar en el puesto de cargas'") < enA('cacheCantero &&'), 'el aviso del puesto en el mismo lugar que la tecla');
-  assert.ok(enA("texto: 'Subir a la cabina y manejar'") < enA("texto: 'Subir a la trochita'"), 'el aviso de la cabina antes que el del coche');
-  assert.ok(enA("texto: 'Bajar de la cabina'") > enA("texto: 'Bajar del tren'"), 'en la cabina el aviso dice bajar de la cabina');
-  assert.ok(aviso.includes('if (enLasCargas()) aviso = null;'));
+  // (4.6.1: la E y el aviso salen de la misma tabla, src/interacciones.js)
+  { const r = que({ enLasCargas: true, vecino: { nombre: 'Elsa' } }); assert.equal(r.e, 'cargas-abiertas', 'E cierra el puesto antes que nada'); assert.deepEqual(r.hechos, ['cerrarCargas']); assert.equal(r.aviso, null, 'y el aviso no dice nada'); }
+  assert.match(enganche(main, 'cerrarCargas'), /puestoCargas\.cerrar\(\)/);
+  enOrden(['feria', 'cargas', 'cantero'], 'el puesto de cargas, después de la feria y antes que el cantero');
+  { const p = { id: 'parada' }; const r = que({ puestoDeCargasCerca: p }); assert.equal(r.texto, 'Comerciar en el puesto de cargas'); assert.deepEqual(r.hechos, ['abrirCargas']); }
+  assert.match(enganche(main, 'abrirCargas'), /cargas\(\)\.abrir\(p\)/);
+  antes('cabina', 'trochita', 'la cabina antes que el coche');
+  assert.equal(que({ puedeConducir: true, puedeSubirAlTren: true }).avisoId, 'cabina', 'el aviso de la cabina antes que el del coche');
+  // arriba del tren, lo del tren (main.js: avisoTrenInteraccion y usarTrenInteraccion)
+  const usarTren = main.slice(main.indexOf('function usarTrenInteraccion()'), main.indexOf('\n}', main.indexOf('function usarTrenInteraccion()')));
+  assert.ok(usarTren.indexOf('bajarDeLaCabina()') > 0 && usarTren.indexOf('bajarDeLaCabina()') < usarTren.indexOf("nota('El tren está andando'"), 'en la cabina E baja antes que lo del pasajero');
+  const avisoTren = main.slice(main.indexOf('function avisoTrenInteraccion()'), main.indexOf('\n}', main.indexOf('function avisoTrenInteraccion()')));
+  assert.match(avisoTren, /if \(tren\.conduciendo\(\)\) return tren\.parado\(\) && !enLasCargas\(\) \? \{ tecla: 'E', texto: 'Bajar de la cabina' \}/, 'en la cabina el aviso dice bajar de la cabina');
+  assert.match(avisoTren, /texto: 'Bajar del tren'/);
   // las otras teclas
   assert.ok(main.includes("if (enLasCargas()) { e.preventDefault(); puestoCargas.pasarModo(e.shiftKey ? -1 : 1); break; }"), 'Tab cambia de modo');
   assert.equal(main.split('if (enLasCargas()) { puestoCargas.elegir(Number(codigo.slice(5)) - 1); break; }').length - 1, 2, 'los números eligen, del 1 al 9');

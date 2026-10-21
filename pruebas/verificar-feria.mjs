@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { FERIA, OFERTAS, esDiaDeFeria, abierta, proximaFeria, ofertasDelDia, feriaNueva, sanearFeria, feriaDeHoy, alcanza, cambiarEnFeria, nombreFeria, textoOferta } from '../src/feria.js';
 import { ENTRADA } from '../src/cuaderno.js';
 import { progresoNuevo } from '../src/guardado.js';
+import { antes, que } from './ayuda-interacciones.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -76,16 +77,17 @@ assert.equal(ENTRADA.feria?.seccion, 'lugares');
 const main = leer('src/main.js');
 assert.match(main, /crearPuestoFeria\(T, escena, e(, col)?\)/, 'el puesto está en el mundo');   // 4.0.3: con el cuerpo (col)
 assert.match(main, /if \(desafio \|\| !puestoFeria \|\| !feriaAbierta\(progreso\.dia, progreso\.horas\)\) return false;/, 'sólo en el Relax y en horario');
-assert.match(main, /feriaCerca\(\) && !enLaFeria\) aviso = \{ tecla: 'E', texto: 'Ver la feria' \}/, 'el aviso');
-assert.match(main, /if \(!objetivo && feriaCerca\(\)\) \{ abrirFeria\(\); break; \}/, 'la tecla E');
+// 4.6.1: la E y el aviso salen de la misma tabla (src/interacciones.js)
+{ const r = que({ feriaCerca: true }); assert.equal(r.texto, 'Ver la feria', 'el aviso'); assert.equal(r.e, 'feria', 'la tecla E'); assert.deepEqual(r.hechos, ['abrirFeria']); }
+{ const r = que({ feriaCerca: true, enLaFeria: true }); assert.equal(r.e, 'feria-abierta', 'con la feria abierta, E la cierra'); assert.equal(r.aviso, null, 'y el aviso no dice nada'); }
+assert.equal(que({ js: { enTren: true }, feriaCerca: true }).avisoId, 'tren', '4.6.1: arriba del tren, lo del tren (antes la E abría la feria)');
 assert.match(main, /if \(enLaFeria\) \{ cambiarFeria\(Number\(codigo\.slice\(5\)\) - 1\); break; \}/, 'los números eligen');
 // (3.6.2: con mousedown, ver alClicHud en main.js: el click no llegaba)
 assert.match(main, /alClicHud\(li, \(\) => cambiarFeria\(i\)\);/, 'y el clic también');
 assert.match(main, /else if \(enLaFeria\) cerrarFeria\(\);/, 'Escape cierra');
 // el aviso y la tecla E van en el mismo orden (ver el comentario en main.js)
-const iAviso = main.indexOf("feriaCerca() && !enLaFeria) aviso"), iAvisoCaballo = main.indexOf("caballoCerca()) aviso");
-const iE = main.indexOf('if (!objetivo && feriaCerca()) { abrirFeria(); break; }'), iECaballo = main.indexOf('if (!objetivo && caballoCerca()) { montar(); break; }');
-assert.ok(iAviso > iAvisoCaballo && iE > iECaballo, 'la feria va después del caballo en los dos lados');
+antes('caballo', 'feria', 'la feria va después del caballo en los dos lados');
+assert.equal(que({ caballoCerca: true, feriaCerca: true }).avisoId, 'caballo');
 assert.match(leer('src/plantilla.html'), /id="feria-lista"/);
 
 console.log('feria:', OFERTAS.length, 'ofertas ·', FERIA.ofertas, 'por feria cada', FERIA.cada, 'días ·', distintas.size, 'ferias distintas en dos meses');
