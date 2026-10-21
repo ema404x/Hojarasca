@@ -10,9 +10,13 @@
 //   · `literal(fuente, 'export const X = ')`: el valor de un literal (lista, objeto, `new Set([...])`) sin importar el módulo.
 import assert from 'node:assert/strict';
 
-const evaluar = (codigo, entorno) => new Function('env', `with (env) { return (${codigo}); }`)(
-  new Proxy(entorno, { has: (t, k) => typeof k === 'string' && Object.hasOwn(t, k) }),
-);
+// Lo que no se da en `entorno` y no es de JavaScript (Math, Set…) vale `undefined`: un sistema nuevo que se sume a la
+// línea (`|| !!otroPanel?.panelAbierto()`) no rompe la prueba, que sigue mirando lo que le importa.
+export const mundoDeMentira = (entorno) => new Proxy(entorno, {
+  has: (t, k) => typeof k === 'string' && (Object.hasOwn(t, k) || !(k in globalThis)),
+  get: (t, k) => (typeof k === 'string' && Object.hasOwn(t, k) ? t[k] : undefined),
+});
+const evaluar = (codigo, entorno) => new Function('env', `with (env) { return (${codigo}); }`)(mundoDeMentira(entorno));
 
 // La línea que empieza (sin contar la sangría) con `inicio` (y, si se da, que también tiene `ademas`): lo que sigue,
 // hasta el `;` del final (sin el comentario)

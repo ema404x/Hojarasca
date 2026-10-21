@@ -7,6 +7,7 @@
 //   · `enganche(main, 'nombre')`: el contexto de main.js (`ctxInteraccion`) le da a la tabla esa función del juego.
 import assert from 'node:assert/strict';
 import { INTERACCIONES, OTRAS_TECLAS, avisoDe, hacerConE } from '../src/interacciones.js';
+import { mundoDeMentira } from './ayuda-codigo.mjs';
 
 export { INTERACCIONES, OTRAS_TECLAS };
 export const IDS = INTERACCIONES.map((e) => e.id);
@@ -92,7 +93,7 @@ export function funcionDeMain(main, nombre, entorno = {}) {
   const i1 = main.indexOf('\n}\n', i0 + 1);
   const fuente = main.slice(i0 + 1, i1 + 2);
   const armar = new Function('env', `with (env) { return (${fuente}); }`);
-  return armar(new Proxy(entorno, { has: (t, k) => typeof k === 'string' && Object.hasOwn(t, k) }));
+  return armar(mundoDeMentira(entorno));
 }
 
 // El contexto de main.js: el bloque `const ctxInteraccion = { … };`
