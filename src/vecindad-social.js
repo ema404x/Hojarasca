@@ -672,7 +672,8 @@ export function cumplirDeseo(persona, estado, hecho, dia, ctx = {}) {
 // acercamiento y otro, y cuántos por día) y cada uno viene como mucho una vez por día. Si devuelve algo, lo marca.
 // ctx: { dia, hora, ritmo, ahora (horas absolutas; si no, dia × 24 + hora), libre (si está libre), semilla, desafio }.
 const INVITA = { mate: 'mate', cartas: 'cartas', caminar: 'caminar', pescar: 'pescar', ranchera: 'ranchera' };
-const INVITA_TEXTO = { mate: /mate/i, cartas: /truco|cartas|chinch[oó]n|naipe/i, caminar: /camin|vuelta|paseo|pasear/i, pescar: /pesc/i, ranchera: /ranchera|bail/i };
+// 4.6.0: el del mate era /<retroceso>mate/ (un carácter de control en vez de \b): nunca reconocía «mate» en lo que dice el vecino
+const INVITA_TEXTO = { mate: /\bmate/i, cartas: /truco|cartas|chinch[oó]n|naipe/i, caminar: /camin|vuelta|paseo|pasear/i, pescar: /pesc/i, ranchera: /ranchera|bail/i };
 // 3.8.6: ¿éste, en particular, podría venir a buscarte? (no vino hoy y no está enojado). social-juego.js lo mira para elegir
 // al que viene: antes probaba sólo con el más cercano y, si ése no podía (ya vino hoy, enojado, la familia o una visita),
 // no venía nadie mientras estuviera cerca.
