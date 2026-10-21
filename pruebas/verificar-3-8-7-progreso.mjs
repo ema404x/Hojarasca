@@ -1,4 +1,4 @@
-// 3.8.7 (progreso): el pase de bugs de la historia, los eventos del valle, las carreras, los oficios, los logros, el
+// 3.8.7 (progreso): el pase de bugs de la historia, los eventos del valle, las carreras (4.5.1: ya no están), los oficios, los logros, el
 // cuaderno, la pesca, el clima y Personalizar. Una comprobación por arreglo.
 // 1. El temporal del capítulo 8: contestada la tarjeta, no vuelve (se tilda al otro día y el «lanzado pero perdido» la
 //    volvía a pedir cada medio segundo hasta la medianoche, cobrando cada vez); un temporal del mismo capítulo no trae otro.
@@ -107,7 +107,7 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
   const main = leer('src/main.js');
   ok(main.includes('libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra'), 'la tarjeta espera a que se cierre el panel');
   ok(/const panelDelHudAbierto = \(\) => enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| enElBanco\(\) \|\| mochilaAbierta .*cocinaJuego\?\.panelAbierto\(\).*tallerTren\?\.panelAbierto\(\).*fiestasJuego\?\.panelAbierto\(\)/.test(main), 'y el panel abierto incluye la cocina, el taller y las fiestas');
-  ok(leer('src/modos-juego.js').includes('mundo?.marcarSiguiente(0);\n    mundo?.ponerFantasma(null);'), 'largar esconde el fantasma');
+  // (4.5.1: se sacó «largar esconde el fantasma»: ya no hay carreras)
 }
 
 // ---------------------------------------------------------------- 6. la visita de un evento

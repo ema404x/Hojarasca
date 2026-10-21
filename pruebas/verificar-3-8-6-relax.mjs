@@ -180,7 +180,7 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(main.includes('steamPuente.sincronizar().catch(() => {});'), 'se sincroniza al arrancar');
 }
 
-// ---------------------------------------------------------------- 14. fotos, pesca, textos, carreras, torneo y el kayak en el Desafío
+// ---------------------------------------------------------------- 14. fotos, pesca, textos y el kayak en el Desafío (4.5.1: sin carreras ni torneo)
 {
   const sf = trozoFn('async function sacarFoto(');
   ok(sf.includes("const hudEscondido = $('hud').classList.contains('oculto');") && sf.includes("if (!hudEscondido) $('hud').classList.remove('oculto');"), 'P en el modo foto no vuelve a mostrar el HUD');
@@ -199,13 +199,9 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
   ok(main.includes("nota('Todavía se está secando', faltanHoras(q.faltan));") && main.includes("nota('Se están ahumando', faltanHoras(r.faltan));") && main.includes("r.lenera.secos === 1 ? 'Queda uno en la leñera'") && main.includes("datos.fotos.length === 1 ? 'foto' : 'fotos'"), 'los plurales con 1');
   const ou = leer('src/oficios-ui.js');
   ok(ou.includes('`Falta 1 para el nivel ${e.nivel + 1}.`') && ou.includes('${e.de.charAt(0).toLowerCase()}${e.de.slice(1)}'), 'oficios: «Falta 1» y «La noche de los duendes» con mayúscula');
-  const mj = leer('src/modos-juego.js');
-  ok(mj.includes('ultimoResultado = null;   // 3.8.6') && mj.includes(': con el kayak, en el muelle o en tu embarcadero'), 'carreras: largar limpia la llegada vieja; el kayak no siempre está en el muelle');
+  // (4.5.1: se sacaron las comprobaciones de las carreras y del torneo: ya no existen)
   ok(leer('src/eventos-valle-ui.js').includes("if (ctx.ajustes?.()?.duracion === 'reloj') return;"), 'con la hora de tu reloj, las horas de un evento no saltan');
   ok(main.includes("kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null;"), 'en el Desafío, subirte al kayak no lo manda al muelle para siempre');
-  const TO = await import('../src/torneo.js');
-  const f = TO.fundirEntradas([{ semana: '2026-S40', nombre: 'José', pesca: 40, carreraMs: 0, noches: 0, abatidos: 0, t: 5 }], [{ semana: '2026-S40', nombre: 'Jose', pesca: 52, carreraMs: 0, noches: 0, abatidos: 0, t: 0 }]);
-  ok(f.length === 1 && f[0].pesca === 52, `torneo: «José» y «Jose» (del código) son el mismo (${JSON.stringify(f.map((e) => e.nombre))})`);
 }
 
 // ---------------------------------------------------------------- 15. construcción: nombres, plurales y géneros; las ramitas llenas

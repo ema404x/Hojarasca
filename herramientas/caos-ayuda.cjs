@@ -232,16 +232,7 @@ function AYUDA() {
       await cuadros(2);
       return `${h} (modo ${modo()})`;
     },
-    async carrera() {
-      if (D() || modo() !== 'jugando') return 'carrera (no)';
-      const id = uno(['estepa', 'pampa', 'mirador', 'faro', 'lago', 'regata']);
-      try { H.__modos().__.largar(id); } catch (e) { return `carrera ${id} no larga: ${e.message}`; }
-      const n = entre(10, 80);
-      abajo('KeyW'); if (r() < 0.5) abajo('ShiftLeft');
-      for (let i = 0; i < n; i++) { H.__bucle(); await dormirMs(12); if (r() < 0.03) await tecla(uno(['KeyE', 'Escape', 'KeyM', 'KeyA']), 1); }
-      soltarTodo(); await cuadros(2);
-      return `carrera ${id} (${n} cuadros, ${JSON.stringify(H.__modos().__.estado().carrera?.fase || null)})`;
-    },
+    // (4.5.1: la acción «carrera» se sacó con las carreras contrarreloj)
     async vecinos() {
       if (D() || modo() !== 'jugando') return 'vecinos (no)';
       const q = uno(['rastro', 'dejarRastro', 'poblador', 'pueblo', 'visitas', 'rayo', 'hacha', 'carpa', 'renoval']);
@@ -442,8 +433,8 @@ function AYUDA() {
       return 'nave (no hay haz)';
     },
   };
-  const PESOS_RELAX = { tecla: 22, caminar: 12, clic: 6, rueda: 3, mirar: 6, salto: 8, hora: 3, apurarTiempo: 2, ajustes: 5, panel: 6, mochila: 4, obra: 7, vehiculo: 8, pesca: 3, foto: 3, dormir: 2, materiales: 2, charla: 4, valle: 3, carrera: 2, vecinos: 4, limites: 2, dias: 2, mando: 3, foco: 2, repetir: 2, mapa: 2, tienda: 3, aldea: 3 };   // (3.6.1: la aldea)
-  const PESOS_DESAFIO = { ...PESOS_RELAX, aldea: 0, charla: 1, pesca: 1, valle: 0, carrera: 0, vecinos: 0, tienda: 0, arma: 8, pieza: 5, noche: 5, nocheReal: 4, herida: 4, taller: 3, nave: 1 };
+  const PESOS_RELAX = { tecla: 22, caminar: 12, clic: 6, rueda: 3, mirar: 6, salto: 8, hora: 3, apurarTiempo: 2, ajustes: 5, panel: 6, mochila: 4, obra: 7, vehiculo: 8, pesca: 3, foto: 3, dormir: 2, materiales: 2, charla: 4, valle: 3, vecinos: 4, limites: 2, dias: 2, mando: 3, foco: 2, repetir: 2, mapa: 2, tienda: 3, aldea: 3 };   // (3.6.1: la aldea)
+  const PESOS_DESAFIO = { ...PESOS_RELAX, aldea: 0, charla: 1, pesca: 1, valle: 0, vecinos: 0, tienda: 0, arma: 8, pieza: 5, noche: 5, nocheReal: 4, herida: 4, taller: 3, nave: 1 };
 
   async function accion(nombre, semilla) {
     sembrar(semilla);

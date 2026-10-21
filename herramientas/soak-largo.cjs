@@ -93,7 +93,7 @@ require(${JSON.stringify(path.join(PROY, 'preload.cjs'))});`);
   ipcMain.handle('guardar-foto', (_e, datos, nombre) => { fotosGuardadas++; fs.writeFileSync(path.join(SALIDA, 'ultima-foto.txt'), String(nombre) + ' ' + String(datos).length); return path.join(SALIDA, String(nombre)); });
   ipcMain.handle('pantalla-refresco', () => 60); ipcMain.handle('app-version', () => '3.5.4'); ipcMain.handle('app-platform', () => process.platform);
   ipcMain.handle('steam-disponible', () => false); ipcMain.handle('steam-logro', () => false); ipcMain.handle('graficos-fallaron', () => false);
-  for (const k of ['sync-carpeta', 'sync-elegir', 'sync-olvidar', 'sync-escribir', 'sync-leer', 'torneo-leer', 'torneo-escribir']) ipcMain.handle(k, () => null);
+  for (const k of ['sync-carpeta', 'sync-elegir', 'sync-olvidar', 'sync-escribir', 'sync-leer']) ipcMain.handle(k, () => null);
   ipcMain.on('sync-escribir-ya', (e) => { e.returnValue = null; });
   const reportes = [];
   ipcMain.on('reportar-error', (_e, d) => { reportes.push(String(d).slice(0, 300)); console.log('  reportar-error ' + String(d).slice(0, 200)); });

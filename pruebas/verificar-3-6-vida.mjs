@@ -375,8 +375,8 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
   const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'Tab':"));
   const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
   const orden = (t, a, b) => t.indexOf(a) >= 0 && t.indexOf(b) > t.indexOf(a);
-  ok(orden(tecla, 'if (vecino) { hablar(vecino); break; }', 'vecindadJuego?.puedeSentarse(js.pos)') && orden(tecla, 'vecindadJuego?.puedeSentarse(js.pos)', 'modos?.accion(jugador.estado)'), 'la tecla E: sentarse va después de hablar y antes de la carrera');
-  ok(orden(aviso, 'else if (vecino) aviso', 'vecindadJuego?.puedeSentarse(js.pos)') && orden(aviso, 'vecindadJuego?.puedeSentarse(js.pos)', 'modos?.accion(js)'), 'el aviso, en el mismo lugar');
+  ok(orden(tecla, 'if (vecino) { hablar(vecino); break; }', 'vecindadJuego?.puedeSentarse(js.pos)') && orden(tecla, 'vecindadJuego?.puedeSentarse(js.pos)', 'rinconesJuego.accion(js)'), 'la tecla E: sentarse va después de hablar y antes de los rincones');   // (4.5.1: antes, de la carrera)
+  ok(orden(aviso, 'else if (vecino) aviso', 'vecindadJuego?.puedeSentarse(js.pos)') && orden(aviso, 'vecindadJuego?.puedeSentarse(js.pos)', 'cacheRincones.texto'), 'el aviso, en el mismo lugar');
   const pl = leer('src/plantilla.html');
   ok(pl.includes('<ul class="charla-opciones oculto" id="charla-opciones"></ul>') && pl.includes('.charla-opciones li.elegida'), 'la plantilla: la lista de opciones de la charla');
   const ge = leer('src/gente.js');

@@ -10,7 +10,6 @@ import { textoOferta, textoDosCambiaron } from '../src/sincronia.js';
 import { contadores } from '../src/encargos-temporada.js';
 import { estadoHistoria } from '../src/historia.js';
 import { progresoNuevo, guardarProgreso, cargarProgreso } from '../src/guardado.js';
-import { torneoLocalNuevo, torneoDeLaSemana, anotarPropio, codigoPuntaje, leerCodigoPuntaje, sumarAmigo } from '../src/torneo.js';
 import { eventosValleNuevos, cerrarSeguimiento } from '../src/eventos-valle.js';
 
 const leer = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
@@ -82,17 +81,7 @@ assert.ok(main.includes("  if (banco?.activa) return false;"), 'el banco de prue
 assert.ok(main.includes("if (js.enCable && codigo === 'Escape') { abrir('pausa'); return; }"), 'en la tirolesa, Esc pausa');
 assert.ok(leer('src/plantilla.html').includes(".estado { position: absolute; left: 50%; bottom: calc(94px"), 'el estado va arriba de la barra de casillas');
 
-// ---- el torneo: pegar tu propio código (con acento en el nombre) no te suma dos veces
-{
-  const local = torneoLocalNuevo('pc1'); local.nombre = 'José Peña';
-  const t = torneoDeLaSemana(new Date(2026, 9, 1));
-  anotarPropio(local, t, { pesca: 40 });
-  const propia = local.propias.find((e) => e.semana === t.semana) || local.propias[0];
-  const leido = leerCodigoPuntaje(codigoPuntaje({ ...propia, nombre: local.nombre }));
-  assert.ok(leido, 'el código propio se lee');
-  assert.equal(sumarAmigo(local, leido), false, 'y no entra como amigo');
-  assert.equal(sumarAmigo(local, { ...leido, nombre: 'Ana' }), true, 'el de otro sí');
-}
+// (4.5.1: se sacó la comprobación del torneo de la semana: el torneo ya no existe)
 // ---- los eventos: sin vecinos, "el puente cedió" no trae a Nicanor
 {
   const ev = eventosValleNuevos(() => 0.5); ev.pendientes.push({ id: 's-puente-caida', dia: 3 });

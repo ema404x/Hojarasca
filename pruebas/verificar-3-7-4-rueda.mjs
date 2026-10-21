@@ -158,7 +158,7 @@ const figura = (x = 0, z = 0) => ({ fase: 0, torso: hueso(), cabeza: hueso(), br
   // la E y el aviso: el que te quiere decir algo, en el lugar del vecino (hablar), antes de todo lo demás
   const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
   const orden = (t, a, b) => t.indexOf(a) >= 0 && t.indexOf(b) > t.indexOf(a);
-  ok(orden(aviso, 'else if (vecino) aviso', 'socialJuego?.quiereDecir(vecino)') && orden(aviso, 'socialJuego?.quiereDecir(vecino)', 'modos?.accion(js)'), 'el aviso «te quiere decir algo», con el del vecino');
+  ok(orden(aviso, 'else if (vecino) aviso', 'socialJuego?.quiereDecir(vecino)') && orden(aviso, 'socialJuego?.quiereDecir(vecino)', 'cacheRincones.texto'), 'el aviso «te quiere decir algo», con el del vecino');   // (4.5.1: antes, el de la carrera)
   const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'Tab':"));
   ok(orden(tecla, 'if (vecino) { hablar(vecino); break; }', 'vecindadJuego?.puedeSentarse(js.pos)'), 'la E: hablar (y ahí, lo que te quería decir) en el mismo lugar');
   const hablar = main.slice(main.indexOf('function hablar(npc) {'), main.indexOf('function mostrarCharla() {'));

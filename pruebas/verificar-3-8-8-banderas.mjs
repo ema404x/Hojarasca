@@ -5,7 +5,8 @@
 //   · el material engancha el viento, la lluvia y el tiempo del clima y conserva la niebla de siempre;
 //   · una bandera se orienta con el viento (con cualquier giro de base y del padre) y lo sigue cuando cambia;
 //   · todas están conectadas: las de la aldea (plaza, escuela, seccional), las dos de la casa de té y (3.8.9, auditoría) tu bandera del
-//     refugio y las banderitas de las torres, las dos de la locomotora y los banderines de los postes de largada; y la de adentro, no.
+//     refugio y las banderitas de las torres, las dos de la locomotora; y la de adentro, no. (4.5.1: los banderines de los postes de largada se
+//     sacaron con las carreras.)
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
@@ -97,7 +98,7 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   for (const f of ['src/bandera-viento.js']) for (const m of leer(f).matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(m[0]), `import en una línea: ${m[0]}`);
   for (const m of leer('src/bandera-viento.js').matchAll(/^export\s+(?:const|let|function|class)\s+([^\s(=]+)/gm)) ok(!/ñ/i.test(m[1]), `exportado sin ñ: ${m[1]}`);
 }
-// ---------------------------------------------------------------- 6. (3.8.9) las que faltaban: tu bandera, la locomotora y la largada
+// ---------------------------------------------------------------- 6. (3.8.9) las que faltaban: tu bandera y la locomotora (4.5.1: la largada ya no)
 {
   // el giro del padre cuenta en el mundo: el mástil del refugio cuelga de un grupo que cuelga de otro girado
   const abuelo = new THREE.Group(); abuelo.rotation.y = 1.3;
@@ -126,8 +127,7 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   const tr = leer('src/tren.js');
   ok(tr.includes("import { crearPanoBandera, registrarBandera } from './bandera-viento.js';") && /const banderasLoco = \[-1, 1\]\.map\(/.test(tr) && tr.includes('for (const b of banderasLoco) b.visible = !!l.banderines;'), 'la locomotora: dos paños sueltos, que se ven con los banderines');
   ok(!tr.includes('const ola = (fase)'), 'y ya no van en la malla con la onda fija');
-  const ca = leer('src/carreras-mundo.js');
-  ok(/registrarBandera\(crearPanoBandera\(0\.9, 0\.55, null, \{ material: matBanderin\(c\.medio\)/.test(ca) && !ca.includes('geoBanderin'), 'los banderines de los postes de largada flamean');
-  for (const f2 of ['src/personal-bandera-mundo.js', 'src/carreras-mundo.js']) for (const mm of leer(f2).matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(mm[0]), `import en una línea: ${mm[0]}`);
+  ok(!fs.existsSync(new URL('../src/carreras-mundo.js', import.meta.url)), '4.5.1: los postes de largada (y sus banderines) ya no existen');
+  for (const f2 of ['src/personal-bandera-mundo.js']) for (const mm of leer(f2).matchAll(/^import .*$/gm)) ok(/^import (\* as THREE|\{ [^}]+ \}) from '[^']+';$/.test(mm[0]), `import en una línea: ${mm[0]}`);
 }
 console.log(`verificar-3-8-8-banderas: ${n} verificaciones ok`);

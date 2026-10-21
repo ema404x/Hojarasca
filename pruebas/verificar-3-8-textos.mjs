@@ -116,7 +116,7 @@ for (const [es, en] of Object.entries(EN_R)) {
 
 // ---------------------------------------------------------------- 2b. el nombre del modo y el cofre del alba
 // El modo se llama «La noche de los duendes» en todo lo que se ve (adentro sigue siendo 'desafio').
-// «Desafío del día» (las carreras del Relax) y «Desafíos cumplidos» (las fotos) son otra cosa.
+// «Desafío del día» (el del Relax; 4.5.1: ya sin carreras) y «Desafíos cumplidos» (las fotos) son otra cosa.
 const nombreViejo = [];
 for (const f of fs.readdirSync(new URL('../src/', import.meta.url)).filter((x) => (x.endsWith('.js') && !x.startsWith('idioma')) || x === 'plantilla.html')) {
   const src = leer('src/' + f);

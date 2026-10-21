@@ -403,15 +403,15 @@ const M = A.marcoAldea();
 // ============================================================ 9. el enganche
 {
   const main = leer('src/main.js'), jug = leer('src/jugador.js'), vec = leer('src/vecindad-juego.js');
-  // la E: lo urgente (bajar del sulky, patear) antes de hablar; lo demás después de la carrera
+  // la E: lo urgente (bajar del sulky, patear) antes de hablar; lo demás después de sentarse a la cita (4.5.1: antes, de la carrera)
   const tecla = main.slice(main.indexOf("case 'KeyE': {"), main.indexOf("case 'KeyE': {") + 14000);
-  const iu = tecla.indexOf('rinconesJuego.urgente(js)'), iv = tecla.indexOf('if (vecino) { hablar(vecino); break; }'), ic = tecla.indexOf('modos?.accion(jugador.estado)'), ia = tecla.indexOf('rinconesJuego.accion(js)'), im = tecla.indexOf('cercaDelMostrador()) { abrirAlmacen(); break; }');
+  const iu = tecla.indexOf('rinconesJuego.urgente(js)'), iv = tecla.indexOf('if (vecino) { hablar(vecino); break; }'), ic = tecla.indexOf('vecindadJuego?.puedeSentarse(js.pos)'), ia = tecla.indexOf('rinconesJuego.accion(js)'), im = tecla.indexOf('cercaDelMostrador()) { abrirAlmacen(); break; }');
   ok(iu > 0 && iu < iv, 'E: lo urgente de los rincones, antes de hablar');
-  ok(ic > 0 && ia > ic && ia < im, 'E: los rincones, después de la carrera y antes del almacén');
+  ok(ic > 0 && ia > ic && ia < im, 'E: los rincones, después de sentarse y antes del almacén');
   // el aviso, en el mismo orden
   const aviso = main.slice(main.indexOf('let aviso = objetivo ?'), main.indexOf('mostrarAviso(aviso);'));
-  const au = aviso.indexOf('rinconesJuego.urgente(js)'), ac = aviso.indexOf('avisoCarrera.texto'), aa = aviso.indexOf('cacheRincones.texto'), am = aviso.indexOf("'Ver qué hay en el almacén'");
-  ok(au > 0 && aa > au && aa > ac && aa < am, 'el aviso: lo urgente pisa a hablar; lo demás, después de la carrera y antes del almacén');
+  const au = aviso.indexOf('rinconesJuego.urgente(js)'), ac = aviso.indexOf('vecindadJuego?.puedeSentarse(js.pos)'), aa = aviso.indexOf('cacheRincones.texto'), am = aviso.indexOf("'Ver qué hay en el almacén'");
+  ok(au > 0 && ac > 0 && aa > au && aa > ac && aa < am, 'el aviso: lo urgente pisa a hablar; lo demás, después de sentarse y antes del almacén');
   ok(main.includes('cacheRincones = rinconesJuego ? rinconesJuego.accion(js) : null;'), 'el aviso usa la misma función');
   const td = tecla.indexOf('rinconesJuego.accionDuende(js)'), tp = tecla.indexOf('puedoPedirRastro()) { pedirRastro(); break; }'), tt = tecla.indexOf('if (js.enTren && usarLugarDelTren()) break;');
   const ad = aviso.indexOf('cacheDuende.texto'), ap = aviso.indexOf("'Pedirle al perro que rastree'"), at = aviso.indexOf("'Subir a la cabina y manejar'");

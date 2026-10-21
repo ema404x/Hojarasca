@@ -2,7 +2,7 @@
 //   1. la noche del temporal del capítulo 8: contestada la tarjeta, no vuelve a salir; la estación la anuncia; a la
 //      noche el clima va a lluvia; a la medianoche todavía no se tilda y a la mañana sí (con la tarjeta del final y el
 //      poncho), y recién después «lo que pasó después»;
-//   2. «Largar de nuevo» a mitad de una carrera esconde el fantasma de la vuelta anterior.
+//   2. (4.5.1: «Largar de nuevo» y el fantasma se sacaron con las carreras.)
 // Uso: HOJ_PERFIL=<carpeta> npx electron --no-sandbox -r ./herramientas/perfil-propio.cjs pruebas/humo-3-8-7-progreso.cjs
 const { app, BrowserWindow, dialog } = require('electron');
 dialog.showErrorBox = () => {};
@@ -90,24 +90,7 @@ app.whenReady().then(async () => {
     ok(t.abierta && /Lo que pasó después/.test(t.texto), `y después, lo que pasó con el temporal (${t.texto})`);
     await js(`${H}.__valle.tarjetas.elegir('seguir'); 1`);
 
-    // ============================================================ 2. el fantasma al relargar
-    seccion('2. «Largar de nuevo» esconde el fantasma');
-    const f = await js(`(async()=>{ const M = ${H}.__modos(), js = ${H}.jugador.estado, T = ${H}.T, c = { x: -262, z: 50 };
-      if (${H}.__caidas.modo() !== 'jugando') ${H}.volverAlJuego(true);
-      // un récord con fantasma, armado a mano: la vuelta va derecho para el lado de la primera puerta
-      const pts = []; for (let i = 0; i < 40; i++) pts.push(Math.round((c.x + i * 2) * 10), Math.round((c.z + i) * 10));
-      M.__.estado().carreras.mejores.mirador = { ms: 60000, parciales: [], fecha: '', fantasma: { paso: 0.5, pts } };
-      js.pos.set(c.x, T.altura(c.x, c.z) + 0.05, c.z);
-      M.__.largar('mirador');
-      const paso = async () => { if (${H}.__caidas.modo() === 'pausa') ${H}.volverAlJuego(true); ${H}.__bucle(); await new Promise(r => setTimeout(r, 16)); };
-      for (let i = 0; i < 400 && M.__.estado().carrera.fase === 'cuenta'; i++) await paso();
-      for (let i = 0; i < 30; i++) await paso();
-      const fantasma = () => M.__.mundo.grupo.children.find((o) => o.geometry?.type === 'IcosahedronGeometry');
-      const antes = fantasma()?.visible;
-      const a = M.accion(js); const texto = a?.texto; a?.hacer(); await paso();
-      return { fase: M.__.estado().carrera.fase, antes, texto, despues: fantasma()?.visible }; })()`);
-    ok(f.antes === true && f.texto === 'Largar de nuevo' && f.fase === 'cuenta' && f.despues === false, `relargar esconde el fantasma durante la cuenta (${JSON.stringify(f)})`);
-    await pasos(400);   // que termine (o se abandone) la carrera
+    // (4.5.1: la sección 2, «Largar de nuevo» esconde el fantasma, se sacó con las carreras)
 
     // ============================================================ 3. los fuegos (decisión del usuario)
     seccion('3. hasta cuatro fuegos, la siesta y el guardado');
