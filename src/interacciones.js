@@ -12,7 +12,7 @@
 // Cada entrada:
 //   · `id`: el nombre (las pruebas lo usan).
 //   · `cuando(c, enE)`: si aplica, devuelve algo verdadero (lo que encontró: la acción del módulo, el cantero…). `enE` es
-//     verdadero para la tecla E, que mira fresco; el aviso corre en cada cuadro y usa lo que se buscó a 10 Hz (`c.cache`).
+//     verdadero para la tecla E, que mira fresco; el aviso corre en cada cuadro y usa lo que se buscó a 10 Hz (los `cache…` de main.js).
 //   · `aviso(c, hit)`: el texto (con tecla E) o `{ tecla, texto }`; nulo si no hay nada que decir.
 //   · `hacer(c, hit)`: lo que hace la E. Con `sigueE`, si devuelve `false` la E sigue con la entrada que viene (como antes, cuando la
 //     función devolvía falso: el capullo del Desafío, el lugar del tren). Sin `hacer`, la entrada es sólo del aviso.
@@ -36,8 +36,8 @@ const delModulo = (nombre, cond) => ({
 const panel = (id, abierto, cerrar) => ({ id, cuando: abierto, corta: true, aviso: () => null, hacer: cerrar });
 
 export const INTERACCIONES = [
-  // colgado de la tirolesa no se hace nada (la E ni llega: ver la tecla)
-  { id: 'cable', cuando: (c) => c.js.enCable, corta: true, aviso: () => null },
+  // colgado de la tirolesa no se hace nada (la tecla ni llega a la tabla: ver la tecla E)
+  { id: 'cable', cuando: (c) => c.js.enCable, corta: true, aviso: () => null, hacer: () => {} },
   { id: 'charla', cuando: (c) => c.charlaNpc(), corta: true, aviso: () => null, hacer: (c) => c.seguirCharla() },
   // con un panel abierto, la E lo cierra
   panel('almacen-abierto', (c) => c.enElAlmacen(), (c) => c.cerrarAlmacen()),
@@ -51,7 +51,7 @@ export const INTERACCIONES = [
   panel('taller-tren-abierto', (c) => c.panelAbierto('taller'), (c) => c.cerrarPanel('taller')),
   panel('fiestas-abierto', (c) => c.panelAbierto('fiestas'), (c) => c.cerrarPanel('fiestas')),
   // el tablón de encargos abierto se maneja con sus teclas antes de llegar acá (la E lo cierra): el aviso, vacío
-  { id: 'tablon-abierto', cuando: (c) => c.panelAbierto('tablon'), corta: true, aviso: () => null },
+  { id: 'tablon-abierto', cuando: (c) => c.panelAbierto('tablon'), corta: true, aviso: () => null, hacer: () => {} },
   // 3.7.5 (rincones): bajar del sulky o patear en el picado, antes que hablar con alguien
   { id: 'urgente', cuando: (c) => c.urgente(), aviso: (c, u) => u.texto, hacer: (c, u) => { u.hacer(); c.limpiar('rincones'); } },
   // si estás mirando a una persona, E habla con ella antes de accionar puertas o mostradores (así se charla con
