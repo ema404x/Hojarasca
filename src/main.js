@@ -753,6 +753,7 @@ async function construir() {
       try {
         puestosRutaMundo = crearPuestosRutaMundo({ T, escena, grupo: est.grupo, mat: est.mat, col, cartel: est.cartel, sentaderos: est.sentaderos, cubiertas: est.cubiertas, progreso: () => progreso });
         for (const z of puestosRutaMundo.zonas) { veg.despejar(z.x, z.z, z.r); pelarPastoTemporal(z.x, z.z, z.r - 0.5); edificios.push({ x: z.x, z: z.z, radio: z.r + 1, nombre: z.nombre }); }
+        for (const z of puestosRutaMundo.claros || []) veg.despejar(z.x, z.z, z.r, false);   // 4.6.0: el claro de atrás, sólo árboles
         puestosJuego = crearPuestosRutaJuego({ progreso: () => progreso, desafio: () => !!desafio, mundo: puestosRutaMundo, nota: (tx, sub, nueva) => nota(tx, sub, nueva), guardar: () => guardar(),
           refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas });
       } catch (err) { console.warn('puestos-ruta', err); puestosRutaMundo = null; puestosJuego = null; }

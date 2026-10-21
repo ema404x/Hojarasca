@@ -282,6 +282,9 @@ export function crearPuestosRutaMundo(ctx) {
     puestos,
     // lo que no tiene que tener árboles, pasto ni objetos sueltos encima (la casilla, el depósito, el fogón y el cartel)
     zonas: IDS_PUESTOS.map((id) => ({ x: PUESTOS_RUTA[id].pos.x, z: PUESTOS_RUTA[id].pos.z, r: 7.5, nombre: PUESTOS_RUTA[id].nombre })),
+    // 4.6.0: y un claro sólo de árboles detrás de cada uno (hasta 12,5 m del centro, por la espalda): visto de frente, un árbol grande
+    // de atrás parecía salir del techo (en media, un coihue a 11 m detrás del de la Cantera). Las matas y el pasto quedan.
+    claros: IDS_PUESTOS.map((id) => ({ ...aMundo(id, 0, -6), r: 6.5, nombre: PUESTOS_RUTA[id].nombre })),
     // se rehace la malla del puesto si cambió su etapa o lo guardado (devuelve si cambió)
     refrescar: (id) => (puestos[id] ? armar(id) : false),
     refrescarTodos: () => IDS_PUESTOS.map((id) => armar(id)).some(Boolean),
