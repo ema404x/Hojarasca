@@ -45,5 +45,13 @@ El usuario habla **castellano rioplatense**. Juego, textos, comentarios, commits
 - Estilo visual: «tal cual HushWood» (pintado, no realista, no low-poly facetado), con la flora, la fauna y la gente patagónicas como son.
 - Le gusta ir **rápido con 2 o 3 agentes en paralelo**, ver **capturas** antes/después y que le den el **porcentaje de avance honesto** (pregunta «¿por dónde vas?» seguido). Distinguir siempre verificado de no verificado.
 
+## Skills del proyecto (`.claude/skills/`)
+- `hojarasca-planificar`: charlas de plan sin ejecutar y dejarlas escritas.
+- `hojarasca-junta`: repartir una versión entre agentes (worktrees) y juntar sus ramas.
+- `hojarasca-partidas`: correr las partidas reales con Electron.
+- `hojarasca-capturas`: capturas antes/después con la cámara bien puesta, y cómo revisarlas.
+- `hojarasca-medir`: rendimiento según la PC (la referencia es la Ryzen 5 4600G; en la notebook, sólo antes/después).
+- `hojarasca-cerrar-version`: cerrar, subir y empaquetar.
+
 ## Cerrar una versión
 Ver la skill `hojarasca-cerrar-version`: versión, `CAMBIOS_<ver>.md`, línea en `RELEASE_STATUS.md`, traspaso en `SEGUIR-EN-OTRA-PC.md`, commit, push con etiqueta `v<ver>` y zip completo en Descargas.
