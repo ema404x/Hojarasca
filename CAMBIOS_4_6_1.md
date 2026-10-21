@@ -110,9 +110,24 @@ Con una herramienta de la sesión que rompe a propósito el código, corre las p
   condición en la línea del bucle, una pose sentada nueva…): **las 7 toleradas**.
 
 ## Números
-- Gate: PENDIENTE
-- Partidas: PENDIENTE
-- Costo por cuadro del aviso: PENDIENTE
+- **Gate**: `npm run verify` de corrido **268 pasos OK** (5 min 57 s; antes 267, más la prueba nueva);
+  `npm run verify:paralelo` 268 OK.
+- **Partidas** (notebook Ryzen 7 7730U, ocultas, en el monitor externo con el vigilante corriendo, de a una):
+  humo-4-6-recursos OK, humo-4-6-gente OK, humo-4-6-puestos OK, humo-3-8-6-relax OK («TODO BIEN»), humo-3-7-4-rueda
+  OK, humo-3-0-asedio OK. **humo-desafio falla** («HUD con cuenta regresiva» y «combate: UnknownVizError»): se repitió
+  sola y falla igual, y **en `main` (4.6.0) armada en una carpeta temporal falla igual** → no es de esta versión (es la
+  captura de la ventana oculta en esta PC: `capturePage` da UnknownVizError).
+- **Costo por cuadro del aviso** (misma PC, la cadena vieja contra la tabla con el mismo mundo de mentira, mediana de
+  3 vueltas de 200.000 llamadas; herramienta de la sesión): nada cerca 29 → 2.814 ns; mirando una planta 76 → 2.161;
+  cantero y puerta 228 → 992; a caballo 333 → 638; en el tren 283 → 1.602; junto al fuego 321 → 2.643; con un vecino
+  246 → 471; sólo otras teclas 446 → 2.970. Es decir, **hasta ~3 µs por cuadro** (0,003 ms de 16,7: el 0,02 %). No se
+  arman objetos ni textos nuevos por cuadro: la tabla, sus funciones y el contexto se arman una vez; el aviso sigue
+  creando un solo `{ tecla, texto }` como antes, y las funciones del juego que se consultan son las mismas que antes
+  (con lo buscado a 10 Hz). La diferencia es el recorrido por funciones en vez de `if` en línea. Dibujos: sin cambios
+  (no se tocó nada visual; no se corrió `diag:dibujo`).
 
 ## No verificado
-PENDIENTE
+- La medición en la Ryzen 5 4600G (falta; en la notebook sólo vale el antes/después de arriba).
+- Las diferencias 1–8 se encontraron con estados de mentira; no se reprodujeron en una partida real (son rincones raros:
+  el tren junto al puesto de la feria, el tablón abierto a caballo, el kayak sin orilla al lado de un fuego…).
+- humo-trucos y humo-4-2-pico no se corrieron (fallas viejas conocidas).
