@@ -280,6 +280,7 @@ import { crearGenteCampoMundo } from './gente-campo-mundo.js';
 import { crearTablonMundo } from './tablon-mundo.js';
 import { existeEnJuego } from './tablon.js';
 import { genteCampoDe } from './gente-campo.js';
+import { avisoDe, hacerConE } from './interacciones.js';
 
 const $ = (id) => document.getElementById(id);
 const HOJARASCA_DEBUG = new URLSearchParams(location.search).get('debug') === '1';
@@ -3218,144 +3219,10 @@ document.addEventListener('keydown', (e) => {
   if (charla.npc && (codigo === 'Enter' || codigo === 'NumpadEnter')) { seguirCharla(); return; }   // 3.7.4: charlando, Enter es E
   switch (codigo) {
     case 'KeyE': {
-      if (charla.npc) { seguirCharla(); break; }
-      armarMantenerE();   // 4.4.2: mantener E un instante: ampliar un depósito o abrir el panel del local (antes Mayús + E, que es correr)
-      if (enElAlmacen) { cerrarAlmacen(); break; }
-      // 2.6.1: con la feria abierta E la cierra, como el almacén (antes hablaba con Elsa
-      // o bajaba del caballo con el panel abierto, y el aviso no decía nada)
-      if (enLaFeria) { cerrarFeria(); break; }
-      // 2.9: y el puesto de cargas, igual
-      if (enLasCargas()) { puestoCargas.cerrar(); break; }
-      if (enElBanco()) { bancoPueblo.cerrar(); break; }   // 3.8.8
-      if (negocioJuego?.panelAbierto()) { negocioJuego.cerrarPanel(); break; }   // 4.3: y el panel de tu local
-      if (cantinaJuego?.panelAbierto()) { cantinaJuego.alApretarE(); break; }   // 3.9.0: y la carta de la cantina
-      if (teJuego?.panelAbierto()) { teJuego.alApretarE(); break; }   // 3.9.2: y la de la casa de té
-      // 3.7.2: y el panel de recetas de la cocina, igual
-      if (cocinaJuego?.panelAbierto()) { cocinaJuego.cerrarPanel(); break; }
-      // 3.7.3: y el del taller ferroviario
-      if (tallerTren?.panelAbierto()) { tallerTren.cerrarPanel(); break; }
-      // 3.7.5: y el de las fiestas (en un partido, E no lo deja: Escape)
-      if (fiestasJuego?.panelAbierto()) { fiestasJuego.alApretarE(); break; }
-      // 3.7.5 (rincones): arriba del sulky E baja; en un picado, al lado de la pelota, E patea (antes que hablar con alguien;
-      // el aviso, en el mismo lugar y con la misma función: rinconesJuego.urgente)
-      if (rinconesJuego) { const u = rinconesJuego.urgente(js); if (u) { u.hacer(); cacheRincones = null; break; } }
-      // El aviso visual y la acción usan la misma prioridad: si estás mirando a
-      // una persona, E habla con ella antes de accionar puertas/mostradores.
-      // Esto hace posible conversar con Ercilia detrás del mostrador sin que el
-      // trueque o una puerta cercana se coman la interacción.
-      if (vecino && desafio && vecino.enBase) { ordenarCompanero(vecino); break; }
-      if (vecino) { hablar(vecino); break; }
-      // 4.3: el empleo fijo: el cartel de turnos y la tarea del puesto, antes que el mostrador y lo de adentro (el aviso, en el mismo lugar y con la misma función: empleoJuego.accion)
-      if (!js.enTren && !js.enKayak && !js.montado && empleoJuego) { const a = empleoJuego.accion(js); if (a && (a.tipo !== 'info' || !objetivo || objetivo.tipo === 'sentarse')) { a.hacer(); cacheEmpleo = null; break; } }
-      // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, E te sienta (el aviso, en el mismo lugar)
-      if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
-      // 3.7.5 (rincones): los duendes, el sulky, el potrero, las huertas, el retablo, el atril, el fuerte, el campamento, tu casa y
-      // el taller (el aviso, en el mismo lugar y con la misma función: rinconesJuego.accion)
-      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accion(js); if (a) { a.hacer(); cacheRincones = null; if (js.enSulky && modoObra) abrirObra(false); break; } }   // (3.8.7: subiendo al sulky se cierran los planos)
-      // 4.2 (huevos de pascua): al pie del coihue de los duendes (el aviso, en el mismo lugar y con la misma función)
-      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && cacheHuevos) { const a = cacheHuevos; cacheHuevos = null; a.hacer(); break; }
-      // 3.7.3: montado al lado de la jaula del tren (parado), E sube a tu caballo y vos con él
-      if (js.montado && jaulaCerca()) { subirCaballoAlTren(); break; }
-      if (puenteDelCaballo()) { caballoEnElPuente(); break; }   // 3.8.4: el aviso, en el mismo lugar
-      if (js.montado) { desmontar(); break; }
-      if (!js.enTren && !js.enKayak && !objetivo && cercaDelMostrador()) { abrirAlmacen(); break; }
-      if (!objetivo && caballoCerca()) { montar(); break; }
-      if (!objetivo && feriaCerca()) { abrirFeria(); break; }
-      // 2.9: el puesto de cargas de la parada (el aviso va en el mismo lugar)
-      if (!js.enTren && !js.enKayak && !objetivo && puestoDeCargasCerca()) { cargas().abrir(puestoDeCargasCerca()); break; }
-      // 4.6 puestos: un puesto de ruta: reparar, dormir, comerciar y el depósito (el aviso, en el mismo lugar y con la misma función: puestosJuego.accion)
-      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && puestosJuego) { const a = puestosJuego.accion(js); if (a) { a.hacer(); cachePuestos = null; break; } }
-      if (!js.enTren && !js.enKayak && !objetivo) { const c = canteroCerca(); if (c) { usarCantero(c); break; } }
-      if (!js.enTren && !js.enKayak && !objetivo) { const g = gallineroCerca(); if (g) { usarGallinero(g); break; } }
-      if (!js.enTren && !js.enKayak && !objetivo && telarCerca()) { tejer(); break; }
-      // 2.3: colmena, ahumadero, vivero y leñera (el aviso sigue el mismo orden)
-      if (!js.enTren && !js.enKayak && !objetivo) { const o = obraQueTrabajaCerca(); if (o) { usarObraQueTrabaja(o); break; } }
-      // 3.6: parado en el lote de una obra de la aldea, E aporta lo que tengas (el aviso va en el mismo lugar)
-      if (!js.enTren && !js.enKayak && !objetivo && aldeaGente) { const lote = aldeaGente.obraCerca(js.pos); if (lote) { aldeaGente.aportarObra(lote); break; } }
-      // 3.6 (mecánicas): lo de cada lugar de la aldea (el aviso va en el mismo lugar, con la misma función)
-      // 4.6 gente: el tablón de encargos de la plaza, antes de lo de cada lugar de la aldea (el aviso, en el mismo lugar y con la misma función: tablonJuego.accion)
-      if (!js.enTren && !js.enKayak && !objetivo && tablonJuego) { const a = tablonJuego.accion(js); if (a) { a.hacer(); cacheTablon = null; break; } }
-      if (!js.enTren && !js.enKayak && !objetivo && mecanicasAldea) { const m = mecanicasAldea.accion(js); if (m) { m.hacer(); cacheMecanica = null; break; } }
-      // 3.7.2 (granja): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales (el aviso, en el mismo
-      // lugar y con la misma función: granjaJuego.accion)
-      if (!js.enTren && !js.enKayak && !objetivo && granjaJuego) { const a = granjaJuego.accion(js); if (a) { a.hacer(); cacheGranja = null; break; } }
-      // 3.7.3: en el taller ferroviario, el panel de mejoras (el aviso, en el mismo lugar y con la misma función: tallerTren.accion)
-      if (!js.enTren && !js.enKayak && !objetivo && tallerTren) { const a = tallerTren.accion(js); if (a) { a.hacer(); cacheTaller = null; break; } }
-      // 3.7.5: lo de las fiestas, después del taller (el aviso, en el mismo lugar y con la misma función: fiestasJuego.accion)
-      if (!js.enTren && !js.enKayak && !objetivo && fiestasJuego) { const a = fiestasJuego.accion(js); if (a) { a.hacer(); cacheFiesta = null; break; } }
-      // 3.9.0: sentado en la cantina, E toma o come lo que te trajeron, llama a la moza o abre la carta (el aviso, en el mismo lugar y con la misma función)
-      if (!js.enTren && !js.enKayak && !objetivo && cantinaJuego) { const a = cantinaJuego.accion(js) || teJuego?.accion(js); if (a) { a.hacer(); cacheCantina = null; break; } }   // (3.9.2: o sentado en la casa de té)
-      // 3.9.1: bailando con Dalia (E deja de bailar) o al lado de la mesa de truco (E te invita a una partida); el aviso, en el mismo lugar
-      if (!js.enTren && !js.enKayak && !objetivo && penaJuego) { const a = penaJuego.accion(js); if (a) { a.hacer(); cachePena = null; break; } }
-      if (!js.enTren && !js.enKayak && !objetivo && ovejaCercana) { esquilarOveja(ovejaCercana); break; }
-      // 4.6 recursos: la veta, el juncal, las hierbas, la barranca de arcilla y el pehuén (el aviso, en el mismo lugar y con la misma función: recursosZona.accion)
-      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && recursosZona) { const a = recursosZona.accion(js); if (a) { a.hacer(); cacheRecursosZona = null; break; } }
-      if (!js.enTren && !js.enKayak && !objetivo && hayAcopioCerca(RADIO_ACOPIO_MANO)) { usarAcopio(); break; }
-      // 2.3: en el Desafío, un capullo o una zanja de fuego al lado (antes que el portón)
-      if (desafio && !js.enTren && !objetivo && desafio.usarCercaDe?.(js.pos, distanciaAPuerta(js.pos))) break;
-      // la puerta solo si no estás mirando algo para juntar: el aviso manda
-      if (!js.enTren && !js.enKayak && !objetivo && !js.sentado) {   // 3.6 (mecánicas): sentado, no (como el aviso)
-        const p = puertas && puertas.cerca(js.pos);
-        if (p) { puertas.accionar(p); break; }
-      }
-      if (!objetivo && rastro && !desafio && mirandoAlPerro(js, perro.est.pos)) { dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`); break; }
-      if (!objetivo && puedoPedirRastro()) { pedirRastro(); break; }
-      // 3.7.5 (rincones): un duende tallado al lado, al último (una obra tuya, una puerta o el perro le ganan; el aviso, igual)
-      if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accionDuende(js); if (a) { a.hacer(); cacheDuende = null; break; } }
-      // 3.7.3: en el tren mejorado, lo de cada lugar: la cocina del comedor, unos mates, la cucheta (el aviso, igual)
-      if (js.enTren && usarLugarDelTren()) break;
-      // 3.8.4: varado en la nieve, E te baja y seguís a pie (el aviso, en el mismo lugar)
-      if (js.enTren && tren.varadoEnNieve?.()) { bajarEnLaNieve(); break; }
-      // 2.9: en la cabina, E baja (parado en un andén)
-      if (js.enTren && tren.conduciendo()) { bajarDeLaCabina(); break; }
-      if (js.enTren && !tren.parado()) { nota('El tren está andando', 'Bajate cuando pare en una estación'); break; }
-      if (js.enTren) { if (!tren.bajar(jugador)) nota('El tren está andando', 'Bajate cuando pare en la estación'); else bajarCaballoDelTren(); break; }
-      // 2.4.1: mirando algo (el banco del andén) E hace eso, como dice el aviso
-      // 2.9: al lado de la locomotora, E sube a la cabina (más cerca del coche, de pasajero)
-      if (!desafio && !js.enKayak && !js.enTren && !objetivo && tren.puedeConducir(js)) { subirALaCabina(); break; }
-      if (!js.enKayak && !objetivo && tren.puedeSubir(js)) { tren.subir(jugador); diario.anotar('tren'); registrar('viaje'); nota('Subiste a la trochita', 'Se baja en la estación, cuando pare'); break; }
-      if (!js.enKayak && !teEnLaAldea() && enLaCasaDeTe() && (!objetivo || objetivo.tipo === 'sentarse')) { servir(); break; }   // (3.9.2: en la aldea te atiende Ceinwen en tu mesa)
-      // 2.9: del velero se baja antes que del kayak (arriba del velero también se está `enKayak`)
-      if (js.enVela) {
-        if (!vela.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa, al muelle o al varadero');
-        break;
-      }
-      if (js.enKayak) {
-        if (!kayak.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa o al muelle');
-        else amarrarAlBajar();   // 3.8.6: bajándote en tu embarcadero, queda amarrado ahí
-        break;
-      }
-      // (3.8.6: el amarre se anota sólo en el Relax, como en amarrarKayak: en el Desafío, soltarlo dejaba el kayak siempre en el muelle)
-      if (!objetivo && kayak.cerca(js)) { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); break; }
-      // 2.9: subir al velero o traerlo, largarse por la tirolesa (el aviso, en el mismo orden)
-      if (!objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) { a.hacer(); break; } }
-      // junto a un fuego encendido, E duerme (de noche) o cocina (de día)
-      if (!objetivo && enLaSalaDelFaro() && !progreso.entradas.bitacora) { registrar('bitacora'); break; }   // 3.8.6: mirando algo, eso (como el aviso)
-      // 3.8.3: mirando algo (juntar, sentarse) E hace eso, como dice el aviso: antes dormía (o en plena noche de duendes
-      // decía «No podés dormir ahora» y no juntaba nada)
-      if (!objetivo && enLaCarpa() && puedeDormirJuntoAlFuego()) { dormir({ carpa: true }); break; }
-      if (!objetivo && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) { dormir(); break; }
-      if (cercaDelFuego() && (!objetivo || objetivo.tipo === 'sentarse')) {
-        if (puedeDormirJuntoAlFuego()) { dormir(); break; }
-        if (hayQueCocinar()) { cocinar(); break; }
-      }
-      // 2.1: el tendal, igual: cuelga lo que hay que secar y descuelga lo seco
-      if (!objetivo && tendalCerca()) { usarElTendal(); break; }
-      // 2.1: parado sobre un rastro, E mira las huellas
-      if (!objetivo && mirarRastro()) break;
-      // 2.3: en otoño, junto a un árbol grande, E junta semilla para el vivero
-      if (!objetivo && !js.enTren && !js.enKayak) { const s = arbolParaSemilla(); if (s) { juntarSemilla(s); break; } }
-      const r = objetos.usar(objetivo, registrar, sonido);
-      if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
-      if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
-      if (r?.sentarse?.cama) { dormir(); break; }
-      if (r?.llena) nota('No te entran más ramitas', `Ya llevás ${progreso.ramitas}: la dejaste en el suelo`);   // 3.8.3
-      else if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
-      if (r?.sentarse) {
-        js.pos.set(r.sentarse.x, Math.max(r.sentarse.y - 0.45, T.altura(r.sentarse.x, r.sentarse.z)), r.sentarse.z);
-        if (r.sentarse.mira !== undefined) { js.yaw = r.sentarse.mira; js.pitch = -0.05; }
-        jugador.sentarse(true);
-      }
+      // 4.6.1: lo que hace la E sale de la misma lista que el aviso (INTERACCIONES en interacciones.js, con el contexto
+      // `ctxInteraccion`): la primera interacción que aplica. Una interacción nueva se agrega ahí, una sola vez
+      if (!charla.npc) armarMantenerE();   // 4.4.2: mantener E un instante: ampliar un depósito o abrir el panel del local (antes Mayús + E, que es correr)
+      hacerConE(ctxInteraccion);
       break;
     }
     case 'Tab':
@@ -9612,6 +9479,196 @@ let cacheCantina = null;   // 3.9.0: lo que se hace sentado a una mesa de la can
 let cacheGranja = null, versionObrasInteraccion = -1;   // 3.7.2 (granja): lo que se puede hacer acá en tu granja (ver granja-juego.js)
 let cacheFuegoPropio = null, cacheHacha = null, cacheAserrar = false, cacheSemilla = null;
 let marcaPerro = null;
+// 4.6.1: el contexto de la tabla de interacciones (ver interacciones.js): la tecla E y el aviso recorren la misma lista y
+// le preguntan al juego por acá. Se arma una sola vez (getters y funciones: nada nuevo por cuadro). La E mira fresco
+// (`enE`); el aviso, lo buscado a 10 Hz en los `cache…` de arriba.
+function accionInteraccion(nombre, enE) {
+  const js = jugador.estado;
+  switch (nombre) {
+    case 'empleo': return enE ? empleoJuego?.accion(js) : cacheEmpleo;
+    case 'rincones': return enE ? rinconesJuego?.accion(js) : cacheRincones;
+    case 'huevos': return cacheHuevos;   // (la E también usa lo buscado)
+    case 'puestos': return enE ? puestosJuego?.accion(js) : cachePuestos;
+    case 'tablon': return enE ? tablonJuego?.accion(js) : cacheTablon;
+    case 'mecanica': return enE ? mecanicasAldea?.accion(js) : cacheMecanica;
+    case 'granja': return enE ? granjaJuego?.accion(js) : cacheGranja;
+    case 'taller': return enE ? tallerTren?.accion(js) : cacheTaller;
+    case 'fiesta': return enE ? fiestasJuego?.accion(js) : cacheFiesta;
+    case 'cantina': return enE ? cantinaJuego && (cantinaJuego.accion(js) || teJuego?.accion(js)) : cacheCantina;   // (3.9.2: o sentado en la casa de té)
+    case 'pena': return enE ? penaJuego?.accion(js) : cachePena;
+    case 'recursos': return enE ? recursosZona?.accion(js) : cacheRecursosZona;
+    case 'duende': return enE ? rinconesJuego?.accionDuende(js) : cacheDuende;
+    default: return null;
+  }
+}
+// Después de usarla con la E, se vuelve a buscar (el aviso no muestra la vieja un instante)
+function limpiarInteraccion(nombre) {
+  switch (nombre) {
+    case 'empleo': cacheEmpleo = null; break;
+    case 'rincones': cacheRincones = null; break;
+    case 'huevos': cacheHuevos = null; break;
+    case 'puestos': cachePuestos = null; break;
+    case 'tablon': cacheTablon = null; break;
+    case 'mecanica': cacheMecanica = null; break;
+    case 'granja': cacheGranja = null; break;
+    case 'taller': cacheTaller = null; break;
+    case 'fiesta': cacheFiesta = null; break;
+    case 'cantina': cacheCantina = null; break;
+    case 'pena': cachePena = null; break;
+    case 'recursos': cacheRecursosZona = null; break;
+    case 'duende': cacheDuende = null; break;
+  }
+}
+// Lo de al lado que no es de un módulo: la E lo busca en el momento; el aviso usa lo buscado
+function cercaInteraccion(nombre, enE) {
+  const js = jugador.estado;
+  switch (nombre) {
+    case 'cantero': return enE ? canteroCerca() : cacheCantero;
+    case 'gallinero': return enE ? gallineroCerca() : cacheGallinero;
+    case 'telar': return enE ? telarCerca() : cacheTelar;
+    case 'obraTrabaja': return enE ? obraQueTrabajaCerca() : cacheObraTrabaja;
+    case 'obraAldea': return enE ? aldeaGente && aldeaGente.obraCerca(js.pos) : cacheObraAldea;
+    case 'acopio': return enE ? hayAcopioCerca(RADIO_ACOPIO_MANO) : cacheAcopio;
+    case 'semillaArbol': return enE ? arbolParaSemilla() : cacheSemillaArbol;
+    default: return null;
+  }
+}
+const panelesInteraccion = {
+  negocio: () => negocioJuego?.panelAbierto(), cantina: () => cantinaJuego?.panelAbierto(), te: () => teJuego?.panelAbierto(),
+  cocina: () => cocinaJuego?.panelAbierto(), taller: () => tallerTren?.panelAbierto(), fiestas: () => fiestasJuego?.panelAbierto(),
+  tablon: () => tablonJuego?.abierto(),
+};
+function cerrarPanelInteraccion(nombre) {
+  if (nombre === 'negocio') negocioJuego.cerrarPanel();   // 4.3: el panel de tu local
+  else if (nombre === 'cantina') cantinaJuego.alApretarE();   // 3.9.0: la carta de la cantina
+  else if (nombre === 'te') teJuego.alApretarE();   // 3.9.2: y la de la casa de té
+  else if (nombre === 'cocina') cocinaJuego.cerrarPanel();   // 3.7.2: las recetas de la cocina
+  else if (nombre === 'taller') tallerTren.cerrarPanel();   // 3.7.3: el taller ferroviario
+  else if (nombre === 'fiestas') fiestasJuego.alApretarE();   // 3.7.5: las fiestas (en un partido, E no lo deja: Escape)
+}
+// El aviso del vecino de adelante (la E: `hablar`, que resuelve la cita, el casamiento o lo que te quiere decir)
+function textoVecinoAviso(v) {
+  const js = jugador.estado;
+  if (js.enTren) return `Hablar con ${v.nombre}`;
+  // arriba del caballo, hablar (3.8.3: o la cita o el casamiento, que la E empieza también a caballo)
+  if (js.montado) return (!desafio && amorJuego?.textoAviso(v)) || `Hablar con ${v.nombre}`;
+  if (desafio && v.enBase) return textoOrdenar(v);
+  // 3.7.1: la de la cita o la del casamiento, esperándote: E empieza
+  const amor = !desafio && amorJuego?.textoAviso(v);
+  if (amor) return amor;
+  // 3.6 (vida): el invitado, ya sentado: E te sienta
+  const esperando = vecindadJuego?.invitado(v) === 'esperando';
+  // 3.7.4: el que te vino a buscar (la E le habla y te dice lo que te quería decir)
+  if (!desafio && !esperando && socialJuego?.quiereDecir(v)) return `${v.nombre} te quiere decir algo`;
+  return esperando ? vecindadJuego.textoSentarse() : `Hablar con ${v.nombre}`;
+}
+// Arriba del tren: en la cabina se baja parado en un andén (2.9); si no, lo de cada lugar del tren mejorado (3.7.3), bajar
+// en la estación o, varado en la nieve, bajarte y seguir a pie (3.8.4)
+function avisoTrenInteraccion() {
+  const varado = () => tren.varadoEnNieve?.() ? { tecla: 'E', texto: 'Bajarte y seguir a pie' } : null;
+  if (tren.conduciendo()) return tren.parado() && !enLasCargas() ? { tecla: 'E', texto: 'Bajar de la cabina' } : varado();
+  return avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : varado());
+}
+function usarTrenInteraccion() {
+  if (usarLugarDelTren()) return;   // 3.7.3: la cocina del comedor, unos mates, la cucheta
+  if (tren.varadoEnNieve?.()) { bajarEnLaNieve(); return; }   // 3.8.4
+  if (tren.conduciendo()) { bajarDeLaCabina(); return; }   // 2.9: en la cabina, E baja (parado en un andén)
+  if (!tren.parado()) { nota('El tren está andando', 'Bajate cuando pare en una estación'); return; }
+  if (!tren.bajar(jugador)) nota('El tren está andando', 'Bajate cuando pare en la estación'); else bajarCaballoDelTren();
+}
+// Lo que mirás: juntar, anotar, sentarse, la cama…
+function usarObjetivo() {
+  const js = jugador.estado;
+  const r = objetos.usar(objetivo, registrar, sonido);
+  if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
+  if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
+  if (r?.sentarse?.cama) { dormir(); return; }
+  if (r?.llena) nota('No te entran más ramitas', `Ya llevás ${progreso.ramitas}: la dejaste en el suelo`);   // 3.8.3
+  else if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');
+  if (r?.sentarse) {
+    js.pos.set(r.sentarse.x, Math.max(r.sentarse.y - 0.45, T.altura(r.sentarse.x, r.sentarse.z)), r.sentarse.z);
+    if (r.sentarse.mira !== undefined) { js.yaw = r.sentarse.mira; js.pitch = -0.05; }
+    jugador.sentarse(true);
+  }
+}
+const ctxInteraccion = {
+  get js() { return jugador.estado; },
+  get objetivo() { return objetivo; },
+  get vecino() { return vecino; },
+  get desafio() { return desafio; },
+  accion: accionInteraccion, limpiar: limpiarInteraccion, cerca: cercaInteraccion,
+  charlaNpc: () => charla.npc, seguirCharla: () => seguirCharla(),
+  enElAlmacen: () => enElAlmacen, cerrarAlmacen: () => cerrarAlmacen(),
+  enLaFeria: () => enLaFeria, cerrarFeria: () => cerrarFeria(),
+  enLasCargas: () => enLasCargas(), cerrarCargas: () => puestoCargas.cerrar(),   // 2.9
+  enElBanco: () => enElBanco(), cerrarBanco: () => bancoPueblo.cerrar(),   // 3.8.8
+  panelAbierto: (n) => panelesInteraccion[n](), cerrarPanel: cerrarPanelInteraccion,
+  urgente: () => (rinconesJuego ? rinconesJuego.urgente(jugador.estado) : null),
+  textoVecino: textoVecinoAviso, ordenarCompanero: (v) => ordenarCompanero(v), hablar: (v) => hablar(v),
+  puedeSentarseALaCita: () => vecindadJuego?.puedeSentarse(jugador.estado.pos), textoSentarse: () => vecindadJuego.textoSentarse(),
+  sentarseALaCita: () => sentarseALaCita(),
+  alSubirAlSulky: () => { if (jugador.estado.enSulky && modoObra) abrirObra(false); },   // 3.8.7: subiendo al sulky se cierran los planos
+  jaulaCerca: () => jaulaCerca(), subirCaballoAlTren: () => subirCaballoAlTren(),   // 3.7.3
+  puenteDelCaballo: () => puenteDelCaballo(), caballoEnElPuente: () => caballoEnElPuente(),   // 3.8.4
+  caballoDicho: (a, b) => caballoDicho(a, b), desmontar: () => desmontar(),
+  cercaDelMostrador: () => cercaDelMostrador(), abrirAlmacen: () => abrirAlmacen(),
+  caballoCerca: () => caballoCerca(), montar: () => montar(),
+  feriaCerca: () => feriaCerca(), abrirFeria: () => abrirFeria(),
+  puestoDeCargasCerca: () => puestoDeCargasCerca(), abrirCargas: (p) => cargas().abrir(p),
+  textoAvisoCantero: (k) => textoAvisoCantero(k), usarCantero: (k) => usarCantero(k),
+  textoGallinero: (g) => textoGallinero(gallineros()[g.clave], progreso.dia), usarGallinero: (g) => usarGallinero(g),
+  textoTelar: () => textoTelar(lanaAMano(), progreso.cosas), tejer: () => tejer(),
+  avisoObraQueTrabaja: (o) => avisoObraQueTrabaja(o), usarObraQueTrabaja: (o) => usarObraQueTrabaja(o),
+  avisoObraAldea: (l) => aldeaGente.avisoObra(l), aportarObra: (l) => aldeaGente.aportarObra(l),
+  ovejaCercana: () => ovejaCercana, esquilarOveja: (o) => esquilarOveja(o),
+  textoOveja: (o) => textoOveja(majadaDe(o), o.i, progreso.dia, !!progreso.cosas.tijera),
+  textoAcopio: () => (totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío'),
+  usarAcopio: () => usarAcopio(),
+  avisoDesafioCerca: () => desafio.avisoCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
+  usarDesafioCerca: () => !!desafio.usarCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
+  puertaCerca: () => puertas && puertas.cerca(jugador.estado.pos), accionarPuerta: (p) => puertas.accionar(p),
+  rastro: () => rastro, mirandoAlPerro: () => mirandoAlPerro(jugador.estado, perro.est.pos),
+  dejarRastro: () => dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`),
+  puedoPedirRastro: () => puedoPedirRastro(), pedirRastro: () => pedirRastro(),
+  avisoTren: avisoTrenInteraccion, usarTren: usarTrenInteraccion,
+  puedeConducir: () => tren.puedeConducir(jugador.estado), subirALaCabina: () => subirALaCabina(),
+  puedeSubirAlTren: () => tren.puedeSubir(jugador.estado),
+  subirAlTren: () => { tren.subir(jugador); diario.anotar('tren'); registrar('viaje'); nota('Subiste a la trochita', 'Se baja en la estación, cuando pare'); },
+  teEnLaAldea: () => teEnLaAldea(), enLaCasaDeTe: () => enLaCasaDeTe(), servir: () => servir(),
+  lugarParaBajar: (n) => (n === 'vela' ? vela.lugarParaBajar() : kayak.lugarParaBajar()),
+  bajarDelVelero: () => { if (!vela.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa, al muelle o al varadero'); },
+  bajarDelKayak: () => {
+    if (!kayak.bajar(jugador)) nota('No hay orilla cerca', 'Acercate a la costa o al muelle');
+    else amarrarAlBajar();   // 3.8.6: bajándote en tu embarcadero, queda amarrado ahí
+  },
+  kayakCerca: () => kayak.cerca(jugador.estado),
+  // (3.8.6: el amarre se anota sólo en el Relax, como en amarrarKayak: en el Desafío, soltarlo dejaba el kayak siempre en el muelle)
+  subirAlKayak: () => { kayak.subir(jugador); if (!desafio) progreso.kayakAmarre = null; diario.anotar('kayak'); nota('Subiste al kayak', 'W y S para remar, A y D para girar'); },
+  accionVelaOTirolesa: () => vela?.accion(jugador) || tirolesas?.accion(jugador),
+  enLaSalaDelFaro: () => enLaSalaDelFaro(), bitacoraLeida: () => !!progreso.entradas.bitacora, leerBitacora: () => registrar('bitacora'),   // 3.8.6
+  enLaCarpa: () => enLaCarpa(), puedeDormirJuntoAlFuego: () => puedeDormirJuntoAlFuego(), dormir: (op) => dormir(op),
+  dentroDeTuObra: () => !!obras && obras.dentro(jugador.estado.pos),
+  catreCerca: () => obras.tieneFuncionCerca?.('dormir', jugador.estado.pos, 3.2),
+  cercaDelFuego: () => cercaDelFuego(), hayQueCocinar: () => hayQueCocinar(), cocinar: () => cocinar(),
+  tendalCerca: () => tendalCerca(), avisoTendal: (t) => avisoTendal(datosTendal(t), progreso.entradas) || 'Mirar el tendal', usarElTendal: () => usarElTendal(),
+  rastroAlPie: () => rastroAlPie(), mirarRastro: () => mirarRastro(),
+  textoHuellas: (ra) => (progreso.entradas[ra.R.entrada] ? `Rastro de ${ra.R.nombre}: ¿para dónde va?` : 'Mirar las huellas'),
+  textoSemilla: (s) => `Juntar semilla de ${ARBOLES_VIVERO[s.arbol.especie].nombre}`, juntarSemilla: (s) => juntarSemilla(s),
+  usarObjetivo,
+  // las otras teclas y los «·»
+  modoObra: () => modoObra,
+  marcaPerro: () => marcaPerro,
+  textoMarca: () => { if (!avisoMarca) { avisoMarca = true; diario.anotar('marca'); } return `${elPerro(true)} marca algo cerca`; },
+  antorchaApagadaCerca: () => desafio.antorchaApagadaCerca?.(jugador.estado.pos),
+  fuegoPropio: () => cacheFuegoPropio,
+  textoFuegoPropio: (f) => (f.plano.id === 'pared-hogar' || f.plano.id === 'hogar-grande' ? 'Encender el hogar' : f.plano.fuegoContenido ? 'Encender la estufa' : 'Encender tu fogón'),
+  hachaCerca: () => cacheHacha, textoHacha: (h) => textoHacha(h),
+  aserrar: () => cacheAserrar,
+  semilla: () => cacheSemilla,
+  puedeArmarCarpa: () => progreso.cosas.manta && !progreso.carpa && puedeArmarCarpaAca(jugador.estado),
+  fogonApagadoCerca: () => { const js = jugador.estado, ref = T.lugares.refugio; return Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 && !clima.fuegoEn(ref.fogon.x, ref.fogon.z, 1.5); },
+  fogonDelPuestoApagado: () => { if (!puestosJuego) return false; const f = puestosJuego.fogonCerca(jugador.estado.pos); return !!f && !clima.fuegoEn(f.x, f.z, 1.5); },   // 4.6 puestos
+};
 const sujetosPerro = [];
 const indiceSujetosPerro = crearIndiceEspacial2D(32);
 // `existe` le dice al perro qué cosas son fichas de fauna del cuaderno: sólo esas guía
@@ -10471,152 +10528,18 @@ function cuadroDelJuego(tRaf, manual) {
     // o el árbol que mires (en el juncal ganaba «Anotar helecho»; al pie del pehuén, «Anotar pehuén»). Al anularlo acá, la E y el
     // aviso siguen yendo juntos (los dos miran `objetivo`); el resto del valle anota como siempre
     if ((objetivo?.tipo === 'planta' || objetivo?.tipo === 'arbol') && recursosZona?.accion(js)?.gana) objetivo = null;
-    let aviso = objetivo ? { tecla: 'E', texto: objetivo.texto } : null;
-    if (charla.npc) aviso = null;
-    else if (vecino && desafio && vecino.enBase) aviso = { tecla: 'E', texto: textoOrdenar(vecino) };
-    else if (vecino) aviso = { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || (vecindadJuego?.invitado(vecino) === 'esperando' ? vecindadJuego.textoSentarse() : `Hablar con ${vecino.nombre}`) };   // 3.6 (vida): el invitado, ya sentado: E te sienta (3.7.1: y la de la cita o la del casamiento, esperándote: E empieza, como en la tecla E, donde hablar() lo resuelve primero)   // 3.6 (vida): el invitado, ya sentado: E te sienta
-    // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, como en la tecla E
-    else if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) aviso = { tecla: 'E', texto: vecindadJuego.textoSentarse() };
-    // 3.7.4: el que te vino a buscar (en el mismo lugar: el del vecino; la E le habla y te dice lo que te quería decir)
-    // 3.8.3: salvo que ella te espere para la cita o el casamiento: la E empieza eso primero (hablar → amorJuego.hablar)
-    if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
-    // 4.3: el empleo fijo, después de hablar y antes que el mostrador y los objetos de adentro, como en la tecla E
-    if (cacheEmpleo && !charla.npc && !vecino && !js.enTren && !js.enKayak && !js.montado && (cacheEmpleo.tipo !== 'info' || !objetivo || objetivo.tipo === 'sentarse')) aviso = { tecla: 'E', texto: cacheEmpleo.texto };
-    // 3.7.5 (rincones): bajar del sulky y patear en el picado, antes que hablar (como en la tecla E); lo demás de los rincones,
-    // más abajo
-    { const u = !charla.npc && rinconesJuego ? rinconesJuego.urgente(js) : null; if (u) aviso = { tecla: 'E', texto: u.texto }; }
-    if (!aviso && cacheRincones && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheRincones.texto };
-    if (!aviso && cacheHuevos && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheHuevos.texto };   // 4.2 (huevos de pascua)
+    // 4.6.1: el aviso sale de la misma lista que la tecla E (INTERACCIONES en interacciones.js, con `ctxInteraccion`): lo
+    // que dice es lo que hace la E; si la E no tiene nada, las otras teclas (F, H, Y, B, T, G) y los «·» que sólo informan
     if (charla.npc && Math.hypot(charla.npc.pos.x - js.pos.x, charla.npc.pos.z - js.pos.z) > 6) cerrarCharla();
-    // 2.4.1: el aviso sigue el orden de la tecla E paso a paso. El mostrador va acá (E lo
-    // atiende antes que la puerta del almacén); el kayak, el tren y la bitácora, más abajo.
-    if (!aviso && !js.enTren && !js.enKayak && !js.montado && !objetivo && cercaDelMostrador() && !enElAlmacen && !charla.npc) aviso = { tecla: 'E', texto: 'Ver qué hay en el almacén' };
-    if (!aviso && !objetivo && caballoCerca()) aviso = { tecla: 'E', texto: `Subir ${caballoDicho('a')}` };
-    if (!aviso && !objetivo && feriaCerca() && !enLaFeria) aviso = { tecla: 'E', texto: 'Ver la feria' };
-    if (!aviso && !js.enTren && !js.enKayak && !objetivo && !enLasCargas() && puestoDeCargasCerca()) aviso = { tecla: 'E', texto: 'Comerciar en el puesto de cargas' };
-    if (!aviso && cachePuestos && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: 'E', texto: cachePuestos.texto };   // 4.6 puestos: el puesto de ruta, como en la tecla E
-    // Mismo orden que la tecla E: cantero, oveja y acopio van antes que las puertas.
-    // Si no, con un cantero al lado de una puerta el aviso dice "Abrir" y E siembra.
-    if (!aviso && cacheCantero && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: textoAvisoCantero(cacheCantero) };
-    if (!aviso && cacheGallinero && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: textoGallinero(gallineros()[cacheGallinero.clave], progreso.dia) };
-    if (!aviso && cacheTelar && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: textoTelar(lanaAMano(), progreso.cosas) };
-    if (!aviso && cacheObraTrabaja && !js.enTren && !js.enKayak && !objetivo) { const t = avisoObraQueTrabaja(cacheObraTrabaja); if (t) aviso = { tecla: 'E', texto: t }; }
-    // 3.6: la obra de la aldea, después de las obras que trabajan, como en la tecla E
-    if (!aviso && cacheObraAldea && !js.enTren && !js.enKayak && !objetivo) { const t = aldeaGente.avisoObra(cacheObraAldea); if (t) aviso = { tecla: 'E', texto: t }; }
-    // 3.6 (mecánicas): lo de cada lugar de la aldea, después de la obra, como en la tecla E
-    // 4.6 gente: el tablón de encargos, antes de lo de cada lugar de la aldea, como en la tecla E
-    if (!aviso && cacheTablon && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTablon.texto };
-    if (!aviso && cacheMecanica && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheMecanica.texto };
-    // 3.7.2 (granja): después de lo de la aldea y antes que la oveja, como en la tecla E
-    if (!aviso && cacheGranja && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheGranja.texto };
-    // 3.7.3: el taller ferroviario, después de la granja, como en la tecla E
-    if (!aviso && cacheTaller && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheTaller.texto };
-    // 3.7.5: lo de las fiestas, después del taller, como en la tecla E
-    if (!aviso && cacheFiesta && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheFiesta.texto };
-    // 3.9.0: la cantina, como en la tecla E
-    if (!aviso && cacheCantina && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cacheCantina.texto };
-    if (!aviso && cachePena && !js.enTren && !js.enKayak && !objetivo) aviso = { tecla: 'E', texto: cachePena.texto };   // 3.9.1: la peña
-    if (!aviso && ovejaCercana && !objetivo) aviso = { tecla: 'E', texto: textoOveja(majadaDe(ovejaCercana), ovejaCercana.i, progreso.dia, !!progreso.cosas.tijera) };
-    if (!aviso && cacheRecursosZona && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: 'E', texto: cacheRecursosZona.texto };   // 4.6 recursos: como en la tecla E
-    if (!aviso && cacheAcopio && !objetivo && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: totalEnMano() > 0 ? `Guardar en el acopio (${totalEnMano()})` : totalAcopio() > 0 ? `Sacar del acopio (${totalAcopio()})` : 'Acopio vacío' };
-    // 2.3: mismo lugar que en la tecla E: capullo o zanja antes que la puerta
-    if (!aviso && desafio && !objetivo && !js.enTren) { const t = desafio.avisoCercaDe?.(js.pos, distanciaAPuerta(js.pos)); if (t) aviso = { tecla: 'E', texto: t }; }
-    const puertaCerca = !objetivo && !js.enTren && !js.enKayak && puertas && puertas.cerca(js.pos);
-    // 3.6 (mecánicas): sentado, E no abre puertas (sentado a la mesa de la casa de té, junto a la puerta, se pide el té)
-    if (!aviso && puertaCerca) aviso = js.sentado ? null : { tecla: 'E', texto: `${puertaCerca.objetivo > 0.5 ? 'Cerrar' : 'Abrir'} ${puertaCerca.nombre}` };
-    if (!aviso && !objetivo && !desafio && !js.montado && mirandoAlPerro(js, perro.est.pos) && (rastro || puedoPedirRastro())) aviso = { tecla: 'E', texto: rastro ? 'Dejar el rastro' : 'Pedirle al perro que rastree' };
-    // 3.7.5 (rincones): el duende tallado, después del perro, como en la tecla E
-    if (!aviso && cacheDuende && !js.enTren && !js.enKayak && !js.montado && !objetivo) aviso = { tecla: 'E', texto: cacheDuende.texto };
-    if (!aviso && !desafio && !js.enTren && !js.enKayak && !objetivo && tren.puedeConducir(js)) aviso = { tecla: 'E', texto: 'Subir a la cabina y manejar' };
-    if (!aviso && !js.enTren && !js.enKayak && !objetivo && tren.puedeSubir(js)) aviso = { tecla: 'E', texto: 'Subir a la trochita' };
-    // 2.6.1: la casa de té va acá, como en la tecla E (antes del kayak, la carpa y el fuego):
-    // al final, un fogón al lado del mostrador decía «Dormir» y E servía
-    const casaDeTe = !charla.npc && !js.enTren && !js.enKayak && (!objetivo || objetivo.tipo === 'sentarse') && !teEnLaAldea() && enLaCasaDeTe();
-    if (casaDeTe && (!aviso || objetivo)) aviso = { tecla: 'E', texto: 'Pedir algo en la casa de té' };
-    if (!aviso && !charla.npc && teEnLaAldea() && !js.sentado && !js.enTren && !js.enKayak && !objetivo && enLaCasaDeTe()) aviso = { tecla: '·', texto: 'Sentate a una mesa y Ceinwen viene a atenderte' };   // 3.9.2
-    if (!aviso && js.enVela && vela.lugarParaBajar()) aviso = { tecla: 'E', texto: 'Bajar del velero' };
-    if (!aviso && js.enKayak && kayak.lugarParaBajar()) aviso = { tecla: 'E', texto: 'Bajar del kayak' };
-    if (!aviso && !objetivo && kayak.cerca(js)) aviso = { tecla: 'E', texto: 'Subir al kayak' };
-    // 2.9: el velero y la tirolesa, como en la tecla E
-    if (!aviso && !objetivo && !js.enKayak && !js.enTren) { const a = vela?.accion(jugador) || tirolesas?.accion(jugador); if (a) aviso = { tecla: 'E', texto: a.texto }; }
-    if (!aviso && enLaSalaDelFaro() && !progreso.entradas.bitacora) aviso = { tecla: 'E', texto: 'Leer la bitácora del farero' };
-    // 2.6.1: la carpa antes que la obra, como en la tecla E
-    if (!aviso && enLaCarpa() && puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir en la carpa' };
-    if (!aviso && obras && obras.dentro(js.pos) && puedeDormirJuntoAlFuego()) {
-      const catre = obras.tieneFuncionCerca?.('dormir', js.pos, 3.2);
-      aviso = { tecla: 'E', texto: catre ? 'Dormir en tu catre' : 'Dormir en tu puesto' };
-    }
-    if (!aviso && marcaPerro && !charla.npc) { aviso = { tecla: '·', texto: `${elPerro(true)} marca algo cerca` }; if (!avisoMarca) { avisoMarca = true; diario.anotar('marca'); } }
-    else if (!marcaPerro) avisoMarca = false;
-    if (enElAlmacen || enLaFeria) aviso = null;
-    if (enLasCargas()) aviso = null;
-    if (enElBanco()) aviso = null;   // 3.8.8
-    if (tablonJuego?.abierto()) aviso = null;   // 4.6 gente: con el tablón abierto
-    if (cocinaJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.2: con el panel de recetas abierto
-    if (tallerTren?.panelAbierto()) { aviso = null; tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
-    if (fiestasJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.7.5: y con el de las fiestas (se redibuja solo)
-    if (cantinaJuego?.panelAbierto() || teJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 3.9.0: y con la carta de la cantina
-    if (negocioJuego?.panelAbierto()) { aviso = null; marcarHud(); }   // 4.3: y con el panel de tu local
     if (enElAlmacen && !cercaDelMostrador()) cerrarAlmacen();
+    if (!marcaPerro) avisoMarca = false;   // (el diario anota la marca del perro una vez por marca)
+    const aviso = avisoDe(ctxInteraccion);
+    if (cocinaJuego?.panelAbierto()) marcarHud();   // 3.7.2: con el panel de recetas abierto
+    if (tallerTren?.panelAbierto()) { tallerTren.redibujar(); marcarHud(); }   // 3.7.3: y con el del taller
+    if (fiestasJuego?.panelAbierto()) marcarHud();   // 3.7.5: y con el de las fiestas (se redibuja solo)
+    if (cantinaJuego?.panelAbierto() || teJuego?.panelAbierto()) marcarHud();   // 3.9.0: y con la carta de la cantina
+    if (negocioJuego?.panelAbierto()) marcarHud();   // 4.3: y con el panel de tu local
     if (enElAlmacen || enLaFeria || enLasCargas() || desafio?.tallerAbierto) marcarHud();   // 3.6.2: la marca (también en la lista que se rehízo; 4.0.3: y la del taller del Desafío)
-    if (js.enTren) {
-      if (vecino) aviso = { tecla: 'E', texto: `Hablar con ${vecino.nombre}` };
-      // (3.7.3: en el tren mejorado, lo de cada lugar primero, como en la tecla E)
-      else aviso = avisoLugarDelTren() || (tren.parado() ? { tecla: 'E', texto: 'Bajar del tren' } : tren.varadoEnNieve?.() ? { tecla: 'E', texto: 'Bajarte y seguir a pie' } : null);   // (3.8.4: varado en la nieve)
-      // 2.9: en la cabina se baja parado en un andén
-      if (!vecino && tren.conduciendo()) aviso = tren.parado() && !enLasCargas() ? { tecla: 'E', texto: 'Bajar de la cabina' } : tren.varadoEnNieve?.() ? { tecla: 'E', texto: 'Bajarte y seguir a pie' } : null;
-    }
-    const juntoAlFuego = cercaDelFuego();
-    // (3.8.6: también con el «·» del perro, que sólo informa: la E dormía o cocinaba y el aviso decía «El perro marca algo»)
-    if (juntoAlFuego && !casaDeTe && (!aviso || aviso.tecla === '·' || objetivo?.tipo === 'sentarse')) {
-      if (puedeDormirJuntoAlFuego()) aviso = { tecla: 'E', texto: 'Dormir junto al fuego' };
-      else if (hayQueCocinar()) aviso = { tecla: 'E', texto: 'Cocinar algo en el fuego' };
-    }
-    // 2.1: el tendal y las huellas. Le ganan al aviso del perro (el del «·», que sólo
-    // informa). La huerta ahora es el cantero de la 1.10, que tiene su aviso más arriba.
-    if ((!aviso || aviso.tecla === '·') && !objetivo && !charla.npc && !js.enTren && !js.enKayak) {
-      const te = tendalCerca();
-      // 2.4.1: E usa el tendal aunque esté vacío (dice qué se cuelga): el aviso también
-      const texto = te ? avisoTendal(datosTendal(te), progreso.entradas) || 'Mirar el tendal' : null;
-      if (texto) aviso = { tecla: 'E', texto };
-      else {
-        const ra = rastroAlPie();
-        if (ra) aviso = { tecla: 'E', texto: progreso.entradas[ra.R.entrada] ? `Rastro de ${ra.R.nombre}: ¿para dónde va?` : `Mirar las huellas` };
-        // 2.3: la semilla va después de las huellas, igual que en la tecla E
-        else if (cacheSemillaArbol && !js.enTren && !js.enKayak) aviso = { tecla: 'E', texto: `Juntar semilla de ${ARBOLES_VIVERO[cacheSemillaArbol.arbol.especie].nombre}` };
-      }
-    }
-    // 3.8.6: la G de cocinar, acá: estaba antes del tendal, las huellas y la semilla, y junto al fuego (de día, sin nada
-    // para cocinar) decía «G Cocinar» mientras la E colgaba en el tendal
-    if (!aviso && juntoAlFuego) aviso = { tecla: 'G', texto: 'Cocinar algo en el fuego' };
-    // 2.4.1: las otras teclas (F, H, Y, B, T) van después de todo lo que hace E. Antes iban
-    // en el medio y tapaban el aviso de E: junto al tendal decía «B Plantar» y E colgaba.
-    if (!aviso && desafio && desafio.antorchaApagadaCerca?.(js.pos)) aviso = { tecla: 'F', texto: 'Encender la antorcha' };
-    const fuegoPropio = !aviso ? cacheFuegoPropio : null;
-    if (fuegoPropio) aviso = { tecla: 'F', texto: fuegoPropio.plano.id === 'pared-hogar' ? 'Encender el hogar' : fuegoPropio.plano.id === 'hogar-grande' ? 'Encender el hogar' : fuegoPropio?.plano?.fuegoContenido ? 'Encender la estufa' : 'Encender tu fogón' };
-    const hachaCerca = !aviso ? cacheHacha : null;
-    if (hachaCerca) aviso = { tecla: 'H', texto: textoHacha(hachaCerca) };
-    if (!aviso && cacheAserrar) aviso = { tecla: 'Y', texto: cacheAserrar === 'banco' ? 'Aserrar en el banco (1 tronco → 4 tablas)' : 'Aserrar a mano (1 tronco → 2 tablas)' };
-    if (!aviso && cacheSemilla && js.enSuelo && !js.nadando && !js.enTren && !js.enKayak) {
-      aviso = { tecla: 'B', texto: `Plantar ${cacheSemilla.nombre}` };
-    }
-    if (!aviso && enLaCarpa()) aviso = { tecla: 'T', texto: 'Levantar la carpa' };
-    else if (!aviso && progreso.cosas.manta && !progreso.carpa && puedeArmarCarpaAca(js)) aviso = { tecla: 'T', texto: 'Armar la carpa' };
-    if (!aviso && !js.enTren && !js.enKayak && Math.abs(js.pos.y - ref.fogon.y) < 1.75 && Math.hypot(js.pos.x - ref.fogon.x, js.pos.z - ref.fogon.z) < 4 && !clima.fuegoEn(ref.fogon.x, ref.fogon.z, 1.5)) aviso = { tecla: 'F', texto: 'Encender el fogón' };
-    if (!aviso && puestosJuego && !js.enTren && !js.enKayak) { const f = puestosJuego.fogonCerca(js.pos); if (f && !clima.fuegoEn(f.x, f.z, 1.5)) aviso = { tecla: 'F', texto: 'Encender el fogón del puesto' }; }   // 4.6 puestos
-    // Con los planos abiertos, H no tala, T tiñe e Y levanta la obra: esos avisos no van.
-    if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
-    // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
-    // (3.8.3: con ella esperándote para la cita o el casamiento, eso: la E, por hablar(), lo empieza también a caballo)
-    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : puenteDelCaballo() ? { tecla: 'E', texto: `${caballoDicho('', true)} no cruza el puente: bajarte` } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };   // (3.8.4: el puente colgante)
-    // 2.6.1: charlando, E sólo sigue la charla: el caballo, la puerta o el kayak no se ofrecen
-    if (charla.npc) aviso = null;
-    // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco
-    if (js.enCable) aviso = null;
-    // 3.8.3: con un panel abierto E lo cierra (ver la tecla E): lo de más arriba (el tren, el fuego, el tendal, el caballo)
-    // volvía a escribir el aviso después de borrarlo
-    // 4.4.2: (y los paneles que vinieron después: el banco, las fiestas, la carta de la cantina y la casa de té, el panel de tu local)
-    if (enElAlmacen || enLaFeria || enLasCargas() || cocinaJuego?.panelAbierto() || tallerTren?.panelAbierto() || negocioJuego?.panelAbierto() || fiestasJuego?.panelAbierto() || cantinaJuego?.panelAbierto() || teJuego?.panelAbierto() || enElBanco()) aviso = null;
     mostrarAviso(aviso);
     const estado = $('estado');
     if (js.enTren && estadoTren && estadoTren.conduce) {
