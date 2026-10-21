@@ -16,14 +16,14 @@ import { PEDIDOS } from './pedidos.js';
 import { negociosDe } from './negocios.js';
 import { hashTexto } from './comercio.js';
 import { HERRAMIENTAS_ZONA } from './recursos-zona.js';
+import { PUESTOS_RUTA } from './puestos-ruta.js';
 
 // ---------------------------------------------------------------- dónde está cada uno
 // Coordenadas fijas (las de la auditoría, AUDITORIA_MAPA_VALOR.md 4.2 y 4.3). El galpón se sortea según la calidad: Fermín
-// va al que haya (T.lugares.galpon) y éste es el respaldo. El puesto B lo arma el agente «puestos»: cuando exporte su punto
-// (PUESTOS_RUTA.B.pos o parecido), cambiar PUESTO_PASO por ése (anotado en CAMBIOS_4_6_GENTE.md).
+// va al que haya (T.lugares.galpon) y éste es el respaldo. 4.6 (junta): los puestos A y B son los de puestos-ruta.js.
 export const GALPON_RESPALDO = { x: 228, z: -110 };
-export const PUESTO_PASO = { x: -340, z: -20 };      // el puesto B (−350, −20), corrido 10 m al este de la vía como dice el plan
-export const PUESTO_CANTERA = { x: -320, z: -288 };  // el puesto A
+export const PUESTO_PASO = { ...PUESTOS_RUTA.B.pos };      // el puesto B
+export const PUESTO_CANTERA = { ...PUESTOS_RUTA.A.pos };   // el puesto A
 export const CANTERA = { x: -405, z: -305 };         // la veta (la arma el agente «recursos»)
 
 // ---------------------------------------------------------------- las personas nuevas
