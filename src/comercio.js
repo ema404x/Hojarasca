@@ -72,6 +72,15 @@ const PERFILES = {
   // 3.6: la parada del sur en el Relax (ver aldea.js): atiende Ernesto, el jefe de estación. La aldea
   // crece y necesita material de obra; hace dulce de rosa mosqueta y tiene huevos de sobra.
   'Aldea de los Duendes': { quien: 'Ernesto, el jefe de estación de la aldea', produce: ['frasco-frutilla', 'huevo', 'calafate-seco'], pide: ['tabla', 'piedra', 'tronco', 'lana'], otros: ['harina', 'pan-casero'] },
+  // 4.6 puestos: los cuatro puestos de ruta del Relax (puestos-ruta.js), con precios propios. El de la Cantera y el del Paso son los perfiles
+  // de la «Parada Alta» (el capataz de la cantera) y de la «Parada del Mirador» (el baqueano), que el Relax no usaba (siguen ahí para el
+  // otro modo); el de la Estepa y el del Riel Sur son de la estepa, que no tenía ninguno. `caja`: la caja de cada puesto ($5.000, se repone
+  // $700 por día: ver cajaMaxima en mercado.js). Los bienes de zona que todavía no estén en BIENES (piedra de cantera, cuero, hierbas,
+  // junco) no se ofrecen: `bienesDe` deja sólo los que existen (esBien), así funciona antes y después de sumarlos.
+  'Puesto de la Cantera': { quien: 'El capataz de la cantera', produce: ['piedra', 'cristal', 'piedra-cantera'], pide: ['empanadas', 'pan-casero', 'lana', 'tronco'], otros: ['harina', 'hongos-secos'], caja: 5000 },
+  'Puesto del Paso': { quien: 'El baqueano del paso', produce: ['piedra', 'hongos-secos'], pide: ['frasco-frutilla', 'empanadas', 'poncho', 'cuero'], otros: ['tronco', 'lana', 'cristal'], caja: 5000 },
+  'Puesto de la Estepa': { quien: 'El puestero de la estepa', produce: ['lana', 'cuero', 'calafate-seco'], pide: ['tabla', 'harina', 'pan-casero', 'tronco'], otros: ['poncho', 'hierbas'], caja: 5000 },
+  'Puesto del Riel Sur': { quien: 'El guardavía del riel sur', produce: ['poncho', 'lana'], pide: ['huevo', 'papa', 'miel', 'trucha-fresca'], otros: ['tabla', 'junco', 'cuero'], caja: 5000 },
 };
 
 // Cómo cambia cada cosa con la estación: en invierno no hay fruta fresca y la leña y la
