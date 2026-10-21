@@ -13,7 +13,7 @@ import { ENTRADAS } from '../src/cuaderno.js';
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
 // ============================================================ 1. los bienes y los pueblos
-const MATERIALES = ['tronco', 'tabla', 'piedra', 'cristal', 'lana'];
+const MATERIALES = ['tronco', 'tabla', 'piedra', 'cristal', 'lana', 'junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera'];   // 4.6: y los materiales de zona
 const idsEntradas = new Set(ENTRADAS.map((e) => e.id));
 for (const [id, b] of Object.entries(C.BIENES)) {
   assert.ok(['material', 'entrada', 'cosa'].includes(b.donde), `${id}: de dónde sale`);

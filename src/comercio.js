@@ -41,6 +41,13 @@ export const BIENES = {
   empanadas: { nombre: 'Empanadas', donde: 'entrada', lote: 4, valor: 7 },
   harina: { nombre: 'Medidas de harina', donde: 'cosa', lote: 4, valor: 5 },
   poncho: { nombre: 'Ponchos', donde: 'cosa', lote: 1, valor: 20 },
+  // 4.6 recursos: los materiales de zona (recursos-zona.js). La piedra de cantera vale el doble que la suelta; el cuero, más
+  // que la lana. Ninguno va de a uno (los de a uno necesitan su singular en comercio-mundo.js)
+  junco: { nombre: 'Juncos', donde: 'material', lote: 3, valor: 2 },
+  hierbas: { nombre: 'Atados de hierbas', donde: 'material', lote: 2, valor: 3 },
+  arcilla: { nombre: 'Terrones de arcilla', donde: 'material', lote: 2, valor: 3 },
+  cuero: { nombre: 'Cueros', donde: 'material', lote: 2, valor: 9 },
+  'piedra-cantera': { nombre: 'Piedras de cantera', donde: 'material', lote: 2, valor: 4 },
 };
 export const ID_BIENES = Object.keys(BIENES);
 export const esBien = (id) => typeof id === 'string' && Object.hasOwn(BIENES, id);

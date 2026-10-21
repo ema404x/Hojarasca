@@ -97,6 +97,8 @@ export const diasParaVencer = (p, dia) => { const pr = prestamoDe(p); return pr 
 // ---------------------------------------------------------------- el abastecimiento
 const ventana = (dia) => Math.floor((Math.max(1, Math.floor(Number(dia) || 1)) - 1) / BANCO.ventana);
 const SIN_ABASTO = new Set(['poncho', 'cristal']);   // lo caro o raro no lo pide el banco
+// 4.6 recursos: ni los materiales de zona (la elección de siempre no cambia en las partidas que ya están, y no pide piedra de cantera sin pico de cantero)
+for (const k of ['junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera']) SIN_ABASTO.add(k);
 // Lo que el banco necesita en esta ventana de días (o null si ya lo cumpliste)
 export function abastoDe(p, dia) {
   if (!hayEconomia(p)) return null;

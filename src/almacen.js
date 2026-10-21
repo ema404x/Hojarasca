@@ -13,9 +13,16 @@ export const ETIQUETA = {
   tronco: ['tronco', 'troncos'], tabla: ['tabla', 'tablas'], piedra: ['piedra', 'piedras'], cristal: ['semilla dorada', 'semillas doradas'], lana: ['vellón de lana', 'vellones de lana'],
   haba: ['haba', 'habas'], papa: ['papa', 'papas'], 'frutilla-huerta': ['frutilla', 'frutillas'], calafate: ['calafate', 'calafates'],
   hacha: ['hacha', 'hachas'], pico: ['pico', 'picos'], tijera: ['tijera', 'tijeras'], mosca: ['mosca de pescar', 'moscas de pescar'], farol: ['farol', 'faroles'], botas: ['botas de goma', 'botas de goma'],
+  // 4.6 recursos: los materiales y las herramientas de zona (recursos-zona.js)
+  junco: ['junco', 'juncos'], hierbas: ['atado de hierbas', 'atados de hierbas'], arcilla: ['terrón de arcilla', 'terrones de arcilla'], cuero: ['cuero', 'cueros'], 'piedra-cantera': ['piedra de cantera', 'piedras de cantera'],
+  'hoz-junco': ['hoz de junco', 'hoces de junco'], 'pala-arcilla': ['pala de arcilla', 'palas de arcilla'], 'cuchillo-cuero': ['cuchillo de cuero', 'cuchillos de cuero'], 'pico-cantero': ['pico de cantero', 'picos de cantero'],
 };
 // Lo que muestra el resumen («Piedra 18/40»): la palabra corta de cada clave
-const CORTA = { tronco: 'Troncos', tabla: 'Tablas', piedra: 'Piedra', cristal: 'Semillas doradas', lana: 'Lana', haba: 'Habas', papa: 'Papas', 'frutilla-huerta': 'Frutillas', calafate: 'Calafates', hacha: 'Hacha', pico: 'Pico', tijera: 'Tijera', mosca: 'Mosca', farol: 'Farol', botas: 'Botas' };
+const CORTA = { tronco: 'Troncos', tabla: 'Tablas', piedra: 'Piedra', cristal: 'Semillas doradas', lana: 'Lana', haba: 'Habas', papa: 'Papas', 'frutilla-huerta': 'Frutillas', calafate: 'Calafates', hacha: 'Hacha', pico: 'Pico', tijera: 'Tijera', mosca: 'Mosca', farol: 'Farol', botas: 'Botas',
+  // 4.6 recursos
+  junco: 'Junco', hierbas: 'Hierbas', arcilla: 'Arcilla', cuero: 'Cuero', 'piedra-cantera': 'Piedra de cantera', 'hoz-junco': 'Hoz', 'pala-arcilla': 'Pala', 'cuchillo-cuero': 'Cuchillo', 'pico-cantero': 'Pico de cantero' };
+// 4.6 recursos: los materiales de zona entran en la barraca, pero el resumen los nombra sólo si hay (si no, «Troncos 0/40 · … · Junco 0/40 …» no entra en el aviso)
+const SOLO_SI_HAY = new Set(['junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera']);
 
 export const nombreDe = (k, n = 2) => { const e = ETIQUETA[k]; return e ? (n === 1 ? e[0] : e[1]) : k; };
 export const cuantosDe = (n, k) => `${n} ${nombreDe(k, n)}`;
@@ -36,7 +43,7 @@ export const ALMACENES = {
     ampliaciones: [{ pide: { tabla: 6, piedra: 8 }, pesos: 2000 }, { pide: { tabla: 10, piedra: 14, tronco: 3 }, pesos: 4000 }],
   },
   barraca: {
-    nombre: 'Barraca de materiales', articulo: 'la barraca', del: 'de la barraca', f: true, tipo: 'material', modo: 'clase', guarda: ['tronco', 'tabla', 'piedra', 'lana'], titulo: 'Materiales',
+    nombre: 'Barraca de materiales', articulo: 'la barraca', del: 'de la barraca', f: true, tipo: 'material', modo: 'clase', guarda: ['tronco', 'tabla', 'piedra', 'lana', 'junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera'], titulo: 'Materiales',   // 4.6 recursos: y los de zona
     topes: [40, 70, 110, 160],
     ampliaciones: [{ pide: { tabla: 12, tronco: 4 }, pesos: 3500 }, { pide: { tabla: 16, tronco: 6, piedra: 8 }, pesos: 6500 }, { pide: { tabla: 24, tronco: 8, piedra: 12, lana: 4 }, pesos: 11000 }],
   },
@@ -46,7 +53,8 @@ export const ALMACENES = {
     ampliaciones: [{ pide: { tabla: 10, tronco: 4 }, pesos: 3000 }, { pide: { tabla: 16, tronco: 6, piedra: 6 }, pesos: 5500 }],
   },
   herramientero: {
-    nombre: 'Herramientero', articulo: 'el herramientero', del: 'del herramientero', f: false, tipo: 'herramienta', modo: 'total', guarda: ['hacha', 'pico', 'tijera', 'mosca', 'farol', 'botas'], titulo: 'Ganchos', unidad: 'ganchos',
+    nombre: 'Herramientero', articulo: 'el herramientero', del: 'del herramientero', f: false, tipo: 'herramienta', modo: 'total', guarda: ['hacha', 'pico', 'tijera', 'mosca', 'farol', 'botas', 'hoz-junco', 'pala-arcilla', 'cuchillo-cuero', 'pico-cantero'], titulo: 'Ganchos',   // 4.6 recursos: y las de zona
+    unidad: 'ganchos',
     topes: [4, 6],
     ampliaciones: [{ pide: { tabla: 4, tronco: 1 }, pesos: 900 }],
   },
@@ -125,8 +133,8 @@ export function resumen(id, a, { soloLoQueHay = false } = {}) {
   if (!A) return '';
   const tope = topeDe(id, a);
   if (A.modo === 'total') return `${A.titulo} ${totalGuardado(id, a)}/${tope}`;
-  const ks = A.guarda.filter((k) => !soloLoQueHay || guardadoDe(a, k) > 0);
-  return (ks.length ? ks : A.guarda).map((k) => `${CORTA[k]} ${guardadoDe(a, k)}/${tope}`).join(' · ');
+  const ks = A.guarda.filter((k) => (!soloLoQueHay && !SOLO_SI_HAY.has(k)) || guardadoDe(a, k) > 0);   // 4.6 recursos: (los de zona, sólo si hay)
+  return (ks.length ? ks : A.guarda.filter((k) => !SOLO_SI_HAY.has(k))).map((k) => `${CORTA[k]} ${guardadoDe(a, k)}/${tope}`).join(' · ');
 }
 // Lo guardado en palabras («12 troncos · 18 piedras»), para la nota al desarmar o sacar todo
 export function contenidoEnPalabras(id, a) {
@@ -183,7 +191,7 @@ export function textoCapacidad(id) {
   const A = ALMACENES[id];
   if (!A) return '';
   const t = A.topes;
-  const que = A.tipo === 'herramienta' ? `${t[0]} herramientas` : A.modo === 'clase' ? (A.guarda.length === 1 ? `${t[0]} ${nombreDe(A.guarda[0])}` : `${t[0]} de cada material (${A.guarda.map((k) => nombreDe(k)).join(', ')})`) : `${t[0]} de cosecha`;
+  const que = A.tipo === 'herramienta' ? `${t[0]} herramientas` : A.modo === 'clase' ? (A.guarda.length === 1 ? `${t[0]} ${nombreDe(A.guarda[0])}` : `${t[0]} de cada material (${A.guarda.filter((k) => !SOLO_SI_HAY.has(k)).map((k) => nombreDe(k)).join(', ')}${A.guarda.some((k) => SOLO_SI_HAY.has(k)) ? ', y los de zona: junco, hierbas, arcilla, cuero y piedra de cantera' : ''})`) : `${t[0]} de cosecha`;
   const base = `Guarda hasta ${que}.`;
   if (A.ampliaciones.length === 0) return `${base} No se amplía: para más, el depósito techado.`;
   const pasos = A.ampliaciones.map((x, i) => `${t[i + 1]} por ${formatoPesos(x.pesos)}`);

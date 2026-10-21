@@ -34,6 +34,18 @@ export const SECCIONES_GUIA = [
       ['Cofre del alba', 'Cada amanecer brota un cofre entre las raíces, cerca tuyo, con un brillo dorado: pasá por encima para abrirlo.', 'desafio'],
     ],
   },
+  // 4.6 recursos: lo que sale de un solo lugar del valle y vuelve a dar (ver recursos-zona.js)
+  {
+    id: 'zona', titulo: 'Recursos de zona', modo: 'relax',
+    items: [
+      ['Cada lugar da lo suyo', 'Hay materiales que salen de un solo lugar del valle y vuelven a dar cada uno o dos días. Cada uno pide su herramienta: la dan o la venden los de esa zona.'],
+      ['Piedra de cantera', 'En la cantera del suroeste hay una veta: con el pico de cantero (E, tres golpes) da 6 piedras de cantera cada 2 días. El pico común no la labra. El cantero vende el suyo a quien ya es picapedrero de cantera (nivel 3).'],
+      ['Junco y hierbas', 'En el mallín, junto al puente de troncos, con una hoz de junco (E): 3 juncos y 2 atados de hierbas por día.'],
+      ['Arcilla', 'En la barranca donde el arroyo entra al lago, con la pala de arcilla (E): 4 terrones cada 2 días.'],
+      ['Piñones', 'Los pehuenes del mirador vuelven a dar cada otoño: E al pie de cada uno, 6 piñones por árbol.'],
+      ['Lana y cuero', 'La lana sale de esquilar con la tijera; el cuero lo da el pastor de la estepa.'],
+    ],
+  },
   {
     id: 'construir', titulo: 'Construcción',
     items: [

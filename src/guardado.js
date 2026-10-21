@@ -35,6 +35,8 @@ import { sanearEventosValle } from './eventos-valle.js';
 import { sanearOficios, oficiosNuevos } from './oficios.js';
 // 4.5: lo único que deja la consola de códigos en la partida
 import { sanearMarcaTrucos } from './trucos.js';
+// 4.6 recursos: lo usado de la veta, el juncal, las hierbas, la barranca de arcilla y los pehuenes (ver recursos-zona.js)
+import { sanearRecursosZona, recursosZonaNuevos } from './recursos-zona.js';
 // 3.6: la Aldea de los Duendes (reemplaza al pueblo que fundabas en la 3.1)
 import { sanearAldea, aldeaNueva, migrarDesdePueblo } from './aldea.js';
 // 3.6: la vecindad (amistad, ganas y memoria de los vecinos; ver vecindad.js)
@@ -398,6 +400,7 @@ export function progresoNuevo() {
     // 3.6.1: y en el Desafío, ninguna: allá no hay aldea)
     oficios: oficiosNuevos(), ...(desafio ? {} : { aldea: aldeaNueva(), vidaAldea: vidaNueva(1), amor: amorNuevo() }),   // (3.7.0: y la vida de la aldea; 3.7.1: y el amor)
     ...(desafio ? {} : { cocina: cocinaNueva() }),   // 3.7.2: la cocina (el recetario de siempre, nada al fuego)
+    ...(desafio ? {} : { recursosZona: recursosZonaNuevos() }),   // 4.6 recursos: todo para juntar
     ...(desafio ? {} : { economia: economiaNueva(), negocios: negociosNuevo(), cantina: cantinaNueva(), casaTe: cantinaNueva(), negocioPropio: negocioPropioNuevo() }),   // 3.8.8: el peso (sin plata ni movimientos todavía; ver economia.js)
     ...(desafio ? {} : { tren: trenNuevo() }),   // 3.7.3: la trochita de siempre y el galpón viejo del taller
     ...(desafio ? {} : { empleo: empleoNuevo() }),   // 4.3: el empleo fijo (ningún puesto todavía; ver empleo.js)
@@ -597,6 +600,8 @@ function sanearProgreso(p) {
     // 3.1: una partida vieja no los trae: los oficios salen sin acreditar (main.js le
     // acredita una vez lo que ya había hecho)
     oficios: sanearOficios(p.oficios),
+    // 4.6 recursos: una partida vieja no lo trae: todo disponible. Un guardado roto, saneado (sólo puntos que existen y pehuenes «x,z»)
+    recursosZona: modoPartida === 'desafio' ? undefined : sanearRecursosZona(p.recursosZona),
     trucos: modoPartida === 'desafio' ? undefined : sanearMarcaTrucos(p.trucos),   // 4.5: las anotaciones del cuaderno que puso la consola (para que no cuenten en los logros)
     // 3.6: la aldea. Una partida de la 3.1 trae `pueblo` y no `aldea`: sus pobladores se mudan
     // a la aldea con el local ya levantado (ver `migrarDesdePueblo`); el resto se descarta.

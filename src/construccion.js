@@ -2306,6 +2306,12 @@ export const MATERIALES = {
   piedra: { nombre: 'piedras', uno: 'piedra', de: 'picar un pedrero con el pico (H)' },
   cristal: { nombre: 'semillas doradas', uno: 'semilla dorada', de: 'los duendes abatidos' },
   lana: { nombre: 'vellones de lana', uno: 'vellón de lana', de: 'esquilar una oveja en el corral del galpón (E, con la tijera)' },
+  // 4.6 recursos: los materiales de zona (ver recursos-zona.js): cada uno sale de un solo lugar del valle
+  junco: { nombre: 'juncos', uno: 'junco', de: 'cortar junco en el mallín, junto al puente de troncos (E, con la hoz de junco)' },
+  hierbas: { nombre: 'atados de hierbas', uno: 'atado de hierbas', de: 'cortar hierbas en el mallín, junto al puente de troncos (E, con la hoz de junco)' },
+  arcilla: { nombre: 'terrones de arcilla', uno: 'terrón de arcilla', de: 'sacar arcilla de la barranca de la desembocadura del arroyo (E, con la pala de arcilla)' },
+  cuero: { nombre: 'cueros', uno: 'cuero', de: 'el pastor de la estepa, en el galpón de esquila' },
+  'piedra-cantera': { nombre: 'piedras de cantera', uno: 'piedra de cantera', de: 'labrar la veta de la cantera del suroeste (E, con el pico de cantero)' },
 };
 // 3.8.6: «1 tabla», no «1 tablas» (faltan, recuperaste, te sobró, lo del acopio)
 export function cantidadMaterial(n, k) {

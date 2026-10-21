@@ -87,7 +87,7 @@ function cmdPlata(args, m) {
   return ok(R.plata(p.economia.pesos));
 }
 
-const MATERIALES_RELAX = ['tronco', 'tabla', 'piedra', 'lana'];
+const MATERIALES_RELAX = ['tronco', 'tabla', 'piedra', 'lana', 'junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera'];   // 4.6 recursos: y los de zona
 const MATERIALES_DESAFIO = ['tronco', 'tabla', 'piedra'];
 const PLURAL = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', lana: 'vellones de lana' };
 function fijarMaterial(p, k, lec) {
@@ -138,8 +138,10 @@ function cmdDepositos(args, m) {
   return llenos ? ok(R.depositos(llenos)) : no(R.depositos(0));
 }
 
-const HERRAMIENTAS = ['hacha', 'pico', 'tijera', 'mosca', 'farol', 'botas'];
-const NOMBRE_HERRAMIENTA = { hacha: 'el hacha', pico: 'el pico', tijera: 'la tijera', mosca: 'la mosca de pescar', farol: 'el farol', botas: 'las botas de goma' };
+// 4.6 recursos: y las de zona (hoz de junco, pala de arcilla, cuchillo de cuero y pico de cantero: ver recursos-zona.js)
+const HERRAMIENTAS = ['hacha', 'pico', 'tijera', 'mosca', 'farol', 'botas', 'hoz-junco', 'pala-arcilla', 'cuchillo-cuero', 'pico-cantero'];
+const NOMBRE_HERRAMIENTA = { hacha: 'el hacha', pico: 'el pico', tijera: 'la tijera', mosca: 'la mosca de pescar', farol: 'el farol', botas: 'las botas de goma',
+  'hoz-junco': 'la hoz de junco', 'pala-arcilla': 'la pala de arcilla', 'cuchillo-cuero': 'el cuchillo de cuero', 'pico-cantero': 'el pico de cantero' };
 function cmdHerramientas(args, m) {
   const p = progresoDe(m); if (!p) return no(R.noHayPartida);
   if (m.desafio) return no(R.soloRelax('Las herramientas sueltas'));
