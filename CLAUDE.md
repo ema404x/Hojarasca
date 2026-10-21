@@ -37,6 +37,8 @@ El usuario habla **castellano rioplatense**. Juego, textos, comentarios, commits
 
 ## Reglas del usuario
 - **Planificar no es ejecutar.** Si dice «estamos planificando» o «no arranques nada», sólo se conversa: no lanzar agentes, no crear ramas, no tocar código. Esperar una orden explícita («arrancá», «dale», «avanzá», «hacelo»).
+- **Electron SIEMPRE en el monitor externo, nunca en la pantalla de la notebook.** Antes de abrir Electron, comprobá que corre el vigilante (`Documents\Hojarasca\vigilante-monitor.ps1`, PID en `vigilante-monitor.pid`); si no corre (por ejemplo después de reiniciar la PC), prendelo desde PowerShell:
+  `Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','C:\Users\Andres\Documents\Hojarasca\vigilante-monitor.ps1','-CadaMs','80' -WindowStyle Hidden`
 - **Electron no le tiene que estorbar:** siempre oculto, en el monitor externo (`herramientas/al-monitor.cjs`), prioridad baja, una instancia por agente y como mucho dos a la vez. **Nunca** `taskkill //F //IM electron.exe`.
 - Sólo **teclado y ratón** (no ampliar el mando).
 - **No escribir ni mencionar el inglés**: se traduce todo al final. Las pruebas de idioma existentes siguen en verde.
