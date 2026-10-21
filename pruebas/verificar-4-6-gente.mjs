@@ -128,6 +128,8 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
   const filas = TB.filasTablon(q.genteCampo.tablon, 10, ctxD, tengoDe(q));
   ok(filas.length === 3 && filas.every((f) => f.tipo === 'tomar' && f.puede && /\$\d/.test(f.titulo) && /m, ×/.test(f.detalle)), 'el panel: tres para tomar, con el pago, la distancia y el multiplicador');
   sinRotos(filas, 'filas');
+  ok(filas.every((fi) => !/[Dd]e el/.test(fi.detalle)), 'sin «de el» (del mallín, del pehuenal)');
+  eq(TB.deLugar('el mallín'), 'del mallín', '«del»'); eq(TB.deLugar('la cantera'), 'de la cantera', '«de la»');
   TB.tomar(q.genteCampo.tablon, filas[0].id, 10, ctxD);
   const f2 = TB.filasTablon(q.genteCampo.tablon, 10, ctxD, tengoDe(q));
   ok(f2[0].tipo === 'entregar' && !f2[0].puede && /tenés 0/.test(f2[0].estado) && f2.length === 3, 'arriba, lo tomado para entregar');
@@ -275,6 +277,12 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
   eq(categoriaDeOpcion('campo:tienda'), 'trato', 'la tiendita también');
   eq(categoriaDeOpcion('campo:historia'), 'charla', 'la historia, en «Charlar»');
   ok(CATEGORIAS_VISTA.trato?.nombre === 'Pedidos y compras' && CATEGORIAS_VISTA.trato.icono === 'canasta', 'la categoría nueva, con su ícono');
+  // con las reglas sociales (Nicanor y Josefina son vecinos): lo del campo en su categoría, no en «Charlar»
+  const S = await import('../src/vecindad-social.js');
+  ok(S.CATEGORIAS_RUEDA.some((c) => c.id === 'trato' && c.icono === 'canasta'), 'la vida social conoce «Pedidos y compras»');
+  const gr = S.opcionesRueda('nicanor', { modo: 'relax', dia: 3, vecindad: (await import('../src/vecindad.js')).vecindadNueva() }, { menu: [{ id: 'como-andas', titulo: '¿Cómo andás?' }, { id: 'campo:pedido', titulo: 'Su pedido' }, { id: 'campo:tienda', titulo: 'Comprarle algo…' }] });
+  const trato = gr.find((g) => g.categoria === 'trato');
+  ok(trato && trato.opciones.map((o) => o.id).join() === 'campo:pedido,campo:tienda' && !gr.find((g) => g.categoria === 'charla').opciones.some((o) => /^campo:/.test(o.id)), 'Nicanor: el pedido y la tiendita en «Pedidos y compras»');
   eq(iconoDeOpcion('campo:comprar:pico', 'Pico de cantero · $2.500'), 'herramienta', 'el pico, con el ícono de herramienta');
   eq(iconoDeOpcion('campo:comprar:truchas', 'Dos truchas frescas · $700'), 'pez', 'las truchas, con el pez');
   const vj = leer('src/vecindad-juego.js');

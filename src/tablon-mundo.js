@@ -6,7 +6,8 @@
 import * as THREE from 'three';
 import { Constructor, matriz } from './geometria.js';
 import { edificioEnMundo, esVecinoAldea } from './aldea.js';
-import { filasTablon, tomar, entregar, tablonDe, cuantoDe, vistaTomado, TABLON } from './tablon.js';
+import { filasTablon, tomar, entregar, tablonDe, cuantoDe, vistaTomado, deLugar, TABLON } from './tablon.js';
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 import { formatoPesos } from './economia.js';
 
 // En el marco de la plaza (aldea.js: 18 × 14 m, su +Z da a la calle de la Vía): la esquina del frente, la del lado −X (el
@@ -117,14 +118,14 @@ export function crearTablonMundo(ctx) {
       if (!r.ok) { ctx.nota?.(r.motivo === 'lleno' ? 'Ya tenés dos encargos tomados' : 'Ese papel ya no está', r.motivo === 'lleno' ? 'Entregá uno antes de tomar otro' : ''); dibujar(); return; }
       const e = r.encargo;
       ctx.sonido?.anotar?.();
-      ctx.nota?.(`Encargo: ${cuantoDe(e.n, e.k)}`, `De ${e.lugar}, para ${e.firma}. Pagan ${formatoPesos(e.pago)}; hasta mañana`, true);
+      ctx.nota?.(`Encargo: ${cuantoDe(e.n, e.k)}`, `${cap(deLugar(e.lugar))}, para ${e.firma}. Pagan ${formatoPesos(e.pago)}; hasta mañana`, true);
       ctx.guardar?.();
     } else {
       const r = entregar(ctx.progreso(), t, f.id, dia, ctx.tengo);
       if (!r.ok) {
         const x = r.tomado ? vistaTomado(r.tomado) : null;
         if (r.motivo === 'cupo') ctx.nota?.('Hoy ya entregaste uno', 'El tablón recibe una entrega por día: volvé mañana');
-        else if (r.motivo === 'falta' && x) ctx.nota?.(`Te faltan ${cuantoDe(x.n - (Number(ctx.tengo(x.donde, x.k)) || 0), x.k)}`, `Salen de ${x.lugar}`);
+        else if (r.motivo === 'falta' && x) ctx.nota?.(`Te faltan ${cuantoDe(x.n - (Number(ctx.tengo(x.donde, x.k)) || 0), x.k)}`, `Salen ${deLugar(x.lugar)}`);
         dibujar();
         return;
       }

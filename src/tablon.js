@@ -42,6 +42,8 @@ export const ORIGENES = {
 // Hasta que existan, nada de lo que los pide o los vende aparece: `existeEnJuego` es lo que usa main.js como `existe`.
 export const MATERIALES_ZONA = ['junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera'];
 export const existeEnJuego = (k, materiales = {}, bienes = BIENES) => typeof k === 'string' && (!MATERIALES_ZONA.includes(k) || Object.hasOwn(materiales || {}, k) || Object.hasOwn(bienes || {}, k));
+// «de la cantera», «del mallín» (no «de el»)
+export const deLugar = (l) => (/^el /.test(l) ? `del ${l.slice(3)}` : `de ${l}`);
 export const distanciaAPlaza = (o) => Math.round(Math.hypot(o.x - PLAZA.x, o.z - PLAZA.z));
 export function multiplicadorDe(origen) {
   const o = Object.hasOwn(ORIGENES, origen) ? ORIGENES[origen] : null;
@@ -98,7 +100,7 @@ export const ENCARGOS_TABLON = [
   { id: 'lana-tejer', k: 'lana', n: 3, origen: 'galpon', quien: ['modista', 'madre'], para: 'para tejer el invierno que viene' },
   { id: 'piedra-anden', k: 'piedra-cantera', n: 4, origen: 'cantera', quien: ['jefe', 'jefe'], para: 'para emparejar el borde del andén' },
   { id: 'pinones-abuela', k: 'pinon', n: 8, origen: 'pehuenal', quien: ['abuela', 'galesa'], para: 'para hervirlos como en mi casa', estacion: 'otono' },
-  { id: 'truchas-cantina', k: 'trucha-fresca', n: 3, origen: 'cabana', quien: ['moza', 'galesa'], para: 'frescas, de lo de Nicanor: para la cena del sábado' },
+  { id: 'truchas-cantina', k: 'trucha-fresca', n: 3, origen: 'cabana', quien: ['moza', 'galesa'], para: 'para la cena del sábado en la cantina' },
   { id: 'trucha-ahumada', k: 'trucha-ahumada', n: 1, origen: 'cabana', quien: ['enfermera', 'nelida'], para: 'ahumada como la hace Nicanor' },
   { id: 'calafate-arrayanal', k: 'calafate-seco', n: 1, origen: 'arrayanes', quien: ['madre', 'galesa'], para: 'del arrayanal, para un dulce de los buenos' },
   { id: 'frutillas-arrayanal', k: 'frutilla', n: 10, origen: 'arrayanes', quien: ['maestra', 'galesa'], para: 'del lado de los arrayanes, para los chicos de la escuela' },
@@ -237,7 +239,7 @@ export function filasTablon(t, dia, ctx = {}, tengo = () => 0) {
     const plazo = x.hasta > dia ? 'hasta mañana' : 'vence hoy';
     filas.push({
       tipo: 'entregar', id: x.id, titulo: `Entregar ${cuantoDe(x.n, x.k)} · $${miles(x.pago)}`,
-      detalle: `De ${v.lugar}, para ${v.firma} · ${plazo}`,
+      detalle: `${cap(deLugar(v.lugar))}, para ${v.firma} · ${plazo}`,
       estado: cupo ? 'mañana otra entrega' : hay >= x.n ? 'para entregar' : `tenés ${hay}`, puede: !cupo && hay >= x.n,
     });
   }
@@ -245,7 +247,7 @@ export function filasTablon(t, dia, ctx = {}, tengo = () => 0) {
   for (const e of aLaVista(t, dia, ctx)) {
     filas.push({
       tipo: 'tomar', id: e.id, titulo: `${cap(cuantoDe(e.n, e.k))} · $${miles(e.pago)}`,
-      detalle: `${cap(e.para)}. De ${e.lugar} (${e.distancia} m, ×${String(e.mult).replace('.', ',')}). Firma ${e.firma}`,
+      detalle: `${cap(e.para)}. ${cap(deLugar(e.lugar))} (${e.distancia} m, ×${String(e.mult).replace('.', ',')}). Firma ${e.firma}`,
       estado: lleno ? 'ya tenés dos' : 'tomarlo', puede: !lleno,
     });
   }
