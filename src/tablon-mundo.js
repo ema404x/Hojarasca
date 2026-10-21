@@ -1,5 +1,5 @@
 // 4.6: el tablón de encargos en la plaza (las reglas en tablon.js). Un tablón de madera con techito y tres papeles clavados,
-// del lado de la calle de la Vía, en la esquina de la plaza opuesta al cartel «Plaza de los Duendes». Poca geometría: una sola
+// del lado de la calle de la Vía, en el frente de la plaza, del lado opuesto al cartel «Plaza de los Duendes». Poca geometría: una sola
 // malla (una llamada de dibujo, sin sombra propia y con el mismo material que el puesto de la feria: ningún programa nuevo),
 // porque la plaza anda al límite de 16,7 ms. E delante del tablón abre el panel (sólo teclado y ratón): los números o un clic
 // toman un encargo o entregan uno tomado; E o Escape lo cierran, y se cierra solo si te alejás.
@@ -10,9 +10,12 @@ import { filasTablon, tomar, entregar, tablonDe, cuantoDe, vistaTomado, deLugar,
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 import { formatoPesos } from './economia.js';
 
-// En el marco de la plaza (aldea.js: 18 × 14 m, su +Z da a la calle de la Vía): la esquina del frente, la del lado −X (el
-// cartel está en +5,4), un poco afuera del lote, mirando a la calle.
-export const LUGAR_TABLON = { lx: -5.4, lz: 7 + 0.7, giro: 0 };
+// En el marco de la plaza (aldea.js: 18 × 14 m, su +Z da a la calle de la Vía): el frente, del lado −X (el cartel está en +5,4),
+// un poco afuera del lote, mirando a la calle, entre la vereda y la plaza.
+// 4.6.0: corrido de lx −5,4 a −2,4: en −5,4 el farol del sendero de esa esquina (−4,9; 5,6) quedaba pegado detrás y de cerca su
+// cabeza asomaba justo encima del techito. Ahora queda a 3,3 m del farol (que se ve al costado) y a 3,4 m del mástil; sigue
+// sobre la vereda de la calle de la Vía, sin tapar el sendero de la esquina ni el cartel.
+export const LUGAR_TABLON = { lx: -2.4, lz: 7 + 0.7, giro: 0 };
 const CERCA = 2.6;   // a cuánto del frente se lee
 
 export function lugarDelTablon() {
