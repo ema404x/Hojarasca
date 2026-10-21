@@ -18,6 +18,7 @@ import { armarMochila } from '../src/mochila.js';
 import { esPersonaVecindad } from '../src/vecindad.js';
 import { PRODUCTOS_GRANJA } from '../src/granja.js';
 import { que } from './ayuda-interacciones.mjs';
+import { funcion, enUnaLinea } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8').replace(/\r\n/g, '\n');
@@ -309,9 +310,13 @@ ok(main.includes("import { crearCocinaJuego } from './cocina-juego.js';") && mai
 ok(main.includes('if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo()) return cocinaJuego.aviso(o);') && main.includes('if (cocinaJuego?.esDeCocina(o) && cocinaJuego.activo() && cocinaJuego.usar(o)) { refrescarBarra(true); return; }'), 'main.js: el aviso y la tecla E, con la misma función y el mismo orden');
 ok(main.includes('// 3.7.2: la cocina en pasos: la parrilla con cruz, la cocina a leña y la alacena van por el mismo camino (aviso y'), 'main.js: el comentario de la prioridad compartida');
 ok(que({ panelAbierto: (n) => n === 'cocina' }).e === 'recetas-cocina' && /if \(nombre === 'cocina'\) cocinaJuego\.cerrarPanel\(\);/.test(main) && main.includes("else if (cocinaJuego?.panelAbierto()) cocinaJuego.cerrarPanel();") && main.split("cocinaJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'main.js: el panel de recetas con E, Escape y los números');
-ok(main.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;') && main.includes("mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;"), 'main.js: los vecinos por el olor (después del amor) y el perro');
+// (4.6.1: quién va a dónde, con un mundo de mentira: la cocina, después del amor y de la fiesta; antes, la línea exacta)
+const destino = (am, fi, co) => funcion(main, 'destinoConFiesta', { amorMundo: { destino: () => am }, noticiasJuego: { destino: () => null }, fiestasJuego: { destino: () => fi }, cocinaJuego: { destino: () => co } })('panadera');
+const olor = { lugar: 'cocina' }, paseo = { lugar: 'paseo' }, fiesta = { lugar: 'fiesta' };
+ok(destino(null, null, olor) === olor && destino(paseo, null, olor) === paseo && destino(null, fiesta, olor) === fiesta && destino(null, null, null) === null, 'main.js: los vecinos por el olor (después del amor y la fiesta)');
+ok(main.includes("mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;"), 'main.js: los vecinos por el olor (después del amor) y el perro');
 ok(main.includes("if (cocinaJuego?.comer(r.id)) break;") && main.includes("pestanas.push(['recetario', 'Recetario'])") && main.includes('cocinaMundo?.trasCompilar();'), 'main.js: comer, el recetario y las semillas');
-ok(main.includes("try { if (modo === 'jugando' && !desafio) { if (!foto.activo) cocinaJuego?.actualizar(dt); cocinaMundo?.actualizar(dt); } } catch (e) { fallaSistema('cocina', e); }"), 'main.js: la cocina corre aislada (fallaSistema), sólo en el Relax');
+ok(enUnaLinea(main, [/^\s*try \{/, "modo === 'jugando'", '!desafio', 'cocinaJuego?.actualizar(dt)', 'cocinaMundo?.actualizar(dt)', "catch (e) { fallaSistema('cocina', e); }"]), 'main.js: la cocina corre aislada (fallaSistema), sólo en el Relax');   // (4.6.1: las partes, no la línea exacta: la 3.8.3 le sumó el modo foto)
 { const vj = leer('src/vecindad-juego.js'); ok(vj.includes('for (const o of ctx.cocina?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('for (const o of ctx.granja?.opciones?.(s.clave) || []) lista.push(o);') && vj.includes('ctx.cocina.elegir(s, id, npc)') && vj.includes('ctx.granja.elegir(s, id)'), 'vecindad-juego.js: la cocina y la granja, las dos en el menú de la charla'); }
 const perro = leer('src/perro.js');
 ok(perro.includes("} else if (mundo?.antojo) {") && /mundo\?\.rastro\) \{[\s\S]*mundo\?\.antojo\) \{/.test(perro), 'perro.js: el antojo del asado, después de rastrear');

@@ -545,7 +545,11 @@ const partida = (anotadas = 0, extra = {}) => ({ modo: 'relax', dia: 1, horas: 1
   // sábado a la tarde, música (si llegó el músico). 3.6 (mecánicas): en el salón, con baile (PLAN_ALDEA
   // §14): el músico en el escenario, ocho en la pista, ocho en las sillas y los que sobran, en la plaza
   eq(A.rutinaAldea('musico', 18, SABADO, llena), { lugar: 'salon', edificio: 'salon', punto: 'escenario' }, 'el músico toca en el salón');
-  for (const k of gente.filter((x) => x !== 'moza' && x !== 'bailarina')) ok(['salon', 'plaza'].includes(A.rutinaAldea(k, 18, SABADO, llena).lugar), `${k}: el sábado al salón (o a la plaza)`);   // (3.9.0: la moza abre la cantina a las 18; 3.9.1: Dalia, a la suya)
+  // (4.6.1: los que llegaron desde la 3.9 (VECINOS_390, VECINOS_391…) tienen su propio sábado: se apartan por su lista, no
+  // uno por uno; los de antes siguen todos)
+  const conSuSabado = Object.keys(A).filter((k) => /^VECINOS_(39\d|[4-9]\d\d)$/.test(k)).flatMap((k) => A[k]);
+  ok(conSuSabado.includes('moza') && conSuSabado.includes('bailarina'), 'la moza y Dalia, con su sábado');
+  for (const k of gente.filter((x) => !conSuSabado.includes(x))) ok(['salon', 'plaza'].includes(A.rutinaAldea(k, 18, SABADO, llena).lugar), `${k}: el sábado al salón (o a la plaza)`);   // (3.9.0: la moza abre la cantina a las 18; 3.9.1: Dalia, a la suya)
   ok(gente.filter((k) => /^baile-\d$/.test(A.rutinaAldea(k, 18, SABADO, llena).punto)).length === 8, 'ocho bailan');
   const sinMusico = A.aldeaNueva();
   ok(gente.filter((k) => A.esVecinoAldea(k)).some((k) => A.rutinaAldea(k, 17.5, SABADO, sinMusico).lugar !== 'plaza'), 'sin músico, sábado como cualquier día');

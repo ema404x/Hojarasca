@@ -14,6 +14,7 @@ import * as M from '../src/amor.js';
 import * as A from '../src/aldea.js';
 import * as V from '../src/vecindad.js';
 import * as G from '../src/aldea-gente.js';
+import { funcion, enUnaLinea } from './ayuda-codigo.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let n = 0;
@@ -52,9 +53,15 @@ const ctxDe = (p, extra = {}) => ({ dia: p.dia, hora: p.horas, aldea: p.aldea, m
     ok(!/^export \{/m.test(t) && !/^export (async function|function\*)/m.test(t), 'sin «export { }» (armar.mjs no lo entiende)');
     ok(!/\b(iglesia|capilla|cura|misa|altar|bendic\w*|dios|religios\w*|sacerdote|pastor)\b/i.test(t.replace(/sin religión|nada religioso|Nada religioso/g, '')), 'nada religioso');
   }
-  ok(main.includes("import { crearAmorMundo } from './amor-mundo.js';") && main.includes('amorDestino: (k) => destinoConFiesta(k),') && main.includes('const a = amorMundo?.destino(k) || null;') && main.includes('mundo: () => amorMundo,') && main.includes('if (!desafio) amorMundo?.actualizar(dt);'), 'main.js: el mundo del amor enganchado (sólo en el Relax)');   // (3.7.2: el destino del amor manda; detrás, el del asado) (3.7.5: delante, la fiesta)
+  {
+    // 4.6.1: el destino del amor, con un mundo de mentira (antes, cinco líneas exactas de main.js: se rompía con cada destino nuevo)
+    const destino = (am, fi) => funcion(main, 'destinoConFiesta', { amorMundo: { destino: () => am }, noticiasJuego: { destino: () => null }, fiestasJuego: { destino: () => fi }, cocinaJuego: { destino: () => null } })('fotografa');
+    const cita = { lugar: 'cita' }, paseo = { lugar: 'paseo' }, fiesta = { lugar: 'fiesta' };
+    ok(destino(cita, fiesta) === cita && destino(paseo, null) === paseo && destino(paseo, fiesta) === fiesta, 'main.js: la cita y el casamiento mandan; un paseo, después de la fiesta');
+    ok(/^import \{ crearAmorMundo \} from '\.\/amor-mundo\.js';$/m.test(main) && /amorDestino: \(k\) => destinoConFiesta\(k\)/.test(main) && /mundo: \(\) => amorMundo\b/.test(main) && enUnaLinea(main, ['!desafio', 'amorMundo?.actualizar(dt)']), 'main.js: el mundo del amor enganchado (sólo en el Relax)');
+  }   // (3.7.2: el destino del amor manda; detrás, el del asado) (3.7.5: delante, la fiesta)
   ok(ag.includes('const r = ctx.amorDestino(k);') && ag.includes('if (n.conVos) { st.clave = \'\'; continue; }') && ag.includes('function llegarCaminando(n, d)'), 'aldea-gente.js: el destino del amor manda, y llega caminando');
-  ok(gente.includes("case 'dormir':") && gente.includes("case 'brindar':") && gente.includes('function gestoAmor(g)') && gente.includes('if (g.enLejano || g.conVos || g.alAmor || g.sinFrenar) cerquita = false;'), 'gente.js: acostada, el brindis, de la mano y del brazo');
+  ok(gente.includes("case 'dormir':") && gente.includes("case 'brindar':") && gente.includes('function gestoAmor(g)') && enUnaLinea(gente, [/^\s*if \(/, 'g.conVos', 'g.alAmor', ') cerquita = false;']),'gente.js: acostada, el brindis, de la mano y del brazo');
   ok(aj.includes("ctx.mundo?.()?.opcionCaminar?.(clave)") && aj.includes("que === 'caminar'"), 'amor-juego.js: salir a caminar juntos');
 }
 

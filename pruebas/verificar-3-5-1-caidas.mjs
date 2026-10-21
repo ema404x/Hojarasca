@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { enUnaLinea } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -119,7 +120,7 @@ ok(/Context Restored\."\),H=!1;let j=se\.autoReset[^;]*;ct\(\)/.test(three), 'th
 ok(/try \{ cuadroDelJuego\(tRaf, manual\); \} catch \(err\) \{\n\s+fallaSistema\('cuadro', err\);/.test(main), 'una excepción del cuadro no deja la pantalla congelada');
 // (3.6: el pueblo de la 3.1 pasó a ser la aldea: el sistema se llama 'aldea')
 for (const s of ['fauna', 'gente', 'perro', 'desafio', 'clima', 'sonido', 'aldea', 'valle', 'modos']) ok(main.includes(`catch (e) { fallaSistema('${s}', e); }`), `"${s}" falla solo`);
-ok(main.includes("try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }"), 'la línea de siempre, adentro');
+ok(enUnaLinea(main, ['try {', 'actualizarAldea(dt)', "catch (e) { fallaSistema('aldea', e); }"]), 'la línea de siempre, adentro');   // (4.6.1: las partes, no la línea exacta)
 ok(/if \(f\) \{ f\.veces\+\+; return; \}/.test(main) && /reportarError\?\.\(`bucle\/\$\{nombre\}/.test(main), 'se anota una vez (y por reportarError)');
 ok(/const yaReportados = new Set\(\);/.test(html), 'el registro de errores no repite el mismo');
 ok(/acumuladoGuardado \+= dtReal;\n\s+if \(acumuladoGuardado > 20\) \{ acumuladoGuardado = 0; programarGuardadoSuave\(\); \}/.test(main), 'el autoguardado va cada 20 s de reloj');

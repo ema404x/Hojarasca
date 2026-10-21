@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { expresion } from './ayuda-codigo.mjs';
 
 const HI = await import('../src/historia.js');
 const EV = await import('../src/eventos-valle.js');
@@ -106,7 +107,12 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
 {
   const main = leer('src/main.js');
   ok(main.includes('libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra'), 'la tarjeta espera a que se cierre el panel');
-  ok(/const panelDelHudAbierto = \(\) => enElAlmacen \|\| enLaFeria \|\| enLasCargas\(\) \|\| enElBanco\(\) \|\| mochilaAbierta .*cocinaJuego\?\.panelAbierto\(\).*tallerTren\?\.panelAbierto\(\).*fiestasJuego\?\.panelAbierto\(\)/.test(main), 'y el panel abierto incluye la cocina, el taller y las fiestas');
+  {
+    // 4.6.1: la cuenta con un mundo de mentira (antes, el principio exacto de la línea)
+    const cerrado = { panelAbierto: () => false }, abiertoUno = { panelAbierto: () => true };
+    const abierto = (k) => expresion(main, 'const panelDelHudAbierto = ', { enElAlmacen: false, enLaFeria: false, enLasCargas: () => false, enElBanco: () => false, mochilaAbierta: false, desafio: null, cocinaJuego: cerrado, tallerTren: cerrado, negocioJuego: cerrado, fiestasJuego: cerrado, cantinaJuego: cerrado, teJuego: cerrado, [k]: abiertoUno })();
+    ok(['cocinaJuego', 'tallerTren', 'fiestasJuego'].every(abierto) && !abierto('nada'), 'y el panel abierto incluye la cocina, el taller y las fiestas');
+  }
   // (4.5.1: se sacó «largar esconde el fantasma»: ya no hay carreras)
 }
 

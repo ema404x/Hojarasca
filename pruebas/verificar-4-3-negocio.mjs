@@ -13,6 +13,7 @@ import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
 import { que } from './ayuda-interacciones.mjs';
+import { enUnaLinea } from './ayuda-codigo.mjs';
 
 registrarThree();
 const { PLANO, PLANOS } = await import('../src/construccion.js');
@@ -460,7 +461,7 @@ for (const [id, def] of Object.entries(LOCALES)) {
   ok(que({ panelAbierto: (x) => x === 'negocio', hachaCerca: {}, cercaDelFuego: true }).aviso === null, 'con el panel abierto no hay aviso');
   tiene('if (vecino?.clienteNegocio) vecino = null;', 'los clientes de tu local no se charlan: E sobre el mostrador los atiende');
   tiene('acumuladoVecino = 0; vecino = gente.cerca(js, camara, false, (g) => g.clienteNegocio || g.empleadoNegocio);', 'y la búsqueda del vecino salta a los clientes y empleados (4.4.2) y pide el siguiente');
-  tiene("try { if (modo === 'jugando' && !desafio && !foto.activo) negocioJuego?.actualizar(dt); } catch (e) { fallaSistema('negocio-propio', e); }", 'el bucle lo avanza aislado con fallaSistema');
+  ok(enUnaLinea(m, ['try {', "modo === 'jugando'", '!desafio', '!foto.activo', ' negocioJuego?.actualizar(dt)', "catch (e) { fallaSistema('negocio-propio', e); }"]), 'el bucle lo avanza aislado con fallaSistema');   // (4.6.1: las partes, no la línea exacta)
   tiene("negocioJuego.alDesarmar(d);", 'al desarmar el local la mercadería y la caja vuelven a vos');
   ok(m.indexOf('negocioJuego.alDesarmar(d)') < m.indexOf('almacenJuego.devolver(d)'), '… (antes de lo demás, por la misma puerta que todos los desarmados)');
   ok(c.includes("import { PIEZAS_NEGOCIO } from './planos-negocio.js';") && c.includes('PIEZAS.push(...PIEZAS_NEGOCIO);'), 'construccion.js suma los dos locales con una línea');

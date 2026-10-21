@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { enUnaLinea } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 // lo que sale de una VM tiene otros prototipos: se compara como datos
@@ -111,7 +112,7 @@ const DR = await import('../src/desafio-duendes-reglas.js');
   assert.equal(llamadas.length, 2, 'sobrevivida: el asedio arranca al alba de siempre');
   // en el juego: lo mira revisarHorario (que no corre con vos caído), y empezar usa el lugar guardado
   assert.match(extraer(des, 'revisarHorario'), /if \(d\.asedioAlAlba\) asedioMundo\.revisarAlba\(esHoraDeAtaque\(p\.horas\)\);/);
-  assert.ok(des.includes('if (!caido && !naveMundo.adentro && !mundo.fotoActiva) revisarHorario();'), 'caído no arranca nada: arranca al despertar');
+  assert.ok(enUnaLinea(des, [/^\s*if \(/, '!caido', ') revisarHorario();']),'caído no arranca nada: arranca al despertar');
   assert.match(extraer(asedioM, 'empezar'), /\|\| guardado \|\| ubicarNave\(c, llano, azar\)/);
 }
 

@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { que } from './ayuda-interacciones.mjs';
+import { expresion } from './ayuda-codigo.mjs';
 
 // un localStorage de mentira, para el guardado en Node
 const almacen = new Map();
@@ -163,7 +164,12 @@ const limpio = (x) => { G.usarModoGuardado('relax', 3); G.guardarProgreso({ ...G
 {
   const u = trozoFn('function usarRanura(');
   ok(u.indexOf('if (js.enCable || durmiendo) return;') > 0 && u.indexOf('if (js.enCable || durmiendo) return;') < u.indexOf('switch (r.accion)'), 'colgado del cable o durmiendo, el clic derecho no usa nada');
-  ok(/if \(js\.montado && \['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'\]\.includes\(r\.accion\)\)/.test(u), 'a caballo, lo mismo que las teclas');
+  {
+    // 4.6.1: la lista como lista (una acción más no la rompe; sacar una de éstas sí)
+    const lista = /if \(js\.montado && (\[[^\]]*\])\.includes\(r\.accion\)\)/.exec(u);
+    const acciones = lista ? new Function(`return ${lista[1]};`)() : [];
+    ok(['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].every((a) => acciones.includes(a)), 'a caballo, lo mismo que las teclas');
+  }
   const f = trozoFn('function encenderFuego(');
   ok(f.indexOf("nota('El fuego ya está prendido'") > 0 && f.indexOf("nota('El fuego ya está prendido'") < f.indexOf('lenaDelInvierno()'), 'F con el fuego ya prendido no gasta otra vez');
   ok(trozoFn('function puedeArmarCarpaAca(').includes('!js.enPlataforma') && trozoFn('function enLaCarpa(').includes('Math.abs(js.pos.y - T.altura(progreso.carpa.x, progreso.carpa.z)) < 1.6'), 'la carpa, en la tierra y a su altura');
@@ -255,7 +261,12 @@ this.f = lluviaPorTramos;`, ctx);
   ok(!ctx.f(k(10, 15)) && ctx.f(k(10, 19)) && ctx.f(k(11, 2)) && ctx.f(k(11, 6)) && !ctx.f(k(11, 9.5)), 'el temporal del capítulo 8: de las 18 a las 7');
   ctx.progreso.historia.momentos = {};
   ok(!ctx.f(k(10, 19)), 'sin el momento lanzado, nada');
-  ok(main.includes("p.tipo = (k) => (fijo() ? null : (temporalDeLaHistoria(k) ? 'lluvia' : null) ||") && main.includes('p.viento = (k) => (!fijo() && temporalDeLaHistoria(k) ? Math.max(viento(k), VIENTO_TEMPORAL) : viento(k));'), 'el programa del tiempo lo usa (lluvia y viento)');
+  {
+    // 4.6.1: el programa del tiempo con un mundo de mentira (antes, las dos líneas exactas)
+    const mundo = (temporal) => ({ fijo: () => false, temporalDeLaHistoria: () => temporal, desafio: null, fiestasJuego: { climaForzado: () => null }, tipo: () => 'despejado', viento: () => 0.2, VIENTO_TEMPORAL: 0.9 });
+    const tipo = (t) => expresion(main, 'p.tipo = ', mundo(t), 'temporalDeLaHistoria')(8), viento = (t) => expresion(main, 'p.viento = ', mundo(t), 'temporalDeLaHistoria')(8);
+    ok(tipo(true) === 'lluvia' && viento(true) === 0.9 && tipo(false) === 'despejado' && viento(false) === 0.2, 'el programa del tiempo lo usa (lluvia y viento)');
+  }
   // 2a: lo elegido en la barra se sigue por lo que es; si se terminó, su casilla queda vacía
   const rb = trozoFn('function refrescarBarra(');
   ok(rb.includes('if (idElegido && ranuras[elegida]?.id !== idElegido) {') && rb.includes('else ranuras.splice(Math.min(elegida, ranuras.length), 0, null);') && trozoFn('function elegirRanura(').includes('idElegido = null;'), 'la casilla de lo que se terminó queda vacía');

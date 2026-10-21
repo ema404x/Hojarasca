@@ -8,6 +8,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { expresion } from './ayuda-codigo.mjs';
 
 const leer = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 // jugador.js y aldea-mecanicas-mundo.js usan three: en Node, el three local del juego como módulo
@@ -81,7 +82,12 @@ const main = leer('src/main.js');
   // el código de la 3.6.0 (sin salida) dejaba al jugador adentro
   ok(/estado\.salida = hayDePie \? dePie\.clone\(\) : estado\.pos\.clone\(\)/.test(leer('src/jugador.js')), 'jugador.js: la salida al sentarse');
   // R, sentado, siempre te levanta; y sentado se guarda la salida (al cargar no aparecés adentro del sillón)
-  ok(main.includes('if (js.sentado) jugador.sentarse(false);\n      else if (!js.nadando && !js.enKayak && !js.enTren && !js.montado && !js.enSulky) jugador.sentarse(true);'), 'R: sentado, te levanta siempre');   // (3.8.3: y no te sienta a caballo ni en el sulky)
+  {
+    // 4.6.1: la condición de R se prueba con distintos estados (antes, la línea exacta: la 3.8.3 la cambió sin cambiar esto)
+    const m = /if \(js\.sentado\) jugador\.sentarse\(false\);\s*\n\s*else if \(([^\n]*?)\) jugador\.sentarse\(true\);/.exec(main);
+    const sienta = m && new Function('js', `return !!(${m[1]});`);
+    ok(sienta && sienta({}) && ['nadando', 'enKayak', 'enTren', 'montado', 'enSulky'].every((k) => !sienta({ [k]: true })), 'R: sentado, te levanta siempre; de pie te sienta, salvo nadando, en el kayak, en el tren, a caballo o en el sulky');
+  }   // (3.8.3: y no te sienta a caballo ni en el sulky)
   ok(main.includes(': jugador.estado.sentado && jugador.estado.salida ? { x: jugador.estado.salida.x, y: jugador.estado.salida.y, z: jugador.estado.salida.z }'), 'guardar: sentado, la salida');
   ok(fs.existsSync(new URL('./humo-3-6-1-asientos.cjs', import.meta.url)), 'la partida real de todos los asientos');
 }
@@ -340,7 +346,11 @@ const main = leer('src/main.js');
 {
   const A = await import('../src/aldea.js');
   const G = await import('../src/aldea-gente.js');
-  ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && main.includes("est.ocupado = (s) => gente.gente.some((g) => estaSentado(g) && !g.dormido"), 'la silla con un vecino no se ofrece');
+  {
+    // 4.6.1: la cuenta de la silla ocupada, con vecinos de mentira (antes, el principio exacto de la línea)
+    const ocupado = (g) => expresion(main, 'est.ocupado = ', { gente: { gente: [g] }, estaSentado: (x) => !!x.sentado })({ x: 0, y: 1, z: 0 });
+    ok(leer('src/objetos.js').includes('if (est.ocupado?.(s)) continue;') && ocupado({ sentado: true, pos: { x: 0.1, y: 0.55, z: 0 } }) && !ocupado({ sentado: true, dormido: true, pos: { x: 0.1, y: 0.55, z: 0 } }) && !ocupado({ sentado: false, pos: { x: 0, y: 0.55, z: 0 } }) && !ocupado({ sentado: true, pos: { x: 3, y: 0.55, z: 0 } }), 'la silla con un vecino no se ofrece');
+  }
   const M = A.marcoAldea(A.PARADA_ALDEA);
   const P = { dia: 2, horas: 16.5, aldea: A.aldeaNueva(), entradas: {}, materiales: {}, cosas: {} };
   const vec = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });

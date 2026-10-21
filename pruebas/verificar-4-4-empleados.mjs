@@ -12,6 +12,7 @@
 import assert from 'assert/strict';
 import fs from 'fs';
 import { registrarThree } from './ayuda-three.mjs';
+import { enUnaLinea } from './ayuda-codigo.mjs';
 
 registrarThree();
 const N = await import('../src/negocio-propio.js');
@@ -649,7 +650,7 @@ const dar = (progreso, k, pts) => { for (let i = 0; i < 12; i++) V.cambiarAmista
   tiene(m, 'empleadosNegocioJuego = crearEmpleadosNegocioJuego({', 'y lo arma');
   tiene(m, "fallaSistema('empleados-negocio-armado', e); empleadosNegocioJuego = null;", 'aislado en un try: si falla al armarse, el local sigue');
   tiene(m, 'fijarOcupacionExterna(empleadosNegocioJuego.ocupacion);', 'engancha la aldea con una línea');
-  tiene(m, "try { if (modo === 'jugando' && !desafio && !foto.activo) empleadosNegocioJuego?.actualizar(dt); } catch (e) { fallaSistema('empleados-negocio', e); }", 'el bucle lo avanza aislado con fallaSistema (sólo en el Relax)');
+  ok(enUnaLinea(m, ['try {', "modo === 'jugando'", '!desafio', '!foto.activo', 'empleadosNegocioJuego?.actualizar(dt)', "catch (e) { fallaSistema('empleados-negocio', e); }"]), 'el bucle lo avanza aislado con fallaSistema (sólo en el Relax)');
   tiene(m, 'extraPanel: (raiz, est) => { try { empleadosNegocioJuego?.dibujarPanel(raiz, est); } catch (e) { fallaSistema(', 'el panel de los empleados es aparte: si falla, el del local sigue');
   tiene(m, 'if (vecino?.empleadoNegocio) vecino = null;', 'los empleados detrás del mostrador no se charlan (E sigue siendo del local)');
   tiene(m, 'if (vecino?.clienteNegocio) vecino = null;', '… y lo de los clientes quedó como estaba');

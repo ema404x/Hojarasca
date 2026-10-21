@@ -382,7 +382,7 @@ const npcDe = (clave, x = 0, z = 0) => ({ clave, pos: vec(x, 0, z), g: { rotatio
   const pl = leer('src/plantilla.html');
   ok(pl.includes('<ul class="charla-opciones oculto" id="charla-opciones"></ul>') && pl.includes('.charla-opciones li.elegida'), 'la plantilla: la lista de opciones de la charla');
   const ge = leer('src/gente.js');
-  ok(ge.includes('if (g.pose && !andando) posar(g, charlando);   // 3.6 (vida)') && ge.includes("case 'sentado': {   // (todas las de POSES_SENTADAS"), 'gente.js: las poses, sin piezas nuevas');
+  ok(/if \(g\.pose && !andando\) posar\(g, charlando\);/.test(ge) && /case 'sentado': \{/.test(ge), 'gente.js: las poses, sin piezas nuevas');   // (4.6.1: sin los comentarios de la línea)
   ok(!/new THREE\.(Mesh|BoxGeometry|CylinderGeometry|Group)/.test(ge.slice(ge.indexOf('function posar('), ge.indexOf('function posar(') + 2500)), 'posar sólo gira y mueve lo que ya hay');
   const ag = leer('src/aldea-gente.js');
   ok(ag.includes('const destinos = destinosAldea(a, horas(), dia(), lista, M, elegirLibres(lista));') && ag.includes('ctx.alAporteObra?.(lote, r.usados);') && ag.includes('ctx.alServicio?.(k, s.efectos);'), 'aldea-gente.js: el tiempo libre y la memoria');

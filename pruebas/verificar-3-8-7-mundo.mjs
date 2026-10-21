@@ -135,7 +135,12 @@ const funcion = (texto, nombre) => { const i = texto.indexOf(`function ${nombre}
   const dlg = leer('src/dialogo.js');
   ok(dlg.includes('if (b.aceptar) apretarElegido();') && dlg.includes("documento.activeElement === $('dialogo-no') ? cola.rechazar() : cola.aceptar()"), 'A aprieta el botón que tiene el foco');
   const usar = funcion(main, 'usarRanura');
-  ok(/if \(js\.enSulky && \['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'\]\.includes\(r\.accion\)\)/.test(usar), 'arriba del sulky el clic derecho no tala, no planta ni prende fuego');
+  {
+    // 4.6.1: la lista como lista (una acción más no la rompe; sacar una de éstas sí)
+    const l = /if \(js\.enSulky && (\[[^\]]*\])\.includes\(r\.accion\)\)/.exec(usar);
+    const acciones = l ? new Function(`return ${l[1]};`)() : [];
+    ok(['carpa', 'hacha', 'pico', 'aserrar', 'fuego', 'plantar-pehuen', 'plantar-coihue', 'plantar', 'cocinar'].every((a) => acciones.includes(a)), 'arriba del sulky el clic derecho no tala, no planta ni prende fuego');
+  }
   ok(usar.includes("if ((js.enKayak || js.enTren) && (r.accion === 'fuego' || r.accion === 'cocinar')) return;"), 'en el kayak o el tren, ni fuego ni cocinar');
   ok(main.includes('if (!js.enKayak && !js.enTren) encenderFuego();'), 'la F tampoco desde el tren');
   ok(main.includes("&& !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', `Bajate ${caballoDicho('de')} con E`)") && main.includes("&& !(codigo === 'KeyO' && modoObra)) { nota('Con las riendas en la mano, no', 'Bajate del sulky con E')"), 'subido, la O que cierra los planos pasa');

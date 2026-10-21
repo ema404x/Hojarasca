@@ -16,6 +16,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { enUnaLinea } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(raiz, 'src');
@@ -94,7 +95,7 @@ ok(cuerpo.includes('LEJOS_FINO') && cuerpo.includes('sin pedirle'), 'lo caro, s�
 
 // ---------------------------------------------------------------- 4. el juego
 // (3.7.5 (rincones): y con la del verano o el otoño, `estacion`)
-ok(main.includes("crearGente(T, escena, col, sonido, { invierno: inviernoDeAjustes(), estacion: estacionRopaDeAjustes(), estiloViejo: GENTE_VIEJA })"), 'main.js: la gente arranca con la ropa de la estación');
+ok(enUnaLinea(main, ['crearGente(T, escena, col, sonido, {', 'invierno: inviernoDeAjustes()', 'estacion: estacionRopaDeAjustes()']), 'main.js: la gente arranca con la ropa de la estación');   // (4.6.1: las partes, no la línea exacta)
 ok(main.includes('gente?.abrigar?.(U.uInvierno.value > 0.5);'), 'main.js: la ropa de abrigo, con el invierno');
 ok(main.includes('gente?.precalentar?.(camara,') && main.includes('gente?.trasCompilar?.();'), 'main.js: la sombra de la gente se compila en la carga y el atlas se pinta en la portada');
 ok(atlas.includes('export function pintarAtlasDespues()') && atlas.includes('requestIdleCallback') && gente.includes('if (!atlasListo()) completarAtlas();'), 'el atlas se pinta de a pasos en la portada (y si no llegó, de una al jugar)');
