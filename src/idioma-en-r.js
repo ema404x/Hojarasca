@@ -453,5 +453,4 @@ export const EN_R = {
   "+{0} semillas doradas": "+{0} golden seeds",
   "Cómo se ven tus defensas de La noche de los duendes. Es sólo el aspecto: aguantan y lastiman lo mismo.": "How your defenses look in The Night of the Goblins. Looks only: they hold and hurt just the same.",
   "Flamea en el mástil de tu refugio, arriba de cada torre de vigía de La noche de los duendes y en la pantalla de la victoria.": "It flies on the mast of your shelter, on top of every watchtower in The Night of the Goblins and on the victory screen.",
-  "Pesca: la {0} más grande · Carrera: {1}, vuelta normal · Defensa: noches resistidas en La noche de los duendes con el código {2}": "Fishing: the biggest {0} · Race: {1}, normal lap · Defense: nights survived in The Night of the Goblins with code {2}",
 };

@@ -663,7 +663,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
       <button class="accion-principal" id="btn-entrar">Entrar al bosque</button>
       <button class="accion-secundaria oculto" id="btn-nuevo">Empezar un recorrido nuevo</button>
       <button class="accion-secundaria oculto" id="btn-logros-inicio">Logros y récords</button>
-      <button class="accion-secundaria" id="btn-modos-inicio">Carreras, desafío del día y torneo</button>
+      <button class="accion-secundaria" id="btn-modos-inicio">Desafío del día</button>
       <button class="accion-secundaria" id="btn-banco-inicio">Banco de pruebas</button>
       <button class="accion-secundaria" id="btn-personalizar-inicio">Personalizar</button>
       <button class="accion-secundaria" id="btn-teclas-inicio">Teclas y mando</button>
@@ -743,7 +743,6 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   <div class="estado oculto" id="estado"></div>
   <div class="reloj-hud oculto" id="reloj-hud"></div>
   <div class="billetera-hud oculto" id="billetera-hud"></div>
-  <div class="carrera-hud oculto" id="carrera-hud"></div>
   <div class="cabina oculto" id="cabina"></div>
   <div class="escucha oculto" id="escucha" aria-live="polite"></div>
   <div class="recursos" id="recursos"></div>
@@ -879,7 +878,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
         <button id="btn-cuaderno">Abrir el cuaderno<kbd>J</kbd></button>
         <button id="btn-billetera" class="oculto">Billetera y movimientos</button>
         <button id="btn-logros" class="oculto">Logros y récords</button>
-        <button id="btn-modos">Carreras, desafío del día y torneo</button>
+        <button id="btn-modos">Desafío del día</button>
         <button id="btn-mapa">Ver el mapa<kbd>M</kbd></button>
         <button id="btn-foto">Sacar una foto<kbd>P</kbd></button>
         <button id="btn-personalizar">Personalizar<kbd>F5</kbd></button>
@@ -1174,10 +1173,10 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
   </div>
 </section>
 
-<!-- 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js) -->
+<!-- 3.1: el desafío del día (ver modos-juego.js; 4.5.1: sin carreras contrarreloj ni torneo de la semana) -->
 <section id="modos31" class="velo oculto">
   <div class="panel-modal">
-    <h2>Carreras, desafío del día y torneo</h2>
+    <h2>Desafío del día</h2>
     <div id="modos31-contenido"></div>
     <div class="acciones-modal"><button id="cerrar-modos31">Volver</button></div>
   </div>

@@ -263,7 +263,7 @@ import { genomaDesdePersonajeViejo } from './creador-personaje.js';
 // 4.1 (F3): lo que los rasgos de Bruno cambian en el juego (abrigo, afecto, pesca, cuaderno); sólo en el Relax y con Bruno creado
 import { abrigoExtra, modificadorDeAmistad, factorPiqueBruno, factorCuadernoBruno } from './creador-efectos.js';
 import { crearBanderaMundo, texturaBandera, pintarBanderaEn } from './personal-bandera-mundo.js';
-// 3.1: carreras contrarreloj, desafío del día y torneo de la semana (ver modos-juego.js)
+// 3.1: el desafío del día (ver modos-juego.js; 4.5.1: se sacaron las carreras contrarreloj y el torneo de la semana)
 import { crearModos, CSS_MODOS } from './modos-juego.js';
 // 3.5.1: las preguntas del juego (Electron no tiene prompt y confirm traba la ventana)
 import { crearDialogos } from './dialogo.js';
@@ -501,7 +501,7 @@ let modo = 'carga';
 let trucosJuego = null;   // 4.5: la consola de códigos (se arma abajo, con las preguntas del juego)
 let T, veg, est, objetos, fauna, clima, jugador, huellas, cielo, constelaciones, fugaces, pasto, mapa, col, vida, bichos, gente, perro, tren, pesca, kayak, fotos, linterna;
 let vela = null, tirolesas = null;   // 2.9: ver vela.js y tirolesa.js
-let modos = null;   // 3.1: carreras, desafío del día y torneo (ver modos-juego.js)
+let modos = null;   // 3.1: el desafío del día (ver modos-juego.js)
 // 3.6.1: alrededor de la aldea (desde el borde de sus calles y edificios) no se construye
 const MARGEN_SIN_OBRAS = 6, AVISO_SIN_OBRAS = 'En la Aldea de los Duendes no: los lotes son para los que llegan';
 let aldeaMundo = null;   // 3.6: la Aldea de los Duendes en el mundo (ver aldea-mundo.js; sólo en el Relax)
@@ -861,9 +861,9 @@ async function construir() {
   vela.cargar(progreso.vela);
   kayak.sumarBote(vela);
   tirolesas = crearTirolesas(T, escena, col, veg, sonido, { obras: () => obras, nota: (t, sub) => nota(t, sub) });
-  // 3.1: carreras contrarreloj, desafío del día y torneo de la semana
+  // 3.1: el desafío del día (4.5.1: sin carreras ni torneo)
   { const estilo = document.createElement('style'); estilo.textContent = CSS_MODOS; document.head.appendChild(estilo); }
-  modos = crearModos({ T, escena, jugador, esDesafio, progreso: () => progreso, guardar: () => guardar(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, api: syncApi, traducir: traducirPanel });
+  modos = crearModos({ esDesafio, progreso: () => progreso, guardar: () => guardar(), nota: (t, sub, nueva) => nota(t, sub, nueva), sonido, traducir: traducirPanel });
   // 3.1: rangos y oficios (en los dos modos). 3.6: y la gente de la aldea (sólo en el Relax)
   armarOficiosYAldea(esDesafio);
   aldeaMundo?.arrancar();   // 3.6: los edificios se arman en un Worker mientras termina la carga
@@ -1223,7 +1223,7 @@ function atrapar(pez) {
   diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm, quedo: !desafio && teLaQuedas(pez.id, obrasTerminadas('ahumadero').length > 0, truchasDeHoy) });
   vecindadJuego?.delPez(pez);   // 3.6 (vida): la trucha grande o el pez nativo, para los vecinos
   concursosJuego?.delPez(pez);   // 3.7.5 (noticias): la más grande de hoy y ayer va al concurso de la trucha
-  modos?.pez?.(pez);   // 3.1: el desafío del día y el torneo de la semana
+  modos?.pez?.(pez);   // 3.1: el desafío del día
   const nombre = pez.def.nombre.charAt(0).toUpperCase() + pez.def.nombre.slice(1);
   // 2.3: con un ahumadero terminado, dos truchas por día van a la mochila
   const hoy = progreso.truchasHoy?.dia === progreso.dia ? progreso.truchasHoy.n : 0;
@@ -1654,7 +1654,6 @@ function dibujarMapa() {
   }
   if (puestoFeria && !desafio && esDiaDeFeria(progreso.dia)) marcas.push({ x: puestoFeria.x, z: puestoFeria.z, tipo: 'parada', nombre: 'Feria de la estación' });
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
-  for (const m of modos?.marcasMapa?.() || []) marcas.push(m);   // 3.1: los postes de largada
   if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); const c = aldeaMundo.lugarCantina(); marcas.push({ x: c.x, z: c.z, tipo: 'parada', nombre: c.nombre }); }   // 3.8.9: el banco, rotulado (3.9.0: y la cantina) (antes nada decía dónde estaba)
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
@@ -1976,7 +1975,7 @@ function crearValle() {
     reanudar: () => volverAlJuego(),
     // 3.8.7: ni con un panel del HUD abierto (la cocina, el taller del tren, las fiestas): la tarjeta salía encima y al
     // cerrarla volvía al juego pidiendo el mouse con el panel todavía abierto
-    libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !modos?.corriendo?.() && !$('fundido')?.classList.contains('activo'),   // 3.1: ni en plena carrera
+    libre: () => !charla.npc && !panelDelHudAbierto() && !modoObra && !foto.activo && !personalAbierto() && !banco.activa && !jugador?.estado.enCable && !pesca?.est?.recogiendo && !$('fundido')?.classList.contains('activo'),
     enVehiculo: () => { const js = jugador.estado; return !!(js.enTren || js.enKayak || js.enVela || js.montado); },
     extra: () => { const js = jugador?.estado || {}; return { fuego: !!clima?.fogata?.activa, conduciendo: !!(js.enTren && tren?.conduciendo()), enVela: !!js.enVela, terminadas: mueblesTerminados(), vecinos: vecinosActivos(progreso) }; },
     refrescarBarra: () => refrescarBarra(true), cobrar: (premio) => cobrarPremio({ premio }),
@@ -2362,7 +2361,7 @@ function cerrarLogros() {
 }
 $('btn-logros-inicio').addEventListener('click', () => abrirLogros('inicio'));
 $('btn-logros').addEventListener('click', () => abrirLogros('pausa'));
-// 3.1: carreras, desafío del día y torneo de la semana (portada y pausa)
+// 3.1: el desafío del día (portada y pausa)
 $('btn-modos-inicio').addEventListener('click', () => modos?.abrirPanel('inicio'));
 $('btn-modos').addEventListener('click', () => modos?.abrirPanel('pausa'));
 $('cerrar-modos31').addEventListener('click', () => modos?.cerrarPanel());
@@ -3119,7 +3118,7 @@ document.addEventListener('keydown', (e) => {
   // 3.5.1: como F3 y F5: si el jugador le dio F2 a una acción, F2 es de esa acción (antes no llegaba nunca)
   // 3.8.3: sólo desde el juego (jugando, la pausa, el cuaderno o el mapa). En la portada, la pantalla de victoria o la
   // tarjeta del valle, F2 prendía el modo foto con ese panel encima y, al salir, el juego corría detrás de la portada (lo
-  // mismo con los logros o las carreras abiertos desde la pausa: el modo foto no los cierra)
+  // mismo con los logros o el desafío del día abiertos desde la pausa: el modo foto no los cierra)
   const fotoPosible = foto.activo || ((modo === 'jugando' || modo === 'pausa' || modo === 'cuaderno' || modo === 'mapa') && $('logros').classList.contains('oculto') && !modos?.panelAbierto());
   if (e.code === 'F2' && jugador && fotoPosible && (!accionDeTecla(teclasPropias, 'F2') || foto.activo)) { e.preventDefault(); abrirModoFoto(!foto.activo); return; }
   if (foto.activo && codigo === 'Escape') { abrirModoFoto(false); return; }
@@ -3213,8 +3212,6 @@ document.addEventListener('keydown', (e) => {
       if (!js.enTren && !js.enKayak && !js.montado && empleoJuego) { const a = empleoJuego.accion(js); if (a && (a.tipo !== 'info' || !objetivo || objetivo.tipo === 'sentarse')) { a.hacer(); cacheEmpleo = null; break; } }
       // 3.6 (vida): al lado de tu lugar en la mesa de la invitación, E te sienta (el aviso, en el mismo lugar)
       if (!js.enTren && !js.montado && vecindadJuego?.puedeSentarse(js.pos)) { sentarseALaCita(); break; }
-      // 3.1: en el poste de una carrera, E larga (también montado, en el kayak o en el velero; el aviso va en el mismo lugar)
-      if (!objetivo) { const c = modos?.accion(jugador.estado); if (c) { c.hacer(); break; } }
       // 3.7.5 (rincones): los duendes, el sulky, el potrero, las huertas, el retablo, el atril, el fuerte, el campamento, tu casa y
       // el taller (el aviso, en el mismo lugar y con la misma función: rinconesJuego.accion)
       if (!js.enTren && !js.enKayak && !js.montado && !objetivo && rinconesJuego) { const a = rinconesJuego.accion(js); if (a) { a.hacer(); cacheRincones = null; if (js.enSulky && modoObra) abrirObra(false); break; } }   // (3.8.7: subiendo al sulky se cierran los planos)
@@ -10062,7 +10059,7 @@ function cuadroDelJuego(tRaf, manual) {
   try { if (modo === 'jugando' && !desafio && !foto.activo) revisarCorreo(); } catch (e) { fallaSistema('correo', e); }   // 4.0.3: ni el correo con la hora del deslizador
   try { if (modo === 'jugando' && !foto.activo) revisarTormenta(dt); } catch (e) { fallaSistema('tormenta', e); }   // 3.5.1: ni la tormenta en el modo foto
   try { if (modo === 'jugando') actualizarCaballo(dt); } catch (e) { fallaSistema('caballo', e); }
-  try { if (modo === 'jugando') modos?.actualizar(dt); } catch (e) { fallaSistema('modos', e); }   // 3.1: la carrera en curso, el desafío del día y el torneo
+  try { if (modo === 'jugando') modos?.actualizar(dt); } catch (e) { fallaSistema('modos', e); }   // 3.1: el desafío del día
   try { if (modo === 'jugando') actualizarFeria(); } catch (e) { fallaSistema('feria', e); }
   try { if (modo === 'jugando') revisarLogrosRelax(dt); } catch (e) { fallaSistema('logros', e); }
   if (modo === 'jugando' && progreso.dia !== diaRebrote) revisarRebrote();
@@ -10396,11 +10393,8 @@ function cuadroDelJuego(tRaf, manual) {
     if (vecino && aviso && !desafio && !charla.npc && !amorJuego?.textoAviso(vecino) && vecindadJuego?.invitado(vecino) !== 'esperando' && socialJuego?.quiereDecir(vecino)) aviso = { tecla: 'E', texto: `${vecino.nombre} te quiere decir algo` };
     // 4.3: el empleo fijo, después de hablar y antes que el mostrador y los objetos de adentro, como en la tecla E
     if (cacheEmpleo && !charla.npc && !vecino && !js.enTren && !js.enKayak && !js.montado && (cacheEmpleo.tipo !== 'info' || !objetivo || objetivo.tipo === 'sentarse')) aviso = { tecla: 'E', texto: cacheEmpleo.texto };
-    // 3.1: el poste de una carrera, en el mismo lugar que en la tecla E (después de hablar, antes que todo lo demás)
-    const avisoCarrera = !charla.npc && !vecino && !objetivo ? modos?.accion(js) : null;
-    if (!aviso && avisoCarrera) aviso = { tecla: 'E', texto: avisoCarrera.texto };
     // 3.7.5 (rincones): bajar del sulky y patear en el picado, antes que hablar (como en la tecla E); lo demás de los rincones,
-    // después de la carrera
+    // más abajo
     { const u = !charla.npc && rinconesJuego ? rinconesJuego.urgente(js) : null; if (u) aviso = { tecla: 'E', texto: u.texto }; }
     if (!aviso && cacheRincones && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheRincones.texto };
     if (!aviso && cacheHuevos && !js.enTren && !js.enKayak && !js.montado && !objetivo && !charla.npc) aviso = { tecla: 'E', texto: cacheHuevos.texto };   // 4.2 (huevos de pascua)
@@ -10519,7 +10513,7 @@ function cuadroDelJuego(tRaf, manual) {
     if (modoObra && aviso && ['H', 'T', 'Y', 'B', 'G'].includes(aviso.tecla)) aviso = null;
     // Arriba del caballo, E sólo baja (o habla con un vecino): el aviso dice lo mismo.
     // (3.8.3: con ella esperándote para la cita o el casamiento, eso: la E, por hablar(), lo empieza también a caballo)
-    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : avisoCarrera ? { tecla: 'E', texto: avisoCarrera.texto } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : puenteDelCaballo() ? { tecla: 'E', texto: `${caballoDicho('', true)} no cruza el puente: bajarte` } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };   // (3.8.4: el puente colgante)
+    if (js.montado && !charla.npc) aviso = vecino ? { tecla: 'E', texto: (!desafio && amorJuego?.textoAviso(vecino)) || `Hablar con ${vecino.nombre}` } : jaulaCerca() ? { tecla: 'E', texto: 'Subir el caballo a la jaula del tren' } : puenteDelCaballo() ? { tecla: 'E', texto: `${caballoDicho('', true)} no cruza el puente: bajarte` } : { tecla: 'E', texto: `Bajarte ${caballoDicho('de')}` };   // (3.8.4: el puente colgante)
     // 2.6.1: charlando, E sólo sigue la charla: el caballo, la puerta o el kayak no se ofrecen
     if (charla.npc) aviso = null;
     // 2.9: colgado de la tirolesa, E no hace nada: el aviso tampoco
@@ -11051,7 +11045,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   // 3.5.1: las caídas (preguntas, contexto 3D, sistemas que fallan), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__preguntaLento = preguntaLento;   // 3.8.4
   if (HOJARASCA_DEBUG) window.__hojarasca.__caidas = { dialogos, graficos: estadoGraficos, fallas: () => [...fallasBucle.values()], fallaSistema, rehacerGraficos, pedirNombre, recuperadoDe, modo: () => modo };
-  // 3.1: las carreras, el desafío del día y el torneo, para las pruebas
+  // 3.1: el desafío del día, para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;
   if (HOJARASCA_DEBUG) window.__hojarasca.__trucos = () => trucosJuego;   // 4.5: la consola de códigos (QA)
   if (HOJARASCA_DEBUG) window.__hojarasca.__sinFin = { es: esSinFin, terminar: () => terminarCorrida(), records: () => recordsSinFin(), nueva: (c) => nuevaCorrida(c), empezarMapa: () => empezarMapaDesafio() };

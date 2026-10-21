@@ -84,7 +84,7 @@
 :root[data-menu] .velo { background: var(--velo, rgba(10,14,11,.55)); backdrop-filter: var(--velo-desenfoque, blur(2px)); }
 
 /* los modales: título, bajada, contenido que se desplaza adentro y los botones siempre a la vista. Medio por defecto;
-   ancho para las listas largas (guía, logros, carreras, controles, teclas); angosto para lo corto */
+   ancho para las listas largas (guía, logros, desafío del día, controles, teclas); angosto para lo corto */
 :root[data-menu] .panel-modal { width: min(var(--ancho-medio), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); max-width: none;
   max-height: calc((100vh - 2 * var(--margen-pantalla)) / var(--zoom)); display: flex; flex-direction: column; overflow: hidden; }
 :root[data-menu] :is(#guia, #logros, #modos31, #controles-completos, #teclas) .panel-modal { width: min(var(--ancho-ancho), calc((100vw - 2 * var(--margen-pantalla)) / var(--zoom))); }

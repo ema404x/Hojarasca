@@ -21,8 +21,7 @@ import { sanearPersonal } from './personal-todo.js';
 import { sanearComercio, comercioNuevo } from './comercio.js';
 // 2.9: dónde quedó el velero
 import { sanearVela } from './vela-reglas.js';
-// 3.1: los récords de las carreras y el desafío del día (ver carreras.js y diarios.js)
-import { sanearCarreras } from './carreras.js';
+// 3.1: el desafío del día (ver diarios.js). 4.5.1: los récords de las carreras ya no (se sacaron las carreras)
 import { sanearDiarios } from './diarios.js';
 import { sanearDiarioHoy } from './diario.js';
 import { sanearAmarre } from './kayak-amarre.js';
@@ -523,7 +522,8 @@ function sanearProgreso(p) {
   p = migrarCanteros(p);
   const base = progresoNuevo();
   // 3.6: el pueblo de la 3.1 no pasa: se convierte en la aldea (ver `aldea` más abajo)
-  const { pueblo: _pueblo31, ...resto } = p;
+  // 4.5.1: tampoco los récords de las carreras contrarreloj (se sacaron): una partida vieja los trae y se descartan
+  const { pueblo: _pueblo31, carreras: _carreras31, ...resto } = p;
   const limpio = {
     ...base,
     ...resto,
@@ -588,8 +588,7 @@ function sanearProgreso(p) {
     comercio: sanearComercio(p.comercio),
     // 2.9: dónde quedó el velero (null: sin varadero todavía, o una partida vieja)
     vela: sanearVela(p.vela),
-    // 3.1: una partida vieja no los tiene: sin récords, sin racha
-    carreras: sanearCarreras(p.carreras),
+    // 3.1: una partida vieja no lo tiene: sin racha
     diarios: sanearDiarios(p.diarios),
     // 3.1: la historia y los eventos del valle; una partida vieja no los trae y el juego
     // los arma la primera vez que hacen falta

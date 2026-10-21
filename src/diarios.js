@@ -1,13 +1,14 @@
 // 3.1: el desafío del día. Cada día de verdad (la fecha de la compu) hay un desafío, el
 // mismo para todos los que jueguen ese día: sale de la fecha, como el código de la semana
-// del Desafío sale de la semana (ver semilla.js). Pescar tantas truchas, correr un circuito
-// al revés, terminar una obra antes de que caiga el sol, llevar un flete en la trochita.
+// del Desafío sale de la semana (ver semilla.js). Pescar tantas truchas, terminar una obra
+// antes de que caiga el sol, llevar un flete en la trochita.
 // Cumplirlo da puntos y suma a la racha: días seguidos con el desafío hecho.
 //
 // Se juega en el Relax. Lo cumplido va en la partida (y viaja con la carpeta sincronizada).
 // Puro, sin three ni DOM.
+// 4.5.1: sin las carreras contrarreloj, el desafío del día ya no pide correr un circuito (el sorteo
+// de cada fecha cambia: sale de tres tipos en vez de cuatro).
 import { hashTexto, generador } from './semilla.js';
-import { circuitoDe, refDe, puntosCarrera, formatoTiempo, GIROS } from './carreras.js';
 
 const dos = (n) => String(n).padStart(2, '0');
 const DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -30,15 +31,13 @@ export function diaAnterior(s) {
 }
 
 // Lo que se puede pedir. Las obras son piezas que no piden nada desbloqueado (ver
-// construccion.js); los circuitos, los que cualquiera puede correr (a pie o en el kayak
-// del muelle: el zaino y el velero hay que ganárselos).
+// construccion.js).
 export const OBRAS_DEL_DIA = [
   ['banco', 'un banco de tronco'], ['fogon', 'un fogón de piedra'], ['tendal', 'un tendal'],
   ['lena', 'una pila de leña'], ['mesa-campo', 'una mesa de campo'], ['silla-campo', 'una silla de campo'], ['cerco', 'un tramo de cerco'],
 ];
-export const CIRCUITOS_DEL_DIA = ['mirador', 'faro', 'lago'];
 export const PECES_DEL_DIA = [['', 'peces'], ['arcoiris', 'truchas arcoíris'], ['perca', 'percas criollas'], ['pejerrey', 'pejerreyes']];
-export const TIPOS_DIARIO = ['pesca', 'carrera', 'obra', 'tren'];
+export const TIPOS_DIARIO = ['pesca', 'obra', 'tren'];
 export const PUESTA_DEL_SOL = 19.5;
 
 // El desafío de una fecha: siempre el mismo para la misma fecha.
@@ -57,16 +56,6 @@ export function desafioDelDia(fecha) {
     d.titulo = `Pescá ${d.n} ${nombre}${d.cmMin ? ` de ${d.cmMin} cm o más` : ''}`;
     d.texto = 'Con la caña (Q), en el lago o en el arroyo. Cuentan las que saques hoy.';
     d.puntos = 100 + d.n * 25 + (d.cmMin ? 60 : 0);
-  } else if (tipo === 'carrera') {
-    const c = circuitoDe(CIRCUITOS_DEL_DIA[Math.floor(r() * CIRCUITOS_DEL_DIA.length)]);
-    const giros = ['invertido', 'doble', 'meta'];
-    d.circuito = c.id; d.giro = giros[Math.floor(r() * giros.length)];
-    // 'meta': la vuelta normal, pero por debajo de un tiempo
-    d.limiteMs = d.giro === 'meta' ? Math.round(c.ref * 1000 * (0.9 + Math.floor(r() * 3) * 0.05)) : 0;
-    const como = d.giro === 'meta' ? `en menos de ${formatoTiempo(d.limiteMs)}` : GIROS[d.giro].nombre;
-    d.titulo = `Corré ${c.nombre.toLowerCase()} ${como}`;
-    d.texto = `${c.medio === 'kayak' ? 'En kayak, desde la boya del muelle' : 'A pie'}: E en el poste de largada.`;
-    d.puntos = 150;
   } else if (tipo === 'obra') {
     const [plano, nombre] = OBRAS_DEL_DIA[Math.floor(r() * OBRAS_DEL_DIA.length)];
     d.plano = plano; d.titulo = `Terminá ${nombre} antes de que caiga el sol`;
@@ -127,8 +116,7 @@ function cumplir(d, def, puntos) {
   return true;
 }
 // Algo pasó en el juego: ¿avanza el desafío de hoy? Eventos:
-//   { tipo: 'pez', id, cm } · { tipo: 'carrera', circuito, giro, ms } ·
-//   { tipo: 'obra', plano, horas } · { tipo: 'entregas', valor } (el contador de fletes entregados)
+//   { tipo: 'pez', id, cm } · { tipo: 'obra', plano, horas } · { tipo: 'entregas', valor } (el contador de fletes entregados)
 // Devuelve { cumplido: true } la vez que se cumple, si no null.
 export function avanzarDiario(d, def, ev) {
   if (!d || !def || !ev) return null;
@@ -140,16 +128,6 @@ export function avanzarDiario(d, def, ev) {
     h.avance = Math.min(def.n, h.avance + 1);
     if (h.avance >= def.n) return cumplir(d, def, def.puntos) ? { cumplido: true, puntos: def.puntos } : null;
     return { avance: h.avance };
-  }
-  if (def.tipo === 'carrera' && ev.tipo === 'carrera') {
-    if (ev.circuito !== def.circuito) return null;
-    const giro = def.giro === 'meta' ? null : def.giro;
-    if ((ev.giro || null) !== giro) return null;
-    const ms = Number(ev.ms) || 0;
-    if (def.giro === 'meta' && !(ms > 0 && ms <= def.limiteMs)) return { avance: 0, lento: true };
-    const puntos = def.puntos + Math.round(puntosCarrera(ms, refDe(def.circuito, giro)) / 4);
-    h.avance = 1;
-    return cumplir(d, def, puntos) ? { cumplido: true, puntos } : null;
   }
   if (def.tipo === 'obra' && ev.tipo === 'obra') {
     if (ev.plano !== def.plano) return null;
