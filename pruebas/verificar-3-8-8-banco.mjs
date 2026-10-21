@@ -87,7 +87,7 @@ const ID = 'banco-pueblo';
 {
   const g = A.VECINOS_ALDEA.gerente;
   ok(g && g.nombre === 'Amadeo Lezcano' && g.casa === ID && g.trabajo === ID && /gerente/.test(g.oficio) && g.charla.length >= 3, 'Amadeo, el gerente: vive y trabaja en el banco');
-  ok(A.ORDEN_VECINOS_ALDEA.includes('gerente') && A.esVecinoAldea('gerente') && A.esPersonaAldea('gerente') && A.ORDEN_PERSONAS_ALDEA.at(-3) === 'gerente', 'entre los vecinos, al final del orden');
+  ok(A.ORDEN_VECINOS_ALDEA.includes('gerente') && A.esVecinoAldea('gerente') && A.esPersonaAldea('gerente') && A.ORDEN_PERSONAS_ALDEA.indexOf('gerente') > A.ORDEN_PERSONAS_ALDEA.indexOf('martin') && A.ORDEN_PERSONAS_ALDEA.indexOf('martin') > 0, 'entre los vecinos, al final del orden');   // (4.6.1: después de los de antes; los que lleguen después no lo corren)
   ok(A.cumpleDe('gerente') >= 1 && A.cumpleDe('gerente') <= 12, 'su cumpleaños');
   const estado = A.aldeaNueva();
   const r = (h, ds) => A.rutinaAldea('gerente', h, ds, estado, 5);
@@ -114,13 +114,14 @@ const ID = 'banco-pueblo';
     ok(sinHora.length === 0, `de lunes a viernes y el sábado sin baile atiende justo de 8:30 a 12:30 y de 14:30 a 18 (fallan ${sinHora.slice(0, 4).join(', ')})`);
     ok(conHora.length === 0, `el sábado con el salón abierto atiende de 8:30 a 12:30 y de 14:30 a 16 (fallan ${conHora.slice(0, 4).join(', ')})`);
     ok(A.desfaseDe('gerente') === 0 && ['jefe', 'ercilia', 'martin', 'panadera'].every((k) => A.desfaseDe(k) !== 0), 'los demás vecinos siguen con su corrimiento (sólo el gerente va con el reloj del banco)');
-    ok(fsLeer('src/aldea.js').includes("if (persona === 'gerente' || persona === 'moza' || persona === 'bailarina') return 0;"), 'aldea.js: el gerente va sin corrimiento (desfaseDe, que usan la rutina, la vecindad y la gente)');
+    // (4.6.1: lo que devuelve desfaseDe, no la línea: la moza y la bailarina se sumaron a esa línea después)
+    ok(A.desfaseDe('gerente') === 0 && /export function desfaseDe\(/.test(fsLeer('src/aldea.js')) && ['src/vecindad.js', 'src/aldea-gente.js'].every((x) => /desfaseDe\(/.test(fsLeer(x))), 'aldea.js: el gerente va sin corrimiento (desfaseDe, que usan la rutina, la vecindad y la gente)');
   }
   eq([r(3, 1).lugar, r(3, 1).edificio, r(3, 1).punto], ['casa', ID, 'cama'], 'de noche duerme en su cama del banco');
   // el sueldo del jefe del banco: charla con el mostrador cuando hay economía (aldea-gente.js ofrece abrirlo)
   const gente = fsLeer('src/aldea-gente.js');
   ok(gente.includes("k === 'gerente'") && gente.includes('ctx.abrirBanco'), 'aldea-gente.js lo atiende con el mostrador');
-  ok(/abrirBanco: \(\) => \{ bancoDelPueblo\(\)\.abrir\(\);/.test(fsLeer('src/main.js')), 'main.js abre el mostrador');
+  ok(/abrirBanco: \(\) => \{[^\n]*bancoDelPueblo\(\)\.abrir\(\);/.test(fsLeer('src/main.js')), 'main.js abre el mostrador');   // (4.6.1: lo que venga antes en la línea no la rompe)
 }
 function fsLeer(f) { return fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'); }
 

@@ -453,7 +453,24 @@ const c = (n, palo) => ({ n, palo });
   ok(v?.tipo === 'no-pudo' && v.texto === 'Sofía no pudo ir a la cita' && pc.amor.personas[cand].afecto === af && !pc.amor.personas[cand].motivo, 'ella ocupada: se cae sin «plantada»');
   const pc2 = { dia: 8, horas: 21, amor: AM.sanearAmor({ personas: { [cand]: { etapa: 'saliendo', afecto: 40, contacto: 8 } }, cita: { clave: cand, lugar: 'mirador', dia: 8, desde: 18, hasta: 19.5, ocupada: true, espero: true } }, 8) };
   ok(AM.vencerCita(pc2)?.tipo === 'plantada', 'si llegó a esperarte, sí te plantaste vos');
-  ok(leer('src/amor-juego.js').includes('      else if (n?.enCita) cita.ocupada = true;\n'), 'el juego anota que estaba ocupada');   // (3.8.6: salvo que esté con vos; 3.8.7: en varias líneas)
+  {
+    // 4.6.1: lo que hace el juego del amor con ella ocupada en otra invitación (antes, la línea exacta de amor-juego.js,
+    // que cambió en la 3.8.6 y en la 3.8.7 sin que cambiara esto)   (3.8.6: salvo que esté con vos)
+    const { crearAmorJuego } = await import('../src/amor-juego.js');
+    const armarCita = (npc) => {
+      const a = AL.aldeaNueva(); a.pobladores = AL.ORDEN_POBLADORES_ALDEA.map((clave) => ({ clave, dia: 1 })); a.locales = Object.fromEntries(AL.LOTES_ALDEA.map((l) => [l, 1]));
+      const q = { dia: 30, horas: 15, entradas: {}, materiales: {}, cosas: {}, aldea: AL.sanearAldea(a), vecindad: {}, amor: AM.amorNuevo() };
+      q.amor.personas.fotografa = { etapa: 'saliendo', afecto: 40, desde: 20, contacto: 29, charla: 0, piropo: 0, flores: 0, carta: 0, leyo: null, citas: 1, ultimaCita: 0, enojo: 0, motivo: null, rechazo: 0, reconquista: 0, chicos: 0 };
+      q.amor.cita = { clave: 'fotografa', lugar: 'plaza', dia: 30, desde: 15, hasta: 16.5, estado: 'acordada' };
+      q.amor.dia = 30;
+      const aj = crearAmorJuego({ progreso: () => q, ajustes: () => ({ romance: true }), npcDe: () => npc, tomandoAlgo: () => null, jugador: () => ({ x: 0, z: 0 }), nota: () => {}, guardar: () => {} });
+      aj.actualizar(1);
+      return q.amor.cita;
+    };
+    const pos = { x: 0, z: 0, y: 0, set() {} };
+    ok(armarCita({ clave: 'fotografa', claveAldea: 'fotografa', enCita: true, pos }).ocupada === true, 'el juego anota que estaba ocupada');
+    ok(!armarCita({ clave: 'fotografa', claveAldea: 'fotografa', enCita: true, conVos: true, pos }).ocupada, 'salvo que esté con vos');
+  }
   // el nido de hongos a medio quemar
   eq(IN.sanearCapullos([{ x: 1, z: 2, golpes: 1, quema: 1.2 }, { x: 3, z: 4, quema: 99 }, { x: 5, z: 6 }]), [{ x: 1, z: 2, golpes: 1, quema: 1.2 }, { x: 3, z: 4, golpes: 0, quema: IN.CAPULLOS.quemar }, { x: 5, z: 6, golpes: 0 }], 'el que se quemaba sigue quemándose al cargar');
   ok(leer('src/desafio.js').includes('const quemandoCapullo = { has: (c) => c?.quema > 0,'), 'la quema va en el nido mismo');

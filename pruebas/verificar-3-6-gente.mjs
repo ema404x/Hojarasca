@@ -196,7 +196,7 @@ function mundo(p) {
   m.tick(2);
   const est = m.ag.estado();
   ok(est.npcs.every((x) => Math.hypot(x.x - x.destino.x, x.z - x.destino.z) < 1e-6 && !x.caminando), 'de noche, cada uno en su cama');
-  ok(m.figuras.filter((f) => f.soloCerca === G.VER_ADENTRO).length === 12, 'adentro, se los ve sólo de cerca');   // (3.7.3: nueve, con Martín; 3.8.8: diez, con el gerente)
+  ok(m.figuras.length === A.ORDEN_VECINOS_ALDEA.length && m.figuras.every((f) => f.soloCerca === G.VER_ADENTRO), 'adentro, se los ve sólo de cerca');   // (4.6.1: todos, sin contar cuántos son: cada vecino nuevo cambiaba el número)   // (3.7.3: nueve, con Martín; 3.8.8: diez, con el gerente)
   ok(Math.hypot(m.ercilia.pos.x - A.puntosMundo('casa-ercilia').cama.x, m.ercilia.pos.z - A.puntosMundo('casa-ercilia').cama.z) < 1e-6, 'Ercilia duerme en su casa de la aldea');
   // llegás a la plaza: despiertan, se anota el lugar
   p.horas = 10;

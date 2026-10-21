@@ -18,6 +18,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { que } from './ayuda-interacciones.mjs';
+import { expresion } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(raiz, 'src');
@@ -92,7 +93,18 @@ const tramo = (texto, desde, hasta) => { const i = texto.indexOf(desde); assert.
   ok(main.includes("d.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); elegirRanura(i); });") && desafio.includes("li.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); fabricar(i); });"), 'la barra y el taller ya usaban mousedown');
   ok(!/addEventListener\('click', \(\) => (cambiar|cambiarFeria|elegir)\(i\)\)/.test(main + comercio), 'ya no queda ninguna lista con click');
   // con el mouse bloqueado (sin flecha), el clic con un panel abierto no tira la línea ni ataca
-  ok(main.includes('const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();'), 'qué paneles cuentan');   // (4.3: y el de tu local; 3.7.2: y el panel de recetas de la cocina; 3.7.3: y el del taller; 3.7.5: y el de las fiestas)
+  {
+    // 4.6.1: qué hace la cuenta (con un mundo de mentira), no cómo está escrita: cada panel solo la prende; ninguno, no
+    // (4.3: y el de tu local; 3.7.2: y el panel de recetas de la cocina; 3.7.3: y el del taller; 3.7.5: y el de las fiestas)
+    const panel = (abierto) => ({ panelAbierto: () => abierto });
+    const mundo = (cambio = {}) => ({ enElAlmacen: false, enLaFeria: false, enLasCargas: () => false, enElBanco: () => false, mochilaAbierta: false, desafio: null, cocinaJuego: panel(false), tallerTren: panel(false), negocioJuego: panel(false), fiestasJuego: panel(false), cantinaJuego: panel(false), teJuego: panel(false), ...cambio });
+    const abierto = (cambio) => expresion(main, 'const panelDelHudAbierto = ', mundo(cambio))();
+    ok(abierto() === false, 'qué paneles cuentan: ninguno abierto, no');
+    const cada = [{ enElAlmacen: true }, { enLaFeria: true }, { enLasCargas: () => true }, { enElBanco: () => true }, { mochilaAbierta: true }, { desafio: { tallerAbierto: true } }];
+    for (const k of ['cocinaJuego', 'tallerTren', 'negocioJuego', 'fiestasJuego', 'cantinaJuego', 'teJuego']) cada.push({ [k]: panel(true) });
+    ok(cada.every((c) => abierto(c) === true), 'qué paneles cuentan');
+    ok(abierto({ cocinaJuego: null, tallerTren: null, negocioJuego: null, fiestasJuego: null, cantinaJuego: null, teJuego: null }) === false, 'sin esos sistemas (el Desafío), no se cae');
+  }
   const pesca = tramo(main, "document.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || modo !== 'jugando' || !jugador", 'pesca.clic(true, mundoPesca());');
   ok(pesca.includes('if (panelDelHudAbierto()) return;   // 3.6.2'), 'la línea de pesca');
   const arma = tramo(main, "window.addEventListener('mousedown', (e) => {\n  if (e.button !== 0 || !desafio", 'desafio.atacar(id);');
@@ -197,7 +209,17 @@ globalThis.__R = (() => {
 {
   const mm = leer('src/aldea-mecanicas-mundo.js');
   ok(mm.includes('const sinApuro = () => musica.activa || (!!ctx.gente?.()?.oyendoCuento?.() && cerca);'), 'lo frenan la música del baile y los cuentos del domingo');
-  ok(main.includes("const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !teJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;"), 'y tu propia charla');   // (3.8.6: y la mesita y el fogón de la fiesta, y el fundido de dormir)
+  {
+    // 4.6.1: la cuenta del reloj sentado, con un mundo de mentira (antes, la línea exacta: cada sistema nuevo la rompía)
+    // (3.8.6: y la mesita y el fogón de la fiesta, y el fundido de dormir)
+    const sin = { sinApuro: () => false };
+    const escala = (cambio = {}) => expresion(main, 'const escala = ', { js: { sentado: true }, durmiendo: false, desafio: null, charla: { npc: null }, mecanicasAldea: sin, fiestasJuego: sin, cantinaJuego: sin, teJuego: sin, penaJuego: sin, ...cambio }, '? 40 : 1');
+    ok(escala() === 40 && escala({ js: { sentado: false } }) === 1, 'sentado, el reloj corre ×40');
+    ok(escala({ charla: { npc: {} } }) === 1, 'y tu propia charla');
+    ok(escala({ durmiendo: true }) === 1 && escala({ desafio: { hayAtaque: () => true } }) === 1, 'ni durmiendo ni con un ataque');
+    const apuro = { sinApuro: () => true };
+    ok(['mecanicasAldea', 'fiestasJuego', 'cantinaJuego', 'teJuego', 'penaJuego'].every((k) => escala({ [k]: apuro }) === 1), 'ni con la música, los cuentos, la fiesta, la cantina, el té o la peña');
+  }
   // una semana en la aldea, con vos al lado de alguien a cada rato: se oyen charlas de vecinos todos los días
   // (no frenan) y los cuentos de la abuela sólo el domingo a la mañana, en la biblioteca (frenan)
   const A = await import('../src/aldea.js');

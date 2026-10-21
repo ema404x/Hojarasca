@@ -15,6 +15,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { enOrden, que, revisarModulo } from './ayuda-interacciones.mjs';
+import { expresion, funcion, literal } from './ayuda-codigo.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (f) => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -389,12 +390,22 @@ const GU = await import('../src/guardado.js');
   revisarModulo('fiestas', 'fiesta'); n++;
   ok(/cacheFiesta = fiestasJuego \? fiestasJuego\.accion\(js\) : null;/.test(m) && /case 'fiesta': return enE \? fiestasJuego\?\.accion\(js\) : cacheFiesta;/.test(m), 'el aviso usa la misma función');
   { const r = que({ panelAbierto: (n) => n === 'fiestas' }); ok(r.e === 'fiestas-abierto' && r.aviso === null && /else if \(nombre === 'fiestas'\) fiestasJuego\.alApretarE\(\);/.test(m), 'con el panel de las fiestas, E llama a alApretarE (en un partido no lo deja)'); }
-  ok(m.includes("  if (fiestasJuego?.panelAbierto()) return { id: 'fiesta', ...fiestasJuego.lista() };   // 3.7.5") && m.includes('|| !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();'), 'las listas del HUD (teclado, mouse y mando)');
+  {
+    // 4.6.1: lo que devuelven las funciones del HUD con el panel de la fiesta abierto (mundo de mentira), no sus líneas
+    const cerrado = { panelAbierto: () => false }, fiesta = { panelAbierto: () => true, lista: () => ({ ul: 'ul-fiesta' }) };
+    const lista = funcion(m, 'listaHudAbierta', { foto: { activo: false }, enElAlmacen: false, enLaFeria: false, enLasCargas: () => false, desafio: null, cocinaJuego: cerrado, tallerTren: cerrado, fiestasJuego: fiesta })();
+    const abierto = expresion(m, 'const panelDelHudAbierto = ', { enElAlmacen: false, enLaFeria: false, enLasCargas: () => false, enElBanco: () => false, mochilaAbierta: false, desafio: null, cocinaJuego: cerrado, tallerTren: cerrado, negocioJuego: cerrado, fiestasJuego: fiesta, cantinaJuego: cerrado, teJuego: cerrado })();
+    ok(lista?.id === 'fiesta' && lista.ul === 'ul-fiesta' && abierto === true, 'las listas del HUD (teclado, mouse y mando)');
+  }
   ok(m.split("if (fiestasJuego?.panelAbierto()) { marcarEn('fiesta', Number(codigo.slice(5)) - 1); fiestasJuego.elegirPanel(Number(codigo.slice(5)) - 1); break; }").length === 3, 'los números del 1 al 9');
   ok(m.includes('else if (fiestasJuego?.panelAbierto()) fiestasJuego.atras();'), 'Escape deja el partido; E no');
   ok(m.includes('amorDestino: (k) => destinoConFiesta(k),') && m.includes("if (a && (a.lugar === 'cita' || a.lugar === 'boda')) return a;") && m.includes('return fiestasJuego?.destino(k) || a || cocinaJuego?.destino(k) || null;'), 'quién va a dónde: la cita y el casamiento, después la fiesta, después lo demás');
   ok(m.includes('if (fiestasJuego?.montando()) fiestasJuego.camara(camara);') && m.includes("fallaSistema('fiestas', e)"), 'el cuadro (aislado) y la cámara de la jineteada');
-  ok(m.includes("|| (!desafio && fiestasJuego?.climaForzado(k))) || tipo(k);"), 'el tiempo de la gran nevada');   // (3.8.6: después de la noche del temporal del capítulo 8; 3.8.7: y nada forzado con el clima fijo despejado)
+  {
+    // 4.6.1: el programa del tiempo con un mundo de mentira (la línea cambió en la 3.8.6 y la 3.8.7 sin que cambiara esto)
+    const programa = (cambio = {}) => expresion(m, 'p.tipo = ', { fijo: () => false, temporalDeLaHistoria: () => false, desafio: null, fiestasJuego: { climaForzado: () => 'nieve' }, tipo: () => 'despejado', ...cambio }, 'climaForzado')(3);
+    ok(programa() === 'nieve' && programa({ desafio: {} }) === 'despejado' && programa({ fijo: () => true }) === 'despejado' && programa({ fiestasJuego: { climaForzado: () => null } }) === 'despejado', 'el tiempo de la gran nevada');
+  }   // (3.8.6: después de la noche del temporal del capítulo 8; 3.8.7: y nada forzado con el clima fijo despejado)
   ok(m.includes('const ff = fiestasJuego?.fotoDeLaFiesta(jugador.estado.pos);') && m.includes('datosAlbum({ progreso, desafios: fiestasJuego.fotosAlbum() })'), 'la foto de la fiesta y el álbum');
   ok(m.includes('trucoReal: () => !!fiestasJuego?.activo(),') && m.includes("if (o.tipo === 'cartas' && o.real && fiestasJuego?.activo())"), 'el truco de la rueda, de verdad');
   ok(m.includes('if (fiestasMundo) lista.push(...fiestasMundo.pisos());'), 'el predio, sin pasto alto');
@@ -416,7 +427,7 @@ const GU = await import('../src/guardado.js');
   ok(pl.includes('<div class="trueque oculto" id="fiesta-panel">') && pl.includes('<ul id="fiesta-lista"></ul>'), 'plantilla.html: el panel');
   const ge = leer('src/gente.js');
   for (const p of ['aplaudir', 'chamame', 'chacarera', 'contar', 'jinete', 'tirar']) ok(ge.includes(`case '${p}':`), `gente.js: la pose «${p}»`);
-  ok(ge.includes("export const POSES_SENTADAS = new Set(['sentado', 'leyendo', 'tornear', 'coser', 'comer', 'cartas']);"), 'comer, sentado a la mesa');
+  ok(literal(ge, 'export const POSES_SENTADAS = ').has('comer'), 'comer, sentado a la mesa');   // (4.6.1: la lista como lista: otra pose no la rompe)
 }
 
 console.log(`✓ 3.7.5 (fiestas): ${n} comprobaciones`);
