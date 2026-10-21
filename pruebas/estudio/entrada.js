@@ -6,6 +6,8 @@ import { __mallaPersona, __ROPA } from '../../src/gente.js';
 import { __piezasPersona, huesosEnUso } from '../../src/gente-cuerpo.js';
 import { atlasPersonajes, completarAtlas } from '../../src/gente-atlas.js';
 import { POBLADORES_ALDEA, VECINOS_ALDEA } from '../../src/aldea.js';
+// 3.9.2: el creador de personaje (claves `gen-<nombre>` con `window.__genomas`)
+import { aspectoDeGenoma } from '../../src/creador-personaje.js';
 
 const lienzo = document.createElement('canvas');
 lienzo.width = 1600; lienzo.height = 900;
@@ -41,7 +43,8 @@ function armar(claves, opciones = {}) {
   actuales = claves.map((clave, i) => {
     const def = defDe(clave);
     const conMate = def.mano === 'mate';
-    const m = __mallaPersona(def.colores || {}, clave, conMate, { talla: def.talla, invierno: !!opciones.invierno, fiesta: !!opciones.fiesta });
+    const gen = clave.startsWith('gen-') ? { aspecto: aspectoDeGenoma((window.__genomas || {})[clave]) } : {};
+    const m = __mallaPersona(def.colores || {}, clave, conMate, { talla: def.talla, invierno: !!opciones.invierno, fiesta: !!opciones.fiesta, ...gen });
     if (def.talla) m.g.scale.setScalar(def.talla);
     m.g.position.set((i - (n - 1) / 2) * paso, 0, 0);
     m.g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
@@ -97,7 +100,7 @@ function rotulo(cv, texto) {
   x.fillStyle = '#efe6d6'; x.font = 'bold 22px Georgia, serif'; x.fillText(texto, 12, 24);
   return cv;
 }
-const corto = (k) => k.replace(/^(aldea|poblador)-/, '');
+const corto = (k) => k.replace(/^(aldea|poblador|gen)-/, '');
 window.estudio = {
   // toma: cuerpo | espalda | cara | sonrisa | risa | perfil | poses | sentado; las claves, separadas por coma
   async toma(clavesTxt, toma, opciones = {}) {

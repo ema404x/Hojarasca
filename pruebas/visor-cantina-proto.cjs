@@ -11,6 +11,7 @@ const raiz = path.resolve(__dirname, '..');
 const arg = (n, d) => { const a = process.argv.find((x) => x.startsWith(`${n}=`)); return a ? a.slice(n.length + 1) : d; };
 const salida = arg('salida', process.env.HOJ_SALIDA || path.join(raiz, 'pruebas', 'salidas', 'proto-cantina'));
 const solo = arg('solo', process.env.HOJ_SOLO || '').split(',').filter(Boolean);
+const quien = arg('quien', 'aldea-moza');   // 3.9.2: otra persona en el mismo rincón (las tomas de bandeja son de la moza)
 const anotarError = (tipo, e) => {
   const texto = `[visor-cantina] ${tipo}: ${e && e.stack ? e.stack : e}\n`;
   try { console.error(texto); fs.mkdirSync(salida, { recursive: true }); fs.appendFileSync(path.join(salida, 'errores.log'), texto); } catch { /* nada */ }
@@ -62,7 +63,7 @@ app.whenReady().then(async () => {
   const w = new BrowserWindow({ show: false, width: 1600, height: 900, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   const errores = [];
   w.webContents.on('console-message', (e) => { if (e.level === 'error' || e.level === 'warning') errores.push(String(e.message).slice(0, 400)); });
-  await w.loadFile(html, { search: '?debug=1&cantina=proto' });
+  await w.loadFile(html, { search: '?debug=1&cantina=proto&quien=' + encodeURIComponent(quien) });
   const js = (c) => w.webContents.executeJavaScript(c);
   for (let i = 0; i < 80 && !(await js('!!window.estudioListo').catch(() => false)); i++) await new Promise((r) => setTimeout(r, 200));
   if (!(await js('!!window.estudioListo'))) { console.log('no cargó:\n' + errores.join('\n')); app.exit(1); return; }
