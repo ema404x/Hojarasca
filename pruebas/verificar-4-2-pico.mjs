@@ -190,7 +190,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
 // ============================================================ 5. mochila, barra, en mano, guía
 {
   const moch = leer('src/mochila.js'), mano = leer('src/enmano.js'), guia = leer('src/guia.js');
-  ok(/pico\(\) \{/.test(moch) && /id: 'pico', nombre: 'Pico de cantero', icono: 'pico', accion: 'pico'/.test(moch), 'la mochila tiene la ranura y el ícono del pico');
+  ok(/pico\(\) \{/.test(moch) && /id: 'pico', nombre: 'Pico', icono: 'pico', accion: 'pico'/.test(moch), 'la mochila tiene la ranura y el ícono del pico');
   ok(/const adelante = \[[^\]]*'hacha', 'pico'\]/.test(moch), 'en el Desafío va junto al hacha en la barra');
   ok(/\n  pico\(o = OPCIONES_BASE\)/.test(mano), 'en la mano hay un modelo del pico');
   ok(/idActual === 'pico'/.test(mano), 'que se balancea como el hacha');

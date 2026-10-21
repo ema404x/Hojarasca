@@ -125,7 +125,7 @@ app.whenReady().then(async () => {
     await cuadros(3);
     await foto('2b-almacen-con-el-pico');
     const lista = await js(`document.getElementById('trueque-lista').innerText`);
-    ok(/Pico de cantero/.test(lista) && /ya lo tenés/.test(lista), `la lista del almacén muestra el pico (${lista.replace(/\n/g, ' | ').slice(0, 200)})`);
+    ok(/Pico/.test(lista) && /ya lo tenés/.test(lista), `la lista del almacén muestra el pico (${lista.replace(/\n/g, ' | ').slice(0, 200)})`);
 
     // ---- 2b. la compra con plata
     await js(`(() => { const P = H.progreso; delete P.cosas.pico; P.economia.pesos = 1199; 1 })()`);
@@ -243,7 +243,7 @@ app.whenReady().then(async () => {
     await js(`H.__refrescarBarra(); 1`); await cuadros(2);
     await juego(); await tecla('KeyI'); await cuadros(4);
     const moch = await js(`document.getElementById('mochila').innerText`);
-    ok(/Hacha de mano/.test(moch) && /Pico de cantero/.test(moch), `la mochila muestra el hacha y el pico (${moch.replace(/\n/g, ' | ').slice(0, 160)})`);
+    ok(/Hacha de mano/.test(moch) && /Pico/.test(moch), `la mochila muestra el hacha y el pico (${moch.replace(/\n/g, ' | ').slice(0, 160)})`);
     await foto('4-mochila');
     await tecla('KeyI'); await cuadros(3);
     // el pico en la mano: se elige con los números hasta que sea el que está en la barra
@@ -252,7 +252,7 @@ app.whenReady().then(async () => {
     for (const d of ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']) {
       await tecla(d, 3); nombre = await js('H.__ranuraActual()'); if (/Pico/.test(nombre)) break;
     }
-    ok(/Pico de cantero/.test(nombre), `el pico se puede elegir en la barra (${nombre})`);
+    ok(/^Pico$/.test(nombre), `el pico se puede elegir en la barra (${nombre})`);
     await js(`H.jugador.estado.pitch = 0; 1`);
     await cuadros(30);
     await foto('5-pico-en-mano');

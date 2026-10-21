@@ -8,6 +8,8 @@ import { nombreDeBallesta } from './personal-armas.js';
 // 3.7.2: lo de la cocina (cocina-pasos.js)
 import { ranurasCocina } from './cocina-pasos.js';
 import { ranurasGranja, ICONOS_GRANJA } from './granja.js';
+// 4.6 recursos: los materiales y las herramientas de zona
+import { ranurasZona, ICONOS_ZONA } from './recursos-zona.js';
 // ---------------------------------------------------------------- iconos
 // Cada icono se dibuja por código sobre un lienzo chico, y se guarda en caché.
 const cache = new Map();
@@ -463,6 +465,7 @@ function icono(tipo) {
   };
   // 3.7.2 (granja): la leche, las carnes, los chorizos, las frutas y los fardos (los dibuja granja.js)
   if (!Object.hasOwn(dibujos, tipo) && Object.hasOwn(ICONOS_GRANJA, tipo)) ICONOS_GRANJA[tipo](x);
+  else if (!Object.hasOwn(dibujos, tipo) && Object.hasOwn(ICONOS_ZONA, tipo)) ICONOS_ZONA[tipo](x);   // 4.6 recursos (los dibuja recursos-zona.js)
   else (dibujos[tipo] || dibujos.canto)();
   const url = c.toDataURL();
   cache.set(tipo, url);
@@ -505,7 +508,7 @@ export function armarMochila(progreso, estado) {
   if (cant('hongos-secos')) ranuras.push({ id: 'hongos-secos', nombre: 'Llao llao seco', icono: 'hongo', cuenta: cant('hongos-secos'), texto: 'Para el invierno, o para cambiar en el almacén.' });
   if (cant('canto')) ranuras.push({ id: 'canto', nombre: 'Cantos rodados', icono: 'canto', cuenta: cant('canto'), texto: 'En el almacén se cambian por cosas útiles.' });
   if (progreso.cosas?.hacha) ranuras.push({ id: 'hacha', nombre: 'Hacha de mano', icono: 'hacha', accion: 'hacha', texto: 'Para talar árboles y hacer troncos de lo caído (H). La piedra se pica con el pico.' });
-  if (progreso.cosas?.pico) ranuras.push({ id: 'pico', nombre: 'Pico de cantero', icono: 'pico', accion: 'pico', texto: 'Para picar piedra de los pedreros (H): cada uno da cuatro.' });   // 4.2
+  if (progreso.cosas?.pico) ranuras.push({ id: 'pico', nombre: 'Pico', icono: 'pico', accion: 'pico', texto: 'Para picar piedra de los pedreros (H): cada uno da cuatro.' });   // 4.2 (4.6: el pico común se llama «Pico»; el de cantero es otro)
   const M = progreso.materiales || {};
   if (M.tronco) ranuras.push({ id: 'tronco', nombre: 'Troncos', icono: 'tronco', cuenta: M.tronco, accion: 'aserrar', texto: 'Y: aserrar. A mano rinde dos tablas; en un banco de carpintero, cuatro.' });
   if (M.tabla) ranuras.push({ id: 'tabla', nombre: 'Tablas', icono: 'tabla', cuenta: M.tabla, texto: 'Para el piso y el techo de lo que levantes.' });
@@ -516,6 +519,7 @@ export function armarMochila(progreso, estado) {
     ranuras.push({ id: 'grabador', nombre: 'Grabador de mano', icono: 'grabador', cuenta: n || undefined, accion: 'grabador', texto: 'Clic justo después de que cante un ave anotada: la graba. Si no cantó nada, hace sonar lo grabado y contesta la más cercana.' });
   }
   if (M.lana) ranuras.push({ id: 'lana', nombre: 'Vellones de lana', icono: 'lana', cuenta: M.lana, texto: 'De la majada del galpón. Con dos se teje una alfombra.' });
+  if (progreso.modo !== 'desafio') for (const r of ranurasZona(progreso)) ranuras.push(r);   // 4.6 recursos: junco, hierbas, arcilla, cuero, piedra de cantera y sus herramientas
   if (cant('haba')) ranuras.push({ id: 'haba', nombre: 'Habas', icono: 'haba', cuenta: cant('haba'), accion: 'cocinar', texto: 'De tu cantero. Salteadas al fuego.' });
   if (progreso.cosas?.poncho) ranuras.push({ id: 'poncho', nombre: 'Ponchos', icono: 'poncho', cuenta: progreso.cosas.poncho, texto: 'Del telar. En la feria de la estación se cambian bien.' });
   if (progreso.cosas?.harina) ranuras.push({ id: 'harina', nombre: 'Harina', icono: 'harina', cuenta: progreso.cosas.harina, accion: 'cocinar', texto: 'Del almacén. Con un huevo, una torta frita.' });

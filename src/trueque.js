@@ -124,13 +124,13 @@ export const TRUEQUES = [
   //   · acá mismo con plata (`pesos`): el atajo, el más caro. Sólo hay plata en el Relax (en el Desafío se arranca con el pico).
   // `cosa` es lo que se lleva (y la anotación del cuaderno); si falta, es el `id`.
   {
-    id: 'pico', cosa: 'pico', nombre: 'Pico de cantero',
+    id: 'pico', cosa: 'pico', nombre: 'Pico',   // 4.6: antes «Pico de cantero»; ese nombre es ahora el del pico que labra la veta de la cantera (recursos-zona.js)
     pide: [['canto', 3], ['ramita', 12]],
-    texto: 'Cabeza de acero con una punta y una pala chica, cabo de lenga. De los que usan en la cantera de la loma.',
+    texto: 'Cabeza de acero con una punta y una pala chica, cabo de lenga. Para la piedra suelta de todo el valle.',
     efecto: 'Sirve para picar piedra de los pedreros (H). Los árboles se siguen talando con el hacha.',
   },
   {
-    id: 'pico-comprado', cosa: 'pico', nombre: 'Pico de cantero, ya hecho', pesos: PESOS_PICO_COMPRADO, pide: [],
+    id: 'pico-comprado', cosa: 'pico', nombre: 'Pico, ya hecho', pesos: PESOS_PICO_COMPRADO, pide: [],
     texto: 'El mismo pico, de los que Ercilia tiene colgados detrás del mostrador. Sale caro: es para el apuro.',
     efecto: 'Sirve para picar piedra de los pedreros (H). Los árboles se siguen talando con el hacha.',
   },
