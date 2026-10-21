@@ -6,7 +6,7 @@ description: Cómo correr las partidas reales de Hojarasca (pruebas/humo-*.cjs c
 # Correr partidas reales (Electron) en Hojarasca
 
 ## Antes
-0. **Siempre en el monitor externo, nunca en la notebook.** Comprobá que corre el vigilante (PID en `C:\Users\Andres\Documents\Hojarasca\vigilante-monitor.pid`, `Get-Process -Id <pid>`); si no, prendelo como dice el `CLAUDE.md`. El lanzador ya usa `al-monitor.cjs`: no lances Electron de otra forma.
+0. **En la notebook (Ryzen 7 7730U): siempre en el monitor externo, nunca en la pantalla de la notebook.** En la PC de escritorio (Ryzen 5 4600G) no se usa el vigilante (oculta las ventanas si no hay segundo monitor); ver `CLAUDE.md`. En la notebook, comprobá que corre el vigilante (PID en `C:\Users\Andres\Documents\Hojarasca\vigilante-monitor.pid`, `Get-Process -Id <pid>`); si no, prendelo como dice el `CLAUDE.md`. El lanzador ya usa `al-monitor.cjs`: no lances Electron de otra forma.
 1. `node armar.mjs` en la carpeta del proyecto (el humo carga `index.html`).
 2. Que no haya otra partida corriendo en el mismo perfil: comparten el localStorage. Si hay otro agente con Electron, usá un perfil propio.
 

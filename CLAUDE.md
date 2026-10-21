@@ -37,8 +37,9 @@ El usuario habla **castellano rioplatense**. Juego, textos, comentarios, commits
 
 ## Reglas del usuario
 - **Planificar no es ejecutar.** Si dice «estamos planificando» o «no arranques nada», sólo se conversa: no lanzar agentes, no crear ramas, no tocar código. Esperar una orden explícita («arrancá», «dale», «avanzá», «hacelo»).
-- **Electron SIEMPRE en el monitor externo, nunca en la pantalla de la notebook.** Antes de abrir Electron, comprobá que corre el vigilante (`Documents\Hojarasca\vigilante-monitor.ps1`, PID en `vigilante-monitor.pid`); si no corre (por ejemplo después de reiniciar la PC), prendelo desde PowerShell:
+- **En la notebook (Ryzen 7 7730U): Electron SIEMPRE en el monitor externo, nunca en la pantalla de la notebook.** Antes de abrir Electron, comprobá que corre el vigilante (`Documents\Hojarasca\vigilante-monitor.ps1`, o la copia del repositorio `herramientas\vigilante-monitor.ps1`; PID en `vigilante-monitor.pid` junto al script); si no corre (por ejemplo después de reiniciar la PC), prendelo desde PowerShell:
   `Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','C:\Users\Andres\Documents\Hojarasca\vigilante-monitor.ps1','-CadaMs','80' -WindowStyle Hidden`
+  **En la PC de escritorio (Ryzen 5 4600G) NO se usa el vigilante:** tiene un solo monitor y el vigilante oculta las ventanas de Electron cuando no hay monitor externo (arruinaría las mediciones con ventana visible). Ahí alcanza con el lanzador (`al-monitor.cjs`). Para saber en qué PC estás: `(Get-CimInstance Win32_Processor).Name`.
 - **Electron no le tiene que estorbar:** siempre oculto, en el monitor externo (`herramientas/al-monitor.cjs`), prioridad baja, una instancia por agente y como mucho dos a la vez. **Nunca** `taskkill //F //IM electron.exe`.
 - Sólo **teclado y ratón** (no ampliar el mando).
 - **No escribir ni mencionar el inglés**: se traduce todo al final. Las pruebas de idioma existentes siguen en verde.
