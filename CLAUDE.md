@@ -16,6 +16,7 @@ El usuario habla **castellano rioplatense**. Juego, textos, comentarios, commits
 ## Construir y probar
 - `node armar.mjs` arma `index.html` (un solo archivo). Correrlo antes de cualquier prueba de Electron.
 - `npm run verify` es el **gate** (sólo Node). Correrlo **completo y de corrido** antes de dar algo por terminado y decir el número exacto de pasos.
+- Durante el trabajo se puede usar `npm run verify:paralelo` (los mismos pasos en un grupo de procesos, ~80 s en vez de ~6 min; `HOJ_VERIFY_HILOS=n` cambia cuántos a la vez; los que miden tiempos van al final, de a uno). Para cerrar una versión, `npm run verify` de corrido.
 - Partidas reales: `pruebas/humo-*.cjs`. Ver la skill `hojarasca-partidas` (desde bash fallan en silencio; van por PowerShell).
 - Una prueba que falla una vez y pasa sola dos veces es de tiempo, no un bug: decirlo igual.
 - `window.__hojarasca` en `?debug=1`; `__bucle()` corre un cuadro (con `ajustes.limiteFps = 'libre'`).
