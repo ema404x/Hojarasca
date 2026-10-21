@@ -5318,7 +5318,7 @@ let genteCampoJuego = null, genteCampoMundo = null, tablonJuego = null, cacheTab
 // 4.6 gente: el enganche con el agente «recursos» para vender las herramientas de zona (hoz, pala de arcilla, esquiladora y pico de
 // cantero: HERRAMIENTAS_CAMPO en gente-campo.js). AL JUNTAR: que esto llame a la función de «recursos» (p. ej. darHerramientaZona(id),
 // la de HERRAMIENTAS_ZONA). Mientras tanto, el respaldo seguro: queda en progreso.cosas[id] (se guarda; todavía no hace nada).
-function darHerramientaDeZona(id) { if (typeof id !== 'string' || !id || !progreso?.cosas) return false; progreso.cosas[id] = 1; return true; }
+function darHerramientaDeZona(id) { return darHerramienta(progreso, id).ok; }   // 4.6 (junta): la de recursos-zona.js (la tiendita ya cobró)
 let empleoJuego = null;   // 4.3: el empleo fijo: el cartel de turnos, las tareas del puesto y el sueldo (ver empleo-juego.js)
 let fiestasJuego = null, fiestasMundo = null;   // 3.7.5: las fiestas y las fechas (ver fiestas-juego.js y fiestas-mundo.js)
 let trucoPendiente = null;   // 3.7.5: el truco de la rueda, que se juega al cerrar la charla

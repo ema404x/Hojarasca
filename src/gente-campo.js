@@ -15,6 +15,7 @@ import { valorUnidad, dondeDe, cuantoDe, tablonNuevo, sanearTablon } from './tab
 import { PEDIDOS } from './pedidos.js';
 import { negociosDe } from './negocios.js';
 import { hashTexto } from './comercio.js';
+import { HERRAMIENTAS_ZONA } from './recursos-zona.js';
 
 // ---------------------------------------------------------------- dónde está cada uno
 // Coordenadas fijas (las de la auditoría, AUDITORIA_MAPA_VALOR.md 4.2 y 4.3). El galpón se sortea según la calidad: Fermín
@@ -193,26 +194,28 @@ export function anotarEntregaCampo(p, gc, k, dia, pedido) {
 // contesta al vendértelo) }. Los precios: ~1,35 veces lo que vale (por encima de lo que paga cualquier puesto del tren, así no
 // se compra acá para revender; ver CAMBIOS_4_6_GENTE.md).
 // Las herramientas de zona: el id con que las define el agente «recursos» (ajustar al juntar si cambia).
-export const HERRAMIENTAS_CAMPO = { hoz: 'hoz', pala: 'pala-arcilla', esquiladora: 'esquiladora', pico: 'pico-cantero' };
+// 4.6 (junta): los ids, el nombre, el precio y el requisito son los de HERRAMIENTAS_ZONA (recursos-zona.js): una sola fuente.
+export const HERRAMIENTAS_CAMPO = { hoz: 'hoz-junco', pala: 'pala-arcilla', esquiladora: 'cuchillo-cuero', pico: 'pico-cantero' };
+const hz = (k) => HERRAMIENTAS_ZONA[HERRAMIENTAS_CAMPO[k]];
 export const TIENDAS = {
   nicanor: [
     { id: 'mosca', titulo: 'Carnada y una mosca atada por él', tipo: 'cosa', k: 'mosca', n: 1, precio: 700, una: true, dice: 'Pluma de cachaña y un poco de lana. Con ésta pican el doble de rápido. La carnada te la regalo.' },
     { id: 'truchas', titulo: 'Dos truchas frescas', tipo: 'entrada', k: 'trucha-fresca', n: 2, precio: 750, porDia: 2, dice: 'Sacadas esta mañana. Mirales el ojo: brillante, como tiene que ser.' },
     { id: 'ahumada', titulo: 'Una trucha ahumada', tipo: 'entrada', k: 'trucha-ahumada', n: 1, precio: 900, porDia: 1, dice: 'Ahumada con leña de ñire, dos días. No la apures.' },
     { id: 'botas', titulo: 'Botas de goma de pescador', tipo: 'cosa', k: 'botas', n: 1, precio: 1200, una: true, dice: 'Unas que me quedan chicas. Con éstas cruzás el agua sin que te oigan los bichos.' },
-    { id: 'pala', titulo: 'Pala de arcilla', tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.pala, n: 1, precio: 1500, una: true, dice: 'Para el barro de la desembocadura, donde el arroyo llega al lago. Angosta y filosa: corta el terrón sin desarmarlo.' },
+    { id: 'pala', titulo: hz('pala').nombre, tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.pala, n: 1, precio: hz('pala').precio, una: true, dice: 'Para el barro de la desembocadura, donde el arroyo llega al lago. Angosta y filosa: corta el terrón sin desarmarlo.' },
   ],
   ema: [
     { id: 'habas', titulo: 'Semillas de habas', tipo: 'cosa', k: 'semillas-habas', n: 3, precio: 400, porDia: 2, dice: 'Del vivero de la seccional. Tres siembras: en cinco días, habas.' },
     { id: 'papa', titulo: 'Papa para semilla', tipo: 'cosa', k: 'semillas-papa', n: 2, precio: 450, porDia: 2, dice: 'Papa andina, de las que aguantan la helada. Tarda, pero rinde.' },
     { id: 'dato', titulo: 'Un dato del valle', tipo: 'dato', k: 'dato', n: 1, precio: 150, porDia: 1, dice: '' },
-    { id: 'hoz', titulo: 'Una hoz para el mallín', tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.hoz, n: 1, precio: 1300, una: true, dice: 'Para el junco y las hierbas del mallín. Cortá de a poco y desde arriba: la mata vuelve.' },
+    { id: 'hoz', titulo: hz('hoz').nombre, tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.hoz, n: 1, precio: hz('hoz').precio, una: true, dice: 'Para el junco y las hierbas del mallín. Cortá de a poco y desde arriba: la mata vuelve.' },
   ],
   fermin: [
     { id: 'lana', titulo: 'Dos vellones de lana', tipo: 'material', k: 'lana', n: 2, precio: 850, porDia: 3, dice: 'De la esquila de la primavera. Lavada en el arroyo, sin abrojos.' },
-    { id: 'cuero', titulo: 'Un cuero de oveja', tipo: 'material', k: 'cuero', n: 1, precio: 450, porDia: 2, dice: 'De la que se nos murió de vieja en el invierno. No se caza nada: la majada da lo que da.' },
+    { id: 'cuero', titulo: 'Un cuero de oveja', tipo: 'material', k: 'cuero', n: 1, precio: 750, porDia: 2, dice: 'De la que se nos murió de vieja en el invierno. No se caza nada: la majada da lo que da.' },
     { id: 'tijera', titulo: 'Tijera de esquilar', tipo: 'cosa', k: 'tijera', n: 1, precio: 600, una: true, dice: 'La de repuesto. Afilada por mí: con ésta las ovejas ni se enteran.' },
-    { id: 'esquiladora', titulo: 'Esquiladora', tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.esquiladora, n: 1, precio: 1600, una: true, dice: 'De resorte, de las buenas. Para la lana y el cuero de la estepa.' },
+    { id: 'esquiladora', titulo: hz('esquiladora').nombre, tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.esquiladora, n: 1, precio: hz('esquiladora').precio, una: true, dice: 'Hoja ancha y vaina de suela, como el mío. Para cuerear y cortar tientos.' },
   ],
   belisario: [
     { id: 'yerba', titulo: 'Cuatro medidas de yerba', tipo: 'cosa', k: 'yerba', n: 4, precio: 500, porDia: 2, dice: 'Yerba con palo, de la que se toma del otro lado. Fuerte.' },
@@ -221,8 +224,8 @@ export const TIENDAS = {
   ],
   tobias: [
     { id: 'piedra', titulo: 'Cuatro piedras', tipo: 'material', k: 'piedra', n: 4, precio: 600, porDia: 3, dice: 'Sueltas, de la ladera. Para una pirca o un fogón, sobran.' },
-    { id: 'piedra-cantera', titulo: 'Dos piedras de cantera', tipo: 'material', k: 'piedra-cantera', n: 2, precio: 450, porDia: 2, dice: 'Labradas a escuadra. Éstas son para las obras que tienen que durar.' },
-    { id: 'pico', titulo: 'Pico de cantero', tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.pico, n: 1, precio: 2500, una: true, requiere: { oficio: 'picapedrero', nivel: 2 }, dice: 'El único que entra en la veta. Cuidalo: la punta se templa una vez y dura toda la vida.' },
+    { id: 'piedra-cantera', titulo: 'Dos piedras de cantera', tipo: 'material', k: 'piedra-cantera', n: 2, precio: 650, porDia: 2, dice: 'Labradas a escuadra. Éstas son para las obras que tienen que durar.' },
+    { id: 'pico', titulo: hz('pico').nombre, tipo: 'herramienta', k: HERRAMIENTAS_CAMPO.pico, n: 1, precio: hz('pico').precio, una: true, requiere: hz('pico').requisito, dice: 'El único que entra en la veta. Cuidalo: la punta se templa una vez y dura toda la vida.' },
   ],
 };
 // Los datos que vende Josefina: de a uno por día, en orden (y vuelve a empezar)

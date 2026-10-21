@@ -5,7 +5,7 @@
 //     los materiales nuevos (del agente «recursos») sólo cuando el juego los conoce;
 //   · los pedidos de la gente del campo (2 o 3 por persona, uno por vez, el mismo tope de 2 por día de los vecinos) y las
 //     tienditas (precios por encima de lo que paga un puesto del tren, un poco por día, lo que se compra una vez, el pico de
-//     cantero con picapedrero nivel 2);
+//     cantero con picapedrero nivel 3);
 //   · la charla (gente-campo-juego.js y vecindad-juego.js con un contexto de mentira) y la rueda («Pedidos y compras»);
 //   · el guardado (partida nueva, partida de antes sin el campo nuevo, datos rotos, el Desafío sin nada);
 //   · lo enganchado en main.js (la E y el aviso en el mismo orden) y guardado.js, la ropa de los tres nuevos y que no hay inglés.
@@ -38,7 +38,9 @@ const tengoDe = (p) => (donde, k) => (donde === 'material' ? p.materiales[k] || 
 const darle = (p, donde, k, n2) => { if (donde === 'material') p.materiales[k] = (p.materiales[k] || 0) + n2; else if (donde === 'cosa') p.cosas[k] = (p.cosas[k] || 0) + n2; else { p.entradas[k] = p.entradas[k] || { dia: 1, hora: 0, cantidad: 0 }; p.entradas[k].cantidad += n2; } };
 const aplicar = (p) => (efs) => { for (const f of efs) darle(p, f.tipo, f.k, f.n); };
 // «antes de juntar»: el juego no conoce los materiales nuevos; «después»: sí (como si «recursos» los hubiera sumado)
-const antes = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, cristal: {}, lana: {} }, BIENES);
+// 4.6 (junta): BIENES ya trae los materiales de «recursos»; para simular el «antes» se los saca
+const BIENES_ANTES = Object.fromEntries(Object.entries(BIENES).filter(([k]) => !TB.MATERIALES_ZONA.includes(k)));
+const antes = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, cristal: {}, lana: {} }, BIENES_ANTES);
 const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, cristal: {}, lana: {}, junco: {}, hierbas: {}, arcilla: {}, cuero: {}, 'piedra-cantera': {} }, BIENES);
 
 // ============================================================ 1. el tablón: distancias y pagos
@@ -61,7 +63,8 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
     ok(pago >= Math.min(700, pueblo * 1.5) - 50 && pago <= Math.max(700, pueblo * 2.5) + 50, `${e.id}: entre ×1,5 y ×2,5 lo de un pedido del pueblo ($${Math.round(pueblo)})`);
     ok(Object.hasOwn(TB.ORIGENES, e.origen) && e.quien.length === 2 && e.para, `${e.id}: lugar, quién y para qué`);
   }
-  ok(Math.min(...pagos) === 700 && Math.max(...pagos) === 2200, 'el más barato paga $700 y el más caro $2.200');
+  // 4.6 (junta): con los BIENES de «recursos» el junco vale lo de comercio.js y el más barato quedó en $750 (antes $700, con el valor de respaldo)
+  ok(Math.min(...pagos) <= 800 && Math.max(...pagos) === 2200, 'el más barato paga cerca de $700 y el más caro $2.200');
   ok(new Set(TB.ENCARGOS_TABLON.map((e) => e.origen)).size >= 7, 'salen de siete lugares distintos o más');
   ok(TB.ENCARGOS_TABLON.some((e) => TB.multiplicadorDe(e.origen) === 2.5) && TB.ENCARGOS_TABLON.some((e) => TB.multiplicadorDe(e.origen) === 1.5), 'hay de los tres tramos');
   // los materiales nuevos: sólo cuando el juego los conoce
@@ -191,9 +194,9 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
     ok(c.precio >= mejorPuesto * 0.95, `${k}/${c.id}: $${c.precio} no se revende en un puesto (paga como mucho ~$${Math.round(mejorPuesto)})`);
   }
   ok(GC.TIENDAS.nicanor.some((c) => c.k === 'trucha-fresca') && GC.TIENDAS.nicanor.some((c) => c.k === 'mosca'), 'Nicanor: truchas y carnada con mosca');
-  ok(GC.TIENDAS.ema.some((c) => /^semillas/.test(c.k)) && GC.TIENDAS.ema.some((c) => c.tipo === 'dato') && GC.TIENDAS.ema.some((c) => c.k === 'hoz'), 'Josefina: semillas, datos del valle y la hoz');
+  ok(GC.TIENDAS.ema.some((c) => /^semillas/.test(c.k)) && GC.TIENDAS.ema.some((c) => c.tipo === 'dato') && GC.TIENDAS.ema.some((c) => c.k === GC.HERRAMIENTAS_CAMPO.hoz), 'Josefina: semillas, datos del valle y la hoz');
   ok(GC.TIENDAS.fermin.some((c) => c.k === 'lana') && GC.TIENDAS.fermin.some((c) => c.k === 'cuero'), 'Fermín: lana y cuero');
-  ok(GC.TIENDAS.tobias.some((c) => c.k === GC.HERRAMIENTAS_CAMPO.pico && c.requiere?.oficio === 'picapedrero' && c.requiere.nivel === 2), 'Tobías: el pico de cantero, con picapedrero nivel 2');
+  ok(GC.TIENDAS.tobias.some((c) => c.k === GC.HERRAMIENTAS_CAMPO.pico && c.requiere?.oficio === 'picapedrero' && c.requiere.nivel === 3), 'Tobías: el pico de cantero, con picapedrero nivel 3');
   // el cuero (material nuevo) recién al juntar
   ok(!GC.tiendaDe(g, 'fermin', 2, { ...ctx, existe: antes }).some((c) => c.k === 'cuero') && GC.tiendaDe(g, 'fermin', 2, ctx).some((c) => c.k === 'cuero'), 'el cuero, recién cuando el juego lo conoce');
   // un poco por día
@@ -202,7 +205,7 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
   ok(!GC.tiendaDe(g, 'nicanor', 2, ctx).find((c) => c.id === 'truchas').puede && GC.tiendaDe(g, 'nicanor', 3, ctx).find((c) => c.id === 'truchas').puede, 'las truchas se acaban por hoy y mañana hay');
   p.cosas.mosca = 1;
   ok(!GC.tiendaDe(g, 'nicanor', 3, ctx).some((c) => c.id === 'mosca'), 'lo que se compra una vez, si ya lo tenés, no aparece');
-  ok(!GC.tiendaDe(g, 'tobias', 3, ctx).find((c) => c.id === 'pico').puede && GC.tiendaDe(g, 'tobias', 3, { ...ctx, nivel: () => 2 }).find((c) => c.id === 'pico').puede, 'el pico de cantero, recién con picapedrero nivel 2');
+  ok(!GC.tiendaDe(g, 'tobias', 3, ctx).find((c) => c.id === 'pico').puede && GC.tiendaDe(g, 'tobias', 3, { ...ctx, nivel: () => 3 }).find((c) => c.id === 'pico').puede, 'el pico de cantero, recién con picapedrero nivel 2');
   const d1 = GC.datoDelValle(g), d2 = GC.datoDelValle(g);
   ok(d1 !== d2 && GC.DATOS_VALLE.includes(d1), 'los datos del valle, uno distinto cada vez');
 }
@@ -247,10 +250,10 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
   p.economia.pesos = 9000;
   const st = cj.sesion({ clave: 'tobias' });
   const pi = cj.elegir(st, 'campo:comprar:pico');
-  ok(/picapedrero nivel 2/.test(pi.renglones[0]) && !herramientas.includes(GC.HERRAMIENTAS_CAMPO.pico), 'el pico de cantero, sin el oficio, no');
-  nivel = 2;
+  ok(/picapedrero nivel 3/.test(pi.renglones[0]) && !herramientas.includes(GC.HERRAMIENTAS_CAMPO.pico), 'el pico de cantero, sin el oficio, no');
+  nivel = 3;
   cj.elegir(st, 'campo:comprar:pico');
-  ok(herramientas.includes(GC.HERRAMIENTAS_CAMPO.pico) && p.economia.pesos === 9000 - 2500, 'con picapedrero nivel 2, sí: $2.500');
+  ok(herramientas.includes(GC.HERRAMIENTAS_CAMPO.pico) && p.economia.pesos === 9000 - 4000, 'con picapedrero nivel 3, sí: $4.000');
   // el dato de Josefina
   const se = { clave: 'ema' };
   const dato = cj.elegir(se, 'campo:comprar:dato');
@@ -283,7 +286,7 @@ const despues = (k) => TB.existeEnJuego(k, { tronco: {}, tabla: {}, piedra: {}, 
   const gr = S.opcionesRueda('nicanor', { modo: 'relax', dia: 3, vecindad: (await import('../src/vecindad.js')).vecindadNueva() }, { menu: [{ id: 'como-andas', titulo: '¿Cómo andás?' }, { id: 'campo:pedido', titulo: 'Su pedido' }, { id: 'campo:tienda', titulo: 'Comprarle algo…' }] });
   const trato = gr.find((g) => g.categoria === 'trato');
   ok(trato && trato.opciones.map((o) => o.id).join() === 'campo:pedido,campo:tienda' && !gr.find((g) => g.categoria === 'charla').opciones.some((o) => /^campo:/.test(o.id)), 'Nicanor: el pedido y la tiendita en «Pedidos y compras»');
-  eq(iconoDeOpcion('campo:comprar:pico', 'Pico de cantero · $2.500'), 'herramienta', 'el pico, con el ícono de herramienta');
+  eq(iconoDeOpcion('campo:comprar:pico', 'Pico de cantero · $4.000'), 'herramienta', 'el pico, con el ícono de herramienta');
   eq(iconoDeOpcion('campo:comprar:truchas', 'Dos truchas frescas · $700'), 'pez', 'las truchas, con el pez');
   const vj = leer('src/vecindad-juego.js');
   ok(vj.includes('if (!clave) return ctx.campo?.sesion?.(npc) || null;'), 'vecindad-juego: la sesión de la gente del campo');
