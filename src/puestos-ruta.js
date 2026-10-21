@@ -29,19 +29,21 @@ export const esPuesto = (id) => typeof id === 'string' && Object.hasOwn(PUESTOS_
 export const puestoPorNombre = (nombre) => IDS_PUESTOS.find((id) => PUESTOS_RUTA[id].nombre === nombre) || null;
 
 // La casilla (en metros, en su marco local: x a lo ancho, z hacia el frente) y dónde queda cada cosa alrededor
-export const CASILLA = { ancho: 4.6, fondo: 3.4, altoFrente: 2.3, altoFondo: 1.9, puerta: 0.95 };
+// (`galeria`: el entablonado del frente, al nivel del piso, donde están la puerta, el banco y la ventanilla del mostrador)
+export const CASILLA = { ancho: 4.6, fondo: 3.4, altoFrente: 2.3, altoFondo: 1.9, puerta: 0.95, galeria: 1.3 };
 const LOCAL = {
   centro: [0, 0],
   puerta: [0, CASILLA.fondo / 2 + 0.8],         // afuera, frente a la puerta
   mostrador: [-1.35, CASILLA.fondo / 2 + 0.85], // la ventanilla del frente, a la izquierda de la puerta
   banco: [1.35, CASILLA.fondo / 2 + 0.42],      // contra la pared del frente, a la derecha de la puerta
-  fogon: [3.3, CASILLA.fondo / 2 + 1.9],        // adelante a la derecha
-  tronco: [4.35, CASILLA.fondo / 2 + 2.75],     // el tronco para sentarse junto al fogón
+  fogon: [3.6, CASILLA.fondo / 2 + 2.3],        // adelante a la derecha, al pie de la galería
+  tronco: [4.65, CASILLA.fondo / 2 + 3.15],     // el tronco para sentarse junto al fogón
   deposito: [-4.8, 0.2],                        // del lado abierto del alero del depósito (a la izquierda, lejos de la ventanilla)
   catre: [1.45, -0.85],                         // adentro, al fondo a la derecha
   cartel: [-3.4, CASILLA.fondo / 2 + 2.4],
 };
 export const PUNTOS = Object.keys(LOCAL);
+export const LOCAL_PUESTO = Object.freeze(Object.fromEntries(Object.entries(LOCAL).map(([k, v]) => [k, Object.freeze([...v])])));
 // Del marco local del puesto al mundo
 export function aMundo(id, lx, lz) {
   const P = PUESTOS_RUTA[id];

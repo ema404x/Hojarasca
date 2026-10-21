@@ -10,14 +10,15 @@
 // El del Riel Sur (D) es además un apeadero de la trochita: el andén y su cartel los arma trochita.js (ver `apeaderoDelRielSur`).
 import * as THREE from 'three';
 import { Constructor, matriz } from './geometria.js';
-import { PUESTOS_RUTA, IDS_PUESTOS, CASILLA, aMundo, puntoDe, etapaDe, depositoDe, DEPOSITO, reparado } from './puestos-ruta.js';
+import { PUESTOS_RUTA, IDS_PUESTOS, CASILLA, LOCAL_PUESTO, aMundo, puntoDe, etapaDe, depositoDe, DEPOSITO, reparado } from './puestos-ruta.js';
 import { pasoDe } from './almacen.js';
 import { cubierta } from './techo-lluvia.js';
 
 const MADERA_OSCURA = '#4e3a28', TABLA_VIEJA = ['#927c5e', '#857057'], TABLA_NUEVA = '#b88c56', PIEDRA = '#837c70';
 const CHAPA_NUEVA = '#9ea5a4', CHAPA_VIEJA = '#8a5a3c';
-const W = CASILLA.ancho, D = CASILLA.fondo, HF = CASILLA.altoFrente, HB = CASILLA.altoFondo, PUERTA = CASILLA.puerta;
+const W = CASILLA.ancho, D = CASILLA.fondo, HF = CASILLA.altoFrente, HB = CASILLA.altoFondo, PUERTA = CASILLA.puerta, GAL = CASILLA.galeria;
 const VENTANA = [-1.85, -0.85];   // la ventanilla del mostrador, a lo ancho del frente
+const R_FOGON = LOCAL_PUESTO.fogon, R_TRONCO = LOCAL_PUESTO.tronco;   // (el fogón y su tronco: los mismos puntos que las reglas)
 const altoPared = (z) => HB + (HF - HB) * ((z + D / 2) / D);   // de la pared del fondo (baja) a la del frente (alta)
 // azar con semilla (el mismo puesto se rompe siempre igual)
 const azar = (semilla) => { let s = semilla >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; };
@@ -26,7 +27,17 @@ const azar = (semilla) => { let s = semilla >>> 0 || 1; return () => { s ^= s <<
 // `progreso()`: la partida (el puesto comercia sólo reparado).
 export function apeaderoDelRielSur(T, progreso) {
   const P = PUESTOS_RUTA.D, junto = aMundo('D', 0, 9.4), m = puntoDe('D', 'mostrador');
-  return { x: junto.x, z: junto.z, nombre: P.nombre, cargas: { x: m.x, z: m.z, y: T.altura(m.x, m.z) }, atiende: () => reparado(progreso(), 'D') };
+  return { x: junto.x, z: junto.z, nombre: P.nombre, cargas: { x: m.x, z: m.z, y: pisoDe(T, 'D').y0 }, atiende: () => reparado(progreso(), 'D') };
+}
+// El piso de la casilla y de su galería: un poco sobre lo más alto del terreno debajo (la pirca de piedra tapa la diferencia hasta lo más
+// bajo). { y0 (el piso), gmin, gmax }
+export function pisoDe(T, id) {
+  let gmin = Infinity, gmax = -Infinity;
+  for (let lx = -W / 2 - 0.3; lx <= W / 2 + 0.31; lx += 0.5) for (let lz = -D / 2 - 0.3; lz <= D / 2 + GAL + 0.16; lz += 0.5) {
+    const q = aMundo(id, lx, lz), h = T.altura(q.x, q.z);
+    gmin = Math.min(gmin, h); gmax = Math.max(gmax, h);
+  }
+  return { y0: gmax + 0.18, gmin, gmax };
 }
 
 // `ctx`: { T, escena, grupo (el de las estructuras, para el LOD por distancia), mat, col, cartel(texto, x, z, rot), sentaderos (los de las
@@ -39,13 +50,7 @@ export function crearPuestosRutaMundo(ctx) {
 
   for (const id of IDS_PUESTOS) {
     const def = PUESTOS_RUTA[id];
-    // el piso: un poco sobre lo más alto del terreno bajo la casilla (la pirca de piedra tapa la diferencia)
-    let gmin = Infinity, gmax = -Infinity;
-    for (let lx = -W / 2 - 0.3; lx <= W / 2 + 0.31; lx += 0.5) for (let lz = -D / 2 - 0.3; lz <= D / 2 + 0.31; lz += 0.5) {
-      const q = aMundo(id, lx, lz), h = T.altura(q.x, q.z);
-      gmin = Math.min(gmin, h); gmax = Math.max(gmax, h);
-    }
-    const y0 = gmax + 0.18;
+    const { y0, gmin, gmax } = pisoDe(T, id);
     const malla = new THREE.Mesh(new THREE.BufferGeometry(), ctx.mat);
     malla.name = `puesto-ruta:${id}`;
     malla.position.set(def.pos.x, y0, def.pos.z); malla.rotation.y = def.rot;
@@ -61,17 +66,19 @@ export function crearPuestosRutaMundo(ctx) {
     pared([-W / 2, -D / 2], [W / 2, -D / 2], HB);
     pared([-W / 2, -D / 2], [-W / 2, D / 2], HF);
     pared([W / 2, -D / 2], [W / 2, D / 2], HF);
-    col.agregarPlataforma({ x: def.pos.x, z: def.pos.z, ang: -def.rot, largo: W, ancho: D, alto: y0, espesor: y0 - gmin + 0.35, duenio: `puesto-ruta-${id}`, suelo: 'madera' });
+    // (el piso de adentro y el de la galería del frente, en una sola plataforma)
+    { const q = w(0, GAL / 2); col.agregarPlataforma({ x: q.x, z: q.z, ang: -def.rot, largo: W, ancho: D + GAL, alto: y0, espesor: y0 - gmin + 0.35, duenio: `puesto-ruta-${id}`, suelo: 'madera' }); }
     p.escalones = [];
     { let tope = 0;
-      for (let k = 0; k < 7; k++) {
-        const lz = D / 2 + 0.22 + k * 0.42, q = w(0, lz), suelo = T.altura(q.x, q.z) - y0;
-        if (k === 0 && suelo > -0.2) break;
-        tope = Math.max(suelo + 0.06, tope - 0.2);
+      // (escalones de 28 cm de alto y 38 de pisada: en la ladera del Paso la galería queda a metro y medio del suelo, que además baja)
+      for (let k = 0; k < 10; k++) {
+        const lz = D / 2 + GAL + 0.2 + k * 0.38, q = w(0, lz), suelo = T.altura(q.x, q.z) - y0;
+        if (k === 0 && suelo > -0.25) break;
+        tope = Math.max(suelo + 0.06, tope - 0.28);
         const alto = tope - suelo + 0.2;
         p.escalones.push({ lz, tope, alto });
-        col.agregarPlataforma({ x: q.x, z: q.z, ang: -def.rot, largo: 1.3, ancho: 0.44, alto: y0 + tope, espesor: alto, suelo: 'piedra', duenio: `puesto-ruta-${id}` });
-        if (tope - suelo < 0.1) break;
+        col.agregarPlataforma({ x: q.x, z: q.z, ang: -def.rot, largo: 1.3, ancho: 0.4, alto: y0 + tope, espesor: alto, suelo: 'piedra', duenio: `puesto-ruta-${id}` });
+        if (tope - suelo < 0.3) break;
       } }
     // el cartel con el nombre (el del Riel Sur lo pone trochita.js, en el andén)
     if (!def.parada && ctx.cartel) { const c = puntoDe(id, 'cartel'); ctx.cartel(def.nombre, c.x, c.z, def.rot); }
@@ -103,10 +110,16 @@ export function crearPuestosRutaMundo(ctx) {
     };
 
     // la pirca y el piso
-    const bajo = p.gmin - p.y0 - 0.3;
-    caja([W + 0.3, -0.05 - bajo, D + 0.3], [0, (bajo - 0.05) / 2, 0], PIEDRA, [0, 0, 0], 0.16);
+    // (la pirca va bajo la casilla y la galería del frente; la galería, de tablones: abandonado, le faltan unos cuantos)
+    const bajo = p.gmin - p.y0 - 0.3, z0 = -D / 2 - 0.15, z1 = D / 2 + GAL + 0.05;
+    caja([W + 0.3, -0.05 - bajo, z1 - z0], [0, (bajo - 0.05) / 2, (z0 + z1) / 2], PIEDRA, [0, 0, 0], 0.16);
     caja([W, 0.06, D], [0, -0.02, 0], '#7a6650', [0, 0, 0], 0.08);
-    for (const s of p.escalones) caja([1.3, s.alto, 0.44], [0, s.tope - s.alto / 2, s.lz], s.lz % 0.84 < 0.42 ? '#7f7a70' : '#77726a', [0, 0, 0], 0.1);
+    for (let x = -W / 2 + 0.15, k = 0; x < W / 2 - 0.1; x += 0.3, k++) {
+      if (e === 0 && (k % 4 === 1 || k === 10)) continue;
+      caja([0.28, 0.06, GAL], [x, -0.02, D / 2 + GAL / 2], e === 0 || k % 3 ? TABLA_VIEJA[k % 2] : TABLA_NUEVA, [0, 0, 0], 0.1);
+    }
+    caja([W + 0.1, 0.1, 0.12], [0, -0.08, D / 2 + GAL - 0.04], MADERA_OSCURA, [0, 0, 0], 0.05);
+    p.escalones.forEach((s, k) => caja([1.3, s.alto, 0.4], [0, s.tope - s.alto / 2, s.lz], k % 2 ? '#7f7a70' : '#77726a', [0, 0, 0], 0.1));
     // los esquineros y las soleras de arriba
     for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const h = sz > 0 ? HF : HB; palo(0.07, h, [sx * (W / 2 - 0.04), h / 2, sz * (D / 2 - 0.04)], [0, 0, 0]); }
     caja([W, 0.1, 0.1], [0, HF - 0.05, D / 2 - 0.04], MADERA_OSCURA, [0, 0, 0], 0.05);
@@ -140,21 +153,25 @@ export function crearPuestosRutaMundo(ctx) {
     });
     // las caídas: tiradas en el suelo, afuera, al pie de su pared (acostadas sobre el terreno, cada una a su altura)
     if (e === 0) caidas.slice(0, 9).forEach((t, k) => {
-      const fuera = 0.7 + r() * 0.9, largo = Math.min(1.9, t.y1 - t.y0);
+      // (cada una entera afuera de la pirca, que ocupa x ±2,45 y z de −1,85 a la punta de la galería: cayó hacia afuera, acostada a lo
+      // largo; las del frente, a los costados de la escalera)
+      const largo = Math.min(1.9, t.y1 - t.y0), mas = r() * 0.4, giro0 = (r() - 0.5) * 0.5;
       let lx = t.x, lz = t.z;
-      if (t.lado === 'frente') lz += fuera; else if (t.lado === 'fondo') lz -= fuera; else lx += (t.lado === 'der' ? 1 : -1) * fuera;
-      if (t.lado === 'frente' && Math.abs(lx) < 1.2) lx += lx < 0 ? -0.9 : 0.9;   // (no delante de la puerta: ahí está tirada la puerta)
-      const giro = (r() - 0.5) * 1.2 + (t.lado === 'izq' || t.lado === 'der' ? Math.PI / 2 : 0);
+      if (t.lado === 'izq' && Math.abs(lz) < 1.6) return;   // (al costado izquierdo está el alero del depósito, también caído)
+      if (t.lado === 'frente') { lz = D / 2 + GAL + 0.25 + largo / 2 + mas; lx = (t.x < 0 ? -1 : 1) * (1.3 + r() * 0.5); }
+      else if (t.lado === 'fondo') lz = -D / 2 - 0.4 - largo / 2 - mas;
+      else lx = (t.lado === 'der' ? 1 : -1) * (W / 2 + 0.4 + largo / 2 + mas);
+      const giro = giro0 + (t.lado === 'izq' || t.lado === 'der' ? Math.PI / 2 : 0);
       const ca = Math.cos(giro), sa = Math.sin(giro);
       const A = [lx - sa * largo / 2, 0, lz - ca * largo / 2], B = [lx + sa * largo / 2, 0, lz + ca * largo / 2];
       const ya = suelo(A[0], A[2]) + 0.025, yb = suelo(B[0], B[2]) + 0.025;
-      caja([0.29, 0.04, largo], [lx, (ya + yb) / 2, lz], TABLA_VIEJA[k % 2], [-Math.atan2(yb - ya, largo), giro, 0], 0.12);
+      caja([0.29, 0.04, largo], [lx, (ya + yb) / 2 + (k % 3) * 0.045, lz], TABLA_VIEJA[k % 2], [-Math.atan2(yb - ya, largo), giro, 0], 0.12);
     });
 
     // ---- la puerta: abandonado, tirada en el suelo delante; después, colgada y abierta hacia adentro, contra la pared
     if (e === 0) {
-      const lx = 0.5, lz = D / 2 + 1.25, ya = suelo(lx, lz - 0.95) + 0.03, yb = suelo(lx, lz + 0.95) + 0.03;
-      caja([0.88, 0.05, 1.9], [lx, (ya + yb) / 2 + 0.01, lz], '#6e5a44', [-Math.atan2(yb - ya, 1.9), 0.25, 0], 0.1);
+      // (tirada sobre la galería, cruzada)
+      caja([0.88, 0.05, 1.9], [0.75, 0.035, D / 2 + GAL / 2], '#6e5a44', [0, Math.PI / 2 - 0.12, 0], 0.1);
     } else caja([0.88, 1.92, 0.05], [PUERTA / 2 + 0.44, 0.98, D / 2 - 0.1], TABLA_NUEVA, [0, 0, 0], 0.08);
 
     // ---- el techo: una chapa a un agua del frente (alto) al fondo (bajo), con alero adelante
@@ -162,7 +179,8 @@ export function crearPuestosRutaMundo(ctx) {
     const yEn = (z) => yB + (yF - yB) * ((z - zB) / (zF - zB));
     const ancho = W + 0.7, tramo = ancho / 3;
     if (e >= 2) {
-      for (const sx of [-1, 0, 1]) palo(0.05, D + 0.3, [sx * (W / 2 - 0.5), (HF + HB) / 2 + 0.02, 0], [Math.PI / 2 - Math.atan2(HF - HB, D), 0, 0]);
+      const pend = Math.atan2(yF - yB, zF - zB);
+      for (const sx of [-1, 0, 1]) palo(0.05, D + 0.3, [sx * (W / 2 - 0.5), yEn(0) - 0.08, 0], [Math.PI / 2 - pend, 0, 0]);
       for (let k = 0; k < 3; k++) lamina([-ancho / 2 + tramo * (k + 0.5), yB, zB], [-ancho / 2 + tramo * (k + 0.5), yF, zF], tramo + 0.02, 0.04, k === 1 ? '#858d8f' : CHAPA_NUEVA, 0.05);
       // la salamandra adentro (al fondo a la izquierda) y su caño por el techo
       c.agregar(new THREE.CylinderGeometry(0.22, 0.24, 0.62, 8), { color: '#2f2c29', tipo: 4, variar: 0.05, matriz: matriz([-1.55, 0.31, -1.05]) });
@@ -177,7 +195,7 @@ export function crearPuestosRutaMundo(ctx) {
       const xd = 1.55, ym = (HF + HB) / 2 - 0.45, sF = (HF + 0.04 - ym) / (D / 2), sB = (HB + 0.04 - ym) / (D / 2);
       lamina([xd, ym + sB * -zB, zB], [xd, ym, 0], 1.3, 0.04, CHAPA_VIEJA, 0.18);
       lamina([xd, ym, 0], [xd, ym + sF * zF, zF], 1.3, 0.04, '#7d5236', 0.18);
-      palo(0.05, D + 0.3, [-(W / 2 - 0.5), (HF + HB) / 2 + 0.02, 0], [Math.PI / 2 - Math.atan2(HF - HB, D), 0, 0]);
+      palo(0.05, D + 0.3, [-(W / 2 - 0.5), yEn(0) - 0.08, 0], [Math.PI / 2 - Math.atan2(yF - yB, zF - zB), 0, 0]);
       entre([0.15, HF - 0.1, D / 2 - 0.15], [0.95, 0.06, -0.55], 0.05);
       // el tramo caído: apoyado en el suelo al costado derecho, de plano
       const lx = W / 2 + 1.1, lz = -0.3, ya = suelo(lx, lz - 1.1), yb = suelo(lx, lz + 1.1);
@@ -185,26 +203,28 @@ export function crearPuestosRutaMundo(ctx) {
     }
 
     // ---- el fogón: abandonado, piedras desparramadas y ceniza vieja; reparado, la ronda de piedras con leña y un tronco para sentarse
-    { const [fx, fz] = [3.3, D / 2 + 1.9], fy = suelo(fx, fz);
+    { const [fx, fz] = R_FOGON, fy = suelo(fx, fz);
       c.agregar(new THREE.CylinderGeometry(0.46, 0.5, 0.1, 9), { color: '#3a3632', tipo: 4, variar: 0.15, matriz: matriz([fx, fy - 0.02, fz]) });
       const n = e >= 3 ? 8 : 5;
       for (let k = 0; k < n; k++) {
-        const ang = (k / n) * Math.PI * 2 + (e >= 3 ? 0 : r() * 0.8), rad = e >= 3 ? 0.58 : 0.5 + r() * 0.7;
+        const ang = (k / n) * Math.PI * 2 + (e >= 3 ? 0 : r() * 0.8), rad = e >= 3 ? 0.58 : 0.5 + r() * 0.5;
         const sx = fx + Math.cos(ang) * rad, sz = fz + Math.sin(ang) * rad;
         caja([0.24, 0.17, 0.2], [sx, suelo(sx, sz) + 0.06, sz], k % 2 ? '#6d6862' : '#5e5a55', [r() * 0.3, ang + r() * 0.6, r() * 0.3], 0.15);
       }
       if (e >= 3) {
         for (let k = 0; k < 3; k++) { const ang = k * 2.1 + 0.3; palo(0.06, 0.7, [fx + Math.cos(ang) * 0.12, fy + 0.11, fz + Math.sin(ang) * 0.12], [Math.PI / 2 - 0.25, 0, ang], '#5b4330'); }
-        const [tx, tz] = [4.35, D / 2 + 2.75], ty = suelo(tx, tz);
+        const [tx, tz] = R_TRONCO, ty = suelo(tx, tz);
         c.agregar(new THREE.CylinderGeometry(0.22, 0.24, 0.48, 8), { color: '#6b5138', tipo: 0, matriz: matriz([tx, ty + 0.2, tz]) });
       } }
 
     // ---- el alero del depósito (a la izquierda): abandonado, los postes y la chapa en el suelo; reparado, en pie y con lo guardado
     { const x0 = -W / 2, x1 = -W / 2 - 1.9, zs = [-1.2, 1.2];
       if (e >= 3) {
-        for (const z of zs) { const s = suelo(x1 + 0.08, z); palo(0.07, 1.55 - s + 0.1, [x1 + 0.08, s + (1.55 - s + 0.1) / 2 - 0.1, z], [0, 0, 0]); }
-        caja([0.1, 0.1, 2.6], [x1 + 0.08, 1.52, 0], MADERA_OSCURA, [0, 0, 0], 0.05);
-        const yAlto = 1.8, yBajo = 1.58, l = Math.hypot(x0 - x1, yAlto - yBajo);
+        // (en una ladera el suelo del alero queda abajo de la casilla: los postes no pasan de 2 m sobre el suelo y la chapa baja más)
+        const sPost = Math.min(...zs.map((z) => suelo(x1 + 0.08, z))), yBajo = Math.min(1.58, sPost + 2.0), yAlto = 1.8;
+        for (const z of zs) { const s = suelo(x1 + 0.08, z), largo = yBajo - 0.02 - (s - 0.1); palo(0.07, largo, [x1 + 0.08, s - 0.1 + largo / 2, z], [0, 0, 0]); }
+        caja([0.1, 0.1, 2.6], [x1 + 0.08, yBajo - 0.06, 0], MADERA_OSCURA, [0, 0, 0], 0.05);
+        const l = Math.hypot(x0 - x1, yAlto - yBajo);
         caja([l + 0.2, 0.04, 2.9], [(x0 + x1) / 2, (yAlto + yBajo) / 2 + 0.03, 0], CHAPA_NUEVA, [0, 0, Math.atan2(yAlto - yBajo, x0 - x1)], 0.05);
         // la tarima y las pilas (cuánto hay de cada cosa, en cuatro pasos: almacen.js)
         // (la tarima, sobre unas piedras: de lo más bajo del suelo debajo a un poco más arriba de lo más alto)
@@ -226,7 +246,7 @@ export function crearPuestosRutaMundo(ctx) {
 
     // ---- reparado: el banco del frente, la ventanilla abierta con su mostrador y el catre de adentro
     if (e >= 3) {
-      const [bx, bz] = [1.35, D / 2 + 0.42], by = suelo(bx, bz);
+      const [bx, bz] = [1.35, D / 2 + 0.42], by = 0;   // (sobre la galería)
       caja([1.2, 0.06, 0.34], [bx, by + 0.46, bz], TABLA_NUEVA, [0, 0, 0], 0.06);
       for (const dx of [-0.5, 0.5]) caja([0.08, 0.46, 0.3], [bx + dx, by + 0.23, bz], MADERA_OSCURA, [0, 0, 0], 0.05);
       const xv = (VENTANA[0] + VENTANA[1]) / 2;
@@ -244,10 +264,10 @@ export function crearPuestosRutaMundo(ctx) {
     // los asientos (el banco y el tronco del fogón) y la cubierta del techo, una vez, al llegar a su etapa
     if (e >= 3 && !p.sentados && ctx.sentaderos) {
       p.sentados = true;
-      const b = aMundo(id, 1.35, D / 2 + 0.42), t = aMundo(id, 4.35, D / 2 + 2.75);
-      const f = aMundo(id, 3.3, D / 2 + 1.9);
+      const b = aMundo(id, 1.35, D / 2 + 0.42), t = aMundo(id, R_TRONCO[0], R_TRONCO[1]);
+      const f = aMundo(id, R_FOGON[0], R_FOGON[1]);
       // (`mira`: el que se sienta mira hacia (−sen, −cos) de su ángulo: el banco, hacia afuera; el tronco, al fuego)
-      ctx.sentaderos.push({ x: b.x, z: b.z, y: T.altura(b.x, b.z) + 0.49, nombre: `el banco del ${def.nombre.toLowerCase()}`, mira: def.rot + Math.PI, puestoRuta: id });
+      ctx.sentaderos.push({ x: b.x, z: b.z, y: p.y0 + 0.49, nombre: `el banco del ${def.nombre.toLowerCase()}`, mira: def.rot + Math.PI, puestoRuta: id });
       ctx.sentaderos.push({ x: t.x, z: t.z, y: T.altura(t.x, t.z) + 0.44, nombre: 'el tronco junto al fogón', mira: Math.atan2(-(f.x - t.x), -(f.z - t.z)), puestoRuta: id });
     }
     if (e >= 2 && !p.techo && ctx.cubiertas) {
@@ -261,7 +281,7 @@ export function crearPuestosRutaMundo(ctx) {
   return {
     puestos,
     // lo que no tiene que tener árboles, pasto ni objetos sueltos encima (la casilla, el depósito, el fogón y el cartel)
-    zonas: IDS_PUESTOS.map((id) => ({ x: PUESTOS_RUTA[id].pos.x, z: PUESTOS_RUTA[id].pos.z, r: 7, nombre: PUESTOS_RUTA[id].nombre })),
+    zonas: IDS_PUESTOS.map((id) => ({ x: PUESTOS_RUTA[id].pos.x, z: PUESTOS_RUTA[id].pos.z, r: 7.5, nombre: PUESTOS_RUTA[id].nombre })),
     // se rehace la malla del puesto si cambió su etapa o lo guardado (devuelve si cambió)
     refrescar: (id) => (puestos[id] ? armar(id) : false),
     refrescarTodos: () => IDS_PUESTOS.map((id) => armar(id)).some(Boolean),

@@ -221,6 +221,9 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
   // el Riel Sur comercia por la trochita (con fletes): la E de acá no abre un panel aparte
   for (let i = 0; i < 3; i++) R.repararEtapa(p, 'D', { tabla: 99, piedra: 99 });
   ok(J.accion(js('D', 'mostrador'))?.tipo !== 'comerciar', 'en el Riel Sur la ventanilla es el puesto de cargas de la trochita');
+  // el mapa: los tres que no son parada (el del Riel Sur sale con las paradas), con cómo están
+  eq(J.marcasMapa().map((m) => m.nombre), ['Puesto de la Cantera', 'Puesto del Paso (abandonado)', 'Puesto de la Estepa (abandonado)'], 'el mapa rotula los puestos');
+  ok(leer('src/main.js').includes("for (const m of puestosJuego.marcasMapa()) marcas.push({ ...m, tipo: 'parada' });"), 'main.js los pone en el mapa');
   // en el otro modo, nada
   const J2 = crearPuestosRutaJuego({ progreso: () => p, desafio: () => true });
   ok(J2.accion(js('A', 'puerta')) === null && J2.fogonCerca(R.puntoDe('A', 'fogon')) === null, 'en el otro modo, nada');
@@ -313,10 +316,18 @@ const partida = (x = {}) => ({ modo: 'relax', dia: 5, horas: 12, economia: { ...
     ok(mundo.refrescar(id) && tris(id) > antes, `${id}: lo guardado se ve en el alero (${antes} → ${tris(id)} triángulos)`);
     ok(!mundo.refrescar(id), `${id}: sin cambios no se rehace nada`);
   }
+  console.log(`  triángulos|alto por etapa (0 a 3): ${JSON.stringify(firmas)}; escalones: ${IDS.map((id) => `${id} ${mundo.puestos[id].escalones.length}`).join(', ')}`);
   ok(sentaderos.length === 8 && sentaderos.every((s) => s.puestoRuta && Number.isFinite(s.y)), 'reparados: el banco y el tronco del fogón de cada uno son asientos');
   ok(cubiertas.length === 4, 'y bajo cada techo arreglado no llueve');
   // la casilla pisa firme: el piso sobre lo más alto del terreno y la pirca hasta lo más bajo
   for (const id of IDS) { const q = mundo.puestos[id]; ok(q.y0 > q.gmax && q.y0 - q.gmax < 0.25 && q.gmax - q.gmin < 2.5, `${id}: el piso a ${(q.y0 - q.gmin).toFixed(2)} m del punto más bajo (pirca)`); }
+  // a la galería se sube: los escalones llegan al suelo (o no hacen falta), de a menos de lo que sube el jugador (0,62 m)
+  for (const id of IDS) {
+    const q = mundo.puestos[id], es = q.escalones;
+    const ultimo = es.at(-1), pie = ultimo ? PR.aMundo(id, 0, ultimo.lz + 0.38) : PR.aMundo(id, 0, R.CASILLA.fondo / 2 + R.CASILLA.galeria + 0.3);
+    const desde = (ultimo ? q.y0 + ultimo.tope : q.y0) - T.altura(pie.x, pie.z);
+    ok(es.length < 10 && desde < 0.55 && es.every((s, i) => i === 0 || es[i - 1].tope - s.tope < 0.62), `${id}: ${es.length} escalones hasta el suelo (el último, a ${desde.toFixed(2)} m)`);
+  }
   // lo que choca: paredes con el hueco de la puerta y el piso para pararse adentro
   for (const id of IDS) {
     const c = R.PUESTOS_RUTA[id].pos;
