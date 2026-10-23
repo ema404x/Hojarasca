@@ -5,7 +5,8 @@ import { sanearAsedio } from './desafio-asedio.js';
 import { APAGON, sanearBestiario, sanearDespues } from './desafio-noche2.js';
 import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR } from './desafio-valle.js';
 import { multiplicadorVuelta } from './desafio-vuelta.js';
-import { sanearOrdenes } from './desafio-ordenes.js';
+// 4.9 aliados: y los puestos marcados
+import { sanearOrdenes, sanearPuestosAliados } from './desafio-ordenes.js';
 import { VOLADOR, voladoresEnLaNoche } from './desafio-cielo.js';
 import { sanearCapullos } from './desafio-infestacion.js';
 import { sanearVarada } from './desafio-varada.js';
@@ -404,7 +405,7 @@ export const COMPANEROS = {
 export function desafioNuevo() {
   return { salud: SALUD_MAX, oleadas: 0, noches: 0, derrotas: 0, oleadaNoche: null, oleadaTerminada: true, vivos: 0, abatidos: 0,
     flechas: 0, cargas: 0, emplastos: 1, boleadoras: 0, pistolaEncontrada: false, mejorRacha: 0, racha: 0, caja: null,
-    recetasHechas: [], planos: [], restos: null, companeros: [], ordenes: {}, abatidosPerro: 0, especial: null, especialAnterior: null,
+    recetasHechas: [], planos: [], restos: null, companeros: [], ordenes: {}, puestosAliados: {}, abatidosPerro: 0, especial: null, especialAnterior: null,
     // 4.8 noches: el giro de esta noche ({ id, noche }), la noche en que ya se decidió y el último que hubo; y la cadena de noches
     giro: null, giroNoche: -1, giroAnterior: null, cadena: cadenaNueva(),
     victoria: false, nodriza: null, tutorial: 0,
@@ -498,6 +499,7 @@ export function sanearDesafio(d) {
         ...(x.restos.dormidos ? { dormidos: true } : {}), ...(dispRuina(x.restos.disp) ? { disp: dispRuina(x.restos.disp) } : {}) } : null,
     companeros: lista(x.companeros, ['ramon', 'ema']),
     ordenes: sanearOrdenes(x.ordenes),
+    puestosAliados: sanearPuestosAliados(x.puestosAliados),   // 4.9 aliados: dónde marcó el jugador el puesto de cada vecino (una partida vieja: ninguno)
     abatidosPerro: ent(x.abatidosPerro, 0),
     especial: ESPECIALES[x.especial] ? x.especial : null,
     especialAnterior: ESPECIALES[x.especialAnterior] ? x.especialAnterior : null,

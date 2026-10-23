@@ -9,6 +9,8 @@ import { COMPANEROS } from './desafio-reglas.js';
 import { FORTIN } from './desafio-fortin.js';
 import { avisoDelPerro, estaMirando } from './desafio-sentidos.js';
 import { ORDENES, RESPUESTAS, RADIO_ARREGLO, ordenDe, siguienteOrden, puntoDeOrden, centroDeArreglo, portonDeLaBase, velocidadSiguiendo, LEJOS_ALCANZA } from './desafio-ordenes.js';
+// 4.9 aliados: la orden «puesto» (marcar dónde se para cada uno) y la campana (que todos corran a su puesto)
+import { respuestaDe, marcaPuesto } from './desafio-ordenes.js';
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 
@@ -137,6 +139,7 @@ export function crearAliados(api) {
     return {
       base, porton: portonDeLaBase(api.portones?.() || [], base), i, puntoBase: puntoBase(i, 2),
       jugador: js ? { pos: js.pos, yaw: js.yaw } : { pos: base, yaw: 0 },
+      puesto: api.puestoDe?.(i === 0 ? 'ramon' : 'ema') || null,   // 4.9 aliados: el que marcó el jugador, o el de su oficio
     };
   }
   // Camina hasta `p`. Siguiéndote apura el paso, y si te fuiste lejos te alcanza.
@@ -144,7 +147,8 @@ export function crearAliados(api) {
     const r = npc.ruta[0];
     const d = Math.hypot(npc.pos.x - p.x, npc.pos.z - p.z);
     if (orden === 'seguime' && d > LEJOS_ALCANZA) npc.pos.set(p.x, api.alturaEn(p.x, p.z), p.z);
-    npc.velocidad = orden === 'seguime' ? velocidadSiguiendo(d) : 1.35;
+    npc.velocidad = orden === 'seguime' ? velocidadSiguiendo(d) : npc.corriendo ? 4.2 : 1.35;
+    if (npc.corriendo && (d < 1.5 || orden === 'seguime')) npc.corriendo = false;   // 4.9 aliados: la campana los hizo correr hasta su puesto
     if (orden === 'seguime') r.mirar = api.jugador()?.estado?.pos || r.mirar;
     if (Math.hypot(r.x - p.x, r.z - p.z) > 0.8 || d > 1.2) { r.x = p.x; r.z = p.z; npc.espera = 0; r.quieto = 0.5; }
   }
@@ -152,11 +156,14 @@ export function crearAliados(api) {
     const d = api.D();
     if (!activos.has(clave) || !ORDENES[clave]) return null;
     if (!d.ordenes) d.ordenes = {};
-    const orden = siguienteOrden(clave, ordenDe(d.ordenes, clave));
+    const anterior = ordenDe(d.ordenes, clave);   // 4.9 aliados
+    const orden = siguienteOrden(clave, anterior);
     d.ordenes[clave] = orden;
     const c = activos.get(clave);
     c.t = 0; c.tMover = 0; c.obra = null;
-    return { orden, respuesta: RESPUESTAS[clave][orden] };
+    // 4.9 aliados: de «vení conmigo» a «quedate acá», el puesto es donde está parado
+    if (marcaPuesto(anterior, orden)) { if (!d.puestosAliados) d.puestosAliados = {}; d.puestosAliados[clave] = { x: c.npc.pos.x, z: c.npc.pos.z }; }
+    return { orden, respuesta: respuestaDe(clave, orden) };
   }
 
   // 2.5: el cuerno de guardia. Todos los que están en la base vienen a tu lado (la orden
@@ -169,6 +176,19 @@ export function crearAliados(api) {
       if (!ORDENES[clave]?.includes('seguime')) continue;
       d.ordenes[clave] = 'seguime';
       c.t = 0; c.tMover = 0; c.obra = null;
+      n++;
+    }
+    return n;
+  }
+  // 4.9 aliados: la campana. Los que están en la base pasan a «puesto» y corren hasta ahí. Devuelve cuántos.
+  function alarma() {
+    const d = api.D();
+    if (!d.ordenes) d.ordenes = {};
+    let n = 0;
+    for (const [clave, c] of activos) {
+      if (!ORDENES[clave]) continue;
+      d.ordenes[clave] = 'puesto';
+      c.t = 0; c.tMover = 0; c.obra = null; c.npc.corriendo = true;
       n++;
     }
     return n;
@@ -239,7 +259,8 @@ export function crearAliados(api) {
   }
 
   return {
-    objetivoPerro, actualizarPerro, actualizarCompaneros, revisarLlegadas, restaurar, sumar, ordenar, llamar,
+    objetivoPerro, actualizarPerro, actualizarCompaneros, revisarLlegadas, restaurar, sumar, ordenar, llamar, alarma,
+    obraDe: (clave) => activos.get(clave)?.obra || null,   // 4.9 aliados: en qué obra está trabajando (para que Anselmo no vaya a la misma)
     get alertaPerro() { return perro.alerta || null; },
     get avisoPerro() { return perro.aviso || null; },
     ordenDe: (clave) => ordenDe(api.D().ordenes, clave),
