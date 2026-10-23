@@ -138,7 +138,7 @@ for (const n of [1, 3, 9, 30]) { const c = suministrosDelAlba(n, true); assert.d
   assert.deepEqual([p.materiales.piedra, p.desafio.robados], [2, {}], 'lo guardado vuelve al abrir');
 }
 // las reglas del código
-for (const f of ['src/desafio-duendes.js', 'src/duendes-modelo.js', 'src/desafio-duendes-reglas.js']) {
+for (const f of ['src/desafio-duendes.js', 'src/duendes-modelo.js', 'src/desafio-duendes-reglas.js', 'src/duendes-modelo-nuevos.js']) {   // 4.8 ataques: y el de los nuevos
   const t = leer(f);
   assert.ok(!/ShapeGeometry|new THREE\.Shape\b|OctahedronGeometry|Vector4|Frustum/.test(t), `${f}: usa algo que el three local no trae`);
   assert.ok(!/^export (async function|function\*)|^export .* from /m.test(t), `${f}: export que armar.mjs no entiende`);
@@ -161,6 +161,7 @@ const visitar = (f) => {
   orden.push(f);
 };
 visitar(path.join(src, 'duendes-modelo.js'));
+visitar(path.join(src, 'duendes-modelo-nuevos.js'));   // 4.8 ataques: el curandero y el enjambre se anotan en DUENDES desde acá
 const transformar = (f, t) => {
   const ex = [...t.matchAll(/^export\s+(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
   t = t.replace(/^import\s+\*\s+as\s+THREE\s+from\s+['"]three['"]\s*;\s*$/gm, '');

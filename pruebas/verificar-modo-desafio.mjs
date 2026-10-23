@@ -25,9 +25,11 @@ assert.equal(relojCorto(75), '1:15');
 let anterior = 0;
 for (let n = 1; n <= 12; n++) {
   const o = composicionOleada(n);
-  assert.ok(o.length >= anterior && o.length <= 18, `oleada ${n} fuera de rango`);
+  // 4.8 ataques: el enjambre no cuenta para el techo de 18 (tiene su propio cupo, aparte)
+  const sinEnjambre = o.filter((t) => t !== 'enjambre');
+  assert.ok(sinEnjambre.length >= anterior && sinEnjambre.length <= 18, `oleada ${n} fuera de rango`);
   assert.ok(o.every((t) => TIPOS_ALIEN[t]), `oleada ${n} con tipo desconocido`);
-  anterior = o.length;
+  anterior = sinEnjambre.length;
 }
 assert.deepEqual(composicionOleada(1), ['rastreador', 'rastreador', 'rastreador'], 'la primera noche es suave');
 assert.ok(composicionOleada(2).includes('bruto'), 'la segunda noche trae un bruto');

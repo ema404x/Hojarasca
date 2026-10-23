@@ -16,6 +16,9 @@ export const DUENDE_DE = {
   // (y los que no son un tipo: el mutado es «el Viejo», el adaptado «el Baqueano»)
   mutado: 'Viejo', adaptado: 'Baqueano',
 };
+// 4.8 ataques: los dos nuevos (el que cura desde atrás y el montón de duendecitos)
+DUENDE_DE.curandero = 'yuyero';
+DUENDE_DE.enjambre = 'duendecito';
 // Los que siempre son viejos (no tienen pinta de travieso).
 export const SIEMPRE_VIEJOS = new Set(['bruto', 'jefe']);
 

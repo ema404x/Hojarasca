@@ -67,7 +67,7 @@ export function composicionSinFin(n, claveDificultad = 'normal', vuelta = 0) {
   }
   while (lista.length > tope) lista.pop();
   // agrupados como en la campaña: primero los rápidos, después los pesados
-  const orden = ['rastreador', 'bruto', 'tirador', 'saltador', 'escupidor', 'excavador', 'volador'];
+  const orden = ['rastreador', 'bruto', 'tirador', 'saltador', 'escupidor', 'excavador', 'volador', 'curandero', 'enjambre'];   // 4.8 ataques: los nuevos, al final
   lista.sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
   if (jefe) lista.push('jefe');
   return lista;

@@ -21,6 +21,10 @@ import { TIPOS_ALIEN } from './desafio-reglas.js';
 import { armarDuende, armarLechuza, DUENDES, HUESO, N_HUESOS, mallaNido, mallaMadriguera, mallaCofre } from './duendes-modelo.js';
 import { materialGente } from './gente-cuerpo.js';
 import { ETAPAS } from './desafio-duendes-reglas.js';
+// 4.8 ataques: el curandero y el enjambre
+import { registrarDuendesNuevos } from './duendes-modelo-nuevos.js';
+
+registrarDuendesNuevos();
 
 const H = HUESO;
 // El detalle de cerca y de lejos, y desde dónde se usa el de lejos (con un margen para no titilar).
@@ -140,7 +144,8 @@ function modelo(tipo, viejo, look, lejos) {
   const P = viejo ? spec.viejo : spec.travieso;
   const det = lejos ? DETALLE_LEJOS : DETALLE_CERCA;
   const semilla = 11 + look * 7 + (viejo ? 3 : 0);
-  const r = tipo === 'volador' ? armarLechuza(P, semilla, det) : armarDuende(P, semilla, det);
+  // 4.8 ataques: el enjambre se arma con menos detalle (son doce de 30 cm: no se les ven los dedos)
+  const r = tipo === 'volador' ? armarLechuza(P, semilla, det) : armarDuende(P, semilla, tipo === 'enjambre' ? det * 0.55 : det);
   const def = TIPOS_ALIEN[tipo] || TIPOS_ALIEN.rastreador;
   // la escala: el de cerca manda (el de lejos usa la misma, así no salta al cambiar)
   const cerca = lejos ? modelo(tipo, viejo, look, false) : null;
