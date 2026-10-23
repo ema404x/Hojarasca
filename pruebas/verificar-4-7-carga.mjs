@@ -91,6 +91,7 @@ function armarMundo(progreso, extra = {}) {
     lugarPara: C.lugarPara, tratoCabe: C.tratoCabe, textoLugares: C.textoLugares,
     jugador: { estado: { montado: extra.montado ? {} : null } },
     nota: (t, s) => avisos.push([t, s]),
+    avisoMochilaLlena: () => {},   // 4.7 (junta): el cartel corto de carga-pantalla.js (en Node no hay HUD)
   };
   const env = { ...base, ...extra };
   env.ctxCarga = expresion(main, 'const ctxCarga = ', env);

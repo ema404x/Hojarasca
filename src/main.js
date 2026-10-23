@@ -4269,6 +4269,7 @@ function nombreCarga(k) {
 function cabeJuntar(k, n = 1) {
   if (lugarEn(k, n) >= n) return true;
   nota(`Mochila llena: no te entra más ${nombreCarga(k)}`, 'Gastá, vendé o guardá algo en un depósito');
+  avisoMochilaLlena('Mochila llena');   // 4.7 (junta): el cartel corto junto a la barra, además de la nota
   return false;
 }
 // Un trato entero (compra, cobro, recompensa): ¿entra todo lo que da, descontando lo que sale? Si no, avisa y devuelve falso.
@@ -4277,6 +4278,7 @@ function cabeTrato(da, quita = null) {
   const r = tratoCabe(progreso, da, quita || {}, ctxCarga());
   if (r.ok) return true;
   nota(`No te entra: te ${r.faltan === 1 ? 'falta' : 'faltan'} ${textoLugares(r.faltan)}`, 'Hacé lugar en la mochila (gastá, vendé o guardá algo en un depósito)');
+  avisoMochilaLlena('Mochila llena');   // 4.7 (junta): el cartel corto junto a la barra, además de la nota
   return false;
 }
 // Lo mismo, sin avisar (para lo que se mira seguido o para decidir antes de avisar)
