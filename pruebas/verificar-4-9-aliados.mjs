@@ -287,8 +287,8 @@ function mundoDeMentira(opciones = {}) {
   const correr = (seg, hayDuendes = false) => { for (let t = 0; t < seg; t += 0.25) cuadro(0.25, hayDuendes); };
   return { mundo, estado, reloj, aliens, obras, log, npcs, js, tren, cuadro, correr, api };
 }
-const travieso = (x, z) => ({ estado: 'avanzar', tipo: 'rastreador', def: { vuela: false, altura: 1.2 }, m: { g: { position: { x, y: 0, z } }, esc: 1, viejo: () => false }, huyeT: 0 });
-const viejo = (x, z) => ({ ...travieso(x, z), m: { g: { position: { x, y: 0, z } }, esc: 1, viejo: () => true } });
+const travieso = (x, z) => ({ estado: 'avanzar', tipo: 'rastreador', def: { vuela: false, altura: 1.2 }, m: { g: { position: { x, y: 0, z } }, esc: 1, viejo: false }, huyeT: 0 });
+const viejo = (x, z) => ({ ...travieso(x, z), m: { g: { position: { x, y: 0, z } }, esc: 1, viejo: true } });
 const obraRota = (x, z, vida = 20) => ({ datos: { x, y: 0, z, vida }, plano: { id: 'empalizada' } });
 
 // ---- cuándo vienen
@@ -364,6 +364,17 @@ const obraRota = (x, z, vida = 20) => ({ datos: { x, y: 0, z, vida }, plano: { i
   m.api.obraDeRamon = () => o2[0];
   m.correr(8);
   ok(m.npcs[0].ruta[0].x < 0, 'va a la obra que no está arreglando Don Ramón');
+  // con dos igual de rotas no va y viene: termina una y sigue con la otra
+  {
+    const dos = [obraRota(8, 0, 20), obraRota(-8, 0, 20)];
+    const w = mundoDeMentira({ obras: dos, ayuda: { anselmo: 1, herminia: 0, martin: 0, chicos: 0 } });
+    w.correr(3);
+    const blancos = new Set();
+    for (let k = 0; k < 400 && !dos.some((o) => o.datos.vida >= 100); k++) { w.cuadro(0.25); blancos.add(Math.sign(w.npcs[0].ruta[0].x)); }
+    ok(blancos.size === 1, 'mientras no termina una, no cambia de obra');
+    w.correr(40);
+    ok(dos.every((o) => o.datos.vida === 100), 'y después arregla la otra');
+  }
   // sin nada roto, se queda en su puesto
   m = mundoDeMentira({ obras: [], ayuda: { anselmo: 1, herminia: 0, martin: 0, chicos: 0 } });
   m.correr(8);

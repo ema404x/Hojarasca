@@ -170,7 +170,8 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     if (c.tBuscar <= 0) {
       c.tBuscar = orden === 'seguime' ? 0.5 : 1;
       const centro = orden === 'seguime' ? js.pos : puestoDeAliado('anselmo');
-      const obra = api.obraMasDanada(centro, orden === 'seguime' ? 8 : num.radio, api.obraDeRamon?.() || null);
+      // sigue con la que empezó hasta dejarla entera; después va a la más rota que quede (si no, con dos igual de rotas iba y venía)
+      const obra = c.obra || api.obraMasDanada(centro, orden === 'seguime' ? 8 : num.radio, api.obraDeRamon?.() || null);
       if (obra !== c.obra) { npc.espera = 0; npc.ruta[0].quieto = 1; }
       c.obra = obra;
       if (obra) {
@@ -303,7 +304,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     let n = 0;
     for (const a of api.aliens) {
       if (a.estado === 'morir' || a.estado === 'irse' || a.estado === 'bajoTierra' || a.estado === 'dormido' || a.enNave) continue;
-      if (!silbatoDispersa(a.m.g.position, est.via, num.alcance, a.m.viejo())) continue;
+      if (!silbatoDispersa(a.m.g.position, est.via, num.alcance, !!a.m.viejo)) continue;
       a.huyeT = num.dispersa; a.huyeX = est.via.x; a.huyeZ = est.via.z;
       n++;
     }
@@ -380,7 +381,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
   // ---------------------------------------------------------------- lo que usa el resto del Desafío
   // El rumbo con que un duende viejo avanza, sin entrar al círculo de un fuego prendido. `rumbo`: hacia dónde iba (atan2(dx, dz)).
   function rumboDeViejo(a, rumbo) {
-    if (!est.lit.length || !a.m.viejo()) return rumbo;
+    if (!est.lit.length || !a.m.viejo) return rumbo;
     const p = a.m.g.position;
     ajusteDeViejo(Math.sin(rumbo), Math.cos(rumbo), p.x, p.z, est.lit, true, _s);
     return _s.tocado ? Math.atan2(_s.x, _s.z) : rumbo;
