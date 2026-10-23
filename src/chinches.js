@@ -76,7 +76,13 @@ export function marcasAutomaticas({ desafio, lugares } = {}) {
     sumar(desafio.capsula, 'cofre de los duendes', 'capsula');
     sumar(desafio.restos, 'tronco hueco', 'restos');
     // 3.0: el asedio: las agujas, las balizas y la nave asentada
-    for (const m of desafio.asedio?.marcas?.() || []) sumar(m, m.nombre, 'asedio');
+    for (const m of desafio.asedio?.marcas?.() || []) {
+      // 4.10 coihue: la ruta que le queda al Coihue (una línea a lápiz, no un punto)
+      if (m.clase === 'ruta') { if (Array.isArray(m.puntos) && m.puntos.length >= 2) marcas.push({ x: Number(m.x), z: Number(m.z), nombre: '', clase: 'ruta', puntos: m.puntos }); continue; }
+      sumar(m, m.nombre, 'asedio');
+    }
+    // 4.10 coihue: los lugares del valle que tomaron los duendes (una mancha a tinta con hongos)
+    for (const m of desafio.valle?.marcas?.() || []) marcas.push({ x: Number(m.x), z: Number(m.z), nombre: m.nombre, clase: 'tomada', radio: Number(m.radio) || 18, nivel: Number(m.nivel) || 1 });
     // El nido, una vez ubicado. Mientras se lo busca va el cerco, que lleva radio.
     const n = desafio.nido;
     if (n && !n.caido) {

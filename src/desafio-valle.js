@@ -210,3 +210,113 @@ export function eficacia(efecto, tipo) {
   return 1;
 }
 export const clampEfecto = (v) => clamp(v, 0, 5);
+
+// ---------------------------------------------------------------- 11. 4.10 coihue: lugares del valle que toman los duendes
+// Desde la noche 3, cada tanto los duendes toman un lugar del valle (la estación, la orilla del lago, el bosque de
+// arrayanes: los mismos de las raíces del asedio, `ZONAS_ASEDIO`, y los mismos puntos). El lugar se oscurece, le
+// crecen hongos y le baja la bruma; mientras esté tomado no se talan sus árboles ni se pican sus piedras ni se
+// juntan los recursos del mapa de ahí, y de noche salen duendes de ese lugar. Cada lugar tomado tiene su nido de
+// hongos (ver `desafio-infestacion.js`: el mismo nido, que se quema o se rompe a golpes). Si lo sacás de día, el
+// lugar baja un escalón; si lo dejás, el nido se abre de noche y el lugar se cierra un escalón más. Con todos los
+// nidos fuera y el lugar en 0, queda recuperado (con premio) y unas noches de respiro. Al empezar el asedio de la
+// noche final, las raíces del Coihue ocupan su lugar y esto se cierra.
+export const TOMADAS = {
+  ids: ['estacion', 'lago', 'bosque'],
+  desdeNoche: 3,        // la primera noche en que pueden tomar un lugar
+  cadaNoches: 2,        // y una nueva cada tantas noches...
+  maxTomadas: 2,        // ...sin pasar de estos a la vez
+  nivelMax: 3,          // lo más oscuro que llega
+  radio: 18,            // la mancha (metros)
+  respiro: 2,           // noches sin que vuelvan a tomarlo
+  premio: 2,            // semillas doradas por recuperarlo
+  nidoRadio: [3, 11],   // a cuánto del centro crece su nido
+};
+const NOMBRE_TOMADA = { estacion: 'la estación', lago: 'la orilla del lago', bosque: 'el bosque de arrayanes' };
+export const nombreTomada = (id) => (Object.hasOwn(NOMBRE_TOMADA, id) ? NOMBRE_TOMADA[id] : 'el lugar');
+
+// `zonas`: [{ id, x, z }] ya ubicadas (ver `ubicarZonas` de desafio-asedio.js; se ignora la base).
+export function valleNuevo(zonas) {
+  const lista = (Array.isArray(zonas) ? zonas : []).filter((z) => z && TOMADAS.ids.includes(z.id) && Number.isFinite(Number(z.x)) && Number.isFinite(Number(z.z)));
+  const vistas = new Set(), sal = [];
+  for (const z of lista) { if (vistas.has(z.id)) continue; vistas.add(z.id); sal.push({ id: z.id, x: Number(z.x), z: Number(z.z), nivel: 0, hasta: 0 }); }
+  return sal.length ? { zonas: sal, cerrado: false, tomadas: 0, recuperadas: 0 } : null;
+}
+export function sanearValle(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v) || !Array.isArray(v.zonas)) return null;
+  const fin = (n) => n !== null && n !== '' && typeof n !== 'boolean' && Number.isFinite(Number(n));
+  const vistas = new Set(), zonas = [];
+  for (const z of v.zonas.slice(0, 8)) {
+    if (!z || typeof z !== 'object' || !TOMADAS.ids.includes(z.id) || vistas.has(z.id) || !fin(z.x) || !fin(z.z) || Math.abs(Number(z.x)) > 1e5 || Math.abs(Number(z.z)) > 1e5) continue;
+    vistas.add(z.id);
+    zonas.push({ id: z.id, x: Number(z.x), z: Number(z.z), nivel: Math.max(0, Math.min(TOMADAS.nivelMax, Math.floor(fin(z.nivel) ? Number(z.nivel) : 0))), hasta: Math.max(0, Math.min(1e6, Math.floor(fin(z.hasta) ? Number(z.hasta) : 0))) });
+  }
+  if (!zonas.length) return null;
+  const cerrado = !!v.cerrado;
+  if (cerrado) for (const z of zonas) z.nivel = 0;
+  return { zonas, cerrado, tomadas: Math.max(0, Math.min(1e4, Math.floor(fin(v.tomadas) ? Number(v.tomadas) : 0))), recuperadas: Math.max(0, Math.min(1e4, Math.floor(fin(v.recuperadas) ? Number(v.recuperadas) : 0))) };
+}
+export const zonasTomadasDelValle = (v) => (v && !v.cerrado ? v.zonas.filter((z) => z.nivel > 0) : []);
+export function defTomada(v, id) { return v?.zonas?.find((z) => z.id === id) || null; }
+// Al amanecer de la noche `noche` (la que viene): ¿toman un lugar? Devuelve los sucesos [{ tipo: 'tomada', id }].
+export function tomarAlAmanecer(v, noche, azar = Math.random) {
+  if (!v || v.cerrado || noche < TOMADAS.desdeNoche) return [];
+  if ((noche - TOMADAS.desdeNoche) % TOMADAS.cadaNoches !== 0 || zonasTomadasDelValle(v).length >= TOMADAS.maxTomadas) return [];
+  const libres = v.zonas.filter((z) => z.nivel === 0 && noche >= z.hasta);
+  if (!libres.length) return [];
+  const z = libres[Math.floor(azar() * libres.length) % libres.length];
+  z.nivel = 1;
+  v.tomadas = (v.tomadas || 0) + 1;
+  return [{ tipo: 'tomada', id: z.id }];
+}
+// Cuántos nidos le tocan a un lugar tomado: uno, y dos en lo más oscuro.
+export const nidosDeZona = (z) => (z.nivel >= TOMADAS.nivelMax ? 2 : z.nivel > 0 ? 1 : 0);
+// Un lugar para el nido de la zona (cerca del centro, que `esBueno` lo permita y lejos de los otros nidos).
+export function lugarNidoDeZona(z, otros, esBueno = () => true, azar = Math.random) {
+  const [r0, r1] = TOMADAS.nidoRadio;
+  for (let i = 0; i < 40; i++) {
+    const a = azar() * Math.PI * 2, r = r0 + azar() * (r1 - r0), x = z.x + Math.cos(a) * r, zz = z.z + Math.sin(a) * r;
+    if (!esBueno(x, zz) || otros.some((c) => Math.hypot(c.x - x, c.z - zz) < 6)) continue;
+    return { x: Math.round(x * 10) / 10, z: Math.round(zz * 10) / 10 };
+  }
+  return null;
+}
+// El nido de una zona se abrió esa noche (nadie lo sacó): el lugar se cierra un escalón más. Devuelve qué más sale.
+export function extraDeZona(z) {
+  return z.nivel >= 3 ? ['saltador', 'rastreador'] : z.nivel >= 2 ? ['saltador'] : [];
+}
+export function abrirseNidoDeZona(v, id) {
+  const z = defTomada(v, id);
+  if (!z || v.cerrado || z.nivel <= 0) return { ok: false };
+  z.nivel = Math.min(TOMADAS.nivelMax, z.nivel + 1);
+  return { ok: true, nivel: z.nivel };
+}
+// Sacaron un nido de la zona (de día); `quedan`: cuántos nidos de esa zona siguen. Sin ninguno, baja un escalón.
+export function sacaronNidoDeZona(v, id, quedan, noche = 0) {
+  const z = defTomada(v, id);
+  if (!z || v.cerrado || z.nivel <= 0) return { ok: false };
+  if (quedan > 0) return { ok: true, baja: false, nivel: z.nivel };
+  z.nivel -= 1;
+  if (z.nivel > 0) return { ok: true, baja: true, nivel: z.nivel };
+  z.hasta = noche + TOMADAS.respiro;
+  v.recuperadas = (v.recuperadas || 0) + 1;
+  return { ok: true, baja: true, nivel: 0, recuperada: true, premio: TOMADAS.premio };
+}
+// Al empezar el asedio, las raíces del Coihue ocupan su lugar.
+export function cerrarValle(v) {
+  if (!v) return;
+  v.cerrado = true;
+  for (const z of v.zonas) z.nivel = 0;
+}
+// ¿Este punto está en un lugar tomado? Devuelve la zona o null.
+export function tomadaEn(v, x, z, margen = 0) {
+  for (const q of zonasTomadasDelValle(v)) if (Math.hypot(q.x - x, q.z - z) < TOMADAS.radio + margen) return q;
+  return null;
+}
+// Para el mapa de papel: una mancha por lugar tomado.
+export function marcasValle(v) {
+  return zonasTomadasDelValle(v).map((z) => ({ x: z.x, z: z.z, nombre: `${nombreTomada(z.id)}, tomada`, clase: 'tomada', radio: TOMADAS.radio, nivel: z.nivel }));
+}
+export function textoValle(v) {
+  const n = zonasTomadasDelValle(v).length;
+  return n ? `${n === 1 ? 'Un lugar tomado' : `${n} lugares tomados`}` : '';
+}

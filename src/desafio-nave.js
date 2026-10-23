@@ -146,3 +146,82 @@ export function fueraDelCuerpo(dx, dz, radio = 0.4) {
   if (d >= min) return { dx, dz, adentro: false };
   return { dx: dx / d * min, dz: dz / d * min, adentro: true };
 }
+
+// ---------------------------------------------------------------- 4.10 coihue: los peligros de la subida
+// Subiendo por la escalera de raíces (antes de la puerta del corazón) hay dos cosas, las dos con aviso y las dos
+// esquivables, y ninguna te deja encerrado:
+//   · las raíces que se mueven: una raíz sale de la pared, el escalón brilla un instante (aviso), barre el
+//     tramo de arriba para abajo (te tira para atrás si te agarra, con un golpe chico), queda atravesada unos
+//     segundos y se vuelve a meter en la pared. Sólo empieza cuando estás cerca, y siempre se retira.
+//   · los duendes de las ramas: salen de sus casitas, chillan (aviso) y tiran una semilla de ámbar. Se esconden si
+//     te acercás, y si les pegás se van un rato (a la segunda, del todo, hasta que vuelvas a subir).
+// Con poca salud (menos de `saludMinima`) no hacen daño: la subida no es el lugar donde se pierde la partida.
+export const PELIGROS = {
+  raices: { aviso: 1.8, barrido: 0.8, tapa: 3.2, vuelta: 1.0, reposo: [4.8, 4.0, 3.4], cerca: 13, barre: 2.8, banda: 0.9, dano: 7, empuje: 7 },
+  ramas: { vida: 36, aviso: 1.2, cada: 5.6, dano: 6, alcance: 10.5, minimo: 3.5, retiro: 9, vel: 11 },
+  saludMinima: 30,
+};
+export function periodoRaiz(i = 0) {
+  const r = PELIGROS.raices;
+  return r.reposo[Math.abs(Math.floor(i)) % r.reposo.length] + r.aviso + r.barrido + r.tapa + r.vuelta;
+}
+// En qué parte del ciclo está una raíz a los `t` segundos: { fase, u (0 a 1 dentro de la fase) }.
+export function faseRaiz(t, i = 0) {
+  const r = PELIGROS.raices, R = r.reposo[Math.abs(Math.floor(i)) % r.reposo.length];
+  const partes = [['reposo', R], ['aviso', r.aviso], ['barrido', r.barrido], ['tapa', r.tapa], ['vuelta', r.vuelta]];
+  let x = Math.max(0, t);
+  for (const [fase, dur] of partes) {
+    if (x < dur) return { fase, u: dur > 0 ? x / dur : 1 };
+    x -= dur;
+  }
+  return { fase: 'reposo', u: 0 };
+}
+// Avanza el reloj de una raíz (`r.t`, `r.i`). Sólo arranca el aviso si hay alguien cerca; una vez empezado, termina siempre.
+export function avanzarRaiz(r, dt, cerca) {
+  const R = PELIGROS.raices.reposo[Math.abs(Math.floor(r.i)) % PELIGROS.raices.reposo.length];
+  if (!cerca && r.t < R) { r.t = 0; return; }
+  r.t += dt;
+  if (r.t >= periodoRaiz(r.i)) r.t = 0;
+}
+// Dónde está el barredor a lo largo del escalón (m desde el centro; positivo es hacia arriba): sube desde +barre/2,
+// baja hasta -barre/2 con el barrido y se queda ahí atravesado. Antes del barrido está arriba, al final.
+export function posicionBarrido(fase, u) {
+  const m = PELIGROS.raices.barre / 2;
+  if (fase === 'barrido') { const e = u * u * (3 - 2 * u); return m - 2 * m * e; }
+  return fase === 'tapa' || fase === 'vuelta' ? -m : m;
+}
+// Cuánto sacó de la pared la raíz (0 escondida, 1 entera).
+export function salidaRaiz(fase, u) {
+  if (fase === 'aviso') return 0.55 * u;
+  if (fase === 'barrido') return 0.55 + 0.45 * Math.min(1, u * 3);
+  if (fase === 'tapa') return 1;
+  if (fase === 'vuelta') return 1 - u;
+  return 0;
+}
+// ¿Está atravesada (sólida)? Sólo en la tapa, y nunca encima de nadie.
+export const raizSolida = (fase) => fase === 'tapa';
+// ¿El barrido te agarra? `s`: dónde estás a lo largo del escalón (m desde el centro, positivo hacia arriba); `p`: dónde
+// está el barredor; `altura`: a cuánto estás del escalón de ahí.
+export function barridoTeAgarra(s, p, altura) {
+  return Math.abs(s - p) < PELIGROS.raices.banda && altura > -0.6 && altura < 2.0;
+}
+// Dónde se paran las raíces: en tramos parejos de la escalera (no en los descansos ni en los primeros ni en los últimos),
+// repartidas. `tramos`: [{ alto }]; `descansos`: [{ y }]. Devuelve los índices de tramo.
+export function lugaresRaices(tramos, descansos, cuantas = 3) {
+  const n = tramos?.length || 0, sal = [];
+  if (n < 40) return sal;
+  const desde = 12, hasta = n - 16;
+  for (let k = 0; k < cuantas; k++) {
+    const meta = Math.round(desde + ((k + 0.5) / cuantas) * (hasta - desde));
+    for (let d = 0; d < (hasta - desde); d++) {
+      const i = meta + (d % 2 ? -1 : 1) * Math.ceil(d / 2);
+      if (i < desde || i > hasta || sal.some((j) => Math.abs(j - i) < 14)) continue;
+      const y = tramos[i].alto;
+      if (y === tramos[i - 3].alto || y === tramos[i + 3].alto) continue;   // un descanso a la vista
+      if ((descansos || []).some((q) => Math.abs(q.y - y) < 1.4)) continue;
+      sal.push(i);
+      break;
+    }
+  }
+  return sal.sort((a, b) => a - b);
+}

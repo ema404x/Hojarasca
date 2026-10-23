@@ -16,7 +16,7 @@
 // módulo (el de afuera los pegaría al terreno del valle).
 import * as THREE from 'three';
 import { SALUD_MAX, dificultad } from './desafio-reglas.js';
-import { NAVE, AVISO_FASE, naveNueva, puntosActivos, herirPunto, avanzarNave, criasDeFase, fraccionNave, textoNave, tocaOnda, tocaPua, dentroDeArena, fueraDelCuerpo, indiceFase } from './desafio-nave.js';
+import { PELIGROS, faseRaiz, avanzarRaiz, posicionBarrido, salidaRaiz, raizSolida, barridoTeAgarra, lugaresRaices, NAVE, AVISO_FASE, naveNueva, puntosActivos, herirPunto, avanzarNave, criasDeFase, fraccionNave, textoNave, tocaOnda, tocaPua, dentroDeArena, fueraDelCuerpo, indiceFase } from './desafio-nave.js';
 import { debilidadNave } from './desafio-asedio.js';
 import { armarSubida, armarRey, geoSemilla, geoAmbar, herramientasCoihue, testigosCoihue } from './desafio-coihue-formas.js';
 import { registrarLuz } from './luces.js';
@@ -456,7 +456,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     }
     col.agregar({ x: o.x, z: o.z, r: s.columna + 0.12, alturaMin: o.y - 3, alturaMax: o.y + s.techo + 2, duenio: DUENIO });
   }
-  const sacarFisica = () => { col.eliminarPorDuenio(DUENIO); fisicaArena = false; };
+  const sacarFisica = () => { col.eliminarPorDuenio(DUENIO); fisicaArena = false; if (subida?.raices) for (const r of subida.raices) { r.sol = null; } };   // 4.10 coihue: (las raíces atravesadas se sacan con todo lo demás)
 
   // ---------------------------------------------------------------- 3.8.0: la subida (se arma al entrar, detrás del fundido)
   // Queda debajo del corazón (60 m más abajo, sobre el mismo sitio: el terreno de abajo es el llano del Coihue)
@@ -481,34 +481,208 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       m.reiniciar();
       m.g.rotation.y = c.a + Math.PI;   // mirando a la escalera
       s.g.add(m.g);
-      s.vecinos.push({ m, a: c.a, y: c.y, afuera: 0, quiere: 0, espera: 1 + k * 1.3, risa: 0 });
+      s.vecinos.push({ m, a: c.a, y: c.y, afuera: 0, quiere: 0, espera: 1 + k * 1.3, risa: 0, vida: PELIGROS.ramas.vida, golpes: 0, retirado: false, aviso: 0 });
     }
+    armarPeligros(s);   // 4.10 coihue: las raíces que se mueven
     escena.add(s.g);
     s.ms = performance.now() - t0;
     return s;
   }
   // los duendes de la subida: adentro de la casita (detrás de la pared) o asomados en la puerta
+  // 4.10 coihue: son los duendes de las ramas. Dentro del alcance salen, chillan (aviso: destellan) y tiran una semilla de
+  // ámbar; si te acercás se esconden, y si les pegás se van un rato (a la segunda, hasta que vuelvas a subir).
   const poseVecino = { dt: 0, jugador: null, velocidad: 0, golpe: 0, ataca: false, carrera: false, apuntando: false, agazapado: false, enredado: false, saltando: 0, noche: 1, reflejo: 0 };
   const _pl = new THREE.Vector3();
+  let avisoRamas = false, avisoRaices = false;   // el aviso con palabras, una vez por partida abierta
+  const saludParaDano = () => api.D().salud >= PELIGROS.saludMinima;
+  // ¿la columna del medio tapa el tiro? (la recta del duende a vos, contra el tronco de raíces)
+  function tapaLaColumna(ax, az, bx, bz) {
+    const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, -(ax * dx + az * dz) / l2));
+    return Math.hypot(ax + dx * t, az + dz * t) < subida.columna + 0.2;
+  }
+  function tirarSemilla(v, js) {
+    const o = subida.origen, px = Math.sin(v.a), pz = Math.cos(v.a);
+    _w.set(o.x + px * (subida.radio - 0.7), o.y + v.y + 0.95, o.z + pz * (subida.radio - 0.7));
+    _d.set(js.pos.x - _w.x, js.pos.y + 1.1 - _w.y, js.pos.z - _w.z).normalize();
+    api.lanzarProyectil('plasma', _w, _d.multiplyScalar(PELIGROS.ramas.vel), saludParaDano() ? PELIGROS.ramas.dano : 0, false);
+    S().plasma?.(_w);
+    v.golpeT = 0.35;
+  }
   function animarVecinos(dt, js) {
     const o = subida.origen;
     _pl.set(js.pos.x - o.x, js.pos.y - o.y, js.pos.z - o.z);
-    for (const v of subida.vecinos) {
+    for (const [i, v] of subida.vecinos.entries()) {
       const px = Math.sin(v.a), pz = Math.cos(v.a);
       const d = Math.hypot(_pl.x - px * (subida.radio - 0.5), _pl.z - pz * (subida.radio - 0.5), (_pl.y - v.y) * 1.3);
       v.espera -= dt; v.risa -= dt;
+      v.golpeT = Math.max(0, (v.golpeT || 0) - dt);
+      if (v.flashT > 0) { v.flashT -= dt; if (!(v.aviso > 0)) v.m.flash(v.flashT > 0 ? 1 : 0); }
+      const enRango = !v.retirado && d >= PELIGROS.ramas.minimo && d <= PELIGROS.ramas.alcance && Math.abs(_pl.y - v.y) < 3
+        && !tapaLaColumna(px * (subida.radio - 0.5), pz * (subida.radio - 0.5), _pl.x, _pl.z);
+      if (v.retirado) { v.quiere = 0; v.aviso = 0; }
       // cerca (menos de 3,5 m) se mete; a la vista (hasta 16 m) se asoma un rato, y vuelve a asomarse
-      if (d < 3.5) { v.quiere = 0; v.espera = 2.5 + Math.random() * 2; }
-      else if (d < 16 && v.espera <= 0) { v.quiere = v.quiere ? 0 : 1; v.espera = v.quiere ? 3 + Math.random() * 3 : 1.5 + Math.random() * 2.5; }
+      else if (d < PELIGROS.ramas.minimo) { v.quiere = 0; v.aviso = 0; v.espera = 2.5 + Math.random() * 2; }
+      else if (v.aviso > 0) {
+        v.aviso -= dt;
+        v.m.flash(0.35 + 0.4 * Math.abs(Math.sin(v.aviso * 14)));   // el aviso: destella
+        if (v.aviso <= 0) { v.m.flash(0); tirarSemilla(v, js); v.quiere = 0; v.espera = PELIGROS.ramas.cada * (0.8 + Math.random() * 0.4); }
+      } else if (enRango && v.espera <= 0) {
+        v.quiere = 1;
+        if (v.afuera > 0.85) {
+          v.aviso = PELIGROS.ramas.aviso;
+          v.m.chillar();
+          S().chillido?.(_v.set(o.x + px * subida.radio, o.y + v.y + 0.9, o.z + pz * subida.radio), 'rastreador');
+          if (!avisoRamas) { avisoRamas = true; api.nota('Los duendes de las ramas', 'Asoman de sus casitas y tiran semillas de ámbar: cuando chillan y destellan, salí de la línea. Si les pegás, se esconden', false); }
+        }
+      } else if (d < 16 && v.espera <= 0) { v.quiere = v.quiere ? 0 : 1; v.espera = v.quiere ? 3 + Math.random() * 3 : 1.5 + Math.random() * 2.5; }
       const antes = v.afuera;
       v.afuera += ((v.quiere ? 1 : 0) - v.afuera) * Math.min(1, dt * (v.quiere ? 2.2 : 6));
-      if (antes < 0.5 && v.afuera >= 0.5 && v.risa <= 0) { v.risa = 4; v.m.chillar(); S().risa?.(_v.set(o.x + px * subida.radio, o.y + v.y + 0.5, o.z + pz * subida.radio)); }
+      if (antes < 0.5 && v.afuera >= 0.5 && v.risa <= 0 && !v.retirado) { v.risa = 4; v.m.chillar(); S().risa?.(_v.set(o.x + px * subida.radio, o.y + v.y + 0.5, o.z + pz * subida.radio)); }
       // de detrás de la pared (escondido) a la puerta de su casita
       const r = subida.radio + 0.45 - v.afuera * 0.95;
       v.m.g.position.set(px * r, v.y, pz * r);
       v.m.g.visible = v.afuera > 0.05;
-      poseVecino.dt = dt; poseVecino.jugador = _pl; poseVecino.agazapado = v.afuera < 0.6;   // (en el marco de la subida, como su posición)
+      poseVecino.dt = dt; poseVecino.jugador = _pl; poseVecino.agazapado = v.afuera < 0.6 && !(v.aviso > 0);   // (en el marco de la subida, como su posición)
+      poseVecino.ataca = v.aviso > 0; poseVecino.golpe = v.golpeT > 0 ? Math.sin((1 - v.golpeT / 0.35) * Math.PI) : 0;
       v.m.animar(poseVecino);
+      // 4.10 coihue: un blanco si está afuera (las armas le pegan por el mismo camino de siempre)
+      if (v.afuera > 0.7 && !v.retirado) {
+        const b = v.blanco || (v.blanco = { nave: true, rama: true, asedio: true, i, pos: new THREE.Vector3(), radio: 0.65 });
+        b.pos.set(o.x + px * (subida.radio - 0.2), o.y + v.y + 0.8, o.z + pz * (subida.radio - 0.2));
+        activos.push(b);
+      }
+    }
+  }
+  function herirRama(n, dano) {
+    const v = subida?.vecinos?.[n.i];
+    if (!v || v.retirado || !enSubida) return;
+    v.vida -= dano;
+    v.flashT = 0.2;
+    efectos?.chispas?.(n.pos, 6);
+    S().golpe?.(n.pos, 'rastreador', false);
+    if (v.vida > 0) return;
+    // le pegaste de lleno: se mete en la casita (a la segunda, del todo)
+    v.golpes = (v.golpes || 0) + 1; v.vida = PELIGROS.ramas.vida; v.aviso = 0; v.quiere = 0;
+    if (v.golpes >= 2) { v.retirado = true; api.nota('Un duende de las ramas se escondió para siempre', 'No vuelve a asomar mientras sigas en esta subida', false); }
+    else v.espera = PELIGROS.ramas.retiro;
+  }
+  // al empezar cada subida: los duendes de las ramas y las raíces, como nuevos
+  function reiniciarPeligros() {
+    reposarRaices();
+    for (const v of subida?.vecinos || []) { v.vida = PELIGROS.ramas.vida; v.golpes = 0; v.retirado = false; v.aviso = 0; v.quiere = 0; v.afuera = 0; v.espera = 1 + Math.random() * 2; v.flashT = 0; }
+  }
+
+  // ---------------------------------------------------------------- 4.10 coihue: las raíces que se mueven
+  // Cada una es una raíz gruesa que sale de la pared al tramo de arriba, barre hacia abajo, se queda atravesada y vuelve.
+  // El aviso es el escalón que brilla y el crujido; el choque es un golpe chico y un empujón hacia abajo (nunca lo bastante
+  // fuerte para sacarte de la escalera). Atravesada, choca (como una pared) pero nunca encima tuyo.
+  const BAJA_POR_RAD = 4.3 / (Math.PI * 2);   // cuánto sube la escalera por radián (SUBIDA.altoVuelta)
+  function armarPeligros(s) {
+    const { fundirCorteza, raiz, musgoEn } = herramientasCoihue;
+    const rMed = (s.columna + 0.1 + s.radio - 0.25) / 2;
+    s.rMed = rMed;
+    s.raices = lugaresRaices(s.tramos, s.descansos, 3).map((it, k) => {
+      const q = s.tramos[it], a = Math.atan2(q.x, q.z);
+      // la raíz, de la pared (z = 0) hacia el tronco del medio (+z), en arco: casi 2 m de alto, para que no se salte
+      const pts = [[0.1, 0.25, 0], [-0.05, 1.3, 0.55], [-0.2, 2.0, 1.25], [0.1, 1.75, 1.95], [0, 0.9, 2.5], [0, 0.25, 2.85]];
+      const pz = [raiz(pts, [0.46, 0.4, 0.34, 0.3, 0.27, 0.2], '#4a3426', { nudos: 0.14, tramos: 22, lados: 9, pintar: (c, p, n) => musgoEn(c, p, n, 0.7) })];
+      for (const lado of [-1, 1]) pz.push(raiz([[0.1, 0.8, 0.3], [lado * 0.45, 0.5, 0.9], [lado * 0.8, 0.2, 1.5], [lado * 1.0, 0.05, 2.0]], [0.2, 0.17, 0.12, 0.05], '#5a3c28', { nudos: 0.05, tramos: 10, lados: 6 }));
+      const malla = fundirCorteza(pz);
+      malla.castShadow = false; malla.receiveShadow = false;
+      const g = new THREE.Group();
+      g.add(malla);
+      g.visible = false;
+      s.g.add(g);
+      // el escalón que avisa: cuadritos sobre los siete tramos que barre (cada uno a su altura)
+      const pos = [], idx = [];
+      for (let j = -3; j <= 3; j++) {
+        const t = s.tramos[Math.max(0, Math.min(s.tramos.length - 1, it + j))], b = pos.length / 3, aa = Math.atan2(t.x, t.z);
+        const ur = [Math.sin(aa), Math.cos(aa)], td = [Math.cos(aa), -Math.sin(aa)], hl = 0.78, ha = t.ancho / 2;
+        for (const [sl, sa] of [[-hl, -ha], [hl, -ha], [hl, ha], [-hl, ha]]) pos.push(t.x + td[0] * sl + ur[0] * sa, t.alto + 0.13, t.z + td[1] * sl + ur[1] * sa);
+        idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+      }
+      const gl = new THREE.BufferGeometry();
+      gl.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      gl.setIndex(idx);
+      const lane = new THREE.Mesh(gl, new THREE.MeshBasicMaterial({ color: '#ff8a30', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      lane.visible = false; lane.frustumCulled = false;
+      s.g.add(lane);
+      return { i: k, tramo: it, a, alto: q.alto, g, lane, t: 0, fase: 'reposo', golpeo: false, sol: null, avisada: false };
+    });
+  }
+  // La raíz en su lugar, según la fase: gira alrededor del eje de la escalera lo que corre el barrido.
+  function ponerRaiz(r, fase, u) {
+    const s = subida, p = posicionBarrido(fase, u), ang = r.a + p / s.rMed;
+    const sale = salidaRaiz(fase, u);
+    r.g.visible = sale > 0.01;
+    r.g.position.set(Math.sin(ang) * (s.radio - 0.12), r.alto + p / s.rMed * BAJA_POR_RAD, Math.cos(ang) * (s.radio - 0.12));
+    r.g.rotation.y = ang + Math.PI;
+    r.g.scale.set(1, 1, Math.max(0.05, sale));
+    const brillo = fase === 'aviso' ? 0.25 + 0.4 * u + Math.sin(u * 40) * 0.12 : fase === 'barrido' ? 0.6 : fase === 'tapa' ? 0.18 * (1 - u) : 0;
+    r.lane.visible = brillo > 0.02;
+    r.lane.material.opacity = Math.max(0, brillo);
+  }
+  function quitarSolidez(r) {
+    if (r.sol) { col.eliminar(r.sol); r.sol = null; }
+  }
+  function reposarRaices() {
+    if (!subida?.raices) return;
+    for (const r of subida.raices) { quitarSolidez(r); r.t = 0; r.fase = 'reposo'; r.golpeo = false; r.g.visible = false; r.lane.visible = false; }
+  }
+  function actualizarRaices(dt, js) {
+    if (!subida?.raices) return;
+    const o = subida.origen, s = subida;
+    for (const r of s.raices) {
+      // dónde estás vos a lo largo del escalón de esta raíz (s, positivo hacia arriba) y a qué altura
+      const lx = js.pos.x - o.x, lz = js.pos.z - o.z, rho = Math.hypot(lx, lz);
+      const da = Math.atan2(Math.sin(Math.atan2(lx, lz) - r.a), Math.cos(Math.atan2(lx, lz) - r.a)), along = da * s.rMed;
+      const nivel = js.pos.y - o.y - (r.alto + da * BAJA_POR_RAD);
+      const cerca = Math.abs(along) < PELIGROS.raices.cerca && nivel > -2 && nivel < 3 && rho < s.radio + 1;
+      avanzarRaiz(r, dt, cerca && !seq);
+      const { fase, u } = faseRaiz(r.t, r.i);
+      if (fase !== r.fase) {
+        if (fase === 'aviso') {
+          _v.set(o.x + Math.sin(r.a) * s.radio, o.y + r.alto + 0.5, o.z + Math.cos(r.a) * s.radio);
+          sonido.golpeRuido?.({ dur: 1.3, frec: 110, tipo: 'lowpass', vol: 0.4, destino: sonido.fuente?.(_v, 1.2) });
+          if (!avisoRaices) { avisoRaices = true; api.nota('Una raíz se mueve', 'Cuando el escalón brilla, la raíz va a barrer de arriba para abajo: esperá a que pase o cruzá antes. Después queda atravesada un rato y se va', false); }
+        }
+        if (fase === 'barrido') {
+          r.golpeo = false;
+          _v.set(o.x + Math.sin(r.a) * s.radio, o.y + r.alto + 0.8, o.z + Math.cos(r.a) * s.radio);
+          sonido.golpeRuido?.({ dur: 0.7, frec: 230, tipo: 'lowpass', vol: 0.5, destino: sonido.fuente?.(_v, 1.2) });
+          efectos?.polvo?.(_v, 6);
+        }
+        if (fase === 'vuelta' || fase === 'reposo') quitarSolidez(r);
+        r.fase = fase;
+      }
+      ponerRaiz(r, fase, u);
+      if (fase === 'barrido' && !seq) {
+        // el barredor te agarra (una vez por barrido): golpe chico y empujón hacia abajo
+        const p = posicionBarrido(fase, u);
+        if (rho > s.columna - 0.2 && rho < s.radio + 0.3 && barridoTeAgarra(along, p, nivel)) {
+          if (!r.golpeo) {
+            r.golpeo = true;
+            const dano = saludParaDano() ? PELIGROS.raices.dano : 0;
+            _v.set(js.pos.x + Math.cos(r.a) * 1.5, js.pos.y + 0.8, js.pos.z - Math.sin(r.a) * 1.5);
+            if (dano > 0) api.herirJugador(dano, _v);
+            efectos?.polvo?.(_v, 6);
+          }
+          // hacia abajo por la escalera (la tangente de acá)
+          const ang = Math.atan2(lx, lz);
+          js.vel.x = -Math.cos(ang) * PELIGROS.raices.empuje; js.vel.z = Math.sin(ang) * PELIGROS.raices.empuje;
+        }
+      }
+      // atravesada: choca como una pared, pero sólo si no te agarra adentro
+      if (raizSolida(fase) && !r.sol) {
+        const pf = posicionBarrido('tapa', 0), adentroDeLaZona = Math.abs(along - pf) < 1.3 && nivel > -0.8 && nivel < 2.2 && rho > s.columna - 0.5 && rho < s.radio + 0.5;
+        if (!adentroDeLaZona) {
+          const af = r.a + pf / s.rMed, ux = Math.sin(af), uz = Math.cos(af), y = o.y + r.alto + pf / s.rMed * BAJA_POR_RAD;
+          const rIn = s.columna + 0.05, rOut = s.radio - 0.05;
+          r.sol = { seg: true, ax: o.x + ux * rIn, az: o.z + uz * rIn, bx: o.x + ux * rOut, bz: o.z + uz * rOut, r: 0.32, alturaMin: y - 0.6, alturaMax: y + 2.4, duenio: DUENIO };
+          col.agregar(r.sol);
+        }
+      }
     }
   }
   const enMundo = (p) => ({ x: subida.origen.x + p.x, y: subida.origen.y + (p.y || 0), z: subida.origen.z + p.z });
@@ -539,19 +713,23 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     hora = api.horaActual?.() || null;
     const asedio = d.asedio;
     if (asedio) asedio.abordajes = (asedio.abordajes || 0) + 1;
-    if (!subida || Math.hypot(subida.sitio.x - s.x, subida.sitio.z - s.z) > 1) {
+    // 4.10 coihue: el Coihue camina, pero por adentro es siempre el mismo (se arma sobre el llano donde se plantó:
+    // adentro se camina sobre el terreno de abajo); afuera, la puerta está donde esté parado ahora
+    const si = api.sitioInterior?.() || s;
+    if (!subida || Math.hypot(subida.sitio.x - si.x, subida.sitio.z - si.z) > 1) {
       if (subida) escena.remove(subida.g);
-      subida = construirSubida(s);   // (detrás del fundido: la pantalla está a oscuras)
+      subida = construirSubida(si);   // (detrás del fundido: la pantalla está a oscuras)
     }
     // y la sala del Rey, también ahora (a oscuras); arriba, al abrir la puerta, ya está
-    if (!arena || Math.hypot(arena.sitio.x - s.x, arena.sitio.z - s.z) > 1) {
+    if (!arena || Math.hypot(arena.sitio.x - si.x, arena.sitio.z - si.z) > 1) {
       if (arena) escena.remove(arena.grupo);
-      arena = construir(s);
+      arena = construir(si);
     }
     pelea = null;
     crias.clear();
     activos.length = 0;
     ponerFisicaSubida();
+    reiniciarPeligros();   // 4.10 coihue
     subida.g.visible = true;
     if (arena) arena.grupo.visible = false;
     ocultarValle();
@@ -590,6 +768,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       arena.corazonFlash = 0;
     }
     enSubida = false;
+    reposarRaices();   // 4.10 coihue: las raíces de la escalera se guardan
     subida.g.visible = false;
     arena.grupo.visible = true;
     const sal = salidaMundo();
@@ -617,6 +796,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       for (const p of arena.puas) { p.activa = false; p.aviso.visible = p.espinas.visible = false; }
     }
     enSubida = true;
+    reiniciarPeligros();   // 4.10 coihue
     if (arena) arena.grupo.visible = false;
     subida.g.visible = true;
     hud.style.display = 'none';
@@ -682,6 +862,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   function actualizarSubida(dt, js) {
     if (!subida || seq) return;
     if (subida.vecinos) animarVecinos(dt, js);
+    actualizarRaices(dt, js);   // 4.10 coihue
     const o = subida.origen;
     for (let i = subida.descansos.length - 1; i > ultimoDescanso; i--) {
       if (js.pos.y >= o.y + subida.descansos[i].y - 0.3) { ultimoDescanso = i; break; }
@@ -698,6 +879,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
   const activos = [];
   const blancos = () => activos;
   function herir(n, dano) {
+    if (n?.rama) { herirRama(n, dano); return; }   // 4.10 coihue: los duendes de las ramas
     if (!adentro || !pelea || !n?.nave || seq) return;
     const r = herirPunto(pelea, n.tipo, n.i, dano);
     if (!r.ok) {
@@ -950,7 +1132,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     // una partida guardada adentro de la nave (o cualquier caída al vacío): de vuelta al valle
     // 3.5.1: el guardado acota la altura a 320 m: con el sitio del haz alto, la partida guardada
     // adentro volvía en el aire sobre el haz (y caía cientos de metros); se la reconoce igual
-    const sh = !adentro && !seq ? api.sitioHaz?.() : null;
+    const sh = !adentro && !seq ? (api.sitioInterior?.() || api.sitioHaz?.()) : null;   // 4.10 coihue: el corazón está sobre el llano donde se plantó
     const sobreElHaz = !!sh && Math.hypot(js.pos.x - sh.x, js.pos.z - sh.z) < NAVE.radioArena + 2 && js.pos.y > sh.y + 20;
     if (!adentro && !seq && (js.pos.y > T.altura(js.pos.x, js.pos.z) + 250 || sobreElHaz)) {
       const s = api.sitioHaz?.();

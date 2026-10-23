@@ -3,7 +3,8 @@
 import { sanearNido } from './desafio-nido.js';
 import { sanearAsedio } from './desafio-asedio.js';
 import { APAGON, sanearBestiario, sanearDespues } from './desafio-noche2.js';
-import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR } from './desafio-valle.js';
+// 4.10 coihue: y los lugares del valle que toman los duendes
+import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR, sanearValle } from './desafio-valle.js';
 import { multiplicadorVuelta } from './desafio-vuelta.js';
 // 4.9 aliados: y los puestos marcados
 import { sanearOrdenes, sanearPuestosAliados } from './desafio-ordenes.js';
@@ -446,7 +447,9 @@ export function desafioNuevo() {
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
     evolucion: evolucionNueva(), puestos: puestosNuevos(),
     // 4.9 dias: la aldea de día: cuánto ayuda cada vecino y qué pidió (ver desafio-aldea.js)
-    aldea: aldeaDelDesafio() };
+    aldea: aldeaDelDesafio(),
+    // 4.10 coihue: los lugares del valle tomados por los duendes (null hasta la noche 3; ver desafio-valle.js §11)
+    valle: null };
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -549,6 +552,7 @@ export function sanearDesafio(d) {
     evolucion: sanearEvolucion(x.evolucion),
     puestos: sanearPuestos(x.puestos),
     aldea: sanearAldeaDelDesafio(x.aldea),   // 4.9 dias: una partida vieja carga con todos los vecinos en 0
+    valle: sanearValle(x.valle),   // 4.10 coihue: una partida vieja carga sin lugares tomados
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),

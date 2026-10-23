@@ -3,6 +3,9 @@
 // (tres, y el que está adentro sale en ese momento, flojo). Los que queden se abren
 // cuando empieza la noche y suman invasores a la oleada, desde donde estaban. Le da
 // sentido a salir de día a algo más que a juntar. Puro, sin THREE.
+// 4.10 coihue: y los lugares del valle que toman los duendes tienen su propio nido (`zona`), que se saca igual (ver
+// `desafio-valle.js`, sección 11).
+import { TOMADAS } from './desafio-valle.js';
 export const CAPULLOS = {
   desdeNoche: 4,
   base: 2,            // capullos la primera vez
@@ -13,6 +16,7 @@ export const CAPULLOS = {
   golpes: 3,          // para romperlo sin fuego
   quemar: 2.5,        // segundos que tarda en consumirse una vez prendido
   radioUsar: 2.4,     // a qué distancia se puede usar
+  deZonas: 4,         // 4.10 coihue: los nidos extra de los lugares tomados (hasta dos por lugar, dos lugares)
 };
 
 export function cuantosCapullos(noche) {
@@ -51,9 +55,10 @@ export function queSale(noche, azar = Math.random) {
 export function sanearCapullos(v) {
   if (!Array.isArray(v)) return [];
   return v.filter((c) => c && Number.isFinite(Number(c.x)) && Number.isFinite(Number(c.z)))
-    .slice(0, CAPULLOS.max)
+    .slice(0, CAPULLOS.max + CAPULLOS.deZonas)   // 4.10 coihue: más los nidos de los lugares tomados
     .map((c) => {
       const s = { x: Number(c.x), z: Number(c.z), golpes: Math.max(0, Math.min(CAPULLOS.golpes - 1, Math.floor(Number(c.golpes) || 0))) };
+      if (typeof c.zona === 'string' && TOMADAS.ids.includes(c.zona)) s.zona = c.zona;
       // 3.8.4: el que se estaba quemando sigue quemándose (antes, guardado a mitad, volvía entero y la ramita se perdía)
       const q = Number(c.quema);
       if (Number.isFinite(q) && q > 0) s.quema = Math.min(CAPULLOS.quemar, q);
