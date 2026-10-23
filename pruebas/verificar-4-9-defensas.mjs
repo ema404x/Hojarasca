@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { cargar } from './ayuda-4-0-1-mundo.mjs';
 import * as TR from '../src/desafio-trampas.js';
 import * as PA from '../src/desafio-pasadizo.js';
+import * as RO from '../src/desafio-roto.js';
 import { RECETAS, desafioNuevo, sanearDesafio, suministrosDelAlba, sanearContenidoCaja, sumarContenidoCaja } from '../src/desafio-reglas.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,7 +19,7 @@ const eq = (a, b, t) => { pasos++; assert.deepEqual(a, b, t); };
 const cerca = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
 
 // ------------------------------------------------------------------ el mundo de mentira (con el three de verdad)
-const M = cargar(['construccion.js', 'colisiones.js', 'desafio-defensas49-juego.js', 'desafio-trampas-mundo.js', 'desafio-pasadizo-mundo.js']);
+const M = cargar(['construccion.js', 'colisiones.js', 'desafio-defensas49-juego.js', 'desafio-trampas-mundo.js', 'desafio-pasadizo-mundo.js', 'desafio-roto-mundo.js']);
 const { THREE } = M, C = M.construccion;
 function mundo(extraT = {}) {
   const col = M.colisiones.crearColisiones();
@@ -225,6 +226,96 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   w.s.destruir(r.obra);
   e = tm.estadoAlien(c, 0.016);
   ok(!e.quieto && c.pegadoT === 0, 'si la trampa cae, se suelta');
+}
+
+// ================================================================== 5. LO ROTO QUEDA A LA VISTA
+{
+  // los tres estados según la vida
+  const E = RO.estadoRotura;
+  eq([E(100, 100), E(71, 100), E(69, 100), E(36, 100), E(34, 100), E(0, 100), E(-5, 100)], [0, 0, 1, 1, 2, 2, 2], 'sana, dañada (menos del 70 %) y rota (menos del 35 %)');
+  eq([E(NaN, 100), E(50, 0), E(undefined, 10), E('x', 10)], [0, 0, 0, 0], 'datos raros: sana');
+  ok(RO.ROTO.danada > RO.ROTO.rota && RO.ROTO.rota > 0, 'los umbrales van de mayor a menor');
+  // qué se rompe y qué no
+  const P = C.PLANO;
+  for (const id of ['empalizada', 'porton-empalizada', 'muro-piedra', 'torre-vigia', 'ballesta-fija', 'muro-tronera']) ok(RO.seRompe(P[id]), `${id} se ve rota`);
+  for (const id of ['trampa-lazo', 'abrojos', 'foso-estacas', 'trampa-miel', 'pasadizo', 'zanja-fuego', 'losa-piedra', 'estacas', 'red-cristal', 'barril-resina']) ok(!RO.seRompe(P[id]), `${id} no (baja, se gasta, sin cuerpo u oculta)`);
+  eq([RO.formaDe(P['porton-empalizada']), RO.formaDe(P['torre-vigia']), RO.formaDe(P.empalizada), RO.formaDe(P['muro-piedra'])], ['porton', 'torre', 'pared', 'pared'], 'cada una se rompe a su manera');
+  ok(RO.esDePiedra(P['muro-piedra']) && !RO.esDePiedra(P.empalizada), 'la pirca se rompe en piedras; la empalizada, en tablas');
+  // las piezas de cada estado: pocas, dentro de la obra, siempre las mismas y sólo de madera (tipo 0) o piedra (tipo 4)
+  for (const p of C.PLANOS.filter((x) => RO.seRompe(x))) {
+    const a = RO.piezasDe(p, 1, 123), b = RO.piezasDe(p, 2, 123);
+    ok(a.length >= 3 && a.length <= 14, `${p.id}: estado 1, ${a.length} piezas`);
+    ok(b.length > a.length && b.length <= RO.ROTO.tope, `${p.id}: estado 2, ${b.length} piezas (más que el 1)`);
+    eq(JSON.stringify(RO.piezasDe(p, 2, 123)), JSON.stringify(b), `${p.id}: misma lista para la misma obra`);
+    for (const q of [...a, ...b]) {
+      ok(q.tipo === 0 || q.tipo === 4, `${p.id}: sólo tipo 0 o 4`);
+      ok(Math.abs(q.p[0]) <= (p.ancho || 1) / 2 + 0.7 && q.p[1] >= -0.05 && q.p[1] <= (p.alto || 1) + 0.4 && Math.abs(q.p[2]) <= (p.fondo || 0.3) / 2 + 1.0, `${p.id}: la marca ${q.t} cae dentro de la obra (${q.p.map((n) => n.toFixed(2))})`);
+    }
+    if (RO.esDePiedra(p)) ok([...a, ...b].every((q) => q.tipo === 4), `${p.id}: todo de piedra`);
+    else ok(a.every((q) => q.tipo === 0), `${p.id}: la madera, tipo 0`);
+  }
+  ok(RO.piezasDe(P.empalizada, 0, 1).length === 0, 'sana: no se dibuja nada');
+  ok(JSON.stringify(RO.piezasDe(P.empalizada, 2, 1)) !== JSON.stringify(RO.piezasDe(P.empalizada, 2, 2)), 'otra obra, otras marcas');
+  // la inclinación: poca, y el portón se sale más de eje
+  const incl = (id, e) => RO.inclinacion(P[id], e, 5);
+  ok(['x', 'y', 'z'].every((k) => incl('empalizada', 0)[k] === 0), 'sana: derecha');
+  const grande = (t) => Math.max(Math.abs(t.x), Math.abs(t.y), Math.abs(t.z));
+  ok(grande(incl('porton-empalizada', 2)) > grande(incl('porton-empalizada', 1)) && grande(incl('porton-empalizada', 2)) > grande(incl('empalizada', 2)), 'más rota, más torcida; el portón, la que más');
+  ok(C.PLANOS.filter((x) => RO.seRompe(x)).every((p) => grande(RO.inclinacion(p, 2, 9)) < 0.15), 'nunca más de ocho grados: la colisión no se mueve');
+
+  // en el mundo
+  const w = mundo();
+  const roto = M.desafio_roto_mundo.crearRotoMundo(w.s);
+  const a = w.terminar('empalizada', 10, 10, 0).o, b = w.terminar('porton-empalizada', 20, 10, 0).o, c = w.terminar('muro-piedra', 30, 10, 0).o;
+  const lazo = w.terminar('trampa-lazo', 40, 10, 0).o;
+  const vidaMax = (o) => (Number.isFinite(o.plano.vida) ? o.plano.vida : 100);
+  const hijos = (o) => o.grupo.children.length;
+  const identidad = (o) => o.malla.matrix.equals(new THREE.Matrix4());
+  roto.actualizar(1);
+  ok(hijos(a) === 1 && identidad(a) && !a.userRoto, 'entera: sólo su malla, derecha');
+  a.datos.vida = vidaMax(a) * 0.6; b.datos.vida = vidaMax(b) * 0.2; c.datos.vida = vidaMax(c) * 0.5; lazo.datos.vida = 0;
+  roto.actualizar(1);
+  ok(roto.estadoDe(a) === 1 && roto.estadoDe(b) === 2 && roto.estadoDe(c) === 1, 'estados 1, 2 y 1 según la vida');
+  ok(hijos(a) === 2 && hijos(b) === 2 && hijos(c) === 2, 'una sola malla de marcas por obra rota');
+  ok(!lazo.userRoto && hijos(lazo) === 1, 'la trampa de lazo no se muestra rota ni con la vida en cero');
+  const marcas = (o) => o.grupo.children.find((x) => x !== o.malla);
+  ok(marcas(a).material === a.malla.material, 'usa el material de la propia obra (no hay shaders nuevos)');
+  ok(marcas(a).castShadow === false && marcas(a).receiveShadow === true, 'las marcas no suman a la pasada de sombras');
+  for (const o of [a, b, c]) {
+    const tipos = new Set(marcas(o).geometry.getAttribute('aTipo').array);
+    ok([...tipos].every((t) => t === 0 || t === 4), 'material tipo 0 o 4');
+    ok(marcas(o).geometry.getAttribute('position').count < 1800, `poca geometría (${marcas(o).geometry.getAttribute('position').count} vértices)`);
+  }
+  ok(!identidad(a) && !identidad(b) && marcas(b).matrix.equals(b.malla.matrix), 'la obra y sus marcas se inclinan juntas');
+  ok(Math.abs(b.malla.matrix.elements[1]) + Math.abs(b.malla.matrix.elements[2]) + Math.abs(b.malla.matrix.elements[8]) > 0.05, 'el portón roto queda fuera de eje');
+  const ver = marcas(a);
+  roto.actualizar(1);
+  ok(marcas(a) === ver && hijos(a) === 2, 'mirar de nuevo no arma nada otra vez');
+  const geos = roto.geometrias;
+  for (let i = 0; i < 6; i++) { const x = w.terminar('empalizada', 50 + i * 4, 30, 0).o; x.datos.vida = vidaMax(x) * 0.3; }
+  roto.actualizar(1);
+  ok(roto.geometrias <= geos + 4, `las geometrías se comparten entre obras (${roto.geometrias} en total)`);
+  // más daño: del estado 1 al 2 cambia la malla de marcas
+  a.datos.vida = vidaMax(a) * 0.1;
+  roto.actualizar(1);
+  ok(roto.estadoDe(a) === 2 && marcas(a) !== ver && hijos(a) === 2, 'del 1 al 2, otras marcas');
+  // la obra se rehace (cambia de malla): las marcas y la inclinación pasan a la nueva
+  const vieja = a.malla;
+  w.s.rehacer(a);
+  ok(a.malla !== vieja && identidad(a), 'rehecha, la malla nueva viene derecha');
+  roto.actualizar(1);
+  ok(!identidad(a) && marcas(a).matrix.equals(a.malla.matrix) && hijos(a) === 2, 'y a la próxima se la vuelve a vestir');
+  // reparada: vuelve a lo normal
+  for (const o of [a, b, c]) o.datos.vida = vidaMax(o);
+  roto.actualizar(1);
+  ok(hijos(a) === 1 && hijos(b) === 1 && hijos(c) === 1 && identidad(a) && identidad(b) && !a.userRoto, 'reparadas: sin marcas y derechas');
+  // la colisión no se movió
+  const q = { x: 10, y: 0, z: 10 };
+  w.col.resolver(q, 0.4, 1.7);
+  ok(Math.hypot(q.x - 10, q.z - 10) > 0.05, 'la empalizada sigue frenando donde estaba');
+  // en el juego
+  const dj = leer('src/desafio-defensas49-juego.js');
+  ok(/roto\.actualizar\(dt\)/.test(dj) && /crearRotoMundo\(obras\)/.test(dj), 'el enganche actualiza lo roto en cada cuadro');
 }
 
 console.log(`4.9 defensas: ${pasos} comprobaciones en verde`);

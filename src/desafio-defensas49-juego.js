@@ -8,15 +8,18 @@
 //   · la pala de brasas        → desafio-brasas-mundo.js
 import { crearTrampasMundo } from './desafio-trampas-mundo.js';
 import { crearPasadizoMundo } from './desafio-pasadizo-mundo.js';
+import { crearRotoMundo } from './desafio-roto-mundo.js';
 
 export function crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api) {
   const trampas = crearTrampasMundo(T, escena, obras, efectos, sonido, api);
   const pasadizo = crearPasadizoMundo(T, col, obras, sonido, api);
+  const roto = crearRotoMundo(obras);
 
   // Cada cuadro. `noche` va de 0 a 1.
   function actualizar(dt, js, noche) {
     trampas.actualizar(dt);
     pasadizo.actualizar(dt);
+    roto.actualizar(dt);
   }
   // Lo que le pasa a cada duende antes de moverse: { quieto, vel, sinAtaque, rumbo } (rumbo nulo si no lo cambia).
   const SAL = { quieto: false, vel: 1, sinAtaque: false, rumbo: null };
@@ -31,10 +34,10 @@ export function crearDefensas49(T, escena, camara, col, obras, efectos, sonido, 
   // La E y su aviso (junto a una trampa, una boca del pasadizo…): el aviso o nulo / verdadero si hizo algo
   const avisoCerca = (pos) => pasadizo.avisoCerca(pos) || trampas.avisoCerca(pos);
   const usarCerca = (pos) => pasadizo.usarCerca(pos) || trampas.usarCerca(pos);
-  function limpiar() { trampas.limpiar(); pasadizo.limpiar(); }
+  function limpiar() { trampas.limpiar(); pasadizo.limpiar(); roto.limpiar(); }
   return {
     actualizar, estadoAlien, limpiarAlien, avisoCerca, usarCerca, limpiar,
-    trampas, pasadizo,
+    trampas, pasadizo, roto,
     colocarTrampaMiel: (x, z, opciones) => trampas.colocar(x, z, opciones),
   };
 }
