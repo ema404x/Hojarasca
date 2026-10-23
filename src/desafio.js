@@ -18,7 +18,7 @@ import { crearEfectos } from './desafio-efectos.js';
 // 3.8.0: los invasores son duendes (desafio-duendes.js: el modelo, la animación y el dibujo instanciado)
 import { crearDuende, instalarDuendes, precalentarDuendes, registrarHalos, mallaAtadito, estadoDuendes } from './desafio-duendes.js';
 // 4.8 noches:
-import { HORA_GIRO, GIROS, LUNALLENA, NIEBLA, elegirGiro, hayNiebla, cerrarNoche, olvidarCadena, anotarEscape, elegirBrecha, efectoCadena, aplicarCadena, cadenaNueva } from './desafio-noches.js';
+import { HORA_GIRO, GIROS, LUNALLENA, NIEBLA, elegirGiro, hayNiebla, cerrarNoche, olvidarCadena, anotarEscape, elegirBrecha, conArticulo, pronombreDe, efectoCadena, aplicarCadena, cadenaNueva } from './desafio-noches.js';
 import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva, aguaFrena, VADO } from './desafio-duendes-reglas.js';
 import { mallaNido, mallaCofre } from './duendes-modelo.js';
 import { crearMusicaTension } from './desafio-musica.js';
@@ -1061,7 +1061,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const cad = cadenaD();
     cad.brecha = d.oleadas + 1 >= 2 && !esNocheFinal() ? elegirBrecha(obras.obras.filter((o) => completa(o) && o.plano.categoria === 'defensa').map((o) => {
       const v = vidaDe(o);
-      return { x: o.datos.x, z: o.datos.z, nombre: 'la ' + (o.plano.nombre || 'defensa').toLowerCase(), ratio: v.max > 0 ? v.vida / v.max : 1 };
+      return { x: o.datos.x, z: o.datos.z, nombre: conArticulo(o.plano.nombre), ratio: v.max > 0 ? v.vida / v.max : 1 };
     }), d.oleadas + 1) : null;
   }
   // 4.8 noches: lo que cambia esta noche por lo de anoche, en la lista de duendes (el jefe sigue uno solo y último)
@@ -1087,7 +1087,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const id = elegirGiro({
       noche: d.oleadas, especial: d.especial, jefe: esNocheDeJefe(d.oleadas), final: !d.victoria && (!!d.nodriza || (!d.sinFin && !d.asedio && d.oleadas >= NOCHE_FINAL)),
       rescate: !!d.rescate, varada: !!d.varada, anterior: d.giroAnterior, hayDefensas: !!clave,
-      yaHuboRefuerzo: d.refuerzoNoche === d.oleadas, azar: azarNoche('giro', d.oleadas),
+      yaHuboRefuerzo: d.refuerzoNoche === d.oleadas, azar: azarNoche('giro', d.oleadas)(),   // (azarNoche da un generador: con código de partida siempre el mismo)
     });
     if (!id) return;
     const g = GIROS[id];
@@ -1110,7 +1110,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const v = vidaDe(clave);
       danarObra(clave, Math.max(0, v.vida - v.max * 0.12));   // queda en el 12%: se arregla con reparar (R), si llegás a tiempo
       S.derrumbe?.(clave.datos);
-      ctx.nota(g.aviso, 'Se quebró ' + (clave.plano.nombre || 'una defensa').toLowerCase() + ' sin que nadie la toque: arreglala antes de que lleguen', true);
+      const quien = conArticulo(clave.plano.nombre), lo = pronombreDe(clave.plano.nombre);
+      ctx.nota(g.aviso, `Se quebró ${quien} sin que nadie ${lo} toque: arregla${lo} antes de que lleguen`, true);
     }
   }
   function revisarHorario() {

@@ -168,6 +168,14 @@ export function olvidarCadena(cadena) {
   cadena.hoy = { noche: 0, escapados: 0, cosa: null };
   return cadena;
 }
+// «la empalizada de troncos», «el muro de pirca»: el artículo según la primera palabra del nombre de la obra
+// (femenino si termina en a, en -ión/-dad, o es red o torre). Y el pronombre que le toca («la» o «lo»).
+const FEMENINAS = /(a|ión|dad|^red|^torre)$/i;
+export function conArticulo(nombre) {
+  const t = String(nombre || 'defensa').trim().toLowerCase() || 'defensa';
+  return (FEMENINAS.test(t.split(/\s+/)[0]) ? 'la ' : 'el ') + t;
+}
+export function pronombreDe(nombre) { return conArticulo(nombre).startsWith('la ') ? 'la' : 'lo'; }
 // La defensa más maltrecha (vida de 0 a 1) de las que hay, si quedó por debajo de la mitad. `defensas`: [{ x, z, nombre, ratio }].
 export function elegirBrecha(defensas, paraNoche) {
   let peor = null;

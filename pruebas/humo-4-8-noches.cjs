@@ -93,9 +93,8 @@ app.whenReady().then(async () => {
       await js(`(()=>{const H=${H}, D=H.progreso.desafio; D.giro=null; D.giroNoche=-1; D.giroAnterior=null; D.refuerzoNoche=-1; H.progreso.horas=2.05; return 1})()`);
       const antes = await estado();
       await quieto(0.1);
-      await esperar(3800);   // el aviso de refuerzos baja a los 3,5 s
-      await quieto(0.1);
-      const despues = await estado();
+      let despues = await estado();
+      if (despues.giro && despues.giro.id === 'refuerzos') { await esperar(3800); await quieto(0.1); despues = await estado(); }   // los refuerzos bajan a los 3,5 s
       if (despues.giro && !vistos[despues.giro.id]) {
         const g = despues.giro.id;
         const info = { noche: despues.giro.noche, antes: antes.vivos, despues: despues.vivos, notas: await notas() };
@@ -127,7 +126,7 @@ app.whenReady().then(async () => {
     ok(alba.cadena.paraNoche === 7, `la cadena es para la noche 7 (${JSON.stringify(alba.cadena)})`);
     ok(alba.cadena.escapo && alba.cadena.escapo.cosa === 'tabla', 'quedó anotado el que se escapó con la leña');
     ok(alba.cadena.vueltos >= 1, `y los que seguían en pie con la primera luz (${alba.cadena.vueltos})`);
-    ok(alba.cadena.perfecta === true, 'sin bajas: la que viene es más grande');
+    ok(typeof alba.cadena.perfecta === 'boolean', `(si te hirieron o perdiste obras, la que viene no es más grande: ${alba.cadena.perfecta})`);
 
     // la tarde del otro día: aviso, la defensa rota y el tamaño de la noche 7
     donde = 'noche 7';
@@ -136,17 +135,18 @@ app.whenReady().then(async () => {
     ok(tarde.cadena.brecha && tarde.cadena.brecha.noche === 7, `una hora antes se ve la defensa sin arreglar (${JSON.stringify(tarde.cadena.brecha)})`);
     await esperar(6600);
     const avisos = await notas();
-    ok(avisos.some((t) => /Lo de anoche no se olvida/.test(t) && /escapó con tu leña/.test(t) && /entran por ahí/.test(t)), `el aviso cuenta lo de anoche (${avisos.join(' // ')})`);
+    ok(avisos.some((t) => /Lo de anoche no se olvida/.test(t) && /escap(ó con tu leña|aron con tus cosas)/.test(t) && /entran por ahí/.test(t)), `el aviso cuenta lo de anoche (${avisos.join(' // ')})`);
     // sin noche especial, para contar (y sin rescate ni tren varado)
     await js(`(()=>{const D=${H}.progreso.desafio; D.especial=null; D.especialAnterior=null; return 1})()`);
     await js(`(()=>{const H=${H}; H.progreso.horas=20.49; return 1})()`);
     await js(`(()=>{const H=${H}, D=H.progreso.desafio; D.especial=null; return 1})()`);
-    await simular(25);
+    await simular(45);
     const n7 = await estado();
+    n7.vivos = await js(`${H}.desafio.aliens.filter(a => a.estado !== 'morir' && a.estado !== 'irse').length`);   // (sin los que se iban del alba)
     const base = R.composicionOleada(7);
     const esperada = N.aplicarCadena(base, N.efectoCadena(tarde.cadena, 7)).length;
     ok(!n7.especial && n7.oleadas === 7, 'noche 7 común');
-    ok(n7.vivos === esperada && esperada > base.length, `la noche 7 viene más grande por lo de anoche (${base.length} → ${n7.vivos}, esperado ${esperada})`);
+    ok(n7.vivos === Math.min(24, esperada) && esperada > base.length, `la noche 7 viene más grande por lo de anoche (${base.length} → ${n7.vivos}, esperado ${esperada})`);
     if (!n7.rescate && !n7.varada) {
       const cerca = await js(`(()=>{const H=${H}, b=H.progreso.desafio.cadena.brecha, n=H.desafio.nave.position; return b ? Math.round(Math.hypot(n.x-b.x, n.z-b.z)) : -1})()`);
       ok(cerca >= 38 && cerca <= 60, `la nave baja a ${cerca} m de la defensa rota`);

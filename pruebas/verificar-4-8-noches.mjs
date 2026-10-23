@@ -129,6 +129,9 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   assert.ok(!todos({ especial: 'apagon' }).has('niebla'));
   assert.ok(!todos({ yaHuboRefuerzo: true }).has('refuerzos'), 'si ya llegaron refuerzos de madrugada, no otra vez');
   for (const g of Object.keys(N.GIROS)) assert.ok(!todos({ anterior: g }).has(g), `${g} no se repite seguido`);
+  assert.deepEqual(['Empalizada de troncos', 'Muro de pirca', 'Portón de empalizada', 'Zanja', 'Red dorada', 'Torre de vigía', 'Mirador'].map(N.conArticulo),
+    ['la empalizada de troncos', 'el muro de pirca', 'el portón de empalizada', 'la zanja', 'la red dorada', 'la torre de vigía', 'el mirador'], 'el artículo de cada obra');
+  assert.equal(N.pronombreDe('Muro de pirca'), 'lo'); assert.equal(N.pronombreDe('Zanja'), 'la'); assert.equal(N.conArticulo(''), 'la defensa'); assert.equal(N.conArticulo(undefined), 'la defensa');
   // la chance
   let pasa = 0; for (let i = 0; i < 10000; i++) if (N.elegirGiro({ noche: 8, azar: i / 10000, hayDefensas: true })) pasa++;
   assert.ok(pasa / 10000 > 0.3 && pasa / 10000 < 0.5, `chance de giro ${pasa / 10000}`);
@@ -155,7 +158,7 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
       D: () => d, HORA_GIRO: N.HORA_GIRO, HORA_AMANECER: R.HORA_AMANECER, GIROS: N.GIROS, elegirGiro: N.elegirGiro,
       eventos: { nodrizaActiva: false }, naveMundo: { adentro: false }, asedioMundo: { activo: false }, caido: false,
       obras: { obras: obrasLista }, completa: () => true, vidaDe: (o) => ({ vida: o.datos.vida, max: o.max }),
-      esNocheDeJefe, NOCHE_FINAL, azarNoche: () => sobre.azar ?? 0.0, ctx: { nota: (t, x) => notas.push([t, x]), dificultad: () => 'normal' },
+      esNocheDeJefe, NOCHE_FINAL, conArticulo: N.conArticulo, pronombreDe: N.pronombreDe, azarNoche: () => () => sobre.azar ?? 0.0, /* azarNoche da un generador, como azarDe */ ctx: { nota: (t, x) => notas.push([t, x]), dificultad: () => 'normal' },
       sinJefe: (l) => l.filter((t) => t !== 'jefe'), composicionSinFin: SF.composicionSinFin, composicionOleada, TIPOS_ALIEN: sobre.tipos ?? R.TIPOS_ALIEN,
       setTimeout: (f) => f(), empezarOleada: (tipos, nueva) => lanzadas.push([tipos, nueva]), danarObra: (o, n) => { danos.push(n); o.datos.vida -= n; },
       S: { derrumbe() {} },
@@ -328,6 +331,7 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
 {
   assert.match(des, /import \{[^}]*\} from '\.\/desafio-noches\.js';/);
   assert.match(des, /revisarGiro\(p\);/, 'revisarHorario mira el giro');
+  assert.match(des, /azarNoche\('giro', d\.oleadas\)\(\)/, 'el azar del giro es un número (azarNoche da un generador)');
   assert.match(des, /Object\.hasOwn\(TIPOS_ALIEN, 'curandero'\)/, 'el curandero, sólo si existe');
   assert.match(des, /conLaCadena\(tipos, d\.oleadas \+ 1, final\)/, 'la cadena entra en la lista de la noche');
   assert.match(des, /conLaCadena\(tipos, d\.oleadas, /, 'y al abrir una partida a mitad de ataque');
