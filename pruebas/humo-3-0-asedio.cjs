@@ -75,7 +75,8 @@ app.whenReady().then(async () => {
     const as0 = await js(`(()=>{const H=${H}, D=H.progreso.desafio, A=D.asedio, M=H.desafio.asedio;
       H.desafio.actualizar(0.05,{noche:0,dtReal:0.05});
       return {hay:!!A, activo:A&&A.activo, zonas:A?A.zonas.map(z=>z.id):[], nodriza:D.nodriza, activa:H.desafio.nodrizaActiva, victoria:D.victoria,
-        malla:!!(M.armado && M.armado.nave), agujas:M.armado ? M.armado.zonas.length : 0, marcas:M.marcas().length, hud:document.getElementById('desafio-estado').textContent}})()`);
+        malla:!!(M.armado && M.armado.nave), agujas:M.armado ? M.armado.zonas.length : 0, marcas:M.marcas().filter(m=>m.clase!=='ruta').length,   // 4.10 coihue: la ruta del Coihue es otra marca (una línea), no una aguja
+         hud:document.getElementById('desafio-estado').textContent}})()`);
     ok(as0.hay && as0.activo && as0.zonas.length >= 3, `al alba la nodriza se asienta: empieza el asedio (${as0.zonas.join(', ')})`);
     ok(as0.nodriza === null && !as0.victoria, 'los núcleos se repliegan: no hay victoria ni nodriza vieja');
     ok(as0.malla && as0.agujas === as0.zonas.length, 'se arman la nave asentada y las agujas');

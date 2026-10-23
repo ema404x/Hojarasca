@@ -512,6 +512,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.sitioHaz = () => asedioMundo.sitioHaz();
   // 4.10 coihue: lo que el Coihue que camina le pide al resto (una ruta sin obras, las trampas que pisa, el cerco que cae)
   api.sitioInterior = () => asedioMundo.sitioInterior();
+  api.adentroDelCoihue = () => naveMundo.adentro;
   api.obraCerca = (x, z, r) => obras.obrasCerca({ x, z }, r + 2, []).some((o) => completa(o));
   const TRAMPAS_COIHUE = ['pozo', 'red', 'abrojos', 'miel', 'lazo', 'foso', 'estacas'];
   api.trampasEn = (x, z, r) => obras.obrasCerca({ x, z }, r, []).filter((o) => completa(o) && TRAMPAS_COIHUE.includes(o.plano.defensa?.tipo));
@@ -537,7 +538,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.alEmpezarAsedio = () => tomadas.cerrar();
   const blancosDelValle = eventos.blancos, herirDelValle = eventos.herirNucleo;
   eventos.blancos = () => (naveMundo.adentro ? naveMundo.blancos() : asedioMundo.blancos(blancosDelValle()));
-  eventos.herirNucleo = (n, dano) => (n?.nave ? naveMundo.herir(n, dano) : n?.ancla ? asedioMundo.herir(n, dano) : herirDelValle(n, dano));
+  eventos.herirNucleo = (n, dano) => (n?.nave ? naveMundo.herir(n, dano) : n?.ancla || n?.pies ? asedioMundo.herir(n, dano) : herirDelValle(n, dano));   // 4.10 coihue: y las raíces con que camina
   // 3.0: los invasores que evolucionan y los puestos del bosque (ver desafio-evolucion*.js y
   // desafio-puestos*.js). Las estructuras de los puestos entran como blancos por el mismo
   // camino que las cámaras del nido: flechas, rayo, torretas y golpes les llegan igual.

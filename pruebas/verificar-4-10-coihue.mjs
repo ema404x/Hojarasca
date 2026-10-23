@@ -465,7 +465,8 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(enUnaLinea(asedio, ['albaCamino(a)', '4.10 coihue']), 'al amanecer se cierra');
   ok(enUnaLinea(asedio, ['tickCamino(c', 'horasDeNoche']), 'camina con la hora de juego');
   ok(enUnaLinea(asedio, ['if (n?.pies)', 'herirPatas']), 'las raíces de apoyo reciben los golpes por el camino de siempre');
-  ok(enUnaLinea(asedio, ['asedio: true', 'ancla: true', 'pies: true']), 'son blancos del asedio (la lanza y el hacha también les pegan)');
+  ok(enUnaLinea(asedio, ['asedio: true', 'pies: true', 'i: 100 + i']) && !enUnaLinea(asedio, ['pies: true', 'ancla: true']), 'son blancos del asedio, pero no agujas (sin `ancla`, con un número fuera de las zonas): el hacha y la lanza les pegan igual');
+  ok(enUnaLinea(desafio, ['n?.ancla || n?.pies', 'asedioMundo.herir(n, dano)']), 'y el golpe va al asedio por la tabla de siempre');
   ok(/function pushPies\(\) \{\s*if \(!piesVivos\(\)/.test(asedio), 'sólo con el Coihue en pie');
   ok(enUnaLinea(asedio, ['api.caerCerco', '32']), 'al llegar cae el cerco (daño a las obras de alrededor)');
   ok(enUnaLinea(asedio, ['function libreCoihue', 'hAgua', 'hObra']) && enUnaLinea(asedio, ['T.pendiente', 'T.distRiel', 'cercaDeLugar(x, z)', 'return false']) && enUnaLinea(asedio, ['api.obraCerca?.(x, z, hObra)']), 'la ruta esquiva el agua, la vía, los lugares del valle y las obras');
@@ -476,6 +477,7 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(asedio.includes('tomadas') === false && asedio.includes('api.alEmpezarAsedio?.()'), 'el asedio avisa que empezó (los lugares tomados se cierran)');
   ok(enUnaLinea(desafio, ['api.alEmpezarAsedio', 'tomadas.cerrar()']), 'y los lugares tomados lo escuchan');
   ok(enUnaLinea(desafio, ['api.sitioInterior', 'asedioMundo.sitioInterior']), 'el corazón se arma donde se plantó');
+  ok(enUnaLinea(desafio, ['api.adentroDelCoihue', 'naveMundo.adentro']) && enUnaLinea(asedio, ['huellas.visible', '!dentro']) && enUnaLinea(asedio, ['dist < 320', '!dentro']), 'adentro del tronco hueco no se dibujan las huellas ni la sombra');
   ok(enUnaLinea(nave, ['const si = api.sitioInterior?.() || s;']), 'el interior no se muda con el Coihue');
   ok(enUnaLinea(nave, ['subida = construirSubida(si)']) && enUnaLinea(nave, ['arena = construir(si)']), 'la escalera y la sala se arman sobre el llano de siempre');
   ok(enUnaLinea(nave, ['api.sitioHaz', 'hacerSalida']) || nave.includes("const s = api.sitioHaz?.() || subida?.sitio"), 'pero se sale afuera por donde está parado ahora');

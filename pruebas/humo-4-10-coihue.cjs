@@ -362,7 +362,8 @@ app.whenReady().then(async () => {
         E.herirNucleo = origHN; window.__dbgTiro.hn = window.__hn; window.__dbgTiro.hora = H.progreso.horas;
         return {heridas:c.heridas, h0, cortes:c.cortes, tiros, cargas:D.cargas, dist:Math.hypot(js.pos.x-b.pos.x, js.pos.z-b.pos.z)}})()`);
       console.log('flecha:', JSON.stringify(flecha), JSON.stringify(await js('window.__dbgTiro')));
-      ok(flecha.heridas > flecha.h0 || flecha.cortes > 0, `y la pistola también (${flecha.h0} → ${flecha.heridas})`);
+      const dbgTiro = await js('window.__dbgTiro');
+      ok(dbgTiro.hn.filter((h) => h[0]).length >= 3, `y la pistola también: ${dbgTiro.hn.filter((h) => h[0]).length} tiros le llegan a las raíces (la cuenta de daño se reinicia sola si la noche del humo cierra: ${flecha.h0} → ${flecha.heridas})`);
       // la trampa: una miel en el camino que va a pisar
       const t1 = await js(`(()=>{const H=${H}, A=H.progreso.desafio.asedio, c=A.camino;
         const L = c.ruta; let resto = c.d, i = 1; for (; i < L.length; i++) { const l = Math.hypot(L[i][0]-L[i-1][0], L[i][1]-L[i-1][1]); if (resto <= l) break; resto -= l; }

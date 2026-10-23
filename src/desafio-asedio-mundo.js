@@ -502,7 +502,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   // la hora de juego; lo que se ve va a zancadas: espera a sacarle 2 m a la cuenta, da el paso (tiembla, levanta
   // polvo, las raíces se arrastran) y se queda quieto. Mientras camina las raíces no chocan; parado, sí.
   const ZANCADA = { gap: 2, vel: 0.9 };
-  const vis = { d: 0, listo: null, zancada: false, tCruje: 0, tTrampa: 0, temblor: 0, nHuellas: -1, sombraT: 0, flashPie: 0 };
+  const vis = { d: 0, listo: null, zancada: false, tCruje: 0, tTrampa: 0, temblor: 0, nHuellas: -1, sombraT: 0 };
   let pies = [], huellas = null, sombra = null, pisadas = new WeakSet();
   // translúcido de un solo color (las capas se apilan para dar el degradé: sin alfa por vértice)
   const matCapa = (color, opacidad) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
@@ -561,12 +561,12 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function albaCamino(a) {
     const c = a.camino;
     if (!c) return;
-    const antes = c.d;
-    const r = cerrarNocheCamino(c, zonasLibres(a));
-    if (r.avance > 0.5 || r.llego) {
+    cerrarNocheCamino(c, zonasLibres(a));
+    // (cada noche la ruta se vuelve a calcular desde donde quedó: `d` es lo que caminó esta noche)
+    if (c.d > 0.5 && !c.llego) {
       setTimeout(() => {
         if (c.llego) return;   // (la llegada tiene su propio aviso)
-        api.nota('El Coihue avanzó', `Caminó ${Math.round(Math.max(1, c.d - antes))} m en la noche y está a ${Math.round(metrosABase(c))} m de tu base. Pegale a sus raíces o ponele trampas en el camino`, true);
+        api.nota('El Coihue avanzó', `Caminó ${Math.round(c.d)} m en la noche y está a ${Math.round(metrosABase(c))} m de tu base. Pegale a sus raíces o ponele trampas en el camino`, true);
       }, 7600);
     }
   }
@@ -590,7 +590,6 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const dia = deDia();
     const r = herirPies(c, dano, { deNoche: !dia, vida: dificultad(api.claveDificultad?.()).vida });
     if (!r.ok) return;
-    vis.flashPie = 0.35;
     efectos?.astillas?.(b.pos, 6);
     api.S?.golpe?.(b.pos, 'bruto', false);
     if (!r.corte) return;
@@ -604,7 +603,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   const piesVivos = () => { const a = A(); return !!(a && a.camino && armado?.nave && armado.nave.g.visible && !(armado.nave.cayendo > 0) && asedioActivo(a)); };
   function actualizarPies(n) {
     for (let i = 0; i < n.patas.length; i++) {
-      const b = pies[i] || (pies[i] = { asedio: true, ancla: true, pies: true, i, pos: new THREE.Vector3(), radio: 1.7 });
+      // (sin `ancla`: no son agujas; `i` fuera del rango de las zonas, por si algo busca una aguja por su número)
+      const b = pies[i] || (pies[i] = { asedio: true, pies: true, i: 100 + i, pos: new THREE.Vector3(), radio: 1.7 });
       const p = n.patas[i], ang = p.a + n.giro, alc = p.alcance * COIHUE.escala;
       b.pos.set(n.g.position.x + Math.sin(ang) * alc, n.g.position.y + 0.9, n.g.position.z + Math.cos(ang) * alc);
     }
@@ -719,7 +719,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     let r = { camina: false, llego: false };
     if (!dia) {
       if (c.noche < 0) empezarNocheCamino(c, D().oleadas + 1);   // (se cargó la partida a media noche)
-      r = tickCamino(c, horasDeNoche(api.horas?.() ?? 12), zonasLibres(a));
+      r = tickCamino(c, horasDeNoche(api.horas?.() ?? 12, HORA_ATAQUE), zonasLibres(a));
       if (r.camina && c.avisoNoche !== c.noche) {
         c.avisoNoche = c.noche;
         api.nota('El suelo tiembla', `El Coihue echó a andar hacia tu base. ${avisoNocheCamino(c, zonasLibres(a))}`, true);
@@ -731,7 +731,6 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     else if (!vis.zancada && (gap >= ZANCADA.gap || (gap > 0.04 && !r.camina))) vis.zancada = true;
     if (vis.zancada) vis.d = Math.min(c.d, vis.d + ZANCADA.vel * dt);
     const pv = puntoEnRuta(c.ruta, vis.d);
-    const lleno = gap > 0.04 || vis.zancada;
     // la cuenta (lo que ven el resto de las cosas)
     const pc = posicionCamino(c);
     if (Math.abs(a.nave.x - pc.x) > 0.05 || Math.abs(a.nave.z - pc.z) > 0.05) { a.nave.x = r1(pc.x); a.nave.z = r1(pc.z); }
@@ -743,7 +742,6 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const dist = Math.hypot(js.pos.x - n.g.position.x, js.pos.z - n.g.position.z);
     const quiereTemblor = vis.zancada ? Math.max(0, 1 - dist / 95) * 0.8 : 0;
     vis.temblor += (quiereTemblor - vis.temblor) * Math.min(1, dt * 3);
-    vis.flashPie = Math.max(0, vis.flashPie - dt);
     if (vis.zancada) {
       vis.tCruje -= dt;
       if (vis.tCruje <= 0) {
@@ -779,12 +777,13 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       decal.geometry.dispose(); monton.geometry.dispose();
       decal.geometry = hg.g; monton.geometry = hg.m;
     }
-    huellas.visible = dist < 260;
+    const dentro = !!api.adentroDelCoihue?.();   // (adentro del tronco hueco no se ve el valle: ni las huellas ni la sombra se dibujan)
+    huellas.visible = !dentro && dist < 260;
     vis.sombraT -= dt;
     if (vis.sombraT <= 0) {
       vis.sombraT = vis.zancada ? 0.25 : 1.5;
       if (!sombra) sombra = armarSombra();
-      if (dist < 320) ponerSombra(c, n, c.largo > 0.5 ? Math.max(0, Math.min(1, vis.d / c.largo)) : 1);
+      if (dist < 320 && !dentro) ponerSombra(c, n, c.largo > 0.5 ? Math.max(0, Math.min(1, vis.d / c.largo)) : 1);
       else sombra.visible = false;
     }
     // el cerco cae cuando termina de dar el último paso

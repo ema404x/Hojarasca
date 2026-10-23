@@ -105,7 +105,7 @@ export function crearTomadasMundo(T, escena, a) {
   const ruido = (x, z) => Math.sin(x * 0.37 + z * 0.21) * Math.sin(z * 0.43 - x * 0.17);
   // un disco que sigue el terreno; `y0`: a qué altura del suelo (0: a ras)
   function disco(z, radio, y0) {
-    const g = new THREE.RingGeometry(0.3, radio, 40, 7);
+    const g = new THREE.RingGeometry(0.3, radio, 28, 4);
     g.rotateX(-Math.PI / 2);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {

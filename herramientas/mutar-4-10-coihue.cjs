@@ -90,6 +90,9 @@ const MUTACIONES = [
   ['la pista del Coihue que camina', 'src/main.js', "{ id: 'p-camina', cuando:", "{ id: 'p-camina2', cuando:"],
   ['la pista de los lugares tomados', 'src/main.js', "{ id: 'p-tomada', cuando:", "{ id: 'p-tomada2', cuando:"],
   ['los programas nuevos se compilan en la carga', 'src/desafio-coihue-formas.js', "new THREE.MeshBasicMaterial({ color: '#101010', transparent: true, opacity: 0.2,", "new THREE.MeshBasicMaterial({ color: '#101010', transparent: true, opacity: 0.25,"],
+  ['las raíces del Coihue no son agujas', AM, 'pies[i] = { asedio: true, pies: true, i: 100 + i,', 'pies[i] = { asedio: true, ancla: true, pies: true, i: 100 + i,'],
+  ['el golpe a las raíces va al asedio', DE, 'n?.ancla || n?.pies ? asedioMundo.herir(n, dano)', 'n?.ancla ? asedioMundo.herir(n, dano)'],
+  ['adentro no se dibujan las huellas', AM, 'huellas.visible = !dentro && dist < 260;', 'huellas.visible = dist < 260;'],
   ['los hongos no usan índices negativos', TM, 'Math.abs(Math.floor(sem))', 'Math.floor(sem)'],
 ];
 
