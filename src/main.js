@@ -9670,8 +9670,8 @@ function usarObjetivo() {
   const js = jugador.estado;
   const r = objetos.usar(objetivo, registrar, sonido);
   if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
-  if (r && !r.llena && !r.llenaMochila) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada; 4.7: ni con la mochila llena)
-  if (r?.llenaMochila) { nota(`Mochila llena: no te entra más ${r.llenaMochila}`, 'Gastá, vendé o guardá algo en un depósito'); return; }   // 4.7 carga: se queda en el suelo
+  if (r?.llenaMochila) { nota(`Mochila llena: no te entra más ${r.llenaMochila}`, 'Gastá, vendé o guardá algo en un depósito'); return; }   // 4.7 carga: se queda en el suelo (ni destella la casilla)
+  if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
   if (r?.sentarse?.cama) { dormir(); return; }
   if (r?.llena) nota('No te entran más ramitas', `Ya llevás ${progreso.ramitas}: la dejaste en el suelo`);   // 3.8.3
   else if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');

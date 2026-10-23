@@ -137,8 +137,8 @@ export function lugarPara(progreso, k, n, ctx = {}) {
 }
 
 // Un trato entero (comprar, cobrar, recibir una recompensa): ¿entra todo junto, descontando lo que sale?
-// da / quita: { k: n }. Entra si después no pasa del límite o si no ocupa más casillas que antes (así se puede
-// cambiar de a poco estando en sobrecarga). Devuelve { ok, faltan }: casillas que faltan.
+// da / quita: { k: n }. Entra si después no pasa del límite o si ocupa menos casillas que antes (así se baja de a poco
+// estando en sobrecarga, pero nunca se suma). Devuelve { ok, faltan }: casillas que faltan.
 export function tratoCabe(progreso, da = {}, quita = {}, ctx = {}) {
   if (sinLimite(progreso)) return { ok: true, faltan: 0 };
   const cap = capacidad(progreso, ctx);
@@ -148,8 +148,8 @@ export function tratoCabe(progreso, da = {}, quita = {}, ctx = {}) {
   for (const k of Object.keys(quita || {})) if (esCargable(k)) c.set(k, Math.max(0, (c.get(k) || 0) - entero(quita[k])));
   for (const [k, n] of [...c]) if (n <= 0) c.delete(k);
   const despues = casillasDe(c).usadas;
-  const ok = despues <= cap.total || despues <= antes;
-  return { ok, faltan: ok ? 0 : despues - Math.max(cap.total, antes) };
+  const ok = despues <= cap.total || despues < antes;
+  return { ok, faltan: ok ? 0 : despues - cap.total };
 }
 
 // «5 lugares»: para los avisos
