@@ -11,7 +11,7 @@
 //     con vos lejos no hay figuras de clientes: las ventas se simulan por horas (empleados-negocio.js) y, al volver, el juego te cuenta qué vendió cada uno;
 //   · el sueldo se paga solo al cerrar el turno de cada día (de la caja del local y, si no alcanza, de tu billetera).
 import { hayEconomia, formatoPesos } from './economia.js';
-import { esVecinoAldea, personaAldea, localAbierto, LOTE_DE } from './aldea.js';
+import { esVecinoAldea, personaAldea, localAbierto, LOTE_DE, diaSemanaDe } from './aldea.js';
 import { nombreCorto, puntosAmistad, cambiarAmistad } from './vecindad.js';
 import { COLA, textoLista } from './negocio-propio.js';
 import { negocioDeVecino, esTuyo } from './negocios-vecinos.js';
@@ -53,6 +53,12 @@ export function crearEmpleadosNegocioJuego(ctx) {
       return !!v && h >= v[0] && h < v[1];
     }
     return false;
+  }
+  // 4.10.1: ¿`k` está AHORA detrás de tu mostrador (de turno y sin que la aldea se lo haya llevado a una fiesta o una cita)? Lo miran el club de lectura, la noche de
+  // estrellas y las visitas a tu mesa: el vecino con turno activo no va, así no queda en dos lugares a la vez
+  function deTurno(k) {
+    const p = P();
+    return ocupacion(k, Number(p?.horas) || 0, diaSemanaDe(p?.dia), Number(p?.dia) || 1) && !ocupado(k);
   }
   // los que se pueden contratar y están en la aldea (los pobladores, sólo con su local abierto)
   // 4.4.2: al que ya atiende el negocio que le compraste (su sueldo ya lo descuenta ese negocio) no se lo contrata además: cobraría dos veces
@@ -297,7 +303,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     if (!r.ok) return;
     const f = figuras.get(k);
     if (f) { if (f.npc) f.npc.dormido = true; soltar(f); }
-    ctx.nota?.(`${nombreDe(k)} ya no trabaja para vos`, `${liberar ? 'Volvió a su negocio. ' : ''}${r.pago?.ok ? `Le pagaste lo de hoy (${formatoPesos(r.pago.monto)}). Vuelve a lo suyo` : 'Vuelve a lo suyo'}`, false);
+    ctx.nota?.(`${nombreDe(k)} ya no trabaja para vos`, `${liberar === 'compra' ? 'Le compraste su negocio: ya no atiende tu local. ' : liberar ? 'Volvió a su negocio. ' : ''}${r.pago?.ok ? `Le pagaste lo de hoy (${formatoPesos(r.pago.monto)}). Vuelve a lo suyo` : 'Vuelve a lo suyo'}`, false);
     ctx.guardar?.(); ctx.refrescarBarra?.();
     N.redibujar();
   }
@@ -368,12 +374,12 @@ export function crearEmpleadosNegocioJuego(ctx) {
   }
 
   return {
-    actualizar, dibujarPanel, ocupacion, enLaAldea, quitarFiguras,
+    actualizar, dibujarPanel, ocupacion, deTurno, enLaAldea, quitarFiguras,
     ui, figuras,
     // para las pruebas: empujar el paso del tiempo sin esperar
     __tick: (n = 1) => { for (let i = 0; i < n; i++) { acum = PASO; acumCuenta = CADA; actualizar(0); } },
     // 4.4.3: si el vecino al que le vendés su negocio de vuelta trabajaba en tu local, se lo suelta con aviso (sin castigo de amistad); true si lo soltó
-    liberar: (k) => { if (!empleadoDe(estadoE(), k)) return false; hacerDespedir(k, true); return !empleadoDe(estadoE(), k); },
+    liberar: (k, motivo) => { if (!empleadoDe(estadoE(), k)) return false; hacerDespedir(k, motivo || true); return !empleadoDe(estadoE(), k); },
     __contratar: hacerContratar, __despedir: (k) => { ui.despedir = k; hacerDespedir(k); },
     __armarTodo: () => { const N = negocio(), o = N?.local(); if (!o) return 0; for (let i = 0; i < 40; i++) { const E = estadoE(); if (!E.lista.some((x) => !figuras.get(x.k)?.npc)) break; avanzarArmado(o, E.lista); } return [...figuras.values()].filter((f) => f.npc).length; },
   };

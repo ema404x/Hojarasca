@@ -160,10 +160,12 @@ export function crearNegociosVecinosJuego(ctx) {
       return { tipo: 'renglones', renglones: [FRASES.noHay] };
     }
     sumarAmistadDe(p, N.vecino, COMPRA.amistadAlCerrar, dia());
+    // 4.10.1: si el vecino ya trabajaba para vos en tu local, al comprarle el negocio deja de ser tu empleado (antes seguía, cobraba dos sueldos y estaba en dos lados)
+    const liberado = ctx.liberarEmpleado?.(N.vecino, 'compra') === true;
     refrescarIdos();
     ponerCartel(id);
     ctx.sonido?.()?.anotar?.();
-    ctx.nota?.(`${cap(N.nombre)} ahora es ${tuyoDe(id)}`, `Pagaste ${formatoPesos(r.precio)} · rinde unos ${formatoPesos(r.ganancia)} por día · cada tanto pasá a retirar la caja`, true);
+    ctx.nota?.(`${cap(N.nombre)} ahora es ${tuyoDe(id)}`, `Pagaste ${formatoPesos(r.precio)} · rinde unos ${formatoPesos(r.ganancia)} por día · cada tanto pasá a retirar la caja${liberado ? ` · ${N.dueno} dejó de trabajar en tu local` : ''}`, true);
     ctx.refrescarBarra?.();
     ctx.guardar?.();
     return { tipo: 'renglones', renglones: [...(v.cierre[r.destino] || v.cierre.queda)], comprado: id };

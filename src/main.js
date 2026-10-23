@@ -5315,6 +5315,7 @@ function traerVisita(clave, puesta, llegando) {
   // 3.6 (vida): también la gente de la aldea (el compadre que viene a tu mesa), aunque no la hayas visto hoy
   const npc = gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave) || aldeaGente?.figura?.(clave) || null;
   if (!npc || npc.enBase || npc.aBordo || npc.deVisita) return false;
+  if (empleadosNegocioJuego?.deTurno(clave)) return false;   // 4.10.1: de turno detrás de tu mostrador no viene a tu mesa (quedaba en dos lugares)
   if (charla.npc === npc) return false;   // 3.6.1: charlando con vos en la aldea, no desaparece a mitad de la frase
   visitante = { npc, antes: { ruta: npc.ruta, etapa: npc.etapa, espera: npc.espera, x: npc.pos.x, z: npc.pos.z, velocidad: npc.velocidad, saludo: npc.saludo, despedida: npc.despedida, soloCerca: npc.soloCerca, camino: npc.camino } };
   npc.soloCerca = 0; npc.pose = null; npc.dormido = false; npc.camino = null;   // 3.6 (vida)
@@ -5522,7 +5523,7 @@ function armarOficiosYAldea(esDesafio) {
     // 3.7.0 (integración): cuántos ms por cuadro se puede tardar en armar a alguien (de a poco, con el planificador)
     msFigura: () => (planificadorAntitirones.permitir('aldea-gente') ? 3 : 0),
     amorDestino: (k) => destinoConFiesta(k),   // 3.7.1 (mundo): la cita, el casamiento, la que vive con vos (3.7.2: y si no, el olor del asado) (3.7.5: con la fiesta en el medio)
-    noticiasDestino: (k) => (k === 'moza' || k === 'bailarina' ? null : noticiasJuego?.destino(k) || null),   // (3.9.0: la moza atiende la cantina: el club de lectura y la noche de estrellas son sin ella)
+    noticiasDestino: (k) => (k === 'moza' || k === 'bailarina' || empleadosNegocioJuego?.deTurno(k) ? null : noticiasJuego?.destino(k) || null),   // (4.10.1: ni el vecino que está de turno en tu local)   // (3.9.0: la moza atiende la cantina: el club de lectura y la noche de estrellas son sin ella)
       // 3.7.5 (noticias): y si no, el club de lectura o la noche de estrellas
     extrasCalendario: (d) => noticiasJuego?.extrasCalendario(d) || [],   // 3.7.5 (noticias): las fechas, el aniversario, los concursos, el club y las estrellas
   });
@@ -5657,7 +5658,7 @@ function armarOficiosYAldea(esDesafio) {
     negociosVecinosJuego = crearNegociosVecinosJuego({
       progreso: () => progreso, desafio: () => !!desafio, escena: () => escena, altura: (x, z) => T.altura(x, z), jugador: () => jugador,
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
-      liberarEmpleado: (k) => { try { return empleadosNegocioJuego?.liberar(k) === true; } catch (e) { fallaSistema('negocios-vecinos-liberar', e); return false; } },   // 4.4.3
+      liberarEmpleado: (k, motivo) => { try { return empleadosNegocioJuego?.liberar(k, motivo) === true; } catch (e) { fallaSistema('negocios-vecinos-liberar', e); return false; } },   // 4.4.3
     });
     negociosVecinosJuego.alCargar();
   } catch (e) { fallaSistema('negocios-vecinos-armado', e); negociosVecinosJuego = null; }
@@ -5700,7 +5701,7 @@ function armarOficiosYAldea(esDesafio) {
     // 3.6.1: la figura de un vecino (para retomar una invitación al recargar)
     npcDe: (clave) => gente?.gente?.find((g) => (g.claveAldea || g.clave) === clave && !g.aBordo) || aldeaGente?.figura?.(clave) || null,
     // 3.6.1: el compadre que puede venir a tu mesa (no en el tren, ni de visita, ni charlando con vos)
-    puedeVenir: (k) => { const n = gente?.gente?.find((g) => (g.claveAldea || g.clave) === k) || aldeaGente?.figura?.(k); return !!n && !n.enBase && !n.aBordo && !n.deVisita && charla.npc !== n; },
+    puedeVenir: (k) => { const n = gente?.gente?.find((g) => (g.claveAldea || g.clave) === k) || aldeaGente?.figura?.(k); return !!n && !n.enBase && !n.aBordo && !n.deVisita && charla.npc !== n && !empleadosNegocioJuego?.deTurno(k); },   // (4.10.1: ni el que está de turno en tu local)
   });
   // 3.7.4: la vida social: las reglas (vecindad-social.js) con lo que se ve y se oye (social-juego.js)
   socialJuego = crearSocialJuego({
