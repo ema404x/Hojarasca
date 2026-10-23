@@ -25,6 +25,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\lanzar-electron
 
 ## Varias
 - **De a una**, nunca dos en el mismo perfil. Como mucho dos Electron a la vez en toda la PC (uno por agente).
+- **Cómo contarlos:** `Get-Process electron` **no sirve**: también cuenta la app de escritorio de Claude. Contá sólo los del juego (procesos principales):
+  `(Get-CimInstance Win32_Process -Filter "Name='electron.exe'" | Where-Object { $_.ExecutablePath -like '*Hojarasca*' -and $_.CommandLine -notmatch '--type=' } | Measure-Object).Count`
+- **Para correr partidas en paralelo con el gate** (que reconstruye `index.html`): armá una copia con `git worktree add --detach ../trabajo/<nombre-único> <rama>` (+ unión a `node_modules` + `node armar.mjs`) y corré las partidas desde ahí, en dos corredores con perfiles distintos.
+- **Una lista de pruebas pasada por `powershell -File ... -Pruebas a,b`** llega como un solo texto y no corre nada (y parece «OK»): llamá al script una vez por prueba.
 - Todas: `powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\suite.ps1 . <carpeta-de-salida> [humo-a,humo-b]`.
 - **Nunca** `taskkill //F //IM electron.exe` (mata las de otros agentes). Si hay que cortar una, por PID.
 
