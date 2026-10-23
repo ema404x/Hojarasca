@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import * as N from '../src/desafio-noches.js';
 import * as R from '../src/desafio-reglas.js';
 import * as SF from '../src/desafio-supervivencia.js';
+import { curanderosEnLaNoche } from '../src/desafio-duendes-nuevos.js';
 import * as DR from '../src/desafio-duendes-reglas.js';
 import * as sentidos from '../src/desafio-sentidos.js';
 import { azarDe } from '../src/semilla.js';
@@ -164,7 +165,7 @@ const sinEnjambre = (l) => l.filter((t) => t !== 'enjambre');
       esNocheDeJefe, NOCHE_FINAL, nocheFinalCoihue: R.nocheFinalCoihue, conArticulo: N.conArticulo, pronombreDe: N.pronombreDe, azarNoche: () => () => sobre.azar ?? 0.0, /* azarNoche da un generador, como azarDe */ ctx: { nota: (t, x) => notas.push([t, x]), dificultad: () => 'normal' },
       sinJefe: (l) => l.filter((t) => t !== 'jefe'), composicionSinFin: SF.composicionSinFin, composicionOleada, TIPOS_ALIEN: sobre.tipos ?? R.TIPOS_ALIEN,
       setTimeout: (f) => f(), empezarOleada: (tipos, nueva) => lanzadas.push([tipos, nueva]), danarObra: (o, n) => { danos.push(n); o.datos.vida -= n; },
-      S: { derrumbe() {} },
+      S: { derrumbe() {} }, curanderosEnLaNoche, sacudidas: { set() {} },   // 4.10.1
     };
     const f = new Function('env', `with (env) { ${cuerpo}\n return revisarGiro; }`)(new Proxy(env, { has: (t, k) => typeof k === 'string' && (k in t || !(k in globalThis)) }));
     return { d, f, notas, lanzadas, danos, obras: obrasLista };
@@ -191,7 +192,7 @@ const sinEnjambre = (l) => l.filter((t) => t !== 'enjambre');
   { const m = mundo({ azar: 0.0 }); m.f({ horas: 2.2 }); assert.equal(m.d.giro?.id, 'niebla'); assert.ok(N.hayNiebla(null, m.d.giro, 6)); assert.equal(m.lanzadas.length, 0); assert.match(m.notas[0][0], /niebla/i); }
   // defensa: la que más aguanta queda al 12%
   { const m = mundo({ d: { giroAnterior: 'niebla' }, azar: 0.30 }); m.f({ horas: 2.2 });
-    assert.equal(m.d.giro?.id, 'defensa'); assert.equal(m.danos.length, 1);
+    assert.equal(m.d.giro?.id, 'defensa'); assert.equal(m.danos.length, 0, '4.10.1: la vida se fija, no pasa por el daño de las obras');
     assert.ok(Math.abs(m.obras[1].datos.vida - 900 * 0.12) < 1e-6 && m.obras[0].datos.vida === 500, 'el muro (la más fuerte) queda al 12%'); }
   // sin defensas en pie, no se cae nada
   { const m = mundo({ obras: [], azar: 0.30, d: { giroAnterior: 'niebla' } }); m.f({ horas: 2.2 }); assert.notEqual(m.d.giro?.id, 'defensa'); }

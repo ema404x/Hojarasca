@@ -125,13 +125,15 @@ export function crearAgenda(perfil, azar = Math.random) {
         if (perfil.llegada) poner({ k: 'llegada' });
       }
       A.tAtaque += dt;
-    } else if (!previa && A.llegada && A.silencio) { A.silencio = false; poner({ k: 'silencio-fin' }); }
+    } else if (!previa && A.silencio) { A.silencio = false; poner({ k: 'silencio-fin' }); }   // 4.10.1: si no hay ataque (ya no salen noches) el silencio se rompía sólo con la llegada: quedaba pegado
 
     // el silencio raro: los últimos segundos de la previa, todo se calla
     if (previa && perfil.silencio && !A.silenciado && (e.f ?? 0) >= perfil.silencio.f) {
-      A.silenciado = true; A.silencio = true;
+      A.silenciado = true; A.silencio = true; A.tSilencio = 0;
       poner({ k: 'silencio' });
     }
+    // 4.10.1: con «Hora de tu reloj» la previa dura una hora y el silencio (por fracción) duraba minutos: tope de 14 s
+    if (A.silencio) { A.tSilencio = (A.tSilencio || 0) + dt; if (A.tSilencio > 14) { A.silencio = false; poner({ k: 'silencio-fin' }); } }
     const callado = A.silencio;          // en el silencio no suena nada nuevo
 
     // ramas que crujen lejos: en la previa (desde un tercio) y de noche

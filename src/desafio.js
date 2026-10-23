@@ -18,6 +18,7 @@ import { crearEfectos } from './desafio-efectos.js';
 // 3.8.0: los invasores son duendes (desafio-duendes.js: el modelo, la animación y el dibujo instanciado)
 import { crearDuende, instalarDuendes, precalentarDuendes, registrarHalos, mallaAtadito, estadoDuendes } from './desafio-duendes.js';
 // 4.8 noches:
+import { curanderosEnLaNoche } from './desafio-duendes-nuevos.js';
 import { HORA_GIRO, GIROS, LUNALLENA, NIEBLA, elegirGiro, hayNiebla, cerrarNoche, olvidarCadena, anotarEscape, elegirBrecha, conArticulo, pronombreDe, efectoCadena, aplicarCadena, cadenaNueva } from './desafio-noches.js';
 import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva, aguaFrena, VADO } from './desafio-duendes-reglas.js';
 import { mallaNido, mallaCofre, mallaAro } from './duendes-modelo.js';
@@ -847,10 +848,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     base: () => baseMapa() || T.lugares.refugio,
     libre: (x, z) => !T.agua(x, z) && !obraEnPunto(x, T.altura(x, z) + 0.5, z),
     blancoNoche: () => { const resc = D().rescate; return (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche() || brechaDeLaNoche() || null; },   // 4.10.1: y la brecha de la cadena (antes el lado de la noche ganaba siempre y el aviso «entran por ahí» no se cumplía)
-    esFinal: () => esNocheFinal(),
+    // 4.10.1: se llama con la noche ya contada (`empezarOleada` suma antes): `esNocheFinal()` mira «la que viene» y la 19 salía sin señuelos
+    esFinal: () => { const d = D(); return !d.victoria && !d.sinFin && !d.asedio && d.oleadas >= nocheFinalCoihue(); },
     nota: (t, s, n) => ctx.nota(t, s, n),
     jugador: () => ctx.jugador(),
-    defensas: () => obras.obras.filter((o) => completa(o) && o.plano.categoria === 'defensa').map((o) => ({ x: o.datos.x, z: o.datos.z, o })),
+    defensas: () => obras.obras.filter((o) => completa(o) && o.plano.categoria === 'defensa' && !o.plano.defensa?.sinCuerpo).map((o) => ({ x: o.datos.x, z: o.datos.z, o })),
     obraViva: (o) => obras.obras.includes(o),
     porBajar: () => estadoNave.porBajar.length,
     polvo: (p) => { efectos.polvo(p, 8, '#6b5a44'); },
@@ -1209,7 +1211,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       : nocheEspecial(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior);
     // 4.8 noches: una hora antes se ve qué defensa quedó sin arreglar: por ahí van a entrar
     const cad = cadenaD();
-    cad.brecha = d.oleadas + 1 >= 2 && !esNocheFinal() ? elegirBrecha(obras.obras.filter((o) => completa(o) && o.plano.categoria === 'defensa').map((o) => {
+    cad.brecha = d.oleadas + 1 >= 2 && !esNocheFinal() ? elegirBrecha(obras.obras.filter((o) => completa(o) && o.plano.categoria === 'defensa' && !o.plano.defensa?.sinCuerpo).map((o) => {
       const v = vidaDe(o);
       return { x: o.datos.x, z: o.datos.z, nombre: conArticulo(o.plano.nombre), ratio: v.max > 0 ? v.vida / v.max : 1 };
     }), d.oleadas + 1) : null;
@@ -1231,13 +1233,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // la defensa clave: la que más aguanta de las que están en pie
     let clave = null, vmax = 0;
     for (const o of obras.obras) {
-      if (!completa(o) || o.plano.categoria !== 'defensa') continue;
+      if (!completa(o) || o.plano.categoria !== 'defensa' || o.plano.defensa?.sinCuerpo) continue;   // 4.10.1: el pasadizo (400 de vida) y la trampa de miel no son «la defensa clave»
       const v = vidaDe(o);
       if (v.vida > v.max * 0.2 && v.max > vmax) { vmax = v.max; clave = o; }
     }
     const id = elegirGiro({
       noche: d.oleadas, especial: d.especial, jefe: esNocheDeJefe(d.oleadas), final: !d.victoria && (!!d.nodriza || (!d.sinFin && !d.asedio && d.oleadas >= nocheFinalCoihue())),
-      rescate: !!d.rescate, varada: !!d.varada, anterior: d.giroAnterior, hayDefensas: !!clave,
+      rescate: !!d.rescate, varada: !!d.varada, anterior: d.giro ? (d.giro.noche === d.oleadas - 1 ? d.giro.id : null) : d.giroAnterior, hayDefensas: !!clave,   // 4.10.1: el de la noche anterior de verdad (antes: el último que hubo, aunque fuera de tres noches atrás)
       yaHuboRefuerzo: d.refuerzoNoche === d.oleadas, azar: azarNoche('giro', d.oleadas)(),   // (azarNoche da un generador: con código de partida siempre el mismo)
     });
     if (!id) return;
@@ -1253,13 +1255,16 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const base = sinJefe(lista);
       const tipos = base.slice(0, Math.max(2, Math.ceil(base.length / 3)));
       // con un curandero si el juego ya lo tiene (lo trae otra rama): se queda atrás y cura
-      if (Object.hasOwn(TIPOS_ALIEN, 'curandero')) tipos.push('curandero');
+      if (Object.hasOwn(TIPOS_ALIEN, 'curandero') && curanderosEnLaNoche(d.oleadas, esNocheDeJefe(d.oleadas)) > 0) tipos.push('curandero');   // 4.10.1: el curandero empieza en la noche 4
+      d.refuerzoNoche = d.oleadas;   // 4.10.1: ya llegaron refuerzos esta noche: los de las 1:30 no vuelven a sumarse
       ctx.nota(g.aviso, g.texto, true);
       const noche = d.oleadas;
       setTimeout(() => { if (!D().oleadaTerminada && D().oleadas === noche) empezarOleada(tipos, false); }, 3500);
     } else if (id === 'defensa' && clave) {
       const v = vidaDe(clave);
-      danarObra(clave, Math.max(0, v.vida - v.max * 0.12));   // queda en el 12%: se arregla con reparar (R), si llegás a tiempo
+      // queda en el 12%: se arregla con reparar (R), si llegás a tiempo
+      // 4.10.1: se fija la vida; con danarObra el escudo, el contrafuerte o el curtido le sacaban parte del golpe (y la sumaban como noche peleada)
+      clave.datos.vida = Math.min(v.vida, v.max * 0.12); sacudidas.set(clave, 0.25);
       S.derrumbe?.(clave.datos);
       const quien = conArticulo(clave.plano.nombre), lo = pronombreDe(clave.plano.nombre);
       ctx.nota(g.aviso, `Se quebró ${quien} sin que nadie ${lo} toque: arregla${lo} antes de que lleguen`, true);
@@ -3655,7 +3660,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const p = progreso(), d = D();
     if (naveMundo.adentro) return 'ataque';   // 3.0
     if (d.oleadaNoche === claveNoche(p.dia, p.horas) && !d.oleadaTerminada && esHoraDeAtaque(p.horas)) return vivos() > 0 || eventos.nodrizaActiva ? 'ataque' : 'calma';
-    if (p.horas >= HORA_ATAQUE - 1 && p.horas < HORA_ATAQUE) return 'previa';
+    if (p.horas >= HORA_ATAQUE - 1 && p.horas < HORA_ATAQUE && siguenLasNoches(d)) return 'previa';   // 4.10.1: sin noches (cueva caída, partida corta ganada) no hay previa de miedo
     return 'calma';
   }
   const estadoMusica = { activo: true, fase: 'calma', tension: 0, especial: null, miedo: 0, avance: 0, silencio: false };   // 4.8 ambiente: miedo, avance de la previa y silencio
@@ -3668,7 +3673,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     return Math.min(1, vivos() / 10 + (cerca < 25 ? (25 - cerca) / 25 * 0.55 : 0) + (eventos.nodrizaActiva ? 0.35 : 0));
   }
 
-  let primerCuadro = true, acumLogros = 0, climaActual = efectoClima();
+  let primerCuadro = true, acumLogros = 0, climaActual = efectoClima(), vistaDelClima = 1;   // 4.10.1: la vista del clima SIN la niebla de la noche (el ambiente no la cuenta dos veces)
   const climaVisto = { lluvia: undefined, nublado: undefined, invierno: undefined, niebla: undefined };   // 4.8 noches: y la niebla de la noche
   const _rep = { x: 0, z: 0 };
   function actualizar(dt, mundo) {
@@ -3733,6 +3738,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (c.lluvia !== climaVisto.lluvia || c.nublado !== climaVisto.nublado || c.invierno !== climaVisto.invierno || nb !== climaVisto.niebla) {
       climaVisto.lluvia = c.lluvia; climaVisto.nublado = c.nublado; climaVisto.invierno = c.invierno; climaVisto.niebla = nb;
       climaActual = efectoClima(climaVisto);
+      const sinNiebla = { ...climaVisto, niebla: 0 };   // (sólo cuando el clima cambia)
+      vistaDelClima = efectoClima(sinNiebla).vista;
     }
     recarga = Math.max(0, recarga - dt);
     // 4.0.3 (F2): con el modo foto la hora es la del deslizador: no dispara oleadas ni amaneceres (`fotoActiva` lo pone main.js)
@@ -3814,7 +3821,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const p = progreso(), e = estadoAmbiente;
       e.activo = !caido && !naveMundo.adentro; e.fase = estadoMusica.fase; e.horas = p.horas; e.noche = nocheNivel; e.js = js;
       e.especial = ambiente.especialDePrueba ?? d.especial; e.giroNiebla = nieblaAhora() === 1;   // 4.8 (junta): la niebla que baja a las dos (giro) también la ve y la oye el ambiente
-      e.nocheN = nocheEnCurso(d, p.dia, p.horas); e.sinFin = !!d.sinFin; e.vista = climaActual.vista;
+      e.nocheN = nocheEnCurso(d, p.dia, p.horas); e.sinFin = !!d.sinFin; e.vista = vistaDelClima;
       const a = ambiente.actualizar(dtReal, e);
       estadoMusica.miedo = a.miedo; estadoMusica.avance = a.avance; estadoMusica.silencio = a.silencio;
     }

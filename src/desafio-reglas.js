@@ -567,8 +567,8 @@ export function sanearDesafio(d) {
     ordenes: sanearOrdenes(x.ordenes),
     puestosAliados: sanearPuestosAliados(x.puestosAliados),   // 4.9 aliados: dónde marcó el jugador el puesto de cada vecino (una partida vieja: ninguno)
     abatidosPerro: ent(x.abatidosPerro, 0),
-    especial: ESPECIALES[x.especial] ? x.especial : null,
-    especialAnterior: ESPECIALES[x.especialAnterior] ? x.especialAnterior : null,
+    especial: typeof x.especial === 'string' && Object.hasOwn(ESPECIALES, x.especial) ? x.especial : null,   // 4.10.1: con Object.hasOwn («constructor» daba una noche vacía)
+    especialAnterior: typeof x.especialAnterior === 'string' && Object.hasOwn(ESPECIALES, x.especialAnterior) ? x.especialAnterior : null,
     // 4.8 noches: una partida vieja carga sin giro ni cadena
     giro: sanearGiro(x.giro),
     giroNoche: Number.isFinite(Number(x.giroNoche)) && x.giroNoche !== null && x.giroNoche !== '' && typeof x.giroNoche !== 'boolean' ? Math.floor(Number(x.giroNoche)) : -1,

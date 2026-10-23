@@ -724,7 +724,7 @@ function noche(base, p, n, golpear = []) {
   const ids = INTERACCIONES.map((e) => e.id);
   ok(ids.filter((i) => i === 'trofeos').length === 1 && ids.indexOf('trofeos') > ids.indexOf('aldea-tablon') && ids.indexOf('trofeos') < ids.indexOf('objetivo') && ids.indexOf('trofeos') < ids.indexOf('desafio-cerca'), 'la E y el aviso: una entrada «trofeos» en la tabla, antes de lo que mirás');
   const { que, enganche } = await import('./ayuda-interacciones.mjs');
-  const r = que({ desafio: true, trofeosCerca: true, avisoTrofeos: 'Ver los trofeos del tablero (2 de 7)', usarTrofeos: true });
+  const r = que({ desafio: true, trofeosCerca: true, avisoDesafioCerca: null, avisoTrofeos: 'Ver los trofeos del tablero (2 de 7)', usarTrofeos: true });
   ok(r.e === 'trofeos' && r.avisoId === 'trofeos' && r.texto === 'Ver los trofeos del tablero (2 de 7)' && r.hechos.includes('usarTrofeos'), 'junto al tablero del Desafío, la E lo usa y el aviso habla de él');
   ok(que({ desafio: false, trofeosCerca: true }).e !== 'trofeos', 'en el Relax no existe');
   ok(que({ desafio: true, trofeosCerca: true, js: { enTren: true } }).e !== 'trofeos' && que({ desafio: true, trofeosCerca: true, js: { montado: true } }).e !== 'trofeos', 'ni arriba del tren ni a caballo');

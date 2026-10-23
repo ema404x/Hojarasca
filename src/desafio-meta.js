@@ -83,6 +83,8 @@ export const INCOMPATIBLES = [
   ['sinAliados', 'herrero', 'Sin aliados no hay Anselmo'],
   ['sinAliados', 'chicos', 'Sin aliados no hay chicos'],
   ['sinReparar', 'herrero', 'Sin reparar, Anselmo no arregla nada'],
+  // 4.10.1: las dos alargan la noche un tercio, pero no se suman (sólo una vez): juntas pagaban puntos de más por nada
+  ['nochesLargas', 'avaro', 'Las dos alargan la noche un tercio, pero no se suman: elegí una'],
 ];
 const motivoDeChoque = (a, b) => {
   for (const [x, y, m] of INCOMPATIBLES) if ((a === x && b === y) || (a === y && b === x)) return m;

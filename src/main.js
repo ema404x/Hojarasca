@@ -343,6 +343,7 @@ const metaJuego = crearMetaJuego({
   sumarBono,   // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
   alBonos: (d) => { d.salud = saludMaximaConBonos(SALUD_MAX, d); },   // con más (o menos) salud máxima, se arranca entero
 });
+if (esDesafio) metaJuego.alCargar();   // 4.10.1: una campaña de la 4.9 sin `meta` recibe la suya; las partidas ganan su número
 // 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
 const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
 // 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
@@ -2380,7 +2381,7 @@ $('btn-nuevo').addEventListener('click', async () => {
   const hayQuePreguntar = habiaGuardado || modo !== 'inicio';
   // 3.5.1: la pregunta es un cuadro del juego (dialogo.js), no el confirm del navegador
   const acepta = !hayQuePreguntar || await (esSinFin
-    ? dialogos.confirmar('Esto abandona la corrida sin fin de ahora (no queda récord) y empieza otra. Tu campaña no se toca. ¿Querés continuar?')
+    ? dialogos.confirmar('Esto abandona la corrida sin fin de ahora (no entra al top 10, pero se anotan sus puntos y, con tres noches o más, da una semilla del Coihue) y empieza otra. Tu campaña no se toca. ¿Querés continuar?')
     : esDesafio
     ? dialogos.confirmar('Esto borra la partida de La noche de los duendes y empieza desde la primera noche. Tu recorrido Relax no se toca. ¿Querés continuar?')
     : dialogos.confirmar('Esto borra el recorrido guardado y empieza desde cero. ¿Querés continuar?'));

@@ -39,7 +39,10 @@ export function crearMetaJuego(ctx) {
   // Al cargar la partida: el módulo de reglas toma el modo, las ventajas y las reglas de la partida.
   function alCargar() {
     const d = dPartida();
-    if (d?.meta && !d.meta.id) d.meta.id = idDePartida();   // 4.10.1
+    // 4.10.1: una campaña empezada en la 4.9 (con noches jugadas y sin `meta`) recibe la suya, neutra: antes las noches limpias y los
+    // lugares caídos no se contaban hasta ganar y el final salía mal
+    if (d && !d.meta && (d.oleadas || 0) > 0) asegurarMeta();
+    if (d?.meta && !d.meta.id) d.meta.id = idDePartida();
     fijarPartidaMeta(d?.meta || null);
   }
 
