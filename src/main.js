@@ -11053,6 +11053,8 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     // 3.5: la distancia de dibujo y de plantas (pruebas y herramientas de medición)
     pasto, calidad, aplicarDistancias, __distancias: () => ({ ajustes: { distancia: ajustes.distancia, plantas: ajustes.distanciaPlantas }, rigen: distActual, veg: veg.distancias(), pasto: { radio: pasto.radio, matas: pasto.matas }, soto: { ...veg.statsSoto } }),
     __bucle: () => bucle(0, true),
+    __mochilaCarga: () => ({ capacidad: capacidad(progreso, ctxCarga()), ocupacion: ocupacion(progreso, ctxCarga()) }),   // 4.7 carga (pruebas/humo-4-7-carga.cjs)
+    __lugarEn: (k, n) => lugarEn(k, n),
     __gpuMs: () => msGpu,   // 4.3.1: lo que tardó la placa en el último cuadro leído (herramientas/medir-caminata.cjs; -1 si no se mide)
     // 3.6.1 (vecinos): el aviso de ahora mismo (sin esperar los relojes de lo que hay adelante), para
     // comparar en cada lugar lo que dice el aviso con lo que hace E (humo-3-6-1-vecinos.cjs)
