@@ -485,7 +485,21 @@ export function desafioNuevo() {
     // 4.10 base: los trofeos ganados y las noches del perro (ver desafio-crece.js)
     crece: creceNuevo(),
     // 4.10 coihue: los lugares del valle tomados por los duendes (null hasta la noche 3; ver desafio-valle.js §11)
-    valle: null };
+    valle: null,
+    // 4.10.1: lo que pasó en la noche en curso (obras perdidas, daño: para la cadena y el final) y quiénes quedaban
+    // vivos (al abrir a mitad de noche vuelven esos y no los primeros de la lista)
+    nocheActual: nocheActualNueva(), quedan: [] };
+}
+export function nocheActualNueva() { return { abatidos: 0, perdidas: 0, dano: 0, abatidosLanza: 0, abatidosOtros: 0, invasores: 0 }; }
+// 4.10.1: sin campos raros, números finitos y no negativos
+export function sanearNocheActual(v) {
+  const base = nocheActualNueva();
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return base;
+  for (const k of Object.keys(base)) { const n = Number(v[k]); if (v[k] !== null && v[k] !== '' && typeof v[k] !== 'boolean' && Number.isFinite(n)) base[k] = Math.max(0, Math.min(1e6, k === 'dano' ? n : Math.floor(n))); }
+  return base;
+}
+export function sanearQuedan(v) {
+  return Array.isArray(v) ? v.filter((t) => typeof t === 'string' && Object.hasOwn(TIPOS_ALIEN, t)).slice(0, 40) : [];
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -609,6 +623,7 @@ export function sanearDesafio(d) {
     bonos, habilidades,   // 4.10 guardian: una partida vieja carga sin bonos ni puntos
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
     meta: sanearMetaPartida(x.meta),   // 4.10 partidas: una partida vieja carga en modo normal, sin ventajas ni reglas
+    nocheActual: sanearNocheActual(x.nocheActual), quedan: sanearQuedan(x.quedan),   // 4.10.1: guardar a mitad de noche ya no borra el daño ni las obras perdidas
     farolOn: !!x.farolOn, brasas: ent(x.brasas, 0, PALA.cargas),   // 4.9 defensas: una partida vieja carga con el farol apagado y la pala vacía
   };
 }

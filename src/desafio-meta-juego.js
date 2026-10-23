@@ -8,7 +8,7 @@
 //   · al ganar, elige el final según cómo se jugó.
 import { fijarPartidaMeta } from './desafio-reglas.js';
 import {
-  leerMeta, guardarMeta, sanearMeta, validarEleccion, gastarSemillas, metaDePartida, efectosDe, modoDe, terminarPartida, anotarVictoria,
+  idDePartida, TOPE_COBRADAS, leerMeta, guardarMeta, sanearMeta, validarEleccion, gastarSemillas, metaDePartida, efectosDe, modoDe, terminarPartida, anotarVictoria,
   registrarPuntos, puntosDe, anotarFinal, elegirFinal, estadoDeFinal, nochesLimpias, textoFinal, epilogoFinal, FINALES, MODOS,
 } from './desafio-meta.js';
 
@@ -33,10 +33,15 @@ export function crearMetaJuego(ctx) {
     const d = dPartida();
     if (!d) return null;
     if (!d.meta) { d.meta = metaDePartida({ modo: ctx.esSinFin() ? 'sinfin' : 'normal' }); fijarPartidaMeta(d.meta); }
+    if (!d.meta.id) d.meta.id = idDePartida();   // 4.10.1: una partida de antes de la 4.10.1 recibe su número
     return d.meta;
   }
   // Al cargar la partida: el módulo de reglas toma el modo, las ventajas y las reglas de la partida.
-  function alCargar() { fijarPartidaMeta(dPartida()?.meta || null); }
+  function alCargar() {
+    const d = dPartida();
+    if (d?.meta && !d.meta.id) d.meta.id = idDePartida();   // 4.10.1
+    fijarPartidaMeta(d?.meta || null);
+  }
 
   // ---------------------------------------------------------------- empezar
   function iniciar(eleccion) {
@@ -100,9 +105,12 @@ export function crearMetaJuego(ctx) {
     if (!d) return null;
     const meta = asegurarMeta();
     if (meta.semillaDada) return null;
+    // 4.10.1: una copia de una partida que ya cobró (importada en otra ranura) no vuelve a cobrar ni a anotar puntos
+    if (meta.id && leer().cobradas.includes(meta.id)) { meta.semillaDada = true; ctx.guardar?.(); return null; }
     const modo = modoDe(meta);
     const r = terminarPartida(leer(), { noches: d.noches, yaDada: false });
     let m = r.meta;
+    if (meta.id) m.cobradas = [...m.cobradas, meta.id].slice(-TOPE_COBRADAS);
     if (victoria) m = anotarVictoria(m, modo);
     meta.semillaDada = true;
     const mult = efectosDe(meta).mult;

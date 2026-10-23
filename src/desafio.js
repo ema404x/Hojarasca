@@ -10,7 +10,7 @@ import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
 import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida } from './desafio-reglas.js';
 import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
-import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX } from './desafio-reglas.js';
+import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX, nocheActualNueva } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
 import { NIDO, nidoNuevo, lugarDelNido, resumenNido, cercoDeBusqueda, siguenLasNoches } from './desafio-nido.js';
@@ -114,6 +114,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (!p.cosas) p.cosas = {};
     p.cosas[clave] = 1;
   }
+  // 4.10.1: con la regla «sin aliados» el perro no avisa, no da pistas del lado ni cuenta noches (antes sólo dejaba de morder)
+  const perroAliado = () => (efectosPartida()?.sinAliados ? null : ctx.perroPos?.() || null);
   const D = () => {
     const p = progreso();
     if (!p.desafio) p.desafio = sanearDesafio(null);
@@ -412,12 +414,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (efectosPartida()?.sinReparar) return null;   // 4.10 partidas: «sin reparar»
       let mejor = null, peor = 0.999;
       for (const o of obras.obrasCerca(c, radio, [])) {
-        if (!completa(o) || o === sin || !Number.isFinite(o.datos.vida)) continue;
+        if (!completa(o) || o === sin || (Array.isArray(sin) && sin.includes(o)) || !Number.isFinite(o.datos.vida)) continue;
         const { vida, max } = vidaDe(o);
         if (vida / max < peor) { peor = vida / max; mejor = o; }
       }
       return mejor;
     },
+    obraViva: (o) => obras.obras.includes(o),   // 4.10.1: Anselmo suelta la obra que ya cayó
     // 1.11: los portones terminados, para la orden "cuidá el portón"
     portones: () => obras.obras.filter((o) => o.plano.porton && completa(o)).map((o) => ({ x: o.datos.x, z: o.datos.z })),
     reparar: (o, cantidad) => { if (efectosPartida()?.sinReparar) return true; const { vida, max } = vidaDe(o);   // 4.10 partidas: «sin reparar»
@@ -436,7 +439,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         a.estado = 'bajar'; a.t = 0; a.m.g.position.y += 16;
         n++;
       }
-      if (n) { nocheActual.invasores += n; D().vivos = vivos(); }
+      if (n) { nocheActual.invasores += n; D().vivos = vivos(); anotarQuedan(); }
     },
     alDerrotarNodriza: () => vencer(),
     hudNodriza: document.getElementById('nodriza-hud'),
@@ -472,7 +475,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const ambiente = crearAmbienteMundo({
     T, escena, sonido, S, col, defensas, musica, aliens: () => aliens, centroBase: () => centroBase(), camara: () => camara,
     lado: () => D().ladoNoche || null,   // 4.8 ambiente: el lado por donde entran esta noche (lo pone el agente de los ataques; si no existe, nada)
-    perroPos: () => ctx.perroPos?.() || null,
+    perroPos: () => perroAliado(),
     nota: (t, s) => ctx.nota(t, s),
   });
   const estadoAmbiente = { activo: true, fase: 'calma', horas: 12, noche: 0, js: null, mira: miraJugador, especial: null, nocheN: 1, sinFin: false, vista: 1 };
@@ -507,7 +510,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // 4.9 defensas: lo roto que se ve, la trampa de miel, el pasadizo, el farol de mano y la pala de brasas (ver desafio-defensas49-juego.js)
   const defensas49 = crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api, defensas);
   // 4.10 base: lo que crece con las noches (defensas curtidas, trofeos del tablero, el perro)
-  api.perroPresente = () => !!ctx.perroPos?.();
+  api.perroPresente = () => !!perroAliado();
   api.guardar = () => ctx.guardar();
   const baseCrece = crearBaseCrece(obras, efectos, sonido, api);
   // 3.0: el asedio final y la pelea adentro de la nave (ver desafio-asedio*.js y
@@ -557,7 +560,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // desafio-puestos*.js). Las estructuras de los puestos entran como blancos por el mismo
   // camino que las cámaras del nido: flechas, rayo, torretas y golpes les llegan igual.
   api.aparecer = (tipo, x, z) => aparecerEn(tipo, x, z);
-  api.sumarInvasores = (n) => { nocheActual.invasores += n; D().vivos = (D().vivos || 0) + n; };
+  api.sumarInvasores = (n) => { nocheActual.invasores += n; D().vivos = (D().vivos || 0) + n; anotarQuedan(); };
   api.pistaDeNido = () => eventos.pistaDeNido();
   const evolucion = crearEvolucionMundo(efectos, sonido, api);
   const puestos = crearPuestosMundo(T, escena, efectos, sonido, api);
@@ -843,7 +846,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     T, D, aliens, limite: LIMITE,
     base: () => baseMapa() || T.lugares.refugio,
     libre: (x, z) => !T.agua(x, z) && !obraEnPunto(x, T.altura(x, z) + 0.5, z),
-    blancoNoche: () => { const resc = D().rescate; return (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche() || null; },
+    blancoNoche: () => { const resc = D().rescate; return (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche() || brechaDeLaNoche() || null; },   // 4.10.1: y la brecha de la cadena (antes el lado de la noche ganaba siempre y el aviso «entran por ahí» no se cumplía)
     esFinal: () => esNocheFinal(),
     nota: (t, s, n) => ctx.nota(t, s, n),
     jugador: () => ctx.jugador(),
@@ -868,7 +871,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // lo que tenés para saber de antemano: la estación meteorológica (trae radio), una radio o el perro
     tiene: () => {
       const est = obras.obras.some((o) => completa(o) && o.plano.id === 'estacion-meteo');
-      return { estacion: est, radio: est || obras.obras.some((o) => completa(o) && o.plano.id === 'radio-refugio'), perro: !!ctx.perroPos?.() };
+      return { estacion: est, radio: est || obras.obras.some((o) => completa(o) && o.plano.id === 'radio-refugio'), perro: !!perroAliado() };
     },
     hayBlanco: () => !!(D().rescate && !D().rescate.caido) || !!blancoVarada() || !!asedioMundo.blancoNoche(),
     activo: () => !D().victoria && siguenLasNoches(D()),
@@ -889,8 +892,23 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // 3.8.6: los refuerzos de madrugada van en la partida (`refuerzoNoche`): con la marca en memoria, guardar y abrir
   // después de los refuerzos los mandaba otra vez (y apenas volvían los que quedaban, si eran menos de cuatro)
   let ultimoChillido = 0, avisada = -1;
-  const nocheActual = { abatidos: 0, perdidas: 0, dano: 0, abatidosLanza: 0, abatidosOtros: 0, invasores: 0 };
-  function reiniciarNoche() { Object.assign(nocheActual, { abatidos: 0, perdidas: 0, dano: 0, abatidosLanza: 0, abatidosOtros: 0, invasores: 0 }); }
+  // 4.10.1: la noche en curso vive en la partida (`D().nocheActual`): con el objeto en memoria, guardar y abrir a mitad de noche
+  // borraba las obras perdidas y el daño recibido y la noche salía «perfecta» sin serlo
+  const nocheActual = {};
+  for (const k of Object.keys(nocheActualNueva())) {
+    Object.defineProperty(nocheActual, k, {
+      get() { const d = D(); return (d.nocheActual || (d.nocheActual = nocheActualNueva()))[k]; },
+      set(v) { const d = D(); (d.nocheActual || (d.nocheActual = nocheActualNueva()))[k] = v; },
+    });
+  }
+  function reiniciarNoche() { D().nocheActual = nocheActualNueva(); }
+  // 4.10.1: quiénes siguen vivos (tipos) para volver tal cual si se guarda y abre a mitad de noche; se anota cuando cambia la cuenta
+  function anotarQuedan() {
+    const q = [];
+    for (const a of aliens) if (a.estado !== 'morir' && a.estado !== 'irse' && a.estado !== 'dormido') q.push(a.tipo);
+    for (const t of estadoNave.porBajar) q.push(String(t).split(':')[0]);
+    D().quedan = q.slice(0, 40);
+  }
   const RUMBOS_TEXTO = ['al norte', 'al noreste', 'al este', 'al sureste', 'al sur', 'al suroeste', 'al oeste', 'al noroeste'];
   function rumboTexto(desde, hacia) {
     const rumbo = Math.atan2(hacia.x - desde.x, hacia.z - desde.z);
@@ -939,6 +957,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     estadoNave.porBajar.push(...tipos);
     nocheActual.invasores += tipos.length;
     d.vivos = aliens.filter((a) => a.estado !== 'morir').length + estadoNave.porBajar.length;
+    anotarQuedan();
     nave.g.visible = !puntoFijo;
     if (puntoFijo) return;
     S.sirena();
@@ -1320,6 +1339,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         // 3.8.3: el mandamás va último en la lista: cortarla dejaba afuera al que seguía vivo (guardar y abrir
         // salteaba al jefe) y, con los llamados del jefe contados, volvía uno ya abatido
         const conJefe = tipos.includes('jefe') && d.jefeCaido !== d.oleadas;
+        // 4.10.1: vuelven los que quedaban (`d.quedan`, tipo por tipo) y no los primeros N de la lista, que con el enjambre y el
+        // curandero al final volvían como rastreadores y brutos; una partida vieja (sin la lista) sigue como antes
+        const quedan = Array.isArray(d.quedan) ? d.quedan.filter((t) => Object.hasOwn(TIPOS_ALIEN, t)) : [];
+        if (quedan.length) {
+          const resto = sinJefe(quedan);
+          empezarOleada(quedan.includes('jefe') && conJefe ? [...resto, 'jefe'] : resto.length ? resto : sinJefe(tipos).slice(0, n), false, true);
+        } else
         empezarOleada(conJefe ? [...sinJefe(tipos).slice(0, n - 1), 'jefe'] : sinJefe(tipos).slice(0, n), false, true);
         if (d.nodriza && !d.victoria) eventos.iniciarNodriza();
       } else if (!d.oleadaTerminada && d.nodriza && !d.victoria && !d.asedio && !eventos.nodrizaActiva) {
@@ -1841,6 +1867,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (fuente === 'lanza') nocheActual.abatidosLanza++; else nocheActual.abatidosOtros++;
       if (fuente === 'perro' || a.mordido > 0) d.abatidosPerro++;
       d.vivos = Math.max(0, vivos());
+      anotarQuedan();
       if (d.vivos === 0 && !d.oleadaTerminada && !estadoNave.porBajar.length && !eventos.nodrizaActiva) {
         // el último de la noche: un instante de cámara lenta y un golpe de música
         camaraLenta = 1.4;
@@ -3329,6 +3356,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     nocheActual.invasores += n;
     d.vivos = (d.vivos || 0) + n;
+    anotarQuedan();
     d.capullos = [];
     sincronizarCapullos();
     if (n) setTimeout(() => ctx.nota(lista.length === 1 ? 'Se abrió un nido de hongos' : `Se abrieron ${lista.length} nidos de hongos`, n === 1 ? 'Un duende más, desde el bosque' : `${n} duendes más, desde el bosque`, true), 1500);
@@ -3765,7 +3793,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     aliados.actualizarCompaneros(dt, vivos() > 0);
     vecinos.actualizar(dt, js, vivos() > 0, mundo.noche);   // 4.9 aliados
     campana.actualizar(dt);   // 4.9 aliados
-    aliados.actualizarPerro(dt, js, ctx.perroPos?.());
+    aliados.actualizarPerro(dt, js, perroAliado());
     efectos.actualizar(dt, naveMundo.adentro ? naveMundo.pisoT : T);   // 3.0: adentro, el piso es el de la nave
     rayo.material.opacity = Math.max(0, rayo.material.opacity - dt * 7);
     // salud: se recupera sola despacio si pasa un rato sin golpes

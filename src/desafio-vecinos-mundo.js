@@ -106,7 +106,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     est.dentro = false; est.avisado = false;
     est.spots = null; est.lit.length = 0;
     est.pasada = { armada: true }; est.pasadasEfecto = 0; est.via = null; est.dispersados = 0; est.silbatos = 0;
-    for (const c of est.cuerpos.values()) { c.encendidos = 0; c.prende = 0; c.obra = null; c.corre = false; }
+    for (const c of est.cuerpos.values()) { c.encendidos = 0; c.prende = 0; c.obra = null; c.corre = false; c.evitar = null; c.evitarT = 0; c.llegarT = 0; }
     apagarFuegos();
     // el nivel de cada uno queda fijo toda la noche
     for (const v of Object.keys(est.niveles)) est.niveles[v] = est.grande ? nivelDeAyuda(d, v) : 0;
@@ -168,12 +168,18 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     const npc = c.npc, num = ANSELMO[est.niveles.anselmo];
     if (!num) return;
     c.tBuscar -= dt;
+    if (c.evitarT > 0) { c.evitarT -= dt; if (c.evitarT <= 0) c.evitar = null; }   // 4.10.1
     if (c.tBuscar <= 0) {
       c.tBuscar = orden === 'seguime' ? 0.5 : 1;
       const centro = orden === 'seguime' ? js.pos : puestoDeAliado('anselmo');
+      // 4.10.1: si la obra que arreglaba ya cayó, la suelta (antes seguía martillando una obra que ya no estaba)
+      if (c.obra && api.obraViva && !api.obraViva(c.obra)) { c.obra = null; c.llegarT = 0; }
+      // 4.10.1: y si no llega a la que eligió (una pared de por medio: camina derecho, sin ruta), la deja de lado un rato
+      const ramon = api.obraDeRamon?.() || null;
       // sigue con la que empezó hasta dejarla entera; después va a la más rota que quede (si no, con dos igual de rotas iba y venía)
-      const obra = c.obra || api.obraMasDanada(centro, orden === 'seguime' ? 8 : num.radio, api.obraDeRamon?.() || null);
+      const obra = c.obra || api.obraMasDanada(centro, orden === 'seguime' ? 8 : num.radio, c.evitar ? [ramon, c.evitar] : ramon);
       if (obra !== c.obra) { npc.espera = 0; npc.ruta[0].quieto = 1; }
+      if (obra !== c.obra || !obra) c.llegarT = 0;
       c.obra = obra;
       if (obra) {
         c.corre = false;
@@ -183,8 +189,13 @@ export function crearVecinosMundo(T, escena, api, piezas) {
       } else if (orden === 'seguime') seguir(c, js);
       else { const d = irA(c, puestoDeAliado('anselmo'), c.corre); if (d < 1.5) c.corre = false; }
     }
+    if (c.obra && Math.hypot(npc.pos.x - c.obra.datos.x, npc.pos.z - c.obra.datos.z) >= 2.6) {
+      c.llegarT = (c.llegarT || 0) + dt;
+      if (c.llegarT > 25) { c.evitar = c.obra; c.evitarT = 40; c.obra = null; c.llegarT = 0; c.tBuscar = 0; }   // 4.10.1: no llega: prueba con otra
+    } else c.llegarT = 0;
     if (c.obra && Math.hypot(npc.pos.x - c.obra.datos.x, npc.pos.z - c.obra.datos.z) < 2.6) {
-      const lleno = api.reparar(c.obra, num.repara * dt);
+      // 4.10.1: «manos livianas» (anselmoPausa 0,7) también arregla más rápido: antes sólo cambiaba el ritmo del martillo
+      const lleno = api.reparar(c.obra, num.repara * dt / (efectosPartida()?.anselmoPausa || 1));
       c.golpe -= dt;
       if (c.golpe <= 0) {
         c.golpe = num.pausa * (efectosPartida()?.anselmoPausa ?? 1) + 0.35;   // 4.10 partidas: «manos livianas»
@@ -326,6 +337,12 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     if (!enVentana) { if (est.key !== null) { irse(); est.key = null; } return; }
     const key = claveNoche(dia, horas);
     if (est.key !== key) nuevaNoche(key, horas, dia);
+    // 4.10.1: un pedido entregado entre las 19:30 y las 20:30 (el plazo llega hasta la hora del ataque) también cuenta esa
+    // noche: el nivel sólo sube, nunca baja
+    if (est.grande && horas >= HORA_ATAQUE - 1 && horas < HORA_ATAQUE + 0.05) {
+      const d0 = api.D();
+      for (const v of Object.keys(est.niveles)) { const n = nivelDeAyuda(d0, v); if (n > est.niveles[v]) est.niveles[v] = n; }
+    }
     if (!est.grande) return;
     est.dentro = true;
     armar(2);
@@ -386,7 +403,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
   // ---------------------------------------------------------------- lo que usa el resto del Desafío
   // El rumbo con que un duende viejo avanza, sin entrar al círculo de un fuego prendido. `rumbo`: hacia dónde iba (atan2(dx, dz)).
   function rumboDeViejo(a, rumbo) {
-    if (!est.lit.length || !a.m.viejo) return rumbo;
+    if (!est.lit.length || !a.m.viejo || a.def?.jefe) return rumbo;   // 4.10.1: el Mandamás no se espanta con los fogones (como con el farol de mano)
     const p = a.m.g.position;
     ajusteDeViejo(Math.sin(rumbo), Math.cos(rumbo), p.x, p.z, est.lit, true, _s);
     return _s.tocado ? Math.atan2(_s.x, _s.z) : rumbo;
@@ -396,7 +413,21 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     if (!(a.huyeT > 0)) return null;
     a.huyeT -= dt;
     const p = a.m.g.position;
-    return Math.atan2(p.x - a.huyeX, p.z - a.huyeZ);
+    let vx = p.x - a.huyeX, vz = p.z - a.huyeZ;
+    // 4.10.1: si alejarse de la vía es ir hacia la base (la base queda entre la vía y los duendes), corre de costado o para el
+    // otro lado: una dispersión no tiene que acercarlos a las defensas
+    const b = api.centroBase();
+    const bx = b.x - p.x, bz = b.z - p.z, bl = Math.hypot(bx, bz);
+    if (bl > 1e-6) {
+      const l = Math.hypot(vx, vz) || 1;
+      vx /= l; vz /= l;
+      const hacia = (vx * bx + vz * bz) / bl;
+      if (hacia > 0) {
+        vx -= hacia * bx / bl; vz -= hacia * bz / bl;
+        if (Math.hypot(vx, vz) < 0.05) { vx = -bz / bl; vz = bx / bl; }   // justo en línea: de costado
+      }
+    }
+    return Math.atan2(vx, vz);
   }
   function limpiar() {
     for (const c of est.cuerpos.values()) if (c.presente) { c.presente = false; if (c.npc) { c.npc.dormido = true; c.npc.enBase = false; } }

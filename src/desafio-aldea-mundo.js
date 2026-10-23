@@ -75,7 +75,7 @@ export function crearAldeaMundo(T, escena, ctx) {
   // ------------------------------------------------------------ cada segundo
   function contexto() {
     const p = ctx.progreso(), d = ctx.D();
-    return { dia: p.dia, horas: p.horas, oleadas: d.oleadas || 0, semilla: d.semilla, activo: ctx.activo() };
+    return { dia: p.dia, horas: p.horas, oleadas: d.oleadas || 0, semilla: d.semilla, activo: ctx.activo(), sinAliados: Array.isArray(d.meta?.reglas) && d.meta.reglas.includes("sinAliados") };
   }
   function revisar() {
     const d = ctx.D();

@@ -203,14 +203,20 @@ export function efectoCadena(cadena, n) {
 // `tope`. La lista de entrada no se toca.
 export function aplicarCadena(lista, efecto, tope = CADENA.tope) {
   if (!efecto) return lista;
+  // 4.10.1: si la cadena no suma a nadie (sólo la brecha) la lista queda tal cual; antes se recortaba a `tope` igual
+  if (!efecto.vueltos && !efecto.companias && !efecto.grande) return lista;
   const conJefe = lista.includes('jefe');
-  const base = conJefe ? lista.filter((t) => t !== 'jefe') : lista.slice();
+  const sinJefe = conJefe ? lista.filter((t) => t !== 'jefe') : lista.slice();
+  // 4.10.1: el enjambre (con su cupo aparte) y el curandero no entran en el tope: al ir al final de la lista eran
+  // lo primero que se recortaba y una noche buena los dejaba en cero
+  const aparte = sinJefe.filter((t) => t === 'enjambre' || t === 'curandero');
+  const base = aparte.length ? sinJefe.filter((t) => t !== 'enjambre' && t !== 'curandero') : sinJefe;
   const extra = [];
   for (let i = 0; i < efecto.vueltos; i++) extra.push('bruto');
   for (let i = 0; i < efecto.companias; i++) extra.push('rastreador');
-  if (efecto.grande && base.length) for (let i = 0; i < Math.ceil(base.length * CADENA.parteGrande); i++) extra.push(base[i % base.length]);
+  if (efecto.grande && base.length) for (let i = 0; i < Math.ceil(sinJefe.length * CADENA.parteGrande); i++) extra.push(base[i % base.length]);
   const sitio = Math.max(1, tope - (conJefe ? 1 : 0));
-  const salida = base.slice(0, Math.max(0, sitio - extra.length)).concat(extra).slice(0, sitio);
+  const salida = base.slice(0, Math.max(0, sitio - extra.length)).concat(extra).slice(0, sitio).concat(aparte);
   if (conJefe) salida.push('jefe');
   return salida;
 }

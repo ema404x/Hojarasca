@@ -120,12 +120,17 @@ export function validarEleccion(meta, eleccion = {}) {
   return { ...sal, ok: true };
 }
 
+// 4.10.1: el número de la partida. Las semillas del Coihue se cobran una sola vez por número y se anota en lo guardado aparte
+// (`cobradas`): con el flag `semillaDada` adentro de la partida, cada copia importada de la misma partida volvía a dar una.
+export function idDePartida() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+const ID_OK = /^[a-z0-9]{6,24}$/;
+export const TOPE_COBRADAS = 300;
 // Lo que la partida se lleva de lo elegido: lo que se guarda en `d.meta`.
 export function metaDePartida(eleccion = {}, modoFijo = null) {
   const modo = modoFijo && esModo(modoFijo) ? modoFijo : esModo(eleccion.modo) ? eleccion.modo : 'normal';
   const ventajas = lista(eleccion.ventajas, VENTAJAS, MAX_VENTAJAS);
   const reglas = lista(eleccion.reglas, REGLAS, CLAVES_REGLA.length);
-  return { modo, ventajas, reglas, mult: multiplicadorDe(ventajas, reglas), aplicado: false, semillaDada: false, limpias: 0, lugaresCaidos: 0, final: null };
+  return { modo, ventajas, reglas, mult: multiplicadorDe(ventajas, reglas), aplicado: false, semillaDada: false, limpias: 0, lugaresCaidos: 0, final: null, id: idDePartida() };
 }
 const entero = (v, def, max) => {
   const n = Math.floor(Number(v));
@@ -135,7 +140,7 @@ const entero = (v, def, max) => {
 export function sanearMetaPartida(v) {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const base = metaDePartida({ modo: esModo(v.modo) ? v.modo : 'normal', ventajas: v.ventajas, reglas: v.reglas });
-  return { ...base, aplicado: !!v.aplicado, semillaDada: !!v.semillaDada, limpias: entero(v.limpias, 0, 999), lugaresCaidos: entero(v.lugaresCaidos, 0, 99),
+  return { ...base, id: typeof v.id === 'string' && ID_OK.test(v.id) ? v.id : '', aplicado: !!v.aplicado, semillaDada: !!v.semillaDada, limpias: entero(v.limpias, 0, 999), lugaresCaidos: entero(v.lugaresCaidos, 0, 99),
     final: typeof v.final === 'string' && Object.hasOwn(FINALES, v.final) ? v.final : null };
 }
 export const modoDe = (meta) => (meta && esModo(meta.modo) ? meta.modo : 'normal');
@@ -209,7 +214,7 @@ const ordenar = (v) => (Array.isArray(v) ? v : []).slice(0, 200).map(sanearEntra
 
 // ---------------------------------------------------------------- lo que se guarda entre partidas
 export function metaNueva() {
-  return { v: 1, semillas: 0, ganadas: 0, partidas: 0, victorias: 0, desbloqueos: { pesadilla: false }, finales: [],
+  return { v: 1, semillas: 0, ganadas: 0, partidas: 0, victorias: 0, desbloqueos: { pesadilla: false }, finales: [], cobradas: [],
     records: Object.fromEntries(CLAVES_MODO.map((k) => [k, []])) };
 }
 export function sanearMeta(v) {
@@ -225,6 +230,7 @@ export function sanearMeta(v) {
     // ganar la campaña una vez desbloquea la pesadilla (anotarVictoria) y ya no se pierde
     desbloqueos: { pesadilla: !!(x.desbloqueos && x.desbloqueos.pesadilla) },
     finales: lista(x.finales, FINALES, 99),
+    cobradas: Array.isArray(x.cobradas) ? [...new Set(x.cobradas.filter((s) => typeof s === 'string' && ID_OK.test(s)))].slice(-TOPE_COBRADAS) : [],   // 4.10.1
     records: Object.fromEntries(CLAVES_MODO.map((k) => [k, ordenar(Object.hasOwn(rec, k) ? rec[k] : [])])),
   };
 }
@@ -322,6 +328,7 @@ export function nochesLimpias(estado = {}) {
 export function vecinosQueAyudaron(d) {
   const a = d?.aldea?.ayuda;
   if (!a || typeof a !== 'object') return 0;
+  if (tieneRegla(d?.meta, 'sinAliados')) return 0;   // 4.10.1: con «sin aliados» nadie ayudó (y el final no puede ser «La aldea entera»)
   return ['anselmo', 'herminia', 'martin', 'chicos'].filter((k) => Object.hasOwn(a, k) && Number(a[k]) > 0).length;
 }
 export function estadoDeFinal(d) {

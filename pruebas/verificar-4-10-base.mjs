@@ -704,7 +704,7 @@ function noche(base, p, n, golpear = []) {
   linea(['baseCrece.limpiar();'], 'se limpia al salir');
   linea(['api.alcancePerro', 'baseCrece.alcancePerro()', 'NIEBLA.perro'], 'el alcance del perro: la niebla y el nivel');
   linea(['api.danoPerro', 'baseCrece.danoPerro()'], 'el daño del perro');
-  linea(['api.perroPresente', 'ctx.perroPos'], 'el perro cuenta si está con vos');
+  linea(['api.perroPresente', 'perroAliado()'], 'el perro cuenta si está con vos (4.10.1: y no hay regla «sin aliados»)');
   linea(['get baseCrece()', 'return baseCrece'], 'main.js la ve (E y pantalla de la base)');
   ok(enUnaLinea(ali, ['api.herirAlien(a, 9 * (api.danoPerro?.() ?? 1) * dt', "'perro'"]), 'la mordida del perro multiplica por su nivel');
   ok(enUnaLinea(ali, ['avisoDelPerro({ distancia: d0, visto, alcance: api.alcancePerro?.() ?? 1 })']), 'el gruñido del perro sigue usando el alcance');
