@@ -430,7 +430,7 @@ function almacen({ falla = false, soloPrincipal = false } = {}) {
   ok(/if \(esDesafio\) fijarPartidaMeta\(progreso\.desafio\?\.meta \|\| null\)/.test(main), 'al abrir una partida se toma su modo');
   ok(/pestanas\.push\(\['partidas', 'Partidas'\]\)/.test(main), 'el cuaderno tiene la hoja de Partidas');
   ok(/id="nueva-partida"/.test(pl) && /id="victoria-final"/.test(pl) && /id="meta-portada"/.test(pl), 'la plantilla trae la pantalla, el final y la línea de la portada');
-  ok(/meta: null[,; ]/.test(reglas) && /meta: sanearMetaPartida\(x\.meta\)/.test(reglas),   // 4.10 (junta): «base» suma su campo `crece` después 'la partida nueva no trae meta y la guardada se sanea');
+  ok(/meta: null[,; ]/.test(reglas) && /meta: sanearMetaPartida\(x\.meta\)/.test(reglas), 'la partida nueva no trae meta y la guardada se sanea');   // 4.10 (junta): «base» suma su campo `crece` después
   // el Relax queda afuera
   ok(/if \(!esDesafio\) \{ el\.textContent = ''; return; \}/.test(main), 'la portada del Relax no muestra las semillas');
   ok(/if \(esDesafio\) fijarPartidaMeta/.test(main) && !/fijarPartidaMeta\([^)]*\)[^\n]*\n[^\n]*!esDesafio/.test(main), 'nada de esto se prende en el Relax');
