@@ -82,7 +82,8 @@ app.whenReady().then(async () => {
     const n1 = await estado();
     ok(n1.especial === 'niebla' && n1.oleadas === 6 && !n1.terminada && n1.vivos > 0, `la noche 6 es de niebla y salieron duendes (${JSON.stringify({ e: n1.especial, o: n1.oleadas, v: n1.vivos })})`);
     ok((await notas()).some((t) => /Noche de niebla/.test(t)), 'el aviso de salida nombra la niebla');
-    ok(n1.vivos === Math.round(R.composicionOleada(6).length * R.ESPECIALES.niebla.cantidad), `y vienen un 15% más (${n1.vivos})`);
+    // 4.8 (junta): el enjambre va aparte y las especiales no lo multiplican: lo esperado sale de aplicarEspecial, no de la lista entera por 1,15
+    ok(n1.vivos === R.aplicarEspecial(R.composicionOleada(6), 'niebla').length, `y vienen un 15% más, sin multiplicar el enjambre (${n1.vivos})`);
 
     // ================================================================ el giro de las dos
     donde = 'giros';
