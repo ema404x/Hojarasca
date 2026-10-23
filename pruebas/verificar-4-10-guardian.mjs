@@ -330,7 +330,7 @@ function nodo(tag, clase, texto) {
   redibujar();
   const textos = (raiz) => raiz.todo().map((h) => h.textContent).filter(Boolean);
   ok(textos(lista).includes('Puntos del guardián: 0'), 'se ven los puntos');
-  ok(['Tiro', 'Reparar', 'Aguante'].every((r) => textos(lista).includes(r)), 'se ven las tres ramas');
+  ok(['Tiro · Pulso firme', 'Tiro · Mano ligera', 'Reparar · Manos hábiles', 'Reparar · Material justo', 'Aguante · Corazón de coihue', 'Aguante · Pies de zorro'].every((r) => textos(lista).includes(r)), 'se ven las seis habilidades con su rama');
   const botones = (raiz) => raiz.todo().filter((h) => h.tag === 'button');
   const botonesLista = botones(lista).filter((b) => b.dataset.id);
   ok(botonesLista.length === 6, 'seis habilidades para elegir');
