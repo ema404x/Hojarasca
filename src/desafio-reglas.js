@@ -20,6 +20,8 @@ import { GIROS, NIEBLA, LUNALLENA, ESPECIAL_BASE, ESPECIAL_TOTAL, especialNueva,
 import { CURANDERO, ENJAMBRE, curanderosEnLaNoche, enjambreEnLaNoche } from './desafio-duendes-nuevos.js';
 // 4.8 ataques:
 import { sanearLadoNoche } from './desafio-lados.js';
+// 4.9 dias: la ayuda de los vecinos y sus pedidos (nombres propios: 'aldeaNueva' ya es del Relax)
+import { aldeaNueva as aldeaDelDesafio, sanearAldea as sanearAldeaDelDesafio } from './desafio-aldea.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -433,7 +435,9 @@ export function desafioNuevo() {
     // 2.5: el arsenal (munición nueva, la flecha elegida y la noche en que se usaron las placas)
     ...Object.fromEntries(MUNICIONES.map((k) => [k, 0])), flechaTipo: 'comun', placasNoche: -1,
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
-    evolucion: evolucionNueva(), puestos: puestosNuevos() };
+    evolucion: evolucionNueva(), puestos: puestosNuevos(),
+    // 4.9 dias: la aldea de día: cuánto ayuda cada vecino y qué pidió (ver desafio-aldea.js)
+    aldea: aldeaDelDesafio() };
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -534,6 +538,7 @@ export function sanearDesafio(d) {
     // 3.0: los invasores que evolucionan y los puestos (una partida vieja carga sin nada aprendido)
     evolucion: sanearEvolucion(x.evolucion),
     puestos: sanearPuestos(x.puestos),
+    aldea: sanearAldeaDelDesafio(x.aldea),   // 4.9 dias: una partida vieja carga con todos los vecinos en 0
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
