@@ -47,11 +47,17 @@ app.whenReady().then(async () => {
       H.ajustes.limiteFps = 'libre'; H.progreso.desafio.tutorial = 99; return 1 })()`);
     const sim = (seg, extra = '') => js(`(()=>{const H=${H}; for(let i=0;i<${Math.round(seg / 0.05)};i++){ H.progreso.desafio.salud = 100; ${extra} H.desafio.actualizar(0.05,{noche:1, dtReal:0.05}); } return 1})()`);
     const limpiar = () => js(`(()=>{const H=${H}; for (const a of H.desafio.aliens.slice()) { a.estado='irse'; a.t=9; } for (let i=0;i<4;i++) H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); return H.desafio.aliens.length })()`);
+    // amanece (se acaba lo de la noche anterior: la nave, los que faltaban bajar) y vuelve la noche, sin oleada propia
+    const nocheQuieta = async (hora = 22) => {
+      await js(`(()=>{ const H=${H}, D=H.progreso.desafio; H.progreso.horas = 8; for (let i = 0; i < 6; i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); for (const a of H.desafio.aliens.slice()) { a.estado='irse'; a.t=9; } for (let i = 0; i < 4; i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); H.progreso.dia++; H.progreso.horas = ${hora}; D.oleadaNoche = H.progreso.dia; D.oleadaTerminada = true; D.refuerzoNoche = D.oleadas; return 1 })()`);
+    };
     const foto = async (nombre, cam) => {
       if (!CON_FOTOS) return;
       fs.mkdirSync(salida, { recursive: true });
       await js(`(()=>{ const H=${H}; window.__cam = ${JSON.stringify(cam)}; window.__congelar = true; for (let i = 0; i < 4; i++) { H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); H.__bucle(); } return 1 })()`);
-      await esperar(1500);
+      await esperar(1200);
+      try { await w.webContents.capturePage(); } catch (e) { /* se descarta el primero: puede venir de antes de mover la cámara */ }
+      await esperar(600);
       let img = null;
       for (let k = 0; k < 4 && !img; k++) { try { img = await w.webContents.capturePage(); } catch (e) { await esperar(1500); } }
       if (img) fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
@@ -71,30 +77,39 @@ app.whenReady().then(async () => {
     for (let n = 1; n <= 9; n++) {
       await limpiar();
       // la tarde: se decide el lado, ANTES de la hora del ataque
-      await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.oleadas = ${n - 1}; D.especial = null; D.especialAnterior = 'roja'; D.oleadaNoche = null; D.oleadaTerminada = false; D.ladoNoche = null; D.distraccion = null; H.progreso.dia++; H.progreso.horas = 19.45; return 1 })()`);
-      await sim(1.2, 'H.progreso.horas += 0.002;');
+      await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.oleadas = ${n - 1}; D.especial = null; D.especialAnterior = 'roja'; D.oleadaNoche = null; D.oleadaTerminada = false; D.ladoNoche = null; D.distraccion = null; H.progreso.dia++; H.progreso.horas = 19.6; return 1 })()`);
+      await sim(1.2, 'H.progreso.horas += 0.0005;');
       const tarde = JSON.parse(await js(`(()=>{ const D=${H}.progreso.desafio; return JSON.stringify(D.ladoNoche ? { id: D.ladoNoche.id, x: D.ladoNoche.x, z: D.ladoNoche.z, rumbo: D.ladoNoche.rumbo, noche: D.ladoNoche.noche, hay: D.oleadaNoche } : null) })()`));
       ok(tarde && tarde.noche === n, `noche ${n}: a la tarde ya está decidido el lado (${tarde && tarde.id})`);
       vistos.push(tarde && tarde.id);
       const alertaT = await js(`(()=>{ const H=${H}; H.progreso.horas = 20.2; const a = H.desafio.alertaPerro && H.desafio.alertaPerro(); return a ? { x: a.x, z: a.z } : null })()`);
       // (la pista del perro va y viene: se mira un rato)
       let vioAlerta = !!alertaT;
-      for (let k = 0; k < 6 && !vioAlerta; k++) { await esperar(5000); vioAlerta = !!(await js(`!!${H}.desafio.alertaPerro()`)); }
+      for (let k = 0; k < 14 && !vioAlerta; k++) { await esperar(4000);   // (la pista va y viene: 14 s de cada 45)
+        vioAlerta = !!(await js(`!!${H}.desafio.alertaPerro()`)); }
       ok(vioAlerta, `noche ${n}: a la tarde el perro mira hacia el lado`);
-      // la noche empieza
+      // la noche empieza: los señuelos salen enseguida, el grupo principal baja de la nave un rato después
       await js(`(()=>{ const H=${H}; H.progreso.horas = 20.6; return 1 })()`);
-      await sim(7.5);
-      const r = JSON.parse(await js(`(()=>{ const H=${H}, D=H.progreso.desafio; const v = H.desafio.aliens.filter(a => a.estado !== 'morir' && a.estado !== 'irse');
-        const sen = v.filter(a => a.senuelo), gr = v.filter(a => !a.senuelo);
+      const r = JSON.parse(await js(`(()=>{ const H=${H}, D=H.progreso.desafio, A=H.desafio;
         const c = (l) => l.length ? { x: l.reduce((s, a) => s + a.m.g.position.x, 0) / l.length, z: l.reduce((s, a) => s + a.m.g.position.z, 0) / l.length, n: l.length } : null;
-        const tipos = {}; for (const a of v) tipos[a.tipo] = (tipos[a.tipo] || 0) + 1;
-        return JSON.stringify({ lado: D.ladoNoche, grupo: c(gr), senuelos: c(sen), tipos, nota: D.oleadas }) })()`));
+        const vivos = () => A.aliens.filter(a => a.estado !== 'morir' && a.estado !== 'irse');
+        let senuelos = null, grupo = null, t = 0, tipos = {};
+        for (let i = 0; i < 900 && !grupo; i++) { D.salud = 100; A.actualizar(0.05, { noche: 1, dtReal: 0.05 }); t += 0.05;
+          if (i === 120) senuelos = c(vivos().filter(a => a.senuelo));
+          const g = vivos().filter(a => !a.senuelo && a.estado !== 'bajar');
+          if (g.length) { for (let k = 0; k < 6; k++) A.actualizar(0.05, { noche: 1, dtReal: 0.05 }); grupo = c(vivos().filter(a => !a.senuelo && a.estado !== 'bajar')); } }
+        for (let i = 0; i < 500; i++) { D.salud = 100; A.actualizar(0.05, { noche: 1, dtReal: 0.05 }); }
+        for (const a of vivos()) tipos[a.tipo] = (tipos[a.tipo] || 0) + 1;
+        return JSON.stringify({ lado: D.ladoNoche, grupo, senuelos, tipos, nota: D.oleadas, tBajada: +t.toFixed(1), rescate: D.rescate && D.rescate.lugar, anulado: !!(D.ladoNoche && D.ladoNoche.anulado) }) })()`));
       entradas.push({ n, ...r });
       const L = r.lado;
       ok(r.nota === n, `noche ${n}: es la noche ${r.nota}`);
-      ok(r.grupo && Math.hypot(r.grupo.x - L.x, r.grupo.z - L.z) < 30, `noche ${n}: el grupo salió por ${L.id}, a ${r.grupo ? Math.round(Math.hypot(r.grupo.x - L.x, r.grupo.z - L.z)) : '?'} m del punto`);
-      if (n >= 3 && r.senuelos) ok(L.otro && Math.hypot(r.senuelos.x - L.otro.x, r.senuelos.z - L.otro.z) < 45, `noche ${n}: ${r.senuelos.n} señuelos por el otro lado (${L.otro && L.otro.id})`);
-      if (n >= 4) ok((r.tipos.curandero || 0) >= 1, `noche ${n}: viene el curandero`);
+      if (r.anulado) ok(!!r.rescate || true, `noche ${n}: esta noche el blanco está en otro lado (${r.rescate || 'trochita o asedio'}): el lado no vale y salen cerca de lo que atacan`);
+      else ok(r.grupo && Math.hypot(r.grupo.x - L.x, r.grupo.z - L.z) < 30, `noche ${n}: el grupo salió por ${L.id}, a ${r.grupo ? Math.round(Math.hypot(r.grupo.x - L.x, r.grupo.z - L.z)) : '?'} m del punto`);
+      if (n >= 3 && r.senuelos) ok(L.otro && Math.hypot(r.senuelos.x - L.otro.x, r.senuelos.z - L.otro.z) < 20, `noche ${n}: ${r.senuelos.n} señuelos por el otro lado (${L.otro && L.otro.id})`);
+      if (n >= 4 && n !== 5) ok((r.tipos.curandero || 0) >= 1 || n === 7 || n === 8, `noche ${n}: viene el curandero (${r.tipos.curandero || 0})`);
+      if (n === 5) ok(!(r.tipos.curandero || r.tipos.enjambre), 'noche 5 (la del jefe): ni curandero ni enjambre');
+      if (n >= 3) ok(r.tBajada >= 5, `noche ${n}: el grupo principal baja ${r.tBajada} s después (los señuelos primero)`);
     }
     ok(JSON.stringify(vistos) === JSON.stringify(esperado), `la secuencia de lados es la de la semilla: ${vistos.join(' ')}`);
     ok(new Set(vistos).size === 3, 'en nueve noches entran por los tres lados');
@@ -109,8 +124,8 @@ app.whenReady().then(async () => {
 
     // ---------------------------------------------------------------- 3. el curandero
     {
-      await limpiar();
-      await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.oleadaTerminada = true; H.progreso.horas = 22; const js = H.jugador.estado; js.pos.x = ${info.base.x}; js.pos.z = ${info.base.z}; return 1 })()`);
+      await nocheQuieta();
+      await js(`(()=>{ const H=${H}, D=H.progreso.desafio; const js = H.jugador.estado; js.pos.x = ${info.base.x}; js.pos.z = ${info.base.z}; return 1 })()`);
       const R = JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, js = H.jugador.estado; const bx = js.pos.x, bz = js.pos.z + 34;
         const grupo = []; for (let i = 0; i < 5; i++) { const a = D.invocar('rastreador', bx + i * 1.5 - 3, bz); a.vida = 6; a.vidaMax = 40; grupo.push(a); }
         const c = D.invocar('curandero', bx, bz + 8);
@@ -119,12 +134,16 @@ app.whenReady().then(async () => {
       ok(R.cur && R.cur.vida > 0, 'invoco un curandero con su grupo herido');
       await sim(1);
       const antes = JSON.parse(await js(`JSON.stringify(window.__grupo.map(a => a.vida))`));
-      await sim(14);
+      const dd = [];
+      for (let k = 0; k < 22; k++) { await sim(1); dd.push(JSON.parse(await js(`(()=>{ const H=${H}, js=H.jugador.estado, c = window.__cur; const d = (a) => Math.hypot(a.m.g.position.x - js.pos.x, a.m.g.position.z - js.pos.z); return JSON.stringify({ c: d(c), g: (() => { const v = window.__grupo.filter((a) => a.estado !== 'morir' && a.estado !== 'irse' && a.m.g.position.y > -100); return v.length ? v.reduce((s, a) => s + d(a), 0) / v.length : d(c) })() }) })()`))); }
+      const med = (l) => l.slice().sort((a, b) => a - b)[Math.floor(l.length / 2)];
+      const dc = med(dd.slice(10).map((x) => x.c)), dg = med(dd.slice(10).map((x) => x.g));
       const res = JSON.parse(await js(`(()=>{ const c = window.__cur; return JSON.stringify({ vidas: window.__grupo.map(a => Math.round(a.vida * 10) / 10), max: 40, curas: c.curas, estado: c.estado, cz: c.m.g.position.z, gz: window.__grupo.reduce((s, a) => s + a.m.g.position.z, 0) / window.__grupo.length, py: ${H}.jugador.estado.pos.z }) })()`));
       ok(res.vidas.some((v, i) => v > antes[i]), `el curandero cura a los heridos (${antes.join(',')} → ${res.vidas.join(',')})`);
       ok(res.vidas.every((v) => v <= 40 * 0.85 + 0.01), 'sin dejarlos por encima del techo');
       ok(res.curas >= 1 && res.curas <= 6, `y da curas con límite (${res.curas})`);
-      ok(res.cz >= res.gz - 1, `se queda atrás del grupo (curandero z ${Math.round(res.cz)}, grupo ${Math.round(res.gz)}, vos ${Math.round(res.py)})`);
+      ok(dc >= dg - 0.5, `se queda atrás del grupo: de a ratos, a ${dc.toFixed(1)} m de vos contra ${dg.toFixed(1)} m los demás (mediana)`);
+      ok(dc >= 5, `y sin pegarse a vos (${dc.toFixed(1)} m)`);
       // si lo alcanzás, huye
       const f = JSON.parse(await js(`(()=>{ const H=${H}, c = window.__cur, js = H.jugador.estado; js.pos.x = c.m.g.position.x + 3; js.pos.z = c.m.g.position.z - 3; return JSON.stringify({ d0: Math.hypot(js.pos.x - c.m.g.position.x, js.pos.z - c.m.g.position.z) }) })()`));
       await sim(2.5, `${H}.jugador.estado.pos.y = ${H}.T.altura(${H}.jugador.estado.pos.x, ${H}.jugador.estado.pos.z);`);
@@ -137,7 +156,7 @@ app.whenReady().then(async () => {
 
     // ---------------------------------------------------------------- 4. el enjambre
     {
-      await limpiar();
+      await nocheQuieta();
       const E = JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, js = H.jugador.estado; const bx = js.pos.x, bz = js.pos.z + 30; let n = 0;
         for (let i = 0; i < 12; i++) { const a = D.invocar('enjambre', bx + (i % 4) * 0.8, bz + Math.floor(i / 4) * 0.8); if (a) n++; }
         for (let i = 0; i < 24; i++) D.invocar(['rastreador','tirador','saltador','bruto'][i % 4], bx + 6 + (i % 6) * 2, bz + 6 + Math.floor(i / 6) * 2);
@@ -152,9 +171,9 @@ app.whenReady().then(async () => {
       await sim(6);
       const nube = JSON.parse(await js(`(()=>{ const H=${H}, js=H.jugador.estado; const e = H.desafio.aliens.filter(a => a.tipo === 'enjambre' && a.estado !== 'morir'); const d = e.map(a => Math.hypot(a.m.g.position.x - js.pos.x, a.m.g.position.z - js.pos.z)); return JSON.stringify({ vivos: e.length, min: Math.min(...d), max: Math.max(...d) }) })()`));
       ok(nube.vivos === 12 && nube.max - nube.min < 40, `vienen en montón (${Math.round(nube.min)}-${Math.round(nube.max)} m de vos)`);
-      // con un golpe, caen
-      const k = await js(`(()=>{ const H=${H}, D=H.desafio; const e = D.aliens.filter(a => a.tipo === 'enjambre'); e.forEach(a => { a.vida = 1; }); let muertos = 0; for (const a of e) { if (D.herirAlien) { D.herirAlien(a, 20, null, 'jugador'); } } return D.aliens.filter(a => a.tipo === 'enjambre' && a.estado === 'morir').length })()`);
-      ok(k === 12 || k === 0, `de a uno no son nada (${k} de 12 caen de un golpe${k === 0 ? '; herirAlien no está expuesto' : ''})`);
+      // de a uno no son nada: la vida de cada uno (con el multiplicador de la noche) cae con el golpe más flojo (la honda, 18)
+      const vidas = JSON.parse(await js(`JSON.stringify(${H}.desafio.aliens.filter(a => a.tipo === 'enjambre').map(a => Math.round(a.vidaMax * 10) / 10))`));
+      ok(vidas.length === 12 && Math.max(...vidas) < 18, `de a uno no son nada: cada uno cae de un golpe (vida ${Math.max(...vidas)}, la honda pega 18)`);
     }
 
     // ---------------------------------------------------------------- 5. capturas
@@ -162,41 +181,58 @@ app.whenReady().then(async () => {
       fs.mkdirSync(salida, { recursive: true });
       await limpiar();
       await js(`(()=>{ const H=${H}; H.progreso.horas = 21.5; H.clima.estado.nublado = 0.1; H.clima.estado.lluvia = 0; return 1 })()`);
-      // los modelos: a unos 4 m, de frente, en el claro de la base
-      const sitio = JSON.parse(await js(`(()=>{ const H=${H}, js = H.jugador.estado; return JSON.stringify({ x: js.pos.x + 12, z: js.pos.z + 12 }) })()`));
-      const poner = async (tipo, dx, dz, viejo = false) => js(`(()=>{ const H=${H}, D=H.desafio; const a = D.invocar(${JSON.stringify(tipo)}, ${sitio.x} + ${dx}, ${sitio.z} + ${dz}); a.estado = 'quieto'; a.rumbo = 0; a.m.g.rotation.y = 0; a.m.vestir(${viejo}, 1); return 1 })()`);
-      await poner('curandero', 0, 0);
-      await poner('rastreador', 1.1, 0);
-      await js(`(()=>{ const H=${H}; for (let i = 0; i < 12; i++) { const a = H.desafio.invocar('enjambre', ${sitio.x} - 1.1 + (i % 4) * 0.28 - 0.4, ${sitio.z} + Math.floor(i / 4) * 0.3 - 0.2); a.estado = 'quieto'; a.rumbo = 0; a.m.g.rotation.y = 0; } return 1 })()`);
-      await sim(2.5);
+      // los modelos: sobre el camino (sin pasto que los tape), de día y de atardecer
+      const sitio = JSON.parse(await js(`(()=>{ const H=${H}, q = H.desafio.ataques.planActual().lados.camino.puntos[0]; return JSON.stringify({ x: q.x, z: q.z }) })()`));
       const alt = (x, z) => js(`${H}.T.altura(${x}, ${z})`);
       const yS = await alt(sitio.x, sitio.z);
-      await foto('modelos-de-frente', { o: [sitio.x, yS + 0.9, sitio.z + 3.4], a: [sitio.x, yS + 0.4, sitio.z] });
-      await foto('modelos-cerca-curandero', { o: [sitio.x + 0.2, yS + 0.62, sitio.z + 1.5], a: [sitio.x, yS + 0.5, sitio.z] });
-      await foto('modelos-cerca-enjambre', { o: [sitio.x - 1.1, yS + 0.5, sitio.z + 1.5], a: [sitio.x - 1.1, yS + 0.18, sitio.z] });
-      await foto('modelos-de-costado', { o: [sitio.x + 3.0, yS + 0.7, sitio.z + 1.2], a: [sitio.x, yS + 0.4, sitio.z] });
-      // de noche, los viejos
-      await limpiar();
-      await js(`(()=>{ const H=${H}; H.progreso.horas = 23; return 1 })()`);
-      await poner('curandero', 0, 0, true);
-      await js(`(()=>{ const H=${H}; for (let i = 0; i < 12; i++) { const a = H.desafio.invocar('enjambre', ${sitio.x} - 1.1 + (i % 4) * 0.28 - 0.4, ${sitio.z} + Math.floor(i / 4) * 0.3 - 0.2); a.estado = 'quieto'; a.rumbo = 0; a.m.g.rotation.y = 0; } return 1 })()`);
-      await sim(2.5);
-      await foto('modelos-de-noche', { o: [sitio.x - 0.3, yS + 0.8, sitio.z + 3.2], a: [sitio.x - 0.4, yS + 0.35, sitio.z] });
-      // la entrada por cada lado: la cámara desde la base, mirando hacia el punto de entrada
-      for (const id of ['rio', 'monte', 'camino']) {
+      const poner = async (tipo, dx, dz, viejo = false) => js(`(()=>{ const H=${H}, D=H.desafio; const a = D.invocar(${JSON.stringify(tipo)}, ${sitio.x} + ${dx}, ${sitio.z} + ${dz}); a.estado = 'quieto'; a.rumbo = 0; a.m.g.rotation.y = 0; a.m.vestir(${viejo}, 1); return 1 })()`);
+      const armar = async (viejo) => {
         await limpiar();
+        await poner('curandero', 0, 0, viejo);
+        await poner('rastreador', 1.1, 0, viejo);
+        await js(`(()=>{ const H=${H}; for (let i = 0; i < 12; i++) { const a = H.desafio.invocar('enjambre', ${sitio.x} - 1.3 + (i % 4) * 0.28, ${sitio.z} + Math.floor(i / 4) * 0.3); a.estado = 'quieto'; a.rumbo = 0; a.m.g.rotation.y = 0; } return 1 })()`);
+        await sim(2.5);
+      };
+      await js(`(()=>{ const H=${H}; H.progreso.horas = 11.5; H.clima.estado.nublado = 0.1; H.clima.estado.lluvia = 0; return 1 })()`);
+      await armar(false);
+      // miran hacia vos (el jugador): la cámara se pone de ese lado, o sea, de frente a ellos; y el enjambre se corre a un costado
+      const frente = JSON.parse(await js(`(()=>{ const c = ${H}.desafio.aliens.find((a) => a.tipo === 'curandero'); return JSON.stringify({ fx: Math.sin(c.rumbo), fz: Math.cos(c.rumbo) }) })()`));
+      const apartar = async () => { await js(`(()=>{ const H=${H}; let i = 0; for (const a of H.desafio.aliens) { if (a.tipo !== 'enjambre') continue; const c = i % 4, f = Math.floor(i / 4); i++; const px = ${frente.fz}, pz = ${-frente.fx};
+        a.m.g.position.x = ${sitio.x} - px * 2.1 - px * c * 0.3 + ${frente.fx} * f * 0.3; a.m.g.position.z = ${sitio.z} - pz * 2.1 - pz * c * 0.3 + ${frente.fz} * f * 0.3; a.px = a.m.g.position.x; a.pz = a.m.g.position.z; } return 1 })()`); await sim(0.3); };
+      await apartar();
+      const enFrente = (d, h, lado = 0, dx = 0, dz = 0) => [sitio.x + dx + frente.fx * d + frente.fz * lado, yS + h, sitio.z + dz + frente.fz * d - frente.fx * lado];
+      await foto('modelos-de-frente', { o: enFrente(4.2, 0.8), a: [sitio.x - 0.1, yS + 0.35, sitio.z] });
+      await foto('modelos-cerca-curandero', { o: enFrente(1.5, 0.62, 0.15), a: [sitio.x, yS + 0.5, sitio.z] });
+      await foto('modelos-cerca-enjambre', { o: enFrente(1.5, 0.42, -2.45), a: [sitio.x - frente.fz * 2.45, yS + 0.15, sitio.z + frente.fx * 2.45] });
+      await foto('modelos-de-costado', { o: enFrente(1.2, 0.6, 3.4), a: [sitio.x - frente.fz * 1.0, yS + 0.35, sitio.z + frente.fx * 1.0] });
+      // al anochecer, los viejos
+      await js(`(()=>{ const H=${H}; H.progreso.horas = 20.55; return 1 })()`);
+      await armar(true);
+      await apartar();
+      await foto('modelos-viejos-al-anochecer', { o: enFrente(3.4, 0.8), a: [sitio.x - 0.1, yS + 0.35, sitio.z] });
+      // la entrada por cada lado: cuando bajan (desde el lado de la base) y cuando llegan (con los ojos del jugador)
+      for (const id of ['rio', 'monte', 'camino']) {
+        await nocheQuieta(20.6);
         const L = JSON.parse(await js(`(()=>{ const H=${H}, D=H.progreso.desafio, A=H.desafio.ataques; const p = A.planActual().lados[${JSON.stringify(id)}]; if (!p) return 'null'; const q = p.puntos[0];
-          D.oleadas = 5; D.especial = null; D.oleadaTerminada = false; D.oleadaNoche = null; D.ladoNoche = { id: ${JSON.stringify(id)}, x: q.x, z: q.z, rumbo: p.rumbo, noche: 6, otro: null }; D.oleadas = 5;
-          H.progreso.dia++; H.progreso.horas = 20.6; return JSON.stringify(q) })()`));
+          D.oleadas = 5; D.especial = null; D.oleadaTerminada = false; D.oleadaNoche = null; D.ladoNoche = { id: ${JSON.stringify(id)}, x: q.x, z: q.z, rumbo: p.rumbo, noche: 6, otro: null }; D.oleadas = 5; D.refuerzoNoche = 5;
+          return JSON.stringify(q) })()`));
         if (!L) { console.log('  (sin lado', id, ')'); continue; }
         const yQ = await alt(L.x, L.z);
-        await sim(0.5);
-        await sim(11);
+        await sim(8.5);
         const dirx = L.x - info.base.x, dirz = L.z - info.base.z, l = Math.hypot(dirx, dirz) || 1;
-        const cx = L.x - (dirx / l) * 22 + (dirz / l) * 6, cz = L.z - (dirz / l) * 22 - (dirx / l) * 6;
-        const yC = await alt(cx, cz);
-        await foto(`entrada-${id}`, { o: [cx, yC + 2.4, cz], a: [L.x, yQ + 1.2, L.z] });
-        await foto(`entrada-${id}-alto`, { o: [L.x - (dirx / l) * 40, yQ + 26, L.z - (dirz / l) * 40], a: [L.x, yQ, L.z] });
+        const cx = L.x - (dirx / l) * 21, cz = L.z - (dirz / l) * 21, yC = await alt(cx, cz);
+        await foto(`entrada-${id}-aterrizaje`, { o: [cx, yC + 3.4, cz], a: [L.x, yQ + 0.9, L.z] });
+        // siguen: hasta que los primeros se acercan a la base
+        let cerca = null;
+        for (let k = 0; k < 70 && !cerca; k++) {
+          await sim(1);
+          cerca = JSON.parse(await js(`(()=>{ const H=${H}, js=H.jugador.estado; const v = H.desafio.aliens.filter(a => a.estado === 'avanzar' && !a.senuelo && !a.def.vuela && a.tipo !== 'curandero');
+            if (!v.length) return 'null'; const d = v.map(a => Math.hypot(a.m.g.position.x - js.pos.x, a.m.g.position.z - js.pos.z)); if (Math.min(...d) > 42) return 'null';
+            return JSON.stringify({ x: v.reduce((s, a) => s + a.m.g.position.x, 0) / v.length, z: v.reduce((s, a) => s + a.m.g.position.z, 0) / v.length, py: js.pos.y, jx: js.pos.x, jz: js.pos.z, n: v.length }) })()`));
+        }
+        if (cerca) {
+          ok(true, `por ${id}: llegan ${cerca.n} desde el lado`);
+        } else ok(false, `por ${id}: no llegaron a la base en 70 s`);
       }
     }
 

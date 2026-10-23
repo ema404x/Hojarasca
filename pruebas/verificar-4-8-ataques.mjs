@@ -569,7 +569,8 @@ const ok = (c, m) => { assert.ok(c, m); pasos++; };
     w.A.alNacer(cur, null);
     // se queda atrás del grupo, del lado opuesto a vos
     for (let i = 0; i < 5; i++) w.A.actualizar(0.05, js);
-    ok(cur.retaX > w.A.grupo.x && Math.abs(cur.retaZ - w.A.grupo.z) < 20, `su lugar queda más lejos de vos que el grupo (${cur.retaX.toFixed(1)} contra ${w.A.grupo.x.toFixed(1)})`);
+    // los cuatro compañeros que tiene más cerca: x = 50, 51, 52 y 54 → su centro, 51,75; y 7 m más atrás
+    ok(Math.abs(cur.retaX - (51.75 + N.CURA.detras)) < 0.6 && Math.abs(cur.retaZ) < 3, `su lugar queda atrás de los que tiene cerca, del lado opuesto a vos (${cur.retaX.toFixed(1)}, ${cur.retaZ.toFixed(1)})`);
     // cura a los heridos cercanos cada tanto, con límite
     const v1 = herido1.vida;
     let t = 0;

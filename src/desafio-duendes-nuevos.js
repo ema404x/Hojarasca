@@ -43,7 +43,7 @@ export function enjambreEnLaNoche(n, conJefe = false, cantidad = 1) {
 
 // ---------------------------------------------------------------- curar
 export const CURA = {
-  radio: 9,            // a quiénes alcanza (m)
+  radio: 10,           // a quiénes alcanza (m)
   cada: 3.4,           // segundos entre una cura y la siguiente
   objetivos: 3,        // como mucho a tantos por vez
   porcentaje: 0.22,    // lo que le devuelve de su vida máxima
@@ -52,7 +52,7 @@ export const CURA = {
   veces: 8,            // cuántas curas da en su vida: después se cansa
   huye: 7.5,           // si te le acercás a menos de esto, sale corriendo
   distancia: 15,       // te mantiene esta distancia cuando puede
-  detras: 8,           // cuánto se queda atrás del centro del grupo (m)
+  detras: 7,           // cuánto se queda atrás de los compañeros que tiene cerca (m)
   velHuida: 1.35,      // corre más rápido cuando huye
   soloSeVa: 12,        // segundos solo (sin nadie a quien curar) y se va
 };

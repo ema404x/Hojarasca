@@ -186,13 +186,33 @@ export function crearAtaques(api) {
       }
     }
   }
+  // El centro de los `k` compañeros más cercanos a `c` (los que andan por tierra); null si no hay ninguno.
+  const _kd = [0, 0, 0, 0], _kx = [0, 0, 0, 0], _kz = [0, 0, 0, 0], _cen = { x: 0, z: 0 };
+  function cercanos(c, p) {
+    let n = 0;
+    for (const a of api.aliens) {
+      if (a === c || a.def.cura || a.def.vuela || a.estado === 'morir' || a.estado === 'irse' || a.estado === 'bajar' || a.estado === 'bajoTierra' || a.estado === 'dormido' || a.enNave) continue;
+      const q = a.m.g.position, d = (q.x - p.x) ** 2 + (q.z - p.z) ** 2;
+      if (n === 4 && d >= _kd[3]) continue;
+      let i = n < 4 ? n++ : 3;
+      while (i > 0 && _kd[i - 1] > d) { _kd[i] = _kd[i - 1]; _kx[i] = _kx[i - 1]; _kz[i] = _kz[i - 1]; i--; }
+      _kd[i] = d; _kx[i] = q.x; _kz[i] = q.z;
+    }
+    if (!n) return null;
+    let sx = 0, sz = 0;
+    for (let i = 0; i < n; i++) { sx += _kx[i]; sz += _kz[i]; }
+    _cen.x = sx / n; _cen.z = sz / n;
+    return _cen;
+  }
   // Los curanderos: se paran detrás del grupo y curan.
   function curanderos(dt, js) {
     const aliens = api.aliens;
     for (const c of aliens) {
       if (!c.def.cura || c.estado !== 'avanzar') continue;
       const p = c.m.g.position;
-      const ret = puestoDeRetaguardia(grupo, js.pos);
+      // con los cuatro compañeros que tiene más cerca (no con todo el grupo: puede estar partido en dos lados)
+      const ref = cercanos(c, p) || grupo;
+      const ret = puestoDeRetaguardia(ref, js.pos);
       c.retaX = ret.x; c.retaZ = ret.z;
       c.aliados = grupo.n + api.porBajar();
       c.tSolo = c.aliados ? 0 : c.tSolo + dt;

@@ -91,6 +91,10 @@ export const SECCIONES_GUIA = [
       ['Sonidos escritos', 'Lo que se oye de noche aparece escrito con su dirección: «[gruñido lejos · noroeste]». Se apaga en Ajustes, igual que la vibración del mando.'],
       // 2.1
       ['Rescates', 'Algunas noches atacan el lugar de un vecino: el puesto, la cabaña, el almacén o la estación. Si vas y aguanta, te lo agradece; si cae, el vecino no te habla por unos días.'],
+      // 4.8
+      ['Por dónde entran', 'Cada noche entran por otro lado: el río, el monte o el camino. A la tarde el perro mira hacia donde van a salir. Desde la noche 3, unos hacen bulla por otro lado mientras los demás entran por el principal, y varios juntos rodean una defensa.'],
+      ['El curandero', 'Desde la noche 4. Se queda atrás del grupo y cura a los heridos que tiene cerca, sin dejarlos sanos y hasta cansarse. Tiene poca vida: conviene ir a buscarlo primero. Si lo alcanzás, huye.'],
+      ['El enjambre', 'Desde la noche 6, una noche de cada tres. Una docena de duendecitos de 30 cm que vienen en montón: de a uno no son nada, juntos te tapan. Lo que pega en área los barre.'],
       ['El excavador', 'Desde la noche 7. No rompe la empalizada: cava por abajo y sale cerca tuyo. Se oye cavar y se ve el polvo. Donde hay losa de piedra (O → Defensa) no puede asomar, y debajo de la madera con cimiento de piedra (taller K → Base) no se mete.'],
       ['Los mandamases', 'Cada mandamás es otro: el de siempre, el que llama refuerzos, la sombra que sólo se ve con la linterna y el que tira piedras a las defensas desde lejos.'],
       ['Los troncos huecos', 'Los troncos huecos de los duendes se recorren: un pasillo con hongos en el piso que largan esporas (pasalos cuando están cerrados), duendes dormidos (agachado no se despiertan) y el premio al fondo.'],
