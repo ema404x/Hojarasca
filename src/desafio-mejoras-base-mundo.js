@@ -16,10 +16,11 @@ export function crearMejorasBaseMundo(obras, efectos, api) {
   const cache = new Map();
   const _p = new THREE.Vector3();
 
-  // la geometría fusionada de la placa: la de adelante y la de atrás, en una sola
-  function geometriaDe(plano, nivel) {
-    const piedra = esDePiedra(plano), sitio = sitioDePlaca(plano);
-    const clave = `${nivel}|${piedra ? 1 : 0}|${sitio.y.toFixed(2)}|${sitio.z.toFixed(2)}`;
+  // la geometría fusionada de la placa: la de adelante y la de atrás, en una sola. Se apoya en lo más saliente de la malla de la obra
+  // a esa altura (la primera obra de cada plano decide: la geometría de un plano es siempre la misma)
+  function geometriaDe(plano, nivel, posiciones) {
+    const piedra = esDePiedra(plano), sitio = sitioDePlaca(plano, posiciones);
+    const clave = `${nivel}|${piedra ? 1 : 0}|${sitio.y.toFixed(2)}|${sitio.delante.toFixed(2)}|${sitio.detras.toFixed(2)}|${sitio.xDelante.toFixed(2)}|${sitio.xDetras.toFixed(2)}`;
     if (cache.has(clave)) return cache.get(clave);
     const c = new Constructor();
     for (const lado of [-1, 1]) {
@@ -28,7 +29,7 @@ export function crearMejorasBaseMundo(obras, efectos, api) {
         const r = p.r || [0, 0, 0];
         // lado -1: la cara de adelante (mira a -z); lado 1: la de atrás, girada media vuelta
         c.agregar(geo, { color: p.color, tipo: p.tipo, variar: 0.08,
-          matriz: matriz([p.p[0] * -lado, sitio.y + p.p[1], lado * (sitio.z) + p.p[2] * -lado], [r[0], lado > 0 ? Math.PI : 0, r[2]]) });
+          matriz: matriz([(lado < 0 ? sitio.xDelante : sitio.xDetras) + p.p[0] * -lado, sitio.y + p.p[1], (lado < 0 ? -sitio.delante : sitio.detras) + p.p[2] * -lado], [r[0], lado > 0 ? Math.PI : 0, r[2]]) });
         geo.dispose();
       }
     }
@@ -50,7 +51,7 @@ export function crearMejorasBaseMundo(obras, efectos, api) {
     const M = o.userCurtido;
     if (M && M.nivel === nivel && M.malla === o.malla) return;   // ya está vestida con este nivel y esta malla
     if (M?.mesh) o.grupo.remove(M.mesh);
-    const mesh = new THREE.Mesh(geometriaDe(o.plano, nivel), o.malla.material);
+    const mesh = new THREE.Mesh(geometriaDe(o.plano, nivel, o.malla.geometry.getAttribute('position').array), o.malla.material);
     mesh.castShadow = false; mesh.receiveShadow = true;
     mesh.matrixAutoUpdate = false;
     o.grupo.add(mesh);
@@ -120,7 +121,7 @@ export function crearMejorasBaseMundo(obras, efectos, api) {
       vestir(o);
     }
   }
-  const nivelDeObra = (o) => (curtible(o?.plano) ? nivelDe(o?.datos?.curt) : 0);
+  const nivelDeObra = (o) => (o?.datos?.curt && curtible(o.plano) ? nivelDe(o.datos.curt) : 0);   // (sin experiencia, ni se mira el plano: se llama en cada golpe)
   const factorDeObra = (o) => factorDano(nivelDeObra(o));
   // El nombre con el nivel («Pirca curtida · nivel 2») para la pantalla de la base y los avisos.
   const nombreDeObra = (o) => nombreCurtido(o.datos.nombre || o.plano.nombre, nivelDeObra(o));

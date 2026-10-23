@@ -26,14 +26,14 @@ const V0 = { jefe: -1, pina: false, corona: false, raiz: false };   // lo que se
 const cerca = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
 
 // ------------------------------------------------------------------ el mundo de mentira (con el three de verdad)
-const M = cargar(['construccion.js', 'colisiones.js', 'desafio-base-juego.js']);
+const M = cargar(['construccion.js', 'colisiones.js', 'desafio-base-juego.js', 'desafio-aliados.js']);
 const { THREE } = M, C = M.construccion;
 function mundo(extraT = {}) {
   const col = M.colisiones.crearColisiones();
   const T = { altura: () => 0, agua: () => false, normal: () => new THREE.Vector3(0, 1, 0), indice: () => 0, distRiel: [999], distSendero: [999], lugares: {}, ...extraT };
   const veg = { arboles: [], despejar: () => {} };
   const s = C.crearConstruccion(T, new THREE.Scene(), col, veg, { agregar() {}, agregarPostigos() {}, eliminarPorDuenio() {} });
-  const mats = { tronco: 999, tabla: 999, piedra: 999, lana: 999, cuero: 999, hierro: 999 };
+  const mats = { tronco: 999, tabla: 999, piedra: 999, lana: 999, cuero: 999, hierro: 999, cristal: 999 };
   const terminar = (id, x, z, yaw = 0, y = null) => {
     s.elegir(C.PLANO[id]);
     const f = s.fundar(x, z, yaw, y);
@@ -141,7 +141,25 @@ function noche(base, p, n, golpear = []) {
   const PL = (id) => C.PLANO[id];
   ok(['empalizada', 'muro-piedra', 'porton-empalizada', 'torre-vigia', 'ballesta-fija', 'muro-tronera'].every((id) => ME.curtible(PL(id))), 'las murallas, el portón, la torre y la ballesta se curten');
   ok(['trampa-miel', 'pasadizo', 'estacas', 'abrojos', 'foso-estacas', 'tablero-trofeos'].every((id) => !ME.curtible(PL(id))), 'las trampas que se gastan, lo oculto y el tablero no');
+  ok(['antorcha', 'campana', 'armero', 'adarve', 'baliza-sanacion', 'senuelo', 'pasarela-colgante'].every((id) => !ME.curtible(PL(id))), 'lo que no pelea ni recibe los golpes (antorcha, campana, armero…) no se curte');
+  ok(ME.CURTIBLES.every((id) => C.PLANO[id]), 'la lista de lo que se curte sólo nombra planos que existen');
   eq(ME.resumenNiveles([0, 1, 1, 3, 2, 0]), [2, 2, 1, 1], 'cuántas defensas hay en cada nivel');
+  // dónde se cuelga: sobre lo más saliente a esa altura (las puntas de los troncos), por delante y por detrás
+  {
+    const sin = ME.sitioDePlaca({ alto: 2.6, fondo: 0.5 });
+    ok(cerca(sin.y, 1.45) && cerca(sin.delante, 0.25 + ME.PLACA.grueso / 2) && sin.delante === sin.detras, 'sin geometría: a la mitad del fondo');
+    const v = [0, 1.45, -0.27, 0.1, 1.5, 0.18, 1.2, 1.45, -0.9, 0, 0.2, -0.6];   // (los dos últimos no están a esa altura o están lejos de la placa)
+    const con = ME.sitioDePlaca({ alto: 2.6, fondo: 0.5 }, v);
+    ok(cerca(con.delante, 0.27 + ME.PLACA.grueso / 2) && cerca(con.detras, 0.18 + ME.PLACA.grueso / 2), 'con la geometría: pegada a lo más saliente de cada cara');
+    const lejos = ME.sitioDePlaca({ alto: 2.6, fondo: 0.5 }, [0, 1.45, -3, 0, 1.45, 3]);
+    ok(cerca(lejos.delante, 0.25 + ME.PLACA.grueso / 2) && cerca(lejos.detras, 0.25 + ME.PLACA.grueso / 2), 'lo que sobresale demasiado (una escalera, un brazo) no cuenta: queda a la mitad del fondo');
+    // sin nada a esa altura y a lo ancho de la placa, se apoya en lo que haya en la franja más ancha (un poste de la torre), centrada ahí
+    const poste = ME.sitioDePlaca({ alto: 3.6, fondo: 3.4, ancho: 3.4 }, [-1.2, 1.45, -1.2, -1.2, 1.5, -1.3, 1.2, 1.45, 1.1, 1.2, 1.4, 1.3, 0, 0.1, -1.5]);
+    ok(cerca(poste.delante, 1.3 + ME.PLACA.grueso / 2) && cerca(poste.xDelante, -1.2) && cerca(poste.xDetras, 1.2) && cerca(poste.detras, 1.3 + ME.PLACA.grueso / 2), 'en una torre abierta se clava en el poste: ahí queda la placa, no flotando en el medio');
+    const ancha = ME.sitioDePlaca({ alto: 2.6, fondo: 0.5, ancho: 0.6 }, [0.5, 1.45, -0.2]);
+    ok(Math.abs(ancha.xDelante) <= Math.max(0, 0.3 - ME.PLACA.ancho / 2) + 1e-9, 'una obra más angosta que la placa: la placa queda en el centro');
+    ok(cerca(ME.sitioDePlaca({ alto: 1.7, fondo: 0.8 }).y, 1.054), 'una pirca baja: la placa más abajo');
+  }
 }
 
 // ================================================================== 2. LOS TROFEOS (reglas)
@@ -373,7 +391,32 @@ function noche(base, p, n, golpear = []) {
   pl.geometry.computeBoundingBox();
   const bb = pl.geometry.boundingBox, P = emp.plano;
   ok(bb.min.y > 0.4 && bb.max.y < P.alto + 0.05, `la placa queda sobre la empalizada (de ${bb.min.y.toFixed(2)} a ${bb.max.y.toFixed(2)} m; la pared mide ${P.alto})`);
-  ok(Math.abs(bb.min.z) > P.fondo / 2 - 0.01 && Math.abs(bb.min.z) < P.fondo / 2 + 0.15 && Math.abs(bb.max.z) > P.fondo / 2 - 0.01 && Math.abs(bb.max.z) < P.fondo / 2 + 0.15, `pegada a las dos caras (z de ${bb.min.z.toFixed(2)} a ${bb.max.z.toFixed(2)}, la pared tiene ${P.fondo} de fondo)`);
+  ok(bb.min.z < -0.1 && bb.min.z > -(P.fondo / 2 + 0.2) && bb.max.z > 0.05 && bb.max.z < P.fondo / 2 + 0.2, `pegada a las dos caras, cada una donde está la madera (z de ${bb.min.z.toFixed(2)} a ${bb.max.z.toFixed(2)}, la pared tiene ${P.fondo} de fondo)`);
+  // en TODAS las que se curten, la placa de cada cara toca la malla de la obra (nada flotando) y cuelga a la altura prevista
+  for (const id of ME.CURTIBLES) {
+    const ww = mundo();
+    const r = ww.terminar(id, 10, 10, 0);
+    if (!r.ok) { ok(/reforzando/.test(r.motivo || ''), `${id}: sólo se hace reforzando otra (${r.motivo})`); continue; }
+    const pos = r.o.malla.geometry.getAttribute('position').array, sitio = ME.sitioDePlaca(r.o.plano, pos);
+    const toca = (x, zPlano, signo) => { for (let i = 0; i < pos.length; i += 3) if (Math.abs(pos[i] - x) <= ME.PLACA.ancho / 2 + 0.03 && Math.abs(pos[i + 1] - sitio.y) <= ME.PLACA.alto / 2 + 1.0 && Math.abs(pos[i + 2] - signo * (zPlano - ME.PLACA.grueso / 2)) < 0.035) return true; return false; };
+    ok(toca(sitio.xDelante, sitio.delante, -1), `${id}: la placa de adelante toca la malla (z ${(-sitio.delante + ME.PLACA.grueso / 2).toFixed(2)}, x ${sitio.xDelante.toFixed(2)})`);
+    ok(toca(sitio.xDetras, sitio.detras, 1), `${id}: la placa de atrás toca la malla (z ${(sitio.detras - ME.PLACA.grueso / 2).toFixed(2)}, x ${sitio.xDetras.toFixed(2)})`);
+    ok(Math.abs(sitio.xDelante) <= Math.max(0, r.o.plano.ancho / 2 - ME.PLACA.ancho / 2) + 1e-9 && sitio.y >= 0.4 && sitio.y <= r.o.plano.alto, `${id}: dentro del ancho y a una altura de la obra`);
+  }
+  // la placa se apoya en lo más saliente de la malla de la obra (la cara de la pirca, las puntas de los troncos), por delante y por detrás
+  {
+    const mur2 = w.terminar('muro-piedra', 130, 10, 0).o;
+    mur2.datos.curt = { n: 4, e: -1, t: 0 };
+    base.actualizar(1);
+    const plp = placa(mur2);
+    ok(plp, 'el muro de pirca también lleva su placa');
+    plp.geometry.computeBoundingBox();
+    const bm = plp.geometry.boundingBox;
+    const sitio = ME.sitioDePlaca(mur2.plano, mur2.malla.geometry.getAttribute('position').array);
+    const sinGeo = ME.sitioDePlaca(mur2.plano);
+    ok(Math.abs(sitio.delante - sinGeo.delante) > 0.005 || Math.abs(sitio.detras - sinGeo.detras) > 0.005, `la pirca real no es una caja pareja: la placa lo sabe (${sitio.delante.toFixed(3)} / ${sitio.detras.toFixed(3)} y no ${sinGeo.delante.toFixed(3)})`);
+    ok(cerca(-bm.min.z, sitio.delante + ME.PLACA.grueso / 2 + 0.024, 2e-3) && cerca(bm.max.z, sitio.detras + ME.PLACA.grueso / 2 + 0.024, 2e-3), 'la placa de la pirca va pegada a su cara, por delante y por detrás');
+  }
   // mirar de nuevo no arma nada
   base.actualizar(1);
   ok(placa(emp) === pl && hijos(emp) === 2, 'mirar de nuevo no arma nada otra vez');
@@ -572,6 +615,46 @@ function noche(base, p, n, golpear = []) {
   ok(r.trofeos === 0 && r.curtidas === 0 && r.hayTablero === false, 'el resumen de la base');
 }
 
+// ================================================================== 8b. EL PERRO DE VERDAD: la mordida y el gruñido con desafio-aliados.js
+{
+  const w = mundo();
+  const filas = [];
+  for (const noches of [0, 3, 6, 10]) {
+    const p = partida();
+    p.d.crece.perro.noches = noches;
+    const base = M.desafio_base_juego.crearBaseCrece(w.s, efectosFalsos(), { pulsar() {}, bus: {} }, p.api);
+    const duende = (z, vida = 1e6) => ({ estado: 'avanzar', tipo: 'bruto', vida, def: { radio: 0.9, altura: 2.5 }, m: { g: { position: new THREE.Vector3(0, 0, z) }, esc: 1 } });
+    const bruto = duende(3), lejano = duende(46);
+    lejano.tipo = 'rastreador';
+    // el perro del juego: el alcance sale de la niebla (1 acá) por el nivel, y la mordida se multiplica por el nivel (como en desafio.js)
+    const api = { aliens: [bruto], D: () => p.d, mira: () => ({ x: 0, z: -1 }), alcancePerro: () => 1 * base.alcancePerro(), danoPerro: () => base.danoPerro(),
+      S: { grunirPerro() {} }, oir() {}, sonido: { ladrido() {} }, efectos: null, herirAlien(a, n) { a.vida -= n; } };
+    const A = M.desafio_aliados.crearAliados(api);
+    const js = { pos: new THREE.Vector3(0, 0, 0), yaw: 0 };
+    const perroPos = { x: 0.6, y: 0, z: 3 };
+    A.objetivoPerro(js, perroPos, 1);
+    const v0 = bruto.vida; A.actualizarPerro(1.0, js, perroPos);
+    const mordida = v0 - bruto.vida;
+    api.aliens.length = 0; api.aliens.push(lejano);
+    A.actualizarPerro(0.5, js, { x: 1, y: 0, z: 0 });
+    filas.push({ nivel: base.nivelPerro(), mordida: Math.round(mordida * 1000) / 1000, aviso: A.avisoPerro });
+  }
+  eq(filas.map((f) => f.nivel), [0, 1, 2, 3], 'los cuatro niveles');
+  eq(filas.map((f) => f.mordida), [9, 10.35, 11.7, 13.5], 'la mordida de verdad: 9, 10,35, 11,7 y 13,5 por segundo');
+  eq(filas.map((f) => f.aviso), [null, 'grunir', 'grunir', 'grunir'], 'a 46 m el perro sin curtir no avisa y el curtido gruñe');
+  // más lejos todavía: el nivel 3 oye lo que el 2 no
+  const lejos = (noches, d) => {
+    const p = partida(); p.d.crece.perro.noches = noches;
+    const base = M.desafio_base_juego.crearBaseCrece(w.s, efectosFalsos(), { pulsar() {}, bus: {} }, p.api);
+    const a = { estado: 'avanzar', tipo: 'rastreador', vida: 10, def: { radio: 0.4, altura: 1 }, m: { g: { position: new THREE.Vector3(0, 0, d) }, esc: 1 } };
+    const api = { aliens: [a], D: () => p.d, mira: () => ({ x: 0, z: -1 }), alcancePerro: () => base.alcancePerro(), danoPerro: () => base.danoPerro(), S: { grunirPerro() {} }, oir() {}, sonido: { ladrido() {} }, herirAlien() {} };
+    const A = M.desafio_aliados.crearAliados(api);
+    A.actualizarPerro(0.5, { pos: new THREE.Vector3(0, 0, 0), yaw: 0 }, { x: 1, y: 0, z: 0 });
+    return A.avisoPerro;
+  };
+  ok(lejos(6, 58) === null && lejos(10, 58) === 'grunir', 'a 58 m sólo el del nivel 3 lo oye');
+}
+
 // ================================================================== 9. LA PANTALLA DE LA BASE
 {
   const resumen = resumirBase([{ id: 'empalizada', nombre: 'Empalizada de troncos curtida · nivel 2', vida: 100, max: 100, dist: 4 }]);
@@ -614,6 +697,8 @@ function noche(base, p, n, golpear = []) {
   ok(enUnaLinea(reg, ['crece: creceNuevo()']) && enUnaLinea(reg, ['crece: sanearCrece(x.crece)']), 'desafioNuevo y sanearDesafio llevan `crece`');
   ok(enUnaLinea(gua, ['sanearCurtido(d.curt)']) && enUnaLinea(gua, ['d.colgados.filter((id) => IDS_TROFEOS.includes(id))']), 'el guardado sanea la experiencia y los trofeos colgados');
   ok(enUnaLinea(main, ['desafio.baseCrece?.nombreDe(o)']) && enUnaLinea(main, ['crece: desafio?.baseCrece?.resumen()']), 'la pantalla de la base muestra el nivel y lo que creció');
+  linea(['ctx.nota(`Reparando ${(baseCrece.nivelDe(obra) ?'], 'el martillo avisa con el nivel si la defensa está curtida');
+  linea(['baseCrece.nivelDe(e.obra)', '· reparada`', '${e.obra.plano.nombre} reparada`'], 'el taller también (y sin nivel, el texto de siempre)');
   // los invasores se reciclan: la base no deja nada en ellos
   const bajar = des.slice(des.indexOf('function bajarAlien'), des.indexOf('function soltarRobo'));
   ok(!/baseCrece/.test(bajar) && !/curt|trofe/i.test(bajar), 'la base no agrega campos a los invasores (nada que limpiar en bajarAlien)');

@@ -93,7 +93,7 @@ export function armarTablero(c, colgados = []) {
   // los estantes (donde se apoyan los trofeos) y un tope de adelante
   for (const [y, desde, hasta] of [[1.77, 0, 4], [0.94, 4, 7]]) {
     const x0 = sitioDeTrofeo(desde).x, x1 = sitioDeTrofeo(hasta - 1).x;
-    c.agregar(new THREE.BoxGeometry(x1 - x0 + 0.62, 0.04, 0.4), { color: MADERA, tipo: 0, variar: 0.08, matriz: matriz([(x0 + x1) / 2, y, -0.12]) });
+    c.agregar(new THREE.BoxGeometry(Math.abs(x1 - x0) + 0.62, 0.04, 0.4), { color: MADERA, tipo: 0, variar: 0.08, matriz: matriz([(x0 + x1) / 2, y, -0.12]) });
   }
   const puestos = new Set(colgados);
   TROFEOS.forEach((t, i) => {

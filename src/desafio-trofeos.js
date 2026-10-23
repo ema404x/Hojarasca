@@ -119,5 +119,6 @@ export function sitioDeTrofeo(indice) {
   const i = Math.max(0, Math.min(TROFEOS.length - 1, Math.floor(Number(indice)) || 0));
   const arriba = i < 4, col = arriba ? i : i - 4, n = arriba ? 4 : 3;
   const paso = TABLERO.ancho / 4.3;
-  return { x: (col - (n - 1) / 2) * paso, y: arriba ? 1.95 : 1.12 };
+  // visto de frente (el frente mira a -z) el +x queda a la izquierda: el primer trofeo va a la izquierda de la fila
+  return { x: -(col - (n - 1) / 2) * paso, y: arriba ? 1.95 : 1.12 };
 }

@@ -23,9 +23,12 @@ export const CURTIDO = {
   cada: 1,   // cada cuántos segundos el mundo revisa qué obras hay que vestir con la marca
 };
 
-// ¿Esta obra puede curtirse? Lo mismo que se puede romper a la vista: las murallas, los portones, las torres y las máquinas
-// (no las trampas que se gastan, ni lo que se pisa, ni lo oculto).
-export const curtible = (plano) => seRompe(plano);
+// ¿Esta obra puede curtirse? Las que reciben los golpes o pelean de pie: las murallas, los portones, las torres y las máquinas (no
+// las trampas que se gastan, ni lo que se pisa, ni lo oculto, ni la antorcha, la campana o el armero, que no pelean; ni los techos, el
+// puente y las rampas, donde una placa no tiene de dónde colgarse).
+export const CURTIBLES = ['empalizada', 'empalizada-reforzada', 'porton-empalizada', 'porton-reforzado', 'muro-piedra', 'muro-almenado', 'muro-tronera',
+  'cerco-cristal', 'contrafuerte', 'ballesta-fija', 'ballesta-cielo', 'torre-vigia', 'catapulta', 'escudo-energia', 'faro-plasma'];
+export const curtible = (plano) => !!plano && CURTIBLES.includes(plano.id) && seRompe(plano);
 
 export function nivelPorNoches(n) {
   const c = Math.max(0, Math.floor(Number(n)) || 0);
@@ -102,11 +105,45 @@ export function textoSubida(nombre, nivel) {
 // ---------------------------------------------------------------- la marca que se ve
 // Una placa de madera con barritas de bronce (una por nivel) y, en el nivel 3, un adorno de ámbar. Las piezas están en el
 // sistema de la obra (frente a -z); la placa va a media altura, pegada a la cara de adelante y a la de atrás.
-export const PLACA = { ancho: 0.46, alto: 0.3, grueso: 0.045, y: 1.45, yMax: 0.62 };
-// Dónde va: alto de la placa según la altura de la obra, y a qué distancia del centro (la mitad del fondo).
-export function sitioDePlaca(plano) {
-  const alto = Number(plano?.alto) || 1, fondo = Number(plano?.fondo) || 0.5;
-  return { y: Math.min(PLACA.y, alto * PLACA.yMax), z: Math.min(2.5, Math.max(0.15, fondo / 2)) + PLACA.grueso / 2 };
+// (de lejos tiene que leerse como una marca: el tamaño de una tabla de mano y barritas anchas)
+const ESC = 1.4;
+export const PLACA = { ancho: 0.46 * ESC, alto: 0.3 * ESC, grueso: 0.045 * ESC, y: 1.45, yMax: 0.62 };
+// Dónde va: a qué altura (según lo alta que es la obra), y a qué distancia del centro por delante y por detrás. Si se le dan los vértices
+// de la malla de la obra (`posiciones`, x y z de a tres, en el sistema de la obra), la placa se clava en lo más saliente que hay a esa altura
+// (las puntas de los troncos, la cara de la pirca, un poste de la torre) y se centra en ese punto; si a esa altura no hay nada, busca en una
+// franja más ancha, y si no hay nada de nada queda a la mitad del fondo. Lo que sobresale demasiado (una escalera, un brazo) no cuenta.
+export function sitioDePlaca(plano, posiciones = null) {
+  const alto = Number(plano?.alto) || 1, fondo = Number(plano?.fondo) || 0.5, ancho = Number(plano?.ancho) || 1;
+  const y = Math.min(PLACA.y, alto * PLACA.yMax);
+  const base = Math.min(2.5, Math.max(0.15, fondo / 2)) + PLACA.grueso / 2;
+  const sitio = { y, delante: base, detras: base, xDelante: 0, xDetras: 0, z: base };
+  if (!posiciones || posiciones.length < 3) return sitio;
+  const limite = Math.min(2.5, fondo / 2 + 0.45), xTope = Math.max(0, ancho / 2 - PLACA.ancho / 2);
+  const tope = (v) => Math.max(-xTope, Math.min(xTope, v));
+  // primero lo del medio de la obra (a lo ancho de la placa), después cada vez más a los costados; y a esa altura, o más arriba y abajo
+  for (const medio of [PLACA.ancho / 2 + 0.03, 0.9, 1.7, ancho / 2 + 0.2]) {
+    for (const franja of [PLACA.alto / 2 + 0.03, 0.5, 1.0]) {
+      let zMin = Infinity, zMax = -Infinity;
+      for (let i = 0; i + 2 < posiciones.length; i += 3) {
+        const px = posiciones[i], py = posiciones[i + 1], pz = posiciones[i + 2];
+        if (Math.abs(py - y) > franja || Math.abs(px) > medio || pz < -limite || pz > limite) continue;
+        if (pz < zMin) zMin = pz;
+        if (pz > zMax) zMax = pz;
+      }
+      if (zMin === Infinity) continue;
+      // de los puntos más salientes (a 3 cm), el más cercano al centro de la obra
+      let xA = Infinity, xB = Infinity;
+      for (let i = 0; i + 2 < posiciones.length; i += 3) {
+        const px = posiciones[i], py = posiciones[i + 1], pz = posiciones[i + 2];
+        if (Math.abs(py - y) > franja || Math.abs(px) > medio) continue;
+        if (pz <= zMin + 0.03 && Math.abs(px) < Math.abs(xA)) xA = px;
+        if (pz >= zMax - 0.03 && Math.abs(px) < Math.abs(xB)) xB = px;
+      }
+      // (una cara puede quedar toda del mismo lado del centro: `delante` y `detras` son distancias con signo)
+      return { y, delante: -zMin + PLACA.grueso / 2, detras: zMax + PLACA.grueso / 2, xDelante: tope(xA), xDetras: tope(xB), z: base };
+    }
+  }
+  return sitio;
 }
 // Las piezas de una placa del `nivel` (1 a 3), en el sistema de la placa, mirando a -z: { t, p, e, color, tipo }.
 export function piezasDePlaca(nivel, piedra = false) {
@@ -117,16 +154,16 @@ export function piezasDePlaca(nivel, piedra = false) {
   const bronce = ['#b0793c', '#c89a48', '#e6c25a'][n - 1];
   const piezas = [
     { t: 'caja', p: [0, 0, 0], e: [PLACA.ancho, PLACA.alto, PLACA.grueso], color: tabla, tipo: piedra ? 4 : 0 },
-    { t: 'caja', p: [0, PLACA.alto / 2 - 0.018, -0.008], e: [PLACA.ancho + 0.03, 0.036, PLACA.grueso + 0.016], color: marco, tipo: 0 },
-    { t: 'caja', p: [0, -PLACA.alto / 2 + 0.018, -0.008], e: [PLACA.ancho + 0.03, 0.036, PLACA.grueso + 0.016], color: marco, tipo: 0 },
+    { t: 'caja', p: [0, PLACA.alto / 2 - 0.018 * ESC, -0.008 * ESC], e: [PLACA.ancho + 0.03 * ESC, 0.036 * ESC, PLACA.grueso + 0.016 * ESC], color: marco, tipo: 0 },
+    { t: 'caja', p: [0, -PLACA.alto / 2 + 0.018 * ESC, -0.008 * ESC], e: [PLACA.ancho + 0.03 * ESC, 0.036 * ESC, PLACA.grueso + 0.016 * ESC], color: marco, tipo: 0 },
   ];
   // una barrita de bronce por nivel, de a una al lado de la otra
   for (let i = 0; i < n; i++) {
-    const x = (i - (n - 1) / 2) * 0.115;
-    piezas.push({ t: 'caja', p: [x, -0.01, -PLACA.grueso / 2 - 0.012], e: [0.06, 0.15, 0.024], color: bronce, tipo: 4 });
+    const x = (i - (n - 1) / 2) * 0.115 * ESC;
+    piezas.push({ t: 'caja', p: [x, -0.01 * ESC, -PLACA.grueso / 2 - 0.012], e: [0.06 * ESC, 0.15 * ESC, 0.024], color: bronce, tipo: 4 });
   }
   // el nivel 3: un rombo de ámbar arriba (una caja girada)
-  if (n === CURTIDO.maximo) piezas.push({ t: 'caja', p: [0, 0.095, -PLACA.grueso / 2 - 0.016], e: [0.05, 0.05, 0.02], r: [0, 0, Math.PI / 4], color: '#f0b64a', tipo: 4 });
+  if (n === CURTIDO.maximo) piezas.push({ t: 'caja', p: [0, 0.095 * ESC, -PLACA.grueso / 2 - 0.016], e: [0.05 * ESC, 0.05 * ESC, 0.02], r: [0, 0, Math.PI / 4], color: '#f0b64a', tipo: 4 });
   return piezas;
 }
 

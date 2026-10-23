@@ -1690,7 +1690,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     obra.datos.vida = Math.min(max, vida + max * 0.1 * rinde);
     _v.set(camara.position.x + _dir.x * 1.6, camara.position.y + _dir.y * 1.6, camara.position.z + _dir.z * 1.6);
     if (material === 'piedra') efectos.polvo(_v, 5); else efectos.astillas(_v, 5);
-    if (performance.now() - avisoMartillo > 1200) { avisoMartillo = performance.now(); ctx.nota(`Reparando ${obra.plano.nombre.toLowerCase()}`, `Resistencia ${Math.round(obra.datos.vida / max * 100)}%`); }
+    if (performance.now() - avisoMartillo > 1200) { avisoMartillo = performance.now(); ctx.nota(`Reparando ${(baseCrece.nivelDe(obra) ? baseCrece.nombreDe(obra) : obra.plano.nombre).toLowerCase()}`, `Resistencia ${Math.round(obra.datos.vida / max * 100)}%`); }   // 4.10 base: con el nivel si está curtida («pirca curtida · nivel 2»)
   }
   // Dónde entró el golpe, en términos del invasor: a qué altura relativa y si vino
   // por la espalda. Con eso se resuelve el punto débil del jefe.
@@ -1964,7 +1964,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       ctx.gastar(e.costo.material, e.costo.cantidad);
       const { max } = vidaDe(e.obra);
       e.obra.datos.vida = Math.min(max, e.obra.datos.vida + max * 0.3 * e.costo.cantidad * (1 + bonoAplicado(d, 'reparar')));   // 4.10 guardian
-      ctx.nota(`${e.obra.plano.nombre} reparada`, `Resistencia ${Math.round(e.obra.datos.vida / max * 100)}%`);
+      ctx.nota(baseCrece.nivelDe(e.obra) ? `${baseCrece.nombreDe(e.obra)} · reparada` : `${e.obra.plano.nombre} reparada`, `Resistencia ${Math.round(e.obra.datos.vida / max * 100)}%`);
     } else if (r.reforzar) {
       for (const [k, n] of Object.entries(e.refuerzo.pide)) ctx.gastar(k, n);
       const antes = e.obra.plano.nombre;
