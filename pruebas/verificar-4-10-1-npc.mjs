@@ -138,4 +138,31 @@ const amigoDe = (P, k, puntos = 30) => { for (let i = 0; i < 40 && V.puntosAmist
   ok(antes - P.economia.pesos >= 0, 'se pagó la compra');
 }
 
+// ---------------------------------------------------------------- 5 · el chico que estudia afuera no va al concurso
+{
+  const CO = await import('../src/concursos.js');
+  const COJ = await import('../src/concursos-juego.js');
+  let dia = 0, id = null;
+  for (let d = 1; d < 200; d++) { const c = CO.concursoDeFecha(fi.fechaDe(d), d); if (c && (CO.CONCURSOS[c].compiten.nene || CO.CONCURSOS[c].compiten.nena)) { dia = d; id = c; break; } }
+  ok(dia > 0, 'hay un concurso donde compite un chico (' + id + ', día ' + dia + ')');
+  const chico = CO.CONCURSOS[id].compiten.nene ? 'nene' : 'nena';
+  const armar = (afuera) => {
+    const W = crearMundo({ amigos: false, dia, hora: 16.2 });
+    if (afuera) { W.P.aldea.chicos = W.P.aldea.chicos || {}; W.P.aldea.chicos[chico] = { ...(W.P.aldea.chicos[chico] || {}), afuera: dia + 2, oficio: null, carrera: null }; }
+    const CJ = COJ.crearConcursosJuego({ progreso: () => W.P, desafio: () => false, nota() {}, guardar() {}, cobrar() {}, redibujar() {}, nombresFoto: () => ({}), fiestaEnCurso: () => false });
+    const NJu = NJ.crearNoticiasJuego({ progreso: () => W.P, ajustes: () => ({}), desafio: () => false, nota() {}, guardar() {}, registrar() {}, pronostico: () => [], cartaVieja: () => false, concursos: () => CJ, redibujar() {}, clima: () => null });
+    const AG = G.crearAldeaGente({ progreso: () => W.P, gente: () => W.gente, jugador: () => W.jug, tren: () => null, alturaDePie: () => 0, nota() {}, guardar() {}, registrar() {}, climaVecindad: () => 'sol', ambiente: () => ({ clima: 'sol', estacion: 'verano' }), hablandoCon: () => null, segundosPorHora: () => 75, noticiasDestino: (k) => NJu.destino(k) });
+    return { W, CJ, NJu, AG };
+  };
+  const sim = (x) => { x.W.P.horas = 16.5; for (let i = 0; i < 400; i++) { x.W.jug.estado.pos.x = x.W.c0.x + 3; x.W.jug.estado.pos.z = x.W.c0.z + 2; for (const q of x.W.lista) if (!q.dormido) mover(q, 1.25); x.AG.actualizar(1.25); } };
+  const con = armar(false); sim(con);
+  ok(con.CJ.destinos().has(chico), 'control: con el chico en casa, la última hora va a la plaza');
+  eq(con.AG.personas.get(chico)?.destino?.edificio, 'plaza', 'control: y la aldea lo lleva a la plaza');
+  const sin = armar(true); sim(sin);
+  ok(A.chicoAfuera(sin.W.P.aldea, chico), 'el chico está estudiando afuera');
+  ok(!sin.CJ.destinos().has(chico), 'estudiando afuera, el concurso no lo manda a la plaza');
+  ok(!sin.AG.personas.get(chico)?.destino, 'y la aldea no le da destino');
+  ok(sin.AG.personas.get(chico)?.npc?.dormido !== false, 'su figura no está a la vista');
+}
+
 console.log(`verificar-4-10-1-npc: ${n} comprobaciones OK`);

@@ -7,7 +7,7 @@
 import { CONCURSOS, ORGANIZA, HORAS_CONCURSO, concursoDeFecha, entradaDe, inscribir, fallar, sinFallo, juradoDe, textoFallo, noticiaDeResultado, anotarTrucha, sanearConcursos, cintaDe, CINTAS } from './concursos.js';
 import { fechaDe as fechaDeFiesta } from './fiestas.js';
 import { nombreCortoDe } from './aldea-vida.js';
-import { esVecinoAldea } from './aldea.js';
+import { esVecinoAldea, chicoAfuera } from './aldea.js';
 import { gastar } from './cocina-pasos.js';
 
 const minus = (s) => (typeof s === 'string' && s ? s.charAt(0).toLowerCase() + s.slice(1) : '');
@@ -25,7 +25,8 @@ export function crearConcursosJuego(ctx) {
     if (!p.concursos || typeof p.concursos !== 'object') p.concursos = sanearConcursos(p.concursos, p.dia);
     return p.concursos;
   };
-  const presentes = (k) => esVecinoAldea(k) || (progreso()?.aldea?.pobladores || []).some((p) => p?.clave === k);
+  // 4.10.1: el chico que se fue a estudiar a la ciudad no está: ni en la plaza, ni de jurado, ni compite (antes aparecía la última hora y figuraba en el fallo)
+  const presentes = (k) => !chicoAfuera(progreso()?.aldea, k) && (esVecinoAldea(k) || (progreso()?.aldea?.pobladores || []).some((p) => p?.clave === k));
   const claveDe = (npc) => npc?.claveAldea || npc?.clave || null;
   // El concurso de hoy (o null)
   const deHoy = (d = dia()) => concursoDeFecha(fechaDeFiesta(d), d);
