@@ -86,7 +86,7 @@ app.whenReady().then(async () => {
 
     // ================================================================ el giro de las dos
     donde = 'giros';
-    await js(`(()=>{const H=${H}, D=H.progreso.desafio; D.especial=null; H.progreso.dia++; H.progreso.horas=2.05; return 1})()`);   // (pasó la medianoche; se saca la niebla de la noche para ver el giro)
+    await js(`(()=>{const H=${H}, D=H.progreso.desafio; D.especial=null; D.semilla=null; H.progreso.dia++; H.progreso.horas=2.05; return 1})()`);   // (con código de partida el azar de la noche es siempre el mismo: sin código, cada tirada es distinta)   // (pasó la medianoche; se saca la niebla de la noche para ver el giro)
     const vistos = {};
     let giroFinal = null;
     for (let intento = 0; intento < 160 && Object.keys(vistos).length < 3; intento++) {
@@ -146,7 +146,8 @@ app.whenReady().then(async () => {
     const base = R.composicionOleada(7);
     const esperada = N.aplicarCadena(base, N.efectoCadena(tarde.cadena, 7)).length;
     ok(!n7.especial && n7.oleadas === 7, 'noche 7 común');
-    ok(n7.vivos === Math.min(24, esperada) && esperada > base.length, `la noche 7 viene más grande por lo de anoche (${base.length} → ${n7.vivos}, esperado ${esperada})`);
+    ok(n7.vivos >= Math.min(24, esperada) && esperada > base.length,   // (puede haber más: se abren los nidos de hongos de anoche)
+       `la noche 7 viene más grande por lo de anoche (${base.length} → ${n7.vivos}, esperado ${esperada})`);
     if (!n7.rescate && !n7.varada) {
       const cerca = await js(`(()=>{const H=${H}, b=H.progreso.desafio.cadena.brecha, n=H.desafio.nave.position; return b ? Math.round(Math.hypot(n.x-b.x, n.z-b.z)) : -1})()`);
       ok(cerca >= 38 && cerca <= 60, `la nave baja a ${cerca} m de la defensa rota`);
