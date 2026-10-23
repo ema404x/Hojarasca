@@ -486,7 +486,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.invulnerable = (s) => { invulnerable = Math.max(invulnerable, s); };   // 4.9 defensas: unos segundos sin que te peguen (al salir del pasadizo)
   api.luzLinterna = () => ctx.luzLinterna?.() || null;   // 4.9 defensas: la luz pegada a la cámara, que el farol de mano toma prestada
   api.armaEnMano = () => ctx.armaEnMano?.() || null;   // 4.9 defensas: lo que hay elegido en la barra (la pala se carga con E sólo si la tenés en la mano)
-  api.fuegos = () => ctx.fuegos?.() || [];   // 4.9 defensas: los fogones prendidos del valle ({ x, y, z })
+  // 4.9 defensas: los fogones prendidos del valle ({ x, y, z }); 4.9 (junta): más los fuegos que prende Herminia en la base (la pala de brasas los usa)
+  api.fuegos = () => {
+    const base = ctx.fuegos?.() || [];
+    const vecinosFuegos = vecinos.fuegosPrendidos?.() || [];
+    return vecinosFuegos.length ? base.concat(vecinosFuegos.map((f) => ({ x: f.x, y: T.altura(f.x, f.z), z: f.z }))) : base;
+  };
   fortin = crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas);
   // 4.9 defensas: lo roto que se ve, la trampa de miel, el pasadizo, el farol de mano y la pala de brasas (ver desafio-defensas49-juego.js)
   const defensas49 = crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api, defensas);
