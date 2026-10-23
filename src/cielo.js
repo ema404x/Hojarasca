@@ -532,7 +532,8 @@ export function crearCielo(escena, calidad) {
       intensidad = 3.4 * smoothstep(-0.04, 0.22, solDir.y) * (1 - nub * 0.72);
       sol.color.copy(colorSol);
     } else {
-      intensidad = 0.7 * smoothstep(-0.02, 0.2, -solDir.y) * (1 - nub * 0.6) * luzLuna * (1 + 1.0 * lunaK) * (1 - 0.35 * nieblaK);   // 4.8 ambiente
+      intensidad = 0.7 * smoothstep(-0.02, 0.2, -solDir.y) * (1 - nub * 0.6) * luzLuna;
+      intensidad *= (1 + 1.0 * lunaK) * (1 - 0.35 * nieblaK);   // 4.8 ambiente: la luna llena alumbra más y la niebla la tapa
       sol.color.copy(LUZ_LUNA);
       if (lunaK > 0) sol.color.lerp(LUZ_LUNA_LLENA, 0.6 * lunaK);
     }
