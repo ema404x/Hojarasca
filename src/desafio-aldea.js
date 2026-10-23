@@ -58,7 +58,7 @@ export const DESDE_NOCHE = Object.fromEntries(VECINOS_AYUDA.map((k) => [k, VECIN
 export const VALOR = { tronco: 1, tabla: 0.7, piedra: 1, ramita: 0.1, fruta: 0.5, cristal: 6, flechas: 0.2, emplastos: 1.1, boleadoras: 1.2 };
 export const MAX_REGALO = 0.45;                      // el regalo vale, como mucho, el 45% de lo que se entregó
 export const COSAS_PEDIDAS = ['tronco', 'tabla', 'piedra', 'ramita', 'fruta', 'cristal'];
-export const COSAS_REGALO = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos', 'boleadoras'];
+export const COSAS_REGALO = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos'];
 const NOMBRE_COSA = {
   tronco: ['tronco', 'troncos'], tabla: ['tabla', 'tablas'], piedra: ['piedra', 'piedras'], ramita: ['ramita', 'ramitas'],
   fruta: ['fruta del bosque', 'frutas del bosque'], cristal: ['semilla dorada', 'semillas doradas'],
@@ -115,7 +115,7 @@ export const PEDIDOS = {
       texto: '¡Piedras para las hondas! Las lisitas y redondas, no las filosas, que no vuelan bien.' },
     { id: 'horquillas', nivel: 0, pide: { ramita: 12 }, regalo: { flechas: 3 },
       texto: 'Estamos haciendo horquillas para las hondas. ¿Nos traés ramitas bien parejas?' },
-    { id: 'parapeto', nivel: 1, pide: { piedra: 10, tabla: 2 }, regalo: { boleadoras: 1 },
+    { id: 'parapeto', nivel: 1, pide: { piedra: 10, tabla: 2 }, regalo: { piedra: 2 },
       texto: '¡Armamos un parapeto en la empalizada y desde ahí tiramos! Falta piedra y un par de tablas. ¡Dale, dale!' },
     { id: 'municion', nivel: 1, pide: { piedra: 8, ramita: 10 }, regalo: { flechas: 5 },
       texto: 'Nos quedamos sin municiones. Con piedras y ramitas hacemos cientos de hondas. ¡Vas a ver cómo les pegamos!' },
@@ -269,4 +269,18 @@ export function pedidosActivos(aldea, dia, horas) {
 export function textoPedido(clave, p) {
   const e = PEDIDOS[clave].find((x) => x.id === p.id);
   return e ? e.texto : '';
+}
+
+// Entrega de verdad: entrega, cobra lo pedido (gastar) y reparte el regalito (materiales al morral; flechas y emplastos al
+// estado del Desafío `d`). `io`: { dia, horas, cuanto(k), gastar(k, n), sumarMaterial(k, n) }. Devuelve lo de `entregar`.
+export const MATERIALES_DE_REGALO = ['tronco', 'tabla', 'piedra', 'cristal'];
+export function entregarYCobrar(d, clave, io) {
+  const r = entregar(d.aldea, clave, io.cuanto, io.dia, io.horas);
+  if (!r.ok) return r;
+  for (const [k, n] of Object.entries(r.gasta)) io.gastar(k, n);
+  for (const [k, n] of Object.entries(r.regalo || {})) {
+    if (MATERIALES_DE_REGALO.includes(k)) io.sumarMaterial(k, n);
+    else d[k] = Math.min(999, (Number(d[k]) || 0) + n);
+  }
+  return r;
 }

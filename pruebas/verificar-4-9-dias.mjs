@@ -288,9 +288,8 @@ const SEMILLAS = ['ABEJA-NIDO-LUNA', 'TORO-RIO-SOL', 'PIEDRA-CIELO-RAMA', 'HONGO
     }
   });
   ok(comparadas >= 6 * 30 * 6 - 1, `se compararon ${comparadas} noches`);
-  for (const e of ['comun', 'jefe', 'final', 'roja', 'eclipse', 'silenciosa', 'apagon']) ok(especiales.has(e), `en esas noches salió «${e}» y se anticipó bien`);
+  for (const e of ['comun', 'jefe', 'final', 'roja', 'eclipse', 'silenciosa', 'apagon', 'niebla', 'lunallena']) ok(especiales.has(e), `en esas noches salió «${e}» y se anticipó bien`);
   ok(lados.has('rio') && lados.has('monte') && lados.has('camino'), 'y los tres lados');
-  ok(especiales.has('niebla') || especiales.has('lunallena') || ESPECIALES.niebla === undefined, 'y las noches nuevas, cuando existen');
   // anticipar no altera nada: la misma partida con y sin pronóstico (y con pronósticos de más) sale igual
   const base = BASES[0], plan = L.planDeLados(base, muestra);
   for (const semilla of SEMILLAS.slice(0, 3)) {
@@ -357,11 +356,134 @@ const SEMILLAS = ['ABEJA-NIDO-LUNA', 'TORO-RIO-SOL', 'PIEDRA-CIELO-RAMA', 'HONGO
 }
 function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calma'; }
 
-// ================================================================ 6. el enganche con el juego
+// ================================================================ 6. el tablón en el mundo (con three de verdad y un mundo de mentira)
+{
+  const { registrarThree } = await import('./ayuda-three.mjs');
+  registrarThree();
+  const { crearAldeaMundo, RADIO_TABLON } = await import('../src/desafio-aldea-mundo.js');
+  const base = { x: BASE_REFUGIO.x, z: BASE_REFUGIO.z, radio: 4 };
+  const plan = L.planDeLados(base, muestra);
+  const montar = (extra = {}) => {
+    const notas = [], estado = { dia: 5, horas: 9, pos: { x: base.x, y: 0, z: base.z }, abrio: 0, libre: true, mochila: { tronco: 20, tabla: 20, piedra: 20, ramita: 40, fruta: 20, cristal: 0 }, guardados: 0, redibujos: 0 };
+    const d = sanearDesafio(null); d.semilla = 'ABEJA-NIDO-LUNA'; d.oleadas = 4;
+    const escena = { hijos: [], add(h) { this.hijos.push(h); } };
+    const ctx = {
+      D: () => d, progreso: () => estado, sonido: { juntar() { estado.juntar = (estado.juntar || 0) + 1; } },
+      nota: (a, b, n) => notas.push([a, b, n]), guardar: () => { estado.guardados++; },
+      cuanto: (k) => estado.mochila[k] || 0, gastar: (k, n) => { estado.mochila[k] -= n; },
+      sumarMaterial: (k, n) => { estado.mochila[k] = (estado.mochila[k] || 0) + n; },
+      base: () => base, libre: () => estado.libre, plan: () => plan, meteo: () => ({ semilla: 99 }),
+      tiene: () => ({ estacion: false, radio: false, perro: true }), hayBlanco: () => false, activo: () => true,
+      abrirTablon: () => { estado.abrio++; }, redibujar: () => { estado.redibujos++; }, posJugador: () => estado.pos, ...extra,
+    };
+    const T = { agua: () => false, altura: () => 0, indice: () => 0, pendiente: [0], lugares: {} };
+    return { m: crearAldeaMundo(T, escena, ctx), notas, estado, d, escena };
+  };
+  const nodo = (tag, clase, texto) => ({ tag, clase, texto, hijos: [], listeners: {}, appendChild(h) { this.hijos.push(h); return h; }, addEventListener(e, f) { this.listeners[e] = f; } });
+  const texto = (n) => `${n.texto ?? ''} ${n.hijos.map(texto).join(' ')}`;
+  const botones = (n) => [...(n.tag === 'button' ? [n] : []), ...n.hijos.flatMap(botones)];
+
+  let { m, notas, estado, d, escena } = montar();
+  ok(escena.hijos.length === 1 && m.grupo.name === 'tablon-aldea', 'el tablón es un solo grupo en la escena');
+  const dist = Math.hypot(m.sitio.x - base.x, m.sitio.z - base.z);
+  ok(dist > 3 && dist < 20, `el tablón queda cerca de la base (a ${dist.toFixed(1)} m)`);
+  ok(m.cerca({ x: m.sitio.x + 1, z: m.sitio.z }) && !m.cerca({ x: m.sitio.x + RADIO_TABLON + 1, z: m.sitio.z }) && !m.cerca(null), 'se usa a menos de 3,6 m');
+  ok(Object.values(m.hojas).every((h) => !h.visible), 'sin pedidos, sin hojas');
+  // el primer segundo: reparten y se avisa una sola vez
+  m.actualizar(1.1, { pos: estado.pos });
+  const activos = A.VECINOS_AYUDA.filter((k) => d.aldea.pedidos[k]);
+  ok(activos.length === 4 && A.VECINOS_AYUDA.every((k) => m.hojas[k].visible), 'con 4 noches resistidas piden los cuatro y se ven las cuatro hojas');
+  ok(notas.length === 1 && /pide cosas/.test(notas[0][0]) && /tablón/.test(notas[0][1]), 'un solo aviso para todos');
+  m.actualizar(0.3, { pos: estado.pos });
+  ok(notas.length === 1, 'sin repetir');
+  ok(estado.guardados === 1, 'y se guarda lo repartido');
+  // lejos no se dibuja
+  m.actualizar(1.1, { pos: { x: m.sitio.x + 400, z: m.sitio.z } });
+  ok(m.grupo.visible === false, 'a más de 170 m no se dibuja');
+  m.actualizar(1.1, { pos: estado.pos });
+  ok(m.grupo.visible === true, 'y vuelve al acercarse');
+  // el aviso y la E
+  estado.pos = { x: m.sitio.x, y: 0, z: m.sitio.z };
+  ok(/4 pedidos/.test(m.avisoCerca(estado.pos)), 'el aviso cuenta los pedidos');
+  ok(m.usarCerca(estado.pos) === true && estado.abrio === 1, 'la E abre el cuaderno en la pestaña de la aldea');
+  ok(m.usarCerca({ x: 9999, z: 9999 }) === false && m.avisoCerca({ x: 9999, z: 9999 }) === null, 'lejos, nada');
+  // el cuaderno: pedidos, y la noche que viene
+  let ficha = nodo('div');
+  m.dibujarCuaderno(ficha, nodo);
+  let tx = texto(ficha);
+  ok(/La aldea/.test(tx) && /Los pedidos de hoy/.test(tx) && /La noche que viene/.test(tx), 'la pestaña tiene sus tres partes');
+  for (const k of A.VECINOS_AYUDA) ok(tx.includes(A.VECINOS[k].nombre) && tx.includes(A.textoPedido(k, d.aldea.pedidos[k]).slice(0, 25)), `${k}: su nombre y su pedido`);
+  ok(/Pide \d+/.test(tx) && /Hasta que salgan los duendes/.test(tx) && /no vuelve/.test(tx), 'dice lo que pide y que cuesta');
+  ok(!/Van a entrar/.test(tx) && /desde las 15/.test(tx), 'a la mañana el perro todavía no huele el lado y lo dice');
+  estado.horas = 16; ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo); tx = texto(ficha);
+  ok(/Van a entrar/.test(tx) && /a unos \d+ m de la base/.test(tx), 'a las 4 de la tarde el perro dice por dónde entran');
+  estado.horas = 9;
+  // entregar: junto al tablón, con lo pedido
+  ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo);
+  let bs = botones(ficha).filter((b) => b.texto === 'Entregar');
+  ok(bs.length === 4 && bs.every((b) => !b.disabled), 'junto al tablón y con todo en la mochila, se puede entregar los cuatro');
+  const antes = { ...estado.mochila }, pedido = d.aldea.pedidos.anselmo;
+  bs[0].listeners.click();
+  ok(d.aldea.ayuda.anselmo === 1 && d.aldea.pedidos.anselmo === null && estado.redibujos === 1, 'entregar sube la ayuda de Anselmo y redibuja');
+  for (const [k, n] of Object.entries(pedido.pide)) ok(estado.mochila[k] === antes[k] - n + ((pedido.regalo || {})[k] || 0), `se cobró ${n} de ${k}`);
+  ok(notas.at(-1)[2] === true && /Anselmo/.test(notas.at(-1)[0]) && /“/.test(notas.at(-1)[1]), 'y Anselmo agradece con su voz');
+  ok(estado.juntar === 1, 'con su sonido');
+  m.actualizar(1.1, { pos: estado.pos });
+  ok(m.hojas.anselmo.visible === false && m.hojas.chicos.visible === true, 'y su hoja sale del tablón');
+  // sin lo pedido, el botón no deja
+  estado.mochila.piedra = 0; estado.mochila.tabla = 0; estado.mochila.tronco = 0; estado.mochila.ramita = 0; estado.mochila.fruta = 0;
+  ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo);
+  bs = botones(ficha).filter((b) => /^Te falta/.test(b.texto));
+  ok(bs.length === 3 && bs.every((b) => b.disabled), 'sin las cosas, «Te falta…» y apagado');
+  const r0 = m.entregarPedido('herminia');
+  ok(!r0.ok && r0.razon === 'falta' && d.aldea.ayuda.herminia === 0, 'entregar sin todo no hace nada');
+  // lejos del tablón, no se entrega aunque se pueda
+  estado.mochila = { tronco: 50, tabla: 50, piedra: 50, ramita: 90, fruta: 50, cristal: 0 };
+  estado.pos = { x: m.sitio.x + 50, y: 0, z: m.sitio.z };
+  ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo);
+  ok(botones(ficha).filter((b) => b.texto === 'Entregar').every((b) => b.disabled) && /parado junto al tablón/.test(texto(ficha)), 'lejos del tablón los botones están apagados y lo dice');
+  ok(m.entregarPedido('martin').razon === 'lejos' && d.aldea.ayuda.martin === 0, 'y la entrega se rechaza');
+  // de noche vence
+  estado.pos = { x: m.sitio.x, y: 0, z: m.sitio.z };
+  estado.horas = HORA_ATAQUE + 0.1;
+  m.actualizar(1.1, { pos: estado.pos });
+  ok(A.VECINOS_AYUDA.every((k) => !d.aldea.pedidos[k]) && Object.values(m.hojas).every((h) => !h.visible), 'a la noche se vencen y se van las hojas');
+  ok(/plazo/.test(notas.at(-1)[0]), 'con un aviso sin drama');
+  // si una obra queda encima, el tablón se corre
+  const x0 = m.sitio.x, z0 = m.sitio.z;
+  estado.libre = false; estado.horas = 10;
+  let intentos = 0;
+  const m2 = montar({ libre: (x, z) => { intentos++; return !(Math.abs(x - x0) < 1.2 && Math.abs(z - z0) < 1.2); } });
+  m2.m.actualizar(1.1, { pos: m2.estado.pos });
+  ok(m2.m.sitio.listo, 'si la base cambia o hay una obra encima, se vuelve a ubicar (sin romperse)');
+  // una partida a medias (guardada con pedidos) sigue donde estaba
+  const guardada = sanearDesafio(JSON.parse(JSON.stringify(d)));
+  igual(guardada.aldea.ayuda, d.aldea.ayuda, 'la ayuda se guarda y se carga');
+}
+
+// ================================================================ 7. el enganche con el juego
 {
   const main = leer('src/main.js'), des = leer('src/desafio.js'), reglas = leer('src/desafio-reglas.js');
-  const inter = leer('src/interacciones.js');
   ok(/aldeaNueva as aldeaDelDesafio/.test(reglas) && /sanearAldeaDelDesafio\(x\.aldea\)/.test(reglas), 'sanearDesafio sanea la aldea');
+  ok(/import \{ crearAldeaMundo \} from '\.\/desafio-aldea-mundo\.js';/.test(des) && /const aldeaMundo = crearAldeaMundo\(/.test(des), 'desafio.js arma el tablón');
+  ok(/aldeaMundo\.actualizar\(dt, js\);   \/\/ 4\.9 dias/.test(des), 'y lo actualiza una vez por cuadro (él se frena a un segundo)');
+  ok(/aldeaMundo,   \/\/ 4\.9 dias/.test(des), 'y lo muestra');
+  ok(/plan: \(\) => ataques\.planActual\(\)/.test(des), 'el plan de lados es el que usa la noche (ataques.planActual)');
+  ok(!/ataques\.decidir\([^)]*\)[^;]*aldea/.test(des), 'el pronóstico no decide nada por la noche');
+  ok(/abrirTablonAldea: \(\) => \{ pestana = 'aldea'; abrir\('cuaderno'\); \}/.test(main), 'main: el tablón abre el cuaderno en «La aldea»');
+  ok(/pestanas\.push\(\['aldea', 'La aldea'\]\)/.test(main) && /desafio\.aldeaMundo\.dibujarCuaderno\(ficha, el\)/.test(main), 'main: la pestaña existe sólo en el Desafío y se dibuja');
+  ok(/desafio\.aldeaMundo\.marcaMapa\(\)/.test(main), 'main: el mapa marca por dónde entrarían');
+  // la tecla E: una sola entrada en la tabla
+  const { INTERACCIONES } = await import('../src/interacciones.js');
+  const ids = INTERACCIONES.map((e) => e.id);
+  ok(ids.filter((i) => i === 'aldea-tablon').length === 1 && ids.indexOf('aldea-tablon') > ids.indexOf('tablon') && ids.indexOf('aldea-tablon') < ids.indexOf('objetivo'), 'la E y el aviso: una entrada «aldea-tablon» en su lugar de la tabla');
+  const { que, enganche } = await import('./ayuda-interacciones.mjs');
+  const r = que({ desafio: true, tablonAldeaCerca: true, avisoTablonAldea: 'Mirar el tablón', abrirTablonAldea: true });
+  ok(r.e === 'aldea-tablon' && r.avisoId === 'aldea-tablon', 'junto al tablón del Desafío, la E lo abre y el aviso habla de él');
+  ok(que({ desafio: false, tablonAldeaCerca: true }).e !== 'aldea-tablon', 'en el Relax no existe');
+  ok(que({ desafio: true, tablonAldeaCerca: true, js: { enTren: true } }).e !== 'aldea-tablon', 'ni arriba del tren');
+  ok(que({ desafio: true, tablonAldeaCerca: true, objetivo: { tipo: 'planta', texto: 'Anotar' } }).e !== 'aldea-tablon', 'ni mirando algo para juntar');
+  for (const n of ['tablonAldeaCerca', 'avisoTablonAldea', 'abrirTablonAldea']) ok(enganche(main, n).length > 10, `ctxInteraccion le da a la tabla «${n}»`);
 }
 
 console.log(`verificar-4-9-dias: ${pasos} comprobaciones, todo en verde`);

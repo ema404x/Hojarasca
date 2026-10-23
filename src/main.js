@@ -951,6 +951,9 @@ async function construir() {
     vibrar: (evento, intensidad) => vibrarMando(evento, intensidad),
     // 3.1: el oficio de cazador
     alAbatir: (a) => ganarOficio('cazador', a?.def?.jefe ? XP.jefe : XP.abatido),
+    // 4.9 dias: el tablón de la aldea abre el cuaderno en su pestaña, y la pestaña se redibuja al entregar
+    abrirTablonAldea: () => { pestana = 'aldea'; abrir('cuaderno'); },
+    redibujarCuaderno: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
     pulso: () => factorPulso(nivelDe('cazador')),
   });
   elegida = Math.min(7, Math.max(0, progreso.ranura || 0));
@@ -1094,6 +1097,8 @@ function dibujarCuaderno() {
   // 2.0: en el Desafío, el bestiario de los invasores
   if (desafio) pestanas.push(['bestiario', 'Bestiario']);
   else if (pestana === 'bestiario') pestana = 'especies';
+  if (desafio?.aldeaMundo) pestanas.push(['aldea', 'La aldea']);   // 4.9 dias: los pedidos de los vecinos y la noche que viene
+  else if (pestana === 'aldea') pestana = 'especies';
   for (const [id, nombre] of pestanas) {
     const b = el('button', '', nombre);
     b.setAttribute('role', 'tab');
@@ -1108,6 +1113,7 @@ function dibujarCuaderno() {
   if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
   if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
   if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
+  if (pestana === 'aldea' && desafio?.aldeaMundo) { desafio.aldeaMundo.dibujarCuaderno(ficha, el); return; }   // 4.9 dias
 
   if (pestana === 'bestiario' && desafio) {
     const best = desafio.bestiario;
@@ -1699,6 +1705,7 @@ function dibujarMapa() {
   if (desafio && !progreso.desafio?.pistolaEncontrada) marcas.push({ x: desafio.capsula.x, z: desafio.capsula.z, tipo: 'parada', nombre: 'Cofre de los duendes' });
   if (puestosJuego && !desafio) for (const m of puestosJuego.marcasDelMapa()) marcas.push({ ...m, tipo: 'parada' });   // 4.6 puestos: los puestos de ruta (el del Riel Sur ya está, es parada)
   if (aldeaMundo && !desafio) { const b = aldeaMundo.lugarBanco(); marcas.push({ x: b.x, z: b.z, tipo: 'parada', nombre: b.nombre }); const c = aldeaMundo.lugarCantina(); marcas.push({ x: c.x, z: c.z, tipo: 'parada', nombre: c.nombre }); }   // 3.8.9: el banco, rotulado (3.9.0: y la cantina) (antes nada decía dónde estaba)
+  if (desafio?.aldeaMundo) { const m = desafio.aldeaMundo.marcaMapa(); if (m) marcas.push({ x: m.x, z: m.z, tipo: 'parada', nombre: m.nombre }); }   // 4.9 dias: por dónde entrarían los duendes esta noche, si ya se sabe
   mapa.dibujar($('lienzo-mapa'), null, jugador.estado, null, T.lugares, marcas, chinches(), chincheActiva, marcasAutomaticas({ desafio, lugares: T.lugares }));
 }
 
@@ -9774,6 +9781,7 @@ const ctxInteraccion = {
   usarAcopio: () => usarAcopio(),
   avisoDesafioCerca: () => desafio.avisoCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
   usarDesafioCerca: () => !!desafio.usarCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
+  tablonAldeaCerca: () => !!desafio?.aldeaMundo?.cerca(jugador.estado.pos), avisoTablonAldea: () => desafio.aldeaMundo.avisoCerca(jugador.estado.pos), abrirTablonAldea: () => desafio.aldeaMundo.usarCerca(jugador.estado.pos),   // 4.9 dias
   puertaCerca: () => puertas && puertas.cerca(jugador.estado.pos), accionarPuerta: (p) => puertas.accionar(p),
   rastro: () => rastro, mirandoAlPerro: () => mirandoAlPerro(jugador.estado, perro.est.pos),
   dejarRastro: () => dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`),

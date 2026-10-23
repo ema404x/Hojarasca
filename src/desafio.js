@@ -60,6 +60,8 @@ import { crearEvolucionMundo } from './desafio-evolucion-mundo.js';
 import { claseDeProyectil } from './desafio-evolucion.js';
 // 4.8 ataques: por dónde entran, las tácticas, el curandero y el enjambre
 import { crearAtaques } from './desafio-ataques.js';
+// 4.9 dias: el tablón de la aldea (pedidos de día y pronóstico de la noche)
+import { crearAldeaMundo } from './desafio-aldea-mundo.js';
 
 const VERDE_OJO = '#a6ff6e';
 const MAX_ALIENS = 24;
@@ -798,6 +800,27 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     risa: (p, a) => { S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar(); },
     destelloCura: (p, alto) => { _v.set(p.x, p.y + alto * 0.6, p.z); efectos.destello(_v, 0.55, '#b8ff8a'); efectos.polvo(_v, 3, '#b8e090'); },
     efectoCurandero: (p, c) => { _v.set(p.x, p.y + 0.6, p.z); efectos.destello(_v, 0.8, '#e8ffa8'); S.acecho(p, 'curandero'); c.m.chillar(); },
+  });
+
+  // 4.9 dias: el tablón de la aldea junto a la base: los pedidos de los vecinos de día y el pronóstico de la noche (ver desafio-aldea-mundo.js)
+  const aldeaMundo = crearAldeaMundo(T, escena, {
+    D, progreso, sonido,
+    nota: (t, s, n) => ctx.nota(t, s, n), guardar: () => ctx.guardar(),
+    cuanto: (k) => ctx.cuanto(k), gastar: (k, n) => ctx.gastar(k, n), sumarMaterial: (k, n) => ctx.sumarMaterial(k, n),
+    base: () => baseMapa() || T.lugares.refugio,
+    libre: (x, z) => !obraEnPunto(x, T.altura(x, z) + 0.5, z, 1.2),
+    plan: () => ataques.planActual(),
+    meteo: () => progreso().meteo,
+    // lo que tenés para saber de antemano: la estación meteorológica (trae radio), una radio o el perro
+    tiene: () => {
+      const est = obras.obras.some((o) => completa(o) && o.plano.id === 'estacion-meteo');
+      return { estacion: est, radio: est || obras.obras.some((o) => completa(o) && o.plano.id === 'radio-refugio'), perro: !!ctx.perroPos?.() };
+    },
+    hayBlanco: () => !!(D().rescate && !D().rescate.caido) || !!blancoVarada() || !!asedioMundo.blancoNoche(),
+    activo: () => !D().victoria && siguenLasNoches(D()),
+    abrirTablon: () => ctx.abrirTablonAldea?.(),
+    redibujar: () => ctx.redibujarCuaderno?.(),
+    posJugador: () => ctx.jugador().estado.pos,
   });
 
   // ---------------- oleadas
@@ -3615,6 +3638,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     actualizarCristales(dt, js);
     actualizarCaja(dt, js);
     mapaMundo.actualizar(dt, js);   // 3.0
+    aldeaMundo.actualizar(dt, js);   // 4.9 dias: los pedidos de la aldea (una vez por segundo)
     actualizarLectura(dt);
     revisarCapsula(js);
     eventos.actualizar(dt, js);
@@ -3761,6 +3785,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 3.0: la supervivencia sin fin y el mapa de la semilla (la base, los lugares, lo que se marca)
     get sinFin() { return D().sinFin; },
     mapaMundo,
+    aldeaMundo,   // 4.9 dias: el tablón de la aldea (pedidos y pronóstico)
     get baseMapa() { return baseMapa(); },
     get sitiosMapa() { return mapaMundo.marcas(); },
     get fortin() { return fortin; },
