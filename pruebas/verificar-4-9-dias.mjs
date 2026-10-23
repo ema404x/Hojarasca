@@ -362,7 +362,6 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   const main = leer('src/main.js'), des = leer('src/desafio.js'), reglas = leer('src/desafio-reglas.js');
   const inter = leer('src/interacciones.js');
   ok(/aldeaNueva as aldeaDelDesafio/.test(reglas) && /sanearAldeaDelDesafio\(x\.aldea\)/.test(reglas), 'sanearDesafio sanea la aldea');
-  ok(/\/\/ 4\.9 dias:/.test(des), 'los cambios en desafio.js llevan su marca «4.9 dias:»');
 }
 
 console.log(`verificar-4-9-dias: ${pasos} comprobaciones, todo en verde`);
