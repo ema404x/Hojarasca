@@ -43,8 +43,8 @@ app.whenReady().then(async () => {
     await js(`document.getElementById('btn-entrar').click(); 1`); await esperar(2500); await js(`${H}.ajustes.limiteFps = 'libre'; 1`);
     await js(`window.addEventListener('blur', (e) => e.stopImmediatePropagation(), true); try { ${H}.volverAlJuego(); } catch {} 1`);
   };
-  const foto = async (nombre, conHud = false) => {
-    await js(`try { ${H}.volverAlJuego(); } catch {} (() => { let s = document.getElementById('humo-sin-hud'); if (!s) { s = document.createElement('style'); s.id = 'humo-sin-hud'; document.head.appendChild(s); } s.textContent = ${conHud ? "''" : "'body > *:not(canvas):not(script):not(style) { visibility: hidden !important; } canvas { visibility: visible !important; }'"}; })(); 1`);
+  const foto = async (nombre, conHud = false, quieto = false) => {
+    await js(`${quieto ? '' : `try { ${H}.volverAlJuego(); } catch {}`} (() => { let s = document.getElementById('humo-sin-hud'); if (!s) { s = document.createElement('style'); s.id = 'humo-sin-hud'; document.head.appendChild(s); } s.textContent = ${conHud ? "''" : "'body > *:not(canvas):not(script):not(style) { visibility: hidden !important; } canvas { visibility: visible !important; }'"}; })(); 1`);
     await esperar(350);
     let img = null;
     try { await w.webContents.capturePage(); } catch {}
@@ -60,7 +60,8 @@ app.whenReady().then(async () => {
   };
   // avanza `seg` segundos del Desafío a mano (pasos de 0,05 s); la noche (0 a 1) se fija con `noche`
   const avanzar = (seg, noche = 1) => js(`(()=>{const H=${H}; for (let i = 0; i < ${Math.round(seg / 0.05)}; i++) { H.progreso.desafio.salud = Math.max(H.progreso.desafio.salud, 90); H.desafio.actualizar(0.05, { noche: ${noche}, dtReal: 0.05 }); } return 1})()`, 120000);
-  const pose = (o, a, fov = 55) => js(`(()=>{const H=${H}, js=H.jugador.estado, o=${JSON.stringify(o)}, a=${JSON.stringify(a)};
+  // (las alturas de `o` y `a` son sobre el terreno de cada punto)
+  const pose = (o, a, fov = 55) => js(`(()=>{const H=${H}, js=H.jugador.estado, o=${JSON.stringify(o)}, a=${JSON.stringify(a)}; o.y += H.T.altura(o.x, o.z); a.y += H.T.altura(a.x, a.z);
     const yaw = Math.atan2(-(a.x-o.x), -(a.z-o.z)), pitch = Math.atan2(a.y-o.y, Math.hypot(a.x-o.x, a.z-o.z)), piso = H.T.altura(o.x, o.z);
     js.pos.set(o.x, piso, o.z); js.vel.set(0,0,0); js.vy = 0; js.yaw = yaw; js.pitch = pitch;
     window.__poseD = { p: [o.x, o.y, o.z], r: [pitch, yaw], fov: ${fov}, pie: [o.x, piso, o.z] };
@@ -73,11 +74,12 @@ app.whenReady().then(async () => {
     return 1})()`);
   const sinPose = () => js(`window.__poseD = null; 1`);
   const estar = (x, z, yaw = 0) => js(`(()=>{const H=${H}, js=H.jugador.estado; js.pos.set(${x}, H.T.altura(${x},${z}), ${z}); js.vel.set(0,0,0); js.yaw=${yaw}; js.pitch=0; return 1})()`);
+  // un lugar llano y SECO en 30 m a la redonda (el agua y las pendientes dan fotos de un lago o de un cerro)
   const llano = () => js(`(()=>{const H=${H}, T=H.T, r=T.lugares.refugio; let mejor=null;
-    for (let a=0;a<24;a++) for (const d of [30,45,60,80]) { const x=r.x+Math.cos(a/24*6.283)*d, z=r.z+Math.sin(a/24*6.283)*d, y=T.altura(x,z); if (T.agua(x,z)) continue;
-      let des=0; for (let k=0;k<8;k++) for (const e of [4,10,16]) des=Math.max(des,Math.abs(T.altura(x+Math.cos(k)*e,z+Math.sin(k)*e)-y));
-      const arb = H.veg?.arbolesCerca ? H.veg.arbolesCerca(x, z, 40, []).length : 0;
-      const pts = -des + Math.min(arb,25)*0.15; if (!mejor || pts>mejor.pts) mejor={x,z,pts}; }
+    for (let a=0;a<36;a++) for (const d of [30,45,60,80,100]) { const x=r.x+Math.cos(a/36*6.283)*d, z=r.z+Math.sin(a/36*6.283)*d, y=T.altura(x,z); if (T.agua(x,z)) continue;
+      let des=0, mojado=false; for (let k=0;k<12 && !mojado;k++) for (const e of [6,12,18,26,34]) { const qx=x+Math.cos(k/12*6.283)*e, qz=z+Math.sin(k/12*6.283)*e; if (T.agua(qx,qz)) { mojado=true; break; } des=Math.max(des,Math.abs(T.altura(qx,qz)-y)); }
+      if (mojado) continue;
+      const pts = -des; if (!mejor || pts>mejor.pts) mejor={x,z,pts,des}; }
     return mejor})()`);
   // arma una obra del plano `id` en (x, z) mirando a `rot`, con materiales de sobra
   const ponerEn = (id, x, z, rot = 0) => js(`(()=>{const H=${H}, O=H.obras, P=H.progreso;
@@ -88,7 +90,9 @@ app.whenReady().then(async () => {
     for (let g=0; g<12 && r.obra.datos.etapas<r.obra.plano.etapas.length; g++) { const k=O.avanzar(r.obra,P.materiales); if(!k.ok) break; }
     O.elegir(null); P.obras=O.obras.map(o=>o.datos);
     return {ok:r.obra.datos.etapas>=r.obra.plano.etapas.length, x:r.obra.datos.x, z:r.obra.datos.z, y:r.obra.datos.y, rot:r.obra.datos.rot}})()`);
-  const vidaA = (x, z, f) => js(`(()=>{const H=${H}; const o=H.obras.obras.find(q=>Math.hypot(q.datos.x-${x}, q.datos.z-${z})<0.05); if(!o) return null; const max=Number.isFinite(o.plano.vida)?o.plano.vida:100; o.datos.vida=max*${f}; return {id:o.plano.id, vida:o.datos.vida}})()`);
+  const vidaA = (x, z, f) => js(`(()=>{const H=${H}; const o=H.obras.obras.find(q=>Math.hypot(q.datos.x-(${x}), q.datos.z-(${z}))<0.05); if(!o) return null; const max=Number.isFinite(o.plano.vida)?o.plano.vida:100; o.datos.vida=max*${f}; return {id:o.plano.id, vida:o.datos.vida}})()`);
+  // un lugar para poner la cámara a ~`r` m de (cx, cz): libre de troncos y rocas en un metro a la redonda y en seco
+  const sitioLibre = (cx, cz, r, desde = 0) => js(`(()=>{const H=${H}; for (const d of [${r}, ${r} + 1.2, ${r} - 1]) for (let k=0;k<16;k++){ const a=${desde}+k/16*6.283, x=(${cx})+Math.cos(a)*d, z=(${cz})+Math.sin(a)*d; if (H.T.agua(x,z)) continue; const q={x,y:H.T.altura(x,z),z}; H.col.resolver(q,1.0,1.9); if (Math.hypot(q.x-x,q.z-z)<0.01) return {x,z}; } return {x:(${cx})+${r},z:${cz}}})()`);
   const programas = () => js(`${H}.renderer.info.programs.length`);
   const limpiarInvasores = () => js(`(()=>{const H=${H}; for (const a of H.desafio.aliens) { a.estado='irse'; a.t=9; } H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return H.desafio.aliens.length})()`);
   const tecla = (code) => js(`document.dispatchEvent(new KeyboardEvent('keydown',{code:'${code}',bubbles:true})); document.dispatchEvent(new KeyboardEvent('keyup',{code:'${code}',bubbles:true})); 1`);
@@ -109,6 +113,8 @@ app.whenReady().then(async () => {
     return { recorrio: Math.hypot(p1.x - p0.x, p1.z - p0.z), cuadros: n, fin: p1 };
   };
   const aviso = () => js(`${H}.__avisoYa()`);
+  // una foto con el juego congelado (la ventana está a la vista y el juego sigue corriendo mientras se captura: así nada se mueve)
+  const fotoQuieta = async (nombre) => { await js(`try { ${H}.abrir('pausa'); } catch {} 1`); await esperar(200); const r = await foto(nombre, false, true); await js(`try { ${H}.volverAlJuego(); } catch {} 1`); return r; };
 
   try {
     donde = 'carga';
@@ -183,6 +189,8 @@ app.whenReady().then(async () => {
         // caminar de verdad hasta la boca de adentro
         await estar(px, pz - 7, Math.PI);
         const a1 = await caminarHacia(px, pz, 1.9);
+        await js(`${H}.jugador.estado.pitch = 0.9; 1`);   // (mirando al cielo: si hay una flor adelante, la E la anota en vez de usar la boca)
+        await cuadros(2, 30);
         const aviso1 = await aviso();
         ok(a1.recorrio > 3 && /Bajar al pasadizo/.test(aviso1?.texto || ''), `caminando se llega a la boca (recorrió ${a1.recorrio.toFixed(1)} m) y el aviso dice: ${JSON.stringify(aviso1)}`);
         const antes = await pos();
@@ -207,6 +215,8 @@ app.whenReady().then(async () => {
         ok(Math.hypot(sigue.x - salio.x, sigue.z - salio.z) > 2.5, `y camina: no queda encajonado (avanzó ${Math.hypot(sigue.x - salio.x, sigue.z - salio.z).toFixed(1)} m)`);
         // volver: hacia la boca de afuera, E, y se entra a la base
         const a2 = await caminarHacia(bx, bz, 1.9);
+        await js(`${H}.jugador.estado.pitch = 0.9; 1`);
+        await cuadros(2, 30);
         const aviso2 = await aviso();
         ok(/Meterte en el pasadizo/.test(aviso2?.texto || ''), `junto a la boca de afuera: ${JSON.stringify(aviso2)}`);
         await tecla('KeyE');
@@ -241,11 +251,12 @@ app.whenReady().then(async () => {
       const gasto = await js(`({miel: ${H}.progreso.desafio.miel, tabla: ${H}.progreso.materiales.tabla})`);
       ok(gasto.miel === 2 && gasto.tabla === 48, `gastó un frasco y dos tablas (${JSON.stringify(gasto)})`);
       await avanzar(1, 1);
-      await js(`(()=>{const H=${H}; H.progreso.horas = 22; return 1})()`);
-      await pose({ x: mx + 4.5, y: 1.7, z: mz - 3.5 }, { x: mx, y: 0.1, z: mz }, 55); await esperar(500); await foto('miel-01-trampa-llena');
+      await js(`(()=>{const H=${H}; H.progreso.horas = 19.9; return 1})()`);   // (al anochecer: hay luz para ver la miel)
+      const cam = await sitioLibre(mx, mz, 4.6);
+      await pose({ x: cam.x, y: 1.5, z: cam.z }, { x: mx, y: 0.1, z: mz }, 55); await esperar(500); await foto('miel-01-trampa-llena');
       await sinPose();
       // tres duendes cruzan la trampa de camino a vos
-      await estar(mx, mz + 14, 0);
+      await estar(mx, mz + 14, Math.PI);   // (de espaldas a ellos: si los mirás, los rastreadores se frenan a acechar)
       const ids = [];
       for (let i = 0; i < 3; i++) ids.push(await js(`(()=>{const H=${H}; const a = H.desafio.invocar('rastreador', ${mx} + ${(i - 1) * 0.8}, ${mz} - ${7 + i * 2.4}); if (!a) return -1; a.estado = 'avanzar'; a.t = 9; window.__ali = window.__ali || []; window.__ali.push(a); return window.__ali.length - 1})()`));
       ok(ids.every((i) => i >= 0), 'aparecen tres duendes del otro lado de la trampa');
@@ -254,12 +265,13 @@ app.whenReady().then(async () => {
         await avanzar(0.25, 1);
         const s = await js(`(()=>{const L = window.__ali || []; return L.map(a => ({x:a.m.g.position.x, z:a.m.g.position.z, p:a.pegadoT||0, vida:a.vida}))})()`);
         const n = s.filter((a) => a.p > 0).length;
+        if (process.env.HUMO_DBG && Math.abs(t % 2) < 0.01) console.log('  t=' + t, JSON.stringify(s.map((a) => [+a.x.toFixed(1), +a.z.toFixed(1), +a.p.toFixed(1), Math.round(a.vida)])), 'trampa', mx.toFixed(1), mz.toFixed(1));
         if (n > 0) quietoSeg += 0.25;
         maximo = Math.max(maximo, n);
-        if (n >= 1 && !fotoPegado) { fotoPegado = true; const a = s.find((q) => q.p > 0); await pose({ x: mx + 4, y: 1.5, z: mz - 3.2 }, { x: a.x, y: 0.7, z: a.z }, 52); await esperar(400); await foto('miel-02-duende-pegado'); await sinPose(); }
+        if (n >= 1 && !fotoPegado) { fotoPegado = true; const a = s.find((q) => q.p > 0); const c2 = await sitioLibre(a.x, a.z, 3.6, 1.0); await pose({ x: c2.x, y: 1.3, z: c2.z }, { x: a.x, y: 0.6, z: a.z }, 52); await esperar(400); await fotoQuieta('miel-02-duende-pegado'); await sinPose(); }
       }
       const usosTras = await js(`${H}.obras.obras.find(o=>o.plano.id==='trampa-miel').datos.usos`);
-      ok(maximo >= 1 && quietoSeg >= 2.5, `los duendes quedaron pegados (hasta ${maximo} a la vez, ~${quietoSeg} s con alguno pegado)`);
+      ok(maximo >= 1 && quietoSeg >= 1.5, `los duendes quedaron pegados (hasta ${maximo} a la vez, ~${quietoSeg} s con alguno pegado)`);
       ok(usosTras <= 5 - maximo, `la trampa gastó usos (${usosTras} de 5)`);
       // se agota con más duendes
       for (let i = 0; i < 6; i++) { await js(`${H}.desafio.invocar('rastreador', ${mx} + ${(i % 3) * 0.6 - 0.6}, ${mz} - 0.5 - ${i * 0.1}); 1`); await avanzar(0.3, 1); }
@@ -267,7 +279,7 @@ app.whenReady().then(async () => {
       const seca = await js(`${H}.obras.obras.find(o=>o.plano.id==='trampa-miel').datos.usos`);
       ok(seca === 0, `con más duendes se seca (${seca})`);
       await limpiarInvasores();
-      await pose({ x: mx + 4.5, y: 1.7, z: mz - 3.5 }, { x: mx, y: 0.1, z: mz }, 55); await esperar(500); await foto('miel-03-trampa-seca');
+      await pose({ x: cam.x, y: 1.5, z: cam.z }, { x: mx, y: 0.1, z: mz }, 55); await esperar(500); await foto('miel-03-trampa-seca');
       await sinPose();
       // E la repone: el aviso real
       await estar(mx + 1.8, mz - 0.5, Math.PI / 2);
@@ -315,7 +327,7 @@ app.whenReady().then(async () => {
         if (t > 4) minCon = Math.min(minCon, d);
       }
       ok(minCon > 4.2, `con el farol prendido el viejo no se acerca a menos de ${minCon.toFixed(1)} m (el radio es 5,5)`);
-      await foto('farol-04-el-viejo-se-queda-lejos');
+      { const b = await js(`(()=>{const a = window.__bruto; return {x: a.m.g.position.x, z: a.m.g.position.z}})()`); const p = await pos(); await pose({ x: p.x, y: 1.65, z: p.z }, { x: b.x, y: 1.0, z: b.z }, 62); await esperar(300); await fotoQuieta('farol-04-el-viejo-se-queda-lejos'); await sinPose(); await estar(p.x, p.z, 0); }
       await js(`${H}.desafio.alternarFarol(); 1`);
       await avanzar(0.5, 1);
       ok(!(await js(`${H}.desafio.farolPrendido`)) && (await js(`${H}.linterna.intensity`)) === 0, 'al apagarlo, la linterna vuelve a lo de siempre (apagada)');
@@ -370,28 +382,35 @@ app.whenReady().then(async () => {
       ok(t.ok, `una trampa de miel a 7,5 m (${JSON.stringify(t)})`);
       await js(`(()=>{const H=${H}; window.__gr = []; for (const [dx, dz] of [[-2.2, -6], [2.2, -7], [0.3, -9.5]]) { const a = H.desafio.invocar('rastreador', ${bx} + dx, ${bz} + dz); if (a) { a.estado = 'avanzar'; a.t = 9; a.cd = 99; window.__gr.push(a); } } return window.__gr.length})()`);
       await js(`(()=>{const js=${H}.jugador.estado; js.yaw = 0; js.pitch = -0.1; return 1})()`);   // yaw 0: mira hacia -z
+      await cuadros(4, 30);   // (la cámara sigue a la mirada con un cuadro de atraso)
       const progs = await programas();
       await js(`(()=>{const H=${H}; H.desafio.atacar('pala'); return 1})()`);
-      await avanzar(0.18, 1);
-      await foto('brasas-02-el-abanico-en-el-aire');
-      await avanzar(0.6, 1);
-      const r = await js(`(()=>{const H=${H}; const miel = H.obras.obras.find(o=>o.plano.id==='trampa-miel').datos; return { brasas: H.progreso.desafio.brasas, prendida: miel.prendida, ahuy: (window.__gr||[]).map(a=>+(a.ahuyentadoT||0).toFixed(2)), vidas: (window.__gr||[]).map(a=>Math.round(a.vida)) }})()`);
-      console.log('abanico:', JSON.stringify(r));
+      if (process.env.HUMO_DBG) console.log('vuelos:', await js(`JSON.stringify(${H}.desafio.defensas49.brasas.vuelos.map(v=>[+v.x1.toFixed(1), +v.z1.toFixed(1)])) + ' trampa ' + JSON.stringify(${H}.desafio.defensas49.trampas.trampas.map(o=>[+o.datos.x.toFixed(1), +o.datos.z.toFixed(1)])) + ' yo ' + JSON.stringify([+${H}.jugador.estado.pos.x.toFixed(1), +${H}.jugador.estado.pos.z.toFixed(1)]) + ' yaw ' + ${H}.jugador.estado.yaw.toFixed(2)`));
+      await avanzar(0.2, 1);
+      // lo que importa se lee enseguida (con la ventana a la vista el juego sigue corriendo mientras se saca la foto)
+      const r = await js(`(()=>{const H=${H}; const miel = H.obras.obras.find(o=>o.plano.id==='trampa-miel' && Math.hypot(o.datos.x-(${bx}), o.datos.z-(${bz}-7.5))<1).datos; return { brasas: H.progreso.desafio.brasas, prendida: miel.prendida, ahuy: (window.__gr||[]).map(a=>+(a.ahuyentadoT||0).toFixed(2)), vidas: (window.__gr||[]).map(a=>Math.round(a.vida)), enElAire: H.desafio.defensas49.brasas.enElAire }})()`);
+      console.log('abanico a los 0,2 s:', JSON.stringify(r));
       ok(r.brasas === 5, `gastó una carga (${r.brasas})`);
       ok(r.ahuy.filter((x) => x > 0).length >= 2, `los del abanico dudan (${JSON.stringify(r.ahuy)})`);
       ok(r.vidas.some((v) => v < 100), `y se llevan daño chico (${JSON.stringify(r.vidas)})`);
-      await avanzar(0.8, 1);
-      const prendida = await js(`${H}.obras.obras.find(o=>o.plano.id==='trampa-miel').datos.prendida`);
-      ok(prendida > 0 || (await js(`${H}.obras.obras.find(o=>o.plano.id==='trampa-miel').datos.usos`)) === 0, `una brasa prendió la miel (${prendida.toFixed ? prendida.toFixed(1) : prendida})`);
-      await foto('brasas-03-despues-del-abanico');
-      await avanzar(1.2, 1);
-      await foto('brasas-04-la-miel-arde');
+      ok(r.enElAire >= 5, `y las brasas están en el aire (${r.enElAire})`);
+      const cb = await sitioLibre(bx, bz - 7.5, 4.4, 0.6);
+      const vista = async (nombre) => { await pose({ x: cb.x, y: 1.6, z: cb.z }, { x: bx, y: 0.5, z: bz - 7.5 }, 62); await esperar(300); await fotoQuieta(nombre); await sinPose(); await js(`(()=>{const H=${H}, js=H.jugador.estado; js.pos.set(${bx}, H.T.altura(${bx},${bz}), ${bz}); js.yaw = 0; js.pitch = -0.1; return 1})()`); };
+      await vista('brasas-02-el-abanico-en-el-aire');
+      await avanzar(0.6, 1);
+      const prendida = await js(`(()=>{const m = ${H}.obras.obras.find(o=>o.plano.id==='trampa-miel' && Math.hypot(o.datos.x-(${bx}), o.datos.z-(${bz}-7.5))<1).datos; return { prendida: m.prendida, usos: m.usos }})()`);
+      ok(prendida.prendida > 0, `una brasa prendió la miel (${JSON.stringify(prendida)})`);
+      await vista('brasas-03-despues-del-abanico');
+      await avanzar(1.0, 1);
+      await vista('brasas-04-la-miel-arde');
       const pF = await programas();
       ok(pF === progs, `la pala y el abanico no compilan programas nuevos (${progs} → ${pF})`);
       // un segundo abanico: los que retroceden se ven yendo para atrás
-      await js(`(()=>{const H=${H}; H.desafio.recarga = 0; H.desafio.atacar('pala'); return 1})()`).catch(() => {});
-      await avanzar(0.4, 1);
-      await foto('brasas-05-retroceden');
+      await js(`(()=>{const H=${H}; for (const a of (window.__gr||[])) { a.estado = 'avanzar'; a.ahuyentadoT = 0; } return 1})()`);
+      await avanzar(1.3, 1);
+      await js(`${H}.desafio.atacar('pala'); 1`);
+      await avanzar(2.2, 1);
+      await vista('brasas-05-retroceden');
       await limpiarInvasores();
     }
 

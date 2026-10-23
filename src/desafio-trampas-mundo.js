@@ -30,6 +30,8 @@ export function crearTrampasMundo(T, escena, obras, efectos, sonido, api) {
   const geoCharco = new THREE.CylinderGeometry(0.92, 0.95, 0.05, 14);
   const matMiel = new THREE.MeshLambertMaterial({ color: '#d99a1f', emissive: '#4a2c04' });
   const matSeca = new THREE.MeshLambertMaterial({ color: '#6d5a33' });
+  // la miel prendida: un naranja que late (Basic, como las llamas: no hay shaders nuevos)
+  const matArde = new THREE.MeshBasicMaterial({ color: '#ff8f2a' });
   function crearCharco(o) {
     const m = new THREE.Mesh(geoCharco, matMiel);
     m.position.y = 0.092;
@@ -41,25 +43,28 @@ export function crearTrampasMundo(T, escena, obras, efectos, sonido, api) {
   function vestir(o) {
     if (!o.userMiel) crearCharco(o);
     const U = o.userMiel, seca = estaSeca(o.datos), k = llenuraMiel(o.datos);
-    const quiere = seca ? -2 : k;
+    const arde = estaPrendida(o.datos);
+    const quiere = arde ? -3 : seca ? -2 : k;
     if (U.llena === quiere) return;
     U.llena = quiere;
-    U.m.material = seca ? matSeca : matMiel;
-    const e = seca ? 0.62 : 0.55 + 0.45 * k;
-    U.m.scale.set(e, seca ? 0.5 : 1, e);
+    U.m.material = arde ? matArde : seca ? matSeca : matMiel;
+    const e = seca && !arde ? 0.62 : 0.55 + 0.45 * Math.max(k, arde ? 0.6 : 0);
+    U.m.scale.set(e, seca && !arde ? 0.5 : 1, e);
   }
 
   // ---------------------------------------------------------------- cada cuadro
-  let acum = 9, tFuego = 0;
+  let acum = 9, tFuego = 0, tLate = 0;
   function actualizar(dt) {
+    tLate += dt;
+    matArde.color.setRGB(1, 0.5 + 0.22 * Math.sin(tLate * 13) + 0.08 * Math.sin(tLate * 31), 0.1);
     acum += dt;
     if (acum > 0.8) { acum = 0; refrescar(); for (const o of lista) vestir(o); }
     for (const o of lista) {
       if (!estaPrendida(o.datos) || !obras.obras.includes(o)) continue;
       tFuego -= dt;
       if (tFuego <= 0) {
-        tFuego = 0.3;
-        efectos.fuego({ x: o.datos.x + (Math.random() - 0.5) * 1.2, y: o.datos.y + 0.12, z: o.datos.z + (Math.random() - 0.5) * 1.2 }, 0.8);
+        tFuego = 0.16;
+        efectos.fuego({ x: o.datos.x + (Math.random() - 0.5) * 1.4, y: o.datos.y + 0.12, z: o.datos.z + (Math.random() - 0.5) * 1.4 }, 1.1);
       }
       if (arder(o.datos, dt) === 'termino') consumida(o);
     }
@@ -129,6 +134,7 @@ export function crearTrampasMundo(T, escena, obras, efectos, sonido, api) {
       if (Math.hypot(o.datos.x - x, o.datos.z - z) > radio + MIEL.radio) continue;
       if (!prender(o.datos)) continue;
       n++;
+      vestir(o);
       efectos.fuego({ x: o.datos.x, y: o.datos.y + 0.15, z: o.datos.z }, 1.2);
       sonido.encender?.();
     }

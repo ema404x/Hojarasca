@@ -39,14 +39,17 @@ export function crearPasadizoMundo(T, col, obras, sonido, api) {
     }
     return null;
   }
-  // El primer lugar de salida con lugar de pie, sin agua. Si ninguno sirve, el último probado más lejos.
+  // El primer lugar de salida con lugar de pie, sin agua. Primero con aire alrededor (casi un metro: no salís abrazado a un tronco);
+  // si no hay, con lo justo de un cuerpo. Si ninguno sirve, nada.
   function lugarDeSalida(obra, cual) {
-    for (const extra of [0, 0.8, 1.6]) {
-      for (const s of salidasDe(obra.datos, cual)) {
-        const b = bocaDe(obra.datos, cual), d = Math.hypot(s.x - b.x, s.z - b.z) || 1;
-        const x = b.x + (s.x - b.x) / d * (d + extra), z = b.z + (s.z - b.z) / d * (d + extra);
-        if (T.agua(x, z)) continue;
-        if (hayLugar(col, x, z, T.altura(x, z))) return { x, z, yaw: s.yaw };
+    for (const radio of [0.9, 0.35]) {
+      for (const extra of [0, 0.8, 1.6]) {
+        for (const s of salidasDe(obra.datos, cual)) {
+          const b = bocaDe(obra.datos, cual), d = Math.hypot(s.x - b.x, s.z - b.z) || 1;
+          const x = b.x + (s.x - b.x) / d * (d + extra), z = b.z + (s.z - b.z) / d * (d + extra);
+          if (T.agua(x, z)) continue;
+          if (hayLugar(col, x, z, T.altura(x, z), radio)) return { x, z, yaw: s.yaw };
+        }
       }
     }
     return null;

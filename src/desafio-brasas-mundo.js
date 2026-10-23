@@ -133,5 +133,6 @@ export function crearBrasasMundo(T, efectos, sonido, api, trampas, defensas) {
   return {
     actualizar, abanico, avisoCerca, usarCerca, estadoAlien, limpiarAlien, limpiar, fuegosDeBase, preparar: () => S.preparar(),
     get enElAire() { return vuelos.length; },
+    get vuelos() { return vuelos; },   // (para las pruebas y el diagnóstico)
   };
 }

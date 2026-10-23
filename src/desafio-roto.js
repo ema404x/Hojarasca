@@ -75,7 +75,8 @@ export function inclinacion(plano, estado, semilla) {
 // ---------------------------------------------------------------- las piezas
 // Cada pieza: { t: 'caja' | 'cono' | 'piedra', p: [x, y, z], r: [rx, ry, rz], e: [ex, ey, ez], color, tipo }.
 // `caja` mide e (ancho, alto, fondo); `cono` tiene radio e[0] y alto e[1]; `piedra` es un icosaedro de radio e[0] aplastado por e[1] y e[2].
-const GARRA = '#2a2018', GARRA_PIEDRA = '#3a3633', ASTILLA = '#cfae74', HUECO = '#1b1510', MADERA = '#7a5c3c', TABLA = '#8a6b4a', PIEDRA = '#7d766c', PIEDRA_2 = '#6c665d';
+// las garras dejan surcos claros (la madera fresca, la piedra raspada) sobre lo oscuro de la obra: se leen de lejos
+const GARRA = '#d2b57e', GARRA_PIEDRA = '#aaa69c', ASTILLA = '#cfae74', HUECO = '#2a1d13', HUECO_PIEDRA = '#2b2926', MADERA = '#7a5c3c', TABLA = '#8a6b4a', PIEDRA = '#7d766c', PIEDRA_2 = '#6c665d';
 
 // Las marcas de las garras: tres rayas casi paralelas, en el frente (z negativa) o en el fondo de la obra
 function garras(P, semilla, k, lado, alturaMax, pieza) {
@@ -83,7 +84,7 @@ function garras(P, semilla, k, lado, alturaMax, pieza) {
   const x0 = (azarDe(semilla, 10 + k * 3) * 2 - 1) * hx * 0.8, y0 = 0.35 + azarDe(semilla, 11 + k * 3) * Math.max(0.2, alturaMax - 0.9);
   const giro = -0.35 - azarDe(semilla, 12 + k * 3) * 0.5, largo = 0.45 + azarDe(semilla, 13 + k * 3) * 0.3;
   for (let i = 0; i < 3; i++) {
-    pieza.push({ t: 'caja', p: [x0 + i * 0.1, y0 - i * 0.025, z], r: [0, 0, giro], e: [0.026, largo, 0.014], color: pieza.piedra ? GARRA_PIEDRA : GARRA, tipo: pieza.piedra ? 4 : 0 });
+    pieza.push({ t: 'caja', p: [x0 + i * 0.1, y0 - i * 0.025, z], r: [0, 0, giro], e: [0.034, largo, 0.016], color: pieza.piedra ? GARRA_PIEDRA : GARRA, tipo: pieza.piedra ? 4 : 0 });
   }
 }
 
@@ -97,7 +98,7 @@ export function piezasDe(plano, estado, semilla) {
   const hx = Math.max(0.3, ancho / 2 - 0.2);
   const colorCaida = piedra ? PIEDRA : TABLA, tipoCaida = piedra ? 4 : 0;
   // --- marcas de garras: dos grupos en el estado 1, cuatro en el 2 (frente y fondo)
-  const grupos = estado === 2 ? 4 : 2;
+  const grupos = estado === 2 ? 5 : 3;
   for (let k = 0; k < grupos; k++) garras(plano, semilla, k, k % 2 ? 1 : -1, tapa, salida);
   // --- una tabla (o una piedra) salida de lugar, torcida, en el borde de arriba: el estado 1 ya la tiene
   {
@@ -114,7 +115,8 @@ export function piezasDe(plano, estado, semilla) {
   {
     const x = (azarDe(semilla, 50) * 2 - 1) * hx * 0.6, y = 0.55 + azarDe(semilla, 51) * Math.max(0.2, tapa - 1.3), lado = azarDe(semilla, 52) < 0.5 ? -1 : 1;
     const z = lado * (fondo / 2 + 0.015);
-    salida.push({ t: 'caja', p: [x, y, z], r: [0, 0, 0.05], e: [0.5, 0.42, 0.03], color: HUECO, tipo: piedra ? 4 : 0 });
+    // (una tabla que falta: un hueco angosto y alto, no un cuadrado)
+    salida.push({ t: 'caja', p: [x, y, z], r: [0, 0, 0.05], e: [0.3, Math.min(0.95, tapa * 0.45), 0.03], color: piedra ? HUECO_PIEDRA : HUECO, tipo: piedra ? 4 : 0 });
     for (let i = 0; i < 4; i++) {
       const a = i * 1.57 + azarDe(semilla, 53 + i) * 0.6;
       salida.push({ t: 'cono', p: [x + Math.cos(a) * 0.3, y + Math.sin(a) * 0.26, z + lado * 0.03], r: [lado * 1.3, 0, a], e: [0.022, 0.2 + azarDe(semilla, 60 + i) * 0.12], color: piedra ? PIEDRA_2 : ASTILLA, tipo: tipoCaida });

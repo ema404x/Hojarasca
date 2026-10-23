@@ -53,11 +53,12 @@ function apiMentira(extra = {}) {
 }
 const efectosFalsos = () => { const l = []; return { l, fuego: (p, k) => l.push(['fuego', p, k]), chispas: (p, n) => l.push(['chispas', p, n]), polvo() {}, astillas() {}, explosion() {}, destello() {} }; };
 const sonidoFalso = () => ({ golpeRuido() {}, juntar() {}, encender() {}, fuente: () => null });
-const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 100, vidaMax: 100, def: { radio: 0.4, altura: 1, ...(o.def || {}) }, m: { g: { position: new THREE.Vector3(x, 0, z), rotation: { x: 0, y: 0, z: 0 } }, esc: 1, viejo: () => !!o.viejo }, fase: 0, ...o });
+const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 100, vidaMax: 100, def: { radio: 0.4, altura: 1, ...(o.def || {}) }, m: { g: { position: new THREE.Vector3(x, 0, z), rotation: { x: 0, y: 0, z: 0 } }, esc: 1, viejo: !!o.viejo }, fase: 0, ...o });
 
 // ================================================================== 1. LA TRAMPA DE MIEL (reglas)
 {
   eq(TR.MIEL.pegado, [3, 4], 'queda pegado entre 3 y 4 segundos');
+  ok(TR.MIEL.usos === 5 && TR.MIEL.porFrasco === TR.MIEL.usos, 'aguanta cinco duendes y un frasco la deja llena');
   ok(cerca(TR.duracionPegado({}, 0), 3) && cerca(TR.duracionPegado({}, 1), 4) && cerca(TR.duracionPegado({}, 0.5), 3.5), 'según el azar');
   ok(cerca(TR.duracionPegado({ pesado: true }, 1), 2), 'los brutos se despegan en la mitad');
   ok(!TR.sePega({ jefe: true }) && !TR.sePega({ vuela: true }) && TR.sePega({ radio: 0.4 }), 'el jefe y los que vuelan no se pegan');
@@ -210,6 +211,7 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   const pos = { x: 21.5, y: 0, z: 20 };
   ok(/Echar miel/.test(tm.avisoCerca(pos)), `el aviso junto a la trampa seca: ${tm.avisoCerca(pos)}`);
   ok(tm.usarCerca(pos) && r.obra.datos.usos === TR.MIEL.usos, 'E la deja llena');
+  ok(api.gastos.miel === 2 && api.tengo.miel === 0, `y gasta un frasco (gastó ${api.gastos.miel} en total, quedan ${api.tengo.miel})`);
   ok(tm.avisoCerca(pos) === null && !tm.usarCerca(pos), 'llena, la E no hace nada');
   // un jefe y uno que vuela no se pegan; el bruto se despega antes
   const j = alien(20, 20, { def: { jefe: true } }), v = alien(20, 20, { def: { vuela: true } });
@@ -347,11 +349,15 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   const dL = Math.hypot(llegada.x - boca.x, llegada.z - boca.z);
   ok(dL > 1.7 && dL < 3.6, `sale a ${dL.toFixed(2)} m de la boca de afuera`);
   ok(llegada.z > boca.z - 0.3, 'del lado de afuera (alejándose del túnel)');
-  ok(cerca(Math.sin(llegada.yaw + Math.PI), Math.sin(0) + 0, 0.9) && Math.cos(llegada.yaw + Math.PI) > 0.5, 'mirando hacia afuera de la boca');
+  {
+    const mira = { x: -Math.sin(llegada.yaw), z: -Math.cos(llegada.yaw) }, radial = { x: (llegada.x - boca.x) / dL, z: (llegada.z - boca.z) / dL };
+    ok(mira.x * radial.x + mira.z * radial.z > 0.99, 'mirando hacia afuera de la boca (alejándose de ella)');
+  }
   // en un lugar libre: ni adentro de las bocas ni de ninguna colisión
   const q = { x: llegada.x, y: 0, z: llegada.z };
   w.col.resolver(q, 0.35, 1.65);
   ok(Math.hypot(q.x - llegada.x, q.z - llegada.z) < 0.005, 'el lugar de salida está libre (la colisión no lo empuja)');
+  { const ancho = { x: llegada.x, y: 0, z: llegada.z }; w.col.resolver(ancho, 0.9, 1.65); ok(Math.hypot(ancho.x - llegada.x, ancho.z - llegada.z) < 0.005, 'y con aire alrededor (sale a casi un metro de lo que haya, no abrazado a un tronco)'); }
   for (let i = 0; i < 30; i++) pm.actualizar(0.05);
   ok(!pm.usando && cerca(js.pos.x, llegada.x, 1e-9), 'termina y queda donde salió');
   ok(pm.usarCerca({ x: boca.x, y: 0, z: boca.z + 1.5 }) && !pm.usando, 'enseguida de salir no se puede volver a bajar (se enfría un momento)');
@@ -444,7 +450,7 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   let luces = 0; camara.traverse((o) => { if (o.isLight) luces++; });
   ok(luces === 0, 'el farol no suma luces a la escena');
   // los duendes
-  const alien = (dist, o = {}) => ({ estado: 'avanzar', def: o.def || { radio: 0.4 }, m: { g: { position: new M2.THREE.Vector3(dist, 0, 0) }, viejo: () => !!o.viejo } });
+  const alien = (dist, o = {}) => ({ estado: 'avanzar', def: o.def || { radio: 0.4 }, m: { g: { position: new M2.THREE.Vector3(dist, 0, 0) }, viejo: !!o.viejo } });
   js.pos.set(0, 0, 0);
   const v1 = farol.estadoAlien(alien(3, { viejo: true }), js);
   ok(v1 && v1.sinAtaque && cerca(v1.rumbo, Math.PI / 2) && v1.vel === F.FAROL.velRetroceso, 'el viejo oscuro a 3 m se aleja y no ataca');
@@ -521,18 +527,20 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   const trampas = M3.desafio_trampas_mundo.crearTrampasMundo(w.T, new M3.THREE.Scene(), s, ef, sonidoFalso(), api);
   const barriles = [];
   const brasas = M3.desafio_brasas_mundo.crearBrasasMundo(w.T, ef, sonidoFalso(), api, trampas, { prendidas: [], estallarCerca: (p, r) => barriles.push([p.x, p.z, r]) });
-  const mk = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 100, vidaMax: 100, def: { radio: 0.4, altura: 1, ...(o.def || {}) }, m: { g: { position: new M3.THREE.Vector3(x, 0, z), rotation: { x: 0, y: 0, z: 0 } }, esc: 1, viejo: () => false }, fase: 0, ...o });
+  const mk = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 100, vidaMax: 100, def: { radio: 0.4, altura: 1, ...(o.def || {}) }, m: { g: { position: new M3.THREE.Vector3(x, 0, z), rotation: { x: 0, y: 0, z: 0 } }, esc: 1, viejo: false }, fase: 0, ...o });
   // cargar la pala con E junto a un fuego
   const pos = { x: 0, y: 0, z: 0 };
   ok(/Cargar la pala/.test(brasas.avisoCerca(pos)) && !brasas.usarCerca({ x: 30, y: 0, z: 30 }), 'junto al fuego, la E ofrece cargar la pala; lejos no');
   ok(brasas.usarCerca(pos) && dd.brasas === P.cargas && /Cargaste la pala/.test(api.notas.at(-1)[0]), 'E la carga');
   ok(brasas.avisoCerca(pos) === null && !brasas.usarCerca(pos), 'llena, la E sigue de largo');
+  dd.brasas = 0;
   api.armaEnMano = () => 'hacha';
-  ok(brasas.avisoCerca(pos) === null && !brasas.usarCerca(pos), 'con otra cosa en la mano, la E no es de la pala');
+  ok(brasas.avisoCerca(pos) === null && !brasas.usarCerca(pos) && dd.brasas === 0, 'con otra cosa en la mano, la E no es de la pala');
   api.armaEnMano = () => 'pala';
   cosas.pala = 0;
-  ok(brasas.avisoCerca(pos) === null, 'sin la pala fabricada, tampoco');
+  ok(brasas.avisoCerca(pos) === null && !brasas.usarCerca(pos) && dd.brasas === 0, 'sin la pala fabricada, tampoco');
   cosas.pala = 1;
+  dd.brasas = P.cargas;
   eq(JSON.stringify(brasas.fuegosDeBase().map((f) => f.tipo)), '["fogon"]', '`fuegosDeBase` lista los fogones prendidos (y las antorchas)');
   const brasas2 = M3.desafio_brasas_mundo.crearBrasasMundo(w.T, ef, sonidoFalso(), api, trampas, { prendidas: [{ datos: { x: 5, y: 0, z: 5 } }] });
   eq(JSON.stringify(brasas2.fuegosDeBase().map((f) => f.tipo)), '["fogon","antorcha"]', 'con una antorcha prendida, también');
@@ -576,6 +584,7 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
     for (let i = 0; i < 20; i++) brasas.actualizar(0.05);
     ok(brasas.enElAire === 0, 'todas cayeron en un segundo');
     ok(TR.estaPrendida(miel.obra.datos), 'una brasa cayó sobre la miel y la prendió');
+    ok(miel.obra.userMiel.m.material.isMeshBasicMaterial, 'la miel prendida brilla (naranja que late)');
     ok(ef.l.some((x) => x[0] === 'fuego') && ef.l.some((x) => x[0] === 'chispas'), 'se ven chispas y llamitas (desafio-efectos.js, sin tocarlo)');
     ok(barriles.length > 0 && barriles.every((b) => b[2] === P.radioPrende), 'y se avisa a los barriles de resina donde cae cada brasa');
     // la miel encendida quema a los pegados
@@ -589,6 +598,7 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
     for (let i = 0; i < 160; i++) trampas.actualizar(0.05);
     ok(TR.estaSeca(miel.obra.datos) && !pegado.pegadoT && pegado.fuegoT >= 3, 'cuando la miel se consume, queda seca y lo suelta ardiendo');
     ok(/La miel se quemó/.test(api.notas.at(-1)[0]), 'y avisa');
+    ok(miel.obra.userMiel.m.material.isMeshLambertMaterial && !miel.obra.userMiel.m.material.isMeshBasicMaterial, 'y el charco queda seco, sin brillo');
   } finally { Math.random = random; }
   // reciclar un duende borra lo suyo
   const reciclado = mk(0, 0, { ahuyentadoT: 2, dudaInicial: 1 });
@@ -609,6 +619,8 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   // una partida de antes carga sin nada de esto
   const vieja = sanearDesafio({ salud: 80, noches: 3, oleadas: 3, flechas: 5, cosas: { x: 1 } });
   ok(vieja.miel === 0 && vieja.brasas === 0 && vieja.farolOn === false, 'una partida vieja: sin miel, sin brasas y con el farol apagado');
+  const { SE_LLEVA } = await import('../src/desafio-vuelta.js');
+  ok(SE_LLEVA.includes('farolMano') && SE_LLEVA.includes('pala'), 'el farol y la pala pasan a la otra vuelta con las demás armas fabricadas');
   const rota = sanearDesafio({ miel: {}, brasas: [], farolOn: 'si' });
   ok(rota.miel === 0 && rota.brasas === 0 && rota.farolOn === true, 'datos raros no rompen (el farol se queda en booleano)');
   ok(JSON.stringify(sanearDesafio(JSON.parse(JSON.stringify(sanearDesafio({ miel: 4, brasas: 2, farolOn: true }))))) === JSON.stringify(sanearDesafio({ miel: 4, brasas: 2, farolOn: true })), 'guardar y volver a abrir deja lo mismo');

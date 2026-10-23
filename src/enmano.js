@@ -578,9 +578,12 @@ const MODELOS = {
   pala() {
     const g = new THREE.Group();
     g.add(palo(lam('#6b5238'), 0.016, 0.52, [0, 0, 0]));
-    g.add(caja(lam('#5b5650'), [0.13, 0.17, 0.012], [0, 0.35, 0]));
-    const brasa = new THREE.MeshBasicMaterial({ color: 0xff7a1c });
-    for (const [x, y, z, r] of [[-0.03, 0.33, 0.01, 0.014], [0.03, 0.38, 0.01, 0.012], [0, 0.3, 0.012, 0.011], [0.04, 0.32, 0.012, 0.01]]) g.add(bola(brasa, r, [x, y, z]));
+    g.add(caja(lam('#9a9488'), [0.14, 0.18, 0.016], [0, 0.35, 0]));
+    g.add(caja(lam('#7d766c'), [0.14, 0.014, 0.05], [0, 0.265, 0.02]));   // el reborde de abajo, para que las brasas no se caigan
+    const brasa = new THREE.MeshBasicMaterial({ color: 0xff7a1c }), brillo = new THREE.MeshBasicMaterial({ color: 0xffc060 });
+    g.add(caja(new THREE.MeshBasicMaterial({ color: 0xd9531a }), [0.1, 0.06, 0.006], [0, 0.31, 0.012]));   // el lecho de brasas
+    for (const [x, y, z, r] of [[-0.035, 0.32, 0.02, 0.018], [0.03, 0.35, 0.02, 0.016], [0, 0.3, 0.022, 0.015], [0.04, 0.31, 0.022, 0.014], [-0.01, 0.37, 0.02, 0.013]]) g.add(bola(brasa, r, [x, y, z]));
+    for (const [x, y, z] of [[-0.02, 0.33, 0.03], [0.03, 0.3, 0.03]]) g.add(bola(brillo, 0.008, [x, y, z]));
     return g;
   },
   cuerno() {

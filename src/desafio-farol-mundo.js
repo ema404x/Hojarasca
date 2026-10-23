@@ -99,7 +99,8 @@ export function crearFarolMundo(camara, api) {
   function estadoAlien(a, js) {
     if (!activo) return null;
     const p = a.m.g.position, dist = Math.hypot(js.pos.x - p.x, js.pos.z - p.z);
-    const e = efectoFarol({ dist, viejo: !!a.m.viejo?.(), def: a.def, romper: a.estado === 'romper' });
+    // (en el duende `viejo` es un dato, no una función: true si viene de viejo oscuro)
+    const e = efectoFarol({ dist, viejo: !!a.m.viejo, def: a.def, romper: a.estado === 'romper' });
     if (!e) return null;
     SAL.rumbo = rumboAlejarse(p, js.pos); SAL.vel = e.vel; SAL.sinAtaque = true;
     return SAL;
