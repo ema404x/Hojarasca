@@ -945,6 +945,10 @@ async function construir() {
     // 2.0: la linterna (para el reflejo de los ojos), los sonidos escritos, la mezcla
     // que se agacha y el mando que vibra
     linterna: () => ({ encendida: !!(linterna && linterna.intensity > 0), angulo: linterna?.angle ?? 0.42, alcance: linterna?.distance ?? 42 }),
+    // 4.9 defensas: la luz de la linterna (el farol de mano la toma prestada), lo elegido en la barra y los fogones prendidos (la pala se carga ahí)
+    luzLinterna: () => linterna,
+    armaEnMano: () => ranuras[elegida]?.id || null,
+    fuegos: () => (clima?.fogatas || []).filter((f) => f && f.activa && f.vida > 0 && f.pos).map((f) => ({ x: f.pos.x, y: f.pos.y, z: f.pos.z })),
     sonidoEscrito: (texto) => escribirSonido(texto),
     t: (texto) => T_(texto),
     agacharMezcla: (profundidad, sostener) => sonido.agachar?.(profundidad, sostener),
@@ -3738,6 +3742,7 @@ function usarRanura() {
     // 3.8.3: como el clic izquierdo: en modo obra, con un panel abierto (el taller) o charlando no se tira (gastaba munición)
     case 'arma': if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) desafio.atacar(r.id); refrescarBarra(true); return;
     case 'curar': if (desafio) desafio.usarEmplasto(); break;
+    case 'farolMano': if (desafio && !desafio.caido) desafio.alternarFarol(); break;   // 4.9 defensas: prende o apaga el farol de mano (queda en la mano izquierda)
     case 'grabador': usarGrabador(); break;
     default: nota(r.nombre, r.texto || 'Se guarda en la mochila'); break;
   }

@@ -574,6 +574,15 @@ const MODELOS = {
     g.add(bola(new THREE.MeshBasicMaterial({ color: 0xffd2a0 }), 0.018, [0, 0.1, 0]));
     return g;
   },
+  // 4.9 defensas: la pala de brasas (mango largo, hoja de piedra y brasas encendidas sobre la hoja)
+  pala() {
+    const g = new THREE.Group();
+    g.add(palo(lam('#6b5238'), 0.016, 0.52, [0, 0, 0]));
+    g.add(caja(lam('#5b5650'), [0.13, 0.17, 0.012], [0, 0.35, 0]));
+    const brasa = new THREE.MeshBasicMaterial({ color: 0xff7a1c });
+    for (const [x, y, z, r] of [[-0.03, 0.33, 0.01, 0.014], [0.03, 0.38, 0.01, 0.012], [0, 0.3, 0.012, 0.011], [0.04, 0.32, 0.012, 0.01]]) g.add(bola(brasa, r, [x, y, z]));
+    return g;
+  },
   cuerno() {
     const g = new THREE.Group();
     // 3.5.2: el cuerno se afina hacia la punta (antes, un aro parejo de seis lados)
@@ -699,7 +708,7 @@ export function crearEnMano(camara) {
     const vert = anda ? Math.abs(Math.cos(paso * 2)) * 0.028 : Math.sin(paso * 0.45) * 0.006;
     gesto = Math.max(0, gesto - dt * 3.4);
     entrada = Math.max(0, entrada - dt * 4);
-    const amplio = idActual === 'hacha' || idActual === 'pico' || idActual === 'martillo' || idActual === 'maza' ? 1.7 : 1;
+    const amplio = idActual === 'hacha' || idActual === 'pico' || idActual === 'martillo' || idActual === 'maza' || idActual === 'pala' ? 1.7 : 1;
     rodela.visible = !!estado.bloqueo && idActual !== 'lanza' && !estado.oculto;
     // 2.5: el arco se tensa mientras está el clic apretado
     tensado = estado.tension ? Math.min(1, tensado + dt * 1.1) : Math.max(0, tensado - dt * 6);

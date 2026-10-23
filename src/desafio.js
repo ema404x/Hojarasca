@@ -485,9 +485,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.herirBlanco = (n, dano) => eventos.herirNucleo(n, dano);
   api.alturaSuelo = (x, z) => alturaSuelo(x, z);
   api.invulnerable = (s) => { invulnerable = Math.max(invulnerable, s); };   // 4.9 defensas: unos segundos sin que te peguen (al salir del pasadizo)
+  api.luzLinterna = () => ctx.luzLinterna?.() || null;   // 4.9 defensas: la luz pegada a la cámara, que el farol de mano toma prestada
+  api.armaEnMano = () => ctx.armaEnMano?.() || null;   // 4.9 defensas: lo que hay elegido en la barra (la pala se carga con E sólo si la tenés en la mano)
+  api.fuegos = () => ctx.fuegos?.() || [];   // 4.9 defensas: los fogones prendidos del valle ({ x, y, z })
   fortin = crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas);
   // 4.9 defensas: lo roto que se ve, la trampa de miel, el pasadizo, el farol de mano y la pala de brasas (ver desafio-defensas49-juego.js)
-  const defensas49 = crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api);
+  const defensas49 = crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api, defensas);
   // 3.0: el asedio final y la pelea adentro de la nave (ver desafio-asedio*.js y
   // desafio-nave*.js). Las agujas y los puntos débiles de la Madre entran como blancos por
   // el mismo camino que los núcleos y el nido: todas las armas ya les pegan.
@@ -1305,7 +1308,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
 
   // ---------------- logros y récords
   const logros = crearLogros();
-  const contarDefensas = () => obras.obras.filter((o) => o.datos.etapas > 0 && o.plano.categoria === 'defensa').length;
+  const contarDefensas = () => obras.obras.filter((o) => o.datos.etapas > 0 && o.plano.categoria === 'defensa' && !o.plano.defensa?.oculta).length;   // 4.9 defensas: el pasadizo no cuenta
   function totalLogros() {
     const d = D();
     return {
@@ -1375,6 +1378,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     return mejor;
   }
   const SIN_MUNICION = {
+    pala: ['La pala no tiene brasas', 'Cargala con E junto a un fogón o una antorcha prendida'],   // 4.9 defensas
     arco: ['No te quedan flechas', 'Fabricá más con K, junto a un banco de trabajo'],
     pistola: ['La pistola está descargada', 'Una semilla dorada da seis cargas (K)'],
     honda: ['No tenés piedras', 'Juntá piedra con el pico en un pedrero (H)'],
@@ -1482,6 +1486,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         S.honda();
         _v.copy(camara.position).addScaledVector(_dir, 0.6);
         arsenal.lanzar('arpon', arma, _v, _dir, bono);
+        return true;
+      case 'brasas':   // 4.9 defensas: la pala de brasas
+        d.brasas--;
+        defensas49.abanico(js, _dir);
+        ctx.alFabricar?.({});
         return true;
       case 'cuerno':
         recarga = 0.5;
@@ -2499,7 +2508,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     if (a.estado === 'avanzar' && !sinAtaque && !a.robo) {
       // con lluvia o niebla los tiradores ven menos lejos
-      if (def.aDistancia && dist < def.alcance * clima.vista && dist > 4) {
+      if (def.aDistancia && dist < defensas49.alcanceDelata(def.alcance * clima.vista) && dist > 4) {   // 4.9 defensas: con el farol prendido te ven de más lejos
         _v.set(p.x, p.y + def.altura * 0.8, p.z);
         _w.set(js.pos.x, js.pos.y + 1.2, js.pos.z);
         const tapado = hayObraEntre(_v, _w, 0.8);
@@ -3785,6 +3794,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get baseMapa() { return baseMapa(); },
     get sitiosMapa() { return mapaMundo.marcas(); },
     get fortin() { return fortin; },
+    alternarFarol: () => defensas49.alternarFarol(),   // 4.9 defensas: el farol de mano (U o clic derecho con el farol elegido en la barra)
+    get farolPrendido() { return defensas49.farolPrendido; },
     // 4.9 defensas: la trampa de miel puesta desde afuera (preparar la noche) y el resto de lo de esta tanda
     colocarTrampaMiel: (x, z, opciones) => defensas49.colocarTrampaMiel(x, z, opciones),
     get defensas49() { return defensas49; },

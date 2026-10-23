@@ -19,6 +19,7 @@ export function crearPasadizoMundo(T, col, obras, sonido, api) {
   // ---------------------------------------------------------------- el negro de la pantalla
   let velo = null;
   function ponerVelo(k) {
+    if (typeof document === 'undefined' || !document.body) return;   // (en las pruebas de Node no hay pantalla)
     if (!velo) {
       if (k <= 0) return;
       velo = document.createElement('div');

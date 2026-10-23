@@ -22,6 +22,8 @@ import { CURANDERO, ENJAMBRE, curanderosEnLaNoche, enjambreEnLaNoche } from './d
 import { sanearLadoNoche } from './desafio-lados.js';
 // 4.9 defensas: la miel de las trampas
 import { mielDelAlba, RECETAS_TRAMPAS } from './desafio-trampas.js';
+import { RECETAS_FAROL } from './desafio-farol.js';
+import { RECETAS_BRASAS, PALA } from './desafio-brasas.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -277,7 +279,7 @@ export const RECETAS = [
 ];
 // 2.5: las recetas del arsenal y sus dos categorías nuevas
 RECETAS.push(...RECETAS_ARSENAL);
-RECETAS.push(...RECETAS_TRAMPAS);   // 4.9 defensas: la miel de las trampas (y más abajo, el farol y la pala)
+RECETAS.push(...RECETAS_TRAMPAS, ...RECETAS_FAROL, ...RECETAS_BRASAS);   // 4.9 defensas: la miel de las trampas (y más abajo, el farol y la pala)
 for (const c of CATEGORIAS_ARSENAL) {
   const i = CATEGORIAS_TALLER.findIndex((x) => x.clave === c.despuesDe);
   CATEGORIAS_TALLER.splice(i < 0 ? CATEGORIAS_TALLER.length : i + 1, 0, { clave: c.clave, nombre: c.nombre });
@@ -414,6 +416,8 @@ export function desafioNuevo() {
     jefeCaido: -1,
     // 3.8.3: las hachuelas y jabalinas tiradas que todavía están en el suelo (al abrir o al caer vuelven)
     armasTiradas: {},
+    // 4.9 defensas: el farol de mano prendido (las brasas de la pala y los frascos de miel van con la munición)
+    farolOn: false,
     // Segundo acto: aparece recién cuando cae la nodriza (ver desafio-nido.js).
     nido: null,
     // 3.0: el asedio final: aparece si al alba de la noche final la nodriza sigue arriba (desafio-asedio.js)
@@ -550,5 +554,6 @@ export function sanearDesafio(d) {
     refuerzoNoche: Number.isFinite(Number(x.refuerzoNoche)) && x.refuerzoNoche !== null ? Math.floor(Number(x.refuerzoNoche)) : -1,   // 3.8.6
     sueltas: sanearSueltas(x.sueltas),   // 3.8.6
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
+    farolOn: !!x.farolOn, brasas: ent(x.brasas, 0, PALA.cargas),   // 4.9 defensas: una partida vieja carga con el farol apagado y la pala vacía
   };
 }
