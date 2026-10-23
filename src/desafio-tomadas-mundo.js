@@ -100,22 +100,19 @@ export function crearTomadasMundo(T, escena, a) {
 
   // ---------------------------------------------------------------- las mallas
   const sitios = new Map();   // id → { g, tinte, bruma, hongos, k (0 a 1, lo que se ve ahora) }
-  const matTinte = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  // translúcido de un solo color y su opacidad (las capas se apilan para dar el degradé: sin color por vértice ni alfa por vértice)
+  const matCapa = (color, opacidad) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   const ruido = (x, z) => Math.sin(x * 0.37 + z * 0.21) * Math.sin(z * 0.43 - x * 0.17);
-  // un disco que sigue el terreno, con el borde que se desvanece; `y0`: a qué altura del suelo
-  function disco(z, radio, y0, color, alfa, venas) {
+  // un disco que sigue el terreno; `y0`: a qué altura del suelo (0: a ras)
+  function disco(z, radio, y0) {
     const g = new THREE.RingGeometry(0.3, radio, 40, 7);
     g.rotateX(-Math.PI / 2);
-    const p = g.attributes.position, col = new Float32Array(p.count * 4);
+    const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i), zz = p.getZ(i), r = Math.hypot(x, zz) / radio;
-      const rr = 1 - r * r * (0.9 + 0.1 * ruido(x * 1.3, zz * 1.3));
-      const vena = venas && Math.abs(Math.sin(x * 0.8 + Math.sin(zz * 0.5) * 2) * Math.sin(zz * 0.7 + Math.sin(x * 0.4) * 1.7)) < 0.1 ? 0.5 : 0;
-      _c.setRGB(color[0] + vena * 0.1, color[1] + vena * 0.38, color[2] + vena * 0.3, THREE.SRGBColorSpace);
-      col[i * 4] = _c.r; col[i * 4 + 1] = _c.g; col[i * 4 + 2] = _c.b; col[i * 4 + 3] = Math.max(0, rr) * alfa * (1 + vena * 0.5);
-      p.setY(i, T.altura(z.x + x, z.z + zz) - T.altura(z.x, z.z) + (y0 === 0 ? 0.1 : y0 + 0.3 * ruido(x * 0.7, zz * 0.7)));
+      const x = p.getX(i), zz = p.getZ(i), r = Math.hypot(x, zz) / radio, borde = 1 - 0.07 * (1 - r) * ruido(x * 1.3, zz * 1.3);
+      p.setXYZ(i, x * borde, T.altura(z.x + x * borde, z.z + zz * borde) - T.altura(z.x, z.z) + (y0 === 0 ? 0.1 : y0 + 0.3 * ruido(x * 0.7, zz * 0.7)), zz * borde);
     }
-    g.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    g.deleteAttribute('normal'); g.deleteAttribute('uv');
     g.computeBoundingSphere();
     return g;
   }
@@ -160,51 +157,58 @@ export function crearTomadasMundo(T, escena, a) {
     g.computeBoundingSphere();
     return g;
   }
-  // junta geometrías con posición y color de 4 canales (translúcidas) en una sola
+  // junta geometrías (sólo posición e índice) en una sola
   function fundirGeos(lista) {
     let nv = 0, ni = 0;
     for (const g of lista) { nv += g.attributes.position.count; ni += g.index.count; }
-    const pos = new Float32Array(nv * 3), col = new Float32Array(nv * 4), idx = new Uint32Array(ni);
+    const pos = new Float32Array(nv * 3), idx = new Uint32Array(ni);
     let ov = 0, oi = 0;
     for (const g of lista) {
-      pos.set(g.attributes.position.array, ov * 3); col.set(g.attributes.color.array, ov * 4);
+      pos.set(g.attributes.position.array, ov * 3);
       for (let i = 0; i < g.index.count; i++) idx[oi + i] = g.index.array[i] + ov;
       ov += g.attributes.position.count; oi += g.index.count;
     }
     const r = new THREE.BufferGeometry();
-    r.setAttribute('position', new THREE.BufferAttribute(pos, 3)); r.setAttribute('color', new THREE.BufferAttribute(col, 4)); r.setIndex(new THREE.BufferAttribute(idx, 1));
+    r.setAttribute('position', new THREE.BufferAttribute(pos, 3)); r.setIndex(new THREE.BufferAttribute(idx, 1));
     r.computeBoundingSphere();
     return r;
   }
-  // una columna de esporas: un tubo que se afina y se desvanece hacia arriba
+  // una columna de esporas: tres conos abiertos uno dentro del otro (alto, medio, bajo): apilados, se ven más densos abajo y se desvanecen arriba
   function columna(cx, cz, alto, rad, sem) {
-    const lados = 9, anillos = 6, pos = [], col = [], idx = [];
-    for (let a = 0; a <= anillos; a++) {
-      const u = a / anillos, r = rad * (1 - 0.7 * u) * (1 + 0.15 * Math.sin(sem + u * 5));
-      for (let l = 0; l < lados; l++) {
-        const an = (l / lados) * Math.PI * 2, x = cx + Math.cos(an) * r + Math.sin(u * 4 + sem) * 0.4 * u, zz = cz + Math.sin(an) * r;
-        pos.push(x, u * alto, zz);
-        _c.setRGB(0.74, 0.82, 0.52, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, 0.3 * (1 - u) * (a === 0 ? 0.4 : 1));
+    const lados = 9, anillos = 4, partes = [];
+    for (const f of [1, 0.66, 0.36]) {
+      const pos = [], idx = [];
+      for (let a = 0; a <= anillos; a++) {
+        const u = a / anillos, r = rad * (1 - 0.7 * u * f) * (1 + 0.15 * Math.sin(sem + u * 5)) * (f === 1 ? 1 : 0.85);
+        for (let l = 0; l < lados; l++) {
+          const an = (l / lados) * Math.PI * 2;
+          pos.push(cx + Math.cos(an) * r + Math.sin(u * 4 + sem) * 0.4 * u, u * alto * f, cz + Math.sin(an) * r);
+        }
       }
+      for (let a = 0; a < anillos; a++) for (let l = 0; l < lados; l++) {
+        const l2 = (l + 1) % lados, p0 = a * lados, p1 = (a + 1) * lados;
+        idx.push(p0 + l, p0 + l2, p1 + l, p0 + l2, p1 + l2, p1 + l);
+      }
+      const gg = new THREE.BufferGeometry();
+      gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setIndex(idx);
+      partes.push(gg);
     }
-    for (let a = 0; a < anillos; a++) for (let l = 0; l < lados; l++) {
-      const l2 = (l + 1) % lados, p0 = a * lados, p1 = (a + 1) * lados;
-      idx.push(p0 + l, p0 + l2, p1 + l, p0 + l2, p1 + l2, p1 + l);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); g.setIndex(idx);
-    return g;
+    return partes;
   }
   function armarSitio(z) {
     const g = new THREE.Group();
     g.position.set(z.x, T.altura(z.x, z.z), z.z);
-    // el suelo oscuro y, a media altura del pasto, una sombra violeta que lo tapa (el pasto es más alto que el suelo)
-    const tinte = new THREE.Mesh(fundirGeos([disco(z, TOMADAS.radio, 0, [0.07, 0.06, 0.09], 0.88, true), disco(z, TOMADAS.radio * 0.96, 0.6, [0.12, 0.09, 0.17], 0.5, false)]), matTinte());
+    // el suelo oscuro (cinco capas, cada una más chica) y, a media altura del pasto, una sombra violeta (tres capas) que lo tapa: el pasto es más alto que el suelo
+    const R = TOMADAS.radio;
+    const tinte = new THREE.Mesh(fundirGeos([...[1, 0.85, 0.7, 0.55, 0.4].map((f) => disco(z, R * f, 0)), ...[0.96, 0.76, 0.56].map((f) => disco(z, R * f, 0.6))]), matCapa('#14101c', 0.14));
     tinte.renderOrder = 1;
-    // la bruma baja (gris verdosa) y unas columnas de esporas que se ven de lejos
+    // la bruma baja (gris verdosa, dos capas) y unas columnas de esporas que se ven de lejos
     const cols = [];
-    for (let k = 0; k < 4; k++) { const an = k * 1.7 + 0.6, r = 3 + k * 2.3, cx = Math.cos(an) * r, cz = Math.sin(an) * r; const c = columna(cx, cz, 5.5 + k, 0.9 + (k % 2) * 0.4, k * 2.1); const P = c.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) + T.altura(z.x + cx, z.z + cz) - T.altura(z.x, z.z)); cols.push(c); }
-    const bruma = new THREE.Mesh(fundirGeos([disco(z, TOMADAS.radio * 1.1, 1.3, [0.58, 0.62, 0.68], 0.34, false), ...cols]), matTinte());
+    for (let k = 0; k < 4; k++) {
+      const an = k * 1.7 + 0.6, r = 3 + k * 2.3, cx = Math.cos(an) * r, cz = Math.sin(an) * r;
+      for (const c of columna(cx, cz, 5.5 + k, 0.9 + (k % 2) * 0.4, k * 2.1)) { const P = c.attributes.position, dy = T.altura(z.x + cx, z.z + cz) - T.altura(z.x, z.z); for (let q = 0; q < P.count; q++) P.setY(q, P.getY(q) + dy); cols.push(c); }
+    }
+    const bruma = new THREE.Mesh(fundirGeos([disco(z, R * 1.1, 1.3), disco(z, R * 0.8, 1.3), ...cols]), matCapa('#9aa59c', 0.17));
     bruma.renderOrder = 2;
     const h = new THREE.Mesh(hongos(z, z.x * 7 + z.z * 3), new THREE.MeshBasicMaterial({ vertexColors: true }));
     h.frustumCulled = true;
@@ -227,8 +231,8 @@ export function crearTomadasMundo(T, escena, a) {
       const lejos = Math.hypot(js.pos.x - z.x, js.pos.z - z.z) > 300;
       s.g.visible = s.k > 0.01 && !lejos;
       if (!s.g.visible) continue;
-      s.tinte.material.opacity = Math.min(1, 0.4 + s.k * 0.7);
-      s.bruma.material.opacity = Math.min(1, 0.3 + s.k * 0.9) * (0.8 + Math.sin(t * 0.6 + z.x) * 0.2);
+      s.tinte.material.opacity = 0.045 + s.k * 0.09;
+      s.bruma.material.opacity = (0.07 + s.k * 0.13) * (0.85 + Math.sin(t * 0.6 + z.x) * 0.15);
       s.bruma.rotation.y = t * 0.03 + z.z;
       const n = Math.max(1, Math.round(s.k * s.hongos.geometry.userData.N));
       s.hongos.geometry.setDrawRange(0, n * s.hongos.geometry.userData.porHongo);

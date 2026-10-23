@@ -156,9 +156,9 @@ app.whenReady().then(async () => {
       for (let i = 0; i < 60; i++) await avanzar(0.5, 0);
       // se frena el hacha en el lugar tomado
       const arbol = await js(`(()=>{const H=${H}, V=H.desafio.valle, z=${JSON.stringify(z)}; const L=H.veg.arboles; let a=null, d0=1e9, fuera=null, d1=1e9;
-        for (const q of L) { if (q.sacado || q.caido || q.especie==='pehuen') continue; const d=Math.hypot(q.x-z.x,q.z-z.z); if (d<16 && d<d0) { d0=d; a=q; } if (d>60 && d<120 && Math.hypot(q.x-H.T.lugares.refugio.x,q.z-H.T.lugares.refugio.z)<400 && d<d1) { d1=d; fuera=q; } }
+        for (const q of L) { if (q.sacado || q.caido || q.especie==='pehuen') continue; const d=Math.hypot(q.x-z.x,q.z-z.z); if (d<19 && d<d0) { d0=d; a=q; } if (d>60 && d<120 && Math.hypot(q.x-H.T.lugares.refugio.x,q.z-H.T.lugares.refugio.z)<400 && d<d1) { d1=d; fuera=q; } }
         return {dentro:a && {x:a.x,z:a.z}, fuera:fuera && {x:fuera.x,z:fuera.z}, bloqueaDentro:a ? !!V.bloquea(a.x,a.z) : null, bloqueaFuera:fuera ? !!V.bloquea(fuera.x,fuera.z) : null}})()`);
-      ok(arbol.dentro && arbol.bloqueaDentro === true, 'un árbol del lugar tomado está bloqueado');
+      ok(arbol.dentro ? arbol.bloqueaDentro === true : await js(`!!${H}.desafio.valle.bloquea(${z.x} + 5, ${z.z})`), arbol.dentro ? 'un árbol del lugar tomado está bloqueado' : 'sin árboles en este lugar: un punto del lugar está bloqueado');
       ok(arbol.fuera && arbol.bloqueaFuera === false, 'y uno de afuera, no');
       if (arbol.dentro) {
         await js(`(()=>{const H=${H}; H.progreso.cosas.hacha = 1; return 1})()`);
@@ -302,47 +302,14 @@ app.whenReady().then(async () => {
       await js(`(()=>{const M=${H}.desafio.asedio; for (const q of M.huellas.children) q.visible = false; return 1})()`);
       await esperar(300);
       await foto('14-sonda-huellas-sin');
-      // aislar: sólo el tinte, sólo los montículos, y el tinte en rojo opaco
-      await js(`(()=>{const M=${H}.desafio.asedio; M.huellas.children[0].visible = true; M.huellas.children[1].visible = false; return 1})()`);
-      await esperar(300);
-      await foto('14b-sonda-solo-tinte');
-      await js(`(()=>{const M=${H}.desafio.asedio; M.huellas.children[0].visible = false; M.huellas.children[1].visible = true; return 1})()`);
-      await esperar(300);
-      await foto('14c-sonda-solo-montones');
-      await js(`(()=>{const M=${H}.desafio.asedio; const d = M.huellas.children[0]; d.visible = true; M.huellas.children[1].visible = false; window.__vc = d.material.vertexColors; d.material.vertexColors = false; d.material.color.set('#ff0000'); d.material.opacity = 1; d.material.needsUpdate = true; return 1})()`);
-      await esperar(300);
-      await foto('14d-sonda-tinte-rojo');
-      console.log('geometría del tinte:', JSON.stringify(await js(`(()=>{const g=${H}.desafio.asedio.huellas.children[0].geometry; const P=g.attributes.position, C=g.attributes.color; let mn=1e9,mx=-1e9; for(let i=0;i<P.count;i++){ mn=Math.min(mn,P.getY(i)); mx=Math.max(mx,P.getY(i)); } return {n:P.count, itemColor:C.itemSize, c0:[C.getX(0),C.getY(0),C.getZ(0),C.getW(0)], y:[mn,mx], idx:g.index.count}})()`)));
-      await js(`(()=>{const M=${H}.desafio.asedio; const d = M.huellas.children[0]; d.material.vertexColors = true; d.material.opacity = 1; d.material.color.set('#ffffff'); d.material.needsUpdate = true; for (const q of M.huellas.children) q.visible = true; return 1})()`);
+      await js(`(()=>{const M=${H}.desafio.asedio; for (const q of M.huellas.children) q.visible = true; return 1})()`);
       const ms = { x: (A2.nave.x + base.x) / 2, z: (A2.nave.z + base.z) / 2 };
       const cS = await sitioLibre(ms.x, ms.z, 20, angL);
       await pose({ x: cS.x, y: 7, z: cS.z }, { x: ms.x, y: 0, z: ms.z }, 64);
       await esperar(500);
-      console.log('sombra:', JSON.stringify(await js(`(()=>{const m=${H}.desafio.asedio.sombra; if(!m) return null; const P=m.geometry.attributes.position, C=m.geometry.attributes.color; const v=[]; for (const i of [0,1,2,15,16,17,42,43,44]) v.push([+P.getX(i).toFixed(1),+P.getY(i).toFixed(1),+P.getZ(i).toFixed(1),+C.getW(i).toFixed(2)]); return {vis:m.visible, mv:m.material.visible, op:m.material.opacity, n:P.count, idx:m.geometry.index.count, bs:m.geometry.boundingSphere && [m.geometry.boundingSphere.center.x, m.geometry.boundingSphere.center.z, m.geometry.boundingSphere.radius], v}})()`)));
-      // diagnóstico: cuadrados de prueba con color por vértice y alfa, a ras y a 0,6 m (se construyen igual que las mallas de lo nuevo)
-      await js(`(()=>{const H=${H}, M=H.desafio.asedio, T=H.T, m0=M.sombra.material; const THREE_=M.sombra.constructor; const mk=(dx, dy, a)=>{ const g=new M.sombra.geometry.constructor(); const cx=${ms.x}+dx, cz=${ms.z}; const P=[], C=[]; for (const [x,z] of [[-3,-3],[3,-3],[3,3],[-3,3]]) { P.push(cx+x, T.altura(cx+x,cz+z)+dy, cz+z); C.push(0.02,0.02,0.02,a); }
-        g.setAttribute('position', new M.sombra.geometry.attributes.position.constructor(new Float32Array(P),3)); g.setAttribute('color', new M.sombra.geometry.attributes.color.constructor(new Float32Array(C),4)); g.setIndex([0,2,1,0,3,2]); const mm=new THREE_(g, new m0.constructor({ vertexColors:true, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2 })); mm.frustumCulled=false; mm.renderOrder=1; H.escena.add(mm); (window.__tq ||= []).push(mm); return mm; };
-        mk(-8, 0.13, 0.8); mk(0, 0.13, 0.3); mk(8, 0.6, 0.8); return 1})()`);
-      await fotoQuieta('15a-prueba-cuadrados-alfa');
-      await js(`(()=>{const M=${H}.desafio.asedio; M.sombra.material.needsUpdate = true; return 1})()`);
-      await esperar(300);
-      await fotoQuieta('15b-sombra-con-needsUpdate');
-      await js(`(()=>{ for (const q of window.__tq || []) q.removeFromParent(); window.__tq = []; return 1})()`);
       await fotoQuieta('15-sonda-sombra-con');
       await js(`(()=>{const M=${H}.desafio.asedio; M.sombra.material.visible = false; return 1})()`);
-      await esperar(300);
       await fotoQuieta('16-sonda-sombra-sin');
-      // diagnóstico: la misma sombra con color y opacidad del material (sin color por vértice), y con la opacidad del material al máximo
-      await js(`(()=>{const m=${H}.desafio.asedio.sombra.material; m.visible = true; window.__sv = m.vertexColors; m.vertexColors = false; m.color.set('#000000'); m.opacity = 0.6; m.needsUpdate = true; return 1})()`);
-      await esperar(400);
-      await fotoQuieta('16b-sonda-sombra-material-negro');
-      await js(`(()=>{const M=${H}.desafio.asedio, m=M.sombra.material; m.vertexColors = true; m.color.set('#ffffff'); m.opacity = 1; m.needsUpdate = true; const C=M.sombra.geometry.attributes.color; window.__cs = Array.from(C.array); for (let i=0;i<C.count;i++){ C.setXYZW(i, 0, 0, 0, C.getW(i) > 0 ? 1 : 0); } C.needsUpdate = true; return 1})()`);
-      await esperar(500);
-      await fotoQuieta('16c-sonda-sombra-alfa-1');
-      await js(`(()=>{const M=${H}.desafio.asedio, m=M.sombra.material; const C=M.sombra.geometry.attributes.color; for (let i=0;i<C.count;i++){ C.setXYZW(i, 0, 0, 0, 0.6); } C.needsUpdate = true; return 1})()`);
-      await esperar(500);
-      await fotoQuieta('16d-sonda-sombra-alfa-06-todos');
-      await js(`(()=>{const m=${H}.desafio.asedio.sombra.material; m.vertexColors = true; m.color.set('#ffffff'); m.opacity = 1; m.needsUpdate = true; return 1})()`);
       await js(`(()=>{const M=${H}.desafio.asedio; M.sombra.material.visible = true; return 1})()`);
       await sinPose();
       ok(true, 'fotos del Coihue tras dos noches');

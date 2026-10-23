@@ -504,7 +504,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   const ZANCADA = { gap: 2, vel: 0.9 };
   const vis = { d: 0, listo: null, zancada: false, tCruje: 0, tTrampa: 0, temblor: 0, nHuellas: -1, sombraT: 0, flashPie: 0 };
   let pies = [], huellas = null, sombra = null, pisadas = new WeakSet();
-  const matTinte = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  // translúcido de un solo color (las capas se apilan para dar el degradé: sin alfa por vértice)
+  const matCapa = (color, opacidad) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   const r1 = (v) => Math.round(v * 10) / 10;
   function libreCoihue(x, z, hAgua, hObra) {
     if (Math.abs(x) > LIMITE - 30 || Math.abs(z) > LIMITE - 30 || T.agua(x, z)) return false;
@@ -615,23 +616,21 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   // las huellas: por cada punto por donde pasó, seis marcas de tierra removida (un tinte oscuro que sigue el suelo y un
   // montículo de tierra con raíz) y, de una huella a la siguiente, el surco de la raíz que arrastró. Dos mallas, para toda la ruta.
   function geoHuellas(c, n) {
-    const pos = [], col = [], idx = [];
+    const pos = [], idx = [];
     const mpos = [], mcol = [], midx = [];
     const LADOS = 10;
+    // la mancha de tierra removida: tres discos apilados (el de más abajo, el más ancho)
     const blot = (cx, cz, rad, sem) => {
-      const base = pos.length / 3;
-      pos.push(cx, T.altura(cx, cz) + 0.12, cz);
-      _c.setRGB(0.05, 0.035, 0.025, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, 0.92);
-      for (let r = 1; r <= 2; r++) for (let j = 0; j < LADOS; j++) {
-        const a = (j / LADOS) * Math.PI * 2, rr = rad * (r === 1 ? 0.55 : 1) * (0.8 + 0.35 * Math.abs(Math.sin(sem * 1.7 + j * 2.1)));
-        const x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr;
-        pos.push(x, T.altura(x, z) + 0.12, z);
-        _c.setRGB(0.07, 0.05, 0.03, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, r === 1 ? 0.9 : 0.3);
-      }
-      for (let j = 0; j < LADOS; j++) {
-        const j2 = (j + 1) % LADOS, r1 = base + 1, r2 = base + 1 + LADOS;
+      for (const f of [1, 0.72, 0.45]) {
+        const base = pos.length / 3, rf = rad * f;
+        pos.push(cx, T.altura(cx, cz) + 0.12, cz);
+        for (let j = 0; j < LADOS; j++) {
+          const a = (j / LADOS) * Math.PI * 2, rr = rf * (0.8 + 0.35 * Math.abs(Math.sin(sem * 1.7 + j * 2.1)));
+          const x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr;
+          pos.push(x, T.altura(x, z) + 0.12, z);
+        }
         // (mirando para arriba: los ángulos crecen en sentido horario visto desde arriba, así que se pasan al revés)
-        idx.push(base, r1 + j2, r1 + j, r1 + j, r2 + j2, r2 + j, r1 + j, r1 + j2, r2 + j2);
+        for (let j = 0; j < LADOS; j++) idx.push(base, base + 1 + ((j + 1) % LADOS), base + 1 + j);
       }
       // el montículo: tierra levantada con una raíz asomada (opaco, de un color que no brilla)
       const mb = mpos.length / 3, alto = 0.75 + 0.4 * Math.abs(Math.sin(sem * 3.1)), ra = rad * 0.8;
@@ -647,16 +646,15 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     const surco = (ax, az, bx, bz) => {
       const L = Math.hypot(bx - ax, bz - az);
       if (L < 0.5) return;
-      const nx = -(bz - az) / L, nz = (bx - ax) / L, TR = 5, base = pos.length / 3;
-      for (let t = 0; t <= TR; t++) {
-        const u = t / TR, px = ax + (bx - ax) * u, pz = az + (bz - az) * u;
-        for (let l = -1; l <= 1; l++) {
-          const x = px + nx * l * 0.55, z = pz + nz * l * 0.55;
-          pos.push(x, T.altura(x, z) + 0.13, z);
-          _c.setRGB(0.05, 0.035, 0.025, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, l === 0 ? 0.8 : 0.25);
+      const nx = -(bz - az) / L, nz = (bx - ax) / L, TR = 5;
+      for (const ancho of [0.7, 0.32]) {
+        const base = pos.length / 3;
+        for (let t = 0; t <= TR; t++) {
+          const u = t / TR, px = ax + (bx - ax) * u, pz = az + (bz - az) * u;
+          for (const l of [-1, 1]) { const x = px + nx * l * ancho, z = pz + nz * l * ancho; pos.push(x, T.altura(x, z) + 0.13, z); }
         }
+        for (let t = 0; t < TR; t++) { const p0 = base + t * 2, p1 = p0 + 2; idx.push(p0, p0 + 1, p1, p0 + 1, p1 + 1, p1); }
       }
-      for (let t = 0; t < TR; t++) { const p0 = base + t * 3, p1 = p0 + 3; idx.push(p0, p0 + 1, p1, p0 + 1, p1 + 1, p1, p0 + 1, p0 + 2, p1 + 1, p0 + 2, p1 + 2, p1 + 1); }
     };
     const R = c.rastro;
     const pies = (i) => {
@@ -672,7 +670,6 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
     g.setIndex(idx);
     g.computeBoundingSphere();
     const m = new THREE.BufferGeometry();
@@ -683,35 +680,32 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     return { g, m };
   }
   // la sombra: una franja oscura del Coihue hacia tu base, que se alarga a medida que se acerca
-  const SOMBRA = { tramos: 14 };
-  const INDICES_SOMBRA = (() => { const idx = []; for (let i = 0; i < SOMBRA.tramos; i++) { const a = i * 3; idx.push(a, a + 1, a + 3, a + 1, a + 4, a + 3, a + 1, a + 2, a + 4, a + 2, a + 5, a + 4); } return idx; })();
+  const SOMBRA = { tramos: 12 };
   function armarSombra() {
-    const m = new THREE.Mesh(new THREE.BufferGeometry(), matTinte());
+    const m = new THREE.Mesh(new THREE.BufferGeometry(), matCapa('#050805', 0.3));
     m.renderOrder = 1; m.frustumCulled = false; m.visible = false;
     escena.add(m);
     return m;
   }
-  // (se arma una geometría nueva cada vez: son 45 vértices, y así el color por vértice y el alfa salen siempre bien)
+  // una cuña oscura del Coihue hacia tu base: tres capas, cada una más angosta (el medio queda más oscuro y los bordes más claros).
+  // Se arma una geometría nueva cada vez (son pocos vértices).
   function ponerSombra(c, n, k) {
     const x0 = n.g.position.x, z0 = n.g.position.z;
     const dx = c.base.x - x0, dz = c.base.z - z0, dist = Math.hypot(dx, dz);
     if (dist < 3) { sombra.visible = false; return; }
     const ux = dx / dist, uz = dz / dist, largo = Math.min(dist, 16 + 46 * k), ancho = 13 + 6 * k;
-    const pos = [], col = [];
-    for (let i = 0; i <= SOMBRA.tramos; i++) {
-      const t = i / SOMBRA.tramos, px = x0 + ux * largo * t, pz = z0 + uz * largo * t, w = ancho * (1 - 0.65 * t) / 2;
-      const al = 0.9 * (1 - t * t) * (0.75 + 0.25 * k);
-      for (let s = 0; s < 3; s++) {
-        const lado = s - 1, x = px - uz * w * lado, z = pz + ux * w * lado;
-        pos.push(x, T.altura(x, z) + 0.13, z);
-        _c.setRGB(0.02, 0.03, 0.02, THREE.SRGBColorSpace);
-        col.push(_c.r, _c.g, _c.b, lado === 0 ? al : al * 0.6);   // el medio oscuro y los bordes que se desvanecen
+    const pos = [], idx = [];
+    for (const f of [1, 0.72, 0.46]) {
+      const base = pos.length / 3;
+      for (let i = 0; i <= SOMBRA.tramos; i++) {
+        const t = i / SOMBRA.tramos, px = x0 + ux * largo * t * (f === 1 ? 1 : 0.97 - 0.1 * (1 - f)), pz = z0 + uz * largo * t * (f === 1 ? 1 : 0.97 - 0.1 * (1 - f)), w = ancho * f * (1 - 0.65 * t) / 2;
+        for (const lado of [-1, 1]) { const x = px - uz * w * lado, z = pz + ux * w * lado; pos.push(x, T.altura(x, z) + 0.13, z); }
       }
+      for (let i = 0; i < SOMBRA.tramos; i++) { const p0 = base + i * 2, p1 = p0 + 2; idx.push(p0, p0 + 1, p1, p0 + 1, p1 + 1, p1); }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
-    g.setIndex(INDICES_SOMBRA);
+    g.setIndex(idx);
     g.computeBoundingSphere();
     sombra.geometry.dispose();
     sombra.geometry = g;
@@ -777,7 +771,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       vis.nHuellas = c.rastro.length;
       if (!huellas) {
         huellas = new THREE.Group();
-        const decal = new THREE.Mesh(new THREE.BufferGeometry(), matTinte()), monton = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
+        const decal = new THREE.Mesh(new THREE.BufferGeometry(), matCapa('#0d0906', 0.3)), monton = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
         decal.renderOrder = 1; decal.frustumCulled = false; monton.frustumCulled = false;
         huellas.add(decal, monton); escena.add(huellas);
       }

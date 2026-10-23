@@ -89,6 +89,7 @@ const MUTACIONES = [
   ['el papel dibuja la ruta', 'src/mapa.js', "if (a.clase === 'ruta' && Array.isArray(a.puntos)) {", 'if (false) {'],
   ['la pista del Coihue que camina', 'src/main.js', "{ id: 'p-camina', cuando:", "{ id: 'p-camina2', cuando:"],
   ['la pista de los lugares tomados', 'src/main.js', "{ id: 'p-tomada', cuando:", "{ id: 'p-tomada2', cuando:"],
+  ['los programas nuevos se compilan en la carga', 'src/desafio-coihue-formas.js', "new THREE.MeshBasicMaterial({ color: '#101010', transparent: true, opacity: 0.2,", "new THREE.MeshBasicMaterial({ color: '#101010', transparent: true, opacity: 0.25,"],
   ['los hongos no usan índices negativos', TM, 'Math.abs(Math.floor(sem))', 'Math.floor(sem)'],
 ];
 
