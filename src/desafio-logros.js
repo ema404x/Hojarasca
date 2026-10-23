@@ -14,7 +14,7 @@ export const UMBRALES_LOGROS = {
   companeros: 2,       // compañeros viviendo en la base
   perro: 10,           // invasores que el perro abatió o ayudó a abatir
   arquitecto: 20,      // defensas en pie a la vez
-  planos: 3,           // planos recuperados de restos de naves
+  planos: 3,           // planos recuperados de las ruinas del bosque
   inmortal: 5,         // noches seguidas sin caer
 };
 

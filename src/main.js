@@ -2295,7 +2295,7 @@ $('btn-entrar').addEventListener('click', () => {
   // (3.8.7: las del primer día, también sólo la primera vez que se entra)
   else if (esDesafio && (!habiaGuardado || !progreso.pos) && !entroAlJuego) {
     setTimeout(() => nota('Esta noche salen los duendes', 'Juntá troncos con el hacha y piedra con el pico (H) y armá defensas (O → Defensa)', true), 1500);
-    setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Algo cayó del cielo: buscá la columna de luz verde'), 7600);
+    setTimeout(() => nota('Fabricá armas con K', 'Primero una lanza. Hay un cofre de los duendes entre las raíces: buscá el hilo de luz dorada'), 7600);
   }
   else if ((!habiaGuardado || !progreso.pos) && !entroAlJuego) setTimeout(() => nota('Salí a caminar. El sendero rodea el lago.', 'Primer día en el bosque'), 1500);
   // 3.6.2: lo tuyo que quedó donde ahora está la aldea (una partida de antes de la 3.6): una sola nota

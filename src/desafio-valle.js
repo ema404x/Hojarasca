@@ -8,7 +8,7 @@
 //      no puede salir.
 //   8. Un jefe distinto cada vez: el de siempre, el que llama refuerzos, el que se hace
 //      invisible y sólo se ve con la linterna, y el que tira piedras a las defensas.
-//   9. Restos de nave para explorar: pasillos, trampas que todavía funcionan, invasores
+//   9. Ruinas del bosque para explorar (4.8.1: antes «restos de nave»): pasillos, trampas que todavía funcionan, invasores
 //      dormidos, y al fondo el premio.
 //  10. La forja de cristal: la lanza que congela, las flechas que encadenan un rayo y la
 //      honda que derriba.
@@ -126,7 +126,7 @@ export function tiroParabolico(desde, hasta, vel, g = 9.8) {
   return { x: (dx / d) * vel, y: dy / t + 0.5 * g * t, z: (dz / d) * vel };
 }
 
-// ---------------------------------------------------------------- 9. restos para explorar
+// ---------------------------------------------------------------- 9. ruinas del bosque para explorar
 // La ruina: un pasillo de tres cámaras, cada una con su trampa en el piso, invasores
 // dormidos en la del medio y el premio al fondo. Todo en coordenadas locales: el pasillo
 // va por +z, de la entrada (z = 0) al fondo.

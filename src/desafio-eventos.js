@@ -1,10 +1,13 @@
 // Modo Desafío: lo que pasa más allá de cada oleada.
-// - Restos de naves que caen cada tres noches: al explorarlos se recupera un plano
-//   de tecnología de los invasores.
+// - Ruinas del bosque (los troncos huecos de los duendes que se vienen abajo) cada tres noches: al
+//   explorarlas se recupera un plano de lo que hacen los duendes.
 // - La nave nodriza de la noche final: tres núcleos que hay que destruir mientras
 //   sigue largando invasores. Si amanece antes, se retira y vuelve la noche siguiente.
 import * as THREE from 'three';
 import { lam } from './vida.js';
+// 4.8.1: la ruina del bosque (antes: el casco de una nave): piedra con musgo, raíces, tablones de corteza y hongos de luz
+import { mallaRuina, lathe, deform, afinar } from './duendes-modelo.js';
+import { registrarHalos } from './desafio-duendes.js';
 import { NUCLEO_VIDA, PLANOS_ALIEN } from './desafio-reglas.js';
 import { NIDO, danarNido, estaAbierto, estaRevelado, sumarPista, textoPista, camarasEnteras } from './desafio-nido.js';
 import { LIMITE } from './config.js';
@@ -15,63 +18,50 @@ import { registrarLuz } from './luces.js';
 const _v = new THREE.Vector3();
 
 export function crearEventos(T, escena, sonido, efectos, api) {
-  // ---------------- restos de naves
+  // ---------------- ruinas del bosque (los `restos`)
   // 2.1: ya no son un casco con un premio al lado: son una ruina que se recorre (ver
   // `desafio-valle.js`). Un pasillo de tres cámaras, las placas del piso que todavía
-  // descargan, invasores dormidos en la del medio y el premio al fondo, bajo la columna
-  // de luz que se ve desde lejos.
+  // sueltan esporas, invasores dormidos en la del medio y el premio al fondo, bajo un hilo de luz dorada.
+  // 4.8.1: antes un casco de nave (paneles grises, costillas de metal, placas de descarga cian y una columna de luz
+  // cian de 80 m): ahora piedra con musgo, tablones de corteza y arcos de raíz (`mallaRuina`, en duendes-modelo.js);
+  // las placas son camas de raíz con esporas que laten y la columna, un hilo de luz de pocos metros.
   const restos = new THREE.Group();
-  const matCasco = lam('#6f757a'), matCascoOscuro = lam('#4a4f53'), matPiso = lam('#3a3d40');
-  const placasMalla = [];
+  const placasMalla = [], camasPlaca = [];
+  let halosRuina = [];
   {
-    const { ancho, largo, alto } = RUINA, m = ancho / 2;
-    const piso = new THREE.Mesh(new THREE.BoxGeometry(ancho + 0.6, 0.12, largo + 0.4), matPiso);
-    piso.position.set(0, 0.04, largo / 2);
-    restos.add(piso);
-    // las paredes: paneles de un metro, cada uno roto a su altura
-    const r = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); };
-    let n = 0;
-    const panel = (x0, z0, x1, z1) => {
-      const L = Math.hypot(x1 - x0, z1 - z0), pasos = Math.max(1, Math.round(L));
-      for (let i = 0; i < pasos; i++) {
-        const t0 = i / pasos, t1 = (i + 1) / pasos;
-        if (r(n++) < 0.12) continue;                                   // un agujero
-        const h = alto * (0.5 + r(n++) * 0.55);
-        const b = new THREE.Mesh(new THREE.BoxGeometry(0.14, h, L / pasos + 0.02), r(n++) < 0.5 ? matCasco : matCascoOscuro);
-        const cx = x0 + (x1 - x0) * (t0 + t1) / 2, cz = z0 + (z1 - z0) * (t0 + t1) / 2;
-        b.position.set(cx, h / 2, cz);
-        b.rotation.y = Math.atan2(x1 - x0, z1 - z0);
-        b.rotation.z = (r(n++) - 0.5) * 0.12;
-        restos.add(b);
-      }
-    };
-    for (const [ax, az, bx, bz] of paredesRuina()) panel(ax, az, bx, bz);
-    // las costillas del casco, de a una cada tres metros, algunas partidas
-    for (let z = 1.5; z < largo; z += 3) {
-      const arco = new THREE.Mesh(new THREE.TorusGeometry(m + 0.2, 0.12, 5, 14, Math.PI * (r(n++) < 0.3 ? 0.55 : 1)), matCascoOscuro);
-      arco.position.set(0, 0.2, z); arco.rotation.z = r(n++) * 0.3;
-      restos.add(arco);
-    }
-    // las placas del piso: se prenden y se apagan
+    const { largo } = RUINA;
+    const cuerpo = mallaRuina(RUINA, paredesRuina());
+    cuerpo.name = 'ruina-del-bosque';
+    restos.add(cuerpo);
+    halosRuina = cuerpo.userData.halos;
+    restos.userData.halos = halosRuina;
+    // las placas del piso: una cama de raíces y musgo con el disco de esporas que se prende y se apaga
+    const cama = deform(lathe(afinar([[0.9, 0.0], [0.78, 0.08], [0.5, 0.12], [0.001, 0.1]], 2), 12), (v) => { if (v.y > 0.05) v.y += 0.03 * Math.sin(v.x * 9) * Math.cos(v.z * 7); });
     for (let i = 0; i < 3; i++) {
-      const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 1.35), new THREE.MeshBasicMaterial({ color: '#7dfff0', transparent: true, opacity: 0.15, depthWrite: false }));
-      pl.rotation.x = -Math.PI / 2; pl.position.y = 0.12;
+      const c = new THREE.Mesh(cama, lam('#6a5038'));
+      c.castShadow = false;
+      restos.add(c);
+      camasPlaca.push(c);
+      const pl = new THREE.Mesh(new THREE.CircleGeometry(0.6, 16), new THREE.MeshBasicMaterial({ color: '#ffb84a', transparent: true, opacity: 0.15, depthWrite: false }));
+      pl.rotation.x = -Math.PI / 2; pl.position.y = 0.2;
       restos.add(pl);
       placasMalla.push(pl);
     }
-    // el premio, al fondo
-    const chispa = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 1), new THREE.MeshBasicMaterial({ color: '#a6ff6e' }));
-    chispa.position.set(0, 0.9, largo - 1.2);
+    // el premio, al fondo: una semilla dorada sobre el pedestal
+    const chispa = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34, 1), new THREE.MeshBasicMaterial({ color: '#ffc840' }));
+    chispa.scale.y = 1.35;
+    chispa.position.set(0, 1.0, largo - 1.2);
     restos.add(chispa);
     restos.userData.chispa = chispa;
-    const columna = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.4, 80, 12, 1, true),
-      new THREE.MeshBasicMaterial({ color: '#7dfff0', transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-    columna.position.set(0, 40, largo - 1.2);
+    // un hilo de luz dorada, de pocos metros, para encontrarla entre los árboles (antes: 80 m de columna cian)
+    const columna = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.34, 12, 8, 1, true),
+      new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    columna.position.set(0, 6, largo - 1.2);
     restos.add(columna);
     restos.userData.columna = columna;
-    restos.traverse((o) => { if (o.isMesh && o !== columna && !placasMalla.includes(o)) o.castShadow = true; });
     restos.visible = false;
     escena.add(restos);
+    registrarHalos(restos);
   }
   // Las paredes de la ruina chocan (jugador e invasores). Se agregan al aparecer y se
   // sacan al terminarla, todas juntas por su dueño.
@@ -91,7 +81,8 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     }
     restos.position.set(d.restos.x, y, d.restos.z);
     restos.rotation.set(0, rot, 0);
-    disp.placas.forEach((p, i) => placasMalla[i].position.set(p.x, 0.12, p.z));
+    disp.placas.forEach((p, i) => { placasMalla[i].position.set(p.x, 0.2, p.z); camasPlaca[i].position.set(p.x, 0.06, p.z); });
+    for (const h of halosRuina) if (h.placa != null) { const p = disp.placas[h.placa]; h.p.set(p.x, 0.32, p.z); }
   }
   function desarmarRuina() {
     if (!ruinaArmada) return;
@@ -112,7 +103,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
   function soltarRestos() {
     const d = api.D();
     if (d.restos) return false;
-    // Antes de la victoria los restos traen planos; después, señales del nido.
+    // Antes de la victoria las ruinas traen planos; después, señales del nido.
     const faltanPlanos = d.planos.length < PLANOS_ALIEN.length;
     const faltaPista = !!d.nido && !d.nido.caido && !estaRevelado(d.nido);
     if (!faltanPlanos && !faltaPista) return false;
@@ -131,6 +122,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     const t = performance.now() / 1000;
     restos.userData.chispa.visible = Math.sin(t * 9) > 0.2;
     restos.userData.columna.material.opacity = 0.07 + Math.sin(t * 1.3) * 0.03;
+    restos.userData.brilloHalos = 0.85 + 0.15 * Math.sin(t * 1.9);   // los hongos laten
     const dRuina = Math.hypot(js.pos.x - d.restos.x, js.pos.z - d.restos.z);
     // los dormidos se ponen recién cuando te acercás: si no vas, no hay nadie
     if (!R.dormidosPuestos && dRuina < 40) {
@@ -145,13 +137,15 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     R.tocado = Math.max(0, R.tocado - dt);
     R.disp.placas.forEach((p, i) => {
       const activa = placaActiva(t, i * 0.83);
-      placasMalla[i].material.opacity = activa ? 0.78 + Math.sin(t * 40) * 0.12 : 0.1;
+      placasMalla[i].material.opacity = activa ? 0.72 + Math.sin(t * 14) * 0.1 : 0.1;
+      for (const h of halosRuina) if (h.placa === i) h.tam = activa ? 2.6 : 0.25;   // las esporas laten con la placa
       if (!activa || R.tocado > 0) return;
       const w = aMundo(p, R.x, R.z, R.rot);
       if (Math.hypot(js.pos.x - w.x, js.pos.z - w.z) < PLACA.radio && Math.abs(js.pos.y - R.y) < 1.2) {
         R.tocado = 1.2;
         api.herirJugador?.(PLACA.dano, { x: w.x, y: R.y, z: w.z });
-        efectos?.chispas({ x: js.pos.x, y: R.y + 0.3, z: js.pos.z }, 12);
+        efectos?.polvo?.({ x: js.pos.x, y: R.y + 0.3, z: js.pos.z }, 10, '#d4b072');   // 4.8.1: la nube de esporas (antes: chispas de descarga)
+        efectos?.destello?.({ x: js.pos.x, y: R.y + 0.4, z: js.pos.z }, 0.5, '#ffc860');
         // 3.8.0: el hongo del piso que larga las esporas (antes, la descarga de la placa)
         sonido.golpeRuido?.({ dur: 0.6, frec: 1100, q: 0.6, vol: 0.3, destino: sonido.bus?.efectos });
         sonido.tono?.({ frec: 120, fin: 60, dur: 0.3, tipo: 'sine', vol: 0.08, destino: sonido.bus?.efectos });
@@ -166,10 +160,10 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     restos.visible = false;
     desarmarRuina();
     if (!plano) {
-      // Ya están los tres planos: lo que queda en el casco es una señal del nido.
+      // Ya están los tres planos: lo que queda al fondo de la ruina es una señal del nido.
       if (pistaDeNido()) {
         api.sumarMaterial('cristal', 3);
-        efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#a6ff6e');
+        efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#ffc860');
         sonido.juntar?.();
         api.guardar();
       }
@@ -177,7 +171,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     }
     d.planos.push(plano.id);
     api.sumarMaterial('cristal', 3);
-    efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#7dfff0');
+    efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#ffc860');
     sonido.juntar?.();
     api.nota(`Plano recuperado: ${plano.nombre}`, `${plano.texto} Ya se puede construir (O → Defensa). +3 semillas doradas`, true);
     api.guardar();
@@ -402,14 +396,14 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     const camaras = [];
     for (let i = 0; i < NIDO.camaras; i++) {
       const a = (i / NIDO.camaras) * Math.PI * 2 + 0.5;
-      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 1), new THREE.MeshBasicMaterial({ color: '#a6ff6e' }));
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 1), new THREE.MeshBasicMaterial({ color: '#ffc840' }));   // 4.8.1: semillas doradas (eran verdes)
       // La altura importa y no es decorativa: el rayo de las armas se corta en cuanto
       // toca el suelo (`y < T.altura`), así que una cámara a ras de tierra queda
       // enterrada y no le pega nadie. Van a la altura del pecho, en el hueco de la cúpula.
       m.position.set(Math.cos(a) * 2.6, 3, Math.sin(a) * 2.6);
       g.add(m);
       const aro = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.11, 5, 18),
-        new THREE.MeshBasicMaterial({ color: '#7dfff0', transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false }));
+        new THREE.MeshBasicMaterial({ color: '#ffb040', transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false }));   // 4.8.1: el aro de luz ámbar (era cian)
       aro.position.copy(m.position); aro.rotation.x = Math.PI / 2;
       g.add(aro);
       camaras.push({ nido: true, i, mesh: m, aro, pos: new THREE.Vector3(), radio: 2.2, flash: 0 });

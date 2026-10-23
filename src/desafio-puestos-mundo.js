@@ -23,10 +23,12 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
   const lado = (p) => api.rumboTexto(api.centroBase(), p).replace(/^al /, 'del ');
 
   // ---------------- mallas (una por puesto, se arman la primera vez que hacen falta)
-  // 3.8.0: las piezas son las de la madriguera (duendes-modelo.js); acá queda la luz que sube de la aguja
-  const matHaz = new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
-  const geoHaz = new THREE.CylinderGeometry(0.3, 0.6, 70, 8, 1, true);
-  const mallas = new Map();   // id → { g, partes: [Object3D por estructura], haz }
+  // 3.8.0: las piezas son las de la madriguera (duendes-modelo.js).
+  // 4.8.1: la luz que subía del hongo alto (un haz de 70 m, que se veía como un rayo al cielo) ahora son unas
+  // esporas doradas que suben apenas: halos de lo fijo (un solo dibujo de puntos) que se mueven cada cuadro.
+  const ESPORAS = 8;
+  let halosAguja = null;   // los halos del hongo alto (el modelo los comparte entre todos los puestos)
+  const mallas = new Map();   // id → { g, partes: [Object3D por estructura] }
 
   // 3.8.0: la aguja es el tocón hueco de la madriguera (con el farol de hongo en la punta y la luz que
   // sube, para verlo de lejos), la vaina un nido de hongos y el generador el cesto de semillas doradas
@@ -36,9 +38,9 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     m.rotation.y = tipo === 'aguja' ? 0 : (mallas.size * 1.7) % 6.28;
     g.add(m);
     registrarHalos(m);
-    if (tipo === 'aguja') {
-      const h = new THREE.Mesh(geoHaz, matHaz); h.position.y = ESTRUCTURAS.aguja.alto + 35; h.frustumCulled = false; g.add(h);
-      g.userData.haz = h;
+    if (tipo === 'aguja' && !halosAguja) {
+      halosAguja = m.userData.halos;
+      for (let i = 0; i < ESPORAS; i++) halosAguja.push({ p: new THREE.Vector3(), col: i % 2 ? '#ffe08a' : '#ffc860', tam: 0.0001, esp: i });
     }
     return g;
   }
@@ -339,7 +341,14 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     if (primero) { primero = false; sincronizar(); }
     const d = api.D(), est = D();
     tVaina += dt;
-    matHaz.opacity = 0.08 + Math.sin(tVaina * 1.3) * 0.03;
+    if (halosAguja) {
+      for (const h of halosAguja) {
+        if (h.esp == null) continue;
+        const f = (tVaina * 0.16 + h.esp / ESPORAS) % 1, a = h.esp * 2.4 + tVaina * 0.6;
+        h.p.set(Math.cos(a) * (0.2 + 0.5 * f), ESTRUCTURAS.aguja.alto + 0.3 + f * 3.2, Math.sin(a) * (0.2 + 0.5 * f));
+        h.tam = Math.max(0.0001, 1.1 * Math.sin(Math.PI * f));
+      }
+    }
     for (const [parte, f] of flash) {
       const r = f - dt * 4;
       if (r <= 0) { parte.scale.setScalar(1); flash.delete(parte); continue; }

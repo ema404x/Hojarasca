@@ -1238,3 +1238,213 @@ function armarRaicesCofre() {
   }
   return { corteza: fundirCorteza(cort), tela: fundirTela(tela) };
 }
+
+// ---------------------------------------------------------------- 4.8.1: el aro de hongos
+// Donde salen los duendes cada noche (antes era el platillo de una nave): un aro de hongos y raíces sobre
+// la tierra removida, con la boca oscura en el medio por donde suben, hongos de luz abajo del sombrero y
+// brasitas en el borde. Tres mallas fundidas (tierra y hongos, raíces, brillos: los mismos materiales que
+// el nido y las madrigueras: ningún programa nuevo) y una tapa de tierra y hojas con que se cierra al
+// amanecer. Todo apoyado en el suelo (ver desafio-aro-mundo.js: pega los vértices al terreno y lo hace
+// subir o hundirse). `userData`: partes (lo que sube y baja), tapa, halos (los hongos, las brasitas y las
+// luciérnagas de la columna: las mueve el mundo), matBrillo (late) y geos (para pegarlas al terreno).
+// Un hongo de luz (el aro y las ruinas del bosque): tallo claro, sombrero tostado con las laminillas encendidas
+// en el borde y, si `brilla`, los puntitos de luz de arriba y un halo abajo del sombrero. `p`: dónde pisa;
+// `s`: el tamaño; `alto`: cuánto más alto que ancho; `r`: el azar de la malla; `i`: qué color de sombrero.
+let G_TALLO = null, G_SOMBRERO = null;
+const SOMBREROS = ['#b9763c', '#d8b26a', '#8a5a34', '#c88a46'];
+function hongoDeLuz(tela, brillos, halos, r, p, s, alto, brilla, i, tamHalo = 1) {
+  if (!G_TALLO) {
+    G_TALLO = lathe([[0.2, 0], [0.12, 0.3], [0.11, 0.65], [0.13, 0.98]], 6);
+    G_SOMBRERO = deform(lathe([[0.001, 0.02], [0.5, 0.0], [1.0, 0.04], [1.0, 0.24], [0.72, 0.5], [0.3, 0.64], [0.001, 0.67]], 9), (v) => {
+      const a = Math.atan2(v.x, v.z); if (v.y < 0.04 && Math.hypot(v.x, v.z) > 0.8) v.y += 0.05 * Math.sin(a * 9);
+    });
+  }
+  const h = alto * s;
+  tela.push(pieza(G_TALLO.clone(), M4(p, [0, r() * 6, 0], [s, s * alto, s]), '#e2d6bd', { tela: 4, pintar: (c, pp, n, l) => { c.multiplyScalar(0.85 + 0.2 * ruido(l.x * 9, l.y * 5, l.z * 9)); tinta(c, '#7a5a3a', 0.45 * sv(0.35, 0, l.y)); } }));
+  const incl = [(r() - 0.5) * 0.25, r() * 6, (r() - 0.5) * 0.25];
+  tela.push(pieza(G_SOMBRERO.clone(), M4(p.clone().add(V3(0, h * 0.97, 0)), incl, [s * 1.1, s * 0.9, s * 1.1]), SOMBREROS[i % SOMBREROS.length], { tela: 4, pintar: (c, pp, n, l) => {
+    c.multiplyScalar(0.8 + 0.3 * (ruido(l.x * 6, l.y * 6, l.z * 6) * 0.5 + 0.5));
+    tinta(c, '#e8d8a8', 0.5 * sv(0.45, 0.66, l.y) * sv(0.5, 0.0, Math.hypot(l.x, l.z) - 0.3));
+  } }));
+  if (brilla) {
+    // las laminillas encendidas abajo del sombrero y los puntitos de luz de arriba
+    brillos.push(pieza(new THREE.CircleGeometry(0.88, 9).rotateX(-Math.PI / 2), M4(p.clone().add(V3(0, h * 0.97 - 0.02 * s, 0)), incl, [s * 1.1, 1, s * 1.1]), '#ff9f38', { fuerza: 1.05 }));
+    brillos.push(pieza(lathe([[1.045, 0.0], [1.045, 0.2]], 11), M4(p.clone().add(V3(0, h * 0.97 + 0.02 * s, 0)), incl, [s * 1.1, s * 0.9, s * 1.1]), '#ff9a30', { fuerza: 0.9 }));   // las laminillas, encendidas en el borde
+    halos.push({ p: p.clone().add(V3(0, h * 0.97 - 0.1 * s, 0)), col: '#ffb040', tam: (1.1 + 0.9 * s) * tamHalo, k: 1 });
+    if (s > 0.5) for (let j = 0; j < 4; j++) {
+      const aa = r() * TAU, dd = r() * 0.55;
+      brillos.push(pieza(deform(esfera(5, 3), (v) => { v.y *= 0.5; }), M4(p.clone().add(V3(Math.sin(aa) * dd * s, h * 0.97 + (0.62 - dd * dd * 0.45) * s * 0.9, Math.cos(aa) * dd * s)), [0, 0, 0], [0.1 * s, 0.07 * s, 0.1 * s]), '#ffe090', { fuerza: 1.4 }));
+    }
+  }
+}
+export const ARO = { radioBoca: 3.9, radio: 7.4, hondo: 1.8, luciernagas: 22 };
+let MAT_BRILLO_ARO = null;
+function armarAro() {
+  const tela = [], cort = [], brillos = [], halos = [];
+  const r = azar(481);
+  const R0 = ARO.radioBoca;
+  const tierra = (c, p, n, l) => {
+    const d = Math.hypot(l.x, l.z);
+    c.multiplyScalar(0.72 + 0.4 * (ruido(l.x * 1.3, 0, l.z * 1.3) * 0.5 + 0.5));
+    tinta(c, '#4e6a2a', 0.55 * sv(0.2, 0.9, n.y) * sv(-0.1, 0.5, ruido(l.x * 0.6 + 4, 1, l.z * 0.6)));
+    if (d < R0 + 0.5) tinta(c, '#241810', 0.7 * sv(R0 + 0.5, R0 - 0.1, d));
+  };
+  // la loma de tierra removida que rodea la boca (el perfil va de afuera hacia adentro y cae al borde)
+  const perfil = afinar([[7.5, -0.08], [6.7, 0.02], [5.9, 0.17], [5.1, 0.36], [4.55, 0.44], [4.15, 0.34], [R0 + 0.05, 0.2], [R0, 0.14]], 2);
+  const loma = deform(lathe(perfil, 28), (v) => {
+    if (v.y > 0.05) v.y += 0.14 * ruido(v.x * 0.9, 0, v.z * 0.9);
+    const k = 1 + 0.05 * ruido(v.x * 0.5 + 2, 1, v.z * 0.5);
+    v.x *= k; v.z *= k;
+  });
+  tela.push(pieza(loma, null, '#7c5e40', { tela: 5, pintar: tierra }));
+  // hojas y terrones caídos alrededor
+  const hojas = ['#a8602a', '#c89038', '#8a6a2a', '#7a8a3a', '#b0703a'];
+  for (let i = 0; i < 10; i++) {
+    const a = r() * TAU, d = R0 + 0.3 + r() * 3.2, s = 0.1 + r() * 0.1;
+    tela.push(pieza(deform(esfera(5, 3), (v) => { v.y *= 0.12; }), M4([Math.sin(a) * d, 0.05 + 0.3 * sv(6.8, 4.6, d), Math.cos(a) * d], [0, r() * 6, 0], [s * 1.5, s, s]), hojas[i % hojas.length], { tela: 5 }));
+  }
+  // los hongos del aro: tres grandes, unos medianos y unos chicos, con el brillo abajo del sombrero
+  const hongo = (a, d, s, alto, brilla, i) => hongoDeLuz(tela, brillos, halos, r, V3(Math.sin(a) * d, 0, Math.cos(a) * d), s, alto, brilla, i);
+  [[0.5, 5.4, 0.95, 1.35], [2.6, 5.1, 0.85, 1.2], [4.5, 5.6, 1.0, 1.4]].forEach(([a, d, s, alto], i) => hongo(a, d, s, alto, true, i));
+  // tres faroles: hongos altos de sombrero encendido, para que el aro se vea de lejos entre los árboles
+  [[1.6, 6.2, 0.9, 2.9], [3.6, 6.0, 0.8, 3.3], [5.5, 6.3, 0.85, 2.6]].forEach(([a, d, s, alto], i) => hongo(a, d, s, alto, true, i + 1));
+  [[1.4, 4.7, 0.5], [3.3, 4.9, 0.55], [5.2, 4.6, 0.45], [0.0, 6.4, 0.42], [3.9, 6.3, 0.5]].forEach(([a, d, s], i) => hongo(a, d, s, 1.0, i % 2 === 0, i + 1));
+  for (let i = 0; i < 3; i++) hongo(r() * TAU, 4.4 + r() * 2.6, 0.16 + r() * 0.12, 0.9, false, i);
+  // las raíces: gruesas, salen de la loma y se van por la tierra ondulando (no arcos finitos: parecían patas), y unas
+  // pocas, cortas y bajas, se meten en la boca por encima del borde
+  const pintaR = (c, p, n) => musgoEn(c, p, n, 0.85, 1.4);
+  const NR = 7;
+  for (let i = 0; i < NR; i++) {
+    const a = (i / NR) * TAU + (r() - 0.5) * 0.4, curva = (r() - 0.5) * 1.1, largo = 3.0 + r() * 1.6;
+    const pts = [];
+    for (let k = 0; k <= 5; k++) {
+      const t = k / 5, aa = a + curva * t * t, d = R0 + 1.0 + t * largo;
+      const lomaY = 0.46 * sv(R0 + 3.7, R0 + 0.6, d);   // sobre la loma al principio, a ras de tierra después
+      pts.push([Math.sin(aa) * d, lomaY + 0.1 + 0.05 * Math.sin(t * 7 + i) - 0.17 * sv(0.75, 1, t), Math.cos(aa) * d]);
+    }
+    cort.push(raiz(pts, [0.3, 0.27, 0.21, 0.15, 0.09, 0.03], '#86664a', { nudos: 0.07, tramos: 7, lados: 6, pintar: pintaR }));
+  }
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * TAU + 0.5 + (r() - 0.5) * 0.5, c0 = R0 + 1.7;
+    const P = (d, y, da) => [Math.sin(a + 0.35 * da) * d, y, Math.cos(a + 0.35 * da) * d];
+    cort.push(raiz([P(c0, 0.28, 0), P(R0 + 0.9, 0.58, 0.4), P(R0 + 0.1, 0.4, 0.75), P(R0 - 0.3, 0.05, 1)], [0.26, 0.22, 0.16, 0.07], '#86664a', { nudos: 0.05, tramos: 8, lados: 6, pintar: pintaR }));
+  }
+  // y unas tendidas por la tierra, más finas
+  for (let i = 0; i < 6; i++) {
+    const a = r() * TAU, c0 = 6.0 + r() * 0.5, largo = 2.2 + r() * 1.8, curva = (r() - 0.5) * 0.8;
+    const pts = [];
+    for (let k = 0; k <= 4; k++) { const t = k / 4, aa = a + curva * t * t, d = c0 + t * largo; pts.push([Math.sin(aa) * d, 0.02 + 0.02 * Math.sin(t * 6 + i) - 0.07 * sv(0.7, 1, t), Math.cos(aa) * d]); }
+    cort.push(raiz(pts, [0.09, 0.07, 0.05, 0.03, 0.012], '#7a5a40', { nudos: 0.02, tramos: 8, lados: 5, pintar: pintaR }));
+  }
+  // la boca: un disco oscuro (donde suben) y el reborde de brasas que late
+  // (con anillos adentro: el terreno la corta si sólo tiene el centro y el borde)
+  brillos.push(pieza(new THREE.RingGeometry(0.01, R0 - 0.02, 32, 5).rotateX(-Math.PI / 2), M4([0, 0.17, 0]), '#0b0704', { fuerza: 1 }));
+  brillos.push(pieza(new THREE.RingGeometry(R0 - 0.55, R0 - 0.1, 40).rotateX(-Math.PI / 2), M4([0, 0.185, 0]), '#a8501c', { fuerza: 0.75 }));
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU + 0.2;
+    halos.push({ p: V3(Math.sin(a) * (R0 - 0.3), 0.22, Math.cos(a) * (R0 - 0.3)), col: '#ff9a30', tam: 1.1, k: 1 });
+  }
+  // la columna de luciérnagas y esporas (las posiciones las pone el mundo, cada cuadro)
+  const lucis = ['#ffe08a', '#ffc860', '#d8ff7a'];
+  for (let i = 0; i < ARO.luciernagas; i++) halos.push({ p: V3(0, 0.5, 0), col: lucis[i % 3], tam: 1.7, k: 0, luci: i });
+  // la tapa de tierra y hojas con que se cierra
+  const tapa = [];
+  tapa.push(pieza(deform(lathe(afinar([[R0 + 0.5, -0.04], [R0 - 0.2, 0.06], [2.4, 0.11], [0.001, 0.13]], 2), 24), (v) => { if (v.y > 0.05) v.y += 0.05 * ruido(v.x * 1.2, 0, v.z * 1.2); }), null, '#6e553a', { tela: 5, pintar: tierra }));
+  for (let i = 0; i < 28; i++) {
+    const a = r() * TAU, d = Math.sqrt(r()) * (R0 + 0.2), s = 0.12 + r() * 0.12;
+    tapa.push(pieza(deform(esfera(5, 3), (v) => { v.y *= 0.1; }), M4([Math.sin(a) * d, 0.14 + 0.02 * r(), Math.cos(a) * d], [(r() - 0.5) * 0.3, r() * 6, (r() - 0.5) * 0.3], [s * 1.6, s, s]), hojas[i % hojas.length], { tela: 5 }));
+  }
+  if (!MAT_BRILLO_ARO) MAT_BRILLO_ARO = new THREE.MeshBasicMaterial({ vertexColors: true });
+  return { tela: fundirTela(tela), corteza: fundirCorteza(cort), brillo: fundirBrillo(brillos), halos, matBrillo: MAT_BRILLO_ARO, tapa: fundirTela(tapa) };
+}
+export function mallaAro() {
+  const g = new THREE.Group();
+  g.name = 'aro';
+  const partes = grupoFijo('aro', armarAro);
+  const geos = FIJOS.get('aro');
+  // la tapa va aparte (sólo se ve al cerrarse): otra malla con el mismo material de tierra
+  const tapa = new THREE.Mesh(geos.tapa, materialGente());
+  tapa.receiveShadow = true; tapa.visible = false;
+  // (el esfera de culling de cada malla abarca todo el aro aunque el terreno la suba o la baje un par de metros)
+  for (const m of [...partes.children, tapa]) { m.castShadow = false; m.geometry.computeBoundingSphere(); m.geometry.boundingSphere.center.set(0, 1, 0); m.geometry.boundingSphere.radius = ARO.radio + 4; }
+  g.add(partes, tapa);
+  g.userData.partes = partes; g.userData.tapa = tapa; g.userData.halos = geos.halos; g.userData.matBrillo = geos.matBrillo;
+  g.userData.geos = [geos.tela, geos.corteza, geos.brillo, geos.tapa];
+  return g;
+}
+
+// ---------------------------------------------------------------- 4.8.1: la ruina del bosque
+// Lo que eran los «restos de nave» (un casco gris de paneles y costillas): ahora un tronco hueco de los duendes
+// que se vino abajo entre ruinas: tablones de corteza vieja parados y quebrados, muros de piedra con musgo,
+// arcos de raíz cruzando el pasillo, hongos de luz en el pie de las paredes y, al fondo, un pedestal de piedra con
+// raíces donde queda el premio. Mismas medidas, mismos muros que chocan (`desafio-valle.js`: `RUINA`,
+// `paredesRuina`) y mismas tres cámaras; sólo cambia lo que se ve. `R`: la RUINA; `segs`: sus paredes (locales).
+// Devuelve un grupo con la malla y `userData.halos` (los hongos, el premio y las tres placas: `placa: i`).
+export function mallaRuina(R, segs) {
+  return grupoFijo('ruina', () => armarRuina(R, segs));
+}
+function armarRuina(R, segs) {
+  const cort = [], tela = [], brillos = [], halos = [];
+  const r = azar(2101);
+  const { ancho, largo, alto } = R, m = ancho / 2;
+  const musgo = (k = 0.8) => (c, p, n) => musgoEn(c, p, n, k, 2);
+  const piedraC = ['#7c7a68', '#6e6e5c', '#85826e'];
+  // el piso: tierra y musgo, y lajas sueltas
+  tela.push(pieza(deform(new THREE.BoxGeometry(ancho + 0.9, 0.14, largo + 0.5, 6, 1, 14), (v) => { if (v.y > 0) v.y += 0.035 * ruido(v.x * 2, 0, v.z * 1.5); }), M4([0, 0.0, largo / 2]), '#5e4a34', {
+    tela: 5, pintar: (c, p, n, l) => { c.multiplyScalar(0.75 + 0.35 * (ruido(l.x * 3, 0, l.z * 2) * 0.5 + 0.5)); tinta(c, '#4e6a2a', 0.5 * sv(-0.1, 0.5, ruido(l.x * 1.1 + 3, 1, l.z * 0.9))); } }));
+  for (let i = 0; i < 14; i++) {
+    const x = (r() - 0.5) * (ancho - 0.5), z = 0.6 + r() * (largo - 1.2), s = 0.25 + r() * 0.3;
+    cort.push(pieza(deform(esfera(8, 5), (v) => { v.y *= 0.2; }), M4([x, 0.08, z], [0, r() * 6, 0], [s * 1.3, s, s]), piedraC[i % 3], { veta: () => [0, 0, 0], pintar: musgo(0.9) }));
+  }
+  // las paredes: tablones de corteza vieja, parados y quebrados arriba, y bloques de piedra con musgo en el pie
+  let n = 0;
+  const abajo = (c, p, n2, l) => { c.multiplyScalar(0.7 + 0.45 * sv(0, alto, l.y)); musgoEn(c, p, n2, 0.7, 2); };
+  for (const [ax, az, bx, bz] of segs) {
+    const L = Math.hypot(bx - ax, bz - az), pasos = Math.max(1, Math.round(L / 0.7)), rot = Math.atan2(bx - ax, bz - az);
+    for (let i = 0; i < pasos; i++) {
+      const t = (i + 0.5) / pasos, cx = ax + (bx - ax) * t, cz = az + (bz - az) * t, w = L / pasos + 0.05;
+      if (r() < 0.1) continue;   // un hueco
+      n++;
+      if (r() < 0.62) {
+        const h = alto * (0.55 + r() * 0.5), inc = (r() - 0.5) * 0.14, fase = r() * 6;
+        const g = deform(new THREE.BoxGeometry(0.36, h, w, 1, 3, 1), (v) => {
+          const k = (v.y + h / 2) / h;
+          v.x += 0.07 * Math.sin(k * 3 + fase) * (v.x > 0 ? 1 : 0.6);
+          if (k > 0.7) v.y -= 0.35 * h * (k - 0.7) * (0.5 + 0.5 * Math.sin(v.z * 9 + fase));
+        });
+        cort.push(pieza(g, M4([cx, h / 2, cz], [0, rot, inc]), r() < 0.5 ? '#6f563a' : '#58442e', { veta: (l) => [l.z * 2.2 + n, l.y * 1.4, 0.95], pintar: abajo }));
+      } else {
+        for (let k = 0; k < 2; k++) {
+          const hh = 0.42 + r() * 0.12, off = (r() - 0.5) * 0.12;
+          cort.push(pieza(deform(new THREE.BoxGeometry(0.4, hh, w * (k ? 0.82 : 1), 1, 1, 1), (v) => { v.x += 0.04 * ruido(v.y * 5, v.z * 5, 1); v.y += 0.03 * ruido(v.x * 5, v.z * 5, 2); }),
+            M4([cx + Math.cos(rot) * off, hh / 2 + k * (0.42 + 0.02), cz - Math.sin(rot) * off], [0, rot + (r() - 0.5) * 0.1, 0]), piedraC[(i + k) % 3], { veta: () => [0, 0, 0], pintar: musgo(1.1) }));
+        }
+      }
+    }
+  }
+  // los arcos de raíz que cruzan el pasillo (la entrada, entera; los otros, algunos quebrados)
+  const arco = (z, entero, grueso) => {
+    const rad = grueso ? [0.24, 0.2, 0.17, 0.15, 0.17, 0.2, 0.24] : [0.17, 0.14, 0.12, 0.11, 0.12, 0.14, 0.17];
+    const pts = [[-m - 0.05, 0, z], [-m * 1.08, 1.1, z], [-m * 0.62, alto + 0.05, z + 0.08], [0, alto + 0.3, z], [m * 0.62, alto + 0.1, z - 0.08], [m * 1.08, 1.0, z], [m + 0.05, 0, z]];
+    const p = entero ? pts : pts.slice(0, 4);
+    cort.push(raiz(p, rad.slice(0, p.length), '#7a5a3e', { nudos: 0.06, tramos: 9, lados: 6, pintar: musgo(0.9) }));
+  };
+  arco(0.3, true, true);
+  [3.9, 8.8, 13.7].forEach((z, i) => arco(z, i === 1, false));
+  // dos tablones caídos de través
+  for (const [z, h] of [[4.5, 2.2], [10.4, 2.0]]) cort.push(raiz([[-m * 1.05, h - 0.5, z], [-m * 0.3, h, z + 0.3], [m * 0.4, h - 0.2, z - 0.2], [m * 1.05, 0.4, z + 0.1]], [0.1, 0.11, 0.1, 0.09], '#58442e', { nudos: 0.03, tramos: 10, lados: 6, pintar: musgo(0.8) }));
+  // el pedestal del premio: una piedra grande y raíces que la abrazan
+  const zf = largo - 1.2;
+  cort.push(pieza(deform(new THREE.BoxGeometry(1.15, 0.55, 1.15, 2, 1, 2), (v) => { v.x += 0.05 * ruido(v.y * 4, v.z * 4, 3); v.z += 0.05 * ruido(v.x * 4, v.y * 4, 4); }), M4([0, 0.28, zf], [0, 0.4, 0]), piedraC[0], { veta: () => [0, 0, 0], pintar: musgo(1.2) }));
+  for (let i = 0; i < 4; i++) {
+    const a = i * 1.57 + 0.5;
+    cort.push(raiz([[Math.sin(a) * 1.0, 0, zf + Math.cos(a) * 1.0], [Math.sin(a) * 0.75, 0.3, zf + Math.cos(a) * 0.75], [Math.sin(a + 0.4) * 0.5, 0.58, zf + Math.cos(a + 0.4) * 0.5], [Math.sin(a + 0.6) * 0.34, 0.8, zf + Math.cos(a + 0.6) * 0.34]], [0.1, 0.08, 0.06, 0.03], '#7a5a3e', { nudos: 0.03, tramos: 8, lados: 6, pintar: musgo(0.9) }));
+  }
+  halos.push({ p: V3(0, 1.0, zf), col: '#ffc840', tam: 3.2, k: 1, semilla: true });
+  // los hongos de luz en el pie de las paredes
+  const sitios = [[-1, 1.2], [1, 2.4], [-1, 4.6], [1, 5.3], [-1, 7.1], [1, 8.0], [-1, 9.9], [1, 10.8], [-1, 12.7], [1, 13.9], [-1, 15.2]];
+  sitios.forEach(([lado, z], i) => hongoDeLuz(tela, brillos, halos, r, V3(lado * (m - 0.32 - r() * 0.15), 0.05, z), 0.22 + r() * 0.18, 1.0, true, i, 0.8));
+  // las placas del piso: se arman aparte (van donde las pone la disposición), acá sólo los halos
+  for (let i = 0; i < 3; i++) halos.push({ p: V3(0, 0.3, 0), col: '#ffb040', tam: 0.25, k: 1, placa: i });
+  return { corteza: fundirCorteza(cort), tela: fundirTela(tela), brillo: fundirBrillo(brillos), halos };
+}
