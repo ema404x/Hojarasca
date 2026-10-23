@@ -161,7 +161,7 @@ const sinEnjambre = (l) => l.filter((t) => t !== 'enjambre');
       D: () => d, HORA_GIRO: N.HORA_GIRO, HORA_AMANECER: R.HORA_AMANECER, GIROS: N.GIROS, elegirGiro: N.elegirGiro,
       eventos: { nodrizaActiva: false }, naveMundo: { adentro: false }, asedioMundo: { activo: false }, caido: false,
       obras: { obras: obrasLista }, completa: () => true, vidaDe: (o) => ({ vida: o.datos.vida, max: o.max }),
-      esNocheDeJefe, NOCHE_FINAL, conArticulo: N.conArticulo, pronombreDe: N.pronombreDe, azarNoche: () => () => sobre.azar ?? 0.0, /* azarNoche da un generador, como azarDe */ ctx: { nota: (t, x) => notas.push([t, x]), dificultad: () => 'normal' },
+      esNocheDeJefe, NOCHE_FINAL, nocheFinalCoihue: R.nocheFinalCoihue, conArticulo: N.conArticulo, pronombreDe: N.pronombreDe, azarNoche: () => () => sobre.azar ?? 0.0, /* azarNoche da un generador, como azarDe */ ctx: { nota: (t, x) => notas.push([t, x]), dificultad: () => 'normal' },
       sinJefe: (l) => l.filter((t) => t !== 'jefe'), composicionSinFin: SF.composicionSinFin, composicionOleada, TIPOS_ALIEN: sobre.tipos ?? R.TIPOS_ALIEN,
       setTimeout: (f) => f(), empezarOleada: (tipos, nueva) => lanzadas.push([tipos, nueva]), danarObra: (o, n) => { danos.push(n); o.datos.vida -= n; },
       S: { derrumbe() {} },

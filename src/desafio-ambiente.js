@@ -9,7 +9,7 @@
 // Todo acá es puro (sin three ni DOM): `desafio-ambiente-mundo.js` pone los ojos, la niebla y los puestos de fauna en el mundo, y
 // `desafio-ambiente-sonidos.js` los sonidos nuevos. El tiempo se cuenta en segundos reales; la previa (la hora antes del ataque)
 // se mide por su avance `f` de 0 a 1, así el cronograma sirve con cualquier largo de día.
-import { HORA_ATAQUE, HORA_AMANECER, NOCHE_FINAL, claveNoche, esNocheDeJefe } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, nocheFinalCoihue, claveNoche, esNocheDeJefe } from './desafio-reglas.js';
 
 const limitar = (v, a, b) => (v < a ? a : v > b ? b : v);
 const suave = (x, a, b) => { const t = limitar((x - a) / (b - a || 1), 0, 1); return t * t * (3 - 2 * t); };
@@ -27,7 +27,7 @@ export function nocheEnCurso(d, dia, horas) {
 // El tipo de noche para el ambiente. `especial` es el `d.especial` de las reglas de las noches ('roja', 'eclipse', 'silenciosa',
 // 'apagon', y las nuevas 'niebla' y 'lunallena'); lo que no se conoce se trata como una noche común.
 export function tipoDeNoche({ noche = 1, especial = null, sinFin = false } = {}) {
-  if (!sinFin && noche >= NOCHE_FINAL) return 'final';
+  if (!sinFin && noche >= nocheFinalCoihue()) return 'final';   // 4.10 partidas: nunca en la corta
   if (especial && Object.hasOwn(PERFILES, especial)) return especial;
   if (esNocheDeJefe(noche)) return 'jefe';
   return noche <= 1 ? 'primera' : 'comun';

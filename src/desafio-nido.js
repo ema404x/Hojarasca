@@ -157,6 +157,7 @@ export function resumenNido(nido, horas) {
 // Mientras el nido esté entero las noches siguen; cuando cae, se terminan.
 export function siguenLasNoches(d) {
   if (!d?.victoria) return true;
+  if (d.meta?.modo === 'corta') return false;   // 4.10 partidas: la partida corta termina con el mandamás: no hay cueva ni noches después
   // 2.0: con el nido caído, las noches siguen sólo si elegiste las noches después
   if (siguenDespues(d.despues)) return true;
   return !d.nido || !d.nido.caido;

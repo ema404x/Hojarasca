@@ -38,6 +38,7 @@ const ent = (v, def, min, max) => {
 // Cuánto ayuda `clave` según lo que cumpliste: 0 (nada), 1 (ayuda) o 2 (ayuda a pleno).
 export function nivelAyuda(d, clave) {
   if (typeof clave !== 'string' || !VECINOS_AYUDA.includes(clave)) return 0;
+  if (d?.meta && Array.isArray(d.meta.reglas) && d.meta.reglas.includes('sinAliados')) return 0;   // 4.10 partidas: la regla «sin aliados»
   const a = d?.aldea?.ayuda;
   if (!a || typeof a !== 'object' || !Object.hasOwn(a, clave)) return 0;
   return ent(a[clave], 0, 0, NIVEL_MAX);

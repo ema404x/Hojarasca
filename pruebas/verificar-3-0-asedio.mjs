@@ -255,7 +255,7 @@ const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { 
   }
   assert.match(reglas, /asedio: sanearAsedio\(x\.asedio\)/, 'el asedio se guarda');
   // la noche final sigue igual; el asedio la reemplaza sólo si amanece con la nodriza arriba
-  assert.match(desafio, /!d\.asedio && d\.oleadas \+ 1 >= NOCHE_FINAL/, 'en el asedio no vuelve la noche final');
+  assert.match(desafio, /!d\.asedio && d\.oleadas \+ 1 >= nocheFinalCoihue\(\)/, 'en el asedio no vuelve la noche final');   // 4.10 partidas: la constante pasó a nocheFinalCoihue() (en la corta no hay noche final)
   assert.match(desafio, /asedioMundo\.alTerminarNoche\(sobrevivida\)/);
   assert.match(asedioM, /if \(!d\.victoria && d\.nodriza && d\.oleadas >= NOCHE_FINAL\) return empezar\(\);/, 'el asedio arranca al alba de la noche final sin victoria');
   assert.match(asedioM, /d\.nodriza = null;/, 'los núcleos se repliegan: la nodriza vieja no vuelve');
@@ -263,7 +263,7 @@ const ZONAS = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { 
   assert.match(desafio, /abrirSegundoActo\(\);/);
   assert.match(main, /s\?\.nave \? 'El Coihue cayó desde adentro'/, 'la pantalla de victoria lo cuenta');
   assert.match(main, /final \? 'Se derrumbó la cueva'/);
-  assert.match(meteo, /!d\.asedio && n >= NOCHE_FINAL/, 'la estación no anuncia la nodriza en el asedio');
+  assert.match(meteo, /!d\.asedio && n >= nocheFinalCoihue\(\)/,'la estación no anuncia la nodriza en el asedio');
   // los invasores del pool: el campo nuevo se limpia al reciclar
   assert.match(desafio, /a\.enNave = false; a\.guardiaAsedio = false;/);
   assert.match(desafio, /if \(a\.enNave\) return naveMundo\.actualizarAlien\(a, dt, js\);/);

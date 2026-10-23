@@ -184,7 +184,7 @@ function correrHacha(progreso, objetivo, extra = {}) {
   const m = armarMundo(progreso, {
     objetivoHacha: () => objetivo, tieneHacha: () => true, tienePico: () => true, desafio: null,
     golpesTala: golpes, golpesPico: golpes, golpesParaTalarAhora: () => 1, golpesParaPicarAhora: () => 1,
-    nivelDe: () => 0, troncosAlTalar, TRONCOS_TALA: 4, TRONCOS_MATA: 2, PIEDRA_MATA: 3, extraDePiedra: () => 0, extraDeMata: () => 0, RAYO: { troncos: 6 },
+    nivelDe: () => 0, materialesDeMeta: (n) => n, troncosAlTalar, TRONCOS_TALA: 4, TRONCOS_MATA: 2, PIEDRA_MATA: 3, extraDePiedra: () => 0, extraDeMata: () => 0, RAYO: { troncos: 6 },
     jugador: { estado: { pos: { x: 0, y: 0, z: 0 }, montado: null } },
     sonido: { hachazo() { llamadas.hachazo++; }, picazo() { llamadas.picazo++; }, arbolCae() {}, paso() {} },
     veg: { arboles: [], sacudir() {}, talar() { llamadas.talar++; }, despejar() { llamadas.despejar++; } },

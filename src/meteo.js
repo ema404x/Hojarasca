@@ -18,7 +18,7 @@
 //
 // Puro, sin THREE.
 import { hashTexto, generador } from './semilla.js';
-import { ESPECIALES, NOCHE_FINAL, nocheEspecial, esNocheDeJefe, HORA_ATAQUE, HORA_AMANECER } from './desafio-reglas.js';
+import { ESPECIALES, nocheFinalCoihue, nocheEspecial, esNocheDeJefe, HORA_ATAQUE, HORA_AMANECER } from './desafio-reglas.js';
 import { siguenLasNoches } from './desafio-nido.js';
 import { especialSinFin } from './desafio-supervivencia.js';
 
@@ -189,7 +189,7 @@ export function nochesQueVienen(d, meteo, dia, horas, cuantas = 2) {
   for (let i = 0; i < cuantas; i++, n++, clave++) {
     const cuando = cuandoEs(clave);
     if (!siguenLasNoches(d)) { salida.push({ clave, n, cuando, tipo: 'calma', texto: 'Noche tranquila: ya no sale nadie' }); continue; }
-    const final = !d.victoria && !d.sinFin && !d.asedio && n >= NOCHE_FINAL;   // 3.0: la corrida sin fin no tiene noche final (ni el asedio: la nodriza ya bajó)
+    const final = !d.victoria && !d.sinFin && !d.asedio && n >= nocheFinalCoihue();   // 3.0: la corrida sin fin no tiene noche final (ni el asedio: la nodriza ya bajó)
     const jefe = esNocheDeJefe(n);
     // la de esta noche puede estar ya decidida (una hora antes del ataque)
     const yaDecidida = i === 0 && !yaBajo && d.especial && d.oleadaNoche !== clave;
