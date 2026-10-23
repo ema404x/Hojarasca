@@ -93,15 +93,17 @@ export function crearMejorasBaseMundo(obras, efectos, api) {
     return { obra: o, nivel: r.nivel };
   }
 
+  // Los avisos esperan un rato (después del «Resististe la noche»): `api.esperar` los pone en la cola de tiempos del juego (en las pruebas se corre a mano).
+  const esperar = (f, ms) => (api.esperar ? api.esperar(f, ms) : setTimeout(f, ms));
   // Avisa lo que subió: una nota por defensa (hasta tres) o una sola para todas.
   function avisarSubidas(subidas, retraso = 6500) {
     if (!subidas.length) return;
     if (subidas.length > 3) {
-      setTimeout(() => api.nota(`${subidas.length} defensas se curtieron`, 'Aguantaron otra noche y reciben menos daño: mirá las placas', true), retraso);
+      esperar(() => api.nota(`${subidas.length} defensas se curtieron`, 'Aguantaron otra noche y reciben menos daño: mirá las placas', true), retraso);
     } else {
       subidas.forEach((s, i) => {
         const t = textoSubida(s.obra.plano.nombre, s.nivel);
-        setTimeout(() => api.nota(t.titulo, t.texto, true), retraso + i * 2200);
+        esperar(() => api.nota(t.titulo, t.texto, true), retraso + i * 2200);
       });
     }
     for (const s of subidas) efectos?.destello?.(_p.set(s.obra.datos.x, (s.obra.datos.y || 0) + 1.5, s.obra.datos.z), 0.8, '#f0c26a');

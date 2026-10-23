@@ -12,6 +12,7 @@ import { crearMejorasBaseMundo } from './desafio-mejoras-base-mundo.js';
 import { crearTrofeosMundo } from './desafio-trofeos-mundo.js';
 import { nivelDelPerro, alcanceDelPerro, danoDelPerro, nocheConElPerro, textoSubidaPerro, textoPerro } from './desafio-perro-aprende.js';
 import { resumenNiveles, nombreCurtido } from './desafio-mejoras-base.js';
+import { creceNuevo } from './desafio-crece.js';
 
 export const ORIGEN_DEFENSA = 'defensa';
 // Cada nivel de una defensa curtida aporta un poco de «reparar» (una base veterana se mantiene más fácil), con tope.
@@ -23,7 +24,7 @@ export function crearBaseCrece(obras, efectos, sonido, api) {
   const trofeos = crearTrofeosMundo(obras, sonido, api, bonos);
   const crece = () => {
     const d = api.D();
-    if (!d.crece || typeof d.crece !== 'object') d.crece = { trofeos: {}, perro: { noches: 0 } };
+    if (!d.crece || typeof d.crece !== 'object') d.crece = creceNuevo();
     if (!d.crece.perro || typeof d.crece.perro !== 'object') d.crece.perro = { noches: 0 };
     return d.crece;
   };
@@ -50,18 +51,20 @@ export function crearBaseCrece(obras, efectos, sonido, api) {
       const { antes, ahora } = nocheConElPerro(c.perro);
       if (ahora > antes) {
         const t = textoSubidaPerro(ahora);
-        setTimeout(() => api.nota(t.titulo, t.texto, true), 6500 + subidas.length * 2200 + 1200);
+        const aviso = () => api.nota(t.titulo, t.texto, true), ms = 6500 + subidas.length * 2200 + 1200;
+        if (api.esperar) api.esperar(aviso, ms); else setTimeout(aviso, ms);
       }
     }
     firmaDefensas = null;
     bonosDeDefensas();
   }
   // Cada cuadro (adentro se mira una vez por segundo).
-  let preparado = false;
+  let acum = 9;
   function actualizar(dt) {
     mejoras.actualizar(dt);
     trofeos.actualizar(dt);
-    if (!preparado) { preparado = true; bonosDeDefensas(); }
+    acum += dt;
+    if (acum >= 1) { acum = 0; bonosDeDefensas(); }   // (al abrir la partida, al armar o desarmar una defensa curtida)
   }
   // Una obra tirada por los duendes: el tablero se lleva los trofeos; las defensas curtidas bajan el bono.
   function alCaer(caidas) {
@@ -80,7 +83,7 @@ export function crearBaseCrece(obras, efectos, sonido, api) {
       trofeos: Object.keys(c.trofeos).length, hayTablero: trofeos.hayTablero(),
     };
   }
-  function limpiar() { mejoras.limpiar(); trofeos.limpiar(); firmaDefensas = null; preparado = false; }
+  function limpiar() { mejoras.limpiar(); trofeos.limpiar(); firmaDefensas = null; acum = 9; }
   return {
     alAnochecer, alAmanecer, actualizar, alCaer, limpiar, resumen,
     // el golpe a una obra: cuánto del daño pasa y anotar que participó

@@ -6,7 +6,8 @@
 // si no hay tablero (se desarmó) los bonos se van y los trofeos quedan guardados; si el tablero lo tiran los duendes, los trofeos
 // se pierden con él.
 import { puedeAbordar } from './desafio-asedio.js';
-import { ORIGEN_TROFEO, POR_ID, TROFEOS, ganados, ganarTrofeo, trofeosQueCorresponden, textoGanado, textoTablero } from './desafio-trofeos.js';
+import { ORIGEN_TROFEO, POR_ID, TROFEOS, ganados, ganarTrofeo, trofeosNuevos, textoGanado, textoTablero } from './desafio-trofeos.js';
+import { creceNuevo } from './desafio-crece.js';
 
 export const ID_TABLERO = 'tablero-trofeos';
 const RADIO_E = 3.4;   // a cuántos metros del tablero la E lo muestra
@@ -16,8 +17,9 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
   const tableros = () => obras.obras.filter((o) => o.plano.id === ID_TABLERO && completa(o));
   const crece = () => {
     const d = api.D();
-    if (!d.crece || typeof d.crece !== 'object') d.crece = { trofeos: {}, perro: { noches: 0 } };
+    if (!d.crece || typeof d.crece !== 'object') d.crece = creceNuevo();
     if (!d.crece.trofeos || typeof d.crece.trofeos !== 'object') d.crece.trofeos = {};
+    if (!d.crece.vistos || typeof d.crece.vistos !== 'object') d.crece.vistos = creceNuevo().vistos;
     return d.crece;
   };
 
@@ -48,15 +50,17 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
   function revisarGanados() {
     const d = api.D();
     const nuevos = [];
-    for (const id of trofeosQueCorresponden({
-      jefeCaido: d.jefeCaido, puertitaAbierta: !!d.asedio && puedeAbordar(d.asedio), victoria: !!d.victoria, nidoCaido: !!d.nido?.caido,
-    })) if (ganarTrofeo(crece().trofeos, id, d.oleadas)) nuevos.push(id);
+    for (const id of trofeosNuevos({
+      jefeCaido: d.jefeCaido, puertitaAbierta: !!d.asedio && puedeAbordar(d.asedio), reyCaido: !!d.asedio?.reyCaido,
+      victoria: !!d.victoria || !!d.asedio?.ganado, nidoCaido: !!d.nido?.caido,
+    }, crece().vistos)) if (ganarTrofeo(crece().trofeos, id, d.oleadas)) nuevos.push(id);
     return nuevos;
   }
+  const esperar = (f, ms) => (api.esperar ? api.esperar(f, ms) : setTimeout(f, ms));
   function avisarNuevos(nuevos, hayTablero) {
     nuevos.forEach((id, i) => {
       const t = textoGanado(id);
-      setTimeout(() => {
+      esperar(() => {
         api.nota(t.titulo, hayTablero ? `${t.texto} · ya está colgado en el tablero` : `${t.texto} · armá un tablero de trofeos (O → Defensa) para colgarlo`, true);
         sonido?.pulsar?.(79, { dur: 1.4, vol: 0.1, destino: sonido.bus?.efectos });
       }, 2400 + i * 2400);

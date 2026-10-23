@@ -60,15 +60,34 @@ export function ganarTrofeo(trofeos, id, noche = 0) {
 export const ganados = (trofeos) => IDS_TROFEOS.filter((id) => Object.hasOwn(trofeos || {}, id));
 
 // Lo que hay que ganar según cómo está la partida: los mandamases (`jefeCaido` es la noche del último que cayó), el Coihue (la
-// puertita abierta), el Rey Duende (`victoria`) y el nido (`nido.caido`). Devuelve los ids que corresponden ahora.
-export function trofeosQueCorresponden({ jefeCaido = -1, puertitaAbierta = false, victoria = false, nidoCaido = false } = {}) {
+// puertita abierta), el Rey Duende (`reyCaido`, que se anota al caer, o `victoria`) y el nido (`nido.caido`). Devuelve los ids que
+// corresponden ahora.
+export function trofeosQueCorresponden({ jefeCaido = -1, puertitaAbierta = false, reyCaido = false, victoria = false, nidoCaido = false } = {}) {
   const ids = [];
   const j = trofeoDeJefe(jefeCaido);
   if (j) ids.push(j);
-  if (puertitaAbierta || victoria) ids.push('pina');
-  if (victoria) ids.push('corona');
+  if (puertitaAbierta || reyCaido || victoria) ids.push('pina');
+  if (reyCaido || victoria) ids.push('corona');
   if (nidoCaido) ids.push('raiz');
   return ids;
+}
+
+// Lo que ya se miró de la partida (guardado en `crece.vistos`): el último mandamás que dio su trofeo y si la piña, la corona y la raíz ya
+// se ganaron alguna vez. Así un trofeo que se perdió con el tablero no vuelve solo al segundo siguiente: sólo se gana lo nuevo.
+export function vistosNuevos() { return { jefe: -1, pina: false, corona: false, raiz: false }; }
+export function sanearVistos(v) {
+  const x = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const j = Number(x.jefe);
+  return { jefe: x.jefe !== null && x.jefe !== '' && typeof x.jefe !== 'boolean' && Number.isFinite(j) ? Math.max(-1, Math.min(1e6, Math.floor(j))) : -1, pina: x.pina === true, corona: x.corona === true, raiz: x.raiz === true };
+}
+// Los trofeos que se ganan ahora (los que corresponden y todavía no se habían mirado). Anota en `vistos` lo que mira.
+export function trofeosNuevos(estado, vistos) {
+  const nuevos = [];
+  const j = Math.floor(Number(estado?.jefeCaido));
+  if (j >= 1 && j !== vistos.jefe) { vistos.jefe = j; const id = trofeoDeJefe(j); if (id) nuevos.push(id); }
+  const ahora = trofeosQueCorresponden(estado);
+  for (const id of ['pina', 'corona', 'raiz']) if (ahora.includes(id) && !vistos[id]) { vistos[id] = true; nuevos.push(id); }
+  return nuevos;
 }
 
 // Los bonos que dan los trofeos ganados, sumados por clave: { saludMax: 0.1, ... }.
