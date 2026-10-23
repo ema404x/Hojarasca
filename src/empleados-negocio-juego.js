@@ -282,8 +282,7 @@ export function crearEmpleadosNegocioJuego(ctx) {
     const r = contratar(E, k, { tipo: est.tipo, dia: P().dia, abs: absAhora(), puntos: puntosAmistad(k, P()) });
     if (!r.ok) { ctx.nota?.('No se pudo contratar', (MOTIVOS[r.motivo] || MOTIVOS['no-contrata'])(k), false); return; }
     ctx.sonido?.()?.juntar?.();
-    const oficio = personaAldea(k)?.oficio || 'vecino';
-    ctx.nota?.(`${nombreDe(k)} trabaja para vos`, `${formatoPesos(r.emp.sueldo)} por día, turno ${textoTurno(r.emp.turno)}, de lunes a sábado. En ese horario deja ${esVecinoAldea(k) ? 'lo que hacía' : `su ${oficio}`}. El primer día es de prueba, sin sueldo`, true);
+    ctx.nota?.(`${nombreDe(k)} trabaja para vos`, `${formatoPesos(r.emp.sueldo)} por día, turno ${textoTurno(r.emp.turno)}, de lunes a sábado. En ese horario deja lo que hacía. El primer día es de prueba, sin sueldo`, true);
     ui.contratando = false;
     ctx.guardar?.(); ctx.refrescarBarra?.();
     N.redibujar();

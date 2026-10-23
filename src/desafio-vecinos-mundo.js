@@ -129,7 +129,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     if (!est.avisado) {
       est.avisado = true;
       const quienes = [est.niveles.anselmo && 'Anselmo', est.niveles.herminia && 'la abuela Herminia', est.niveles.chicos && 'los chicos', est.niveles.martin && 'Martín (en la trochita)'].filter(Boolean);
-      if (quienes.length) api.nota('Los vecinos se suman a la noche', quienes.join(', '), true);
+      if (quienes.length) api.nota('Los vecinos se suman a la noche', quienes.length > 1 ? `${quienes.slice(0, -1).join(', ')} y ${quienes[quienes.length - 1]}` : quienes[0], true);   // 4.10.1: con «y» al final
     }
   }
   function irse() {

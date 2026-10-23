@@ -663,7 +663,8 @@ export function comentarioSobreVos(persona, estado, dia) {
   const recientes = v.hechos.filter((h) => d - h.dia >= 0 && d - h.dia <= RECIENTE).sort((a, b) => b.dia - a.dia);
   // 3.6.1: lo ya comentado de días que no se comentan más se olvida (si no, con la lista llena, lo
   // primero que se dijo se borraba y el chismoso lo volvía a contar)
-  if (f) f.coment = f.coment.filter((k) => { const m = /@(d+)$/.exec(k); return !m || d - Number(m[1]) <= RECIENTE; });
+  // 4.10.1: la regex llevaba /@(d+)$/ (sin la barra): nunca coincidía y lo comentado de días viejos jamás se olvidaba
+  if (f) f.coment = f.coment.filter((k) => { const m = /@(\d+)$/.exec(k); return !m || d - Number(m[1]) <= RECIENTE; });
   // y comenta hasta cuatro cosas por día: con eso lo comentado de los días que cuentan (tres) entra en
   // la lista (16) y nada se dice dos veces (antes, con veinte regalos en un día, la chismosa repetía)
   if (f && f.cd === d && f.cn >= COMENT_POR_DIA) return null;

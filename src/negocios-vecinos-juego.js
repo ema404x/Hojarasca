@@ -16,7 +16,7 @@ import { etapaAmor } from './amor.js';
 import { edificioEnMundo, puntosMundo, fijarDesvioRutina, esCumpleanos, HORA_FIESTA, localAbierto } from './aldea.js';
 import { crearNegociosVecinosMundo } from './negocios-vecinos-mundo.js';
 import {
-  NEGOCIOS, IDS_NEGOCIOS, COMPRA, SOCIEDAD, CONSEJERO, TIPOS_QUE_VENDEN, negocioDeVecino, tuyoDe, negocioAbierto, hayNegocios, leerNegociosVecinos,
+  NEGOCIOS, IDS_NEGOCIOS, COMPRA, SOCIEDAD, CONSEJERO, TIPOS_QUE_VENDEN, negocioDeVecino, tuyoDe, deNegocio, negocioAbierto, hayNegocios, leerNegociosVecinos,
   esTuyo, esSocio, tusNegocios, tusSociedades, vecinosQueSeFueron, evaluarCompra, anotarRechazo, comprar, retirarCaja, visitar, cajasTotal, cajaDe, pasarDia, reaccionSocio,
   entrarSocio, avisarRetiro, cancelarRetiro, montosDeAporte, rangoDeAporte, porcentajeDe, gananciaBase, gananciaDelDia, resumenNegociosVecinos, diasParaPagarse,
   VENTA, evaluarVenta, vender, recargoDeRecompra, restoDeAporte, montosDeAporteExtra, reaccionAporteExtra, porcentajeConAporte, sumarAporte,
@@ -37,7 +37,7 @@ const FRASES = {
   noHay: 'Hoy no hay nada de eso para hablar.',
   credito: 'Descontando lo que ya habías puesto como socio ({credito}), te quedan {precio}.',
   sociosTope: 'Ya sos socio de {n} negocios, que es lo que se puede atender. Retirate de alguno primero.',
-  noEsTuyo: 'Eso ya no es {tuyo}: no hay nada que vender.',
+  noEsTuyo: 'Eso ya no es tuyo: no hay nada que vender.',   // 4.10.1: «Eso» es neutro: «tuyo» siempre (antes «Eso ya no es tuya» con la panadería)
   techo: 'La billetera no aguanta tanta plata junta: gastá o guardá algo y volvé a proponérselo.',
   aporteAviso: 'Avisaste que te retirás: primero elegí «Seguir de socio» y después hablamos de sumar plata.',
   aporteFalta: 'Para que acepte más plata hace falta que la amistad llegue a {min} puntos (hoy: {hoy}).',
@@ -92,7 +92,7 @@ export function crearNegociosVecinosJuego(ctx) {
     }
     if (esSocio(p, id)) {
       const x = r.socios.find((q) => q.id === id);
-      return `Sos socio de ${N.corto} (${pct(x.pct)}): ${formatoPesos(x.porDia)} por día; tu parte en la caja, ${formatoPesos(x.caja)}.${x.aviso ? ` Te retirás el día ${x.aviso.sale}.` : ''}`;
+      return `Sos socio ${deNegocio(N.corto)} (${pct(x.pct)}): ${formatoPesos(x.porDia)} por día; tu parte en la caja, ${formatoPesos(x.caja)}.${x.aviso ? ` Te retirás el día ${x.aviso.sale}.` : ''}`;
     }
     const { min, max } = rangoDeAporte(id);
     return `${cap(N.nombre)}: precio de lista ${formatoPesos(N.precio)} (lo que pida depende de cómo se lleven). Como socio podés poner de ${formatoPesos(min)} a ${formatoPesos(max)}.`;
@@ -225,7 +225,7 @@ export function crearNegociosVecinosJuego(ctx) {
     }
     sumarAmistadDe(p, N.vecino, 2, dia());
     ctx.sonido?.()?.anotar?.();
-    ctx.nota?.(`Sos socio de ${N.corto}`, `Pusiste ${formatoPesos(r.aporte)} · te toca el ${pct(r.pct)}: unos ${formatoPesos(r.porDia)} por día`, true);
+    ctx.nota?.(`Sos socio ${deNegocio(N.corto)}`, `Pusiste ${formatoPesos(r.aporte)} · te toca el ${pct(r.pct)}: unos ${formatoPesos(r.porDia)} por día`, true);
     ctx.refrescarBarra?.();
     ctx.guardar?.();
     return { tipo: 'renglones', renglones: [llenar(v.socio.acepta, { pct: pct(r.pct), aporte: formatoPesos(r.aporte) }), ...v.socio.cierre, `Tu parte va a una caja con tope de ${formatoPesos(r.tope)}: pasá a retirarla.`], socio: id };
@@ -393,7 +393,7 @@ export function crearNegociosVecinosJuego(ctx) {
     }
     for (const x of r.retiros) {
       ctx.sonido?.()?.anotar?.();
-      ctx.nota?.(`Te retiraste de la sociedad de ${N[x.id].corto}`, `Cobraste ${formatoPesos(x.devuelto)} del aporte y ${formatoPesos(x.caja)} de tu parte`, true);
+      ctx.nota?.(`Te retiraste de la sociedad ${deNegocio(N[x.id].corto)}`, `Cobraste ${formatoPesos(x.devuelto)} del aporte y ${formatoPesos(x.caja)} de tu parte`, true);
     }
     ctx.refrescarBarra?.();
     ctx.guardar?.();
@@ -437,7 +437,7 @@ export function crearNegociosVecinosJuego(ctx) {
           ficha.appendChild(e('p', x.llena || x.sinVer > COMPRA.gestion.gracia ? 'pista' : 'anotado', `Caja: ${formatoPesos(x.caja)} de ${formatoPesos(x.tope)}${x.llena ? ' (llena: se pierde lo que sigue entrando)' : ''}${x.sinVer > COMPRA.gestion.gracia ? ` · hace ${x.sinVer} días que no pasás: rinde el ${Math.round(x.gestion * 100)} %` : ''} · te dejó ${formatoPesos(x.total)} hasta ahora.`));
         }
         for (const x of r.socios) {
-          ficha.appendChild(e('h3', '', `Socio de ${x.nombre}`));
+          ficha.appendChild(e('h3', '', `Socio ${deNegocio(x.nombre)}`));
           ficha.appendChild(e('p', 'texto', `Desde el día ${x.desde}: pusiste ${formatoPesos(x.aporte)} y te toca el ${pct(x.pct)} (unos ${formatoPesos(x.porDia)} por día). Si te retiraras hoy te devolverían ${formatoPesos(x.devolucion)}${x.extras ? ` (cada aporte cuenta sus propios días; sumaste ${x.extras} ${plural(x.extras, 'vez', 'veces')})` : ' del aporte'}.`));
           if (x.restoAporte > 0) ficha.appendChild(e('p', 'anotado', `Podés sumar hasta ${formatoPesos(x.restoAporte)} más (de ${formatoPesos(x.aporteMax)} en total): hablá con ${x.dueno} y elegí «Sumar plata a la sociedad».`));
           ficha.appendChild(e('p', x.aviso ? 'pista' : 'anotado', `Tu parte en la caja: ${formatoPesos(x.caja)} de ${formatoPesos(x.tope)}${x.aviso ? ` · avisaste que te retirás: se hace el día ${x.aviso.sale}` : ''}.`));
@@ -446,7 +446,9 @@ export function crearNegociosVecinosJuego(ctx) {
           ficha.appendChild(e('h3', '', 'Últimos movimientos'));
           const ul = e('ul', 'habilidades');
           const TXT = { compra: 'compraste', caja: 'retiraste la caja de', parte: 'retiraste tu parte de', socio: 'te hiciste socio de', retiro: 'te retiraste de', venta: 'le vendiste de vuelta', aporte: 'sumaste plata a tu sociedad en' };
-          for (const h of r.historial.slice(0, 8)) ul.appendChild(e('li', '', `Día ${h.dia} · ${TXT[h.tipo] || h.tipo} ${NEGOCIOS[h.local].corto}: ${formatoPesos(Math.abs(h.monto))}`));
+          // 4.10.1: «retiraste la caja de» + «el almacén» sale «del almacén»
+          const frase = (h) => { const t = TXT[h.tipo] || h.tipo, c = NEGOCIOS[h.local].corto; return / de$/.test(t) ? `${t.slice(0, -3)} ${deNegocio(c)}` : `${t} ${c}`; };
+          for (const h of r.historial.slice(0, 8)) ul.appendChild(e('li', '', `Día ${h.dia} · ${frase(h)}: ${formatoPesos(Math.abs(h.monto))}`));
           ficha.appendChild(ul);
         }
         const libres = IDS_NEGOCIOS.filter((id) => !esTuyo(p, id) && !esSocio(p, id) && negocioAbierto(p, id));

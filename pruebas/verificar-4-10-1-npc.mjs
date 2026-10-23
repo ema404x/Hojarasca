@@ -165,4 +165,93 @@ const amigoDe = (P, k, puntos = 30) => { for (let i = 0; i < 40 && V.puntosAmist
   ok(sin.AG.personas.get(chico)?.npc?.dormido !== false, 'su figura no está a la vista');
 }
 
+// ---------------------------------------------------------------- 6/7/8 · textos de los negocios y de la contratación
+{
+  const feos = [];
+  const lint = (t, ctx) => {
+    const x = String(t);
+    if (/\b(de|a) el\b/i.test(x)) feos.push('«de el» ' + ctx + ' :: ' + x.slice(0, 120));
+    if (/Eso ya no es tuya/.test(x)) feos.push('«Eso … tuya» ' + ctx);
+    if (/su (panadera|herrero|guardaparque|modista|fotógrafa|pescador)\b/.test(x)) feos.push('«deja su <oficio>» ' + ctx + ' :: ' + x.slice(0, 120));
+    if (/undefined|NaN|\{[a-z]+\}/.test(x)) feos.push('texto roto ' + ctx + ' :: ' + x.slice(0, 120));
+  };
+  const textos = (r) => { const o = []; if (!r) return o; for (const q of r.renglones || []) o.push(q); if (r.sub) { o.push(r.sub.texto); for (const q of r.sub.opciones || []) o.push(q.titulo); } return o; };
+  eq([NV.deNegocio('el almacén'), NV.deNegocio('la panadería de Rosa'), NV.deNegocio('el almacén de Ercilia')], ['del almacén', 'de la panadería de Rosa', 'del almacén de Ercilia'], 'deNegocio contrae «de el» y deja «de la»');
+  eq([NV.loDe('almacen'), NV.loDe('panaderia')], ['lo', 'la'], 'loDe: «al comprarlo» / «al comprarla»');
+  for (const id of NV.IDS_NEGOCIOS) {
+    const W = crearMundo({ amigos: false, hora: 10, dia: 60 });
+    const Pn = W.P; Pn.economia.pesos = 900000;
+    const N0 = NV.NEGOCIOS[id];
+    for (let i = 0; i < 80 && V.puntosAmistad(N0.vecino, Pn) < 200; i++) V.cambiarAmistad(Pn, N0.vecino, 20, 1);
+    (Pn.vecindad.personas[N0.vecino] ||= {}).hist = 3;
+    const notas = [];
+    const Jn = NVJ.crearNegociosVecinosJuego({ progreso: () => Pn, desafio: () => false, nota: (t, q) => notas.push(t, q), guardar() {}, refrescarBarra() {}, sonido: () => ({ anotar() {} }), liberarEmpleado: () => false });
+    const sc = { clave: N0.vecino };
+    // vender sin ser tuyo: el texto de «Eso ya no es tuyo»
+    const sinSerTuyo = textos(Jn.elegir(sc, 'negocios:vendido'));
+    for (const t of sinSerTuyo) lint(t, id + ' vendido sin ser tuyo');
+    ok(sinSerTuyo.some((t) => /^Eso ya no es tuyo: no hay nada que vender\.$/.test(t)), id + ': «Eso ya no es tuyo» (neutro)');
+    // socio, aviso de retiro, el cuaderno, el libro
+    const pasos = ['negocios', 'negocios:socio', 'negocios:socio:' + NV.montosDeAporte(id)[0], 'negocios:aporte', 'negocios:retiro', 'negocios:seguir', 'negocios:retiro'];
+    for (const q of pasos) for (const t of textos(Jn.elegir(sc, q))) lint(t, id + ' ' + q);
+    for (let d = 61; d < 80; d++) { Pn.dia = d; NV.pasarDia(Pn, d); }
+    Pn.economia.pesos = 900000; Pn.dia = 81;
+    for (const q of ['negocios:comprar', 'negocios:cerrar', 'negocios:cuentas', 'negocios:caja', 'negocios:vender', 'negocios:vendido']) for (const t of textos(Jn.elegir(sc, q))) lint(t, id + ' ' + q);
+    for (let i = 0; i < notas.length; i++) lint(notas[i], id + ' nota');
+    const e = (tag, cls, txt) => ({ tag, cls, txt, hijos: [], appendChild(x) { this.hijos.push(x); return x; } });
+    const ficha = e('div'); Jn.paginaCuaderno().dibujar(ficha, e);
+    const walk = (nd) => { if (nd.txt) lint(nd.txt, id + ' cuaderno'); nd.hijos.forEach(walk); }; walk(ficha);
+    for (const l of Pn.economia.libro || []) lint(l.motivo, id + ' libro');
+  }
+  eq(feos, [], 'los textos de los negocios no tienen «de el», «Eso … tuya» ni placeholders (los ocho negocios, compra, sociedad, retiro, venta, cuaderno y libro)');
+  // el libro de cuentas dice «del almacén» y «al comprarlo»
+  const W = crearMundo({ amigos: true, hora: 10, dia: 40 });
+  W.P.economia.pesos = 900000; W.P.vecindad.personas.ercilia.hist = 3;
+  const Ja = NVJ.crearNegociosVecinosJuego({ progreso: () => W.P, desafio: () => false, nota() {}, guardar() {}, refrescarBarra() {}, sonido: () => ({ anotar() {} }), liberarEmpleado: () => false });
+  Ja.elegir({ clave: 'ercilia' }, 'negocios:socio:' + NV.rangoDeAporte('almacen').min);
+  ok(NV.leerNegociosVecinos(W.P).socios.almacen, 'quedó de socia del almacén');
+  W.P.dia = 50; NV.pasarDia(W.P, 50);
+  Ja.elegir({ clave: 'ercilia' }, 'negocios:comprar'); Ja.elegir({ clave: 'ercilia' }, 'negocios:cerrar');
+  const motivos = W.P.economia.libro.map((l) => l.motivo);
+  ok(motivos.every((m) => !/\bde el\b/.test(m)), 'ningún asiento dice «de el»: ' + motivos.join(' | '));
+  ok(motivos.every((m) => !/al comprarla$/.test(m)), 'la caja de socio del almacén no dice «al comprarla»');
+  // la nota al contratar no dice «deja su <oficio>»
+  const Wc = crearMundo({ amigos: false, hora: 10, dia: 3 });
+  const Lc = armarLocal(Wc);
+  for (const k of ['panadera', 'guardaparque', 'herrero']) { amigoDe(Wc.P, k, 60); Lc.JE.__contratar(k); }
+  const contratos = Lc.notas.filter((t) => /trabaja para vos/.test(t));
+  ok(contratos.length >= 2 && contratos.every((t) => /En ese horario deja lo que hacía\./.test(t)), 'al contratar: «En ese horario deja lo que hacía» (no «su panadera»): ' + contratos[0]);
+}
+
+// ---------------------------------------------------------------- 4 · NO CONFIRMADO: Lena, Chela, Ana y Susana SÍ se arman como mujer en el juego (el arnés del informe probaba con R = {})
+{
+  const C = await import('../src/gente-cuerpo.js');
+  const GE = await import('../src/gente.js');
+  const AV = await import('../src/aldea-vida.js');
+  const hash = (r) => { let h = 0, c = 0; r.g.traverse((o) => { if (o.isMesh && o.geometry?.attributes?.position) { const q = o.geometry.attributes.position.array; for (let i = 0; i < q.length; i += 7) h = (h * 31 + Math.round(q[i] * 1000)) | 0; c += q.length; } }); return h + '/' + c; };
+  const comoSeArma = (clave, col) => { const R = GE.__ROPA[clave] || {}; const a = hash(C.crearPersona(col, clave, false, R, {})); return a === hash(C.crearPersona(col, clave, false, { ...R, mujer: true }, {})) ? 'mujer' : a === hash(C.crearPersona(col, clave, false, { ...R, mujer: false }, {})) ? 'varon' : '?'; };
+  for (const v of AV.VISITANTES) eq(comoSeArma('visitante-' + v.id, v.colores), v.genero === 'f' ? 'mujer' : 'varon', 'el visitante ' + v.nombre + ' se arma con el cuerpo que dice su género');
+  eq(comoSeArma('familia-mama', AV.FAMILIA.mama.colores), 'mujer', 'Susana (tu mamá) se arma como mujer');
+  eq(comoSeArma('familia-hermano', AV.FAMILIA.hermano.colores), 'varon', 'Facundo se arma como varón');
+}
+
+// ---------------------------------------------------------------- 9 · la regex con la barra perdida (vecindad.js)
+{
+  const fuenteV = leer('src/vecindad.js');
+  ok(!fuenteV.includes('const m = /@(d+)$/') && fuenteV.includes('const m = /@(\\d+)$/'), 'la regex de lo comentado lleva \\d');
+  const Wv = crearMundo({ amigos: false, hora: 10, dia: 30 });
+  const v = Wv.P.vecindad;
+  (v.personas.panadera ||= {});
+  v.personas.panadera.coment = ['regalo:panadera@2', 'regalo:otro@29', 'sinfecha'];
+  V.comentarioSobreVos('panadera', v, 30);
+  ok(!v.personas.panadera.coment.includes('regalo:panadera@2'), 'lo comentado de un día viejo se olvida');
+  ok(v.personas.panadera.coment.includes('regalo:otro@29') && v.personas.panadera.coment.includes('sinfecha'), 'lo reciente y lo sin fecha se queda');
+}
+
+// ---------------------------------------------------------------- 10 · «Los vecinos se suman a la noche» con «y»
+{
+  const f = leer('src/desafio-vecinos-mundo.js');
+  ok(f.includes("quienes.slice(0, -1).join(', ')} y ${quienes[quienes.length - 1]}"), 'la lista de los que se suman lleva «y» antes del último');
+}
+
 console.log(`verificar-4-10-1-npc: ${n} comprobaciones OK`);

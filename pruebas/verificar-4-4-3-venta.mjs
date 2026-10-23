@@ -465,6 +465,7 @@ const avanzar = (p, hasta, id = null, visita = 5) => {
   ok(!/undefined|NaN/.test(todo(r)), 'sin textos rotos');
   const antesAmistad = V.puntosAmistad('panadera', p);
   const pesosAntes = pesosDe(p);
+  liberados.length = 0;   // 4.10.1: la compra también suelta al empleado: se cuenta sólo lo de la venta
   r = elegir('panadera', 'negocios:vendido');
   ok(r.tipo === 'renglones' && r.vendido === 'panaderia' && /plaza/.test(r.renglones[0]), 'se cierra: Rosa vuelve de la plaza');
   ok(pesosDe(p) > pesosAntes, 'cobraste');
@@ -476,7 +477,7 @@ const avanzar = (p, hasta, id = null, visita = 5) => {
   r = elegir('panadera', 'negocios');
   eq(sub(r).opciones.map((o) => o.id), ['negocios:cuentas', 'negocios:socio', 'negocios:comprar', 'volver'], 'y el menú de Rosa vuelve a ser el de antes de comprar');
   r = elegir('panadera', 'negocios:vender');
-  ok(r.tipo === 'renglones' && /ya no es tuya/.test(r.renglones[0]), 'vender lo que ya vendiste: «ya no es tuya»');
+  ok(r.tipo === 'renglones' && /ya no es tuyo/.test(r.renglones[0]), 'vender lo que ya vendiste: «ya no es tuyo» (4.10.1: «Eso» es neutro)');
   // recomprar pronto: recargo, con aviso en la charla
   amistad(p, 'panadera', 60, 0); p.dia = 12;
   r = elegir('panadera', 'negocios:comprar');
@@ -565,7 +566,7 @@ const avanzar = (p, hasta, id = null, visita = 5) => {
 // ---------------------------------------------------------------- 8. lo enganchado
 {
   const main = leer('src/main.js');
-  ok(/liberarEmpleado: \(k\) =>/.test(main) && main.includes('empleadosNegocioJuego?.liberar(k)') && main.includes("fallaSistema('negocios-vecinos-liberar'"), 'main.js: suelta al empleado con aislamiento');
+  ok(/liberarEmpleado: \(k, motivo\) =>/.test(main) && main.includes('empleadosNegocioJuego?.liberar(k, motivo)') && main.includes("fallaSistema('negocios-vecinos-liberar'"), 'main.js: suelta al empleado con aislamiento');
   const en = leer('src/empleados-negocio-juego.js');
   ok(en.includes('liberar: (k) =>') && en.includes('e.cambiarAmistad = null'), 'empleados-negocio-juego.js: liberar sin castigo de amistad');
   const gu = leer('src/guia.js');

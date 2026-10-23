@@ -140,7 +140,7 @@ void crearGuardado;
   ok(leer('src/aldea-gente.js').includes("k === 'moza'") && leer('src/aldea-gente.js').includes('ctx.abrirCarta'), 'aldea-gente.js: te ofrece la carta cuando estás sentado');
   const main = leer('src/main.js');
   ok(/abrirCarta: \(\) => !!cantinaJuego\?\.abrirCarta\(\)/.test(main), 'main.js abre la carta desde la charla');
-  ok(main.includes("noticiasDestino: (k) => (k === 'moza' || k === 'bailarina' ? null"), 'el club de lectura y la noche de estrellas no se la llevan de la barra');
+  ok(main.includes("noticiasDestino: (k) => (k === 'moza' || k === 'bailarina' || empleadosNegocioJuego?.deTurno(k) ? null"), 'el club de lectura y la noche de estrellas no se la llevan de la barra');
 }
 
 // ---------------------------------------------------------------- 4. la carta

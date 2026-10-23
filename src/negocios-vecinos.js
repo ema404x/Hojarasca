@@ -48,6 +48,10 @@ export const NEGOCIOS = Object.freeze({
 export const IDS_NEGOCIOS = Object.freeze(Object.keys(NEGOCIOS));
 export const hayNegocio = (id) => typeof id === 'string' && Object.hasOwn(NEGOCIOS, id);
 // «tuyo» o «tuya», según el negocio (la panadería es tuya; el almacén, tuyo)
+// 4.10.1: «de» + un nombre con artículo: «de la panadería», «del almacén» (antes salía «de el almacén»)
+export const deNegocio = (texto) => String(texto).replace(/^el /, 'del ').replace(/^(?!del )/, 'de ');
+// 4.10.1: «lo» o «la» para el negocio («al comprarlo», «al comprarla»)
+export const loDe = (id) => (/^la /.test(NEGOCIOS[id]?.corto || '') ? 'la' : 'lo');
 export const tuyoDe = (id) => (/^la /.test(NEGOCIOS[id]?.corto || '') ? 'tuya' : 'tuyo');
 export const negocioDeVecino = (clave) => IDS_NEGOCIOS.find((id) => NEGOCIOS[id].vecino === clave) || null;
 // el vecino con el que se habla de negocios en general (no tiene uno propio: te cuenta lo que sabe)
@@ -305,7 +309,7 @@ export function comprar(p, id, ctx = {}) {
   const r = pagar(p, v.precio, `Compraste ${N.nombre}`, N.dueno);
   if (!r.ok) return { ok: false, motivo: 'dinero', faltan: r.faltan || 0 };
   let cajaSocio = 0;
-  if (e.socios[id]) { cajaSocio = e.socios[id].caja; delete e.socios[id]; if (cajaSocio > 0) cobrar(p, cajaSocio, `Tu parte de ${N.nombre}, al comprarla`, N.dueno); }
+  if (e.socios[id]) { cajaSocio = e.socios[id].caja; delete e.socios[id]; if (cajaSocio > 0) cobrar(p, cajaSocio, `Tu parte ${deNegocio(N.nombre)}, al comprar${loDe(id)}`, N.dueno); }
   e.comprados[id] = {
     desde: dia, pagado: v.precio + v.credito, destino: v.reaccion.destino || 'queda', orden: ++e.orden, visita: dia, bono: ctx.compadre && v.reaccion.destino === 'queda' ? COMPRA.bonoCompadre : 1,
     caja: 0, total: 0, perdido: 0, mala: 0, ultimo: null,
@@ -335,7 +339,7 @@ export function retirarCaja(p, id, dia) {
   const propio = !!e.comprados[id];
   if (propio) n.visita = Math.max(n.visita, d);
   if (!(n.caja > 0)) return { ok: false, monto: 0, motivo: 'vacia' };
-  const r = cobrar(p, n.caja, propio ? `Caja de ${N.nombre}` : `Tu parte de ${N.nombre}`, N.dueno);
+  const r = cobrar(p, n.caja, propio ? `Caja ${deNegocio(N.nombre)}` : `Tu parte ${deNegocio(N.nombre)}`, N.dueno);
   if (!r.ok) return { ok: false, monto: 0, motivo: 'techo' };
   n.caja -= r.monto;
   e.total.cobrado += r.monto;
@@ -475,7 +479,7 @@ export function cerrarSociedad(p, id, dia) {
   const N = NEGOCIOS[id], d = dia1(dia ?? p.dia);
   const devuelto = Math.round(devolucionDe(s, d)), caja = s.caja;
   const total = devuelto + caja;
-  if (total > 0) cobrar(p, total, `Te retiraste de la sociedad de ${N.nombre}`, N.dueno);
+  if (total > 0) cobrar(p, total, `Te retiraste de la sociedad ${deNegocio(N.nombre)}`, N.dueno);
   e.total.devuelto += devuelto; e.total.cobrado += caja;
   anotar(e, d, 'retiro', id, total);
   delete e.socios[id];
@@ -530,7 +534,7 @@ export function vender(p, id, ctx = {}) {
   const e = asegurarNegociosVecinos(p), N = NEGOCIOS[id], dia = dia1(ctx.dia ?? p.dia), n = e.comprados[id];
   let cajaCobrada = 0;
   if (n.caja > 0) {
-    const c = cobrar(p, n.caja, `Caja de ${N.nombre}, al venderlo`, N.dueno);
+    const c = cobrar(p, n.caja, `Caja ${deNegocio(N.nombre)}, al venderlo`, N.dueno);
     if (c.ok) { cajaCobrada = c.monto; e.total.cobrado += c.monto; }
   }
   const r = cobrar(p, v.precio, `Vendiste ${N.nombre}`, N.dueno);
