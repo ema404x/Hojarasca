@@ -170,7 +170,7 @@ export function crearAldeaMundo(T, escena, ctx) {
   function botonTrampa(caja, n, el, aqui) {
     if (!n.lado || !hayTrampa()) return;
     const falta = ctx.cuanto('tabla') < 2 ? 'tablas' : ctx.cuanto('miel') < 1 ? 'un frasco de miel' : null;
-    const b = el('button', '', falta ? `Para una trampa de miel te faltan ${falta}` : `Armar una trampa de miel en el camino de ${n.lado.nombre}`);
+    const b = el('button', 'boton-lamina', falta ? `Para una trampa de miel te faltan ${falta}` : `Armar una trampa de miel en el camino de ${n.lado.nombre}`);
     b.disabled = !aqui || !!falta;
     b.addEventListener('click', () => { ponerTrampa(n.lado); ctx.redibujar(); });
     caja.appendChild(b);
@@ -222,7 +222,7 @@ export function crearAldeaMundo(T, escena, ctx) {
         const horas = Math.max(1, Math.round(quedaHoras(ped, p.dia, p.horas)));
         caja.appendChild(el('p', 'pista', `Hasta que salgan los duendes (quedan unas ${horas} ${horas === 1 ? 'hora' : 'horas'}). Lo que entregás no vuelve: también serviría para defender.`));
         const r = puedeEntregar(d.aldea, k, (c) => ctx.cuanto(c), p.dia, p.horas);
-        const b = el('button', '', r.ok ? 'Entregar' : r.razon === 'falta' ? `Te falta ${textoCosas(r.falta)}` : 'Entregar');
+        const b = el('button', 'boton-lamina', r.ok ? 'Entregar' : r.razon === 'falta' ? `Te falta ${textoCosas(r.falta)}` : 'Entregar');
         b.disabled = !aqui || !r.ok;
         b.addEventListener('click', () => { entregarPedido(k); ctx.redibujar(); });
         caja.appendChild(b);

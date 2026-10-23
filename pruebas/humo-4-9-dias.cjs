@@ -89,7 +89,7 @@ app.whenReady().then(async () => {
     ok(await js(`${H}.__caidas.modo()`) === 'cuaderno', 'la E junto al tablón abre el cuaderno');
     const pestana = await js(`(document.querySelector('#cuaderno-lista [role=tab][aria-selected=true]') || {}).textContent`);
     ok(pestana === 'La aldea', `en la pestaña «La aldea» (${pestana})`);
-    const texto = await js(`document.getElementById('cuaderno-ficha').innerText`);
+    const texto = await js(`document.getElementById('cuaderno-lista').innerText + ' ' + document.getElementById('cuaderno-ficha').innerText`);
     ok(/Pedidos de la aldea/.test(texto) && /Anselmo/.test(texto) && /Herminia/.test(texto) && /Martín/.test(texto) && /chicos/i.test(texto), 'los pedidos de los cuatro vecinos');
     ok(/Pide \d+/.test(texto) && /Hasta que salgan los duendes/.test(texto), 'con lo que cuesta y el plazo');
     ok(/La noche que viene/.test(texto) && /Todavía no se sabe|Noche|Sale un mandamás|Despierta/.test(texto), 'y la noche que viene');
@@ -109,7 +109,7 @@ app.whenReady().then(async () => {
     let costo = 0;
     for (const [k, n] of Object.entries(antes.p.pide)) costo += (antes.m[k] || 0) - (despues.m[k] || 0) - ((antes.p.regalo || {})[k] || 0) === n ? 1 : 0;
     ok(costo === Object.keys(antes.p.pide).length, `se cobró lo pedido (${JSON.stringify(antes.p.pide)})`);
-    ok(await js(`document.getElementById('cuaderno-ficha').innerText`).then((t) => /ayuda 1 de 2/.test(t)), 'el cuaderno se redibuja con la ayuda nueva');
+    ok(await js(`document.getElementById('cuaderno-lista').innerText + ' ' + document.getElementById('cuaderno-ficha').innerText`).then((t) => /ayuda 1 de 2/.test(t)), 'el cuaderno se redibuja con la ayuda nueva');
     await foto('cuaderno-tras-entregar');
     // el resto, entregando (los que se puedan)
     await js(`(()=>{ for (let i = 0; i < 3; i++) { const b = [...document.querySelectorAll('#cuaderno-ficha button')].filter(x => x.textContent === 'Entregar' && !x.disabled); if (b[0]) b[0].click(); } return 1 })()`);
@@ -125,7 +125,7 @@ app.whenReady().then(async () => {
     await sim(1.2);
     await tecla('KeyE');
     await esperar(700);
-    let t2 = await js(`document.getElementById('cuaderno-ficha').innerText`);
+    let t2 = await js(`document.getElementById('cuaderno-lista').innerText + ' ' + document.getElementById('cuaderno-ficha').innerText`);
     ok(/Van a entrar del lado|Van a entrar/.test(t2), 'a las cuatro de la tarde el perro dice por dónde entran');
     const quedo = await js(`${H}.desafio.aldeaMundo.pronostico()`).then((p) => JSON.stringify(p.noches[0].lado));
     ok(/"id":"(rio|monte|camino)"/.test(quedo), `el lado anticipado: ${quedo.slice(0, 80)}`);

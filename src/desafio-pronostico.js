@@ -88,7 +88,7 @@ export function armarPronostico(c) {
     const lado = sabeLado ? ladoAnticipado(d, c.plan?.() ?? null, base, n.n) : null;
     const nombre = sabeTipo ? nombreDeLaNoche(n) : null;
     const partes = [];
-    if (sabeTipo) partes.push(`${nombre}${n.tipo === 'comun' || n.tipo === 'calma' ? '' : `: ${consejoCorto(n)}`}`);
+    if (sabeTipo) partes.push(nombre);
     else partes.push('Todavía no se sabe cómo viene. Se sabrá una hora antes de que salgan (con una radio o la estación meteorológica, desde la mañana)');
     if (n.tipo !== 'calma') {
       if (lado && !c.hayBlanco) partes.push(`Van a entrar ${lado.de}, a unos ${lado.distancia} m de la base`);
@@ -103,9 +103,4 @@ export function armarPronostico(c) {
   const primera = noches.find((n) => n.lado && n.n === (lista[0]?.n));
   const marca = primera && primera.lado ? { x: primera.lado.x, z: primera.lado.z, nombre: `Por acá entrarían los duendes (${primera.lado.nombre})`, exacto: primera.lado.exacto } : null;
   return { saber, noches, marca };
-}
-// el consejo de una noche especial, sin el punto final (va después de «Nombre: »)
-function consejoCorto(n) {
-  const t = CONSEJO_NOCHE[n.tipo] || '';
-  return t.charAt(0).toLowerCase() + t.slice(1);
 }

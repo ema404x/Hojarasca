@@ -46,8 +46,8 @@ export function nivelAyuda(d, clave) {
 // ---------------------------------------------------------------- los vecinos y lo que piden
 export const VECINOS = {
   anselmo: { nombre: 'Anselmo', quien: 'el carpintero', hace: 'arregla las defensas rotas', desde: 1 },
-  herminia: { nombre: 'La abuela Herminia', quien: 'la abuela', hace: 'prende faroles y fogones que espantan a los viejos', desde: 2 },
-  chicos: { nombre: 'Los chicos', quien: 'los chicos de la aldea', hace: 'tiran piedras con la honda desde la empalizada', desde: 2 },
+  herminia: { nombre: 'La abuela Herminia', quien: 'la de los faroles', hace: 'prende faroles y fogones que espantan a los viejos', desde: 2 },
+  chicos: { nombre: 'Los chicos', quien: 'los de las hondas', hace: 'tiran piedras con la honda desde la empalizada', desde: 2 },
   martin: { nombre: 'Martín', quien: 'el de la trochita', hace: 'pasa con la trochita tocando el silbato', desde: 3 },
 };
 // Desde cuántas noches resistidas (`d.oleadas`) cada vecino empieza a pedir.
