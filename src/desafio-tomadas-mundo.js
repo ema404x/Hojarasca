@@ -202,13 +202,13 @@ export function crearTomadasMundo(T, escena, a) {
     const R = TOMADAS.radio;
     const tinte = new THREE.Mesh(fundirGeos([...[1, 0.85, 0.7, 0.55, 0.4].map((f) => disco(z, R * f, 0)), ...[0.96, 0.76, 0.56].map((f) => disco(z, R * f, 0.6))]), matCapa('#14101c', 0.14));
     tinte.renderOrder = 1;
-    // la bruma baja (gris verdosa, dos capas) y unas columnas de esporas que se ven de lejos
+    // la bruma baja (gris verdosa, cuatro capas) y unas columnas de esporas que se ven de lejos
     const cols = [];
     for (let k = 0; k < 4; k++) {
       const an = k * 1.7 + 0.6, r = 3 + k * 2.3, cx = Math.cos(an) * r, cz = Math.sin(an) * r;
       for (const c of columna(cx, cz, 5.5 + k, 0.9 + (k % 2) * 0.4, k * 2.1)) { const P = c.attributes.position, dy = T.altura(z.x + cx, z.z + cz) - T.altura(z.x, z.z); for (let q = 0; q < P.count; q++) P.setY(q, P.getY(q) + dy); cols.push(c); }
     }
-    const bruma = new THREE.Mesh(fundirGeos([disco(z, R * 1.1, 1.3), disco(z, R * 0.8, 1.3), ...cols]), matCapa('#9aa59c', 0.17));
+    const bruma = new THREE.Mesh(fundirGeos([...[1.1, 0.92, 0.74, 0.56].map((f) => disco(z, R * f, 1.3)), ...cols]), matCapa('#9aa59c', 0.12));
     bruma.renderOrder = 2;
     const h = new THREE.Mesh(hongos(z, z.x * 7 + z.z * 3), new THREE.MeshBasicMaterial({ vertexColors: true }));
     h.frustumCulled = true;
@@ -232,7 +232,7 @@ export function crearTomadasMundo(T, escena, a) {
       s.g.visible = s.k > 0.01 && !lejos;
       if (!s.g.visible) continue;
       s.tinte.material.opacity = 0.045 + s.k * 0.09;
-      s.bruma.material.opacity = (0.07 + s.k * 0.13) * (0.85 + Math.sin(t * 0.6 + z.x) * 0.15);
+      s.bruma.material.opacity = (0.05 + s.k * 0.09) * (0.85 + Math.sin(t * 0.6 + z.x) * 0.15);
       s.bruma.rotation.y = t * 0.03 + z.z;
       const n = Math.max(1, Math.round(s.k * s.hongos.geometry.userData.N));
       s.hongos.geometry.setDrawRange(0, n * s.hongos.geometry.userData.porHongo);

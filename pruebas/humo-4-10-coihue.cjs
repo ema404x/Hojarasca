@@ -96,6 +96,10 @@ app.whenReady().then(async () => {
 
   // un lugar para poner la cámara a ~`r` m de (cx, cz): libre de troncos y rocas en un metro a la redonda y en seco
   const sitioLibre = (cx, cz, r, desde = 0) => js(`(()=>{const H=${H}; for (const d of [${r}, ${r} + 1.2, ${r} - 1, ${r} + 3]) for (let k=0;k<16;k++){ const a=(${desde})+k/16*6.283, x=(${cx})+Math.cos(a)*d, z=(${cz})+Math.sin(a)*d; if (H.T.agua(x,z)) continue; const q={x,y:H.T.altura(x,z),z}; H.col.resolver(q,1.0,1.9); if (Math.hypot(q.x-x,q.z-z)<0.01) return {x,z}; } return {x:(${cx})+${r},z:${cz}}})()`);
+  // lo mismo, pero que desde ahí se vea el centro (que el terreno no tape la línea: el lugar entero en la foto)
+  const sitioConVista = (cx, cz, r, desde = 0) => js(`(()=>{const H=${H}; const ojo=2.4, mira=1.6; for (const d of [${r}, ${r} + 2, ${r} - 3, ${r} + 5, ${r} - 6]) for (let k=0;k<24;k++){ const a=(${desde})+k/24*6.283, x=(${cx})+Math.cos(a)*d, z=(${cz})+Math.sin(a)*d; if (H.T.agua(x,z)) continue; const q={x,y:H.T.altura(x,z),z}; H.col.resolver(q,1.0,1.9); if (Math.hypot(q.x-x,q.z-z)>=0.01) continue;
+      const y0=H.T.altura(x,z)+ojo, y1=H.T.altura(${cx},${cz})+mira; let libre=true; for (let t=0.05;t<=0.95 && libre;t+=0.05){ const lx=x+((${cx})-x)*t, lz=z+((${cz})-z)*t, ly=y0+(y1-y0)*t; if (ly < H.T.altura(lx,lz)+0.4) libre=false; }
+      if (libre) return {x,z}; } return {x:(${cx})+${r},z:${cz}}})()`);
   try {
     donde = 'carga';
     await w.loadFile(url, { search: '?debug=1' });
@@ -130,7 +134,7 @@ app.whenReady().then(async () => {
       await js(`(()=>{const H=${H}; H.progreso.horas = 11.5; return 1})()`);
       const cb = await js(`(()=>{const c=${H}.desafio.centroBase(); return {x:c.x,z:c.z}})()`);
       const ang = Math.atan2(z.z - cb.z, z.x - cb.x);
-      const camP = await sitioLibre(z.x, z.z, 30, ang + Math.PI);
+      const camP = await sitioConVista(z.x, z.z, 26, ang + Math.PI);
       await pose({ x: camP.x, y: 2.4, z: camP.z }, { x: z.x, y: 1.6, z: z.z }, 60);
       await esperar(500);
       await foto('01-valle-tomado-nivel-1');
