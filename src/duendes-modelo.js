@@ -1198,22 +1198,26 @@ function armarRaicesCofre() {
     tela.push(pieza(deform(esfera(8, 6), (v) => { v.multiplyScalar(1 + 0.3 * ruido(v.x * 4 + i, v.y * 4, v.z * 4)); if (v.y < 0) v.y *= 0.4; }), M4([Math.sin(a) * d, 0.02, Math.cos(a) * d * 0.85], [0, r() * 6, 0], [0.07 + r() * 0.05, 0.05, 0.06 + r() * 0.05]), '#5e4632', { tela: 5, pintar: tierra }));
   }
   const pinta = (k) => (c, p, n) => { musgoEn(c, p, n, k, 2); if (p.y < 0.03) c.multiplyScalar(0.7); };   // (donde entra en la tierra, más oscura)
-  // las raíces del suelo: de abajo del cajón para afuera, ondulando y hundiéndose de a ratos
-  const NR = 9;
-  for (let i = 0; i < NR; i++) {
-    const a = (i / NR) * TAU + (r() - 0.5) * 0.4, largo = 0.7 + r() * 0.45, curva = (r() - 0.5) * 0.9;
+  // 4.8 (pulido): las raíces seguían leyéndose como patas (nueve arcos parejos, finos y casi negros, repartidos a igual
+  // distancia como una araña). Ahora son pocas, desparejas y juntas en dos o tres manojos, gruesas donde salen de abajo del cajón
+  // y medio enterradas (el centro del tubo a ras de la tierra, no encima): se ven como lomos de raíz que se hunden en el suelo, con
+  // sinuosidad de lado a lado y la punta bajo tierra; más claras y con musgo, para que no se pierdan contra el montículo.
+  const RAICES = [[0.35, 0.85, 0.28], [0.8, 0.5, -0.22], [1.25, 0.7, 0.2], [2.7, 0.95, -0.3], [3.2, 0.45, 0.18], [3.55, 0.78, 0.3], [4.9, 0.62, -0.25], [5.4, 0.4, 0.18]];   // [rumbo, largo, sinuosidad]
+  const RAD_RAIZ = [0.075, 0.062, 0.046, 0.031, 0.018, 0.008];
+  for (let i = 0; i < RAICES.length; i++) {
+    const [a, largo, curva] = RAICES[i];
     const pts = [];
     for (let k = 0; k <= 5; k++) {
-      const t = k / 5, aa = a + curva * t * t, d = 0.26 + t * largo;
-      // sale por debajo del cajón (de adentro del montículo) y va por el suelo, bajita, entrando y saliendo
-      const y = alturaMonte(d) + 0.016 + 0.014 * Math.sin(t * 7 + i) - 0.06 * sv(0.6, 1, t);   // (sobre la tierra; la punta, hundida)
+      const t = k / 5, aa = a + curva * Math.sin(t * Math.PI * 1.25) + 0.1 * Math.sin(t * 5.5 + i * 2.3), d = 0.2 + t * largo;
+      // a ras de la tierra (la mitad del tubo adentro), ondulando; la punta, hundida
+      const y = alturaMonte(d) - RAD_RAIZ[k] * 0.46 + 0.008 * Math.sin(t * 6.5 + i * 1.7) - 0.07 * sv(0.55, 1, t);
       pts.push([Math.sin(aa) * d, y, Math.cos(aa) * d * 0.8]);
     }
-    cort.push(raiz(pts, [0.05, 0.043, 0.033, 0.025, 0.017, 0.008], '#7a5a3e', { nudos: 0.012, pintar: pinta(0.6), tramos: 22, lados: 8 }));
-    // una raicilla de costado
-    if (i % 2 === 0) {
-      const p0 = pts[2], p1 = pts[3], b = a + (r() < 0.5 ? -1 : 1) * 0.9;
-      cort.push(raiz([p0, [p0[0] * 0.7 + p1[0] * 0.3 + Math.sin(b) * 0.12, 0.01, p0[2] * 0.7 + p1[2] * 0.3 + Math.cos(b) * 0.1], [p0[0] + Math.sin(b) * 0.3, -0.02, p0[2] + Math.cos(b) * 0.24]], [0.02, 0.012, 0.003], '#6e5038', { pintar: pinta(0.5), tramos: 10, lados: 6 }));
+    cort.push(raiz(pts, RAD_RAIZ, "#80603c", { nudos: 0.022, pintar: pinta(0.45), tramos: 24, lados: 8 }));
+    // una raicilla de costado (en las impares: no todas)
+    if (i % 2 === 1) {
+      const p0 = pts[2], p1 = pts[3], b = a + (curva > 0 ? -1 : 1) * 0.85;
+      cort.push(raiz([p0, [p0[0] * 0.7 + p1[0] * 0.3 + Math.sin(b) * 0.12, -0.005, p0[2] * 0.7 + p1[2] * 0.3 + Math.cos(b) * 0.1], [p0[0] + Math.sin(b) * 0.28, -0.03, p0[2] + Math.cos(b) * 0.22]], [0.024, 0.014, 0.004], '#82603f', { pintar: pinta(0.55), tramos: 10, lados: 6 }));
     }
   }
   // las que lo agarran: suben pegadas a las caras del cajón (a 2 cm de la madera), en diagonal

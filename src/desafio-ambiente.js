@@ -93,6 +93,7 @@ export function miedoDe(perfil, { fase = 'calma', f = 0, vivos = 0, tAtaque = 0,
 //   { k:'ojo', vida, dist }                  un par de ojos entre los árboles
 //   { k:'oirDuende', modo }                  se oye a un duende de verdad que todavía no se ve
 //   { k:'antorcha' }                         algo se lleva una antorcha
+//   { k:'pista' }                            de tarde, una pista del lado por donde van a entrar (sólo si el juego dice cuál: `e.hayLado`)
 // La lista que devuelve `paso` es la misma cada vez (se vacía en cada llamada): no se guarda.
 export function crearAgenda(perfil, azar = Math.random) {
   const sorteo = (r) => r[0] + azar() * (r[1] - r[0]);
@@ -105,6 +106,7 @@ export function crearAgenda(perfil, azar = Math.random) {
     proxRisita: perfil.risitas ? sorteo(perfil.risitas.cada) * 0.6 : Infinity,
     proxOjo: perfil.ojos ? perfil.ojos.desde : Infinity,
     proxOir: perfil.oirDuendes ? sorteo(perfil.oirDuendes.cada) : Infinity,
+    proxPista: 6 + azar() * 6,
   };
   const poner = (ev) => { salida.push(ev); A.eventos++; };
 
@@ -182,6 +184,12 @@ export function crearAgenda(perfil, azar = Math.random) {
         A.proxOir = sorteo(perfil.oirDuendes.cada);
         poner({ k: 'oirDuende', modo: azar() < 0.55 ? 'pasos' : azar() < 0.5 ? 'risa' : 'respiro' });
       }
+    }
+
+    // la pista de la tarde: en la previa (de un cuarto a tres cuartos), cada tanto el perro gruñe o suena algo del lado por donde van a entrar
+    if (previa && e.hayLado && !callado && (e.f ?? 0) > 0.2 && (e.f ?? 0) < 0.78) {
+      A.proxPista -= dt;
+      if (A.proxPista <= 0) { A.proxPista = 9 + azar() * 7; poner({ k: 'pista', perro: azar() < 0.55 }); }
     }
 
     // algo se lleva una antorcha: una vez, cuando el mundo dice que hay una lejos y fuera de la vista

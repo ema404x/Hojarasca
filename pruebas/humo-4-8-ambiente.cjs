@@ -134,6 +134,7 @@ app.whenReady().then(async () => {
     if (!tieneAmbiente) throw new Error('sin ambiente (¿es la versión anterior? usá HUMO_ESCENAS=pulido)');
     const sonando = await js(`(()=>{const so=${H}.sonido; return {ctx: !!so.ctx, estado: so.ctx && so.ctx.state, relax: !!so.relax}})()`);
     ok(sonando.ctx && !sonando.relax, `el motor de audio está andando (${JSON.stringify(sonando)})`);
+    await avanzar(0.2);   // (el primer cuadro esconde el dibujo de la carga)
     const clima0 = await js(`(()=>{const A=${H}.desafio.ambiente; return {niebla:A.clima.niebla, luna:A.clima.luna, extra:A.clima.extra, sombrasVisibles:A._sombras.visible, ojos:A.ojosVivos}})()`);
     ok(clima0.niebla === 0 && clima0.luna === 0 && clima0.extra === 0 && !clima0.sombrasVisibles && clima0.ojos === 0, `al arrancar no hay niebla, luna, sombras ni ojos (${JSON.stringify(clima0)})`);
 
@@ -421,6 +422,8 @@ app.whenReady().then(async () => {
       for (let i = 0; i < 4; i++) await js(`(()=>{const H=${H}; for(let k=0;k<20;k++){ H.progreso.desafio.salud=100; H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); } return 1})()`);
       await js(`${H}.progreso.horas = 10; 1`);
       await js(`(()=>{const H=${H}, E=H.desafio.eventos; for (const i of [0,1,2]) { const b = E.blancos().find(q=>q.ancla && q.i===i); if (b) E.herirNucleo(b, 99999); } for (const a of H.desafio.aliens) { a.estado='irse'; a.t=9; } for(let i=0;i<30;i++) H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return 1})()`);
+      await avanzar(2);
+      console.log("estado del asedio:", await js(`(()=>{const H=${H}, D=H.progreso.desafio; return JSON.stringify({asedio:!!D.asedio, activo:D.asedio&&D.asedio.activo, zonas:D.asedio&&D.asedio.zonas.map(z=>z.estado), nodriza:!!D.nodriza, nodrizaActiva:H.desafio.nodrizaActiva, oleadas:D.oleadas, horas:+H.progreso.horas.toFixed(2), caido:H.desafio.caido, salud:D.salud, vivos:D.vivos, especial:D.especial})})()`));
       const haz = await js(`${H}.desafio.asedio.hazAbierto()`);
       ok(haz, 'el haz del Coihue está abierto');
       if (haz) {
@@ -430,10 +433,12 @@ app.whenReady().then(async () => {
         ok(arena && arena.adentro, `se entra al corazón del Coihue (${JSON.stringify(arena)})`);
         if (arena) {
           for (const [nombre, o, a, fov] of [
-            ['rey-1-de-frente', { x: arena.x - 13, y: arena.y + 2.2, z: arena.z }, { x: arena.x, y: arena.y + 3.4, z: arena.z }, 58],
-            ['rey-2-de-cerca', { x: arena.x - 7.5, y: arena.y + 2.0, z: arena.z + 3.5 }, { x: arena.x, y: arena.y + 3.0, z: arena.z }, 60],
-            ['rey-3-de-costado', { x: arena.x, y: arena.y + 2.4, z: arena.z + 11 }, { x: arena.x, y: arena.y + 3.4, z: arena.z }, 58],
-            ['rey-4-brazos', { x: arena.x - 6, y: arena.y + 3.6, z: arena.z - 4 }, { x: arena.x + 0.5, y: arena.y + 3.6, z: arena.z + 2.5 }, 58],
+            // (la sala mide 27 m de radio, la puerta está a +x y el Rey, sentado en el centro, tiene la cabeza a unos 10 m)
+            ['rey-1-entero-desde-la-puerta', { x: arena.x + 23, y: arena.y + 1.7, z: arena.z }, { x: arena.x, y: arena.y + 7, z: arena.z }, 72],
+            ['rey-2-medio', { x: arena.x + 15, y: arena.y + 2.2, z: arena.z + 2 }, { x: arena.x, y: arena.y + 7.5, z: arena.z }, 62],
+            ['rey-3-de-costado', { x: arena.x, y: arena.y + 2.4, z: arena.z + 18 }, { x: arena.x, y: arena.y + 6.5, z: arena.z }, 62],
+            ['rey-4-la-cabeza', { x: arena.x + 12, y: arena.y + 5.5, z: arena.z + 3 }, { x: arena.x, y: arena.y + 10.5, z: arena.z }, 50],
+            ['rey-5-por-detras', { x: arena.x - 18, y: arena.y + 4, z: arena.z - 6 }, { x: arena.x, y: arena.y + 6.5, z: arena.z }, 62],
           ]) { await pose(o, a, fov); await esperar(1500); await foto(nombre); }
           await sinPose();
         }

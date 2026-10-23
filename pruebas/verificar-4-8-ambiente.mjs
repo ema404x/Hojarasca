@@ -163,6 +163,22 @@ function simular(tipo, { semilla = 7, previa = 75, ataque = 300, vivos = 3, cerc
   ok(A.miedoDe(null, { fase: 'ataque' }) === 0, 'sin perfil, nada');
 }
 
+// ============================================================ la pista de la tarde (el lado por donde entran)
+{
+  // sin lado (los ataques todavía no lo dicen), nada: es leer lo que no existe
+  const sin = simular('primera', { semilla: 11 });
+  ok(sin.de('pista').length === 0, 'si el juego no dice por qué lado entran, no hay pista');
+  // con lado: en la previa, entre un quinto y tres cuartos, cada tanto; nunca de noche ni en el silencio
+  const ag = A.crearAgenda(A.PERFILES.primera, crearAzar(4)), pistas = [];
+  let tt = 0;
+  for (let s = 0; s < 750; s++) { for (const x of ag.paso(0.1, { activo: true, fase: 'previa', f: s / 750, noche: 0.3, vivos: 0, cerca: 99, ojos: 0, hayLado: true })) if (x.k === 'pista') pistas.push({ ...x, f: s / 750 }); tt += 0.1; }
+  for (let s = 0; s < 600; s++) for (const x of ag.paso(0.1, { activo: true, fase: 'ataque', f: 1, noche: 1, vivos: 3, cerca: 40, ojos: 0, hayLado: true })) ok(x.k !== 'pista', 'de noche ya no hay pistas: salieron');
+  ok(pistas.length >= 3 && pistas.length <= 8, `de tarde hay unas pistas (${pistas.length} en la previa)`);
+  ok(pistas.every((p) => p.f > 0.19 && p.f < 0.8 && typeof p.perro === 'boolean'), 'entre un quinto y tres cuartos de la previa, con o sin el perro');
+  ok(pistas.some((p) => p.perro) && pistas.some((p) => !p.perro), 'a veces gruñe el perro y a veces suena algo del monte');
+  ok(pistas.every((p, i, l) => !i || p.f - l[i - 1].f > 0.1), 'espaciadas (nunca una atrás de otra)');
+}
+
 // ============================================================ ojos, mirada, niebla, luna y sombras
 {
   ok(A.brilloOjos(0, 10) === 0 && A.brilloOjos(10, 10) === 0 && A.brilloOjos(5, 10) > 0.5 && A.brilloOjos(5, 0) === 0, 'los ojos se abren de a poco y se cierran');
@@ -410,6 +426,7 @@ function sonidoFalso() {
   ok(/import \{ crearAmbienteMundo \} from '\.\/desafio-ambiente-mundo\.js';/.test(des) && /import \{ nocheEnCurso \} from '\.\/desafio-ambiente\.js';/.test(des), 'desafio.js importa el ambiente');
   ok(/const ambiente = crearAmbienteMundo\(\{/.test(des) && /const a = ambiente\.actualizar\(dtReal, e\);/.test(des) && /estadoMusica\.miedo = a\.miedo; estadoMusica\.avance = a\.avance; estadoMusica\.silencio = a\.silencio;/.test(des), 'se actualiza una vez por cuadro y le pasa miedo, avance y silencio a la música');
   ok(des.indexOf('ambiente.actualizar(dtReal, e)') < des.indexOf('musica.actualizar(dtReal, estadoMusica)'), 'antes de la música');
+  ok(/lado: \(\) => D\(\)\.ladoNoche \|\| null,/.test(des) && /perroPos: \(\) => ctx\.perroPos\?\.\(\) \|\| null,/.test(des), 'la pista de la tarde lee `D().ladoNoche` (si no existe, nada) y el perro de donde ya lo lee el juego');
   ok(/ambiente\.limpiar\(\);/.test(des) && /\n    ambiente,   \/\/ 4\.8 ambiente/.test(des), 'se limpia con el resto y main.js lo ve');
   ok(/const ambienteDesafio = desafio\?\.ambiente\?\.clima;/.test(main) && /cielo\.actualizar\(progreso\.horas, clima\.estado, cam, ambienteDesafio \? ambienteDesafio\.extra : 0, ambienteDesafio\)/.test(main), 'main.js le pasa al cielo la niebla y la luna llena del Desafío (en el Relax, nada)');
   ok(/\(desafio\?\.ambiente\?\.clima\.luna \?\? 0\) > 0\.02 \? 0\.5 : faseLunar/.test(main), 'la noche de luna llena, la luna está llena en el cielo');

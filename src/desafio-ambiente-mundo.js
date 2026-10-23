@@ -16,8 +16,8 @@ import { HORA_PREVIA, tipoDeNoche, perfilDe, crearAgenda, miedoDe, puntoA, rumbo
 const N_OJOS = 6, N_SOMBRAS = 8, COLOR_OJO = '#ff5a1c', BRASA = '#ffcf6a', PX_OJO = 18, PX_BRASA = 24, SEP_PX = 28;
 const limitar = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-// `ctx`: { T, escena, sonido, S, col, defensas, aliens() → lista viva, D() → estado de la partida, progreso() → { dia, horas }, nota(t, s),
-//          musica, centroBase() → { x, z } }
+// `ctx`: { T, escena, sonido, S, col, defensas, aliens() → lista viva, nota(t, s), musica, centroBase() → { x, z }, camara() → cámara,
+//          lado() → { id, x, z, rumbo } | null (el lado por donde entran esta noche, si los ataques lo dicen), perroPos() → { x, y, z } | null }
 export function crearAmbienteMundo(ctx) {
   const { T, escena, S, col, defensas, musica } = ctx;
   const sonido = ctx.sonido;
@@ -239,6 +239,29 @@ export function crearAmbienteMundo(ctx) {
     if (robo.t > 8) { robo.activo = false; brasa.visible = false; brasa.brillo = 0; }
   }
 
+  // ---------------------------------------------------------------- la pista de la tarde
+  // El perro gruñe (donde está el perro) o suena algo —una rama, una risita— del lado por donde van a entrar. Si el juego no dice el lado, nada.
+  function ladoDeEntrada(js) {
+    const l = ctx.lado?.();
+    if (!l) return null;
+    let x = Number(l.x), z = Number(l.z);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) {
+      if (!Number.isFinite(Number(l.rumbo))) return null;
+      const b = ctx.centroBase?.() || js.pos; x = b.x + Math.sin(l.rumbo) * 80; z = b.z + Math.cos(l.rumbo) * 80;
+    }
+    return { x, z };
+  }
+  function pistaDelLado(js, conPerro) {
+    const p = ladoDeEntrada(js);
+    if (!p) return;
+    const perro = conPerro ? ctx.perroPos?.() : null;
+    if (perro) { S.grunirPerro?.({ x: perro.x, y: perro.y ?? T.altura(perro.x, perro.z) + 0.5, z: perro.z }); return; }
+    // si está muy lejos para oírse, el sonido se acerca (a 70 m de vos, por el mismo rumbo)
+    const dx = p.x - js.pos.x, dz = p.z - js.pos.z, l = Math.hypot(dx, dz) || 1, k = Math.min(1, 70 / l);
+    const x = js.pos.x + dx * k, z = js.pos.z + dz * k;
+    if (Math.random() < 0.6) S.crujidoRama?.(posDe(x, z, 0.6), Math.random() < 0.3); else S.risa?.(posDe(x, z, 1.1), 'saltador');
+  }
+
   // ---------------------------------------------------------------- lo que pide el cronograma
   function elegirDuende(js, desde, hasta) {
     let n = 0, elegido = null;
@@ -277,6 +300,7 @@ export function crearAmbienteMundo(ctx) {
         else S.respiro?.(pos, a.tipo);
         break;
       }
+      case 'pista': pistaDelLado(js, ev.perro); break;
       case 'antorcha':
         // si en el momento no hay una que se pueda llevar, el cronograma lo vuelve a intentar con la próxima que se vea
         if (!llevarseAntorcha(js, mira)) { if (agenda) agenda.antorcha = false; antorchaCand = null; }
@@ -450,7 +474,7 @@ export function crearAmbienteMundo(ctx) {
     // el cronograma
     const f = e.fase === 'previa' ? limitar(e.horas - HORA_PREVIA, 0, 1) : (e.fase === 'ataque' ? 1 : 0);
     const eventos = agenda.paso(dt, {
-      activo: e.activo, fase: e.fase, f, noche: e.noche, vivos: nVivos, cerca, ojos: salida.ojos, antorchaLista: !!antorchaCand,
+      activo: e.activo, fase: e.fase, f, noche: e.noche, vivos: nVivos, cerca, ojos: salida.ojos, antorchaLista: !!antorchaCand, hayLado: !!ctx.lado?.(),
     });
     for (let i = 0; i < eventos.length; i++) atender(eventos[i], js, mira);
 
