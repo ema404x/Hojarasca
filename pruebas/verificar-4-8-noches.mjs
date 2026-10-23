@@ -57,6 +57,9 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   assert.equal(sanearDesafio({ especial: 'inventada' }).especial, null);
 }
 
+// 4.8 (junta): el enjambre (de la rama de ataques) va aparte y las noches especiales no lo multiplican
+const sinEnjambre = (l) => l.filter((t) => t !== 'enjambre');
+
 // niebla: acorta la vista (lo mismo que la lluvia), se oye antes, el perro avisa antes
 {
   const claro = efectoClima({}), nb = efectoClima({ niebla: 1 });
@@ -71,7 +74,7 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   assert.ok(N.hayNiebla('niebla', null, 3) && !N.hayNiebla(null, null, 3) && !N.hayNiebla('roja', null, 3));
   assert.ok(N.hayNiebla(null, { id: 'niebla', noche: 5 }, 5), 'la que baja a las dos');
   assert.ok(!N.hayNiebla(null, { id: 'niebla', noche: 4 }, 5), 'la de otra noche no cuenta');
-  const base = composicionOleada(8);
+  const base = sinEnjambre(composicionOleada(8));   // 4.8 (junta): el enjambre va aparte y las especiales no lo multiplican
   const lista = aplicarEspecial(base, 'niebla');
   assert.equal(lista.length, Math.round(base.length * ESPECIALES.niebla.cantidad));
 }
@@ -87,7 +90,7 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   assert.ok(DR.esNocheGrande({ noche: 6, especial: 'lunallena' }), 'es noche grande: hay viejos');
   assert.equal(DR.DUENDE_DE.bruto, 'grandote'); assert.ok(DR.SIEMPRE_VIEJOS.has('bruto'));
   for (const noche of [4, 7, 9, 12, 17]) {
-    const base = composicionOleada(noche);
+    const base = sinEnjambre(composicionOleada(noche));   // 4.8 (junta): el enjambre va aparte (lo prueba verificar-4-8-ataques)
     const brutos = (l) => l.filter((t) => t === 'bruto').length;
     const luna = aplicarEspecial(base, 'lunallena');
     assert.ok(brutos(luna) >= brutos(base.slice(0, luna.length)), `noche ${noche}: la luna trae por lo menos los mismos brutos`);
@@ -175,7 +178,9 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   // la primera noche: nada
   { const m = mundo({ d: { oleadas: 1 } }); m.f({ horas: 2.2 }); assert.equal(m.d.giro, null); }
   // refuerzos (azar 0 de los tres: el primero que cae es niebla; se fuerza por anterior)
-  { const m = mundo({ d: { giroAnterior: 'niebla' }, azar: 0.0 }); m.f({ horas: 2.2 });
+  // 4.8 (junta): el curandero ya existe en el juego (rama de ataques): este mundo de prueba no lo tiene
+  const sinCurandero = Object.fromEntries(Object.entries(R.TIPOS_ALIEN).filter(([k]) => k !== 'curandero'));
+  { const m = mundo({ d: { giroAnterior: 'niebla' }, azar: 0.0, tipos: sinCurandero }); m.f({ horas: 2.2 });
     assert.equal(m.d.giro?.id, 'refuerzos'); assert.equal(m.d.giro.noche, 6); assert.equal(m.d.giroAnterior, 'refuerzos');
     assert.equal(m.lanzadas.length, 1); assert.equal(m.lanzadas[0][1], false, 'refuerzos de la misma noche');
     assert.ok(m.lanzadas[0][0].length >= 2 && !m.lanzadas[0][0].includes('jefe') && !m.lanzadas[0][0].includes('curandero'), 'sin curandero si el juego todavía no lo tiene');
@@ -351,8 +356,7 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   const act = des.slice(des.indexOf('  function actualizar(dt, mundo) {'), des.indexOf('  function hayAtaque()'));
   assert.ok(!/efectoClima\(\{/.test(act), 'efectoClima no se llama con un objeto nuevo por cuadro');
   assert.ok(!/elegirGiro|aplicarCadena|efectoCadena/.test(act), 'ni el giro ni la cadena corren por cuadro');
-  // y no se tocó lo de los otros agentes
-  assert.ok(!/curandero|enjambre/.test(reglas), 'TIPOS_ALIEN no se tocó');
+  // 4.8 (junta): acá se comprobaba que esta rama no tocara lo de «ataques» (curandero, enjambre); ya está todo junto
 }
 
 console.log('4.8 noches: ok · niebla y luna llena (franjas, reglas, vista, oído, perro, viejos) · giros de las dos · cadena (escape, sin bajas, huidos, brecha) · guardado · 12 semillas x 30 noches');
