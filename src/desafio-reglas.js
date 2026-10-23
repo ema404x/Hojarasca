@@ -20,6 +20,8 @@ import { GIROS, NIEBLA, LUNALLENA, ESPECIAL_BASE, ESPECIAL_TOTAL, especialNueva,
 import { CURANDERO, ENJAMBRE, curanderosEnLaNoche, enjambreEnLaNoche } from './desafio-duendes-nuevos.js';
 // 4.8 ataques:
 import { sanearLadoNoche } from './desafio-lados.js';
+// 4.9 defensas: la miel de las trampas
+import { mielDelAlba, RECETAS_TRAMPAS } from './desafio-trampas.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -275,6 +277,7 @@ export const RECETAS = [
 ];
 // 2.5: las recetas del arsenal y sus dos categorías nuevas
 RECETAS.push(...RECETAS_ARSENAL);
+RECETAS.push(...RECETAS_TRAMPAS);   // 4.9 defensas: la miel de las trampas (y más abajo, el farol y la pala)
 for (const c of CATEGORIAS_ARSENAL) {
   const i = CATEGORIAS_TALLER.findIndex((x) => x.clave === c.despuesDe);
   CATEGORIAS_TALLER.splice(i < 0 ? CATEGORIAS_TALLER.length : i + 1, 0, { clave: c.clave, nombre: c.nombre });
@@ -381,6 +384,7 @@ export function suministrosDelAlba(noche, tieneArco) {
   if (tieneArco) caja.flechas = 4 + Math.min(8, n);
   if (n % 2 === 0) caja.emplastos = 1;
   if (n >= 3) caja.cristal = 1 + Math.floor(n / 3);
+  { const miel = mielDelAlba(n); if (miel > 0) caja.miel = miel; }   // 4.9 defensas: un frasco de miel las noches impares (dos desde la séptima)
   return caja;
 }
 
@@ -447,7 +451,7 @@ function dispRuina(v) {
 }
 // 3.8.1: lo de adentro del cofre del alba guardado: sólo lo que da `suministrosDelAlba`, en números (un
 // "3" de texto se pegaba como texto a los materiales al abrirlo: "03")
-const COSAS_CAJA = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos'];
+const COSAS_CAJA = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos', 'miel'];   // 4.9 defensas: y la miel de las trampas
 export function sanearContenidoCaja(c) {
   const r = {};
   for (const k of COSAS_CAJA) { const n = Math.floor(Number(c?.[k])); if (Number.isFinite(n) && n > 0) r[k] = Math.min(99, n); }

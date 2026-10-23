@@ -74,7 +74,7 @@ assert.deepEqual(s3.planos, ['faro']); assert.deepEqual(s3.companeros, ['ema']);
 assert.deepEqual(s3.nodriza.nucleos, [NUCLEO_VIDA, 0, 0]);
 for (const r of RECETAS) {
   assert.ok(r.id && r.nombre && r.texto, `receta incompleta ${r.id}`);
-  for (const k of Object.keys(r.pide)) assert.ok(['tronco', 'tabla', 'piedra', 'cristal', 'ramita', 'fruta'].includes(k), `recurso desconocido ${k} en ${r.id}`);
+  for (const k of Object.keys(r.pide)) assert.ok(['tronco', 'tabla', 'piedra', 'cristal', 'ramita', 'fruta', 'miel'].includes(k), `recurso desconocido ${k} en ${r.id}`);
 }
 assert.ok(RECETAS.find((r) => r.id === 'lanza') && RECETAS.find((r) => r.id === 'arco') && RECETAS.find((r) => r.id === 'reparar'));
 

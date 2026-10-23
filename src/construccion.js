@@ -37,6 +37,8 @@ import { PIEZAS_EXTERIORES } from './planos-exteriores.js';
 import { PLANOS_AMPLIAR, PIEZAS_AMPLIAR } from './planos-ampliar.js';
 import { registrarPreciosDePlano } from './obra-pesos.js';
 import { calce, zocalo, sueloMin } from './calces.js';
+// 4.9 defensas: la trampa de miel y el pasadizo de escape (ver planos-defensas-49.js)
+import { PIEZAS_DEFENSAS_49 } from './planos-defensas-49.js';
 
 const MADERA = '#6b5238';
 const MADERA_OSCURA = '#4a3b2c';
@@ -2264,6 +2266,7 @@ PIEZAS.push(...PIEZAS_OFICIOS);   // 4.2: los edificios de oficio propios (tambi
 PIEZAS.push(...PIEZAS_NEGOCIO);   // 4.3: los locales del negocio propio (cuestan pesos y se atienden con E)
 PIEZAS.push(...PIEZAS_ALMACEN, ...PIEZAS_EXTERIORES);   // 4.2: el almacenaje con tope y la huerta, la granja y los exteriores
 PIEZAS.push(...PIEZAS_AMPLIAR);   // 4.2: el gran hogar, la pared de piedra y el techo de teja (ver planos-ampliar.js)
+PIEZAS.push(...PIEZAS_DEFENSAS_49);   // 4.9 defensas: la trampa de miel y el pasadizo de escape
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,
@@ -2992,6 +2995,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // terreno de abajo. Para el resto se despeja según la huella real.
     if (plano.pieza && datos.y > T.altura(datos.x, datos.z) + 0.12) return;
     veg.despejar(datos.x, datos.z, plano.pieza ? Math.max(0.8, plano.radio * 0.72) : plano.radio + 1.5);
+    // 4.9 defensas: lo que la pieza ocupa lejos de su centro (la boca de afuera del pasadizo) se despeja igual
+    for (const e of plano.despejaExtra || []) { const q = mundoDesdeLocal(datos.x, datos.z, datos.rot || 0, e.lx, e.lz); veg.despejar(q.x, q.z, e.r); }
   }
 
   function colocar(datos) {
@@ -3100,6 +3105,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (P.fisica) unaVez(obra, 'pieza-' + id, () => P.fisica({
       segmento: (ax, az, bx, bz, r, y0, y1) => segmentoLocal(obra, ax, az, bx, bz, r, y0, y1),
       circulo: (lx, lz, r, y0, y1) => circuloLocal(obra, lx, lz, r, y0, y1),
+      suelo: (lx, lz) => { const q = localMundo(obra, lx, lz); return T.altura(q.x, q.z) - obra.datos.y; },   // 4.9 defensas: el terreno bajo un punto de la pieza, desde su pie
       plataforma: (lx, lz, largo, ancho, alto, espesor, escalon, extra) => plataformaLocal(obra, lx, lz, largo, ancho, alto, espesor, escalon, extra),
     }));
     if (id === 'banco') unaVez(obra, 'pieza-banco', () => segmentoLocal(obra, -0.85, 0, 0.85, 0, 0.23, 0.10, 0.78));

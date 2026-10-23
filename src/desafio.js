@@ -29,6 +29,8 @@ import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logr
 import { crearAliados } from './desafio-aliados.js';
 import { crearArsenalMundo } from './desafio-arsenal-mundo.js';
 import { crearFortinMundo } from './desafio-fortin-mundo.js';
+// 4.9 defensas: lo roto, la miel, el pasadizo, el farol y las brasas
+import { crearDefensas49 } from './desafio-defensas49-juego.js';
 import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION, RECUPERABLES } from './desafio-arsenal.js';
 import { crearCimientos } from './desafio-cimiento.js';
 import { crearDefensasActivas } from './desafio-defensas.js';
@@ -482,7 +484,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.blancos = () => eventos.blancos();
   api.herirBlanco = (n, dano) => eventos.herirNucleo(n, dano);
   api.alturaSuelo = (x, z) => alturaSuelo(x, z);
+  api.invulnerable = (s) => { invulnerable = Math.max(invulnerable, s); };   // 4.9 defensas: unos segundos sin que te peguen (al salir del pasadizo)
   fortin = crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas);
+  // 4.9 defensas: lo roto que se ve, la trampa de miel, el pasadizo, el farol de mano y la pala de brasas (ver desafio-defensas49-juego.js)
+  const defensas49 = crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api);
   // 3.0: el asedio final y la pelea adentro de la nave (ver desafio-asedio*.js y
   // desafio-nave*.js). Las agujas y los puntos débiles de la Madre entran como blancos por
   // el mismo camino que los núcleos y el nido: todas las armas ya les pegan.
@@ -896,6 +901,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.congeladoT = 0; a.mordido = 0; a.enFoso = null;
     a.fuegoT = 0; a.tLlama = 0; a.dudaT = 0; a.confusoT = 0; a.tRumboConfuso = 0; a.rumboConfuso = 0; a.arrastre = null;   // 2.5
     a.colgadoT = 0; a.encandilado = 0; a.tCerco = 0;   // 2.6
+    defensas49.limpiarAlien(a);   // 4.9 defensas: el pegado en la miel y el ahuyentado de la vida anterior
     a.enNave = false; a.guardiaAsedio = false;   // 3.0: la cría de adentro de la nave y la guardia de una aguja
     // 2.6.1: el volador reciclado seguía yendo a la antorcha (o subiendo) de su vida anterior
     a.subiendo = 0; a.blanco = null; a.tBlanco = 0; a.golpeT = 0; a.reflejo = 0; a.enHaz = false;
@@ -1796,6 +1802,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       for (const [k, n] of Object.entries(CIMIENTO.pide)) if (ctx.cuanto(k) < n) return { ok: false, motivo: 'falta juntar', obra: o };
       return { ok: true, obra: o };
     }
+    // 4.9 defensas: echar miel en la trampa de miel más cercana
+    if (r.mielTrampa) {
+      const o = defensas49.trampas.trampaAReponer(ctx.jugador().estado.pos);
+      if (!o) return { ok: false, motivo: 'acercate a una trampa de miel que necesite miel' };
+      if (ctx.cuanto('miel') < 1) return { ok: false, motivo: 'falta un frasco de miel', obra: o };
+      return { ok: true, obra: o };
+    }
     for (const [k, n] of Object.entries(r.pide)) if (ctx.cuanto(k) < n) return { ok: false, motivo: 'falta juntar' };
     return { ok: true };
   }
@@ -1813,9 +1826,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     return mejor;
   }
-  const NOMBRE = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas', ramita: 'ramitas', fruta: 'frutas del bosque' };
+  const NOMBRE = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas', ramita: 'ramitas', fruta: 'frutas del bosque', miel: 'frascos de miel' };   // 4.9 defensas: y la miel
   // 3.8.6: y de a uno («1 piedras»)
-  const NOMBRE_UNO = { tronco: 'tronco', tabla: 'tabla', piedra: 'piedra', cristal: 'semilla dorada', ramita: 'ramita', fruta: 'fruta del bosque' };
+  const NOMBRE_UNO = { tronco: 'tronco', tabla: 'tabla', piedra: 'piedra', cristal: 'semilla dorada', ramita: 'ramita', fruta: 'fruta del bosque', miel: 'frasco de miel' };   // 4.9 defensas
   const textoPide = (pide) => Object.entries(pide).map(([k, n]) => `${n} ${(n === 1 ? NOMBRE_UNO[k] : NOMBRE[k]) || k} (tenés ${ctx.cuanto(k)})`).join(' · ');
   function dibujarTaller() {
     if (!tallerEl) return;
@@ -1838,6 +1851,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const b = document.createElement('b'); b.textContent = `${i + 1}. ${r.nombre}`;
       const s = document.createElement('span');
       if (r.reparar) s.textContent = e.costo ? `— ${e.costo.cantidad} ${NOMBRE[e.costo.material]}` : `— ${r.texto}`;
+      else if (r.mielTrampa) s.textContent = e.obra ? `— ${e.obra.plano.nombre.toLowerCase()} · 1 frasco de miel (tenés ${ctx.cuanto('miel')})` : `— ${r.texto}`;   // 4.9 defensas
       else if (r.cimentar) s.textContent = e.obra ? `— ${e.obra.plano.nombre.toLowerCase()} · ${textoPide(CIMIENTO.pide)}` : `— ${r.texto}`;
       else if (r.reforzar) s.textContent = e.refuerzo ? `— ${e.obra.plano.nombre.toLowerCase()} → ${e.refuerzo.a.replace('-', ' ')} · ${textoPide(e.refuerzo.pide)}` : `— ${r.texto}`;
       else s.textContent = `— ${textoPide(r.pide)}`;
@@ -1849,7 +1863,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     });
     const d = D();
     // 2.5: la munición del arsenal, sólo la que tengas
-    const extra = [['virotes', 'virotes'], ['flechasFuego', 'incendiarias'], ['flechasCristal', 'doradas'], ['hachuelas', 'hachas'], ['jabalinas', 'jabalinas'], ['granadas', 'granadas'], ['humos', 'humos'], ['bengalas', 'bengalas']]
+    const extra = [['virotes', 'virotes'], ['flechasFuego', 'incendiarias'], ['flechasCristal', 'doradas'], ['hachuelas', 'hachas'], ['jabalinas', 'jabalinas'], ['granadas', 'granadas'], ['humos', 'humos'], ['bengalas', 'bengalas'], ['miel', 'frascos de miel'], ['brasas', 'brasas']]   // 4.9 defensas: y la miel y las brasas
       .filter(([k]) => d[k] > 0).map(([k, n]) => ` · ${n} ${d[k]}`).join('');
     document.getElementById('taller-intro').textContent = `Flechas ${d.flechas} · boleadoras ${d.boleadoras} · cargas ${d.cargas} · emplastos ${d.emplastos}${extra} · semillas doradas ${ctx.cuanto('cristal')} · piedras ${ctx.cuanto('piedra')}`;
   }
@@ -1881,6 +1895,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       efectos.polvo({ x: e.obra.datos.x, y: e.obra.datos.y + 1, z: e.obra.datos.z }, 12);
       ctx.alGuardarObras?.();
       ctx.nota(`${antes} → ${e.obra.plano.nombre}`, `Resistencia ${vidaMaxObra(e.obra.plano)}`, true);
+    } else if (r.mielTrampa) {   // 4.9 defensas
+      defensas49.trampas.reponer(e.obra);
     } else if (r.cimentar) {
       for (const [k, n] of Object.entries(CIMIENTO.pide)) ctx.gastar(k, n);
       e.obra.datos.cimiento = true;
@@ -2326,6 +2342,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // arsenal lo tenga quieto: el que duda por el cuerno arriba de los abrojos, se pincha.
     const ef = fortin.estadoAlien(a, dt, js);
     if (a.estado === 'morir') return;
+    // 4.9 defensas: pegado en la miel, ahuyentado por las brasas o por el farol (se suma a lo del fortín; ver desafio-defensas49-juego.js)
+    { const e49 = defensas49.estadoAlien(a, dt, js); ef.quieto = ef.quieto || e49.quieto; ef.sinAtaque = ef.sinAtaque || e49.sinAtaque; ef.vel *= e49.vel; if (e49.rumbo !== null && ef.rumbo === null) ef.rumbo = e49.rumbo; if (a.estado === 'morir') return; }
     if (quietoArsenal || ef.quieto) {
       poseAlien.dt = dt; poseAlien.jugador = js.pos; poseAlien.velocidad = 0; poseAlien.golpe = 0; poseAlien.ataca = false; poseAlien.carrera = false;
       poseAlien.apuntando = false; poseAlien.enredado = true; poseAlien.agazapado = false; poseAlien.noche = nocheNivel;
@@ -2997,6 +3015,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const NOMBRES = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', cristal: 'semillas doradas' };
     for (const [k, n] of Object.entries(c.contenido || {})) {
       if (NOMBRES[k]) { ctx.sumarMaterial(k, n); partes.push(`${n} ${NOMBRES[k]}`); }
+      else if (k === 'miel') { d.miel = Math.min(TOPE_MUNICION, (d.miel || 0) + n); partes.push(`${n} ${n === 1 ? 'frasco de miel' : 'frascos de miel'}`); }   // 4.9 defensas
       else if (k === 'flechas' || k === 'emplastos') { d[k] = (d[k] || 0) + n; partes.push(`${n} ${k === 'flechas' ? 'flechas' : n === 1 ? 'emplasto' : 'emplastos'}`); }
     }
     d.caja = null;
@@ -3612,6 +3631,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     actualizarProyectiles(dt, js);
     arsenal.actualizar(dt, js);
     fortin.actualizar(dt, js, nocheNivel);
+    defensas49.actualizar(dt, js, nocheNivel);   // 4.9 defensas
     actualizarCristales(dt, js);
     actualizarCaja(dt, js);
     mapaMundo.actualizar(dt, js);   // 3.0
@@ -3674,6 +3694,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     for (let i = proyectiles.length - 1; i >= 0; i--) { if (RECUPERABLES[proyectiles[i].tipo] && !proyectiles[i].terminado) arsenal.alTerminar(proyectiles[i], 'vida'); retirarProyectil(i); }
     arsenal.limpiar();
     fortin.limpiar();
+    defensas49.limpiar();   // 4.9 defensas
     puestos.limpiar();   // 3.0
     tensandoDesde = null;
     eventos.retirarNodriza();
@@ -3756,14 +3777,17 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get focos() { return focos; },
     get semilla() { return D().semilla; },
     // 2.6: el fortín también se usa con E (resina, catapulta, troncos, puente, lazo...)
-    usarCercaDe: (pos, dPuerta) => naveMundo.usarCerca(pos) || asedioMundo.usarCerca(pos) || usarCapulloCerca(pos) || usarZanjaCerca(pos) || puestos.usarCerca(pos) || fortin.usarCerca(pos, deNoche(), dPuerta) || mapaMundo.usarCerca(pos),
-    avisoCercaDe: (pos, dPuerta) => naveMundo.avisoCerca(pos) || asedioMundo.avisoCerca(pos) || avisoCapulloCerca(pos) || avisoZanjaCerca(pos) || puestos.avisoCerca(pos) || fortin.avisoCerca(pos, deNoche(), dPuerta) || mapaMundo.avisoCerca(pos),
+    usarCercaDe: (pos, dPuerta) => naveMundo.usarCerca(pos) || asedioMundo.usarCerca(pos) || defensas49.usarCerca(pos) || usarCapulloCerca(pos) || usarZanjaCerca(pos) || puestos.usarCerca(pos) || fortin.usarCerca(pos, deNoche(), dPuerta) || mapaMundo.usarCerca(pos),
+    avisoCercaDe: (pos, dPuerta) => naveMundo.avisoCerca(pos) || asedioMundo.avisoCerca(pos) || defensas49.avisoCerca(pos) || avisoCapulloCerca(pos) || avisoZanjaCerca(pos) || puestos.avisoCerca(pos) || fortin.avisoCerca(pos, deNoche(), dPuerta) || mapaMundo.avisoCerca(pos),
     // 3.0: la supervivencia sin fin y el mapa de la semilla (la base, los lugares, lo que se marca)
     get sinFin() { return D().sinFin; },
     mapaMundo,
     get baseMapa() { return baseMapa(); },
     get sitiosMapa() { return mapaMundo.marcas(); },
     get fortin() { return fortin; },
+    // 4.9 defensas: la trampa de miel puesta desde afuera (preparar la noche) y el resto de lo de esta tanda
+    colocarTrampaMiel: (x, z, opciones) => defensas49.colocarTrampaMiel(x, z, opciones),
+    get defensas49() { return defensas49; },
     // 3.0: los puestos (para el mapa: los que ya viste y siguen en pie) y lo que aprendieron
     get puestos() { return puestos.vistos; },
     puestosMundo: puestos, evolucion,

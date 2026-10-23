@@ -30,7 +30,7 @@ export const MEJORAS_ARSENAL = {
 export const RECUPERABLES = { hachuela: 'hachuelas', jabalina: 'jabalinas' };
 // Todos los contadores del Desafío que son munición (el taller los suma, el guardado
 // los sanea).
-export const MUNICIONES = ['virotes', 'flechasFuego', 'flechasCristal', 'hachuelas', 'jabalinas', 'granadas', 'humos', 'bengalas'];
+export const MUNICIONES = ['virotes', 'flechasFuego', 'flechasCristal', 'hachuelas', 'jabalinas', 'granadas', 'humos', 'bengalas', 'miel', 'brasas'];   // 4.9 defensas: los frascos de miel (trampa de miel) y las brasas cargadas en la pala
 export const TOPE_MUNICION = 99;
 
 // ---------------------------------------------------------------- flechas y carcaj

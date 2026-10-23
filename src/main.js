@@ -4250,6 +4250,7 @@ function tieneHacha() { return !!progreso.cosas?.hacha; }
 function tienePico() { return !!progreso.cosas?.pico; }   // 4.2: para picar piedra hace falta el pico (el hacha ya no alcanza)
 function material(k) { return progreso.materiales?.[k] || 0; }
 function sumarMaterial(k, n) {
+  if (k === 'miel' && desafio) { if (progreso.desafio) progreso.desafio.miel = Math.min(99, (progreso.desafio.miel || 0) + n); return; }   // 4.9 defensas: la miel del Desafío no es un material de obra
   progreso.materiales = progreso.materiales || {};
   progreso.materiales[k] = (progreso.materiales[k] || 0) + n;
 }
@@ -4289,12 +4290,14 @@ const CARGA_CTX = { cabeJuntar: (k, n) => cabeJuntar(k, n), cabeTrato: (da, q) =
 // ------- modo Desafío: recursos para fabricar, derrota y vuelta a la base
 const FRUTAS = ['pinon', 'calafate', 'frutilla'];
 function cuantoRecurso(k) {
+  if (k === 'miel' && desafio) return progreso.desafio?.miel || 0;   // 4.9 defensas: los frascos de miel del Desafío (trampa de miel)
   if (k === 'ramita') return progreso.ramitas || 0;
   if (k === 'fruta') return FRUTAS.reduce((s, f) => s + (progreso.entradas[f]?.cantidad || 0), 0);
   if (FRUTAS.includes(k)) return progreso.entradas[k]?.cantidad || 0;
   return material(k);
 }
 function gastarRecurso(k, n) {
+  if (k === 'miel' && desafio) { if (progreso.desafio) progreso.desafio.miel = Math.max(0, (progreso.desafio.miel || 0) - n); return; }   // 4.9 defensas
   if (k === 'ramita') { progreso.ramitas = Math.max(0, (progreso.ramitas || 0) - n); return; }
   if (k === 'fruta') {
     let falta = n;

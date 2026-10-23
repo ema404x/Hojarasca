@@ -578,6 +578,8 @@ export function armarMochila(progreso, estado) {
     if (C.humo) nuevas.push({ id: 'humo', nombre: 'Bombas de humo', icono: 'humo', cuenta: D.humos || '0', accion: 'arma', texto: 'Adentro del humo te pierden el rastro.' });
     if (C.bengala) nuevas.push({ id: 'bengala', nombre: 'Bengalas', icono: 'bengala', cuenta: D.bengalas || '0', accion: 'arma', texto: 'Iluminan medio minuto y dejan a la vista a los que haya cerca.' });
     if (C.cuerno) nuevas.push({ id: 'cuerno', nombre: 'Cuerno de guardia', icono: 'cuerno', accion: 'arma', texto: 'Llama a los compañeros; los de cerca dudan.' });
+    // 4.9 defensas: los frascos de miel de las trampas (el farol de mano y la pala de brasas se suman más abajo)
+    if (D.miel > 0) nuevas.push({ id: 'miel-frasco', nombre: 'Frascos de miel', icono: 'miel', cuenta: D.miel, texto: 'Para la trampa de miel: E junto a ella la deja llena. Vienen en el cofre del alba.' });
     const primero = [...armas, ...adelante.map((id) => ranuras.find((r) => r.id === id)).filter(Boolean), ...nuevas];
     return [...primero, ...ranuras.filter((r) => !primero.includes(r))];
   }
