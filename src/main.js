@@ -24,8 +24,8 @@ import { crearAves } from './aves.js';
 import { crearRenovales } from './renovales.js';
 import { crearRefugioVivo } from './refugiovivo.js';
 import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
-// 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js)
-import { ocupacion, capacidad, CASILLAS_ALFORJAS } from './carga.js';
+// 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js; ocupacion y capacidad vienen en la línea de 4.7 carga, más abajo)
+import { CASILLAS_ALFORJAS } from './carga.js';
 import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila, avisoMochilaLlena } from './carga-pantalla.js';
 import { crearEnMano, cristalComoSemillaEnMano } from './enmano.js';
 import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan, cantidadMaterial, textoFaltan } from './construccion.js';
