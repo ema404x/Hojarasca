@@ -352,7 +352,8 @@ for (const id of A.IDS_ALMACEN) ok(PLANO[id].texto.includes(A.textoCapacidad(id)
   const m = leer('src/main.js'), c = leer('src/construccion.js'), g = leer('src/guardado.js');
   const tiene = (t, msg) => ok(m.includes(t), msg);
   tiene("import { crearAlmacenJuego } from './almacen-juego.js';", 'main.js trae almacen-juego.js');
-  tiene('if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.aviso(o);', 'el aviso de la E de un almacén');
+  // 4.7 pantalla: al sacar, el aviso suma «En la mochila: n/m casillas» (antes: `return almacenJuego.aviso(o);` a secas)
+  tiene('if (almacenJuego.esAlmacen(o.plano.id)) { const t = almacenJuego.aviso(o); return /sacar/i.test(t) ? t + lineaMochilaVigente() : t; }', 'el aviso de la E de un almacén');
   tiene('if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.usar(o);', 'y la E');
   tiene('OBRAS_QUE_TRABAJAN.push(...almacenJuego.ids);', 'los almacenes son obras que se usan con E (con la misma prioridad que la leñera)');
   tiene('if (almacenJuego.esAlmacen(o.plano.id)) { almacenJuego.ampliar(o); return; }', 'mantener E amplía (4.4.2: ya no con Mayús, que es correr; y no con la tecla mantenida)');

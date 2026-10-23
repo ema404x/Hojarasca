@@ -206,7 +206,7 @@ const desafio = { modo: 'desafio', materiales: { tronco: 989 }, entradas: {}, co
   ok(main.includes("from './carga-pantalla.js'") && main.includes("from './carga.js'"), 'main.js importa el núcleo y la pantalla');
   for (const id of ['mochila-cabeza', 'mochila-contador', 'mochila-detalle', 'mochila-sobrecarga', 'mochila-casillas', 'mochila-herramientas', 'mochila-rejilla', 'carga-hud', 'aviso-llena']) ok(html.includes(`id="${id}"`), `la plantilla tiene #${id}`);
   ok(/\.mochila\.con-casillas \{[^}]*max-height: 94vh/.test(html), 'el panel con casillas cabe en la pantalla (94vh con scroll)');
-  ok(/#hud \.mochila \.cosa, #hud \.mochila \.casilla/.test(html), 'las casillas aceptan el ratón en el HUD');
+  ok(/#hud \.mochila \.casilla \{ pointer-events: auto; \}/.test(html), 'las casillas aceptan el ratón en el HUD');
   ok(/@media \(prefers-reduced-motion: reduce\) \{ \.aviso-llena/.test(html), 'el cartel respeta el movimiento reducido');
   // el HUD sólo se rehace cuando cambia (al redibujar la barra y al montar), nunca en un bloque por cuadro suelto
   ok(/anotarBarraDibujada\(\);\s*\n\s*refrescarCargaHud\(\);/.test(main), 'el indicador se rehace al redibujarse la barra (cuando cambió algo)');

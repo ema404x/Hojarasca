@@ -465,7 +465,8 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .charla-opciones { list-style: none; margin: 10px 0 0; padding: 0; }
 /* 3.6.2: el #hud no recibe el mouse; las listas que se eligen con un clic, sí (la barra, el almacén, la feria, las
    cargas, el taller, la mochila; el panel de obra ya lo tenía) */
-#hud .barra .ranura, #hud .trueque li, #hud .trueque button, #hud .mochila .cosa, #hud .mochila .casilla, #hud .mochila button { pointer-events: auto; }
+#hud .barra .ranura, #hud .trueque li, #hud .trueque button, #hud .mochila .cosa, #hud .mochila button { pointer-events: auto; }
+#hud .mochila .casilla { pointer-events: auto; }   /* 4.7 pantalla */
 #hud .barra .ranura, #hud .trueque li { cursor: pointer; }
 .charla-opciones li { padding: 4px 10px; margin: 1px 0; border-radius: 3px; font-size: 17px; line-height: 1.35; cursor: pointer; border-left: 3px solid transparent; pointer-events: auto; }
 /* 3.6.1: el HUD no recibe el mouse; las opciones sí (antes el clic no llegaba nunca) */
