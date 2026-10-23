@@ -103,6 +103,9 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.oleadas = 11; D.especial = null; D.companeros = []; D.ordenes = {}; D.puestosAliados = {}; H.progreso.dia = 12; H.progreso.horas = 19.7; D.oleadaNoche = null; D.oleadaTerminada = true; return 1 })()`);
     await sim(0.5);
     const gente0 = await js(`${H}.gente.gente.length`);
+    // los programas de shaders compilados hasta ahora (no tiene que haber ninguno nuevo cuando vengan los vecinos y se prendan los fuegos)
+    await js(`(()=>{ const H=${H}; for (let i = 0; i < 6; i++) H.__bucle(); return 1 })()`);
+    const programas0 = await js(`${H}.renderer.info.programs.length`);
     // se arman de a poco: unos ms por cuadro
     let presentes = [];
     for (let k = 0; k < 60 && presentes.length < 4; k++) { await sim(0.5); presentes = JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.presentes())`)); }
@@ -120,6 +123,10 @@ app.whenReady().then(async () => {
     const fuegos = JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.fuegosPrendidos())`));
     ok(fuegos.length === 2, `con el nivel de respaldo (1), Herminia prendió dos fuegos (${fuegos.map((f) => f.tipo + ' ' + f.radio.toFixed(1) + ' m').join(', ')})`);
     med.fuegos = fuegos;
+    await js(`(()=>{ const H=${H}, c = ${JSON.stringify(claro)}, f = H.desafio.vecinos.fuegosPrendidos()[0]; window.__cam = { o: [f.x + 5, c.y + 2, f.z + 5], a: [f.x, c.y + 0.5, f.z] }; window.__congelar = true; for (let i = 0; i < 8; i++) { H.desafio.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.__bucle(); } window.__cam = null; window.__congelar = false; return 1 })()`);
+    const programas1 = await js(`${H}.renderer.info.programs.length`);
+    ok(programas1 === programas0, `al venir los vecinos y prenderse los fuegos no se compila ningún shader nuevo (${programas0} → ${programas1})`);
+    med.programas = [programas0, programas1];
     // los viejos no se acercan a un fuego prendido; los traviesos sí
     // (adentro de la empalizada, sin paredes de por medio: un duende a 13 m del fogón, del otro lado del centro, va hacia vos, que estás junto al fuego;
     // el control es el mismo viaje con los fuegos apagados)
@@ -152,7 +159,7 @@ app.whenReady().then(async () => {
     // ---------------------------------------------------------------- Anselmo arregla
     const rotas = JSON.parse(await js(`(()=>{ const H=${H}, c = ${JSON.stringify(claro)}; H.jugador.estado.pos.set(c.x, H.T.altura(c.x, c.z) + 0.05, c.z);
       const o = H.obras.obras.filter(q => q.plano.id === 'empalizada').slice(0, 3); for (const q of o) q.datos.vida = 25; return JSON.stringify(o.map(q => ({ vida: q.datos.vida, max: q.plano.vida }))) })()`));
-    await sim(140);
+    await sim(200);
     const despues = JSON.parse(await js(`JSON.stringify(${H}.obras.obras.filter(q => q.plano.id === 'empalizada').slice(0, 3).map(q => Math.round(q.datos.vida)))`));
     ok(despues.every((v) => v >= 300), `Anselmo (y nadie más) arregló las tres rotas, una tras otra: ${rotas.map((r) => r.vida).join(',')} → ${despues.join(',')} de ${rotas[0].max}`);
 
@@ -265,9 +272,40 @@ app.whenReady().then(async () => {
     ok((await js(`${H}.desafio.vecinos.presentes().length`)) === 4, 'la segunda noche grande vuelven los mismos cuerpos (no se arman de nuevo)');
     ok((await js(`${H}.gente.gente.length`)) === gente0 + 4, 'sin figuras de más');
 
+    // ---------------------------------------------------------------- lo que cuesta: dibujos, triángulos y milisegundos de los vecinos (con los cuatro fuegos y los cuatro cuerpos a la vista)
+    {
+      const c = claro;
+      const contar = () => js(`(()=>{ const H=${H}, R = H.renderer, original = R.renderBufferDirect.bind(R); let n = 0, tri = 0;
+        window.__cam = { o: [${c.x} + 1, ${c.y} + 5.5, ${c.z} + 14], a: [${c.x}, ${c.y} + 0.6, ${c.z} - 2] }; window.__congelar = true;
+        for (let i = 0; i < 6; i++) { H.desafio.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.__bucle(); }
+        R.renderBufferDirect = function (cam, esc, geo, mat, obj, grupo) { if (!cam.isOrthographicCamera) { n++; tri += (geo.index ? geo.index.count : geo.attributes.position.count) / 3; } return original(cam, esc, geo, mat, obj, grupo); };
+        H.desafio.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.__bucle();
+        R.renderBufferDirect = original; window.__cam = null; window.__congelar = false;
+        return { n, tri: Math.round(tri) } })()`);
+      await js(`(()=>{ const H=${H}, D = H.progreso.desafio; H.progreso.horas = 22; D.oleadaNoche = H.progreso.dia; D.oleadaTerminada = true; return 1 })()`);
+      await sim(2);
+      const con = await contar();
+      const ms = await js(`(()=>{ const H=${H}, V = H.desafio.vecinos, js = H.jugador.estado; const t0 = performance.now(); for (let i = 0; i < 2000; i++) V.actualizar(0.016, js, true, 1); return (performance.now() - t0) / 2000 })()`);
+      await js(`(()=>{ const V = ${H}.desafio.vecinos; window.__vOrig = V.actualizar; V.limpiar(); V.actualizar = () => {}; return 1 })()`);
+      const sin = await contar();
+      await js(`${H}.desafio.vecinos.actualizar = window.__vOrig; 1`);
+      med.dibujos = { con: con.n, sin: sin.n, triCon: con.tri, triSin: sin.tri, vecinosMsPorCuadro: +ms.toFixed(4) };
+      console.log('  dibujos por cuadro (sin sombras): con los vecinos y los 2 fuegos', con.n, '· sin ellos', sin.n, '· triángulos', con.tri, 'contra', sin.tri, '· vecinos.actualizar', ms.toFixed(4), 'ms por cuadro');
+      ok(con.n - sin.n <= 40, `los vecinos suman ${con.n - sin.n} dibujos (4 cuerpos + 2 fuegos)`);
+      ok(ms < 0.2, `vecinos.actualizar cuesta ${ms.toFixed(4)} ms por cuadro`);
+      // de día o sin noche grande, no cuesta nada: nada a la vista y el cuadro sale casi vacío
+      await js(`(()=>{ const H=${H}; H.progreso.horas = 12; return 1 })()`);
+      await sim(1);
+      const dia = await js(`(()=>{ const H=${H}, V = H.desafio.vecinos, js = H.jugador.estado; const t0 = performance.now(); for (let i = 0; i < 20000; i++) V.actualizar(0.016, js, false, 0); return (performance.now() - t0) / 20000 })()`);
+      med.diaMs = +dia.toFixed(5);
+      ok(dia < 0.01, `de día vecinos.actualizar cuesta ${dia.toFixed(5)} ms por cuadro (nada)`);
+    }
+
     // ---------------------------------------------------------------- capturas
     if (CON_FOTOS) {
       fs.mkdirSync(salida, { recursive: true });
+      await js(`(()=>{ const H=${H}, D=H.progreso.desafio; H.progreso.horas = 19.7; H.progreso.dia++; D.oleadas++; D.oleadaNoche = null; D.oleadaTerminada = true; return 1 })()`);
+      await sim(50);
       const c = claro, yC = c.y;
       const pos = JSON.parse(await js(`JSON.stringify(Object.fromEntries(${H}.gente.gente.filter(g => g.claveAliado).map(g => [g.claveAliado, { x: g.pos.x, y: g.pos.y, z: g.pos.z }])))`));
       const fu = JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.fuegosPrendidos())`));
@@ -283,6 +321,38 @@ app.whenReady().then(async () => {
       await foto('fogon-de-noche', { o: [fu[0].x + 5, yC + 2.2, fu[0].z + 5], a: [fu[0].x, yC + 0.6, fu[0].z] });
       const o = JSON.parse(await js(`(()=>{ const o = ${H}.obras.obras.find(q => q.plano.id === 'campana'); return JSON.stringify(o ? { x: o.datos.x, y: o.datos.y, z: o.datos.z } : null) })()`));
       if (o) await foto('la-campana', { o: [o.x + 4.5, o.y + 2.2, o.z + 4.5], a: [o.x, o.y + 1.5, o.z] });
+    }
+
+    // ---------------------------------------------------------------- la partida: guardar, recargar y una partida vieja (sin puestos ni nivel de ayuda)
+    {
+      const recargar = async () => {
+        await w.loadFile(url, { search: '?debug=1' });
+        let ok2 = false;
+        for (let i = 0; i < 300 && !ok2; i++) { await esperar(1000); ok2 = await js('!!window.__hojarasca').catch(() => false); }
+        await js(`document.getElementById('btn-entrar').click(); 1`);
+        await esperar(3000);
+        await js(`${H}.ajustes.limiteFps = 'libre'; 1`);
+        return ok2;
+      };
+      await js(`(()=>{ const H=${H}, D = H.progreso.desafio; D.ordenes.anselmo = 'puesto'; D.puestosAliados.anselmo = { x: 12.5, z: -3.25 }; H.guardar(); return 1 })()`);
+      ok(await recargar(), 'la partida se vuelve a abrir');
+      const a = JSON.parse(await js(`JSON.stringify({ p: ${H}.progreso.desafio.puestosAliados, o: ${H}.progreso.desafio.ordenes })`));
+      ok(a.p && a.p.anselmo && a.p.anselmo.x === 12.5 && a.p.anselmo.z === -3.25 && a.o.anselmo === 'puesto', 'recargada: el puesto de Anselmo y su orden siguen ahí');
+      // una partida de la 4.8: sin puestosAliados ni aldea, con una orden que no existía. Se toca desde una página vacía (con el juego
+      // abierto, al cerrarse vuelve a guardar lo suyo encima).
+      fs.mkdirSync(salida, { recursive: true });
+      const vacia = path.join(salida, 'vacia.html');
+      fs.writeFileSync(vacia, '<!doctype html><meta charset="utf-8"><title>vacia</title>');
+      await w.loadFile(vacia);
+      const tocada = await js(`(()=>{ let n = 0; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i), v = localStorage.getItem(k); if (!v || v[0] !== '{' || !v.includes('"oleadas"')) continue;
+        const d = JSON.parse(v); if (!d.desafio) continue; delete d.desafio.puestosAliados; delete d.desafio.aldea; d.desafio.ordenes = { ramon: 'seguime', ema: 'volar', anselmo: 'puesto' }; localStorage.setItem(k, JSON.stringify(d)); n++; } return n })()`);
+      ok(tocada >= 1, 'se vuelve vieja la partida guardada (' + tocada + ')');
+      ok(await recargar(), 'la partida vieja se abre');
+      const b = JSON.parse(await js(`JSON.stringify({ p: ${H}.progreso.desafio.puestosAliados, o: ${H}.progreso.desafio.ordenes })`));
+      ok(b.p && Object.keys(b.p).length === 0, 'una partida vieja carga sin puestos marcados');
+      ok(b.o.ramon === 'seguime' && b.o.ema === undefined && b.o.anselmo === 'puesto', 'y con las órdenes que valen (las que no, se descartan): ' + JSON.stringify(b.o));
+      await sim(2);
+      ok(Array.isArray(JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.presentes())`))), 'y el juego anda con ella');
     }
 
     const err = await js(`(()=>{ const H=${H}; return (H.errores && H.errores.length) || 0 })()`);
