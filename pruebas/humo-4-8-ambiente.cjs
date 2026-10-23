@@ -389,7 +389,8 @@ app.whenReady().then(async () => {
     // ================================================================ 4. los animales que avisan
     if (ESCENAS.includes('fauna')) {
       donde = 'fauna';
-      await limpiarInvasores();
+      await js(`(()=>{const H=${H}; H.progreso.horas=22.5; H.progreso.desafio.especial=null; H.desafio.ambiente.especialDePrueba=null; return 1})()`); await avanzar(2); await limpiarInvasores();
+      console.log('fauna: estado', await js(`JSON.stringify({caido:${H}.desafio.caido, adentro:${H}.desafio.naveAdentro.adentro, puestos:${H}.desafio.ambiente.puestos.length, horas:${H}.progreso.horas})`));
       const info = await js(`(()=>{const A=${H}.desafio.ambiente; return A.puestos})()`);
       ok(Array.isArray(info) && info.length >= 4 && info.filter((p) => p.tipo === 'tero').length >= 1 && info.filter((p) => p.tipo === 'vaca').length >= 1, `hay puestos de fauna (${info.map((p) => p.tipo).join(',')})`);
       // un puesto de cada tipo: se acerca un duende y avisan
