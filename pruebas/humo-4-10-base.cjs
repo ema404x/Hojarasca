@@ -125,8 +125,8 @@ app.whenReady().then(async () => {
       for (const g of [0, 0.2, -0.2, 0.4, -0.4, 0.65, -0.65, 0.9, -0.9]) for (const k of [1, 0.85, 1.15]) {
         const c=Math.cos(g), s=Math.sin(g), x=a.x+(vx*c-vz*s)*k, z=a.z+(vx*s+vz*c)*k;
         if (H.T.agua(x,z)) continue; const q={x,y:H.T.altura(x,z),z}; H.col.resolver(q,0.9,1.8);
-        // y sin un tronco o una roca a menos de 1,8 m (con las ramas adelante no se ve nada)
-        let tapa = false; for (const c of H.col.cercanos(x, z)) { if (c.duenio || c.seg) continue; if (Math.hypot(c.x - x, c.z - z) < (c.r || 0.5) + 1.8) { tapa = true; break; } }
+        // y sin un tronco o una roca a menos de 2,6 m (con las ramas adelante no se ve nada)
+        let tapa = false; for (const c of H.col.cercanos(x, z)) { if (c.duenio || c.seg) continue; if (Math.hypot(c.x - x, c.z - z) < (c.r || 0.5) + 2.6) { tapa = true; break; } }
         if (!tapa && Math.hypot(q.x-x,q.z-z)<0.01) return {x, y:o.y, z, giro:g}; }
       return {x:o.x, y:o.y, z:o.z, giro:null}})()`);
     if (p.giro) console.log('  (' + nombre + ': la cámara se corrió ' + p.giro + ' rad para no quedar adentro de algo)');
@@ -231,6 +231,17 @@ app.whenReady().then(async () => {
       await ver('curtido-08-sin-placa-y-con-placa', { x: L.x - 3.5, y: 1.6, z: cy - 5 }, { x: L.x - 3.5, y: 1.4, z: cy }, 58);
       await ver('curtido-09-rasante', { x: L.x - 14, y: 0.6, z: cy - 2.4 }, { x: L.x + 4, y: 1.0, z: cy }, 70);
       await ver('curtido-10-desde-arriba', { x: L.x + 4, y: 14, z: cy - 9 }, { x: L.x + 4, y: 0, z: cy }, 55);
+      // el costo: llamadas de dibujo con y sin las placas (la misma vista) y lo que tarda el cuadro de la base
+      await pose({ x: L.x + 4, y: 2.4, z: cy - 12 }, { x: L.x + 4, y: 1.2, z: cy }, 62); await esperar(400);
+      const costo = await js(`(()=>{const H=${H}, B=H.desafio.baseCrece, R=H.renderer;
+        const mirar = () => { H.__bucle(); H.__bucle(); return { calls: R.info.render.calls, tris: R.info.render.triangles }; };
+        const con = mirar(); B.mejoras.limpiar(); const sin = mirar(); B.mejoras.actualizar(2); const otra = mirar();
+        const t0 = performance.now(); for (let i = 0; i < 3000; i++) B.actualizar(0.016); const us = (performance.now() - t0) / 3000 * 1000;
+        return { con, sin, otra, usPorCuadro: us, placas: H.obras.obras.filter(o => o.userCurtido).length }})()`);
+      console.log('costo de la base que crece:', JSON.stringify(costo));
+      ok(costo.con.calls - costo.sin.calls <= costo.placas && costo.otra.calls === costo.con.calls, `las placas suman a lo sumo una llamada de dibujo cada una (${costo.sin.calls} → ${costo.con.calls} con ${costo.placas} placas)`);
+      ok(costo.con.tris - costo.sin.tris < 3000, `y pocos triángulos (+${costo.con.tris - costo.sin.tris})`);
+      ok(costo.usPorCuadro < 50, `el cuadro de la base cuesta ${costo.usPorCuadro.toFixed(2)} µs`);
       await sinPose();
       // la pantalla de la base (N) con los niveles
       await tecla('KeyN');
@@ -260,7 +271,7 @@ app.whenReady().then(async () => {
       await limpiarInvasores();
       await js(`(()=>{const H=${H}, P=H.progreso; P.horas = 13; P.dia = 21; H.clima.estado.lluvia = 0; return 1})()`);
       await esperar(2500);
-      const tx = L.x + 30, tz = L.z + 36;
+      const tx = L.x + 4, tz = L.z + 26;   // (en la pradera de las defensas: el frente del tablero da a un claro, sin troncos adelante)
       const r = await ponerEn('tablero-trofeos', tx, tz, 0);
       ok(r.ok, `el tablero de trofeos se arma (${r.ok ? 'ok' : r.error})`);
       await avanzar(1.2, 0);
@@ -292,14 +303,14 @@ app.whenReady().then(async () => {
       ok(colgados.length === 7, `los siete colgados (${colgados.join(', ')})`);
       const bonos = await D('D.bonos.origen.trofeo');
       ok(bonos.saludMax === 10 && Math.abs(bonos.recarga - 0.06) < 1e-9 && Math.abs(bonos.alcance - 0.06) < 1e-9 && Math.abs(bonos.dano - 0.05) < 1e-9 && Math.abs(bonos.reparar - 0.15) < 1e-9 && Math.abs(bonos.correr - 0.04) < 1e-9, `los siete suman sus bonos: ${JSON.stringify(bonos)}`);
-      await ver('trofeos-03-los-siete', { x: tx, y: 1.7, z: tz - 5.2 }, { x: tx, y: 1.5, z: tz }, 55);
+      await ver('trofeos-03-los-siete', { x: tx - 1.2, y: 3.2, z: tz - 4.6 }, { x: tx, y: 1.5, z: tz }, 55);
       await ver('trofeos-04-fila-de-arriba', { x: tx - 0.3, y: 2.0, z: tz - 3.4 }, { x: tx, y: 1.95, z: tz }, 45);
       await ver('trofeos-05-fila-de-abajo', { x: tx - 0.2, y: 1.15, z: tz - 3.3 }, { x: tx, y: 1.05, z: tz }, 45);
       await ver('trofeos-06-corona-y-raiz', { x: tx + 0.3, y: 1.15, z: tz - 1.9 }, { x: tx + 0.3, y: 1.1, z: tz }, 38);
       await ver('trofeos-07-de-costado', { x: tx + 5, y: 1.3, z: tz - 2.6 }, { x: tx, y: 1.4, z: tz }, 58);
       await ver('trofeos-08-rasante', { x: tx - 6, y: 0.55, z: tz - 1.8 }, { x: tx, y: 0.9, z: tz }, 62);
       await ver('trofeos-09-desde-atras', { x: tx, y: 1.7, z: tz + 5 }, { x: tx, y: 1.5, z: tz }, 55);
-      await ver('trofeos-10-con-la-base', { x: tx - 9, y: 2.6, z: tz - 9 }, { x: tx, y: 1.3, z: tz }, 60);
+      await ver('trofeos-10-desde-arriba', { x: tx - 3, y: 7.5, z: tz - 7 }, { x: tx, y: 1.3, z: tz }, 58);
       await sinPose();
       // la E junto al tablero (caminando de verdad)
       await estar(tx, tz - 6, Math.PI);

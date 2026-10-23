@@ -93,12 +93,12 @@ export function armarTablero(c, colgados = []) {
   // los estantes (donde se apoyan los trofeos) y un tope de adelante
   for (const [y, desde, hasta] of [[1.77, 0, 4], [0.94, 4, 7]]) {
     const x0 = sitioDeTrofeo(desde).x, x1 = sitioDeTrofeo(hasta - 1).x;
-    c.agregar(new THREE.BoxGeometry(Math.abs(x1 - x0) + 0.62, 0.04, 0.4), { color: MADERA, tipo: 0, variar: 0.08, matriz: matriz([(x0 + x1) / 2, y, -0.12]) });
+    c.agregar(new THREE.BoxGeometry(Math.abs(x1 - x0) + 0.62, 0.04, 0.4), { color: MADERA, tipo: 0, variar: 0.08, matriz: matriz([(x0 + x1) / 2, y, -0.15]) });
   }
   const puestos = new Set(colgados);
   TROFEOS.forEach((t, i) => {
     const s = sitioDeTrofeo(i), pie = s.y - 0.18;
-    if (puestos.has(t.id)) armarTrofeo(c, t.id, s.x, pie + 0.02, -0.12);
+    if (puestos.has(t.id)) armarTrofeo(c, t.id, s.x, pie + 0.02, -0.17);
     else c.agregar(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 6), { color: '#2e261d', tipo: 0, variar: 0, matriz: matriz([s.x, pie + 0.16, 0.0], [Math.PI / 2, 0, 0]) });   // el lugar vacío: una marca oscura
   });
 }

@@ -46,6 +46,7 @@ const MUTACIONES = [
   ['trofeos: la puertita siempre abierta', TROM, 'puertitaAbierta: !!d.asedio && puedeAbordar(d.asedio)', 'puertitaAbierta: true'],
   ['trofeos: el tablero cuenta como defensa', 'src/planos-trofeos.js', "defensa: { tipo: 'trofeos', oculta: true },", "defensa: { tipo: 'trofeos' },"],
   ['trofeos: un trofeo con material de otro tipo', 'src/desafio-trofeos-formas.js', "{ color: '#2d2c35', tipo: 4,", "{ color: '#2d2c35', tipo: 2,"],
+  ['trofeos: se asoman por detrás de la tabla', 'src/desafio-trofeos-formas.js', 'armarTrofeo(c, t.id, s.x, pie + 0.02, -0.17);', 'armarTrofeo(c, t.id, s.x, pie + 0.02, -0.02);'],
   ['trofeos: no se suman al menú', 'src/construccion.js', 'PIEZAS.push(...PIEZAS_TROFEOS);', ''],
   // el perro
   ['perro: el nivel 1 con una noche', PER, 'noches: [0, 3, 6, 10],', 'noches: [0, 1, 6, 10],'],

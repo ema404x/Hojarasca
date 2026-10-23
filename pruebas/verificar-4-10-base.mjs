@@ -347,6 +347,20 @@ function noche(base, p, n, golpear = []) {
     ok([...tiposDe(g)].every((x) => x === 0 || x === 4), `${t.id}: tipo 0 o 4`);
     ok(vertices(g) - vertices(g0) > 0 && vertices(g) - vertices(g0) < 1300, `${t.id}: ${vertices(g) - vertices(g0)} vértices de más`);
   }
+  // ningún trofeo asoma por detrás de la tabla ni se mete en el poste: el fondo de cada uno queda dentro del grosor de la tabla
+  for (const t of TR.TROFEOS) {
+    const w2 = mundo();
+    const r = w2.terminar('tablero-trofeos', 10, 10, 0);
+    const antes = r.o.malla.geometry.getAttribute('position').count;
+    const lleno = r.o.malla.geometry.getAttribute('position').array.slice();
+    r.o.datos.colgados = [t.id]; w2.s.rehacer(r.o);
+    const pos = r.o.malla.geometry.getAttribute('position').array;
+    let zMax = -Infinity;
+    const set = new Set(); for (let i = 0; i < lleno.length; i += 3) set.add(lleno[i].toFixed(4) + ',' + lleno[i + 1].toFixed(4) + ',' + lleno[i + 2].toFixed(4));
+    for (let i = 0; i < pos.length; i += 3) { if (set.has(pos[i].toFixed(4) + ',' + pos[i + 1].toFixed(4) + ',' + pos[i + 2].toFixed(4))) continue; if (pos[i + 1] > 0.9 && pos[i + 2] > zMax) zMax = pos[i + 2]; }
+    ok(zMax < 0.081, `${t.id}: no asoma por detrás de la tabla (llega a z ${zMax.toFixed(3)}, la tabla termina en 0,08)`);
+    void antes;
+  }
   // una lista rota no tira la malla
   const rota = mundo().terminar('tablero-trofeos', 10, 10, 0);
   for (const feo of ['todos', 5, null, [null, 3, {}, 'x', 'casco']]) { rota.o.datos.colgados = feo; ok(rota.o.datos.etapas > 0, `colgados raro (${JSON.stringify(feo)}) no rompe`); }
