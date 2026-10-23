@@ -3726,6 +3726,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 3.8.7: en la portada la música de tensión se apaga sola (main.js): antes quedaba sonando con el último acorde del ataque
     musicaQuieta: (dtReal) => musica.actualizar(dtReal, { activo: false }),
 
+    get vecinos() { return vecinos; }, get campana() { return campana; },   // 4.9 aliados: para las partidas reales
     get tallerAbierto() { return tallerAbierto; },
     get recarga() { return recarga; },
     get caido() { return caido; },
@@ -3787,8 +3788,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get focos() { return focos; },
     get semilla() { return D().semilla; },
     // 2.6: el fortín también se usa con E (resina, catapulta, troncos, puente, lazo...)
-    usarCercaDe: (pos, dPuerta) => naveMundo.usarCerca(pos) || asedioMundo.usarCerca(pos) || usarCapulloCerca(pos) || usarZanjaCerca(pos) || puestos.usarCerca(pos) || fortin.usarCerca(pos, deNoche(), dPuerta) || campana.usarCerca(pos) || mapaMundo.usarCerca(pos),
-    avisoCercaDe: (pos, dPuerta) => naveMundo.avisoCerca(pos) || asedioMundo.avisoCerca(pos) || avisoCapulloCerca(pos) || avisoZanjaCerca(pos) || puestos.avisoCerca(pos) || fortin.avisoCerca(pos, deNoche(), dPuerta) || campana.avisoCerca(pos) || mapaMundo.avisoCerca(pos),
+    usarCercaDe: (pos, dPuerta) => naveMundo.usarCerca(pos) || asedioMundo.usarCerca(pos) || usarCapulloCerca(pos) || usarZanjaCerca(pos) || puestos.usarCerca(pos) || campana.usarCerca(pos) || fortin.usarCerca(pos, deNoche(), dPuerta) || mapaMundo.usarCerca(pos),
+    avisoCercaDe: (pos, dPuerta) => naveMundo.avisoCerca(pos) || asedioMundo.avisoCerca(pos) || avisoCapulloCerca(pos) || avisoZanjaCerca(pos) || puestos.avisoCerca(pos) || campana.avisoCerca(pos) || fortin.avisoCerca(pos, deNoche(), dPuerta) || mapaMundo.avisoCerca(pos),
     // 3.0: la supervivencia sin fin y el mapa de la semilla (la base, los lugares, lo que se marca)
     get sinFin() { return D().sinFin; },
     mapaMundo,
