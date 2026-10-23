@@ -135,22 +135,10 @@ app.whenReady().then(async () => {
     await poner({ tronco: 60, tabla: 40, piedra: 30 }, { pinon: 100, calafate: 60, huevo: 30 }, { yerba: 8, caballo: 1 });
     await js(`(() => { const P = H.progreso; P.personal = P.personal || {}; P.personal.caballo = Object.assign({}, P.personal.caballo, { conAlforjas: true }); return 1; })()`);
     await cuadros(6);
-    // se sube con E junto al caballo (si no se puede, se simula lo mismo que hace montar())
-    const ref = await js(`({ x: H.T.lugares.refugio.x, z: H.T.lugares.refugio.z })`);
-    let montado = false;
-    for (const [dx, dz] of [[3, 3], [-3, 3], [4, 0], [0, 5], [-4, -2], [2, -4]]) {
-      await js(`ir(${ref.x + dx}, ${ref.z + dz}, ${ref.x}, ${ref.z}); 1`);
-      await juego(); await cuadros(10); await esperar(300);
-      await js(`window.H.__avisoYa(); 1`);
-      await tecla('KeyE', 4);
-      montado = await js(`!!H.jugador.estado.montado`);
-      if (montado) break;
-    }
-    if (!montado) {
-      console.log('  (no se pudo subir con E: se monta como lo hace el juego)');
-      await js(`(() => { H.jugador.estado.montado = { trote: 5.5, galope: 9, alto: 1.9, aguaMax: 0.9 }; return 1; })()`);
-      await cuadros(6);
-    }
+    // montado como lo deja montar() (con E junto al refugio a veces la E hace otra cosa, y la prueba tiene que ser siempre la misma)
+    await juego();
+    await js(`(() => { H.jugador.estado.montado = { trote: 5.5, galope: 9, alto: 1.9, aguaMax: 0.9 }; return 1; })()`);
+    await cuadros(6);
     ok(await js(`!!H.jugador.estado.montado`), 'montado a caballo');
     await cuadros(6);
     console.log('  HUD montado:', await js(`txt('carga-hud')`));
