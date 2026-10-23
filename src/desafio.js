@@ -1,4 +1,4 @@
-// Modo Desafío: cada noche baja una nave y los invasores vienen a buscarte.
+// Modo Desafío: cada noche los duendes salen de la tierra del bosque y vienen a buscarte.
 // De día se junta, se construye y se fabrica; de noche se resiste.
 // Todo se arma por código, como el resto del bosque: mallas, sonidos y reglas.
 import * as THREE from 'three';
@@ -20,7 +20,11 @@ import { crearDuende, instalarDuendes, precalentarDuendes, registrarHalos, malla
 // 4.8 noches:
 import { HORA_GIRO, GIROS, LUNALLENA, NIEBLA, elegirGiro, hayNiebla, cerrarNoche, olvidarCadena, anotarEscape, elegirBrecha, conArticulo, pronombreDe, efectoCadena, aplicarCadena, cadenaNueva } from './desafio-noches.js';
 import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva, aguaFrena, VADO } from './desafio-duendes-reglas.js';
-import { mallaNido, mallaCofre } from './duendes-modelo.js';
+import { mallaNido, mallaCofre, mallaAro } from './duendes-modelo.js';
+// 4.8.1: el aro de hongos donde salen los duendes (antes: el platillo de una nave): cuentas, mundo y sonido
+import { SALIDA_DUENDE, FASES_ARO } from './desafio-aro.js';
+import { crearAroMundo } from './desafio-aro-mundo.js';
+import { crearSonidosAro } from './desafio-aro-sonido.js';
 import { crearMusicaTension } from './desafio-musica.js';
 import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logros.js';
 import { crearAliados } from './desafio-aliados.js';
@@ -65,41 +69,12 @@ const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _dir = new THREE.Vecto
 
 // 3.8.0: los invasores son duendes: se modelan en duendes-modelo.js y se animan y dibujan en desafio-duendes.js.
 
+// 4.8.1: ya no es una nave: es el aro de hongos y raíces donde salen los duendes (el modelo en duendes-modelo.js,
+// lo que hace en cada fase en desafio-aro-mundo.js). Antes: un platillo de 9 m con cúpula, luces que giran, haz
+// tractor y reflectores que barrían el valle.
 function mallaNave() {
-  const g = new THREE.Group();
-  const casco = new THREE.Mesh(new THREE.SphereGeometry(9, 28, 10), lam('#8b9197'));
-  casco.scale.set(1, 0.2, 1);
-  g.add(casco);
-  const anillo = new THREE.Mesh(new THREE.TorusGeometry(9.1, 0.45, 6, 36), lam('#5d6269'));
-  anillo.rotation.x = Math.PI / 2;
-  g.add(anillo);
-  const cupula = new THREE.Mesh(new THREE.SphereGeometry(3.4, 18, 9, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: '#9fe8c8', transparent: true, opacity: 0.55 }));
-  cupula.position.y = 1.3;
-  g.add(cupula);
-  const luces = [];
-  const matLuz = new THREE.MeshBasicMaterial({ color: VERDE_OJO });
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * Math.PI * 2;
-    const l = new THREE.Mesh(new THREE.SphereGeometry(0.34, 6, 5), matLuz.clone());
-    l.position.set(Math.cos(a) * 8.2, -0.9, Math.sin(a) * 8.2);
-    g.add(l);
-    luces.push(l);
-  }
-  const haz = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 6.5, 1, 24, 1, true),
-    new THREE.MeshBasicMaterial({ color: '#b6ffb0', transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-  g.add(haz);
-  // dos reflectores que barren el suelo buscándote
-  const reflectores = new THREE.Group();
-  for (const s of [-1, 1]) {
-    const cono = new THREE.Mesh(new THREE.ConeGeometry(4.5, 38, 18, 1, true).translate(0, -19, 0),
-      new THREE.MeshBasicMaterial({ color: '#d8ffcf', transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-    const piv = new THREE.Group(); piv.position.set(s * 5.5, -1, 0); piv.rotation.z = s * 0.45;
-    piv.add(cono); reflectores.add(piv);
-  }
-  reflectores.visible = false;
-  g.add(reflectores);
-  return { g, luces, haz, reflectores };
+  const g = mallaAro();
+  return { g };
 }
 
 // ---------------------------------------------------------------- el sistema
@@ -153,14 +128,14 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const precalentados = Object.keys(TIPOS_ALIEN).map((t) => { const a = tomarAlien(t); a.m.g.position.set(0, -500, 0); return a; });
 
   const nave = mallaNave();
-  nave.g.scale.setScalar(1.5);   // tiene que imponerse sobre las copas desde lejos
   nave.g.visible = false;
   escena.add(nave.g);
-  const luzNave = new THREE.PointLight(0xa6ff6e, 0, 90, 1.6);
+  // 4.8.1: la luz fija de la nave pasó a ser la del aro: ámbar y tenue, sobre la boca (antes, verde y de 80)
+  const luzNave = new THREE.PointLight(0xffb060, 0, 34, 1.6);
   nave.g.add(luzNave);
-  luzNave.position.y = -4;
+  luzNave.position.y = 1.8;
   registrarLuz(luzNave);   // 2.7.4: ver luces.js
-  const estadoNave = { fase: 'fuera', t: 0, x: 0, z: 0, y: 0, porBajar: [], ritmo: 0 };
+  const estadoNave = { fase: 'fuera', t: 0, x: 0, z: 0, y: 0, porBajar: [], ritmo: 0 };   // (4.8.1: `y` ya no se usa: el aro está en el suelo)
 
   // ---------------- proyectiles (flechas, pernos de ballesta, plasma de los invasores)
   const matFlecha = new THREE.MeshLambertMaterial({ color: '#6b5238' });
@@ -308,7 +283,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     D().sueltas = [];
   }
 
-  // ---------------- la cápsula estrellada con la pistola de plasma
+  // ---------------- el cofre de los duendes con la pistola de luz
+  // 4.8.1: ya no es una cápsula estrellada (casco gris, vidrio verde y una columna de luz verde de 90 m): es
+  // un cofre viejo entre raíces y piedras con musgo, con el hilo de luz dorada del cofre del alba. (Por dentro
+  // sigue llamándose `capsula`.)
   const capsula = (() => {
     const r = rng(90210);
     const ref = T.lugares.refugio;
@@ -325,28 +303,23 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   })();
   const grupoCapsula = new THREE.Group();
   grupoCapsula.position.set(capsula.x, capsula.y, capsula.z);
+  const cofrePistola = mallaCofre();
+  cofrePistola.name = 'cofre-duendes';
+  cofrePistola.rotation.y = (capsula.x * 3.7 + capsula.z * 1.9) % 6.28;
+  grupoCapsula.add(cofrePistola);
   {
-    const casco = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 10), lam('#9aa0a6'));
-    casco.scale.set(1, 1.9, 1);
-    casco.rotation.set(0.35, 0.6, Math.PI / 2 - 0.25);
-    casco.position.y = 0.45;
-    grupoCapsula.add(casco);
-    const vidrio = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), new THREE.MeshBasicMaterial({ color: '#9fe8c8' }));
-    vidrio.position.set(0.9, 0.95, 0.5);
-    grupoCapsula.add(vidrio);
+    // unas piedras con musgo alrededor
     for (let i = 0; i < 7; i++) {
-      const t = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35 + (i % 3) * 0.12, 0), lam('#5a4a3a'));
-      const a = i * 0.9;
+      const t = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35 + (i % 3) * 0.12, 0), lam(i % 2 ? '#56603e' : '#6a6a52'));
+      const a = i * 0.9 + 0.3;
       t.position.set(Math.cos(a) * 1.9, 0.05, Math.sin(a) * 1.6);
+      t.castShadow = true;
       grupoCapsula.add(t);
     }
-    grupoCapsula.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   }
-  const faroCapsula = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 90, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: '#a6ff6e', transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-  faroCapsula.position.y = 45;
-  grupoCapsula.add(faroCapsula);
+  const faroCapsula = cofrePistola.userData.haz;   // el hilo de luz dorada de pocos metros (el material es el del cofre del alba)
   escena.add(grupoCapsula);
+  registrarHalos(cofrePistola);
   col.agregar({ x: capsula.x, z: capsula.z, r: 1.1, alturaMin: capsula.y - 1, alturaMax: capsula.y + 1.6 });
 
   // ---------------- sonidos: el banco vive en `desafio-sonidos.js`
@@ -381,6 +354,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
 
   // ---------------- subsistemas del Desafío
   const efectos = crearEfectos(escena, { calidad: ctx.calidad?.() || 'media' });
+  const sonidosAro = crearSonidosAro(sonido);   // 4.8.1: el crujido de las raíces y el viento grave (antes: el zumbido de la nave)
+  const aro = crearAroMundo({ T, g: nave.g, luzFija: luzNave, efectos, sonidos: sonidosAro });
   const musica = crearMusicaTension(sonido);
   let camaraLenta = 0;
   // api compartida por defensas, eventos y aliados: se resuelve en tiempo de llamada
@@ -420,7 +395,6 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 1.11: los portones terminados, para la orden "cuidá el portón"
     portones: () => obras.obras.filter((o) => o.plano.porton && completa(o)).map((o) => ({ x: o.datos.x, z: o.datos.z })),
     reparar: (o, cantidad) => { const { vida, max } = vidaDe(o); o.datos.vida = Math.min(max, vida + cantidad); return o.datos.vida >= max; },
-    crearMallaNave: () => { const m = mallaNave(); m.haz.visible = false; return m; },
     largarDesde: (x, z) => {
       // la nodriza larga grupos chicos mientras siga en el aire (nunca otro jefe)
       const tipos = sinJefe(composicionOleada(Math.max(3, D().oleadas), ctx.dificultad?.(), D().vuelta)).slice(0, 5);
@@ -836,7 +810,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     tipos = ataques.alEmpezar(tipos, nuevaNoche, retomada, puntoFijo);   // 4.8 ataques: los señuelos bajan primero
     // 2.3: con código de partida, la nave baja siempre del mismo lado esa noche
     const p = puntoFijo || puntoDeAterrizaje(js, azarDe(d.semilla, d.oleadas, nuevaNoche ? 'aterrizaje' : retomada ? 'retomada' : 'refuerzo'));
-    estadoNave.x = p.x; estadoNave.z = p.z; estadoNave.y = T.altura(p.x, p.z) + 36;
+    estadoNave.x = p.x; estadoNave.z = p.z; estadoNave.y = T.altura(p.x, p.z) + 36;   // (4.8.1: `y` ya no se usa)
+    sonidosAro.preparar();   // 4.8.1: el crujido y el viento grave del aro se sintetizan antes (en la cola, sin trabar un cuadro)
     estadoNave.fase = puntoFijo ? 'bajando' : 'llegando'; estadoNave.t = 0;
     estadoNave.porBajar.push(...tipos);
     nocheActual.invasores += tipos.length;
@@ -865,7 +840,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const ang = Math.random() * Math.PI * 2, r = Math.random() * 3.5;
     let x = estadoNave.x + Math.cos(ang) * r, z = estadoNave.z + Math.sin(ang) * r;
     { const sal = ataques.salida(bajada, tipo, estadoNave); if (sal) { x = sal.x; z = sal.z; } }   // 4.8 ataques: el señuelo por el otro lado, el enjambre en montón
-    a.m.g.position.set(x, T.altura(x, z) + 16, z);
+    a.m.g.position.set(x, T.altura(x, z) - SALIDA_DUENDE.hondo, z);   // 4.8.1: sube de abajo de la tierra por la boca del aro (antes: bajaba 16 m de la nave, 2 s: lo mismo que tarda en subir)
+    a.brota = true;
     a.m.g.rotation.set(0, 0, 0);
     a.m.g.scale.setScalar(1);
     a.vida = a.vidaMax = Math.round(a.def.vida * mult * mv.vida * dificultad(ctx.dificultad?.()).vida);
@@ -2234,12 +2210,15 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (a.estado === 'bajar') {
       a.t += dt;
       const suelo = T.altura(p.x, p.z);
-      p.y = Math.max(suelo, p.y - dt * 8);
-      g.rotation.y += dt * 2;
+      // 4.8.1: el que sale del aro sube de abajo de la tierra; el que viene de arriba (los del Coihue) baja como siempre
+      if (a.brota && p.y >= suelo) a.brota = false;
+      if (a.brota) p.y = Math.min(suelo, p.y + dt * SALIDA_DUENDE.vel);
+      else p.y = Math.max(suelo, p.y - dt * 8);
+      g.rotation.y += a.brota ? dt * 0.8 : dt * 2;
       poseAlien.dt = dt; poseAlien.jugador = js.pos; poseAlien.velocidad = 0; poseAlien.golpe = 0; poseAlien.ataca = false; poseAlien.carrera = false;
       poseAlien.apuntando = false; poseAlien.enredado = true; poseAlien.agazapado = false; poseAlien.noche = nocheNivel;
       a.m.animar(poseAlien);
-      if (p.y <= suelo + 0.01) { a.estado = 'avanzar'; S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar(); }
+      if (!a.brota && p.y <= suelo + 0.01) { a.estado = 'avanzar'; S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar(); }
       return;
     }
     if (a.estado === 'morir') {
@@ -2834,46 +2813,28 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
   }
 
+  // 4.8.1: las fases son las de siempre (llegando 4 s, bajando mientras queden por salir, vigilando, yendo 5 s);
+  // lo que se ve y se oye de cada una está en desafio-aro-mundo.js
   function actualizarNave(dt) {
     if (!nave.g.visible) return;
     estadoNave.t += dt;
     const e = estadoNave;
-    let alto = e.y;
     if (e.fase === 'llegando') {
-      alto = e.y + Math.max(0, 1 - e.t / 4) ** 2 * 260;
-      if (e.t > 4) { e.fase = 'bajando'; e.t = 0; e.ritmo = 0; }
+      if (e.t > FASES_ARO.llegando) { e.fase = 'bajando'; e.t = 0; e.ritmo = 0; }
     } else if (e.fase === 'bajando') {
       e.ritmo -= dt;
       if (e.ritmo <= 0 && e.porBajar.length) {   // 4.8 ataques: la cola lleva la marca de los señuelos (y el grupo principal espera un rato)
         const item = e.porBajar.shift();
+        const antes = aliens.length;
         ataques.marcarBajada(item); bajarAlien(ataques.tipoDe(item));
+        if (aliens.length > antes) { const q = aliens[aliens.length - 1].m.g.position; aro.salio(q.x, q.z); }   // 4.8.1: la tierra se abre: polvo, un destello dorado y el ruido de la tierra
         e.ritmo = ataques.ritmoTras(item, e.porBajar[0]);
       }
       if (!e.porBajar.length && e.t > 1) { e.fase = 'vigilando'; e.t = 0; }
     } else if (e.fase === 'yendo') {
-      alto = e.y + (e.t / 5) ** 2 * 300;
-      if (e.t > 5) { nave.g.visible = false; e.fase = 'fuera'; luzNave.intensity = 0; return; }
+      if (e.t > FASES_ARO.yendo) { nave.g.visible = false; e.fase = 'fuera'; luzNave.intensity = 0; aro.apagar(); return; }
     }
-    nave.g.position.set(e.x + Math.sin(e.t * 0.2) * (e.fase === 'vigilando' ? 6 : 0), alto + Math.sin(e.t * 0.9) * 0.6, e.z + Math.cos(e.t * 0.2) * (e.fase === 'vigilando' ? 6 : 0));
-    nave.g.rotation.y += dt * 0.35;
-    const conHaz = e.fase === 'bajando' || (e.fase === 'yendo' && e.t < 1.5);
-    nave.haz.visible = conHaz;
-    if (conHaz) {
-      const suelo = T.altura(e.x, e.z);
-      const largo = Math.max(1, nave.g.position.y - suelo) / nave.g.scale.y;
-      nave.haz.scale.set(1, largo, 1);
-      nave.haz.position.y = -largo / 2;
-      nave.haz.material.opacity = 0.12 + Math.sin(e.t * 12) * 0.04;
-    }
-    luzNave.intensity = e.fase === 'yendo' ? Math.max(0, 1 - e.t) * 80 : 80;
-    nave.reflectores.visible = e.fase === 'vigilando';
-    if (e.fase === 'vigilando') {
-      nave.reflectores.rotation.y = -nave.g.rotation.y + e.t * 0.5;
-      nave.reflectores.children.forEach((piv, i) => { piv.rotation.z = (i ? 1 : -1) * (0.35 + Math.sin(e.t * 0.7 + i * 2) * 0.25); });
-    }
-    for (let i = 0; i < nave.luces.length; i++) nave.luces[i].material.color.setHex(((i + Math.floor(e.t * 6)) % 3) ? 0x3f7a2c : 0xa6ff6e);
-    e.zumbido = (e.zumbido || 0) - dt;
-    if (e.zumbido <= 0) { e.zumbido = 1.3; S.zumbido(nave.g.position); }
+    aro.actualizar(e, dt);
   }
 
   function actualizarCristales(dt, js) {
@@ -2898,7 +2859,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function revisarCapsula(js) {
     const d = D();
     faroCapsula.visible = !d.pistolaEncontrada;
-    faroCapsula.material.opacity = 0.09 + Math.sin(performance.now() / 600) * 0.03;
+    cofrePistola.userData.brilloHalos = d.pistolaEncontrada ? 0.15 : 0.8 + 0.25 * Math.sin(performance.now() / 450);   // 4.8.1: el brillo late hasta que lo abrís
     if (d.pistolaEncontrada) return;
     if (Math.hypot(js.pos.x - capsula.x, js.pos.z - capsula.z) < 3.2) {
       d.pistolaEncontrada = true;
@@ -3649,7 +3610,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     for (const a of aliens) soltarAlien(a);
     aliens.length = 0;
     estadoNave.porBajar.length = 0;
-    nave.g.visible = false; estadoNave.fase = 'fuera'; luzNave.intensity = 0;
+    nave.g.visible = false; estadoNave.fase = 'fuera'; luzNave.intensity = 0; aro.apagar();
     // 3.8.3: la hachuela o la jabalina que iba en el aire cae al suelo (y arsenal.limpiar la devuelve a tus cosas)
     for (let i = proyectiles.length - 1; i >= 0; i--) { if (RECUPERABLES[proyectiles[i].tipo] && !proyectiles[i].terminado) arsenal.alTerminar(proyectiles[i], 'vida'); retirarProyectil(i); }
     arsenal.limpiar();

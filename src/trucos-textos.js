@@ -49,7 +49,7 @@ export const AYUDA = {
   ir: { uso: 'ir faro', linea: 'Te lleva a un lugar por su nombre (ir sola lista los lugares).', detalle: 'Te teletransporta a un lugar: «ir faro», «ir plaza», «ir muelle». También a un punto: «ir 120 -80». «ir» sola lista todos los lugares. No anda arriba del tren, el kayak o el sulky, ni sentado.' },
   donde: { uso: 'donde', linea: 'Te dice dónde estás y qué lugar tenés más cerca.', detalle: 'Muestra tu posición y el lugar más cercano.' },
 
-  planos: { uso: 'planos todos', linea: 'Abre todos los planos (en el Relax ya están todos abiertos).', detalle: 'En el Relax ningún plano está bloqueado: se construye con lo que tengas. En La noche de los duendes los planos se ganan de los restos de las naves y no se regalan.' },
+  planos: { uso: 'planos todos', linea: 'Abre todos los planos (en el Relax ya están todos abiertos).', detalle: 'En el Relax ningún plano está bloqueado: se construye con lo que tengas. En La noche de los duendes los planos se ganan en las ruinas del bosque (los troncos huecos de los duendes) y no se regalan.' },
   oficios: { uso: 'oficios maximo', linea: 'Sube oficios: oficios maximo, oficios hachero 3.', detalle: 'Sube los oficios (hachero, picapedrero, pescador, cazador, obrero, huertero, navegante). «oficios maximo» los pone todos en nivel 5; «oficios hachero 3» sube uno solo, de 0 a 5; «oficios cero» los vacía.' },
   historia: { uso: 'historia capitulo 5', linea: 'Salta o completa capítulos de la historia (sólo Relax).', detalle: '«historia capitulo 5» te deja al comienzo del capítulo 5 (los anteriores quedan completos); «historia completar» termina los ocho; «historia reiniciar» vuelve al capítulo 1. No se entregan los premios de los capítulos saltados. Sólo en el Relax.' },
   amigos: { uso: 'amigos todos', linea: 'Amistad con los vecinos: amigos todos, amigos rosa compadre.', detalle: '«amigos todos» deja a todos los vecinos como compadres; «amigos todos amigo» sólo como amigos; «amigos ercilia» sólo a ella. Sólo sube la amistad: nunca la baja. Sólo en el Relax.' },
@@ -123,7 +123,7 @@ export const R = {
   donde: (x, z, cerca, metros) => `Estás en ${Math.round(x)}, ${Math.round(z)}${cerca ? `: a ${metros} m de ${cerca}` : ''}`,
 
   planosRelax: 'En el Relax ya están todos los planos abiertos: se construye con lo que tengas',
-  planosDesafio: 'En La noche de los duendes los planos se ganan de los restos de las naves: no se regalan',
+  planosDesafio: 'En La noche de los duendes los planos se ganan en las ruinas del bosque (los troncos huecos de los duendes): no se regalan',
   oficiosTodos: 'Listo: los siete oficios en el nivel máximo',
   oficio: (nombre, nivel) => `Listo: ${nombre} en nivel ${nivel}`,
   oficiosCero: 'Listo: los oficios vuelven a cero',

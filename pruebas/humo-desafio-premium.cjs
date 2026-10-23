@@ -1,7 +1,7 @@
 // Partida real del Desafío premium (Electron + WebGL): tutorial, taller por categorías,
 // 3.8.0: los textos que mira esta partida dicen lo de los duendes (duendes, Coihue Viejo, madrigueras).
 // armas nuevas y mejoras, bloqueo y esquiva, defensas activas (antorchas, campana, pozo,
-// red, barril, torre), martillo y refuerzos, perro, compañeros, restos de naves y planos,
+// red, barril, torre), martillo y refuerzos, perro, compañeros, ruinas del bosque y planos,
 // noches especiales, logros, cámara lenta y la nave nodriza hasta la victoria.
 // Uso: npx electron pruebas/humo-desafio-premium.cjs   → pruebas/salidas/desafio-premium/
 const { app, BrowserWindow } = require('electron');
@@ -177,19 +177,19 @@ app.whenReady().then(async () => {
     ok(lg.primera, 'logro «primera noche» desbloqueado');
     ok(lg.records.noches >= 1, 'el récord de noches se registra');
 
-    // ---- compañeros y restos de naves
+    // ---- compañeros y ruinas del bosque
     donde = 'aliados';
     const al = await js(`(()=>{const H=window.__hojarasca, D=H.desafio; D.aliados.sumar('ramon'); D.aliados.sumar('ema');
       const g=H.gente.gente; return {ramon:!!g.find(n=>n.clave==='ramon')?.enBase, ema:!!g.find(n=>n.clave==='ema')?.enBase, guardados:H.progreso.desafio.companeros.length}})()`);
     ok(al.ramon && al.ema && al.guardados === 2, 'Don Ramón y Ema se instalan en la base');
     const re = await js(`(()=>{const H=window.__hojarasca, D=H.desafio; const hubo=D.eventos.soltarRestos(); const r=H.progreso.desafio.restos; if(!r) return {hubo};
-      // 2.1: la nave caída se recorre; el premio está al fondo del pasillo (15.8 m adentro)
+      // 2.1: la ruina se recorre; el premio está al fondo del pasillo (15.8 m adentro)
       H.jugador.ubicar(r.x+30, r.z, 0); for(let i=0;i<3;i++) D.actualizar(0.05,{noche:0,dtReal:0.05});
       const fx=r.x+15.8*Math.sin(r.rot), fz=r.z+15.8*Math.cos(r.rot);
       H.jugador.ubicar(fx, fz, 0); for(let i=0;i<5;i++) D.actualizar(0.05,{noche:0,dtReal:0.05});
       for (const a of D.aliens.slice()) if (a.estado==='dormido' || a.estado==='avanzar') { a.vida=0; a.estado='irse'; a.t=9; }
       return {hubo, planos:H.progreso.desafio.planos, restos:!!H.progreso.desafio.restos}})()`);
-    ok(re.hubo && re.planos?.includes('escudo') && !re.restos, 'los restos de nave dan el plano del escudo');
+    ok(re.hubo && re.planos?.includes('escudo') && !re.restos, 'las ruinas del bosque dan el plano del escudo');
 
     // ---- noche roja
     donde = 'roja';
