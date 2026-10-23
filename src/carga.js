@@ -160,7 +160,7 @@ export const textoLugares = (n) => `${n} ${n === 1 ? 'lugar' : 'lugares'}`;
 export function tratoDeEfectos(efectos) {
   const da = {}, quita = {};
   for (const e of efectos || []) {
-    if (!e || (e.tipo !== 'material' && e.tipo !== 'entrada' && e.tipo !== 'cosa') || !esTexto(e.k)) continue;
+    if (!e || (e.tipo !== 'material' && e.tipo !== 'entrada' && e.tipo !== 'cosa') || !esTexto(e.k) || (e.tipo === 'cosa' && !COSA_CONTABLE.has(e.k))) continue;   // (una cosa que no es un contador —una herramienta— no ocupa casillas)
     const n = Math.floor(Number(e.n)) || 0;
     if (n > 0) da[e.k] = (da[e.k] || 0) + n; else if (n < 0) quita[e.k] = (quita[e.k] || 0) - n;
   }

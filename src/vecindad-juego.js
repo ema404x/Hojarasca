@@ -27,6 +27,7 @@
 import { esPersonaVecindad, REGALABLES, nombreCorto, abrirCharla, elegirTema, regalar, invitar, ayudas, ayudar, anotarHecho, visitaDeAmistad, regaloDeAmistad, pasarDiaVecindad, estaLibre, nivelDe, amistades, gustosConocidos, PERFILES_VECINOS, PERSONAS_VECINDAD } from './vecindad.js';
 import { VOCES } from './vecindad-voces.js';
 import { esPersonaAldea, personaAldea, diaSemanaDe, puntosMundo } from './aldea.js';
+import { tratoDeEfectos } from './carga.js';   // 4.7 carga
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const cap = (s) => (typeof s === 'string' && s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -385,6 +386,8 @@ export function crearVecindadJuego(ctx) {
       return { tipo: 'renglones', renglones: r.renglones, reaccion: r.reaccion };
     }
     if (tipo === 'ayudar') {
+      // 4.7 carga: lo que te devuelve el vecino tiene que entrar; se prueba en una copia de la vecindad (si no entra, la mano no se da)
+      if (ctx.cabeTrato && objeto(p.vecindad)) { const seco = ayudar(s.clave, k, structuredClone(p.vecindad), p, dia()); if (seco.ok) { const t = tratoDeEfectos(seco.efectos); if (!ctx.cabeTrato(t.da, t.quita)) return { tipo: 'renglones', renglones: ['Dejá, que no te va a entrar lo que te quiero dar: hacé lugar en la mochila y me das una mano otro rato.'], ayudo: false }; } }
       const r = ayudar(s.clave, k, p, null, dia());
       if (r.ok) {
         aplicarEfectos(p, r.efectos, ctx);

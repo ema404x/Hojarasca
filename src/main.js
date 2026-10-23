@@ -5293,6 +5293,7 @@ function armarOficiosYAldea(esDesafio) {
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
+    ...CARGA_CTX,   // 4.7 carga
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn), alAportar: (usados, completa, antes) => ganarOficio('obrero', xpDeAporte(usados, completa, antes)),
     refrescarBarra: () => refrescarBarra(true), hablandoCon: () => charla.npc,
     // lo que dan los pobladores y no es de la mochila
@@ -5382,7 +5383,7 @@ function armarOficiosYAldea(esDesafio) {
     reloj: () => (ajustes.duracion === 'reloj' ? Date.now() / 3600e3 : null),   // 3.8.6: con la hora de tu reloj, la cocción va con el reloj
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
-    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato),
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato), ...CARGA_CTX,   // 4.7 carga
     aldea: () => aldeaGente, perro: () => perro, nombrePerro: () => perro?.nombre?.() || '', decir: (texto) => decirCharlaAldea(texto),
     mundo: () => cocinaMundo, alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     sendero: () => T.sendero || [], centroAldea: () => aldeaMundo?.centro || null, seco: (x, z) => !T.agua(x, z),
@@ -5501,6 +5502,7 @@ function armarOficiosYAldea(esDesafio) {
       pagar: (monto, motivo, con) => pagarPesos(progreso, monto, motivo, con).ok, cobrar: (monto, motivo, con) => cobrarPesos(progreso, monto, motivo, con),
       darHerramienta: (id) => darHerramientaDeZona(id),
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+      ...CARGA_CTX,   // 4.7 carga
     });
     genteCampoMundo = crearGenteCampoMundo({ T, col, gente });
     tablonJuego = crearTablonMundo({
@@ -5519,7 +5521,7 @@ function armarOficiosYAldea(esDesafio) {
     rincones: rinconesJuego,   // 3.7.5 (rincones): lo que te enseñan los amigos, el sulky de Tito y la pista de los duendes
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
     apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
-    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), ...CARGA_CTX,   // 4.7 carga
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     mesa: () => mesaPuesta(mueblesTerminados()), hayVisita: () => !!visitante,
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), aldea: () => aldeaGente,
