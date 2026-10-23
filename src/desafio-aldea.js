@@ -45,7 +45,7 @@ export function nivelAyuda(d, clave) {
 
 // ---------------------------------------------------------------- los vecinos y lo que piden
 export const VECINOS = {
-  anselmo: { nombre: 'Anselmo', quien: 'el carpintero', hace: 'arregla las defensas rotas', desde: 1 },
+  anselmo: { nombre: 'Anselmo', quien: 'el herrero', hace: 'arregla las defensas rotas', desde: 1 },
   herminia: { nombre: 'La abuela Herminia', quien: 'la de los faroles', hace: 'prende faroles y fogones que espantan a los viejos', desde: 2 },
   chicos: { nombre: 'Los chicos', quien: 'los de las hondas', hace: 'tiran piedras con la honda desde la empalizada', desde: 2 },
   martin: { nombre: 'Martín', quien: 'el de la trochita', hace: 'pasa con la trochita tocando el silbato', desde: 3 },
@@ -270,7 +270,7 @@ export function pedidosActivos(aldea, dia, horas) {
   for (const k of VECINOS_AYUDA) { const p = aldea?.pedidos?.[k]; if (p && !vencido(p, dia, horas)) lista.push({ clave: k, pedido: p }); }
   return lista;
 }
-// El texto de un pedido: «Anselmo, el carpintero: “…” — Pide 4 tablas».
+// El texto de un pedido: «Anselmo, el herrero: “…” — Pide 4 tablas».
 export function textoPedido(clave, p) {
   const e = PEDIDOS[clave].find((x) => x.id === p.id);
   return e ? e.texto : '';

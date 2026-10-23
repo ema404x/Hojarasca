@@ -100,7 +100,7 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const H=${H}; H.desafio.refrescarDefensas ? H.desafio.refrescarDefensas() : 0; H.desafio.fortin.refrescar(); H.desafio.defensas?.refrescar?.(); return 1 })()`);
 
     // ---------------------------------------------------------------- una noche grande (la 12), antes de la hora del ataque
-    await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.oleadas = 11; D.especial = null; D.companeros = []; D.ordenes = {}; D.puestosAliados = {}; H.progreso.dia = 12; H.progreso.horas = 19.7; D.oleadaNoche = null; D.oleadaTerminada = true; return 1 })()`);
+    await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.oleadas = 11; D.especial = null; D.companeros = []; D.ordenes = {}; D.puestosAliados = {}; Object.assign(D.aldea.ayuda, { anselmo: 1, herminia: 1, martin: 1, chicos: 1 }); H.progreso.dia = 12; H.progreso.horas = 19.7; D.oleadaNoche = null; D.oleadaTerminada = true; return 1 })()`);
     await sim(0.5);
     const gente0 = await js(`${H}.gente.gente.length`);
     // los programas de shaders compilados hasta ahora (no tiene que haber ninguno nuevo cuando vengan los vecinos y se prendan los fuegos)
@@ -121,7 +121,7 @@ app.whenReady().then(async () => {
     // ---------------------------------------------------------------- Herminia prende los fuegos
     await sim(30);
     const fuegos = JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.fuegosPrendidos())`));
-    ok(fuegos.length === 2, `con el nivel de respaldo (1), Herminia prendió dos fuegos (${fuegos.map((f) => f.tipo + ' ' + f.radio.toFixed(1) + ' m').join(', ')})`);
+    ok(fuegos.length === 2, `con ayuda 1 (los pedidos de la aldea la suben a 2), Herminia prendió dos fuegos (${fuegos.map((f) => f.tipo + ' ' + f.radio.toFixed(1) + ' m').join(', ')})`);
     med.fuegos = fuegos;
     await js(`(()=>{ const H=${H}, c = ${JSON.stringify(claro)}, f = H.desafio.vecinos.fuegosPrendidos()[0]; window.__cam = { o: [f.x + 5, c.y + 2, f.z + 5], a: [f.x, c.y + 0.5, f.z] }; window.__congelar = true; for (let i = 0; i < 8; i++) { H.desafio.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.__bucle(); } window.__cam = null; window.__congelar = false; return 1 })()`);
     const programas1 = await js(`${H}.renderer.info.programs.length`);
@@ -260,7 +260,7 @@ app.whenReady().then(async () => {
     med.via = { d: m1.d, largo: via.largo, objetivo: via.objetivo };
 
     // ---------------------------------------------------------------- el nivel 2 y el amanecer
-    await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.aldea = { ayuda: { anselmo: 2, herminia: 2, martin: 2, chicos: 2 } }; H.progreso.horas = 7; return 1 })()`);
+    await js(`(()=>{ const H=${H}, D=H.progreso.desafio; Object.assign(D.aldea.ayuda, { anselmo: 2, herminia: 2, martin: 2, chicos: 2 }); H.progreso.horas = 7; return 1 })()`);
     await sim(1);
     ok((await js(`${H}.desafio.vecinos.presentes().length`)) === 0, 'al amanecer se van los cuatro');
     ok((await js(`${H}.desafio.vecinos.fuegosPrendidos().length`)) === 0, 'y se apagan los fuegos');
