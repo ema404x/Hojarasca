@@ -236,7 +236,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   const antes = O.xpDe(p, 'picapedrero'); O.sumarXp(p, 'hachero', O.XP.tala);
   eq(O.xpDe(p, 'picapedrero'), antes, 'talar no le suma al picapedrero');
   // el cableado en main: picar da al picapedrero y talar al hachero
-  const tala = tramo('function usarHacha() {', 5400), i0 = tala.indexOf('if (o.talar) {'), i1 = tala.indexOf('// 4.2: el pedrero se pica');
+  const tala = tramo('function usarHacha() {', 6000), i0 = tala.indexOf('if (o.talar) {'), i1 = tala.indexOf('// 4.2: el pedrero se pica');
   ok(i0 >= 0 && i1 > i0, 'el bloque de talar va antes del de picar');
   ok(/ganarOficio\('hachero', XP\.tala\)/.test(tala.slice(i0, i1)) && !/picapedrero/.test(tala.slice(i0, i1)), 'talar: sólo hachero');
   const pica = tala.slice(i1);

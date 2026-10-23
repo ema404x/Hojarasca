@@ -74,7 +74,7 @@ const enmano = leer('src/enmano.js');
   tiene(asedio, 'return { ...co, haz: co.puerta, luces: [], escudo, luz, giro, t: 0, caida: 0, cayendo: 0, alCaer: null', 'el haz es la puerta grande (y las pruebas siguen viendo armado.nave.haz)');
   tiene(asedio, 'n.haz.visible = abierto;', 'la puerta se enciende cuando se puede subir');
   ok(/const PIE_COIHUE = (\d+);/.test(asedio) && Number(asedio.match(/const PIE_COIHUE = (\d+);/)[1]) >= 12, 'E entra desde el pie del Coihue (debajo del tronco o la escalera de la puerta)');
-  tiene(asedio, 'for (const p of piesCoihue(n, a.nave.x, a.nave.z, n.giro)) api.col.agregar(', 'sus raíces chocan');
+  tiene(asedio, 'for (const p of piesCoihue(n, px, pz, n.giro)) api.col.agregar(', 'sus raíces chocan');   // 4.10 coihue: donde está parado ahora (camina); antes a.nave.x, a.nave.z
   tiene(eventos, 'for (const p of piesCoihue(nodriza, nodriza.x, nodriza.z, nodriza.giro)) api.col.agregar(', 'las del de la noche final también');
   tiene(asedio, 'aguja.add(mallaRaizAguja());', 'las agujas son raíces que brotaron');
   // los nombres que eligió el usuario (los pone el equipo de textos): baliza → fogón, escudo → corteza
@@ -119,14 +119,14 @@ const enmano = leer('src/enmano.js');
   tiene(nave, 'ponerEnDescanso(ultimoDescanso);', 'si te caés, volvés al último descanso (nada de morir por caída)');
   tiene(nave, "return p === 'corazon' ? 'Entrar al corazón del Coihue' : p === 'valle' ? 'Salir al valle por la puertita' : null;", 'arriba la puerta del corazón, abajo la puertita al valle');
   tiene(nave, "if (enLaSalida(pos)) return 'Bajar por la escalera de raíces';", 'desde la sala se baja por la escalera');
-  tiene(nave, 'subida = construirSubida(s);   // (detrás del fundido: la pantalla está a oscuras)', 'la subida se arma detrás del fundido de entrada');
+  tiene(nave, 'subida = construirSubida(si);   // (detrás del fundido: la pantalla está a oscuras)', 'la subida se arma detrás del fundido de entrada');
   tiene(nave, 'if (enSubida) { activos.length = 0; actualizarSubida(dt, js); return; }', 'en la escalera no hay pelea');
   tiene(nave, 'entrarCorazon, bajarEscalera, atajoCorazon,', 'el atajo de las pruebas a la puerta del corazón');
   for (const f of ['pruebas/humo-3-0-asedio.cjs', 'pruebas/humo-3-5-1-desafio.cjs']) ok(leer(f).includes('naveAdentro.atajoCorazon()'), `${f}: usa el atajo a la puerta del corazón`);
   // los duendes que asoman en la subida (tercera tanda): los de siempre, sin pelea ni choques
   tiene(nave, "import { crearDuende } from './desafio-duendes.js';", 'los duendes de la subida son los del Desafío (instanciados: no compilan nada)');
   tiene(nave, 'if (subida.vecinos) animarVecinos(dt, js);', 'asoman, se ríen y se esconden');
-  tiene(nave, 'if (d < 3.5) { v.quiere = 0;', 'cerca se meten en su casita');
+  tiene(nave, 'if (d < PELIGROS.ramas.minimo) { v.quiere = 0;', 'cerca se meten en su casita');   // 4.10 coihue: el 3,5 de antes es PELIGROS.ramas.minimo
   tiene(nave, 'S().risa?.(', 'se ríen al asomarse');
   { const cuerpoV = nave.slice(nave.indexOf('function animarVecinos('), nave.indexOf('function animarVecinos(') + 2500); ok(!/col.agregar|herirJugador|lanzarProyectil|api.aliens/.test(cuerpoV), 'no chocan, no pelean y no son de la oleada'); }
   // los nombres de siempre (pruebas y guardado): ojos, pilares, corazón, gajos, escudo, matRajas, aro, charco

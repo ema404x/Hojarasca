@@ -4147,6 +4147,9 @@ const PISTAS = [
   // 3.0: el asedio final y la nave por dentro
   { id: 'p-asedio', cuando: (js, p) => !!p.desafio?.asedio?.activo, titulo: 'El asedio', texto: 'El Coihue Viejo se plantó y hundió raíces en el valle (el mapa las marca). Cortalas de día; de noche defendé el fogón de la última zona que recuperaste' },
   { id: 'p-haz', cuando: (js, p) => !!p.desafio?.asedio?.activo && (p.desafio.asedio.zonas || []).filter((z) => z.estado !== 'tomada').length >= 3, titulo: 'La puertita está abierta', texto: 'Con tres zonas libres se puede entrar al Coihue: de día, andá a su pie, a la puertita de las raíces, y apretá E' },
+  // 4.10 coihue: el Coihue camina hacia tu base, y los lugares que toman los duendes
+  { id: 'p-camina', cuando: (js, p) => !!p.desafio?.asedio?.activo && !!p.desafio.asedio.camino && !p.desafio.asedio.camino.llego, titulo: 'El Coihue camina', texto: 'Cada noche del asedio se acerca unos metros a tu base (el mapa marca su ruta). Pegale a sus raíces o ponele trampas en el camino para frenarlo; con cada zona libre camina más despacio. Si llega, el cerco cae' },
+  { id: 'p-tomada', cuando: (js, p) => (p.desafio?.valle?.zonas || []).some((z) => z.nivel > 0) && !p.desafio.valle.cerrado, titulo: 'Un lugar tomado', texto: 'Los duendes tomaron un lugar del valle (el mapa lo marca): ahí no se puede talar ni picar y salen duendes de noche. Quemá o rompé su nido de hongos de día y se recupera' },
   { id: 'p-nido-dia', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= NIDO.pistas && !p.desafio.nido.caido, titulo: 'La cueva está marcada', texto: 'Andá de día: con el sol arriba se le abre la boca y quedan a tiro las tres cunas. De noche está tapada' },
 ];
 let acumuladoPistas = 0;
@@ -4506,7 +4509,15 @@ function objetivoHacha() {
   if (arbol.caido) return { tipo: 'tronco', arbol, caido: true };
   return { tipo: 'tronco', arbol, talar: true, protegido: arbol.especie === 'pehuen', golpes: golpesTala.get(arbol) || 0 };
 }
+// 4.10 coihue: en un lugar que tomaron los duendes no se corta ni se pica (hasta sacar su nido, de día)
+function lugarTomado(o, avisar = true) {
+  const t = o.arbol || o.mata;
+  if (!t || !desafio?.valle?.bloquea?.(t.x, t.z)) return false;
+  if (avisar) nota('Lugar tomado por los duendes', 'La bruma y los hongos no dejan trabajar acá. Buscá su nido en el mapa y quemalo o rompelo de día', true);
+  return true;
+}
 function textoHacha(o) {
+  if (lugarTomado(o, false)) return 'Lugar tomado por los duendes: sacá su nido primero';   // 4.10 coihue
   // 4.2: la piedra se pica a golpes de pico, como la tala: «Picar piedra (3/6)»
   if (o.tipo === 'piedra') return o.sinPico ? 'Para picar piedra hace falta el pico' : o.golpes ? `Picar piedra (${o.golpes}/${golpesParaPicarAhora(o.mata)})` : 'Picar piedra';
   if (!o.talar) return 'Hacer troncos';
@@ -4523,6 +4534,7 @@ function usarHacha() {
     else nota('Te falta el hacha', desafio ? 'Se cambia en el almacén' : 'Está en el almacén de la Aldea de los Duendes: tomá la trochita en la Estación del Valle');
     return;
   }
+  if (lugarTomado?.(o)) return;   // 4.10 coihue (con ?. por las pruebas de 4.2 y 4.7)
   if (o.sinPico) {
     // 4.2: el hacha no pica piedra. El aviso dice las tres vías (el herrero es la normal; el almacén, por trueque o con plata, y la plata es el atajo)
     nota('Te falta el pico', desafio ? 'Se cambia en el almacén' : 'Para picar piedra hace falta el pico: lo forja el herrero de la aldea, o se consigue en el almacén (Tab: más cambios)', true);
@@ -10036,6 +10048,12 @@ function dibujarCuadro(luz, noche) {
   if (HOJARASCA_DEBUG && window.__hojarasca?.__camaraFija) { const f = window.__hojarasca.__camaraFija; camara.position.set(f.x, f.y, f.z); camara.rotation.order = 'YXZ'; camara.rotation.set(f.pitch, f.yaw, 0); }   // 3.9.0: sólo para las capturas de las pruebas (?debug=1): una cámara quieta, sin mover tu cuerpo
   // 3.9.1: la borrachera: la imagen se mueve un poquito (con el ajuste suave o apagado, o la cámara reducida, menos o nada); se pasa con el tiempo
   if (cantinaJuego && !desafio && modo === 'jugando') { const ef = cantinaJuego.efectoEbrio(performance.now() / 1000); if (ef) { camara.rotation.order = 'YXZ'; camara.rotation.z += ef.roll; camara.rotation.y += ef.yaw; camara.rotation.x += ef.pitch; } }
+  // 4.10 coihue: cuando el Coihue da una zancada cerca, el suelo tiembla (con la cámara reducida, casi nada)
+  if (desafio && modo === 'jugando' && desafio.temblor > 0.01) {
+    const tm = desafio.temblor * (ajustes.movimientoCamara === 'reducido' ? 0.15 : 1), tt = performance.now() / 1000;
+    camara.rotation.order = 'YXZ';
+    camara.rotation.x += Math.sin(tt * 41) * 0.0035 * tm; camara.rotation.z += Math.sin(tt * 33 + 1) * 0.004 * tm; camara.rotation.y += Math.sin(tt * 27 + 2) * 0.002 * tm;
+  }
   const medirRender = medidor.visible || HOJARASCA_DEBUG || banco.activa;
   if (post && ajustes.post !== 'apagado') {
     if (medirRender) { renderer.info.autoReset = false; renderer.info.reset(); }

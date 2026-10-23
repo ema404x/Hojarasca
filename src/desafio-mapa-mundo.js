@@ -136,11 +136,13 @@ export function crearMapaMundo(T, escena, ctx) {
   }
   function avisoCerca(pos) {
     const s = cerca(pos);
+    if (s && ctx.bloquea?.(s.x, s.z)) return 'Lugar tomado por los duendes: sacá su nido primero';   // 4.10 coihue
     return s ? avisoSitio(usos(), s, ctx.dia()) : null;
   }
   function usarCerca(pos) {
     const s = cerca(pos);
     if (!s) return false;
+    if (ctx.bloquea?.(s.x, s.z)) { ctx.nota(RECURSOS[s.tipo].nombre, 'Lugar tomado por los duendes: sacá su nido (mirá el mapa) y volvé'); return true; }   // 4.10 coihue
     const d = ctx.D();
     // una partida de antes de la 3.0 empieza a recordar lo que juntó (sigue siendo de antes)
     if (!d.mapa) d.mapa = mapaGuardadoNuevo(null, true);

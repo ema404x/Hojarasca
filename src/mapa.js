@@ -200,7 +200,7 @@ export function crearMapa(T, extra = null) {
     const reservar = (wx, wz, r) => { const [px, py] = aP(wx, wz); ocupados.push([px - r, px + r, py - r, py + r, null]); };
     for (const l of Object.values(lugares)) reservar(l.x, l.z, W / 170);
     for (const m of marcas) if (m.tipo === 'parada') reservar(m.x, m.z, W / 220);
-    for (const a of automaticas) if (a.clase !== 'cerco') reservar(a.x, a.z, a.clase === 'puesto' ? W / 60 : Object.hasOwn(DIBUJOS_SEMILLA, a.clase) ? W / 90 : W / 130);
+    for (const a of automaticas) if (a.clase !== 'cerco' && a.clase !== 'ruta') reservar(a.x, a.z, a.clase === 'puesto' ? W / 60 : Object.hasOwn(DIBUJOS_SEMILLA, a.clase) ? W / 90 : W / 130);
     for (const [id, l] of Object.entries(lugares)) {
       const [px, py] = aP(l.x, l.z);
       ctx.fillStyle = 'rgba(92, 46, 22, 0.9)';
@@ -229,6 +229,40 @@ export function crearMapa(T, extra = null) {
     // lo que el juego marca solo: la caja del alba, la cápsula, los restos
     for (const a of automaticas) {
       const [px, py] = aP(a.x, a.z);
+      // 4.10 coihue: un lugar tomado por los duendes: una mancha de tinta oscura con hongos, más cargada cuanto más tomado
+      if (a.clase === 'tomada') {
+        const [bx] = aP(a.x + a.radio, a.z), rr = Math.max(Math.abs(bx - px), W / 55), n = Math.max(1, Math.min(3, a.nivel || 1));   // (aunque en el papel sea chica, que se vea)
+        ctx.save();
+        ctx.fillStyle = 'rgba(52, 36, 64, ' + (0.16 + n * 0.07) + ')'; ctx.strokeStyle = 'rgba(52, 30, 66, 0.7)'; ctx.lineWidth = 2;
+        ctx.setLineDash([W / 120, W / 160]);
+        ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(52, 30, 66, 0.85)';
+        for (let k = 0; k < 2 + n * 2; k++) {
+          const ang = k * 2.4 + a.x * 0.01, d = rr * (0.3 + ((k * 37) % 5) * 0.12), mx = px + Math.cos(ang) * d, my = py + Math.sin(ang) * d, s = W / 190;
+          ctx.beginPath(); ctx.arc(mx, my, s, Math.PI, 0); ctx.fill(); ctx.fillRect(mx - s * 0.2, my, s * 0.4, s * 0.9);
+        }
+        ctx.restore();
+        ctx.fillStyle = '#3b2450';
+        ctx.font = `600 ${Math.round(W / 50)}px Caveat, cursive`;
+        rotular(a.nombre, px, py - rr * 0.55, W / 90, W / 50);
+        continue;
+      }
+      // 4.10 coihue: por dónde va a caminar el Coihue: una línea de puntos a lápiz, con la flechita en la punta
+      if (a.clase === 'ruta' && Array.isArray(a.puntos)) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(92, 40, 22, 0.85)'; ctx.fillStyle = 'rgba(92, 40, 22, 0.9)'; ctx.lineWidth = 2.6;
+        ctx.setLineDash([W / 160, W / 105]);
+        ctx.beginPath();
+        a.puntos.forEach(([x, z], i) => { const [qx, qy] = aP(x, z); if (i === 0) ctx.moveTo(qx, qy); else ctx.lineTo(qx, qy); });
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const n = a.puntos.length, [ex, ey] = aP(a.puntos[n - 1][0], a.puntos[n - 1][1]), [bx, by] = aP(a.puntos[n - 2][0], a.puntos[n - 2][1]);
+        const ang = Math.atan2(ey - by, ex - bx), s = W / 85;
+        ctx.beginPath(); ctx.moveTo(ex + Math.cos(ang) * s, ey + Math.sin(ang) * s); ctx.lineTo(ex + Math.cos(ang + 2.5) * s, ey + Math.sin(ang + 2.5) * s); ctx.lineTo(ex + Math.cos(ang - 2.5) * s, ey + Math.sin(ang - 2.5) * s); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        continue;
+      }
       // El cerco del nido no es un punto sino un redondel a lápiz: "anda por acá".
       if (a.clase === 'cerco' && a.radio > 0) {
         const [bx] = aP(a.x + a.radio, a.z);

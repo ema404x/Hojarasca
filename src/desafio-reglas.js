@@ -3,7 +3,8 @@
 import { sanearNido } from './desafio-nido.js';
 import { sanearAsedio } from './desafio-asedio.js';
 import { APAGON, sanearBestiario, sanearDespues } from './desafio-noche2.js';
-import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR } from './desafio-valle.js';
+// 4.10 coihue: y los lugares del valle que toman los duendes
+import { EXCAVADOR, sanearRescates, RESCATES, VIDA_LUGAR, sanearValle } from './desafio-valle.js';
 import { multiplicadorVuelta } from './desafio-vuelta.js';
 // 4.9 aliados: y los puestos marcados
 import { sanearOrdenes, sanearPuestosAliados } from './desafio-ordenes.js';
@@ -482,7 +483,9 @@ export function desafioNuevo() {
     // 4.10 partidas: el modo, las ventajas y las reglas con que se empezó (null: campaña de siempre; ver desafio-meta.js)
     meta: null,
     // 4.10 base: los trofeos ganados y las noches del perro (ver desafio-crece.js)
-    crece: creceNuevo() };
+    crece: creceNuevo(),
+    // 4.10 coihue: los lugares del valle tomados por los duendes (null hasta la noche 3; ver desafio-valle.js §11)
+    valle: null };
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -591,6 +594,7 @@ export function sanearDesafio(d) {
     puestos: sanearPuestos(x.puestos),
     aldea: sanearAldeaDelDesafio(x.aldea),   // 4.9 dias: una partida vieja carga con todos los vecinos en 0
     crece: sanearCrece(x.crece),   // 4.10 base: una partida vieja carga sin trofeos, con el perro sin curtir y sin bonos
+    valle: sanearValle(x.valle),   // 4.10 coihue: una partida vieja carga sin lugares tomados
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),

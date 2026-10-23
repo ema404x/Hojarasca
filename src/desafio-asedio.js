@@ -15,6 +15,8 @@
 // Nada de esto traba la partida: si caés de noche, la zona sigue recuperada y se vuelve a
 // defender la noche siguiente; el haz queda abierto mientras haya tres zonas libres.
 import { danoAlLugar } from './desafio-valle.js';
+// 4.10 coihue: el Coihue camina hacia tu base (ver desafio-camino.js)
+import { sanearCamino, posicionCamino, textoCamino, marcasCamino } from './desafio-camino.js';
 
 export const ASEDIO = {
   zonasParaAbordar: 3,      // zonas libres (recuperadas o aseguradas) para que se abra el haz
@@ -87,11 +89,15 @@ export function sanearAsedio(x) {
   }
   if (!zonas.length) return null;
   const contra = Number.isInteger(x.contra) && zonas[x.contra]?.estado === 'recuperada' ? x.contra : null;
+  // 4.10 coihue: el camino del Coihue (una partida de antes carga sin él: lo calcula la primera noche); la nave es donde está ahora
+  const camino = sanearCamino(x.camino);
+  const aqui = camino ? posicionCamino(camino) : null;
   return {
-    activo: x.activo === undefined ? true : !!x.activo, ganado: !!x.ganado, nave, zonas, contra,
+    activo: x.activo === undefined ? true : !!x.activo, ganado: !!x.ganado, nave: aqui ? { x: Math.round(aqui.x * 10) / 10, z: Math.round(aqui.z * 10) / 10 } : nave, zonas, contra,
     noches: ent(x.noches, 0), recuperadas: ent(x.recuperadas, 0), abordajes: ent(x.abordajes, 0), derrotasNave: ent(x.derrotasNave, 0),
     // 3.8.6: el Rey Duende ya cayó (se anota al caer, antes de los segundos en que se viene abajo el Coihue)
     ...(x.reyCaido && !x.ganado ? { reyCaido: true } : {}),
+    ...(camino ? { camino } : {}),
   };
 }
 
@@ -101,7 +107,8 @@ export const zonasTomadas = (a) => (a?.zonas || []).filter((z) => z.estado === '
 // Las capas del escudo de la nave: una por aguja en pie.
 export const capasEscudo = (a) => zonasTomadas(a);
 export function puedeAbordar(a) {
-  return asedioActivo(a) && zonasLibres(a) >= Math.min(ASEDIO.zonasParaAbordar, (a.zonas || []).length);
+  // 4.10 coihue: si el Coihue llegó a tu base, la puertita se abre sola (ya no hay zonas que valgan)
+  return asedioActivo(a) && (zonasLibres(a) >= Math.min(ASEDIO.zonasParaAbordar, (a.zonas || []).length) || !!a.camino?.llego);
 }
 // Cuánto la debilitaste de más: con las cuatro zonas libres, la de adentro arranca con un
 // ojo menos (ver `naveNueva`).
@@ -182,6 +189,11 @@ export function ganarAsedio(a) {
 // Lo que dice el HUD, corto.
 export function textoAsedio(a) {
   if (!asedioActivo(a)) return '';
+  // 4.10 coihue: y a cuánto está el Coihue de tu base
+  const camino = a.camino ? ` · ${textoCamino(a.camino)}` : '';
+  return textoAsedioBase(a) + camino;
+}
+function textoAsedioBase(a) {
   const n = (a.zonas || []).length, libres = zonasLibres(a);
   const contra = a.contra !== null && a.contra !== undefined ? a.zonas[a.contra] : null;
   const def = contra ? defZona(contra.id) : null;
@@ -199,6 +211,7 @@ export function marcasAsedio(a) {
     m.push({ x: z.x, z: z.z, nombre, estado: z.estado });
   }
   m.push({ x: a.nave.x, z: a.nave.z, nombre: puedeAbordar(a) ? 'el Coihue (puertita abierta)' : 'el Coihue Viejo', estado: 'nave' });
+  if (a.camino) m.push(...marcasCamino(a.camino));   // 4.10 coihue: la ruta que le queda
   return m;
 }
 

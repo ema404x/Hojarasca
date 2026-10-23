@@ -1372,6 +1372,11 @@ export function testigosCoihue() {
     piel.skeleton = new EsqueletoRey([hueso], piel);
   }
   g.add(fundirBrillo([q()]));
+  // 4.10: lo translúcido de un color (las huellas, la sombra, los lugares tomados, el aviso de la raíz: sólo cambia la mezcla) y los hongos y
+  // montículos (color por vértice sin alfa): sus programas también se compilan en la carga, no al aparecer el primero
+  // (con la geometría pelada, sólo posición —y color— como las de verdad: la clave del programa mira los atributos)
+  g.add(new THREE.Mesh(tri(), new THREE.MeshBasicMaterial({ color: '#101010', transparent: true, opacity: 0.2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })));
+  g.add(new THREE.Mesh(tri().setAttribute('color', new THREE.Float32BufferAttribute([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 3)), new THREE.MeshBasicMaterial({ vertexColors: true })));
   g.add(new THREE.Points(tri().setAttribute('color', new THREE.Float32BufferAttribute([1, 1, 1, 1, 1, 1, 1, 1, 1], 3)), matHalo(1)));
   const cc = new ConstructorArbol();
   racimo(cc, 1, [0, 0, 0], [0.01, 0.01, 0.01], { color: '#2b5126', tipo: 1, detalle: true, celda: CELDAS_CARTA.densa, cartas: 1, tam: 0.5 });

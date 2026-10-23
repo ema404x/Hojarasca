@@ -47,6 +47,8 @@ import { crearCimientos } from './desafio-cimiento.js';
 import { crearDefensasActivas } from './desafio-defensas.js';
 import { crearEventos } from './desafio-eventos.js';
 import { crearAsedioMundo } from './desafio-asedio-mundo.js';
+// 4.10 coihue: los lugares del valle que toman los duendes
+import { crearTomadasMundo } from './desafio-tomadas-mundo.js';
 // 3.8.6: el Rey que cayó justo antes de cerrar el juego (ver el primer cuadro de actualizar)
 import { ganarAsedio } from './desafio-asedio.js';
 import { crearNaveMundo } from './desafio-nave-mundo.js';
@@ -522,12 +524,35 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   api.camaraLenta = (s) => { camaraLenta = Math.max(camaraLenta, s); };
   api.abordar = () => naveMundo.entrar();
   api.sitioHaz = () => asedioMundo.sitioHaz();
+  // 4.10 coihue: lo que el Coihue que camina le pide al resto (una ruta sin obras, las trampas que pisa, el cerco que cae)
+  api.sitioInterior = () => asedioMundo.sitioInterior();
+  api.adentroDelCoihue = () => naveMundo.adentro;
+  api.obraCerca = (x, z, r) => obras.obrasCerca({ x, z }, r + 2, []).some((o) => completa(o));
+  const TRAMPAS_COIHUE = ['pozo', 'red', 'abrojos', 'miel', 'lazo', 'foso', 'estacas'];
+  api.trampasEn = (x, z, r) => obras.obrasCerca({ x, z }, r, []).filter((o) => completa(o) && TRAMPAS_COIHUE.includes(o.plano.defensa?.tipo));
+  api.pisarTrampa = (o) => { const v = vidaDe(o); o.datos.vida = Math.max(1, v.vida - v.max * 0.35); S.madera?.(o.datos); };
+  api.caerCerco = (x, z, r, frac) => {
+    let n = 0;
+    for (const o of obras.obrasCerca({ x, z }, r, [])) {
+      if (!completa(o)) continue;
+      const v = vidaDe(o);
+      o.datos.vida = Math.max(v.max * 0.08, v.vida - v.max * frac);
+      if (n++ < 3) S.derrumbe?.(o.datos);
+    }
+    return n;
+  };
   api.alGanarNave = () => asedioMundo.derribar(() => vencer({ nave: true }));
   const asedioMundo = crearAsedioMundo(T, escena, efectos, sonido, api);
   const naveMundo = crearNaveMundo(T, escena, col, camara, efectos, sonido, api, { delValle: (o) => delValle.has(o) });
+  // 4.10 coihue: los lugares del valle que toman los duendes (sus nidos son los de la infestación; ver desafio-valle.js §11)
+  const tomadas = crearTomadasMundo(T, escena, {
+    D, centroBase: () => centroBase(), obraEnPunto: (x, y, z) => obraEnPunto(x, y, z), nota: (t, s, n) => ctx.nota(t, s, n), rumboTexto: (a, b) => rumboTexto(a, b),
+    jugador: () => ctx.jugador(), guardar: () => ctx.guardar(), sumarMaterial: (k, n) => ctx.sumarMaterial(k, n), sincronizarCapullos: () => sincronizarCapullos(),
+  });
+  api.alEmpezarAsedio = () => tomadas.cerrar();
   const blancosDelValle = eventos.blancos, herirDelValle = eventos.herirNucleo;
   eventos.blancos = () => (naveMundo.adentro ? naveMundo.blancos() : asedioMundo.blancos(blancosDelValle()));
-  eventos.herirNucleo = (n, dano) => (n?.nave ? naveMundo.herir(n, dano) : n?.ancla ? asedioMundo.herir(n, dano) : herirDelValle(n, dano));
+  eventos.herirNucleo = (n, dano) => (n?.nave ? naveMundo.herir(n, dano) : n?.ancla || n?.pies ? asedioMundo.herir(n, dano) : herirDelValle(n, dano));   // 4.10 coihue: y las raíces con que camina
   // 3.0: los invasores que evolucionan y los puestos del bosque (ver desafio-evolucion*.js y
   // desafio-puestos*.js). Las estructuras de los puestos entran como blancos por el mismo
   // camino que las cámaras del nido: flechas, rayo, torretas y golpes les llegan igual.
@@ -540,7 +565,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   eventos.blancos = () => puestos.conBlancos(blancosDeEventos());
   eventos.herirNucleo = (n, dano) => (n?.puesto ? puestos.herir(n, dano) : herirDeEventos(n, dano));
   // 3.0: los lugares del mapa de la semilla: cantera, cristales, leña y alijos (ver desafio-mapa*.js)
-  const mapaMundo = crearMapaMundo(T, escena, { D, dia: () => progreso().dia, nota: (t, s, n) => ctx.nota(t, s, n), sumarMaterial: (k, n) => ctx.sumarMaterial(k, n), guardar: () => ctx.guardar(), sonido });
+  const mapaMundo = crearMapaMundo(T, escena, { D, bloquea: (x, z) => !!tomadas.bloquea(x, z), dia: () => progreso().dia, nota: (t, s, n) => ctx.nota(t, s, n), sumarMaterial: (k, n) => ctx.sumarMaterial(k, n), guardar: () => ctx.guardar(), sonido });
   // 3.0: la base con la que arrancó la partida (null: la de siempre, el refugio)
   const baseMapa = () => { const b = D().mapa?.base; return b && !b.refugio ? b : null; };
   let relojCimientos = 0;
@@ -1349,6 +1374,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 2.3: la trochita sigue, y la nave deja capullos para la noche que viene
     cerrarVarada(true);
     sembrarCapullos();
+    tomadas.alAmanecer();   // 4.10 coihue: ¿toman un lugar del valle? (y su nido)
     // 3.0: aprenden de cómo peleaste, y los puestos crecen (o aparece uno nuevo)
     evolucion.alAmanecer();
     puestos.alAmanecer();
@@ -3298,6 +3324,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       for (const tipo of queSale(d.oleadas, azar)) {
         if (aparecerEn(tipo, c.x + (azar() - 0.5) * 1.5, c.z + (azar() - 0.5) * 1.5)) n++;
       }
+      // 4.10 coihue: el nido de un lugar tomado: el lugar se cierra un escalón más y salen más duendes de ahí
+      if (c.zona) for (const tipo of tomadas.alAbrirseNido(c)) { if (aparecerEn(tipo, c.x + (azar() - 0.5) * 3, c.z + (azar() - 0.5) * 3)) n++; }
     }
     nocheActual.invasores += n;
     d.vivos = (d.vivos || 0) + n;
@@ -3339,6 +3367,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       S.golpe(_v, 'rastreador');
       if (golpearCapullo(c)) {
         D().capullos = D().capullos.filter((x) => x !== c);
+        tomadas.alQuitarNido(c);   // 4.10 coihue
         const a = aparecerEn('rastreador', c.x, c.z);
         if (a) { a.vida = a.vidaMax = Math.max(1, Math.round(a.vidaMax * 0.5)); a.enredadoT = 1.2; }
         S.capullo(_v);
@@ -3365,6 +3394,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (r > 0) { quemandoCapullo.set(c, r); continue; }
       quemandoCapullo.delete(c);
       lista.splice(i, 1);
+      tomadas.alQuitarNido(c);   // 4.10 coihue: si era el de un lugar tomado
       sincronizarCapullos();
       ctx.sumarMaterial('cristal', 1);
       ctx.nota('Quemaste un nido de hongos', lista.length ? `Quedan ${lista.length} en el bosque · +1 semilla dorada` : 'No queda ninguno · +1 semilla dorada');
@@ -3730,6 +3760,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     revisarCapsula(js);
     eventos.actualizar(dt, js);
     asedioMundo.actualizar(dt, js);   // 3.0
+    tomadas.actualizar(dt, js);   // 4.10 coihue
     naveMundo.actualizar(dt, js);
     aliados.actualizarCompaneros(dt, vivos() > 0);
     vecinos.actualizar(dt, js, vivos() > 0, mundo.noche);   // 4.9 aliados
@@ -3800,6 +3831,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     vecinos.limpiar();   // 4.9 aliados
     musica.detener();
     naveMundo.limpiar();   // 3.0
+    tomadas.limpiar();   // 4.10 coihue
     bloqueando = false;
   }
   hud?.classList.remove('oculto');
@@ -3905,6 +3937,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get nodrizaActiva() { return eventos.nodrizaActiva; },
     // 3.0: el asedio final y la nave por dentro
     get asedio() { return asedioMundo; },
+    get valle() { return tomadas; },   // 4.10 coihue: los lugares tomados (el mapa y el hacha lo miran)
+    get temblor() { return asedioMundo.temblor; },   // 4.10 coihue: cuánto tiembla el suelo cuando el Coihue camina (0 a 1)
+    centroBase: () => centroBase(),   // 4.10 coihue (pruebas)
     get naveAdentro() { return naveMundo; },
     vencer,
   };
