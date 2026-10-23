@@ -101,8 +101,9 @@ const xpParaNivel = (nv) => O.UMBRALES[nv];
     return { p, m };
   };
   const w = mundo();
-  ok(E.ejecutar('materiales 100', w.m).ok, 'materiales 100');
-  for (const k of ['tronco', 'tabla', 'piedra', 'lana', ...ZONA]) eq(w.p.materiales[k], 100, `materiales: ${k} en 100`);
+  // 4.10.1: la consola respeta las 24 casillas de la mochila: 10 de cada uno ocupa 9 casillas y entra (con 100 no entra todo; ver verificar-4-10-1-mundo.mjs)
+  ok(E.ejecutar('materiales 10', w.m).ok, 'materiales 10');
+  for (const k of ['tronco', 'tabla', 'piedra', 'lana', ...ZONA]) eq(w.p.materiales[k], 10, `materiales: ${k} en 10`);
   ok(E.ejecutar('materiales 0', w.m).ok && ZONA.every((k) => !(k in w.p.materiales)), 'materiales 0 los borra');
   const h = E.ejecutar('herramientas', w.m);
   ok(h.ok && HERR.every((id) => w.p.cosas[id] === 1), `herramientas da las de zona (${h.texto.slice(0, 120)})`);

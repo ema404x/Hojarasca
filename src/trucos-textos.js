@@ -84,6 +84,9 @@ export const R = {
   plataDesafio: 'En La noche de los duendes no hay pesos: eso es del modo Relax',
   material: (k, n) => `Listo: tenés ${cantidad(n)} ${k}`,
   materiales: (n) => `Listo: troncos, tablas, piedras, lana y los materiales de zona en ${cantidad(n)}`,
+  // 4.10.1: la mochila tiene casillas: se llena hasta donde entra y se dice cuánto quedó
+  materialTope: (k, n, pedido, casillas) => `Listo: tenés ${cantidad(n)} ${k} (pediste ${cantidad(pedido)}; la mochila de ${casillas} casillas no da para más)`,
+  materialesTope: (lista, casillas) => `Listo, hasta donde entra la mochila (${casillas} casillas). Los que no entraron enteros quedaron en: ${lista.join(', ')}`,
   materialesDesafio: (n) => `Listo: troncos, tablas y piedras en ${cantidad(n)} (la lana no existe en La noche de los duendes)`,
   materialesRel: (signo, n) => `Listo: ${signo > 0 ? 'sumé' : 'resté'} ${cantidad(n)} de cada material`,
   lanaDesafio: 'La lana es del modo Relax: en La noche de los duendes no aplica',

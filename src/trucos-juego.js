@@ -65,6 +65,7 @@ export function crearTrucosJuego(ctx) {
     },
     depositos: () => (ctx.obras()?.obras || []).filter((o) => esAlmacen(o?.plano?.id) && o.datos && o.datos.etapas >= o.plano.etapas.length),
     rehacerObra: (o) => ctx.obras()?.rehacer?.(o),
+    alSaltarElTiempo: (d, h) => ctx.alSaltarElTiempo?.(d, h),   // 4.10.1
     alCambiarClima: () => ctx.alCambiarClima?.(),
     alCambiarEstacion: () => ctx.alCambiarEstacion?.(),
     refrescar: () => ctx.refrescar?.(),

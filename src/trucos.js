@@ -10,7 +10,7 @@
 // El motor no conoce el juego: todo lo que necesita se lo pasa `m` (el «mundo»):
 //   m.desafio (bool) · m.progreso() · m.ajustes() · m.jugador() (el estado del jugador) · m.reloj ({ congelado }) · m.limite (hasta dónde se camina)
 //   m.lugares() → [{ clave, nombre, x, z, y?, yaw? }] · m.ir(x, z, yaw, y) · m.depositos() → [obras terminadas que son almacén] · m.rehacerObra(o)
-//   m.alCambiarClima() · m.alCambiarEstacion() · m.refrescar() · m.guardar() · m.limpiar() · m.salir()
+//   m.alSaltarElTiempo(dia|null, hora|null) (4.10.1: antes de mover el reloj) · m.alCambiarClima() · m.alCambiarEstacion() · m.refrescar() · m.guardar() · m.limpiar() · m.salir()
 // Todos opcionales menos progreso/ajustes/jugador (las pruebas arman un mundo de mentira).
 import { MAX_PESOS, hayEconomia, pesosDe } from './economia.js';
 import { ALMACENES, sanearAlmacen, libreDe, guardar as guardarEnAlmacen } from './almacen.js';
@@ -18,7 +18,8 @@ import { UMBRALES, NIVEL_MAX, ORDEN_OFICIOS, OFICIOS, esOficio } from './oficios
 import { CAPITULOS, historiaNueva } from './historia.js';
 import { PERSONAS_VECINDAD, NIVELES_AMISTAD, nombreCorto, sumarAmistadDe, nivelDe as nivelDeAmistad, esPersonaVecindad } from './vecindad.js';
 import { ENTRADAS, ENTRADA, SECCIONES } from './cuaderno.js';
-import { R, AYUDA, GRUPOS, NOMBRE_ESTACION, NOMBRE_CLIMA, pesos } from './trucos-textos.js';
+import { R, AYUDA, GRUPOS, NOMBRE_ESTACION, NOMBRE_CLIMA, pesos, cantidad } from './trucos-textos.js';
+import { lugarPara, capacidad } from './carga.js';
 
 // ------------------------------------------------------------------ límites
 export const MAX_MATERIAL = 9999;
@@ -90,12 +91,19 @@ function cmdPlata(args, m) {
 const MATERIALES_RELAX = ['tronco', 'tabla', 'piedra', 'lana', 'junco', 'hierbas', 'arcilla', 'cuero', 'piedra-cantera'];   // 4.6 recursos: y los de zona
 const MATERIALES_DESAFIO = ['tronco', 'tabla', 'piedra'];
 const PLURAL = { tronco: 'troncos', tabla: 'tablas', piedra: 'piedras', lana: 'vellones de lana' };
-function fijarMaterial(p, k, lec) {
+const NOMBRE_PLURAL = { ...PLURAL, junco: 'juncos', hierbas: 'atados de hierbas', arcilla: 'terrones de arcilla', cuero: 'cueros', 'piedra-cantera': 'piedras de cantera' };
+// 4.10.1: en el Relax la mochila tiene casillas (carga.js): lo que SUBE se llena hasta donde entra (antes `materiales 100` dejaba 52 casillas de 24
+// y no se podía juntar nada más). Bajar o dejar igual no se limita. Devuelve { n, pedido, tope }: lo que quedó, lo pedido y si la mochila no dio.
+function fijarMaterial(p, k, lec, m = {}) {
   p.materiales = p.materiales && typeof p.materiales === 'object' ? p.materiales : {};
-  const n = Math.floor(aplicar(p.materiales[k], lec, 0, MAX_MATERIAL));
+  const actual = Math.max(0, Math.floor(Number(p.materiales[k]) || 0));
+  const pedido = Math.floor(aplicar(p.materiales[k], lec, 0, MAX_MATERIAL));
+  let n = pedido;
+  if (!m.desafio && pedido > actual) n = actual + lugarPara(p, k, pedido - actual, { montado: !!m.jugador?.()?.montado });
   if (n > 0) p.materiales[k] = n; else delete p.materiales[k];
-  return n;
+  return { n, pedido, tope: n < pedido };
 }
+const casillasDe = (p, m) => { const c = capacidad(p, { montado: !!m.jugador?.()?.montado }).total; return Number.isFinite(c) ? c : 0; };
 function cmdMaterial(clave) {
   return (args, m) => {
     const p = progresoDe(m); if (!p) return no(R.noHayPartida);
@@ -104,9 +112,9 @@ function cmdMaterial(clave) {
     const uso = AYUDA[clave === 'tronco' ? 'troncos' : clave === 'tabla' ? 'tablas' : clave === 'piedra' ? 'piedras' : 'lana'].uso;
     const lec = leerNumero(args[0], { min: 0, max: MAX_MATERIAL, signo: true });
     if (!lec.ok) return no(errorNumero(lec, args[0], uso, 0, MAX_MATERIAL));
-    const n = fijarMaterial(p, clave, lec);
+    const r = fijarMaterial(p, clave, lec, m);
     m.refrescar?.();
-    return ok(R.material(PLURAL[clave], n));
+    return ok(r.tope ? R.materialTope(PLURAL[clave], r.n, r.pedido, casillasDe(p, m)) : R.material(PLURAL[clave], r.n));
   };
 }
 function cmdMateriales(args, m) {
@@ -114,8 +122,10 @@ function cmdMateriales(args, m) {
   const sobra = unico(args); if (sobra) return sobra;
   const lec = leerNumero(args[0], { min: 0, max: MAX_MATERIAL, signo: true });
   if (!lec.ok) return no(errorNumero(lec, args[0], AYUDA.materiales.uso, 0, MAX_MATERIAL));
-  for (const k of m.desafio ? MATERIALES_DESAFIO : MATERIALES_RELAX) fijarMaterial(p, k, lec);
+  const quedo = [];
+  for (const k of m.desafio ? MATERIALES_DESAFIO : MATERIALES_RELAX) { const r = fijarMaterial(p, k, lec, m); if (r.tope) quedo.push(`${cantidad(r.n)} ${NOMBRE_PLURAL[k] || k}`); }
   m.refrescar?.();
+  if (quedo.length) return ok(R.materialesTope(quedo, casillasDe(p, m)));
   return ok(lec.rel ? R.materialesRel(lec.rel, lec.valor) : (m.desafio ? R.materialesDesafio(lec.valor) : R.materiales(lec.valor)));
 }
 
@@ -171,6 +181,7 @@ function ponerHora(horas, m) {
   const p = progresoDe(m); if (!p) return no(R.noHayPartida);
   if (m.desafio) return no(R.horaDesafio);
   if (m.ajustes?.()?.duracion === 'reloj' && !m.reloj?.congelado) return no(R.horaDeReloj);
+  m.alSaltarElTiempo?.(null, horas);   // 4.10.1: un turno de empleo en curso se cierra sin multa ni falta (los códigos no dejan rastro)
   p.horas = horas;
   const h = Math.floor(horas), mi = Math.round((horas - h) * 60);
   m.refrescar?.();
@@ -194,6 +205,7 @@ function cmdDia(args, m) {
   const destino = Math.floor(aplicar(hoy, lec, 1, MAX_DIA));
   if (destino < hoy) return no(R.diaAtras(hoy));
   if (destino === hoy) return ok(R.diaIgual(hoy));
+  m.alSaltarElTiempo?.(destino, null);   // 4.10.1: ídem
   p.dia = destino;
   m.refrescar?.();
   return ok(R.dia(destino));
@@ -354,6 +366,8 @@ function cmdOficios(args, m) {
   return ok(R.oficio(OFICIOS[id].nombre, lec.valor));
 }
 
+// 4.10.1: el código deja la historia activa y TAMBIÉN el tipo de partida (relaxTipo): si no, al volver a la portada y apretar «Seguir», alEntrar() la ponía en pausa sin avisar
+function activaLaHistoria(m) { const aj = m.ajustes?.(); if (aj && typeof aj === 'object') aj.relaxTipo = 'historia'; }
 function diaDe(p) { return Math.max(1, Math.floor(Number(p?.dia) || 1)); }
 function cmdHistoria(args, m) {
   const p = progresoDe(m); if (!p) return no(R.noHayPartida);
@@ -372,18 +386,21 @@ function cmdHistoria(args, m) {
     const idx = lec.valor - 1;
     CAPITULOS.forEach((c, i) => marcar(c, i < idx));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = 0; h.capitulo = idx; h.fase = 'intro'; h.base = {};
+    activaLaHistoria(m);
     return ok(R.historiaCapitulo(lec.valor, CAPITULOS[idx].titulo || CAPITULOS[idx].nombre || ''));
   }
   if (a === 'completar' || a === 'terminar' || a === 'fin') {
     const sobra = unico(args); if (sobra) return sobra;
     CAPITULOS.forEach((c) => marcar(c, true));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = h.terminada || dia; h.capitulo = n - 1; h.fase = 'fin'; h.base = {};
+    activaLaHistoria(m);
     return ok(R.historiaCompleta);
   }
   if (a === 'reiniciar' || a === 'empezar') {
     const sobra = unico(args); if (sobra) return sobra;
     CAPITULOS.forEach((c) => marcar(c, false));
     h.activa = true; h.empezada = h.empezada || dia; h.terminada = 0; h.capitulo = 0; h.fase = 'intro'; h.base = {};
+    activaLaHistoria(m);
     return ok(R.historiaReiniciada);
   }
   return no(R.historiaUso(n));
