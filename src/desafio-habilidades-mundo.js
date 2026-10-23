@@ -54,17 +54,15 @@ export function crearHabilidadesMundo(ctx) {
   function dibujarCuaderno(lista, ficha, el) {
     const d = estado(), h = d.habilidades;
     lista.appendChild(el('h3', '', `Puntos del guardián: ${h.puntos}`));
-    lista.appendChild(el('p', 'pista', 'Ganás un punto por cada noche que aguantás: al amanecer, si la base no cayó. Cada habilidad tiene tres niveles y cuestan 1, 2 y 3 puntos.'));
+    lista.appendChild(el('p', 'pista', 'Un punto por cada noche aguantada.'));
+    const ul = el('ul', 'lista');   // (las seis en una sola lista, con la rama adelante: caben sin desplazar la página)
     for (const rama of RAMAS) {
-      lista.appendChild(el('h3', '', rama.nombre));
-      lista.appendChild(el('p', 'pista', rama.texto));
-      const ul = el('ul', 'lista');
       for (const id of IDS_HABILIDAD) {
         if (HABILIDADES[id].rama !== rama.id) continue;
         const n = nivelDe(h, id);
         const b = el('button');
         b.dataset.id = id;
-        b.appendChild(el('span', '', HABILIDADES[id].nombre));
+        b.appendChild(el('span', '', `${rama.nombre} · ${HABILIDADES[id].nombre}`));
         b.appendChild(el('span', 'marca', n >= NIVEL_MAX_HABILIDAD ? 'al máximo' : `nivel ${n} de ${NIVEL_MAX_HABILIDAD}`));
         if (elegida === id) b.setAttribute('aria-current', 'true');
         b.addEventListener('click', (e) => {
@@ -74,8 +72,8 @@ export function crearHabilidadesMundo(ctx) {
         });
         const li = el('li'); li.appendChild(b); ul.appendChild(li);
       }
-      lista.appendChild(ul);
     }
+    lista.appendChild(ul);
     lista.onkeydown = (e) => {
       if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
       const botones = [...lista.querySelectorAll('button[data-id]')];
@@ -106,6 +104,8 @@ export function crearHabilidadesMundo(ctx) {
     const filas = resumenDeBonos(d);
     if (!filas.length) ficha.appendChild(el('p', 'pista', 'Todavía nada: gastá un punto y se nota enseguida.'));
     for (const f of filas) ficha.appendChild(el('p', 'texto', f));
+    ficha.appendChild(el('h3', '', 'Cómo se ganan los puntos'));
+    ficha.appendChild(el('p', 'pista', 'Ganás un punto por cada noche que aguantás: al amanecer, si la base no cayó. Cada habilidad tiene tres niveles que cuestan 1, 2 y 3 puntos; con todo el tiempo del mundo no alcanza para las seis, así que elegí.'));
     if (puntosGastados(h)) ficha.appendChild(el('p', 'pista', `Gastaste ${puntosGastados(h)} de ${puntosGastados(h) + h.puntos} puntos ganados.`));
 
     // el foco vuelve donde estaba (el cuaderno se redibuja entero)
