@@ -43,6 +43,11 @@ const MUTACIONES = [
   ['el botón se apaga', M, 'b.disabled = !aqui || !r.ok;', 'b.disabled = false;'],
   ['las hojas muestran los pedidos', M, 'hojas[k].visible = !!d.aldea?.pedidos?.[k] && !vencido(d.aldea.pedidos[k], p.dia, p.horas);', 'hojas[k].visible = false;'],
   ['lo repartido se guarda', M, 'if (eventos.length) ctx.guardar();', ''],
+  ['la trampa va sobre la línea de entrada', M, 'ctx.colocarTrampa(b.x + ux * dist - uz * des, b.z + uz * dist + ux * des)', 'ctx.colocarTrampa(b.x - ux * dist - uz * des, b.z - uz * dist + ux * des)'],
+  ['la trampa se arma cerca de la base', M, 'distancias: [18, 24, 30]', 'distancias: [58, 64, 70]'],
+  ['sin tabla o miel no se sigue probando', M, "if (/^Falta/.test(r?.motivo || ''))", 'if (false)'],
+  ['la trampa se arma desde el tablón', M, "if (!cerca(ctx.posJugador())) { ctx.nota('Armala desde el tablón'", "if (false) { ctx.nota('Armala desde el tablón'"],
+  ['sin la trampa del juego no se ofrece', M, "const hayTrampa = () => typeof ctx.colocarTrampa === 'function' && !!ctx.hayTrampa?.();", 'const hayTrampa = () => true;'],
   // ---- el enganche
   ['la partida vieja carga la aldea saneada', 'src/desafio-reglas.js', 'aldea: sanearAldeaDelDesafio(x.aldea),', 'aldea: x.aldea,'],
   ['la E sólo en el Desafío', 'src/interacciones.js', 'cuando: (c) => c.desafio && libre(c.js) && !c.js.montado && c.tablonAldeaCerca()', 'cuando: (c) => libre(c.js) && !c.js.montado && c.tablonAldeaCerca()'],

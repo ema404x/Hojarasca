@@ -954,6 +954,8 @@ async function construir() {
     // 4.9 dias: el tablón de la aldea abre el cuaderno en su pestaña, y la pestaña se redibuja al entregar
     abrirTablonAldea: () => { pestana = 'aldea'; abrir('cuaderno'); },
     redibujarCuaderno: () => { if (modo === 'cuaderno') dibujarCuaderno(); },
+    colocarTrampaDeLaAldea: (x, z) => (typeof desafio?.colocarTrampaMiel === 'function' ? desafio.colocarTrampaMiel(x, z) : null),   // 4.9 dias: la trampa de miel de la rama de las defensas
+    hayTrampaDeLaAldea: () => typeof desafio?.colocarTrampaMiel === 'function',
     pulso: () => factorPulso(nivelDe('cazador')),
   });
   elegida = Math.min(7, Math.max(0, progreso.ranura || 0));
@@ -1113,7 +1115,7 @@ function dibujarCuaderno() {
   if (pestana === 'oficios' && oficios) { oficios.dibujarCuaderno(lista, ficha, el, desafio ? null : aldeaGente); return; }
   if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
   if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
-  if (pestana === 'aldea' && desafio?.aldeaMundo) { desafio.aldeaMundo.dibujarCuaderno(ficha, el); return; }   // 4.9 dias
+  if (pestana === 'aldea' && desafio?.aldeaMundo) { desafio.aldeaMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.9 dias
 
   if (pestana === 'bestiario' && desafio) {
     const best = desafio.bestiario;

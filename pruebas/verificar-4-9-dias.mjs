@@ -366,7 +366,7 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   const base = { x: BASE_REFUGIO.x, z: BASE_REFUGIO.z, radio: 4 };
   const plan = L.planDeLados(base, muestra);
   const montar = (extra = {}) => {
-    const notas = [], estado = { dia: 5, horas: 9, pos: { x: base.x, y: 0, z: base.z }, abrio: 0, libre: true, mochila: { tronco: 20, tabla: 20, piedra: 20, ramita: 40, fruta: 20, cristal: 0 }, guardados: 0, redibujos: 0 };
+    const notas = [], estado = { dia: 5, horas: 9, pos: { x: base.x, y: 0, z: base.z }, abrio: 0, libre: true, mochila: { tronco: 20, tabla: 20, piedra: 20, ramita: 40, fruta: 20, miel: 20, cristal: 0 }, guardados: 0, redibujos: 0 };
     const d = sanearDesafio(null); d.semilla = 'ABEJA-NIDO-LUNA'; d.oleadas = 4;
     const escena = { hijos: [], add(h) { this.hijos.push(h); } };
     const ctx = {
@@ -410,18 +410,18 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   ok(m.usarCerca(estado.pos) === true && estado.abrio === 1, 'la E abre el cuaderno en la pestaña de la aldea');
   ok(m.usarCerca({ x: 9999, z: 9999 }) === false && m.avisoCerca({ x: 9999, z: 9999 }) === null, 'lejos, nada');
   // el cuaderno: pedidos, y la noche que viene
-  let ficha = nodo('div');
-  m.dibujarCuaderno(ficha, nodo);
-  let tx = texto(ficha);
-  ok(/La aldea/.test(tx) && /Los pedidos de hoy/.test(tx) && /La noche que viene/.test(tx), 'la pestaña tiene sus tres partes');
+  let ficha = nodo('div'), lista = nodo('div');
+  m.dibujarCuaderno(lista, ficha, nodo);
+  let tx = texto(lista) + texto(ficha);
+  ok(/Pedidos de la aldea/.test(tx) && /Quién te ayuda/.test(tx) && /La noche que viene/.test(tx), 'la pestaña tiene sus tres partes');
   for (const k of A.VECINOS_AYUDA) ok(tx.includes(A.VECINOS[k].nombre) && tx.includes(A.textoPedido(k, d.aldea.pedidos[k]).slice(0, 25)), `${k}: su nombre y su pedido`);
   ok(/Pide \d+/.test(tx) && /Hasta que salgan los duendes/.test(tx) && /no vuelve/.test(tx), 'dice lo que pide y que cuesta');
   ok(!/Van a entrar/.test(tx) && /desde las 15/.test(tx), 'a la mañana el perro todavía no huele el lado y lo dice');
-  estado.horas = 16; ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo); tx = texto(ficha);
+  estado.horas = 16; ficha = nodo('div'); lista = nodo('div'); m.dibujarCuaderno(lista, ficha, nodo); tx = texto(lista) + texto(ficha);
   ok(/Van a entrar/.test(tx) && /a unos \d+ m de la base/.test(tx), 'a las 4 de la tarde el perro dice por dónde entran');
   estado.horas = 9;
   // entregar: junto al tablón, con lo pedido
-  ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo);
+  ficha = nodo('div'); lista = nodo('div'); m.dibujarCuaderno(lista, ficha, nodo);
   let bs = botones(ficha).filter((b) => b.texto === 'Entregar');
   ok(bs.length === 4 && bs.every((b) => !b.disabled), 'junto al tablón y con todo en la mochila, se puede entregar los cuatro');
   const antes = { ...estado.mochila }, pedido = d.aldea.pedidos.anselmo;
@@ -433,16 +433,16 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   m.actualizar(1.1, { pos: estado.pos });
   ok(m.hojas.anselmo.visible === false && m.hojas.chicos.visible === true, 'y su hoja sale del tablón');
   // sin lo pedido, el botón no deja
-  estado.mochila.piedra = 0; estado.mochila.tabla = 0; estado.mochila.tronco = 0; estado.mochila.ramita = 0; estado.mochila.fruta = 0;
-  ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo);
+  estado.mochila.piedra = 0; estado.mochila.tabla = 0; estado.mochila.tronco = 0; estado.mochila.ramita = 0; estado.mochila.fruta = 0; estado.mochila.miel = 0;
+  ficha = nodo('div'); lista = nodo('div'); m.dibujarCuaderno(lista, ficha, nodo);
   bs = botones(ficha).filter((b) => /^Te falta/.test(b.texto));
   ok(bs.length === 3 && bs.every((b) => b.disabled), 'sin las cosas, «Te falta…» y apagado');
   const r0 = m.entregarPedido('herminia');
   ok(!r0.ok && r0.razon === 'falta' && d.aldea.ayuda.herminia === 0, 'entregar sin todo no hace nada');
   // lejos del tablón, no se entrega aunque se pueda
-  estado.mochila = { tronco: 50, tabla: 50, piedra: 50, ramita: 90, fruta: 50, cristal: 0 };
+  estado.mochila = { tronco: 50, tabla: 50, piedra: 50, ramita: 90, fruta: 50, miel: 20, cristal: 0 };
   estado.pos = { x: m.sitio.x + 50, y: 0, z: m.sitio.z };
-  ficha = nodo('div'); m.dibujarCuaderno(ficha, nodo);
+  ficha = nodo('div'); lista = nodo('div'); m.dibujarCuaderno(lista, ficha, nodo);
   ok(botones(ficha).filter((b) => b.texto === 'Entregar').every((b) => b.disabled) && /parado junto al tablón/.test(texto(ficha)), 'lejos del tablón los botones están apagados y lo dice');
   ok(m.entregarPedido('martin').razon === 'lejos' && d.aldea.ayuda.martin === 0, 'y la entrega se rechaza');
   // de noche vence
@@ -458,6 +458,56 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   const m2 = montar({ libre: (x, z) => { intentos++; return !(Math.abs(x - x0) < 1.2 && Math.abs(z - z0) < 1.2); } });
   m2.m.actualizar(1.1, { pos: m2.estado.pos });
   ok(m2.m.sitio.listo, 'si la base cambia o hay una obra encima, se vuelve a ubicar (sin romperse)');
+  // la trampa de miel (la hace la rama de las defensas; sin ella, no se ofrece)
+  {
+    const sin = montar();
+    ok(sin.m.hayTrampa() === false && sin.m.ponerTrampa({ x: 1, z: 1, nombre: 'el monte' }).ok === false, 'sin trampa de miel en el juego, no se ofrece (respaldo)');
+    const llamadas = [];
+    let fallar = 0, motivo = 'Hay otra pieza encima';
+    const c = montar({ colocarTrampa: (x, z) => { llamadas.push({ x, z }); return llamadas.length <= fallar ? { ok: false, motivo } : { ok: true, obra: {} }; }, hayTrampa: () => true });
+    c.estado.horas = 16; c.estado.pos = { x: c.m.sitio.x, y: 0, z: c.m.sitio.z };
+    const lado = c.m.pronostico().noches[0].lado;
+    ok(lado && c.m.hayTrampa(), 'con la trampa y el lado de la noche conocido');
+    let lista = nodo('div'), fi = nodo('div'); c.m.dibujarCuaderno(lista, fi, nodo);
+    const bt = botones(lista).find((b) => /^Armar una trampa de miel/.test(b.texto));
+    ok(bt && !bt.disabled && bt.texto.includes(lado.nombre) && /2 tablas y un frasco de miel/.test(texto(lista)), 'el botón de armar la trampa en el camino de ese lado, con su costo');
+    bt.listeners.click();
+    ok(llamadas.length === 1 && c.estado.redibujos === 1, 'armar llama una vez a colocarTrampaMiel');
+    const b0 = c.m.pronostico().noches[0], base0 = base;
+    const L1 = Math.hypot(llamadas[0].x - base0.x, llamadas[0].z - base0.z);
+    const cruz = ((llamadas[0].x - base0.x) * (lado.z - base0.z) - (llamadas[0].z - base0.z) * (lado.x - base0.x)) / Math.hypot(lado.x - base0.x, lado.z - base0.z);
+    const punto = (llamadas[0].x - base0.x) * (lado.x - base0.x) + (llamadas[0].z - base0.z) * (lado.z - base0.z);
+    ok(punto > 0, 'del lado de la entrada, no del contrario');
+    ok(Math.abs(L1 - 18) < 0.01 && Math.abs(cruz) < 0.01, `la trampa va sobre la línea de entrada a unos 18 m de la base (${L1.toFixed(1)} m, desvío ${cruz.toFixed(2)})`);
+    ok(c.notas.at(-1)[0] === 'Trampa de miel armada' && c.notas.at(-1)[2] === true, 'y lo avisa');
+    // si el lugar no sirve, prueba el siguiente, y así
+    llamadas.length = 0; fallar = 3;
+    const r3 = c.m.ponerTrampa(lado);
+    ok(r3.ok && llamadas.length === 4, 'si el lugar no sirve, prueba otro (cuatro intentos)');
+    ok(new Set(llamadas.map((q) => `${q.x.toFixed(1)}|${q.z.toFixed(1)}`)).size === 4, 'cada intento en un lugar distinto');
+    // si no alcanza, no sigue probando lugares
+    llamadas.length = 0; fallar = 99; motivo = 'Faltan 2 tablas';
+    const r4 = c.m.ponerTrampa(lado);
+    ok(!r4.ok && llamadas.length === 1 && /No alcanza/.test(c.notas.at(-1)[0]), 'si falta tabla o miel, para en el primer intento y lo dice');
+    // si ningún lugar sirve, lo dice
+    llamadas.length = 0; fallar = 99; motivo = 'Hay agua';
+    const r5 = c.m.ponerTrampa(lado);
+    ok(!r5.ok && llamadas.length === 15 && /No encontré dónde/.test(c.notas.at(-1)[0]), 'si ningún lugar sirve, prueba los quince y lo dice');
+    // lejos del tablón no se arma
+    llamadas.length = 0; c.estado.pos = { x: c.m.sitio.x + 60, y: 0, z: c.m.sitio.z };
+    ok(c.m.ponerTrampa(lado).motivo === 'lejos' && llamadas.length === 0, 'lejos del tablón no se arma');
+    lista = nodo('div'); fi = nodo('div'); c.m.dibujarCuaderno(lista, fi, nodo);
+    ok(botones(lista).find((b) => /^Armar una trampa/.test(b.texto)).disabled === true, 'y el botón está apagado');
+    // sin miel el botón dice qué falta
+    c.estado.pos = { x: c.m.sitio.x, y: 0, z: c.m.sitio.z }; c.estado.mochila.miel = 0;
+    lista = nodo('div'); fi = nodo('div'); c.m.dibujarCuaderno(lista, fi, nodo);
+    const bf = botones(lista).find((b) => /Para una trampa de miel te faltan/.test(b.texto));
+    ok(bf && bf.disabled && /un frasco de miel/.test(bf.texto), 'sin miel, el botón dice qué falta');
+    // sin lado conocido (a la mañana, sólo con el perro) no hay botón
+    c.estado.horas = 9; c.estado.mochila.miel = 5;
+    lista = nodo('div'); fi = nodo('div'); c.m.dibujarCuaderno(lista, fi, nodo);
+    ok(!botones(lista).some((b) => /trampa/.test(b.texto)), 'sin saber por dónde entran, no hay botón de trampa');
+  }
   // una partida a medias (guardada con pedidos) sigue donde estaba
   const guardada = sanearDesafio(JSON.parse(JSON.stringify(d)));
   igual(guardada.aldea.ayuda, d.aldea.ayuda, 'la ayuda se guarda y se carga');
@@ -473,7 +523,7 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   ok(/plan: \(\) => ataques\.planActual\(\)/.test(des), 'el plan de lados es el que usa la noche (ataques.planActual)');
   ok(!/ataques\.decidir\([^)]*\)[^;]*aldea/.test(des), 'el pronóstico no decide nada por la noche');
   ok(/abrirTablonAldea: \(\) => \{ pestana = 'aldea'; abrir\('cuaderno'\); \}/.test(main), 'main: el tablón abre el cuaderno en «La aldea»');
-  ok(/pestanas\.push\(\['aldea', 'La aldea'\]\)/.test(main) && /desafio\.aldeaMundo\.dibujarCuaderno\(ficha, el\)/.test(main), 'main: la pestaña existe sólo en el Desafío y se dibuja');
+  ok(/pestanas\.push\(\['aldea', 'La aldea'\]\)/.test(main) && /desafio\.aldeaMundo\.dibujarCuaderno\(lista, ficha, el\)/.test(main), 'main: la pestaña existe sólo en el Desafío y se dibuja');
   ok(/desafio\.aldeaMundo\.marcaMapa\(\)/.test(main), 'main: el mapa marca por dónde entrarían');
   // la tecla E: una sola entrada en la tabla
   const { INTERACCIONES } = await import('../src/interacciones.js');

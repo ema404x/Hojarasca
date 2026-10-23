@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
 
     // ------------------------------------------------------------ 1. un día después de cuatro noches
     await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.semilla = 'COIHUE-4821'; D.oleadas = 4; D.noches = 4; D.oleadaTerminada = true; D.oleadaNoche = 4; H.progreso.dia = 5; H.progreso.horas = 9;
-      H.progreso.materiales = { tronco: 30, tabla: 30, piedra: 30 }; H.progreso.ramitas = 60; H.progreso.entradas = H.progreso.entradas || {}; H.progreso.entradas.frambuesa = { dia: 1, hora: 1, cantidad: 25 }; return 1 })()`);
+      H.progreso.materiales = { tronco: 30, tabla: 30, piedra: 30, miel: 20 }; D.miel = 20; H.progreso.ramitas = 60; H.progreso.entradas = H.progreso.entradas || {}; H.progreso.entradas.frambuesa = { dia: 1, hora: 1, cantidad: 25 }; return 1 })()`);
     await sim(1.2);
     const aldea = JSON.parse(await js(`JSON.stringify(${H}.progreso.desafio.aldea)`));
     const claves = ['anselmo', 'herminia', 'martin', 'chicos'];
@@ -74,7 +74,7 @@ app.whenReady().then(async () => {
     // vista del tablón antes de abrirlo
     if (CON_FOTOS) {
       const y0 = await js(`${H}.desafio.aldeaMundo.grupo.position.y`);
-      await js(`(()=>{ const H=${H}; window.__cam = { o: [${sitio.x} + Math.sin(${Math.atan2(base.x - sitio.x, base.z - sitio.z)}) * 5.5, ${y0} + 2.1, ${sitio.z} + Math.cos(${Math.atan2(base.x - sitio.x, base.z - sitio.z)}) * 5.5], a: [${sitio.x}, ${y0} + 1.5, ${sitio.z}] }; return 1 })()`);
+      await js(`(()=>{ const H=${H}; const dx = ${base.x - sitio.x}, dz = ${base.z - sitio.z}, l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l; window.__cam = { o: [${sitio.x} + ux * 2.5 - uz * 4.2, ${y0} + 1.9, ${sitio.z} + uz * 2.5 + ux * 4.2], a: [${sitio.x}, ${y0} + 1.5, ${sitio.z}] }; return 1 })()`);
       await js(`(()=>{ const H=${H}; const o = H.desafio.actualizar; if (!H.desafio.__cam) { H.desafio.__cam = 1; H.desafio.actualizar = function (dt, c) { const r = o.call(this, dt, c); const k = window.__cam; if (k) { H.camara.position.set(k.o[0], k.o[1], k.o[2]); H.camara.lookAt(k.a[0], k.a[1], k.a[2]); H.camara.updateMatrixWorld(true); } return r; }; } return 1 })()`);
       await js(`(() => { const s = document.createElement('style'); s.id = 'sin-hud'; s.textContent = 'body > *:not(canvas):not(script) { visibility: hidden !important; }'; document.head.appendChild(s); return 1 })()`);
       await foto('tablon-con-pedidos');
@@ -90,7 +90,7 @@ app.whenReady().then(async () => {
     const pestana = await js(`(document.querySelector('#cuaderno-lista [role=tab][aria-selected=true]') || {}).textContent`);
     ok(pestana === 'La aldea', `en la pestaña «La aldea» (${pestana})`);
     const texto = await js(`document.getElementById('cuaderno-ficha').innerText`);
-    ok(/Los pedidos de hoy/.test(texto) && /Anselmo/.test(texto) && /Herminia/.test(texto) && /Martín/.test(texto) && /chicos/i.test(texto), 'los pedidos de los cuatro vecinos');
+    ok(/Pedidos de la aldea/.test(texto) && /Anselmo/.test(texto) && /Herminia/.test(texto) && /Martín/.test(texto) && /chicos/i.test(texto), 'los pedidos de los cuatro vecinos');
     ok(/Pide \d+/.test(texto) && /Hasta que salgan los duendes/.test(texto), 'con lo que cuesta y el plazo');
     ok(/La noche que viene/.test(texto) && /Todavía no se sabe|Noche|Sale un mandamás|Despierta/.test(texto), 'y la noche que viene');
     await foto('cuaderno-pedidos');

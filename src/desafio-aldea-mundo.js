@@ -56,7 +56,7 @@ export function crearAldeaMundo(T, escena, ctx) {
   }
   function ubicar() {
     const b = ctx.base();
-    const radio = Math.min(10, (b.radio || 3) + 4);
+    const radio = Math.min(14, (b.radio || 5) + 6);   // (el refugio no trae radio: la cabaña llega a unos 6 m)
     const a0 = (hashTexto(`tablon|${ctx.D().semilla || ''}|${Math.round(b.x)}|${Math.round(b.z)}`) % 628) / 100;
     let punto = null;
     for (let r = radio; r <= radio + 6 && !punto; r += 3) {
@@ -141,19 +141,81 @@ export function crearAldeaMundo(T, escena, ctx) {
   }
   const marcaMapa = () => { try { return pronostico().marca; } catch { return null; } };
 
+  // ------------------------------------------------------------ la trampa de miel en el camino de los duendes
+  // Los duendes bajan en el punto de entrada del lado y van derecho a la base: la trampa se arma sobre esa línea, a
+  // unos 18 m de la base o más (cerca de las defensas, donde podés tirarles mientras están pegados). La construye la
+  // rama de las defensas (`colocarTrampaMiel`); si el juego no la tiene, no se ofrece (respaldo).
+  const TRAMPA = { distancias: [18, 24, 30], desvios: [0, 3.5, -3.5, 7, -7] };
+  const hayTrampa = () => typeof ctx.colocarTrampa === 'function' && !!ctx.hayTrampa?.();
+  function ponerTrampa(lado) {
+    if (!hayTrampa() || !lado) return { ok: false, motivo: 'No hay trampa de miel' };
+    if (!cerca(ctx.posJugador())) { ctx.nota('Armala desde el tablón', 'Parate junto al tablón de la base: las trampas también se arman a mano, desde el menú de obra'); return { ok: false, motivo: 'lejos' }; }
+    const b = ctx.base(), dx = lado.x - b.x, dz = lado.z - b.z, l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l;
+    let ultimo = null;
+    for (const dist of TRAMPA.distancias) {
+      for (const des of TRAMPA.desvios) {
+        const r = ctx.colocarTrampa(b.x + ux * dist - uz * des, b.z + uz * dist + ux * des);
+        if (r?.ok) {
+          ctx.nota('Trampa de miel armada', `En el camino de ${lado.nombre}, a unos ${dist} m de la base: los duendes que pasen por ahí quedan pegados`, true);
+          ctx.guardar();
+          return { ...r, dist };
+        }
+        ultimo = r;
+        if (/^Falta/.test(r?.motivo || '')) { ctx.nota('No alcanza para la trampa', r.motivo); return r; }   // sin tablas o sin miel: no sirve seguir probando lugares
+      }
+    }
+    ctx.nota('No encontré dónde armarla', ultimo?.motivo || 'No hay un lugar parejo en ese camino. Probá a mano, desde el menú de obra');
+    return ultimo || { ok: false };
+  }
+  function botonTrampa(caja, n, el, aqui) {
+    if (!n.lado || !hayTrampa()) return;
+    const falta = ctx.cuanto('tabla') < 2 ? 'tablas' : ctx.cuanto('miel') < 1 ? 'un frasco de miel' : null;
+    const b = el('button', '', falta ? `Para una trampa de miel te faltan ${falta}` : `Armar una trampa de miel en el camino de ${n.lado.nombre}`);
+    b.disabled = !aqui || !!falta;
+    b.addEventListener('click', () => { ponerTrampa(n.lado); ctx.redibujar(); });
+    caja.appendChild(b);
+    caja.appendChild(el('p', 'pista', aqui ? 'Cuesta 2 tablas y un frasco de miel. También podés armarla a mano, donde creas que van a pasar.' : 'Se arma parado junto al tablón de la base.'));
+  }
+
   // ------------------------------------------------------------ la pestaña «La aldea» del cuaderno
-  function dibujarCuaderno(ficha, el, opc = {}) {
+  // La página de la izquierda: la noche que viene y quién te ayuda. La de la derecha: los pedidos de hoy.
+  function dibujarCuaderno(lista, ficha, el, opc = {}) {
     const d = ctx.D(), p = ctx.progreso();
     const aqui = cerca(ctx.posJugador());
-    ficha.appendChild(el('h2', '', 'La aldea'));
+    // ---- izquierda: la noche que viene
+    lista.appendChild(el('h3', '', 'La noche que viene'));
+    let f = null;
+    try { f = pronostico(); } catch { f = null; }
+    if (!f) lista.appendChild(el('p', 'pista', 'Todavía no se puede saber nada de la noche.'));
+    else {
+      for (const n of f.noches) {
+        const caja = el('div', 'ficha-aldea');
+        caja.appendChild(el('p', 'anotado', `${n.cuando} · noche ${n.n}`));
+        for (const t of n.avisos) caja.appendChild(el('p', 'texto', `${t}.`));
+        if (n.consejo) caja.appendChild(el('p', 'pista', n.consejo));
+        if (n.consejoLado) caja.appendChild(el('p', 'pista', n.consejoLado));
+        botonTrampa(caja, n, el, aqui);   // 4.9: la trampa de miel (si el juego la tiene)
+        lista.appendChild(caja);
+      }
+      lista.appendChild(el('p', 'pista', f.saber.tipoManana
+        ? 'La estación meteorológica te da las dos noches. Mirá el mapa (M): marca por dónde entrarían.'
+        : 'Con una radio sabés qué noche viene desde la mañana; con la estación meteorológica, también el lado y la noche de mañana. El perro huele el lado desde las tres de la tarde.'));
+    }
+    lista.appendChild(el('h3', '', 'Quién te ayuda'));
+    for (const k of VECINOS_AYUDA) {
+      const nivel = d.aldea?.ayuda?.[k] || 0;
+      lista.appendChild(el('p', 'texto', `${VECINOS[k].nombre}: ayuda ${nivel} de ${NIVEL_MAX}`));
+      lista.appendChild(el('p', 'pista', `${AYUDA_NIVEL[k][nivel]}.`));
+    }
+    // ---- derecha: los pedidos
+    ficha.appendChild(el('h2', '', 'Pedidos de la aldea'));
     ficha.appendChild(el('p', 'pista', aqui
       ? 'Estás junto al tablón: acá podés entregar. Los vecinos piden de día, hasta que caiga la noche; los que cumplís te ayudan más cuando salen los duendes.'
       : 'Los vecinos piden cosas de día, hasta que caiga la noche, y las entregás en el tablón de la base. Los que cumplís te ayudan más en las noches grandes.'));
-    ficha.appendChild(el('h3', '', 'Los pedidos de hoy'));
     for (const k of VECINOS_AYUDA) {
       const v = VECINOS[k], nivel = d.aldea?.ayuda?.[k] || 0, ped = d.aldea?.pedidos?.[k];
       const caja = el('div', 'ficha-aldea');
-      caja.appendChild(el('p', 'anotado', `${v.nombre}, ${v.quien} · ayuda ${nivel} de ${NIVEL_MAX}. ${AYUDA_NIVEL[k][nivel]}.`));
+      caja.appendChild(el('p', 'anotado', `${v.nombre}, ${v.quien}`));
       if (ped && !vencido(ped, p.dia, p.horas)) {
         caja.appendChild(el('p', 'texto', `“${textoPedido(k, ped)}”`));
         caja.appendChild(el('p', 'texto', `Pide ${textoCosas(ped.pide)}.${ped.regalo ? ` A cambio, un regalito: ${textoCosas(ped.regalo)}.` : ''}`));
@@ -171,30 +233,11 @@ export function crearAldeaMundo(T, escena, ctx) {
       else caja.appendChild(el('p', 'pista', 'Hoy no pidió nada.'));
       ficha.appendChild(caja);
     }
-    // la noche que viene
-    ficha.appendChild(el('h3', '', 'La noche que viene'));
-    let f = null;
-    try { f = pronostico(); } catch { f = null; }
-    if (!f) ficha.appendChild(el('p', 'pista', 'Todavía no se puede saber nada de la noche.'));
-    else {
-      for (const n of f.noches) {
-        const caja = el('div', 'ficha-aldea');
-        caja.appendChild(el('p', 'anotado', `${n.cuando} · noche ${n.n}`));
-        for (const t of n.avisos) caja.appendChild(el('p', 'texto', `${t}.`));
-        if (n.consejo) caja.appendChild(el('p', 'pista', n.consejo));
-        if (n.consejoLado) caja.appendChild(el('p', 'pista', n.consejoLado));
-        if (opc.extraNoche) opc.extraNoche(caja, n, el);
-        ficha.appendChild(caja);
-      }
-      ficha.appendChild(el('p', 'pista', f.saber.tipoManana
-        ? 'La estación meteorológica te da las dos noches. Mirá el mapa (M): marca por dónde entrarían.'
-        : 'Con una radio sabés qué noche viene desde la mañana; con la estación meteorológica, también el lado y la noche de mañana. El perro huele el lado desde las tres de la tarde.'));
-    }
   }
 
   ubicar();
   return {
-    actualizar, cerca, avisoCerca, usarCerca, entregarPedido, pronostico, marcaMapa, dibujarCuaderno, acomodar,
+    actualizar, cerca, avisoCerca, usarCerca, entregarPedido, pronostico, marcaMapa, dibujarCuaderno, acomodar, ponerTrampa, hayTrampa,
     get sitio() { return sitio; },
     get grupo() { return grupo; },
     get hojas() { return hojas; },

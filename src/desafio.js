@@ -821,6 +821,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     abrirTablon: () => ctx.abrirTablonAldea?.(),
     redibujar: () => ctx.redibujarCuaderno?.(),
     posJugador: () => ctx.jugador().estado.pos,
+    // la trampa de miel la hace la rama de las defensas: main.js la conecta (si el juego no la tiene, el botón no se ofrece)
+    colocarTrampa: (x, z) => ctx.colocarTrampaDeLaAldea?.(x, z),
+    hayTrampa: () => !!ctx.hayTrampaDeLaAldea?.(),
   });
 
   // ---------------- oleadas

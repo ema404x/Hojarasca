@@ -55,13 +55,14 @@ export const DESDE_NOCHE = Object.fromEntries(VECINOS_AYUDA.map((k) => [k, VECIN
 
 // Lo que vale cada cosa, para que el regalito nunca sea más que una parte de lo que cuesta (las recetas del taller: 8 flechas
 // salen de una tabla y una piedra; un emplasto, de 2 frutas y una ramita; 3 boleadoras, de 3 piedras y una tabla).
-export const VALOR = { tronco: 1, tabla: 0.7, piedra: 1, ramita: 0.1, fruta: 0.5, cristal: 6, flechas: 0.2, emplastos: 1.1, boleadoras: 1.2 };
+export const VALOR = { tronco: 1, tabla: 0.7, piedra: 1, ramita: 0.1, fruta: 0.5, miel: 3, cristal: 6, flechas: 0.2, emplastos: 1.1, boleadoras: 1.2 };
 export const MAX_REGALO = 0.45;                      // el regalo vale, como mucho, el 45% de lo que se entregó
-export const COSAS_PEDIDAS = ['tronco', 'tabla', 'piedra', 'ramita', 'fruta', 'cristal'];
-export const COSAS_REGALO = ['tronco', 'tabla', 'piedra', 'cristal', 'flechas', 'emplastos'];
+// (la miel es de la rama de las defensas: el frasco de miel del Desafío, de la caja del alba y de la trampa; ver CAMBIOS_4_9_DIAS.md)
+export const COSAS_PEDIDAS = ['tronco', 'tabla', 'piedra', 'ramita', 'fruta', 'miel', 'cristal'];
+export const COSAS_REGALO = ['tronco', 'tabla', 'piedra', 'miel', 'cristal', 'flechas', 'emplastos'];
 const NOMBRE_COSA = {
   tronco: ['tronco', 'troncos'], tabla: ['tabla', 'tablas'], piedra: ['piedra', 'piedras'], ramita: ['ramita', 'ramitas'],
-  fruta: ['fruta del bosque', 'frutas del bosque'], cristal: ['semilla dorada', 'semillas doradas'],
+  fruta: ['fruta del bosque', 'frutas del bosque'], miel: ['frasco de miel', 'frascos de miel'], cristal: ['semilla dorada', 'semillas doradas'],
   flechas: ['flecha', 'flechas'], emplastos: ['emplasto', 'emplastos'], boleadoras: ['boleadora', 'boleadoras'],
 };
 export const nombreCosa = (k, n) => (NOMBRE_COSA[k] ? NOMBRE_COSA[k][n === 1 ? 0 : 1] : k);
@@ -95,8 +96,12 @@ export const PEDIDOS = {
       texto: 'Se me terminó la yesca para los fogones, m\'hijo. Ramitas secas, las que encuentres.' },
     { id: 'frutas', nivel: 0, pide: { fruta: 5 }, regalo: { emplastos: 1 },
       texto: 'Con unas frutas del bosque te hago dulce para el invierno. Las frambuesas, las que sean.' },
+    { id: 'miel', nivel: 0, pide: { miel: 1, ramita: 6 }, regalo: { emplastos: 1 },
+      texto: 'Si me alcanzás un frasco de miel y unas ramitas, te hago un ungüento para las picaduras y los raspones. La miel es oro, m\'hijo.' },
     { id: 'faroles', nivel: 1, pide: { ramita: 20, tronco: 3 }, regalo: { emplastos: 1 },
       texto: 'Para dejar los faroles prendidos toda la noche necesito leña fina y un par de troncos. Los viejos le tienen miedo a la luz.' },
+    { id: 'colmena', nivel: 1, pide: { miel: 2, fruta: 6 }, regalo: { emplastos: 2 },
+      texto: 'Con dos frascos de miel y unas frutas armo un dulce que levanta a cualquiera. Y esa noche, cuenta conmigo con todo.' },
     { id: 'dulce', nivel: 1, pide: { fruta: 9, ramita: 6 }, regalo: { emplastos: 1 },
       texto: 'Si me alcanzás frutas y ramitas, hago un fogón que no se apaga. Una mano lava la otra.' },
   ],
@@ -273,7 +278,7 @@ export function textoPedido(clave, p) {
 
 // Entrega de verdad: entrega, cobra lo pedido (gastar) y reparte el regalito (materiales al morral; flechas y emplastos al
 // estado del Desafío `d`). `io`: { dia, horas, cuanto(k), gastar(k, n), sumarMaterial(k, n) }. Devuelve lo de `entregar`.
-export const MATERIALES_DE_REGALO = ['tronco', 'tabla', 'piedra', 'cristal'];
+export const MATERIALES_DE_REGALO = ['tronco', 'tabla', 'piedra', 'miel', 'cristal'];
 export function entregarYCobrar(d, clave, io) {
   const r = entregar(d.aldea, clave, io.cuanto, io.dia, io.horas);
   if (!r.ok) return r;
