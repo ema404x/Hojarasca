@@ -641,6 +641,8 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
   for (const id of ['farolMano', 'pala', 'miel-frasco']) ok(ids.includes(id), `la mochila trae ${id}`);
   const rp = ranuras.find((r) => r.id === 'pala'), rf = ranuras.find((r) => r.id === 'farolMano'), rm = ranuras.find((r) => r.id === 'miel-frasco');
   ok(rp.cuenta === 4 && rp.accion === 'arma' && rf.accion === 'farolMano' && /prendido/.test(rf.nombre) && rm.cuenta === 3, 'con sus cuentas: 4 brasas, farol prendido y 3 frascos');
+  ok(ids.indexOf('farolMano') < 9 && ids.indexOf('pala') < 9, `el farol y la pala caen en las nueve casillas de la barra (lugares ${ids.indexOf('pala') + 1} y ${ids.indexOf('farolMano') + 1})`);
+  ok(ids.indexOf('farolMano') === ids.indexOf('linterna') + 1, 'el farol va justo después de la linterna');
   prog.desafio.miel = 0;
   ok(!armarMochila(prog, {}).some((r) => r.id === 'miel-frasco'), 'sin miel no hay casilla');
   prog.cosas = {}; prog.desafio.farolOn = false;

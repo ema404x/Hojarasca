@@ -3,7 +3,8 @@
 //   2. el pasadizo: se arma, se camina de verdad hasta una boca, E, se sale por la otra, se camina y se vuelve a entrar;
 //   3. la trampa de miel: colocarTrampaMiel (el contrato con «días»), duendes pegados, se seca, se repone con E;
 //   4. el farol de mano: en la mano izquierda, los viejos oscuros a distancia, sin programas nuevos;
-//   5. la pala de brasas: cargarla con E en un fogón, el abanico, los que dudan, la miel que prende.
+//   5. la pala de brasas: cargarla con E en un fogón, el abanico, los que dudan, la miel que prende;
+//   6. la barra y la mochila con lo nuevo (íconos del farol, la pala y la miel).
 // Capturas a tamaño completo en pruebas/salidas/defensas-4-9/ (con -Visible: oculta, capturePage devuelve un cuadro viejo).
 // Uso (PowerShell): powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\lanzar-electron.ps1 -Script pruebas\humo-4-9-defensas.cjs -Espera 900 -Perfil <carpeta> [-Visible]
 //   HUMO_ESCENAS=roto,pasadizo,miel,farol,brasas (por defecto todas) · HUMO_INDEX=<index.html> · HUMO_SALIDA=<carpeta> · HUMO_ETIQUETA=<prefijo>
@@ -17,7 +18,7 @@ fs.mkdirSync(salida, { recursive: true });
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-const ESCENAS = (process.env.HUMO_ESCENAS || 'roto,pasadizo,miel,farol,brasas').split(',');
+const ESCENAS = (process.env.HUMO_ESCENAS || 'roto,pasadizo,miel,farol,brasas,barra').split(',');
 
 app.whenReady().then(async () => {
   const errores = [], pasos = [];
@@ -93,6 +94,8 @@ app.whenReady().then(async () => {
   const vidaA = (x, z, f) => js(`(()=>{const H=${H}; const o=H.obras.obras.find(q=>Math.hypot(q.datos.x-(${x}), q.datos.z-(${z}))<0.05); if(!o) return null; const max=Number.isFinite(o.plano.vida)?o.plano.vida:100; o.datos.vida=max*${f}; return {id:o.plano.id, vida:o.datos.vida}})()`);
   // un lugar para poner la cámara a ~`r` m de (cx, cz): libre de troncos y rocas en un metro a la redonda y en seco
   const sitioLibre = (cx, cz, r, desde = 0) => js(`(()=>{const H=${H}; for (const d of [${r}, ${r} + 1.2, ${r} - 1]) for (let k=0;k<16;k++){ const a=${desde}+k/16*6.283, x=(${cx})+Math.cos(a)*d, z=(${cz})+Math.sin(a)*d; if (H.T.agua(x,z)) continue; const q={x,y:H.T.altura(x,z),z}; H.col.resolver(q,1.0,1.9); if (Math.hypot(q.x-x,q.z-z)<0.01) return {x,z}; } return {x:(${cx})+${r},z:${cz}}})()`);
+  // (diagnóstico) los programas nuevos desde la última vez: su nombre y un pedazo de la clave
+  const programasNuevos = () => js(`(()=>{const ps = ${H}.renderer.info.programs; const vistos = window.__pv || (window.__pv = new Set()); const nuevos = []; for (const p of ps) { const k = p.name + '|' + String(p.cacheKey).slice(0, 90); if (!vistos.has(k)) { vistos.add(k); nuevos.push(k); } } return nuevos})()`);
   const programas = () => js(`${H}.renderer.info.programs.length`);
   const limpiarInvasores = () => js(`(()=>{const H=${H}; for (const a of H.desafio.aliens) { a.estado='irse'; a.t=9; } H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return H.desafio.aliens.length})()`);
   const tecla = (code) => js(`document.dispatchEvent(new KeyboardEvent('keydown',{code:'${code}',bubbles:true})); document.dispatchEvent(new KeyboardEvent('keyup',{code:'${code}',bubbles:true})); 1`);
@@ -168,13 +171,16 @@ app.whenReady().then(async () => {
       console.log('geometrías de marcas en caché:', geo);
     }
 
+    console.log('programas de shader tras roto:', await programas());
     // ================================================================ 2. el pasadizo
     if (ESCENAS.includes('pasadizo')) {
       donde = 'pasadizo';
       await limpiarInvasores();
       const px = L.x - 30, pz = L.z - 36;   // lejos de las obras de arriba
       await estar(px, pz - 8, Math.PI);
+      if (process.env.HUMO_DBG) await programasNuevos();
       const r = await ponerEn('pasadizo', px, pz, 0);
+      if (process.env.HUMO_DBG) console.log('  tras ponerEn:', JSON.stringify(await programasNuevos()));
       ok(r.ok, `el pasadizo se arma (${r.ok ? 'ok' : r.error})`);
       if (r.ok) {
         const bx = r.x, bz = r.z + 9;
@@ -184,11 +190,13 @@ app.whenReady().then(async () => {
         await pose({ x: px - 5, y: 2.2, z: bz + 4 }, { x: bx, y: 0.5, z: bz }, 55); await esperar(500); await foto('pasadizo-02-boca-de-afuera');
         await pose({ x: px + 14, y: 7, z: pz + 4.5 }, { x: px, y: 0, z: pz + 4.5 }, 50); await esperar(500); await foto('pasadizo-03-las-dos-desde-arriba');
         await sinPose();
+        if (process.env.HUMO_DBG) console.log('  tras las tres fotos:', JSON.stringify(await programasNuevos()));
         const cuerpo = await js(`(()=>{const H=${H}; return {a: !!H.desafio.obraEnPunto(${px}, H.T.altura(${px},${pz}) + 0.3, ${pz}), b: !!H.desafio.obraEnPunto(${bx}, H.T.altura(${bx},${bz}) + 0.3, ${bz}), defensas: H.progreso.desafio.cuentaDefensas}})()`);
         ok(!cuerpo.a && !cuerpo.b, 'para los duendes y los tiros las bocas no son un cuerpo (no las ven ni las rompen)');
         // caminar de verdad hasta la boca de adentro
         await estar(px, pz - 7, Math.PI);
         const a1 = await caminarHacia(px, pz, 1.9);
+        if (process.env.HUMO_DBG) console.log('  tras caminar:', JSON.stringify(await programasNuevos()));
         await js(`${H}.jugador.estado.pitch = 0.9; 1`);   // (mirando al cielo: si hay una flor adelante, la E la anota en vez de usar la boca)
         await cuadros(2, 30);
         const aviso1 = await aviso();
@@ -207,6 +215,7 @@ app.whenReady().then(async () => {
         // en un lugar libre: la colisión no lo empuja y se puede caminar
         const libre = await js(`(()=>{const H=${H}, p=H.jugador.estado.pos; const q={x:p.x, y:p.y, z:p.z}; H.col.resolver(q, 0.35, 1.65); return Math.hypot(q.x-p.x, q.z-p.z)})()`);
         ok(libre < 0.01, `el lugar de salida está libre (empujón ${libre.toFixed(3)})`);
+        if (process.env.HUMO_DBG) console.log('  tras salir:', JSON.stringify(await programasNuevos()));
         await foto('pasadizo-04-sale-por-afuera');
         await js(`(()=>{const js=${H}.jugador.estado; js.pitch = 0; ${H}.jugador.teclas.add('KeyW'); return 1})()`);
         await cuadros(40, 20);
@@ -240,6 +249,7 @@ app.whenReady().then(async () => {
       }
     }
 
+    console.log('programas de shader tras pasadizo:', await programas());
     // ================================================================ 3. la trampa de miel
     if (ESCENAS.includes('miel')) {
       donde = 'miel';
@@ -296,6 +306,7 @@ app.whenReady().then(async () => {
       ok(guardada.usos === 1 && guardada.plano === 'trampa-miel', `el estado de la trampa viaja en la obra (${JSON.stringify(guardada)})`);
     }
 
+    console.log('programas de shader tras miel:', await programas());
     // ================================================================ 4. el farol de mano
     if (ESCENAS.includes('farol')) {
       donde = 'farol';
@@ -350,6 +361,7 @@ app.whenReady().then(async () => {
       ok(nombres.some((n) => /Farol de mano/.test(n)), 'el farol de mano está en la barra');
     }
 
+    console.log('programas de shader tras farol:', await programas());
     // ================================================================ 5. la pala de brasas
     if (ESCENAS.includes('brasas')) {
       donde = 'brasas';
@@ -414,6 +426,27 @@ app.whenReady().then(async () => {
       await limpiarInvasores();
     }
 
+    // ================================================================ 6. la barra y la mochila con los íconos nuevos
+    if (ESCENAS.includes('barra')) {
+      donde = 'barra';
+      await limpiarInvasores();
+      await estar(L.x + 5, L.z + 5, 0);
+      await js(`(()=>{const H=${H}; Object.assign(H.progreso.cosas, { farolMano: 1, pala: 1, arco: 1, lanza: 1, honda: 1 }); const d = H.progreso.desafio; d.miel = 4; d.brasas = 5; d.virotes = 6; d.flechas = 12; d.farolOn = false; H.progreso.horas = 19.8; return 1})()`);
+      await avanzar(0.5, 0);
+      await cuadros(6, 30);
+      await foto('barra-01-con-lo-nuevo', true);
+      const nombres = await js(`(()=>{const H=${H}; const out=[]; document.dispatchEvent(new KeyboardEvent('keydown',{code:'Digit1',bubbles:true})); out.push(H.__ranuraActual()); for (let i=0;i<30;i++) { window.dispatchEvent(new WheelEvent('wheel', {deltaY: 100})); out.push(H.__ranuraActual()); } return out})()`);
+      console.log('barra (con la rueda):', JSON.stringify([...new Set(nombres)]));
+      ok(['Farol de mano', 'Pala de brasas'].every((n) => nombres.some((q) => q.includes(n))), 'la barra tiene el farol de mano y la pala');
+      await tecla('KeyI'); await esperar(700); await cuadros(4, 30);
+      await foto('barra-02-mochila', true);
+      await tecla('KeyI'); await esperar(300);
+      // los íconos, uno por uno, a tamaño grande
+      const iconos = await js(`(()=>{const H=${H}; const r = {}; for (const id of ['farolMano', 'palaBrasas', 'miel']) { const c = H.__icono(id); r[id] = typeof c === 'string' ? c : null; } return r})()`);
+      for (const [id, url] of Object.entries(iconos)) { ok(!!url && url.length > 400, `el ícono ${id} se dibuja`); if (url) fs.writeFileSync(path.join(salida, `${etiqueta}barra-icono-${id}.png`), Buffer.from(url.split(',')[1], 'base64')); }
+    }
+
+    console.log('programas de shader tras brasas:', await programas());
     donde = 'cierre';
     const fin = await programas();
     console.log(`programas de shader: al empezar ${prog0}, al terminar ${fin}`);

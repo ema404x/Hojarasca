@@ -589,7 +589,7 @@ export function armarMochila(progreso, estado) {
     if (progreso.cosas?.boleadoras) armas.push({ id: 'boleadoras', nombre: 'Boleadoras', icono: 'boleadoras', cuenta: D.boleadoras || '0', accion: 'arma', texto: 'Enredan al duende y lo dejan quieto unos segundos.' });
     if (D.emplastos) armas.push({ id: 'emplasto', nombre: 'Emplasto de hierbas', icono: 'emplasto', cuenta: D.emplastos, accion: 'curar', texto: 'Clic derecho para curarte 45 puntos.' });
     if (progreso.cosas?.martillo) armas.push({ id: 'martillo', nombre: 'Martillo de carpintero', icono: 'martillo', accion: 'arma', texto: 'Tocá una defensa dañada para repararla.' });
-    const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'hacha', 'pico'];
+    const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'farolMano', 'hacha', 'pico'];
     // 2.5: el arsenal va después de la linterna y el hacha, para no sacarlas de la barra
     const C = progreso.cosas || {};
     const nuevas = [];
@@ -605,8 +605,9 @@ export function armarMochila(progreso, estado) {
     if (C.bengala) nuevas.push({ id: 'bengala', nombre: 'Bengalas', icono: 'bengala', cuenta: D.bengalas || '0', accion: 'arma', texto: 'Iluminan medio minuto y dejan a la vista a los que haya cerca.' });
     if (C.cuerno) nuevas.push({ id: 'cuerno', nombre: 'Cuerno de guardia', icono: 'cuerno', accion: 'arma', texto: 'Llama a los compañeros; los de cerca dudan.' });
     // 4.9 defensas: el farol de mano (U o clic derecho lo prende y queda en la mano izquierda), la pala de brasas y los frascos de miel de las trampas
-    if (C.farolMano) nuevas.push({ id: 'farolMano', nombre: D.farolOn ? 'Farol de mano · prendido' : 'Farol de mano', icono: 'farolMano', accion: 'farolMano', texto: 'U o clic derecho lo prende y lo apaga. Los viejos oscuros no se acercan, pero la luz te delata.' });
-    if (C.pala) nuevas.push({ id: 'pala', nombre: 'Pala de brasas', icono: 'palaBrasas', cuenta: D.brasas || '0', accion: 'arma', texto: 'Clic izquierdo tira las brasas en abanico. Se carga con E junto a un fogón o una antorcha.' });
+    // (el farol va junto a la linterna y la pala con las armas de siempre: en la barra de nueve casillas no pueden quedar al final)
+    if (C.farolMano) ranuras.push({ id: 'farolMano', nombre: D.farolOn ? 'Farol de mano · prendido' : 'Farol de mano', icono: 'farolMano', accion: 'farolMano', texto: 'U o clic derecho lo prende y lo apaga. Los viejos oscuros no se acercan, pero la luz te delata.' });
+    if (C.pala) armas.push({ id: 'pala', nombre: 'Pala de brasas', icono: 'palaBrasas', cuenta: D.brasas || '0', accion: 'arma', texto: 'Clic izquierdo tira las brasas en abanico. Se carga con E junto a un fogón o una antorcha.' });
     if (D.miel > 0) nuevas.push({ id: 'miel-frasco', nombre: 'Frascos de miel', icono: 'miel', cuenta: D.miel, texto: 'Para la trampa de miel: E junto a ella la deja llena. Vienen en el cofre del alba.' });
     const primero = [...armas, ...adelante.map((id) => ranuras.find((r) => r.id === id)).filter(Boolean), ...nuevas];
     return [...primero, ...ranuras.filter((r) => !primero.includes(r))];
