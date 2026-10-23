@@ -467,6 +467,25 @@ export class Sonido {
     }
   }
   pausar(p) { if (!this.ctx) return; if (p) this.ctx.suspend(); else this.ctx.resume(); }
+  // 4.8 ambiente: el silencio raro. El bosque se calla de golpe (el viento, los grillos, la música, los pájaros) hasta que se
+  // rompe con `romperSilencio` (o pasan `seg` segundos). `callarAves` sólo calla a los pájaros y a los grillos: los pájaros de
+  // alrededor tuyo se callan cuando pasan duendes cerca (ver desafio-ambiente.js).
+  callar(seg = 8, profundidad = 0.82) {
+    if (!this.ctx || !this.agaches) return;
+    this.callarAves(seg);
+    this.agachar(profundidad, seg);
+  }
+  callarAves(seg = 8) {
+    if (!this.ctx) return;
+    this.avesCalladasHasta = Math.max(this.avesCalladasHasta || 0, this.ctx.currentTime + seg);
+  }
+  romperSilencio() {
+    if (!this.ctx || !this.agaches) return;
+    const t = this.ctx.currentTime;
+    this.avesCalladasHasta = 0; this.agachadoHasta = 0; this.agachadoCuanto = 0;
+    for (const g of Object.values(this.agaches)) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.setTargetAtTime(1, t, 0.15); }
+  }
+  get avesCalladas() { return !!this.ctx && (this.avesCalladasHasta || 0) > this.ctx.currentTime; }
 
   // ------------------------------------------------------------------ actualización por cuadro
   actualizar(dt, e) {
@@ -543,7 +562,7 @@ export class Sonido {
 
     // aves de día, bosque nocturno de noche
     this.proxAve -= dt;
-    if (this.proxAve <= 0 && e.lluvia < 0.6) {
+    if (this.proxAve <= 0 && e.lluvia < 0.6 && !this.avesCalladas) {   // 4.8 ambiente: callados, no cantan
       const dia = 1 - e.noche;
       if (dia > 0.4) {
         const tirada = Math.random();
@@ -603,7 +622,7 @@ export class Sonido {
       this.fTechoCama.frequency.setTargetAtTime(cama.frec, t, 0.3); this.fTechoCama.Q.setTargetAtTime(cama.q, t, 0.3);
       this.fTechoGrave.frequency.setTargetAtTime(cama.frecGrave, t, 0.3);
     }
-    this.perilla(this.gGrillos, 0.085 * e.noche * (1 - e.invierno) * (1 - e.lluvia) * (1 - e.otono * 0.6), t, 2);
+    this.perilla(this.gGrillos, 0.085 * e.noche * (1 - e.invierno) * (1 - e.lluvia) * (1 - e.otono * 0.6) * (this.avesCalladas ? 0.12 : 1), t, 2);   // 4.8 ambiente: los grillos también se callan
     this.perilla(this.gFuego, e.fuego ? 0.5 : 0, t, 0.5);
     this.perilla(this.gFuegoMedio, e.fuego ? 0.42 * (0.7 + 0.3 * Math.sin(t * 2.3) * Math.sin(t * 0.9)) : 0, t, 0.5);
     this.perilla(this.gCascada, e.cascada ? 0.5 * e.cascada.fuerza : 0, t, 0.8);
@@ -1083,7 +1102,7 @@ export class Sonido {
   // suena una al azar, apenas corrida de tono. Es una fuente por canto, no veinte notas.
   // Si la especie todavía no tiene frases hechas, canta apenas sale la primera de la cola.
   cantar(especie, pos, volFuente = 1, reverb = 0.6) {
-    if (!this.ctx) return null;
+    if (!this.ctx || this.avesCalladas) return null;   // 4.8 ambiente: el silencio raro y los duendes cerca
     const sonar = (buf) => this.sonarBuffer(buf, this.fuente(pos, volFuente, reverb), (NIVEL_CANTO[especie] ?? 0.08) / 0.9, 0, azar(0.97, 1.03));
     const buf = this.variante(`canto-${especie}`, 3, () => canto(especie, TASA_PREVIA), 0.35, sonar);
     return buf ? sonar(buf) : null;

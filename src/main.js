@@ -9330,7 +9330,7 @@ const nocheCielo = { dia: -1, fase: 0.5, lluvia: false, vistas: 0, avisada: fals
 const dirFugaz = new THREE.Vector3();
 let azarCielo = Math.random;   // las pruebas lo fijan para ver una fugaz a pedido
 function cieloDeLaNoche(dt, noche, luz) {
-  const fase = faseLunar(progreso.dia, progreso.horas);
+  const fase = (desafio?.ambiente?.clima.luna ?? 0) > 0.02 ? 0.5 : faseLunar(progreso.dia, progreso.horas);   // 4.8 ambiente: la noche de luna llena, llena de verdad
   nocheCielo.fase = fase;
   cielo.ponerLuna?.(fase, { ...luzDeLuna(fase), iluminada: iluminada(fase) });
   // la noche "es" del día en que empezó: pasada la medianoche sigue siendo la misma
@@ -10278,7 +10278,8 @@ function cuadroDelJuego(tRaf, manual) {
   acumuladoHabitat += dt;
   actualizarRelojHud(dt);
   actualizarBilleteraHud(dt);   // 3.8.8: los pesos que llevás
-  const luzCielo = cielo.actualizar(progreso.horas, clima.estado, cam, 0);
+  const ambienteDesafio = desafio?.ambiente?.clima;   // 4.8 ambiente: la niebla y la luna llena de la noche del Desafío (sin desafío: nada)
+  const luzCielo = cielo.actualizar(progreso.horas, clima.estado, cam, ambienteDesafio ? ambienteDesafio.extra : 0, ambienteDesafio);
   luzUltimaFoto = luzCielo;
   const noche = 1 - luzCielo.dia;
   obras?.actualizarAmbiente?.(noche);

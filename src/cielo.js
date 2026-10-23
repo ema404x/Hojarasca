@@ -473,13 +473,22 @@ export function crearCielo(escena, calidad) {
   // 3.4: más espesa todavía: la perspectiva aérea separa los planos (cerca, medio, lejos)
   const NIEBLA_ESTILO = 1.5;
   let luzLuna = 1;
+  // 4.8 ambiente: la noche de niebla y la de luna llena del Desafío (ver desafio-ambiente.js). La bruma tiñe el cielo entero (y con él la niebla
+  // de la escena, que sale del horizonte); la luna llena alumbra más, más fría y más baja en el cielo (sombras largas).
+  const NIEBLA_NOCHE = C('#46557a'), NIEBLA_ALTA = C('#2a3658'), LUNA_CIELO = C('#2f4a86'), LUNA_HORIZ = C('#3b5a9c'), LUZ_LUNA_LLENA = C('#a9c2ff');
+  let estrellasBase = 1, nieblaK = 0, lunaK = 0;
 
-  function actualizar(horas, clima, cam, extraNiebla) {
+  function actualizar(horas, clima, cam, extraNiebla, ambiente) {
+    // 4.8 ambiente: `ambiente` = { niebla, luna } (0..1) o nada
+    nieblaK = ambiente ? clamp(ambiente.niebla || 0, 0, 1) : 0;
+    lunaK = ambiente ? clamp(ambiente.luna || 0, 0, 1) : 0;
     // días largos de verano patagónico: sale a las 6:30 y se pone a las 20:30
     const h = ((horas % 24) + 24) % 24;
     const ang = h >= 6.5 && h < 20.5 ? ((h - 6.5) / 14) * Math.PI : Math.PI + ((((h - 20.5) % 24) + 24) % 24 / 10) * Math.PI;
     solDir.set(-Math.cos(ang), Math.sin(ang) * 0.9, 0.38).normalize();
     lunaDir.set(Math.cos(ang) * 0.8, -Math.sin(ang) * 0.75 + 0.18, -0.45).normalize();
+    // 4.8 ambiente: la luna llena baja hasta unos 24 grados de altura: las sombras se estiran por el valle
+    if (lunaK > 0) { lunaDir.y += (Math.min(lunaDir.y, 0.4) - lunaDir.y) * lunaK; lunaDir.normalize(); }
     const dia = smoothstep(-0.14, 0.18, solDir.y);
     const tarde = Math.exp(-Math.pow(solDir.y / 0.16, 2)) * smoothstep(-0.25, -0.02, solDir.y);
     const nub = clamp(clima.nublado, 0, 1);
@@ -504,6 +513,13 @@ export function crearCielo(escena, calidad) {
     tmp.copy(PALETA.gris).multiplyScalar(0.12 + 0.75 * dia);
     cenit.lerp(tmp, nub * 0.75);
     horiz.lerp(tmp, nub * 0.65);
+    // 4.8 ambiente: de noche la bruma cierra el cielo; con luna llena el cielo se aclara azul
+    if (nieblaK > 0 || lunaK > 0) {
+      const oscuro = 1 - dia;
+      if (nieblaK > 0) { cenit.lerp(NIEBLA_ALTA, 0.5 * nieblaK * oscuro); horiz.lerp(NIEBLA_NOCHE, 0.62 * nieblaK * oscuro); }
+      if (lunaK > 0) { cenit.lerp(LUNA_CIELO, 0.4 * lunaK * oscuro * (1 - nub * 0.6)); horiz.lerp(LUNA_HORIZ, 0.45 * lunaK * oscuro * (1 - nub * 0.6)); }
+    }
+    uniforms.uEstrellas.value = estrellasBase * (1 - 0.85 * nieblaK) * (1 - 0.3 * lunaK);
 
     // sol de día, luna de noche
     const deDia = solDir.y > -0.04;
@@ -516,8 +532,9 @@ export function crearCielo(escena, calidad) {
       intensidad = 3.4 * smoothstep(-0.04, 0.22, solDir.y) * (1 - nub * 0.72);
       sol.color.copy(colorSol);
     } else {
-      intensidad = 0.7 * smoothstep(-0.02, 0.2, -solDir.y) * (1 - nub * 0.6) * luzLuna;
+      intensidad = 0.7 * smoothstep(-0.02, 0.2, -solDir.y) * (1 - nub * 0.6) * luzLuna * (1 + 1.0 * lunaK) * (1 - 0.35 * nieblaK);   // 4.8 ambiente
       sol.color.copy(LUZ_LUNA);
+      if (lunaK > 0) sol.color.lerp(LUZ_LUNA_LLENA, 0.6 * lunaK);
     }
     sol.intensity = intensidad;
     sol.position.set(cam.x + dirLuz.x * 150, cam.y + dirLuz.y * 150, cam.z + dirLuz.z * 150);
@@ -535,7 +552,7 @@ export function crearCielo(escena, calidad) {
     hemi.color.lerp(tmp2.copy(AMBIENTE_OCASO), 0.5 * Math.max(tarde, dorada * 0.7));   // el ambiente del ocaso, lavanda (3.4: toda la hora dorada)
     hemi.groundColor.copy(SUELO_HEMI).multiplyScalar(0.4 + 0.6 * dia);
     // 3.2: de día el ambiente pesa un poco menos que el sol: más contraste, sombras de color
-    hemi.intensity = 0.78 + 0.95 * dia;
+    hemi.intensity = 0.78 + 0.95 * dia + 0.4 * lunaK * (1 - dia);   // 4.8 ambiente: la luna llena rellena las sombras
 
     U.uSolDir.value.copy(dirLuz);
     U.uSolColor.value.copy(sol.color).multiplyScalar(intensidad / Math.PI);
@@ -591,7 +608,8 @@ export function crearCielo(escena, calidad) {
   function ponerLuna(fase, efecto) {
     uniforms.uFaseLuna.value = fase;
     uniforms.uIluminada.value = efecto.iluminada;
-    uniforms.uEstrellas.value = efecto.estrellas;
+    estrellasBase = efecto.estrellas;   // 4.8 ambiente: `actualizar` la baja con la niebla
+    uniforms.uEstrellas.value = efecto.estrellas * (1 - 0.85 * nieblaK) * (1 - 0.3 * lunaK);
     uniforms.uVia.value = efecto.via;
     luzLuna = efecto.luz;
   }

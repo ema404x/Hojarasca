@@ -24,6 +24,10 @@ const ACORDES = {
   roja: [[44, 51], [46, 51], [44, 52], [39, 46]],
   // eclipse: cuartas y quintas vacías, suena hueco
   eclipse: [[45, 50], [43, 50], [45, 52], [38, 45]],
+  // 4.8 ambiente: niebla: segundas y cuartas suspendidas, nada resuelve (el aire no deja ver dónde termina cada nota)
+  niebla: [[45, 50], [46, 51], [43, 48], [45, 49]],
+  // 4.8 ambiente: luna llena con los viejos: quintas abiertas y una sexta fría encima, grandes y despacio
+  lunallena: [[45, 52], [43, 50], [45, 54], [40, 47]],
 };
 // 3.8.0: los silbidos de los duendes. Motivos cortos en re menor pentatónico (re, fa, sol,
 // la, do), de pillo; algunos terminan en el tritono (sol#) y quedan colgados.
@@ -35,6 +39,8 @@ export function crearMusicaTension(sonido) {
   let proxLatido = 0, proxSilbido = 6, proxAcorde = 0, acorde = null;
   let albaHecha = false, albaHasta = 0, agacheHasta = 0, ultimoGolpe = -9;
   let quieto = 0, acumulado = 1;
+  // 4.8 ambiente: el golpe de cuando salen (la música sube y se asienta despacio) y los adornos de las noches de niebla y de luna llena
+  let impulso = 0, proxCampana = 7, proxBrillo = 9, proxCorno = 22;
 
   const listo = () => !!(sonido && sonido.ctx && sonido.bus && sonido.bus.musica);
   const corriendo = () => listo() && (!sonido.ctx.state || sonido.ctx.state === 'running');
@@ -182,8 +188,45 @@ export function crearMusicaTension(sonido) {
     pad({ frec: hz(87), fin: hz(86.6), ataque: 0.03, sosten: 0.3, caida: 3.2, vol: 0.007 });
   }
 
+  // 4.8 ambiente: salen los duendes. Después del silencio, la música entra de golpe con un racimo grave y sube hasta donde la lleve
+  // el miedo de la noche; el impulso se va apagando solo (unos 10 segundos)
+  function llegaron(fuerza = 1) {
+    if (!corriendo() || !sonido.musicaActiva) return;
+    const f = limitar(fuerza, 0, 1.5);
+    montar();
+    impulso = Math.max(impulso, f);
+    nivel = Math.max(nivel, 0.5 * Math.min(1, f));
+    quieto = 0; agacheHasta = 0;
+    pad({ frec: hz(38), fin: hz(37.8), ataque: 0.7, sosten: 1.4, caida: 3.8, vol: 0.05 * f, tipo: 'triangle', corte: 600 });
+    pad({ frec: hz(39), fin: hz(38.7), cuando: 0.1, ataque: 0.9, sosten: 1.2, caida: 3.4, vol: 0.03 * f, tipo: 'triangle', corte: 500 });
+    pad({ frec: hz(57), fin: hz(56.6), cuando: 0.3, ataque: 1.1, sosten: 1, caida: 3, vol: 0.012 * f, corte: 1200 });
+  }
+
+  // 4.8 ambiente: adornos sueltos de las noches nuevas (cada uno una nota de vida corta, nunca por cuadro)
+  // niebla: una campana lejana que no se sabe de dónde viene y, cada tanto, un corno grave que se hunde en la bruma
+  function adornoNiebla(dt, tension) {
+    proxCampana -= dt; proxCorno -= dt;
+    if (proxCampana <= 0) {
+      proxCampana = azar(9, 19);
+      const m = [74, 77, 81, 84, 79][Math.floor(Math.random() * 5)];
+      pad({ frec: hz(m), fin: hz(m) * 0.998, ataque: 0.02, sosten: 0.15, caida: azar(4, 6), vol: 0.0065 + tension * 0.003, corte: 2600 });
+      pad({ frec: hz(m) * 1.5, cuando: 0.01, ataque: 0.02, sosten: 0.1, caida: azar(2.4, 3.4), vol: 0.0022, corte: 2600 });
+    }
+    if (proxCorno <= 0) {
+      proxCorno = azar(26, 44);
+      pad({ frec: hz(33), fin: hz(32.6), ataque: 3.5, sosten: 1.5, caida: 6, vol: 0.026 + tension * 0.012, tipo: 'triangle', corte: 380 });
+    }
+  }
+  // luna llena: un racimo de seno suspendido, frío, que sube y se apaga sobre las cuerdas (la luz de la luna sobre el valle)
+  function adornoLuna(dt, tension) {
+    proxBrillo -= dt;
+    if (proxBrillo > 0) return;
+    proxBrillo = azar(11, 20);
+    [[74, 0], [79, 0.4], [86, 0.9]].forEach(([m, c], i) => pad({ frec: hz(m), fin: hz(m) * 0.9985, cuando: c, ataque: 2.2, sosten: 1.2, caida: 4.6, vol: (0.0052 - i * 0.0009) * (0.7 + tension * 0.6), corte: 2400 }));
+  }
+
   function detener() {
-    nivel = 0; albaHasta = 0; proxLatido = 0; agacheHasta = 0;
+    nivel = 0; albaHasta = 0; proxLatido = 0; agacheHasta = 0; impulso = 0;
     if (!n || !listo()) return;
     const t = sonido.ctx.currentTime;
     n.salida.gain.setTargetAtTime(0, t, 0.7);
@@ -199,6 +242,11 @@ export function crearMusicaTension(sonido) {
     const fase = e.fase || 'calma';
     const tension = limitar(Number(e.tension) || 0, 0, 1);
     const roja = e.especial === 'roja', eclipse = e.especial === 'eclipse', silenciosa = e.especial === 'silenciosa';
+    // 4.8 ambiente: niebla y luna llena (las define desafio-reglas.js), el miedo de la noche (0..1), cuánto avanzó la previa y el silencio
+    // raro de antes de que salgan (la música se calla con todo lo demás)
+    const niebla = e.especial === 'niebla', lunallena = e.especial === 'lunallena';
+    const miedo = limitar(Number(e.miedo) || 0, 0, 1), avance = limitar(Number(e.avance) || 0, 0, 1), mudo = !!e.silencio;
+    impulso = impulso > 1e-3 ? impulso * Math.exp(-dt / 7) : 0;
     const musica = !!(sonido && sonido.musicaActiva);
 
     if (fase === 'previa' || fase === 'ataque') albaHecha = false;
@@ -207,11 +255,13 @@ export function crearMusicaTension(sonido) {
     // intensidad objetivo: la previa crece muy lento, el ataque sigue a la tensión
     let obj = 0, rapidez = 1;
     if (activo && musica) {
-      if (fase === 'calma') { obj = tension * 0.1; rapidez = 0.15; }
-      else if (fase === 'previa') { obj = 0.2 + tension * 0.2; rapidez = 0.08; }
-      else if (fase === 'ataque') { obj = 0.45 + tension * 0.55; rapidez = 0.35; }
+      if (fase === 'calma') { obj = Math.max(tension * 0.1, miedo * 0.2); rapidez = 0.15; }
+      else if (fase === 'previa') { obj = 0.2 + tension * 0.2 + miedo * 0.3 * avance; rapidez = 0.08; }   // 4.8 ambiente: sube de a poco con la previa
+      else if (fase === 'ataque') { obj = 0.45 + Math.max(tension, miedo * 0.85) * 0.55; rapidez = 0.35; }
       else { obj = 0; rapidez = 0.25; }
       if (silenciosa) obj *= 0.6;
+      obj = Math.min(1, obj + impulso * 0.3);
+      if (mudo) { obj *= 0.04; rapidez = 1.4; }   // 4.8 ambiente: el silencio raro
     }
     nivel += (obj - nivel) * Math.min(1, dt * rapidez);
     if (nivel < 1e-4) nivel = 0;
@@ -236,7 +286,7 @@ export function crearMusicaTension(sonido) {
     if (conCuerdas && !enAlba) {
       proxAcorde -= dt;
       if (proxAcorde <= 0) {
-        const lista = fase === 'previa' ? ACORDES.previa : roja ? ACORDES.roja : eclipse ? ACORDES.eclipse : tension > 0.55 ? ACORDES.alta : ACORDES.baja;
+        const lista = fase === 'previa' ? ACORDES.previa : niebla ? ACORDES.niebla : lunallena ? ACORDES.lunallena : roja ? ACORDES.roja : eclipse ? ACORDES.eclipse : tension > 0.55 ? ACORDES.alta : ACORDES.baja;
         let nuevo = lista[Math.floor(Math.random() * lista.length)];
         if (nuevo === acorde && lista.length > 1) nuevo = lista[(lista.indexOf(nuevo) + 1) % lista.length];
         const primero = acorde === null;
@@ -256,16 +306,16 @@ export function crearMusicaTension(sonido) {
       const respira = 0.8 + 0.2 * Math.sin(t * 0.11) * Math.sin(t * 0.037 + 1);
       const oleaje = 0.5 + 0.5 * Math.sin(t * 0.13 + 0.7) * Math.sin(t * 0.047);
       n.salida.gain.setTargetAtTime(1, t, 0.8);
-      n.gDron.gain.setTargetAtTime(nivel * 0.075 * respira * agache * (eclipse ? 0.6 : 1), t, 1.2);
+      n.gDron.gain.setTargetAtTime(nivel * 0.075 * respira * agache * (eclipse ? 0.6 : niebla ? 0.8 : 1), t, 1.2);
       n.gSub.gain.setTargetAtTime(nivel * (eclipse ? 0.16 : 0.1) * agache, t, 1.2);
       if (!enAlba) {
         // roja: más cerrado y con más batido; eclipse: resonancia hueca
-        const corte = eclipse ? 150 + nivel * 180 : roja ? 110 + nivel * 380 : 130 + nivel * 650;
+        const corte = eclipse ? 150 + nivel * 180 : roja ? 110 + nivel * 380 : niebla ? 115 + nivel * 240 : lunallena ? 150 + nivel * 520 : 130 + nivel * 650;
         n.fDron.frequency.setTargetAtTime(corte, t, 2);
         n.fDron.Q.setTargetAtTime(eclipse ? 7 : 0.9, t, 2);
-        n.dB.detune.setTargetAtTime(roja ? 22 : 5 + tension * 8, t, 3);
-        n.fCuerda.frequency.setTargetAtTime(eclipse ? 480 : roja ? 300 + nivel * 600 : 380 + nivel * 900, t, 2);
-        n.fCuerda.Q.setTargetAtTime(eclipse ? 4 : 1.2, t, 2);
+        n.dB.detune.setTargetAtTime(roja ? 22 : niebla ? 15 : 5 + tension * 8, t, 3);
+        n.fCuerda.frequency.setTargetAtTime(eclipse ? 480 : roja ? 300 + nivel * 600 : niebla ? 270 + nivel * 520 : lunallena ? 430 + nivel * 1050 : 380 + nivel * 900, t, 2);
+        n.fCuerda.Q.setTargetAtTime(eclipse ? 4 : niebla ? 2.4 : 1.2, t, 2);
       }
       n.gLfo.gain.setTargetAtTime(60 + nivel * 160, t, 2);
       let gc = 0;
@@ -280,19 +330,21 @@ export function crearMusicaTension(sonido) {
       let periodo = fase === 'previa' ? 1.9 : 1.45 - tension * 0.8;
       if (roja) periodo *= 0.78;
       if (silenciosa) periodo *= 1.25;
+      if (niebla) periodo *= 1.4;       // 4.8 ambiente: amortiguado por la niebla
+      if (lunallena) periodo *= 1.22;   // y pesado, de los viejos
       if (proxLatido < t - 0.3) proxLatido = t + 0.05;
       let tope = 4;
       while (proxLatido < t + 0.15 && tope-- > 0) {
         const c = Math.max(0, proxLatido - t);
-        const v = (fase === 'previa' ? 0.05 : 0.08 + tension * 0.08) * (silenciosa ? 0.55 : 1) * (t < agacheHasta ? 0.1 : 1);
+        const v = (fase === 'previa' ? 0.05 : 0.08 + tension * 0.08) * (silenciosa ? 0.55 : 1) * (niebla ? 0.6 : lunallena ? 1.2 : 1) * (t < agacheHasta ? 0.1 : 1);
         if (v > 0.002) {
           const d = n.salida;
-          sonido.tono({ frec: 62, fin: 38, dur: eclipse ? 0.6 : 0.32, tipo: 'sine', vol: v, ataque: 0.012, destino: d, cuando: c });
+          sonido.tono({ frec: lunallena ? 52 : 62, fin: lunallena ? 31 : 38, dur: eclipse ? 0.6 : lunallena ? 0.5 : 0.32, tipo: 'sine', vol: v, ataque: 0.012, destino: d, cuando: c });
           // un poco de armónicos para que se oiga en parlantes chicos
           // (2.7: un golpe sordo de parche, no un triángulo: se oye igual y suena a cuero)
           if (typeof sonido.golpeRuido === 'function' && sonido.ruido) sonido.golpeRuido({ dur: 0.08, frec: 190, q: 1.2, tipo: 'lowpass', vol: v * 0.9, destino: d, cuando: c, buffer: sonido.ruido });
           else sonido.tono({ frec: 118, fin: 70, dur: 0.09, tipo: 'triangle', vol: v * 0.22, ataque: 0.004, destino: d, cuando: c });
-          if (!eclipse) sonido.tono({ frec: 56, fin: 36, dur: 0.26, tipo: 'sine', vol: v * 0.6, ataque: 0.012, destino: d, cuando: c + 0.24 + tension * -0.05 });
+          if (!eclipse && !niebla && !lunallena) sonido.tono({ frec: 56, fin: 36, dur: 0.26, tipo: 'sine', vol: v * 0.6, ataque: 0.012, destino: d, cuando: c + 0.24 + tension * -0.05 });
         }
         proxLatido += periodo * azar(0.96, 1.04);
       }
@@ -302,17 +354,24 @@ export function crearMusicaTension(sonido) {
     if (conCuerdas && !enAlba) {
       proxSilbido -= dt;
       if (proxSilbido <= 0) {
-        silbido(tension, eclipse);
+        silbido(tension * (niebla ? 0.6 : 1), eclipse || lunallena);   // 4.8 ambiente: los viejos silban una octava abajo
         let espera = fase === 'previa' ? azar(14, 30) : azar(8, 20) / (0.6 + tension);
         if (eclipse) espera *= 0.5;
+        if (niebla) espera *= 1.3;
         if (silenciosa) espera *= 0.7;
         proxSilbido = espera;
       }
+    }
+    // 4.8 ambiente: adornos de las noches nuevas
+    if (conCuerdas && !enAlba && !mudo) {
+      if (niebla) adornoNiebla(dt, tension);
+      else if (lunallena) adornoLuna(dt, tension);
     }
   }
 
   return {
     actualizar,
+    llegaron,
     alba,
     golpeFinal,
     detener,
