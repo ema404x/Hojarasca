@@ -568,7 +568,7 @@ const avanzar = (p, hasta, id = null, visita = 5) => {
   const main = leer('src/main.js');
   ok(/liberarEmpleado: \(k, motivo\) =>/.test(main) && main.includes('empleadosNegocioJuego?.liberar(k, motivo)') && main.includes("fallaSistema('negocios-vecinos-liberar'"), 'main.js: suelta al empleado con aislamiento');
   const en = leer('src/empleados-negocio-juego.js');
-  ok(en.includes('liberar: (k) =>') && en.includes('e.cambiarAmistad = null'), 'empleados-negocio-juego.js: liberar sin castigo de amistad');
+  ok(en.includes('liberar: (k, motivo) =>') && en.includes('e.cambiarAmistad = null'), 'empleados-negocio-juego.js: liberar sin castigo de amistad');
   const gu = leer('src/guia.js');
   ok(gu.includes("'Vender el negocio y sumar plata'") && gu.includes('Sumar plata a la sociedad') && gu.includes('50 al 85 %'), 'la guía (F1) lo explica');
   const jg = leer('src/negocios-vecinos-juego.js');
