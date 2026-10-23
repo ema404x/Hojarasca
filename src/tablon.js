@@ -69,7 +69,8 @@ const DONDE_RESPALDO = {
 export const dondeDe = (k) => (esBien(k) ? BIENES[k].donde : Object.hasOwn(DONDE_RESPALDO, k) ? DONDE_RESPALDO[k] : 'material');
 // Cómo se dice: [uno, varios]
 const NOMBRES = {
-  junco: ['atado de junco', 'atados de junco'], hierbas: ['manojo de hierbas', 'manojos de hierbas'], arcilla: ['terrón de arcilla', 'terrones de arcilla'],
+  junco: ['junco', 'juncos'], hierbas: ['atado de hierbas', 'atados de hierbas'],   // 4.10.1: como los dicen la mochila, los materiales y el comercio
+  arcilla: ['terrón de arcilla', 'terrones de arcilla'],
   cuero: ['cuero', 'cueros'], 'piedra-cantera': ['piedra de cantera', 'piedras de cantera'], lana: ['vellón de lana', 'vellones de lana'],
   pinon: ['piñón', 'piñones'], calafate: ['calafate', 'calafates'], 'calafate-seco': ['puñado de calafates secos', 'puñados de calafates secos'],
   'trucha-fresca': ['trucha fresca', 'truchas frescas'], 'trucha-ahumada': ['trucha ahumada', 'truchas ahumadas'], frutilla: ['frutilla', 'frutillas'],
@@ -172,13 +173,16 @@ export function aLaVista(t, dia, ctx = {}) {
   const presente = ctx.presente || (() => true);
   const tomadosTpl = new Set(t.tomados.map((x) => x.tpl));
   // (los tres del día se eligen entre todos los posibles y recién después se sacan los tomados: tomar uno no trae otro)
-  const posibles = ENCARGOS_TABLON.filter((e) => existe(e.k) && (!e.estacion || e.estacion === ctx.estacion));
+  // 4.10.1: el azar se reparte entre TODOS los posibles y la estación sólo saltea los de otra época al elegir: antes entraba en el pool
+  // y al cruzar la estación a media jornada (el uniforme del cielo pasa de 0,5) se rebarajaban los tres papeles; ahora cambia, a lo sumo, el de temporada
+  const posibles = ENCARGOS_TABLON.filter((e) => existe(e.k));
+  const deEstacion = (e) => !e.estacion || e.estacion === ctx.estacion;
   // el orden del día: los de distinto lugar primero (que no salgan tres del mismo lado)
   const r = azarDe(hashTexto(`tablon|${d}`));
   const mezcla = posibles.map((e) => ({ e, s: r() })).sort((a, b) => a.s - b.s).map((x) => x.e);
   const elegidos = [], lugares = new Set();
-  for (const e of mezcla) { if (elegidos.length < TABLON.aLaVista && !lugares.has(e.origen)) { elegidos.push(e); lugares.add(e.origen); } }
-  for (const e of mezcla) { if (elegidos.length < TABLON.aLaVista && !elegidos.includes(e)) elegidos.push(e); }
+  for (const e of mezcla) { if (elegidos.length < TABLON.aLaVista && deEstacion(e) && !lugares.has(e.origen)) { elegidos.push(e); lugares.add(e.origen); } }
+  for (const e of mezcla) { if (elegidos.length < TABLON.aLaVista && deEstacion(e) && !elegidos.includes(e)) elegidos.push(e); }
   return elegidos.map((e) => papel(e, d, presente)).filter((p) => !t.quitados.includes(p.id) && !tomadosTpl.has(p.tpl));
 }
 // Cuántos entregaste hoy
