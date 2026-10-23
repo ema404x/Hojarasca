@@ -637,7 +637,7 @@ function NOMBRE(o) { return O.NOMBRE_ORDEN[o] || ''; }
   const des = leer('src/desafio.js'), main = leer('src/main.js'), ali = leer('src/desafio-aliados.js'), reglas = leer('src/desafio-reglas.js');
   const linea = (fuente, ...partes) => fuente.split('\n').some((l) => partes.every((p) => l.includes(p)));
   ok(linea(des, 'import { crearVecinosMundo }', 'desafio-vecinos-mundo.js') && linea(des, 'import { crearCampana }', 'desafio-campana.js') && linea(des, 'import { crearPiezasVecinos }'), 'desafio.js arma los vecinos y la campana');
-  ok(linea(des, 'vecinos.actualizar(dt, js, vivos() > 0);') && linea(des, 'campana.actualizar(dt);'), 'cada cuadro');
+  ok(linea(des, 'vecinos.actualizar(dt, js, vivos() > 0, mundo.noche);') && linea(des, 'campana.actualizar(dt);'), 'cada cuadro');
   ok(linea(des, 'vecinos.limpiar();'), 'se limpian con el resto');
   ok(linea(des, 'ordenar:', 'aliados.ordenar(clave) || vecinos.ordenar(clave)'), 'la E ordena también a los vecinos');
   ok(linea(des, 'perroAlPorton:', 'campana.perroAlPorton()'), 'el perro');

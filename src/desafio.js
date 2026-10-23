@@ -3648,7 +3648,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     asedioMundo.actualizar(dt, js);   // 3.0
     naveMundo.actualizar(dt, js);
     aliados.actualizarCompaneros(dt, vivos() > 0);
-    vecinos.actualizar(dt, js, vivos() > 0);   // 4.9 aliados
+    vecinos.actualizar(dt, js, vivos() > 0, mundo.noche);   // 4.9 aliados
     campana.actualizar(dt);   // 4.9 aliados
     aliados.actualizarPerro(dt, js, ctx.perroPos?.());
     efectos.actualizar(dt, naveMundo.adentro ? naveMundo.pisoT : T);   // 3.0: adentro, el piso es el de la nave

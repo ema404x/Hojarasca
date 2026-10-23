@@ -212,6 +212,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     if (!p || !f) return;
     const y = api.alturaEn(p.x, p.z);
     f.g.position.set(p.x, y, p.z);
+    f.ajustar?.((x, z) => api.alturaEn(x, z), p.x, p.z);   // el brillo del suelo se acomoda a las lomas
     f.g.visible = true;
     est.lit.push({ x: p.x, z: p.z, radio: radioDeFuego(p.tipo, est.niveles.herminia), tipo: p.tipo });
     api.efectos?.chispas?.({ x: p.x, y: y + 0.4, z: p.z }, 8);
@@ -317,7 +318,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
   }
 
   // ---------------------------------------------------------------- por cuadro
-  function actualizar(dt, js, hayDuendes) {
+  function actualizar(dt, js, hayDuendes, noche = 1) {
     if (!est.ocultos) { for (const f of pool) { f.g.visible = false; } est.ocultos = true; }   // las que se dejaron a la vista para compilar
     if (!api.gente?.()) return;   // sin vecinos en la partida (Tu partida), nadie ayuda
     const horas = api.horas(), dia = api.dia();
@@ -347,7 +348,8 @@ export function crearVecinosMundo(T, escena, api, piezas) {
       const t = est.reloj * 7 + i * 1.9;
       f.llama.scale.set(1 + Math.sin(t) * 0.07, 1 + Math.sin(t * 1.7 + 1) * 0.18, 1 + Math.cos(t * 1.3) * 0.07);
       f.fina.scale.y = 1 + Math.sin(t * 2.3) * 0.22;
-      f.brillo.material.opacity = 0.17 + Math.sin(t * 0.9) * 0.03;
+      f.brillo.visible = noche > 0.2;   // de día, el brillo del suelo sería una mancha
+      f.brillo.material.opacity = (0.5 + Math.sin(t * 0.9) * 0.06) * Math.min(1, noche);
     }
   }
 

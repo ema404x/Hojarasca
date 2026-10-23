@@ -66,11 +66,14 @@ app.whenReady().then(async () => {
       for (let k = 0; k < 80; k++) {
         const x = r.x + 70 + (k % 8) * 26, z = r.z + 70 + Math.floor(k / 8) * 26;
         let bien = true;
+        // la vía a entre 45 y 110 m: la base no queda sobre los rieles y el silbato de Martín alcanza
+        let dv = 1e9; for (const q of H.T.riel) dv = Math.min(dv, Math.hypot(q.x - x, q.z - z));
+        if (dv < 45 || dv > 110) continue;
         for (let a = 0; a < 16 && bien; a++) for (const rad of [4, 10, 16]) { const px = x + Math.cos(a * 0.39) * rad, pz = z + Math.sin(a * 0.39) * rad; if (H.T.agua(px, pz) || Math.abs(H.T.altura(px, pz) - H.T.altura(x, z)) > 1.4) { bien = false; break; } }
         if (!bien) continue;
         j.pos.set(x, H.T.altura(x, z) + 0.05, z); j.yaw = 0; j.pitch = 0; return JSON.stringify({ x, z, y: H.T.altura(x, z) });
       } return 'null' })()`));
-    ok(!!claro, 'hay un claro llano para la base');
+    ok(!!claro, 'hay un claro llano para la base, a 45-110 m de la vía');
     const poner = (id, dx, dz, yaw) => js(`(()=>{ const H = ${H}, O = H.obras, P = H.progreso, j = H.jugador.estado;
       Object.assign(P.materiales, { tronco: 400, tabla: 400, piedra: 400, cristal: 400 });
       const p = H.PLANOS.find(q => q.id === '${id}'); if (!p) return { error: 'no hay plano ${id}' };
@@ -146,7 +149,7 @@ app.whenReady().then(async () => {
     // ---------------------------------------------------------------- Anselmo arregla
     const rotas = JSON.parse(await js(`(()=>{ const H=${H}, c = ${JSON.stringify(claro)}; H.jugador.estado.pos.set(c.x, H.T.altura(c.x, c.z) + 0.05, c.z);
       const o = H.obras.obras.filter(q => q.plano.id === 'empalizada').slice(0, 3); for (const q of o) q.datos.vida = 25; return JSON.stringify(o.map(q => ({ vida: q.datos.vida, max: q.plano.vida }))) })()`));
-    await sim(110);
+    await sim(140);
     const despues = JSON.parse(await js(`JSON.stringify(${H}.obras.obras.filter(q => q.plano.id === 'empalizada').slice(0, 3).map(q => Math.round(q.datos.vida)))`));
     ok(despues.every((v) => v >= 300), `Anselmo (y nadie más) arregló las tres rotas, una tras otra: ${rotas.map((r) => r.vida).join(',')} → ${despues.join(',')} de ${rotas[0].max}`);
 
@@ -266,13 +269,14 @@ app.whenReady().then(async () => {
       const pos = JSON.parse(await js(`JSON.stringify(Object.fromEntries(${H}.gente.gente.filter(g => g.claveAliado).map(g => [g.claveAliado, { x: g.pos.x, y: g.pos.y, z: g.pos.z }])))`));
       const fu = JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.fuegosPrendidos())`));
       await js(`(()=>{ const H=${H}; H.clima.estado.nublado = 0.1; H.clima.estado.lluvia = 0; H.progreso.horas = 19.9; return 1 })()`);
-      await foto('base-desde-arriba-atardecer', { o: [c.x + 1, yC + 30, c.z + 28], a: [c.x, yC, c.z] });
+      await foto('base-de-afuera-atardecer-a', { o: [c.x + 19, yC + 4.5, c.z + 5], a: [c.x, yC + 0.8, c.z] });
+      await foto('base-de-afuera-atardecer-b', { o: [c.x - 6, yC + 4.5, c.z - 19], a: [c.x, yC + 0.8, c.z] });
       await foto('herminia-y-el-fogon', { o: [fu[0].x + 4.2, yC + 1.9, fu[0].z + 4.2], a: [fu[0].x, yC + 0.8, fu[0].z] });
       await foto('anselmo', { o: [pos.anselmo.x + 3.2, pos.anselmo.y + 1.7, pos.anselmo.z + 3.2], a: [pos.anselmo.x, pos.anselmo.y + 1.1, pos.anselmo.z] });
       await foto('los-chicos-en-la-empalizada', { o: [pos.nene.x + 3.4, pos.nene.y + 1.5, pos.nene.z + 3.4], a: [pos.nene.x, pos.nene.y + 0.9, pos.nene.z] });
       await js(`(()=>{ const H=${H}; H.progreso.horas = 22; return 1 })()`);
       await sim(1);
-      await foto('base-de-noche-con-los-fuegos', { o: [c.x + 1, yC + 26, c.z + 24], a: [c.x, yC, c.z] });
+      await foto('base-de-noche-con-los-fuegos', { o: [c.x + 1, yC + 5.5, c.z + 14], a: [c.x, yC + 0.6, c.z - 2] });
       await foto('fogon-de-noche', { o: [fu[0].x + 5, yC + 2.2, fu[0].z + 5], a: [fu[0].x, yC + 0.6, fu[0].z] });
       const o = JSON.parse(await js(`(()=>{ const o = ${H}.obras.obras.find(q => q.plano.id === 'campana'); return JSON.stringify(o ? { x: o.datos.x, y: o.datos.y, z: o.datos.z } : null) })()`));
       if (o) await foto('la-campana', { o: [o.x + 4.5, o.y + 2.2, o.z + 4.5], a: [o.x, o.y + 1.5, o.z] });

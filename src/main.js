@@ -10466,7 +10466,7 @@ function cuadroDelJuego(tRaf, manual) {
     mundoPerro.guiar = !desafio && modo === 'jugando';
     // 3.7.2: el olor del asado: el perro va a la parrilla y se roba un chorizo (ver cocina-juego.js)
     mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;
-    if (desafio && modo === 'jugando') mundoPerro.antojo = desafio.perroAlPorton?.() || null;   // 4.9 aliados: en el Desafío, la campana lo manda al portón (el mismo estado de «ir a un punto»)
+    if (desafio && modo === 'jugando') { mundoPerro.antojo = desafio.perroAlPorton?.() || null; if (mundoPerro.antojo && !mundoPerro.ataque) mundoPerro.alerta = null; }   // 4.9 aliados: en el Desafío, la campana lo manda al portón (el mismo estado de «ir a un punto»)
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)
