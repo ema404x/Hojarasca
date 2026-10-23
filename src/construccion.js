@@ -39,6 +39,8 @@ import { registrarPreciosDePlano } from './obra-pesos.js';
 import { calce, zocalo, sueloMin } from './calces.js';
 // 4.9 defensas: la trampa de miel y el pasadizo de escape (ver planos-defensas-49.js)
 import { PIEZAS_DEFENSAS_49 } from './planos-defensas-49.js';
+// 4.10 base: el tablero de trofeos (ver planos-trofeos.js)
+import { PIEZAS_TROFEOS } from './planos-trofeos.js';
 
 const MADERA = '#6b5238';
 const MADERA_OSCURA = '#4a3b2c';
@@ -2267,6 +2269,7 @@ PIEZAS.push(...PIEZAS_NEGOCIO);   // 4.3: los locales del negocio propio (cuesta
 PIEZAS.push(...PIEZAS_ALMACEN, ...PIEZAS_EXTERIORES);   // 4.2: el almacenaje con tope y la huerta, la granja y los exteriores
 PIEZAS.push(...PIEZAS_AMPLIAR);   // 4.2: el gran hogar, la pared de piedra y el techo de teja (ver planos-ampliar.js)
 PIEZAS.push(...PIEZAS_DEFENSAS_49);   // 4.9 defensas: la trampa de miel y el pasadizo de escape
+PIEZAS.push(...PIEZAS_TROFEOS);   // 4.10 base: el tablero de trofeos
 for (const pieza of PIEZAS) {
   PLANOS.push({
     ...pieza,

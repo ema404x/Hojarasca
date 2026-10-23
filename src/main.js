@@ -1950,7 +1950,7 @@ function piezasDeLaBase() {
     const max = vidaMaxObra(o.plano, o.datos.etapas);
     if (!max) continue;
     piezas.push({
-      id: o.plano.id, nombre: o.datos.nombre || o.plano.nombre,
+      id: o.plano.id, nombre: desafio.baseCrece?.nombreDe(o) || o.datos.nombre || o.plano.nombre,   // 4.10 base: «Pirca curtida · nivel 2»
       vida: Number.isFinite(o.datos.vida) ? o.datos.vida : max, max,
       dist: Math.hypot(o.datos.x - js.pos.x, o.datos.z - js.pos.z),
     });
@@ -1959,7 +1959,7 @@ function piezasDeLaBase() {
 }
 function dibujarBase() {
   const resumen = resumirBase(piezasDeLaBase());
-  $('base-contenido').innerHTML = htmlBase(resumen, { noche: progreso.desafio?.noches || 0, cristales: material('cristal') });
+  $('base-contenido').innerHTML = htmlBase(resumen, { noche: progreso.desafio?.noches || 0, cristales: material('cristal'), crece: desafio?.baseCrece?.resumen() });
   traducirPanel($('base-contenido'));
 }
 function abrirBase(origen) {
@@ -9793,6 +9793,7 @@ const ctxInteraccion = {
   avisoDesafioCerca: () => desafio.avisoCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
   usarDesafioCerca: () => !!desafio.usarCercaDe?.(jugador.estado.pos, distanciaAPuerta(jugador.estado.pos)),
   tablonAldeaCerca: () => !!desafio?.aldeaMundo?.cerca(jugador.estado.pos), avisoTablonAldea: () => desafio.aldeaMundo.avisoCerca(jugador.estado.pos), abrirTablonAldea: () => desafio.aldeaMundo.usarCerca(jugador.estado.pos),   // 4.9 dias
+  trofeosCerca: () => !!desafio?.baseCrece?.cerca(jugador.estado.pos), avisoTrofeos: () => desafio.baseCrece.avisoCerca(jugador.estado.pos), usarTrofeos: () => desafio.baseCrece.usarCerca(jugador.estado.pos),   // 4.10 base: el tablero de trofeos
   puertaCerca: () => puertas && puertas.cerca(jugador.estado.pos), accionarPuerta: (p) => puertas.accionar(p),
   rastro: () => rastro, mirandoAlPerro: () => mirandoAlPerro(jugador.estado, perro.est.pos),
   dejarRastro: () => dejarRastro('Dejaste el rastro', `${elPerro(true)} vuelve con vos`),

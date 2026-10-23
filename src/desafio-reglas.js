@@ -27,6 +27,8 @@ import { aldeaNueva as aldeaDelDesafio, sanearAldea as sanearAldeaDelDesafio } f
 import { mielDelAlba, RECETAS_TRAMPAS } from './desafio-trampas.js';
 import { RECETAS_FAROL } from './desafio-farol.js';
 import { RECETAS_BRASAS, PALA } from './desafio-brasas.js';
+// 4.10 base: lo que crece con las noches (trofeos, perro, bonos de la base)
+import { creceNuevo, sanearCrece } from './desafio-crece.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -446,7 +448,9 @@ export function desafioNuevo() {
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
     evolucion: evolucionNueva(), puestos: puestosNuevos(),
     // 4.9 dias: la aldea de día: cuánto ayuda cada vecino y qué pidió (ver desafio-aldea.js)
-    aldea: aldeaDelDesafio() };
+    aldea: aldeaDelDesafio(),
+    // 4.10 base: los trofeos ganados, las noches del perro y los bonos de la base (ver desafio-crece.js)
+    crece: creceNuevo() };
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -549,6 +553,7 @@ export function sanearDesafio(d) {
     evolucion: sanearEvolucion(x.evolucion),
     puestos: sanearPuestos(x.puestos),
     aldea: sanearAldeaDelDesafio(x.aldea),   // 4.9 dias: una partida vieja carga con todos los vecinos en 0
+    crece: sanearCrece(x.crece),   // 4.10 base: una partida vieja carga sin trofeos, con el perro sin curtir y sin bonos
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),

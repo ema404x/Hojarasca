@@ -46,6 +46,9 @@ import { conSocial } from './vecindad-social.js';
 import { sanearMecanicas, mecanicasNuevas } from './aldea-mecanicas.js';
 // 3.7.0: la vida de la aldea (calendario, visitantes, mascota, apodo, familia, cartas) y su ritmo
 import { sanearVidaAldea, vidaNueva, sanearRitmo } from './aldea-vida.js';
+// 4.10 base: la experiencia de las defensas que se curten y los trofeos del tablero
+import { sanearCurtido } from './desafio-mejoras-base.js';
+import { IDS_TROFEOS } from './desafio-trofeos.js';
 // 3.7.1: el amor en la aldea (y el ajuste para apagarlo)
 import { sanearAmor, amorNuevo, sanearAjusteRomance } from './amor.js';
 // 3.7.2: la cocina en pasos (el recetario, los trueques del día con los vecinos, las estaciones móviles)
@@ -477,6 +480,9 @@ function sanearObras(v) {
     if (d.pagadas !== undefined) d.pagadas = Math.max(0, Math.min(8, Math.floor(finito(d.pagadas, 0))));   // 3.8.8: las etapas de la casa ya pagadas (propiedad.js)
     // 3.8.6: el nombre que le pusiste (pedirNombre): un texto; otra cosa (una partida rota) rompía el mapa
     if (d.nombre !== undefined) { if (typeof d.nombre === 'string' && d.nombre.trim()) d.nombre = d.nombre.trim().slice(0, 28); else delete d.nombre; }
+    // 4.10 base: la experiencia de una defensa que se curte y los trofeos colgados del tablero (una partida vieja no los trae)
+    if (d.curt !== undefined) { const c = sanearCurtido(d.curt); if (c) d.curt = c; else delete d.curt; }
+    if (d.colgados !== undefined) { if (Array.isArray(d.colgados)) d.colgados = d.colgados.filter((id) => IDS_TROFEOS.includes(id)); else delete d.colgados; }
     // 4.2: lo guardado en un almacén con tope (el nivel y las cosas que guarda); una obra de antes no lo trae y queda como estaba
     if (d.almacen !== undefined) { if (esAlmacen(d.plano) && d.almacen && typeof d.almacen === 'object' && !Array.isArray(d.almacen)) d.almacen = sanearAlmacen(d.almacen, d.plano); else delete d.almacen; }
     // 3.7.2: lo que se está cocinando en la obra (la parrilla, el horno, la cocina a leña)

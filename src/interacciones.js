@@ -96,6 +96,8 @@ export const INTERACCIONES = [
   // 4.9 dias: en el Desafío, el tablón de la aldea junto a la base: los pedidos de los vecinos y la noche que viene (a pie; gana
   // sobre lo que mires: a menos de 3,6 m del tablón, el árbol o el helecho de atrás no le sacan la E)
   { id: 'aldea-tablon', cuando: (c) => c.desafio && libre(c.js) && !c.js.montado && c.tablonAldeaCerca(), aviso: (c) => c.avisoTablonAldea(), hacer: (c) => c.abrirTablonAldea() },
+  // 4.10 base: en el Desafío, el tablero de trofeos de la base: ver los que tenés y lo que da cada uno (a pie, como el tablón)
+  { id: 'trofeos', cuando: (c) => c.desafio && libre(c.js) && !c.js.montado && c.trofeosCerca(), aviso: (c) => c.avisoTrofeos(), hacer: (c) => c.usarTrofeos() },
   // 3.6 (mecánicas): lo de cada lugar de la aldea
   { id: 'mecanica', ...delModulo('mecanica', aMano) },
   // 3.7.2 (granja): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales
