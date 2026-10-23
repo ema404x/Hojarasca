@@ -53,6 +53,8 @@ import { crearMapaMundo } from './desafio-mapa-mundo.js';
 import { crearPuestosMundo } from './desafio-puestos-mundo.js';
 import { crearEvolucionMundo } from './desafio-evolucion-mundo.js';
 import { claseDeProyectil } from './desafio-evolucion.js';
+// 4.8 ataques: por dónde entran, las tácticas, el curandero y el enjambre
+import { crearAtaques } from './desafio-ataques.js';
 
 const VERDE_OJO = '#a6ff6e';
 const MAX_ALIENS = 24;
@@ -765,6 +767,25 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   function levantarse() { caido = false; D().salud = SALUD_MAX; destello = 0; }
 
+  // 4.8 ataques: el lado por donde entran cada noche, las tácticas en grupo, el curandero y el enjambre
+  // (ver desafio-ataques.js). El lado de la noche queda en `D().ladoNoche` = { id, x, z, rumbo, noche, otro }.
+  const ataques = crearAtaques({
+    T, D, aliens, limite: LIMITE,
+    base: () => baseMapa() || T.lugares.refugio,
+    libre: (x, z) => !T.agua(x, z) && !obraEnPunto(x, T.altura(x, z) + 0.5, z),
+    blancoNoche: () => { const resc = D().rescate; return (resc && !resc.caido && T.lugares[resc.lugar]) || blancoVarada() || asedioMundo.blancoNoche() || null; },
+    esFinal: () => esNocheFinal(),
+    nota: (t, s, n) => ctx.nota(t, s, n),
+    jugador: () => ctx.jugador(),
+    defensas: () => obras.obras.filter((o) => completa(o) && o.plano.categoria === 'defensa').map((o) => ({ x: o.datos.x, z: o.datos.z, o })),
+    obraViva: (o) => obras.obras.includes(o),
+    porBajar: () => estadoNave.porBajar.length,
+    polvo: (p) => { efectos.polvo(p, 8, '#6b5a44'); },
+    risa: (p, a) => { S.chillido(p, a.tipo, !!a.m.viejo); a.m.chillar(); },
+    destelloCura: (p, alto) => { _v.set(p.x, p.y + alto * 0.6, p.z); efectos.destello(_v, 0.55, '#b8ff8a'); efectos.polvo(_v, 3, '#b8e090'); },
+    efectoCurandero: (p, c) => { _v.set(p.x, p.y + 0.6, p.z); efectos.destello(_v, 0.8, '#e8ffa8'); S.acecho(p, 'curandero'); c.m.chillar(); },
+  });
+
   // ---------------- oleadas
   // 3.8.6: los refuerzos de madrugada van en la partida (`refuerzoNoche`): con la marca en memoria, guardar y abrir
   // después de los refuerzos los mandaba otra vez (y apenas volvían los que quedaban, si eran menos de cuatro)
@@ -778,6 +799,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   let rescateForzado = null;   // para las pruebas: la próxima noche es de rescate en este lugar
   function puntoDeAterrizaje(js, azar = Math.random) {
+    // 4.8 ataques: por el lado de la noche (el río, el monte o el camino); null si esta noche el blanco está en otro lado
+    { const e = ataques.puntoDeEntrada(js, D().oleadas); if (e) return e; }
     // 2.1: una noche de rescate, la nave baja cerca del lugar del vecino
     // 2.3: y la de la trochita varada, cerca del tren
     // 3.8.3: un lugar que ya cayó no es blanco (como en actualizarAlien): los refuerzos bajaban al lado de las ruinas, lejos de vos
@@ -802,6 +825,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const js = ctx.jugador().estado;
     const d = D();
     if (nuevaNoche) d.oleadas++;
+    tipos = ataques.alEmpezar(tipos, nuevaNoche, retomada, puntoFijo);   // 4.8 ataques: los señuelos bajan primero
     // 2.3: con código de partida, la nave baja siempre del mismo lado esa noche
     const p = puntoFijo || puntoDeAterrizaje(js, azarDe(d.semilla, d.oleadas, nuevaNoche ? 'aterrizaje' : retomada ? 'retomada' : 'refuerzo'));
     estadoNave.x = p.x; estadoNave.z = p.z; estadoNave.y = T.altura(p.x, p.z) + 36;
@@ -812,7 +836,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     nave.g.visible = !puntoFijo;
     if (puntoFijo) return;
     S.sirena();
-    const lado = rumboTexto(js.pos, p).replace(/^al /, 'el ');
+    const lado = (ataques.nombreDelLado(d.oleadas) || rumboTexto(js.pos, p)).replace(/^al /, 'el ');   // 4.8 ataques: «desde el monte»
     const esp = d.especial ? ` · ${ESPECIALES[d.especial].nombre}` : '';
     const conJefe = tipos.includes('jefe') ? ' · ¡viene el mandamás!' : '';
     if (nuevaNoche) ctx.nota(`¡Salen duendes desde ${lado}!`, `Noche ${d.oleadas}${esp} · ${tipos.length} duendes${conJefe}`, true);
@@ -822,15 +846,17 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // 2.6.1: un for en vez de find: se llama en cada cuadro (la barra del jefe)
   const jefeVivo = () => { for (const a of aliens) if (a.def.jefe && a.estado !== 'morir' && a.estado !== 'irse') return a; return null; };
   function bajarAlien(tipo) {
+    const bajada = ataques.consumirBajada();   // 4.8 ataques: si viene de la cola de la nave, ¿es señuelo?
     const def = TIPOS_ALIEN[tipo] || TIPOS_ALIEN.rastreador;
     if (def.jefe && jefeVivo()) return null;                  // nunca dos jefes a la vez
     // con la base llena el jefe espera su turno en vez de perderse
-    if (aliens.length >= MAX_ALIENS) { if (def.jefe) estadoNave.porBajar.push(tipo); return null; }
+    if (ataques.lleno(def, MAX_ALIENS)) { if (def.jefe) estadoNave.porBajar.push(tipo); return null; }   // 4.8 ataques: el enjambre tiene su cupo
     const a = tomarAlien(tipo);
     const mult = D().sinFin ? multiplicadorSinFin(D().oleadas) : multiplicadorNoche(D().oleadas);   // 3.0
     const mv = multiplicadorVuelta(D().vuelta);
     const ang = Math.random() * Math.PI * 2, r = Math.random() * 3.5;
-    const x = estadoNave.x + Math.cos(ang) * r, z = estadoNave.z + Math.sin(ang) * r;
+    let x = estadoNave.x + Math.cos(ang) * r, z = estadoNave.z + Math.sin(ang) * r;
+    { const sal = ataques.salida(bajada, tipo, estadoNave); if (sal) { x = sal.x; z = sal.z; } }   // 4.8 ataques: el señuelo por el otro lado, el enjambre en montón
     a.m.g.position.set(x, T.altura(x, z) + 16, z);
     a.m.g.rotation.set(0, 0, 0);
     a.m.g.scale.setScalar(1);
@@ -855,6 +881,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 2.6.1: el volador reciclado seguía yendo a la antorcha (o subiendo) de su vida anterior
     a.subiendo = 0; a.blanco = null; a.tBlanco = 0; a.golpeT = 0; a.reflejo = 0; a.enHaz = false;
     a.resiste = null; a.nivelResiste = 0; a.puesto = null;   // 3.0: la adaptación y el puesto que cuida
+    ataques.limpiar(a);   // 4.8 ataques: el señuelo, el rodeo y el curandero de la vida anterior
     const dd = D();
     if (!a.def.jefe && siguenDespues(dd.despues) && Math.random() < probabilidadMutado(dd.despues.noches)) {
       a.mutado = true; a.m.mutar(true);
@@ -877,6 +904,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.bajoTierra = false; a.tCavar = 0.5 + Math.random(); a.tTierra = 0; a.congeladoT = 0; a.derribadoT = 0;
     a.variante = null; a.tLlamado = LLAMADO.cada * 0.6; a.llamados = 0; a.tRoca = 2; a.m.malla.visible = true;
     aliens.push(a);
+    ataques.alNacer(a, bajada);   // 4.8 ataques
     if (a.def.jefe) {
       a.variante = varianteJefe(D().oleadas);
       S.jefe(a.m.g.position);
@@ -1036,6 +1064,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 3.0: en la corrida sin fin, las especiales siguen después de la veinte (desafio-supervivencia.js)
     d.especial = esNocheFinal() ? null : d.sinFin ? especialSinFin(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior)
       : nocheEspecial(d.oleadas + 1, azarEspecial(d, p.meteo, d.oleadas + 1), d.especialAnterior);
+    ataques.decidir(d.oleadas + 1);   // 4.8 ataques: por qué lado (río, monte o camino) entran esta noche
   }
   function revisarHorario() {
     const p = progreso(), d = D();
@@ -2422,6 +2451,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 3.8.0: el que robó sale corriendo para el otro lado, riéndose; al rato lo suelta y vuelve
     // (3.8.4: el tiempo de huida se descuenta al principio de actualizarAlien, en cualquier estado)
     if (a.robo && a.estado === 'avanzar') { rumboObj = Math.atan2(-dx, -dz); velObj = def.vel * ROBO.velHuida; ataca = false; }
+    // 4.8 ataques: el señuelo va a lo suyo, el que rodea sigue su vuelta, el curandero se queda atrás y el enjambre zumba
+    if (a.estado === 'avanzar' && (a.senuelo || a.rodeoT > 0 || def.cura || def.enjambre)) {
+      const g48 = ataques.guiar(a, dt, js, dist, rumboObj);
+      if (g48) { rumboObj = g48.rumbo; velObj *= g48.mult; }
+    }
     // 2.5: perdido en el humo, camina para cualquier lado
     if (rumboConfuso !== null) rumboObj = rumboConfuso;
     // desvío temporal para rodear árboles y rocas
@@ -2468,7 +2502,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
           a.atasco = 0;
           const o = obraBloqueando(a);
           if (o && intentarSaltar(a, o)) return;
-          if (o) { a.estado = 'romper'; a.obra = o; a.cd = Math.min(a.cd, 0.4); }
+          if (o && ataques.rodear(a, o)) { /* 4.8 ataques: da la vuelta por el costado en vez de chocarla */ }
+          else if (o) { a.estado = 'romper'; a.obra = o; a.cd = Math.min(a.cd, 0.4); }
           else if (a.desvioT <= 0) { a.desvio = (Math.random() < 0.5 ? -1 : 1) * (0.9 + Math.random() * 0.6); a.desvioT = 1.2 + Math.random(); }
         }
       }
@@ -2728,7 +2763,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (e.t > 4) { e.fase = 'bajando'; e.t = 0; e.ritmo = 0; }
     } else if (e.fase === 'bajando') {
       e.ritmo -= dt;
-      if (e.ritmo <= 0 && e.porBajar.length) { bajarAlien(e.porBajar.shift()); e.ritmo = 0.55; }
+      if (e.ritmo <= 0 && e.porBajar.length) {   // 4.8 ataques: la cola lleva la marca de los señuelos (y el grupo principal espera un rato)
+        const item = e.porBajar.shift();
+        ataques.marcarBajada(item); bajarAlien(ataques.tipoDe(item));
+        e.ritmo = ataques.ritmoTras(item, e.porBajar[0]);
+      }
       if (!e.porBajar.length && e.t > 1) { e.fase = 'vigilando'; e.t = 0; }
     } else if (e.fase === 'yendo') {
       alto = e.y + (e.t / 5) ** 2 * 300;
@@ -3440,6 +3479,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 4.0.3 (F2): con el modo foto la hora es la del deslizador: no dispara oleadas ni amaneceres (`fotoActiva` lo pone main.js)
     if (!caido && !naveMundo.adentro && !mundo.fotoActiva) revisarHorario();   // 3.5.1: con el día de reloj real la hora corre adentro: la noche no arranca con vos arriba
     actualizarNave(dt);
+    ataques.actualizar(dt, js);   // 4.8 ataques: el centro del grupo, los señuelos y los curanderos
     actualizarDefensas(dt);
     defensas.actualizar(dt, js, mundo.noche);
     for (let i = aliens.length - 1; i >= 0; i--) {
@@ -3579,7 +3619,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     },
     objetivoPerro: (js, perroPos) => aliados.objetivoPerro(js, perroPos),
     // 2.0
-    alertaPerro: () => aliados.alertaPerro,
+    alertaPerro: () => aliados.alertaPerro || ataques.alertaDeLaTarde(progreso().horas, HORA_ATAQUE, performance.now()),   // 4.8 ataques: a la tarde, el perro mira hacia el lado por donde van a entrar
     get bestiario() { return D().bestiario || {}; },
     get despues() { return D().despues; },
     empezarDespues: () => {
@@ -3626,6 +3666,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     puestosMundo: puestos, evolucion,
     get adaptaciones() { return evolucion.texto(); },
     logros, eventos, defensas, aliados, efectos,
+    get ataques() { return ataques; },   // 4.8 ataques: el lado de la noche (`lado`), las tácticas y los nuevos duendes (pruebas)
     get nodrizaActiva() { return eventos.nodrizaActiva; },
     // 3.0: el asedio final y la nave por dentro
     get asedio() { return asedioMundo; },

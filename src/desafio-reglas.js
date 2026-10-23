@@ -14,6 +14,10 @@ import { sanearMapaGuardado } from './desafio-mapa.js';
 import { ARSENAL, MEJORAS_ARSENAL, RECETAS_ARSENAL, CATEGORIAS_ARSENAL, MUNICIONES, TOPE_MUNICION, FLECHAS } from './desafio-arsenal.js';
 import { evolucionNueva, sanearEvolucion } from './desafio-evolucion.js';
 import { puestosNuevos, sanearPuestos } from './desafio-puestos.js';
+// 4.8 ataques:
+import { CURANDERO, ENJAMBRE, curanderosEnLaNoche, enjambreEnLaNoche } from './desafio-duendes-nuevos.js';
+// 4.8 ataques:
+import { sanearLadoNoche } from './desafio-lados.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -62,6 +66,9 @@ export const TIPOS_ALIEN = {
   excavador: { ...EXCAVADOR },
   // 2.3: el que viene por el aire y apaga las antorchas (ver `desafio-cielo.js`)
   volador: { ...VOLADOR },
+  // 4.8 ataques: el que cura desde atrás y el montón de duendecitos (ver `desafio-duendes-nuevos.js`)
+  curandero: { ...CURANDERO },
+  enjambre: { ...ENJAMBRE },
 };
 
 // 3.8.0: los invasores son duendes, y los duendes son chiquitos (lo decidió el usuario): de 60 a 80 cm
@@ -153,7 +160,22 @@ export function composicionOleada(n, claveDificultad = 'normal', vuelta = 0) {
     else if (tiradores > 1) { tiradores--; voladores++; }
     else if (saltadores > 1) { saltadores--; voladores++; }
   }
-  const rastreadores = Math.max(1, comunes - brutos - tiradores - saltadores - escupidores - excavadores - voladores);
+  // 4.8 ataques: el curandero (desde la noche 4) y el enjambre (una noche de cada tres desde la 6), nunca con el
+  // jefe. El curandero ocupa un lugar de los comunes (sale de los rastreadores). El enjambre va aparte, encima:
+  // tiene su propio cupo (no cuenta para el techo de la noche) porque son muchos, chiquitos y de una sola
+  // pegada. Los dos van al final de la lista (antes del jefe): las noches especiales y los refuerzos, que
+  // recortan la cola, los dejan afuera antes que a los de siempre.
+  const curanderos = curanderosEnLaNoche(noche, jefes > 0);
+  const enjambre = enjambreEnLaNoche(noche, jefes > 0, dificultad(claveDificultad).cantidad);
+  let hueco = curanderos;
+  let rastreadores = Math.max(1, comunes - brutos - tiradores - saltadores - escupidores - excavadores - voladores);
+  // (el lugar sale primero de los rastreadores, sin dejarlos en menos de uno, y si no alcanza, de los tiradores
+  // y los saltadores, también hasta uno: los pesados no se tocan. Lo que no alcanza a pagarse queda de más)
+  const sobran = Math.max(0, comunes - brutos - tiradores - saltadores - escupidores - excavadores - voladores - 1);
+  const deRastreadores = Math.min(hueco, sobran); rastreadores -= deRastreadores; hueco -= deRastreadores;
+  for (let i = 0; hueco > 0 && i < 12; i++) {
+    if (tiradores > 1) { tiradores--; hueco--; } else if (saltadores > 1) { saltadores--; hueco--; } else break;
+  }
   const lista = [];
   for (let i = 0; i < rastreadores; i++) lista.push('rastreador');
   for (let i = 0; i < brutos; i++) lista.push('bruto');
@@ -162,6 +184,8 @@ export function composicionOleada(n, claveDificultad = 'normal', vuelta = 0) {
   for (let i = 0; i < escupidores; i++) lista.push('escupidor');
   for (let i = 0; i < excavadores; i++) lista.push('excavador');
   for (let i = 0; i < voladores; i++) lista.push('volador');
+  for (let i = 0; i < curanderos; i++) lista.push('curandero');   // 4.8 ataques
+  for (let i = 0; i < enjambre; i++) lista.push('enjambre');   // 4.8 ataques
   for (let i = 0; i < jefes; i++) lista.push('jefe');
   return lista;
 }
@@ -475,6 +499,7 @@ export function sanearDesafio(d) {
     capullos: sanearCapullos(x.capullos),
     varada: sanearVarada(x.varada),
     semilla: normalizarCodigo(x.semilla),
+    ladoNoche: sanearLadoNoche(x.ladoNoche),   // 4.8 ataques: por dónde entran los duendes esta noche
     // 3.0: la corrida sin fin (ver desafio-supervivencia.js) y el mapa de la semilla (desafio-mapa.js)
     // 3.8.4: la corrida guarda su dificultad (se fija al entrar y no cambia a mitad de corrida)
     sinFin: x.sinFin && typeof x.sinFin === 'object' && !Array.isArray(x.sinFin)

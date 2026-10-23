@@ -14,7 +14,8 @@ const cuenta = (lista, tipo) => lista.filter((t) => t === tipo).length;
 
 // ---------------------------------------------------------------- los ocho tipos
 // 2.1: el excavador es el séptimo (ver `desafio-valle.js`); 2.3: el volador, el octavo
-assert.equal(Object.keys(TIPOS_ALIEN).length, 8, 'tienen que ser ocho tipos de invasor');
+// 4.8 ataques: y el curandero y el enjambre (ver `desafio-duendes-nuevos.js`): diez
+assert.equal(Object.keys(TIPOS_ALIEN).length, 10, 'tienen que ser diez tipos de invasor');
 assert.ok(TIPOS_ALIEN.excavador?.excava, 'el excavador cava');
 assert.ok(TIPOS_ALIEN.volador?.vuela, 'el volador vuela');
 for (const [id, d] of Object.entries(TIPOS_ALIEN)) {
@@ -77,8 +78,10 @@ let anterior = 0;
 for (let n = 1; n <= 20; n++) {
   const o = composicionOleada(n);
   assert.ok(o.every((t) => TIPOS_ALIEN[t]), `noche ${n} con un tipo desconocido`);
-  assert.ok(o.length >= anterior && o.length <= 18, `noche ${n}: la oleada se sale de rango (${o.length})`);
-  anterior = o.length;
+  // 4.8 ataques: el enjambre tiene su cupo aparte (no cuenta para el techo)
+  const sinEnj = o.filter((t) => t !== 'enjambre').length;
+  assert.ok(sinEnj >= anterior && sinEnj <= 18, `noche ${n}: la oleada se sale de rango (${sinEnj})`);
+  anterior = sinEnj;
 }
 for (let n = 1; n <= 2; n++) assert.equal(cuenta(composicionOleada(n), 'saltador'), 0, 'los saltadores no vienen las dos primeras noches');
 for (let n = 1; n <= 5; n++) assert.equal(cuenta(composicionOleada(n), 'escupidor'), 0, 'los escupidores no vienen antes de la noche 6');

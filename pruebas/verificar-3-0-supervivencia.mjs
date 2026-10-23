@@ -182,7 +182,8 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
     const m = S.multiplicadorSinFin(n);
     assert.ok(Number.isFinite(m) && m >= 1, `noche ${n}: multiplicador ${m}`);
     assert.ok(m <= S.techoSinFin() + 1e-9, `noche ${n}: con techo (${m})`);
-    assert.ok(l.length >= 2 && l.length <= S.SIN_FIN.topeInvasores, `noche ${n} (${dif}): ${l.length} invasores`);
+    // 4.8 ataques: el tope es el de los invasores comunes; el enjambre tiene su cupo aparte
+    assert.ok(l.length >= 2 && l.filter((t) => t !== 'enjambre').length <= S.SIN_FIN.topeInvasores, `noche ${n} (${dif}): ${l.length} invasores`);
     assert.ok(l.every((t) => TIPOS.has(t)), `noche ${n}: sólo invasores que existen`);
     assert.ok(l.filter((t) => t === 'jefe').length <= 1, 'nunca dos jefes');
     if (l.includes('jefe')) assert.equal(l[l.length - 1], 'jefe', 'el jefe va último');
