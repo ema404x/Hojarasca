@@ -349,7 +349,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
       f.llama.scale.set(1 + Math.sin(t) * 0.07, 1 + Math.sin(t * 1.7 + 1) * 0.18, 1 + Math.cos(t * 1.3) * 0.07);
       f.fina.scale.y = 1 + Math.sin(t * 2.3) * 0.22;
       f.brillo.visible = noche > 0.2;   // de día, el brillo del suelo sería una mancha
-      f.brillo.material.opacity = (0.5 + Math.sin(t * 0.9) * 0.06) * Math.min(1, noche);
+      f.brillo.material.opacity = (0.38 + Math.sin(t * 0.9) * 0.05) * Math.min(1, noche);
     }
   }
 

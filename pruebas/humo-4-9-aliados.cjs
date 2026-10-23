@@ -129,7 +129,10 @@ app.whenReady().then(async () => {
       for (const a of D.aliens) { a.estado = 'irse'; a.t = 9; } D.actualizar(0.05, { noche: 1, dtReal: 0.05 });
       const sx = f.x - Math.sin(ang) * 13, sz = f.z - Math.cos(ang) * 13;
       const a = D.invocar('rastreador', sx, sz); a.vida = a.vidaMax = 9999; a.estado = 'avanzar'; a.m.vestir(${viejo}, 1);
-      H.jugador.estado.pos.set(f.x - Math.sin(ang) * 0.8, H.T.altura(f.x, f.z) + 0.05, f.z - Math.cos(ang) * 0.8);
+      const jx = f.x - Math.sin(ang) * 0.8, jz = f.z - Math.cos(ang) * 0.8, jy = H.T.altura(jx, jz);
+      H.jugador.estado.pos.set(jx, jy + 0.05, jz);
+      // mirando para el otro lado (si lo mirás, el rastreador rodea o se esconde en vez de venir: eso se juega al azar)
+      H.camara.position.set(jx, jy + 1.6, jz); H.camara.lookAt(jx + Math.sin(ang) * 10, jy + 1.6, jz + Math.cos(ang) * 10); H.camara.updateMatrixWorld(true);
       let min = 1e9;
       for (let i = 0; i < 500; i++) { H.progreso.desafio.salud = 100; D.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.gente.actualizar(0.05, H.jugador.estado, H.camara, null, 0); const p = a.m.g.position; min = Math.min(min, Math.hypot(p.x - f.x, p.z - f.z)); }
       const r = { min, radio: f.radio, viejo: !!a.m.viejo };

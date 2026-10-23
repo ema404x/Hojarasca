@@ -20,7 +20,7 @@ export function mallaMartillo() {
 // Todo en aditivo y con el color en los vértices: la llama se apaga hacia la punta y el brillo del suelo se apaga hacia el borde (sin bordes
 // duros: en aditivo, el negro no se ve).
 const aditivo = (color, opacity) => new THREE.MeshBasicMaterial({ color, vertexColors: true, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-const matLlama = aditivo('#ffffff', 0.95), matLlamaFina = aditivo('#fff2b8', 0.95), matBrillo = aditivo('#ffffff', 0.4);
+const matLlama = aditivo('#ffffff', 0.95), matLlamaFina = aditivo('#fff2b8', 0.95), matBrillo = aditivo('#ffffff', 0.38);
 const matVidrio = new THREE.MeshBasicMaterial({ color: '#ffd27a' });
 // una gota de fuego: panzona abajo, afinándose hacia arriba
 function gota(r, alto, segmentos) {
@@ -50,10 +50,10 @@ function charco(radio) {
     }
   }
   col[0] = 1; col[1] = 0.62; col[2] = 0.25;
-  for (let j = 0; j < PUNTOS; j++) idx.push(0, polar(1, j + 1), polar(1, j));
+  for (let j = 0; j < PUNTOS; j++) idx.push(0, polar(1, j), polar(1, j + 1));   // (de frente hacia arriba)
   for (let k = 1; k < ANILLOS; k++) for (let j = 0; j < PUNTOS; j++) {
     const a = polar(k, j), b = polar(k, j + 1), c = polar(k + 1, j), d = polar(k + 1, j + 1);
-    idx.push(a, b, d, a, d, c);
+    idx.push(a, d, b, a, c, d);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
