@@ -78,3 +78,14 @@ paquetes 1a y 1b (`PLAN_MAPA_VALOR.md`).
 - Los sistemas de la 4.2 a la 4.4 (pesos, negocios, depósitos, pico) son sólo del Relax; en el Desafío no existen, salvo el pico (arranca con hacha y pico) y el acopio con tope de 40 (decisión a revisar: `CAMBIOS_4_4_2_CONSTRUCCION.md`, D2).
 - Nunca se jugó «el Desafío con lo nuevo»: antes de arrancar, jugar varias noches con la versión de ese momento y anotar.
 - Medir fps en la 4600G, sobre todo la noche final, la subida y las noches con enjambre.
+
+---
+
+## Pedido del 23-10-2026: sacar lo que queda de naves espaciales (se hace DESPUÉS de juntar la 4.8.0)
+El usuario ve **naves espaciales en el cielo de noche** del Desafío, y dice que ya no deberían estar (desde la 3.8.0 el Desafío es «La noche de los duendes»; la nave nodriza pasó a ser el Coihue Viejo). Orden: **sacarlas**. Todavía no se sabe qué es exactamente lo que ve: lo primero es **encontrarlo con capturas** (noches 1, 5 con jefe, 12 y la final; calidad media y alta; ventana visible).
+Candidatos leídos en el código (no vistos en el juego):
+- `src/desafio-puestos-mundo.js`: puestos de los invasores con «vaina», «generador» y un **haz de luz** (`matHaz`, opacidad pulsante) que puede verse como un rayo al cielo.
+- `src/desafio-eventos.js` (líneas ~24–51): **casco metálico gris** (`matCasco`, vigas y arcos) de la ruina de los **restos** para explorar (`desafio-valle.js` §9: «placas de descarga», invasores dormidos, premio al fondo).
+- `src/desafio-asedio.js`: `alturaNave: 52` (la nodriza asentada, hoy el Coihue plantado) y los nombres internos `nave`, `nodriza`, `naveMundo`, `desafio-nave*.js` (internos; el texto visible ya dice Coihue).
+- Textos visibles que quedan: `src/trucos-textos.js` (`planosDesafio`: «los planos se ganan de los restos de las naves»); los «restos de naves» como fuente de planos (`PLANOS_ALIEN` en `desafio-reglas.js`, el resumen del amanecer en `desafio.js`).
+Plan: (1) relevamiento visual y de textos con capturas; (2) cambiar el aspecto: las ruinas de los restos pasan a ser ruinas del bosque (piedra, raíces, hongos de luz), los puestos de los invasores a nidos o madrigueras con esporas en vez de haz; textos «restos de las naves» → «las ruinas del bosque»; (3) prueba que busque palabras y formas de nave en lo visible; (4) no cambiar la mecánica ni el equilibrio. Versión 4.8.1.
