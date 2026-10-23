@@ -56,6 +56,7 @@ export function crearMetaJuego(ctx) {
     const gastada = gastarSemillas(leer(), v.costo);
     if (!gastada) return false;
     guardar(gastada);
+    ctx.quitarBonos?.(d);   // 4.10.1: si el arranque se repite (se cerró antes de entrar), los bonos de las ventajas no se suman dos veces
     d.meta = metaDePartida({ modo: modoFijo || eleccion.modo, ventajas: v.ventajas, reglas: v.reglas });
     fijarPartidaMeta(d.meta);
     aplicarInicio();

@@ -749,4 +749,20 @@ function noche(base, p, n, golpear = []) {
   ok(!/(santo|santa|virgen|dios|cruz|angel|ángel|demonio|diablo|gauchito|difunta|pachamama)/i.test(visibles), 'nada religioso ni figuras sagradas del folclore real');
 }
 
+// ================================================================== 8. 4.10.1: LA PARTIDA CORTA NO REGALA LA PIÑA NI LA CORONA
+{
+  const w = mundo();
+  const p = partida();
+  const base = M.desafio_base_juego.crearBaseCrece(w.s, efectosFalsos(), { pulsar() {}, bus: {} }, p.api);
+  p.d.meta = { modo: 'corta' }; p.d.victoria = true; p.d.jefeCaido = 5;
+  base.actualizar(1);
+  ok('casco' in p.d.crece.trofeos && !('pina' in p.d.crece.trofeos) && !('corona' in p.d.crece.trofeos), 'ganar la corta no da la piña ni la corona (no hubo Coihue ni Rey)');
+  // la campaña ganada sí
+  const w2 = mundo(), p2 = partida();
+  const base2 = M.desafio_base_juego.crearBaseCrece(w2.s, efectosFalsos(), { pulsar() {}, bus: {} }, p2.api);
+  p2.d.meta = { modo: 'normal' }; p2.d.victoria = true;
+  base2.actualizar(1);
+  ok('pina' in p2.d.crece.trofeos && 'corona' in p2.d.crece.trofeos, 'ganar la campaña sigue dando la piña y la corona');
+}
+
 console.log(`verificar-4-10-base: ${pasos} comprobaciones, todo en verde`);

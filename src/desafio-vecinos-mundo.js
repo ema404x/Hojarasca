@@ -167,13 +167,13 @@ export function crearVecinosMundo(T, escena, api, piezas) {
   function actualizarAnselmo(c, dt, js, orden) {
     const npc = c.npc, num = ANSELMO[est.niveles.anselmo];
     if (!num) return;
+    // 4.10.1: si la obra que arreglaba ya cayó, la suelta enseguida (antes seguía martillando una obra que ya no estaba)
+    if (c.obra && api.obraViva && !api.obraViva(c.obra)) { c.obra = null; c.llegarT = 0; c.tBuscar = 0; }
     c.tBuscar -= dt;
     if (c.evitarT > 0) { c.evitarT -= dt; if (c.evitarT <= 0) c.evitar = null; }   // 4.10.1
     if (c.tBuscar <= 0) {
       c.tBuscar = orden === 'seguime' ? 0.5 : 1;
       const centro = orden === 'seguime' ? js.pos : puestoDeAliado('anselmo');
-      // 4.10.1: si la obra que arreglaba ya cayó, la suelta (antes seguía martillando una obra que ya no estaba)
-      if (c.obra && api.obraViva && !api.obraViva(c.obra)) { c.obra = null; c.llegarT = 0; }
       // 4.10.1: y si no llega a la que eligió (una pared de por medio: camina derecho, sin ruta), la deja de lado un rato
       const ramon = api.obraDeRamon?.() || null;
       // sigue con la que empezó hasta dejarla entera; después va a la más rota que quede (si no, con dos igual de rotas iba y venía)

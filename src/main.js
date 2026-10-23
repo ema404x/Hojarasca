@@ -251,7 +251,7 @@ import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 // 4.10 partidas: lo de entre partidas (semillas del Coihue, ventajas, reglas, modos y finales; ver desafio-meta.js)
 import { fijarPartidaMeta, efectosPartida } from './desafio-reglas.js';
 import { crearMetaJuego } from './desafio-meta-juego.js';
-import { sumarBono, saludMaximaConBonos } from './desafio-bonos.js';
+import { sumarBono, quitarBonosDeOrigen, saludMaximaConBonos } from './desafio-bonos.js';
 import { crearPantallaNuevaPartida, dibujarHojaPartidas } from './desafio-meta-pantalla.js';
 import { MODOS as MODOS_META, modoDe as modoMetaDe, textoSemillas, FACTOR_NOCHE_LARGA, resumenFinales, textoMult } from './desafio-meta.js';
 // 4.10 guardian: los estudios del bestiario
@@ -340,7 +340,8 @@ const metaJuego = crearMetaJuego({
   almacen: () => localStorage, progreso: () => progreso, desafio: () => desafio, esSinFin: () => esSinFin,
   sumarMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); }, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
   posJugador: () => jugador?.estado?.pos || null,
-  sumarBono,   // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
+  sumarBono, quitarBonos: (d) => quitarBonosDeOrigen(d, 'ventaja'),   // 4.10.1: iniciar de nuevo no suma dos veces los bonos de las ventajas
+  // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
   alBonos: (d) => { d.salud = saludMaximaConBonos(SALUD_MAX, d); },   // con más (o menos) salud máxima, se arranca entero
 });
 if (esDesafio) metaJuego.alCargar();   // 4.10.1: una campaña de la 4.9 sin `meta` recibe la suya; las partidas ganan su número

@@ -469,7 +469,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const campana = crearCampana({
     campanas: () => obras.obras.filter((o) => o.plano.defensa?.tipo === 'campana' && completa(o)),
     D: () => D(), nota: (t, s, n) => ctx.nota(t, s, n), sonido, centroBase: () => centroBase(), portones: () => api.portones(),
-    alarmaAliados: () => aliados.alarma(), alarmaVecinos: () => vecinos.alarma(), lado: () => D().ladoNoche?.rumbo ?? null,
+    alarmaAliados: () => (deNoche() ? aliados.alarma() : 0), alarmaVecinos: () => (deNoche() ? vecinos.alarma() : 0),   // 4.10.1: probar la campana de día ya no cambia para siempre la orden de Ramón y de Josefina
+     lado: () => D().ladoNoche?.rumbo ?? null,
     alturaEn: (x, z) => T.altura(x, z),
   });
   // 4.8 ambiente: lo de la noche que no cambia nada de la partida (cuántos vienen, qué hacen): sólo cómo se ve y se oye
@@ -762,7 +763,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     bloqueando = on ? conQueBloquea(id, progreso().cosas || {}) || false : false;
     ctx.bloqueoVisual?.(!!bloqueando);
   }
-  const puedeBloquear = (id) => !!conQueBloquea(id, progreso().cosas || {});
+  // 4.10.1: con «sólo arco» tampoco se bloquea con la lanza (la regla promete que no se usan otras armas)
+  const puedeBloquear = (id) => { const con = conQueBloquea(id, progreso().cosas || {}); return !!con && !(con === 'lanza' && efectosPartida()?.soloArco); };
   function esquivar(lado) {
     if (caido || recargaEsquiva > 0) return false;
     const js = ctx.jugador().estado;
