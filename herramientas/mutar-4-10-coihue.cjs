@@ -83,10 +83,12 @@ const MUTACIONES = [
   ['al amanecer se decide si toman un lugar', DE, 'tomadas.alAmanecer();   // 4.10 coihue', ''],
   ['el nido de un lugar cierra el lugar al abrirse', DE, 'if (c.zona) for (const tipo of tomadas.alAbrirseNido(c))', 'if (false) for (const tipo of tomadas.alAbrirseNido(c))'],
   ['el asedio cierra los lugares tomados', DE, 'api.alEmpezarAsedio = () => tomadas.cerrar();', ''],
-  ['el hacha se frena en el lugar tomado', 'src/main.js', 'if (lugarTomado(o)) return;   // 4.10 coihue', ''],
+  ['el hacha se frena en el lugar tomado', 'src/main.js', 'if (lugarTomado?.(o)) return;   // 4.10 coihue', ''],
   ['los recursos del mapa se frenan', 'src/desafio-mapa-mundo.js', "if (s && ctx.bloquea?.(s.x, s.z)) return 'Lugar tomado", "if (false) return 'Lugar tomado"],
   ['la cámara tiembla', 'src/main.js', 'if (desafio && modo === \'jugando\' && desafio.temblor > 0.01) {', 'if (false) {'],
   ['el papel dibuja la ruta', 'src/mapa.js', "if (a.clase === 'ruta' && Array.isArray(a.puntos)) {", 'if (false) {'],
+  ['la pista del Coihue que camina', 'src/main.js', "{ id: 'p-camina', cuando:", "{ id: 'p-camina2', cuando:"],
+  ['la pista de los lugares tomados', 'src/main.js', "{ id: 'p-tomada', cuando:", "{ id: 'p-tomada2', cuando:"],
   ['los hongos no usan índices negativos', TM, 'Math.abs(Math.floor(sem))', 'Math.floor(sem)'],
 ];
 

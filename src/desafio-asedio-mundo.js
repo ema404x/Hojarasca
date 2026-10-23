@@ -266,7 +266,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     if (!armado) return;
     sacarRaices();
     esconderCamino();
-    if (huellas) { escena.remove(huellas); huellas.geometry.dispose(); huellas = null; }   // 4.10 coihue
+    if (huellas) { escena.remove(huellas); for (const q of huellas.children) q.geometry.dispose(); huellas = null; }   // 4.10 coihue
     if (sombra) { escena.remove(sombra); sombra.geometry.dispose(); sombra = null; }
     pies = [];
     if (armado.nave) armado.nave.g.visible = false;   // 3.8.0: el Coihue es compartido: se esconde, no se saca
@@ -612,72 +612,109 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     if (!piesVivos() || llegada > 0.05) return;
     for (let i = 0; i < pies.length; i++) activos.push(pies[i]);
   }
-  // las huellas: seis marcas oscuras por cada punto por donde pasó, siguiendo el suelo (una sola malla)
+  // las huellas: por cada punto por donde pasó, seis marcas de tierra removida (un tinte oscuro que sigue el suelo y un
+  // montículo de tierra con raíz) y, de una huella a la siguiente, el surco de la raíz que arrastró. Dos mallas, para toda la ruta.
   function geoHuellas(c, n) {
     const pos = [], col = [], idx = [];
-    const LADOS = 9;
+    const mpos = [], mcol = [], midx = [];
+    const LADOS = 10;
     const blot = (cx, cz, rad, sem) => {
       const base = pos.length / 3;
-      pos.push(cx, T.altura(cx, cz) + 0.1, cz);
-      _c.setRGB(0.1, 0.07, 0.04, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, 0.78);
-      for (let j = 0; j < LADOS; j++) {
-        const a = (j / LADOS) * Math.PI * 2, rr = rad * (0.8 + 0.35 * Math.abs(Math.sin(sem * 1.7 + j * 2.1)));
+      pos.push(cx, T.altura(cx, cz) + 0.12, cz);
+      _c.setRGB(0.05, 0.035, 0.025, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, 0.92);
+      for (let r = 1; r <= 2; r++) for (let j = 0; j < LADOS; j++) {
+        const a = (j / LADOS) * Math.PI * 2, rr = rad * (r === 1 ? 0.55 : 1) * (0.8 + 0.35 * Math.abs(Math.sin(sem * 1.7 + j * 2.1)));
         const x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr;
-        pos.push(x, T.altura(x, z) + 0.1, z);
-        _c.setRGB(0.13, 0.1, 0.05, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, 0);
-        idx.push(base, base + 1 + j, base + 1 + ((j + 1) % LADOS));
+        pos.push(x, T.altura(x, z) + 0.12, z);
+        _c.setRGB(0.07, 0.05, 0.03, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, r === 1 ? 0.9 : 0.3);
       }
+      for (let j = 0; j < LADOS; j++) {
+        const j2 = (j + 1) % LADOS, r1 = base + 1, r2 = base + 1 + LADOS;
+        // (mirando para arriba: los ángulos crecen en sentido horario visto desde arriba, así que se pasan al revés)
+        idx.push(base, r1 + j2, r1 + j, r1 + j, r2 + j2, r2 + j, r1 + j, r1 + j2, r2 + j2);
+      }
+      // el montículo: tierra levantada con una raíz asomada (opaco, de un color que no brilla)
+      const mb = mpos.length / 3, alto = 0.75 + 0.4 * Math.abs(Math.sin(sem * 3.1)), ra = rad * 0.8;
+      const aros = [[1, 0], [0.8, 0.55], [0.42, 0.92], [0, 1]];
+      for (let r = 0; r < aros.length; r++) for (let j = 0; j < 8; j++) {
+        const a = (j / 8) * Math.PI * 2, rr = ra * aros[r][0] * (0.85 + 0.3 * Math.abs(Math.sin(sem + j * 1.9)));
+        mpos.push(cx + Math.cos(a) * rr, T.altura(cx, cz) - 0.1 + aros[r][1] * alto, cz + Math.sin(a) * rr);
+        const luz = 0.55 + aros[r][1] * 0.45;
+        _c.setRGB(0.26 * luz, 0.18 * luz, 0.11 * luz, THREE.SRGBColorSpace); mcol.push(_c.r, _c.g, _c.b);
+      }
+      for (let r = 0; r < aros.length - 1; r++) for (let j = 0; j < 8; j++) { const j2 = (j + 1) % 8, p0 = mb + r * 8; midx.push(p0 + j, p0 + j2, p0 + 8 + j, p0 + j2, p0 + 8 + j2, p0 + 8 + j); }
+    };
+    const surco = (ax, az, bx, bz) => {
+      const L = Math.hypot(bx - ax, bz - az);
+      if (L < 0.5) return;
+      const nx = -(bz - az) / L, nz = (bx - ax) / L, TR = 5, base = pos.length / 3;
+      for (let t = 0; t <= TR; t++) {
+        const u = t / TR, px = ax + (bx - ax) * u, pz = az + (bz - az) * u;
+        for (let l = -1; l <= 1; l++) {
+          const x = px + nx * l * 0.55, z = pz + nz * l * 0.55;
+          pos.push(x, T.altura(x, z) + 0.13, z);
+          _c.setRGB(0.05, 0.035, 0.025, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, l === 0 ? 0.8 : 0.25);
+        }
+      }
+      for (let t = 0; t < TR; t++) { const p0 = base + t * 3, p1 = p0 + 3; idx.push(p0, p0 + 1, p1, p0 + 1, p1 + 1, p1, p0 + 1, p0 + 2, p1 + 1, p0 + 2, p1 + 2, p1 + 1); }
     };
     const R = c.rastro;
-    for (let i = 0; i < R.length; i++) {
+    const pies = (i) => {
       const sig = R[Math.min(i + 1, R.length - 1)], ant = R[Math.max(i - 1, 0)];
-      const hx = sig[0] - ant[0], hz = sig[1] - ant[1];
-      const giro = hx || hz ? Math.atan2(hx, hz) : n.giro;
-      for (let k = 0; k < n.patas.length; k++) {
-        const ang = n.patas[k].a + giro, alc = n.patas[k].alcance * COIHUE.escala;
-        blot(R[i][0] + Math.sin(ang) * alc, R[i][1] + Math.cos(ang) * alc, 1.15, i * 7 + k);
-      }
+      const hx = sig[0] - ant[0], hz = sig[1] - ant[1], giro = hx || hz ? Math.atan2(hx, hz) : n.giro;
+      return n.patas.map((p) => { const ang = p.a + giro, alc = p.alcance * COIHUE.escala; return [R[i][0] + Math.sin(ang) * alc, R[i][1] + Math.cos(ang) * alc]; });
+    };
+    let previos = null;
+    for (let i = 0; i < R.length; i++) {
+      const ahora = pies(i);
+      ahora.forEach((q, k) => { blot(q[0], q[1], 1.9, i * 7 + k); if (previos) surco(previos[k][0], previos[k][1], q[0], q[1]); });
+      previos = ahora;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
     g.setIndex(idx);
     g.computeBoundingSphere();
-    return g;
+    const m = new THREE.BufferGeometry();
+    m.setAttribute('position', new THREE.Float32BufferAttribute(mpos, 3));
+    m.setAttribute('color', new THREE.Float32BufferAttribute(mcol, 3));
+    m.setIndex(midx);
+    m.computeBoundingSphere();
+    return { g, m };
   }
   // la sombra: una franja oscura del Coihue hacia tu base, que se alarga a medida que se acerca
   const SOMBRA = { tramos: 14 };
+  const INDICES_SOMBRA = (() => { const idx = []; for (let i = 0; i < SOMBRA.tramos; i++) { const a = i * 3; idx.push(a, a + 1, a + 3, a + 1, a + 4, a + 3, a + 1, a + 2, a + 4, a + 2, a + 5, a + 4); } return idx; })();
   function armarSombra() {
-    const n = (SOMBRA.tramos + 1) * 3;
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 4), 4));
-    const idx = [];
-    for (let i = 0; i < SOMBRA.tramos; i++) { const a = i * 3; idx.push(a, a + 1, a + 3, a + 1, a + 4, a + 3, a + 1, a + 2, a + 4, a + 2, a + 5, a + 4); }
-    g.setIndex(idx);
-    const m = new THREE.Mesh(g, matTinte());
+    const m = new THREE.Mesh(new THREE.BufferGeometry(), matTinte());
     m.renderOrder = 1; m.frustumCulled = false; m.visible = false;
     escena.add(m);
     return m;
   }
+  // (se arma una geometría nueva cada vez: son 45 vértices, y así el color por vértice y el alfa salen siempre bien)
   function ponerSombra(c, n, k) {
     const x0 = n.g.position.x, z0 = n.g.position.z;
     const dx = c.base.x - x0, dz = c.base.z - z0, dist = Math.hypot(dx, dz);
     if (dist < 3) { sombra.visible = false; return; }
-    const ux = dx / dist, uz = dz / dist, largo = Math.min(dist, 16 + 46 * k), ancho = 8 + 4 * k;
-    const P = sombra.geometry.attributes.position, C = sombra.geometry.attributes.color;
+    const ux = dx / dist, uz = dz / dist, largo = Math.min(dist, 16 + 46 * k), ancho = 13 + 6 * k;
+    const pos = [], col = [];
     for (let i = 0; i <= SOMBRA.tramos; i++) {
       const t = i / SOMBRA.tramos, px = x0 + ux * largo * t, pz = z0 + uz * largo * t, w = ancho * (1 - 0.65 * t) / 2;
-      const al = 0.5 * Math.pow(1 - t, 1.3) * (0.5 + 0.5 * k);
+      const al = 0.9 * (1 - t * t) * (0.75 + 0.25 * k);
       for (let s = 0; s < 3; s++) {
-        const j = i * 3 + s, lado = s - 1, x = px - uz * w * lado, z = pz + ux * w * lado;
-        P.setXYZ(j, x, T.altura(x, z) + 0.13, z);
+        const lado = s - 1, x = px - uz * w * lado, z = pz + ux * w * lado;
+        pos.push(x, T.altura(x, z) + 0.13, z);
         _c.setRGB(0.02, 0.03, 0.02, THREE.SRGBColorSpace);
-        C.setXYZW(j, _c.r, _c.g, _c.b, lado === 0 ? al : 0);   // el medio oscuro y los bordes que se desvanecen
+        col.push(_c.r, _c.g, _c.b, lado === 0 ? al : al * 0.6);   // el medio oscuro y los bordes que se desvanecen
       }
     }
-    P.needsUpdate = true; C.needsUpdate = true;
-    sombra.geometry.computeBoundingSphere();
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+    g.setIndex(INDICES_SOMBRA);
+    g.computeBoundingSphere();
+    sombra.geometry.dispose();
+    sombra.geometry = g;
     sombra.visible = true;
   }
   const angDif = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -738,9 +775,15 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     // el rastro y la sombra
     if (c.rastro.length !== vis.nHuellas) {
       vis.nHuellas = c.rastro.length;
-      if (!huellas) { huellas = new THREE.Mesh(new THREE.BufferGeometry(), matTinte()); huellas.renderOrder = 1; huellas.frustumCulled = false; escena.add(huellas); }
-      huellas.geometry.dispose();
-      huellas.geometry = geoHuellas(c, n);
+      if (!huellas) {
+        huellas = new THREE.Group();
+        const decal = new THREE.Mesh(new THREE.BufferGeometry(), matTinte()), monton = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
+        decal.renderOrder = 1; decal.frustumCulled = false; monton.frustumCulled = false;
+        huellas.add(decal, monton); escena.add(huellas);
+      }
+      const hg = geoHuellas(c, n), [decal, monton] = huellas.children;
+      decal.geometry.dispose(); monton.geometry.dispose();
+      decal.geometry = hg.g; monton.geometry = hg.m;
     }
     huellas.visible = dist < 260;
     vis.sombraT -= dt;
@@ -875,6 +918,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     get camino() { return A()?.camino || null; },
     get visual() { return vis; },
     get pies() { return pies; },
+    get huellas() { return huellas; },
+    get sombra() { return sombra; },
     zonasIds: () => ZONAS_ASEDIO.map((z) => z.id),
   };
 }

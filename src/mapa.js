@@ -231,7 +231,7 @@ export function crearMapa(T, extra = null) {
       const [px, py] = aP(a.x, a.z);
       // 4.10 coihue: un lugar tomado por los duendes: una mancha de tinta oscura con hongos, más cargada cuanto más tomado
       if (a.clase === 'tomada') {
-        const [bx] = aP(a.x + a.radio, a.z), rr = Math.abs(bx - px), n = Math.max(1, Math.min(3, a.nivel || 1));
+        const [bx] = aP(a.x + a.radio, a.z), rr = Math.max(Math.abs(bx - px), W / 55), n = Math.max(1, Math.min(3, a.nivel || 1));   // (aunque en el papel sea chica, que se vea)
         ctx.save();
         ctx.fillStyle = 'rgba(52, 36, 64, ' + (0.16 + n * 0.07) + ')'; ctx.strokeStyle = 'rgba(52, 30, 66, 0.7)'; ctx.lineWidth = 2;
         ctx.setLineDash([W / 120, W / 160]);

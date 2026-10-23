@@ -605,7 +605,7 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
       const gl = new THREE.BufferGeometry();
       gl.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       gl.setIndex(idx);
-      const lane = new THREE.Mesh(gl, new THREE.MeshBasicMaterial({ color: '#ff8a30', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      const lane = new THREE.Mesh(gl, new THREE.MeshBasicMaterial({ color: '#ffa238', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
       lane.visible = false; lane.frustumCulled = false;
       s.g.add(lane);
       return { i: k, tramo: it, a, alto: q.alto, g, lane, t: 0, fase: 'reposo', golpeo: false, sol: null, avisada: false };
@@ -619,7 +619,8 @@ export function crearNaveMundo(T, escena, col, camara, efectos, sonido, api, opc
     r.g.position.set(Math.sin(ang) * (s.radio - 0.12), r.alto + p / s.rMed * BAJA_POR_RAD, Math.cos(ang) * (s.radio - 0.12));
     r.g.rotation.y = ang + Math.PI;
     r.g.scale.set(1, 1, Math.max(0.05, sale));
-    const brillo = fase === 'aviso' ? 0.25 + 0.4 * u + Math.sin(u * 40) * 0.12 : fase === 'barrido' ? 0.6 : fase === 'tapa' ? 0.18 * (1 - u) : 0;
+    const brillo = fase === 'aviso' ? 0.5 + 0.45 * u + Math.sin(u * 40) * 0.15 : fase === 'barrido' ? 0.85 : fase === 'tapa' ? 0.4 * (1 - u) : 0;
+    r.g.rotation.z = fase === 'aviso' ? Math.sin(u * 90) * 0.04 * u : 0;   // (el aviso: la raíz tiembla antes de barrer)
     r.lane.visible = brillo > 0.02;
     r.lane.material.opacity = Math.max(0, brillo);
   }

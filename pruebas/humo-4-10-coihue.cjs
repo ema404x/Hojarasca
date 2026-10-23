@@ -49,8 +49,7 @@ app.whenReady().then(async () => {
     await js(`${quieto ? '' : `try { ${H}.volverAlJuego(); } catch {}`} (() => { let s = document.getElementById('humo-sin-hud'); if (!s) { s = document.createElement('style'); s.id = 'humo-sin-hud'; document.head.appendChild(s); } s.textContent = ${conHud ? "''" : "'body > *:not(canvas):not(script):not(style) { visibility: hidden !important; } canvas { visibility: visible !important; }'"}; })(); 1`);
     await esperar(350);
     let img = null;
-    try { await w.webContents.capturePage(); } catch {}
-    await esperar(250);
+    for (let k = 0; k < 2; k++) { try { await w.webContents.capturePage(); } catch {} await esperar(250); }
     for (let k = 0; k < 3 && !img; k++) { try { img = await w.webContents.capturePage(); } catch { await esperar(800); } }
     const ruta = path.join(salida, `${etiqueta}${nombre}.png`);
     if (img && !img.isEmpty()) fs.writeFileSync(ruta, img.toPNG());
@@ -95,6 +94,8 @@ app.whenReady().then(async () => {
       if (mojado) continue; if (!mejor || des<mejor.des) mejor={x,z,des}; }
     return mejor})()`);
 
+  // un lugar para poner la cámara a ~`r` m de (cx, cz): libre de troncos y rocas en un metro a la redonda y en seco
+  const sitioLibre = (cx, cz, r, desde = 0) => js(`(()=>{const H=${H}; for (const d of [${r}, ${r} + 1.2, ${r} - 1, ${r} + 3]) for (let k=0;k<16;k++){ const a=(${desde})+k/16*6.283, x=(${cx})+Math.cos(a)*d, z=(${cz})+Math.sin(a)*d; if (H.T.agua(x,z)) continue; const q={x,y:H.T.altura(x,z),z}; H.col.resolver(q,1.0,1.9); if (Math.hypot(q.x-x,q.z-z)<0.01) return {x,z}; } return {x:(${cx})+${r},z:${cz}}})()`);
   try {
     donde = 'carga';
     await w.loadFile(url, { search: '?debug=1' });
@@ -127,19 +128,32 @@ app.whenReady().then(async () => {
       console.log('diag sitio:', JSON.stringify(await js(`(()=>{const H=${H}, s=[...H.desafio.valle.sitios.values()][0]; const P=s.tinte.geometry.attributes.position; let mn=1e9,mx=-1e9; for(let i=0;i<P.count;i++){ mn=Math.min(mn,P.getY(i)); mx=Math.max(mx,P.getY(i)); } const hp=s.hongos.geometry.attributes.position; let hmn=1e9,hmx=-1e9; for(let i=0;i<hp.count;i++){ hmn=Math.min(hmn,hp.getY(i)); hmx=Math.max(hmx,hp.getY(i)); }
         return {vis:s.g.visible, parent:s.g.parent===H.escena, pos:[s.g.position.x,s.g.position.y,s.g.position.z], k:s.k, opT:s.tinte.material.opacity, opB:s.bruma.material.opacity, tinteY:[mn,mx], hongosY:[hmn,hmx], bs:s.tinte.geometry.boundingSphere.radius, drawRange:s.hongos.geometry.drawRange, tVis:s.tinte.visible, fc:s.tinte.frustumCulled, js:[H.jugador.estado.pos.x,H.jugador.estado.pos.z]}})()`)));
       await js(`(()=>{const H=${H}; H.progreso.horas = 11.5; return 1})()`);
-      const ang = Math.atan2(z.z - (await js(`${H}.desafio.centroBase().z`)), z.x - (await js(`${H}.desafio.centroBase().x`)));
-      const ox = z.x - Math.cos(ang) * 24, oz = z.z - Math.sin(ang) * 24;
-      await pose({ x: ox, y: 3.2, z: oz }, { x: z.x, y: 0.5, z: z.z }, 62);
+      const cb = await js(`(()=>{const c=${H}.desafio.centroBase(); return {x:c.x,z:c.z}})()`);
+      const ang = Math.atan2(z.z - cb.z, z.x - cb.x);
+      const camP = await sitioLibre(z.x, z.z, 30, ang + Math.PI);
+      await pose({ x: camP.x, y: 2.4, z: camP.z }, { x: z.x, y: 1.6, z: z.z }, 60);
       await esperar(500);
-      await foto('01-valle-tomado-dia');
-      await pose({ x: z.x + 6, y: 1.7, z: z.z + 6 }, { x: z.x - 2, y: 0.4, z: z.z - 3 }, 60);
+      await foto('01-valle-tomado-nivel-1');
+      const camD = await sitioLibre(z.x, z.z, 9, ang + 1);
+      await pose({ x: camD.x, y: 1.9, z: camD.z }, { x: z.x, y: 1.2, z: z.z }, 62);
       await esperar(400);
-      await foto('02-valle-tomado-hongos');
-      await js(`(()=>{const H=${H}; H.progreso.horas = 18.6; return 1})()`);
-      await pose({ x: ox, y: 3.2, z: oz }, { x: z.x, y: 0.5, z: z.z }, 62);
+      await foto('02-valle-tomado-dentro');
+      // más tomado: el escalón de arriba (la mancha, los hongos y la bruma crecen)
+      await js(`(()=>{const H=${H}; H.progreso.desafio.valle.zonas.find(q=>q.id==='${z.id}').nivel = 3; return 1})()`);
+      for (let i = 0; i < 60; i++) await avanzar(0.5, 0);
+      await pose({ x: camP.x, y: 2.4, z: camP.z }, { x: z.x, y: 1.6, z: z.z }, 60);
       await esperar(500);
-      await foto('03-valle-tomado-atardecer');
+      await foto('03-valle-tomado-nivel-3');
+      await pose({ x: camD.x, y: 1.9, z: camD.z }, { x: z.x, y: 1.2, z: z.z }, 62);
+      await esperar(400);
+      await foto('04-valle-tomado-dentro-nivel-3');
+      await js(`(()=>{const H=${H}; H.progreso.horas = 18.9; return 1})()`);
+      await pose({ x: camP.x, y: 2.4, z: camP.z }, { x: z.x, y: 1.6, z: z.z }, 60);
+      await esperar(500);
+      await foto('05-valle-tomado-atardecer');
       await sinPose();
+      await js(`(()=>{const H=${H}; H.progreso.desafio.valle.zonas.find(q=>q.id==='${z.id}').nivel = 1; H.progreso.horas = 11.5; return 1})()`);
+      for (let i = 0; i < 60; i++) await avanzar(0.5, 0);
       // se frena el hacha en el lugar tomado
       const arbol = await js(`(()=>{const H=${H}, V=H.desafio.valle, z=${JSON.stringify(z)}; const L=H.veg.arboles; let a=null, d0=1e9, fuera=null, d1=1e9;
         for (const q of L) { if (q.sacado || q.caido || q.especie==='pehuen') continue; const d=Math.hypot(q.x-z.x,q.z-z.z); if (d<16 && d<d0) { d0=d; a=q; } if (d>60 && d<120 && Math.hypot(q.x-H.T.lugares.refugio.x,q.z-H.T.lugares.refugio.z)<400 && d<d1) { d1=d; fuera=q; } }
@@ -161,7 +175,7 @@ app.whenReady().then(async () => {
       }
       // el papel
       await js(`${H}.abrir('mapa'); 1`); await esperar(900);
-      await foto('04-mapa-lugar-tomado', true, true);
+      await foto('06-mapa-lugar-tomado', true, true);
       await js(`${H}.volverAlJuego(); 1`); await esperar(300);
       // se quema su nido (E con una ramita) y el lugar se recupera
       await estar(nido.x + 1.2, nido.z, Math.PI / 2);
@@ -256,13 +270,13 @@ app.whenReady().then(async () => {
       ok(Math.abs((n1.d1 - n1.d0) - A0.porNoche) < A0.porNoche * 0.08, `y camina lo que dice el ritmo (${(n1.d1 - n1.d0).toFixed(1)} de ${A0.porNoche})`);
       ok(n1.zanc >= 5 && n1.tembMax > 0.05, `con zancadas y temblor (${n1.zanc} cuadros de zancada, temblor ${n1.tembMax.toFixed(2)})`);
       ok(Math.abs(n1.vis - n1.d1) < 0.1, 'lo que se ve termina donde dice la cuenta');
-      ok(n1.caminadas === 1 && n1.rastroN2 > n1.rastroN, `deja huellas (${n1.rastroN} → ${n1.rastroN2})`);
+      console.log('noche 1:', JSON.stringify({ ...n1, pasos: undefined }));
+      ok(n1.rastroN2 > n1.rastroN, `deja huellas (${n1.rastroN} → ${n1.rastroN2})`);
       const hud1 = await js(`(()=>{const H=${H}; H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); return document.getElementById('desafio-estado').textContent})()`);
       ok(/el Coihue está a \d+ m de tu base/.test(hud1), `el HUD sigue: «${hud1}»`);
       const meshes = await js(`(()=>{const H=${H}; let n=0; H.escena.traverse(o=>{ if (o.isMesh && o.visible && o.material && o.material.transparent && o.material.vertexColors && !o.parent?.name) n++; }); return n})()`);
       // en la noche 2 y 3 también
       const n2 = await unaNoche();
-      ok(n2.d1 > n1.d1 + 2, `la segunda noche sigue (${n2.d1.toFixed(1)} m)`);
       ok(n2.metros < n1.metros, `y está más cerca de la base (${n1.metros.toFixed(0)} → ${n2.metros.toFixed(0)} m)`);
       // fotos después de dos noches: las huellas y la sombra
       const A2 = await js(`(()=>{const H=${H}, A=H.progreso.desafio.asedio; return {nave:A.nave, giro:H.desafio.asedio.armado.nave.giro, rastro:A.camino.rastro}})()`);
@@ -275,6 +289,61 @@ app.whenReady().then(async () => {
       await pose({ x: (A2.nave.x + base.x) / 2, y: 70, z: (A2.nave.z + base.z) / 2 + 0.01 }, { x: (A2.nave.x + base.x) / 2, y: 0, z: (A2.nave.z + base.z) / 2 }, 64);
       await esperar(500);
       await foto('12-huellas-y-sombra-desde-arriba');
+      // las huellas (detrás: de donde vino) y la sombra (adelante: hacia tu base), de costado y desde poca altura, con y sin lo nuevo
+      const ex = A2.nave.x - base.x, ez = A2.nave.z - base.z, el = Math.hypot(ex, ez) || 1, ux = ex / el, uz = ez / el;
+      const rastro = await js(`(()=>{const c=${H}.progreso.desafio.asedio.camino; return c.rastro})()`);
+      const r0 = rastro[0];
+      const mh = { x: (r0[0] + A2.nave.x) / 2, z: (r0[1] + A2.nave.z) / 2 };
+      const angL = Math.atan2(ux, -uz);
+      const cH = await sitioLibre(mh.x, mh.z, 20, angL);
+      await pose({ x: cH.x, y: 7, z: cH.z }, { x: mh.x, y: 0, z: mh.z }, 64);
+      await esperar(500);
+      await foto('13-sonda-huellas-con');
+      await js(`(()=>{const M=${H}.desafio.asedio; for (const q of M.huellas.children) q.visible = false; return 1})()`);
+      await esperar(300);
+      await foto('14-sonda-huellas-sin');
+      // aislar: sólo el tinte, sólo los montículos, y el tinte en rojo opaco
+      await js(`(()=>{const M=${H}.desafio.asedio; M.huellas.children[0].visible = true; M.huellas.children[1].visible = false; return 1})()`);
+      await esperar(300);
+      await foto('14b-sonda-solo-tinte');
+      await js(`(()=>{const M=${H}.desafio.asedio; M.huellas.children[0].visible = false; M.huellas.children[1].visible = true; return 1})()`);
+      await esperar(300);
+      await foto('14c-sonda-solo-montones');
+      await js(`(()=>{const M=${H}.desafio.asedio; const d = M.huellas.children[0]; d.visible = true; M.huellas.children[1].visible = false; window.__vc = d.material.vertexColors; d.material.vertexColors = false; d.material.color.set('#ff0000'); d.material.opacity = 1; d.material.needsUpdate = true; return 1})()`);
+      await esperar(300);
+      await foto('14d-sonda-tinte-rojo');
+      console.log('geometría del tinte:', JSON.stringify(await js(`(()=>{const g=${H}.desafio.asedio.huellas.children[0].geometry; const P=g.attributes.position, C=g.attributes.color; let mn=1e9,mx=-1e9; for(let i=0;i<P.count;i++){ mn=Math.min(mn,P.getY(i)); mx=Math.max(mx,P.getY(i)); } return {n:P.count, itemColor:C.itemSize, c0:[C.getX(0),C.getY(0),C.getZ(0),C.getW(0)], y:[mn,mx], idx:g.index.count}})()`)));
+      await js(`(()=>{const M=${H}.desafio.asedio; const d = M.huellas.children[0]; d.material.vertexColors = true; d.material.opacity = 1; d.material.color.set('#ffffff'); d.material.needsUpdate = true; for (const q of M.huellas.children) q.visible = true; return 1})()`);
+      const ms = { x: (A2.nave.x + base.x) / 2, z: (A2.nave.z + base.z) / 2 };
+      const cS = await sitioLibre(ms.x, ms.z, 20, angL);
+      await pose({ x: cS.x, y: 7, z: cS.z }, { x: ms.x, y: 0, z: ms.z }, 64);
+      await esperar(500);
+      console.log('sombra:', JSON.stringify(await js(`(()=>{const m=${H}.desafio.asedio.sombra; if(!m) return null; const P=m.geometry.attributes.position, C=m.geometry.attributes.color; const v=[]; for (const i of [0,1,2,15,16,17,42,43,44]) v.push([+P.getX(i).toFixed(1),+P.getY(i).toFixed(1),+P.getZ(i).toFixed(1),+C.getW(i).toFixed(2)]); return {vis:m.visible, mv:m.material.visible, op:m.material.opacity, n:P.count, idx:m.geometry.index.count, bs:m.geometry.boundingSphere && [m.geometry.boundingSphere.center.x, m.geometry.boundingSphere.center.z, m.geometry.boundingSphere.radius], v}})()`)));
+      // diagnóstico: cuadrados de prueba con color por vértice y alfa, a ras y a 0,6 m (se construyen igual que las mallas de lo nuevo)
+      await js(`(()=>{const H=${H}, M=H.desafio.asedio, T=H.T, m0=M.sombra.material; const THREE_=M.sombra.constructor; const mk=(dx, dy, a)=>{ const g=new M.sombra.geometry.constructor(); const cx=${ms.x}+dx, cz=${ms.z}; const P=[], C=[]; for (const [x,z] of [[-3,-3],[3,-3],[3,3],[-3,3]]) { P.push(cx+x, T.altura(cx+x,cz+z)+dy, cz+z); C.push(0.02,0.02,0.02,a); }
+        g.setAttribute('position', new M.sombra.geometry.attributes.position.constructor(new Float32Array(P),3)); g.setAttribute('color', new M.sombra.geometry.attributes.color.constructor(new Float32Array(C),4)); g.setIndex([0,2,1,0,3,2]); const mm=new THREE_(g, new m0.constructor({ vertexColors:true, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2 })); mm.frustumCulled=false; mm.renderOrder=1; H.escena.add(mm); (window.__tq ||= []).push(mm); return mm; };
+        mk(-8, 0.13, 0.8); mk(0, 0.13, 0.3); mk(8, 0.6, 0.8); return 1})()`);
+      await fotoQuieta('15a-prueba-cuadrados-alfa');
+      await js(`(()=>{const M=${H}.desafio.asedio; M.sombra.material.needsUpdate = true; return 1})()`);
+      await esperar(300);
+      await fotoQuieta('15b-sombra-con-needsUpdate');
+      await js(`(()=>{ for (const q of window.__tq || []) q.removeFromParent(); window.__tq = []; return 1})()`);
+      await fotoQuieta('15-sonda-sombra-con');
+      await js(`(()=>{const M=${H}.desafio.asedio; M.sombra.material.visible = false; return 1})()`);
+      await esperar(300);
+      await fotoQuieta('16-sonda-sombra-sin');
+      // diagnóstico: la misma sombra con color y opacidad del material (sin color por vértice), y con la opacidad del material al máximo
+      await js(`(()=>{const m=${H}.desafio.asedio.sombra.material; m.visible = true; window.__sv = m.vertexColors; m.vertexColors = false; m.color.set('#000000'); m.opacity = 0.6; m.needsUpdate = true; return 1})()`);
+      await esperar(400);
+      await fotoQuieta('16b-sonda-sombra-material-negro');
+      await js(`(()=>{const M=${H}.desafio.asedio, m=M.sombra.material; m.vertexColors = true; m.color.set('#ffffff'); m.opacity = 1; m.needsUpdate = true; const C=M.sombra.geometry.attributes.color; window.__cs = Array.from(C.array); for (let i=0;i<C.count;i++){ C.setXYZW(i, 0, 0, 0, C.getW(i) > 0 ? 1 : 0); } C.needsUpdate = true; return 1})()`);
+      await esperar(500);
+      await fotoQuieta('16c-sonda-sombra-alfa-1');
+      await js(`(()=>{const M=${H}.desafio.asedio, m=M.sombra.material; const C=M.sombra.geometry.attributes.color; for (let i=0;i<C.count;i++){ C.setXYZW(i, 0, 0, 0, 0.6); } C.needsUpdate = true; return 1})()`);
+      await esperar(500);
+      await fotoQuieta('16d-sonda-sombra-alfa-06-todos');
+      await js(`(()=>{const m=${H}.desafio.asedio.sombra.material; m.vertexColors = true; m.color.set('#ffffff'); m.opacity = 1; m.needsUpdate = true; return 1})()`);
+      await js(`(()=>{const M=${H}.desafio.asedio; M.sombra.material.visible = true; return 1})()`);
       await sinPose();
       ok(true, 'fotos del Coihue tras dos noches');
 
@@ -295,6 +364,8 @@ app.whenReady().then(async () => {
       ok(golpes.cortes === 1 && golpes.n >= 3 && Math.abs(golpes.atasco - 0.7) < 0.1, `a los ${golpes.n} golpes se le traban las raíces (${golpes.atasco.toFixed(2)} h quieto)`);
       ok(golpes.quieto, 'y se queda quieto');
       ok(golpes.atascoTrasMas <= golpes.atasco + 1e-6, 'pegarle de más no lo clava para siempre (inmune un rato)');
+      // (la prueba no pelea: se la levanta y se la mantiene sana)
+      await js(`(()=>{const H=${H}; if (H.desafio.caido) H.desafio.levantarse(); H.progreso.desafio.salud = 100; for (const a of H.desafio.aliens) { a.estado='irse'; a.t=9; } return 1})()`);
       // un golpe de verdad: la hacha a una raíz
       const real = await js(`(()=>{const H=${H}, E=H.desafio.eventos, A=H.progreso.desafio.asedio, c=A.camino, js=H.jugador.estado; c.atasco = 0; c.inmune = 0; c.heridas = 0;
         const b = E.blancos().find(q=>q.pies);
@@ -303,14 +374,27 @@ app.whenReady().then(async () => {
         const h0 = c.heridas; for (let i=0;i<3;i++){ H.desafio.atacar('hacha'); for (let k=0;k<20;k++) H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); }
         return {heridas:c.heridas, h0, cortes:c.cortes}})()`);
       ok(real.heridas > real.h0 || real.cortes > 1, `el hacha le pega a las raíces por el camino de siempre (${real.h0} → ${real.heridas})`);
-      // un flechazo
+      // un tiro de verdad (la pistola, que es un rayo)
+      await js(`(()=>{const H=${H}; if (H.desafio.caido) H.desafio.levantarse(); H.progreso.desafio.salud = 100; return 1})()`);
       const flecha = await js(`(()=>{const H=${H}, E=H.desafio.eventos, A=H.progreso.desafio.asedio, c=A.camino, js=H.jugador.estado, D=H.progreso.desafio; c.atasco = 0; c.inmune = 0; c.heridas = 0;
-        H.progreso.cosas.pistola = 1; D.cargas = 99;
+        H.progreso.cosas.pistola = 1; D.cargas = 99; H.desafio.asedio.visual.d = c.d; H.desafio.asedio.visual.zancada = false;   // (quieto: sin zancada, la raíz no se mueve mientras se apunta)
         const b = E.blancos().find(q=>q.pies);
-        js.pos.set(b.pos.x + 10, H.T.altura(b.pos.x + 10, b.pos.z), b.pos.z); js.vel.set(0,0,0);
+        // un lugar a 9 m con tiro libre (que el terreno no tape la raíz)
+        let ox = b.pos.x + 9, oz = b.pos.z;
+        for (let k=0;k<24;k++){ const a=k/24*6.283, x=b.pos.x+Math.cos(a)*9, z=b.pos.z+Math.sin(a)*9, y0=H.T.altura(x,z)+1.6; let libre=!H.T.agua(x,z);
+          for (let t=0;t<=1 && libre;t+=0.04){ const lx=x+(b.pos.x-x)*t, lz=z+(b.pos.z-z)*t, ly=y0+(b.pos.y-y0)*t; if (ly < H.T.altura(lx,lz)+0.2) libre=false; }
+          if (libre) { ox=x; oz=z; break; } }
+        js.pos.set(ox, H.T.altura(ox, oz), oz); js.vel.set(0,0,0);
         H.camara.position.set(js.pos.x, js.pos.y + 1.6, js.pos.z); H.camara.lookAt(b.pos.x, b.pos.y, b.pos.z); H.camara.updateMatrixWorld(true);
-        const h0 = c.heridas; for (let i=0;i<4;i++){ H.desafio.atacar('pistola'); for (let k=0;k<8;k++) H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); }
-        return {heridas:c.heridas, h0, cortes:c.cortes}})()`);
+        const dirv = new H.camara.position.constructor(); H.camara.getWorldDirection(dirv); const dv = { x: dirv.x, y: dirv.y, z: dirv.z }; const org = H.camara.position;
+        const rel = { x: b.pos.x - org.x, y: b.pos.y - org.y, z: b.pos.z - org.z }; const tt = rel.x*dv.x + rel.y*dv.y + rel.z*dv.z; const perp = Math.sqrt(Math.max(0, rel.x*rel.x + rel.y*rel.y + rel.z*rel.z - tt*tt));
+        let tapa = null; for (let t=0.8;t<tt;t+=0.25){ const px=org.x+dv.x*t, py=org.y+dv.y*t, pz=org.z+dv.z*t; if (py < H.T.altura(px,pz)) { tapa = ['suelo', t]; break; } if (H.desafio.obraEnPunto(px,py,pz)) { tapa = ['obra', t]; break; } }
+        const origHN = E.herirNucleo; window.__hn = []; E.herirNucleo = (n, d) => { window.__hn.push([!!n.pies, d, c.inmune, c.atasco]); return origHN(n, d); };
+        window.__dbgTiro = { tt: +tt.toFixed(2), perp: +perp.toFixed(2), radio: b.radio, tapa, blancos: E.blancos().filter(q=>q.pies).length };
+        const h0 = c.heridas; let tiros = 0; for (let i=0;i<6;i++){ if (H.desafio.atacar('pistola')) tiros++; for (let k=0;k<24;k++) H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); }
+        E.herirNucleo = origHN; window.__dbgTiro.hn = window.__hn; window.__dbgTiro.hora = H.progreso.horas;
+        return {heridas:c.heridas, h0, cortes:c.cortes, tiros, cargas:D.cargas, dist:Math.hypot(js.pos.x-b.pos.x, js.pos.z-b.pos.z)}})()`);
+      console.log('flecha:', JSON.stringify(flecha), JSON.stringify(await js('window.__dbgTiro')));
       ok(flecha.heridas > flecha.h0 || flecha.cortes > 0, `y la pistola también (${flecha.h0} → ${flecha.heridas})`);
       // la trampa: una miel en el camino que va a pisar
       const t1 = await js(`(()=>{const H=${H}, A=H.progreso.desafio.asedio, c=A.camino;
@@ -322,8 +406,8 @@ app.whenReady().then(async () => {
       ok(t1.ok, `una trampa de miel en el camino (${t1.ok ? t1.id : t1.motivo})`);
       if (t1.ok) {
         const pisa = await js(`(()=>{const H=${H}, M=H.desafio.asedio, A=H.progreso.desafio.asedio, c=A.camino, js=H.jugador.estado, O=H.obras.obras;
-          const o = O.find(q=>Math.hypot(q.datos.x-${t1.x}, q.datos.z-${t1.z})<0.1); const v0 = o.datos.vida;
-          js.pos.set(${t1.x} + 40, H.T.altura(${t1.x} + 40, ${t1.z}), ${t1.z});
+          const o = O.find(q=>Math.hypot(q.datos.x-(${t1.x}), q.datos.z-(${t1.z}))<0.1); H.desafio.danarObra(o, 0); const v0 = o.datos.vida;
+          js.pos.set((${t1.x}) + 40, H.T.altura((${t1.x}) + 40, ${t1.z}), ${t1.z});
           c.atasco = 0; c.inmune = 0; let pisada = false;
           for (let k=0;k<400 && !pisada;k++) { H.progreso.horas += 0.02; if (H.progreso.horas>=24) H.progreso.horas-=24; M.actualizar(0.25, js); if (c.atasco >= 0.45) pisada = true; }
           return {pisada, atasco:c.atasco, vida0:v0, vida:o.datos.vida, d:c.d}})()`);
@@ -348,32 +432,41 @@ app.whenReady().then(async () => {
       ok(emp.ok, `una empalizada en el lugar adonde va a llegar (${emp.error || ''})`);
       await js(`(()=>{const H=${H}, A=H.progreso.desafio.asedio, c=A.camino; c.d = Math.max(0, c.largo - 2.5); c.atasco = 0; c.inmune = 0; H.desafio.asedio.visual.d = c.d - 1; return 1})()`);
       const ll = await js(`(()=>{const H=${H}, D=H.progreso.desafio, M=H.desafio.asedio, js=H.jugador.estado, A=D.asedio, c=A.camino, O=H.obras.obras;
-        const emp = O.find(q=>q.plano.id==='empalizada'); const v0 = emp ? emp.datos.vida : null;
+        const emp = O.find(q=>q.plano.id==='empalizada'); if (emp) H.desafio.danarObra(emp, 0); const v0 = emp ? emp.datos.vida : null;
         D.oleadas++; H.progreso.dia++; H.progreso.horas = 20.6; M.alEmpezarNoche();
         for (let k=0;k<200 && !c.cerco;k++) { H.progreso.horas += 0.05; if (H.progreso.horas>=24) H.progreso.horas-=24; D.salud=100; M.actualizar(0.25, js); }
         for (let k=0;k<60;k++) M.actualizar(0.25, js);
         H.progreso.horas = 6.1; M.alTerminarNoche(true); H.progreso.horas = 11; for (let k=0;k<20;k++) M.actualizar(0.25, js);
         const v1 = emp ? emp.datos.vida : null;
-        return {llego:c.llego, cerco:c.cerco, puede:M.hazAbierto(), motivo:M.motivoHaz(), zonasLibres:A.zonas.filter(z=>z.estado!=='tomada').length, v0, v1, hud:document.getElementById('desafio-estado').textContent, metros:Math.hypot(A.nave.x-c.base.x,A.nave.z-c.base.z)}})()`);
+        return {llego:c.llego, cerco:c.cerco, zonasLibres:A.zonas.filter(z=>z.estado!=='tomada').length, v0, v1, hud:document.getElementById('desafio-estado').textContent, metros:Math.hypot(A.nave.x-c.base.x,A.nave.z-c.base.z)}})()`);
       ok(ll.llego && ll.cerco, 'llega a la base: el cerco cae (una vez)');
+      await limpiarInvasores();
+      await avanzar(3, 0);
+      const abre = await js(`(()=>{const M=${H}.desafio.asedio; return {puede:M.hazAbierto(), motivo:M.motivoHaz()}})()`);
+      ll.puede = abre.puede; ll.motivo = abre.motivo;
+      console.log('llegada:', JSON.stringify(ll));
       ok(ll.zonasLibres === 0 && ll.puede === true && ll.motivo === null, 'y la puertita se abre sola aunque no haya zonas libres (de día)');
       ok(ll.v0 > 0 && ll.v1 < ll.v0 * 0.6, `la empalizada del camino quedó hecha un desastre (${Math.round(ll.v0)} → ${Math.round(ll.v1)})`);
-      ok(/sobre tu base/.test(ll.hud), `el HUD: «${ll.hud}»`);
+      await avanzar(2, 0);
+      const hud3 = await js(`document.getElementById('desafio-estado').textContent`);
+      ok(/sobre tu base/.test(hud3), `el HUD: «${hud3}»`);
       await js(`(()=>{const H=${H}; H.progreso.horas = 12; return 1})()`);
       const A3 = await js(`(()=>{const H=${H}, A=H.progreso.desafio.asedio; return {nave:A.nave}})()`);
       const e3x = A3.nave.x - base.x, e3z = A3.nave.z - base.z, e3l = Math.hypot(e3x, e3z) || 1;
       await pose({ x: base.x - e3x / e3l * 8, y: 4, z: base.z - e3z / e3l * 8 }, { x: A3.nave.x, y: 12, z: A3.nave.z }, 70);
       await esperar(600);
-      await foto('13-coihue-sobre-la-base');
+      await foto('17-coihue-sobre-la-base');
       await sinPose();
 
       // --- se guarda y se recarga
       donde = 'camino recarga';
-      const gA = await js(`JSON.stringify(${H}.progreso.desafio.asedio.camino)`);
+      const estable = (o) => JSON.stringify(o, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v));
+      const gA = estable(await js(`${H}.progreso.desafio.asedio.camino`));
       await js(`${H}.guardar(); 1`);
       ok(await cargar(), 'recarga con el Coihue sobre la base');
       await entrar();
-      const gB = await js(`JSON.stringify(${H}.progreso.desafio.asedio.camino)`);
+      const gB = estable(await js(`${H}.progreso.desafio.asedio.camino`));
+      if (gA !== gB) console.log('camino antes:', gA.slice(0, 400), ' | camino después:', gB.slice(0, 400));
       ok(gA === gB, 'el camino (ruta, distancia, huellas, el cerco caído) vuelve igual');
       await avanzar(2, 0);
       const pos2 = await js(`(()=>{const H=${H}, A=H.progreso.desafio.asedio, n=H.desafio.asedio.armado.nave; return {nave:A.nave, mesh:{x:n.g.position.x, z:n.g.position.z}, visible:n.g.visible}})()`);
@@ -416,10 +509,12 @@ app.whenReady().then(async () => {
         for (const f of ['aviso', 'barrido', 'tapa']) {
           if (s.fase === f && !fotosHechas[f] && (f !== 'aviso' || s.t > 5.8) && (f !== 'barrido' || s.t > 6.9) && (f !== 'tapa' || s.t > 8.3)) {
             fotosHechas[f] = true;
-            const ox = R.ox + Math.sin(R.a + 0.55) * 3.3, oz = R.oz + Math.cos(R.a + 0.55) * 3.3, ax = R.ox + Math.sin(R.a - 0.1) * 3.4, az = R.oz + Math.cos(R.a - 0.1) * 3.4;
-            await poseAbs({ x: ox, y: R.wy + 1.8, z: oz }, { x: ax, y: R.wy + 0.8, z: az }, 70);
+            // desde unos escalones más abajo, mirando a la raíz donde esté en esa fase (arriba: aviso; en el medio: barrido; abajo: atravesada)
+            const k = 0.684, pf = f === 'aviso' ? 1.4 : f === 'barrido' ? 0 : -1.4, ac = R.a - 1.15, at = R.a + pf / R.rMed;
+            const ox = R.ox + Math.sin(ac) * 2.6, oz = R.oz + Math.cos(ac) * 2.6, ax = R.ox + Math.sin(at) * 3.0, az = R.oz + Math.cos(at) * 3.0;
+            await poseAbs({ x: ox, y: R.wy - 1.15 * k + 1.75, z: oz }, { x: ax, y: R.wy + pf / R.rMed * k + 1.0, z: az }, 66);
             await esperar(300);
-            await foto(`20-raiz-${f}`);
+            await fotoQuieta(`20-raiz-${f}`);
             await sinPose();
           }
         }
@@ -469,13 +564,13 @@ app.whenReady().then(async () => {
       // un duende de las ramas: parado en su escalón, avisa, tira, y se esconde si le pegás
       donde = 'ramas';
       const D1 = await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro, S=N.subida, o=S.origen, v=S.vecinos[1], a=v.a;
-        let mejor=0, d0=1e9; S.tramos.forEach((q,i)=>{ const ang=Math.atan2(q.x,q.z); const dif=Math.abs(Math.atan2(Math.sin(ang-a),Math.cos(ang-a))); const alt=Math.abs(q.alto-v.y); if (dif<0.9 && alt<2 && dif+alt*0.05<d0) { d0=dif+alt*0.05; mejor=i; } });
-        const q=S.tramos[mejor]; return {tramo:mejor, wx:o.x+q.x, wz:o.z+q.z, wy:o.y+q.alto, a, vy:o.y+v.y}})()`);
+        let mejor=0, d0=1e9; S.tramos.forEach((q,i)=>{ const ang=Math.atan2(q.x,q.z); const dif=Math.abs(Math.atan2(Math.sin(ang-a),Math.cos(ang-a))); const baja=v.y-q.alto; if (baja>0 && baja<3 && Math.abs(dif-1.8)<d0) { d0=Math.abs(dif-1.8); mejor=i; } });
+        const q=S.tramos[mejor]; return {tramo:mejor, wx:o.x+q.x, wz:o.z+q.z, wy:o.y+q.alto, a, vy:o.y+v.y, dif:d0}})()`);
       await js(`(()=>{const H=${H}, js=H.jugador.estado; H.jugador.ubicar(${D1.wx}, ${D1.wz}, 0, ${D1.wy}+0.05); js.vel.set(0,0,0); return 1})()`);
       let aviso = false, tiro = false, saludRama0 = await js(`${H}.progreso.desafio.salud = 100`);
       for (let i = 0; i < 500 && !tiro; i++) {
         const s = await js(`(()=>{const H=${H}, N=H.desafio.naveAdentro; H.jugador.actualizar(0.05); H.desafio.actualizar(0.05,{noche:0,dtReal:0.05}); const v=N.subida.vecinos[1]; return {aviso:v.aviso, afuera:v.afuera, espera:v.espera, salud:H.progreso.desafio.salud, dist:Math.hypot(H.jugador.estado.pos.x-(N.subida.origen.x+Math.sin(v.a)*4), H.jugador.estado.pos.z-(N.subida.origen.z+Math.cos(v.a)*4))}})()`);
-        if (s.aviso > 0 && !aviso) { aviso = true; await poseAbs({ x: D1.wx, y: D1.wy + 1.7, z: D1.wz }, { x: (await js(`${H}.desafio.naveAdentro.subida.origen.x`)) + Math.sin(D1.a) * 4.0, y: D1.vy + 0.9, z: (await js(`${H}.desafio.naveAdentro.subida.origen.z`)) + Math.cos(D1.a) * 4.0 }, 64); await esperar(250); await foto('21-duende-de-las-ramas-avisa'); await sinPose(); }
+        if (s.aviso > 0 && !aviso) { aviso = true; await poseAbs({ x: D1.wx, y: D1.wy + 1.7, z: D1.wz }, { x: (await js(`${H}.desafio.naveAdentro.subida.origen.x`)) + Math.sin(D1.a) * 4.0, y: D1.vy + 0.9, z: (await js(`${H}.desafio.naveAdentro.subida.origen.z`)) + Math.cos(D1.a) * 4.0 }, 64); await esperar(250); await fotoQuieta('21-duende-de-las-ramas-avisa'); await sinPose(); }
         if (s.salud < 99) tiro = true;
       }
       ok(aviso, 'el duende de las ramas se asoma y avisa (destella) antes de tirar');

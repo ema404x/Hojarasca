@@ -481,6 +481,8 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(enUnaLinea(nave, ['api.sitioHaz', 'hacerSalida']) || nave.includes("const s = api.sitioHaz?.() || subida?.sitio"), 'pero se sale afuera por donde está parado ahora');
   ok(enUnaLinea(desafio, ['get temblor()', 'asedioMundo.temblor']), 'el temblor sale del Desafío');
   ok(enUnaLinea(main, ['desafio.temblor > 0.01', "modo === 'jugando'"]) && enUnaLinea(main, ["ajustes.movimientoCamara === 'reducido'", '0.15']), 'la cámara tiembla (menos con la cámara reducida)');
+  for (const p of ['p-camina', 'p-tomada']) ok(main.includes(`id: '${p}'`), `la pista ${p} avisa de lo nuevo`);
+  ok(enUnaLinea(main, ["id: 'p-camina'", 'camino', '!p.desafio.asedio.camino.llego']) && enUnaLinea(main, ["id: 'p-tomada'", 'z.nivel > 0', 'valle.cerrado']), 'y sólo cuando aplica (el Coihue sin llegar; un lugar tomado sin el valle cerrado)');
   ok(enUnaLinea(chinches, ['m.clase === \'ruta\'']) && enUnaLinea(mapa, ["a.clase === 'ruta'", 'a.puntos']), 'el papel dibuja la línea de la ruta');
   ok(enUnaLinea(desafio, ['api.trampasEn', 'TRAMPAS_COIHUE']) && /TRAMPAS_COIHUE = \['pozo', 'red', 'abrojos', 'miel', 'lazo', 'foso', 'estacas'\]/.test(desafio), 'las trampas que lo enredan son las de las defensas');
   ok(enUnaLinea(desafio, ['api.obraCerca', 'completa(o)']), 'la ruta esquiva las obras');
@@ -501,7 +503,7 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(enUnaLinea(desafio, ['tomadas.alQuitarNido(c)', 'lugar tomado']) || (desafio.match(/tomadas\.alQuitarNido\(c\)/g) || []).length === 2, 'quemarlo o romperlo lo saca');
   ok(enUnaLinea(desafio, ['tomadas.actualizar(dt, js)']) && enUnaLinea(desafio, ['tomadas.limpiar()']), 'se actualiza por cuadro y se limpia');
   ok(enUnaLinea(desafio, ['get valle()', 'tomadas']), 'el hacha y el papel lo miran');
-  ok(enUnaLinea(main, ['function lugarTomado(o', 'avisar']) && enUnaLinea(main, ['if (lugarTomado(o)) return;']) && enUnaLinea(main, ['lugarTomado(o, false)']), 'el hacha y el pico se frenan (y el cartel de la H lo dice)');
+  ok(enUnaLinea(main, ['function lugarTomado(o', 'avisar']) && enUnaLinea(main, ['if (lugarTomado?.(o)) return;']) && enUnaLinea(main, ['lugarTomado(o, false)']), 'el hacha y el pico se frenan (y el cartel de la H lo dice)');
   ok((mapaMundo.match(/ctx\.bloquea\?\.\(s\.x, s\.z\)/g) || []).length === 2 && enUnaLinea(desafio, ['bloquea: (x, z) => !!tomadas.bloquea(x, z)']), 'los recursos del mapa de la semilla también');
   ok(enUnaLinea(chinches, ['clase: \'tomada\'']) && enUnaLinea(mapa, ["a.clase === 'tomada'"]), 'el papel dibuja la mancha');
   ok(enUnaLinea(tomadasM, ['ubicarZonas(T.lugares', "azarDe(d.semilla, 'asedio')"]), 'los lugares son los mismos puntos de las raíces del asedio');

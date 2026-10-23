@@ -4071,6 +4071,9 @@ const PISTAS = [
   // 3.0: el asedio final y la nave por dentro
   { id: 'p-asedio', cuando: (js, p) => !!p.desafio?.asedio?.activo, titulo: 'El asedio', texto: 'El Coihue Viejo se plantó y hundió raíces en el valle (el mapa las marca). Cortalas de día; de noche defendé el fogón de la última zona que recuperaste' },
   { id: 'p-haz', cuando: (js, p) => !!p.desafio?.asedio?.activo && (p.desafio.asedio.zonas || []).filter((z) => z.estado !== 'tomada').length >= 3, titulo: 'La puertita está abierta', texto: 'Con tres zonas libres se puede entrar al Coihue: de día, andá a su pie, a la puertita de las raíces, y apretá E' },
+  // 4.10 coihue: el Coihue camina hacia tu base, y los lugares que toman los duendes
+  { id: 'p-camina', cuando: (js, p) => !!p.desafio?.asedio?.activo && !!p.desafio.asedio.camino && !p.desafio.asedio.camino.llego, titulo: 'El Coihue camina', texto: 'Cada noche del asedio se acerca unos metros a tu base (el mapa marca su ruta). Pegale a sus raíces o ponele trampas en el camino para frenarlo; con cada zona libre camina más despacio. Si llega, el cerco cae' },
+  { id: 'p-tomada', cuando: (js, p) => (p.desafio?.valle?.zonas || []).some((z) => z.nivel > 0) && !p.desafio.valle.cerrado, titulo: 'Un lugar tomado', texto: 'Los duendes tomaron un lugar del valle (el mapa lo marca): ahí no se puede talar ni picar y salen duendes de noche. Quemá o rompé su nido de hongos de día y se recupera' },
   { id: 'p-nido-dia', cuando: (js, p) => (p.desafio?.nido?.pistas || 0) >= NIDO.pistas && !p.desafio.nido.caido, titulo: 'La cueva está marcada', texto: 'Andá de día: con el sol arriba se le abre la boca y quedan a tiro las tres cunas. De noche está tapada' },
 ];
 let acumuladoPistas = 0;
@@ -4455,7 +4458,7 @@ function usarHacha() {
     else nota('Te falta el hacha', desafio ? 'Se cambia en el almacén' : 'Está en el almacén de la Aldea de los Duendes: tomá la trochita en la Estación del Valle');
     return;
   }
-  if (lugarTomado(o)) return;   // 4.10 coihue
+  if (lugarTomado?.(o)) return;   // 4.10 coihue (con ?. por las pruebas de 4.2 y 4.7)
   if (o.sinPico) {
     // 4.2: el hacha no pica piedra. El aviso dice las tres vías (el herrero es la normal; el almacén, por trueque o con plata, y la plata es el atajo)
     nota('Te falta el pico', desafio ? 'Se cambia en el almacén' : 'Para picar piedra hace falta el pico: lo forja el herrero de la aldea, o se consigue en el almacén (Tab: más cambios)', true);

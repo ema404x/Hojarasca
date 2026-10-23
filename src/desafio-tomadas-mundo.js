@@ -123,13 +123,13 @@ export function crearTomadasMundo(T, escena, a) {
   function hongos(z, sem) {
     const pos = [], col = [], idx = [];
     const azar = (() => { let s = (Math.abs(Math.floor(sem)) * 9301 + 49297) % 233280; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; })();   // (siempre positivo: con la x o la z del lugar negativas daba índices de menos)
-    const colores = [[0.84, 0.62, 0.3], [0.72, 0.85, 0.42], [0.5, 0.74, 0.66], [0.8, 0.5, 0.3]];
-    const N = 22;
+    const colores = [[0.88, 0.6, 0.3], [0.64, 0.82, 0.4], [0.42, 0.7, 0.66], [0.8, 0.44, 0.3]];
+    const N = 16;
     for (let k = 0; k < N; k++) {
       const an = azar() * Math.PI * 2, rad = 2.2 + Math.pow(azar(), 0.8) * (TOMADAS.radio - 5), cx = Math.cos(an) * rad, cz = Math.sin(an) * rad;
-      const s = 0.55 + azar() * 0.9, y0 = T.altura(z.x + cx, z.z + cz) - T.altura(z.x, z.z);
+      const s = 1.5 + azar() * 2.2, y0 = T.altura(z.x + cx, z.z + cz) - T.altura(z.x, z.z);
       const c0 = colores[Math.floor(azar() * colores.length)];
-      const alto = 0.34 * s, rc = 0.3 * s, lados = 7;
+      const alto = 0.36 * s, rc = 0.34 * s, lados = 8;
       const base = pos.length / 3;
       // el pie: un tubito, y el sombrero: un domo bajo
       for (let j = 0; j <= 1; j++) for (let l = 0; l < lados; l++) {
@@ -160,13 +160,52 @@ export function crearTomadasMundo(T, escena, a) {
     g.computeBoundingSphere();
     return g;
   }
+  // junta geometrías con posición y color de 4 canales (translúcidas) en una sola
+  function fundirGeos(lista) {
+    let nv = 0, ni = 0;
+    for (const g of lista) { nv += g.attributes.position.count; ni += g.index.count; }
+    const pos = new Float32Array(nv * 3), col = new Float32Array(nv * 4), idx = new Uint32Array(ni);
+    let ov = 0, oi = 0;
+    for (const g of lista) {
+      pos.set(g.attributes.position.array, ov * 3); col.set(g.attributes.color.array, ov * 4);
+      for (let i = 0; i < g.index.count; i++) idx[oi + i] = g.index.array[i] + ov;
+      ov += g.attributes.position.count; oi += g.index.count;
+    }
+    const r = new THREE.BufferGeometry();
+    r.setAttribute('position', new THREE.BufferAttribute(pos, 3)); r.setAttribute('color', new THREE.BufferAttribute(col, 4)); r.setIndex(new THREE.BufferAttribute(idx, 1));
+    r.computeBoundingSphere();
+    return r;
+  }
+  // una columna de esporas: un tubo que se afina y se desvanece hacia arriba
+  function columna(cx, cz, alto, rad, sem) {
+    const lados = 9, anillos = 6, pos = [], col = [], idx = [];
+    for (let a = 0; a <= anillos; a++) {
+      const u = a / anillos, r = rad * (1 - 0.7 * u) * (1 + 0.15 * Math.sin(sem + u * 5));
+      for (let l = 0; l < lados; l++) {
+        const an = (l / lados) * Math.PI * 2, x = cx + Math.cos(an) * r + Math.sin(u * 4 + sem) * 0.4 * u, zz = cz + Math.sin(an) * r;
+        pos.push(x, u * alto, zz);
+        _c.setRGB(0.74, 0.82, 0.52, THREE.SRGBColorSpace); col.push(_c.r, _c.g, _c.b, 0.3 * (1 - u) * (a === 0 ? 0.4 : 1));
+      }
+    }
+    for (let a = 0; a < anillos; a++) for (let l = 0; l < lados; l++) {
+      const l2 = (l + 1) % lados, p0 = a * lados, p1 = (a + 1) * lados;
+      idx.push(p0 + l, p0 + l2, p1 + l, p0 + l2, p1 + l2, p1 + l);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); g.setIndex(idx);
+    return g;
+  }
   function armarSitio(z) {
     const g = new THREE.Group();
     g.position.set(z.x, T.altura(z.x, z.z), z.z);
-    const tinte = new THREE.Mesh(disco(z, TOMADAS.radio, 0, [0.1, 0.09, 0.1], 0.78, true), matTinte());
+    // el suelo oscuro y, a media altura del pasto, una sombra violeta que lo tapa (el pasto es más alto que el suelo)
+    const tinte = new THREE.Mesh(fundirGeos([disco(z, TOMADAS.radio, 0, [0.07, 0.06, 0.09], 0.88, true), disco(z, TOMADAS.radio * 0.96, 0.6, [0.12, 0.09, 0.17], 0.5, false)]), matTinte());
     tinte.renderOrder = 1;
-    const bruma = new THREE.Mesh(disco(z, TOMADAS.radio * 1.1, 0.85, [0.66, 0.74, 0.7], 0.26, false), matTinte());
-    bruma.renderOrder = 2; bruma.position.y = 0;
+    // la bruma baja (gris verdosa) y unas columnas de esporas que se ven de lejos
+    const cols = [];
+    for (let k = 0; k < 4; k++) { const an = k * 1.7 + 0.6, r = 3 + k * 2.3, cx = Math.cos(an) * r, cz = Math.sin(an) * r; const c = columna(cx, cz, 5.5 + k, 0.9 + (k % 2) * 0.4, k * 2.1); const P = c.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) + T.altura(z.x + cx, z.z + cz) - T.altura(z.x, z.z)); cols.push(c); }
+    const bruma = new THREE.Mesh(fundirGeos([disco(z, TOMADAS.radio * 1.1, 1.3, [0.58, 0.62, 0.68], 0.34, false), ...cols]), matTinte());
+    bruma.renderOrder = 2;
     const h = new THREE.Mesh(hongos(z, z.x * 7 + z.z * 3), new THREE.MeshBasicMaterial({ vertexColors: true }));
     h.frustumCulled = true;
     g.add(tinte, bruma, h);
