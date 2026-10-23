@@ -144,7 +144,13 @@ const alien = (x, z, o = {}) => ({ estado: 'avanzar', tipo: 'rastreador', vida: 
       w.col.resolver(q, 0.35, 1.7);
       ok(Math.hypot(q.x - p.x, q.z - p.z) > 0.7, `la boca de ${nombre} no se atraviesa (queda a ${Math.hypot(q.x - p.x, q.z - p.z).toFixed(2)} m)`);
     }
-    // el túnel por abajo no estorba: entre las dos bocas se camina
+    {
+    const s = PA.salidasDe(r.o.datos, 'afuera');
+    ok(s.length === 8 && s.every((q) => cerca(Math.hypot(q.x - boca.x, q.z - boca.z), PA.PASADIZO.llega, 1e-9)) && PA.PASADIZO.llega >= 1.5, `los ocho lugares de salida están a ${PA.PASADIZO.llega} m de la boca (más que lo que ocupa la colisión)`);
+    const adentro = PA.salidasDe(r.o.datos, 'adentro');
+    ok(adentro[0].z < r.o.datos.z && s[0].z > boca.z, 'el primero se aleja de la otra boca (hacia afuera del túnel)');
+  }
+  // el túnel por abajo no estorba: entre las dos bocas se camina
     const m = { x: 10, y: 0, z: 14.5 };
     w.col.resolver(m, 0.35, 1.7);
     ok(cerca(m.z, 14.5, 1e-9), 'entre las dos bocas hay paso libre (el túnel va por abajo)');
