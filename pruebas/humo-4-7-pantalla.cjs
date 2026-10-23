@@ -58,11 +58,18 @@ app.whenReady().then(async () => {
     await esperar(2500);
     await js(AYUDA);
   };
+  // (con la ventana oculta la captura a veces falla con UnknownVizError: se reintenta)
   const foto = async (nombre) => {
-    await esperar(200);
-    const img = await w.webContents.capturePage();
-    fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
-    console.log(`  (captura ${nombre}.png)`);
+    for (let i = 0; i < 4; i++) {
+      try {
+        await esperar(200 + i * 400);
+        const img = await w.webContents.capturePage();
+        fs.writeFileSync(path.join(salida, `${nombre}.png`), img.toPNG());
+        console.log(`  (captura ${nombre}.png)`);
+        return;
+      } catch (e) { console.log(`  (captura ${nombre}: ${e.message}, otra vez)`); }
+    }
+    errores.push(`no se pudo sacar la captura ${nombre}`);
   };
   // abre la mochila con I y deja que se arme
   const mochila = async () => { await juego(); await tecla('KeyI', 3); await cuadros(3); await esperar(150); };
