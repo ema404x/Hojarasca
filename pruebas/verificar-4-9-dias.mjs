@@ -484,7 +484,8 @@ function llevaPorNumero(t) { return t === 'jefe' || t === 'final' || t === 'calm
   ok(r.e === 'aldea-tablon' && r.avisoId === 'aldea-tablon', 'junto al tablón del Desafío, la E lo abre y el aviso habla de él');
   ok(que({ desafio: false, tablonAldeaCerca: true }).e !== 'aldea-tablon', 'en el Relax no existe');
   ok(que({ desafio: true, tablonAldeaCerca: true, js: { enTren: true } }).e !== 'aldea-tablon', 'ni arriba del tren');
-  ok(que({ desafio: true, tablonAldeaCerca: true, objetivo: { tipo: 'planta', texto: 'Anotar' } }).e !== 'aldea-tablon', 'ni mirando algo para juntar');
+  ok(que({ desafio: true, tablonAldeaCerca: true, objetivo: { tipo: 'planta', texto: 'Anotar' } }).e === 'aldea-tablon', 'pegado al tablón, lo que mirás de fondo no le saca la E');
+  ok(que({ desafio: true, tablonAldeaCerca: true, js: { montado: true } }).e !== 'aldea-tablon', 'ni a caballo');
   for (const n of ['tablonAldeaCerca', 'avisoTablonAldea', 'abrirTablonAldea']) ok(enganche(main, n).length > 10, `ctxInteraccion le da a la tabla «${n}»`);
 }
 

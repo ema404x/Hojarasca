@@ -45,7 +45,7 @@ const MUTACIONES = [
   ['lo repartido se guarda', M, 'if (eventos.length) ctx.guardar();', ''],
   // ---- el enganche
   ['la partida vieja carga la aldea saneada', 'src/desafio-reglas.js', 'aldea: sanearAldeaDelDesafio(x.aldea),', 'aldea: x.aldea,'],
-  ['la E sólo en el Desafío', 'src/interacciones.js', 'cuando: (c) => c.desafio && aMano(c) && c.tablonAldeaCerca()', 'cuando: (c) => aMano(c) && c.tablonAldeaCerca()'],
+  ['la E sólo en el Desafío', 'src/interacciones.js', 'cuando: (c) => c.desafio && libre(c.js) && !c.js.montado && c.tablonAldeaCerca()', 'cuando: (c) => libre(c.js) && !c.js.montado && c.tablonAldeaCerca()'],
   ['el plan de lados es el de la noche', 'src/desafio.js', 'plan: () => ataques.planActual(),', 'plan: () => null,'],
   ['el mapa marca la entrada', 'src/main.js', 'desafio.aldeaMundo.marcaMapa()', 'desafio.aldeaMundo.marcaMapa2()'],
 ];
