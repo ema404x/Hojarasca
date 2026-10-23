@@ -38,6 +38,7 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
     assert.equal(nocheEspecial(3, a), null, 'no antes de la cuarta');
     assert.equal(nocheEspecial(6, a, 'roja'), null); assert.equal(nocheEspecial(6, a, 'niebla'), null, 'nunca dos seguidas');
     assert.equal(nocheEspecial(NOCHE_FINAL, a), null, 'ni la final');
+    assert.equal(nocheEspecial(NOCHE_FINAL + 1, a), null, 'ni después de la final en la campaña');
     for (const j of [5, 10, 15]) assert.equal(nocheEspecial(j, a), null, `ni la del jefe (${j})`);
   }
   // la frecuencia sigue siendo razonable: de todas las noches que pueden ser especiales, entre un tercio y la mitad
@@ -332,7 +333,9 @@ const { ESPECIALES, nocheEspecial, aplicarEspecial, efectoClima, sanearDesafio, 
   assert.match(des, /conLaCadena\(tipos, d\.oleadas, /, 'y al abrir una partida a mitad de ataque');
   assert.match(des, /cerrarNoche\(cadenaD\(\), d\.oleadas,/, 'al amanecer se cierra la noche');
   assert.match(des, /olvidarCadena\(cadenaD\(\)\)/, 'caer la olvida');
-  assert.match(des, /d\.giro = null;/, 'el giro se limpia al amanecer');
+  const fuera = des.indexOf('  // 2.1: los dormidos de los restos no cuentan');
+  assert.match(des.slice(des.indexOf('  function terminarOleada('), des.indexOf('  // 3.8.4: caer de día')), /d\.giro = null;/, 'el giro se limpia al amanecer (y al caer)');
+  assert.match(des.slice(des.indexOf('  function perderNocheSalteada('), fuera), /d\.giro = null;/, 'y al perder una noche salteada');
   assert.match(des, /anotarEscape\(cadenaD\(\), D\(\)\.oleadas, r\.cosa\)/, 'el que se escapa con lo robado queda anotado');
   assert.match(des, /\|\| brechaDeLaNoche\(\);/, 'la nave baja por donde quedó la brecha');
   assert.match(des, /avisarCadena\(\);/, 'se avisa una hora antes');
