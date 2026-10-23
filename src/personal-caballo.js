@@ -4,6 +4,8 @@
 // "Con más confianza responde mejor" no va: el zaino no tiene todavía ningún valor de
 // confianza ni de cariño, y esta versión no lo inventa.
 import { registrarSeccion, elegir, color, texto } from './personalizacion.js';
+// 4.7 pantalla: cuántas casillas suman las alforjas (carga.js)
+import { CASILLAS_ALFORJAS } from './carga.js';
 import { campoColores, campoElegir, campoTexto, campoSi, refDelMundo, CUEROS, TINTAS } from './personal-campos.js';
 
 // pelo: el cuerpo; oscuro: crin, cola, hocico y medias; manchas: las del overo
@@ -59,7 +61,8 @@ export const SECCION_CABALLO = registrarSeccion({
     campoColores(cont, 'Montura', CUEROS, d.montura, (v) => api.cambiar({ montura: v }));
     campoColores(cont, 'Pelero', MANTAS, d.manta, (v) => api.cambiar({ manta: v }));
     campoColores(cont, 'Riendas', CUEROS, d.riendas, (v) => api.cambiar({ riendas: v }));
-    campoSi(cont, 'Con alforjas', d.conAlforjas, (v) => api.cambiar({ conAlforjas: v }));
+    // 4.7: las alforjas ya no son adorno: suman lugar en la mochila mientras vas montado
+    campoSi(cont, `Con alforjas (+${CASILLAS_ALFORJAS} casillas montado)`, d.conAlforjas, (v) => api.cambiar({ conAlforjas: v }));
     campoColores(cont, 'Alforjas', CUEROS, d.alforjas, (v) => api.cambiar({ alforjas: v, conAlforjas: true }));
   },
   aplicar(datos, api) {

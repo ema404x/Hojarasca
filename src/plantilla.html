@@ -338,8 +338,8 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .mochila .cabeza-casillas { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; }
 .mochila .cabeza-casillas b { font-family: 'Caveat', cursive; font-size: 26px; font-weight: 700; color: #5a4524; }
 .mochila .cabeza-casillas span { font-size: 14px; color: #7a6742; }
-.mochila .cabeza-casillas.llena b::after { content: ' · llena'; font-size: 20px; color: #7a3a22; }
-.mochila .cabeza-casillas.sobrecarga b::after { content: ' · sobrecarga'; font-size: 20px; color: var(--notro); }
+.mochila .cabeza-casillas.llena b { color: #7a3a22; }
+.mochila .cabeza-casillas.sobrecarga b { color: #8a2e1f; }
 .mochila .aviso-sobrecarga { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 10px; padding: 8px 12px 7px; border: 2px solid var(--notro); border-radius: 5px; background: rgba(184,67,47,.12); color: var(--tinta-papel); }
 .mochila .aviso-sobrecarga b { font-size: 16px; color: #8a2e1f; }
 .mochila .aviso-sobrecarga p { margin: 0 0 3px; font-size: 14px; }
@@ -355,6 +355,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .mochila .casilla img { width: 32px; height: 32px; }
 .mochila .casilla .nom { max-width: 100%; font-size: 12px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mochila .casilla .cta { font-size: 14px; font-weight: 700; line-height: 1.1; color: #5a4524; }
+.mochila .casilla.enbarra { box-shadow: inset 0 0 0 2px rgba(120,100,60,.38); }
 .mochila .casilla.llena { border: 2px solid #5a4524; background: rgba(120,100,60,.16); }
 .mochila .casilla.elegible { cursor: pointer; transition: background .15s, transform .1s; }
 .mochila .casilla.elegible:hover { background: rgba(120,100,60,.2); transform: translateY(-1px); }
@@ -366,6 +367,7 @@ kbd { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 0.85
 .mochila.con-casillas .lado .cosa small { font-size: 12px; }
 /* 4.7 pantalla: «Mochila 17/24» junto a la barra; se resalta al llenarse y con sobrecarga (con palabra y marca, no sólo color) */
 .carga-hud { position: absolute; left: calc(50% + 262px); bottom: 24px; padding: 5px 12px 4px; border-radius: 7px; background: rgba(20,28,23,.5); backdrop-filter: blur(5px); font-size: 15px; letter-spacing: .02em; white-space: nowrap; color: rgba(239,230,210,.92); text-shadow: 0 1px 6px rgba(0,0,0,.8); }
+.carga-hud.tapada { display: none; }
 .carga-hud.llena { color: #f3d98a; box-shadow: inset 0 0 0 1px rgba(243,217,138,.6); }
 .carga-hud.sobrecarga { color: #ffd9cf; box-shadow: inset 0 0 0 2px var(--notro); background: rgba(90,28,18,.62); }
 .carga-hud.sobrecarga::before { content: '!'; display: inline-block; width: 17px; height: 17px; margin-right: 7px; border-radius: 50%; background: var(--notro); color: #f6ecd6; font: 700 13px/17px Spectral, Georgia, serif; text-align: center; text-shadow: none; }
@@ -648,6 +650,7 @@ input[type=range] { width: 100%; accent-color: var(--musgo); }
 #hud.mira-circulo .mira { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: none; border: 2px solid rgba(239,230,210,.78); box-shadow: 0 0 3px rgba(0,0,0,.55), inset 0 0 2px rgba(0,0,0,.45); }
 #hud.mira-ninguna .mira { visibility: hidden; }
 #hud.minimalista .recursos, #hud.minimalista .encargos-hud, #hud.minimalista .equipo { display: none; }
+#hud.minimalista .carga-hud:not(.llena):not(.sobrecarga) { display: none; }   /* 4.7 pantalla: en el modo mínimo sólo se ve cuando se llena */
 #hud.minimalista .barra { transition: opacity .5s; }
 #hud.minimalista .barra:not(.reciente) { opacity: 0; }
 

@@ -24,6 +24,9 @@ import { crearAves } from './aves.js';
 import { crearRenovales } from './renovales.js';
 import { crearRefugioVivo } from './refugiovivo.js';
 import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
+// 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js)
+import { ocupacion, capacidad, CASILLAS_ALFORJAS } from './carga.js';
+import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila } from './carga-pantalla.js';
 import { crearEnMano, cristalComoSemillaEnMano } from './enmano.js';
 import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan, cantidadMaterial, textoFaltan } from './construccion.js';
 import { crearPuertas } from './puertas.js';
@@ -3585,6 +3588,22 @@ function anotarBarraDibujada() {
   }
 }
 
+// 4.7 pantalla: cuánta carga llevás (sólo en el Relax). `cargaVista` es la ocupación vigente: se rehace cuando la barra se redibuja
+// (cambió una cuenta) o cuando subís o bajás del caballo (las alforjas), nunca por cuadro.
+let cargaVista = null, cargaMontadoVisto = false;
+const ctxCargaVista = () => ({ montado: !!jugador?.estado?.montado });
+function refrescarCargaHud() {
+  cargaMontadoVisto = !!jugador?.estado?.montado;
+  cargaVista = progreso.modo === 'desafio' ? null : ocupacion(progreso, ctxCargaVista());
+  ponerCargaHud($('carga-hud'), cargaVista);
+}
+// « · En la mochila: 17/24 casillas», para pegarle a un aviso o a un panel de depósitos (vacío en el Desafío)
+function lineaMochilaVigente() {
+  if (progreso.modo === 'desafio') return '';
+  if (!cargaVista) refrescarCargaHud();
+  return cargaVista ? ` · ${lineaMochila(cargaVista)}` : '';
+}
+
 function refrescarBarra(forzar = false) {
   if (!jugador) return;
   // `ranuras` se rearma siempre: usarRanura y elegirRanura leen lo de este mismo cuadro
@@ -3604,6 +3623,7 @@ function refrescarBarra(forzar = false) {
   if (barraVigente && !forzar && barraSinCambios()) return;
   barraVigente = true;
   anotarBarraDibujada();
+  refrescarCargaHud();   // 4.7 pantalla: la mochila cambió (la barra se redibuja sólo cuando cambia algo)
   barraEl.innerHTML = '';
   for (let i = 0; i < 8; i++) {
     const r = ranuras[i];
@@ -3783,13 +3803,48 @@ function abrirMochila(abrir) {
   if (!abrir) return;
   const rej = $('mochila-rejilla');
   rej.innerHTML = '';
-  const cosas = [...armarMochila(progreso, estadoMochila()), ...armarGuardado(progreso, ENTRADA)];
-  $('mochila-sub').textContent = cosas.length
-    ? `${cosas.length} cosas encima. Tocá una para ponerla en la casilla ${elegida + 1} de la barra.`
-    : 'Está vacía. Juntá lo que encuentres por el bosque.';
-  cosas.forEach((c, i) => {
+  const hechas = armarMochila(progreso, estadoMochila());
+  const guardado = armarGuardado(progreso, ENTRADA);
+  // 4.7 pantalla: en el Relax, lo que ocupa lugar va a las casillas; el Desafío queda como estaba (la mochila de siempre)
+  const conCasillas = progreso.modo !== 'desafio';
+  $('mochila').classList.toggle('con-casillas', conCasillas);
+  $('mochila-cabeza').classList.toggle('oculto', !conCasillas);
+  $('mochila-casillas').classList.toggle('oculto', !conCasillas);
+  $('mochila-herramientas').classList.toggle('oculto', !conCasillas);
+  let cosas = [...hechas, ...guardado];
+  const posBarra = (id, i) => (progreso.barra ? progreso.barra.indexOf(id) : i);
+  const lugares = new Map(cosas.map((c, i) => [c.id, i]));   // el lugar de cada cosa en la lista entera (para marcar las que están en la barra)
+  if (conCasillas) {
+    const ctx = ctxCargaVista();
+    const ocup = ocupacion(progreso, ctx), cap = capacidad(progreso, ctx);
+    cargaVista = ocup;   // (la misma cuenta sirve al indicador del HUD y a las líneas de los depósitos)
+    const parte = partirRanuras(hechas, ocup);
+    const vista = vistaCasillas(ocup, cap, (k) => {
+      const r = parte.porId.get(k);
+      return r ? { nombre: r.nombre, icono: r.icono, id: r.id, texto: r.texto } : { nombre: ENTRADA[k]?.nombre || k, icono: k, id: null, texto: ENTRADA[k]?.texto || '' };
+    });
+    dibujarCasillas($('mochila-casillas'), vista, {
+      iconoDe: icono, alClic: alClicHud, doc: document,   // 3.6.2: mousedown (el click tiraba la línea antes de llegar)
+      alElegir: (id) => { asignarRanura(id); abrirMochila(true); },
+      enBarra: (id) => { const p = posBarra(id, lugares.get(id)); return p >= 0 && p < 8; },
+    });
+    dibujarSobrecarga($('mochila-sobrecarga'), vista);
+    const estado = estadoCarga(ocup);
+    $('mochila-contador').textContent = textoContador(ocup);
+    $('mochila-detalle').textContent = textoDetalleCapacidad(cap, progreso.personal?.caballo?.conAlforjas === true ? CASILLAS_ALFORJAS : 0);
+    $('mochila-cabeza').classList.toggle('llena', estado === 'llena');
+    $('mochila-cabeza').classList.toggle('sobrecarga', estado === 'sobrecarga');
+    $('mochila-sub').textContent = `Tocá una cosa para ponerla en la casilla ${elegida + 1} de la barra. Las herramientas no ocupan lugar.`;
+    ponerCargaHud($('carga-hud'), ocup);
+    cosas = [...parte.herramientas, ...guardado];
+  } else {
+    $('mochila-sub').textContent = cosas.length
+      ? `${cosas.length} cosas encima. Tocá una para ponerla en la casilla ${elegida + 1} de la barra.`
+      : 'Está vacía. Juntá lo que encuentres por el bosque.';
+  }
+  cosas.forEach((c) => {
     const d = document.createElement('div');
-    const enLaBarra = progreso.barra ? progreso.barra.indexOf(c.id) : i;
+    const enLaBarra = posBarra(c.id, lugares.get(c.id));
     d.className = `cosa${enLaBarra >= 0 && enLaBarra < 8 ? ' enbarra' : ''}`;
     d.tabIndex = 0;
     d.title = 'Clic o Enter para ponerlo en la casilla elegida';
@@ -6622,6 +6677,7 @@ function dibujarPanelObra() {
   $('obra-materiales').textContent = `Llevás ${cuantas(m.tronco || 0, 'tronco', 'troncos')} · ${cuantas(m.tabla || 0, 'tabla', 'tablas')} · ${cuantas(m.piedra || 0, 'piedra', 'piedras')}`
     + (enAcopio ? ` · en el acopio ${enAcopio.tronco || 0}/${enAcopio.tabla || 0}/${enAcopio.piedra || 0}` : '')
     + almacenJuego.textoPanel(RADIO_ACOPIO_OBRA)   // 4.2
+    + lineaMochilaVigente()   // 4.7 pantalla: cuánto lugar hay en la mochila
     + (totalPesos ? ` · Tenés ${formatoPesos(pesosDe(progreso))}` : '');
   actualizarEstadoModuloObra(true);
   actualizarEstadoSitioObra(obras.estadoSitio);
@@ -7744,7 +7800,7 @@ function sobreEmbarcadero(o, pos) {
   return Math.abs(lx) < o.plano.ancho / 2 + 0.6 && Math.abs(lz) < o.plano.fondo / 2 + 0.6 && Math.abs(pos.y - (o.datos.y + 0.46)) < 1.6;
 }
 function avisoObra24(o) {
-  if (almacenJuego.esAlmacen(o.plano.id)) return almacenJuego.aviso(o);   // 4.2
+  if (almacenJuego.esAlmacen(o.plano.id)) { const t = almacenJuego.aviso(o); return /sacar/i.test(t) ? t + lineaMochilaVigente() : t; }   // 4.2 (4.7: al sacar, cuánto lugar queda en la mochila)
   switch (o.plano.id) {
     case 'horno': { const rc = elegirHorneada(cuantoCocina, guardadoHorno); return rc ? `Hornear ${rc.nombre}` : 'El horno de barro'; }
     case 'buzon': return porRetirar(correo(), progreso).length ? 'Abrir el buzón: hay carta' : porEnviar(correo()).length ? 'Mandar la foto por el buzón' : 'Mirar el buzón';
@@ -10621,8 +10677,10 @@ function cuadroDelJuego(tRaf, manual) {
       if ($('encargos-hud').textContent !== texto) $('encargos-hud').textContent = texto;
     }
     if (mostrarNombre > 0) { mostrarNombre -= dt; if (mostrarNombre <= 0) barraVigente = false; }
+    if (cargaMontadoVisto !== !!js.montado) refrescarCargaHud();   // 4.7 pantalla: montar o bajar cambia las casillas (alforjas)
     refrescarBarra();
     barraEl.classList.toggle('oculto', mochilaAbierta || js.zoom);
+    $('carga-hud').classList.toggle('tapada', mochilaAbierta || js.zoom);   // 4.7 pantalla: con la mochila abierta o los prismáticos, no
     barraEl.classList.toggle('reciente', mostrarNombre > 0 || modoObra);   // 2.8: en el modo mínimo se ve un momento
     $('prismaticos').classList.toggle('activo', js.zoom);
     const opacidadMira = js.zoom ? '0' : objetivo ? '1' : '0.45';

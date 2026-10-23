@@ -22,9 +22,11 @@ function hayCosas(o) {
   return false;
 }
 
-// «Casillas 17/24» (el panel)
+// «Casillas 17/24», «Casillas 24/24 · llena», «Casillas 24/24 · sobrecarga» (el panel). Con sobrecarga, `usadas` pasa del total
+// (es lo que de verdad llevás): el contador muestra lo que entra en las casillas y la palabra avisa del resto.
 export function textoContador(ocup) {
-  return `Casillas ${ocup.usadas}/${ocup.total}`;
+  const e = estadoCarga(ocup);
+  return `Casillas ${Math.min(ocup.usadas, ocup.total)}/${ocup.total}${e === 'llena' ? ' · llena' : e === 'sobrecarga' ? ' · sobrecarga' : ''}`;
 }
 
 // Qué suma cada cosa al total, para el renglón de abajo del contador
@@ -39,12 +41,12 @@ export function textoDetalleCapacidad(cap, extraAlforjas = 0) {
 // «Mochila 17/24», «Mochila 24/24 · llena», «Mochila 24/24 · sobrecarga» (el HUD)
 export function textoHud(ocup) {
   const e = estadoCarga(ocup);
-  return `Mochila ${ocup.usadas}/${ocup.total}${e === 'llena' ? ' · llena' : e === 'sobrecarga' ? ' · sobrecarga' : ''}`;
+  return `Mochila ${Math.min(ocup.usadas, ocup.total)}/${ocup.total}${e === 'llena' ? ' · llena' : e === 'sobrecarga' ? ' · sobrecarga' : ''}`;
 }
 
 // «En la mochila: 17/24 casillas» (los depósitos y el panel de obra, al sacar)
 export function lineaMochila(ocup) {
-  return `En la mochila: ${ocup.usadas}/${ocup.total} casillas${estadoCarga(ocup) === 'sobrecarga' ? ' · sobrecarga' : ''}`;
+  return `En la mochila: ${Math.min(ocup.usadas, ocup.total)}/${ocup.total} casillas${estadoCarga(ocup) === 'sobrecarga' ? ' · sobrecarga' : ''}`;
 }
 
 // ---------------------------------------------------------------- la vista de las casillas
@@ -62,11 +64,13 @@ export function vistaCasillas(ocup, cap, buscar) {
     const d = buscar ? buscar(k) : null;
     return { nombre: d?.nombre || String(k), icono: d?.icono || null, id: d?.id ?? null, texto: d?.texto || '' };
   };
+  const sobra = ocup?.sobrecarga || {};
   for (const c of ocup?.casillas || []) {
     const d = datos(c.k);
     const max = Math.max(1, c.max | 0);
-    let resta = Math.max(0, c.n | 0);
-    const pilas = Math.max(1, c.pilas | 0);
+    // con sobrecarga, a las casillas sólo va lo que entra: lo que pasa del límite se muestra aparte
+    let resta = Math.max(0, (c.n | 0) - (Object.hasOwn(sobra, c.k) ? sobra[c.k] | 0 : 0));
+    const pilas = Math.ceil(resta / max);
     for (let i = 0; i < pilas && resta > 0 && celdas.length < total; i++) {
       const n = Math.min(max, resta);
       resta -= n;
@@ -85,13 +89,16 @@ export function vistaCasillas(ocup, cap, buscar) {
   return { celdas, sobrecarga: sobre };
 }
 
-// Reparte las ranuras de `armarMochila`: lo que ocupa casillas va a la grilla; lo demás (herramientas, la cámara, la caña,
-// los ponchos…) queda en su sección de siempre. `esCargable(id)` viene de carga.js.
-export function partirRanuras(ranuras, esCargable) {
+// Reparte las ranuras de `armarMochila`: la cosa que `ocupacion` cuenta en casillas va a la grilla (queda en `porId`, para
+// sacarle el nombre y el dibujo); lo demás (herramientas, la cámara, la caña, las ramitas…) queda en su sección de siempre.
+// (`esCargable` de carga.js no alcanza: dice que sí a cualquier nombre menos las ramitas.)
+export function partirRanuras(ranuras, ocup) {
+  const cuentan = new Set();
+  for (const c of ocup?.casillas || []) cuentan.add(c.k);
   const herramientas = [], porId = new Map();
   for (const r of ranuras || []) {
     if (!r) continue;
-    if (esCargable(r.id)) { if (!porId.has(r.id)) porId.set(r.id, r); }
+    if (cuentan.has(r.id)) { if (!porId.has(r.id)) porId.set(r.id, r); }
     else herramientas.push(r);
   }
   return { herramientas, porId };
@@ -100,7 +107,7 @@ export function partirRanuras(ranuras, esCargable) {
 // ---------------------------------------------------------------- el DOM del panel
 // Las casillas en `cont` (se vacía y se rearma): `alElegir(id)` si la cosa tiene ranura (clic o Enter/Espacio).
 // `iconoDe(nombreIcono)` da la imagen (data URL). Nada de esto va por cuadro: sólo al abrir o al cambiar la mochila.
-export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, doc = (typeof document !== 'undefined' ? document : null) } = {}) {
+export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, enBarra, doc = (typeof document !== 'undefined' ? document : null) } = {}) {
   cont.textContent = '';
   let zonaAnterior = null;
   vista.celdas.forEach((c, i) => {
@@ -120,6 +127,7 @@ export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, doc = 
       cont.appendChild(d);
       return;
     }
+    if (enBarra && c.id != null && enBarra(c.id)) d.classList.add('enbarra');
     d.title = `${c.nombre}: ${c.n} de ${c.max} en esta casilla${c.llena ? ' (llena)' : ''}${c.texto ? `. ${c.texto}` : ''}`;
     if (c.icono && iconoDe) {
       const img = doc.createElement('img');
