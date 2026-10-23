@@ -20,7 +20,7 @@ const MUTACIONES = [
   ['defensas: sin tope de noches', MEJ, 'Math.min(CURTIDO.tope, curt.n + 1)', 'curt.n + 1'],
   ['defensas: sube de nivel y se repara entera', MEJ, 'cura: 0.2,', 'cura: 5,'],
   ['defensas: se curte lo que sea', MEJ, 'export const curtible = (plano) => seRompe(plano);', 'export const curtible = (plano) => true;'],
-  ['defensas: la experiencia no se sanea', MEJ, "if (!v || typeof v !== 'object' || Array.isArray(v)) return undefined;", 'if (!v) return undefined;'],
+  ['defensas: la experiencia sin tope en el saneo', MEJ, 'const n = ent(v.n, 0, CURTIDO.tope, 0)', 'const n = ent(v.n, 0, 1e9, 0)'],
   ['defensas: la placa no se cuelga', MEJM, 'o.grupo.add(mesh);\n    o.userCurtido', 'o.userCurtido'],
   ['defensas: la placa de otra malla', MEJM, 'mesh.castShadow = false; mesh.receiveShadow = true;', 'mesh.castShadow = true; mesh.receiveShadow = true;'],
   ['defensas: al subir no cura', MEJM, 'o.datos.vida = Math.min(max, o.datos.vida + max * CURTIDO.cura);', ''],
@@ -66,7 +66,7 @@ const MUTACIONES = [
   ['juego: la pantalla no cuenta lo que creció', 'src/main.js', ', crece: desafio?.baseCrece?.resumen()', ''],
   // lo guardado
   ['guardado: la experiencia no se sanea', 'src/guardado.js', 'const c = sanearCurtido(d.curt);', 'const c = d.curt;'],
-  ['guardado: los trofeos colgados no se sanean', 'src/guardado.js', 'd.colgados = d.colgados.filter((id) => IDS_TROFEOS.includes(id));', ''],
+  ['guardado: los trofeos colgados no se sanean', 'src/guardado.js', 'd.colgados.filter((id) => IDS_TROFEOS.includes(id))', 'd.colgados'],
   ['guardado: crece no se sanea', 'src/desafio-reglas.js', 'crece: sanearCrece(x.crece),', 'crece: x.crece,'],
   ['guardado: la partida nueva sin crece', 'src/desafio-reglas.js', '    crece: creceNuevo() };', '    };'],
   ['guardado: el perro no se sanea', 'src/desafio-crece.js', 'perro: sanearPerro(x.perro) };', 'perro: x.perro };'],
