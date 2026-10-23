@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { MAT_FAUNA } from './vida.js';
 import { generador, hashTexto } from './semilla.js';
-import { PUNTOS_ZONA, PUNTO_ZONA, MATERIALES_ZONA, IDS_MATERIALES_ZONA, IDS_HERRAMIENTAS_ZONA, estadoZona, puntoCerca, avisoPunto, usarPunto, faltaPara, textoDa, pehuenCerca, avisoPehuen, juntarPehuen, pehuenDisponible, entradaDeMaterial } from './recursos-zona.js';
+import { PUNTOS_ZONA, PUNTO_ZONA, MATERIALES_ZONA, IDS_MATERIALES_ZONA, IDS_HERRAMIENTAS_ZONA, estadoZona, puntoCerca, avisoPunto, usarPunto, faltaPara, textoDa, pehuenCerca, avisoPehuen, juntarPehuen, pehuenDisponible, entradaDeMaterial, PINONES_PEHUEN } from './recursos-zona.js';
 
 const LEJOS = 170;
 const RADIO_PEHUENAL = 140;   // los 8 pehuenes están a menos de 80 m del mirador: más allá ni se buscan
@@ -262,6 +262,7 @@ export function crearRecursosZonaMundo(ctx) {
     const est = estadoZona(p);
     const falta = faltaPara(est, punto, dia());
     if (falta > 0 || !(Number(p.cosas?.[punto.herramienta]) > 0)) { ctx.nota?.(punto.nombre, avisoPunto(est, punto, dia(), p.cosas)); return; }
+    for (const [k, n] of Object.entries(punto.da)) if (ctx.cabeJuntar && !ctx.cabeJuntar(k, n)) return;   // 4.7 carga: con la mochila llena el recurso queda en su lugar (ni un golpe a la veta)
     if (punto.golpes > 1) { usarVeta(p, punto); return; }
     const u = usarPunto(est, punto, dia(), p.cosas);
     if (!u.ok) return;
@@ -272,6 +273,7 @@ export function crearRecursosZonaMundo(ctx) {
     const p = prog();
     if (!p) return;
     const est = estadoZona(p);
+    if (pehuenDisponible(est, a, dia(), p.horas, ctx.estacion?.() || 'auto') && ctx.cabeJuntar && !ctx.cabeJuntar('pinon', PINONES_PEHUEN)) return;   // 4.7 carga: los piñones quedan en el pehuén
     const r0 = juntarPehuen(est, a, dia(), p.horas, ctx.estacion?.() || 'auto');
     if (!r0.ok) { ctx.nota?.('Pehuén', avisoPehuen(est, a, dia(), p.horas, ctx.estacion?.() || 'auto')); return; }
     ctx.registrar?.('pehuen');   // 4.6.0: al pie del pehuén, juntando sus piñones, queda anotado (si no, «Anotar pehuén» le volvía a ganar a la E)
