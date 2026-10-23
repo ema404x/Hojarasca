@@ -68,9 +68,10 @@ export function crearPuestosRutaJuego(ctx) {
         ctx.nota('Guardaste en el depósito del puesto', `${enPalabras(guardado)}. ${resumenDeposito(p, id)}${sobra.length ? `. No entró el resto de ${sobra.map((k) => nombreMaterial(k)).join(' y ')}: está lleno` : ''}`, true);
       } else ctx.nota('El depósito del puesto está lleno', `${resumenDeposito(p, id)}. Sin nada a mano, E saca todo`);
     } else if (hayEnDeposito(p, id)) {
-      const sacado = sacarDePuesto(p, id, m);
+      const sacado = sacarDePuesto(p, id, m, ctx.lugarEn || null);   // 4.7 carga: sólo sale lo que entra en la mochila
+      if (!Object.keys(sacado).length) { ctx.nota('Mochila llena: no te entra nada del depósito', 'Hacé lugar en la mochila: lo guardado sigue en el puesto'); return true; }
       ctx.sonido?.juntar?.();
-      ctx.nota('Sacaste todo del depósito del puesto', enPalabras(sacado));
+      ctx.nota(hayEnDeposito(p, id) ? 'Sacaste lo que te entra del depósito del puesto' : 'Sacaste todo del depósito del puesto', enPalabras(sacado));
     } else {
       ctx.nota('El depósito del puesto está vacío', `Traé ${GUARDA.map((k) => nombreMaterial(k)).join(', ')} y apretá E acá: guarda hasta 40 de cada uno`);
       return true;

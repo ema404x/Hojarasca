@@ -758,7 +758,7 @@ async function construir() {
         for (const z of puestosRutaMundo.zonas) { veg.despejar(z.x, z.z, z.r); pelarPastoTemporal(z.x, z.z, z.r - 0.5); edificios.push({ x: z.x, z: z.z, radio: z.r + 1, nombre: z.nombre }); }
         for (const z of puestosRutaMundo.claros || []) veg.despejar(z.x, z.z, z.r, false);   // 4.6.0: el claro de atrás, sólo árboles
         puestosJuego = crearPuestosRutaJuego({ progreso: () => progreso, desafio: () => !!desafio, mundo: puestosRutaMundo, nota: (tx, sub, nueva) => nota(tx, sub, nueva), guardar: () => guardar(),
-          refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas });
+          refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas, lugarEn: (k, n) => lugarEn(k, n) });   // (4.7 carga: del depósito sale sólo lo que entra)
       } catch (err) { console.warn('puestos-ruta', err); puestosRutaMundo = null; puestosJuego = null; }
     }
     // 3.7.5 (rincones): los duendes, el potrero, las huertas, el retablo, el fuerte, el camino al refugio (rodea las
@@ -4865,6 +4865,7 @@ const almacenJuego = crearAlmacenJuego({
   nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
   material: (k) => material(k), cuantoHay: (k) => cuantoHay(k), sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
   conMateriales: (fn) => conMateriales(fn), materialesVisibles: () => materialesVisibles(),
+  lugarEn: (k, n) => lugarEn(k, n),   // 4.7 carga: al sacar del depósito sólo sale lo que entra
 });
 // 4.3: el negocio propio (aislado: si falla al armarse, el resto del juego sigue). Todo por función: se lee al usarlo.
 let negocioJuego = null;
@@ -4945,16 +4946,22 @@ function usarAcopio() {
     sonido.juntar();
     nota('Guardaste en el acopio', `${partes.join(' · ')}. Hay ${a.tronco || 0}/${a.tabla || 0}/${a.piedra || 0} (tope ${TOPE_ACOPIO} de cada uno)${noEntro.length ? `. No entró todo: ${noEntro.join(', ')}` : ''}`);
   } else if (totalAcopio() > 0) {
+    // 4.7 carga: del acopio sale sólo lo que entra en la mochila; el resto queda guardado
     const partes = [];
+    let quedo = false;
     for (const k of CLAVES_MATERIAL) {
-      const n = a[k] || 0;
+      const n0 = a[k] || 0;
+      if (!n0) continue;
+      const n = Math.min(n0, lugarEn(k, n0));
+      if (n < n0) quedo = true;
       if (!n) continue;
       m[k] = (m[k] || 0) + n;
-      a[k] = 0;
+      a[k] = n0 - n;
       partes.push(cantidadMaterial(n, k));
     }
+    if (!partes.length) { nota('Mochila llena: no te entra nada del acopio', 'Gastá, vendé o guardá algo en un depósito'); return; }
     sonido.juntar();
-    nota('Sacaste todo del acopio', partes.join(' · '));
+    nota(quedo ? 'Sacaste lo que te entra del acopio' : 'Sacaste todo del acopio', quedo ? `${partes.join(' · ')}. El resto sigue en el acopio: hacé lugar en la mochila` : partes.join(' · '));
   } else {
     nota('El acopio está vacío', 'Traé troncos, tablas o piedra y apretá E acá');
     return;
@@ -5969,6 +5976,7 @@ function cargas() {
       temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),
       nota, sonido, guardar, refrescar: () => refrescarBarra(true), T_,
       alClic: (el, fn) => alClicHud(el, fn),   // 3.8.4: el clic mueve la marca del mando
+      ...CARGA_CTX,   // 4.7 carga: lo que comprás tiene que entrar
       // 3.7.3: con el furgón de carga enganchado, más fletes por día y a la vez
       furgon: () => (conVagon('carga') ? { extra: FURGON.fletesExtra, aLaVez: FURGON.aLaVez } : null),
     });
@@ -5979,7 +5987,7 @@ const enLasCargas = () => !!puestoCargas?.abierto();
 // 3.8.8: el mostrador del banco del pueblo (banco-mundo.js): préstamos, abastecimiento, casas y alquiler, y tu puesto en la feria
 let bancoPueblo = null;
 function bancoDelPueblo() {
-  if (!bancoPueblo) bancoPueblo = crearBancoMundo({ panel: $('banco-pueblo'), contenido: $('banco-pueblo-contenido'), progreso: () => progreso, dia: () => progreso.dia, nota, guardar, refrescar: () => refrescarBarra(true), T_, sonido, alClic: (el, fn) => alClicHud(el, fn) });
+  if (!bancoPueblo) bancoPueblo = crearBancoMundo({ panel: $('banco-pueblo'), contenido: $('banco-pueblo-contenido'), progreso: () => progreso, dia: () => progreso.dia, nota, guardar, refrescar: () => refrescarBarra(true), T_, sonido, alClic: (el, fn) => alClicHud(el, fn), cabeJuntar: (k, n) => cabeJuntar(k, n) });   // (4.7 carga: la consigna)
   return bancoPueblo;
 }
 const enElBanco = () => !!bancoPueblo?.abierto();

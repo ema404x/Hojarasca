@@ -184,6 +184,7 @@ export function crearBancoMundo(ctx) {
     sumar(b, -r.unidades); ctx.guardar(); ctx.refrescar?.(); dibujar();
   }
   function sacar(b) {
+    if (ctx.cabeJuntar && !ctx.cabeJuntar(b, 1)) return;   // 4.7 carga: lo de la consigna sale sólo si entra en la mochila (si no, sigue en el puesto)
     const r = sacarDelPuesto(P(), b, 1);
     if (r.ok) { sumar(b, r.unidades); ctx.guardar(); ctx.refrescar?.(); dibujar(); }
   }

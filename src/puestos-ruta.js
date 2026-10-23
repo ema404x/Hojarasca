@@ -192,11 +192,11 @@ export function guardarEnPuesto(p, id, materiales) {
   return { guardado, sobra };
 }
 // Saca todo lo guardado y lo suma a `materiales`: devuelve { k: n }
-export function sacarDePuesto(p, id, materiales) {
+export function sacarDePuesto(p, id, materiales, lugar = null) {   // 4.7 carga: `lugar(k, n)`: cuántos de n entran en la mochila (sale sólo eso; el resto queda en el depósito)
   const a = depositoDe(p, id), sacado = {};
   if (!a) return sacado;
   for (const k of GUARDA) {
-    const n = sacarDeAlmacen(DEPOSITO, a, k);
+    const n = sacarDeAlmacen(DEPOSITO, a, k, lugar ? lugar(k, guardadoDe(a, k)) : Infinity);
     if (n > 0) { materiales[k] = entero(materiales[k], 1e7) + n; sacado[k] = n; }
   }
   return sacado;

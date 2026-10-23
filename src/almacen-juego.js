@@ -131,13 +131,16 @@ export function crearAlmacenJuego(d) {
         d.nota(`${D.nombre} ${D.f ? 'llena' : 'lleno'}`, `${resumen(id, a)}. Supr saca lo guardado. ${sig ? `Mantené E para ampliarla: ${textoAmpliacion(id, a)}` : 'No se puede ampliar más: armá otro'}`, true);
       }
     } else if (totalGuardado(id, a) > 0) {
+      // 4.7 carga: sale sólo lo que entra en la mochila; el resto queda guardado
       const partes = [];
+      let quedo = false;
       for (const k of D.guarda) {
-        const n = sacarDe(id, a, k);
+        const n = sacarDe(id, a, k, d.lugarEn ? d.lugarEn(k, guardadoDe(a, k)) : Infinity);
         if (n > 0) { if (D.tipo === 'cosecha') d.sumarEntrada(k, n); else d.sumarMaterial(k, n); partes.push(cantidad(n, k)); }
+        if (guardadoDe(a, k) > 0) quedo = true;
       }
       d.sonido()?.juntar?.();
-      d.nota(`Sacaste todo ${D.del}`, partes.join(' · '));
+      d.nota(partes.length ? `Sacaste ${quedo ? 'lo que te entra' : 'todo'} ${D.del}` : 'Mochila llena: no te entra nada de eso', quedo ? `${partes.join(' · ')}${partes.length ? '. ' : ''}El resto sigue guardado: hacé lugar en la mochila` : partes.join(' · '));
     } else {
       d.nota(`${D.nombre} ${D.f ? 'vacía' : 'vacío'}`, D.tipo === 'cosecha' ? `Traé habas, papas, frutillas o calafates y apretá E acá. ${resumen(id, a)}` : `Traé ${D.guarda.map((k) => nombreDe(k)).join(', ')} y apretá E acá. ${resumen(id, a)}`);
     }
@@ -152,13 +155,16 @@ export function crearAlmacenJuego(d) {
     const id = o.plano.id, D = ALMACENES[id], a = estado(o), antes = firma(o);
     if (D.tipo === 'herramienta') { d.nota(`${D.nombre}: ${resumen(id, a)}`, 'Las herramientas colgadas siguen a mano: no hay nada que sacar'); return true; }
     if (totalGuardado(id, a) <= 0) { d.nota(`${D.nombre} ${D.f ? 'vacía' : 'vacío'}`, resumen(id, a)); return true; }
+    // 4.7 carga: sale sólo lo que entra en la mochila; el resto queda guardado
     const partes = [];
+    let quedo = false;
     for (const k of D.guarda) {
-      const n = sacarDe(id, a, k);
+      const n = sacarDe(id, a, k, d.lugarEn ? d.lugarEn(k, guardadoDe(a, k)) : Infinity);
       if (n > 0) { if (D.tipo === 'cosecha') d.sumarEntrada(k, n); else d.sumarMaterial(k, n); partes.push(cuantosDe(n, k)); }
+      if (guardadoDe(a, k) > 0) quedo = true;
     }
     d.sonido()?.juntar?.();
-    d.nota(`Sacaste todo ${D.del}`, partes.join(' · '));
+    d.nota(partes.length ? `Sacaste ${quedo ? 'lo que te entra' : 'todo'} ${D.del}` : 'Mochila llena: no te entra nada de eso', quedo ? `${partes.join(' · ')}${partes.length ? '. ' : ''}El resto sigue guardado: hacé lugar en la mochila` : partes.join(' · '));
     refrescarSiCambio(o, antes);
     d.refrescarBarra();
     d.guardar();
