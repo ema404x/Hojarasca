@@ -93,6 +93,9 @@ export const INTERACCIONES = [
   { id: 'obra-aldea', cuando: (c, enE) => aMano(c) && c.cerca('obraAldea', enE), sigue: true, aviso: (c, l) => c.avisoObraAldea(l), hacer: (c, l) => c.aportarObra(l) },
   // 4.6 gente: el tablón de encargos de la plaza, antes de lo de cada lugar de la aldea
   { id: 'tablon', ...delModulo('tablon', aMano) },
+  // 4.9 dias: en el Desafío, el tablón de la aldea junto a la base: los pedidos de los vecinos y la noche que viene (a pie; gana
+  // sobre lo que mires: a menos de 3,6 m del tablón, el árbol o el helecho de atrás no le sacan la E)
+  { id: 'aldea-tablon', cuando: (c) => c.desafio && libre(c.js) && !c.js.montado && c.tablonAldeaCerca(), aviso: (c) => c.avisoTablonAldea(), hacer: (c) => c.abrirTablonAldea() },
   // 3.6 (mecánicas): lo de cada lugar de la aldea
   { id: 'mecanica', ...delModulo('mecanica', aMano) },
   // 3.7.2 (granja): la vaca, los chanchos, los corderos, el comedero, la batea y los frutales

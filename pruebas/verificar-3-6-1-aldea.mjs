@@ -235,7 +235,7 @@ const todo = { tronco: 999, tabla: 999, piedra: 999 };
   datos.set('hojarasca-desafio-v1', JSON.stringify(vd));
   const cd = Gd.cargarProgreso();
   ok(cd && !cd.aldea && !('pueblo' in cd), 'un Desafío de la 3.1 (con su pueblo vacío) carga sin aldea ni pueblo');
-  ok(Gd.guardarProgreso(cd) && !/"aldea"|"pueblo"/.test(datos.get('hojarasca-desafio-v1')), 'y se guarda sin aldea');
+  ok(Gd.guardarProgreso(cd) && (() => { const g = JSON.parse(datos.get('hojarasca-desafio-v1')); return !Object.hasOwn(g, 'aldea') && !Object.hasOwn(g, 'pueblo'); })(), 'y se guarda sin aldea');   // 4.9 dias: la aldea de Relax; el Desafío trae la suya adentro de desafio.aldea (los pedidos de los vecinos)
   Gd.usarModoGuardado('relax', 1);
   ok(!!Gd.cargarProgreso().aldea, 'el Relax de la misma ranura conserva su aldea');
   // lo que lee la aldea en el Desafío no tira sin `progreso.aldea`
