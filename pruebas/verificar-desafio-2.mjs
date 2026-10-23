@@ -63,7 +63,7 @@ const des = leer('src/desafio.js'), alien = leer('src/desafio-duendes.js'), main
   assert.equal(S.avisoDelPerro({ distancia: 10, visto: true }), 'ladrar', 'cerca ladra igual');
   assert.equal(S.avisoDelPerro({ distancia: 80, visto: false }), null);
   const ali = leer('src/desafio-aliados.js'), perro = leer('src/perro.js');
-  assert.match(ali, /avisoDelPerro\(\{ distancia: d0, visto \}\)/);
+  assert.match(ali, /avisoDelPerro\(\{ distancia: d0, visto, alcance: api\.alcancePerro\?\.\(\) \?\? 1 \}\)/);   // 4.8 noches: con niebla gruñe de más lejos
   assert.match(perro, /est\.estado === 'alerta'/, 'el perro se queda duro mirando para ese lado');
   assert.match(main, /mundoPerro\.alerta = /);
 }

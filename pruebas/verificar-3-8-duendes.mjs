@@ -94,7 +94,7 @@ for (const n of [1, 3, 9, 30]) { const c = suministrosDelAlba(n, true); assert.d
 {
   const cuerpo = des.slice(des.indexOf('  function soltarAlien(a)'), des.indexOf('  // Precalentar')) +
     des.slice(des.indexOf('  const NOMBRE_ROBADO'), des.indexOf('  function terminarOleada'));
-  const fab = new Function('D', 'ctx', 'ROBO', 'puedeRobar', 'queSeLleva', 'aliens', 'escena', 'T', 'mallaAtadito', 'registrarHalos', 'S', 'libres', 'progreso', 'Math', 'setTimeout',
+  const fab = new Function('D', 'ctx', 'ROBO', 'puedeRobar', 'queSeLleva', 'aliens', 'escena', 'T', 'mallaAtadito', 'registrarHalos', 'S', 'libres', 'progreso', 'Math', 'setTimeout', 'anotarEscape', 'cadenaD',   // 4.8 noches: el escape se anota en la cadena
     `let caido = false;\n${cuerpo}\nreturn { soltarAlien, intentarRobo, soltarRobo, devolverTodo, levantarTirados, tirados };`);
   const p = { materiales: { cristal: 0, tabla: 2, piedra: 0 }, ramitas: 1, desafio: { oleadas: 3 } };   // sin `robados`: de antes de la 3.8
   const ctxR = {
@@ -106,7 +106,7 @@ for (const n of [1, 3, 9, 30]) { const c = suministrosDelAlba(n, true); assert.d
   const aliensR = [], libresR = { rastreador: [] };
   const pos = () => ({ x: 4, y: 0, z: 5, set(x, y, z) { this.x = x; this.y = y; this.z = z; } });
   const malla = () => ({ position: pos(), rotation: { y: 0 }, visible: false });
-  const R = fab(() => p.desafio, ctxR, ROBO, puedeRobar, queSeLleva, aliensR, { add() {} }, { altura: () => 0 }, malla, () => {}, { risa() {} }, libresR, () => p, Object.assign(Object.create(Math), { random: () => 0 }), () => {});
+  const R = fab(() => p.desafio, ctxR, ROBO, puedeRobar, queSeLleva, aliensR, { add() {} }, { altura: () => 0 }, malla, () => {}, { risa() {} }, libresR, () => p, Object.assign(Object.create(Math), { random: () => 0 }), () => {}, () => {}, () => ({}));
   const total = () => p.ramitas + p.materiales.tabla + p.materiales.cristal + Object.values(p.desafio.robados || {}).reduce((s, n) => s + n, 0);
   const T0 = total();
   const pillo = () => ({ tipo: 'rastreador', robo: null, m: { viejo: false, robar() {}, g: { position: pos(), visible: true } } });

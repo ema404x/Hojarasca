@@ -49,7 +49,7 @@ export function crearAliados(api) {
       }
       // (el que cava bajo tierra no se ve aunque lo mires: el perro lo marca igual)
       const visto = mas ? mas.estado !== 'bajoTierra' && estaMirando(api.mira(), js.pos, mas.m.g.position) : false;
-      perro.aviso = mas ? avisoDelPerro({ distancia: d0, visto }) : null;
+      perro.aviso = mas ? avisoDelPerro({ distancia: d0, visto, alcance: api.alcancePerro?.() ?? 1 }) : null;
       perro.alerta = perro.aviso === 'grunir' ? mas.m.g.position : null;
       perro.amenaza = mas;
     }
