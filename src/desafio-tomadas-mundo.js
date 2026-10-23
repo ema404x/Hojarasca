@@ -7,10 +7,7 @@ import * as THREE from 'three';
 import { LIMITE } from './config.js';
 import { azarDe } from './semilla.js';
 import { ubicarZonas } from './desafio-asedio.js';
-import {
-  TOMADAS, valleNuevo, zonasTomadasDelValle, tomarAlAmanecer, nidosDeZona, lugarNidoDeZona, extraDeZona, abrirseNidoDeZona,
-  sacaronNidoDeZona, cerrarValle, tomadaEn, marcasValle, nombreTomada, defTomada,
-} from './desafio-valle.js';
+import { TOMADAS, valleNuevo, zonasTomadasDelValle, tomarAlAmanecer, nidosDeZona, lugarNidoDeZona, extraDeZona, abrirseNidoDeZona, sacaronNidoDeZona, cerrarValle, tomadaEn, marcasValle, nombreTomada, defTomada, } from './desafio-valle.js';
 
 const _c = new THREE.Color();
 

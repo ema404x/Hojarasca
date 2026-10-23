@@ -226,8 +226,10 @@ export function empezarNocheCamino(c, noche) {
 export function tickCamino(c, hn, libres = 0) {
   const r = { avance: 0, camina: false, llego: false };
   if (!c) return r;
-  const dh = c.ultima >= 0 && hn >= c.ultima && hn - c.ultima < 10 ? hn - c.ultima : 0;
-  const antes = c.ultima >= 0 ? c.ultima : hn;
+  // (el primer cuadro de la noche cuenta desde que cayó la noche; si no hay referencia y ya es tarde, no se regala nada)
+  const desde = c.ultima >= 0 ? c.ultima : hn <= 2.5 ? 0 : hn;
+  const dh = hn >= desde && hn - desde < 10 ? hn - desde : 0;
+  const antes = desde;
   c.ultima = hn;
   const quieto = Math.min(dh, c.atasco);
   c.atasco = Math.max(0, c.atasco - dh);
