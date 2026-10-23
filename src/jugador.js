@@ -274,6 +274,8 @@ export function crearJugador(camara, T, col, opciones) {
     else if (estado.descansado > 0 && !estado.montado) vmax *= 1.08;
     // 3.7.1: lo que te enseñó tu esposa (el paso de montaña de Rocío): un poco más rápido a pie, siempre
     if (!estado.montado && estado.pasoAmor > 1) vmax *= Math.min(1.2, estado.pasoAmor);
+    // 4.10 guardian: las habilidades y ventajas del Desafío (bonos de correr, ver desafio-bonos.js): sólo corriendo y a pie
+    if (!estado.montado && estado.corriendo && estado.bonoCorrer) vmax *= 1 + Math.max(-0.3, Math.min(0.35, estado.bonoCorrer));
     if (estado.sentado) vmax = 0;
 
     deseo.set(0, 0, 0).addScaledVector(adelante, mz).addScaledVector(derecha, mx);

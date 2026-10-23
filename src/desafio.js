@@ -73,6 +73,11 @@ import { claseDeProyectil } from './desafio-evolucion.js';
 import { crearAtaques } from './desafio-ataques.js';
 // 4.9 dias: el tablón de la aldea (pedidos de día y pronóstico de la noche)
 import { crearAldeaMundo } from './desafio-aldea-mundo.js';
+// 4.10 guardian: los bonos del jugador, las habilidades del guardián y el bestiario que premia
+import { armaConBonos, saludMaximaConBonos, bonoAplicado } from './desafio-bonos.js';
+import { puntoPorNoche, golpesPorMaterial, menosDano } from './desafio-habilidades.js';
+import { crearHabilidadesMundo } from './desafio-habilidades-mundo.js';
+import { nivelEstudio, subioEstudio, anotarLado, danoContraTipo } from './desafio-bestiario-premia.js';
 
 const VERDE_OJO = '#a6ff6e';
 const MAX_ALIENS = 24;
@@ -761,6 +766,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     }
     nocheActual.dano += n;
     if (desde) { n *= dificultad(ctx.dificultad?.()).dano; indicarDano(desde); }
+    if (desde) n *= 1 - menosDano(d);   // 4.10 guardian: la habilidad «Corazón de coihue»
     d.salud = Math.max(0, d.salud - n);
     sinDano = 0;
     destello = Math.min(1, destello + 0.35 + n / 60);
@@ -786,14 +792,16 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       ctx.alCaer?.();
     }
   }
+  // 4.10 guardian: la salud máxima de esta partida (la base más los bonos: habilidades, ventajas...)
+  const saludMaxima = () => saludMaximaConBonos(SALUD_MAX, D());
   function curar(n, silencioso = false) {
     const d = D();
-    if (d.salud >= SALUD_MAX) return false;
-    d.salud = Math.min(SALUD_MAX, d.salud + n);
+    if (d.salud >= saludMaxima()) return false;
+    d.salud = Math.min(saludMaxima(), d.salud + n);
     if (!silencioso) S.cura();
     return true;
   }
-  function levantarse() { caido = false; D().salud = SALUD_MAX; destello = 0; }
+  function levantarse() { caido = false; D().salud = saludMaxima(); destello = 0; }
 
   // 4.8 ataques: el lado por donde entran cada noche, las tácticas en grupo, el curandero y el enjambre
   // (ver desafio-ataques.js). El lado de la noche queda en `D().ladoNoche` = { id, x, z, rumbo, noche, otro }.
@@ -836,6 +844,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // la trampa de miel la hace la rama de las defensas: main.js la conecta (si el juego no la tiene, el botón no se ofrece)
     colocarTrampa: (x, z) => ctx.colocarTrampaDeLaAldea?.(x, z),
     hayTrampa: () => !!ctx.hayTrampaDeLaAldea?.(),
+  });
+
+  // 4.10 guardian: la pestaña «Guardián» del cuaderno (las habilidades que se compran con los puntos de cada noche)
+  const habilidadesMundo = crearHabilidadesMundo({
+    D, sonido, nota: (t, s, n) => ctx.nota(t, s, n), guardar: () => ctx.guardar(), redibujar: () => ctx.redibujarCuaderno?.(),
   });
 
   // ---------------- oleadas
@@ -1066,7 +1079,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     {
       let enPie = 0;
       for (const a of aliens) if (a.estado !== 'morir' && a.estado !== 'irse' && a.estado !== 'dormido' && !a.enNave && !a.def.jefe) enPie++;
-      if (sobrevivida) cerrarNoche(cadenaD(), d.oleadas, { perdidas: nocheActual.perdidas, dano: nocheActual.dano, saludMax: SALUD_MAX, vivos: enPie });
+      if (sobrevivida) cerrarNoche(cadenaD(), d.oleadas, { perdidas: nocheActual.perdidas, dano: nocheActual.dano, saludMax: saludMaxima(), vivos: enPie });
       else olvidarCadena(cadenaD());
       d.giro = null;
     }
@@ -1318,6 +1331,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (nocheActual.perdidas) partes.push(`${nocheActual.perdidas} ${nocheActual.perdidas === 1 ? 'obra perdida' : 'obras perdidas'}`);
     if (!nocheActual.dano) partes.push('sin un rasguño');
     ctx.nota(`Resististe la noche ${d.oleadas}`, partes.join(' · '), true);
+    // 4.10 guardian: un punto de guardián por cada noche aguantada (se gasta en el cuaderno, J → Guardián)
+    if (puntoPorNoche(d, d.oleadas)) setTimeout(() => ctx.nota('Un punto de guardián', `Tenés ${d.habilidades.puntos} para gastar: abrí el cuaderno (J), pestaña Guardián`), 4500);
     soltarCaja(d.oleadas);
     cerrarRescate();
     // 2.3: la trochita sigue, y la nave deja capullos para la noche que viene
@@ -1427,7 +1442,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   };
   // `opciones.tension`: el arco tensado (ver `tensar`), { dano, vel } multiplicadores.
   function atacar(id, opciones = {}) {
-    const arma = armaEfectiva(id, progreso().cosas);
+    const arma = armaConBonos(armaEfectiva(id, progreso().cosas), D());   // 4.10 guardian: más daño, alcance y menos espera
     if (!arma || !tieneArma(id) || caido) return false;
     // 4.10 partidas: la regla «sólo arco» (el martillo queda para reparar)
     if (efectosPartida()?.soloArco && id !== 'arco' && id !== 'martillo') { if (performance.now() - avisoSoloArco > 2500) { avisoSoloArco = performance.now(); ctx.nota('Sólo arco', 'Elegiste jugar con el arco: las otras armas no se usan'); } return true; }
@@ -1593,8 +1608,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
   // Clic derecho con algunas armas: la pistola mejorada dispara cargado.
   function atacarAlterno(id) {
-    const arma = armaEfectiva(id, progreso().cosas);
-    if (!arma?.cargado || caido || efectosPartida()?.soloArco) return false;
+    const arma = armaConBonos(armaEfectiva(id, progreso().cosas), D());   // 4.10 guardian
+    if (!arma?.cargado || caido || efectosPartida()?.soloArco) return false;   // 4.10 partidas: sólo arco
     if (recarga > 0) return true;
     const d = D();
     if (d.cargas < arma.cargado.cargas) { ctx.nota('No alcanza la carga', `El disparo cargado usa ${arma.cargado.cargas} cargas`); recarga = 0.5; return true; }
@@ -1662,10 +1677,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const { vida, max } = vidaDe(obra);
     if (vida >= max - 0.5) { if (performance.now() - avisoMartillo > 2500) { avisoMartillo = performance.now(); ctx.nota(obra.plano.nombre, 'Está entera'); } return; }
     const material = esPiedra(obra) ? 'piedra' : 'tronco';
-    if (pendienteMartillo + 1 / 3 >= 1 && ctx.cuanto(material) < 1) { ctx.nota('Sin material para reparar', `Hace falta ${material === 'piedra' ? 'piedra' : 'un tronco'}`); return; }
-    pendienteMartillo += 1 / 3;
+    if (pendienteMartillo + 1 / golpesPorMaterial(D()) >= 0.999 && ctx.cuanto(material) < 1) { ctx.nota('Sin material para reparar', `Hace falta ${material === 'piedra' ? 'piedra' : 'un tronco'}`); return; }
+    // 4.10 guardian: «Material justo» (un material rinde más golpes) y «Manos hábiles» (cada golpe repara más)
+    const golpesMat = golpesPorMaterial(D()), rinde = 1 + bonoAplicado(D(), 'reparar');
+    pendienteMartillo += 1 / golpesMat;
     if (pendienteMartillo >= 0.999) { pendienteMartillo = 0; ctx.gastar(material, 1); ctx.alFabricar?.({}); }
-    obra.datos.vida = Math.min(max, vida + max * 0.1);
+    obra.datos.vida = Math.min(max, vida + max * 0.1 * rinde);
     _v.set(camara.position.x + _dir.x * 1.6, camara.position.y + _dir.y * 1.6, camara.position.z + _dir.z * 1.6);
     if (material === 'piedra') efectos.polvo(_v, 5); else efectos.astillas(_v, 5);
     if (performance.now() - avisoMartillo > 1200) { avisoMartillo = performance.now(); ctx.nota(`Reparando ${obra.plano.nombre.toLowerCase()}`, `Resistencia ${Math.round(obra.datos.vida / max * 100)}%`); }
@@ -1691,6 +1708,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function anotarEnBestiario(tipo, que) {
     const d = D();
     if (!d.bestiario) d.bestiario = {};
+    const abatidosAntes = d.bestiario[tipo]?.abatidos || 0;
     const r = anotarBestiario(d.bestiario, tipo, que, progreso().dia);
     const nombre = BESTIARIO[tipo]?.nombre;
     if (!nombre) return r;
@@ -1699,6 +1717,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (r.nuevo) bestiarioPendiente.push(t(`${nombre}: anotado`));
     else if (r.aprendido) bestiarioPendiente.push(t(`${nombre}: aprendiste cómo pelea`));
     else if (r.debil) bestiarioPendiente.push(t(`${nombre}: ya conocés su punto débil`));
+    // 4.10 guardian: por qué lado entró (para el estudio «por dónde suele venir») y los estudios que se completan con éste
+    if (que === 'abatido') {
+      anotarLado(d.bestiario, tipo, d.ladoNoche?.id);
+      const est = subioEstudio(tipo, abatidosAntes, d.bestiario[tipo].abatidos);
+      if (est) bestiarioPendiente.push(t(`${nombre}: estudio ${est} de 3`));
+    }
     return r;
   }
   function avisarBestiario(dt) {
@@ -1720,6 +1744,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     dano = conDebil;
     dano *= fortin.multiplicadorDano(a);   // 2.6: colgado del lazo recibe más
     dano = evolucion.golpe(a, dano, fuente, clase);   // 3.0: se anota con qué; si lo aprendieron, entra menos
+    if (fuente === 'jugador' || fuente === 'lanza') dano *= danoContraTipo(D().bestiario, a.tipo);   // 4.10 guardian: el estudio 3 del bestiario
     a.vida -= dano;
     a.sinGolpe = 0;            // 2.0: un mutado no se cura mientras le sigan pegando
     const delJugador = fuente === 'jugador' || fuente === 'lanza';
@@ -1795,7 +1820,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (d.emplastos <= 0) { ctx.nota('No tenés emplastos', 'Se hacen con fruta y una ramita (K)'); return; }
     if (!curar(45)) { ctx.nota('Estás entero', 'Guardalo para cuando haga falta'); return; }
     d.emplastos--;
-    ctx.nota('Te pusiste un emplasto', `Salud ${Math.round(d.salud)}/${SALUD_MAX}`);
+    ctx.nota('Te pusiste un emplasto', `Salud ${Math.round(d.salud)}/${saludMaxima()}`);
   }
 
   // ---------------- fabricar (tecla K): por categorías, Tab cambia
@@ -1834,6 +1859,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (!o) return { ok: false, motivo: 'no hay nada dañado cerca' };
       const { vida, max } = vidaDe(o);
       const c = costoReparacion(o.plano, vida, max);
+      if (c) c.cantidad = Math.max(1, Math.ceil(c.cantidad / (1 + bonoAplicado(D(), 'reparar'))));   // 4.10 guardian: «Manos hábiles» gasta menos
       // 3.8.7: con el nombre de cada material (la red dorada se repara con semillas doradas), y de a uno en singular
       if (ctx.cuanto(c.material) < c.cantidad) return { ok: false, motivo: `${c.cantidad === 1 ? 'falta' : 'faltan'} ${c.cantidad} ${(c.cantidad === 1 ? NOMBRE_UNO[c.material] : NOMBRE[c.material]) || c.material}`, costo: c };
       return { ok: true, obra: o, costo: c };
@@ -1936,7 +1962,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (r.reparar) {
       ctx.gastar(e.costo.material, e.costo.cantidad);
       const { max } = vidaDe(e.obra);
-      e.obra.datos.vida = Math.min(max, e.obra.datos.vida + max * 0.3 * e.costo.cantidad);
+      e.obra.datos.vida = Math.min(max, e.obra.datos.vida + max * 0.3 * e.costo.cantidad * (1 + bonoAplicado(d, 'reparar')));   // 4.10 guardian
       ctx.nota(`${e.obra.plano.nombre} reparada`, `Resistencia ${Math.round(e.obra.datos.vida / max * 100)}%`);
     } else if (r.reforzar) {
       for (const [k, n] of Object.entries(e.refuerzo.pide)) ctx.gastar(k, n);
@@ -1973,9 +1999,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const textoSalud = document.getElementById('salud-texto');
   const textoEstado = document.getElementById('desafio-estado');
   let acumuladoHud = 9, ultimoHud = '', pctBarra = -1;
+  let relojBonos = 0;   // 4.10 guardian
   function actualizarHud(dt) {
     const d = D();
-    const pct = Math.round(Math.max(0, d.salud / SALUD_MAX * 100));
+    const pct = Math.round(Math.max(0, d.salud / saludMaxima() * 100));
     if (pct !== pctBarra) { pctBarra = pct; barra.style.width = `${pct}%`; hud.classList.toggle('critica', d.salud < 30); }
     acumuladoHud += dt;
     if (acumuladoHud < 0.25) return;
@@ -3700,7 +3727,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // salud: se recupera sola despacio si pasa un rato sin golpes
     const d = D();
     sinDano += dt;
-    if (!caido && sinDano > 7 && d.salud < SALUD_MAX) d.salud = Math.min(SALUD_MAX, d.salud + dt * 1.6);
+    // 4.10 guardian: el bono de correr se le lleva al jugador cada medio segundo (jugador.js lo lee de su estado)
+    relojBonos -= dt;
+    if (relojBonos <= 0) { relojBonos = 0.5; js.bonoCorrer = bonoAplicado(d, 'correr'); }
+    if (!caido && sinDano > 7 && d.salud < saludMaxima()) d.salud = Math.min(saludMaxima(), d.salud + dt * 1.6);
     destello = Math.max(0, destello - dt * 1.4);
     if (danoEl) danoEl.style.opacity = String(Math.min(0.85, destello + (d.salud < 30 ? 0.18 + Math.sin(performance.now() / 260) * 0.08 : 0)));
     estadoMusica.activo = !caido;
@@ -3839,6 +3869,9 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get sinFin() { return D().sinFin; },
     mapaMundo,
     aldeaMundo,   // 4.9 dias: el tablón de la aldea (pedidos y pronóstico)
+    habilidadesMundo,   // 4.10 guardian: la pestaña «Guardián» del cuaderno
+    nivelEstudio: (tipo) => nivelEstudio(D().bestiario, tipo),   // 4.10 guardian
+    saludMaxima,   // 4.10 guardian
     get baseMapa() { return baseMapa(); },
     get sitiosMapa() { return mapaMundo.marcas(); },
     get fortin() { return fortin; },

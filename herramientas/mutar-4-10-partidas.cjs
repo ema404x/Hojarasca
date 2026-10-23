@@ -72,7 +72,7 @@ const MUTACIONES = [
   ['ganar la campaña anota la victoria', J, 'if (victoria) m = anotarVictoria(m, modo);', ''],
   ['la trampa de miel va gratis', J, '{ gratis: true }', '{ gratis: false }'],
   ['dejar una partida da su semilla', MAIN, 'if (esDesafio) metaJuego.terminar();   // 4.10 partidas: dejar una partida', 'if (false) metaJuego.terminar();   // 4.10 partidas: dejar una partida'],
-  ['ganar da la semilla y el final', MAIN, 'alVencer: (s) => { s.meta = metaJuego.alVencer();', 'alVencer: (s) => { s.meta = null;'],
+  ['ganar da la semilla y el final', MAIN, 'alVencer: (s) => { s.cierre = metaJuego.alVencer();', 'alVencer: (s) => { s.cierre = null;'],
   ['la pantalla se abre al entrar', MAIN, '!metaElegida && (!HOJARASCA_DEBUG', '!metaElegida && false && (!HOJARASCA_DEBUG'],
   ['noches más largas', MAIN, '? FACTOR_NOCHE_LARGA : 1;', '? 1 : 1;'],
   ['manos llenas', MAIN, 'const troncosM = materialesDeMeta(troncosTala);', 'const troncosM = troncosTala;'],

@@ -102,6 +102,17 @@ export const BESTIARIO = {
     aprendido: 'Pasa por arriba de todo y va derecho a las antorchas prendidas: la lechuza baja en picada y las apaga. Si no queda ninguna, viene rasante por vos.',
     debil: 'Arriba sólo lo alcanzan las flechas, la pistola y la ballesta que apunta al cielo. Cuando baja a apagar una llama, también la lanza.',
   },
+  // 4.10 guardian: los dos duendes de la 4.8 también se anotan (hasta ahora no tenían ficha y el bestiario no los contaba)
+  curandero: {
+    nombre: 'Yuyero', visto: 'Chiquito, con un atado de yuyos y un farolito verde; anda siempre detrás del grupo.',
+    aprendido: 'No pelea: cura a los heridos que tiene cerca, de a poco, hasta que se cansa. Si lo alcanzás, huye.',
+    debil: 'Poca vida y ninguna defensa. Sin los otros alrededor se asusta y se va: conviene ir a buscarlo primero.',
+  },
+  enjambre: {
+    nombre: 'Duendecito', visto: 'Del largo de un antebrazo, vienen en montón, zumbando bajo, como una nube a ras del suelo.',
+    aprendido: 'De a uno no son nada, pero juntos te tapan y te rodean. Vienen de a una docena, y no hay uno que valga más que el otro.',
+    debil: 'Cualquier golpe los baja. Lo que sirve es pegar en abanico: el fuego de las brasas y las trampas los barren a todos juntos.',
+  },
   mutado: {
     nombre: 'Viejo', visto: 'Uno de los de siempre, pero viejo: barba de musgo y las venas encendidas de ámbar.',
     aprendido: 'Salen después de la cueva. Aguantan más, pegan más fuerte y se curan solos si los dejás respirar.',
@@ -147,6 +158,12 @@ export function sanearBestiario(v) {
     if (!r || typeof r !== 'object') continue;
     const n = (x) => (Number.isFinite(Number(x)) ? Math.max(0, Math.floor(Number(x))) : 0);
     s[t] = { vistos: n(r.vistos), abatidos: n(r.abatidos), dia: Math.max(1, n(r.dia) || 1) };
+    // 4.10 guardian: por qué lado entró cada duende que abatiste (sólo los tres lados que existen)
+    if (r.lados && typeof r.lados === 'object' && !Array.isArray(r.lados)) {
+      const lados = {};
+      for (const l of ['rio', 'monte', 'camino']) if (Object.hasOwn(r.lados, l) && n(r.lados[l]) > 0) lados[l] = n(r.lados[l]);
+      if (Object.keys(lados).length) s[t].lados = lados;
+    }
   }
   return s;
 }

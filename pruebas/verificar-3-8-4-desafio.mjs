@@ -236,7 +236,7 @@ const DR = await import('../src/desafio-duendes-reglas.js');
   // guardar en el fundido escribe la partida ya despierta: en la base, a esa hora y con la salud entera
   const g = extraer(main, 'guardar');
   assert.match(g, /const c = caidaEnCurso;\n\s*const aGuardar = c \? \{ \.\.\.progreso, dia: c\.dia, horas: c\.horas, yaw: c\.base\.yaw, pos: /);
-  assert.match(g, /desafio: progreso\.desafio \? \{ \.\.\.progreso\.desafio, salud: SALUD_MAX \} : progreso\.desafio \} : progreso;/);
+  assert.match(g, /desafio: progreso\.desafio \? \{ \.\.\.progreso\.desafio, salud: desafio\?\.saludMaxima\?\.\(\) \?\? SALUD_MAX \} : progreso\.desafio \} : progreso;/);   // 4.10 guardian: con bonos, la salud máxima de la partida
   assert.match(g, /const ok = guardarProgreso\(obrasAjenas\.length \? \{ \.\.\.aGuardar, obras: \[\.\.\.\(aGuardar\.obras \|\| \[\]\), \.\.\.obrasAjenas\] \} : aGuardar\);/);
 }
 

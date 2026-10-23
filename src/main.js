@@ -251,8 +251,11 @@ import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
 // 4.10 partidas: lo de entre partidas (semillas del Coihue, ventajas, reglas, modos y finales; ver desafio-meta.js)
 import { fijarPartidaMeta, efectosPartida } from './desafio-reglas.js';
 import { crearMetaJuego } from './desafio-meta-juego.js';
+import { sumarBono, saludMaximaConBonos } from './desafio-bonos.js';
 import { crearPantallaNuevaPartida, dibujarHojaPartidas } from './desafio-meta-pantalla.js';
 import { MODOS as MODOS_META, modoDe as modoMetaDe, textoSemillas, FACTOR_NOCHE_LARGA, resumenFinales, textoMult } from './desafio-meta.js';
+// 4.10 guardian: los estudios del bestiario
+import { renglonesEstudio } from './desafio-bestiario-premia.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos, notaRepetida, notaASacar } from './accesibilidad.js';
 import { crearDesafio } from './desafio.js';
 import { contenidoFortin } from './desafio-fortin.js';
@@ -337,7 +340,8 @@ const metaJuego = crearMetaJuego({
   almacen: () => localStorage, progreso: () => progreso, desafio: () => desafio, esSinFin: () => esSinFin,
   sumarMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); }, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
   posJugador: () => jugador?.estado?.pos || null,
-  sumarBono: null,   // 4.10 partidas: se conecta con desafio-bonos.js de «guardián» (contrato: sumarBono(d, 'ventaja', clave, valor))
+  sumarBono,   // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
+  alBonos: (d) => { d.salud = saludMaximaConBonos(SALUD_MAX, d); },   // con más (o menos) salud máxima, se arranca entero
 });
 // 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
 const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
@@ -939,7 +943,7 @@ async function construir() {
     gente: () => (vecinosActivos(progreso) ? gente : null),
     perroPos: () => perro?.est?.pos,
     alGuardarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); guardar(); },
-    alVencer: (s) => { s.meta = metaJuego.alVencer(); mostrarVictoria(s); },   // 4.10 partidas: la semilla, los puntos y el final
+    alVencer: (s) => { s.cierre = metaJuego.alVencer(); mostrarVictoria(s); },   // 4.10 partidas: la semilla, los puntos y el final
     alTerminar: (s) => mostrarVictoria(s, true),
     alLogro: (id) => steamPuente.desbloquear('desafio', id),
     cuanto: cuantoRecurso,
@@ -1122,6 +1126,8 @@ function dibujarCuaderno() {
   else if (pestana === 'aldea') pestana = 'especies';
   if (desafio) pestanas.push(['partidas', 'Partidas']);   // 4.10 partidas: las semillas del Coihue, los finales vistos y los récords
   else if (pestana === 'partidas') pestana = 'especies';
+  if (desafio?.habilidadesMundo) pestanas.push(['guardian', `Guardián${desafio.habilidadesMundo.puntos() > 0 ? ` (${desafio.habilidadesMundo.puntos()})` : ''}`]);   // 4.10 guardian: los puntos de cada noche y en qué gastarlos
+  else if (pestana === 'guardian') pestana = 'especies';
   for (const [id, nombre] of pestanas) {
     const b = el('button', '', nombre);
     b.setAttribute('role', 'tab');
@@ -1138,6 +1144,7 @@ function dibujarCuaderno() {
   if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
   if (pestana === 'aldea' && desafio?.aldeaMundo) { desafio.aldeaMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.9 dias
   if (pestana === 'partidas' && desafio) { dibujarHojaPartidas(ficha, el, metaJuego.leer()); return; }   // 4.10 partidas
+  if (pestana === 'guardian' && desafio?.habilidadesMundo) { desafio.habilidadesMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.10 guardian
 
   if (pestana === 'bestiario' && desafio) {
     const best = desafio.bestiario;
@@ -1162,6 +1169,12 @@ function dibujarCuaderno() {
       // 3.0: los adaptados dicen, además, contra qué vienen preparados ahora
       if (t === 'adaptado' && desafio.adaptaciones) ficha.appendChild(el('p', 'texto', T_(desafio.adaptaciones)));
       if (f.falta) ficha.appendChild(el('p', 'pista', f.falta));
+      // 4.10 guardian: los tres estudios (5, 15 y 40 abatidos): el dato que se desbloquea o lo que falta
+      const estudios = renglonesEstudio(best, t);
+      if (estudios.length) {
+        ficha.appendChild(el('h3', '', 'Estudio'));
+        for (const e of estudios) ficha.appendChild(el('p', e.hecho ? 'texto' : 'pista', e.hecho ? `${e.titulo}: ${e.texto}` : `${e.titulo}: ${e.falta}`));
+      }
     } else {
       ficha.appendChild(el('h2', '', 'Bestiario'));
       ficha.appendChild(el('p', 'texto', 'Cada duende que veas de cerca queda anotado acá. Peleando se aprende cómo se mueve, y al tercero que abatís, dónde es débil.'));
@@ -3048,15 +3061,15 @@ function mostrarVictoria(s, final = false) {
       if (s?.corta) {
         $('victoria-titulo').textContent = '¡Cayó el mandamás!';
         $('victoria-sub').textContent = 'Ganaste la partida corta';
-        $('victoria-texto').textContent = (s.meta?.texto || '') + ' Se terminó la partida corta: podés quedarte en el valle.';
+        $('victoria-texto').textContent = (s.cierre?.texto || '') + ' Se terminó la partida corta: podés quedarte en el valle.';
       } else if (final && mv?.epilogo) {
         $('victoria-texto').textContent += ' ' + mv.epilogo;
-      } else if (s?.meta?.texto) {
-        $('victoria-texto').textContent = s.meta.texto + ' ' + $('victoria-texto').textContent;
+      } else if (s?.cierre?.texto) {
+        $('victoria-texto').textContent = s.cierre.texto + ' ' + $('victoria-texto').textContent;
       }
       elTitulo.textContent = mv?.nombreFinal ? 'Final: ' + mv.nombreFinal : '';
       elTitulo.classList.toggle('oculto', !mv?.nombreFinal);
-      const r = s?.meta;
+      const r = s?.cierre;
       elPuntos.textContent = r ? `Puntos del récord: ${r.puntos}${r.mult > 1 ? ` (${textoMult(r.mult)})` : ''}${r.puesto ? ` · ${r.puesto}.º entre los tuyos en ${MODOS_META[r.modo]?.nombre || 'la campaña'}` : ''}${r.semilla ? ' · +1 semilla del Coihue' : ''}` : '';
       elPuntos.classList.toggle('oculto', !r);
     }
@@ -9341,7 +9354,7 @@ function guardar() {
   // salud entera (cerrar el juego en ese rato no evita la caída)
   const c = caidaEnCurso;
   const aGuardar = c ? { ...progreso, dia: c.dia, horas: c.horas, yaw: c.base.yaw, pos: Number.isFinite(c.base.y) ? { x: c.base.x, y: c.base.y, z: c.base.z } : { x: c.base.x, z: c.base.z },
-    desafio: progreso.desafio ? { ...progreso.desafio, salud: SALUD_MAX } : progreso.desafio } : progreso;
+    desafio: progreso.desafio ? { ...progreso.desafio, salud: desafio?.saludMaxima?.() ?? SALUD_MAX } : progreso.desafio } : progreso;   // 4.10 guardian: con los bonos, la salud máxima de la partida
   const ok = guardarProgreso(obrasAjenas.length ? { ...aGuardar, obras: [...(aGuardar.obras || []), ...obrasAjenas] } : aGuardar);
   if (horasFoto !== null) progreso.horas = horasFoto;   // 3.5.1: y sigue la del deslizador
   window.dispatchEvent(new CustomEvent('hojarasca:guardado', { detail: { ok, hora: Date.now() } }));

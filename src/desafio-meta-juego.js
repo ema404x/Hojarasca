@@ -69,7 +69,7 @@ export function crearMetaJuego(ctx) {
       Object.assign(d.aldea.ayuda, sube);
     }
     // los bonos del personaje, por el contrato de «guardián» (si el juego todavía no lo trae, no hay a dónde sumarlos)
-    if (typeof ctx.sumarBono === 'function') for (const [k, n] of Object.entries(e.bonos)) if (n) ctx.sumarBono(d, 'ventaja', k, n);
+    if (typeof ctx.sumarBono === 'function') { for (const [k, n] of Object.entries(e.bonos)) if (n) ctx.sumarBono(d, 'ventaja', k, n); ctx.alBonos?.(d); }
     if (e.inicio.trampa > 0) setTimeout(() => ponerTrampa(e.inicio.trampa), 3500);
     ctx.guardar?.();
   }

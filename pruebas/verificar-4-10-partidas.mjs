@@ -14,6 +14,7 @@ import { crearMetaJuego } from '../src/desafio-meta-juego.js';
 import * as R from '../src/desafio-reglas.js';
 import * as A from '../src/desafio-aldea.js';
 import { nivelDeAyuda } from '../src/desafio-vecinos.js';
+import * as B from '../src/desafio-bonos.js';
 
 const leer = (f) => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 let pasos = 0;
@@ -327,6 +328,22 @@ function almacen({ falla = false, soloPrincipal = false } = {}) {
   ok(mj2.iniciar({ modo: 'normal', ventajas: ['salud', 'filo'] }), 'salud y filo');
   igual(bonos.filter((b) => b[3]).map((b) => b.slice(1)).sort(), [['ventaja', 'dano', 0.25], ['ventaja', 'saludMax', -15]].sort(), 'los bonos van por sumarBono(d, «ventaja», clave, valor), sumando salud y filo');
   ok(bonos.every((b) => b[0]), 'con la partida como primer argumento');
+  // con los bonos de verdad (desafio-bonos.js de «guardián»): origen «ventaja», sumando, y arrancando entero
+  {
+    const j = { desafio: { ...R.desafioNuevo() } };
+    const a = almacen(); M.guardarMeta(a, M.sanearMeta({ semillas: 5 }));
+    const mjB = crearMetaJuego({ ...ctx, almacen: () => a, progreso: () => j, sumarBono: B.sumarBono, alBonos: (dd) => { dd.salud = B.saludMaximaConBonos(R.SALUD_MAX, dd); } });
+    ok(mjB.iniciar({ modo: 'normal', ventajas: ['salud', 'recarga'] }), 'salud y manos ligeras');
+    ok(B.bonoDe(j.desafio, 'saludMax') === 15 && B.bonoDe(j.desafio, 'recarga') === 0.1 && j.desafio.bonos.origen.ventaja.saludMax === 15, 'los bonos quedan en D().bonos con origen «ventaja»');
+    ok(j.desafio.salud === 115, 'y se arranca con la salud máxima nueva');
+    mjB.aplicarInicio();
+    ok(B.bonoDe(j.desafio, 'saludMax') === 15, 'sin duplicar al volver a aplicar (el contrato suma)');
+    ok(B.quitarBonosDeOrigen(j.desafio, 'ventaja') && B.bonoDe(j.desafio, 'saludMax') === 0, 'y se pueden sacar por origen');
+    const j2 = { desafio: { ...R.desafioNuevo() } };
+    const a2 = almacen();
+    const mjC = crearMetaJuego({ ...ctx, almacen: () => a2, progreso: () => j2, sumarBono: B.sumarBono, alBonos: (dd) => { dd.salud = B.saludMaximaConBonos(R.SALUD_MAX, dd); } });
+    ok(mjC.iniciar({ modo: 'normal', ventajas: ['filo'] }) && B.bonoDe(j2.desafio, 'dano') === 0.25 && B.bonoDe(j2.desafio, 'saludMax') === -30 && j2.desafio.salud === 70, 'filo de riesgo: más daño y 30 de salud máxima menos (arranca con 70)');
+  }
   // la trampa de miel
   const juego3 = { desafio: { ...R.desafioNuevo() } };
   const al3 = almacen(); M.guardarMeta(al3, M.sanearMeta({ semillas: 1 }));
@@ -405,9 +422,10 @@ function almacen({ falla = false, soloPrincipal = false } = {}) {
   ok(/efectosPartida\(\)\?\.anselmoPausa/.test(vm) && /chicos\.cadencia/.test(vm) && /chicos\.dano/.test(vm), 'Anselmo ligero y los chicos con puntería');
   ok(/FACTOR_NOCHE_LARGA : 1/.test(main) && /efectosPartida\(\)\?\.nochesLargas/.test(main), 'noches más largas: la hora corre más despacio de noche');
   ok(/materialesDeMeta\(troncosTala\)/.test(main) && /materialesDeMeta\(cuanto\)/.test(main), 'manos llenas: más troncos y piedras');
-  ok(/pantallaNueva\.abrir\(\); return;/.test(main) && /esDesafio && !partidaEmpezada\(\) && !metaElegida/.test(main), 'al entrar a una partida nueva del Desafío se abre la pantalla de ventajas y reglas');
-  ok(/if \(esDesafio\) metaJuego\.terminar\(\);/.test(main), 'dejar una partida para empezar otra también da su semilla');
-  ok(/alVencer: \(s\) => \{ s\.meta = metaJuego\.alVencer\(\)/.test(main), 'ganar da la semilla, los puntos y el final');
+  ok(/pantallaNueva\.abrir\(\); return;/.test(main) && /esDesafio && !partidaEmpezada\(\) && !metaElegida && \(!HOJARASCA_DEBUG/.test(main), 'al entrar a una partida nueva del Desafío se abre la pantalla de ventajas y reglas');
+  ok(/sumarBono,\s+\/\/ 4\.10 partidas/.test(main) && /alBonos: \(d\) => \{ d\.salud = saludMaximaConBonos/.test(main), 'main le pasa a las ventajas el contrato de bonos');
+  ok(/if \(esDesafio\) metaJuego\.terminar\(\);/.test(main),'dejar una partida para empezar otra también da su semilla');
+  ok(/alVencer: \(s\) => \{ s\.cierre = metaJuego\.alVencer\(\)/.test(main), 'ganar da la semilla, los puntos y el final');
   ok(/meta: metaJuego\.terminar\(\)/.test(main), 'la corrida sin fin también');
   ok(/if \(esDesafio\) fijarPartidaMeta\(progreso\.desafio\?\.meta \|\| null\)/.test(main), 'al abrir una partida se toma su modo');
   ok(/pestanas\.push\(\['partidas', 'Partidas'\]\)/.test(main), 'el cuaderno tiene la hoja de Partidas');
