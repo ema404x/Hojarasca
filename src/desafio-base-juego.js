@@ -5,9 +5,9 @@
 //   · los trofeos que se cuelgan en el tablero  → desafio-trofeos(-mundo/-formas).js
 //   · el perro que aprende con las noches        → desafio-perro-aprende.js
 //
-// Los bonos (+vida máxima, +alcance, +recarga…) los reparte `desafio-bonos`, que sube la rama «guardian»: mientras no esté, esta
-// base usa su respaldo (`desafio-bonos-base.js`, con los mismos tres nombres). Al juntar las ramas se cambia esta línea de import.
-import { sumarBono, quitarBonosDeOrigen, bonoDe } from './desafio-bonos-base.js';
+// Los bonos (+salud máxima, +alcance, +recarga…) los reparte `desafio-bonos.js` (rama «guardian»): acá se anotan con los orígenes
+// 'trofeo' y 'defensa'.
+import { sumarBono, quitarBonosDeOrigen, bonoDe } from './desafio-bonos.js';
 import { crearMejorasBaseMundo } from './desafio-mejoras-base-mundo.js';
 import { crearTrofeosMundo } from './desafio-trofeos-mundo.js';
 import { nivelDelPerro, alcanceDelPerro, danoDelPerro, nocheConElPerro, textoSubidaPerro, textoPerro } from './desafio-perro-aprende.js';
@@ -23,7 +23,7 @@ export function crearBaseCrece(obras, efectos, sonido, api) {
   const trofeos = crearTrofeosMundo(obras, sonido, api, bonos);
   const crece = () => {
     const d = api.D();
-    if (!d.crece || typeof d.crece !== 'object') d.crece = { trofeos: {}, perro: { noches: 0 }, bonos: {} };
+    if (!d.crece || typeof d.crece !== 'object') d.crece = { trofeos: {}, perro: { noches: 0 } };
     if (!d.crece.perro || typeof d.crece.perro !== 'object') d.crece.perro = { noches: 0 };
     return d.crece;
   };

@@ -27,8 +27,11 @@ import { aldeaNueva as aldeaDelDesafio, sanearAldea as sanearAldeaDelDesafio } f
 import { mielDelAlba, RECETAS_TRAMPAS } from './desafio-trampas.js';
 import { RECETAS_FAROL } from './desafio-farol.js';
 import { RECETAS_BRASAS, PALA } from './desafio-brasas.js';
-// 4.10 base: lo que crece con las noches (trofeos, perro, bonos de la base)
+// 4.10 base: lo que crece con las noches (trofeos y perro; los bonos de la base van con los del guardián)
 import { creceNuevo, sanearCrece } from './desafio-crece.js';
+// 4.10 guardian: los bonos del jugador y las habilidades del guardián
+import { bonosNuevos, sanearBonos, bonoAplicado } from './desafio-bonos.js';
+import { habilidadesNuevas, sanearHabilidades, aplicarHabilidadesABonos } from './desafio-habilidades.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -443,13 +446,15 @@ export function desafioNuevo() {
     refuerzoNoche: -1,
     // 3.8.6: las semillas doradas tiradas en el suelo, sin juntar ({ x, y, z } cada una)
     sueltas: [],
+    // 4.10 guardian: los bonos (de las habilidades, el bestiario, las ventajas...) y los puntos del guardián
+    bonos: bonosNuevos(), habilidades: habilidadesNuevas(),
     // 2.5: el arsenal (munición nueva, la flecha elegida y la noche en que se usaron las placas)
     ...Object.fromEntries(MUNICIONES.map((k) => [k, 0])), flechaTipo: 'comun', placasNoche: -1,
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
     evolucion: evolucionNueva(), puestos: puestosNuevos(),
     // 4.9 dias: la aldea de día: cuánto ayuda cada vecino y qué pidió (ver desafio-aldea.js)
     aldea: aldeaDelDesafio(),
-    // 4.10 base: los trofeos ganados, las noches del perro y los bonos de la base (ver desafio-crece.js)
+    // 4.10 base: los trofeos ganados y las noches del perro (ver desafio-crece.js)
     crece: creceNuevo() };
 }
 export const NUCLEO_VIDA = 600;
@@ -489,10 +494,15 @@ export function sanearSueltas(v) {
 export function sanearDesafio(d) {
   const x = d && typeof d === 'object' && !Array.isArray(d) ? d : {};
   const base = desafioNuevo();
+  // 4.10 guardian: los bonos y las habilidades se limpian primero (la salud máxima depende de ellos); los bonos de las habilidades
+  // se rehacen siempre desde los niveles, así que nunca quedan de más ni de menos
+  const habilidades = sanearHabilidades(x.habilidades);
+  const bonos = aplicarHabilidadesABonos({ bonos: sanearBonos(x.bonos), habilidades }).bonos;
+  const saludTope = Math.max(40, Math.round(SALUD_MAX + bonoAplicado({ bonos }, 'saludMax')));
   const ent = (v, def, max = 1e6) => Math.max(0, Math.min(max, Math.floor(Number.isFinite(Number(v)) ? Number(v) : def)));
   return {
     ...base,
-    salud: Math.max(1, Math.min(SALUD_MAX, Number.isFinite(Number(x.salud)) ? Number(x.salud) : SALUD_MAX)),
+    salud: Math.max(1, Math.min(saludTope, Number.isFinite(Number(x.salud)) ? Number(x.salud) : saludTope)),   // 4.10 guardian: con los bonos, el tope es la salud máxima de esta partida
     oleadas: ent(x.oleadas, 0), noches: ent(x.noches, 0), derrotas: ent(x.derrotas, 0),
     oleadaNoche: Number.isFinite(Number(x.oleadaNoche)) && x.oleadaNoche !== null ? Math.floor(Number(x.oleadaNoche)) : null,
     oleadaTerminada: x.oleadaTerminada === undefined ? true : !!x.oleadaTerminada,
@@ -565,6 +575,7 @@ export function sanearDesafio(d) {
         ? { x: Number(x.asedioAlAlba.x), z: Number(x.asedioAlAlba.z) } : {}) : null,
     refuerzoNoche: Number.isFinite(Number(x.refuerzoNoche)) && x.refuerzoNoche !== null ? Math.floor(Number(x.refuerzoNoche)) : -1,   // 3.8.6
     sueltas: sanearSueltas(x.sueltas),   // 3.8.6
+    bonos, habilidades,   // 4.10 guardian: una partida vieja carga sin bonos ni puntos
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
     farolOn: !!x.farolOn, brasas: ent(x.brasas, 0, PALA.cargas),   // 4.9 defensas: una partida vieja carga con el farol apagado y la pala vacía
   };

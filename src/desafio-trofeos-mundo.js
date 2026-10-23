@@ -16,7 +16,7 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
   const tableros = () => obras.obras.filter((o) => o.plano.id === ID_TABLERO && completa(o));
   const crece = () => {
     const d = api.D();
-    if (!d.crece || typeof d.crece !== 'object') d.crece = { trofeos: {}, perro: { noches: 0 }, bonos: {} };
+    if (!d.crece || typeof d.crece !== 'object') d.crece = { trofeos: {}, perro: { noches: 0 } };
     if (!d.crece.trofeos || typeof d.crece.trofeos !== 'object') d.crece.trofeos = {};
     return d.crece;
   };

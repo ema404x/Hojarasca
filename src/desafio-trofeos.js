@@ -9,9 +9,9 @@ import { varianteJefe } from './desafio-valle.js';
 
 export const ORIGEN_TROFEO = 'trofeo';
 
-// `bono.valor` es una fracción (0,05 = 5 %). El orden de la lista es el orden en el tablero (de izquierda a derecha, de arriba abajo).
+// `bono.valor` es una fracción (0,05 = 5 %), menos en saludMax, que son puntos de salud. El orden de la lista es el orden en el tablero (de izquierda a derecha, de arriba abajo).
 export const TROFEOS = [
-  { id: 'casco', nombre: 'Casco de corteza', de: 'el mandamás', hito: 'la noche 5', bono: { clave: 'saludMax', valor: 0.05 },
+  { id: 'casco', nombre: 'Casco de corteza', de: 'el mandamás', hito: 'la noche 5', bono: { clave: 'saludMax', valor: 5 },
     texto: 'El casco de corteza del primer mandamás: aguantás un poco más' },
   { id: 'hongo', nombre: 'Hongo grande', de: 'el mandamás que llama', hito: 'la noche 10', bono: { clave: 'recarga', valor: 0.06 },
     texto: 'Uno de los hongos de su espalda: recargás un poco más rápido' },
@@ -23,7 +23,7 @@ export const TROFEOS = [
     texto: 'Una piña del Coihue Viejo: arreglás las defensas más rápido' },
   { id: 'corona', nombre: 'Corona del Rey Duende', de: 'el Rey Duende', hito: 'cuando cae el Rey Duende', bono: { clave: 'correr', valor: 0.04 },
     texto: 'La corona de raíces del Rey Duende: corrés un poco más rápido' },
-  { id: 'raiz', nombre: 'Raíz del nido', de: 'la cueva del nido', hito: 'cuando se derrumba la cueva', bono: { clave: 'saludMax', valor: 0.05 },
+  { id: 'raiz', nombre: 'Raíz del nido', de: 'la cueva del nido', hito: 'cuando se derrumba la cueva', bono: { clave: 'saludMax', valor: 5 },
     texto: 'Una raíz retorcida de la cueva de donde salían: aguantás un poco más' },
 ];
 export const POR_ID = Object.fromEntries(TROFEOS.map((t) => [t.id, t]));
@@ -77,10 +77,10 @@ export function bonosDeTrofeos(trofeos) {
   for (const id of ganados(trofeos)) { const b = POR_ID[id].bono; suma[b.clave] = (suma[b.clave] || 0) + b.valor; }
   return suma;
 }
-// «+5 % salud máxima»
+// «+6 % velocidad de recarga» o «+5 de salud máxima»
 const NOMBRE_BONO = { saludMax: 'salud máxima', correr: 'velocidad al correr', recarga: 'velocidad de recarga', dano: 'daño', reparar: 'velocidad al reparar', alcance: 'alcance' };
 export const nombreBono = (clave) => (Object.hasOwn(NOMBRE_BONO, clave) ? NOMBRE_BONO[clave] : clave);
-export const textoBono = (b) => `+${Math.round(b.valor * 100)} % ${nombreBono(b.clave)}`;
+export const textoBono = (b) => (b.clave === 'saludMax' ? `+${Math.round(b.valor)} de ${nombreBono(b.clave)}` : `+${Math.round(b.valor * 100)} % ${nombreBono(b.clave)}`);
 
 // Los textos del tablero.
 export function textoGanado(id) {

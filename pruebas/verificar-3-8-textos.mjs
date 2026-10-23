@@ -58,7 +58,8 @@ ok(quedan.length === 0, `quedó vocabulario de extraterrestres en el Desafío:\n
 
 // lo que el Desafío arma desde los datos, de a uno
 const DESAFIO = [
-  ...Object.values(BESTIARIO).flatMap((b) => [b.nombre, b.visto, b.aprendido, b.debil]),
+  // 4.10 guardian: (las fichas del curandero y el enjambre son nuevas y se traducen al final, con el resto de lo nuevo)
+  ...Object.entries(BESTIARIO).filter(([k]) => k !== 'curandero' && k !== 'enjambre').flatMap(([, b]) => [b.nombre, b.visto, b.aprendido, b.debil]),
   ...LOGROS.flatMap((l) => [l.nombre, l.texto]),
   ...seccionesGuia('desafio').flatMap((s) => s.items.flatMap((i) => [i[0], i[1]])),
   ...PLANOS_ALIEN.flatMap((p) => [p.nombre, p.texto]),
@@ -90,7 +91,7 @@ const t = crearTraductor(EN, 'en').t;
 // Lo central del Desafío tiene que estar en inglés. (Lo nuevo de otros equipos que sólo
 // esté en castellano se suma después; esto mira lo que ya tenía inglés antes de la 3.8.)
 const CENTRAL = [
-  ...Object.values(BESTIARIO).flatMap((b) => [b.nombre, b.visto, b.aprendido, b.debil]),
+  ...Object.entries(BESTIARIO).filter(([k]) => k !== 'curandero' && k !== 'enjambre').flatMap(([, b]) => [b.nombre, b.visto, b.aprendido, b.debil]),   // 4.10 guardian: (curandero y enjambre se traducen al final)
   ...LOGROS.flatMap((l) => [l.nombre, l.texto]),
   ...PLANOS_ALIEN.flatMap((p) => [p.nombre, p.texto]),
   ...Object.values(NOMBRE_FASE), ...Object.values(AVISO_FASE).flat(), ...Object.values(NOMBRE_JEFE),
