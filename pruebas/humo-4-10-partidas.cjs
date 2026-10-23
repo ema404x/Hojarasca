@@ -124,8 +124,8 @@ app.whenReady().then(async () => {
     await js(`(()=>{ const H=${H}, D=H.progreso.desafio; D.tutorial = 99; D.oleadas = 6; D.noches = 6; D.oleadaTerminada = true; D.oleadaNoche = 6; D.abatidos = 50; D.derrotas = 0;
       D.aldea.ayuda.anselmo = 2; D.aldea.ayuda.herminia = 1; D.aldea.ayuda.chicos = 1; D.aldea.ayuda.martin = 1; D.meta.limpias = 5; H.progreso.dia = 8; H.progreso.horas = 19.4; return 1 })()`);
     await js(`(()=>{ const H=${H}; for (let i=0;i<30;i++){ H.progreso.horas+=0.01; H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); } H.progreso.horas=20.49; for (let i=0;i<60;i++){ H.progreso.horas+=0.003; H.desafio.actualizar(0.05,{noche:1,dtReal:0.05}); } return 1 })()`);
-    await sim(8);
-    const noche = JSON.parse(await js(`JSON.stringify({ oleadas: ${H}.progreso.desafio.oleadas, tipos: ${H}.desafio.aliens.map(a => a.tipo) })`));
+    for (let i = 0; i < 14 && !(await js(`${H}.desafio.aliens.some(a => a.tipo === 'jefe' || (a.def && a.def.jefe))`)); i++) await sim(5);
+    const noche = JSON.parse(await js(`JSON.stringify({ oleadas: ${H}.progreso.desafio.oleadas, tipos: ${H}.desafio.aliens.map(a => (a.def && a.def.jefe) ? 'jefe' : a.tipo) })`));
     ok(noche.oleadas === 7 && noche.tipos.includes('jefe'), 'la séptima noche trae al mandamás: ' + noche.tipos.length + ' duendes');
     ok(noche.tipos.filter((t) => t === 'jefe').length === 1, 'uno solo');
     await foto('05-noche-siete');
@@ -134,12 +134,13 @@ app.whenReady().then(async () => {
     const lanza = await js(`${H}.desafio.atacar('lanza')`);
     ok(lanza === true && !(await js(`${H}.desafio.aliens.some(a => a.vida < a.vidaMax && a.tipo !== 'jefe' && false)`)), 'con «sólo arco» la lanza no se usa (el clic se come el golpe)');
     // cae el mandamás
-    await js(`(()=>{ const H=${H}; const j = H.desafio.aliens.find(a => a.tipo === 'jefe'); H.desafio.herirDuende(j, 1e9, 'jugador'); return 1 })()`);
-    await sim(3.2);
+    await js(`(()=>{ const H=${H}; const j = H.desafio.aliens.find(a => a.tipo === 'jefe' || (a.def && a.def.jefe)); H.desafio.herirDuende(j, 1e9, 'jugador'); return 1 })()`);
+    await esperar(3200);   // la victoria llega a los 2,4 s reales de caer el mandamás
+    await sim(1);
     const ganada = JSON.parse(await js(`JSON.stringify({ v: ${H}.progreso.desafio.victoria, nido: ${H}.progreso.desafio.nido, final: ${H}.progreso.desafio.meta.final, dada: ${H}.progreso.desafio.meta.semillaDada })`));
     ok(ganada.v === true && ganada.nido === null, 'al caer el mandamás en la corta se gana, sin cueva');
     ok(ganada.final === 'aldea' && ganada.dada === true, 'el final es «la aldea entera» (cuatro vecinos ayudaron y la base no cayó)');
-    await esperar(6200);
+    await esperar(7000);
     await js(`${H}.desafio.actualizar(0.05,{noche:0, dtReal:0.05}); 1`);
     const vic = JSON.parse(await js(`JSON.stringify({ visible: !document.getElementById('victoria').classList.contains('oculto'), titulo: document.getElementById('victoria-titulo').textContent,
       sub: document.getElementById('victoria-sub').textContent, final: document.getElementById('victoria-final').textContent, texto: document.getElementById('victoria-texto').textContent, puntos: document.getElementById('victoria-puntos').textContent })`));
