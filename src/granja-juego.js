@@ -11,7 +11,7 @@
 // sumarEntrada(k, n), sumarMaterial(k, n), registrar(id), sonido }
 import { GRANJA, FRUTALES, QUIENES_GRANJA, TRUEQUE_GRANJA, sanearGranja, avanzarGranja, entregas, ordenar, echarFardo, echarSobras, sobraParaEchar, carnear, esNovillo, corderoListo, esCapon, claveFrutal, frutalNuevo, plantar, elegirPlantin, estadoFrutal, cosecharFrutal, primeraFruta, devolucionHoyo, inviernoGranja, hacerTrueque, opcionesTrueque, textoVaca, textoTernero, textoCordero, textoLechon, textoChancha, textoTambo, textoChiquero, textoFrutal } from './granja.js';
 import { TAMBO, CHIQUERO } from './planos-granja.js';
-import { tratoDeEfectos } from './carga.js';   // 4.7 carga
+import { tratoDeEfectos } from './carga.js';
 
 const TITULO_MENU = { ramon: 'Cambiar algo de campo…', veterinaria: 'Lo de la chancha…', madre: 'Plantines de frutales…', herbolaria: 'Matas de frambuesa y de grosella…' };
 const PREGUNTA = { ramon: 'Algo de campo te puedo cambiar, m\'hijo. ¿Qué andás necesitando?', veterinaria: 'Tengo una chancha que no sé dónde meter. ¿La querés?', madre: '¿Te gustan los frutales? Tengo plantines de los del patio.', herbolaria: 'Tengo matas con raíz, de las que dan fruta fina.' };

@@ -6054,6 +6054,7 @@ function tejer() {
   const id = queTejer(lanaAMano(), progreso.cosas);
   if (!id) { nota('No alcanza la lana', `Hacen falta ${TEJIDOS.poncho.lana} vellones para un poncho. La majada está en el galpón`); return; }
   const t = TEJIDOS[id];
+  if (id === 'poncho' && !cabeTrato({ poncho: 1 }, { lana: t.lana })) return;   // 4.7 carga: la lana libera lugar (neto); la manta no ocupa casillas
   conMateriales((m) => { m.lana -= t.lana; });
   if (id === 'manta') progreso.cosas.manta = 1;
   else { progreso.cosas.poncho = (progreso.cosas.poncho || 0) + 1; registrar('poncho'); }

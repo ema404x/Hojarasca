@@ -15,7 +15,7 @@ import { COCINA, ESTACIONES, PLANOS_ESTACION, RECETA_PASOS, RECETAS_PASOS, estac
 import { estaLibre, amistades, sumarAmistadDe, nombreCorto } from './vecindad.js';
 import { diaSemanaDe, CHICOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, esPobladorAldea } from './aldea.js';
 import { llegadaValle } from './amor-escenas.js';
-import { tratoDeEfectos } from './carga.js';   // 4.7 carga
+import { tratoDeEfectos } from './carga.js';
 
 const NIVEL = { conocido: 1, amigo: 2, compadre: 3 };
 const RADIO_NOTAS = 45;      // a esta distancia (o menos) te avisa que un paso está listo

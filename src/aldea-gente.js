@@ -43,7 +43,7 @@
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
 import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, despedirVisitante, lugarConArticulo, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
-import { tratoDeEfectos } from './carga.js';   // 4.7 carga
+import { tratoDeEfectos } from './carga.js';
 import { PREDIO } from './fiestas.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { aplicarNegocio, temporadaDelDia } from './negocios-fx.js';

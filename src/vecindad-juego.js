@@ -27,7 +27,7 @@
 import { esPersonaVecindad, REGALABLES, nombreCorto, abrirCharla, elegirTema, regalar, invitar, ayudas, ayudar, anotarHecho, visitaDeAmistad, regaloDeAmistad, pasarDiaVecindad, estaLibre, nivelDe, amistades, gustosConocidos, PERFILES_VECINOS, PERSONAS_VECINDAD } from './vecindad.js';
 import { VOCES } from './vecindad-voces.js';
 import { esPersonaAldea, personaAldea, diaSemanaDe, puntosMundo } from './aldea.js';
-import { tratoDeEfectos } from './carga.js';   // 4.7 carga
+import { tratoDeEfectos } from './carga.js';
 
 const objeto = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const cap = (s) => (typeof s === 'string' && s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
