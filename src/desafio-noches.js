@@ -57,7 +57,7 @@ export const GIROS = {
     noCon: ['niebla', 'apagon'],
   },
   refuerzos: {
-    nombre: 'Llegan refuerzos', aviso: 'Más duendes bajan del monte',
+    nombre: 'Llegan refuerzos', aviso: 'Llegan refuerzos del monte',
     texto: 'Se oyen cuernos en el monte: viene gente fresca a terminar lo que dejaron a medias', peso: 3, desde: 3,
     noCon: [],
   },
