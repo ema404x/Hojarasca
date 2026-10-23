@@ -165,7 +165,7 @@ export function composicionOleada(n, claveDificultad = 'normal', vuelta = 0) {
   // tiene su propio cupo (no cuenta para el techo de la noche) porque son muchos, chiquitos y de una sola
   // pegada. Los dos van al final de la lista (antes del jefe): las noches especiales y los refuerzos, que
   // recortan la cola, los dejan afuera antes que a los de siempre.
-  const curanderos = curanderosEnLaNoche(noche, jefes > 0);
+  const curanderos = Math.min(curanderosEnLaNoche(noche, jefes > 0), Math.max(1, Math.floor(comunes / 5)));   // (uno cada cinco comunes, como mucho)
   const enjambre = enjambreEnLaNoche(noche, jefes > 0, dificultad(claveDificultad).cantidad);
   let hueco = curanderos;
   let rastreadores = Math.max(1, comunes - brutos - tiradores - saltadores - escupidores - excavadores - voladores);
@@ -307,6 +307,13 @@ export function nocheEspecial(n, azar = Math.random(), anterior = null) {
 export function aplicarEspecial(lista, especial) {
   const e = ESPECIALES[especial];
   if (!e) return lista;
+  // 4.8 ataques: el enjambre tampoco se multiplica ni se reemplaza (como el jefe): va aparte y tal cual, antes del jefe.
+  // La silenciosa, que es de puros tiradores, no lo trae.
+  if (lista.includes('enjambre')) {
+    const enjambre = lista.filter((t) => t === 'enjambre'), resto = aplicarEspecial(lista.filter((t) => t !== 'enjambre'), especial);
+    if (e.soloTiradores) return resto;
+    return resto[resto.length - 1] === 'jefe' ? [...resto.slice(0, -1), ...enjambre, 'jefe'] : [...resto, ...enjambre];
+  }
   // el jefe no se multiplica ni se reemplaza: sigue siendo uno solo y va último
   const conJefe = lista.includes('jefe');
   const base = conJefe ? sinJefe(lista) : lista;

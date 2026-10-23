@@ -22,7 +22,7 @@ export function crearAtaques(api) {
   let plan = null, planClave = '';
   let pendiente = null;           // lo que está bajando de la cola: { tipo, senuelo }
   let enjambreK = 0, enjambreN = 0;
-  let ruidoT = 0, ultimoRuido = 0, distraccion = null;
+  let reloj = 0, ultimoRuido = -99, distraccion = null;   // (el reloj es el del juego: segundos de cuadro)
   const grupo = { x: 0, z: 0, n: 0 };
   const _cands = [];
 
@@ -149,6 +149,7 @@ export function crearAtaques(api) {
   // Una pasada por los invasores: el centro del grupo, los señuelos (tiempo y bulla) y los curanderos.
   function actualizar(dt, js) {
     const aliens = api.aliens;
+    reloj += dt;
     if (!aliens.length) return;
     let n = 0, cx = 0, cz = 0, hayCuranderos = false, hayConDuracion = false;
     for (const a of aliens) {
@@ -165,8 +166,6 @@ export function crearAtaques(api) {
   }
   // Los señuelos: corre su tiempo (aunque estén rompiendo su defensa), hacen bulla de a uno, y terminan.
   function senuelos(dt, js) {
-    ruidoT -= dt;
-    const ahora = performance.now();
     const aliens = api.aliens;
     for (const a of aliens) {
       const s = a.senuelo;
@@ -183,7 +182,7 @@ export function crearAtaques(api) {
       s.ruido -= dt;
       if (s.ruido <= 0) {
         s.ruido = esperaDeRuido();
-        if (ahora - ultimoRuido > 1100) { ultimoRuido = ahora; api.risa(p, a); }
+        if (reloj - ultimoRuido > 1.1) { ultimoRuido = reloj; api.risa(p, a); }   // (de a una: la risa de otra, 1 s después como mínimo)
       }
     }
   }

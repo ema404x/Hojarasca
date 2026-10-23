@@ -86,7 +86,8 @@ export function planDeLados(base, muestra) {
     const pts = [], c = sectorCentro(s), paso = TAU / SECTORES;
     for (const r of radios) for (let i = -2; i <= 2; i++) {
       const a = c + i * (paso * ancho / 2);
-      const p = { x: base.x + Math.sin(a) * r, z: base.z + Math.cos(a) * r, r };
+      // (los puntos se redondean a 10 cm antes de revisarlos: lo que se guarda es lo que se revisó)
+      const p = { x: Math.round((base.x + Math.sin(a) * r) * 10) / 10, z: Math.round((base.z + Math.cos(a) * r) * 10) / 10, r };
       if (muestra.valido(p.x, p.z) && muestra.caminable(p, base)) pts.push(p);
     }
     return pts;
@@ -133,7 +134,7 @@ export function planDeLados(base, muestra) {
     const puntos = [];
     for (const p of todos) {
       if (puntos.length >= MAX_PUNTOS) break;
-      if (puntos.every((q) => dist(q, p) >= 9)) puntos.push({ x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10 });
+      if (puntos.every((q) => dist(q, p) >= 9)) puntos.push({ x: p.x, z: p.z });
     }
     if (puntos.length < MIN_PUNTOS) continue;
     const rumbo = rumboDe(base, { x: puntos.reduce((a, p) => a + p.x, 0) / puntos.length, z: puntos.reduce((a, p) => a + p.z, 0) / puntos.length });

@@ -17,6 +17,8 @@ const CALIDADES = (process.env.CALIDADES || process.env.CALIDAD || 'media').spli
 const CUADROS = Number(process.env.CUADROS || 240);
 const CANTIDADES = (process.env.CANTIDADES || '0,8,16,24').split(',').map(Number);
 const OBRAS = process.env.OBRAS !== '0';
+// 4.8: EXTRA=curandero:1,enjambre:12 suma esos a los de cada fila (los del enjambre tienen su cupo aparte del tope de 24)
+const EXTRA = (process.env.EXTRA || '').split(',').filter(Boolean).map((x) => x.split(':')).map(([t, c]) => [t, Number(c) || 1]);
 fs.mkdirSync(SALIDA, { recursive: true });
 app.setPath('userData', path.join(SALIDA, 'perfil'));
 app.commandLine.appendSwitch('disable-gpu-sandbox');
@@ -62,6 +64,8 @@ app.whenReady().then(async () => {
         const tipos=['rastreador','tirador','saltador','escupidor','excavador','volador','bruto','rastreador'];
         const base = { x: js.pos.x, z: js.pos.z }, yaw = js.yaw;
         for (let k=0;k<${n};k++) { const t = tipos[k % tipos.length], ang = yaw + Math.PI + (k / Math.max(1, ${n}) - 0.5) * 1.4, r = 12 + (k % 5) * 7;
+          const a = D.invocar(t, base.x + Math.sin(ang) * r, base.z + Math.cos(ang) * r); if (a) { a.vida = a.vidaMax = 1e6; } }
+        for (const [t, c] of ${JSON.stringify(EXTRA)}) for (let k=0;k<c;k++) { const ang = yaw + Math.PI + (k / Math.max(1, c) - 0.5) * 1.2, r = 14 + (k % 4) * 3;
           const a = D.invocar(t, base.x + Math.sin(ang) * r, base.z + Math.cos(ang) * r); if (a) { a.vida = a.vidaMax = 1e6; } }
         for (let i=0;i<30;i++) { H.progreso.desafio.salud = 1e5; H.__bucle(); }
         H.perfilador.limpiar(); const R = H.renderer, auto = R.info.autoReset; R.info.autoReset = false;
