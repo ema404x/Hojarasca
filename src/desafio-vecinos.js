@@ -28,13 +28,15 @@ export const CUERPOS = {
 };
 export const CLAVES_CUERPOS = Object.keys(CUERPOS);
 
+// 4.9 (junta): el estado real de la aldea (pedidos)
+import { nivelAyuda } from './desafio-aldea.js';
+
 // ---------------------------------------------------------------- el nivel de ayuda
 const entero = (v) => Math.max(0, Math.min(NIVEL_MAX, Math.floor(Number.isFinite(Number(v)) && v !== null && v !== '' && typeof v !== 'boolean' ? Number(v) : 0)));
+// 4.9 (junta): el nivel sale del estado real de la aldea (los pedidos de `desafio-aldea.js` lo suben de 0 a 2); sin pedidos cumplidos, nadie ayuda
 export function nivelDeAyuda(d, clave) {
   if (!VECINOS.includes(clave)) return 0;
-  const ayuda = d && typeof d === 'object' ? d.aldea?.ayuda : null;
-  if (ayuda && typeof ayuda === 'object' && Object.hasOwn(ayuda, clave)) return entero(ayuda[clave]);
-  return 1;   // respaldo: mientras el estado de la aldea no exista, todos ayudan con lo básico
+  return nivelAyuda(d, clave);
 }
 // ¿Ayuda esta noche? Sólo en las noches grandes y con nivel mayor que 0. Devuelve el nivel que ayuda (0 si no).
 export const nivelEstaNoche = (d, clave, grande) => (grande ? nivelDeAyuda(d, clave) : 0);

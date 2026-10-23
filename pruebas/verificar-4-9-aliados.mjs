@@ -26,8 +26,9 @@ const cerca = (a, b, tol, msg) => { cuantas++; assert.ok(Math.abs(a - b) <= tol,
 // ---- el nivel de ayuda (lo manda el agente «días»: D().aldea.ayuda; acá sólo se lee)
 {
   igual(V.VECINOS, ['anselmo', 'herminia', 'martin', 'chicos'], 'los cuatro vecinos');
-  for (const k of V.VECINOS) ok(V.nivelDeAyuda({}, k) === 1, `${k}: sin estado de la aldea, el respaldo es 1`);
-  ok(V.nivelDeAyuda(null, 'anselmo') === 1, 'sin partida, el respaldo');
+  // 4.9 (junta): con el estado real de la aldea (desafio-aldea.js) nadie ayuda hasta cumplir su primer pedido
+  for (const k of V.VECINOS) ok(V.nivelDeAyuda({}, k) === 0, `${k}: sin estado de la aldea, nadie ayuda hasta cumplir pedidos`);
+  ok(V.nivelDeAyuda(null, 'anselmo') === 0, 'sin partida, 0');
   const d = { aldea: { ayuda: { anselmo: 0, herminia: 2, martin: 1, chicos: 7 } } };
   igual(V.VECINOS.map((k) => V.nivelDeAyuda(d, k)), [0, 2, 1, 2], 'el nivel sale del estado, tope 2');
   ok(V.nivelDeAyuda({ aldea: { ayuda: { anselmo: -3 } } }, 'anselmo') === 0, 'negativo: 0');
@@ -235,7 +236,8 @@ function mundoDeMentira(opciones = {}) {
   const vec = (x, y, z) => ({ x, y, z, set(a, b, c) { this.x = a; this.y = b; this.z = c; return this; } });
   const estado = {
     oleadas: opciones.oleadas ?? 11, especial: opciones.especial ?? null, sinFin: false, ordenes: {}, puestosAliados: {},
-    aldea: opciones.ayuda ? { ayuda: opciones.ayuda } : undefined, ladoNoche: { id: 'camino', x: 0, z: 70, rumbo: 0, noche: 12 },
+    aldea: { ayuda: opciones.ayuda ?? { anselmo: 1, herminia: 1, martin: 1, chicos: 1 } },   // 4.9 (junta): por defecto todos con ayuda 1 (lo que antes daba el respaldo)
+     ladoNoche: { id: 'camino', x: 0, z: 70, rumbo: 0, noche: 12 },
   };
   const reloj = { horas: opciones.horas ?? 19.6, dia: opciones.dia ?? 12 };
   const aliens = [];
