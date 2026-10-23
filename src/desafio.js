@@ -3877,6 +3877,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get asedio() { return asedioMundo; },
     get valle() { return tomadas; },   // 4.10 coihue: los lugares tomados (el mapa y el hacha lo miran)
     get temblor() { return asedioMundo.temblor; },   // 4.10 coihue: cuánto tiembla el suelo cuando el Coihue camina (0 a 1)
+    centroBase: () => centroBase(),   // 4.10 coihue (pruebas)
     get naveAdentro() { return naveMundo; },
     vencer,
   };

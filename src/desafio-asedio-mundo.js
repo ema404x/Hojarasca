@@ -532,6 +532,8 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   function replanear(a) {
     const c = a.camino;
     if (!c || c.llego) return;
+    const centro = api.centroBase();
+    c.base = { x: centro.x, z: centro.z };   // (el centro de tu base se mueve con lo que construís)
     const p = posicionCamino(c), { ruta, recta } = rutaPara(p, c.base);
     c.ruta = ruta; c.recta = recta; c.largo = largoRuta(ruta); c.d = 0; vis.d = 0;
     if (c.largo <= 0.5) c.llego = true;

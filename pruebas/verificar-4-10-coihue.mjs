@@ -177,6 +177,7 @@ function noche(c, libres = 0, antes = null) {
   const k = nuevoCamino(); empezarNocheCamino(k, 1);
   for (let i = 0; i < 20; i++) { k.inmune = 0; herirPies(k, 9999, { deNoche: true }); pisarTrampa(k); }
   ok(k.atasco <= CAMINO.atascoMax + 1e-9, 'lo máximo que se le puede acumular quieto está acotado');
+  { const k2 = nuevoCamino(); empezarNocheCamino(k2, 1); for (let i = 0; i < 20; i++) { k2.inmune = 0; herirPies(k2, 9999, { deNoche: true }); } ok(k2.atasco <= CAMINO.atascoMax + 1e-9 && k2.atasco > CAMINO.atascoCorte, 'y también sólo con las raíces (sin trampas)'); }
   // frenado todo lo posible: el mejor caso sigue avanzando (no se lo detiene para siempre)
   const lento = nuevoCamino();
   const mejor = noche(lento, 4, (cc, hn) => { if (hn > 0.4 && hn < 6.6) herirPies(cc, 9999, { deNoche: true }); });
@@ -230,6 +231,8 @@ function asedioConCamino() {
   const cb = conBasura.camino;
   ok(cb.d === 0 && cb.atasco === CAMINO.atascoMax && cb.rebaja === 0 && cb.heridas === 0 && cb.porNoche === CAMINO.minimoNoche && cb.ultima === -1, 'los números rotos vuelven a su lugar');
   ok(cb.cerco === true && cb.rastro.length === 1 && cb.rastro[0][0] === 4, 'el rastro se queda sólo con puntos buenos');
+  eq(sanearCamino({ ...JSON.parse(JSON.stringify(a.camino)), d: 1e9 }).d, a.camino.largo, 'la distancia guardada no se pasa del final de la ruta');
+  eq(sanearCamino({ ...JSON.parse(JSON.stringify(a.camino)), d: -50 }).d, 0, 'ni baja de cero');
   const mucho = sanearCamino({ ...JSON.parse(JSON.stringify(a.camino)), ruta: Array.from({ length: 5000 }, (_, i) => [i, 0]), rastro: Array.from({ length: 5000 }, (_, i) => [i, 0]) });
   ok(mucho.ruta.length === CAMINO.puntosMax && mucho.rastro.length === RASTRO_MAX, 'las listas tienen tope');
   const sd = sanearDesafio(JSON.parse(JSON.stringify({ ...desafioNuevo(), asedio: a })));
@@ -294,6 +297,8 @@ function asedioConCamino() {
   ok(r.t === 0, 'sin nadie cerca no arranca');
   for (let k = 0; k < 20; k++) avanzarRaiz(r, 0.1, true);
   ok(r.t > 1.9, 'con alguien cerca corre el reloj');
+  // con vos siempre cerca, el reloj da la vuelta: nunca se pasa del ciclo
+  { const rr = { i: 1, t: 0 }; let maxT = 0; for (let k = 0; k < 3000; k++) { avanzarRaiz(rr, 0.05, true); maxT = Math.max(maxT, rr.t); } ok(maxT < periodoRaiz(1), `el reloj de la raíz da la vuelta (máximo ${maxT.toFixed(2)} de ${periodoRaiz(1).toFixed(2)})`); }
   // empezado, termina aunque te vayas
   for (let k = 0; k < 400 && faseRaiz(r.t, 0).fase !== 'reposo' || r.t > 0 && k < 5; k++) avanzarRaiz(r, 0.1, false);
   ok(r.t === 0 || faseRaiz(r.t, 0).fase === 'reposo', 'una vez empezado, el ciclo termina solo y se retira');
@@ -411,6 +416,7 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   eq(TOMADAS.ids, ['estacion', 'lago', 'bosque'], 'son los lugares de las raíces del asedio');
   // se cierra con el asedio
   cerrarValle(v);
+  ok(v.zonas.every((q) => q.nivel === 0), 'se cierra: ningún lugar queda con escalón');
   ok(v.cerrado && zonasTomadasDelValle(v).length === 0 && tomadaEn(v, t.x, t.z) === null, 'al empezar el asedio se cierra y nada queda bloqueado');
   eq(tomarAlAmanecer(v, 9, () => 0), [], 'ni toman más');
   ok(!abrirseNidoDeZona(v, t.id).ok, 'ni crece');
@@ -462,6 +468,8 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(enUnaLinea(asedio, ['asedio: true', 'ancla: true', 'pies: true']), 'son blancos del asedio (la lanza y el hacha también les pegan)');
   ok(/function pushPies\(\) \{\s*if \(!piesVivos\(\)/.test(asedio), 'sólo con el Coihue en pie');
   ok(enUnaLinea(asedio, ['api.caerCerco', '32']), 'al llegar cae el cerco (daño a las obras de alrededor)');
+  ok(enUnaLinea(asedio, ['function libreCoihue', 'hAgua', 'hObra']) && enUnaLinea(asedio, ['T.pendiente', 'T.distRiel', 'cercaDeLugar(x, z)', 'return false']) && enUnaLinea(asedio, ['api.obraCerca?.(x, z, hObra)']), 'la ruta esquiva el agua, la vía, los lugares del valle y las obras');
+  ok(asedio.includes('[[9, 8], [4, 5], [2, 2.5]]'), 'con holgura primero y, si el cerco no deja, cada vez menos (y la recta si no hay camino)');
   ok(asedio.includes('if (c.llego && !c.cerco && vis.d >= c.d - 0.15) alLlegar(c, n);'), 'el cerco cae una sola vez, cuando termina el último paso');
   ok(/if \(vis\.zancada \|\| gap/.test(asedio) || asedio.includes('(gap > 0.04 && !r.camina)'), 'va a zancadas');
   ok(/else if \(vis\.zancada && raicesPuestas\) sacarRaices\(\)/.test(asedio) && asedio.includes('!vis.zancada && !raicesPuestas) ponerRaices(n, a)'), 'las raíces chocan parado y no caminando');
@@ -480,12 +488,12 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(enUnaLinea(nave, ['armarPeligros(s)', '4.10 coihue']) && enUnaLinea(nave, ['actualizarRaices(dt, js)', '4.10 coihue']), 'se arman con la subida y corren por cuadro');
   ok(enUnaLinea(nave, ['if (n?.rama)', 'herirRama']), 'los duendes de las ramas reciben los golpes por el camino de siempre');
   ok(enUnaLinea(nave, ['nave: true, rama: true, asedio: true']), 'son blancos (el arco, la honda y los golpes)');
-  ok(enUnaLinea(nave, ['reiniciarPeligros();', 'coihue']), 'al entrar a subir arrancan como nuevos');
+  ok((nave.match(/reiniciarPeligros\(\);/g) || []).length >= 2, 'al entrar a subir y al volver del corazón arrancan como nuevos');
   ok((nave.match(/reposarRaices\(\)/g) || []).length >= 3, 'al entrar al corazón las raíces se guardan');
   ok(enUnaLinea(nave, ['r.sol = { seg: true', 'duenio: DUENIO']) && enUnaLinea(nave, ['col.eliminar(r.sol)']), 'atravesada choca y se saca sola (la física de la escalera se limpia con todo)');
   ok(enUnaLinea(nave, ['!adentroDeLaZona']), 'nunca se atraviesa encima tuyo');
   ok(enUnaLinea(nave, ['saludParaDano()']) && nave.includes('PELIGROS.saludMinima'), 'con poca salud no hace daño');
-  ok(enUnaLinea(nave, ['tapaLaColumna(']), 'los duendes de las ramas no tiran a través del tronco del medio');
+  ok(enUnaLinea(nave, ['&& !tapaLaColumna(']), 'los duendes de las ramas no tiran a través del tronco del medio');
   ok(nave.includes('cuerpoV') === false, 'sin trampa: la prueba de 3.8 se ajustó, no la saltearon');
   // los lugares tomados
   ok(enUnaLinea(desafio, ['tomadas.alAmanecer()']), 'al amanecer se decide si toman un lugar');
@@ -494,11 +502,12 @@ const ZV = [{ id: 'base', x: 0, z: 40 }, { id: 'estacion', x: 200, z: 0 }, { id:
   ok(enUnaLinea(desafio, ['tomadas.actualizar(dt, js)']) && enUnaLinea(desafio, ['tomadas.limpiar()']), 'se actualiza por cuadro y se limpia');
   ok(enUnaLinea(desafio, ['get valle()', 'tomadas']), 'el hacha y el papel lo miran');
   ok(enUnaLinea(main, ['function lugarTomado(o', 'avisar']) && enUnaLinea(main, ['if (lugarTomado(o)) return;']) && enUnaLinea(main, ['lugarTomado(o, false)']), 'el hacha y el pico se frenan (y el cartel de la H lo dice)');
-  ok(enUnaLinea(mapaMundo, ['ctx.bloquea?.(s.x, s.z)']) && enUnaLinea(desafio, ['bloquea: (x, z) => !!tomadas.bloquea(x, z)']), 'los recursos del mapa de la semilla también');
+  ok((mapaMundo.match(/ctx\.bloquea\?\.\(s\.x, s\.z\)/g) || []).length === 2 && enUnaLinea(desafio, ['bloquea: (x, z) => !!tomadas.bloquea(x, z)']), 'los recursos del mapa de la semilla también');
   ok(enUnaLinea(chinches, ['clase: \'tomada\'']) && enUnaLinea(mapa, ["a.clase === 'tomada'"]), 'el papel dibuja la mancha');
   ok(enUnaLinea(tomadasM, ['ubicarZonas(T.lugares', "azarDe(d.semilla, 'asedio')"]), 'los lugares son los mismos puntos de las raíces del asedio');
   ok(/matTinte = \(\) => new THREE\.MeshBasicMaterial\(\{ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 \}\)/.test(tomadasM), 'el tinte usa el mismo material de la mancha de las raíces (no compila nada nuevo)');
   ok(!/PointLight|ShaderMaterial|SpotLight|DirectionalLight/.test(tomadasM) && !/PointLight|ShaderMaterial/.test(leer('src/desafio-camino.js')), 'sin luces ni shaders nuevos');
+  ok(tomadasM.includes('Math.abs(Math.floor(sem))'), 'los hongos no usan índices negativos (lugares con la x o la z de menos)');
   ok(/if \(d\.valle \|\| d\.asedio \|\| d\.victoria\) return d\.valle \|\| null;/.test(tomadasM), 'no se crean lugares una vez empezado el asedio');
   // el guardado
   ok(enUnaLinea(leer('src/desafio-reglas.js'), ['valle: sanearValle(x.valle)']) && enUnaLinea(leer('src/desafio-reglas.js'), ['valle: null']), 'se guarda con saneo; una partida vieja carga limpia');

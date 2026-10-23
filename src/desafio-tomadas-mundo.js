@@ -122,7 +122,7 @@ export function crearTomadasMundo(T, escena, a) {
   // los hongos: un racimo de pie y sombrero, todos en una sola geometría (se muestran de a más con el escalón)
   function hongos(z, sem) {
     const pos = [], col = [], idx = [];
-    const azar = (() => { let s = sem * 9301 + 49297; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; })();
+    const azar = (() => { let s = (Math.abs(Math.floor(sem)) * 9301 + 49297) % 233280; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; })();   // (siempre positivo: con la x o la z del lugar negativas daba índices de menos)
     const colores = [[0.84, 0.62, 0.3], [0.72, 0.85, 0.42], [0.5, 0.74, 0.66], [0.8, 0.5, 0.3]];
     const N = 22;
     for (let k = 0; k < N; k++) {
