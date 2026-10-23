@@ -8,8 +8,8 @@ import { crearBanco } from './desafio-sonidos.js';
 import { esperaVoz } from './voz-alien.js';
 import { LIMITE } from './config.js';
 import { registrarLuz } from './luces.js';
-import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja } from './desafio-reglas.js';
-import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, SALUD_MAX, claveNoche, esHoraDeAtaque, segundosHasta, relojCorto, TIPOS_ALIEN, composicionOleada, multiplicadorNoche, RECETAS, vidaMaxObra, costoReparacion, sanearDesafio, dificultad, suministrosDelAlba, sumarContenidoCaja, efectosPartida } from './desafio-reglas.js';
+import { armaEfectiva, CATEGORIAS_TALLER, REFUERZOS, NOCHE_FINAL, nocheFinalCoihue, ESPECIALES, nocheEspecial, aplicarEspecial, nocheConRestos, efectoClima } from './desafio-reglas.js';
 import { puedeSaltar, danoEnPuntoDebil, sinJefe, esNocheDeJefe, MARGEN_GOLPE, golpePorDetras, NUCLEO_VIDA, SUELTAS_MAX } from './desafio-reglas.js';
 import { multiplicadorVuelta, textoVuelta } from './desafio-vuelta.js';
 import { CIMIENTO, admiteCimiento, frenaAlExcavador } from './desafio-cimiento-reglas.js';
@@ -405,6 +405,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     gente: () => ctx.gente?.(),
     sonido, efectos,
     obraMasDanada: (c, radio, sin = null) => {   // 4.9 aliados: `sin`: la que ya está arreglando otro (Anselmo no va a la de Don Ramón)
+      if (efectosPartida()?.sinReparar) return null;   // 4.10 partidas: «sin reparar»
       let mejor = null, peor = 0.999;
       for (const o of obras.obrasCerca(c, radio, [])) {
         if (!completa(o) || o === sin || !Number.isFinite(o.datos.vida)) continue;
@@ -415,7 +416,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     },
     // 1.11: los portones terminados, para la orden "cuidá el portón"
     portones: () => obras.obras.filter((o) => o.plano.porton && completa(o)).map((o) => ({ x: o.datos.x, z: o.datos.z })),
-    reparar: (o, cantidad) => { const { vida, max } = vidaDe(o); o.datos.vida = Math.min(max, vida + cantidad); return o.datos.vida >= max; },
+    reparar: (o, cantidad) => { if (efectosPartida()?.sinReparar) return true; const { vida, max } = vidaDe(o);   // 4.10 partidas: «sin reparar»
+      o.datos.vida = Math.min(max, vida + cantidad); return o.datos.vida >= max; },
     largarDesde: (x, z) => {
       // la nodriza larga grupos chicos mientras siga en el aire (nunca otro jefe)
       const tipos = sinJefe(composicionOleada(Math.max(3, D().oleadas), ctx.dificultad?.(), D().vuelta)).slice(0, 5);
@@ -558,7 +560,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     musica.golpeFinal();
     anunciarLogros(evaluarEstado(totalLogros()));
     registrarRecords(true);
-    abrirSegundoActo();
+    if (!efectosPartida()?.nocheFinal) abrirSegundoActo();   // 4.10 partidas: en la corta no hay cueva
     ctx.alVencer?.({ noches: d.noches, abatidos: d.abatidos, derrotas: d.derrotas, dificultad: ctx.dificultad?.() || 'normal', ...extra });
     ctx.guardar();
   }
@@ -1091,6 +1093,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     fortin.alAmanecer();
     if (sobrevivida) {
       d.noches++;
+      if (d.meta && !nocheActual.perdidas) d.meta.limpias++;   // 4.10 partidas: una noche sin perder una sola defensa (para el final)
       d.racha++;
       d.mejorRacha = Math.max(d.mejorRacha, d.racha);
       // 2.0: las noches después del nido se cuentan aparte, y son cinco
@@ -1138,7 +1141,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // dormir mientras haya una ruina con bichos adentro)
   function vivos() { let n = 0; for (const a of aliens) if (a.estado !== 'morir' && a.estado !== 'irse' && a.estado !== 'dormido') n++; return n + estadoNave.porBajar.length; }
   // 3.0: en la supervivencia sin fin no hay noche final
-  const esNocheFinal = () => { const d = D(); return !d.victoria && !d.sinFin && !d.asedio && d.oleadas + 1 >= NOCHE_FINAL; };
+  const esNocheFinal = () => { const d = D(); return !d.victoria && !d.sinFin && !d.asedio && d.oleadas + 1 >= nocheFinalCoihue(); };   // 4.10 partidas: en la corta no hay noche final del Coihue
 
   // Qué noche viene (especial o no): una hora antes, en el aviso; `clave` es la de esa noche (`claveNoche`).
   function decidirNoche(clave) {
@@ -1178,7 +1181,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (v.vida > v.max * 0.2 && v.max > vmax) { vmax = v.max; clave = o; }
     }
     const id = elegirGiro({
-      noche: d.oleadas, especial: d.especial, jefe: esNocheDeJefe(d.oleadas), final: !d.victoria && (!!d.nodriza || (!d.sinFin && !d.asedio && d.oleadas >= NOCHE_FINAL)),
+      noche: d.oleadas, especial: d.especial, jefe: esNocheDeJefe(d.oleadas), final: !d.victoria && (!!d.nodriza || (!d.sinFin && !d.asedio && d.oleadas >= nocheFinalCoihue())),
       rescate: !!d.rescate, varada: !!d.varada, anterior: d.giroAnterior, hayDefensas: !!clave,
       yaHuboRefuerzo: d.refuerzoNoche === d.oleadas, azar: azarNoche('giro', d.oleadas)(),   // (azarNoche da un generador: con código de partida siempre el mismo)
     });
@@ -1277,7 +1280,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         let tipos = d.sinFin ? composicionSinFin(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta) : composicionOleada(Math.max(1, d.oleadas), ctx.dificultad?.(), d.vuelta);
         // 3.8.3: con la noche especial, como al empezarla (una silenciosa volvía con rastreadores y brutos, y la roja con menos)
         if (d.especial) tipos = aplicarEspecial(tipos, d.especial);
-        tipos = conLaCadena(tipos, d.oleadas, d.oleadas >= NOCHE_FINAL && !d.victoria && !d.sinFin && !d.asedio);   // 4.8 noches
+        tipos = conLaCadena(tipos, d.oleadas, d.oleadas >= nocheFinalCoihue() && !d.victoria && !d.sinFin && !d.asedio);   // 4.8 noches
         // 3.8.3: el mandamás va último en la lista: cortarla dejaba afuera al que seguía vivo (guardar y abrir
         // salteaba al jefe) y, con los llamados del jefe contados, volvía uno ya abatido
         const conJefe = tipos.includes('jefe') && d.jefeCaido !== d.oleadas;
@@ -1386,7 +1389,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   }
 
   // ---------------- armas del jugador
-  let recarga = 0;
+  let recarga = 0, avisoSoloArco = 0;
   function tieneArma(id) {
     if (id === 'hacha') return !!progreso().cosas?.hacha;
     return !!progreso().cosas?.[id];
@@ -1441,6 +1444,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function atacar(id, opciones = {}) {
     const arma = armaConBonos(armaEfectiva(id, progreso().cosas), D());   // 4.10 guardian: más daño, alcance y menos espera
     if (!arma || !tieneArma(id) || caido) return false;
+    // 4.10 partidas: la regla «sólo arco» (el martillo queda para reparar)
+    if (efectosPartida()?.soloArco && id !== 'arco' && id !== 'martillo') { if (performance.now() - avisoSoloArco > 2500) { avisoSoloArco = performance.now(); ctx.nota('Sólo arco', 'Elegiste jugar con el arco: las otras armas no se usan'); } return true; }
     if (recarga > 0) return true;
     const js = ctx.jugador().estado, d = D();
     // 2.5: el arco tira la flecha elegida en el carcaj; si se acabó, pasa a otra
@@ -1604,7 +1609,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // Clic derecho con algunas armas: la pistola mejorada dispara cargado.
   function atacarAlterno(id) {
     const arma = armaConBonos(armaEfectiva(id, progreso().cosas), D());   // 4.10 guardian
-    if (!arma?.cargado || caido) return false;
+    if (!arma?.cargado || caido || efectosPartida()?.soloArco) return false;   // 4.10 partidas: sólo arco
     if (recarga > 0) return true;
     const d = D();
     if (d.cargas < arma.cargado.cargas) { ctx.nota('No alcanza la carga', `El disparo cargado usa ${arma.cargado.cargas} cargas`); recarga = 0.5; return true; }
@@ -1663,6 +1668,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   // Martillo: cada golpe devuelve un 10% de resistencia; cada tres golpes gasta un material.
   let pendienteMartillo = 0, avisoMartillo = 0;
   function martillar(js) {
+    if (efectosPartida()?.sinReparar) { if (performance.now() - avisoMartillo > 2500) { avisoMartillo = performance.now(); ctx.nota('Sin reparar', 'Elegiste jugar sin arreglar nada: lo que cae, cae'); } return; }   // 4.10 partidas
     camara.getWorldDirection(_dir);
     let obra = null;
     for (let t = 0.5; t <= 3.2 && !obra; t += 0.25) obra = obraEnPunto(camara.position.x + _dir.x * t, camara.position.y + _dir.y * t, camara.position.z + _dir.z * t, 0.12);
@@ -1785,6 +1791,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         efectos.sangre(_v, 14); efectos.chispas(_v, 16);
         ctx.nota('Cayó el mandamás', `Dejó ${sueltos} semillas doradas desparramadas`, true);
         d.jefeCaido = d.oleadas;   // 3.8.3: para que al abrir la partida a mitad de noche no vuelva
+        // 4.10 partidas: en la partida corta, con el mandamás se termina: los demás huyen y se gana
+        if (efectosPartida()?.nocheFinal && !d.victoria && !d.sinFin) setTimeout(() => { if (d.victoria) return; terminarOleada(true); vencer({ corta: true }); }, 2400);
       }
       d.abatidos++;
       nocheActual.abatidos++;
@@ -1808,6 +1816,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   function usarEmplasto() {
     const d = D();
     if (caido) return;   // 3.8.3: caído (el fundido antes de despertar en la base) se gastaba para nada: levantarse ya cura todo
+    if (efectosPartida()?.sinEmplastos) { ctx.nota('Sin emplastos', 'Elegiste jugar sin emplastos: sólo te cura dormir'); return; }   // 4.10 partidas
     if (d.emplastos <= 0) { ctx.nota('No tenés emplastos', 'Se hacen con fruta y una ramita (K)'); return; }
     if (!curar(45)) { ctx.nota('Estás entero', 'Guardalo para cuando haga falta'); return; }
     d.emplastos--;
@@ -1949,6 +1958,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const e = recetaDisponible(r);
     if (!e.ok) { ctx.nota(r.nombre, e.motivo.charAt(0).toUpperCase() + e.motivo.slice(1)); return; }
     const d = D();
+    if (r.reparar && efectosPartida()?.sinReparar) { ctx.nota('Sin reparar', 'Elegiste jugar sin arreglar nada'); return; }   // 4.10 partidas
     if (r.reparar) {
       ctx.gastar(e.costo.material, e.costo.cantidad);
       const { max } = vidaDe(e.obra);
@@ -2003,7 +2013,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const esp = d.especial ? ` · ${ESPECIALES[d.especial].nombre}` : '';
     if (!siguenLasNoches(d)) {
       // Con el nido abajo no hay noche que contar: va primero que todo lo demás.
-      texto = `Día ${p.dia} · la cueva se derrumbó · no sale nadie más`;
+      texto = d.meta?.modo === 'corta' ? `Día ${p.dia} · partida corta ganada · no sale nadie más` : `Día ${p.dia} · la cueva se derrumbó · no sale nadie más`;   // 4.10 partidas
     } else if (esHoraDeAtaque(p.horas) && !d.oleadaTerminada && d.oleadaNoche === claveNoche(p.dia, p.horas)) {
       const conJefe = jefeVivo() ? ' · ¡el mandamás!' : '';
       texto = eventos.nodrizaActiva ? `Noche ${d.oleadas} · ¡El Coihue Viejo! · ${n} ${n === 1 ? 'duende' : 'duendes'}${conJefe}`
@@ -2018,6 +2028,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const txtAsedio = naveMundo.adentro ? naveMundo.textoHud() : asedioMundo.textoHud();
     if (txtAsedio) texto = naveMundo.adentro ? txtAsedio : `${texto} · ${txtAsedio}`;
     if (d.vuelta) texto = `${textoVuelta(d.vuelta)} · ${texto}`;
+    if (d.meta?.modo === 'corta' || d.meta?.modo === 'pesadilla') texto = `${d.meta.modo === 'corta' ? 'Corta' : 'Pesadilla'} · ${texto}`;   // 4.10 partidas
     const nido = d.victoria ? resumenNido(d.nido, p.horas) : null;
     if (nido && !nido.caido) texto += ` · ${nido.texto}`;
     texto += ` · ${d.noches} ${d.noches === 1 ? 'noche resistida' : 'noches resistidas'}`;
@@ -2107,6 +2118,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       const L = T.lugares[resc.lugar];
       _v.set(L.x, T.altura(L.x, L.z) + 1.4, L.z);
       resc.caido = true;
+      if (D().meta) D().meta.lugaresCaidos++;   // 4.10 partidas: para el final «la aldea entera»
       const R = RESCATES[resc.lugar], d = D();
       d.rescates.enojados[R.vecino] = progreso().dia + DIAS_ENOJADO;
       efectos.polvo(_v, 20);
@@ -3012,6 +3024,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   escena.add(caja);
   registrarHalos(caja);
   function soltarCaja(noche) {
+    if (efectosPartida()?.sinCaja) return;   // 4.10 partidas: la pesadilla no trae cofre del alba
     const js = ctx.jugador().estado;
     const azarCaja = azarNoche('caja', noche);
     let parejo = null, enPendiente = null, trabado = null;

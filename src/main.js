@@ -248,6 +248,12 @@ import { vistaParaLogros } from './trucos.js';
 import { LIMITE } from './config.js';
 import { resumirBase, htmlBase, CSS_BASE } from './base-estado.js';
 import { vidaMaxObra, SALUD_MAX } from './desafio-reglas.js';
+// 4.10 partidas: lo de entre partidas (semillas del Coihue, ventajas, reglas, modos y finales; ver desafio-meta.js)
+import { fijarPartidaMeta, efectosPartida } from './desafio-reglas.js';
+import { crearMetaJuego } from './desafio-meta-juego.js';
+import { sumarBono, saludMaximaConBonos } from './desafio-bonos.js';
+import { crearPantallaNuevaPartida, dibujarHojaPartidas } from './desafio-meta-pantalla.js';
+import { MODOS as MODOS_META, modoDe as modoMetaDe, textoSemillas, FACTOR_NOCHE_LARGA, resumenFinales, textoMult } from './desafio-meta.js';
 // 4.10 guardian: los estudios del bestiario
 import { renglonesEstudio } from './desafio-bestiario-premia.js';
 import { TECLAS_POR_DEFECTO, NOMBRES_ACCIONES, ACCIONES_TECLA, esFija, sanearMapaTeclas, accionDeTecla, cambiarTecla, textoTecla, teclaVisible, mapaPorDefecto, escalaLetra, colorDe, apilarAviso, subtitulos, notaRepetida, notaASacar } from './accesibilidad.js';
@@ -328,6 +334,17 @@ if (!progreso) progreso = progresoNuevo();
 // 3.0: una corrida terminada no se sigue: la ranura queda para la próxima (con tu ropa y tu bandera)
 if (esSinFin && progreso.desafio?.sinFin?.terminada) { const personal = progreso.personal; progreso = progresoNuevo(); progreso.personal = personal; }
 if (esSinFin && progreso.desafio && !progreso.desafio.sinFin) progreso.desafio.sinFin = corridaNueva();
+// 4.10 partidas: el modo, las ventajas y las reglas de la partida que se abrió (una partida vieja no trae nada: campaña de siempre)
+if (esDesafio) fijarPartidaMeta(progreso.desafio?.meta || null);
+const metaJuego = crearMetaJuego({
+  almacen: () => localStorage, progreso: () => progreso, desafio: () => desafio, esSinFin: () => esSinFin,
+  sumarMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); }, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
+  posJugador: () => jugador?.estado?.pos || null,
+  sumarBono,   // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
+  alBonos: (d) => { d.salud = saludMaximaConBonos(SALUD_MAX, d); },   // con más (o menos) salud máxima, se arranca entero
+});
+// 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
+const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
 // 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
 // mitad de corrida: antes se podía bajar a Tranquila en la noche 30 y el récord quedaba anotado con la del final)
 function dificultadEnJuego() { return esSinFin ? dificultadDeCorrida(progreso.desafio?.sinFin, ajustes.dificultad) : ajustes.dificultad; }
@@ -926,7 +943,7 @@ async function construir() {
     gente: () => (vecinosActivos(progreso) ? gente : null),
     perroPos: () => perro?.est?.pos,
     alGuardarObras: () => { progreso.obras = obras.obras.map((o) => o.datos); guardar(); },
-    alVencer: (s) => mostrarVictoria(s),
+    alVencer: (s) => { s.cierre = metaJuego.alVencer(); mostrarVictoria(s); },   // 4.10 partidas: la semilla, los puntos y el final
     alTerminar: (s) => mostrarVictoria(s, true),
     alLogro: (id) => steamPuente.desbloquear('desafio', id),
     cuanto: cuantoRecurso,
@@ -1107,6 +1124,8 @@ function dibujarCuaderno() {
   else if (pestana === 'bestiario') pestana = 'especies';
   if (desafio?.aldeaMundo) pestanas.push(['aldea', 'La aldea']);   // 4.9 dias: los pedidos de los vecinos y la noche que viene
   else if (pestana === 'aldea') pestana = 'especies';
+  if (desafio) pestanas.push(['partidas', 'Partidas']);   // 4.10 partidas: las semillas del Coihue, los finales vistos y los récords
+  else if (pestana === 'partidas') pestana = 'especies';
   if (desafio?.habilidadesMundo) pestanas.push(['guardian', `Guardián${desafio.habilidadesMundo.puntos() > 0 ? ` (${desafio.habilidadesMundo.puntos()})` : ''}`]);   // 4.10 guardian: los puntos de cada noche y en qué gastarlos
   else if (pestana === 'guardian') pestana = 'especies';
   for (const [id, nombre] of pestanas) {
@@ -1124,6 +1143,7 @@ function dibujarCuaderno() {
   if (pestana === 'recetario' && cocinaJuego) { cocinaJuego.dibujarRecetario(lista, ficha, el); return; }   // 3.7.2: el recetario
   if (pestana === 'noticias' && noticiasJuego) { noticiasJuego.dibujarCuaderno(ficha, el); return; }   // 3.7.5 (noticias)
   if (pestana === 'aldea' && desafio?.aldeaMundo) { desafio.aldeaMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.9 dias
+  if (pestana === 'partidas' && desafio) { dibujarHojaPartidas(ficha, el, metaJuego.leer()); return; }   // 4.10 partidas
   if (pestana === 'guardian' && desafio?.habilidadesMundo) { desafio.habilidadesMundo.dibujarCuaderno(lista, ficha, el); return; }   // 4.10 guardian
 
   if (pestana === 'bestiario' && desafio) {
@@ -2121,6 +2141,14 @@ function volverAlJuego(sinMouse = false) {
   if (sinMouse !== true) jugador.pedirBloqueo();
 }
 
+// 4.10 partidas: en la portada, el saldo de semillas del Coihue, los finales vistos y la marca de la pesadilla
+function textoMetaPortada() {
+  const el = $('meta-portada');
+  if (!el) return;
+  if (!esDesafio) { el.textContent = ''; return; }
+  const m = metaJuego.leer(), f = resumenFinales(m);
+  el.textContent = `${textoSemillas(m.semillas)} · finales vistos ${f.vistos} de ${f.total}${m.desbloqueos.pesadilla ? ' · Pesadilla desbloqueada' : ''}`;
+}
 function sincronizarAjustes() {
   document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
     const clave = grupo.dataset.ajuste;
@@ -2148,6 +2176,7 @@ function sincronizarAjustes() {
   if ($('dificultad-texto')) $('dificultad-texto').textContent = corridaFijada() ? TEXTO_DIFICULTAD_FIJA   // 3.8.4
     : { tranquila: 'Pocos duendes y golpes suaves.', normal: 'Peligrosa, pero con defensas se resiste.', implacable: 'Más duendes y más duros.' }[ajustes.dificultad] || '';
   textoCodigo();
+  textoMetaPortada();   // 4.10 partidas: las semillas del Coihue y la pesadilla
   valle?.portada(ajustes);   // 3.1: Libre o Historia, en el Relax
 }
 document.querySelectorAll('[data-ajuste]').forEach((grupo) => {
@@ -2292,6 +2321,18 @@ $('btn-codigo-semana')?.addEventListener('click', () => { $('codigo-partida').va
 // 3.0: una partida nueva que ya trae código (empezar de nuevo, otra vuelta, otra corrida) lo muestra
 if (esDesafio && !partidaEmpezada() && progreso.desafio?.semilla && $('codigo-partida')) $('codigo-partida').value = progreso.desafio.semilla;
 
+// 4.10 partidas: la pantalla de nueva partida. «Empezar» gasta las semillas, deja la elección en la partida y entra.
+let metaElegida = false;
+const pantallaNueva = crearPantallaNuevaPartida({
+  leerMeta: () => metaJuego.leer(), esSinFin: () => esSinFin, modoInicial: () => 'normal', traducir: (el) => traducirPanel(el),
+  alEmpezar: (eleccion) => {
+    if (!metaJuego.iniciar(eleccion)) { nota('No se pudo empezar así', 'Revisá las semillas y las ventajas elegidas'); return; }
+    metaElegida = true;
+    sincronizarAjustes();
+    $('btn-entrar').click();
+  },
+  alVolver: () => { try { $('btn-entrar').focus({ preventScroll: true }); } catch { /* sin foco */ } },
+});
 $('btn-entrar').addEventListener('click', () => {
   // 4.1: Bruno Castellanos: antes de entrar por primera vez a una partida, la pantalla de creación (también en las partidas viejas); al terminar, entra solo
   if (!sinCreadorDeBruno() && !progreso.personal?.bruno?.creado) { crearABruno('crear', () => $('btn-entrar').click()); return; }
@@ -2300,6 +2341,9 @@ $('btn-entrar').addEventListener('click', () => {
     abrirPrologo({ alTerminar: () => { const sB = secciones().find((x) => x.id === 'bruno'); if (sB) cambiarPersonal(sB, { prologoVisto: true }); $('btn-entrar').click(); } });
     return;
   }
+  // 4.10 partidas: antes de empezar una partida nueva del Desafío, la pantalla de modo, ventajas y reglas (en la depuración se saltea,
+  // salvo con `&meta=1`: las pruebas viejas entran con un clic)
+  if (esDesafio && !partidaEmpezada() && !metaElegida && (!HOJARASCA_DEBUG || new URLSearchParams(location.search).get('meta') === '1')) { pantallaNueva.abrir(); return; }
   // 3.8.4: la corrida sin fin fija su dificultad al entrar (una corrida de antes sin dificultad, la de ahora)
   if (esSinFin && progreso.desafio?.sinFin && !progreso.desafio.sinFin.terminada && !progreso.desafio.sinFin.dificultad) {
     progreso.desafio.sinFin.dificultad = dificultadDeCorrida(null, ajustes.dificultad);
@@ -2346,6 +2390,7 @@ $('btn-nuevo').addEventListener('click', async () => {
   // beforeunload/visibilitychange durante este reload para evitar esa carrera.
   reiniciandoPartida = true;
   cancelarGuardadoSuave();
+  if (esDesafio) metaJuego.terminar();   // 4.10 partidas: dejar una partida con tres noches o más también da su semilla del Coihue
   // 2.8: lo personal (ropa, bandera, recetas) pasa a la partida nueva, y la receta de
   // "Tu partida" deja puestos la estación, el clima y la dificultad que eligió
   const conReceta = empezarConReceta(progreso.personal, ajustes);
@@ -3008,6 +3053,26 @@ function mostrarVictoria(s, final = false) {
       : s?.nave ? 'Entraste por la puertita, subiste hasta el corazón, le reventaste el de ámbar al Rey Duende y saliste antes de que el Coihue tocara el suelo. El valle respira, pero siguen saliendo: vienen de una cueva escondida en algún lado. Los troncos huecos te van a decir dónde.'
       : 'El valle respira, pero siguen saliendo. Vienen de una cueva escondida en algún lado: los troncos huecos te van a decir dónde, y se rompe de día, cuando se le abre la boca.';
     $('victoria-seguir').textContent = final ? 'Quedarme en el valle' : 'Seguir';
+    // 4.10 partidas: el final según cómo jugaste (cuántos vecinos ayudaron, si la base cayó, si se perdió un lugar de la aldea),
+    // los puntos del récord y la semilla del Coihue. La partida corta tiene los suyos (cae el mandamás y no hay cueva).
+    {
+      const mv = metaJuego.final();
+      const elTitulo = $('victoria-final'), elPuntos = $('victoria-puntos');
+      if (s?.corta) {
+        $('victoria-titulo').textContent = '¡Cayó el mandamás!';
+        $('victoria-sub').textContent = 'Ganaste la partida corta';
+        $('victoria-texto').textContent = (s.cierre?.texto || '') + ' Se terminó la partida corta: podés quedarte en el valle.';
+      } else if (final && mv?.epilogo) {
+        $('victoria-texto').textContent += ' ' + mv.epilogo;
+      } else if (s?.cierre?.texto) {
+        $('victoria-texto').textContent = s.cierre.texto + ' ' + $('victoria-texto').textContent;
+      }
+      elTitulo.textContent = mv?.nombreFinal ? 'Final: ' + mv.nombreFinal : '';
+      elTitulo.classList.toggle('oculto', !mv?.nombreFinal);
+      const r = s?.cierre;
+      elPuntos.textContent = r ? `Puntos del récord: ${r.puntos}${r.mult > 1 ? ` (${textoMult(r.mult)})` : ''}${r.puesto ? ` · ${r.puesto}.º entre los tuyos en ${MODOS_META[r.modo]?.nombre || 'la campaña'}` : ''}${r.semilla ? ' · +1 semilla del Coihue' : ''}` : '';
+      elPuntos.classList.toggle('oculto', !r);
+    }
     // 2.0: con el nido caído se puede elegir seguir: cinco noches de invasores cambiados
     $('victoria-despues').classList.toggle('oculto', !(final && desafio && !desafio.despues));
     parteUltimo = resumenPartida({
@@ -3071,7 +3136,7 @@ function terminarCorrida() {
   const entrada = { noches: d.noches || 0, abatidos: d.abatidos || 0, fecha: new Date().toISOString().slice(0, 10), codigo: d.semilla, dificultad: dificultadEnJuego() };   // 3.8.4: la de la corrida
   const r = registrarCorrida(recordsSinFin(), entrada);
   try { localStorage.setItem(CLAVE_SIN_FIN, JSON.stringify(r.records)); } catch {}
-  corridaUltima = { ...entrada, puesto: r.puesto, puestoCodigo: r.puestoCodigo };
+  corridaUltima = { ...entrada, puesto: r.puesto, puestoCodigo: r.puestoCodigo, meta: metaJuego.terminar() };   // 4.10 partidas: y su semilla del Coihue
   guardar();
   if (modoObra) abrirObra(false);
   if (mochilaAbierta) abrirMochila(false);
@@ -3099,7 +3164,7 @@ function mostrarCorrida() {
   const txt = resumenCorrida(c);
   $('corrida-titulo').textContent = txt.titulo;
   $('corrida-sub').textContent = txt.sub;
-  $('corrida-lugar').textContent = txt.lugar;
+  $('corrida-lugar').textContent = txt.lugar + (c.meta ? `${txt.lugar ? ' ' : ''}${c.meta.semilla ? '+1 semilla del Coihue.' : 'Con tres noches resistidas ganás una semilla del Coihue.'} Puntos: ${c.meta.puntos}.` : '');   // 4.10 partidas
   const rec = recordsSinFin();
   // 3.8.4: las listas de la dificultad de la corrida
   const dif = NOMBRE_DIFICULTAD[c.dificultad] || 'Normal';
@@ -4486,9 +4551,10 @@ function usarHacha() {
     veg.talar(o.arbol, { x: o.arbol.x - js2.pos.x, z: o.arbol.z - js2.pos.z });
     sonido.arbolCae(dondeSuena);
     anotarTalado(o.arbol);
-    sumarMaterial('tronco', troncosTala);
+    const troncosM = materialesDeMeta(troncosTala);   // 4.10 partidas
+    sumarMaterial('tronco', troncosM);
     gastarFilo(progreso.aldea);   // 3.6: el filo que te dio el herrero de la aldea
-    nota(`¡Árbol talado! +${troncosTala} troncos`, `Llevás ${material('tronco')}. Con Y los aserrás en tablas`);
+    nota(`¡Árbol talado! +${troncosM} troncos`, `Llevás ${material('tronco')}. Con Y los aserrás en tablas`);
     registrar('tronco-mat');
     ganarOficio('hachero', XP.tala);
     guardar();
@@ -4513,12 +4579,13 @@ function usarHacha() {
     golpesPico.delete(o.mata);
     gastarFilo(progreso.aldea);   // el filo que te dio el herrero también vale para el pico
   }
-  sumarMaterial(o.tipo, cuanto);
+  const cuantoM = materialesDeMeta(cuanto);   // 4.10 partidas: «manos llenas»
+  sumarMaterial(o.tipo, cuantoM);
   if (o.mata) { veg.despejar(o.mata.x, o.mata.z, 0.6, true); anotarPicadoEn(picados(), o.mata.x, o.mata.z); }   // 4.4.2 (C4): y se recuerda: no vuelve al recargar
   if (o.caido) { veg.talar(o.arbol); anotarTalado(o.arbol); }
   if (delRayo) progreso.tormenta.rayo = null;
   sonido.paso(o.tipo === 'tronco' ? 'madera' : 'tierra', 1);
-  nota(`+${cuanto} ${MATERIALES[o.tipo].nombre}`, `Llevás ${material(o.tipo)}`);
+  nota(`+${cuantoM} ${MATERIALES[o.tipo].nombre}`, `Llevás ${material(o.tipo)}`);
   registrar(o.tipo === 'tronco' ? 'tronco-mat' : 'piedra-mat');
   if (o.tipo === 'piedra') registrar('pico');   // 4.2: el pico forjado por el herrero se anota en el cuaderno la primera vez que se usa
   if (o.tipo === 'piedra') ganarOficio('picapedrero', XP.roca);   // 4.2: la piedra sube al picapedrero; el hachero, sólo con lo de la madera
@@ -10073,7 +10140,9 @@ function actualizarTiempo(dt) {
     // (3.8.6: ni en el fundido de dormir: la siesta sumaba una hora más y la noche podía cruzar la medianoche a oscuras;
     // ni jugando en la mesita de la fiesta ni oyendo la leyenda del fogón)
     const escala = js.sentado && !durmiendo && !desafio?.hayAtaque() && !charla.npc && !mecanicasAldea?.sinApuro() && !fiestasJuego?.sinApuro() && !cantinaJuego?.sinApuro() && !teJuego?.sinApuro() && !penaJuego?.sinApuro() ? 40 : 1;
-    progreso.horas += (dt * 24 * escala) / (ajustes.duracion * 60);
+    // 4.10 partidas: con «noches más largas» (regla o ventaja) la hora corre más despacio entre la hora del ataque y el alba
+    const largaNoche = esDesafio && efectosPartida()?.nochesLargas && (progreso.horas >= 20.5 || progreso.horas < 6) ? FACTOR_NOCHE_LARGA : 1;
+    progreso.horas += (dt * 24 * escala * largaNoche) / (ajustes.duracion * 60);
     if (progreso.horas >= 24) { progreso.horas -= 24; progreso.dia++; nota(`Día ${progreso.dia}`, 'Pasó la medianoche'); }   // 3.8.7: (decía «Amanece otra vez» a las 00:00)
   }
 }
@@ -11253,6 +11322,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
   if (HOJARASCA_DEBUG) window.__hojarasca.__modos = () => modos;
   if (HOJARASCA_DEBUG) window.__hojarasca.__trucos = () => trucosJuego;   // 4.5: la consola de códigos (QA)
   if (HOJARASCA_DEBUG) window.__hojarasca.__puestos = () => ({ juego: puestosJuego, mundo: puestosRutaMundo, cache: () => cachePuestos });   // 4.6 puestos (QA)
+  if (HOJARASCA_DEBUG) window.__hojarasca.__meta = { juego: metaJuego, pantalla: pantallaNueva, fijar: (m) => fijarPartidaMeta(m), efectos: () => efectosPartida() };   // 4.10 partidas
   if (HOJARASCA_DEBUG) window.__hojarasca.__sinFin = { es: esSinFin, terminar: () => terminarCorrida(), records: () => recordsSinFin(), nueva: (c) => nuevaCorrida(c), empezarMapa: () => empezarMapaDesafio() };
   // 3.1: los oficios (3.6: y la aldea), para las pruebas
   if (HOJARASCA_DEBUG) window.__hojarasca.__aldea = { oficios: () => oficios, mundo: () => aldeaGente, llamar: llamarAlProximoPoblador, actualizar: (dt = 1) => actualizarAldea(dt),

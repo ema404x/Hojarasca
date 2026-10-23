@@ -10,7 +10,7 @@
 // armados en la carga y escondidos; nada por cuadro cuando no es una noche grande o no hay vecinos; los vecinos lejos de la vista
 // los esconde gente.js (a más de 130 m) y acá se mueven a pasos de un cuarto de segundo.
 import { VECINOS_ALDEA, POBLADORES_ALDEA } from './aldea.js';
-import { HORA_ATAQUE, HORA_AMANECER, claveNoche } from './desafio-reglas.js';
+import { HORA_ATAQUE, HORA_AMANECER, claveNoche, efectosPartida } from './desafio-reglas.js';
 import { esNocheGrande } from './desafio-duendes-reglas.js';
 import { nocheEnCurso } from './desafio-ambiente.js';
 import { CUERPOS, CLAVES_CUERPOS, ANSELMO, HERMINIA, MARTIN, HONDA, VELOCIDAD_PIEDRA, TIPOS_FUEGO, radioDeFuego, nivelDeAyuda, puntosDeFuegos, ajusteDeViejo, puntoDeViaMasCercano, silbatoServiria, pasoDeLaTrochita, silbatoDispersa, esBlancoDeHonda, puestoDe } from './desafio-vecinos.js';
@@ -187,7 +187,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
       const lleno = api.reparar(c.obra, num.repara * dt);
       c.golpe -= dt;
       if (c.golpe <= 0) {
-        c.golpe = num.pausa + 0.35;
+        c.golpe = num.pausa * (efectosPartida()?.anselmoPausa ?? 1) + 0.35;   // 4.10 partidas: «manos livianas»
         npc.brazos[1].rotation.x = -1.7;
         api.efectos?.astillas?.({ x: c.obra.datos.x, y: c.obra.datos.y + 1, z: c.obra.datos.z }, 3);
         api.sonido.golpeRuido?.({ dur: 0.07, frec: 1400, q: 3, vol: 0.2, destino: api.sonido.fuente?.(npc.pos, 0.8) });   // martillo sobre el hierro y la madera
@@ -264,7 +264,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
       if (d < d0) { d0 = d; mejor = a; }
     }
     if (!mejor) { c.tiro = 0.5; return; }
-    c.tiro = num.cadencia * (0.85 + Math.random() * 0.3);
+    c.tiro = num.cadencia * (efectosPartida()?.chicos.cadencia ?? 1) * (0.85 + Math.random() * 0.3);   // 4.10 partidas: «buena puntería»
     const ap = mejor.m.g.position;
     npc.ruta[0].mirar = { x: ap.x, z: ap.z };   // una copia: el invasor se recicla
     npc.rumboObjetivo = Math.atan2(ap.x - npc.pos.x, ap.z - npc.pos.z);
@@ -277,7 +277,7 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     vy += 0.5 * 9.8 * tiempo * tiempo;
     const largo = Math.hypot(vx, vy, vz) || 1, k = VELOCIDAD_PIEDRA / largo;
     vel.x = vx * k + (Math.random() - 0.5) * 1.6; vel.y = vy * k; vel.z = vz * k + (Math.random() - 0.5) * 1.6;
-    api.lanzarProyectil('piedra', desde, vel, num.dano, true, 'aliado');
+    api.lanzarProyectil('piedra', desde, vel, num.dano * (efectosPartida()?.chicos.dano ?? 1), true, 'aliado');
     npc.brazos[1].rotation.x = -2.5;
     api.sonido.tono?.({ frec: 620, fin: 300, dur: 0.07, tipo: 'triangle', vol: 0.06, destino: api.sonido.fuente?.(npc.pos, 0.7) });
   }

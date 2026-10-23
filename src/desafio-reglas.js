@@ -27,6 +27,8 @@ import { aldeaNueva as aldeaDelDesafio, sanearAldea as sanearAldeaDelDesafio } f
 import { mielDelAlba, RECETAS_TRAMPAS } from './desafio-trampas.js';
 import { RECETAS_FAROL } from './desafio-farol.js';
 import { RECETAS_BRASAS, PALA } from './desafio-brasas.js';
+// 4.10 partidas: los modos, las ventajas y las reglas a elección (puro; ver desafio-meta.js)
+import { efectosDe, sanearMetaPartida, nieblaDePesadilla, NOCHE_DEL_MANDAMAS_CORTA } from './desafio-meta.js';
 // 4.10 guardian: los bonos del jugador y las habilidades del guardián
 import { bonosNuevos, sanearBonos, bonoAplicado } from './desafio-bonos.js';
 import { habilidadesNuevas, sanearHabilidades, aplicarHabilidadesABonos } from './desafio-habilidades.js';
@@ -107,6 +109,8 @@ export const MARGEN_GOLPE = { arriba: 0.35, abajo: 0.2, boleadora: 0.65 };   // 
 export const NOCHE_JEFE = 5;
 export function esNocheDeJefe(n) {
   const noche = Math.floor(n);
+  // 4.10 partidas: en la partida corta el mandamás baja la séptima noche (y las que siguen, hasta que caiga)
+  if (partidaEfectos?.nocheFinal) return noche >= NOCHE_DEL_MANDAMAS_CORTA;
   return noche >= NOCHE_JEFE && noche % NOCHE_JEFE === 0;
 }
 
@@ -148,7 +152,27 @@ export const DIFICULTADES = {
   normal: { nombre: 'Normal', cantidad: 1, dano: 1, vida: 1, texto: 'La noche es peligrosa, pero con defensas se resiste.' },
   implacable: { nombre: 'Implacable', cantidad: 1.4, dano: 1.35, vida: 1.25, texto: 'Más duendes, más duros. Cada error se paga.' },
 };
-export function dificultad(clave) { return DIFICULTADES[clave] || DIFICULTADES.normal; }
+// 4.10 partidas: la partida en curso (modo, ventajas y reglas) cambia cuántos vienen, cuánto pegan y cuánto aguantan. El estado
+// vive acá (en el módulo) porque 'dificultad()' y 'esNocheDeJefe()' se piden sin partida a mano; main.js lo fija al cargar y al
+// empezar (fijarPartidaMeta) y una partida sin 'meta' lo deja en null: todo como siempre.
+let partidaEfectos = null;
+let dificultadesDePartida = null;
+export function fijarPartidaMeta(meta) {
+  partidaEfectos = meta ? efectosDe(meta) : null;
+  dificultadesDePartida = null;
+  const e = partidaEfectos;
+  if (e && (e.cantidad !== 1 || e.dano !== 1 || e.vida !== 1)) {
+    dificultadesDePartida = {};
+    for (const [k, b] of Object.entries(DIFICULTADES)) dificultadesDePartida[k] = { ...b, cantidad: b.cantidad * e.cantidad, dano: b.dano * e.dano, vida: b.vida * e.vida };
+  }
+}
+export function efectosPartida() { return partidaEfectos; }
+// la noche final del Coihue: la 20, o nunca en la partida corta (ahí el final es el mandamás)
+export function nocheFinalCoihue() { return partidaEfectos?.nocheFinal ? Infinity : NOCHE_FINAL; }
+export function dificultad(clave) {
+  const k = Object.hasOwn(DIFICULTADES, clave ?? '') ? clave : 'normal';
+  return dificultadesDePartida ? dificultadesDePartida[k] : DIFICULTADES[k];
+}
 
 // Composición de la oleada número `n` (1 = primera noche). El jefe ocupa el lugar
 // de un invasor común, así que la noche que baja no vienen más bichos que antes.
@@ -314,8 +338,9 @@ export const ESPECIALES = {
 // 2.0: la noche sin luces ocupa una franja propia, arriba de las tres de siempre, así
 // que las otras siguen saliendo con la misma frecuencia que antes.
 export function nocheEspecial(n, azar = Math.random(), anterior = null) {
-  if (n < 4 || n >= NOCHE_FINAL || anterior || esNocheDeJefe(n)) return null;
-  if (azar > ESPECIAL_TOTAL) return null;   // 4.8 noches: arriba de las cuatro de siempre (0,38) van la niebla y la luna llena
+  if (n < 4 || n >= nocheFinalCoihue() || anterior || esNocheDeJefe(n)) return null;
+  // 4.10 partidas: la pesadilla suma niebla en la franja de arriba (con el mismo azar: el pronóstico acierta)
+  if (azar > ESPECIAL_TOTAL) return partidaEfectos?.nieblaTope ? nieblaDePesadilla({ modo: 'pesadilla' }, azar, ESPECIAL_TOTAL, null) : null;   // 4.8 noches: arriba de las cuatro de siempre (0,38) van la niebla y la luna llena
   if (azar > ESPECIAL_BASE) return especialNueva(azar);
   if (azar > 0.3) return 'apagon';
   const claves = ['roja', 'eclipse', 'silenciosa'];
@@ -451,7 +476,9 @@ export function desafioNuevo() {
     // 3.0: lo que aprendieron de cómo te defendés y sus puestos en el bosque
     evolucion: evolucionNueva(), puestos: puestosNuevos(),
     // 4.9 dias: la aldea de día: cuánto ayuda cada vecino y qué pidió (ver desafio-aldea.js)
-    aldea: aldeaDelDesafio() };
+    aldea: aldeaDelDesafio(),
+    // 4.10 partidas: el modo, las ventajas y las reglas con que se empezó (null: campaña de siempre; ver desafio-meta.js)
+    meta: null };
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -572,6 +599,7 @@ export function sanearDesafio(d) {
     sueltas: sanearSueltas(x.sueltas),   // 3.8.6
     bonos, habilidades,   // 4.10 guardian: una partida vieja carga sin bonos ni puntos
     armasTiradas: Object.fromEntries(['hachuelas', 'jabalinas'].filter((k) => Number(x.armasTiradas?.[k]) > 0).map((k) => [k, ent(x.armasTiradas[k], 0, 99)])),   // 3.8.3
+    meta: sanearMetaPartida(x.meta),   // 4.10 partidas: una partida vieja carga en modo normal, sin ventajas ni reglas
     farolOn: !!x.farolOn, brasas: ent(x.brasas, 0, PALA.cargas),   // 4.9 defensas: una partida vieja carga con el farol apagado y la pala vacía
   };
 }

@@ -5,7 +5,7 @@
 // Los compañeros son los mismos vecinos del valle: cuando tu fuerte es seguro,
 // dejan su recorrido y se instalan en la base.
 import * as THREE from 'three';
-import { COMPANEROS } from './desafio-reglas.js';
+import { COMPANEROS, efectosPartida } from './desafio-reglas.js';
 import { FORTIN } from './desafio-fortin.js';
 import { avisoDelPerro, estaMirando } from './desafio-sentidos.js';
 import { ORDENES, RESPUESTAS, RADIO_ARREGLO, ordenDe, siguienteOrden, puntoDeOrden, centroDeArreglo, portonDeLaBase, velocidadSiguiendo, LEJOS_ALCANZA } from './desafio-ordenes.js';
@@ -21,7 +21,7 @@ export function crearAliados(api) {
   // nunca se aleja más de 14 m del jugador.
   function objetivoPerro(js, perroPos, noche) {
     perro.objetivo = null;
-    if (!perroPos) return null;
+    if (!perroPos || efectosPartida()?.sinAliados) return null;   // 4.10 partidas: «sin aliados» deja al perro sin pelear
     let mejor = null, d0 = 14;
     for (const a of api.aliens) {
       if (a.estado === 'morir' || a.estado === 'irse' || a.estado === 'bajar') continue;
@@ -65,7 +65,7 @@ export function crearAliados(api) {
     const p = a.m.g.position;
     if (Math.hypot(p.x - perroPos.x, p.z - perroPos.z) < 1.3 + a.def.radio * a.m.esc) {
       // muerde: poco daño pero constante, y a los rastreadores los frena
-      api.herirAlien(a, 9 * dt, null, 'perro');
+      api.herirAlien(a, 9 * dt * (efectosPartida()?.perro ?? 1), null, 'perro');   // 4.10 partidas: la ventaja «perro de pelea»
       if (a.tipo === 'rastreador') a.frenoT = Math.max(a.frenoT || 0, 0.25);
       perro.mordida -= dt;
       if (perro.mordida <= 0) {
@@ -112,7 +112,7 @@ export function crearAliados(api) {
   }
   function sumar(clave) {
     const d = api.D();
-    if (d.companeros.includes(clave)) return false;
+    if (d.companeros.includes(clave) || efectosPartida()?.sinAliados) return false;   // 4.10 partidas: «sin aliados»
     if (!instalar(clave)) return false;
     d.companeros.push(clave);
     api.nota(`${COMPANEROS[clave].nombre} se suma a tu base`, `“${COMPANEROS[clave].aviso}”`, true);

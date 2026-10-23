@@ -172,7 +172,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   ok(/m\.tipo === 'tronco' && !hacha/.test(hacha), 'sin hacha, un tronco caído no se corta');
   ok(/sinPico: mejor\.tipo === 'roca' && !pico/.test(hacha), 'la roca sin pico se marca');
   ok(/if \(!hacha\) return deMata;/.test(hacha), 'los árboles, sólo con hacha (4.4.2: sin hacha queda la roca, o nada)');
-  const uso = tramo('function usarHacha() {', 4800);
+  const uso = tramo('function usarHacha() {', 5400);
   ok(/if \(o\.sinPico\)/.test(uso) && /Te falta el pico/.test(uso) && /herrero/.test(uso) && /almacén/.test(uso), 'sin pico: aviso claro con dónde conseguirlo');
   ok(uso.indexOf('o.sinPico') < uso.indexOf('sumarMaterial(o.tipo'), 'y el aviso va ANTES de dar la piedra');
   ok(/Para picar piedra hace falta el pico/.test(tramo('function textoHacha(o) {', 400)), 'el cartel de la H dice que hace falta el pico');
@@ -236,7 +236,7 @@ const tramo = (desde, largo = 2500) => { const i = main.indexOf(desde); assert.o
   const antes = O.xpDe(p, 'picapedrero'); O.sumarXp(p, 'hachero', O.XP.tala);
   eq(O.xpDe(p, 'picapedrero'), antes, 'talar no le suma al picapedrero');
   // el cableado en main: picar da al picapedrero y talar al hachero
-  const tala = tramo('function usarHacha() {', 4800), i0 = tala.indexOf('if (o.talar) {'), i1 = tala.indexOf('// 4.2: el pedrero se pica');
+  const tala = tramo('function usarHacha() {', 5400), i0 = tala.indexOf('if (o.talar) {'), i1 = tala.indexOf('// 4.2: el pedrero se pica');
   ok(i0 >= 0 && i1 > i0, 'el bloque de talar va antes del de picar');
   ok(/ganarOficio\('hachero', XP\.tala\)/.test(tala.slice(i0, i1)) && !/picapedrero/.test(tala.slice(i0, i1)), 'talar: sólo hachero');
   const pica = tala.slice(i1);
