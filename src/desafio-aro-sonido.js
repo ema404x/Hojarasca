@@ -195,7 +195,7 @@ export function crearSonidosAro(sonido) {
     for (let k = 0; k < def.variantes; k++) {
       const clave = `aro-${nombre}-${k}`;
       let b = sonido.previo?.get(clave);
-      if (!b) { sonido.preparar(clave, () => sintetizarAro(nombre, k), null, TASA_ARO); if (urgente) b = sonido.yaMismo?.(clave); }
+      if (!b) { sonido.preparar(clave, () => sintetizarAro(nombre, k), null, TASA_ARO); b = sonido.previo?.get(clave) || (urgente ? sonido.yaMismo?.(clave) : null); }
       if (b) listas.push([k, b]);
     }
     if (!listas.length) return 0;

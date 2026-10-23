@@ -106,7 +106,11 @@ app.whenReady().then(async () => {
       console.log('puesto');
       await limpiar();
       const r = JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, js=H.jugador.estado; H.progreso.horas = 11.5;
-        const x = js.pos.x + 60, z = js.pos.z + 20; const d = H.progreso.desafio;
+        // un claro: sin árboles, piedras ni obras a menos de 9 m (se prueba en espiral alrededor del jugador)
+        const libre = (x, z, r) => { if (H.T.agua(x, z)) return false; for (const dx of [-4, 0, 4]) for (const dz of [-4, 0, 4]) for (const c of H.col.cercanos(x + dx, z + dz)) { if (c.despejado) continue; if (Math.hypot((c.x ?? x) - x, (c.z ?? z) - z) < (c.r || 0) + r) return false; } return true; };
+        let x = js.pos.x + 60, z = js.pos.z + 20;
+        for (let k = 0; k < 120; k++) { const a = k * 2.399963, rr = 45 + k * 1.2, cx = js.pos.x + Math.cos(a) * rr, cz = js.pos.z + Math.sin(a) * rr; if (libre(cx, cz, 9)) { x = cx; z = cz; break; } }
+        const d = H.progreso.desafio;
         d.puestos = d.puestos && Array.isArray(d.puestos.lista) ? d.puestos : { lista: [], proximoId: 1, golpes: [], rotos: 0 };
         d.puestos.lista = d.puestos.lista.filter((p) => p.id !== 999);
         d.puestos.lista.push({ id: 999, x, z, nivel: 3, nacio: 1, crecio: 1, guardias: 0, visto: true, roto: false, estructuras: [
@@ -139,6 +143,19 @@ app.whenReady().then(async () => {
           await foto(`ruina-${tag}-fondo`, { o: loc(0, 11.0, 0), h: 1.7, a: loc(0, 16, r.y + 0.9) });
           await foto(`ruina-${tag}-lejos`, { o: loc(-40, -30, 0), h: 8, a: loc(0, 8.5, r.y + 30) });
         }
+      }
+    }
+    if (ESCENAS.includes('nido')) {
+      console.log('nido');
+      await limpiar();
+      const r = JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, d=H.progreso.desafio, js=H.jugador.estado; H.progreso.horas = 11.5;
+        const x = js.pos.x + 45, z = js.pos.z + 25; d.victoria = true; d.nido = { x, z, pistas: 3, cercoX: x, cercoZ: z, camaras: [800, 800, 800], caido: false };
+        for (let i = 0; i < 40; i++) D.actualizar(0.05, { noche: 0, dtReal: 0.05 });
+        return JSON.stringify({ x, z, y: H.T.altura(x, z) }) })()`));
+      for (const [tag, hora] of [['dia', 11.5], ['noche', 22.5]]) {
+        await js(`${H}.progreso.horas = ${hora}; for (let i = 0; i < 160; i++) ${H}.desafio.actualizar(0.05, { noche: ${hora > 20 ? 1 : 0}, dtReal: 0.05 }); 1`);
+        await foto(`nido-${tag}-cerca`, { o: [r.x - 22, 0, r.z - 8], h: 2.5, a: [r.x, r.y + 3, r.z] });
+        await foto(`nido-${tag}-lejos`, { o: [r.x - 50, 0, r.z - 18], h: 4, a: [r.x, r.y + 3, r.z] });
       }
     }
     console.log(errores.length ? `ERRORES: ${errores.length}` : 'sin errores de consola');

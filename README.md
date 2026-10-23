@@ -97,7 +97,7 @@ Portón de empalizada que se abre con E, dificultad elegible (Tranquila / Normal
 
 ## 1.1.0 — Modo Desafío
 
-En la portada se elige el modo. **Relax** es el recorrido tranquilo de siempre. **Desafío**: cada noche baja una nave con invasores; hay que levantar la cabaña, rodearla de empalizadas, pircas, estacas y ballestas, fabricar armas (lanza, arco, flechas) o encontrar la pistola de plasma en la cápsula estrellada, y resistir hasta el amanecer. Cada modo guarda su propia partida. Clic izquierdo ataca, K fabrica. Detalles: `CAMBIOS_MODO_DESAFIO_1_1_0.md`.
+En la portada se elige el modo. **Relax** es el recorrido tranquilo de siempre. **Desafío** («La noche de los duendes»): cada noche salen duendes de un aro de hongos y raíces en el suelo del bosque; hay que levantar la cabaña, rodearla de empalizadas, pircas, estacas y ballestas, fabricar armas (lanza, arco, flechas) o encontrar la pistola de luz en el cofre de los duendes, y resistir hasta el amanecer. Cada modo guarda su propia partida. Clic izquierdo ataca, K fabrica. Detalles: `CAMBIOS_MODO_DESAFIO_1_1_0.md`.
 
 ## 1.0.0 — Versión final
 

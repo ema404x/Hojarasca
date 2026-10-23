@@ -331,7 +331,7 @@ export function aplicarEspecial(lista, especial) {
   if (conJefe) salida.push('jefe');
   return salida;
 }
-// Tecnología de los restos de naves: se recupera un plano por nave explorada.
+// Planos de las ruinas del bosque (4.8.1: antes «restos de naves»): se recupera uno por ruina explorada.
 export const PLANOS_ALIEN = [
   { id: 'escudo', nombre: 'Campana de musgo', texto: 'Una campana de musgo que absorbe la mitad del daño de las obras cercanas.' },
   { id: 'faro', nombre: 'Faro de ámbar', texto: 'Una torre que tira luz dorada a los duendes a 30 metros.' },

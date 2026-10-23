@@ -2075,7 +2075,7 @@ const PIEZAS = [
     },
     fisica(h) { h.segmento(-1.5, 0, 1.5, 0, 0.46, -0.1, 2.5); },
   },
-  // ---- tecnología recuperada de los restos de naves (se desbloquea con cada plano)
+  // ---- lo que se recupera de las ruinas del bosque (se desbloquea con cada plano; 4.8.1: antes «restos de naves»)
   {
     id: 'escudo-energia', nombre: 'Campana de musgo', pieza: true, soloDesafio: true, requierePlano: 'escudo', categoria: 'defensa',
     radio: 0.9, ancho: 1.2, fondo: 1.2, alto: 1.6, separacion: 10, vida: 260,

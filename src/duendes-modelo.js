@@ -1250,8 +1250,8 @@ let G_TALLO = null, G_SOMBRERO = null;
 const SOMBREROS = ['#b9763c', '#d8b26a', '#8a5a34', '#c88a46'];
 function hongoDeLuz(tela, brillos, halos, r, p, s, alto, brilla, i, tamHalo = 1) {
   if (!G_TALLO) {
-    G_TALLO = lathe([[0.2, 0], [0.12, 0.3], [0.11, 0.65], [0.13, 0.98]], 7);
-    G_SOMBRERO = deform(lathe([[0.001, 0.02], [0.5, 0.0], [1.0, 0.04], [1.0, 0.24], [0.72, 0.5], [0.3, 0.64], [0.001, 0.67]], 11), (v) => {
+    G_TALLO = lathe([[0.2, 0], [0.12, 0.3], [0.11, 0.65], [0.13, 0.98]], 6);
+    G_SOMBRERO = deform(lathe([[0.001, 0.02], [0.5, 0.0], [1.0, 0.04], [1.0, 0.24], [0.72, 0.5], [0.3, 0.64], [0.001, 0.67]], 9), (v) => {
       const a = Math.atan2(v.x, v.z); if (v.y < 0.04 && Math.hypot(v.x, v.z) > 0.8) v.y += 0.05 * Math.sin(a * 9);
     });
   }
@@ -1267,7 +1267,7 @@ function hongoDeLuz(tela, brillos, halos, r, p, s, alto, brilla, i, tamHalo = 1)
     brillos.push(pieza(new THREE.CircleGeometry(0.88, 9).rotateX(-Math.PI / 2), M4(p.clone().add(V3(0, h * 0.97 - 0.02 * s, 0)), incl, [s * 1.1, 1, s * 1.1]), '#ff9f38', { fuerza: 1.05 }));
     brillos.push(pieza(lathe([[1.045, 0.0], [1.045, 0.2]], 11), M4(p.clone().add(V3(0, h * 0.97 + 0.02 * s, 0)), incl, [s * 1.1, s * 0.9, s * 1.1]), '#ff9a30', { fuerza: 0.9 }));   // las laminillas, encendidas en el borde
     halos.push({ p: p.clone().add(V3(0, h * 0.97 - 0.1 * s, 0)), col: '#ffb040', tam: (1.1 + 0.9 * s) * tamHalo, k: 1 });
-    if (s > 0.5) for (let j = 0; j < 6; j++) {
+    if (s > 0.5) for (let j = 0; j < 4; j++) {
       const aa = r() * TAU, dd = r() * 0.55;
       brillos.push(pieza(deform(esfera(5, 3), (v) => { v.y *= 0.5; }), M4(p.clone().add(V3(Math.sin(aa) * dd * s, h * 0.97 + (0.62 - dd * dd * 0.45) * s * 0.9, Math.cos(aa) * dd * s)), [0, 0, 0], [0.1 * s, 0.07 * s, 0.1 * s]), '#ffe090', { fuerza: 1.4 }));
     }
@@ -1287,7 +1287,7 @@ function armarAro() {
   };
   // la loma de tierra removida que rodea la boca (el perfil va de afuera hacia adentro y cae al borde)
   const perfil = afinar([[7.5, -0.08], [6.7, 0.02], [5.9, 0.17], [5.1, 0.36], [4.55, 0.44], [4.15, 0.34], [R0 + 0.05, 0.2], [R0, 0.14]], 2);
-  const loma = deform(lathe(perfil, 34), (v) => {
+  const loma = deform(lathe(perfil, 28), (v) => {
     if (v.y > 0.05) v.y += 0.14 * ruido(v.x * 0.9, 0, v.z * 0.9);
     const k = 1 + 0.05 * ruido(v.x * 0.5 + 2, 1, v.z * 0.5);
     v.x *= k; v.z *= k;
@@ -1318,7 +1318,7 @@ function armarAro() {
       const lomaY = 0.46 * sv(R0 + 3.7, R0 + 0.6, d);   // sobre la loma al principio, a ras de tierra después
       pts.push([Math.sin(aa) * d, lomaY + 0.1 + 0.05 * Math.sin(t * 7 + i) - 0.17 * sv(0.75, 1, t), Math.cos(aa) * d]);
     }
-    cort.push(raiz(pts, [0.3, 0.27, 0.21, 0.15, 0.09, 0.03], '#86664a', { nudos: 0.07, tramos: 9, lados: 6, pintar: pintaR }));
+    cort.push(raiz(pts, [0.3, 0.27, 0.21, 0.15, 0.09, 0.03], '#86664a', { nudos: 0.07, tramos: 7, lados: 6, pintar: pintaR }));
   }
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * TAU + 0.5 + (r() - 0.5) * 0.5, c0 = R0 + 1.7;
@@ -1333,8 +1333,9 @@ function armarAro() {
     cort.push(raiz(pts, [0.09, 0.07, 0.05, 0.03, 0.012], '#7a5a40', { nudos: 0.02, tramos: 8, lados: 5, pintar: pintaR }));
   }
   // la boca: un disco oscuro (donde suben) y el reborde de brasas que late
-  brillos.push(pieza(new THREE.CircleGeometry(R0 - 0.02, 32).rotateX(-Math.PI / 2), M4([0, 0.15, 0]), '#0b0704', { fuerza: 1 }));
-  brillos.push(pieza(new THREE.RingGeometry(R0 - 0.55, R0 - 0.1, 40).rotateX(-Math.PI / 2), M4([0, 0.165, 0]), '#a8501c', { fuerza: 0.75 }));
+  // (con anillos adentro: el terreno la corta si sólo tiene el centro y el borde)
+  brillos.push(pieza(new THREE.RingGeometry(0.01, R0 - 0.02, 32, 5).rotateX(-Math.PI / 2), M4([0, 0.17, 0]), '#0b0704', { fuerza: 1 }));
+  brillos.push(pieza(new THREE.RingGeometry(R0 - 0.55, R0 - 0.1, 40).rotateX(-Math.PI / 2), M4([0, 0.185, 0]), '#a8501c', { fuerza: 0.75 }));
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * TAU + 0.2;
     halos.push({ p: V3(Math.sin(a) * (R0 - 0.3), 0.22, Math.cos(a) * (R0 - 0.3)), col: '#ff9a30', tam: 1.1, k: 1 });

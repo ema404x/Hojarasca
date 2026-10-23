@@ -317,7 +317,11 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       grupoCapsula.add(t);
     }
   }
-  const faroCapsula = cofrePistola.userData.haz;   // el hilo de luz dorada de pocos metros (el material es el del cofre del alba)
+  // sin hilo de luz (un dibujo de dos pasadas) ni sombras: unas esporas doradas que suben apenas, como halos de lo fijo (un solo dibujo de puntos)
+  cofrePistola.userData.haz.visible = false;
+  cofrePistola.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  const esporasCofre = Array.from({ length: 7 }, (_, i) => ({ p: new THREE.Vector3(), col: i % 2 ? '#ffe08a' : '#ffc860', tam: 0.0001, i }));
+  cofrePistola.userData.halos = [...cofrePistola.userData.halos, ...esporasCofre];
   escena.add(grupoCapsula);
   registrarHalos(cofrePistola);
   col.agregar({ x: capsula.x, z: capsula.z, r: 1.1, alturaMin: capsula.y - 1, alturaMax: capsula.y + 1.6 });
@@ -1230,7 +1234,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     else if (R.vecino === 'guarda') { ctx.sumarMaterial?.('cristal', 2); extra = ' Encontró dos semillas doradas en la vía.'; }
     ctx.nota(`${R.nombre} te agradece`, `Defendiste ${R.lugar}: +${premio.tronco} troncos, +${premio.tabla} tablas, +${premio.cristal} semillas doradas.${extra}`, true);
   }
-  // Al amanecer: resumen, logros, récords, caja, restos de naves y vecinos que se suman.
+  // Al amanecer: resumen, logros, récords, caja, ruinas del bosque y vecinos que se suman.
   function amanecer() {
     const d = D();
     const especial = d.especial;
@@ -2858,8 +2862,13 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
 
   function revisarCapsula(js) {
     const d = D();
-    faroCapsula.visible = !d.pistolaEncontrada;
-    cofrePistola.userData.brilloHalos = d.pistolaEncontrada ? 0.15 : 0.8 + 0.25 * Math.sin(performance.now() / 450);   // 4.8.1: el brillo late hasta que lo abrís
+    const tc = performance.now() / 1000;
+    cofrePistola.userData.brilloHalos = d.pistolaEncontrada ? 0.15 : 0.8 + 0.25 * Math.sin(tc * 2.2);   // 4.8.1: el brillo late hasta que lo abrís
+    for (const h of esporasCofre) {   // y las esporas suben de la tapa mientras no lo abras
+      const f = (tc * 0.15 + h.i / esporasCofre.length) % 1, a = h.i * 2.4 + tc * 0.5;
+      h.p.set(Math.cos(a) * (0.1 + 0.4 * f), 0.7 + f * 3.8, Math.sin(a) * (0.1 + 0.4 * f));
+      h.tam = d.pistolaEncontrada ? 0.0001 : Math.max(0.0001, 1.1 * Math.sin(Math.PI * f));
+    }
     if (d.pistolaEncontrada) return;
     if (Math.hypot(js.pos.x - capsula.x, js.pos.z - capsula.z) < 3.2) {
       d.pistolaEncontrada = true;

@@ -163,7 +163,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
       // Ya están los tres planos: lo que queda al fondo de la ruina es una señal del nido.
       if (pistaDeNido()) {
         api.sumarMaterial('cristal', 3);
-        efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#a6ff6e');
+        efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#ffc860');
         sonido.juntar?.();
         api.guardar();
       }
@@ -171,7 +171,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     }
     d.planos.push(plano.id);
     api.sumarMaterial('cristal', 3);
-    efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#7dfff0');
+    efectos?.destello({ x: js.pos.x, y: js.pos.y + 1, z: js.pos.z }, 1.2, '#ffc860');
     sonido.juntar?.();
     api.nota(`Plano recuperado: ${plano.nombre}`, `${plano.texto} Ya se puede construir (O → Defensa). +3 semillas doradas`, true);
     api.guardar();
@@ -396,14 +396,14 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     const camaras = [];
     for (let i = 0; i < NIDO.camaras; i++) {
       const a = (i / NIDO.camaras) * Math.PI * 2 + 0.5;
-      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 1), new THREE.MeshBasicMaterial({ color: '#a6ff6e' }));
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 1), new THREE.MeshBasicMaterial({ color: '#ffc840' }));   // 4.8.1: semillas doradas (eran verdes)
       // La altura importa y no es decorativa: el rayo de las armas se corta en cuanto
       // toca el suelo (`y < T.altura`), así que una cámara a ras de tierra queda
       // enterrada y no le pega nadie. Van a la altura del pecho, en el hueco de la cúpula.
       m.position.set(Math.cos(a) * 2.6, 3, Math.sin(a) * 2.6);
       g.add(m);
       const aro = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.11, 5, 18),
-        new THREE.MeshBasicMaterial({ color: '#7dfff0', transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false }));
+        new THREE.MeshBasicMaterial({ color: '#ffb040', transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false }));   // 4.8.1: el aro de luz ámbar (era cian)
       aro.position.copy(m.position); aro.rotation.x = Math.PI / 2;
       g.add(aro);
       camaras.push({ nido: true, i, mesh: m, aro, pos: new THREE.Vector3(), radio: 2.2, flash: 0 });

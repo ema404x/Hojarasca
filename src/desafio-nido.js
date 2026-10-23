@@ -6,7 +6,7 @@
 // nido enterrado, y mientras siga entero la noche no se termina.
 //
 // Dos cosas lo hacen distinto de todo lo demás del modo:
-//  - Se busca de día, acotando el cerco con lo que dejan los restos de nave.
+//  - Se busca de día, acotando el cerco con lo que dejan las ruinas del bosque.
 //  - Se rompe de día. De noche el caparazón está cerrado y no le entra nada:
 //    el jugador pasa de aguantar a atacar, que es lo que le faltaba al modo.
 //
