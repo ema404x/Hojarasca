@@ -82,9 +82,9 @@ Campos nuevos en `desafioNuevo` y en `sanearDesafio` (con él pasa todo lo que c
   coincidencias.
 
 ## Verificación
-Ver el informe de cierre (números del gate y de las partidas).
+`npm run verify` de corrido: **271 pasos OK** (270 de antes + `verificar-4-8-noches`). Partidas reales, de a una y ocultas: `humo-4-8-noches` (27 comprobaciones, todas bien), `humo-3-0-asedio`, `humo-3-5-1-desafio` y `humo-desafio-premium` sin fallas.
 - `pruebas/verificar-4-8-noches.mjs` (en el gate): franjas, reglas de las nuevas, vista/oído/perro, viejos de la luna,
   giros (condiciones, una por noche, el código de `revisarGiro` con un mundo de mentira), cadena, saneo de partidas
   viejas, **12 semillas × 30 noches** (cada semilla da una serie distinta; todas las noches y los tres giros salen).
-  Se rompió a propósito cada regla clave y la prueba falla (17 de 18 mutaciones; la otra es redundante).
+  Se rompió a propósito cada regla clave y la prueba falla (17 de 18 mutaciones; la otra, quitar «n < GIRO.desde», es redundante con el `desde` de cada giro).
 - `pruebas/humo-4-8-noches.cjs`: partida real.
