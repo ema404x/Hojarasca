@@ -40,6 +40,8 @@ import { crearArsenalMundo } from './desafio-arsenal-mundo.js';
 import { crearFortinMundo } from './desafio-fortin-mundo.js';
 // 4.9 defensas: lo roto, la miel, el pasadizo, el farol y las brasas
 import { crearDefensas49 } from './desafio-defensas49-juego.js';
+// 4.10 base: las defensas que se curten, los trofeos y el perro que aprende (ver desafio-base-juego.js)
+import { crearBaseCrece } from './desafio-base-juego.js';
 import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION, RECUPERABLES } from './desafio-arsenal.js';
 import { crearCimientos } from './desafio-cimiento.js';
 import { crearDefensasActivas } from './desafio-defensas.js';
@@ -502,12 +504,17 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   fortin = crearFortinMundo(T, escena, col, obras, efectos, sonido, api, defensas);
   // 4.9 defensas: lo roto que se ve, la trampa de miel, el pasadizo, el farol de mano y la pala de brasas (ver desafio-defensas49-juego.js)
   const defensas49 = crearDefensas49(T, escena, camara, col, obras, efectos, sonido, api, defensas);
+  // 4.10 base: lo que crece con las noches (defensas curtidas, trofeos del tablero, el perro)
+  api.perroPresente = () => !!ctx.perroPos?.();
+  api.guardar = () => ctx.guardar();
+  const baseCrece = crearBaseCrece(obras, efectos, sonido, api);
   // 3.0: el asedio final y la pelea adentro de la nave (ver desafio-asedio*.js y
   // desafio-nave*.js). Las agujas y los puntos débiles de la Madre entran como blancos por
   // el mismo camino que los núcleos y el nido: todas las armas ya les pegan.
   api.claveDificultad = () => ctx.dificultad?.();
   api.dia = () => progreso().dia;
-  api.alcancePerro = () => (nieblaAhora() ? NIEBLA.perro : 1);   // 4.8 noches: con niebla el perro avisa antes
+  api.alcancePerro = () => (nieblaAhora() ? NIEBLA.perro : 1) * baseCrece.alcancePerro();   // 4.8 noches: con niebla el perro avisa antes (4.10 base: y cuanto más curtido, de más lejos)
+  api.danoPerro = () => baseCrece.danoPerro();   // 4.10 base: y muerde más fuerte
   api.horaActual = () => ({ h: progreso().horas, dia: progreso().dia });
   api.fijarHora = (h, dia) => { const p = progreso(); p.horas = h; p.dia = dia; };
   api.hayAtaque = () => hayAtaque();
@@ -687,6 +694,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (!o || !obras.obras.includes(o)) return;
     vidaDe(o);
     n *= defensas.factorDanoObra(o) * fortin.factorDanoObra(o);   // 2.6: contrafuerte y hielo
+    n *= baseCrece.factorDano(o); baseCrece.participo(o);   // 4.10 base: la defensa curtida recibe menos daño, y la noche cuenta
     o.datos.vida -= n;
     sacudidas.set(o, 0.25);
     if (Math.random() < 0.5) S.madera(o.datos);
@@ -701,6 +709,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (o.datos.vida > 0) return;
     const caidas = obras.destruir(o);
     nocheActual.perdidas += caidas.length;
+    baseCrece.alCaer(caidas);   // 4.10 base: el tablero de trofeos se lleva los trofeos; las defensas curtidas bajan el bono
     sacudidas.delete(o);
     S.derrumbe(o.datos);
     ctx.alDerribar?.(caidas);
@@ -895,6 +904,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     const js = ctx.jugador().estado;
     const d = D();
     if (nuevaNoche) d.oleadas++;
+    if (nuevaNoche) baseCrece.alAnochecer(d.oleadas);   // 4.10 base: las defensas que están en pie al anochecer quedan anotadas
     tipos = ataques.alEmpezar(tipos, nuevaNoche, retomada, puntoFijo);   // 4.8 ataques: los señuelos bajan primero
     // 2.3: con código de partida, la nave baja siempre del mismo lado esa noche
     const p = puntoFijo || puntoDeAterrizaje(js, azarDe(d.semilla, d.oleadas, nuevaNoche ? 'aterrizaje' : retomada ? 'retomada' : 'refuerzo'));
@@ -1096,6 +1106,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       if (d.meta && !nocheActual.perdidas) d.meta.limpias++;   // 4.10 partidas: una noche sin perder una sola defensa (para el final)
       d.racha++;
       d.mejorRacha = Math.max(d.mejorRacha, d.racha);
+      baseCrece.alAmanecer(d.oleadas);   // 4.10 base: las defensas que participaron suman una noche y el perro cuenta una con vos
       // 2.0: las noches después del nido se cuentan aparte, y son cinco
       if (siguenDespues(d.despues)) {
         const fin = sumarNocheDespues(d.despues);
@@ -1685,7 +1696,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     obra.datos.vida = Math.min(max, vida + max * 0.1 * rinde);
     _v.set(camara.position.x + _dir.x * 1.6, camara.position.y + _dir.y * 1.6, camara.position.z + _dir.z * 1.6);
     if (material === 'piedra') efectos.polvo(_v, 5); else efectos.astillas(_v, 5);
-    if (performance.now() - avisoMartillo > 1200) { avisoMartillo = performance.now(); ctx.nota(`Reparando ${obra.plano.nombre.toLowerCase()}`, `Resistencia ${Math.round(obra.datos.vida / max * 100)}%`); }
+    if (performance.now() - avisoMartillo > 1200) { avisoMartillo = performance.now(); ctx.nota(`Reparando ${(baseCrece.nivelDe(obra) ? baseCrece.nombreDe(obra) : obra.plano.nombre).toLowerCase()}`, `Resistencia ${Math.round(obra.datos.vida / max * 100)}%`); }   // 4.10 base: con el nivel si está curtida («pirca curtida · nivel 2»)
   }
   // Dónde entró el golpe, en términos del invasor: a qué altura relativa y si vino
   // por la espalda. Con eso se resuelve el punto débil del jefe.
@@ -1963,7 +1974,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       ctx.gastar(e.costo.material, e.costo.cantidad);
       const { max } = vidaDe(e.obra);
       e.obra.datos.vida = Math.min(max, e.obra.datos.vida + max * 0.3 * e.costo.cantidad * (1 + bonoAplicado(d, 'reparar')));   // 4.10 guardian
-      ctx.nota(`${e.obra.plano.nombre} reparada`, `Resistencia ${Math.round(e.obra.datos.vida / max * 100)}%`);
+      ctx.nota(baseCrece.nivelDe(e.obra) ? `${baseCrece.nombreDe(e.obra)} · reparada` : `${e.obra.plano.nombre} reparada`, `Resistencia ${Math.round(e.obra.datos.vida / max * 100)}%`);
     } else if (r.reforzar) {
       for (const [k, n] of Object.entries(e.refuerzo.pide)) ctx.gastar(k, n);
       const antes = e.obra.plano.nombre;
@@ -2930,6 +2941,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
         if (!nucleo) { recargaTorreta.set(o, 0.3); continue; }
       }
       recargaTorreta.set(o, f.cadencia);
+      baseCrece.participo(o);   // 4.10 base: la que tira participa de la noche
       if (nucleo) _w.copy(nucleo.pos);
       else _w.set(mejor.m.g.position.x, mejor.m.g.position.y + mejor.def.altura * mejor.m.esc * 0.55, mejor.m.g.position.z);
       const velocidad = f.plasma ? 40 : 55;
@@ -3709,6 +3721,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     arsenal.actualizar(dt, js);
     fortin.actualizar(dt, js, nocheNivel);
     defensas49.actualizar(dt, js, nocheNivel);   // 4.9 defensas
+    baseCrece.actualizar(dt);   // 4.10 base: una vez por segundo (la placa de las defensas, los trofeos y sus bonos)
     actualizarCristales(dt, js);
     actualizarCaja(dt, js);
     mapaMundo.actualizar(dt, js);   // 3.0
@@ -3778,6 +3791,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     arsenal.limpiar();
     fortin.limpiar();
     defensas49.limpiar();   // 4.9 defensas
+    baseCrece.limpiar();   // 4.10 base
     puestos.limpiar();   // 3.0
     tensandoDesde = null;
     eventos.retirarNodriza();
@@ -3880,6 +3894,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     // 4.9 defensas: la trampa de miel puesta desde afuera (preparar la noche) y el resto de lo de esta tanda
     colocarTrampaMiel: (x, z, opciones) => defensas49.colocarTrampaMiel(x, z, opciones),
     get defensas49() { return defensas49; },
+    get baseCrece() { return baseCrece; },   // 4.10 base: el tablero de trofeos (E), los niveles de las defensas y el perro (pantalla de la base)
     // 3.0: los puestos (para el mapa: los que ya viste y siguen en pie) y lo que aprendieron
     get puestos() { return puestos.vistos; },
     puestosMundo: puestos, evolucion,

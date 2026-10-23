@@ -65,7 +65,7 @@ export function crearAliados(api) {
     const p = a.m.g.position;
     if (Math.hypot(p.x - perroPos.x, p.z - perroPos.z) < 1.3 + a.def.radio * a.m.esc) {
       // muerde: poco daño pero constante, y a los rastreadores los frena
-      api.herirAlien(a, 9 * dt * (efectosPartida()?.perro ?? 1), null, 'perro');   // 4.10 partidas: la ventaja «perro de pelea»
+      api.herirAlien(a, 9 * (api.danoPerro?.() ?? 1) * dt * (efectosPartida()?.perro ?? 1), null, 'perro');   // 4.10 base: el perro curtido muerde más fuerte (desafio-perro-aprende.js); 4.10 partidas: la ventaja «perro de pelea»
       if (a.tipo === 'rastreador') a.frenoT = Math.max(a.frenoT || 0, 0.25);
       perro.mordida -= dt;
       if (perro.mordida <= 0) {

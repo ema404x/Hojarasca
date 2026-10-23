@@ -44,8 +44,19 @@ export function consejoBase(resumen, { noche = 1, cristales = 0 } = {}) {
   return 'La base está entera. Buen momento para juntar material o salir a buscar semillas doradas.';
 }
 
+// 4.10 base: lo que crece con las noches (defensas curtidas, el perro y los trofeos); `crece` es lo que da `desafio.baseCrece.resumen()`.
+export function htmlCrece(crece) {
+  if (!crece) return '';
+  const filas = [];
+  const [, n1, n2, n3] = crece.defensas || [0, 0, 0, 0];
+  filas.push(crece.curtidas ? `Defensas curtidas: ${crece.curtidas} (nivel 1: ${n1} · nivel 2: ${n2} · nivel 3: ${n3})` : 'Las defensas que aguanten varias noches se van a curtir: mirá las placas');
+  if (crece.perro) filas.push(crece.perro.texto);
+  filas.push(crece.trofeos ? `Trofeos: ${crece.trofeos} de 7${crece.hayTablero ? '' : ' (guardados: armá un tablero de trofeos)'}` : 'Trofeos: ninguno todavía');
+  return `<h3>La base crece</h3><div class="base-crece">${filas.map((f) => `<p>${esc(f)}</p>`).join('')}</div>`;
+}
+
 export function htmlBase(resumen, extra = {}) {
-  if (!resumen.total) return `<p class="base-vacia">${esc(consejoBase(resumen, extra))}</p>`;
+  if (!resumen.total) return `<p class="base-vacia">${esc(consejoBase(resumen, extra))}</p>${htmlCrece(extra.crece)}`;
   const grupos = CATEGORIAS_BASE.map((c) => {
     const filas = resumen.filas.filter((f) => f.cat === c.clave);
     if (!filas.length) return '';
@@ -58,7 +69,7 @@ export function htmlBase(resumen, extra = {}) {
     return `<h3>${esc(c.nombre)} · ${filas.length}</h3><div class="base-grupo">${items}</div>`;
   }).join('');
   const cabeza = `<p class="base-resumen">${resumen.total} ${resumen.total === 1 ? 'pieza' : 'piezas'} · salud media ${resumen.saludMedia}%${resumen.dañadas ? ` · ${resumen.dañadas} para reparar` : ' · todo entero'}</p>`;
-  return `${cabeza}<p class="base-consejo">${esc(consejoBase(resumen, extra))}</p>${grupos}`;
+  return `${cabeza}<p class="base-consejo">${esc(consejoBase(resumen, extra))}</p>${grupos}${htmlCrece(extra.crece)}`;
 }
 
 export const CSS_BASE = `
@@ -75,4 +86,5 @@ export const CSS_BASE = `
 .base-pieza.rota i::after { background: var(--peligro, #ff5a3d); }
 .base-pieza b { font-variant-numeric: tabular-nums; font-weight: 600; }
 .base-pieza small { opacity: .55; text-align: right; }
+.base-crece p { margin: 2px 0; font-size: 14px; opacity: .88; }
 `;

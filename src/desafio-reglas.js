@@ -29,6 +29,8 @@ import { RECETAS_FAROL } from './desafio-farol.js';
 import { RECETAS_BRASAS, PALA } from './desafio-brasas.js';
 // 4.10 partidas: los modos, las ventajas y las reglas a elección (puro; ver desafio-meta.js)
 import { efectosDe, sanearMetaPartida, nieblaDePesadilla, NOCHE_DEL_MANDAMAS_CORTA } from './desafio-meta.js';
+// 4.10 base: lo que crece con las noches (trofeos y perro; los bonos de la base van con los del guardián)
+import { creceNuevo, sanearCrece } from './desafio-crece.js';
 // 4.10 guardian: los bonos del jugador y las habilidades del guardián
 import { bonosNuevos, sanearBonos, bonoAplicado } from './desafio-bonos.js';
 import { habilidadesNuevas, sanearHabilidades, aplicarHabilidadesABonos } from './desafio-habilidades.js';
@@ -478,7 +480,9 @@ export function desafioNuevo() {
     // 4.9 dias: la aldea de día: cuánto ayuda cada vecino y qué pidió (ver desafio-aldea.js)
     aldea: aldeaDelDesafio(),
     // 4.10 partidas: el modo, las ventajas y las reglas con que se empezó (null: campaña de siempre; ver desafio-meta.js)
-    meta: null };
+    meta: null,
+    // 4.10 base: los trofeos ganados y las noches del perro (ver desafio-crece.js)
+    crece: creceNuevo() };
 }
 export const NUCLEO_VIDA = 600;
 const lista = (v, validos) => (Array.isArray(v) ? [...new Set(v.filter((k) => validos.includes(k)))] : []);
@@ -586,6 +590,7 @@ export function sanearDesafio(d) {
     evolucion: sanearEvolucion(x.evolucion),
     puestos: sanearPuestos(x.puestos),
     aldea: sanearAldeaDelDesafio(x.aldea),   // 4.9 dias: una partida vieja carga con todos los vecinos en 0
+    crece: sanearCrece(x.crece),   // 4.10 base: una partida vieja carga sin trofeos, con el perro sin curtir y sin bonos
     // 3.8.0: lo que los duendes se llevaron y todavía no te devolvieron (se devuelve al abrir: nunca se pierde)
     robados: Object.fromEntries(Object.entries(x.robados && typeof x.robados === 'object' && !Array.isArray(x.robados) ? x.robados : {})
       .filter(([k, v]) => ['cristal', 'ramita', 'tabla', 'piedra'].includes(k) && Number(v) > 0).map(([k, v]) => [k, ent(v, 0, 99)])),
