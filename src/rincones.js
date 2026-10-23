@@ -341,6 +341,9 @@ export function textoCanteroRincon(r, tipo, i, dia) {
   if (e.trabajadoHoy) return `${c.nombre.charAt(0).toUpperCase()}${c.nombre.slice(1)}${de}: ${e.faltan === 1 ? 'falta un día' : `faltan ${e.faltan} días`} (hoy ya la trabajaste)`;
   return tipo === 'chicos' ? `Regar ${c.nombre}${de} con los chicos` : `Carpir y regar ${c.nombre} en la huerta de todos`;
 }
+// 4.10.1: cuánto te llevás al cosechar ese cultivo (la juega el juego para ver si entra en la mochila ANTES de cosechar)
+export const ingredienteDe = (cultivo) => (Object.hasOwn(CULTIVOS, String(cultivo)) ? CULTIVOS[cultivo].ingrediente : null);
+export const cosechaDe = (tipo, cultivo) => { const c = Object.hasOwn(CULTIVOS, String(cultivo)) ? CULTIVOS[cultivo] : null; return !c ? 0 : tipo === 'chicos' ? Math.max(1, Math.floor(c.cosecha / 3)) : Math.max(1, Math.round(c.cosecha * RINCONES.huerta.mitad)); };
 // Trabajar: { ok, que: 'sembrar'|'trabajar'|'cosechar', da: [{ tipo: 'entrada', k, n }], texto }
 export function trabajarCantero(r, tipo, i, dia) {
   const g = grupoDe(tipo), d = diaValido(dia);
@@ -354,7 +357,7 @@ export function trabajarCantero(r, tipo, i, dia) {
   if (lista(p, d)) {
     delete r[g.clave][k];
     r.cosechas = (r.cosechas || 0) + 1;
-    const n = tipo === 'chicos' ? Math.max(1, Math.floor(c.cosecha / 3)) : Math.max(1, Math.round(c.cosecha * RINCONES.huerta.mitad));
+    const n = cosechaDe(tipo, cultivo);
     return { ok: true, que: 'cosechar', da: [{ tipo: 'entrada', k: c.ingrediente, n }],
       texto: tipo === 'chicos' ? `Los chicos cosecharon ${c.nombre} y te convidaron` : `Cosechaste ${c.nombre}: la mitad para vos y el resto para la mesa de todos` };
   }

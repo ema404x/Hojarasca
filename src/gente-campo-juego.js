@@ -13,6 +13,7 @@
 import { PERSONAS_CAMPO, esPersonaCampo, tieneTrato, saludoCampo, pedidoCampo, puedeEntregarCampo, anotarEntregaCampo, tiendaDe, anotarCompra, datoDelValle, historiaPendiente, genteCampoDe, cuantoCampo } from './gente-campo.js';
 import { formatoPesos, pesosDe } from './economia.js';
 import { dondeDe } from './tablon.js';
+import { tratoDeEfectos } from './carga.js';
 
 const NOMBRE = { nicanor: 'Nicanor', ema: 'Josefina' };
 export const nombreCampo = (k) => (esPersonaCampo(k) ? PERSONAS_CAMPO[k].nombre : NOMBRE[k] || k);
@@ -110,7 +111,8 @@ export function crearGenteCampoJuego(ctx) {
     const plata = pesosDe(progreso());
     if (plata < c.precio) return renglones(FRASES.sinPlata(c.precio - plata));
     // 4.7 carga: lo que comprás tiene que entrar en la mochila ANTES de cobrar (la herramienta y el dato no ocupan casillas)
-    if (c.tipo !== 'herramienta' && c.tipo !== 'dato' && ctx.cabeTrato && !ctx.cabeTrato({ [c.k]: c.n })) return renglones('No te entra todo eso en la mochila: hacé lugar y volvé.');
+    // 4.10.1: sólo cuenta lo que ocupa casilla (tratoDeEfectos filtra): la mosca, las botas y la tijera son «cosas» que no son contadores y no ocupan nada
+    { const { da } = tratoDeEfectos(c.tipo === 'herramienta' || c.tipo === 'dato' ? [] : [{ tipo: c.tipo, k: c.k, n: c.n }]); if (Object.keys(da).length && ctx.cabeTrato && !ctx.cabeTrato(da)) return renglones('No te entra todo eso en la mochila: hacé lugar y volvé.'); }
     if (!ctx.pagar?.(c.precio, `Compra: ${c.titulo.toLowerCase()}`, nombreCampo(k))) return renglones(FRASES.sinPlata(c.precio - plata));
     anotarCompra(g, k, c.id, dia());
     let dice = c.dice;
