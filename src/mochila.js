@@ -213,6 +213,32 @@ function icono(tipo) {
       x.fillStyle = '#8a8378';
       x.beginPath(); x.moveTo(48, 16); x.lineTo(58, 6); x.lineTo(52, 20); x.fill();
     },
+    // 4.9 defensas: el farol de mano (marco oscuro, vidrio ámbar y la llama) y la pala de brasas (mango, filo de piedra y brasas)
+    farolMano() {
+      x.strokeStyle = '#6b5238'; x.lineWidth = 3;
+      x.beginPath(); x.arc(32, 12, 7, Math.PI * 1.05, Math.PI * 1.95); x.stroke();
+      x.fillStyle = '#3a3430';
+      x.beginPath(); x.moveTo(20, 21); x.lineTo(32, 11); x.lineTo(44, 21); x.closePath(); x.fill();
+      x.fillStyle = '#e8a73a';
+      x.fillRect(22, 21, 20, 28);
+      x.fillStyle = 'rgba(255,236,170,0.55)';
+      x.fillRect(25, 24, 5, 22);
+      x.fillStyle = '#fff1b8';
+      x.beginPath(); x.moveTo(32, 26); x.quadraticCurveTo(38, 36, 32, 44); x.quadraticCurveTo(26, 36, 32, 26); x.fill();
+      x.fillStyle = '#3a3430';
+      x.fillRect(19, 49, 26, 5);
+      for (const px of [22, 42]) x.fillRect(px - 1, 21, 3, 28);
+    },
+    palaBrasas() {
+      x.strokeStyle = '#6b5238'; x.lineWidth = 5;
+      x.beginPath(); x.moveTo(52, 8); x.lineTo(25, 40); x.stroke();
+      x.fillStyle = '#7d766c';
+      x.beginPath(); x.moveTo(10, 38); x.lineTo(30, 30); x.lineTo(40, 52); x.lineTo(18, 58); x.closePath(); x.fill();
+      x.fillStyle = '#3a3633';
+      x.beginPath(); x.moveTo(14, 40); x.lineTo(29, 34); x.lineTo(36, 51); x.lineTo(20, 55); x.closePath(); x.fill();
+      for (const [px, py, r, c] of [[22, 43, 3.2, '#ff7a1c'], [29, 46, 2.6, '#ffb347'], [25, 50, 2.2, '#ff5a1c'], [32, 40, 2, '#ffd27a']]) { x.fillStyle = c; x.beginPath(); x.arc(px, py, r, 0, 6.3); x.fill(); }
+      x.fillStyle = '#ffd27a'; x.fillRect(8, 24, 2, 2); x.fillRect(14, 18, 2, 2); x.fillRect(20, 12, 2, 2);
+    },
     granada() {
       x.fillStyle = '#4d7f86'; x.beginPath(); x.arc(32, 36, 16, 0, 6.3); x.fill();
       x.fillStyle = '#7dfff0'; x.beginPath(); x.arc(27, 31, 6, 0, 6.3); x.fill();
@@ -563,7 +589,7 @@ export function armarMochila(progreso, estado) {
     if (progreso.cosas?.boleadoras) armas.push({ id: 'boleadoras', nombre: 'Boleadoras', icono: 'boleadoras', cuenta: D.boleadoras || '0', accion: 'arma', texto: 'Enredan al duende y lo dejan quieto unos segundos.' });
     if (D.emplastos) armas.push({ id: 'emplasto', nombre: 'Emplasto de hierbas', icono: 'emplasto', cuenta: D.emplastos, accion: 'curar', texto: 'Clic derecho para curarte 45 puntos.' });
     if (progreso.cosas?.martillo) armas.push({ id: 'martillo', nombre: 'Martillo de carpintero', icono: 'martillo', accion: 'arma', texto: 'Tocá una defensa dañada para repararla.' });
-    const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'hacha', 'pico'];
+    const adelante = [progreso.cosas?.farol ? 'farol' : 'linterna', 'farolMano', 'hacha', 'pico'];
     // 2.5: el arsenal va después de la linterna y el hacha, para no sacarlas de la barra
     const C = progreso.cosas || {};
     const nuevas = [];
@@ -578,6 +604,11 @@ export function armarMochila(progreso, estado) {
     if (C.humo) nuevas.push({ id: 'humo', nombre: 'Bombas de humo', icono: 'humo', cuenta: D.humos || '0', accion: 'arma', texto: 'Adentro del humo te pierden el rastro.' });
     if (C.bengala) nuevas.push({ id: 'bengala', nombre: 'Bengalas', icono: 'bengala', cuenta: D.bengalas || '0', accion: 'arma', texto: 'Iluminan medio minuto y dejan a la vista a los que haya cerca.' });
     if (C.cuerno) nuevas.push({ id: 'cuerno', nombre: 'Cuerno de guardia', icono: 'cuerno', accion: 'arma', texto: 'Llama a los compañeros; los de cerca dudan.' });
+    // 4.9 defensas: el farol de mano (U o clic derecho lo prende y queda en la mano izquierda), la pala de brasas y los frascos de miel de las trampas
+    // (el farol va junto a la linterna y la pala con las armas de siempre: en la barra de nueve casillas no pueden quedar al final)
+    if (C.farolMano) ranuras.push({ id: 'farolMano', nombre: D.farolOn ? 'Farol de mano · prendido' : 'Farol de mano', icono: 'farolMano', accion: 'farolMano', texto: 'U o clic derecho lo prende y lo apaga. Los viejos oscuros no se acercan, pero la luz te delata.' });
+    if (C.pala) armas.push({ id: 'pala', nombre: 'Pala de brasas', icono: 'palaBrasas', cuenta: D.brasas || '0', accion: 'arma', texto: 'Clic izquierdo tira las brasas en abanico. Se carga con E junto a un fogón o una antorcha.' });
+    if (D.miel > 0) nuevas.push({ id: 'miel-frasco', nombre: 'Frascos de miel', icono: 'miel', cuenta: D.miel, texto: 'Para la trampa de miel: E junto a ella la deja llena. Vienen en el cofre del alba.' });
     const primero = [...armas, ...adelante.map((id) => ranuras.find((r) => r.id === id)).filter(Boolean), ...nuevas];
     return [...primero, ...ranuras.filter((r) => !primero.includes(r))];
   }

@@ -20,6 +20,8 @@ export const ARSENAL = {
   humo: { nombre: 'Bombas de humo', tipo: 'humo', vel: 15, cadencia: 1.0, municion: 'humos', radio: 7, dura: 9 },
   bengala: { nombre: 'Bengalas', tipo: 'bengala', vel: 26, cadencia: 1.2, municion: 'bengalas', radio: 34, dura: 30 },
   cuerno: { nombre: 'Cuerno de guardia', tipo: 'cuerno', cadencia: 40, radio: 16, duda: 1.4 },
+  // 4.9 defensas: la pala de brasas (reglas en desafio-brasas.js; cada clic gasta una carga y tira un abanico)
+  pala: { nombre: 'Pala de brasas', tipo: 'brasas', dano: 6, cadencia: 1.15, municion: 'brasas' },   // (dano: lo de cada brasa, ver PALA en desafio-brasas.js)
 };
 // Mejoras (se suman al arma, como las de cristal de siempre).
 export const MEJORAS_ARSENAL = {
@@ -30,7 +32,7 @@ export const MEJORAS_ARSENAL = {
 export const RECUPERABLES = { hachuela: 'hachuelas', jabalina: 'jabalinas' };
 // Todos los contadores del Desafío que son munición (el taller los suma, el guardado
 // los sanea).
-export const MUNICIONES = ['virotes', 'flechasFuego', 'flechasCristal', 'hachuelas', 'jabalinas', 'granadas', 'humos', 'bengalas'];
+export const MUNICIONES = ['virotes', 'flechasFuego', 'flechasCristal', 'hachuelas', 'jabalinas', 'granadas', 'humos', 'bengalas', 'miel', 'brasas'];   // 4.9 defensas: los frascos de miel (trampa de miel) y las brasas cargadas en la pala
 export const TOPE_MUNICION = 99;
 
 // ---------------------------------------------------------------- flechas y carcaj

@@ -105,6 +105,12 @@ export const SECCIONES_GUIA = [
       ['Las lechuzas', 'Desde la noche 8, duendes montados en lechuzas. Vuelan alto y bajan en picada a apagar las antorchas; sin antorchas, vienen por vos. Arriba los alcanzan flechas, pistola y la ballesta al cielo (O → Defensa); cuando bajan, también la lanza.'],
       ['La zanja de fuego', 'Defensa nueva (O → Defensa). Se carga con dos troncos (E) y se prende (E) cuando llegan: arde un minuto. Con viento el fuego puede escaparse al pasto y quemar madera; con lluvia no prende.'],
       ['Código de partida', 'En la portada de La noche de los duendes. Con un código (o el de esta semana), las noches salen siempre iguales: sirve para comparar récords con la otra computadora o con amigos.'],
+      // 4.9
+      ['Lo roto se ve', 'Una defensa dañada muestra garras, tablas torcidas o caídas, un hueco con astillas y piedras al pie; el portón se sale de eje. Con el martillo, o en el taller (K → Base), vuelve a lo normal.'],
+      ['La trampa de miel', 'O → Defensa. Pega a los duendes que la pisan 3 o 4 segundos, lamiendo: ni corren ni atacan. Aguanta cinco; seca, se repone con E (1 frasco, del cofre del alba). Una brasa de la pala la prende y quema a los pegados.'],
+      ['El pasadizo de escape', 'O → Defensa. Dos bocas a nueve metros: una tapa dentro de tu base y un tronco hueco afuera (girala con R). E en una boca y salís por la otra: para escapar por atrás y volver a entrar. Los duendes no lo ven.'],
+      ['El farol de mano', 'Taller (K → Equipo). Elegilo en la barra y U o clic derecho lo prende, en la mano izquierda. Los viejos oscuros no se acercan a menos de cinco metros, pero te delata: los que tiran te ven de lejos. La lluvia lo apaga.'],
+      ['La pala de brasas', 'Taller (K → Armas). Con la pala en la mano, E junto a un fogón o antorcha prendida la carga; el clic izquierdo tira las brasas en abanico: los duendes dudan y retroceden, se queman y la miel de las trampas prende.'],
     ],
   },
   {

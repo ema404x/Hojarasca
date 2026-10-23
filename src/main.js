@@ -945,6 +945,10 @@ async function construir() {
     // 2.0: la linterna (para el reflejo de los ojos), los sonidos escritos, la mezcla
     // que se agacha y el mando que vibra
     linterna: () => ({ encendida: !!(linterna && linterna.intensity > 0), angulo: linterna?.angle ?? 0.42, alcance: linterna?.distance ?? 42 }),
+    // 4.9 defensas: la luz de la linterna (el farol de mano la toma prestada), lo elegido en la barra y los fogones prendidos (la pala se carga ahí)
+    luzLinterna: () => linterna,
+    armaEnMano: () => ranuras[elegida]?.id || null,
+    fuegos: () => (clima?.fogatas || []).filter((f) => f && f.activa && f.vida > 0 && f.pos).map((f) => ({ x: f.pos.x, y: f.pos.y, z: f.pos.z })),
     sonidoEscrito: (texto) => escribirSonido(texto),
     t: (texto) => T_(texto),
     agacharMezcla: (profundidad, sostener) => sonido.agachar?.(profundidad, sostener),
@@ -3747,6 +3751,7 @@ function usarRanura() {
     // 3.8.3: como el clic izquierdo: en modo obra, con un panel abierto (el taller) o charlando no se tira (gastaba munición)
     case 'arma': if (desafio && !desafio.caido && !modoObra && !panelDelHudAbierto() && !charla.npc) desafio.atacar(r.id); refrescarBarra(true); return;
     case 'curar': if (desafio) desafio.usarEmplasto(); break;
+    case 'farolMano': if (desafio && !desafio.caido) desafio.alternarFarol(); break;   // 4.9 defensas: prende o apaga el farol de mano (queda en la mano izquierda)
     case 'grabador': usarGrabador(); break;
     default: nota(r.nombre, r.texto || 'Se guarda en la mochila'); break;
   }
@@ -4259,6 +4264,7 @@ function tieneHacha() { return !!progreso.cosas?.hacha; }
 function tienePico() { return !!progreso.cosas?.pico; }   // 4.2: para picar piedra hace falta el pico (el hacha ya no alcanza)
 function material(k) { return progreso.materiales?.[k] || 0; }
 function sumarMaterial(k, n) {
+  if (k === 'miel' && desafio) { if (progreso.desafio) progreso.desafio.miel = Math.min(99, (progreso.desafio.miel || 0) + n); return; }   // 4.9 defensas: la miel del Desafío no es un material de obra
   progreso.materiales = progreso.materiales || {};
   progreso.materiales[k] = (progreso.materiales[k] || 0) + n;
 }
@@ -4298,12 +4304,14 @@ const CARGA_CTX = { cabeJuntar: (k, n) => cabeJuntar(k, n), cabeTrato: (da, q) =
 // ------- modo Desafío: recursos para fabricar, derrota y vuelta a la base
 const FRUTAS = ['pinon', 'calafate', 'frutilla'];
 function cuantoRecurso(k) {
+  if (k === 'miel' && desafio) return progreso.desafio?.miel || 0;   // 4.9 defensas: los frascos de miel del Desafío (trampa de miel)
   if (k === 'ramita') return progreso.ramitas || 0;
   if (k === 'fruta') return FRUTAS.reduce((s, f) => s + (progreso.entradas[f]?.cantidad || 0), 0);
   if (FRUTAS.includes(k)) return progreso.entradas[k]?.cantidad || 0;
   return material(k);
 }
 function gastarRecurso(k, n) {
+  if (k === 'miel' && desafio) { if (progreso.desafio) progreso.desafio.miel = Math.max(0, (progreso.desafio.miel || 0) - n); return; }   // 4.9 defensas
   if (k === 'ramita') { progreso.ramitas = Math.max(0, (progreso.ramitas || 0) - n); return; }
   if (k === 'fruta') {
     let falta = n;
