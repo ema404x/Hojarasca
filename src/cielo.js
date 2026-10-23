@@ -487,8 +487,8 @@ export function crearCielo(escena, calidad) {
     const ang = h >= 6.5 && h < 20.5 ? ((h - 6.5) / 14) * Math.PI : Math.PI + ((((h - 20.5) % 24) + 24) % 24 / 10) * Math.PI;
     solDir.set(-Math.cos(ang), Math.sin(ang) * 0.9, 0.38).normalize();
     lunaDir.set(Math.cos(ang) * 0.8, -Math.sin(ang) * 0.75 + 0.18, -0.45).normalize();
-    // 4.8 ambiente: la luna llena baja hasta unos 24 grados de altura: las sombras se estiran por el valle
-    if (lunaK > 0) { lunaDir.y += (Math.min(lunaDir.y, 0.4) - lunaDir.y) * lunaK; lunaDir.normalize(); }
+    // 4.8 ambiente: la luna llena baja hasta unos 17 grados de altura: las sombras se estiran por el valle
+    if (lunaK > 0) { lunaDir.y += (Math.min(lunaDir.y, 0.27) - lunaDir.y) * lunaK; lunaDir.normalize(); }
     const dia = smoothstep(-0.14, 0.18, solDir.y);
     const tarde = Math.exp(-Math.pow(solDir.y / 0.16, 2)) * smoothstep(-0.25, -0.02, solDir.y);
     const nub = clamp(clima.nublado, 0, 1);

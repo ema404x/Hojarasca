@@ -3509,12 +3509,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     estadoMusica.activo = !caido;
     estadoMusica.fase = faseMusical();
     estadoMusica.tension = tensionActual(js);
-    estadoMusica.especial = d.especial;
+    estadoMusica.especial = ambiente.especialDePrueba ?? d.especial;   // (4.8 ambiente: la de prueba es sólo de las pruebas)
     // 4.8 ambiente: el cronograma de la noche (ojos, ramas, risitas, silencio) y de ahí, el miedo y el silencio para la música
     {
       const p = progreso(), e = estadoAmbiente;
       e.activo = !caido && !naveMundo.adentro; e.fase = estadoMusica.fase; e.horas = p.horas; e.noche = nocheNivel; e.js = js;
-      e.especial = d.especial; e.nocheN = nocheEnCurso(d, p.dia, p.horas); e.sinFin = !!d.sinFin; e.vista = climaActual.vista;
+      e.especial = ambiente.especialDePrueba ?? d.especial; e.nocheN = nocheEnCurso(d, p.dia, p.horas); e.sinFin = !!d.sinFin; e.vista = climaActual.vista;
       const a = ambiente.actualizar(dtReal, e);
       estadoMusica.miedo = a.miedo; estadoMusica.avance = a.avance; estadoMusica.silencio = a.silencio;
     }

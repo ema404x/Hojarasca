@@ -238,7 +238,7 @@ export function objetivoNiebla(especial) { return especial === 'niebla' ? 1 : 0;
 export function objetivoLuna(especial) { return especial === 'lunallena' ? 1 : 0; }
 
 // La luna llena que alumbra el valle: más luz, más fría, y más baja (sombras largas). `k` es 0..1.
-export const LUNA_LLENA = { luz: 1.0, bajaA: 0.4, frio: 0.55, ambiente: 0.4 };
+export const LUNA_LLENA = { luz: 1.0, bajaA: 0.27, frio: 0.55, ambiente: 0.4 };
 export function lunaLlenaLuz(k) { return 1 + LUNA_LLENA.luz * limitar(k, 0, 1); }
 export function lunaLlenaAltura(y, k) { return y + (Math.min(y, LUNA_LLENA.bajaA) - y) * limitar(k, 0, 1); }
 

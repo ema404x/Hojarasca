@@ -50,9 +50,9 @@ app.whenReady().then(async () => {
   let horaVista = null, quietoDesde = 0;
   const despertar = async (h) => { if (horaVista !== null && h === horaVista) { if (!quietoDesde) quietoDesde = Date.now(); if (Date.now() - quietoDesde > 1500) { quietoDesde = 0; await js(`try { ${H}.volverAlJuego(); } catch {} 1`); } } else quietoDesde = 0; horaVista = h; };
   // una captura a tamaño completo (con la ventana visible); si falla, el cuadro del lienzo
-  const foto = async (nombre, conHud = false) => {
-    // si el juego se pausó solo (el foco de la ventana de la prueba), se lo despierta; y sin el HUD, sólo el mundo
-    await js(`try { ${H}.volverAlJuego(); } catch {} (() => { let s = document.getElementById('humo-sin-hud'); if (!s) { s = document.createElement('style'); s.id = 'humo-sin-hud'; document.head.appendChild(s); } s.textContent = ${conHud ? "''" : "'body > *:not(canvas):not(script):not(style) { visibility: hidden !important; } canvas { visibility: visible !important; }'"}; })(); 1`);
+  const foto = async (nombre, conHud = false, quieto = false) => {
+    // si el juego se pausó solo (el foco de la ventana de la prueba), se lo despierta (salvo `quieto`: ahí se lo deja pausado, que nada se mueva); y sin el HUD, sólo el mundo
+    await js(`${quieto ? '' : `try { ${H}.volverAlJuego(); } catch {}`} (() => { let s = document.getElementById('humo-sin-hud'); if (!s) { s = document.createElement('style'); s.id = 'humo-sin-hud'; document.head.appendChild(s); } s.textContent = ${conHud ? "''" : "'body > *:not(canvas):not(script):not(style) { visibility: hidden !important; } canvas { visibility: visible !important; }'"}; })(); 1`);
     await esperar(350);
     let img = null;
     // (la primera captura tras un cambio puede ser el cuadro anterior: se pide una de descarte y otra que vale)
@@ -70,7 +70,8 @@ app.whenReady().then(async () => {
   // avanza `seg` segundos de juego a mano (pasos de 0,05 s, como las otras pruebas): el reloj no depende de los fps de esta PC. Con `hora` el reloj
   // del día corre (día de 30 minutos); sin eso, queda donde está. La noche (0 a 1) sale de la hora, como en el juego.
   const avanzar = (seg, hora = false) => js(`(()=>{const H=${H}; const noche = (h) => (h >= 21 || h < 5.5) ? 1 : h >= 20.5 ? 0.59 + 0.41 * (h - 20.5) / 0.5 : h >= 19.5 ? 0.3 + 0.29 * (h - 19.5) : (h >= 5.5 && h < 6.5 ? 0.6 : 0.15);
-    for (let i = 0; i < ${Math.round(seg / 0.05)}; i++) { if (${hora}) H.progreso.horas = (H.progreso.horas + 0.05 * 24 / 1800) % 24; H.progreso.desafio.salud = Math.max(H.progreso.desafio.salud, 85); H.desafio.actualizar(0.05, { noche: noche(H.progreso.horas), dtReal: 0.05 }); } return 1})()`, 120000);
+    const pins = () => { for (const p of window.__pins || []) { p.a.m.g.position.x = p.x; p.a.m.g.position.z = p.z; } };
+    for (let i = 0; i < ${Math.round(seg / 0.05)}; i++) { pins(); if (${hora}) H.progreso.horas = (H.progreso.horas + 0.05 * 24 / 1800) % 24; H.progreso.desafio.salud = Math.max(H.progreso.desafio.salud, 85); H.desafio.actualizar(0.05, { noche: noche(H.progreso.horas), dtReal: 0.05 }); } return 1})()`, 120000);
   // la cámara hacia (x, y, z) desde donde estás parado
   // (con `lado`, un poco corrido: mirar un par de ojos de frente los apaga, y la foto sale un segundo después)
   const mirar = async (x, y, z, lado = 0) => { const o = await js(`(()=>{const js=${H}.jugador.estado; return {x:js.pos.x, y:js.pos.y+1.65, z:js.pos.z}})()`);
@@ -110,6 +111,8 @@ app.whenReady().then(async () => {
       const arb = H.veg?.arbolesCerca ? H.veg.arbolesCerca(x, z, 40, []).length : 0;
       const pts = -des + Math.min(arb,25)*0.15; if (!mejor || pts>mejor.pts) mejor={x,z,pts}; }
     return mejor})()`);
+  // la luz de la luna: hacia dónde queda (azimut) y a qué altura (grados)
+  const luzLuna = () => js(`(()=>{const H=${H}; const L=H.escena.children.find(o=>o.isDirectionalLight); if (!L) return null; const d={x:L.position.x-L.target.position.x, y:L.position.y-L.target.position.y, z:L.position.z-L.target.position.z}; const l=Math.hypot(d.x,d.y,d.z); return {alturaGrados: +(Math.asin(d.y/l)*180/Math.PI).toFixed(1), x:d.x/l, z:d.z/l, intensidad:+L.intensity.toFixed(2), color:'#'+L.color.getHexString()}})()`);
   // lo que mira cada vez
   const estadoAmb = () => js(`(()=>{const H=${H}, A=H.desafio.ambiente, s=A.salida, ag=A.agenda(), D=H.progreso.desafio, so=H.sonido;
     return { h:+H.progreso.horas.toFixed(3), tipo:A.tipo, miedo:+s.miedo.toFixed(3), avance:+s.avance.toFixed(3), silencio:s.silencio, ojos:s.ojos, robo:A.robo, llegada:ag.llegada, tAtaque:+ag.tAtaque.toFixed(1), antorcha:ag.antorcha,
@@ -258,12 +261,12 @@ app.whenReady().then(async () => {
       await limpiarInvasores();
       const L = await llano();
       await estar(L.x, L.z, 0);
-      const poner = (esp, hora) => js(`(()=>{const H=${H}, D=H.progreso.desafio; D.especial=${esp === null ? 'null' : `'${esp}'`}; H.progreso.horas=${hora}; H.clima.estado.nublado=0.05; H.clima.estado.lluvia=0; H.clima.estado.objetivo && 0; return 1})()`);
+      const poner = (esp, hora) => js(`(()=>{const H=${H}, D=H.progreso.desafio; D.especial = null; H.desafio.ambiente.especialDePrueba = ${esp === null ? 'null' : `'${esp}'`}; H.progreso.horas=${hora}; H.clima.estado.nublado=0.05; H.clima.estado.lluvia=0; H.clima.estado.objetivo && 0; return 1})()`);
       // los que se ven en la niebla: tres duendes a 12, 28 y 46 m
       const duendes = () => js(`(()=>{const H=${H}, D=H.desafio, js=H.jugador.estado; const r=[];
-        for (const [d,ang,tipo] of [[12,0.25,'rastreador'],[28,-0.2,'saltador'],[46,0.05,'bruto']]) { const x=js.pos.x-Math.sin(js.yaw+ang)*d, z=js.pos.z-Math.cos(js.yaw+ang)*d; const a=D.invocar(tipo,x,z); if (a) { a.dudaT = 9999; a.vida = a.vidaMax = 9999; r.push(d); } }
+        for (const [d,ang,tipo] of [[12,0.25,'rastreador'],[28,-0.2,'saltador'],[46,0.05,'bruto']]) { const x=js.pos.x-Math.sin(js.yaw+ang)*d, z=js.pos.z-Math.cos(js.yaw+ang)*d; const a=D.invocar(tipo,x,z); if (a) { a.velMult = 0; a.vida = a.vidaMax = 9999; r.push(d); } }
         return r})()`);
-      const aislar = () => js(`(()=>{const H=${H}; for (const a of H.desafio.aliens) { a.dudaT = 9999; a.estado = 'avanzar'; } return 1})()`);
+      const aislar = () => js(`(()=>{const H=${H}; for (const a of H.desafio.aliens) { a.velMult = 0; } return 1})()`);
       if (ESCENAS.includes('niebla')) {
         // sin el efecto (una noche común) y con él
         await poner(null, 22.3); await esperar(2500);
@@ -308,6 +311,14 @@ app.whenReady().then(async () => {
         await duendes(); await esperar(1500); await aislar();
         await foto('luna-0-antes-noche-comun');
         const sin = await estadoAmb();
+        const lunaSin = await luzLuna();
+        console.log('luz de la luna (noche común):', JSON.stringify(lunaSin));
+        if (lunaSin) {
+          const o = await js(`(()=>{const js=${H}.jugador.estado; return {x:js.pos.x, y:js.pos.y+1.3, z:js.pos.z}})()`);
+          await pose(o, { x: o.x + lunaSin.x * 40, y: o.y + 0.5, z: o.z + lunaSin.z * 40 }, 62);
+          await avanzar(1); await esperar(500); await foto('luna-0b-sombras-noche-comun', false, true);
+          await sinPose();
+        }
         await poner('lunallena', 23.0);
         for (let i = 0; i < 12; i++) { await avanzar(7); await esperar(300); const s = await estadoAmb(); if (s.luna >= 1) break; }
         await esperar(2000);
@@ -317,6 +328,16 @@ app.whenReady().then(async () => {
         await foto('luna-2-hacia-atras');
         const con = await estadoAmb();
         ok(con.luna >= 0.99, `la luna llena llega a pleno (${con.luna})`);
+        // las sombras largas: de cara a la luna, las sombras de los árboles se estiran hacia vos
+        const lunaCon = await luzLuna();
+        console.log('luz de la luna llena:', JSON.stringify(lunaCon));
+        ok(lunaCon && lunaCon.alturaGrados < 26, `la luna llena queda baja (${lunaCon && lunaCon.alturaGrados}°): sombras largas`);
+        if (lunaCon) {
+          const o = await js(`(()=>{const js=${H}.jugador.estado; return {x:js.pos.x, y:js.pos.y+1.3, z:js.pos.z}})()`);
+          await pose(o, { x: o.x + lunaCon.x * 40, y: o.y + 0.5, z: o.z + lunaCon.z * 40 }, 62);
+          await avanzar(1); await esperar(500); await foto('luna-3-sombras-hacia-vos', false, true);
+          await sinPose();
+        }
         const sombras = await js(`(()=>{const A=${H}.desafio.ambiente; return {vivas:A.sombrasVivas, visible:A._sombras.visible}})()`);
         console.log('sombras:', JSON.stringify(sombras));
         await limpiarInvasores();
@@ -329,25 +350,35 @@ app.whenReady().then(async () => {
     // ================================================================ 3. las sombras largas de las antorchas
     if (ESCENAS.includes('niebla') || ESCENAS.includes('luna') || ESCENAS.includes('sombras')) {
       donde = 'sombras de antorcha';
-      await limpiarInvasores();
+      await limpiarInvasores(); await js(`(()=>{const A=${H}.desafio.ambiente; A.especialDePrueba = null; A.clima.luna = 0; A.clima.niebla = 0; ${H}.obras.obras.filter(o=>o.plano.id==='antorcha').forEach(o=>{o.datos.apagada=false}); return 1})()`);
       const L = await llano();
       await estar(L.x, L.z, 0);
       await js(`(()=>{const H=${H}; H.desafio.defensas.refrescar(); H.progreso.desafio.especial=null; H.progreso.horas=22.5; return 1})()`);
       const an = await construir('antorcha', 5);
       await js(`${H}.desafio.defensas.refrescar(); 1`);
-      await esperar(2500);
+      await avanzar(2); await esperar(400);
       const s = await js(`(()=>{const A=${H}.desafio.ambiente; return {vivas:A.sombrasVivas, visible:A._sombras.visible}})()`);
       ok(an.ok && s.vivas >= 1 && s.visible, `con una antorcha cerca, tu sombra se estira (${JSON.stringify(s)})`);
-      // se mira desde un costado y desde arriba
-      await js(`(()=>{const J=${H}.jugador.estado; J.pitch=-0.5; J.yaw+=1.0; return 1})()`); await esperar(800);
-      await foto('sombras-1-antorcha-y-vos');
-      // y con duendes cerca de la llama
-      await js(`(()=>{const H=${H}, D=H.desafio, js=H.jugador.estado; for (const [d,ang] of [[6,0.4],[9,-0.5],[12,0.1]]) { const a=D.invocar('rastreador', js.pos.x-Math.sin(js.yaw+ang)*d, js.pos.z-Math.cos(js.yaw+ang)*d); if (a) { a.dudaT=9999; a.vida=a.vidaMax=9999; } } return 1})()`);
-      await esperar(1500);
-      await js(`(()=>{const H=${H}; for (const a of H.desafio.aliens) { a.dudaT = 9999; } return 1})()`);
-      await foto('sombras-2-con-duendes');
+      // tres duendes quietos a 4, 8 y 12 m de la llama, todos en la misma dirección; la cámara, de costado y desde atrás
+      const T0 = { x: an.x, z: an.z }, u = { x: Math.cos(0.6), z: Math.sin(0.6) };
+      await js(`(()=>{const H=${H}, D=H.desafio; for (const d of [2.2,3.6,5.2]) { const x=${T0.x}+${u.x}*d, z=${T0.z}+${u.z}*d; const a=D.invocar(d===3.6?'bruto':'rastreador', x, z); if (a) { a.velMult=0; a.vida=a.vidaMax=9999; (window.__pins = window.__pins || []).push({ a, x, z }); } } if (H.pasto?.malla) H.pasto.malla.visible=false; return 1})()`);
+      const alto = (x, z) => js(`${H}.T.altura(${x}, ${z})`);
+      const yT = await alto(T0.x, T0.z);
+      const lado = { x: T0.x - u.z * 8 + u.x * 4, z: T0.z + u.x * 8 + u.z * 4 };
+      await pose({ x: lado.x, y: (await alto(lado.x, lado.z)) + 1.6, z: lado.z }, { x: T0.x + u.x * 4, y: yT + 0.5, z: T0.z + u.z * 4 }, 60);
+      if (process.env.HUMO_DBG) console.log('dbg sombras:', await js(`(()=>{const H=${H}, S=H.desafio.ambiente._sombras, R=H.renderer; S.material.color.set(0xff0000); R.info.autoReset=false; R.info.reset(); R.render(H.escena,H.camara); const con=R.info.render.calls; S.visible=false; R.info.reset(); R.render(H.escena,H.camara); const sin=R.info.render.calls; S.visible=true; R.info.autoReset=true; const m=S.instanceMatrix.array; return JSON.stringify({count:S.count, visible:S.visible, opac:S.material.opacity, con, sin, m0:Array.from(m.slice(0,16)).map(v=>+v.toFixed(2)), parent:S.parent&&S.parent.type})})()`));
+      await avanzar(2); await esperar(400); await foto('sombras-1-de-costado', false, true);
       const s2 = await js(`${H}.desafio.ambiente.sombrasVivas`);
-      ok(s2 >= 2, `y las de los duendes cerca de la llama (${s2} sombras)`);
+      ok(s2 >= 3, `y las de los duendes cerca de la llama (${s2} sombras)`);
+      const atras = { x: T0.x + u.x * 15, z: T0.z + u.z * 15 };
+      await pose({ x: atras.x, y: (await alto(atras.x, atras.z)) + 1.7, z: atras.z }, { x: T0.x + u.x * 4, y: yT + 1.0, z: T0.z + u.z * 4 }, 58);
+      await avanzar(2); await esperar(400); await foto('sombras-2-desde-atras', false, true);
+      // con el pasto como en el juego (tapa el pie de la sombra)
+      await js(`(()=>{const H=${H}; if (H.pasto?.malla) H.pasto.malla.visible=true; return 1})()`);
+      await pose({ x: lado.x, y: (await alto(lado.x, lado.z)) + 1.6, z: lado.z }, { x: T0.x + u.x * 4, y: yT + 0.5, z: T0.z + u.z * 4 }, 60);
+      await avanzar(1); await esperar(400); await foto('sombras-3-con-pasto', false, true);
+      await sinPose();
+      await js(`window.__pins = []; 1`);
       await limpiarInvasores();
       await esperar(1000);
       const s3 = await js(`(()=>{const A=${H}.desafio.ambiente; return A.sombrasVivas})()`);

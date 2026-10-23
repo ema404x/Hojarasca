@@ -69,7 +69,7 @@ export function crearAmbienteMundo(ctx) {
   const geoSombra = new THREE.PlaneGeometry(1, 1);
   geoSombra.rotateX(-Math.PI / 2);   // acostada: ancho en x, largo en z
   geoSombra.translate(0, 0, 0.5);    // el origen en los pies, el largo hacia +z
-  const matSombra = new THREE.MeshBasicMaterial({ color: 0x04060c, map: textura, transparent: true, opacity: 0.6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+  const matSombra = new THREE.MeshBasicMaterial({ color: 0x020308, map: textura, transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
   const sombras = new THREE.InstancedMesh(geoSombra, matSombra, N_SOMBRAS);
   sombras.name = 'sombras-antorcha';
   sombras.frustumCulled = false; sombras.renderOrder = 1;
@@ -110,7 +110,7 @@ export function crearAmbienteMundo(ctx) {
   const clima = { niebla: 0, luna: 0, extra: 0 };
   const salida = { miedo: 0, avance: 0, silencio: false, tipo: 'comun', ojos: 0, antorchaLista: false };
   const secuencias = new Map();    // sec → rumbo de esa secuencia de risitas
-  let cerca = 99, nVivos = 0, antorchaCand = null;
+  let cerca = 99, nVivos = 0, antorchaCand = null, especialDePrueba = null;
   const antorchas = [];            // las prendidas (se vuelven a mirar una vez por segundo)
   let ultimoAviso = -99;           // el último aviso de un animal (no varios juntos)
 
@@ -355,11 +355,11 @@ export function crearAmbienteMundo(ctx) {
     _m.makeBasis(_x, _y, _z.set(dx * s.largo, dy, dz * s.largo));
     _m.setPosition(x, y + 0.07, z);
     sombras.setMatrixAt(nSombras++, _m);
-    matSombra.opacity = Math.max(matSombra.opacity, 0.5 + s.alfa * 0.45);
+    matSombra.opacity = Math.max(matSombra.opacity, 0.62 + s.alfa * 0.5);
   }
   function actualizarSombras(js, noche) {
     nSombras = 0;
-    matSombra.opacity = 0.35;
+    matSombra.opacity = 0.45;
     if (noche > 0.3 && antorchas.length) {
       sombraDe(js.pos.x, js.pos.z, T.altura(js.pos.x, js.pos.z), 1.75, noche);
       for (const a of ctx.aliens()) {
@@ -482,6 +482,9 @@ export function crearAmbienteMundo(ctx) {
     get sombrasVivas() { return nSombras; },
     get puestos() { return puestos ? puestos.map((q) => ({ tipo: q.tipo, x: q.x, z: q.z })) : []; },
     agenda: () => agenda,
+    // sólo para las pruebas: una noche especial que las reglas todavía no conocen (o forzar una) sin tocar la partida
+    get especialDePrueba() { return especialDePrueba; },
+    set especialDePrueba(v) { especialDePrueba = typeof v === 'string' ? v : null; },
     // sólo para las pruebas y el diagnóstico: poner a mano un par de ojos / llevarse una antorcha
     _ponerOjos: (js, mira, vida = 10, dist = 50, rumbo = null) => ponerOjos(js, mira, vida, dist, rumbo),
     _llevarseAntorcha: (js, mira) => llevarseAntorcha(js, mira),

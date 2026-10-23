@@ -192,7 +192,7 @@ function simular(tipo, { semilla = 7, previa = 75, ataque = 300, vivos = 3, cerc
   ok(pasa(25) > 0.5 && pasa(60) < 0.15 && pasa(90) < 0.01, `con la niebla de esa noche pasa ${(100 * pasa(25)).toFixed(0)} % a 25 m, ${(100 * pasa(60)).toFixed(0)} % a 60 m y ${(100 * pasa(90)).toFixed(1)} % a 90 m`);
   // la luna llena
   ok(A.lunaLlenaLuz(0) === 1 && A.lunaLlenaLuz(1) > 1.8 && A.lunaLlenaLuz(1) < 2.4, 'la luna llena alumbra casi el doble');
-  ok(A.lunaLlenaAltura(0.9, 1) <= 0.4 + 1e-9 && A.lunaLlenaAltura(0.2, 1) === 0.2 && A.lunaLlenaAltura(0.9, 0) === 0.9 && A.lunaLlenaAltura(0.9, 0.5) > 0.4 && A.lunaLlenaAltura(0.9, 0.5) < 0.9, 'baja la luna (sombras largas), nunca la sube');
+  ok(A.lunaLlenaAltura(0.9, 1) <= A.LUNA_LLENA.bajaA + 1e-9 && A.lunaLlenaAltura(0.2, 1) === 0.2 && A.lunaLlenaAltura(0.9, 0) === 0.9 && A.lunaLlenaAltura(0.9, 0.5) > A.LUNA_LLENA.bajaA && A.lunaLlenaAltura(0.9, 0.5) < 0.9, 'baja la luna (sombras largas), nunca la sube');
   // las sombras largas de las antorchas
   const s2 = A.sombraDeAntorcha(2, 1.75), s6 = A.sombraDeAntorcha(6, 1.75), s11 = A.sombraDeAntorcha(11, 1.75);
   ok(s2.largo > s6.largo && s6.largo > s11.largo && s2.largo <= A.SOMBRA_ANTORCHA.maxLargo + 1e-9, `cuanto más cerca de la llama, más larga la sombra (${s2.largo.toFixed(1)}, ${s6.largo.toFixed(1)}, ${s11.largo.toFixed(1)} m para un cuerpo de 1,75)`);
@@ -413,7 +413,7 @@ function sonidoFalso() {
   ok(/ambiente\.limpiar\(\);/.test(des) && /\n    ambiente,   \/\/ 4\.8 ambiente/.test(des), 'se limpia con el resto y main.js lo ve');
   ok(/const ambienteDesafio = desafio\?\.ambiente\?\.clima;/.test(main) && /cielo\.actualizar\(progreso\.horas, clima\.estado, cam, ambienteDesafio \? ambienteDesafio\.extra : 0, ambienteDesafio\)/.test(main), 'main.js le pasa al cielo la niebla y la luna llena del Desafío (en el Relax, nada)');
   ok(/\(desafio\?\.ambiente\?\.clima\.luna \?\? 0\) > 0\.02 \? 0\.5 : faseLunar/.test(main), 'la noche de luna llena, la luna está llena en el cielo');
-  ok(/function actualizar\(horas, clima, cam, extraNiebla, ambiente\)/.test(cielo) && /lunaDir\.y \+= \(Math\.min\(lunaDir\.y, 0\.4\) - lunaDir\.y\) \* lunaK/.test(cielo), 'el cielo baja la luna llena (sombras largas) y acepta la niebla');
+  ok(/function actualizar\(horas, clima, cam, extraNiebla, ambiente\)/.test(cielo) && /lunaDir\.y \+= \(Math\.min\(lunaDir\.y, 0\.27\) - lunaDir\.y\) \* lunaK/.test(cielo), 'el cielo baja la luna llena (sombras largas) y acepta la niebla');
   ok(/estrellasBase \* \(1 - 0\.85 \* nieblaK\)/.test(cielo), 'y la niebla apaga las estrellas');
   // nada nuevo por cuadro: todo `new THREE.` está en la creación, antes de lo que corre en cada cuadro
   const corte = mundo.indexOf('// ---------------------------------------------------------------- estado');
