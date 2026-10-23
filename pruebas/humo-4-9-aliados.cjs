@@ -118,28 +118,37 @@ app.whenReady().then(async () => {
     ok(fuegos.length === 2, `con el nivel de respaldo (1), Herminia prendió dos fuegos (${fuegos.map((f) => f.tipo + ' ' + f.radio.toFixed(1) + ' m').join(', ')})`);
     med.fuegos = fuegos;
     // los viejos no se acercan a un fuego prendido; los traviesos sí
-    const prueba = async (viejo) => JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, f = D.vecinos.fuegosPrendidos()[0], c = ${JSON.stringify(claro)};
+    // (adentro de la empalizada, sin paredes de por medio: un duende a 13 m del fogón, del otro lado del centro, va hacia vos, que estás junto al fuego;
+    // el control es el mismo viaje con los fuegos apagados)
+    const prueba = async (viejo, conFuego) => JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, e = D.vecinos.estado, f = D.vecinos.fuegosPrendidos()[0], c = ${JSON.stringify(claro)};
+      const lit = e.lit.slice(); if (!${conFuego}) e.lit.length = 0;
       const ang = Math.atan2(f.x - c.x, f.z - c.z);
       for (const a of D.aliens) { a.estado = 'irse'; a.t = 9; } D.actualizar(0.05, { noche: 1, dtReal: 0.05 });
-      const sx = f.x + Math.sin(ang) * 40, sz = f.z + Math.cos(ang) * 40;
+      const sx = f.x - Math.sin(ang) * 13, sz = f.z - Math.cos(ang) * 13;
       const a = D.invocar('rastreador', sx, sz); a.vida = a.vidaMax = 9999; a.estado = 'avanzar'; a.m.vestir(${viejo}, 1);
-      H.jugador.estado.pos.set(f.x - Math.sin(ang) * 3, H.T.altura(f.x, f.z) + 0.05, f.z - Math.cos(ang) * 3);
+      H.jugador.estado.pos.set(f.x - Math.sin(ang) * 0.8, H.T.altura(f.x, f.z) + 0.05, f.z - Math.cos(ang) * 0.8);
       let min = 1e9;
-      for (let i = 0; i < 700; i++) { H.progreso.desafio.salud = 100; D.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.gente.actualizar(0.05, H.jugador.estado, H.camara, null, 0); const p = a.m.g.position; min = Math.min(min, Math.hypot(p.x - f.x, p.z - f.z)); if (i % 20 === 0) a.estado = a.estado === 'morir' ? 'morir' : a.estado; }
-      const r = { min, radio: f.radio, viejo: !!a.m.viejo, x: a.m.g.position.x, z: a.m.g.position.z };
+      for (let i = 0; i < 500; i++) { H.progreso.desafio.salud = 100; D.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.gente.actualizar(0.05, H.jugador.estado, H.camara, null, 0); const p = a.m.g.position; min = Math.min(min, Math.hypot(p.x - f.x, p.z - f.z)); }
+      const r = { min, radio: f.radio, viejo: !!a.m.viejo };
       a.estado = 'irse'; a.t = 9; D.actualizar(0.05, { noche: 1, dtReal: 0.05 });
+      e.lit.length = 0; for (const g of lit) e.lit.push(g);
       return JSON.stringify(r) })()`));
-    const pv = await prueba(true), pt = await prueba(false);
-    ok(pv.viejo && pv.min > pv.radio - 1.6, `un viejo no baja de ${(pv.radio - 1.6).toFixed(1)} m del fogón (llegó a ${pv.min.toFixed(1)} m; radio ${pv.radio.toFixed(1)})`);
-    ok(!pt.viejo && pt.min < pt.radio - 3, `un travieso sí pasa por la luz (llegó a ${pt.min.toFixed(1)} m)`);
-    med.viejoMin = pv.min; med.traviesoMin = pt.min;
+    const luces = JSON.parse(await js(`JSON.stringify(${H}.desafio.vecinos.fuegosPrendidos())`));
+    const pv = await prueba(true, true);
+    const pvc = await prueba(true, false);
+    const pt = await prueba(false, true);
+    ok(pvc.min < pvc.radio - 4, `el control (sin fuegos): el viejo llega hasta ${pvc.min.toFixed(1)} m del fogón`);
+    ok(pv.viejo && pv.min > pv.radio - 1.6, `con el fogón prendido, un viejo no baja de ${(pv.radio - 1.6).toFixed(1)} m (llegó a ${pv.min.toFixed(1)} m; radio ${pv.radio.toFixed(1)})`);
+    ok(!pt.viejo && pt.min < pt.radio - 4, `un travieso sí pasa por la luz (llegó a ${pt.min.toFixed(1)} m)`);
+    ok((await js(`${H}.desafio.vecinos.fuegosPrendidos().length`)) === luces.length, 'y los fuegos siguen prendidos');
+    med.viejoMin = pv.min; med.viejoSinFuego = pvc.min; med.traviesoMin = pt.min;
 
     // ---------------------------------------------------------------- Anselmo arregla
     const rotas = JSON.parse(await js(`(()=>{ const H=${H}, c = ${JSON.stringify(claro)}; H.jugador.estado.pos.set(c.x, H.T.altura(c.x, c.z) + 0.05, c.z);
       const o = H.obras.obras.filter(q => q.plano.id === 'empalizada').slice(0, 3); for (const q of o) q.datos.vida = 25; return JSON.stringify(o.map(q => ({ vida: q.datos.vida, max: q.plano.vida }))) })()`));
-    await sim(45);
+    await sim(110);
     const despues = JSON.parse(await js(`JSON.stringify(${H}.obras.obras.filter(q => q.plano.id === 'empalizada').slice(0, 3).map(q => Math.round(q.datos.vida)))`));
-    ok(despues.every((v, i) => v > rotas[i].vida + 50), `Anselmo (y nadie más) arregló las tres rotas: ${rotas.map((r) => r.vida).join(',')} → ${despues.join(',')}`);
+    ok(despues.every((v) => v >= 300), `Anselmo (y nadie más) arregló las tres rotas, una tras otra: ${rotas.map((r) => r.vida).join(',')} → ${despues.join(',')} de ${rotas[0].max}`);
 
     // ---------------------------------------------------------------- los chicos con la honda
     await js(`(()=>{ const H=${H}, D=H.desafio; for (const a of D.aliens) { a.estado = 'irse'; a.t = 9; } D.actualizar(0.05, { noche: 1, dtReal: 0.05 }); return 1 })()`);
@@ -176,10 +185,12 @@ app.whenReady().then(async () => {
     ok(guardada.p && guardada.p.anselmo && guardada.o.anselmo === 'puesto', 'el puesto y la orden viajan en la partida');
 
     // ---------------------------------------------------------------- la campana
+    // dos de ellos andan detrás tuyo, lejos de la campana
+    await js(`(()=>{ const H=${H}, D=H.desafio, c = ${JSON.stringify(claro)}; D.ordenar('herminia'); D.ordenar('nene'); H.jugador.estado.pos.set(c.x - 14, H.T.altura(c.x - 14, c.z) + 0.05, c.z); return 1 })()`);
+    await sim(6);
     const camp = JSON.parse(await js(`(()=>{ const H=${H}, D=H.desafio, o = H.obras.obras.find(q => q.plano.id === 'campana');
       if (!o) return JSON.stringify(null);
       const j = H.jugador.estado; j.pos.set(o.datos.x + 1.2, H.T.altura(o.datos.x, o.datos.z) + 0.05, o.datos.z);
-      D.ordenar('herminia'); D.ordenar('nene');   // dos de ellos andan detrás tuyo
       const aviso = D.avisoCercaDe(j.pos, 99);
       return JSON.stringify({ aviso, ordenes: Object.assign({}, H.progreso.desafio.ordenes) }) })()`));
     ok(!!camp && /Tocar la campana/.test(camp.aviso || ''), `mirando la campana, la E dice: «${camp && camp.aviso}»`);
@@ -195,7 +206,7 @@ app.whenReady().then(async () => {
     // los que estaban siguiéndote corren a su puesto (se mira la velocidad cuadro a cuadro)
     const corren = JSON.parse(await js(`(()=>{ const H=${H}; const max = {}; for (let i = 0; i < 80; i++) { H.desafio.actualizar(0.05, { noche: 1, dtReal: 0.05 }); H.gente.actualizar(0.05, H.jugador.estado, H.camara, null, 0);
       for (const g of H.gente.gente) if (g.claveAliado) max[g.claveAliado] = Math.max(max[g.claveAliado] || 0, g.vel > 0 ? g.velocidad : 0); } return JSON.stringify(max) })()`));
-    ok(Object.values(corren).filter((v) => v > 3.5).length >= 2, 'corren (velocidad de carrera): ' + JSON.stringify(corren));
+    ok(Object.values(corren).filter((v) => Math.abs(v - 4.2) < 0.01).length >= 2, 'los que andaban detrás tuyo corren a su puesto (velocidad de carrera 4,2): ' + JSON.stringify(corren));
     await sim(12);
     const llegaron = JSON.parse(await js(`JSON.stringify(${H}.gente.gente.filter(g => g.claveAliado).map(g => g.velocidad))`));
     ok(llegaron.every((v) => v < 2), 'y al llegar vuelven al paso');
@@ -207,6 +218,7 @@ app.whenReady().then(async () => {
       await js(`(()=>{ const p = ${H}.perro.est.pos; p.x = (${antojo.x}) + 22; p.z = (${antojo.z}) + 6; p.y = ${H}.T.altura(p.x, p.z); return 1 })()`);
       const d0 = await js(`(()=>{ const p = ${H}.perro.est.pos; return Math.hypot(p.x - (${antojo.x}), p.z - (${antojo.z})) })()`);
       for (let k = 0; k < 120; k++) { await js(`${H}.__bucle(); 1`); await esperar(40); }
+      console.log('  perro:', await js(`(()=>{ const H=${H}, m = H.__mundoPerro(); return JSON.stringify({ estado: H.perro.est.estado, vel: H.perro.est.vel, ataque: !!m.ataque, alerta: !!m.alerta, antojo: !!m.antojo, rastro: !!m.rastro, jug: H.jugador.estado.pos.x + ',' + H.jugador.estado.pos.z }) })()`));
       const d1 = await js(`(()=>{ const p = ${H}.perro.est.pos; return Math.hypot(p.x - (${antojo.x}), p.z - (${antojo.z})) })()`);
       ok(d1 < 6, `el perro corre al portón (de ${d0.toFixed(1)} a ${d1.toFixed(1)} m)`);
     }

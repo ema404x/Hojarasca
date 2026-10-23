@@ -491,6 +491,14 @@ const obraRota = (x, z, vida = 20) => ({ datos: { x, y: 0, z, vida }, plano: { i
   ok(m.log.proyectiles.every((q) => q.tipo === 'piedra' && q.deJugador === true && q.fuente === 'aliado'), 'piedras de aliado');
   ok(m.log.proyectiles.every((q) => q.dano === V.HONDA[1].dano), 'con poco daño');
   ok(m.log.proyectiles.every((q) => Math.hypot(q.vel.x, q.vel.y, q.vel.z) < 31.5 + 2), 'a la velocidad de una honda');
+  {
+    // la piedra nace adelante del chico, hacia el blanco (adentro de la empalizada), no en sus pies
+    const q = m.log.proyectiles[0], quien = m.npcs.find((n) => Math.hypot(n.pos.x - q.desde.x, n.pos.z - q.desde.z) < 3);
+    const dQ = Math.hypot(q.desde.x - quien.pos.x, q.desde.z - quien.pos.z);
+    cerca(dQ, 1.8, 0.01, 'la piedra nace 1,8 m adelante del chico');
+    ok(q.desde.y > quien.pos.y + 1.2, 'a la altura del pecho, por encima del chico');
+    ok(Math.hypot(q.desde.x - 0, q.desde.z - 9) < Math.hypot(quien.pos.x - 0, quien.pos.z - 9) - 1.5, 'y del lado del blanco');
+  }
   ok(m.log.herirJugador === 0, 'nada le pega al jugador');
   // fuera de alcance no tiran
   m = mundoDeMentira({ ayuda: { anselmo: 0, herminia: 0, martin: 0, chicos: 1 } });

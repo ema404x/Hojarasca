@@ -16,6 +16,7 @@ import { nocheEnCurso } from './desafio-ambiente.js';
 import { CUERPOS, CLAVES_CUERPOS, ANSELMO, HERMINIA, MARTIN, HONDA, VELOCIDAD_PIEDRA, TIPOS_FUEGO, radioDeFuego, nivelDeAyuda, puntosDeFuegos, ajusteDeViejo, puntoDeViaMasCercano, silbatoServiria, pasoDeLaTrochita, silbatoDispersa, esBlancoDeHonda, puestoDe } from './desafio-vecinos.js';
 import { ordenDe, siguienteOrden, respuestaDe, marcaPuesto, puntoDeOrden, velocidadSiguiendo, LEJOS_ALCANZA } from './desafio-ordenes.js';
 
+const ADELANTE_HONDA = 1.8;
 const _s = { x: 0, z: 0, tocado: false }, desde = { x: 0, y: 0, z: 0 }, vel = { x: 0, y: 0, z: 0 };
 
 // ---------------------------------------------------------------- el mundo
@@ -266,8 +267,10 @@ export function crearVecinosMundo(T, escena, api, piezas) {
     const ap = mejor.m.g.position;
     npc.ruta[0].mirar = { x: ap.x, z: ap.z };   // una copia: el invasor se recicla
     npc.rumboObjetivo = Math.atan2(ap.x - npc.pos.x, ap.z - npc.pos.z);
-    // la piedra sale de la honda a la altura del pecho y se apunta compensando la caída (como las flechas de Josefina)
-    desde.x = npc.pos.x; desde.y = npc.pos.y + 1.0; desde.z = npc.pos.z;
+    // la piedra sale de la honda por encima de la empalizada: el chico se para un metro y medio detrás, y la piedra nace 1,8 m más
+    // adelante, adentro de la pared (el proyectil ignora la obra donde nace: así sale por la empalizada y no se queda pegada a ella)
+    const hx = ap.x - npc.pos.x, hz = ap.z - npc.pos.z, hl = Math.hypot(hx, hz) || 1;
+    desde.x = npc.pos.x + (hx / hl) * ADELANTE_HONDA; desde.y = npc.pos.y + 1.5; desde.z = npc.pos.z + (hz / hl) * ADELANTE_HONDA;
     let vx = ap.x - desde.x, vy = ap.y + mejor.def.altura * mejor.m.esc * 0.55 - desde.y, vz = ap.z - desde.z;
     const tiempo = Math.hypot(vx, vy, vz) / VELOCIDAD_PIEDRA;
     vy += 0.5 * 9.8 * tiempo * tiempo;
