@@ -25,6 +25,8 @@
 // una vez por noche cuando salen (`piano-misterio.js`).
 import { claseDeRisa } from './risa-duende.js';
 import { frasePianoDeNoche, tocaElPiano } from './piano-misterio.js';
+// 4.8 ambiente: la rama que cruje, el tero y la vaca (sintetizados en desafio-ambiente-sonidos.js)
+import { crearSonidosAmbiente } from './desafio-ambiente-sonidos.js';
 
 export function crearBanco(sonido) {
   const sonar = (pos, f) => { if (sonido.ctx) f(pos ? sonido.fuente(pos, 1, 0.5) : sonido.bus.efectos); };
@@ -33,6 +35,7 @@ export function crearBanco(sonido) {
   const reir = (pos, tipo, viejo, o, antes) => { const r = sonido.risaDuende?.(claseDeRisa(tipo, viejo), { pos, ...o }); if (r === null || r === undefined) antes(); return r; };
   // la última noche en que sonó el piano y qué frase tocó
   const piano = { noche: -1, frase: -1 };
+  const ambiente = crearSonidosAmbiente(sonido);   // 4.8 ambiente
   const S = {
     // ---- las gargantas
     // 3.8.5: la alerta es una risa (`viejo`: el duende viene de viejo oscuro)
@@ -314,6 +317,25 @@ export function crearBanco(sonido) {
       return sonido.pianoMisterio?.(k) ?? 0;
     },
     pianoTocado: () => ({ ...piano }),
+    // ---- 4.8 ambiente: el miedo antes de verlos (el cronograma está en desafio-ambiente.js)
+    // una rama que cruje lejos (a veces dos seguidas), el grito del tero y el mugido de la vaca de ese lado del valle
+    crujidoRama: (pos, doble = false) => { ambiente.crujido(pos); if (doble) ambiente.crujido(pos, { vol: 0.6 }); },
+    teroGrita: (pos) => ambiente.tero(pos),
+    vacaMuge: (pos) => ambiente.vaca(pos),
+    prepararAmbiente: () => ambiente.preparar(),
+    // el silencio raro de antes de que salgan: todo se calla hasta que `salen` lo rompe con un golpe grave que se siente en el pecho
+    silencioRaro: (seg = 14) => sonido.callar?.(seg),
+    salen: () => {
+      sonido.romperSilencio?.();
+      sonar(null, (d) => {
+        sonido.marcarAviso?.(1.6);
+        sonido.tono({ frec: 74, fin: 31, dur: 1.1, tipo: 'sine', vol: 0.2, destino: d, ataque: 0.006 });
+        sonido.golpeRuido({ dur: 1.5, frec: 150, q: 0.6, tipo: 'lowpass', vol: 0.3, destino: d, buffer: sonido.ruido });
+        sonido.impacto?.('tierra', { tamaño: 4.2, dureza: 0.3, fuerza: 1.2, vol: 0.9, destino: d, cuando: 0.05 });
+      });
+    },
+    // los pájaros de alrededor se callan un rato (y los grillos, si hay un duende encima)
+    callarAves: (seg = 10, grillos = false) => sonido.callarAves?.(seg, grillos),
   };
   return S;
 }

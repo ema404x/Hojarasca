@@ -22,6 +22,9 @@ import { HORA_GIRO, GIROS, LUNALLENA, NIEBLA, elegirGiro, hayNiebla, cerrarNoche
 import { esNocheGrande, vieneDeViejo, etapaDe, ROBO, puedeRobar, queSeLleva, aguaFrena, VADO } from './desafio-duendes-reglas.js';
 import { mallaNido, mallaCofre } from './duendes-modelo.js';
 import { crearMusicaTension } from './desafio-musica.js';
+// 4.8 ambiente: el miedo, la niebla, la luna llena, las sombras de antorcha y los animales que avisan (reglas en desafio-ambiente.js)
+import { crearAmbienteMundo } from './desafio-ambiente-mundo.js';
+import { nocheEnCurso } from './desafio-ambiente.js';
 import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logros.js';
 import { crearAliados } from './desafio-aliados.js';
 import { crearArsenalMundo } from './desafio-arsenal-mundo.js';
@@ -453,6 +456,14 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const defensas = crearDefensasActivas(T, escena, obras, sonido, efectos, api, { calidad: ctx.calidad?.() || 'media' });
   const eventos = crearEventos(T, escena, sonido, efectos, api);
   const aliados = crearAliados(api);
+  // 4.8 ambiente: lo de la noche que no cambia nada de la partida (cuántos vienen, qué hacen): sólo cómo se ve y se oye
+  const ambiente = crearAmbienteMundo({
+    T, escena, sonido, S, col, defensas, musica, aliens: () => aliens, centroBase: () => centroBase(), camara: () => camara,
+    lado: () => D().ladoNoche || null,   // 4.8 ambiente: el lado por donde entran esta noche (lo pone el agente de los ataques; si no existe, nada)
+    perroPos: () => ctx.perroPos?.() || null,
+    nota: (t, s) => ctx.nota(t, s),
+  });
+  const estadoAmbiente = { activo: true, fase: 'calma', horas: 12, noche: 0, js: null, mira: miraJugador, especial: null, nocheN: 1, sinFin: false, vista: 1 };
   const cimientos = crearCimientos(T, escena);
   // 2.5: el arsenal (ver desafio-arsenal-mundo.js)
   api.prenderCerca = (pos, radio) => prenderCerca(pos, radio);
@@ -3481,7 +3492,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (p.horas >= HORA_ATAQUE - 1 && p.horas < HORA_ATAQUE) return 'previa';
     return 'calma';
   }
-  const estadoMusica = { activo: true, fase: 'calma', tension: 0, especial: null };
+  const estadoMusica = { activo: true, fase: 'calma', tension: 0, especial: null, miedo: 0, avance: 0, silencio: false };   // 4.8 ambiente: miedo, avance de la previa y silencio
   function tensionActual(js) {
     let cerca = 99;
     for (const a of aliens) {
@@ -3622,7 +3633,16 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     estadoMusica.activo = !caido;
     estadoMusica.fase = faseMusical();
     estadoMusica.tension = tensionActual(js);
-    estadoMusica.especial = d.especial;
+    estadoMusica.especial = ambiente.especialDePrueba ?? d.especial;   // (4.8 ambiente: la de prueba es sólo de las pruebas)
+    // 4.8 ambiente: el cronograma de la noche (ojos, ramas, risitas, silencio) y de ahí, el miedo y el silencio para la música
+    {
+      const p = progreso(), e = estadoAmbiente;
+      e.activo = !caido && !naveMundo.adentro; e.fase = estadoMusica.fase; e.horas = p.horas; e.noche = nocheNivel; e.js = js;
+      e.especial = ambiente.especialDePrueba ?? d.especial; e.giroNiebla = nieblaAhora() === 1;   // 4.8 (junta): la niebla que baja a las dos (giro) también la ve y la oye el ambiente
+      e.nocheN = nocheEnCurso(d, p.dia, p.horas); e.sinFin = !!d.sinFin; e.vista = climaActual.vista;
+      const a = ambiente.actualizar(dtReal, e);
+      estadoMusica.miedo = a.miedo; estadoMusica.avance = a.avance; estadoMusica.silencio = a.silencio;
+    }
     musica.actualizar(dtReal, estadoMusica);
     actualizarTutorial(dtReal);
     actualizarVelo();
@@ -3658,6 +3678,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     tensandoDesde = null;
     eventos.retirarNodriza();
     efectos.limpiar();
+    ambiente.limpiar();   // 4.8 ambiente
     musica.detener();
     naveMundo.limpiar();   // 3.0
     bloqueando = false;
@@ -3749,6 +3770,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get adaptaciones() { return evolucion.texto(); },
     logros, eventos, defensas, aliados, efectos,
     get ataques() { return ataques; },   // 4.8 ataques: el lado de la noche (`lado`), las tácticas y los nuevos duendes (pruebas)
+    ambiente,   // 4.8 ambiente: la niebla y la luna llena (main.js se las pasa al cielo) y el cronograma de la noche
     get nodrizaActiva() { return eventos.nodrizaActiva; },
     // 3.0: el asedio final y la nave por dentro
     get asedio() { return asedioMundo; },

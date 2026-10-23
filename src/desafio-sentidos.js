@@ -106,6 +106,8 @@ export const SONIDOS_ESCRITOS = {
   capullo: 'un nido de hongos que revienta', quemar: 'algo se quema', zanja: 'la zanja prende',
   // 3.8.0: el travieso que se lleva algo
   risa: 'una risita',
+  // 4.8 ambiente: el miedo antes de verlos
+  crujidoRama: 'ramas que crujen', teroGrita: 'un tero grita', vacaMuge: 'una vaca muge',
 };
 export function lejaniaTexto(d) {
   if (d < 6) return 'encima';

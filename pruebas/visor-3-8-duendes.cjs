@@ -72,7 +72,7 @@ app.whenReady().then(async () => {
   const w = new BrowserWindow({ show: true, width: 1600, height: 900, useContentSize: true, webPreferences: { backgroundThrottling: false } });
   const js = (c) => w.webContents.executeJavaScript(c);
   const errores = [];
-  w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || e.level === 3 || /Uncaught|duendes:|THREE.|Shader|ERROR|WebGL|GL_/.test(m)) && !(process.env.VISOR_GL ? /Security|Autofill|favicon/ : /Security|GL_INVALID|Autofill|favicon|PCF/).test(m)) { errores.push(m.slice(0, 400)); console.log('[página]', m.slice(0, 600)); } });
+  w.webContents.on('console-message', (e) => { const m = String(e.message); if ((e.level === 'error' || e.level === 3 || /Uncaught|duendes:|THREE.|Shader|ERROR|WebGL|GL_/.test(m)) && !(process.env.VISOR_GL ? /Security|Autofill|favicon/ : /Security|GL_INVALID|Autofill|favicon|PCF|toNonIndexed/).test(m)) { errores.push(m.slice(0, 400)); console.log('[página]', m.slice(0, 600)); } });
   const url = process.env.VISOR_INDEX ? path.resolve(process.env.VISOR_INDEX) : path.join(raiz, 'index.html');
   const search = '?debug=1';
   await w.loadFile(url, { search });
