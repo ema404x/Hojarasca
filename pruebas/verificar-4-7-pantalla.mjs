@@ -205,7 +205,10 @@ const desafio = { modo: 'desafio', materiales: { tronco: 989 }, entradas: {}, co
   const main = leer('src/main.js'), html = leer('src/plantilla.html'), cab = leer('src/personal-caballo.js');
   ok(main.includes("from './carga-pantalla.js'") && main.includes("from './carga.js'"), 'main.js importa el núcleo y la pantalla');
   for (const id of ['mochila-cabeza', 'mochila-contador', 'mochila-detalle', 'mochila-sobrecarga', 'mochila-casillas', 'mochila-herramientas', 'mochila-rejilla', 'carga-hud', 'aviso-llena']) ok(html.includes(`id="${id}"`), `la plantilla tiene #${id}`);
-  ok(/\.mochila\.con-casillas \{[^}]*max-height: 94vh/.test(html), 'el panel con casillas cabe en la pantalla (94vh con scroll)');
+  const sis = leer('src/menus/sistema.css');
+  ok(/\.mochila\.con-casillas \{ width: min\(var\(--ancho-ancho\), calc\(94vw \/ var\(--zoom\)\)\); \}/.test(sis) && /\.mochila \{ width: min\(var\(--ancho-medio\)[^}]*max-height: calc\(\(100vh - 2 \* var\(--margen-pantalla\)\) \/ var\(--zoom\)\)/.test(sis), 'el panel con casillas usa el ancho ancho del sistema y se desplaza adentro (max-height de la pantalla)');
+  ok(/repeat\(8, 80px\)/.test(sis) && /\.mochila \.casilla\.llena/.test(sis) && /--acento/.test(sis.slice(sis.indexOf('4.7 pantalla'))), 'las casillas usan los tokens del sistema (nada de colores sueltos en el panel)');
+  ok(!/#[0-9a-f]{3,6}\b/i.test(sis.slice(sis.indexOf('4.7 pantalla · la mochila con casillas'), sis.indexOf('4.7 pantalla · la mochila con casillas') + 6000).split('\n').filter((l) => /\.mochila/.test(l)).join('\n')), 'el panel no trae colores en hexadecimal sueltos');
   ok(/#hud \.mochila \.casilla \{ pointer-events: auto; \}/.test(html), 'las casillas aceptan el ratón en el HUD');
   ok(/@media \(prefers-reduced-motion: reduce\) \{ \.aviso-llena/.test(html), 'el cartel respeta el movimiento reducido');
   // el HUD sólo se rehace cuando cambia (al redibujar la barra y al montar), nunca en un bloque por cuadro suelto

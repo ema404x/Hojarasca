@@ -110,6 +110,7 @@ export function partirRanuras(ranuras, ocup) {
 export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, enBarra, doc = (typeof document !== 'undefined' ? document : null) } = {}) {
   cont.textContent = '';
   let zonaAnterior = null;
+  const marcadas = new Set();
   vista.celdas.forEach((c, i) => {
     if (c.zona !== zonaAnterior) {
       if (c.zona === 'alforjas') {
@@ -127,7 +128,8 @@ export function dibujarCasillas(cont, vista, { iconoDe, alElegir, alClic, enBarr
       cont.appendChild(d);
       return;
     }
-    if (enBarra && c.id != null && enBarra(c.id)) d.classList.add('enbarra');
+    // (la marca de «está en la barra» va sólo en la primera pila de cada cosa: si no, 20 pilas de troncos se ven todas marcadas)
+    if (enBarra && c.id != null && !marcadas.has(c.id) && enBarra(c.id)) { d.classList.add('enbarra'); marcadas.add(c.id); }
     d.title = `${c.nombre}: ${c.n} de ${c.max} en esta casilla${c.llena ? ' (llena)' : ''}${c.texto ? `. ${c.texto}` : ''}`;
     if (c.icono && iconoDe) {
       const img = doc.createElement('img');

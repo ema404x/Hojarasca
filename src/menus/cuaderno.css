@@ -71,7 +71,7 @@
 :root[data-menu="cuaderno"] .ajustes h3 { color: var(--p-titulo); }
 :root[data-menu="cuaderno"] .pausa .cuando { color: #8a3a26; font-size: var(--t-medio); }
 /* los íconos: un círculo de aguada atrás, apenas sepia, como dibujados en la libreta */
-:root[data-menu="cuaderno"] .mochila .cosa img { padding: 3px; border-radius: 50%; filter: sepia(.25) saturate(.9) contrast(1.05);
+:root[data-menu="cuaderno"] .mochila :is(.cosa, .casilla) img { padding: 3px; border-radius: 50%; filter: sepia(.25) saturate(.9) contrast(1.05);
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 3C30 2.6 37.6 10 37 20.5C36.4 31 29 37.4 19.2 36.8C9.4 36.2 2.8 29.6 3.2 19.6C3.6 9.6 10.6 3.4 20 3Z' fill='%23c9a35f' fill-opacity='.28' stroke='%233a2a16' stroke-opacity='.5' stroke-width='1.1'/></svg>") center / 100% 100% no-repeat; }
 :root[data-menu="cuaderno"] .mochila .cosa.enbarra { box-shadow: none; background: var(--pincel-fino) 0 0 / 100% 100% no-repeat, rgba(162,69,47,.10); }
 :root[data-menu="cuaderno"] .mochila .cosa.enbarra span::after { content: ' ✓'; color: var(--acento); font-family: var(--f-mano); }

@@ -237,6 +237,44 @@
 :root[data-menu] .mochila .seguir { margin: var(--e-4) 0 0; padding-top: var(--e-3); border-top: var(--linea); }
 :root[data-menu] .mochila .personalizar { margin: var(--e-3) 0 0; align-self: flex-start; }
 :root[data-menu] .mochila .personalizar kbd { border-color: currentColor; }
+/* 4.7 pantalla · la mochila con casillas (sólo el Relax; el Desafío sigue con la lista de siempre): a la izquierda las casillas
+   (8 por fila: 24 son tres filas; con las alforjas, dos más), a la derecha las herramientas y lo que no ocupa lugar. Cabe en
+   1536×864 con 36 casillas; si hay sobrecarga y alforjas, lo que sobra se desplaza adentro del panel. */
+:root[data-menu] .mochila-cuerpo { display: flex; gap: var(--e-5); align-items: flex-start; flex: 1 1 auto; min-height: 0; }
+:root[data-menu] .mochila-cuerpo .lado { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+:root[data-menu] .mochila.con-casillas { width: min(var(--ancho-ancho), calc(94vw / var(--zoom))); }
+:root[data-menu] .mochila.con-casillas .sub { margin: 0 0 var(--e-2); }
+:root[data-menu] .mochila .cabeza-casillas { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--e-4); margin: 0 0 var(--e-2); }
+:root[data-menu] .mochila .cabeza-casillas b { font-family: var(--f-titulo); font-size: var(--t-medio); font-weight: var(--peso-titulo, 400); color: var(--p-titulo); }
+:root[data-menu] .mochila .cabeza-casillas.llena b, :root[data-menu] .mochila .cabeza-casillas.sobrecarga b { color: var(--acento); }
+:root[data-menu] .mochila .cabeza-casillas span { font-size: var(--t-chico); color: var(--p-tenue); }
+:root[data-menu] .mochila .aviso-sobrecarga { display: flex; gap: var(--e-3); align-items: flex-start; margin: 0 0 var(--e-3); padding: var(--e-2) var(--e-3); border: 2px solid var(--acento); border-radius: var(--b-radio); background: rgba(162,69,47,.1); color: var(--p-color); }
+:root[data-menu] .mochila .aviso-sobrecarga b { font-size: var(--t-base); color: var(--acento); }
+:root[data-menu] .mochila .aviso-sobrecarga p { margin: 0; font-size: var(--t-chico); }
+:root[data-menu] .mochila .aviso-sobrecarga ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0 var(--e-4); font-size: var(--t-chico); font-weight: 600; }
+:root[data-menu] .mochila .casillas { flex: none; display: grid; grid-template-columns: repeat(8, 80px); gap: var(--e-2) 6px; }
+:root[data-menu] .mochila .casillas-zona { grid-column: 1 / -1; margin: var(--e-1) 0 0; font-family: var(--f-titulo); font-size: var(--t-base); color: var(--p-titulo); border-bottom: var(--linea); }
+:root[data-menu] .mochila .casilla { position: relative; height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 2px; overflow: hidden; text-align: center;
+  color: var(--p-color); background: var(--fila-fondo); border: 1px solid var(--p-linea-suave); border-radius: var(--b-radio); }
+:root[data-menu] .mochila .casilla.vacia { background: transparent; border: 1px dashed var(--p-linea-suave); }
+:root[data-menu] .mochila .casilla.alforja:not(.vacia) { background: rgba(138,90,50,.13); }
+:root[data-menu] .mochila .casilla img { width: 30px; height: 30px; flex: none; }
+:root[data-menu] .mochila .casilla .nom { max-width: 100%; font-size: 13px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-menu] .mochila .casilla .cta { font-size: var(--t-chico); font-weight: 700; line-height: 1.15; color: var(--p-titulo); }
+:root[data-menu] .mochila .casilla.llena { border: 2px solid var(--p-titulo); }
+:root[data-menu] .mochila .casilla.enbarra { box-shadow: inset 0 0 0 2px var(--acento); }
+:root[data-menu] .mochila .casilla.elegible { cursor: pointer; transition: background .12s; }
+:root[data-menu] .mochila .casilla.elegible:hover { background: var(--b-fondo-encima); }
+:root[data-menu] .mochila .casilla:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+:root[data-menu] .mochila .lado h3 { margin: 0 0 var(--e-2); font-family: var(--f-titulo); font-size: var(--t-base); font-weight: var(--peso-titulo, 400); color: var(--p-titulo); border-bottom: var(--linea); }
+:root[data-menu] .mochila.con-casillas .lado .rejilla { grid-template-columns: minmax(0, 1fr); gap: var(--e-1); padding-right: var(--e-1); }
+:root[data-menu] .mochila.con-casillas .lado .cosa { min-height: 44px; padding: var(--e-1) var(--e-2); gap: var(--e-2); }
+:root[data-menu] .mochila.con-casillas .lado .cosa img { width: 30px; height: 30px; }
+:root[data-menu] .mochila.con-casillas .lado .cosa small { display: none; }
+@media (max-width: 1000px) {
+  :root[data-menu] .mochila-cuerpo { flex-direction: column; }
+  :root[data-menu] .mochila .casillas { width: 100%; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
 /* el almacén, la feria, las cargas, la cocina, el taller ferroviario, la fiesta y «Fabricar»: el mismo panel, abajo */
 :root[data-menu] :is(.trueque, .charla) { width: min(var(--ancho-medio), calc(86vw / var(--zoom))); padding: var(--e-5) var(--e-6) var(--e-4); }
 /* 3.8.6: el panel está a 9vh del borde de abajo, y con la letra grande ese 9vh también se agranda (está adentro del #hud con

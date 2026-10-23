@@ -26,7 +26,7 @@ import { crearRefugioVivo } from './refugiovivo.js';
 import { armarMochila, armarGuardado, icono, cristalComoSemillaEnMochila } from './mochila.js';
 // 4.7 pantalla: el límite de carga con casillas (cuentas en carga.js, lo que se ve en carga-pantalla.js)
 import { ocupacion, capacidad, CASILLAS_ALFORJAS } from './carga.js';
-import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila } from './carga-pantalla.js';
+import { vistaCasillas, partirRanuras, dibujarCasillas, dibujarSobrecarga, textoContador, textoDetalleCapacidad, estadoCarga, ponerCargaHud, lineaMochila, avisoMochilaLlena } from './carga-pantalla.js';
 import { crearEnMano, cristalComoSemillaEnMano } from './enmano.js';
 import { crearConstruccion, PLANOS, PLANO, CATEGORIAS_CONSTRUCCION as CATEGORIAS_TODAS, MATERIALES, faltan, cantidadMaterial, textoFaltan } from './construccion.js';
 import { crearPuertas } from './puertas.js';
@@ -3847,7 +3847,7 @@ function abrirMochila(abrir) {
     const enLaBarra = posBarra(c.id, lugares.get(c.id));
     d.className = `cosa${enLaBarra >= 0 && enLaBarra < 8 ? ' enbarra' : ''}`;
     d.tabIndex = 0;
-    d.title = 'Clic o Enter para ponerlo en la casilla elegida';
+    d.title = conCasillas && c.texto ? `${c.texto}. Clic o Enter para ponerlo en la casilla elegida` : 'Clic o Enter para ponerlo en la casilla elegida';   // 4.7: la lista de la derecha no muestra la descripción (no entra); va en el título
     const asignar = () => { asignarRanura(c.id); abrirMochila(true); };
     alClicHud(d, asignar);   // 3.6.2: mousedown (el click tiraba la línea antes de llegar)
     d.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); asignar(); } });
@@ -11008,6 +11008,7 @@ window.hojarasca?.alPedirGuardar?.(() => { if (jugador && !reiniciandoPartida) {
     THREE: { Raycaster: THREE.Raycaster, Vector3: THREE.Vector3, Group: THREE.Group, Mesh: THREE.Mesh, BoxGeometry: THREE.BoxGeometry, MeshLambertMaterial: THREE.MeshLambertMaterial },
     __ranuraActual: () => (ranuras[elegida]?.nombre || ''),
     revisarRebrote, talados, acopio, conMateriales, materialesVisibles, autoCalidad, mando, revisarGuiaRelax, abrirBase,
+    avisoMochilaLlena,   // 4.7 pantalla (QA): el cartel «Mochila llena»
     traductor, T_, traducirPanel, __icono: icono,   // 3.8.2: el ícono tal como se dibuja en este modo (QA)
     abrirModoFoto, __foto: () => foto, guardarFotoArchivo,
     __sonido: () => sonido, __post: () => post?.uniforms, __peligros: () => ctxMundoVivo.peligros,
