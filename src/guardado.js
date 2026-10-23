@@ -200,6 +200,21 @@ export function guardarVista(datos) {
   try { localStorage.setItem(CLAVE_VISTA, datos); return true; } catch { return false; }
 }
 export const VERSION_GUARDADO = 2;
+// 4.10.1: la versión del juego con que se guardó por última vez la partida (`versionJuego`, «4.10.1»). `VERSION_GUARDADO` no sube nunca: sin
+// esto, una partida abierta y guardada con una versión más vieja perdía en silencio los campos que esa versión no conoce. Una partida de
+// antes de la 4.10.1 no la trae y carga igual (queda vacía).
+export function sanearVersionJuego(v) {
+  const t = typeof v === 'string' ? v.trim() : '';
+  return /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(t) ? t : '';
+}
+// ¿`a` es una versión más nueva que `b`? Si alguna no es válida, no.
+export function versionMasNueva(a, b) {
+  const x = sanearVersionJuego(a), y = sanearVersionJuego(b);
+  if (!x || !y) return false;
+  const p = x.split('.').map(Number), q = y.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if (p[i] !== q[i]) return p[i] > q[i];
+  return false;
+}
 let ultimoOrigenCarga = 'ninguno';
 // RC24: cache de la última copia principal ya validada. Evita releer y
 // parsear localStorage en cada guardado manteniendo el backup transaccional.
@@ -543,6 +558,7 @@ function sanearProgreso(p) {
     ...base,
     ...resto,
     versionGuardado: VERSION_GUARDADO,
+    versionJuego: sanearVersionJuego(p.versionJuego),   // 4.10.1
     entradas: migrarEntradas(p.entradas),
     tomados: arr(p.tomados),
     ramitas: Math.max(0, Math.floor(finito(p.ramitas, 0))),

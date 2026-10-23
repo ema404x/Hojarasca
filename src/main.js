@@ -228,7 +228,7 @@ import { FOGON, seQuedaAlFuego, cuentoPara, esHoraDeCuentos, LOMO, duracionLomo,
 import { normalizarCodigo, codigoDeLaSemana, sanearRecordsSemilla } from './semilla.js';
 // 3.0: la supervivencia sin fin y el mapa del Desafío que cambia con la semilla
 import { codigoAlAzar } from './semilla.js';
-import { RANURA_SIN_FIN } from './guardado.js';
+import { RANURA_SIN_FIN, sanearVersionJuego, versionMasNueva } from './guardado.js';
 import { corridaNueva, registrarCorrida, sanearRecordsSinFin, listaDeCodigo, lineaRecord, resumenCorrida, dificultadDeCorrida, deDificultad, DIFICULTADES_SIN_FIN, NOMBRE_DIFICULTAD } from './desafio-supervivencia.js';
 import { mapaDesafio, mapaGuardadoNuevo, codigoAlAzarEnElRefugio } from './desafio-mapa.js';
 import { dibujarLamina, cargarImagen } from './lamina-dibujo.js';
@@ -340,11 +340,13 @@ const metaJuego = crearMetaJuego({
   almacen: () => localStorage, progreso: () => progreso, desafio: () => desafio, esSinFin: () => esSinFin,
   sumarMaterial: (k, n) => { sumarMaterial(k, n); refrescarBarra(true); }, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(),
   posJugador: () => jugador?.estado?.pos || null,
-  sumarBono, quitarBonos: (d) => quitarBonosDeOrigen(d, 'ventaja'),   // 4.10.1: iniciar de nuevo no suma dos veces los bonos de las ventajas
-  // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
+  sumarBono,   // 4.10 partidas: el contrato de bonos de «guardián» (desafio-bonos.js): sumarBono(d, 'ventaja', clave, valor)
+  quitarBonos: (d) => quitarBonosDeOrigen(d, 'ventaja'),   // 4.10.1: iniciar de nuevo no suma dos veces los bonos de las ventajas
   alBonos: (d) => { d.salud = saludMaximaConBonos(SALUD_MAX, d); },   // con más (o menos) salud máxima, se arranca entero
 });
 if (esDesafio) metaJuego.alCargar();   // 4.10.1: una campaña de la 4.9 sin `meta` recibe la suya; las partidas ganan su número
+// 4.10.1: una partida guardada con una versión más nueva que ésta: lo que esta versión no conoce se pierde al guardar
+setTimeout(() => { if (versionMasNueva(progreso?.versionJuego, versionDelJuego())) nota('Partida de una versión más nueva', `Se guardó con la ${progreso.versionJuego}: jugala con esa versión o una más nueva, o se pueden perder cosas nuevas al guardar`); }, 6000);
 // 4.10 partidas: los materiales de «manos llenas» (la ventaja con costo): sólo lo que se junta con el hacha y el pico
 const materialesDeMeta = (n) => (desafio && efectosPartida()?.materiales > 1 ? Math.max(n, Math.round(n * efectosPartida().materiales)) : n);
 // 3.8.4: la dificultad con la que se juega: en la corrida sin fin, la que quedó fijada al entrar (no se cambia a
@@ -9331,6 +9333,8 @@ function bajarDatos(datos, nombre) {
 }
 
 let obrasAjenas = [];
+// 4.10.1: la versión que dice la pantalla («Versión 4.10.1»), ya saneada
+function versionDelJuego() { return sanearVersionJuego((document.getElementById('version-completa')?.textContent || '').replace('Versión ', '')); }
 function guardar() {
   if (reiniciandoPartida || !jugador) return false;
   // 3.5.1: durante el banco de pruebas el jugador va por el recorrido y la hora es la del tramo:
@@ -9349,6 +9353,7 @@ function guardar() {
   if (jugador.estado.enCable && tirolesas?.posParaGuardar()) progreso.pos = tirolesas.posParaGuardar();
   if (vela) progreso.vela = guardadoVela ? guardadoVela.barco : vela.datos();
   progreso.yaw = jugador.estado.yaw;
+  progreso.versionJuego = versionDelJuego();   // 4.10.1: con qué versión se guardó (una versión más vieja que abra esta partida avisa que puede perder cosas)
   // 3.8.6: el entumecido y el descansado (antes se perdían al recargar: el castigo de la noche fría desaparecía)
   { const jc = jugador.estado; progreso.cuerpo = jc.entumecido > 0 || jc.descansado > 0 ? { entumecido: Math.max(0, Number(jc.entumecido) || 0), descansado: Math.max(0, Number(jc.descansado) || 0) } : undefined; }
   progreso.diarioHoy = diario.paraGuardar(progreso.dia);   // 3.8.4: la página del día que se va llenando
