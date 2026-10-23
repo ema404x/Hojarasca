@@ -334,8 +334,8 @@ export function crearBanco(sonido) {
         sonido.impacto?.('tierra', { tamaño: 4.2, dureza: 0.3, fuerza: 1.2, vol: 0.9, destino: d, cuando: 0.05 });
       });
     },
-    // los pájaros (y los grillos) de alrededor se callan un rato
-    callarAves: (seg = 10) => sonido.callarAves?.(seg),
+    // los pájaros de alrededor se callan un rato (y los grillos, si hay un duende encima)
+    callarAves: (seg = 10, grillos = false) => sonido.callarAves?.(seg, grillos),
   };
   return S;
 }

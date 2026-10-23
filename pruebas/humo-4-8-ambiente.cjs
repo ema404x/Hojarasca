@@ -411,6 +411,62 @@ app.whenReady().then(async () => {
       await limpiarInvasores();
     }
 
+    // ================================================================ 4b. cuánto cuesta el ambiente en cada cuadro
+    if (ESCENAS.includes('costo')) {
+      donde = 'costo';
+      await limpiarInvasores();
+      const L = await llano();
+      await estar(L.x, L.z, 0);
+      await js(`(()=>{const H=${H}; H.progreso.horas=22.4; H.desafio.ambiente.especialDePrueba='niebla'; return 1})()`);
+      await construir('antorcha', 5);
+      await js(`${H}.desafio.defensas.refrescar(); (()=>{const H=${H}, D=H.desafio, js=H.jugador.estado; for (let i=0;i<16;i++) { const a=D.invocar(i%4===0?'bruto':'rastreador', js.pos.x+8+i*2, js.pos.z+(i%5)*3-6); if (a) { a.velMult=0; a.vida=a.vidaMax=9999; } } return 1})()`);
+      await avanzar(3);
+      const r = await js(`(()=>{const H=${H}, A=H.desafio.ambiente, js=H.jugador.estado; const e={ activo:true, fase:'ataque', horas:22.4, noche:1, js, mira:{x:0,y:0,z:-1}, especial:'niebla', nocheN:3, sinFin:false, vista:1 };
+        const medir = (n) => { const t0 = performance.now(); for (let i=0;i<n;i++) A.actualizar(0.016, e); return (performance.now()-t0)*1000/n; };
+        medir(500); const con16 = medir(5000);
+        const sinD = (()=>{ const ya = H.desafio.aliens.slice(); H.desafio.aliens.length = 0; const v = medir(5000); for (const a of ya) H.desafio.aliens.push(a); return v; })();
+        const mira={x:-Math.sin(js.yaw), y:0, z:-Math.cos(js.yaw)}; for (let k=0;k<4;k++) A._ponerOjos(js, mira, 60, 45, js.yaw+Math.PI+(k-1.5)*0.3);
+        const conOjos = medir(5000);
+        return JSON.stringify({microsPorCuadro_con16duendes: +con16.toFixed(1), microsPorCuadro_sinDuendes: +sinD.toFixed(1), microsPorCuadro_con16yOjos: +conOjos.toFixed(1), ojos: A.ojosVivos, sombras: A.sombrasVivas})})()`);
+      console.log('costo del ambiente por cuadro:', r);
+      const c = JSON.parse(r);
+      ok(c.microsPorCuadro_con16duendes < 150 && c.microsPorCuadro_con16yOjos < 200, `el ambiente cuesta ${c.microsPorCuadro_con16duendes} µs por cuadro con 16 duendes y ${c.microsPorCuadro_con16yOjos} µs con ojos y sombras (menos de 0,2 ms)`);
+      await js(`(()=>{const H=${H}; H.desafio.ambiente.especialDePrueba=null; H.desafio.ambiente.limpiar(); return 1})()`);
+      await limpiarInvasores();
+    }
+
+    // ================================================================ 4c. el mismo cuadro con y sin el ambiente (alternados, en la misma sesión: sin el ruido de comparar dos arranques)
+    if (ESCENAS.includes('costo2')) {
+      donde = 'costo2';
+      await limpiarInvasores();
+      const L = await llano();
+      await estar(L.x, L.z, 0);
+      await js(`(()=>{const H=${H}; H.progreso.horas=22.4; H.ajustes.limiteFps='libre'; return 1})()`);
+      for (let i = 0; i < 3; i++) { await estar(L.x + Math.cos(i * 2.1) * 9, L.z + Math.sin(i * 2.1) * 9, 0); await construir('antorcha', 3); }
+      await estar(L.x, L.z, 0);
+      await js(`${H}.desafio.defensas.refrescar(); (()=>{const H=${H}, D=H.desafio, js=H.jugador.estado; for (let i=0;i<12;i++) { const a=D.invocar(i%4===0?'bruto':'rastreador', js.pos.x+6+i*1.5, js.pos.z+(i%5)*3-6); if (a) { a.velMult=0; a.vida=a.vidaMax=9999; } } return 1})()`);
+      await avanzar(3);
+      await js(`try { ${H}.volverAlJuego(); } catch {} (()=>{const H=${H}, A=H.desafio.ambiente; window.__ambOriginal = A.actualizar; return 1})()`);
+      const cuadros = (n) => js(`(()=>{const H=${H}, R=H.renderer, gl=R.getContext(), px=new Uint8Array(4), t=[]; for (let i=0;i<30;i++) H.__bucle(); for (let i=0;i<${n};i++) { const t0=performance.now(); H.__bucle(); gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px); t.push(performance.now()-t0); } t.sort((a,b)=>a-b); return JSON.stringify({mediana:+t[Math.floor(${n}/2)].toFixed(2), p90:+t[Math.floor(${n}*0.9)].toFixed(2), sombras:H.desafio.ambiente.sombrasVivas, calls:R.info.render.calls})})()`, 200000);
+      const con = [], sin = [];
+      for (let v = 0; v < 4; v++) {
+        // con el ambiente
+        await js(`(()=>{const A=${H}.desafio.ambiente; A.actualizar = window.__ambOriginal; return 1})()`);
+        con.push(JSON.parse(await cuadros(150)));
+        // sin el ambiente (no corre y sus mallas quedan escondidas)
+        await js(`(()=>{const A=${H}.desafio.ambiente; A.actualizar = () => A.salida; A._sombras.visible=false; A._sombras.count=0; A._puntos.visible=false; return 1})()`);
+        sin.push(JSON.parse(await cuadros(150)));
+      }
+      await js(`(()=>{const A=${H}.desafio.ambiente; A.actualizar = window.__ambOriginal; return 1})()`);
+      const med = (l, k) => { const v = l.map((x) => x[k]).sort((a, b) => a - b); return +((v[1] + v[2]) / 2).toFixed(2); };
+      console.log('cuadro con el ambiente:', JSON.stringify(con));
+      console.log('cuadro sin el ambiente:', JSON.stringify(sin));
+      console.log(`mediana de medianas: con ${med(con, 'mediana')} ms · sin ${med(sin, 'mediana')} ms · p90 con ${med(con, 'p90')} · sin ${med(sin, 'p90')}`);
+      ok(med(con, 'mediana') - med(sin, 'mediana') < 1.0, `el cuadro con el ambiente no pasa de 1 ms más que sin él (${med(con, 'mediana')} contra ${med(sin, 'mediana')} ms)`);
+      await js(`${H}.desafio.ambiente.limpiar(); 1`);
+      await limpiarInvasores();
+    }
+
     // ================================================================ 5. lo tosco pulido
     if (ESCENAS.includes('pulido')) {
       donde = 'pulido';

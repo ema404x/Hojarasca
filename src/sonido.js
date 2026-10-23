@@ -468,24 +468,27 @@ export class Sonido {
   }
   pausar(p) { if (!this.ctx) return; if (p) this.ctx.suspend(); else this.ctx.resume(); }
   // 4.8 ambiente: el silencio raro. El bosque se calla de golpe (el viento, los grillos, la música, los pájaros) hasta que se
-  // rompe con `romperSilencio` (o pasan `seg` segundos). `callarAves` sólo calla a los pájaros y a los grillos: los pájaros de
-  // alrededor tuyo se callan cuando pasan duendes cerca (ver desafio-ambiente.js).
+  // rompe con `romperSilencio` (o pasan `seg` segundos). `callarAves` sólo calla a los pájaros (y, si `grillos`, a los grillos): los
+  // pájaros de alrededor tuyo se callan cuando pasan duendes cerca, y los grillos cuando están encima (ver desafio-ambiente.js).
   callar(seg = 8, profundidad = 0.82) {
     if (!this.ctx || !this.agaches) return;
     this.callarAves(seg);
     this.agachar(profundidad, seg);
   }
-  callarAves(seg = 8) {
+  callarAves(seg = 8, grillos = true) {
     if (!this.ctx) return;
-    this.avesCalladasHasta = Math.max(this.avesCalladasHasta || 0, this.ctx.currentTime + seg);
+    const hasta = this.ctx.currentTime + seg;
+    this.avesCalladasHasta = Math.max(this.avesCalladasHasta || 0, hasta);
+    if (grillos) this.grillosCalladosHasta = Math.max(this.grillosCalladosHasta || 0, hasta);
   }
   romperSilencio() {
     if (!this.ctx || !this.agaches) return;
     const t = this.ctx.currentTime;
-    this.avesCalladasHasta = 0; this.agachadoHasta = 0; this.agachadoCuanto = 0;
+    this.avesCalladasHasta = 0; this.grillosCalladosHasta = 0; this.agachadoHasta = 0; this.agachadoCuanto = 0;
     for (const g of Object.values(this.agaches)) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.setTargetAtTime(1, t, 0.15); }
   }
   get avesCalladas() { return !!this.ctx && (this.avesCalladasHasta || 0) > this.ctx.currentTime; }
+  get grillosCallados() { return !!this.ctx && (this.grillosCalladosHasta || 0) > this.ctx.currentTime; }
 
   // ------------------------------------------------------------------ actualización por cuadro
   actualizar(dt, e) {
@@ -622,7 +625,7 @@ export class Sonido {
       this.fTechoCama.frequency.setTargetAtTime(cama.frec, t, 0.3); this.fTechoCama.Q.setTargetAtTime(cama.q, t, 0.3);
       this.fTechoGrave.frequency.setTargetAtTime(cama.frecGrave, t, 0.3);
     }
-    this.perilla(this.gGrillos, 0.085 * e.noche * (1 - e.invierno) * (1 - e.lluvia) * (1 - e.otono * 0.6) * (this.avesCalladas ? 0.12 : 1), t, 2);   // 4.8 ambiente: los grillos también se callan
+    this.perilla(this.gGrillos, 0.085 * e.noche * (1 - e.invierno) * (1 - e.lluvia) * (1 - e.otono * 0.6) * (this.grillosCallados ? 0.12 : 1), t, 2);   // 4.8 ambiente: los grillos también se callan (con el silencio raro o un duende encima)
     this.perilla(this.gFuego, e.fuego ? 0.5 : 0, t, 0.5);
     this.perilla(this.gFuegoMedio, e.fuego ? 0.42 * (0.7 + 0.3 * Math.sin(t * 2.3) * Math.sin(t * 0.9)) : 0, t, 0.5);
     this.perilla(this.gCascada, e.cascada ? 0.5 * e.cascada.fuerza : 0, t, 0.8);

@@ -403,8 +403,8 @@ export function crearAmbienteMundo(ctx) {
   function actualizarFauna(js, noche) {
     if (!puestos) puestos = armarPuestos();
     if (noche < 0.3) return;
-    // los pájaros (y los grillos) de alrededor tuyo callan mientras haya duendes cerca; en la noche silenciosa, toda la noche
-    if (tipo === 'silenciosa' || (perfil.fauna && nVivos && avesCallan(cerca))) S.callarAves?.(FAUNA.aves.calla);
+    // los pájaros de alrededor tuyo callan mientras haya duendes cerca (y los grillos, si hay uno a menos de 30 m); en la noche silenciosa, todo
+    if (tipo === 'silenciosa' || (perfil.fauna && nVivos && avesCallan(cerca))) S.callarAves?.(FAUNA.aves.calla, tipo === 'silenciosa' || cerca < 30);
     if (!perfil.fauna || !nVivos || reloj - ultimoAviso < 6) return;
     for (const q of puestos) {
       const dj = Math.hypot(q.x - js.pos.x, q.z - js.pos.z);
@@ -478,9 +478,14 @@ export function crearAmbienteMundo(ctx) {
     });
     for (let i = 0; i < eventos.length; i++) atender(eventos[i], js, mira);
 
-    actualizarOjos(dt, js, mira);
-    actualizarRobo(dt, js);
-    actualizarSombras(js, e.noche);
+    if (e.activo) {
+      actualizarOjos(dt, js, mira);
+      actualizarRobo(dt, js);
+      actualizarSombras(js, e.noche);
+    } else {
+      // caído, o adentro del Coihue (el valle no se ve): nada de ojos ni sombras en el dibujo
+      puntos.visible = false; sombras.count = 0; sombras.visible = false; nSombras = 0;
+    }
 
     salida.tipo = tipo;
     salida.avance = e.fase === 'previa' ? f : (e.fase === 'ataque' ? 1 : 0);

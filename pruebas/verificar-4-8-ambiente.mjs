@@ -345,10 +345,14 @@ function simular(tipo, { semilla = 7, previa = 75, ataque = 300, vivos = 3, cerc
   ok(S.avesCalladas === false, 'pasados los segundos, vuelven');
   S.callar(30); S.romperSilencio();
   ok(S.avesCalladas === false && S.agachadoHasta === 0, 'romperSilencio: vuelve todo de golpe');
+  S.callarAves(5, false);
+  ok(S.avesCalladas === true && S.grillosCallados === false && !(S.agachadoHasta > 19), 'callarAves calla a los pájaros sin agachar la mezcla ni callar a los grillos (esos, sólo con un duende encima)');
   S.callarAves(5);
-  ok(S.avesCalladas === true && !(S.agachadoHasta > 19), 'callarAves calla a los pájaros sin agachar la mezcla');
+  ok(S.grillosCallados === true, 'y con `grillos`, también a los grillos');
+  S.callar(8);
+  ok(S.avesCalladas && S.grillosCallados, 'el silencio raro calla a los dos');
   const son = leer('src/sonido.js');
-  ok(/\* \(this\.avesCalladas \? 0\.12 : 1\), t, 2\);/.test(son) && /e\.lluvia < 0\.6 && !this\.avesCalladas/.test(son), 'los grillos y los pájaros de ambiente respetan el silencio');
+  ok(/\* \(this\.grillosCallados \? 0\.12 : 1\), t, 2\);/.test(son) && /e\.lluvia < 0\.6 && !this\.avesCalladas/.test(son), 'los grillos y los pájaros de ambiente respetan el silencio');
 }
 
 // ============================================================ la música
