@@ -27,6 +27,7 @@ const igual = (a, b, m) => { assert.deepEqual(a, b, m); pasos++; };
   ok(A.AMANECER_HORA === HORA_AMANECER, 'y los pedidos empiezan con el sol');
   const n = A.aldeaNueva();
   for (const k of A.VECINOS_AYUDA) ok(A.nivelAyuda({ aldea: n }, k) === 0 && n.pedidos[k] === null, `${k} arranca en 0 y sin pedido`);
+  ok(A.nivelAyuda({ aldea: { ayuda: { ramon: 2, anselmo: 1 } } }, 'ramon') === 0, 'aunque el dato exista, Ramón no es uno de los cuatro del contrato');
   ok(A.nivelAyuda(undefined, 'anselmo') === 0 && A.nivelAyuda({}, 'anselmo') === 0 && A.nivelAyuda({ aldea: null }, 'anselmo') === 0, 'sin aldea, 0');
   ok(A.nivelAyuda({ aldea: n }, 'ramon') === 0 && A.nivelAyuda({ aldea: n }, '__proto__') === 0 && A.nivelAyuda({ aldea: n }, 'constructor') === 0 && A.nivelAyuda({ aldea: n }, undefined) === 0, 'un vecino que no existe, 0');
   const d = { aldea: { ayuda: { anselmo: 1, herminia: 2, martin: 7, chicos: 'x' } } };
@@ -97,7 +98,7 @@ const RELIGIOSO = /\b(dios|santo|santa|virgen|cruz|reza|rezo|bendici|bendiga|ame
       ok(v >= antes - 1e-9, `${k}/${e.id}: no cuesta menos en la noche ${n}`);
       antes = v;
       const reg = A.regaloEnLaNoche(e.regalo, pide);
-      ok(A.valorDe(reg) <= v * A.MAX_REGALO + 1e-9, `${k}/${e.id} noche ${n}: el regalo vale ${A.valorDe(reg).toFixed(2)} y lo entregado ${v.toFixed(2)}`);
+      ok(A.valorDe(reg) <= v * 0.5 + 1e-9, `${k}/${e.id} noche ${n}: el regalo vale ${A.valorDe(reg).toFixed(2)} y lo entregado ${v.toFixed(2)}`);
       ok(v - A.valorDe(reg) > 0, `${k}/${e.id} noche ${n}: entregar siempre deja menos de lo que había`);
       veces++;
     }
@@ -110,6 +111,7 @@ const RELIGIOSO = /\b(dios|santo|santa|virgen|cruz|reza|rezo|bendici|bendiga|ame
     ok(v(1) > v(0), `${k}: el segundo pedido es más caro que el primero`);
     ok(Math.min(...A.PEDIDOS[k].filter((e) => e.nivel === 0).map((e) => A.valorDe(e.pide))) >= 1, `${k}: ni el primero es un trámite gratis`);
   }
+  { const g = A.regaloEnLaNoche({ cristal: 5, flechas: 40 }, { tabla: 2 }); ok(A.valorDe(g) <= A.valorDe({ tabla: 2 }) * 0.5, 'un regalo que se pasa se recorta hasta ser menos de la mitad de lo entregado'); ok(A.regaloEnLaNoche(null, { tabla: 2 }) === null, 'sin regalo, nada'); }
   ok(A.textoCosas({ tabla: 4 }) === '4 tablas' && A.textoCosas({ tabla: 1, piedra: 3 }) === '1 tabla y 3 piedras' && A.textoCosas({ tronco: 2, tabla: 1, piedra: 3 }) === '2 troncos, 1 tabla y 3 piedras', 'el texto de las cosas');
   ok(A.textoCosas({}) === '' && A.textoCosas(null) === '', 'sin cosas, nada');
 }
