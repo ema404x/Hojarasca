@@ -4873,7 +4873,7 @@ let empleadosNegocioJuego = null;   // 4.4: los vecinos contratados en tu local 
 try {
   negocioJuego = crearNegocioJuego({
     progreso: () => progreso, obras: () => obras, jugador: () => jugador, gente: () => gente, sonido: () => sonido,
-    nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), ...CARGA_CTX,   // 4.7 carga: del estante sale sólo lo que entra
     tengo: (k) => tengoDeOficio({ k, donde: BIENES[k].donde }), quitar: (k, n) => quitarDeOficio({ k, donde: BIENES[k].donde }, n),
     dar: (k, n) => { const d = BIENES[k].donde; if (d === 'material') sumarMaterial(k, n); else if (d === 'cosa') { progreso.cosas[k] = (progreso.cosas[k] || 0) + n; registrar(k); } else sumarEntrada(k, n); },
     lluvia: () => clima?.estado?.lluvia || 0, agua: (x, z) => T.agua(x, z), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
@@ -5931,6 +5931,8 @@ function cambiarFeria(i) {
   marcarEn('feria', i);   // 3.6.2: lo elegido (con el número, el clic o Enter) queda marcado
   const o = ofertasDelDia(progreso.dia, progreso.cosas, feria().tomadas)[i];
   if (!o) return;
+  // 4.7 carga: lo que te dan en la feria tiene que entrar (descontando lo que dás) ANTES de cambiar
+  if (o.da.materiales && !feria().tomadas.includes(o.id) && !cabeTrato(o.da.materiales, o.pide)) return;
   const r = cambiarEnFeria(feria(), o.id, cuantoFeria);
   if (!r.ok) {
     if (r.motivo === 'hecho') nota('Ese ya lo cambiaste', 'Vuelve en la próxima feria');
@@ -8248,7 +8250,9 @@ function seguirCharla() {
   if (pide) { const d = DESAFIOS.find((x) => x.id === pide); if (d) setTimeout(() => nota(`Te piden una foto: ${d.nombre}`, d.pista, true), 1400); }
   if (charla.encargo && charla.parte === 1) {
     const e = charla.encargo.e;
-    if (charla.encargo.modo === 'listo') { progreso.encargos[e.id] = 'hecho'; registrar(e.id); cobrarPremio(e); }
+    // 4.7 carga: el premio en cosas tiene que entrar; si no, el encargo sigue pendiente (se cobra cuando haya lugar)
+    if (charla.encargo.modo === 'listo' && !cabeTrato(premioEnCosas(e.premio))) { /* sigue pendiente */ }
+    else if (charla.encargo.modo === 'listo') { progreso.encargos[e.id] = 'hecho'; registrar(e.id); cobrarPremio(e); }
     else if (progreso.encargos[e.id] !== 'pedido') {
       progreso.encargos[e.id] = 'pedido';
       // los de temporada cuentan lo hecho desde ahora, no desde el principio
@@ -8274,6 +8278,13 @@ function mandarFoto(id) {
   guardar();
 }
 // Lo que te dejan a cambio del encargo: materiales, ramitas o algo para la mochila.
+// 4.7 carga: lo que ocupa un premio (los materiales y lo que se cuenta; las herramientas y los pesos no)
+function premioEnCosas(premio) {
+  const da = {};
+  for (const [k, n] of Object.entries(premio?.materiales || {})) da[k] = (da[k] || 0) + (Number(n) || 0);
+  for (const [k, n] of Object.entries(premio?.cuenta || {})) da[k] = (da[k] || 0) + (Number(n) || 0);
+  return da;
+}
 function cobrarPremio(e) {
   const premio = e?.premio;
   if (!premio) return;
@@ -8786,6 +8797,8 @@ function cambiar(i) {
     nota('Todavía te falta', `Hacen falta ${faltan.join(' y ')}`);
     return;
   }
+  // 4.7 carga: lo que se lleva (yerba, harina, semillas, azúcar…) tiene que entrar ANTES de cobrar; las herramientas no ocupan casillas
+  if (t.repetible) { const x = tratoDeEfectos([{ tipo: 'cosa', k: t.cosa || t.id, n: t.da || 1 }, ...t.pide.map(([k, n]) => ({ tipo: 'entrada', k, n: -n }))]); if (!cabeTrato(x.da, x.quita)) return; }
   if (t.pesos && !pagarPesos(progreso, t.pesos, t.nombre, 'Ercilia (almacén)').ok) { nota('Todavía te falta', `Hacen falta ${formatoPesos(t.pesos)}`); return; }
   for (const [k, n] of t.pide) {
     if (k === 'ramita') progreso.ramitas -= n;
