@@ -43,6 +43,7 @@
 import { elegirActividad, cumplirActividad, estaLibre, climaDe, ACTIVIDADES, NOCHE_AFUERA, sumarAmistadDe, proximoChisme, revelarGusto, amistades } from './vecindad.js';
 import { vidaNueva, ritmoDe, fechaDe, avisoDiaAntes, avisoDelDia, calendarioDelAnio, listaCumples, visitanteDelDia, textosVisitante, empezarGuia, guiado, visitanteSeVa, visitanteSigue, despedirVisitante, lugarConArticulo, lineaGuiado, LUGARES_VISITA, RADIO_GUIADO, cachorrosNacen, nacenCachorros, ofertaCachorro, ofrecido, adoptarMascota, etapaMascota, apodoDe, apodoPorId, FAMILIA, HORAS_FAMILIA, familiaDeHoy, avisoFamilia, terminarVisitaFamilia, opinionesFamilia, cartaDeLaAldea, fuisteALaAldea, visitanteDef, nombreCortoDe, FIESTAS_ALDEA } from './aldea-vida.js';
 import { fichaVecinos } from './vecindad-juego.js';
+import { tratoDeEfectos } from './carga.js';
 import { PREDIO } from './fiestas.js';
 import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { aplicarNegocio, temporadaDelDia } from './negocios-fx.js';
@@ -1055,6 +1056,8 @@ export function crearAldeaGente(ctx) {
       ctx.nota('Ya no alcanza', `${def.nombre}: «Mirá bien lo que traés y volvé»`);
       return false;
     }
+    // 4.7 carga: lo que recibís tiene que entrar (descontando lo que dás); si no, el trato no se hace y no se cobra
+    if (ctx.cabeTrato) { const { da, quita } = tratoDeEfectos(s.efectos); if (!ctx.cabeTrato(da, quita)) return false; }
     for (const f of s.efectos) {
       if (f.tipo === 'material') ctx.sumarMaterial(f.k, f.n);
       else if (f.tipo === 'jornal' || f.tipo === 'pedido') aplicarNegocio(p, f, dia(), extraServicio());   // 3.8.8: el sueldo y los pedidos (negocios-fx.js)

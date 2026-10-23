@@ -94,6 +94,8 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
     partitura: { geo: geoPartitura(), entrada: null, accion: 'juntar', etiqueta: 'partitura' },
   };
   const items = [];
+  // 4.7 carga: `cabe(entrada)` lo pone el juego (el límite de la mochila, carga.js): sin lugar, lo que se junta se queda en el suelo
+  let cabe = null;
   // 3.8.7: nada más allá de donde se puede caminar (LIMITE) y estirar el brazo: había 118 ramitas, 9 llao llao y 5 cantos
   // en la ladera del borde, a la vista pero imposibles de juntar (los ids van por lugar: lo demás no se corre)
   const fueraDeAlcance = (x, z) => Math.abs(x) > LIMITE + 1.5 || Math.abs(z) > LIMITE + 1.5;
@@ -326,7 +328,7 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       const dot = mira(it.x, it.y + 0.15, it.z, 3.2);
       // 2.6.1: el candidato (y su texto) se arma sólo si le gana al mejor
       // (3.8.6: con doce ramitas la E no junta otra: el aviso lo dice, en vez de «Juntar ramita»)
-      if (dot > 0 && dot + 0.02 > puntaje) probar({ tipo: 'item', it, texto: it.tipo === 'ramita' && progreso.ramitas >= 12 ? 'Ya llevás doce ramitas' : (def.accion === 'anotar' && !anotado ? 'Anotar ' : 'Juntar ') + def.etiqueta }, dot + 0.02);
+      if (dot > 0 && dot + 0.02 > puntaje) probar({ tipo: 'item', it, texto: it.tipo === 'ramita' && progreso.ramitas >= 12 ? 'Ya llevás doce ramitas' : cabe && def.entrada && (def.accion === 'juntar' || progreso.entradas[def.entrada]) && !cabe(def.entrada) ? `Mochila llena: no te entra más ${def.etiqueta}` : (def.accion === 'anotar' && !anotado ? 'Anotar ' : 'Juntar ') + def.etiqueta }, dot + 0.02);
     }
     for (const p of vecinos(grillaPlantas, ojo.x, ojo.z, vecinosPlantas)) {
       if (progreso.entradas[p.tipo]) continue;
@@ -406,6 +408,7 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
       const def = tipos[obj.it.tipo];
       if (def.accion === 'juntar' || (def.juntableTrasAnotar && progreso.entradas[def.entrada])) {
         // 3.8.3: con doce ramitas no entra otra: se queda en el suelo (antes se borraba del valle para siempre sin sumar)
+        if (cabe && def.entrada && !cabe(def.entrada)) return { llenaMochila: def.etiqueta };   // 4.7 carga: se queda en el suelo
         if (obj.it.tipo === 'ramita' && progreso.ramitas >= 12) return { ramita: true, llena: true };
         if (!quitar(obj.it)) return null;
         sonido.juntar();
@@ -469,5 +472,5 @@ export function crearObjetos(T, veg, est, escena, progreso, edificios = []) {
   // 3.8.4: lo soltado de la partida guardada, otra vez en el suelo
   for (const s of soltadosGuardados) soltar(s.tipo, s.x, s.z, s);
 
-  return { buscar, usar, soltar, items, tipos, ENTRADA, actualizar, tocadiscos: vitrola };
+  return { buscar, usar, soltar, items, tipos, ENTRADA, actualizar, tocadiscos: vitrola, ponerCabe: (f) => { cabe = f; } };
 }

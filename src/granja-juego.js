@@ -11,6 +11,7 @@
 // sumarEntrada(k, n), sumarMaterial(k, n), registrar(id), sonido }
 import { GRANJA, FRUTALES, QUIENES_GRANJA, TRUEQUE_GRANJA, sanearGranja, avanzarGranja, entregas, ordenar, echarFardo, echarSobras, sobraParaEchar, carnear, esNovillo, corderoListo, esCapon, claveFrutal, frutalNuevo, plantar, elegirPlantin, estadoFrutal, cosecharFrutal, primeraFruta, devolucionHoyo, inviernoGranja, hacerTrueque, opcionesTrueque, textoVaca, textoTernero, textoCordero, textoLechon, textoChancha, textoTambo, textoChiquero, textoFrutal } from './granja.js';
 import { TAMBO, CHIQUERO } from './planos-granja.js';
+import { tratoDeEfectos } from './carga.js';
 
 const TITULO_MENU = { ramon: 'Cambiar algo de campo…', veterinaria: 'Lo de la chancha…', madre: 'Plantines de frutales…', herbolaria: 'Matas de frambuesa y de grosella…' };
 const PREGUNTA = { ramon: 'Algo de campo te puedo cambiar, m\'hijo. ¿Qué andás necesitando?', veterinaria: 'Tengo una chancha que no sé dónde meter. ¿La querés?', madre: '¿Te gustan los frutales? Tengo plantines de los del patio.', herbolaria: 'Tengo matas con raíz, de las que dan fruta fina.' };
@@ -85,6 +86,7 @@ export function crearGranjaJuego(ctx) {
     corderos: (n) => [n === 1 ? 'Nació un cordero' : `Nacieron ${n} corderos`, 'En la paridera de tu corral'],
     lechones: (n) => [n === 1 ? 'La chancha tuvo un lechón' : `La chancha tuvo ${n} lechones`, 'En la casilla del chiquero'],   // 3.8.3: «tuvo 1 lechones»
   };
+  let avisoEntrega = false;
   function avanzar() {
     if (!activo()) return;
     const g = granja(), corral = ctx.corral?.();
@@ -94,7 +96,14 @@ export function crearGranjaJuego(ctx) {
       ctx.nota?.(t, sub, true);
       if (e.tipo === 'corderos') ctx.registrar?.('cordero-propio');
     }
-    const llegan = entregas(g, dia(), horas());
+    // 4.7 carga: la carne que trae Don Ramón se entrega sólo si entra en la mochila (si no, queda esperando, y se avisa una vez)
+    let llegan = [];
+    if (g.encargos.length) {
+      const seco = entregas(structuredClone(g), dia(), horas()), da = {};
+      for (const e of seco) for (const x of e.da) da[x.k] = (da[x.k] || 0) + x.n;
+      if (!seco.length || !ctx.entraTrato || ctx.entraTrato(da)) { llegan = entregas(g, dia(), horas()); avisoEntrega = false; }
+      else if (!avisoEntrega) { avisoEntrega = true; ctx.nota?.('Don Ramón te espera con la carne', 'No te entra en la mochila: hacé lugar y la recibís sola', true); }
+    }
     for (const e of llegan) {
       for (const x of e.da) ctx.sumarEntrada?.(x.k, x.n);
       const que = e.da.map((x) => `${x.n} ${x.k === 'chorizo' ? 'chorizos' : x.k === 'carne-vaca' ? 'de carne de vaca' : x.k === 'carne-cordero' ? 'de carne de cordero' : 'de carne de cerdo'}`).join(' y ');
@@ -134,6 +143,7 @@ export function crearGranjaJuego(ctx) {
     return r;
   }
   function ordenarVaca() {
+    { const seco = ordenar(structuredClone(granja()), dia(), horas(), invierno()); if (seco.ok && ctx.cabeJuntar && !ctx.cabeJuntar('leche', seco.leche)) return { ok: false, motivo: 'llena' }; }   // 4.7 carga: sin lugar no se ordeña
     const r = ordenar(granja(), dia(), horas(), invierno());
     if (!r.ok) {
       const M = { yaHoy: ['Ya la ordeñaste hoy', 'Mañana temprano otra vez'], temprano: ['Es muy temprano', `Se ordeña de ${GRANJA.ordene[0]} a ${GRANJA.ordene[1]}`], tarde: ['Ya pasó la hora del ordeñe', 'La vaca se ordeña a la mañana: mañana temprano'], sinPasto: ['Sin pasto no da leche', 'En invierno come del comedero: echale un fardo (Don Ramón los cambia)'], sinVaca: ['No tenés vaca', 'Don Ramón te cambia una si tenés un tambo'] };
@@ -181,6 +191,7 @@ export function crearGranjaJuego(ctx) {
       refrescar(); ctx.refrescarBarra?.(); ctx.guardar?.();
       return { ok: true, plantado: especie };
     }
+    { const seco = cosecharFrutal(structuredClone(f), dia(), horas(), estacionFrutal()); if (seco.ok && ctx.cabeJuntar && !ctx.cabeJuntar(seco.k, seco.n)) return { ok: false, motivo: 'llena' }; }   // 4.7 carga: la fruta queda en el árbol
     const r = cosecharFrutal(f, dia(), horas(), estacionFrutal());
     if (!r.ok) { ctx.nota?.(textoFrutal(f, dia(), horas(), null, estacionFrutal()), ''); return r; }
     ctx.sumarEntrada?.(r.k, r.n);
@@ -265,6 +276,8 @@ export function crearGranjaJuego(ctx) {
     if (id === 'granja') return { tipo: 'menu', sub: { tipo: 'granja', texto: PREGUNTA[s.clave] || '¿Qué te hace falta?', opciones: [...opcionesTrueque(s.clave, progreso(), granja(), obrasCtx()), { id: 'volver', titulo: 'Mejor no' }], i: 0 } };
     const t = TRUEQUE_GRANJA[String(id).slice('granja:'.length)];
     if (!t || t.quien !== s.clave) return { tipo: 'menu' };
+    // 4.7 carga: el trato se prueba en una copia; si lo que recibís no entra (descontando lo que dás), no se cobra ni se hace
+    if (ctx.cabeTrato) { const seco = hacerTrueque(t, progreso(), structuredClone(granja()), dia(), obrasCtx()); if (seco.ok) { const { da, quita } = tratoDeEfectos(seco.efectos); if (!ctx.cabeTrato(da, quita)) return { tipo: 'renglones', renglones: ['No te entra todo eso en la mochila: hacé lugar y volvemos a hablar.'] }; } }
     const g = granja(), r = hacerTrueque(t, progreso(), g, dia(), obrasCtx());
     if (r.ok) {
       for (const e of r.efectos) {

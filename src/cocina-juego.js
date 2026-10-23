@@ -15,6 +15,7 @@ import { COCINA, ESTACIONES, PLANOS_ESTACION, RECETA_PASOS, RECETAS_PASOS, estac
 import { estaLibre, amistades, sumarAmistadDe, nombreCorto } from './vecindad.js';
 import { diaSemanaDe, CHICOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, esPobladorAldea } from './aldea.js';
 import { llegadaValle } from './amor-escenas.js';
+import { tratoDeEfectos } from './carga.js';
 
 const NIVEL = { conocido: 1, amigo: 2, compadre: 3 };
 const RADIO_NOTAS = 45;      // a esta distancia (o menos) te avisa que un paso está listo
@@ -205,6 +206,8 @@ export function crearCocinaJuego(ctx) {
     return true;
   }
   function seguirPaso(est, c, de, pos) {
+    // 4.7 carga: el último paso (sacar lo cocinado) sólo se hace si lo cocinado entra en la mochila: si no, queda en el fuego
+    { const seco = hacerPaso(structuredClone(c)); if (seco.accion === 'fin' && ctx.cabeJuntar && !ctx.cabeJuntar(seco.da.id, seco.da.n)) return; }
     const r = hacerPaso(c);
     const nombre = nombreCon(RECETA_PASOS[c.receta], c.variante);
     if (r.accion === 'espera') { ctx.nota?.(`${nombre}: todavía no`, `${r.mientras}. ${textoFaltan(c.falta).startsWith('una hora') ? 'Falta' : 'Faltan'} ${textoFaltan(c.falta)}`); return; }
@@ -330,6 +333,8 @@ export function crearCocinaJuego(ctx) {
     }
     const m = /^cocina:cambio:(\d+)$/.exec(String(id));
     if (m) {
+      // 4.7 carga: lo que te dan a cambio tiene que entrar (se prueba en una copia; si no, no se cambia ni se cobra)
+      if (ctx.cabeTrato) { const seco = cambiar(clave, Number(m[1]), structuredClone(cocina()), dia(), cuantoPago); if (seco.ok) { const t = tratoDeEfectos(seco.efectos); if (!ctx.cabeTrato(t.da, t.quita)) return { tipo: 'renglones', renglones: ['No te entra todo eso en la mochila: hacé lugar y volvemos a hablar.'] }; } }
       const r = cambiar(clave, Number(m[1]), cocina(), dia(), cuantoPago);
       if (r.ok) {
         for (const f of r.efectos) {

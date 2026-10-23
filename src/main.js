@@ -119,7 +119,9 @@ import { crearTallerJuego } from './taller-tren-juego.js';
 import { crearFiestasJuego } from './fiestas-juego.js';
 import { crearFiestasMundo } from './fiestas-mundo.js';
 import { crearCocinaMundo } from './cocina-mundo.js';
-import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN } from './cocina-pasos.js';
+import { PLANOS_COCINA_E, RECETA_PASOS, sanearCoccion, pideCon, DEL_ALMACEN, INGREDIENTES } from './cocina-pasos.js';
+// 4.7 carga: el límite de la mochila (casillas; carga.js)
+import { lugarPara, tratoCabe, textoLugares, ocupacion, capacidad, tratoDeEfectos } from './carga.js';
 import { sumarAmistadDe, cambiarAmistad, nombreCorto, amistades, fijarModificadorAmistad, fijarGustosDeBruno } from './vecindad.js';
 import { anotarPartitura, escucharMuestra } from './personal-musica.js';
 import { NOMBRE_ORDEN, siguienteOrden } from './desafio-ordenes.js';
@@ -759,7 +761,7 @@ async function construir() {
         for (const z of puestosRutaMundo.zonas) { veg.despejar(z.x, z.z, z.r); pelarPastoTemporal(z.x, z.z, z.r - 0.5); edificios.push({ x: z.x, z: z.z, radio: z.r + 1, nombre: z.nombre }); }
         for (const z of puestosRutaMundo.claros || []) veg.despejar(z.x, z.z, z.r, false);   // 4.6.0: el claro de atrás, sólo árboles
         puestosJuego = crearPuestosRutaJuego({ progreso: () => progreso, desafio: () => !!desafio, mundo: puestosRutaMundo, nota: (tx, sub, nueva) => nota(tx, sub, nueva), guardar: () => guardar(),
-          refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas });
+          refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas, lugarEn: (k, n) => lugarEn(k, n) });   // (4.7 carga: del depósito sale sólo lo que entra)
       } catch (err) { console.warn('puestos-ruta', err); puestosRutaMundo = null; puestosJuego = null; }
     }
     // 3.7.5 (rincones): los duendes, el potrero, las huertas, el retablo, el fuerte, el camino al refugio (rodea las
@@ -775,6 +777,7 @@ async function construir() {
   });
   pasto = await paso('Dejando crecer el pasto', 78, async () => { await esperarTexturas('manchas'); const p = crearPasto(calidad); escena.add(p.malla); return p; });
   objetos = await paso('Escondiendo frutillas y plumas', 82, () => crearObjetos(T, veg, est, escena, progreso, edificios));
+  objetos.ponerCabe((k) => lugarEn(k, 1) >= 1);   // 4.7 carga: sin lugar en la mochila, lo del suelo se queda en el suelo
   // 2.8: cuántos animales, según la receta con que empezó la partida (Tu partida)
   fauna = await paso('Despertando la fauna patagónica', 86, () => crearFauna(T, veg, col, escena, sonido, registrar, progreso, { animales: factorAnimales(progreso) }));
   vida = await paso('Soltando cisnes en el lago', 88, () => crearVida(T, veg, col, escena, sonido, registrar, progreso));
@@ -895,6 +898,7 @@ async function construir() {
     T, escena, col, progreso: () => progreso, estacion: () => ajustes.estacion, pehuenes: () => veg.arboles.filter((a) => a.especie === 'pehuen' && !a.sacado),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, registrar: (id) => registrar(id), sumarMaterial: (k, n) => sumarMaterial(k, n),
     sumarEntrada: (id, n) => sumarEntrada(id, n), nivel: (id) => nivelDe(id), ganarOficio: (id, n) => ganarOficio(id, n), refrescarBarra: () => refrescarBarra(true),
+    cabeJuntar: (k, n) => cabeJuntar(k, n),   // 4.7 carga
   });
   // 4.6.0: el juncal y las hierbas, en su propio claro: sin pasto alto ni helechos encima (antes, crecido y «al ras» casi no se
   // distinguían entre el pasto y el helecho del mallín)
@@ -1265,7 +1269,8 @@ function atrapar(pez) {
   const nombre = pez.def.nombre.charAt(0).toUpperCase() + pez.def.nombre.slice(1);
   // 2.3: con un ahumadero terminado, dos truchas por día van a la mochila
   const hoy = progreso.truchasHoy?.dia === progreso.dia ? progreso.truchasHoy.n : 0;
-  if (!desafio && teLaQuedas(pez.id, obrasTerminadas('ahumadero').length > 0, hoy)) {
+  // 4.7 carga: sin lugar para la trucha, no te la quedás (sigue de largo: la devolvés al agua y el cupo de hoy no se gasta)
+  if (!desafio && teLaQuedas(pez.id, obrasTerminadas('ahumadero').length > 0, hoy) && cabeJuntar('trucha-fresca', 1)) {
     progreso.truchasHoy = { dia: progreso.dia, n: hoy + 1 };
     sumarEntrada('trucha-fresca', 1);
     nota(`${nombre}, ${pez.cm} cm`, `Te la quedás para el ahumadero (${hoy + 1} de ${AHUMADERO.porDia} hoy)`);
@@ -4249,6 +4254,36 @@ function sumarMaterial(k, n) {
   progreso.materiales[k] = (progreso.materiales[k] || 0) + n;
 }
 
+// ---------------------------------------------------------------- 4.7 carga: el límite de la mochila (carga.js; sólo en el Relax)
+// `sumarMaterial` y `sumarEntrada` NO recortan: quien suma de afuera tiene que preguntar antes (cabeJuntar / cabeTrato), así un
+// trato nunca cobra y deja sin entregar. Sin preguntar, lo que pasa del límite queda como sobrecarga (nunca se pierde nada).
+const ctxCarga = () => ({ montado: !!jugador?.estado?.montado });
+const lugarEn = (k, n) => lugarPara(progreso, k, n, ctxCarga());
+function nombreCarga(k) {
+  if (Object.hasOwn(MATERIALES, k)) return MATERIALES[k].nombre;
+  if (Object.hasOwn(INGREDIENTES, k)) return INGREDIENTES[k].nombre;
+  const e = Object.hasOwn(ENTRADA, k) ? ENTRADA[k] : null;
+  return e?.nombre ? e.nombre.toLowerCase() : k;
+}
+// Lo que se junta del mundo: ¿entran n de k? Si no, avisa en una línea y devuelve falso (la acción no consume el recurso).
+function cabeJuntar(k, n = 1) {
+  if (lugarEn(k, n) >= n) return true;
+  nota(`Mochila llena: no te entra más ${nombreCarga(k)}`, 'Gastá, vendé o guardá algo en un depósito');
+  return false;
+}
+// Un trato entero (compra, cobro, recompensa): ¿entra todo lo que da, descontando lo que sale? Si no, avisa y devuelve falso.
+// `da` y `quita` son { k: n } (las claves de la mochila: materiales, entradas y cosas contables).
+function cabeTrato(da, quita = null) {
+  const r = tratoCabe(progreso, da, quita || {}, ctxCarga());
+  if (r.ok) return true;
+  nota(`No te entra: te ${r.faltan === 1 ? 'falta' : 'faltan'} ${textoLugares(r.faltan)}`, 'Hacé lugar en la mochila (gastá, vendé o guardá algo en un depósito)');
+  return false;
+}
+// Lo mismo, sin avisar (para lo que se mira seguido o para decidir antes de avisar)
+const entraTrato = (da, quita = null) => tratoCabe(progreso, da, quita || {}, ctxCarga()).ok;
+// Lo que se les pasa a los módulos que juntan o dan cosas (se mezcla en su contexto)
+const CARGA_CTX = { cabeJuntar: (k, n) => cabeJuntar(k, n), cabeTrato: (da, q) => cabeTrato(da, q), entraTrato: (da, q) => entraTrato(da, q), lugarEn: (k, n) => lugarEn(k, n) };
+
 // ------- modo Desafío: recursos para fabricar, derrota y vuelta a la base
 const FRUTAS = ['pinon', 'calafate', 'frutilla'];
 function cuantoRecurso(k) {
@@ -4400,6 +4435,9 @@ function usarHacha() {
   }
   if (o.talar) {
     if (o.protegido) { nota('El pehuén no se tala', 'Es un árbol sagrado y centenario: buscá un coihue o una lenga'); return; }
+    // 4.7 carga: con la mochila llena el árbol no se toca (ni un hachazo): no se tala a medias
+    const troncosTala = troncosAlTalar(TRONCOS_TALA, nivelDe('hachero'));   // 3.1
+    if (!cabeJuntar('tronco', troncosTala)) return;
     const golpes = (golpesTala.get(o.arbol) || 0) + 1;
     const hacen = golpesParaTalarAhora();   // 3.1: el oficio y el filo del herrero
     const dondeSuena = { x: o.arbol.x, y: (o.arbol.y ?? jugador.estado.pos.y) + 1.2, z: o.arbol.z };
@@ -4418,7 +4456,6 @@ function usarHacha() {
     veg.talar(o.arbol, { x: o.arbol.x - js2.pos.x, z: o.arbol.z - js2.pos.z });
     sonido.arbolCae(dondeSuena);
     anotarTalado(o.arbol);
-    const troncosTala = troncosAlTalar(TRONCOS_TALA, nivelDe('hachero'));   // 3.1
     sumarMaterial('tronco', troncosTala);
     gastarFilo(progreso.aldea);   // 3.6: el filo que te dio el herrero de la aldea
     nota(`¡Árbol talado! +${troncosTala} troncos`, `Llevás ${material('tronco')}. Con Y los aserrás en tablas`);
@@ -4428,6 +4465,10 @@ function usarHacha() {
     return;
   }
   // 4.2: el pedrero se pica a golpes de pico (oficio de picapedrero: 6, 5, 4, 3 y 2 en una roca grande; una chica, el 60 %; el filo del herrero, uno menos)
+  // El árbol que tiró el rayo rinde más que un tronco caído, y su tocón rebrota.
+  const delRayo = !!o.caido && progreso.tormenta?.rayo && veg.arboles[progreso.tormenta.rayo.i] === o.arbol;
+  const cuanto = (delRayo ? RAYO.troncos : o.tipo === 'tronco' ? TRONCOS_MATA : PIEDRA_MATA) + (o.tipo === 'piedra' ? extraDePiedra(nivelDe('picapedrero')) : extraDeMata(nivelDe('hachero')));   // 3.1 (4.2: la piedra extra es del picapedrero)
+  if (!cabeJuntar(o.tipo, cuanto)) return;   // 4.7 carga: con la mochila llena la roca no se pica (ni un golpe) ni el tronco se levanta
   if (o.tipo === 'piedra') {
     const golpes = (golpesPico.get(o.mata) || 0) + 1;
     const hacen = golpesParaPicarAhora(o.mata);
@@ -4442,9 +4483,6 @@ function usarHacha() {
     golpesPico.delete(o.mata);
     gastarFilo(progreso.aldea);   // el filo que te dio el herrero también vale para el pico
   }
-  // El árbol que tiró el rayo rinde más que un tronco caído, y su tocón rebrota.
-  const delRayo = !!o.caido && progreso.tormenta?.rayo && veg.arboles[progreso.tormenta.rayo.i] === o.arbol;
-  const cuanto = (delRayo ? RAYO.troncos : o.tipo === 'tronco' ? TRONCOS_MATA : PIEDRA_MATA) + (o.tipo === 'piedra' ? extraDePiedra(nivelDe('picapedrero')) : extraDeMata(nivelDe('hachero')));   // 3.1 (4.2: la piedra extra es del picapedrero)
   sumarMaterial(o.tipo, cuanto);
   if (o.mata) { veg.despejar(o.mata.x, o.mata.z, 0.6, true); anotarPicadoEn(picados(), o.mata.x, o.mata.z); }   // 4.4.2 (C4): y se recuerda: no vuelve al recargar
   if (o.caido) { veg.talar(o.arbol); anotarTalado(o.arbol); }
@@ -4882,6 +4920,7 @@ const almacenJuego = crearAlmacenJuego({
   nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
   material: (k) => material(k), cuantoHay: (k) => cuantoHay(k), sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
   conMateriales: (fn) => conMateriales(fn), materialesVisibles: () => materialesVisibles(),
+  lugarEn: (k, n) => lugarEn(k, n),   // 4.7 carga: al sacar del depósito sólo sale lo que entra
 });
 // 4.3: el negocio propio (aislado: si falla al armarse, el resto del juego sigue). Todo por función: se lee al usarlo.
 let negocioJuego = null;
@@ -4889,7 +4928,7 @@ let empleadosNegocioJuego = null;   // 4.4: los vecinos contratados en tu local 
 try {
   negocioJuego = crearNegocioJuego({
     progreso: () => progreso, obras: () => obras, jugador: () => jugador, gente: () => gente, sonido: () => sonido,
-    nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+    nota: (...a) => nota(...a), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), ...CARGA_CTX,   // 4.7 carga: del estante sale sólo lo que entra
     tengo: (k) => tengoDeOficio({ k, donde: BIENES[k].donde }), quitar: (k, n) => quitarDeOficio({ k, donde: BIENES[k].donde }, n),
     dar: (k, n) => { const d = BIENES[k].donde; if (d === 'material') sumarMaterial(k, n); else if (d === 'cosa') { progreso.cosas[k] = (progreso.cosas[k] || 0) + n; registrar(k); } else sumarEntrada(k, n); },
     lluvia: () => clima?.estado?.lluvia || 0, agua: (x, z) => T.agua(x, z), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
@@ -4962,16 +5001,22 @@ function usarAcopio() {
     sonido.juntar();
     nota('Guardaste en el acopio', `${partes.join(' · ')}. Hay ${a.tronco || 0}/${a.tabla || 0}/${a.piedra || 0} (tope ${TOPE_ACOPIO} de cada uno)${noEntro.length ? `. No entró todo: ${noEntro.join(', ')}` : ''}`);
   } else if (totalAcopio() > 0) {
+    // 4.7 carga: del acopio sale sólo lo que entra en la mochila; el resto queda guardado
     const partes = [];
+    let quedo = false;
     for (const k of CLAVES_MATERIAL) {
-      const n = a[k] || 0;
+      const n0 = a[k] || 0;
+      if (!n0) continue;
+      const n = Math.min(n0, lugarEn(k, n0));
+      if (n < n0) quedo = true;
       if (!n) continue;
       m[k] = (m[k] || 0) + n;
-      a[k] = 0;
+      a[k] = n0 - n;
       partes.push(cantidadMaterial(n, k));
     }
+    if (!partes.length) { nota('Mochila llena: no te entra nada del acopio', 'Gastá, vendé o guardá algo en un depósito'); return; }
     sonido.juntar();
-    nota('Sacaste todo del acopio', partes.join(' · '));
+    nota(quedo ? 'Sacaste lo que te entra del acopio' : 'Sacaste todo del acopio', quedo ? `${partes.join(' · ')}. El resto sigue en el acopio: hacé lugar en la mochila` : partes.join(' · '));
   } else {
     nota('El acopio está vacío', 'Traé troncos, tablas o piedra y apretá E acá');
     return;
@@ -5036,6 +5081,15 @@ function usarCantero(c) {
     refrescarHuerta();
     guardar();
     return;
+  }
+  {   // 4.7 carga: se prueba en una copia (con las abejas y el oficio, sin gastar nada); si no entra, la cosecha queda en el cantero
+    const seco = cosechar(structuredClone(h), c.clave, progreso.dia);
+    if (seco.ok) {
+      const n1 = cosechaConAbejas(seco.cantidad, { x: c.obra.datos.x, z: c.obra.datos.z }, obrasTerminadas('colmena').map((x) => x.datos));
+      const of0 = oficios?.oficios();
+      const total = of0 ? n1 + extraDeCosecha(n1, nivelDe('huertero'), of0.resto.cosecha).extra : n1;
+      if (!cabeJuntar(seco.ingrediente, total)) return;
+    }
   }
   const r = cosechar(h, c.clave, progreso.dia);
   if (!r.ok) { nota(textoCantero(p, progreso.dia), 'Cada día de lluvia las adelanta uno'); return; }
@@ -5108,6 +5162,7 @@ function gallineroCerca() {
 function usarGallinero(c) {
   const g = gallineros()[c.clave];
   if (!g) { refrescarGallineros(); return; }
+  { const seco = juntarHuevos(structuredClone(g), progreso.dia); if (seco.ok && !cabeJuntar('huevo', seco.huevos)) return; }   // 4.7 carga: sin lugar, los huevos siguen en el nidal
   const r = juntarHuevos(g, progreso.dia);
   if (!r.ok) { nota('El nidal está vacío', 'Las gallinas ponen de día: mañana va a haber'); return; }
   registrar('gallina');
@@ -5300,6 +5355,7 @@ function armarOficiosYAldea(esDesafio) {
     alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), sonido, redibujar,
     registrar: (id) => registrar(id),
+    ...CARGA_CTX,   // 4.7 carga
     sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), conMateriales: (fn) => conMateriales(fn), alAportar: (usados, completa, antes) => ganarOficio('obrero', xpDeAporte(usados, completa, antes)),
     refrescarBarra: () => refrescarBarra(true), hablandoCon: () => charla.npc,
     // lo que dan los pobladores y no es de la mochila
@@ -5389,7 +5445,7 @@ function armarOficiosYAldea(esDesafio) {
     reloj: () => (ajustes.duracion === 'reloj' ? Date.now() / 3600e3 : null),   // 3.8.6: con la hora de tu reloj, la cocción va con el reloj
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), sonido: () => sonido,
     troncos: () => troncosAMano(), gastarTroncos: (n) => conMateriales((m) => { m.tronco = Math.max(0, (m.tronco || 0) - n); }),
-    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato),
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), diario: (tipo, dato) => diario.anotar(tipo, dato), ...CARGA_CTX,   // 4.7 carga
     aldea: () => aldeaGente, perro: () => perro, nombrePerro: () => perro?.nombre?.() || '', decir: (texto) => decirCharlaAldea(texto),
     mundo: () => cocinaMundo, alClic: (el, fn) => alClicHud(el, fn), traducir: (s) => T_(s), alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y),
     sendero: () => T.sendero || [], centroAldea: () => aldeaMundo?.centro || null, seco: (x, z) => !T.agua(x, z),
@@ -5454,7 +5510,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, mundo: granjaMundo,
     obras: () => obras?.obras || [], terminada: (o) => obraTerminada(o), corral: () => progreso.corral || null, ovejas: () => corralMundo?.ovejas?.map((o) => o.pos) || [], ovejaCerca: () => ovejaCercana?.pos || null,
     jugador: () => jugador?.estado || null, nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
-    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), registrar: (id) => registrar(id), sonido,
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), registrar: (id) => registrar(id), sonido, ...CARGA_CTX,   // 4.7 carga
   });
   // 3.7.5 (rincones): los rincones en el juego: E y el aviso, lo que te enseñan los amigos y el sulky en la charla, el
   // picado en el potrero, los títeres y el sulky por el camino
@@ -5508,6 +5564,7 @@ function armarOficiosYAldea(esDesafio) {
       pagar: (monto, motivo, con) => pagarPesos(progreso, monto, motivo, con).ok, cobrar: (monto, motivo, con) => cobrarPesos(progreso, monto, motivo, con),
       darHerramienta: (id) => darHerramientaDeZona(id),
       nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
+      ...CARGA_CTX,   // 4.7 carga
     });
     genteCampoMundo = crearGenteCampoMundo({ T, col, gente });
     tablonJuego = crearTablonMundo({
@@ -5526,7 +5583,7 @@ function armarOficiosYAldea(esDesafio) {
     rincones: rinconesJuego,   // 3.7.5 (rincones): lo que te enseñan los amigos, el sulky de Tito y la pista de los duendes
     progreso: () => progreso, desafio: () => !!desafio, pronostico: pronosticoDeManana, clima: climaVecindad,
     apodo: () => apodoPorId(progreso.vidaAldea?.apodo)?.texto || null,   // 3.7.0: los vecinos te llaman por tu apodo
-    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n),
+    sumarMaterial: (k, n) => sumarMaterial(k, n), sumarEntrada: (k, n) => sumarEntrada(k, n), ...CARGA_CTX,   // 4.7 carga
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true),
     mesa: () => mesaPuesta(mueblesTerminados()), hayVisita: () => !!visitante,
     jugador: () => jugador?.estado?.pos || null, alturaDePie: (x, z, y) => alturaDePie(T, col, x, z, y), aldea: () => aldeaGente,
@@ -5929,6 +5986,8 @@ function cambiarFeria(i) {
   marcarEn('feria', i);   // 3.6.2: lo elegido (con el número, el clic o Enter) queda marcado
   const o = ofertasDelDia(progreso.dia, progreso.cosas, feria().tomadas)[i];
   if (!o) return;
+  // 4.7 carga: lo que te dan en la feria tiene que entrar (descontando lo que dás) ANTES de cambiar
+  if (o.da.materiales && !feria().tomadas.includes(o.id) && !cabeTrato(o.da.materiales, o.pide)) return;
   const r = cambiarEnFeria(feria(), o.id, cuantoFeria);
   if (!r.ok) {
     if (r.motivo === 'hecho') nota('Ese ya lo cambiaste', 'Vuelve en la próxima feria');
@@ -5974,6 +6033,7 @@ function cargas() {
       temporada: () => estacionDe({ invierno: U.uInvierno.value, otono: U.uOtono.value }),
       nota, sonido, guardar, refrescar: () => refrescarBarra(true), T_,
       alClic: (el, fn) => alClicHud(el, fn),   // 3.8.4: el clic mueve la marca del mando
+      ...CARGA_CTX,   // 4.7 carga: lo que comprás tiene que entrar
       // 3.7.3: con el furgón de carga enganchado, más fletes por día y a la vez
       furgon: () => (conVagon('carga') ? { extra: FURGON.fletesExtra, aLaVez: FURGON.aLaVez } : null),
     });
@@ -5984,7 +6044,7 @@ const enLasCargas = () => !!puestoCargas?.abierto();
 // 3.8.8: el mostrador del banco del pueblo (banco-mundo.js): préstamos, abastecimiento, casas y alquiler, y tu puesto en la feria
 let bancoPueblo = null;
 function bancoDelPueblo() {
-  if (!bancoPueblo) bancoPueblo = crearBancoMundo({ panel: $('banco-pueblo'), contenido: $('banco-pueblo-contenido'), progreso: () => progreso, dia: () => progreso.dia, nota, guardar, refrescar: () => refrescarBarra(true), T_, sonido, alClic: (el, fn) => alClicHud(el, fn) });
+  if (!bancoPueblo) bancoPueblo = crearBancoMundo({ panel: $('banco-pueblo'), contenido: $('banco-pueblo-contenido'), progreso: () => progreso, dia: () => progreso.dia, nota, guardar, refrescar: () => refrescarBarra(true), T_, sonido, alClic: (el, fn) => alClicHud(el, fn), cabeJuntar: (k, n) => cabeJuntar(k, n) });   // (4.7 carga: la consigna)
   return bancoPueblo;
 }
 const enElBanco = () => !!bancoPueblo?.abierto();
@@ -6049,6 +6109,7 @@ function tejer() {
   const id = queTejer(lanaAMano(), progreso.cosas);
   if (!id) { nota('No alcanza la lana', `Hacen falta ${TEJIDOS.poncho.lana} vellones para un poncho. La majada está en el galpón`); return; }
   const t = TEJIDOS[id];
+  if (id === 'poncho' && !cabeTrato({ poncho: 1 }, { lana: t.lana })) return;   // 4.7 carga: la lana libera lugar (neto); la manta no ocupa casillas
   conMateriales((m) => { m.lana -= t.lana; });
   if (id === 'manta') progreso.cosas.manta = 1;
   else { progreso.cosas.poncho = (progreso.cosas.poncho || 0) + 1; registrar('poncho'); }
@@ -6071,6 +6132,8 @@ function majada() {
 // 2.4: la oveja es del galpón o de tu corral (ver corral.js)
 const majadaDe = (o) => (o?.propia && progreso.corral ? progreso.corral : majada());
 function esquilarOveja(o) {
+  // 4.7 carga: sin lugar para el vellón no se esquila (probado en una copia: la oveja sigue con su lana)
+  { const seco = progreso.cosas.tijera ? esquilar(structuredClone(majadaDe(o)), o.i, progreso.dia, true) : null; if (seco?.ok && !cabeJuntar('lana', seco.vellones)) return; }
   const r = esquilar(majadaDe(o), o.i, progreso.dia, !!progreso.cosas.tijera);
   if (!r.ok) {
     if (r.motivo === 'tijera') nota('Hace falta una tijera de esquilar', 'Ercilia la cambia en el almacén');
@@ -6474,6 +6537,7 @@ function aserrar() {
   if (!puedeAserrar()) return;
   const banco = enBancoAserrar();
   const cuanto = banco ? TABLAS_BANCO : tablasAMano(TABLAS_A_MANO, nivelDe('hachero'));   // 3.1
+  if (!cabeTrato({ tabla: cuanto }, { tronco: 1 })) return;   // 4.7 carga: el tronco libera su lugar (neto): con la mochila llena no se asierra
   progreso.materiales.tronco -= 1;
   sumarMaterial('tabla', cuanto);
   sonido.paso('madera', 0.9);
@@ -7307,6 +7371,7 @@ function usarElTendal() {
   const o = tendalCerca();
   if (!o) return;
   const t = datosTendal(o);
+  if (t.colgado && t.horas >= HORAS_SECADO && !cabeJuntar(t.colgado, 1)) return;   // 4.7 carga: lo seco no se descuelga sin lugar (queda secándose en el tendal)
   const q = usarTendal(t, progreso.entradas);
   const C = CONSERVAS[q.conserva];
   if (q.accion === 'colgar') { sonido.juntar(); nota('Colgaste a secar', `${C.cantidad} ${C.ingrediente === 'llaollao' ? 'llao llao' : 'calafates'}: medio día de sol, y la lluvia lo frena`, true); }
@@ -7411,6 +7476,7 @@ function usarObraQueTrabaja(o) {
   if (usarObra24(o)) { refrescarBarra(true); guardar(); return; }
   if (usarMaquina(o)) { refrescarBarra(true); guardar(); return; }   // 2.9
   if (o.plano.id === 'colmena') {
+    { const c0 = datosDe(o, 'colmena', sanearColmena); if (c0?.miel > 0 && !cabeJuntar('miel', c0.miel)) return; }   // 4.7 carga: sin lugar, la miel queda en la colmena
     const r = usarColmena(datosDe(o, 'colmena', sanearColmena), estadoAbejas(o));
     if (r.accion === 'cosechar') {
       const total = sumarEntrada('miel', r.miel);
@@ -7421,6 +7487,7 @@ function usarObraQueTrabaja(o) {
     else nota('Las abejas están trabajando', r.dias === 1 ? 'Falta miel: más o menos un día de sol' : `Falta miel: unos ${r.dias} días de sol`);
   } else if (o.plano.id === 'ahumadero') {
     const a = datosDe(o, 'ahumadero', sanearAhumadero);
+    if (a?.listas > 0 && !cabeJuntar('trucha-ahumada', a.listas)) return;   // 4.7 carga: sin lugar, las truchas siguen en el ahumadero
     const r = usarAhumadero(a, truchasFrescas(), troncosAMano());
     if (r.accion === 'sacar') {
       const total = sumarEntrada('trucha-ahumada', r.ahumadas);
@@ -7436,6 +7503,11 @@ function usarObraQueTrabaja(o) {
     else if (r.accion === 'sinLena') nota('Falta leña', 'Un tronco por tanda, para el fuego de abajo');
     else nota('No tenés truchas', `Con el ahumadero, de lo que pescás te quedás con ${AHUMADERO.porDia} truchas por día`);
   } else if (o.plano.id === 'vivero') {
+    { // 4.7 carga: los plantines listos se sacan juntos y sólo si entran (sembrar no suma nada: libera semillas)
+      const v0 = datosDe(o, 'vivero', (d) => sanearVivero(d, progreso.cosas?.['macetas-barro']));
+      const seco = v0 ? usarVivero(structuredClone(v0), progreso.entradas, progreso.dia, progreso.cosas?.['macetas-barro']) : null;
+      if (seco?.accion === 'sacar') { const da = {}; for (const [esp, n] of Object.entries(seco.plantines)) da[ARBOLES_VIVERO[esp].plantin] = n; if (!cabeTrato(da)) return; }
+    }
     const r = usarVivero(datosDe(o, 'vivero', (d) => sanearVivero(d, progreso.cosas?.['macetas-barro'])), progreso.entradas, progreso.dia, progreso.cosas?.['macetas-barro']);   // (3.7.0)
     if (r.accion === 'sacar') {
       for (const [esp, n] of Object.entries(r.plantines)) sumarEntrada(ARBOLES_VIVERO[esp].plantin, n);
@@ -7505,6 +7577,8 @@ function usarOficioPropio(o) {
   const id = o.plano.id;
   if (Object.hasOwn(TALLERES, id)) {
     const def = TALLERES[id], t = tallerDe(o);
+    // 4.7 carga: se prueba en una copia (sin gastar nada); si lo que sale no entra, queda en el taller
+    { const seco = usarTaller(structuredClone(t), def, horaDeJuego(), { ...envOficios(), quitar: () => {} }); if (seco.retiro && !seco.retiro.pesos && !cabeJuntar(seco.retiro.k, seco.retiro.n)) return true; }
     const r = usarTaller(t, def, horaDeJuego(), envOficios());
     if (r.retiro) { entregarDeOficio(def, r.retiro); sonido.juntar(); }
     if (r.cargo) sonido.encender();
@@ -7709,6 +7783,7 @@ function usarMaquina(o) {
   relojMaquinas = 0;   // en el cuadro que viene la sierra arranca (o para) con lo cargado
   const fuerza = fuerzaMolino();
   if (o.plano.id === 'molino-agua') {
+    { const seco = usarMolino(structuredClone(datosDe(o, 'muela', sanearMuela)), cuantoHay('haba'), fuerza); if (seco.accion === 'sacar' && !cabeJuntar('harina', seco.harina)) return true; }   // 4.7 carga: sin lugar, la harina sigue en el molino
     const r = usarMolino(datosDe(o, 'muela', sanearMuela), cuantoHay('haba'), fuerza);
     if (r.accion === 'sacar') {
       progreso.cosas.harina = (progreso.cosas.harina || 0) + r.harina;
@@ -7729,6 +7804,7 @@ function usarMaquina(o) {
   if (o.plano.id === 'aserradero') {
     const a = datosDe(o, 'aserradero', sanearAserradero);
     const mueve = !!molinoQueMueve(o.datos, molinosTerminados());
+    { const seco = usarAserradero(structuredClone(a), material('tronco'), mueve, fuerza); if (seco.accion === 'sacar' && !cabeJuntar('tabla', seco.tablas)) return true; }   // 4.7 carga: sin lugar, las tablas siguen en el aserradero
     const r = usarAserradero(a, material('tronco'), mueve, fuerza);
     if (r.accion === 'sacar') {
       sumarMaterial('tabla', r.tablas);
@@ -7862,6 +7938,7 @@ function hornear() {
   const rc = elegirHorneada(cuantoCocina, guardadoHorno);
   if (!rc) { nota('No tenés con qué hornear', `Pan: ${textoPide(RECETAS_HORNO[0])}. Empanadas: ${textoPide(RECETAS_HORNO[1])}`); return; }
   if (troncosAMano() < LENA_HORNO) { nota('Falta leña', 'Un tronco por horneada, para calentar el barro'); return; }
+  { const quita = { tronco: LENA_HORNO }; for (const p of rc.pide) quita[p.k] = (quita[p.k] || 0) + p.n; if (!cabeTrato({ [rc.id]: rc.da }, quita)) return; }   // 4.7 carga: lo horneado entra descontando lo que se gasta
   for (const p of rc.pide) {
     if (p.cosa) progreso.cosas[p.k] -= p.n;
     else progreso.entradas[p.k].cantidad -= p.n;
@@ -8029,6 +8106,7 @@ function arbolParaSemilla() {
   return r.ok ? { arbol, i, semilla: r.semilla } : null;
 }
 function juntarSemilla(s) {
+  if (!cabeJuntar(s.semilla, 1)) return;   // 4.7 carga: con la mochila llena la semilla queda en el árbol
   progreso.semillasJuntadas.arboles.push(s.i);
   const total = sumarEntrada(s.semilla, 1);
   sonido.juntar();
@@ -8229,7 +8307,9 @@ function seguirCharla() {
   if (pide) { const d = DESAFIOS.find((x) => x.id === pide); if (d) setTimeout(() => nota(`Te piden una foto: ${d.nombre}`, d.pista, true), 1400); }
   if (charla.encargo && charla.parte === 1) {
     const e = charla.encargo.e;
-    if (charla.encargo.modo === 'listo') { progreso.encargos[e.id] = 'hecho'; registrar(e.id); cobrarPremio(e); }
+    // 4.7 carga: el premio en cosas tiene que entrar; si no, el encargo sigue pendiente (se cobra cuando haya lugar)
+    if (charla.encargo.modo === 'listo' && !cabeTrato(premioEnCosas(e.premio))) { /* sigue pendiente */ }
+    else if (charla.encargo.modo === 'listo') { progreso.encargos[e.id] = 'hecho'; registrar(e.id); cobrarPremio(e); }
     else if (progreso.encargos[e.id] !== 'pedido') {
       progreso.encargos[e.id] = 'pedido';
       // los de temporada cuentan lo hecho desde ahora, no desde el principio
@@ -8255,6 +8335,13 @@ function mandarFoto(id) {
   guardar();
 }
 // Lo que te dejan a cambio del encargo: materiales, ramitas o algo para la mochila.
+// 4.7 carga: lo que ocupa un premio (los materiales y lo que se cuenta; las herramientas y los pesos no)
+function premioEnCosas(premio) {
+  const da = {};
+  for (const [k, n] of Object.entries(premio?.materiales || {})) da[k] = (da[k] || 0) + (Number(n) || 0);
+  for (const [k, n] of Object.entries(premio?.cuenta || {})) da[k] = (da[k] || 0) + (Number(n) || 0);
+  return da;
+}
 function cobrarPremio(e) {
   const premio = e?.premio;
   if (!premio) return;
@@ -8767,6 +8854,8 @@ function cambiar(i) {
     nota('Todavía te falta', `Hacen falta ${faltan.join(' y ')}`);
     return;
   }
+  // 4.7 carga: lo que se lleva (yerba, harina, semillas, azúcar…) tiene que entrar ANTES de cobrar; las herramientas no ocupan casillas
+  if (t.repetible) { const x = tratoDeEfectos([{ tipo: 'cosa', k: t.cosa || t.id, n: t.da || 1 }, ...t.pide.map(([k, n]) => ({ tipo: 'entrada', k, n: -n }))]); if (!cabeTrato(x.da, x.quita)) return; }
   if (t.pesos && !pagarPesos(progreso, t.pesos, t.nombre, 'Ercilia (almacén)').ok) { nota('Todavía te falta', `Hacen falta ${formatoPesos(t.pesos)}`); return; }
   for (const [k, n] of t.pide) {
     if (k === 'ramita') progreso.ramitas -= n;
@@ -9637,7 +9726,8 @@ function usarObjetivo() {
   const js = jugador.estado;
   const r = objetos.usar(objetivo, registrar, sonido);
   if (r?.juntado) amorJuego?.alJuntar(r.juntado);   // 3.7.1: el ojo para los frutos de Inés (uno más)
-  if (r && !r.llena) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada)
+  if (r && !r.llena && !r.llenaMochila) destellarRanura(objetivo?.tipo);   // (3.8.3: con las ramitas llenas no entró nada; 4.7: ni con la mochila llena)
+  if (r?.llenaMochila) { nota(`Mochila llena: no te entra más ${r.llenaMochila}`, 'Gastá, vendé o guardá algo en un depósito'); return; }   // 4.7 carga: se queda en el suelo
   if (r?.sentarse?.cama) { dormir(); return; }
   if (r?.llena) nota('No te entran más ramitas', `Ya llevás ${progreso.ramitas}: la dejaste en el suelo`);   // 3.8.3
   else if (r?.ramita) nota(`${progreso.ramitas} ${progreso.ramitas === 1 ? 'ramita' : 'ramitas'}`, progreso.ramitas >= 3 ? 'Con tres ya podés hacer una fogata' : 'Para hacer fuego');

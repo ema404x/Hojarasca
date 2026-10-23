@@ -278,7 +278,7 @@ function cargar(raices, final) {
     code += `const ${idModulo(f)}=(()=>{\n${t}\nreturn {${[...new Set(ex)].join(',')}};\n})();\n`;
   }
   code += final;
-  const ctx = { console, performance, setTimeout, clearTimeout, Math, Date, globalThis: null };
+  const ctx = { console, performance, setTimeout, clearTimeout, Math, Date, structuredClone, globalThis: null };   // 4.7 carga: structuredClone (granja-juego.js prueba en una copia)
   ctx.globalThis = ctx; ctx.window = ctx; ctx.self = ctx;
   vm.createContext(ctx);
   vm.runInContext(code, ctx, { filename: 'granja-vm.js' });

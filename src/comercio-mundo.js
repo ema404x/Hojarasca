@@ -194,6 +194,8 @@ export function crearPuestoDeCargas(ctx) {
     if (!nombre || !BIENES[bien] || !conocido(bien)) return false;
     const m = mercadoDe(nombre);
     if (!puedeVenderte(m, bien)) { ctx.nota('Se les agotó', 'Mañana vuelven a tener'); return false; }
+    // 4.7 carga: el lote que comprás tiene que entrar en la mochila ANTES de cobrar
+    { const lote = precios(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), factor(nombre, bien)).lote; if (ctx.cabeTrato && !ctx.cabeTrato({ [bien]: lote })) return false; }
     const r = comprar(comercio(), nombre, bien, ctx.dia(), ctx.temporada(), plata() / PESOS_POR_YERBA, factor(nombre, bien));
     if (!r.ok) {
       if (r.motivo === 'yerba') ctx.nota('No te alcanza la plata', `Cuesta ${formatoPesos(aPesos(r.precio))}; tenés ${formatoPesos(plata())}. Vendé algo primero`);

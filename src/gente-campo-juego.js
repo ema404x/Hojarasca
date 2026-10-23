@@ -109,6 +109,8 @@ export function crearGenteCampoJuego(ctx) {
     if (!c.puede) return renglones(c.requiere && c.motivo?.startsWith('Pide') ? `Éste no te lo vendo todavía: primero aprendé a picar piedra (${c.requiere.oficio} nivel ${c.requiere.nivel}). Con el pico común, en cualquier pedrero.` : FRASES.nadaHoy);
     const plata = pesosDe(progreso());
     if (plata < c.precio) return renglones(FRASES.sinPlata(c.precio - plata));
+    // 4.7 carga: lo que comprás tiene que entrar en la mochila ANTES de cobrar (la herramienta y el dato no ocupan casillas)
+    if (c.tipo !== 'herramienta' && c.tipo !== 'dato' && ctx.cabeTrato && !ctx.cabeTrato({ [c.k]: c.n })) return renglones('No te entra todo eso en la mochila: hacé lugar y volvé.');
     if (!ctx.pagar?.(c.precio, `Compra: ${c.titulo.toLowerCase()}`, nombreCampo(k))) return renglones(FRASES.sinPlata(c.precio - plata));
     anotarCompra(g, k, c.id, dia());
     let dice = c.dice;
