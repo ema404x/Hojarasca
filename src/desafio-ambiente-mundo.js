@@ -1,23 +1,19 @@
 // 4.8 ambiente: el ambiente de la noche en el mundo (ojos, niebla, luna llena, sombras de antorcha, animales). Las reglas están en
 // `desafio-ambiente.js` (puras, con pruebas); acá se las lleva al valle. Sin luces nuevas, sin shaders nuevos a mitad de juego y sin
 // crear nada por cuadro:
-//   · los ojos que brillan entre los árboles son halos del dibujo de los duendes (`registrarHalos`: ya se dibuja en una sola
-//     llamada); hay seis pares hechos de antemano y se reciclan;
-//   · la brasa de la antorcha robada es otro halo de esos;
+//   · los ojos que brillan entre los árboles y la brasa de la antorcha robada son puntos de un solo dibujo (13 puntos: seis pares y la
+//     brasa) de tamaño fijo en pantalla, así se leen igual a 35 que a 80 metros; el dibujo sólo existe mientras haya algo que mostrar,
+//     y se prepara en la carga junto con el resto (como las sombras) para que su programa no se compile en plena noche;
 //   · las sombras largas de las antorchas son una sola malla instanciada (como mucho 8 sombras, una llamada), preparada en la
 //     carga junto con el resto para que su programa se compile ahí;
 //   · la niebla y la luna llena no son objetos: son números (`clima`) que `main.js` le pasa al cielo.
 import * as THREE from 'three';
 import { LIMITE } from './config.js';
 import { rng } from './ruido.js';
-import { registrarHalos } from './desafio-duendes.js';
 import { estaMirando } from './desafio-sentidos.js';
-import {
-  HORA_PREVIA, tipoDeNoche, perfilDe, crearAgenda, miedoDe, puntoA, rumboA, seguirMirada, ojosSeApagan, brilloOjos,
-  acercar, objetivoNiebla, objetivoLuna, nieblaExtra, VELOCIDAD_NIEBLA, VELOCIDAD_LUNA, sombraDeAntorcha, FAUNA, avisaElPuesto, avesCallan,
-} from './desafio-ambiente.js';
+import { HORA_PREVIA, tipoDeNoche, perfilDe, crearAgenda, miedoDe, puntoA, rumboA, seguirMirada, ojosSeApagan, enElCentro, brilloOjos, acercar, objetivoNiebla, objetivoLuna, nieblaExtra, VELOCIDAD_NIEBLA, VELOCIDAD_LUNA, sombraDeAntorcha, FAUNA, avisaElPuesto, avesCallan } from './desafio-ambiente.js';
 
-const N_OJOS = 6, N_SOMBRAS = 8, VERDE_OJO = '#c8ff5a', BRASA = '#ff9a3d';
+const N_OJOS = 6, N_SOMBRAS = 8, COLOR_OJO = '#ff5a1c', BRASA = '#ffcf6a', PX_OJO = 18, PX_BRASA = 24, SEP_PX = 28;
 const limitar = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 // `ctx`: { T, escena, sonido, S, col, defensas, aliens() → lista viva, D() → estado de la partida, progreso() → { dia, horas }, nota(t, s),
@@ -26,26 +22,33 @@ export function crearAmbienteMundo(ctx) {
   const { T, escena, S, col, defensas, musica } = ctx;
   const sonido = ctx.sonido;
 
-  // ---------------------------------------------------------------- los ojos
+  // ---------------------------------------------------------------- los ojos y la brasa
+  // Un solo dibujo de puntos de tamaño fijo en pantalla (`sizeAttenuation: false`): dos puntos por par de ojos y uno para la brasa. El
+  // espacio entre los dos ojos se calcula para que se vea siempre igual de separado (a 70 m, un par de ojos de verdad no se ve).
   const ojos = [];
-  for (let i = 0; i < N_OJOS; i++) {
-    const g = new THREE.Group();
-    g.name = 'ojos-lejanos';
-    g.visible = false;
-    g.userData.halos = [{ p: new THREE.Vector3(-0.09, 0, 0), col: VERDE_OJO, tam: 3.2 }, { p: new THREE.Vector3(0.09, 0, 0), col: VERDE_OJO, tam: 3.2 }];
-    g.userData.brilloHalos = 0;
-    escena.add(g);
-    registrarHalos(g);
-    ojos.push({ g, activo: false, edad: 0, vida: 1, mirada: 0, apagando: 0, x: 0, z: 0 });
-  }
-  // la brasa de la antorcha que se llevan: un halo anaranjado que se aleja por el monte
-  const brasa = new THREE.Group();
-  brasa.name = 'brasa-ladrona';
-  brasa.visible = false;
-  brasa.userData.halos = [{ p: new THREE.Vector3(0, 0, 0), col: BRASA, tam: 4.2 }, { p: new THREE.Vector3(0, 0.1, 0), col: '#ffd27a', tam: 1.6 }];
-  brasa.userData.brilloHalos = 0;
-  escena.add(brasa);
-  registrarHalos(brasa);
+  for (let i = 0; i < N_OJOS; i++) ojos.push({ activo: false, edad: 0, vida: 1, mirada: 0, apagando: 0, x: 0, y: 0, z: 0, brillo: 0 });
+  const N_PUNTOS = N_OJOS * 2 + 1;
+  const posPuntos = new Float32Array(N_PUNTOS * 3), colPuntos = new Float32Array(N_PUNTOS * 3);
+  const geoPuntos = new THREE.BufferGeometry();
+  geoPuntos.setAttribute('position', new THREE.BufferAttribute(posPuntos, 3));
+  geoPuntos.setAttribute('color', new THREE.BufferAttribute(colPuntos, 3));
+  const texPunto = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.22, 'rgba(255,255,255,0.8)'); g.addColorStop(0.5, 'rgba(255,255,255,0.2)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(c);
+  })();
+  const matPuntos = new THREE.PointsMaterial({ size: PX_OJO, map: texPunto, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false, fog: false });
+  const puntos = new THREE.Points(geoPuntos, matPuntos);
+  puntos.name = 'ojos-y-brasa';
+  puntos.frustumCulled = false; puntos.renderOrder = 5;
+  escena.add(puntos);
+  // durante la carga queda a la vista, bajo el suelo, para que su programa se compile ahí y no en la primera noche
+  posPuntos[1] = -600; colPuntos[0] = colPuntos[1] = colPuntos[2] = 0.01;
+  geoPuntos.setDrawRange(0, 1);
+  const cOjo = new THREE.Color(COLOR_OJO), cBrasa = new THREE.Color(BRASA), _c = new THREE.Color();
+  const brasa = { x: 0, y: 0, z: 0, brillo: 0, visible: false };
   const robo = { activo: false, pendiente: null, t: 0, dx: 0, dz: 0, x: 0, z: 0, risas: 0 };
 
   // ---------------------------------------------------------------- las sombras largas de las antorchas
@@ -102,7 +105,7 @@ export function crearAmbienteMundo(ctx) {
   }
 
   // ---------------------------------------------------------------- estado
-  let agenda = null, claveAgenda = '', tipo = 'comun', perfil = PERFILES.comun;
+  let agenda = null, claveAgenda = '', tipo = 'comun', perfil = perfilDe('comun');
   let reloj = 0, acum2 = 0, acum1 = 0, primero = true, avisoRobo = false, sonidosPedidos = false;
   const clima = { niebla: 0, luna: 0, extra: 0 };
   const salida = { miedo: 0, avance: 0, silencio: false, tipo: 'comun', ojos: 0, antorchaLista: false };
@@ -119,11 +122,11 @@ export function crearAmbienteMundo(ctx) {
     agenda = crearAgenda(perfil, Math.random);
     secuencias.clear();
     if (salida.silencio) { salida.silencio = false; sonido?.romperSilencio?.(); }
-    robo.activo = false; robo.pendiente = null; brasa.visible = false; brasa.userData.brilloHalos = 0;
+    robo.activo = false; robo.pendiente = null; brasa.visible = false; brasa.brillo = 0;
     for (const o of ojos) apagarOjos(o, true);
   }
   function apagarOjos(o, ya) {
-    if (ya) { o.activo = false; o.g.visible = false; o.g.userData.brilloHalos = 0; o.apagando = 0; return; }
+    if (ya) { o.activo = false; o.brillo = 0; o.apagando = 0; return; }
     o.apagando = 0.0001;
   }
 
@@ -146,10 +149,22 @@ export function crearAmbienteMundo(ctx) {
     }
     return false;
   }
+  // ¿un tronco entre vos y los ojos? Se mira cada 2,5 m de la línea, menos los últimos metros (ahí está el árbol del que se asoman)
+  function troncoEnMedio(js, x, z, propio) {
+    const dx = x - js.pos.x, dz = z - js.pos.z, l = Math.hypot(dx, dz) || 1;
+    for (let s = 2.5; s < l - 3; s += 2.5) {
+      const px = js.pos.x + dx * s / l, pz = js.pos.z + dz * s / l;
+      for (const c of col.cercanos(px, pz)) {
+        if (c === propio || c.despejado || c.seg || !(c.r >= 0.2)) continue;
+        if (Math.hypot(c.x - px, c.z - pz) < c.r + 0.35) return true;
+      }
+    }
+    return false;
+  }
   // un árbol a la distancia y el rumbo pedidos; los ojos asoman de un costado del tronco
-  function lugarDeOjos(js, mira, dist) {
+  function lugarDeOjos(js, mira, dist, fijo = null) {
     for (let intento = 0; intento < 14; intento++) {
-      const rumbo = elegirRumbo(js, mira, intento < 5), d = dist * (0.85 + Math.random() * 0.3);
+      const rumbo = fijo !== null ? fijo + (Math.random() - 0.5) * 0.12 : elegirRumbo(js, mira, intento < 5), d = dist * (0.85 + Math.random() * 0.3);
       const P = puntoA(js.pos, rumbo, d);
       if (Math.abs(P.x) > LIMITE - 20 || Math.abs(P.z) > LIMITE - 20 || T.agua(P.x, P.z)) continue;
       let mejor = null, dm = 6;
@@ -161,21 +176,19 @@ export function crearAmbienteMundo(ctx) {
       if (!mejor) continue;
       const dx = mejor.x - js.pos.x, dz = mejor.z - js.pos.z, dd = Math.hypot(dx, dz) || 1, lado = Math.random() < 0.5 ? -1 : 1;
       const x = mejor.x + (-dz / dd) * lado * (mejor.r + 0.14), z = mejor.z + (dx / dd) * lado * (mejor.r + 0.14);
-      const y = T.altura(x, z) + 0.95 + Math.random() * 0.45;
-      if (tapado(js, x, z, y)) continue;
+      const y = T.altura(x, z) + 1.7 + Math.random() * 0.9;   // a la altura de la cabeza de uno que se asoma: más arriba que el pasto y los arbustos
+      if (tapado(js, x, z, y) || troncoEnMedio(js, x, z, mejor)) continue;
       if (ojos.some((o) => o.activo && Math.hypot(o.x - x, o.z - z) < 14)) continue;
       return { x, y, z };
     }
     return null;
   }
-  function ponerOjos(js, mira, vida, dist) {
+  function ponerOjos(js, mira, vida, dist, fijo = null) {
     const o = ojos.find((q) => !q.activo);
     if (!o) return false;
-    const lugar = lugarDeOjos(js, mira, dist);
+    const lugar = lugarDeOjos(js, mira, dist, fijo);
     if (!lugar) return false;
-    o.activo = true; o.edad = 0; o.vida = vida; o.mirada = 0; o.apagando = 0; o.x = lugar.x; o.z = lugar.z;
-    o.g.position.set(lugar.x, lugar.y, lugar.z);
-    o.g.visible = true; o.g.userData.brilloHalos = 0;
+    o.activo = true; o.edad = 0; o.vida = vida; o.mirada = 0; o.apagando = 0; o.x = lugar.x; o.y = lugar.y; o.z = lugar.z; o.brillo = 0;
     return true;
   }
 
@@ -208,7 +221,7 @@ export function crearAmbienteMundo(ctx) {
       if (robo.pendiente.datos.apagada) {
         // se apagó (o la apagó la lluvia): la brasa sale con el que se la lleva
         robo.activo = true; robo.t = 0; robo.pendiente = null;
-        brasa.visible = true;
+        brasa.visible = true; brasa.brillo = 0; brasa.x = robo.x; brasa.z = robo.z; brasa.y = T.altura(robo.x, robo.z) + 1.05;
         if (!avisoRobo) { avisoRobo = true; ctx.nota?.('Una antorcha se apagó sola', 'Algo anduvo por ahí, y no se vio quién. Acercate y prendela de nuevo con F'); }
         S.risa?.(posDe(robo.x, robo.z, 1.2), 'saltador');
       } else if ((robo.t += dt) > 8) robo.pendiente = null;   // no llegó a apagarse: nada
@@ -218,11 +231,12 @@ export function crearAmbienteMundo(ctx) {
     // corre por el monte, se mece, se achica con la distancia y se apaga
     const v = 5.4;
     robo.x += robo.dx * v * dt; robo.z += robo.dz * v * dt;
-    brasa.position.set(robo.x + Math.sin(robo.t * 2.1) * 0.5 * robo.dz, T.altura(robo.x, robo.z) + 1.05 + Math.abs(Math.sin(robo.t * 5.2)) * 0.22, robo.z - Math.sin(robo.t * 2.1) * 0.5 * robo.dx);
-    brasa.userData.brilloHalos = (0.8 + 0.2 * Math.sin(robo.t * 31)) * limitar(1 - (robo.t - 5.5) / 2.5, 0, 1) * limitar(robo.t / 0.25, 0, 1);
+    brasa.x = robo.x + Math.sin(robo.t * 2.1) * 0.5 * robo.dz; brasa.z = robo.z - Math.sin(robo.t * 2.1) * 0.5 * robo.dx;
+    brasa.y = T.altura(robo.x, robo.z) + 1.05 + Math.abs(Math.sin(robo.t * 5.2)) * 0.22;
+    brasa.brillo = (0.8 + 0.2 * Math.sin(robo.t * 31)) * limitar(1 - (robo.t - 5.5) / 2.5, 0, 1) * limitar(robo.t / 0.25, 0, 1);
     if (robo.risas === 0 && robo.t > 2.2) { robo.risas = 1; S.risa?.(posDe(robo.x, robo.z, 1.2), 'saltador'); }
     if (robo.risas === 1 && robo.t > 4.6) { robo.risas = 2; S.crujidoRama?.(posDe(robo.x, robo.z, 0.5), true); }
-    if (robo.t > 8) { robo.activo = false; brasa.visible = false; brasa.userData.brilloHalos = 0; }
+    if (robo.t > 8) { robo.activo = false; brasa.visible = false; brasa.brillo = 0; }
   }
 
   // ---------------------------------------------------------------- lo que pide el cronograma
@@ -271,28 +285,56 @@ export function crearAmbienteMundo(ctx) {
     }
   }
 
-  // ---------------------------------------------------------------- los ojos, cuadro a cuadro
+  // ---------------------------------------------------------------- los ojos y la brasa, cuadro a cuadro
   function actualizarOjos(dt, js, mira) {
-    let vivos = 0;
+    let vivos = 0, n = 0;
+    // metros por píxel a esa distancia (la separación entre los dos ojos se calcula para que se vea siempre igual)
+    const cam = ctx.camara?.(), tanMitad = cam ? Math.tan(cam.fov * Math.PI / 360) : 0.7, alto = (typeof window !== 'undefined' && window.innerHeight) || 800;
     for (const o of ojos) {
       if (!o.activo) continue;
       o.edad += dt;
       const dist = Math.hypot(o.x - js.pos.x, o.z - js.pos.z);
       // si los mirás un rato, se apagan: no se dejan ver
-      o.mirada = seguirMirada(o.mirada, dist > 8 && estaMirando(mira, js.pos, o.g.position), dt);
+      _p.set(o.x, o.y, o.z);
+      o.mirada = seguirMirada(o.mirada, dist > 8 && enElCentro(mira, js.pos, _p), dt);
       if (!o.apagando && (ojosSeApagan(o.mirada, dist) || o.edad >= o.vida || dist < 9)) {
         o.apagando = 0.0001;
-        if (o.edad < o.vida && dist >= 9 && Math.random() < 0.4) S.crujidoRama?.({ x: o.x, y: o.g.position.y, z: o.z });   // ya se fue: una ramita
+        if (o.edad < o.vida && dist >= 9 && Math.random() < 0.4) S.crujidoRama?.({ x: o.x, y: o.y, z: o.z });   // ya se fue: una ramita
       }
       if (o.apagando) {
         o.apagando += dt / 0.35;
         if (o.apagando >= 1) { apagarOjos(o, true); continue; }
       }
-      o.g.rotation.y = Math.atan2(js.pos.x - o.x, js.pos.z - o.z);   // los dos ojos, de frente a vos
-      o.g.userData.brilloHalos = brilloOjos(o.edad, o.vida, o.apagando) * (0.85 + 0.15 * Math.sin(o.edad * 3.1 + o.x));
+      o.brillo = brilloOjos(o.edad, o.vida, o.apagando) * (0.88 + 0.12 * Math.sin(o.edad * 3.1 + o.x));
       vivos++;
+      if (o.brillo < 0.01) continue;
+      // los dos ojos, perpendiculares a la línea hacia vos
+      const dx = js.pos.x - o.x, dz = js.pos.z - o.z, l = Math.hypot(dx, dz) || 1, sep = (SEP_PX * 2 * l * tanMitad / alto) / 2;
+      for (const lado of [-1, 1]) {
+        const k = n * 3;
+        posPuntos[k] = o.x + (dz / l) * sep * lado; posPuntos[k + 1] = o.y; posPuntos[k + 2] = o.z - (dx / l) * sep * lado;
+        _c.copy(cOjo).multiplyScalar(o.brillo * 1.7);
+        colPuntos[k] = _c.r; colPuntos[k + 1] = _c.g; colPuntos[k + 2] = _c.b;
+        n++;
+      }
     }
     salida.ojos = vivos;
+    // la brasa, al final (un punto más grande y anaranjado)
+    let hayBrasa = false;
+    if (brasa.visible && brasa.brillo > 0.01) {
+      const k = n * 3;
+      posPuntos[k] = brasa.x; posPuntos[k + 1] = brasa.y; posPuntos[k + 2] = brasa.z;
+      _c.copy(cBrasa).multiplyScalar(brasa.brillo * 1.7);
+      colPuntos[k] = _c.r; colPuntos[k + 1] = _c.g; colPuntos[k + 2] = _c.b;
+      n++; hayBrasa = true;
+    }
+    puntos.visible = n > 0;
+    if (n) {
+      geoPuntos.setDrawRange(0, n);
+      geoPuntos.attributes.position.needsUpdate = true; geoPuntos.attributes.color.needsUpdate = true;
+      // (el material es uno solo: la brasa, más grande, pesa lo que su color; el tamaño es el de los ojos)
+      matPuntos.size = (hayBrasa && n === 1 ? PX_BRASA : PX_OJO) * limitar(alto / 800, 0.8, 1.8);   // (en pantallas más altas, un poco más grandes)
+    }
   }
 
   // ---------------------------------------------------------------- sombras de antorcha, cuadro a cuadro
@@ -359,7 +401,7 @@ export function crearAmbienteMundo(ctx) {
   function actualizar(dt, e) {
     if (!preparada) {
       // el primer cuadro: la sombra de la carga se va, y se encargan los sonidos nuevos a la cola del motor
-      preparada = true; sombras.count = 0; sombras.visible = false;
+      preparada = true; sombras.count = 0; sombras.visible = false; puntos.visible = false;
     }
     if (!(dt > 0)) return salida;
     dt = Math.min(dt, 0.25);
@@ -425,8 +467,8 @@ export function crearAmbienteMundo(ctx) {
 
   function limpiar() {
     for (const o of ojos) apagarOjos(o, true);
-    robo.activo = false; robo.pendiente = null; brasa.visible = false; brasa.userData.brilloHalos = 0;
-    sombras.count = 0; sombras.visible = false;
+    robo.activo = false; robo.pendiente = null; brasa.visible = false; brasa.brillo = 0;
+    sombras.count = 0; sombras.visible = false; puntos.visible = false;
     claveAgenda = ''; salida.silencio = false; salida.ojos = 0;
     sonido?.romperSilencio?.();
   }
@@ -441,10 +483,11 @@ export function crearAmbienteMundo(ctx) {
     get puestos() { return puestos ? puestos.map((q) => ({ tipo: q.tipo, x: q.x, z: q.z })) : []; },
     agenda: () => agenda,
     // sólo para las pruebas y el diagnóstico: poner a mano un par de ojos / llevarse una antorcha
-    _ponerOjos: (js, mira, vida = 10, dist = 50) => ponerOjos(js, mira, vida, dist),
+    _ponerOjos: (js, mira, vida = 10, dist = 50, rumbo = null) => ponerOjos(js, mira, vida, dist, rumbo),
     _llevarseAntorcha: (js, mira) => llevarseAntorcha(js, mira),
-    _grupoOjos: ojos.map((o) => o.g),
+    _ojos: () => ojos.filter((o) => o.activo).map((o) => ({ x: o.x, y: o.y, z: o.z, brillo: o.brillo })),
     _brasa: brasa,
     _sombras: sombras,
+    _puntos: puntos,
   };
 }

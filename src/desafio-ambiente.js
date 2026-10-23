@@ -45,30 +45,30 @@ export function tipoDeNoche({ noche = 1, especial = null, sinFin = false } = {})
 export const PERFILES = {
   // la primera noche: pocos duendes (tres) pero mucha tensión desde el principio
   primera: { nombre: 'primera', miedo: 0.82, silencio: { f: 0.86 }, llegada: true, crujidos: [5, 9], risitas: { cada: [14, 24], n: [2, 3] },
-    ojos: { max: 3, cada: [7, 12], vida: [8, 13], dist: [34, 78], desde: 2 }, oirDuendes: null, antorcha: { desde: 12 }, fauna: true, viejos: false, musica: 'primera' },
+    ojos: { max: 3, cada: [7, 12], vida: [8, 13], dist: [30, 62], desde: 2 }, oirDuendes: null, antorcha: { desde: 12 }, fauna: true, viejos: false, musica: 'primera' },
   // las demás: lo justo para que el valle no esté mudo, sin repetirse hasta cansar
   comun: { nombre: 'comun', miedo: 0.38, silencio: { f: 0.9 }, llegada: true, crujidos: [16, 34], risitas: { cada: [48, 90], n: [2, 2] },
-    ojos: { max: 1, cada: [28, 55], vida: [6, 10], dist: [38, 80], desde: 8 }, oirDuendes: null, antorcha: null, fauna: true, viejos: false, musica: 'comun' },
+    ojos: { max: 1, cada: [28, 55], vida: [6, 10], dist: [32, 66], desde: 8 }, oirDuendes: null, antorcha: null, fauna: true, viejos: false, musica: 'comun' },
   jefe: { nombre: 'jefe', miedo: 0.62, silencio: { f: 0.88 }, llegada: true, crujidos: [10, 20], risitas: { cada: [30, 60], n: [2, 3] },
-    ojos: { max: 2, cada: [14, 26], vida: [7, 12], dist: [34, 80], desde: 4 }, oirDuendes: null, antorcha: null, fauna: true, viejos: true, musica: 'comun' },
+    ojos: { max: 2, cada: [14, 26], vida: [7, 12], dist: [30, 64], desde: 4 }, oirDuendes: null, antorcha: null, fauna: true, viejos: true, musica: 'comun' },
   final: { nombre: 'final', miedo: 0.7, silencio: { f: 0.86 }, llegada: true, crujidos: [8, 16], risitas: { cada: [24, 46], n: [2, 3] },
-    ojos: { max: 3, cada: [10, 20], vida: [7, 12], dist: [34, 80], desde: 3 }, oirDuendes: null, antorcha: null, fauna: true, viejos: true, musica: 'comun' },
+    ojos: { max: 3, cada: [10, 20], vida: [7, 12], dist: [30, 64], desde: 3 }, oirDuendes: null, antorcha: null, fauna: true, viejos: true, musica: 'comun' },
   // noche roja y eclipse: el cielo ya hace casi todo
   roja: { nombre: 'roja', miedo: 0.6, silencio: { f: 0.88 }, llegada: true, crujidos: [12, 24], risitas: { cada: [34, 64], n: [2, 3] },
-    ojos: { max: 2, cada: [16, 30], vida: [7, 12], dist: [34, 80], desde: 4 }, oirDuendes: null, antorcha: null, fauna: true, viejos: false, musica: 'roja' },
+    ojos: { max: 2, cada: [16, 30], vida: [7, 12], dist: [30, 64], desde: 4 }, oirDuendes: null, antorcha: null, fauna: true, viejos: false, musica: 'roja' },
   eclipse: { nombre: 'eclipse', miedo: 0.6, silencio: { f: 0.84 }, llegada: true, crujidos: [10, 20], risitas: { cada: [40, 70], n: [2, 3] },
-    ojos: { max: 3, cada: [12, 24], vida: [8, 14], dist: [30, 70], desde: 3 }, oirDuendes: null, antorcha: null, fauna: true, viejos: true, musica: 'eclipse' },
+    ojos: { max: 3, cada: [12, 24], vida: [8, 14], dist: [28, 60], desde: 3 }, oirDuendes: null, antorcha: null, fauna: true, viejos: true, musica: 'eclipse' },
   // silenciosa: casi nada suena, y ese casi nada pesa más
   silenciosa: { nombre: 'silenciosa', miedo: 0.55, silencio: { f: 0.7 }, llegada: false, crujidos: [30, 55], risitas: null,
-    ojos: { max: 2, cada: [20, 38], vida: [8, 13], dist: [40, 85], desde: 6 }, oirDuendes: null, antorcha: null, fauna: false, viejos: false, musica: 'silenciosa' },
+    ojos: { max: 2, cada: [20, 38], vida: [8, 13], dist: [34, 70], desde: 6 }, oirDuendes: null, antorcha: null, fauna: false, viejos: false, musica: 'silenciosa' },
   apagon: { nombre: 'apagon', miedo: 0.6, silencio: { f: 0.88 }, llegada: true, crujidos: [10, 22], risitas: { cada: [30, 60], n: [2, 3] },
-    ojos: { max: 3, cada: [10, 20], vida: [8, 13], dist: [30, 70], desde: 3 }, oirDuendes: null, antorcha: null, fauna: true, viejos: false, musica: 'apagon' },
+    ojos: { max: 3, cada: [10, 20], vida: [8, 13], dist: [28, 60], desde: 3 }, oirDuendes: null, antorcha: null, fauna: true, viejos: false, musica: 'apagon' },
   // niebla: no se ve nada, se los oye antes de verlos (los pasos y las risitas son los de los duendes de verdad)
   niebla: { nombre: 'niebla', miedo: 0.66, silencio: { f: 0.84 }, llegada: true, crujidos: [6, 12], risitas: { cada: [18, 34], n: [2, 3] },
     ojos: null, oirDuendes: { cada: [3.2, 6.5], desde: 14, hasta: 70 }, antorcha: null, fauna: true, viejos: false, musica: 'niebla', niebla: 1 },
   // luna llena con los viejos: el valle alumbrado, sombras largas, resuellos pesados
   lunallena: { nombre: 'lunallena', miedo: 0.64, silencio: { f: 0.86 }, llegada: true, crujidos: [8, 15], risitas: { cada: [26, 48], n: [2, 3] },
-    ojos: { max: 2, cada: [14, 26], vida: [8, 14], dist: [36, 84], desde: 4 }, oirDuendes: { cada: [7, 13], desde: 16, hasta: 60 }, antorcha: null, fauna: true, viejos: true, musica: 'lunallena', luna: 1 },
+    ojos: { max: 2, cada: [14, 26], vida: [8, 14], dist: [32, 70], desde: 4 }, oirDuendes: { cada: [7, 13], desde: 16, hasta: 60 }, antorcha: null, fauna: true, viejos: true, musica: 'lunallena', luna: 1 },
 };
 
 // Las claves de `musica` que entiende desafio-musica.js
@@ -113,7 +113,7 @@ export function crearAgenda(perfil, azar = Math.random) {
     if (!e || !e.activo || !(dt > 0)) return salida;
     dt = Math.min(dt, 0.5);
     const previa = e.fase === 'previa', ataque = e.fase === 'ataque';
-    const oscuro = (e.noche ?? 0) > 0.4;
+    const oscuro = (e.noche ?? 0) > 0.4, cerrada = (e.noche ?? 0) > 0.8;   // la noche cerrada (los ojos y la antorcha se ven en la oscuridad, no en el crepúsculo)
     // si la partida se abre en pleno ataque, las salidas ya pasaron: sin golpe ni silencio
     if (!A.visto) { A.visto = true; if (ataque) { A.llegada = true; A.silenciado = true; } }
     if (ataque) {
@@ -167,7 +167,7 @@ export function crearAgenda(perfil, azar = Math.random) {
     }
 
     // ojos entre los árboles: sólo con la noche cerrada y sin pasarse de `max` a la vez
-    if (perfil.ojos && ataque && oscuro && !callado && A.tAtaque >= perfil.ojos.desde) {
+    if (perfil.ojos && ataque && cerrada && !callado && A.tAtaque >= perfil.ojos.desde) {
       A.proxOjo -= dt;
       if (A.proxOjo <= 0) {
         A.proxOjo = sorteo(perfil.ojos.cada);
@@ -185,7 +185,7 @@ export function crearAgenda(perfil, azar = Math.random) {
     }
 
     // algo se lleva una antorcha: una vez, cuando el mundo dice que hay una lejos y fuera de la vista
-    if (perfil.antorcha && ataque && !A.antorcha && !callado && A.tAtaque >= perfil.antorcha.desde && e.antorchaLista) {
+    if (perfil.antorcha && ataque && cerrada && !A.antorcha && !callado && A.tAtaque >= perfil.antorcha.desde && e.antorchaLista) {
       A.antorcha = true;
       poner({ k: 'antorcha' });
     }
@@ -201,7 +201,15 @@ export function puntoA(jugador, rumbo, dist) {
 }
 export function rumboA(desde, hacia) { return Math.atan2(hacia.x - desde.x, hacia.z - desde.z); }
 
-// El par de ojos que se mira se apaga: la regla de siempre de la oscuridad. Devuelve cuánto tiempo seguido lo miraste, ya acumulado.
+// El par de ojos que se mira se apaga: la regla de siempre de la oscuridad. «Mirarlo» es tenerlo en el centro de la vista (a menos de unos
+// 20 grados de adonde apuntás), no en cualquier lado de la pantalla: si no, se apagarían apenas los ves de reojo.
+export const CENTRO_VISTA = 0.94;   // coseno
+export function enElCentro(mira, desde, hacia, cos = CENTRO_VISTA) {
+  const dx = hacia.x - desde.x, dz = hacia.z - desde.z, d = Math.hypot(dx, dz), m = Math.hypot(mira.x, mira.z);
+  if (!d || !m) return false;
+  return (mira.x * dx + mira.z * dz) / (d * m) > cos;
+}
+// Devuelve cuánto tiempo seguido lo miraste, ya acumulado.
 export const MIRADA_APAGA = 1.4;
 export function seguirMirada(acumulado, mirando, dt) { return mirando ? acumulado + dt : Math.max(0, acumulado - dt * 2); }
 export function ojosSeApagan(acumulado, distancia) { return acumulado >= MIRADA_APAGA * (distancia < 30 ? 0.6 : 1); }

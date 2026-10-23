@@ -454,7 +454,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const aliados = crearAliados(api);
   // 4.8 ambiente: lo de la noche que no cambia nada de la partida (cuántos vienen, qué hacen): sólo cómo se ve y se oye
   const ambiente = crearAmbienteMundo({
-    T, escena, sonido, S, col, defensas, musica, aliens: () => aliens, centroBase: () => centroBase(),
+    T, escena, sonido, S, col, defensas, musica, aliens: () => aliens, centroBase: () => centroBase(), camara: () => camara,
     nota: (t, s) => ctx.nota(t, s),
   });
   const estadoAmbiente = { activo: true, fase: 'calma', horas: 12, noche: 0, js: null, mira: miraJugador, especial: null, nocheN: 1, sinFin: false, vista: 1 };

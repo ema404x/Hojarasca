@@ -93,7 +93,7 @@ function simular(tipo, { semilla = 7, previa = 75, ataque = 300, vivos = 3, cerc
   ok(orden.join() === 'silencio,silencio-fin,llegada', `en orden: silencio, se rompe, llegada (${orden.join()})`);
   ok(P.ev.filter((x) => x.t > sil[0].t && x.t < lleg[0].t && !/^silencio/.test(x.k)).length === 0, 'en el silencio no suena nada nuevo (ni ramas ni risitas)');
   ok(P.de('ojo').every((x) => x.t > P.tAtaque), 'los ojos no salen de día (en la previa)');
-  ok(P.de('ojo').length >= 12 && P.de('ojo').every((x) => x.vida >= 8 && x.vida <= 13 && x.dist >= 34 && x.dist <= 78), `ojos entre los árboles a lo lejos: ${P.de('ojo').length} pares en la noche, 8 a 13 s y a 34-78 m`);
+  ok(P.de('ojo').length >= 12 && P.de('ojo').every((x) => x.vida >= 8 && x.vida <= 13 && x.dist >= 30 && x.dist <= 62), `ojos entre los árboles a lo lejos: ${P.de("ojo").length} pares en la noche, 8 a 13 s y a 30-62 m`);
   ok(P.de('ojo').every((x, i, l) => !i || x.t - l[i - 1].t >= 6.9) || true, 'separados en el tiempo');
   ok(P.de('crujido').length >= 25 && P.de('crujido').every((x) => x.dist >= 24 && x.dist <= 76), `ramas que crujen a 24-76 m (${P.de('crujido').length})`);
   ok(P.de('crujido').some((x) => x.t < P.tAtaque), 'ya cruje en la previa (un tercio en adelante)');
@@ -173,6 +173,9 @@ function simular(tipo, { semilla = 7, previa = 75, ataque = 300, vivos = 3, cerc
   for (let i = 0; i < 20; i++) acum = A.seguirMirada(acum, true, 0.1);
   ok(A.ojosSeApagan(acum, 60) && !A.ojosSeApagan(0.5, 60) && A.ojosSeApagan(0.9, 20), 'si los mirás un rato seguido, se apagan (antes cuanto más cerca)');
   ok(A.seguirMirada(1, false, 0.1) < 1 && A.seguirMirada(0, false, 1) === 0, 'mirar para otro lado enfría la cuenta');
+  // «mirarlos» es tenerlos en el centro de la vista, no verlos de reojo
+  const aqui = { x: 0, z: 0 }, hacia = { x: 0, z: -50 };
+  ok(A.enElCentro({ x: 0, z: -1 }, aqui, hacia) && A.enElCentro({ x: 0.2, z: -1 }, aqui, hacia) && !A.enElCentro({ x: 0.5, z: -1 }, aqui, hacia) && !A.enElCentro({ x: 0, z: 1 }, aqui, hacia) && !A.enElCentro({ x: 0, z: 0 }, aqui, hacia), 'se apagan si los tenés en el centro (menos de unos 20 grados), no de reojo ni de espaldas');
   // la niebla: avanza despacio (casi una hora de juego) y se levanta de a poco
   let k = 0, seg = 0;
   while (k < 1 && seg < 600) { k = A.acercar(k, 1, 0.1, A.VELOCIDAD_NIEBLA); seg += 0.1; }
@@ -217,6 +220,8 @@ function simular(tipo, { semilla = 7, previa = 75, ataque = 300, vivos = 3, cerc
   ok(c1.join() === 'rastreador,rastreador,rastreador', `la primera noche trae los mismos tres traviesos de siempre (${c1.join()})`);
   ok(composicionOleada(2, 'normal', 0).join() === 'rastreador,rastreador,rastreador,rastreador,bruto', 'y la segunda, los mismos cinco');
   ok(JSON.stringify(Object.keys(ESPECIALES).filter((e) => ['roja', 'eclipse', 'silenciosa', 'apagon'].includes(e))) === '["roja","eclipse","silenciosa","apagon"]', 'las especiales de antes siguen donde estaban');
+  // armar.mjs sólo entiende imports en una línea (uno en varias deja los módulos mal ordenados y el juego no arranca)
+  for (const f of ['src/desafio-ambiente.js', 'src/desafio-ambiente-mundo.js', 'src/desafio-ambiente-sonidos.js', 'src/desafio-sonidos.js', 'src/desafio-musica.js']) ok(!/^import\s*\{\s*$/m.test(leer(f)) && !/^(export .* from|import ['"])/m.test(leer(f)), `${f}: imports en una línea`);
   // los archivos del ambiente no tocan las reglas de las noches
   for (const f of ['src/desafio-ambiente.js', 'src/desafio-ambiente-mundo.js', 'src/desafio-ambiente-sonidos.js']) {
     const t = leer(f).split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
@@ -415,8 +420,10 @@ function sonidoFalso() {
   ok(corte > 0 && !/new THREE\./.test(mundo.slice(corte)), 'el mundo del ambiente no crea objetos de three después de armarse');
   const cuadro = mundo.slice(mundo.indexOf('function actualizar(dt, e)'));
   ok(!/createBufferSource|createGain|createOscillator|new Float32Array|new Map|new Set|\.map\(|\.slice\(|\[\.\.\./.test(cuadro.slice(0, cuadro.indexOf('function limpiar'))), 'y lo que corre en cada cuadro no arma listas ni nodos de audio');
-  ok(/registrarHalos\(g\)/.test(mundo) && /registrarHalos\(brasa\)/.test(mundo) && !/new THREE\.(PointLight|SpotLight)/.test(mundo), 'los ojos y la brasa son halos del dibujo de los duendes; ninguna luz nueva');
-  ok(!/new THREE\.(Points|Sprite)/.test(mundo), 'ni más dibujos de puntos: reutiliza los halos');
+  ok(!/new THREE\.(PointLight|SpotLight|DirectionalLight|Sprite)/.test(mundo), 'ninguna luz nueva');
+  ok((mundo.match(/new THREE\.Points\(/g) || []).length === 1 && /sizeAttenuation: false/.test(mundo) && /N_PUNTOS = N_OJOS \* 2 \+ 1/.test(mundo), 'los ojos y la brasa son un solo dibujo de puntos de tamaño fijo en pantalla (seis pares y la brasa)');
+  ok(/posPuntos\[1\] = -600/.test(mundo) && /geoPuntos\.setDrawRange\(0, 1\)/.test(mundo) && /puntos\.visible = false;/.test(mundo), 'el dibujo de los ojos queda a la vista durante la carga (para compilar su programa) y se esconde en el primer cuadro');
+  ok(/puntos\.visible = n > 0;/.test(mundo), 'y sólo se dibuja si hay algo que mostrar');
   ok(/matSombra = new THREE\.MeshBasicMaterial/.test(mundo) && /sombras\.setMatrixAt\(0, _m\); sombras\.count = 1;/.test(mundo), 'las sombras de antorcha quedan a la vista durante la carga, para que su programa se compile ahí');
   ok(/N_SOMBRAS = 8/.test(mundo) && /N_OJOS = 6/.test(mundo), 'tope de 8 sombras y 6 pares de ojos');
   ok(/package\.json/.test('package.json') && /verificar-4-8-ambiente\.mjs/.test(pkg), 'esta prueba está en el gate');
