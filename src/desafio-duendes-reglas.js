@@ -29,10 +29,11 @@ export function esNocheGrande({ noche = 1, especial = null, sinFin = false } = {
   return esNocheDeJefe(n) || !!especial || n >= NOCHES_GRANDES.desde || (!!sinFin && n >= NOCHES_GRANDES.desde / 2);
 }
 // ¿Este duende viene de viejo? `azar` de 0 a 1.
-export function vieneDeViejo(tipo, { grande = false, mutado = false, azar = 0.5 } = {}) {
+// 4.8 noches: `porcion` cambia la parte de viejos de la noche (la luna llena trae casi todos viejos)
+export function vieneDeViejo(tipo, { grande = false, mutado = false, azar = 0.5, porcion = NOCHES_GRANDES.porcionViejos } = {}) {
   if (SIEMPRE_VIEJOS.has(tipo) || mutado) return true;
   if (!grande) return false;
-  return azar < NOCHES_GRANDES.porcionViejos;
+  return azar < porcion;
 }
 
 // ---------------------------------------------------------------- crecer (la evolución)

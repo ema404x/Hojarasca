@@ -18,6 +18,8 @@
 // corrida nunca pisa la campaña.
 import { composicionOleada, multiplicadorNoche, esNocheDeJefe, NOCHE_FINAL, sinJefe, dificultad } from './desafio-reglas.js';
 import { normalizarCodigo } from './semilla.js';
+// 4.8 noches:
+import { ESPECIAL_BASE, ESPECIAL_TOTAL, especialNueva } from './desafio-noches.js';
 
 export const SIN_FIN = {
   desde: NOCHE_FINAL,          // la campaña llega hasta acá; desde acá escala sola
@@ -26,8 +28,8 @@ export const SIN_FIN = {
   minimoRastreadores: 3,       // siempre quedan algunos de los rápidos
   sumaMultiplicador: 1.6,      // lo más que se suma a la dureza de la noche 20 (techo)
   escalaMultiplicador: 30,     // cuántas noches tarda en llegar a dos tercios del techo
-  especial: 0.38,              // la chance de noche especial en la campaña…
-  especialMax: 0.55,           // …y la que alcanza de a poco en la corrida larga
+  especial: ESPECIAL_TOTAL,    // la chance de noche especial en la campaña (4.8 noches: con la niebla y la luna llena, 0,49)…
+  especialMax: 0.62,           // …y la que alcanza de a poco en la corrida larga
   topeRecords: 10,
   topeCodigos: 60,
 };
@@ -92,8 +94,9 @@ export function especialSinFin(n, azar = Math.random(), anterior = null) {
   const extra = noche < SIN_FIN.desde ? 0 : Math.min(SIN_FIN.especialMax - SIN_FIN.especial, (noche - SIN_FIN.desde) * 0.006);
   const tope = SIN_FIN.especial + extra;
   if (a > tope) return null;
-  // se estira la franja para que las cuatro sigan en la misma proporción
-  const x = a * (0.38 / tope);
+  // se estira la franja para que las seis sigan en la misma proporción
+  const x = a * (ESPECIAL_TOTAL / tope);
+  if (x > ESPECIAL_BASE) return especialNueva(x);   // 4.8 noches
   if (x > 0.3) return 'apagon';
   const claves = ['roja', 'eclipse', 'silenciosa'];
   return claves[Math.min(claves.length - 1, Math.floor((x / 0.3) * claves.length))];

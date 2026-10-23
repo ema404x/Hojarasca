@@ -14,6 +14,8 @@ import { sanearMapaGuardado } from './desafio-mapa.js';
 import { ARSENAL, MEJORAS_ARSENAL, RECETAS_ARSENAL, CATEGORIAS_ARSENAL, MUNICIONES, TOPE_MUNICION, FLECHAS } from './desafio-arsenal.js';
 import { evolucionNueva, sanearEvolucion } from './desafio-evolucion.js';
 import { puestosNuevos, sanearPuestos } from './desafio-puestos.js';
+// 4.8 noches:
+import { GIROS, NIEBLA, LUNALLENA, ESPECIAL_BASE, ESPECIAL_TOTAL, especialNueva, conMasBrutos, cadenaNueva, sanearCadena, sanearGiro } from './desafio-noches.js';
 
 export const HORA_ATAQUE = 20.5;     // la nave aparece al caer la noche
 export const HORA_AMANECER = 6.0;    // con la primera luz los invasores se retiran
@@ -268,6 +270,9 @@ export const ESPECIALES = {
   silenciosa: { nombre: 'Noche silenciosa', aviso: 'No se oye ni un pájaro. Algo acecha de lejos', cantidad: 0.8, soloTiradores: true },
   // 2.0: las antorchas se apagan de a una (ver `desafio-noche2.js`)
   apagon: { ...APAGON },
+  // 4.8 noches: la niebla y la luna llena (ver `desafio-noches.js`)
+  niebla: { ...NIEBLA },
+  lunallena: { ...LUNALLENA },
 };
 // Desde la noche 4, a veces la noche es especial (nunca dos seguidas, nunca la
 // final y nunca la del jefe: con el jefe ya hay bastante).
@@ -275,7 +280,8 @@ export const ESPECIALES = {
 // que las otras siguen saliendo con la misma frecuencia que antes.
 export function nocheEspecial(n, azar = Math.random(), anterior = null) {
   if (n < 4 || n >= NOCHE_FINAL || anterior || esNocheDeJefe(n)) return null;
-  if (azar > 0.38) return null;
+  if (azar > ESPECIAL_TOTAL) return null;   // 4.8 noches: arriba de las cuatro de siempre (0,38) van la niebla y la luna llena
+  if (azar > ESPECIAL_BASE) return especialNueva(azar);
   if (azar > 0.3) return 'apagon';
   const claves = ['roja', 'eclipse', 'silenciosa'];
   return claves[Math.min(claves.length - 1, Math.floor((azar / 0.3) * claves.length))];
@@ -290,6 +296,7 @@ export function aplicarEspecial(lista, especial) {
   const salida = [];
   if (e.soloTiradores) for (let i = 0; i < Math.max(1, total); i++) salida.push('tirador');
   else for (let i = 0; i < total; i++) salida.push(base[i % base.length]);
+  if (e.brutos) conMasBrutos(salida, e.brutos);   // 4.8 noches: la luna llena trae más grandotes
   if (conJefe) salida.push('jefe');
   return salida;
 }
@@ -301,8 +308,9 @@ export const PLANOS_ALIEN = [
 ];
 export function nocheConRestos(n) { return n >= 3 && n % 3 === 0; }
 // El clima cambia el combate: lluvia y niebla acortan la vista; la nieve frena.
-export function efectoClima({ lluvia = 0, nublado = 0, invierno = 0 } = {}) {
-  const vista = Math.max(0.45, 1 - lluvia * 0.35 - Math.max(0, nublado - 0.55) * 0.5);
+// 4.8 noches: `niebla` (0 o 1) es la noche de niebla (o la que baja a las dos): acorta la vista como la lluvia, a la mitad.
+export function efectoClima({ lluvia = 0, nublado = 0, invierno = 0, niebla = 0 } = {}) {
+  const vista = Math.max(0.45, 1 - lluvia * 0.35 - Math.max(0, nublado - 0.55) * 0.5) * (niebla > 0 ? NIEBLA.vista : 1);
   return { vista, velocidad: invierno > 0.5 ? 0.82 : 1, antorchas: lluvia < 0.55 };
 }
 
@@ -364,6 +372,8 @@ export function desafioNuevo() {
   return { salud: SALUD_MAX, oleadas: 0, noches: 0, derrotas: 0, oleadaNoche: null, oleadaTerminada: true, vivos: 0, abatidos: 0,
     flechas: 0, cargas: 0, emplastos: 1, boleadoras: 0, pistolaEncontrada: false, mejorRacha: 0, racha: 0, caja: null,
     recetasHechas: [], planos: [], restos: null, companeros: [], ordenes: {}, abatidosPerro: 0, especial: null, especialAnterior: null,
+    // 4.8 noches: el giro de esta noche ({ id, noche }), la noche en que ya se decidió y el último que hubo; y la cadena de noches
+    giro: null, giroNoche: -1, giroAnterior: null, cadena: cadenaNueva(),
     victoria: false, nodriza: null, tutorial: 0,
     // 3.8.3: la noche en que cayó el último mandamás (al abrir a mitad de noche, vuelve sólo si seguía vivo)
     jefeCaido: -1,
@@ -456,6 +466,11 @@ export function sanearDesafio(d) {
     abatidosPerro: ent(x.abatidosPerro, 0),
     especial: ESPECIALES[x.especial] ? x.especial : null,
     especialAnterior: ESPECIALES[x.especialAnterior] ? x.especialAnterior : null,
+    // 4.8 noches: una partida vieja carga sin giro ni cadena
+    giro: sanearGiro(x.giro),
+    giroNoche: Number.isFinite(Number(x.giroNoche)) && x.giroNoche !== null && x.giroNoche !== '' && typeof x.giroNoche !== 'boolean' ? Math.floor(Number(x.giroNoche)) : -1,
+    giroAnterior: typeof x.giroAnterior === 'string' && Object.hasOwn(GIROS, x.giroAnterior) ? x.giroAnterior : null,
+    cadena: sanearCadena(x.cadena),
     victoria: !!x.victoria,
     nodriza: x.nodriza && typeof x.nodriza === 'object' && Array.isArray(x.nodriza.nucleos)
       ? { nucleos: x.nodriza.nucleos.slice(0, 3).map((v) => Math.max(0, Math.min(NUCLEO_VIDA, Number(v) || 0))) } : null,

@@ -121,7 +121,7 @@ const DR = await import('../src/desafio-duendes-reglas.js');
   const registros = [], terminadas = [];
   const ctx = { NUCLEO_VIDA: R.NUCLEO_VIDA, NOCHE_FINAL: R.NOCHE_FINAL, siguenLasNoches: () => true, Math };
   vm.createContext(ctx);
-  vm.runInContext(`var d; const D = () => d; const asedioMundo = { alTerminarNoche: (s) => terminadas.push(s) };
+  vm.runInContext(`var d; const D = () => d; const olvidarCadena = () => {}; const cadenaD = () => ({});   /* 4.8 noches */ const asedioMundo = { alTerminarNoche: (s) => terminadas.push(s) };
     function registrarRecords() { registros.push(d.oleadas); }
     const esNocheFinal = () => !d.victoria && !d.sinFin && !d.asedio && d.oleadas + 1 >= NOCHE_FINAL;
     ${extraer(des, 'perderNocheSalteada')}; this.perder = perderNocheSalteada; this.poner = (x) => { d = x; };`, Object.assign(ctx, { registros, terminadas }));

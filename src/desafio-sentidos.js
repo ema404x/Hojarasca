@@ -81,8 +81,9 @@ export function estaMirando(mira, desde, hacia) {
 // ---------------------------------------------------------------- 3. el perro
 export const PERRO_GRUNE = 42, PERRO_LADRA = 18;
 // `visto` es si el jugador lo tiene a la vista. El perro gruñe por lo que no ves.
-export function avisoDelPerro({ distancia, visto }) {
-  if (!(distancia < PERRO_GRUNE)) return null;
+// 4.8 noches: `alcance` agranda lo que oye el perro (con niebla gruñe de más lejos: avisa antes de que se vea nada)
+export function avisoDelPerro({ distancia, visto, alcance = 1 }) {
+  if (!(distancia < PERRO_GRUNE * alcance)) return null;
   if (distancia < PERRO_LADRA) return 'ladrar';
   return visto ? null : 'grunir';
 }
