@@ -27,6 +27,11 @@ import { crearAmbienteMundo } from './desafio-ambiente-mundo.js';
 import { nocheEnCurso } from './desafio-ambiente.js';
 import { crearLogros, evaluarNoche, evaluarEstado, LOGROS } from './desafio-logros.js';
 import { crearAliados } from './desafio-aliados.js';
+// 4.9 aliados: los vecinos que ayudan en las noches grandes y la campana que se toca a mano
+import { crearVecinosMundo } from './desafio-vecinos-mundo.js';
+import { crearCampana } from './desafio-campana.js';
+import { crearPiezasVecinos } from './desafio-vecinos-piezas.js';
+import { PAREDES as PAREDES_BASE } from './desafio-fortin.js';
 import { crearArsenalMundo } from './desafio-arsenal-mundo.js';
 import { crearFortinMundo } from './desafio-fortin-mundo.js';
 import { tipoFlecha, flechasDe, siguienteFlecha, FLECHAS, PERFORA, factorTension, conQueBloquea, RODELA, danoConArmadura, danoContra, danoPorEspalda, MUNICIONES, TOPE_MUNICION, RECUPERABLES } from './desafio-arsenal.js';
@@ -411,10 +416,10 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     alturaEn: (x, z) => T.altura(x, z),
     gente: () => ctx.gente?.(),
     sonido, efectos,
-    obraMasDanada: (c, radio) => {
+    obraMasDanada: (c, radio, sin = null) => {   // 4.9 aliados: `sin`: la que ya está arreglando otro (Anselmo no va a la de Don Ramón)
       let mejor = null, peor = 0.999;
       for (const o of obras.obrasCerca(c, radio, [])) {
-        if (!completa(o) || !Number.isFinite(o.datos.vida)) continue;
+        if (!completa(o) || o === sin || !Number.isFinite(o.datos.vida)) continue;
         const { vida, max } = vidaDe(o);
         if (vida / max < peor) { peor = vida / max; mejor = o; }
       }
@@ -456,6 +461,20 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const defensas = crearDefensasActivas(T, escena, obras, sonido, efectos, api, { calidad: ctx.calidad?.() || 'media' });
   const eventos = crearEventos(T, escena, sonido, efectos, api);
   const aliados = crearAliados(api);
+  // 4.9 aliados: Anselmo, Herminia, Martín y los chicos en las noches grandes; los puestos; la campana
+  api.dia = () => progreso().dia;
+  api.tren = () => ctx.tren?.();
+  api.agua = (x, z) => T.agua(x, z);
+  api.paredes = () => obras.obras.filter((o) => PAREDES_BASE.includes(o.plano.id) && completa(o)).map((o) => ({ x: o.datos.x, z: o.datos.z }));
+  api.obraDeRamon = () => aliados.obraDe('ramon');
+  api.puestoDe = (clave) => vecinos.puestoDe(clave);
+  const vecinos = crearVecinosMundo(T, escena, api, crearPiezasVecinos());
+  const campana = crearCampana({
+    campanas: () => obras.obras.filter((o) => o.plano.defensa?.tipo === 'campana' && completa(o)),
+    D: () => D(), nota: (t, s, n) => ctx.nota(t, s, n), sonido, centroBase: () => centroBase(), portones: () => api.portones(),
+    alarmaAliados: () => aliados.alarma(), alarmaVecinos: () => vecinos.alarma(), lado: () => D().ladoNoche?.rumbo ?? null,
+    alturaEn: (x, z) => T.altura(x, z),
+  });
   // 4.8 ambiente: lo de la noche que no cambia nada de la partida (cuántos vienen, qué hacen): sólo cómo se ve y se oye
   const ambiente = crearAmbienteMundo({
     T, escena, sonido, S, col, defensas, musica, aliens: () => aliens, centroBase: () => centroBase(), camara: () => camara,
@@ -901,6 +920,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.subiendo = 0; a.blanco = null; a.tBlanco = 0; a.golpeT = 0; a.reflejo = 0; a.enHaz = false;
     a.resiste = null; a.nivelResiste = 0; a.puesto = null;   // 3.0: la adaptación y el puesto que cuida
     ataques.limpiar(a);   // 4.8 ataques: el señuelo, el rodeo y el curandero de la vida anterior
+    a.huyeT = 0; a.huyeX = 0; a.huyeZ = 0;   // 4.9 aliados: el silbato de Martín de la vida anterior
     const dd = D();
     if (!a.def.jefe && siguenDespues(dd.despues) && Math.random() < probabilidadMutado(dd.despues.noches)) {
       a.mutado = true; a.m.mutar(true);
@@ -2316,6 +2336,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     a.sinGolpe = (a.sinGolpe || 0) + dt;
     if (a.mutado) a.vida += regeneracion(a, dt);
     velObj *= a.velMult || 1;
+    if (a.huyeT > 0) a.cd = Math.max(a.cd, 0.3);   // 4.9 aliados: el que huye del silbato de Martín no ataca ni tira
     // 2.1: congelado por la lanza de hielo: se mueve a un tercio
     if (a.congeladoT > 0) { a.congeladoT -= dt; velObj *= HIELO.lento; }
     // 2.5: ardiendo, arrastrado por el arpón, dudando por el cuerno o perdido en el humo
@@ -2547,6 +2568,12 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     if (a.estado === 'avanzar' && (a.senuelo || a.rodeoT > 0 || def.cura || def.enjambre)) {
       const g48 = ataques.guiar(a, dt, js, dist, rumboObj);
       if (g48) { rumboObj = g48.rumbo; velObj *= g48.mult; }
+    }
+    // 4.9 aliados: el silbato de Martín dispersa a los traviesos (corren para el otro lado de la vía) y los fogones de Herminia no
+    // dejan entrar a los viejos (bordean el círculo de luz)
+    if (a.estado === 'avanzar') {
+      if (a.huyeT > 0) { rumboObj = vecinos.rumboDeHuida(a, dt); velObj = def.vel * 1.25; ataca = false; }
+      else rumboObj = vecinos.rumboDeViejo(a, rumboObj);
     }
     // 2.5: perdido en el humo, camina para cualquier lado
     if (rumboConfuso !== null) rumboObj = rumboConfuso;
@@ -3621,6 +3648,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     asedioMundo.actualizar(dt, js);   // 3.0
     naveMundo.actualizar(dt, js);
     aliados.actualizarCompaneros(dt, vivos() > 0);
+    vecinos.actualizar(dt, js, vivos() > 0);   // 4.9 aliados
+    campana.actualizar(dt);   // 4.9 aliados
     aliados.actualizarPerro(dt, js, ctx.perroPos?.());
     efectos.actualizar(dt, naveMundo.adentro ? naveMundo.pisoT : T);   // 3.0: adentro, el piso es el de la nave
     rayo.material.opacity = Math.max(0, rayo.material.opacity - dt * 7);
@@ -3679,6 +3708,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     eventos.retirarNodriza();
     efectos.limpiar();
     ambiente.limpiar();   // 4.8 ambiente
+    vecinos.limpiar();   // 4.9 aliados
     musica.detener();
     naveMundo.limpiar();   // 3.0
     bloqueando = false;
@@ -3743,7 +3773,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     hayLosa,
     aplicarForja,
     tirarRoca,
-    ordenar: (clave) => aliados.ordenar(clave),
+    ordenar: (clave) => aliados.ordenar(clave) || vecinos.ordenar(clave),   // 4.9 aliados: y los vecinos de las noches grandes
+    perroAlPorton: () => campana.perroAlPorton(),   // 4.9 aliados: la campana manda al perro al portón (main.js lo pone en `mundoPerro.antojo`)
     ordenDe: (clave) => aliados.ordenDe(clave),
     encenderAntorchaCerca: (pos) => defensas.encenderCerca(pos),
     antorchaApagadaCerca: (pos) => !!defensas.apagadaCerca?.(pos),
@@ -3756,8 +3787,8 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     get focos() { return focos; },
     get semilla() { return D().semilla; },
     // 2.6: el fortín también se usa con E (resina, catapulta, troncos, puente, lazo...)
-    usarCercaDe: (pos, dPuerta) => naveMundo.usarCerca(pos) || asedioMundo.usarCerca(pos) || usarCapulloCerca(pos) || usarZanjaCerca(pos) || puestos.usarCerca(pos) || fortin.usarCerca(pos, deNoche(), dPuerta) || mapaMundo.usarCerca(pos),
-    avisoCercaDe: (pos, dPuerta) => naveMundo.avisoCerca(pos) || asedioMundo.avisoCerca(pos) || avisoCapulloCerca(pos) || avisoZanjaCerca(pos) || puestos.avisoCerca(pos) || fortin.avisoCerca(pos, deNoche(), dPuerta) || mapaMundo.avisoCerca(pos),
+    usarCercaDe: (pos, dPuerta) => naveMundo.usarCerca(pos) || asedioMundo.usarCerca(pos) || usarCapulloCerca(pos) || usarZanjaCerca(pos) || puestos.usarCerca(pos) || fortin.usarCerca(pos, deNoche(), dPuerta) || campana.usarCerca(pos) || mapaMundo.usarCerca(pos),
+    avisoCercaDe: (pos, dPuerta) => naveMundo.avisoCerca(pos) || asedioMundo.avisoCerca(pos) || avisoCapulloCerca(pos) || avisoZanjaCerca(pos) || puestos.avisoCerca(pos) || fortin.avisoCerca(pos, deNoche(), dPuerta) || campana.avisoCerca(pos) || mapaMundo.avisoCerca(pos),
     // 3.0: la supervivencia sin fin y el mapa de la semilla (la base, los lugares, lo que se marca)
     get sinFin() { return D().sinFin; },
     mapaMundo,

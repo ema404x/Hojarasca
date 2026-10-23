@@ -5181,11 +5181,12 @@ function usarGallinero(c) {
 // ---------------------------------------------------------------- órdenes a los compañeros
 // En el Desafío, mirando a Don Ramón o a Josefina, E les cambia la orden (ver desafio-ordenes.js).
 function textoOrdenar(npc) {
-  const sig = siguienteOrden(npc.clave, desafio.ordenDe(npc.clave));
+  const clave = npc.claveAliado || npc.clave;   // 4.9 aliados: los vecinos de las noches grandes (Anselmo, Herminia, los chicos) se ordenan por su oficio
+  const sig = siguienteOrden(clave, desafio.ordenDe(clave));
   return sig ? `${npc.nombre}: ${NOMBRE_ORDEN[sig].toLowerCase()}` : `Hablar con ${npc.nombre}`;
 }
 function ordenarCompanero(npc) {
-  const r = desafio.ordenar(npc.clave);
+  const r = desafio.ordenar(npc.claveAliado || npc.clave);
   if (!r) { hablar(npc); return; }
   sonido.anotar();
   nota(`${npc.nombre}: ${NOMBRE_ORDEN[r.orden].toLowerCase()}`, `“${r.respuesta}”`);
@@ -10465,6 +10466,7 @@ function cuadroDelJuego(tRaf, manual) {
     mundoPerro.guiar = !desafio && modo === 'jugando';
     // 3.7.2: el olor del asado: el perro va a la parrilla y se roba un chorizo (ver cocina-juego.js)
     mundoPerro.antojo = !desafio && modo === 'jugando' ? cocinaJuego?.antojoPerro() || null : null;
+    if (desafio && modo === 'jugando') mundoPerro.antojo = desafio.perroAlPorton?.() || null;   // 4.9 aliados: en el Desafío, la campana lo manda al portón (el mismo estado de «ir a un punto»)
     try { if (modo === 'jugando') actualizarRastro(dt); } catch (e) { fallaSistema('rastro', e); }
     try { if (modo === 'jugando') actualizarVisitas(dt); } catch (e) { fallaSistema('visitas', e); }
     try { if (modo === 'jugando') actualizarAldea(dt); } catch (e) { fallaSistema('aldea', e); }   // 3.1 (3.6: la aldea)

@@ -22,7 +22,8 @@ assert.equal(ordenInicial('ema'), 'base', 'Ema también');
 assert.equal(ordenDe({}, 'ramon'), 'reparar');
 assert.equal(ordenDe({ ramon: 'volar' }, 'ramon'), 'reparar', 'una orden que no es suya no cuenta');
 assert.equal(ordenDe({ ema: 'reparar' }, 'ema'), 'base', 'Ema no arregla');
-assert.deepEqual(['reparar', 'seguime', 'porton'].map((o) => siguienteOrden('ramon', o)), ['seguime', 'porton', 'reparar'], 'E da la vuelta');
+// 4.9 aliados: «Quedate acá, en tu puesto» va justo después de «Vení conmigo» (así se marca sin que se vaya al portón primero)
+assert.deepEqual(['reparar', 'seguime', 'puesto', 'porton'].map((o) => siguienteOrden('ramon', o)), ['seguime', 'puesto', 'porton', 'reparar'], 'E da la vuelta');
 assert.deepEqual(sanearOrdenes({ ramon: 'porton', ema: 'reparar', nadie: 'seguime' }), { ramon: 'porton' });
 assert.deepEqual(sanearOrdenes(null), {});
 assert.deepEqual(sanearDesafio({ ordenes: { ema: 'seguime' } }).ordenes, { ema: 'seguime' }, 'la orden se guarda');
