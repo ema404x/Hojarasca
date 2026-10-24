@@ -2170,6 +2170,16 @@ function volverAlJuego(sinMouse = false) {
   if (sinMouse !== true) jugador.pedirBloqueo();
 }
 
+// 4.10.4 (R2-4): una partida nueva no es la «recuperada»: se olvida el aviso pendiente de la ranura
+function olvidarRecuperada() {
+  recuperadaPendiente = false;
+  try { sessionStorage.removeItem(CLAVE_RECUPERADA); } catch { /* ya */ }
+}
+// 4.10.4 (R2-5): las notas se esconden con el HUD (la portada) y quedan debajo de los cuadros: un fallo al empezar de nuevo se dice con un cuadro que se ve siempre
+function avisarFalla(titulo, texto) {
+  nota(titulo, texto, true);
+  try { dialogos.confirmar(`${titulo}. ${texto}.`, { si: 'Entendido', no: 'Cerrar' }); } catch { /* sin cuadro: queda la nota */ }
+}
 // 4.10 partidas: en la portada, el saldo de semillas del Coihue, los finales vistos y la marca de la pesadilla
 function textoMetaPortada() {
   const el = $('meta-portada');
@@ -2419,7 +2429,6 @@ $('btn-nuevo').addEventListener('click', async () => {
   // beforeunload/visibilitychange durante este reload para evitar esa carrera.
   reiniciandoPartida = true;
   cancelarGuardadoSuave();
-  if (esDesafio) metaJuego.terminar();   // 4.10 partidas: dejar una partida con tres noches o más también da su semilla del Coihue
   // 2.8: lo personal (ropa, bandera, recetas) pasa a la partida nueva, y la receta de
   // "Tu partida" deja puestos la estación, el clima y la dificultad que eligió
   const conReceta = empezarConReceta(progreso.personal, ajustes);
@@ -2431,9 +2440,12 @@ $('btn-nuevo').addEventListener('click', async () => {
   if (esDesafio) aplicarCodigo(nueva);   // 2.3: el código que esté escrito en la portada
   if (!reemplazarProgreso(nueva)) {
     Object.assign(ajustes, ajustesAntes); reiniciandoPartida = false;
-    nota('No pude empezar de nuevo', 'No hay lugar para guardar la partida nueva: la que tenías sigue como estaba', true);
+    avisarFalla('No pude empezar de nuevo', 'No hay lugar para guardar la partida nueva: la que tenías sigue como estaba');
     return;
   }
+  // 4.10.4 (R2-5): la semilla del Coihue por dejar una partida de tres noches o más se acredita recién cuando la nueva ya cupo (antes se anotaba aunque el intento fallara)
+  if (esDesafio) metaJuego.terminar();   // 4.10 partidas: dejar una partida con tres noches o más también da su semilla del Coihue
+  olvidarRecuperada();
   guardarAjustes(ajustes);
   progreso = nueva;
   location.reload();
@@ -3152,7 +3164,8 @@ async function otraVuelta() {
   cancelarGuardadoSuave();
   nueva.personal = progreso.personal;   // 2.8: tu ropa, tu bandera y tus recetas siguen con vos
   // 4.10.3 (P10): primero se escribe la vuelta nueva; si no cupo, la campaña sigue como estaba
-  if (!reemplazarProgreso(nueva)) { reiniciandoPartida = false; nota('No pude empezar otra vuelta', 'No hay lugar para guardar: tu campaña sigue como estaba', true); return; }
+  if (!reemplazarProgreso(nueva)) { reiniciandoPartida = false; avisarFalla('No pude empezar otra vuelta', 'No hay lugar para guardar: tu campaña sigue como estaba'); return; }
+  olvidarRecuperada();
   progreso = nueva;
   location.reload();
 }
@@ -3225,7 +3238,8 @@ function nuevaCorrida(codigo = null) {
   nueva.desafio.sinFin = corridaNueva();
   nueva.desafio.semilla = normalizarCodigo(codigo) || codigoAlAzar();
   // 4.10.3 (P10): primero se escribe la corrida nueva; si no cupo, la de antes sigue como estaba
-  if (!reemplazarProgreso(nueva)) { reiniciandoPartida = false; nota('No pude empezar otra corrida', 'No hay lugar para guardar: la corrida sigue como estaba', true); return; }
+  if (!reemplazarProgreso(nueva)) { reiniciandoPartida = false; avisarFalla('No pude empezar otra corrida', 'No hay lugar para guardar: la corrida sigue como estaba'); return; }
+  olvidarRecuperada();
   progreso = nueva;
   location.reload();
 }

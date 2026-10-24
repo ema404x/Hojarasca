@@ -140,7 +140,7 @@ const ok = (c, m) => { assert.ok(c, m); n++; };
   ok([...almacen.keys()].filter((k) => k.includes('backup')).every((k) => !JSON.parse(almacen.get(k) || '{}').dia || JSON.parse(almacen.get(k)).dia !== 8), 'la copia no guarda la partida vieja');
   const t = main.slice(main.indexOf("$('btn-nuevo').addEventListener('click'"), main.indexOf("$('btn-seguir')"));
   ok(t.includes('reemplazarProgreso(nueva)') && !t.includes('borrarProgreso()'), 'Empezar de nuevo usa reemplazarProgreso');
-  ok(main.includes("reemplazarProgreso(nueva)) { reiniciandoPartida = false; nota('No pude empezar otra vuelta'") && main.includes("reemplazarProgreso(nueva)) { reiniciandoPartida = false; nota('No pude empezar otra corrida'"), 'y Otra vuelta y Otra corrida también');
+  ok(main.includes("reemplazarProgreso(nueva)) { reiniciandoPartida = false; avisarFalla('No pude empezar otra vuelta'") && main.includes("reemplazarProgreso(nueva)) { reiniciandoPartida = false; avisarFalla('No pude empezar otra corrida'"), 'y Otra vuelta y Otra corrida también');
 }
 
 // ---------------------------------------------------------------- P6, P8, P12: enganches (no se pueden correr en Node sin Electron)
