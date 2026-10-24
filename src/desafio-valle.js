@@ -174,6 +174,37 @@ export function aMundo(p, x0, z0, rot) {
   return { x: x0 + p.x * c + p.z * s, z: z0 - p.x * s + p.z * c };
 }
 
+// 4.10.3 (V1): cuánto cambia la altura del terreno bajo la huella de la ruina (3,4 x 17 m) puesta en (x, z) con el giro `rot`. La malla no tiene piso ni calces:
+// con un desnivel grande, de un lado los muros quedaban en el aire y del otro hundidos en la loma (en el terreno real, la mitad de los sitios pasaba el metro).
+export function desnivelRuina(alturaDe, x, z, rot) {
+  let mn = Infinity, mx = -Infinity;
+  for (const lz of [0, 4.25, 8.5, 12.75, 17]) for (const lx of [-RUINA.ancho / 2, 0, RUINA.ancho / 2]) {
+    const p = aMundo({ x: lx, z: lz }, x, z, rot), h = alturaDe(p.x, p.z);
+    if (h < mn) mn = h;
+    if (h > mx) mx = h;
+  }
+  return mx - mn;
+}
+export const DESNIVEL_RUINA_MAX = 0.8;
+// Dónde cae la ruina: entre 120 y 250 m de la base, en tierra firme y llana; con el giro que tendrá (de cara a la base). Entre los 60 sitios que pasan lo de siempre se
+// queda con el primero cuyo desnivel es ≤ `DESNIVEL_RUINA_MAX`, y si ninguno lo cumple, con el más parejo (nunca se queda sin ruina por esto).
+// `ctx`: { centro, altura, agua, pendiente(x, z), limite, azar }. Devuelve { x, z, rot } o null.
+export function elegirLugarRuina(ctx) {
+  const { centro: c, azar = Math.random } = ctx;
+  let mejor = null;
+  for (let i = 0; i < 60; i++) {
+    const a = azar() * Math.PI * 2, r = 120 + azar() * 130;
+    const x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
+    if (Math.abs(x) > ctx.limite - 40 || Math.abs(z) > ctx.limite - 40 || ctx.agua(x, z)) continue;
+    if (ctx.pendiente(x, z) > 0.35) continue;
+    const rot = Math.atan2(c.x - x, c.z - z) + Math.PI;
+    const desnivel = desnivelRuina(ctx.altura, x, z, rot);
+    if (desnivel <= DESNIVEL_RUINA_MAX) return { x, z, rot };
+    if (!mejor || desnivel < mejor.desnivel) mejor = { x, z, rot, desnivel };
+  }
+  return mejor ? { x: mejor.x, z: mejor.z, rot: mejor.rot } : null;
+}
+
 // ---------------------------------------------------------------- 10. la forja de cristal
 export const FORJA = {
   lanzaHielo: { arma: 'lanza', nombre: 'Lanza de hielo', efecto: 'hielo', contra: 'rastreadores y saltadores: los frena en seco' },
@@ -271,14 +302,19 @@ export function tomarAlAmanecer(v, noche, azar = Math.random) {
 // Cuántos nidos le tocan a un lugar tomado: uno, y dos en lo más oscuro.
 export const nidosDeZona = (z) => (z.nivel >= TOMADAS.nivelMax ? 2 : z.nivel > 0 ? 1 : 0);
 // Un lugar para el nido de la zona (cerca del centro, que `esBueno` lo permita y lejos de los otros nidos).
-export function lugarNidoDeZona(z, otros, esBueno = () => true, azar = Math.random) {
+// 4.10.3 (V5): `preferido` (opcional): un sitio sin árbol ni piedra adentro de la loma, como el nido común (desafio.js, sembrarCapullos). Entre los 40 sitios, el primero
+// que lo cumple; si ninguno, el primero que sirve (nunca se queda sin nido por esto).
+export function lugarNidoDeZona(z, otros, esBueno = () => true, azar = Math.random, preferido = null) {
   const [r0, r1] = TOMADAS.nidoRadio;
+  let respaldo = null;
   for (let i = 0; i < 40; i++) {
     const a = azar() * Math.PI * 2, r = r0 + azar() * (r1 - r0), x = z.x + Math.cos(a) * r, zz = z.z + Math.sin(a) * r;
     if (!esBueno(x, zz) || otros.some((c) => Math.hypot(c.x - x, c.z - zz) < 6)) continue;
-    return { x: Math.round(x * 10) / 10, z: Math.round(zz * 10) / 10 };
+    const p = { x: Math.round(x * 10) / 10, z: Math.round(zz * 10) / 10 };
+    if (!preferido || preferido(p.x, p.z)) return p;
+    respaldo = respaldo || p;
   }
-  return null;
+  return respaldo;
 }
 // El nido de una zona se abrió esa noche (nadie lo sacó): el lugar se cierra un escalón más. Devuelve qué más sale.
 export function extraDeZona(z) {

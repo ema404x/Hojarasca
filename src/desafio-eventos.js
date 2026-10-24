@@ -11,7 +11,7 @@ import { registrarHalos } from './desafio-duendes.js';
 import { NUCLEO_VIDA, PLANOS_ALIEN } from './desafio-reglas.js';
 import { NIDO, danarNido, estaAbierto, estaRevelado, sumarPista, textoPista, camarasEnteras } from './desafio-nido.js';
 import { LIMITE } from './config.js';
-import { RUINA, disposicionRuina, paredesRuina, placaActiva, PLACA, aMundo } from './desafio-valle.js';
+import { RUINA, disposicionRuina, paredesRuina, placaActiva, PLACA, aMundo, elegirLugarRuina } from './desafio-valle.js';
 import { armarCoihueViejo, animarCoihue, piesCoihue, COIHUE } from './desafio-coihue-formas.js';
 import { registrarLuz } from './luces.js';
 
@@ -90,15 +90,8 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     ruinaArmada = null;
   }
   function lugarDeRestos() {
-    const c = api.centroBase();
-    for (let i = 0; i < 60; i++) {
-      const a = Math.random() * Math.PI * 2, r = 120 + Math.random() * 130;
-      const x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
-      if (Math.abs(x) > LIMITE - 40 || Math.abs(z) > LIMITE - 40 || T.agua(x, z)) continue;
-      if ((T.pendiente?.[T.indice(x, z)] ?? 0) > 0.35) continue;
-      return { x, z };
-    }
-    return null;
+    // 4.10.3 (V1): entre los sitios que sirven, uno que no sea ladera (ver elegirLugarRuina en desafio-valle.js)
+    return elegirLugarRuina({ centro: api.centroBase(), altura: (x, z) => T.altura(x, z), agua: (x, z) => T.agua(x, z), pendiente: (x, z) => T.pendiente?.[T.indice(x, z)] ?? 0, limite: LIMITE });
   }
   function soltarRestos() {
     const d = api.D();

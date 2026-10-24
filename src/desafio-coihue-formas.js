@@ -1048,7 +1048,7 @@ export function armarCoihueViejo() {
     piv.add(m);
     g.add(piv);
     // el eje para levantarla (horizontal, de costado a la raíz) y la fase del paso (de a tres, alternadas)
-    patas.push({ piv, a, eje: V3(Math.cos(a), 0, -Math.sin(a)), fase: (i % 2) * Math.PI, alcance: r2 });
+    patas.push({ piv, a, eje: V3(Math.cos(a), 0, -Math.sin(a)), fase: (i % 2) * Math.PI, alcance: r2, r0 });   // 4.10.3 (V6): y r0 (dónde nace)
   }
   // las ramas y la copa en pisos, con las cartas de hojas del bosque
   const cc = new ConstructorArbol();
@@ -1172,6 +1172,35 @@ export function animarCoihue(co, t, paso = 0) {
   co.cuerpo.position.y = Math.abs(Math.sin(f)) * 0.35 * paso + Math.sin(t * 0.5) * 0.05;
   co.cuerpo.rotation.z = Math.sin(f) * 0.025 * paso + Math.sin(t * 0.37) * 0.008;
   co.cuerpo.rotation.x = 0.03 * paso + Math.sin(t * 0.29) * 0.006;
+}
+
+// 4.10.3 (V6): las patas apoyan en el terreno. El árbol entero se paraba a la altura del centro y, caminando por una ladera, las patas de cuesta abajo quedaban colgando varios
+// metros (y las de cuesta arriba, enterradas). Cada pata se gira un poco más (o menos) sobre su mismo eje hasta que la punta toque el suelo de abajo; la raíz sigue pegada
+// al tronco (el pivote no se mueve). En llano no cambia nada. `altura(x, z)`: el terreno; `x, z, giro`: dónde está el árbol y cómo mira; devuelve cuánto giró (rad) cada pata.
+const CALCE_MIN = -0.75, CALCE_MAX = 0.5;   // (más abajo de -0,75 rad la pata se acorta en vez de bajar: la fórmula deja de ser monótona)
+const _qc = new THREE.Quaternion();
+export function calzarPatasCoihue(co, altura, x, z, giro, escala = COIHUE.escala) {
+  const out = [];
+  const y0 = altura(x, z), alza = COIHUE.alza;
+  for (const p of co.patas) {
+    const L = p.alcance - p.r0, D = alza + 1.8;   // desde el pivote: hacia afuera L, hacia abajo D (la punta, a y = -0,3)
+    const ang = p.a + giro;
+    let fi = 0;
+    for (let it = 0; it < 3; it++) {
+      const u = (p.r0 + L * Math.cos(fi) + D * Math.sin(fi)) * escala;   // dónde queda la punta (radio desde el tronco, en metros)
+      const dh = (altura(x + Math.sin(ang) * u, z + Math.cos(ang) * u) - y0) / escala;
+      // L sin(fi) - D (cos(fi) - 1) = dh: creciente en el rango permitido; se resuelve por bisección
+      let lo = CALCE_MIN, hi = CALCE_MAX;
+      const f = (v) => L * Math.sin(v) - D * (Math.cos(v) - 1);
+      if (dh <= f(lo)) fi = lo; else if (dh >= f(hi)) fi = hi;
+      else { for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (f(mid) < dh) lo = mid; else hi = mid; } fi = (lo + hi) / 2; }
+    }
+    p.calce = fi;
+    _qc.setFromAxisAngle(p.eje, -fi);
+    p.piv.quaternion.premultiply(_qc);
+    out.push(fi);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- 3.8.0: la subida por adentro (se camina)

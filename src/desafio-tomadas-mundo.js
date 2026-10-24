@@ -41,7 +41,7 @@ export function crearTomadasMundo(T, escena, a) {
     for (const z of zonasTomadasDelValle(v)) {
       let hay = lista.filter((c) => c.zona === z.id).length;
       for (; hay < nidosDeZona(z); hay++) {
-        const p = lugarNidoDeZona(z, lista, esBueno, azarDe(d.semilla, nocheQueViene(), `nido-${z.id}-${hay}`));
+        const p = lugarNidoDeZona(z, lista, esBueno, azarDe(d.semilla, nocheQueViene(), `nido-${z.id}-${hay}`), a.nidoLibre);   // 4.10.3 (V5): sin árbol ni piedra adentro, si se puede
         if (p) lista.push({ x: p.x, z: p.z, golpes: 0, zona: z.id });
       }
     }
