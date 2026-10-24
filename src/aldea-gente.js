@@ -49,8 +49,8 @@ import { eventosTaller, MEJORAS_TREN, textoListo } from './tren-mejoras.js';
 import { aplicarNegocio, temporadaDelDia } from './negocios-fx.js';
 import { cerrarCuentas } from './aldea-viva.js';
 import { diasParaVencer, GERENTE } from './prestamos.js';
-import { saludoDelGerente } from './banco-voces.js';
-import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA , avisoProximoVecino } from './aldea.js';
+import { saludoDelGerente, lineaFueraDeHorario } from './banco-voces.js';
+import { desfaseDe, NOMBRE_ALDEA, PARADA_ALDEA, EDIFICIOS_ALDEA, IDS_EDIFICIOS, CALLES_ALDEA, marcoAldea, puntosDe, dentroDePlanta, VECINOS_ALDEA, ORDEN_VECINOS_ALDEA, VECINOS_DEL_VALLE, POBLADORES_ALDEA, LOTE_DE, esVecinoAldea, esPobladorAldea, aldeaNueva, puedeLlegar, empezarLlegada, aceptar, llamarProximo, obraEnCurso, aportar, avanzarObras, etapaDe, estadoEdificio, localAbierto, bancoAbierto, servicioDe, aplicarAlAldea, rutinaAldea, diaSemanaDe, elegirCharla, charlasPosibles, ETAPAS_OBRA, anotacionesDe, anotacionesPedidas, quienLlega, puntosFijosDe, esPuntoLejano, pasarDiaChicos, tallaDe, coloresDe, dichosDe, CHICOS_ALDEA, NOMBRES_RADIO, quienesCharlan, fiestaDeCumple, CARRERAS, SENTADO_ADENTRO, ESCALERAS_ALDEA , avisoProximoVecino } from './aldea.js';
 import { cobrar as cobrarPesos, pagar as pagarPesos, hayEconomia, formatoPesos } from './economia.js';
 
 // a cuántos metros de la aldea (del rectángulo que ocupa) la gente se mueve y se ve, y a
@@ -994,6 +994,15 @@ export function crearAldeaGente(ctx) {
         }
       }
       // 3.8.8: el gerente te atiende en el mostrador (banco-mundo.js): préstamos, abastecimiento, casas y tu puesto en la feria. Cada tanto, charla
+      // 4.10.4 (S2-1): fuera del horario del cartel (plaza de 18 a 20, domingo, sábado de baile después de las 16) sigue siendo un vecino con quien hablar, pero el mostrador no abre
+      if (k === 'gerente' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirBanco) {
+        const dsG = diaSemanaDe(dia());
+        if (!bancoAbierto(horas(), dsG, dsG === 5 && localAbierto(a, 'salon'))) {
+          const nG = charlasDichas.get(k) || 0;
+          charlasDichas.set(k, nG + 1);
+          return { id: 'aldea-gerente-cerrado', partes: [lineaFueraDeHorario({ dia: dia(), hora: horas(), n: nG, sabadoDeBaile: dsG === 5 && localAbierto(a, 'salon') })], tipo: 'vecino' };
+        }
+      }
       if (k === 'gerente' && hayEconomia(progreso()) && !npc.deVisita && ctx.abrirBanco && (charlasDichas.get(k) || 0) % 3 !== 2) {
         charlasDichas.set(k, (charlasDichas.get(k) || 0) + 1);
         return {
@@ -1323,6 +1332,8 @@ export function crearAldeaGente(ctx) {
       if (a.descubierta && cierre) {
         if (cierre.evento) ctx.nota(cierre.evento.titulo, cierre.evento.texto, true);
         if (cierre.renta > 0) ctx.nota(`Cobraste ${formatoPesos(cierre.renta)} de alquiler`, 'Está en tu billetera, en el libro de cuentas', true);
+        // 4.10.4 (S2-3): con el préstamo vencido el alquiler paga primero la deuda: antes bajaba sola, sin decir por qué
+        if (cierre.aDeuda > 0) ctx.nota(`Tu alquiler pagó ${formatoPesos(cierre.aDeuda)} de tu deuda`, 'Mientras el préstamo está vencido, lo que cobrás de alquiler va primero al banco', true);
         const vence = diasParaVencer(p, d);
         if (vence === 1) ctx.nota('Mañana vence tu préstamo', `Pasá por el banco: ${GERENTE} te espera`, true);
         else if (vence !== null && vence <= 0) ctx.nota('Tu préstamo está vencido', 'El interés subió: saldalo en el banco', true);

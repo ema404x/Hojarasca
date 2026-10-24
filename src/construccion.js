@@ -2907,7 +2907,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
         if (plano.ocupaSuelo && o.plano.ocupaSuelo && (Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z)) - T.altura(o.datos.x, o.datos.z) <= 0.15 &&
             solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Se superpone con otra pieza' };
         // 4.10.3 (G-2): lo mismo si la que ya está es de las grandes y la nueva (una ampliación, una huerta, un aljibe) no la tiene a ella como piso: pisaba 1 a 2,4 m una herrería o un local
-        if (!sobrePlataforma && !plano.cubreOtras && o.plano.ocupaSuelo && !solapePermitido(plano, o.plano) && (Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z)) - T.altura(o.datos.x, o.datos.z) <= 0.15 &&
+        // 4.10.4 (R2-1): salvo que la que ya está sea un recinto o cobertizo que se camina (`admiteInterior`: el establo, el corral grande, el cobertizo de heno) y la nueva sea una pieza chica (no ocupa suelo): los muebles de adentro
+        if (!sobrePlataforma && !plano.cubreOtras && o.plano.ocupaSuelo && !(o.plano.admiteInterior && !plano.ocupaSuelo) && !solapePermitido(plano, o.plano) && (Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z)) - T.altura(o.datos.x, o.datos.z) <= 0.15 &&
             solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Se superpone con otra pieza' };
         // Una pared o mueble colocado sobre un piso modular puede solaparse en
         // planta con ese soporte: la altura de base ya demuestra que está encima.

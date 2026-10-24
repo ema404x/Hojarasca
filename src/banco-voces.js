@@ -102,7 +102,8 @@ export function saludoDelGerente(p, ctx = {}) {
       else if (faltan <= 3) lineas.push(llenar(elegir(VENCE_PRONTO, dia, n), { n: faltan }));
       else lineas.push(llenar(elegir(CON_DEUDA, dia, n), { debe: formatoPesos(pr.debe), n: faltan }));
     } else {
-      const alquiladas = Object.values(neg.casas.alquiladas || {}).length, caja = neg.casas.puesto?.caja || 0;
+      const alquiladas = Object.values(neg.casas.alquiladas || {}).reduce((s, q) => s + Math.max(1, Math.floor(Number(q?.cuantas) || 1)), 0), caja   // 4.10.4 (S2-6): casas, no tipos de casa
+         = neg.casas.puesto?.caja || 0;
       const hechas = Object.keys(neg.casas.poseidas || {}).length;
       const opciones = [];
       if (nivel >= 3) opciones.push(SOCIO);
@@ -189,4 +190,17 @@ export function lineaDeSolapa(solapa, p, ctx = {}) {
   }
   return `${GERENTE}: «${urgente || elegir(lista, ctx.dia, ctx.n, solapa.length)}»`;
 }
-export const VOZ_BANCO = { saludoDelGerente, comentarioDe, lineaDeSolapa };
+// 4.10.4 (S2-1): lo que dice Amadeo cuando le hablás con el banco cerrado (el mostrador no abre; el horario es el del cartel)
+const CERRADO = {
+  domingo: ['Hoy es domingo, estimado: el banco descansa y yo con él. Pase el lunes, que la libreta no se va a ningún lado.', 'Domingo: ni préstamos ni cuentas. Hoy el único interés que tengo es el de ver pasar la tarde.'],
+  sabado: ['Hoy cerramos temprano por el baile, estimado. Mañana el banco no abre; el lunes sí, desde las ocho y media.', 'Ya bajé la persiana: sábado de baile. Los números pueden esperar al lunes; la música, no.'],
+  temprano: ['Todavía no abrimos: el mostrador atiende desde las ocho y media. Vuelva en un rato y con gusto lo atiendo.', 'Es temprano para la caja, estimado. A las ocho y media levanto la persiana.'],
+  mediodia: ['Estoy en la hora del almuerzo: el banco vuelve a abrir a las dos y media. Venga después y lo atiendo con la libreta abierta.', 'Cerrado hasta las dos y media, estimado. Ni los bancos viven de aire.'],
+  noche: ['El banco ya cerró: atiende de lunes a sábado, de ocho y media a doce y media y de dos y media a seis. Vuelva en horario y lo atiendo con gusto.', 'A esta hora la caja ya está contada y la persiana, baja. Pase en horario, que los números no se mueven de noche.'],
+};
+export function lineaFueraDeHorario(ctx = {}) {
+  const dia = Math.max(1, Math.floor(Number(ctx.dia) || 1)), n = ctx.n || 0, hora = Number(ctx.hora) || 0, ds = diaSemana(dia);
+  const clave = ds === 6 ? 'domingo' : ds === 5 && ctx.sabadoDeBaile && hora >= 16 ? 'sabado' : hora < 8.5 ? 'temprano' : hora < 14.5 && hora >= 12.5 ? 'mediodia' : 'noche';
+  return elegir(CERRADO[clave], dia, n, 5);
+}
+export const VOZ_BANCO = { saludoDelGerente, comentarioDe, lineaDeSolapa, lineaFueraDeHorario };

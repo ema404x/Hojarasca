@@ -157,7 +157,8 @@ export function pagarDeudaAMano(p, est) {
   const r = pagarDeuda(p, est);
   return { ...r, abrioAhora: antes && r.ok && !cerradoPorDeuda(est) };
 }
-// Al desarmar el local: se paga lo que se pueda de la deuda (de la caja y la billetera) y lo que quede se perdona; la cuenta se detiene
+// Al desarmar el local: se paga la deuda entera (de la caja y la billetera) si alcanza; si no alcanza no se paga nada y la deuda se perdona; la cuenta se detiene
+// (4.10.4: el comentario decía «lo que se pueda», pero `pagarDeuda` es todo o nada y así se queda, a favor del jugador: ver las preguntas de CAMBIOS_4_10_4_REGRESIONES_ALDEA.md)
 export function cerrarCuenta(p, est) {
   if (!est?.fin) return { deuda: 0, pagada: false };
   const debe = est.fin.deuda;

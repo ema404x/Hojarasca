@@ -435,7 +435,7 @@ function BIENES_DONDE(k) { return ({ tronco: 'material', harina: 'cosa' })[k] ||
   const sucio = C.sanearCantina({ visitas: -5, ultima: 9999, pedidos: 'x', gastado: NaN, cuenta: { monto: -3, k: 'tronco', n: 2 }, fuertes: { dia: 1e9, n: 'z' } }, 10);
   ok(sucio.visitas === 0 && sucio.ultima === 10 && sucio.pedidos === 0 && sucio.gastado === 0 && sucio.cuenta === null && sucio.fuertes.dia === 10 && sucio.fuertes.n === 0, 'la basura se sanea (nada negativo, nada del futuro)');
   const buena = C.sanearCantina({ visitas: 3, ultima: 8, pedidos: 7, gastado: 2100, cuenta: { monto: 600, k: 'trucha-fresca', n: 3, dia: 7 }, fuertes: { dia: 8, n: 2 } }, 10);
-  eq(buena, { visitas: 3, ultima: 8, pedidos: 7, gastado: 2100, cuenta: { monto: 600, k: 'trucha-fresca', n: 3, dia: 7 }, fuertes: { dia: 8, n: 2 }, chistes: {}, ebrio: { n: 0, t: 0 }, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0 }, 'lo bueno queda como está (3.9.1 y 3.9.2: y los campos nuevos, vacíos)');
+  eq(buena, { visitas: 3, ultima: 8, pedidos: 7, gastado: 2100, cuenta: { monto: 600, k: 'trucha-fresca', n: 3, dia: 7 }, fuertes: { dia: 8, n: 2, mate: 0 }, chistes: {}, ebrio: { n: 0, t: 0 }, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0, pendiente: null }, 'lo bueno queda como está (3.9.1 y 3.9.2: y los campos nuevos, vacíos; 4.10.4: el mate de la noche y el pedido pendiente)');
   ok(C.sanearCantina({ cuenta: { monto: 100, k: 'poncho-raro', n: 0 } }, 5).cuenta.k === 'tronco', 'un mandado raro vuelve a un tronco, con al menos uno');
   ok(C.sanearCantina({ cuenta: { monto: 100, k: 'tronco', n: 5, dia: 99 } }, 5).cuenta.dia === 5, 'la cuenta no es de un día futuro');
   const g = leer('src/guardado.js');

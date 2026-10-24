@@ -59,7 +59,7 @@ export const PIEZAS_EXTERIORES = [
   },
   // ================================================================ la granja
   {
-    ...base, cubreArea: true, ocupaSuelo: true, id: 'establo-caballo', nombre: 'Establo para el caballo', categoria: 'trabajo', radio: 2.3, ancho: 4.2, fondo: 3.8, alto: 3.0, separacion: 2.6, pendienteMax: 0.45,
+    ...base, cubreArea: true, ocupaSuelo: true, admiteInterior: true, id: 'establo-caballo', nombre: 'Establo para el caballo', categoria: 'trabajo', radio: 2.3, ancho: 4.2, fondo: 3.8, alto: 3.0, separacion: 2.6, pendienteMax: 0.45,
     texto: 'Un establo de tablas con su pesebre, el heno, un balde y una herradura sobre la puerta. Abierto al frente, de espaldas al viento. Es de adorno y para tener un lugar donde dejar el caballo.',
     pide: { tabla: 26, tronco: 10, piedra: 4 }, pesos: 6000,
     fisica(h) {
@@ -100,7 +100,7 @@ export const PIEZAS_EXTERIORES = [
     },
   },
   {
-    ...base, ocupaSuelo: true, id: 'corral-grande', nombre: 'Corral grande', categoria: 'trabajo', radio: 3.4, ancho: 6.2, fondo: 5.2, alto: 1.65, separacion: 3.5, pendienteMax: 0.4,
+    ...base, ocupaSuelo: true, admiteInterior: true, id: 'corral-grande', nombre: 'Corral grande', categoria: 'trabajo', radio: 3.4, ancho: 6.2, fondo: 5.2, alto: 1.65, separacion: 3.5, pendienteMax: 0.4,
     texto: 'Un corral de postes y tres varas, de seis metros por cinco, con la tranquera abierta al frente, un bebedero y un montón de pasto. Para tener los animales a la vista; las ovejas del galpón siguen en el suyo.',
     pide: { tronco: 14, tabla: 6 }, pesos: 3000,
     fisica(h) {
@@ -130,7 +130,7 @@ export const PIEZAS_EXTERIORES = [
     },
   },
   {
-    ...base, cubreArea: true, ocupaSuelo: true, id: 'cobertizo-heno', nombre: 'Cobertizo de heno', categoria: 'trabajo', radio: 2.0, ancho: 3.9, fondo: 2.8, alto: 3.0, separacion: 2.2, pendienteMax: 0.45,
+    ...base, cubreArea: true, ocupaSuelo: true, admiteInterior: true, id: 'cobertizo-heno', nombre: 'Cobertizo de heno', categoria: 'trabajo', radio: 2.0, ancho: 3.9, fondo: 2.8, alto: 3.0, separacion: 2.2, pendienteMax: 0.45,
     texto: 'Un techo grande de tablas sobre cuatro postes, abierto de todos lados, con las pacas de heno apiladas abajo y una horquilla contra el poste. El heno no se moja: lo que se junta en verano alcanza para el invierno.',
     pide: { tronco: 6, tabla: 10 }, pesos: 2000,
     fisica(h) {

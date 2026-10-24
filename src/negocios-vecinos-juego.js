@@ -174,12 +174,14 @@ export function crearNegociosVecinosJuego(ctx) {
   // ---------------------------------------------------------------- las cuentas y la caja
   function cuentas(id) {
     const p = prog(), N = NEGOCIOS[id], v = voz(id), c = contexto(id), d = dia();
-    visitar(p, id, d);
-    if (!esTuyo(p, id) && !esSocio(p, id) && c.puntos < 50) return { tipo: 'renglones', renglones: [FRASES.secreto] };
-    const g = gananciaDelDia(id, d - 1);
-    const renglones = [llenar(v.cuentas, { ventas: formatoPesos(g.ventas), neto: formatoPesos(g.neto) })];
+    // 4.10.4 (S2-2): el resumen se arma ANTES de visitar (visitar deja «sinVer» en 0 y el aviso de «hace N días que no pasabas» no salía nunca)
     const r = resumenNegociosVecinos(p, d);
     const x = r.propios.find((q) => q.id === id);
+    visitar(p, id, d);
+    if (!esTuyo(p, id) && !esSocio(p, id) && c.puntos < 50) return { tipo: 'renglones', renglones: [FRASES.secreto] };
+    // 4.10.4 (S2-2): en un negocio TUYO, las cifras de ayer son lo que de verdad se contó para tu caja (con tu atención, tu cartera, el bono y el dueño que se fue), no la fórmula base
+    const base = gananciaDelDia(id, d - 1), g = x && x.ultimo && x.ultimo.dia === d - 1 ? { ventas: x.ultimo.ventas, neto: x.ultimo.neto } : base;
+    const renglones = [llenar(v.cuentas, { ventas: formatoPesos(g.ventas), neto: formatoPesos(g.neto) })];
     if (x) {
       const partes = [`En un día corriente rinde unos ${formatoPesos(gananciaBase(id))}`];
       if (x.cartera < 1) partes.push(`como tenés varios negocios, tu atención se reparte y te queda el ${Math.round(x.cartera * 100)} %`);
