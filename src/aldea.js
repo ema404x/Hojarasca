@@ -1924,6 +1924,12 @@ export const diaSemanaDe = (dia) => ((diaValido(dia, 1) - 1) % 7 + 7) % 7;
 // Un corrimiento propio de cada uno (entre −0,4 y +0,4 h): que no se muevan todos juntos.
 // 3.8.9: el horario del banco (lo que dicen el LEEME y el cartel): de lunes a sábado; el sábado con baile cierra antes
 export const HORARIO_BANCO = { manana: [8.5, 12.5], tarde: [14.5, 18], sabadoDeBaile: 16 };
+// 4.10.4 (S2-1): ¿atiende el mostrador? Una sola regla para la rutina de Amadeo y para su charla (antes el mostrador se abría donde estuviera: la plaza de 18 a 20, el domingo…)
+export function bancoAbierto(hora, diaSemana, sabadoDeBaile = false) {
+  const t = (((Number(hora) || 0) % 24) + 24) % 24, ds = ((Math.floor(Number(diaSemana) || 0) % 7) + 7) % 7;
+  if (ds === 6) return false;
+  return (t >= HORARIO_BANCO.manana[0] && t < HORARIO_BANCO.manana[1]) || (t >= HORARIO_BANCO.tarde[0] && t < (sabadoDeBaile && ds === 5 ? HORARIO_BANCO.sabadoDeBaile : HORARIO_BANCO.tarde[1]));
+}
 export function desfaseDe(persona) {
   if (persona === 'gerente' || persona === 'moza' || persona === 'bailarina') return 0;   // 3.8.9: el banco va con el reloj, sin corrimiento: el cartel dice a qué hora abre y cierra (3.9.0: y la cantina)
   let h = 5381;
@@ -2174,7 +2180,7 @@ export function rutinaAldea(persona, hora, diaSemana, estado, dia = null) {
     } else if (persona === 'gerente') {
       // 3.8.8: el banco abre de 8:30 a 12:30 y de 14:30 a 18 de lunes a sábado; el gerente atiende detrás del mostrador (el domingo, en su casa)
       // 3.8.9: sin corrimiento (ver arriba), y el sábado con el salón abierto cierra a las 16, antes de ir a arreglarse para el baile
-      if (ds !== 6 && ((t >= HORARIO_BANCO.manana[0] && t < HORARIO_BANCO.manana[1]) || (t >= HORARIO_BANCO.tarde[0] && t < (sabadoDeBaile ? HORARIO_BANCO.sabadoDeBaile : HORARIO_BANCO.tarde[1])))) return ir('trabajo', 'banco-pueblo', 'adentro');
+      if (bancoAbierto(t, ds, sabadoDeBaile)) return ir('trabajo', 'banco-pueblo', 'adentro');   // (4.10.4: la misma regla que la charla del mostrador)
     } else if (persona === 'ercilia') {
       // horario de almacén de pueblo: de 8:30 a 12 y de 16 a 20, con siesta en el medio
       // (3.6.2: cierra a las 12 y la siesta es hasta las 15:15: su casa queda a 47 m por la calle, y la ida y la
