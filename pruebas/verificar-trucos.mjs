@@ -93,7 +93,8 @@ for (const mal of ['24', '25', '-1', '12:60', 'abc', '', '12:', ':30', '9.9999']
   corre(w, 'tablas 200'); eq(w.p.materiales.tabla, 200, 'tablas');
   corre(w, 'troncos +30'); eq(w.p.materiales.tronco, 30, 'troncos suma');
   corre(w, 'piedras 80'); corre(w, 'lana 20'); eq(w.p.materiales.lana, 20, 'lana');
-  corre(w, 'materiales 100'); eq([w.p.materiales.tronco, w.p.materiales.tabla, w.p.materiales.piedra, w.p.materiales.lana], [100, 100, 100, 100], 'materiales');
+  // 4.10.1: la mochila tiene 24 casillas (carga.js): `materiales 100` llena hasta donde entra, ya no se pasa a 52 casillas (ver verificar-4-10-1-mundo.mjs)
+  corre(w, 'materiales 100'); eq([w.p.materiales.tronco, w.p.materiales.tabla, w.p.materiales.piedra, w.p.materiales.lana], [50, 100, 100, 100], 'materiales (hasta donde entra la mochila)');
   corre(w, 'tablas 0'); ok(!('tabla' in w.p.materiales), 'cero borra la clave');
   ok(!corre(w, 'tablas 10000').ok && !corre(w, 'tablas x').ok && !corre(w, 'tablas 1e3').ok, 'materiales fuera de rango');
   ok(corre(w, 'TABLAS 5').ok && corre(w, '  Tabla   5  ').ok, 'mayúsculas, alias y espacios');

@@ -35,5 +35,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\lanzar-electron
 ## Al leer el resultado
 - Una falla que no se repite al correrla sola dos veces es de tiempo: decirlo igual.
 - Antes de decir que una falla «es vieja», compararla con la versión anterior armada en una carpeta temporal.
-- Fallas viejas conocidas (4.6.0): `humo-trucos` («Escape devuelve a la pausa») y `humo-4-2-pico` («forjado: pico…» y «el libro anota "Pico forjado"»).
+- 4.10.1: `humo-trucos` y `humo-4-2-pico` ya no tienen fallas conocidas (eran de las pruebas, no del juego). Las partidas que fallaban «a veces» (`humo-3-5-1-desafio`, `humo-4-9-defensas`, `humo-4-6-recursos`) usan `pruebas/ayuda-determinista.cjs` (Math.random sembrado, reloj falso, requestAnimationFrame congelado): usarlo en toda partida nueva que dependa del azar o del tiempo.
 - Mirar las capturas que deja la prueba **a tamaño completo** antes de dar algo por bueno (nada flotando ni atravesado).

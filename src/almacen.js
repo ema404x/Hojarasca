@@ -11,14 +11,14 @@ import { formatoPesos } from './economia.js';
 // Cómo se llama cada cosa que se guarda: [uno, varios]
 export const ETIQUETA = {
   tronco: ['tronco', 'troncos'], tabla: ['tabla', 'tablas'], piedra: ['piedra', 'piedras'], cristal: ['semilla dorada', 'semillas doradas'], lana: ['vellón de lana', 'vellones de lana'],
-  haba: ['haba', 'habas'], papa: ['papa', 'papas'], 'frutilla-huerta': ['frutilla', 'frutillas'], calafate: ['calafate', 'calafates'],
+  haba: ['haba', 'habas'], papa: ['papa', 'papas'], 'frutilla-huerta': ['frutilla', 'frutillas'], frutilla: ['frutilla', 'frutillas'], calafate: ['calafate', 'calafates'],
   hacha: ['hacha', 'hachas'], pico: ['pico', 'picos'], tijera: ['tijera', 'tijeras'], mosca: ['mosca de pescar', 'moscas de pescar'], farol: ['farol', 'faroles'], botas: ['botas de goma', 'botas de goma'],
   // 4.6 recursos: los materiales y las herramientas de zona (recursos-zona.js)
   junco: ['junco', 'juncos'], hierbas: ['atado de hierbas', 'atados de hierbas'], arcilla: ['terrón de arcilla', 'terrones de arcilla'], cuero: ['cuero', 'cueros'], 'piedra-cantera': ['piedra de cantera', 'piedras de cantera'],
   'hoz-junco': ['hoz de junco', 'hoces de junco'], 'pala-arcilla': ['pala de arcilla', 'palas de arcilla'], 'cuchillo-cuero': ['cuchillo de cuero', 'cuchillos de cuero'], 'pico-cantero': ['pico de cantero', 'picos de cantero'],
 };
 // Lo que muestra el resumen («Piedra 18/40»): la palabra corta de cada clave
-const CORTA = { tronco: 'Troncos', tabla: 'Tablas', piedra: 'Piedra', cristal: 'Semillas doradas', lana: 'Lana', haba: 'Habas', papa: 'Papas', 'frutilla-huerta': 'Frutillas', calafate: 'Calafates', hacha: 'Hacha', pico: 'Pico', tijera: 'Tijera', mosca: 'Mosca', farol: 'Farol', botas: 'Botas',
+const CORTA = { tronco: 'Troncos', tabla: 'Tablas', piedra: 'Piedra', cristal: 'Semillas doradas', lana: 'Lana', haba: 'Habas', papa: 'Papas', 'frutilla-huerta': 'Frutillas', frutilla: 'Frutillas', calafate: 'Calafates', hacha: 'Hacha', pico: 'Pico', tijera: 'Tijera', mosca: 'Mosca', farol: 'Farol', botas: 'Botas',
   // 4.6 recursos
   junco: 'Junco', hierbas: 'Hierbas', arcilla: 'Arcilla', cuero: 'Cuero', 'piedra-cantera': 'Piedra de cantera', 'hoz-junco': 'Hoz', 'pala-arcilla': 'Pala', 'cuchillo-cuero': 'Cuchillo', 'pico-cantero': 'Pico de cantero' };
 // 4.6 recursos: los materiales de zona entran en la barraca, pero el resumen los nombra sólo si hay (si no, «Troncos 0/40 · … · Junco 0/40 …» no entra en el aviso)
@@ -48,7 +48,7 @@ export const ALMACENES = {
     ampliaciones: [{ pide: { tabla: 12, tronco: 4 }, pesos: 3500 }, { pide: { tabla: 16, tronco: 6, piedra: 8 }, pesos: 6500 }, { pide: { tabla: 24, tronco: 8, piedra: 12, lana: 4 }, pesos: 11000 }],
   },
   silo: {
-    nombre: 'Silo y granero', articulo: 'el silo', del: 'del silo', f: false, tipo: 'cosecha', modo: 'total', guarda: ['haba', 'papa', 'frutilla-huerta', 'calafate'], titulo: 'Cosecha',
+    nombre: 'Silo y granero', articulo: 'el silo', del: 'del silo', f: false, tipo: 'cosecha', modo: 'total', guarda: ['haba', 'papa', 'frutilla', 'calafate'], titulo: 'Cosecha',   // 4.10.1: «frutilla» (la clave de la mochila; el cantero cosecha eso). Antes decía 'frutilla-huerta', que sólo es la anotación del cuaderno, y el silo no guardaba frutillas
     topes: [60, 120, 200],
     ampliaciones: [{ pide: { tabla: 10, tronco: 4 }, pesos: 3000 }, { pide: { tabla: 16, tronco: 6, piedra: 6 }, pesos: 5500 }],
   },
@@ -89,7 +89,7 @@ export function sanearAlmacen(v, id) {
   const g = {};
   const crudo = o.g && typeof o.g === 'object' && !Array.isArray(o.g) ? o.g : {};
   for (const k of A.guarda) {
-    const c = A.tipo === 'herramienta' ? (entero(crudo[k]) > 0 ? 1 : 0) : entero(crudo[k]);
+    const c = A.tipo === 'herramienta' ? (entero(crudo[k]) > 0 ? 1 : 0) : (entero(crudo[k]) || (k === 'frutilla' ? entero(crudo['frutilla-huerta']) : 0));   // 4.10.1: un silo guardado con la clave vieja no pierde las frutillas
     if (c > 0) g[k] = c;
   }
   return { n, g };

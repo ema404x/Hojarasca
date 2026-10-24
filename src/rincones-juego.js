@@ -15,11 +15,12 @@
 //   sumarMaterial(k, n), sumarCosa(k, n), cantidad(tipo, k), amistades() → { clave: nivel }, nivel(clave), hijos() →
 //   [{ nombre, etapa }], dormir(), refrescarHuerta(), anotaciones() (las del cuaderno), noche() (0..1), tieneCaballo(),
 //   caballo() → { x, z, yaw } (donde espera), dejarCaballo(x, z, yaw), sonido, fundido(fn) }
-import { RINCONES, LUGARES_RINCONES, lugarEnMundo, sanearRincones, encontrarDuende, encontrado, textoDuende, duendesEncontrados, pistaDuende, tallaEnLaPlaza, textoAtril, dejarCuaderno, leyeronCuaderno, MANUALIDADES, MAESTROS, puedeAprender, aprender, tallerArmado, manualidadesDeHoy, hacerManualidad, adornosDelEstante, estadoCantero, textoCanteroRincon, trabajarCantero, sembrarVecinos, horaDeHuerta, horaDeTiteres, funcionHoy, darFuncion, textoFuerte, trabajarFuerte, fuerteTerminado, hijosParaAcampar, puedeAcampar, acampar, anotarGol, empezarPartido, horaDePartido, elegirJugadores, JUGADORES_POTRERO, amistadDelPicado, PICADO } from './rincones.js';
+import { RINCONES, LUGARES_RINCONES, lugarEnMundo, sanearRincones, encontrarDuende, encontrado, textoDuende, duendesEncontrados, pistaDuende, tallaEnLaPlaza, textoAtril, dejarCuaderno, leyeronCuaderno, MANUALIDADES, MAESTROS, puedeAprender, aprender, tallerArmado, manualidadesDeHoy, hacerManualidad, adornosDelEstante, estadoCantero, textoCanteroRincon, trabajarCantero, cosechaDe, ingredienteDe, sembrarVecinos, horaDeHuerta, horaDeTiteres, funcionHoy, darFuncion, textoFuerte, trabajarFuerte, fuerteTerminado, hijosParaAcampar, puedeAcampar, acampar, anotarGol, empezarPartido, horaDePartido, elegirJugadores, JUGADORES_POTRERO, amistadDelPicado, PICADO } from './rincones.js';
 import { CANCHA, PATADA, pelotaNueva, sacar, patear, pasoPelota, pensarJugador, patadaDe, alAlcance, saqueDespues } from './futbol.js';
 import { SULKY, tieneSulky, pedirSulky, caminoArreglado, hacerMinga, objetivoSulky, andarSulky, enCamino, masCercano } from './sulky.js';
 import { CASA_PROPIA, etapaCasa, casaTerminada, pedirLote, aportarCasa, textoCasa, adentroDeCasa, loteEnMundo } from './casa-propia.js';
 import { DUENDES } from './rincones-cuaderno.js';
+import { tratoDeEfectos } from './carga.js';
 import { SERVICIO, esVecinoAldea, esPobladorAldea } from './aldea.js';
 import { sumarAmistadDe, amistades, nivelDe } from './vecindad.js';
 import { hijosDe } from './amor.js';
@@ -438,6 +439,8 @@ export function crearRinconesJuego(ctx) {
     ctx.guardar?.();
   }
   function trabajarHuerta(tipo, i) {
+    // 4.10.1: la cosecha tiene que entrar en la mochila ANTES de vaciar el cantero (antes quedaba en sobrecarga)
+    { const e = estadoCantero(r(), tipo, i, dia()); if (e.estado === 'listo' && ctx.cabeTrato) { const ing = ingredienteDe(e.cultivo); if (ing && !ctx.cabeTrato({ [ing]: cosechaDe(tipo, e.cultivo) })) return; } }
     const res = trabajarCantero(r(), tipo, i, dia());
     if (!res.ok) { if (res.motivo === 'hoy ya') ctx.nota?.('Hoy ya la trabajaste', 'Mañana otra vez'); return; }
     aplicar(res.da);
@@ -504,6 +507,12 @@ export function crearRinconesJuego(ctx) {
     }
   }
   function trabajarEnTaller(id) {
+    // 4.10.1: lo que da la manualidad (menos lo que gasta) tiene que entrar ANTES de gastar; sólo se mira si se puede hacer
+    { const m = Object.hasOwn(MANUALIDADES, String(id)) ? MANUALIDADES[id] : null, R = r();
+      if (m && R.oficios?.[id] && R.hechos?.[id]?.ultimo !== dia() && ctx.cabeTrato && m.gasta.every((g) => tengo(g.tipo, g.k) >= g.n)) {
+        const { da, quita } = tratoDeEfectos([...m.gasta.map((g) => ({ tipo: g.tipo, k: g.k, n: -g.n })), ...m.da]);
+        if (!ctx.cabeTrato(da, quita)) return;
+      } }
     const res = hacerManualidad(r(), id, tengo, dia());
     if (!res.ok) return;
     aplicar(res.efectos.filter((e) => e.tipo !== 'adorno'));

@@ -143,8 +143,14 @@ app.whenReady().then(async () => {
     // ---- 2c. el herrero de la aldea lo forja
     await js(`(() => { const P = H.progreso, A = P.aldea; delete P.cosas.pico; P.cosas.tijera = 1;
       A.pobladores = [{ clave: 'herrero', dia: 1 }]; A.locales = { herreria: 1 }; P.entradas.canto = { dia: 1, hora: 9, cantidad: 3 }; P.economia.pesos = 450; 1 })()`);
-    const charla = await js(`(() => { const c = H.__aldea.mundo().charla({ claveAldea: 'herrero' }); if (!c) return null; const r = { partes: c.partes, ofrece: !!c.alTerminar }; window.__charlaHerrero = c; return r })()`);
-    ok(charla && charla.ofrece && /pico/i.test(charla.partes.join(' ')), `el herrero ofrece forjar el pico (${charla && charla.partes.join(' / ').slice(0, 160)})`);
+    // 4.10.1: desde la 4.4.2 (C6) el herrero primero afila y la oferta del pico llega en la charla siguiente (con el afilado de hoy o vigente): se prueba esa conducta
+    const hablar = `(() => { const c = H.__aldea.mundo().charla({ claveAldea: 'herrero' }); if (!c) return null; const r = { partes: c.partes, ofrece: !!c.alTerminar, titulo: c.titulo || '' }; window.__charlaHerrero = c; return r })()`;
+    const primera = await js(hablar);
+    ok(primera && primera.ofrece && /paso la piedra|afil/i.test(primera.partes.join(" ")) && /hablame de nuevo/i.test(primera.partes.join(' ')), `la primera charla: el herrero afila y avisa que el pico va después (${primera && primera.partes.join(' / ').slice(0, 160)})`);
+    ok((await estado()).pico === 0, 'y todavía no forjó el pico');
+    await js(`window.__charlaHerrero.alTerminar(); 1`); await cuadros(2);
+    const charla = await js(hablar);
+    ok(charla && charla.ofrece && /pico/i.test(charla.partes.join(' ')), `la charla siguiente: el herrero ofrece forjar el pico (${charla && charla.partes.join(' / ').slice(0, 160)})`);
     await js(`window.__charlaHerrero.alTerminar(); 1`); await cuadros(2);
     e = await estado();
     ok(e.pico === 1 && e.canto === 0 && e.pesos === 150, `forjado: pico, sin cantos y $150 de vuelto (pico ${e.pico}, cantos ${e.canto}, pesos ${e.pesos})`);

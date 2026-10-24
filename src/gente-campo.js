@@ -110,8 +110,8 @@ export const HISTORIAS_CAMPO = {
   tobias: [
     { id: 'tobias-gales', titulo: 'Picapedreros de Gales',
       partes: [
-        'Mi bisabuelo vino de Gales con un martillo, tres cuñas y la Biblia de la familia. La Biblia se perdió; las cuñas, no.',
-        'En el valle del Chubut levantaron capillas, molinos y puentes con la piedra de las bardas. Yo aprendí con mi tío, a los doce.',
+        'Mi bisabuelo vino de Gales con un martillo, tres cuñas y el libro de cuentas de la familia. El libro se perdió; las cuñas, no.',
+        'En el valle del Chubut levantaron galpones, molinos y puentes con la piedra de las bardas. Yo aprendí con mi tío, a los doce.',
         'Acá la piedra es otra: más dura, más fría. Pero una veta es una veta. Hay que escucharla antes de pegarle.',
       ] },
     { id: 'tobias-veta', titulo: 'La veta que vuelve',
@@ -251,7 +251,9 @@ export function tiendaDe(gc, k, dia, ctx = {}) {
     const quedan = c.una ? 1 : Math.max(0, (c.porDia || 1) - (hoy[`${k}|${c.id}`] || 0));
     let motivo = quedan <= 0 ? 'Por hoy no queda' : null;
     if (!motivo && c.requiere && nivel(c.requiere.oficio) < c.requiere.nivel) motivo = `Pide ${c.requiere.oficio} nivel ${c.requiere.nivel}`;
-    out.push({ ...c, quedan, puede: !motivo, motivo });
+    // 4.10.1: el cuchillo de cuero (Fermín, $1.000) al fin sirve: con él en la mochila el cuero que le comprás al pastor te rinde uno más (cuereás el recorte vos)
+    const conCuchillo = c.id === 'cuero' && c.k === 'cuero' && tiene('cuchillo-cuero');
+    out.push({ ...c, ...(conCuchillo ? { n: c.n + 1, titulo: 'Un cuero de oveja, y con tu cuchillo sacás otro del recorte', dice: 'Cuerealo vos, que para eso tenés el cuchillo: del recorte te sale otro cuero. Sin desperdiciar.' } : {}), quedan, puede: !motivo, motivo });
   }
   return out;
 }

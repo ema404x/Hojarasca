@@ -18,7 +18,7 @@ Al final de la calle de la Loma, pasando el observatorio, abre de 18 a 2 **la ca
 
 ## 3.8.9 — La auditoría de la entrega
 
-Después de una auditoría independiente del paquete de la 3.8.8: el juego ahora **lleva hasta el Banco del Pueblo** (una pista al llegar a la aldea, el rótulo en el mapa, la guía F1 y un cartel con el horario junto a la puerta; el gerente atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18), más banderas flamean con el viento (tu bandera, las de la locomotora y los postes de largada), la portada muestra la **versión y la huella del build** (para distinguir un paquete nuevo de uno viejo) y avisa en la portada que la aldea, el banco y los pesos son del modo Relax. Si ya hay otro Hojarasca abierto, la segunda copia lo dice en vez de cerrarse sola. Detalles: `CAMBIOS_3_8_9.md`.
+Después de una auditoría independiente del paquete de la 3.8.8: el juego ahora **lleva hasta el Banco del Pueblo** (una pista al llegar a la aldea, el rótulo en el mapa, la guía F1 y un cartel con el horario junto a la puerta; el gerente atiende de lunes a sábado, de 8:30 a 12:30 y de 14:30 a 18), más banderas flamean con el viento (tu bandera y las de la locomotora), la portada muestra la **versión y la huella del build** (para distinguir un paquete nuevo de uno viejo) y avisa en la portada que la aldea, el banco y los pesos son del modo Relax. Si ya hay otro Hojarasca abierto, la segunda copia lo dice en vez de cerrarse sola. Detalles: `CAMBIOS_3_8_9.md`.
 
 ## 3.8.8 — La economía del pueblo y la escalera de casas
 

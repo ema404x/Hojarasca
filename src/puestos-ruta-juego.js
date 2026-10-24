@@ -55,9 +55,30 @@ export function crearPuestosRutaJuego(ctx) {
   // ------------------------------------------------ el depósito
   function textoDeposito(id) {
     const m = materiales(), r = resumenDeposito(P(), id);
-    if (GUARDA.some((k) => (m[k] || 0) > 0)) return `Guardar en el depósito del puesto (${r})`;
+    if (GUARDA.some((k) => (m[k] || 0) > 0)) return `Guardar en el depósito del puesto (${r})${hayEnDeposito(P(), id) ? ' · Supr: sacar' : ''}`;   // 4.10.1: Supr saca todo, lleves lo que lleves
     if (hayEnDeposito(P(), id)) return `Sacar del depósito del puesto (${r})`;
     return `Depósito del puesto vacío (${r})`;
+  }
+  // 4.10.1: sacar todo lo guardado sin que importe lo que llevás encima (como Supr en los depósitos comunes, 4.4.2 C7): antes, con
+  // cualquier material de GUARDA en la mochila la E siempre guardaba y el depósito de un puesto no se podía vaciar.
+  function sacarTodo(id) {
+    const p = P(), m = materiales();
+    if (!hayEnDeposito(p, id)) { ctx.nota('El depósito del puesto está vacío', resumenDeposito(p, id)); return true; }
+    const sacado = sacarDePuesto(p, id, m, ctx.lugarEn || null);   // 4.7 carga: sólo sale lo que entra en la mochila
+    if (!Object.keys(sacado).length) { ctx.nota('Mochila llena: no te entra nada del depósito', 'Hacé lugar en la mochila: lo guardado sigue en el puesto'); return true; }
+    ctx.sonido?.juntar?.();
+    ctx.nota(hayEnDeposito(p, id) ? 'Sacaste lo que te entra del depósito del puesto' : 'Sacaste todo del depósito del puesto', enPalabras(sacado));
+    ctx.mundo?.refrescar(id);
+    ctx.refrescarBarra?.(); ctx.guardar?.();
+    return true;
+  }
+  // Supr junto al alero del depósito de un puesto reparado: saca todo. Devuelve false si no hay depósito a mano (el resto de Supr sigue).
+  function sacarTodoCerca(js) {
+    if (!activo() || !js?.pos) return false;
+    const c = puestoCerca(js.pos, 8);
+    if (!c || !reparado(P(), c.id) || adentro(c.id, js.pos.x, js.pos.z)) return false;
+    if (dist(js.pos, puntoDe(c.id, 'deposito')) >= RADIO_PUESTO.deposito) return false;
+    return sacarTodo(c.id);
   }
   function usarDeposito(id) {
     const p = P(), m = materiales();
@@ -66,12 +87,9 @@ export function crearPuestosRutaJuego(ctx) {
       if (Object.keys(guardado).length) {
         ctx.sonido?.juntar?.();
         ctx.nota('Guardaste en el depósito del puesto', `${enPalabras(guardado)}. ${resumenDeposito(p, id)}${sobra.length ? `. No entró el resto de ${sobra.map((k) => nombreMaterial(k)).join(' y ')}: está lleno` : ''}`, true);
-      } else ctx.nota('El depósito del puesto está lleno', `${resumenDeposito(p, id)}. Sin nada a mano, E saca todo`);
+      } else ctx.nota('El depósito del puesto está lleno', `${resumenDeposito(p, id)}. Supr saca todo`);
     } else if (hayEnDeposito(p, id)) {
-      const sacado = sacarDePuesto(p, id, m, ctx.lugarEn || null);   // 4.7 carga: sólo sale lo que entra en la mochila
-      if (!Object.keys(sacado).length) { ctx.nota('Mochila llena: no te entra nada del depósito', 'Hacé lugar en la mochila: lo guardado sigue en el puesto'); return true; }
-      ctx.sonido?.juntar?.();
-      ctx.nota(hayEnDeposito(p, id) ? 'Sacaste lo que te entra del depósito del puesto' : 'Sacaste todo del depósito del puesto', enPalabras(sacado));
+      return sacarTodo(id);
     } else {
       ctx.nota('El depósito del puesto está vacío', `Traé ${GUARDA.map((k) => nombreMaterial(k)).join(', ')} y apretá E acá: guarda hasta 40 de cada uno`);
       return true;
@@ -112,7 +130,7 @@ export function crearPuestosRutaJuego(ctx) {
   }
 
   return {
-    accion, fogonCerca, reparar, usarDeposito, paradaDe,
+    accion, fogonCerca, reparar, usarDeposito, sacarTodoCerca, paradaDe,
     // el mapa: los puestos que no son parada (el del Riel Sur sale con las paradas), con cómo están
     marcasDelMapa: () => (activo() ? IDS_PUESTOS.filter((id) => !PUESTOS_RUTA[id].parada).map((id) => ({ x: PUESTOS_RUTA[id].pos.x, z: PUESTOS_RUTA[id].pos.z, nombre: reparado(P(), id) ? PUESTOS_RUTA[id].nombre : `${PUESTOS_RUTA[id].nombre} (abandonado)` })) : []),
     // (para las pruebas: dónde queda cada puesto y cada cosa)

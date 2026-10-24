@@ -226,6 +226,14 @@ export function crearEmpleoJuego(ctx) {
   }
 
   // ---------------------------------------------------------------- el reloj del sistema
+  // 4.10.1: la consola de códigos (hora / dia) mueve el reloj: si con el nuevo día u hora el turno ya no corre, se cierra con lo hecho y SIN multa
+  // (antes lo tomaba por «te fuiste a dormir» y cobraba el 25 % de multa y una falta: los códigos no dejan rastro)
+  function alSaltarElTiempo(dia2, hora2) {
+    const p = prog();
+    if (!activo() || !turnoActivo(p)) return null;
+    const motivo = motivoDeCierre(p, dia2 ?? dia(), hora2 ?? horas(), !!ctx.reloj?.());
+    return motivo ? cerrar(motivo) : null;
+  }
   function actualizar(dt) {
     if (!activo()) { if (hud && hud.style.display !== 'none') dibujarHud(); return; }
     ponerCarteles();
@@ -311,7 +319,7 @@ export function crearEmpleoJuego(ctx) {
   }
 
   return {
-    accion, tapaVecino, actualizar, alCargar, paginaCuaderno, cerrar,
+    accion, tapaVecino, actualizar, alCargar, paginaCuaderno, cerrar, alSaltarElTiempo,
     turno: () => turnoActivo(prog()), haciendo: () => !!hace, mundo: () => mundo, lugar,
     // para las pruebas y las capturas: fichar sin cartel, y hacer la tarea que toca al instante
     _fichar: (k) => { const r = fichar(prog(), k, dia(), horas()); if (r.ok) { ponerMarca(); dibujarHud(true); } return r; },

@@ -1309,7 +1309,7 @@ function atrapar(pez) {
   ganarOficio('pescador', XP.pez);   // 3.1
   // 3.8.6: si te la quedás para el ahumadero (el diario decía «la devolví al agua»)
   const truchasDeHoy = progreso.truchasHoy?.dia === progreso.dia ? progreso.truchasHoy.n : 0;
-  diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm, quedo: !desafio && teLaQuedas(pez.id, obrasTerminadas('ahumadero').length > 0, truchasDeHoy) });
+  diario.anotar('pez', { especie: pez.def.nombre, cm: pez.cm, quedo: !desafio && teLaQuedas(pez.id, obrasTerminadas('ahumadero').length > 0, truchasDeHoy) && lugarEn('trucha-fresca', 1) >= 1 });   // 4.10.1: con la mochila llena la devolvés al agua (el diario decía que te la quedaste)
   vecindadJuego?.delPez(pez);   // 3.6 (vida): la trucha grande o el pez nativo, para los vecinos
   concursosJuego?.delPez(pez);   // 3.7.5 (noticias): la más grande de hoy y ayer va al concurso de la trucha
   modos?.pez?.(pez);   // 3.1: el desafío del día
@@ -3413,6 +3413,7 @@ document.addEventListener('keydown', (e) => {
         // 4.4.2: Supr junto a un depósito saca todo lo guardado, aunque lleves lo mismo en la mochila (con E, si llevabas algo, se guardaba)
         const o = obraQueTrabajaCerca();
         if (o && almacenJuego.esAlmacen(o.plano.id)) almacenJuego.sacarTodo(o);
+        else if (!desafio) puestosJuego?.sacarTodoCerca(js);   // 4.10.1: lo mismo en el depósito de un puesto de ruta (con E, si llevabas algo, se guardaba)
       }
       break;
     case 'KeyY':
@@ -5633,7 +5634,7 @@ function armarOficiosYAldea(esDesafio) {
     progreso: () => progreso, ajustes: () => ajustes, desafio: () => !!desafio, mundo: rinconesMundo,
     jugador: () => jugador, aldeaGente: () => aldeaGente, altura: (x, z) => T.altura(x, z), sonido,
     nota: (t, sub, nueva) => nota(t, sub, nueva), guardar: () => guardar(), refrescarBarra: () => refrescarBarra(true), registrar: (id) => registrar(id),
-    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n),
+    sumarEntrada: (k, n) => sumarEntrada(k, n), sumarMaterial: (k, n) => sumarMaterial(k, n), ...CARGA_CTX,   // 4.10.1 carga: la cosecha y las manualidades tienen que entrar
     sumarCosa: (k, n) => { progreso.cosas[k] = Math.max(0, (Number(progreso.cosas[k]) || 0) + n); },
     cantidad: (tipo, k) => (tipo === 'material' ? material(k) : tipo === 'cosa' ? Number(progreso.cosas?.[k]) || 0 : cuantoHay(k)),
     // 3.8.8: la escritura del lote de tu casa (propiedad.js)
@@ -6102,7 +6103,8 @@ function cambiarFeria(i) {
   const o = ofertasDelDia(progreso.dia, progreso.cosas, feria().tomadas)[i];
   if (!o) return;
   // 4.7 carga: lo que te dan en la feria tiene que entrar (descontando lo que dás) ANTES de cambiar
-  if (o.da.materiales && !feria().tomadas.includes(o.id) && !cabeTrato(o.da.materiales, o.pide)) return;
+  // 4.10.1: también lo que da como «cuenta» (semillas, harina): iba directo a las cosas y la mochila quedaba en sobrecarga
+  if ((o.da.materiales || o.da.cuenta) && !feria().tomadas.includes(o.id) && !cabeTrato({ ...(o.da.materiales || {}), ...(o.da.cuenta || {}) }, o.pide)) return;
   const r = cambiarEnFeria(feria(), o.id, cuantoFeria);
   if (!r.ok) {
     if (r.motivo === 'hecho') nota('Ese ya lo cambiaste', 'Vuelve en la próxima feria');
@@ -9154,7 +9156,7 @@ function actualizarEscucha(dtReal) {
 }
 // 3.6.2: un panel del HUD abierto (el almacén, la feria, las cargas, la mochila, el taller): ahí el clic izquierdo
 // elige (con el mouse suelto) o no hace nada (bloqueado: no hay flecha); no tira la línea ni dispara
-const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller; 4.3: y el de tu local)
+const panelDelHudAbierto = () => enElAlmacen || enLaFeria || enLasCargas() || enElBanco() || mochilaAbierta || !!desafio?.tallerAbierto || !!cocinaJuego?.panelAbierto() || !!tallerTren?.panelAbierto() || !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto() || !!tablonJuego?.abierto();   // (3.7.2: y el de la cocina; 3.7.3: y el del taller; 4.3: y el de tu local; 4.10.1: y el tablón de encargos)
 // 3.6.2: la opción marcada del almacén, la feria o las cargas. La ruedita, LB y RB o la cruceta la mueven;
 // Enter o A eligen la marcada (los números y el clic, la suya, que también queda marcada). Siempre a la vista:
 // en una ventana chica la lista tiene scroll (plantilla.html) y la marcada se trae con scrollIntoView. Antes,
@@ -11041,6 +11043,7 @@ try {
     esDesafio, progreso: () => progreso, ajustes: () => ajustes, jugador: () => jugador, T: { get lugares() { return T?.lugares; } }, limite: LIMITE,
     obras: () => obras, modo: () => modo, ponerModo: (m) => { modo = m; }, volverAlJuego: (sinMouse) => volverAlJuego(sinMouse), panelHudAbierto: () => panelDelHudAbierto(),
     ocupado: () => !jugador || foto.activo || durmiendo || banco.activa || creadorAbierto || personalAbierto() || teclasAbiertas() || infoAbierta() || !!desafio?.caido,
+    alSaltarElTiempo: (d, h) => { try { empleoJuego?.alSaltarElTiempo(d, h); } catch (e) { fallaSistema('empleo-salto', e); } },   // 4.10.1: el turno de empleo se cierra sin multa si el código lo deja fuera de hora
     alCambiarClima: () => { if (clima?.estado) { clima.estado.t = 0; clima.estado.tramo = undefined; } },
     alCambiarEstacion: () => { const e = estacionObjetivo(); U.uOtono.value = e.oto; U.uInvierno.value = e.inv; },
     refrescar: () => refrescarBarra(true), guardar: () => guardar(),

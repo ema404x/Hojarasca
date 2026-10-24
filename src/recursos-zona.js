@@ -53,7 +53,7 @@ export const HERRAMIENTAS_ZONA = {
   'cuchillo-cuero': {
     id: 'cuchillo-cuero', nombre: 'Cuchillo de cuero', icono: 'cuchilloCuero', precio: 1000, requisito: null, zona: 'estepa', quien: 'el pastor de la estepa',
     texto: 'Hoja ancha y vaina de suela, como los de los puesteros. Sirve para cuerear y cortar tientos.',
-    efecto: 'Con él se trabaja el cuero que da el pastor de la estepa.',
+    efecto: 'Con él en la mochila, cada cuero que le comprás al pastor de la estepa te rinde uno más: cuereás el recorte vos.',
   },
   'pico-cantero': {
     id: 'pico-cantero', nombre: 'Pico de cantero', icono: 'picoCantero', precio: 4000, requisito: { oficio: 'picapedrero', nivel: 3 }, zona: 'cantera', quien: 'el cantero',
@@ -247,6 +247,8 @@ export function ranurasZona(progreso) {
     const n = Number(M[k]) || 0;
     if (n > 0) r.push({ id: k, nombre: MATERIALES_ZONA[k].mochila, icono: ICONO_MATERIAL[k], cuenta: n, texto: MATERIALES_ZONA[k].texto });
   }
+  // 4.10.1: el cristal del Relax (se compra en la Parada Alta y los puestos) ocupa casillas y no tenía ranura: el panel lo mostraba con la clave cruda
+  if (progreso?.modo !== 'desafio' && Number(M.cristal) > 0) r.push({ id: 'cristal', nombre: 'Cristales', icono: 'cristal', cuenta: Number(M.cristal), texto: 'De la cantera. Se venden y se cambian en las paradas.' });
   for (const id of IDS_HERRAMIENTAS_ZONA) {
     const h = HERRAMIENTAS_ZONA[id];
     if (Number(C[id]) > 0) r.push({ id, nombre: h.nombre, icono: h.icono, texto: h.efecto });

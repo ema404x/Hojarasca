@@ -456,7 +456,7 @@ for (const [id, def] of Object.entries(LOCALES)) {
   tiene("if (nombre === 'negocio') negocioJuego.cerrarPanel();", 'E cierra el panel');   // (4.6.1: por la tabla de interacciones)
   ok(que({ panelAbierto: (x) => x === 'negocio', vecino: { nombre: 'Ercilia' } }).e === 'local-abierto', 'E cierra el panel antes que nada');
   tiene('else if (negocioJuego?.panelAbierto()) negocioJuego.cerrarPanel();', 'Escape también');
-  tiene('|| !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto();', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');
+  tiene('|| !!negocioJuego?.panelAbierto() || !!fiestasJuego?.panelAbierto() || !!cantinaJuego?.panelAbierto() || !!teJuego?.panelAbierto()', 'el panel cuenta como un panel del HUD (no se camina, no hay aviso)');
   tiene('if (negocioJuego?.panelAbierto()) marcarHud();', 'con el panel abierto, la marca del HUD');
   ok(que({ panelAbierto: (x) => x === 'negocio', hachaCerca: {}, cercaDelFuego: true }).aviso === null, 'con el panel abierto no hay aviso');
   tiene('if (vecino?.clienteNegocio) vecino = null;', 'los clientes de tu local no se charlan: E sobre el mostrador los atiende');

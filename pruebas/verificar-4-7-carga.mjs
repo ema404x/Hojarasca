@@ -246,7 +246,7 @@ function correrHacha(progreso, objetivo, extra = {}) {
   dentro('src/main.js', ["!cabeTrato({ poncho: 1 }, { lana: t.lana })"], 'telar');
   dentro('src/main.js', ["t.colgado && t.horas >= HORAS_SECADO && !cabeJuntar(t.colgado, 1)"], 'tendal');
   dentro('src/main.js', ['const x = tratoDeEfectos([{ tipo: \'cosa\', k: t.cosa || t.id, n: t.da || 1 }'], 'almacén de Ercilia (trueque)');
-  dentro('src/main.js', ['o.da.materiales && !feria().tomadas.includes(o.id) && !cabeTrato(o.da.materiales, o.pide)'], 'feria');
+  dentro('src/main.js', ['(o.da.materiales || o.da.cuenta) && !feria().tomadas.includes(o.id) && !cabeTrato({ ...(o.da.materiales || {}), ...(o.da.cuenta || {}) }, o.pide)'], 'feria (4.10.1: y lo que da como cuenta)');
   dentro('src/main.js', ["!cabeTrato(premioEnCosas(e.premio))"], 'encargos con premio');
   dentro('src/main.js', ['const n = Math.min(n0, lugarEn(k, n0));'], 'acopio: sale lo que entra');
   dentro('src/main.js', ["objetos.ponerCabe((k) => lugarEn(k, 1) >= 1);"], 'lo que se junta del suelo');
@@ -260,11 +260,11 @@ function correrHacha(progreso, objetivo, extra = {}) {
   dentro('src/granja-juego.js', ['ctx.cabeTrato(da, quita)'], 'trueques de la granja');
   dentro('src/aldea-gente.js', ['if (ctx.cabeTrato) { const { da, quita } = tratoDeEfectos(s.efectos); if (!ctx.cabeTrato(da, quita)) return false; }'], 'servicios de la aldea');
   dentro('src/vecindad-juego.js', ['ctx.cabeTrato(t.da, t.quita)'], 'ayudar a un vecino');
-  dentro('src/gente-campo-juego.js', ["ctx.cabeTrato({ [c.k]: c.n })"], 'tienda de la gente del campo (antes de cobrar)');
+  dentro('src/gente-campo-juego.js', ['ctx.cabeTrato(da)', 'tratoDeEfectos('], 'tienda de la gente del campo (antes de cobrar; 4.10.1: sólo lo que ocupa casilla)');
   dentro('src/cocina-juego.js', ['ctx.cabeJuntar(seco.da.id, seco.da.n)'], 'lo cocinado');
   dentro('src/cocina-juego.js', ['ctx.cabeTrato(t.da, t.quita)'], 'cambios de la cocina');
   dentro('src/comercio-mundo.js', ['ctx.cabeTrato({ [bien]: lote })'], 'comercio: comprar (antes de cobrar)');
-  dentro('src/banco-mundo.js', ['ctx.cabeJuntar && !ctx.cabeJuntar(b, 1)'], 'consigna del banco');
+  dentro('src/banco-mundo.js', ['ctx.cabeJuntar && !ctx.cabeJuntar(b, BIENES[b]?.lote || 1)'], 'consigna del banco');
   dentro('src/almacen-juego.js', ['sacarDe(id, a, k, d.lugarEn ? d.lugarEn(k, guardadoDe(a, k)) : Infinity)'], 'depósitos');
   dentro('src/puestos-ruta-juego.js', ['sacarDePuesto(p, id, m, ctx.lugarEn || null)'], 'depósito del puesto de ruta');
   dentro('src/negocio-propio-juego.js', ['ctx.lugarEn ? ctx.lugarEn(f.k, 1e5) : 1e5'], 'estantes del negocio');
