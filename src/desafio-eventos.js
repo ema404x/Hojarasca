@@ -12,7 +12,7 @@ import { NUCLEO_VIDA, PLANOS_ALIEN } from './desafio-reglas.js';
 import { NIDO, danarNido, estaAbierto, estaRevelado, sumarPista, textoPista, camarasEnteras } from './desafio-nido.js';
 import { LIMITE } from './config.js';
 import { RUINA, disposicionRuina, paredesRuina, placaActiva, PLACA, aMundo, elegirLugarRuina } from './desafio-valle.js';
-import { armarCoihueViejo, animarCoihue, piesCoihue, COIHUE } from './desafio-coihue-formas.js';
+import { armarCoihueViejo, animarCoihue, calzarPatasCoihue, piesCoihue, COIHUE } from './desafio-coihue-formas.js';
 import { registrarLuz } from './luces.js';
 
 const _v = new THREE.Vector3();
@@ -349,6 +349,7 @@ export function crearEventos(T, escena, sonido, efectos, api) {
     const px = n.x + n.ax * atras, pz = n.z + n.az * atras;
     n.g.position.set(px, T.altura(px, pz), pz);
     animarCoihue(n, n.reloj, paso);
+    if (n.fase !== 'cayendo') calzarPatasCoihue(n, T.altura, px, pz, n.g.rotation.y);   // 4.10.4 (R2-6): el Coihue de la noche final también apoya las patas en el terreno (antes sólo el del asedio)
     luzNodriza.intensity = 2.4;
     n.g.updateMatrixWorld(true);
     const ahora = performance.now();

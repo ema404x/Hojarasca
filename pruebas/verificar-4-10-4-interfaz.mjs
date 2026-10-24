@@ -50,4 +50,13 @@ for (const id of ['btn-seguir', 'cerrar-cuaderno', 'cerrar-mapa']) {
   ok(iReemplazo > 0 && iMeta > iReemplazo, 'metaJuego.terminar() va después de reemplazarProgreso');
   ok(t.includes("avisarFalla('No pude empezar de nuevo'"), 'el fallo usa avisarFalla');
 }
+
+// R2-6: el Coihue de la noche final también calza las patas (después de animarlas, y no mientras cae)
+{
+  const ev = fs.readFileSync(new URL('../src/desafio-eventos.js', import.meta.url), 'utf8');
+  const i = ev.indexOf('animarCoihue(n, n.reloj, paso);'), j = ev.indexOf('calzarPatasCoihue(n, T.altura, px, pz, n.g.rotation.y)');
+  ok(i > 0 && j > i && j - i < 200, 'actualizarNodriza calza las patas justo después de animarlas');
+  ok(ev.includes("if (n.fase !== 'cayendo') calzarPatasCoihue"), 'y no mientras cae');
+  ok(ev.split('\n').some((l) => l.startsWith('import {') && l.includes('calzarPatasCoihue') && l.includes('./desafio-coihue-formas.js')), 'importa calzarPatasCoihue');
+}
 console.log(`verificar-4-10-4-interfaz: ${pasos} pasos ok`);
