@@ -43,6 +43,8 @@ const cedeElTablero = (c) => (aMano(c) && !c.js.sentado && !!c.puertaCerca())
 export const INTERACCIONES = [
   // colgado de la tirolesa no se hace nada (la tecla ni llega a la tabla: ver la tecla E)
   { id: 'cable', cuando: (c) => c.js.enCable, corta: true, aviso: () => null, hacer: () => {} },
+  // 4.10.2: la mochila abierta es un panel como los demás: la E la cierra (antes seguía hablando o abriendo el almacén con la mochila encima)
+  panel('mochila-abierta', (c) => c.mochilaAbierta(), (c) => c.cerrarMochila()),
   { id: 'charla', cuando: (c) => c.charlaNpc(), corta: true, aviso: () => null, hacer: (c) => c.seguirCharla() },
   // con un panel abierto, la E lo cierra
   panel('almacen-abierto', (c) => c.enElAlmacen(), (c) => c.cerrarAlmacen()),

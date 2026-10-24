@@ -621,6 +621,7 @@ export function armarGuardado(progreso, ENTRADA) {
   return cocinado.filter((k) => progreso.entradas[k]).map((k) => ({
     id: k, nombre: ENTRADA[k]?.nombre || k, icono: k === 'mate' ? 'mate' : 'frasco',
     texto: ENTRADA[k]?.texto || '',
+    anotada: true,   // 4.10.2: es una anotación del cuaderno, no una cosa que se lleve: no tiene ranura ni se pone en la barra
   }));
 }
 

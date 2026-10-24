@@ -35,7 +35,7 @@ tiene(main, "if (m.soltados.bloquear && desafio?.bloqueando) desafio.bloquear(fa
 tiene(main, 'desafio.bloquear(false);   // 4.0.1: soltar L2 en la pausa', 'escudo: y en leerMandoEnMenu');
 
 // 4) la victoria sale aunque abras el cuaderno o el mapa durante los 5 s
-tiene(main, "modo === 'valle' || modo === 'cuaderno' || modo === 'mapa') mostrarVictoria", 'victoria: reintenta con el cuaderno o el mapa');
+tiene(main, "modo === 'valle' || modo === 'cuaderno' || modo === 'mapa' || modo === 'trucos') mostrarVictoria", 'victoria: reintenta con el cuaderno o el mapa');
 
 // 5) el banco de pruebas: el informe se cierra al volver al juego y, lanzado desde la portada, se vuelve a la portada
 tiene(main, "for (const id of ['pausa', 'cuaderno', 'mapa', 'banco']) $(id).classList.add('oculto');   // (4.0.1", 'banco: volverAlJuego esconde el informe');
