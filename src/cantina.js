@@ -126,7 +126,7 @@ export const FUERTES_POR_NOCHE = 3;
 // (3.9.1: `ebrio`: { n, t } el nivel de la borrachera y cuándo se midió (horas absolutas); `chistes`: la memoria de los chistes que ya salieron; `pena`: tus bailes con
 // Dalia y la última noche que bailaste)
 // (3.9.2: `ultimoPedido` e `veces`: lo último que pediste y cuántas veces cada cosa, para que te recuerden; la casa de té usa la misma forma en `progreso.casaTe`)
-export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0 }; }
+export function cantinaNueva() { return { visitas: 0, ultima: 0, pedidos: 0, gastado: 0, cuenta: null, fuertes: { dia: 0, n: 0 }, ebrio: ebrioNuevo(), chistes: {}, pena: { bailes: 0, ultima: 0 }, ultimoPedido: null, veces: {}, vistos: 0, pendiente: null }; }   // 4.10.4 (S2-5): `pendiente`: el id de un pedido ya pagado que todavía no llegó a la mesa
 const idItem = (v) => (typeof v === 'string' && /^[a-z0-9-]{1,40}$/.test(v) ? v : null);
 function sanearVeces(v) {
   const r = {};
@@ -150,11 +150,11 @@ export function sanearCantina(v, hoy = 1e6) {
   if (cuenta) cuenta.dia = Math.min(dia, cuenta.dia);
   return {
     visitas: entero(v.visitas, 1e6), ultima: Math.min(dia, entero(v.ultima, 1e6)), pedidos: entero(v.pedidos, 1e6), gastado: entero(v.gastado, 1e9),
-    cuenta, fuertes: { dia: Math.min(dia, entero(f.dia, 1e6)), n: entero(f.n, 99) },
+    cuenta, fuertes: { dia: Math.min(dia, entero(f.dia, 1e6)), n: entero(f.n, 99), mate: entero(f.mate, 99) },   // 4.10.4 (S2-8): `mate`: los mates de la casa de esa noche
     // (3.9.1: las partidas de antes no lo tienen: arrancan sobrias y sin chistes dichos)
     ebrio: sanearEbrio(v.ebrio, dia * 24 + 24), chistes: sanearMemoriaChistes(v.chistes),
     pena: objeto(v.pena) ? { bailes: entero(v.pena.bailes, 1e6), ultima: Math.min(dia, entero(v.pena.ultima, 1e6)) } : { bailes: 0, ultima: 0 },
-    ultimoPedido: idItem(v.ultimoPedido), veces: sanearVeces(v.veces), vistos: entero(v.vistos, 1e6),
+    ultimoPedido: idItem(v.ultimoPedido), veces: sanearVeces(v.veces), vistos: entero(v.vistos, 1e6), pendiente: idItem(v.pendiente),
   };
 }
 // La cantina de esta partida (se crea sola si la partida es de antes de la 3.9.0); sin economía (el Desafío), null
@@ -169,6 +169,7 @@ export function cantinaDe(p) {
   if (!objeto(q.veces)) q.veces = {};
   if (q.ultimoPedido === undefined) q.ultimoPedido = null;
   if (!Number.isFinite(q.vistos)) q.vistos = 0;
+  if (q.pendiente === undefined) q.pendiente = null;
   return q;
 }
 // 3.9.2: la casa de té tiene su propia libreta (visitas, cuenta, lo último que pediste), con la misma forma que la de la cantina
@@ -180,6 +181,7 @@ export function casaTeDe(p) {
   if (q.ultimoPedido === undefined) q.ultimoPedido = null;
   if (!Number.isFinite(q.vistos)) q.vistos = 0;
   if (!objeto(q.fuertes)) q.fuertes = { dia: 0, n: 0 };
+  if (q.pendiente === undefined) q.pendiente = null;
   return q;
 }
 // Los dos lugares donde te atienden: quién, cómo se llama la libreta y cómo figura en la billetera

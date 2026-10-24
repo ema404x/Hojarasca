@@ -162,15 +162,31 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     for (const s of sillas) { const d = Math.hypot(pos.x - s.x, pos.z - s.z); if (d < md) { md = d; mejor = s; } }
     return mejor;
   };
+  function quitarServido(mesa) { servidos.delete(mesa.id); ctx.visual?.quitarDeMesa?.(mesa); }
   function empezarVisita(silla) {
     const p = P();
     if (!hayEconomia(p)) return;
     const c = estadoDe(p);
     const abierta = L.abierta(hora());
     ses = { silla, mesa: silla.mesa, fase: abierta ? 'espera' : 'cerrada', t: 0, orden: null, parado: false };
-    if (limpieza) { limpieza = null; soltar(); }   // si venía a levantar y te sentaste de vuelta
+    // 4.10.4 (S2-4): si venía a levantar y te sentaste de vuelta, la limpieza se descarta; si era OTRA mesa, su plato se levanta de una vez (antes quedaba servido para siempre)
+    if (limpieza) { if (limpieza.mesa !== silla.mesa) quitarServido(limpieza.mesa); limpieza = null; soltar(); }
     info.visitas++;
     if (!abierta) { aviso(dichoL('cerrada'), 'cerrada'); return; }
+    // 4.10.4 (S2-5): un pedido que ya pagaste y no llegó a la mesa antes de guardar y salir: se apoya al sentarte
+    if (c.pendiente) {
+      const it = L.R.item(c.pendiente);
+      c.pendiente = null;
+      if (it && !servidos.has(silla.mesa.id)) {
+        ses.orden = { item: it, medio: 'casa', fase: 'anota', t: 0, regalo: true };
+        servirSinMoza();
+        ctx.nota?.(L.nombre, T_('Tu pedido ya estaba pago: te lo dejaron en la mesa'));
+        if (c.ultima !== dia()) c.visitas++;
+        c.ultima = dia();
+        ctx.guardar?.();
+        return;
+      }
+    }
     if (!mozaLibre()) { ses.fase = 'sola'; ses.t = 3; if (!moza()) aviso(dichoL('sola'), 'sola'); return; }
     ses.t = demoraEnVerte(afl());
     if (c.ultima !== dia()) c.visitas++;   // (una por día: la que te conoce)
@@ -193,6 +209,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     if (controla) soltar();
     // (3.9.1: al irte, ella te saluda con un chiste; si estás alegre, te lo dice con humor)
     if (L.abierta(hora()) && !forzar) { const q = !L.esCantina ? null : nivelAhora() >= EBRIO.alegre ? elegirDe(BORRACHERA_MOZA.alSalir, 3) : chiste('despedida'); if (q) hablar(q); }
+    if (limpieza && limpieza.mesa !== mesa) quitarServido(limpieza.mesa);   // 4.10.4 (S2-4): la limpieza es una sola ranura: la anterior no se pisa dejando su plato
     if (servidos.has(mesa.id)) limpieza = { mesa, t: LEVANTAR, fase: 'espera' };
     ses = null;
   }
@@ -234,6 +251,10 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     if (!r.ok) {
       if (r.motivo === 'ya-esta') {
         // el cuarto trago fuerte de la noche: ella te trae un mate cocido, por la casa, y te pone en tu lugar de buen modo
+        // 4.10.4 (S2-8): un solo mate por la casa por noche (antes cada pedido fuerte rechazado daba otro, gratis y sin fin)
+        const cf = estadoDe(P())?.fuertes;
+        if (cf && (cf.mate || 0) >= 1) { hablar('Por hoy ya te frené con un mate, y más no. Mañana seguimos.'); return false; }
+        if (cf) cf.mate = (cf.mate || 0) + 1;
         const mate = cartaHoy().find((x) => x.id === 'mate-cocido') || CARTA.find((x) => x.id === 'mate-cocido');
         hablar(elegirDe(BORRACHERA_MOZA.frena) || dichoL('ya_esta'));
         aceptarOrden(mate, { medio: 'casa', regalo: true });
@@ -246,6 +267,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
     if (r.medio === 'pesos') ctx.nota?.(T_('Pagaste'), formatoPesos(r.cobro.pesos));
     else if (r.medio === 'trueque') ctx.nota?.(T_('Trueque'), textoBien(r.cobro.bien, r.cobro.n));
     else ctx.nota?.(T_('Lo anotó en la cuenta'), formatoPesos(estadoDe(P())?.cuenta?.monto || 0));
+    { const cp = estadoDe(P()); if (cp) cp.pendiente = item.id; }   // 4.10.4 (S2-5): pagado y todavía en camino: si se guarda y se sale, no se pierde
     ctx.guardar?.(); ctx.refrescar?.();
     aceptarOrden(item, r);
     return true;
@@ -262,12 +284,14 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
   // 4.0.1: ¿hay moza a quien pedirle (despierta, en su puesto y con el local abierto)? No exige que esté «libre»: puede estar charlando con vos
   function mozaTomable() { const n = moza(); return !!n && !n.deVisita && !n.dormido && !n.llegando && L.abierta(hora()); }
   // 4.0.1: el pedido ya está pagado y se perdió a la moza (te alejaste más de 40 m, o se fue): se retoma, o se apoya sin ella; nunca queda colgado
+  function limpiarPendiente() { const cp = estadoDe(P()); if (cp && cp.pendiente) { cp.pendiente = null; ctx.guardar?.(); } }   // 4.10.4 (S2-5)
   function servirSinMoza() {
     const it = ses.orden.item;
     servidos.set(ses.mesa.id, { item: it, restantes: it.porciones, silla: ses.silla, desde: dia() * 24 + hora() });
     ctx.visual?.ponerEnMesa?.(ses.mesa, ses.silla, it, it.porciones);
     info.servicios++;
     if (it.registra) ctx.registrar?.(it.registra);
+    limpiarPendiente();
     ses.orden = null; ses.fase = 'libre'; ses.t = 0;
   }
   function retomarPedido() {
@@ -378,6 +402,7 @@ export function crearCantinaJuego(ctx, lugarDado = null) {
         if (it.registra) ctx.registrar?.(it.registra);   // (3.9.2: el té con torta, los mates o el chocolate: lo que antes daba «pedir algo» en la casa de té)
         hablar(dichoL(it.tipo === 'bebida' && !it.caliente ? 'trae_fria' : 'trae', dia() + info.servicios));
         ctx.sonido?.juntar?.();
+        limpiarPendiente();
         ses.fase = 'apoya';
         break;
       }
