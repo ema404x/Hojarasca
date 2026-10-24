@@ -153,7 +153,7 @@ export function empezarMelodia(sonido, id, vol = 1) {
   const destino = ctx.createGain(); destino.gain.value = 0.85 * vol;
   destino.connect(sonido.bus.musica);
   let rv = null;
-  if (sonido.envioReverb) { rv = ctx.createGain(); rv.gain.value = 0.9; destino.connect(rv); rv.connect(sonido.envioReverb); }
+  if (sonido.envioReverb) { rv = ctx.createGain(); rv.gain.value = 0.9; destino.connect(rv); rv.connect((sonido.envioReverbMusica || sonido.envioReverb)); }
   return { id, destino, rv, t0: ctx.currentTime + 0.2, i: 0, ev, fin: ctx.currentTime + 0.2 + ev.duracion + 1.5 };
 }
 // Programa lo que toca en el próximo tramo. Devuelve false cuando ya no queda nada.
@@ -165,6 +165,7 @@ export function seguirMelodia(sonido, s) {
   while (s.i < s.ev.eventos.length && s.ev.eventos[s.i].cuando <= hasta) {
     const e = s.ev.eventos[s.i++];
     const cuando = Math.max(0, s.t0 + e.cuando - ahora);
+    if (s.t0 + e.cuando < ahora - 0.25) continue;   // 4.10.3: lo atrasado tras una pausa larga se descarta (antes sonaba todo junto)
     if (e.bajo) sonido.pulsar?.(e.midi, { cuando, dur: Math.max(1.2, e.dur * 1.4), vol: 0.07, destino: s.destino });
     else if (quena) sonido.quena?.(hz(e.midi), { cuando, dur: Math.max(0.3, e.dur * 0.94), vol: 0.03, destino: s.destino });
     else sonido.pulsar?.(e.midi, { cuando, dur: Math.max(1.4, e.dur * 2), vol: 0.13 * Math.pow(2, (e.midi - 57) / 24), destino: s.destino });

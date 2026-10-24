@@ -54,7 +54,7 @@ export function crearMusicaTension(sonido) {
     salida.connect(sonido.bus.musica);
     // un poco de la reverb del lugar: la música "está" en el bosque, no en la cabeza
     let envio = null;
-    if (sonido.envioReverb) { envio = ctx.createGain(); envio.gain.value = 0.55; salida.connect(envio); envio.connect(sonido.envioReverb); }
+    if (sonido.envioReverb) { envio = ctx.createGain(); envio.gain.value = 0.55; salida.connect(envio); envio.connect((sonido.envioReverbMusica || sonido.envioReverb)); }
     // 2.7: las «sierras» son cuerdas frotadas: la forma de onda del motor (`ondas.cuerda`),
     // que se apaga hacia arriba como una cuerda de verdad, en vez de la sierra pelada
     const osc = (tipo, f, det = 0) => {

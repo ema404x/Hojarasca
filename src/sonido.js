@@ -105,6 +105,10 @@ export class Sonido {
     this.reverb = this.espacios.bosque;
     this.envioReverb = ctx.createGain(); this.envioReverb.gain.value = 0.5;
     for (const n of Object.keys(this.espacios)) this.envioReverb.connect(this.espacios[n]);
+    // 4.10.3: el envío de la música a la reverberación va aparte del de los efectos: cada uno sigue la perilla de su bus
+    // (antes los dos iban por el mismo y con Música o Efectos en 0 se seguía oyendo la cola de la sala)
+    this.envioReverbMusica = ctx.createGain(); this.envioReverbMusica.gain.value = 0.5;
+    for (const n of Object.keys(this.espacios)) this.envioReverbMusica.connect(this.espacios[n]);
 
     this.bus = {};
     this.filtroAmbiente = ctx.createBiquadFilter();
@@ -225,8 +229,10 @@ export class Sonido {
     // sala, para que la chapa suene a la pieza donde estás.
     this.bus.techo = ctx.createGain(); this.bus.techo.gain.value = 1;
     this.bus.techo.connect(this.agaches.techo);
-    const techoSala = ctx.createGain(); techoSala.gain.value = 0.28;
-    this.bus.techo.connect(techoSala); techoSala.connect(this.envioReverb);
+    // (4.10.3: directo a las salas con el 0,5 del envío incluido; si pasara por el envío de los efectos, esa perilla le bajaría la lluvia del techo)
+    const techoSala = ctx.createGain(); techoSala.gain.value = 0.28 * 0.5;
+    this.bus.techo.connect(techoSala);
+    for (const n of Object.keys(this.espacios)) techoSala.connect(this.espacios[n]);
     this.fTechoCama = filtro('bandpass', 1500, 0.6);
     this.gTechoCama = bucle(this.blanco, [this.fTechoCama], this.bus.techo);
     this.fTechoGrave = filtro('lowpass', 150, 0.7);
@@ -292,6 +298,8 @@ export class Sonido {
 
     this.rafaga = 0.5; this.rafagaObj = 0.5; this.proxRafaga = 0;
     this.proxAve = 3; this.proxNoche = 10;
+    // 4.10.3: los buses nacen con la mezcla que ya eligió el jugador (antes arrancaban en 1 y recién a los 0-4 s se aplicaba)
+    this.fijarMezcla(true);
   }
 
   panner(pos) {
@@ -431,22 +439,34 @@ export class Sonido {
     this.musicaActiva = on;
     if (this.ctx) this.bus.musica.gain.setTargetAtTime(on ? 0.5 * this.mezcla.musica : 0, this.ctx.currentTime, 0.5);
     if (this.ctx) this.bus.piano?.gain.setTargetAtTime(on ? 0.5 * this.mezcla.musica : 0, this.ctx.currentTime, 0.5);   // 3.8.5
+    if (this.ctx) this.envioReverbMusica?.gain.setTargetAtTime(on ? 0.5 * this.mezcla.musica : 0, this.ctx.currentTime, 0.5);   // 4.10.3
   }
   // 1.8: cada bus tiene su volumen. `mezcla` son las perillas del jugador; `hora`
   // es lo que el juego acomoda solo (de noche el bosque baja, la música sube).
-  setMezcla({ ambiente, efectos, musica } = {}, hora = {}) {
+  setMezcla({ ambiente, efectos, musica } = {}, hora) {
     if (ambiente !== undefined) this.mezcla.ambiente = ambiente;
     if (efectos !== undefined) this.mezcla.efectos = efectos;
     if (musica !== undefined) this.mezcla.musica = musica;
+    // 4.10.3: sin `hora` (los botones de Ajustes en la pausa) vale la última que se pasó, no 1: antes el bosque saltaba al 100 %
+    if (hora) this.horaMezcla = hora; else hora = this.horaMezcla || {};
     if (!this.ctx) return;
+    this.fijarMezcla(false, hora);
+  }
+  // 4.10.3: pone las ganancias de los buses según `mezcla` y `hora`. `ya`: de golpe (al crear los buses); si no, con rampa.
+  fijarMezcla(ya, hora = this.horaMezcla || {}) {
     const t = this.ctx.currentTime;
-    this.bus.ambiente.gain.setTargetAtTime(this.mezcla.ambiente * (hora.ambiente ?? 1), t, 0.6);
+    const poner = (param, v, tc) => { if (!param) return; if (ya) param.value = v; else param.setTargetAtTime(v, t, tc); };
+    const dMusica = this.musicaActiva ? 0.5 * this.mezcla.musica * (hora.musica ?? 1) : 0;
+    poner(this.bus.ambiente.gain, this.mezcla.ambiente * (hora.ambiente ?? 1), 0.6);
     // el techo es ambiente, con su misma perilla
-    this.bus.techo?.gain.setTargetAtTime(this.mezcla.ambiente * (hora.ambiente ?? 1), t, 0.6);
-    this.bus.efectos.gain.setTargetAtTime(this.mezcla.efectos * (hora.efectos ?? 1), t, 0.4);
-    this.bus.musica.gain.setTargetAtTime(this.musicaActiva ? 0.5 * this.mezcla.musica * (hora.musica ?? 1) : 0, t, 0.8);
+    poner(this.bus.techo?.gain, this.mezcla.ambiente * (hora.ambiente ?? 1), 0.6);
+    poner(this.bus.efectos.gain, this.mezcla.efectos * (hora.efectos ?? 1), 0.4);
+    poner(this.bus.musica.gain, dMusica, 0.8);
     // 3.8.5: el piano de los duendes sigue la perilla de la música (no la mezcla por hora: suena de noche igual)
-    this.bus.piano?.gain.setTargetAtTime(this.musicaActiva ? 0.5 * this.mezcla.musica : 0, t, 0.8);
+    poner(this.bus.piano?.gain, this.musicaActiva ? 0.5 * this.mezcla.musica : 0, 0.8);
+    // y la reverberación de cada uno, con la perilla de su bus (el envío vale 0,5 con todo al máximo)
+    poner(this.envioReverb?.gain, 0.5 * this.mezcla.efectos * (hora.efectos ?? 1), 0.4);
+    poner(this.envioReverbMusica?.gain, dMusica, 0.8);
   }
   // 2.0: la mezcla se agacha. Cuando algo chilla al lado, el bosque y la música bajan
   // de golpe y vuelven despacio, para que el grito se escuche entero (ver
@@ -1909,7 +1929,7 @@ export class Sonido {
     const cuantas = paleta?.notas || [5, 10];
     const destino = this.ctx.createGain(); destino.gain.value = 0.8;
     destino.connect(this.bus.musica);
-    const rv = this.ctx.createGain(); rv.gain.value = 1.4; destino.connect(rv); rv.connect(this.envioReverb);
+    const rv = this.ctx.createGain(); rv.gain.value = 1.4; destino.connect(rv); rv.connect(this.envioReverbMusica);   // 4.10.3: la reverb de la música sigue la perilla de Música
     let c = 0, idx = Math.floor(Math.random() * 5) + 2;
     // 2.6.1: la mezcla de cada frase se desconecta cuando termina su última nota;
     // antes quedaban dos ganancias colgadas del bus de música por cada frase.

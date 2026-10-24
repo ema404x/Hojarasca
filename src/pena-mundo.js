@@ -87,7 +87,7 @@ export function crearPenaMundo(ctx) {
       const ev = eventosMusica(id);
       if (!ev) return;
       const destino = s.ctx.createGain(); destino.gain.value = 0.9 * vol; destino.connect(s.bus.musica);
-      if (s.envioReverb) { const rv = s.ctx.createGain(); rv.gain.value = 0.5; destino.connect(rv); rv.connect(s.envioReverb); }
+      if (s.envioReverb) { const rv = s.ctx.createGain(); rv.gain.value = 0.5; destino.connect(rv); rv.connect((s.envioReverbMusica || s.envioReverb)); }
       musica.s = { destino, t0: s.ctx.currentTime + 0.2, i: 0, ev, fin: s.ctx.currentTime + 0.2 + ev.duracion + 1 };
       musica.id = id; info.sonando = id;
     }

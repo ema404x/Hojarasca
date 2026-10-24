@@ -480,7 +480,7 @@ export function crearFiestasMundo(ctx) {
       const ev = eventosMusica(id);
       if (!ev) return;
       const destino = s.ctx.createGain(); destino.gain.value = 0.9 * vol; destino.connect(s.bus.musica);
-      if (s.envioReverb) { const rv = s.ctx.createGain(); rv.gain.value = 0.7; destino.connect(rv); rv.connect(s.envioReverb); }
+      if (s.envioReverb) { const rv = s.ctx.createGain(); rv.gain.value = 0.7; destino.connect(rv); rv.connect((s.envioReverbMusica || s.envioReverb)); }
       musica.s = { id, destino, t0: s.ctx.currentTime + 0.2, i: 0, ev, fin: s.ctx.currentTime + 0.2 + ev.duracion + 1 };
     }
     const m = musica.s;
@@ -488,6 +488,7 @@ export function crearFiestasMundo(ctx) {
     const ahora = s.ctx.currentTime, hasta = ahora + 1.2 - m.t0;
     while (m.i < m.ev.eventos.length && m.ev.eventos[m.i].cuando <= hasta) {
       const e = m.ev.eventos[m.i++];
+      if (m.t0 + e.cuando < ahora - 0.25) continue;   // 4.10.3: lo atrasado tras una pausa larga se descarta (antes sonaba todo junto)
       tocarEvento(s, e, Math.max(0, m.t0 + e.cuando - ahora), m.ev.instrumento, m.destino);
     }
     if (m.i >= m.ev.eventos.length && ahora > m.fin) { const dd = m.destino; setTimeout(() => { try { dd.disconnect(); } catch { /* ya */ } }, 2000); musica.s = null; musica.proxima = ahora + 3.5; musica.tandas = (musica.tandas || 0) + 1; }

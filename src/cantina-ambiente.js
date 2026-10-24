@@ -172,7 +172,7 @@ export function crearAmbienteCantina(ctx) {
     if (!musica.destino) {
       if (ahora < musica.pausa) return;
       const d = s.ctx.createGain(); d.gain.value = vol; d.connect(s.bus.musica);
-      if (s.envioReverb) { const rv = s.ctx.createGain(); rv.gain.value = 0.35; d.connect(rv); rv.connect(s.envioReverb); }
+      if (s.envioReverb) { const rv = s.ctx.createGain(); rv.gain.value = 0.35; d.connect(rv); rv.connect((s.envioReverbMusica || s.envioReverb)); }
       musica.destino = d; musica.t0 = ahora + 0.2; musica.paso = 0; musica.hasta = 32 + Math.floor(Math.random() * 3) * 8;   // una frase de 4 a 5 vueltas de los acordes
     }
     try { musica.destino.gain.setTargetAtTime(vol, ahora, 0.35); } catch { /* ya */ }
@@ -180,6 +180,8 @@ export function crearAmbienteCantina(ctx) {
     while (musica.t0 + musica.paso * CORCHEA <= limite && musica.paso < musica.hasta) {
       const k = musica.paso, acorde = ACORDES[Math.floor(k / 8) % 4], cuerda = PATRON[k % 8];
       const cuando = Math.max(0, musica.t0 + k * CORCHEA - ahora);
+      // 4.10.3: tras una pausa larga (el reloj de audio sigue corriendo) lo atrasado se descarta, como la gramola: antes sonaba todo junto
+      if (musica.t0 + k * CORCHEA < ahora - 0.25) { musica.paso++; continue; }
       s.pulsar?.(acorde[cuerda] + (cuerda === 0 ? 0 : 0), { cuando, dur: 1.6, vol: cuerda === 0 ? 0.075 : 0.05, destino: musica.destino });
       info.notas++;
       musica.paso++;

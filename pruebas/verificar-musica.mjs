@@ -62,7 +62,8 @@ assert.equal(escalaVolumen('x', 0.7), 0.7);
 
 // ---------------- cableado
 const sonido = leer('src/sonido.js'), main = leer('src/main.js'), guardado = leer('src/guardado.js'), plantilla = leer('src/plantilla.html');
-assert.match(sonido, /setMezcla\(\{ ambiente, efectos, musica \} = \{\}, hora = \{\}\)/);
+// 4.10.3: `hora` ya no vale {} por defecto: sin ella vale la última que se pasó (la firma sigue siendo la misma)
+assert.match(sonido, /setMezcla\(\{ ambiente, efectos, musica \} = \{\}, hora(?: = \{\})?\)/);
 assert.match(sonido, /frase\(noche, paleta = null\)/);
 assert.match(sonido, /const escala = paleta\?\.escala \|\|/, 'la frase usa la paleta si hay');
 assert.match(sonido, /this\.proxMusica = this\.paleta\?\.espera/);
