@@ -195,13 +195,28 @@ export function crearTomadasMundo(T, escena, a) {
     }
     return partes;
   }
+  // 4.10.4 (H2-2): armar un lugar entero cuesta ~20 ms de CPU (los discos siguen el terreno vértice por vértice): en un solo cuadro era
+  // un tirón de 1 a 3 cuadros (dos lugares a la vez, ~40 ms). Ahora se arma en tres cuadros (el suelo, la bruma con las columnas, los hongos),
+  // uno por cuadro en total entre todos los lugares. El lugar nace invisible y su fundido (`k`) arranca recién cuando está completo: se ve lo mismo,
+  // unos cuadros (~0,05 s) más tarde.
   function armarSitio(z) {
     const g = new THREE.Group();
     g.position.set(z.x, T.altura(z.x, z.z), z.z);
+    g.visible = false;
+    escena.add(g);
+    return { g, tinte: null, bruma: null, hongos: null, k: 0, etapa: 0 };
+  }
+  function avanzarSitio(s, z) {
+    const g = s.g;
+    if (s.etapa === 0) {
     // el suelo oscuro (cinco capas, cada una más chica) y, a media altura del pasto, una sombra violeta (tres capas) que lo tapa: el pasto es más alto que el suelo
     const R = TOMADAS.radio;
     const tinte = new THREE.Mesh(fundirGeos([...[1, 0.85, 0.7, 0.55, 0.4].map((f) => disco(z, R * f, 0)), ...[0.96, 0.76, 0.56].map((f) => disco(z, R * f, 0.6))]), matCapa('#14101c', 0.14));
     tinte.renderOrder = 1;
+    s.tinte = tinte; g.add(tinte); s.etapa = 1; return;
+    }
+    if (s.etapa === 1) {
+    const R = TOMADAS.radio;
     // la bruma baja (gris verdosa, cuatro capas) y unas columnas de esporas que se ven de lejos
     const cols = [];
     for (let k = 0; k < 4; k++) {
@@ -210,20 +225,21 @@ export function crearTomadasMundo(T, escena, a) {
     }
     const bruma = new THREE.Mesh(fundirGeos([...[1.1, 0.92, 0.74, 0.56].map((f) => disco(z, R * f, 1.3)), ...cols]), matCapa('#9aa59c', 0.12));
     bruma.renderOrder = 2;
+    s.bruma = bruma; g.add(bruma); s.etapa = 2; return;
+    }
     const h = new THREE.Mesh(hongos(z, z.x * 7 + z.z * 3), new THREE.MeshBasicMaterial({ vertexColors: true }));
     h.frustumCulled = true;
-    g.add(tinte, bruma, h);
-    g.visible = false;
-    escena.add(g);
-    return { g, tinte, bruma, hongos: h, k: 0 };
+    s.hongos = h; g.add(h); s.etapa = 3;
   }
   function actualizar(dt, js) {
     const v = D().valle;
     const t = performance.now() / 1000;
+    let armado = false;   // 4.10.4 (H2-2): una etapa de armado por cuadro, entre todos los lugares
     for (const z of v && !v.cerrado ? v.zonas : []) {
       let s = sitios.get(z.id);
       if (!s && z.nivel > 0) { s = armarSitio(z); sitios.set(z.id, s); }
       if (!s) continue;
+      if (s.etapa < 3) { if (!armado) { armado = true; avanzarSitio(s, z); } continue; }
       // lo que se ve se acerca al escalón (sube y baja de a poco)
       const meta = z.nivel / TOMADAS.nivelMax;
       s.k += (meta - s.k) * Math.min(1, dt * 0.8);
@@ -241,7 +257,7 @@ export function crearTomadasMundo(T, escena, a) {
     if (!v || v.cerrado) for (const s of sitios.values()) s.g.visible = false;
   }
   function limpiar() {
-    for (const s of sitios.values()) { escena.remove(s.g); s.tinte.geometry.dispose(); s.bruma.geometry.dispose(); s.hongos.geometry.dispose(); for (const m of [s.tinte, s.bruma, s.hongos]) m.material.dispose(); }   // 4.10.3 (V9): y los tres materiales (se crean de nuevo cada vez)
+    for (const s of sitios.values()) { escena.remove(s.g); for (const m of [s.tinte, s.bruma, s.hongos]) if (m) { m.geometry.dispose(); m.material.dispose(); } }   // 4.10.4 (H2-2): hay lugares a medio armar   // 4.10.3 (V9): y los tres materiales (se crean de nuevo cada vez)
     sitios.clear();
   }
 

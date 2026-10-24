@@ -8,8 +8,9 @@
 <!--HOJARASCA_BUILD-->
 <script>
 window.__hojarascaErrores = [];
-window.addEventListener('error', (e) => window.__hojarascaErrores.push(String(e.error?.stack || e.message || 'Error desconocido')));
-window.addEventListener('unhandledrejection', (e) => window.__hojarascaErrores.push(String(e.reason?.stack || e.reason || 'Promesa rechazada')));
+// 4.10.4 (M10): con tope (los primeros 100): un error que se repite cada cuadro llenaba la memoria de stacks
+window.addEventListener('error', (e) => { if (window.__hojarascaErrores.length < 100) window.__hojarascaErrores.push(String(e.error?.stack || e.message || 'Error desconocido')); });
+window.addEventListener('unhandledrejection', (e) => { if (window.__hojarascaErrores.length < 100) window.__hojarascaErrores.push(String(e.reason?.stack || e.reason || 'Promesa rechazada')); });
 </script>
 <style>
 /*FUENTES*/

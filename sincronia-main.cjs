@@ -13,7 +13,7 @@ const MAX_SYNC = 64 * 1024 * 1024;   // 3.8.6: como MAX_BYTES de transferir.js (
 
 // Cuándo se guardó la partida que hay en un archivo de la carpeta (0 si no se sabe).
 function guardadoEnDe(texto) {
-  try { return Number(JSON.parse(texto)?.cuerpo?.progreso?.guardadoEn) || 0; } catch { return 0; }
+  try { const g = Number(JSON.parse(texto)?.cuerpo?.progreso?.guardadoEn); return Number.isFinite(g) && g > 0 ? g : 0; } catch { return 0; }   // 4.10.4 (M9): un `Infinity` (1e400) trababa para siempre las escrituras
 }
 // ¿Se puede pisar lo que hay? Sólo si no es más nuevo que la última versión de la carpeta
 // que esta computadora conoce (`base`): si no, lo dejó la otra computadora mientras esta

@@ -502,7 +502,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
   // la hora de juego; lo que se ve va a zancadas: espera a sacarle 2 m a la cuenta, da el paso (tiembla, levanta
   // polvo, las raíces se arrastran) y se queda quieto. Mientras camina las raíces no chocan; parado, sí.
   const ZANCADA = { gap: 2, vel: 0.9 };
-  const vis = { d: 0, listo: null, zancada: false, tCruje: 0, tTrampa: 0, temblor: 0, nHuellas: -1, sombraT: 0 };
+  const vis = { d: 0, listo: null, zancada: false, tCruje: 0, tTrampa: 0, temblor: 0, nHuellas: -1, huellaX: 0, huellaZ: 0, sombraT: 0 };
   let pies = [], huellas = null, sombra = null, pisadas = new WeakSet();
   // translúcido de un solo color (las capas se apilan para dar el degradé: sin alfa por vértice)
   const matCapa = (color, opacidad) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
@@ -553,8 +553,9 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
     a.nave.x = r1(p.x); a.nave.z = r1(p.z);
   }
   function nocheCamino(a) {
-    const c = a.camino || crearCamino(a);
-    replanear(a);
+    // 4.10.4 (H2-3): si el camino se acaba de crear (partida de antes de la 4.10) ya es la ruta de hoy: replanear daba la misma ruta calculada dos veces
+    let c = a.camino;
+    if (!c) c = crearCamino(a); else replanear(a);
     empezarNocheCamino(c, D().oleadas + 1);
     pisadas = new WeakSet();
   }
@@ -765,8 +766,10 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
       }
     }
     // el rastro y la sombra
-    if (c.rastro.length !== vis.nHuellas) {
-      vis.nHuellas = c.rastro.length;
+    // 4.10.4 (H2-5): se compara el último punto y no sólo el largo: con el rastro lleno (80 puntos) el largo no cambia más y las huellas se congelaban
+    const uRastro = c.rastro[c.rastro.length - 1] || [0, 0];
+    if (c.rastro.length !== vis.nHuellas || uRastro[0] !== vis.huellaX || uRastro[1] !== vis.huellaZ) {
+      vis.nHuellas = c.rastro.length; vis.huellaX = uRastro[0]; vis.huellaZ = uRastro[1];
       if (!huellas) {
         huellas = new THREE.Group();
         const decal = new THREE.Mesh(new THREE.BufferGeometry(), matCapa('#0d0906', 0.3)), monton = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));

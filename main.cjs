@@ -14,7 +14,7 @@ const INTENTOS_GRAFICOS = [
   { 'ignore-gpu-blocklist': true, 'use-angle': 'd3d9' },
   { 'ignore-gpu-blocklist': true, 'use-angle': 'gl' },
 ];
-const { intentoVigente } = require('./recuperacion-main.cjs');
+const { intentoVigente, relanzar, cuidarErroresMain } = require('./recuperacion-main.cjs');
 const archivoGraficos = () => path.join(app.getPath('userData'), 'graficos.json');
 function intentoGraficos() {
   // 4.10.3 (P3): lo guardado por caídas de la placa vence a la semana (ver `intentoVigente`); la edad es la del archivo
@@ -27,10 +27,12 @@ for (const [clave, valor] of Object.entries(INTENTOS_GRAFICOS[intentoGraficos()]
   if (valor === true) app.commandLine.appendSwitch(clave); else app.commandLine.appendSwitch(clave, valor);
 }
 ipcMain.handle('graficos-fallaron', () => {
-  const siguiente = intentoGraficos() + 1;
+  // 4.10.4 (M7): se saltea d3d9 (sólo da WebGL 1 y el juego pide WebGL 2: era un reinicio de más que seguro fallaba; ver recuperacion-main.cjs)
+  let siguiente = intentoGraficos() + 1;
+  while (siguiente < INTENTOS_GRAFICOS.length && INTENTOS_GRAFICOS[siguiente]['use-angle'] === 'd3d9') siguiente++;
   if (siguiente >= INTENTOS_GRAFICOS.length) return false;
   try { fs.writeFileSync(archivoGraficos(), JSON.stringify({ intento: siguiente })); } catch { return false; }
-  app.relaunch(); app.exit(0);
+  relanzar(app); app.exit(0);   // 4.10.4 (M2/M3): el portable vuelve por su exe, y se suelta el candado de instancia única
   return true;
 });
 if (process.platform === 'win32') app.setAppUserModelId('ar.hojarasca.juego');
@@ -128,7 +130,9 @@ function crearVentana() {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
-      backgroundThrottling: false,
+      // 4.10.4 (M1): en producción, el valor por defecto de Electron: minimizado o detrás de otro juego ya no dibuja el 3D ni le roba GPU
+      // (y la página pasa a `hidden`: el guardado del visibilitychange corre). Las herramientas de medición lo apagan con HOJ_SIN_ESTRANGULAR=1 o HUMO_OCULTO=1.
+      backgroundThrottling: !(process.env.HOJ_SIN_ESTRANGULAR === '1' || process.env.HUMO_OCULTO === '1'),
       devTools: !app.isPackaged,
       spellcheck: false,
       navigateOnDragDrop: false,   // 3.5.4: soltar un archivo sobre la ventana no la lleva a ese archivo
@@ -251,6 +255,8 @@ require('./sincronia-main.cjs').registrarSincronia({ ipcMain, dialog, app, venta
 require('./fotos-main.cjs').registrarFotos({ ipcMain, app, alError: (m) => escribirCrash('fotos', m) });
 
 const { cuidarVentana, cuidarPermisos } = require('./ventana-main.cjs');
+// 4.10.4 (M3): los errores sin atrapar del proceso principal quedan en hojarasca-crash.log (antes: el cuadro de Electron y nada anotado)
+cuidarErroresMain({ proceso: process, app, escribirCrash, ventanaActual: () => ventanaPrincipal });
 
 app.whenReady().then(() => {
   if (!primeraInstancia) return;   // 3.5.4: la segunda copia no abre nada (ver arriba)

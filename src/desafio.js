@@ -746,7 +746,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
     ctx.alDerribar?.(caidas);
   }
   let torretas = [], trampas = [], acumuladoDefensas = 99;
-  const recargaTorreta = new Map();
+  const recargaTorreta = new WeakMap();   // 4.10.4 (H2-4): débil (sólo get/set): al caer la obra se suelta, no la guarda para siempre
   function refrescarDefensas() {
     torretas = obras.obras.filter((o) => completa(o) && o.plano.defensa?.tipo === 'torreta');
     trampas = obras.obras.filter((o) => completa(o) && o.plano.defensa?.tipo === 'estacas');

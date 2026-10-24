@@ -52,6 +52,43 @@ function intentoVigente(datos, edadMs, cuantos) {
   if (datos.porCaidas === true && !(edadMs < VIGENCIA_CAIDAS_MS)) return 0;
   return n;
 }
+// 4.10.4 (M2/M3): reiniciar el juego. En el portable de electron-builder el proceso corre desde una carpeta temporal que el lanzador
+// borra al terminar: hay que relanzar el exe portable (PORTABLE_EXECUTABLE_FILE), no `process.execPath`. Y se suelta el candado de
+// instancia única antes: si no, la copia nueva (que arranca mientras la vieja se cierra) lo encuentra tomado y muestra «ya está abierto».
+function relanzar(app, args, entorno = process.env) {
+  try { if (typeof app.releaseSingleInstanceLock === 'function') app.releaseSingleInstanceLock(); } catch { /* sin candado que soltar */ }
+  const opciones = {};
+  if (args) opciones.args = args;
+  if (entorno && entorno.PORTABLE_EXECUTABLE_FILE) opciones.execPath = String(entorno.PORTABLE_EXECUTABLE_FILE);
+  app.relaunch(opciones);
+}
+
+// 4.10.4 (M3): errores sin atrapar del proceso principal. Antes no quedaba nada en el registro y Electron mostraba su cuadro con el stack.
+// Se anotan (nunca se tragan sin dejar rastro) y se pide guardar a la página; si se repiten en bucle (`max` en `ventanaMs`) se cierra limpio.
+function cuidarErroresMain(op) {
+  const { proceso, app, escribirCrash, ventanaActual } = op;
+  const max = op.max || 5, ventanaMs = op.ventanaMs || 10000, ahora = op.ahora || Date.now;
+  const marcas = [];
+  let cerrando = false;
+  const detalle = (e) => { try { return String((e && e.stack) || e).slice(0, 4000); } catch { return 'error ilegible'; } };
+  const pedirGuardar = () => { try { const v = ventanaActual && ventanaActual(); if (v && !v.isDestroyed()) v.webContents.send('guardar-ya'); } catch { /* ya no está */ } };
+  const anotar = (tipo, e) => {
+    try { escribirCrash(tipo, detalle(e)); } catch { /* el registro es lo último que puede fallar */ }
+    const t = ahora();
+    marcas.push(t);
+    while (marcas.length && t - marcas[0] > ventanaMs) marcas.shift();
+    pedirGuardar();
+    if (marcas.length >= max && !cerrando) {
+      cerrando = true;
+      try { escribirCrash('main', `${marcas.length} errores sin atrapar en ${ventanaMs / 1000} s: se cierra el juego (la partida se pidió guardar)`); } catch { /* idem */ }
+      setTimeout(() => { try { app.exit(1); } catch { /* ya salió */ } }, op.retrasoCierreMs ?? 1500);
+    }
+  };
+  proceso.on('uncaughtException', (e) => anotar('main-excepcion', e));
+  proceso.on('unhandledRejection', (e) => anotar('main-rechazo', e));
+  return { anotar, cerrando: () => cerrando };
+}
+
 function decidirGpu(motivo, recientes, umbral = UMBRAL_GPU, hayOtra = true) {
   if (motivo === 'clean-exit') return 'nada';
   return recientes >= umbral && hayOtra ? 'cambiar-graficos' : 'esperar';
@@ -122,7 +159,7 @@ function registrarRecuperacion(op) {
     try { if (v && !v.isDestroyed()) v.webContents.send('guardar-ya'); } catch { /* ya no está */ }
     setTimeout(() => {
       const args = process.argv.slice(1).filter((a) => !a.startsWith('--hojarasca-recuperado'));
-      app.relaunch({ args: [...args, '--hojarasca-recuperado=graficos'] });
+      relanzar(app, [...args, '--hojarasca-recuperado=graficos']);   // 4.10.4 (M2/M3): portable y candado de instancia única
       app.quit();
     }, op.retrasoReinicioMs ?? 1500);
   });
@@ -130,4 +167,4 @@ function registrarRecuperacion(op) {
   return { vigilar, caidas, gpu };
 }
 
-module.exports = { registrarRecuperacion, crearVigia, decidirCaida, decidirGpu, siguienteGraficosPorCaidas, intentoVigente, VIGENCIA_CAIDAS_MS, MAX_CAIDAS, UMBRAL_GPU, VENTANA_MS, ESPERA_COLGADA_MS };
+module.exports = { relanzar, cuidarErroresMain, registrarRecuperacion, crearVigia, decidirCaida, decidirGpu, siguienteGraficosPorCaidas, intentoVigente, VIGENCIA_CAIDAS_MS, MAX_CAIDAS, UMBRAL_GPU, VENTANA_MS, ESPERA_COLGADA_MS };

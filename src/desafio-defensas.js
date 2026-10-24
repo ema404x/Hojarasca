@@ -169,7 +169,7 @@ export function crearDefensasActivas(T, escena, obras, sonido, efectos, api, opc
   }
 
   // ---------------- campana de alarma
-  const silencioCampana = new Map();
+  const silencioCampana = new WeakMap();   // 4.10.4 (H2-4): débil (sólo get/set): al caer la campana se suelta
   function actualizarCampanas(dt) {
     for (const o of campanas) {
       const t = (silencioCampana.get(o) || 0) - dt;

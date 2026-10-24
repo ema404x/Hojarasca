@@ -258,7 +258,7 @@ const semilla = (n) => () => { n = (Math.imul(n ^ (n >>> 15), 2246822519) + 3266
 
 // ---------------------------------------------------------------- enganches de texto (lo que no se puede correr en Node sin Electron)
 {
-  ok(leer('src/desafio-tomadas-mundo.js').includes('for (const m of [s.tinte, s.bruma, s.hongos]) m.material.dispose();'), 'V9: limpiar() libera los tres materiales de cada lugar tomado');
+  ok(leer('src/desafio-tomadas-mundo.js').includes('for (const m of [s.tinte, s.bruma, s.hongos]) if (m) { m.geometry.dispose(); m.material.dispose(); }'), '4.10.4 (H2-2: hay lugares a medio armar, se saltea el que falta) V9: limpiar() libera los tres materiales de cada lugar tomado');
   ok(leer('src/main.js').includes("(obras?.firmaCubiertas?.() ?? 0).toFixed(3) + '|' + (est?.cubiertas?.length ?? 0);"), 'G-10: la firma del mapa de lluvia cuenta los techos de los puestos');
 }
 

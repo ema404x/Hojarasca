@@ -37,7 +37,7 @@ assert.match(main, /window\.hojarasca\?\.fallaronGraficos\?\.\(\)/, 'si el 3D no
 const pm = leer('main.cjs');
 assert.match(pm, /'ignore-gpu-blocklist': true, 'use-angle': 'd3d9'/);
 assert.match(pm, /ipcMain\.handle\('graficos-fallaron'/);
-assert.match(pm, /app\.relaunch\(\); app\.exit\(0\);/);
+assert.match(pm, /relanzar\(app\); app\.exit\(0\);/);   // 4.10.4 (M2/M3): relanzar() de recuperacion-main.cjs (portable + candado de instancia única)
 assert.match(leer('preload.cjs'), /fallaronGraficos: \(\) => ipcRenderer\.invoke\('graficos-fallaron'\)/);
 // el paquete sólo lleva los idiomas de Chromium que usa el juego
 assert.deepEqual(JSON.parse(leer('package.json')).build.electronLanguages, ['es', 'es-419', 'en-US']);

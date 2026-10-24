@@ -265,7 +265,12 @@ const opcion = (v, permitidas, defecto) => permitidas.includes(v) ? v : defecto;
 function parsear(texto) {
   if (!texto) return null;
   // 4.0.2: una partida retocada a mano con `"toString": 1` (o `valueOf`) hacía tirar a cada `Number(...)` de los módulos y se perdía la carga entera: esas dos claves no existen en ningún guardado de verdad, se sacan al leer
-  try { const v = JSON.parse(texto, (_k, x) => { if (x && typeof x === 'object' && !Array.isArray(x)) { delete x.toString; delete x.valueOf; } return x; }); return objeto(v) ? v : null; } catch { return null; }
+  // 4.10.4 (H2-1): el «reviver» vuelve el parse ~14 veces más lento: sólo se usa si el texto puede traer esas claves (por nombre o escritas con \u)
+  try {
+    const peligroso = texto.includes('toString') || texto.includes('valueOf') || texto.includes('\\u');
+    const v = peligroso ? JSON.parse(texto, (_k, x) => { if (x && typeof x === 'object' && !Array.isArray(x)) { delete x.toString; delete x.valueOf; } return x; }) : JSON.parse(texto);
+    return objeto(v) ? v : null;
+  } catch { return null; }
 }
 function leer(clave) {
   try { return parsear(localStorage.getItem(clave)); } catch { return null; }
@@ -279,7 +284,8 @@ function progresoPlausible(v) {
 function escribirTexto(clave, texto) {
   try {
     localStorage.setItem(clave, texto);
-    return localStorage.getItem(clave) === texto && !!parsear(texto);
+    // 4.10.4 (H2-1): acá el resultado sólo se usa como sí/no: parse liso, sin «reviver»
+    return localStorage.getItem(clave) === texto && objeto(JSON.parse(texto));
   } catch { return false; }
 }
 function escribir(clave, valor) {
