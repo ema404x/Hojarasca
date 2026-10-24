@@ -2693,6 +2693,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     if (P.fisicaCasa) return { lz: -P.fondo / 2 - (P.galeria || 0) - 0.67, alto: 0.38 };
     if (P.id === 'casilla') return { lz: -P.fondo / 2 - 0.66, alto: 0.38 };
     if (P.id === 'puesto') return { lz: -P.fondo / 2 - 0.66, alto: 0.36 };
+    // 4.10.3 (G-6): la barraca: el piso queda a 0,35 m y el único acceso es el frente; con el frente cuesta abajo desde ~16 % el cuerpo no subía (y se fundaba hasta ~30 %)
+    if (P.id === 'barraca') return { lz: -1.7, alto: 0.35, tope: 0.62 };
     return null;
   }
 
@@ -2873,7 +2875,7 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       const esc = escalonDeEntrada(plano);
       if (esc) {
         const q = mundoDesdeLocal(x, z, rot, 0, esc.lz);
-        if (base + esc.alto - T.altura(q.x, q.z) > 0.60) return { ok: false, motivo: 'La entrada queda muy alta sobre el terreno: girala (R) o buscá un lugar más parejo' };
+        if (base + esc.alto - T.altura(q.x, q.z) > (esc.tope ?? 0.60)) return { ok: false, motivo: 'La entrada queda muy alta sobre el terreno: girala (R) o buscá un lugar más parejo' };
       }
     }
 

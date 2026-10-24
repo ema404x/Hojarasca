@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { cargarModulos } from './ayuda-4-0-3-valle.mjs';
 import { mundo, C as CL, THREE as THL } from './ayuda-4-0-1-mundo.mjs';
 import { reservaDeRuta, PUESTOS_RUTA } from '../src/puestos-ruta.js';
+import { mundo as mundoCam, terreno as terrenoCam, caminarA, paso } from './ayuda-4-0-3-caminante.mjs';
 
 let pasos = 0;
 const ok = (c, t) => { pasos++; assert.ok(c, t); };
@@ -173,6 +174,28 @@ const llano = () => mundo({ altura: () => 0 });
     ok(w.s.bajoCubierta({ x: 0, z: 0, y: r.o.datos.y + 0.6 }), `${id}: parado adentro estás bajo techo`);
     ok(!w.s.bajoCubierta({ x: CL.PLANO[id].ancho + 4, z: 0, y: 0.6 }), `${id}: afuera no`);
   }
+}
+
+// G-6: la barraca se funda sólo donde se puede entrar (en una ladera, con el frente cuesta abajo se pagaba sin poder pisar el piso)
+{
+  let fundadas = 0, rechazadas = 0, entran = 0, noEntran = [];
+  for (const k of [0.1, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3]) for (let r = 0; r < 8; r++) {
+    const rot = r * Math.PI / 4;
+    const w = mundoCam(terrenoCam(k));
+    const res = w.terminar('barraca', 0, 0, rot);
+    if (!res.ok) { rechazadas++; continue; }
+    fundadas++;
+    // se entra: desde 3,5 m delante del frente (local -z) hasta el centro del piso
+    const fx = -Math.sin(rot), fz = -Math.cos(rot), D = CL.PLANO.barraca.fondo;
+    const s0 = { x: fx * (D / 2 + 3.5), z: fz * (D / 2 + 3.5) };
+    const q = { x: s0.x, z: s0.z, y: w.T.altura(s0.x, s0.z), vy: 0, enSuelo: false, coyote: 0 };
+    for (let i = 0; i < 90 && !q.enSuelo; i++) paso(w, q, 0, 0);
+    caminarA(w, q, fx * (D / 2 + 0.8), fz * (D / 2 + 0.8), 600, 0.045);
+    caminarA(w, q, 0, 0, 600, 0.045);
+    if (Math.hypot(q.x, q.z) < 0.5) entran++; else noEntran.push(`k=${k} rot=${r}`);
+  }
+  ok(rechazadas > 0 && fundadas > 8, `la barraca se rechaza en las laderas que no se entran y se funda en el resto (${fundadas} fundadas, ${rechazadas} rechazadas)`);
+  ok(noEntran.length === 0, `toda barraca fundada se puede entrar (no entran: ${noEntran.join(', ')})`);
 }
 
 console.log(`4.10.3 sitios: ${pasos} pasos OK`);
