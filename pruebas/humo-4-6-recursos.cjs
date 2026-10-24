@@ -7,6 +7,8 @@
 //   6. la mochila con los materiales y las herramientas nuevas, y lo guardado que vuelve igual al recargar.
 // Uso (después de `node armar.mjs`), siempre en el monitor externo y con perfil propio:
 //   powershell -File herramientas\lanzar-electron.ps1 -Script pruebas\humo-4-6-recursos.cjs     (las capturas, en HOJ_SALIDA o salida-cantina\recursos-zona)
+// 4.10.1: determinista (antes fallaba «a veces»: el aviso lo tapaba un vecino o el perro según dónde caían, y cada cuadro simulaba lo que dejaba la PC): Math.random
+// sembrado (HUMO_SEMILLA), reloj falso y requestAnimationFrame congelado (ayuda-determinista.cjs) y los avisos se esperan por estado (avisoHasta), no por reloj.
 const { app, BrowserWindow, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -20,6 +22,8 @@ fs.mkdirSync(salida, { recursive: true });
 app.setPath('userData', path.join(salida, '_perfil'));
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+const { DETERMINISTA } = require('./ayuda-determinista.cjs');
+const SEMILLA = Number(process.env.HUMO_SEMILLA) || 12345;
 setTimeout(() => { console.log('ERROR: la prueba tardó más de 10 minutos'); salir(2); }, 10 * 60 * 1000).unref?.();
 
 app.on('window-all-closed', () => {});
@@ -40,7 +44,7 @@ app.whenReady().then(async () => {
   const abrir = async () => { try { await w.loadFile(url, { search: '?debug=1' }); } catch { await esperar(1500); await w.loadFile(url, { search: '?debug=1' }); } };
   const listo = async () => { for (let i = 0; i < 300; i++) { await esperar(1000); if (await js('!!window.__hojarasca').catch(() => false)) return true; } return false; };
   const AYUDA = `window.H = window.__hojarasca;
-    window.cuadros = async (n = 4) => { for (let i = 0; i < n; i++) { H.__bucle(); await new Promise((r) => setTimeout(r, 5)); } };
+    window.cuadros = async (n = 4) => { for (let i = 0; i < n; i++) { if (window.__cuadros) window.__cuadros(1); else H.__bucle(); await new Promise((r) => setTimeout(r, 5)); } };
     window.tecla = async (code, n = 4) => { document.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); await cuadros(n); document.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); await cuadros(1); };
     // parado en (x, z) mirando hacia (hx, hz), un poco hacia abajo
     window.ir = (x, z, hx = x, hz = z - 1) => { const j = H.jugador.estado; j.pos.set(x, H.T.altura(x, z) + 1.6, z); j.vel.set(0, 0, 0); j.vy = 0; j.yaw = Math.atan2(-(hx - x), -(hz - z)); j.pitch = -0.3; };
@@ -51,10 +55,13 @@ app.whenReady().then(async () => {
   const cuadros = (n = 4) => js(`cuadros(${n}).then(() => 1)`);
   const tecla = (code, n = 4) => js(`tecla('${code}', ${n}).then(() => 1)`);
   const aviso = () => js(`(H.__avisoYa() || {}).texto || ''`);
+  // el aviso que se espera, por estado: si lo tapa otro (un vecino, el perro) se dan más cuadros y se vuelve a mirar (la tabla de interacciones se recalcula a 10 Hz)
+  const avisoHasta = async (pred, vueltas = 25) => { let a = ''; for (let i = 0; i < vueltas; i++) { a = await aviso(); if (pred(a)) return a; await cuadros(8); await esperar(60); } return a; };
   const entrar = async () => {
     ok(await listo(), 'carga el Relax');
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(2500);
+    await js(DETERMINISTA(SEMILLA));
     await js(AYUDA);
   };
   const ajustes = `localStorage.setItem('hojarasca-ajustes-v1', JSON.stringify({calidad:'media', clima:'despejado', musica:false, modo:'relax', autoCalidad:false, guiaPrimerDia:false, estacion:'auto'}));`;
@@ -91,17 +98,17 @@ app.whenReady().then(async () => {
     await js(`(() => { const P = H.progreso; P.cosas['pico-cantero'] = 0; 1 })()`);
     await llegar(-401.5, -303, -405, -305);
     await foto('1-cantera-frente-de-roca');
-    let t = await aviso();
+    let t = await avisoHasta((a) => /pico de cantero/.test(a));
     ok(/pico de cantero/.test(t), `con el pico común, el aviso pide el de cantero (${t})`);
     await apretarE();
     ok(await js('mat("piedra-cantera")') === 0, 'y la E no saca nada');
     await js(`(() => { H.progreso.cosas['pico-cantero'] = 1; 1 })()`);
     await llegar(-401.5, -305, -405, -305);
-    t = await aviso();
+    t = await avisoHasta((a) => a === 'Labrar la veta (6 piedras de cantera)');
     ok(t === 'Labrar la veta (6 piedras de cantera)', `con el de cantero: «${t}»`);
     for (let i = 0; i < 3; i++) await apretarE();
     ok(await js('mat("piedra-cantera")') === 6, `tres golpes: +6 piedras de cantera (${await js('mat("piedra-cantera")')})`);
-    t = await aviso();
+    t = await avisoHasta((a) => /vuelve a dar piedra en 2 días/.test(a));
     ok(/vuelve a dar piedra en 2 días/.test(t), `la veta vuelve en 2 días (${t})`);
     await cuadros(30);
     await foto('2-cantera-labrada');
@@ -109,24 +116,24 @@ app.whenReady().then(async () => {
     // ---- 3. el mallín
     await llegar(-263, -237, -265, -239);
     await foto('3-mallin-juncal');
-    t = await aviso();
+    t = await avisoHasta((a) => a === 'Cortar junco (3 juncos)');
     ok(t === 'Cortar junco (3 juncos)', `el juncal: «${t}»`);
     await apretarE();
     ok(await js('mat("junco")') === 3, '+3 juncos');
     await llegar(-254, -242, -256, -244);
-    t = await aviso();
+    t = await avisoHasta((a) => a === 'Cortar hierbas (2 atados de hierbas)');
     ok(t === 'Cortar hierbas (2 atados de hierbas)', `las hierbas: «${t}»`);
     await apretarE();
     ok(await js('mat("hierbas")') === 2, '+2 atados de hierbas');
     await llegar(-263, -237, -265, -239);
     await foto('4-mallin-cortado');
-    ok(/vuelve a crecer en 1 día/.test(await aviso()), 'el junco vuelve al otro día');
+    ok(/vuelve a crecer en 1 día/.test(await avisoHasta((a) => /vuelve a crecer en 1 día/.test(a))), 'el junco vuelve al otro día');
     ok(await js(`H.__recursosZona.mundo().mallas.juncal.ras.visible`), 'y queda al ras');
 
     // ---- 4. la desembocadura
     await llegar(51, 46.5, 52, 45);
     await foto('5-barranca-arcilla');
-    t = await aviso();
+    t = await avisoHasta((a) => a === 'Sacar arcilla (4 terrones de arcilla)');
     ok(t === 'Sacar arcilla (4 terrones de arcilla)', `la barranca: «${t}»`);
     await apretarE();
     ok(await js('mat("arcilla")') === 4, '+4 de arcilla');
@@ -134,12 +141,12 @@ app.whenReady().then(async () => {
     // ---- 5. se repone: al otro día el junco, a los dos la veta y la arcilla
     await js(`(() => { H.progreso.dia = 3; 1 })()`);
     await llegar(-263, -237, -265, -239);
-    ok(await aviso() === 'Cortar junco (3 juncos)', 'al otro día, el junco creció');
+    ok(await avisoHasta((a) => a === 'Cortar junco (3 juncos)') === 'Cortar junco (3 juncos)', 'al otro día, el junco creció');
     ok(!(await js(`H.__recursosZona.mundo().mallas.juncal.ras.visible`)), 'y se ve crecido');
     await apretarE();
     ok(await js('mat("junco")') === 6, '+3 juncos más');
     await llegar(-401.5, -305, -405, -305);
-    ok(/vuelve a dar piedra en 1 día/.test(await aviso()), 'la veta todavía no');
+    ok(/vuelve a dar piedra en 1 día/.test(await avisoHasta((a) => /vuelve a dar piedra en 1 día/.test(a))), 'la veta todavía no');
     await js(`(() => { H.progreso.dia = 4; 1 })()`);
     await llegar(-401.5, -305, -405, -305);
     for (let i = 0; i < 3; i++) await apretarE();
@@ -149,13 +156,13 @@ app.whenReady().then(async () => {
     await js(`(() => { H.progreso.dia = 6; 1 })()`);
     const pe = await js(`(() => { const a = H.__recursosZona.mundo().pehuenes()[0]; return { x: a.x, z: a.z, r: a.r } })()`);
     await llegar(pe.x + pe.r + 1.0, pe.z, pe.x, pe.z);
-    t = await aviso();
+    t = await avisoHasta((a) => /Juntar los piñones del pehuén|piñón/i.test(a));
     const pinAntes = await js(`H.progreso.entradas.pinon?.cantidad || 0`);
     ok(/Juntar los piñones del pehuén|piñón/i.test(t), `al pie del pehuén, en otoño: «${t}» (si hay un piñón suelto mirando, ése gana: es el de siempre)`);
     if (/Juntar los piñones del pehuén/.test(t)) {
       await apretarE();
       ok(await js(`H.progreso.entradas.pinon?.cantidad || 0`) === pinAntes + 6, '+6 piñones');
-      ok(/ya dio sus piñones/.test(await aviso()), 'y ese pehuén ya dio este otoño');
+      ok(/ya dio sus piñones/.test(await avisoHasta((a) => /ya dio sus piñones/.test(a))), 'y ese pehuén ya dio este otoño');
     }
     await foto('6-pehuen-otono');
 
@@ -169,6 +176,7 @@ app.whenReady().then(async () => {
     ok(g.materiales.junco === 6 && g.materiales['piedra-cantera'] === 12 && g.cosas['pico-cantero'] === 1 && g.cosas.pico === 1, 'los materiales y las herramientas, también (y el pico común sigue)');
     await abrir();
     ok(await listo(), 'vuelve a cargar');
+    await js(DETERMINISTA(SEMILLA));
     await js(AYUDA);
     const v = await js(`({ z: H.progreso.recursosZona, j: H.progreso.materiales.junco, p: H.progreso.cosas['pico-cantero'] })`);
     ok(v.z?.usos?.cantera === 4 && v.j === 6 && v.p === 1, `al recargar, todo igual (${JSON.stringify(v)})`);

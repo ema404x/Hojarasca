@@ -106,6 +106,10 @@ app.whenReady().then(async () => {
     await js(`document.getElementById('btn-entrar').click(); 1`);
     await esperar(4000);
     await js(PAGINA);
+    // 4.10.1: la falla intermitente «Escape devuelve a la pausa» / «se vuelve al juego» era de la prueba, no del juego (que hace bien en pausar): (1) `H.reanudar()` no
+    // existe (es `H.volverAlJuego`); (2) el juego se pone en pausa si la ventana pierde el foco (`blur`, 3.5.4) o si el bloqueo del puntero se suelta (evento tardío):
+    // con otra ventana (otro Electron, el gate, una app) tomando el foco, caía en cualquier punto. Acá se aísla: sin bloqueo real del puntero y sin que el `blur` llegue al juego.
+    await js(`HTMLElement.prototype.requestPointerLock = function () { return Promise.resolve(); }; window.addEventListener('blur', (e) => e.stopImmediatePropagation(), true); 1`);
     w.webContents.focus();
     ok(await A('!!A.t() && P.modo !== "desafio" && !!P.economia'), 'la partida es del Relax y la consola está armada');
     await A('A.cuadros(10, 80)');
@@ -171,7 +175,9 @@ app.whenReady().then(async () => {
     ok(/no es un número/.test(await codigo('plata abc')), 'plata abc');
     await codigo('tablas 200'); await codigo('troncos 50'); await codigo('piedras 80'); await codigo('lana 7');
     ok(await A('P.materiales.tabla === 200 && P.materiales.tronco === 50 && P.materiales.piedra === 80 && P.materiales.lana === 7'), 'tablas, troncos, piedras y lana');
-    await codigo('materiales 100'); ok(await A('["tronco","tabla","piedra","lana"].every((k) => P.materiales[k] === 100)'), 'materiales 100');
+    // 4.10.1: la consola respeta las 24 casillas de la mochila (tronco y piedra de a 10, tabla de a 20, lana y los de zona de a 20 a 30): `materiales 100` llena hasta donde entra
+    const txtMat = await codigo('materiales 100');
+    ok(/hasta donde entra la mochila/.test(txtMat) && (await A('(() => { const o = H.__ocupacion ? H.__ocupacion() : null; if (o) return o.usadas <= 24 && Object.keys(o.sobrecarga).length === 0; const m = P.materiales, pila = { tronco: 10, piedra: 10, "piedra-cantera": 10, tabla: 20, arcilla: 20, cuero: 20 }; return Object.keys(m).reduce((s, k) => s + Math.ceil(m[k] / (pila[k] || 30)), 0) <= 24; })()')), 'materiales 100: llena hasta donde entra, sin pasarse de las 24 casillas');
     await codigo('herramientas'); ok(await A('P.cosas.hacha >= 1 && P.cosas.pico >= 1 && P.cosas.tijera >= 1'), 'herramientas');
     ok(/No hay depósitos/.test(await codigo('depositos')), 'depósitos sin ninguno construido lo dice');
     await A('A.cuadros(4, 60)');
@@ -281,6 +287,9 @@ app.whenReady().then(async () => {
     seccion('oficios, historia, amigos y cuaderno');
     await codigo('oficios maximo'); ok(await A('["hachero","picapedrero","pescador","cazador","obrero","huertero","navegante"].every((k) => P.oficios.xp[k] >= 800)'), 'oficios al máximo');
     await codigo('historia capitulo 5'); ok(await A('P.historia.capitulo === 4 && P.historia.activa'), 'historia en el capítulo 5');
+    // 4.10.1: con la historia activa el juego muestra la tarjeta del capítulo en cualquier momento (modo «valle»), y eso rompía los «modo === jugando» de más abajo:
+    // era la causa de la falla intermitente, no del juego. Acá se la apaga (el código ya se probó) y se cierra la tarjeta si ya salió.
+    await A('(P.historia.activa = false, H.ajustes.relaxTipo = "libre", A.modo() === "valle" ? H.volverAlJuego(true) : 0, 1)');
     await codigo('amigos todos'); ok(await A('Object.values(P.vecindad.personas).length >= 10 && Object.values(P.vecindad.personas).every((f) => f.p >= 140)'), 'todos los vecinos compadres');
     ok(/nuevas/.test(await codigo('cuaderno completo')), 'cuaderno completo');
     ok(await A('Object.keys(P.entradas).length >= 290 && P.trucos.entradas.length >= 250'), 'el cuaderno tiene todo y la marca anota lo puesto');
@@ -316,16 +325,21 @@ app.whenReady().then(async () => {
     ok((await A('A.visible()')) && (await A('A.modo()')) === 'trucos', 'desde la pausa también se abre');
     await key('Escape');
     ok(!(await A('A.visible()')) && (await A('A.modo()')) === 'pausa', 'Escape devuelve a la pausa, no al juego');
-    await A('(H.reanudar(), 1)'); await A('A.cuadros(2, 40)');
-    ok(await A('A.modo() === "jugando"'), 'se vuelve al juego');
+    // 4.10.1: la falla «Escape devuelve a la pausa» venía de la prueba, no del juego: (1) `H.reanudar()` no existe (es `H.volverAlJuego`), y (2) el evento
+    // «pointerlockchange» de soltar el mouse llega un rato después de cerrar la consola; si la prueba ya había vuelto a «jugando», el juego lo toma por un Esc
+    // y abre la pausa (correcto en el juego). Se espera a que pase el evento y se vuelve sin pedir el mouse (true).
+    await esperar(700);
+    await A('(H.volverAlJuego(true), 1)'); await A('A.cuadros(2, 40)'); await esperar(300);
+    { const mm = await A('A.modo()'); ok(mm === 'jugando', 'se vuelve al juego (modo: ' + mm + ')'); }
     // otros modos: no se abre
     await A('(H.abrir("mapa"), 1)'); await A('A.cuadros(2, 40)');
     await combo();
     ok(!(await A('A.visible()')) && (await A('A.modo()')) === 'mapa', 'con el mapa abierto no se abre');
-    await A('(H.reanudar(), 1)');
+    await esperar(300);
+    await A('(H.volverAlJuego(true), 1)'); await esperar(300);
     // salir
     await combo(); await codigo('salir');
-    ok(!(await A('A.visible()')) && (await A('A.modo()')) === 'jugando', '«salir» cierra y vuelve al juego');
+    { const mm = await A('A.modo()'); ok(!(await A('A.visible()')) && mm === 'jugando', '«salir» cierra y vuelve al juego (modo: ' + mm + ')'); }
     ok(await A('J.estado.pos.y > -50'), 'el jugador está en el mundo');
     ok(errores.length === 0, `sin errores en la consola${errores.length ? ': ' + errores.join(' | ') : ''}`);
   } catch (e) {
