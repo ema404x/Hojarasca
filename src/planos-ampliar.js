@@ -1009,8 +1009,8 @@ const torreon = (() => {
     nombres: [null, 'Piso y planta baja', 'Entrepiso, escalera y planta alta', null],
     ventanas: [{ orient: 'z', s: -1, cx: -1.4, cz: -D / 2, t: 0.42 }, { orient: 'z', s: -1, cx: 1.4, cz: -D / 2, t: 0.42 }, { orient: 'z', s: -1, cx: 0, cz: -D / 2, t: 0.42, dy: PISO2 }, { orient: 'z', s: 1, cx: 0.4, cz: D / 2, t: 0.42, dy: PISO2 }, { orient: 'x', s: -1, cx: -W / 2, cz: 0.2, t: 0.42, dy: PISO2 }, { orient: 'x', s: 1, cx: W / 2, cz: -1.0, t: 0.42, dy: PISO2 }],
     hogares: [{ lado: 1, z: 0.6 }],
-    mesas: [{ x: 0.3, z: -0.4 }],
-    alfombras: [{ x: 0.3, z: -0.4, w: 1.9, d: 1.5 }],
+    mesas: [{ x: 0.2, z: -0.4 }],   // 4.10.4 (R2-3): 10 cm al oeste (era 0,3): entre la mesa y el hogar quedaban 0,69 m para un cuerpo de 0,70 y el fondo de la sala no se alcanzaba
+    alfombras: [{ x: 0.2, z: -0.4, w: 1.9, d: 1.5 }],
     pide: [{ piedra: 40, tronco: 8 }, { piedra: 70, tabla: 8, tronco: 4 }, { piedra: 62, tabla: 26, tronco: 10 }, { tabla: 34, piedra: 20, tronco: 14 }],
     dice: [
       'Piedra sobre piedra: un anillo ancho y hondo para sostener la torre.',
@@ -1053,7 +1053,7 @@ const torreon = (() => {
       // abajo: los estantes y un baúl
       estanteria(c, 0.5, D / 2 - 0.3, py, 1.4, 2.0, 4, 81);
       baul(c, -0.2, 1.6, py);
-      farolColgante(c, 0.3, py + 1.9, -0.4);
+      farolColgante(c, 0.2, py + 1.9, -0.4);
       // arriba: la cama, el escritorio con libros, el catalejo en su trípode y un farol
       camaEn(c, 1.35, 0.9, TOPE);
       mostrador(c, 0.0, 1.6, TOPE, 1.3, 0.6, 0.8);
