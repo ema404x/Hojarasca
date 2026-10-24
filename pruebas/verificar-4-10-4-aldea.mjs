@@ -1,4 +1,5 @@
 // 4.10.4 — vida social y económica de la aldea (zona S2): EJECUTA la charla de Amadeo, las cifras del negocio, el alquiler, la cantina y la panadera con la aldea real.
+//   S2-3 el alquiler que va a la deuda vencida se avisa y no cuenta como cobrado
 //   S2-2 las cifras de «ayer» de un negocio tuyo son lo acreditado a la caja, y el aviso de gestión sale
 //   S2-1 el mostrador del banco respeta el horario   S2-6 «Tiene N casas en alquiler» cuenta casas
 import fs from 'node:fs';
@@ -83,6 +84,32 @@ const nuevaAG = (W, extra = {}) => G.crearAldeaGente({ progreso: () => W.P, gent
   ok(r2.renglones.some((t) => /días que no pasabas/.test(t)), 'la charla avisa cuántos días hace que no pasabas: ' + r2.renglones.join(' | ').slice(0, 200));
   const r3 = J2.elegir({ clave: N2.vecino }, 'negocios:cuentas');
   ok(!r3.renglones.some((t) => /días que no pasabas/.test(t)), 'y ya no cuando acabás de pasar');
+}
+// ---------------------------------------------------------------- S2-3: el alquiler que se va a la deuda vencida
+{
+  const PR = await U('src/prestamos.js'), PRO = await U('src/propiedad.js'), AV = await U('src/aldea-viva.js'), NB = await U('src/negocios.js');
+  const W = crearMundo({ amigos: false, dia: 2, hora: 9 }); const P = W.P;
+  P.negocios = NB.negociosNuevo(); P.obras = [{ plano: 'casona', etapas: 4 }];
+  PRO.ponerEnAlquiler(P, 'casona', 2);
+  P.economia.pesos = 500;
+  AV.cerrarCuentas(P, 2, [], 'verano');
+  PR.pedirPrestamo(P, 2, 3000, 6);
+  P.economia.pesos = 0;
+  let aDeuda = 0, avisada = 0, vencidoVisto = false;
+  for (let d = 3; d <= 20; d++) {
+    P.dia = d;
+    const r = AV.cerrarCuentas(P, d, [], 'verano');
+    ok(Number.isFinite(r.aDeuda) && r.aDeuda >= 0, `día ${d}: el cierre informa lo que fue a la deuda`);
+    aDeuda += r.aDeuda; avisada += r.renta;
+    if (r.aDeuda > 0) vencidoVisto = true;
+    const enLibro = P.economia.libro.filter((m) => /Alquiler/.test(m.motivo)).reduce((a, m) => a + m.monto, 0);
+    eq(P.negocios.casas.cobrado, avisada, `día ${d}: «cobrado en total» es lo que entró (${avisada})`);
+    eq(E.pesosDe(P), enLibro, `día ${d}: la billetera es lo que figura en el libro`);
+  }
+  ok(vencidoVisto && aDeuda > 0, 'con el préstamo vencido una parte del alquiler fue a la deuda y se informó');
+  // el aviso sale en la aldea
+  const main = leer('src/aldea-gente.js');
+  ok(main.includes('cierre.aDeuda > 0') && main.includes('Tu alquiler pagó'), 'aldea-gente avisa lo que pagó el alquiler de la deuda');
 }
 // ---------------------------------------------------------------- S2-6: cuántas casas en alquiler
 {

@@ -65,13 +65,14 @@ export function cerrarCuentas(p, dia, claves, temporada = 'verano') {
   if (n.cierre >= hoy) return { dias: 0, evento: eventoDelDia(hoy) };
   const desde = Math.max(n.cierre, hoy - VIVA.diasMax);
   let dias = 0, renta = 0;
+  const info = { aDeuda: 0 };   // 4.10.4 (S2-3)
   for (let d = desde + 1; d <= hoy; d++) {
     const dem = demandaDe(d, temporada);
     for (const k of claves) n.cajas[k] = cierreDeLocal(n.cajas[k], k, d, dem);
     pasarDiaBanco(p, d);
-    renta += alquilerDelDia(p, d, dem, (b) => factorEvento(d, temporada, b));
+    renta += alquilerDelDia(p, d, dem, (b) => factorEvento(d, temporada, b), info);
     dias++;
   }
   n.cierre = hoy;
-  return { dias, renta, evento: eventoDelDia(hoy) };
+  return { dias, renta, aDeuda: info.aDeuda, evento: eventoDelDia(hoy) };
 }

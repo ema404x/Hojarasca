@@ -1332,6 +1332,8 @@ export function crearAldeaGente(ctx) {
       if (a.descubierta && cierre) {
         if (cierre.evento) ctx.nota(cierre.evento.titulo, cierre.evento.texto, true);
         if (cierre.renta > 0) ctx.nota(`Cobraste ${formatoPesos(cierre.renta)} de alquiler`, 'Está en tu billetera, en el libro de cuentas', true);
+        // 4.10.4 (S2-3): con el préstamo vencido el alquiler paga primero la deuda: antes bajaba sola, sin decir por qué
+        if (cierre.aDeuda > 0) ctx.nota(`Tu alquiler pagó ${formatoPesos(cierre.aDeuda)} de tu deuda`, 'Mientras el préstamo está vencido, lo que cobrás de alquiler va primero al banco', true);
         const vence = diasParaVencer(p, d);
         if (vence === 1) ctx.nota('Mañana vence tu préstamo', `Pasá por el banco: ${GERENTE} te espera`, true);
         else if (vence !== null && vence <= 0) ctx.nota('Tu préstamo está vencido', 'El interés subió: saldalo en el banco', true);

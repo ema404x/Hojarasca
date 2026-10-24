@@ -157,7 +157,8 @@ export function ventasDelPuesto(p, dia, demanda = 1, factor = () => 1) {
   return vendidos;
 }
 // Todo lo que pasa en un día de las casas y el puesto (lo llama el cierre diario)
-export function alquilerDelDia(p, dia, demanda = 1, factor = () => 1) {
+// 4.10.4 (S2-3): `info` (opcional) junta lo que se fue a la deuda vencida: { aDeuda }
+export function alquilerDelDia(p, dia, demanda = 1, factor = () => 1, info = null) {
   const c = negociosDe(p)?.casas;
   if (!c) return 0;
   let total = 0;
@@ -168,9 +169,10 @@ export function alquilerDelDia(p, dia, demanda = 1, factor = () => 1) {
     for (let i = 0; i < cuartos; i++) if (rentaDelDia(id, dia, i)) m += Math.round((a.renta * Math.max(0.9, Math.min(1.25, demanda))) / 10) * 10;
     if (m <= 0) continue;
     // una sola entrada en el libro por tipo de casa y día; con el préstamo vencido, la renta va primero a la deuda
-    const cobra = m - abonarAlMoroso(p, dia, m);
+    const aDeuda = abonarAlMoroso(p, dia, m), cobra = m - aDeuda;
     if (cobra > 0) cobrar(p, cobra, `Alquiler: ${PROPIEDAD.casas[id].nombre}`, a.inquilino);
-    c.cobrado += m; total += cobra;
+    if (info) info.aDeuda = (info.aDeuda || 0) + aDeuda;
+    c.cobrado += cobra; total += cobra;   // 4.10.4 (S2-3): «cobrado en total» cuenta lo que entró a la billetera, no lo que se fue a la deuda
   }
   ventasDelPuesto(p, dia, demanda, factor);
   return total;
