@@ -5,7 +5,8 @@ import { fichaDeBruno } from './creador-textos.js';
 // `lista`: la columna de la izquierda del cuaderno; `ficha`: la hoja de la derecha; `el(tag, clase, texto)`; `desafio`: en el Desafío los rasgos no valen.
 export function dibujarFichaBruno(lista, ficha, el, bruno, desafio = false) {
   const f = fichaDeBruno(bruno);
-  lista.appendChild(el('p', 'pista', 'Quién sos en el valle. Lo que elegiste del carácter queda fijo; el aspecto se rehace en el espejo del refugio.'));
+  // 4.10.2: en el Desafío no hay espejo del refugio (los planos de espejo son del Relax): ahí la pista sólo dice lo que queda fijo
+  lista.appendChild(el('p', 'pista', desafio ? 'Quién sos en el valle. Lo que elegiste del carácter queda fijo.' : 'Quién sos en el valle. Lo que elegiste del carácter queda fijo; el aspecto se rehace en el espejo del refugio.'));
   ficha.appendChild(el('h2', '', f.nombre));
   ficha.appendChild(el('p', 'anotado', `${f.edad} años`));
   if (f.retrato) {

@@ -337,7 +337,7 @@ export function textoNoPodes(v, k) {
 export function textoCierre(r, p) {
   if (!r?.ok) return '';
   const f = faltaParaAscender(p, r.local), partes = [];
-  if (r.monto > 0) partes.push(`Cobraste ${formatoPesos(r.monto)}${r.multa > 0 ? ` (menos ${formatoPesos(r.multa)} por irte antes)` : ''}`);
+  if (r.monto > 0) partes.push(`Cobraste ${formatoPesos(r.monto)}${r.multa > 0 ? ` (ya descontados ${formatoPesos(r.multa)} por irte antes)` : ''}`);
   else partes.push('No cobraste nada: no hiciste ninguna tarea');
   if (r.motivo !== 'abandono' && r.hechas < r.total) partes.push(`${r.hechas} de ${r.total} tareas`);
   if (!r.ascendio && f.hay && r.cumplido) {

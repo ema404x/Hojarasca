@@ -111,7 +111,7 @@ export function crearEmpleoJuego(ctx) {
     ofreciendo = true;
     const pago = pagoDelTurno(t, true);
     const texto = t.hechas > 0
-      ? `¿Te vas antes de terminar el turno? Hiciste ${t.hechas} de ${t.total} tareas: cobrás ${formatoPesos(pago.monto)} (menos ${formatoPesos(pago.multa)} por irte antes) y queda anotado.`
+      ? `¿Te vas antes de terminar el turno? Hiciste ${t.hechas} de ${t.total} tareas: cobrás ${formatoPesos(pago.monto)} (ya descontados ${formatoPesos(pago.multa)} por irte antes) y queda anotado.`
       : '¿Te vas sin haber hecho ninguna tarea? No cobrás nada y hoy podés volver a fichar.';
     let si = false;
     try { si = await ctx.confirmar(texto, { si: 'Irme', no: 'Seguir trabajando' }); } catch { si = false; }

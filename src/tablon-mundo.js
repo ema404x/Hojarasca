@@ -103,7 +103,9 @@ export function crearTablonMundo(ctx) {
       ctx.alClic?.(li, () => elegir(i));
       ul.appendChild(li);
     });
-    pie.textContent = `1 a ${Math.max(1, Math.min(9, filas.length))} o un clic para tomar o entregar · E o Escape para salir`;
+    // 4.10.2: sin papeles no hay números que apretar; y la E es la del jugador
+    const propio = ctx.textoPropio || ((x) => x);
+    pie.textContent = filas.length ? propio(`1 a ${Math.min(9, filas.length)} o un clic para tomar o entregar · E o Escape para salir`) : propio('E o Escape para salir');
   }
   function abrir() {
     if (abierto) return;

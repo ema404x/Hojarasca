@@ -137,6 +137,15 @@ export function crearPantallaNuevaPartida(api) {
   document.addEventListener('keydown', (e) => {
     if (!abierta()) return;
     if (e.code === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); api.alVolver(); return; }
+    // 4.10.2: el foco no se va a los botones de la portada que quedan detrás: con Tab (y Mayús+Tab) da la vuelta adentro, como el creador y el prólogo
+    if (e.code === 'Tab') {
+      const fs = [...velo.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.disabled && x.offsetParent !== null);
+      if (fs.length) {
+        const k = fs.indexOf(document.activeElement);
+        if (k < 0 || (!e.shiftKey && k === fs.length - 1) || (e.shiftKey && k === 0)) { e.preventDefault(); e.stopPropagation(); fs[k < 0 || !e.shiftKey ? 0 : fs.length - 1].focus({ preventScroll: true }); }
+      }
+      return;
+    }
     if (e.code === 'ArrowDown' || e.code === 'ArrowUp' || e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
       const bs = [...cont.querySelectorAll('button:not(:disabled)')];
       const i = bs.indexOf(document.activeElement);

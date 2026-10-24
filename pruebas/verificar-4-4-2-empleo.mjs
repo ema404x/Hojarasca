@@ -202,7 +202,7 @@ const relax = (pesos = 0, dia = 1, horas = 12) => ({ modo: 'relax', dia, horas, 
   J.actualizar(0.6);
   eq(J.turno(), null, 'a más de 45 m se cierra');
   eq(notas.length - antes, 1, 'con un solo aviso');
-  ok(/Te fuiste del almacén/.test(notas.at(-1)[0]) && /menos/.test(notas.at(-1)[1]), 'el del cierre, que dice lo que cobraste y la multa');
+  ok(/Te fuiste del almacén/.test(notas.at(-1)[0]) && /ya descontados/.test(notas.at(-1)[1]), 'el del cierre, que dice lo que cobraste y la multa');
 }
 
 // ---------------------------------------------------------------- B9: la tarea de las bandejas y el HUD

@@ -287,11 +287,15 @@ export function crearNegocioJuego(ctx) {
     return () => {
       const est = estado(), o = local();
       if (!est || !o) { cerrarPanel(); return; }
+      // 4.10.2: el panel se redibuja entero: el foco del teclado vuelve al botón que estaba (el mismo lugar de la lista), no al principio
+      const botones = () => [...(ctx.contenido?.querySelectorAll?.('button') || [])];
+      const foco = typeof document !== 'undefined' ? botones().indexOf(document.activeElement) : -1;
       fn(est, o);
       sincronizarVista(o, est);
       avisarRep(est);
       ctx.guardar?.(); ctx.refrescarBarra?.();
       dibujar();
+      if (foco >= 0) { try { botones()[foco]?.focus({ preventScroll: true }); } catch { /* sin foco */ } }
     };
   }
   function dibujar() {

@@ -371,11 +371,11 @@ const turnoCompleto = (p, k, dia, hora, motivo = 'completo') => { const f = E.fi
   ponerEn('banco-pueblo', 'ficha');
   respuesta = false;
   await J.accion(js).hacer();
-  ok(J.turno() && /cobrás \$150 \(menos \$50 por irte antes\)/.test(preguntas.at(-1)[0]), 'irte pregunta lo que cobrás con la multa y si decís que no seguís');
+  ok(J.turno() && /cobrás \$150 \(ya descontados \$50 por irte antes\)/.test(preguntas.at(-1)[0]), 'irte pregunta lo que cobrás con la multa y si decís que no seguís');
   respuesta = true;
   await J.accion(js).hacer();
   eq(J.turno(), null, 'si decís que sí, te vas');
-  ok(notas.at(-1)[0] === 'Te fuiste del banco' && /menos \$50/.test(notas.at(-1)[1]), 'el aviso cuenta la multa');
+  ok(notas.at(-1)[0] === 'Te fuiste del banco' && /ya descontados \$50/.test(notas.at(-1)[1]), 'el aviso cuenta la multa');
   eq(pesosDe(p), 1750, 'cobraste $150');
   eq(p.empleo.locales['banco-pueblo'].faltas, 1, 'y quedó la falta');
 
