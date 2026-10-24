@@ -10,7 +10,7 @@ import { LIMITE } from './config.js';
 import { mapaDePartida } from './desafio-mapa.js';
 // 3.8.0: los puestos son madrigueras de duendes entre las raíces (duendes-modelo.js)
 import { mallaMadriguera } from './duendes-modelo.js';
-import { registrarHalos } from './desafio-duendes.js';
+import { registrarHalos, soltarHalos } from './desafio-duendes.js';
 
 const NOMBRES = { cristal: 'semillas doradas', piedra: 'piedras', tabla: 'tablas' };
 
@@ -87,7 +87,10 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     // puesto nuevo trae otro id) se sacan de la escena: antes quedaban colgados, ocultos, uno
     // más por puesto para siempre. Geometrías y materiales son compartidos: no se tocan.
     const enLista = new Set(est.lista.map((p) => p.id));
-    for (const [id, m] of mallas) if (!enLista.has(id)) { escena.remove(m.g); mallas.delete(id); }
+    for (const [id, m] of mallas) if (!enLista.has(id)) {
+      escena.remove(m.g); mallas.delete(id);
+      for (const parte of m.partes) for (const hijo of parte.children) soltarHalos(hijo);   // 4.10.3 (V9): y sus halos dejan de retenerse
+    }
     sucio = true;
   }
 
@@ -385,7 +388,7 @@ export function crearPuestosMundo(T, escena, efectos, sonido, api) {
     }
   }
 
-  function limpiar() { quemando.clear(); flash.clear(); }
+  function limpiar() { quemando.clear(); for (const parte of flash.keys()) parte.scale.setScalar(1); flash.clear(); }   // 4.10.3 (V11): y lo que estaba en el destello vuelve a su tamaño
 
   return {
     actualizar, alAmanecer, alEmpezarNoche, conBlancos, herir, golpear, usarCerca, avisoCerca, sincronizar, limpiar,

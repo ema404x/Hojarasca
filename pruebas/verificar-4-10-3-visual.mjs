@@ -224,4 +224,42 @@ const semilla = (n) => () => { n = (Math.imul(n ^ (n >>> 15), 2246822519) + 3266
   ok(leer('src/desafio-asedio-mundo.js').includes('calzarPatasCoihue(n, T.altura, px, pz, n.giro);'), 'el asedio calza las patas después de animarlas');
 }
 
+// ---------------------------------------------------------------- V9 / V11: los puestos de avanzada (halos que se sueltan, destello que se repone)
+{
+  const noop = () => {};
+  const ctx2d = new Proxy({ createLinearGradient: () => ({ addColorStop: noop }), createRadialGradient: () => ({ addColorStop: noop }), measureText: () => ({ width: 10 }) }, { get: (t, p) => (p in t ? t[p] : noop), set: () => true });
+  globalThis.document = globalThis.document || { createElement: () => ({ width: 1, height: 1, style: {}, getContext: () => ctx2d }) };
+  const PM = await import('../src/desafio-puestos-mundo.js');
+  const PD = await import('../src/desafio-puestos.js');
+  const DD = await import('../src/desafio-duendes.js');
+  const d = { puestos: PD.puestosNuevos(), oleadas: 5, semilla: 's' };
+  const p = { id: 'p1', x: 10, z: 20, nivel: 1, roto: false, estructuras: [{ tipo: 'aguja', dx: 0, dz: 0, vida: 10, vidaMax: 10 }, { tipo: 'vaina', dx: 3, dz: 2, vida: 5, vidaMax: 5 }] };
+  d.puestos.lista.push(p);
+  const escena = new THREE.Scene();
+  const api = { D: () => d, rumboTexto: () => 'al norte', centroBase: () => ({ x: 0, z: 0 }), guardar: noop, nota: noop };
+  const pm = PM.crearPuestosMundo({ altura: () => 0 }, escena, {}, {}, api);
+  const antes = DD.cuantosHalosFijos();
+  pm.sincronizar();
+  const con = DD.cuantosHalosFijos();
+  ok(con > antes, `la madriguera registra sus halos (${antes} -> ${con})`);
+  // V11: un golpe pone la estructura en el destello; limpiar la devuelve a su tamaño
+  pm.herir({ p, i: 1, pos: new THREE.Vector3(13, 0, 22) }, 1);
+  pm.actualizar(0.05, { pos: new THREE.Vector3(10, 0, 20) });
+  const parte = escena.children[0].children.find((h) => h.scale.x > 1.001);
+  ok(parte, 'una parte quedó escalada por el destello');
+  pm.limpiar();
+  ok(Math.abs(parte.scale.x - 1) < 1e-9, 'limpiar la devuelve a su tamaño');
+  // V9: el puesto sale de la lista (se retira): suelta sus halos
+  d.puestos.lista.length = 0;
+  pm.sincronizar();
+  ok(DD.cuantosHalosFijos() === antes, `al retirarse suelta sus halos (${DD.cuantosHalosFijos()} de ${antes})`);
+  ok(escena.children.length === 0, 'y sale de la escena');
+}
+
+// ---------------------------------------------------------------- enganches de texto (lo que no se puede correr en Node sin Electron)
+{
+  ok(leer('src/desafio-tomadas-mundo.js').includes('for (const m of [s.tinte, s.bruma, s.hongos]) m.material.dispose();'), 'V9: limpiar() libera los tres materiales de cada lugar tomado');
+  ok(leer('src/main.js').includes("(obras?.firmaCubiertas?.() ?? 0).toFixed(3) + '|' + (est?.cubiertas?.length ?? 0);"), 'G-10: la firma del mapa de lluvia cuenta los techos de los puestos');
+}
+
 console.log(`4.10.3 visual: ${pasos} pasos OK`);

@@ -4014,7 +4014,7 @@ function revisarMapaLluvia(cam, dt) {
   const moverse = mapaLluvia.lejos(cam.x, cam.z);
   if (!moverse && acumLluvia < 1) return;
   acumLluvia = 0;
-  const firma = (aldeaMundo?.versionCubiertas?.() ?? 0) + '|' + (obras?.firmaCubiertas?.() ?? 0).toFixed(3);
+  const firma = (aldeaMundo?.versionCubiertas?.() ?? 0) + '|' + (obras?.firmaCubiertas?.() ?? 0).toFixed(3) + '|' + (est?.cubiertas?.length ?? 0);   // 4.10.3 (G-10): y los techos de los puestos que se reparan
   if (!moverse && firma === firmaLluvia) return;
   firmaLluvia = firma;
   const lista = [...(est?.cubiertas || [])];

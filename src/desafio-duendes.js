@@ -606,6 +606,7 @@ export function mallaAtadito() {
 // Los nidos y las madrigueras con sus halos (se registran al armarse).
 export function registrarHalos(o) { if (o?.userData?.halos?.length) fijos.add(o); }
 export function soltarHalos(o) { fijos.delete(o); }
+export const cuantosHalosFijos = () => fijos.size;   // 4.10.3: para las pruebas (las madrigueras que se retiran tienen que soltar los suyos)
 // Para las pruebas y el diagnóstico: los modelos armados y cuántos duendes se dibujan de cada uno.
 export function estadoDuendes() {
   const modelos = [];

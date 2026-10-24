@@ -241,7 +241,7 @@ export function crearTomadasMundo(T, escena, a) {
     if (!v || v.cerrado) for (const s of sitios.values()) s.g.visible = false;
   }
   function limpiar() {
-    for (const s of sitios.values()) { escena.remove(s.g); s.tinte.geometry.dispose(); s.bruma.geometry.dispose(); s.hongos.geometry.dispose(); }
+    for (const s of sitios.values()) { escena.remove(s.g); s.tinte.geometry.dispose(); s.bruma.geometry.dispose(); s.hongos.geometry.dispose(); for (const m of [s.tinte, s.bruma, s.hongos]) m.material.dispose(); }   // 4.10.3 (V9): y los tres materiales (se crean de nuevo cada vez)
     sitios.clear();
   }
 
