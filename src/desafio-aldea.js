@@ -231,7 +231,7 @@ export function revisarPedidos(aldea, c) {
       eventos.push({ tipo: 'vencio', clave: k, pedido: p });
     }
   }
-  if (!c.activo || c.horas < AMANECER_HORA || c.horas >= LIMITE_HORA - CIERRE_HORAS) return eventos;
+  if (!c.activo || c.sinAliados || c.horas < AMANECER_HORA || c.horas >= LIMITE_HORA - CIERRE_HORAS) return eventos;
   for (const k of VECINOS_AYUDA) {
     if (aldea.pedidos[k] || aldea.pidioDia[k] === c.dia || aldea.ayuda[k] >= NIVEL_MAX || c.oleadas < DESDE_NOCHE[k]) continue;
     const p = pedidoDelDia(aldea, k, { dia: c.dia, noche: c.oleadas + 1, semilla: c.semilla });

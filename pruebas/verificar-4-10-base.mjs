@@ -704,7 +704,7 @@ function noche(base, p, n, golpear = []) {
   linea(['baseCrece.limpiar();'], 'se limpia al salir');
   linea(['api.alcancePerro', 'baseCrece.alcancePerro()', 'NIEBLA.perro'], 'el alcance del perro: la niebla y el nivel');
   linea(['api.danoPerro', 'baseCrece.danoPerro()'], 'el daño del perro');
-  linea(['api.perroPresente', 'ctx.perroPos'], 'el perro cuenta si está con vos');
+  linea(['api.perroPresente', 'perroAliado()'], 'el perro cuenta si está con vos (4.10.1: y no hay regla «sin aliados»)');
   linea(['get baseCrece()', 'return baseCrece'], 'main.js la ve (E y pantalla de la base)');
   ok(enUnaLinea(ali, ['api.herirAlien(a, 9 * (api.danoPerro?.() ?? 1) * dt', "'perro'"]), 'la mordida del perro multiplica por su nivel');
   ok(enUnaLinea(ali, ['avisoDelPerro({ distancia: d0, visto, alcance: api.alcancePerro?.() ?? 1 })']), 'el gruñido del perro sigue usando el alcance');
@@ -724,7 +724,7 @@ function noche(base, p, n, golpear = []) {
   const ids = INTERACCIONES.map((e) => e.id);
   ok(ids.filter((i) => i === 'trofeos').length === 1 && ids.indexOf('trofeos') > ids.indexOf('aldea-tablon') && ids.indexOf('trofeos') < ids.indexOf('objetivo') && ids.indexOf('trofeos') < ids.indexOf('desafio-cerca'), 'la E y el aviso: una entrada «trofeos» en la tabla, antes de lo que mirás');
   const { que, enganche } = await import('./ayuda-interacciones.mjs');
-  const r = que({ desafio: true, trofeosCerca: true, avisoTrofeos: 'Ver los trofeos del tablero (2 de 7)', usarTrofeos: true });
+  const r = que({ desafio: true, trofeosCerca: true, avisoDesafioCerca: null, avisoTrofeos: 'Ver los trofeos del tablero (2 de 7)', usarTrofeos: true });
   ok(r.e === 'trofeos' && r.avisoId === 'trofeos' && r.texto === 'Ver los trofeos del tablero (2 de 7)' && r.hechos.includes('usarTrofeos'), 'junto al tablero del Desafío, la E lo usa y el aviso habla de él');
   ok(que({ desafio: false, trofeosCerca: true }).e !== 'trofeos', 'en el Relax no existe');
   ok(que({ desafio: true, trofeosCerca: true, js: { enTren: true } }).e !== 'trofeos' && que({ desafio: true, trofeosCerca: true, js: { montado: true } }).e !== 'trofeos', 'ni arriba del tren ni a caballo');
@@ -747,6 +747,22 @@ function noche(base, p, n, golpear = []) {
   ok(!/\b(trophy|board|level|dog|the|and)\b/i.test(visibles), 'sin inglés en los textos');
   // nada religioso ni figuras sagradas
   ok(!/(santo|santa|virgen|dios|cruz|angel|ángel|demonio|diablo|gauchito|difunta|pachamama)/i.test(visibles), 'nada religioso ni figuras sagradas del folclore real');
+}
+
+// ================================================================== 8. 4.10.1: LA PARTIDA CORTA NO REGALA LA PIÑA NI LA CORONA
+{
+  const w = mundo();
+  const p = partida();
+  const base = M.desafio_base_juego.crearBaseCrece(w.s, efectosFalsos(), { pulsar() {}, bus: {} }, p.api);
+  p.d.meta = { modo: 'corta' }; p.d.victoria = true; p.d.jefeCaido = 5;
+  base.actualizar(1);
+  ok('casco' in p.d.crece.trofeos && !('pina' in p.d.crece.trofeos) && !('corona' in p.d.crece.trofeos), 'ganar la corta no da la piña ni la corona (no hubo Coihue ni Rey)');
+  // la campaña ganada sí
+  const w2 = mundo(), p2 = partida();
+  const base2 = M.desafio_base_juego.crearBaseCrece(w2.s, efectosFalsos(), { pulsar() {}, bus: {} }, p2.api);
+  p2.d.meta = { modo: 'normal' }; p2.d.victoria = true;
+  base2.actualizar(1);
+  ok('pina' in p2.d.crece.trofeos && 'corona' in p2.d.crece.trofeos, 'ganar la campaña sigue dando la piña y la corona');
 }
 
 console.log(`verificar-4-10-base: ${pasos} comprobaciones, todo en verde`);

@@ -20,6 +20,8 @@ export function crearTrampasMundo(T, escena, obras, efectos, sonido, api) {
     lista = [];
     for (const o of obras.obras) {
       if (o.plano.defensa?.tipo !== 'miel' || !completa(o)) continue;
+      // 4.10.1: la que se arma desde el menú (O) termina sin `usos`: nace llena, como dice la ficha («aguanta 5»); antes nacía seca
+      if (o.datos.usos === undefined) o.datos.usos = MIEL.usos;
       sanearDatosMiel(o.datos);
       lista.push(o);
     }

@@ -430,7 +430,7 @@ function sonidoFalso() {
   ok(/import \{ crearAmbienteMundo \} from '\.\/desafio-ambiente-mundo\.js';/.test(des) && /import \{ nocheEnCurso \} from '\.\/desafio-ambiente\.js';/.test(des), 'desafio.js importa el ambiente');
   ok(/const ambiente = crearAmbienteMundo\(\{/.test(des) && /const a = ambiente\.actualizar\(dtReal, e\);/.test(des) && /estadoMusica\.miedo = a\.miedo; estadoMusica\.avance = a\.avance; estadoMusica\.silencio = a\.silencio;/.test(des), 'se actualiza una vez por cuadro y le pasa miedo, avance y silencio a la música');
   ok(des.indexOf('ambiente.actualizar(dtReal, e)') < des.indexOf('musica.actualizar(dtReal, estadoMusica)'), 'antes de la música');
-  ok(/lado: \(\) => D\(\)\.ladoNoche \|\| null,/.test(des) && /perroPos: \(\) => ctx\.perroPos\?\.\(\) \|\| null,/.test(des), 'la pista de la tarde lee `D().ladoNoche` (si no existe, nada) y el perro de donde ya lo lee el juego');
+  ok(/lado: \(\) => D\(\)\.ladoNoche \|\| null,/.test(des) && /perroPos: \(\) => perroAliado\(\),/.test(des), 'la pista de la tarde lee `D().ladoNoche` (si no existe, nada) y el perro de donde ya lo lee el juego');
   ok(/ambiente\.limpiar\(\);/.test(des) && /\n    ambiente,   \/\/ 4\.8 ambiente/.test(des), 'se limpia con el resto y main.js lo ve');
   ok(/const ambienteDesafio = desafio\?\.ambiente\?\.clima;/.test(main) && /cielo\.actualizar\(progreso\.horas, clima\.estado, cam, ambienteDesafio \? ambienteDesafio\.extra : 0, ambienteDesafio\)/.test(main), 'main.js le pasa al cielo la niebla y la luna llena del Desafío (en el Relax, nada)');
   ok(/\(desafio\?\.ambiente\?\.clima\.luna \?\? 0\) > 0\.02 \? 0\.5 : faseLunar/.test(main), 'la noche de luna llena, la luna está llena en el cielo');

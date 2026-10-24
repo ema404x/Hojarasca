@@ -50,9 +50,10 @@ export function crearTrofeosMundo(obras, sonido, api, bonos) {
   function revisarGanados() {
     const d = api.D();
     const nuevos = [];
+    // 4.10.1: la partida corta se gana sin Coihue ni Rey: ganarla no da la piña ni la corona
     for (const id of trofeosNuevos({
       jefeCaido: d.jefeCaido, puertitaAbierta: !!d.asedio && puedeAbordar(d.asedio), reyCaido: !!d.asedio?.reyCaido,
-      victoria: !!d.victoria || !!d.asedio?.ganado, nidoCaido: !!d.nido?.caido,
+      victoria: (!!d.victoria && d.meta?.modo !== 'corta') || !!d.asedio?.ganado, nidoCaido: !!d.nido?.caido,
     }, crece().vistos)) if (ganarTrofeo(crece().trofeos, id, d.oleadas)) nuevos.push(id);
     return nuevos;
   }

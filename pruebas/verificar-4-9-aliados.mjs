@@ -441,7 +441,8 @@ const obraRota = (x, z, vida = 20) => ({ datos: { x, y: 0, z, vida }, plano: { i
   ok(m.log.notas.some(([t, s]) => /Martín toca el silbato/.test(t) && /1 travieso/.test(s)), 'el aviso dice cuántos');
   // huye para el otro lado de la vía
   const rumbo = m.mundo.rumboDeHuida(t1, 0.5);
-  ok(Math.cos(rumbo) < 0, 'corre alejándose de la vía (hacia -z)');
+  // 4.10.1: la base (en el origen) queda entre la vía y el travieso: ya no corre hacia ella; de costado (antes: «hacia -z», o sea a la base)
+  ok(-Math.cos(rumbo) < 0.05 && Math.abs(Math.sin(rumbo)) > 0.9, 'corre de costado: ni hacia la vía ni hacia la base');
   ok(t1.huyeT === V.MARTIN[1].dispersa - 0.5, 'y el tiempo corre');
   ok(m.mundo.rumboDeHuida(t2, 0.5) === null, 'el que no huye no tiene rumbo de huida');
   // con una sola pasada por noche de efecto, la segunda vuelta no dispersa (nivel 1)
