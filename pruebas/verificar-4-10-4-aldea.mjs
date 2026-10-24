@@ -1,8 +1,9 @@
 // 4.10.4 — vida social y económica de la aldea (zona S2): EJECUTA la charla de Amadeo, las cifras del negocio, el alquiler, la cantina y la panadera con la aldea real.
+//   S2-2 las cifras de «ayer» de un negocio tuyo son lo acreditado a la caja, y el aviso de gestión sale
 //   S2-1 el mostrador del banco respeta el horario   S2-6 «Tiene N casas en alquiler» cuenta casas
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import { A, G, crearMundo, E } from './ayuda-npc-mundo.mjs';
+import { A, G, V, NV, NVJ, crearMundo, E } from './ayuda-npc-mundo.mjs';
 
 let pasos = 0;
 const ok = (c, t) => { pasos++; assert.ok(c, t); };
@@ -47,6 +48,41 @@ const nuevaAG = (W, extra = {}) => G.crearAldeaGente({ progreso: () => W.P, gent
   W.P.dia = 6; W.P.horas = 17;
   const rs = AG.charla(npc);
   ok(!salon || rs.id !== 'aldea-gerente', 'el sábado de baile a las 17 el mostrador no abre');
+}
+// ---------------------------------------------------------------- S2-2: las cuentas de ayer de un negocio tuyo
+{
+  const W = crearMundo({ amigos: false, hora: 10, dia: 40 });
+  const P = W.P; P.economia.pesos = 900000;
+  const ids = ['panaderia', 'herreria', 'pescaderia'];
+  for (const id of ids) { const N = NV.NEGOCIOS[id]; for (let i = 0; i < 60 && V.puntosAmistad(N.vecino, P) < 200; i++) V.cambiarAmistad(P, N.vecino, 20, 1); (P.vecindad.personas[N.vecino] ||= {}).hist = 9; }
+  const J = NVJ.crearNegociosVecinosJuego({ progreso: () => P, desafio: () => false, nota() {}, guardar() {}, refrescarBarra() {}, sonido: () => ({ anotar() {} }), liberarEmpleado: () => false });
+  for (const id of ids) NV.comprar(P, id, J.contexto(id));
+  eq(NV.tusNegocios(P).length, 3, 'se compraron los tres negocios');
+  for (let d = 41; d <= 47; d++) { P.dia = d; NV.pasarDia(P, d); }
+  const e = NV.leerNegociosVecinos(P);
+  const num = (t) => Number(t.replace(/[^0-9]/g, ''));
+  let distintas = 0;
+  for (const id of NV.tusNegocios(P)) {
+    const n = e.comprados[id], N = NV.NEGOCIOS[id];
+    const base = NV.gananciaDelDia(id, P.dia - 1);
+    if (base.neto !== n.ultimo.neto) distintas++;
+    const r = J.elegir({ clave: N.vecino }, 'negocios:cuentas');
+    const t = r.renglones[0], numeros = (t.match(/\$\s?[\d.]+/g) || []).map(num);
+    ok(numeros.includes(n.ultimo.neto) && numeros.includes(n.ultimo.ventas), `${id}: dice lo que entró (ventas ${n.ultimo.ventas}, neto ${n.ultimo.neto}) y dijo: ${t.slice(0, 90)}`);
+    if (base.neto !== n.ultimo.neto) ok(!numeros.includes(base.neto) || base.neto === n.ultimo.ventas, `${id}: no dice la cifra de la fórmula base (${base.neto})`);
+  }
+  ok(distintas >= 1, 'el caso de prueba tiene al menos un negocio donde lo acreditado difiere de la fórmula base');
+  // el aviso de «hace N días que no pasabas» sale en la charla (antes visitar() lo dejaba en cero)
+  const W2 = crearMundo({ amigos: false, hora: 10, dia: 40 });
+  const Q = W2.P; Q.economia.pesos = 900000;
+  const N2 = NV.NEGOCIOS.herreria; for (let i = 0; i < 60 && V.puntosAmistad(N2.vecino, Q) < 200; i++) V.cambiarAmistad(Q, N2.vecino, 20, 1); (Q.vecindad.personas[N2.vecino] ||= {}).hist = 9;
+  const J2 = NVJ.crearNegociosVecinosJuego({ progreso: () => Q, desafio: () => false, nota() {}, guardar() {}, refrescarBarra() {}, sonido: () => ({ anotar() {} }), liberarEmpleado: () => false });
+  NV.comprar(Q, 'herreria', J2.contexto('herreria'));
+  for (let d = 41; d <= 50; d++) { Q.dia = d; NV.pasarDia(Q, d); }
+  const r2 = J2.elegir({ clave: N2.vecino }, 'negocios:cuentas');
+  ok(r2.renglones.some((t) => /días que no pasabas/.test(t)), 'la charla avisa cuántos días hace que no pasabas: ' + r2.renglones.join(' | ').slice(0, 200));
+  const r3 = J2.elegir({ clave: N2.vecino }, 'negocios:cuentas');
+  ok(!r3.renglones.some((t) => /días que no pasabas/.test(t)), 'y ya no cuando acabás de pasar');
 }
 // ---------------------------------------------------------------- S2-6: cuántas casas en alquiler
 {
