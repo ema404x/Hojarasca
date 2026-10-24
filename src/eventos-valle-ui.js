@@ -95,6 +95,7 @@ export function crearEventosValleUi(ctx, tarjetas) {
         case 'horas': pasarHoras(Math.max(0, Number(f.n) || 0)); break;
         case 'lena': p.humedadLena = f.mojada ? 1 : 0; dichos.push(f.mojada ? 'La leña que llevás se mojó' : 'La leña quedó seca'); break;
         case 'helada': if (!ctx.helarHuerta?.()) dichos.push('Heló, pero no había nada sembrado afuera'); break;
+        case 'tapar': ctx.taparHuerta?.(); break;   // 4.10.2
         case 'voltear': {
           const r = voltear();
           if (r) {

@@ -14,6 +14,7 @@ import { premioDe, tengoDe, efectoDe, nombreCosa } from './pedidos.js';
 export const BANCO = {
   tasa: 0.02, tasaAtraso: 0.03, plazoMin: 3, plazoMax: 12, topes: [3000, 6000, 10000, 15000], nivelesRep: [0, 2, 5, 10],
   montoMin: 500, paso: 500, primaBase: 1.25, primaPorNivel: 0.05, ventana: 2,
+  topeDeuda: 2,   // 4.10.2: con el préstamo vencido el interés compuesto deja de crecer cuando la deuda llega al doble de lo pedido (antes: hasta $10.000.000 y el alquiler no alcanzaba ni para el interés)
 };
 export const GERENTE = 'Amadeo Lezcano';
 
@@ -81,7 +82,8 @@ export function pasarDiaBanco(p, dia) {
   if (dia > pr.hasta) {
     if (pr.tasa < BANCO.tasaAtraso) { pr.tasa = BANCO.tasaAtraso; b.atrasos++; b.rep = Math.max(0, b.rep - 1); b.sinConfianza = true; }
   }
-  pr.debe = Math.min(1e7, Math.ceil(pr.debe * (1 + pr.tasa)));
+  const tope = Math.max(pr.debe, Math.ceil((Number(pr.monto) || 0) * BANCO.topeDeuda));   // (una deuda que ya pasó el tope no se achica sola, pero tampoco crece)
+  pr.debe = Math.min(1e7, tope, Math.ceil(pr.debe * (1 + pr.tasa)));
 }
 // Con el préstamo vencido, lo que entra solo (el alquiler) paga primero la deuda: devuelve cuánto se aplicó
 export function abonarAlMoroso(p, dia, monto) {

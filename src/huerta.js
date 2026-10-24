@@ -166,6 +166,19 @@ export function helarHuerta(huerta, dia, protegido = () => false) {
   return n;
 }
 
+// 4.10.2: tapar los canteros con tablas y paja antes de una helada (evento del valle): la helada de esta noche —la que cae al cambiar el día a
+// `dia + 1`— no los toca. Se marca como ya helados ese día (lo que mira `helarHuerta`). Devuelve cuántos canteros quedaron tapados.
+export function taparHuerta(huerta, dia) {
+  let n = 0;
+  for (const p of Object.values(huerta || {})) {
+    const c = p && CULTIVOS[p.cultivo];
+    if (!c || RESISTE_HELADA.includes(p.cultivo) || diasCrecido(p, dia) >= c.dias) continue;
+    p.ultimaHelada = dia + 1;
+    n++;
+  }
+  return n;
+}
+
 export function cosechar(huerta, clave, dia) {
   const p = huerta[clave];
   if (!p) return { ok: false, motivo: 'vacio' };

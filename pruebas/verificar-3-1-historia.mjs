@@ -176,7 +176,7 @@ const progresoBase = () => ({ dia: 1, horas: 9, entradas: {}, cosas: {}, materia
 // ---------------------------------------------------------------- 5. los eventos
 assert.ok(E.EVENTOS_VALLE.length >= 10 && E.EVENTOS_VALLE.length <= 12, `10 a 12 eventos (${E.EVENTOS_VALLE.length})`);
 assert.equal(new Set(E.EVENTOS_VALLE.map((e) => e.id)).size, E.EVENTOS_VALLE.length);
-const TIPOS = ['dar', 'gratitud', 'horas', 'lena', 'helada', 'voltear', 'cosa', 'visita', 'poblador'];
+const TIPOS = ['dar', 'gratitud', 'horas', 'lena', 'helada', 'tapar', 'voltear', 'cosa', 'visita', 'poblador'];
 const QUIENES = ['ramon', 'nicanor', 'ema', 'ercilia', 'guarda'];
 const COSAS_ITEM = new Set(TRUEQUES.map((t) => t.id));
 function revisarEfectos(donde, efectos) {

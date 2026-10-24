@@ -33,6 +33,7 @@ export const nombreVecinoEvento = (k) => (Object.hasOwn(QUIEN, k) ? QUIEN[k] : k
 //   { tipo: 'horas', n }                el tiempo que te lleva
 //   { tipo: 'lena', mojada: true }      la leña que llevás se moja (o se salva)
 //   { tipo: 'helada' }                  la huerta de afuera se hiela
+//   { tipo: 'tapar' }                   4.10.2: los canteros de afuera quedan tapados: la helada de esta noche no los toca
 //   { tipo: 'voltear' }                 el viento voltea una pieza chica tuya
 //   { tipo: 'cosa', id, sino }          una cosa nueva (o, si ya la tenés, `sino`)
 //   { tipo: 'visita', quien }           el vecino viene a tu mesa esa tarde (si hay mesa puesta)
@@ -195,7 +196,7 @@ export const EVENTOS_VALLE = [
     texto: 'El aire está quieto y demasiado limpio, y el sol se fue temprano detrás del cerro. Esta noche va a helar fuerte. Lo sembrado afuera, en los canteros, no lo va a pasar bien.',
     cuando: (s) => s.sembrados >= 1 && !!s.pronostico?.helada, repite: 10,
     opciones: [
-      { id: 'tapar', texto: 'Tapar los canteros con tablas y paja', detalle: 'Dos tablas', pide: { materiales: { tabla: 2 } }, efectos: [],
+      { id: 'tapar', texto: 'Tapar los canteros con tablas y paja', detalle: 'Dos tablas', pide: { materiales: { tabla: 2 } }, efectos: [{ tipo: 'tapar' }],   // 4.10.2: antes no marcaba nada y la helada de la noche caía igual
         diario: 'Tapé los canteros con tablas y paja antes de la helada. Mañana veremos.',
         luego: [{ dias: 1, id: 's-helada-salvada' }] },
       { id: 'dejar', texto: 'Dejarlos: lo que es de la tierra, que aguante', detalle: 'La huerta se hiela', efectos: [{ tipo: 'helada' }],
@@ -210,7 +211,7 @@ export const EVENTO_VALLE = Object.fromEntries(EVENTOS_VALLE.map((e) => [e.id, e
 export const SEGUIMIENTOS = {
   's-tobillo-cana': { titulo: 'Nicanor ya camina', hora: 15, texto: 'Nicanor ya anda, con un bastón de colihue, y te dejó un paquete: «Para que no digas que no agradezco». Adentro hay moscas atadas a mano, de las suyas, de las que no le da a nadie. Y avisó que esta tarde pasa por tu mesa.',
     efectos: [{ tipo: 'cosa', id: 'mosca', sino: { cuenta: { yerba: 6 }, texto: 'Nicanor te dejó yerba' } }, { tipo: 'visita', quien: 'nicanor' }] },
-  's-tobillo-truchas': { titulo: 'Truchas en la puerta', texto: 'A la mañana encontraste dos truchas envueltas en hojas de nalca en el escalón. No hace falta preguntar de quién son.',
+  's-tobillo-truchas': { titulo: 'Un paquete en la puerta', texto: 'A la mañana encontraste en el escalón un paquete envuelto en hojas de nalca: yerba y un atado de ramitas para el fuego. No hace falta preguntar de quién es.',   // 4.10.2: antes prometía dos truchas y daba yerba y ramitas
     efectos: [{ tipo: 'dar', premio: { cuenta: { yerba: 4 }, ramitas: 4, texto: 'Nicanor te dejó yerba y un atado de ramitas' } }] },
   's-tobillo-ema': { titulo: 'Un esguince, nada más', texto: 'Josefina pasó a contarte: era un esguince y Nicanor ya anda rengueando y protestando, que es buena señal. «Hiciste bien en venir a buscarme», dijo.',
     efectos: [] },
@@ -251,7 +252,7 @@ export const SEGUIMIENTOS = {
   's-huemul-alambre': { titulo: 'Sacaron el alambrado', texto: 'Los guardaparques sacaron el alambrado viejo entero. Josefina te contó que el huemul volvió al bosque sin problema.',
     efectos: [] },
   's-derrumbe-ramal': { titulo: 'Carta del ramal', texto: 'La administración del ramal te mandó unas líneas de agradecimiento con el tren, y unos durmientes viejos que ya no sirven para la vía pero sí para una casa.',
-    efectos: [{ tipo: 'dar', premio: { materiales: { tabla: 6 }, texto: 'Seis tablas de durmiente' } }] },
+    efectos: [{ tipo: 'dar', premio: { materiales: { tabla: 6 }, texto: 'Seis tablas de durmiente' } }, { tipo: 'gratitud', quien: 'guarda', n: 2 }] },   // 4.10.2: el derrumbe es la única fuente de gratitud de Elsa (+1) y el regalo pide 3: con la carta suma 3
   's-almacen-harina': { titulo: 'Ercilia volvió de Esquel', hora: 15, texto: 'Ercilia volvió en el tren con bolsas y novedades. Revisó el cuaderno de fiado, asintió, y te mandó harina y yerba: «Esto no es pago. Es de vecina». Dice que a la tarde pasa por tu casa a contarte lo de Esquel.',
     efectos: [{ tipo: 'dar', premio: { cuenta: { harina: 4, yerba: 4 }, texto: 'Harina y yerba de Ercilia' } }, { tipo: 'visita', quien: 'ercilia' }] },
   's-helada-salvada': { titulo: 'Amaneció blanco', texto: 'Heló fuerte: el pasto crujía y el balde era un bloque. Pero debajo de las tablas los canteros estaban verdes y enteros.',
