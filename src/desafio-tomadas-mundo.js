@@ -41,7 +41,7 @@ export function crearTomadasMundo(T, escena, a) {
     for (const z of zonasTomadasDelValle(v)) {
       let hay = lista.filter((c) => c.zona === z.id).length;
       for (; hay < nidosDeZona(z); hay++) {
-        const p = lugarNidoDeZona(z, lista, esBueno, azarDe(d.semilla, nocheQueViene(), `nido-${z.id}-${hay}`));
+        const p = lugarNidoDeZona(z, lista, esBueno, azarDe(d.semilla, nocheQueViene(), `nido-${z.id}-${hay}`), a.nidoLibre);   // 4.10.3 (V5): sin árbol ni piedra adentro, si se puede
         if (p) lista.push({ x: p.x, z: p.z, golpes: 0, zona: z.id });
       }
     }
@@ -241,7 +241,7 @@ export function crearTomadasMundo(T, escena, a) {
     if (!v || v.cerrado) for (const s of sitios.values()) s.g.visible = false;
   }
   function limpiar() {
-    for (const s of sitios.values()) { escena.remove(s.g); s.tinte.geometry.dispose(); s.bruma.geometry.dispose(); s.hongos.geometry.dispose(); }
+    for (const s of sitios.values()) { escena.remove(s.g); s.tinte.geometry.dispose(); s.bruma.geometry.dispose(); s.hongos.geometry.dispose(); for (const m of [s.tinte, s.bruma, s.hongos]) m.material.dispose(); }   // 4.10.3 (V9): y los tres materiales (se crean de nuevo cada vez)
     sitios.clear();
   }
 

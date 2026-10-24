@@ -104,10 +104,18 @@ export function mallaFuego(tipo) {
     g.add(vidrio);
   }
   const suelo = charco(tipo === 'fogon' ? 4.2 : 2.8);   // el brillo del fogón llega a 4,2 m; el del farol, a 2,8 m
-  const brillo = new THREE.Mesh(suelo.g, matBrillo);
+  // 4.10.3 (V2): un material de brillo por fuego (era uno para los cuatro y la última fase pisaba a las otras: pulsaban todos igual)
+  const brillo = new THREE.Mesh(suelo.g, matBrillo.clone());
   brillo.frustumCulled = false;   // (su alto cambia con el terreno cada vez que se prende)
   g.add(llama, fina, brillo);
-  return { g, llama, fina, brillo, tipo, ajustar: suelo.ajustar };
+  // 4.10.3 (V2): el titileo se aplica sobre la escala con la que se armó cada llama (la del farol es 0,32 y el update la pisaba con 1: la llama salía 3,6 veces más grande
+  // que su caja de vidrio). El fogón conserva lo que se veía (escala 1).
+  const base = tipo === 'fogon' ? 1 : 0.32;
+  const titilar = (t) => {
+    llama.scale.set(base * (1 + Math.sin(t) * 0.07), base * (1 + Math.sin(t * 1.7 + 1) * 0.18), base * (1 + Math.cos(t * 1.3) * 0.07));
+    fina.scale.y = base * (1 + Math.sin(t * 2.3) * 0.22);
+  };
+  return { g, llama, fina, brillo, tipo, ajustar: suelo.ajustar, titilar };
 }
 
 

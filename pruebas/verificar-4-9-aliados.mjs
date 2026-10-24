@@ -256,7 +256,7 @@ function mundoDeMentira(opciones = {}) {
     },
   };
   const piezas = {
-    fuego: (tipo) => ({ g: { position: vec(0, 0, 0), visible: true }, llama: { scale: { set() {}, y: 1 } }, fina: { scale: { y: 1 } }, brillo: { material: { opacity: 0.2 } }, tipo }),
+    fuego: (tipo) => ({ g: { position: vec(0, 0, 0), visible: true }, llama: { scale: { set() {}, y: 1 } }, fina: { scale: { y: 1 } }, brillo: { material: { opacity: 0.2 } }, tipo, titilar() {} }),
     martillo: () => ({ martillo: true }),
   };
   const T = { riel: Array.from({ length: 1000 }, (_, i) => ({ x: i - 500, z: opciones.viaZ ?? 80, s: i })), agua: () => null };

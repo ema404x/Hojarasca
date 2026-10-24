@@ -553,6 +553,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
   const tomadas = crearTomadasMundo(T, escena, {
     D, centroBase: () => centroBase(), obraEnPunto: (x, y, z) => obraEnPunto(x, y, z), nota: (t, s, n) => ctx.nota(t, s, n), rumboTexto: (a, b) => rumboTexto(a, b),
     jugador: () => ctx.jugador(), guardar: () => ctx.guardar(), sumarMaterial: (k, n) => ctx.sumarMaterial(k, n), sincronizarCapullos: () => sincronizarCapullos(),
+    nidoLibre: (x, z) => !trabadoEn(x, z, NIDO_RADIO) && parejoEn(x, z, NIDO_RADIO * 0.8, 0.45),   // 4.10.3 (V5): como el nido común
   });
   api.alEmpezarAsedio = () => tomadas.cerrar();
   const blancosDelValle = eventos.blancos, herirDelValle = eventos.herirNucleo;
@@ -2429,6 +2430,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       a.t += dt;
       // 3.5.1: el volador o el saltador que mueren en el aire caen (antes se disolvían flotando)
       { const s = T.altura(p.x, p.z); if (p.y > s + 0.05) p.y = Math.max(s, p.y - dt * 9); }
+      if (a.m.placas?.visible) a.m.placas.visible = false;   // 4.10.3 (V3): las placas no se quedan paradas en el aire mientras cae
       a.m.caer(a.t);
       if (a.t > 0.9) a.m.disolver(Math.min(1, (a.t - 0.9) / 1.4));
       if (a.t > 2.4) return 'fuera';
@@ -2439,6 +2441,7 @@ export function crearDesafio(T, escena, camara, col, obras, sonido, ctx) {
       p.y += dt * (3 + a.t * 4);
       g.rotation.y += dt * 4;
       g.scale.setScalar(Math.max(0.05, 1 - a.t * 0.35));
+      if (a.m.placas?.visible) a.m.placas.visible = false;   // 4.10.3 (V3)
       a.m.disolver(Math.min(1, a.t / 2.6));
       if (a.t > 2.6) return 'fuera';
       return;

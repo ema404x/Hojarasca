@@ -9,7 +9,7 @@ import { lam } from './vida.js';
 import { LIMITE } from './config.js';
 import { NOCHE_FINAL, HORA_ATAQUE, esHoraDeAtaque, dificultad } from './desafio-reglas.js';
 import { azarDe } from './semilla.js';
-import { armarCoihueViejo, animarCoihue, piesCoihue, geoAmbar, herramientasCoihue, COIHUE } from './desafio-coihue-formas.js';
+import { armarCoihueViejo, animarCoihue, calzarPatasCoihue, piesCoihue, geoAmbar, herramientasCoihue, COIHUE } from './desafio-coihue-formas.js';
 import { registrarLuz } from './luces.js';
 import { ASEDIO, ZONAS_ASEDIO, defZona, asedioNuevo, asedioActivo, zonasLibres, capasEscudo, puedeAbordar, danarAncla, elegirContraataque, desgastarBaliza, cerrarNocheAsedio, tocaGuardia, guardianesDe, ganarAsedio, textoAsedio, marcasAsedio, ubicarZonas, ubicarNave } from './desafio-asedio.js';
 
@@ -822,6 +822,7 @@ export function crearAsedioMundo(T, escena, efectos, sonido, api) {
         n.g.rotation.y = n.giro;
         const pasoC = actualizarCamino(dt, js, n, a, dia);
         animarCoihue(n, n.t, Math.max(Math.min(1, llegada * 5), pasoC));
+        calzarPatasCoihue(n, T.altura, px, pz, n.giro);   // 4.10.3 (V6): las patas apoyan en el terreno
         if (llegada <= 0 && !vis.zancada && !raicesPuestas) ponerRaices(n, a);
         else if (vis.zancada && raicesPuestas) sacarRaices();
         const capas = capasEscudo(a);

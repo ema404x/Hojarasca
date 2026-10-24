@@ -241,3 +241,21 @@ export function textoEstado(p, id) {
   if (e === 0) return `${PUESTOS_RUTA[id].nombre}: abandonado`;
   return `${PUESTOS_RUTA[id].nombre}: reparándose (${e} de ${ETAPAS_TOTAL})`;
 }
+// 4.10.3 (G-1): donde no se funda una obra tuya: la casilla, el depósito y el fogón de cada puesto de ruta (7,5 m, lo mismo que se despeja
+// de árboles), el andén del Riel Sur (un círculo de 6 m) y cada recurso de zona (la veta, el juncal, las hierbas, la arcilla; su radio de E
+// más 1,5 m). Antes `revisarSitio` no los conocía y una herrería fundada en el centro del puesto tapaba la puerta y encerraba a quien dormía.
+// `extras`: { anden: {x, z} | null, recursos: [{ x, z, radio, nombre }] }. Devuelve el aviso, o null si el sitio está libre.
+export const RADIO_RESERVA_PUESTO = 7.5;
+export function reservaDeRuta(x, z, radio = 1, extras = {}) {
+  const r = Number.isFinite(radio) ? radio : 1;
+  for (const id of IDS_PUESTOS) {
+    const p = PUESTOS_RUTA[id].pos;
+    if (Math.hypot(p.x - x, p.z - z) < RADIO_RESERVA_PUESTO + r) return `Muy cerca de ${PUESTOS_RUTA[id].el}: ahí no se construye`;
+  }
+  const a = extras.anden;
+  if (a && Number.isFinite(a.x) && Number.isFinite(a.z) && Math.hypot(a.x - x, a.z - z) < 6 + r) return 'Muy cerca del andén: ahí no se construye';
+  for (const q of extras.recursos || []) {
+    if (q && Number.isFinite(q.x) && Number.isFinite(q.z) && Math.hypot(q.x - x, q.z - z) < (q.radio || 3) + 1.5 + r) return `Muy cerca de ${String(q.nombre || 'un recurso').toLowerCase()}: dejá el paso libre`;
+  }
+  return null;
+}

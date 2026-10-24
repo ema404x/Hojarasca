@@ -27,31 +27,49 @@ export function crearEvolucionMundo(efectos, sonido, api) {
     const borde = new THREE.Color(A.borde);
     return (mats[clase] = new THREE.MeshLambertMaterial({ color: A.placa, emissive: borde, emissiveIntensity: 0.28 }));
   };
+  // 4.10.3 (V3): las cinco placas de un duende, fundidas en UNA malla (antes eran cinco `Mesh` sueltas por duende adaptado: hasta ~190 dibujos de más en la noche más cargada).
+  // La forma sólo depende del radio y la altura del modelo (unos diez), así que la geometría se arma una vez por modelo y se comparte.
+  const ANGULOS_PLACA = [0, 1, 2, 3, 4].map((i) => (i / 5) * Math.PI * 2 + 0.3);
+  const geoPlacasDe = new Map();
+  function placasFundidas(radio, altura) {
+    const clave = `${radio.toFixed(3)}|${altura.toFixed(3)}`;
+    let geo = geoPlacasDe.get(clave);
+    if (geo) return geo;
+    const r = radio * 0.6, esc = Math.max(0.3, Math.min(1.2, altura / 1.6));
+    const origen = geoPlaca.attributes.position, normales = geoPlaca.attributes.normal, indice = geoPlaca.index;
+    const pos = [], nor = [], idx = [];
+    const v = new THREE.Vector3(), q = new THREE.Quaternion(), m = new THREE.Matrix4();
+    ANGULOS_PLACA.forEach((ang, i) => {
+      const alto = i % 2 ? 0.36 : 0.47;   // 3.8.0: el torso del duende queda más abajo (arriba es todo gorro)
+      q.setFromEuler(new THREE.Euler(-0.15, ang, alto > 0.6 ? 0.2 : -0.2));
+      m.compose(new THREE.Vector3(Math.sin(ang) * r, altura * alto, Math.cos(ang) * r), q, new THREE.Vector3(esc, esc, esc));
+      const base = pos.length / 3;
+      for (let k = 0; k < origen.count; k++) {
+        v.fromBufferAttribute(origen, k).applyMatrix4(m); pos.push(v.x, v.y, v.z);
+        v.fromBufferAttribute(normales, k).applyQuaternion(q); nor.push(v.x, v.y, v.z);
+      }
+      for (let k = 0; k < indice.count; k++) idx.push(base + indice.getX(k));
+    });
+    geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setIndex(idx);
+    geo.computeBoundingSphere();
+    geoPlacasDe.set(clave, geo);
+    return geo;
+  }
   function ponerPlacas(a, clase) {
     let g = a.m.placas;
+    // (3.8.0: los duendes son chiquitos: la costra va pegada al cuerpo y en proporción)
+    const geo = placasFundidas(a.def.radio || 0.5, a.def.altura || 1.6);
     if (!g) {
-      g = new THREE.Group();
+      g = new THREE.Mesh(geo, matDe(clase));
       g.name = 'placas-adaptado';
-      for (let i = 0; i < 5; i++) {
-        const m = new THREE.Mesh(geoPlaca, matDe(clase));
-        const ang = (i / 5) * Math.PI * 2 + 0.3;
-        m.userData.ang = ang;
-        m.userData.alto = i % 2 ? 0.36 : 0.47;   // 3.8.0: el torso del duende queda más abajo (arriba es todo gorro)
-        g.add(m);
-      }
       a.m.g.add(g);
       a.m.placas = g;
     }
-    // 3.8.0: los duendes son chiquitos: la costra va pegada al cuerpo y en proporción
-    const r = a.def.radio * 0.6, h = a.def.altura;
-    const esc = Math.max(0.3, Math.min(1.2, a.def.altura / 1.6));
-    for (const m of g.children) {
-      m.material = matDe(clase);
-      const ang = m.userData.ang;
-      m.position.set(Math.sin(ang) * r, h * m.userData.alto, Math.cos(ang) * r);
-      m.rotation.set(-0.15, ang, (m.userData.alto > 0.6 ? 0.2 : -0.2));
-      m.scale.setScalar(esc);
-    }
+    g.geometry = geo;
+    g.material = matDe(clase);
     g.visible = true;
     // y el borde de la piel, del mismo color (se devuelve al bajar de nuevo)
     const u = a.m.uniformes?.();
@@ -119,6 +137,7 @@ export function crearEvolucionMundo(efectos, sonido, api) {
 
   return {
     alBajar, golpe, alAmanecer, alAtardecer,
+    sacarPlacas,   // 4.10.3 (V3): al morir o irse, las placas se van con él (no quedan paradas en el aire mientras cae y se deshace)
     texto: () => textoAdaptaciones(evo()),
     get estado() { return evo(); },
   };

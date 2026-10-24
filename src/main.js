@@ -46,7 +46,7 @@ import { crearTrochita } from './trochita.js';
 // 4.6 puestos: los puestos de ruta (reglas, lo que se ve y la E)
 import { crearPuestosRutaMundo, apeaderoDelRielSur } from './puestos-ruta-mundo.js';
 import { crearPuestosRutaJuego } from './puestos-ruta-juego.js';
-import { CASA_PUESTO } from './puestos-ruta.js';
+import { CASA_PUESTO, reservaDeRuta } from './puestos-ruta.js';
 import { crearPuestoDeCargas } from './comercio-mundo.js';
 import { renombrarParada } from './comercio.js';
 import { BIENES } from './comercio.js';
@@ -215,7 +215,7 @@ import { crearHuevosMundo } from './huevos-mundo.js';
 import { crearHuevosPortada } from './huevos-portada.js';
 // 4.6 recursos: la veta de la cantera, el juncal y las hierbas del mallín, la barranca de arcilla y los piñones de los pehuenes
 import { crearRecursosZonaMundo } from './recursos-zona-mundo.js';
-import { HERRAMIENTAS_ZONA, venderHerramienta, darHerramienta, puedeComprarHerramienta, PUNTO_ZONA } from './recursos-zona.js';
+import { HERRAMIENTAS_ZONA, venderHerramienta, darHerramienta, puedeComprarHerramienta, PUNTO_ZONA, PUNTOS_ZONA } from './recursos-zona.js';
 import { crearBancoMundo } from './banco-mundo.js';
 import { crearCantinaJuego, lugarDeCasaTe } from './cantina-juego.js';
 import { crearAmbienteCantina } from './cantina-ambiente.js';
@@ -800,6 +800,8 @@ async function construir() {
       try {
         puestosRutaMundo = crearPuestosRutaMundo({ T, escena, grupo: est.grupo, mat: est.mat, col, cartel: est.cartel, sentaderos: est.sentaderos, cubiertas: est.cubiertas, progreso: () => progreso });
         for (const z of puestosRutaMundo.zonas) { veg.despejar(z.x, z.z, z.r); pelarPastoTemporal(z.x, z.z, z.r - 0.5); edificios.push({ x: z.x, z: z.z, radio: z.r + 1, nombre: z.nombre }); }
+        { const anden = t.paradas.find((q) => q.apeadero)?.anden || null;   // 4.10.3 (G-1): ninguna obra tuya sobre los puestos, el andén ni la veta
+          T.reservaRuta = (x, z, radio) => reservaDeRuta(x, z, radio, { anden, recursos: PUNTOS_ZONA }); }
         for (const z of puestosRutaMundo.claros || []) veg.despejar(z.x, z.z, z.r, false);   // 4.6.0: el claro de atrás, sólo árboles
         puestosJuego = crearPuestosRutaJuego({ progreso: () => progreso, desafio: () => !!desafio, mundo: puestosRutaMundo, nota: (tx, sub, nueva) => nota(tx, sub, nueva), guardar: () => guardar(),
           refrescarBarra: () => refrescarBarra(true), sonido, abrirComercio: (parada) => cargas()?.abrir(parada), dormir: (o) => dormir(o), horas: () => progreso.horas, lugarEn: (k, n) => lugarEn(k, n) });   // (4.7 carga: del depósito sale sólo lo que entra)
@@ -4033,7 +4035,7 @@ function revisarMapaLluvia(cam, dt) {
   const moverse = mapaLluvia.lejos(cam.x, cam.z);
   if (!moverse && acumLluvia < 1) return;
   acumLluvia = 0;
-  const firma = (aldeaMundo?.versionCubiertas?.() ?? 0) + '|' + (obras?.firmaCubiertas?.() ?? 0).toFixed(3);
+  const firma = (aldeaMundo?.versionCubiertas?.() ?? 0) + '|' + (obras?.firmaCubiertas?.() ?? 0).toFixed(3) + '|' + (est?.cubiertas?.length ?? 0);   // 4.10.3 (G-10): y los techos de los puestos que se reparan
   if (!moverse && firma === firmaLluvia) return;
   firmaLluvia = firma;
   const lista = [...(est?.cubiertas || [])];

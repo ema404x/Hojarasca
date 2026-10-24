@@ -289,7 +289,7 @@ function mundoDeMentira(opciones = {}) {
   });
   const gente = { armarPobladorDeAPoco(def) { let n = 0; const t = { npc: null, avanzar() { if (++n < 3) return false; t.npc = mkNpc(def); npcs.push(t.npc); return true; } }; return t; } };
   const piezas = {
-    fuego: (tipo) => ({ g: { position: vec(0, 0, 0), visible: true }, llama: { scale: { set() {}, y: 1 } }, fina: { scale: { y: 1 } }, brillo: { material: { opacity: 0.2 } }, tipo }),
+    fuego: (tipo) => ({ g: { position: vec(0, 0, 0), visible: true }, llama: { scale: { set() {}, y: 1 } }, fina: { scale: { y: 1 } }, brillo: { material: { opacity: 0.2 } }, tipo, titilar() {} }),
     martillo: () => ({ martillo: true }),
   };
   const T = { riel: Array.from({ length: 1000 }, (_, i) => ({ x: i - 500, z: 80, s: i })), agua: () => null };
