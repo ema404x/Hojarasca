@@ -190,6 +190,7 @@ PLANOS.push({
   texto: 'Cuatro horcones, techo de dos aguas y los costados abiertos. Para guardar la leña seca y lo que no quiera mojarse.',
   ancho: 4.6, fondo: 3.6, alto: 2.3,
   radio: 4.4,
+  cubreArea: true,   // 4.10.3 (G-5): tiene techo y no cubría de la lluvia
   etapas: [
     {
       nombre: 'Horcones',
@@ -441,6 +442,7 @@ PLANOS.push({
   texto: 'Un cobertizo largo, abierto al frente, con piso alto, pared de reparo y banco de trabajo. Sirve como pequeño taller propio.',
   ancho: 6.2, fondo: 3.8, alto: 2.55,
   radio: 5.6,
+  cubreArea: true,   // 4.10.3 (G-5): ídem
   funciones: ['aserrar'],
   etapas: [
     {
@@ -2743,6 +2745,32 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       Math.abs(o.datos.y - (base + 2.28)) < 0.24);
   }
 
+  // 4.10.3 (G-2): ¿hay algo del mundo (la pared, el cerco o el mostrador de un edificio del valle) adentro de la huella de la pieza? No cuentan los
+  // árboles y rocas (van aparte), ni lo que armaste vos (eso lo mira C9), ni lo que está por debajo del piso de la pieza.
+  let vegChoques = null, vegChoquesN = -1;
+  function edificioDelMundoEnHuella(x, z, plano, rot, base) {
+    const hw = (plano.ancho || plano.radio * 1.5) / 2 - 0.15, hd = (plano.fondo || plano.radio * 1.5) / 2 - 0.15;
+    if (!(hw > 0.1 && hd > 0.1)) return false;
+    const lv = veg?.colisiones;
+    if (typeof col.cercanos !== 'function') return false;
+    if (Array.isArray(lv) && (!vegChoques || vegChoquesN !== lv.length)) { vegChoques = new Set(lv); vegChoquesN = lv.length; }
+    const c = Math.cos(rot), sn = Math.sin(rot);
+    const dentro = (px, pz) => { const dx = px - x, dz = pz - z; return Math.abs(dx * c - dz * sn) < hw && Math.abs(dx * sn + dz * c) < hd; };
+    const vistos = new Set();
+    for (const lx of [-hw, 0, hw]) for (const lz of [-hd, 0, hd]) {
+      const q = mundoDesdeLocal(x, z, rot, lx, lz);
+      for (const o of col.cercanos(q.x, q.z)) {
+        if (vistos.has(o)) continue;
+        vistos.add(o);
+        if (o.duenio || o.despejado || o.apagado || vegChoques?.has(o) || (Number.isFinite(o.alturaMax) && o.alturaMax <= base + 0.1)) continue;
+        if (!o.seg) { if (dentro(o.x, o.z)) return true; continue; }
+        const largo = Math.hypot(o.bx - o.ax, o.bz - o.az), n = Math.min(60, Math.max(1, Math.ceil(largo / 0.4)));
+        for (let i = 0; i <= n; i++) if (dentro(o.ax + (o.bx - o.ax) * i / n, o.az + (o.bz - o.az) * i / n)) return true;
+      }
+    }
+    return false;
+  }
+
   // ¿se puede fundar acá? La revisión usa la huella real y la rotación del
   // plano. La versión anterior muestreaba siempre un cuadrado fijo de 6x7 m,
   // por lo que una pieza chica y un cobertizo grande recibían la misma prueba.
@@ -2757,6 +2785,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // 4.0.3 (I-1): ni encima de la casa decorativa del molino, su campo de tulipanes ni el cauce de su arroyo (sólo el Relax; ver main.js). Las obras que ya había ahí no se mudan.
     const reservaMolino = typeof T.reservaMolino === 'function' ? T.reservaMolino(x, z, plano.radio || 1) : null;
     if (reservaMolino) return { ok: false, motivo: reservaMolino };
+    // 4.10.3 (G-1): ni encima de un puesto de ruta, del andén del Riel Sur ni de un recurso de zona (la veta): la obra tapaba la puerta y encerraba. Sólo el Relax (ver main.js).
+    const reservaRuta = typeof T.reservaRuta === 'function' ? T.reservaRuta(x, z, plano.radio || 1) : null;
+    if (reservaRuta) return { ok: false, motivo: reservaRuta };
     // 3.8.6: un plano con tope (`maximo`: el hoyo para frutal, tantos como frutales lleva la granja): el de más se armaba,
     // costaba su tronco y quedaba muerto, sin aviso ni E
     if (Number.isFinite(plano.maximo) && obras.filter((o) => o !== ignorarObra && o.plano.id === plano.id).length >= plano.maximo) return { ok: false, motivo: plano.motivoMaximo || `Ya tenés ${plano.maximo}: no entran más` };
@@ -2863,6 +2894,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
       // tuyo, como siempre.
       if (typeof T.interiorFijo === 'function' && muestras.some((q) => T.interiorFijo(q.x, q.z)) && !pisoPropioEn(x, z, soporteReal, ignorarObra))
         return { ok: false, motivo: 'Adentro de un edificio del valle no se construye' };
+      // 4.10.3 (G-2): ni pisando la pared, el cerco o el mostrador de uno (el círculo de arriba es sólo el interior: la herrería entraba a 6 m del almacén con diez choques adentro)
+      if (plano.ocupaSuelo && !sobrePlataforma && edificioDelMundoEnHuella(x, z, plano, rot, base)) return { ok: false, motivo: 'Se superpone con un edificio del valle' };
       for (const o of obras) {
         if (o === ignorarObra || o.datos.etapas <= 0) continue;
         const d = Math.hypot(o.datos.x - x, o.datos.z - z);
@@ -2870,6 +2903,9 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
         // 4.4.2 (C9): las piezas grandes de la 4.2 (oficios, locales, depósitos, establo, fuente…) no se fundan una sobre otra: ni en el suelo ni sobre el piso de la otra
         // (un depósito chico entraba «arriba» del piso de la barraca)
         if (plano.ocupaSuelo && o.plano.ocupaSuelo && (Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z)) - T.altura(o.datos.x, o.datos.z) <= 0.15 &&
+            solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Se superpone con otra pieza' };
+        // 4.10.3 (G-2): lo mismo si la que ya está es de las grandes y la nueva (una ampliación, una huerta, un aljibe) no la tiene a ella como piso: pisaba 1 a 2,4 m una herrería o un local
+        if (!sobrePlataforma && !plano.cubreOtras && o.plano.ocupaSuelo && !solapePermitido(plano, o.plano) && (Number.isFinite(o.datos.y) ? o.datos.y : T.altura(o.datos.x, o.datos.z)) - T.altura(o.datos.x, o.datos.z) <= 0.15 &&
             solapanHuellas(plano, x, z, rot, o.plano, o.datos.x, o.datos.z, o.datos.rot || 0, 0.1)) return { ok: false, motivo: 'Se superpone con otra pieza' };
         // Una pared o mueble colocado sobre un piso modular puede solaparse en
         // planta con ese soporte: la altura de base ya demuestra que está encima.
@@ -2896,6 +2932,8 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
           return { ok: false, motivo: 'Se superpone con otra pieza' };
         }
       }
+      // 4.10.3 (G-4): una pieza grande que ocupa el suelo (un oficio, un local, un depósito) no se apoya en el piso de otro (el muelle, la galería de un edificio del valle): sólo en uno tuyo
+      if (plano.ocupaSuelo && sobrePlataforma && !pisoPropioEn(x, z, soporteReal, ignorarObra)) return { ok: false, motivo: 'Una construcción así necesita suelo firme: no se apoya en el piso de otro' };
       return { ok: true, base, sobrePlataforma };
     }
 
@@ -2997,7 +3035,20 @@ export function crearConstruccion(T, escena, col, veg, interacciones = null) {
     // Si una pieza está apoyada en un piso construido no toca la vegetación del
     // terreno de abajo. Para el resto se despeja según la huella real.
     if (plano.pieza && datos.y > T.altura(datos.x, datos.z) + 0.12) return;
-    veg.despejar(datos.x, datos.z, plano.pieza ? Math.max(0.8, plano.radio * 0.72) : plano.radio + 1.5);
+    const despeje0 = plano.pieza ? Math.max(0.8, plano.radio * 0.72) : plano.radio + 1.5;
+    veg.despejar(datos.x, datos.z, despeje0);
+    // 4.10.3 (G-3): y, en las piezas grandes (las que ocupan el suelo), toda la huella (el despeje de arriba es un círculo desde el centro: los troncos de las esquinas de una herrería o un local quedaban adentro,
+    // atravesando el piso y el techo). Sólo los puntos de la huella que el círculo no cubre.
+    if (plano.pieza && plano.ocupaSuelo) {
+      const hw = (plano.ancho || plano.radio * 1.5) / 2, hd = (plano.fondo || plano.radio * 1.5) / 2;
+      const nx = Math.max(1, Math.ceil(hw * 2 / 1.4)), nz = Math.max(1, Math.ceil(hd * 2 / 1.4));
+      for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
+        const lx = -hw + hw * 2 * i / nx, lz = -hd + hd * 2 * j / nz;
+        if (Math.hypot(lx, lz) <= despeje0) continue;
+        const q = mundoDesdeLocal(datos.x, datos.z, datos.rot || 0, lx, lz);
+        veg.despejar(q.x, q.z, 1.0);
+      }
+    }
     // 4.9 defensas: lo que la pieza ocupa lejos de su centro (la boca de afuera del pasadizo) se despeja igual
     for (const e of plano.despejaExtra || []) { const q = mundoDesdeLocal(datos.x, datos.z, datos.rot || 0, e.lx, e.lz); veg.despejar(q.x, q.z, e.r); }
   }
